@@ -5,6 +5,21 @@ import { 意匠の字の測り方 } from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 
 import { parseCssRules } from "../../scripts/theme-css-equivalence-core.mjs";
+import { THEME_ROLE_TABLE_BASELINE } from "../../tests/helpers/theme-role-table-final";
+import {
+  CATALOG_THEME_FORBIDDEN_RULES,
+  CARRYOVER_SELECTOR_FRAGMENTS,
+  COMMON_PALETTE_SCOPE,
+  COMMON_THEME_RULE_SOURCE,
+  exactThemeTableSelector,
+  FIXED_THEME_NAME_SELECTOR,
+  MIGRATED_RULE_CONTRACT_SELECTORS,
+  NAMED_DIAGRAM_RULE,
+  NAMED_PALETTE_CAPTURE,
+  THEME_ROLE_TABLE_CARRYOVER_RULES,
+  THEME_ROLE_TABLE_CONTRACT_SELECTORS,
+} from "./theme-role-table-contract-data";
+import { readThemeRoleTable } from "./theme-role-table-test-helpers";
 
 const root = process.cwd();
 const cssPath = resolve(root, "apps/playground-spa/src/styles/cdl-theme.css");
@@ -27,6 +42,7 @@ const fixedThemes = [
 const colorOnlyThemes = ["kinari", "celadon"] as const;
 const themes = [...fixedThemes, ...colorOnlyThemes] as const;
 const excludedFromCommonRules = ["site-colours", "kinari", "celadon"] as const;
+const paletteNames = ["site-colours", ...themes] as const;
 
 const fixedThemeRoles = [
   "--dragon-theme-ground",
@@ -392,7 +408,6 @@ function exactRule(source: string): { selector: string; body: string } {
 }
 
 function directStyleValues(source: string): string[] {
-  const fixedThemeName = new RegExp(`\\[data-cdl-palette="(?:${fixedThemes.join("|")})"\\]`);
   const colorProperty = /^(?:fill|stroke|color|background(?:-color)?|border(?:-[a-z]+)?-color|outline-color|text-decoration-color)$/i;
   const colorRole = /(?:^|-)(?:fill|stroke|color|ink|ground|face|frame|text|mark|main|link|own|accent|backdrop)$/i;
   const widthOrCornerProperty = /(?:^|-)(?:width|radius|rx|ry|r)$/i;
@@ -400,7 +415,7 @@ function directStyleValues(source: string): string[] {
   const direct: string[] = [];
 
   for (const rule of flatRules(source)) {
-    if (!fixedThemeName.test(rule.selector)) continue;
+    if (!FIXED_THEME_NAME_SELECTOR.test(rule.selector)) continue;
     for (const match of withoutComments(rule.body).matchAll(/(^|;)\s*([a-z-]+)\s*:\s*([^;]+)/gi)) {
       const property = match[2]!.trim();
       const value = match[3]!.replace(/\s*!important\s*$/i, "").trim();
@@ -422,21 +437,12 @@ function directStyleValues(source: string): string[] {
 }
 
 function tableDeclarations(theme: typeof themes[number]): Map<string, string> {
-  const selector = `svg[data-cdl-stage][data-cdl-palette="${theme}"]`;
-  const blocks = flatRules(css).filter(({ selector: actual }) => {
-    const value = normalized(actual);
-    return value === selector || value === `html.dark ${selector}`;
-  });
-  const result = new Map<string, string>();
-  for (const block of blocks) {
-    for (const [name, value] of declarations(block.body)) result.set(name, value);
-  }
-  return result;
+  return readThemeRoleTable(css, theme).light;
 }
 
 function fixedTableRules(): CssRule[] {
   return flatRules(css).filter(({ selector, body }) =>
-    fixedThemes.some((theme) => normalized(selector) === `svg[data-cdl-stage][data-cdl-palette="${theme}"]`) &&
+    fixedThemes.some((theme) => normalized(selector) === exactThemeTableSelector(theme)) &&
     body.includes("--dragon-theme-ground:"));
 }
 
@@ -515,6 +521,137 @@ function nestedQualifiedRuleCount(source: string): number {
 }
 
 describe("意匠の値表と共通規則の契約 (#2874)", () => {
+  it("図表と段札の書き方だけの決まりを契約に集める", () => {
+    const rules = flatRules(css);
+    const numeric = rules.filter(({ selector, body }) =>
+      selector.includes(MIGRATED_RULE_CONTRACT_SELECTORS.chartNumericRole) &&
+      /font-family\s*:\s*var\(--dragon-chart-value-font\)/u.test(body));
+    expect(numeric).toHaveLength(1);
+    expect(numeric[0]?.body).not.toContain("!important");
+
+    const bulkNameFont = rules.filter(({ selector, body }) =>
+      selector.includes(MIGRATED_RULE_CONTRACT_SELECTORS.nonTerminalPalette) &&
+      body.includes("--dragon-chart-name-font"));
+    expect(bulkNameFont).toEqual([]);
+
+    const figureFrames = rules.filter(({ selector, body }) =>
+      selector.includes(MIGRATED_RULE_CONTRACT_SELECTORS.figureHead) &&
+      selector.includes(MIGRATED_RULE_CONTRACT_SELECTORS.figureFrame) &&
+      body.includes("--dragon-chart-frame-effect"));
+    expect(figureFrames).toHaveLength(1);
+    expect(figureFrames[0]?.selector).not.toContain(MIGRATED_RULE_CONTRACT_SELECTORS.figureTitle);
+    expect(figureFrames[0]?.body).not.toMatch(/(?:^|;)\s*(?:width|height|transform)\s*:/mu);
+
+    const stageCards = rules.filter(({ selector, body }) =>
+      selector.includes(MIGRATED_RULE_CONTRACT_SELECTORS.stageCard) &&
+      (selector.includes(MIGRATED_RULE_CONTRACT_SELECTORS.stageColumn) ||
+        selector.includes(MIGRATED_RULE_CONTRACT_SELECTORS.timelineAxis)) &&
+      body.includes("--dragon-stage-detail-card-frame-width"));
+    expect(stageCards.length).toBeGreaterThan(0);
+    for (const rule of stageCards) expect(rule.selector).not.toContain("data-cdl-active");
+
+    const endpoints = rules.filter(({ selector, body }) =>
+      selector.includes(MIGRATED_RULE_CONTRACT_SELECTORS.lineEndpoint) &&
+      body.includes("font-size: 22px"));
+    expect(endpoints).toHaveLength(1);
+    expect(endpoints[0]?.selector).not.toContain(
+      MIGRATED_RULE_CONTRACT_SELECTORS.forbiddenEndpointCoordinate,
+    );
+  });
+
+  it("画面配色の線札は標準 role 規則だけで対比に効く値を決める", () => {
+    const relevant = /(?:^|;)\s*(?:fill|font-size|font-weight|font-family|opacity|fill-opacity|all)\s*:/mu;
+    const selectors = [
+      MIGRATED_RULE_CONTRACT_SELECTORS.edgeLabel,
+      MIGRATED_RULE_CONTRACT_SELECTORS.edgeLabelBackground,
+    ];
+    const base = flatRules(css).filter(({ selector, body }) =>
+      selectors.includes(normalized(selector) as typeof selectors[number]) && relevant.test(body));
+    expect(base).toHaveLength(2);
+    for (const { body } of base) {
+      expect(body).not.toMatch(/(?:^|;)\s*(?:opacity|fill-opacity|all)\s*:/mu);
+      for (const match of body.matchAll(/(?:^|;)\s*(?:fill|font-size|font-weight|font-family)\s*:\s*([^;]+)/gmu)) {
+        expect(match[1], body).toContain("!important");
+      }
+    }
+    expect(css).not.toMatch(/--cdl-label-text\s*:/u);
+  });
+
+  it("属性値の文字で札と棒を選ばない", () => {
+    expect(THEME_ROLE_TABLE_CONTRACT_SELECTORS.forbiddenAttributeSelectors.length).toBeGreaterThan(0);
+    for (const selector of THEME_ROLE_TABLE_CONTRACT_SELECTORS.forbiddenAttributeSelectors) {
+      expect(css).not.toContain(selector);
+    }
+  });
+
+  it("図表の座標と描画側の寸法を上書きする規則を置かない", () => {
+    const rules = flatRules(css);
+    expect(
+      rules.filter(({ selector }) => CATALOG_THEME_FORBIDDEN_RULES.coordinateAttribute.test(selector)),
+    ).toEqual([]);
+    for (const selectorPart of CATALOG_THEME_FORBIDDEN_RULES.figureRoleSelectors) {
+      expect(
+        rules.filter(({ selector, body }) =>
+          selector.includes(selectorPart) && /display\s*:\s*none/u.test(body)),
+        selectorPart,
+      ).toEqual([]);
+    }
+    expect(
+      rules.filter(({ selector }) => selector.includes(CATALOG_THEME_FORBIDDEN_RULES.slopeText)),
+    ).toEqual([]);
+    expect(
+      rules.filter(({ selector, body }) =>
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.reliefPalette) &&
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.reliefJourney) &&
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.journeyStep) &&
+        body.includes("font-size")),
+    ).toEqual([]);
+    expect(
+      rules.filter(({ selector, body }) =>
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.stageName) &&
+        /font-(?:size|weight)\s*:/u.test(body)),
+    ).toEqual([]);
+    expect(
+      rules.filter(({ selector, body }) =>
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.neonPalette) &&
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.neonPieSlice) &&
+        /stroke\s*:\s*none\s*!important/u.test(body)),
+    ).toEqual([]);
+    expect(
+      rules.filter(({ selector, body }) =>
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.lineLabel) && body.includes("translateY")),
+    ).toEqual([]);
+    expect(
+      rules.filter(({ selector, body }) =>
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.metroRouting) &&
+        selector.includes(CATALOG_THEME_FORBIDDEN_RULES.metroLegend) &&
+        body.includes("transform")),
+    ).toEqual([]);
+    for (const fragment of CATALOG_THEME_FORBIDDEN_RULES.forbiddenSourceFragments) {
+      expect(css, fragment).not.toContain(fragment);
+    }
+  });
+
+  it("箱の枠の濃さは表の役を読む規則 1 件だけから当てる", () => {
+    const readers = flatRules(css).filter(({ selector, body }) =>
+      selector.includes(THEME_ROLE_TABLE_CONTRACT_SELECTORS.boxFrame) &&
+      /stroke-opacity\s*:\s*var\(--dragon-theme-box-frame-opacity\)\s*!important\b/.test(body));
+    expect(readers).toHaveLength(1);
+  });
+
+  it("時間軸の役を fallback なしで読む規則は役を持つ 7 意匠だけに当たる", () => {
+    const readers = flatRules(css).filter(({ body }) =>
+      /var\(--theme-timeline-[a-z0-9-]+\)/i.test(body));
+    expect(readers.length).toBeGreaterThan(0);
+    for (const { selector } of readers) {
+      expect(
+        normalized(selector).startsWith(`${THEME_ROLE_TABLE_CONTRACT_SELECTORS.fixedTimelineStage} `) ||
+          normalized(selector).startsWith(`${THEME_ROLE_TABLE_CONTRACT_SELECTORS.carryoverTimelineStage} `),
+        selector,
+      ).toBe(true);
+    }
+  });
+
   it("9 意匠の表は宣言した役を全て持ち、不足は 0 件", () => {
     const missing: string[] = [];
     for (const theme of themes) {
@@ -532,7 +669,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
 
   it("共通規則が読む役は対象 7 意匠の全表に在り、不足は 0 件", () => {
     const readers = [...flatRules(css), ...flatRules(motionCss)].filter(({ selector, body }) =>
-      /\[data-cdl-palette\]:not\(\s*:where\(/.test(selector) &&
+      COMMON_PALETTE_SCOPE.test(selector) &&
       /var\(--(?:dragon-(?:theme|flow|running-dot|stage|timeline|gantt|funnel|schedule|chart)|theme-stage)-[a-z0-9-]+/i.test(body));
     const roles = new Set(
       readers.flatMap(({ body }) =>
@@ -542,10 +679,15 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     const missing: string[] = [];
     for (const rule of readers) {
       const where = /:where\(([^)]*)\)/.exec(rule.selector)?.[1] ?? "";
-      const excluded = [...where.matchAll(/\[data-cdl-palette="([^"]+)"\]/g)].map((match) => match[1]!);
-      expect([...new Set(excluded)].sort(), normalized(rule.selector)).toEqual(
-        [...excludedFromCommonRules].sort(),
+      const excluded = [...where.matchAll(NAMED_PALETTE_CAPTURE)].map((match) => match[1]!);
+      const actualExclusions = [...new Set(excluded)].sort();
+      expect(actualExclusions, normalized(rule.selector)).toEqual(
+        expect.arrayContaining([...excludedFromCommonRules]),
       );
+      expect(
+        actualExclusions.filter((theme) => !paletteNames.includes(theme as typeof paletteNames[number])),
+        normalized(rule.selector),
+      ).toEqual([]);
     }
     for (const theme of fixedThemes) {
       const table = tableDeclarations(theme);
@@ -625,23 +767,21 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect([...declared].filter((role) => !read.has(role))).toEqual([]);
   });
 
-  it("共通規則は外す 3 配色を除き意匠名を 0 件持つ", () => {
-    const commonRuleSource = String.raw`svg\[data-cdl-stage\]\[data-cdl-palette\]:not\(\s*:where\(\s*\[data-cdl-palette="site-colours"\],\s*\[data-cdl-palette="kinari"\],\s*\[data-cdl-palette="celadon"\]\s*\)\s*\)`;
+  it("共通規則は外す配色を除き意匠名を 0 件持つ", () => {
     const rules = [...flatRules(css), ...flatRules(motionCss)]
-      .filter(({ selector }) => new RegExp(commonRuleSource).test(selector));
+      .filter(({ selector }) => new RegExp(COMMON_THEME_RULE_SOURCE).test(selector));
     const named = rules.flatMap(({ selector }) => {
-      const withoutExclusions = selector.replace(new RegExp(commonRuleSource, "g"), "");
-      return [...withoutExclusions.matchAll(/\[data-cdl-palette="([^"]+)"\]/g)].map((match) => match[1]!);
+      const withoutExclusions = selector.replace(new RegExp(COMMON_THEME_RULE_SOURCE, "g"), "");
+      return [...withoutExclusions.matchAll(NAMED_PALETTE_CAPTURE)].map((match) => match[1]!);
     });
     console.log(`共通規則: ${rules.length} 件、意匠名指し: ${named.length} 件`);
     expect(rules.length).toBeGreaterThan(0);
     expect(named).toEqual([]);
   });
 
-  it("図だけの規則 243 件を移動先だけに持ち、移動元 6 節は 0 件", () => {
+  it(`図だけの規則 ${THEME_ROLE_TABLE_BASELINE.namedDiagramOnlyRules} 件を移動先だけに持ち、移動元 6 節は 0 件`, () => {
     const heading = " * 図だけの規則\n";
     expect(css.split(heading)).toHaveLength(2);
-    const namedDiagramRule = /data-cdl-diagram="|data-cdl-node="[^"]*-chart"/;
     const diagramRules = parseCssRules(
       sectionAfter(heading.trimEnd()),
       "diagram-only-section",
@@ -673,13 +813,15 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       ).rules,
     ];
 
-    expect(diagramRules).toHaveLength(246);
-    expect(diagramRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(243);
-    expect(firstSourceRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(0);
-    expect(secondSourceRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(0);
-    expect(deliverySourceRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(0);
+    expect(diagramRules).toHaveLength(THEME_ROLE_TABLE_BASELINE.diagramOnlyRules);
+    expect(diagramRules.filter(({ selector }) => NAMED_DIAGRAM_RULE.test(selector))).toHaveLength(
+      THEME_ROLE_TABLE_BASELINE.namedDiagramOnlyRules,
+    );
+    expect(firstSourceRules.filter(({ selector }) => NAMED_DIAGRAM_RULE.test(selector))).toHaveLength(0);
+    expect(secondSourceRules.filter(({ selector }) => NAMED_DIAGRAM_RULE.test(selector))).toHaveLength(0);
+    expect(deliverySourceRules.filter(({ selector }) => NAMED_DIAGRAM_RULE.test(selector))).toHaveLength(0);
     for (const sourceRules of chartSourceRules) {
-      expect(sourceRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(0);
+      expect(sourceRules.filter(({ selector }) => NAMED_DIAGRAM_RULE.test(selector))).toHaveLength(0);
     }
 
     const firstHeadingAt = css.indexOf(" * 見本帳の階層図とマインドマップ (#2854 6a)");
@@ -689,182 +831,15 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(diagramHeadingAt).toBeGreaterThan(secondHeadingAt);
   });
 
-  it("持ち越し 41 件を同じ選択子と宣言で持ち、危険な規則は基準 41 件を超えない", () => {
+  it(`持ち越し ${THEME_ROLE_TABLE_BASELINE.carryoverMarkers} 件を同じ選択子と宣言で持ち、危険な規則は基準を超えない`, () => {
     const carryoverMarkers = css.match(/\/\* 持ち越しの目印:/g) ?? [];
-    expect(carryoverMarkers).toHaveLength(41);
+    expect(carryoverMarkers).toHaveLength(THEME_ROLE_TABLE_BASELINE.carryoverMarkers);
 
     const actual = flatRules(css).map((rule) => ({
       selector: normalized(rule.selector),
       body: normalized(rule.body),
     }));
-    const expected = [
-      `[data-cdl-role="edge-arrowhead"]:is(
-        [data-cdl-edge-head="triangle"],
-        [data-cdl-edge-head="diamond"],
-        [data-cdl-edge-head="open"],
-        :not([data-cdl-edge-head])
-      ) { transform: scale(2); transform-origin: 9px 5px; }`,
-      `[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="crow"] {
-        transform: scale(2); transform-origin: 10px 5px;
-      }`,
-      `[data-cdl-role="edge-glow"] { display: none !important; }`,
-      `svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
-        transform: scale(1.2142857143, 1.3571428571); transform-origin: 9px 5px;
-      }`,
-      `svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
-        transform: scale(1.2142857143, 1.3571428571); transform-origin: 9px 5px;
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"] {
-        fill: var(--er-line) !important; stroke: var(--er-ground) !important;
-        stroke-width: 3.5px; filter: drop-shadow(0 0 6px var(--er-line));
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="28"] {
-        fill: none !important; stroke: var(--er-line) !important; filter: blur(1.2px);
-        animation: running-dot-wave-outer 1.4s linear infinite;
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"] {
-        fill: none !important; stroke: var(--er-line) !important; filter: blur(0.6px);
-        animation: running-dot-wave-inner 1.4s linear infinite -0.7s;
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette]
-        [data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]
-        [data-cdl-role="node-kind-icon"] { display: none; }`,
-      `from { opacity: 0; translate: 0 22px; scale: 0.985; }`,
-      `to { translate: 0 0; scale: 1; }`,
-      `svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
-        marker:not([id$="-sm"])
-        > [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="triangle"] {
-        transform: scale(var(--theme-timeline-arrow-scale-x), var(--theme-timeline-arrow-scale-y));
-        transform-origin: 9px 5px;
-      }`,
-      `svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
-        marker[id$="-sm"]
-        > [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="triangle"] {
-        transform: scale(var(--theme-timeline-small-arrow-scale-x), var(--theme-timeline-small-arrow-scale-y));
-        transform-origin: 9px 5px;
-      }`,
-      `svg[data-cdl-stage]:is( [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"] )
-        :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
-        [data-cdl-role="node-body"] { display: none !important; }`,
-      `svg[data-cdl-stage]:is( [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"] )
-        :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
-        [data-cdl-role="figure-title"] { display: none !important; }`,
-      `svg[data-cdl-stage]:is( [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"] )
-        [data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-edge-head"] {
-        transform: translateY(-12.5px);
-      }`,
-      `svg[data-cdl-stage]:is( [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"] )
-        [data-cdl-node="営業所の階層-chart"] { translate: 0 -14px; }`,
-      `svg[data-cdl-stage]:is( [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"] )
-        [data-cdl-node="再配達を減らす-chart"] { translate: 20px -32px; }`,
-      `svg[data-cdl-stage]:is( [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"] )
-        [data-cdl-node="再配達を減らす-chart"]
-        :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) { translate: 0 7px; }`,
-      `svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-node="再配達を減らす-chart"]
-        :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) { translate: 0 0; }`,
-      `svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-node="営業所の階層-chart"]
-        :is([data-cdl-role="tree-node-title"], [data-cdl-role="tree-node-subtitle"]) { translate: 0 3px; }`,
-      `svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-node="再配達を減らす-chart"]
-        :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) { translate: 0 11px; }`,
-      `svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="chart-waffle-item-share"] {
-        transform: translateX(-16px);
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="chart-bar"] [data-cdl-role="chart-bar-label"] {
-        transform: translateY(var(--catalog-bar-label-y));
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="chart-bar"] [data-cdl-role="chart-bar-value"] {
-        transform: translateY(var(--catalog-bar-value-y));
-      }`,
-      `:is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
-        svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-row-glyph"] {
-        rx: var(--dragon-delivery-row-glyph-radius);
-        ry: var(--dragon-delivery-row-glyph-radius);
-        transform-box: fill-box;
-        transform-origin: center;
-        transform: rotate(45deg) !important;
-      }`,
-      `[data-cdl-diagram="delivery-sequence-demo"]
-        svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="sequence-label-mark"] {
-        transform: rotate(45deg) !important;
-      }`,
-      `svg[data-cdl-stage]:is(
-        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
-        [data-cdl-palette="catalog"], [data-cdl-palette="terminal"],
-        [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) [data-cdl-node="営業所の階層-chart"][data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-node"] + rect,
-      svg[data-cdl-stage]:is(
-        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
-        [data-cdl-palette="catalog"], [data-cdl-palette="terminal"],
-        [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) [data-cdl-node="営業所の階層-chart"][data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-edge"] + circle {
-        display: none;
-      }`,
-      `svg[data-cdl-stage]:is(
-        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
-        [data-cdl-palette="catalog"], [data-cdl-palette="terminal"],
-        [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) [data-cdl-kind="journey-map"] :is([data-cdl-role="journey-band"], [data-cdl-role="node-column-divider"]),
-      svg[data-cdl-stage]:is(
-        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
-        [data-cdl-palette="catalog"], [data-cdl-palette="terminal"],
-        [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) [data-cdl-kind="journey-map"] [data-cdl-role="journey-step"] > circle + circle {
-        display: none;
-      }`,
-      `svg[data-cdl-stage]:is(
-        [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"],
-        [data-cdl-palette="terminal"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) [data-cdl-role="gantt-bar-hatch"] { display: none; }`,
-      `svg[data-cdl-stage][data-cdl-palette="blueprint"]
-        :is([data-cdl-role="chart-pie-table-mark"], [data-cdl-role="chart-waffle-item-mark"]) {
-        transform: rotate(45deg);
-      }`,
-      `svg[data-cdl-stage]:is([data-cdl-palette="catalog"], [data-cdl-palette="neon"], [data-cdl-palette="relief"])
-        :is([data-cdl-role="chart-pie-table-rule"], [data-cdl-role="chart-waffle-item-rule"]) {
-        display: none;
-      }`,
-      `svg[data-cdl-stage]:is(
-        [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"],
-        [data-cdl-palette="terminal"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) :is([data-cdl-role="funnel-stage-hatch"], [data-cdl-role="chart-stacked-bar-slice-hatch"]) {
-        display: none;
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="gantt-timeline"] [data-cdl-role="gantt-row"],
-      svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="gantt-timeline"] line:not([data-cdl-role]) {
-        display: none;
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-mark="metro-return-arrow"] {
-        transform: none;
-      }`,
-      `svg[data-cdl-stage]:is(
-        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
-        [data-cdl-palette="catalog"], [data-cdl-palette="sketch"],
-        [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) :is(
-        [data-cdl-role="terminal-window-control"],
-        [data-cdl-role="terminal-cursor"],
-        [data-cdl-role="terminal-row-ordinal"]
-      ) { display: none; }`,
-      `svg[data-cdl-stage]:is(
-        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
-        [data-cdl-palette="catalog"], [data-cdl-palette="sketch"],
-        [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) :is([data-cdl-role="terminal-title-content"], [data-cdl-role="terminal-row-content"]) {
-        transform: none;
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-title-content"] {
-        transform: translateX(68px);
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-row-content"] {
-        transform: translateX(30px);
-      }`,
-      `svg[data-cdl-stage]:not([data-cdl-palette="sketch"]) [data-cdl-corner-variant="handdraw"] {
-        display: none;
-      }`,
-      `svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-corner-variant="uniform"] {
-        display: none;
-      }`,
-    ].map(exactRule);
+    const expected = THEME_ROLE_TABLE_CARRYOVER_RULES.map(exactRule);
     for (const rule of expected) expect(actual).toContainEqual(rule);
 
     // 注釈を除いた全ての宣言 block を 1 規則とする。keyframes の from/to も各 1 規則に含め、
@@ -873,7 +848,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       /(?:^|;)\s*(?:display\s*:\s*none|transform\s*:|translate\s*:)/m.test(body) ||
       /\[(?:r|rx|ry)\s*[*^$|~]?=/i.test(selector));
     expect(risky.length).toBeGreaterThanOrEqual(12);
-    expect(risky.length).toBeLessThanOrEqual(41);
+    expect(risky.length).toBeLessThanOrEqual(THEME_ROLE_TABLE_BASELINE.carryoverMarkers);
   });
 
   it("流れ図と走る丸の意匠名付き規則に直書きの色・太さ・角・影は 0 件", () => {
@@ -973,75 +948,78 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(direct).toEqual([]);
   });
 
-  it("持ち越し 41 件を移しても競合規則との前後関係は変わらない", () => {
+  it(`持ち越し ${THEME_ROLE_TABLE_BASELINE.carryoverMarkers} 件を移しても競合規則との前後関係は変わらない`, () => {
     const rules = flatRules(css);
     const flowTransform = rules.findIndex(({ selector }) =>
-      selector.includes('[data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"]'));
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.flowTransform));
     const globalTransform = rules.findIndex(({ selector }) =>
-      normalized(selector).startsWith('[data-cdl-role="edge-arrowhead"]:is('));
-    const stageTransform = rules.findIndex(({ selector }) => selector.includes('[data-cdl-role="stage-column"]'));
+      normalized(selector).startsWith(CARRYOVER_SELECTOR_FRAGMENTS.globalTransform));
+    const stageTransform = rules.findIndex(({ selector }) =>
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.stageTransform));
     const timelineTransform = rules.findIndex(({ selector }) =>
-      selector.includes('[data-cdl-role="timeline-axis"]') && selector.includes("marker:not("));
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.timeline) &&
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.timelineMarker));
     const timelineSmallTransform = rules.findIndex(({ selector }) =>
-      selector.includes('[data-cdl-role="timeline-axis"]') && selector.includes('marker[id$="-sm"]'));
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.timeline) &&
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.timelineSmallMarker));
     const timelineHiddenIcon = rules.findIndex(({ selector, body }) =>
-      selector.includes('[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]') &&
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.timelineDecision) &&
       body.includes("display: none"));
     const radiusRules = rules.filter(({ selector }) =>
-      /\[data-cdl-role="edge-flow"\] circle\[r="(?:12|18|28)"\]/.test(selector));
+      CARRYOVER_SELECTOR_FRAGMENTS.radiusRule.test(selector));
     const deliveryGlyphTransform = rules.filter(({ selector, body }) =>
-      selector.includes('[data-cdl-diagram="delivery-relations-demo"]') &&
-      selector.includes('[data-cdl-role="node-row-glyph"]') &&
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.deliveryRelations) &&
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.deliveryGlyph) &&
       body.includes("transform: rotate(45deg)"));
     const deliverySequenceTransform = rules.filter(({ selector, body }) =>
-      selector.includes('[data-cdl-diagram="delivery-sequence-demo"]') &&
-      selector.includes('[data-cdl-role="sequence-label-mark"]') &&
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.deliverySequence) &&
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.sequenceMark) &&
       body.includes("transform: rotate(45deg)"));
     const chartCarryovers = [
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-node="営業所の階層-chart"]') &&
-        selector.includes('[data-cdl-role="tree-node"] + rect') &&
-        selector.includes('[data-cdl-role="tree-edge"] + circle') &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.hierarchyNode) &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.hierarchyTreeNode) &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.hierarchyTreeEdge) &&
         body.includes("display: none")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-role="journey-band"]') && body.includes("display: none")),
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.journeyBand) && body.includes("display: none")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-role="gantt-bar-hatch"]') && body.includes("display: none")),
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.ganttHatch) && body.includes("display: none")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-role="chart-pie-table-mark"]') && body.includes("rotate(45deg)")),
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.pieMark) && body.includes("rotate(45deg)")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-role="chart-pie-table-rule"]') && body.includes("display: none")),
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.pieRule) && body.includes("display: none")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-role="funnel-stage-hatch"]') && body.includes("display: none")),
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.funnelHatch) && body.includes("display: none")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-role="gantt-row"]') && body.includes("display: none")),
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.ganttRow) && body.includes("display: none")),
     ];
     const metroReturnTransform = rules.findIndex(({ selector, body }) =>
-      selector.includes('[data-cdl-mark="metro-return-arrow"]') && body.includes("transform: none"));
+      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.metroReturn) && body.includes("transform: none"));
     const metroCarryovers = [
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-role="terminal-window-control"]') &&
-        selector.includes('[data-cdl-role="terminal-row-ordinal"]') &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalControl) &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalOrdinal) &&
         body.includes("display: none")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-role="terminal-title-content"]') &&
-        selector.includes('[data-cdl-role="terminal-row-content"]') &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalTitle) &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalRow) &&
         body.includes("transform: none")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-palette="terminal"]') &&
-        selector.includes('[data-cdl-role="terminal-title-content"]') &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalPalette) &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalTitle) &&
         body.includes("translateX(68px)")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-palette="terminal"]') &&
-        selector.includes('[data-cdl-role="terminal-row-content"]') &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalPalette) &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalRow) &&
         body.includes("translateX(30px)")),
       rules.filter(({ selector, body }) =>
-        selector.includes(':not([data-cdl-palette="sketch"])') &&
-        selector.includes('[data-cdl-corner-variant="handdraw"]') &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.nonSketchPalette) &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.handdrawCorner) &&
         body.includes("display: none")),
       rules.filter(({ selector, body }) =>
-        selector.includes('[data-cdl-palette="sketch"]') &&
-        selector.includes('[data-cdl-corner-variant="uniform"]') &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.sketchPalette) &&
+        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.uniformCorner) &&
         body.includes("display: none")),
     ];
 
@@ -1088,6 +1066,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       "dragon-neon-pink-frame",
       "dragon-relief-raised",
       "dragon-relief-dome",
+      "dragon-relief-well",
       "dragon-relief-raised-sm",
       "dragon-catalog-tree-shadow",
       "dragon-terminal-card-gradient",

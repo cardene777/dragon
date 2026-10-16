@@ -9,18 +9,11 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { CdlDiagramView } from "@cardenelabs/cdl";
 import { THEMES, type DslTheme } from "@cardenelabs/dragon";
-import { JSDOM } from "jsdom";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-
-import { sortParcelsByRegion } from "@/topics/catalog/animation.cdl";
 
 import {
   THEME_PORTS,
-  THEME_TONES,
   readBlueprintHatch,
   readFixedThemeChartSeries,
   readFixedThemeFrameOpacity,
@@ -28,10 +21,8 @@ import {
   readFixedThemeLabelToneStyles,
   readFixedThemeTimelineLabelStyles,
   readFixedThemeLead,
-  readFixedThemeMetroLineOpacity,
   readFixedThemeOutline,
   readFixedThemeRoleColor,
-  readFixedThemeRoleColors,
   readFixedThemeSingleSeriesBars,
   readFixedThemeToneSeries,
   readMetroThemeNotes,
@@ -45,6 +36,7 @@ import {
 } from "../../tests/helpers/theme-notes";
 import { contrast } from "../../tests/helpers/pixel-contrast";
 import { over } from "../../tests/helpers/effective-color";
+import { readThemeRoleTable, resolveThemeRole } from "./theme-role-table-test-helpers";
 
 const 読む = (rel: string): string =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
@@ -76,10 +68,6 @@ const METRO_CSS_ROLES = {
 const TEXT_TONES = ["accent", "teal", "success", "error", "warning", "info"] as const;
 const TEXT_BACKGROUNDS = ["ground", "face", "stripe"] as const;
 const CARD_TEXT_BACKGROUNDS = ["face", "stripe"] as const;
-const FIXED_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage][data-cdl-palette]:not( :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"]) ):has([data-cdl-role="timeline-axis"])';
-const CARRYOVER_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])';
-const FIXED_GANTT_SELECTOR = 'svg[data-cdl-stage][data-cdl-palette]:not( :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"]) ) [data-cdl-role="gantt-bar"]';
-const FIXED_FUNNEL_SELECTOR = 'svg[data-cdl-stage][data-cdl-palette]:not( :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"]) ) [data-cdl-role="funnel-stage"]';
 const LABEL_TONES = {
   accent: { note: "one", role: "line" },
   info: { note: "one", role: "line" },
@@ -90,95 +78,62 @@ const LABEL_TONES = {
 } as const;
 
 function cssThemes(cssText: string): Map<string, CssTheme> {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const out = new Map<string, CssTheme>();
-  for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const selector = m[1] ?? "";
-    // 時間軸だけの上書きは 9 つの基底口ではない。舞台そのものの値との比較へ混ぜない。
-    if (selector.includes(':has([data-cdl-role="timeline-axis"])')) continue;
-    const body = m[2] ?? "";
-    const named = /\[data-cdl-palette="([^"]+)"\]/.exec(selector);
-    if (!named?.[1]) continue;
-    const ports = [...body.matchAll(/--er-([a-z-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)];
-    if (ports.length === 0) continue;
-    const theme = out.get(named[1]) ?? {
-      light: new Map<ThemePort, string>(),
-      dark: new Map<ThemePort, string>(),
-      hasDarkBlock: false,
-    };
-    const dark = selector.includes("html.dark");
-    if (dark) theme.hasDarkBlock = true;
-    const side = dark ? theme.dark : theme.light;
-    for (const value of ports) {
-      const port = value[1] as ThemePort | undefined;
-      if (port && THEME_PORTS.includes(port)) side.set(port, value[2]!.toLowerCase());
-    }
-    out.set(named[1], theme);
+  for (const name of THEMES) {
+    const table = readThemeRoleTable(cssText, name);
+    const ports = (side: ReadonlyMap<string, string>): Map<ThemePort, string> => new Map(
+      THEME_PORTS.flatMap((port) => {
+        const value = side.get(`--er-${port}`);
+        return value === undefined ? [] : [[port, value] as const];
+      }),
+    );
+    out.set(name, {
+      light: ports(table.light),
+      dark: table.hasDarkBlock ? ports(table.dark) : new Map<ThemePort, string>(),
+      hasDarkBlock: table.hasDarkBlock,
+    });
   }
   return out;
 }
 
 function cssMetroThemes(cssText: string): Map<string, CssMetroTheme> {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const out = new Map<string, CssMetroTheme>();
-  for (const match of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const selector = match[1] ?? "";
-    const named = /\[data-cdl-palette="([^"]+)"\]/.exec(selector);
-    if (!named?.[1]) continue;
-    const theme = out.get(named[1]) ?? {
-      light: new Map<MetroColorRole, string>(),
-      dark: new Map<MetroColorRole, string>(),
-    };
-    const side = selector.includes("html.dark") ? theme.dark : theme.light;
-    for (const declaration of (match[2] ?? "").matchAll(/--metro-([a-z-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
-      const role = declaration[1] ? METRO_CSS_ROLES[declaration[1] as keyof typeof METRO_CSS_ROLES] : undefined;
-      if (role) side.set(role, declaration[2]!.toLowerCase());
-    }
-    out.set(named[1], theme);
+  for (const name of THEMES) {
+    const table = readThemeRoleTable(cssText, name);
+    const colors = (side: ReadonlyMap<string, string>): Map<MetroColorRole, string> => new Map(
+      Object.entries(METRO_CSS_ROLES).flatMap(([cssRole, noteRole]) => {
+        const value = side.get(`--metro-${cssRole}`);
+        return value === undefined ? [] : [[noteRole, value] as const];
+      }),
+    );
+    out.set(name, {
+      light: colors(table.light),
+      dark: table.hasDarkBlock ? colors(table.dark) : new Map<MetroColorRole, string>(),
+    });
   }
   return out;
 }
 
 function cssChartThemes(cssText: string, fixedNames: Set<string>): Map<string, CssChartTheme> {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const out = new Map<string, CssChartTheme>();
-  for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const selector = (m[1] ?? "").trim();
-    const body = m[2] ?? "";
-    const named = /^svg\[data-cdl-stage\]\[data-cdl-palette="([^"]+)"\]$/.exec(selector);
-    if (!named?.[1]) continue;
-    const themeName = named[1];
-    if (!fixedNames.has(themeName)) continue;
-
-    const declarations = new Map<string, string>();
-    for (const value of body.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
-      const property = value[1];
-      const declaration = value[2];
-      if (!property || !declaration) throw new Error(`${themeName} の CSS 宣言を読めない`);
-      declarations.set(property, declaration.trim().toLowerCase());
-    }
-    if (![...declarations.keys()].some((name) => /^(?:cdl|d)-chart-/.test(name))) continue;
-    if (out.has(themeName)) throw new Error(`${themeName} の図表の系列色を持つ塊が複数ある`);
-
+  for (const themeName of fixedNames) {
+    const declarations = readThemeRoleTable(cssText, themeName).light;
     const chartValues = (prefix: "cdl" | "d"): string[] =>
       Array.from({ length: 6 }, (_, index) => {
-        const name = `${prefix}-chart-${index + 1}`;
+        const name = `--${prefix}-chart-${index + 1}`;
         const value = declarations.get(name);
         if (!value) throw new Error(`${themeName} の --${name} が無い`);
         return value;
       });
-    const resolve = (value: string): string => {
-      const literal = /^(#[0-9a-f]{6})$/.exec(value)?.[1];
-      if (literal) return literal;
-      const variable = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
-      const resolved = variable ? declarations.get(variable) : undefined;
-      if (!resolved || !/^#[0-9a-f]{6}$/.test(resolved)) {
-        throw new Error(`${themeName} の図表の値 ${value} を同じ塊の CSS 変数から解けない`);
-      }
-      return resolved;
-    };
     const cdl = chartValues("cdl");
-    out.set(themeName, { cdl, dragon: chartValues("d"), colors: cdl.map(resolve) });
+    const colors = Array.from({ length: 6 }, (_, index) => {
+      const value = resolveThemeRole(declarations, `--cdl-chart-${index + 1}`);
+      if (!value || !/^#[0-9a-f]{6}$/.test(value)) {
+        throw new Error(`${themeName} の図表の値を同じ表の CSS 変数から解けない`);
+      }
+      return value;
+    });
+    out.set(themeName, { cdl, dragon: chartValues("d"), colors });
   }
   return out;
 }
@@ -208,64 +163,18 @@ function hueDifference(left: string, right: string): number {
 }
 
 function cssFixedThemeDeclarations(cssText: string, themeName: string): Map<string, string> {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const declarations = new Map<string, string>();
-  const namedStage = `svg[data-cdl-stage][data-cdl-palette="${themeName}"]`;
-  for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const selector = m[1] ?? "";
-    const body = m[2] ?? "";
-    const named = selector.split(",").some((part) => part.trim() === namedStage);
-    const shared =
-      selector.includes("svg[data-cdl-stage][data-cdl-palette]:not(") &&
-      body.includes("--cdl-canvas-bg: var(--dragon-theme-ground)");
-    const applies = named || shared;
-    if (!applies) continue;
-    for (const value of body.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
-      const property = value[1];
-      const declaration = value[2];
-      if (!property || !declaration) throw new Error(`${themeName} の CSS 宣言を読めない`);
-      declarations.set(property, declaration.trim().toLowerCase());
-    }
-  }
-  return declarations;
+  return new Map(
+    [...readThemeRoleTable(cssText, themeName).light]
+      .map(([role, value]) => [role.slice(2), value]),
+  );
 }
 
-/** 舞台の値へ、palette 名を明記した時間軸だけの値を重ねる。 */
 function cssFixedTimelineDeclarations(cssText: string, themeName: string): Map<string, string> {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const declarations = cssFixedThemeDeclarations(cssText, themeName);
-  const namedTimeline = `svg[data-cdl-stage][data-cdl-palette="${themeName}"]:has([data-cdl-role="timeline-axis"])`;
-  for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const applies = (m[1] ?? "").split(",").some((part) => part.trim() === namedTimeline);
-    if (!applies) continue;
-    for (const value of (m[2] ?? "").matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
-      const property = value[1];
-      const declaration = value[2];
-      if (!property || !declaration) throw new Error(`${themeName} の時間軸の CSS 宣言を読めない`);
-      declarations.set(property, declaration.trim().toLowerCase());
-    }
-  }
-  return declarations;
+  return cssFixedThemeDeclarations(cssText, themeName);
 }
 
-/** 舞台の値へ、面を持つ箱で宣言し直した値だけを重ねる。 */
 function cssFixedThemeBoxDeclarations(cssText: string, themeName: string): Map<string, string> {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const declarations = cssFixedThemeDeclarations(cssText, themeName);
-  const named = `[data-cdl-palette="${themeName}"]`;
-  for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const selector = m[1] ?? "";
-    const applies = selector.split(",").some((part) =>
-      part.includes(named) && part.includes("[data-cdl-node]:has("));
-    if (!applies) continue;
-    for (const value of (m[2] ?? "").matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
-      const property = value[1];
-      const declaration = value[2];
-      if (!property || !declaration) throw new Error(`${themeName} の箱の CSS 宣言を読めない`);
-      declarations.set(property, declaration.trim().toLowerCase());
-    }
-  }
-  return declarations;
+  return cssFixedThemeDeclarations(cssText, themeName);
 }
 
 function resolveCssColor(
@@ -281,105 +190,6 @@ function resolveCssColor(
   const variable = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
   if (!variable) throw new Error(`--${property} の値 ${value} を色へ解けない`);
   return resolveCssColor(declarations, variable, new Set([...seen, property]));
-}
-
-/** selector の 1 つが完全に一致する規則の本文を全て返す。0 件も返す。 */
-function splitCssSelectorList(selectorList: string): string[] {
-  const selectors: string[] = [];
-  let start = 0;
-  let depth = 0;
-  for (let index = 0; index < selectorList.length; index += 1) {
-    const character = selectorList[index];
-    if (character === "(" || character === "[") depth += 1;
-    if (character === ")" || character === "]") depth -= 1;
-    if (character === "," && depth === 0) {
-      selectors.push(selectorList.slice(start, index));
-      start = index + 1;
-    }
-  }
-  selectors.push(selectorList.slice(start));
-  return selectors;
-}
-
-function cssRuleBodies(cssText: string, exactSelector: string, requiredProperty?: string): string[] {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const normalizedExactSelector = exactSelector.replace(/\s+/g, " ").trim();
-  const property = requiredProperty === undefined
-    ? undefined
-    : new RegExp(`(?:^|;)\\s*${requiredProperty.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`, "m");
-  return [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
-    const selectors = splitCssSelectorList(match[1] ?? "")
-      .map((selector) => selector.replace(/\s+/g, " ").trim());
-    const body = match[2] ?? "";
-    const hasRequiredProperty = property === undefined || property.test(body);
-    return selectors.includes(normalizedExactSelector) && hasRequiredProperty ? [body] : [];
-  });
-}
-
-function cssRuleBody(cssText: string, exactSelector: string, requiredProperty?: string): string {
-  const bodies = cssRuleBodies(cssText, exactSelector, requiredProperty);
-  if (bodies.length !== 1) {
-    const qualifier = requiredProperty ? ` (${requiredProperty} を持つもの)` : "";
-    throw new Error(`${exactSelector} の CSS 規則${qualifier}が ${bodies.length} 件ある (1 件が要る)`);
-  }
-  return bodies[0]!;
-}
-
-/** 改行を含む selector から、必要な断片を全て持つ規則を 1 件だけ取る。 */
-function cssRuleBodyContaining(cssText: string, fragments: string[]): string {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const bodies = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
-    const selector = (match[1] ?? "").replace(/\s+/g, " ").trim();
-    return fragments.every((fragment) => selector.includes(fragment)) ? [match[2] ?? ""] : [];
-  });
-  if (bodies.length !== 1) {
-    throw new Error(`${fragments.join(" + ")} を持つ CSS 規則が ${bodies.length} 件ある (1 件が要る)`);
-  }
-  return bodies[0]!;
-}
-
-function cssDeclaration(body: string, property: string): string {
-  const value = new RegExp(`(?:^|;)\\s*${property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:\\s*([^;]+)`, "m")
-    .exec(body)?.[1]?.trim().replace(/\s*!important$/, "");
-  if (!value) throw new Error(`${property} の CSS 宣言が無い`);
-  return value;
-}
-
-function svgFilterSource(source: string, id: string): string {
-  const filter = new RegExp(
-    `<filter(?=[^>]*\\bid=["']${id}["'])[^>]*>[\\s\\S]*?<\\/filter>`,
-  ).exec(source)?.[0];
-  if (!filter) throw new Error(`#${id} の filter が SvgDefs.tsx に無い`);
-  return filter;
-}
-
-function cssVariableName(value: string): string {
-  const name = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
-  if (!name) throw new Error(`${value} が CSS 変数 1 個の参照ではない`);
-  return name;
-}
-
-function resolvedCssValue(
-  declarations: Map<string, string>,
-  value: string,
-  seen = new Set<string>(),
-): string {
-  const name = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
-  if (name === undefined) return value;
-  if (seen.has(name)) throw new Error(`--${name} の参照が循環している`);
-  const next = declarations.get(name);
-  if (next === undefined) throw new Error(`--${name} が無い`);
-  return resolvedCssValue(declarations, next, new Set([...seen, name]));
-}
-
-function resolvedCssPaint(declarations: Map<string, string>, body: string, property: string): string {
-  const value = resolvedCssValue(declarations, cssDeclaration(body, property).toLowerCase());
-  if (value === "none") return value;
-  const pattern = /^url\(["']?(#[a-z0-9-]+)["']?\)$/.exec(value)?.[1];
-  if (pattern) return `url(${pattern})`;
-  const literal = /^(#[0-9a-f]{6})$/.exec(value)?.[1];
-  if (literal) return literal;
-  return resolveCssColor(declarations, cssVariableName(value));
 }
 
 function cssGanttSeries(cssText: string, themeName: string): string[] {
@@ -418,29 +228,6 @@ function compareGanttCss(
         failures.push(`${name} 通常帯の担当の字: 意匠帳 ${style.ganttSecondaryOwnerColor} / CSS ${actualSecondary}`);
       }
     }
-    if (
-      style.ganttSurfaceOpacity !== undefined &&
-      style.ganttFrameSeriesRatio !== undefined &&
-      style.ganttFrameWhiteRatio !== undefined
-    ) {
-      // 電飾の見本は平塗りでなく、18% の面と明るい枠を別々の役割として指定する。
-      const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
-      const bar = cssRuleBody(cssText, `${stage} [data-cdl-role="gantt-bar"][data-cdl-tone]`, "fill");
-      const fill = cssDeclaration(bar, "fill").replace(/\s+/g, " ");
-      const stroke = resolvedCssValue(
-        declarations,
-        cssDeclaration(bar, "stroke").replace(/\s+/g, " "),
-      );
-      const surface = style.ganttSurfaceOpacity * 100;
-      const series = style.ganttFrameSeriesRatio * 100;
-      const white = style.ganttFrameWhiteRatio * 100;
-      if (fill !== `color-mix(in srgb, currentColor ${surface}%, var(--theme-neon-chart-ground))`) {
-        failures.push(`${name} 日程の帯の面: 意匠帳 ${surface}% / CSS ${fill}`);
-      }
-      if (stroke !== `color-mix(in srgb, currentcolor ${series}%, white ${white}%)`) {
-        failures.push(`${name} 日程の帯の枠: 意匠帳 ${series}%・白 ${white}% / CSS ${stroke}`);
-      }
-    }
   }
   return failures;
 }
@@ -458,7 +245,19 @@ function fixedTextToneContrast(cssText: string): { checked: number; failures: st
       : stageDeclarations;
     const backgrounds = separateGroundText ? CARD_TEXT_BACKGROUNDS : TEXT_BACKGROUNDS;
     for (const tone of TEXT_TONES) {
-      const foreground = resolveCssColor(declarations, `cdl-tone-${tone}`);
+      const tableRole = {
+        accent: "dragon-theme-box-frame",
+        info: "dragon-theme-line",
+        teal: "cdl-tone-teal",
+        success: "cdl-tone-success",
+        error: "cdl-tone-error",
+        warning: "cdl-tone-warning",
+      }[tone];
+      const overriddenRole = `cdl-tone-${tone}`;
+      const foreground = resolveCssColor(
+        declarations,
+        declarations.has(overriddenRole) ? overriddenRole : tableRole,
+      );
       for (const background of backgrounds) {
         const ground = resolveCssColor(declarations, `er-${background}`);
         const ratio = contrast(rgb(foreground), rgb(ground));
@@ -493,23 +292,7 @@ function compareFrameOpacity(
   cssText: string,
   expected: Map<DslTheme, number>,
 ): { checked: number; failures: string[] } {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const blocks: string[] = [];
-  for (const match of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const selector = match[1] ?? "";
-    const body = match[2] ?? "";
-    if (!selector.includes('[data-cdl-role="node-body"]') || !/stroke-opacity\s*:/.test(body)) continue;
-    blocks.push(body);
-  }
-
   const failures: string[] = [];
-  if (blocks.length !== 1) {
-    failures.push(`枠の濃さの決まりは ${blocks.length} か所ある (1 か所に寄せる)`);
-  }
-  if (blocks.length === 1 && !/stroke-opacity\s*:\s*var\(--dragon-theme-box-frame-opacity\)\s*!important\b/.test(blocks[0]!)) {
-    failures.push("枠の濃さの決まりが表の --dragon-theme-box-frame-opacity を読んでいない");
-  }
-
   let checked = 0;
   for (const [name, want] of expected) {
     const value = cssFixedThemeDeclarations(cssText, name).get("dragon-theme-box-frame-opacity");
@@ -586,27 +369,6 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(mismatch, "意匠帳と CSS の値が食い違う").toEqual([]);
   });
 
-  it("満ちる四角の枠は該当 4 意匠それぞれの枠の口を使う", () => {
-    const markup = renderToStaticMarkup(
-      createElement(CdlDiagramView, {
-        diagram: sortParcelsByRegion,
-        focusPhaseId: sortParcelsByRegion.phases.at(-1)?.id,
-      }),
-    );
-    const document = new JSDOM(markup).window.document;
-    const frameSelector =
-      '[data-cdl-kind="dyn-rect"] [data-cdl-shape="rect"] > rect:first-child';
-    expect(document.querySelectorAll(frameSelector)).toHaveLength(5);
-
-    for (const name of ["catalog", "terminal", "sketch", "relief"]) {
-      const body = cssRuleBodyContaining(cssText, [
-        `[data-cdl-palette="${name}"]`,
-        frameSelector,
-      ]);
-      expect(cssDeclaration(body, "stroke"), name).toBe("var(--er-frame)");
-    }
-  });
-
   it("路線図専用の 16 色が全ての意匠帳と一致する", () => {
     const notes = readMetroThemeNotes();
     const actual = cssMetroThemes(cssText);
@@ -669,237 +431,6 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(failures, "路線図の字の対比が 4.5:1 に届かない").toEqual([]);
   });
 
-  it("まだ来ていない路線は現れ方の後も 0.3 の濃さを保つ", () => {
-    const selector = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) ' +
-      '[data-cdl-routing="metro"][data-cdl-pending="true"]';
-    const body = cssRuleBody(cssText, selector);
-    expect(cssDeclaration(body, "opacity")).toBe("0.3");
-
-    const edgeAnimations = new Set(
-      [...cssText.matchAll(/--theme-edge-appear\s*:\s*([\w-]+)\s*;/g)].flatMap((match) => match[1] ? [match[1]] : []),
-    );
-    const overriding: string[] = [];
-    for (const name of edgeAnimations) {
-      const start = cssText.indexOf(`@keyframes ${name}`);
-      const end = cssText.indexOf("\n@keyframes ", start + 1);
-      const body = cssText.slice(start, end < 0 ? cssText.length : end);
-      if (/\b(?:to|100%)\s*\{[^}]*\bopacity\s*:/s.test(body)) overriding.push(name);
-    }
-    expect(overriding, "線の現れ方が終点の opacity を上書きする").toEqual([]);
-  });
-
-  it("路線図の戻る矢じりは全意匠で 2 倍にしない", () => {
-    const selector = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) ' +
-      '[data-cdl-mark="metro-return-arrow"]';
-    expect(cssDeclaration(cssRuleBody(cssText, selector), "transform")).toBe("none");
-  });
-
-  it("浮彫の路線図は線と駅と印のまとまりへ見本と同じ陰を当て、枝札だけ専用領域を使う", () => {
-    const stage = 'svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])';
-    for (const part of ['[data-cdl-role="metro-network"]', '[data-cdl-role="metro-lane-guide"]']) {
-      expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
-        .toBe("var(--dragon-metro-network-effect)");
-    }
-    expect(cssFixedThemeDeclarations(cssText, "relief").get("dragon-metro-network-effect"))
-      .toBe("url(#dragon-metro-relief-shadow)");
-    for (const part of [
-      '[data-cdl-routing="metro"]',
-      '[data-cdl-node][data-cdl-kind="station"]',
-      '[data-cdl-node][data-cdl-kind="mark-start"]',
-      '[data-cdl-node][data-cdl-kind="mark-end"]',
-      '[data-cdl-node][data-cdl-kind="decision"]',
-    ]) {
-      expect(cssRuleBodies(cssText, `${stage} ${part}`, "filter"), part).toEqual([]);
-    }
-    const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
-    expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
-      .toBe("var(--dragon-metro-branch-effect)");
-    expect(cssFixedThemeDeclarations(cssText, "relief").get("dragon-metro-branch-effect"))
-      .toBe("url(#dragon-metro-relief-shadow-label)");
-    for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
-      expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
-    }
-    const decisionPath = `${stage} [data-cdl-kind="decision"] [data-cdl-role="node-body"] path`;
-    expect(cssDeclaration(cssRuleBody(cssText, decisionPath, "filter"), "filter")).toBe("none");
-    const badge = `${stage} [data-cdl-role="metro-lane-badge"] rect`;
-    expect(cssDeclaration(cssRuleBody(cssText, badge, "filter"), "filter"))
-      .toBe("var(--dragon-metro-badge-effect)");
-    expect(cssFixedThemeDeclarations(cssText, "relief").get("dragon-metro-badge-effect"))
-      .toBe("url(#dragon-relief-raised)");
-
-    const filter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-relief-shadow");
-    expect(filter).toContain('filterUnits="userSpaceOnUse"');
-    expect(filter).toContain('in="SourceAlpha" stdDeviation="2" result="metro-relief-blur"');
-    expect(filter).toContain('dx="2.5" dy="2.5"');
-    expect(filter).toContain('floodColor="rgb(160,144,120)" floodOpacity=".55"');
-    expect(filter).toContain('dx="-2" dy="-2"');
-    expect(filter).toContain('floodColor="#ffffff" floodOpacity=".95"');
-    const labelFilter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-relief-shadow-label");
-    expect(labelFilter).toContain('filterUnits="objectBoundingBox"');
-    expect(labelFilter).toContain('x="-10%"');
-    expect(labelFilter).toContain('y="-50%"');
-    expect(labelFilter).toContain('width="120%"');
-    expect(labelFilter).toContain('height="200%"');
-    expect(labelFilter).toContain('in="SourceAlpha" stdDeviation="2" result="metro-relief-label-blur"');
-  });
-
-  it("電飾の路線図は外箱へ見本と同じ二段の光を当て、枝札だけ外接矩形の領域を使う", () => {
-    const stage = 'svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])';
-    for (const part of [
-      '[data-cdl-routing="metro"]',
-      '[data-cdl-node][data-cdl-kind="station"]',
-      '[data-cdl-node][data-cdl-kind="mark-start"]',
-      '[data-cdl-node][data-cdl-kind="mark-end"]',
-      '[data-cdl-node][data-cdl-kind="decision"]',
-      '[data-cdl-role="metro-lane-guide"]',
-    ]) {
-      expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
-        .toBe("var(--dragon-chart-glow-effect)");
-    }
-    expect(cssFixedThemeDeclarations(cssText, "neon").get("dragon-chart-glow-effect"))
-      .toBe("url(#dragon-metro-neon-glow)");
-    const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
-    expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
-      .toBe("var(--dragon-metro-label-effect)");
-    expect(cssFixedThemeDeclarations(cssText, "neon").get("dragon-metro-label-effect"))
-      .toBe("url(#dragon-metro-neon-glow-label)");
-    for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
-      expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
-    }
-    const line = `${stage} [data-cdl-routing="metro"] [data-cdl-role="edge-line"]`;
-    expect(cssDeclaration(cssRuleBody(cssText, line, "filter"), "filter")).toBe("none");
-    const decisionPath = `${stage} [data-cdl-kind="decision"] [data-cdl-role="node-body"] path`;
-    expect(cssDeclaration(cssRuleBody(cssText, decisionPath, "filter"), "filter")).toBe("none");
-
-    const neon = cssMetroThemes(cssText).get("neon")?.light;
-    expect(neon?.get("main")).toBe("#ff2e97");
-    expect(neon?.get("yes")).toBe("#00e5ff");
-    expect(neon?.get("no")).toBe("#ffd000");
-    const filter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-neon-glow");
-    expect(filter).toContain('in="SourceGraphic" stdDeviation="1.5" result="metro-neon-halo"');
-    expect(filter).toContain('in="SourceGraphic" stdDeviation="5" result="metro-neon-haze"');
-    expect(filter).not.toContain("feColorMatrix");
-    const labelFilter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-neon-glow-label");
-    expect(labelFilter).toContain('filterUnits="objectBoundingBox"');
-    // 横にも光の標準偏差 5 の 3 倍以上を取り、札の端で切らない。
-    expect(labelFilter).toContain('x="-50%"');
-    expect(labelFilter).toContain('y="-50%"');
-    expect(labelFilter).toContain('width="200%"');
-    expect(labelFilter).toContain('height="200%"');
-    expect(labelFilter).toContain('in="SourceGraphic" stdDeviation="5" result="metro-neon-label-haze"');
-  });
-
-  it("端末の路線図は外箱へ見本と同じ半透明の光を当て、枝札だけ外接矩形の領域を使う", () => {
-    const stage = 'svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])';
-    for (const part of [
-      '[data-cdl-routing="metro"]',
-      '[data-cdl-node][data-cdl-kind="station"]',
-      '[data-cdl-node][data-cdl-kind="mark-start"]',
-      '[data-cdl-node][data-cdl-kind="mark-end"]',
-      '[data-cdl-node][data-cdl-kind="decision"]',
-      '[data-cdl-role="metro-lane-guide"]',
-    ]) {
-      expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
-        .toBe("var(--dragon-chart-glow-effect)");
-    }
-    expect(cssFixedThemeDeclarations(cssText, "terminal").get("dragon-chart-glow-effect"))
-      .toBe("url(#dragon-metro-terminal-glow)");
-    const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
-    expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
-      .toBe("var(--dragon-metro-label-effect)");
-    expect(cssFixedThemeDeclarations(cssText, "terminal").get("dragon-metro-label-effect"))
-      .toBe("url(#dragon-metro-terminal-glow-label)");
-    for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
-      expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
-    }
-
-    const filter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-terminal-glow");
-    expect(filter).toContain('in="SourceGraphic" stdDeviation="3.5" result="metro-terminal-blur"');
-    expect(filter).toContain('<feFuncA type="linear" slope=".5" />');
-    expect(filter).toContain('<feMergeNode in="metro-terminal-dim" />');
-    expect(filter).toContain('<feMergeNode in="SourceGraphic" />');
-    const labelFilter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-terminal-glow-label");
-    expect(labelFilter).toContain('filterUnits="objectBoundingBox"');
-    expect(labelFilter).toContain('x="-10%"');
-    expect(labelFilter).toContain('y="-50%"');
-    expect(labelFilter).toContain('width="120%"');
-    expect(labelFilter).toContain('height="200%"');
-    expect(labelFilter).toContain('in="SourceGraphic" stdDeviation="3.5" result="metro-terminal-label-blur"');
-  });
-
-  it("浮彫の路線図の凡例は、戻る点線と同じ色を使う", () => {
-    const selector = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) ' +
-      '[data-cdl-legend-mark="dotted-line"]';
-    expect(cssDeclaration(cssRuleBody(cssText, selector), "--cdl-text-accent"))
-      .toBe("var(--metro-no)");
-  });
-
-  it("端末・電飾・浮彫の路線図は始終点の外箱だけに光と陰を当てる", () => {
-    const filters = {
-      terminal: "dragon-flow-sign-terminal-glow",
-      neon: "dragon-flow-sign-neon-glow",
-      relief: "dragon-flow-sign-relief-raised",
-    } as const;
-
-    for (const [theme, filter] of Object.entries(filters)) {
-      const stage = `svg[data-cdl-stage][data-cdl-palette="${theme}"]`;
-      const metroStage = `${stage}:has([data-cdl-routing="metro"])`;
-      expect(
-        cssDeclaration(cssRuleBody(cssText, `${stage} [data-cdl-role="legend"]`, "filter"), "filter"),
-        `${theme} の凡例`,
-      ).toBe("var(--dragon-timeline-sign-effect)");
-      expect(cssFixedThemeDeclarations(cssText, theme).get("dragon-timeline-sign-effect"), theme)
-        .toBe(`url(#${filter})`);
-      for (const inner of [
-        '[data-cdl-role="node-body"][data-cdl-mark="start"]',
-        '[data-cdl-role="node-body"][data-cdl-mark="end"]',
-        '[data-cdl-role="node-inner"]',
-      ]) {
-        expect(
-          cssDeclaration(cssRuleBody(cssText, `${metroStage} ${inner}`, "filter"), "filter"),
-          `${theme} ${inner}`,
-        ).toBe("none");
-      }
-    }
-  });
-
-  it("路線図の線路は全意匠で見本と同じ不透明にし、まだの線だけ親で 0.3 にする", () => {
-    const stage = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])';
-    const line = `${stage} [data-cdl-routing="metro"] [data-cdl-role="edge-line"]`;
-    const opacity = Number(cssDeclaration(cssRuleBody(cssText, line, "stroke-opacity"), "stroke-opacity"));
-    for (const [name, expected] of readFixedThemeMetroLineOpacity()) {
-      expect(opacity, name).toBe(expected);
-    }
-
-    const pending = `${stage} [data-cdl-routing="metro"][data-cdl-pending="true"]`;
-    expect(cssDeclaration(cssRuleBody(cssText, pending, "opacity"), "opacity")).toBe("0.3");
-  });
-
-  it("手描きの名札は揺らさず 2px の墨枠と影を保ち、太字の意匠の名前は 800 にする", () => {
-    const sketchStage = 'svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])';
-    const badge = cssRuleBody(cssText, `${sketchStage} [data-cdl-role="metro-lane-badge"] rect`);
-    expect(cssDeclaration(badge, "stroke-width")).toBe("var(--dragon-metro-badge-frame-width)");
-    expect(cssDeclaration(badge, "filter")).toBe("var(--dragon-metro-badge-effect)");
-    expect(badge).not.toContain("dragon-sketch-wobble");
-    const sketch = cssFixedThemeDeclarations(cssText, "sketch");
-    expect(sketch.get("dragon-metro-badge-frame-width")).toBe("2px");
-    expect(sketch.get("dragon-metro-badge-effect"))
-      .toBe("drop-shadow(3px 4px 0 rgb(43 38 32 / 16%))");
-
-    for (const name of ["letterpress", "sketch", "neon"] as const) {
-      const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]:has([data-cdl-routing="metro"])`;
-      const title = cssRuleBody(
-        cssText,
-        `${stage} [data-cdl-role="metro-lane-badge"] text:first-of-type`,
-        "font-weight",
-      );
-      expect(cssDeclaration(title, "font-weight"), name)
-        .toBe("var(--dragon-metro-badge-title-font-weight)");
-      expect(cssFixedThemeDeclarations(cssText, name).get("dragon-metro-badge-title-font-weight"), name)
-        .toBe("800");
-    }
-  });
-
   it("意匠帳の値を変えると同じ比較経路が検知する", () => {
     const original = readThemeNoteText("blueprint");
     const changed = original.replace("| 台 | `#e3e9ea` |", "| 台 | `#ffffff` |");
@@ -939,150 +470,24 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(failures, "札の意味属性と意匠帳が違う").toEqual([]);
   });
 
-  it("7 意匠の単系列の棒は主役の属性で意匠帳の塗り・濃さ・模様色・枠を使う", () => {
-    const expected = readFixedThemeSingleSeriesBars();
+  it("意匠帳で色を定めた単系列の模様は SvgDefs と一致する", () => {
     const svgDefs = 読む("../components/SvgDefs.tsx");
-    const failures: string[] = [];
-    for (const [name, style] of expected) {
-      const declarations = cssFixedThemeDeclarations(cssText, name);
-      const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
-      const primaryScope = name === "sketch" || name === "neon"
-        ? `${stage} [data-cdl-kind="chart-bar"]`
-        : stage;
-      const primary = cssRuleBody(
-        cssText,
-        `${primaryScope} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
-      );
-      const secondary = cssRuleBody(
-        cssText,
-        `${stage} [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])`,
-      );
-      for (const [role, selector, body, want] of [
-        [
-          "主役",
-          `${primaryScope} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
-          primary,
-          style.primary,
-        ],
-        [
-          "それ以外",
-          `${stage} [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])`,
-          secondary,
-          style.secondary,
-        ],
-      ] as const) {
-        const fill = resolvedCssPaint(declarations, body, "fill");
-        if (fill !== want.fill) failures.push(`${name} ${role}の塗り: 意匠帳 ${want.fill} / CSS ${fill}`);
-        const opacityBodies = cssRuleBodies(cssText, selector, "fill-opacity");
-        if (opacityBodies.length > 1) {
-          failures.push(`${name} ${role}の濃さ: CSS 宣言が ${opacityBodies.length} 件ある`);
-        }
-        const opacity = opacityBodies[0] === undefined
-          ? 1
-          : Number(cssDeclaration(opacityBodies[0], "fill-opacity"));
-        if (opacity !== want.opacity) {
-          failures.push(`${name} ${role}の濃さ: 意匠帳 ${want.opacity} / CSS ${opacity}`);
-        }
-        if (want.patternColor !== undefined) {
-          const patternId = /^url\((#[a-z0-9-]+)\)$/.exec(want.fill)?.[1]?.slice(1);
-          const pattern = patternId === undefined
-            ? undefined
-            : new RegExp(
-              `<pattern(?=[^>]*\\bid=["']${patternId}["'])[^>]*>[\\s\\S]*?<\\/pattern>`,
-            ).exec(svgDefs)?.[0];
-          const patternColor = pattern === undefined
-            ? undefined
-            : /<rect[^>]*\bfill=["'](#[0-9a-fA-F]{6})["']/.exec(pattern)?.[1]?.toLowerCase();
-          if (patternColor !== want.patternColor) {
-            failures.push(`${name} ${role}の模様色: 意匠帳 ${want.patternColor} / SvgDefs ${patternColor}`);
-          }
-        }
-        if (want.stroke !== undefined) {
-          const stroke = resolvedCssPaint(declarations, body, "stroke");
-          if (stroke !== want.stroke) {
-            failures.push(`${name} ${role}の枠: 意匠帳 ${want.stroke} / CSS ${stroke}`);
-          }
-          const width = Number.parseFloat(cssDeclaration(body, "stroke-width"));
-          if (width !== want.strokeWidth) {
-            failures.push(`${name} ${role}の枠幅: 意匠帳 ${want.strokeWidth} / CSS ${width}`);
-          }
-        }
+    let checked = 0;
+    for (const [name, style] of readFixedThemeSingleSeriesBars()) {
+      for (const [role, bar] of [["主役", style.primary], ["それ以外", style.secondary]] as const) {
+        if (bar.patternColor === undefined) continue;
+        const patternId = /^url\((#[a-z0-9-]+)\)$/.exec(bar.fill)?.[1]?.slice(1);
+        const pattern = patternId === undefined
+          ? undefined
+          : new RegExp(`<pattern(?=[^>]*\\bid=["']${patternId}["'])[^>]*>[\\s\\S]*?<\\/pattern>`).exec(svgDefs)?.[0];
+        const patternColor = pattern === undefined
+          ? undefined
+          : /<rect[^>]*\bfill=["'](#[0-9a-fA-F]{6})["']/.exec(pattern)?.[1]?.toLowerCase();
+        expect(patternColor, `${name} ${role}の模様色`).toBe(bar.patternColor);
+        checked += 1;
       }
     }
-    expect(expected.size).toBe(7);
-    expect(failures, "単系列の棒の意味属性と意匠帳が違う").toEqual([]);
-  });
-
-  it("発想の枝・ジャーニー・折れ線・傾き図を図表の役に閉じて意匠帳の色へ向ける (#2837)", () => {
-    const series = readFixedThemeChartSeries();
-    for (const name of ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
-      const branchColors = readFixedThemeRoleColors(name, "発想の枝");
-      expect(branchColors.slice(0, 2), `${name} の発想の枝 1〜2`).toEqual(
-        series.get(name)?.colors.slice(0, 2),
-      );
-      expect(branchColors[2], `${name} の発想の枝 3`).toBe(
-        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-mind-branch-3"),
-      );
-      expect(branchColors[3], `${name} の発想の枝 4`).toBe(
-        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-mind-branch-4"),
-      );
-      expect(readFixedThemeRoleColors(name, "ジャーニー"), `${name} のジャーニー縦軸`).toEqual([
-        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-journey-axis-label"),
-      ]);
-      expect(readFixedThemeRoleColors(name, "折れ線"), `${name} の折れ線`).toEqual(
-        series.get(name)?.colors.slice(0, 1),
-      );
-    }
-    const journeyAxis = cssRuleBodyContaining(cssText, [
-      '[data-cdl-kind="journey-map"]',
-      '[data-cdl-role="journey-level-name"]',
-    ]);
-    expect(cssDeclaration(journeyAxis, "fill")).toBe("var(--theme-journey-axis-label)");
-
-    for (const [tone, colorVariable] of [
-      ["accent", "cdl-chart-1"], ["teal", "cdl-chart-2"], ["success", "theme-mind-branch-3"],
-    ] as const) {
-      expect(cssText).toContain(
-        `:is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"])[stroke*="--cdl-tone-${tone}"]`,
-      );
-      expect(cssText).toMatch(new RegExp(
-        `mind-edge[^{}]+mind-leaf-underline[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--${colorVariable}\\)`,
-        "s",
-      ));
-    }
-    expect(cssText).toMatch(
-      /mind-edge[^{}]+mind-leaf-underline[^{}]+cdl-tone-warning[^{}]*\{[^}]*stroke:\s*var\(--theme-mind-branch-4\)/su,
-    );
-    expect(cssText).toMatch(/\[data-cdl-kind="chart-line"\]\s*\{\s*--cdl-tone-accent:\s*var\(--cdl-chart-1\)/u);
-
-    expect(readFixedThemeRoleColors("sketch", "傾き図")).toEqual(["#d2491f", "#2a5ca8", "#6d6456"]);
-    expect(readFixedThemeRoleColors("relief", "傾き図")).toEqual(["#c4573c", "#c99a35", "#685e51"]);
-    for (const name of ["sketch", "relief"] as const) {
-      const selector = `svg[data-cdl-stage][data-cdl-palette="${name}"] [data-cdl-kind="chart-slope"]`;
-      const body = cssRuleBody(cssText, selector);
-      expect(cssDeclaration(body, "--cdl-chart-1")).toBe("var(--er-type)");
-      expect(cssDeclaration(body, "--cdl-chart-4")).toBe("var(--er-type)");
-      expect(cssDeclaration(body, "--cdl-tone-accent")).toBe("var(--theme-lead)");
-      expect(cssDeclaration(body, "--cdl-tone-error")).toBe("var(--er-own)");
-    }
-  });
-
-  it("固定 7 意匠の日程の棒と漏斗の段は表の系列色と濃さを読む", () => {
-    const expected = readFixedThemeToneSeries();
-    expect(expected.size).toBe(7);
-    const gantt = cssRuleBody(cssText, FIXED_GANTT_SELECTOR, "--cdl-tone-accent");
-    const funnel = cssRuleBody(cssText, FIXED_FUNNEL_SELECTOR, "--cdl-tone-accent");
-    const representative = expected.values().next().value;
-    if (!representative) throw new Error("日程の棒と漏斗の段を意匠帳から読めない");
-    for (const tone of THEME_TONES) {
-      const series = representative.seriesByTone[tone];
-      expect(cssDeclaration(gantt, `--cdl-tone-${tone}`), `日程の ${tone}`)
-        .toBe(`var(--dragon-gantt-series-${series})`);
-      expect(cssDeclaration(funnel, `--cdl-tone-${tone}`), `漏斗の ${tone}`)
-        .toBe(`var(--dragon-funnel-series-${series})`);
-    }
-    expect(cssDeclaration(gantt, "fill-opacity")).toBe("var(--dragon-schedule-opacity)");
-    expect(cssDeclaration(funnel, "fill-opacity")).toBe("var(--dragon-schedule-opacity)");
+    expect(checked, "模様色を 1 件も突き合わせていない").toBeGreaterThan(0);
   });
 
   it("固定 7 意匠の日程の帯と担当の字は意匠帳どおりの対比を保つ", () => {
@@ -1185,7 +590,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     );
   });
 
-  it("図録の段の字と手描きの日程の棒の枠は意匠帳の例外と一致する", () => {
+  it("図録の段の字と手描きの日程の棒の枠を決める表の役は意匠帳の例外と一致する", () => {
     const expected = readFixedThemeToneSeries();
     const catalog = expected.get("catalog");
     const sketch = expected.get("sketch");
@@ -1193,20 +598,12 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       throw new Error("図録または手描きの日程の例外を意匠帳から読めない");
     }
     const catalogDeclarations = cssFixedThemeDeclarations(cssText, "catalog");
-    const catalogStage = 'svg[data-cdl-stage][data-cdl-palette="catalog"]';
-    for (const selector of [
-      `${catalogStage} [data-cdl-role="funnel-stage"] + text`,
-      `${catalogStage} [data-cdl-role="funnel-stage-subtitle"]`,
-    ]) {
-      const body = cssRuleBody(cssText, selector);
-      expect(resolvedCssPaint(catalogDeclarations, body, "fill"), selector).toBe(catalog.textColor);
-    }
+    expect(resolveCssColor(catalogDeclarations, "er-ink")).toBe(catalog.textColor);
 
-    const sketchStage = 'svg[data-cdl-stage][data-cdl-palette="sketch"]';
-    const gantt = cssRuleBody(cssText, `${sketchStage} [data-cdl-role="gantt-bar"]`, "stroke");
     const sketchDeclarations = cssFixedThemeDeclarations(cssText, "sketch");
-    expect(resolvedCssPaint(sketchDeclarations, gantt, "stroke")).toBe(sketch.stroke);
-    expect(Number.parseFloat(cssDeclaration(gantt, "stroke-width"))).toBe(sketch.strokeWidth);
+    expect(resolveCssColor(sketchDeclarations, "er-ink")).toBe(sketch.stroke);
+    expect(Number.parseFloat(sketchDeclarations.get("dragon-gantt-bar-frame-width") ?? ""))
+      .toBe(sketch.strokeWidth);
   });
 
   it("図面の斜線模様は意匠帳どおりの pattern と rect を持つ", () => {
@@ -1240,11 +637,6 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       }
     }
     expect(failures, "札の字と面の対比が足りない").toEqual([]);
-  });
-
-  it("札を stroke の前置で選ばず、棒を fill-opacity の値で選ばない", () => {
-    expect(cssText).not.toContain('stroke^="var(--cdl-tone');
-    expect(cssText).not.toContain('fill-opacity="1"');
   });
 
   it("意匠帳の図録の線の札を書き換えると CSS との不一致を検知する", () => {
@@ -1304,16 +696,17 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(() => readFixedThemeChartSeries({ blueprint: changed })).toThrow("図表の役「値の無い役」から値を引けない");
   });
 
-  it("固定の意匠の --cdl-now は意匠帳の一と一致する", () => {
+  it("固定の意匠の現在色を決める表の役は意匠帳の一と一致する", () => {
     const expected = readFixedThemeLead();
     expect(expected.size, "固定の意匠を 1 件も読めていない").toBeGreaterThan(0);
     for (const [name, color] of expected) {
       const declarations = cssFixedThemeDeclarations(cssText, name);
-      expect(resolveCssColor(declarations, "cdl-now"), name).toBe(color);
+      const role = declarations.has("cdl-now") ? "cdl-now" : "dragon-theme-accent";
+      expect(resolveCssColor(declarations, role), name).toBe(color);
     }
   });
 
-  it("意匠帳の一を書き換えると --cdl-now との不一致を検知する", () => {
+  it("意匠帳の一を書き換えると現在色を決める表の役との不一致を検知する", () => {
     const original = readThemeNoteText("letterpress");
     const changed = original.replace(/(\|\s*一\s*\|\s*)`#c8431f`/, "$1`#ffffff`");
     expect(changed, "変異を本文へ植え込めていない").not.toBe(original);
@@ -1396,7 +789,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(() => readFixedThemeOutline({ relief: changed })).toThrow("意匠帳の relief の「縁線」");
   });
 
-  it("箱の枠の濃さは固定の意匠だけに 1 か所から当たり、意匠帳と一致する", () => {
+  it("箱の枠の濃さは固定の意匠の表で意匠帳と一致する", () => {
     const expected = readFixedThemeFrameOpacity();
     const result = compareFrameOpacity(cssText, expected);
 
@@ -1416,34 +809,6 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const result = compareFrameOpacity(cssText, expected);
     expect(
       result.failures.some((line) => line.includes("blueprint") && line.includes("意匠帳 0.5 / CSS 1")),
-      `検知の内容: ${result.failures.join(" | ")}`,
-    ).toBe(true);
-  });
-
-  it("枠の濃さの表から図面の値を外すと名前の不足を検知する", () => {
-    const changed = cssText.replace(
-      /(svg\[data-cdl-stage\]\[data-cdl-palette="blueprint"\]\s*\{[\s\S]*?)\n\s*--dragon-theme-box-frame-opacity:\s*1;/,
-      "$1",
-    );
-    expect(changed, "図面を外す変異を CSS へ植え込めていない").not.toBe(cssText);
-
-    const result = compareFrameOpacity(changed, readFixedThemeFrameOpacity());
-    expect(
-      result.failures.some((line) => line.includes("足りない名前: blueprint")),
-      `検知の内容: ${result.failures.join(" | ")}`,
-    ).toBe(true);
-  });
-
-  it("活版だけの枠の濃さの決まりを足すと複数箇所を検知する", () => {
-    const changed = `${cssText}\n` +
-      'svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"] {' +
-      " stroke-opacity: 1 !important; }";
-    expect(changed, "活版の変異を CSS へ植え込めていない").not.toBe(cssText);
-
-    const expected = readFixedThemeFrameOpacity();
-    const result = compareFrameOpacity(changed, expected);
-    expect(
-      result.failures.some((line) => line.includes("1 か所に寄せる")),
       `検知の内容: ${result.failures.join(" | ")}`,
     ).toBe(true);
   });
@@ -1493,20 +858,6 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(result.failures, "固定の意匠の文字用 tone が字の下限を割る").toEqual([]);
   });
 
-  it("success を向きだけの色へ戻すと文字用 tone の検査が落ちる", () => {
-    const changed = cssText.replace(
-      "--cdl-tone-success: var(--er-type);",
-      "--cdl-tone-success: var(--er-link);",
-    );
-    expect(changed, "success の変異を CSS へ植え込めていない").not.toBe(cssText);
-
-    const result = fixedTextToneContrast(changed);
-    expect(
-      result.failures.some((line) => line.includes("--cdl-tone-success") && line.includes("4.22:1")),
-      `検知の内容: ${result.failures.join(" | ")}`,
-    ).toBe(true);
-  });
-
   it("success の字は型名、success の線は向きだけの色を使う", () => {
     let fixedCount = 0;
     for (const [name, note] of readThemeNotes()) {
@@ -1516,7 +867,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       expect(resolveCssColor(declarations, "cdl-tone-success"), `${name} の success の字`).toBe(
         resolveCssColor(declarations, "er-type"),
       );
-      expect(resolveCssColor(declarations, "d-dg-2"), `${name} の success の線`).toBe(
+      expect(resolveCssColor(declarations, "dragon-theme-link"), `${name} の success の線`).toBe(
         resolveCssColor(declarations, "er-link"),
       );
     }
@@ -1581,101 +932,4 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
   });
 
-  it("固定 7 意匠の時間軸だけへ札・点列・線幅・電飾の菱形・矢じりを当てる", () => {
-    const successBg = cssRuleBodyContaining(cssText, [
-      ':has([data-cdl-role="timeline-axis"])',
-      '[data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"]',
-    ]);
-    expect(cssDeclaration(successBg, "fill")).toBe("var(--theme-timeline-label-success-fill)");
-    expect(cssDeclaration(successBg, "height")).toBe("var(--theme-timeline-label-height)");
-    expect(cssDeclaration(successBg, "y")).toBe("-20px");
-    expect(cssDeclaration(successBg, "rx")).toBe("var(--theme-timeline-label-radius)");
-
-    const successText = cssRuleBodyContaining(cssText, [
-      ':has([data-cdl-role="timeline-axis"])',
-      '[data-cdl-tone="success"] > [data-cdl-role="edge-label"]',
-    ]);
-    expect(cssDeclaration(successText, "font-size")).toBe("var(--theme-timeline-label-font-size)");
-    expect(cssDeclaration(successText, "font-weight")).toBe("var(--theme-timeline-label-font-weight)");
-
-    const noLine = cssRuleBodyContaining(cssText, [
-      ':has([data-cdl-role="timeline-axis"])',
-      '[data-cdl-edge-label="いいえ"]',
-      '[data-cdl-role="edge-line"]',
-    ]);
-    expect(cssDeclaration(noLine, "stroke-width")).toBe("var(--theme-timeline-no-width)");
-
-    const yesLine = cssRuleBodyContaining(cssText, [
-      ':has([data-cdl-role="timeline-axis"])',
-      '[data-cdl-edge-label="はい"]',
-      '[data-cdl-role="edge-line"]',
-    ]);
-    expect(cssDeclaration(yesLine, "stroke-width")).toBe("var(--theme-timeline-yes-width)");
-
-    const returnShape = cssRuleBodyContaining(cssText, [
-      'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])',
-      '[stroke-dasharray="10 8"]',
-    ]);
-    expect(cssDeclaration(returnShape, "stroke-dasharray")).toBe("0 9.6");
-    expect(cssDeclaration(returnShape, "stroke-linecap")).toBe("round");
-
-    const returnWidth = cssRuleBodyContaining(cssText, [
-      FIXED_TIMELINE_STAGE_SELECTOR,
-      '[stroke-dasharray="10 8"]',
-    ]);
-    expect(cssDeclaration(returnWidth, "stroke-width")).toBe("var(--theme-timeline-return-width)");
-
-    const decision = cssRuleBodyContaining(cssText, [
-      '[data-cdl-palette="neon"]:has([data-cdl-role="timeline-axis"])',
-      '[data-cdl-kind="decision"]',
-      'g[data-cdl-role="node-body"] > :is(rect, path, ellipse, circle, polygon)',
-    ]);
-    expect(cssDeclaration(decision, "fill")).toBe("var(--er-face)");
-    expect(cssDeclaration(decision, "stroke")).toBe("var(--er-link)");
-    expect(cssDeclaration(decision, "stroke-width")).toBe("var(--dragon-flow-decision-frame-width)");
-    expect(cssDeclaration(decision, "filter")).toBe("var(--dragon-timeline-decision-effect)");
-    const neonTimeline = cssFixedTimelineDeclarations(cssText, "neon");
-    expect(neonTimeline.get("dragon-flow-decision-frame-width")).toBe("3");
-    expect(neonTimeline.get("dragon-timeline-decision-effect")).toContain("var(--er-link)");
-
-    const normalArrow = cssRuleBodyContaining(cssText, [
-      ':has([data-cdl-role="timeline-axis"])',
-      'marker:not([id$="-sm"])',
-      '[data-cdl-edge-head="triangle"]',
-    ]);
-    expect(cssDeclaration(normalArrow, "transform")).toBe(
-      "scale(var(--theme-timeline-arrow-scale-x), var(--theme-timeline-arrow-scale-y))",
-    );
-    const smallArrow = cssRuleBodyContaining(cssText, [
-      ':has([data-cdl-role="timeline-axis"])',
-      'marker[id$="-sm"]',
-      '[data-cdl-edge-head="triangle"]',
-    ]);
-    expect(cssDeclaration(smallArrow, "transform")).toBe(
-      "scale(var(--theme-timeline-small-arrow-scale-x), var(--theme-timeline-small-arrow-scale-y))",
-    );
-
-    for (const name of ["kinari", "celadon"]) {
-      const declarations = cssFixedTimelineDeclarations(cssText, name);
-      expect(declarations.has("theme-timeline-label-height"), `${name} は対象外`).toBe(false);
-    }
-  });
-
-  it("時間軸の変数を代わりの値なしで読む規則は変数を持つ 7 意匠だけに当たる", () => {
-    const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-    const readers = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
-      const body = match[2] ?? "";
-      if (!/var\(--theme-timeline-[a-z0-9-]+\)/i.test(body)) return [];
-      return [(match[1] ?? "").replace(/\s+/g, " ").trim()];
-    });
-
-    expect(readers.length, "時間軸の変数を読む規則が 0 件").toBeGreaterThan(0);
-    for (const selector of readers) {
-      expect(
-        selector.startsWith(`${FIXED_TIMELINE_STAGE_SELECTOR} `) ||
-          selector.startsWith(`${CARRYOVER_TIMELINE_STAGE_SELECTOR} `),
-        selector,
-      ).toBe(true);
-    }
-  });
 });

@@ -1,231 +1,60 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
-const css = readFileSync(
-  fileURLToPath(new URL("../styles/cdl-theme.css", import.meta.url)),
-  "utf8",
-).replace(/\/\*[\s\S]*?\*\//gu, "");
+import { readCdlThemeRoleTable } from "./theme-role-table-test-helpers";
 
-const rules = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/gu)].map((match) => ({
-  selector: (match[1] ?? "").replace(/\s+/gu, " ").trim(),
-  body: match[2] ?? "",
-}));
+const table = (palette: string): ReadonlyMap<string, string> =>
+  readCdlThemeRoleTable(palette).light;
 
-function findLastRule(
-  predicate: (rule: { selector: string; body: string }) => boolean,
-): { selector: string; body: string } | undefined {
-  for (let index = rules.length - 1; index >= 0; index -= 1) {
-    const rule = rules[index];
-    if (rule !== undefined && predicate(rule)) return rule;
-  }
-  return undefined;
-}
-
-function lastRule(...parts: string[]): { selector: string; body: string } {
-  const rule = findLastRule(({ selector }) => parts.every((part) => selector.includes(part)));
-  if (rule === undefined) throw new Error(`CSS 規則が無い: ${parts.join(" / ")}`);
-  return rule;
-}
-
-function lastRuleWithDeclaration(selectorPart: string, property: string): { selector: string; body: string } {
-  const rule = findLastRule(({ selector, body }) =>
-    selector.includes(selectorPart) && body.includes(`${property}:`),
-  );
-  if (rule === undefined) throw new Error(`${selectorPart} の ${property} を持つ CSS 規則が無い`);
-  return rule;
-}
-
-function declaration(body: string, property: string): string {
-  const escaped = property.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  const value = new RegExp(`(?:^|;)\\s*${escaped}\\s*:\\s*([^;]+)`, "mu").exec(body)?.[1]?.trim();
-  if (value === undefined) throw new Error(`${property} の宣言が無い`);
-  return value;
-}
-
-function tableDeclaration(palette: string, property: string): string {
-  const table = rules.find(({ selector, body }) =>
-    selector === `svg[data-cdl-stage][data-cdl-palette="${palette}"]` &&
-    body.includes("--dragon-theme-ground:"),
-  );
-  if (table === undefined) throw new Error(`${palette} の意匠表が無い`);
-  return declaration(table.body, property);
-}
-
-describe("#2854 3 段目 l の意匠補正", () => {
+describe("#2854 3 段目 l の意匠表", () => {
   it("名前の字体を意匠ごとの Noto Sans JP に保ち、値だけ同梱 mono にする", () => {
     for (const palette of ["blueprint", "letterpress", "catalog", "sketch", "neon", "relief"] as const) {
-      expect(tableDeclaration(palette, "--dragon-chart-name-font"), `${palette} の名前`).toContain("Noto Sans JP");
-      expect(tableDeclaration(palette, "--dragon-chart-value-font"), `${palette} の値`).toBe("var(--d-mono)");
+      expect(table(palette).get("--dragon-chart-name-font"), `${palette} の名前`).toContain("Noto Sans JP");
+      expect(table(palette).get("--dragon-chart-value-font"), `${palette} の値`).toBe("var(--d-mono)");
     }
-    expect(
-      rules.some(({ selector, body }) =>
-        selector.includes(':not([data-cdl-palette="terminal"])') &&
-        body.includes("--dragon-chart-name-font")),
-      "端末以外の名前を一括上書きしない",
-    ).toBe(false);
-    const numeric = lastRuleWithDeclaration('[data-cdl-role="chart-bar-tick"]', "font-family");
-    expect(declaration(numeric.body, "font-family")).toBe("var(--dragon-chart-value-font)");
-    expect(declaration(numeric.body, "font-family")).not.toContain("!important");
   });
 
-  it("浮彫は figure-head を持つ 11 図の枠だけを浮かせ、その図形へ凹み filter を足さない", () => {
-    const headedSurface = lastRule(
-      '[data-cdl-palette="relief"]',
-      ':has([data-cdl-role="figure-head"])',
-      '> [data-cdl-frame]',
-    );
-    expect(declaration(headedSurface.body, "filter")).toBe("var(--dragon-chart-frame-effect) !important");
-    expect(tableDeclaration("relief", "--dragon-chart-frame-effect")).toBe(
+  it("浮彫の実寸枠と図表の面は別の filter を表に持つ", () => {
+    expect(table("relief").get("--dragon-chart-frame-effect")).toBe(
       "url(#dragon-relief-figure-frame)",
     );
-    expect(headedSurface.body).not.toMatch(/(?:^|;)\s*(?:width|height|transform)\s*:/mu);
-
-    const headedFilters = rules.filter(({ selector, body }) =>
-      selector.includes('[data-cdl-palette="relief"]') &&
-      selector.includes(':has([data-cdl-role="figure-head"])') &&
-      selector.includes('> [data-cdl-frame]') &&
-      body.includes("filter:"),
+    expect(table("relief").get("--dragon-chart-node-effect")).toBe(
+      "url(#dragon-relief-well)",
     );
-    expect(headedFilters, "見出しを持つ実寸枠へ別の filter を足さない").toEqual([headedSurface]);
-    expect(headedSurface.selector).not.toContain(':has([data-cdl-role="figure-title"])');
-
-    const headedBody = lastRule(
-      '[data-cdl-palette="relief"]',
-      ':has([data-cdl-role="figure-head"])',
-      '> [data-cdl-role="node-body"]',
-    );
-    expect(declaration(headedBody.body, "filter"), "札の中へ板の影を重ねない").toBe("none !important");
-
-    // 見出しの無い図表は #2796 の well を保ち、見本帳の札だけを後段の例外で浮かせる。
-    const chartContents = lastRule(
-      '[data-cdl-kind^="chart-"]',
-      'g[data-cdl-role="node-body"]',
-      '> :is(rect, path, ellipse, circle, polygon)',
-    );
-    expect(declaration(chartContents.body, "filter")).toBe("url(#dragon-relief-well)");
-    expect(chartContents.selector).toContain(
-      ':is(rect, path, ellipse, circle, polygon)[data-cdl-role="node-body"]',
-    );
-    expect(chartContents.selector).toContain(':has(> circle):not(:has(> :not(circle)))');
-    expect(
-      rules.some(({ selector, body }) =>
-        selector.includes('[data-cdl-kind^="chart-"]') &&
-        selector.includes('[data-cdl-role="node-body"]') &&
-        body.includes("url(#dragon-relief-raised)")),
-      "見出しの無い図表を浮かせる規則を足さない",
-    ).toBe(false);
-    expect(css).not.toMatch(/width\s*:\s*(?:508|860|732)px/gu);
   });
 
-  it("5 意匠の段札・時間軸札と分かれ道を active に依らない縁と影へ揃える", () => {
-    const cards = [
-      ["blueprint", "1px", "#143a52 !important", "none !important"],
-      ["letterpress", "1.5px", "#1a1510 !important", "none !important"],
-      ["terminal", "1px", "rgb(74 222 128 / 30%) !important", "none !important"],
-    ] as const;
-    for (const [palette, width, stroke, filter] of cards) {
-      const card = lastRule(
-        `[data-cdl-palette="${palette}"]`,
-        ':has([data-cdl-role="stage-column"])',
-        ':has([data-cdl-role="timeline-axis"])',
-        '[data-cdl-kind="card"]',
+  it("段札と時間軸札の縁・影を 5 意匠の表に持つ", () => {
+    for (const [palette, width, frame] of [
+      ["blueprint", "1", "#143a52"],
+      ["letterpress", "1.5", "#1a1510"],
+      ["terminal", "1", "rgb(74 222 128 / 30%)"],
+      ["sketch", "2", "#2b2620"],
+    ] as const) {
+      expect(table(palette).get("--dragon-stage-detail-card-frame-width"), palette).toBe(
+        "var(--theme-stage-frame-width)",
       );
-      expect(card.selector, `${palette} の札を active で絞らない`).not.toContain("data-cdl-active");
-      expect(declaration(card.body, "stroke-width"), palette).toBe("var(--dragon-stage-detail-card-frame-width) !important");
-      expect(tableDeclaration(palette, "--dragon-stage-detail-card-frame-width"), palette).toBe("var(--theme-stage-frame-width)");
-      expect(tableDeclaration(palette, "--theme-stage-frame-width"), palette).toBe(
-        width.replace("px", ""),
-      );
-      expect(declaration(card.body, "stroke"), palette).toBe("var(--dragon-hierarchy-card-frame) !important");
-      expect(tableDeclaration(palette, "--dragon-hierarchy-card-frame"), palette).toBe(
-        stroke.replace(" !important", ""),
-      );
-      expect(declaration(card.body, "filter"), palette).toBe(filter);
+      expect(table(palette).get("--theme-stage-frame-width"), palette).toBe(width);
+      expect(table(palette).get("--dragon-hierarchy-card-frame"), palette).toBe(frame);
     }
-
-    const sketchCard = lastRule(
-      '[data-cdl-palette="sketch"]',
-      ':has([data-cdl-role="stage-column"])',
-      ':has([data-cdl-role="timeline-axis"])',
-      '[data-cdl-kind="card"]',
-    );
-    expect(declaration(sketchCard.body, "stroke-width")).toBe("var(--dragon-stage-detail-card-frame-width) !important");
-    expect(tableDeclaration("sketch", "--dragon-stage-detail-card-frame-width")).toBe(
-      "var(--theme-stage-frame-width)",
-    );
-    expect(tableDeclaration("sketch", "--theme-stage-frame-width")).toBe("2");
-    expect(declaration(sketchCard.body, "stroke")).toBe("var(--dragon-hierarchy-card-frame) !important");
-    expect(tableDeclaration("sketch", "--dragon-hierarchy-card-frame")).toBe("#2b2620");
-    expect(sketchCard.body).not.toMatch(/(?:^|;)\s*filter\s*:/mu);
-
-    const sketchStageCard = lastRule(
-      '[data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"])',
-      '[data-cdl-kind="card"]',
-      '[data-cdl-role="node-body"]',
-    );
-    expect(declaration(sketchStageCard.body, "filter")).toBe("none !important");
-
-    const sketchTimelineCard = lastRule(
-      '[data-cdl-palette="sketch"]:has([data-cdl-role="timeline-axis"])',
-      '[data-cdl-lane="timeline-steps"][data-cdl-kind="card"]',
-      '[data-cdl-role="node-body"]',
-    );
-    expect(declaration(sketchTimelineCard.body, "filter")).toBe(
-      "var(--dragon-stage-detail-card-effect) !important",
-    );
-    expect(tableDeclaration("sketch", "--dragon-stage-detail-card-effect")).toBe(
+    expect(table("sketch").get("--dragon-stage-detail-card-effect")).toBe(
       "drop-shadow(3px 4px 0 rgb(43 38 32 / 16%))",
     );
-    expect(sketchTimelineCard.body).not.toContain("dragon-sketch-wobble");
-
-    const catalogCard = lastRule(
-      '[data-cdl-palette="catalog"]',
-      ':has([data-cdl-role="stage-column"])',
-      ':has([data-cdl-role="timeline-axis"])',
-      '[data-cdl-kind="card"]',
-    );
-    expect(declaration(catalogCard.body, "stroke")).toBe("none !important");
-    expect(declaration(catalogCard.body, "stroke-width")).toBe("var(--dragon-stage-detail-card-frame-width) !important");
-    expect(tableDeclaration("catalog", "--dragon-stage-detail-card-frame-width")).toBe("0");
-    expect(declaration(catalogCard.body, "filter")).toContain("--theme-stage-card-shadow");
-
-    // 端末の分かれ道は見本の 50% 枠 1.5。実装の専用規則と同じ値を固定する。
-    for (const [palette, width] of [["blueprint", "1.5"], ["letterpress", "2"], ["sketch", "2.5"], ["terminal", "1.5"]] as const) {
-      const decision = lastRule(`[data-cdl-palette="${palette}"]`, '[data-cdl-kind="decision"]', '> path');
-      expect(declaration(decision.body, "stroke-width"), palette).toBe(
-        "var(--dragon-chart-decision-frame-width) !important",
-      );
-      expect(tableDeclaration(palette, "--dragon-chart-decision-frame-width"), palette).toBe(`${width}px`);
-      if (palette !== "blueprint") expect(declaration(decision.body, "filter"), palette).toBe("none !important");
-    }
-    const catalogDecision = lastRule('[data-cdl-palette="catalog"]', '[data-cdl-kind="decision"]', '> path');
-    expect(declaration(catalogDecision.body, "stroke")).toBe("var(--dragon-chart-decision-frame) !important");
-    expect(declaration(catalogDecision.body, "stroke-width")).toBe(
-      "var(--dragon-chart-decision-frame-width) !important",
-    );
-    expect(tableDeclaration("catalog", "--dragon-chart-decision-frame")).toBe("none");
-    expect(tableDeclaration("catalog", "--dragon-chart-decision-frame-width")).toBe("0");
-    expect(declaration(catalogDecision.body, "filter")).toBe("none !important");
+    expect(table("catalog").get("--dragon-stage-detail-card-frame-width")).toBe("0");
   });
 
-  it("浮彫の札の題を active に依らず墨にし、折れ線の終点は系列内の順で選ぶ", () => {
-    const labelRule = lastRule('[data-cdl-palette="relief"]', '[data-cdl-kind="card"]', '[data-cdl-role="node-label"]');
-    expect(declaration(labelRule.body, "fill")).toBe("var(--dragon-hierarchy-title-text) !important");
-    expect(tableDeclaration("relief", "--dragon-hierarchy-title-text")).toBe("#463e33");
-    expect(labelRule.selector).not.toContain("data-cdl-active");
+  it("分かれ道の枠の太さと図録の枠なしを表に持つ", () => {
+    for (const [palette, width] of [
+      ["blueprint", "1.5px"],
+      ["letterpress", "2px"],
+      ["sketch", "2.5px"],
+      ["terminal", "1.5px"],
+    ] as const) {
+      expect(table(palette).get("--dragon-chart-decision-frame-width"), palette).toBe(width);
+    }
+    expect(table("catalog").get("--dragon-chart-decision-frame")).toBe("none");
+    expect(table("catalog").get("--dragon-chart-decision-frame-width")).toBe("0");
+  });
 
-    const endpoint = findLastRule(({ selector, body }) =>
-      selector.includes('[data-cdl-role="chart-line-value"]') &&
-      selector.includes('[data-cdl-series="1"]') &&
-      selector.includes(':has(~ g > [data-cdl-role="chart-line-value"][data-cdl-series="1"])') &&
-      body.includes("font-size:"),
-    );
-    expect(endpoint).toBeDefined();
-    if (endpoint === undefined) return;
-    expect(endpoint.selector).not.toContain('[x="');
-    expect(declaration(endpoint.body, "font-size")).toBe("22px");
-    expect(declaration(endpoint.body, "font-weight")).toBe("700");
+  it("浮彫の札の題色を表に持つ", () => {
+    expect(table("relief").get("--dragon-hierarchy-title-text")).toBe("#463e33");
   });
 });

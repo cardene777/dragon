@@ -1,24 +1,14 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-
 import { test, expect, type Page } from "@playwright/test";
 
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+import { readCdlThemeRoleTable } from "../src/lib/theme-role-table-test-helpers";
 import { 記法をURLに載せる } from "./box-and-edge-figure";
 import { readThemeNotes, type ThemeNote } from "./helpers/theme-notes";
 
-const css = readFileSync(
-  fileURLToPath(new URL("../src/styles/cdl-theme.css", import.meta.url)),
-  "utf8",
-).replace(/\/\*[\s\S]*?\*\//g, "");
-
 /** 明暗で不変であるべき値は、意匠ごとの値表が宣言した共通の役から導く。 */
 function fixedVariableNames(name: string): string[] {
-  const selector = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
-  const body = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-    .find((match) => (match[1] ?? "").trim() === selector &&
-      /--dragon-theme-ground\s*:/.test(match[2] ?? ""))?.[2] ?? "";
-  return [...body.matchAll(/(--dragon-theme-[\w-]+)\s*:/g)].map((match) => match[1]!);
+  return [...readCdlThemeRoleTable(name).light.keys()]
+    .filter((role) => role.startsWith("--dragon-theme-"));
 }
 
 const er = EDITOR_SAMPLES.find((sample) => sample.slug === "er");
