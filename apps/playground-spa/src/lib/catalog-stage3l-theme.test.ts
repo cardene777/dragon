@@ -56,18 +56,17 @@ function tableDeclaration(palette: string, property: string): string {
 describe("#2854 3 段目 l の意匠補正", () => {
   it("名前の字体を意匠ごとの Noto Sans JP に保ち、値だけ同梱 mono にする", () => {
     for (const palette of ["blueprint", "letterpress", "catalog", "sketch", "neon", "relief"] as const) {
-      const body = lastRuleWithDeclaration(`[data-cdl-palette="${palette}"]`, "--theme-chart-name-font").body;
-      expect(declaration(body, "--theme-chart-name-font"), `${palette} の名前`).toContain("Noto Sans JP");
-      expect(declaration(body, "--theme-chart-value-font"), `${palette} の値`).toBe("var(--d-mono)");
+      expect(tableDeclaration(palette, "--dragon-chart-name-font"), `${palette} の名前`).toContain("Noto Sans JP");
+      expect(tableDeclaration(palette, "--dragon-chart-value-font"), `${palette} の値`).toBe("var(--d-mono)");
     }
     expect(
       rules.some(({ selector, body }) =>
         selector.includes(':not([data-cdl-palette="terminal"])') &&
-        body.includes("--theme-chart-name-font")),
+        body.includes("--dragon-chart-name-font")),
       "端末以外の名前を一括上書きしない",
     ).toBe(false);
     const numeric = lastRuleWithDeclaration('[data-cdl-role="chart-bar-tick"]', "font-family");
-    expect(declaration(numeric.body, "font-family")).toBe("var(--theme-chart-value-font)");
+    expect(declaration(numeric.body, "font-family")).toBe("var(--dragon-chart-value-font)");
     expect(declaration(numeric.body, "font-family")).not.toContain("!important");
   });
 
@@ -134,8 +133,15 @@ describe("#2854 3 段目 l の意匠補正", () => {
         '[data-cdl-kind="card"]',
       );
       expect(card.selector, `${palette} の札を active で絞らない`).not.toContain("data-cdl-active");
-      expect(declaration(card.body, "stroke-width"), palette).toBe(`${width} !important`);
-      expect(declaration(card.body, "stroke"), palette).toBe(stroke);
+      expect(declaration(card.body, "stroke-width"), palette).toBe("var(--dragon-stage-detail-card-frame-width) !important");
+      expect(tableDeclaration(palette, "--dragon-stage-detail-card-frame-width"), palette).toBe("var(--theme-stage-frame-width)");
+      expect(tableDeclaration(palette, "--theme-stage-frame-width"), palette).toBe(
+        width.replace("px", ""),
+      );
+      expect(declaration(card.body, "stroke"), palette).toBe("var(--dragon-hierarchy-card-frame) !important");
+      expect(tableDeclaration(palette, "--dragon-hierarchy-card-frame"), palette).toBe(
+        stroke.replace(" !important", ""),
+      );
       expect(declaration(card.body, "filter"), palette).toBe(filter);
     }
 
@@ -145,8 +151,13 @@ describe("#2854 3 段目 l の意匠補正", () => {
       ':has([data-cdl-role="timeline-axis"])',
       '[data-cdl-kind="card"]',
     );
-    expect(declaration(sketchCard.body, "stroke-width")).toBe("2px !important");
-    expect(declaration(sketchCard.body, "stroke")).toBe("#2b2620 !important");
+    expect(declaration(sketchCard.body, "stroke-width")).toBe("var(--dragon-stage-detail-card-frame-width) !important");
+    expect(tableDeclaration("sketch", "--dragon-stage-detail-card-frame-width")).toBe(
+      "var(--theme-stage-frame-width)",
+    );
+    expect(tableDeclaration("sketch", "--theme-stage-frame-width")).toBe("2");
+    expect(declaration(sketchCard.body, "stroke")).toBe("var(--dragon-hierarchy-card-frame) !important");
+    expect(tableDeclaration("sketch", "--dragon-hierarchy-card-frame")).toBe("#2b2620");
     expect(sketchCard.body).not.toMatch(/(?:^|;)\s*filter\s*:/mu);
 
     const sketchStageCard = lastRule(
@@ -176,7 +187,8 @@ describe("#2854 3 段目 l の意匠補正", () => {
       '[data-cdl-kind="card"]',
     );
     expect(declaration(catalogCard.body, "stroke")).toBe("none !important");
-    expect(declaration(catalogCard.body, "stroke-width")).toBe("0 !important");
+    expect(declaration(catalogCard.body, "stroke-width")).toBe("var(--dragon-stage-detail-card-frame-width) !important");
+    expect(tableDeclaration("catalog", "--dragon-stage-detail-card-frame-width")).toBe("0");
     expect(declaration(catalogCard.body, "filter")).toContain("--theme-stage-card-shadow");
 
     // 端末の分かれ道は見本の 50% 枠 1.5。実装の専用規則と同じ値を固定する。
@@ -200,7 +212,8 @@ describe("#2854 3 段目 l の意匠補正", () => {
 
   it("浮彫の札の題を active に依らず墨にし、折れ線の終点は系列内の順で選ぶ", () => {
     const labelRule = lastRule('[data-cdl-palette="relief"]', '[data-cdl-kind="card"]', '[data-cdl-role="node-label"]');
-    expect(declaration(labelRule.body, "fill")).toBe("#463e33 !important");
+    expect(declaration(labelRule.body, "fill")).toBe("var(--dragon-hierarchy-title-text) !important");
+    expect(tableDeclaration("relief", "--dragon-hierarchy-title-text")).toBe("#463e33");
     expect(labelRule.selector).not.toContain("data-cdl-active");
 
     const endpoint = findLastRule(({ selector, body }) =>

@@ -15,8 +15,6 @@ import {
 } from "@/topics/catalog/presets.cdl";
 
 const css = readFileSync(fileURLToPath(new URL("../styles/cdl-theme.css", import.meta.url)), "utf8");
-const fixedPalettes =
-  ':is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"])';
 const fixedPaletteNames = [
   "blueprint",
   "letterpress",
@@ -26,7 +24,10 @@ const fixedPaletteNames = [
   "neon",
   "relief",
 ] as const;
-const fixedThemeStage = `svg[data-cdl-stage]${fixedPalettes}`;
+const fixedThemeCommonStage = `svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  )`;
+const colorOnlyPaletteNames = ["site-colours", "kinari", "celadon"] as const;
 const legendColors = [
   {
     palette: "blueprint",
@@ -175,7 +176,7 @@ function 段の箱の札を読む(palette: "catalog" | "neon"): Map<string, 札�
 
 describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () => {
   it("階層と工程の字の太さを 7 意匠の見本に合わせる", () => {
-    const leaf = `${fixedThemeStage} [data-cdl-mind-form="outline"] [data-cdl-role="mind-leaf-title"]`;
+    const leaf = `${fixedThemeCommonStage} [data-cdl-mind-form="outline"] [data-cdl-role="mind-leaf-title"]`;
     expect(declaration(ruleBody(leaf), "font-weight")).toBe("500 !important");
 
     const tree =
@@ -184,7 +185,7 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
       '  [data-cdl-role="tree-node-title"]';
     expect(declaration(ruleBody(tree), "font-weight")).toBe("800 !important");
 
-    const gantt = `${fixedThemeStage} [data-cdl-kind="gantt-timeline"] text:not([data-cdl-role])`;
+    const gantt = `${fixedThemeCommonStage} [data-cdl-kind="gantt-timeline"] text:not([data-cdl-role])`;
     expect(declaration(ruleBody(gantt), "font-weight")).toBe("700 !important");
   });
 
@@ -200,7 +201,7 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
       },
       {
         selectorParts: ['[data-cdl-kind="chart-stacked-bar"]', '[data-cdl-role="legend-text"]'],
-        declarations: { fill: "var(--theme-chart-axis-color) !important" },
+        declarations: { fill: "var(--dragon-chart-axis-text) !important" },
       },
       {
         selectorParts: ['[data-cdl-role="quadrant-canvas"]'],
@@ -229,7 +230,10 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
       );
       expect(matches, selectorParts.join(" ")).toHaveLength(1);
       const selector = matches[0]?.selector ?? "";
-      expect(selectorPaletteNames(selector).sort(), selector).toEqual([...fixedPaletteNames].sort());
+      expect(selector).toContain("[data-cdl-palette]:not(");
+      expect(selectorPaletteNames(selector).sort(), selector).toEqual(
+        [...colorOnlyPaletteNames].sort(),
+      );
     }
   });
 

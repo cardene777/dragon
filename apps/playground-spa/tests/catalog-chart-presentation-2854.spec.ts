@@ -72,6 +72,16 @@ const 路線の駅面 = {
   relief: "rgb(232, 227, 218)",
 } as const;
 
+const 固定尺の沈んだ色 = {
+  blueprint: "rgb(138, 163, 177)",
+  letterpress: "rgb(157, 147, 130)",
+  catalog: "rgb(156, 147, 129)",
+  terminal: "rgb(53, 85, 66)",
+  sketch: "rgb(154, 144, 128)",
+  neon: "rgb(143, 134, 179)",
+  relief: "rgb(169, 158, 142)",
+} as const;
+
 const 放射の枠 = {
   blueprint: { rootWidth: "2.25px", boxWidth: "1px", radius: "12px" },
   letterpress: { rootWidth: "3px", boxWidth: "1.5px", radius: "12px" },
@@ -188,6 +198,14 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
 });
 
 for (const theme of 意匠) {
+  test(`${theme}: 固定尺の半円の残りを意匠の沈んだ色で描く`, async ({ page }) => {
+    await openEditorTheme(page, sourceYaml__onTimeShareGauge, theme, false);
+    const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const remaining = stage.locator('[data-cdl-role="chart-gauge-fixed-scale"]');
+    await expect(remaining).toHaveCount(1);
+    expect(await remaining.evaluate((node) => getComputedStyle(node).fill)).toBe(固定尺の沈んだ色[theme]);
+  });
+
   test(`${theme}: 円と升目の一覧の字を重ねず意匠へ合わせる`, async ({ page }) => {
     await openEditorTheme(page, sourceYaml__parcelStatusPie, theme, false);
     const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);

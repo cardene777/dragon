@@ -21,10 +21,16 @@ import {
   pattern__textDslFlowchart__複雑,
   textDslFlowchart,
 } from "@/topics/catalog/text-dsl.cdl";
+import { CATALOG_ITEMS } from "./catalog-items";
 import {
+  CHART_SKELETON_PARTS,
   FLOWCHART_SKELETON_PARTS,
+  FUNNEL_SKELETON_PARTS,
+  GANTT_SKELETON_PARTS,
   INFRASTRUCTURE_SKELETON_PARTS,
+  JOURNEY_SKELETON_PARTS,
   MIND_SKELETON_PARTS,
+  QUADRANT_SKELETON_PARTS,
   RECORD_SKELETON_PARTS,
   SEQUENCE_SKELETON_PARTS,
   TREE_SKELETON_PARTS,
@@ -34,6 +40,28 @@ import {
   catalogSkeletonPartTarget,
   catalogSkeletonPartsFor,
 } from "./catalog-skeleton-parts";
+
+function 図表の見本(鍵: string): CdlDiagram {
+  const 見本 = CATALOG_ITEMS.charts?.find(({ title }) => title === 鍵);
+  if (!見本) throw new Error(`${鍵} の見本が無い`);
+  return 見本.diagram;
+}
+
+const 図表と数 = [
+  ["営業所ごとの取扱数", 図表の見本("branchParcelsBar"), CHART_SKELETON_PARTS, ["棒", "棒の値"]],
+  ["機能ごとの利用率", 図表の見本("chartRadial"), CHART_SKELETON_PARTS, ["弧の地", "値の弧"]],
+  ["今月の解約件数", 図表の見本("chartStat"), CHART_SKELETON_PARTS, ["大きな数の名前", "大きな数"]],
+  ["配達の結果", 図表の見本("deliveryResultStacked"), CHART_SKELETON_PARTS, ["内訳の帯", "内訳の割合"]],
+  ["月ごとの配達数", 図表の見本("monthlyDeliveriesLine"), CHART_SKELETON_PARTS, ["折れ線", "折れ線の値"]],
+  ["営業所ごとの定時率", 図表の見本("onTimeRateSlope"), CHART_SKELETON_PARTS, ["傾きの線", "傾きの名前"]],
+  ["定時に届いた割合", 図表の見本("onTimeShareGauge"), CHART_SKELETON_PARTS, ["半円の残り", "半円の値"]],
+  ["荷物の大きさ", 図表の見本("parcelSizeWaffle"), CHART_SKELETON_PARTS, ["100 個の印の凡例", "100 個の印の割合"]],
+  ["荷物の状態", 図表の見本("parcelStatusPie"), CHART_SKELETON_PARTS, ["円の区画", "円の一覧の値"]],
+  ["打ち手の手間と効き目", 図表の見本("measureEffortQuadrant"), QUADRANT_SKELETON_PARTS, ["四象限の地", "打ち手の点"]],
+  ["申し込みから届くまで", 図表の見本("orderToDeliveryFunnel"), FUNNEL_SKELETON_PARTS, ["漏斗の段", "段の割合"]],
+  ["荷主の気持ち", 図表の見本("shipperFeelingJourney"), JOURNEY_SKELETON_PARTS, ["気持ちの線", "旅の接点"]],
+  ["仕分け棚を入れ替える工程", 図表の見本("sortingShelfGantt"), GANTT_SKELETON_PARTS, ["工程の帯", "前後の矢印"]],
+] as const;
 
 const 流れ図 = [
   ["荷物を届ける流れ", presetDeliveryFlow],
@@ -369,6 +397,11 @@ describe("階層図とマインドマップで骨組みの部品を選ぶ", () =
     expect(catalogSkeletonPartsFor("sequence")).toBe(SEQUENCE_SKELETON_PARTS);
     expect(catalogSkeletonPartsFor("infrastructure")).toBe(INFRASTRUCTURE_SKELETON_PARTS);
     expect(catalogSkeletonPartsFor("record")).toBe(RECORD_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("chart")).toBe(CHART_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("quadrant")).toBe(QUADRANT_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("journey")).toBe(JOURNEY_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("funnel")).toBe(FUNNEL_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("gantt")).toBe(GANTT_SKELETON_PARTS);
     expect(catalogSkeletonPartsFor(null)).toBeNull();
   });
 
@@ -475,6 +508,44 @@ describe("階層図とマインドマップで骨組みの部品を選ぶ", () =
 
     expect(snapshot.rows.map(({ number }) => number)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(snapshot.badges.map(({ number }) => number)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+});
+
+describe("図表と数の 13 図で骨組みの部品を選ぶ", () => {
+  it("各図に在る地・枠・題と主な部品だけを一覧から選ぶ", () => {
+    expect(図表と数).toHaveLength(13);
+    for (const [名前, 図, 一覧, 主な部品] of 図表と数) {
+      const svg = 描く(図);
+      const 当たった = 一覧.filter((部品) => catalogSkeletonPartTarget(svg, 部品)).map(
+        (部品) => 部品.label,
+      );
+      expect(当たった, `${名前} の共通部品`).toEqual(
+        expect.arrayContaining(["地", "図の枠", "図の題"]),
+      );
+      expect(当たった, `${名前} の主な部品`).toEqual(expect.arrayContaining([...主な部品]));
+    }
+  });
+
+  it("漏斗の段は比例の横棒と台形のどちらの役でも選ぶ", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.innerHTML = `
+      <path data-cdl-role="funnel-proportional-bar"></path>
+      <path data-cdl-role="funnel-stage"></path>
+    `;
+    const 段 = FUNNEL_SKELETON_PARTS.find(({ label }) => label === "漏斗の段");
+    if (!段) throw new Error("漏斗の段の定義が無い");
+    expect(svg.querySelectorAll(段.selector)).toHaveLength(2);
+  });
+
+  it("番号は 100 個の印の 1 個や傾きの点を選ばず、まとまりのある部品へ置く", () => {
+    expect(CHART_SKELETON_PARTS.map(({ selector }) => selector)).not.toEqual(
+      expect.arrayContaining([
+        '[data-cdl-role="edge-arrowhead"]',
+        '[data-cdl-role="chart-waffle-cell"]',
+        '[data-cdl-role="chart-line-point"]',
+        '[data-cdl-role="chart-slope-dot"]',
+      ]),
+    );
   });
 });
 
