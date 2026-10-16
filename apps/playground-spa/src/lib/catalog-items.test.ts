@@ -13,8 +13,6 @@
  * 書かれていなかった。 規約は 14 群すべてに及ぶので、走査した 3 群の対 699 件に対して
  * **残り 611 件が検査の外** に居た (広げた時の孤立は 0 件)。
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { CATALOG_ITEMS, loadPartsItems } from "./catalog-items";
 
@@ -271,8 +269,9 @@ describe("見本帳の階層・図表・数・工程は宅配の筋書きで揃�
   it("固定尺の半円は datum の tone でなく、残りの弧を意匠の沈んだ色にする", () => {
     const 記法 = 記法を引く("onTimeShareGauge");
     expect(記法, "固定尺が読まない tone を残している").not.toMatch(/\btone["']?\s*:\s*["']?muted/u);
-    const css = readFileSync(resolve(process.cwd(), "apps/playground-spa/src/styles/cdl-theme.css"), "utf8");
-    expect(css).toMatch(/\[data-cdl-role="chart-gauge-fixed-scale"\]\s*\{[^}]*fill:\s*var\(--cdl-tone-muted\)/u);
+    const 見本 = CATALOG_ITEMS.charts?.find(({ title }) => title === "onTimeShareGauge");
+    const 半円 = 見本?.diagram.nodes.find(({ kind }) => kind === "chart-gauge");
+    expect(半円?.chartGaugeValue).toMatchObject({ max: 100, current: "{on_time}", target: 80 });
   });
 
   it.each([

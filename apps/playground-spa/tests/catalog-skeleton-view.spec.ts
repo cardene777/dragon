@@ -127,3 +127,51 @@ test("関係の図の部品表は番号が 1 から飛ばずに並ぶ", async ({
   const 件数 = await 番号.count();
   await expect(番号).toHaveText(Array.from({ length: 件数 }, (_, index) => String(index + 1)));
 });
+
+for (const [見本, 部品] of [
+  ["営業所ごとの取扱数", ["棒", "棒の値"]],
+  ["機能ごとの利用率", ["弧の地", "値の弧"]],
+  ["今月の解約件数", ["大きな数の名前", "大きな数"]],
+  ["配達の結果", ["内訳の帯", "内訳の割合"]],
+  ["月ごとの配達数", ["折れ線", "折れ線の値"]],
+  ["営業所ごとの定時率", ["傾きの線", "傾きの名前"]],
+  ["定時に届いた割合", ["半円の残り", "半円の値"]],
+  ["荷物の大きさ", ["100 個の印の凡例", "100 個の印の割合"]],
+  ["荷物の状態", ["円の区画", "円の一覧の値"]],
+  ["打ち手の手間と効き目", ["四象限の地", "打ち手の点"]],
+  ["申し込みから届くまで", ["漏斗の段", "段の割合"]],
+  ["荷主の気持ち", ["気持ちの線", "旅の接点"]],
+  ["仕分け棚を入れ替える工程", ["工程の帯", "前後の矢印"]],
+] as const) {
+  test(`${見本}の骨組みに主な部品の表を出し、番号の丸を 24px 以上離す`, async ({ page }) => {
+    await page.goto("catalog/charts", { waitUntil: "networkidle" });
+    await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
+    await 一覧の行(page, 見本).click();
+    await page.getByRole("radio", { name: "骨組み", exact: true }).click();
+
+    const 表 = page.locator(".catalog-skeleton-parts table");
+    await expect(表.locator("tbody tr").first()).toBeVisible();
+    for (const 名前 of ["地", "図の枠", "図の題", ...部品]) {
+      await expect(表.getByRole("rowheader", { name: 名前, exact: true })).toBeVisible();
+    }
+    await expect(表.getByRole("rowheader", { name: "線の先", exact: true })).toHaveCount(0);
+
+    const 丸 = page.locator(".catalog-skeleton-badge");
+    await expect(丸.first()).toBeVisible();
+    const 中心 = await 丸.evaluateAll((elements) =>
+      elements.map((element) => {
+        const box = element.getBoundingClientRect();
+        return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+      }),
+    );
+    const 近すぎる組: string[] = [];
+    for (let left = 0; left < 中心.length; left += 1) {
+      for (let right = left + 1; right < 中心.length; right += 1) {
+        const a = 中心[left]!;
+        const b = 中心[right]!;
+        if (Math.hypot(a.x - b.x, a.y - b.y) < 24) 近すぎる組.push(`${left + 1}-${right + 1}`);
+      }
+    }
+    expect(近すぎる組).toEqual([]);
+  });
+}

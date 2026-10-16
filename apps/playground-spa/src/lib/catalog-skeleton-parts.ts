@@ -197,6 +197,105 @@ export const RECORD_SKELETON_PARTS = [
   { label: "凡例", selector: '[data-cdl-role="legend"]', anchor: "top-left" },
 ] as const satisfies readonly CatalogSkeletonPart[];
 
+/** 図表 9 種の骨組みを、各図に在る役だけが表へ出る一覧として選ぶ。 */
+export const CHART_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "図の枠", selector: '[data-cdl-role="node-body"]', anchor: "top-left" },
+  { label: "図の題", selector: '[data-cdl-role="figure-title"]', anchor: "top-left" },
+  { label: "見出しの罫", selector: '[data-cdl-role="figure-head-divider"]', anchor: "center", badgeTarget: "longest" },
+  { label: "図の脚", selector: '[data-cdl-role="figure-footer-label"]', anchor: "right" },
+  { label: "脚の説明", selector: '[data-cdl-role="figure-footer-note"]', anchor: "right" },
+  { label: "棒", selector: '[data-cdl-role="chart-bar"]', anchor: "top-left" },
+  { label: "棒の名前", selector: '[data-cdl-role="chart-bar-label"]', anchor: "right" },
+  { label: "棒の値", selector: '[data-cdl-role="chart-bar-value"]', anchor: "right" },
+  { label: "棒の目盛り", selector: '[data-cdl-role="chart-bar-tick"]', anchor: "right" },
+  { label: "弧の地", selector: '[data-cdl-role="chart-radial-track"]', anchor: "center", badgeTarget: "longest" },
+  { label: "値の弧", selector: '[data-cdl-role="chart-radial-arc"]', anchor: "center", badgeTarget: "longest" },
+  { label: "弧の値", selector: '[data-cdl-role="chart-legend-value"]', anchor: "right" },
+  { label: "弧の割合", selector: '[data-cdl-role="chart-legend-share"]', anchor: "right" },
+  { label: "大きな数の組", selector: '[data-cdl-role="chart-stat-item"]', anchor: "top-left" },
+  { label: "大きな数の名前", selector: '[data-cdl-role="chart-stat-label"]', anchor: "right" },
+  { label: "大きな数", selector: '[data-cdl-role="chart-stat-value"]', anchor: "right" },
+  { label: "内訳の時点", selector: '[data-cdl-role="chart-stacked-bar-period"]', anchor: "right" },
+  { label: "内訳の帯", selector: '[data-cdl-role="chart-stacked-bar-slice"]', anchor: "top-left" },
+  { label: "内訳の斜線", selector: '[data-cdl-role="chart-stacked-bar-slice-hatch"]', anchor: "top-left" },
+  { label: "内訳の割合", selector: '[data-cdl-role="chart-stacked-bar-rate"]', anchor: "right" },
+  { label: "内訳の凡例", selector: '[data-cdl-role="chart-stacked-bar-legend"]', anchor: "top-left" },
+  { label: "折れ線", selector: '[data-cdl-role="chart-line"]', anchor: "center", badgeTarget: "longest" },
+  { label: "折れ線の時点", selector: '[data-cdl-role="chart-line-label"]', anchor: "right" },
+  { label: "折れ線の値", selector: '[data-cdl-role="chart-line-value"]', anchor: "right" },
+  { label: "折れ線の目盛り", selector: '[data-cdl-role="chart-line-tick"]', anchor: "right" },
+  { label: "傾きの線", selector: '[data-cdl-role="chart-slope-line"]', anchor: "center", badgeTarget: "longest" },
+  { label: "傾きの時点", selector: '[data-cdl-role="chart-slope-period"]', anchor: "right" },
+  { label: "傾きの名前", selector: '[data-cdl-role="chart-slope-label"]', anchor: "right" },
+  { label: "半円の残り", selector: '[data-cdl-role="chart-gauge-fixed-scale"]', anchor: "center", badgeTarget: "longest" },
+  { label: "半円の値", selector: '[data-cdl-role="chart-gauge-arc"]', anchor: "center", badgeTarget: "longest" },
+  { label: "半円の目標", selector: '[data-cdl-role="chart-gauge-target"]', anchor: "top" },
+  { label: "半円の数", selector: '[data-cdl-role="chart-gauge-value"]', anchor: "right" },
+  { label: "半円の差", selector: '[data-cdl-role="chart-gauge-delta"]', anchor: "right" },
+  { label: "半円の端の値", selector: '[data-cdl-role="chart-gauge-scale-endpoint"]', anchor: "right" },
+  { label: "100 個の印の凡例", selector: '[data-cdl-role="chart-waffle-item-mark"]', anchor: "top-left" },
+  { label: "100 個の印の名前", selector: '[data-cdl-role="chart-waffle-item-label"]', anchor: "right" },
+  { label: "100 個の印の割合", selector: '[data-cdl-role="chart-waffle-item-share"]', anchor: "right" },
+  { label: "円の区画", selector: '[data-cdl-role="chart-pie-slice"]', anchor: "center" },
+  { label: "円の一覧の印", selector: '[data-cdl-role="chart-pie-table-mark"]', anchor: "top-left" },
+  { label: "円の一覧の名前", selector: '[data-cdl-role="chart-pie-table-label"]', anchor: "right" },
+  { label: "円の一覧の値", selector: '[data-cdl-role="chart-pie-table-value"]', anchor: "right" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
+/** 四象限の骨組みを、面・軸・点とその字から選ぶ。 */
+export const QUADRANT_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "図の枠", selector: '[data-cdl-role="node-body"]', anchor: "top-left" },
+  { label: "図の題", selector: '[data-cdl-role="figure-title"]', anchor: "top-left" },
+  { label: "四象限の地", selector: '[data-cdl-role="quadrant-canvas"]', anchor: "top-left" },
+  { label: "区画の面", selector: '[data-cdl-role="quadrant-bg"]', anchor: "top-left" },
+  { label: "区画の名前", selector: '[data-cdl-role="quadrant-label"]', anchor: "right" },
+  { label: "軸の名前", selector: '[data-cdl-role="quadrant-axis-name"]', anchor: "right" },
+  { label: "打ち手の点", selector: '[data-cdl-role="quadrant-point"]', anchor: "top-left" },
+  { label: "打ち手の名前", selector: '[data-cdl-role="quadrant-point-label"]', anchor: "right" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
+/** 旅の地図の骨組みを、感情の段・線・接点から選ぶ。 */
+export const JOURNEY_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "図の枠", selector: '[data-cdl-role="node-body"]', anchor: "top-left" },
+  { label: "図の題", selector: '[data-cdl-role="figure-title"]', anchor: "top-left" },
+  { label: "気持ちの段線", selector: '[data-cdl-role="journey-level-rule"]', anchor: "center", badgeTarget: "longest" },
+  { label: "気持ちの段名", selector: '[data-cdl-role="journey-level-name"]', anchor: "right" },
+  { label: "気持ちの線", selector: '[data-cdl-role="journey-line"]', anchor: "center", badgeTarget: "longest" },
+  { label: "旅の接点", selector: '[data-cdl-role="journey-step"]', anchor: "top-left" },
+  { label: "改善の余地", selector: '[data-cdl-role="journey-opportunity"]', anchor: "top-left" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
+/** 漏斗の骨組みを、台形と比例の横棒のどちらでも選べる役から選ぶ。 */
+export const FUNNEL_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "図の枠", selector: '[data-cdl-role="node-body"]', anchor: "top-left" },
+  { label: "図の題", selector: '[data-cdl-role="figure-title"]', anchor: "top-left" },
+  { label: "図の脚", selector: '[data-cdl-role="figure-footer-label"]', anchor: "right" },
+  { label: "脚の説明", selector: '[data-cdl-role="figure-footer-note"]', anchor: "right" },
+  { label: "漏斗の段", selector: ':is([data-cdl-role="funnel-stage"], [data-cdl-role="funnel-proportional-bar"])', anchor: "top-left" },
+  { label: "段の割合", selector: '[data-cdl-role="funnel-conversion-rate"]', anchor: "right" },
+  { label: "段の斜線", selector: '[data-cdl-role="funnel-stage-hatch"]', anchor: "top-left" },
+  { label: "段の説明", selector: '[data-cdl-role="funnel-stage-subtitle"]', anchor: "right" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
+/** 工程の骨組みを、時の目盛り・帯・前後の矢印・節目から選ぶ。 */
+export const GANTT_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "図の枠", selector: '[data-cdl-role="node-body"]', anchor: "top-left" },
+  { label: "図の題", selector: '[data-cdl-role="figure-title"]', anchor: "top-left" },
+  { label: "時の目盛り", selector: '[data-cdl-role="gantt-tick"]', anchor: "right" },
+  { label: "工程の帯", selector: '[data-cdl-role="gantt-bar"]', anchor: "top-left" },
+  { label: "帯の斜線", selector: '[data-cdl-role="gantt-bar-hatch"]', anchor: "top-left" },
+  { label: "前後の矢印", selector: '[data-cdl-role="gantt-arrow"]', anchor: "center" },
+  { label: "節目", selector: '[data-cdl-role="gantt-milestone"]', anchor: "top-left" },
+  { label: "節目の名前", selector: '[data-cdl-role="gantt-milestone-label"]', anchor: "right" },
+  { label: "今日の線", selector: '[data-cdl-role="gantt-today"]', anchor: "center", badgeTarget: "longest" },
+  { label: "今日の名前", selector: '[data-cdl-role="gantt-today-label"]', anchor: "right" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
 export function catalogSkeletonPartsFor(
   type: string | null,
 ): readonly CatalogSkeletonPart[] | null {
@@ -206,6 +305,11 @@ export function catalogSkeletonPartsFor(
   if (type === "sequence") return SEQUENCE_SKELETON_PARTS;
   if (type === "infrastructure") return INFRASTRUCTURE_SKELETON_PARTS;
   if (type === "record") return RECORD_SKELETON_PARTS;
+  if (type === "chart") return CHART_SKELETON_PARTS;
+  if (type === "quadrant") return QUADRANT_SKELETON_PARTS;
+  if (type === "journey") return JOURNEY_SKELETON_PARTS;
+  if (type === "funnel") return FUNNEL_SKELETON_PARTS;
+  if (type === "gantt") return GANTT_SKELETON_PARTS;
   return null;
 }
 

@@ -157,8 +157,8 @@ describe("#2854 2 回目の図表回帰", () => {
   it("0.132.0 の傾きラベル role を通常色と 2 本の主役色へ流す", () => {
     const labelRules = rules.filter(({ selector }) =>
       selector.includes('data-cdl-role="chart-slope-label"'));
-    expect(labelRules.some(({ body }) => body.includes("--theme-chart-name-color"))).toBe(true);
-    expect(labelRules.some(({ body }) => body.includes("--theme-slope-osaka"))).toBe(true);
+    expect(labelRules.some(({ body }) => body.includes("--dragon-chart-name-text"))).toBe(true);
+    expect(labelRules.some(({ body }) => body.includes("--dragon-chart-slope-osaka"))).toBe(true);
     expect(labelRules.some(({ body }) => body.includes("--theme-lead"))).toBe(true);
   });
 
