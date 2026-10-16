@@ -190,6 +190,7 @@ export interface DragonJson {
   treeEdgeHead?: DslDocument["treeEdgeHead"];
   mindForm?: DslDocument["mindForm"];
   mindSize?: DslDocument["mindSize"];
+  edgeEndGap?: DslDocument["edgeEndGap"];
   journeyForm?: DslDocument["journeyForm"];
   journeyLineForm?: DslDocument["journeyLineForm"];
   journeyLabels?: DslDocument["journeyLabels"];
@@ -773,6 +774,7 @@ export const ACCEPTED_KEYS = {
     "treeEdgeHead",
     "mindForm",
     "mindSize",
+    "edgeEndGap",
     "journeyForm",
     "journeyLineForm",
     "journeyLabels",
@@ -1064,6 +1066,7 @@ export const 欄の型表 = {
     treeEdgeHead: "文字列",
     mindForm: "文字列",
     mindSize: "object",
+    edgeEndGap: "数",
     journeyForm: "文字列",
     journeyLineForm: "文字列",
     journeyLabels: "object",
@@ -2809,6 +2812,7 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     errors.push({ path, message: "must be a non-negative finite number" });
     return false;
   };
+  if (j.edgeEndGap !== undefined) nonNegativeNumber(j.edgeEndGap, "$.edgeEndGap");
   const treeSize = closedObject("treeSize", [
     "nodeWidths",
     "nodeHeight",
@@ -2835,6 +2839,7 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     }
   }
   const mindSize = closedObject("mindSize", [
+    "contentOffset",
     "root",
     "branch",
     "leaf",
@@ -2846,6 +2851,23 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     "leafRowOffset",
   ]);
   if (mindSize !== undefined) {
+    if (mindSize.contentOffset !== undefined) {
+      const value = mindSize.contentOffset;
+      const path = "$.mindSize.contentOffset";
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        errors.push({ path, message: "contentOffset must be an object" });
+      } else {
+        const offset = value as Record<string, unknown>;
+        for (const key of Object.keys(offset)) {
+          if (key !== "x" && key !== "y")
+            errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+        }
+        for (const key of ["x", "y"] as const) {
+          if (typeof offset[key] !== "number" || !Number.isFinite(offset[key]))
+            errors.push({ path: `${path}.${key}`, message: "must be a finite number" });
+        }
+      }
+    }
     const nestedSize = (
       key: "root" | "branch" | "leaf",
       allowed: readonly string[],
@@ -4170,6 +4192,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.treeEdgeHead !== undefined ? { treeEdgeHead: json.treeEdgeHead } : {}),
     ...(json.mindForm !== undefined ? { mindForm: json.mindForm } : {}),
     ...(json.mindSize !== undefined ? { mindSize: json.mindSize } : {}),
+    ...(json.edgeEndGap !== undefined ? { edgeEndGap: json.edgeEndGap } : {}),
     ...(json.journeyForm !== undefined ? { journeyForm: json.journeyForm } : {}),
     ...(json.journeyLineForm !== undefined ? { journeyLineForm: json.journeyLineForm } : {}),
     ...(json.journeyLabels !== undefined ? { journeyLabels: json.journeyLabels } : {}),

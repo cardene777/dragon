@@ -471,8 +471,11 @@ for (const theme of 意匠) {
     const geometry = await stage.evaluate((element) => {
       const ticks = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="gantt-tick"]')]
         .map((tick) => tick.x.baseVal[0]?.value ?? Number.NaN);
-      const bars = [...element.querySelectorAll<SVGRectElement>('[data-cdl-role="gantt-bar"]')]
-        .map((bar) => ({ x: bar.x.baseVal.value, width: bar.width.baseVal.value }));
+      const bars = [...element.querySelectorAll<SVGGraphicsElement>('[data-cdl-role="gantt-bar"]')]
+        .map((bar) => {
+          const box = bar.getBBox();
+          return { x: box.x, width: box.width };
+        });
       const cell = ticks[1]! - ticks[0]!;
       const origin = ticks[0]! - cell / 2;
       const positions = bars.map((bar) => [

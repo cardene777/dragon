@@ -125,13 +125,13 @@ for (const theme of 意匠) {
       const names = ["棚を作る", "端末を入れる", "試す"] as const;
       // 字は工程名 3 つとの完全一致でだけ引くため、図の題が混ざっても数えない (#2749)
       const labels = [...element.querySelectorAll<SVGTextElement>("text")];
-      const barElements = [...element.querySelectorAll<SVGRectElement>('[data-cdl-role="gantt-bar"]')];
+      const barElements = [...element.querySelectorAll<SVGGraphicsElement>('[data-cdl-role="gantt-bar"]')];
       return Object.fromEntries(names.map((name) => {
         const label = labels.find((candidate) => candidate.textContent === name);
         if (!label) throw new Error(`工程名「${name}」が無い`);
         const labelBox = label.getBBox();
         const labelCenterY = labelBox.y + labelBox.height / 2;
-        const bar = barElements.reduce<SVGRectElement | undefined>((nearest, candidate) => {
+        const bar = barElements.reduce<SVGGraphicsElement | undefined>((nearest, candidate) => {
           const candidateBox = candidate.getBBox();
           const nearestBox = nearest?.getBBox();
           return nearestBox === undefined ||

@@ -162,6 +162,11 @@ const 入力: Record<string, 図> = {
     type: "mind",
     mindSize: { rootBranchGap: 155, [知らない項目]: 1 },
   },
+  "$.mindSize.contentOffset": {
+    ...基本,
+    type: "mind",
+    mindSize: { contentOffset: { x: 20, y: 24, [知らない項目]: 1 } },
+  },
   "$.mindSize.root": {
     ...基本,
     type: "mind",

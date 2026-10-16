@@ -3,7 +3,14 @@
  * 日本語 / 英語両対応 (大文字小文字無視)
  */
 
-import { LEGEND_MARKS, type LegendMark, type NodeKind, type Tone } from "@cardenelabs/cdl";
+import {
+  LEGEND_MARKS,
+  type BarCornerRadii,
+  type CdlNode,
+  type LegendMark,
+  type NodeKind,
+  type Tone,
+} from "@cardenelabs/cdl";
 
 /** ブロック ヘッダー */
 export const HEADERS = {
@@ -230,6 +237,62 @@ export function resolveLegendMark(s: string): LegendMark | null {
  */
 export function 意匠の字の測り方(theme: DslTheme): "monospace" | undefined {
   return theme === "terminal" ? "monospace" : undefined;
+}
+
+/** `barCornerRadii` が効く棒を描く節か。 */
+export function 棒を描く節か(
+  node: Pick<CdlNode, "kind" | "funnelForm">,
+): boolean {
+  return node.kind === "chart-bar" ||
+    node.kind === "gantt-timeline" ||
+    node.kind === "chart-stacked-bar" ||
+    (node.kind === "funnel-stages" && node.funnelForm === "proportional-bars");
+}
+
+/**
+ * 意匠と節から、見本に合わせた棒の 4 隅の丸みを引く (#2863)。
+ *
+ * 手描きの見本は楕円の角 (`10px 14px 6px 12px / 14px 8px 12px 6px`) だが、cdl は
+ * 円の角だけを持つため、各隅の横と縦の平均を丸めて 12 / 11 / 9 / 9 とする。
+ * 生成りと青磁には見本が無いため値を返さず、記法で組み立てた形を保つ。
+ */
+export function 意匠の棒の角(
+  theme: DslTheme,
+  node: Pick<CdlNode, "kind" | "funnelForm">,
+): BarCornerRadii | undefined {
+  if (!棒を描く節か(node) || theme === "kinari" || theme === "celadon") return undefined;
+
+  const category = node.kind === "chart-bar"
+    ? "vertical"
+    : node.kind === "gantt-timeline"
+      ? "schedule"
+      : "horizontal";
+
+  const values = {
+    blueprint: {
+      vertical: [0, 0, 0, 0], schedule: [0, 0, 0, 0], horizontal: [0, 0, 0, 0],
+    },
+    letterpress: {
+      vertical: [0, 0, 0, 0], schedule: [0, 0, 0, 0], horizontal: [0, 0, 0, 0],
+    },
+    catalog: {
+      vertical: [4, 4, 0, 0], schedule: [4, 4, 0, 0], horizontal: [4, 4, 0, 0],
+    },
+    terminal: {
+      vertical: [3, 3, 0, 0], schedule: [0, 3, 3, 0], horizontal: [0, 3, 3, 0],
+    },
+    sketch: {
+      vertical: [12, 11, 9, 9], schedule: [12, 11, 9, 9], horizontal: [12, 11, 9, 9],
+    },
+    neon: {
+      vertical: [10, 10, 3, 3], schedule: [3, 10, 10, 3], horizontal: [12, 12, 12, 12],
+    },
+    relief: {
+      vertical: [12, 12, 5, 5], schedule: [5, 12, 12, 5], horizontal: [10, 10, 10, 10],
+    },
+  } as const;
+  const [topLeft, topRight, bottomRight, bottomLeft] = values[theme][category];
+  return { topLeft, topRight, bottomRight, bottomLeft };
 }
 
 /** NodeKind 別名 (日本語 → English) */

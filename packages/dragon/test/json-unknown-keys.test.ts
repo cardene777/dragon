@@ -141,6 +141,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     treeEdgeHead: "triangle",
     mindForm: "outline",
     mindSize: {
+      contentOffset: { x: 20, y: 24 },
       root: { width: 330, height: 60.891, fontSize: 29 },
       branch: { width: 220, height: 60.891, fontSize: 29 },
       leaf: { fontSize: 23 },
@@ -192,6 +193,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     palette: "celadon",
     legend: [{ mark: "diamond", text: "分かれ道" }],
     legendFontSize: 18,
+    edgeEndGap: 2,
     legendOffset: { x: -200, y: -40 },
     stageHeaders: {
       blueprint: { topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 },

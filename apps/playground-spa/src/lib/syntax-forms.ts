@@ -107,6 +107,7 @@ export const FORMS: Section[] = [
       { code: "sequenceGutter: 610", note: "順序図の左の札の列幅", noteEn: "Left label-column width in a sequence diagram" },
       { code: "sequenceBandWidth: 30", note: "順序図で動いている間の帯幅", noteEn: "Active-band width in a sequence diagram" },
       { code: "legendFontSize: 18", note: "凡例の字の大きさ", noteEn: "Legend font size" },
+      { code: "edgeEndGap: 2", note: "線端と札の縁の隙間", noteEn: "Gap between edge ends and node borders" },
       { code: 'legendOffset: {"x":-200,"y":-40}', note: "凡例の位置のずらし", noteEn: "Legend position offset" },
       { code: "stageHeaders:", note: "段の見出しを意匠ごとに調整", noteEn: "Stage header sizing by theme" },
       {
@@ -987,7 +988,7 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: "mindForm: outline", note: "中心・枝・葉を輪郭で描く", noteEn: "Outlines the root, branches, and leaves" },
-      { code: 'mindSize: {"root":{"width":330,"height":60.891,"fontSize":29},"branch":{"width":220,"height":60.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}', note: "中心・枝・葉と行間の寸法", noteEn: "Sizes mind-map nodes, text, gaps, and row offsets" },
+      { code: 'mindSize: {"contentOffset":{"x":20,"y":24},"root":{"width":330,"height":60.891,"fontSize":29},"branch":{"width":220,"height":60.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}', note: "中心・枝・葉の位置と行間の寸法", noteEn: "Offsets and sizes mind-map nodes, text, gaps, and rows" },
     ],
   },
   {

@@ -213,6 +213,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "contentOffset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" }
+          }
+        },
         "root": {
           "type": "object",
           "additionalProperties": false,
@@ -2880,6 +2889,11 @@
       "type": "number",
       "exclusiveMinimum": 0,
       "description": "凡例の字の大きさ"
+    },
+    "edgeEndGap": {
+      "type": "number",
+      "minimum": 0,
+      "description": "線の両端と発着する箱の縁との隙間"
     },
     "legendOffset": {
       "type": "object",

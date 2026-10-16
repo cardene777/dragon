@@ -289,6 +289,7 @@ describe("宅配のひな形 4 件 (#2835)", () => {
 
   it("cdl#1037/#1072: 段の箱の 7 意匠へ見出しの値と左余白を渡す", () => {
     const { diagram } = 記法を引く("presetDeliveryStages");
+    expect(diagram.edgeEndGap).toBe(2);
     const expected = {
       blueprint: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 },
       letterpress: { leftPad: 24, topPad: 16, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 },
@@ -304,6 +305,14 @@ describe("宅配のひな形 4 件 (#2835)", () => {
         Array(themed.lanes.length).fill(header),
       );
     }
+  });
+
+  it("cdl 0.137.0: 段と時間軸へ線端の隙間、時間軸へ凡例のずらしを渡す", () => {
+    const stages = 記法を引く("presetDeliveryStages").diagram;
+    const timeline = 記法を引く("presetDeliveryTimeline").diagram;
+    expect(stages.edgeEndGap).toBe(2);
+    expect(timeline.edgeEndGap).toBe(2);
+    expect(timeline.legendOffset).toEqual({ x: -252, y: 0 });
   });
 
   it.each(宅配のひな形)("$key が id / slug と YAML・JSON の対を持つ", (item) => {
