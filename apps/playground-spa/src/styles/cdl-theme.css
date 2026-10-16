@@ -628,6 +628,51 @@ svg[data-cdl-stage][data-cdl-palette]
   display: none;
 }
 
+/* 持ち越しの目印: 路線図の戻る矢じりを描く側の元の寸法へ戻す */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-mark="metro-return-arrow"] {
+  transform: none;
+}
+
+/* 持ち越しの目印: 端末以外では窓操作・字送り・行番号を隠す */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  ) :is(
+    [data-cdl-role="terminal-window-control"],
+    [data-cdl-role="terminal-cursor"],
+    [data-cdl-role="terminal-row-ordinal"]
+  ) {
+  display: none;
+}
+
+/* 持ち越しの目印: 端末以外では題名と行の字送りを元へ戻す */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  ) :is([data-cdl-role="terminal-title-content"], [data-cdl-role="terminal-row-content"]) {
+  transform: none;
+}
+
+/* 持ち越しの目印: 端末の題名を窓操作の右へ送る */
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-title-content"] { transform: translateX(68px); }
+
+/* 持ち越しの目印: 端末の行を行番号の右へ送る */
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-row-content"] { transform: translateX(30px); }
+
+/* 持ち越しの目印: 手描き以外では手描き角の矩形を隠す */
+svg[data-cdl-stage]:not([data-cdl-palette="sketch"]) [data-cdl-corner-variant="handdraw"] { display: none; }
+
+/* 持ち越しの目印: 手描きでは一様角の矩形を隠す */
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-corner-variant="uniform"] { display: none; }
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * 区画
  * ───────────────────────────────────────────────────────────────────────────── */
@@ -1170,6 +1215,7 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --dragon-delivery-tag-frame-width: 1px;
   --dragon-delivery-terminal-tag-text: var(--er-ground);
   --dragon-delivery-row-well-effect: none;
+  --dragon-figure-inset-effect: none;
   --dragon-delivery-row-glyph-radius: 0;
   --dragon-delivery-lane-fill: none;
   --dragon-delivery-lane-frame: var(--er-frame);
@@ -1250,6 +1296,39 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --metro-decision-face: #e3e9ea;
   --metro-decision-frame: #143a52;
   --metro-decision-ink: #143a52;
+  --dragon-metro-label-success-fill: #1f7a6b;
+  --dragon-metro-label-error-fill: #a8431f;
+  --dragon-metro-label-success-text: #e3e9ea;
+  --dragon-metro-label-error-text: #e3e9ea;
+  --dragon-metro-label-success-frame: none;
+  --dragon-metro-label-error-frame: none;
+  --dragon-metro-label-radius: 9px;
+  --cdl-figure-kind-label: #4d7187;
+  --cdl-metro-label-radius: var(--dragon-metro-label-radius);
+  --dragon-authored-label-radius: 9px;
+  --dragon-metro-label-frame-width: 0;
+  --dragon-metro-line-width: 10px;
+  --dragon-metro-return-line-width: 6px;
+  --dragon-metro-station-frame-width: 6px;
+  --dragon-metro-station-label-backdrop-width: 8px;
+  --dragon-metro-decision-fill: #e3e9ea;
+  --dragon-metro-decision-frame: #143a52;
+  --dragon-metro-decision-frame-width: 1.5px;
+  --dragon-metro-badge-fill: var(--metro-badge-face);
+  --dragon-metro-badge-frame: var(--metro-badge-frame);
+  --dragon-metro-badge-frame-width: 1px;
+  --dragon-metro-badge-radius: 12px;
+  --dragon-metro-badge-opacity: 0.82;
+  --dragon-metro-badge-effect: none;
+  --dragon-metro-badge-title-effect: none;
+  --dragon-metro-badge-title-font-weight: 700;
+  --dragon-metro-lane-guide-dash: 22 7 5 7;
+  --dragon-metro-network-effect: none;
+  --dragon-metro-branch-effect: none;
+  --dragon-terminal-control-close: none;
+  --dragon-terminal-control-minimize: none;
+  --dragon-terminal-control-maximize: none;
+  --dragon-terminal-row-ordinal: none;
 
   /* 意匠ごとの現れ方は変数だけを渡し、箱へ当てる仕組みは下の共通規則に置く。 */
   --theme-appear: blueprint-wipe-in;
@@ -1559,6 +1638,7 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --dragon-delivery-tag-frame-width: 1px;
   --dragon-delivery-terminal-tag-text: var(--er-ground);
   --dragon-delivery-row-well-effect: none;
+  --dragon-figure-inset-effect: none;
   --dragon-delivery-row-glyph-radius: 0;
   --dragon-delivery-lane-fill: none;
   --dragon-delivery-lane-frame: var(--er-frame);
@@ -1635,6 +1715,39 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --metro-decision-face: #f0eadc;
   --metro-decision-frame: #1a1510;
   --metro-decision-ink: #1a1510;
+  --dragon-metro-label-success-fill: #1a1510;
+  --dragon-metro-label-error-fill: #1a1510;
+  --dragon-metro-label-success-text: #f0eadc;
+  --dragon-metro-label-error-text: #f0eadc;
+  --dragon-metro-label-success-frame: none;
+  --dragon-metro-label-error-frame: none;
+  --dragon-metro-label-radius: 9px;
+  --cdl-figure-kind-label: #6b6253;
+  --cdl-metro-label-radius: var(--dragon-metro-label-radius);
+  --dragon-authored-label-radius: 9px;
+  --dragon-metro-label-frame-width: 0;
+  --dragon-metro-line-width: 10px;
+  --dragon-metro-return-line-width: 6px;
+  --dragon-metro-station-frame-width: 6px;
+  --dragon-metro-station-label-backdrop-width: 8px;
+  --dragon-metro-decision-fill: none;
+  --dragon-metro-decision-frame: #1a1510;
+  --dragon-metro-decision-frame-width: 2px;
+  --dragon-metro-badge-fill: transparent;
+  --dragon-metro-badge-frame: var(--metro-badge-frame);
+  --dragon-metro-badge-frame-width: 1.5px;
+  --dragon-metro-badge-radius: 12px;
+  --dragon-metro-badge-opacity: 1;
+  --dragon-metro-badge-effect: drop-shadow(2px 2px 0 rgb(26 21 16 / 14%));
+  --dragon-metro-badge-title-effect: none;
+  --dragon-metro-badge-title-font-weight: 800;
+  --dragon-metro-lane-guide-dash: 6 8;
+  --dragon-metro-network-effect: none;
+  --dragon-metro-branch-effect: none;
+  --dragon-terminal-control-close: none;
+  --dragon-terminal-control-minimize: none;
+  --dragon-terminal-control-maximize: none;
+  --dragon-terminal-row-ordinal: none;
   /* 一は 9 つの口ではない意匠の値として、主役と鍵だけへ渡す。字には使わない。 */
   --theme-lead: #c8431f;
   --timeline-axis: var(--theme-lead);
@@ -1948,6 +2061,7 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --dragon-delivery-tag-frame-width: 1px;
   --dragon-delivery-terminal-tag-text: var(--er-ground);
   --dragon-delivery-row-well-effect: none;
+  --dragon-figure-inset-effect: none;
   --dragon-delivery-row-glyph-radius: 50%;
   --dragon-delivery-lane-fill: var(--er-face);
   --dragon-delivery-lane-frame: none;
@@ -2023,6 +2137,40 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --metro-decision-face: #f4eee2;
   --metro-decision-frame: #f4eee2;
   --metro-decision-ink: #1d242e;
+  --dragon-metro-label-success-fill: #4fae9a;
+  --dragon-metro-label-error-fill: #e8705a;
+  --dragon-metro-label-success-text: #1b222c;
+  --dragon-metro-label-error-text: #1b222c;
+  --dragon-metro-label-success-frame: none;
+  --dragon-metro-label-error-frame: none;
+  --dragon-metro-label-radius: 9px;
+  --cdl-figure-kind-label: #a39a87;
+  --cdl-metro-label-radius: var(--dragon-metro-label-radius);
+  --dragon-authored-label-radius: 9px;
+  --dragon-metro-label-frame-width: 0;
+  --dragon-metro-line-width: 10px;
+  --dragon-metro-return-line-width: 6px;
+  --dragon-metro-station-frame-width: 6px;
+  --dragon-metro-station-label-backdrop-width: 8px;
+  --dragon-metro-decision-fill: #f4eee2;
+  --dragon-metro-decision-frame: none;
+  --dragon-metro-decision-frame-width: 0;
+  --dragon-metro-badge-fill: var(--metro-badge-face);
+  --dragon-metro-badge-frame: none;
+  --dragon-metro-badge-frame-width: 1px;
+  --dragon-metro-badge-radius: 12px;
+  --dragon-metro-badge-opacity: 1;
+  --dragon-metro-badge-effect: drop-shadow(0 3px 2px rgb(0 0 0 / 28%))
+    drop-shadow(0 22px 13px rgb(0 0 0 / 62%));
+  --dragon-metro-badge-title-effect: none;
+  --dragon-metro-badge-title-font-weight: 700;
+  --dragon-metro-lane-guide-dash: 6 8;
+  --dragon-metro-network-effect: none;
+  --dragon-metro-branch-effect: none;
+  --dragon-terminal-control-close: none;
+  --dragon-terminal-control-minimize: none;
+  --dragon-terminal-control-maximize: none;
+  --dragon-terminal-row-ordinal: none;
   /* 一と台の上の字は 9 つの口ではない意匠の値として持つ。 */
   --theme-lead: #dca443;
   --theme-pale: #9c9381;
@@ -2350,6 +2498,7 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --dragon-delivery-tag-frame-width: 1px;
   --dragon-delivery-terminal-tag-text: #050b07;
   --dragon-delivery-row-well-effect: none;
+  --dragon-figure-inset-effect: none;
   --dragon-delivery-row-glyph-radius: 2px;
   --dragon-delivery-lane-fill: none;
   --dragon-delivery-lane-frame: var(--er-frame);
@@ -2426,6 +2575,39 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --metro-decision-face: #08110b;
   --metro-decision-frame: #4ade80;
   --metro-decision-ink: #d3ddd6;
+  --dragon-metro-label-success-fill: #c792ea;
+  --dragon-metro-label-error-fill: #f5c451;
+  --dragon-metro-label-success-text: #03110a;
+  --dragon-metro-label-error-text: #03110a;
+  --dragon-metro-label-success-frame: none;
+  --dragon-metro-label-error-frame: none;
+  --dragon-metro-label-radius: 4px;
+  --cdl-figure-kind-label: #7f9186;
+  --cdl-metro-label-radius: var(--dragon-metro-label-radius);
+  --dragon-authored-label-radius: 4px;
+  --dragon-metro-label-frame-width: 0;
+  --dragon-metro-line-width: 10px;
+  --dragon-metro-return-line-width: 6px;
+  --dragon-metro-station-frame-width: 6px;
+  --dragon-metro-station-label-backdrop-width: 8px;
+  --dragon-metro-decision-fill: #08110b;
+  --dragon-metro-decision-frame: rgb(74 222 128 / 50%);
+  --dragon-metro-decision-frame-width: 1.5px;
+  --dragon-metro-badge-fill: var(--metro-badge-face);
+  --dragon-metro-badge-frame: var(--metro-badge-frame);
+  --dragon-metro-badge-frame-width: 1px;
+  --dragon-metro-badge-radius: 6px;
+  --dragon-metro-badge-opacity: 1;
+  --dragon-metro-badge-effect: none;
+  --dragon-metro-badge-title-effect: drop-shadow(0 0 10px rgb(74 222 128 / 35%));
+  --dragon-metro-badge-title-font-weight: 700;
+  --dragon-metro-lane-guide-dash: 3 7;
+  --dragon-metro-network-effect: none;
+  --dragon-metro-branch-effect: none;
+  --dragon-terminal-control-close: #ff5f57;
+  --dragon-terminal-control-minimize: #febc2e;
+  --dragon-terminal-control-maximize: #28c840;
+  --dragon-terminal-row-ordinal: #3f5a49;
   --theme-lead: #4ade80;
   --theme-pale: #355542;
   --theme-title: #9ef0b4;
@@ -2740,6 +2922,7 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --dragon-delivery-tag-frame-width: 1px;
   --dragon-delivery-terminal-tag-text: var(--er-ground);
   --dragon-delivery-row-well-effect: none;
+  --dragon-figure-inset-effect: none;
   --dragon-delivery-row-glyph-radius: 50%;
   --dragon-delivery-lane-fill: none;
   --dragon-delivery-lane-frame: var(--er-frame);
@@ -2816,6 +2999,39 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --metro-decision-face: #fffdf7;
   --metro-decision-frame: #2b2620;
   --metro-decision-ink: #2b2620;
+  --dragon-metro-label-success-fill: #2f7d4f;
+  --dragon-metro-label-error-fill: #2a5ca8;
+  --dragon-metro-label-success-text: #fffdf7;
+  --dragon-metro-label-error-text: #fffdf7;
+  --dragon-metro-label-success-frame: none;
+  --dragon-metro-label-error-frame: none;
+  --dragon-metro-label-radius: 9px;
+  --cdl-figure-kind-label: #6d6456;
+  --cdl-metro-label-radius: var(--dragon-metro-label-radius);
+  --dragon-authored-label-radius: 9px;
+  --dragon-metro-label-frame-width: 0;
+  --dragon-metro-line-width: 10px;
+  --dragon-metro-return-line-width: 6px;
+  --dragon-metro-station-frame-width: 6px;
+  --dragon-metro-station-label-backdrop-width: 8px;
+  --dragon-metro-decision-fill: #fffdf7;
+  --dragon-metro-decision-frame: #2b2620;
+  --dragon-metro-decision-frame-width: 2.5px;
+  --dragon-metro-badge-fill: var(--metro-badge-face);
+  --dragon-metro-badge-frame: var(--metro-badge-frame);
+  --dragon-metro-badge-frame-width: 2px;
+  --dragon-metro-badge-radius: 12px;
+  --dragon-metro-badge-opacity: 1;
+  --dragon-metro-badge-effect: drop-shadow(3px 4px 0 rgb(43 38 32 / 16%));
+  --dragon-metro-badge-title-effect: none;
+  --dragon-metro-badge-title-font-weight: 800;
+  --dragon-metro-lane-guide-dash: 6 8;
+  --dragon-metro-network-effect: none;
+  --dragon-metro-branch-effect: none;
+  --dragon-terminal-control-close: none;
+  --dragon-terminal-control-minimize: none;
+  --dragon-terminal-control-maximize: none;
+  --dragon-terminal-row-ordinal: none;
   --theme-lead: #d2491f;
   --theme-pale: #9a9080;
   --theme-title: #2b2620;
@@ -3144,6 +3360,7 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --dragon-delivery-tag-frame-width: 2.5px;
   --dragon-delivery-terminal-tag-text: var(--er-ground);
   --dragon-delivery-row-well-effect: none;
+  --dragon-figure-inset-effect: none;
   --dragon-delivery-row-glyph-radius: 50%;
   --dragon-delivery-lane-fill: none;
   --dragon-delivery-lane-frame: var(--theme-lead);
@@ -3219,6 +3436,42 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --metro-decision-face: #09070f;
   --metro-decision-frame: #00e5ff;
   --metro-decision-ink: #f3eefe;
+  --dragon-metro-label-success-fill: #07060c;
+  --dragon-metro-label-error-fill: #07060c;
+  --dragon-metro-label-success-text: #00e5ff;
+  --dragon-metro-label-error-text: #ffd000;
+  --dragon-metro-label-success-frame: #00e5ff;
+  --dragon-metro-label-error-frame: #ffd000;
+  --dragon-metro-label-radius: 9px;
+  --cdl-figure-kind-label: #c4bce0;
+  --cdl-metro-label-radius: var(--dragon-metro-label-radius);
+  --dragon-authored-label-radius: 9px;
+  --dragon-metro-label-frame-width: 2.5px;
+  --dragon-metro-line-width: 10px;
+  --dragon-metro-return-line-width: 6px;
+  --dragon-metro-station-frame-width: 6px;
+  --dragon-metro-station-label-backdrop-width: 8px;
+  --dragon-metro-decision-fill: #09070f;
+  --dragon-metro-decision-frame: #00e5ff;
+  --dragon-metro-decision-frame-width: 3px;
+  --dragon-metro-badge-fill: var(--metro-badge-face);
+  --dragon-metro-badge-frame: var(--metro-badge-frame);
+  --dragon-metro-badge-frame-width: 2px;
+  --dragon-metro-badge-radius: 16px;
+  --dragon-metro-badge-opacity: 0.94;
+  --dragon-metro-badge-effect: drop-shadow(0 0 2px #00e5ff)
+    drop-shadow(0 0 10px rgb(0 229 255 / 55%))
+    drop-shadow(0 0 24px rgb(0 229 255 / 22%));
+  --dragon-metro-badge-title-effect: drop-shadow(0 0 5px #00e5ff)
+    drop-shadow(0 0 12px rgb(0 229 255 / 60%));
+  --dragon-metro-badge-title-font-weight: 800;
+  --dragon-metro-lane-guide-dash: 6 8;
+  --dragon-metro-network-effect: none;
+  --dragon-metro-branch-effect: none;
+  --dragon-terminal-control-close: none;
+  --dragon-terminal-control-minimize: none;
+  --dragon-terminal-control-maximize: none;
+  --dragon-terminal-row-ordinal: none;
   --theme-lead: #ff2e97;
   --theme-pale: #8f86b3;
   --theme-title: #ffffff;
@@ -3533,6 +3786,7 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --dragon-delivery-tag-frame-width: 1px;
   --dragon-delivery-terminal-tag-text: var(--er-ground);
   --dragon-delivery-row-well-effect: url(#dragon-relief-figure-inset);
+  --dragon-figure-inset-effect: url(#dragon-relief-figure-inset);
   --dragon-delivery-row-glyph-radius: 50%;
   --dragon-delivery-lane-fill: var(--er-ground);
   --dragon-delivery-lane-frame: none;
@@ -3610,6 +3864,39 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --metro-decision-face: #e8e3da;
   --metro-decision-frame: #e8e3da;
   --metro-decision-ink: #463e33;
+  --dragon-metro-label-success-fill: #2f7a6e;
+  --dragon-metro-label-error-fill: #c99a35;
+  --dragon-metro-label-success-text: #ffffff;
+  --dragon-metro-label-error-text: #ffffff;
+  --dragon-metro-label-success-frame: none;
+  --dragon-metro-label-error-frame: none;
+  --dragon-metro-label-radius: 20px;
+  --cdl-figure-kind-label: #7a7062;
+  --cdl-metro-label-radius: var(--dragon-metro-label-radius);
+  --dragon-authored-label-radius: 20px;
+  --dragon-metro-label-frame-width: 0;
+  --dragon-metro-line-width: 10px;
+  --dragon-metro-return-line-width: 6px;
+  --dragon-metro-station-frame-width: 6px;
+  --dragon-metro-station-label-backdrop-width: 8px;
+  --dragon-metro-decision-fill: #e8e3da;
+  --dragon-metro-decision-frame: none;
+  --dragon-metro-decision-frame-width: 0;
+  --dragon-metro-badge-fill: var(--metro-badge-face);
+  --dragon-metro-badge-frame: none;
+  --dragon-metro-badge-frame-width: 1px;
+  --dragon-metro-badge-radius: 22px;
+  --dragon-metro-badge-opacity: 1;
+  --dragon-metro-badge-effect: url(#dragon-relief-raised);
+  --dragon-metro-badge-title-effect: none;
+  --dragon-metro-badge-title-font-weight: 700;
+  --dragon-metro-lane-guide-dash: 6 8;
+  --dragon-metro-network-effect: url(#dragon-metro-relief-shadow);
+  --dragon-metro-branch-effect: url(#dragon-metro-relief-shadow-label);
+  --dragon-terminal-control-close: none;
+  --dragon-terminal-control-minimize: none;
+  --dragon-terminal-control-maximize: none;
+  --dragon-terminal-row-ordinal: none;
   --theme-lead: #c4573c;
   --theme-pale: #877c6d;
   --theme-title: #a63c21;
@@ -5963,14 +6250,14 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   [data-cdl-role="edge-line"] {
   stroke: var(--metro-main) !important;
   stroke-opacity: 1 !important;
-  stroke-width: 10px !important;
+  stroke-width: var(--dragon-metro-line-width, 10px) !important;
 }
 
 /* 描く側の戻る点線は、見本と同じ 6px の線幅と `0 9.6` の刻みを持つ。 */
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   [data-cdl-routing="metro"]
   [data-cdl-role="edge-line"][stroke-dasharray="0 9.6"] {
-  stroke-width: 6px !important;
+  stroke-width: var(--dragon-metro-return-line-width, 6px) !important;
 }
 
 /* `4 5` は描く側が光っていない実線へ付ける合図で、見本の線種ではない。 */
@@ -5999,27 +6286,21 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   fill: var(--metro-no) !important;
 }
 
-/* 見本の戻る矢じりは枠 21 × 19、三角 17 × 19 で、描く側の元の寸法と同じ。
-   通常の矢じりを 2 倍にする共通規則から、路線図の戻る矢じりだけを外す。 */
-svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-mark="metro-return-arrow"] {
-  transform: none;
-}
-
 /* 各見本の枝札は枝の色を面に、札の字をその上に置く。 */
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone="success"]
   [data-cdl-role="edge-label-bg"] {
-  fill: var(--metro-yes) !important;
+  fill: var(--dragon-metro-label-success-fill, var(--metro-yes)) !important;
   stroke: none !important;
-  rx: 9px;
+  rx: var(--dragon-metro-label-radius, 9px);
 }
 
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone="error"]
   [data-cdl-role="edge-label-bg"] {
-  fill: var(--metro-no) !important;
+  fill: var(--dragon-metro-label-error-fill, var(--metro-no)) !important;
   stroke: none !important;
-  rx: 9px;
+  rx: var(--dragon-metro-label-radius, 9px);
 }
 
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
@@ -6034,45 +6315,45 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone]
   [data-cdl-role="edge-label-bg"] {
-  fill: #07060c !important;
-  stroke-width: 2.5px !important;
+  fill: var(--dragon-metro-label-success-fill) !important;
+  stroke-width: var(--dragon-metro-label-frame-width) !important;
 }
 
 /* 端末の枝札は角 4、浮彫は角 20。ほかの見本は角 9。 */
 svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone]
   [data-cdl-role="edge-label-bg"] {
-  rx: 4px;
+  rx: var(--dragon-metro-label-radius);
 }
 
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone]
   [data-cdl-role="edge-label-bg"] {
-  rx: 20px;
+  rx: var(--dragon-metro-label-radius);
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone="success"]
   [data-cdl-role="edge-label-bg"] {
-  stroke: var(--metro-yes) !important;
+  stroke: var(--dragon-metro-label-success-frame) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone="error"]
   [data-cdl-role="edge-label-bg"] {
-  stroke: var(--metro-no) !important;
+  stroke: var(--dragon-metro-label-error-frame) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone="success"]
   [data-cdl-role="edge-label"] {
-  fill: var(--metro-yes) !important;
+  fill: var(--dragon-metro-label-success-text) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone="error"]
   [data-cdl-role="edge-label"] {
-  fill: var(--metro-no) !important;
+  fill: var(--dragon-metro-label-error-text) !important;
 }
 
 /* 各見本の駅の面・本線の縁・駅名の字と地を使う。 */
@@ -6081,7 +6362,7 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   [data-cdl-mark="station"] {
   fill: var(--metro-station-face) !important;
   stroke: var(--metro-main) !important;
-  stroke-width: 6px !important;
+  stroke-width: var(--dragon-metro-station-frame-width, 6px) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
@@ -6101,7 +6382,7 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   [data-cdl-role="shape-name"] {
   fill: var(--metro-station-ink) !important;
   stroke: var(--metro-station-ground) !important;
-  stroke-width: 8px !important;
+  stroke-width: var(--dragon-metro-station-label-backdrop-width, 8px) !important;
   paint-order: stroke fill;
 }
 
@@ -6112,7 +6393,7 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   path {
   fill: var(--metro-decision-face) !important;
   stroke: var(--metro-decision-frame) !important;
-  stroke-width: 1.5px !important;
+  stroke-width: var(--dragon-metro-decision-frame-width, 1.5px) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
@@ -6125,8 +6406,8 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-routing="metro
   [data-cdl-kind="decision"]
   [data-cdl-role="node-body"]
   path {
-  fill: none !important;
-  stroke-width: 2px !important;
+  fill: var(--dragon-metro-decision-fill) !important;
+  stroke-width: var(--dragon-metro-decision-frame-width) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-routing="metro"])
@@ -6137,29 +6418,29 @@ svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
   [data-cdl-kind="decision"]
   [data-cdl-role="node-body"]
   path {
-  stroke: none !important;
-  stroke-width: 0 !important;
+  stroke: var(--dragon-metro-decision-frame) !important;
+  stroke-width: var(--dragon-metro-decision-frame-width) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])
   [data-cdl-kind="decision"]
   [data-cdl-role="node-body"]
   path {
-  stroke-width: 2.5px !important;
+  stroke-width: var(--dragon-metro-decision-frame-width) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
   [data-cdl-kind="decision"]
   [data-cdl-role="node-body"]
   path {
-  stroke: rgb(74 222 128 / 50%) !important;
+  stroke: var(--dragon-metro-decision-frame) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
   [data-cdl-kind="decision"]
   [data-cdl-role="node-body"]
   path {
-  stroke-width: 3px !important;
+  stroke-width: var(--dragon-metro-decision-frame-width) !important;
 }
 
 /* 各見本の始点は塗り、終点は同じ色の輪と芯にする。 */
@@ -6184,10 +6465,10 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
 
 /* 各見本の担当名札の面・枠・名前・補足を使う。字の大きさ 26 / 18 は描く側へ任せる。 */
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-badge"] rect {
-  fill: var(--metro-badge-face) !important;
-  stroke: var(--metro-badge-frame) !important;
-  stroke-width: 1px !important;
-  rx: 12px;
+  fill: var(--dragon-metro-badge-fill, var(--metro-badge-face)) !important;
+  stroke: var(--dragon-metro-badge-frame, var(--metro-badge-frame)) !important;
+  stroke-width: var(--dragon-metro-badge-frame-width, 1px) !important;
+  rx: var(--dragon-metro-badge-radius, 12px);
 }
 
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
@@ -6205,75 +6486,74 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
 svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-badge"]
   rect {
-  fill: transparent !important;
-  stroke-width: 1.5px !important;
+  fill: var(--dragon-metro-badge-fill) !important;
+  stroke-width: var(--dragon-metro-badge-frame-width) !important;
   /* 見本の `2px 2px 0 rgba(26,21,16,.14)` の押し跡。 */
-  filter: drop-shadow(2px 2px 0 rgb(26 21 16 / 14%));
+  filter: var(--dragon-metro-badge-effect);
 }
 
 svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-badge"]
   rect {
-  stroke: none !important;
+  stroke: var(--dragon-metro-badge-frame) !important;
   /* 見本の外影 `0 3px 2px rgba(0,0,0,.28)` と `0 22px 40px -14px rgba(0,0,0,.62)`。
      SVG の drop-shadow は広がりを持たないため、後段は広がりを引いた 26px の半分をぼかしにする。 */
-  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 28%)) drop-shadow(0 22px 13px rgb(0 0 0 / 62%));
+  filter: var(--dragon-metro-badge-effect);
 }
 
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-badge"] rect {
-  stroke: none !important;
+  stroke: var(--dragon-metro-badge-frame) !important;
   /* 見本の `7px 7px 15px rgba(160,144,120,.5)` と `-7px -7px 15px rgba(255,255,255,.92)`。 */
-  filter: url(#dragon-relief-raised);
+  filter: var(--dragon-metro-badge-effect);
 }
 
 svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-badge"]
   rect {
   stroke-opacity: 0.3;
-  rx: 6px;
+  rx: var(--dragon-metro-badge-radius);
 }
 
 svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-badge"] rect {
-  stroke-width: 2px !important;
+  stroke-width: var(--dragon-metro-badge-frame-width) !important;
   /* 見本の `3px 4px 0 -1px rgba(43,38,32,.16)`。
      SVG の drop-shadow は負の広がりを持たないため、ずれと濃さをそのまま使う。 */
-  filter: drop-shadow(3px 4px 0 rgb(43 38 32 / 16%));
+  filter: var(--dragon-metro-badge-effect);
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-badge"] rect {
-  stroke-width: 2px !important;
+  stroke-width: var(--dragon-metro-badge-frame-width) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="blueprint"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-badge"]
   rect {
-  fill-opacity: 0.82;
+  fill-opacity: var(--dragon-metro-badge-opacity);
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-badge"] rect {
-  fill-opacity: 0.94;
-  rx: 16px;
+  fill-opacity: var(--dragon-metro-badge-opacity);
+  rx: var(--dragon-metro-badge-radius);
   /* 見本の名札は `--n:#00e5ff` の芯と外光を枠の外へ重ねる。 */
-  filter: drop-shadow(0 0 2px #00e5ff) drop-shadow(0 0 10px rgb(0 229 255 / 55%))
-    drop-shadow(0 0 24px rgb(0 229 255 / 22%));
+  filter: var(--dragon-metro-badge-effect);
 }
 
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-badge"] rect {
-  rx: 22px;
+  rx: var(--dragon-metro-badge-radius);
 }
 
 /* 見本の端末の名前は `0 0 10px rgba(74,222,128,.35)` で光る。 */
 svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-badge"]
   text:first-of-type {
-  filter: drop-shadow(0 0 10px rgb(74 222 128 / 35%));
+  filter: var(--dragon-metro-badge-title-effect);
 }
 
 /* 見本の電飾の名前は `0 0 5px var(--n)` と `0 0 12px` の 60% の光を持つ。 */
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-badge"]
   text:first-of-type {
-  filter: drop-shadow(0 0 5px #00e5ff) drop-shadow(0 0 12px rgb(0 229 255 / 60%));
+  filter: var(--dragon-metro-badge-title-effect);
 }
 
 /* 各見本の案内線は色・0.3 の濃さ・鎖をそのまま使う。 */
@@ -6281,15 +6561,15 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-
   stroke: var(--metro-guide) !important;
   opacity: 0.3 !important;
   stroke-opacity: 1 !important;
-  stroke-dasharray: 6 8 !important;
+  stroke-dasharray: var(--dragon-metro-lane-guide-dash, 6 8) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="blueprint"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-guide"] {
-  stroke-dasharray: 22 7 5 7 !important;
+  stroke-dasharray: var(--dragon-metro-lane-guide-dash) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-guide"] {
-  stroke-dasharray: 3 7 !important;
+  stroke-dasharray: var(--dragon-metro-lane-guide-dash) !important;
 }
 
 /* 見本の `.fig .ti` が 800 の活版・手描き・電飾では、名札の名前も同じ太さにする。 */
@@ -6302,20 +6582,20 @@ svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-badge"]
   text:first-of-type {
-  font-weight: 800 !important;
+  font-weight: var(--dragon-metro-badge-title-font-weight) !important;
 }
 
 /* 浮彫の見本が図全体へ当てる、標準偏差 2、右下 2.5、左上 -2 の陰。
    線・駅・印のまとまりへ 1 度だけ当て、案内線はまとまりの外で同じ陰を保つ。 */
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-network"],
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-guide"] {
-  filter: url(#dragon-metro-relief-shadow);
+  filter: var(--dragon-metro-network-effect);
 }
 
 /* 浮彫の枝札は見本と同じ陰を保ち、平行移動した札自身の外接矩形から取る専用領域で端を切らない。 */
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
   [data-cdl-edge-label-for][data-cdl-tone] {
-  filter: url(#dragon-metro-relief-shadow-label);
+  filter: var(--dragon-metro-branch-effect);
 }
 
 /* 見本の分かれ道は図全体の陰だけを受け、浮彫の板の陰は受けない。 */
@@ -6326,60 +6606,20 @@ svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
   filter: none !important;
 }
 
-/* cdl 0.132.0: 図の種類札は正解頁の意匠ごとの墨色で読む。 */
-svg[data-cdl-stage][data-cdl-palette="blueprint"] { --cdl-figure-kind-label: #4d7187; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
-svg[data-cdl-stage][data-cdl-palette="letterpress"] { --cdl-figure-kind-label: #6b6253; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
-svg[data-cdl-stage][data-cdl-palette="catalog"] { --cdl-figure-kind-label: #a39a87; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
-svg[data-cdl-stage][data-cdl-palette="terminal"] { --cdl-figure-kind-label: #7f9186; --cdl-metro-label-radius: 4px; --dragon-authored-label-radius: 4px; }
-svg[data-cdl-stage][data-cdl-palette="sketch"] { --cdl-figure-kind-label: #6d6456; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
-svg[data-cdl-stage][data-cdl-palette="neon"] { --cdl-figure-kind-label: #c4bce0; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
-svg[data-cdl-stage][data-cdl-palette="relief"] { --cdl-figure-kind-label: #7a7062; --cdl-metro-label-radius: 20px; --dragon-authored-label-radius: 20px; }
-
-/* 端末だけが窓操作・字送り・行番号を見せる。ほかの意匠は元の組位置を保つ。 */
-svg[data-cdl-stage]:is(
-    [data-cdl-palette="blueprint"],
-    [data-cdl-palette="letterpress"],
-    [data-cdl-palette="catalog"],
-    [data-cdl-palette="sketch"],
-    [data-cdl-palette="neon"],
-    [data-cdl-palette="relief"]
-  ) :is(
-    [data-cdl-role="terminal-window-control"],
-    [data-cdl-role="terminal-cursor"],
-    [data-cdl-role="terminal-row-ordinal"]
-  ) {
-  display: none;
-}
-
-svg[data-cdl-stage]:is(
-    [data-cdl-palette="blueprint"],
-    [data-cdl-palette="letterpress"],
-    [data-cdl-palette="catalog"],
-    [data-cdl-palette="sketch"],
-    [data-cdl-palette="neon"],
-    [data-cdl-palette="relief"]
-  ) :is([data-cdl-role="terminal-title-content"], [data-cdl-role="terminal-row-content"]) {
-  transform: none;
-}
-
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-title-content"] { transform: translateX(68px); }
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-row-content"] { transform: translateX(30px); }
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="close"] { fill: #ff5f57; }
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="minimize"] { fill: #febc2e; }
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="maximize"] { fill: #28c840; }
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-cursor"] { fill: #4ade80; }
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-row-ordinal"] { fill: #3f5a49; }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="close"] { fill: var(--dragon-terminal-control-close); }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="minimize"] { fill: var(--dragon-terminal-control-minimize); }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="maximize"] { fill: var(--dragon-terminal-control-maximize); }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-cursor"] { fill: var(--theme-lead); }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-row-ordinal"] { fill: var(--dragon-terminal-row-ordinal); }
 
 /* 浮彫の凹みは正解頁の inset 5px 5px 11px / -5px -5px 11px を共通 filter で描く。 */
 svg[data-cdl-stage]:not([data-cdl-palette="relief"]) [data-cdl-role="figure-content-inset"] { filter: none; }
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="figure-content-inset"] {
-  fill: #e8e3da;
-  filter: url(#dragon-relief-figure-inset);
+  fill: var(--dragon-theme-box-fill);
+  filter: var(--dragon-figure-inset-effect);
 }
 
 /* cornerForm を書いた矩形だけ、意匠に応じて一様角か手描き角の片方を出す。 */
-svg[data-cdl-stage]:not([data-cdl-palette="sketch"]) [data-cdl-corner-variant="handdraw"] { display: none; }
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-corner-variant="uniform"] { display: none; }
 svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-corner-variant="handdraw"] { display: inline; }
 svg[data-cdl-stage][data-cdl-palette]:not(
     :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])

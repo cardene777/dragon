@@ -698,8 +698,10 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const stage = 'svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])';
     for (const part of ['[data-cdl-role="metro-network"]', '[data-cdl-role="metro-lane-guide"]']) {
       expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
-        .toBe("url(#dragon-metro-relief-shadow)");
+        .toBe("var(--dragon-metro-network-effect)");
     }
+    expect(cssFixedThemeDeclarations(cssText, "relief").get("dragon-metro-network-effect"))
+      .toBe("url(#dragon-metro-relief-shadow)");
     for (const part of [
       '[data-cdl-routing="metro"]',
       '[data-cdl-node][data-cdl-kind="station"]',
@@ -711,6 +713,8 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
     const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
     expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
+      .toBe("var(--dragon-metro-branch-effect)");
+    expect(cssFixedThemeDeclarations(cssText, "relief").get("dragon-metro-branch-effect"))
       .toBe("url(#dragon-metro-relief-shadow-label)");
     for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
       expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
@@ -718,7 +722,10 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const decisionPath = `${stage} [data-cdl-kind="decision"] [data-cdl-role="node-body"] path`;
     expect(cssDeclaration(cssRuleBody(cssText, decisionPath, "filter"), "filter")).toBe("none");
     const badge = `${stage} [data-cdl-role="metro-lane-badge"] rect`;
-    expect(cssDeclaration(cssRuleBody(cssText, badge, "filter"), "filter")).toBe("url(#dragon-relief-raised)");
+    expect(cssDeclaration(cssRuleBody(cssText, badge, "filter"), "filter"))
+      .toBe("var(--dragon-metro-badge-effect)");
+    expect(cssFixedThemeDeclarations(cssText, "relief").get("dragon-metro-badge-effect"))
+      .toBe("url(#dragon-relief-raised)");
 
     const filter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-relief-shadow");
     expect(filter).toContain('filterUnits="userSpaceOnUse"');
@@ -871,9 +878,13 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
   it("手描きの名札は揺らさず 2px の墨枠と影を保ち、太字の意匠の名前は 800 にする", () => {
     const sketchStage = 'svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])';
     const badge = cssRuleBody(cssText, `${sketchStage} [data-cdl-role="metro-lane-badge"] rect`);
-    expect(cssDeclaration(badge, "stroke-width")).toBe("2px");
-    expect(cssDeclaration(badge, "filter")).toBe("drop-shadow(3px 4px 0 rgb(43 38 32 / 16%))");
+    expect(cssDeclaration(badge, "stroke-width")).toBe("var(--dragon-metro-badge-frame-width)");
+    expect(cssDeclaration(badge, "filter")).toBe("var(--dragon-metro-badge-effect)");
     expect(badge).not.toContain("dragon-sketch-wobble");
+    const sketch = cssFixedThemeDeclarations(cssText, "sketch");
+    expect(sketch.get("dragon-metro-badge-frame-width")).toBe("2px");
+    expect(sketch.get("dragon-metro-badge-effect"))
+      .toBe("drop-shadow(3px 4px 0 rgb(43 38 32 / 16%))");
 
     for (const name of ["letterpress", "sketch", "neon"] as const) {
       const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]:has([data-cdl-routing="metro"])`;
@@ -882,7 +893,10 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         `${stage} [data-cdl-role="metro-lane-badge"] text:first-of-type`,
         "font-weight",
       );
-      expect(cssDeclaration(title, "font-weight"), name).toBe("800");
+      expect(cssDeclaration(title, "font-weight"), name)
+        .toBe("var(--dragon-metro-badge-title-font-weight)");
+      expect(cssFixedThemeDeclarations(cssText, name).get("dragon-metro-badge-title-font-weight"), name)
+        .toBe("800");
     }
   });
 

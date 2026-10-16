@@ -343,13 +343,17 @@ describe("#2854 2 回目の図表回帰", () => {
         selector.includes('data-cdl-node]:has([data-cdl-role="figure-title"])') &&
         body.includes("url(#dragon-relief-figure-frame)")),
     ).toBe(false);
-    expect(
-      rules.some(({ selector, body }) =>
-        selector.includes('[data-cdl-palette="relief"]') &&
-        selector.includes('[data-cdl-role="figure-content-inset"]') &&
-        body.includes("fill: #e8e3da") &&
-        body.includes("url(#dragon-relief-figure-inset)")),
-    ).toBe(true);
+    const inset = rules.find(({ selector }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      !selector.includes(":not(") &&
+      selector.includes('[data-cdl-role="figure-content-inset"]'));
+    expect(inset?.body).toContain("fill: var(--dragon-theme-box-fill)");
+    expect(inset?.body).toContain("filter: var(--dragon-figure-inset-effect)");
+    const relief = tableDeclarations("relief");
+    expect(resolvedRole(relief, "--dragon-theme-box-fill")).toBe("#e8e3da");
+    expect(relief.get("--dragon-figure-inset-effect")).toBe(
+      "url(#dragon-relief-figure-inset)",
+    );
     expect(css).not.toContain("var(--cdl-figure-content-inset-filter)");
   });
 
