@@ -104,6 +104,7 @@ import {
   resolveShape,
   shapesForDiagramType,
   意匠の字の測り方,
+  意匠の円の区画の間,
   棒を描く節か,
   意匠の棒の角,
   type DslShape,
@@ -793,6 +794,8 @@ function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
   const 字の測り方 = 意匠の字の測り方(配色);
   if (字の測り方 !== undefined) diagram.textMetrics = 字の測り方;
   for (const node of diagram.nodes) {
+    const 円の区画の間 = 意匠の円の区画の間(配色, node);
+    if (円の区画の間 !== undefined) node.chartPieSliceGap = 円の区画の間;
     if (棒を描く節か(node)) {
       const 棒の角 = 意匠の棒の角(配色, node);
       if (棒の角 !== undefined) node.barCornerRadii = 棒の角;

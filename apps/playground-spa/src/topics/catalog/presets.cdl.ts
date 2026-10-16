@@ -3739,7 +3739,7 @@ shape: stages
 edgeEndGap: 2
 legendFontSize: 21
 viewport: { width: 1800, height: 1048.118 }
-stageLayout: {"columnWidths":{"申し込み":300,"受付":360,"配送":400,"結果":420},"columnGap":64,"backDetourTopGap":34,"backDetourSideGap":58}
+stageLayout: {"columnWidths":{"申し込み":300,"受付":360,"配送":400,"結果":420},"columnGap":64,"backDetourTopGap":34,"backDetourSideGap":58,"backDetourTargetInset":60}
 
 stageHeaders:
   blueprint: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 }
@@ -3816,7 +3816,7 @@ export const sourceJson__presetDeliveryStages = `{
   "edgeEndGap": 2,
   "legendFontSize": 21,
   "viewport": { "width": 1800, "height": 1048.118 },
-  "stageLayout": { "columnWidths": { "申し込み": 300, "受付": 360, "配送": 400, "結果": 420 }, "columnGap": 64, "backDetourTopGap": 34, "backDetourSideGap": 58 },
+  "stageLayout": { "columnWidths": { "申し込み": 300, "受付": 360, "配送": 400, "結果": 420 }, "columnGap": 64, "backDetourTopGap": 34, "backDetourSideGap": 58, "backDetourTargetInset": 60 },
   "stageHeaders": {
     "blueprint": { "leftPad": 22, "topPad": 15, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 13 },
     "letterpress": { "leftPad": 24, "topPad": 16, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 14 },

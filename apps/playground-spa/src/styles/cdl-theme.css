@@ -6306,15 +6306,8 @@ svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
 }
 
 /* 浮彫の見本が図全体へ当てる、標準偏差 2、右下 2.5、左上 -2 の陰。
-   平行移動しない線の組と節の外箱へ当て、`userSpaceOnUse` の領域を舞台の座標で使う。 */
-svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"]) [data-cdl-routing="metro"],
-svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"]) [data-cdl-node][data-cdl-kind="station"],
-svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
-  [data-cdl-node][data-cdl-kind="mark-start"],
-svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
-  [data-cdl-node][data-cdl-kind="mark-end"],
-svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
-  [data-cdl-node][data-cdl-kind="decision"],
+   線・駅・印のまとまりへ 1 度だけ当て、案内線はまとまりの外で同じ陰を保つ。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-network"],
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"]) [data-cdl-role="metro-lane-guide"] {
   filter: url(#dragon-metro-relief-shadow);
 }
@@ -8349,13 +8342,6 @@ svg[data-cdl-stage][data-cdl-palette="terminal"]
     [data-cdl-role="chart-gauge-delta"]
   ) {
   filter: var(--dragon-chart-glow-effect) !important;
-}
-
-/* 図表-電飾.html の扇は stroke を持たず、面自身の発光だけで切れ目を描く。 */
-svg[data-cdl-stage][data-cdl-palette="neon"]
-  [data-cdl-kind="chart-pie"]
-  [data-cdl-role="chart-pie-slice"] {
-  stroke: none !important;
 }
 
 /* 浮彫の輪と中央値・軸字を、小さい浮き出しで正解頁へ戻す。題には影を付けない。 */

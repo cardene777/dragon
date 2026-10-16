@@ -404,3 +404,26 @@ flow:
     });
   });
 });
+
+describe("円の区画の間の意匠切替 (#2871)", () => {
+  const 円 = (theme?: string) => textDslToDiagram(`title: 見本
+type: chart
+shape: pie
+${theme === undefined ? "" : `theme: ${theme}\n`}actors:
+  - A: "80"
+  - B: "20"
+flow:
+  - A -> B
+`);
+
+  it("電飾へ替えると chartPieSliceGap 3 を付ける", () => {
+    const next = 図の配色を変える(円("catalog"), "neon");
+    expect(next.nodes[0]?.chartPieSliceGap).toBe(3);
+    expect(図の配色を変える(next, "neon")).toBe(next);
+  });
+
+  it.each(["catalog", "relief", 画面の色] as const)("%s へ替えると chartPieSliceGap を外す", (theme) => {
+    const next = 図の配色を変える(円("neon"), theme);
+    expect(Object.hasOwn(next.nodes[0] ?? {}, "chartPieSliceGap")).toBe(false);
+  });
+});

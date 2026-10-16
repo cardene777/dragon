@@ -140,7 +140,7 @@ flow:
 | `legendOffset` | 図全体の凡例の位置をずらす (`{ x?, y? }`) |
 | `edgeEndGap` | 線の両端と発着する箱の縁との隙間 (0 以上) |
 | `stageHeaders` | `shape: stages` の見出し寸法を意匠名ごとに書く (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
-| `stageLayout` | `shape: stages` の列幅・列間・戻る線の迂回寸法 (`columnWidths` / `columnGap` / `backDetourTopGap` / `backDetourSideGap`) |
+| `stageLayout` | `shape: stages` の列幅・列間・戻る線の迂回寸法 (`columnWidths` / `columnGap` / `backDetourTopGap` / `backDetourSideGap` / `backDetourTargetInset`) |
 | `layoutByTheme` | 意匠名ごとに表の箱の高さ・固定高さ・中心 y (`h` / `posH` / `posY`)・`rowLayout` / `rowStripe` と線の固定端点・`waypoints`・札のずらしをまとめて上書きする |
 
 <!-- notation:top-level:end -->

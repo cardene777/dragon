@@ -288,14 +288,14 @@ describe("#2854 2 回目の図表回帰", () => {
     );
   });
 
-  it("電飾の円は黒い区切り線を外し、端末の半円は正解頁の緑の光を使う", () => {
+  it("電飾の円は CDL 自身の切れ目を使い、端末の半円は正解頁の緑の光を使う", () => {
     expect(
       rules.some(({ selector, body }) =>
         selector.includes('[data-cdl-palette="neon"]') &&
         selector.includes('[data-cdl-kind="chart-pie"]') &&
         selector.includes('[data-cdl-role="chart-pie-slice"]') &&
         body.includes("stroke: none !important")),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       rules.some(({ selector, body }) =>
         selector.includes('[data-cdl-palette="terminal"]') &&

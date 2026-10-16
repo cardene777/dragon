@@ -342,7 +342,7 @@ const 入力: Record<string, 図> = {
       blueprint: { edges: { "A -> B": { waypoints: [{ x: 1, y: 2, [知らない項目]: 3 }] } } },
     },
   },
-  "$.stageLayout": { ...基本, stageLayout: { columnGap: 64, [知らない項目]: 1 } },
+  "$.stageLayout": { ...基本, stageLayout: { backDetourTargetInset: 60, [知らない項目]: 1 } },
   "$.events[]": { ...基本, events: [{ on: "click", handler: "h", box: "A", [知らない項目]: 1 }] },
   "$.scrolls.additionalProperties": {
     ...基本,

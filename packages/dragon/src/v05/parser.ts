@@ -5971,7 +5971,7 @@ const CDL_0132_KEYS: Record<Cdl0132ObjectField, readonly string[]> = {
   ganttSize: ["taskLabelFontSize", "taskLabelAlign", "taskLabelX", "tickFontSize", "tickCount", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth", "taskColumnWidth", "timelinePaddingRight"],
   quadrantSize: ["plotOffset", "plotSize", "pointRadius", "pointFontSize", "pointLabelGap", "quadrantFontSize", "axisFontSize"],
   legendOffset: ["x", "y"],
-  stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap"],
+  stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap", "backDetourTargetInset"],
 };
 
 function cdl0132の欄を読む(
@@ -6066,7 +6066,7 @@ function cdl0132の欄を読む(
       if (value[key] !== undefined && (typeof value[key] !== "number" || !Number.isFinite(value[key]))) invalid = true;
   } else if (name === "stageLayout") {
     nested("columnWidths", Object.keys(objectか(value.columnWidths) ? value.columnWidths : {}), "nonNegative");
-    for (const key of ["columnGap", "backDetourTopGap", "backDetourSideGap"]) nonNegative(key);
+    for (const key of ["columnGap", "backDetourTopGap", "backDetourSideGap", "backDetourTargetInset"]) nonNegative(key);
   }
   if (invalid) errors.push({ line, message: `${name} の値の形が読めません` });
   return !invalid;

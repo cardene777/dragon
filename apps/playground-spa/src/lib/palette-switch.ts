@@ -3,6 +3,7 @@ import {
   THEMES,
   type DslTheme,
   意匠の字の測り方,
+  意匠の円の区画の間,
   棒を描く節か,
   意匠の棒の角,
 } from "@cardenelabs/dragon";
@@ -225,6 +226,19 @@ function 棒の角を当てる(node: CdlNode, theme: DslTheme | undefined): CdlN
   return next;
 }
 
+function 円の区画の間を当てる(node: CdlNode, theme: DslTheme | undefined): CdlNode {
+  const target = theme === undefined ? undefined : 意匠の円の区画の間(theme, node);
+  const same = target === undefined
+    ? !Object.hasOwn(node, "chartPieSliceGap")
+    : node.chartPieSliceGap === target;
+  if (same) return node;
+
+  const next = { ...node };
+  if (target === undefined) delete next.chartPieSliceGap;
+  else next.chartPieSliceGap = target;
+  return next;
+}
+
 /** 画面に出す札を引く */
 export function 配色の札(配色: DslTheme, locale: Locale): string {
   return 字を引く(値と札[配色], locale);
@@ -280,12 +294,14 @@ export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の�
     ? diagram.nodes
     : diagram.nodes.map((node) => 浮彫の凹み面の値を当てる(node, 元の凹み面の値, 次は凹み面に収める));
   const 次の棒角の節 = 次の節.map((node) => 棒の角を当てる(node, 次の配色));
+  const 次の円の区画の節 = 次の棒角の節.map((node) => 円の区画の間を当てる(node, 次の配色));
   const 見出しが同じ = diagram.lanes.every((lane) =>
     lane.stage === undefined || lane.stage.header === 次の見出し,
   );
   const 凹み面が同じ = diagram.nodes.every((node, index) =>
     凹み面の比較値(node) === 凹み面の比較値(次の節[index] ?? node));
   const 棒の角が同じ = 次の節.every((node, index) => 次の棒角の節[index] === node);
+  const 円の区画の間が同じ = 次の棒角の節.every((node, index) => 次の円の区画の節[index] === node);
   const 配置の表 = (diagram as 意匠別配置を持つ図).layoutByTheme;
   const 次の配置 = 次の配色 === undefined ? undefined : 配置の表?.themes[次の配色];
   const 箱の配置が同じ = 配置の表 === undefined || diagram.nodes.every((node) => {
@@ -302,6 +318,7 @@ export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の�
     見出しが同じ &&
     凹み面が同じ &&
     棒の角が同じ &&
+    円の区画の間が同じ &&
     箱の配置が同じ &&
     線の配置が同じ
   ) return diagram;
@@ -320,8 +337,8 @@ export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の�
       return { ...lane, stage };
     });
   }
-  if (!棒の角が同じ || 凹み面の表 !== undefined) {
-    次.nodes = 次の棒角の節;
+  if (!棒の角が同じ || !円の区画の間が同じ || 凹み面の表 !== undefined) {
+    次.nodes = 次の円の区画の節;
   }
   if (配置の表 !== undefined) {
     次.nodes = 次.nodes.map((node) => {

@@ -694,18 +694,20 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(cssDeclaration(cssRuleBody(cssText, selector), "transform")).toBe("none");
   });
 
-  it("浮彫の路線図は外箱へ見本と同じ図全体の陰を当て、枝札だけ外接矩形の領域を使う", () => {
+  it("浮彫の路線図は線と駅と印のまとまりへ見本と同じ陰を当て、枝札だけ専用領域を使う", () => {
     const stage = 'svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])';
+    for (const part of ['[data-cdl-role="metro-network"]', '[data-cdl-role="metro-lane-guide"]']) {
+      expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
+        .toBe("url(#dragon-metro-relief-shadow)");
+    }
     for (const part of [
       '[data-cdl-routing="metro"]',
       '[data-cdl-node][data-cdl-kind="station"]',
       '[data-cdl-node][data-cdl-kind="mark-start"]',
       '[data-cdl-node][data-cdl-kind="mark-end"]',
       '[data-cdl-node][data-cdl-kind="decision"]',
-      '[data-cdl-role="metro-lane-guide"]',
     ]) {
-      expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
-        .toBe("url(#dragon-metro-relief-shadow)");
+      expect(cssRuleBodies(cssText, `${stage} ${part}`, "filter"), part).toEqual([]);
     }
     const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
     expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
