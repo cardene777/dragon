@@ -80,6 +80,7 @@ const fixedThemeRoles = [
   "--dragon-theme-timeline-number-line-effect",
   "--dragon-theme-box-text-effect",
   "--dragon-theme-tag-effect",
+  "--dragon-figure-inset-effect",
   "--dragon-flow-main",
   "--dragon-flow-mark",
   "--dragon-flow-return-legend",
@@ -280,6 +281,36 @@ const fixedThemeRoles = [
   "--dragon-chart-figure-head-divider",
   "--dragon-chart-figure-footer-divider",
   "--dragon-metro-label-effect",
+  "--dragon-metro-label-success-fill",
+  "--dragon-metro-label-error-fill",
+  "--dragon-metro-label-success-text",
+  "--dragon-metro-label-error-text",
+  "--dragon-metro-label-success-frame",
+  "--dragon-metro-label-error-frame",
+  "--dragon-metro-label-radius",
+  "--dragon-metro-label-frame-width",
+  "--dragon-metro-line-width",
+  "--dragon-metro-return-line-width",
+  "--dragon-metro-station-frame-width",
+  "--dragon-metro-station-label-backdrop-width",
+  "--dragon-metro-decision-fill",
+  "--dragon-metro-decision-frame",
+  "--dragon-metro-decision-frame-width",
+  "--dragon-metro-badge-fill",
+  "--dragon-metro-badge-frame",
+  "--dragon-metro-badge-frame-width",
+  "--dragon-metro-badge-radius",
+  "--dragon-metro-badge-opacity",
+  "--dragon-metro-badge-effect",
+  "--dragon-metro-badge-title-effect",
+  "--dragon-metro-badge-title-font-weight",
+  "--dragon-metro-lane-guide-dash",
+  "--dragon-metro-network-effect",
+  "--dragon-metro-branch-effect",
+  "--dragon-terminal-control-close",
+  "--dragon-terminal-control-minimize",
+  "--dragon-terminal-control-maximize",
+  "--dragon-terminal-row-ordinal",
   "--dragon-chart-series-1-fill",
   "--dragon-chart-series-2-fill",
   "--dragon-chart-series-3-fill",
@@ -583,8 +614,8 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect([...declared].filter((role) => !read.has(role))).toEqual([]);
   });
 
-  it("階層図・マインドマップ・宅配と同じ節で足した表の全役は規則から少なくとも 1 回読まれる", () => {
-    const addedRole = /^--dragon-(?:hierarchy-|tree-sales-office-|mind-redelivery-|delivery-|chart-|metro-label-|stage-detail-|stage-name-|stage-card-name-)/;
+  it("図種ごとに足した表の全役は規則から少なくとも 1 回読まれる", () => {
+    const addedRole = /^--dragon-(?:figure-|hierarchy-|tree-sales-office-|mind-redelivery-|delivery-|chart-|metro-|terminal-|stage-detail-|stage-name-|stage-card-name-)/;
     const declared = new Set(fixedThemeRoles.filter((role) => addedRole.test(role)));
     const read = new Set(
       flatRules(css).flatMap(({ body }) =>
@@ -658,9 +689,9 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(diagramHeadingAt).toBeGreaterThan(secondHeadingAt);
   });
 
-  it("持ち越し 34 件を同じ選択子と宣言で持ち、危険な規則は基準 41 件を超えない", () => {
+  it("持ち越し 41 件を同じ選択子と宣言で持ち、危険な規則は基準 41 件を超えない", () => {
     const carryoverMarkers = css.match(/\/\* 持ち越しの目印:/g) ?? [];
-    expect(carryoverMarkers).toHaveLength(34);
+    expect(carryoverMarkers).toHaveLength(41);
 
     const actual = flatRules(css).map((rule) => ({
       selector: normalized(rule.selector),
@@ -802,6 +833,37 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="gantt-timeline"] line:not([data-cdl-role]) {
         display: none;
       }`,
+      `svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-mark="metro-return-arrow"] {
+        transform: none;
+      }`,
+      `svg[data-cdl-stage]:is(
+        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
+        [data-cdl-palette="catalog"], [data-cdl-palette="sketch"],
+        [data-cdl-palette="neon"], [data-cdl-palette="relief"]
+      ) :is(
+        [data-cdl-role="terminal-window-control"],
+        [data-cdl-role="terminal-cursor"],
+        [data-cdl-role="terminal-row-ordinal"]
+      ) { display: none; }`,
+      `svg[data-cdl-stage]:is(
+        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
+        [data-cdl-palette="catalog"], [data-cdl-palette="sketch"],
+        [data-cdl-palette="neon"], [data-cdl-palette="relief"]
+      ) :is([data-cdl-role="terminal-title-content"], [data-cdl-role="terminal-row-content"]) {
+        transform: none;
+      }`,
+      `svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-title-content"] {
+        transform: translateX(68px);
+      }`,
+      `svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-row-content"] {
+        transform: translateX(30px);
+      }`,
+      `svg[data-cdl-stage]:not([data-cdl-palette="sketch"]) [data-cdl-corner-variant="handdraw"] {
+        display: none;
+      }`,
+      `svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-corner-variant="uniform"] {
+        display: none;
+      }`,
     ].map(exactRule);
     for (const rule of expected) expect(actual).toContainEqual(rule);
 
@@ -866,6 +928,40 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(risky).toEqual([]);
   });
 
+  it("路線図だけの色の節の意匠名付き規則に直書きの色・太さ・角・影は 0 件で、持ち越し対象も 0 件", () => {
+    const metro = sectionAfter(" * 路線図だけの色。");
+    const direct = directStyleValues(metro);
+    const risky = flatRules(metro).filter(({ selector, body }) =>
+      /(?:^|;)\s*(?:display\s*:\s*none|transform\s*:|translate\s*:)/m.test(body) ||
+      /\[(?:r|rx|ry)\s*[*^$|~]?=/i.test(selector));
+    console.log(`#2882 の路線図だけの色の節に残る直書きの色・太さ・角・影: ${direct.length} 件、持ち越し対象: ${risky.length} 件`);
+    expect(direct).toEqual([]);
+    expect(risky).toEqual([]);
+  });
+
+  it("路線図の規則と表が読む役は路線図・共通・cdl・描き手の役だけ", () => {
+    const metro = sectionAfter(" * 路線図だけの色。");
+    const ruleBodies = flatRules(metro)
+      .filter(({ selector, body }) => selector.includes("metro") || body.includes("--cdl-metro-label-radius"))
+      .map(({ body }) => body);
+    const tableValues = fixedTableRules().flatMap(({ body }) =>
+      [...declarations(body)]
+        .filter(([name]) => /^--(?:dragon-)?metro-/.test(name))
+        .map(([, value]) => value),
+    );
+    const readRoles = new Set(
+      [...ruleBodies, ...tableValues].flatMap((body) =>
+        [...body.matchAll(/var\((--[a-z0-9-]+)/gi)].map((match) => match[1]!),
+      ),
+    );
+    const forbidden = [...readRoles]
+      .filter((role) => !/^(?:--metro-|--dragon-metro-|--dragon-theme-|--cdl-|--er-)/.test(role))
+      .sort();
+    console.log(`#2882 の路線図の規則と表が読む役: ${readRoles.size} 件、他図種の役: ${forbidden.length} 件`);
+    expect(readRoles.size).toBe(43);
+    expect(forbidden).toEqual([]);
+  });
+
   it("階層図の 2 節と図だけの規則（宅配を含む）に直書きの色・太さ・角・影は 0 件", () => {
     const hierarchy = [
       sectionAfter(" * 見本帳の階層図とマインドマップ (#2854 6a)"),
@@ -877,7 +973,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(direct).toEqual([]);
   });
 
-  it("持ち越し 34 件を移しても競合規則との前後関係は変わらない", () => {
+  it("持ち越し 41 件を移しても競合規則との前後関係は変わらない", () => {
     const rules = flatRules(css);
     const flowTransform = rules.findIndex(({ selector }) =>
       selector.includes('[data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"]'));
@@ -920,6 +1016,34 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       rules.filter(({ selector, body }) =>
         selector.includes('[data-cdl-role="gantt-row"]') && body.includes("display: none")),
     ];
+    const metroReturnTransform = rules.findIndex(({ selector, body }) =>
+      selector.includes('[data-cdl-mark="metro-return-arrow"]') && body.includes("transform: none"));
+    const metroCarryovers = [
+      rules.filter(({ selector, body }) =>
+        selector.includes('[data-cdl-role="terminal-window-control"]') &&
+        selector.includes('[data-cdl-role="terminal-row-ordinal"]') &&
+        body.includes("display: none")),
+      rules.filter(({ selector, body }) =>
+        selector.includes('[data-cdl-role="terminal-title-content"]') &&
+        selector.includes('[data-cdl-role="terminal-row-content"]') &&
+        body.includes("transform: none")),
+      rules.filter(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="terminal"]') &&
+        selector.includes('[data-cdl-role="terminal-title-content"]') &&
+        body.includes("translateX(68px)")),
+      rules.filter(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="terminal"]') &&
+        selector.includes('[data-cdl-role="terminal-row-content"]') &&
+        body.includes("translateX(30px)")),
+      rules.filter(({ selector, body }) =>
+        selector.includes(':not([data-cdl-palette="sketch"])') &&
+        selector.includes('[data-cdl-corner-variant="handdraw"]') &&
+        body.includes("display: none")),
+      rules.filter(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="sketch"]') &&
+        selector.includes('[data-cdl-corner-variant="uniform"]') &&
+        body.includes("display: none")),
+    ];
 
     // 移動前と同じく、図種固有の矢じりは全図の scale(2) より後に置く。
     expect(globalTransform).toBeGreaterThanOrEqual(0);
@@ -928,6 +1052,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(timelineTransform).toBeGreaterThan(flowTransform);
     expect(timelineSmallTransform).toBeGreaterThan(flowTransform);
     expect(timelineHiddenIcon).toBeGreaterThan(flowTransform);
+    expect(metroReturnTransform).toBeGreaterThan(globalTransform);
     expect(css.match(/@keyframes catalog-lift-in/g)).toHaveLength(1);
     // 半径で選ぶ円には同じ半径を選ぶ競合規則が無い。
     expect(radiusRules.map(({ selector }) => selector.match(/circle\[r="(\d+)"\]/)?.[1]).sort())
@@ -938,6 +1063,10 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     // #2881 の 7 規則は同じ対象・宣言を持つ競合が無いため、後ろへ移しても勝ち負けを変えない。
     for (const [index, carryover] of chartCarryovers.entries()) {
       expect(carryover, `#2881 の持ち越し ${index + 1}`).toHaveLength(1);
+    }
+    // #2882 の 6 規則は対象が互いに分かれ、戻る矢じりは全図の拡大より後なので勝ち負けを保つ。
+    for (const [index, carryover] of metroCarryovers.entries()) {
+      expect(carryover, `#2882 の持ち越し ${index + 2}`).toHaveLength(1);
     }
   });
 
@@ -971,6 +1100,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       "dragon-neon-title-pink",
       "dragon-neon-title-violet",
       "dragon-metro-relief-shadow",
+      "dragon-metro-relief-shadow-label",
       "dragon-relief-figure-frame",
       "dragon-relief-chart-1",
       "dragon-relief-chart-2",
