@@ -83,7 +83,7 @@
 | 日程の帯     | 縞。描き手の 0.55 の濃さで描く                                                                           |
 | 単系列の棒   | `data-cdl-emphasis="primary"` の棒は一 `#4ade80` に一の光、それ以外は淡 `#355542`。濃さは 1              |
 | 書体         | `--d-mono`。英数字は JetBrains Mono、和字は環境の書体                                                    |
-| 字の幅       | 記法の `theme: terminal` は英数字を等幅 (`textMetrics: "monospace"`、半角 0.63em) で測る。見本帳は全配色を比例・等幅の広い方 (`textMetrics: "widest"`) で一度だけ組み、端末の等幅書体でも字を箱へ収める |
+| 字の幅       | dragon の組み立ては色味の有無にかかわらず、比例・等幅の広い方 (`textMetrics: "widest"`) で測る。端末の等幅書体でも字を箱へ収め、色味を替えても箱・線・札の骨組みを変えない |
 | 動き         | 打つ (下の「動き」)                                                                                      |
 | 図表の系列色 | 1 = 一、2 = 二、3 = 三、4 = 薄、5 = 濃二、6 = 濃三                                                       |
 | 発想の枝 | 4 本を系列 1 `#4ade80`、2 `#c792ea`、3 `#f5c451`、4 `#8a9b90` で描く。葉の下線は同じ系列の枝と同色。枝箱の枠は枠の色 1 色 |
@@ -224,10 +224,11 @@ dragon は軸と番号の縁を一の `--er-line`、「はい」を二の `--er-
 - `apps/playground-spa/tests/terminal-theme.spec.ts` は同じ全図種の検査に加え、固定の地、初期の動き、方眼、箱、題、書体、
   日程の帯、単系列の棒を調べる。札は強調の有無にかかわらず線の色みと一致し、字が面に収まることを調べる。
 - `apps/playground-spa/tests/theme-appear.spec.ts` は箱と線が開いた時だけ動き、動きを減らす設定で止まることを調べる。
-- `packages/dragon/test/palette-notation.test.ts` は `theme: terminal` / `theme: 端末` / `palette: terminal` / JSON の `theme` で `textMetrics` が `monospace` になり、他の意匠では載らないこと、等幅で測った箱が細い字の多い名前で広くなることを調べる。
+- `packages/dragon/test/palette-notation.test.ts` は色味なし、全意匠、本文記法、JSON の全てで `textMetrics` が `widest` になり、細い字の多い名前も同じ広い幅になることを調べる。
 - `apps/playground-spa/tests/palette-switch.spec.ts` は切替で端末を選んだ舞台の地が「台」と一致することを、配色を持たない図と表の図で調べる。
-- `apps/playground-spa/src/lib/palette-switch.test.ts` は配色を替えても字の測り方を載せ替えず、見本帳の `widest` と端末記法の `monospace` を保つことを調べる。
-- `apps/playground-spa/src/lib/catalog-one-skeleton.test.tsx` は全ての見本を `widest` で組み、10 配色の骨組みに差が無いことと、比例・等幅のどちらでも箱と札から字が出ないことを調べる。
+- `apps/playground-spa/src/lib/palette-switch.test.ts` は配色を替えても字の測り方を載せ替えず、組み立てと見本帳の `widest` を保つことを調べる。
+- `apps/playground-spa/src/lib/editor-samples-one-skeleton.test.ts` は編集画面の全見本を色味なしと全意匠で組み、箱・線・札の骨組みに差が無いことを調べる。
+- `apps/playground-spa/src/lib/catalog-one-skeleton.test.tsx` は全ての見本を `widest` で組み、全配色の骨組みに差が無いことと、比例・等幅のどちらでも箱と札から字が出ないことを調べる。
 
 ## 流れ図
 

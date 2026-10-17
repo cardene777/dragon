@@ -120,8 +120,8 @@ export function 押される配色(diagram: CdlDiagram, 選択: 配色の選択)
  * 別の図を渡されたとみなして描き直し、切替を触っていない図が最初へ戻る
  * (`playback-speed.ts` と同じ理由)。
  *
- * `textMetrics` は触らない。見本帳では配置を組む前に `"widest"` を当て、見本帳の外では
- * 記法から組んだ値を保つ。
+ * `textMetrics` は触らない。dragon の組み立てと見本帳の直接記述は配置前に `"widest"` を
+ * 当てており、切替はその値を保つ。
  */
 export function 図の配色を変える<T extends CdlDiagram>(diagram: T, 選択: 配色の選択): T {
   if (選択 === null) return diagram;

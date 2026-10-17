@@ -103,7 +103,6 @@ import {
   DIAGRAM_SHAPES,
   resolveShape,
   shapesForDiagramType,
-  意匠の字の測り方,
   意匠の円の区画の間,
   棒を描く節か,
   意匠の棒の角,
@@ -563,8 +562,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 作り替えた名前を表示だけ戻す (#1220)。 **図への追加を全て終えた後**に戻す = 途中で戻すと、
   // 後続の処理が名前で引く時に作り替え前と後が混ざる
   restoreActorNames(merged, 分けた.元の名前, 作り替えた対象);
-  // 配色と行の縞は **図への追加を全て終えた後**に当てる (#1553)。 図種ごとの組み立ては
-  // 20 か所以上あり、そのどれに足しても残りが取り残される
+  // 字幅・配色・行の縞は **図への追加を全て終えた後**に当てる (#1553 / #2918)。
+  // 図種ごとの組み立ては 20 か所以上あり、そのどれに足しても残りが取り残される
   配色と縞を当てる(merged, doc);
   if (doc.legend && doc.legend.length > 0) {
     // cdl 0.129.0 の凡例は印付き項目と注記の union。両方の欄を落とさず、組み立て API と
@@ -675,15 +674,15 @@ function 行を書いた箱か(node: CdlNode): boolean {
 }
 
 /**
- * 図の配色と、行を書いた箱の縞を当てる (#1553 / #2782)。
+ * 図の字幅・配色と、行を書いた箱の縞を当てる (#1553 / #2782 / #2918)。
  *
  * ## 配色
  *
  * cdl は色を持たない。 名前だけを `data-cdl-palette` として markup に出し、消費側
  * (`cdl-theme.css`) が名前を見て 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線) に色を当てる。
- * 字の測り方も同じ配色からこの出口で載せる。端末は等幅の書体で描くため、比例の字幅では
- * 描いた字と箱の大きさが合わない。この出口は後段の配置計算より前なので、箱・札・縦列の
- * 隙間も描く書体と同じ幅で測られる (#2818)。
+ * 字の測り方は配色の有無にかかわらず、この出口で比例・等幅の広い方へ揃える。端末だけ
+ * 等幅へ替えると配色で骨組みが変わり、比例だけでは端末の字が箱から出るためである。
+ * この出口は後段の配置計算より前なので、箱・札・縦列の隙間も同じ幅で測られる (#2818)。
  *
  * **`record` は書かなければ配色を持たない** (#2782)。 畳む前は `type: er` が書かなくても
  * `kinari` (生成りに茶) になったが、畳んだ先には移り変わりを書いた図も入る。
@@ -704,11 +703,10 @@ function 行を書いた箱か(node: CdlNode): boolean {
  * 動きの有無で縞を持ったり持たなかったりしていた。 経路が 1 本になった後も出口で揃える。
  */
 function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
+  diagram.textMetrics = "widest";
   const 配色 = doc.theme;
   if (配色 === undefined) return;
   diagram.palette = 配色;
-  const 字の測り方 = 意匠の字の測り方(配色);
-  if (字の測り方 !== undefined) diagram.textMetrics = 字の測り方;
   for (const node of diagram.nodes) {
     const 円の区画の間 = 意匠の円の区画の間(配色, node);
     if (円の区画の間 !== undefined) node.chartPieSliceGap = 円の区画の間;

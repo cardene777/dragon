@@ -218,7 +218,12 @@ const 差の宣言 = {
 
 type Diagram = CdlDiagram;
 
-const 対象 = 記法つき();
+// 見本帳は直書きの図にも記法から組んだ図にも `widest` を当ててから描く (#2908 / #2918)。
+// 生の組み立て結果を比べる時も同じ入口へ揃え、記法側だけに載る公開欄の差を骨組みの差と誤認しない。
+const 対象 = 記法つき().map((item) => ({
+  ...item,
+  built: { ...item.built, textMetrics: "widest" as const },
+}));
 
 /**
  * id を「読む人に見える名前」 へ読み替える表 (Round 1 の指摘)。

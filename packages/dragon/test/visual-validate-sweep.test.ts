@@ -485,6 +485,22 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
       "描く側 0.134.0 の検査は空の state の未解決文字 {theme} を 29px で測り、見本 CSS の字寸法を読まない (#1161)",
   },
   {
+    diagramId: "再配達を減らす",
+    axis: "node-inside-viewbox",
+    対象: 'node "再配達を減らす-chart" の内側 "コンビニで受け取る"',
+    理由:
+      "比例・等幅の広い方で測ると固定した figureSize の右端を 4.6 world 越える。" +
+      "札そのものを広げると見本帳の骨組みが変わるため、固定寸法を保つ (#2918)",
+  },
+  {
+    diagramId: "荷物の大きさ",
+    axis: "node-inside-viewbox",
+    対象: 'node "荷物の大きさ-chart" の terminalDecoration 升目一覧外接',
+    理由:
+      "比例・等幅の広い方で測ると固定した figureSize の右端を 2.2 world 越える。" +
+      "札そのものを広げると見本帳の骨組みが変わるため、固定寸法を保つ (#2918)",
+  },
+  {
     diagramId: "edge-routing",
     axis: "label-char-range",
     対象: 'edge "metro"',

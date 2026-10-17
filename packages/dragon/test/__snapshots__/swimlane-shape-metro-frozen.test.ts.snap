@@ -88,6 +88,7 @@ exports[`路線図の出力を固定する (#2798) > animation を持たない�
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "路線図の固定",
   "type": "swimlane",
 }
@@ -590,6 +591,7 @@ exports[`路線図の出力を固定する (#2798) > 見本帳の路線図 1`] =
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "路線図で書く荷物の届け方",
   "type": "swimlane",
 }

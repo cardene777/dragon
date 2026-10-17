@@ -302,6 +302,7 @@ exports[`時間軸の形を持つ泳法図 (#2798) > 時間軸の組み立て結
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "申請を時間軸で追う",
   "type": "swimlane",
 }

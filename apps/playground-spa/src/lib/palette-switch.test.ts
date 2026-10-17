@@ -107,13 +107,13 @@ describe("配色と字の測り方を切り離す (#2908)", () => {
     expect(Object.hasOwn(次, "textMetrics")).toBe(false);
   });
 
-  it("端末の図で生成りを選んでも元の textMetrics を保つ", () => {
-    expect(図の配色を変える(図("terminal", "monospace"), "kinari").textMetrics).toBe("monospace");
+  it("配色を替えても元の textMetrics を保つ", () => {
+    expect(図の配色を変える(図("blueprint", "proportional"), "kinari").textMetrics).toBe("proportional");
   });
 
   it("画面の色は palette だけを外し、textMetrics を保つ", () => {
-    const 次 = 図の配色を変える(図("terminal", "monospace"), 画面の色);
-    expect(["palette" in 次, 次.textMetrics]).toEqual([false, "monospace"]);
+    const 次 = 図の配色を変える(図("blueprint", "proportional"), 画面の色);
+    expect(["palette" in 次, 次.textMetrics]).toEqual([false, "proportional"]);
   });
 
   it("textMetrics を持たない terminal の図で端末を選ぶと元の object を返す", () => {
@@ -127,9 +127,9 @@ describe("配色と字の測り方を切り離す (#2908)", () => {
     }
   });
 
-  it("端末記法を組む既存経路は monospace のまま", () => {
+  it("端末記法を組む経路も widest を保つ", () => {
     const 記法 = textDslToDiagram('title: "確かめ"\ntype: flow\ntheme: terminal\n\nactors:\n  - A\n  - B\n\nflow:\n');
-    expect(記法.textMetrics).toBe("monospace");
+    expect(記法.textMetrics).toBe("widest");
   });
 });
 

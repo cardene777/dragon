@@ -57,6 +57,7 @@ exports[`shape を書かない泳法図の出力を固定する (#2797) > 動き
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "動く泳法図",
   "type": "swimlane",
 }
@@ -104,6 +105,7 @@ exports[`shape を書かない泳法図の出力を固定する (#2797) > 向き
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "向きのある泳法図",
   "type": "swimlane",
 }
@@ -153,6 +155,7 @@ exports[`shape を書かない泳法図の出力を固定する (#2797) > 縦列
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "縦列のある泳法図",
   "type": "swimlane",
 }
@@ -302,6 +305,7 @@ exports[`shape を書かない泳法図の出力を固定する (#2797) > 見本
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "処理を役割ごとに縦列に分けて流れを示す図",
   "type": "swimlane",
 }
