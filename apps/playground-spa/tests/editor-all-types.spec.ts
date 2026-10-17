@@ -1,7 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
-import { 見本が開けたことを確かめる } from "./opened-sample";
+import {
+  見本が開けたことを確かめる,
+  選んだ見本の図が描かれるまで待つ,
+} from "./opened-sample";
 import { 位置が落ち着くまで待つ, 形が落ち着くまで待つ, 描き終わりを待つ } from "./wait-for-render";
 
 /**
@@ -54,6 +57,7 @@ async function openSample(page: Page, slug: string): Promise<void> {
   await btn.click();
 
   await 見本が開けたことを確かめる(page, slug);
+  await 選んだ見本の図が描かれるまで待つ(page, slug);
   // 編集画面は図を読んでから枠に収めるまでに 3 度位置を計算し直す (#2476)
   await 位置が落ち着くまで待つ(page, `編集画面の ${slug}`);
 }

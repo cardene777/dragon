@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { PREVIEW_URL } from "../ports";
+import { 選んだ見本の図が描かれるまで待つ } from "./opened-sample";
 
 /**
  * 公開判断のための通し確認。
@@ -40,7 +41,7 @@ test("通し: 図種を切り替えても壊れない", async ({ page }) => {
     const btn = page.locator(`[data-testid="editor-sample-${slug}"]`).first();
     if ((await btn.count()) === 0) continue;
     await btn.click();
-    await page.waitForTimeout(1500);
+    await 選んだ見本の図が描かれるまで待つ(page, slug);
     const n = await page.locator("[data-cdl-node]").count();
     expect(n, `${slug} の要素数`).toBeGreaterThan(0);
   }

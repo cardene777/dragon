@@ -529,6 +529,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
    */
   const lastLoadedSrcRef = useRef<string>(SAMPLES[0].code);
   /**
+   * 見本や共有の本文を読み込んだ後、その本文の図を待って表示を合わせる時だけ値を持つ。
+   *
+   * 通常の初回表示は待機対象を持たず、最初に届いた図をそのまま合わせる。
+   */
+  const pendingAutoFitRef = useRef<{ tab: "cdl" | "yaml"; source: string } | null>(null);
+  const renderedDiagramSourceRef = useRef<{ tab: "cdl" | "yaml"; source: string } | null>(null);
+  /**
    * CAR-1678 = YAML tab 側の「最後に programmatic に load した src」 追跡。
    * tab 切替時の dirty 判定 (yamlSrc.trim() !== yamlLastLoadedSrcRef.current.trim()) で使う。
    * default = DEFAULT_YAML_SRC。 共有 URL (`#s=`) からの復元は本文欄の控え (lastLoadedSrcRef)
@@ -868,7 +875,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         const sample = SAMPLES.find((s) => s.slug === targetSlug);
         if (sample) {
           // hash 経路 = URL 遷移 = user 意図確定と扱い confirm skip、 lastLoadedSrcRef のみ更新
-           
+          pendingAutoFitRef.current = { tab: "cdl", source: sample.code };
           setSrc(sample.code);
           lastLoadedSrcRef.current = sample.code;
           // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -888,7 +895,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
 
     const restored = decodeShare(hash);
     if (restored) {
-       
+      pendingAutoFitRef.current = { tab: "cdl", source: restored };
       setSrc(restored);
       lastLoadedSrcRef.current = restored;
        
@@ -990,6 +997,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       warnings: built.warnings,
       notices,
     };
+    renderedDiagramSourceRef.current = {
+      tab: activeTab,
+      source: activeTab === "yaml" ? yamlSrc : src,
+    };
     setLaid(built.laid);
     setDiagram(d);
     setWarnings(built.warnings);
@@ -1016,6 +1027,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const key = buildKey(activeTab, src, yamlSrc, partsItems.length, locale);
     const cached = buildCacheRef.current[activeTab];
     if (cached && cached.key === key) {
+      renderedDiagramSourceRef.current = {
+        tab: activeTab,
+        source: activeTab === "yaml" ? yamlSrc : src,
+      };
       setLaid(cached.laid);
       setDiagram(cached.diagram);
       setWarnings(cached.warnings);
@@ -1432,16 +1447,33 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // 見本の切替 (`activeSample` の変化) では下の効果が合わせ直しを許す。
   const initialFitDoneRef = useRef(false);
   useEffect(() => {
+    const target = pendingAutoFitRef.current;
+    if (target === null) return;
+    const currentSource = target.tab === "yaml" ? yamlSrc : src;
+    if (activeTab !== target.tab || currentSource !== target.source) {
+      pendingAutoFitRef.current = null;
+    }
+  }, [activeTab, src, yamlSrc]);
+  useEffect(() => {
     if (!diagram || !previewRef.current) return;
+    const targetIsRendered = (): boolean => {
+      const target = pendingAutoFitRef.current;
+      if (target === null) return true;
+      const rendered = renderedDiagramSourceRef.current;
+      return rendered !== null && rendered.tab === target.tab && rendered.source === target.source;
+    };
+    // 見本を替えた後も残っている旧図には、新しい見本用の Fit を使わせない。
+    if (!targetIsRendered()) return;
     let cancelled = false;
     let lastFitAt = 0;
     const runFit = () => {
-      if (cancelled) return;
+      if (cancelled || !targetIsRendered()) return;
       const now = Date.now();
       if (now - lastFitAt < 50) return;
       lastFitAt = now;
       handleFit();
       initialFitDoneRef.current = true;
+      pendingAutoFitRef.current = null;
     };
     // 最初の読み込みと見本の切替の後だけ合わせる。 それ以降の図の変化では合わせない
     if (!initialFitDoneRef.current) {
@@ -1466,7 +1498,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       };
     }
     return () => { cancelled = true; };
-  }, [diagram, handleFit]);
+  }, [activeSample, diagram, handleFit]);
   // activeSample 変化 (sample 切替) 時に initialFitDoneRef をリセットして次 diagram load で fit
   useEffect(() => {
     initialFitDoneRef.current = false;
@@ -1684,6 +1716,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const handleSelectSample = (s: { label: string; code: string }): void => {
     // CAR-1657 = user 編集中は confirm、 SAMPLES click も REPLACE 経路の 1 種として同 guard 適用
     if (!confirmReplaceIfDirty(s.label)) return;
+    pendingAutoFitRef.current = { tab: "cdl", source: s.code };
     setSrc(s.code);
     lastLoadedSrcRef.current = s.code;
     setActiveSample(s.label);

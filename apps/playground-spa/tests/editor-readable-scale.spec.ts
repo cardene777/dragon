@@ -11,7 +11,10 @@
  * 画面上の文字の大きさで決まるので、 そちらを直接測る。
  */
 import { test, expect } from "@playwright/test";
-import { 見本が開けたことを確かめる } from "./opened-sample";
+import {
+  見本が開けたことを確かめる,
+  選んだ見本の図が描かれるまで待つ,
+} from "./opened-sample";
 
 /**
  * 見本ごとの下限 (`#1102`)。 `#1084` の時点では 10px の 1 つだったが、 **10px では箱が枠から
@@ -153,6 +156,7 @@ for (const slug of SAMPLES) {
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2500);
     await 見本が開けたことを確かめる(page, slug);
+    await 選んだ見本の図が描かれるまで待つ(page, slug);
 
     const m = await 測れた(page);
     expect(m, "図が画面に無い").not.toBeNull();
@@ -219,6 +223,7 @@ test("収めるを押した後も文字が読める大きさに戻る (#1084)", 
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   await 見本が開けたことを確かめる(page, "swimlane");
+  await 選んだ見本の図が描かれるまで待つ(page, "swimlane");
 
   await page.locator('[data-testid="editor-zoom-out"]').click();
   await page.locator('[data-testid="editor-zoom-out"]').click();
@@ -254,6 +259,7 @@ test("画面に出ていない文字は下限を決めない (#1084)", async ({ 
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   await 見本が開けたことを確かめる(page, "er");
+  await 選んだ見本の図が描かれるまで待つ(page, "er");
 
   const m = await 測れた(page);
   expect(m.件数, "文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
@@ -282,6 +288,7 @@ test("枠に余裕がある図では倍率を上げない (#1084)", async ({ pag
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   await 見本が開けたことを確かめる(page, "topology");
+  await 選んだ見本の図が描かれるまで待つ(page, "topology");
 
   const m = await 測れた(page);
   // 空振り防止 = 下限が効いていないことを先に確かめる。 収める倍率 (実測 70.9%) が
@@ -479,6 +486,7 @@ test(`全 ${見本.length} 見本で描画側の文字が下限の計算に載�
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(待ち時間);
     await 見本が開けたことを確かめる(page, slug);
+    await 選んだ見本の図が描かれるまで待つ(page, slug);
 
     /*
      * **1 周のどこかで数える** (#1477)。
