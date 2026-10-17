@@ -12,11 +12,12 @@ export const COLOR_ONLY_THEMES = ["kinari", "celadon"] as const;
 export const ALL_TABLE_THEMES = [...FIXED_THEMES, ...COLOR_ONLY_THEMES] as const;
 
 export const THEME_ROLE_TABLE_BASELINE = {
-  carryoverMarkers: 41,
-  diagramOnlyRules: 247,
-  namedDiagramOnlyRules: 244,
+  carryoverMarkers: 22,
+  diagramOnlyRules: 239,
+  namedDiagramOnlyRules: 237,
   tableRules: 19,
-  inspectedRules: 539,
+  inspectedRules: 528,
+  riskyRules: 31,
 } as const;
 
 export type ThemeName = (typeof ALL_TABLE_THEMES)[number];

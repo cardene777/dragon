@@ -17,9 +17,7 @@ const 共通値 = {
   "--dragon-flow-return-width": "6",
   "--dragon-flow-return-dash": "0 9.6",
   "--dragon-flow-return-cap": "round",
-  "--dragon-flow-end-radius": "19px",
   "--dragon-flow-end-frame-width": "3.5",
-  "--dragon-flow-end-core-radius": "10px",
   "--dragon-flow-decision-font-size": "26px",
   "--dragon-flow-decision-font-weight": "700",
 } as const;

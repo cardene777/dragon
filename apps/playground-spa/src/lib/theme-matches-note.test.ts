@@ -36,7 +36,11 @@ import {
 } from "../../tests/helpers/theme-notes";
 import { contrast } from "../../tests/helpers/pixel-contrast";
 import { over } from "../../tests/helpers/effective-color";
-import { readThemeRoleTable, resolveThemeRole } from "./theme-role-table-test-helpers";
+import {
+  readThemeRoleTable,
+  readTimelineLabelSkeleton,
+  resolveThemeRole,
+} from "./theme-role-table-test-helpers";
 
 const 読む = (rel: string): string =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
@@ -905,6 +909,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       relief: { successFill: "#2f7a6e", errorFill: "#c99a35", successText: "#ffffff", errorText: "#383838", successFrame: "none", errorFrame: "none", frameWidth: 0, radius: 20 },
     } as const;
     const notes = readFixedThemeTimelineLabelStyles();
+    const skeleton = readTimelineLabelSkeleton(cssText);
 
     for (const [name, values] of Object.entries(expected)) {
       const declarations = cssFixedTimelineDeclarations(cssText, name);
@@ -921,7 +926,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
           : resolveCssColor(declarations, "theme-timeline-label-error-frame"),
         frameWidth: Number.parseFloat(declarations.get("theme-timeline-label-frame-width") ?? ""),
         radius: Number.parseFloat(declarations.get("theme-timeline-label-radius") ?? ""),
-        height: Number.parseFloat(declarations.get("theme-timeline-label-height") ?? ""),
+        height: Number.parseFloat(skeleton.get("height") ?? ""),
         fontSize: Number.parseFloat(declarations.get("theme-timeline-label-font-size") ?? ""),
         fontWeight: Number.parseFloat(declarations.get("theme-timeline-label-font-weight") ?? ""),
       };

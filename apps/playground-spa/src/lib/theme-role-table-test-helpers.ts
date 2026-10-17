@@ -13,7 +13,16 @@ export type MissingThemeRoleOptions = {
   fixedThemes: readonly string[];
 };
 
-type CssRule = { selector: string; body: string };
+export type CssRule = { selector: string; body: string };
+
+export type CssDeclaration = {
+  property: string;
+  value: string;
+};
+
+export type ThemeShapeDeclaration = CssDeclaration & {
+  selector: string;
+};
 
 const declarations = (body: string): Array<[string, string]> =>
   [...body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)].map((match) => [
@@ -28,6 +37,58 @@ const rules = (source: string): CssRule[] =>
       body: match[2] ?? "",
     }),
   );
+
+const allDeclarations = (body: string): CssDeclaration[] =>
+  [...body.matchAll(/(^|;)\s*([a-z0-9-]+)\s*:\s*([^;]*)/gi)].map((match) => ({
+    property: match[2]!.toLowerCase(),
+    value: match[3]!.replace(/\s+/g, " ").trim(),
+  }));
+
+const shapeProperties = new Set([
+  "transform",
+  "translate",
+  "scale",
+  "rotate",
+  "display",
+  "r",
+  "cx",
+  "cy",
+  "x",
+  "y",
+  "width",
+  "height",
+]);
+
+const normalized = (value: string): string => value.replace(/\s+/g, " ").trim();
+
+export function readCdlThemeCssRules(): CssRule[] {
+  themeCssSource ??= readFileSync(themeCssPath, "utf8");
+  return rules(themeCssSource);
+}
+
+/** 配色から独立した時間軸の線札の骨組みを読む。 */
+export function readTimelineLabelSkeleton(source: string): ReadonlyMap<string, string> {
+  const selector = normalized(`
+    svg[data-cdl-stage]:has([data-cdl-role="timeline-axis"])
+      [data-cdl-edge-label-for]:is([data-cdl-tone="success"], [data-cdl-tone="error"])
+      > [data-cdl-role="edge-label-bg"]
+  `);
+  const rule = rules(source).find((candidate) => candidate.selector === selector);
+  return new Map((rule === undefined ? [] : allDeclarations(rule.body)).map(({ property, value }) => [
+    property,
+    value.replace(/\s*!important\s*$/iu, ""),
+  ]));
+}
+
+/** 配色の有無・名前で対象を分ける規則に残った、骨組みを変える宣言を全件返す。 */
+export function themeSpecificShapeDeclarations(sourceRules: readonly CssRule[]): ThemeShapeDeclaration[] {
+  return sourceRules.flatMap(({ selector, body }) => {
+    if (!/\[data-cdl-palette(?:\]|=)/i.test(selector)) return [];
+    return allDeclarations(body)
+      .filter(({ property }) => shapeProperties.has(property))
+      .map((declaration) => ({ selector: normalized(selector), ...declaration }));
+  });
+}
 
 let themeCssSource: string | undefined;
 const themeCssPath = resolve(dirname(fileURLToPath(import.meta.url)), "../styles/cdl-theme.css");

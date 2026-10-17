@@ -69,7 +69,6 @@ describe("#2854 の値表", () => {
       expect(resolved(palette, "--theme-timeline-label-error-frame")).toBe(errorFrame);
       expect(values.get("--theme-timeline-label-frame-width")).toBe(frameWidth);
       expect(values.get("--theme-timeline-label-radius")).toBe(radius);
-      expect(values.get("--theme-timeline-label-height")).toBe("40px");
       expect(values.get("--theme-timeline-label-font-size")).toBe("21px");
       expect(values.get("--theme-timeline-label-font-weight")).toBe("700");
     },
