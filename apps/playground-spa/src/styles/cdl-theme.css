@@ -618,14 +618,7 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-
 }
 
 /* 持ち越しの目印: 端末以外では窓操作・字送り・行番号を隠す */
-svg[data-cdl-stage]:is(
-    [data-cdl-palette="blueprint"],
-    [data-cdl-palette="letterpress"],
-    [data-cdl-palette="catalog"],
-    [data-cdl-palette="sketch"],
-    [data-cdl-palette="neon"],
-    [data-cdl-palette="relief"]
-  ) :is(
+svg[data-cdl-stage]:not([data-cdl-palette="terminal"]) :is(
     [data-cdl-role="terminal-window-control"],
     [data-cdl-role="terminal-cursor"],
     [data-cdl-role="terminal-row-ordinal"]
