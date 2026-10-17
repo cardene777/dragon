@@ -344,7 +344,7 @@ test("発想の枝・ジャーニー・折れ線・傾き図は計算後に図�
   }
 });
 
-test("図面・端末の方眼、端末の升目率と時間軸番号、端末・電飾のジャーニーの光は計算後値を保つ", async ({ page }) => {
+test("図面・端末の方眼、端末の一覧行と時間軸番号、端末・電飾のジャーニーの光は計算後値を保つ", async ({ page }) => {
   await open(page, sourceYaml__presetDeliveryMetro, "blueprint");
   expect(await page.locator("svg[data-cdl-stage]").evaluate((stage) => getComputedStyle(stage).backgroundSize))
     .toBe("20px 20px, 20px 20px");
@@ -365,10 +365,52 @@ test("図面・端末の方眼、端末の升目率と時間軸番号、端末�
     await computedStyleValue(page, "font-family", role("terminal", "--dragon-timeline-number-font")),
   );
 
-  await open(page, sourceYaml__parcelSizeWaffle, "terminal");
-  const shareTranslateX = await page.locator('[data-cdl-role="chart-waffle-item-share"]').first()
-    .evaluate((element) => new DOMMatrix(getComputedStyle(element).transform).e);
-  expect(shareTranslateX).toBeCloseTo(-16);
+  for (const { name, source, markRole, rowRoles } of [
+    {
+      name: "升目",
+      source: sourceYaml__parcelSizeWaffle,
+      markRole: "chart-waffle-item-mark",
+      rowRoles: ["chart-waffle-item-mark", "chart-waffle-item-label", "chart-waffle-item-share"],
+    },
+    {
+      name: "円",
+      source: sourceYaml__parcelStatusPie,
+      markRole: "chart-pie-table-mark",
+      rowRoles: ["chart-pie-table-mark", "chart-pie-table-label", "chart-pie-table-value"],
+    },
+  ] as const) {
+    await open(page, source, "terminal");
+    const rows = await page.locator('[data-cdl-role="terminal-row-ordinal"]').evaluateAll(
+      (ordinals, input) => ordinals.map((ordinal) => {
+        const row = ordinal.parentElement;
+        const mark = row?.querySelector<SVGGraphicsElement>(`[data-cdl-role="${input.markRole}"]`);
+        if (row === null || mark === null || mark === undefined) {
+          throw new Error(`${input.name}の番号と同じ行に色の四角が無い`);
+        }
+        const ordinalRect = ordinal.getBoundingClientRect();
+        const markRect = mark.getBoundingClientRect();
+        const transforms = input.rowRoles.map((roleName) => {
+          const element = row.querySelector<SVGElement>(`[data-cdl-role="${roleName}"]`);
+          if (element === null) throw new Error(`${input.name}の行に ${roleName} が無い`);
+          const matrix = new DOMMatrix(getComputedStyle(element).transform);
+          return { roleName, x: matrix.e, y: matrix.f };
+        });
+        return { ordinalRight: ordinalRect.right, markLeft: markRect.left, transforms };
+      }),
+      { name, markRole, rowRoles },
+    );
+    expect(rows.length, `${name}の端末行`).toBeGreaterThan(0);
+    for (const [index, row] of rows.entries()) {
+      expect(row.markLeft - row.ordinalRight, `${name}の ${index + 1} 行目の番号と色の四角`).toBeGreaterThanOrEqual(0);
+      for (const transform of row.transforms) {
+        expect(transform, `${name}の ${index + 1} 行目の ${transform.roleName}`).toEqual({
+          roleName: transform.roleName,
+          x: 0,
+          y: 0,
+        });
+      }
+    }
+  }
 
   for (const theme of ["terminal", "neon"] as const) {
     await open(page, sourceYaml__shipperFeelingJourney, theme);
@@ -427,7 +469,7 @@ test("固定 7 意匠の日程の棒と漏斗の段は計算後に表の系列�
   }
 });
 
-test("固定 7 意匠の時間軸だけへ札・点列・線幅・菱形・矢じりを計算後に当てる", async ({ page }) => {
+test("時間軸の札の高さは全配色、点列・線幅・菱形・矢じりは固定 7 意匠へ計算後に当てる", async ({ page }) => {
   const source = withoutAnimation(sourceYaml__presetDeliveryTimeline);
   for (const theme of fixedThemes) {
     await open(page, source, theme);
@@ -495,11 +537,15 @@ test("固定 7 意匠の時間軸だけへ札・点列・線幅・菱形・矢�
     await computedStyleValue(page, "filter", role("neon", "--dragon-timeline-decision-effect")),
   );
 
-  for (const theme of ["kinari", "celadon"] as const) {
-    await open(page, source, theme);
+  for (const [palette, paletteName] of [
+    ["kinari", "生成り"],
+    ["celadon", "青磁"],
+    [undefined, "画面の色"],
+  ] as const) {
+    await openRolelessPalette(page, source, palette, false);
     const height = await page.locator('[data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"]').first()
       .evaluate((element) => getComputedStyle(element).height);
-    expect(height, `${theme} は固定 7 意匠の時間軸の対象外`).not.toBe("40px");
+    expect(height, paletteName).toBe("40px");
   }
 });
 
