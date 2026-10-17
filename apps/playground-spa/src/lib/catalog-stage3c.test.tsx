@@ -172,18 +172,19 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
   });
 
   it("浮彫の凹み面は図表を動かさない飾りとして渡す", () => {
+    const chartInset = { top: 0, right: 0, bottom: 0, left: 0 };
     const expected = [
-      [Charts.monthlyDeliveriesLine, {}],
+      [Charts.monthlyDeliveriesLine, chartInset],
       [Charts.parcelStatusPie, { right: 328, left: 18, radius: 18 }],
       [Charts.parcelSizeWaffle, { right: 203, left: 18, radius: 18 }],
-      [Charts.deliveryResultStacked, {}],
+      [Charts.deliveryResultStacked, chartInset],
     ] as const;
     for (const [diagram, inset] of expected) expect(node(diagram).figureInset).toEqual(inset);
 
-    expect(JSON.parse(Charts.sourceJson__monthlyDeliveriesLine).figureInset).toEqual({});
+    expect(JSON.parse(Charts.sourceJson__monthlyDeliveriesLine).figureInset).toEqual(chartInset);
     expect(JSON.parse(Charts.sourceJson__parcelStatusPie).figureInset).toEqual(expected[1][1]);
     expect(JSON.parse(Charts.sourceJson__parcelSizeWaffle).figureInset).toEqual(expected[2][1]);
-    expect(JSON.parse(Charts.sourceJson__deliveryResultStacked).figureInset).toEqual({});
+    expect(JSON.parse(Charts.sourceJson__deliveryResultStacked).figureInset).toEqual(chartInset);
   });
 
   it("凹み面を持つ 9 図は意匠別の配置値を運ばない", () => {

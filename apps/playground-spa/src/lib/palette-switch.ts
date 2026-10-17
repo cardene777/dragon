@@ -79,6 +79,20 @@ function 円の区画の間を当てる(node: CdlNode, theme: DslTheme | undefin
   return next;
 }
 
+/** 宅配の表は骨組みを変えず、元の意匠に縞が無かった浮彫・電飾だけ模様を外す。 */
+function 宅配表の縞を当てる<T extends CdlDiagram>(diagram: T, theme: DslTheme | undefined): T["nodes"] {
+  if (diagram.id !== "delivery-relations-demo" && diagram.id !== "delivery-classes-demo") {
+    return diagram.nodes;
+  }
+
+  const rowStripe = theme !== "relief" && theme !== "neon";
+  return diagram.nodes.map((node) =>
+    node.kind === "storage" && node.rowStripe !== rowStripe
+      ? { ...node, rowStripe }
+      : node,
+  );
+}
+
 /** 画面に出す札を引く */
 export function 配色の札(配色: DslTheme, locale: Locale): string {
   return 字を引く(値と札[配色], locale);
@@ -118,19 +132,22 @@ export function 図の配色を変える<T extends CdlDiagram>(diagram: T, 選�
     : diagram.palette === 次の配色;
   const 次の棒角の節 = diagram.nodes.map((node) => 棒の角を当てる(node, 次の配色));
   const 次の円の区画の節 = 次の棒角の節.map((node) => 円の区画の間を当てる(node, 次の配色));
+  const 次の縞の節 = 宅配表の縞を当てる({ ...diagram, nodes: 次の円の区画の節 }, 次の配色);
   const 棒の角が同じ = diagram.nodes.every((node, index) => 次の棒角の節[index] === node);
   const 円の区画の間が同じ = 次の棒角の節.every((node, index) => 次の円の区画の節[index] === node);
+  const 縞が同じ = 次の円の区画の節.every((node, index) => 次の縞の節[index] === node);
   if (
     配色が同じ &&
     棒の角が同じ &&
-    円の区画の間が同じ
+    円の区画の間が同じ &&
+    縞が同じ
   ) return diagram;
 
   const 次: T = { ...diagram };
   if (次の配色 === undefined) delete 次.palette;
   else 次.palette = 次の配色;
-  if (!棒の角が同じ || !円の区画の間が同じ) {
-    次.nodes = 次の円の区画の節;
+  if (!棒の角が同じ || !円の区画の間が同じ || !縞が同じ) {
+    次.nodes = 次の縞の節;
   }
   return 次;
 }

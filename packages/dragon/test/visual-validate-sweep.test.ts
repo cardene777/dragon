@@ -215,6 +215,7 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     "node:法人契約 ↔ node:個人契約",
     "node:営業所 ↔ node:受付済",
     "node:営業所 ↔ node:集荷済",
+    "node:営業所 ↔ edge-label:e4-受付済-仕分け",
     "node:受付 ↔ node:仕分け",
     "node:受付済 ↔ edge-label:e4-受付済-仕分け",
     "node:受付済 ↔ edge-label:e5-受付済-集荷済",
@@ -250,7 +251,6 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     { axis: "edge-node-cross", 対象: 'edge "e3-配送便-配達中" (from=配送便 to=配達中)' },
     { axis: "edge-stubout-min", 対象: 'edge "e0-法人契約-契約"' },
     { axis: "edge-stubout-min", 対象: 'edge "e1-個人契約-契約"' },
-    { axis: "edge-stubout-min", 対象: 'edge "e4-受付済-仕分け"' },
   ].map(({ axis, 対象 }) => ({
     diagramId: "delivery-relations-demo",
     axis,
@@ -1032,6 +1032,11 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       " `間隔をまとめて広げる` は間隔を広げること自体が見本の題。" +
       " 宅配の関係見本は札を線と箱から外した上で浮彫の固定 path の近くへ置く (#2908)",
     図: ["delivery-relations-demo", "interactive-oauth-flow", "間隔をまとめて広げる"],
+  },
+  "edge-segment-orthogonality": {
+    理由:
+      "宅配の関係見本は受付済の左辺中央から仕分けの右辺中央へ、直す前と同じ斜めの一本線で結ぶため (#2908)",
+    図: ["delivery-relations-demo"],
   },
   "print-media-compat": {
     理由:
