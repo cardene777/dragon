@@ -98,6 +98,7 @@ exports[`段階ごとの箱の出力を固定する (#2799) > animation を持�
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "段階の固定",
   "type": "swimlane",
 }
@@ -551,6 +552,7 @@ exports[`段階ごとの箱の出力を固定する (#2799) > 見本帳の段階
     },
   ],
   "states": [],
+  "textMetrics": "widest",
   "topic": "段の箱で書く荷物の届け方",
   "type": "swimlane",
 }

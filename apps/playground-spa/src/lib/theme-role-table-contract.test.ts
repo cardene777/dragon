@@ -1067,12 +1067,13 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect([...tableIds].filter((id) => !originalTableIds.has(id))).toEqual([]);
   });
 
-  it("端末だけが表と字の測り方の両方で等幅を選ぶ", () => {
+  it("端末だけが等幅字体を選び、字の測り方は全意匠で広い方を選ぶ", () => {
     const tableMonospace = themes.filter((theme) =>
       /mono/i.test(tableDeclarations(theme).get("--dragon-theme-font") ?? ""));
-    const metricsMonospace = themes.filter((theme) => 意匠の字の測り方(theme) === "monospace");
     expect(tableMonospace).toEqual(["terminal"]);
-    expect(metricsMonospace).toEqual(["terminal"]);
+    expect(themes.map((theme) => 意匠の字の測り方(theme))).toEqual(
+      themes.map(() => "widest"),
+    );
   });
 
   it("書き出しは cdl-theme.css だけを読み、2 CSS の入れ子規則は 0 件", () => {

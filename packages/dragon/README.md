@@ -612,6 +612,10 @@ animation:
 
 - `parseTextDsl(src: string): ParseResult` ... v0.4 parser、 `textDslToDiagram` に移行推奨
 
+組み立てた図は、色味の有無にかかわらず `textMetrics: "widest"` を持つ。比例字と等幅字の
+広い方で箱・札を測るため、色味を替えても骨組みは変わらない。従来の比例字だけの配置に比べ、
+字に合わせて幅が決まる箱や札は少し広がることがある。記法から測り方を指定する欄は持たない。
+
 ## LLM 向け JSON DSL
 
 LLM (Anthropic Claude / OpenAI GPT) が structured output で確実に diagram を生成できるよう、 YAML DSL と 1:1 対応する JSON 記法を提供する。

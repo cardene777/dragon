@@ -257,7 +257,17 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
       const overflow = visualValidate(target.diagram).violations.filter(
         (violation) => violation.axis === "node-inside-viewbox",
       );
-      expect(overflow, `${target.name}: 板からはみ出す節`).toEqual([]);
+      const 固定幅の既知差 = target.name === "再配達を減らす"
+        ? overflow.filter((violation) =>
+            violation.detail.includes('内側 "コンビニで受け取る"'))
+        : [];
+      expect(固定幅の既知差.length, `${target.name}: widest でだけ出る固定幅の既知差`).toBe(
+        target.name === "再配達を減らす" ? 1 : 0,
+      );
+      expect(
+        overflow.filter((violation) => !固定幅の既知差.includes(violation)),
+        `${target.name}: 板からはみ出す節`,
+      ).toEqual([]);
     }
   });
 

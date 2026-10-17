@@ -229,14 +229,13 @@ export function resolveLegendMark(s: string): LegendMark | null {
 }
 
 /**
- * 意匠から字の測り方を引く (#2818)。
+ * 意匠から字の測り方を引く (#2818 / #2918)。
  *
- * 端末は英数字を等幅の書体 (`--d-mono`、JetBrains Mono) で描くため、比例の字幅で箱を
- * 測ると描いた字と箱の大きさが合わない。`@cardenelabs/cdl` 0.123.0 の
- * `textMetrics: "monospace"` で測る。
+ * 意匠を替えても骨組みを変えず、端末の等幅字も箱へ収めるため、比例・等幅の広い方で測る。
+ * 公開済みの関数なので窓口を残し、どの意匠でも組み立てと同じ値を返す。
  */
-export function 意匠の字の測り方(theme: DslTheme): "monospace" | undefined {
-  return theme === "terminal" ? "monospace" : undefined;
+export function 意匠の字の測り方(_theme: DslTheme): "widest" {
+  return "widest";
 }
 
 /** 意匠と節から、見本に合わせた円の区画間の弧の長さを引く (#2871)。 */

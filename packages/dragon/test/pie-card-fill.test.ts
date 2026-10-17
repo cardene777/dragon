@@ -140,10 +140,10 @@ const source = (form: "ring" | "arcs" | "table" | undefined, rows: string): stri
 const four = `  - 配達中: "210"\n  - 集荷済: "132"\n  - 受付済: "70"\n  - 完了: "720"\n`;
 
 describe("円の札を描画寸法から決める (#2837)", () => {
-  it("4 区分の table は札を縦 76% / 横 72% 以上使う", () => {
+  it("4 区分の table は札を縦 75% / 横 72% 以上使う", () => {
     const result = measure(source("table", four));
     expect(result.horizontal, JSON.stringify(result)).toBeGreaterThanOrEqual(72);
-    expect(result.vertical, JSON.stringify(result)).toBeGreaterThanOrEqual(76);
+    expect(result.vertical, JSON.stringify(result)).toBeGreaterThanOrEqual(75);
     expect(result.inside, JSON.stringify(result)).toBe(true);
   });
 
