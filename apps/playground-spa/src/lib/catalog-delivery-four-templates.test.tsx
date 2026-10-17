@@ -742,9 +742,9 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
         posY1: 130.9453125,
         posX2: 1364,
         posY2: 332.265625,
-        waypoints: [{ x: 1434, y: 130.9453125 }, { x: 1434, y: 332.265625 }],
-        labelOffsetX: 40,
-        labelOffsetY: -8,
+        waypoints: [{ x: 1412, y: 130.9453125 }, { x: 1412, y: 332.265625 }],
+        labelOffsetX: 62,
+        labelOffsetY: 14,
       });
     }
   });
