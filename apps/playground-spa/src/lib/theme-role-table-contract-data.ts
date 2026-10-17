@@ -110,11 +110,7 @@ export const THEME_SHAPE_DECLARATION_ALLOWLIST = [
     value: "none",
   },
   {
-    selector: `svg[data-cdl-stage]:is(
-      [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
-      [data-cdl-palette="catalog"], [data-cdl-palette="sketch"],
-      [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-    ) :is(
+    selector: `svg[data-cdl-stage]:not([data-cdl-palette="terminal"]) :is(
       [data-cdl-role="terminal-window-control"],
       [data-cdl-role="terminal-cursor"],
       [data-cdl-role="terminal-row-ordinal"]
@@ -274,11 +270,7 @@ export const THEME_ROLE_TABLE_CARRYOVER_RULES = [
       `svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-mark="metro-return-arrow"] {
         transform: none;
       }`,
-      `svg[data-cdl-stage]:is(
-        [data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"],
-        [data-cdl-palette="catalog"], [data-cdl-palette="sketch"],
-        [data-cdl-palette="neon"], [data-cdl-palette="relief"]
-      ) :is(
+      `svg[data-cdl-stage]:not([data-cdl-palette="terminal"]) :is(
         [data-cdl-role="terminal-window-control"],
         [data-cdl-role="terminal-cursor"],
         [data-cdl-role="terminal-row-ordinal"]

@@ -179,7 +179,7 @@ npx playwright test --project dev-setup --project dev
 `pnpm test:screens` は build、preview の起動、`default` と `serial` の順次実行、preview の停止を
 1 命令で行う。 `serial` は `--no-deps` で回すため、`default` は 2 回走らない。絞り込みなどの
 Playwright 引数は `pnpm test:screens -- --grep foo` の形で両方へ渡せる。
-絞り込みに当たる検査が 0 件の枠は回さず、両方の枠が 0 件なら終了値 1 で止める。
+絞り込みに当たる検査が無い枠は回さず、どちらの枠にも当たる検査が無ければ終了値 1 で止める。
 
 開発 server を見る `dev-setup` と `dev` は従来どおり別に回す。
 
