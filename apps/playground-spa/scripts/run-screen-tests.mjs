@@ -20,6 +20,11 @@ const SPA_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT_DIR = resolve(SPA_DIR, "../..");
 const READY_TIMEOUT_MS = 120_000;
 const STOP_TIMEOUT_MS = 10_000;
+const PLAYWRIGHT_LIST_MAX_BUFFER = 10 * 1024 * 1024;
+const PROJECT_ARGS = {
+  default: ["--project=default"],
+  serial: ["--project=serial", "--no-deps"],
+};
 
 let previewProcess;
 let previewStartError;
@@ -46,6 +51,47 @@ export function parseLsofListeners(output) {
 // Playwright はそれを option の終わりとして読むため、先頭にある時だけ取り除く。
 export function playwrightArgs(argv) {
   return argv[0] === "--" ? argv.slice(1) : argv;
+}
+
+/** `playwright test --list` が完了時に出す合計から、読めた時だけ件数を返す。 */
+export function playwrightListCount(result) {
+  if (result.failedToStart) return null;
+
+  const match = result.output.match(/^Total: (\d+) tests? in \d+ files?$/mu);
+  if (match === null) return null;
+
+  const count = Number(match[1]);
+  if (!Number.isSafeInteger(count)) return null;
+  if (result.exitCode === 0) return count;
+
+  // Playwright は 0 件でも Total 行を出すが、終了値は 1 にする。
+  if (result.exitCode === 1 && count === 0 && /(?:^|\n)Error: No tests found\./u.test(result.output)) {
+    return 0;
+  }
+  return null;
+}
+
+/** 件数の取得結果だけから、各 project を回すかと全体が 0 件かを決める。 */
+export function decideScreenTestRuns(additionalArgs, listResults = {}) {
+  if (additionalArgs.length === 0) {
+    return {
+      shouldCount: false,
+      default: { testCount: null, shouldRun: true },
+      serial: { testCount: null, shouldRun: true },
+      allEmpty: false,
+    };
+  }
+
+  const defaultCount =
+    listResults.default === undefined ? null : playwrightListCount(listResults.default);
+  const serialCount =
+    listResults.serial === undefined ? null : playwrightListCount(listResults.serial);
+  return {
+    shouldCount: true,
+    default: { testCount: defaultCount, shouldRun: defaultCount !== 0 },
+    serial: { testCount: serialCount, shouldRun: serialCount !== 0 },
+    allEmpty: defaultCount === 0 && serialCount === 0,
+  };
 }
 
 function lsofで調べる(port) {
@@ -119,6 +165,39 @@ async function runCommand(command, args, options = {}) {
       else resolvePromise(signal === "SIGINT" ? 130 : 1);
     });
   });
+}
+
+function listProjectTests(project, additionalArgs, env) {
+  const result = spawnSync(
+    "pnpm",
+    [
+      "exec",
+      "playwright",
+      "test",
+      ...PROJECT_ARGS[project],
+      ...additionalArgs,
+      "--list",
+      "--reporter=list",
+    ],
+    {
+      cwd: SPA_DIR,
+      encoding: "utf8",
+      env,
+      maxBuffer: PLAYWRIGHT_LIST_MAX_BUFFER,
+    },
+  );
+  return {
+    exitCode: result.status,
+    failedToStart: result.error !== undefined,
+    output: `${result.stdout ?? ""}\n${result.stderr ?? ""}`,
+    errorMessage: result.error?.message,
+  };
+}
+
+function listFailureReason(result) {
+  if (result.failedToStart) return result.errorMessage ?? "命令を起動できませんでした";
+  if (result.exitCode !== 0) return `playwright test --list が exit ${result.exitCode} で終了しました`;
+  return "出力から Total 行を読めませんでした";
 }
 
 function startPreview() {
@@ -202,6 +281,35 @@ async function stopPreviewOnce() {
 }
 
 export async function main(additionalArgs = playwrightArgs(process.argv.slice(2))) {
+  const playwrightEnv = {
+    ...process.env,
+    SPA_URL: PREVIEW_BASE_URL,
+    PROD_BASE_URL: PREVIEW_URL,
+  };
+  const listResults =
+    additionalArgs.length === 0
+      ? {}
+      : {
+          default: listProjectTests("default", additionalArgs, playwrightEnv),
+          serial: listProjectTests("serial", additionalArgs, playwrightEnv),
+        };
+  const decision = decideScreenTestRuns(additionalArgs, listResults);
+
+  for (const project of ["default", "serial"]) {
+    const projectDecision = decision[project];
+    if (projectDecision.testCount === 0) {
+      console.log(`[test:screens] ${project}: 絞り込みに当たる検査 0 件、回さない`);
+    } else if (decision.shouldCount && projectDecision.testCount === null) {
+      console.log(
+        `[test:screens] ${project}: 件数を数えられませんでした (${listFailureReason(listResults[project])})、従来どおり回します`,
+      );
+    }
+  }
+  if (decision.allEmpty) {
+    console.error("[test:screens] default と serial のどちらにも絞り込みに当たる検査が 0 件でした");
+    return 1;
+  }
+
   const initialPort = await inspectPort(PREVIEW_PORT);
   if (!initialPort.free) throw new Error(port使用中の説明(PREVIEW_PORT, initialPort));
 
@@ -211,21 +319,20 @@ export async function main(additionalArgs = playwrightArgs(process.argv.slice(2)
   previewProcess = startPreview();
   try {
     await waitForPreview();
-    const playwrightEnv = {
-      ...process.env,
-      SPA_URL: PREVIEW_BASE_URL,
-      PROD_BASE_URL: PREVIEW_URL,
-    };
-    const defaultExit = await runCommand(
-      "pnpm",
-      ["exec", "playwright", "test", "--project=default", ...additionalArgs],
-      { cwd: SPA_DIR, env: playwrightEnv },
-    );
-    const serialExit = await runCommand(
-      "pnpm",
-      ["exec", "playwright", "test", "--project=serial", "--no-deps", ...additionalArgs],
-      { cwd: SPA_DIR, env: playwrightEnv },
-    );
+    const defaultExit = decision.default.shouldRun
+      ? await runCommand(
+          "pnpm",
+          ["exec", "playwright", "test", ...PROJECT_ARGS.default, ...additionalArgs],
+          { cwd: SPA_DIR, env: playwrightEnv },
+        )
+      : 0;
+    const serialExit = decision.serial.shouldRun
+      ? await runCommand(
+          "pnpm",
+          ["exec", "playwright", "test", ...PROJECT_ARGS.serial, ...additionalArgs],
+          { cwd: SPA_DIR, env: playwrightEnv },
+        )
+      : 0;
     console.log(`[test:screens] default exit code: ${defaultExit}`);
     console.log(`[test:screens] serial exit code: ${serialExit}`);
     return defaultExit === 0 && serialExit === 0 ? 0 : 1;
