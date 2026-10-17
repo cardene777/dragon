@@ -345,6 +345,98 @@ const pathの点 = (d: string): 点[] => {
   return points;
 };
 
+const 線が枠を通る = (points: 点[], box: 枠): boolean =>
+  points.slice(1).some((end, index) => {
+    const start = points[index]!;
+    if (start.x === end.x) {
+      return start.x >= box.left && start.x <= box.right &&
+        Math.max(Math.min(start.y, end.y), box.top) <= Math.min(Math.max(start.y, end.y), box.bottom);
+    }
+    if (start.y === end.y) {
+      return start.y >= box.top && start.y <= box.bottom &&
+        Math.max(Math.min(start.x, end.x), box.left) <= Math.min(Math.max(start.x, end.x), box.right);
+    }
+    return false;
+  });
+
+const 宅配の骨組み見本 = [
+  Catalog.presetDeliveryComponents,
+  Catalog.presetDeliveryRelations,
+  Catalog.presetDeliveryClasses,
+  Catalog.presetDeliveryStages,
+] as const;
+
+const 直線の線分 = (d: string): Array<{ start: 点; end: 点 }> => {
+  const tokens = d.match(/[A-Za-z]|[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/giu) ?? [];
+  const segments: Array<{ start: 点; end: 点 }> = [];
+  let index = 0;
+  let command = "";
+  let current = { x: 0, y: 0 };
+  let subpathStart = { x: 0, y: 0 };
+  const next = (): number => 数(tokens[index++]);
+  const point = (x: number, y: number, relative: boolean, base: 点): 点 => ({
+    x: x + (relative ? base.x : 0),
+    y: y + (relative ? base.y : 0),
+  });
+
+  while (index < tokens.length) {
+    if (/^[A-Za-z]$/u.test(tokens[index]!)) command = tokens[index++]!;
+    const relative = command === command.toLowerCase();
+    const base = { ...current };
+    switch (command.toUpperCase()) {
+      case "M": {
+        current = point(next(), next(), relative, base);
+        subpathStart = current;
+        command = relative ? "l" : "L";
+        break;
+      }
+      case "L": {
+        current = point(next(), next(), relative, base);
+        segments.push({ start: base, end: current });
+        break;
+      }
+      case "H": {
+        current = { x: next() + (relative ? base.x : 0), y: base.y };
+        segments.push({ start: base, end: current });
+        break;
+      }
+      case "V": {
+        current = { x: base.x, y: next() + (relative ? base.y : 0) };
+        segments.push({ start: base, end: current });
+        break;
+      }
+      case "C": {
+        next(); next(); next(); next();
+        current = point(next(), next(), relative, base);
+        break;
+      }
+      case "S":
+      case "Q": {
+        next(); next();
+        current = point(next(), next(), relative, base);
+        break;
+      }
+      case "T": {
+        current = point(next(), next(), relative, base);
+        break;
+      }
+      case "A": {
+        next(); next(); next(); next(); next();
+        current = point(next(), next(), relative, base);
+        break;
+      }
+      case "Z": {
+        current = subpathStart;
+        command = "";
+        break;
+      }
+      default:
+        throw new Error(`読めない経路命令: ${command || tokens[index]}`);
+    }
+  }
+  return segments;
+};
+
 const 固定意匠 = {
   blueprint: "図面",
   catalog: "図録",
@@ -392,30 +484,6 @@ const 見本の線を読む = (図: "関係" | "型" | "構成", 意匠: keyof t
     }, 印[0] ?? 線の端);
     return { 線, 印, 印の先端, 箱へ向かう: { x: dx, y: dy } };
   });
-};
-
-const 見本の札を読む = (
-  図: "構成",
-  意匠: keyof typeof 固定意匠,
-  札: "頼む" | "移す",
-): 枠 => {
-  const html = readFileSync(join(ROOT, `docs/design/proposal/static/${図}-${固定意匠[意匠]}.html`), "utf8");
-  const textAt = html.indexOf(`>${札}</text>`);
-  expect(textAt, `${図} / ${意匠} / ${札} の札が無い`).toBeGreaterThan(-1);
-  const before = html.slice(Math.max(0, textAt - 800), textAt);
-  const rect = [...before.matchAll(/<rect\s+([^>]+)>?/gu)].at(-1)?.[1] ?? "";
-  const attr = (name: string): number => 数(new RegExp(`${name}="([^"]+)"`, "u").exec(rect)?.[1]);
-  const left = attr("x");
-  const top = attr("y");
-  return { left, top, right: left + attr("width"), bottom: top + attr("height") };
-};
-
-const 見本の箱を読む = (意匠: keyof typeof 固定意匠, 名前: string): Pick<枠, "left" | "top"> => {
-  const html = readFileSync(join(ROOT, `docs/design/proposal/static/構成-${固定意匠[意匠]}.html`), "utf8");
-  const escaped = 名前.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  const style = new RegExp(`data-ent="${escaped}" style="([^"]+)"`, "u").exec(html)?.[1] ?? "";
-  const value = (name: "left" | "top"): number => 数(new RegExp(`${name}:([^;]+)px`, "u").exec(style)?.[1]);
-  return { left: value("left"), top: value("top") };
 };
 
 const 点群の枠 = (points: 点[], shift: 点 = { x: 0, y: 0 }): 枠 => ({
@@ -576,6 +644,54 @@ const 崩れを数える = (svg: string, diagram?: CdlDiagram): 崩れの数 => 
 };
 
 describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
+  it("宅配の骨組み 4 見本は斜めの直線の線分を持たない", () => {
+    let 確かめた線 = 0;
+    for (const diagram of 宅配の骨組み見本) {
+      for (const edge of layout(diagram).edges) {
+        const diagonals = 直線の線分(edge.d).filter(({ start, end }) =>
+          Math.abs(start.x - end.x) > 0.5 && Math.abs(start.y - end.y) > 0.5
+        );
+        expect(
+          diagonals,
+          `${diagram.id} / ${edge.id} に斜めの直線の線分がある: ${edge.d}`,
+        ).toEqual([]);
+        確かめた線 += 1;
+      }
+    }
+    expect(確かめた線).toBe(31);
+  });
+
+  it("構成の全ての線分は c4-l2 の見出しを通らない", () => {
+    const palettes = [
+      "kinari", "celadon", "blueprint", "letterpress", "catalog",
+      "terminal", "sketch", "neon", "relief", "site-colours",
+    ] as const;
+    let 確かめた見出し = 0;
+    let 確かめた線 = 0;
+    for (const palette of palettes) {
+      const laid = layout(図の配色を変える(Catalog.presetDeliveryComponents, palette));
+      const heading = laid.bboxes.find((box) => box.kind === "lane-label" && box.id === "c4-l2");
+      expect(heading, `${palette} / c4-l2 の見出し`).toBeDefined();
+      if (heading === undefined) continue;
+      const box = {
+        left: heading.x,
+        top: heading.y,
+        right: heading.x + heading.w,
+        bottom: heading.y + heading.h,
+      };
+      for (const edge of laid.edges) {
+        expect(
+          線が枠を通る(pathの点(edge.d), box),
+          `${palette} / ${edge.id}: ${edge.d} / ${JSON.stringify(box)}`,
+        ).toBe(false);
+        確かめた線 += 1;
+      }
+      確かめた見出し += 1;
+    }
+    expect(確かめた見出し).toBe(10);
+    expect(確かめた線).toBe(100);
+  });
+
   it("順序の列 610・帯 30 と、構成の「聞く」の直角経路を描き手へ渡す", () => {
     const sequence = Catalog.presetDeliverySequence.nodes.find((node) => node.kind === "sequence-board");
     expect(sequence?.sequenceData).toMatchObject({ sequenceGutter: 610, sequenceBandWidth: 30 });
@@ -586,123 +702,138 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
       posY1: 243.8,
       posX2: 1042.2,
       posY2: 245.8,
-      waypoints: [{ x: 128.2, y: 201.8 }, { x: 1042.2, y: 201.8 }],
+      waypoints: [{ x: 128.2, y: 131.8 }, { x: 1042.2, y: 131.8 }],
       labelOffsetX: 226,
-      labelOffsetY: 0,
+      labelOffsetY: 24,
     });
   });
 
-  it("7 意匠の表の位置と関係の経路を 1 つの意匠別配置で切り替える", () => {
-    const expected = {
-      blueprint: [43, 91, 188.890625, 140.4453125],
-      catalog: [46, 103.4, 197.890625, 144.9453125],
-      sketch: [45, 102.4, 195.890625, 143.9453125],
-      letterpress: [44, 101.4, 194.890625, 143.4453125],
-      relief: [48, 108.9, 218.890625, 155.4453125],
-      terminal: [38, 95, 188.5, 140.25],
-      neon: [44, 102.4, 196.890625, 144.4453125],
-    } as const;
-    for (const [theme, [titleBaseline, rowTop, h, posY]] of Object.entries(expected)) {
-      const relation = 図の配色を変える(Catalog.presetDeliveryRelations, theme as keyof typeof expected);
-      expect(relation.nodes.find((node) => node.id === "契約"), theme).toMatchObject({
-        h,
-        posY,
-        rowLayout: {
-          titleBaseline,
-          rowTop,
-          rowPitch: 46.5,
-        },
+  it("関係の箱と固定線は全配色で浮彫由来の共通骨組みを保つ", () => {
+    const palettes = [
+      "kinari", "celadon", "blueprint", "letterpress", "catalog",
+      "terminal", "sketch", "neon", "relief", "site-colours",
+    ] as const;
+    for (const palette of palettes) {
+      const relation = 図の配色を変える(Catalog.presetDeliveryRelations, palette);
+      expect(relation.nodes.find((node) => node.id === "契約"), palette).toMatchObject({
+        h: 218.890625,
+        posH: 218.890625,
+        posY: 155.4453125,
+        rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
+        rowStripe: palette !== "neon" && palette !== "relief",
       });
-      expect(relation.nodes.find((node) => node.id === "契約")?.posH, theme).toBe(h);
+      expect(relation.nodes.find((node) => node.id === "受付"), palette).toMatchObject({
+        h: 125,
+        posH: 125,
+        posY: 195.5,
+        rowStripe: palette !== "neon" && palette !== "relief",
+      });
+      expect(relation.edges.find((edge) => edge.label === "である"), palette).toMatchObject({
+        posX1: 232,
+        posY1: 346,
+        posX2: 360,
+        posY2: 266.890625,
+        waypoints: [{ x: 232, y: 308.4453125 }, { x: 360, y: 308.4453125 }],
+        labelOffsetX: 152,
+        labelOffsetY: 0,
+      });
+      expect(relation.edges.find((edge) => edge.label === "使う" && edge.from === "受付済"), palette).toMatchObject({
+        posX1: 1452,
+        posY1: 130.9453125,
+        posX2: 1364,
+        posY2: 332.265625,
+        waypoints: [{ x: 1412, y: 130.9453125 }, { x: 1412, y: 332.265625 }],
+        labelOffsetX: 62,
+        labelOffsetY: 14,
+      });
     }
-
-    const site = 図の配色を変える(
-      図の配色を変える(Catalog.presetDeliveryRelations, "relief"),
-      "site-colours",
-    );
-    expect(site.nodes.find((node) => node.id === "契約")).toMatchObject({
-      h: 188.891,
-      posY: 140.445,
-    });
-
-    const blueprint = 図の配色を変える(Catalog.presetDeliveryRelations, "blueprint");
-    expect(blueprint.nodes.find((node) => node.id === "受付")).toMatchObject({
-      h: 125,
-      posH: 125,
-      posY: 195.5,
-    });
-    expect(blueprint.edges.find((edge) => edge.label === "である")).toMatchObject({
-      posX1: 232,
-      posY1: 346,
-      posX2: 360,
-      posY2: 236.890625,
-      waypoints: [{ x: 232, y: 293.4453125 }, { x: 360, y: 293.4453125 }],
-      labelOffsetX: 152,
-      labelOffsetY: 0,
-    });
-    const relief = 図の配色を変える(Catalog.presetDeliveryRelations, "relief");
-    expect(relief.edges.find((edge) => edge.label === "使う" && edge.from === "受付済")).toMatchObject({
-      posX1: 1438,
-      posY1: 130.9453125,
-      posX2: 1364,
-      posY2: 332.265625,
-      waypoints: [{ x: 1434, y: 130.9453125 }, { x: 1434, y: 332.265625 }],
-      labelOffsetY: -33,
-    });
-    const neon = 図の配色を変える(Catalog.presetDeliveryRelations, "neon");
-    expect(neon.edges.find((edge) => edge.label === "使う" && edge.from === "配送便")).toMatchObject({
-      posX1: 1154,
-      posY1: 851.890625,
-      posX2: 1448,
-      posY2: 605.4453125,
-      waypoints: [{ x: 1250, y: 851.890625 }, { x: 1250, y: 605.4453125 }],
-      labelOffsetY: 51,
-    });
   });
 
-  it("型の荷物は意匠別の高さと上端を使い、小見出し分 25 下げる", () => {
-    const blueprint = 図の配色を変える(Catalog.presetDeliveryClasses, "blueprint");
-    expect(blueprint.nodes.find((node) => node.id === "荷物")).toMatchObject({
-      h: 316.890625,
-      posY: 228.4453125,
-      rowLayout: { titleBaseline: 68, rowTop: 116, rowPitch: 46.5 },
-    });
-    expect(blueprint.edges.find((edge) => edge.label === "である")).toMatchObject({
-      posX1: 530,
-      posY1: 694,
-      posX2: 750,
-      posY2: 388.890625,
-      waypoints: [{ x: 530, y: 543.4453125 }, { x: 750, y: 543.4453125 }],
-    });
-    expect(blueprint.edges.find((edge) => edge.label === "集める")).toMatchObject({
-      posX1: 1332,
-      posY1: 178.890625,
-      posX2: 1024,
-      posY2: 178.890625,
-      waypoints: [],
-    });
-    expect(blueprint.edges.find((edge) => edge.label === "持つ")).toMatchObject({
-      posX1: 1544,
-      posY1: 698,
-      posX2: 1544,
-      posY2: 319.890625,
-      waypoints: [],
-    });
-    const relief = 図の配色を変える(Catalog.presetDeliveryClasses, "relief");
-    expect(relief.nodes.find((node) => node.id === "荷主")).toMatchObject({
-      rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
-      rowStripe: false,
-    });
-    expect(relief.nodes.find((node) => node.id === "荷物")).toMatchObject({
-      h: 353.890625,
-      posY: 246.9453125,
-      rowLayout: { titleBaseline: 73, rowTop: 133.9, rowPitch: 46.5 },
-    });
-    const site = 図の配色を変える(relief, "site-colours");
-    expect(site.nodes.find((node) => node.id === "荷物")).toMatchObject({
-      h: 428,
-      posY: 260,
-    });
+  it("型の箱と固定線は全配色で浮彫由来の共通骨組みを保つ", () => {
+    const palettes = [
+      "kinari", "celadon", "blueprint", "letterpress", "catalog",
+      "terminal", "sketch", "neon", "relief", "site-colours",
+    ] as const;
+    for (const palette of palettes) {
+      const diagram = 図の配色を変える(Catalog.presetDeliveryClasses, palette);
+      expect(diagram.nodes.find((node) => node.id === "荷主"), palette).toMatchObject({
+        h: 236.890625,
+        posY: 188.4453125,
+        rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
+        rowStripe: palette !== "neon" && palette !== "relief",
+      });
+      expect(diagram.nodes.find((node) => node.id === "荷物"), palette).toMatchObject({
+        h: 353.890625,
+        posY: 246.9453125,
+        rowLayout: { titleBaseline: 73, rowTop: 133.9, rowPitch: 46.5 },
+        rowStripe: palette !== "neon" && palette !== "relief",
+      });
+      expect(diagram.edges.find((edge) => edge.label === "である"), palette).toMatchObject({
+        posX1: 530,
+        posY1: 694,
+        posX2: 750,
+        posY2: 425.890625,
+        waypoints: [{ x: 530, y: 561.9453125 }, { x: 750, y: 561.9453125 }],
+      });
+      expect(diagram.edges.find((edge) => edge.label === "集める"), palette).toMatchObject({
+        posX1: 1332,
+        posY1: 189.890625,
+        posX2: 1024,
+        posY2: 189.890625,
+      });
+      expect(diagram.edges.find((edge) => edge.label === "持つ"), palette).toMatchObject({
+        posX1: 1544,
+        posY1: 698,
+        posX2: 1544,
+        posY2: 356.890625,
+      });
+    }
+  });
+
+  it("関係・型・構成の線札は全配色で線と箱から 2 以上離れる", () => {
+    const diagrams = [
+      Catalog.presetDeliveryRelations,
+      Catalog.presetDeliveryClasses,
+      Catalog.presetDeliveryComponents,
+    ];
+    const palettes = [
+      "kinari", "celadon", "blueprint", "letterpress", "catalog",
+      "terminal", "sketch", "neon", "relief", "site-colours",
+    ] as const;
+
+    let 受付済の使う札 = 0;
+    for (const sourceDiagram of diagrams) {
+      for (const palette of palettes) {
+        const laid = layout(図の配色を変える(sourceDiagram, palette));
+        const 受付済 = laid.nodes.find((node) => node.id === "受付済");
+        const 使う = laid.edges.find((edge) => edge.from === "受付済" && edge.to === "仕分け");
+        for (const label of laid.bboxes.filter((box) => box.kind === "edge-label")) {
+          const box = {
+            left: label.x - 2,
+            top: label.y - 2,
+            right: label.x + label.w + 2,
+            bottom: label.y + label.h + 2,
+          };
+          const nodeOverlap = laid.nodes.some((node) => 交わる(box, {
+            left: node.cx - node.w / 2,
+            top: node.cy - node.h / 2,
+            right: node.cx + node.w / 2,
+            bottom: node.cy + node.h / 2,
+          }));
+          const lineOverlap = laid.edges.some((edge) => 線が枠を通る(pathの点(edge.d), box));
+          expect(nodeOverlap, `${sourceDiagram.id} / ${palette} / ${label.id}: 箱`).toBe(false);
+          expect(lineOverlap, `${sourceDiagram.id} / ${palette} / ${label.id}: 線`).toBe(false);
+          if (label.id === 使う?.id && 受付済 !== undefined) {
+            受付済の使う札 += 1;
+            expect(
+              label.y - (受付済.cy + 受付済.h / 2),
+              `${palette}: 受付済と「使う」の札の間`,
+            ).toBeGreaterThanOrEqual(12);
+          }
+        }
+      }
+    }
+    expect(受付済の使う札, "受付済から仕分けへの「使う」を見た配色数").toBe(10);
   });
 
   it("図録の宅配関係線は表の役を読み、見本帳の図だけで不透明にする", () => {
@@ -729,7 +860,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     expect(css).not.toContain('[data-cdl-diagram="契約と荷物と配送状態の関係"]');
   });
 
-  it("電飾の関係・型は表の役で三つの罫だけを描き、行の罫と縞を描かない", () => {
+  it("関係・型の縞は元の8配色で描き、電飾・浮彫だけ描かない", () => {
     const css = readFileSync(join(ROOT, "apps/playground-spa/src/styles/cdl-theme.css"), "utf8");
     const tableStart = css.indexOf('svg[data-cdl-stage][data-cdl-palette="neon"] {');
     const tableEnd = css.indexOf('svg[data-cdl-stage][data-cdl-palette="relief"] {', tableStart);
@@ -781,12 +912,19 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     expect(neonRelations.stripes, "関係の縞").toBe(0);
     expect(neonClasses).toEqual({ title: 6, footer: 0, group: 6, rows: 7, stripes: 0 });
 
-    for (const sourceDiagram of [Catalog.presetDeliveryRelations, Catalog.presetDeliveryClasses]) {
-      const other = (["blueprint", "letterpress", "catalog", "terminal", "sketch"] as const)
+    for (const [sourceDiagram, visibleCount] of [
+      [Catalog.presetDeliveryRelations, 6],
+      [Catalog.presetDeliveryClasses, 11],
+    ] as const) {
+      const allThemes = ([
+        "kinari", "celadon", "blueprint", "letterpress", "catalog",
+        "terminal", "sketch", "neon", "relief", "site-colours",
+      ] as const)
         .map((theme) => counts(図の配色を変える(sourceDiagram, theme)).stripes);
-      expect(new Set(other).size, "電飾・浮彫以外の 5 意匠の縞の数").toBe(1);
-      expect(other[0], "電飾・浮彫以外の縞を消していない").toBeGreaterThan(0);
-      expect(counts(図の配色を変える(sourceDiagram, "relief")).stripes, "浮彫の縞").toBe(0);
+      expect(allThemes, `${sourceDiagram.id} の縞`).toEqual([
+        visibleCount, visibleCount, visibleCount, visibleCount, visibleCount,
+        visibleCount, visibleCount, 0, 0, visibleCount,
+      ]);
     }
   });
 
@@ -862,7 +1000,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
           posY1: 600.8,
           posX2: 762.2,
           posY2: 600.8,
-          labelOffsetX: -2,
+          labelOffsetX: 8,
         });
         expect(move?.overlay, `${route} / ${theme} / 移すの overlay`).toBeUndefined();
         if (tracking !== undefined && ask !== undefined) {
@@ -1032,7 +1170,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
           continue;
         }
 
-        const wires = 見本の線を読む(名前, theme);
+        const wires = 見本の線を読む(名前, "relief");
         const document = new JSDOM(svg, { contentType: "image/svg+xml" }).window.document;
         if (名前 === "構成") {
           for (const labelText of ["頼む", "移す"] as const) {
@@ -1058,37 +1196,14 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
             expect(actualTip, `構成 / ${theme} / ${labelText} の矢じりの先端`).toBeDefined();
             if (actualTip === undefined) continue;
             const actualLabel = rect枠(label);
-            const expectedLabel = 見本の札を読む("構成", theme, labelText);
-            const sender = document.querySelector('[data-cdl-node="荷主"][data-cdl-cx]');
-            expect(sender, `構成 / ${theme} / 荷主`).not.toBeNull();
-            if (sender === null) continue;
-            const actualSender = node枠(sender);
-            const expectedSender = 見本の箱を読む(theme, "荷主");
-            const actualCenter = {
-              x: (actualLabel.left + actualLabel.right) / 2 - actualSender.left,
-              y: (actualLabel.top + actualLabel.bottom) / 2 - actualSender.top,
-            };
-            const expectedCenter = {
-              x: (expectedLabel.left + expectedLabel.right) / 2 - expectedSender.left,
-              y: (expectedLabel.top + expectedLabel.bottom) / 2 - expectedSender.top,
-            };
-            for (const axis of ["x", "y"] as const) {
-              expect.soft(
-                Math.abs(actualCenter[axis] - expectedCenter[axis]),
-                `構成 / ${theme} / ${labelText} の札の中心 ${axis}: 今 ${actualCenter[axis]} / 見本 ${expectedCenter[axis]}`,
-              ).toBeLessThanOrEqual(0.000001);
-            }
             const actualArrow = 点群の枠(expected.印, {
               x: actualTip.x - expected.印の先端.x,
               y: actualTip.y - expected.印の先端.y,
             });
-            /* 「移す」は見本どおり台帳の右端から札まで 11 で、17 幅の矢じりとは一部重なる。 */
-            if (labelText !== "移す") {
-              expect(
-                交わる(actualLabel, actualArrow),
-                `構成 / ${theme} / ${labelText} の札 ${JSON.stringify(actualLabel)} と矢じり ${JSON.stringify(actualArrow)}`,
-              ).toBe(false);
-            }
+            expect(
+              交わる(actualLabel, actualArrow),
+              `構成 / ${theme} / ${labelText} の札 ${JSON.stringify(actualLabel)} と矢じり ${JSON.stringify(actualArrow)}`,
+            ).toBe(false);
             確かめた札 += 1;
           }
         }

@@ -211,8 +211,14 @@ export type DslDocument = {
   cornerForm?: NonNullable<CdlDiagram["nodes"][number]["cornerForm"]>;
   /** 階層図とマインドマップの種類札。 */
   figureKindLabel?: NonNullable<CdlDiagram["nodes"][number]["figureKindLabel"]>;
-  /** 図表札の見出しと足の間に置く凹み面と、中身をその内側へ収める指定。 */
-  figureInset?: NonNullable<CdlDiagram["nodes"][number]["figureInset"]>;
+  /** 図表札の見出しと足の間に置く飾りの凹み面。 */
+  figureInset?: {
+    top?: number;
+    right?: number;
+    bottom?: number;
+    left?: number;
+    radius?: number;
+  };
   /** 棒グラフの見本寸法。 */
   chartBarSize?: NonNullable<CdlDiagram["nodes"][number]["chartBarSize"]>;
   /** 棒グラフの棒を分割するか、上だけ丸めて一体にするか。 */
@@ -272,10 +278,8 @@ export type DslDocument = {
   sequenceKindLabels?: Partial<Record<"call" | "return" | "fire", string>>;
   /** 図の凡例の字の大きさ。 */
   legendFontSize?: number;
-  /** 段の箱で、意匠ごとに描く見出しの寸法。 */
-  stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
-  /** 意匠ごとに表の行配置と線の固定経路を上書きする。 */
-  layoutByTheme?: DslLayoutByTheme;
+  /** 段の箱で全意匠に共通して使う見出しの寸法。 */
+  stageHeader?: DslStageHeader;
   /** 段の列幅・列間と戻る線の迂回寸法。 */
   stageLayout?: NonNullable<CdlDiagram["stageLayout"]>;
   /**
@@ -453,19 +457,6 @@ export type DslRegions = {
   bottomRight?: string;
 };
 
-export type DslThemeNodeLayout = Pick<DslActor, "rowLayout" | "rowStripe" | "posH" | "posY"> & {
-  /** 描き手へ直接渡す意匠別の箱の高さ。 */
-  h?: number;
-};
-export type DslThemeEdgeLayout = Pick<
-  DslStep,
-  "posX1" | "posY1" | "posX2" | "posY2" | "waypoints" | "labelOffsetX" | "labelOffsetY"
->;
-export type DslThemeLayout = {
-  nodes?: Record<string, DslThemeNodeLayout>;
-  edges?: Record<string, DslThemeEdgeLayout>;
-};
-export type DslLayoutByTheme = Partial<Record<DslTheme, DslThemeLayout>>;
 
 /** 登場人物 (v0.5+ ... inline option 拡張) */
 export type DslActor = {

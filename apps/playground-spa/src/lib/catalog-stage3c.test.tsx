@@ -171,33 +171,23 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     }
   });
 
-  it("浮彫で全内容を凹み面に収め、凡例が外にある円と升目は面だけを絞る", () => {
+  it("浮彫の凹み面は図表を動かさない飾りとして渡す", () => {
+    const chartInset = { top: 0, right: 0, bottom: 0, left: 0 };
     const expected = [
-      [Charts.monthlyDeliveriesLine, {}],
+      [Charts.monthlyDeliveriesLine, chartInset],
       [Charts.parcelStatusPie, { right: 328, left: 18, radius: 18 }],
       [Charts.parcelSizeWaffle, { right: 203, left: 18, radius: 18 }],
-      [Charts.deliveryResultStacked, {}],
+      [Charts.deliveryResultStacked, chartInset],
     ] as const;
     for (const [diagram, inset] of expected) expect(node(diagram).figureInset).toEqual(inset);
 
-    expect(JSON.parse(Charts.sourceJson__monthlyDeliveriesLine).figureInset).toEqual({ holdsContent: true });
+    expect(JSON.parse(Charts.sourceJson__monthlyDeliveriesLine).figureInset).toEqual(chartInset);
     expect(JSON.parse(Charts.sourceJson__parcelStatusPie).figureInset).toEqual(expected[1][1]);
     expect(JSON.parse(Charts.sourceJson__parcelSizeWaffle).figureInset).toEqual(expected[2][1]);
-    expect(JSON.parse(Charts.sourceJson__deliveryResultStacked).figureInset).toEqual({ holdsContent: true });
+    expect(JSON.parse(Charts.sourceJson__deliveryResultStacked).figureInset).toEqual(chartInset);
   });
 
-  it("浮彫の凹み面が全内容を囲む 9 図だけ holdsContent の意図を運ぶ", () => {
-    type 意匠別凹み面を持つ図 = CdlDiagram & {
-      figureInsetByTheme?: {
-        relief?: {
-          holdsContent?: boolean;
-          chartLinePeriodY?: number;
-          chartSlopeAxisGap?: number;
-          chartStackedBarWidth?: number;
-          quadrantPlotSize?: number;
-        };
-      };
-    };
+  it("凹み面を持つ 9 図は意匠別の配置値を運ばない", () => {
     const inside = [
       "branchParcelsBar",
       "monthlyDeliveriesLine",
@@ -210,23 +200,7 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
       "onTimeRateSlope",
     ] as const;
     for (const key of inside) {
-      expect((Charts[key] as 意匠別凹み面を持つ図).figureInsetByTheme, key)
-        .toMatchObject({ relief: { holdsContent: true } });
-    }
-    expect((Charts.onTimeRateSlope as 意匠別凹み面を持つ図).figureInsetByTheme)
-      .toMatchObject({ relief: { chartSlopeAxisGap: 250 } });
-    expect((Charts.monthlyDeliveriesLine as 意匠別凹み面を持つ図).figureInsetByTheme)
-      .toMatchObject({ relief: { chartLinePeriodY: 355.988 } });
-    expect((Charts.deliveryResultStacked as 意匠別凹み面を持つ図).figureInsetByTheme)
-      .toMatchObject({ relief: { chartStackedBarWidth: 365 } });
-    expect((Charts.measureEffortQuadrant as 意匠別凹み面を持つ図).figureInsetByTheme)
-      .toMatchObject({ relief: { quadrantPlotSize: 325.109 } });
-    expect((Charts.branchParcelsBar as 意匠別凹み面を持つ図).figureInsetByTheme)
-      .not.toHaveProperty("relief.chartBarPlotPadding");
-    expect((Charts.measureEffortQuadrant as 意匠別凹み面を持つ図).figureInsetByTheme)
-      .not.toHaveProperty("relief.quadrantPlotOffset");
-    for (const key of ["parcelStatusPie", "parcelSizeWaffle"] as const) {
-      expect((Charts[key] as 意匠別凹み面を持つ図).figureInsetByTheme, key).toBeUndefined();
+      expect(Charts[key], key).not.toHaveProperty("figureInsetByTheme");
     }
   });
 

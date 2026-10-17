@@ -305,41 +305,15 @@ const 入力: Record<string, 図> = {
     ...基本,
     legend: [{ mark: "diamond", text: "分かれ道", [知らない項目]: 1 }],
   },
-  "$.stageHeaders.additionalProperties": {
+  "$.stageHeader": {
     ...基本,
-    stageHeaders: {
-      blueprint: {
-        topPad: 15,
-        numberSize: 16,
-        gap: 10,
-        nameSize: 29,
-        bottomPad: 13,
-        [知らない項目]: 1,
-      },
-    },
-  },
-  "$.layoutByTheme.additionalProperties": {
-    ...基本,
-    layoutByTheme: { blueprint: { [知らない項目]: 1 } },
-  },
-  "$.layoutByTheme.additionalProperties.nodes.additionalProperties": {
-    ...基本,
-    layoutByTheme: { blueprint: { nodes: { A: { [知らない項目]: 1 } } } },
-  },
-  "$.layoutByTheme.additionalProperties.nodes.additionalProperties.rowLayout": {
-    ...基本,
-    layoutByTheme: {
-      blueprint: { nodes: { A: { rowLayout: { rowPitch: 46.5, [知らない項目]: 1 } } } },
-    },
-  },
-  "$.layoutByTheme.additionalProperties.edges.additionalProperties": {
-    ...基本,
-    layoutByTheme: { blueprint: { edges: { "A -> B": { [知らない項目]: 1 } } } },
-  },
-  "$.layoutByTheme.additionalProperties.edges.additionalProperties.waypoints[]": {
-    ...基本,
-    layoutByTheme: {
-      blueprint: { edges: { "A -> B": { waypoints: [{ x: 1, y: 2, [知らない項目]: 3 }] } } },
+    stageHeader: {
+      topPad: 20,
+      numberSize: 16,
+      gap: 10,
+      nameSize: 29,
+      bottomPad: 12,
+      [知らない項目]: 1,
     },
   },
   "$.stageLayout": { ...基本, stageLayout: { backDetourTargetInset: 60, [知らない項目]: 1 } },

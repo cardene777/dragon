@@ -121,7 +121,7 @@ flow:
 | `terminalDecoration` | 端末意匠用の窓操作・字送り・行番号 (`{ windowControls?, cursor?, rowOrdinal? }`) |
 | `cornerForm` | `theme-variants` で矩形札の一様角と手描き角を意匠から選ぶ |
 | `figureKindLabel` | 階層図・放射図の種類札 (`{ text, x?, y?, fontSize?, fontWeight?, letterSpacing? }`) |
-| `figureInset` | 図表札の凹み面 (`{ top?, right?, bottom?, left?, radius?, holdsContent? }`)。`holdsContent: true` は凹み面を見せる浮彫の時だけ、図表の中身を凹み面の内側へ置く |
+| `figureInset` | 図表札の飾りの凹み面 (`{ top?, right?, bottom?, left?, radius? }`) |
 | `chartBarSize` | 棒の目盛り・値・名前・余白・棒幅 |
 | `chartBarShape` | 棒を分割するか上だけ丸めた一体の形にするか (`split` / `top-rounded`) |
 | `chartLineSize` | 折れ線の値札間隔・目盛り・時点・点・描画面と点列の余白・時点名の基線 |
@@ -139,9 +139,8 @@ flow:
 | `legendFontSize` | 凡例の字の大きさ |
 | `legendOffset` | 図全体の凡例の位置をずらす (`{ x?, y? }`) |
 | `edgeEndGap` | 線の両端と発着する箱の縁との隙間 (0 以上) |
-| `stageHeaders` | `shape: stages` の見出し寸法を意匠名ごとに書く (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
+| `stageHeader` | `shape: stages` で全意匠に共通して使う見出し寸法 (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
 | `stageLayout` | `shape: stages` の列幅・列間・戻る線の迂回寸法 (`columnWidths` / `columnGap` / `backDetourTopGap` / `backDetourSideGap` / `backDetourTargetInset`) |
-| `layoutByTheme` | 意匠名ごとに表の箱の高さ・固定高さ・中心 y (`h` / `posH` / `posY`)・`rowLayout` / `rowStripe` と線の固定端点・`waypoints`・札のずらしをまとめて上書きする |
 
 <!-- notation:top-level:end -->
 

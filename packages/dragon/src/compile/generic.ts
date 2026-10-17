@@ -385,9 +385,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         stage: {
           number: column.number,
           name: column.name,
-          ...(doc.theme !== undefined && doc.stageHeaders?.[doc.theme] !== undefined
-            ? { header: doc.stageHeaders[doc.theme] }
-            : {}),
+          ...(doc.stageHeader === undefined ? {} : { header: doc.stageHeader }),
         },
       });
     }

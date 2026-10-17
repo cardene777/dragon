@@ -624,11 +624,6 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
   "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
-  "$.actors[].rowLayout": { 種類: "記法一覧", 理由: "表の行配置は README と宅配見本の layoutByTheme で見せる" },
-  "$.actors[].rowLayout.titleBaseline": { 種類: "記法一覧", 理由: "rowLayout の題の基準線は README と宅配見本で見せる" },
-  "$.actors[].rowLayout.rowTop": { 種類: "記法一覧", 理由: "rowLayout の 1 行目は README と宅配見本で見せる" },
-  "$.actors[].rowLayout.rowPitch": { 種類: "記法一覧", 理由: "rowLayout の行間は README と宅配見本で見せる" },
-  "$.actors[].rowStripe": { 種類: "記法一覧", 理由: "縞を外す書き方は README と宅配の浮彫見本で見せる" },
   "$.chartLineSeries[].marker=dot": {
     種類: "記法一覧",
     理由: "折れ線の点の印の値は README で見せる",

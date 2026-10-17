@@ -32,53 +32,6 @@ type Phase = CdlDiagram["phases"][number];
 type State = NonNullable<CdlDiagram["states"]>[number];
 type Node = CdlDiagram["nodes"][number];
 
-type 見本の行配置 = { titleBaseline: number; rowTop: number; rowPitch: number };
-type 見本の途中点 = { x: number; y: number };
-
-/** YAML でも JSON と同じ意匠単位の表を読む。
- * 欄別の表へ分けず、1 意匠を 1 行で運ぶ。
- */
-const 意匠別配置をYAMLで書く = (values: Record<string, unknown>): string =>
-  Object.entries(values).map(([theme, value]) => `  ${theme}: ${JSON.stringify(value)}`).join("\n");
-
-const 表の箱の配置 = (
-  names: readonly string[],
-  topByName: Readonly<Record<string, number>>,
-  heights: readonly number[],
-  rowLayout: 見本の行配置,
-  eyebrowNames: readonly string[] = [],
-  rowStripe?: boolean,
-): Record<string, { h: number; posH: number; posY: number; rowLayout: 見本の行配置; rowStripe?: boolean }> => Object.fromEntries(names.map((name, index) => [
-  name,
-  {
-    rowLayout: eyebrowNames.includes(name)
-      ? {
-          titleBaseline: rowLayout.titleBaseline + 25,
-          rowTop: rowLayout.rowTop + 25,
-          rowPitch: rowLayout.rowPitch,
-        }
-      : rowLayout,
-    ...(rowStripe === undefined ? {} : { rowStripe }),
-    h: heights[index]!,
-    posH: heights[index]!,
-    posY: topByName[name]! + heights[index]! / 2,
-  },
-]));
-
-const 見本の直角線 = (
-  points: readonly 見本の途中点[],
-  labelOffsetX?: number,
-  labelOffsetY?: number,
-) => ({
-  posX1: points[0]?.x ?? 0,
-  posY1: points[0]?.y ?? 0,
-  posX2: points.at(-1)?.x ?? 0,
-  posY2: points.at(-1)?.y ?? 0,
-  waypoints: points.slice(1, -1),
-  ...(labelOffsetX === undefined ? {} : { labelOffsetX }),
-  ...(labelOffsetY === undefined ? {} : { labelOffsetY }),
-});
-
 /** 段 1 つ分の指定 */
 type Step = {
   /** その段で新しく光らせる要素。 前の段で光ったものは光ったまま積み上がる */
@@ -878,37 +831,6 @@ export const pattern__presetTopology__複雑 = withSteps(topoComplex.build(), [
   },
 ]);
 
-const deliveryComponentsLayoutByTheme = Object.fromEntries(Object.entries({
-  blueprint: 18.1453125,
-  catalog: 22.6453125,
-  sketch: 21.6453125,
-  letterpress: 21.1453125,
-  relief: 24.1453125,
-  terminal: 17.95,
-  neon: 22.1453125,
-}).map(([theme, labelOffsetY]) => [theme, {
-  edges: {
-    "荷主 -> 受付 API": { labelOffsetX: 2, labelOffsetY: labelOffsetY + 94.8 },
-    "位置の控え -> 台帳": {
-      posX1: 862.2,
-      posY1: 600.8,
-      posX2: 762.2,
-      posY2: 600.8,
-      labelOffsetX: -2,
-      labelOffsetY: labelOffsetY - 18.2,
-    },
-  },
-}])) as Record<string, {
-  edges: Record<string, {
-    posX1?: number;
-    posY1?: number;
-    posX2?: number;
-    posY2?: number;
-    labelOffsetX: number;
-    labelOffsetY: number;
-  }>;
-}>;
-
 export const sourceYaml__presetDeliveryComponents = `title: "配送システムの部品"
 type: c4
 palette: kinari
@@ -916,8 +838,6 @@ relations: hover
 reveal: all
 legendFontSize: 21
 viewport: { width: 1800, height: 1100 }
-layoutByTheme:
-${意匠別配置をYAMLで書く(deliveryComponentsLayoutByTheme)}
 
 lanes:
   c4-l1: { label: "", contain: false }
@@ -935,16 +855,16 @@ actors:
   - 通知: { posX: 600, posY: 890.8, posW: 360, posH: 126, kind: service, subtitle: "L2 着く前に知らせる", kindForm: icon, icon: box, figureCard: {"label":"サービス","note":"L2"} }
 
 flow:
-  - 荷主 -> 受付 API: "頼む" (accent) { labelCollision: author, labelOffsetX: 2, labelOffsetY: 112.9453125, labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 受付 API -> 台帳: "書く" (teal) { overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 荷主 -> 追跡: "聞く" (accent) { fromSide: top, toSide: top, posX1: 128.2, posY1: 243.8, posX2: 1042.2, posY2: 245.8, waypoints: [{"x":128.2,"y":201.8},{"x":1042.2,"y":201.8}], labelCollision: author, labelOffsetX: 226, labelOffsetY: 0, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 荷主 -> 受付 API: "頼む" (accent) { labelCollision: author, labelOffsetX: 2, labelOffsetY: 138.9453125, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 受付 API -> 台帳: "書く" (teal) { overlay: true, labelOffsetX: -40, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 荷主 -> 追跡: "聞く" (accent) { fromSide: top, toSide: top, posX1: 128.2, posY1: 243.8, posX2: 1042.2, posY2: 245.8, waypoints: [{"x":128.2,"y":131.8},{"x":1042.2,"y":131.8}], labelCollision: author, labelOffsetX: 226, labelOffsetY: 24, labelSize: {"width":74,"height":40,"fontSize":21} }
   - 配送便の端末 -> 位置の控え: "送る" (accent) { labelCollision: author, labelOffsetX: 3, labelOffsetY: 78, labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 追跡 -> 位置の控え: "読む" (teal) { overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 追跡 -> 位置の控え: "読む" (teal) { overlay: true, labelOffsetX: -40, labelSize: {"width":74,"height":40,"fontSize":21} }
   - 追跡 -> 地図サービス: "道を聞く" (warning, dashed) { labelCollision: author, labelOffsetY: 78, labelSize: {"width":118,"height":40,"fontSize":21} }
-  - 位置の控え -> 台帳: "移す" (warning, dashed) { posX1: 862.2, posY1: 600.8, posX2: 762.2, posY2: 600.8, labelCollision: author, labelOffsetX: -2, labelOffsetY: -0.0546875, labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 台帳 -> 通知: "書いたら" (teal) { labelCollision: author, labelOffsetX: -73, labelOffsetY: -36, labelSize: {"width":118,"height":40,"fontSize":21} }
-  - 通知 -> メール配信: "送る" (warning, dashed) { labelCollision: author, labelOffsetX: 3, labelOffsetY: 111, labelSize: {"width":74,"height":40,"fontSize":21} }
-  - メール配信 -> 荷主: "届く" (warning, dashed) { overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 位置の控え -> 台帳: "移す" (warning, dashed) { posX1: 862.2, posY1: 600.8, posX2: 762.2, posY2: 600.8, labelCollision: author, labelOffsetX: 8, labelOffsetY: 25.9453125, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 台帳 -> 通知: "書いたら" (teal) { labelCollision: author, labelOffsetX: -13, labelOffsetY: -36, labelSize: {"width":118,"height":40,"fontSize":21} }
+  - 通知 -> メール配信: "送る" (warning, dashed) { labelCollision: author, labelOffsetX: 3, labelOffsetY: 86, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - メール配信 -> 荷主: "届く" (warning, dashed) { overlay: true, labelOffsetX: -40, labelSize: {"width":74,"height":40,"fontSize":21} }
 
 legend:
   - { mark: rounded-box, text: "区画の中 = 配送システムの部品 (L2)", tone: accent }
@@ -973,7 +893,6 @@ export const sourceJson__presetDeliveryComponents = JSON.stringify({
   reveal: "all",
   legendFontSize: 21,
   viewport: { width: 1800, height: 1100 },
-  layoutByTheme: deliveryComponentsLayoutByTheme,
   lanes: {
     "c4-l1": { label: "", contain: false },
     "c4-l2": { label: "配送システム", subtitle: "L2 · 中の部品", contain: true, x: 355.2, width: 920, pos: { x: -17.8, y: 0 } },
@@ -990,16 +909,16 @@ export const sourceJson__presetDeliveryComponents = JSON.stringify({
     { name: "通知", posX: 600, posY: 890.8, posW: 360, posH: 126, kind: "service", subtitle: "L2 着く前に知らせる", kindForm: "icon", icon: "box", figureCard: { label: "サービス", note: "L2" } },
   ],
   flow: [
-    { from: "荷主", to: "受付 API", label: "頼む", tone: "accent", labelCollision: "author", labelOffsetX: 2, labelOffsetY: 112.9453125, labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "受付 API", to: "台帳", label: "書く", tone: "teal", overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "荷主", to: "追跡", label: "聞く", tone: "accent", fromSide: "top", toSide: "top", posX1: 128.2, posY1: 243.8, posX2: 1042.2, posY2: 245.8, waypoints: [{ x: 128.2, y: 201.8 }, { x: 1042.2, y: 201.8 }], labelCollision: "author", labelOffsetX: 226, labelOffsetY: 0, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "荷主", to: "受付 API", label: "頼む", tone: "accent", labelCollision: "author", labelOffsetX: 2, labelOffsetY: 138.9453125, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "受付 API", to: "台帳", label: "書く", tone: "teal", overlay: true, labelOffsetX: -40, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "荷主", to: "追跡", label: "聞く", tone: "accent", fromSide: "top", toSide: "top", posX1: 128.2, posY1: 243.8, posX2: 1042.2, posY2: 245.8, waypoints: [{ x: 128.2, y: 131.8 }, { x: 1042.2, y: 131.8 }], labelCollision: "author", labelOffsetX: 226, labelOffsetY: 24, labelSize: { width: 74, height: 40, fontSize: 21 } },
     { from: "配送便の端末", to: "位置の控え", label: "送る", tone: "accent", labelCollision: "author", labelOffsetX: 3, labelOffsetY: 78, labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "追跡", to: "位置の控え", label: "読む", tone: "teal", overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "追跡", to: "位置の控え", label: "読む", tone: "teal", overlay: true, labelOffsetX: -40, labelSize: { width: 74, height: 40, fontSize: 21 } },
     { from: "追跡", to: "地図サービス", label: "道を聞く", tone: "warning", style: "dashed", labelCollision: "author", labelOffsetY: 78, labelSize: { width: 118, height: 40, fontSize: 21 } },
-    { from: "位置の控え", to: "台帳", label: "移す", tone: "warning", style: "dashed", posX1: 862.2, posY1: 600.8, posX2: 762.2, posY2: 600.8, labelCollision: "author", labelOffsetX: -2, labelOffsetY: -0.0546875, labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "台帳", to: "通知", label: "書いたら", tone: "teal", labelCollision: "author", labelOffsetX: -73, labelOffsetY: -36, labelSize: { width: 118, height: 40, fontSize: 21 } },
-    { from: "通知", to: "メール配信", label: "送る", tone: "warning", style: "dashed", labelCollision: "author", labelOffsetX: 3, labelOffsetY: 111, labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "メール配信", to: "荷主", label: "届く", tone: "warning", style: "dashed", overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "位置の控え", to: "台帳", label: "移す", tone: "warning", style: "dashed", posX1: 862.2, posY1: 600.8, posX2: 762.2, posY2: 600.8, labelCollision: "author", labelOffsetX: 8, labelOffsetY: 25.9453125, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "台帳", to: "通知", label: "書いたら", tone: "teal", labelCollision: "author", labelOffsetX: -13, labelOffsetY: -36, labelSize: { width: 118, height: 40, fontSize: 21 } },
+    { from: "通知", to: "メール配信", label: "送る", tone: "warning", style: "dashed", labelCollision: "author", labelOffsetX: 3, labelOffsetY: 86, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "メール配信", to: "荷主", label: "届く", tone: "warning", style: "dashed", overlay: true, labelOffsetX: -40, labelSize: { width: 74, height: 40, fontSize: 21 } },
   ],
   legend: [
     { mark: "rounded-box", text: "区画の中 = 配送システムの部品 (L2)", tone: "accent" },
@@ -1014,166 +933,6 @@ export const sourceJson__presetDeliveryComponents = JSON.stringify({
 
 export const presetDeliveryComponents = textDslToDiagram(sourceYaml__presetDeliveryComponents);
 presetDeliveryComponents.id = "delivery-components-demo";
-
-const 関係の表の箱 = [
-  "契約", "法人契約", "個人契約", "営業所", "荷物", "配送便",
-  "受付済", "集荷済", "配達中", "完了",
-] as const;
-const 関係の箱の上端 = {
-  契約: 46,
-  法人契約: 352,
-  個人契約: 352,
-  営業所: 46,
-  荷物: 672,
-  配送便: 672,
-  受付済: 46,
-  集荷済: 288,
-  配達中: 530,
-  完了: 848,
-} as const;
-
-const 関係の意匠別配置 = (
-  rowLayout: 見本の行配置,
-  heights: readonly number[],
-  paths: readonly (readonly 見本の途中点[])[],
-  deliveryLabelOffsetY: number,
-  sortingLabelOffsetY: number,
-  rowStripe?: boolean,
-) => ({
-  nodes: {
-    ...表の箱の配置(関係の表の箱, 関係の箱の上端, heights, rowLayout, [], rowStripe),
-    ...(rowStripe === undefined
-      ? {}
-      : { 受付: { rowStripe }, 仕分け: { rowStripe } }),
-  },
-  edges: {
-    "法人契約 -> 契約": 見本の直角線(paths[0] ?? [], 152, 0),
-    "個人契約 -> 契約": 見本の直角線(paths[1] ?? []),
-    "荷物 -> 配送便": 見本の直角線(paths[2] ?? [], -5, -46),
-    "配送便 -> 配達中": 見本の直角線(paths[3] ?? [], 0, deliveryLabelOffsetY),
-    "受付済 -> 仕分け": 見本の直角線(paths[4] ?? [], 0, sortingLabelOffsetY),
-    "受付済 -> 集荷済": 見本の直角線(paths[5] ?? [], 118, -1),
-    "集荷済 -> 配達中": 見本の直角線(paths[6] ?? [], 118, -1),
-    "配達中 -> 完了": 見本の直角線(paths[7] ?? [], 118, -1),
-  },
-});
-
-const deliveryRelationsLayoutByTheme = {
-  blueprint: 関係の意匠別配置(
-    { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 },
-    [188.890625, 188.890625, 142.890625, 371.265625, 234.890625, 234.890625, 157.890625, 157.890625, 142.890625, 157.890625],
-    [
-      [{ x: 232, y: 346 }, { x: 232, y: 293.4453125 }, { x: 360, y: 293.4453125 }, { x: 360, y: 236.890625 }],
-      [{ x: 656, y: 346 }, { x: 656, y: 293.4453125 }, { x: 540, y: 293.4453125 }, { x: 540, y: 236.890625 }],
-      [{ x: 530, y: 755.890625 }, { x: 708, y: 755.890625 }],
-      [{ x: 1156, y: 847.890625 }, { x: 1250, y: 847.890625 }, { x: 1250, y: 601.4453125 }, { x: 1448, y: 601.4453125 }],
-      [{ x: 1438, y: 124.9453125 }, { x: 1434, y: 124.9453125 }, { x: 1434, y: 335.265625 }, { x: 1370, y: 335.265625 }],
-      [{ x: 1611, y: 207.890625 }, { x: 1611, y: 286 }],
-      [{ x: 1611, y: 449.890625 }, { x: 1611, y: 528 }],
-      [{ x: 1611, y: 676.890625 }, { x: 1611, y: 846 }],
-    ],
-    52,
-    -30,
-  ),
-  catalog: 関係の意匠別配置(
-    { titleBaseline: 46, rowTop: 103.4, rowPitch: 46.5 },
-    [197.890625, 197.890625, 151.890625, 388.265625, 243.890625, 243.890625, 166.890625, 166.890625, 151.890625, 166.890625],
-    [
-      [{ x: 232, y: 346 }, { x: 232, y: 297.9453125 }, { x: 360, y: 297.9453125 }, { x: 360, y: 245.890625 }],
-      [{ x: 656, y: 346 }, { x: 656, y: 297.9453125 }, { x: 540, y: 297.9453125 }, { x: 540, y: 245.890625 }],
-      [{ x: 530, y: 760.890625 }, { x: 708, y: 760.890625 }],
-      [{ x: 1156, y: 852.890625 }, { x: 1250, y: 852.890625 }, { x: 1250, y: 605.9453125 }, { x: 1448, y: 605.9453125 }],
-      [{ x: 1438, y: 129.4453125 }, { x: 1434, y: 129.4453125 }, { x: 1434, y: 348.265625 }, { x: 1370, y: 348.265625 }],
-      [{ x: 1611, y: 216.890625 }, { x: 1611, y: 286 }],
-      [{ x: 1611, y: 458.890625 }, { x: 1611, y: 528 }],
-      [{ x: 1611, y: 685.890625 }, { x: 1611, y: 846 }],
-    ],
-    52,
-    -30,
-  ),
-  sketch: 関係の意匠別配置(
-    { titleBaseline: 45, rowTop: 102.4, rowPitch: 46.5 },
-    [195.890625, 195.890625, 149.890625, 378.265625, 241.890625, 241.890625, 164.890625, 164.890625, 149.890625, 164.890625],
-    [
-      [{ x: 232, y: 346 }, { x: 232, y: 296.9453125 }, { x: 360, y: 296.9453125 }, { x: 360, y: 243.890625 }],
-      [{ x: 656, y: 346 }, { x: 656, y: 296.9453125 }, { x: 540, y: 296.9453125 }, { x: 540, y: 243.890625 }],
-      [{ x: 530, y: 759.890625 }, { x: 708, y: 759.890625 }],
-      [{ x: 1156, y: 851.890625 }, { x: 1250, y: 851.890625 }, { x: 1250, y: 604.9453125 }, { x: 1448, y: 604.9453125 }],
-      [{ x: 1438, y: 128.4453125 }, { x: 1434, y: 128.4453125 }, { x: 1434, y: 339.265625 }, { x: 1370, y: 339.265625 }],
-      [{ x: 1611, y: 214.890625 }, { x: 1611, y: 286 }],
-      [{ x: 1611, y: 456.890625 }, { x: 1611, y: 528 }],
-      [{ x: 1611, y: 683.890625 }, { x: 1611, y: 846 }],
-    ],
-    52,
-    -30,
-  ),
-  letterpress: 関係の意匠別配置(
-    { titleBaseline: 44, rowTop: 101.4, rowPitch: 46.5 },
-    [194.890625, 194.890625, 148.890625, 377.265625, 240.890625, 240.890625, 163.890625, 163.890625, 148.890625, 163.890625],
-    [
-      [{ x: 232, y: 346 }, { x: 232, y: 296.4453125 }, { x: 360, y: 296.4453125 }, { x: 360, y: 242.890625 }],
-      [{ x: 656, y: 346 }, { x: 656, y: 296.4453125 }, { x: 540, y: 296.4453125 }, { x: 540, y: 242.890625 }],
-      [{ x: 530, y: 758.890625 }, { x: 708, y: 758.890625 }],
-      [{ x: 1156, y: 850.890625 }, { x: 1250, y: 850.890625 }, { x: 1250, y: 604.4453125 }, { x: 1448, y: 604.4453125 }],
-      [{ x: 1438, y: 127.9453125 }, { x: 1434, y: 127.9453125 }, { x: 1434, y: 338.265625 }, { x: 1370, y: 338.265625 }],
-      [{ x: 1611, y: 213.890625 }, { x: 1611, y: 286 }],
-      [{ x: 1611, y: 455.890625 }, { x: 1611, y: 528 }],
-      [{ x: 1611, y: 682.890625 }, { x: 1611, y: 846 }],
-    ],
-    52,
-    -30,
-  ),
-  relief: 関係の意匠別配置(
-    { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
-    [218.890625, 218.890625, 172.890625, 373.265625, 264.890625, 264.890625, 169.890625, 169.890625, 172.890625, 169.890625],
-    [
-      [{ x: 232, y: 346 }, { x: 232, y: 308.4453125 }, { x: 360, y: 308.4453125 }, { x: 360, y: 266.890625 }],
-      [{ x: 656, y: 346 }, { x: 656, y: 308.4453125 }, { x: 540, y: 308.4453125 }, { x: 540, y: 266.890625 }],
-      [{ x: 514, y: 766.890625 }, { x: 724, y: 766.890625 }],
-      [{ x: 1140, y: 858.890625 }, { x: 1250, y: 858.890625 }, { x: 1250, y: 616.4453125 }, { x: 1448, y: 616.4453125 }],
-      [{ x: 1438, y: 130.9453125 }, { x: 1434, y: 130.9453125 }, { x: 1434, y: 332.265625 }, { x: 1364, y: 332.265625 }],
-      [{ x: 1611, y: 219.890625 }, { x: 1611, y: 286 }],
-      [{ x: 1611, y: 461.890625 }, { x: 1611, y: 528 }],
-      [{ x: 1611, y: 706.890625 }, { x: 1611, y: 846 }],
-    ],
-    44,
-    -33,
-    false,
-  ),
-  terminal: 関係の意匠別配置(
-    { titleBaseline: 38, rowTop: 95, rowPitch: 46.5 },
-    [188.5, 188.5, 142.5, 372.875, 234.5, 234.5, 157.5, 157.5, 142.5, 157.5],
-    [
-      [{ x: 232, y: 346 }, { x: 232, y: 293.25 }, { x: 360, y: 293.25 }, { x: 360, y: 236.5 }],
-      [{ x: 656, y: 346 }, { x: 656, y: 293.25 }, { x: 540, y: 293.25 }, { x: 540, y: 236.5 }],
-      [{ x: 529, y: 752.5 }, { x: 709, y: 752.5 }],
-      [{ x: 1155, y: 844.5 }, { x: 1250, y: 844.5 }, { x: 1250, y: 601.25 }, { x: 1448, y: 601.25 }],
-      [{ x: 1438, y: 124.75 }, { x: 1434, y: 124.75 }, { x: 1434, y: 331.875 }, { x: 1367, y: 331.875 }],
-      [{ x: 1611, y: 207.5 }, { x: 1611, y: 286 }],
-      [{ x: 1611, y: 449.5 }, { x: 1611, y: 528 }],
-      [{ x: 1611, y: 676.5 }, { x: 1611, y: 846 }],
-    ],
-    51.5,
-    -31.5,
-  ),
-  neon: 関係の意匠別配置(
-    { titleBaseline: 44, rowTop: 102.4, rowPitch: 46.5 },
-    [196.890625, 196.890625, 150.890625, 407.265625, 242.890625, 242.890625, 165.890625, 165.890625, 150.890625, 165.890625],
-    [
-      [{ x: 232, y: 346 }, { x: 232, y: 297.4453125 }, { x: 360, y: 297.4453125 }, { x: 360, y: 244.890625 }],
-      [{ x: 656, y: 346 }, { x: 656, y: 297.4453125 }, { x: 540, y: 297.4453125 }, { x: 540, y: 244.890625 }],
-      [{ x: 528, y: 759.890625 }, { x: 710, y: 759.890625 }],
-      [{ x: 1154, y: 851.890625 }, { x: 1250, y: 851.890625 }, { x: 1250, y: 605.4453125 }, { x: 1448, y: 605.4453125 }],
-      [{ x: 1438, y: 128.9453125 }, { x: 1434, y: 128.9453125 }, { x: 1434, y: 365.265625 }, { x: 1366, y: 365.265625 }],
-      [{ x: 1611, y: 215.890625 }, { x: 1611, y: 286 }],
-      [{ x: 1611, y: 457.890625 }, { x: 1611, y: 528 }],
-      [{ x: 1611, y: 684.890625 }, { x: 1611, y: 846 }],
-    ],
-    51,
-    -32,
-    false,
-  ),
-} as const;
 
 // er preset ... ER 図 (設計「箱と行と関係」 の意匠)
 //
@@ -1190,32 +949,30 @@ relations: hover
 reveal: all
 legendFontSize: 21
 viewport: { width: 1800, height: 1100 }
-layoutByTheme:
-${意匠別配置をYAMLで書く(deliveryRelationsLayoutByTheme)}
 
 actors:
-  - 契約: { posX: 450, posY: 140.445, posW: 400, posH: 188.891, kind: storage, emphasis: primary, rowRules: true, rowDividerForm: full, rowWell: {"top":2,"right":16,"bottom":4,"left":16,"radius":15}, rowMarkForm: tone, figureCard: {"label":"もと","note":"記録 2"}, rows: ["契約番号: 番号", "締結日: 日付"], marks: [{"mark":"鍵","tone":"primary"}, ""] }
-  - 法人契約: { posX: 232, posY: 446.445, posW: 372, posH: 188.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"派生","note":"記録 2"}, rows: ["請求先: 名前", "与信枠: 金額"], marks: [{"mark":"鍵","tone":"primary"}, {"mark":"","tone":"muted"}] }
-  - 個人契約: { posX: 656, posY: 423.445, posW: 372, posH: 142.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"派生","note":"記録 1"}, rows: ["住所: 文字"], marks: [{"mark":"鍵","tone":"primary"}] }
-  - 営業所: { posX: 1177, posY: 231.633, posW: 430, posH: 371.266, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"抱える 2","note":"記録 0"}, rows: [], marks: [] }
-  - 荷物: { posX: 281, posY: 789.445, posW: 470, posH: 234.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"","note":"記録 3"}, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分"], marks: [{"mark":"鍵","tone":"primary"}, "", ""] }
-  - 配送便: { posX: 927, posY: 789.445, posW: 430, posH: 234.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"","note":"記録 3"}, rows: ["便番号: 番号", "出発: 地点", "到着: 地点"], marks: [{"mark":"鍵","tone":"primary"}, "", {"mark":"","tone":"muted"}] }
-  - 受付: { posX: 1187, posY: 195.5, posW: 378, posH: 125, kind: storage, rowRules: true, rowDividerForm: full, rowMarkForm: tone, nestIn: 営業所, rows: ["受付番号: 番号", "窓口: 区分"], marks: [{"mark":"鍵","tone":"primary"}, ""] }
-  - 仕分け: { posX: 1187, posY: 312.5, posW: 378, posH: 85, kind: storage, rowRules: true, rowDividerForm: full, rowMarkForm: tone, nestIn: 営業所, rows: ["棚: 位置"], marks: [{"mark":"鍵","tone":"primary"}] }
-  - 受付済: { posX: 1611, posY: 124.945, posW: 318, posH: 157.891, kind: storage, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
-  - 集荷済: { posX: 1611, posY: 366.945, posW: 318, posH: 157.891, kind: storage, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
-  - 配達中: { posX: 1611, posY: 601.445, posW: 318, posH: 142.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"段階","note":"記録 1"}, rows: ["現在地: 地点"], marks: [{"mark":"","tone":"muted"}] }
-  - 完了: { posX: 1611, posY: 926.945, posW: 318, posH: 157.891, kind: storage, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
+  - 契約: { posX: 450, posY: 155.4453125, posW: 400, posH: 218.890625, kind: storage, emphasis: primary, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {"top":2,"right":16,"bottom":4,"left":16,"radius":15}, rowMarkForm: tone, figureCard: {"label":"もと","note":"記録 2"}, rows: ["契約番号: 番号", "締結日: 日付"], marks: [{"mark":"鍵","tone":"primary"}, ""] }
+  - 法人契約: { posX: 232, posY: 461.4453125, posW: 372, posH: 218.890625, kind: storage, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"派生","note":"記録 2"}, rows: ["請求先: 名前", "与信枠: 金額"], marks: [{"mark":"鍵","tone":"primary"}, {"mark":"","tone":"muted"}] }
+  - 個人契約: { posX: 656, posY: 438.4453125, posW: 372, posH: 172.890625, kind: storage, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"派生","note":"記録 1"}, rows: ["住所: 文字"], marks: [{"mark":"鍵","tone":"primary"}] }
+  - 営業所: { posX: 1177, posY: 232.6328125, posW: 430, posH: 373.265625, kind: storage, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"抱える 2","note":"記録 0"}, rows: [], marks: [] }
+  - 荷物: { posX: 281, posY: 804.4453125, posW: 470, posH: 264.890625, kind: storage, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"","note":"記録 3"}, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分"], marks: [{"mark":"鍵","tone":"primary"}, "", ""] }
+  - 配送便: { posX: 927, posY: 804.4453125, posW: 430, posH: 264.890625, kind: storage, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"","note":"記録 3"}, rows: ["便番号: 番号", "出発: 地点", "到着: 地点"], marks: [{"mark":"鍵","tone":"primary"}, "", {"mark":"","tone":"muted"}] }
+  - 受付: { posX: 1187, posY: 195.5, posW: 378, posH: 125, kind: storage, rowRules: true, rowStripe: true, rowDividerForm: full, rowMarkForm: tone, nestIn: 営業所, rows: ["受付番号: 番号", "窓口: 区分"], marks: [{"mark":"鍵","tone":"primary"}, ""] }
+  - 仕分け: { posX: 1187, posY: 312.5, posW: 378, posH: 85, kind: storage, rowRules: true, rowStripe: true, rowDividerForm: full, rowMarkForm: tone, nestIn: 営業所, rows: ["棚: 位置"], marks: [{"mark":"鍵","tone":"primary"}] }
+  - 受付済: { posX: 1611, posY: 130.9453125, posW: 318, posH: 169.890625, kind: storage, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
+  - 集荷済: { posX: 1611, posY: 372.9453125, posW: 318, posH: 169.890625, kind: storage, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
+  - 配達中: { posX: 1611, posY: 616.4453125, posW: 318, posH: 172.890625, kind: storage, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"段階","note":"記録 1"}, rows: ["現在地: 地点"], marks: [{"mark":"","tone":"muted"}] }
+  - 完了: { posX: 1611, posY: 932.9453125, posW: 318, posH: 169.890625, kind: storage, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
 
 flow:
-  - 法人契約 -> 契約: "である" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom, labelSize: {"width":96,"height":40,"fontSize":21} }
-  - 個人契約 -> 契約: "" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom }
-  - 荷物 -> 配送便: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, tailSub: "1..*", sub: "1", labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 配送便 -> 配達中: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, tailSub: "1", labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 受付済 -> 仕分け: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, fromSide: left, toSide: right, posX1: 1452, posY1: 124.945, posX2: 1366, posY2: 312.5, labelCollision: author, labelOffsetX: 26, labelOffsetY: 28, labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 受付済 -> 集荷済: "集める" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 203.891, posX2: 1611, posY2: 288, labelCollision: author, labelOffsetX: 36, labelSize: {"width":96,"height":40,"fontSize":21} }
-  - 集荷済 -> 配達中: "積む" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 445.891, posX2: 1611, posY2: 530, labelCollision: author, labelOffsetX: 36, labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 配達中 -> 完了: "渡す" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 672.891, posX2: 1611, posY2: 848, labelCollision: author, labelOffsetX: 36, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 法人契約 -> 契約: "である" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom, posX1: 232, posY1: 346, posX2: 360, posY2: 266.890625, waypoints: [{"x":232,"y":308.4453125},{"x":360,"y":308.4453125}], labelCollision: author, labelOffsetX: 152, labelOffsetY: 0, labelSize: {"width":96,"height":40,"fontSize":21} }
+  - 個人契約 -> 契約: "" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom, posX1: 656, posY1: 346, posX2: 540, posY2: 266.890625, waypoints: [{"x":656,"y":308.4453125},{"x":540,"y":308.4453125}] }
+  - 荷物 -> 配送便: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, tailSub: "1..*", sub: "1", posX1: 514, posY1: 766.890625, posX2: 724, posY2: 766.890625, labelCollision: author, labelOffsetX: -5, labelOffsetY: -46, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 配送便 -> 配達中: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, tailSub: "1", posX1: 1140, posY1: 858.890625, posX2: 1448, posY2: 616.4453125, waypoints: [{"x":1250,"y":858.890625},{"x":1250,"y":616.4453125}], labelCollision: author, labelOffsetX: -40, labelOffsetY: 44, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 受付済 -> 仕分け: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, fromSide: left, toSide: right, posX1: 1452, posY1: 130.9453125, posX2: 1364, posY2: 332.265625, waypoints: [{"x":1412,"y":130.9453125},{"x":1412,"y":332.265625}], labelCollision: author, labelOffsetX: 62, labelOffsetY: 14, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 受付済 -> 集荷済: "集める" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 219.890625, posX2: 1611, posY2: 286, labelCollision: author, labelOffsetX: 118, labelOffsetY: -1, labelSize: {"width":96,"height":40,"fontSize":21} }
+  - 集荷済 -> 配達中: "積む" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 461.890625, posX2: 1611, posY2: 528, labelCollision: author, labelOffsetX: 118, labelOffsetY: -1, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 配達中 -> 完了: "渡す" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 706.890625, posX2: 1611, posY2: 846, labelCollision: author, labelOffsetX: 118, labelOffsetY: -1, labelSize: {"width":74,"height":40,"fontSize":21} }
 
 legend:
   - { text: "持つ は線を引かない。 営業所 が 受付 と 仕分け を抱えるように、囲いで出す", align: start, lead: "持つ" }
@@ -1259,30 +1016,29 @@ export const sourceJson__presetDeliveryRelations = JSON.stringify({
   reveal: "all",
   legendFontSize: 21,
   viewport: { width: 1800, height: 1100 },
-  layoutByTheme: deliveryRelationsLayoutByTheme,
   actors: [
-    { name: "契約", posX: 450, posY: 140.445, posW: 400, posH: 188.891, kind: "storage", emphasis: "primary", rowRules: true, rowDividerForm: "full", rowWell: { top: 2, right: 16, bottom: 4, left: 16, radius: 15 }, rowMarkForm: "tone", figureCard: { label: "もと", note: "記録 2" }, rows: ["契約番号: 番号", "締結日: 日付"], marks: [{ mark: "鍵", tone: "primary" }, ""] },
-    { name: "法人契約", posX: 232, posY: 446.445, posW: 372, posH: 188.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "派生", note: "記録 2" }, rows: ["請求先: 名前", "与信枠: 金額"], marks: [{ mark: "鍵", tone: "primary" }, { mark: "", tone: "muted" }] },
-    { name: "個人契約", posX: 656, posY: 423.445, posW: 372, posH: 142.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "派生", note: "記録 1" }, rows: ["住所: 文字"], marks: [{ mark: "鍵", tone: "primary" }] },
-    { name: "営業所", posX: 1177, posY: 231.633, posW: 430, posH: 371.266, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "抱える 2", note: "記録 0" }, rows: [], marks: [] },
-    { name: "荷物", posX: 281, posY: 789.445, posW: 470, posH: 234.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "", note: "記録 3" }, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分"], marks: [{ mark: "鍵", tone: "primary" }, "", ""] },
-    { name: "配送便", posX: 927, posY: 789.445, posW: 430, posH: 234.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "", note: "記録 3" }, rows: ["便番号: 番号", "出発: 地点", "到着: 地点"], marks: [{ mark: "鍵", tone: "primary" }, "", { mark: "", tone: "muted" }] },
-    { name: "受付", posX: 1187, posY: 195.5, posW: 378, posH: 125, kind: "storage", rowRules: true, rowDividerForm: "full", rowMarkForm: "tone", nestIn: "営業所", rows: ["受付番号: 番号", "窓口: 区分"], marks: [{ mark: "鍵", tone: "primary" }, ""] },
-    { name: "仕分け", posX: 1187, posY: 312.5, posW: 378, posH: 85, kind: "storage", rowRules: true, rowDividerForm: "full", rowMarkForm: "tone", nestIn: "営業所", rows: ["棚: 位置"], marks: [{ mark: "鍵", tone: "primary" }] },
-    { name: "受付済", posX: 1611, posY: 124.945, posW: 318, posH: 157.891, kind: "storage", rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
-    { name: "集荷済", posX: 1611, posY: 366.945, posW: 318, posH: 157.891, kind: "storage", rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
-    { name: "配達中", posX: 1611, posY: 601.445, posW: 318, posH: 142.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "段階", note: "記録 1" }, rows: ["現在地: 地点"], marks: [{ mark: "", tone: "muted" }] },
-    { name: "完了", posX: 1611, posY: 926.945, posW: 318, posH: 157.891, kind: "storage", rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
+    { name: "契約", posX: 450, posY: 155.4453125, posW: 400, posH: 218.890625, kind: "storage", emphasis: "primary", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: { top: 2, right: 16, bottom: 4, left: 16, radius: 15 }, rowMarkForm: "tone", figureCard: { label: "もと", note: "記録 2" }, rows: ["契約番号: 番号", "締結日: 日付"], marks: [{ mark: "鍵", tone: "primary" }, ""] },
+    { name: "法人契約", posX: 232, posY: 461.4453125, posW: 372, posH: 218.890625, kind: "storage", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "派生", note: "記録 2" }, rows: ["請求先: 名前", "与信枠: 金額"], marks: [{ mark: "鍵", tone: "primary" }, { mark: "", tone: "muted" }] },
+    { name: "個人契約", posX: 656, posY: 438.4453125, posW: 372, posH: 172.890625, kind: "storage", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "派生", note: "記録 1" }, rows: ["住所: 文字"], marks: [{ mark: "鍵", tone: "primary" }] },
+    { name: "営業所", posX: 1177, posY: 232.6328125, posW: 430, posH: 373.265625, kind: "storage", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "抱える 2", note: "記録 0" }, rows: [], marks: [] },
+    { name: "荷物", posX: 281, posY: 804.4453125, posW: 470, posH: 264.890625, kind: "storage", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "", note: "記録 3" }, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分"], marks: [{ mark: "鍵", tone: "primary" }, "", ""] },
+    { name: "配送便", posX: 927, posY: 804.4453125, posW: 430, posH: 264.890625, kind: "storage", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "", note: "記録 3" }, rows: ["便番号: 番号", "出発: 地点", "到着: 地点"], marks: [{ mark: "鍵", tone: "primary" }, "", { mark: "", tone: "muted" }] },
+    { name: "受付", posX: 1187, posY: 195.5, posW: 378, posH: 125, kind: "storage", rowRules: true, rowStripe: true, rowDividerForm: "full", rowMarkForm: "tone", nestIn: "営業所", rows: ["受付番号: 番号", "窓口: 区分"], marks: [{ mark: "鍵", tone: "primary" }, ""] },
+    { name: "仕分け", posX: 1187, posY: 312.5, posW: 378, posH: 85, kind: "storage", rowRules: true, rowStripe: true, rowDividerForm: "full", rowMarkForm: "tone", nestIn: "営業所", rows: ["棚: 位置"], marks: [{ mark: "鍵", tone: "primary" }] },
+    { name: "受付済", posX: 1611, posY: 130.9453125, posW: 318, posH: 169.890625, kind: "storage", rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
+    { name: "集荷済", posX: 1611, posY: 372.9453125, posW: 318, posH: 169.890625, kind: "storage", rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
+    { name: "配達中", posX: 1611, posY: 616.4453125, posW: 318, posH: 172.890625, kind: "storage", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "段階", note: "記録 1" }, rows: ["現在地: 地点"], marks: [{ mark: "", tone: "muted" }] },
+    { name: "完了", posX: 1611, posY: 932.9453125, posW: 318, posH: 169.890625, kind: "storage", rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
   ],
   flow: [
-    { from: "法人契約", to: "契約", label: "である", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom", labelSize: { width: 96, height: 40, fontSize: 21 } },
-    { from: "個人契約", to: "契約", label: "", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom" },
-    { from: "荷物", to: "配送便", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", tailSub: "1..*", sub: "1", labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "配送便", to: "配達中", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", tailSub: "1", labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "受付済", to: "仕分け", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", fromSide: "left", toSide: "right", posX1: 1452, posY1: 124.945, posX2: 1366, posY2: 312.5, labelCollision: "author", labelOffsetX: 26, labelOffsetY: 28, labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "受付済", to: "集荷済", label: "集める", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 203.891, posX2: 1611, posY2: 288, labelCollision: "author", labelOffsetX: 36, labelSize: { width: 96, height: 40, fontSize: 21 } },
-    { from: "集荷済", to: "配達中", label: "積む", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 445.891, posX2: 1611, posY2: 530, labelCollision: "author", labelOffsetX: 36, labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "配達中", to: "完了", label: "渡す", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 672.891, posX2: 1611, posY2: 848, labelCollision: "author", labelOffsetX: 36, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "法人契約", to: "契約", label: "である", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom", posX1: 232, posY1: 346, posX2: 360, posY2: 266.890625, waypoints: [{ x: 232, y: 308.4453125 }, { x: 360, y: 308.4453125 }], labelCollision: "author", labelOffsetX: 152, labelOffsetY: 0, labelSize: { width: 96, height: 40, fontSize: 21 } },
+    { from: "個人契約", to: "契約", label: "", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom", posX1: 656, posY1: 346, posX2: 540, posY2: 266.890625, waypoints: [{ x: 656, y: 308.4453125 }, { x: 540, y: 308.4453125 }] },
+    { from: "荷物", to: "配送便", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", tailSub: "1..*", sub: "1", posX1: 514, posY1: 766.890625, posX2: 724, posY2: 766.890625, labelCollision: "author", labelOffsetX: -5, labelOffsetY: -46, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "配送便", to: "配達中", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", tailSub: "1", posX1: 1140, posY1: 858.890625, posX2: 1448, posY2: 616.4453125, waypoints: [{ x: 1250, y: 858.890625 }, { x: 1250, y: 616.4453125 }], labelCollision: "author", labelOffsetX: -40, labelOffsetY: 44, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "受付済", to: "仕分け", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", fromSide: "left", toSide: "right", posX1: 1452, posY1: 130.9453125, posX2: 1364, posY2: 332.265625, waypoints: [{ x: 1412, y: 130.9453125 }, { x: 1412, y: 332.265625 }], labelCollision: "author", labelOffsetX: 62, labelOffsetY: 14, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "受付済", to: "集荷済", label: "集める", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 219.890625, posX2: 1611, posY2: 286, labelCollision: "author", labelOffsetX: 118, labelOffsetY: -1, labelSize: { width: 96, height: 40, fontSize: 21 } },
+    { from: "集荷済", to: "配達中", label: "積む", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 461.890625, posX2: 1611, posY2: 528, labelCollision: "author", labelOffsetX: 118, labelOffsetY: -1, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "配達中", to: "完了", label: "渡す", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 706.890625, posX2: 1611, posY2: 846, labelCollision: "author", labelOffsetX: 118, labelOffsetY: -1, labelSize: { width: 74, height: 40, fontSize: 21 } },
   ],
   legend: [{ text: "持つ は線を引かない。 営業所 が 受付 と 仕分け を抱えるように、囲いで出す", align: "start", lead: "持つ" }],
   animation: [
@@ -1963,114 +1719,6 @@ export const pattern__presetInfrastructure__複雑 = withSteps(
   ],
 );
 
-const 型の表の箱 = ["荷主", "荷物", "配送便", "冷蔵荷物", "割れ物", "営業所"] as const;
-const 型の箱の上端 = {
-  荷主: 70,
-  荷物: 70,
-  配送便: 70,
-  冷蔵荷物: 700,
-  割れ物: 700,
-  営業所: 700,
-} as const;
-
-const 型の意匠別配置 = (
-  rowLayout: 見本の行配置,
-  heights: readonly number[],
-  paths: readonly (readonly 見本の途中点[])[],
-  rowStripe?: boolean,
-) => ({
-  nodes: 表の箱の配置(型の表の箱, 型の箱の上端, heights, rowLayout, ["荷物"], rowStripe),
-  edges: {
-    "冷蔵荷物 -> 荷物": 見本の直角線(paths[0] ?? [], 148, 0),
-    "割れ物 -> 荷物": 見本の直角線(paths[1] ?? []),
-    "配送便 -> 荷物": 見本の直角線(paths[2] ?? [], -1, -46),
-    "営業所 -> 配送便": 見本の直角線(paths[3] ?? [], 0, -11),
-    "荷主 -> 荷物": 見本の直角線(paths[4] ?? [], -1.5, -44),
-  },
-});
-
-const deliveryClassesLayoutByTheme = {
-  blueprint: 型の意匠別配置(
-    { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 },
-    [199.890625, 316.890625, 245.890625, 153.890625, 153.890625, 199.890625],
-    [
-      [{ x: 530, y: 694 }, { x: 530, y: 543.4453125 }, { x: 750, y: 543.4453125 }, { x: 750, y: 388.890625 }],
-      [{ x: 1050, y: 694 }, { x: 1050, y: 543.4453125 }, { x: 830, y: 543.4453125 }, { x: 830, y: 388.890625 }],
-      [{ x: 1332, y: 178.890625 }, { x: 1024, y: 178.890625 }],
-      [{ x: 1544, y: 698 }, { x: 1544, y: 319.890625 }],
-      [{ x: 452, y: 153.890625 }, { x: 557, y: 153.890625 }],
-    ],
-  ),
-  catalog: 型の意匠別配置(
-    { titleBaseline: 46, rowTop: 103.4, rowPitch: 46.5 },
-    [204.890625, 321.890625, 250.890625, 158.890625, 158.890625, 204.890625],
-    [
-      [{ x: 530, y: 694 }, { x: 530, y: 545.9453125 }, { x: 750, y: 545.9453125 }, { x: 750, y: 393.890625 }],
-      [{ x: 1050, y: 694 }, { x: 1050, y: 545.9453125 }, { x: 830, y: 545.9453125 }, { x: 830, y: 393.890625 }],
-      [{ x: 1332, y: 183.890625 }, { x: 1024, y: 183.890625 }],
-      [{ x: 1544, y: 698 }, { x: 1544, y: 324.890625 }],
-      [{ x: 452, y: 158.890625 }, { x: 557, y: 158.890625 }],
-    ],
-  ),
-  sketch: 型の意匠別配置(
-    { titleBaseline: 45, rowTop: 102.4, rowPitch: 46.5 },
-    [203.890625, 320.890625, 249.890625, 157.890625, 157.890625, 203.890625],
-    [
-      [{ x: 530, y: 694 }, { x: 530, y: 545.4453125 }, { x: 750, y: 545.4453125 }, { x: 750, y: 392.890625 }],
-      [{ x: 1050, y: 694 }, { x: 1050, y: 545.4453125 }, { x: 830, y: 545.4453125 }, { x: 830, y: 392.890625 }],
-      [{ x: 1332, y: 182.890625 }, { x: 1024, y: 182.890625 }],
-      [{ x: 1544, y: 698 }, { x: 1544, y: 323.890625 }],
-      [{ x: 452, y: 157.890625 }, { x: 557, y: 157.890625 }],
-    ],
-  ),
-  letterpress: 型の意匠別配置(
-    { titleBaseline: 44, rowTop: 101.4, rowPitch: 46.5 },
-    [202.890625, 319.890625, 248.890625, 156.890625, 156.890625, 202.890625],
-    [
-      [{ x: 530, y: 694 }, { x: 530, y: 544.9453125 }, { x: 750, y: 544.9453125 }, { x: 750, y: 391.890625 }],
-      [{ x: 1050, y: 694 }, { x: 1050, y: 544.9453125 }, { x: 830, y: 544.9453125 }, { x: 830, y: 391.890625 }],
-      [{ x: 1332, y: 181.890625 }, { x: 1024, y: 181.890625 }],
-      [{ x: 1544, y: 698 }, { x: 1544, y: 322.890625 }],
-      [{ x: 452, y: 156.890625 }, { x: 557, y: 156.890625 }],
-    ],
-  ),
-  relief: 型の意匠別配置(
-    { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
-    [236.890625, 353.890625, 282.890625, 190.890625, 190.890625, 236.890625],
-    [
-      [{ x: 530, y: 694 }, { x: 530, y: 561.9453125 }, { x: 750, y: 561.9453125 }, { x: 750, y: 425.890625 }],
-      [{ x: 1050, y: 694 }, { x: 1050, y: 561.9453125 }, { x: 830, y: 561.9453125 }, { x: 830, y: 425.890625 }],
-      [{ x: 1332, y: 189.890625 }, { x: 1024, y: 189.890625 }],
-      [{ x: 1544, y: 698 }, { x: 1544, y: 356.890625 }],
-      [{ x: 452, y: 164.890625 }, { x: 557, y: 164.890625 }],
-    ],
-    false,
-  ),
-  terminal: 型の意匠別配置(
-    { titleBaseline: 38, rowTop: 91, rowPitch: 46.5 },
-    [197.5, 314.5, 243.5, 151.5, 151.5, 197.5],
-    [
-      [{ x: 530, y: 694 }, { x: 530, y: 542.25 }, { x: 750, y: 542.25 }, { x: 750, y: 386.5 }],
-      [{ x: 1050, y: 694 }, { x: 1050, y: 542.25 }, { x: 830, y: 542.25 }, { x: 830, y: 386.5 }],
-      [{ x: 1332, y: 175.5 }, { x: 1024, y: 175.5 }],
-      [{ x: 1544, y: 698 }, { x: 1544, y: 317.5 }],
-      [{ x: 452, y: 150.5 }, { x: 557, y: 150.5 }],
-    ],
-  ),
-  neon: 型の意匠別配置(
-    { titleBaseline: 44, rowTop: 102.4, rowPitch: 46.5 },
-    [205.890625, 322.890625, 251.890625, 159.890625, 159.890625, 205.890625],
-    [
-      [{ x: 530, y: 694 }, { x: 530, y: 546.4453125 }, { x: 750, y: 546.4453125 }, { x: 750, y: 394.890625 }],
-      [{ x: 1050, y: 694 }, { x: 1050, y: 546.4453125 }, { x: 830, y: 546.4453125 }, { x: 830, y: 394.890625 }],
-      [{ x: 1332, y: 182.890625 }, { x: 1024, y: 182.890625 }],
-      [{ x: 1544, y: 698 }, { x: 1544, y: 325.890625 }],
-      [{ x: 452, y: 157.890625 }, { x: 557, y: 157.890625 }],
-    ],
-    false,
-  ),
-} as const;
-
 // classDiagram preset ... 宅配の型 (設計「箱と行と関係」 の意匠)
 //
 // 荷主・荷物・配送便を上段、冷蔵荷物・割れ物・営業所を下段に置き、見本の 5 本の関係を描く。
@@ -2087,23 +1735,21 @@ relations: hover
 reveal: all
 legendFontSize: 21
 viewport: { width: 1800, height: 1100 }
-layoutByTheme:
-${意匠別配置をYAMLで書く(deliveryClassesLayoutByTheme)}
 
 actors:
-  - 荷主: { posX: 246, posY: 260, posW: 400, posH: 316, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["名前: 文字", "住所: 文字", "頼む(): 荷物"], marks: ["", "", {"mark":"外","tone":"primary"}] }
-  - 荷物: { posX: 800, posY: 260, posW: 460, posH: 428, kind: storage, eyebrow: "抽象", titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分", "追跡する(): 位置", "届ける(): なし"], marks: ["", "", "", {"mark":"外","tone":"primary"}, {"mark":"外","tone":"primary"}] }
-  - 配送便: { posX: 1500.5, posY: 232, posW: 333, posH: 372, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["便番号: 番号", "出発: 地点", "積む(): なし", "走る(): なし"], marks: ["", "", {"mark":"外","tone":"primary"}, {"mark":"外","tone":"primary"}] }
-  - 冷蔵荷物: { posX: 530, posY: 800, posW: 400, posH: 260, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["温度: 数", "冷やす(): なし"], marks: ["", {"mark":"外","tone":"primary"}] }
-  - 割れ物: { posX: 1050, posY: 800, posW: 400, posH: 260, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["梱包: 区分", "そっと運ぶ(): なし"], marks: ["", {"mark":"外","tone":"primary"}] }
-  - 営業所: { posX: 1500.5, posY: 800, posW: 333, posH: 316, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["名前: 文字", "電話: 番号", "受け付ける(): 荷物"], marks: ["", {"mark":"","tone":"muted"}, {"mark":"外","tone":"primary"}] }
+  - 荷主: { posX: 246, posY: 188.4453125, posW: 400, posH: 236.890625, kind: storage, titleAlign: center, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["名前: 文字", "住所: 文字", "頼む(): 荷物"], marks: ["", "", {"mark":"外","tone":"primary"}] }
+  - 荷物: { posX: 800, posY: 246.9453125, posW: 460, posH: 353.890625, kind: storage, eyebrow: "抽象", titleAlign: center, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":73,"rowTop":133.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分", "追跡する(): 位置", "届ける(): なし"], marks: ["", "", "", {"mark":"外","tone":"primary"}, {"mark":"外","tone":"primary"}] }
+  - 配送便: { posX: 1500.5, posY: 211.4453125, posW: 333, posH: 282.890625, kind: storage, titleAlign: center, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["便番号: 番号", "出発: 地点", "積む(): なし", "走る(): なし"], marks: ["", "", {"mark":"外","tone":"primary"}, {"mark":"外","tone":"primary"}] }
+  - 冷蔵荷物: { posX: 530, posY: 795.4453125, posW: 400, posH: 190.890625, kind: storage, titleAlign: center, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["温度: 数", "冷やす(): なし"], marks: ["", {"mark":"外","tone":"primary"}] }
+  - 割れ物: { posX: 1050, posY: 795.4453125, posW: 400, posH: 190.890625, kind: storage, titleAlign: center, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["梱包: 区分", "そっと運ぶ(): なし"], marks: ["", {"mark":"外","tone":"primary"}] }
+  - 営業所: { posX: 1500.5, posY: 818.4453125, posW: 333, posH: 236.890625, kind: storage, titleAlign: center, rowRules: true, rowStripe: true, rowLayout: {"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5}, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["名前: 文字", "電話: 番号", "受け付ける(): 荷物"], marks: ["", {"mark":"","tone":"muted"}, {"mark":"外","tone":"primary"}] }
 
 flow:
-  - 冷蔵荷物 -> 荷物: "である" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom, overlay: true, labelSize: {"width":96,"height":40,"fontSize":21} }
-  - 割れ物 -> 荷物: "" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom }
-  - 配送便 -> 荷物: "集める" (teal) { relation: aggregates, tailSub: "1", sub: "0..*", fromSide: left, toSide: right, overlay: true, labelSize: {"width":96,"height":40,"fontSize":21} }
-  - 営業所 -> 配送便: "持つ" (teal) { relation: composes, sub: "1..*", fromSide: top, toSide: bottom, overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
-  - 荷主 -> 荷物: "使う" (warning) { relation: uses, posX1: 446, posY1: 260, posX2: 570, posY2: 260, labelCollision: author, labelOffsetY: -36, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 冷蔵荷物 -> 荷物: "である" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom, posX1: 530, posY1: 694, posX2: 750, posY2: 425.890625, waypoints: [{"x":530,"y":561.9453125},{"x":750,"y":561.9453125}], labelCollision: author, labelOffsetX: 148, labelOffsetY: 0, overlay: true, labelSize: {"width":96,"height":40,"fontSize":21} }
+  - 割れ物 -> 荷物: "" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom, posX1: 1050, posY1: 694, posX2: 830, posY2: 425.890625, waypoints: [{"x":1050,"y":561.9453125},{"x":830,"y":561.9453125}] }
+  - 配送便 -> 荷物: "集める" (teal) { relation: aggregates, tailSub: "1", sub: "0..*", fromSide: left, toSide: right, posX1: 1332, posY1: 189.890625, posX2: 1024, posY2: 189.890625, labelCollision: author, labelOffsetX: -1, labelOffsetY: -46, overlay: true, labelSize: {"width":96,"height":40,"fontSize":21} }
+  - 営業所 -> 配送便: "持つ" (teal) { relation: composes, sub: "1..*", fromSide: top, toSide: bottom, posX1: 1544, posY1: 698, posX2: 1544, posY2: 356.890625, labelCollision: author, labelOffsetX: -40, labelOffsetY: -11, overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 荷主 -> 荷物: "使う" (warning) { relation: uses, posX1: 452, posY1: 164.890625, posX2: 557, posY2: 164.890625, labelCollision: author, labelOffsetX: -1.5, labelOffsetY: -44, labelSize: {"width":74,"height":40,"fontSize":21} }
 
 legend:
   - { mark: line-triangle-hollow, text: "受け継ぐ", tone: accent, lineStyle: dotted }
@@ -2138,21 +1784,20 @@ export const sourceJson__presetDeliveryClasses = JSON.stringify({
   reveal: "all",
   legendFontSize: 21,
   viewport: { width: 1800, height: 1100 },
-  layoutByTheme: deliveryClassesLayoutByTheme,
   actors: [
-    { name: "荷主", posX: 246, posY: 260, posW: 400, posH: 316, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["名前: 文字", "住所: 文字", "頼む(): 荷物"], marks: ["", "", { mark: "外", tone: "primary" }] },
-    { name: "荷物", posX: 800, posY: 260, posW: 460, posH: 428, kind: "storage", eyebrow: "抽象", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分", "追跡する(): 位置", "届ける(): なし"], marks: ["", "", "", { mark: "外", tone: "primary" }, { mark: "外", tone: "primary" }] },
-    { name: "配送便", posX: 1500.5, posY: 232, posW: 333, posH: 372, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["便番号: 番号", "出発: 地点", "積む(): なし", "走る(): なし"], marks: ["", "", { mark: "外", tone: "primary" }, { mark: "外", tone: "primary" }] },
-    { name: "冷蔵荷物", posX: 530, posY: 800, posW: 400, posH: 260, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["温度: 数", "冷やす(): なし"], marks: ["", { mark: "外", tone: "primary" }] },
-    { name: "割れ物", posX: 1050, posY: 800, posW: 400, posH: 260, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["梱包: 区分", "そっと運ぶ(): なし"], marks: ["", { mark: "外", tone: "primary" }] },
-    { name: "営業所", posX: 1500.5, posY: 800, posW: 333, posH: 316, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["名前: 文字", "電話: 番号", "受け付ける(): 荷物"], marks: ["", { mark: "", tone: "muted" }, { mark: "外", tone: "primary" }] },
+    { name: "荷主", posX: 246, posY: 188.4453125, posW: 400, posH: 236.890625, kind: "storage", titleAlign: "center", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["名前: 文字", "住所: 文字", "頼む(): 荷物"], marks: ["", "", { mark: "外", tone: "primary" }] },
+    { name: "荷物", posX: 800, posY: 246.9453125, posW: 460, posH: 353.890625, kind: "storage", eyebrow: "抽象", titleAlign: "center", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 73, rowTop: 133.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分", "追跡する(): 位置", "届ける(): なし"], marks: ["", "", "", { mark: "外", tone: "primary" }, { mark: "外", tone: "primary" }] },
+    { name: "配送便", posX: 1500.5, posY: 211.4453125, posW: 333, posH: 282.890625, kind: "storage", titleAlign: "center", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["便番号: 番号", "出発: 地点", "積む(): なし", "走る(): なし"], marks: ["", "", { mark: "外", tone: "primary" }, { mark: "外", tone: "primary" }] },
+    { name: "冷蔵荷物", posX: 530, posY: 795.4453125, posW: 400, posH: 190.890625, kind: "storage", titleAlign: "center", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["温度: 数", "冷やす(): なし"], marks: ["", { mark: "外", tone: "primary" }] },
+    { name: "割れ物", posX: 1050, posY: 795.4453125, posW: 400, posH: 190.890625, kind: "storage", titleAlign: "center", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["梱包: 区分", "そっと運ぶ(): なし"], marks: ["", { mark: "外", tone: "primary" }] },
+    { name: "営業所", posX: 1500.5, posY: 818.4453125, posW: 333, posH: 236.890625, kind: "storage", titleAlign: "center", rowRules: true, rowStripe: true, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["名前: 文字", "電話: 番号", "受け付ける(): 荷物"], marks: ["", { mark: "", tone: "muted" }, { mark: "外", tone: "primary" }] },
   ],
   flow: [
-    { from: "冷蔵荷物", to: "荷物", label: "である", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom", overlay: true, labelSize: { width: 96, height: 40, fontSize: 21 } },
-    { from: "割れ物", to: "荷物", label: "", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom" },
-    { from: "配送便", to: "荷物", label: "集める", tone: "teal", relation: "aggregates", tailSub: "1", sub: "0..*", fromSide: "left", toSide: "right", overlay: true, labelSize: { width: 96, height: 40, fontSize: 21 } },
-    { from: "営業所", to: "配送便", label: "持つ", tone: "teal", relation: "composes", sub: "1..*", fromSide: "top", toSide: "bottom", overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
-    { from: "荷主", to: "荷物", label: "使う", tone: "warning", relation: "uses", posX1: 446, posY1: 260, posX2: 570, posY2: 260, labelCollision: "author", labelOffsetY: -36, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "冷蔵荷物", to: "荷物", label: "である", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom", posX1: 530, posY1: 694, posX2: 750, posY2: 425.890625, waypoints: [{ x: 530, y: 561.9453125 }, { x: 750, y: 561.9453125 }], labelCollision: "author", labelOffsetX: 148, labelOffsetY: 0, overlay: true, labelSize: { width: 96, height: 40, fontSize: 21 } },
+    { from: "割れ物", to: "荷物", label: "", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom", posX1: 1050, posY1: 694, posX2: 830, posY2: 425.890625, waypoints: [{ x: 1050, y: 561.9453125 }, { x: 830, y: 561.9453125 }] },
+    { from: "配送便", to: "荷物", label: "集める", tone: "teal", relation: "aggregates", tailSub: "1", sub: "0..*", fromSide: "left", toSide: "right", posX1: 1332, posY1: 189.890625, posX2: 1024, posY2: 189.890625, labelCollision: "author", labelOffsetX: -1, labelOffsetY: -46, overlay: true, labelSize: { width: 96, height: 40, fontSize: 21 } },
+    { from: "営業所", to: "配送便", label: "持つ", tone: "teal", relation: "composes", sub: "1..*", fromSide: "top", toSide: "bottom", posX1: 1544, posY1: 698, posX2: 1544, posY2: 356.890625, labelCollision: "author", labelOffsetX: -40, labelOffsetY: -11, overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "荷主", to: "荷物", label: "使う", tone: "warning", relation: "uses", posX1: 452, posY1: 164.890625, posX2: 557, posY2: 164.890625, labelCollision: "author", labelOffsetX: -1.5, labelOffsetY: -44, labelSize: { width: 74, height: 40, fontSize: 21 } },
   ],
   legend: [
     { mark: "line-triangle-hollow", text: "受け継ぐ", tone: "accent", lineStyle: "dotted" },
@@ -3741,14 +3386,7 @@ legendFontSize: 21
 viewport: { width: 1800, height: 1048.118 }
 stageLayout: {"columnWidths":{"申し込み":300,"受付":360,"配送":400,"結果":420},"columnGap":64,"backDetourTopGap":34,"backDetourSideGap":58,"backDetourTargetInset":60}
 
-stageHeaders:
-  blueprint: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 }
-  letterpress: { leftPad: 24, topPad: 16, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 }
-  catalog: { leftPad: 24, topPad: 18, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 15 }
-  sketch: { leftPad: 24, topPad: 17, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 }
-  neon: { leftPad: 24, topPad: 18, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 }
-  relief: { leftPad: 26, topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 }
-  terminal: { leftPad: 22, topPad: 16, numberSize: 16, gap: 10, nameSize: 25, bottomPad: 13 }
+stageHeader: { leftPad: 26, topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 }
 
 lanes:
   shipper: { label: 荷主 }
@@ -3817,15 +3455,7 @@ export const sourceJson__presetDeliveryStages = `{
   "legendFontSize": 21,
   "viewport": { "width": 1800, "height": 1048.118 },
   "stageLayout": { "columnWidths": { "申し込み": 300, "受付": 360, "配送": 400, "結果": 420 }, "columnGap": 64, "backDetourTopGap": 34, "backDetourSideGap": 58, "backDetourTargetInset": 60 },
-  "stageHeaders": {
-    "blueprint": { "leftPad": 22, "topPad": 15, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 13 },
-    "letterpress": { "leftPad": 24, "topPad": 16, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 14 },
-    "catalog": { "leftPad": 24, "topPad": 18, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 15 },
-    "sketch": { "leftPad": 24, "topPad": 17, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 14 },
-    "neon": { "leftPad": 24, "topPad": 18, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 14 },
-    "relief": { "leftPad": 26, "topPad": 20, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 12 },
-    "terminal": { "leftPad": 22, "topPad": 16, "numberSize": 16, "gap": 10, "nameSize": 25, "bottomPad": 13 }
-  },
+  "stageHeader": { "leftPad": 26, "topPad": 20, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 12 },
   "lanes": {
     "shipper": { "label": "荷主" },
     "office": { "label": "営業所" },

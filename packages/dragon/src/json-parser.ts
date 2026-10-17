@@ -93,7 +93,7 @@ import { 区画 } from "./compile/word-state";
 // 行頭の印の古い語の読み替え (#2782)。 記法と同じ表を通す = JSON だけ古い語が印を持たない
 // 形にならない
 import { 行頭の語へ読み替える } from "./compile/row-marks";
-import type { DslDiagramShape, DslShape, DslTheme } from "./keywords";
+import type { DslDiagramShape, DslShape } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
   CdlDiagram,
@@ -248,10 +248,8 @@ export interface DragonJson {
   /** 図の凡例の字の大きさ。 */
   legendFontSize?: number;
   legendOffset?: DslDocument["legendOffset"];
-  /** 段の箱で、意匠ごとに描く見出しの寸法。 */
-  stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
-  /** 意匠ごとの表の行配置と固定線。 */
-  layoutByTheme?: DslDocument["layoutByTheme"];
+  /** 段の箱で全意匠に共通して使う見出しの寸法。 */
+  stageHeader?: DslStageHeader;
   stageLayout?: DslDocument["stageLayout"];
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
@@ -843,8 +841,7 @@ export const ACCEPTED_KEYS = {
     "legend",
     "legendFontSize",
     "legendOffset",
-    "stageHeaders",
-    "layoutByTheme",
+    "stageHeader",
     "stageLayout",
   ],
   actor: [
@@ -1135,8 +1132,7 @@ export const 欄の型表 = {
     legend: "並び",
     legendFontSize: "数",
     legendOffset: "object",
-    stageHeaders: "object",
-    layoutByTheme: "object",
+    stageHeader: "object",
     stageLayout: "object",
   },
   actor: {
@@ -2072,116 +2068,37 @@ function validateLegend(v: unknown, errors: JsonDslError[]): void {
 const STAGE_HEADER_KEYS = ["leftPad", "topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
 const REQUIRED_STAGE_HEADER_KEYS = ["topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
 
-/** JSON の段の見出し寸法を、意匠名・閉じた欄・必須の正数まで検査する。 */
-function validateStageHeaders(v: unknown, errors: JsonDslError[]): void {
+/** JSON の段の見出し寸法を、閉じた欄・必須の正数まで検査する。 */
+function validateStageHeader(v: unknown, errors: JsonDslError[]): void {
   if (v === undefined) return;
   if (!v || typeof v !== "object" || Array.isArray(v)) {
-    errors.push({ path: "$.stageHeaders", message: "stageHeaders must be an object" });
+    errors.push({ path: "$.stageHeader", message: "stageHeader must be an object" });
     return;
   }
-  for (const [theme, header] of Object.entries(v as Record<string, unknown>)) {
-    const path = `$.stageHeaders.${theme}`;
-    if (!(THEMES as readonly string[]).includes(theme)) {
-      errors.push({ path, message: `unknown theme "${theme}"`, hint: `使える意匠 = ${THEMES.join(", ")}` });
-      continue;
+  const path = "$.stageHeader";
+  const o = v as Record<string, unknown>;
+  for (const key of Object.keys(o)) {
+    if ((STAGE_HEADER_KEYS as readonly string[]).includes(key)) continue;
+    errors.push({
+      path: `${path}.${key}`,
+      message: `unknown key "${key}"`,
+      hint: `使える項目 = ${STAGE_HEADER_KEYS.join(", ")}`,
+    });
+  }
+  for (const key of REQUIRED_STAGE_HEADER_KEYS) {
+    if (o[key] === undefined) {
+      errors.push({ path: `${path}.${key}`, message: `${key} is required` });
     }
-    if (!header || typeof header !== "object" || Array.isArray(header)) {
-      errors.push({ path, message: "stage header must be an object" });
-      continue;
-    }
-    const o = header as Record<string, unknown>;
-    for (const key of Object.keys(o)) {
-      if ((STAGE_HEADER_KEYS as readonly string[]).includes(key)) continue;
+  }
+  for (const key of STAGE_HEADER_KEYS) {
+    const value = o[key];
+    if (value === undefined) continue;
+    const zeroAllowed = key === "leftPad" || key === "topPad" || key === "gap" || key === "bottomPad";
+    if (typeof value !== "number" || !Number.isFinite(value) || (zeroAllowed ? value < 0 : value <= 0)) {
       errors.push({
         path: `${path}.${key}`,
-        message: `unknown key "${key}"`,
-        hint: `使える項目 = ${STAGE_HEADER_KEYS.join(", ")}`,
+        message: `${key} must be ${zeroAllowed ? "a non-negative" : "a positive"} number`,
       });
-    }
-    for (const key of REQUIRED_STAGE_HEADER_KEYS) {
-      if (o[key] === undefined) {
-        errors.push({ path: `${path}.${key}`, message: `${key} is required` });
-      }
-    }
-    for (const key of STAGE_HEADER_KEYS) {
-      const value = o[key];
-      if (value === undefined) continue;
-      const zeroAllowed = key === "leftPad" || key === "topPad" || key === "gap" || key === "bottomPad";
-      if (typeof value !== "number" || !Number.isFinite(value) || (zeroAllowed ? value < 0 : value <= 0)) {
-        errors.push({
-          path: `${path}.${key}`,
-          message: `${key} must be ${zeroAllowed ? "a non-negative" : "a positive"} number`,
-        });
-      }
-    }
-  }
-}
-
-/** 意匠別の表の行配置と固定線を検査する。 */
-function validateLayoutByTheme(v: unknown, errors: JsonDslError[]): void {
-  if (v === undefined) return;
-  if (!v || typeof v !== "object" || Array.isArray(v)) {
-    errors.push({ path: "$.layoutByTheme", message: "layoutByTheme must be an object" });
-    return;
-  }
-  for (const [theme, rawTheme] of Object.entries(v as Record<string, unknown>)) {
-    const themePath = `$.layoutByTheme.${theme}`;
-    if (!(THEMES as readonly string[]).includes(theme)) {
-      errors.push({ path: themePath, message: `unknown theme "${theme}"` });
-      continue;
-    }
-    if (!rawTheme || typeof rawTheme !== "object" || Array.isArray(rawTheme)) {
-      errors.push({ path: themePath, message: "theme layout must be an object" });
-      continue;
-    }
-    const themeValue = rawTheme as Record<string, unknown>;
-    for (const key of Object.keys(themeValue)) if (key !== "nodes" && key !== "edges") errors.push({ path: `${themePath}.${key}`, message: `unknown key "${key}"` });
-    for (const section of ["nodes", "edges"] as const) {
-      const entries = themeValue[section];
-      if (entries === undefined) continue;
-      const sectionPath = `${themePath}.${section}`;
-      if (!entries || typeof entries !== "object" || Array.isArray(entries)) {
-        errors.push({ path: sectionPath, message: `${section} must be an object` });
-        continue;
-      }
-      for (const [name, raw] of Object.entries(entries as Record<string, unknown>)) {
-        const path = `${sectionPath}.${name}`;
-        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-          errors.push({ path, message: "layout override must be an object" });
-          continue;
-        }
-        const value = raw as Record<string, unknown>;
-        const allowed = section === "nodes"
-          ? ["rowLayout", "rowStripe", "h", "posH", "posY"]
-          : ["posX1", "posY1", "posX2", "posY2", "waypoints", "labelOffsetX", "labelOffsetY"];
-        for (const key of Object.keys(value)) if (!allowed.includes(key)) errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
-        if (section === "nodes") {
-          if (value.rowStripe !== undefined && typeof value.rowStripe !== "boolean") errors.push({ path: `${path}.rowStripe`, message: "rowStripe must be boolean" });
-          if (value.h !== undefined && (typeof value.h !== "number" || !Number.isFinite(value.h) || value.h <= 0)) errors.push({ path: `${path}.h`, message: "h must be a positive number" });
-          if (value.posH !== undefined && (typeof value.posH !== "number" || !Number.isFinite(value.posH) || value.posH <= 0)) errors.push({ path: `${path}.posH`, message: "posH must be a positive number" });
-          if (value.posY !== undefined && (typeof value.posY !== "number" || !Number.isFinite(value.posY))) errors.push({ path: `${path}.posY`, message: "posY must be a finite number" });
-          if (value.rowLayout !== undefined) {
-            if (!value.rowLayout || typeof value.rowLayout !== "object" || Array.isArray(value.rowLayout)) errors.push({ path: `${path}.rowLayout`, message: "rowLayout must be an object" });
-            else for (const [key, item] of Object.entries(value.rowLayout as Record<string, unknown>)) {
-              if (!["titleBaseline", "rowTop", "rowPitch"].includes(key)) errors.push({ path: `${path}.rowLayout.${key}`, message: `unknown key "${key}"` });
-              else if (typeof item !== "number" || !Number.isFinite(item) || (key === "rowPitch" ? item <= 0 : item < 0)) errors.push({ path: `${path}.rowLayout.${key}`, message: "invalid row layout value" });
-            }
-          }
-        } else {
-          for (const key of ["posX1", "posY1", "posX2", "posY2", "labelOffsetX", "labelOffsetY"]) if (value[key] !== undefined && (typeof value[key] !== "number" || !Number.isFinite(value[key]))) errors.push({ path: `${path}.${key}`, message: "must be a finite number" });
-          if (value.waypoints !== undefined && !Array.isArray(value.waypoints)) errors.push({ path: `${path}.waypoints`, message: "waypoints must be an array" });
-          else if (Array.isArray(value.waypoints)) value.waypoints.forEach((point, index) => {
-            const pointPath = `${path}.waypoints[${index}]`;
-            if (!point || typeof point !== "object" || Array.isArray(point)) {
-              errors.push({ path: pointPath, message: "waypoint must be an object" });
-              return;
-            }
-            const pointValue = point as Record<string, unknown>;
-            for (const key of Object.keys(pointValue)) if (key !== "x" && key !== "y") errors.push({ path: `${pointPath}.${key}`, message: `unknown key "${key}"` });
-            if (typeof pointValue.x !== "number" || !Number.isFinite(pointValue.x) || typeof pointValue.y !== "number" || !Number.isFinite(pointValue.y)) errors.push({ path: pointPath, message: "waypoint x and y must be finite numbers" });
-          });
-        }
-      }
     }
   }
 }
@@ -2912,7 +2829,7 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   const specs = {
     terminalDecoration: ["windowControls", "cursor", "rowOrdinal"],
     figureKindLabel: ["text", "x", "y", "fontSize", "fontWeight", "letterSpacing"],
-    figureInset: ["top", "right", "bottom", "left", "radius", "holdsContent"],
+    figureInset: ["top", "right", "bottom", "left", "radius"],
     journeySize: ["plotPadding", "pointPadding"],
     chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "plotPadding", "barWidth", "cornerRadius"],
     chartLineSize: ["valueLabelOffset", "tickFontSize", "periodFontSize", "pointRadius", "plotPadding", "tickGap", "pointPadding", "periodY"],
@@ -2954,7 +2871,6 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   }
   const finite = (value: unknown, path: string): void => { if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) errors.push({ path, message: "must be a finite number" }); };
   if (objects.terminalDecoration) for (const key of specs.terminalDecoration) if (objects.terminalDecoration[key] !== undefined && typeof objects.terminalDecoration[key] !== "boolean") errors.push({ path: `$.terminalDecoration.${key}`, message: "must be boolean" });
-  if (objects.figureInset?.holdsContent !== undefined && typeof objects.figureInset.holdsContent !== "boolean") errors.push({ path: "$.figureInset.holdsContent", message: "must be boolean" });
   if (objects.figureKindLabel) {
     if (typeof objects.figureKindLabel.text !== "string" || objects.figureKindLabel.text.trim() === "") errors.push({ path: "$.figureKindLabel.text", message: "must be a non-empty string" });
     finite(objects.figureKindLabel.x, "$.figureKindLabel.x"); finite(objects.figureKindLabel.y, "$.figureKindLabel.y");
@@ -3398,8 +3314,7 @@ function validateJson(
   validateReadouts(j.readouts, errors);
   validateBands(j.bands, errors);
   validateLegend(j.legend, errors);
-  validateStageHeaders(j.stageHeaders, errors);
-  validateLayoutByTheme(j.layoutByTheme, errors);
+  validateStageHeader(j.stageHeader, errors);
   // 読む人が動かすつまみの中身も、記法と同じ表で見る (#1389)
   validateInputs(j.inputs, errors);
   // 式は描画側の parser に通す (#1391)
@@ -4242,8 +4157,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       : { regions: 区画の名前を直す(json.regions) }),
     ...(json.legendFontSize !== undefined ? { legendFontSize: json.legendFontSize } : {}),
     ...(json.legendOffset !== undefined ? { legendOffset: json.legendOffset } : {}),
-    ...(json.stageHeaders !== undefined ? { stageHeaders: json.stageHeaders } : {}),
-    ...(json.layoutByTheme !== undefined ? { layoutByTheme: json.layoutByTheme } : {}),
+    ...(json.stageHeader !== undefined ? { stageHeader: json.stageHeader } : {}),
     ...(json.stageLayout !== undefined ? { stageLayout: json.stageLayout } : {}),
     actors,
     flow,

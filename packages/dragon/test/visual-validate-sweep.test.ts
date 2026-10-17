@@ -172,8 +172,6 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
   ...[
     "node:荷主 ↔ edge-label:荷主-受付-api",
     "node:受付-api ↔ edge-label:荷主-受付-api",
-    "node:受付-api ↔ edge-label:荷主-追跡",
-    "node:追跡 ↔ edge-label:荷主-追跡",
     "node:追跡 ↔ edge-label:追跡-地図サービス",
     "node:地図サービス ↔ edge-label:追跡-地図サービス",
     "node:位置の控え ↔ edge-label:配送便の端末-位置の控え",
@@ -217,7 +215,6 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     "node:法人契約 ↔ node:個人契約",
     "node:営業所 ↔ node:受付済",
     "node:営業所 ↔ node:集荷済",
-    "node:営業所 ↔ edge-label:e4-受付済-仕分け",
     "node:受付 ↔ node:仕分け",
     "node:受付済 ↔ edge-label:e4-受付済-仕分け",
     "node:受付済 ↔ edge-label:e5-受付済-集荷済",
@@ -232,6 +229,33 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     理由:
       "見本の実測座標では箱間が 52 / 60 / 12 world、札と箱の間が 1.0–27.5 world となり、" +
       "汎用下限 70 / 32 より狭いため (#2836)",
+  })),
+  ...[
+    "node:契約 ↔ edge-label:e0-法人契約-契約",
+    "node:法人契約 ↔ edge-label:e0-法人契約-契約",
+    "node:個人契約 ↔ edge-label:e0-法人契約-契約",
+    "node:配送便 ↔ edge-label:e3-配送便-配達中",
+  ].map((対象) => ({
+    diagramId: "delivery-relations-demo",
+    axis: "clearance",
+    対象,
+    理由:
+      "浮彫の実測位置を全配色の骨組みにした時も札は箱と交差しないが、" +
+      "汎用の余白下限 32 world は割るため (#2908)",
+  })),
+  ...[
+    { axis: "arrow-endpoint-anchoring", 対象: 'edge "e2-荷物-配送便"' },
+    { axis: "edge-node-cross", 対象: 'edge "e2-荷物-配送便" (from=荷物 to=配送便) が node "荷物"' },
+    { axis: "edge-node-cross", 対象: 'edge "e2-荷物-配送便" (from=荷物 to=配送便) が node "配送便"' },
+    { axis: "edge-node-cross", 対象: 'edge "e3-配送便-配達中" (from=配送便 to=配達中)' },
+    { axis: "edge-stubout-min", 対象: 'edge "e0-法人契約-契約"' },
+    { axis: "edge-stubout-min", 対象: 'edge "e1-個人契約-契約"' },
+  ].map(({ axis, 対象 }) => ({
+    diagramId: "delivery-relations-demo",
+    axis,
+    対象,
+    理由:
+      "浮彫の固定 path を全配色の骨組みにした結果で、線は見本の端点と折れを保つため (#2908)",
   })),
   {
     diagramId: "delivery-relations-demo",
@@ -305,12 +329,23 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
       "見本 7 意匠の線の札は 2 / 3 / 4 字を実測幅 74 / 96 / 118、字 21 で描く。" +
       "描く側の汎用字幅推定 84 / 107 / 131 では狭い判定になるため (#2836)",
   }))),
-  ...["配送便", "冷蔵荷物", "割れ物", "営業所"].map((名前) => ({
+  ...["荷物", "配送便", "冷蔵荷物", "割れ物", "営業所"].map((名前) => ({
     diagramId: "delivery-classes-demo",
     axis: "row-alignment",
     対象: `node "${名前}"`,
     理由:
       "見本は高さの異なる型を上端と下端で揃えるが、検査は上端でなく中心を同じ段として比較するため (#2836)",
+  })),
+  ...[
+    { axis: "arrow-endpoint-anchoring", 対象: 'edge "e2-配送便-荷物"' },
+    { axis: "edge-node-cross", 対象: 'edge "e2-配送便-荷物"' },
+    { axis: "arrow-endpoint-center", 対象: 'edge "e3-営業所-配送便"' },
+  ].map(({ axis, 対象 }) => ({
+    diagramId: "delivery-classes-demo",
+    axis,
+    対象,
+    理由:
+      "浮彫の固定 path を全配色の骨組みにした結果で、線は見本の端点と折れを保つため (#2908)",
   })),
   {
     diagramId: "delivery-classes-demo",
@@ -919,11 +954,6 @@ describe("一覧に載る図が 1 つ残らず sweep の対象に入っている
  * 数える側の母数 (漏らさないため) は目的が違う。
  */
 const 軽い違反を認める図: Record<string, { 理由: string; 図: readonly string[] }> = {
-  "edge-segment-orthogonality": {
-    理由:
-      "関係の線は意匠ごとに見本の path を固定しており、描画後の端点補正を含む汎用の直角判定だけが軽い違反を返すため (#2836)",
-    図: ["delivery-relations-demo"],
-  },
   "responsive-viewport": {
     理由:
       "カタログの一覧は幅に合わせたままにし、読むのは拡大表示で行うと決めた (#2286)。" +
@@ -985,17 +1015,22 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
   },
   "arrow-marker-clearance": {
     理由:
-      "分かれ道の 2 本目は真下の駅へ中心を揃えて下ろす。" +
-      " 実線は `head: none` で矢じりを持たないが、描く側の汎用検査は `head` を見ず、" +
-      " 駅の中心まで入る線の終点を矢じりとして数える (#2833)",
-    図: ["delivery-metro-demo", "路線図で書く荷物の届け方"],
+      "路線図は矢じりを持たない線の駅中心終点を検査が矢じりとして数える。" +
+      " 宅配の関係・型見本は浮彫の固定端点を全配色で使い、汎用の矢じり余白より内側になるため (#2833, #2908)",
+    図: [
+      "delivery-classes-demo",
+      "delivery-metro-demo",
+      "delivery-relations-demo",
+      "路線図で書く荷物の届け方",
+    ],
   },
   "edge-label-proximity": {
     理由:
       "`interactive-oauth-flow` は線が往復して交差しており (#2302 で名指しで固定)、" +
       "名前を線に寄せると交差した線の上に載る。" +
-      " `間隔をまとめて広げる` は間隔を広げること自体が見本の題",
-    図: ["interactive-oauth-flow", "間隔をまとめて広げる"],
+      " `間隔をまとめて広げる` は間隔を広げること自体が見本の題。" +
+      " 宅配の関係見本は札を線と箱から外した上で浮彫の固定 path の近くへ置く (#2908)",
+    図: ["delivery-relations-demo", "interactive-oauth-flow", "間隔をまとめて広げる"],
   },
   "print-media-compat": {
     理由:

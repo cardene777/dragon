@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { jsonToDiagram, THEMES, textDslToDiagram } from "@cardenelabs/dragon";
+import { THEMES, textDslToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-
-import * as Charts from "@/topics/catalog/charts.cdl";
 
 import { 図の配色を変える, 配色の選択肢, 押される配色, 画面の色 } from "./palette-switch";
 
@@ -102,244 +100,36 @@ describe("見本帳の意匠の切替 (#2790)", () => {
   });
 });
 
-describe("端末の字の測り方 (#2818)", () => {
-  it("生成りの図で端末を選ぶと palette と textMetrics を持つ copy を返す", () => {
+describe("配色と字の測り方を切り離す (#2908)", () => {
+  it("生成りの図で端末を選んでも textMetrics を足さない", () => {
     const 次 = 図の配色を変える(図("kinari"), "terminal");
-    expect(次).toMatchObject({ palette: "terminal", textMetrics: "monospace" });
+    expect(次.palette).toBe("terminal");
+    expect(Object.hasOwn(次, "textMetrics")).toBe(false);
   });
 
-  it("端末の図で生成りを選ぶと textMetrics の key を持たない", () => {
-    expect("textMetrics" in 図の配色を変える(図("terminal", "monospace"), "kinari")).toBe(false);
+  it("端末の図で生成りを選んでも元の textMetrics を保つ", () => {
+    expect(図の配色を変える(図("terminal", "monospace"), "kinari").textMetrics).toBe("monospace");
   });
 
-  it("端末の図で画面の色を選ぶと palette と textMetrics の key を持たない", () => {
+  it("画面の色は palette だけを外し、textMetrics を保つ", () => {
     const 次 = 図の配色を変える(図("terminal", "monospace"), 画面の色);
-    expect(["palette" in 次, "textMetrics" in 次]).toEqual([false, false]);
+    expect(["palette" in 次, 次.textMetrics]).toEqual([false, "monospace"]);
   });
 
-  it("端末の図で端末を選ぶと元の object をそのまま返す", () => {
-    const 元 = textDslToDiagram('title: "確かめ"\ntype: flow\ntheme: terminal\n\nactors:\n  - A\n  - B\n\nflow:\n');
-    expect([元.textMetrics, 図の配色を変える(元, "terminal") === 元]).toEqual(["monospace", true]);
-  });
-
-  it("textMetrics を持たない terminal の図で端末を選ぶと新しい object を返す", () => {
+  it("textMetrics を持たない terminal の図で端末を選ぶと元の object を返す", () => {
     const 元 = 図("terminal");
-    expect(図の配色を変える(元, "terminal")).not.toBe(元);
+    expect(図の配色を変える(元, "terminal")).toBe(元);
   });
 
-  it("textMetrics を持たない terminal の図で端末を選ぶと monospace を載せる", () => {
-    expect(図の配色を変える(図("terminal"), "terminal").textMetrics).toBe("monospace");
-  });
-
-  it("端末の図で何も選んでいない時は元の object をそのまま返す", () => {
-    const 元 = textDslToDiagram('title: "確かめ"\ntype: flow\ntheme: terminal\n\nactors:\n  - A\n  - B\n\nflow:\n');
-    expect([元.textMetrics, 図の配色を変える(元, null) === 元]).toEqual(["monospace", true]);
-  });
-
-  it("端末以外どうしの切替で textMetrics の key を持たない", () => {
-    expect("textMetrics" in 図の配色を変える(図("kinari", "monospace"), "celadon")).toBe(false);
-  });
-
-  it("記法の端末指定と見本帳で選ぶ端末は同じ textMetrics になる", () => {
-    const 本文 = 'title: "確かめ"\ntype: flow\n\nactors:\n  - A\n  - B\n\nflow:\n  - A -> B: "送る"\n';
-    const 切替後 = 図の配色を変える(textDslToDiagram(本文), "terminal");
-    const 記法で指定 = textDslToDiagram(本文.replace("type: flow", "type: flow\ntheme: terminal"));
-    expect([切替後.textMetrics, 記法で指定.textMetrics]).toEqual(["monospace", "monospace"]);
-  });
-});
-
-describe("箱と線の意匠別配置 (#2836)", () => {
-  const yaml = `title: 配置
-type: record
-layoutByTheme:
-  blueprint: {"nodes":{"A":{"h":199.890625,"posH":199.890625,"posY":169.9453125,"rowLayout":{"titleBaseline":43,"rowTop":91,"rowPitch":46.5},"rowStripe":true}},"edges":{"A -> B":{"posX1":0,"posY1":0,"posX2":100,"posY2":100,"waypoints":[{"x":0,"y":50},{"x":100,"y":50}],"labelOffsetX":12,"labelOffsetY":-4}}}
-  relief: {"nodes":{"A":{"h":236.890625,"posH":236.890625,"posY":188.4453125,"rowLayout":{"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5},"rowStripe":false}},"edges":{"A -> B":{"posX1":10,"posY1":0,"posX2":110,"posY2":100,"waypoints":[{"x":10,"y":60},{"x":110,"y":60}],"labelOffsetX":18,"labelOffsetY":2}}}
-actors:
-  - A: { kind: storage, posX: 100, posY: 220, posH: 240, rowLayout: {"titleBaseline":86,"rowTop":152,"rowPitch":56}, rows: [a, b] }
-  - B
-flow:
-  - A -> B: 線 { posX1: 0, posY1: 0, posX2: 100, posY2: 0, labelOffsetX: 1 }
-`;
-  const json = {
-    title: "配置",
-    type: "record",
-    layoutByTheme: {
-      blueprint: {
-        nodes: { A: { h: 199.890625, posH: 199.890625, posY: 169.9453125, rowLayout: { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 }, rowStripe: true } },
-        edges: { "A -> B": { posX1: 0, posY1: 0, posX2: 100, posY2: 100, waypoints: [{ x: 0, y: 50 }, { x: 100, y: 50 }], labelOffsetX: 12, labelOffsetY: -4 } },
-      },
-      relief: {
-        nodes: { A: { h: 236.890625, posH: 236.890625, posY: 188.4453125, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowStripe: false } },
-        edges: { "A -> B": { posX1: 10, posY1: 0, posX2: 110, posY2: 100, waypoints: [{ x: 10, y: 60 }, { x: 110, y: 60 }], labelOffsetX: 18, labelOffsetY: 2 } },
-      },
-    },
-    actors: [{ name: "A", kind: "storage", posX: 100, posY: 220, posH: 240, rowLayout: { titleBaseline: 86, rowTop: 152, rowPitch: 56 }, rows: ["a", "b"] }, "B"],
-    flow: [{ from: "A", to: "B", label: "線", posX1: 0, posY1: 0, posX2: 100, posY2: 0, labelOffsetX: 1 }],
-  };
-
-  it("YAML / JSON とも選んだ意匠の node・edge をまとめて上書きする", () => {
-    for (const diagram of [textDslToDiagram(yaml), jsonToDiagram(json)]) {
-      const blueprint = 図の配色を変える(diagram, "blueprint");
-      expect(blueprint.nodes.find((node) => node.id === "a")).toMatchObject({
-        h: 199.890625,
-        posH: 199.890625,
-        posY: 169.9453125,
-        rowLayout: { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 },
-        rowStripe: true,
-      });
-      expect(blueprint.edges[0]).toMatchObject({
-        posX1: 0, posY1: 0, posX2: 100, posY2: 100,
-        waypoints: [{ x: 0, y: 50 }, { x: 100, y: 50 }],
-        labelOffsetX: 12, labelOffsetY: -4,
-      });
-      const relief = 図の配色を変える(blueprint, "relief");
-      expect(relief.nodes.find((node) => node.id === "a")).toMatchObject({
-        h: 236.890625,
-        posH: 236.890625,
-        posY: 188.4453125,
-        rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
-        rowStripe: false,
-      });
-      expect(relief.edges[0]).toMatchObject({ posX1: 10, posX2: 110, labelOffsetX: 18, labelOffsetY: 2 });
-      const site = 図の配色を変える(relief, 画面の色);
-      expect(site.nodes.find((node) => node.id === "a")?.rowLayout).toEqual({ titleBaseline: 86, rowTop: 152, rowPitch: 56 });
-      expect(site.nodes.find((node) => node.id === "a")?.h).toBe(240);
-      expect(site.nodes.find((node) => node.id === "a")?.posY).toBe(220);
-      expect(site.nodes.find((node) => node.id === "a")?.posH).toBe(240);
-      expect(site.edges[0]).toMatchObject({ posX1: 0, posY1: 0, posX2: 100, posY2: 0, labelOffsetX: 1 });
-      expect(site.edges[0]?.waypoints).toBeUndefined();
-    }
-  });
-});
-
-describe("浮彫の凹み面に中身を収める切替 (#2854)", () => {
-  const 本文 = `title: "月ごとの配達数"
-type: chart
-shape: line
-figureInset: {"holdsContent":true}
-actors:
-  - 6月: "900"
-  - 10月: "1750"
-flow: []
-`;
-
-  it("意匠なしで組んだ図は元の object のまま意図を運び、未選択ではそのまま返す", () => {
-    const 元 = textDslToDiagram(本文);
-    expect(元.nodes[0]?.figureInset).toEqual({});
-    expect(図の配色を変える(元, null)).toBe(元);
-  });
-
-  it("浮彫だけ holdsContent を立て、浮彫から外すと key ごと外す", () => {
-    const 元 = textDslToDiagram(本文);
-    const 浮彫 = 図の配色を変える(元, "relief");
-    expect(浮彫.nodes[0]?.figureInset).toEqual({ holdsContent: true });
-
-    const 図面 = 図の配色を変える(浮彫, "blueprint");
-    expect(図面.nodes[0]?.figureInset).toEqual({});
-    expect(Object.hasOwn(図面.nodes[0]?.figureInset ?? {}, "holdsContent")).toBe(false);
-  });
-
-  it("浮彫以外では holdsContent を渡さず、同じ意匠への切替は元の object を返す", () => {
-    const 浮彫以外 = THEMES.filter((theme) => theme !== "relief");
-    expect(浮彫以外).toHaveLength(8);
-    for (const theme of 浮彫以外) {
-      const switched = 図の配色を変える(textDslToDiagram(本文), theme);
-      expect(Object.hasOwn(switched.nodes[0]?.figureInset ?? {}, "holdsContent"), theme).toBe(false);
-      expect(図の配色を変える(switched, theme), theme).toBe(switched);
+  it("widest は9配色と画面の色の全てで変えない", () => {
+    for (const palette of [...THEMES, 画面の色] as const) {
+      expect(図の配色を変える(図("terminal", "widest"), palette).textMetrics, palette).toBe("widest");
     }
   });
 
-  it("傾きの固定軸間は浮彫の左右余白だけ狭め、外すと元へ戻す", () => {
-    const 元 = textDslToDiagram(本文
-      .replace("shape: line", "shape: slope")
-      .replace("actors:", 'chartSlopeSize: {"leftAxisX":150,"axisGap":250}\nactors:'));
-    const 浮彫 = 図の配色を変える(元, "relief");
-    expect(浮彫.nodes[0]?.chartSlopeSize?.axisGap).toBe(214);
-    expect(図の配色を変える(浮彫, "blueprint").nodes[0]?.chartSlopeSize?.axisGap).toBe(250);
-  });
-
-  it("固定した図表寸法は凹み面の余白から導き、浮彫から外すと全て元へ戻す", () => {
-    const cases = [
-      {
-        diagram: Charts.branchParcelsBar,
-        relief: { chartBarSize: { plotPadding: { top: 75.891, right: 32, bottom: 64, left: 82 } } },
-        original: { chartBarSize: { plotPadding: { top: 75.891, right: 32, bottom: 64, left: 82 } } },
-      },
-      {
-        diagram: Charts.monthlyDeliveriesLine,
-        relief: { chartLineSize: { periodY: 343.988 } },
-        original: { chartLineSize: { periodY: 355.988 } },
-      },
-      {
-        diagram: Charts.measureEffortQuadrant,
-        relief: {
-          quadrantSize: { plotOffset: { x: 70, y: 19.891 }, plotSize: 313.109 },
-        },
-        original: {
-          quadrantSize: { plotOffset: { x: 70, y: 19.891 }, plotSize: 325.109 },
-        },
-      },
-      {
-        diagram: Charts.deliveryResultStacked,
-        relief: { chartStackedLayout: { barWidth: 329 } },
-        original: { chartStackedLayout: { barWidth: 365 } },
-      },
-      {
-        diagram: Charts.onTimeRateSlope,
-        relief: { chartSlopeSize: { axisGap: 214 } },
-        original: { chartSlopeSize: { axisGap: 250 } },
-      },
-    ] as const;
-
-    for (const testCase of cases) {
-      const 浮彫 = 図の配色を変える(testCase.diagram, "relief");
-      expect(浮彫.nodes[0]).toMatchObject(testCase.relief);
-      expect(図の配色を変える(浮彫, "blueprint").nodes[0]).toMatchObject(testCase.original);
-    }
-  });
-
-  it("記法の relief と見本帳の浮彫切替は固定した図表寸法が同じになる", () => {
-    const cases = [
-      Charts.sourceYaml__branchParcelsBar,
-      Charts.sourceYaml__monthlyDeliveriesLine,
-      Charts.sourceYaml__measureEffortQuadrant,
-      Charts.sourceYaml__deliveryResultStacked,
-      Charts.sourceYaml__onTimeRateSlope,
-    ] as const;
-    const values = (diagram: CdlDiagram) => {
-      const node = diagram.nodes[0];
-      return {
-        chartBarPlotPadding: node?.chartBarSize?.plotPadding,
-        chartLinePeriodY: node?.chartLineSize?.periodY,
-        chartSlopeAxisGap: node?.chartSlopeSize?.axisGap,
-        chartStackedBarWidth: node?.chartStackedLayout?.barWidth,
-        quadrantPlotOffset: node?.quadrantSize?.plotOffset,
-        quadrantPlotSize: node?.quadrantSize?.plotSize,
-      };
-    };
-
-    for (const source of cases) {
-      const 切替 = 図の配色を変える(textDslToDiagram(source), "relief");
-      const 記法 = textDslToDiagram(source.replace("type:", "theme: relief\ntype:"));
-      expect(values(切替)).toEqual(values(記法));
-    }
-  });
-
-  it("内訳の帯は YAML と JSON のどちらでも 365 から左右余白を引く", () => {
-    const json = JSON.parse(Charts.sourceJson__deliveryResultStacked);
-    const JSON切替 = 図の配色を変える(jsonToDiagram(json), "relief");
-    const JSON記法 = jsonToDiagram({ ...json, theme: "relief" });
-    const YAML切替 = 図の配色を変える(
-      textDslToDiagram(Charts.sourceYaml__deliveryResultStacked),
-      "relief",
-    );
-    const YAML記法 = textDslToDiagram(
-      Charts.sourceYaml__deliveryResultStacked.replace("type:", "theme: relief\ntype:"),
-    );
-
-    for (const diagram of [JSON切替, JSON記法, YAML切替, YAML記法]) {
-      expect(diagram.nodes[0]?.chartStackedLayout?.barWidth).toBe(329);
-    }
+  it("端末記法を組む既存経路は monospace のまま", () => {
+    const 記法 = textDslToDiagram('title: "確かめ"\ntype: flow\ntheme: terminal\n\nactors:\n  - A\n  - B\n\nflow:\n');
+    expect(記法.textMetrics).toBe("monospace");
   });
 });
 

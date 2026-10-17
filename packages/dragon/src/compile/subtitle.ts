@@ -20,7 +20,6 @@ export function 図の小見出し(
   figureInset?: NonNullable<DslDocument["figureInset"]>;
 } {
   const figureInset = doc.figureInset === undefined ? undefined : { ...doc.figureInset };
-  if (figureInset !== undefined) delete figureInset.holdsContent;
   return {
     ...(doc.eyebrow === undefined ? {} : { eyebrow: doc.eyebrow }),
     ...(doc.figureCard === undefined ? {} : { figureCard: doc.figureCard }),
