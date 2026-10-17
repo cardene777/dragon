@@ -165,12 +165,12 @@ test("terminal switch: 見本帳は端末と生成りで同じ字幅の骨組み
   console.log(`生成り=${生成り} 端末=${端末} 戻した後=${戻した後}`);
 });
 
-test("terminal: 英数字 24 字の名前の箱を等幅で測り、生成りより広く取って字を箱の面に収める (#2818)", async ({
+test("terminal: どの色味も英数字 24 字の名前を比例と等幅の広い方で測り、同じ箱幅で端末の字を収める (#2818 / #2918)", async ({
   page,
 }) => {
-  // i / l / t / f / j は比例の見積りが等幅の 1 字 0.63em より狭く、比例で測ると等幅の
-  // 書体で描いた字に箱が足りなくなる側を選ぶ。題ではなく行の左列で箱幅が決まる形にする。
-  // 行を描く service の箱にする。行を描かない actor / card では、広がった箱に収める字が無い。
+  // i / l / t / f / j は比例の見積りが等幅の 1 字 0.63em より狭い。どの色味も比例と等幅の
+  // 広い方で測るため、箱幅は同じになり、端末の等幅書体も収まる。題ではなく行の左列で箱幅が
+  // 決まる service の箱にする。行を描かない actor / card では、箱に収める等幅の字が無い。
   const 細い名前 = "filllistlimitfilttiltjit";
   expect(細い名前).toMatch(/^[A-Za-z0-9]{24}$/);
   const 本文 = `title: "等幅で測る箱"
@@ -193,7 +193,8 @@ flow:
   const 端末の面 = page.locator(`[data-cdl-node="${細い名前}"] [data-cdl-role="node-body"]`);
   await expect(端末の面, "端末で細い名前の箱面を読めない").toHaveCount(1);
   const 端末の箱幅 = await 端末の面.evaluate((面) => 面.getBoundingClientRect().width);
-  expect(端末の箱幅).toBeGreaterThan(生成りの箱幅);
+  const 箱幅の差 = Math.abs(端末の箱幅 - 生成りの箱幅);
+  expect(箱幅の差).toBeLessThanOrEqual(0.5);
 
   const 字と箱 = await page.locator(`[data-cdl-node="${細い名前}"]`).evaluate((node) => {
     const 面 = node.querySelector<SVGGraphicsElement>('[data-cdl-role="node-body"]');
@@ -219,7 +220,8 @@ flow:
   }
   const 字の右端 = Math.max(...字と箱.字.map(({ 矩形 }) => 矩形.right));
   console.log(
-    `生成りの箱幅=${生成りの箱幅} 端末の箱幅=${端末の箱幅} 字の右端=${字の右端} 箱の右端=${字と箱.面の矩形.right}`,
+    `比例と等幅の広い方で測った生成りの箱幅=${生成りの箱幅} 端末の箱幅=${端末の箱幅} 幅差=${箱幅の差} ` +
+      `端末の字の右端=${字の右端} 箱の右端=${字と箱.面の矩形.right}`,
   );
 });
 
