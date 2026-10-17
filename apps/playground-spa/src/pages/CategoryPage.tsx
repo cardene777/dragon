@@ -988,7 +988,7 @@ export function CategoryPage(): React.ReactElement {
                         {createElement(CdlDiagramView, {
                           key: "skeleton::" + currentItem.id + "::" + (パターン ?? ""),
                           hideMiniPhaseIndicator: true,
-                          diagram: 図 ?? 見本?.diagram ?? currentItem.diagram,
+                          diagram: 配色前の図 ?? 見本?.diagram ?? currentItem.diagram,
                           laid: 図 ?? undefined,
                           hideHeader: true,
                           interactiveHandlers: CATALOG_HANDLERS,
@@ -1030,7 +1030,7 @@ export function CategoryPage(): React.ReactElement {
                       <CdlDiagramView
                         key={(図の見せ方 === "side-by-side" ? "pair" : "single") + "::" + currentItem.id + "::" + (パターン ?? "")}
                         hideMiniPhaseIndicator
-                        diagram={図 ?? 見本?.diagram ?? currentItem.diagram}
+                        diagram={配色前の図 ?? 見本?.diagram ?? currentItem.diagram}
                         laid={図 ?? undefined}
                         hideHeader
                         interactiveHandlers={CATALOG_HANDLERS}
@@ -1147,7 +1147,7 @@ export function CategoryPage(): React.ReactElement {
                 <CdlDiagramView
                   key={modalItem.id + "::" + (パターン ?? "")}
                   hideMiniPhaseIndicator
-                  diagram={拡大の図 ?? modalItem.diagram}
+                  diagram={配色前の図 ?? modalItem.diagram}
                   laid={拡大の図 ?? undefined}
                   hideHeader
                   interactiveHandlers={CATALOG_HANDLERS}
