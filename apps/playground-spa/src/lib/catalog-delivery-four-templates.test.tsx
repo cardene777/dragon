@@ -359,6 +359,84 @@ const 線が枠を通る = (points: 点[], box: 枠): boolean =>
     return false;
   });
 
+const 宅配の骨組み見本 = [
+  Catalog.presetDeliveryComponents,
+  Catalog.presetDeliveryRelations,
+  Catalog.presetDeliveryClasses,
+  Catalog.presetDeliveryStages,
+] as const;
+
+const 直線の線分 = (d: string): Array<{ start: 点; end: 点 }> => {
+  const tokens = d.match(/[A-Za-z]|[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/giu) ?? [];
+  const segments: Array<{ start: 点; end: 点 }> = [];
+  let index = 0;
+  let command = "";
+  let current = { x: 0, y: 0 };
+  let subpathStart = { x: 0, y: 0 };
+  const next = (): number => 数(tokens[index++]);
+  const point = (x: number, y: number, relative: boolean, base: 点): 点 => ({
+    x: x + (relative ? base.x : 0),
+    y: y + (relative ? base.y : 0),
+  });
+
+  while (index < tokens.length) {
+    if (/^[A-Za-z]$/u.test(tokens[index]!)) command = tokens[index++]!;
+    const relative = command === command.toLowerCase();
+    const base = { ...current };
+    switch (command.toUpperCase()) {
+      case "M": {
+        current = point(next(), next(), relative, base);
+        subpathStart = current;
+        command = relative ? "l" : "L";
+        break;
+      }
+      case "L": {
+        current = point(next(), next(), relative, base);
+        segments.push({ start: base, end: current });
+        break;
+      }
+      case "H": {
+        current = { x: next() + (relative ? base.x : 0), y: base.y };
+        segments.push({ start: base, end: current });
+        break;
+      }
+      case "V": {
+        current = { x: base.x, y: next() + (relative ? base.y : 0) };
+        segments.push({ start: base, end: current });
+        break;
+      }
+      case "C": {
+        next(); next(); next(); next();
+        current = point(next(), next(), relative, base);
+        break;
+      }
+      case "S":
+      case "Q": {
+        next(); next();
+        current = point(next(), next(), relative, base);
+        break;
+      }
+      case "T": {
+        current = point(next(), next(), relative, base);
+        break;
+      }
+      case "A": {
+        next(); next(); next(); next(); next();
+        current = point(next(), next(), relative, base);
+        break;
+      }
+      case "Z": {
+        current = subpathStart;
+        command = "";
+        break;
+      }
+      default:
+        throw new Error(`読めない経路命令: ${command || tokens[index]}`);
+    }
+  }
+  return segments;
+};
+
 const 固定意匠 = {
   blueprint: "図面",
   catalog: "図録",
@@ -566,6 +644,54 @@ const 崩れを数える = (svg: string, diagram?: CdlDiagram): 崩れの数 => 
 };
 
 describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
+  it("宅配の骨組み 4 見本は斜めの直線の線分を持たない", () => {
+    let 確かめた線 = 0;
+    for (const diagram of 宅配の骨組み見本) {
+      for (const edge of layout(diagram).edges) {
+        const diagonals = 直線の線分(edge.d).filter(({ start, end }) =>
+          Math.abs(start.x - end.x) > 0.5 && Math.abs(start.y - end.y) > 0.5
+        );
+        expect(
+          diagonals,
+          `${diagram.id} / ${edge.id} に斜めの直線の線分がある: ${edge.d}`,
+        ).toEqual([]);
+        確かめた線 += 1;
+      }
+    }
+    expect(確かめた線).toBe(31);
+  });
+
+  it("構成の全ての線分は c4-l2 の見出しを通らない", () => {
+    const palettes = [
+      "kinari", "celadon", "blueprint", "letterpress", "catalog",
+      "terminal", "sketch", "neon", "relief", "site-colours",
+    ] as const;
+    let 確かめた見出し = 0;
+    let 確かめた線 = 0;
+    for (const palette of palettes) {
+      const laid = layout(図の配色を変える(Catalog.presetDeliveryComponents, palette));
+      const heading = laid.bboxes.find((box) => box.kind === "lane-label" && box.id === "c4-l2");
+      expect(heading, `${palette} / c4-l2 の見出し`).toBeDefined();
+      if (heading === undefined) continue;
+      const box = {
+        left: heading.x,
+        top: heading.y,
+        right: heading.x + heading.w,
+        bottom: heading.y + heading.h,
+      };
+      for (const edge of laid.edges) {
+        expect(
+          線が枠を通る(pathの点(edge.d), box),
+          `${palette} / ${edge.id}: ${edge.d} / ${JSON.stringify(box)}`,
+        ).toBe(false);
+        確かめた線 += 1;
+      }
+      確かめた見出し += 1;
+    }
+    expect(確かめた見出し).toBe(10);
+    expect(確かめた線).toBe(100);
+  });
+
   it("順序の列 610・帯 30 と、構成の「聞く」の直角経路を描き手へ渡す", () => {
     const sequence = Catalog.presetDeliverySequence.nodes.find((node) => node.kind === "sequence-board");
     expect(sequence?.sequenceData).toMatchObject({ sequenceGutter: 610, sequenceBandWidth: 30 });
@@ -576,9 +702,9 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
       posY1: 243.8,
       posX2: 1042.2,
       posY2: 245.8,
-      waypoints: [{ x: 128.2, y: 201.8 }, { x: 1042.2, y: 201.8 }],
+      waypoints: [{ x: 128.2, y: 131.8 }, { x: 1042.2, y: 131.8 }],
       labelOffsetX: 226,
-      labelOffsetY: -25,
+      labelOffsetY: 24,
     });
   });
 
@@ -615,9 +741,10 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
         posX1: 1452,
         posY1: 130.9453125,
         posX2: 1364,
-        posY2: 312.5,
+        posY2: 332.265625,
+        waypoints: [{ x: 1434, y: 130.9453125 }, { x: 1434, y: 332.265625 }],
         labelOffsetX: 40,
-        labelOffsetY: 28,
+        labelOffsetY: -8,
       });
     }
   });
