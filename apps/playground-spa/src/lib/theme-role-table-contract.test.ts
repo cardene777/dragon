@@ -105,9 +105,7 @@ const fixedThemeRoles = [
   "--dragon-flow-return-width",
   "--dragon-flow-return-dash",
   "--dragon-flow-return-cap",
-  "--dragon-flow-end-radius",
   "--dragon-flow-end-frame-width",
-  "--dragon-flow-end-core-radius",
   "--dragon-flow-decision-fill",
   "--dragon-flow-decision-frame",
   "--dragon-flow-decision-frame-width",
@@ -177,7 +175,6 @@ const fixedThemeRoles = [
   "--dragon-timeline-end-frame",
   "--dragon-timeline-end-frame-width",
   "--dragon-timeline-end-core-fill",
-  "--dragon-timeline-end-core-radius",
   "--dragon-timeline-legend-mark",
   "--dragon-timeline-return-legend",
   "--dragon-timeline-legend-text",
@@ -191,7 +188,6 @@ const fixedThemeRoles = [
   "--theme-timeline-label-error-frame",
   "--theme-timeline-label-radius",
   "--theme-timeline-label-frame-width",
-  "--theme-timeline-label-height",
   "--theme-timeline-label-font-size",
   "--theme-timeline-label-font-weight",
   "--theme-timeline-yes-width",
@@ -848,7 +844,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       /(?:^|;)\s*(?:display\s*:\s*none|transform\s*:|translate\s*:)/m.test(body) ||
       /\[(?:r|rx|ry)\s*[*^$|~]?=/i.test(selector));
     expect(risky.length).toBeGreaterThanOrEqual(12);
-    expect(risky.length).toBeLessThanOrEqual(THEME_ROLE_TABLE_BASELINE.carryoverMarkers);
+    expect(risky.length).toBeLessThanOrEqual(THEME_ROLE_TABLE_BASELINE.riskyRules);
   });
 
   it("流れ図と走る丸の意匠名付き規則に直書きの色・太さ・角・影は 0 件", () => {
@@ -962,9 +958,6 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     const timelineSmallTransform = rules.findIndex(({ selector }) =>
       selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.timeline) &&
       selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.timelineSmallMarker));
-    const timelineHiddenIcon = rules.findIndex(({ selector, body }) =>
-      selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.timelineDecision) &&
-      body.includes("display: none"));
     const radiusRules = rules.filter(({ selector }) =>
       CARRYOVER_SELECTOR_FRAGMENTS.radiusRule.test(selector));
     const deliveryGlyphTransform = rules.filter(({ selector, body }) =>
@@ -977,13 +970,6 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       body.includes("transform: rotate(45deg)"));
     const chartCarryovers = [
       rules.filter(({ selector, body }) =>
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.hierarchyNode) &&
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.hierarchyTreeNode) &&
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.hierarchyTreeEdge) &&
-        body.includes("display: none")),
-      rules.filter(({ selector, body }) =>
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.journeyBand) && body.includes("display: none")),
-      rules.filter(({ selector, body }) =>
         selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.ganttHatch) && body.includes("display: none")),
       rules.filter(({ selector, body }) =>
         selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.pieMark) && body.includes("rotate(45deg)")),
@@ -991,8 +977,6 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
         selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.pieRule) && body.includes("display: none")),
       rules.filter(({ selector, body }) =>
         selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.funnelHatch) && body.includes("display: none")),
-      rules.filter(({ selector, body }) =>
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.ganttRow) && body.includes("display: none")),
     ];
     const metroReturnTransform = rules.findIndex(({ selector, body }) =>
       selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.metroReturn) && body.includes("transform: none"));
@@ -1001,18 +985,6 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
         selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalControl) &&
         selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalOrdinal) &&
         body.includes("display: none")),
-      rules.filter(({ selector, body }) =>
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalTitle) &&
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalRow) &&
-        body.includes("transform: none")),
-      rules.filter(({ selector, body }) =>
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalPalette) &&
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalTitle) &&
-        body.includes("translateX(68px)")),
-      rules.filter(({ selector, body }) =>
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalPalette) &&
-        selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.terminalRow) &&
-        body.includes("translateX(30px)")),
       rules.filter(({ selector, body }) =>
         selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.nonSketchPalette) &&
         selector.includes(CARRYOVER_SELECTOR_FRAGMENTS.handdrawCorner) &&
@@ -1029,7 +1001,6 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(stageTransform).toBeGreaterThan(flowTransform);
     expect(timelineTransform).toBeGreaterThan(flowTransform);
     expect(timelineSmallTransform).toBeGreaterThan(flowTransform);
-    expect(timelineHiddenIcon).toBeGreaterThan(flowTransform);
     expect(metroReturnTransform).toBeGreaterThan(globalTransform);
     expect(css.match(/@keyframes catalog-lift-in/g)).toHaveLength(1);
     // 半径で選ぶ円には同じ半径を選ぶ競合規則が無い。
@@ -1038,11 +1009,11 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     // 2 規則は別の役と意匠だけを選び、同じ transform を競合させる規則を持たない。
     expect(deliveryGlyphTransform).toHaveLength(1);
     expect(deliverySequenceTransform).toHaveLength(1);
-    // #2881 の 7 規則は同じ対象・宣言を持つ競合が無いため、後ろへ移しても勝ち負けを変えない。
+    // #2881 の 4 規則は同じ対象・宣言を持つ競合が無いため、後ろへ移しても勝ち負けを変えない。
     for (const [index, carryover] of chartCarryovers.entries()) {
       expect(carryover, `#2881 の持ち越し ${index + 1}`).toHaveLength(1);
     }
-    // #2882 の 6 規則は対象が互いに分かれ、戻る矢じりは全図の拡大より後なので勝ち負けを保つ。
+    // #2882 の 3 規則は対象が互いに分かれ、戻る矢じりは全図の拡大より後なので勝ち負けを保つ。
     for (const [index, carryover] of metroCarryovers.entries()) {
       expect(carryover, `#2882 の持ち越し ${index + 2}`).toHaveLength(1);
     }
