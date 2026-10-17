@@ -57,10 +57,10 @@ vi.mock("@cardenelabs/cdl", async (importOriginal) => {
       <div
         data-testid="catalog-diagram"
         data-drawn={描かれた印(diagram)}
-        data-cdl-palette={diagram.palette}
+        data-cdl-palette={laid?.palette ?? diagram.palette}
         data-diagram-id={diagram.id}
-        data-text-metrics={diagram.textMetrics}
-        data-laid-reused={String(laid === diagram)}
+        data-text-metrics={laid?.textMetrics ?? diagram.textMetrics}
+        data-laid-reused={String(laid !== undefined)}
       />
     ),
   };

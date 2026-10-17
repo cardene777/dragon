@@ -84,17 +84,17 @@ const カタログの図を描かない入口: Record<string, string> = {
 const 変数で渡す入口: { file: string; 渡す値: string; 作る所: string; 回数: number; 理由: string }[] = [
   {
     file: "../pages/CategoryPage.tsx",
-    渡す値: "図 ?? 見本?.diagram ?? currentItem.diagram",
+    渡す値: "配色前の図 ?? 見本?.diagram ?? currentItem.diagram",
     作る所: "図に画面の言語を当てる(見本.diagram, locale)",
     回数: 1,
-    理由: "一覧と拡大で同じ配置済みの図を使うため、言語を当てて組む所は 1 か所。 後ろの 2 つは `見本` が無い時の控えで、項目を表示している間は `見本` が必ずある",
+    理由: "操作の欄を読む記法の図と配置済みの図に同じ言語を使うため、言語を当てる所は 1 か所。 後ろの 2 つは `見本` が無い時の控えで、項目を表示している間は `見本` が必ずある",
   },
   {
     file: "../pages/CategoryPage.tsx",
-    渡す値: "拡大の図 ?? modalItem.diagram",
+    渡す値: "配色前の図 ?? modalItem.diagram",
     作る所: "図に画面の言語を当てる(見本.diagram, locale)",
     回数: 1,
-    理由: "上と同じ配置済みの図を使う",
+    理由: "拡大表示も一覧と同じ、言語を当てた記法の図から操作の欄を読む",
   },
   {
     file: "../pages/PresetDetailPage.tsx",
