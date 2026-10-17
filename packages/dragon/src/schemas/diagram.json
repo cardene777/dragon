@@ -315,7 +315,7 @@
     "cornerForm": { "type": "string", "enum": ["theme-variants"] },
     "chartBarShape": { "type": "string", "enum": ["split", "top-rounded"] },
     "figureKindLabel": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "minLength": 1 }, "x": { "type": "number" }, "y": { "type": "number" }, "fontSize": { "type": "number", "exclusiveMinimum": 0 }, "fontWeight": { "type": "number", "exclusiveMinimum": 0 }, "letterSpacing": { "type": "number", "minimum": 0 } } },
-    "figureInset": { "type": "object", "additionalProperties": false, "properties": { "top": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 }, "bottom": { "type": "number", "minimum": 0 }, "left": { "type": "number", "minimum": 0 }, "radius": { "type": "number", "minimum": 0 }, "holdsContent": { "type": "boolean" } } },
+    "figureInset": { "type": "object", "additionalProperties": false, "properties": { "top": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 }, "bottom": { "type": "number", "minimum": 0 }, "left": { "type": "number", "minimum": 0 }, "radius": { "type": "number", "minimum": 0 } } },
     "journeySize": { "type": "object", "additionalProperties": false, "properties": { "plotPadding": { "type": "object", "additionalProperties": false, "properties": { "left": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 } } }, "pointPadding": { "type": "object", "additionalProperties": false, "properties": { "left": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 } } } } },
     "chartBarSize": { "type": "object", "additionalProperties": false, "properties": { "tickFontSize": { "$ref": "#/$defs/positiveNumber" }, "valueFontSize": { "$ref": "#/$defs/positiveNumber" }, "labelFontSize": { "$ref": "#/$defs/positiveNumber" }, "plotPadding": { "type": "object", "additionalProperties": false, "properties": { "top": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 }, "bottom": { "type": "number", "minimum": 0 }, "left": { "type": "number", "minimum": 0 } } }, "barWidth": { "$ref": "#/$defs/positiveNumber" }, "cornerRadius": { "type": "number", "minimum": 0 } } },
     "chartLineSize": { "type": "object", "additionalProperties": false, "properties": { "valueLabelOffset": { "type": "object", "additionalProperties": false, "properties": { "above": { "type": "number", "minimum": 0 }, "below": { "type": "number", "minimum": 0 } } }, "tickFontSize": { "$ref": "#/$defs/positiveNumber" }, "periodFontSize": { "$ref": "#/$defs/positiveNumber" }, "pointRadius": { "$ref": "#/$defs/positiveNumber" }, "plotPadding": { "type": "object", "additionalProperties": false, "properties": { "top": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 }, "bottom": { "type": "number", "minimum": 0 }, "left": { "type": "number", "minimum": 0 } } }, "tickGap": { "type": "number", "minimum": 0 }, "pointPadding": { "type": "object", "additionalProperties": false, "properties": { "left": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 } } }, "periodY": { "type": "number", "minimum": 0 } } },
@@ -2903,83 +2903,18 @@
         "y": { "type": "number" }
       }
     },
-    "stageHeaders": {
+    "stageHeader": {
       "type": "object",
-      "description": "段の箱の意匠ごとの見出し寸法",
-      "propertyNames": {
-        "enum": ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"]
-      },
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["topPad", "numberSize", "gap", "nameSize", "bottomPad"],
-        "properties": {
-          "leftPad": { "type": "number", "minimum": 0 },
-          "topPad": { "type": "number", "minimum": 0 },
-          "numberSize": { "type": "number", "exclusiveMinimum": 0 },
-          "gap": { "type": "number", "minimum": 0 },
-          "nameSize": { "type": "number", "exclusiveMinimum": 0 },
-          "bottomPad": { "type": "number", "minimum": 0 }
-        }
-      }
-    },
-    "layoutByTheme": {
-      "type": "object",
-      "description": "意匠ごとの表の行配置と固定線",
-      "propertyNames": {
-        "enum": ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"]
-      },
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "nodes": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "h": { "type": "number", "exclusiveMinimum": 0 },
-                "posH": { "type": "number", "exclusiveMinimum": 0 },
-                "posY": { "type": "number" },
-                "rowStripe": { "type": "boolean" },
-                "rowLayout": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "titleBaseline": { "type": "number", "minimum": 0 },
-                    "rowTop": { "type": "number", "minimum": 0 },
-                    "rowPitch": { "type": "number", "exclusiveMinimum": 0 }
-                  }
-                }
-              }
-            }
-          },
-          "edges": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "posX1": { "type": "number" },
-                "posY1": { "type": "number" },
-                "posX2": { "type": "number" },
-                "posY2": { "type": "number" },
-                "labelOffsetX": { "type": "number" },
-                "labelOffsetY": { "type": "number" },
-                "waypoints": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": ["x", "y"],
-                    "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
-                  }
-                }
-              }
-            }
-          }
-        }
+      "description": "段の箱で全意匠に共通して使う見出し寸法",
+      "additionalProperties": false,
+      "required": ["topPad", "numberSize", "gap", "nameSize", "bottomPad"],
+      "properties": {
+        "leftPad": { "type": "number", "minimum": 0 },
+        "topPad": { "type": "number", "minimum": 0 },
+        "numberSize": { "type": "number", "exclusiveMinimum": 0 },
+        "gap": { "type": "number", "minimum": 0 },
+        "nameSize": { "type": "number", "exclusiveMinimum": 0 },
+        "bottomPad": { "type": "number", "minimum": 0 }
       }
     },
     "stageLayout": {

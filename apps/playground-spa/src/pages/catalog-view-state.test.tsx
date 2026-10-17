@@ -24,7 +24,7 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
-import type { CdlDiagram } from "@cardenelabs/cdl";
+import type { CdlDiagram, LaidDiagram } from "@cardenelabs/cdl";
 
 import { CategoryPage } from "./CategoryPage";
 import { CATALOG_ITEMS, patternName, type CatalogItem } from "@/lib/catalog-items";
@@ -47,12 +47,20 @@ vi.mock("@cardenelabs/cdl", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@cardenelabs/cdl")>();
   return {
     ...actual,
-    CdlDiagramView: ({ diagram }: { diagram: CdlDiagram }): React.ReactElement => (
+    CdlDiagramView: ({
+      diagram,
+      laid,
+    }: {
+      diagram: CdlDiagram;
+      laid?: LaidDiagram;
+    }): React.ReactElement => (
       <div
         data-testid="catalog-diagram"
         data-drawn={描かれた印(diagram)}
         data-cdl-palette={diagram.palette}
         data-diagram-id={diagram.id}
+        data-text-metrics={diagram.textMetrics}
+        data-laid-reused={String(laid === diagram)}
       />
     ),
   };
@@ -275,6 +283,8 @@ describe("見せ方の帯 (#2867)", () => {
     expect(screen.getByTestId("catalog-diagram").getAttribute("data-cdl-palette")).toBe(
       "celadon",
     );
+    expect(screen.getByTestId("catalog-diagram").getAttribute("data-text-metrics")).toBe("widest");
+    expect(screen.getByTestId("catalog-diagram").getAttribute("data-laid-reused")).toBe("true");
     expect(screen.queryAllByText("オプション")).toHaveLength(0);
   });
 

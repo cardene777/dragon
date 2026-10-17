@@ -1,10 +1,11 @@
 import { createElement, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import { CdlDiagramView, layout } from "@cardenelabs/cdl";
+import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES, categoryLabel, categoryDesc } from "@/lib/catalog";
 import { useCatalogSkeleton } from "@/lib/catalog-skeleton";
+import { カタログの図を組む } from "@/lib/catalog-layout";
 import { CatalogSkeletonParts } from "@/components/CatalogSkeletonParts";
 import {
   loadPartsItems,
@@ -411,17 +412,16 @@ export function CategoryPage(): React.ReactElement {
    */
   const 見本 = 選んだ見本(currentItem, パターン);
 
-  // 段の長さに倍率を掛けた図。 既定 (1 倍) では元の object がそのまま返るので、
-  // 速さを触っていない図は描き直されない
-  const 図 = useMemo(
+  // 配色以外の見せ方を先に当てる。配色は配置を変えないため、骨組みを作った後で載せる。
+  const 配色前の図 = useMemo(
     () =>
       見本
         ? 図の傾きの見せ方を変える(
             図の円の見せ方を変える(
               図の折れ線の見せ方を変える(
-                図の配色を変える(
-                  図の速さを変える(図の描き方を変える(図に画面の言語を当てる(見本.diagram, locale), 描き方), 速さ),
-                  配色,
+                図の速さを変える(
+                  図の描き方を変える(図に画面の言語を当てる(見本.diagram, locale), 描き方),
+                  速さ,
                 ),
                 折れ線,
               ),
@@ -430,29 +430,19 @@ export function CategoryPage(): React.ReactElement {
             傾き,
           )
         : null,
-    [見本, locale, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
+    [見本, locale, 速さ, 描き方, 折れ線, 円, 傾き],
   );
-  // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
-  // 拡大も選んだパターンの中身を出す (#1696)。 元に戻すと、押した図と違うものが開く
-  const 拡大の図 = useMemo(
-    () =>
-      modalItem && 見本
-        ? 図の傾きの見せ方を変える(
-            図の円の見せ方を変える(
-              図の折れ線の見せ方を変える(
-                図の配色を変える(
-                  図の速さを変える(図の描き方を変える(図に画面の言語を当てる(見本.diagram, locale), 描き方), 速さ),
-                  配色,
-                ),
-                折れ線,
-              ),
-              円,
-            ),
-            傾き,
-          )
-        : null,
-    [modalItem, 見本, locale, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
+  // 字列ごとに比例・等幅の広い方で1度だけ組む。配色を替えてもこの計算は繰り返さない。
+  const 骨組み = useMemo(
+    () => 配色前の図 === null ? null : カタログの図を組む(配色前の図),
+    [配色前の図],
   );
+  const 図 = useMemo(
+    () => 骨組み === null ? null : 図の配色を変える(骨組み, 配色),
+    [骨組み, 配色],
+  );
+  // 拡大表示も、一覧で一度組んだ同じ骨組みと見せ方を使う。
+  const 拡大の図 = modalItem === null ? null : 図;
   // 拡大表示の倍率 (#1745)。 器に収めると大きい図ほど小さく描かれるため、実寸まで拡げられるようにする
   //
   // **どの図に対する倍率かを一緒に持つ**。 別の図を開いたら収める側へ戻す必要があり、
@@ -465,14 +455,8 @@ export function CategoryPage(): React.ReactElement {
   const 倍率 = 倍率の状態.図 === 開いている図 ? 倍率の状態.値 : 収める;
   // 実寸は画面の実測でなく viewBox から取る。 描けない図では倍率を指定できない
   const 拡大のviewBox幅 = useMemo(() => {
-    const d = 拡大の図 ?? modalItem?.diagram;
-    if (!d) return undefined;
-    try {
-      return layout(d).viewBox.w;
-    } catch {
-      return undefined;
-    }
-  }, [拡大の図, modalItem]);
+    return 拡大の図?.viewBox.w;
+  }, [拡大の図]);
   // ホイール・つまみ・ドラッグ (#1961)。 拡大表示は図を見るための場所なので、修飾キー無しのホイールも拡大に使う
   const 拡大の操作 = useDiagramPanZoom({
     器: modalStageEl,
@@ -515,14 +499,8 @@ export function CategoryPage(): React.ReactElement {
   const 見ている図 = currentItem?.id ?? null;
   const 並びの倍率 = 並びの倍率の状態.図 === 見ている図 ? 並びの倍率の状態.値 : 収める;
   const 並びのviewBox幅 = useMemo(() => {
-    const d = 図 ?? 見本?.diagram ?? currentItem?.diagram;
-    if (!d) return undefined;
-    try {
-      return layout(d).viewBox.w;
-    } catch {
-      return undefined;
-    }
-  }, [図, 見本, currentItem]);
+    return 図?.viewBox.w;
+  }, [図]);
   // ホイール・つまみ・ドラッグ (#1961)。 並べて見る側は一覧の画面を送る場所なので、
   // 修飾キー無しのホイールは奪わず、`⌘` / `Ctrl` を押した時 (つまみ操作も同じ形で届く) だけ拡大に使う。
   // 巻き取りは内側 (`.catalog-preview-stage-inner`) が持ち、縦に溢れた分は頁が送る
@@ -1011,6 +989,7 @@ export function CategoryPage(): React.ReactElement {
                           key: "skeleton::" + currentItem.id + "::" + (パターン ?? ""),
                           hideMiniPhaseIndicator: true,
                           diagram: 図 ?? 見本?.diagram ?? currentItem.diagram,
+                          laid: 図 ?? undefined,
                           hideHeader: true,
                           interactiveHandlers: CATALOG_HANDLERS,
                         })}
@@ -1052,6 +1031,7 @@ export function CategoryPage(): React.ReactElement {
                         key={(図の見せ方 === "side-by-side" ? "pair" : "single") + "::" + currentItem.id + "::" + (パターン ?? "")}
                         hideMiniPhaseIndicator
                         diagram={図 ?? 見本?.diagram ?? currentItem.diagram}
+                        laid={図 ?? undefined}
                         hideHeader
                         interactiveHandlers={CATALOG_HANDLERS}
                       />
@@ -1168,6 +1148,7 @@ export function CategoryPage(): React.ReactElement {
                   key={modalItem.id + "::" + (パターン ?? "")}
                   hideMiniPhaseIndicator
                   diagram={拡大の図 ?? modalItem.diagram}
+                  laid={拡大の図 ?? undefined}
                   hideHeader
                   interactiveHandlers={CATALOG_HANDLERS}
                 />

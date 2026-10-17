@@ -52,64 +52,18 @@ describe("cdl 0.133.0 の公開欄 (#2854)", () => {
     for (const diagram of [yaml, json]) expect(diagram.viewport?.contentOffsetX).toBe(250);
   });
 
-  it("figureInset.holdsContent は YAML / JSON とも浮彫の時だけ CDL の節へ渡す", () => {
-    const yaml = (theme?: string) => textDslToDiagram(yamlDiagram("figureInset", { holdsContent: true }, "chart", "line")
-      .replace("type: chart", `type: chart${theme === undefined ? "" : `\ntheme: ${theme}`}`));
-    const json = (theme?: string) => jsonToDiagram({
-      title: "見本",
-      type: "chart",
-      shape: "line",
-      ...(theme === undefined ? {} : { theme }),
-      figureInset: { holdsContent: true },
-      actors,
-      flow,
-    });
-
-    for (const diagram of [yaml("relief"), json("relief")]) {
-      expect(diagram.nodes[0]?.figureInset).toEqual({ holdsContent: true });
-    }
-    for (const diagram of [yaml("blueprint"), json("blueprint"), yaml(), json()]) {
-      expect(diagram.nodes[0]?.figureInset).toEqual({});
-    }
-    const falseYaml = textDslToDiagram(yamlDiagram("figureInset", { holdsContent: false }, "chart", "line")
-      .replace("type: chart", "type: chart\ntheme: relief"));
-    const falseJson = jsonToDiagram({
-      title: "見本",
-      type: "chart",
-      shape: "line",
-      theme: "relief",
-      figureInset: { holdsContent: false },
-      actors,
-      flow,
-    });
-    for (const diagram of [falseYaml, falseJson]) expect(diagram.nodes[0]?.figureInset).toEqual({});
+  it("外した figureInset.holdsContent を YAML / JSON で未知の欄として拒む", () => {
+    expect(parseTextDslV05(yamlDiagram("figureInset", { holdsContent: true }, "chart", "line")).ok).toBe(false);
+    expect(validateDragonJson({ title: "誤り", type: "chart", shape: "line", figureInset: { holdsContent: true }, actors, flow }).ok).toBe(false);
   });
 
-  it("意匠なしの図は浮彫へ切り替える意図だけを図全体に運ぶ", () => {
-    type 意匠別凹み面を持つ図 = ReturnType<typeof textDslToDiagram> & {
-      figureInsetByTheme?: { relief?: { holdsContent?: boolean } };
-    };
-    const diagrams = [
-      textDslToDiagram(yamlDiagram("figureInset", { holdsContent: true }, "chart", "line")),
-      jsonToDiagram({ title: "見本", type: "chart", shape: "line", figureInset: { holdsContent: true }, actors, flow }),
-    ] as 意匠別凹み面を持つ図[];
-
-    for (const diagram of diagrams) {
-      expect(diagram.nodes[0]?.figureInset).toEqual({});
-      expect(diagram.figureInsetByTheme).toEqual({ relief: { holdsContent: true } });
-    }
-  });
-
-  it("記法で浮彫を選んだ傾き図は左右の凹み余白だけ固定軸間を狭める", () => {
-    const source = yamlDiagram("figureInset", { holdsContent: true }, "chart", "slope")
-      .replace("type: chart", "type: chart\ntheme: relief\nchartSlopeSize: {\"leftAxisX\":150,\"axisGap\":250}");
-    const diagram = textDslToDiagram(source);
-    expect(diagram.nodes[0]?.chartSlopeSize).toMatchObject({ leftAxisX: 150, axisGap: 214 });
-  });
-
-  it("figureInset.holdsContent の真偽値以外を YAML / JSON で拒む", () => {
-    expect(parseTextDslV05(yamlDiagram("figureInset", { holdsContent: "yes" }, "chart", "line")).ok).toBe(false);
-    expect(validateDragonJson({ title: "誤り", type: "chart", shape: "line", figureInset: { holdsContent: "yes" }, actors, flow }).ok).toBe(false);
+  it.each([
+    ["layoutByTheme", { relief: { actors: {} } }],
+    ["stageHeaders", { relief: { topPad: 20 } }],
+    ["figureInsetByTheme", { relief: { top: 18 } }],
+  ] as const)("外した %s を YAML / JSON で未知の欄として拒む", (field, value) => {
+    expect(parseTextDslV05(yamlDiagram(field, value, "flow")).ok).toBe(false);
+    expect(validateDragonJson({ title: "誤り", type: "flow", [field]: value, actors, flow }).ok).toBe(false);
   });
 
   it.each([

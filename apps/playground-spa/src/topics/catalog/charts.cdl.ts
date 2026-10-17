@@ -57,7 +57,7 @@ figureSize: {"width":896,"height":1008}
 type: chart
 shape: bar
 figureCard: {"label":"棒","note":"今月 / 単位 件"}
-figureInset: {"holdsContent":true}
+figureInset: {}
 chartBarShape: top-rounded
 chartBarSize: {"tickFontSize":19,"valueFontSize":25,"labelFontSize":22,"plotPadding":{"top":75.891,"right":32,"bottom":64,"left":82},"barWidth":82.944,"cornerRadius":4}
 
@@ -95,7 +95,7 @@ export const sourceJson__branchParcelsBar = `{
   "type": "chart",
   "shape": "bar",
   "figureCard": { "label": "棒", "note": "今月 / 単位 件" },
-  "figureInset": { "holdsContent": true },
+  "figureInset": {},
   "chartBarShape": "top-rounded",
   "chartBarSize": { "tickFontSize": 19, "valueFontSize": 25, "labelFontSize": 22, "plotPadding": { "top": 75.891, "right": 32, "bottom": 64, "left": 82 }, "barWidth": 82.944, "cornerRadius": 4 },
   "actors": [
@@ -291,7 +291,7 @@ figureSize: {"width":768,"height":464}
 type: chart
 shape: line
 figureCard: {"label":"折れ線","note":"計画 と 実績"}
-figureInset: {"holdsContent":true}
+figureInset: {}
 chartLineSize: {"valueLabelOffset":{"above":20,"below":34},"tickFontSize":17,"periodFontSize":19,"pointRadius":7.5,"plotPadding":{"top":45.891,"right":60,"bottom":46,"left":92},"tickGap":12,"pointPadding":{"left":46,"right":0},"periodY":355.988}
 chartSeriesSkipMuted: true
 chartLineSeries: [{"label":"計画","points":[{"label":"6月","value":1000},{"label":"7月","value":1150},{"label":"8月","value":1300},{"label":"9月","value":1450},{"label":"10月","value":1600}],"tone":"muted","dash":"dotted","marker":"none","valueIndexes":[4]},{"points":[{"label":"6月","value":900},{"label":"7月","value":1180},{"label":"8月","value":1250},{"label":"9月","value":1520},{"label":"10月","value":1750}],"dash":"solid","marker":"hollow","valueIndexes":[0,4]}]
@@ -324,7 +324,7 @@ export const sourceJson__monthlyDeliveriesLine = `{
   "type": "chart",
   "shape": "line",
   "figureCard": { "label": "折れ線", "note": "計画 と 実績" },
-  "figureInset": { "holdsContent": true },
+  "figureInset": {},
   "chartLineSize": { "valueLabelOffset": { "above": 20, "below": 34 }, "tickFontSize": 17, "periodFontSize": 19, "pointRadius": 7.5, "plotPadding": { "top": 45.891, "right": 60, "bottom": 46, "left": 92 }, "tickGap": 12, "pointPadding": { "left": 46, "right": 0 }, "periodY": 355.988 },
   "chartSeriesSkipMuted": true,
   "chartLineSeries": [
@@ -585,7 +585,7 @@ export const sourceYaml__orderToDeliveryFunnel = `title: "申し込みから届�
 figureSize: {"width":544,"height":496}
 type: funnel
 figureCard: {"label":"漏斗","note":"先月 / 件"}
-figureInset: {"holdsContent":true}
+figureInset: {}
 funnelForm: proportional-bars
 funnelRate: conversion
 chartSeriesSkipMuted: true
@@ -620,7 +620,7 @@ export const sourceJson__orderToDeliveryFunnel = `{
   "figureSize": { "width": 544, "height": 496 },
   "type": "funnel",
   "figureCard": { "label": "漏斗", "note": "先月 / 件" },
-  "figureInset": { "holdsContent": true },
+  "figureInset": {},
   "funnelForm": "proportional-bars",
   "funnelRate": "conversion",
   "chartSeriesSkipMuted": true,
@@ -656,7 +656,7 @@ export const orderToDeliveryFunnel = textDslToDiagram(sourceYaml__orderToDeliver
 export const sourceYaml__sortingShelfGantt = `title: "仕分け棚を入れ替える工程"
 type: gantt
 figureCard: {"label":"ガント","note":"色の付いた棒が遅れると本番も遅れる"}
-figureInset: {"holdsContent":true}
+figureInset: {}
 ganttSize: {"taskLabelFontSize":23,"taskLabelAlign":"start","taskLabelX":36,"tickFontSize":20,"tickCount":6,"barThickness":30,"milestoneFontSize":19,"milestoneRadius":18,"dependencyStrokeWidth":3.5,"taskColumnWidth":330,"timelinePaddingRight":64}
 figureSize: {"width":1712,"height":592}
 ticks: [2026年6月, 2026年7月, 2026年8月, 2026年9月, 2026年10月]
@@ -702,7 +702,7 @@ export const sourceJson__sortingShelfGantt = `{
   "title": "仕分け棚を入れ替える工程",
   "type": "gantt",
   "figureCard": { "label": "ガント", "note": "色の付いた棒が遅れると本番も遅れる" },
-  "figureInset": { "holdsContent": true },
+  "figureInset": {},
   "ganttSize": { "taskLabelFontSize": 23, "taskLabelAlign": "start", "taskLabelX": 36, "tickFontSize": 20, "tickCount": 6, "barThickness": 30, "milestoneFontSize": 19, "milestoneRadius": 18, "dependencyStrokeWidth": 3.5, "taskColumnWidth": 330, "timelinePaddingRight": 64 },
   "figureSize": { "width": 1712, "height": 592 },
   "目盛り": ["2026年6月", "2026年7月", "2026年8月", "2026年9月", "2026年10月"],
@@ -917,7 +917,7 @@ journeyLineForm: straight
 journeyLabels: {"delighted":"最高","happy":"満足","neutral":"普通","frustrated":"不満","angry":"怒り"}
 journeySize: {"plotPadding":{"left":120,"right":44},"pointPadding":{"left":100,"right":70}}
 figureCard: {"label":"ジャーニー","note":"最高 から 怒り の 5 段"}
-figureInset: {"holdsContent":true,"top":0,"bottom":0}
+figureInset: {"top":0,"bottom":0}
 figureSize: {"width":1712,"height":384}
 
 actors:
@@ -959,7 +959,7 @@ export const sourceJson__shipperFeelingJourney = `{
   "journeyLabels": { "delighted": "最高", "happy": "満足", "neutral": "普通", "frustrated": "不満", "angry": "怒り" },
   "journeySize": { "plotPadding": { "left": 120, "right": 44 }, "pointPadding": { "left": 100, "right": 70 } },
   "figureCard": { "label": "ジャーニー", "note": "最高 から 怒り の 5 段" },
-  "figureInset": { "holdsContent": true, "top": 0, "bottom": 0 },
+  "figureInset": { "top": 0, "bottom": 0 },
   "figureSize": { "width": 1712, "height": 384 },
   "actors": [
     { "name": "申し込む", "subtitle": "{order}" },
@@ -1304,7 +1304,7 @@ export const sourceYaml__measureEffortQuadrant = `title: "打ち手の手間と�
 figureSize: {"width":544,"height":496}
 type: quadrant
 figureCard: {"label":"四象限","note":"左上から手を付ける"}
-figureInset: {"holdsContent":true}
+figureInset: {}
 quadrantPointLabelSide: right
 quadrantLabelPosition: outside-corners
 quadrantSize: {"plotOffset":{"x":70,"y":19.891},"plotSize":325.109,"pointRadius":11,"pointFontSize":19,"pointLabelGap":9,"quadrantFontSize":17,"axisFontSize":18}
@@ -1361,7 +1361,7 @@ export const sourceJson__measureEffortQuadrant = `{
   "figureSize": { "width": 544, "height": 496 },
   "type": "quadrant",
   "figureCard": { "label": "四象限", "note": "左上から手を付ける" },
-  "figureInset": { "holdsContent": true },
+  "figureInset": {},
   "quadrantPointLabelSide": "right",
   "quadrantLabelPosition": "outside-corners",
   "quadrantSize": { "plotOffset": { "x": 70, "y": 19.891 }, "plotSize": 325.109, "pointRadius": 11, "pointFontSize": 19, "pointLabelGap": 9, "quadrantFontSize": 17, "axisFontSize": 18 },
@@ -1578,7 +1578,7 @@ figureSize: {"width":544,"height":496}
 type: chart
 shape: gauge
 figureCard: {"label":"半円","note":"目標 80%"}
-figureInset: {"holdsContent":true}
+figureInset: {}
 chartGaugeSize: {"arcThickness":34,"outerRadius":222,"plotTop":104,"valueFontSize":66}
 chartGaugeValue: {"max":100,"current":"{on_time}","target":80,"previous":72,"previousLabel":"先月"}
 
@@ -1607,7 +1607,7 @@ export const sourceJson__onTimeShareGauge = `{
   "type": "chart",
   "shape": "gauge",
   "figureCard": { "label": "半円", "note": "目標 80%" },
-  "figureInset": { "holdsContent": true },
+  "figureInset": {},
   "chartGaugeSize": { "arcThickness": 34, "outerRadius": 222, "plotTop": 104, "valueFontSize": 66 },
   "chartGaugeValue": { "max": 100, "current": "{on_time}", "target": 80, "previous": 72, "previousLabel": "先月" },
   "actors": [
@@ -2165,7 +2165,7 @@ figureSize: {"width":544,"height":496}
 type: chart
 shape: stacked
 figureCard: {"label":"内訳の帯","note":"月ごと / %"}
-figureInset: {"holdsContent":true}
+figureInset: {}
 chartStackedLayout: {"legendColumns":3,"legendColumnGap":170,"segmentGap":3,"barThickness":32,"barWidth":365,"legendMarkSize":16,"legendFontSize":17,"periodFontSize":19,"rateFontSize":19,"legendOffsetY":-20.609375}
 chartStackedPeriods: [{"label":"6月","values":[79,19,2]},{"label":"7月","values":[81,17,2]},{"label":"8月","values":[77,21,2]},{"label":"9月","values":[83,16,1]},{"label":"10月","values":[86,13,1]}]
 chartStackedRateId: "再配達"
@@ -2200,7 +2200,7 @@ export const sourceJson__deliveryResultStacked = `{
   "type": "chart",
   "shape": "stacked",
   "figureCard": { "label": "内訳の帯", "note": "月ごと / %" },
-  "figureInset": { "holdsContent": true },
+  "figureInset": {},
   "chartStackedLayout": { "legendColumns": 3, "legendColumnGap": 170, "segmentGap": 3, "barThickness": 32, "barWidth": 365, "legendMarkSize": 16, "legendFontSize": 17, "periodFontSize": 19, "rateFontSize": 19, "legendOffsetY": -20.609375 },
   "chartStackedPeriods": [
     { "label": "6月", "values": [79, 19, 2] },
@@ -2314,7 +2314,7 @@ figureSize: {"width":544,"height":496}
 type: chart
 shape: slope
 figureCard: {"label":"傾き","note":"先月 → 今月"}
-figureInset: {"holdsContent":true}
+figureInset: {}
 chartSlopeLabelTemplate: {"left":"{name} {value}{unit}","right":"{value}{unit} {name}"}
 chartSlopeSize: {"pointRadius":7,"periodFontSize":19,"labelFontSize":19,"leftAxisX":150,"axisGap":250,"labelAxisGap":18,"plotPadding":{"top":54.036,"bottom":12.552},"pointPadding":{"top":46.707,"bottom":42.862}}
 chartSlopePeriods: ["先月", "今月"]
@@ -2352,7 +2352,7 @@ export const sourceJson__onTimeRateSlope = `{
   "type": "chart",
   "shape": "slope",
   "figureCard": { "label": "傾き", "note": "先月 → 今月" },
-  "figureInset": { "holdsContent": true },
+  "figureInset": {},
   "chartSlopeLabelTemplate": { "left": "{name} {value}{unit}", "right": "{value}{unit} {name}" },
   "chartSlopeSize": { "pointRadius": 7, "periodFontSize": 19, "labelFontSize": 19, "leftAxisX": 150, "axisGap": 250, "labelAxisGap": 18, "plotPadding": { "top": 54.036, "bottom": 12.552 }, "pointPadding": { "top": 46.707, "bottom": 42.862 } },
   "chartSlopePeriods": ["先月", "今月"],

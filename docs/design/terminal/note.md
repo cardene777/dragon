@@ -83,7 +83,7 @@
 | 日程の帯     | 縞。描き手の 0.55 の濃さで描く                                                                           |
 | 単系列の棒   | `data-cdl-emphasis="primary"` の棒は一 `#4ade80` に一の光、それ以外は淡 `#355542`。濃さは 1              |
 | 書体         | `--d-mono`。英数字は JetBrains Mono、和字は環境の書体                                                    |
-| 字の幅       | 英数字を等幅 (`textMetrics: "monospace"`、半角 0.63em) で測る。記法の `theme: terminal` と見本帳の切替は同じ測り方になり、端末から他の意匠へ切り替えると比例の測り方へ戻る |
+| 字の幅       | 記法の `theme: terminal` は英数字を等幅 (`textMetrics: "monospace"`、半角 0.63em) で測る。見本帳は全配色を比例・等幅の広い方 (`textMetrics: "widest"`) で一度だけ組み、端末の等幅書体でも字を箱へ収める |
 | 動き         | 打つ (下の「動き」)                                                                                      |
 | 図表の系列色 | 1 = 一、2 = 二、3 = 三、4 = 薄、5 = 濃二、6 = 濃三                                                       |
 | 発想の枝 | 4 本を系列 1 `#4ade80`、2 `#c792ea`、3 `#f5c451`、4 `#8a9b90` で描く。葉の下線は同じ系列の枝と同色。枝箱の枠は枠の色 1 色 |
@@ -225,8 +225,9 @@ dragon は軸と番号の縁を一の `--er-line`、「はい」を二の `--er-
   日程の帯、単系列の棒を調べる。札は強調の有無にかかわらず線の色みと一致し、字が面に収まることを調べる。
 - `apps/playground-spa/tests/theme-appear.spec.ts` は箱と線が開いた時だけ動き、動きを減らす設定で止まることを調べる。
 - `packages/dragon/test/palette-notation.test.ts` は `theme: terminal` / `theme: 端末` / `palette: terminal` / JSON の `theme` で `textMetrics` が `monospace` になり、他の意匠では載らないこと、等幅で測った箱が細い字の多い名前で広くなることを調べる。
-- `apps/playground-spa/tests/palette-switch.spec.ts` は切替で端末を選んだ舞台の地が「台」と一致することを、配色を持たない図と表の図で調べる。また、端末を選ぶと図を測り直して生成りへ戻すと元に戻ること、英数字 24 字の名前の箱が生成りより広く取られて字が箱の面に収まることを調べる。
-- `apps/playground-spa/src/lib/palette-switch.test.ts` は端末を選ぶと測り方が載り、外すと消え、未選択では元の図を返すことを調べる。
+- `apps/playground-spa/tests/palette-switch.spec.ts` は切替で端末を選んだ舞台の地が「台」と一致することを、配色を持たない図と表の図で調べる。
+- `apps/playground-spa/src/lib/palette-switch.test.ts` は配色を替えても字の測り方を載せ替えず、見本帳の `widest` と端末記法の `monospace` を保つことを調べる。
+- `apps/playground-spa/src/lib/catalog-one-skeleton.test.tsx` は全ての見本を `widest` で組み、10 配色の骨組みに差が無いことと、比例・等幅のどちらでも箱と札から字が出ないことを調べる。
 
 ## 流れ図
 

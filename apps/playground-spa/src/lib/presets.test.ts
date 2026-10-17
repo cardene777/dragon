@@ -287,20 +287,16 @@ describe("宅配のひな形 4 件 (#2835)", () => {
     expect(diagram.nodes.find((node) => node.kind === "mark-end")?.markGap).toBe(87.4);
   });
 
-  it("cdl#1037/#1072: 段の箱の 7 意匠へ見出しの値と左余白を渡す", () => {
+  it("段の箱の全配色へ共通の見出し寸法を渡す", () => {
     const { diagram } = 記法を引く("presetDeliveryStages");
     expect(diagram.edgeEndGap).toBe(2);
-    const expected = {
-      blueprint: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 },
-      letterpress: { leftPad: 24, topPad: 16, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 },
-      catalog: { leftPad: 24, topPad: 18, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 15 },
-      sketch: { leftPad: 24, topPad: 17, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 },
-      neon: { leftPad: 24, topPad: 18, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 },
-      relief: { leftPad: 26, topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 },
-      terminal: { leftPad: 22, topPad: 16, numberSize: 16, gap: 10, nameSize: 25, bottomPad: 13 },
-    } as const;
-    for (const [palette, header] of Object.entries(expected)) {
-      const themed = 図の配色を変える(diagram, palette as keyof typeof expected);
+    const header = { leftPad: 26, topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 };
+    const palettes = [
+      "kinari", "celadon", "blueprint", "letterpress", "catalog",
+      "terminal", "sketch", "neon", "relief", "site-colours",
+    ] as const;
+    for (const palette of palettes) {
+      const themed = 図の配色を変える(diagram, palette);
       expect(themed.lanes.map((lane) => lane.stage?.header), palette).toEqual(
         Array(themed.lanes.length).fill(header),
       );

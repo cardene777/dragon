@@ -142,7 +142,7 @@ test("switch: クラス図でも切り替えられる (#1569)", async ({ page })
   await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBe("celadon");
 });
 
-test("terminal switch: 見本帳で端末を選ぶと字を等幅で測り直し、生成りへ戻すと元の測り方に戻る (#2818)", async ({
+test("terminal switch: 見本帳は端末と生成りで同じ字幅の骨組みを使う (#2908)", async ({
   page,
 }) => {
   await 開く(page, "presets", "infra-demo");
@@ -150,13 +150,13 @@ test("terminal switch: 見本帳で端末を選ぶと字を等幅で測り直し
   await 色味(page).selectOption({ label: 配色の札("kinari", "ja") });
   await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("kinari");
   const 生成り = await 描いた大きさ(page, "infra-demo");
-  expect(生成り, "生成りの data-cdl-viewbox が無く、測り直しの検査が空振りしている").not.toBeNull();
+  expect(生成り, "生成りの data-cdl-viewbox が無く、骨組みの検査が空振りしている").not.toBeNull();
   if (生成り === null) throw new Error("生成りの data-cdl-viewbox を文字列として確かめられない");
   expect(生成り, "生成りの data-cdl-viewbox が 4 つの数でない").toMatch(/^-?[\d.]+ -?[\d.]+ [\d.]+ [\d.]+$/);
 
   await 色味(page).selectOption({ label: 配色の札("terminal", "ja") });
   await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("terminal");
-  await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).not.toBe(生成り);
+  await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).toBe(生成り);
   const 端末 = await 描いた大きさ(page, "infra-demo");
 
   await 色味(page).selectOption({ label: 配色の札("kinari", "ja") });

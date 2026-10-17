@@ -587,90 +587,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   if (doc.legendFontSize !== undefined) merged.legendFontSize = doc.legendFontSize;
   if (doc.legendOffset !== undefined) merged.legendOffset = doc.legendOffset;
   if (doc.edgeEndGap !== undefined) merged.edgeEndGap = doc.edgeEndGap;
-  if (doc.stageHeaders !== undefined) {
-    (merged as CdlDiagram & { stageHeaders?: DslDocument["stageHeaders"] }).stageHeaders =
-      doc.stageHeaders;
-  }
-  if (doc.layoutByTheme !== undefined) {
-    // 画面の色へ戻した時は、記法に書かれた固定位置と高さを 1 bit も変えず戻す。
-    const nodeFields = ["rowLayout", "rowStripe", "h", "posH", "posY"] as const;
-    const edgeFields = ["posX1", "posY1", "posX2", "posY2", "waypoints", "labelOffsetX", "labelOffsetY", "labelCollision"] as const;
-    type NodeLayout = Pick<CdlDiagram["nodes"][number], (typeof nodeFields)[number]>;
-    type EdgeLayout = Pick<CdlDiagram["edges"][number], (typeof edgeFields)[number]>;
-    type Values = { nodes?: Record<string, NodeLayout>; edges?: Record<string, EdgeLayout> };
-    const ownFields = <T extends object, K extends readonly (keyof T)[]>(
-      value: T,
-      fields: K,
-    ): Pick<T, K[number]> => Object.fromEntries(
-      fields.flatMap((field) => Object.hasOwn(value, field) ? [[field, value[field]]] : []),
-    ) as Pick<T, K[number]>;
-    const themes: Partial<Record<keyof typeof doc.layoutByTheme, Values>> = {};
-    const controlledNodes = new Set<string>();
-    const controlledEdges = new Set<string>();
-    for (const [theme, values] of Object.entries(doc.layoutByTheme)) {
-      if (values === undefined) continue;
-      const nodes: Record<string, NodeLayout> = {};
-      for (const [name, value] of Object.entries(values.nodes ?? {})) {
-        const id = slugify(name);
-        if (!merged.nodes.some((node) => node.id === id)) continue;
-        nodes[id] = value;
-        controlledNodes.add(id);
-      }
-      const edges: Record<string, EdgeLayout> = {};
-      for (const [name, value] of Object.entries(values.edges ?? {})) {
-        const flowIndex = doc.flow.findIndex((step) => `${step.from} -> ${step.to}` === name);
-        const id = flowIndex < 0 ? undefined : merged.edges[flowIndex]?.id;
-        if (id === undefined) continue;
-        edges[id] = value;
-        controlledEdges.add(id);
-      }
-      themes[theme as keyof typeof doc.layoutByTheme] = {
-        ...(Object.keys(nodes).length === 0 ? {} : { nodes }),
-        ...(Object.keys(edges).length === 0 ? {} : { edges }),
-      };
-    }
-    const base: Values = {
-      nodes: Object.fromEntries([...controlledNodes].flatMap((id) => {
-        const node = merged.nodes.find((item) => item.id === id);
-        return node === undefined ? [] : [[id, ownFields(node, nodeFields)]];
-      })),
-      edges: Object.fromEntries([...controlledEdges].flatMap((id) => {
-        const edge = merged.edges.find((item) => item.id === id);
-        return edge === undefined ? [] : [[id, ownFields(edge, edgeFields)]];
-      })),
-    };
-    (merged as CdlDiagram & { layoutByTheme?: { base: Values; themes: typeof themes } }).layoutByTheme = { base, themes };
-  }
-  // 見本帳は意匠なしで一度だけ組むため、浮彫で使う意図を stageHeaders と同じく図全体で運ぶ。
-  if (doc.figureInset?.holdsContent === true) {
-    (merged as CdlDiagram & {
-      figureInsetByTheme?: {
-        relief?: {
-          holdsContent: true;
-          chartLinePeriodY?: number;
-          chartSlopeAxisGap?: number;
-          chartStackedBarWidth?: number;
-          quadrantPlotSize?: number;
-        };
-      };
-    }).figureInsetByTheme = {
-      relief: {
-        holdsContent: true,
-        ...(doc.chartLineSize?.periodY === undefined
-          ? {}
-          : { chartLinePeriodY: doc.chartLineSize.periodY }),
-        ...(doc.chartSlopeSize?.axisGap === undefined
-          ? {}
-          : { chartSlopeAxisGap: doc.chartSlopeSize.axisGap }),
-        ...(doc.chartStackedLayout?.barWidth === undefined
-          ? {}
-          : { chartStackedBarWidth: doc.chartStackedLayout.barWidth }),
-        ...(doc.quadrantSize?.plotSize === undefined
-          ? {}
-          : { quadrantPlotSize: doc.quadrantSize.plotSize }),
-      },
-    };
-  }
   if (doc.stageLayout !== undefined) merged.stageLayout = doc.stageLayout;
   静止した図の焦点を外す(merged, doc);
   // 位置のずらしは **配置に効く欄を全て載せた後** に当てる (#1971)。 縦列の幅や視点の間隔を
@@ -800,51 +716,9 @@ function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
       const 棒の角 = 意匠の棒の角(配色, node);
       if (棒の角 !== undefined) node.barCornerRadii = 棒の角;
     }
-    if (配色 === "relief" && doc.figureInset?.holdsContent === true && node.figureInset !== undefined) {
-      node.figureInset.holdsContent = true;
-      const leftInset = node.figureInset.left ?? 18;
-      const rightInset = node.figureInset.right ?? 18;
-      const topInset = node.figureInset.top ?? 4;
-      const bottomInset = node.figureInset.bottom ?? 8;
-      const horizontalInset = leftInset + rightInset;
-      const verticalInset = topInset + bottomInset;
-      if (node.chartLineSize?.periodY !== undefined) {
-        node.chartLineSize = {
-          ...node.chartLineSize,
-          periodY: Math.max(0, node.chartLineSize.periodY - verticalInset),
-        };
-      }
-      if (node.chartSlopeSize?.axisGap !== undefined) {
-        node.chartSlopeSize = {
-          ...node.chartSlopeSize,
-          axisGap: Math.max(0, node.chartSlopeSize.axisGap - horizontalInset),
-        };
-      }
-      if (node.chartStackedLayout?.barWidth !== undefined) {
-        node.chartStackedLayout = {
-          ...node.chartStackedLayout,
-          barWidth: Math.max(1, node.chartStackedLayout.barWidth - horizontalInset),
-        };
-      }
-      if (
-        node.quadrantSize?.plotSize !== undefined &&
-        node.w !== undefined &&
-        node.h !== undefined
-      ) {
-        const contentHeight = node.h - (node.figureCard === undefined ? 0 : 61 + 36);
-        const 元の上限 = Math.min(node.w - 120, contentHeight - 60);
-        const 凹み面の上限 = Math.min(
-          node.w - horizontalInset - 120,
-          contentHeight - verticalInset - 60,
-        );
-        node.quadrantSize = {
-          ...node.quadrantSize,
-          // 見本の min(P幅−120, P高さ−60) が凹み面で失う分だけ、調整済みの元値から引く。
-          plotSize: Math.max(1, node.quadrantSize.plotSize - (元の上限 - 凹み面の上限)),
-        };
-      }
+    if (node.kind === "storage" && 行を書いた箱か(node) && node.rowStripe === undefined) {
+      node.rowStripe = true;
     }
-    if (node.kind === "storage" && 行を書いた箱か(node)) node.rowStripe = true;
   }
 }
 

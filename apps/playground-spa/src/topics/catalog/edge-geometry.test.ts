@@ -24,8 +24,11 @@ const 対象の図id = new Set([
   "er-complex-demo",
 ]);
 
-/** #2836 で固定端点を記法から渡し、30px 未満の短い直線区間を 0 件にした。 */
-const 認める短い区間: Record<string, string> = {};
+/** 固定端点を記法から渡した線のうち、見本の意図で残す短い折れ。 */
+const 認める短い区間: Record<string, string> = {
+  "delivery-relations-demo:e4-受付済-仕分け:4":
+    "浮彫の実測 path を全配色の骨組みにしたため残る、受付済から左へ出る最初の折れ (#2908)",
+};
 
 /** SVG path の命令から、線が実際に通る点だけを読む。 */
 function dから点列を読む(d: string): 点[] {

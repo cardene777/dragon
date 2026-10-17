@@ -292,83 +292,6 @@ function 線の途中の点として読む(
   return value;
 }
 
-/** 意匠 1 つ分の箱と線の配置を閉じた object として読む。 */
-function 意匠別配置として読む(
-  value: unknown,
-  theme: DslTheme,
-  line: number,
-  errors: DslError[],
-): NonNullable<DslDocument["layoutByTheme"]>[DslTheme] | undefined {
-  if (!objectか(value) || Object.keys(value).some((key) => key !== "nodes" && key !== "edges")) {
-    errors.push({ line, message: `layoutByTheme.${theme} の値の形が読めません` });
-    return undefined;
-  }
-  type ThemeLayout = NonNullable<NonNullable<DslDocument["layoutByTheme"]>[DslTheme]>;
-  type NodeLayout = NonNullable<ThemeLayout["nodes"]>[string];
-  type EdgeLayout = NonNullable<ThemeLayout["edges"]>[string];
-  const nodes: Record<string, NodeLayout> = {};
-  if (value.nodes !== undefined) {
-    if (!objectか(value.nodes)) errors.push({ line, message: `layoutByTheme.${theme}.nodes は object で書く` });
-    else for (const [name, raw] of Object.entries(value.nodes)) {
-      const keys = ["rowLayout", "rowStripe", "h", "posH", "posY"];
-      if (
-        !objectか(raw) ||
-        Object.keys(raw).some((key) => !keys.includes(key)) ||
-        (raw.rowStripe !== undefined && typeof raw.rowStripe !== "boolean") ||
-        (raw.h !== undefined && (typeof raw.h !== "number" || !Number.isFinite(raw.h) || raw.h <= 0)) ||
-        (raw.posH !== undefined && (typeof raw.posH !== "number" || !Number.isFinite(raw.posH) || raw.posH <= 0)) ||
-        (raw.posY !== undefined && (typeof raw.posY !== "number" || !Number.isFinite(raw.posY)))
-      ) {
-        errors.push({ line, message: `layoutByTheme.${theme}.nodes.${name} の値の形が読めません` });
-        continue;
-      }
-      const rowLayout = raw.rowLayout === undefined ? undefined : 行の配置として読む(JSON.stringify(raw.rowLayout), line, errors);
-      nodes[name] = {
-        ...(rowLayout === undefined ? {} : { rowLayout }),
-        ...(raw.rowStripe === undefined ? {} : { rowStripe: raw.rowStripe }),
-        ...(raw.h === undefined ? {} : { h: raw.h }),
-        ...(raw.posH === undefined ? {} : { posH: raw.posH }),
-        ...(raw.posY === undefined ? {} : { posY: raw.posY }),
-      };
-    }
-  }
-  const edges: Record<string, EdgeLayout> = {};
-  if (value.edges !== undefined) {
-    if (!objectか(value.edges)) errors.push({ line, message: `layoutByTheme.${theme}.edges は object で書く` });
-    else for (const [name, raw] of Object.entries(value.edges)) {
-      const keys = ["posX1", "posY1", "posX2", "posY2", "waypoints", "labelOffsetX", "labelOffsetY"];
-      if (!objectか(raw) || Object.keys(raw).some((key) => !keys.includes(key))) {
-        errors.push({ line, message: `layoutByTheme.${theme}.edges.${name} の値の形が読めません` });
-        continue;
-      }
-      const numeric = ["posX1", "posY1", "posX2", "posY2", "labelOffsetX", "labelOffsetY"] as const;
-      if (numeric.some((key) => raw[key] !== undefined && (typeof raw[key] !== "number" || !Number.isFinite(raw[key])))) {
-        errors.push({ line, message: `layoutByTheme.${theme}.edges.${name} の座標が読めません` });
-        continue;
-      }
-      const 数 = (key: (typeof numeric)[number]): number | undefined =>
-        typeof raw[key] === "number" ? raw[key] : undefined;
-      const posX1 = 数("posX1");
-      const posY1 = 数("posY1");
-      const posX2 = 数("posX2");
-      const posY2 = 数("posY2");
-      const labelOffsetX = 数("labelOffsetX");
-      const labelOffsetY = 数("labelOffsetY");
-      const waypoints = raw.waypoints === undefined ? undefined : 線の途中の点として読む(JSON.stringify(raw.waypoints), [posX1, posY1, posX2, posY2], line, errors);
-      edges[name] = {
-        ...(posX1 === undefined ? {} : { posX1 }),
-        ...(posY1 === undefined ? {} : { posY1 }),
-        ...(posX2 === undefined ? {} : { posX2 }),
-        ...(posY2 === undefined ? {} : { posY2 }),
-        ...(waypoints === undefined ? {} : { waypoints }),
-        ...(labelOffsetX === undefined ? {} : { labelOffsetX }),
-        ...(labelOffsetY === undefined ? {} : { labelOffsetY }),
-      };
-    }
-  }
-  return { ...(Object.keys(nodes).length === 0 ? {} : { nodes }), ...(Object.keys(edges).length === 0 ? {} : { edges }) };
-}
-
 /**
  * 辺の役目として書ける語 (#1559)。
  *
@@ -530,8 +453,7 @@ export const TOP_LEVEL_KEYS = [
   "legendOffset",
   "legendFontSize",
   "edgeEndGap",
-  "stageHeaders",
-  "layoutByTheme",
+  "stageHeader",
 ] as const;
 
 /**
@@ -967,8 +889,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let legendOffset: DslDocument["legendOffset"];
   let legendFontSize: number | undefined;
   let edgeEndGap: DslDocument["edgeEndGap"];
-  let stageHeaders: DslDocument["stageHeaders"];
-  let layoutByTheme: DslDocument["layoutByTheme"];
+  let stageHeader: DslDocument["stageHeader"];
 
   let i = 0;
   while (i < lines.length) {
@@ -1177,64 +1098,32 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i += 1;
       continue;
     }
-    if (head.key === "stageHeaders") {
-      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
-      stageHeaders = {};
-      for (const item of items) {
-        const match = item.trimmed.match(LANE_ID_ENTRY);
-        const themeName = match === null ? null : resolveTheme(match[1]!);
-        if (match === null || themeName === null) {
-          errors.push({
-            line: item.no,
-            message: `段の見出しの行が読めません: "${item.trimmed}"`,
-            hint: "意匠名: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 } の形で書く",
-          });
-          continue;
-        }
-        const opts = parseInlineMapping(match[2]!);
-        const keys = ["leftPad", "topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
-        中括弧の知らない項目名を知らせる(
-          match[2]!,
-          keys,
-          `段の見出し ${themeName} の `,
-          item.no,
-          errors,
-        );
-        const values = Object.fromEntries(
-          keys.map((key) => [key, opts[key] === undefined ? undefined : Number(opts[key])]),
-        ) as Record<(typeof keys)[number], number | undefined>;
-        const required = ["topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
-        if (
-          required.some((key) => !Number.isFinite(values[key])) ||
-          (values.leftPad !== undefined && !Number.isFinite(values.leftPad))
-        ) {
-          errors.push({
-            line: item.no,
-            message: `段の見出し ${themeName} の寸法が読めません`,
-            hint: "各寸法を数で書く",
-          });
-          continue;
-        }
-        stageHeaders[themeName] = values as DslStageHeader;
+    if (head.key === "stageHeader") {
+      const written = (head.value ?? "").trim();
+      const isInlineMapping = written.startsWith("{") && written.endsWith("}");
+      const inner = isInlineMapping ? written.slice(1, -1) : "";
+      const opts = parseInlineMapping(inner);
+      const keys = ["leftPad", "topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+      if (isInlineMapping) {
+        中括弧の知らない項目名を知らせる(inner, keys, "段の見出しの ", line.no, errors);
       }
-      i = next;
-      continue;
-    }
-    if (head.key === "layoutByTheme") {
-      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
-      layoutByTheme = {};
-      for (const item of items) {
-        const entry = 名前と中括弧に割る(item.trimmed);
-        const themeName = entry === undefined ? null : resolveTheme(entry[0]);
-        if (entry === undefined || themeName === null) {
-          errors.push({ line: item.no, message: `意匠別配置の行が読めません: "${item.trimmed}"` });
-          continue;
-        }
-        const value = JSONの欄を読む(`{${entry[1]}}`, `layoutByTheme.${themeName}`, item.no, errors);
-        const parsed = 意匠別配置として読む(value, themeName, item.no, errors);
-        if (parsed !== undefined) layoutByTheme[themeName] = parsed;
+      const values = Object.fromEntries(
+        keys.map((key) => [key, opts[key] === undefined ? undefined : Number(opts[key])]),
+      ) as Record<(typeof keys)[number], number | undefined>;
+      const required = ["topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+      if (
+        required.some((key) => !Number.isFinite(values[key])) ||
+        (values.leftPad !== undefined && !Number.isFinite(values.leftPad))
+      ) {
+        errors.push({
+          line: line.no,
+          message: "段の見出しの寸法が読めません",
+          hint: "{ leftPad: 26, topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 } の形で書く",
+        });
+      } else {
+        stageHeader = values as DslStageHeader;
       }
-      i = next;
+      i += 1;
       continue;
     }
     if (head.key === "eyebrow") {
@@ -2299,8 +2188,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(legendOffset !== undefined ? { legendOffset } : {}),
       ...(legendFontSize !== undefined ? { legendFontSize } : {}),
       ...(edgeEndGap !== undefined ? { edgeEndGap } : {}),
-      ...(stageHeaders !== undefined ? { stageHeaders } : {}),
-      ...(layoutByTheme !== undefined ? { layoutByTheme } : {}),
+      ...(stageHeader !== undefined ? { stageHeader } : {}),
       ...(theme !== null && palette !== null
         ? { themeAlsoPalettePos: { themeLine, paletteLine } }
         : {}),
@@ -3861,10 +3749,10 @@ function parseInlineMapping(inner: string): Record<string, string> {
     // 読める名前を広げても、**知っている名前しか使われない**。 パーツの状態の上書きに
     // 流れるのは `ACTOR_RESERVED_FIELDS` に無い名前だけで、日本語の項目名 (`位置` / `大きさ`
     // 等) はそこに載せてあるため、これまでどおり落ちる
-    const m = p.match(/^\s*([^\s:,{}[\]"']+)\s*:\s*(.+?)\s*$/);
+    const m = p.match(/^\s*(?:"([^"]+)"|'([^']+)'|([^\s:,{}[\]"']+))\s*:\s*(.+?)\s*$/);
     if (m) {
-      const key = m[1]!;
-      out[key] = stripQuotes(m[2]!.trim());
+      const key = m[1] ?? m[2] ?? m[3]!;
+      out[key] = stripQuotes(m[4]!.trim());
     }
   }
   return out;
@@ -3882,7 +3770,7 @@ function writtenScaleFields(inner: string): Map<string, string> {
   for (const field of splitInlineFields(inner)) {
     const idx = field.indexOf(":");
     if (idx < 0) continue;
-    const key = field.slice(0, idx).trim();
+    const key = stripQuotes(field.slice(0, idx).trim());
     if (!SCALE_KEYS.has(key)) continue;
     // 同じ名前を 2 度書いたら後の値を採る
     out.set(key, stripQuotes(field.slice(idx + 1).trim()));
@@ -5281,7 +5169,7 @@ function reportUnknownInlineKeys(
   for (const field of splitInlineFields(inner)) {
     const idx = field.indexOf(":");
     if (idx < 0) continue;
-    const key = field.slice(0, idx).trim();
+    const key = stripQuotes(field.slice(0, idx).trim());
     if (!key) continue;
     if (isPart) {
       if (!PART_INLINE_UNREADABLE_KEYS.has(key)) continue;
@@ -5339,7 +5227,7 @@ function 中括弧の知らない項目名を知らせる(
   for (const field of splitInlineFields(inner)) {
     const idx = field.indexOf(":");
     if (idx < 0) continue;
-    const key = field.slice(0, idx).trim();
+    const key = stripQuotes(field.slice(0, idx).trim());
     if (!key || 使える.includes(key)) continue;
     // 接頭は値の欄名に続ける形 (`縦列 l1 の `) で末尾に空白を持つ。 日本語へ続ける時は空白を落とす
     errors.push({
@@ -5958,7 +5846,7 @@ type Cdl0132ObjectField = (typeof CDL_0132_OBJECT_FIELDS)[number];
 const CDL_0132_KEYS: Record<Cdl0132ObjectField, readonly string[]> = {
   terminalDecoration: ["windowControls", "cursor", "rowOrdinal"],
   figureKindLabel: ["text", "x", "y", "fontSize", "fontWeight", "letterSpacing"],
-  figureInset: ["top", "right", "bottom", "left", "radius", "holdsContent"],
+  figureInset: ["top", "right", "bottom", "left", "radius"],
   journeySize: ["plotPadding", "pointPadding"],
   chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "plotPadding", "barWidth", "cornerRadius"],
   chartLineSize: ["valueLabelOffset", "tickFontSize", "periodFontSize", "pointRadius", "plotPadding", "tickGap", "pointPadding", "periodY"],
@@ -6010,7 +5898,6 @@ function cdl0132の欄を読む(
     nonNegative("letterSpacing");
   } else if (name === "figureInset") {
     for (const key of ["top", "right", "bottom", "left", "radius"]) nonNegative(key);
-    if (value.holdsContent !== undefined && typeof value.holdsContent !== "boolean") invalid = true;
   } else if (name === "journeySize") {
     nested("plotPadding", ["left", "right"], "nonNegative");
     nested("pointPadding", ["left", "right"], "nonNegative");

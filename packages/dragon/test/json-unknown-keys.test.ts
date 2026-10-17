@@ -175,7 +175,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     terminalDecoration: { windowControls: true, cursor: true, rowOrdinal: true },
     cornerForm: "theme-variants",
     figureKindLabel: { text: "tree · 階層図" },
-    figureInset: { holdsContent: true },
+    figureInset: { left: 18, right: 18, radius: 18 },
     chartBarSize: { barWidth: 82 },
     chartBarShape: "top-rounded",
     chartLineSize: { pointRadius: 7 },
@@ -195,15 +195,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     legendFontSize: 18,
     edgeEndGap: 2,
     legendOffset: { x: -200, y: -40 },
-    stageHeaders: {
-      blueprint: { topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 },
-    },
-    layoutByTheme: {
-      blueprint: {
-        nodes: { A: { rowLayout: { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 } } },
-        edges: {},
-      },
-    },
+    stageHeader: { topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 },
     stageLayout: { columnWidths: { 受付: 360 }, columnGap: 64, backDetourTargetInset: 60 },
   },
   actor: {

@@ -221,8 +221,6 @@ const 対応表: Record<string, readonly string[]> = {
   "actors[].oneOf[1].shape.orient": [...SHAPE_ORIENT_VALUES],
   // 相対で置く時の向き (#2039)。 本文側と同じ一覧から取る
   "actors[].oneOf[1].posRel.dir": [...RELATIVE_DIRECTIONS],
-  "stageHeaders.propertyNames": [...THEMES],
-  "layoutByTheme.propertyNames": [...THEMES],
 };
 
 const 並べ = (x: Iterable<string>): string[] => [...new Set(x)].sort();
