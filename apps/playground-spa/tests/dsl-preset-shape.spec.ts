@@ -15,6 +15,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+import { 選んだ見本の図が描かれるまで待つ } from "./opened-sample";
 
 /**
  * ガントの見本から、段の名前と時期の札を取り出す (#1846)。
@@ -38,6 +39,7 @@ async function openSample(page: import("@playwright/test").Page, slug: string): 
   await page.goto(`editor#preset=${slug}`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
+  await 選んだ見本の図が描かれるまで待つ(page, slug);
 }
 
 test("見本「言語シェア」 で円が描かれる (#1076)", async ({ page }) => {

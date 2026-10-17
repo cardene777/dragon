@@ -1,5 +1,22 @@
 import { expect, type Page } from "@playwright/test";
 
+import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+import { 描き終わりを待つ } from "./wait-for-render";
+
+const EDITOR_DIAGRAM = '[data-testid="editor-preview-stage"] svg[viewBox]';
+
+/** 見本の図の `aria-label` の先頭。 */
+function 見本の図の印(slug: string): string {
+  const sample = EDITOR_SAMPLES.find((value) => value.slug === slug);
+  if (sample === undefined) throw new Error(`見本 "${slug}" が EDITOR_SAMPLES に無い`);
+
+  const title = /^title:\s*(?:"([^"]+)"|'([^']+)'|([^\n#]+))\s*$/mu.exec(sample.code);
+  const titleText = title?.[1] ?? title?.[2] ?? title?.[3]?.trim();
+  if (titleText) return `${titleText}。`;
+
+  throw new Error(`見本 "${slug}" に図を見分ける title が無い`);
+}
+
 /**
  * 指定した見本が実際に開けたことを、 **開いた場所で** 確かめる (`#1174`)。
  *
@@ -33,4 +50,18 @@ export async function 見本が開けたことを確かめる(page: Page, slug: 
     await 未登録.count(),
     `見本 "${slug}" が開けていない (消えた slug を指しているか、 綴りが違う)`,
   ).toBe(0);
+}
+
+/** 選んだ見本から導いた題が SVG の名前になるまで待つ。前の見本を測って先へ進ませない。 */
+export async function 選んだ見本の図が描かれるまで待つ(page: Page, slug: string): Promise<void> {
+  const 印 = 見本の図の印(slug);
+  await 描き終わりを待つ(
+    page,
+    `見本 "${slug}" の図 (${印})`,
+    (渡す: { selector: string; mark: string }) => {
+      const svg = document.querySelector(渡す.selector);
+      return svg?.getAttribute("aria-label")?.startsWith(渡す.mark) === true;
+    },
+    { selector: EDITOR_DIAGRAM, mark: 印 },
+  );
 }
