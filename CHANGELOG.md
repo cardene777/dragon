@@ -7,12 +7,28 @@ dragon DSL の主要変更履歴。
 
 ### Removed
 
+- **記法から、特定の技術や会社に向けた書き方を外した (破壊的変更)** (#2947)
+
+  外した書き方を書くと、置き換え先を示す誤りが出る。
+
+  | 外した書き方 | 置き換え先 |
+  |---|---|
+  | `type: solidity` | `type: sequence` と `order: 種類` |
+  | 箱の種類 `contract` / `proxy` / `library` / `interface` | `card` |
+  | 箱の種類 `eoa` | `person` |
+  | 箱の種類 `multisig` | `signer` |
+  | AWS の名前 `alb` / `ecs` / `iam` / `kms` / `lambda` / `rds` / `s3` | `api` / `microservice` / `admin` / `admin` / `function` / `database` / `storage` |
+  | cdl から外した挿絵 36 種 (`shape-wallet` など) | 基本の形か `kindForm: icon` |
+
+  `order: 種類` の段は「人 → しまう場所 → 出来事」 の 3 段になった (契約の段を外した)。
+  一般の語の読み替え `browser` / `user` / `container` / `secret` は残る。
+  描く側 `@cardenelabs/cdl` を `^0.140.0` に上げた (業界の挿絵の形を外した版)。
+
 - **見本帳から、特定の分野に寄った見本と業界の挿絵の見本を外した** (#2946)
 
   分類「イーサリアム」と、基本要素の頁の挿絵 36 種の見本と場面の見本 30 枚と、実用例・動く図・操作で動くの送金と手数料の見本を外した。
   値を見せる部品 `token-list` の見本は、題材を「4 品目の仕入れ値」に替えて残した。
   編集画面の見本「投票コントラクト」は「投票の受付」に書き換え、見本に書いた実在の社名と製品名は役目の名前にした。
-  記法はまだ変えていない = 外した挿絵の種類と `type: solidity` は、書けば今までどおり描ける。
 
 ### Fixed
 

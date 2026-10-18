@@ -20,7 +20,7 @@ export type FocusEntry =
 /**
  * 矢印の形。 `->` の 2 文字か `→` の 1 文字だけを矢印と見なす。
  *
- * `-` 1 文字を矢印に含めてはいけない。 名前に `-` を使う箱 (`api-gateway` / `shape-api-gateway`)
+ * `-` 1 文字を矢印に含めてはいけない。 名前に `-` を使う箱 (`api-gateway` / `shape-code-block`)
  * が矢印として読まれる。
  */
 const ARROW = /^(.+?)\s*(?:->|→)\s*(.+)$/;

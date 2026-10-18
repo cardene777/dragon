@@ -78,7 +78,7 @@ describe("端の形が描画側へ渡る (#1462)", () => {
     // 実際に図種ごとの組み立てにも同じ形を置いたが、外しても全図種が渡っていた
     // (欄を写す 1 箇所を全図種が通る) ため余分だった
     //
-    // 順序図系 (`sequence` / `solidity`) は #1466 で 1 枚の板になり、言づては矢印ではなく
+    // 順序図系 (`sequence`) は #1466 で 1 枚の板になり、言づては矢印ではなく
     // 板の中の行になった = 端の形を載せる矢印が無い。 板が言づてを持つことを別に見る
     const 矢印を作る図種 = ["swimlane", "record", "topology", "c4", "flow"];
     let 測れた = 0;
@@ -91,16 +91,17 @@ describe("端の形が描画側へ渡る (#1462)", () => {
   });
 
   it("順序図系は矢印を持たず、言づてが板の行になる", () => {
-    // 上のループから外した 2 図種を放置すると、板が言づてを落としても誰も気付かない
+    // 上のループから外した図種を放置すると、板が言づてを落としても誰も気付かない
     let 測れた = 0;
-    for (const 型 of ["sequence", "solidity"]) {
+    const 板の図種 = ["sequence"] as const;
+    for (const 型 of 板の図種) {
       const d = textDslToDiagram(記法(型, `  - A -> B: "関係"\n`));
       expect(d.edges, `${型} に矢印が残っている`).toEqual([]);
       const 板 = d.nodes.find((n) => n.kind === "sequence-board");
       expect(板?.sequenceData?.messages.map((m) => m.label), `${型} の言づてが板に無い`).toEqual(["関係"]);
       測れた += 1;
     }
-    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(2);
+    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(板の図種.length);
   });
 
   it("JSON からも同じ値が渡る (書き方で変わらない)", () => {

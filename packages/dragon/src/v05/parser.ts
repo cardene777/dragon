@@ -84,6 +84,7 @@ import {
   resolveLegendMark,
 } from "../keywords";
 import { 区画 } from "../compile/word-state";
+import { 外した図種の知らせ, 外した種類の知らせ } from "./removed-syntax";
 // 行頭の印の古い語の読み替え (#2782)。 印を作る側と同じ file が表を持つ = 縦に並べた形と
 // 中括弧の形と JSON の 3 経路が同じ表を通る
 import { 行頭の語へ読み替える } from "../compile/row-marks";
@@ -609,25 +610,23 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
  * 図種の別名 (#2655 / #2657)。
  *
  * **差が語 1 つしかない図種を、畳んだ先の型とその語に読み替える**。
+ * 数を描く 9 つは `chart` + `shape: <綴り>` に読み替える = 同じ組み立て関数に渡す文字列 2 つ
+ * しか違わない。
  *
- * | 古い綴り | 読み替え先 | 差 |
- * |---|---|---|
- * | `solidity` | `sequence` + `order: 種類` | 箱を種類で並べ替えるだけで、独自の組み立てを持たない |
- * | 数を描く 9 つ | `chart` + `shape: <綴り>` | 同じ組み立て関数に渡す文字列 2 つしか違わない |
- *
- * 型として持つと、同じ扱いをする条件と表が型の数だけ増える。 `solidity` は
- * 「順序図 または その型」 という条件を 12 か所に増やし、数を描く 9 つは 4 つの表に
+ * 型として持つと、同じ扱いをする条件と表が型の数だけ増える。 数を描く 9 つは 4 つの表に
  * 同じ値の行を 9 行ずつ並べていた (足す人が 1 か所書き忘れると黙って外れる)。
+ *
+ * `solidity` も `sequence` + `order: 種類` への別名だったが、特定の技術に向けた図種なので
+ * 外した (#2947)。 書いた人には `removed-syntax.ts` の表が置き換え先を返す。
  *
  * **読み替えは読み取りの入口 1 か所に閉じる**。 ここを通った後は古い綴りが
  * どこにも残らないので、組み立て側は畳んだ先の型として 1 通りに扱える。
  *
  * 古い名前で書いた記法はそのまま動く = 別名を消すのは別の回にする。
  */
-type 読み替え先 = { type: PresetType; order?: DslOrder; shape?: DslShape };
+type 読み替え先 = { type: PresetType; shape?: DslShape };
 
 export const TYPE_ALIASES: ReadonlyMap<string, 読み替え先> = new Map<string, 読み替え先>([
-  ["solidity", { type: "sequence", order: "種類" }],
   ...SHAPES.map((s): [string, 読み替え先] => [s, { type: "chart", shape: s }]),
 ]);
 
@@ -645,8 +644,8 @@ const NODE_KIND_DEFAULT: NodeKind = "actor";
 /**
  * 記法だけが持つ種類。 描画側には無いが、 図種ごとの組み立てで意味を持つ。
  *
- * `contract` / `eoa` / `multisig` / `proxy` / `library` / `interface` は Solidity 図の
- * 役割分けに、 `entity` / `state` は ER 図と状態遷移図に使う。
+ * `entity` / `state` は ER 図と状態遷移図に使う。 Solidity の図の役割分け
+ * (`contract` / `eoa` など) は外した (#2947、置き換え先は `removed-syntax.ts`)。
  *
  * **描画側へ渡す前に必ず読み替える** (`compile.ts` の `描ける種別`)。 読み替えを通さずに渡すと
  * 図の組み立てが落ちる = 描画側は知らない種類の大きさを引けない (#1420 で実測、
@@ -655,12 +654,6 @@ const NODE_KIND_DEFAULT: NodeKind = "actor";
 export const DSL_ONLY_KINDS = [
   "entity",
   "state",
-  "contract",
-  "eoa",
-  "multisig",
-  "proxy",
-  "library",
-  "interface",
   // 繰り返しの箱 (#2523)。 描画側は分かれ道の図の形としてだけ持ち、種類としては持たないため
   // ここに置く。 分かれ道の図では形に読み替わり (`compile/flowchart.ts`)、それ以外の図種では
   // `記法だけの種類の読み替え` が札に落とす
@@ -671,24 +664,17 @@ export const DSL_ONLY_KINDS = [
 export type DslOnlyKind = (typeof DSL_ONLY_KINDS)[number];
 
 /**
- * AWS などの固有名を、 同じ役割を表す汎用の種類に読み替える表。
+ * 一般の語を、 同じ役割を表す描画側の種類に読み替える表。
  *
- * これらは記法が受け付けるのに描画側に無く、 書くと「kind "alb" は未対応」 とエラーになって
- * いた。 受け付けるのをやめると今度は部品名として扱われ「そんな部品はない」 と出る。 どちらも
- * 書いた人が困るだけなので、 意味の近い種類に読み替えて実際に図が出るようにする。
+ * これらは記法が受け付けるのに描画側に無く、 受け付けるのをやめると部品名として扱われ
+ * 「そんな部品はない」 と出る。 書いた人が困るだけなので、 意味の近い種類に読み替えて
+ * 実際に図が出るようにする。
  *
- * 読み替え先が重なるものがある (`iam` と `kms` は権限と鍵を守る役、 `s3` と `secret` は
- * 保管する役)。 見た目が同じになるが、 役割が同じなので嘘にはならない。
+ * AWS の名前 (`alb` / `lambda` / `s3` など) もここで読み替えていたが、特定の会社の語なので
+ * 外した (#2947、置き換え先は `removed-syntax.ts`)。 残る 4 つは特定の会社の語ではない。
  */
 const INFRA_KIND_ALIAS: Record<string, NodeKind> = {
-  alb: "shape-api-gateway", // 入口で振り分ける
   browser: "frontend", // 画面側
-  ecs: "microservice", // コンテナ群
-  iam: "admin", // 権限を守る
-  kms: "admin", // 鍵を守る
-  lambda: "function", // 呼ぶと動く
-  rds: "database", // 表を持つ
-  s3: "storage", // 置き場
   secret: "storage", // 機密の置き場
   user: "person", // 人
   container: "service", // 動かす単位 (C4 の container)
@@ -1505,13 +1491,15 @@ export function parseTextDslV05(src: string): V05ParseResult {
       // **別名を先に引く** (#2655)。 引けたら図種と並び順の 2 つに開いて、以降は
       // その語が 1 か所も残らないようにする
       const 別名 = TYPE_ALIASES.get(v);
-      if (別名 !== undefined) {
+      const 外した = 外した図種の知らせ(v);
+      if (外した !== undefined) {
+        // 外した図種は置き換え先を示す (#2947)。 「図種が読めません」 では書き換え先が分からない
+        errors.push({ line: line.no, ...外した });
+        // 図種は置き換え先の順序図として読み進める。 空のままにすると「type が書かれていません」
+        // が重なり、書いたのに書いていないと言われる
+        type = "sequence";
+      } else if (別名 !== undefined) {
         type = 別名.type;
-        // 書き手が語も書いていればそちらが勝つ = 別名は既定を入れるだけ
-        if (order === null && 別名.order !== undefined) {
-          order = 別名.order;
-          orderLine = line.no;
-        }
         if (別名.shape !== undefined) {
           aliasShape = 別名.shape;
           aliasShapeLine = line.no;
@@ -3981,6 +3969,19 @@ function reportV04Kind(kindRaw: string, line: number, errors: DslError[]): void 
   });
 }
 
+/**
+ * 外した箱の種類を書いた時に置き換え先を知らせる (#2947)。 知らせたら真を返す。
+ *
+ * 真を返した種類は見本 (parts) の名前として扱わない。 扱うと「そんな部品は無い」 が重なって
+ * 出て、置き換え先の知らせが埋もれる。
+ */
+function reportRemovedKind(kindRaw: string, line: number, errors: DslError[]): boolean {
+  const 知らせ = 外した種類の知らせ(kindRaw);
+  if (知らせ === undefined) return false;
+  errors.push({ line, ...知らせ });
+  return true;
+}
+
 /** `色` / `color` のどちらでも書ける。 */
 const COLOR_KEYS = new Set(["色", "color", "tone"]);
 
@@ -4089,11 +4090,12 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "種類": {
         const k = stripQuotes(raw).toLowerCase();
         reportV04Kind(k, ln.no, errors);
-        const isPart = k !== "" && !NODE_KIND_VALID.has(k);
-        out.kind = isPart ? NODE_KIND_DEFAULT : resolveNodeKind(k);
+        const 外した = reportRemovedKind(k, ln.no, errors);
+        const isPart = k !== "" && !外した && !NODE_KIND_VALID.has(k);
+        out.kind = isPart || 外した ? NODE_KIND_DEFAULT : resolveNodeKind(k);
         // parts 候補は `kind` を既定に倒して `partId` へ退避するため、 名札に載せる種類としては
         // 「書かなかった」 と同じ扱いにする (#1058)
-        out.kindWritten = k !== "" && !isPart;
+        out.kindWritten = k !== "" && !isPart && !外した;
         out.partId = isPart ? k : undefined;
         break;
       }
@@ -5256,9 +5258,10 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     // 縦書きでは通り中括弧では落ちる
     const opts = 中括弧の別名を寄せる(parseInlineMapping(mapMatch.inner));
     const kindRaw = (opts.kind ?? "").toLowerCase();
+    const 外した = reportRemovedKind(kindRaw, line.no, errors);
     // CAR-1657 = kind が既存 NODE_KIND_VALID に無い場合 parts identifier 候補として partId に格納、
     // kind は actor default fallback。 compile 側 partsCatalog lookup で解決する。
-    const isPart = kindRaw !== "" && !NODE_KIND_VALID.has(kindRaw);
+    const isPart = kindRaw !== "" && !外した && !NODE_KIND_VALID.has(kindRaw);
     // 倍率はパーツにしか効かない。 書いたのに効かない状態を黙って作らない (#1026)。
     // 値が空の形でも名前を残すため、`opts` ではなく中身から直接拾う
     const inlineScale = resolveScale(writtenScaleFields(mapMatch.inner), line.no, errors);
@@ -5323,7 +5326,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       kind,
       // parts 候補は `kind` を既定に倒して `partId` へ退避するため、 名札に載せる種類としては
       // 「書かなかった」 と同じ扱いにする (#1058)
-      kindWritten: kindRaw !== "" && !isPart,
+      kindWritten: kindRaw !== "" && !isPart && !外した,
       subtitle: opts.subtitle,
       kindForm: 閉じた箱の値("kindForm", KIND_FORM_VALUES),
       icon: 閉じた箱の値("icon", CDL_ICON_VALUES),
@@ -5435,7 +5438,8 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     const v = classifyValues(splitValues(rest), line.no, errors);
 
     // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
-    const isPart = v.kind !== "" && !NODE_KIND_VALID.has(v.kind);
+    const 外した = reportRemovedKind(v.kind, line.no, errors);
+    const isPart = v.kind !== "" && !外した && !NODE_KIND_VALID.has(v.kind);
     reportV04Kind(v.kind, line.no, errors);
     // 倍率はパーツにしか効かない (#1026)
     reportScaleOnNonPart(isPart, v.scaleKeys?.[0], line.no, errors);
@@ -5447,7 +5451,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       kind,
       // parts 候補は `kind` を既定に倒して `partId` へ退避するため、 名札に載せる種類としては
       // 「書かなかった」 と同じ扱いにする (#1058)
-      kindWritten: v.kind !== "" && !isPart,
+      kindWritten: v.kind !== "" && !isPart && !外した,
       // parts では `tone` を状態の上書きとして扱うため、 色として渡さない
       tone: isPart ? undefined : v.tone,
       subtitle: v.subtitle,

@@ -53,7 +53,7 @@ flow:
 | 欄          | 何を書くか                                                                                                                                 |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `title`     | 図の題                                                                                                                                     |
-| `type`      | 図種 (`sequence` / `flow` / `flowchart` / `swimlane` / `record` / `topology` / `gantt` / `mind` / `tree` / `c4` / `chart` / その他)。 古い綴りは組に読み替える = `solidity` は `sequence` と `order: 種類`、数を描く 9 つ (`pie` 等) は `chart` と同じ綴りの `shape` |
+| `type`      | 図種 (`sequence` / `flow` / `flowchart` / `swimlane` / `record` / `topology` / `gantt` / `mind` / `tree` / `c4` / `chart` / その他)。 古い綴りは組に読み替える = 数を描く 9 つ (`pie` 等) は `chart` と同じ綴りの `shape` |
 | `actors`    | 箱                                                                                                                                         |
 | `flow`      | 矢印                                                                                                                                       |
 | `states`    | 状態の初期値                                                                                                                               |

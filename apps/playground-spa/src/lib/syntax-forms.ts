@@ -142,7 +142,7 @@ export const FORMS: Section[] = [
       { code: '  - LB: cloud "振り分け" 警告', note: "並べる順番は自由", noteEn: "The order is free" },
       { code: "  - 決済: 失敗", note: "色だけ", noteEn: "Color only" },
       { code: '  - 表: storage ["id: PK", "name: 文字列"]', note: "行を持つ箱", noteEn: "A box that holds rows" },
-      { code: "  - 保存: s3", note: "固有名でも書ける (storage になる)", noteEn: "A product name works too (it reads as storage)" },
+      { code: "  - 鍵: secret", note: "一般の語でも書ける (storage になる)", noteEn: "A common word works too (it reads as storage)" },
       // 値は箱に出して初めて見える。 書き方を「値」 の節と離さない
       {
         code: '  - 受付: actor "待ち行列" "{waiting}"',

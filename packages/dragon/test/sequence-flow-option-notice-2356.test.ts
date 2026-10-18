@@ -1,7 +1,7 @@
 /*
  * 板の図で、言づてに書いた飾りが黙って消えないことを見る (#2356)。
  *
- * 順序図と Solidity の図は言づてを **板の中の行** として描くため、矢印に付く飾りを載せる先が無い。
+ * 順序図は言づてを **板の中の行** として描くため、矢印に付く飾りを載せる先が無い。
  * 効かないことを伝える仕組みはあったが、**伝える欄を手で並べていた** ため後から足した項目が
  * 入っていなかった (実測 = 矢印に書ける 21 項目のうち 13 件が、図も変わらず知らせも出ない)。
  *
@@ -16,7 +16,7 @@ import { compileToCdl } from "../src/compile";
 import { FLOW_INLINE_KEYS, parseTextDslV05 } from "../src/v05/parser";
 
 /** 言づてを板で描く図種 */
-const 板の図種 = ["sequence", "solidity"] as const;
+const 板の図種 = ["sequence"] as const;
 
 /** 項目ごとに書く値。 一覧は `FLOW_INLINE_KEYS` (実装が SSOT) から導き、値だけここで持つ */
 const 値: Record<string, string> = {

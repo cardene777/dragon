@@ -289,6 +289,10 @@ const 空でよい: Record<string, Record<string, string>> = {
     "縦列の名前を使わない図種":
       "縦列の名前を使わない図種の宣言。 全ての図種が使うようになれば空になるのが正しい状態で、件数を見る検査を足すとその日に落ちる",
   },
+  "packages/dragon/test/notation-option-coverage.test.ts": {
+    "描く側に在るが見本をまだ置いていない値":
+      "`timeline-number` と `leaderTo` を時間軸の見本が使うため未使用は 0 件。 全ての値を見本が使う状態では空が正しく、件数を見る検査を足すと網羅した日に落ちる",
+  },
   "apps/playground-spa/src/lib/catalog-text-fit.test.tsx": {
     "描画側の省略":
       "描画側が自分で書く省略の宣言。 見本の 400 枚超に省略が 0 件 (唯一の `0x…` は #2946 で見本ごと外した) で空が正しく、件数を見る検査を足すと描画側の literal が無い状態で落ちる",

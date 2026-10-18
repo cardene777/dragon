@@ -35,7 +35,6 @@ const 箱ごとの図種: readonly (readonly [string, readonly (string | null | 
   ["record", [undefined, undefined]],
   ["record", [undefined, undefined]],
   ["topology", ["図の題"]],
-  ["solidity", [undefined]],
   ["c4", ["全体の見取り図"]],
 ];
 

@@ -6,6 +6,7 @@
  * 「cdl validate failed: phase が 0 件です」 で弾かれていた。 書く人から見ると区別する手がかりが
  * 無い。
  * `er` と `state` は #2782 で `record` に畳んだので、一覧には `record` を 1 つだけ置く。
+ * `solidity` は #2947 で外した (書くと置き換え先を示す誤りになる)。
  *
  * ## 組み立て結果ではなく画面を見る
  *
@@ -21,7 +22,6 @@ const TYPES = [
   "swimlane",
   "record",
   "topology",
-  "solidity",
   "gantt",
   "pie",
   "c4",

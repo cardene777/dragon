@@ -52,7 +52,7 @@ describe("光らせる相手の読み方", () => {
   it("`-` 1 文字は矢印にしない (名前に使える文字)", () => {
     // これを矢印と見なすと `api-gateway` が「api から gateway」 と読まれる
     expect(parseFocusEntry("api-gateway")).toEqual({ kind: "node", name: "api-gateway" });
-    expect(parseFocusEntry("shape-api-gateway")).toEqual({ kind: "node", name: "shape-api-gateway" });
+    expect(parseFocusEntry("shape-code-block")).toEqual({ kind: "node", name: "shape-code-block" });
   });
 
   it("`>` 1 文字も矢印にしない", () => {
@@ -316,8 +316,8 @@ describe("空白を含む名前を引用符で指す (#1192)", () => {
     const src = `title: "t"
 type: topology
 actors:
-  - "Aave v3": shape-smart-contract "pool"
-  - 供給者: shape-wallet "USDC"
+  - "Aave v3": shape-code-block "pool"
+  - 供給者: shape-person "USDC"
 flow:
   - 供給者 -> "Aave v3": ""
 animation:
@@ -359,8 +359,8 @@ describe("名前の途中の引用符は囲みにしない (#1192)", () => {
     const src = `title: "t"
 type: topology
 actors:
-  - 供給者: shape-wallet "USDC"
-  - v3: shape-smart-contract "pool"
+  - 供給者: shape-person "USDC"
+  - v3: shape-code-block "pool"
 flow:
   - 供給者 -> v3: ""
 animation:
@@ -374,8 +374,8 @@ animation:
     const src = `title: "t"
 type: topology
 actors:
-  - "Aave' v3": shape-smart-contract "pool"
-  - 供給者: shape-wallet "USDC"
+  - "Aave' v3": shape-code-block "pool"
+  - 供給者: shape-person "USDC"
 flow:
   - 供給者 -> "Aave' v3": ""
 animation:

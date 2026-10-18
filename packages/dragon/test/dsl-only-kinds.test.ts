@@ -1,21 +1,21 @@
 /**
  * 記法だけが持つ種類を書いても図が出る (#1420)。
  *
- * 記法は `contract` / `eoa` のような **描画側に無い種類** を受け付ける
- * (`v05/parser.ts` の `DSL_ONLY_KINDS`)。 図種ごとの役割分け (`solidity` の縦列の並べ替え
- * など) に使うためで、記法としては正しい。
+ * 記法は `entity` / `state` のような **描画側に無い種類** を受け付ける
+ * (`v05/parser.ts` の `DSL_ONLY_KINDS`)。 図種ごとの役割分け (ER 図の実体など) に使うためで、
+ * 記法としては正しい。
  *
  * ## 何が起きていたか
  *
- * `solidity` と `er` は組み立ての中で別の種類に置き換えていたが、`flow` / `swimlane` /
- * `state` / `topology` は書いた種類をそのまま描画側へ渡していた。
+ * `er` は組み立ての中で別の種類に置き換えていたが、`flow` / `swimlane` / `state` /
+ * `topology` は書いた種類をそのまま描画側へ渡していた。
  *
  * 描画側は知らない種類の大きさを引けないため、図の組み立てが落ちる。
  *
  * ```
  * type: flow
  * actors:
- *   - A: { kind: contract }
+ *   - A: { kind: entity }
  * → Cannot read properties of undefined (reading 'h')
  * ```
  *
@@ -34,7 +34,7 @@ import type { DslNodeKind } from "../src/types";
 import { DSL_ONLY_KINDS, resolveNodeKind } from "../src/v05/parser";
 
 /** 箱の種類を書ける図種。 図全体を 1 箱にする種 (`pie` 等) は箱ごとの種類を持たない */
-const 図種 = ["flow", "swimlane", "record", "topology", "sequence", "solidity"] as const;
+const 図種 = ["flow", "swimlane", "record", "topology", "sequence"] as const;
 
 /**
  * 段の有無で組み立ての経路が分かれる。
@@ -81,7 +81,7 @@ describe("記法だけの種類を書いても図が組み立つ (#1420)", () =>
      * `typecheck-ratchet.test.ts` がその件数を天井として見る。 同じ変異で件数が
      * 208 → 209 に増え、天井の検査が落ちることを確かめている。
      */
-    expectTypeOf(resolveNodeKind("contract")).toEqualTypeOf<DslNodeKind>();
+    expectTypeOf(resolveNodeKind("entity")).toEqualTypeOf<DslNodeKind>();
   });
 
   it("読み替えの対象が 1 件以上ある", () => {

@@ -64,8 +64,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
-  ORDERS,
-  ORDER_ALIAS,
   TONE_ALIAS,
   TYPE_ALIASES,
   diagramJsonSchema,
@@ -675,9 +673,9 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
 };
 
 /**
- * 図種の古い綴り (`$.type=solidity`) なら、読み替えた先の道を返す (#2655)。
+ * 図種の古い綴り (`$.type=pie`) なら、読み替えた先の道を返す (#2655)。
  *
- * 古い綴りは記法と JSON の入口で 図種 + 並べ替え に読み替わる。 読み替えた先が
+ * 古い綴りは記法と JSON の入口で 図種 + 形 に読み替わる。 読み替えた先が
  * カタログに書かれていれば、その綴りで書いた図と同じものを見本が見せている。
  *
  * **カタログには新しい書き方だけを置く**。 古い綴りの見本を足すと、いま書くべき形が
@@ -689,13 +687,6 @@ function 図種の別名(道: string): { 指す先: string[] } | undefined {
   const 別名 = TYPE_ALIASES.get(m[1]!);
   if (別名 === undefined) return undefined;
   const 指す先 = [`$.type=${別名.type}`];
-  if (別名.order !== undefined) {
-    // JSON は英語で書く。 記法の値 (`種類`) をそのまま道にすると、書いた側と綴りが合わない
-    const 英語 = Object.keys(ORDER_ALIAS).find(
-      (k) => ORDER_ALIAS[k] === 別名.order && !(ORDERS as readonly string[]).includes(k),
-    );
-    指す先.push(`$.order=${英語 ?? 別名.order}`);
-  }
   if (別名.shape !== undefined) 指す先.push(`$.shape=${別名.shape}`);
   return { 指す先 };
 }

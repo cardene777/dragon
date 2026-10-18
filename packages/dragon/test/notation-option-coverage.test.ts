@@ -48,7 +48,6 @@ import {
 } from "@cardenelabs/cdl";
 
 import { 全図 } from "./support/responsive-accepted";
-import { 外した挿絵の種類 } from "./support/removed-illustration-kinds";
 
 /**
  * 図を歩いて、場所ごとに現れた文字列を集める。
@@ -129,15 +128,8 @@ const 選択肢: ReadonlyArray<{
   },
 ];
 
-/**
- * 描く側に在るが、見本を置いていない値。
- *
- * `NODE_KINDS` には見本帳から外した挿絵の種類 (#2946) が cdl から外すまで残る。
- * 一覧と理由は `support/removed-illustration-kinds.ts` が持つ。
- */
-const 描く側に在るが見本をまだ置いていない値: Readonly<Record<string, readonly string[]>> = {
-  NODE_KINDS: 外した挿絵の種類,
-};
+/** 描く側に在るが、見本をまだ置いていない値。 */
+const 描く側に在るが見本をまだ置いていない値: Readonly<Record<string, readonly string[]>> = {};
 
 /** その一覧の場所に現れた値を合わせる。 */
 function 明示の値(場所: readonly string[]): Set<string> {

@@ -90,6 +90,7 @@ import {
 } from "./keywords";
 // 区画の語の表 (#2667)。 記法と同じ表から直す = 同じ区画を 2 通りで呼ばない
 import { 区画 } from "./compile/word-state";
+import { 外した図種の知らせ, 外した種類, 外した種類の知らせ } from "./v05/removed-syntax";
 // 行頭の印の古い語の読み替え (#2782)。 記法と同じ表を通す = JSON だけ古い語が印を持たない
 // 形にならない
 import { 行頭の語へ読み替える } from "./compile/row-marks";
@@ -139,7 +140,7 @@ import {
 } from "./relative-pos";
 
 /** 古い綴りで書いた図種 (#2655 / #2657)。 受ける値は `TYPE_ALIASES` が SSOT */
-type 図種の別名 = "solidity" | DslShape;
+type 図種の別名 = DslShape;
 
 /**
  * LLM 向け JSON DSL の入力 shape。 YAML DSL と 1:1 対応、 top-level は flat な object。
@@ -150,8 +151,9 @@ export interface DragonJson {
   /**
    * preset type (必須)。 受け付ける値は `PRESET_TYPES` と `TYPE_ALIASES` が SSOT。
    *
-   * 別名 (#2655 / #2657) は読み取りで図種と語の 2 つに開く = `solidity` と書いた JSON は
-   * 順序図 + 種類で並べ替え、`pie` と書いた JSON は 数を描く図 + 円の形 として読まれる。
+   * 別名 (#2655 / #2657) は読み取りで図種と語の 2 つに開く = `pie` と書いた JSON は
+   * 数を描く図 + 円の形 として読まれる。 外した図種 (`solidity`) は置き換え先を誤りとして返す
+   * (#2947、`v05/removed-syntax.ts`)。
    */
   type: PresetType | 図種の別名;
   /** 円グラフの見せ方。 */
@@ -1621,7 +1623,13 @@ function 値を検査(
         });
       }
       return;
-    case "必須の図種":
+    case "必須の図種": {
+      // 外した図種は置き換え先を示す (#2947)。 「使える図種の一覧」 では書き換え先が分からない
+      const 外した = typeof v === "string" ? 外した図種の知らせ(v) : undefined;
+      if (外した !== undefined) {
+        errors.push({ path, message: `${名前} "${String(v)}" was removed`, hint: 外した.hint });
+        return;
+      }
       if (
         typeof v !== "string" ||
         !(VALID_PRESETS.includes(v as PresetType) || VALID_ALIASES.includes(v))
@@ -1633,6 +1641,7 @@ function 値を検査(
         });
       }
       return;
+    }
     case "object":
     case "並び":
     case "必須の並び":
@@ -1779,7 +1788,8 @@ function validateRelativeAnchors(actors: readonly unknown[], errors: JsonDslErro
  */
 function 見本の名前か(kind: unknown): boolean {
   if (typeof kind !== "string" || kind.length === 0) return false;
-  return kind !== "actor" && !VALID_KIND_SET.has(kind);
+  // 外した種類は見本の名前として扱わない (#2947)。 置き換え先の知らせだけを出す
+  return kind !== "actor" && !外した種類.has(kind) && !VALID_KIND_SET.has(kind);
 }
 
 /**
@@ -3361,6 +3371,11 @@ function validateJson(
       }
       const ao = a as Record<string, unknown>;
       checkUnknownKeys(ao, "actor", `$.actors[${i}]`, errors);
+      // 外した種類は置き換え先を示す (#2947)。 記法と同じ表を引く
+      const 外した = typeof ao.kind === "string" ? 外した種類の知らせ(ao.kind) : undefined;
+      if (外した !== undefined) {
+        errors.push({ path: `$.actors[${i}].kind`, message: `kind "${String(ao.kind)}" was removed`, hint: 外した.hint });
+      }
       // 値そのものの型は表が見る (#1304)。 `kind` は見本 (parts) の名前も受けるため
       // 非空の文字列までしか縛らない (CAR-1657 の unified syntax)
       表で検査(ao, "actor", `$.actors[${i}]`, "actor", errors);
@@ -3818,17 +3833,20 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     }
     // CAR-1657 = kind が既存 NodeKind に無い値なら parts identifier 候補、 partId に格納
     const kindStr = a.kind ?? "actor";
-    const isPart = kindStr !== "actor" && !VALID_KIND_SET.has(kindStr);
+    const isPart = 見本の名前か(kindStr);
+    // 外した種類 (#2947) は検査が誤りとして返す。 検査を通さずに呼ばれても描けない種類を
+    // 描画側へ渡さないよう、書かなかった箱と同じ扱いにする
+    const 外した = 外した種類.has(kindStr);
     // 色は記法と同じ振り分けを通す (#1294)。 `#` で始まれば色番号、それ以外は色の名前。
     // 別々に書くと、同じ値が入口によって色番号にも色名にもなる
     const 色 = a.color !== undefined ? splitColorValue(a.color) : {};
     const 書いた座標 = a.at ?? a.点の位置;
     return {
       name: a.name,
-      kind: isPart ? "actor" : resolveNodeKind(kindStr),
+      kind: isPart || 外した ? "actor" : resolveNodeKind(kindStr),
       // parts 候補は `kind` を `actor` に倒して `partId` へ退避するため、 名札に載せる種類としては
       // 「書かなかった」 と同じ扱いにする (#1058)
-      kindWritten: a.kind !== undefined && !isPart,
+      kindWritten: a.kind !== undefined && !isPart && !外した,
       subtitle: a.subtitle,
       kindForm: isPart ? undefined : a.kindForm,
       icon: isPart ? undefined : a.icon,
@@ -4138,7 +4156,6 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.ganttSize !== undefined ? { ganttSize: json.ganttSize } : {}),
     ...(json.quadrantLabelPosition !== undefined ? { quadrantLabelPosition: json.quadrantLabelPosition } : {}),
     ...(json.quadrantSize !== undefined ? { quadrantSize: json.quadrantSize } : {}),
-    ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
     ...(別名?.shape !== undefined ? { shape: 別名.shape, shapePos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから
     // 空かどうかを判定するため、 揃えないと **空白だけの値で入口ごとに図が変わる**

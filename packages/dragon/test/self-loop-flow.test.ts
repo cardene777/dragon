@@ -32,7 +32,7 @@ import type { CompileNotice } from "../src/index";
  * `flow` は入れない = 静止図では登場人物を書いた順に鎖状に繋ぐため、書いた矢印を使わない
  * (別の検査で見る)。
  *
- * `sequence` / `solidity` も入れない = #1466 で 1 枚の板になり、言づては矢印ではなく板の中の
+ * `sequence` も入れない = #1466 で 1 枚の板になり、言づては矢印ではなく板の中の
  * 行になった。 自分宛てが行として残ることは下の describe が板の側で見る。
  */
 const 書いた矢印を使う図種 = [
@@ -76,13 +76,14 @@ describe("書いた矢印を使う図種では輪として残る (#1462)", () =>
 
   it("順序図系では板の行として残る (#1466)", () => {
     let 測れた = 0;
-    for (const 型 of ["sequence", "solidity"]) {
+    const 板の図種 = ["sequence"] as const;
+    for (const 型 of 板の図種) {
       const { d } = 組む(型, `  - A -> A: "自分"\n`, 二人);
       const 言づて = d.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.messages ?? [];
       expect(言づて.filter((m) => m.from === m.to).length, `${型} で自分宛てが消えている`).toBe(1);
       測れた += 1;
     }
-    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(2);
+    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(板の図種.length);
   });
 
   it("知らせを出さない (描けるようになったため)", () => {

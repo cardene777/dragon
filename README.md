@@ -124,7 +124,7 @@ detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference 
 | 層 | dragon (本 repo) | cdl ([リポジトリ](https://github.com/cardene777/cdl)) |
 |---|---|---|
 | **役割** | 記法層 = 人 / LLM 向け DSL parser + catalog SPA | engine = shape 描画 + builder API + layout + render |
-| **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け) / catalog の実例 | 49 shape kind / TypeScript builder / layout engine / animation runtime |
+| **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け) / catalog の実例 | 基本の形と汎用の挿絵の shape kind / TypeScript builder / layout engine / animation runtime |
 | **書く主体** | 人 / LLM が書く | dragon が裏で呼ぶ (人 / LLM は直接触らない前提) |
 | **npm package** | `@cardenelabs/dragon` | `@cardenelabs/cdl` (描画の出口は `@cardenelabs/cdl/react`) |
 
@@ -214,9 +214,8 @@ actors:
 違う (`行` は `storage` 等の行を描く種類でだけ出る) ため、 書いたのに出ない項目は editor の
 画面に警告として出る。
 
-Solidity の図で使う種類 (`eoa` / `contract` / `proxy` / `library` / `interface` / `multisig` /
-`wallet`) は、 意味の近い形に読み替えて描く (`eoa` は財布、 `contract` は契約書の形)。 縦線の
-並び順は読み替える前の種類で決まるので、 並びは変わらない。
+特定の技術や会社に向けた書き方 (`type: solidity`、 Solidity の図の種類、 AWS の名前) は外した。
+書くと置き換え先を示す誤りが出る (一覧は `packages/dragon/src/v05/removed-syntax.ts`)。
 
 ### 位置と大きさ
 

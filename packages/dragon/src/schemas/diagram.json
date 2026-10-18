@@ -29,7 +29,6 @@
         "swimlane",
         "record",
         "topology",
-        "solidity",
         "gantt",
         "chart",
         "pie",
@@ -48,7 +47,7 @@
         "c4",
         "mind"
       ],
-      "description": "図の種類。 型ごとに actors の書き方が違う。 [関係を描く] sequence (時系列の呼び出し) / flow (処理の流れ) / flowchart (分かれ道と判断を含む手順) / swimlane (責務ごとの流れ) / record (箱が行を持ち関係を持つ図。 表のつながり、移り変わり、UML クラス関係にも使う) / topology (network) / c4 (architecture) / mind (発想の枝分かれ) は actors に名前を並べ flow に矢印を書く。 [値を描く] chart (数の並び) は actors に `- 名前: \"45\"` の形で数を書き、 shape で形を選ぶ (pie = 割合 / bar = 棒の高さ / line = 線の高さで書いた順に並ぶ / gauge = 合計を半円で示す / radial = 弧の長さで比べる / stat = 値 1 つを大きく示す / waffle = 割合を 100 個の印で示す / stacked = 内訳を帯で示す / slope = 2 時点を直線でつなぎ増減と順位の入れ替わりを示す)。 shape が stat と stacked と slope の時は `- 名前: { value: \"320\", previous: \"280\" }` の形で前の時点の値も書ける。 funnel (段ごとに減る数) も同じ形。 [語を描く] journey (体験の起伏) は `- 登録: \"不満\"` の形で 最高 / 満足 / 普通 / 不満 / 怒り のどれかを書く。 quadrant (2 軸の仕分け) は `- 重複削除: \"左上\"` の形で 左上 / 右上 / 左下 / 右下 のどれかを書く。 [時期を描く] gantt (工程の並び) は `- 設計: \"1月\"` の形で始まりの時期を書き、 flow の矢印で前後関係を書く。 [親子を描く] tree (親子の入れ子) は actors に名前を並べ flow の矢印で親子を書く (矢印の先が子)。 [古い綴り] solidity は sequence と order: kind の組、 pie / bar / line / gauge / radial / stat / waffle / stacked / slope は chart と同じ綴りの shape の組と同じ扱いになる"
+      "description": "図の種類。 型ごとに actors の書き方が違う。 [関係を描く] sequence (時系列の呼び出し) / flow (処理の流れ) / flowchart (分かれ道と判断を含む手順) / swimlane (責務ごとの流れ) / record (箱が行を持ち関係を持つ図。 表のつながり、移り変わり、UML クラス関係にも使う) / topology (network) / c4 (architecture) / mind (発想の枝分かれ) は actors に名前を並べ flow に矢印を書く。 [値を描く] chart (数の並び) は actors に `- 名前: \"45\"` の形で数を書き、 shape で形を選ぶ (pie = 割合 / bar = 棒の高さ / line = 線の高さで書いた順に並ぶ / gauge = 合計を半円で示す / radial = 弧の長さで比べる / stat = 値 1 つを大きく示す / waffle = 割合を 100 個の印で示す / stacked = 内訳を帯で示す / slope = 2 時点を直線でつなぎ増減と順位の入れ替わりを示す)。 shape が stat と stacked と slope の時は `- 名前: { value: \"320\", previous: \"280\" }` の形で前の時点の値も書ける。 funnel (段ごとに減る数) も同じ形。 [語を描く] journey (体験の起伏) は `- 登録: \"不満\"` の形で 最高 / 満足 / 普通 / 不満 / 怒り のどれかを書く。 quadrant (2 軸の仕分け) は `- 重複削除: \"左上\"` の形で 左上 / 右上 / 左下 / 右下 のどれかを書く。 [時期を描く] gantt (工程の並び) は `- 設計: \"1月\"` の形で始まりの時期を書き、 flow の矢印で前後関係を書く。 [親子を描く] tree (親子の入れ子) は actors に名前を並べ flow の矢印で親子を書く (矢印の先が子)。 [古い綴り] pie / bar / line / gauge / radial / stat / waffle / stacked / slope は chart と同じ綴りの shape の組と同じ扱いになる"
     },
     "form": {
       "type": "string",
@@ -410,7 +409,7 @@
               },
               "kind": {
                 "type": "string",
-                "description": "node kind。 shape-* を指定して 49 shape 中から選ぶ。 例: 'shape-wallet' / 'shape-smart-contract' / 'shape-cloud' / 'shape-file' / 'actor' (default) / 'function' / 'storage' / 'event' 等。 種別に無い名前は部品の名前として部品の一覧 (partsCatalog) から引き、一覧にも無ければ種別を書かなかった箱になる。 部品を持つ一覧を渡した時は知らせを出し、綴りの近い名前を案内する。"
+                "description": "node kind。 shape-* を指定すると基本の形 (箱の形そのものを描く) と汎用の挿絵 (窓 / 端末 / コードの札 / 携帯 / サーバーの棚) から選べる。 例: 'shape-cloud' / 'shape-file' / 'shape-window' / 'actor' (default) / 'function' / 'storage' / 'event' 等。 種別に無い名前は部品の名前として部品の一覧 (partsCatalog) から引き、一覧にも無ければ種別を書かなかった箱になる。 部品を持つ一覧を渡した時は知らせを出し、綴りの近い名前を案内する。"
               },
               "subtitle": {
                 "type": "string",

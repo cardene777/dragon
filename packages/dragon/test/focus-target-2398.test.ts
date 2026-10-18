@@ -15,7 +15,7 @@
  * | 光り方 | 書き分けると | 知らせ |
  * |---|---|---|
  * | 書いた箱 / 矢印が光る (`flow` 等) | 分かれる | 出さない |
- * | 書いた名前に合う言づてまで板が進む (`sequence` / `solidity`) | 分かれる | 出さない |
+ * | 書いた名前に合う言づてまで板が進む (`sequence`) | 分かれる | 出さない |
  * | 図全体の 1 箱が光る (残る図種) | 分かれない | `focus-target-not-honored` |
  *
  * **板の 2 図種を「図に箱も矢印も無い」 だけで括らない**。 板は箱も矢印も作らないが、書いた
@@ -136,7 +136,7 @@ describe("書いたとおりに光らない図種は、そのことを知らせ�
     const 番号 = (図種: string, focus: string): unknown =>
       (JSON.parse(測る(図種, focus).段) as { sets?: { stateId: string; value: number }[] }[])[0]
         ?.sets?.find((s) => s.stateId === "seq_step")?.value;
-    for (const t of ["sequence", "solidity"]) {
+    for (const t of ["sequence"]) {
       expect(番号(t, '"あ -> い"'), `${t} の 1 通目`).toBe(0);
       expect(番号(t, '"い -> う"'), `${t} の 2 通目`).toBe(1);
       expect(注目の知らせ(測る(t, "あ")), `${t} で知らせが出ている`).toEqual([]);
