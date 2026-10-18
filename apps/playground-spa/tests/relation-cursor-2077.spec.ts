@@ -27,6 +27,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { 図の箱が出るまで待つ } from "./wait-for-render";
+import { 一覧の行 } from "./catalog-item-pick";
 import { PRESETS } from "../src/lib/presets";
 import { sourceYaml__presetDeliveryRelations } from "../src/topics/catalog/presets.cdl";
 
@@ -42,15 +43,18 @@ const 触れて読む見本 = PRESETS.filter(
 
 test("押せる箱を持つ見本が 1 枚以上ある (検査の空振り検知)", () => {
   expect(
-    触れて読む見本.map((p) => p.slug),
+    触れて読む見本.map((p) => p.id),
     "`relations: hover` を書いた見本が 1 枚も無い (対象の拾い方が実装とずれた)",
   ).not.toEqual([]);
 });
 
 for (const 見本 of 触れて読む見本) {
-  test(`見本 ${見本.slug} の押せる箱が押せる形になる`, async ({ page }) => {
-    await page.goto(`preset/${見本.slug}`, { waitUntil: "networkidle" });
-    await 図の箱が出るまで待つ(page, `見本 ${見本.slug}`);
+  test(`見本 ${見本.id} の押せる箱が押せる形になる`, async ({ page }) => {
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
+    const 行 = 一覧の行(page, 見本.diagram.id);
+    await expect(行, `${見本.id} を一覧から選べない`).toBeVisible();
+    await 行.click();
+    await expect(page.locator(`[data-cdl-diagram="${見本.diagram.id}"] svg`).first()).toBeVisible();
 
     const m = await page.evaluate(() => {
       const 押せる = [...document.querySelectorAll('[data-cdl-node][role="button"]')];
@@ -85,8 +89,11 @@ test("押せない箱には押せる形の cursor を出さない (対照)", asy
   );
   expect(押せない, "関係を書いていない見本が 1 枚も無い").toBeDefined();
 
-  await page.goto(`preset/${押せない!.slug}`, { waitUntil: "networkidle" });
-  await 図の箱が出るまで待つ(page, `見本 ${押せない!.slug}`);
+  await page.goto("catalog/presets", { waitUntil: "networkidle" });
+  const 行 = 一覧の行(page, 押せない!.diagram.id);
+  await expect(行, `${押せない!.id} を一覧から選べない`).toBeVisible();
+  await 行.click();
+  await expect(page.locator(`[data-cdl-diagram="${押せない!.diagram.id}"] svg`).first()).toBeVisible();
 
   const m = await page.evaluate(() => {
     const 箱 = [...document.querySelectorAll("[data-cdl-node]")];

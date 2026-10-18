@@ -8,7 +8,6 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
-import { PRESETS } from "./presets";
 import { motionOf, motionNote } from "./catalog-motion";
 
 /**
@@ -44,8 +43,6 @@ const CONTINUOUS_WORDS = [
  * 一覧は `CatalogItem.subtitle` が SSOT で、`subtitle__X` を持たない図は `diagram.topic` が入る。
  * `parts` は画面側で後から読み込む形なので明示的に足す (足さないと 80 件が範囲から漏れる)。
  *
- * **preset の詳細画面は別の入れ物を使う**。 `PresetDetailPage` は `CatalogItem` を経由せず
- * `PRESETS` の説明を直に出すため、ここを足さないとその画面の説明が範囲から漏れる。
  */
 async function allDescriptions(): Promise<Array<{ where: string; name: string; text: string; diagram: CdlDiagram }>> {
   const out: Array<{ where: string; name: string; text: string; diagram: CdlDiagram }> = [];
@@ -57,9 +54,6 @@ async function allDescriptions(): Promise<Array<{ where: string; name: string; t
     for (const item of items) {
       out.push({ where: category, name: item.title, text: item.subtitle, diagram: item.diagram });
     }
-  }
-  for (const preset of PRESETS) {
-    out.push({ where: "preset 詳細", name: preset.id, text: preset.subtitle, diagram: preset.diagram });
   }
   return out;
 }
@@ -287,12 +281,11 @@ describe("動きの記述 (#1043)", () => {
    *
    * 素の `.subtitle` だけを見ていると、言語で出し分ける関数へ包んだ瞬間に
    * その表示が母集団から消える。 検査は緑のままなのに見る対象が減る形になる
-   * (実測 = `PresetDetailPage` が `presetSubtitle()` へ移った時に 1 件、
-   * `CategoryPage` が `itemSubtitle()` へ移った時に 2 件が黙って落ちた)。
+   * (実測 = `CategoryPage` が `itemSubtitle()` へ移った時に 2 件が黙って落ちた)。
    *
    * 関数を足す時はここへ 1 つ足す。 足し忘れは下の「1 つも見つからない」 の歯止めが拾う。
    */
-  const 説明を出す行 = /\.subtitle|itemSubtitle\(|presetSubtitle\(/;
+  const 説明を出す行 = /\.subtitle|itemSubtitle\(/;
 
   it("説明を出す箇所ごとに、導いた一文が隣にある", () => {
     // **file 単位で見ない** (#1053)。 file のどこかに `motionNote` があれば通る形だと、
@@ -315,7 +308,7 @@ describe("動きの記述 (#1043)", () => {
       });
     }
     // 検査が空振りしていないこと (表示箇所を 1 つも見つけられない形)
-    expect(sinks, "説明を出す箇所が 1 つも見つからない").toBeGreaterThan(3);
+    expect(sinks, "説明を出す箇所が 1 つも見つからない").toBeGreaterThan(2);
     expect(bad, `導いた一文が隣にない表示:\n${bad.join("\n")}`).toHaveLength(0);
   });
 

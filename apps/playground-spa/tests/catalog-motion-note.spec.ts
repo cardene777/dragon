@@ -35,13 +35,6 @@ test.describe("動きの記述の表示 (#1053)", () => {
     expect(note, "連続して動く図の一文が違う").toBe("段の中で値が連続して動く");
   });
 
-  test("preset 詳細でも一文が出る", async ({ page }) => {
-    await page.goto("preset/swimlane", { waitUntil: "networkidle" });
-    await page.waitForTimeout(600);
-    const note = (await page.locator(".nm-hero-motion").first().textContent())?.trim();
-    expect(NOTES, `preset 詳細の一文が想定外: ${note}`).toContain(note);
-  });
-
   test("拡大表示でも一文が出る", async ({ page }) => {
     await openItem(page, "presets", "スイムレーン");
     await page.locator("main.catalog-preview").getByRole("button", { name: /拡大/ }).first().click();

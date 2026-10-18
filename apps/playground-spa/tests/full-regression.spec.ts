@@ -32,9 +32,9 @@ const 決まった画面: 画面[] = [
     expectSelector: ".v4-editor, main",
   },
   { path: "catalog", slug: "catalog-index", 行き先: "/catalog", expectSelector: "h1" },
-  { path: "preset/swimlane", slug: "preset-swimlane", 行き先: "/preset/:id", expectSelector: "h1" },
   { path: "release-notes", slug: "release-notes", 行き先: "/release-notes", expectSelector: "h1" },
-  { path: "contribute", slug: "contribute", 行き先: "/contribute", expectSelector: "h1" },
+  { path: "preset/swimlane", slug: "removed-preset-detail", 行き先: "*", expectSelector: ".v4-404-code" },
+  { path: "contribute", slug: "removed-contribute", 行き先: "*", expectSelector: ".v4-404-code" },
   { path: "does-not-exist", slug: "404", 行き先: "*", expectSelector: ".v4-404-code" },
 ];
 

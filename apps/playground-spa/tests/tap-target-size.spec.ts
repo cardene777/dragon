@@ -3,7 +3,6 @@ import { expect, test, type Page } from "@playwright/test";
 import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
 import { 開く口, 開いた状態ごとに } from "./phone-openers";
 import { CATEGORIES } from "../src/lib/catalog";
-import { PRESETS } from "../src/lib/presets";
 
 /*
  * 携帯の幅で押せる的が 24px 以上あることを見る (#2541)。
@@ -20,7 +19,7 @@ import { PRESETS } from "../src/lib/presets";
  * その画面は永久に測られず、しかも検査は「全件通った」 と報告するので表に出ない。
  * 的の class を実物から拾っておきながら、画面の側は手で持っていた。
  *
- * `mobile-overflow.spec.ts` と同じく `画面の経路()` から読む。 欄 (`:slug` / `:id` /
+ * `mobile-overflow.spec.ts` と同じく `画面の経路()` から読む。 欄 (`:slug` /
  * `:filename`) は分類とひな形の一覧で全件に広げるので、画面が増えても見本が増えても、
  * 追記を忘れて対象から外れることが無い。
  */
@@ -39,7 +38,6 @@ const 下限 = 24;
  */
 const 欄の値: Record<string, readonly string[]> = {
   ":slug": CATEGORIES.map((c) => c.slug),
-  ":id": PRESETS.map((p) => p.slug),
   ":filename": ["diagram.yaml"],
   "*": ["does-not-exist"],
 };
@@ -124,7 +122,6 @@ async function 開いて測る(page: Page, 道: string): Promise<箱[]> {
 test("測る画面を実装から読めている (空振り検知)", () => {
   expect(対象の経路.length, "main.tsx から経路を 1 つも読めていない").toBeGreaterThan(0);
   expect(画面.length, "広げた先の画面が 0 件").toBeGreaterThan(対象の経路.length);
-  expect(PRESETS.length, "見本の一覧が空").toBeGreaterThan(0);
   expect(CATEGORIES.length, "分類の一覧が空").toBeGreaterThan(0);
   expect(
     値を入れる節(対象の経路).sort(),

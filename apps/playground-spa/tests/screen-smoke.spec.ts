@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 
 import { 画面の経路 } from "./app-routes";
-import { PRESETS } from "../src/lib/presets";
 
 /**
  * どの画面も **開けば出る** ことを、経路の一覧から漏れなく確かめる (#1709)。
@@ -25,7 +24,6 @@ import { PRESETS } from "../src/lib/presets";
 /** 経路の `:欄` に入れる値。 経路に出る欄が増えると下の突き合わせが落ちる */
 const 欄の値: Record<string, string> = {
   ":slug": "presets",
-  ":id": PRESETS[0]!.slug,
   ":filename": "diagram.yaml",
 };
 

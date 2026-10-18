@@ -48,7 +48,8 @@ import { fileURLToPath } from "node:url";
 import { test, expect, type Page } from "@playwright/test";
 
 import { moduleToItems } from "../src/lib/catalog-items";
-import { PRESETS, presetCatalogKey, presetName } from "../src/lib/presets";
+import { itemName } from "../src/lib/i18n";
+import { PRESETS, presetCatalogKey } from "../src/lib/presets";
 import * as ひな形の見本 from "../src/topics/catalog/presets.cdl";
 
 /**
@@ -72,7 +73,7 @@ type 描き手 = "矢印" | "図" | "なし";
  * 「表と一覧がずれている」 で落ちたまま放置されていた。 いまは
  *
  *   - 鍵がそろっているか = 「見落としている見本が無い」 が登録簿と突き合わせる
- *   - 画面に出る名前 = `presetName()` が登録簿から引く
+ *   - 画面に出る名前 = カタログの名前の表から引く
  *
  * の 2 つで、手で書くのは担い手 (何が伸びるか) だけになった。 担い手は図を実際に
  * 動かさないと決まらないので、実物から導けない。
@@ -126,7 +127,7 @@ const ひな形の項目 = moduleToItems(ひな形の見本);
 const 見本 = PRESETS.flatMap((p) => {
   const 元 = {
     id: p.id,
-    label: presetName(p, "ja"),
+    label: itemName(presetCatalogKey(p), "ja"),
     パターン: undefined as string | undefined,
     描き手: 描き手たち[p.id],
   };

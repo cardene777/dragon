@@ -68,18 +68,6 @@ const 言語と道 = (["ja", "en"] as const).flatMap((言語) =>
   (["成功", "失敗"] as const).map((道) => ({ 言語, 道 })),
 );
 
-test.describe("見本の詳細の知らせ (#2447)", () => {
-  for (const { 言語, 道 } of 言語と道) {
-    test(`${言語} で URL コピーを押す (写し取りが${道})`, async ({ page }) => {
-      await 開く(page, "preset/flow", 言語, 道);
-      // 写せない時は何も開かないが、念のため窓が出ても止まらないようにする
-      page.on("dialog", (d) => void d.dismiss());
-      await page.getByRole("button", { name: /URL コピー|Copy URL/ }).first().click();
-      言語が合う(await 知らせの字(page), 言語, "知らせ");
-    });
-  }
-});
-
 test.describe("編集画面の知らせ (#2447)", () => {
   for (const { 言語, 道 } of 言語と道) {
     test(`${言語} で共有を押す (写し取りが${道})`, async ({ page }) => {

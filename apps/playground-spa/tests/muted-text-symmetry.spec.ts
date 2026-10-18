@@ -377,7 +377,6 @@ const 画面 = [
   { path: "", 部品: undefined }, // 35 件
   { path: "catalog/presets", 部品: undefined }, // 26 件
   { path: "editor", 部品: undefined }, // 90 件
-  { path: "contribute", 部品: undefined }, // 5 件
   { path: "catalog/interactive", 部品: "interactive-dynamic-readouts" }, // 135 件
 ] as const;
 

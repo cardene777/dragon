@@ -14,6 +14,8 @@
  */
 import { test, expect } from "@playwright/test";
 import { 箱と矢印を開く } from "./box-and-edge-figure";
+import { 一覧の行 } from "./catalog-item-pick";
+import { PRESETS } from "../src/lib/presets";
 import {
   effectivePaint,
   parseColor,
@@ -110,6 +112,17 @@ async function openDark(page: import("@playwright/test").Page): Promise<void> {
   await page.waitForTimeout(600);
 }
 
+/** 見本帳のひな形を名指しして開き、同じ図が描かれたことを先に確かめる。 */
+async function ひな形を開く(page: import("@playwright/test").Page, id: string): Promise<void> {
+  const 見本 = PRESETS.find((p) => p.id === id);
+  expect(見本, `${id} のひな形が無い`).toBeDefined();
+  await page.goto("catalog/presets", { waitUntil: "networkidle" });
+  const 行 = 一覧の行(page, 見本!.diagram.id);
+  await expect(行, `${id} を一覧から選べない`).toBeVisible();
+  await 行.click();
+  await expect(page.locator(`[data-cdl-diagram="${見本!.diagram.id}"] svg`).first()).toBeVisible();
+}
+
 /**
  * 面の段差 (`L*` の差 12 以上) を測る 2 件は #1110 で外した。
  *
@@ -153,10 +166,9 @@ test("暗い画面で図の中の面の色が揃っている", async ({ page }) 
   // 子図形と変数の系統に届かない (実測 = generic 系と chart 系を旧色に戻す変異が素通りした)。
   //
   // 3 系統が出る 2 画面を見る。
-  // `/preset/topology` = 本体 4 / 子図形 5、 `/catalog/presets` = `chart-line` (変数経由)
-  for (const path of ["preset/topology", "catalog/presets"]) {
-    await page.goto(path);
-    await page.waitForLoadState("networkidle");
+  // `topology` = 本体 4 / 子図形 5、 `chartLine` = `chart-line` (変数経由)
+  for (const id of ["topology", "chartLine"]) {
+    await ひな形を開く(page, id);
     await page.evaluate(() => document.documentElement.classList.add("dark"));
     await page.waitForTimeout(2500);
 
@@ -176,10 +188,10 @@ test("暗い画面で図の中の面の色が揃っている", async ({ page }) 
       }
       return [...seen].sort((a, b) => b[1] - a[1]);
     });
-    expect(色.length, `${path} で面を 1 つも測れていない`).toBeGreaterThan(0);
+    expect(色.length, `${id} で面を 1 つも測れていない`).toBeGreaterThan(0);
     // 種別ごとの塗り分け (tone) はあるので 1 色に限らないが、 **旧色が残っていないこと** を見る
     const 旧色 = 色.filter(([c]) => c === "rgb(42, 31, 20)");
-    expect(旧色, `${path} に旧い面の色 #2a1f14 が残っている: ${JSON.stringify(旧色)}`).toEqual([]);
+    expect(旧色, `${id} に旧い面の色 #2a1f14 が残っている: ${JSON.stringify(旧色)}`).toEqual([]);
   }
 });
 
@@ -261,14 +273,13 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
   // 補助線を 1 つも測れない。 枠を持つ見本を開く。
   // **分類の一覧は測る対象を持たない** (#2750)。 選んだ 1 件を出す画面で、枠を持つ図
   // (構成図) はどの分類でも既定の選択にならない (実測 = 11 分類すべてで、頁を送った後も
-  // 枠が 0 件)。 紙の色は見本の詳細と同じ `rgb(36, 31, 24)` なので、cream の紙は下の
-  // `preset/topology` が測っている。
-  for (const [場所, path] of [
-    ["editor (暗い紙)", "editor#preset=topology"],
-    ["catalog (cream の紙・枠)", "preset/topology"],
-  ] as const) {
-    await page.goto(path);
-    await page.waitForLoadState("networkidle");
+  // 枠が 0 件)。 cream の紙は見本帳で `topology` を選んで測る。
+  for (const 場所 of ["editor (暗い紙)", "catalog (cream の紙・枠)"] as const) {
+    if (場所.startsWith("editor")) {
+      await page.goto("editor#preset=topology", { waitUntil: "networkidle" });
+    } else {
+      await ひな形を開く(page, "topology");
+    }
     await page.evaluate(() => document.documentElement.classList.add("dark"));
     await page.waitForTimeout(2200);
 

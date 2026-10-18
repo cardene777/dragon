@@ -1,12 +1,5 @@
-/**
- * preset metadata + CdlDiagram export。
- * SPA なので client/server 分割不要、 1 file で完結。
- *
- * クラス図と ER 図の複雑な版は、ひな形を別に持たない (#1960)。 カタログでは元の見本の中の
- * パターン「複雑」 として切り替える。
- */
+/** カタログのひな形と、その識別子の対応。 */
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import { itemName, type Locale } from "./i18n";
 import {
   presetSwimlane,
   presetFlow,
@@ -33,94 +26,39 @@ import {
   presetStateMachine2,
 } from "@/topics/catalog/presets.cdl";
 
-/**
- * preset の metadata。
- *
- * **画面に出す名前は持たない** (#1047)。 以前は `title` を持ち、`stateMachine2` の
- * ような識別子風の文字列がそのまま見出しに出ていた。 表示名は `presetName()` が
- * catalog と同じ名前の表から引く。
- */
 export interface PresetMetadata {
-  /** 図を指す識別子。 catalog の名前の表を引く鍵を導く元にもなる。 */
+  /** カタログの名前の表を引く鍵を導く識別子。 */
   id: string;
-  /** URL に出る識別子。 `id` とは形が違う (`stateMachine` に対して `state-machine`)。 */
-  slug: string;
-  /**
-   * 名前の上に出る分類名。 `<系統> / <用途>` の形で書く (#1783)。
-   *
-   * 名前のすぐ上に出るため、名前や札の言い換えにすると同じことを 2 度読ませる。
-   * その図がどの系統に属し何に使うものかを、名前とも札とも違う語で書く。
-   */
-  eyebrow: string;
-  /**
-   * 英語で開いた時の分類名 ・ 説明 ・ 札 (#2455)。
-   *
-   * **日本語の側を削って短くしない**。 英語の画面にも同じ情報量を出す。
-   * 3 つとも必須にしてあるので、見本を足した時に書き忘れると型検査が落ちる。
-   */
-  eyebrowEn: string;
-  subtitle: string;
-  subtitleEn: string;
-  tags: string[];
-  tagsEn: string[];
   diagram: CdlDiagram;
 }
 
-/**
- * preset が catalog の名前の表 (`ITEM_NAME_JA` / `ITEM_NAME_EN`) を引く時の鍵 (#1047)。
- *
- * catalog 側は `presetSwimlane` のような export 名で引く。 preset 側の `id` は
- * `swimlane` なので、頭を大きくして `preset` を前に付けると一致する。
- *
- * **一致は機械で見る**。 導く形にすると `id` の付け方が変わった時に静かに外れるため、
- * 全 preset の鍵が両方の表にあることを `presets.test.ts` が確かめる。
- */
+/** `presetSwimlane` のようなカタログの名前の鍵を導く。 */
 export function presetCatalogKey(preset: PresetMetadata): string {
   return `preset${preset.id.charAt(0).toUpperCase()}${preset.id.slice(1)}`;
 }
 
-/** 画面に出す preset の名前。 言語に応じて catalog と同じ名前を返す。 */
-export function presetName(preset: PresetMetadata, locale: Locale): string {
-  return itemName(presetCatalogKey(preset), locale);
-}
-
-/** 名前の上に出る分類名 (#2455) */
-export function presetEyebrow(preset: PresetMetadata, locale: Locale): string {
-  return locale === "ja" ? preset.eyebrow : preset.eyebrowEn;
-}
-
-/** 名前の下に出る説明 (#2455) */
-export function presetSubtitle(preset: PresetMetadata, locale: Locale): string {
-  return locale === "ja" ? preset.subtitle : preset.subtitleEn;
-}
-
-/** 説明の下に並ぶ札 (#2455) */
-export function presetTags(preset: PresetMetadata, locale: Locale): string[] {
-  return locale === "ja" ? preset.tags : preset.tagsEn;
-}
-
 export const PRESETS: PresetMetadata[] = [
-  { id: "swimlane", slug: "swimlane", eyebrow: "流れの図 / 担当の切り分け", eyebrowEn: "Flow diagram / splitting by owner", subtitle: "3 つの縦列で呼び出す側・処理する側・知らせる側を分け、依頼が役割をまたいで進む様子を追う図。", subtitleEn: "Three lanes split the caller, the worker and the notifier, following one request as it crosses roles.", tags: ["縦列", "役割の分担"], tagsEn: ["Lanes", "Split by role"], diagram: presetSwimlane },
-  { id: "flow", slug: "flow", eyebrow: "道筋の図 / 順を追う", eyebrowEn: "Path diagram / following the order", subtitle: "ログインの要求が受付の窓口・認証・利用者の表の順に進む様子を、左から右への 1 本の流れで示す図。", subtitleEn: "A single left-to-right line showing a login request move through the front desk, authentication and the user table.", tags: ["一本の流れ", "左から右"], tagsEn: ["One line", "Left to right"], diagram: presetFlow },
-  { id: "deliverySequence", slug: "delivery-sequence", eyebrow: "やり取りの図 / 呼び出しと返事", eyebrowEn: "Exchange diagram / calls and replies", subtitle: "荷主・営業所・台帳・配送便の間で、集荷を頼んでから配達中にするまでの呼び出しと返事を並べた図。", subtitleEn: "Calls and replies among the shipper, depot, ledger and delivery van, from requesting pickup through marking the parcel out for delivery.", tags: ["宅配", "呼び出し順"], tagsEn: ["Delivery", "Call sequence"], diagram: presetDeliverySequence },
-  { id: "topology", slug: "topology", eyebrow: "配置の図 / どこで動くか", eyebrowEn: "Placement diagram / where things run", subtitle: "利用者の端末とクラウドを区画に分け、負荷分散・コンテナ・データベースを接続でつないだ構成図。", subtitleEn: "A layout that splits the user's device from the cloud and wires the load balancer, containers and database together.", tags: ["区画", "接続"], tagsEn: ["Zones", "Links"], diagram: presetTopology },
-  { id: "deliveryComponents", slug: "delivery-components", eyebrow: "構成の図 / 中と外の部品", eyebrowEn: "Structure diagram / internal and external parts", subtitle: "配送システムの中の受付・追跡・台帳・通知と、外の荷主・配送便・地図・メールを 10 本の接続で結ぶ構成図。", subtitleEn: "A component diagram linking reception, tracking, the ledger and notifications inside the delivery system to shippers, vans, maps and email outside.", tags: ["宅配", "部品"], tagsEn: ["Delivery", "Components"], diagram: presetDeliveryComponents },
-  { id: "deliveryRelations", slug: "delivery-relations", eyebrow: "構造の図 / 記録と状態", eyebrowEn: "Structure diagram / records and states", subtitle: "契約の派生、荷物と配送便、営業所が抱える受付と仕分け、受付済から完了までの配送状態を 1 枚にまとめた関係図。", subtitleEn: "A relationship diagram combining contract specializations, parcels and delivery vans, depot nesting, and delivery states from accepted through complete.", tags: ["宅配", "関係"], tagsEn: ["Delivery", "Relationships"], diagram: presetDeliveryRelations },
-  { id: "stateMachine", slug: "state-machine", eyebrow: "ふるまいの図 / 切り替わり", eyebrowEn: "Behavior diagram / transitions", subtitle: "注文が下書きから受付・支払を経て終わるか、受付の後に取り消されるかを、状態と遷移の条件で示す状態遷移図。", subtitleEn: "A state diagram showing an order run from draft through accepted and paid to done, or be cancelled after acceptance, with the condition on each transition.", tags: ["状態", "遷移"], tagsEn: ["States", "Transitions"], diagram: presetStateMachine },
-  { id: "infrastructure", slug: "infrastructure", eyebrow: "積み上げの図 / 全体の見取り", eyebrowEn: "Stack diagram / the whole picture", subtitle: "利用者から配信・負荷分散・アプリを経て、データベースとキャッシュに届くまでの階層構成図。", subtitleEn: "A layered diagram from the user through delivery, load balancing and the application down to the database and cache.", tags: ["クラウド", "階層構成"], tagsEn: ["Cloud", "Layers"], diagram: presetInfrastructure },
-  { id: "deliveryClasses", slug: "delivery-classes", eyebrow: "構造の図 / 設計の型", eyebrowEn: "Structure diagram / design types", subtitle: "6 クラス × 5 関係で、荷主・荷物・配送便・営業所の属性と操作、冷蔵荷物と割れ物の継承、集約・所有・利用を示す型の図。", subtitleEn: "A type diagram with six classes and five relationships, showing attributes and operations for shippers, parcels, vans and depots, plus inheritance, aggregation, composition and usage.", tags: ["宅配", "型"], tagsEn: ["Delivery", "Types"], diagram: presetDeliveryClasses },
-  { id: "tree", slug: "tree", eyebrow: "親子の図 / 枝分かれ", eyebrowEn: "Parent and child diagram / branching", subtitle: "社長の下に技術と財務の責任者が並び、技術の下に開発と運用の部門が続く組織図。", subtitleEn: "An org chart with the technology and finance leads under the president, and the development and operations teams under technology.", tags: ["階層", "組織図"], tagsEn: ["Hierarchy", "Org chart"], diagram: presetTree },
-  { id: "userJourney", slug: "user-journey", eyebrow: "満足度の図 / 段階ごとの手ごたえ", eyebrowEn: "Satisfaction diagram / how each stage feels", subtitle: "サイトを訪れてから登録を終えるまでの各段階で、利用者の気持ちと接点が変わる様子を示す体験の図。", subtitleEn: "A journey diagram showing how the user's feeling and touchpoints shift at each stage, from landing on the site to finishing sign-up.", tags: ["体験", "気持ちの変化"], tagsEn: ["Journey", "Shifts in feeling"], diagram: presetUserJourney },
-  { id: "mindMap", slug: "mind", eyebrow: "思いつきの図 / 考えの棚卸し", eyebrowEn: "Idea diagram / taking stock of thoughts", subtitle: "中心の主題から機能・画面の設計・公開の枝を広げ、機能をさらに認証と課金に分ける発想の図。", subtitleEn: "A mind map spreading features, screen design and release out from a central topic, then splitting features into authentication and billing.", tags: ["放射", "発想"], tagsEn: ["Radial", "Ideation"], diagram: presetMindMap },
-  { id: "funnel", slug: "funnel", eyebrow: "数の図 / 絞り込み", eyebrowEn: "Number diagram / narrowing down", subtitle: "訪問から登録・試用・有料の契約へ段階が進むにつれて、人数が絞られていく様子を示す図。", subtitleEn: "A funnel showing how the count narrows as visitors move through sign-up, trial and a paid plan.", tags: ["段階", "離脱"], tagsEn: ["Stages", "Drop-off"], diagram: presetFunnel },
-  { id: "quadrant", slug: "quadrant", eyebrow: "比較の図 / 位置づけ", eyebrowEn: "Comparison diagram / positioning", subtitle: "労力と価値の 2 軸で項目を 4 つの枠に振り分け、どこから手を付けるかを決める優先度の図。", subtitleEn: "A priority chart sorting items into four boxes on the effort and value axes, to decide where to start.", tags: ["4 象限", "優先度"], tagsEn: ["Four quadrants", "Priority"], diagram: presetQuadrant },
-  { id: "chartPie", slug: "chart-pie", eyebrow: "数の図 / 内訳", eyebrowEn: "Number diagram / breakdown", subtitle: "利用の経路ごとの内訳を、全体に対する割合で示す円グラフ。", subtitleEn: "A pie chart showing the breakdown by channel as a share of the whole.", tags: ["グラフ", "割合"], tagsEn: ["Chart", "Share"], diagram: presetChartPie },
-  { id: "chartLine", slug: "chart-line", eyebrow: "数の図 / 上がり下がり", eyebrowEn: "Number diagram / ups and downs", subtitle: "月ごとの計画と実績を 1 本の折れ線で比べ、どの月で計画を上回ったかを示す折れ線グラフ。", subtitleEn: "A line chart comparing plan and actual month by month, showing which months came in above plan.", tags: ["グラフ", "推移"], tagsEn: ["Chart", "Trend"], diagram: presetChartLine },
-  { id: "gantt", slug: "gantt", eyebrow: "時間の図 / 工程の割り当て", eyebrowEn: "Time diagram / assigning the work", subtitle: "設計・実装・検証・公開の工程を期ごとの横棒で並べ、前の工程が終わってから次が始まる関係を示すガントチャート。", subtitleEn: "A schedule laying design, build, verification and release out as bars per period, showing that each stage starts once the one before it ends.", tags: ["工程", "期間"], tagsEn: ["Stages", "Duration"], diagram: presetGantt },
-  { id: "deliveryFlow", slug: "delivery-flow", eyebrow: "手順の図 / 分かれ道", eyebrowEn: "Procedure diagram / forks", subtitle: "3 つの縦列で荷主・営業所・配送便を分け、在宅の分かれ道と翌日もう一度の戻りを追うフローチャート。", subtitleEn: "A flowchart with three lanes for the shipper, depot and delivery van, following the at-home branch and the next-day retry.", tags: ["宅配", "戻る線"], tagsEn: ["Delivery", "Retry line"], diagram: presetDeliveryFlow },
-  { id: "deliveryStages", slug: "delivery-stages", eyebrow: "段階の図 / 担当の引き継ぎ", eyebrowEn: "Stage diagram / hand-offs", subtitle: "4 つの縦列で申し込み・受付・配送・結果を分け、8 つの札の右に担当を添えて宅配の進み方を追う段の箱。", subtitleEn: "Four stage columns split request, acceptance, delivery and result, with the owner beside each of eight cards.", tags: ["宅配", "段階"], tagsEn: ["Delivery", "Stages"], diagram: presetDeliveryStages },
-  { id: "deliveryMetro", slug: "delivery-metro", eyebrow: "道筋の図 / 担当の乗り換え", eyebrowEn: "Route diagram / changing owners", subtitle: "3 つの縦列で荷主・営業所・配送便を分け、7 つの駅と分かれ道、翌日へ戻る線路で宅配を追う路線図。", subtitleEn: "A metro map with three role lanes, seven stations, a branch and a track returning to the next day's delivery.", tags: ["宅配", "路線"], tagsEn: ["Delivery", "Route"], diagram: presetDeliveryMetro },
-  { id: "deliveryTimeline", slug: "delivery-timeline", eyebrow: "時間の図 / 順を追う", eyebrowEn: "Time diagram / following the order", subtitle: "6 つの丸い番号と 7 つの札を時間軸に沿って並べ、受け取りか翌日の再配達へ進む宅配の順番を追う図。", subtitleEn: "A timeline with six numbered circles and seven cards, following delivery to receipt or next-day redelivery.", tags: ["宅配", "時間軸"], tagsEn: ["Delivery", "Timeline"], diagram: presetDeliveryTimeline },
-  { id: "network", slug: "network", eyebrow: "つながりの図 / 通り道", eyebrowEn: "Connection diagram / the route", subtitle: "ファイアウォールからスイッチを経て、アプリとデータベースのサーバーにつながる社内ネットワークの接続図。", subtitleEn: "An internal network map running from the firewall through the switch to the application and database servers.", tags: ["ネットワーク", "接続"], tagsEn: ["Network", "Links"], diagram: presetNetwork },
-  { id: "stateMachine2", slug: "state-machine-2", eyebrow: "ふるまいの図 / 入れ子", eyebrowEn: "Behavior diagram / nesting", subtitle: "状態の中に状態を入れ子にし、入る時と出る時の処理を添えた、階層を持つ状態遷移図。", subtitleEn: "A hierarchical state diagram nesting states inside states, with the entry and exit actions attached.", tags: ["入れ子の状態", "入る時と出る時の処理"], tagsEn: ["Nested states", "Entry and exit actions"], diagram: presetStateMachine2 },
+  { id: "swimlane", diagram: presetSwimlane },
+  { id: "flow", diagram: presetFlow },
+  { id: "deliverySequence", diagram: presetDeliverySequence },
+  { id: "topology", diagram: presetTopology },
+  { id: "deliveryComponents", diagram: presetDeliveryComponents },
+  { id: "deliveryRelations", diagram: presetDeliveryRelations },
+  { id: "stateMachine", diagram: presetStateMachine },
+  { id: "infrastructure", diagram: presetInfrastructure },
+  { id: "deliveryClasses", diagram: presetDeliveryClasses },
+  { id: "tree", diagram: presetTree },
+  { id: "userJourney", diagram: presetUserJourney },
+  { id: "mindMap", diagram: presetMindMap },
+  { id: "funnel", diagram: presetFunnel },
+  { id: "quadrant", diagram: presetQuadrant },
+  { id: "chartPie", diagram: presetChartPie },
+  { id: "chartLine", diagram: presetChartLine },
+  { id: "gantt", diagram: presetGantt },
+  { id: "deliveryFlow", diagram: presetDeliveryFlow },
+  { id: "deliveryStages", diagram: presetDeliveryStages },
+  { id: "deliveryMetro", diagram: presetDeliveryMetro },
+  { id: "deliveryTimeline", diagram: presetDeliveryTimeline },
+  { id: "network", diagram: presetNetwork },
+  { id: "stateMachine2", diagram: presetStateMachine2 },
 ];
