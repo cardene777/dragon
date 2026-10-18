@@ -45,9 +45,9 @@ flow:
   - API -> User: "200 OK" { kind: return }
 
 animation:
-  - step: "1. 認証要求" 0.6s
+  - step: "認証要求" 0.6s
     focus: [User, API]
-  - step: "2. 照会" 0.6s
+  - step: "照会" 0.6s
     focus: [API, DB]
 `,
   en: `title: Login flow
@@ -65,9 +65,9 @@ flow:
   - API -> User: "200 OK" { kind: return }
 
 animation:
-  - step: "1. Auth request" 0.6s
+  - step: "Auth request" 0.6s
     focus: [User, API]
-  - step: "2. Lookup" 0.6s
+  - step: "Lookup" 0.6s
     focus: [API, DB]
 `,
 } as const;
@@ -87,11 +87,6 @@ export function 段ごとの光る行(src: string): number[][] {
       .filter((flow) => focus.has(flow.from) && focus.has(flow.to))
       .map((flow) => flow.pos.line);
   });
-}
-
-/** 札が段番号を別に出すため、記法の題に付けた先頭番号は重ねて出さない。 */
-export function 段の題から番号を外す(title: string): string {
-  return title.replace(/^\d+\.\s+/, "");
 }
 
 const DEMO_HIGHLIGHT_LINES = {
@@ -174,7 +169,7 @@ export function HomePage(): React.ReactElement {
             </div>
             {今の段 !== undefined && (
               <span className="phase">
-                <span className="live-dot"></span> phase {段番号 + 1} / {図.phases.length} {区切り} {段の題から番号を外す(今の段.title)}
+                <span className="live-dot"></span> phase {段番号 + 1} / {図.phases.length} {区切り} {今の段.title}
               </span>
             )}
           </div>

@@ -21,7 +21,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { CdlDiagramView, type CdlPhase } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import { LocaleProvider } from "@/lib/useLocale";
-import { 段ごとの光る行, 段の題から番号を外す } from "@/pages/HomePage";
+import { 段ごとの光る行 } from "@/pages/HomePage";
 import { PhaseChrome, PhaseNote, usePhaseIndex, 段の呼び名 } from "./PhaseChrome";
 
 afterEach(() => {
@@ -172,9 +172,9 @@ flow:
   - B -> C: lookup
   - C -> B: row
 animation:
-  - step: "1. Call" 0.6s
+  - step: "Call" 0.6s
     focus: [A, B]
-  - step: "2. Lookup" 0.6s
+  - step: "Lookup" 0.6s
     focus: [B, C]
 `;
     const diagram = textDslToDiagram(src);
@@ -186,7 +186,7 @@ animation:
       return (
         <div ref={setStage}>
           <output data-testid="phase-probe">
-            {index}:{phase === undefined ? "" : 段の題から番号を外す(phase.title)}:{lines[index]?.join(",")}
+            {index}:{phase?.title ?? ""}:{lines[index]?.join(",")}
           </output>
           <CdlDiagramView diagram={diagram} hideHeader hideMiniPhaseIndicator />
         </div>

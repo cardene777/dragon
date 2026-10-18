@@ -18,7 +18,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseTextDslV05, compileToCdl } from "@cardenelabs/dragon";
-import { 段ごとの光る行, 段の題から番号を外す } from "./HomePage";
+import { 段ごとの光る行 } from "./HomePage";
 
 function 画面のsrc(): string {
   return readFileSync(fileURLToPath(new URL("./HomePage.tsx", import.meta.url)), "utf8");
@@ -121,7 +121,7 @@ describe("ホームの記法がいまの記法として通る (#1310)", () => {
     }
   });
 
-  it("段の札は、2 言語とも先頭の番号を外した題を出す", () => {
+  it("記法の段の題は、2 言語とも札の期待と同じで数字から始まらない", () => {
     const 期待 = {
       ja: ["認証要求", "照会"],
       en: ["Auth request", "Lookup"],
@@ -131,10 +131,11 @@ describe("ホームの記法がいまの記法として通る (#1310)", () => {
       const r = parseTextDslV05(src);
       expect(r.ok).toBe(true);
       if (!r.ok) continue;
-      expect(
-        (r.doc.animate?.phases ?? []).map((段) => 段の題から番号を外す(段.name)),
-        `${名} の札の題が違う`,
-      ).toEqual(期待[名 as keyof typeof 期待]);
+      const 段の題 = (r.doc.animate?.phases ?? []).map((段) => 段.name);
+      expect(段の題, `${名} の札の題が違う`).toEqual(期待[名 as keyof typeof 期待]);
+      for (const 題 of 段の題) {
+        expect(題, `${名} の段の題が数字で始まっている`).not.toMatch(/^\d/);
+      }
     }
   });
 
