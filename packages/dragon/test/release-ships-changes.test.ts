@@ -104,14 +104,15 @@ const 全部のtag = (): string[] =>
  * 外していた理由は「tag を打った直後に範囲が空になり、検査が何も見なくなる」 ことだが、
  * 上の表の 1 行目は `v0.30.0 → v0.31.0` を測るので範囲は空にならない。
  *
- * 元の形は両方向に外れていた。
+ * 元の形と、その切り替えを守る検査は次の向きに外れていた。
  *
  * | 向き | 起きること |
  * |---|---|
  * | 誤って落ちる | 中身が空のまま切って宣言した版に、後から入れた直しが混ざる (実測 = `0.31.0` が `compile.ts` 1 件で落ちた、#2300) |
+ * | 誤って落ちる | 印の前後で同じ file を直すと、件数の差は増えないのに印の後の変更件数を期待する (実測 = `0.32.0` の前後で `compile.ts` と `keywords.ts` が重なった、#2926) |
  * | 誤って通る | 中身が空の版を宣言せずに切っても、**後から 1 つ commit すれば黙る** |
  *
- * 2 つ目のほうが重い = この関門は版を切った後に commit するだけで外せる状態だった。
+ * 誤って通るほうが重い = この関門は版を切った後に commit するだけで外せる状態だった。
  */
 function 測る範囲を決める(v: string): { 基準: string; 対象: string } | undefined {
   const tags = 全部のtag();
@@ -159,8 +160,8 @@ interface 測り {
   欄: boolean | undefined;
 }
 
-function 配る中身を測る(基準: string, 対象: string): 測り {
-  const code = git(
+function 配るcodeのfile(基準: string, 対象: string): string[] {
+  return git(
     "diff",
     "--name-only",
     `${基準}..${対象}`,
@@ -169,7 +170,19 @@ function 配る中身を測る(基準: string, 対象: string): 測り {
     "packages/dragon/schema",
   )
     .split("\n")
-    .filter((l) => l !== "").length;
+    .filter((l) => l !== "");
+}
+
+function 後で初めて変わったfile(
+  直した: readonly string[],
+  後で入れた: readonly string[],
+): string[] {
+  const 直した集合 = new Set(直した);
+  return 後で入れた.filter((file) => !直した集合.has(file));
+}
+
+function 配る中身を測る(基準: string, 対象: string): 測り {
+  const code = 配るcodeのfile(基準, 対象).length;
   const 前 = 配布の欄(基準);
   const 後 = 配布の欄(対象);
   return { code, 欄: 前 === undefined || 後 === undefined ? undefined : 前 !== 後 };
@@ -307,33 +320,40 @@ describe("配る中身を測る 2 点は、版に tag があるかで切り替�
     expect(測った範囲!.対象, "手元までを測っていない").toBe("HEAD");
   });
 
+  it("印の前後で重なる file を二重に数えず、後で初めて変わった file だけを数える", () => {
+    const 印まで = ["packages/dragon/src/compile.ts", "packages/dragon/src/keywords.ts"];
+    expect(後で初めて変わったfile(印まで, [...印まで])).toEqual([]);
+    const 印の後 = ["packages/dragon/src/compile.ts", "packages/dragon/src/color.ts"];
+    const 直す前 = [...new Set([...印まで, ...印の後])];
+    const 初めて加わった = 後で初めて変わったfile(印まで, 印の後);
+    expect(初めて加わった).toEqual(["packages/dragon/src/color.ts"]);
+    expect(直す前.length - 印まで.length).toBe(初めて加わった.length);
+  });
+
   it("版を切った後に入れた直しが、切り終えた版の中身に混ざらない", () => {
-    // 直す前の形 (`1 つ前の tag .. HEAD`) をここで組み立て直し、2 つの測り方が
-    // 実際に違う値を出すことを見る。 同じ値しか出ないなら切り替えに意味が無い。
+    // 直す前の形 (`1 つ前の tag .. HEAD`) をここで組み立て直し、印の後で初めて
+    // 変わった file だけが件数の差になることを見る。 印の前後で同じ file を直しても増えない
     const tags = 全部のtag();
     const 切り終えた = tags[0]!.replace(/^v/, "").replace(/-.*$/, "");
+    const 直したfile = 配るcodeのfile(tags[1]!, tags[0]!);
     const 直した = 配る中身を測る(tags[1]!, tags[0]!);
     const 直す前 = 配る中身を測る(tags[1]!, "HEAD");
-    const 後で入れた = git(
-      "diff",
-      "--name-only",
-      `${tags[0]}..HEAD`,
-      "--",
-      "packages/dragon/src",
-      "packages/dragon/schema",
-    )
-      .split("\n")
-      .filter((l) => l !== "");
-    if (後で入れた.length === 0) {
-      // 版を切った後に配る file を 1 つも変えていない時は、2 つの測り方が同じ値になる。
+    const 後で入れた = 配るcodeのfile(tags[0]!, "HEAD");
+    const 初めて加わった = 後で初めて変わったfile(直したfile, 後で入れた);
+    if (初めて加わった.length === 0) {
+      // 後の変更が無い時と、全て印までの変更に重なる時は、2 つの測り方が同じ値になる。
       // 差が無いことを「切り替えが効いていない」 と読まないよう、ここで分ける
-      expect(直した.code, `${切り終えた} の後に配る file の変更が無い`).toBe(直す前.code);
+      expect(
+        直した.code,
+        `${切り終えた} の後に初めて変わる file が無い (${後で入れた.join(", ")})`,
+      ).toBe(直す前.code);
       return;
     }
     expect(
       直す前.code - 直した.code,
-      `${切り終えた} の後に入れた ${後で入れた.length} 件 (${後で入れた.join(", ")})` +
+      `${切り終えた} の後に初めて変わった ${初めて加わった.length} 件` +
+        ` (${初めて加わった.join(", ")})` +
         ` が、直す前の測り方では ${切り終えた} の中身に混ざる`,
-    ).toBe(後で入れた.length);
+    ).toBe(初めて加わった.length);
   });
 });
