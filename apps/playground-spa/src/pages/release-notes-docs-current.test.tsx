@@ -87,6 +87,10 @@ describe("更新履歴と使い方の現在値 (#2929)", () => {
       html.split(`href="${CHANGELOG_URL}"`).length - 1,
       "CHANGELOG への案内が 1 つに定まらない",
     ).toBe(1);
+    expect(
+      [...html.matchAll(/<a\b[^>]*class="[^"]*\bnm-hero-btn\b[^"]*"[^>]*>/gu)],
+      "更新履歴の案内が 1 つに定まらない",
+    ).toHaveLength(1);
   });
 
   it.each([

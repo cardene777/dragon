@@ -134,13 +134,18 @@ test("測る画面を実装から読めている (空振り検知)", () => {
 
 test.describe("携帯で押せる的の大きさ", () => {
   for (const 道 of 画面) {
-    test(`${画面名(道)} の的が 24px を下回らない`, async ({ page }) => {
+    test(`${画面名(道)} の的が 24px を下回らない`, async ({ page }, testInfo) => {
       const 全部 = await 開いて測る(page, 道);
 
       // 空振り防止 = 選び方が壊れて 0 件になった回を「下回りなし」 と読まない
       expect(全部.length, "押せるものを 1 つも見ていない").toBeGreaterThan(5);
 
+      const 文の中 = 全部.filter((x) => x.文の中);
       const 対象 = 全部.filter((x) => !x.文の中);
+      testInfo.annotations.push({
+        type: "押せる的の内訳",
+        description: `全部 ${全部.length} 件 / 文の中 ${文の中.length} 件 / 下限の対象 ${対象.length} 件`,
+      });
       expect(対象.length, "全部が文の中の扱いになっている").toBeGreaterThan(3);
 
       const 小さい = 対象.filter((x) => x.幅 < 下限 || x.高 < 下限);
@@ -226,7 +231,7 @@ test.describe("開く口", () => {
      * #2541 の測定で、編集画面の脇の板 (幅 390px では `x = -303` に置かれる) を押さずに
      * 数えて 31 件の偽の落ちを出した。
      *
-     * 上の 9 件は押した後の数を見るので、押す処理が黙って効かなくなっても気付けない
+     * 画面ごとの検査は押した後の数を見るので、押す処理が黙って効かなくなっても気付けない
      * (押せる的が減れば下限を割る的も減り、むしろ通りやすくなる)。 ここで効果を押さえる。
      */
     await page.setViewportSize(携帯);
@@ -254,19 +259,33 @@ test.describe("開く口", () => {
 test.describe("例外の扱い", () => {
   test("文の中の行き先は下限の対象から外れる (対照)", async ({ page }) => {
     /*
-     * 例外が空振りしていないことを押さえる。 更新履歴の説明文の中には 16px の行き先があり、
-     * **これは広げない** = 行の高さに縛られる的で、広げると前後の行と重なる。
-     * この 1 件が対象から外れていないと、上の 9 件は成り立たない。
+     * 実画面に文の中の行き先が無い時でも、例外の判定を空振りさせない。
+     * 16px / 行の高さ 20px の段落に置いた行き先は広げない = 広げると前後の行と重なる。
+     * 文の外には 32px 高の押しボタンを置き、同じ `測る` で両者を見分ける。
      */
-    const 全部 = await 開いて測る(page, "release-notes");
-    const 文の中 = 全部.filter((x) => x.文の中);
+    await page.setContent(`
+      <style>
+        p { font: 16px/20px sans-serif; }
+        button { min-width: 24px; height: 32px; }
+      </style>
+      <p>説明の中の <a href="#行き先" data-testid="文の中">行き先</a> を読む。</p>
+      <button type="button" data-testid="文の外">文の外</button>
+    `);
 
-    expect(文の中.length, "文の中の行き先を 1 つも見ていない (例外が空振りしている)").toBeGreaterThan(
-      0,
-    );
-    expect(
-      文の中.some((x) => x.高 < 下限),
-      "文の中に下限を割る的が無い (対照が効いていない)",
-    ).toBe(true);
+    const 全部 = await 測る(page, 押せるもの);
+    expect(全部, "対照の的が 2 つに定まらない").toHaveLength(2);
+
+    const 文の中 = 全部.find((x) => x.字 === "文の中");
+    const 文の外 = 全部.find((x) => x.字 === "文の外");
+    expect(文の中, "段落の行き先を測れない").toBeDefined();
+    expect(文の外, "文の外の押しボタンを測れない").toBeDefined();
+    if (!文の中 || !文の外) return;
+
+    expect(文の中.文の中, "段落の行き先を文の中と判定しない").toBe(true);
+    expect(文の中.高, "段落の行き先が下限を割らない").toBeLessThan(下限);
+
+    expect(文の外.文の中, "押しボタンを文の中と判定している").toBe(false);
+    expect(文の外.幅, "押しボタンの幅が下限を割っている").toBeGreaterThanOrEqual(下限);
+    expect(文の外.高, "押しボタンの高さが下限を割っている").toBeGreaterThanOrEqual(下限);
   });
 });

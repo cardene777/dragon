@@ -50,14 +50,6 @@ export function ReleaseNotesPage(): React.ReactElement {
               <span>{isJa ? "変更の記録を GitHub で見る" : "See the change log on GitHub"}</span>
               <span className="nm-hero-btn-arrow" aria-hidden="true">↗</span>
             </a>
-            <a
-              href="https://github.com/cardene777/dragon/releases"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="nm-hero-btn nm-hero-btn-secondary"
-            >
-              <span>{isJa ? "GitHub リリース一覧" : "GitHub releases"}</span>
-            </a>
           </div>
         </section>
       </main>

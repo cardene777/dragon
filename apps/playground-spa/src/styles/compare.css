@@ -116,15 +116,6 @@
   filter: brightness(1.08);
 }
 
-.nm-hero-btn-secondary:hover {
-  border-color: var(--d-accent);
-  color: var(--d-accent);
-}
-
-.nm-hero-btn-secondary:hover .nm-hero-btn-arrow {
-  color: var(--d-accent);
-}
-
 /* ── 狭い画面 ── */
 
 @media (max-width: 760px) {
