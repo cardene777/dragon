@@ -1575,8 +1575,8 @@ export const shapeCloud = shapeSample({
   eyebrow: "クラウド",
   subtitle: "{v} リージョン",
   metric: { from: 3, to: 12 },
-  topic: "shape: cloud (5 円 合成、 クラウド / SaaS 表現)",
-  phase: { title: "shape-cloud", body: "5 つの円を重ねた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。" },
+  topic: "shape: cloud (弧 3 つの雲、 クラウド / SaaS 表現)",
+  phase: { title: "shape-cloud", body: "3 つの弧でふくらませた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。" },
 });
 export const shapeCylinder = shapeSample({
   id: "shape-cylinder",
@@ -1628,7 +1628,7 @@ export const shapePerson = shapeSample({
   subtitle: "{v} 操作",
   metric: { from: 2, to: 21 },
   topic: "shape: person (人型 figure、 actor / user 表現)",
-  phase: { title: "shape-person", body: "人の形 (丸い頭と台形の胴、曲げた腕)。 登場する人や利用者、担当者を表す。" },
+  phase: { title: "shape-person", body: "人の形 (丸い頭と丸い肩の胴)。 登場する人や利用者、担当者を表す。" },
 });
 
 /** 4-b. Shape-driven software (CAR-1111 Phase 2-B) ... OS ウィンドウ / 端末 / コード block */
@@ -1639,32 +1639,28 @@ export const shapeWindow = shapeSample({
   eyebrow: "アプリの画面",
   subtitle: "開いた画面 {v}",
   metric: { from: 1, to: 6 },
-  topic: "shape: window (GUI アプリ、 traffic lights + body)",
-  phase: { title: "shape-window", body: "題の帯と 3 色の丸ボタン、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。" },
+  topic: "shape: window (GUI アプリ、 title bar + body)",
+  phase: { title: "shape-window", body: "題の帯と 3 つの丸、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。" },
 });
-// 段を付けていない (#1196)。 この種別は副題を描かない (題と目次だけを自前で描く)。
-// 数を置ける欄が識別の文字しか残らず、形の見本としての説明を潰すことになる。
-// cdl 側で副題を読むようにしてから動かす (cdl #469)。
 export const shapeTerminal = shapeSample({
   id: "shape-terminal",
   kind: "shape-terminal",
   title: "シェル",
   eyebrow: "端末",
-  subtitle: "命令を打つ画面",
-  topic: "shape: terminal (CLI shell、 mac bar + prompt)",
-  phase: { title: "shape-terminal", body: "上の帯と $ の入力待ち、点滅する印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。" },
+  subtitle: "{v} 件の命令",
+  metric: { from: 3, to: 42 },
+  topic: "shape: terminal (CLI shell、 bar + prompt)",
+  phase: { title: "shape-terminal", body: "上の帯と > の入力待ちの印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。" },
 });
-// 段を付けていない (#1196)。 この種別は副題を描かない (題と目次だけを自前で描く)。
-// 数を置ける欄が識別の文字しか残らず、形の見本としての説明を潰すことになる。
-// cdl 側で副題を読むようにしてから動かす (cdl #469)。
 export const shapeCodeBlock = shapeSample({
   id: "shape-code-block",
   kind: "shape-code-block",
   title: "共通の処理",
   eyebrow: "コード",
-  subtitle: "3 行の抜粋",
-  topic: "shape: code-block (snippet、 editor tab + 4 syntax lines)",
-  phase: { title: "shape-code-block", body: "編集画面の見出しと行番号の欄、色分けした 4 行。 コードの抜粋や、実装そのものを表す。" },
+  subtitle: "{v} 行の抜粋",
+  metric: { from: 3, to: 40 },
+  topic: "shape: code-block (snippet、 < / > の印)",
+  phase: { title: "shape-code-block", body: "四角の中の < / > の印。 コードの抜粋や、実装そのものを表す。" },
 });
 
 /** 5. Shape-driven hardware (CAR-1111 Phase 2-C) ... サーバーの棚 / 携帯の端末 */
@@ -1686,7 +1682,7 @@ export const shapeMobileDevice = shapeSample({
   subtitle: "{v} 台が稼働",
   metric: { from: 200, to: 1800 },
   topic: "shape: mobile-device (携帯端末)",
-  phase: { title: "shape-mobile-device", body: "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。" },
+  phase: { title: "shape-mobile-device", body: "上の話し口と下のボタンを持つ縦長の板。 携帯のアプリや、利用者の手元の端末を表す。" },
 });
 
 // ============================================================
@@ -2347,7 +2343,7 @@ export const sourceJson__shapeFolder = `{
   ]
 }`;
 
-export const sourceYaml__shapeCloud = `title: "shape: cloud (5 円 合成、 クラウド / SaaS 表現)"
+export const sourceYaml__shapeCloud = `title: "shape: cloud (弧 3 つの雲、 クラウド / SaaS 表現)"
 type: flow
 
 lanes:
@@ -2363,7 +2359,7 @@ animation:
   - step: "shape-cloud" 1.5s
     focus: ["外部のクラウド"]
     badge: "shape"
-    description: "5 つの円を重ねた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。"
+    description: "3 つの弧でふくらませた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。"
   - step: "shape-cloud の数が動く" 1.5s
     focus: ["外部のクラウド"]
     tween:
@@ -2373,7 +2369,7 @@ animation:
 `;
 
 export const sourceJson__shapeCloud = `{
-  "title": "shape: cloud (5 円 合成、 クラウド / SaaS 表現)",
+  "title": "shape: cloud (弧 3 つの雲、 クラウド / SaaS 表現)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }
@@ -2396,7 +2392,7 @@ export const sourceJson__shapeCloud = `{
       "duration": 1.5,
       "focus": ["外部のクラウド"],
       "badge": "shape",
-      "description": "5 つの円を重ねた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。"
+      "description": "3 つの弧でふくらませた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。"
     },
     {
       "step": "shape-cloud の数が動く",
@@ -2675,7 +2671,7 @@ animation:
   - step: "shape-person" 1.5s
     focus: ["エンドユーザ"]
     badge: "shape"
-    description: "人の形 (丸い頭と台形の胴、曲げた腕)。 登場する人や利用者、担当者を表す。"
+    description: "人の形 (丸い頭と丸い肩の胴)。 登場する人や利用者、担当者を表す。"
   - step: "shape-person の数が動く" 1.5s
     focus: ["エンドユーザ"]
     tween:
@@ -2708,7 +2704,7 @@ export const sourceJson__shapePerson = `{
       "duration": 1.5,
       "focus": ["エンドユーザ"],
       "badge": "shape",
-      "description": "人の形 (丸い頭と台形の胴、曲げた腕)。 登場する人や利用者、担当者を表す。"
+      "description": "人の形 (丸い頭と丸い肩の胴)。 登場する人や利用者、担当者を表す。"
     },
     {
       "step": "shape-person の数が動く",
@@ -2721,7 +2717,7 @@ export const sourceJson__shapePerson = `{
   ]
 }`;
 
-export const sourceYaml__shapeWindow = `title: "shape: window (GUI アプリ、 traffic lights + body)"
+export const sourceYaml__shapeWindow = `title: "shape: window (GUI アプリ、 title bar + body)"
 type: flow
 
 lanes:
@@ -2737,7 +2733,7 @@ animation:
   - step: "shape-window" 1.5s
     focus: ["ダッシュボード"]
     badge: "shape"
-    description: "題の帯と 3 色の丸ボタン、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。"
+    description: "題の帯と 3 つの丸、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。"
   - step: "shape-window の数が動く" 1.5s
     focus: ["ダッシュボード"]
     tween:
@@ -2747,7 +2743,7 @@ animation:
 `;
 
 export const sourceJson__shapeWindow = `{
-  "title": "shape: window (GUI アプリ、 traffic lights + body)",
+  "title": "shape: window (GUI アプリ、 title bar + body)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }
@@ -2770,7 +2766,7 @@ export const sourceJson__shapeWindow = `{
       "duration": 1.5,
       "focus": ["ダッシュボード"],
       "badge": "shape",
-      "description": "題の帯と 3 色の丸ボタン、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。"
+      "description": "題の帯と 3 つの丸、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。"
     },
     {
       "step": "shape-window の数が動く",
@@ -2783,24 +2779,33 @@ export const sourceJson__shapeWindow = `{
   ]
 }`;
 
-export const sourceYaml__shapeTerminal = `title: "shape: terminal (CLI shell、 mac bar + prompt)"
+export const sourceYaml__shapeTerminal = `title: "shape: terminal (CLI shell、 bar + prompt)"
 type: flow
 
 lanes:
   l: { x: 0, width: 440 }
 
+states:
+  v: 3
+
 actors:
-  - シェル: { kind: shape-terminal, lane: l, stack: 0, eyebrow: "端末", subtitle: "命令を打つ画面" }
+  - シェル: { kind: shape-terminal, lane: l, stack: 0, eyebrow: "端末", subtitle: "{v} 件の命令" }
 
 animation:
   - step: "shape-terminal" 1.5s
     focus: ["シェル"]
     badge: "shape"
-    description: "上の帯と $ の入力待ち、点滅する印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。"
+    description: "上の帯と > の入力待ちの印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。"
+  - step: "shape-terminal の数が動く" 1.5s
+    focus: ["シェル"]
+    tween:
+      v: 3 -> 42
+    badge: "shape"
+    description: "副題の数が段の中で動く。 形と説明は変えない。"
 `;
 
 export const sourceJson__shapeTerminal = `{
-  "title": "shape: terminal (CLI shell、 mac bar + prompt)",
+  "title": "shape: terminal (CLI shell、 bar + prompt)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }
@@ -2812,39 +2817,57 @@ export const sourceJson__shapeTerminal = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "端末",
-      "subtitle": "命令を打つ画面"
+      "subtitle": "{v} 件の命令"
     }
   ],
   "flow": [],
+  "states": { "v": 3 },
   "animation": [
     {
       "step": "shape-terminal",
       "duration": 1.5,
       "focus": ["シェル"],
       "badge": "shape",
-      "description": "上の帯と $ の入力待ち、点滅する印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。"
+      "description": "上の帯と > の入力待ちの印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。"
+    },
+    {
+      "step": "shape-terminal の数が動く",
+      "duration": 1.5,
+      "focus": ["シェル"],
+      "tween": { "v": [3, 42] },
+      "badge": "shape",
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
 
-export const sourceYaml__shapeCodeBlock = `title: "shape: code-block (snippet、 editor tab + 4 syntax lines)"
+export const sourceYaml__shapeCodeBlock = `title: "shape: code-block (snippet、 < / > の印)"
 type: flow
 
 lanes:
   l: { x: 0, width: 440 }
 
+states:
+  v: 3
+
 actors:
-  - 共通の処理: { kind: shape-code-block, lane: l, stack: 0, eyebrow: "コード", subtitle: "3 行の抜粋" }
+  - 共通の処理: { kind: shape-code-block, lane: l, stack: 0, eyebrow: "コード", subtitle: "{v} 行の抜粋" }
 
 animation:
   - step: "shape-code-block" 1.5s
     focus: ["共通の処理"]
     badge: "shape"
-    description: "編集画面の見出しと行番号の欄、色分けした 4 行。 コードの抜粋や、実装そのものを表す。"
+    description: "四角の中の < / > の印。 コードの抜粋や、実装そのものを表す。"
+  - step: "shape-code-block の数が動く" 1.5s
+    focus: ["共通の処理"]
+    tween:
+      v: 3 -> 40
+    badge: "shape"
+    description: "副題の数が段の中で動く。 形と説明は変えない。"
 `;
 
 export const sourceJson__shapeCodeBlock = `{
-  "title": "shape: code-block (snippet、 editor tab + 4 syntax lines)",
+  "title": "shape: code-block (snippet、 < / > の印)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }
@@ -2856,17 +2879,26 @@ export const sourceJson__shapeCodeBlock = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "コード",
-      "subtitle": "3 行の抜粋"
+      "subtitle": "{v} 行の抜粋"
     }
   ],
   "flow": [],
+  "states": { "v": 3 },
   "animation": [
     {
       "step": "shape-code-block",
       "duration": 1.5,
       "focus": ["共通の処理"],
       "badge": "shape",
-      "description": "編集画面の見出しと行番号の欄、色分けした 4 行。 コードの抜粋や、実装そのものを表す。"
+      "description": "四角の中の < / > の印。 コードの抜粋や、実装そのものを表す。"
+    },
+    {
+      "step": "shape-code-block の数が動く",
+      "duration": 1.5,
+      "focus": ["共通の処理"],
+      "tween": { "v": [3, 40] },
+      "badge": "shape",
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -2949,7 +2981,7 @@ animation:
   - step: "shape-mobile-device" 1.5s
     focus: ["スマホ"]
     badge: "shape"
-    description: "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。"
+    description: "上の話し口と下のボタンを持つ縦長の板。 携帯のアプリや、利用者の手元の端末を表す。"
   - step: "shape-mobile-device の数が動く" 1.5s
     focus: ["スマホ"]
     tween:
@@ -2982,7 +3014,7 @@ export const sourceJson__shapeMobileDevice = `{
       "duration": 1.5,
       "focus": ["スマホ"],
       "badge": "shape",
-      "description": "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。"
+      "description": "上の話し口と下のボタンを持つ縦長の板。 携帯のアプリや、利用者の手元の端末を表す。"
     },
     {
       "step": "shape-mobile-device の数が動く",
