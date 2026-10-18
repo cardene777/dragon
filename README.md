@@ -64,7 +64,7 @@ return <CdlDiagramView diagram={diagram} />;
 
 ## catalog SPA (実例集)
 
-playground SPA (本 repo `apps/playground-spa/`) で実例を閲覧。 分類 (ひな形 / 実用例 / 組み方の型 / 基本要素 / テキスト記法 / 動く図 / イーサリアム / 図表 / 部品 / 線と色 / 操作で動く) で「いつ何のために使うか」 を探索できる。 local 起動 = `pnpm run dev` (http://localhost:4323)。
+playground SPA (本 repo `apps/playground-spa/`) で実例を閲覧。 分類 (ひな形 / 実用例 / 組み方の型 / 基本要素 / テキスト記法 / 動く図 / 図表 / 部品 / 線と色 / 操作で動く) で「いつ何のために使うか」 を探索できる。 local 起動 = `pnpm run dev` (http://localhost:4323)。
 
 ## 思想 (dragon の存在理由)
 
@@ -318,7 +318,7 @@ dragon/
 │   └── playground-spa/        ... Vite + React 19 + Tailwind 4 SPA
 │       ├── src/
 │       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / PresetDetailPage / DocsPage
-│       │   ├── topics/catalog ... 分類ごとの diagram (presets / cookbook / patterns / primitives / text-dsl / animation / ethereum / charts / parts / styles / interactive)
+│       │   ├── topics/catalog ... 分類ごとの diagram (presets / cookbook / patterns / primitives / text-dsl / animation / charts / parts / styles / interactive)
 │       │   ├── lib/           ... CATEGORIES + CATALOG_ITEMS SSOT
 │       │   └── components/    ... CdlEditor / InViewMount / SiteHeader / SvgDefs / Toast
 │       └── tests/             ... Playwright E2E (home / catalog / editor)
