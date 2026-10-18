@@ -77,7 +77,7 @@ function cdl側のslug(s: string): string {
  *
  * | 図種 | `😀` だけを書いた時に付く id |
  * |---|---|
- * | `sequence` / `solidity` | 枠 `actor-0` (cdl の `sequence()`) |
+ * | `sequence` | 枠 `actor-0` (cdl の `sequence()`) |
  * | `swimlane` | 枠 `lane-0` (cdl の `swimlane()`) |
  * | 残る 5 図種 | 箱 `n` (dragon 側の逃げ先。 cdl の逃げ道を通らない) |
  *

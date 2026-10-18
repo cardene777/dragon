@@ -30,15 +30,15 @@ const 記法を開く = async (page: import("@playwright/test").Page, src: strin
  * 順序図が 1 枚の板になり名札が無くなった。 フローの箱は 320×150 で帯が下限を割らないため、
  * 書かないと落ちる形そのものが出ない (実測)。
  *
- * 種類も別名 (`contract`) ではなく `shape-` を直接書く。 別名はこの大きさだと `card` に
- * 落ちるので、絵に譲る形が出ない (実測)。
+ * 種類は `shape-` を直接書く。 `card` はこの大きさでも説明を落とさないので、絵に譲る形が
+ * 出ない (実測)。
  */
 const 説明が落ちる = `title: "t"
 type: flow
 
 actors:
   - 注文 API:
-      kind: shape-smart-contract
+      kind: shape-server-rack
       subtitle: "説明"
       大きさ: 140,72
   - B
@@ -62,12 +62,12 @@ test("指摘が書き手の書いた名前で出る", async ({ page }) => {
 });
 
 test("書き手が書ける種別名は残る", async ({ page }) => {
-  // `shape-smart-contract` は記法にそのまま書ける語で、記法一覧の「箱の種類」 にも並ぶ。
+  // `shape-server-rack` は記法にそのまま書ける語で、記法一覧の「箱の種類」 にも並ぶ。
   // 読み替えると書き手が書いた語を消すことになる
   await 記法を開く(page, 説明が落ちる);
 
   const 文面 = await page.locator(".v4-editor-warning-detail").allTextContents();
   const 対象 = 文面.find((t) => t.includes("描かれない"));
   expect(対象, "説明が落ちた指摘が出ていない").toBeDefined();
-  expect(対象, "種別名まで読み替えている").toContain("shape-smart-contract");
+  expect(対象, "種別名まで読み替えている").toContain("shape-server-rack");
 });

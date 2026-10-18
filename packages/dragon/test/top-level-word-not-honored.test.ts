@@ -40,8 +40,8 @@ const 図 = (src: string): unknown => {
 };
 
 describe("並べ替えの語が効かない図種で知らせる (#2655)", () => {
-  const 効かない図 = `title: "t"\ntype: flow\norder: 種類\n\nactors:\n  - A: { kind: eoa }\n  - B: { kind: contract }\n\nflow:\n  - A -> B: "x"\n`;
-  const 語を外した図 = `title: "t"\ntype: flow\n\nactors:\n  - A: { kind: eoa }\n  - B: { kind: contract }\n\nflow:\n  - A -> B: "x"\n`;
+  const 効かない図 = `title: "t"\ntype: flow\norder: 種類\n\nactors:\n  - A: { kind: actor }\n  - B: { kind: storage }\n\nflow:\n  - A -> B: "x"\n`;
+  const 語を外した図 = `title: "t"\ntype: flow\n\nactors:\n  - A: { kind: actor }\n  - B: { kind: storage }\n\nflow:\n  - A -> B: "x"\n`;
 
   it("読まない図種に書くと知らせが 1 件出る", () => {
     expect(知らせ(効かない図, "order-not-honored")).toHaveLength(1);
@@ -56,7 +56,7 @@ describe("並べ替えの語が効かない図種で知らせる (#2655)", () =>
   });
 
   it("読む図種に書くと知らせが出ない (効いている形を咎めない)", () => {
-    const 効く図 = `title: "t"\ntype: sequence\norder: 種類\n\nactors:\n  - A: { kind: contract }\n  - B: { kind: eoa }\n\nflow:\n  - B -> A: "x"\n`;
+    const 効く図 = `title: "t"\ntype: sequence\norder: 種類\n\nactors:\n  - A: { kind: storage }\n  - B: { kind: actor }\n\nflow:\n  - B -> A: "x"\n`;
     expect(知らせ(効く図, "order-not-honored")).toHaveLength(0);
   });
 

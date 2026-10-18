@@ -162,7 +162,7 @@ describe("矢印に書いた飾りが図種ごとに消えない (#2394)", () =>
      * 骨格の図 / ガントチャートは矢印の知らせ、板は言づての知らせで 3 欄を並べる。
      */
     const 足りない: string[] = [];
-    for (const 図種 of ["tree", "mind", "gantt", "sequence", "solidity"]) {
+    for (const 図種 of ["tree", "mind", "gantt", "sequence"]) {
       const { 知 } = 組む(図種, ': "つなぐ" 成功 dashed', ' { tailSub: "1" }');
       const 文 = 知.map((n) => n.message).join("\n");
       for (const 語 of ["色味", "線の種類", "出どころ側の添え字"]) {

@@ -19,7 +19,7 @@ import type { CdlDiagram, CompileNotice } from "../src/index";
 /**
  * 登場人物ごとに箱を作る図種 = id が名前から決まる群。
  *
- * `sequence` / `solidity` は #1466 で 1 枚の板になり、面ごとの箱を作らなくなった = 名前から
+ * `sequence` は #1466 で 1 枚の板になり、面ごとの箱を作らなくなった = 名前から
  * id が決まらないので重なりようがない。 板が箱を作らないことは別の検査で見る。
  */
 const 箱を作る図種 = [
@@ -27,7 +27,6 @@ const 箱を作る図種 = [
   "swimlane",
   "record",
   "topology",
-  "solidity",
   "c4",
 ] as const;
 
@@ -477,7 +476,7 @@ describe("逃げ先は図種ごとに違う (Round 3)", () => {
      * #1466 で順序図は 1 枚の板になった。 面は板の中の見出しに並ぶだけで、名前から id が
      * 決まる箱も縦列も作らない = 逃げ先そのものが無い。
      */
-    for (const 型 of ["sequence", "solidity"]) {
+    for (const 型 of ["sequence"]) {
       const { 図 } = 組む(記法(型, ["😀", "actor-0"], ['😀 -> actor-0: "x"']));
       expect(図.nodes.filter((n) => n.title === "😀"), `${型} に面の箱が残っている`).toEqual([]);
       expect(図.lanes.filter((l) => l.label === "😀"), `${型} に面の縦列が残っている`).toEqual([]);
@@ -512,7 +511,7 @@ describe("逃げ先は図種ごとに違う (Round 3)", () => {
       const { 図 } = { 図: textDslToDiagram(src) };
       return 図.lanes.find((l) => l.label === "😀")?.id ?? 図.nodes.find((n) => n.title === "😀")?.id;
     };
-    // `sequence` / `solidity` は板になり面の箱を作らない (#1466) ので、この経路の対象外
+    // `sequence` は板になり面の箱を作らない (#1466) ので、この経路の対象外
     expect(動きつき("swimlane", "lane-0"), "swimlane で作り替えている").toBe("lane-n");
   });
 

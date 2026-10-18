@@ -45,7 +45,7 @@ import { at } from "./support/at";
  * 作らなくなったことを検知できない (`type: pie` が `card` を並べていた時、 実装から導く検査は
  * 通っていた)。 実測して表に書く。
  *
- * `sequence` / `solidity` は #1466 で 1 枚の板 (`sequence-board`) になった。
+ * `sequence` は #1466 で 1 枚の板 (`sequence-board`) になった。
  * `pie` / `gantt` は図全体を 1 つの箱で描く種類。
  *
  * **`satisfies` を覆いの根拠にしない** (#1411)。 型検査の対象は

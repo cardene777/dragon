@@ -45,7 +45,7 @@ import { at } from "./support/at";
  * 出ないことを確認済、 cc-codex review でも等価判定が妥当と支持された 3 種。
  *
  * - `applyEdgeInlineOptions` の seq-like 分岐 第 2 項 `e.from === fromId`
- *   = sequence/solidity の edge.from は必ず `s{idx}-{slug}` 形式で plain slug と一致しない。
+ *   = sequence の edge.from は必ず `s{idx}-{slug}` 形式で plain slug と一致しない。
  *   到達不能な条件のため変異が観測できない。
  * - `mergePartIntoDiagram` の `newShape && (scaleX !== 1 || scaleY !== 1)` の true 側変異
  *   = shape 不在時に block へ入っても `scaleGeom(undefined)` が undefined を返すため出力同一。
@@ -421,16 +421,16 @@ describe("数を描く図 / record", () => {
 
 // ── order: 種類 の並べ替え ──
 describe("order: 種類", () => {
-  it("actor を kind 優先順 (eoa/contract/storage/event) に並べ替える", () => {
-    // 入力順 event → contract → eoa、 sort 後は eoa(0) → contract(1) → event(3)
+  it("actor を kind 優先順 (actor/storage/event) に並べ替える", () => {
+    // 入力順 event → storage → actor、 sort 後は actor(0) → storage(1) → event(2)
     const d = compile("sequence", {
       order: "種類",
-      actors: [actor("Evt", { kind: "event" }), actor("Ctr", { kind: "contract" }), actor("Usr", { kind: "actor" })],
-      flow: [step("Usr", "Ctr")],
+      actors: [actor("Evt", { kind: "event" }), actor("Str", { kind: "storage" }), actor("Usr", { kind: "actor" })],
+      flow: [step("Usr", "Str")],
     });
     // 板の見出しは並べ替えた順に並ぶ (#1466 で面ごとの縦列は無くなった)
     const 面 = d.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
-    expect(面.map((a) => a.name)).toEqual(["Usr", "Ctr", "Evt"]);
+    expect(面.map((a) => a.name)).toEqual(["Usr", "Str", "Evt"]);
   });
 });
 
@@ -1295,7 +1295,7 @@ describe("applyV05Extensions: actor inline option の node merge", () => {
 
 // ── #881: underscore / 全角 actor 名で sequence の inline option が drop する ──
 //
-// 非 animate sequence/solidity の実 node id は CDL preset 側 slugify (`_` → `-` 置換 + 全角正規化) で
+// 非 animate sequence の実 node id は CDL preset 側 slugify (`_` → `-` 置換 + 全角正規化) で
 // 生成されるが、 applyV05Extensions が dragon slugify (`_` / 全角 保持) で `{slug}-header` を決め打つと
 // primaryNodeId が実 node id と食い違い option が drop していた。 lane.label 一致で actor 専用 lane を
 // 引き当て、 その lane の `-header` node を権威 primary として回収する fix を検証する。
@@ -1699,7 +1699,7 @@ describe("mergePartIntoDiagram: readouts / phase merge の分岐", () => {
 
 describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
   /*
-   * `sequence` / `solidity` は #1466 で 1 枚の板になり矢印を作らない = この経路に来ない。
+   * `sequence` は #1466 で 1 枚の板になり矢印を作らない = この経路に来ない。
    * 下敷きには矢印が出る図種を使う。
    */
   it("plain slug 一致で解決", () => {

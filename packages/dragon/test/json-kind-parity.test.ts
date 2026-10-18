@@ -8,7 +8,7 @@
  * 知らない値は見本 (parts) の名前として扱われる。 カタログに無ければ箱は `actor` に倒れ、
  * `console.warn` にしか残らない (`onNotice` を呼ばない) = **画面には何も出ない**。
  *
- * 公開している JSON Schema は `kind` の説明に `shape-wallet` 等を例示しているため、
+ * 公開している JSON Schema は `kind` の説明に `shape-cloud` 等を例示しているため、
  * schema を渡された LLM はこの値を書く。 書いた通りに描かれないことが既定の状態だった。
  *
  * 一覧が 2 箇所にある限り同じことが起きるので、**集合そのものを突き合わせる**。
@@ -73,14 +73,14 @@ describe("2 つの入口が同じ種類を受ける (#1293)", () => {
   });
 
   it("図に組み立てるところまで種類が保たれる", () => {
-    const 図に = jsonToDiagram(図("shape-wallet"));
+    const 図に = jsonToDiagram(図("shape-cloud"));
     const node = 図に.nodes.find((n) => n.title === "A");
-    expect(node?.kind).toBe("shape-wallet");
+    expect(node?.kind).toBe("shape-cloud");
   });
 
   it("記法と JSON が同じ図に解決される", () => {
     // 種類ごとに組み立て後の形が変わるため、直接の種類 3 種と読み替える種類を端から端まで比べる
-    for (const kind of ["shape-wallet", "shape-smart-contract", "cloud", "lambda"]) {
+    for (const kind of ["shape-cloud", "shape-code-block", "cloud", "secret"]) {
       const 記法 = textDslToDiagram(
         `title: "t"\ntype: flow\nactors:\n  - A: { kind: ${kind} }\n  - B\nflow:\n  - A -> B: "x"\n`,
       );

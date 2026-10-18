@@ -219,7 +219,7 @@ describe("多重度と板の飾りの知らせが、既に知らせた行に重�
     expect(有り.map((n) => n.kind)).toEqual(無し.map((n) => n.kind));
   });
 
-  it.each(["sequence", "solidity"])("%s: actors に無い名前へ引いた言づてに飾りを書いても、居ない名前の知らせだけ", (type) => {
+  it.each(["sequence"])("%s: actors に無い名前へ引いた言づてに飾りを書いても、居ない名前の知らせだけ", (type) => {
     expect(最後の行の知らせ(記法(type, 'A -> C: "x" (info)')).map((n) => n.kind)).toEqual(["flow-actor-missing"]);
     // 居る名前へ引けば、飾りの知らせは今までどおり出る
     expect(最後の行の知らせ(記法(type, 'A -> B: "x" (info)')).map((n) => n.kind)).toEqual(["message-option-not-honored"]);

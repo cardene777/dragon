@@ -252,14 +252,14 @@ describe("書き手の名前で読める (#1324)", () => {
   });
 
   it("書き手が書ける種別名は残す", () => {
-    // `shape-smart-contract` は記法にそのまま書ける語で、記法一覧にも並ぶ。 読み替えると
+    // `shape-code-block` は記法にそのまま書ける語で、記法一覧にも並ぶ。 読み替えると
     // 書き手が書いた語を消すことになる
     const d = textDslToDiagram(落ちる説明);
     const 出た = 書き手の名前で読める(
-      'node "a" (shape-smart-contract, 140x72) は書いた 説明 が描かれない',
+      'node "a" (shape-code-block, 140x72) は書いた 説明 が描かれない',
       d,
     );
-    expect(出た, "種別名まで読み替えている").toContain("shape-smart-contract");
+    expect(出た, "種別名まで読み替えている").toContain("shape-code-block");
     expect(出た, "id が読み替えられていない").toContain('名札 "A"');
   });
 

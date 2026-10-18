@@ -289,7 +289,7 @@ flow:
    */
   // `mind` は #1177 で `mind-map` 種別 (図全体を 1 箱で描く) に寄せたため外した。 登場人物ごとの
   // 箱が無く、 相対の位置を測る相手が居ない = `pie` / `gantt` / `journey` と同じ扱いになる
-  // `sequence` / `solidity` は #1466 で 1 枚の板になり、面ごとの箱が無い = 相対の位置を
+  // `sequence` は #1466 で 1 枚の板になり、面ごとの箱が無い = 相対の位置を
   // 測る相手が居ない。 書いた位置が効かないことは `§ 効かなかった時` が知らせで見る
   const TYPES = ["flow", "record", "topology", "c4"] as const;
   for (const type of TYPES) {
