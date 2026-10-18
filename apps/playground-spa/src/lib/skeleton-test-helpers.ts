@@ -13,11 +13,41 @@ function 数値属性(element: Element, name: string): number {
   return Number(value);
 }
 
+function 経路の数値(d: string): number[] {
+  return d.match(/-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/giu)?.map(Number) ?? [];
+}
+
 function 線の経路点を入れる(値: 骨組みの数値表, prefix: string, d: string): void {
-  const numbers = d.match(/-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/giu)?.map(Number) ?? [];
+  const numbers = 経路の数値(d);
   for (let index = 0; index < numbers.length; index += 2) {
     値[`${prefix}.point[${index / 2}].x`] = numbers[index]!;
     if (numbers[index + 1] !== undefined) 値[`${prefix}.point[${index / 2}].y`] = numbers[index + 1]!;
+  }
+}
+
+function 円の区画を入れる(値: 骨組みの数値表, diagram: CdlDiagram, laid: LaidDiagram): void {
+  const 円の節 = laid.nodes.filter((node) => node.kind === "chart-pie");
+  if (円の節.length === 0) return;
+
+  const markup = renderToStaticMarkup(
+    createElement(CdlDiagramView, { diagram, laid, hideHeader: true }),
+  );
+  const document = new JSDOM(markup, { contentType: "image/svg+xml" }).window.document;
+  const 描いた節 = [...document.querySelectorAll("[data-cdl-node]")];
+  for (const node of 円の節) {
+    const element = 描いた節.find((candidate) => candidate.getAttribute("data-cdl-node") === node.id);
+    if (element === undefined) throw new Error(`円の節 ${node.id} が描かれていない`);
+    const slices = element.querySelectorAll('[data-cdl-role="chart-pie-slice"]');
+    if (slices.length === 0) throw new Error(`円の節 ${node.id} に区画が無い`);
+    for (let sliceIndex = 0; sliceIndex < slices.length; sliceIndex += 1) {
+      const d = slices[sliceIndex]?.getAttribute("d");
+      if (d === null || d === undefined) throw new Error(`円の節 ${node.id} の区画に d が無い`);
+      const numbers = 経路の数値(d);
+      if (numbers.length === 0) throw new Error(`円の節 ${node.id} の区画の d を読めない`);
+      for (let numberIndex = 0; numberIndex < numbers.length; numberIndex += 1) {
+        値[`figure.${node.id}.pie.slice[${sliceIndex}].d[${numberIndex}]`] = numbers[numberIndex]!;
+      }
+    }
   }
 }
 
@@ -95,6 +125,7 @@ export function 骨組みを測る(diagram: CdlDiagram, laid: LaidDiagram): 骨�
   }
 
   段の見出しを入れる(値, diagram, laid);
+  円の区画を入れる(値, diagram, laid);
   return 値;
 }
 

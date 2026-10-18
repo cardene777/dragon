@@ -34,7 +34,7 @@ async function 頁に出る見本を集める(): Promise<見本[]> {
   return items.flatMap(項目の見本);
 }
 
-describe("見本帳は配色を替えても図ごとの骨組みを保つ (#2908)", () => {
+describe("見本帳は配色を替えても図ごとの骨組みを保つ (#2908 / #2926)", () => {
   it("記法を通る見本は組み立て済みの widest をそのまま配置する", () => {
     const warnings = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
@@ -59,7 +59,7 @@ describe("見本帳は配色を替えても図ごとの骨組みを保つ (#2908
     }
   }, 120_000);
 
-  it("全ての見本の箱・線・線札・段見出し・図枠が 10 配色で同じ", async () => {
+  it("全ての見本の箱・線・線札・段見出し・円の区画・図枠が 10 配色で同じ", async () => {
     const warnings = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
       const differences: string[] = [];

@@ -28,15 +28,14 @@ flow:
 `;
 
 describe("cdl 0.138.0 の公開欄 (#2871)", () => {
-  it("電飾の chart-pie だけ円の区画の間 3 を返す", () => {
-    expect(意匠の円の区画の間("neon", { kind: "chart-pie" })).toBe(3);
-    expect(意匠の円の区画の間("neon", { kind: "chart-bar" })).toBeUndefined();
-    for (const theme of ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "relief"] as const) {
+  it("公開済みの円の区画の間は、どの意匠と節でも値を返さない", () => {
+    for (const theme of ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
       expect(意匠の円の区画の間(theme, { kind: "chart-pie" })).toBeUndefined();
+      expect(意匠の円の区画の間(theme, { kind: "chart-bar" })).toBeUndefined();
     }
   });
 
-  it("組み立ては電飾の円だけへ chartPieSliceGap 3 を当てる", () => {
+  it("組み立ては色味から chartPieSliceGap を足さない", () => {
     const pie = (theme?: string) => textDslToDiagram(`title: 見本
 type: chart
 shape: pie
@@ -47,12 +46,12 @@ flow:
   - A -> B
 `).nodes[0];
 
-    expect(pie("neon")?.chartPieSliceGap).toBe(3);
-    expect(Object.hasOwn(pie("relief") ?? {}, "chartPieSliceGap")).toBe(false);
-    expect(Object.hasOwn(pie() ?? {}, "chartPieSliceGap")).toBe(false);
+    for (const theme of ["neon", "relief", undefined]) {
+      expect(Object.hasOwn(pie(theme) ?? {}, "chartPieSliceGap"), String(theme)).toBe(false);
+    }
   });
 
-  it("電飾の円は CSS の上書きなしでも各区画へ stroke 属性を出さない", () => {
+  it("電飾の円は扇を削らず、描画側の区切り線を保つ", () => {
     const diagram = textDslToDiagram(`title: 見本
 type: chart
 shape: pie
@@ -66,7 +65,8 @@ flow:
     const markup = renderToStaticMarkup(createElement(CdlDiagramView, { diagram }));
     const slices = [...markup.matchAll(/<path(?=[^>]*data-cdl-role="chart-pie-slice")[^>]*>/gu)].map((match) => match[0]);
     expect(slices).toHaveLength(2);
-    expect(slices.every((slice) => !/\sstroke=/u.test(slice))).toBe(true);
+    expect(slices.every((slice) => /\sstroke="var\(--cdl-node-fill, #ffffff\)"/u.test(slice))).toBe(true);
+    expect(slices.every((slice) => /\sstroke-width="3"/u.test(slice))).toBe(true);
   });
 
   it("text 記法と JSON の backDetourTargetInset を CDL へそのまま渡す", () => {

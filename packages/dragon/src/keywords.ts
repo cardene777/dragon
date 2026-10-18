@@ -238,12 +238,16 @@ export function 意匠の字の測り方(_theme: DslTheme): "widest" {
   return "widest";
 }
 
-/** 意匠と節から、見本に合わせた円の区画間の弧の長さを引く (#2871)。 */
+/**
+ * 意匠と節から円の区画間の弧の長さを引く (#2871 / #2926)。
+ *
+ * 区画の形を意匠で変えないため値は返さない。公開済みの関数なので互換の窓口だけを残す。
+ */
 export function 意匠の円の区画の間(
-  theme: DslTheme,
-  node: Pick<CdlNode, "kind">,
-): number | undefined {
-  return theme === "neon" && node.kind === "chart-pie" ? 3 : undefined;
+  _theme: DslTheme,
+  _node: Pick<CdlNode, "kind">,
+): undefined {
+  return undefined;
 }
 
 /** `barCornerRadii` が効く棒を描く節か。 */
