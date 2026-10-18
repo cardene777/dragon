@@ -179,8 +179,8 @@ type: topology
 actors:
   - 負荷分散: cloud "ロードバランサー"
   - Web: service "APIサーバー"
-  - キャッシュ: cache "Redis"
-  - DB: database "Postgres"
+  - キャッシュ: cache "セッション"
+  - DB: database "注文の台帳"
 
 flow:
   - 負荷分散 -> Web: "振り分け"
@@ -477,30 +477,27 @@ animation:
 `,
   },
   {
-    label: "投票コントラクト (sequence)",
-    labelEn: "Voting contract (sequence)",
+    label: "投票の受付 (sequence)",
+    labelEn: "Accepting votes (sequence)",
     slug: "order",
-    code: `title: "投票コントラクト"
+    code: `title: "投票の受付"
 type: sequence
 order: 種類
 
 actors:
+  - 結果の通知: event
+  - 投票箱: storage
   - 有権者: actor
-  - 投票箱: contract
-  - 集計: function
 
 flow:
-  - 有権者 -> 投票箱: "vote(id)"
-  - 投票箱 -> 集計: "tally()"
-  - 集計 -> 有権者: "結果"
+  - 有権者 -> 投票箱: "投票する"
+  - 投票箱 -> 結果の通知: "集計して知らせる"
 
 animation:
   - step: "投票" 1.5s
     focus: [有権者, 投票箱]
   - step: "集計" 1.5s
-    focus: [投票箱, 集計]
-  - step: "結果" 1.2s
-    focus: ["集計 -> 有権者"]
+    focus: [投票箱, 結果の通知]
 `,
   },
   {

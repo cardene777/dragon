@@ -69,7 +69,6 @@ import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-d
 import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
 import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
 import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
-import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as partsInBox from "../../../apps/playground-spa/src/topics/catalog/parts-in-box.cdl";
 import * as partsMotion from "../../../apps/playground-spa/src/topics/catalog/parts-motion.cdl";
@@ -653,7 +652,6 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
   { name: "animation", mod: animation },
   { name: "styles", mod: styles },
   { name: "interactive", mod: interactive },
-  { name: "ethereum", mod: ethereum },
   { name: "parts", mod: parts },
   { name: "parts-in-box", mod: partsInBox },
   { name: "parts-motion", mod: partsMotion },
@@ -983,17 +981,11 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "fsm-demo",
       "infra-complex-demo",
       "infra-demo",
-      "interactive-exemplar-payment-flow",
       "interactive-kpi-dashboard",
       "interactive-oauth-flow",
       "interactive-price-candlestick",
       "interactive-year-roadmap",
       "network-complex-demo",
-      "scene-banking-flow",
-      "scene-ec-order",
-      "scene-stock-trading",
-      "scene-token-deploy",
-      "scene-web-infra",
       "sm2-demo",
       "swim-complex-demo",
       "topo-complex-demo",

@@ -87,27 +87,27 @@ export const kExternalUser = single("k-external-user", {
 
 // インフラ 6
 export const kDatabase = single("k-database", {
-  kind: "database", eyebrow: "DB", title: "PostgreSQL", subtitle: "主データベース",
+  kind: "database", eyebrow: "DB", title: "顧客台帳", subtitle: "主データベース",
   metric: { value: "{v} 行/s", from: 120, to: 980 },
 });
 export const kCache = single("k-cache", {
-  kind: "cache", eyebrow: "キャッシュ", title: "Redis", subtitle: "メモリ上の保管",
+  kind: "cache", eyebrow: "キャッシュ", title: "セッションの置き場", subtitle: "メモリ上の保管",
   metric: { value: "命中 {v}%", from: 62, to: 97 },
 });
 export const kQueue = single("k-queue", {
-  kind: "queue", eyebrow: "キュー", title: "仕事の待ち行列", subtitle: "Bull / SQS",
+  kind: "queue", eyebrow: "キュー", title: "仕事の待ち行列", subtitle: "仕事を順に渡す",
   metric: { value: "待ち {v}", from: 8, to: 120 },
 });
 export const kMessageBus = single("k-message-bus", {
-  kind: "message-bus", eyebrow: "メッセージバス", title: "Kafka", subtitle: "話題と区画で配る",
+  kind: "message-bus", eyebrow: "メッセージバス", title: "出来事の通り道", subtitle: "話題と区画で配る",
   metric: { value: "{v} 件/s", from: 40, to: 620 },
 });
 export const kCloud = single("k-cloud", {
-  kind: "cloud", eyebrow: "クラウド", title: "AWS", subtitle: "クラウドの役務",
+  kind: "cloud", eyebrow: "クラウド", title: "外部のクラウド", subtitle: "クラウドの役務",
   metric: { value: "{v} 台", from: 2, to: 16 },
 });
 export const kCdn = single("k-cdn", {
-  kind: "cdn", eyebrow: "CDN", title: "Cloudflare", subtitle: "配信網の末端",
+  kind: "cdn", eyebrow: "CDN", title: "配信網", subtitle: "配信網の末端",
   metric: { value: "{v} GB/h", from: 5, to: 88 },
 });
 
@@ -125,7 +125,7 @@ export const kFrontend = single("k-frontend", {
   metric: { value: "描画 {v} ms", from: 180, to: 60 },
 });
 export const kBackend = single("k-backend", {
-  kind: "backend", eyebrow: "バックエンド", title: "Express", subtitle: "サーバの実行環境",
+  kind: "backend", eyebrow: "バックエンド", title: "アプリのサーバー", subtitle: "サーバの実行環境",
   metric: { value: "CPU {v}%", from: 12, to: 74 },
 });
 export const kWebhook = single("k-webhook", {
@@ -500,15 +500,15 @@ states:
   v: 120
 
 actors:
-  - PostgreSQL: { kind: database, lane: l, stack: 0, eyebrow: "DB", subtitle: "主データベース", value: "{v} 行/s" }
+  - 顧客台帳: { kind: database, lane: l, stack: 0, eyebrow: "DB", subtitle: "主データベース", value: "{v} 行/s" }
 
 animation:
   - step: "database" 1.5s
-    focus: ["PostgreSQL"]
+    focus: ["顧客台帳"]
     badge: "動作中"
     description: "database kind の見た目。"
   - step: "database が動く" 1.5s
-    focus: ["PostgreSQL"]
+    focus: ["顧客台帳"]
     tween:
       v: 120 -> 980
     badge: "値が動く"
@@ -523,7 +523,7 @@ export const sourceJson__kDatabase = `{
   },
   "actors": [
     {
-      "name": "PostgreSQL",
+      "name": "顧客台帳",
       "kind": "database",
       "lane": "l",
       "stack": 0,
@@ -538,14 +538,14 @@ export const sourceJson__kDatabase = `{
     {
       "step": "database",
       "duration": 1.5,
-      "focus": ["PostgreSQL"],
+      "focus": ["顧客台帳"],
       "badge": "動作中",
       "description": "database kind の見た目。"
     },
     {
       "step": "database が動く",
       "duration": 1.5,
-      "focus": ["PostgreSQL"],
+      "focus": ["顧客台帳"],
       "tween": { "v": [120, 980] },
       "badge": "値が動く",
       "description": "箱の値が段の中で動く。"
@@ -563,15 +563,15 @@ states:
   v: 62
 
 actors:
-  - Redis: { kind: cache, lane: l, stack: 0, eyebrow: "キャッシュ", subtitle: "メモリ上の保管", value: "命中 {v}%" }
+  - セッションの置き場: { kind: cache, lane: l, stack: 0, eyebrow: "キャッシュ", subtitle: "メモリ上の保管", value: "命中 {v}%" }
 
 animation:
   - step: "cache" 1.5s
-    focus: ["Redis"]
+    focus: ["セッションの置き場"]
     badge: "動作中"
     description: "cache kind の見た目。"
   - step: "cache が動く" 1.5s
-    focus: ["Redis"]
+    focus: ["セッションの置き場"]
     tween:
       v: 62 -> 97
     badge: "値が動く"
@@ -586,7 +586,7 @@ export const sourceJson__kCache = `{
   },
   "actors": [
     {
-      "name": "Redis",
+      "name": "セッションの置き場",
       "kind": "cache",
       "lane": "l",
       "stack": 0,
@@ -601,14 +601,14 @@ export const sourceJson__kCache = `{
     {
       "step": "cache",
       "duration": 1.5,
-      "focus": ["Redis"],
+      "focus": ["セッションの置き場"],
       "badge": "動作中",
       "description": "cache kind の見た目。"
     },
     {
       "step": "cache が動く",
       "duration": 1.5,
-      "focus": ["Redis"],
+      "focus": ["セッションの置き場"],
       "tween": { "v": [62, 97] },
       "badge": "値が動く",
       "description": "箱の値が段の中で動く。"
@@ -626,7 +626,7 @@ states:
   v: 8
 
 actors:
-  - 仕事の待ち行列: { kind: queue, lane: l, stack: 0, eyebrow: "キュー", subtitle: "Bull / SQS", value: "待ち {v}" }
+  - 仕事の待ち行列: { kind: queue, lane: l, stack: 0, eyebrow: "キュー", subtitle: "仕事を順に渡す", value: "待ち {v}" }
 
 animation:
   - step: "queue" 1.5s
@@ -654,7 +654,7 @@ export const sourceJson__kQueue = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "キュー",
-      "subtitle": "Bull / SQS",
+      "subtitle": "仕事を順に渡す",
       "value": "待ち {v}"
     }
   ],
@@ -689,15 +689,15 @@ states:
   v: 40
 
 actors:
-  - Kafka: { kind: message-bus, lane: l, stack: 0, eyebrow: "メッセージバス", subtitle: "話題と区画で配る", value: "{v} 件/s" }
+  - 出来事の通り道: { kind: message-bus, lane: l, stack: 0, eyebrow: "メッセージバス", subtitle: "話題と区画で配る", value: "{v} 件/s" }
 
 animation:
   - step: "message-bus" 1.5s
-    focus: ["Kafka"]
+    focus: ["出来事の通り道"]
     badge: "動作中"
     description: "message-bus kind の見た目。"
   - step: "message-bus が動く" 1.5s
-    focus: ["Kafka"]
+    focus: ["出来事の通り道"]
     tween:
       v: 40 -> 620
     badge: "値が動く"
@@ -712,7 +712,7 @@ export const sourceJson__kMessageBus = `{
   },
   "actors": [
     {
-      "name": "Kafka",
+      "name": "出来事の通り道",
       "kind": "message-bus",
       "lane": "l",
       "stack": 0,
@@ -727,14 +727,14 @@ export const sourceJson__kMessageBus = `{
     {
       "step": "message-bus",
       "duration": 1.5,
-      "focus": ["Kafka"],
+      "focus": ["出来事の通り道"],
       "badge": "動作中",
       "description": "message-bus kind の見た目。"
     },
     {
       "step": "message-bus が動く",
       "duration": 1.5,
-      "focus": ["Kafka"],
+      "focus": ["出来事の通り道"],
       "tween": { "v": [40, 620] },
       "badge": "値が動く",
       "description": "箱の値が段の中で動く。"
@@ -752,15 +752,15 @@ states:
   v: 2
 
 actors:
-  - AWS: { kind: cloud, lane: l, stack: 0, eyebrow: "クラウド", subtitle: "クラウドの役務", value: "{v} 台" }
+  - 外部のクラウド: { kind: cloud, lane: l, stack: 0, eyebrow: "クラウド", subtitle: "クラウドの役務", value: "{v} 台" }
 
 animation:
   - step: "cloud" 1.5s
-    focus: ["AWS"]
+    focus: ["外部のクラウド"]
     badge: "動作中"
     description: "cloud kind の見た目。"
   - step: "cloud が動く" 1.5s
-    focus: ["AWS"]
+    focus: ["外部のクラウド"]
     tween:
       v: 2 -> 16
     badge: "値が動く"
@@ -775,7 +775,7 @@ export const sourceJson__kCloud = `{
   },
   "actors": [
     {
-      "name": "AWS",
+      "name": "外部のクラウド",
       "kind": "cloud",
       "lane": "l",
       "stack": 0,
@@ -790,14 +790,14 @@ export const sourceJson__kCloud = `{
     {
       "step": "cloud",
       "duration": 1.5,
-      "focus": ["AWS"],
+      "focus": ["外部のクラウド"],
       "badge": "動作中",
       "description": "cloud kind の見た目。"
     },
     {
       "step": "cloud が動く",
       "duration": 1.5,
-      "focus": ["AWS"],
+      "focus": ["外部のクラウド"],
       "tween": { "v": [2, 16] },
       "badge": "値が動く",
       "description": "箱の値が段の中で動く。"
@@ -815,15 +815,15 @@ states:
   v: 5
 
 actors:
-  - Cloudflare: { kind: cdn, lane: l, stack: 0, eyebrow: "CDN", subtitle: "配信網の末端", value: "{v} GB/h" }
+  - 配信網: { kind: cdn, lane: l, stack: 0, eyebrow: "CDN", subtitle: "配信網の末端", value: "{v} GB/h" }
 
 animation:
   - step: "cdn" 1.5s
-    focus: ["Cloudflare"]
+    focus: ["配信網"]
     badge: "動作中"
     description: "cdn kind の見た目。"
   - step: "cdn が動く" 1.5s
-    focus: ["Cloudflare"]
+    focus: ["配信網"]
     tween:
       v: 5 -> 88
     badge: "値が動く"
@@ -838,7 +838,7 @@ export const sourceJson__kCdn = `{
   },
   "actors": [
     {
-      "name": "Cloudflare",
+      "name": "配信網",
       "kind": "cdn",
       "lane": "l",
       "stack": 0,
@@ -853,14 +853,14 @@ export const sourceJson__kCdn = `{
     {
       "step": "cdn",
       "duration": 1.5,
-      "focus": ["Cloudflare"],
+      "focus": ["配信網"],
       "badge": "動作中",
       "description": "cdn kind の見た目。"
     },
     {
       "step": "cdn が動く",
       "duration": 1.5,
-      "focus": ["Cloudflare"],
+      "focus": ["配信網"],
       "tween": { "v": [5, 88] },
       "badge": "値が動く",
       "description": "箱の値が段の中で動く。"
@@ -1067,15 +1067,15 @@ states:
   v: 12
 
 actors:
-  - Express: { kind: backend, lane: l, stack: 0, eyebrow: "バックエンド", subtitle: "サーバの実行環境", value: "CPU {v}%" }
+  - アプリのサーバー: { kind: backend, lane: l, stack: 0, eyebrow: "バックエンド", subtitle: "サーバの実行環境", value: "CPU {v}%" }
 
 animation:
   - step: "backend" 1.5s
-    focus: ["Express"]
+    focus: ["アプリのサーバー"]
     badge: "動作中"
     description: "backend kind の見た目。"
   - step: "backend が動く" 1.5s
-    focus: ["Express"]
+    focus: ["アプリのサーバー"]
     tween:
       v: 12 -> 74
     badge: "値が動く"
@@ -1090,7 +1090,7 @@ export const sourceJson__kBackend = `{
   },
   "actors": [
     {
-      "name": "Express",
+      "name": "アプリのサーバー",
       "kind": "backend",
       "lane": "l",
       "stack": 0,
@@ -1105,14 +1105,14 @@ export const sourceJson__kBackend = `{
     {
       "step": "backend",
       "duration": 1.5,
-      "focus": ["Express"],
+      "focus": ["アプリのサーバー"],
       "badge": "動作中",
       "description": "backend kind の見た目。"
     },
     {
       "step": "backend が動く",
       "duration": 1.5,
-      "focus": ["Express"],
+      "focus": ["アプリのサーバー"],
       "tween": { "v": [12, 74] },
       "badge": "値が動く",
       "description": "箱の値が段の中で動く。"

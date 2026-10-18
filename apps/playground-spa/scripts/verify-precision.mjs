@@ -368,32 +368,6 @@ const cases = [
     },
   },
   {
-    diagramId: "interactive-eip1559",
-    label: "EIP-1559 v2: 6 shape (wallet / mobile / pool / blockN / blockN1 / chainNode) が描画",
-    setup: async (page) => { await page.waitForTimeout(300); },
-    assert: async (page) => {
-      const ids = ["wallet", "mobile", "pool", "blockN", "blockN1", "chainNode"];
-      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
-        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
-        return ids.filter((id) => seen.has(id)).length;
-      }, ids);
-      return { actual: found, expected: 6 };
-    },
-  },
-  {
-    diagramId: "interactive-eip1559",
-    label: "EIP-1559 v2: 4 readout (baseFeeG / totalBar / statusTL / blockCU) が描画",
-    setup: async (page) => { await page.waitForTimeout(300); },
-    assert: async (page) => {
-      const ids = ["baseFeeG", "totalBar", "statusTL", "blockCU"];
-      const found = await page.$$eval("[data-cdl-readout]", (els, ids) => {
-        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-readout")));
-        return ids.filter((id) => seen.has(id)).length;
-      }, ids);
-      return { actual: found, expected: 4 };
-    },
-  },
-  {
     diagramId: "interactive-oauth-flow",
     label: "OAuth flow: sequence timeline に 6 event marker (circle) 描画",
     setup: async (page) => { await page.waitForTimeout(300); },
@@ -900,8 +874,8 @@ const cases = [
     },
   },
   {
-    diagramId: "interactive-crypto-wallet",
-    label: "token-list: 4 token row 表示",
+    diagramId: "interactive-purchase-price-list",
+    label: "token-list: 4 品目の行を表示",
     setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
       const rows = await page.$$eval('[data-cdl-readout="tl"] .cdl-ip-readout-token-list-row', (els) => els.length);

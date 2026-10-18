@@ -8,7 +8,7 @@
  * 1. 全 diagram に YAML / JSON pair が揃っている (missing / orphan ゼロ)
  * 2. 各 JSON source が JSON.parse できる
  * 3. 各 JSON source が validateDragonJson を通る
- * 4. YAML / JSON source がどちらも CdlDiagram になり、対応 scene と同じ段を持つ
+ * 4. YAML / JSON source がどちらも CdlDiagram になり、対応する図と同じ段を持つ
  * 5. JSON の actor kind が対応する diagram の node kind と一致する
  */
 import { describe, it, expect } from "vitest";
@@ -50,16 +50,6 @@ function diagramKeys(): string[] {
     .map(([k]) => k);
 }
 
-/** scene diagram の export key 一覧 (`scene` prefix + diagram object) */
-function sceneKeys(): string[] {
-  return Object.entries(mod)
-    .filter(
-      ([k, v]) =>
-        k.startsWith("scene") && v && typeof v === "object" && "nodes" in (v as AnyRecord),
-    )
-    .map(([k]) => k);
-}
-
 function sourceKeys(prefix: "sourceYaml__" | "sourceJson__"): string[] {
   return Object.entries(mod)
     .filter(([k, v]) => k.startsWith(prefix) && typeof v === "string")
@@ -67,8 +57,8 @@ function sourceKeys(prefix: "sourceYaml__" | "sourceJson__"): string[] {
 }
 
 describe("catalog source pairs (YAML / JSON tab の供給元)", () => {
-  it("scene が 1 件以上 export されている (import 経路の健全性)", () => {
-    expect(sceneKeys().length).toBeGreaterThan(0);
+  it("図が 1 件以上 export されている (import 経路の健全性)", () => {
+    expect(diagramKeys().length).toBeGreaterThan(0);
   });
 
   it("2 module に同名の export が無い (畳んだ時に潰れない)", () => {
@@ -181,15 +171,17 @@ describe("catalog source pairs (YAML / JSON tab の供給元)", () => {
     expect(failures).toEqual([]);
   });
 
-  it("sourceYaml が空文字でなく title / actors / flow の 3 block を含む", () => {
+  it("sourceYaml が空文字でなく title / actors の 2 block を含む", () => {
+    // 矢印を持たない見本 (箱 1 つの形の見本) があるので `flow:` は見ない。
+    // 以前は場面の見本 (`scene*`、全て矢印を持つ) だけを見ていたが、#2946 で場面を外した
     const failures: string[] = [];
-    for (const key of sceneKeys()) {
+    for (const key of diagramKeys()) {
       const yaml = mod[`sourceYaml__${key}`];
       if (typeof yaml !== "string" || yaml.trim().length === 0) {
         failures.push(`${key}: sourceYaml empty`);
         continue;
       }
-      for (const block of ["title:", "actors:", "flow:"]) {
+      for (const block of ["title:", "actors:"]) {
         if (!yaml.includes(block)) failures.push(`${key}: sourceYaml missing "${block}"`);
       }
     }
@@ -205,15 +197,16 @@ describe("catalog source pairs (YAML / JSON tab の供給元)", () => {
  * なる」 として見せるので、段がずれると嘘になる。
  */
 describe("source の段が図の段と一致する (#1192)", () => {
-  const 場面 = sceneKeys().filter((k) => k.startsWith("scene"));
+  // 以前は場面の見本 (`scene*`) だけを見ていた。 #2946 で場面を外したので、頁の図すべてを見る
+  const 図の名 = diagramKeys();
 
-  it("対象が 30 件ある", () => {
-    expect(場面.length).toBe(30);
+  it("対象が 1 件以上ある", () => {
+    expect(図の名.length, "図を 1 件も集められていない (検査が空振りしている)").toBeGreaterThan(0);
   });
 
   it("YAML / JSON source から作った図の段が、catalog の図の段と一致する", () => {
     const 違う: string[] = [];
-    for (const key of 場面) {
+    for (const key of 図の名) {
       const 図 = mod[key] as SceneDiagram;
       const sources = [
         ["YAML", mod[`sourceYaml__${key}`], (src: string) => textDslToDiagram(src)],

@@ -864,7 +864,7 @@ export const subtitle__shapeRectFill =
   "塗り割合が 25% / 50% / 75% の四角を並べ、4 つ目だけをつまみで動かして比べる (dyn-rect)";
 
 /**
- * 12. chain fill = 3 個の rect を並列、 base 値の伝搬で各 fill が連動 (EIP1559 相当)。
+ * 12. chain fill = 3 個の rect を並列、 base 値の伝搬で各 fill が連動。
  */
 export const shapeChainFill = diagram("interactive-shape-chain", {
   topic: "3 個の dyn-rect を並列、 base slider で各 fill が formula 経由で連動変化",
@@ -873,9 +873,9 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
   .lane("l2", { x: 150, width: 130 })
   .lane("l3", { x: 300, width: 130 })
   .input.slider("base", { min: 0, max: 100, defaultValue: 30, label: "元の値" })
-  .formula("gas1", "base", { label: "ブロック 1 の手数料" })
-  .formula("gas2", "base * 1.2", { label: "ブロック 2 の手数料" })
-  .formula("gas3", "base * 1.5", { label: "ブロック 3 の手数料" })
+  .formula("gas1", "base", { label: "1 日目の料金" })
+  .formula("gas2", "base * 1.2", { label: "2 日目の料金" })
+  .formula("gas3", "base * 1.5", { label: "3 日目の料金" })
   .state("base", { initial: 30 })
   .state("gas1", { initial: 30 })
   .state("gas2", { initial: 36 })
@@ -884,8 +884,8 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
     lane: "l1",
     stack: 0,
     kind: "dyn-rect",
-    title: "ブロック 1",
-    subtitle: "手数料: {gas1}",
+    title: "1 日目",
+    subtitle: "料金: {gas1}",
     w: 100,
     h: 220,
     shape: { kind: "rect", source: "{gas1}", fillMax: 150, orient: "up", fill: "#8a5a2a" },
@@ -894,8 +894,8 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
     lane: "l2",
     stack: 0,
     kind: "dyn-rect",
-    title: "ブロック 2",
-    subtitle: "手数料: {gas2}",
+    title: "2 日目",
+    subtitle: "料金: {gas2}",
     w: 100,
     h: 220,
     shape: { kind: "rect", source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" },
@@ -904,8 +904,8 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
     lane: "l3",
     stack: 0,
     kind: "dyn-rect",
-    title: "ブロック 3",
-    subtitle: "手数料: {gas3}",
+    title: "3 日目",
+    subtitle: "料金: {gas3}",
     w: 100,
     h: 220,
     shape: { kind: "rect", source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" },
@@ -1352,7 +1352,7 @@ export const subtitle__shapePolyRotate =
 
 /**
  * 17. repeat + derive chain = N 個の shape を宣言的に生成、 前値参照で連鎖伝搬。
- *     EIP1559 相当を 数行で書ける、 count を変えれば 3 → 5 → 10 個への拡張が同 template で成立。
+ *     前の値から順に決まる値を数行で書ける、 count を変えれば 3 → 5 → 10 個への拡張が同 template で成立。
  */
 export const repeatDeriveChain = diagram("interactive-repeat-chain", {
   topic: "repeatNodes + deriveChain で N 個の rect を宣言的に生成、 前値連鎖で伝搬",
@@ -1365,7 +1365,7 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
   .input.slider("base", { min: 0, max: 60, defaultValue: 20, label: "元の値" })
   // formula chain: gas1 = base、 gas2 = gas1*1.2、 gas3 = gas2*1.2、 gas4 = gas3*1.2、 gas5 = gas4*1.2
   .deriveChain("gas", 5, (i, prev) => (i === 0 ? "base" : `${prev} * 1.2`), {
-    label: (i) => `ブロック ${i + 1} の手数料`,
+    label: (i) => `${i + 1} 日目の料金`,
   })
   .state("base", { initial: 20 })
   .state("gas1", { initial: 20 })
@@ -1379,8 +1379,8 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
     lane: `l{i+1}`,
     stack: 0,
     kind: "dyn-rect" as const,
-    title: `ブロック {i+1}`,
-    subtitle: "手数料: {gas{i+1}}",
+    title: `{i+1} 日目`,
+    subtitle: "料金: {gas{i+1}}",
     w: 80,
     h: 220,
     shape: {
@@ -2767,105 +2767,6 @@ export const subtitle__taskProgressGroup =
   "4 件の作業を 50% 以上と未満の縦列に分け、進み具合をまとめて出す部品で並べる (progress-group)";
 
 /**
- * 34. domain example = EIP-1559 gas cost model。
- *     slider で base fee → 3 block の実 gas cost が waterfall + stacked-bar で並列可視化。
- */
-export const eip1559GasFlow = diagram("interactive-eip1559", {
-  topic: "EIP-1559 の手数料が 3 ブロックで変わる",
-})
-  .lane("col1", { x: 0, width: 370 })
-  .lane("col2", { x: 410, width: 300 })
-  .input.slider("baseFee", { min: 10, max: 200, defaultValue: 50, label: "基準手数料 (gwei)" })
-  .input.slider("priority", { min: 1, max: 30, defaultValue: 5, label: "優先手数料" })
-  .state("baseFee", { initial: 50 })
-  .state("priority", { initial: 5 })
-  .arraySignal("burned", [50, 60, 72])
-  .arraySignal("tips", [5, 8, 10])
-  .formula("total1", "baseFee + priority", { label: "ブロック N の手数料" })
-  .formula("total2", "(baseFee + priority) * 12 / 10", { label: "ブロック N+1 の手数料" })
-  .formula("total3", "(baseFee + priority) * 15 / 10", { label: "ブロック N+2 の手数料" })
-  .state("total1", { initial: 55 })
-  .state("total2", { initial: 66 })
-  .state("total3", { initial: 82 })
-  .node("wallet", {
-    lane: "col1",
-    stack: 0,
-    kind: "card",
-    w: 320,
-    title: "財布",
-    subtitle: "基準 {baseFee} + 優先 {priority} gwei",
-  })
-  .node("b1", {
-    lane: "col1",
-    stack: 1,
-    kind: "card",
-    w: 240,
-    title: "ブロック N",
-    subtitle: "×1.0 = {total1} gwei",
-  })
-  .node("b2", {
-    lane: "col2",
-    stack: 0,
-    kind: "card",
-    w: 250,
-    title: "ブロック N+1",
-    subtitle: "×1.2 = {total2} gwei",
-  })
-  .node("b3", {
-    lane: "col2",
-    stack: 1,
-    kind: "card",
-    w: 250,
-    title: "ブロック N+2",
-    subtitle: "×1.5 = {total3} gwei",
-  })
-  .edge("wallet", "b1", { label: "取引を送る", sub: "基準 + 優先", tone: "info" })
-  .edge("b1", "b2", { label: "次のブロック", sub: "手数料 +20%", tone: "warning" })
-  .edge("b2", "b3", { label: "次のブロック", sub: "手数料 +25%", tone: "error" })
-  .readout.stackedBar("gas", {
-    sourceA: "burned",
-    sourceB: "tips",
-    min: 0,
-    max: 120,
-    colorA: "#ef4444",
-    colorB: "#22c55e",
-    label: "ブロックごとの焼却分 / 優先分",
-  })
-  .phase(
-    "p1",
-    {
-      duration: 1800,
-      title: "1 ブロック目",
-      body: "基準手数料 50 / 優先手数料 5。 最初のブロックの内訳。",
-    },
-    (p: PhaseBuilder) =>
-      p.activate("wallet", "b1").set("burned", "[50,0,0]").set("tips", "[5,0,0]"),
-  )
-  .phase(
-    "p2",
-    {
-      duration: 1800,
-      title: "2 ブロック目",
-      body: "混雑して基準手数料が上がる。 焼却分が増え、優先分も上がる。",
-    },
-    (p: PhaseBuilder) =>
-      p.activate("wallet", "b1", "b2").set("burned", "[50,60,0]").set("tips", "[5,8,0]"),
-  )
-  .phase(
-    "p3",
-    {
-      duration: 1800,
-      title: "3 ブロック目",
-      body: "さらに上がって 72 に届く。 3 ブロック分の推移が積み上げで並ぶ。",
-    },
-    (p: PhaseBuilder) =>
-      p.activate("wallet", "b1", "b2", "b3").set("burned", "[50,60,72]").set("tips", "[5,8,10]"),
-  )
-  .build();
-export const subtitle__eip1559GasFlow =
-  "基準と優先の手数料のつまみから 3 つのブロックの手数料を式で求め、焼却分と優先分を積み上げた棒で見せる";
-
-/**
  * 35. domain example = OAuth 2.0 authorization code flow の sequence timeline。
  */
 export const interactiveOauthFlow = diagram("interactive-oauth-flow", {
@@ -3261,7 +3162,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
   .lane("traditional", { x: 0, width: 300 })
   .lane("alternative", { x: 340, width: 300 })
   .arraySignal("assets", [45, 30, 15, 10])
-  .arraySignal("assetNames", ["株式", "債券", "現金", "暗号資産"])
+  .arraySignal("assetNames", ["株式", "債券", "現金", "不動産"])
   .node("stocksNode", {
     lane: "traditional",
     stack: 0,
@@ -3287,7 +3188,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
     lane: "alternative",
     stack: 1,
     kind: "card",
-    title: "暗号資産",
+    title: "不動産",
     subtitle: "{assets[3]}%",
   })
   .node("totalNode", {
@@ -3316,7 +3217,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
       p
         .activate("stocksNode")
         .set("assets", "[60,20,15,5]")
-        .set("assetNames", '["株式","債券","現金","暗号資産"]'),
+        .set("assetNames", '["株式","債券","現金","不動産"]'),
   )
   .phase(
     "p2",
@@ -3329,7 +3230,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
       p
         .activate("stocksNode", "bondsNode")
         .set("assets", "[45,30,15,10]")
-        .set("assetNames", '["株式","債券","暗号資産","現金"]'),
+        .set("assetNames", '["株式","債券","不動産","現金"]'),
   )
   .phase(
     "p3",
@@ -3342,11 +3243,11 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
       p
         .activate("stocksNode", "bondsNode", "cashNode", "cryptoNode", "totalNode")
         .set("assets", "[30,28,22,20]")
-        .set("assetNames", '["株式","債券","現金","暗号資産"]'),
+        .set("assetNames", '["株式","債券","現金","不動産"]'),
   )
   .build();
 export const subtitle__portfolioDonut =
-  "株式と債券を伝統的な資産、現金と暗号資産を代替の資産に分け、配分を輪の部品で見せる (donut)";
+  "株式と債券を伝統的な資産、現金と不動産を代替の資産に分け、配分を輪の部品で見せる (donut)";
 
 /**
  * 40. domain KPI dashboard = 4 KPI (revenue / users / churn / NPS) を 4 readout 組合せで dashboard 化。
@@ -6628,52 +6529,52 @@ export const subtitle__kpiIconTile =
   "伸び / 売上 / 目標の 3 指標を縦列に分け、絵記号の付いた札で見せる (icon-tile)";
 
 /**
- * 78. token-list = crypto wallet の 4 token を icon + name + amount + delta% で表示。
+ * 78. token-list = 4 品目を 絵記号 + 名前 + 在庫の数 + 仕入れ値の増減の割合 で表示。
  */
-export const cryptoWallet = diagram("interactive-crypto-wallet", {
-  topic: "保有 4 銘柄を値上がり / 値下がりで分ける",
+export const purchasePriceList = diagram("interactive-purchase-price-list", {
+  topic: "4 品目の仕入れ値を値上がり / 値下がりで分ける",
 })
   .lane("gainers", { x: 0, width: 220 })
   .lane("losers", { x: 300, width: 220 })
-  .arraySignal("tokens", [
-    ["₿", "BTC", "0.42", 5.3],
-    ["Ξ", "ETH", "12.5", -2.8],
-    ["◎", "SOL", "245", 8.1],
-    ["Ð", "DOGE", "8500", -1.4],
+  .arraySignal("items", [
+    ["🍎", "りんご", "120", 5.3],
+    ["🍞", "パン", "45", -2.8],
+    ["🥛", "牛乳", "80", 8.1],
+    ["🥚", "卵", "300", -1.4],
   ] as unknown as (string | number)[])
-  .node("btc", {
+  .node("apple", {
     lane: "gainers",
     stack: 0,
     kind: "card",
-    title: "₿ BTC",
+    title: "🍎 りんご",
     subtitle: "上げ幅が中くらい",
   })
-  .node("sol", {
+  .node("milk", {
     lane: "gainers",
     stack: 1,
     kind: "card",
-    title: "◎ SOL",
+    title: "🥛 牛乳",
     subtitle: "上げ幅が最も大きい",
   })
-  .node("eth", {
+  .node("bread", {
     lane: "losers",
     stack: 0,
     kind: "card",
-    title: "Ξ ETH",
+    title: "🍞 パン",
     subtitle: "下げ幅が大きい",
   })
-  .node("doge", {
+  .node("egg", {
     lane: "losers",
     stack: 1,
     kind: "card",
-    title: "Ð DOGE",
+    title: "🥚 卵",
     subtitle: "下げ幅が小さい",
   })
   .readout.tokenList("tl", {
-    source: "tokens",
+    source: "items",
     colorUp: "#22c55e",
     colorDown: "#ef4444",
-    label: "保有 (合計)",
+    label: "在庫 (合計)",
   })
   .phase(
     "p1",
@@ -6684,10 +6585,10 @@ export const cryptoWallet = diagram("interactive-crypto-wallet", {
     },
     (p: PhaseBuilder) =>
       p
-        .activate("btc", "eth")
+        .activate("apple", "bread")
         .set(
-          "tokens",
-          '[["₿","BTC","0.42",0.6],["Ξ","ETH","12.5",-0.4],["◎","SOL","245",1.1],["Ð","DOGE","8500",-0.3]]',
+          "items",
+          '[["🍎","りんご","120",0.6],["🍞","パン","45",-0.4],["🥛","牛乳","80",1.1],["🥚","卵","300",-0.3]]',
         ),
   )
   .phase(
@@ -6695,34 +6596,34 @@ export const cryptoWallet = diagram("interactive-crypto-wallet", {
     {
       duration: 1800,
       title: "昼の値動き",
-      body: "値動きが広がる。 保有量は変わらず、増減の割合だけが動くことが読み取れる。",
+      body: "値動きが広がる。 在庫の数は変わらず、増減の割合だけが動くことが読み取れる。",
     },
     (p: PhaseBuilder) =>
       p
-        .activate("btc", "sol", "eth")
+        .activate("apple", "milk", "bread")
         .set(
-          "tokens",
-          '[["₿","BTC","0.42",2.7],["Ξ","ETH","12.5",-1.5],["◎","SOL","245",4.2],["Ð","DOGE","8500",-0.8]]',
+          "items",
+          '[["🍎","りんご","120",2.7],["🍞","パン","45",-1.5],["🥛","牛乳","80",4.2],["🥚","卵","300",-0.8]]',
         ),
   )
   .phase(
     "p3",
     {
       duration: 1800,
-      title: "引けの値動き",
-      body: "上げ 2 銘柄と下げ 2 銘柄の差が最も開く。 緑と赤の対比で組の性格が分かれる。",
+      title: "夕方の値動き",
+      body: "上げ 2 品目と下げ 2 品目の差が最も開く。 緑と赤の対比で組の性格が分かれる。",
     },
     (p: PhaseBuilder) =>
       p
-        .activate("btc", "sol", "eth", "doge")
+        .activate("apple", "milk", "bread", "egg")
         .set(
-          "tokens",
-          '[["₿","BTC","0.42",5.3],["Ξ","ETH","12.5",-2.8],["◎","SOL","245",8.1],["Ð","DOGE","8500",-1.4]]',
+          "items",
+          '[["🍎","りんご","120",5.3],["🍞","パン","45",-2.8],["🥛","牛乳","80",8.1],["🥚","卵","300",-1.4]]',
         ),
   )
   .build();
-export const subtitle__cryptoWallet =
-  "保有する 4 銘柄を値上がりと値下がりの縦列に分け、合計付きの一覧で見せる (token-list)";
+export const subtitle__purchasePriceList =
+  "4 品目の仕入れ値を値上がりと値下がりの縦列に分け、在庫の合計付きの一覧で見せる (token-list)";
 
 /**
  * 79. map-pin = world map (地図座標) 上の 5 city を pin 表示。
@@ -11052,7 +10953,7 @@ export const subtitle__socialShareButtons =
   "記事を共有した 4 つの先を縦列に分け、共有数付きの押す先の並びで見せる (share-buttons)";
 
 /**
- * 127. exemplar-payment-flow v2 = EC 決済の実業務シナリオ、 shape-* primitive (person / mobile / credit-card / online-shop / payment-provider / api-gateway / bank / cylinder) で visual scene 化、 4 phase (商品購入 → 3DS 認証 → 銀行確定 → 記帳) + 4 readout (stat 金額 / gauge 3DS / traffic-light 状態 / countup 累計) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 1。
+ * 127. exemplar-payment-flow v2 = EC 決済の実業務シナリオ、 人と携帯端末と円筒の形に、札 / 画面 / API / 役務 / 裏側の箱を合わせて visual scene 化、 4 phase (商品購入 → 3DS 認証 → 銀行確定 → 記帳) + 4 readout (stat 金額 / gauge 3DS / traffic-light 状態 / countup 累計) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 1。
  */
 export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", {
   topic: "EC 決済を購入から記帳まで 4 段階で追う",
@@ -11076,22 +10977,22 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     lane: "customer-lane",
     stack: 1,
     kind: "shape-mobile-device",
-    title: "iPhone",
+    title: "スマホ",
     eyebrow: "端末",
-    subtitle: "iOS 17 のブラウザ",
+    subtitle: "手元のブラウザ",
   })
   .node("card", {
     lane: "customer-lane",
     stack: 2,
-    kind: "shape-credit-card",
-    title: "VISA **1234",
+    kind: "card",
+    title: "カード **1234",
     eyebrow: "カード",
     subtitle: "発行銀行のカード",
   })
   .node("shop", {
     lane: "processor",
     stack: 0,
-    kind: "shape-online-shop",
+    kind: "shape-window",
     title: "ひだまり雑貨店",
     eyebrow: "加盟店",
     subtitle: "会計 · ¥{amount}",
@@ -11099,7 +11000,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
   .node("gateway", {
     lane: "processor",
     stack: 1,
-    kind: "shape-api-gateway",
+    kind: "api",
     title: "API の入口",
     eyebrow: "入口",
     subtitle: "認証と回数の制限",
@@ -11107,15 +11008,15 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
   .node("provider", {
     lane: "processor",
     stack: 2,
-    kind: "shape-payment-provider",
-    title: "Stripe",
-    eyebrow: "決済代行",
+    kind: "service",
+    title: "決済代行",
+    eyebrow: "外部の役務",
     subtitle: "本人認証 {auth3ds}%",
   })
   .node("bankShape", {
     lane: "bank",
     stack: 0,
-    kind: "shape-bank",
+    kind: "backend",
     title: "発行銀行",
     eyebrow: "銀行",
     subtitle: "カードの発行元 · 与信照会",
@@ -11150,7 +11051,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     {
       duration: 2200,
       title: "商品購入",
-      body: "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。",
+      body: "田中様がスマホで店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11165,7 +11066,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     {
       duration: 2500,
       title: "本人認証",
-      body: "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。",
+      body: "入口を通って決済代行へ送り、カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11242,7 +11143,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     kind: "shape-mobile-device",
     title: "スマートフォン",
     eyebrow: "端末",
-    subtitle: "Android 14 のブラウザ",
+    subtitle: "手元のブラウザ",
   })
   .node("authApi", {
     lane: "auth",
@@ -11272,7 +11173,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     lane: "session-lane",
     stack: 0,
     kind: "shape-cylinder",
-    title: "Redis",
+    title: "キャッシュ",
     eyebrow: "一時保存",
     subtitle: "保持は 3600 秒",
   })
@@ -11350,7 +11251,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     {
       duration: 2000,
       title: "セッション発行",
-      body: "2 段階目を通り、JWT を発行して Redis にセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。",
+      body: "2 段階目を通り、JWT を発行してキャッシュにセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11379,7 +11280,7 @@ export const subtitle__exemplarLoginFlow =
   "利用者 / 認証 / 保存の縦列で、要求から一次検証と 2 段階の認証を経て応答に至る 5 段を追い、成功の数と割合と応答時間を部品で出す";
 
 /**
- * 129. exemplar-notification-flow v2 = 実 push 通知配信 (message → queue → service → fan-out → device / retry) シナリオ、 shape-* primitive (message-bubble / stack / cloud / diamond / mobile-device × 3) で visual scene 化、 5 phase (event 発火 → キューイング → 配信中 → 到達 → リトライ) + 4 readout (bar / countup / gauge / stat) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 3。
+ * 129. exemplar-notification-flow v2 = 実 push 通知配信 (message → queue → service → fan-out → device / retry) シナリオ、 出来事の箱と重なり / 雲 / 菱形 / 携帯端末 × 3 の形で visual scene 化、 5 phase (event 発火 → キューイング → 配信中 → 到達 → リトライ) + 4 readout (bar / countup / gauge / stat) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 3。
  */
 export const exemplarNotificationFlow = diagram("interactive-exemplar-notification-flow", {
   topic: "通知配信を発火から再送まで 5 段階で追う",
@@ -11394,7 +11295,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
   .node("msg", {
     lane: "origin",
     stack: 0,
-    kind: "shape-message-bubble",
+    kind: "event",
     title: "新着の知らせ",
     eyebrow: "きっかけ",
     subtitle: '"注文が発送されました"',
@@ -11403,7 +11304,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     lane: "infra",
     stack: 0,
     kind: "shape-stack",
-    title: "Kafka キュー",
+    title: "知らせの列",
     eyebrow: "キュー",
     subtitle: "残 {queued} 件 · 保持は 300 秒",
   })
@@ -11427,17 +11328,17 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     lane: "devices",
     stack: 0,
     kind: "shape-mobile-device",
-    title: "iPhone",
+    title: "スマホ",
     eyebrow: "端末",
-    subtitle: "iOS の通知網 · 前面で受ける",
+    subtitle: "通知網 · 前面で受ける",
   })
   .node("pixel", {
     lane: "devices",
     stack: 1,
     kind: "shape-mobile-device",
-    title: "Android",
+    title: "携帯",
     eyebrow: "端末",
-    subtitle: "Android の通知網 · 背面で受ける",
+    subtitle: "通知網 · 背面で受ける",
   })
   .node("galaxy", {
     lane: "devices",
@@ -11450,13 +11351,13 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
   .edge("msg", "kafka", { label: "積む", tone: "info" })
   .edge("kafka", "fcm", { label: "取り出す", tone: "info" })
   .edge("fcm", "iphone", {
-    label: "iOS へ配信",
+    label: "スマホへ配信",
     tone: "success",
     // 縦に走る区間の中点だと、 kafka → fcm の label と同じ高さ (y=438) に並んで 12px しか離れない。
     // 縦区間は y=272-604 と長いので上へ寄せる。 -160 まで動かすと折れ角に乗って自 path と接する。
     labelOffsetY: -120,
   })
-  .edge("fcm", "pixel", { label: "Android へ配信", tone: "success" })
+  .edge("fcm", "pixel", { label: "携帯へ配信", tone: "success" })
   .edge("fcm", "galaxy", { label: "初回失敗", tone: "error" })
   .edge("galaxy", "retryGate", { label: "再送を求める", tone: "warning" })
   .edge("retryGate", "fcm", { label: "再送指示", tone: "warning" })
@@ -11491,7 +11392,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 1800,
       title: "通知のきっかけ",
-      body: "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。",
+      body: "注文の発送が起き、その知らせを列に積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11517,7 +11418,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 2500,
       title: "配信中",
-      body: "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。",
+      body: "配信サービスがスマホ / 携帯 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11533,7 +11434,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 1800,
       title: "初回到達",
-      body: "iPhone と Android 端末は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。",
+      body: "スマホと携帯は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -12412,13 +12313,13 @@ lanes:
 
 states:
   assets: "[45,30,15,10]"
-  assetNames: '["株式","債券","現金","暗号資産"]'
+  assetNames: '["株式","債券","現金","不動産"]'
 
 actors:
   - 株式: { kind: card, lane: traditional, stack: 0, subtitle: "{assets[0]}%" }
   - 債券: { kind: card, lane: traditional, stack: 1, subtitle: "{assets[1]}%" }
   - 現金: { kind: card, lane: alternative, stack: 0, subtitle: "{assets[2]}%" }
-  - 暗号資産: { kind: card, lane: alternative, stack: 1, subtitle: "{assets[3]}%" }
+  - 不動産: { kind: card, lane: alternative, stack: 1, subtitle: "{assets[3]}%" }
   - 資産全体: { kind: card, lane: traditional, stack: 2, subtitle: "合計 {assets.sum}% · 最大 {assets.max}%" }
 
 animation:
@@ -12426,19 +12327,19 @@ animation:
     focus: ["株式"]
     set:
       assets: "[60,20,15,5]"
-      assetNames: '["株式","債券","現金","暗号資産"]'
+      assetNames: '["株式","債券","現金","不動産"]'
     description: "株式の比重が大きい配分。 円の 1 区画が広い。"
   - step: "債券を増やす" 1.8s
     focus: ["株式", "債券"]
     set:
       assets: "[45,30,15,10]"
-      assetNames: '["株式","債券","暗号資産","現金"]'
+      assetNames: '["株式","債券","不動産","現金"]'
     description: "債券に振り替える。 円の区画の比率が変わり、各箱の数字も追いかける。"
   - step: "分散する" 1.8s
-    focus: ["株式", "債券", "現金", "暗号資産", "資産全体"]
+    focus: ["株式", "債券", "現金", "不動産", "資産全体"]
     set:
       assets: "[30,28,22,20]"
-      assetNames: '["株式","債券","現金","暗号資産"]'
+      assetNames: '["株式","債券","現金","不動産"]'
     description: "4 種に近い比率で分散する。 区画の差が小さくなる。"
 `;
 
@@ -12490,7 +12391,7 @@ export const sourceJson__portfolioDonut = `{
       "subtitle": "{assets[2]}%"
     },
     {
-      "name": "暗号資産",
+      "name": "不動産",
       "kind": "card",
       "lane": "alternative",
       "stack": 1,
@@ -12505,27 +12406,27 @@ export const sourceJson__portfolioDonut = `{
     }
   ],
   "flow": [],
-  "states": { "assets": "[45,30,15,10]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"暗号資産\\"]" },
+  "states": { "assets": "[45,30,15,10]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"不動産\\"]" },
   "animation": [
     {
       "step": "株式に寄る",
       "duration": 1.8,
       "focus": ["株式"],
-      "set": { "assets": "[60,20,15,5]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"暗号資産\\"]" },
+      "set": { "assets": "[60,20,15,5]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"不動産\\"]" },
       "description": "株式の比重が大きい配分。 円の 1 区画が広い。"
     },
     {
       "step": "債券を増やす",
       "duration": 1.8,
       "focus": ["株式", "債券"],
-      "set": { "assets": "[45,30,15,10]", "assetNames": "[\\"株式\\",\\"債券\\",\\"暗号資産\\",\\"現金\\"]" },
+      "set": { "assets": "[45,30,15,10]", "assetNames": "[\\"株式\\",\\"債券\\",\\"不動産\\",\\"現金\\"]" },
       "description": "債券に振り替える。 円の区画の比率が変わり、各箱の数字も追いかける。"
     },
     {
       "step": "分散する",
       "duration": 1.8,
-      "focus": ["株式", "債券", "現金", "暗号資産", "資産全体"],
-      "set": { "assets": "[30,28,22,20]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"暗号資産\\"]" },
+      "focus": ["株式", "債券", "現金", "不動産", "資産全体"],
+      "set": { "assets": "[30,28,22,20]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"不動産\\"]" },
       "description": "4 種に近い比率で分散する。 区画の差が小さくなる。"
     }
   ]
@@ -14701,54 +14602,54 @@ export const sourceJson__kpiIconTile = `{
   ]
 }`;
 
-export const sourceYaml__cryptoWallet = `title: "保有 4 銘柄を値上がり / 値下がりで分ける"
+export const sourceYaml__purchasePriceList = `title: "4 品目の仕入れ値を値上がり / 値下がりで分ける"
 type: flow
 
 readouts:
-  tl: { kind: token-list, source: "tokens", colorUp: "#22c55e", colorDown: "#ef4444", label: "保有 (合計)" }
+  tl: { kind: token-list, source: "items", colorUp: "#22c55e", colorDown: "#ef4444", label: "在庫 (合計)" }
 
 lanes:
   gainers: { x: 0, width: 220 }
   losers: { x: 300, width: 220 }
 
 states:
-  tokens: '[["₿","BTC","0.42",5.3],["Ξ","ETH","12.5",-2.8],["◎","SOL","245",8.1],["Ð","DOGE","8500",-1.4]]'
+  items: '[["🍎","りんご","120",5.3],["🍞","パン","45",-2.8],["🥛","牛乳","80",8.1],["🥚","卵","300",-1.4]]'
 
 actors:
-  - ₿ BTC: { kind: card, lane: gainers, stack: 0, subtitle: "上げ幅が中くらい" }
-  - ◎ SOL: { kind: card, lane: gainers, stack: 1, subtitle: "上げ幅が最も大きい" }
-  - Ξ ETH: { kind: card, lane: losers, stack: 0, subtitle: "下げ幅が大きい" }
-  - Ð DOGE: { kind: card, lane: losers, stack: 1, subtitle: "下げ幅が小さい" }
+  - 🍎 りんご: { kind: card, lane: gainers, stack: 0, subtitle: "上げ幅が中くらい" }
+  - 🥛 牛乳: { kind: card, lane: gainers, stack: 1, subtitle: "上げ幅が最も大きい" }
+  - 🍞 パン: { kind: card, lane: losers, stack: 0, subtitle: "下げ幅が大きい" }
+  - 🥚 卵: { kind: card, lane: losers, stack: 1, subtitle: "下げ幅が小さい" }
 
 animation:
   - step: "朝の値動き" 1.8s
-    focus: ["₿ BTC", "Ξ ETH"]
+    focus: ["🍎 りんご", "🍞 パン"]
     set:
-      tokens: '[["₿","BTC","0.42",0.6],["Ξ","ETH","12.5",-0.4],["◎","SOL","245",1.1],["Ð","DOGE","8500",-0.3]]'
+      items: '[["🍎","りんご","120",0.6],["🍞","パン","45",-0.4],["🥛","牛乳","80",1.1],["🥚","卵","300",-0.3]]'
     description: "値動きがどれも小さい。 上げ下げの色は付くが、幅の差はまだ読み取りにくい。"
   - step: "昼の値動き" 1.8s
-    focus: ["₿ BTC", "◎ SOL", "Ξ ETH"]
+    focus: ["🍎 りんご", "🥛 牛乳", "🍞 パン"]
     set:
-      tokens: '[["₿","BTC","0.42",2.7],["Ξ","ETH","12.5",-1.5],["◎","SOL","245",4.2],["Ð","DOGE","8500",-0.8]]'
-    description: "値動きが広がる。 保有量は変わらず、増減の割合だけが動くことが読み取れる。"
-  - step: "引けの値動き" 1.8s
-    focus: ["₿ BTC", "◎ SOL", "Ξ ETH", "Ð DOGE"]
+      items: '[["🍎","りんご","120",2.7],["🍞","パン","45",-1.5],["🥛","牛乳","80",4.2],["🥚","卵","300",-0.8]]'
+    description: "値動きが広がる。 在庫の数は変わらず、増減の割合だけが動くことが読み取れる。"
+  - step: "夕方の値動き" 1.8s
+    focus: ["🍎 りんご", "🥛 牛乳", "🍞 パン", "🥚 卵"]
     set:
-      tokens: '[["₿","BTC","0.42",5.3],["Ξ","ETH","12.5",-2.8],["◎","SOL","245",8.1],["Ð","DOGE","8500",-1.4]]'
-    description: "上げ 2 銘柄と下げ 2 銘柄の差が最も開く。 緑と赤の対比で組の性格が分かれる。"
+      items: '[["🍎","りんご","120",5.3],["🍞","パン","45",-2.8],["🥛","牛乳","80",8.1],["🥚","卵","300",-1.4]]'
+    description: "上げ 2 品目と下げ 2 品目の差が最も開く。 緑と赤の対比で組の性格が分かれる。"
 `;
 
-export const sourceJson__cryptoWallet = `{
-  "title": "保有 4 銘柄を値上がり / 値下がりで分ける",
+export const sourceJson__purchasePriceList = `{
+  "title": "4 品目の仕入れ値を値上がり / 値下がりで分ける",
   "type": "flow",
   "readouts": [
     {
       "id": "tl",
       "kind": "token-list",
-      "source": "tokens",
+      "source": "items",
       "colorUp": "#22c55e",
       "colorDown": "#ef4444",
-      "label": "保有 (合計)"
+      "label": "在庫 (合計)"
     }
   ],
   "lanes": {
@@ -14756,42 +14657,42 @@ export const sourceJson__cryptoWallet = `{
     "losers": { "x": 300, "width": 220 }
   },
   "actors": [
-    { "name": "₿ BTC", "kind": "card", "lane": "gainers", "stack": 0, "subtitle": "上げ幅が中くらい" },
-    { "name": "◎ SOL", "kind": "card", "lane": "gainers", "stack": 1, "subtitle": "上げ幅が最も大きい" },
-    { "name": "Ξ ETH", "kind": "card", "lane": "losers", "stack": 0, "subtitle": "下げ幅が大きい" },
-    { "name": "Ð DOGE", "kind": "card", "lane": "losers", "stack": 1, "subtitle": "下げ幅が小さい" }
+    { "name": "🍎 りんご", "kind": "card", "lane": "gainers", "stack": 0, "subtitle": "上げ幅が中くらい" },
+    { "name": "🥛 牛乳", "kind": "card", "lane": "gainers", "stack": 1, "subtitle": "上げ幅が最も大きい" },
+    { "name": "🍞 パン", "kind": "card", "lane": "losers", "stack": 0, "subtitle": "下げ幅が大きい" },
+    { "name": "🥚 卵", "kind": "card", "lane": "losers", "stack": 1, "subtitle": "下げ幅が小さい" }
   ],
   "flow": [],
   "states": {
-    "tokens": "[[\\"₿\\",\\"BTC\\",\\"0.42\\",5.3],[\\"Ξ\\",\\"ETH\\",\\"12.5\\",-2.8],[\\"◎\\",\\"SOL\\",\\"245\\",8.1],[\\"Ð\\",\\"DOGE\\",\\"8500\\",-1.4]]"
+    "items": "[[\\"🍎\\",\\"りんご\\",\\"120\\",5.3],[\\"🍞\\",\\"パン\\",\\"45\\",-2.8],[\\"🥛\\",\\"牛乳\\",\\"80\\",8.1],[\\"🥚\\",\\"卵\\",\\"300\\",-1.4]]"
   },
   "animation": [
     {
       "step": "朝の値動き",
       "duration": 1.8,
-      "focus": ["₿ BTC", "Ξ ETH"],
+      "focus": ["🍎 りんご", "🍞 パン"],
       "set": {
-        "tokens": "[[\\"₿\\",\\"BTC\\",\\"0.42\\",0.6],[\\"Ξ\\",\\"ETH\\",\\"12.5\\",-0.4],[\\"◎\\",\\"SOL\\",\\"245\\",1.1],[\\"Ð\\",\\"DOGE\\",\\"8500\\",-0.3]]"
+        "items": "[[\\"🍎\\",\\"りんご\\",\\"120\\",0.6],[\\"🍞\\",\\"パン\\",\\"45\\",-0.4],[\\"🥛\\",\\"牛乳\\",\\"80\\",1.1],[\\"🥚\\",\\"卵\\",\\"300\\",-0.3]]"
       },
       "description": "値動きがどれも小さい。 上げ下げの色は付くが、幅の差はまだ読み取りにくい。"
     },
     {
       "step": "昼の値動き",
       "duration": 1.8,
-      "focus": ["₿ BTC", "◎ SOL", "Ξ ETH"],
+      "focus": ["🍎 りんご", "🥛 牛乳", "🍞 パン"],
       "set": {
-        "tokens": "[[\\"₿\\",\\"BTC\\",\\"0.42\\",2.7],[\\"Ξ\\",\\"ETH\\",\\"12.5\\",-1.5],[\\"◎\\",\\"SOL\\",\\"245\\",4.2],[\\"Ð\\",\\"DOGE\\",\\"8500\\",-0.8]]"
+        "items": "[[\\"🍎\\",\\"りんご\\",\\"120\\",2.7],[\\"🍞\\",\\"パン\\",\\"45\\",-1.5],[\\"🥛\\",\\"牛乳\\",\\"80\\",4.2],[\\"🥚\\",\\"卵\\",\\"300\\",-0.8]]"
       },
-      "description": "値動きが広がる。 保有量は変わらず、増減の割合だけが動くことが読み取れる。"
+      "description": "値動きが広がる。 在庫の数は変わらず、増減の割合だけが動くことが読み取れる。"
     },
     {
-      "step": "引けの値動き",
+      "step": "夕方の値動き",
       "duration": 1.8,
-      "focus": ["₿ BTC", "◎ SOL", "Ξ ETH", "Ð DOGE"],
+      "focus": ["🍎 りんご", "🥛 牛乳", "🍞 パン", "🥚 卵"],
       "set": {
-        "tokens": "[[\\"₿\\",\\"BTC\\",\\"0.42\\",5.3],[\\"Ξ\\",\\"ETH\\",\\"12.5\\",-2.8],[\\"◎\\",\\"SOL\\",\\"245\\",8.1],[\\"Ð\\",\\"DOGE\\",\\"8500\\",-1.4]]"
+        "items": "[[\\"🍎\\",\\"りんご\\",\\"120\\",5.3],[\\"🍞\\",\\"パン\\",\\"45\\",-2.8],[\\"🥛\\",\\"牛乳\\",\\"80\\",8.1],[\\"🥚\\",\\"卵\\",\\"300\\",-1.4]]"
       },
-      "description": "上げ 2 銘柄と下げ 2 銘柄の差が最も開く。 緑と赤の対比で組の性格が分かれる。"
+      "description": "上げ 2 品目と下げ 2 品目の差が最も開く。 緑と赤の対比で組の性格が分かれる。"
     }
   ]
 }`;
@@ -19805,49 +19706,49 @@ states:
 
 actors:
   - 田中様: { kind: shape-person, lane: customer-lane, stack: 0, eyebrow: "顧客", subtitle: "購入者" }
-  - iPhone: { kind: shape-mobile-device, lane: customer-lane, stack: 1, eyebrow: "端末", subtitle: "iOS 17 のブラウザ" }
-  - VISA **1234: { kind: shape-credit-card, lane: customer-lane, stack: 2, eyebrow: "カード", subtitle: "発行銀行のカード" }
-  - ひだまり雑貨店: { kind: shape-online-shop, lane: processor, stack: 0, eyebrow: "加盟店", subtitle: "会計 · ¥{amount}" }
-  - API の入口: { kind: shape-api-gateway, lane: processor, stack: 1, eyebrow: "入口", subtitle: "認証と回数の制限" }
-  - Stripe: { kind: shape-payment-provider, lane: processor, stack: 2, eyebrow: "決済代行", subtitle: "本人認証 {auth3ds}%" }
-  - 発行銀行: { kind: shape-bank, lane: bank, stack: 0, eyebrow: "銀行", subtitle: "カードの発行元 · 与信照会" }
+  - スマホ: { kind: shape-mobile-device, lane: customer-lane, stack: 1, eyebrow: "端末", subtitle: "手元のブラウザ" }
+  - カード **1234: { kind: card, lane: customer-lane, stack: 2, eyebrow: "カード", subtitle: "発行銀行のカード" }
+  - ひだまり雑貨店: { kind: shape-window, lane: processor, stack: 0, eyebrow: "加盟店", subtitle: "会計 · ¥{amount}" }
+  - API の入口: { kind: api, lane: processor, stack: 1, eyebrow: "入口", subtitle: "認証と回数の制限" }
+  - 決済代行: { kind: service, lane: processor, stack: 2, eyebrow: "外部の役務", subtitle: "本人認証 {auth3ds}%" }
+  - 発行銀行: { kind: backend, lane: bank, stack: 0, eyebrow: "銀行", subtitle: "カードの発行元 · 与信照会" }
   - 取引台帳: { kind: shape-cylinder, lane: bank, stack: 1, eyebrow: "記録", subtitle: "記帳と監査の記録" }
 
 flow:
-  - 田中様 -> iPhone: "操作" (info)
-  - iPhone -> ひだまり雑貨店: "購入" (info)
+  - 田中様 -> スマホ: "操作" (info)
+  - スマホ -> ひだまり雑貨店: "購入" (info)
   - ひだまり雑貨店 -> API の入口: "購入を送る" (info)
-  - API の入口 -> Stripe: "転送" (info)
-  - VISA **1234 -> Stripe: "本人認証" (accent)
-  - Stripe -> 発行銀行: "決済要求" (success)
+  - API の入口 -> 決済代行: "転送" (info)
+  - カード **1234 -> 決済代行: "本人認証" (accent)
+  - 決済代行 -> 発行銀行: "決済要求" (success)
   - 発行銀行 -> 取引台帳: "記帳" (success)
 
 animation:
   - step: "商品購入" 2.2s
-    focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店"]
+    focus: ["田中様", "スマホ", "カード **1234", "ひだまり雑貨店"]
     tween:
       amount: 0 -> 12500
     set:
       txStatus: 0
       auth3ds: 0
     badge: "購入"
-    description: "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。"
+    description: "田中様がスマホで店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。"
   - step: "本人認証" 2.5s
-    focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe"]
+    focus: ["田中様", "スマホ", "カード **1234", "ひだまり雑貨店", "API の入口", "決済代行"]
     tween:
       txStatus: 0 -> 1
       auth3ds: 0 -> 92
     badge: "本人認証"
-    description: "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。"
+    description: "入口を通って決済代行へ送り、カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。"
   - step: "銀行確定" 2s
-    focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行"]
+    focus: ["田中様", "スマホ", "カード **1234", "ひだまり雑貨店", "API の入口", "決済代行", "発行銀行"]
     tween:
       txStatus: 1 -> 2
       auth3ds: 92 -> 98
     badge: "銀行確定"
     description: "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定する。"
   - step: "記帳完了" 1.8s
-    focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行", "取引台帳"]
+    focus: ["田中様", "スマホ", "カード **1234", "ひだまり雑貨店", "API の入口", "決済代行", "発行銀行", "取引台帳"]
     tween:
       totalTx: 1247 -> 1248
     set:
@@ -19902,16 +19803,16 @@ export const sourceJson__exemplarPaymentFlow = `{
       "subtitle": "購入者"
     },
     {
-      "name": "iPhone",
+      "name": "スマホ",
       "kind": "shape-mobile-device",
       "lane": "customer-lane",
       "stack": 1,
       "eyebrow": "端末",
-      "subtitle": "iOS 17 のブラウザ"
+      "subtitle": "手元のブラウザ"
     },
     {
-      "name": "VISA **1234",
-      "kind": "shape-credit-card",
+      "name": "カード **1234",
+      "kind": "card",
       "lane": "customer-lane",
       "stack": 2,
       "eyebrow": "カード",
@@ -19919,7 +19820,7 @@ export const sourceJson__exemplarPaymentFlow = `{
     },
     {
       "name": "ひだまり雑貨店",
-      "kind": "shape-online-shop",
+      "kind": "shape-window",
       "lane": "processor",
       "stack": 0,
       "eyebrow": "加盟店",
@@ -19927,23 +19828,23 @@ export const sourceJson__exemplarPaymentFlow = `{
     },
     {
       "name": "API の入口",
-      "kind": "shape-api-gateway",
+      "kind": "api",
       "lane": "processor",
       "stack": 1,
       "eyebrow": "入口",
       "subtitle": "認証と回数の制限"
     },
     {
-      "name": "Stripe",
-      "kind": "shape-payment-provider",
+      "name": "決済代行",
+      "kind": "service",
       "lane": "processor",
       "stack": 2,
-      "eyebrow": "決済代行",
+      "eyebrow": "外部の役務",
       "subtitle": "本人認証 {auth3ds}%"
     },
     {
       "name": "発行銀行",
-      "kind": "shape-bank",
+      "kind": "backend",
       "lane": "bank",
       "stack": 0,
       "eyebrow": "銀行",
@@ -19959,12 +19860,12 @@ export const sourceJson__exemplarPaymentFlow = `{
     }
   ],
   "flow": [
-    { "from": "田中様", "to": "iPhone", "label": "操作", "tone": "info" },
-    { "from": "iPhone", "to": "ひだまり雑貨店", "label": "購入", "tone": "info" },
+    { "from": "田中様", "to": "スマホ", "label": "操作", "tone": "info" },
+    { "from": "スマホ", "to": "ひだまり雑貨店", "label": "購入", "tone": "info" },
     { "from": "ひだまり雑貨店", "to": "API の入口", "label": "購入を送る", "tone": "info" },
-    { "from": "API の入口", "to": "Stripe", "label": "転送", "tone": "info" },
-    { "from": "VISA **1234", "to": "Stripe", "label": "本人認証", "tone": "accent" },
-    { "from": "Stripe", "to": "発行銀行", "label": "決済要求", "tone": "success" },
+    { "from": "API の入口", "to": "決済代行", "label": "転送", "tone": "info" },
+    { "from": "カード **1234", "to": "決済代行", "label": "本人認証", "tone": "accent" },
+    { "from": "決済代行", "to": "発行銀行", "label": "決済要求", "tone": "success" },
     { "from": "発行銀行", "to": "取引台帳", "label": "記帳", "tone": "success" }
   ],
   "states": { "amount": 0, "auth3ds": 0, "txStatus": 0, "totalTx": 1247 },
@@ -19972,24 +19873,24 @@ export const sourceJson__exemplarPaymentFlow = `{
     {
       "step": "商品購入",
       "duration": 2.2,
-      "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店"],
+      "focus": ["田中様", "スマホ", "カード **1234", "ひだまり雑貨店"],
       "tween": { "amount": [0, 12500] },
       "set": { "txStatus": 0, "auth3ds": 0 },
       "badge": "購入",
-      "description": "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。"
+      "description": "田中様がスマホで店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。"
     },
     {
       "step": "本人認証",
       "duration": 2.5,
-      "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe"],
+      "focus": ["田中様", "スマホ", "カード **1234", "ひだまり雑貨店", "API の入口", "決済代行"],
       "tween": { "txStatus": [0, 1], "auth3ds": [0, 92] },
       "badge": "本人認証",
-      "description": "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。"
+      "description": "入口を通って決済代行へ送り、カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。"
     },
     {
       "step": "銀行確定",
       "duration": 2,
-      "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行"],
+      "focus": ["田中様", "スマホ", "カード **1234", "ひだまり雑貨店", "API の入口", "決済代行", "発行銀行"],
       "tween": { "txStatus": [1, 2], "auth3ds": [92, 98] },
       "badge": "銀行確定",
       "description": "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定する。"
@@ -19997,7 +19898,7 @@ export const sourceJson__exemplarPaymentFlow = `{
     {
       "step": "記帳完了",
       "duration": 1.8,
-      "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行", "取引台帳"],
+      "focus": ["田中様", "スマホ", "カード **1234", "ひだまり雑貨店", "API の入口", "決済代行", "発行銀行", "取引台帳"],
       "tween": { "totalTx": [1247, 1248] },
       "set": { "txStatus": 2 },
       "badge": "記帳完了",
@@ -20028,11 +19929,11 @@ states:
 
 actors:
   - 山田様: { kind: shape-person, lane: user, stack: 0, eyebrow: "利用者", subtitle: "メールとパスワードを送る" }
-  - スマートフォン: { kind: shape-mobile-device, lane: user, stack: 1, eyebrow: "端末", subtitle: "Android 14 のブラウザ" }
+  - スマートフォン: { kind: shape-mobile-device, lane: user, stack: 1, eyebrow: "端末", subtitle: "手元のブラウザ" }
   - 認証 API: { kind: shape-server-rack, lane: auth, stack: 0, eyebrow: "サーバ", subtitle: "資格情報の一次検証" }
   - 2 段階が要る?: { kind: shape-diamond, lane: auth, stack: 1, eyebrow: "分岐", subtitle: "認証アプリの 6 桁か SMS" }
   - JWT 発行器: { kind: shape-hexagon, lane: auth, stack: 2, eyebrow: "署名", subtitle: "署名する · 有効は 1 時間" }
-  - Redis: { kind: shape-cylinder, lane: session-lane, stack: 0, eyebrow: "一時保存", subtitle: "保持は 3600 秒" }
+  - キャッシュ: { kind: shape-cylinder, lane: session-lane, stack: 0, eyebrow: "一時保存", subtitle: "保持は 3600 秒" }
   - JWT トークン: { kind: shape-cloud, lane: session-lane, stack: 1, eyebrow: "応答", subtitle: "応答に付けて返す · 画面を移す" }
 
 flow:
@@ -20040,8 +19941,8 @@ flow:
   - スマートフォン -> 認証 API: "認証を求める" (info)
   - 認証 API -> 2 段階が要る?: "一次を通過" (success)
   - 2 段階が要る? -> JWT 発行器: "2 段階目を通過" (success)
-  - JWT 発行器 -> Redis: "セッションを保存" (success)
-  - Redis -> JWT トークン: "トークンを発行" (success)
+  - JWT 発行器 -> キャッシュ: "セッションを保存" (success)
+  - キャッシュ -> JWT トークン: "トークンを発行" (success)
 
 animation:
   - step: "認証要求" 1.5s
@@ -20069,14 +19970,14 @@ animation:
     badge: "2 段階"
     description: "認証アプリの 6 桁を、認証サーバが時刻の幅に照らして確かめる。 認証の状態は黄のまま、2 段階目の手間で応答時間が 350ms まで伸びる。"
   - step: "セッション発行" 2s
-    focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "Redis"]
+    focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "キャッシュ"]
     tween:
       authStatus: 1 -> 2
       latency: 350 -> 180
     badge: "発行"
-    description: "2 段階目を通り、JWT を発行して Redis にセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。"
+    description: "2 段階目を通り、JWT を発行してキャッシュにセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。"
   - step: "応答返却" 1.8s
-    focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "Redis", "JWT トークン"]
+    focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "キャッシュ", "JWT トークン"]
     tween:
       successLogin: 8421 -> 8422
       latency: 180 -> 50
@@ -20142,7 +20043,7 @@ export const sourceJson__exemplarLoginFlow = `{
       "lane": "user",
       "stack": 1,
       "eyebrow": "端末",
-      "subtitle": "Android 14 のブラウザ"
+      "subtitle": "手元のブラウザ"
     },
     {
       "name": "認証 API",
@@ -20169,7 +20070,7 @@ export const sourceJson__exemplarLoginFlow = `{
       "subtitle": "署名する · 有効は 1 時間"
     },
     {
-      "name": "Redis",
+      "name": "キャッシュ",
       "kind": "shape-cylinder",
       "lane": "session-lane",
       "stack": 0,
@@ -20190,8 +20091,8 @@ export const sourceJson__exemplarLoginFlow = `{
     { "from": "スマートフォン", "to": "認証 API", "label": "認証を求める", "tone": "info" },
     { "from": "認証 API", "to": "2 段階が要る?", "label": "一次を通過", "tone": "success" },
     { "from": "2 段階が要る?", "to": "JWT 発行器", "label": "2 段階目を通過", "tone": "success" },
-    { "from": "JWT 発行器", "to": "Redis", "label": "セッションを保存", "tone": "success" },
-    { "from": "Redis", "to": "JWT トークン", "label": "トークンを発行", "tone": "success" }
+    { "from": "JWT 発行器", "to": "キャッシュ", "label": "セッションを保存", "tone": "success" },
+    { "from": "キャッシュ", "to": "JWT トークン", "label": "トークンを発行", "tone": "success" }
   ],
   "states": { "authStatus": 0, "successLogin": 8421, "failRate": 100, "latency": 0 },
   "animation": [
@@ -20224,15 +20125,15 @@ export const sourceJson__exemplarLoginFlow = `{
     {
       "step": "セッション発行",
       "duration": 2,
-      "focus": ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "Redis"],
+      "focus": ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "キャッシュ"],
       "tween": { "authStatus": [1, 2], "latency": [350, 180] },
       "badge": "発行",
-      "description": "2 段階目を通り、JWT を発行して Redis にセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。"
+      "description": "2 段階目を通り、JWT を発行してキャッシュにセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。"
     },
     {
       "step": "応答返却",
       "duration": 1.8,
-      "focus": ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "Redis", "JWT トークン"],
+      "focus": ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "キャッシュ", "JWT トークン"],
       "tween": { "successLogin": [8421, 8422], "latency": [180, 50] },
       "set": { "authStatus": 2 },
       "badge": "応答",
@@ -20262,26 +20163,26 @@ states:
   deliveryRate: 0
 
 actors:
-  - 新着の知らせ: { kind: shape-message-bubble, lane: origin, stack: 0, eyebrow: "きっかけ", subtitle: '"注文が発送されました"' }
-  - Kafka キュー: { kind: shape-stack, lane: infra, stack: 0, eyebrow: "キュー", subtitle: "残 {queued} 件 · 保持は 300 秒" }
+  - 新着の知らせ: { kind: event, lane: origin, stack: 0, eyebrow: "きっかけ", subtitle: '"注文が発送されました"' }
+  - 知らせの列: { kind: shape-stack, lane: infra, stack: 0, eyebrow: "キュー", subtitle: "残 {queued} 件 · 保持は 300 秒" }
   - 配信サービス: { kind: shape-cloud, lane: infra, stack: 1, eyebrow: "通知", subtitle: "まとめて配る処理" }
   - 再送の判定: { kind: shape-diamond, lane: infra, stack: 2, eyebrow: "方針", subtitle: "間隔を倍に広げる · 最大 3 回" }
-  - iPhone: { kind: shape-mobile-device, lane: devices, stack: 0, eyebrow: "端末", subtitle: "iOS の通知網 · 前面で受ける" }
-  - Android: { kind: shape-mobile-device, lane: devices, stack: 1, eyebrow: "端末", subtitle: "Android の通知網 · 背面で受ける" }
+  - スマホ: { kind: shape-mobile-device, lane: devices, stack: 0, eyebrow: "端末", subtitle: "通知網 · 前面で受ける" }
+  - 携帯: { kind: shape-mobile-device, lane: devices, stack: 1, eyebrow: "端末", subtitle: "通知網 · 背面で受ける" }
   - タブレット: { kind: shape-mobile-device, lane: devices, stack: 2, eyebrow: "端末", subtitle: "圏外 → 再送の対象" }
 
 flow:
-  - 新着の知らせ -> Kafka キュー: "積む" (info)
-  - Kafka キュー -> 配信サービス: "取り出す" (info)
-  - 配信サービス -> iPhone: "iOS へ配信" (success) { labelOffsetY: -120 }
-  - 配信サービス -> Android: "Android へ配信" (success)
+  - 新着の知らせ -> 知らせの列: "積む" (info)
+  - 知らせの列 -> 配信サービス: "取り出す" (info)
+  - 配信サービス -> スマホ: "スマホへ配信" (success) { labelOffsetY: -120 }
+  - 配信サービス -> 携帯: "携帯へ配信" (success)
   - 配信サービス -> タブレット: "初回失敗" (error)
   - タブレット -> 再送の判定: "再送を求める" (warning)
   - 再送の判定 -> 配信サービス: "再送指示" (warning)
 
 animation:
   - step: "通知のきっかけ" 1.8s
-    focus: ["新着の知らせ", "Kafka キュー"]
+    focus: ["新着の知らせ", "知らせの列"]
     tween:
       queued: 0 -> 1000
     set:
@@ -20289,33 +20190,33 @@ animation:
       failed: 0
       deliveryRate: 0
     badge: "発火"
-    description: "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。"
+    description: "注文の発送が起き、その知らせを列に積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。"
   - step: "キューイング" 2s
-    focus: ["新着の知らせ", "Kafka キュー", "配信サービス"]
+    focus: ["新着の知らせ", "知らせの列", "配信サービス"]
     tween:
       queued: 1000 -> 800
     badge: "キュー"
     description: "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、キューからの矢印に信号が流れる。"
   - step: "配信中" 2.5s
-    focus: ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"]
+    focus: ["新着の知らせ", "知らせの列", "配信サービス", "スマホ", "携帯", "タブレット"]
     tween:
       queued: 800 -> 50
       delivered: 0 -> 920
       failed: 0 -> 80
       deliveryRate: 0 -> 92
     badge: "配信"
-    description: "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。"
+    description: "配信サービスがスマホ / 携帯 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。"
   - step: "初回到達" 1.8s
-    focus: ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"]
+    focus: ["新着の知らせ", "知らせの列", "配信サービス", "スマホ", "携帯", "タブレット"]
     tween:
       queued: 50 -> 20
       delivered: 920 -> 950
       failed: 80 -> 50
       deliveryRate: 92 -> 95
     badge: "到達"
-    description: "iPhone と Android 端末は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。"
+    description: "スマホと携帯は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。"
   - step: "リトライ" 2s
-    focus: ["新着の知らせ", "Kafka キュー", "配信サービス", "再送の判定", "iPhone", "Android", "タブレット"]
+    focus: ["新着の知らせ", "知らせの列", "配信サービス", "再送の判定", "スマホ", "携帯", "タブレット"]
     tween:
       queued: 20 -> 0
       delivered: 950 -> 992
@@ -20372,14 +20273,14 @@ export const sourceJson__exemplarNotificationFlow = `{
   "actors": [
     {
       "name": "新着の知らせ",
-      "kind": "shape-message-bubble",
+      "kind": "event",
       "lane": "origin",
       "stack": 0,
       "eyebrow": "きっかけ",
       "subtitle": "\\"注文が発送されました\\""
     },
     {
-      "name": "Kafka キュー",
+      "name": "知らせの列",
       "kind": "shape-stack",
       "lane": "infra",
       "stack": 0,
@@ -20403,20 +20304,20 @@ export const sourceJson__exemplarNotificationFlow = `{
       "subtitle": "間隔を倍に広げる · 最大 3 回"
     },
     {
-      "name": "iPhone",
+      "name": "スマホ",
       "kind": "shape-mobile-device",
       "lane": "devices",
       "stack": 0,
       "eyebrow": "端末",
-      "subtitle": "iOS の通知網 · 前面で受ける"
+      "subtitle": "通知網 · 前面で受ける"
     },
     {
-      "name": "Android",
+      "name": "携帯",
       "kind": "shape-mobile-device",
       "lane": "devices",
       "stack": 1,
       "eyebrow": "端末",
-      "subtitle": "Android の通知網 · 背面で受ける"
+      "subtitle": "通知網 · 背面で受ける"
     },
     {
       "name": "タブレット",
@@ -20428,16 +20329,16 @@ export const sourceJson__exemplarNotificationFlow = `{
     }
   ],
   "flow": [
-    { "from": "新着の知らせ", "to": "Kafka キュー", "label": "積む", "tone": "info" },
-    { "from": "Kafka キュー", "to": "配信サービス", "label": "取り出す", "tone": "info" },
+    { "from": "新着の知らせ", "to": "知らせの列", "label": "積む", "tone": "info" },
+    { "from": "知らせの列", "to": "配信サービス", "label": "取り出す", "tone": "info" },
     {
       "from": "配信サービス",
-      "to": "iPhone",
-      "label": "iOS へ配信",
+      "to": "スマホ",
+      "label": "スマホへ配信",
       "tone": "success",
       "labelOffsetY": -120
     },
-    { "from": "配信サービス", "to": "Android", "label": "Android へ配信", "tone": "success" },
+    { "from": "配信サービス", "to": "携帯", "label": "携帯へ配信", "tone": "success" },
     { "from": "配信サービス", "to": "タブレット", "label": "初回失敗", "tone": "error" },
     { "from": "タブレット", "to": "再送の判定", "label": "再送を求める", "tone": "warning" },
     { "from": "再送の判定", "to": "配信サービス", "label": "再送指示", "tone": "warning" }
@@ -20447,16 +20348,16 @@ export const sourceJson__exemplarNotificationFlow = `{
     {
       "step": "通知のきっかけ",
       "duration": 1.8,
-      "focus": ["新着の知らせ", "Kafka キュー"],
+      "focus": ["新着の知らせ", "知らせの列"],
       "tween": { "queued": [0, 1000] },
       "set": { "delivered": 0, "failed": 0, "deliveryRate": 0 },
       "badge": "発火",
-      "description": "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。"
+      "description": "注文の発送が起き、その知らせを列に積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。"
     },
     {
       "step": "キューイング",
       "duration": 2,
-      "focus": ["新着の知らせ", "Kafka キュー", "配信サービス"],
+      "focus": ["新着の知らせ", "知らせの列", "配信サービス"],
       "tween": { "queued": [1000, 800] },
       "badge": "キュー",
       "description": "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、キューからの矢印に信号が流れる。"
@@ -20464,15 +20365,15 @@ export const sourceJson__exemplarNotificationFlow = `{
     {
       "step": "配信中",
       "duration": 2.5,
-      "focus": ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"],
+      "focus": ["新着の知らせ", "知らせの列", "配信サービス", "スマホ", "携帯", "タブレット"],
       "tween": { "queued": [800, 50], "delivered": [0, 920], "failed": [0, 80], "deliveryRate": [0, 92] },
       "badge": "配信",
-      "description": "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。"
+      "description": "配信サービスがスマホ / 携帯 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。"
     },
     {
       "step": "初回到達",
       "duration": 1.8,
-      "focus": ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"],
+      "focus": ["新着の知らせ", "知らせの列", "配信サービス", "スマホ", "携帯", "タブレット"],
       "tween": {
         "queued": [50, 20],
         "delivered": [920, 950],
@@ -20480,12 +20381,12 @@ export const sourceJson__exemplarNotificationFlow = `{
         "deliveryRate": [92, 95]
       },
       "badge": "到達",
-      "description": "iPhone と Android 端末は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。"
+      "description": "スマホと携帯は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。"
     },
     {
       "step": "リトライ",
       "duration": 2,
-      "focus": ["新着の知らせ", "Kafka キュー", "配信サービス", "再送の判定", "iPhone", "Android", "タブレット"],
+      "focus": ["新着の知らせ", "知らせの列", "配信サービス", "再送の判定", "スマホ", "携帯", "タブレット"],
       "tween": {
         "queued": [20, 0],
         "delivered": [950, 992],
@@ -25926,200 +25827,6 @@ export const sourceJson__visualBindBar = `{
   ]
 }`;
 
-export const sourceYaml__eip1559GasFlow = `title: "EIP-1559 の手数料が 3 ブロックで変わる"
-type: flow
-
-inputs:
-  baseFee: { kind: slider, min: 10, max: 200, defaultValue: 50, label: "基準手数料 (gwei)" }
-  priority: { kind: slider, min: 1, max: 30, defaultValue: 5, label: "優先手数料" }
-
-readouts:
-  gas: { kind: stacked-bar, sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "ブロックごとの焼却分 / 優先分" }
-
-formulas:
-  total1: { expression: "baseFee + priority", label: "ブロック N の手数料" }
-  total2: { expression: "(baseFee + priority) * 12 / 10", label: "ブロック N+1 の手数料" }
-  total3: { expression: "(baseFee + priority) * 15 / 10", label: "ブロック N+2 の手数料" }
-
-lanes:
-  col1: { x: 0, width: 370 }
-  col2: { x: 410, width: 300 }
-
-states:
-  baseFee: 50
-  priority: 5
-  burned: "[50,60,72]"
-  tips: "[5,8,10]"
-  total1: 55
-  total2: 66
-  total3: 82
-
-actors:
-  - 財布: { kind: card, lane: col1, stack: 0, subtitle: "基準 {baseFee} + 優先 {priority} gwei", posW: 320 }
-  - ブロック N: { kind: card, lane: col1, stack: 1, subtitle: "×1.0 = {total1} gwei", posW: 240 }
-  - ブロック N+1: { kind: card, lane: col2, stack: 0, subtitle: "×1.2 = {total2} gwei", posW: 250 }
-  - ブロック N+2: { kind: card, lane: col2, stack: 1, subtitle: "×1.5 = {total3} gwei", posW: 250 }
-
-flow:
-  - 財布 -> ブロック N: "取引を送る" (info) { sub: "基準 + 優先" }
-  - ブロック N -> ブロック N+1: "次のブロック" (warning) { sub: "手数料 +20%" }
-  - ブロック N+1 -> ブロック N+2: "次のブロック" (error) { sub: "手数料 +25%" }
-
-animation:
-  - step: "1 ブロック目" 1.8s
-    focus: ["財布", "ブロック N"]
-    set:
-      burned: "[50,0,0]"
-      tips: "[5,0,0]"
-    description: "基準手数料 50 / 優先手数料 5。 最初のブロックの内訳。"
-  - step: "2 ブロック目" 1.8s
-    focus: ["財布", "ブロック N", "ブロック N+1"]
-    set:
-      burned: "[50,60,0]"
-      tips: "[5,8,0]"
-    description: "混雑して基準手数料が上がる。 焼却分が増え、優先分も上がる。"
-  - step: "3 ブロック目" 1.8s
-    focus: ["財布", "ブロック N", "ブロック N+1", "ブロック N+2"]
-    set:
-      burned: "[50,60,72]"
-      tips: "[5,8,10]"
-    description: "さらに上がって 72 に届く。 3 ブロック分の推移が積み上げで並ぶ。"
-`;
-
-export const sourceJson__eip1559GasFlow = `{
-  "title": "EIP-1559 の手数料が 3 ブロックで変わる",
-  "type": "flow",
-  "inputs": [
-    {
-      "id": "baseFee",
-      "kind": "slider",
-      "min": 10,
-      "max": 200,
-      "defaultValue": 50,
-      "label": "基準手数料 (gwei)"
-    },
-    {
-      "id": "priority",
-      "kind": "slider",
-      "min": 1,
-      "max": 30,
-      "defaultValue": 5,
-      "label": "優先手数料"
-    }
-  ],
-  "readouts": [
-    {
-      "id": "gas",
-      "kind": "stacked-bar",
-      "sourceA": "burned",
-      "sourceB": "tips",
-      "min": 0,
-      "max": 120,
-      "colorA": "#ef4444",
-      "colorB": "#22c55e",
-      "label": "ブロックごとの焼却分 / 優先分"
-    }
-  ],
-  "formulas": {
-    "total1": { "expression": "baseFee + priority", "label": "ブロック N の手数料" },
-    "total2": { "expression": "(baseFee + priority) * 12 / 10", "label": "ブロック N+1 の手数料" },
-    "total3": { "expression": "(baseFee + priority) * 15 / 10", "label": "ブロック N+2 の手数料" }
-  },
-  "lanes": {
-    "col1": { "x": 0, "width": 370 },
-    "col2": { "x": 410, "width": 300 }
-  },
-  "actors": [
-    {
-      "name": "財布",
-      "kind": "card",
-      "lane": "col1",
-      "stack": 0,
-      "subtitle": "基準 {baseFee} + 優先 {priority} gwei",
-      "posW": 320
-    },
-    {
-      "name": "ブロック N",
-      "kind": "card",
-      "lane": "col1",
-      "stack": 1,
-      "subtitle": "×1.0 = {total1} gwei",
-      "posW": 240
-    },
-    {
-      "name": "ブロック N+1",
-      "kind": "card",
-      "lane": "col2",
-      "stack": 0,
-      "subtitle": "×1.2 = {total2} gwei",
-      "posW": 250
-    },
-    {
-      "name": "ブロック N+2",
-      "kind": "card",
-      "lane": "col2",
-      "stack": 1,
-      "subtitle": "×1.5 = {total3} gwei",
-      "posW": 250
-    }
-  ],
-  "flow": [
-    {
-      "from": "財布",
-      "to": "ブロック N",
-      "label": "取引を送る",
-      "sub": "基準 + 優先",
-      "tone": "info"
-    },
-    {
-      "from": "ブロック N",
-      "to": "ブロック N+1",
-      "label": "次のブロック",
-      "sub": "手数料 +20%",
-      "tone": "warning"
-    },
-    {
-      "from": "ブロック N+1",
-      "to": "ブロック N+2",
-      "label": "次のブロック",
-      "sub": "手数料 +25%",
-      "tone": "error"
-    }
-  ],
-  "states": {
-    "baseFee": 50,
-    "priority": 5,
-    "burned": "[50,60,72]",
-    "tips": "[5,8,10]",
-    "total1": 55,
-    "total2": 66,
-    "total3": 82
-  },
-  "animation": [
-    {
-      "step": "1 ブロック目",
-      "duration": 1.8,
-      "focus": ["財布", "ブロック N"],
-      "set": { "burned": "[50,0,0]", "tips": "[5,0,0]" },
-      "description": "基準手数料 50 / 優先手数料 5。 最初のブロックの内訳。"
-    },
-    {
-      "step": "2 ブロック目",
-      "duration": 1.8,
-      "focus": ["財布", "ブロック N", "ブロック N+1"],
-      "set": { "burned": "[50,60,0]", "tips": "[5,8,0]" },
-      "description": "混雑して基準手数料が上がる。 焼却分が増え、優先分も上がる。"
-    },
-    {
-      "step": "3 ブロック目",
-      "duration": 1.8,
-      "focus": ["財布", "ブロック N", "ブロック N+1", "ブロック N+2"],
-      "set": { "burned": "[50,60,72]", "tips": "[5,8,10]" },
-      "description": "さらに上がって 72 に届く。 3 ブロック分の推移が積み上げで並ぶ。"
-    }
-  ]
-}`;
-
 export const sourceYaml__formulaTextBind = `title: "入力値から 2 倍と半分を自動計算する"
 type: flow
 
@@ -26650,11 +26357,11 @@ inputs:
   base: { kind: slider, min: 0, max: 60, defaultValue: 20, label: "元の値" }
 
 formulas:
-  gas1: { expression: "base", label: "ブロック 1 の手数料" }
-  gas2: { expression: "gas1 * 1.2", label: "ブロック 2 の手数料" }
-  gas3: { expression: "gas2 * 1.2", label: "ブロック 3 の手数料" }
-  gas4: { expression: "gas3 * 1.2", label: "ブロック 4 の手数料" }
-  gas5: { expression: "gas4 * 1.2", label: "ブロック 5 の手数料" }
+  gas1: { expression: "base", label: "1 日目の料金" }
+  gas2: { expression: "gas1 * 1.2", label: "2 日目の料金" }
+  gas3: { expression: "gas2 * 1.2", label: "3 日目の料金" }
+  gas4: { expression: "gas3 * 1.2", label: "4 日目の料金" }
+  gas5: { expression: "gas4 * 1.2", label: "5 日目の料金" }
 
 lanes:
   l1: { x: 0, width: 100 }
@@ -26672,24 +26379,24 @@ states:
   gas5: 41.472
 
 actors:
-  - ブロック 1: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "手数料: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
-  - ブロック 2: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "手数料: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
-  - ブロック 3: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "手数料: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
-  - ブロック 4: { kind: dyn-rect, lane: l4, stack: 0, subtitle: "手数料: {gas4}", shape: { kind: rect, source: "{gas4}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
-  - ブロック 5: { kind: dyn-rect, lane: l5, stack: 0, subtitle: "手数料: {gas5}", shape: { kind: rect, source: "{gas5}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - 1 日目: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "料金: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - 2 日目: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "料金: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - 3 日目: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "料金: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - 4 日目: { kind: dyn-rect, lane: l4, stack: 0, subtitle: "料金: {gas4}", shape: { kind: rect, source: "{gas4}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - 5 日目: { kind: dyn-rect, lane: l5, stack: 0, subtitle: "料金: {gas5}", shape: { kind: rect, source: "{gas5}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
 
 animation:
   - step: "起点を置く" 1.6s
-    focus: ["ブロック 1"]
+    focus: ["1 日目"]
     description: "元の値が 1 つ目の四角に入る。 ここが連なりの起点。"
   - step: "2 つ目まで伝わる" 1.6s
-    focus: ["ブロック 1", "ブロック 2"]
+    focus: ["1 日目", "2 日目"]
     description: "前の値を受けて次の値が決まる。 同じ規則で 2 つ目が埋まる。"
   - step: "4 つ目まで伝わる" 1.6s
-    focus: ["ブロック 1", "ブロック 2", "ブロック 3", "ブロック 4"]
+    focus: ["1 日目", "2 日目", "3 日目", "4 日目"]
     description: "同じ規則を繰り返して 4 つ目まで届く。 書いたのは規則 1 つだけ。"
   - step: "端まで届く" 1.6s
-    focus: ["ブロック 1", "ブロック 2", "ブロック 3", "ブロック 4", "ブロック 5"]
+    focus: ["1 日目", "2 日目", "3 日目", "4 日目", "5 日目"]
     description: "5 つ目まで伝わり切る。 元を動かすと端まで連なって変わる。"
 `;
 
@@ -26700,11 +26407,11 @@ export const sourceJson__repeatDeriveChain = `{
     { "id": "base", "kind": "slider", "min": 0, "max": 60, "defaultValue": 20, "label": "元の値" }
   ],
   "formulas": {
-    "gas1": { "expression": "base", "label": "ブロック 1 の手数料" },
-    "gas2": { "expression": "gas1 * 1.2", "label": "ブロック 2 の手数料" },
-    "gas3": { "expression": "gas2 * 1.2", "label": "ブロック 3 の手数料" },
-    "gas4": { "expression": "gas3 * 1.2", "label": "ブロック 4 の手数料" },
-    "gas5": { "expression": "gas4 * 1.2", "label": "ブロック 5 の手数料" }
+    "gas1": { "expression": "base", "label": "1 日目の料金" },
+    "gas2": { "expression": "gas1 * 1.2", "label": "2 日目の料金" },
+    "gas3": { "expression": "gas2 * 1.2", "label": "3 日目の料金" },
+    "gas4": { "expression": "gas3 * 1.2", "label": "4 日目の料金" },
+    "gas5": { "expression": "gas4 * 1.2", "label": "5 日目の料金" }
   },
   "lanes": {
     "l1": { "x": 0, "width": 100 },
@@ -26715,51 +26422,51 @@ export const sourceJson__repeatDeriveChain = `{
   },
   "actors": [
     {
-      "name": "ブロック 1",
+      "name": "1 日目",
       "kind": "dyn-rect",
       "lane": "l1",
       "stack": 0,
-      "subtitle": "手数料: {gas1}",
+      "subtitle": "料金: {gas1}",
       "shape": { "kind": "rect", "source": "{gas1}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
     },
     {
-      "name": "ブロック 2",
+      "name": "2 日目",
       "kind": "dyn-rect",
       "lane": "l2",
       "stack": 0,
-      "subtitle": "手数料: {gas2}",
+      "subtitle": "料金: {gas2}",
       "shape": { "kind": "rect", "source": "{gas2}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
     },
     {
-      "name": "ブロック 3",
+      "name": "3 日目",
       "kind": "dyn-rect",
       "lane": "l3",
       "stack": 0,
-      "subtitle": "手数料: {gas3}",
+      "subtitle": "料金: {gas3}",
       "shape": { "kind": "rect", "source": "{gas3}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
     },
     {
-      "name": "ブロック 4",
+      "name": "4 日目",
       "kind": "dyn-rect",
       "lane": "l4",
       "stack": 0,
-      "subtitle": "手数料: {gas4}",
+      "subtitle": "料金: {gas4}",
       "shape": { "kind": "rect", "source": "{gas4}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
     },
     {
-      "name": "ブロック 5",
+      "name": "5 日目",
       "kind": "dyn-rect",
       "lane": "l5",
       "stack": 0,
-      "subtitle": "手数料: {gas5}",
+      "subtitle": "料金: {gas5}",
       "shape": { "kind": "rect", "source": "{gas5}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
@@ -26771,25 +26478,25 @@ export const sourceJson__repeatDeriveChain = `{
     {
       "step": "起点を置く",
       "duration": 1.6,
-      "focus": ["ブロック 1"],
+      "focus": ["1 日目"],
       "description": "元の値が 1 つ目の四角に入る。 ここが連なりの起点。"
     },
     {
       "step": "2 つ目まで伝わる",
       "duration": 1.6,
-      "focus": ["ブロック 1", "ブロック 2"],
+      "focus": ["1 日目", "2 日目"],
       "description": "前の値を受けて次の値が決まる。 同じ規則で 2 つ目が埋まる。"
     },
     {
       "step": "4 つ目まで伝わる",
       "duration": 1.6,
-      "focus": ["ブロック 1", "ブロック 2", "ブロック 3", "ブロック 4"],
+      "focus": ["1 日目", "2 日目", "3 日目", "4 日目"],
       "description": "同じ規則を繰り返して 4 つ目まで届く。 書いたのは規則 1 つだけ。"
     },
     {
       "step": "端まで届く",
       "duration": 1.6,
-      "focus": ["ブロック 1", "ブロック 2", "ブロック 3", "ブロック 4", "ブロック 5"],
+      "focus": ["1 日目", "2 日目", "3 日目", "4 日目", "5 日目"],
       "description": "5 つ目まで伝わり切る。 元を動かすと端まで連なって変わる。"
     }
   ]
@@ -26802,9 +26509,9 @@ inputs:
   base: { kind: slider, min: 0, max: 100, defaultValue: 30, label: "元の値" }
 
 formulas:
-  gas1: { expression: "base", label: "ブロック 1 の手数料" }
-  gas2: { expression: "base * 1.2", label: "ブロック 2 の手数料" }
-  gas3: { expression: "base * 1.5", label: "ブロック 3 の手数料" }
+  gas1: { expression: "base", label: "1 日目の料金" }
+  gas2: { expression: "base * 1.2", label: "2 日目の料金" }
+  gas3: { expression: "base * 1.5", label: "3 日目の料金" }
 
 lanes:
   l1: { x: 0, width: 130 }
@@ -26818,19 +26525,19 @@ states:
   gas3: 45
 
 actors:
-  - ブロック 1: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "手数料: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 150, orient: "up", fill: "#8a5a2a" }, posW: 100, posH: 220 }
-  - ブロック 2: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "手数料: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" }, posW: 100, posH: 220 }
-  - ブロック 3: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "手数料: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" }, posW: 100, posH: 220 }
+  - 1 日目: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "料金: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 150, orient: "up", fill: "#8a5a2a" }, posW: 100, posH: 220 }
+  - 2 日目: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "料金: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" }, posW: 100, posH: 220 }
+  - 3 日目: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "料金: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" }, posW: 100, posH: 220 }
 
 animation:
   - step: "等倍で見る" 1.6s
-    focus: ["ブロック 1"]
+    focus: ["1 日目"]
     description: "元の値がそのまま 1 つ目の四角の塗りになる。 3 つのうち基準になる 1 つ。"
   - step: "1.2 倍で見る" 1.6s
-    focus: ["ブロック 1", "ブロック 2"]
+    focus: ["1 日目", "2 日目"]
     description: "2 つ目は同じ元の値を 1.2 倍した塗りになる。 前の四角からではなく、元の値を直接見ている。"
   - step: "1.5 倍で見る" 1.6s
-    focus: ["ブロック 1", "ブロック 2", "ブロック 3"]
+    focus: ["1 日目", "2 日目", "3 日目"]
     description: "3 つ目は 1.5 倍。 元を 1 つ動かすと 3 つが同時に、別々の率で変わる。"
 `;
 
@@ -26848,9 +26555,9 @@ export const sourceJson__shapeChainFill = `{
     }
   ],
   "formulas": {
-    "gas1": { "expression": "base", "label": "ブロック 1 の手数料" },
-    "gas2": { "expression": "base * 1.2", "label": "ブロック 2 の手数料" },
-    "gas3": { "expression": "base * 1.5", "label": "ブロック 3 の手数料" }
+    "gas1": { "expression": "base", "label": "1 日目の料金" },
+    "gas2": { "expression": "base * 1.2", "label": "2 日目の料金" },
+    "gas3": { "expression": "base * 1.5", "label": "3 日目の料金" }
   },
   "lanes": {
     "l1": { "x": 0, "width": 130 },
@@ -26859,31 +26566,31 @@ export const sourceJson__shapeChainFill = `{
   },
   "actors": [
     {
-      "name": "ブロック 1",
+      "name": "1 日目",
       "kind": "dyn-rect",
       "lane": "l1",
       "stack": 0,
-      "subtitle": "手数料: {gas1}",
+      "subtitle": "料金: {gas1}",
       "shape": { "kind": "rect", "source": "{gas1}", "fillMax": 150, "orient": "up", "fill": "#8a5a2a" },
       "posW": 100,
       "posH": 220
     },
     {
-      "name": "ブロック 2",
+      "name": "2 日目",
       "kind": "dyn-rect",
       "lane": "l2",
       "stack": 0,
-      "subtitle": "手数料: {gas2}",
+      "subtitle": "料金: {gas2}",
       "shape": { "kind": "rect", "source": "{gas2}", "fillMax": 150, "orient": "up", "fill": "#4e9dc4" },
       "posW": 100,
       "posH": 220
     },
     {
-      "name": "ブロック 3",
+      "name": "3 日目",
       "kind": "dyn-rect",
       "lane": "l3",
       "stack": 0,
-      "subtitle": "手数料: {gas3}",
+      "subtitle": "料金: {gas3}",
       "shape": { "kind": "rect", "source": "{gas3}", "fillMax": 150, "orient": "up", "fill": "#7ec4dd" },
       "posW": 100,
       "posH": 220
@@ -26895,19 +26602,19 @@ export const sourceJson__shapeChainFill = `{
     {
       "step": "等倍で見る",
       "duration": 1.6,
-      "focus": ["ブロック 1"],
+      "focus": ["1 日目"],
       "description": "元の値がそのまま 1 つ目の四角の塗りになる。 3 つのうち基準になる 1 つ。"
     },
     {
       "step": "1.2 倍で見る",
       "duration": 1.6,
-      "focus": ["ブロック 1", "ブロック 2"],
+      "focus": ["1 日目", "2 日目"],
       "description": "2 つ目は同じ元の値を 1.2 倍した塗りになる。 前の四角からではなく、元の値を直接見ている。"
     },
     {
       "step": "1.5 倍で見る",
       "duration": 1.6,
-      "focus": ["ブロック 1", "ブロック 2", "ブロック 3"],
+      "focus": ["1 日目", "2 日目", "3 日目"],
       "description": "3 つ目は 1.5 倍。 元を 1 つ動かすと 3 つが同時に、別々の率で変わる。"
     }
   ]

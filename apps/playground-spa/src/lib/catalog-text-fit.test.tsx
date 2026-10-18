@@ -59,9 +59,9 @@ const 省略 = "…";
 /**
  * 図の上に出てよい、描画側が自分で書く省略。
  *
- * `0x…` は blockchain の宛先として `shape-blockchain` が書く literal で、記法に由来しない
- * (実測 = `shapeBlockchain` / `sceneTokenBridge` / `sceneSatelliteChain` / `sceneConsensus`
- * の 4 図)。 記法を直しても消えないため、切り詰めと数えると直しようのない指摘が毎回出る。
+ * **`0x…` は #2946 で消えた**。 blockchain の宛先として `shape-blockchain` が書く literal で、
+ * 記法に由来しなかった (実測 = `shapeBlockchain` / `sceneTokenBridge` / `sceneSatelliteChain` /
+ * `sceneConsensus` の 4 図)。 4 図とも特定の分野に寄った見本として見本帳から外した。
  *
  * **`0xc1892f…` は 0.78.0 で消えた** (#2562 で足し、#2570 で外した)。 連鎖の箱
  * (`shape-blockchain-block`) の 3 行目の既定値が絵の幅に入らず切れていたもので、描く側が
@@ -79,7 +79,7 @@ const 省略 = "…";
  * 足す時は、その `…` が記法を直しても消えないことを確かめる。 直せるものを足すと、
  * 描く側の壊れが素通しのまま残る (`0xc1892f…` がそうだった)。
  */
-const 描画側の省略 = ["0x…"];
+const 描画側の省略: string[] = [];
 
 /** 検査する図 1 件 */
 type 図の組 = { 出所: string; 名: string; 図: CdlDiagram };
@@ -143,8 +143,9 @@ describe("見本の文字が切り詰められていない (#1334)", () => {
         出た.set(t, [...(出た.get(t) ?? []), `${x.出所}/${x.名}`]);
       }
     }
-    // 1 件も無いと、切り詰めを見つける力があるのかどうか分からない
-    expect(出た.size, "省略を含む文字が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    // 切り詰めを見つける力は下の陽性対照が見る。 見本に省略が 1 つも無いのは正しい状態
+    // (`0x…` が消えた #2946 から)。 ここでは見本を 1 枚も見ていない空振りだけを止める
+    expect(見本.length, "見本を 1 枚も集められていない (検査が空振りしている)").toBeGreaterThan(0);
     const 想定外 = [...出た.entries()]
       .filter(([t]) => !描画側の省略.includes(t))
       .map(([t, 図ら]) => `"${t}" (${図ら.slice(0, 3).join(", ")})`);

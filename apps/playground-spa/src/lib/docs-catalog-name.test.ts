@@ -47,7 +47,7 @@ export function 指している呼び名(src: string): string[] {
 describe("説明書が指すカタログの頁の呼び名 (#1799)", () => {
   it("指している呼び名が全て分類の一覧にある", () => {
     const 呼び名 = new Set(CATEGORIES.map((c) => c.label));
-    expect(呼び名.size, "分類を 1 件も引けていない (検査が空振りしている)").toBeGreaterThan(10);
+    expect(呼び名.size, "分類を 1 件も引けていない (検査が空振りしている)").toBeGreaterThan(0);
     const files = 説明書のfile一覧();
     expect(files.length, "説明書を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(10);
     let 拾えた = 0;

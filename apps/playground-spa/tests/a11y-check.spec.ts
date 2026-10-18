@@ -9,7 +9,7 @@ import { PREVIEW_URL } from "../ports";
  */
 
 const BASE = process.env.PROD_BASE_URL ?? PREVIEW_URL;
-const PAGES = ["/", "/editor", "/catalog/ethereum"];
+const PAGES = ["/", "/editor", "/catalog/animation"];
 
 test.use({ viewport: { width: 1440, height: 900 } });
 

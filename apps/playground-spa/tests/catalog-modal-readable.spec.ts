@@ -21,6 +21,7 @@
 import { test, expect } from "@playwright/test";
 
 import { CATEGORIES } from "../src/lib/catalog";
+import { 一覧の行 } from "./catalog-item-pick";
 
 type Page = import("@playwright/test").Page;
 
@@ -478,7 +479,9 @@ test.describe("飾りは図の幅を継がない (#2284)", () => {
      * 指定だったため、図の隣に並ぶ操作の部品 (`.cdl-ip-root`) の中の svg まで同じ幅を受け取り、
      * 44x44 の輪が 1640x1640 に膨らんで台の高さが 71px から 2194px に伸びた (実測)。
      */
-    await page.goto("catalog/ethereum", { waitUntil: "networkidle" });
+    await page.goto("catalog/animation", { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    await 一覧の行(page, "animation-rich-pipeline-demo", false).click();
     await page.waitForTimeout(1200);
 
     const 輪を測る = () =>

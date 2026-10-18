@@ -14,7 +14,7 @@
  *
  * | 一覧 | 中身 | 扱い |
  * |---|---|---|
- * | 動かすと決めた | `primitives-extra` + `scene-*` + `presets` + `kind-*` + `shape-*` + `charts` + `parts-in-box` の部品の段で動く見本 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
+ * | 動かすと決めた | `primitives-extra` + `presets` + `kind-*` + `shape-*` + `charts` + `parts-in-box` の部品の段で動く見本 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
  * | 動かさないと決めた | `styles` + `lane-*` + `stack-*` + `parts-in-box` の状態を上書きして止める変種 | 並び方と色の見本。 値を足すと見せたいものが埋もれる |
  * | まだ動かしていない | 副題を描かない `shape-*`、 `charts` | 理由の表と実物を双方向で照合する |
  *
@@ -30,7 +30,6 @@ import * as Interactive from "../../../apps/playground-spa/src/topics/catalog/in
 import * as Cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
 import * as Patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
 import * as TextDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import * as Ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as Animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
 import * as Primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
 import * as PrimitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
@@ -66,7 +65,6 @@ const 対象: Array<[string, Record<string, unknown>]> = [
   ["patterns", Patterns],
   ["text-dsl", TextDsl],
   ["animation", Animation],
-  ["ethereum", Ethereum],
 ];
 
 const diagramsOf = (mod: Record<string, unknown>): Array<[string, CdlDiagram]> =>
@@ -282,20 +280,16 @@ const 図表で残す: Record<string, string> = {
  * 1 箱の見本のうち、まだ動かしていない図と、その理由 (#1196)。
  *
  * 形の見本の多くは副題 (or 値の欄 / 行) に数を置いて動かした。 ここに残る図は
- * **種別が副題を描かない**。 連鎖の箱は題 / 目次も読まず絵の文字を丸ごと固定しており、残りは
- * 題と目次だけを自前で描く。 どちらも数を置ける欄が識別の文字しか残らず、形の見本としての
- * 説明を潰すことになる (cdl #469)。
+ * **種別が副題を描かない**。 題と目次だけを自前で描く。 数を置ける欄が識別の文字しか残らず、
+ * 形の見本としての説明を潰すことになる (cdl #469)。
  *
  * ここに残る図は **描画結果で見つけた** = 副題に数を置いても絵の文字が変わらないことを
  * `catalog-motion-render.test.tsx` の検査が落として教えた。 宣言だけを見ていると通っていた。
  */
 const 形の見本で残す: Record<string, string> = {
-  "shape-blockchain-block":
-    "連鎖の箱。 種別が絵の文字を固定していて、書き手の値を読まない (cdl #469)",
   "shape-terminal":
     "端末の箱。 種別が副題を描かず、数を置ける欄が識別の文字しか残らない (cdl #469)",
   "shape-code-block": "コードの箱。 同上",
-  "shape-kanban-card": "付箋の箱。 同上",
 };
 
 /** カタログの図を 3 つの一覧に振り分ける (#1172)。 どれにも入らない図は `未分類` に落ちる */
@@ -326,8 +320,6 @@ function カタログの振り分け(module群: カタログmodule群): {
   for (const [k, d] of diagramsOf(module群.primitives)) {
     if (d.id.startsWith("lane-") || d.id.startsWith("stack-") || 並び方の見本か(k))
       動かさない.push(d.id);
-    // 場面の見本は箱を 1 つずつ光らせて流れとして読ませる (#1192)
-    else if (d.id.startsWith("scene-")) 動かす.push(d.id);
     // 形と種別の見本は数を動かす。 cdl 側が値を読まない 1 件だけ残る (#1196)
     else if (d.id.startsWith("kind-") || d.id.startsWith("shape-"))
       (形の見本で残す[d.id] ? まだ : 動かす).push(d.id);
@@ -453,13 +445,12 @@ describe("カタログは 3 つの一覧に分かれる (#1172)", () => {
   it("動かすと決めた見本に静止した図が無い", () => {
     // 絵として動くかは `apps/playground-spa/src/lib/catalog-motion-render.test.tsx` が
     // 描画結果で見る。 ここでは宣言の層で静止が混ざっていないことを見る
-    const 場面 = diagramsOf(Primitives).filter(([, d]) => d.id.startsWith("scene-"));
     const 型 = diagramsOf(Presets).filter(([, d]) => !型の見本で残す[d.id]);
     const 形 = diagramsOf(Primitives).filter(
       ([, d]) => (d.id.startsWith("shape-") || d.id.startsWith("kind-")) && !形の見本で残す[d.id],
     );
     const 部品を箱に = diagramsOf(PartsInBox).filter(([, d]) => !動かさないと決めた[d.id]);
-    const 静止 = [...diagramsOf(PrimitivesExtra), ...場面, ...型, ...形, ...部品を箱に]
+    const 静止 = [...diagramsOf(PrimitivesExtra), ...型, ...形, ...部品を箱に]
       .filter(([, d]) => !moves(d))
       .map(([k]) => k);
     expect(静止, `静止している図: ${静止.join(", ")}`).toEqual([]);

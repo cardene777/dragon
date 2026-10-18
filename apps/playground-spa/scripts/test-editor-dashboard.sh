@@ -116,7 +116,6 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   # 全て消え、残ったのは group B の 5 spec だけになった。 100 件に届かないので分ける理由が無い。
   L3_SPECS=(
     tests/editor-all-types.spec.ts
-    tests/ethereum.spec.ts
     tests/editor-stage-svg.spec.ts
     tests/editor-initial-animation.spec.ts
     tests/editor-yaml-tab.spec.ts

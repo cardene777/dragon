@@ -10,7 +10,6 @@ import * as textDsl from "../src/topics/catalog/text-dsl.cdl";
 import * as animation from "../src/topics/catalog/animation.cdl";
 import * as styles from "../src/topics/catalog/styles.cdl";
 import * as interactive from "../src/topics/catalog/interactive.cdl";
-import * as ethereum from "../src/topics/catalog/ethereum.cdl";
 import * as parts from "../src/topics/catalog/parts.cdl";
 import * as partsInBox from "../src/topics/catalog/parts-in-box.cdl";
 import * as partsMotion from "../src/topics/catalog/parts-motion.cdl";
@@ -64,7 +63,6 @@ const 群ごとの頁: Array<{ 群: string; slug: string; mod: Record<string, un
   { 群: "primitives-extra", slug: "primitives", mod: primitivesExtra },
   { 群: "text-dsl", slug: "text-dsl", mod: textDsl },
   { 群: "animation", slug: "animation", mod: animation },
-  { 群: "ethereum", slug: "ethereum", mod: ethereum },
   { 群: "parts", slug: "parts", mod: parts },
   { 群: "parts-in-box", slug: "parts", mod: partsInBox },
   { 群: "parts-motion", slug: "parts", mod: partsMotion },

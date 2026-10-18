@@ -256,18 +256,18 @@ export const FORMS: Section[] = [
   {
     title: "箱を並べ替える軸 (order:)",
     titleEn: "What to sort the boxes by (order:)",
-    // 順序図でだけ効く。 例文は書いた順と並べ替えた順が違うように、契約を先に書いておく
+    // 順序図でだけ効く。 例文は書いた順と並べ替えた順が違うように、しまう場所を先に書いておく
     sample: {
       slot: "order",
       type: "sequence",
-      actors: ["  - Vault: { kind: contract }", "  - 利用者: { kind: eoa }"],
-      flow: ['  - 利用者 -> Vault: "預ける"'],
+      actors: ["  - 金庫: { kind: storage }", "  - 利用者: { kind: actor }"],
+      flow: ['  - 利用者 -> 金庫: "預ける"'],
     },
     lines: [
       {
         code: "order: 種類",
-        note: "kind の順 (人 → 契約 → 保管 → 出来事) に並べ替える",
-        noteEn: "Sorts by kind (people, then contracts, then storage, then events)",
+        note: "kind の順 (人が左、出来事が右) に並べ替える",
+        noteEn: "Sorts by kind (people on the left, events on the right)",
       },
       {
         code: "order: kind",

@@ -76,13 +76,6 @@ export const CATEGORIES: CategoryMeta[] = [
     descEn: "Combine state moving on a phase, numbers interpolating smoothly, switching at once and a label showing the phase title to tell a story along time. For when you want to convey change and order, which a still picture cannot.",
   },
   {
-    slug: "ethereum",
-    label: "イーサリアム",
-    labelEn: "Ethereum",
-    desc: "ブロックチェーンの中で何が起きているかを、 数値が動く様子で説明する図。 残高が付け替わる / 手数料が上下する / ブロックが積まれる といった変化そのものを見せるので、 静止した箱と矢印では掴みにくい仕組みが直感的に分かる。",
-    descEn: "Diagrams that explain what is happening inside a blockchain by showing numbers in motion. Balances moving across, fees rising and falling, blocks stacking up — showing the change itself makes mechanisms intuitive that still boxes and arrows do not convey.",
-  },
-  {
     slug: "charts",
     label: "図表",
     labelEn: "Charts",

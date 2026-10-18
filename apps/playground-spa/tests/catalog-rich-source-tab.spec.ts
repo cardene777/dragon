@@ -1,9 +1,9 @@
 /**
  * 動きの豊かな見本でコードのタブが押せることの検査 (#1374)。
  *
- * この 9 件 (`animation` の rich 5 件 / `ethereum` 4 件) は `dyn-wave` / `dyn-arc` の箱に
- * 図形を渡し、値を見せる部品を使う。 記法にその 2 つを書く欄が無かったため、
- * カタログで最も動きが豊かなページだけコードのタブが押せなかった。
+ * `animation` の rich の見本は `dyn-wave` / `dyn-arc` の箱に図形を渡し、値を見せる部品を使う。
+ * 記法にその 2 つを書く欄が無かったため、カタログで最も動きが豊かなページだけコードのタブが
+ * 押せなかった。
  *
  * 記法と組み立て API が同じ図になることは `src/lib/catalog-source-parity.test.tsx` が見る。
  * ここでは **画面から読めるか** を見る。
@@ -35,6 +35,7 @@ test.describe("動きの豊かな見本で記法が読める (#1374)", () => {
     expect(yaml.length, "yaml が空 (検査が空振りしている)").toBeGreaterThan(50);
     expect(yaml, "値を見せる部品が出ていない").toContain("readouts:");
     expect(yaml, "割合の輪が出ていない").toContain("kind: percent-ring");
+    expect(yaml, "数え上げの部品が出ていない").toContain("kind: countup");
     expect(yaml, "箱の中の図形が出ていない").toContain("shape: { kind: wave");
     expect(yaml, "図形の水位が状態を指していない").toContain('level: "{s1}"');
 
@@ -55,36 +56,21 @@ test.describe("動きの豊かな見本で記法が読める (#1374)", () => {
     ).toContain("wave");
   });
 
-  test("Ethereum の見本でも押せる", async ({ page }) => {
-    // ページが違うと拾い方も違う。 1 ページだけ見ても両方に効いたことは分からない
-    await 開く(page, "ethereum", "eth-erc20-transfer");
+  test("全件でコードのタブが押せる", async ({ page }) => {
+    const ページ = "animation";
+    await page.goto(`catalog/${ページ}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+
+    const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");
+    const 件数 = await 行.count();
+    expect(件数, `${ページ} の一覧の行を 1 つも数えられていない`).toBeGreaterThan(0);
 
     const タブ = page.getByRole("tab", { name: "コード" });
-    await expect(タブ, "コードのタブが押せない").toBeEnabled();
-    await タブ.click();
-    await page.waitForTimeout(300);
-
-    const yaml = await page.locator(".catalog-source-code").first().innerText();
-    expect(yaml, "数え上げの部品が出ていない").toContain("kind: countup");
-    expect(yaml, "箱の中の図形が出ていない").toContain("shape: { kind: wave");
-  });
-
-  test("2 ページの全件でコードのタブが押せる", async ({ page }) => {
-    for (const ページ of ["animation", "ethereum"]) {
-      await page.goto(`catalog/${ページ}`, { waitUntil: "networkidle" });
-      await page.waitForTimeout(800);
-
-      const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");
-      const 件数 = await 行.count();
-      expect(件数, `${ページ} の一覧の行を 1 つも数えられていない`).toBeGreaterThan(0);
-
-      const タブ = page.getByRole("tab", { name: "コード" });
-      for (let i = 0; i < 件数; i++) {
-        await 行.nth(i).click();
-        await expect(タブ, `${ページ} の ${i + 1} 件目でコードのタブが押せない`).toBeEnabled({
-          timeout: 5000,
-        });
-      }
+    for (let i = 0; i < 件数; i++) {
+      await 行.nth(i).click();
+      await expect(タブ, `${ページ} の ${i + 1} 件目でコードのタブが押せない`).toBeEnabled({
+        timeout: 5000,
+      });
     }
   });
 

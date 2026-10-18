@@ -39,7 +39,6 @@ const 揃ったページ = [
   "primitives",
   "cookbook",
   "animation",
-  "ethereum",
   "parts",
   // #1394 で記法の作りに由来する 2 つの穴を塞ぎ、全件が記法を持つようになった
   "interactive",
