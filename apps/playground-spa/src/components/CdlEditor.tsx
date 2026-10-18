@@ -139,14 +139,8 @@ const v4EditorThemeDark = EditorView.theme(CODE_THEME_RULES, { dark: true });
  *  実体は `@/data/editor-samples.ts` に移設済 (CAR-1659、 samples-validate test との drift 回避で shared SSOT 化)。 */
 const SAMPLES = EDITOR_SAMPLES;
 
-/** 知らせの中で分類を指す時の呼び名 (#1805)。 出どころは `CATEGORIES` 1 つ (#1788) */
-const 分類の呼び名 = (locale: Locale): string => {
-  const c = CATEGORIES.find((x) => x.slug === "presets");
-  return c === undefined ? "" : categoryLabel(c, locale);
-};
-
 /**
- * 図に重ねる小部品の呼び名 (#1811)。 出どころは同じく `CATEGORIES[].label` 1 つ。
+ * 図に重ねる小部品の呼び名 (#1811)。 出どころは `CATEGORIES[].label` 1 つ (#1788)。
  *
  * この画面は一覧の見出しと知らせで 5 箇所この語を出す。 字で書くと、#1805 のように
  * カタログの側だけ呼び名が変わった時に、この画面だけ古い呼び名が残る。
@@ -328,7 +322,6 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const [locale] = useLocale();
   // 画面に出す字は 1 つの表から引く (#2454)。 鍵を打ち間違えると `tsc` が落ちる
   const 字 = 編集画面の字(locale);
-  const 分類 = 分類の呼び名(locale);
   const 部品 = 部品の呼び名(locale);
   const [src, setSrcRaw] = useState<string>(SAMPLES[0].code);
   // keydown handler から最新 src を同期的に読むための mirror
@@ -886,7 +879,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 対応 sample なし = user 通知 (silently default load を明示的に伝える)
          
         setAutoFixMessage(
-          編集画面の文.編集できる見本が無い(分類, targetSlug, sampleLabel(SAMPLES[0], locale), locale),
+          編集画面の文.編集できる見本が無い(targetSlug, sampleLabel(SAMPLES[0], locale), locale),
         );
         window.setTimeout(() => setAutoFixMessage(null), 8000);
       }
@@ -904,7 +897,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     }
     // `setSrc` は空の依存で作るので書き換わらない (以下 3 箇所とも同じ)
     //
-    // **言語と分類の呼び名は足さない** (#2517)。 どちらも見本が見つからなかった時の知らせに
+    // **言語は足さない** (#2517)。 見本が見つからなかった時の知らせに
     // しか使わないが、依存に足すと言語を切り替えるたびにこの処理が走り直し、`#preset=` で
     // 開いた本文を書き戻して書きかけを捨てる。 知らせの言語より書きかけを守る側を採る
     // eslint-disable-next-line react-hooks/exhaustive-deps

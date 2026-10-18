@@ -195,10 +195,11 @@ export const 編集画面の文 = {
     locale === "ja"
       ? `見本を読み込めませんでした。 ${部品}の一覧を開き直すと再試行します。`
       : `Could not load the samples. Open the ${部品} list again to retry.`,
-  編集できる見本が無い: (分類: string, slug: string, 既定: string, locale: Locale): string =>
+  // どこから来たかを前提にしない (#2942)。 `#preset=` の link を作るページは無く、来るのは古い link
+  編集できる見本が無い: (slug: string, 既定: string, locale: Locale): string =>
     locale === "ja"
-      ? `${分類}「${slug}」 に対応する編集できる見本は未登録です。 既定の見本 (${既定}) で開きます。`
-      : `No editable sample is registered for the ${分類} "${slug}". Opening the default sample (${既定}) instead.`,
+      ? `開こうとした見本「${slug}」 は見つかりませんでした。 既定の見本 (${既定}) で開きます。`
+      : `The sample "${slug}" you tried to open was not found. Opening the default sample (${既定}) instead.`,
   名札の位置を書き戻した: (件数: number, locale: Locale): string =>
     locale === "ja"
       ? `${件数} 件の線の名札の位置を記法に書き戻しました。`
