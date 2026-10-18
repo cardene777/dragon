@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 import { DEV_PORT, PREVIEW_PORT } from "./ports";
+import { createCspMetaPlugin } from "./vite-csp";
 import { createDevDistFreshnessPlugin } from "./vite-dev-dist-freshness";
 
 /**
@@ -44,6 +45,8 @@ export default defineConfig(({ command, mode }) => ({
     createDevDistFreshnessPlugin(),
     react(),
     tailwindcss(),
+    // 公開 site が読み込んでよい場所を絞る (#2956)。 build の時だけ当たる
+    createCspMetaPlugin(),
   ],
   resolve: {
     alias: {
