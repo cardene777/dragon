@@ -13,8 +13,8 @@ const 色味を外す = (source: string): string =>
 const 色味を入れる = (source: string, theme: (typeof THEMES)[number]): string =>
   色味を外す(source).replace(/^(type:[^\n]*)$/mu, `$1\ntheme: ${theme}`);
 
-describe("編集画面の見本は色味を替えても骨組みを保つ (#2918)", () => {
-  it("全見本の箱・線・札の位置と大きさが色味なしと全色味で同じ", () => {
+describe("編集画面の見本は色味を替えても骨組みを保つ (#2918 / #2926)", () => {
+  it("全見本の箱・線・札・円の区画が色味なしと全色味で同じ", () => {
     const warnings = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
       const differences: string[] = [];

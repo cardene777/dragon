@@ -338,7 +338,7 @@ const 節の欄の扱い = {
   figureInset: "記法",
   chartBarShape: "記法",
   barCornerRadii: "意匠",
-  chartPieSliceGap: "意匠",
+  chartPieSliceGap: "置き場所",
   chartWaffleSize: "記法",
   // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
   ganttAxisMax: "置き場所",
@@ -1290,6 +1290,7 @@ const 置き場所の見本値: Record<string, unknown> = {
   "節/chartBarSize": { tickFontSize: 19 },
   "節/chartLineSize": { pointRadius: 7.5 },
   "節/chartPieSize": { outerRadius: 171 },
+  "節/chartPieSliceGap": 3,
   "節/chartSlopeLabelTemplate": { left: "{name} {value}{unit}" },
   "節/chartSlopeSize": { pointRadius: 7 },
   "節/chartGaugeSize": { arcThickness: 34 },

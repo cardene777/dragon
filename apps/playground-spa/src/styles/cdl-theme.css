@@ -5836,6 +5836,15 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"]:not([
 svg[data-cdl-stage][data-cdl-palette="neon"] {
   --cdl-now: var(--theme-lead);
   --theme-neon-chart-ground: #0a0812;
+  --dragon-chart-pie-separator-width: 3;
+}
+
+/* 扇の形は削らず、図表の地と同じ線を重ねて区画の境目だけを隙間に見せる。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-role="chart-pie-slice"], [data-cdl-role="chart-pie-slice-previous"]) {
+  stroke: var(--theme-neon-chart-ground) !important;
+  stroke-width: var(--dragon-chart-pie-separator-width) !important;
+  stroke-linejoin: round !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge] {

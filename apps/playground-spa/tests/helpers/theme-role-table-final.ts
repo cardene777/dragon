@@ -16,7 +16,7 @@ export const THEME_ROLE_TABLE_BASELINE = {
   diagramOnlyRules: 239,
   namedDiagramOnlyRules: 237,
   tableRules: 19,
-  inspectedRules: 528,
+  inspectedRules: 529,
   riskyRules: 31,
 } as const;
 

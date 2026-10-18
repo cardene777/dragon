@@ -85,56 +85,28 @@ async function 最後の段で静止するまで待つ(page: Page, label: string
   throw new Error(`${label}が最後の段で静止しない`);
 }
 
-test("電飾の円は4区画を3ずつ離し、輪の縁に暗い線を作らない (#2871)", async ({ page }) => {
+test("電飾の円は区画の形を保ち、境目へ図表の地色の線を重ねる (#2871 / #2926)", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-10-07T09:00:00+09:00") });
   await page.emulateMedia({ reducedMotion: "reduce" });
   const preview = await 見本を開く(page, "charts", "荷物の状態");
-  await 意匠を選ぶ(page, "neon", "電飾");
-  await 最後の段で静止するまで待つ(page, "電飾の円");
+  await 最後の段で静止するまで待つ(page, "基準の円");
   const slices = preview.locator('[data-cdl-role="chart-pie-slice"]');
   await expect(slices).toHaveCount(4);
+  const 基準の形 = await slices.evaluateAll((paths) => paths.map((path) => path.getAttribute("d")));
 
+  await 意匠を選ぶ(page, "neon", "電飾");
+  await 最後の段で静止するまで待つ(page, "電飾の円");
   const measured = await slices.evaluateAll((paths) => {
-    const numberPattern = /[-+]?(?:\d*\.?\d+)(?:e[-+]?\d+)?/giu;
-    const parsed = paths.map((path) => {
-      const values = [...(path.getAttribute("d") ?? "").matchAll(numberPattern)].map((match) => Number(match[0]));
-      if (values.length < 18) throw new Error(`円の区画の path を読めない: ${path.getAttribute("d") ?? ""}`);
-      const outerRadius = values[2]!;
-      const innerRadius = values[11]!;
-      return {
-        outerRadius,
-        innerRadius,
-        outerStart: { x: values[0]!, y: values[1]! },
-        outerEnd: { x: values[7]!, y: values[8]! },
-        innerEnd: { x: values[9]!, y: values[10]! },
-        innerStart: { x: values[16]!, y: values[17]! },
-        stroke: getComputedStyle(path).stroke,
-      };
-    });
-    const first = parsed[0]!;
-    const cx = (first.outerRadius * first.innerStart.x - first.innerRadius * first.outerStart.x) /
-      (first.outerRadius - first.innerRadius);
-    const cy = (first.outerRadius * first.innerStart.y - first.innerRadius * first.outerStart.y) /
-      (first.outerRadius - first.innerRadius);
-    const middleRadius = (first.outerRadius + first.innerRadius) / 2;
-    const middlePoint = (outer: { x: number; y: number }, inner: { x: number; y: number }) => ({
-      x: (outer.x + inner.x) / 2,
-      y: (outer.y + inner.y) / 2,
-    });
-    const angle = (point: { x: number; y: number }) => Math.atan2(point.y - cy, point.x - cx);
-    const gaps = parsed.map((slice, index) => {
-      const next = parsed[(index + 1) % parsed.length]!;
-      const end = angle(middlePoint(slice.outerEnd, slice.innerEnd));
-      const start = angle(middlePoint(next.outerStart, next.innerStart));
-      const difference = Math.abs(end - start);
-      return Math.min(difference, Math.PI * 2 - difference) * middleRadius;
-    });
-    return { gaps, strokes: parsed.map((slice) => slice.stroke) };
+    return {
+      paths: paths.map((path) => path.getAttribute("d")),
+      strokes: paths.map((path) => getComputedStyle(path).stroke),
+      strokeWidths: paths.map((path) => getComputedStyle(path).strokeWidth),
+    };
   });
 
-  expect(measured.gaps).toHaveLength(4);
-  for (const gap of measured.gaps) expect(Math.abs(gap - 3), `区画の間は ${gap}`).toBeLessThanOrEqual(0.5);
-  expect(measured.strokes).toEqual(["none", "none", "none", "none"]);
+  expect(measured.paths).toEqual(基準の形);
+  expect(measured.strokes).toEqual(Array.from({ length: 4 }, () => "rgb(10, 8, 18)"));
+  expect(measured.strokeWidths).toEqual(Array.from({ length: 4 }, () => "3px"));
 
   const svg = preview.locator("svg[data-cdl-stage]");
   const ring = await svg.evaluate((stage) => {

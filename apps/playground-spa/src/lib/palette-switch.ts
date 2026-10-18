@@ -2,7 +2,6 @@ import type { CdlDiagram, CdlNode } from "@cardenelabs/cdl";
 import {
   THEMES,
   type DslTheme,
-  意匠の円の区画の間,
   棒を描く節か,
   意匠の棒の角,
 } from "@cardenelabs/dragon";
@@ -66,19 +65,6 @@ function 棒の角を当てる(node: CdlNode, theme: DslTheme | undefined): CdlN
   return next;
 }
 
-function 円の区画の間を当てる(node: CdlNode, theme: DslTheme | undefined): CdlNode {
-  const target = theme === undefined ? undefined : 意匠の円の区画の間(theme, node);
-  const same = target === undefined
-    ? !Object.hasOwn(node, "chartPieSliceGap")
-    : node.chartPieSliceGap === target;
-  if (same) return node;
-
-  const next = { ...node };
-  if (target === undefined) delete next.chartPieSliceGap;
-  else next.chartPieSliceGap = target;
-  return next;
-}
-
 /** 宅配の表は骨組みを変えず、元の意匠に縞が無かった浮彫・電飾だけ模様を外す。 */
 function 宅配表の縞を当てる<T extends CdlDiagram>(diagram: T, theme: DslTheme | undefined): T["nodes"] {
   if (diagram.id !== "delivery-relations-demo" && diagram.id !== "delivery-classes-demo") {
@@ -131,22 +117,19 @@ export function 図の配色を変える<T extends CdlDiagram>(diagram: T, 選�
     ? !Object.hasOwn(diagram, "palette")
     : diagram.palette === 次の配色;
   const 次の棒角の節 = diagram.nodes.map((node) => 棒の角を当てる(node, 次の配色));
-  const 次の円の区画の節 = 次の棒角の節.map((node) => 円の区画の間を当てる(node, 次の配色));
-  const 次の縞の節 = 宅配表の縞を当てる({ ...diagram, nodes: 次の円の区画の節 }, 次の配色);
+  const 次の縞の節 = 宅配表の縞を当てる({ ...diagram, nodes: 次の棒角の節 }, 次の配色);
   const 棒の角が同じ = diagram.nodes.every((node, index) => 次の棒角の節[index] === node);
-  const 円の区画の間が同じ = 次の棒角の節.every((node, index) => 次の円の区画の節[index] === node);
-  const 縞が同じ = 次の円の区画の節.every((node, index) => 次の縞の節[index] === node);
+  const 縞が同じ = 次の棒角の節.every((node, index) => 次の縞の節[index] === node);
   if (
     配色が同じ &&
     棒の角が同じ &&
-    円の区画の間が同じ &&
     縞が同じ
   ) return diagram;
 
   const 次: T = { ...diagram };
   if (次の配色 === undefined) delete 次.palette;
   else 次.palette = 次の配色;
-  if (!棒の角が同じ || !円の区画の間が同じ || !縞が同じ) {
+  if (!棒の角が同じ || !縞が同じ) {
     次.nodes = 次の縞の節;
   }
   return 次;

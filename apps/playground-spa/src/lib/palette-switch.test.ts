@@ -195,7 +195,7 @@ flow:
   });
 });
 
-describe("円の区画の間の意匠切替 (#2871)", () => {
+describe("円の区画の間は意匠切替で変えない (#2926)", () => {
   const 円 = (theme?: string) => textDslToDiagram(`title: 見本
 type: chart
 shape: pie
@@ -206,14 +206,20 @@ flow:
   - A -> B
 `);
 
-  it("電飾へ替えると chartPieSliceGap 3 を付ける", () => {
-    const next = 図の配色を変える(円("catalog"), "neon");
-    expect(next.nodes[0]?.chartPieSliceGap).toBe(3);
-    expect(図の配色を変える(next, "neon")).toBe(next);
+  it("電飾へ替えても chartPieSliceGap を足さない", () => {
+    const 元 = 円("catalog");
+    const next = 図の配色を変える(元, "neon");
+    expect(Object.hasOwn(next.nodes[0] ?? {}, "chartPieSliceGap")).toBe(false);
+    expect(next.nodes[0]).toBe(元.nodes[0]);
   });
 
-  it.each(["catalog", "relief", 画面の色] as const)("%s へ替えると chartPieSliceGap を外す", (theme) => {
-    const next = 図の配色を変える(円("neon"), theme);
-    expect(Object.hasOwn(next.nodes[0] ?? {}, "chartPieSliceGap")).toBe(false);
+  it.each(["neon", "catalog", "relief", 画面の色] as const)("%s へ替えても元の chartPieSliceGap を保つ", (theme) => {
+    const 元 = 円();
+    const 円の節 = 元.nodes[0];
+    if (円の節 === undefined) throw new Error("円の節が無い");
+    円の節.chartPieSliceGap = 5;
+    const next = 図の配色を変える(元, theme);
+    expect(next.nodes[0]?.chartPieSliceGap).toBe(5);
+    expect(next.nodes[0]).toBe(円の節);
   });
 });
