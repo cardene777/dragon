@@ -183,7 +183,7 @@ describe("readableScaleForFrame", () => {
 });
 
 describe("readableScaleForWidth (#2269)", () => {
-  /** 携帯の幅の台に、横に長い図を収めた形 (`preset/swimlane` の実測) */
+  /** 携帯の幅の台に、横に長い `swimlane` を収めた実測 */
   const 素 = { frameWidth: 275, viewBoxWidth: 1916, minFontWorld: 20 };
 
   it("収めると下限を割る図は、下限を満たす倍率を返す", () => {
@@ -200,7 +200,7 @@ describe("readableScaleForWidth (#2269)", () => {
   });
 
   it("実寸 (100%) を超えては拡げない", () => {
-    // 文字が 7.6 世界単位の図は、100% でも 7.6px にしかならない (`preset/gantt` の実測)
+    // 文字が 7.6 世界単位の図は、100% でも 7.6px にしかならない (`gantt` の実測)
     expect(readableScaleForWidth({ ...素, minFontWorld: 7.6 })).toBeCloseTo(1, 5);
   });
 

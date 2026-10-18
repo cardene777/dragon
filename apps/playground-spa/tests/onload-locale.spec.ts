@@ -3,7 +3,6 @@ import { 図の箱が出るまで待つ } from "./wait-for-render";
 
 import { 画面の経路 } from "./app-routes";
 import { CATEGORIES } from "../src/lib/catalog";
-import { PRESETS } from "../src/lib/presets";
 
 /**
  * 英語で開いた時に、画面に残る日本語の件数を画面ごとに固定する (#2449)。
@@ -73,7 +72,6 @@ import { PRESETS } from "../src/lib/presets";
 /** 経路の `:欄` に入れる値。 経路に出る欄が増えると下の突き合わせが落ちる */
 const 欄の値: Record<string, string> = {
   ":slug": "primitives",
-  ":id": PRESETS[0]!.slug,
   ":filename": "diagram.yaml",
 };
 
@@ -96,9 +94,7 @@ const 日本語の残り: Record<string, number> = {
   "/editor": 0,
   "/editor/:filename": 0,
   "/docs": 0,
-  "/preset/:id": 0,
   "/release-notes": 0,
-  "/contribute": 0,
   "*": 0,
 };
 

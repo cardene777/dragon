@@ -2,10 +2,10 @@
  * 図を見せる画面に段の表示が出ることの検証 (#1239)。
  *
  * 設計 (`docs/design/app.pen`) は図を見せる画面すべてに札と帯を描いているが、実装は
- * 編集画面 (`04`) だけが持ち、`03 カタログの分類` と `06 見本の詳細` は何も出していなかった。
+ * 編集画面 (`04`) だけが持ち、`03 カタログの分類` は何も出していなかった。
  * 動く図を見ても「いま何段目か」「あと何段あるか」が画面から分からない状態だった。
  *
- * エディタ側は `editor-phase-chrome.spec.ts` が見る。 こちらは **残り 2 画面** を見る。
+ * エディタ側は `editor-phase-chrome.spec.ts` が見る。 こちらはカタログを見る。
  *
  * ## 要素の有無では守れない
  *
@@ -14,12 +14,19 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import { 段の呼び名 } from "../src/components/PhaseChrome";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /** 図が組み上がって段が回り始めるまで待つ */
-async function 開く(page: Page, path: string): Promise<void> {
+async function 開く(page: Page, path: string, 項目?: string): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(path);
   await page.waitForLoadState("networkidle");
+  if (項目 !== undefined) {
+    const 行 = 一覧の行(page, 項目);
+    await expect(行, `${項目} を一覧から選べない`).toBeVisible();
+    await 行.click();
+    await expect(page.locator(`[data-cdl-diagram="${項目}"]`).first()).toBeVisible();
+  }
   await page.waitForSelector("[data-cdl-diagram]", { timeout: 30000 });
   await page.waitForTimeout(1200);
 }
@@ -30,28 +37,28 @@ async function 札(page: Page): Promise<string> {
 }
 
 const 画面 = [
-  { 名: "カタログの分類", path: "catalog/animation", 寄せ: "is-right", 舞台: ".catalog-preview-stage" },
-  { 名: "見本の詳細", path: "preset/delivery-sequence", 寄せ: "is-left", 舞台: ".nm-preset-detail-stage" },
+  { 名: "カタログの動く図", path: "catalog/animation", 項目: undefined, 寄せ: "is-right", 舞台: ".catalog-preview-stage" },
+  { 名: "カタログの宅配の呼び出し順", path: "catalog/presets", 項目: "delivery-sequence-demo", 寄せ: "is-right", 舞台: ".catalog-preview-stage" },
 ] as const;
 
 for (const s of 画面) {
   test.describe(`段の表示 — ${s.名} (#1239)`, () => {
     test("札に今の段と全体の数が出る", async ({ page }) => {
-      await 開く(page, s.path);
+      await 開く(page, s.path, s.項目);
       await expect(page.locator(".cdl-phase-chip")).toHaveCount(1);
       // 「段 N / M」 の形。 数が入っていることまで見る = 固定文字なら落ちる
       expect(await 札(page)).toMatch(new RegExp(`${段の呼び名} \\d+ / \\d+`, "u"));
     });
 
     test("帯が段の数だけ区切られる", async ({ page }) => {
-      await 開く(page, s.path);
+      await 開く(page, s.path, s.項目);
       const 全体 = Number((await 札(page)).match(new RegExp(`${段の呼び名} \\d+ / (\\d+)`, "u"))?.[1] ?? "0");
       expect(全体, "札から全体の段数を読めない").toBeGreaterThan(1);
       await expect(page.locator(".cdl-phase-seg")).toHaveCount(全体);
     });
 
     test("設計どおりの側へ寄っている", async ({ page }) => {
-      await 開く(page, s.path);
+      await 開く(page, s.path, s.項目);
       const cls = (await page.locator(".cdl-phase-chip").first().getAttribute("class")) ?? "";
       expect(cls, `${s.名} は設計が ${s.寄せ} に描いている`).toContain(s.寄せ);
     });
@@ -60,7 +67,7 @@ for (const s of 画面) {
       // 重ねる基準 (`position: relative`) を舞台が持たないと、札はもっと外側の要素を基準に
       // 貼り付く。 **重ねる層 (`.cdl-phase`) と比べてはいけない** = 層は札と一緒に動くので
       // どこへ飛んでも「中に収まっている」 が成り立ち、検査が恒真になる (実測で踏んだ)
-      await 開く(page, s.path);
+      await 開く(page, s.path, s.項目);
       const chip = await page.locator(".cdl-phase-chip").first().boundingBox();
       const 舞台 = await page.locator(s.舞台).first().boundingBox();
       expect(chip, "札が見つからない").not.toBeNull();
@@ -72,7 +79,7 @@ for (const s of 画面) {
     });
 
     test("段が進むと札と帯が追随する", async ({ page }) => {
-      await 開く(page, s.path);
+      await 開く(page, s.path, s.項目);
       const 初 = await 札(page);
       const 初塗り = await page.locator(".cdl-phase-seg.is-done").count();
 

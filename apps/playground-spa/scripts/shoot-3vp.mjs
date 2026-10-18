@@ -28,9 +28,7 @@ const ROUTES = [
   { path: "/catalog/presets", slug: "cat-presets" },
   { path: "/catalog/text-dsl", slug: "cat-text-dsl" },
   { path: "/catalog/primitives", slug: "cat-primitives" },
-  { path: "/preset/swimlane", slug: "preset-swim" },
   { path: "/release-notes", slug: "release" },
-  { path: "/contribute", slug: "contribute" },
   { path: "/does-not-exist", slug: "404" },
 ]
 

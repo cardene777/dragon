@@ -46,9 +46,9 @@ describe("見本の識別子が一意 (#1092)", () => {
     expect(不正, `識別子に使えない文字がある: ${不正.join(", ")}`).toEqual([]);
   });
 
-  it("カタログからの経路が残っている", () => {
-    // `lib/presets.ts` の一覧は `#preset=sequence` で繋がる。 2 件目に固有の識別子を与えた
-    // 時に 1 件目まで変えると、 カタログからの遷移が切れる
+  it("代表の hash 経路が残っている", () => {
+    // 編集画面の `#preset=sequence` を使う検査がある。 2 件目に固有の識別子を与えた
+    // 時に 1 件目まで変えると、その深いリンクが切れる
     expect(EDITOR_SAMPLES.some((s) => s.slug === "sequence"), "sequence が消えている").toBe(true);
   });
 });

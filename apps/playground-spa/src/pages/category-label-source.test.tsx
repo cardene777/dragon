@@ -19,14 +19,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { CATEGORIES } from "@/lib/catalog";
 import { カタカナの連なり } from "@/lib/screen-words";
-import { PRESETS } from "@/lib/presets";
 import { ToastProvider } from "@/components/Toast";
 import { LocaleProvider } from "@/lib/useLocale";
 import type { Locale } from "@/lib/i18n";
 import { CatalogIndexPage } from "./CatalogIndexPage";
 import { CategoryPage } from "./CategoryPage";
 import { EditorPage } from "./EditorPage";
-import { PresetDetailPage } from "./PresetDetailPage";
 import {
   installIntersectionObserverStub,
   restoreIntersectionObserver,
@@ -137,18 +135,6 @@ function 一覧の画面(言語: Locale = "ja"): string {
         </MemoryRouter>
       </ToastProvider>
     </LocaleProvider>,
-  );
-}
-
-function 見本の詳細の画面(slug: string): string {
-  return renderToStaticMarkup(
-    <ToastProvider>
-      <MemoryRouter initialEntries={[`/preset/${slug}`]}>
-        <Routes>
-          <Route path="/preset/:id" element={<PresetDetailPage />} />
-        </Routes>
-      </MemoryRouter>
-    </ToastProvider>,
   );
 }
 
@@ -301,21 +287,6 @@ describe("分類の呼び名の出どころ (#1788)", () => {
     expect(開いていないカタカナ("図表")).toEqual([]);
   });
 
-  it("見本の詳細の画面が分類を CATEGORIES の呼び名で呼ぶ (#1805)", () => {
-    const 分類 = CATEGORIES.find((c) => c.slug === "presets");
-    expect(分類, "presets の分類が無い (検査が空振りしている)").toBeDefined();
-    const 行き先 = `/catalog/${分類!.slug}`;
-
-    // 見本がある時 (パンくず) と 無い時 (一覧へ戻す案内) の両方を見る
-    const 字 = [
-      ...リンクの字(見本の詳細の画面(PRESETS[0]!.slug), 行き先),
-      ...リンクの字(見本の詳細の画面("この見本は無い"), 行き先),
-    ];
-    expect(字.length, "分類へ送るリンクを 1 つも読めていない (検査が空振りしている)").toBe(2);
-    const 合わない = 字.filter((s) => !s.startsWith(分類!.label));
-    expect(合わない, `見本の詳細が分類を別の呼び名で呼んでいる: ${合わない.join(" / ")}`).toEqual([]);
-  });
-
   it("編集画面の一覧の見出しが CATEGORIES の呼び名から出る (#1811)", () => {
     const 分類 = CATEGORIES.find((c) => c.slug === "parts");
     expect(分類, "parts の分類が無い (検査が空振りしている)").toBeDefined();
@@ -328,12 +299,5 @@ describe("分類の呼び名の出どころ (#1788)", () => {
     const 部品の見出し = 目印の字(html, "editor-parts-tab");
     expect(部品の見出し, "部品の一覧の見出しを読めていない (検査が空振りしている)").not.toBeNull();
     expect(部品の見出し, "見出しが分類の呼び名と違う").toBe(分類!.label);
-  });
-
-  it("見本の詳細の見出しの添えが CATEGORIES の呼び名と一致する (#1805)", () => {
-    const 分類 = CATEGORIES.find((c) => c.slug === "presets");
-    const 出た = 見出しの字(見本の詳細の画面(PRESETS[0]!.slug), "nm-gradient-accent");
-    expect(出た.length, "見出しの添えを読めていない (検査が空振りしている)").toBe(1);
-    expect(出た[0], "見出しの添えが分類の呼び名と違う").toBe(分類!.label);
   });
 });

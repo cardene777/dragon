@@ -13,7 +13,6 @@ export const 画面の名前: Record<string, { ja: string; en: string }> = {
   "/editor": { ja: "編集画面", en: "editor" },
   "/docs": { ja: "使い方", en: "docs" },
   "/release-notes": { ja: "更新履歴", en: "releases" },
-  "/contribute": { ja: "参加方法", en: "contribute" },
 };
 
 /**

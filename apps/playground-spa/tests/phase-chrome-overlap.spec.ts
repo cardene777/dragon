@@ -13,8 +13,6 @@ type 被り = {
 
 const 見本 = {
   一覧の識別子: "delivery-sequence-demo",
-  // #2836 で詳細用 preset の slug も宅配見本へ替わった。旧 `sequence` は一覧の図を指さない。
-  詳細の道: "preset/delivery-sequence",
 } as const;
 
 const 覆いの必要量 = [
@@ -85,11 +83,6 @@ async function 被りを測る(page: Page, 画面: string, 舞台: string): Prom
 test("カタログの一覧で段の表示が図に被らない", async ({ page }) => {
   await カタログで図を選ぶ(page);
   await 被りを測る(page, "カタログの一覧", ".catalog-preview-stage");
-});
-
-test("見本の詳細で段の表示が図に被らない", async ({ page }) => {
-  await 開く(page, 見本.詳細の道);
-  await 被りを測る(page, "見本の詳細", ".nm-preset-detail-stage");
 });
 
 test("エディタで段の表示が図に被らない", async ({ page }) => {

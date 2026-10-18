@@ -131,8 +131,8 @@ const CODE_THEME_RULES = {
 const v4EditorThemeLight = EditorView.theme(CODE_THEME_RULES, { dark: false });
 const v4EditorThemeDark = EditorView.theme(CODE_THEME_RULES, { dark: true });
 
-/** SAMPLES の各 sample に slug (kebab-case) を持たせて、 PresetDetail の `#preset=<slug>` と一致検索する。
- *  slug は PRESETS.slug 命名規約 (kebab-case、 `lib/presets.ts` SSOT) と揃える。 複数 sample が同 slug を共有する場合
+/** SAMPLES の各 sample に slug (kebab-case) を持たせて、`#preset=<slug>` と一致検索する。
+ *  slug は `#preset=` から引く kebab-case の識別子。 複数 sample が同 slug を共有する場合
  *  (例 sequence 系 2 件) は SAMPLES 配列先頭の sample が hash match で優先される (最初の find が勝つ)。
  *
  *  実体は `@/data/editor-samples.ts` に移設済 (CAR-1659、 samples-validate test との drift 回避で shared SSOT 化)。 */
@@ -859,7 +859,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
 
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
-  // 2. #preset=<slug> = catalog / preset detail からの sample 直接 open
+  // 2. #preset=<slug> = 編集画面の見本を直接開く hash 経路
   //    SPA navigation で hash 変更した場合も反映するため location.hash を deps に含める
   //    slug 一致がない場合は toast で通知して default sample のまま維持 (silently load 防止)
   useEffect(() => {

@@ -1,9 +1,6 @@
 /**
  * 携帯の幅で画面が横にはみ出さないことの検証 (#1074)。
  *
- * 実測で 2 画面が切れていた。 `/contribute` はカードが 480px 固定で 137px、
- * `/preset/{id}` は前後移動のボタンが縮まず 27px 外に出ていた。
- *
  * ## 経路を絞らない
  *
  * 既存の横スクロール検査 (`a11y-check.spec.ts`) は `/` `/editor` `/catalog/ethereum` の 3 経路
@@ -16,8 +13,8 @@
  * `/editor/:filename` が抜けており、図を出す画面が 1 つも見られていなかった。
  * 気付いたのは `phone-diagram-legibility.spec.ts` (#2268) で、あちらは `main.tsx` から読む。
  *
- * ここも `画面の経路()` から読む。 欄 (`:slug` / `:id` / `:filename`) は分類とひな形の一覧で
- * 全件に広げるので、画面が増えても見本が増えても、追記を忘れて対象から外れることが無い。
+ * ここも `画面の経路()` から読む。 欄 (`:slug` / `:filename`) は分類の一覧で
+ * 全件に広げるので、画面が増えても追記を忘れて対象から外れることが無い。
  *
  * ## 「はみ出していない」 だけでは守れない
  *
@@ -40,7 +37,6 @@ import { 本文が出るまで待つ } from "./wait-for-render";
 import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
 import { 開いた状態ごとに } from "./phone-openers";
 import { CATEGORIES } from "../src/lib/catalog";
-import { PRESETS } from "../src/lib/presets";
 
 /**
  * 経路の欄に入れる値 (#2270)。
@@ -53,7 +49,6 @@ import { PRESETS } from "../src/lib/presets";
  */
 const 欄の値: Record<string, readonly string[]> = {
   ":slug": CATEGORIES.map((c) => c.slug),
-  ":id": PRESETS.map((p) => p.slug),
   ":filename": ["diagram.yaml"],
   "*": ["does-not-exist"],
 };
@@ -103,7 +98,6 @@ const 幅一覧 = [375] as const;
 test("経路を実装から読めている (空振り検知)", () => {
   expect(対象の経路.length, "main.tsx から経路を 1 つも読めていない").toBeGreaterThan(0);
   expect(経路.length, "広げた先の画面が 0 件").toBeGreaterThan(対象の経路.length);
-  expect(PRESETS.length, "見本の一覧が空").toBeGreaterThan(0);
   expect(CATEGORIES.length, "分類の一覧が空").toBeGreaterThan(0);
   expect(
     値を入れる節(対象の経路).sort(),
@@ -111,27 +105,6 @@ test("経路を実装から読めている (空振り検知)", () => {
   ).toEqual(Object.keys(欄の値).sort());
   // 手で並べていた頃に抜けていた経路。 広げた先に居ることを名指しで押さえる (#2270)
   expect(経路, "図を出す編集画面が対象から外れている").toContain("editor/diagram.yaml");
-});
-
-test("広い画面のカードの並びは変わらない", async ({ page }) => {
-  // 下限を `min()` で頭打ちにした時に、 広い画面の列数や幅が動いていないかを見る。
-  // 実測値 = 1280px でカード 339px が 3 枚 / 1 行。
-  // 作り直しの前は 598px の 2 行だった (#1110 で 3 枚が 1 行に収まる幅になった)。
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("contribute");
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(1200);
-  const m = await page.evaluate(() => {
-    const cards = [...document.querySelectorAll(".nm-preset-card")];
-    return {
-      幅: [...new Set(cards.map((el) => Math.round(el.getBoundingClientRect().width)))],
-      枚数: cards.length,
-      行数: new Set(cards.map((el) => Math.round(el.getBoundingClientRect().top))).size,
-    };
-  });
-  expect(m.枚数, "カードが無い (検査が空振りしている)").toBe(3);
-  expect(m.幅, "カードの幅が動いた").toEqual([339]);
-  expect(m.行数, "1 行あたりの枚数が動いた").toBe(1);
 });
 
 /** 本文が出たとみなす下限。 待つ側と判定する側で同じ値を使う */

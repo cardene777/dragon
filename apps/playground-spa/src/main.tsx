@@ -18,9 +18,9 @@ import "./styles/home.css";
 import "./styles/docs-site.css";
 import "./styles/editor.css";
 import "./styles/syntax.css";
-// 図に重ねるシーンの表示 (#1239)。 エディタ / カタログの分類 / 見本の詳細 が共有する
+// 図に重ねるシーンの表示 (#1239)。 編集画面とカタログの分類が共有する
 import "./styles/phase-chrome.css";
-// compare.css は PresetDetailPage / ContributePage / ReleaseNotesPage の nm-* class 用、 各 lazy page 側で import。
+// compare.css は ReleaseNotesPage の nm-* class 用で、 lazy page 側から読む。
 import { SvgDefs } from "./components/SvgDefs";
 import { ToastProvider } from "./components/Toast";
 import { LocaleProvider } from "./lib/useLocale";
@@ -35,9 +35,7 @@ import { RenderProbePage } from "./pages/RenderProbePage";
 const CategoryPage = lazy(() => import("./pages/CategoryPage").then((m) => ({ default: m.CategoryPage })));
 const EditorPage = lazy(() => import("./pages/EditorPage").then((m) => ({ default: m.EditorPage })));
 const DocsPage = lazy(() => import("./pages/DocsPage").then((m) => ({ default: m.DocsPage })));
-const PresetDetailPage = lazy(() => import("./pages/PresetDetailPage").then((m) => ({ default: m.PresetDetailPage })));
 const ReleaseNotesPage = lazy(() => import("./pages/ReleaseNotesPage").then((m) => ({ default: m.ReleaseNotesPage })));
-const ContributePage = lazy(() => import("./pages/ContributePage").then((m) => ({ default: m.ContributePage })));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
 /** lazy chunk load 中の fallback UI (最小限、 skeleton 相当) */
@@ -69,9 +67,7 @@ createRoot(document.getElementById("root")!).render(
                   pathname の末尾を見るため、 ここを通さないと 404 に落ちて判定に届かない */}
               <Route path="/editor/:filename" element={<EditorPage />} />
               <Route path="/docs" element={<DocsPage />} />
-              <Route path="/preset/:id" element={<PresetDetailPage />} />
               <Route path="/release-notes" element={<ReleaseNotesPage />} />
-              <Route path="/contribute" element={<ContributePage />} />
               {/* 実ブラウザでしか測れない検査に、 見本に無い形の図を通すための頁
                   (cardene777/cdl#397)。 静的 import にしてあるので、 公開ビルドでは分岐ごと
                   落ちて chunk も出ない (`lazy` だと参照の無い chunk が残る)。 */}

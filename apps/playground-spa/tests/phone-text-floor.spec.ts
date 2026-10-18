@@ -3,7 +3,6 @@ import { expect, test, type Page } from "@playwright/test";
 import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
 import { 開いた状態ごとに } from "./phone-openers";
 import { CATEGORIES } from "../src/lib/catalog";
-import { PRESETS } from "../src/lib/presets";
 
 /*
  * 携帯の幅で、画面の枠組みの字が読める大きさに届いているかを見る (#2547)。
@@ -39,7 +38,6 @@ const 下限 = 10;
 /** 経路の欄に入れる値。 画面ごとに出る字が違うので全件に広げる */
 const 欄の値: Record<string, readonly string[]> = {
   ":slug": CATEGORIES.map((c) => c.slug),
-  ":id": PRESETS.map((p) => p.slug),
   ":filename": ["diagram.yaml"],
   "*": ["does-not-exist"],
 };

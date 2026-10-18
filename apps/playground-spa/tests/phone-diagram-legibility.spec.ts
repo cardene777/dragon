@@ -4,7 +4,7 @@
  * ## 枠組みは携帯に対応しているのに、図の中身だけ読めない
  *
  * 横にはみ出す画面は 0 件で (`mobile-overflow.spec.ts` が 375 / 390px を通す)、`width=device-width`
- * も分岐点も在る。 それでも幅 390px でひな形の詳細を開くと **箱の名前が 2.0px** になり、
+ * も分岐点も在る。 それでも幅 390px でひな形を幅に合わせて見ると字が小さくなり、
  * 拡大するまで 1 文字も読めない。
  *
  * ## 測る経路が 1 つも無かった
@@ -35,6 +35,7 @@ import { test, expect } from "@playwright/test";
 import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
 import { CATEGORIES } from "../src/lib/catalog";
 import { PRESETS } from "../src/lib/presets";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /** 携帯の幅と高さ。 iPhone 14 の値 */
 const 携帯の幅 = 390;
@@ -52,14 +53,11 @@ const 携帯の高さ = 844;
 const 下限 = 8;
 
 /**
- * 経路の `:欄` に入れる値。 図は見本ごとに中身が違うので、**全件に広げる**。
- *
- * 1 件だけ入れる形 (`screen-smoke.spec.ts` がそうしている) は「画面が開くか」 を見るには足りるが、
- * ここは図ごとの文字の大きさを測るので、見本を 1 つ選ぶと残りが黙って対象から外れる。
+ * 経路の `:欄` に入れる値。 分類は中身が違うので全件に広げる。
+ * ひな形は下の専用検査で一覧から全件を選び、読む面の拡大表示で測る。
  */
 const 欄の値: Record<string, readonly string[]> = {
   ":slug": CATEGORIES.map((c) => c.slug),
-  ":id": PRESETS.map((p) => p.slug),
   ":filename": ["diagram.yaml"],
 };
 
@@ -87,14 +85,10 @@ const 図を出す経路 = new Set([
   "/catalog/:slug",
   "/editor",
   "/editor/:filename",
-  "/preset/:id",
 ]);
 
 /**
  * いま下限に届かない画面と、その理由。 **経路の形ではなく、実際に開く path で持つ** (#2269)。
- *
- * 形で持つと `/preset/:id` の 19 件が 1 行に丸まり、1 件だけ残った時に「全部まだ駄目」 と
- * 同じ見た目になる。 path で持てば、直った分だけ行が減る。
  *
  * **理由と行き先を必ず書く**。 書かずに並べると「なぜ許しているか」 が次に読む人に伝わらず、
  * 直ったかどうかも判らないまま残る。
@@ -107,7 +101,7 @@ const 宣言: ReadonlyMap<string, string> = new Map([
     "",
     "トップの図 4 枚は札の中の見本で、読ませる面ではない (枠は 299x102 - 299x198px)。" +
       " 下限まで拡げると札からはみ出し、押して分類へ移る導線が壊れる。" +
-      " 読む先はカタログとひな形の詳細で、札はそこへの入口。 直す対象にしない",
+      " 読む先はカタログの拡大表示で、札はそこへの入口。 直す対象にしない",
   ],
   // 分類の画面 9 件が測っているのは **並べて見る側** の台。
   // #2286 で「幅に合わせたままにし、読むのは拡大表示で行う」 と決めた = 直す対象にしない。
@@ -175,10 +169,10 @@ interface 図の実寸 {
 }
 
 /** いま開いている画面の図を全枚数測る */
-async function 測る(page: import("@playwright/test").Page): Promise<図の実寸[]> {
-  return page.evaluate(() => {
+async function 測る(page: import("@playwright/test").Page, 根 = "body"): Promise<図の実寸[]> {
+  return page.evaluate((根) => {
     const 図たち: { 最小: number; 最小の字: string; 文字数: number }[] = [];
-    for (const svg of document.querySelectorAll("svg")) {
+    for (const svg of document.querySelectorAll(`${根} svg`)) {
       let 最小 = Number.POSITIVE_INFINITY;
       let 最小の字 = "";
       let 文字数 = 0;
@@ -211,7 +205,7 @@ async function 測る(page: import("@playwright/test").Page): Promise<図の実�
       図たち.push({ 最小, 最小の字, 文字数 });
     }
     return 図たち;
-  });
+  }, 根);
 }
 
 /**
@@ -373,6 +367,50 @@ for (const 経路 of 対象の経路) {
     ).toEqual([]);
   });
 }
+
+test("幅 390px の見本帳で、全てのひな形の拡大表示の字が読める大きさに届く", async ({ page }, info) => {
+  info.setTimeout(30_000 + PRESETS.length * 14_000);
+  await page.setViewportSize({ width: 携帯の幅, height: 携帯の高さ });
+  await page.goto("catalog/presets", { waitUntil: "networkidle" });
+
+  const 割った: string[] = [];
+  let 図の数 = 0;
+  let 文字の数 = 0;
+  for (const 見本 of PRESETS) {
+    const 行 = 一覧の行(page, 見本.diagram.id);
+    await expect(行, `${見本.id} を一覧から選べない`).toBeVisible();
+    await 行.click();
+    await expect(page.locator(`[data-cdl-diagram="${見本.diagram.id}"] svg`).first()).toBeVisible();
+
+    await page.locator(".catalog-preview-card").getByRole("button", { name: /を拡大表示$/ }).click();
+    const 拡大した図 = page.locator(`.cdl-modal-body [data-cdl-diagram="${見本.diagram.id}"] svg`).first();
+    await expect(拡大した図, `${見本.id} の拡大表示に同じ図が出ない`).toBeVisible();
+
+    let 図たち = await 測る(page, ".cdl-modal-body");
+    if (図たち.some((図) => 図.最小 < 下限)) {
+      for (let i = 0; i < 測り直す回数; i++) {
+        await page.waitForTimeout(測り直す間隔);
+        図たち = 良い方を残す(図たち, await 測る(page, ".cdl-modal-body"));
+      }
+    }
+    expect(図たち.length, `${見本.id} の図を測れていない`).toBeGreaterThan(0);
+    for (const 図 of 図たち) {
+      図の数++;
+      文字の数 += 図.文字数;
+      if (図.最小 < 下限) 割った.push(`${見本.id} ${図.最小.toFixed(1)}px "${図.最小の字}"`);
+    }
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".cdl-modal-content")).toBeHidden();
+  }
+
+  await info.attach("見本帳のひな形の母数", {
+    body: `見本 ${PRESETS.length} 件 / 図 ${図の数} 枚 / 文字 ${文字の数} 件`,
+    contentType: "text/plain",
+  });
+  expect(図の数, "ひな形の図を 1 枚も測れていない").toBeGreaterThan(0);
+  expect(文字の数, "ひな形の文字を 1 件も測れていない").toBeGreaterThan(0);
+  expect(割った, `ひな形の図の文字が下限 ${下限}px を割っている\n${割った.join("\n")}`).toEqual([]);
+});
 
 test("小さすぎる文字はちゃんと拾える (植え込み対照)", async ({ page }) => {
   // 上の判定は「割った図が 0 件」 を期待する側を持つ。 正しい画面を見ているだけでは、
