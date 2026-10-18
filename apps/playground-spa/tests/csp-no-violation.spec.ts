@@ -68,9 +68,10 @@ async function 書き出す(page: Page, 札: string): Promise<void> {
     has: page.locator("strong", { hasText: 札 }),
   });
   await expect(button, `${札} の札が書き出し menu に無い`).toHaveCount(1);
-  // **違反の知らせだけでは足りない**。 画像の読み込みを止められた PNG は知らせを出さずに
-  // 書き出しを諦める (実測 = `img-src` から `blob:` を外すと、違反 0 件のまま保存が来なかった)。
-  // 保存が来ることまで見る。 持ち時間を短くするのは、来ない時に頁全体の持ち時間を使い切らないため
+  // **保存の待ちは短くする**。 画像の読み込みを止められた PNG は保存まで届かない
+  // (実測 = `img-src` から `blob:` を外すと、違反 `img-src blob` が 1 件出て、保存は来なかった)。
+  // 既定の待ちのままだと、ここで頁全体の持ち時間を使い切り、違反の数を見る行まで進まない。
+  // 待ちを短くして、届かなかったことを理由として名指しする
   const 待受 = page.waitForEvent("download", { timeout: 15000 });
   await button.click();
   await 待受.catch(() => {
