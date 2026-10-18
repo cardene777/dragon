@@ -25,6 +25,13 @@ dragon DSL の主要変更履歴。
   骨組みが図ごとに一つであることは、`catalog-one-skeleton`、`editor-samples-one-skeleton`、
   `theme-css-one-skeleton` の検査で引き続き確かめる。
 
+### Fixed
+
+- **更新履歴と使い方の版を記法 package から出し、古い件数を見出しから外した** (#2929)
+
+  更新履歴は現在の版と GitHub 上の変更記録への案内だけを出す。
+  使い方は基本要素・高位 API・実用例を数で呼ばず、節を足し引きしても見出しが古くならない形にする。
+
 ## [0.32.0] - 2026-10-17
 
 ### Added
