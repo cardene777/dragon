@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
+import { parseTextDslV05, textDslToDiagram } from "@cardenelabs/dragon";
 import { PenLine, Play, Share2 } from "lucide-react";
 import { presetDeliverySequence, presetTopology, presetDeliveryRelations } from "@/topics/catalog/presets.cdl";
+import { usePhaseIndex } from "@/components/PhaseChrome";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
@@ -18,7 +21,7 @@ import { 区間, 区間のspan } from "@/components/SyntaxCode";
  *
  * **言語ごとに 1 本ずつ持つ**。 英語で開いた画面に日本語の記法が出ていると、最初に目に入る
  * 実物が読めない。 2 本とも記法として通ることを検査が固定する (`home-notation.test.ts`)。
- * 光らせる行を共有するので、行の並びは 2 本で揃える。
+ * 光らせる行は、各言語の `focus` と `flow` から導く。
  *
  * かつては 1 行ずつ手で `<span>` を貼っていた (`.t-k` / `.t-v` / `.t-p` / `.t-id` / `.t-a`)。
  * 実装から導けるものを人手で書いていたため検査が無く、**記法として通らない本文が出ていた**
@@ -69,15 +72,40 @@ animation:
 `,
 } as const;
 
-/** いま光らせる行 (1 始まり)。 右の図の段と対になる。 2 言語で同じ行を指す */
-const DEMO_HIGHLIGHT_LINE = 11;
+const DEMO_DIAGRAM = {
+  ja: textDslToDiagram(DEMO_SRC.ja),
+  en: textDslToDiagram(DEMO_SRC.en),
+} as const;
+
+/** 各段の focus に両端が入る flow を、本文上の行番号へ戻す。 */
+export function 段ごとの光る行(src: string): number[][] {
+  const parsed = parseTextDslV05(src);
+  if (!parsed.ok) return [];
+  return (parsed.doc.animate?.phases ?? []).map((段) => {
+    const focus = new Set(段.highlight ?? []);
+    return parsed.doc.flow
+      .filter((flow) => focus.has(flow.from) && focus.has(flow.to))
+      .map((flow) => flow.pos.line);
+  });
+}
+
+/** 札が段番号を別に出すため、記法の題に付けた先頭番号は重ねて出さない。 */
+export function 段の題から番号を外す(title: string): string {
+  return title.replace(/^\d+\.\s+/, "");
+}
+
+const DEMO_HIGHLIGHT_LINES = {
+  ja: 段ごとの光る行(DEMO_SRC.ja),
+  en: 段ごとの光る行(DEMO_SRC.en),
+} as const;
 
 /** 3 手順の 2 つ目に添える短い記述 */
 const STEP_CODE = [
+  "title: API call",
   "type: sequence",
   "actors:",
-  "  - { id: user }",
-  "  - { id: api }",
+  "  - user",
+  "  - api",
   "flow:",
   "  - user -> api: GET /me",
 ];
@@ -88,8 +116,14 @@ const HOME_DELIVERY_RELATIONS = { ...presetDeliveryRelations, relationFocus: "of
 
 export function HomePage(): React.ReactElement {
   const [locale] = useLocale();
+  const [図の入れ物, set図の入れ物] = useState<HTMLDivElement | null>(null);
+  const 今の段番号 = usePhaseIndex(図の入れ物);
   const isJa = locale === "ja";
   const 記法 = isJa ? DEMO_SRC.ja : DEMO_SRC.en;
+  const 図 = isJa ? DEMO_DIAGRAM.ja : DEMO_DIAGRAM.en;
+  const 段番号 = Math.min(今の段番号, Math.max(0, 図.phases.length - 1));
+  const 今の段 = 図.phases[段番号];
+  const 光る行 = new Set((isJa ? DEMO_HIGHLIGHT_LINES.ja : DEMO_HIGHLIGHT_LINES.en)[段番号] ?? []);
   // 区切りの中黒は英語の側で `•` にする (#2455)。 `·` は片仮名の中黒の代わりに使われる字なので、
   // 画面を描く browser は日本語として数える
   const 区切り = isJa ? "·" : "•";
@@ -138,9 +172,11 @@ export function HomePage(): React.ReactElement {
               </div>
               <span className="file">api-call.dragon</span>
             </div>
-            <span className="phase">
-              <span className="live-dot"></span> phase 2 / 4 {区切り} API → DB
-            </span>
+            {今の段 !== undefined && (
+              <span className="phase">
+                <span className="live-dot"></span> phase {段番号 + 1} / {図.phases.length} {区切り} {段の題から番号を外す(今の段.title)}
+              </span>
+            )}
           </div>
           <div className="canvas-body">
             <div className="canvas-code">
@@ -148,7 +184,7 @@ export function HomePage(): React.ReactElement {
                 const no = i + 1;
                 const 字下げ = 行.startsWith("    ") ? 2 : 行.startsWith("  ") ? 1 : 0;
                 return (
-                  <div key={no} className={`code-line${no === DEMO_HIGHLIGHT_LINE ? " hl" : ""}`}>
+                  <div key={no} className={`code-line${光る行.has(no) ? " hl" : ""}`}>
                     <span className="ln">{no}</span>
                     <span className={`ind ind-${字下げ}`}></span>
                     <span className="code-text">{区間のspan(区間(行.slice(字下げ * 2), "記法"))}</span>
@@ -156,76 +192,12 @@ export function HomePage(): React.ReactElement {
                 );
               })}
             </div>
-            <div className="canvas-stage">
-              {/* 左の記法と対になる図解。 読み上げでも何の図か分かるよう名前を付ける */}
-              <svg
-                viewBox="0 0 600 380"
-                preserveAspectRatio="xMidYMid meet"
-                role="img"
-                aria-label={isJa ? "左の記法から生成されるシーケンス図の例" : "Example sequence diagram generated from the notation on the left"}
-              >
-                <line className="lifeline" x1="100" y1="80" x2="100" y2="360" />
-                <line className="lifeline" x1="300" y1="80" x2="300" y2="360" />
-                <line className="lifeline" x1="500" y1="80" x2="500" y2="360" />
-
-                <rect className="actor-box actor-focus-user" x="60" y="55" width="80" height="40" rx="3" />
-                <text className="actor-label" x="100" y="80" textAnchor="middle">
-                  User
-                </text>
-                <rect className="actor-box actor-focus-api" x="260" y="55" width="80" height="40" rx="3" />
-                <text className="actor-label" x="300" y="80" textAnchor="middle">
-                  API
-                </text>
-                <rect className="actor-box actor-focus-db" x="460" y="55" width="80" height="40" rx="3" />
-                <text className="actor-label" x="500" y="80" textAnchor="middle">
-                  DB
-                </text>
-
-                {/* 矢羽根も線と同じ組で動かす。 印 (marker) は参照元の色を継がないので、
-                    塗りを currentColor にした図形として置き、 色の推移を線と共有する */}
-                <path className="seq-msg seq-msg-1" d="M 100 150 L 292 150" />
-                <path className="seq-head seq-msg-1" d="M292 145 L300 150 L292 155 Z" />
-                <text className="seq-label seq-label-1" x="196" y="138" textAnchor="middle">
-                  POST /login
-                </text>
-
-                <path className="seq-msg seq-msg-2" d="M 300 200 L 492 200" />
-                <path className="seq-head seq-msg-2" d="M492 195 L500 200 L492 205 Z" />
-                <text className="seq-label seq-label-2" x="396" y="188" textAnchor="middle">
-                  SELECT user
-                </text>
-
-                <path className="seq-msg seq-msg-3" d="M 500 260 L 308 260" />
-                <path className="seq-head seq-msg-3" d="M308 255 L300 260 L308 265 Z" />
-                <text className="seq-label seq-label-3" x="404" y="248" textAnchor="middle">
-                  row (1)
-                </text>
-
-                <path className="seq-msg seq-msg-4" d="M 300 320 L 108 320" />
-                <path className="seq-head seq-msg-4" d="M108 315 L100 320 L108 325 Z" />
-                <text className="seq-label seq-label-4" x="204" y="308" textAnchor="middle">
-                  200 OK
-                </text>
-
-                <text className="phase-text phase-1" x="300" y="30">
-                  phase 1 {区切り} call {区切り} 1.4s
-                </text>
-                <text className="phase-text phase-2" x="300" y="30">
-                  phase 2 {区切り} query {区切り} 1.4s
-                </text>
-                <text className="phase-text phase-3" x="300" y="30">
-                  phase 3 {区切り} return {区切り} 1.4s
-                </text>
-                <text className="phase-text phase-4" x="300" y="30">
-                  phase 4 {区切り} ok {区切り} 1.4s
-                </text>
-              </svg>
-              <div className="stage-progress" aria-hidden="true">
-                <span className="seg on"></span>
-                <span className="seg on"></span>
-                <span className="seg"></span>
-                <span className="seg"></span>
-              </div>
+            <div className="canvas-stage" ref={set図の入れ物}>
+              <CdlDiagramView
+                hideMiniPhaseIndicator
+                diagram={図に画面の言語を当てる(図, locale)}
+                hideHeader
+              />
             </div>
           </div>
         </div>

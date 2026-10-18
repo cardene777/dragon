@@ -15,13 +15,19 @@
  * | 寄せる側が引数で変わる | 設計は画面ごとに左右を描き分けている |
  * | 段が進むと追随する | engine は React の外で属性を書き換えるので、見張りが効いているかを見る |
  */
-import { afterEach, describe, it, expect } from "vitest";
+import { useState } from "react";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
-import type { CdlPhase } from "@cardenelabs/cdl";
+import { CdlDiagramView, type CdlPhase } from "@cardenelabs/cdl";
+import { textDslToDiagram } from "@cardenelabs/dragon";
 import { LocaleProvider } from "@/lib/useLocale";
-import { PhaseChrome, PhaseNote, 段の呼び名 } from "./PhaseChrome";
+import { 段ごとの光る行, 段の題から番号を外す } from "@/pages/HomePage";
+import { PhaseChrome, PhaseNote, usePhaseIndex, 段の呼び名 } from "./PhaseChrome";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 /** 検査に要る 3 field だけを持つ段。 残りは engine 側の都合で本部品は読まない */
 function 段(id: string, title: string, duration = 1000): CdlPhase {
@@ -151,6 +157,89 @@ describe("段の進行に追随する (#1239)", () => {
     });
 
     expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain(`${段の呼び名} 1 / 2`);
+  });
+
+  it("動きを減らす設定でも engine の段が進むと、札と光る行が同じ段へ移る", async () => {
+    const src = `title: reduced motion
+type: sequence
+actors:
+  - A
+  - B
+  - C
+flow:
+  - A -> B: call
+  - B -> A: reply
+  - B -> C: lookup
+  - C -> B: row
+animation:
+  - step: "1. Call" 0.6s
+    focus: [A, B]
+  - step: "2. Lookup" 0.6s
+    focus: [B, C]
+`;
+    const diagram = textDslToDiagram(src);
+    const lines = 段ごとの光る行(src);
+    function Probe(): React.ReactElement {
+      const [stage, setStage] = useState<HTMLDivElement | null>(null);
+      const index = usePhaseIndex(stage);
+      const phase = diagram.phases[index];
+      return (
+        <div ref={setStage}>
+          <output data-testid="phase-probe">
+            {index}:{phase === undefined ? "" : 段の題から番号を外す(phase.title)}:{lines[index]?.join(",")}
+          </output>
+          <CdlDiagramView diagram={diagram} hideHeader hideMiniPhaseIndicator />
+        </div>
+      );
+    }
+
+    const 元のmatchMedia = window.matchMedia;
+    const 元のraf = globalThis.requestAnimationFrame;
+    const 元のcancel = globalThis.cancelAnimationFrame;
+    const 元のnow = performance.now.bind(performance);
+    let now = 0;
+    let frame: FrameRequestCallback | null = null;
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      media: "(prefers-reduced-motion: reduce)",
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    });
+    globalThis.requestAnimationFrame = (callback: FrameRequestCallback): number => {
+      frame = callback;
+      return 1;
+    };
+    globalThis.cancelAnimationFrame = (): void => {
+      frame = null;
+    };
+    performance.now = () => now;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+    try {
+      const { container } = render(<Probe />);
+      expect(screen.getByTestId("phase-probe").textContent).toBe(`0:Call:${lines[0]!.join(",")}`);
+
+      await act(async () => {
+        now = 600;
+        frame?.(now);
+        vi.advanceTimersByTime(2000);
+        now = 2600;
+        frame?.(now);
+        await Promise.resolve();
+      });
+
+      expect(container.querySelector("[data-cdl-diagram]")?.getAttribute("data-cdl-phase-index")).toBe("1");
+      expect(screen.getByTestId("phase-probe").textContent).toBe(`1:Lookup:${lines[1]!.join(",")}`);
+    } finally {
+      window.matchMedia = 元のmatchMedia;
+      globalThis.requestAnimationFrame = 元のraf;
+      globalThis.cancelAnimationFrame = 元のcancel;
+      performance.now = 元のnow;
+    }
   });
 });
 
