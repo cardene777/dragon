@@ -713,8 +713,6 @@ export const 縦に長い一覧: readonly 縦に長い群[] = [
       "parts-bucket-reservoir",
       "parts-state-indicator",
       "parts-wave-gauge",
-      "shape-mobile-device",
-      "shape-person",
       "stack-triple",
     ],
   },

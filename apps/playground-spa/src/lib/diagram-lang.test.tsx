@@ -2,13 +2,12 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, diagram, type CdlDiagram } from "@cardenelabs/cdl";
 import { 図に画面の言語を当てる } from "./diagram-lang";
-import { shapeCodeBlock } from "@/topics/catalog/primitives.cdl";
 
 /**
  * 図を画面の言語で描く (#1910)。
  *
  * 関数の約束 3 つ (書いた言語を残す / 当てる / 同じ object を返す) と、描画エンジンが当てた言語で
- * 形の絵の中の字を引き替えること、画面が図を描く入口がすべて関数を通ることを確かめる。
+ * 操作部の字を引き替えること、画面が図を描く入口がすべて関数を通ることを確かめる。
  */
 
 function 小さな図(lang?: "en" | "ja"): CdlDiagram {
@@ -47,22 +46,21 @@ describe("図に画面の言語を当てる", () => {
     expect(英語).not.toBe(日本語);
   });
 
-  it("カタログのコードの形は、札を書かなければ日本語の画面で `共通.ts` と描き、英語の画面で `utils.ts` と描く", () => {
+  it("時の流れの入力欄は、日本語の画面で `0.0秒 / 2.0秒` と描き、英語の画面で `0.0s / 2.0s` と描く", () => {
     // 描画エンジンの版が古い (言語を持ち越さない) と、日本語の画面でも英語のまま描かれて落ちる。
     //
-    // 札の file 名は副題を書くとそれに替わり、書かない時だけ形が持つ控えの名前が言語で替わる。
-    // カタログの見本は副題を書いているので、ここで外して控えを描かせる。
-    // 以前は倉庫の形 (`倉庫` / `WAREHOUSE`) で見ていたが、#2946 で見本帳から外した
-    const 札なし: CdlDiagram = {
-      ...shapeCodeBlock,
-      nodes: shapeCodeBlock.nodes.map(({ subtitle: _, ...n }) => n),
+    // 以前はコードの形の札の file 名で見ていたが、cdl 0.141.0 で形の絵の中の字を外した (#2952)。
+    // 描画エンジンが言語で引き替える字は、操作部の読み出しと入力欄の字だけになった
+    const 入力欄つき: CdlDiagram = {
+      ...小さな図(),
+      inputs: [{ id: "i", kind: "timeline", duration: 2000, autoplay: false, label: "再生" }] as CdlDiagram["inputs"],
     };
-    const 日本語 = 描いた字(図に画面の言語を当てる(札なし, "ja"));
-    expect(日本語).toContain(">共通.ts<");
-    expect(日本語).not.toContain("utils.ts");
-    const 英語 = 描いた字(図に画面の言語を当てる(札なし, "en"));
-    expect(英語).toContain(">utils.ts<");
-    expect(英語).not.toContain(">共通.ts<");
+    const 日本語 = 描いた字(図に画面の言語を当てる(入力欄つき, "ja"));
+    expect(日本語).toContain("0.0秒 / 2.0秒");
+    expect(日本語).not.toContain("0.0s / 2.0s");
+    const 英語 = 描いた字(図に画面の言語を当てる(入力欄つき, "en"));
+    expect(英語).toContain("0.0s / 2.0s");
+    expect(英語).not.toContain("秒");
   });
 });
 
