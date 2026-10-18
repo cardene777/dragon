@@ -9,7 +9,6 @@ import { visualValidate } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import {
   visibleWarnings,
-  hasExplicitPositions,
   violationTargets,
   書き手の名前で読める,
   AUTO_LAYOUT_ALIGNMENT_AXES,
@@ -76,18 +75,6 @@ const axesOf = (src: string): string[] => {
 };
 
 describe("編集画面の指摘の選び方", () => {
-  it("自動配置の図には位置を書いた印が無い", () => {
-    expect(hasExplicitPositions(textDslToDiagram(auto))).toBe(false);
-  });
-
-  it("座標を書いた図には印が付く", () => {
-    expect(hasExplicitPositions(textDslToDiagram(manual))).toBe(true);
-  });
-
-  it("相対で書いた図にも印が付く (解決後は座標なので)", () => {
-    expect(hasExplicitPositions(textDslToDiagram(relative))).toBe(true);
-  });
-
   it("座標を書くと整列の軸が出る (外さないと画面が常時 NG になる)", () => {
     // 外す判断の前提。 cdl が実際にこれらを返すことを確かめる
     const d = textDslToDiagram(段をまたぐ手動);

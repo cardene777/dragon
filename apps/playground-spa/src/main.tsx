@@ -26,8 +26,8 @@ import { ToastProvider } from "./components/Toast";
 import { LocaleProvider } from "./lib/useLocale";
 import { HomePage } from "./pages/HomePage";
 
-// catalog / editor 系ページは catalog-items.ts 経由で 129 diagram を eager 構築するため、
-// eager import すると home page 初期 bundle が 450KB+ 膨らむ。 React.lazy で
+// catalog / editor 系ページは catalog-items.ts 経由で見本の図を eager 構築するため、
+// eager import すると home page の初期 bundle が膨らむ。 React.lazy で
 // route access 時のみ chunk load = 初期 home bundle 大幅圧縮 + user 指摘 "サイト重い" 対応 (CAR-1519 hotfix)。
 const CatalogIndexPage = lazy(() => import("./pages/CatalogIndexPage").then((m) => ({ default: m.CatalogIndexPage })));
 import { RenderProbePage } from "./pages/RenderProbePage";

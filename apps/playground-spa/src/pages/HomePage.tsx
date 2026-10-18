@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { CdlDiagramView } from "@cardenelabs/cdl";
+import { CdlDiagramView, NODE_KINDS } from "@cardenelabs/cdl";
 import { parseTextDslV05, textDslToDiagram } from "@cardenelabs/dragon";
 import { PenLine, Play, Share2 } from "lucide-react";
 import { presetDeliverySequence, presetTopology, presetDeliveryRelations } from "@/topics/catalog/presets.cdl";
@@ -105,6 +105,9 @@ const STEP_CODE = [
   "  - user -> api: GET /me",
 ];
 
+/** 名乗りに出す形の数。 手で書くと記法 package に形が増えた時に追随しないため、種別の一覧から導く */
+const 形の数 = NODE_KINDS.filter((kind) => kind.startsWith("shape-")).length;
+
 // トップの縮小見本は全体が一覧への行き先。中の表まで押す対象にすると、縮小された行が
 // 24px 未満の入れ子の的になる。関係を触って読む操作は詳細画面だけに残す。
 const HOME_DELIVERY_RELATIONS = { ...presetDeliveryRelations, relationFocus: "off" as const };
@@ -131,7 +134,7 @@ export function HomePage(): React.ReactElement {
           {/* 版は `packages/dragon/package.json` から差し込む (#1320)。 手で書くと追随しない */}
           <span className="chip">v{__DRAGON_VERSION__.split(".").slice(0, 2).join(".")}</span>
           <span className="chip">
-            {isJa ? "49 種の形 × 時間軸 × 絶対配置" : "49 shapes × timeline × absolute placement"}
+            {isJa ? `${形の数} 種の形 × 時間軸 × 絶対配置` : `${形の数} shapes × timeline × absolute placement`}
           </span>
         </div>
         <h1>

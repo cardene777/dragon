@@ -18,8 +18,13 @@ function smallPair(id: string, style: EdgeStyle, tone: Tone, label: string, topi
     .build();
 }
 
-/** 1. EdgeStyle 2 種 = 線種の違いを比較 (tone は accent 固定) */
-export const styleSolid = smallPair("style-solid", "solid", "accent", "solid", "solid style (実線 + 矢頭、 edge の default)", "実線 + 矢頭");
+/**
+ * 1. 線の種類の違いを比較する (tone は accent 固定)。
+ *
+ * 1 枚目の実線は accent の色の見本も兼ねる。 色の見本は線を solid に固定するので、 accent の
+ * 色の見本を別に置くと同じ図が 2 枚になる。
+ */
+export const styleSolid = smallPair("style-solid", "solid", "accent", "solid", "solid style (実線 + 矢頭、 edge の default、 色は accent)", "実線 + 矢頭");
 export const styleDottedFlow = smallPair("style-dotted-flow", "dotted-flow", "accent", "dotted-flow", "dotted-flow style (点線 + 粒子、 動的 flow 表現)", "点線 + 粒子");
 
 /**
@@ -109,13 +114,12 @@ export const edgeRouting = diagram("edge-routing", { topic: "路線図と曲線�
   )
   .build();
 
-/** 2. Tone (`Tone` が持つ全ての色を solid edge で並べる) = 色 identity の違いを比較 */
-export const toneAccent = smallPair("tone-accent", "solid", "accent", "accent", "accent tone (主張色、 dark navy)");
-export const toneTeal = smallPair("tone-teal", "solid", "teal", "teal", "teal tone (青緑、 secondary emphasis)");
-export const toneSuccess = smallPair("tone-success", "solid", "success", "success", "success tone (green、 成功状態)");
-export const toneError = smallPair("tone-error", "solid", "error", "error", "error tone (red、 エラー状態)");
-export const toneWarning = smallPair("tone-warning", "solid", "warning", "warning", "warning tone (orange、 警告状態)");
-export const toneInfo = smallPair("tone-info", "solid", "info", "info", "info tone (light blue、 情報表示)");
+/** 2. Tone の違いを比較する (edge は solid 固定)。 accent は線の種類の 1 枚目 (`styleSolid`) が見せる */
+export const toneTeal = smallPair("tone-teal", "solid", "teal", "teal", "teal tone (二番手の強調)");
+export const toneSuccess = smallPair("tone-success", "solid", "success", "success", "success tone (成功状態)");
+export const toneError = smallPair("tone-error", "solid", "error", "error", "error tone (エラー状態)");
+export const toneWarning = smallPair("tone-warning", "solid", "warning", "warning", "warning tone (警告状態)");
+export const toneInfo = smallPair("tone-info", "solid", "info", "info", "info tone (情報表示)");
 
 /** 3. Inactive vs Active */
 export const stateActive = diagram("state-active", { topic: "edge: 動いている状態" })
@@ -149,10 +153,10 @@ export const stateInactive = diagram("state-inactive", { topic: "edge: 止まっ
 // 併記は写し違いが起きるため、**同じ図になることを検査で固定する**
 // (`lib/catalog-source-parity.test.tsx`)。 記法を直して図がずれたらそこで落ちる。
 //
-// 図の直前ではなく末尾にまとめるのは、10 件のうち 8 件が `smallPair(...)` の 1 行で
-// 並ぶ形だから。 間に 50 行の記法を挟むと「線種 2 種 / 色 6 種」 の対比が読めなくなる。
+// 図の直前ではなく末尾にまとめるのは、多くが `smallPair(...)` の 1 行で並ぶ形だから。
+// 間に 50 行の記法を挟むと線の種類と色の対比が読めなくなる。
 
-export const sourceYaml__styleSolid = `title: "solid style (実線 + 矢頭、 edge の default)"
+export const sourceYaml__styleSolid = `title: "solid style (実線 + 矢頭、 edge の default、 色は accent)"
 type: flow
 
 lanes:
@@ -174,7 +178,7 @@ animation:
 `;
 
 export const sourceJson__styleSolid = `{
-  "title": "solid style (実線 + 矢頭、 edge の default)",
+  "title": "solid style (実線 + 矢頭、 edge の default、 色は accent)",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -346,53 +350,7 @@ export const sourceJson__styleDashed = `{
   ]
 }`;
 
-export const sourceYaml__toneAccent = `title: "accent tone (主張色、 dark navy)"
-type: flow
-
-lanes:
-  l1: { x: 0, width: 280 }
-  l2: { x: 600, width: 280 }
-
-actors:
-  - 始点: { kind: actor, lane: l1 }
-  - 終点: { kind: actor, lane: l2 }
-
-flow:
-  - 始点 -> 終点: "accent" (accent, solid)
-
-animation:
-  - step: "solid / accent" 1.8s
-    focus: ["始点", "終点", "始点 -> 終点"]
-    badge: "accent"
-    description: "edge style と tone の組み合わせを確認。"
-`;
-
-export const sourceJson__toneAccent = `{
-  "title": "accent tone (主張色、 dark navy)",
-  "type": "flow",
-  "lanes": {
-    "l1": { "x": 0, "width": 280 },
-    "l2": { "x": 600, "width": 280 }
-  },
-  "actors": [
-    { "name": "始点", "kind": "actor", "lane": "l1" },
-    { "name": "終点", "kind": "actor", "lane": "l2" }
-  ],
-  "flow": [
-    { "from": "始点", "to": "終点", "label": "accent", "tone": "accent", "style": "solid" }
-  ],
-  "animation": [
-    {
-      "step": "solid / accent",
-      "duration": 1.8,
-      "focus": ["始点", "終点", "始点 -> 終点"],
-      "description": "edge style と tone の組み合わせを確認。",
-      "badge": "accent"
-    }
-  ]
-}`;
-
-export const sourceYaml__toneTeal = `title: "teal tone (青緑、 secondary emphasis)"
+export const sourceYaml__toneTeal = `title: "teal tone (二番手の強調)"
 type: flow
 
 lanes:
@@ -414,7 +372,7 @@ animation:
 `;
 
 export const sourceJson__toneTeal = `{
-  "title": "teal tone (青緑、 secondary emphasis)",
+  "title": "teal tone (二番手の強調)",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -438,7 +396,7 @@ export const sourceJson__toneTeal = `{
   ]
 }`;
 
-export const sourceYaml__toneSuccess = `title: "success tone (green、 成功状態)"
+export const sourceYaml__toneSuccess = `title: "success tone (成功状態)"
 type: flow
 
 lanes:
@@ -460,7 +418,7 @@ animation:
 `;
 
 export const sourceJson__toneSuccess = `{
-  "title": "success tone (green、 成功状態)",
+  "title": "success tone (成功状態)",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -484,7 +442,7 @@ export const sourceJson__toneSuccess = `{
   ]
 }`;
 
-export const sourceYaml__toneError = `title: "error tone (red、 エラー状態)"
+export const sourceYaml__toneError = `title: "error tone (エラー状態)"
 type: flow
 
 lanes:
@@ -506,7 +464,7 @@ animation:
 `;
 
 export const sourceJson__toneError = `{
-  "title": "error tone (red、 エラー状態)",
+  "title": "error tone (エラー状態)",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -530,7 +488,7 @@ export const sourceJson__toneError = `{
   ]
 }`;
 
-export const sourceYaml__toneWarning = `title: "warning tone (orange、 警告状態)"
+export const sourceYaml__toneWarning = `title: "warning tone (警告状態)"
 type: flow
 
 lanes:
@@ -552,7 +510,7 @@ animation:
 `;
 
 export const sourceJson__toneWarning = `{
-  "title": "warning tone (orange、 警告状態)",
+  "title": "warning tone (警告状態)",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -576,7 +534,7 @@ export const sourceJson__toneWarning = `{
   ]
 }`;
 
-export const sourceYaml__toneInfo = `title: "info tone (light blue、 情報表示)"
+export const sourceYaml__toneInfo = `title: "info tone (情報表示)"
 type: flow
 
 lanes:
@@ -598,7 +556,7 @@ animation:
 `;
 
 export const sourceJson__toneInfo = `{
-  "title": "info tone (light blue、 情報表示)",
+  "title": "info tone (情報表示)",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },

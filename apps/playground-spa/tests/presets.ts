@@ -1,4 +1,4 @@
-/** カタログのひな形と、その識別子の対応。 */
+/** カタログのひな形と、その識別子の対応。 画面の検査がひな形を総当たりする時に読む。 */
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import {
   presetSwimlane,
@@ -24,7 +24,7 @@ import {
   presetDeliveryTimeline,
   presetNetwork,
   presetStateMachine2,
-} from "@/topics/catalog/presets.cdl";
+} from "../src/topics/catalog/presets.cdl";
 
 export interface PresetMetadata {
   /** カタログの名前の表を引く鍵を導く識別子。 */

@@ -2,7 +2,7 @@
  * カタログの分類の SSOT。 分類の数はこの一覧が決めるので、数を書き写さない。
  *
  * 各 category は route (/catalog/:slug) + 個別 topic diagram を持つ。
- * category diagram の実 export は src/lib/catalog-diagrams.ts SSOT。
+ * 見本の図は `src/topics/catalog/*.cdl.ts` に在り、 分類ごとにまとめるのは `src/lib/catalog-items.ts`。
  *
  * **画面が読む欄だけを持つ** (#1932)。 カタログの一覧の札と分類の画面が読むのは `slug` / `label` /
  * `desc` の 3 つで、読まれない欄を置くと、画面に出ない字を「出る」 前提で確かめる検査が生まれる

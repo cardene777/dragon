@@ -189,7 +189,6 @@
 
   /* --- 旧名から新しい値への橋渡し。 既存の規則を書き換えずに配色だけ移す --- */
   --v4-canvas: var(--d-bg);
-  --v4-canvas-dim: var(--d-surface-2);
   --v4-surface: var(--d-surface);
   --v4-surface-2: var(--d-surface-2);
   --v4-line: var(--d-border);
@@ -200,42 +199,8 @@
   --v4-mute: var(--d-text-muted);
   --v4-bg: var(--d-bg);
   --v4-brand: var(--d-accent);
-  --v4-brand-deep: var(--d-accent);
-  --v4-brand-soft: var(--d-accent-soft);
-  --v4-brand-glow: var(--d-accent);
-  --v4-brand-hi: var(--d-accent);
-  --v4-accent-domain: var(--d-accent);
-  --v4-accent-extended: var(--d-accent);
-  --v4-code-bg: var(--d-code-bg);
-  --v4-display: var(--d-display);
-  --v4-serif: var(--d-display);
   --v4-sans: var(--d-body);
   --v4-mono: var(--d-mono);
-
-  --canvas: var(--d-bg);
-  --surface: var(--d-surface);
-  --line: var(--d-border);
-  --ink: var(--d-text-primary);
-  --ink-mute: var(--d-text-muted);
-  --brand: var(--d-accent);
-  --brand-deep: var(--d-accent);
-  --mono: var(--d-mono);
-  --serif: var(--d-display);
-
-  --nm-surface: var(--d-surface);
-  --nm-bg-base: var(--d-bg);
-  --nm-text: var(--d-text-primary);
-  --nm-text-secondary: var(--d-text-secondary);
-  --nm-accent: var(--d-accent);
-  --nm-shadow-dark: transparent;
-  --nm-shadow-light: transparent;
-
-  --color-surface: var(--d-surface);
-  --color-accent: var(--d-accent);
-  --color-ink: var(--d-text-primary);
-  --color-ink-dim: var(--d-text-secondary);
-  --color-ink-mute: var(--d-text-muted);
-  --color-surface-2: var(--d-surface-2);
 }
 
 /* 暗い表示。
@@ -335,18 +300,6 @@ body {
   min-height: 100dvh;
 }
 
-@layer base {
-  .font-display {
-    font-family: var(--d-display);
-  }
-  .font-body {
-    font-family: var(--d-body);
-  }
-  .font-code {
-    font-family: var(--d-mono);
-  }
-}
-
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -436,17 +389,4 @@ body {
 .toast-close:hover {
   color: var(--d-text-primary);
   border-color: var(--d-accent);
-}
-
-/* Skip nav accessibility */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
