@@ -73,21 +73,21 @@ const hello = diagram("hello", { topic: "Hello world" })
   .build();
 
 export const App = () => <CdlDiagramView diagram={hello} />;`,
-    出口: { to: "/editor", 字: { ja: "続き → 5 分で始める", en: "Next → start in five minutes" } },
+    出口: { to: "/docs#primitives", 字: { ja: "続き → 基本要素", en: "Next → building blocks" } },
   },
   {
     id: "primitives",
-    題: { ja: "5 つの基本要素", en: "Five building blocks" },
+    題: { ja: "基本要素", en: "Building blocks" },
     本文: {
       ja: [
-        "覚えるのは 5 つだけ。 縦列 (`lane`) が場を区切り、 箱 (`node`) が登場する物を表し、 矢印 (`edge`) が関係を引き、 段 (`phase`) が時間を刻み、 値 (`readout`) が数の変化を見せる。 残りはこの 5 つの組合せで足りる。",
+        "まず覚えるのは、 縦列 (`lane`)、 箱 (`node`)、 矢印 (`edge`)、 段 (`phase`)、 値 (`readout`) という基本要素。 縦列が場を区切り、 箱が登場する物を表し、 矢印が関係を引き、 段が時間を刻み、 値が数の変化を見せる。 残りはこれらの組合せで足りる。",
         "箱は用途ごとに種類を持つ。 人か、 仕組みか、 貯める所か、 判断する所かで形が変わるので、 種類を 1 語書けば読む人に役割が伝わる。 種類ごとに描ける項目が違い、 書いたのに出ない項目は編集画面で知らせが出る。",
-        "この 5 つを先に掴んでおくと、 後の高位の書き方が「どの要素をまとめて置いてくれるのか」 として読める。",
+        "基本要素を先に掴んでおくと、 後の高位の書き方が「どの要素をまとめて置いてくれるのか」 として読める。",
       ],
       en: [
-        "There are only five to learn. A lane (`lane`) divides the field, a box (`node`) stands for something that takes part, an arrow (`edge`) draws a relation, a phase (`phase`) marks time, and a readout (`readout`) shows a number changing. Everything else is a combination of those five.",
+        "Start with the building blocks: a lane (`lane`), a box (`node`), an arrow (`edge`), a phase (`phase`) and a readout (`readout`). A lane divides the field, a box stands for something that takes part, an arrow draws a relation, a phase marks time, and a readout shows a number changing. Everything else is a combination of these blocks.",
         "Boxes carry a kind for what they are for. A person, a system, a place that stores, a place that decides, each takes a different shape, so one word of kind tells the reader the role. Each kind draws a different set of fields, and a field you wrote that will not appear is reported in the editor.",
-        "Take these five in first and the higher-level forms that follow read as \"which of these does it place for me\".",
+        "Take the building blocks in first and the higher-level forms that follow read as \"which of these does it place for me\".",
       ],
     },
     コード: undefined,
@@ -95,7 +95,7 @@ export const App = () => <CdlDiagramView diagram={hello} />;`,
   },
   {
     id: "presets",
-    題: { ja: "6 種類の高位 API", en: "Six higher-level kinds" },
+    題: { ja: "高位 API", en: "Higher-level APIs" },
     本文: {
       ja: [
         "「順序図が欲しい」 「ER 図で書きたい」 と決まっている時は、 種類を 1 行選ぶだけで骨格ができる。 縦列の位置も、 箱の並びも、 段の刻みも、 その種類に合った既定で埋まる。",
@@ -113,7 +113,7 @@ export const App = () => <CdlDiagramView diagram={hello} />;`,
   },
   {
     id: "cookbook",
-    題: { ja: "9 実用例", en: "Nine worked examples" },
+    題: { ja: "実用例", en: "Worked examples" },
     本文: {
       ja: [
         "本番でよく議論される要件を、 そのまま図にした集合がある。 認証の流れ、 記録の読み書き、 待たずに進む処理といった、 説明のたびに描き直していた形を動く図のまま写し取ってある。",
@@ -169,11 +169,10 @@ export const App = () => <CdlDiagramView diagram={hello} />;`,
 
 /** 呼びかけの字。 節と札と同じく、言語で選ぶ形で持つ (#2452) */
 const 呼びかけ = {
-  前置き: { ja: "使い方の案内 · v0.5", en: "guide • v0.5" },
   題: { ja: "使い方", en: "Docs" },
   説明: {
-    ja: "書き方の全体像を 1 枚にまとめた読み物。 最初の 5 分で動かし、 次の 30 分で 5 つの基本要素と 6 種類の高位 API を掴む。 Mermaid からの移行と、 「目」 による自動検証もここで扱う。",
-    en: "One page that lays out how the notation works end to end. Get it running in the first five minutes, then take in the five building blocks and the six higher-level kinds over the next thirty. Moving over from Mermaid and the automatic checks done by the \"eye\" are covered here too.",
+    ja: "書き方の全体像を 1 枚にまとめた読み物。 最初の 5 分で動かし、 次の 30 分で基本要素と高位 API を掴む。 Mermaid からの移行と、 「目」 による自動検証もここで扱う。",
+    en: "One page that lays out how the notation works end to end. Get it running in the first five minutes, then take in the building blocks and higher-level APIs over the next thirty. Moving over from Mermaid and the automatic checks done by the \"eye\" are covered here too.",
   },
   強い釦: { ja: "5 分で始める →", en: "Start in five minutes →" },
   弱い釦: { ja: "カタログで図を見る", en: "Browse the catalog" },
@@ -183,7 +182,7 @@ const 呼びかけ = {
 const 札 = [
   { id: "run", アイコン: Timer, 説明: { ja: "導入作業なし。 ブラウザで開いて貼るだけ。", en: "Nothing to set up. Open the browser and paste." } },
   { id: "cookbook", アイコン: BookOpen, 説明: { ja: "現場でよく出る形をそのまま図にした集合。", en: "The shapes that keep coming up, already drawn." } },
-  { id: "primitives", アイコン: Blocks, 説明: { ja: "覚えるのは 5 つ。 残りは組合せで足りる。", en: "Five to learn. The rest is combinations." } },
+  { id: "primitives", アイコン: Blocks, 説明: { ja: "基本要素を組み合わせれば、 残りを組み立てられる。", en: "Combine the building blocks to assemble the rest." } },
   { id: "presets", アイコン: Gift, 説明: { ja: "種類を 1 行選ぶだけで骨格ができる。", en: "Choose a kind on one line and the skeleton appears." } },
   { id: "mermaid", アイコン: Repeat, 説明: { ja: "既存の記法を 1 対 1 で置き換えられる。", en: "Swap your existing notation across one to one." } },
   { id: "eye", アイコン: ScanEye, 説明: { ja: "読めない図を書いた時点で知らせが出る。", en: "A diagram that cannot be read is reported as you write it." } },
@@ -224,6 +223,7 @@ const 節の題 = (id: string, isJa: boolean): string => {
 export function DocsPage(): React.ReactElement {
   const [locale] = useLocale();
   const isJa = locale === "ja";
+  const 版 = __DRAGON_VERSION__.split(".").slice(0, 2).join(".");
   useEffect(() => {
     document.body.classList.add("docs-body");
     return () => document.body.classList.remove("docs-body");
@@ -233,7 +233,9 @@ export function DocsPage(): React.ReactElement {
       <SiteHeader />
       <main className="docs-hero-shell">
         <section className="docs-hero">
-          <div className="docs-hero-eyebrow">{選ぶ(呼びかけ.前置き, isJa)}</div>
+          <div className="docs-hero-eyebrow">
+            {isJa ? "使い方の案内 · v" + 版 : "guide • v" + 版}
+          </div>
           <h1 className="docs-hero-title">{選ぶ(呼びかけ.題, isJa)}</h1>
           <p className="docs-hero-lead">{選ぶ(呼びかけ.説明, isJa)}</p>
           <div className="docs-hero-cta">

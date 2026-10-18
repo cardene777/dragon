@@ -70,12 +70,6 @@
   color: var(--d-text-secondary);
 }
 
-.nm-hero-motion {
-  font-family: var(--d-mono);
-  font-size: 11.5px;
-  color: var(--d-text-muted);
-}
-
 .nm-hero-actions {
   display: flex;
   align-items: center;
@@ -131,173 +125,11 @@
   color: var(--d-accent);
 }
 
-/* ── 段 ── */
-
-.nm-presets-section {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0 var(--d-gutter) 100px;
-  font-family: var(--d-body);
-}
-
-.nm-section-head {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.nm-section-title {
-  font-family: var(--d-display);
-  font-size: clamp(22px, 2.6vw, 30px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--d-text-primary);
-}
-
-.nm-section-desc {
-  max-width: 760px;
-  font-family: var(--d-body);
-  font-size: 14px;
-  line-height: 1.85;
-  color: var(--d-text-secondary);
-}
-
-/* ── 札 ── */
-
-.nm-preset-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.nm-preset-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 24px;
-  background: var(--d-surface);
-  border: 1px solid var(--d-border);
-  border-radius: var(--d-r-2);
-}
-
-.nm-preset-card:hover {
-  border-color: var(--d-border-strong);
-}
-
-.nm-preset-card-head {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-}
-
-.nm-preset-id {
-  font-family: var(--d-mono);
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: var(--d-accent);
-}
-
-.nm-preset-eyebrow {
-  font-family: var(--d-mono);
-  font-size: 10.5px;
-  letter-spacing: 1.2px;
-  color: var(--d-text-muted);
-}
-
-.nm-preset-title {
-  font-family: var(--d-display);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--d-text-primary);
-}
-
-.nm-preset-subtitle {
-  font-family: var(--d-body);
-  font-size: 13.5px;
-  line-height: 1.8;
-  color: var(--d-text-secondary);
-}
-
-/* 説明文の中の行き先 (#1806)。 地の文と同じ見た目だと押せることが伝わらない */
-.nm-preset-subtitle a {
-  color: var(--d-accent);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.nm-preset-subtitle a:hover {
-  text-decoration-thickness: 2px;
-}
-
-.nm-preset-card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding-top: 4px;
-  border-top: 1px solid var(--d-border);
-}
-
-.nm-preset-tags {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding-top: 14px;
-}
-
-.nm-preset-tag {
-  padding: 3px 8px;
-  border-radius: var(--d-r-1);
-  background: var(--d-surface-2);
-  font-family: var(--d-mono);
-  font-size: 11px;
-  color: var(--d-text-secondary);
-}
-
-.nm-preset-docs {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding-top: 14px;
-  font-family: var(--d-body);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--d-accent);
-  text-decoration: none;
-}
-
-.nm-preset-docs:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.nm-preset-docs-arrow {
-  font-size: 12px;
-}
-
 /* ── 狭い画面 ── */
 
-@media (max-width: 1000px) {
-  .nm-preset-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 760px) {
-  .nm-preset-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .nm-hero {
     padding-top: 36px;
     padding-bottom: 32px;
-  }
-  .nm-presets-section {
-    padding-bottom: 64px;
   }
 }
