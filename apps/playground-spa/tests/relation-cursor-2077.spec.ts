@@ -28,7 +28,7 @@
 import { test, expect } from "@playwright/test";
 import { 図の箱が出るまで待つ } from "./wait-for-render";
 import { 一覧の行 } from "./catalog-item-pick";
-import { PRESETS } from "../src/lib/presets";
+import { PRESETS } from "./presets";
 import { sourceYaml__presetDeliveryRelations } from "../src/topics/catalog/presets.cdl";
 
 /**

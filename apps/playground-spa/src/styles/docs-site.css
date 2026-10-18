@@ -41,10 +41,6 @@
   color: var(--d-text-primary);
 }
 
-.docs-hero-title-accent {
-  color: var(--d-accent);
-}
-
 .docs-hero-lead {
   max-width: 760px;
   font-family: var(--d-body);
@@ -228,57 +224,6 @@
 
 .docs-sec-cta:hover {
   text-decoration: underline;
-}
-
-/* ── 記述の見本 ── */
-
-.docs-hero-snippet {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-.docs-hero-snippet-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.docs-hero-snippet-no {
-  font-family: var(--d-mono);
-  font-size: 12px;
-  color: var(--d-accent);
-}
-
-.docs-hero-snippet h2 {
-  font-family: var(--d-display);
-  font-size: clamp(21px, 2.4vw, 27px);
-  font-weight: 600;
-  letter-spacing: -0.026em;
-  color: var(--d-text-primary);
-}
-
-.docs-hero-snippet pre {
-  width: 100%;
-  margin: 0;
-  padding: 16px 20px;
-  background: var(--d-code-bg);
-  border: 1px solid var(--d-border);
-  border-radius: 4px;
-  overflow-x: auto;
-}
-
-.docs-hero-snippet code {
-  font-family: var(--d-mono);
-  font-size: 12.5px;
-  line-height: 1.85;
-  color: var(--d-text-secondary);
-  white-space: pre;
-}
-
-.docs-hero-snippet-cta {
-  align-self: flex-start;
 }
 
 /* ── 狭い画面 ── */

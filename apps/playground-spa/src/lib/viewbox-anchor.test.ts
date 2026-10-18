@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { panCompensation, screenX } from "./viewbox-anchor";
+import { panCompensation } from "./viewbox-anchor";
+
+/** 補正後に、 user 座標 `p` が画面上のどこに来るか。 補正の不変性を確かめるために使う。 */
+function screenX(tx: number, pan: number, k: number, vbX: number, p: number): number {
+  return tx + pan * k * (p - vbX);
+}
 
 describe("panCompensation", () => {
   it("初回 (前の枠が無い) は補正しない", () => {

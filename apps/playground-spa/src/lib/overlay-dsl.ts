@@ -11,7 +11,6 @@ import {
   partsGridCenters,
   partRenderSize,
   partBoxInFrame,
-  partTargetScale,
   partScaleFactor,
   normalizePartScale,
   MAX_PART_SCALE,
@@ -100,23 +99,6 @@ export function partWorldSize(part: OverlayPartParsed): { w: number; h: number }
   const f = partScaleFactor(part.item.diagram, part.posW, part.posH, part.scale);
   return { w: e.w * f.x, h: e.h * f.y };
 }
-
-/**
- * パーツ 1 個を描く大きさ (倍率 `scale:` を掛ける前)。
- *
- * `大きさ:` を書いた分だけ図枠を伸縮する。 倍率の求め方は組み立て側と同じ関数を使う
- * (`partTargetScale`)。 別々に持つと、`大きさ:` を書いた見本だけ経路で大きさが変わる (#1018)。
- *
- * `scale:` は CSS の `transform` で掛けるため、ここでは掛けない。 画面に渡す助変数
- * (`--cdl-svg-w/h`) はこの値をそのまま使う。
- */
-export function partFrameSize(part: OverlayPartParsed): { w: number; h: number } {
-  const e = partRenderSize(part.item.diagram);
-  const t = partTargetScale(part.item.diagram, part.posW, part.posH);
-  return { w: e.w * t.x, h: e.h * t.y };
-}
-
-
 
 // 倍率の直し方と上限は組み立て側 (`packages/dragon`) が持つ (#1026)。 別々に持つと、
 // 同じ本文が経路で別の大きさになる。 呼び出し側の import 元を変えずに済むよう再輸出する。

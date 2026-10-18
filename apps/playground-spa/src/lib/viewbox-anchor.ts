@@ -36,8 +36,3 @@ export function panCompensation(
   if (!Number.isFinite(dx) || !Number.isFinite(dy)) return null;
   return { dtx: pan * next.k * dx, dty: pan * next.k * dy };
 }
-
-/** 補正後に、 user 座標 `p` が画面上のどこに来るか。 test で不変性を確かめるために使う。 */
-export function screenX(tx: number, pan: number, k: number, vbX: number, p: number): number {
-  return tx + pan * k * (p - vbX);
-}

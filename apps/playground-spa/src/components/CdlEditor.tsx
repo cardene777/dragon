@@ -98,11 +98,12 @@ const CODE_TAG_COLORS = [
   { tag: [t.invalid], color: "var(--d-err)" },
 ];
 
-const v4HighlightLight = HighlightStyle.define(CODE_TAG_COLORS);
-const v4HighlightDark = HighlightStyle.define(CODE_TAG_COLORS);
+// 色はすべて変数なので、 明暗で 1 つを使い回す。 明暗の別を渡さない色分けは、 CodeMirror が
+// どちらの明暗でも当てる
+const v4Highlight = HighlightStyle.define(CODE_TAG_COLORS);
 
 // 明暗で同じ指定を使う。 中の色はすべて変数なので、 html.dark が付いた時点で追随する。
-// dark 版を残すのは CodeMirror が明暗の別を内部の判定に使うためで、 見た目の差は変数側が持つ。
+// 明暗の 2 つを作るのは CodeMirror が明暗の別を内部の判定に使うためで、 見た目の差は変数側が持つ。
 const CODE_THEME_RULES = {
   "&": {
     backgroundColor: "var(--d-code-bg)",
@@ -861,7 +862,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
   // 2. #preset=<slug> = 編集画面の見本を直接開く hash 経路
   //    SPA navigation で hash 変更した場合も反映するため location.hash を deps に含める
-  //    slug 一致がない場合は toast で通知して default sample のまま維持 (silently load 防止)
+  //    slug 一致がない場合は既定の見本で開き、 その旨を知らせの欄に出す (黙って既定を開かない)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = location.hash;
@@ -2060,7 +2061,7 @@ animation:
               // 同じ語に 2 つの色が当たって後勝ちになるため、記法では YAML 文法を外す。
               // `yaml` タブは記法ではない別形式なので従来どおり YAML 文法を使う
               activeTab === "yaml"
-                ? [yaml(), syntaxHighlighting(isDark ? v4HighlightDark : v4HighlightLight)]
+                ? [yaml(), syntaxHighlighting(v4Highlight)]
                 : [記法の色分け]
             }
             onChange={(v) => (activeTab === "yaml" ? setYamlSrc(v) : setSrc(v))}
@@ -2101,6 +2102,24 @@ animation:
             ))}
           </div>
         )}
+        {/* 自動の直しと見本の読み込みの知らせ。 **警告の塊の外に置く** = 中に置くと、 警告を全て
+            直した直後と、 警告の無い既定の見本で開き直した時に知らせが出ない。 */}
+        {autoFixMessage && (
+          <div
+            role="status"
+            className="v4-editor-autofix-message"
+            style={{
+              padding: "8px 12px",
+              borderRadius: "var(--d-r-1)",
+              background: "var(--d-accent-soft)",
+              color: "var(--d-accent)",
+              fontSize: "12px",
+              lineHeight: 1.5,
+            }}
+          >
+            {autoFixMessage}
+          </div>
+        )}
         {/* 位置関係の警告は図に対する検査なので、 どちらの欄で書いた図でも出す。 */}
         {!error && warnings.length > 0 && (
           <div className="v4-editor-warnings">
@@ -2136,22 +2155,6 @@ animation:
                   : 字.直せるものなし}
               </button>
             </div>
-            {autoFixMessage && (
-              <div
-                role="status"
-                style={{
-                  padding: "8px 12px",
-                  marginTop: "8px",
-                  borderRadius: "var(--d-r-1)",
-                  background: "var(--d-accent-soft)",
-                  color: "var(--d-accent)",
-                  fontSize: "12px",
-                  lineHeight: 1.5,
-                }}
-              >
-                {autoFixMessage}
-              </div>
-            )}
             <ul className="v4-editor-warnings-list">
               {warnings.slice(0, 6).map((w, i) => (
                 <li key={i} className={`v4-editor-warning-item v4-editor-warning-${w.severity}`}>

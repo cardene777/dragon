@@ -41,8 +41,3 @@ export function axisOffset(fit: AxisFit): number {
   // 収まる = 中央に置く
   return (frame - content) / 2 - origin;
 }
-
-/** 収まらない軸があるか。 呼出側が「横に動かす案内を出すか」 を決めるのに使う。 */
-export function overflowsAxis(fit: AxisFit): boolean {
-  return Number.isFinite(fit.frame) && Number.isFinite(fit.content) && fit.content > fit.frame;
-}

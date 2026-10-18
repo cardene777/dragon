@@ -15,7 +15,7 @@
 import { test, expect } from "@playwright/test";
 import { 箱と矢印を開く } from "./box-and-edge-figure";
 import { 一覧の行 } from "./catalog-item-pick";
-import { PRESETS } from "../src/lib/presets";
+import { PRESETS } from "./presets";
 import {
   effectivePaint,
   parseColor,

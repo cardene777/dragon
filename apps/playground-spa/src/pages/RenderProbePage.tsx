@@ -5,7 +5,7 @@ import { CdlDiagramView, type CdlDiagram } from "@cardenelabs/cdl";
  *
  * 実ブラウザでしか測れない検査 (行の実寸が枠に収まっているか) に、 **見本に無い形** の図を
  * 通すために要る。 `renderOffsetX/Y` で動いた node や `wBind` で縮んだ node に行を持たせた図は
- * 見本 412 件に 1 つも無く、 実寸の経路がその形で一度も走っていなかった。
+ * 見本に 1 つも無く、 実寸の経路がその形で一度も走っていなかった。
  *
  * 見本 (`topics/catalog/*.cdl.ts`) に足す案は採らない。 見本の総数と `visual-validate-sweep` の
  * 件数が動き、 別の回帰 gate を揺らすため。

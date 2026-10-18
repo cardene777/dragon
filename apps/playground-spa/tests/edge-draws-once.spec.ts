@@ -49,7 +49,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 import { moduleToItems } from "../src/lib/catalog-items";
 import { itemName } from "../src/lib/i18n";
-import { PRESETS, presetCatalogKey } from "../src/lib/presets";
+import { PRESETS, presetCatalogKey } from "./presets";
 import * as ひな形の見本 from "../src/topics/catalog/presets.cdl";
 
 /**

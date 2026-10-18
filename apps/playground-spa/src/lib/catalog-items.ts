@@ -1,8 +1,8 @@
 /**
  * 各 catalog category の diagram を lazy-load する SSOT。
  *
- * 各 category ごとに import + metadata。 CatalogPage で category に応じて
- * 該当 items 配列を CategoryPage の 2 pane grid で表示。
+ * 各 category ごとに import + metadata。 分類の一覧 (`CatalogIndexPage`) が件数を数え、
+ * 分類の頁 (`CategoryPage`) が該当 items 配列を一覧と図の 2 pane で表示する。
  */
 import { drawsFigureTitle, type CdlDiagram } from "@cardenelabs/cdl";
 import { ITEM_SUBTITLE_EN, PATTERN_NAME_EN } from "./catalog-item-en";
@@ -20,7 +20,7 @@ import * as PatMod from "@/topics/catalog/patterns.cdl";
 import * as AnimMod from "@/topics/catalog/animation.cdl";
 // --- category: parts (rich exemplar 合成用 reusable atoms) ---
 // top-level で diagram(...).build() が走る数だけ初期 chunk が重くなるため、
-// dynamic import で lazy-load して初期 catalog-items chunk (348 kB gzip) からは除外する (CAR-1613)。
+// dynamic import で lazy-load して初期の catalog-items chunk からは除外する (CAR-1613)。
 // CategoryPage が params.slug === "parts" 時のみ loadPartsItems() を呼び、 State に populate する経路。
 // --- category: styles ---
 import * as StyMod from "@/topics/catalog/styles.cdl";
@@ -32,7 +32,7 @@ import * as TdMod from "@/topics/catalog/text-dsl.cdl";
 import * as InteractiveMod from "@/topics/catalog/interactive.cdl";
 // --- category: ethereum (仕組み解説アニメーション、 CAR-2160) ---
 import * as EthMod from "@/topics/catalog/ethereum.cdl";
-// --- category: charts (図表系 10 種、 #1152) ---
+// --- category: charts (図表系、 #1152) ---
 import * as ChartsMod from "@/topics/catalog/charts.cdl";
 
 export interface CatalogItem {
@@ -259,14 +259,6 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   ethereum: moduleToItems(EthMod),
   charts: moduleToItems(ChartsMod),
 };
-
-/** 分類ごとの登録表から、画面に並べる見本の数を返す。 */
-export function 登録表の見本件数(
-  登録表: Readonly<Record<string, readonly CatalogItem[]>>,
-  分類: string,
-): number {
-  return 登録表[分類]?.length ?? 0;
-}
 
 /**
  * 部品の頁に並べる見本を後から読む。 CategoryPage で params.slug === "parts" 時のみ発火。

@@ -18,23 +18,3 @@ export interface 二言語 {
 export function 字を引く(組: 二言語, locale: Locale): string {
   return locale === "ja" ? 組.ja : 組.en;
 }
-
-/**
- * 表ごと言語の側に畳む。 画面は `字.鍵` の形で引ける。
- *
- * **言語ごとに 1 度だけ畳む** = 描くたびに新しい object を返すと、字を受け取る側が
- * 値が替わったとみなして描き直す。 畳んだ結果を控えに持つ。
- */
-export function 表を畳む<K extends string>(
-  表: Record<K, 二言語>,
-  locale: Locale,
-  控え: Partial<Record<Locale, Record<K, string>>>,
-): Record<K, string> {
-  const 有り = 控え[locale];
-  if (有り !== undefined) return 有り;
-  const 畳んだ = Object.fromEntries(
-    Object.entries<二言語>(表).map(([k, v]) => [k, 字を引く(v, locale)]),
-  ) as Record<K, string>;
-  控え[locale] = 畳んだ;
-  return 畳んだ;
-}

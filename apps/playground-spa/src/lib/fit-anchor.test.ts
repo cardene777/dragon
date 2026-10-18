@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { axisOffset, overflowsAxis } from "./fit-anchor";
+import { axisOffset } from "./fit-anchor";
 
 describe("axisOffset", () => {
   it("収まるなら中央に置く", () => {
@@ -32,21 +32,5 @@ describe("axisOffset", () => {
       expect(axisOffset({ frame: 688, content: v, origin: 0 }), `content=${v}`).toBe(0);
       expect(axisOffset({ frame: 688, content: 322, origin: v }), `origin=${v}`).toBe(0);
     }
-  });
-});
-
-describe("overflowsAxis", () => {
-  it("図が枠より大きければ収まらない", () => {
-    expect(overflowsAxis({ frame: 688, content: 1374, origin: 0 })).toBe(true);
-  });
-
-  it("図が枠以下なら収まる", () => {
-    expect(overflowsAxis({ frame: 688, content: 688, origin: 0 })).toBe(false);
-    expect(overflowsAxis({ frame: 688, content: 322, origin: 0 })).toBe(false);
-  });
-
-  it("値が壊れている時は収まる扱い", () => {
-    // 判定できないことを理由に「収まらない」 に倒すと、 位置決めが始点寄せへ落ちる
-    expect(overflowsAxis({ frame: Number.NaN, content: 1374, origin: 0 })).toBe(false);
   });
 });

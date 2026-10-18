@@ -61,16 +61,6 @@ function manuallyPlaced(diagram: CdlDiagram): { nodes: Set<string>; lanes: Set<s
 }
 
 /**
- * 図の中に、 書く人が決めた位置があるか。
- *
- * 座標は縦横の 2 つが揃って初めて効くので、 揃っている時だけ「決めた」 とみなす。
- */
-export function hasExplicitPositions(diagram: CdlDiagram): boolean {
-  const m = manuallyPlaced(diagram);
-  return m.nodes.size > 0 || m.lanes.size > 0;
-}
-
-/**
  * 箱の id から、書き手が書いた名前を引く表。
  *
  * **名前を持たない箱は載せない** (`a-spacer` のような組み立てが作る詰め物)。 載せると

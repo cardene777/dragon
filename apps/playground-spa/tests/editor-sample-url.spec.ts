@@ -13,7 +13,7 @@
  *
  * 見本の中身側 (名前と題の一致 / 識別子の一意性) は単体 test が全件を見る
  * (`packages/dragon/test/editor-samples-identity.test.ts`)。 ここでは **その 1 行が実際に動くか**
- * だけを見る = カタログ (`lib/presets.ts`) からの識別子で 1 件、 2 件目の見本に与えた識別子で 1 件。
+ * だけを見る = 1 件目の識別子で 1 件、 2 件目の見本に与えた識別子で 1 件、 登録の無い識別子で 1 件。
  */
 import { test, expect } from "@playwright/test";
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
@@ -36,12 +36,19 @@ test("2 件目の見本に与えた識別子で 2 件目が開く (#1092)", asyn
   expect(m.知らせ, `未登録として扱われた: ${m.知らせ}`).not.toContain("未登録");
 });
 
-test("カタログからの識別子で 1 件目が開く (#1092)", async ({ page }) => {
-  // 2 件目に固有の識別子を与えた時に 1 件目まで変えると、 カタログ (`lib/presets.ts`) からの
-  // `#preset=sequence` が切れる
+test("1 件目の識別子で 1 件目が開く (#1092)", async ({ page }) => {
+  // 2 件目に固有の識別子を与えた時に 1 件目まで変えると、 見本の詳細のページ (#2928 で削除) が
+  // 作っていた `#preset=sequence` の link が切れる
   const m = await 開いた題(page, "sequence");
   expect(m.題, `別の見本が開いた: ${m.題}`).toBe("ログインAPI呼び出し");
   expect(m.知らせ, `未登録として扱われた: ${m.知らせ}`).not.toContain("未登録");
+});
+
+test("登録の無い識別子では、既定の見本で開いたことを知らせる (#2931)", async ({ page }) => {
+  // 上の 2 件が「未登録」 を含まないことを見る対照。 知らせを読めていないと、上の 2 件は
+  // 知らせが空のまま通る。 既定の見本は警告を持たないので、知らせを警告の塊の中に置くと出ない
+  const m = await 開いた題(page, "no-such-sample-2931");
+  expect(m.知らせ, "登録の無い識別子で開いたのに知らせが出ていない").toContain("未登録");
 });
 
 test("一覧の目印が見本ごとに分かれている (#1092)", async ({ page }) => {

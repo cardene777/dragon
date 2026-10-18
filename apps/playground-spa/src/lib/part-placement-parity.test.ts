@@ -29,7 +29,6 @@ import {
   placeParts,
   partWorldSize,
   partBoxRect,
-  partFrameSize,
   図と重ねる部品に分ける,
 } from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
@@ -512,7 +511,8 @@ actors:
     const a = parsed.parts.find((x) => x.id === "a")!;
     const b = parsed.parts.find((x) => x.id === "b")!;
     const ratio = partBoxRect(a).w / partBoxRect(b).w;
-    expect(partFrameSize(a).w / partFrameSize(b).w, "描く大きさに倍率が掛かっていない").toBeCloseTo(
+    // 画面は伸縮する前の図枠を渡し、`大きさ:` の伸縮を `transform` で掛ける。 その結果の大きさが `partWorldSize`
+    expect(partWorldSize(a).w / partWorldSize(b).w, "描く大きさに倍率が掛かっていない").toBeCloseTo(
       ratio,
       1,
     );

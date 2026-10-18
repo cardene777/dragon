@@ -34,7 +34,7 @@ import { test, expect } from "@playwright/test";
 
 import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
 import { CATEGORIES } from "../src/lib/catalog";
-import { PRESETS } from "../src/lib/presets";
+import { PRESETS } from "./presets";
 import { 一覧の行 } from "./catalog-item-pick";
 
 /** 携帯の幅と高さ。 iPhone 14 の値 */

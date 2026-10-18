@@ -139,7 +139,6 @@ const 表 = {
   縮小の説明: { ja: "表示を縮小する", en: "Zoom the view out" },
   拡大: { ja: "拡大", en: "Zoom in" },
   拡大の説明: { ja: "表示を拡大する", en: "Zoom the view in" },
-  無し: { ja: "無し", en: "None" },
 
   // 記法の一覧 (SyntaxReference)
   押すと末尾に足す: {
