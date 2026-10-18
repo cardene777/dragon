@@ -54,7 +54,7 @@ const 出す下限 = 2;
  * engine は図の入れ物に `data-cdl-phase-index` を付け、段が進むたびに書き換える。
  * React の外で変わるので、属性の変化を見張る。
  */
-function usePhaseIndex(stage: HTMLElement | null): number {
+export function usePhaseIndex(stage: HTMLElement | null): number {
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {

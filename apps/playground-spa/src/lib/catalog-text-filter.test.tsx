@@ -185,11 +185,20 @@ function domFor(palette: Palette, name: keyof typeof diagrams): JSDOM {
   return dom;
 }
 
+// 図の DOM は `domFor` が使い回し、検査の中で書き換えないので、要素ごとの filter は 1 度測れば足りる。
+// 字ごとに同じ祖先を `getComputedStyle` で測り直すと、154 字の検査が単独でも 28 秒掛かり、
+// 全件を並列に走らせると既定の 30 秒を超えていた。
+const computedFilters = new WeakMap<Element, string>();
+
 function filtersOf(dom: JSDOM, element: Element): string[] {
   const filters: string[] = [];
   let current: Element | null = element;
   while (current !== null && current.tagName.toLowerCase() !== "svg") {
-    const filter = dom.window.getComputedStyle(current).filter;
+    let filter = computedFilters.get(current);
+    if (filter === undefined) {
+      filter = dom.window.getComputedStyle(current).filter;
+      computedFilters.set(current, filter);
+    }
     if (filter !== "" && filter !== "none") filters.push(filter);
     current = current.parentElement;
   }
