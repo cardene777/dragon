@@ -1379,17 +1379,17 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > order の図と
 {
   "図": {
     "edges": [],
-    "id": "投票コントラクト",
+    "id": "投票の受付",
     "lanes": [
       {
         "id": "seq",
-        "width": 930,
+        "width": 990,
       },
     ],
     "nodes": [
       {
-        "h": 368,
-        "id": "投票コントラクト",
+        "h": 304,
+        "id": "投票の受付",
         "kind": "sequence-board",
         "lane": "seq",
         "sequenceData": {
@@ -1401,14 +1401,14 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > order の図と
               "name": "投票箱",
             },
             {
-              "name": "集計",
+              "name": "結果の通知",
             },
           ],
           "bands": [
             {
               "actor": 0,
               "from": 0,
-              "to": 2,
+              "to": 0,
             },
             {
               "actor": 1,
@@ -1418,27 +1418,21 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > order の図と
             {
               "actor": 2,
               "from": 1,
-              "to": 2,
+              "to": 1,
             },
           ],
           "messages": [
             {
               "from": 0,
               "kind": "call",
-              "label": "vote(id)",
+              "label": "投票する",
               "to": 1,
             },
             {
               "from": 1,
               "kind": "call",
-              "label": "tally()",
+              "label": "集計して知らせる",
               "to": 2,
-            },
-            {
-              "from": 2,
-              "kind": "call",
-              "label": "結果",
-              "to": 0,
             },
           ],
         },
@@ -1446,13 +1440,13 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > order の図と
         "stack": 0,
         "title": "",
         "tone": "accent",
-        "w": 880,
+        "w": 940,
       },
     ],
     "phases": [
       {
         "activate": [
-          "投票コントラクト",
+          "投票の受付",
         ],
         "body": "",
         "duration": 1500,
@@ -1468,7 +1462,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > order の図と
       },
       {
         "activate": [
-          "投票コントラクト",
+          "投票の受付",
         ],
         "body": "",
         "duration": 1500,
@@ -1482,22 +1476,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > order の図と
         "title": "集計",
         "tweens": [],
       },
-      {
-        "activate": [
-          "投票コントラクト",
-        ],
-        "body": "",
-        "duration": 1200,
-        "id": "p2",
-        "sets": [
-          {
-            "stateId": "seq_step",
-            "value": 2,
-          },
-        ],
-        "title": "結果",
-        "tweens": [],
-      },
     ],
     "states": [
       {
@@ -1506,7 +1484,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > order の図と
       },
     ],
     "textMetrics": "widest",
-    "topic": "投票コントラクト",
+    "topic": "投票の受付",
     "type": "sequence",
   },
   "知らせ": [],
@@ -2702,7 +2680,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > topology の図
         "kind": "cache",
         "lane": "main",
         "stack": 2,
-        "subtitle": "Redis",
+        "subtitle": "セッション",
         "title": "キャッシュ",
       },
       {
@@ -2710,7 +2688,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > topology の図
         "kind": "database",
         "lane": "main",
         "stack": 3,
-        "subtitle": "Postgres",
+        "subtitle": "注文の台帳",
         "title": "DB",
       },
     ],

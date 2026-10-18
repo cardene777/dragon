@@ -58,7 +58,6 @@ const PAGES = [
   { path: "/", name: "トップ" },
   { path: "/editor", name: "エディタ" },
   { path: "/catalog", name: "カタログ索引" },
-  { path: "/catalog/ethereum", name: "Ethereum" },
   { path: "/catalog/animation", name: "アニメーション" },
   { path: "/catalog/presets", name: "プリセット" },
   { path: "/catalog/parts", name: "パーツ" },
@@ -77,15 +76,15 @@ for (const { path, name } of PAGES) {
 }
 
 
-test("本番: Ethereum 4 図が描画される", async ({ page }) => {
+test("本番: 動きの豊かな見本 4 図が描画される", async ({ page }) => {
   const errors = collectErrors(page);
-  await page.goto(`${BASE}/catalog/ethereum`);
+  await page.goto(`${BASE}/catalog/animation`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(3000);
-  // 一覧に出るのは表示名 (`ERC-20の送金`) で、 export 名 (`erc20Transfer`) は描かれない
+  // 一覧に出るのは表示名で、 export 名 (`richPipelineDemo`) は描かれない
   // (`#1035` で表示名に変わった)。 名前は手で書かず表から引く (#1068)。
   const names = (await page.locator(".catalog-list-item-name").allTextContents()).map((s) => s.trim());
-  for (const id of ["erc20Transfer", "eip1559Gas", "erc4337Flow", "blockProduction"]) {
+  for (const id of ["richPipelineDemo", "richServerLoadDashboard", "richOrderStatusFlow", "richScoreLeaderboard"]) {
     const name = ITEM_NAME_JA[id];
     expect(name, `表示名が表に無い: ${id}`).toBeTruthy();
     expect(names, `${id} (${name}) が一覧に無い: ${names.join(", ")}`).toContain(name);

@@ -30,8 +30,6 @@ import * as CookMod from "@/topics/catalog/cookbook.cdl";
 import * as TdMod from "@/topics/catalog/text-dsl.cdl";
 // --- category: interactive ---
 import * as InteractiveMod from "@/topics/catalog/interactive.cdl";
-// --- category: ethereum (仕組み解説アニメーション、 CAR-2160) ---
-import * as EthMod from "@/topics/catalog/ethereum.cdl";
 // --- category: charts (図表系、 #1152) ---
 import * as ChartsMod from "@/topics/catalog/charts.cdl";
 
@@ -256,7 +254,6 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   cookbook: moduleToItems(CookMod),
   "text-dsl": moduleToItems(TdMod),
   interactive: moduleToItems(InteractiveMod),
-  ethereum: moduleToItems(EthMod),
   charts: moduleToItems(ChartsMod),
 };
 

@@ -7,6 +7,7 @@
  *
  * **先にあった 30 件も図とずれていた**。 縦列の幅と見出し、箱の上の小見出し、段の札が
  * 落ちていて、コードのタブに別の図になる記法が出ていた。 当時の全件を出し直した。
+ * その 30 件は特定の分野に寄った場面の見本で、#2946 で見本帳から外した。
  *
  * 記法と組み立て API が同じ図になることは `src/lib/catalog-source-parity.test.tsx` が見る。
  * ここでは **画面から読めるか** を見る。
@@ -47,25 +48,9 @@ test.describe("基本パーツの見本で記法が読める (#1376)", () => {
     expect(読んだ.actors?.[0]?.eyebrow, "json に小見出しが無い").toBeTruthy();
   });
 
-  test("先にあった 30 件も図に合わせて出し直されている", async ({ page }) => {
-    /*
-     * 出し直す前は縦列の見出しと箱の小見出しと段の札が落ちていた。
-     * 図に出ている要素が記法にも出ることを 1 件で確かめる。
-     */
-    await 開く(page, "scene-crypto-transfer");
-    await page.getByRole("tab", { name: "コード" }).click();
-    await page.waitForTimeout(300);
-
-    const yaml = await page.locator(".catalog-source-code").first().innerText();
-    // 見本の仮置きの字は #1894 で日本語にした (`wallet` → `財布`)
-    expect(yaml, "箱の上の小見出しが落ちている").toContain('eyebrow: "財布"');
-    expect(yaml, "段の札が落ちている").toContain('badge: "財布"');
-    expect(yaml, "縦列の幅が書かれていない").toContain("width: 440");
-  });
-
   test("一覧の全件でコードのタブが押せる", async ({ page }) => {
     /*
-     * 1 件だけ見ても「その 1 件に書いた」 ことしか分からない。 110 件を順に押して全件を見る。
+     * 1 件だけ見ても「その 1 件に書いた」 ことしか分からない。 全件を順に押して見る。
      * 記法を書き忘れた見本があれば、そこでタブが押せずに落ちる。
      */
     test.setTimeout(180_000);

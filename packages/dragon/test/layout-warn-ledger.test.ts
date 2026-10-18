@@ -45,7 +45,6 @@ import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-d
 import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
 import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
 import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
-import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as partsInBox from "../../../apps/playground-spa/src/topics/catalog/parts-in-box.cdl";
 import * as partsMotion from "../../../apps/playground-spa/src/topics/catalog/parts-motion.cdl";
@@ -73,7 +72,6 @@ const sources: Array<Record<string, unknown>> = [
   animation,
   styles,
   interactive,
-  ethereum,
   parts,
   partsInBox,
   partsMotion,

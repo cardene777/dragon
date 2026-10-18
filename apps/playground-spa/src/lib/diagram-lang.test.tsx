@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, diagram, type CdlDiagram } from "@cardenelabs/cdl";
 import { 図に画面の言語を当てる } from "./diagram-lang";
-import { shapeWarehouse } from "@/topics/catalog/primitives.cdl";
+import { shapeCodeBlock } from "@/topics/catalog/primitives.cdl";
 
 /**
  * 図を画面の言語で描く (#1910)。
@@ -47,14 +47,22 @@ describe("図に画面の言語を当てる", () => {
     expect(英語).not.toBe(日本語);
   });
 
-  it("カタログの倉庫の形は、日本語の画面で `倉庫` と描き、英語の画面で `WAREHOUSE` と描く", () => {
-    // 描画エンジンの版が古い (言語を持ち越さない) と、日本語の画面でも英語のまま描かれて落ちる
-    const 日本語 = 描いた字(図に画面の言語を当てる(shapeWarehouse, "ja"));
-    expect(日本語).toContain(">倉庫<");
-    expect(日本語).not.toContain("WAREHOUSE");
-    const 英語 = 描いた字(図に画面の言語を当てる(shapeWarehouse, "en"));
-    expect(英語).toContain(">WAREHOUSE<");
-    expect(英語).not.toContain(">倉庫<");
+  it("カタログのコードの形は、札を書かなければ日本語の画面で `共通.ts` と描き、英語の画面で `utils.ts` と描く", () => {
+    // 描画エンジンの版が古い (言語を持ち越さない) と、日本語の画面でも英語のまま描かれて落ちる。
+    //
+    // 札の file 名は副題を書くとそれに替わり、書かない時だけ形が持つ控えの名前が言語で替わる。
+    // カタログの見本は副題を書いているので、ここで外して控えを描かせる。
+    // 以前は倉庫の形 (`倉庫` / `WAREHOUSE`) で見ていたが、#2946 で見本帳から外した
+    const 札なし: CdlDiagram = {
+      ...shapeCodeBlock,
+      nodes: shapeCodeBlock.nodes.map(({ subtitle: _, ...n }) => n),
+    };
+    const 日本語 = 描いた字(図に画面の言語を当てる(札なし, "ja"));
+    expect(日本語).toContain(">共通.ts<");
+    expect(日本語).not.toContain("utils.ts");
+    const 英語 = 描いた字(図に画面の言語を当てる(札なし, "en"));
+    expect(英語).toContain(">utils.ts<");
+    expect(英語).not.toContain(">共通.ts<");
   });
 });
 

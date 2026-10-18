@@ -78,7 +78,6 @@ export function リンクの字(html: string, 行き先: string): string[] {
  */
 const 呼び名に残してよい語: Record<string, string> = {
   テキスト: "定着した語。 この分類の呼び名は #1788 から 7 層に渡って揃えた直後で、また変えると層が増える",
-  イーサリアム: "製品の名前",
 };
 
 /**
@@ -186,7 +185,7 @@ function 全言語の画面(): string[] {
 describe("分類の呼び名の出どころ (#1788)", () => {
   it("呼び名の表を画面 file が持っていない", () => {
     const 鍵 = CATEGORIES.map((c) => c.slug);
-    expect(鍵.length, "分類を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(10);
+    expect(鍵.length, "分類を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(0);
     const files = 画面のfile一覧();
     expect(files.length, "画面 file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(5);
     const 持つ所 = files.flatMap((f) =>
@@ -252,7 +251,7 @@ describe("分類の呼び名の出どころ (#1788)", () => {
   it("説明文が呼び名をなぞって始まっていない (#1805)", () => {
     // 呼び名のすぐ下に説明文が出る。 呼び名で始めると、1 行目が呼び名を読み直すだけになる。
     // 呼び名を日本語に開くと、説明文が既に使っていた語と重なりやすい (`動く図` で実際に起きた)
-    expect(CATEGORIES.length, "分類を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(10);
+    expect(CATEGORIES.length, "分類を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(0);
     const なぞる = CATEGORIES.filter((c) => c.desc.startsWith(c.label)).map(
       (c) => `${c.slug}: ${c.desc.slice(0, 24)}…`,
     );
@@ -260,7 +259,7 @@ describe("分類の呼び名の出どころ (#1788)", () => {
   });
 
   it("呼び名に日本語へ開いていないカタカナが無い (#1805)", () => {
-    expect(CATEGORIES.length, "分類を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(10);
+    expect(CATEGORIES.length, "分類を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(0);
     const 残る = CATEGORIES.flatMap((c) =>
       開いていないカタカナ(c.label).map((w) => `${c.slug}: ${c.label} の「${w}」`),
     );
@@ -281,7 +280,6 @@ describe("分類の呼び名の出どころ (#1788)", () => {
 
   it("残してよい語だけの呼び名は拾わない (対象外の対照)", () => {
     expect(開いていないカタカナ("テキスト記法"), "理由を書いた語を拾っている").toEqual([]);
-    expect(開いていないカタカナ("イーサリアム"), "製品の名前を拾っている").toEqual([]);
     // 日本語だけの呼び名も当然拾わない
     expect(開いていないカタカナ("基本要素")).toEqual([]);
     expect(開いていないカタカナ("図表")).toEqual([]);

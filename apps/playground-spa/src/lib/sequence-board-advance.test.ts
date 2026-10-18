@@ -71,7 +71,7 @@ describe("順序図の板を持つ見本が段を追って進む (#2133)", () =>
     });
     // 板を持つ見本が拾えていなければ下の検査は空振りする
     expect(板あり.map((x) => x.名), "板を持つ見本を拾えていない").toEqual(
-      expect.arrayContaining(["sse-stream", "編集画面 / 投票コントラクト (sequence)"]),
+      expect.arrayContaining(["sse-stream", "編集画面 / 投票の受付 (sequence)"]),
     );
 
     const 進まない = 板あり
@@ -90,8 +90,10 @@ describe("順序図の板を持つ見本が段を追って進む (#2133)", () =>
       expect(板の動き(Cookbook.sseStream)?.番号).toEqual([0, 1, 2, 3]);
     });
 
-    it("箱の名前で書いた契約の図が 1 通ずつ進む (tokenTransferSolidity)", () => {
-      expect(板の動き(Cookbook.tokenTransferSolidity)?.番号).toEqual([0, 1, 2, 3]);
+    it("箱の名前で書いた並べ替えの図が 1 通ずつ進む (編集画面の投票の受付)", () => {
+      const 投票 = EDITOR_SAMPLES.find((s) => s.slug === "order");
+      if (投票 === undefined) throw new Error("編集画面の並べ替えの見本が無い");
+      expect(板の動き(textDslToDiagram(投票.code))?.番号).toEqual([0, 1]);
     });
 
     it("矢印で書いた見本は変わらない (presetDeliverySequence)", () => {

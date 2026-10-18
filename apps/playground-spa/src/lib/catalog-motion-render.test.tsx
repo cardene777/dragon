@@ -48,8 +48,10 @@ const 対象 = [
  * この検査が 1 件落ちて書き換えた全件を出した = 意図しない潰しと意図した書き換えを
  * 見分けるのは人で、検査は「変わった」 ことだけを知らせる。
  *
- * 製品名 (`PostgreSQL` / `Redis` / `AWS` / `Kafka` / `Cloudflare` / `Express`) と
  * 道筋 (`POST /users`) は英語のまま残す。 訳すと実物と対応しなくなる。
+ *
+ * 製品名 (`PostgreSQL` / `Redis` / `AWS` / `Kafka` / `Cloudflare` / `Express` / `Bull` / `SQS`) は
+ * #2946 で役目の名前に替えた。 見本が特定の製品に寄らないようにするため。
  */
 const 説明: Record<string, [eyebrow: string, title: string, subtitle: string]> = {
   kPerson: ["個人", "利用者", "外部の 1 ユーザー"],
@@ -57,16 +59,16 @@ const 説明: Record<string, [eyebrow: string, title: string, subtitle: string]>
   kAdmin: ["管理者", "運用の管理者", "権限保有者"],
   kDeveloper: ["開発者", "開発する人", "コード書く人"],
   kExternalUser: ["外部ユーザー", "外部の利用者", "別の仕組みから来訪"],
-  kDatabase: ["DB", "PostgreSQL", "主データベース"],
-  kCache: ["キャッシュ", "Redis", "メモリ上の保管"],
-  kQueue: ["キュー", "仕事の待ち行列", "Bull / SQS"],
-  kMessageBus: ["メッセージバス", "Kafka", "話題と区画で配る"],
-  kCloud: ["クラウド", "AWS", "クラウドの役務"],
-  kCdn: ["CDN", "Cloudflare", "配信網の末端"],
+  kDatabase: ["DB", "顧客台帳", "主データベース"],
+  kCache: ["キャッシュ", "セッションの置き場", "メモリ上の保管"],
+  kQueue: ["キュー", "仕事の待ち行列", "仕事を順に渡す"],
+  kMessageBus: ["メッセージバス", "出来事の通り道", "話題と区画で配る"],
+  kCloud: ["クラウド", "外部のクラウド", "クラウドの役務"],
+  kCdn: ["CDN", "配信網", "配信網の末端"],
   kService: ["サービス", "認証の役務", "業務の処理"],
   kApi: ["API", "POST /users", "REST の口"],
   kFrontend: ["フロント", "画面側のアプリ", "閲覧ソフトで動く"],
-  kBackend: ["バックエンド", "Express", "サーバの実行環境"],
+  kBackend: ["バックエンド", "アプリのサーバー", "サーバの実行環境"],
   kWebhook: ["呼び返し", "POST の呼び返し", "入ってくる出来事"],
   kMicroservice: ["マイクロサービス", "注文の役務", "1 機能 1 サービス"],
   kSigner: ["署名者", "署名する側", "HMAC / 公開鍵署名"],
@@ -146,8 +148,8 @@ function roleの文字(svg: string, role: string): string {
  * | 画面下部のしるし | 今どの段かを表す点の並び (幅と色が変わる) |
  *
  * 図の中にも見た目に出ない欄がある。 `data-cdl-title` / `data-cdl-subtitle` /
- * `data-cdl-eyebrow` は文字を写した控えで、種別が文字を自前で固定している場合
- * (`shape-blockchain-block`) は控えだけが変わり、見える文字は 1 つも変わらない。
+ * `data-cdl-eyebrow` は文字を写した控えで、種別が文字を自前で固定している場合は
+ * 控えだけが変わり、見える文字は 1 つも変わらない。
  *
  * **段の題と説明も落とす**。 これは読み上げ用の説明として SVG の `aria-label` に入るため、
  * 段ごとに違う題を付けた図は中身が 1 つも変わらなくても差が出る (実測)。 段の題は図の
@@ -238,72 +240,9 @@ describe("動かすと決めた見本は絵が変わる (#1172)", () => {
 });
 
 /**
- * 場面の見本 (`scene-*`) は、箱を 1 つずつ光らせて流れとして読ませる (#1192)。
- *
- * ここには当初「値を持たせる形は採れない」 と書いていたが、**それは測り方の誤りだった**
- * (#1194)。 差し替えていたのは値の欄 (`node.value`) だけで、その欄を描くのは 2 種別しか無い。
- * `title` / `subtitle` / `eyebrow` は cdl の `render/nodes.tsx` が全種別で `{名前}` 置換するので、
- * `shape-*` 系にも値で動かす道はある。
- *
- * それでも注目先で動かすのは、場面が見せたいのが「どの順で通るか」 だから。 値を足すと
- * 数の変化に目が行き、順番が読み取りにくくなる。
- */
-describe("場面の見本は段ごとに絵が変わる (#1192)", () => {
-  const 場面 = Object.entries(Prim as unknown as Record<string, CdlDiagram>)
-    .filter(([, d]) => {
-      if (!d || typeof d !== "object") return false;
-      return typeof d.id === "string" && d.id.startsWith("scene-") && Array.isArray(d.nodes);
-    })
-    .map(([k, d]) => [k, d] as const);
-
-  it("対象が 30 件ある", () => {
-    // 名前の付け方が変わると以下が空振りする
-    expect(場面).toHaveLength(30);
-  });
-
-  it("30 件すべてが 3 段を持つ", () => {
-    const 足りない = 場面.filter(([, d]) => d.phases.length !== 3).map(([k, d]) => `${k}: ${d.phases.length}`);
-    expect(足りない, `段が 3 つでない: ${足りない.join(", ")}`).toHaveLength(0);
-  });
-
-  it("30 件すべてで、最初の段と最後の段の絵が違う", () => {
-    // **宣言ではなく描画結果で見る**。 段を足しても絵が変わらなければ、開いた人には
-    // 静止画と区別が付かない (#1173 で 79 件がこの形だった)。
-    //
-    // 比べるのは図の中の見える部分だけ。 描いた markup を丸ごと比べていた間、この検査は
-    // 段の id と画面下部のしるしが必ず変わるため **落ちない検査** だった (#1194)
-    const 変わらない: string[] = [];
-    for (const [k, d] of 場面) {
-      const 最初 = 見える部分(d, d.phases[0]!.id);
-      const 最後 = 見える部分(d, d.phases[d.phases.length - 1]!.id);
-      if (最初 === 最後) 変わらない.push(k);
-    }
-    expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
-  });
-
-  it("段ごとに光る箱が増える (流れとして読める)", () => {
-    // 数だけ増えても、前段の箱を別の箱に入れ替えたら流れの積み上げにならない
-    const 進まない: string[] = [];
-    for (const [k, d] of 場面) {
-      let 前 = new Set<string>();
-      for (const [i, p] of d.phases.entries()) {
-        const 生 = p.activate ?? [];
-        const 今 = new Set(生);
-        const 消えた = [...前].filter((id) => !今.has(id));
-        if (生.length !== 今.size) 進まない.push(`${k}[${i}]: 同じ箱が重複`);
-        if (消えた.length > 0) 進まない.push(`${k}[${i}]: 前段の箱が消えた (${消えた.join(", ")})`);
-        if (今.size <= 前.size) 進まない.push(`${k}[${i}]: 箱が増えていない (${前.size} → ${今.size})`);
-        前 = 今;
-      }
-    }
-    expect(進まない, `光る箱が積み上がらない: ${進まない.join(", ")}`).toHaveLength(0);
-  });
-});
-
-/**
  * 図の型の見本 (`presets`) は段ごとに絵が変わる (#1194 / #1204)。
  *
- * 動かし方は箱の数で 2 通りに分かれる。 箱を複数持つ見本は `scene-*` と同じく 1 つずつ
+ * 動かし方は箱の数で 2 通りに分かれる。 箱を複数持つ見本は 1 つずつ
  * 光らせ、図全体が箱 1 つの見本は中身 (割合 / 段階 / 期間 / 感情 / 象限 / 名前 / 言づて) を
  * 状態から取る。 **件数は下の `it` の題が SSOT** = ここに写すと片方だけ古くなる。
  * 見るのはどちらも同じで、図の中の見える部分が段で変わることだけ。
@@ -429,12 +368,12 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
  * 値の欄 / 行) に置き、段の中で動かす。 **形そのものの見え方は変えない** = 題と目次は
  * 段をまたいで同じであることをここで固定する。
  *
- * 副題を描かない 4 種別は対象外 (理由と一覧は
- * `packages/dragon/test/catalog-motion-coverage.test.ts` の `形の見本で残す`)。 この 4 件は
+ * 副題を描かない種別は対象外 (理由と一覧は
+ * `packages/dragon/test/catalog-motion-coverage.test.ts` の `形の見本で残す`)。 これらは
  * 下の「動かす値が絵の文字に出る」 が落ちて見つかった = 副題に数を置いても絵が変わらなかった。
  */
 describe("形の見本は数が段で動く (#1196)", () => {
-  const 経路無し = new Set(["shape-blockchain-block", "shape-terminal", "shape-code-block", "shape-kanban-card"]);
+  const 経路無し = new Set(["shape-terminal", "shape-code-block"]);
   const 形 = Object.entries(Prim as unknown as Record<string, CdlDiagram>)
     .filter(([, d]) => {
       if (!d || typeof d !== "object") return false;
@@ -444,19 +383,19 @@ describe("形の見本は数が段で動く (#1196)", () => {
     .filter(([, d]) => !経路無し.has(d.id))
     .map(([k, d]) => [k, d] as const);
 
-  it("対象が 50 件ある", () => {
+  it("対象が 16 件ある", () => {
     // 見本を足し引きすると以下が空振りする
-    expect(形).toHaveLength(50);
+    expect(形).toHaveLength(16);
   });
 
-  it("50 件すべてが 2 段を持ち、段で動かす値を宣言している", () => {
+  it("すべてが 2 段を持ち、段で動かす値を宣言している", () => {
     const 足りない = 形
       .filter(([, d]) => d.phases.length < 2 || !d.phases.some((p) => (p.tweens?.length ?? 0) > 0))
       .map(([k]) => k);
     expect(足りない, `段か動かす値が無い: ${足りない.join(", ")}`).toHaveLength(0);
   });
 
-  it("50 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
+  it("すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
     // **本 describe の中核**。 宣言だけを見る検査は、値を描かない欄に置いた図を通してしまう
     const 変わらない: string[] = [];
     for (const [k, d] of 形) {
@@ -467,7 +406,7 @@ describe("形の見本は数が段で動く (#1196)", () => {
     expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
   });
 
-  it("50 件すべてで、題と目次が段をまたいで変わらない", () => {
+  it("すべてで、題と目次が段をまたいで変わらない", () => {
     // 数を足す作業で形の見本としての説明を潰さない (#1172 が種別の見本で同じ形を固定している)
     const 違う: string[] = [];
     for (const [k, d] of 形) {
@@ -479,7 +418,7 @@ describe("形の見本は数が段で動く (#1196)", () => {
     expect(違う, `形の説明が段で動いている: ${違う.join(" / ")}`).toHaveLength(0);
   });
 
-  it("50 件すべてで、動かす値が絵の文字に出る", () => {
+  it("すべてで、動かす値が絵の文字に出る", () => {
     // 値を描かない欄 (`shape-*` の `value` 欄 等) に置くと、宣言はあるのに絵が変わらない。
     // 段の始点と終点をそれぞれ初期値に据えて描き、文字が変わることを見る
     const 出ない: string[] = [];

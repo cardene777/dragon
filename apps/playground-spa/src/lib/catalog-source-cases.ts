@@ -5,7 +5,6 @@ import { 部品の一覧を作る } from "@/lib/parts-catalog";
 import * as Animation from "@/topics/catalog/animation.cdl";
 import * as Charts from "@/topics/catalog/charts.cdl";
 import * as Cookbook from "@/topics/catalog/cookbook.cdl";
-import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
 import * as PartsInBox from "@/topics/catalog/parts-in-box.cdl";
@@ -46,7 +45,6 @@ export const 記法を持つカタログ: readonly [string, Record<string, unkno
   ["primitives-extra", PrimitivesExtra],
   // 図が記法から組み立つ頁も、図の側だけを書き換えた変更を落とすため対象に含める
   ["cookbook", Cookbook],
-  ["ethereum", Ethereum],
   ["parts", Parts],
   ["parts-in-box", PartsInBox],
   ["parts-motion", PartsMotion],

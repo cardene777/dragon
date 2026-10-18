@@ -685,14 +685,14 @@ topo
   .group("client", { label: "利用者側" })
   .add({ id: "browser", kind: "frontend", title: "ブラウザ" });
 topo
-  .group("aws", { label: "AWS" })
-  .add({ id: "alb", kind: "service", title: "ALB", eyebrow: "負荷分散" })
-  .add({ id: "ecs", kind: "service", title: "ECS のタスク", eyebrow: "コンテナ" })
-  .add({ id: "rds", kind: "database", title: "RDS", eyebrow: "PostgreSQL" });
+  .group("cloud", { label: "クラウド" })
+  .add({ id: "alb", kind: "service", title: "振り分け役", eyebrow: "負荷分散" })
+  .add({ id: "ecs", kind: "service", title: "アプリの器", eyebrow: "コンテナ" })
+  .add({ id: "rds", kind: "database", title: "台帳の DB", eyebrow: "表を持つ" });
 topo
   .connect("browser", "alb", { label: "HTTPS", sub: "TLS 1.3" })
   .connect("alb", "ecs", { label: "ラウンドロビン" })
-  .connect("ecs", "rds", { label: "TCP 5432", sub: "PgBouncer 経由", tone: "success" });
+  .connect("ecs", "rds", { label: "TCP 5432", sub: "接続の束ね役を経由", tone: "success" });
 
 const presetTopologyDiagram = topo.build();
 Object.assign(presetTopologyDiagram.edges.find((edge) => edge.label === "HTTPS") ?? {}, {
@@ -704,7 +704,7 @@ Object.assign(presetTopologyDiagram.edges.find((edge) => edge.label === "ラウ�
 Object.assign(presetTopologyDiagram.lanes.find((lane) => lane.id === "client") ?? {}, {
   subtitle: "L1 · 外の利用者",
 });
-Object.assign(presetTopologyDiagram.lanes.find((lane) => lane.id === "aws") ?? {}, {
+Object.assign(presetTopologyDiagram.lanes.find((lane) => lane.id === "cloud") ?? {}, {
   subtitle: "L2 · 中の部品",
 });
 Object.assign(presetTopologyDiagram.nodes.find((node) => node.id === "browser") ?? {}, {
@@ -727,9 +727,9 @@ Object.assign(presetTopologyDiagram.nodes.find((node) => node.id === "rds") ?? {
 
 export const presetTopology = withSteps(presetTopologyDiagram, [
   { ids: ["browser"], title: "1. ブラウザ", body: "利用者側の入口。" },
-  { ids: ["alb", "c0-browser-alb"], title: "2. ALB", body: "HTTPS を受けて振り分ける。" },
-  { ids: ["ecs", "c1-alb-ecs"], title: "3. ECS のタスク", body: "コンテナが処理する。" },
-  { ids: ["rds", "c2-ecs-rds"], body: "コンテナが PgBouncer を経て PostgreSQL に繋がる。" },
+  { ids: ["alb", "c0-browser-alb"], title: "2. 振り分け役", body: "HTTPS を受けて振り分ける。" },
+  { ids: ["ecs", "c1-alb-ecs"], title: "3. アプリの器", body: "コンテナが処理する。" },
+  { ids: ["rds", "c2-ecs-rds"], body: "コンテナが接続の束ね役を経て台帳の DB に繋がる。" },
 ]);
 
 /**
@@ -774,8 +774,8 @@ topoComplex
   .add({ id: "worker", kind: "service", title: "後でやる役", eyebrow: "コンテナ" });
 topoComplex
   .group("store", { label: "しまう場所" })
-  .add({ id: "cache", kind: "cache", title: "覚え書き", eyebrow: "Redis" })
-  .add({ id: "db", kind: "database", title: "台帳", eyebrow: "PostgreSQL" });
+  .add({ id: "cache", kind: "cache", title: "覚え書き", eyebrow: "キャッシュ" })
+  .add({ id: "db", kind: "database", title: "台帳", eyebrow: "表を持つ" });
 topoComplex
   .connect("browser", "cdn", { label: "画面を取る" })
   .connect("mobile", "alb", { label: "呼び出す" })
@@ -1595,11 +1595,11 @@ export const presetInfrastructure = withSteps(
   // `GET/SET` の説明が隣の線に 1 かぶった。 中身を足せば箱が中身ぶんの高さに戻る
   infrastructure({ id: "infra-demo", topic: "クラウド・ネットワーク構成を階層で示す図" })
     .node({ id: "user", kind: "person", title: "ブラウザ", eyebrow: "利用者", subtitle: "利用者の画面", col: 0, row: 0 })
-    .node({ id: "cdn", kind: "cdn", title: "CloudFront", eyebrow: "配信", subtitle: "静的配信", col: 1, row: 0 })
-    .node({ id: "alb", kind: "service", title: "ALB", eyebrow: "振り分け", subtitle: "負荷分散", col: 2, row: 0 })
+    .node({ id: "cdn", kind: "cdn", title: "配信の入口", eyebrow: "配信", subtitle: "静的配信", col: 1, row: 0 })
+    .node({ id: "alb", kind: "service", title: "振り分け役", eyebrow: "振り分け", subtitle: "負荷分散", col: 2, row: 0 })
     .node({ id: "app", kind: "service", title: "アプリ", eyebrow: "処理", subtitle: "注文の処理", col: 2, row: 1 })
-    .node({ id: "db", kind: "database", title: "RDS", eyebrow: "保存", subtitle: "永続化", col: 3, row: 0 })
-    .node({ id: "cache", kind: "cache", title: "Redis", eyebrow: "一時保存", subtitle: "高速化", col: 3, row: 1 })
+    .node({ id: "db", kind: "database", title: "台帳の DB", eyebrow: "保存", subtitle: "永続化", col: 3, row: 0 })
+    .node({ id: "cache", kind: "cache", title: "キャッシュ", eyebrow: "一時保存", subtitle: "高速化", col: 3, row: 1 })
     // 順路 = 要求が通る 1 本道。 朱で引き、名前の下地を外す (cdl#618)。
     // 預け先の 2 本は順路の続きではないので墨のまま = どちらも同じ色だと、
     // どこから読むかが決まらない
@@ -1612,10 +1612,10 @@ export const presetInfrastructure = withSteps(
   ),
   [
     { ids: ["user"], title: "1. ブラウザ", body: "利用者から始まる。" },
-    { ids: ["cdn", "i0-user-cdn"], title: "2. CloudFront", body: "HTTPS を受ける。" },
-    { ids: ["alb", "i1-cdn-alb"], title: "3. ALB", body: "CloudFront はオリジンの ALB へ要求を渡す。" },
+    { ids: ["cdn", "i0-user-cdn"], title: "2. 配信の入口", body: "HTTPS を受ける。" },
+    { ids: ["alb", "i1-cdn-alb"], title: "3. 振り分け役", body: "配信の入口はオリジンの振り分け役へ要求を渡す。" },
     { ids: ["app", "i2-alb-app"], title: "4. アプリ", body: "処理を担う。" },
-    { ids: ["db", "cache", "i3-app-db", "i4-app-cache"], body: "アプリは RDS に SQL で書き込み、Redis に一時保存する。" },
+    { ids: ["db", "cache", "i3-app-db", "i4-app-cache"], body: "アプリは台帳の DB に SQL で書き込み、キャッシュに一時保存する。" },
   ],
 );
 
@@ -1624,16 +1624,16 @@ export const patternBase__presetInfrastructure = "簡単";
 
 // 構成図の複雑な版 (#2139)。 注文を受けてから発送の知らせを送るまでを 12 箱で追う。
 //
-// 簡単な版に無い 4 つの形を入れる = 順路から外れる枝 (S3) / 待ち行列の後ろの処理 (SQS → 発送係) /
-// 2 か所から書く台帳 (注文 API と発送係) / 写しへの複製 (RDS 主 → 複製)。
+// 簡単な版に無い 4 つの形を入れる = 順路から外れる枝 (ファイル置き場) / 待ち行列の後ろの処理 (知らせの列 → 発送係) /
+// 2 か所から書く台帳 (注文 API と発送係) / 写しへの複製 (主の台帳 → 複製)。
 //
 // 置き場所は下書きで 3 通り組んで決めた。 同じ段に空いた列を挟むと段の間隔の揃い
 // (`row-gap-uniform`) に掛かるので、段ごとに列を詰めて置く。 線は全て隣の枠へ引く。
 //
-//   段 0          S3          Cognito   Redis     RDS 複製
-//   段 1  ブラウザ  CloudFront  ALB       注文 API  RDS 主
-//   段 2                                 SQS       発送係
-//   段 3                                           SES
+//   段 0          ファイル置き場          ログインの役務   キャッシュ     台帳の写し
+//   段 1  ブラウザ  配信の入口  振り分け役       注文 API  主の台帳
+//   段 2                                 知らせの列 発送係
+//   段 3                                           メールの配達
 //
 // 箱は段ごとに上から宣言するので、最初に現れる列は 1 になる。 組み立て器は現れた順に縦列を
 // 作るため、そのままでは列 0 (ブラウザ) が右端に回る = `orderGridColumns` で番号順に戻す
@@ -1644,18 +1644,18 @@ export const pattern__presetInfrastructure__複雑 = withSteps(
       topic: "注文を受けてから発送の知らせを送るまでのクラウド構成図",
     })
       // `storage` は表を持つ箱 (ER 図の実体) の種類で、説明の字を描かない。 保存先は円柱で描く
-      .node({ id: "s3", kind: "database", title: "S3", eyebrow: "静的ファイル", subtitle: "画像と画面の部品", col: 1, row: 0 })
-      .node({ id: "auth", kind: "service", title: "Cognito", eyebrow: "認証", subtitle: "ログインを確かめる", col: 2, row: 0 })
-      .node({ id: "cache", kind: "cache", title: "Redis", eyebrow: "一時保存", subtitle: "在庫数を覚えておく", col: 3, row: 0 })
-      .node({ id: "replica", kind: "database", title: "RDS 複製", eyebrow: "読み取り", subtitle: "集計に使う写し", col: 4, row: 0 })
+      .node({ id: "s3", kind: "database", title: "ファイル置き場", eyebrow: "静的ファイル", subtitle: "画像と画面の部品", col: 1, row: 0 })
+      .node({ id: "auth", kind: "service", title: "ログインの役務", eyebrow: "認証", subtitle: "ログインを確かめる", col: 2, row: 0 })
+      .node({ id: "cache", kind: "cache", title: "キャッシュ", eyebrow: "一時保存", subtitle: "在庫数を覚えておく", col: 3, row: 0 })
+      .node({ id: "replica", kind: "database", title: "台帳の写し", eyebrow: "読み取り", subtitle: "集計に使う写し", col: 4, row: 0 })
       .node({ id: "user", kind: "person", title: "ブラウザ", eyebrow: "利用者", subtitle: "注文する人の画面", col: 0, row: 1 })
-      .node({ id: "cdn", kind: "cdn", title: "CloudFront", eyebrow: "配信", subtitle: "近い拠点から返す", col: 1, row: 1 })
-      .node({ id: "alb", kind: "service", title: "ALB", eyebrow: "振り分け", subtitle: "空いたタスクへ渡す", col: 2, row: 1 })
-      .node({ id: "app", kind: "service", title: "注文 API", eyebrow: "処理", subtitle: "ECS のタスク", col: 3, row: 1 })
-      .node({ id: "db", kind: "database", title: "RDS 主", eyebrow: "書き込み", subtitle: "注文の台帳", col: 4, row: 1 })
-      .node({ id: "queue", kind: "queue", title: "SQS", eyebrow: "待ち行列", subtitle: "注文の知らせを溜める", col: 3, row: 2 })
-      .node({ id: "worker", kind: "service", title: "発送係", eyebrow: "後ろの処理", subtitle: "Lambda の関数", col: 4, row: 2 })
-      .node({ id: "mail", kind: "service", title: "SES", eyebrow: "送信", subtitle: "発送の知らせを送る", col: 4, row: 3 })
+      .node({ id: "cdn", kind: "cdn", title: "配信の入口", eyebrow: "配信", subtitle: "近い拠点から返す", col: 1, row: 1 })
+      .node({ id: "alb", kind: "service", title: "振り分け役", eyebrow: "振り分け", subtitle: "空いたタスクへ渡す", col: 2, row: 1 })
+      .node({ id: "app", kind: "service", title: "注文 API", eyebrow: "処理", subtitle: "アプリの器", col: 3, row: 1 })
+      .node({ id: "db", kind: "database", title: "主の台帳", eyebrow: "書き込み", subtitle: "注文の台帳", col: 4, row: 1 })
+      .node({ id: "queue", kind: "queue", title: "知らせの列", eyebrow: "待ち行列", subtitle: "注文の知らせを溜める", col: 3, row: 2 })
+      .node({ id: "worker", kind: "service", title: "発送係", eyebrow: "後ろの処理", subtitle: "小さな関数", col: 4, row: 2 })
+      .node({ id: "mail", kind: "service", title: "メールの配達", eyebrow: "送信", subtitle: "発送の知らせを送る", col: 4, row: 3 })
       // 順路 = 要求が通る 1 本道 (cdl#618)。 ブラウザから台帳に書くまでの 4 本だけを順路にする
       .connect({ from: "user", to: "cdn", label: "HTTPS", role: "main", labelPlate: false })
       .connect({ from: "cdn", to: "s3", label: "静的ファイル", labelPlate: false })
@@ -1675,46 +1675,46 @@ export const pattern__presetInfrastructure__複雑 = withSteps(
     {
       ids: ["user", "cdn", "i0-user-cdn"],
       title: "1. 近い拠点へ繋ぐ",
-      body: "ブラウザは近い拠点の CloudFront に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。",
+      body: "ブラウザは近い拠点の配信の入口に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。",
     },
     {
       ids: ["s3", "i1-cdn-s3"],
-      title: "2. 画面の部品は S3 から",
-      body: "画像や画面の部品は、CloudFront が S3 から返す。 この線は順路から外れる枝で、アプリまで届かない。",
+      title: "2. 画面の部品はファイル置き場から",
+      body: "画像や画面の部品は、配信の入口がファイル置き場から返す。 この線は順路から外れる枝で、アプリまで届かない。",
     },
     {
       ids: ["alb", "auth", "i2-cdn-alb", "i3-alb-auth"],
       title: "3. 振り分けの前にログインを確かめる",
-      body: "画面の部品以外の要求は、オリジンの ALB へ渡る。 ALB は Cognito でログインを確かめてから通す。",
+      body: "画面の部品以外の要求は、オリジンの振り分け役へ渡る。振り分け役はログインの役務でログインを確かめてから通す。",
     },
     {
       ids: ["app", "i4-alb-app"],
       title: "4. 注文 API へ転送する",
-      body: "ALB は空いている ECS のタスクへ転送する。 タスクを増やしても入口は ALB の 1 つのまま。",
+      body: "振り分け役は空いているアプリの器へ転送する。 タスクを増やしても入口は振り分け役の 1 つのまま。",
     },
     {
       ids: ["cache", "i5-app-cache"],
       title: "5. 在庫数を一時保存から読む",
-      body: "在庫数は Redis に覚えておく。 注文のたびに台帳を読まずに済む。",
+      body: "在庫数はキャッシュに覚えておく。 注文のたびに台帳を読まずに済む。",
     },
     {
       ids: ["db", "replica", "i6-app-db", "i7-db-replica"],
       title: "6. 台帳に書いて写しを作る",
-      body: "注文は RDS 主に SQL で書く。 主は写しを RDS 複製へ送り、集計の読み取りは複製が受ける。",
+      body: "注文は主の台帳に SQL で書く。 主は写しを台帳の写しへ送り、集計の読み取りは複製が受ける。",
     },
     {
       ids: ["queue", "i8-app-queue"],
       title: "7. 知らせを待ち行列に置く",
-      body: "注文 API は発送の手配を待たない。 SQS に知らせを置いた時点で、ブラウザへ返事を返す。",
+      body: "注文 API は発送の手配を待たない。 列に知らせを置いた時点で、ブラウザへ返事を返す。",
     },
     {
       ids: ["worker", "i9-queue-worker", "i10-worker-db"],
       title: "8. 発送係が引き取る",
-      body: "Lambda の発送係が知らせを取り出して手配する。 済んだら同じ RDS 主に発送済みを書く = 台帳へ書く線が 2 本入る。",
+      body: "発送係が知らせを取り出して手配する。 済んだら同じ主の台帳に発送済みを書く = 台帳へ書く線が 2 本入る。",
     },
     {
       ids: ["mail", "i11-worker-mail"],
-      body: "発送係は SES で発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。",
+      body: "発送係はメールの配達を通して発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。",
     },
   ],
 );
@@ -5451,36 +5451,36 @@ type: topology
 
 lanes:
   client: { width: 460, label: "利用者側", subtitle: "L1 · 外の利用者" }
-  aws: { width: 460, label: "AWS", subtitle: "L2 · 中の部品" }
+  cloud: { width: 460, label: "クラウド", subtitle: "L2 · 中の部品" }
 
 actors:
   - ブラウザ: { kind: frontend, kindForm: icon, icon: person, figureCard: {"label":"人","note":"L1"}, lane: client }
-  - ALB: { kind: service, kindForm: icon, icon: cloud, eyebrow: "負荷分散", lane: aws }
-  - ECS のタスク: { kind: service, kindForm: icon, icon: lightning, eyebrow: "コンテナ", lane: aws }
-  - RDS: { kind: database, kindForm: icon, icon: database, eyebrow: "PostgreSQL", lane: aws }
+  - 振り分け役: { kind: service, kindForm: icon, icon: cloud, eyebrow: "負荷分散", lane: cloud }
+  - アプリの器: { kind: service, kindForm: icon, icon: lightning, eyebrow: "コンテナ", lane: cloud }
+  - 台帳の DB: { kind: database, kindForm: icon, icon: database, eyebrow: "表を持つ", lane: cloud }
 
 flow:
-  - ブラウザ -> ALB: "HTTPS" (teal, solid) { sub: "TLS 1.3", tailHead: dot }
-  - ALB -> ECS のタスク: "ラウンドロビン" (teal, solid) { head: dot }
-  - ECS のタスク -> RDS: "TCP 5432" (success, solid) { sub: "PgBouncer 経由" }
+  - ブラウザ -> 振り分け役: "HTTPS" (teal, solid) { sub: "TLS 1.3", tailHead: dot }
+  - 振り分け役 -> アプリの器: "ラウンドロビン" (teal, solid) { head: dot }
+  - アプリの器 -> 台帳の DB: "TCP 5432" (success, solid) { sub: "接続の束ね役を経由" }
 
 animation:
   - step: "1. ブラウザ" 0.9s
     badge: "topology"
     focus: [ブラウザ]
     body: "利用者側の入口。"
-  - step: "2. ALB" 0.9s
+  - step: "2. 振り分け役" 0.9s
     badge: "topology"
-    focus: [ブラウザ, ALB, "ブラウザ -> ALB"]
+    focus: [ブラウザ, 振り分け役, "ブラウザ -> 振り分け役"]
     body: "HTTPS を受けて振り分ける。"
-  - step: "3. ECS のタスク" 0.9s
+  - step: "3. アプリの器" 0.9s
     badge: "topology"
-    focus: [ブラウザ, ALB, "ブラウザ -> ALB", "ECS のタスク", "ALB -> ECS のタスク"]
+    focus: [ブラウザ, 振り分け役, "ブラウザ -> 振り分け役", "アプリの器", "振り分け役 -> アプリの器"]
     body: "コンテナが処理する。"
   - step: "システムの構成要素と接続を配置で示す図" 0.9s
     badge: "topology"
-    focus: [ブラウザ, ALB, "ブラウザ -> ALB", "ECS のタスク", "ALB -> ECS のタスク", RDS, "ECS のタスク -> RDS"]
-    body: "コンテナが PgBouncer を経て PostgreSQL に繋がる。"
+    focus: [ブラウザ, 振り分け役, "ブラウザ -> 振り分け役", "アプリの器", "振り分け役 -> アプリの器", "台帳の DB", "アプリの器 -> 台帳の DB"]
+    body: "コンテナが接続の束ね役を経て台帳の DB に繋がる。"
 `;
 
 export const sourceJson__presetTopology = `{
@@ -5488,18 +5488,18 @@ export const sourceJson__presetTopology = `{
   "type": "topology",
   "lanes": {
     "client": { "width": 460, "label": "利用者側", "subtitle": "L1 · 外の利用者" },
-    "aws": { "width": 460, "label": "AWS", "subtitle": "L2 · 中の部品" }
+    "cloud": { "width": 460, "label": "クラウド", "subtitle": "L2 · 中の部品" }
   },
   "actors": [
     { "name": "ブラウザ", "kind": "frontend", "kindForm": "icon", "icon": "person", "figureCard": {"label": "人", "note": "L1"}, "lane": "client" },
-    { "name": "ALB", "kind": "service", "kindForm": "icon", "icon": "cloud", "eyebrow": "負荷分散", "lane": "aws" },
-    { "name": "ECS のタスク", "kind": "service", "kindForm": "icon", "icon": "lightning", "eyebrow": "コンテナ", "lane": "aws" },
-    { "name": "RDS", "kind": "database", "kindForm": "icon", "icon": "database", "eyebrow": "PostgreSQL", "lane": "aws" }
+    { "name": "振り分け役", "kind": "service", "kindForm": "icon", "icon": "cloud", "eyebrow": "負荷分散", "lane": "cloud" },
+    { "name": "アプリの器", "kind": "service", "kindForm": "icon", "icon": "lightning", "eyebrow": "コンテナ", "lane": "cloud" },
+    { "name": "台帳の DB", "kind": "database", "kindForm": "icon", "icon": "database", "eyebrow": "表を持つ", "lane": "cloud" }
   ],
   "flow": [
     {
       "from": "ブラウザ",
-      "to": "ALB",
+      "to": "振り分け役",
       "label": "HTTPS",
       "sub": "TLS 1.3",
       "tone": "teal",
@@ -5507,18 +5507,18 @@ export const sourceJson__presetTopology = `{
       "tailHead": "dot"
     },
     {
-      "from": "ALB",
-      "to": "ECS のタスク",
+      "from": "振り分け役",
+      "to": "アプリの器",
       "label": "ラウンドロビン",
       "tone": "teal",
       "style": "solid",
       "head": "dot"
     },
     {
-      "from": "ECS のタスク",
-      "to": "RDS",
+      "from": "アプリの器",
+      "to": "台帳の DB",
       "label": "TCP 5432",
-      "sub": "PgBouncer 経由",
+      "sub": "接続の束ね役を経由",
       "tone": "success",
       "style": "solid"
     }
@@ -5532,16 +5532,16 @@ export const sourceJson__presetTopology = `{
       "badge": "topology"
     },
     {
-      "step": "2. ALB",
+      "step": "2. 振り分け役",
       "duration": 0.9,
-      "focus": ["ブラウザ", "ALB", "ブラウザ -> ALB"],
+      "focus": ["ブラウザ", "振り分け役", "ブラウザ -> 振り分け役"],
       "body": "HTTPS を受けて振り分ける。",
       "badge": "topology"
     },
     {
-      "step": "3. ECS のタスク",
+      "step": "3. アプリの器",
       "duration": 0.9,
-      "focus": ["ブラウザ", "ALB", "ブラウザ -> ALB", "ECS のタスク", "ALB -> ECS のタスク"],
+      "focus": ["ブラウザ", "振り分け役", "ブラウザ -> 振り分け役", "アプリの器", "振り分け役 -> アプリの器"],
       "body": "コンテナが処理する。",
       "badge": "topology"
     },
@@ -5550,14 +5550,14 @@ export const sourceJson__presetTopology = `{
       "duration": 0.9,
       "focus": [
         "ブラウザ",
-        "ALB",
-        "ブラウザ -> ALB",
-        "ECS のタスク",
-        "ALB -> ECS のタスク",
-        "RDS",
-        "ECS のタスク -> RDS"
+        "振り分け役",
+        "ブラウザ -> 振り分け役",
+        "アプリの器",
+        "振り分け役 -> アプリの器",
+        "台帳の DB",
+        "アプリの器 -> 台帳の DB"
       ],
-      "body": "コンテナが PgBouncer を経て PostgreSQL に繋がる。",
+      "body": "コンテナが接続の束ね役を経て台帳の DB に繋がる。",
       "badge": "topology"
     }
   ]
@@ -5691,40 +5691,40 @@ lanes:
 
 actors:
   - ブラウザ: { kind: person, lane: col-0, eyebrow: "利用者", subtitle: "利用者の画面" }
-  - CloudFront: { kind: cdn, kindForm: icon, icon: box, lane: col-1, eyebrow: "配信", subtitle: "静的配信" }
-  - ALB: { kind: service, lane: col-2, eyebrow: "振り分け", subtitle: "負荷分散" }
+  - 配信の入口: { kind: cdn, kindForm: icon, icon: box, lane: col-1, eyebrow: "配信", subtitle: "静的配信" }
+  - 振り分け役: { kind: service, lane: col-2, eyebrow: "振り分け", subtitle: "負荷分散" }
   - アプリ: { kind: service, kindForm: icon, icon: terminal, lane: col-2, eyebrow: "処理", subtitle: "注文の処理" }
-  - RDS: { kind: database, lane: col-3, eyebrow: "保存", subtitle: "永続化" }
-  - Redis: { kind: cache, lane: col-3, eyebrow: "一時保存", subtitle: "高速化" }
+  - 台帳の DB: { kind: database, lane: col-3, eyebrow: "保存", subtitle: "永続化" }
+  - キャッシュ: { kind: cache, lane: col-3, eyebrow: "一時保存", subtitle: "高速化" }
 
 flow:
-  - ブラウザ -> CloudFront: "HTTPS" (accent, solid) { role: main, labelPlate: false }
-  - CloudFront -> ALB: "オリジン" (accent, solid) { role: main, labelPlate: false }
-  - ALB -> アプリ: "転送" (accent, solid) { role: main, labelPlate: false }
-  - アプリ -> RDS: "SQL" (accent, solid) { labelPlate: false }
-  - アプリ -> Redis: "GET/SET" (accent, solid) { labelPlate: false }
+  - ブラウザ -> 配信の入口: "HTTPS" (accent, solid) { role: main, labelPlate: false }
+  - 配信の入口 -> 振り分け役: "オリジン" (accent, solid) { role: main, labelPlate: false }
+  - 振り分け役 -> アプリ: "転送" (accent, solid) { role: main, labelPlate: false }
+  - アプリ -> 台帳の DB: "SQL" (accent, solid) { labelPlate: false }
+  - アプリ -> キャッシュ: "GET/SET" (accent, solid) { labelPlate: false }
 
 animation:
   - step: "1. ブラウザ" 0.9s
     badge: "infrastructure"
     focus: [ブラウザ]
     body: "利用者から始まる。"
-  - step: "2. CloudFront" 0.9s
+  - step: "2. 配信の入口" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront"]
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口"]
     body: "HTTPS を受ける。"
-  - step: "3. ALB" 0.9s
+  - step: "3. 振り分け役" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", ALB, "CloudFront -> ALB"]
-    body: "CloudFront はオリジンの ALB へ要求を渡す。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", 振り分け役, "配信の入口 -> 振り分け役"]
+    body: "配信の入口はオリジンの振り分け役へ要求を渡す。"
   - step: "4. アプリ" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", ALB, "CloudFront -> ALB", アプリ, "ALB -> アプリ"]
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", 振り分け役, "配信の入口 -> 振り分け役", アプリ, "振り分け役 -> アプリ"]
     body: "処理を担う。"
   - step: "クラウド・ネットワーク構成を階層で示す図" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", ALB, "CloudFront -> ALB", アプリ, "ALB -> アプリ", RDS, Redis, "アプリ -> RDS", "アプリ -> Redis"]
-    body: "アプリは RDS に SQL で書き込み、Redis に一時保存する。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", 振り分け役, "配信の入口 -> 振り分け役", アプリ, "振り分け役 -> アプリ", "台帳の DB", キャッシュ, "アプリ -> 台帳の DB", "アプリ -> キャッシュ"]
+    body: "アプリは台帳の DB に SQL で書き込み、キャッシュに一時保存する。"
 `;
 
 export const sourceJson__presetInfrastructure = `{
@@ -5738,18 +5738,18 @@ export const sourceJson__presetInfrastructure = `{
   },
   "actors": [
     { "name": "ブラウザ", "kind": "person", "lane": "col-0", "eyebrow": "利用者", "subtitle": "利用者の画面" },
-    { "name": "CloudFront", "kind": "cdn", "kindForm": "icon", "icon": "box", "lane": "col-1", "eyebrow": "配信", "subtitle": "静的配信" },
-    { "name": "ALB", "kind": "service", "lane": "col-2", "eyebrow": "振り分け", "subtitle": "負荷分散" },
+    { "name": "配信の入口", "kind": "cdn", "kindForm": "icon", "icon": "box", "lane": "col-1", "eyebrow": "配信", "subtitle": "静的配信" },
+    { "name": "振り分け役", "kind": "service", "lane": "col-2", "eyebrow": "振り分け", "subtitle": "負荷分散" },
     { "name": "アプリ", "kind": "service", "kindForm": "icon", "icon": "terminal", "lane": "col-2", "eyebrow": "処理", "subtitle": "注文の処理" },
-    { "name": "RDS", "kind": "database", "lane": "col-3", "eyebrow": "保存", "subtitle": "永続化" },
-    { "name": "Redis", "kind": "cache", "lane": "col-3", "eyebrow": "一時保存", "subtitle": "高速化" }
+    { "name": "台帳の DB", "kind": "database", "lane": "col-3", "eyebrow": "保存", "subtitle": "永続化" },
+    { "name": "キャッシュ", "kind": "cache", "lane": "col-3", "eyebrow": "一時保存", "subtitle": "高速化" }
   ],
   "flow": [
-    { "from": "ブラウザ", "to": "CloudFront", "label": "HTTPS", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
-    { "from": "CloudFront", "to": "ALB", "label": "オリジン", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
-    { "from": "ALB", "to": "アプリ", "label": "転送", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
-    { "from": "アプリ", "to": "RDS", "label": "SQL", "tone": "accent", "style": "solid", "labelPlate": false },
-    { "from": "アプリ", "to": "Redis", "label": "GET/SET", "tone": "accent", "style": "solid", "labelPlate": false }
+    { "from": "ブラウザ", "to": "配信の入口", "label": "HTTPS", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "配信の入口", "to": "振り分け役", "label": "オリジン", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "振り分け役", "to": "アプリ", "label": "転送", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "アプリ", "to": "台帳の DB", "label": "SQL", "tone": "accent", "style": "solid", "labelPlate": false },
+    { "from": "アプリ", "to": "キャッシュ", "label": "GET/SET", "tone": "accent", "style": "solid", "labelPlate": false }
   ],
   "animation": [
     {
@@ -5760,17 +5760,17 @@ export const sourceJson__presetInfrastructure = `{
       "badge": "infrastructure"
     },
     {
-      "step": "2. CloudFront",
+      "step": "2. 配信の入口",
       "duration": 0.9,
-      "focus": ["ブラウザ", "CloudFront", "ブラウザ -> CloudFront"],
+      "focus": ["ブラウザ", "配信の入口", "ブラウザ -> 配信の入口"],
       "body": "HTTPS を受ける。",
       "badge": "infrastructure"
     },
     {
-      "step": "3. ALB",
+      "step": "3. 振り分け役",
       "duration": 0.9,
-      "focus": ["ブラウザ", "CloudFront", "ブラウザ -> CloudFront", "ALB", "CloudFront -> ALB"],
-      "body": "CloudFront はオリジンの ALB へ要求を渡す。",
+      "focus": ["ブラウザ", "配信の入口", "ブラウザ -> 配信の入口", "振り分け役", "配信の入口 -> 振り分け役"],
+      "body": "配信の入口はオリジンの振り分け役へ要求を渡す。",
       "badge": "infrastructure"
     },
     {
@@ -5778,12 +5778,12 @@ export const sourceJson__presetInfrastructure = `{
       "duration": 0.9,
       "focus": [
         "ブラウザ",
-        "CloudFront",
-        "ブラウザ -> CloudFront",
-        "ALB",
-        "CloudFront -> ALB",
+        "配信の入口",
+        "ブラウザ -> 配信の入口",
+        "振り分け役",
+        "配信の入口 -> 振り分け役",
         "アプリ",
-        "ALB -> アプリ"
+        "振り分け役 -> アプリ"
       ],
       "body": "処理を担う。",
       "badge": "infrastructure"
@@ -5793,18 +5793,18 @@ export const sourceJson__presetInfrastructure = `{
       "duration": 0.9,
       "focus": [
         "ブラウザ",
-        "CloudFront",
-        "ブラウザ -> CloudFront",
-        "ALB",
-        "CloudFront -> ALB",
+        "配信の入口",
+        "ブラウザ -> 配信の入口",
+        "振り分け役",
+        "配信の入口 -> 振り分け役",
         "アプリ",
-        "ALB -> アプリ",
-        "RDS",
-        "Redis",
-        "アプリ -> RDS",
-        "アプリ -> Redis"
+        "振り分け役 -> アプリ",
+        "台帳の DB",
+        "キャッシュ",
+        "アプリ -> 台帳の DB",
+        "アプリ -> キャッシュ"
       ],
-      "body": "アプリは RDS に SQL で書き込み、Redis に一時保存する。",
+      "body": "アプリは台帳の DB に SQL で書き込み、キャッシュに一時保存する。",
       "badge": "infrastructure"
     }
   ]
@@ -5823,84 +5823,84 @@ lanes:
   col-4: { width: 380 }
 
 actors:
-  - S3: { kind: database, lane: col-1, stack: 0, eyebrow: "静的ファイル", subtitle: "画像と画面の部品" }
-  - Cognito: { kind: service, lane: col-2, stack: 0, eyebrow: "認証", subtitle: "ログインを確かめる" }
-  - Redis: { kind: cache, lane: col-3, stack: 0, eyebrow: "一時保存", subtitle: "在庫数を覚えておく" }
-  - RDS 複製: { kind: database, lane: col-4, stack: 0, eyebrow: "読み取り", subtitle: "集計に使う写し" }
+  - ファイル置き場: { kind: database, lane: col-1, stack: 0, eyebrow: "静的ファイル", subtitle: "画像と画面の部品" }
+  - ログインの役務: { kind: service, lane: col-2, stack: 0, eyebrow: "認証", subtitle: "ログインを確かめる" }
+  - キャッシュ: { kind: cache, lane: col-3, stack: 0, eyebrow: "一時保存", subtitle: "在庫数を覚えておく" }
+  - 台帳の写し: { kind: database, lane: col-4, stack: 0, eyebrow: "読み取り", subtitle: "集計に使う写し" }
   - ブラウザ: { kind: person, lane: col-0, stack: 1, eyebrow: "利用者", subtitle: "注文する人の画面" }
-  - CloudFront: { kind: cdn, lane: col-1, stack: 1, eyebrow: "配信", subtitle: "近い拠点から返す" }
-  - ALB: { kind: service, lane: col-2, stack: 1, eyebrow: "振り分け", subtitle: "空いたタスクへ渡す" }
-  - 注文 API: { kind: service, lane: col-3, stack: 1, eyebrow: "処理", subtitle: "ECS のタスク" }
-  - RDS 主: { kind: database, lane: col-4, stack: 1, eyebrow: "書き込み", subtitle: "注文の台帳" }
-  - SQS: { kind: queue, lane: col-3, stack: 2, eyebrow: "待ち行列", subtitle: "注文の知らせを溜める" }
-  - 発送係: { kind: service, lane: col-4, stack: 2, eyebrow: "後ろの処理", subtitle: "Lambda の関数" }
-  - SES: { kind: service, lane: col-4, stack: 3, eyebrow: "送信", subtitle: "発送の知らせを送る" }
+  - 配信の入口: { kind: cdn, lane: col-1, stack: 1, eyebrow: "配信", subtitle: "近い拠点から返す" }
+  - 振り分け役: { kind: service, lane: col-2, stack: 1, eyebrow: "振り分け", subtitle: "空いたタスクへ渡す" }
+  - 注文 API: { kind: service, lane: col-3, stack: 1, eyebrow: "処理", subtitle: "アプリの器" }
+  - 主の台帳: { kind: database, lane: col-4, stack: 1, eyebrow: "書き込み", subtitle: "注文の台帳" }
+  - 知らせの列: { kind: queue, lane: col-3, stack: 2, eyebrow: "待ち行列", subtitle: "注文の知らせを溜める" }
+  - 発送係: { kind: service, lane: col-4, stack: 2, eyebrow: "後ろの処理", subtitle: "小さな関数" }
+  - メールの配達: { kind: service, lane: col-4, stack: 3, eyebrow: "送信", subtitle: "発送の知らせを送る" }
 
 # role: main はブラウザから台帳に書くまでの 4 本だけに書く
 flow:
-  - ブラウザ -> CloudFront: "HTTPS" (accent, solid) { role: main, labelPlate: false }
-  - CloudFront -> S3: "静的ファイル" (accent, solid) { labelPlate: false }
-  - CloudFront -> ALB: "オリジン" (accent, solid) { role: main, labelPlate: false }
-  - ALB -> Cognito: "ログインを確かめる" (accent, solid) { labelPlate: false }
-  - ALB -> 注文 API: "転送" (accent, solid) { role: main, labelPlate: false }
-  - 注文 API -> Redis: "GET/SET" (accent, solid) { labelPlate: false }
-  - 注文 API -> RDS 主: "SQL" (accent, solid) { role: main, labelPlate: false }
-  - RDS 主 -> RDS 複製: "複製" (accent, solid) { labelPlate: false }
-  - 注文 API -> SQS: "注文の知らせ" (accent, solid) { labelPlate: false }
-  - SQS -> 発送係: "取り出す" (accent, solid) { labelPlate: false }
-  - 発送係 -> RDS 主: "発送済みを書く" (accent, solid) { labelPlate: false }
-  - 発送係 -> SES: "送る" (accent, solid) { labelPlate: false }
+  - ブラウザ -> 配信の入口: "HTTPS" (accent, solid) { role: main, labelPlate: false }
+  - 配信の入口 -> ファイル置き場: "静的ファイル" (accent, solid) { labelPlate: false }
+  - 配信の入口 -> 振り分け役: "オリジン" (accent, solid) { role: main, labelPlate: false }
+  - 振り分け役 -> ログインの役務: "ログインを確かめる" (accent, solid) { labelPlate: false }
+  - 振り分け役 -> 注文 API: "転送" (accent, solid) { role: main, labelPlate: false }
+  - 注文 API -> キャッシュ: "GET/SET" (accent, solid) { labelPlate: false }
+  - 注文 API -> 主の台帳: "SQL" (accent, solid) { role: main, labelPlate: false }
+  - 主の台帳 -> 台帳の写し: "複製" (accent, solid) { labelPlate: false }
+  - 注文 API -> 知らせの列: "注文の知らせ" (accent, solid) { labelPlate: false }
+  - 知らせの列 -> 発送係: "取り出す" (accent, solid) { labelPlate: false }
+  - 発送係 -> 主の台帳: "発送済みを書く" (accent, solid) { labelPlate: false }
+  - 発送係 -> メールの配達: "送る" (accent, solid) { labelPlate: false }
 
 animation:
   - step: "1. 近い拠点へ繋ぐ" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront"]
-    body: "ブラウザは近い拠点の CloudFront に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。"
-  - step: "2. 画面の部品は S3 から" 0.9s
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口"]
+    body: "ブラウザは近い拠点の配信の入口に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。"
+  - step: "2. 画面の部品はファイル置き場から" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3"]
-    body: "画像や画面の部品は、CloudFront が S3 から返す。 この線は順路から外れる枝で、アプリまで届かない。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", ファイル置き場, "配信の入口 -> ファイル置き場"]
+    body: "画像や画面の部品は、配信の入口がファイル置き場から返す。 この線は順路から外れる枝で、アプリまで届かない。"
   - step: "3. 振り分けの前にログインを確かめる" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito"]
-    body: "画面の部品以外の要求は、オリジンの ALB へ渡る。 ALB は Cognito でログインを確かめてから通す。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", ファイル置き場, "配信の入口 -> ファイル置き場", 振り分け役, ログインの役務, "配信の入口 -> 振り分け役", "振り分け役 -> ログインの役務"]
+    body: "画面の部品以外の要求は、オリジンの振り分け役へ渡る。振り分け役はログインの役務でログインを確かめてから通す。"
   - step: "4. 注文 API へ転送する" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API"]
-    body: "ALB は空いている ECS のタスクへ転送する。 タスクを増やしても入口は ALB の 1 つのまま。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", ファイル置き場, "配信の入口 -> ファイル置き場", 振り分け役, ログインの役務, "配信の入口 -> 振り分け役", "振り分け役 -> ログインの役務", "注文 API", "振り分け役 -> 注文 API"]
+    body: "振り分け役は空いているアプリの器へ転送する。 タスクを増やしても入口は振り分け役の 1 つのまま。"
   - step: "5. 在庫数を一時保存から読む" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis"]
-    body: "在庫数は Redis に覚えておく。 注文のたびに台帳を読まずに済む。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", ファイル置き場, "配信の入口 -> ファイル置き場", 振り分け役, ログインの役務, "配信の入口 -> 振り分け役", "振り分け役 -> ログインの役務", "注文 API", "振り分け役 -> 注文 API", キャッシュ, "注文 API -> キャッシュ"]
+    body: "在庫数はキャッシュに覚えておく。 注文のたびに台帳を読まずに済む。"
   - step: "6. 台帳に書いて写しを作る" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis", "RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製"]
-    body: "注文は RDS 主に SQL で書く。 主は写しを RDS 複製へ送り、集計の読み取りは複製が受ける。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", ファイル置き場, "配信の入口 -> ファイル置き場", 振り分け役, ログインの役務, "配信の入口 -> 振り分け役", "振り分け役 -> ログインの役務", "注文 API", "振り分け役 -> 注文 API", キャッシュ, "注文 API -> キャッシュ", "主の台帳", "台帳の写し", "注文 API -> 主の台帳", "主の台帳 -> 台帳の写し"]
+    body: "注文は主の台帳に SQL で書く。 主は写しを台帳の写しへ送り、集計の読み取りは複製が受ける。"
   - step: "7. 知らせを待ち行列に置く" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis", "RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製", SQS, "注文 API -> SQS"]
-    body: "注文 API は発送の手配を待たない。 SQS に知らせを置いた時点で、ブラウザへ返事を返す。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", ファイル置き場, "配信の入口 -> ファイル置き場", 振り分け役, ログインの役務, "配信の入口 -> 振り分け役", "振り分け役 -> ログインの役務", "注文 API", "振り分け役 -> 注文 API", キャッシュ, "注文 API -> キャッシュ", "主の台帳", "台帳の写し", "注文 API -> 主の台帳", "主の台帳 -> 台帳の写し", 知らせの列, "注文 API -> 知らせの列"]
+    body: "注文 API は発送の手配を待たない。 列に知らせを置いた時点で、ブラウザへ返事を返す。"
   - step: "8. 発送係が引き取る" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis", "RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製", SQS, "注文 API -> SQS", 発送係, "SQS -> 発送係", "発送係 -> RDS 主"]
-    body: "Lambda の発送係が知らせを取り出して手配する。 済んだら同じ RDS 主に発送済みを書く = 台帳へ書く線が 2 本入る。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", ファイル置き場, "配信の入口 -> ファイル置き場", 振り分け役, ログインの役務, "配信の入口 -> 振り分け役", "振り分け役 -> ログインの役務", "注文 API", "振り分け役 -> 注文 API", キャッシュ, "注文 API -> キャッシュ", "主の台帳", "台帳の写し", "注文 API -> 主の台帳", "主の台帳 -> 台帳の写し", 知らせの列, "注文 API -> 知らせの列", 発送係, "知らせの列 -> 発送係", "発送係 -> 主の台帳"]
+    body: "発送係が知らせを取り出して手配する。 済んだら同じ主の台帳に発送済みを書く = 台帳へ書く線が 2 本入る。"
   - step: "注文を受けてから発送の知らせを送るまでのクラウド構成図" 0.9s
     badge: "infrastructure"
-    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis", "RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製", SQS, "注文 API -> SQS", 発送係, "SQS -> 発送係", "発送係 -> RDS 主", SES, "発送係 -> SES"]
-    body: "発送係は SES で発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。"
+    focus: [ブラウザ, 配信の入口, "ブラウザ -> 配信の入口", ファイル置き場, "配信の入口 -> ファイル置き場", 振り分け役, ログインの役務, "配信の入口 -> 振り分け役", "振り分け役 -> ログインの役務", "注文 API", "振り分け役 -> 注文 API", キャッシュ, "注文 API -> キャッシュ", "主の台帳", "台帳の写し", "注文 API -> 主の台帳", "主の台帳 -> 台帳の写し", 知らせの列, "注文 API -> 知らせの列", 発送係, "知らせの列 -> 発送係", "発送係 -> 主の台帳", メールの配達, "発送係 -> メールの配達"]
+    body: "発送係はメールの配達を通して発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。"
 `;
 
 /** 複雑な構成図の段で光る先。 記法の JSON は段ごとに前の段の分を積み上げて書く */
 const infraComplexFocus: readonly (readonly string[])[] = [
-  ["ブラウザ", "CloudFront", "ブラウザ -> CloudFront"],
-  ["S3", "CloudFront -> S3"],
-  ["ALB", "Cognito", "CloudFront -> ALB", "ALB -> Cognito"],
-  ["注文 API", "ALB -> 注文 API"],
-  ["Redis", "注文 API -> Redis"],
-  ["RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製"],
-  ["SQS", "注文 API -> SQS"],
-  ["発送係", "SQS -> 発送係", "発送係 -> RDS 主"],
-  ["SES", "発送係 -> SES"],
+  ["ブラウザ", "配信の入口", "ブラウザ -> 配信の入口"],
+  ["ファイル置き場", "配信の入口 -> ファイル置き場"],
+  ["振り分け役", "ログインの役務", "配信の入口 -> 振り分け役", "振り分け役 -> ログインの役務"],
+  ["注文 API", "振り分け役 -> 注文 API"],
+  ["キャッシュ", "注文 API -> キャッシュ"],
+  ["主の台帳", "台帳の写し", "注文 API -> 主の台帳", "主の台帳 -> 台帳の写し"],
+  ["知らせの列", "注文 API -> 知らせの列"],
+  ["発送係", "知らせの列 -> 発送係", "発送係 -> 主の台帳"],
+  ["メールの配達", "発送係 -> メールの配達"],
 ];
 
 export const sourceJson__pattern__presetInfrastructure__複雑 = JSON.stringify(
@@ -5915,43 +5915,43 @@ export const sourceJson__pattern__presetInfrastructure__複雑 = JSON.stringify(
       "col-4": { width: 380 },
     },
     actors: [
-      { name: "S3", kind: "database", lane: "col-1", stack: 0, eyebrow: "静的ファイル", subtitle: "画像と画面の部品" },
-      { name: "Cognito", kind: "service", lane: "col-2", stack: 0, eyebrow: "認証", subtitle: "ログインを確かめる" },
-      { name: "Redis", kind: "cache", lane: "col-3", stack: 0, eyebrow: "一時保存", subtitle: "在庫数を覚えておく" },
-      { name: "RDS 複製", kind: "database", lane: "col-4", stack: 0, eyebrow: "読み取り", subtitle: "集計に使う写し" },
+      { name: "ファイル置き場", kind: "database", lane: "col-1", stack: 0, eyebrow: "静的ファイル", subtitle: "画像と画面の部品" },
+      { name: "ログインの役務", kind: "service", lane: "col-2", stack: 0, eyebrow: "認証", subtitle: "ログインを確かめる" },
+      { name: "キャッシュ", kind: "cache", lane: "col-3", stack: 0, eyebrow: "一時保存", subtitle: "在庫数を覚えておく" },
+      { name: "台帳の写し", kind: "database", lane: "col-4", stack: 0, eyebrow: "読み取り", subtitle: "集計に使う写し" },
       { name: "ブラウザ", kind: "person", lane: "col-0", stack: 1, eyebrow: "利用者", subtitle: "注文する人の画面" },
-      { name: "CloudFront", kind: "cdn", lane: "col-1", stack: 1, eyebrow: "配信", subtitle: "近い拠点から返す" },
-      { name: "ALB", kind: "service", lane: "col-2", stack: 1, eyebrow: "振り分け", subtitle: "空いたタスクへ渡す" },
-      { name: "注文 API", kind: "service", lane: "col-3", stack: 1, eyebrow: "処理", subtitle: "ECS のタスク" },
-      { name: "RDS 主", kind: "database", lane: "col-4", stack: 1, eyebrow: "書き込み", subtitle: "注文の台帳" },
-      { name: "SQS", kind: "queue", lane: "col-3", stack: 2, eyebrow: "待ち行列", subtitle: "注文の知らせを溜める" },
-      { name: "発送係", kind: "service", lane: "col-4", stack: 2, eyebrow: "後ろの処理", subtitle: "Lambda の関数" },
-      { name: "SES", kind: "service", lane: "col-4", stack: 3, eyebrow: "送信", subtitle: "発送の知らせを送る" },
+      { name: "配信の入口", kind: "cdn", lane: "col-1", stack: 1, eyebrow: "配信", subtitle: "近い拠点から返す" },
+      { name: "振り分け役", kind: "service", lane: "col-2", stack: 1, eyebrow: "振り分け", subtitle: "空いたタスクへ渡す" },
+      { name: "注文 API", kind: "service", lane: "col-3", stack: 1, eyebrow: "処理", subtitle: "アプリの器" },
+      { name: "主の台帳", kind: "database", lane: "col-4", stack: 1, eyebrow: "書き込み", subtitle: "注文の台帳" },
+      { name: "知らせの列", kind: "queue", lane: "col-3", stack: 2, eyebrow: "待ち行列", subtitle: "注文の知らせを溜める" },
+      { name: "発送係", kind: "service", lane: "col-4", stack: 2, eyebrow: "後ろの処理", subtitle: "小さな関数" },
+      { name: "メールの配達", kind: "service", lane: "col-4", stack: 3, eyebrow: "送信", subtitle: "発送の知らせを送る" },
     ],
     flow: [
-      { from: "ブラウザ", to: "CloudFront", label: "HTTPS", tone: "accent", style: "solid", role: "main", labelPlate: false },
-      { from: "CloudFront", to: "S3", label: "静的ファイル", tone: "accent", style: "solid", labelPlate: false },
-      { from: "CloudFront", to: "ALB", label: "オリジン", tone: "accent", style: "solid", role: "main", labelPlate: false },
-      { from: "ALB", to: "Cognito", label: "ログインを確かめる", tone: "accent", style: "solid", labelPlate: false },
-      { from: "ALB", to: "注文 API", label: "転送", tone: "accent", style: "solid", role: "main", labelPlate: false },
-      { from: "注文 API", to: "Redis", label: "GET/SET", tone: "accent", style: "solid", labelPlate: false },
-      { from: "注文 API", to: "RDS 主", label: "SQL", tone: "accent", style: "solid", role: "main", labelPlate: false },
-      { from: "RDS 主", to: "RDS 複製", label: "複製", tone: "accent", style: "solid", labelPlate: false },
-      { from: "注文 API", to: "SQS", label: "注文の知らせ", tone: "accent", style: "solid", labelPlate: false },
-      { from: "SQS", to: "発送係", label: "取り出す", tone: "accent", style: "solid", labelPlate: false },
-      { from: "発送係", to: "RDS 主", label: "発送済みを書く", tone: "accent", style: "solid", labelPlate: false },
-      { from: "発送係", to: "SES", label: "送る", tone: "accent", style: "solid", labelPlate: false },
+      { from: "ブラウザ", to: "配信の入口", label: "HTTPS", tone: "accent", style: "solid", role: "main", labelPlate: false },
+      { from: "配信の入口", to: "ファイル置き場", label: "静的ファイル", tone: "accent", style: "solid", labelPlate: false },
+      { from: "配信の入口", to: "振り分け役", label: "オリジン", tone: "accent", style: "solid", role: "main", labelPlate: false },
+      { from: "振り分け役", to: "ログインの役務", label: "ログインを確かめる", tone: "accent", style: "solid", labelPlate: false },
+      { from: "振り分け役", to: "注文 API", label: "転送", tone: "accent", style: "solid", role: "main", labelPlate: false },
+      { from: "注文 API", to: "キャッシュ", label: "GET/SET", tone: "accent", style: "solid", labelPlate: false },
+      { from: "注文 API", to: "主の台帳", label: "SQL", tone: "accent", style: "solid", role: "main", labelPlate: false },
+      { from: "主の台帳", to: "台帳の写し", label: "複製", tone: "accent", style: "solid", labelPlate: false },
+      { from: "注文 API", to: "知らせの列", label: "注文の知らせ", tone: "accent", style: "solid", labelPlate: false },
+      { from: "知らせの列", to: "発送係", label: "取り出す", tone: "accent", style: "solid", labelPlate: false },
+      { from: "発送係", to: "主の台帳", label: "発送済みを書く", tone: "accent", style: "solid", labelPlate: false },
+      { from: "発送係", to: "メールの配達", label: "送る", tone: "accent", style: "solid", labelPlate: false },
     ],
     animation: [
-      ["1. 近い拠点へ繋ぐ", "ブラウザは近い拠点の CloudFront に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。"],
-      ["2. 画面の部品は S3 から", "画像や画面の部品は、CloudFront が S3 から返す。 この線は順路から外れる枝で、アプリまで届かない。"],
-      ["3. 振り分けの前にログインを確かめる", "画面の部品以外の要求は、オリジンの ALB へ渡る。 ALB は Cognito でログインを確かめてから通す。"],
-      ["4. 注文 API へ転送する", "ALB は空いている ECS のタスクへ転送する。 タスクを増やしても入口は ALB の 1 つのまま。"],
-      ["5. 在庫数を一時保存から読む", "在庫数は Redis に覚えておく。 注文のたびに台帳を読まずに済む。"],
-      ["6. 台帳に書いて写しを作る", "注文は RDS 主に SQL で書く。 主は写しを RDS 複製へ送り、集計の読み取りは複製が受ける。"],
-      ["7. 知らせを待ち行列に置く", "注文 API は発送の手配を待たない。 SQS に知らせを置いた時点で、ブラウザへ返事を返す。"],
-      ["8. 発送係が引き取る", "Lambda の発送係が知らせを取り出して手配する。 済んだら同じ RDS 主に発送済みを書く = 台帳へ書く線が 2 本入る。"],
-      ["注文を受けてから発送の知らせを送るまでのクラウド構成図", "発送係は SES で発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。"],
+      ["1. 近い拠点へ繋ぐ", "ブラウザは近い拠点の配信の入口に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。"],
+      ["2. 画面の部品はファイル置き場から", "画像や画面の部品は、配信の入口がファイル置き場から返す。 この線は順路から外れる枝で、アプリまで届かない。"],
+      ["3. 振り分けの前にログインを確かめる", "画面の部品以外の要求は、オリジンの振り分け役へ渡る。振り分け役はログインの役務でログインを確かめてから通す。"],
+      ["4. 注文 API へ転送する", "振り分け役は空いているアプリの器へ転送する。 タスクを増やしても入口は振り分け役の 1 つのまま。"],
+      ["5. 在庫数を一時保存から読む", "在庫数はキャッシュに覚えておく。 注文のたびに台帳を読まずに済む。"],
+      ["6. 台帳に書いて写しを作る", "注文は主の台帳に SQL で書く。 主は写しを台帳の写しへ送り、集計の読み取りは複製が受ける。"],
+      ["7. 知らせを待ち行列に置く", "注文 API は発送の手配を待たない。 列に知らせを置いた時点で、ブラウザへ返事を返す。"],
+      ["8. 発送係が引き取る", "発送係が知らせを取り出して手配する。 済んだら同じ主の台帳に発送済みを書く = 台帳へ書く線が 2 本入る。"],
+      ["注文を受けてから発送の知らせを送るまでのクラウド構成図", "発送係はメールの配達を通して発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。"],
     ].map(([step, body], i) => ({
       step,
       duration: 0.9,

@@ -236,10 +236,10 @@ test.describe("並べて見る側の倍率 (#1749)", () => {
 
   test("細い図は倍率を下げると小さくなる (伸ばされる側)", async ({ page }) => {
     /*
-     * `scene-web-infra` は viewBox 510 幅が 874px に伸び、高さが 1988px になる。
+     * `shape-person` は箱 1 つだけの見本で、台の幅より狭い板が台の幅まで伸びる。
      * 下げる向きが効くのはこの形のため。
      */
-    await 図を選ぶ(page, "primitives", "scene-web-infra");
+    await 図を選ぶ(page, "primitives", "shape-person");
     const 合わせた = await 図を測る(page);
     // 伸ばされていることを先に押さえる = 縮んでいる図だと下げる向きの意味が変わる
     expect(合わせた.幅 / 合わせた.vbW).toBeGreaterThan(1);

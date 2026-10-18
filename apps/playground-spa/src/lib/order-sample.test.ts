@@ -1,17 +1,20 @@
 /**
- * 契約の図 (`order: 種類` を書いた順序図) の見本が、種別による縦線の並べ替えを実演している
- * こと (#2131)。 #2655 まで この並べ替えは `solidity` という別の図種が担っていた。
+ * `order: 種類` を書いた順序図の見本が、種別による縦線の並べ替えを実演していること (#2131)。
+ * #2655 まで この並べ替えは `solidity` という別の図種が担っていた。
+ *
+ * 見る見本は基本要素の「順序図の箱を種類の順に置く」。 以前は実用例の送金の見本を見ていたが、
+ * 特定の分野に寄った題材として外した (#2946)。
  *
  * 並べ替えそのものは `packages/dragon/test/order-by-kind.test.ts` (#1411) が見ている。
  * ここで見るのは **カタログの見本がその並べ替えを使っているか**。
  *
- * 見本は種別を 1 つも書いておらず、全ての箱が `actor` になって並べ替えの鍵が揃い、
+ * 以前の見本は種別を 1 つも書いておらず、全ての箱が `actor` になって並べ替えの鍵が揃い、
  * **書いた順のまま並んでいた**。 題は「種別ごとに縦列が並ぶ」 と謳うのに、図は出来事から
  * 始まっていた。 並べ替えの検査は手書きの記法で通るため、見本の不備は素通りした。
  *
  * ## 何を見るか
  *
- * **並びそのものではなく、書いた順と違うこと** を見る。 見本は逆順 (出来事 → 人) で書いて
+ * **並びそのものではなく、書いた順と違うこと** を見る。 見本は人を 2 番目に書いて
  * あるので、図の並びが書いた順と一致したら見本は並べ替えを実演していない。 並びだけを見ると、
  * 誰かが見本を人から順に書き直した時に、実演が消えていても通る。
  *
@@ -22,7 +25,7 @@ import { load } from "js-yaml";
 import { textDslToDiagram, jsonToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
-import * as Cookbook from "@/topics/catalog/cookbook.cdl";
+import * as Primitives from "@/topics/catalog/primitives.cdl";
 
 type 板 = {
   kind?: string;
@@ -32,8 +35,8 @@ type 板 = {
   };
 };
 
-const 記法 = Cookbook.sourceYaml__tokenTransferSolidity;
-const JSON記法 = Cookbook.sourceJson__tokenTransferSolidity;
+const 記法 = Primitives.sourceYaml__pattern__boxOrder__種類の順に置く;
+const JSON記法 = Primitives.sourceJson__pattern__boxOrder__種類の順に置く;
 
 /** 板を引く。 見つからなければ検査の前提が崩れている */
 function 板を引く(図: CdlDiagram): NonNullable<板["sequenceData"]> {
@@ -60,20 +63,20 @@ function 書いた順(記法: string): string[] {
   return 箱たち.map((a) => (typeof a === "string" ? a : Object.keys(a)[0]!));
 }
 
-describe("契約の図の見本が種別による並べ替えを実演する (#2131)", () => {
-  it("記法の箱を 4 つ読め、板に縦線が 4 本ある (前提)", () => {
-    expect(書いた順(記法), "記法の箱を読めていない (検査が空振りしている)").toHaveLength(4);
-    expect(縦線(textDslToDiagram(記法)), "縦線を数えられていない").toHaveLength(4);
+describe("並べ替えの見本が種別による並べ替えを実演する (#2131)", () => {
+  it("記法の箱を 3 つ読め、板に縦線が 3 本ある (前提)", () => {
+    expect(書いた順(記法), "記法の箱を読めていない (検査が空振りしている)").toHaveLength(3);
+    expect(縦線(textDslToDiagram(記法)), "縦線を数えられていない").toHaveLength(3);
   });
 
-  it("記法は逆順 (出来事 → 保存 → 契約 → 人) で書いてある", () => {
+  it("記法は 保存 → 人 → 出来事 の順で書いてある", () => {
     // 順に書くと並べ替えが働いても働かなくても同じ図になり、実演にならない
-    expect(書いた順(記法)).toEqual(["Transfer", "残高表", "トークン契約", "利用者"]);
+    expect(書いた順(記法)).toEqual(["金庫", "利用者", "履歴"]);
   });
 
-  it("図は 人 → 契約 → 保存 → 出来事 の順に並ぶ (書いた順と違う)", () => {
+  it("図は 人 → 保存 → 出来事 の順に並ぶ (書いた順と違う)", () => {
     const 並び = 縦線(textDslToDiagram(記法));
-    expect(並び).toEqual(["利用者", "トークン契約", "残高表", "Transfer"]);
+    expect(並び).toEqual(["利用者", "金庫", "履歴"]);
     expect(並び, "書いた順のまま並んでいる (種別が効いていない)").not.toEqual(書いた順(記法));
   });
 
@@ -85,10 +88,8 @@ describe("契約の図の見本が種別による並べ替えを実演する (#2
     const b = 板を引く(textDslToDiagram(記法));
     const 名 = b.actors.map((a) => a.name);
     expect(b.messages.map((m) => `${m.label}: ${名[m.from]} -> ${名[m.to]}`)).toEqual([
-      "transfer(花子, 100): 利用者 -> トークン契約",
-      "残高を書き換える: トークン契約 -> 残高表",
-      "Transfer を出す: トークン契約 -> Transfer",
-      "成功を返す: トークン契約 -> 利用者",
+      "預ける: 利用者 -> 金庫",
+      "残す: 金庫 -> 履歴",
     ]);
   });
 

@@ -41,7 +41,7 @@ signal 値 or dropdown の option 別に lane を切る。 default 位置 lane �
 array data を semantic category に分けて lane 分散。 各 element 個別 card で内訳を明示し、 対応する readout (list/donut/histogram 等) を併存させて aggregate view も維持。
 
 - 適用条件 = array element に意味的 category label が付与可能
-- 実例 = `interactive-search-results` (Docs 4 / Interactive tool 1)、 `interactive-week-weather` (Sunny/Cloudy/Thunder)、 `interactive-tutorial-videos` (Rust/TS/React)、 `interactive-crypto-wallet` (Gainers/Losers)、 `interactive-world-map` (APAC/AMEA)、 `interactive-portfolio-donut` (Traditional/Alternative)、 `interactive-signup-form` (Personal/Contact/Prefs)
+- 実例 = `interactive-search-results` (Docs 4 / Interactive tool 1)、 `interactive-week-weather` (Sunny/Cloudy/Thunder)、 `interactive-tutorial-videos` (Rust/TS/React)、 `interactive-purchase-price-list` (Gainers/Losers)、 `interactive-world-map` (APAC/AMEA)、 `interactive-portfolio-donut` (Traditional/Alternative)、 `interactive-signup-form` (Personal/Contact/Prefs)
 - 実装 idiom
   ```ts
   .lane("catA", { x: 0, width: 260 })
@@ -55,7 +55,7 @@ array data を semantic category に分けて lane 分散。 各 element 個別 
 上流 → 下流 の段階を lane で横並び、 各段階間を edge で連結。 tone escalate (info → warning → error など) で drop-off や tier change を可視化。
 
 - 適用条件 = step / stage の連鎖 (2-5 段階)
-- 実例 = `interactive-eip1559` (Sender/Block N/N+1/N+2 + 3 tx edge)、 `interactive-oauth-flow` (User/Auth/Resource + 6 event edge)、 `interactive-shipping-status` (Packed/Shipped/Delivery/Delivered + 3 edge)、 `interactive-onboarding-stepper` (5-lane + 4 next/finish edge)、 `interactive-sales-funnel` (Visit/Signup/Trial/Paid + 3 conv edge, tone escalate to error)、 `interactive-project-gantt` (Design/Impl/Test/Ship + 3 handover edge)、 `interactive-traffic-sankey` (Sources 3 / Landings 2 / Checkout + 8 edge)、 `interactive-year-roadmap` (Q1-Q4 + 3 handover edge)、 `interactive-user-avatar` (Input/Initials/Circle + 2 parse/render edge)
+- 実例 = `interactive-oauth-flow` (User/Auth/Resource + 6 event edge)、 `interactive-shipping-status` (Packed/Shipped/Delivery/Delivered + 3 edge)、 `interactive-onboarding-stepper` (5-lane + 4 next/finish edge)、 `interactive-sales-funnel` (Visit/Signup/Trial/Paid + 3 conv edge, tone escalate to error)、 `interactive-project-gantt` (Design/Impl/Test/Ship + 3 handover edge)、 `interactive-traffic-sankey` (Sources 3 / Landings 2 / Checkout + 8 edge)、 `interactive-year-roadmap` (Q1-Q4 + 3 handover edge)、 `interactive-user-avatar` (Input/Initials/Circle + 2 parse/render edge)
 - 実装 idiom
   ```ts
   .lane("s1", { x: 0, width: 200 })

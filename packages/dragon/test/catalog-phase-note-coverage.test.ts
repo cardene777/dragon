@@ -68,7 +68,6 @@ import * as Interactive from "../../../apps/playground-spa/src/topics/catalog/in
 import * as Cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
 import * as Patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
 import * as TextDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import * as Ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as Animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
 import * as Primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
 import * as PrimitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
@@ -86,7 +85,6 @@ const 対象: Array<[string, Record<string, unknown>]> = [
   ["cookbook", Cookbook],
   ["patterns", Patterns],
   ["text-dsl", TextDsl],
-  ["ethereum", Ethereum],
   ["animation", Animation],
   ["primitives", Primitives],
   ["primitives-extra", PrimitivesExtra],

@@ -24,7 +24,7 @@
  */
 export const 段が動かす見本 = [
   "arraySignalHistogram", "arrayLineChart", "arrayStackedBar", "arrayWaterfall",
-  "eip1559GasFlow", "interactiveOauthFlow", "portfolioDonut", "abTestResult",
+  "interactiveOauthFlow", "portfolioDonut", "abTestResult",
   "canvasMiniMap",
   // #1032 の 1 本目 (表示部品の見本、いずれも入力欄も計算式も持たない)
   "matrixHeatmap", "taskProgressGroup", "skillRadar", "perfBubbleChart",
@@ -36,7 +36,7 @@ export const 段が動かす見本 = [
   "sprintChecklist",
   // #1032 の 3 本目 (いずれも表示部品が見る配列を入力欄も計算式も持たない)
   "postReactions", "techPills", "dashboardMetricsGrid", "kpiIconTile",
-  "cryptoWallet", "worldMapPins", "tournamentPodium", "featurePoll",
+  "purchasePriceList", "worldMapPins", "tournamentPodium", "featurePoll",
   "reviewerStack", "gitCommitList", "serverEventLog", "searchResults",
   "yearRoadmap", "weekWeather",
   // #1032 の 4 本目

@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 import { NODE_KINDS } from "@cardenelabs/cdl";
 
 import { 実在する群 } from "../../../../packages/dragon/test/support/catalog-groups";
+import { 外した挿絵の種類 } from "../../../../packages/dragon/test/support/removed-illustration-kinds";
 
 /**
  * カタログの群を **dir の走査で集める** (#2314)。
@@ -71,8 +72,10 @@ function 使われている種別(): Set<string> {
  * (`chart-stat` / `chart-waffle` / `chart-stacked-bar`) は 1 つ目の PR、
  * 印 2 種 (`mark-start` / `mark-end`) は 2 つ目の PR で外した。
  *
+ * 外した挿絵の種類 (#2946) は cdl から外すまで載せる。 一覧と理由は
+ * `packages/dragon/test/support/removed-illustration-kinds.ts` が持つ。
  */
-const 対象外: ReadonlyArray<string> = [];
+const 対象外: ReadonlyArray<string> = [...外した挿絵の種類];
 
 describe("cdl の種別に見本がある (#1152)", () => {
   it("走査した群が dir の実体と 1 件も違わない (#2314)", () => {

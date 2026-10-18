@@ -191,20 +191,6 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
     図: [{ id: "delivery-flow-demo", 器: ["拡大", "一覧"] }],
   },
   {
-    群: "帯 1 本に 3 段を積む場面の図",
-    理由:
-      "同じ組み方の図が 30 枚あり、" +
-      "高さ 20-80 world の差だけで境の内 25 枚と外 5 枚に割れている。" +
-      " 5 枚だけ直すと割れ方が高さの偶然のまま残る",
-    図: [
-      { id: "scene-banking-flow", 器: ["拡大"] },
-      { id: "scene-ec-order", 器: ["拡大"] },
-      { id: "scene-stock-trading", 器: ["拡大"] },
-      { id: "scene-token-deploy", 器: ["拡大"] },
-      { id: "scene-web-infra", 器: ["拡大"] },
-    ],
-  },
-  {
     群: "帯を横に並べる図",
     理由:
       "幅を決めているのは辺の名札で、短くすれば境の内側に入る (実測 11.7px から " +
@@ -227,7 +213,7 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       "どちらも図の意味が変わる。 表示の倍率を上げれば読める",
     図: [
       { id: "fsm-demo", 器: ["拡大"] },
-      { id: "interactive-exemplar-payment-flow", 器: ["拡大", "一覧"] },
+      { id: "interactive-exemplar-payment-flow", 器: ["一覧"] },
       { id: "interactive-price-candlestick", 器: ["拡大"] },
       { id: "多対多が-2-組-8-表-8-関係", 器: ["拡大"] },
     ],
@@ -329,7 +315,6 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       { id: "interactive-contribution-heatmap", 器: ["一覧"] },
       { id: "interactive-exam-grade", 器: ["一覧"] },
       { id: "interactive-exemplar-login-flow", 器: ["一覧"] },
-      { id: "interactive-exemplar-notification-flow", 器: ["一覧"] },
       { id: "interactive-formula-text", 器: ["一覧"] },
       // 名札を書かない変種 (#1916)。 元の図と同じ組み立てで、幅も同じ
       { id: "interactive-formula-text-bare", 器: ["一覧"] },
@@ -371,8 +356,6 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       // #2836 の見本枠 1800×1100 に合わせた結果、1150×630 の拡大表示では下限を割らなくなった。
       // 一覧の 874px 幅では横方向を縮めるため、一覧だけを受け入れに残す。
       { id: "delivery-relations-demo", 器: ["一覧"] },
-      { id: "eth-block-production", 器: ["一覧"] },
-      { id: "eth-erc4337-flow", 器: ["一覧"] },
       { id: "network-demo", 器: ["一覧"] },
       // C4 の 3 段 (全体の見取り図 / 動かす単位 / 部品) を横に並べる (#2135)。 縦列の幅は組み立て側が
       // 決めており、見本の側で縮めるには段を減らすしかない
@@ -483,7 +466,7 @@ export interface 代表的な図の行 {
  *
  * 「何枚が下限を割るか」 は `受け入れた一覧` と `縦に長い一覧` の行数が持つ。
  * ここが持つのは **どのくらい読みにくいか** で、その度合いは枚数からは分からない
- * (`er-complex-demo` の 4.8px と `scene-web-infra` の 11.9px は同じ 1 枚と数えられる)。
+ * (`er-complex-demo` の 4.8px と `interactive-price-candlestick` の 11px は同じ 1 枚と数えられる)。
  *
  * ## 4 枚で割れ方の幅を覆う
  *
@@ -521,11 +504,11 @@ export const 代表的な図: readonly 代表的な図の行[] = [
     役目: "横に長く縦が短い。 縦を巻き取る一覧の枠でだけ下限を割る",
   },
   {
-    id: "scene-web-infra",
-    viewBox: { w: 460, h: 1160 },
-    拡大: 11.9,
+    id: "interactive-price-candlestick",
+    viewBox: { w: 850, h: 1256 },
+    拡大: 11,
     一覧: null,
-    役目: "縦に長く幅が狭い。 幅に合わせる一覧の枠では逆に伸びる (高さ 2204px)",
+    役目: "縦に長く、一覧の枠より幅が狭い。 幅に合わせる一覧の枠では縮まず逆に伸びる",
   },
 ];
 
@@ -577,44 +560,6 @@ export const 縦に長い一覧: readonly 縦に長い群[] = [
       "営業所ごとの取扱数",
       "先月と比べた営業所ごとの取扱数",
       "段の-4-割で伸ばし終える営業所ごとの取扱数",
-    ],
-  },
-  {
-    群: "帯 1 本に 3 段を積む場面の図",
-    理由:
-      "30 枚とも同じ組み方で、細長い viewBox を幅に合わせると 1.6-1.8 " +
-      "倍に伸びる。 一部だけ直すと一族の中で組み方が割れる",
-    図: [
-      "scene-audit-chain",
-      "scene-audit-flow",
-      "scene-banking-flow",
-      "scene-bitcoin-tx",
-      "scene-checkout",
-      "scene-compliance",
-      "scene-consensus",
-      "scene-crypto-transfer",
-      "scene-defi-lending",
-      "scene-devops",
-      "scene-ec-order",
-      "scene-edge-compute",
-      "scene-factory-line",
-      "scene-iot-onchain",
-      "scene-legal-notarization",
-      "scene-mobile-api",
-      "scene-network-path",
-      "scene-nft-marketplace",
-      "scene-nft-mint",
-      "scene-notification",
-      "scene-payment-settlement",
-      "scene-satellite-chain",
-      "scene-stock-trading",
-      "scene-support-flow",
-      "scene-task-flow",
-      "scene-token-bridge",
-      "scene-token-deploy",
-      "scene-trust-asset",
-      "scene-version-deploy",
-      "scene-web-infra",
     ],
   },
   {
@@ -768,17 +713,8 @@ export const 縦に長い一覧: readonly 縦に長い群[] = [
       "parts-bucket-reservoir",
       "parts-state-indicator",
       "parts-wave-gauge",
-      "shape-atm",
-      "shape-auditor",
-      "shape-lawyer",
       "shape-mobile-device",
-      "shape-nft",
-      "shape-notary",
-      "shape-online-shop",
       "shape-person",
-      "shape-regulator",
-      "shape-robot-arm",
-      "shape-token",
       "stack-triple",
     ],
   },
