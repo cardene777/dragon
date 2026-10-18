@@ -258,6 +258,52 @@ svg[data-cdl-stage]:not([data-cdl-palette]) {
   stroke: var(--dragon-edge-tone) !important;
 }
 
+/* 基本の形の細部は輪郭と同じ色と幅で描く (#2954)。
+ *
+ * cdl 0.141.0 は基本の形を「線は 1 色、面は 1 種類」 で描き、輪郭 1 つにだけ `node-body` を付ける。
+ * 細部 (中の線 / 点 / 奥の面) は輪郭の兄弟に置かれ、上の 3 つの規則が当たらない。 当たらないと
+ * 細部だけ cdl の色 (`--cdl-tone-accent`、この site では墨) で残り、枠は朱なのに中の線が黒くなる
+ * (実測 = 端末の見本で枠 `rgb(192, 66, 31)` / 中の線 `rgb(34, 24, 17)`)。
+ *
+ * **輪郭に当たる規則と同じ変数で塗る** = 色味ごとの変数の差し替えにそのまま乗る。 値は上の 3 つの
+ * 規則と 2 か所に書く形になるため、食い違いは `shape-detail-paint.spec.ts` が計算後の値の一致で
+ * 捕まえる。
+ *
+ * 細部は cdl が付けた属性で分ける。 線だけの細部 (`fill="none"`) は塗らない。 開いた線を面の色で
+ * 塗ると、光った箱で `>` の印の内側が白く抜ける。 点 (`stroke="none"`) は線の色で塗る。
+ *
+ * 種別は前置 `shape-` で絞る。 他の種別の箱は輪郭の兄弟に区切り線や字を持つため、兄弟を一律に
+ * 塗ると巻き込む。 絵の `g` は輪郭を直に持つ `g` で選ぶ = 箱の外枠 (`data-cdl-frame`) は
+ * 箱の直下にあり、ここに入らない。 */
+[data-cdl-kind^="shape-"] {
+  --dragon-shape-line: var(--d-text-secondary);
+  --dragon-shape-face: var(--d-surface);
+  --dragon-shape-width: 1.75;
+}
+
+[data-cdl-active="true"][data-cdl-kind^="shape-"] {
+  --dragon-shape-line: var(--d-accent);
+  --dragon-shape-face: var(--d-accent-face);
+  --dragon-shape-width: 2.5;
+}
+
+[data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])[data-cdl-kind^="shape-"] {
+  --dragon-shape-line: var(--dragon-edge-tone);
+}
+
+[data-cdl-kind^="shape-"] g:has(> [data-cdl-role="node-body"]) > :not([data-cdl-role="node-body"], [stroke="none"]) {
+  stroke: var(--dragon-shape-line) !important;
+  stroke-width: var(--dragon-shape-width) !important;
+}
+
+[data-cdl-kind^="shape-"] g:has(> [data-cdl-role="node-body"]) > :not([data-cdl-role="node-body"], [stroke="none"], [fill="none"]) {
+  fill: var(--dragon-shape-face) !important;
+}
+
+[data-cdl-kind^="shape-"] g:has(> [data-cdl-role="node-body"]) > [stroke="none"] {
+  fill: var(--dragon-shape-line) !important;
+}
+
 /* 見せ方を持つ箱の中の字は engine が決める (cdl#620)。 墨のベタの上では紙の色で抜くので、
    ここで文字色を上書きすると黒地に黒で消える。 書体と太さは揃えたいので色だけ外す */
 [data-cdl-role="node-label"] {
