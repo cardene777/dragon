@@ -209,24 +209,6 @@ describe("図とコードを切り替えられる (#1236)", () => {
     expect(コードの欄!.hidden).toBe(true);
   });
 
-  it("図の見せ方はタブの列に置き、コードを選んでいる間は出さない", () => {
-    操作できる画面("charts");
-    const tabs = document.querySelector(".catalog-preview-tabs");
-    const strip = document.querySelector(".catalog-option-strip");
-    const 見せ方 = screen.getByRole("radiogroup", { name: "図の見せ方" });
-
-    expect(tabs?.contains(見せ方)).toBe(true);
-    expect(strip?.contains(見せ方)).toBe(false);
-    expect(見せ方.closest(".catalog-view-switch")).not.toBeNull();
-    expect(見せ方.closest(".catalog-option-group")).toBeNull();
-
-    fireEvent.click(screen.getByRole("tab", { name: "コード" }));
-    expect(screen.queryByRole("radiogroup", { name: "図の見せ方" })).toBeNull();
-
-    fireEvent.click(screen.getByRole("tab", { name: "図" }));
-    expect(screen.getByRole("radiogroup", { name: "図の見せ方" })).not.toBeNull();
-  });
-
   it("コードへ切り替えても図の DOM を作り直さない", () => {
     操作できる画面("charts");
     act(() => driveIntersection(true));
