@@ -16,7 +16,7 @@ const fixedThemes = [
 ] as const;
 
 const table = (palette: string): ReadonlyMap<string, string> =>
-  readCdlThemeRoleTable(palette).light;
+  readCdlThemeRoleTable(palette);
 
 type 札の値 = { 見本: string; dragon: string };
 

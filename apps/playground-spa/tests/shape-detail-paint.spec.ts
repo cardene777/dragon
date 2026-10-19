@@ -118,7 +118,7 @@ test.describe("基本の形の細部は輪郭と同じ色と幅で描く (#2954)
     expect(行).toEqual([]);
   });
 
-  test("色味の全てと明暗で、細部が輪郭に揃う", async ({ page }) => {
+  test("色味の全てで、細部が輪郭に揃う", async ({ page }) => {
     test.setTimeout(180000);
     await page.goto(対象);
     await page.waitForLoadState("networkidle");
@@ -134,15 +134,12 @@ test.describe("基本の形の細部は輪郭と同じ色と幅で描く (#2954)
     const 見た種 = new Set<string>();
     for (const 値 of 値たち) {
       await 色味.selectOption(値);
-      for (const 暗い of [false, true]) {
-        await page.evaluate((暗い) => document.documentElement.classList.toggle("dark", 暗い), 暗い);
-        for (const id of 見本たち) {
-          await 見本を開く(page, id);
-          for (const 状態 of 状態たち) {
-            const 測定 = await 測る(page, id, 状態);
-            for (const 細部 of 測定.細部) 見た種.add(細部.種);
-            行.push(...食い違い(`${値 || "画面の色"} ${暗い ? "暗" : "明"} ${id} ${状態}`, 測定));
-          }
+      for (const id of 見本たち) {
+        await 見本を開く(page, id);
+        for (const 状態 of 状態たち) {
+          const 測定 = await 測る(page, id, 状態);
+          for (const 細部 of 測定.細部) 見た種.add(細部.種);
+          行.push(...食い違い(`${値} ${id} ${状態}`, 測定));
         }
       }
     }

@@ -280,7 +280,7 @@ async function chartBars(page: Page, theme: string): Promise<BarPaint[]> {
 test.describe("図表の棒の内側の模様 (#2801)", () => {
   test.describe.configure({ timeout: 120_000 });
 
-  test("blueprint / 明・暗: 主役の棒の計算後の fill が url(#dragon-bp-hatch) になる", async ({ page }) => {
+  test("blueprint: 主役の棒の計算後の fill が url(#dragon-bp-hatch) になる", async ({ page }) => {
     const note = readThemeNotes().get("blueprint");
     const style = readFixedThemeSingleSeriesBars().get("blueprint");
     if (note?.mode !== "fixed" || !style?.primary.stroke || style.primary.strokeWidth === undefined ||
@@ -291,34 +291,29 @@ test.describe("図表の棒の内側の模様 (#2801)", () => {
     const hatch = readBlueprintHatch();
     if (!id) throw new Error("図面の斜線の id を意匠帳から読めない");
 
-    const fills: string[][] = [];
-    for (const dark of [false, true]) {
-      await openEditorTheme(page, SINGLE_SERIES_SOURCE, "blueprint", dark);
-      const stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
-      expect(await stage.evaluate((element) => getComputedStyle(element).backgroundColor), "舞台の地")
-        .toBe(hexToRgb(note.value.ground));
-      const bars = await chartBars(page, "blueprint");
-      expect(bars.length, "図面の棒").toBe(4);
-      expect(bars.filter((bar) => bar.primary).length, "図面の主役の棒").toBe(1);
-      for (const bar of bars) {
-        const want = bar.primary ? style.primary : style.secondary;
-        expect(bar.fill, bar.primary ? "主役の塗り" : "それ以外の塗り").toBe(computedFill(want.fill));
-        expect(bar.fillOpacity, "棒の濃さ").toBe("1");
-        expect(bar.stroke, "棒の枠").toBe(hexToRgb(want.stroke!));
-        expect(Number.parseFloat(bar.strokeWidth), "棒の枠幅").toBe(want.strokeWidth);
-        if (!bar.primary) expect(bar.fill).not.toContain("url(");
-      }
-      fills.push(bars.map((bar) => bar.fill));
-      const patterns = page.locator(id);
-      await expect(patterns, `${id} は文書に 1 つ`).toHaveCount(1);
-      await expect(patterns).toHaveJSProperty("tagName", "pattern");
-      const rectFill = await patterns.locator("rect").evaluate((element) => getComputedStyle(element).fill);
-      expect(rectFill, "斜線の色").toBe(hexToRgb(hatch.color));
+    await openEditorTheme(page, SINGLE_SERIES_SOURCE, "blueprint");
+    const stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
+    expect(await stage.evaluate((element) => getComputedStyle(element).backgroundColor), "舞台の地")
+      .toBe(hexToRgb(note.value.ground));
+    const bars = await chartBars(page, "blueprint");
+    expect(bars.length, "図面の棒").toBe(4);
+    expect(bars.filter((bar) => bar.primary).length, "図面の主役の棒").toBe(1);
+    for (const bar of bars) {
+      const want = bar.primary ? style.primary : style.secondary;
+      expect(bar.fill, bar.primary ? "主役の塗り" : "それ以外の塗り").toBe(computedFill(want.fill));
+      expect(bar.fillOpacity, "棒の濃さ").toBe("1");
+      expect(bar.stroke, "棒の枠").toBe(hexToRgb(want.stroke!));
+      expect(Number.parseFloat(bar.strokeWidth), "棒の枠幅").toBe(want.strokeWidth);
+      if (!bar.primary) expect(bar.fill).not.toContain("url(");
     }
-    expect(fills[1], "暗い表示でも棒の塗りを変えない").toEqual(fills[0]);
+    const patterns = page.locator(id);
+    await expect(patterns, `${id} は文書に 1 つ`).toHaveCount(1);
+    await expect(patterns).toHaveJSProperty("tagName", "pattern");
+    const rectFill = await patterns.locator("rect").evaluate((element) => getComputedStyle(element).fill);
+    expect(rectFill, "斜線の色").toBe(hexToRgb(hatch.color));
   });
 
-  test("sketch / 明・暗: 主役は朱、それ以外は淡のペンの斜線になる", async ({ page }) => {
+  test("sketch: 主役は朱、それ以外は淡のペンの斜線になる", async ({ page }) => {
     const note = readThemeNotes().get("sketch");
     const style = readFixedThemeSingleSeriesBars().get("sketch");
     const pale = readFixedThemeRoleColor("sketch", "淡");
@@ -333,38 +328,33 @@ test.describe("図表の棒の内側の模様 (#2801)", () => {
       throw new Error("手描きのペンの斜線の id を意匠帳から読めない");
     }
 
-    const fills: string[][] = [];
-    for (const dark of [false, true]) {
-      await openEditorTheme(page, SINGLE_SERIES_SOURCE, "sketch", dark);
-      const stage = page.locator('svg[data-cdl-stage][data-cdl-palette="sketch"]');
-      expect(await stage.evaluate((element) => getComputedStyle(element).backgroundColor), "舞台の地")
-        .toBe(hexToRgb(note.value.ground));
-      const bars = await chartBars(page, "sketch");
-      expect(bars.length, "手描きの棒").toBe(4);
-      expect(bars.filter((bar) => bar.primary).length, "手描きの主役の棒").toBe(1);
-      for (const bar of bars) {
-        const want = bar.primary ? style.primary : style.secondary;
-        if (!want.stroke || want.strokeWidth === undefined) {
-          throw new Error(`手描きの${bar.primary ? "主役" : "それ以外"}の棒の枠を意匠帳から読めない`);
-        }
-        expect(bar.fill).toBe(computedFill(want.fill));
-        expect(bar.fillOpacity).toBe(String(want.opacity));
-        expect(bar.stroke).toBe(hexToRgb(want.stroke));
-        expect(Number.parseFloat(bar.strokeWidth)).toBe(want.strokeWidth);
+    await openEditorTheme(page, SINGLE_SERIES_SOURCE, "sketch");
+    const stage = page.locator('svg[data-cdl-stage][data-cdl-palette="sketch"]');
+    expect(await stage.evaluate((element) => getComputedStyle(element).backgroundColor), "舞台の地")
+      .toBe(hexToRgb(note.value.ground));
+    const bars = await chartBars(page, "sketch");
+    expect(bars.length, "手描きの棒").toBe(4);
+    expect(bars.filter((bar) => bar.primary).length, "手描きの主役の棒").toBe(1);
+    for (const bar of bars) {
+      const want = bar.primary ? style.primary : style.secondary;
+      if (!want.stroke || want.strokeWidth === undefined) {
+        throw new Error(`手描きの${bar.primary ? "主役" : "それ以外"}の棒の枠を意匠帳から読めない`);
       }
-      fills.push(bars.map((bar) => bar.fill));
-      const primaryPattern = page.locator(primaryPatternId);
-      await expect(primaryPattern, `${primaryPatternId} は文書に 1 つ`).toHaveCount(1);
-      await expect(primaryPattern).toHaveJSProperty("tagName", "pattern");
-      expect(await primaryPattern.locator("rect").evaluate((element) => getComputedStyle(element).fill))
-        .toBe(hexToRgb(style.primary.patternColor));
-      const secondaryPattern = page.locator(secondaryPatternId);
-      await expect(secondaryPattern, `${secondaryPatternId} は文書に 1 つ`).toHaveCount(1);
-      await expect(secondaryPattern).toHaveJSProperty("tagName", "pattern");
-      expect(await secondaryPattern.locator("rect").evaluate((element) => getComputedStyle(element).fill))
-        .toBe(hexToRgb(pale));
+      expect(bar.fill).toBe(computedFill(want.fill));
+      expect(bar.fillOpacity).toBe(String(want.opacity));
+      expect(bar.stroke).toBe(hexToRgb(want.stroke));
+      expect(Number.parseFloat(bar.strokeWidth)).toBe(want.strokeWidth);
     }
-    expect(fills[1], "暗い表示でも棒の塗りを変えない").toEqual(fills[0]);
+    const primaryPattern = page.locator(primaryPatternId);
+    await expect(primaryPattern, `${primaryPatternId} は文書に 1 つ`).toHaveCount(1);
+    await expect(primaryPattern).toHaveJSProperty("tagName", "pattern");
+    expect(await primaryPattern.locator("rect").evaluate((element) => getComputedStyle(element).fill))
+      .toBe(hexToRgb(style.primary.patternColor));
+    const secondaryPattern = page.locator(secondaryPatternId);
+    await expect(secondaryPattern, `${secondaryPatternId} は文書に 1 つ`).toHaveCount(1);
+    await expect(secondaryPattern).toHaveJSProperty("tagName", "pattern");
+    expect(await secondaryPattern.locator("rect").evaluate((element) => getComputedStyle(element).fill))
+      .toBe(hexToRgb(pale));
   });
 
   test("他の意匠: 単系列の棒へ模様を当てず、浮彫の階調は系列色で終える", async ({ page }) => {
@@ -374,32 +364,30 @@ test.describe("図表の棒の内側の模様 (#2801)", () => {
     const reliefEnds = reliefSingleSeriesEnds();
     for (const [theme, style] of styles) {
       if (theme === "blueprint" || theme === "sketch") continue;
-      for (const dark of [false, true]) {
-        await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme, dark);
-        const bars = await chartBars(page, theme);
-        if (bars.length === 0) failures.push(`${theme}/${dark ? "暗" : "明"}: 棒が 0 件`);
-        for (const bar of bars) {
-          if (theme === "relief") {
-            // 見本の浮彫は <linearGradient>。禁止する模様は <pattern> なので、参照先の種類と終端色を分けて確かめる。
-            const expectedPaint = bar.primary ? style.primary.fill : style.secondary.fill;
-            const expectedId = /^url\((#[a-z0-9-]+)\)$/iu.exec(expectedPaint)?.[1];
-            const expectedEnd = bar.primary ? reliefEnds.primary : reliefEnds.secondary;
-            if (bar.referencedPaint?.tag.toLowerCase() !== "lineargradient") {
-              failures.push(`${theme}/${dark ? "暗" : "明"}: 階調でない ${bar.fill}`);
-            } else if (bar.referencedPaint.id !== expectedId) {
-              failures.push(
-                `${theme}/${dark ? "暗" : "明"}: 階調 ${bar.referencedPaint.id} / ${expectedId}`,
-              );
-            } else if (bar.referencedPaint.lastStop !== hexToRgb(expectedEnd)) {
-              failures.push(
-                `${theme}/${dark ? "暗" : "明"}: 階調の終端 ${bar.referencedPaint.lastStop} / ${expectedEnd}`,
-              );
-            }
-          } else if (bar.referencedPaint?.tag.toLowerCase() === "pattern") {
-            failures.push(`${theme}/${dark ? "暗" : "明"}: 模様 ${bar.fill}`);
-          } else if (bar.fill.includes("url(")) {
-            failures.push(`${theme}/${dark ? "暗" : "明"}: 未知の参照 ${bar.fill}`);
+      await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme);
+      const bars = await chartBars(page, theme);
+      if (bars.length === 0) failures.push(`${theme}: 棒が 0 件`);
+      for (const bar of bars) {
+        if (theme === "relief") {
+          // 見本の浮彫は <linearGradient>。禁止する模様は <pattern> なので、参照先の種類と終端色を分けて確かめる。
+          const expectedPaint = bar.primary ? style.primary.fill : style.secondary.fill;
+          const expectedId = /^url\((#[a-z0-9-]+)\)$/iu.exec(expectedPaint)?.[1];
+          const expectedEnd = bar.primary ? reliefEnds.primary : reliefEnds.secondary;
+          if (bar.referencedPaint?.tag.toLowerCase() !== "lineargradient") {
+            failures.push(`${theme}: 階調でない ${bar.fill}`);
+          } else if (bar.referencedPaint.id !== expectedId) {
+            failures.push(
+              `${theme}: 階調 ${bar.referencedPaint.id} / ${expectedId}`,
+            );
+          } else if (bar.referencedPaint.lastStop !== hexToRgb(expectedEnd)) {
+            failures.push(
+              `${theme}: 階調の終端 ${bar.referencedPaint.lastStop} / ${expectedEnd}`,
+            );
           }
+        } else if (bar.referencedPaint?.tag.toLowerCase() === "pattern") {
+          failures.push(`${theme}: 模様 ${bar.fill}`);
+        } else if (bar.fill.includes("url(")) {
+          failures.push(`${theme}: 未知の参照 ${bar.fill}`);
         }
       }
     }
@@ -409,18 +397,16 @@ test.describe("図表の棒の内側の模様 (#2801)", () => {
   test("blueprint と sketch: 積み上げ棒の切れ端と升へ模様を当てない", async ({ page }) => {
     const failures: string[] = [];
     for (const theme of ["blueprint", "sketch"] as const) {
-      for (const dark of [false, true]) {
-        for (const [shape, role] of [
-          ["stacked", "chart-stacked-bar-slice"],
-          ["waffle", "chart-waffle-cell"],
-        ] as const) {
-          await openEditorTheme(page, chartSample(shape), theme, dark);
-          const fills = await page.locator(`[data-cdl-role="${role}"]`).evaluateAll((elements) =>
-            elements.map((element) => getComputedStyle(element).fill));
-          if (fills.length === 0) failures.push(`${theme}/${dark ? "暗" : "明"}/${shape}: 図形が 0 件`);
-          for (const fill of fills) {
-            if (fill.includes("url(")) failures.push(`${theme}/${dark ? "暗" : "明"}/${shape}: ${fill}`);
-          }
+      for (const [shape, role] of [
+        ["stacked", "chart-stacked-bar-slice"],
+        ["waffle", "chart-waffle-cell"],
+      ] as const) {
+        await openEditorTheme(page, chartSample(shape), theme);
+        const fills = await page.locator(`[data-cdl-role="${role}"]`).evaluateAll((elements) =>
+          elements.map((element) => getComputedStyle(element).fill));
+        if (fills.length === 0) failures.push(`${theme}/${shape}: 図形が 0 件`);
+        for (const fill of fills) {
+          if (fill.includes("url(")) failures.push(`${theme}/${shape}: ${fill}`);
         }
       }
     }

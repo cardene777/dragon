@@ -16,7 +16,7 @@ const fixedPalettes = [
 ] as const;
 
 const table = (palette: string): ReadonlyMap<string, string> =>
-  readCdlThemeRoleTable(palette).light;
+  readCdlThemeRoleTable(palette);
 
 const resolved = (palette: string, role: string): string | undefined =>
   resolveThemeRole(table(palette), role);

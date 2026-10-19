@@ -8,6 +8,8 @@ import { usePhaseIndex } from "@/components/PhaseChrome";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
+import { 図に意匠を当てる } from "@/lib/site-theme";
+import { useSiteTheme } from "@/lib/useSiteTheme";
 
 import { 区間, 区間のspan } from "@/components/SyntaxCode";
 /**
@@ -114,6 +116,8 @@ const HOME_DELIVERY_RELATIONS = { ...presetDeliveryRelations, relationFocus: "of
 
 export function HomePage(): React.ReactElement {
   const [locale] = useLocale();
+  // 見本は意匠を書かないので、 住所の `?theme=` の意匠で描く (#2962)
+  const [画面の意匠] = useSiteTheme();
   const [図の入れ物, set図の入れ物] = useState<HTMLDivElement | null>(null);
   const 今の段番号 = usePhaseIndex(図の入れ物);
   const isJa = locale === "ja";
@@ -193,7 +197,7 @@ export function HomePage(): React.ReactElement {
             <div className="canvas-stage" ref={set図の入れ物}>
               <CdlDiagramView
                 hideMiniPhaseIndicator
-                diagram={図に画面の言語を当てる(図, locale)}
+                diagram={図に意匠を当てる(図に画面の言語を当てる(図, locale), 画面の意匠)}
                 hideHeader
               />
             </div>
@@ -270,7 +274,7 @@ export function HomePage(): React.ReactElement {
         <div className="examples-grid">
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(presetDeliverySequence, locale)} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={図に意匠を当てる(図に画面の言語を当てる(presetDeliverySequence, locale), 画面の意匠)} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag tag-seq">{isJa ? "シーケンス図" : "sequence"}</span>
@@ -280,7 +284,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(presetTopology, locale)} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={図に意匠を当てる(図に画面の言語を当てる(presetTopology, locale), 画面の意匠)} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag tag-topo">{isJa ? "トポロジー図" : "topology"}</span>
@@ -290,7 +294,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(HOME_DELIVERY_RELATIONS, locale)} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={図に意匠を当てる(図に画面の言語を当てる(HOME_DELIVERY_RELATIONS, locale), 画面の意匠)} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag tag-er">{isJa ? "ER図" : "er"}</span>

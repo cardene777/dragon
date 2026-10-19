@@ -644,10 +644,10 @@ const 崩れを数える = (svg: string, diagram?: CdlDiagram): 崩れの数 => 
 };
 
 describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
-  /** 見本帳で選べる全ての意匠と画面の色。 骨組みと縞が配色で変わらないことを全てで確かめる */
+  /** 見本帳で選べる全ての意匠。 骨組みと縞が配色で変わらないことを全てで確かめる */
   const palettes = [
     "blueprint", "letterpress", "catalog", "terminal",
-    "sketch", "neon", "relief", "site-colours",
+    "sketch", "neon", "relief",
   ] as const;
 
   it("宅配の骨組み 4 見本は斜めの直線の線分を持たない", () => {
@@ -846,8 +846,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     expect(rules).toContain('--delivery-relation-use: var(--dragon-delivery-relation-use);');
     expect(rules).toContain("stroke: var(--delivery-relation-state) !important;");
     expect(rules).toContain("stroke: var(--delivery-relation-use) !important;");
-    // 7 意匠の状態線と「使う」 の 2 規則と、意匠を書かない時に同じ 2 本を透かさない 1 規則 (#2977)
-    expect(rules.match(/stroke-opacity: 1 !important;/g)).toHaveLength(3);
+    expect(rules.match(/stroke-opacity: 1 !important;/g)).toHaveLength(2);
     expect(css).not.toContain('[data-cdl-diagram="契約と荷物と配送状態の関係"]');
   });
 
@@ -952,13 +951,9 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     ];
 
     for (const [route, sourceDiagram] of routes) {
-      const diagrams: ReadonlyArray<readonly [string, CdlDiagram]> = [
-        ...themes.map((theme) => [theme, 図の配色を変える(sourceDiagram, theme)] as const),
-        [
-          "画面の色へ戻す",
-          図の配色を変える(図の配色を変える(sourceDiagram, "relief"), "site-colours"),
-        ],
-      ];
+      const diagrams: ReadonlyArray<readonly [string, CdlDiagram]> = themes.map(
+        (theme) => [theme, 図の配色を変える(sourceDiagram, theme)] as const,
+      );
       for (const [theme, diagram] of diagrams) {
         const laid = layout(diagram);
         const sender = laid.nodes.find((node) => node.id === "荷主");
@@ -1032,7 +1027,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     expect(崩れを数える(最後を描く(round6d), round6d).字の重なり).toBeGreaterThan(0);
   });
 
-  it("28 図と画面の色で線の札を見本の大きさに保つ", () => {
+  it("28 図で線の札を見本の大きさに保つ", () => {
     const 対象 = new Set<四図の鍵>([
       "presetDeliveryRelations",
       "presetDeliveryClasses",
@@ -1082,11 +1077,6 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
       }
     }
     for (const key of 対象) {
-      const diagram = 図の配色を変える(
-        図の配色を変える((Catalog as CatalogModule)[key] as CdlDiagram, "relief"),
-        "site-colours",
-      );
-      札を確かめる(key, "site-colours", diagram);
       for (const [route, sourceDiagram] of [
         ["YAML", textDslToDiagram(source("sourceYaml__", key))],
         ["JSON", jsonToDiagram(JSON.parse(source("sourceJson__", key)) as unknown)],
@@ -1103,20 +1093,13 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     }
 
     expect(描いた図).toBe(28);
-    expect(確かめた札).toBe(168);
+    expect(確かめた札).toBe(147);
   });
 
   it("構成の「道を聞く」の札を両側の箱から 4 以上離す", () => {
-    const diagrams: ReadonlyArray<readonly [string, CdlDiagram]> = [
-      ...(Object.keys(固定意匠) as Array<keyof typeof 固定意匠>).map((theme) => [
-        theme,
-        図の配色を変える(Catalog.presetDeliveryComponents, theme),
-      ] as const),
-      [
-        "site-colours",
-        図の配色を変える(図の配色を変える(Catalog.presetDeliveryComponents, "relief"), "site-colours"),
-      ],
-    ];
+    const diagrams: ReadonlyArray<readonly [string, CdlDiagram]> = (
+      Object.keys(固定意匠) as Array<keyof typeof 固定意匠>
+    ).map((theme) => [theme, 図の配色を変える(Catalog.presetDeliveryComponents, theme)] as const);
 
     for (const [theme, diagram] of diagrams) {
       const document = new JSDOM(最後を描く(diagram), { contentType: "image/svg+xml" }).window.document;
@@ -1255,15 +1238,15 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     expect(確かめた札).toBe(14);
   });
 
-  it("28 図と画面の色の全ての線を箱の縁で止め、箱の内側を通さない", () => {
-    const themes = [undefined, ...(Object.keys(固定意匠) as Array<keyof typeof 固定意匠>)] as const;
+  it("28 図の全ての線を箱の縁で止め、箱の内側を通さない", () => {
+    const themes = Object.keys(固定意匠) as Array<keyof typeof 固定意匠>;
     let 描いた図 = 0;
     let 確かめた線 = 0;
 
     for (const { key } of 四つの見本) {
       for (const theme of themes) {
         const sourceDiagram = (Catalog as CatalogModule)[key] as CdlDiagram;
-        const diagram = theme === undefined ? sourceDiagram : 図の配色を変える(sourceDiagram, theme);
+        const diagram = 図の配色を変える(sourceDiagram, theme);
         const svg = renderToStaticMarkup(<CdlDiagramView diagram={diagram} laid={layout(diagram)} hideHeader />);
         const document = new JSDOM(svg, { contentType: "image/svg+xml" }).window.document;
         const nodes = [...document.querySelectorAll("[data-cdl-node][data-cdl-cx]")];
@@ -1274,7 +1257,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
             (element) => element.getAttribute("data-cdl-edge") === edge.id,
           );
           const path = group?.querySelector('[data-cdl-role="edge-line"]');
-          expect(path, `${key} / ${theme ?? "画面の色"} / ${edge.id} の線`).not.toBeNull();
+          expect(path, `${key} / ${theme} / ${edge.id} の線`).not.toBeNull();
           if (path === null || path === undefined) continue;
           const shift = 平行移動(path);
           const points = pathの点(group?.getAttribute("data-cdl-path-d") ?? path.getAttribute("d") ?? "")
@@ -1306,7 +1289,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
           const tip = { x: endpoint.x + direction.x * reach, y: endpoint.y + direction.y * reach };
           expect.soft(
             印と箱の隙間(tip, direction, node枠(markerTarget)),
-            `${key} / ${theme ?? "画面の色"} / ${edge.id} の矢じり ${JSON.stringify(tip)}`,
+            `${key} / ${theme} / ${edge.id} の矢じり ${JSON.stringify(tip)}`,
           ).toBeLessThanOrEqual(2);
 
           const targetParent = target.getAttribute("data-cdl-nest-in");
@@ -1326,7 +1309,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
               線分が箱の内側を通る(visiblePoints[index]!, point, node枠(node)));
             expect.soft(
               crossed,
-              `${key} / ${theme ?? "画面の色"} / ${edge.id} が ${nodeId}` +
+              `${key} / ${theme} / ${edge.id} が ${nodeId}` +
                 `${nodeId === edge.from ? " (出どころ)" : nodeId === edge.to ? " (行き先)" : " (別の箱)"} の内側を通る`,
             ).toBe(false);
           }
@@ -1335,8 +1318,8 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
       }
     }
 
-    expect(描いた図).toBe(32);
-    expect(確かめた線).toBe(184);
+    expect(描いた図).toBe(28);
+    expect(確かめた線).toBe(161);
   });
 
   it.each(四つの見本)("$title は SVG 座標で数えた 6 種の崩れが 0", ({ key }) => {

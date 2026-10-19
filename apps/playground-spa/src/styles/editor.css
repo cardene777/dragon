@@ -787,8 +787,8 @@
   .v4-editor-preview [data-cdl-role="lane-label"] {
     display: none !important;
   }
-  /* 暗い側の紙は明るい側と同じ経路で決まる。 上の `--d-surface` が html.dark で
-     差し替わるので、 主題ごとの上書きは持たない。 */
+  /* 紙はどの意匠でも同じ経路で決まる。 上の `--d-surface` を意匠の表が
+     差し替えるので、 意匠ごとの上書きは持たない。 */
   .v4-editor-pan {
     will-change: transform;
     display: block;

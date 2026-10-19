@@ -7,7 +7,6 @@ import {
   FIXED_THEME_DEVICE_SCALE_FACTOR,
   checkFixedThemeAcrossTypes,
   openEditorTheme,
-  samplesByType,
 } from "./helpers/fixed-theme-checks";
 import {
   captureThemeAppear,
@@ -119,51 +118,22 @@ test.describe("sketch theme (#2794)", () => {
     deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
   });
 
-  for (const dark of [false, true]) {
-    const mode = dark ? "暗" : "明";
-    test(`sketch / ${mode}: 全図種で固定色と contrast が出る`, async ({ page }) => {
-      const result = await checkFixedThemeAcrossTypes(page, sketch, dark);
-      console.log(
-        `sketch contrast ${mode}: applied=${result.applied}/${PRESET_TYPES.size} ` +
-          `boxTypes=${result.boxTypes} edgeTypes=${result.edgeTypes} ` +
-          `halfFrames=${result.halfFrames} failures=${result.failures.length}`,
-      );
+  test("sketch: 全図種で固定色と contrast が出る", async ({ page }) => {
+    const result = await checkFixedThemeAcrossTypes(page, sketch);
+    console.log(
+      `sketch contrast: applied=${result.applied}/${PRESET_TYPES.size} ` +
+        `boxTypes=${result.boxTypes} edgeTypes=${result.edgeTypes} ` +
+        `halfFrames=${result.halfFrames} failures=${result.failures.length}`,
+    );
 
-      expect(result.applied, "sketch が当たった図種").toBe(PRESET_TYPES.size);
-      expect(result.boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);
-      expect(result.edgeTypes, "線を測れた図種が 0 件").toBeGreaterThan(0);
-      expect(
-        result.halfFrames,
-        "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
-      ).toBeGreaterThan(0);
-      expect(result.failures, `sketch/${mode} の違反`).toEqual([]);
-    });
-  }
-
-  test("sketch dark-ground: 全図種の地は html.dark でも意匠帳の台から変わらない", async ({
-    page,
-  }) => {
-    const samples = samplesByType();
-    const expected = hexToRgb(sketch.value.ground);
-    const failures: string[] = [];
-    for (const [type, source] of samples) {
-      const values: string[] = [];
-      for (const dark of [false, true]) {
-        await openEditorTheme(page, source, "sketch", dark);
-        values.push(
-          await stage(page).evaluate((element) => getComputedStyle(element).backgroundColor),
-        );
-      }
-      console.log(
-        `sketch dark-ground ${type}: light=${values[0]} dark=${values[1]} ` +
-          `expected=${sketch.value.ground}`,
-      );
-      if (values[0] !== expected || values[1] !== expected) {
-        failures.push(`${type}: light ${values[0]} / dark ${values[1]} / 台 ${expected}`);
-      }
-    }
-    expect(samples.size).toBe(PRESET_TYPES.size);
-    expect(failures).toEqual([]);
+    expect(result.applied, "sketch が当たった図種").toBe(PRESET_TYPES.size);
+    expect(result.boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);
+    expect(result.edgeTypes, "線を測れた図種が 0 件").toBeGreaterThan(0);
+    expect(
+      result.halfFrames,
+      "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    expect(result.failures, "sketch の違反").toEqual([]);
   });
 
   test("sketch initial-animation: 箱と線は各 1 回だけ描く", async ({ page }) => {
@@ -244,7 +214,7 @@ test.describe("sketch theme (#2794)", () => {
     let activeBoxes = 0;
     let normalBoxes = 0;
     for (const type of ["record", "flowchart", "chart", "sequence", "gantt"]) {
-      await openEditorTheme(page, sample(type), "sketch", false);
+      await openEditorTheme(page, sample(type), "sketch");
       await expect(page.locator("filter#dragon-sketch-wobble")).toHaveCount(1);
       await expect(page.locator("pattern#dragon-sketch-pen")).toHaveCount(1);
 
@@ -290,7 +260,7 @@ test.describe("sketch theme (#2794)", () => {
     expect(activeBoxes, "強調の箱を 1 件も測れていない").toBeGreaterThan(0);
 
     for (const type of ["record", "flowchart", "chart", "sequence", "gantt", "topology", "c4"]) {
-      await openEditorTheme(page, sample(type), "sketch", false);
+      await openEditorTheme(page, sample(type), "sketch");
       const textFailures = await stage(page).evaluate((root, forbidden) => {
         const failures: string[] = [];
         // 図の題も含む全ての字で、字自身と祖先に揺れが届かないことを調べる (#2749)。
@@ -310,7 +280,7 @@ test.describe("sketch theme (#2794)", () => {
       expect(textFailures, `${type} の字へ一または揺れが届いた`).toEqual([]);
     }
 
-    await openEditorTheme(page, 帯の記法, "sketch", false);
+    await openEditorTheme(page, 帯の記法, "sketch");
     const sequenceBands = await stage(page)
       .locator('[data-cdl-role="sequence-band"]')
       .evaluateAll((elements) =>
@@ -327,7 +297,7 @@ test.describe("sketch theme (#2794)", () => {
       expect(band.width).toBe("2px");
     }
 
-    await openEditorTheme(page, sample("gantt"), "sketch", false);
+    await openEditorTheme(page, sample("gantt"), "sketch");
     const ganttBars = await stage(page)
       .locator('[data-cdl-role="gantt-bar"]')
       .evaluateAll((elements) =>
@@ -350,7 +320,7 @@ test.describe("sketch theme (#2794)", () => {
       .evaluate((element) => getComputedStyle(element).fill);
     expect(penFill, "日程の斜線の色").toBe(hexToRgb(ganttFill));
 
-    await openEditorTheme(page, sample("chart"), "sketch", false);
+    await openEditorTheme(page, sample("chart"), "sketch");
     const chartBars = await stage(page)
       .locator('[data-cdl-role="chart-bar"]')
       .evaluateAll((elements) =>
@@ -379,7 +349,7 @@ test.describe("sketch theme (#2794)", () => {
       expect(bar.opacity).toBe("1");
     }
 
-    await openEditorTheme(page, 段のない六色の記法, "sketch", false);
+    await openEditorTheme(page, 段のない六色の記法, "sketch");
     const tonedLabels = await readEdgeLabels(page);
     expect(tonedLabels.length, "面に色みを持つ線の札が無い").toBe(6);
     expect(
@@ -394,7 +364,7 @@ test.describe("sketch theme (#2794)", () => {
       expect(label.fits, `${label.tone} の札の字が面からはみ出す`).toBe(true);
     }
 
-    await openEditorTheme(page, 六色の記法, "sketch", false);
+    await openEditorTheme(page, 六色の記法, "sketch");
     const stagedLabels = await readEdgeLabels(page);
     expect(stagedLabels.length, "段のある六色の札が揃わない").toBe(6);
     for (const label of stagedLabels) {
@@ -404,7 +374,7 @@ test.describe("sketch theme (#2794)", () => {
       expect(label.label).toBe(hexToRgb(sketch.value.ink));
     }
 
-    await openEditorTheme(page, 鍵の記法, "sketch", false);
+    await openEditorTheme(page, 鍵の記法, "sketch");
     const keys = await stage(page)
       .locator('[data-cdl-role="node-row-underline"]')
       .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).stroke));

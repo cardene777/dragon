@@ -1,6 +1,8 @@
 /**
  * 画面の種類ごとに 1 枚ずつ、明るい画面 / 暗い画面 / 携帯の幅で撮る (#1094)。
  *
+ * 明るい画面は地の明るい既定の活版、暗い画面は地の暗い端末を `?theme=` で当てる (#2962)。
+ *
  * 元は `tests/audit-3vp.spec.ts` で 33 件 (11 経路 × 3) の検査として置かれていたが、 `expect` を
  * 1 つも持たない。 判定を持たない以上これは検査ではなく目視用の道具なので、 script として持つ。
  *
@@ -34,9 +36,9 @@ const ROUTES = [
 
 /** 撮り方 3 種。 名前が出力先の dir になる */
 const 撮り方 = [
-  { 名前: "light", 幅: 1440, 高さ: 900, 暗い: false },
-  { 名前: "dark", 幅: 1440, 高さ: 900, 暗い: true },
-  { 名前: "mobile", 幅: 375, 高さ: 667, 暗い: false },
+  { 名前: "light", 幅: 1440, 高さ: 900, 意匠: "letterpress" },
+  { 名前: "dark", 幅: 1440, 高さ: 900, 意匠: "terminal" },
+  { 名前: "mobile", 幅: 375, 高さ: 667, 意匠: "letterpress" },
 ];
 
 const browser = await chromium.launch();
@@ -44,11 +46,10 @@ let 撮った = 0;
 
 for (const 形 of 撮り方) {
   const ctx = await browser.newContext();
-  if (形.暗い) await ctx.addInitScript(() => localStorage.setItem("v4-theme", "dark"));
   const page = await ctx.newPage();
   await page.setViewportSize({ width: 形.幅, height: 形.高さ });
   for (const r of ROUTES) {
-    await page.goto(`${BASE}${r.path}`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE}${r.path}?theme=${形.意匠}`, { waitUntil: "networkidle" });
     await page.waitForTimeout(2500);
     await page.screenshot({ path: `${OUT}/${形.名前}/${r.slug}.png`, fullPage: true });
     撮った += 1;

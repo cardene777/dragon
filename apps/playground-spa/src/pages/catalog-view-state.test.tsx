@@ -29,7 +29,7 @@ import type { CdlDiagram, LaidDiagram } from "@cardenelabs/cdl";
 import { CategoryPage } from "./CategoryPage";
 import { CATALOG_ITEMS, patternName, type CatalogItem } from "@/lib/catalog-items";
 import { ToastProvider } from "@/components/Toast";
-import { 配色の札, 配色の選択肢, 画面の色, 画面の色の札 } from "@/lib/palette-switch";
+import { 配色の札, 配色の選択肢 } from "@/lib/palette-switch";
 import { 図ごとの既定の描き方, 描き方を選べる } from "@/lib/redraw-mode";
 import {
   drive,
@@ -261,20 +261,16 @@ describe("項目を選び直した時の見せ方 (#2022)", () => {
 });
 
 describe("見せ方の帯 (#2867)", () => {
-  it("色味の選ぶ欄が画面の色と 9 意匠を持ち、選ぶと図の配色が替わる", () => {
+  it("色味の選ぶ欄が 7 意匠だけを持ち、選ぶと図の配色が替わる (#2962)", () => {
     開く("presets");
 
     const select = screen.getByRole("combobox", { name: "図の色味" });
     if (!(select instanceof HTMLSelectElement))
       throw new Error("図の色味が select でない (検査の前提が崩れた)");
-    expect([...select.options].map((option) => option.text)).toEqual([
-      画面の色の札("ja"),
-      ...配色の選択肢.map((theme) => 配色の札(theme, "ja")),
-    ]);
-    expect([...select.options].map((option) => option.value)).toEqual([
-      画面の色,
-      ...配色の選択肢,
-    ]);
+    expect([...select.options].map((option) => option.text)).toEqual(
+      配色の選択肢.map((theme) => 配色の札(theme, "ja")),
+    );
+    expect([...select.options].map((option) => option.value)).toEqual([...配色の選択肢]);
 
     act(() => {
       fireEvent.change(select, { target: { value: "blueprint" } });

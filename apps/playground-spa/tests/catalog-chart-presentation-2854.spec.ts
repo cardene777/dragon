@@ -93,7 +93,7 @@ const 放射の枠 = {
 } as const;
 
 test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏らさない", async ({ page }) => {
-  await openEditorTheme(page, sourceYaml__monthlyDeliveriesLine, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__monthlyDeliveriesLine, "blueprint");
   let stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.locator('[data-cdl-role="chart-line"]')).toHaveCount(2);
   await expect(stage.locator('[data-cdl-role="chart-line-point"][data-cdl-series="0"]')).toHaveCount(0);
@@ -101,7 +101,7 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   await expect(stage.locator('[data-cdl-role="chart-line-value"][data-cdl-series="0"]')).toHaveText(["計画 1,600"]);
   await expect(stage.locator('[data-cdl-role="chart-line-value"][data-cdl-series="1"]')).toHaveText(["900", "1,750"]);
 
-  await openEditorTheme(page, sourceYaml__parcelStatusPie, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__parcelStatusPie, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.getByText("件", { exact: true })).toHaveCount(1);
   await expect(stage.locator('[data-cdl-role="chart-pie-table-mark"]')).toHaveCount(4);
@@ -117,7 +117,7 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   );
   expect(pieSliceFills.every((fill) => fill !== "none"), "円の扇を枠にしていない").toBe(true);
 
-  await openEditorTheme(page, sourceYaml__orderToDeliveryFunnel, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__orderToDeliveryFunnel, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.locator('[data-cdl-role="funnel-proportional-bar"]')).toHaveCount(4);
   await expect(stage.getByText(/^(28|85|95)%$/u)).toHaveText(["28%", "85%", "95%"]);
@@ -126,13 +126,13 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   );
   expect(funnelFills).toEqual(["none", "none", "none", "none"]);
 
-  await openEditorTheme(page, sourceYaml__measureEffortQuadrant, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__measureEffortQuadrant, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   const axisNames = stage.locator('[data-cdl-role="quadrant-axis-name"]');
   await expect(axisNames).toHaveText([/手間\s*→/u, /効き目\s*→/u]);
   expect(await axisNames.nth(1).getAttribute("transform"), "縦軸の → を上向きの ↑ として描く").toContain("rotate(-90");
 
-  await openEditorTheme(page, sourceYaml__onTimeRateSlope, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__onTimeRateSlope, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.locator('[data-cdl-role="chart-slope-period"]')).toHaveText(["先月", "今月"]);
   await expect(stage.locator('[data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"]')).toHaveCount(2);
@@ -144,7 +144,7 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
     "大阪",
   ]);
 
-  await openEditorTheme(page, sourceYaml__parcelSizeWaffle, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__parcelSizeWaffle, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   const waffleRight = await stage.locator('[data-cdl-role="chart-waffle-cell"]').evaluateAll((nodes) =>
     Math.max(...nodes.map((node) => (node as SVGGraphicsElement).getBBox().x + (node as SVGGraphicsElement).getBBox().width)),
@@ -158,7 +158,7 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   );
   expect(waffleMarkFills.every((fill) => fill !== "none"), "升目の一覧の印を枠にしていない").toBe(true);
 
-  await openEditorTheme(page, sourceYaml__deliveryResultStacked, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__deliveryResultStacked, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.locator('[data-cdl-role="chart-stacked-bar-row"]')).toHaveCount(5);
   const stackedLegendBottom = await stage.locator('[data-cdl-role="chart-stacked-bar-legend"]').evaluateAll((nodes) =>
@@ -178,7 +178,7 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   );
   expect(legendFills.every((fill) => fill !== "none"), "凡例の色見本は塗りのまま").toBe(true);
 
-  await openEditorTheme(page, sourceYaml__onTimeShareGauge, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__onTimeShareGauge, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.locator('[data-cdl-role="chart-gauge-value"]')).toHaveText("78%");
   await expect(stage.locator('[data-cdl-role="chart-gauge-delta"]')).toHaveText("先月より +6");
@@ -199,7 +199,7 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
 
 for (const theme of 意匠) {
   test(`${theme}: 固定尺の半円の残りを意匠の沈んだ色で描く`, async ({ page }) => {
-    await openEditorTheme(page, sourceYaml__onTimeShareGauge, theme, false);
+    await openEditorTheme(page, sourceYaml__onTimeShareGauge, theme);
     const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const remaining = stage.locator('[data-cdl-role="chart-gauge-fixed-scale"]');
     await expect(remaining).toHaveCount(1);
@@ -207,7 +207,7 @@ for (const theme of 意匠) {
   });
 
   test(`${theme}: 円と升目の一覧の字を重ねず意匠へ合わせる`, async ({ page }) => {
-    await openEditorTheme(page, sourceYaml__parcelStatusPie, theme, false);
+    await openEditorTheme(page, sourceYaml__parcelStatusPie, theme);
     const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const mark = stage.locator('[data-cdl-role="chart-pie-table-mark"]').first();
     const label = stage.locator('[data-cdl-role="chart-pie-table-label"]').first();
@@ -247,7 +247,7 @@ for (const theme of 意匠) {
     expect(pieRows.every((row) => row.gap > 0), "円の一覧名と値が重ならない").toBe(true);
     expect(pieRows.every((row) => Math.abs(row.labelY - row.valueY) < 1), "円の一覧名と値が同じ行").toBe(true);
 
-    await openEditorTheme(page, sourceYaml__parcelSizeWaffle, theme, false);
+    await openEditorTheme(page, sourceYaml__parcelSizeWaffle, theme);
     const waffleStage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const waffleRows = await waffleStage.evaluate((element) => {
       const labels = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="chart-waffle-item-label"]')];
@@ -282,7 +282,7 @@ for (const theme of 意匠) {
   });
 
   test(`${theme}: 漏斗・円・内訳の帯・折れ線を最終画面の値で描く`, async ({ page }) => {
-    await openEditorTheme(page, sourceYaml__orderToDeliveryFunnel, theme, false);
+    await openEditorTheme(page, sourceYaml__orderToDeliveryFunnel, theme);
     let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const funnelBars = stage.locator('[data-cdl-role="funnel-proportional-bar"]');
     await expect(funnelBars, `${theme}: 漏斗の4段を測れない`).toHaveCount(4);
@@ -349,7 +349,7 @@ for (const theme of 意匠) {
       : { fill: funnelPaint.muted, stroke: "none" };
     expect.soft(mutedPairs[0], `${theme}: 漏斗1〜3段の意匠別の面と枠`).toEqual(expectedMuted);
 
-    await openEditorTheme(page, sourceYaml__parcelStatusPie, theme, false);
+    await openEditorTheme(page, sourceYaml__parcelStatusPie, theme);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const pieCenter = await stage.locator('[data-cdl-kind="chart-pie"]').evaluate((element) => {
       const total = element.querySelector<SVGTextElement>('text:not([data-cdl-role])[font-weight="600"]');
@@ -387,7 +387,7 @@ for (const theme of 意匠) {
       `${theme}: 「件」と合計の横中心が4を超えてずれている; center=${JSON.stringify(pieCenter)}`,
     ).toBeLessThanOrEqual(4);
 
-    await openEditorTheme(page, sourceYaml__deliveryResultStacked, theme, false);
+    await openEditorTheme(page, sourceYaml__deliveryResultStacked, theme);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const stackedSlices = stage.locator('[data-cdl-role="chart-stacked-bar-slice"]');
     await expect(stackedSlices, `${theme}: 内訳の帯15区画を測れない`).toHaveCount(15);
@@ -430,7 +430,7 @@ for (const theme of 意匠) {
       `${theme}: 内訳の凡例の色見本が塗られていない; fills=${JSON.stringify(legendFills)}`,
     ).toBe(true);
 
-    await openEditorTheme(page, sourceYaml__monthlyDeliveriesLine, theme, false);
+    await openEditorTheme(page, sourceYaml__monthlyDeliveriesLine, theme);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const planLine = stage.locator('[data-cdl-role="chart-line"][data-cdl-series="0"]');
     const actualLine = stage.locator('[data-cdl-role="chart-line"][data-cdl-series="1"]');
@@ -481,7 +481,7 @@ for (const theme of 意匠) {
   });
 
   test(`${theme}: ガントの帯・名前・節目を見本位置と札の中に収める`, async ({ page }) => {
-    await openEditorTheme(page, sourceYaml__sortingShelfGantt, theme, false);
+    await openEditorTheme(page, sourceYaml__sortingShelfGantt, theme);
     const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const diagram = page.locator(".v4-editor-preview [data-cdl-diagram]").filter({ has: stage });
     await expect(diagram).toHaveAttribute("data-cdl-phase-index", "1", { timeout: 5_000 });
@@ -528,7 +528,7 @@ for (const theme of 意匠) {
   });
 
   test(`${theme}: 3段目c の木・放射・ジャーニー・図の札を見本どおり描く`, async ({ page }) => {
-    await openEditorTheme(page, sourceYaml__shipperFeelingJourney, theme, false);
+    await openEditorTheme(page, sourceYaml__shipperFeelingJourney, theme);
     let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const opportunity = stage.locator('[data-cdl-role="journey-opportunity"] text');
     await expect(opportunity).toHaveText("不在票に気づかなかった", { timeout: 5_000 });
@@ -598,7 +598,7 @@ for (const theme of 意匠) {
     expect(await stage.locator('[data-cdl-role="figure-title"]').evaluate((node) => getComputedStyle(node).fontSize))
       .toBe(theme === "terminal" ? "25px" : "29px");
 
-    await openEditorTheme(page, sourceYaml__onTimeRateSlope, theme, false);
+    await openEditorTheme(page, sourceYaml__onTimeRateSlope, theme);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     // cdl 0.132.0 は左右の名札を各系列1枚の chart-slope-label として描く。
     const slopeNames = stage.locator('[data-cdl-role="chart-slope-label"]');
@@ -619,7 +619,7 @@ for (const theme of 意匠) {
       .toEqual([...傾きの主役色[theme]].sort());
     expect(primarySlopeLines.every(({ width }) => width > 0), `${theme} の主役線を消さない`).toBe(true);
 
-    await openEditorTheme(page, sourceYaml__deliveryOfficeTree, theme, false);
+    await openEditorTheme(page, sourceYaml__deliveryOfficeTree, theme);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const tree = stage.locator('[data-cdl-kind="tree-hierarchy"]');
     // 見本の板は 1800 幅。CDL が左右に 60 ずつ余白を足すため、図の指定幅は 1680。
@@ -655,7 +655,7 @@ for (const theme of 意匠) {
       new Set(edges.map((edge) => getComputedStyle(edge).stroke)).size,
     )).toBe(2);
 
-    await openEditorTheme(page, sourceYaml__redeliveryIdeasMind, theme, false);
+    await openEditorTheme(page, sourceYaml__redeliveryIdeasMind, theme);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const mind = stage.locator('[data-cdl-mind-form="outline"]');
     await expect(mind).toHaveCount(1);
@@ -718,7 +718,7 @@ for (const theme of 意匠) {
   });
 
   test(`${theme}: 時間軸の持ち戻るを左寄せし、3形の凡例を21pxで描く`, async ({ page }) => {
-    await openEditorTheme(page, sourceYaml__presetDeliveryTimeline, theme, false);
+    await openEditorTheme(page, sourceYaml__presetDeliveryTimeline, theme);
     let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const returnCard = stage.locator('[data-cdl-title="持ち戻る"][data-cdl-kind="card"]');
     await expect(returnCard, `${theme}: 時間軸の「持ち戻る」の札を1枚に特定できない`).toHaveCount(1);
@@ -753,7 +753,7 @@ for (const theme of 意匠) {
       ["路線図", sourceYaml__presetDeliveryMetro],
       ["時間軸", sourceYaml__presetDeliveryTimeline],
     ] as const) {
-      await openEditorTheme(page, source, theme, false);
+      await openEditorTheme(page, source, theme);
       stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
       const legendTexts = stage.locator('[data-cdl-role="legend-text"]');
       const count = await legendTexts.count();
@@ -770,7 +770,7 @@ for (const theme of 意匠) {
 }
 
 test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と影で描く", async ({ page }) => {
-  await openEditorTheme(page, sourceYaml__presetDeliveryStages, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__presetDeliveryStages, "blueprint");
   let stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   let cardStyles = await stage
     .locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]')
@@ -785,7 +785,7 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
     "図面の段の札は紺の枠 1、影なし",
   ).toBe(true);
 
-  await openEditorTheme(page, sourceYaml__presetDeliveryTimeline, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__presetDeliveryTimeline, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   cardStyles = await stage
     .locator('[data-cdl-lane="timeline-steps"][data-cdl-kind="card"] [data-cdl-role="node-body"]')
@@ -808,7 +808,7 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
   expect(blueprintTimelineDecision, "図面の時間軸の分かれ道")
     .toEqual({ filter: "none", stroke: "rgb(20, 58, 82)", width: "1.5px" });
 
-  await openEditorTheme(page, sourceYaml__presetDeliveryMetro, "blueprint", false);
+  await openEditorTheme(page, sourceYaml__presetDeliveryMetro, "blueprint");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   const blueprintMetroDecision = await stage
     .locator('[data-cdl-kind="decision"] [data-cdl-role="node-body"] > path')
@@ -819,7 +819,7 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
   expect(blueprintMetroDecision, "図面の路線図の分かれ道")
     .toEqual({ filter: "none", stroke: "rgb(20, 58, 82)", width: "1.5px" });
 
-  await openEditorTheme(page, sourceYaml__presetDeliveryStages, "catalog", false);
+  await openEditorTheme(page, sourceYaml__presetDeliveryStages, "catalog");
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="catalog"]');
   const catalogCards = await stage
     .locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]')
@@ -856,7 +856,7 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
     [sourceYaml__presetDeliveryTimeline, timelineCardLooks],
   ] as const) {
     for (const expected of expectedLooks) {
-      await openEditorTheme(page, source, expected.theme, false);
+      await openEditorTheme(page, source, expected.theme);
       stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${expected.theme}"]`);
       const styles = await stage.locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]')
         .evaluateAll((cards) => cards.map((card) => {
@@ -884,7 +884,7 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
   ] as const;
   for (const source of [sourceYaml__presetDeliveryMetro, sourceYaml__presetDeliveryTimeline]) {
     for (const expected of decisions) {
-      await openEditorTheme(page, source, expected.theme, false);
+      await openEditorTheme(page, source, expected.theme);
       stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${expected.theme}"]`);
       const style = await stage.locator('[data-cdl-kind="decision"] [data-cdl-role="node-body"] > path')
         .evaluate((path) => {
@@ -899,7 +899,7 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
 
 
   for (const theme of 意匠) {
-    await openEditorTheme(page, sourceYaml__presetDeliveryMetro, theme, false);
+    await openEditorTheme(page, sourceYaml__presetDeliveryMetro, theme);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const stationFace = await stage.locator('[data-cdl-legend-mark="station"] > circle')
       .evaluate((circle) => getComputedStyle(circle).fill);

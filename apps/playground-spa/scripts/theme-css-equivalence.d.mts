@@ -24,7 +24,6 @@ export function compareFigures(page: import("playwright").Page, options: {
   oldCss: CssPair;
   newCss: CssPair;
   palettes?: string[];
-  darkModes?: boolean[];
   pixelComparison?: boolean;
   onStateProgress?: (progress: { stateCount: number; state: Record<string, unknown> }) => void;
   onProgress?: (progress: { figure: FigureInput; matched: number; elapsedMs: number }) => void;
@@ -57,7 +56,6 @@ export function compareFiguresWithWorkers(browser: import("playwright").Browser,
   newCss: CssPair;
   workers: number;
   palettes?: string[];
-  darkModes?: boolean[];
   pixelComparison?: boolean;
   onStateProgress?: (progress: { stateCount: number; state: Record<string, unknown> }) => void;
   onProgress?: (progress: {

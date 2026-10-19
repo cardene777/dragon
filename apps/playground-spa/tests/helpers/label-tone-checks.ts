@@ -130,7 +130,7 @@ async function readLabels(page: Page, theme: string): Promise<LabelValue[]> {
 export async function checkEdgeLabelTones(page: Page, theme: string): Promise<string> {
   const style = readFixedThemeLabelToneStyles().get(theme as never);
   if (!style) throw new Error(`${theme} の札を意匠帳から読めない`);
-  await openEditorTheme(page, LABEL_TONE_SOURCE, theme, false);
+  await openEditorTheme(page, LABEL_TONE_SOURCE, theme);
   const labels = await readLabels(page, theme);
   expect(labels.map((label) => label.text).sort(), `${theme} の札`).toEqual(
     ["順路", "はい", "いいえ", "戻す"].sort(),
@@ -234,10 +234,10 @@ function checkBars(theme: string, bars: BarValue[], allowPrimary: boolean): void
 }
 
 export async function checkSingleSeriesBars(page: Page, theme: string): Promise<string> {
-  await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme, false);
+  await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme);
   const bars = await readBars(page, theme);
   checkBars(theme, bars, true);
-  await openEditorTheme(page, NON_POSITIVE_SINGLE_SERIES_SOURCE, theme, false);
+  await openEditorTheme(page, NON_POSITIVE_SINGLE_SERIES_SOURCE, theme);
   const nonPositive = await readBars(page, theme);
   checkBars(theme, nonPositive, false);
   const primary = bars.find((bar) => bar.primary);
@@ -246,17 +246,12 @@ export async function checkSingleSeriesBars(page: Page, theme: string): Promise<
     `nonPositivePrimary=${nonPositive.filter((bar) => bar.primary).length}`;
 }
 
-export async function checkEdgeLabelContrast(
-  page: Page,
-  theme: string,
-  dark: boolean,
-): Promise<string> {
-  const mode = dark ? "暗" : "明";
-  await openEditorTheme(page, LABEL_TONE_SOURCE, theme, dark);
+export async function checkEdgeLabelContrast(page: Page, theme: string): Promise<string> {
+  await openEditorTheme(page, LABEL_TONE_SOURCE, theme);
   await stopDiagram(page);
   const stage = labelStage(page, theme);
   const stageBox = await stage.boundingBox();
-  if (!stageBox) throw new Error(`${theme}/${mode} の舞台の矩形が無い`);
+  if (!stageBox) throw new Error(`${theme} の舞台の矩形が無い`);
   const labels = await stage.locator('[data-cdl-edge-label-for] > [data-cdl-role="edge-label"]').evaluateAll(
     (elements) => elements.map((element) => {
       const box = element.getBoundingClientRect();
@@ -266,7 +261,7 @@ export async function checkEdgeLabelContrast(
       };
     }),
   );
-  expect(labels.length, `${theme}/${mode} の札の字`).toBe(4);
+  expect(labels.length, `${theme} の札の字`).toBe(4);
   await setAllTextHidden(page, true);
   const hidden = await shoot(page, stageBox);
   await setAllTextHidden(page, false);
@@ -275,7 +270,7 @@ export async function checkEdgeLabelContrast(
   const originY = Math.floor(stageBox.y);
   const cssWidth = Math.ceil(stageBox.x + stageBox.width) - originX;
   const scale = visible.width / cssWidth;
-  expect(scale, `${theme}/${mode} の写しの拡大率`).toBeCloseTo(FIXED_THEME_DEVICE_SCALE_FACTOR, 5);
+  expect(scale, `${theme} の写しの拡大率`).toBeCloseTo(FIXED_THEME_DEVICE_SCALE_FACTOR, 5);
   const ratios: string[] = [];
   for (const label of labels) {
     const result = measureStrongestCore(visible, hidden, {
@@ -284,10 +279,10 @@ export async function checkEdgeLabelContrast(
       width: label.box.width * scale,
       height: label.box.height * scale,
     });
-    expect(result.kind, `${theme}/${mode}/${label.text} の対比を測れない`).toBe("ok");
+    expect(result.kind, `${theme}/${label.text} の対比を測れない`).toBe("ok");
     if (result.kind !== "ok") continue;
-    expect(result.ratio, `${theme}/${mode}/${label.text} の対比`).toBeGreaterThanOrEqual(4.5);
+    expect(result.ratio, `${theme}/${label.text} の対比`).toBeGreaterThanOrEqual(4.5);
     ratios.push(`${label.text}=${result.ratio.toFixed(2)}`);
   }
-  return `${theme} labels contrast ${mode}: ${ratios.join(" ")}`;
+  return `${theme} labels contrast: ${ratios.join(" ")}`;
 }

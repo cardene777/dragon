@@ -5,6 +5,8 @@
  * なかった。 暗い側は #1112 で `#77716a` から `#a8a199` へ持ち上げてあり 5.46 ある。
  * 同じ役割の文字が明暗で倍近く開いていた。
  *
+ * 明暗の切り替えは外し、サイトの 7 意匠 (`?theme=`) それぞれで見る (#2962)。
+ *
  * ## 地は画素から読み、 文字は宣言色を使う (review R1-F1、 2 巡)
  *
  * 初版は宣言した色をそのまま測り、 `opacity` を重ねた形を見逃した (宣言 5.47 / 実際 3.58)。
@@ -46,6 +48,8 @@
  * 取れた 2 件がどちらも帯の中だった)。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { THEMES } from "@cardenelabs/dragon";
+import { 画面の意匠を付ける } from "./helpers/site-theme-url";
 import { PNG } from "pngjs";
 import { contrast, cores, requiredRatio, type Box } from "./helpers/pixel-contrast";
 import { 一覧が落ち着くまで待つ } from "./wait-for-render";
@@ -227,13 +231,10 @@ async function 動きを止める(page: Page): Promise<void> {
  */
 const 画面名 = (path: string): string => path || "トップ";
 
-async function 開く(page: Page, path: string, 暗い: boolean, 部品?: string): Promise<void> {
+async function 開く(page: Page, path: string, 意匠: string, 部品?: string): Promise<void> {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto(path);
+  await page.goto(画面の意匠を付ける(path, 意匠));
   await page.waitForLoadState("networkidle");
-  await page.evaluate((d) => {
-    document.documentElement.classList.toggle("dark", d);
-  }, 暗い);
   await page.waitForTimeout(1200);
   if (部品) {
     // 一覧の中の選択は URL に出ないので押して開く (`CategoryPage` が state で持つ)。
@@ -393,45 +394,47 @@ const 画面 = [
  * **落ちた時にどの画面かが検査の名前で分かる** のも分けた理由で、持ち時間を延ばす案では
  * どちらも変わらない (遅いままで、5 画面のどれかも分からない)。
  *
- * 明暗の揃いを見る 1 件は分けない。 2 つの値を 1 件の中で比べるのが目的で、分けると比べられない。
+ * 意匠ごとの揃いを見る 1 件は分けない。 7 つの値を 1 件の中で比べるのが目的で、分けると比べられない。
  */
-for (const 暗い of [false, true]) {
-  const 名 = 暗い ? "暗い" : "明るい";
+for (const 意匠 of THEMES) {
   for (const { path, 部品 } of 画面) {
-    test(`${名}画面の ${画面名(path)} で薄い文字が地の上で読める`, async ({ page }) => {
-      await 開く(page, path, 暗い, 部品);
-      const { 測れた: 件, 測れず } = await 測る(page, `${名}画面 ${画面名(path)}`);
+    test(`${意匠} の ${画面名(path)} で薄い文字が地の上で読める`, async ({ page }) => {
+      await 開く(page, path, 意匠, 部品);
+      const { 測れた: 件, 測れず } = await 測る(page, `${意匠} ${画面名(path)}`);
       expect(件.length, `${画面名(path)} で薄い文字を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
       expect(
         測れず.map((x: 測れず) => `「${x.文}」 ${x.px}px (${x.理由})`),
-        `${名}画面 ${画面名(path)} に読めることを確かめられない薄い文字がある`,
+        `${意匠} ${画面名(path)} に読めることを確かめられない薄い文字がある`,
       ).toEqual([]);
       for (const { 文, 比, 要, px, 地 } of 件) {
         expect(
           比,
-          `${名}画面 ${画面名(path)} の「${文}」 が地に溶ける (${px}px / 地 ${地} / 対比 ${比.toFixed(2)} / 要 ${要})`,
+          `${意匠} ${画面名(path)} の「${文}」 が地に溶ける (${px}px / 地 ${地} / 対比 ${比.toFixed(2)} / 要 ${要})`,
         ).toBeGreaterThanOrEqual(要);
       }
     });
   }
 }
 
-test("薄い文字の読みやすさが明暗で揃っている", async ({ page }) => {
-  // 本 Issue の中身。 片側だけを直しても落ちないと、 同じ非対称がまた作られる。
+test("薄い文字の読みやすさが 7 意匠で揃っている", async ({ page }) => {
+  // 7 つの画面を順に開くので、1 画面の検査より長く待つ
+  test.setTimeout(120_000);
+  // 本 Issue の中身。 1 つの意匠だけを直しても落ちないと、 同じ非対称がまた作られる。
   //
-  // **地が明暗で違うので色そのものは比べられない**。 地に対する対比で比べる。
-  const 代表 = async (暗い: boolean): Promise<number> => {
-    await 開く(page, "catalog/presets", 暗い);
-    const { 測れた: 件 } = await 測る(page, `${暗い ? "暗い" : "明るい"}画面 catalog/presets`);
-    expect(件.length, `${暗い ? "暗い" : "明るい"}側で薄い文字を測れていない`).toBeGreaterThan(0);
+  // **地が意匠で違うので色そのものは比べられない**。 地に対する対比で比べる。
+  const 代表 = async (意匠: string): Promise<number> => {
+    await 開く(page, "catalog/presets", 意匠);
+    const { 測れた: 件 } = await 測る(page, `${意匠} catalog/presets`);
+    expect(件.length, `${意匠} で薄い文字を測れていない`).toBeGreaterThan(0);
     // 面の上に乗るものが多数派なので中央値を採る (端の 1 件に引きずられない)
     const v = 件.map((x: 結果) => x.比).sort((a: number, b: number) => a - b);
     return v[Math.floor(v.length / 2)]!;
   };
-  const 明 = await 代表(false);
-  const 暗 = await 代表(true);
+  const 中央値 = new Map<string, number>();
+  for (const 意匠 of THEMES) 中央値.set(意匠, await 代表(意匠));
+  const 値 = [...中央値.values()];
   expect(
-    Math.abs(明 - 暗),
-    `薄い文字の読みやすさが明暗で開いている (明 ${明.toFixed(2)} / 暗 ${暗.toFixed(2)})`,
+    Math.max(...値) - Math.min(...値),
+    `薄い文字の読みやすさが意匠で開いている (${[...中央値].map(([k, v]) => `${k} ${v.toFixed(2)}`).join(" / ")})`,
   ).toBeLessThanOrEqual(1.5);
 });

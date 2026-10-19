@@ -19,13 +19,18 @@
  * 出ていても色が動かなければ進み具合は伝わらない。 中身と色の変化を直接見る。
  */
 import { test, expect } from "@playwright/test";
+import { 明るい画面の意匠, 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 import { 位置が落ち着くまで待つ } from "./wait-for-render";
 import { 箱と矢印の記法 } from "./box-and-edge-figure";
 import { 段の呼び名 } from "../src/components/PhaseChrome";
 
-async function 開く(page: import("@playwright/test").Page, hash = ""): Promise<void> {
+async function 開く(
+  page: import("@playwright/test").Page,
+  hash = "",
+  画面の意匠 = 明るい画面の意匠,
+): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`editor${hash}`);
+  await page.goto(画面の意匠を付ける(`editor${hash}`, 画面の意匠));
   await page.waitForLoadState("networkidle");
   await page.waitForSelector(".v4-editor-stage svg", { timeout: 30000 });
   // 固定の待ち時間だと、一式で回した時の負荷で枠に収める処理が終わる前に測る (#2476)。
@@ -174,26 +179,27 @@ test.describe("段の表示 (#1143)", () => {
     expect(有.length, "今の段に関わる名札が 1 つも無い").toBeGreaterThan(0);
     expect(無.length, "関わらない名札が 1 つも無い").toBeGreaterThan(0);
 
-    // 枠の色で見分ける。 面も一緒に変わるが、 面は舞台とほぼ同じ明るさなので分離は枠が担う
-    const 有色 = new Set(有.map((n) => n.stroke));
-    const 無色 = new Set(無.map((n) => n.stroke));
+    // 枠の色と幅の組で見分ける。 面も一緒に変わるが、 面は舞台とほぼ同じ明るさなので分離は枠が担う。
+    // 色だけでは見ない = 意匠によって枠の色を変えるものと、 墨のまま太さを変えるものがある (#2962)
+    const 枠の組 = (n: { stroke: string; width: string }) => `${n.stroke} / ${n.width}`;
+    const 有色 = new Set(有.map(枠の組));
+    const 無色 = new Set(無.map(枠の組));
     expect(有色.size, "関わる名札の枠が揃っていない").toBe(1);
     for (const a of 有色)
       expect(無色.has(a), `関わる名札と関わらない名札が同じ枠 (${a})`).toBe(false);
   });
 
-  for (const 明暗 of ["light", "dark"] as const) {
-    test(`橙に変わった名札が読める (${明暗})`, async ({ page }) => {
+  for (const 画面の意匠 of [明るい画面の意匠, 暗い画面の意匠]) {
+    test(`橙に変わった名札が読める (${画面の意匠})`, async ({ page }) => {
       // `dark-ground-step.spec.ts` の 2 件は **既定の箱** が紙に沈まないことを測る。 橙に切り替わった
       // 箱はそこから外したので、 その箱の読みやすさをここで測る。
       //
       // 橙の箱は面が舞台と同じ色になり、 **分離は枠が担う**。 面と枠が互いに読めること、
       // 枠が舞台からも浮くことの 2 つを見る。
       //
-      // **明暗の両方で見る**。 面の色 (`--d-accent-face`) は明暗で必要な向きが逆で、
+      // **地の明るい画面の意匠と暗い画面の意匠の両方で見る** (#2962)。 面の色は地の明暗で必要な向きが逆で、
       // 片方だけ見ていると気付けない (実測 = 明で `--d-accent-soft` を使うと 4.17)。
-      await page.emulateMedia({ colorScheme: 明暗 });
-      await 開く(page, 共有(箱と矢印の記法));
+      await 開く(page, 共有(箱と矢印の記法), 画面の意匠);
 
       const 色 = await page.evaluate(() => {
         // `data-cdl-active` は箱以外 (矢印 / 印) にも付く。 箱と文字を両方持つものを選ぶ

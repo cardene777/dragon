@@ -49,7 +49,6 @@ const DEFAULT_WORKERS = 4;
 const CLOCK_TIME = new Date("2026-10-14T09:00:00+09:00");
 
 export const PALETTES = Object.freeze([
-  { value: "site-colours", label: "画面の色", reference: false },
   { value: "blueprint", label: "図面", reference: true },
   { value: "letterpress", label: "活版", reference: true },
   { value: "catalog", label: "図録", reference: true },
@@ -234,8 +233,8 @@ function figureLabel(figure) {
   return `${figure.page}/${figure.itemId}`;
 }
 
-function stateLabel(figure, palette, dark, phase) {
-  return `${figureLabel(figure)}、色味 ${palette}、${dark ? "暗" : "明"}、段 ${phase}`;
+function stateLabel(figure, palette, phase) {
+  return `${figureLabel(figure)}、色味 ${palette}、段 ${phase}`;
 }
 
 function errorMessage(error) {
@@ -295,7 +294,7 @@ async function openFigure(page, baseUrl, figure, initialCss) {
   };
 }
 
-async function configureCombination(page, figure, palette, dark) {
+async function configureCombination(page, figure, palette) {
   const paletteOption = PALETTES.find((entry) => entry.value === palette);
   if (!paletteOption) throw new Error(`色味が不明です: ${palette}`);
   try {
@@ -303,40 +302,39 @@ async function configureCombination(page, figure, palette, dark) {
   } catch (error) {
     throw new FigureTraversalError(`${figureLabel(figure)} の色味欄を操作できません: ${errorMessage(error)}`);
   }
-  await page.evaluate((enabled) => document.documentElement.classList.toggle("dark", enabled), dark);
   for (let elapsed = 0; elapsed <= MAX_DRAWABLE_WAIT_MS; elapsed += CLOCK_STEP_MS) {
     const value = (await stageState(page)).palette;
-    if (palette === "site-colours" ? value === null : value === palette) return;
+    if (value === palette) return;
     await page.clock.runFor(CLOCK_STEP_MS);
   }
   throw new FigureTraversalError(`${figureLabel(figure)} を色味 ${paletteOption.label} に切り替えられません`);
 }
 
-async function waitForPhaseZero(page, figure, palette, dark, phaseCount) {
+async function waitForPhaseZero(page, figure, palette, phaseCount) {
   const initial = await stageState(page);
   if (initial.phase === null) {
-    throw new FigureTraversalError(`${stateLabel(figure, palette, dark, 0)}: data-cdl-phase-index が読めません`);
+    throw new FigureTraversalError(`${stateLabel(figure, palette, 0)}: data-cdl-phase-index が読めません`);
   }
   let sawNonZero = false;
   for (let elapsed = 0; elapsed <= MAX_PHASE_WAIT_MS; elapsed += CLOCK_STEP_MS) {
     const state = await stageState(page);
     if (state.phase === null) {
-      throw new FigureTraversalError(`${stateLabel(figure, palette, dark, 0)}: data-cdl-phase-index が読めません`);
+      throw new FigureTraversalError(`${stateLabel(figure, palette, 0)}: data-cdl-phase-index が読めません`);
     }
     const status = phaseResetStatus(phaseCount, initial.phase, state.phase, sawNonZero);
     sawNonZero = status.sawNonZero;
     if (status.ready) return;
     await page.clock.runFor(CLOCK_STEP_MS);
   }
-  throw new FigureTraversalError(`${stateLabel(figure, palette, dark, 0)}: 段 0 に ${MAX_PHASE_WAIT_MS}ms 内で戻りません`);
+  throw new FigureTraversalError(`${stateLabel(figure, palette, 0)}: 段 0 に ${MAX_PHASE_WAIT_MS}ms 内で戻りません`);
 }
 
-async function validateUnlabeledSinglePhase(page, figure, palette, dark) {
+async function validateUnlabeledSinglePhase(page, figure, palette) {
   let observedPhase = 0;
   for (let elapsed = 0; elapsed <= MAX_PHASE_WAIT_MS; elapsed += CLOCK_STEP_MS) {
     const state = await stageState(page);
     if (state.phase === null) {
-      throw new FigureTraversalError(`${stateLabel(figure, palette, dark, 0)}: data-cdl-phase-index が読めません`);
+      throw new FigureTraversalError(`${stateLabel(figure, palette, 0)}: data-cdl-phase-index が読めません`);
     }
     observedPhase = state.phase;
     if (observedPhase !== 0 || elapsed === MAX_PHASE_WAIT_MS) break;
@@ -346,18 +344,18 @@ async function validateUnlabeledSinglePhase(page, figure, palette, dark) {
   const decision = resolvePhaseCount(0, observedPhase !== 0);
   if (decision.status === "unreadable") {
     throw new FigureTraversalError(
-      `${stateLabel(figure, palette, dark, 0)}: ${decision.reason} (観測した段 ${observedPhase})`,
+      `${stateLabel(figure, palette, 0)}: ${decision.reason} (観測した段 ${observedPhase})`,
     );
   }
 }
 
-async function settleAtPhase(page, figure, palette, dark, target) {
+async function settleAtPhase(page, figure, palette, target) {
   let previousKey = null;
   let stable = 0;
   for (let elapsed = 0; ; elapsed += CLOCK_STEP_MS) {
     const state = await stageState(page);
     if (state.phase === null || state.summary === null) {
-      throw new FigureTraversalError(`${stateLabel(figure, palette, dark, target)}: svg の要約または段の札が読めません`);
+      throw new FigureTraversalError(`${stateLabel(figure, palette, target)}: svg の要約または段の札が読めません`);
     }
     const phaseChanged = state.phase !== target;
     if (!phaseChanged) {
@@ -367,85 +365,74 @@ async function settleAtPhase(page, figure, palette, dark, target) {
     }
     const decision = stateCaptureDecision(elapsed, stable, phaseChanged);
     if (decision.status === "advanced") {
-      throw new FigureTraversalError(`${stateLabel(figure, palette, dark, target)}: 静止前に段 ${state.phase} へ進みました`);
+      throw new FigureTraversalError(`${stateLabel(figure, palette, target)}: 静止前に段 ${state.phase} へ進みました`);
     }
     if (decision.status === "capture") return decision.mode;
     await page.clock.runFor(CLOCK_STEP_MS);
   }
 }
 
-async function waitForNextPhase(page, figure, palette, dark, current) {
+async function waitForNextPhase(page, figure, palette, current) {
   for (let elapsed = 0; elapsed <= MAX_PHASE_WAIT_MS; elapsed += CLOCK_STEP_MS) {
     await page.clock.runFor(CLOCK_STEP_MS);
     const state = await stageState(page);
     if (state.phase === null) {
-      throw new FigureTraversalError(`${stateLabel(figure, palette, dark, current)}: data-cdl-phase-index が読めません`);
+      throw new FigureTraversalError(`${stateLabel(figure, palette, current)}: data-cdl-phase-index が読めません`);
     }
     if (state.phase === current) continue;
     if (state.phase !== current + 1) {
-      throw new FigureTraversalError(`${stateLabel(figure, palette, dark, current)}: 次の段 ${current + 1} を飛ばして段 ${state.phase} へ進みました`);
+      throw new FigureTraversalError(`${stateLabel(figure, palette, current)}: 次の段 ${current + 1} を飛ばして段 ${state.phase} へ進みました`);
     }
     return;
   }
-  throw new FigureTraversalError(`${stateLabel(figure, palette, dark, current)}: 次の段へ ${MAX_PHASE_WAIT_MS}ms 内に進みません`);
+  throw new FigureTraversalError(`${stateLabel(figure, palette, current)}: 次の段へ ${MAX_PHASE_WAIT_MS}ms 内に進みません`);
 }
 
 async function forEachFigureState(page, options, visit) {
   const palettes = options.palettes ?? PALETTES.map((entry) => entry.value);
-  const darkModes = options.darkModes ?? [false, true];
   let phaseCount;
   let phaseSegmentCount;
   let singlePhaseCaptureMode;
-  let unlabeledValidationState;
+  let unlabeledPalette;
   for (const palette of palettes) {
-    for (const dark of darkModes) {
-      await applyThemeCss(page, options.oldCss);
-      await configureCombination(page, options.figure, palette, dark);
-      const before = await stageState(page);
-      if (phaseCount === undefined) {
-        phaseSegmentCount = before.phaseSegmentCount;
-        phaseCount = resolvePhaseCount(phaseSegmentCount, false).phaseCount;
-        if (phaseSegmentCount === 0) unlabeledValidationState = { palette, dark };
-      } else if (before.phaseSegmentCount !== phaseSegmentCount) {
-        throw new FigureTraversalError(
-          `${figureLabel(options.figure)} の段の札の数が状態によって変わりました: ${phaseSegmentCount} / ${before.phaseSegmentCount}`,
-        );
+    await applyThemeCss(page, options.oldCss);
+    await configureCombination(page, options.figure, palette);
+    const before = await stageState(page);
+    if (phaseCount === undefined) {
+      phaseSegmentCount = before.phaseSegmentCount;
+      phaseCount = resolvePhaseCount(phaseSegmentCount, false).phaseCount;
+      if (phaseSegmentCount === 0) unlabeledPalette = palette;
+    } else if (before.phaseSegmentCount !== phaseSegmentCount) {
+      throw new FigureTraversalError(
+        `${figureLabel(options.figure)} の段の札の数が状態によって変わりました: ${phaseSegmentCount} / ${before.phaseSegmentCount}`,
+      );
+    }
+    if (phaseCount === 1 && singlePhaseCaptureMode !== undefined) {
+      if (before.phase !== 0) {
+        throw new FigureTraversalError(`${stateLabel(options.figure, palette, 0)}: 1段図なのに段 ${before.phase} へ進みました`);
       }
-      if (phaseCount === 1 && singlePhaseCaptureMode !== undefined) {
-        if (before.phase !== 0) {
-          throw new FigureTraversalError(`${stateLabel(options.figure, palette, dark, 0)}: 1段図なのに段 ${before.phase} へ進みました`);
-        }
-        await visit({
-          page: options.figure.page,
-          figure: options.figure.itemId,
-          palette,
-          dark,
-          phase: 0,
-          captureMode: singlePhaseCaptureMode,
-        });
-        continue;
-      }
-      await waitForPhaseZero(page, options.figure, palette, dark, phaseCount);
-      for (let phase = 0; phase < phaseCount; phase += 1) {
-        const captureMode = await settleAtPhase(page, options.figure, palette, dark, phase);
-        await visit({ page: options.figure.page, figure: options.figure.itemId, palette, dark, phase, captureMode });
-        if (phaseCount === 1) singlePhaseCaptureMode = captureMode;
-        if (phase + 1 < phaseCount) {
-          await applyThemeCss(page, options.oldCss);
-          await waitForNextPhase(page, options.figure, palette, dark, phase);
-        }
+      await visit({
+        page: options.figure.page,
+        figure: options.figure.itemId,
+        palette,
+        phase: 0,
+        captureMode: singlePhaseCaptureMode,
+      });
+      continue;
+    }
+    await waitForPhaseZero(page, options.figure, palette, phaseCount);
+    for (let phase = 0; phase < phaseCount; phase += 1) {
+      const captureMode = await settleAtPhase(page, options.figure, palette, phase);
+      await visit({ page: options.figure.page, figure: options.figure.itemId, palette, phase, captureMode });
+      if (phaseCount === 1) singlePhaseCaptureMode = captureMode;
+      if (phase + 1 < phaseCount) {
+        await applyThemeCss(page, options.oldCss);
+        await waitForNextPhase(page, options.figure, palette, phase);
       }
     }
   }
-  if (phaseCount === undefined) throw new Error(`${figureLabel(options.figure)} に走査する色味と明暗がありません`);
-  if (unlabeledValidationState) {
-    await validateUnlabeledSinglePhase(
-      page,
-      options.figure,
-      unlabeledValidationState.palette,
-      unlabeledValidationState.dark,
-    );
-  }
+  if (phaseCount === undefined) throw new Error(`${figureLabel(options.figure)} に走査する色味がありません`);
+  if (unlabeledPalette !== undefined) await validateUnlabeledSinglePhase(page, options.figure, unlabeledPalette);
   return phaseCount;
 }
 
@@ -698,7 +685,7 @@ async function compareOneFigure(page, options, parsed) {
   };
 }
 
-function combinedComparison(results, parsed, paletteCount, darkModeCount) {
+function combinedComparison(results, parsed, paletteCount) {
   const matchedIds = new Set();
   const undecidableReasons = new Map();
   const adjustments = new Map();
@@ -710,7 +697,7 @@ function combinedComparison(results, parsed, paletteCount, darkModeCount) {
     for (const [id, adjustment] of result.adjustments) if (!adjustments.has(id)) adjustments.set(id, adjustment);
   }
   const stateCount = results.reduce((sum, result) => sum + result.stateCount, 0);
-  const expectedStates = expectedStateCount(phaseCounts, paletteCount, darkModeCount);
+  const expectedStates = expectedStateCount(phaseCounts, paletteCount);
   if (stateCount !== expectedStates) throw new Error(`状態数が一致しません: 実際 ${stateCount} / 期待 ${expectedStates}`);
   const referencePageKeys = new Set(results.flatMap((result) => [...result.referencePageKeys]));
   const captureModes = {
@@ -750,20 +737,19 @@ function combinedComparison(results, parsed, paletteCount, darkModeCount) {
   };
 }
 
-/** 指定された図を、図ごとに一度だけ開いて全色味・明暗・全段で比較する。 */
+/** 指定された図を、図ごとに一度だけ開いて全色味・全段で比較する。 */
 export async function compareFigures(page, options) {
   const palettes = options.palettes ?? PALETTES.map((entry) => entry.value);
-  const darkModes = options.darkModes ?? [false, true];
   const parsed = rulesFromCss(options.oldCss);
   const variableNames = collectCssVariableNames([...Object.values(options.oldCss), ...Object.values(options.newCss)]);
   const results = [];
   await preparePage(page);
   for (const figure of options.figures) {
-    const result = await compareOneFigure(page, { ...options, figure, palettes, darkModes, variableNames }, parsed);
+    const result = await compareOneFigure(page, { ...options, figure, palettes, variableNames }, parsed);
     results.push(result);
     options.onProgress?.({ figure, matched: result.matchedIds.size, elapsedMs: result.elapsedMs });
   }
-  return combinedComparison(results, parsed, palettes.length, darkModes.length);
+  return combinedComparison(results, parsed, palettes.length);
 }
 
 async function discoverFigures(page, baseUrl, pages) {
@@ -860,7 +846,7 @@ function buildSelectionOutput(results, parsed, baseline, pages) {
   const ruleById = new Map(parsed.rules.map((rule) => [rule.id, rule]));
   const unreachableRules = [...chosen.uncovered].map((id) => {
     const rule = ruleById.get(id);
-    return { id, source: rule.source, selector: rule.selector, line: rule.line, reason: "描ける全図・全色味・明暗・全段のどれにも一致しない" };
+    return { id, source: rule.source, selector: rule.selector, line: rule.line, reason: "描ける全図・全色味・全段のどれにも一致しない" };
   });
   return {
     figures: { version: 3, generatedFrom: baseline, pages, figures: selected, figuresWithoutCdlSvg, undrawableFigures },
@@ -927,7 +913,6 @@ async function parallelByFigure(pages, figures, run, onComplete) {
 
 export async function compareFiguresWithWorkers(browser, options) {
   const palettes = options.palettes ?? PALETTES.map((entry) => entry.value);
-  const darkModes = options.darkModes ?? [false, true];
   const parsed = rulesFromCss(options.oldCss);
   const variableNames = collectCssVariableNames([...Object.values(options.oldCss), ...Object.values(options.newCss)]);
   const pages = await pagesForWorkers(browser, Math.min(options.workers, options.figures.length));
@@ -936,7 +921,7 @@ export async function compareFiguresWithWorkers(browser, options) {
     const results = await parallelByFigure(
       pages,
       options.figures,
-      (page, figure) => compareOneFigure(page, { ...options, figure, palettes, darkModes, variableNames }, parsed),
+      (page, figure) => compareOneFigure(page, { ...options, figure, palettes, variableNames }, parsed),
       (result, figure) => {
         finished += 1;
         options.onProgress?.({
@@ -948,7 +933,7 @@ export async function compareFiguresWithWorkers(browser, options) {
         });
       },
     );
-    return combinedComparison(results, parsed, palettes.length, darkModes.length);
+    return combinedComparison(results, parsed, palettes.length);
   } finally {
     await Promise.all(pages.map((page) => page.close()));
   }

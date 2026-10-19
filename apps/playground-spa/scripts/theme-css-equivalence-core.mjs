@@ -436,8 +436,8 @@ export function greedySelectFigures(figures, allRuleIds, mandatoryKeys = []) {
   };
 }
 
-export function expectedStateCount(phaseCounts, paletteCount = 10, modeCount = 2) {
-  return Object.values(phaseCounts).reduce((sum, count) => sum + count * paletteCount * modeCount, 0);
+export function expectedStateCount(phaseCounts, paletteCount) {
+  return Object.values(phaseCounts).reduce((sum, count) => sum + count * paletteCount, 0);
 }
 
 export function summarizeCoverage(rules, matchedIds, undecidableReasons = new Map()) {

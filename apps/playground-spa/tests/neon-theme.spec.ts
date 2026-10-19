@@ -114,7 +114,7 @@ test.describe("neon theme (#2795)", () => {
     ];
 
     for (const target of targets) {
-      await openEditorTheme(page, target.source, "neon", false);
+      await openEditorTheme(page, target.source, "neon");
       await expect(page.locator("filter#dragon-neon-tube")).toHaveCount(1);
       const filter = page.locator("filter#dragon-neon-tube");
       // 見本頁の filter#光 は SourceGraphic を 1.5 / 5 でぼかし、遠い光・近い光・元絵の順に重ねる。
@@ -239,7 +239,7 @@ test.describe("neon theme (#2795)", () => {
     }
 
     for (const type of ["topology", "c4"]) {
-      await openEditorTheme(page, sample(type), "neon", false);
+      await openEditorTheme(page, sample(type), "neon");
       const textFailures = await stage(page).evaluate((root) => {
         const failures: string[] = [];
         for (const text of root.querySelectorAll("text")) {
@@ -255,7 +255,7 @@ test.describe("neon theme (#2795)", () => {
       expect(textFailures, `${type} の字へ管が届いた`).toEqual([]);
     }
 
-    await openEditorTheme(page, sample("chart", "bar"), "neon", false);
+    await openEditorTheme(page, sample("chart", "bar"), "neon");
     const bars = await stage(page)
       .locator('[data-cdl-role="chart-bar"]')
       .evaluateAll((elements) =>
@@ -288,7 +288,7 @@ test.describe("neon theme (#2795)", () => {
         .toBe(want.strokeWidth);
     }
 
-    await openEditorTheme(page, 段のない六色の記法, "neon", false);
+    await openEditorTheme(page, 段のない六色の記法, "neon");
     const tonedLabels = await readEdgeLabels(page);
     labelsCount += tonedLabels.length;
     expect(tonedLabels.length, "面に色みを持つ線の札が無い").toBe(6);
@@ -304,7 +304,7 @@ test.describe("neon theme (#2795)", () => {
       expect(label.fits, `${label.tone} の札の字が面からはみ出す`).toBe(true);
     }
 
-    await openEditorTheme(page, 六色の記法, "neon", false);
+    await openEditorTheme(page, 六色の記法, "neon");
     const stagedLabels = await readEdgeLabels(page);
     labelsCount += stagedLabels.length;
     for (const label of stagedLabels) {
@@ -316,7 +316,7 @@ test.describe("neon theme (#2795)", () => {
       expect(label.filter).not.toContain("dragon-neon-tube");
     }
 
-    await openEditorTheme(page, 鍵の記法, "neon", false);
+    await openEditorTheme(page, 鍵の記法, "neon");
     const keys = await stage(page)
       .locator('[data-cdl-role="node-row-underline"]')
       .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).stroke));

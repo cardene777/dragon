@@ -11,8 +11,12 @@
  * ように見える値になる)。 面が分かれて見えるかは **`L*` の差** で見る。
  *
  * 明暗差が大きい組 (箱と文字 / 箱と枠) は従来どおり対比比で測る。
+ *
+ * 暗い画面 = 地の暗い画面の意匠 (`?theme=terminal`) で開いた画面 (#2962)。 意匠を書いていない
+ * 図は画面の意匠で描かれる。
  */
 import { test, expect } from "@playwright/test";
+import { 明るい画面の意匠, 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 import { 箱と矢印を開く } from "./box-and-edge-figure";
 import { 一覧の行 } from "./catalog-item-pick";
 import { PRESETS } from "./presets";
@@ -73,10 +77,11 @@ async function surfaces(page: import("@playwright/test").Page) {
       const el = document.querySelector(sel);
       return el ? getComputedStyle(el).fill : null;
     };
-    // 図面の実背景 (svg の後ろにある要素まで辿る)
-    const svg = document.querySelector("svg [data-cdl-role='node-body']")?.closest("svg");
+    // 図面の実背景。 舞台の svg から辿る = 舞台は図の地を自分で塗るので、親の画面の地を
+    // 読むと図の紙とは別の色になる (#2962)
+    const svg = document.querySelector("svg [data-cdl-role='node-body']")?.closest("svg[data-cdl-stage]");
     let paper: string | null = null;
-    let n: HTMLElement | null = svg?.parentElement ?? null;
+    let n: Element | null = svg ?? null;
     while (n && !paper) {
       const c = getComputedStyle(n).backgroundColor;
       if (c && c !== "rgba(0, 0, 0, 0)" && !c.includes(", 0)")) paper = c;
@@ -100,23 +105,25 @@ async function surfaces(page: import("@playwright/test").Page) {
 }
 
 /**
- * エディタで箱と矢印が在る図を暗い画面で開く。
+ * エディタで箱と矢印が在る図を暗い画面 (地の暗い画面の意匠) で開く。
  *
  * **既定の見本には依らない** (#1477)。 既定は順序図で、`#1466` から 1 枚の板として描かれる =
  * 箱も線も 1 つも出ないため、下の 4 件が測る対象を失っていた。 面の色は図種に依らないので、
  * 測るものが在る図を名指しする。
  */
 async function openDark(page: import("@playwright/test").Page): Promise<void> {
-  await 箱と矢印を開く(page, 2200);
-  await page.evaluate(() => document.documentElement.classList.add("dark"));
-  await page.waitForTimeout(600);
+  await 箱と矢印を開く(page, 2200, 暗い画面の意匠);
 }
 
-/** 見本帳のひな形を名指しして開き、同じ図が描かれたことを先に確かめる。 */
-async function ひな形を開く(page: import("@playwright/test").Page, id: string): Promise<void> {
+/** 見本帳のひな形を名指しして開き (既定は暗い画面)、同じ図が描かれたことを先に確かめる。 */
+async function ひな形を開く(
+  page: import("@playwright/test").Page,
+  id: string,
+  画面の意匠: string = 暗い画面の意匠,
+): Promise<void> {
   const 見本 = PRESETS.find((p) => p.id === id);
   expect(見本, `${id} のひな形が無い`).toBeDefined();
-  await page.goto("catalog/presets", { waitUntil: "networkidle" });
+  await page.goto(画面の意匠を付ける("catalog/presets", 画面の意匠), { waitUntil: "networkidle" });
   const 行 = 一覧の行(page, 見本!.diagram.id);
   await expect(行, `${id} を一覧から選べない`).toBeVisible();
   await 行.click();
@@ -135,8 +142,9 @@ async function ひな形を開く(page: import("@playwright/test").Page, id: str
  * **代わりの数値を置かない**。 置くとその数値を誰かが決めることになり、 `.pen` に
  * 一本化した権威が再び分散する。 面が分かれて見えるかは画面で判断する。
  *
- * 下の「紙と箱の明るさが離れている」 は配色の良し悪しではなく **上書きが届いているか** を
- * 見る配線の検査として残す (同じ色なら変数が効いていない)。
+ * 紙と箱の明るさの差を見る配線の検査も #2962 で外した。 図は必ずどれかの意匠で描かれ、
+ * 箱の面と地の差は意匠帳が決める (地の暗い画面の意匠 = 端末は、箱の面を地とほぼ同じ色に置いて
+ * 輪郭で分ける。 実測で対比 1.04)。 意匠ごとの面と枠の値は `rendered-contrast.spec.ts` が見る。
  */
 
 test("暗い画面で箱の中の文字と枠が読める", async ({ page }) => {
@@ -169,7 +177,6 @@ test("暗い画面で図の中の面の色が揃っている", async ({ page }) 
   // `topology` = 本体 4 / 子図形 5、 `chartLine` = `chart-line` (変数経由)
   for (const id of ["topology", "chartLine"]) {
     await ひな形を開く(page, id);
-    await page.evaluate(() => document.documentElement.classList.add("dark"));
     await page.waitForTimeout(2500);
 
     const 色 = await page.evaluate(() => {
@@ -217,52 +224,12 @@ test("書き出す絵の紙が画面の紙と同じ", async ({ page }) => {
   expect(一致!.読んだ, "書き出しが読む色が画面の紙と違う").toBe(一致!.画面);
 });
 
-test("暗い画面で紙と箱の明るさが離れている", async ({ page }) => {
-  // 元は「紙の変更が主題 blueprint に限られている」 を測っていた。 主題を廃止したので、
-  // その検査が守っていた中身 (箱が紙に沈まないこと) を直接測る形に置き換えた。
-  //
-  // 紙と箱が同じ明るさだと、 見えるのは輪郭線と文字だけになり、 目が図の構造を掴めない。
-  await openDark(page);
-  const 測定 = await page.evaluate(() => {
-    const stage = document.querySelector(".v4-editor-stage");
-    const box = document.querySelector("svg [data-cdl-active='false'] [data-cdl-role='node-body']");
-    if (!stage || !box) return null;
-    return {
-      紙: getComputedStyle(stage).backgroundColor,
-      箱: getComputedStyle(box).fill,
-    };
-  });
-  expect(測定, "紙と箱を測れていない").not.toBeNull();
-
-  const 明るさ = (色: string): number => {
-    const m = /rgba?\(([^)]+)\)/.exec(色);
-    if (!m) return Number.NaN;
-    const [r, g, b] = m[1]!.split(",").map((v) => Number(v.trim()) / 255);
-    const 直線化 = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
-    return 0.2126 * 直線化(r!) + 0.7152 * 直線化(g!) + 0.0722 * 直線化(b!);
-  };
-  const 紙 = 明るさ(測定!.紙);
-  const 箱 = 明るさ(測定!.箱);
-  expect(Number.isNaN(紙) || Number.isNaN(箱), "色を読めていない").toBe(false);
-  /*
-   * 面としての区別が付く最低限。 WCAG の閾値ではなく「別の面に見える」 目安。
-   *
-   * **1.2 から 1.1 に下げた** (#1480)。 1.2 はこの検査が独自に置いた数で、根拠が無い。
-   * カタログ側の紙と箱は実測 1.15 で、そちらは誰も問題にしていない = 実物が満たしていない
-   * 数を目安として持っていた。
-   *
-   * 舞台をカタログと同じ地に揃えた (#1480) ことで、エディタもその 1.15 になる。
-   * 目安を実物に合わせて 1.1 に置き直す。 同じ色 (1.00) は今までどおり落ちる。
-   */
-  const 対比 = (Math.max(紙, 箱) + 0.05) / (Math.min(紙, 箱) + 0.05);
-  expect(対比, `紙 ${測定!.紙} と箱 ${測定!.箱} が同じ明るさ`).toBeGreaterThan(1.1);
-});
-
 test("補助線が重ねた後の色で読める", async ({ page }) => {
   // **半透明で置くと、宣言した色と見える色がずれる**。 以前は gold を半透明で明暗どちらの紙にも
   // 当てており、 catalog の cream の紙では重ねた後が対比 1.38 で溶けていた (実測)。
   // 意味を持つ非文字要素の下限は 3:1。
-  // 枠は topology / c4 に出る。 紙が暗い側と cream 側の両方を通す。
+  // 枠は topology / c4 に出る。 紙が暗い側と明るい側の両方を通す = エディタは地の暗い画面の意匠、
+  // 見本帳は地の明るい画面の意匠で開く (#2962)。
   //
   // **命綱 (`lane-lifeline`) が出る画面は現状 1 つも無い** (#1477 で実測 = エディタと
   // カタログの全画面で 0 件)。 順序図が 1 枚の板になった (`#1466`) ため、縦の点線を引く
@@ -273,20 +240,20 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
   // 補助線を 1 つも測れない。 枠を持つ見本を開く。
   // **分類の一覧は測る対象を持たない** (#2750)。 選んだ 1 件を出す画面で、枠を持つ図
   // (構成図) はどの分類でも既定の選択にならない (実測 = 11 分類すべてで、頁を送った後も
-  // 枠が 0 件)。 cream の紙は見本帳で `topology` を選んで測る。
-  for (const 場所 of ["editor (暗い紙)", "catalog (cream の紙・枠)"] as const) {
+  // 枠が 0 件)。 明るい紙は見本帳で `topology` を選んで測る。
+  for (const 場所 of ["editor (暗い紙)", "catalog (明るい紙・枠)"] as const) {
     if (場所.startsWith("editor")) {
-      await page.goto("editor#preset=topology", { waitUntil: "networkidle" });
+      await page.goto(画面の意匠を付ける("editor#preset=topology", 暗い画面の意匠), { waitUntil: "networkidle" });
     } else {
-      await ひな形を開く(page, "topology");
+      await ひな形を開く(page, "topology", 明るい画面の意匠);
     }
-    await page.evaluate(() => document.documentElement.classList.add("dark"));
     await page.waitForTimeout(2200);
 
     const paper = await page.evaluate(() => {
-      const svg = document.querySelector("svg [data-cdl-role='node-body']")?.closest("svg");
+      // 舞台の svg から辿る (理由は `surfaces` と同じ、 #2962)
+      const svg = document.querySelector("svg [data-cdl-role='node-body']")?.closest("svg[data-cdl-stage]");
       let paper: string | null = null;
-      let n: HTMLElement | null = svg?.parentElement ?? null;
+      let n: Element | null = svg ?? null;
       while (n && !paper) {
         const c = getComputedStyle(n).backgroundColor;
         if (c && c !== "rgba(0, 0, 0, 0)" && !c.includes(", 0)")) paper = c;

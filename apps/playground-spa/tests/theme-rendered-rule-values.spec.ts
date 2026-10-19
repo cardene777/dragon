@@ -1,11 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import {
-  sourceYaml__branchParcelsBar,
-  sourceYaml__measureEffortQuadrant,
   sourceYaml__monthlyDeliveriesLine,
   sourceYaml__onTimeRateSlope,
-  sourceYaml__onTimeShareGauge,
   sourceYaml__orderToDeliveryFunnel,
   sourceYaml__parcelSizeWaffle,
   sourceYaml__parcelStatusPie,
@@ -15,7 +12,6 @@ import {
 } from "../src/topics/catalog/charts.cdl";
 import { sourceYaml__sortParcelsByRegion } from "../src/topics/catalog/animation.cdl";
 import {
-  sourceYaml__presetDeliveryFlow,
   sourceYaml__presetDeliveryMetro,
   sourceYaml__presetDeliveryStages,
   sourceYaml__presetDeliveryTimeline,
@@ -25,9 +21,7 @@ import {
   readCdlThemeRoleTable,
   resolveThemeRole,
 } from "../src/lib/theme-role-table-test-helpers";
-import { 記法をURLに載せる } from "./box-and-edge-figure";
-import { color, openEditorTheme, stopDiagram } from "./helpers/fixed-theme-checks";
-import { contrast } from "./helpers/pixel-contrast";
+import { openEditorTheme, stopDiagram } from "./helpers/fixed-theme-checks";
 import {
   readFixedThemeSingleSeriesBars,
   readFixedThemeToneSeries,
@@ -58,7 +52,7 @@ type: funnel
 actors:
 ${fixedToneSeries.map((tone, index) => `  - 段${index + 1}: { value: "${60 - index * 5}", tone: ${tone} }`).join("\n")}`;
 
-const table = (theme: string): ReadonlyMap<string, string> => readCdlThemeRoleTable(theme).light;
+const table = (theme: string): ReadonlyMap<string, string> => readCdlThemeRoleTable(theme);
 
 function role(theme: string, name: string): string {
   const value = resolveThemeRole(table(theme), name);
@@ -91,22 +85,7 @@ function withoutAnimation(source: string): string {
 }
 
 async function open(page: Page, source: string, theme: string): Promise<void> {
-  await openEditorTheme(page, source, theme, false);
-  await stopDiagram(page);
-}
-
-/** 意匠を書かない図を画面の色で開く。 色だけの意匠 (生成り・青磁) は外した (#2960) */
-async function openRolelessPalette(page: Page, source: string, dark: boolean): Promise<void> {
-  await page.goto(`editor#s=${記法をURLに載せる(source)}`);
-  await page.reload();
-  await page.waitForSelector("svg[data-cdl-stage]:not([data-cdl-palette])");
-  await page.evaluate((value) => document.documentElement.classList.toggle("dark", value), dark);
-  await page.waitForFunction(
-    (value) => document.documentElement.classList.contains("dark") === value,
-    dark,
-  );
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(700);
+  await openEditorTheme(page, source, theme);
   await stopDiagram(page);
 }
 
@@ -461,7 +440,7 @@ test("固定 7 意匠の日程の棒と漏斗の段は計算後に表の系列�
   }
 });
 
-test("時間軸の札の高さは全配色、点列・線幅・菱形・矢じりは固定 7 意匠へ計算後に当てる", async ({ page }) => {
+test("時間軸の札の高さ・点列・線幅・菱形・矢じりは 7 意匠へ計算後に当てる", async ({ page }) => {
   const source = withoutAnimation(sourceYaml__presetDeliveryTimeline);
   for (const theme of fixedThemes) {
     await open(page, source, theme);
@@ -528,11 +507,6 @@ test("時間軸の札の高さは全配色、点列・線幅・菱形・矢じ�
   expect(decision.filter).toBe(
     await computedStyleValue(page, "filter", role("neon", "--dragon-timeline-decision-effect")),
   );
-
-  await openRolelessPalette(page, source, false);
-  const height = await page.locator('[data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"]').first()
-    .evaluate((element) => getComputedStyle(element).height);
-  expect(height, "画面の色").toBe("40px");
 });
 
 test("7 意匠の単系列棒は計算後に意匠帳の塗り・濃さ・枠を使う", async ({ page }) => {
@@ -675,31 +649,6 @@ test("陽性対照: success の字が読む宣言を CSSOM から外すと計算
   expect(success).not.toBe(expected);
 });
 
-async function presentationPaint(
-  page: Page,
-  selector: string,
-  property: "fill" | "stroke",
-): Promise<{ actual: string; background: string; presentation: string }> {
-  return page.locator(selector).first().evaluate((element, name) => {
-    const svg = element as SVGElement;
-    const attribute = svg.getAttribute(name);
-    if (attribute === null) throw new Error(`${name} の presentation attribute が無い`);
-    const actual = getComputedStyle(svg).getPropertyValue(name);
-    const figure = svg.closest<SVGElement>("[data-cdl-node]");
-    const body = figure?.querySelector<SVGElement>(":scope > [data-cdl-role='node-body']");
-    const background = body === null || body === undefined
-      ? getComputedStyle(svg.ownerSVGElement ?? svg).backgroundColor
-      : getComputedStyle(body).fill;
-    const before = svg.style.getPropertyValue(name);
-    const priority = svg.style.getPropertyPriority(name);
-    svg.style.setProperty(name, attribute, "important");
-    const presentation = getComputedStyle(svg).getPropertyValue(name);
-    if (before === "") svg.style.removeProperty(name);
-    else svg.style.setProperty(name, before, priority);
-    return { actual, background, presentation };
-  }, property);
-}
-
 async function presentationPaints(
   page: Page,
   selector: string,
@@ -721,117 +670,33 @@ async function presentationPaints(
     }), property);
 }
 
-test("図面の主役の漏斗は線だけで、ジャーニーの線と節目の丸は明暗とも cdl の属性色で描く", async ({ page }) => {
-  for (const dark of [false, true]) {
-    const tone = dark ? "暗" : "明";
-    await openEditorTheme(page, sourceYaml__orderToDeliveryFunnel, "blueprint", dark);
-    await stopDiagram(page);
-    const funnel = await page.locator('[data-cdl-role="funnel-proportional-bar"][data-cdl-emphasis="primary"]')
-      .evaluateAll((elements) => elements.map((element) => {
-        const style = getComputedStyle(element);
-        return { fill: style.fill, stroke: style.stroke };
-      }));
-    expect(funnel.length, `図面 ${tone} / 主役の漏斗の帯`).toBeGreaterThan(0);
-    expect(funnel, `図面 ${tone} / 主役の漏斗の帯`).toEqual(Array(funnel.length).fill({
-      fill: "none",
-      stroke: await computedStyleValue(page, "stroke", role("blueprint", "--er-line")),
+test("図面の主役の漏斗は線だけで、ジャーニーの線と節目の丸は cdl の属性色で描く", async ({ page }) => {
+  await openEditorTheme(page, sourceYaml__orderToDeliveryFunnel, "blueprint");
+  await stopDiagram(page);
+  const funnel = await page.locator('[data-cdl-role="funnel-proportional-bar"][data-cdl-emphasis="primary"]')
+    .evaluateAll((elements) => elements.map((element) => {
+      const style = getComputedStyle(element);
+      return { fill: style.fill, stroke: style.stroke };
     }));
+  expect(funnel.length, `図面 / 主役の漏斗の帯`).toBeGreaterThan(0);
+  expect(funnel, `図面 / 主役の漏斗の帯`).toEqual(Array(funnel.length).fill({
+    fill: "none",
+    stroke: await computedStyleValue(page, "stroke", role("blueprint", "--er-line")),
+  }));
 
-    await openEditorTheme(page, withoutAnimation(sourceYaml__shipperFeelingJourney), "blueprint", dark);
-    await stopDiagram(page);
-    for (const selector of [
-      '[data-cdl-role="journey-line"]',
-      '[data-cdl-role="journey-step"] > circle',
-    ]) {
-      const values = await presentationPaints(page, selector, "stroke");
-      expect(values.length, `図面 ${tone} / ${selector}`).toBeGreaterThan(0);
-      expect(values.map(({ actual }) => actual), `図面 ${tone} / ${selector}`)
-        .toEqual(values.map(({ presentation }) => presentation));
-    }
-    await expect(page.locator('[data-cdl-role="journey-line-glow"]'), `図面 ${tone} / cdl は光の別要素を描かない`)
-      .toHaveCount(0);
+  await openEditorTheme(page, withoutAnimation(sourceYaml__shipperFeelingJourney), "blueprint");
+  await stopDiagram(page);
+  for (const selector of [
+    '[data-cdl-role="journey-line"]',
+    '[data-cdl-role="journey-step"] > circle',
+  ]) {
+    const values = await presentationPaints(page, selector, "stroke");
+    expect(values.length, `図面 / ${selector}`).toBeGreaterThan(0);
+    expect(values.map(({ actual }) => actual), `図面 / ${selector}`)
+      .toEqual(values.map(({ presentation }) => presentation));
   }
-});
-
-const rolelessPaletteTargets = [
-  {
-    source: sourceYaml__parcelStatusPie,
-    targets: [
-      { selector: '[data-cdl-role="chart-pie-table-label"]', property: "fill" },
-      { selector: '[data-cdl-role="chart-pie-table-value"]', property: "fill" },
-    ],
-  },
-  {
-    source: sourceYaml__parcelSizeWaffle,
-    targets: [
-      { selector: '[data-cdl-role="chart-waffle-item-label"]', property: "fill" },
-      { selector: '[data-cdl-role="chart-waffle-item-share"]', property: "fill" },
-    ],
-  },
-  {
-    source: sourceYaml__onTimeShareGauge,
-    targets: [
-      { selector: '[data-cdl-role="chart-gauge-value"]', property: "fill" },
-      { selector: '[data-cdl-role="chart-gauge-delta"]', property: "fill" },
-      { selector: '[data-cdl-role="chart-gauge-scale-endpoint"]', property: "fill" },
-    ],
-  },
-  {
-    source: sourceYaml__measureEffortQuadrant,
-    targets: [
-      { selector: '[data-cdl-role="quadrant-axis-name"]', property: "fill" },
-      { selector: '[data-cdl-role="quadrant-label"]', property: "fill" },
-    ],
-  },
-  {
-    source: sourceYaml__monthlyDeliveriesLine,
-    targets: [
-      { selector: '[data-cdl-role="chart-line-value"]', property: "fill", contrast: true },
-    ],
-  },
-  {
-    source: sourceYaml__onTimeRateSlope,
-    targets: [
-      { selector: '[data-cdl-role="chart-slope-period"]', property: "fill" },
-      { selector: '[data-cdl-role="chart-slope-label"]', property: "fill" },
-      {
-        selector: '[data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"]',
-        property: "stroke",
-        nonNone: true,
-      },
-    ],
-  },
-  {
-    source: sourceYaml__branchParcelsBar,
-    targets: [
-      { selector: '[data-cdl-role="chart-bar-value"]', property: "fill", contrast: true },
-    ],
-  },
-] as const;
-
-test("画面の色の図表は明暗とも cdl の属性色を計算後の塗りと線に使う", async ({ page }) => {
-  for (const dark of [false, true]) {
-    const label = `画面の色 / ${dark ? "暗" : "明"}`;
-    for (const { source, targets } of rolelessPaletteTargets) {
-      await openRolelessPalette(page, source, dark);
-      for (const target of targets) {
-        const measured = await presentationPaint(page, target.selector, target.property);
-        expect(measured.actual, `${label} / ${target.selector} / ${target.property}`)
-          .toBe(measured.presentation);
-        if ("nonNone" in target) {
-          expect(measured.actual, `${label} の傾き図の線`).not.toBe("none");
-        }
-        if ("contrast" in target) {
-          expect(measured.actual, `${label} / ${target.selector} が黒へ崩れている`)
-            .not.toBe("rgb(0, 0, 0)");
-          expect(
-            contrast(color(measured.actual), color(measured.background)),
-            `${label} / ${target.selector} / ${JSON.stringify(measured)}`,
-          ).toBeGreaterThanOrEqual(4.5);
-        }
-      }
-    }
-  }
+  await expect(page.locator('[data-cdl-role="journey-line-glow"]'), `図面 / cdl は光の別要素を描かない`)
+    .toHaveCount(0);
 });
 
 test("沈んだ工程帯と電飾の工程帯は計算後の面と枠を使う", async ({ page }) => {
@@ -856,30 +721,6 @@ test("沈んだ工程帯と電飾の工程帯は計算後の面と枠を使う",
   );
   expect(bars.length, "電飾の工程帯").toBeGreaterThan(0);
   expect(bars.every(({ fill, stroke }) => fill !== "none" && stroke !== "none")).toBe(true);
-});
-
-test("既定配色の暗い図表は沈んだ面と系列色を計算後に使う", async ({ page }) => {
-  await page.goto(`editor#s=${記法をURLに載せる(sourceYaml__sortingShelfGantt)}`);
-  await page.reload();
-  await page.waitForSelector('svg[data-cdl-stage]:not([data-cdl-palette])');
-  await page.evaluate(() => document.documentElement.classList.add("dark"));
-  await stopDiagram(page);
-  const stage = page.locator("svg[data-cdl-stage]");
-  const variables = await stage.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return {
-      sunken: style.getPropertyValue("--cdl-surface-sunken").trim(),
-      ground: style.getPropertyValue("--d-bg").trim(),
-    };
-  });
-  expect(variables.sunken).toBe(variables.ground);
-  const bars = await page.locator('[data-cdl-role="gantt-bar"]').evaluateAll((elements) =>
-    elements.map((element) => {
-      const style = getComputedStyle(element);
-      return { fill: style.fill, opacity: Number(style.fillOpacity) };
-    }));
-  expect(bars.length).toBeGreaterThan(0);
-  expect(bars.every(({ fill, opacity }) => fill !== "none" && opacity > 0)).toBe(true);
 });
 
 test("図表の枠・段札・分かれ道・折れ線終点は計算後の値で描く", async ({ page }) => {
@@ -945,35 +786,5 @@ test("段の箱の線・札・凡例・戻る線は 7 意匠で計算後の表�
     expect(measured.legendText, theme).toBe(
       await computedStyleValue(page, "fill", role(theme, "--dragon-stage-legend-text")),
     );
-  }
-});
-
-test("画面配色の線札は明暗とも計算後の色・大きさ・太さで WCAG AA を満たす", async ({ page }) => {
-  for (const dark of [false, true]) {
-    await openRolelessPalette(page, withoutAnimation(sourceYaml__presetDeliveryFlow), dark);
-    const labels = await page.locator('[data-cdl-edge-label-for]').evaluateAll((groups) =>
-      groups.flatMap((group) => {
-        const background = group.querySelector<SVGElement>('[data-cdl-role="edge-label-bg"]');
-        if (background === null) return [];
-        const bg = getComputedStyle(background).fill;
-        return [...group.querySelectorAll<SVGElement>('[data-cdl-role="edge-label"]')].map((label) => {
-          const style = getComputedStyle(label);
-          return {
-            foreground: style.fill,
-            background: bg,
-            size: Number.parseFloat(style.fontSize),
-            weight: Number.parseFloat(style.fontWeight),
-            family: style.fontFamily,
-          };
-        });
-      }),
-    );
-    expect(labels.length, `${dark ? "暗" : "明"}の線札`).toBeGreaterThan(0);
-    for (const label of labels) {
-      const required = label.size >= 24 || label.size >= 18.66 && label.weight >= 700 ? 3 : 4.5;
-      expect(contrast(color(label.foreground), color(label.background)), JSON.stringify(label))
-        .toBeGreaterThanOrEqual(required);
-      expect(label.family).toContain("Inter");
-    }
   }
 });

@@ -17,7 +17,7 @@ const fixedThemes = (): Array<Extract<ThemeNote, { mode: "fixed" }>> =>
   );
 
 const edgeAppearingThemes = (): Array<Extract<ThemeNote, { mode: "fixed" }>> =>
-  fixedThemes().filter((note) => readCdlThemeRoleTable(note.name).light.has("--theme-edge-appear"));
+  fixedThemes().filter((note) => readCdlThemeRoleTable(note.name).has("--theme-edge-appear"));
 
 
 for (const note of fixedThemes()) {

@@ -7,13 +7,12 @@
    種類名と位置は `packages/dragon` の分解器が返す。 分解器は色を知らない =
    埋め込み先ごとに自分の配色を当てられるようにするため。
 
-   ## 色名は図で引く色そのもので描く
+   ## 色名は意味の色の役で描く
 
-   `(成功)` と書いた語を、その図で実際に引かれる枝と同じ色にする。 色が飾りではなく
-   予告になり、本文と図が目で対応する。
-
-   出どころは `cdl-theme.css` の `--cdl-tone-*` で、図の描画が使うものと同一。
-   ここで別の色を作らない = 作ると本文と図がずれる。
+   `(成功)` と書いた語を、意味の色の役 (`--d-dg-*` / `--d-err`) で描く。 色が飾りではなく
+   予告になる。 図は意匠ごとの表の色で描く (#2962) ので、ここはサイトの意匠の表の色を読む。
+   どの役を引くかは図の描画が意味の色に当てる割り当て (`accent` = 1 / `teal` = 6 /
+   `success` = 2 / `error` = 誤り / `info` = 4) と同じにする。
 
    ## 派生はしない (#1531)
 
@@ -57,19 +56,19 @@
 }
 
 .tok-色名[data-tone="accent"] {
-  color: var(--cdl-tone-accent);
+  color: var(--d-dg-1);
 }
 .tok-色名[data-tone="teal"] {
-  color: var(--cdl-tone-teal);
+  color: var(--d-dg-6);
 }
 .tok-色名[data-tone="success"] {
-  color: var(--cdl-tone-success);
+  color: var(--d-dg-2);
 }
 .tok-色名[data-tone="error"] {
-  color: var(--cdl-tone-error);
+  color: var(--d-err);
 }
 .tok-色名[data-tone="info"] {
-  color: var(--cdl-tone-info);
+  color: var(--d-dg-4);
 }
 
 /* 線種 (`solid` / `dotted-flow`) は色を持たない語なので、色名と同じ枠で中立色にする */

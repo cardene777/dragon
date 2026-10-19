@@ -201,13 +201,13 @@ test.describe("正解の図と作った図を合わせる一覧で測る", () =>
     ) as Result;
     expect(result.checklistErrors).toEqual([]);
     expect(result.comparisons[0]?.items.every((entry) => entry.status === "合う")).toBe(true);
-    expect(result.comparisons[0]).toMatchObject({ label: "画面の色", palette: "site-colours" });
-    await expect(readFile(path.join(output, "checklist.md"), "utf8")).resolves.toContain("画面の色");
+    expect(result.comparisons[0]).toMatchObject({ label: "営業所の階層図", palette: "letterpress" });
+    await expect(readFile(path.join(output, "checklist.md"), "utf8")).resolves.toContain("営業所の階層図");
 
     await node(shoot, [configPath, "-o", output]);
     expect((await readdir(path.join(output, "parts"))).sort()).toEqual([
-      "actual-site-colours.png",
-      "expected-site-colours.png",
+      "actual-letterpress.png",
+      "expected-letterpress.png",
     ]);
   });
 

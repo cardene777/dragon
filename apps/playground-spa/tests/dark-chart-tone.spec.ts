@@ -1,20 +1,16 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 import { 一覧の行 } from "./catalog-item-pick";
 
 /**
- * dark の図の tone を固定する (#383)。
+ * 地の暗い画面の意匠で描いた図の tone を固定する (#383)。
  *
- * 2 つを見る。
+ * 意匠を書いていない見本は画面の意匠で描かれる (#2962)。 地の暗い端末 (`?theme=terminal`) で
+ * 開き、 tone が **実際に描かれている背景** に対して読めることを見る。 色相だけ見ると「暖色だが
+ * 背景に埋もれる」 形を通す。
  *
- * 1. 暗い画面で色が明側から入れ替わること。 `--dragon-edge-tone` の 6 色は明色紙に合わせて
- *    調律されており、 `html.dark` の上書きが無い間は dark でもそのまま使われていた (実測 =
- *    `chart-line-demo` に `#0060a5` / `#1b6288` / `#006a53` / `#006c33`)。 当時は青系が残って
- *    いないかで見ていたが、配色を明暗 2 種に作り直した後は明暗で値が変わるかを見る。
- * 2. tone が **実際に描かれている背景** に対して読めること。 色相だけ見ると「暖色だが背景に
- *    埋もれる」 形を通す。
- *
- * 2 の背景は宣言値ではなく実測で取る。 `--cdl-node-fill` の宣言値で測っていた間、 実際には
+ * 背景は宣言値ではなく実測で取る。 `--cdl-node-fill` の宣言値で測っていた間、 実際には
  * 別 selector の `#2a1f14` と変数側の cream が同じ図に混在し、 cream 側の tone が 1.87 まで
  * 落ちていた (codex review Round 1 / Round 2 の指摘)。
  */
@@ -31,54 +27,6 @@ const IDS = [
   "mind-demo",
 ];
 
-/** 実効色を HSV に直して色相を返す。 彩度が低い色 (灰) は色相を持たない。 */
-const huesOf = (page: Page, id: string) =>
-  page.evaluate((d) => {
-    const root = document.querySelector(`[data-cdl-diagram="${d}"]`);
-    if (!root) return null;
-    const out: Array<{ hue: number; color: string }> = [];
-    for (const el of Array.from(
-      root.querySelectorAll("path, rect, circle, line, polyline, polygon"),
-    )) {
-      // `<defs>` の marker は定義であって描画ではない。 含めると「実際には出ていない色」 で
-      // 前提が成立してしまう (codex review Round 1 の指摘)。
-      if (el.closest("defs")) continue;
-      const cs = getComputedStyle(el);
-      // `fill="url(#id)"` は `<defs>` の gradient を指す。 stop を辿らないと、 定義側に残った
-      // 色が検査から漏れる (codex review Round 3 の指摘 = tree の根の下端に青が残っていた)。
-      const vals: string[] = [];
-      for (const raw of [cs.fill, cs.stroke]) {
-        const u = /^url\(["']?#([^"')]+)["']?\)/.exec(raw ?? "");
-        if (!u) {
-          vals.push(raw);
-          continue;
-        }
-        // 必須の群。 一致した以上必ず取れる
-        const id = u[1];
-        if (id === undefined) continue;
-        const def = document.getElementById(id);
-        if (!def) continue;
-        for (const st of Array.from(def.querySelectorAll("stop"))) {
-          vals.push(getComputedStyle(st).stopColor);
-        }
-      }
-      for (const v of vals) {
-        const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(v ?? "");
-        if (!m) continue;
-        const [r, g, b] = [Number(m[1]) / 255, Number(m[2]) / 255, Number(m[3]) / 255];
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        if (max === 0 || (max - min) / max < 0.25) continue;
-        let h = 0;
-        if (max === r) h = ((g - b) / (max - min)) % 6;
-        else if (max === g) h = (b - r) / (max - min) + 2;
-        else h = (r - g) / (max - min) + 4;
-        out.push({ hue: (((h * 60) % 360) + 360) % 360, color: v });
-      }
-    }
-    return out;
-  }, id);
-
 /**
  * tone を持つ要素ごとに、 **実際に後ろに描かれている色** との対比を測る。
  *
@@ -92,7 +40,8 @@ const contrastsOf = async (page: Page, id: string) => {
   return page.evaluate((d) => {
     const root = document.querySelector(`[data-cdl-diagram="${d}"]`);
     if (!root) return null;
-    const cs0 = getComputedStyle(root);
+    // 色みの変数は意匠の表が舞台の中で宣言する (#2962)。 舞台の外の器では読めない
+    const cs0 = getComputedStyle(root.querySelector("svg[data-cdl-stage]") ?? root);
     // 上書きが無ければ cdl 側の fallback がそのまま出る。 その値で照合しないと明色で 0 件になる。
     const TONE_DEF: Record<string, string> = {
       accent: "#2d6a8f",
@@ -292,61 +241,15 @@ const contrastsOf = async (page: Page, id: string) => {
   }, id);
 };
 
-/** 図を id で名指しして開く。 */
+/** 図を id で名指しして、地の暗い画面の意匠で開く。 */
 async function open(page: Page, id: string): Promise<void> {
-  await page.goto("catalog/presets", { waitUntil: "networkidle" });
+  await page.goto(画面の意匠を付ける("catalog/presets", 暗い画面の意匠), { waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
   await 一覧の行(page, id).click();
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
 }
 
-/**
- * 明暗で同じ値でよい色。
- *
- * 紙に依らない中間色がここに入る。 一覧に載っていない色が明暗の両方に現れたら、
- * 上書きが届いていないとみなす。 **増やす時は理由を書く** = 安易に足すと検査が空洞化する。
- */
-const 明暗で共有してよい色 = new Set<string>([
-  // 現状は該当なし。 図の色はすべて変数から取るため明暗で入れ替わる。
-]);
-
-test.describe("dark の図の tone (#383)", () => {
-  /**
-   * 暗い画面で色が入れ替わること。
-   *
-   * かつては「青系が残っていないこと」 で見ていた。 当時の配色は暖色一色で、 青が出るのは
-   * 上書きが効いていない証拠になったため (#383)。 配色を明暗 2 種に作り直した今は青も紫も
-   * 正規の色なので、 色相ではなく **明暗で値が変わること** を直接見る。
-   */
-  for (const id of IDS) {
-    test(`${id} の色が明暗で入れ替わる`, async ({ page }) => {
-      await open(page, id);
-      const light = await huesOf(page, id);
-      expect(light, `${id} が描かれていない`).not.toBeNull();
-      expect(light!.length, `${id} に色が 1 件も無い`).toBeGreaterThan(0);
-
-      await page.evaluate(() => document.documentElement.classList.add("dark"));
-      await page.waitForTimeout(600);
-      const dark = await huesOf(page, id);
-      expect(dark!.length, `${id} の dark に色が 1 件も無い`).toBeGreaterThan(0);
-      // **明側の色が 1 つも残らないことを求める**。 「1 色でも変われば」 や「1 つ以上
-      // 入れ替われば」 にすると、 6 色のうち 5 色が明色のまま残っても通る (review 指摘 2 回)。
-      //
-      // 明暗で同じ値でよい色は下の一覧に明示する。 一覧に無い明側の色が暗い画面にも
-      // 現れていたら、 その色は上書きが届いていない。
-      const 明 = new Set(light!.map((x) => x.color));
-      const 暗 = new Set(dark!.map((x) => x.color));
-
-      const 残った = [...暗].filter((c) => 明.has(c) && !明暗で共有してよい色.has(c));
-      expect(残った, `${id} の暗い画面に明側の色が残っている`).toEqual([]);
-
-      // 上書きが届いた証拠として、 暗側にしか無い色があることも見る
-      // (全色が共有一覧に載っていると上の検査が空振りするため)。
-      const 暗だけ = [...暗].filter((c) => !明.has(c));
-      expect(暗だけ.length, `${id} の暗側に新しい色が出ていない`).toBeGreaterThan(0);
-    });
-  }
-
+test.describe("地の暗い画面の意匠で描いた図の tone (#383)", () => {
   /**
    * 実背景に対する対比。 WCAG の非文字要素の下限 3.0 を全 kind で満たすことを見る。
    *
@@ -357,8 +260,6 @@ test.describe("dark の図の tone (#383)", () => {
   for (const id of IDS) {
     test(`${id} の tone が実背景に対して読める`, async ({ page }) => {
       await open(page, id);
-      await page.evaluate(() => document.documentElement.classList.add("dark"));
-      await page.waitForTimeout(600);
 
       const result = await contrastsOf(page, id);
       expect(result, `${id} が描かれていない`).not.toBeNull();
@@ -370,17 +271,16 @@ test.describe("dark の図の tone (#383)", () => {
           (row) =>
             `${row.c.toFixed(2)} ${row.tag}/${row.role || "-"} ${row.prop}=${row.color} on ${row.bg}`,
         );
-      expect(bad, `${id} の dark で背景に埋もれる tone`).toEqual([]);
+      expect(bad, `${id} の地の暗い意匠で背景に埋もれる tone`).toEqual([]);
     });
   }
 
   test("6 tone が全て定義されている", async ({ page }) => {
     // 未定義なら cdl の fallback (青系) に落ちる。
     await open(page, "chart-line-demo");
-    await page.evaluate(() => document.documentElement.classList.add("dark"));
-    await page.waitForTimeout(600);
     const tones = await page.evaluate(() => {
-      const cs = getComputedStyle(document.querySelector('[data-cdl-diagram="chart-line-demo"]')!);
+      // 色みの変数は意匠の表が舞台の中で宣言する (#2962)
+      const cs = getComputedStyle(document.querySelector('[data-cdl-diagram="chart-line-demo"] svg[data-cdl-stage]')!);
       return ["accent", "teal", "success", "error", "warning", "info"].map((t) =>
         cs.getPropertyValue(`--cdl-tone-${t}`).trim(),
       );

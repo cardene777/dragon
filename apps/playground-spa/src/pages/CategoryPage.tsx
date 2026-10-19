@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
+import type { DslTheme } from "@cardenelabs/dragon";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES, categoryLabel, categoryDesc } from "@/lib/catalog";
@@ -52,11 +53,10 @@ import {
   配色の選択肢,
   配色の札,
   押される配色,
-  画面の色,
-  画面の色の札,
-  type 配色 as 配色の値,
 } from "@/lib/palette-switch";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
+import { 図に意匠を当てる } from "@/lib/site-theme";
+import { useSiteTheme } from "@/lib/useSiteTheme";
 import {
   図の折れ線の見せ方を変える,
   折れ線で選べる見せ方,
@@ -265,6 +265,7 @@ function catalogEditorHash(item: { sourceYaml?: string; sourceJson?: string }): 
 export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
   const [locale] = useLocale();
+  const [画面の意匠] = useSiteTheme();
   const isJa = locale === "ja";
   const [modalItem, setModalItem] = useState<CatalogItem | null>(null);
   const [query, setQuery] = useState("");
@@ -428,9 +429,10 @@ export function CategoryPage(): React.ReactElement {
     () => 配色前の図 === null ? null : カタログの図を組む(配色前の図),
     [配色前の図],
   );
+  // 色味を選んでいなければ、意匠を書かない見本は画面の意匠で描く (#2962)
   const 図 = useMemo(
-    () => 骨組み === null ? null : 図の配色を変える(骨組み, 配色),
-    [骨組み, 配色],
+    () => 骨組み === null ? null : 図に意匠を当てる(図の配色を変える(骨組み, 配色), 画面の意匠),
+    [骨組み, 配色, 画面の意匠],
   );
   // 拡大表示も、一覧で一度組んだ同じ骨組みと見せ方を使う。
   const 拡大の図 = modalItem === null ? null : 図;
@@ -521,8 +523,8 @@ export function CategoryPage(): React.ReactElement {
 
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
   const 切替を出すか = 見本 ? 描き方の切替を出すか(見本.diagram) : false;
-  // 未選択なら図に書かれた意匠を押す。 意匠の無い図では画面の色が押される (#2790)
-  const 押されている配色 = 見本 ? 押される配色(見本.diagram, 配色) : 画面の色;
+  // 未選択なら図に書かれた意匠を押す。 意匠の無い図では画面の意匠が押される (#2790 / #2962)
+  const 押されている配色 = 見本 ? 押される配色(見本.diagram, 配色, 画面の意匠) : 画面の意匠;
   // 複数系列では塗りとなぞりが効かないためせり上げだけ、単系列では 3 つとも出す。
   const 折れ線の選択肢 = 見本 ? 折れ線で選べる見せ方(見本.diagram) : [];
   // 折れ線以外では欄が効かないため、切替を出さない (#1624)
@@ -741,10 +743,9 @@ export function CategoryPage(): React.ReactElement {
                         aria-label={isJa ? "図の色味" : "Diagram colours"}
                         value={押されている配色}
                         onChange={(event) =>
-                          見せ方を置く({ 配色: event.currentTarget.value as 配色の値 })
+                          見せ方を置く({ 配色: event.currentTarget.value as DslTheme })
                         }
                       >
-                        <option value={画面の色}>{画面の色の札(locale)}</option>
                         {配色の選択肢.map((v) => (
                           <option key={v} value={v}>
                             {配色の札(v, locale)}

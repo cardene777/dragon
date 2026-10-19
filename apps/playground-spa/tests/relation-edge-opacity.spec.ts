@@ -22,6 +22,7 @@
  * 一覧は光る線 1 本とそれ以外を同時に描くので、2 つの値を 1 枚で確かめられる。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 明るい画面の意匠, 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 
 import { 一覧の行 } from "./catalog-item-pick";
 import { contrast, measure, shoot, type Box } from "./helpers/pixel-contrast";
@@ -59,9 +60,8 @@ async function 見本を開く(
   暗い: boolean,
   頁 = "presets",
 ): Promise<void> {
-  await page.goto(`catalog/${頁}`);
+  await page.goto(画面の意匠を付ける(`catalog/${頁}`, 暗い ? 暗い画面の意匠 : 明るい画面の意匠));
   await page.waitForLoadState("networkidle");
-  await page.evaluate((d) => document.documentElement.classList.toggle("dark", d), 暗い);
   await 一覧の行(page, 識別子).click();
   await page.waitForSelector(線, { state: "attached" });
   // 線は引かれる動きを持つ。 引き終わる前に読むと引きかけの姿を測ることになる。

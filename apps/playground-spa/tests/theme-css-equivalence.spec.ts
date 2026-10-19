@@ -110,7 +110,6 @@ test("陽性対照は図面の棒のstrokeを旧値と新値つきで名指し�
     oldCss,
     newCss: changedCss(oldCss, control),
     palettes: [control.palette],
-    darkModes: [false, true],
     pixelComparison: false,
   });
 
@@ -138,7 +137,6 @@ test("規則の当たり方は全規則を命中か未命中へ分類する", as
     oldCss: current,
     newCss: current,
     palettes: ["blueprint"],
-    darkModes: [false],
     pixelComparison: false,
   });
 

@@ -39,10 +39,7 @@ const fixedThemes = [
   "neon",
   "relief",
 ] as const;
-const colorOnlyThemes = ["kinari", "celadon"] as const;
-const themes = [...fixedThemes, ...colorOnlyThemes] as const;
-const excludedFromCommonRules = ["site-colours", "kinari", "celadon"] as const;
-const paletteNames = ["site-colours", ...themes] as const;
+const themes = fixedThemes;
 
 const fixedThemeRoles = [
   "--dragon-theme-ground",
@@ -56,6 +53,8 @@ const fixedThemeRoles = [
   "--dragon-theme-text",
   "--dragon-theme-muted-text",
   "--dragon-theme-font",
+  "--dragon-theme-body-font",
+  "--dragon-theme-mono-font",
   "--dragon-theme-box-radius",
   "--dragon-theme-box-frame-width",
   "--dragon-theme-selected-box-frame-width",
@@ -350,19 +349,6 @@ const fixedThemeRoles = [
   "--dragon-stage-card-name-effect",
 ] as const;
 
-// 生成りと青磁は共通部品の規則から外す色だけの意匠なので、現在の変数の塊が宣言する役だけを契約にする。
-const colorOnlyRoles = [
-  "--er-ground",
-  "--er-face",
-  "--er-stripe",
-  "--er-frame",
-  "--er-line",
-  "--er-own",
-  "--er-link",
-  "--er-ink",
-  "--er-type",
-] as const;
-
 type CssRule = { selector: string; body: string };
 
 function withoutComments(source: string): string {
@@ -433,7 +419,7 @@ function directStyleValues(source: string): string[] {
 }
 
 function tableDeclarations(theme: typeof themes[number]): Map<string, string> {
-  return readThemeRoleTable(css, theme).light;
+  return readThemeRoleTable(css, theme);
 }
 
 function fixedTableRules(): CssRule[] {
@@ -648,18 +634,15 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     }
   });
 
-  it("9 意匠の表は宣言した役を全て持ち、不足は 0 件", () => {
+  it("7 意匠の表は宣言した役を全て持ち、不足は 0 件", () => {
     const missing: string[] = [];
     for (const theme of themes) {
-      const expected = fixedThemes.includes(theme as typeof fixedThemes[number])
-        ? fixedThemeRoles
-        : colorOnlyRoles;
       const actual = tableDeclarations(theme);
-      for (const role of expected) {
+      for (const role of fixedThemeRoles) {
         if (!actual.has(role)) missing.push(`${theme}: ${role}`);
       }
     }
-    expect(themes).toHaveLength(9);
+    expect(themes).toHaveLength(7);
     expect(missing).toEqual([]);
   });
 
@@ -677,11 +660,9 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       const where = /:where\(([^)]*)\)/.exec(rule.selector)?.[1] ?? "";
       const excluded = [...where.matchAll(NAMED_PALETTE_CAPTURE)].map((match) => match[1]!);
       const actualExclusions = [...new Set(excluded)].sort();
-      expect(actualExclusions, normalized(rule.selector)).toEqual(
-        expect.arrayContaining([...excludedFromCommonRules]),
-      );
+      // 外すのは記法の意匠の名前だけ。 色だけの意匠と意匠を持たない舞台は無い (#2962)
       expect(
-        actualExclusions.filter((theme) => !paletteNames.includes(theme as typeof paletteNames[number])),
+        actualExclusions.filter((theme) => !themes.includes(theme as typeof themes[number])),
         normalized(rule.selector),
       ).toEqual([]);
     }

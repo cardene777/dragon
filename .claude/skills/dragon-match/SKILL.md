@@ -117,13 +117,8 @@ noteRoot は省略でき、省略時は docs/design とする。
 
 見本帳は baseUrl、page、name と任意の palette を持つ。
 
-palette に site-colours を書くか palette を省いた時は、図の色味の選ぶ欄で「画面の色」を選ぶ。
-
-その時は svg[data-cdl-stage] に data-cdl-palette が無いことを確かめてから測る。
-
-表と撮った絵の札は「画面の色」にし、parts/ の file 名には site-colours を使う。
-
-画面の色には note.md が無いため、色の項目は「測れない」にする。
+palette を省いた時は、サイトの既定の意匠 (letterpress) を選ぶ。
+意匠を書いていない見本帳の図は、サイトの意匠で描かれるため。
 
 各側には任意で region と ignoreTexts を書ける。
 

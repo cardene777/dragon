@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { readCdlThemeRoleTable } from "./theme-role-table-test-helpers";
 
 const table = (palette: string): ReadonlyMap<string, string> =>
-  readCdlThemeRoleTable(palette).light;
+  readCdlThemeRoleTable(palette);
 
 describe("#2854 3 段目 l の意匠表", () => {
   it("名前の字体を意匠ごとの Noto Sans JP に保ち、値だけ同梱 mono にする", () => {
     for (const palette of ["blueprint", "letterpress", "catalog", "sketch", "neon", "relief"] as const) {
       expect(table(palette).get("--dragon-chart-name-font"), `${palette} の名前`).toContain("Noto Sans JP");
-      expect(table(palette).get("--dragon-chart-value-font"), `${palette} の値`).toBe("var(--d-mono)");
+      expect(table(palette).get("--dragon-chart-value-font"), `${palette} の値`).toBe("var(--dragon-theme-mono-font)");
     }
   });
 

@@ -25,6 +25,7 @@
  * 一定だった。 段が進んでも数が動かないので、観測の瞬間に依らない。
  */
 import type { Page } from "@playwright/test";
+import { 画面の意匠を付ける } from "./helpers/site-theme-url";
 
 /** 箱と矢印が在る図の記法。 */
 export const 箱と矢印の記法 = `title: "箱と矢印の見本"
@@ -130,8 +131,9 @@ export const 記法をURLに載せる = (src: string): string => Buffer.from(src
  * 待ち時間を引数で受けるのは、呼び出し側が測るものによって落ち着くまでの長さが違うため
  * (色を測る側は文字の読込を待つ必要がある)。
  */
-export async function 箱と矢印を開く(page: Page, 待ちms = 1500): Promise<void> {
-  await page.goto(`editor#s=${記法をURLに載せる(箱と矢印の記法)}`);
+export async function 箱と矢印を開く(page: Page, 待ちms = 1500, 画面の意匠?: string): Promise<void> {
+  const 道 = `editor#s=${記法をURLに載せる(箱と矢印の記法)}`;
+  await page.goto(画面の意匠 === undefined ? 道 : 画面の意匠を付ける(道, 画面の意匠));
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(待ちms);
 }

@@ -10,9 +10,7 @@
   }
 
   /* 意匠の名前ではなく、値の表が持つ動きの止め方を読む。 */
-  svg[data-cdl-stage][data-cdl-palette]:not(
-      :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
-    ) [data-cdl-edge] {
+  svg[data-cdl-stage][data-cdl-palette] [data-cdl-edge] {
     animation: var(--dragon-theme-edge-motion) !important;
   }
 }
