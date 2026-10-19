@@ -5,8 +5,11 @@
  * 全ての箱の枠を 1 色に揃える規則 (#1111) を持っており、後から入った節の色まで消していた。
  * カタログの「節の色 6 種」 は 6 枚とも同じ朱の枠になっていた。
  *
- * **期待する色は画面の変数から引く**。 色の値を検査に書くと、テーマの色を変えるたびに検査だけが
- * 取り残される。 線の色と同じ変数 (`--dragon-edge-tone`) を当てた要素を作り、その解決値と比べる。
+ * **強調した箱の枠の色は測らない** (#2962)。 図は必ずどれかの意匠で描かれ、強調した箱の枠は
+ * 意匠帳が決めた色と太さで描く (節の色ごとに分けない意匠もある)。 強調した箱の枠が意匠帳の色に
+ * 収まることは `rendered-contrast.spec.ts` の「全図種で固定色と contrast が出る」、 枠の太さの値は
+ * `src/lib/stage-theme-contract.test.ts` が見る。 ここに残すのは、
+ * 強調していない箱が節の色で分かれないことだけ。
  */
 import { test, expect, type Page } from "@playwright/test";
 
@@ -41,8 +44,6 @@ interface 枠 {
   readonly tone: string;
   readonly active: boolean;
   readonly stroke: string;
-  /** 同じ色の名前を線の変数に当てた時の色 */
-  readonly 線の色: string;
 }
 
 async function 枠を測る(page: Page): Promise<枠[]> {
@@ -55,19 +56,11 @@ async function 枠を測る(page: Page): Promise<枠[]> {
         const 形 =
           枠 && ["rect", "path"].includes(枠.tagName) ? 枠 : 枠?.querySelector("rect, path");
         if (!形) return [];
-        const tone = 箱.getAttribute("data-cdl-tone") ?? "";
-        const 見本 = document.createElement("span");
-        見本.setAttribute("data-cdl-tone", tone);
-        見本.style.color = "var(--dragon-edge-tone)";
-        document.body.append(見本);
-        const 線の色 = getComputedStyle(見本).color;
-        見本.remove();
         return [
           {
-            tone,
+            tone: 箱.getAttribute("data-cdl-tone") ?? "",
             active: 箱.getAttribute("data-cdl-active") === "true",
             stroke: getComputedStyle(形).stroke,
-            線の色,
           },
         ];
       }),
@@ -85,36 +78,6 @@ async function 開く(page: Page): Promise<枠[]> {
   ).toHaveCount(6);
   return 枠を測る(page);
 }
-
-test("強調した箱の枠は、書いた節の色で描かれる", async ({ page }) => {
-  const 枠たち = await 開く(page);
-  const 強調 = 枠たち.filter((値) => 値.active && 値.tone !== "accent");
-
-  expect(
-    強調.map((値) => 値.tone).sort(),
-    "強調した 5 色を測れていない (検査が空振りしている)",
-  ).toEqual(["error", "info", "success", "teal", "warning"]);
-  for (const 値 of 強調) {
-    expect(値.stroke, `${値.tone} の箱の枠が線の ${値.tone} と違う色`).toBe(値.線の色);
-  }
-  expect(new Set(強調.map((値) => 値.stroke)).size, "5 色の枠が同じ色に潰れている").toBe(5);
-});
-
-test("主張 (accent) の箱は強調の既定の色のまま描く", async ({ page }) => {
-  const 枠たち = await 開く(page);
-  const 主張 = 枠たち.filter((値) => 値.active && 値.tone === "accent");
-  const 強調の既定 = await page.evaluate(() => {
-    const 見本 = document.createElement("span");
-    見本.style.color = "var(--d-accent)";
-    document.body.append(見本);
-    const 色 = getComputedStyle(見本).color;
-    見本.remove();
-    return 色;
-  });
-
-  expect(主張.length, "主張の箱を測れていない (検査が空振りしている)").toBe(1);
-  expect(主張[0]!.stroke, "tone: accent を書いた箱だけ強調の色が変わっている").toBe(強調の既定);
-});
 
 test("強調していない箱は、節の色を書いても揃えた枠の色で描く", async ({ page }) => {
   const 枠たち = await 開く(page);

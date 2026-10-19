@@ -12,8 +12,8 @@ DEV_SPA_URL=http://localhost:4323/ node apps/playground-spa/scripts/theme-css-eq
 DEV_SPA_URL=http://localhost:4323/ node apps/playground-spa/scripts/theme-css-equivalence.mjs 比べる --workers 4 --out .context/theme-css-equivalence/result.json
 ```
 
-`選ぶ` は `/catalog` に出る全分類頁の全図を、色味10通り、明暗2通り、全段で走査する。
-1 図につき頁を 1 回だけ開き、色味と明暗は同じ頁の中で切り替える。
+`選ぶ` は `/catalog` に出る全分類頁の全図を、色味 7 通り、全段で走査する。
+1 図につき頁を 1 回だけ開き、色味は同じ頁の中で切り替える。
 既定では同じ browser の 4 頁で図を分けて走査し、`--workers N` で頁数を変えられる。
 時間が掛かるため、図を終えるたびに命中規則数と実時間を標準出力へ出す。
 調査中だけ頁を絞る場合は `--page charts` を付け、正式な `figures.json` は絞らずに作る。
@@ -32,7 +32,7 @@ cache の鍵は旧 CSS の hash と道具の版から作る。どちらかが違
 各図の `newlyCoveredRules` は、その図を足して初めて命中した規則数を表す。
 `unmatched-rules.json` は全図を走査しても命中しなかった規則を、選択子・開始行・理由つきで持つ。
 `.cdl-phase-seg` が 0 個で段が 0 のままの図は、段の札を表示しない1段の図として扱う。
-最初の色味・明暗で時計の上限までに段が 0 以外へ進んだ場合は、段を持つのに札が無い図として `undrawableFigures` に頁・item id・理由つきで残す。
+最初の色味で時計の上限までに段が 0 以外へ進んだ場合は、段を持つのに札が無い図として `undrawableFigures` に頁・item id・理由つきで残す。
 表示中の stage が在っても `svg[data-cdl-stage]` が無い行は CDL の図ではないため、`figuresWithoutCdlSvg` に頁・item id・stage 内容の要約つきで分けて残す。
 CDL の SVG や `data-cdl-phase-index` を読めない行は `undrawableFigures` に残し、他の図は続ける。
 選ばれた図が同じ状態になった場合、`比べる` はその場で失敗する。
@@ -40,7 +40,7 @@ CDL の SVG や `data-cdl-phase-index` を読めない行は `undrawableFigures`
 各段は要約が3回続けて同じなら `settled`、段へ入ってから1200msまで変わり続けたらその時刻を `timed` として取る。
 `比べる` の JSON は方式別件数の `captureModes`、`stateCount`、`differences`、`variableDifferences`、`incomparableStates`、`coverage`、`pixels` を持つ。
 `differences` は絵に効く計算後の property と要素の在る・無い差、`variableDifferences` は `--` で始まる CSS 変数の差を持つ。
-どちらの差にも図・色味・明暗・段・`data-cdl-*` 属性・DOM 経路・property・旧値・新値が入る。
+どちらの差にも図・色味・段・`data-cdl-*` 属性・DOM 経路・property・旧値・新値が入る。
 作り直しの合否は `differences` で判定し、`variableDifferences` は変数名の付け替えを確認するために使う。
 値と規則の対象は表示中の stage 配下、共有 `SvgDefs` 配下であり、CSS 変数は `html` と図の SVG でも比べる。
 `coverage.ignoredTypes` の `keyframes` と `font-face` は規則数へ含めない。

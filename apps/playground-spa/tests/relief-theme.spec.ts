@@ -226,82 +226,78 @@ test.describe("relief theme (#2796)", () => {
       let lines = 0;
       const failures: string[] = [];
 
-      for (const dark of [false, true]) {
-        const mode = dark ? "暗" : "明";
-        await openEditorTheme(page, source, "relief", dark);
-        const root = stage(page);
-        grounds.push(await root.evaluate((element) => getComputedStyle(element).backgroundColor));
+      const mode = "relief";
+      await openEditorTheme(page, source, "relief");
+      const root = stage(page);
+      grounds.push(await root.evaluate((element) => getComputedStyle(element).backgroundColor));
 
-        const shapes = await root.locator(BOX_FILTER_SELECTOR).evaluateAll((elements) =>
-          elements.map((element) => {
-            const children = [...element.children];
-            const paint = children.length > 0 && children.every((child) => child.tagName.toLowerCase() === "circle")
-              ? children[0]!
-              : element;
-            return {
-              active: element.closest('[data-cdl-active="true"]') !== null,
-              chart: element.closest('[data-cdl-kind^="chart-"]') !== null,
-              fill: getComputedStyle(paint).fill,
-              stroke: getComputedStyle(paint).stroke,
-              filter: getComputedStyle(element).filter,
-            };
-          }),
-        );
-        boxes = Math.max(boxes, shapes.length);
-        for (const shape of shapes) {
-          expect(shape.stroke, `${type}/${mode} の箱に縁線がある`).toBe("none");
-          expect(colorKey(shape.fill), `${type}/${mode} の箱の面`).toBe(colorKey(relief.value.face));
-          const expected = shape.chart
-            ? "dragon-relief-well"
-            : shape.active
-              ? "dragon-relief-dome"
-              : "dragon-relief-raised";
-          expect(shape.filter, `${type}/${mode} の箱の filter`).toContain(expected);
-          if (!dark) {
-            if (shape.chart) well += 1;
-            else if (shape.active) dome += 1;
-            else raised += 1;
-          }
-        }
-
-        const edgeValues = await root.locator('[data-cdl-role="edge-line"]').evaluateAll((elements) =>
-          elements.map((element) => ({
-            stroke: getComputedStyle(element).stroke,
+      const shapes = await root.locator(BOX_FILTER_SELECTOR).evaluateAll((elements) =>
+        elements.map((element) => {
+          const children = [...element.children];
+          const paint = children.length > 0 && children.every((child) => child.tagName.toLowerCase() === "circle")
+            ? children[0]!
+            : element;
+          return {
+            active: element.closest('[data-cdl-active="true"]') !== null,
+            chart: element.closest('[data-cdl-kind^="chart-"]') !== null,
+            fill: getComputedStyle(paint).fill,
+            stroke: getComputedStyle(paint).stroke,
             filter: getComputedStyle(element).filter,
-          })),
-        );
-        lines = Math.max(lines, edgeValues.length);
-        const allowed = new Set([lead, relief.value.link, relief.value.own, relief.value.ink].map(colorKey));
-        for (const line of edgeValues) {
-          expect(allowed.has(colorKey(line.stroke)), `${type}/${mode} の線 ${line.stroke}`).toBe(true);
-          expect(line.filter, `${type}/${mode} の線に影がある`).not.toContain("dragon-relief");
-        }
-
-        const filteredRoles = await root.evaluate((element, boxSelector) => {
-          const contours = new Set(element.querySelectorAll(boxSelector));
-          return (
-          [...element.querySelectorAll<SVGGraphicsElement>("*")].flatMap((candidate) => {
-            if (!getComputedStyle(candidate).filter.includes("dragon-relief")) return [];
-            if (candidate.matches('[data-cdl-role="edge-label-bg"], [data-cdl-role="chart-bar"]')) return [];
-            if (candidate.matches('[data-cdl-frame], [data-cdl-role="chart-waffle-cell"]')) return [];
-            // 階層の札そのものは `階層-浮彫.html` と対になる浮き出し面。札の中の
-            // 別図形へ影が漏れることは、他の role を引き続き列挙して検知する。
-            if (candidate.matches('[data-cdl-role="tree-node"]')) return [];
-            return contours.has(candidate)
-              ? []
-              : [candidate.getAttribute("data-cdl-role") ?? candidate.tagName];
-          })
-          );
-        }, BOX_FILTER_SELECTOR);
-        expect(filteredRoles, `${type}/${mode} の箱の中の図形へ影が届いた`).toEqual([]);
-
-        const shapeContrast = await checkBoxAndLineContrast(page, root, type, mode, relief, lead);
-        const textContrast = await checkTextContrast(page, type, mode);
-        failures.push(...shapeContrast.failures, ...textContrast.failures);
+          };
+        }),
+      );
+      boxes = Math.max(boxes, shapes.length);
+      for (const shape of shapes) {
+        expect(shape.stroke, `${type}/${mode} の箱に縁線がある`).toBe("none");
+        expect(colorKey(shape.fill), `${type}/${mode} の箱の面`).toBe(colorKey(relief.value.face));
+        const expected = shape.chart
+          ? "dragon-relief-well"
+          : shape.active
+            ? "dragon-relief-dome"
+            : "dragon-relief-raised";
+        expect(shape.filter, `${type}/${mode} の箱の filter`).toContain(expected);
+        if (shape.chart) well += 1;
+        else if (shape.active) dome += 1;
+        else raised += 1;
       }
 
+      const edgeValues = await root.locator('[data-cdl-role="edge-line"]').evaluateAll((elements) =>
+        elements.map((element) => ({
+          stroke: getComputedStyle(element).stroke,
+          filter: getComputedStyle(element).filter,
+        })),
+      );
+      lines = Math.max(lines, edgeValues.length);
+      const allowed = new Set([lead, relief.value.link, relief.value.own, relief.value.ink].map(colorKey));
+      for (const line of edgeValues) {
+        expect(allowed.has(colorKey(line.stroke)), `${type}/${mode} の線 ${line.stroke}`).toBe(true);
+        expect(line.filter, `${type}/${mode} の線に影がある`).not.toContain("dragon-relief");
+      }
+
+      const filteredRoles = await root.evaluate((element, boxSelector) => {
+        const contours = new Set(element.querySelectorAll(boxSelector));
+        return (
+        [...element.querySelectorAll<SVGGraphicsElement>("*")].flatMap((candidate) => {
+          if (!getComputedStyle(candidate).filter.includes("dragon-relief")) return [];
+          if (candidate.matches('[data-cdl-role="edge-label-bg"], [data-cdl-role="chart-bar"]')) return [];
+          if (candidate.matches('[data-cdl-frame], [data-cdl-role="chart-waffle-cell"]')) return [];
+          // 階層の札そのものは `階層-浮彫.html` と対になる浮き出し面。札の中の
+          // 別図形へ影が漏れることは、他の role を引き続き列挙して検知する。
+          if (candidate.matches('[data-cdl-role="tree-node"]')) return [];
+          return contours.has(candidate)
+            ? []
+            : [candidate.getAttribute("data-cdl-role") ?? candidate.tagName];
+        })
+        );
+      }, BOX_FILTER_SELECTOR);
+      expect(filteredRoles, `${type}/${mode} の箱の中の図形へ影が届いた`).toEqual([]);
+
+      const shapeContrast = await checkBoxAndLineContrast(page, root, type, mode, relief, lead);
+      const textContrast = await checkTextContrast(page, type, mode);
+      failures.push(...shapeContrast.failures, ...textContrast.failures);
+
       const expectedGround = `rgb(${color(relief.value.ground).join(", ")})`;
-      expect(grounds).toEqual([expectedGround, expectedGround]);
+      expect(grounds).toEqual([expectedGround]);
       console.log(
         `relief ${type}: ground=${grounds.join("/")} boxes=${boxes} raised=${raised} ` +
           `dome=${dome} well=${well} lines=${lines} violations=${failures.length}`,
@@ -329,7 +325,7 @@ test.describe("relief theme (#2796)", () => {
       sourceYaml__shipperFeelingJourney,
     ] as const;
     for (const source of cardSources) {
-      await openEditorTheme(page, source, "relief", false);
+      await openEditorTheme(page, source, "relief");
       const root = stage(page);
       const surface = root.locator('[data-cdl-node]:has(> [data-cdl-frame])');
       await expect(surface).toHaveCount(1);
@@ -370,7 +366,7 @@ test.describe("relief theme (#2796)", () => {
     }
 
     for (const source of unframedSources) {
-      await openEditorTheme(page, source, "relief", false);
+      await openEditorTheme(page, source, "relief");
       const root = stage(page);
       const surface = root.locator('[data-cdl-node]:has(> [data-cdl-frame])');
       await expect(surface).toHaveCount(1);
@@ -393,7 +389,7 @@ test.describe("relief theme (#2796)", () => {
       expect(parts.titleDisplay, `外題を描かない: ${figure}`).toBe("none");
     }
 
-    await openEditorTheme(page, sourceYaml__parcelStatusPie, "relief", false);
+    await openEditorTheme(page, sourceYaml__parcelStatusPie, "relief");
     let root = stage(page);
     expect(
       await root.locator('[data-cdl-kind="chart-pie"] > [data-cdl-role="node-body"]')
@@ -406,7 +402,7 @@ test.describe("relief theme (#2796)", () => {
       "円の輪を平らにする",
     ).toBe("none");
 
-    await openEditorTheme(page, sourceYaml__parcelSizeWaffle, "relief", false);
+    await openEditorTheme(page, sourceYaml__parcelSizeWaffle, "relief");
     root = stage(page);
     expect(
       await root.locator('[data-cdl-kind="chart-waffle"] > [data-cdl-role="node-body"]')
@@ -422,7 +418,7 @@ test.describe("relief theme (#2796)", () => {
   });
 
   test("relief filter: 4 つの filter の外の影が意匠帳どおりになる", async ({ page }) => {
-    await openEditorTheme(page, samples.values().next().value ?? themeAppearSource("relief"), "relief", false);
+    await openEditorTheme(page, samples.values().next().value ?? themeAppearSource("relief"), "relief");
     for (const id of ["dragon-relief-raised", "dragon-relief-dome", "dragon-relief-well", "dragon-relief-raised-sm"]) {
       const filter = page.locator(`filter#${id}`);
       await expect(filter, id).toHaveCount(1);
@@ -533,7 +529,7 @@ test.describe("relief theme (#2796)", () => {
       /^type:\s*chart\s*$/m.test(sample.code) && /^shape:\s*bar\s*$/m.test(sample.code))?.code;
     if (!classSource || !chartSource) throw new Error("主役と図表の画素を測る見本が無い");
 
-    await openEditorTheme(page, classSource, "relief", false);
+    await openEditorTheme(page, classSource, "relief");
     await stopDiagram(page);
     const dome = await shadingPoints(page, "dragon-relief-dome", 0);
     const domeImage = await shoot(page, dome.box);
@@ -548,7 +544,7 @@ test.describe("relief theme (#2796)", () => {
 
     const inset = Number(/内側へ\s+(\d+)px/.exec(roleValue("窪み"))?.[1]);
     expect(inset, "意匠帳の窪みの縮める量").toBeGreaterThan(0);
-    await openEditorTheme(page, chartSource, "relief", false);
+    await openEditorTheme(page, chartSource, "relief");
     await stopDiagram(page);
     const well = await shadingPoints(page, "dragon-relief-well", inset);
     const wellImage = await shoot(page, well.box);
@@ -568,7 +564,7 @@ test.describe("relief theme (#2796)", () => {
   });
 
   test("relief lead: 主役・札・棒・鍵が意匠帳どおりになる", async ({ page }) => {
-    await openEditorTheme(page, themeAppearSource("relief"), "relief", false);
+    await openEditorTheme(page, themeAppearSource("relief"), "relief");
     const labels = await stage(page).locator('[data-cdl-role="node-label"]').evaluateAll((elements) =>
       elements.map((element) => ({
         active: element.closest('[data-cdl-active="true"]') !== null,
@@ -582,7 +578,7 @@ test.describe("relief theme (#2796)", () => {
     }
     expect(contrast(color(title), color(relief.value.face)), "主役の題の対比").toBeGreaterThanOrEqual(4.5);
 
-    await openEditorTheme(page, 段のない六色の記法, "relief", false);
+    await openEditorTheme(page, 段のない六色の記法, "relief");
     const toned = await readEdgeLabels(page);
     expect(toned).toHaveLength(6);
     expect(new Set(toned.map((label) => colorKey(label.background)))).toEqual(
@@ -595,7 +591,7 @@ test.describe("relief theme (#2796)", () => {
       expect(contrast(color(white), color(label.background)), `${label.tone} の札の対比`).toBeGreaterThanOrEqual(4.5);
     }
 
-    await openEditorTheme(page, 六色の記法, "relief", false);
+    await openEditorTheme(page, 六色の記法, "relief");
     const staged = await readEdgeLabels(page);
     expect(new Set(staged.map((label) => colorKey(label.background)))).toEqual(
       new Set([title, relief.value.link, relief.value.own].map(colorKey)),
@@ -608,7 +604,7 @@ test.describe("relief theme (#2796)", () => {
     const chartSource = EDITOR_SAMPLES.find((sample) =>
       /^type:\s*chart\s*$/m.test(sample.code) && /^shape:\s*bar\s*$/m.test(sample.code))?.code;
     if (!chartSource) throw new Error("図表の見本が無い");
-    await openEditorTheme(page, chartSource, "relief", false);
+    await openEditorTheme(page, chartSource, "relief");
     const bars = await stage(page).locator('[data-cdl-role="chart-bar"]').evaluateAll((elements) =>
       elements.map((element) => ({
         main: element.getAttribute("data-cdl-emphasis") === "primary",
@@ -647,7 +643,7 @@ test.describe("relief theme (#2796)", () => {
       expect(bar.filter).toContain("dragon-relief-raised-sm");
     }
 
-    await openEditorTheme(page, 鍵の記法, "relief", false);
+    await openEditorTheme(page, 鍵の記法, "relief");
     const keys = await stage(page).locator('[data-cdl-role="node-row-underline"]')
       .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).stroke));
     expect(keys.length, "鍵の下線が無い").toBeGreaterThan(0);

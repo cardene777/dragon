@@ -237,11 +237,13 @@ const measureRoles = () => page.evaluate((roles) => {
   return { measured, vb };
 }, SPEC_ROLES);
 
+// 暗い側は地の暗い画面の意匠 (端末) の値を読み、読んだら元の意匠へ戻す (#2962)
 const light = await readVars();
-await page.evaluate(() => document.documentElement.classList.add("dark"));
+const 元の意匠 = await page.evaluate(() => document.documentElement.getAttribute("data-site-theme"));
+await page.evaluate(() => document.documentElement.setAttribute("data-site-theme", "terminal"));
 await page.waitForTimeout(500);
 const dark = await readVars();
-await page.evaluate(() => document.documentElement.classList.remove("dark"));
+await page.evaluate((意匠) => document.documentElement.setAttribute("data-site-theme", 意匠 ?? "letterpress"), 元の意匠);
 await page.waitForTimeout(500);
 
 // 段は時間で進むので、新しい段が出なくなるまで控える。

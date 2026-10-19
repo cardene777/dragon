@@ -64,7 +64,6 @@ import {
   stopDiagram,
 } from "./helpers/fixed-theme-checks";
 import { 固定色を取り出す } from "./helpers/fixed-colors";
-import { COLOR_ONLY_THEMES } from "./helpers/theme-role-table-final";
 import { checkEdgeLabelContrast, SINGLE_SERIES_SOURCE } from "./helpers/label-tone-checks";
 
 /**
@@ -91,8 +90,6 @@ import { checkEdgeLabelContrast, SINGLE_SERIES_SOURCE } from "./helpers/label-to
  * 実際の値が入る。
  */
 
-const MODES = ["light", "dark"] as const;
-
 const 図録の図表 = [
   sourceYaml__branchParcelsBar,
   sourceYaml__monthlyDeliveriesLine,
@@ -115,7 +112,7 @@ test.describe("図表の題と放射の葉の描画対比 (#2854)", () => {
   for (const theme of 図表の意匠) {
     test(`${theme}: 13 図の題と放射の葉が 4.5:1 を保つ`, async ({ page }) => {
       for (const source of 図録の図表) {
-        await openEditorTheme(page, source, theme, false);
+        await openEditorTheme(page, source, theme);
         const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
         const title = stage.locator('[data-cdl-role="figure-title"]');
         await expect(title).toHaveCount(1);
@@ -151,7 +148,7 @@ test.describe("図表の題と放射の葉の描画対比 (#2854)", () => {
         ).toBeGreaterThanOrEqual(4.5);
       }
 
-      await openEditorTheme(page, sourceYaml__redeliveryIdeasMind, theme, false);
+      await openEditorTheme(page, sourceYaml__redeliveryIdeasMind, theme);
       const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
       await expect(stage.locator('[data-cdl-role="mind-leaf-title"]').first()).toBeVisible({ timeout: 10_000 });
       const leaves = await stage.evaluate((element) => {
@@ -180,19 +177,15 @@ const 段の箱の対比見本 = sourceYaml__textDslSwimlaneStages.replace(/\nan
 type StageTextContrastResult = { measured: number; failures: string[] };
 
 /** 段の見出しと札の右の字を、実際の fill と祖先までの opacity で面へ合成して測る。 */
-async function checkStageTextContrast(
-  page: Page,
-  theme: DslTheme,
-  mode: string,
-): Promise<StageTextContrastResult> {
+async function checkStageTextContrast(page: Page, theme: DslTheme): Promise<StageTextContrastResult> {
   await stopDiagram(page);
   const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
   const ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
   const columns = await stage.locator('[data-cdl-role="stage-column"]').evaluateAll(readPaints);
   const cards = await stage.locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]').evaluateAll(readPaints);
   const failures: string[] = [];
-  if (columns.length !== 4) failures.push(`${theme}/${mode}: 段階の列が ${columns.length} 件 (4 件が要る)`);
-  if (cards.length !== 8) failures.push(`${theme}/${mode}: 札の面が ${cards.length} 件 (8 件が要る)`);
+  if (columns.length !== 4) failures.push(`${theme}: 段階の列が ${columns.length} 件 (4 件が要る)`);
+  if (cards.length !== 8) failures.push(`${theme}: 札の面が ${cards.length} 件 (8 件が要る)`);
   const column = columns[0];
   const card = cards[0];
   if (!column || !card) return { measured: 0, failures };
@@ -207,18 +200,18 @@ async function checkStageTextContrast(
   ] as const) {
     const texts = await stage.locator(`[data-cdl-role="${role}"]`).evaluateAll(readPaints);
     if (texts.length !== expected) {
-      failures.push(`${theme}/${mode}: ${role} が ${texts.length} 件 (${expected} 件が要る)`);
+      failures.push(`${theme}: ${role} が ${texts.length} 件 (${expected} 件が要る)`);
     }
     for (const [index, paint] of texts.entries()) {
       if (!paint.rendered) {
-        failures.push(`${theme}/${mode}: ${role} ${index + 1} が描かれていない`);
+        failures.push(`${theme}: ${role} ${index + 1} が描かれていない`);
         continue;
       }
       const foreground = effectivePaint({ ...paint, stroke: "none", strokeOpacity: 0 }, background).face;
       const ratio = contrast(foreground, background);
       measured += 1;
       if (ratio < 4.5) {
-        failures.push(`${theme}/${mode}: ${role} ${index + 1} と面 ${ratio.toFixed(2)}:1 < 4.5:1`);
+        failures.push(`${theme}: ${role} ${index + 1} と面 ${ratio.toFixed(2)}:1 < 4.5:1`);
       }
     }
   }
@@ -251,31 +244,25 @@ const TARGETS = [
 type Label = { key: string; box: Box; px: number; weight: number; text: string; declaredPx: number };
 
 /**
- * 明暗を当てた状態で見本を開く。
+ * サイトの意匠 (`?theme=`) を当てて見本を開く (#2962)。
  *
- * 明暗は `<html>` の class で決まる。 図の色は `cdl-theme.css` が `var(--d-*)` で参照し、
- * その変数を `globals.css` が `html.dark` で差し替えるので、 class を切り替えるだけで
- * 図まで追随する。
+ * 見本は意匠を書いていないので、サイトの意匠で描かれる。 7 意匠を回すと、図の 7 意匠それぞれで
+ * 線の札の字の対比を測ることになる。
  *
  * app の切替 UI を経由しないのは、 本 test が見たいのが「配色が実際に描かれた時の対比」
  * であって、 切替の操作ではないため。
  */
-async function open(page: Page, target: { slug: string; id: string }, mode: string): Promise<void> {
-  await page.goto(`catalog/${target.slug}`);
+async function open(page: Page, target: { slug: string; id: string }, theme: DslTheme): Promise<void> {
+  await page.goto(`catalog/${target.slug}?theme=${theme}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 20000 });
   await 一覧の行(page, target.id).click();
-  await page.waitForSelector(`[data-cdl-diagram="${target.id}"]`, { timeout: 20000 });
-  await page.evaluate((m) => {
-    document.documentElement.classList.toggle("dark", m === "dark");
-  }, mode);
-  // 当たっていないと明暗 2 通りが同じ画面になる。
-  await page.waitForFunction(
-    (m) => document.documentElement.classList.contains("dark") === (m === "dark"),
-    mode,
+  // 当たっていないと 7 意匠が同じ画面になる。
+  await page.waitForSelector(
+    `[data-cdl-diagram="${target.id}"] svg[data-cdl-stage][data-cdl-palette="${theme}"]`,
     { timeout: 20000 },
   );
   await page.evaluate(() => document.fonts.ready);
-  // 明暗の切替に transition が掛かるので落ち着くまで待つ。
+  // 開いた直後の transition が落ち着くまで待つ。
   await page.waitForTimeout(600);
 }
 
@@ -355,6 +342,24 @@ async function shootWhenStill(
   return null;
 }
 
+/**
+ * 変異試験で札の字の色を差し替える。
+ *
+ * 意匠の表は詳細度の高い選択子に `!important` を付けて字の色を決めるので、 style sheet を足して
+ * 勝つには選択子を意匠ごとに合わせることになる (`html body [data-cdl-role="edge-label"]` では
+ * 意匠の決まりが勝って何も変わらず、 変異が空振りした = #2962 で実測)。 要素の style に
+ * `!important` で書けば、 どの意匠の決まりよりも先に効く。
+ */
+async function 札の字の色を替える(page: Page, id: string, 色: string): Promise<void> {
+  const 替えた = await page
+    .locator(`[data-cdl-diagram="${id}"] [data-cdl-role="edge-label"]`)
+    .evaluateAll((els, c) => {
+      for (const el of els) (el as SVGElement).style.setProperty("fill", c, "important");
+      return els.length;
+    }, 色);
+  expect(替えた, "色を替える札が無い (変異が空振りしている)").toBeGreaterThan(0);
+}
+
 /** 描かれている edge label の位置と文字仕様を集める。 */
 async function collectLabels(page: Page, id: string): Promise<Label[]> {
   return page.evaluate((id) => {
@@ -429,14 +434,14 @@ test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 3 });
 test.describe("edge label の描画対比 (#977)", () => {
   test.describe.configure({ timeout: 120000 });
 
-  for (const mode of MODES) {
-      test(`${mode} の edge label が WCAG AA を満たす`, async ({ page }) => {
+  for (const theme of THEMES) {
+      test(`${theme} の edge label が WCAG AA を満たす`, async ({ page }) => {
         const failures: string[] = [];
         let measured = 0;
         let worst = Infinity;
 
         for (const target of TARGETS) {
-          await open(page, target, mode);
+          await open(page, target, theme);
           await 札が出そろうまで待って止める(page, target.id, target.expectedLabels);
           const labels = await collectLabels(page, target.id);
           // **target ごとに** 件数を固定する。 合計だけだと、 `pattern-passthrough` の sub が
@@ -466,23 +471,21 @@ test.describe("edge label の描画対比 (#977)", () => {
         // (測れない 3 経路 = 画面が動いた / 文字が背景と同じ / 芯を特定できない、 のどれも
         // `failures.push` を通る)。 件数を先に照合すると「9 対 10」 だけが出て、 なぜ 1 件
         // 落ちたのかが失敗の文面から消える (#1072 の調査で 2 回とも理由が読めなかった)。
-        expect(failures, `${mode} 最小の対比 ${worst.toFixed(2)}:1`).toEqual([]);
+        expect(failures, `${theme} 最小の対比 ${worst.toFixed(2)}:1`).toEqual([]);
         // 1 件も測れていなければ、 0 件の failures は「満たした」 ことを意味しない。
-        expect(measured, `${mode} で実際に測れた label 数`).toBe(
+        expect(measured, `${theme} で実際に測れた label 数`).toBe(
           TARGETS.reduce((n, t) => n + t.expectedLabels, 0),
         );
       });
   }
 
-  test("図の配色が明暗を 1 箇所でしか決めていない", async ({ page }) => {
-    // 元は「暗色の宣言を持たない主題の一覧」 を照合していた。 主題を廃止したので、
-    // その一覧が守っていた前提 (どこで暗色が決まるか) を直接測る形に置き換えた。
-    //
-    // 図の色は変数の差し替えだけで明暗が決まる。 `cdl-theme.css` に `html.dark` を書くと
-    // 決める場所が 2 つになり、 変数を変えても図だけ古い色のまま残る。
+  test("図の配色を意匠の表の 1 箇所でしか決めていない", async ({ page }) => {
+    // 図の色は意匠の表 (`[data-cdl-palette="<意匠>"]`) が決め、図の部品は `var(--d-*)` を通して
+    // 読む。 画面の意匠 (`data-site-theme`) で図の色を差し替えると決める場所が 2 つになり、
+    // 同じ意匠の図が画面ごとに別の色になる (#2962)。
     // **図に色を当てる CSS を機械的に集める**。 一覧を手で書くと、 3 つ目の file が
     // 増えた時に漏れる (実測 = `cdl-theme.css` だけ見ていた間、 図の中の操作盤を描く
-    // `catalog-widgets.css` に `html.dark` が 160 行残っていた)。
+    // `catalog-widgets.css` に暗い画面の上書きが 160 行残っていた)。
     //
     // 目印は「図の部品に色を当てる selector を持つこと」。 `data-cdl-role` (図の部品) と
     // `.cdl-ip-` (図の中の操作盤) のどちらかを書いている file が対象。
@@ -515,53 +518,44 @@ test.describe("edge label の描画対比 (#977)", () => {
     expect(対象.length, "図に色を当てる CSS が 1 件も見つからない").toBeGreaterThan(0);
 
     const 違反: string[] = [];
-    /** 名前を書いて選ぶ配色の塊 (`[data-cdl-palette="kinari"]` 等)。 名前 → 明暗 → 口 */
-    const 配色: Map<string, Map<string, Set<string>>> = new Map();
+    /** 名前を書いて選ぶ配色の塊 (`[data-cdl-palette="blueprint"]` 等)。 名前 → 口 */
+    const 配色 = new Map<string, Set<string>>();
     for (const 名 of 対象) {
       const css = readFileSync(join(styles, 名), "utf8");
       // 説明文に書くのは構わない (規約そのものを書いてある)。 見るのは規則の側だけ。
       const 規則だけ全部 = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
       /*
-       * 名前を書いて選ぶ配色 (#1553) の塊だけは、色を直に書き明暗も 2 面で書く。
+       * 名前を書いて選ぶ配色 (#1553) の塊だけは、色を直に書く。
        *
-       * 上の規約 (明暗を 1 箇所で決める) の狙いは「変数を変えても図だけ古い色のまま残る」 を
-       * 防ぐこと = 図の色が `--d-*` から流れてくることが前提にある。 本節の色は `--d-*` から
-       * 来ない。 意匠帳 (`docs/design/er/note.md`) が図のために決めた別の組で、入れ替わる
-       * 上流を持たない。
+       * 下の規約 (色を直に書かず変数を読む) の狙いは「変数を変えても図だけ古い色のまま残る」 を
+       * 防ぐこと = 図の色が `--d-*` から流れてくることが前提にある。 本節の色はその上流で、
+       * 意匠帳 (`docs/design/er/note.md`) が図のために決めた組。 入れ替わる上流を持たない。
        *
-       * **代わりに別の縛りを掛ける**。 穴を空けるだけにすると、明るい側だけ直して暗い側を
-       * 忘れる形が通る。 下で「どの名前も明暗の両方で同じ 7 つを定義していること」 を見る。
+       * **代わりに別の縛りを掛ける**。 穴を空けるだけにすると、ある意匠でだけ口を書き忘れる
+       * 形が通る。 下で「どの名前も同じ口を定義していること」 を見る。
        */
       const 塊 = [...規則だけ全部.matchAll(/([^{}]*)\{([^{}]*)\}/g)];
-      const 名前で選ぶ = (selector: string): RegExpExecArray | null => {
-        const 外す側を除いた選択子 = selector.replace(/:not\(\s*:where\([^)]*\)\s*\)/g, "");
-        return /\[data-cdl-palette="([^"]+)"\]/.exec(外す側を除いた選択子);
-      };
+      const 名前で選ぶ = (selector: string): RegExpExecArray | null =>
+        /\[data-cdl-palette="([^"]+)"\]/.exec(selector);
       for (const m of 塊) {
-        const sel = m[1] ?? "";
-        const body = m[2] ?? "";
-        const 名前 = 名前で選ぶ(sel);
+        const 名前 = 名前で選ぶ(m[1] ?? "");
         if (!名前) continue;
-        const 明暗 = sel.includes("html.dark") ? "暗" : "明";
-        const 口 = new Set(
-          [...body.matchAll(/--er-([a-z-]+)\s*:/g)].flatMap((x) => (x[1] === undefined ? [] : [x[1]])),
-        );
         // 必須の群。 一致した以上必ず取れる
-        const 表 = 配色.get(名前[1]!) ?? new Map<string, Set<string>>();
-        const 足す先 = 表.get(明暗) ?? new Set<string>();
-        for (const 値 of 口) 足す先.add(値);
-        表.set(明暗, 足す先);
-        配色.set(名前[1]!, 表);
+        const 口 = 配色.get(名前[1]!) ?? new Set<string>();
+        for (const x of (m[2] ?? "").matchAll(/--er-([a-z-]+)\s*:/g)) {
+          if (x[1] !== undefined) 口.add(x[1]);
+        }
+        配色.set(名前[1]!, 口);
       }
       const 規則だけ = 塊
         .filter((m) => 名前で選ぶ(m[1] ?? "") === null)
         .map((m) => m[0])
         .join("\n");
-      const n = (規則だけ.match(/html\.dark/g) ?? []).length;
-      if (n > 0) 違反.push(`${名} に html.dark が ${n} 件`);
+      const n = (規則だけ.match(/data-site-theme/g) ?? []).length;
+      if (n > 0) 違反.push(`${名} が画面の意匠 (data-site-theme) で図の色を ${n} 件替えている`);
 
-      // 色を直に書くと明暗が追随しない。 埋め込み画像の中の色 (`%23`) も同じ。
+      // 色を直に書くと意匠の表を替えても追随しない。 埋め込み画像の中の色 (`%23`) も同じ。
       //
       // **色かどうかの判定はブラウザに任せる**。 自分で色関数と名前を数え上げると
       // 「また別の書き方が漏れている」 が繰り返し出て収束しない (review 2 巡連続で
@@ -582,9 +576,10 @@ test.describe("edge label の描画対比 (#977)", () => {
     }
 
     /*
-     * 名前を書いて選ぶ配色は、明暗の両方で同じ口を埋める (#1553)。
+     * 名前を書いて選ぶ配色は、どれも同じ口を埋める (#1553)。
      *
-     * 上で色の直書きを許した分の埋め合わせ。 片側だけ直すと、その画面でだけ既定の色が出る。
+     * 上で色の直書きを許した分の埋め合わせ。 ある意匠でだけ書き忘れると、その意匠でだけ既定の
+     * 色が出る。
      */
     // 0 件だと下の照合が「対象なし」 で素通りする
     expect(配色.size, "名前を書いて選ぶ配色が 1 つも見つからない (検査が空振りしている)").toBeGreaterThan(0);
@@ -595,33 +590,19 @@ test.describe("edge label の描画対比 (#977)", () => {
      * 元は 7 つを手で並べていたが、色を 2 つ足した (`--er-own` / `--er-link`) 時に
      * 直されず、この検査は落ちたまま積み上がっていた。 守りたいのは「どこかに書き忘れが
      * ある」 ことなので、名前の数を固定する必要は無い。
-     *
-     * 見るのは 2 つ。 どの配色も明暗で同じ口を埋めること、どの配色も互いに同じ口を
-     * 持つこと。 片側だけ直した / 新しい配色で 1 つ書き忘れた のどちらもここで落ちる。
      */
     const 帳 = readThemeNotes();
-    const 口の一覧 = [...(配色.values().next().value?.get("明") ?? [])].sort();
+    const 口の一覧 = [...(配色.values().next().value ?? [])].sort();
     expect(口の一覧.length, "配色が口を 1 つも定義していない (検査が空振りしている)").toBeGreaterThan(0);
-    for (const [名前, 表] of 配色) {
-      const note = 帳.get(名前 as DslTheme);
-      // 生成りと青磁は記法から外した (#2960) が、CSS の塊は #2962 で消すまで残る。
-      // 意匠帳を持たないので、明暗の両方で口をそろえることだけを見る
-      if (!(COLOR_ONLY_THEMES as readonly string[]).includes(名前)) {
-        expect(note, `配色 ${名前} の意匠帳が無い`).toBeDefined();
-      }
-      const sides = note?.mode === "fixed" ? ["明"] : ["明", "暗"];
-      if (note?.mode === "fixed") {
-        expect(表.has("暗"), `固定の配色 ${名前} が暗の塊を持つ`).toBe(false);
-      }
-      for (const 明暗 of sides) {
-        expect(
-          [...(表.get(明暗) ?? [])].sort(),
-          `配色 ${名前} の ${明暗} が他と同じ口を埋めていない (${口の一覧.length} 個そろえる)`,
-        ).toEqual(口の一覧);
-      }
+    for (const [名前, 口] of 配色) {
+      expect(帳.get(名前 as DslTheme), `配色 ${名前} の意匠帳が無い`).toBeDefined();
+      expect(
+        [...口].sort(),
+        `配色 ${名前} が他と同じ口を埋めていない (${口の一覧.length} 個そろえる)`,
+      ).toEqual(口の一覧);
     }
 
-    expect(違反, "図の配色が明暗を 2 箇所以上で決めている").toEqual([]);
+    expect(違反, "図の配色を 2 箇所以上で決めている").toEqual([]);
   });
 
   test("judge の境界と種別 (単体)", () => {
@@ -643,7 +624,8 @@ test.describe("edge label の描画対比 (#977)", () => {
   });
 
   test("画面上の大きさで閾値を決めている (変異試験)", async ({ page }) => {
-    // **`#391` 以前の色を戻すと落ちること**。 この色は実測 3.7:1 前後で、
+    // **`#391` 以前の色を戻すと落ちること**。 この色は活版の札の地 (墨) の上で実測 4.03:1 で
+    // (画面の色の白い札の上では 3.7:1 前後だった、 #2962)、
     //
     //   画面上の大きさ (7-9px) で判定 → 通常文字の 4.5:1 が要る → 落ちる
     //   宣言の大きさ (22px) で判定    → large text の 3:1 で足りる → 通る
@@ -651,11 +633,9 @@ test.describe("edge label の描画対比 (#977)", () => {
     // つまり `declared * scaleY` を `declared` に戻す変異を、 この色でだけ検知できる。
     // 一括で対比を落とす変異 (下の test) は 3:1 も割るので、 両者を区別しない。
     const target = TARGETS[0];
-    await open(page, target, "light");
+    await open(page, target, "letterpress");
     await 札が出そろうまで待って止める(page, target.id, target.expectedLabels);
-    await page.addStyleTag({
-      content: `html body [data-cdl-role="edge-label"] { fill: #a66a3d !important; }`,
-    });
+    await 札の字の色を替える(page, target.id, "#a66a3d");
     await page.waitForTimeout(300);
 
     const labels = await collectLabels(page, target.id);
@@ -669,24 +649,24 @@ test.describe("edge label の描画対比 (#977)", () => {
     }
     // 3:1 は超えるが 4.5:1 は割る、 という中間の色であることも同時に固定する。
     expect(failures.length, "旧色が検知されない = 画面上の大きさを見ていない").toBeGreaterThan(0);
-    expect(failures.some((f) => /4\.5:1 が要るが 3\./.test(f)), `検知の内容: ${failures.join(" | ")}`).toBe(true);
+    const 中間 = (f: string): boolean => {
+      const m = /4\.5:1 が要るが (\d+(?:\.\d+)?):1/.exec(f);
+      return m !== null && Number(m[1]) >= 3 && Number(m[1]) < 4.5;
+    };
+    expect(failures.some(中間), `検知の内容: ${failures.join(" | ")}`).toBe(true);
   });
 
   test("対比を落とすと検知する (変異試験)", async ({ page }) => {
     // 本 test の存在理由。 実際に閾値を割る配色を当てて、 検知できることを確かめる。
     const target = TARGETS[0];
-    await open(page, target, "light");
+    await open(page, target, "letterpress");
     await 札が出そろうまで待って止める(page, target.id, target.expectedLabels);
     const labels = await collectLabels(page, target.id);
     expect(labels.length).toBeGreaterThan(0);
 
-    // 背景に近い灰色を当てる。 pill の背景は白系なので対比が 1.5:1 前後まで落ちる。
-    //
-    // 主題の CSS も `!important` を使うので、 **主題より詳細度の高い selector** で当てる
-    // (`[data-cdl-role="edge-label"]` だけだと主題側が勝って何も変わらない)。
-    await page.addStyleTag({
-      content: `html body [data-cdl-role="edge-label"] { fill: #e8e8e8 !important; }`,
-    });
+    // 札の地に近い色を当てる。 活版の札の地は墨 (実測 rgb(26, 21, 16)) なので、 墨に寄せた色で
+    // 対比が 1.5:1 を割る。 当て方は `札の字の色を替える` の説明のとおり、 意匠の決まりより先に効く形にする。
+    await 札の字の色を替える(page, target.id, "#3a332b");
     await page.waitForTimeout(300);
 
     const fresh = await collectLabels(page, target.id);
@@ -724,7 +704,7 @@ test.describe("図録の関係と型の多重度 (#2836)", () => {
     ["型", sourceYaml__presetDeliveryClasses],
   ] as const) {
     test(`${name}の多重度が暗い台の上で 4.5 以上`, async ({ page }) => {
-      await openEditorTheme(page, source, "catalog", false);
+      await openEditorTheme(page, source, "catalog");
       await stopDiagram(page);
       const stage = page.locator('svg[data-cdl-stage][data-cdl-palette="catalog"]');
       const result = await stage.evaluate((element) => {
@@ -754,7 +734,7 @@ test.describe("図録の関係線の描画対比 (#2836)", () => {
   test.describe.configure({ timeout: 120000 });
 
   test("状態の矢印と使う点線が地に対して 3 以上", async ({ page }) => {
-    await open(page, { slug: "presets", id: "delivery-relations-demo" }, "light");
+    await open(page, { slug: "presets", id: "delivery-relations-demo" }, "letterpress");
     await page.getByRole("combobox", { name: "図の色味" }).selectOption({ label: "図録" });
     const stage = page.locator(
       '[data-cdl-diagram="delivery-relations-demo"] svg[data-cdl-stage][data-cdl-palette="catalog"]',
@@ -814,33 +794,30 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
   });
 
   for (const note of fixedThemes()) {
-    for (const dark of [false, true]) {
-      const mode = dark ? "暗" : "明";
-      test(`${note.name} / ${mode}: 全図種で固定色と contrast が出る`, async ({ page }) => {
-        const result = await checkFixedThemeAcrossTypes(page, note, dark);
-        const grounds = [...new Set(result.groundByType.values())].join(" / ");
-        console.log(
-          `${note.name} contrast ${mode}: applied=${result.applied}/${PRESET_TYPES.size} ` +
-            `boxTypes=${result.boxTypes} edgeTypes=${result.edgeTypes} ` +
-            `halfFrames=${result.halfFrames} outlineless=${result.outlineless} ` +
-            `failures=${result.failures.length} ` +
-            `grounds=${grounds}`,
-        );
+    test(`${note.name}: 全図種で固定色と contrast が出る`, async ({ page }) => {
+      const result = await checkFixedThemeAcrossTypes(page, note);
+      const grounds = [...new Set(result.groundByType.values())].join(" / ");
+      console.log(
+        `${note.name} contrast: applied=${result.applied}/${PRESET_TYPES.size} ` +
+          `boxTypes=${result.boxTypes} edgeTypes=${result.edgeTypes} ` +
+          `halfFrames=${result.halfFrames} outlineless=${result.outlineless} ` +
+          `failures=${result.failures.length} ` +
+          `grounds=${grounds}`,
+      );
 
-        expect(result.applied, `${note.name} が当たった図種`).toBe(PRESET_TYPES.size);
-        expect(result.boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);
-        expect(result.edgeTypes, "線を測れた図種が 0 件").toBeGreaterThan(0);
-        if (readFixedThemeOutline().get(note.name) === "none") {
-          expect(result.outlineless, "縁線なしの箱を 1 件も測れていない").toBeGreaterThan(0);
-        } else {
-          expect(
-            result.halfFrames,
-            "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
-          ).toBeGreaterThan(0);
-        }
-        expect(result.failures, `${note.name}/${mode} の違反`).toEqual([]);
-      });
-    }
+      expect(result.applied, `${note.name} が当たった図種`).toBe(PRESET_TYPES.size);
+      expect(result.boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);
+      expect(result.edgeTypes, "線を測れた図種が 0 件").toBeGreaterThan(0);
+      if (readFixedThemeOutline().get(note.name) === "none") {
+        expect(result.outlineless, "縁線なしの箱を 1 件も測れていない").toBeGreaterThan(0);
+      } else {
+        expect(
+          result.halfFrames,
+          "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
+        ).toBeGreaterThan(0);
+      }
+      expect(result.failures, `${note.name} の違反`).toEqual([]);
+    });
   }
 
   for (const note of fixedThemes()) {
@@ -850,7 +827,7 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
       if (!lead) throw new Error(`${note.name} の一を読めない`);
       let target: { type: string; stage: Locator } | null = null;
       for (const [type, source] of samples) {
-        await openEditorTheme(page, source, note.name, false);
+        await openEditorTheme(page, source, note.name);
         const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
         if (await stage.locator('[data-cdl-kind="function"] [data-cdl-role="node-body"]').count() > 0) {
           target = { type, stage };
@@ -860,7 +837,7 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
       expect(target, `${note.name} で function の箱を持つ図種が無い`).not.toBeNull();
       if (target === null) return;
 
-      const before = await checkBoxAndLineContrast(page, target.stage, target.type, "明", note, lead);
+      const before = await checkBoxAndLineContrast(page, target.stage, target.type, note.name, note, lead);
       expect(
         before.failures.filter((failure) => failure.includes("箱の枠")),
         `${note.name} の決まりを外す前から箱の枠が落ちている`,
@@ -893,7 +870,7 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
       });
       expect(removed, `${note.name} の枠の濃さの決まりを見つけられない`).toBeGreaterThanOrEqual(1);
 
-      const after = await checkBoxAndLineContrast(page, target.stage, target.type, "明", note, lead);
+      const after = await checkBoxAndLineContrast(page, target.stage, target.type, note.name, note, lead);
       expect(
         after.failures.filter((failure) =>
           failure.includes("箱の枠") && failure.includes("実効") && failure.includes("< 4.61"),
@@ -905,7 +882,7 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
 
   for (const note of fixedThemes()) {
     test(`${note.name}: 六色の記法が意匠帳の 3 色へ割り当たる`, async ({ page }) => {
-      await openEditorTheme(page, 六色の記法, note.name, false);
+      await openEditorTheme(page, 六色の記法, note.name);
       const tones = await page.locator("[data-cdl-edge][data-cdl-tone]").evaluateAll((edges) =>
         Object.fromEntries(edges.flatMap((edge) => {
           const tone = edge.getAttribute("data-cdl-tone");
@@ -934,20 +911,17 @@ test.describe("段の箱の見出しと担当の字 (#2831)", () => {
   const themes = [...readThemeNotes().keys()];
 
   for (const theme of themes) {
-    for (const dark of [false, true]) {
-      const mode = dark ? "暗" : "明";
-      test(`${theme} / ${mode}: 見出しと担当の字が面の上で 4.5 以上`, async ({ page }) => {
-        await openEditorTheme(page, 段の箱の対比見本, theme, dark);
-        const result = await checkStageTextContrast(page, theme, mode);
-        expect(result.measured, `${theme}/${mode}: 測れた字`).toBe(16);
-        expect(result.failures, `${theme}/${mode}: 段の箱の字の違反`).toEqual([]);
-      });
-    }
+    test(`${theme}: 見出しと担当の字が面の上で 4.5 以上`, async ({ page }) => {
+      await openEditorTheme(page, 段の箱の対比見本, theme);
+      const result = await checkStageTextContrast(page, theme);
+      expect(result.measured, `${theme}: 測れた字`).toBe(16);
+      expect(result.failures, `${theme}: 段の箱の字の違反`).toEqual([]);
+    });
   }
 
   test("stage-note を札の面と同じ色にすると検知する (陽性対照)", async ({ page }) => {
     const theme: DslTheme = "blueprint";
-    await openEditorTheme(page, 段の箱の対比見本, theme, false);
+    await openEditorTheme(page, 段の箱の対比見本, theme);
     const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     await stage.locator('[data-cdl-role="stage-note"]').evaluateAll((notes) => {
       for (const note of notes) {
@@ -958,7 +932,7 @@ test.describe("段の箱の見出しと担当の字 (#2831)", () => {
         if (body !== null) (note as SVGElement).style.setProperty("fill", getComputedStyle(body).fill, "important");
       }
     });
-    const result = await checkStageTextContrast(page, theme, "陽性対照");
+    const result = await checkStageTextContrast(page, theme);
     expect(
       result.failures.filter((failure) => failure.includes("stage-note") && failure.includes("< 4.5:1")),
       "担当の字を札の面と同じ色にしても検知しない",
@@ -974,16 +948,13 @@ test.describe("線の札の対比 (#2817)", () => {
   });
 
   for (const theme of ["catalog", "terminal", "sketch", "neon", "relief"] as const) {
-    for (const dark of [false, true]) {
-      const mode = dark ? "暗" : "明";
-      test(`${theme} / ${mode}: 非強調の 3 枚と主役の札の字が 4.5 以上`, async ({
-        page,
-      }, testInfo) => {
-        const report = await checkEdgeLabelContrast(page, theme, dark);
-        console.log(report);
-        testInfo.annotations.push({ type: `${theme} labels contrast ${mode}`, description: report });
-      });
-    }
+    test(`${theme}: 非強調の 3 枚と主役の札の字が 4.5 以上`, async ({
+      page,
+    }, testInfo) => {
+      const report = await checkEdgeLabelContrast(page, theme);
+      console.log(report);
+      testInfo.annotations.push({ type: `${theme} labels contrast`, description: report });
+    });
   }
 });
 
@@ -994,7 +965,6 @@ test.describe("線の札の対比 (#2817)", () => {
  * 絵まで選ぶと、絵は面の色で塗られて枠の色の輪郭だけが残り、種類を見分けられなくなる。
  *
  * 意匠は `THEMES` に登録された全てを読む (`readThemeNotes`)。 意匠を足せば検査も増える。
- * 固定の意匠も明暗の両方で回す = 明暗の切替が固定の舞台へ漏れていないことも同時に見る。
  */
 test.describe("箱の中の絵 (#2811)", () => {
   test.describe.configure({ timeout: 300_000 });
@@ -1178,73 +1148,69 @@ test.describe("箱の中の絵 (#2811)", () => {
   }
 
   for (const note of notes) {
-    for (const dark of [false, true]) {
-      const mode = dark ? "暗" : "明";
+    test(`${note.name}: 箱の中の絵が地の字の色で輪郭を持たずに描かれる`, async ({ page }) => {
+      const failures: string[] = [];
+      for (const type of 絵を測る図種) {
+        const source = samples.get(type);
+        if (source === undefined) throw new Error(`${type} の見本が無い`);
+        await openEditorTheme(page, source, note.name);
+        await stopDiagram(page);
+        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+        const ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
+        const icons = await readKindIcons(stage);
+        if (icons.length === 0) failures.push(`${type}: 絵が 1 つも無い (検査が空振りしている)`);
+        failures.push(...checkKindIcons(icons, ground, `${type}`));
+      }
+      expect(failures, `${note.name} の絵の違反`).toEqual([]);
+    });
 
-      test(`${note.name} / ${mode}: 箱の中の絵が地の字の色で輪郭を持たずに描かれる`, async ({ page }) => {
-        const failures: string[] = [];
-        for (const type of 絵を測る図種) {
-          const source = samples.get(type);
-          if (source === undefined) throw new Error(`${type} の見本が無い`);
-          await openEditorTheme(page, source, note.name, dark);
-          await stopDiagram(page);
-          const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
-          const ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
-          const icons = await readKindIcons(stage);
-          if (icons.length === 0) failures.push(`${type}/${mode}: 絵が 1 つも無い (検査が空振りしている)`);
-          failures.push(...checkKindIcons(icons, ground, `${type}/${mode}`));
-        }
-        expect(failures, `${note.name}/${mode} の絵の違反`).toEqual([]);
-      });
+    test(`${note.name}: 絵を外す前の規則に戻しても絵以外の箱の図形は同じ値になる`, async ({ page }) => {
+      const failures: string[] = [];
+      for (const type of 絵を測る図種) {
+        const source = samples.get(type);
+        if (source === undefined) throw new Error(`${type} の見本が無い`);
+        await openEditorTheme(page, source, note.name);
+        await stopDiagram(page);
+        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+        const now = await readBoxShapes(stage);
+        if (now.length === 0) failures.push(`${type}: 箱の図形が 1 つも無い (検査が空振りしている)`);
 
-      test(`${note.name} / ${mode}: 絵を外す前の規則に戻しても絵以外の箱の図形は同じ値になる`, async ({ page }) => {
-        const failures: string[] = [];
-        for (const type of 絵を測る図種) {
-          const source = samples.get(type);
-          if (source === undefined) throw new Error(`${type} の見本が無い`);
-          await openEditorTheme(page, source, note.name, dark);
-          await stopDiagram(page);
-          const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
-          const now = await readBoxShapes(stage);
-          if (now.length === 0) failures.push(`${type}/${mode}: 箱の図形が 1 つも無い (検査が空振りしている)`);
-
-          // 箱の子図形の規則から、絵を外す条件だけを取り除く = main の時点の選択子へ戻す。
-          // 書き戻した選択子を読み直し、黙って捨てられていないことも確かめる。
-          const reverted = await page.evaluate(() => {
-            const exclusion = /:not\(:where\(\[data-cdl-role="?node-kind-icon"?\]\)\)/g;
-            let changed = 0;
-            let rejected = 0;
-            const walk = (rules: CSSRuleList): void => {
-              for (const rule of rules) {
-                if (rule instanceof CSSStyleRule) {
-                  const next = rule.selectorText.replace(exclusion, "");
-                  if (next !== rule.selectorText) {
-                    rule.selectorText = next;
-                    if (rule.selectorText === next) changed += 1;
-                    else rejected += 1;
-                  }
+        // 箱の子図形の規則から、絵を外す条件だけを取り除く = main の時点の選択子へ戻す。
+        // 書き戻した選択子を読み直し、黙って捨てられていないことも確かめる。
+        const reverted = await page.evaluate(() => {
+          const exclusion = /:not\(:where\(\[data-cdl-role="?node-kind-icon"?\]\)\)/g;
+          let changed = 0;
+          let rejected = 0;
+          const walk = (rules: CSSRuleList): void => {
+            for (const rule of rules) {
+              if (rule instanceof CSSStyleRule) {
+                const next = rule.selectorText.replace(exclusion, "");
+                if (next !== rule.selectorText) {
+                  rule.selectorText = next;
+                  if (rule.selectorText === next) changed += 1;
+                  else rejected += 1;
                 }
-                const nested = (rule as CSSRule & { cssRules?: CSSRuleList }).cssRules;
-                if (nested !== undefined) walk(nested);
               }
-            };
-            for (const sheet of document.styleSheets) walk(sheet.cssRules);
-            return { changed, rejected };
-          });
-          if (reverted.changed === 0) failures.push(`${type}/${mode}: 絵を外す条件を持つ規則が見つからない`);
-          if (reverted.rejected > 0) failures.push(`${type}/${mode}: 選択子の書き戻しが ${reverted.rejected} 件拒まれた`);
+              const nested = (rule as CSSRule & { cssRules?: CSSRuleList }).cssRules;
+              if (nested !== undefined) walk(nested);
+            }
+          };
+          for (const sheet of document.styleSheets) walk(sheet.cssRules);
+          return { changed, rejected };
+        });
+        if (reverted.changed === 0) failures.push(`${type}: 絵を外す条件を持つ規則が見つからない`);
+        if (reverted.rejected > 0) failures.push(`${type}: 選択子の書き戻しが ${reverted.rejected} 件拒まれた`);
 
-          const before = await readBoxShapes(stage);
-          if (JSON.stringify(before) !== JSON.stringify(now)) {
-            const differs = now.flatMap((value, index) =>
-              value === before[index] ? [] : [`今 ${value} / 戻す前の規則 ${before[index] ?? "無し"}`],
-            );
-            failures.push(`${type}/${mode}: 絵以外の図形の値が変わった (${now.length} / ${before.length} 件): ${differs.slice(0, 3).join(" | ")}`);
-          }
+        const before = await readBoxShapes(stage);
+        if (JSON.stringify(before) !== JSON.stringify(now)) {
+          const differs = now.flatMap((value, index) =>
+            value === before[index] ? [] : [`今 ${value} / 戻す前の規則 ${before[index] ?? "無し"}`],
+          );
+          failures.push(`${type}: 絵以外の図形の値が変わった (${now.length} / ${before.length} 件): ${differs.slice(0, 3).join(" | ")}`);
         }
-        expect(failures, `${note.name}/${mode} の箱の図形の違反`).toEqual([]);
-      });
-    }
+      }
+      expect(failures, `${note.name} の箱の図形の違反`).toEqual([]);
+    });
   }
 });
 
@@ -1293,13 +1259,8 @@ type FunnelSchedule = {
   names: string[];
 };
 
-async function readGanttSchedule(
-  page: Page,
-  source: string,
-  theme: DslTheme,
-  dark: boolean,
-): Promise<GanttSchedule> {
-  await openEditorTheme(page, source, theme, dark);
+async function readGanttSchedule(page: Page, source: string, theme: DslTheme): Promise<GanttSchedule> {
+  await openEditorTheme(page, source, theme);
   const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
   const groundPaints = await stage.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -1343,8 +1304,8 @@ async function readGanttSchedule(
   };
 }
 
-async function readFunnelSchedule(page: Page, theme: DslTheme, dark: boolean): Promise<FunnelSchedule> {
-  await openEditorTheme(page, 六段の漏斗, theme, dark);
+async function readFunnelSchedule(page: Page, theme: DslTheme): Promise<FunnelSchedule> {
+  await openEditorTheme(page, 六段の漏斗, theme);
   const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
   const ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
   const stages = await stage.locator('[data-cdl-role="funnel-stage"]').evaluateAll((elements) =>
@@ -1398,58 +1359,55 @@ test.describe("模様を当てた棒の図表 (#2801)", () => {
   const leads = readFixedThemeLead();
 
   for (const theme of ["blueprint", "sketch"] as const) {
-    for (const dark of [false, true]) {
-      const mode = dark ? "暗" : "明";
-      test(`${theme} / ${mode}: 模様付きの棒で図形と字の対比を保つ`, async ({ page }) => {
-        const note = notes.get(theme);
-        const lead = leads.get(theme);
-        if (!note || !lead) throw new Error(`${theme} の意匠帳を読めない`);
-        await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme, dark);
-        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
-        const failures: string[] = [];
-        const bars = await stage.locator('[data-cdl-role="chart-bar"]').evaluateAll((elements) =>
-          elements.map((element) => {
-            const style = getComputedStyle(element);
-            let opacity = 1;
-            for (let current: Element | null = element; current !== null; current = current.parentElement) {
-              opacity *= Number(getComputedStyle(current).opacity || 1);
-            }
-            return {
-              fill: style.fill,
-              stroke: style.stroke,
-              strokeOpacity: Number(style.strokeOpacity || 1),
-              opacity,
-            };
-          }));
-        if (!bars.some((bar) => /^url\(["']?#/.test(bar.fill))) {
-          failures.push(`${theme}/${mode}: 模様で塗った棒が 0 件`);
-        }
-
-        const shapes = await checkBoxAndLineContrast(page, stage, "chart", mode, note, lead);
-        failures.push(...shapes.failures);
-        const texts = await checkTextContrast(page, "chart", mode);
-        failures.push(...texts.failures);
-        if (texts.measured < 1) failures.push(`${theme}/${mode}: 測れた字が 0 件`);
-
-        const face = color(note.value.face);
-        for (const [index, bar] of bars.entries()) {
-          const paint = effectivePaint({
-            fill: note.value.face,
-            fillOpacity: 1,
-            stroke: bar.stroke,
-            strokeOpacity: bar.strokeOpacity,
-            opacity: bar.opacity,
-          }, face);
-          if (paint.frame === null) {
-            failures.push(`${theme}/${mode}: 棒 ${index + 1} の枠が無い`);
-            continue;
+    test(`${theme}: 模様付きの棒で図形と字の対比を保つ`, async ({ page }) => {
+      const note = notes.get(theme);
+      const lead = leads.get(theme);
+      if (!note || !lead) throw new Error(`${theme} の意匠帳を読めない`);
+      await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme);
+      const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+      const failures: string[] = [];
+      const bars = await stage.locator('[data-cdl-role="chart-bar"]').evaluateAll((elements) =>
+        elements.map((element) => {
+          const style = getComputedStyle(element);
+          let opacity = 1;
+          for (let current: Element | null = element; current !== null; current = current.parentElement) {
+            opacity *= Number(getComputedStyle(current).opacity || 1);
           }
-          const ratio = contrast(paint.frame, face);
-          if (ratio < 3) failures.push(`${theme}/${mode}: 棒 ${index + 1} の枠と箱の面 ${ratio.toFixed(2)}:1 < 3:1`);
+          return {
+            fill: style.fill,
+            stroke: style.stroke,
+            strokeOpacity: Number(style.strokeOpacity || 1),
+            opacity,
+          };
+        }));
+      if (!bars.some((bar) => /^url\(["']?#/.test(bar.fill))) {
+        failures.push(`${theme}: 模様で塗った棒が 0 件`);
+      }
+
+      const shapes = await checkBoxAndLineContrast(page, stage, "chart", theme, note, lead);
+      failures.push(...shapes.failures);
+      const texts = await checkTextContrast(page, "chart", theme);
+      failures.push(...texts.failures);
+      if (texts.measured < 1) failures.push(`${theme}: 測れた字が 0 件`);
+
+      const face = color(note.value.face);
+      for (const [index, bar] of bars.entries()) {
+        const paint = effectivePaint({
+          fill: note.value.face,
+          fillOpacity: 1,
+          stroke: bar.stroke,
+          strokeOpacity: bar.strokeOpacity,
+          opacity: bar.opacity,
+        }, face);
+        if (paint.frame === null) {
+          failures.push(`${theme}: 棒 ${index + 1} の枠が無い`);
+          continue;
         }
-        expect(failures, `${theme}/${mode} の模様付きの棒の違反`).toEqual([]);
-      });
-    }
+        const ratio = contrast(paint.frame, face);
+        if (ratio < 3) failures.push(`${theme}: 棒 ${index + 1} の枠と箱の面 ${ratio.toFixed(2)}:1 < 3:1`);
+      }
+      expect(failures, `${theme} の模様付きの棒の違反`).toEqual([]);
+    });
   }
 });
 
@@ -1464,175 +1422,172 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
   const toneSeries = readFixedThemeToneSeries();
 
   for (const note of fixedThemes()) {
-    for (const dark of [false, true]) {
-      const mode = dark ? "暗" : "明";
-      test(`${note.name} / ${mode}: 日程の棒・帯・担当の字と漏斗の段が表の計算後の値になる`, async ({ page }) => {
-        const failures: string[] = [];
-        const chart = chartSeries.get(note.name);
-        const tones = toneSeries.get(note.name);
-        if (!chart || !tones) throw new Error(`${note.name} の系列色と色みの対応を意匠帳から読めない`);
-        const ganttColors = themeGanttSeriesColors(chart, tones);
-        const gantt = await readGanttSchedule(page, 色みごとの日程, note.name, dark);
-        if (gantt.bars.length !== 6) {
-          failures.push(`${note.name}/${mode}: 色み付きの日程の棒が ${gantt.bars.length} 件 (6 件が要る)`);
-        }
-        if (gantt.ownerCount !== 6) {
-          failures.push(`${note.name}/${mode}: 日程の担当の字が ${gantt.ownerCount} 件 (6 件が要る)`);
-        }
-        for (const [index, tone] of THEME_TONES.entries()) {
-          const bar = gantt.bars[index];
-          const expected = ganttColors[tones.seriesByTone[tone] - 1];
-          if (!bar || !expected) continue;
-          if (note.name === "sketch" && !bar.fill.includes("dragon-sketch-pen")) {
-            failures.push(`${note.name}/${mode}/${tone}: 日程の帯が淡い斜線でない (${bar.fill})`);
-          } else if (note.name !== "sketch") {
-            const expectedFill = note.name === "neon"
-              ? `rgb(${over(color(expected), 0.18, gantt.ganttGround).join(" ")})`
-              : expected;
-            if (colorKey(bar.fill) !== colorKey(expectedFill)) {
-              failures.push(`${note.name}/${mode}/${tone}: 日程の帯 ${bar.fill} / 見本の面 ${expectedFill}`);
-            }
-          }
-          if (bar.fillOpacity !== tones.opacity) failures.push(`${note.name}/${mode}/${tone}: 濃さ ${bar.fillOpacity} / ${tones.opacity}`);
-          if (tones.stroke && colorKey(bar.stroke) !== colorKey(tones.stroke)) {
-            failures.push(`${note.name}/${mode}/${tone}: 日程の枠 ${bar.stroke} / ${tones.stroke}`);
-          }
-          if (tones.strokeWidth !== undefined && bar.strokeWidth !== tones.strokeWidth) {
-            failures.push(`${note.name}/${mode}/${tone}: 日程の枠幅 ${bar.strokeWidth} / ${tones.strokeWidth}`);
-          }
-          if (!bar.owner) continue;
-          const ownerColor = bar.emphasis === "primary"
-            ? tones.ganttOwnerColor
-            : tones.ganttSecondaryOwnerColor ?? tones.ganttOwnerColor;
-          if (colorKey(bar.owner.fill) !== colorKey(ownerColor)) {
-            failures.push(`${note.name}/${mode}/${tone}: 担当の字 ${bar.owner.fill} / ${ownerColor}`);
-          }
-          if (
-            bar.owner.bounds.left < bar.bounds.left ||
-            bar.owner.bounds.top < bar.bounds.top ||
-            bar.owner.bounds.right > bar.bounds.right ||
-            bar.owner.bounds.bottom > bar.bounds.bottom
-          ) {
-            failures.push(`${note.name}/${mode}/${tone}: 担当「${bar.owner.text}」が日程の帯からはみ出す`);
+    test(`${note.name}: 日程の棒・帯・担当の字と漏斗の段が表の計算後の値になる`, async ({ page }) => {
+      const failures: string[] = [];
+      const chart = chartSeries.get(note.name);
+      const tones = toneSeries.get(note.name);
+      if (!chart || !tones) throw new Error(`${note.name} の系列色と色みの対応を意匠帳から読めない`);
+      const ganttColors = themeGanttSeriesColors(chart, tones);
+      const gantt = await readGanttSchedule(page, 色みごとの日程, note.name);
+      if (gantt.bars.length !== 6) {
+        failures.push(`${note.name}: 色み付きの日程の棒が ${gantt.bars.length} 件 (6 件が要る)`);
+      }
+      if (gantt.ownerCount !== 6) {
+        failures.push(`${note.name}: 日程の担当の字が ${gantt.ownerCount} 件 (6 件が要る)`);
+      }
+      for (const [index, tone] of THEME_TONES.entries()) {
+        const bar = gantt.bars[index];
+        const expected = ganttColors[tones.seriesByTone[tone] - 1];
+        if (!bar || !expected) continue;
+        if (note.name === "sketch" && !bar.fill.includes("dragon-sketch-pen")) {
+          failures.push(`${note.name}/${tone}: 日程の帯が淡い斜線でない (${bar.fill})`);
+        } else if (note.name !== "sketch") {
+          const expectedFill = note.name === "neon"
+            ? `rgb(${over(color(expected), 0.18, gantt.ganttGround).join(" ")})`
+            : expected;
+          if (colorKey(bar.fill) !== colorKey(expectedFill)) {
+            failures.push(`${note.name}/${tone}: 日程の帯 ${bar.fill} / 見本の面 ${expectedFill}`);
           }
         }
+        if (bar.fillOpacity !== tones.opacity) failures.push(`${note.name}/${tone}: 濃さ ${bar.fillOpacity} / ${tones.opacity}`);
+        if (tones.stroke && colorKey(bar.stroke) !== colorKey(tones.stroke)) {
+          failures.push(`${note.name}/${tone}: 日程の枠 ${bar.stroke} / ${tones.stroke}`);
+        }
+        if (tones.strokeWidth !== undefined && bar.strokeWidth !== tones.strokeWidth) {
+          failures.push(`${note.name}/${tone}: 日程の枠幅 ${bar.strokeWidth} / ${tones.strokeWidth}`);
+        }
+        if (!bar.owner) continue;
+        const ownerColor = bar.emphasis === "primary"
+          ? tones.ganttOwnerColor
+          : tones.ganttSecondaryOwnerColor ?? tones.ganttOwnerColor;
+        if (colorKey(bar.owner.fill) !== colorKey(ownerColor)) {
+          failures.push(`${note.name}/${tone}: 担当の字 ${bar.owner.fill} / ${ownerColor}`);
+        }
+        if (
+          bar.owner.bounds.left < bar.bounds.left ||
+          bar.owner.bounds.top < bar.bounds.top ||
+          bar.owner.bounds.right > bar.bounds.right ||
+          bar.owner.bounds.bottom > bar.bounds.bottom
+        ) {
+          failures.push(`${note.name}/${tone}: 担当「${bar.owner.text}」が日程の帯からはみ出す`);
+        }
+      }
 
-        const defaultGantt = samples.get("gantt");
-        if (!defaultGantt) throw new Error("色みを書かない日程の見本が無い");
-        const firstGanttColor = ganttColors[0];
-        if (!firstGanttColor) throw new Error(`${note.name} の日程の系列 1 が無い`);
-        const plainGantt = await readGanttSchedule(page, defaultGantt, note.name, dark);
-        if (plainGantt.bars.length === 0) failures.push(`${note.name}/${mode}: 色みの無い日程の棒が 0 件`);
-        for (const bar of plainGantt.bars) {
-          const fill = bar.fill;
-          if (note.name === "sketch" && !fill.includes("dragon-sketch-pen")) {
-            failures.push(`${note.name}/${mode}: 色みの無い日程が淡い斜線でない (${fill})`);
-          } else if (note.name !== "sketch") {
-            const expectedFill = note.name === "neon"
-              ? `rgb(${over(color(firstGanttColor), 0.18, plainGantt.ganttGround).join(" ")})`
-              : firstGanttColor;
-            if (colorKey(fill) !== colorKey(expectedFill)) {
-              failures.push(`${note.name}/${mode}: 色みの無い日程 ${fill} / 見本の面 ${expectedFill}`);
-            }
-          }
-          if (note.name === "relief" && colorKey(fill) === colorKey(note.value.ink)) {
-            failures.push(`${note.name}/${mode}: 色みの無い日程の棒が墨になっている`);
+      const defaultGantt = samples.get("gantt");
+      if (!defaultGantt) throw new Error("色みを書かない日程の見本が無い");
+      const firstGanttColor = ganttColors[0];
+      if (!firstGanttColor) throw new Error(`${note.name} の日程の系列 1 が無い`);
+      const plainGantt = await readGanttSchedule(page, defaultGantt, note.name);
+      if (plainGantt.bars.length === 0) failures.push(`${note.name}: 色みの無い日程の棒が 0 件`);
+      for (const bar of plainGantt.bars) {
+        const fill = bar.fill;
+        if (note.name === "sketch" && !fill.includes("dragon-sketch-pen")) {
+          failures.push(`${note.name}: 色みの無い日程が淡い斜線でない (${fill})`);
+        } else if (note.name !== "sketch") {
+          const expectedFill = note.name === "neon"
+            ? `rgb(${over(color(firstGanttColor), 0.18, plainGantt.ganttGround).join(" ")})`
+            : firstGanttColor;
+          if (colorKey(fill) !== colorKey(expectedFill)) {
+            failures.push(`${note.name}: 色みの無い日程 ${fill} / 見本の面 ${expectedFill}`);
           }
         }
+        if (note.name === "relief" && colorKey(fill) === colorKey(note.value.ink)) {
+          failures.push(`${note.name}: 色みの無い日程の棒が墨になっている`);
+        }
+      }
 
-        const funnel = await readFunnelSchedule(page, note.name, dark);
-        if (funnel.stages.length !== 6) {
-          failures.push(`${note.name}/${mode}: 漏斗の段が ${funnel.stages.length} 件 (6 件が要る)`);
+      const funnel = await readFunnelSchedule(page, note.name);
+      if (funnel.stages.length !== 6) {
+        failures.push(`${note.name}: 漏斗の段が ${funnel.stages.length} 件 (6 件が要る)`);
+      }
+      for (const [index, value] of funnel.stages.entries()) {
+        const expected = chart.colors[index];
+        if (!expected) continue;
+        if (colorKey(value.fill) !== colorKey(expected)) {
+          failures.push(`${note.name}: 漏斗の段 ${index + 1} ${value.fill} / 系列 ${index + 1} ${expected}`);
         }
-        for (const [index, value] of funnel.stages.entries()) {
-          const expected = chart.colors[index];
-          if (!expected) continue;
-          if (colorKey(value.fill) !== colorKey(expected)) {
-            failures.push(`${note.name}/${mode}: 漏斗の段 ${index + 1} ${value.fill} / 系列 ${index + 1} ${expected}`);
-          }
-          if (value.fillOpacity !== tones.opacity) failures.push(`${note.name}/${mode}: 漏斗の段 ${index + 1} の濃さ ${value.fillOpacity} / ${tones.opacity}`);
+        if (value.fillOpacity !== tones.opacity) failures.push(`${note.name}: 漏斗の段 ${index + 1} の濃さ ${value.fillOpacity} / ${tones.opacity}`);
+      }
+      if (tones.textColor) {
+        if (funnel.names.length !== 6) {
+          failures.push(`${note.name}: 漏斗の段の名前が ${funnel.names.length} 件 (6 件が要る)`);
         }
-        if (tones.textColor) {
-          if (funnel.names.length !== 6) {
-            failures.push(`${note.name}/${mode}: 漏斗の段の名前が ${funnel.names.length} 件 (6 件が要る)`);
-          }
-          for (const fill of funnel.names) {
-            if (colorKey(fill) !== colorKey(tones.textColor)) {
-              failures.push(`${note.name}/${mode}: 漏斗の段の字 ${fill} / ${tones.textColor}`);
-            }
+        for (const fill of funnel.names) {
+          if (colorKey(fill) !== colorKey(tones.textColor)) {
+            failures.push(`${note.name}: 漏斗の段の字 ${fill} / ${tones.textColor}`);
           }
         }
-        expect(failures, `${note.name}/${mode} の日程と漏斗の計算後の値の違反`).toEqual([]);
-      });
+      }
+      expect(failures, `${note.name} の日程と漏斗の計算後の値の違反`).toEqual([]);
+    });
 
-      test(`${note.name} / ${mode}: 日程の棒・帯・担当の字と漏斗の段が対比を保つ`, async ({ page }) => {
-        const failures: string[] = [];
-        const gantt = await readGanttSchedule(page, 色みごとの日程, note.name, dark);
-        if (gantt.bars.length !== 6) {
-          failures.push(`${note.name}/${mode}: 色み付きの日程の棒が ${gantt.bars.length} 件 (6 件が要る)`);
-        }
-        if (gantt.ownerCount !== 6) {
-          failures.push(`${note.name}/${mode}: 日程の担当の字が ${gantt.ownerCount} 件 (6 件が要る)`);
-        }
-        for (const [index, tone] of THEME_TONES.entries()) {
-          const bar = gantt.bars[index];
-          if (!bar) continue;
-          if (note.name !== "sketch") {
-            // 電飾の薄い面は枠で形を示すため、非文字部品の境界色を台と比べる。
-            const boundary = note.name === "neon" ? color(bar.stroke) : color(bar.fill);
-            const boundaryRatio = contrast(boundary, gantt.ground);
-            if (boundaryRatio < 3) {
-              failures.push(`${note.name}/${mode}/${tone}: 日程の棒の境と台 ${boundaryRatio.toFixed(2)}:1 < 3:1`);
-            }
-            if (!bar.owner) {
-              failures.push(`${note.name}/${mode}/${tone}: 日程の担当の字が無い`);
-              continue;
-            }
-            const ownerRatio = contrast(color(bar.owner.fill), color(bar.fill));
-            const report = `${note.name}/${mode}/${tone}: ${ownerRatio.toFixed(2)}`;
-            test.info().annotations.push({ type: "contrast", description: report });
-            console.log(report);
-            if (ownerRatio < 4.5) {
-              failures.push(`${note.name}/${mode}/${tone}: 日程の帯と担当の字 ${ownerRatio.toFixed(2)}:1 < 4.5:1`);
-            }
-          }
-        }
-        if (note.name === "sketch") {
-          const texts = await checkTextContrast(page, "gantt", mode);
-          failures.push(...texts.failures);
-          if (texts.measured < 1) failures.push(`${note.name}/${mode}: 日程で測れた字が 0 件`);
-        }
-
-        const defaultGantt = samples.get("gantt");
-        if (!defaultGantt) throw new Error("色みを書かない日程の見本が無い");
-        const plainGantt = await readGanttSchedule(page, defaultGantt, note.name, dark);
-        if (plainGantt.bars.length === 0) failures.push(`${note.name}/${mode}: 色みの無い日程の棒が 0 件`);
+    test(`${note.name}: 日程の棒・帯・担当の字と漏斗の段が対比を保つ`, async ({ page }) => {
+      const failures: string[] = [];
+      const gantt = await readGanttSchedule(page, 色みごとの日程, note.name);
+      if (gantt.bars.length !== 6) {
+        failures.push(`${note.name}: 色み付きの日程の棒が ${gantt.bars.length} 件 (6 件が要る)`);
+      }
+      if (gantt.ownerCount !== 6) {
+        failures.push(`${note.name}: 日程の担当の字が ${gantt.ownerCount} 件 (6 件が要る)`);
+      }
+      for (const [index, tone] of THEME_TONES.entries()) {
+        const bar = gantt.bars[index];
+        if (!bar) continue;
         if (note.name !== "sketch") {
-          for (const bar of plainGantt.bars) {
-            const boundary = note.name === "neon" ? color(bar.stroke) : color(bar.fill);
-            const ratio = contrast(boundary, plainGantt.ground);
-            if (ratio < 3) {
-              failures.push(`${note.name}/${mode}: 色みの無い日程の棒の境と台 ${ratio.toFixed(2)}:1 < 3:1`);
-            }
+          // 電飾の薄い面は枠で形を示すため、非文字部品の境界色を台と比べる。
+          const boundary = note.name === "neon" ? color(bar.stroke) : color(bar.fill);
+          const boundaryRatio = contrast(boundary, gantt.ground);
+          if (boundaryRatio < 3) {
+            failures.push(`${note.name}/${tone}: 日程の棒の境と台 ${boundaryRatio.toFixed(2)}:1 < 3:1`);
+          }
+          if (!bar.owner) {
+            failures.push(`${note.name}/${tone}: 日程の担当の字が無い`);
+            continue;
+          }
+          const ownerRatio = contrast(color(bar.owner.fill), color(bar.fill));
+          const report = `${note.name}/${tone}: ${ownerRatio.toFixed(2)}`;
+          test.info().annotations.push({ type: "contrast", description: report });
+          console.log(report);
+          if (ownerRatio < 4.5) {
+            failures.push(`${note.name}/${tone}: 日程の帯と担当の字 ${ownerRatio.toFixed(2)}:1 < 4.5:1`);
           }
         }
-
-        const funnel = await readFunnelSchedule(page, note.name, dark);
-        if (funnel.stages.length !== 6) {
-          failures.push(`${note.name}/${mode}: 漏斗の段が ${funnel.stages.length} 件 (6 件が要る)`);
-        }
-        for (const [index, value] of funnel.stages.entries()) {
-          const ratio = contrast(color(value.fill), funnel.ground);
-          if (ratio < 3) {
-            failures.push(`${note.name}/${mode}: 漏斗の段 ${index + 1} と台 ${ratio.toFixed(2)}:1 < 3:1`);
-          }
-        }
-        const texts = await checkTextContrast(page, "funnel", mode);
+      }
+      if (note.name === "sketch") {
+        const texts = await checkTextContrast(page, "gantt", note.name);
         failures.push(...texts.failures);
-        if (texts.measured < 1) failures.push(`${note.name}/${mode}: 漏斗で測れた字が 0 件`);
-        expect(failures, `${note.name}/${mode} の日程と漏斗の対比違反`).toEqual([]);
-      });
-    }
+        if (texts.measured < 1) failures.push(`${note.name}: 日程で測れた字が 0 件`);
+      }
+
+      const defaultGantt = samples.get("gantt");
+      if (!defaultGantt) throw new Error("色みを書かない日程の見本が無い");
+      const plainGantt = await readGanttSchedule(page, defaultGantt, note.name);
+      if (plainGantt.bars.length === 0) failures.push(`${note.name}: 色みの無い日程の棒が 0 件`);
+      if (note.name !== "sketch") {
+        for (const bar of plainGantt.bars) {
+          const boundary = note.name === "neon" ? color(bar.stroke) : color(bar.fill);
+          const ratio = contrast(boundary, plainGantt.ground);
+          if (ratio < 3) {
+            failures.push(`${note.name}: 色みの無い日程の棒の境と台 ${ratio.toFixed(2)}:1 < 3:1`);
+          }
+        }
+      }
+
+      const funnel = await readFunnelSchedule(page, note.name);
+      if (funnel.stages.length !== 6) {
+        failures.push(`${note.name}: 漏斗の段が ${funnel.stages.length} 件 (6 件が要る)`);
+      }
+      for (const [index, value] of funnel.stages.entries()) {
+        const ratio = contrast(color(value.fill), funnel.ground);
+        if (ratio < 3) {
+          failures.push(`${note.name}: 漏斗の段 ${index + 1} と台 ${ratio.toFixed(2)}:1 < 3:1`);
+        }
+      }
+      const texts = await checkTextContrast(page, "funnel", note.name);
+      failures.push(...texts.failures);
+      if (texts.measured < 1) failures.push(`${note.name}: 漏斗で測れた字が 0 件`);
+      expect(failures, `${note.name} の日程と漏斗の対比違反`).toEqual([]);
+    });
   }
 });
 
@@ -1644,142 +1599,139 @@ test.describe("時間軸の番号・担当・線の札・線幅・電飾の分�
   });
 
   for (const theme of THEMES) {
-    for (const dark of [false, true]) {
-      const mode = dark ? "暗" : "明";
-      test(`${theme} / ${mode}: 札の対比と線幅を描画後の計算値でも保つ`, async ({ page }) => {
-        await openEditorTheme(page, 宅配の時間軸, theme, dark);
-        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
-        await expect(stage.locator(
-          '[data-cdl-node]:has([data-cdl-mark="timeline-number"]) [data-cdl-role="node-label"]',
-        )).toHaveCount(6);
-        await expect(stage.locator('[data-cdl-role="stage-note"]')).toHaveCount(6);
-        await expect(stage.locator(
-          '[data-cdl-edge-label-for] [data-cdl-role="edge-label"]',
-        )).toHaveCount(3);
+    test(`${theme}: 札の対比と線幅を描画後の計算値でも保つ`, async ({ page }) => {
+      await openEditorTheme(page, 宅配の時間軸, theme);
+      const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+      await expect(stage.locator(
+        '[data-cdl-node]:has([data-cdl-mark="timeline-number"]) [data-cdl-role="node-label"]',
+      )).toHaveCount(6);
+      await expect(stage.locator('[data-cdl-role="stage-note"]')).toHaveCount(6);
+      await expect(stage.locator(
+        '[data-cdl-edge-label-for] [data-cdl-role="edge-label"]',
+      )).toHaveCount(3);
 
-        const titles = await stage.locator(
-          '[data-cdl-lane="timeline-steps"][data-cdl-kind="card"] [data-cdl-role="node-label"]',
-        ).evaluateAll((elements) => elements.map((element) => {
-          const node = element.closest<SVGGraphicsElement>('[data-cdl-node]');
-          const width = Number(node?.getAttribute("data-cdl-w"));
-          const style = getComputedStyle(element);
-          return {
-            fontSize: Number.parseFloat(style.fontSize),
-            fontWeight: Number.parseFloat(style.fontWeight),
-            textWidth: element instanceof SVGGraphicsElement ? element.getBBox().width : Number.NaN,
-            nodeWidth: width,
-          };
-        }));
-        expect(titles, `${theme}/${mode} の時間軸の札の題`).toHaveLength(7);
-        const expectedWeight = theme === "letterpress" || theme === "sketch" || theme === "neon"
-          ? 800
-          : 700;
-        for (const [index, title] of titles.entries()) {
-          expect(title.fontSize, `${theme}/${mode} の札 ${index + 1} の題の字`).toBe(25);
-          expect(title.fontWeight, `${theme}/${mode} の札 ${index + 1} の題の太さ`).toBe(expectedWeight);
-          expect(title.textWidth, `${theme}/${mode} の札 ${index + 1} の題の幅`).toBeLessThanOrEqual(
-            title.nodeWidth,
-          );
-        }
-
-        const decision = stage.locator(
-          '[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]',
+      const titles = await stage.locator(
+        '[data-cdl-lane="timeline-steps"][data-cdl-kind="card"] [data-cdl-role="node-label"]',
+      ).evaluateAll((elements) => elements.map((element) => {
+        const node = element.closest<SVGGraphicsElement>('[data-cdl-node]');
+        const width = Number(node?.getAttribute("data-cdl-w"));
+        const style = getComputedStyle(element);
+        return {
+          fontSize: Number.parseFloat(style.fontSize),
+          fontWeight: Number.parseFloat(style.fontWeight),
+          textWidth: element instanceof SVGGraphicsElement ? element.getBBox().width : Number.NaN,
+          nodeWidth: width,
+        };
+      }));
+      expect(titles, `${theme} の時間軸の札の題`).toHaveLength(7);
+      const expectedWeight = theme === "letterpress" || theme === "sketch" || theme === "neon"
+        ? 800
+        : 700;
+      for (const [index, title] of titles.entries()) {
+        expect(title.fontSize, `${theme} の札 ${index + 1} の題の字`).toBe(25);
+        expect(title.fontWeight, `${theme} の札 ${index + 1} の題の太さ`).toBe(expectedWeight);
+        expect(title.textWidth, `${theme} の札 ${index + 1} の題の幅`).toBeLessThanOrEqual(
+          title.nodeWidth,
         );
-        const decisionSize = await decision.locator(
-          'g[data-cdl-role="node-body"] > path',
-        ).evaluate((element) => {
-          if (!(element instanceof SVGGraphicsElement)) throw new Error("分かれ道の菱形を測れない");
-          const box = element.getBBox();
-          return { width: box.width, height: box.height };
-        });
-        expect(decisionSize.width, `${theme}/${mode} の分かれ道の幅`).toBe(124);
-        expect(decisionSize.height, `${theme}/${mode} の分かれ道の高さ`).toBe(92);
-        const decisionTitle = await decision.locator('[data-cdl-role="node-label"]').evaluate((element) =>
-          Number.parseFloat(getComputedStyle(element).fontSize),
-        );
-        expect(decisionTitle, `${theme}/${mode} の「在宅?」の字`).toBe(26);
+      }
 
-        const noLabelGap = await stage.evaluate((svg) => {
-          if (!(svg instanceof SVGSVGElement)) throw new Error("時間軸の SVG を測れない");
-          const edge = svg.querySelector('[data-cdl-edge][data-cdl-edge-label="いいえ"]');
-          const line = edge?.querySelector('[data-cdl-role="edge-line"]');
-          const edgeId = edge?.getAttribute("data-cdl-edge");
-          const label = edgeId === null || edgeId === undefined
-            ? null
-            : svg.querySelector(
-              `[data-cdl-edge-label-for="${CSS.escape(edgeId)}"] [data-cdl-role="edge-label-bg"]`,
-            );
-          if (!(line instanceof SVGGraphicsElement) || !(label instanceof SVGGraphicsElement)) {
-            throw new Error("「いいえ」の線か札を測れない");
-          }
-          const rootPoint = (element: SVGGraphicsElement, x: number, y: number): DOMPoint => {
-            const matrix = element.getCTM();
-            if (matrix === null) throw new Error("「いいえ」の座標を測れない");
-            return new DOMPoint(x, y).matrixTransform(matrix);
-          };
-          const lineBox = line.getBBox();
-          const labelBox = label.getBBox();
-          const lineY = rootPoint(line, lineBox.x, lineBox.y).y;
-          const labelBottom = rootPoint(
-            label,
-            labelBox.x + labelBox.width / 2,
-            labelBox.y + labelBox.height,
-          ).y;
-          return lineY - labelBottom;
-        });
-        expect(noLabelGap, `${theme}/${mode} の「いいえ」の札と線の間`).toBeCloseTo(20, 5);
-
-        const labels = await stage.locator('[data-cdl-edge-label-for]').evaluateAll((elements) =>
-          elements.map((element) => {
-            const background = element.querySelector('[data-cdl-role="edge-label-bg"]');
-            const text = element.querySelector('[data-cdl-role="edge-label"]');
-            if (!background || !text) throw new Error("時間軸の線の札から面または字を読めない");
-            return {
-              edge: element.getAttribute("data-cdl-edge-label-for") ?? "?",
-              background: getComputedStyle(background).fill,
-              text: getComputedStyle(text).fill,
-            };
-          }),
-        );
-        for (const label of labels) {
-          expect(
-            contrast(color(label.text), color(label.background)),
-            `${theme}/${mode}/${label.edge} の札の字 ${label.text} / 面 ${label.background}`,
-          ).toBeGreaterThanOrEqual(4.5);
-        }
-
-        const noLine = stage.locator(
-          '[data-cdl-edge][data-cdl-edge-label="いいえ"] [data-cdl-role="edge-line"]',
-        );
-        const returnLine = stage.locator(
-          '[data-cdl-edge][data-cdl-edge-label="翌日もう一度"] [data-cdl-role="edge-line"]',
-        );
-        await expect(noLine).toHaveCount(1);
-        await expect(returnLine).toHaveCount(1);
-        expect(Number.parseFloat(await noLine.evaluate((element) => getComputedStyle(element).strokeWidth)))
-          .toBe(5);
-        expect(Number.parseFloat(await returnLine.evaluate((element) => getComputedStyle(element).strokeWidth)))
-          .toBe(6);
-
-        if (theme === "neon") {
-          const decisionOutline = stage.locator(
-            '[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"][data-cdl-active="false"] '
-            + 'g[data-cdl-role="node-body"] > path',
-          );
-          await expect(decisionOutline).toHaveCount(1);
-          const decision = await decisionOutline.evaluate((element) => {
-            const style = getComputedStyle(element);
-            return { fill: style.fill, stroke: style.stroke, strokeWidth: style.strokeWidth };
-          });
-          expect(decision.fill).toBe("rgb(9, 7, 15)");
-          expect(decision.stroke).toBe("rgb(0, 229, 255)");
-          expect(Number.parseFloat(decision.strokeWidth)).toBe(3);
-        }
-
-        const texts = await checkTextContrast(page, "swimlane", mode);
-        expect(texts.failures, `${theme}/${mode} の時間軸の字の違反`).toEqual([]);
-        expect(texts.measured, `${theme}/${mode} で測れた字`).toBeGreaterThan(0);
+      const decision = stage.locator(
+        '[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]',
+      );
+      const decisionSize = await decision.locator(
+        'g[data-cdl-role="node-body"] > path',
+      ).evaluate((element) => {
+        if (!(element instanceof SVGGraphicsElement)) throw new Error("分かれ道の菱形を測れない");
+        const box = element.getBBox();
+        return { width: box.width, height: box.height };
       });
-    }
+      expect(decisionSize.width, `${theme} の分かれ道の幅`).toBe(124);
+      expect(decisionSize.height, `${theme} の分かれ道の高さ`).toBe(92);
+      const decisionTitle = await decision.locator('[data-cdl-role="node-label"]').evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).fontSize),
+      );
+      expect(decisionTitle, `${theme} の「在宅?」の字`).toBe(26);
+
+      const noLabelGap = await stage.evaluate((svg) => {
+        if (!(svg instanceof SVGSVGElement)) throw new Error("時間軸の SVG を測れない");
+        const edge = svg.querySelector('[data-cdl-edge][data-cdl-edge-label="いいえ"]');
+        const line = edge?.querySelector('[data-cdl-role="edge-line"]');
+        const edgeId = edge?.getAttribute("data-cdl-edge");
+        const label = edgeId === null || edgeId === undefined
+          ? null
+          : svg.querySelector(
+            `[data-cdl-edge-label-for="${CSS.escape(edgeId)}"] [data-cdl-role="edge-label-bg"]`,
+          );
+        if (!(line instanceof SVGGraphicsElement) || !(label instanceof SVGGraphicsElement)) {
+          throw new Error("「いいえ」の線か札を測れない");
+        }
+        const rootPoint = (element: SVGGraphicsElement, x: number, y: number): DOMPoint => {
+          const matrix = element.getCTM();
+          if (matrix === null) throw new Error("「いいえ」の座標を測れない");
+          return new DOMPoint(x, y).matrixTransform(matrix);
+        };
+        const lineBox = line.getBBox();
+        const labelBox = label.getBBox();
+        const lineY = rootPoint(line, lineBox.x, lineBox.y).y;
+        const labelBottom = rootPoint(
+          label,
+          labelBox.x + labelBox.width / 2,
+          labelBox.y + labelBox.height,
+        ).y;
+        return lineY - labelBottom;
+      });
+      expect(noLabelGap, `${theme} の「いいえ」の札と線の間`).toBeCloseTo(20, 5);
+
+      const labels = await stage.locator('[data-cdl-edge-label-for]').evaluateAll((elements) =>
+        elements.map((element) => {
+          const background = element.querySelector('[data-cdl-role="edge-label-bg"]');
+          const text = element.querySelector('[data-cdl-role="edge-label"]');
+          if (!background || !text) throw new Error("時間軸の線の札から面または字を読めない");
+          return {
+            edge: element.getAttribute("data-cdl-edge-label-for") ?? "?",
+            background: getComputedStyle(background).fill,
+            text: getComputedStyle(text).fill,
+          };
+        }),
+      );
+      for (const label of labels) {
+        expect(
+          contrast(color(label.text), color(label.background)),
+          `${theme}/${label.edge} の札の字 ${label.text} / 面 ${label.background}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+
+      const noLine = stage.locator(
+        '[data-cdl-edge][data-cdl-edge-label="いいえ"] [data-cdl-role="edge-line"]',
+      );
+      const returnLine = stage.locator(
+        '[data-cdl-edge][data-cdl-edge-label="翌日もう一度"] [data-cdl-role="edge-line"]',
+      );
+      await expect(noLine).toHaveCount(1);
+      await expect(returnLine).toHaveCount(1);
+      expect(Number.parseFloat(await noLine.evaluate((element) => getComputedStyle(element).strokeWidth)))
+        .toBe(5);
+      expect(Number.parseFloat(await returnLine.evaluate((element) => getComputedStyle(element).strokeWidth)))
+        .toBe(6);
+
+      if (theme === "neon") {
+        const decisionOutline = stage.locator(
+          '[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"][data-cdl-active="false"] '
+          + 'g[data-cdl-role="node-body"] > path',
+        );
+        await expect(decisionOutline).toHaveCount(1);
+        const decision = await decisionOutline.evaluate((element) => {
+          const style = getComputedStyle(element);
+          return { fill: style.fill, stroke: style.stroke, strokeWidth: style.strokeWidth };
+        });
+        expect(decision.fill).toBe("rgb(9, 7, 15)");
+        expect(decision.stroke).toBe("rgb(0, 229, 255)");
+        expect(Number.parseFloat(decision.strokeWidth)).toBe(3);
+      }
+
+      const texts = await checkTextContrast(page, "swimlane", theme);
+      expect(texts.failures, `${theme} の時間軸の字の違反`).toEqual([]);
+      expect(texts.measured, `${theme} で測れた字`).toBeGreaterThan(0);
+    });
   }
 });

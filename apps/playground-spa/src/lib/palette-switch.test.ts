@@ -7,7 +7,7 @@ import {
   sourceYaml__presetDeliveryClasses,
   sourceYaml__presetDeliveryRelations,
 } from "@/topics/catalog/presets.cdl";
-import { 図の配色を変える, 配色の選択肢, 押される配色, 画面の色 } from "./palette-switch";
+import { 図の配色を変える, 配色の選択肢, 押される配色 } from "./palette-switch";
 
 const 図 = (palette?: string, textMetrics?: CdlDiagram["textMetrics"]): CdlDiagram => ({
   id: "t",
@@ -91,24 +91,14 @@ describe("外から当てた意匠は書いた意匠と同じ棒の角と行の�
 });
 
 describe("見本帳の意匠の切替 (#2790)", () => {
-  it("意匠の選択肢は THEMES の全件と同じ順で、画面の色を含まない", () => {
+  it("意匠の選択肢は THEMES の全件と同じ順", () => {
     expect(配色の選択肢.length, "選択肢が空で検査が空振りしている").toBeGreaterThan(0);
     expect(配色の選択肢).toEqual(THEMES);
-    expect(配色の選択肢).not.toContain(画面の色);
   });
 
   it("選んでいない時は元の object をそのまま返す", () => {
     const 元 = 図("blueprint");
     expect(図の配色を変える(元, null)).toBe(元);
-  });
-
-  it("画面の色は palette だけを外し、元から無ければ同じ object を返す", () => {
-    const 持つ = 図("letterpress");
-    const 外した = 図の配色を変える(持つ, 画面の色);
-    expect(外した).not.toBe(持つ);
-    expect(外した.palette).toBeUndefined();
-    const 持たない = 図();
-    expect(図の配色を変える(持たない, 画面の色)).toBe(持たない);
   });
 
   it("意匠は同じなら元の object、違うなら palette を差し替えた copy を返す", () => {
@@ -124,7 +114,7 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     const 次 = 図の配色を変える(元, "letterpress");
     expect(次).not.toBe(元);
     expect(次.palette).toBe("letterpress");
-    expect(押される配色(次, null)).toBe("letterpress");
+    expect(押される配色(次, null, "blueprint")).toBe("letterpress");
   });
 
   it("catalog switch: 図録を選ぶと palette を catalog に差し替える", () => {
@@ -132,7 +122,7 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     const 次 = 図の配色を変える(元, "catalog");
     expect(次).not.toBe(元);
     expect(次.palette).toBe("catalog");
-    expect(押される配色(次, null)).toBe("catalog");
+    expect(押される配色(次, null, "blueprint")).toBe("catalog");
   });
 
   it("terminal switch: 端末を選ぶと palette を terminal に差し替える", () => {
@@ -140,7 +130,7 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     const 次 = 図の配色を変える(元, "terminal");
     expect(次).not.toBe(元);
     expect(次.palette).toBe("terminal");
-    expect(押される配色(次, null)).toBe("terminal");
+    expect(押される配色(次, null, "blueprint")).toBe("terminal");
   });
 
   it("sketch switch: 手描きを選ぶと palette を sketch に差し替える", () => {
@@ -148,7 +138,7 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     const 次 = 図の配色を変える(元, "sketch");
     expect(次).not.toBe(元);
     expect(次.palette).toBe("sketch");
-    expect(押される配色(次, null)).toBe("sketch");
+    expect(押される配色(次, null, "blueprint")).toBe("sketch");
   });
 
   it("neon switch: 電飾を選ぶと palette を neon に差し替える", () => {
@@ -156,7 +146,7 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     const 次 = 図の配色を変える(元, "neon");
     expect(次).not.toBe(元);
     expect(次.palette).toBe("neon");
-    expect(押される配色(次, null)).toBe("neon");
+    expect(押される配色(次, null, "blueprint")).toBe("neon");
   });
 
   it("relief switch: 浮彫を選ぶと palette を relief に差し替える", () => {
@@ -164,13 +154,14 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     const 次 = 図の配色を変える(元, "relief");
     expect(次).not.toBe(元);
     expect(次.palette).toBe("relief");
-    expect(押される配色(次, null)).toBe("relief");
+    expect(押される配色(次, null, "blueprint")).toBe("relief");
   });
 
-  it("未選択の押された札は図の意匠に従い、意匠が無ければ画面の色になる", () => {
-    expect(押される配色(図("blueprint"), null)).toBe("blueprint");
-    expect(押される配色(図(), null)).toBe(画面の色);
-    expect(押される配色(図("blueprint"), "catalog")).toBe("catalog");
+  it("未選択の押された札は図の意匠に従い、意匠が無ければサイトの意匠になる (#2962)", () => {
+    expect(押される配色(図("blueprint"), null, "neon")).toBe("blueprint");
+    expect(押される配色(図(), null, "neon")).toBe("neon");
+    expect(押される配色(図("kinari"), null, "neon")).toBe("neon");
+    expect(押される配色(図("blueprint"), "catalog", "neon")).toBe("catalog");
   });
 });
 
@@ -185,18 +176,14 @@ describe("配色と字の測り方を切り離す (#2908)", () => {
     expect(図の配色を変える(図("blueprint", "proportional"), "letterpress").textMetrics).toBe("proportional");
   });
 
-  it("画面の色は palette だけを外し、textMetrics を保つ", () => {
-    const 次 = 図の配色を変える(図("blueprint", "proportional"), 画面の色);
-    expect(["palette" in 次, 次.textMetrics]).toEqual([false, "proportional"]);
-  });
-
   it("textMetrics を持たない terminal の図で端末を選ぶと元の object を返す", () => {
     const 元 = 図("terminal");
     expect(図の配色を変える(元, "terminal")).toBe(元);
   });
 
-  it("widest は7配色と画面の色の全てで変えない", () => {
-    for (const palette of [...THEMES, 画面の色] as const) {
+  it("widest は 7 配色の全てで変えない", () => {
+    expect(THEMES.length, "回す配色が空で検査が空振りしている").toBeGreaterThan(0);
+    for (const palette of THEMES) {
       expect(図の配色を変える(図("terminal", "widest"), palette).textMetrics, palette).toBe("widest");
     }
   });
@@ -228,11 +215,6 @@ flow:
       bottomLeft: 3,
     });
     expect(図の配色を変える(電飾, "neon")).toBe(電飾);
-  });
-
-  it("画面の色へ替えると角の key を外す", () => {
-    const next = 図の配色を変える(棒("neon"), 画面の色);
-    expect(Object.hasOwn(next.nodes[0] ?? {}, "barCornerRadii")).toBe(false);
   });
 
   it("意匠なしの棒へ角を足し、選択を触らない時は元の object を返す", () => {
@@ -287,7 +269,7 @@ flow:
     expect(next.nodes[0]).toBe(元.nodes[0]);
   });
 
-  it.each(["neon", "catalog", "relief", 画面の色] as const)("%s へ替えても元の chartPieSliceGap を保つ", (theme) => {
+  it.each(["neon", "catalog", "relief"] as const)("%s へ替えても元の chartPieSliceGap を保つ", (theme) => {
     const 元 = 円();
     const 円の節 = 元.nodes[0];
     if (円の節 === undefined) throw new Error("円の節が無い");

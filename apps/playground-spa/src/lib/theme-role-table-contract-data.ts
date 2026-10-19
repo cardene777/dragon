@@ -4,7 +4,7 @@ export const THEME_ROLE_TABLE_CONTRACT_SELECTORS = {
     'fill-opacity="1"',
   ],
   boxFrame: '[data-cdl-role="node-body"]',
-  fixedTimelineStage: 'svg[data-cdl-stage][data-cdl-palette]:not( :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"]) ):has([data-cdl-role="timeline-axis"])',
+  fixedTimelineStage: 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])',
   carryoverTimelineStage: 'svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])',
 } as const;
 
@@ -52,8 +52,13 @@ export const CATALOG_THEME_FORBIDDEN_RULES = {
 } as const;
 
 export const FIXED_THEME_NAME_SELECTOR = /\[data-cdl-palette="(?:blueprint|letterpress|catalog|terminal|sketch|neon|relief)"\]/;
-export const COMMON_THEME_RULE_SOURCE = String.raw`svg\[data-cdl-stage\]\[data-cdl-palette\]:not\(\s*:where\([^)]*\)\s*\)`;
-export const COMMON_PALETTE_SCOPE = /\[data-cdl-palette\]:not\(\s*:where\(/;
+/**
+ * 意匠名を書かない舞台の規則 (共通規則)。 舞台は必ず 7 意匠のどれかなので 7 意匠の全てに当たる (#2962)。
+ * 外す意匠があれば `:not(:where(...))` に書き、その部分も共通規則の選択子に含める。
+ * 選択子 (並びの各項) の先頭に舞台を置く規則だけを数える = 図の id で絞った図だけの規則は含めない。
+ */
+export const COMMON_THEME_RULE_SOURCE = String.raw`(?:^|,\s*)svg\[data-cdl-stage\]\[data-cdl-palette\](?::not\(\s*:where\([^)]*\)\s*\))?`;
+export const COMMON_PALETTE_SCOPE = new RegExp(COMMON_THEME_RULE_SOURCE);
 export const NAMED_PALETTE_CAPTURE = /\[data-cdl-palette="([^"]+)"\]/g;
 export const NAMED_DIAGRAM_RULE = /data-cdl-diagram="|data-cdl-node="[^"]*-chart"/;
 
@@ -211,15 +216,15 @@ export const THEME_ROLE_TABLE_CARRYOVER_RULES = [
       `svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
         transform: scale(1.2142857143, 1.3571428571); transform-origin: 9px 5px;
       }`,
-      `svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="12"] {
+      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"] {
         fill: var(--er-line) !important; stroke: var(--er-ground) !important;
         stroke-width: 3.5px; filter: drop-shadow(0 0 6px var(--er-line));
       }`,
-      `svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="28"] {
+      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="28"] {
         fill: none !important; stroke: var(--er-line) !important; filter: blur(1.2px);
         animation: running-dot-wave-outer 1.4s linear infinite;
       }`,
-      `svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="18"] {
+      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"] {
         fill: none !important; stroke: var(--er-line) !important; filter: blur(0.6px);
         animation: running-dot-wave-inner 1.4s linear infinite -0.7s;
       }`,

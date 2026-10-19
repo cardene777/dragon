@@ -17,8 +17,12 @@
  * 比べて、 描かれた画素から測る。
  *
  * 閾値 3.0 は WCAG の非文字要素の下限。 区切り線は字ではないので 4.5 は課さない。
+ *
+ * 明暗は地の明るい画面の意匠と暗い画面の意匠で見る (#2962)。 見本は意匠を書いていないので、
+ * 画面の意匠で描かれる。
  */
 import { test, expect } from "@playwright/test";
+import { 明るい画面の意匠, 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 import type { Page } from "@playwright/test";
 import { shoot, measure, type Box } from "./helpers/pixel-contrast";
 import { 一覧の行 } from "./catalog-item-pick";
@@ -51,10 +55,9 @@ const 役割 = '[data-cdl-role="node-row-divider"]';
 const 下限 = 3.0;
 
 async function 開く(page: Page, 暗い: boolean): Promise<void> {
-  await page.goto(対象);
+  await page.goto(画面の意匠を付ける(対象, 暗い ? 暗い画面の意匠 : 明るい画面の意匠));
   await page.waitForLoadState("networkidle");
   await 一覧の行(page, 見本).click();
-  if (暗い) await page.evaluate(() => document.documentElement.classList.add("dark"));
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1800);
   /*

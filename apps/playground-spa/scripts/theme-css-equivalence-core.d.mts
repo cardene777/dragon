@@ -88,8 +88,7 @@ export function greedySelectFigures(
 };
 export function expectedStateCount(
   phaseCounts: Readonly<Record<string, number>>,
-  paletteCount?: number,
-  modeCount?: number,
+  paletteCount: number,
 ): number;
 export function summarizeCoverage(
   rules: CssRule[],

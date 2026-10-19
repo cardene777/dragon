@@ -122,7 +122,7 @@ describe("theme CSS equivalence core", () => {
     const result = compareComputedSnapshots(
       [{ key: "0/0", element, values: { fill: "rgb(0, 0, 0)", stroke: "none" } }],
       [{ key: "0/0", element, values: { fill: "rgb(255, 0, 0)", stroke: "none" } }],
-      { figure: "demo", palette: "blueprint", dark: false, phase: 0 },
+      { figure: "demo", palette: "blueprint", phase: 0 },
     );
 
     expect(result.differences).toEqual([
@@ -142,7 +142,7 @@ describe("theme CSS equivalence core", () => {
     const result = compareComputedSnapshots(
       [{ key: "variables:html", element, values: { "--cdl-fill": "red" } }],
       [{ key: "variables:html", element, values: { "--cdl-fill": "blue" } }],
-      { figure: "demo", palette: "blueprint", dark: false, phase: 0 },
+      { figure: "demo", palette: "blueprint", phase: 0 },
     );
 
     expect(result.differences).toHaveLength(0);
@@ -170,8 +170,8 @@ describe("theme CSS equivalence core", () => {
     expect(result.selected.map((figure) => figure.newlyCovered)).toEqual([1, 2]);
   });
 
-  test("expected state count sums phases across ten palettes and two modes", () => {
-    expect(expectedStateCount({ first: 2, second: 3 })).toBe(100);
+  test("expected state count sums phases across the seven palettes", () => {
+    expect(expectedStateCount({ first: 2, second: 3 }, 7)).toBe(35);
   });
 
   test("phase reset requires a full loop when observation starts at phase zero", () => {

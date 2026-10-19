@@ -87,7 +87,7 @@ describe("宅配のひな形 4 件 (#2835)", () => {
     const header = { leftPad: 26, topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 };
     const palettes = [
       "blueprint", "letterpress", "catalog", "terminal",
-      "sketch", "neon", "relief", "site-colours",
+      "sketch", "neon", "relief",
     ] as const;
     for (const palette of palettes) {
       const themed = 図の配色を変える(diagram, palette);

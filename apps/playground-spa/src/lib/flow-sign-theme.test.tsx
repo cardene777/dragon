@@ -252,11 +252,14 @@ describe("流れの凡例と始まり・終わりの印 (#2834)", () => {
       expect(cssValue(cssRuleBody(selector, property), property), selector).toBe(fallback);
     }
     const legend = cssRuleBodyContaining(
-      ['svg[data-cdl-stage][data-cdl-palette]:not(', '[data-cdl-role="legend"]'],
+      ['svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="legend"]'],
       "--cdl-text-accent",
       [':has([data-cdl-role="stage-column"])'],
     );
     expect(cssValue(legend, "--cdl-text-accent")).toBe("var(--dragon-timeline-legend-mark)");
-    expect(tableDeclarations("terminal").get("--dragon-timeline-legend-mark")).toBe(fallback);
+    // 表は画面の変数を読まず、舞台の上で `--d-text-primary` と同じ値になる字の色を読む (#2962)
+    expect(tableDeclarations("terminal").get("--dragon-timeline-legend-mark")).toBe(
+      "var(--theme-flow-mark, var(--dragon-theme-text))",
+    );
   });
 });

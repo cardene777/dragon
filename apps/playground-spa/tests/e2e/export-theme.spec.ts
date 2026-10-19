@@ -173,25 +173,7 @@ for (const theme of THEMES) {
     page,
     context,
   }, testInfo) => {
-    await openEditorTheme(page, 見本("flow"), theme, false);
-    const 期待 = await 画面の地(page);
-    const file = await 書き出す(page, testInfo, 書き出しの札.静止SVG, "svg");
-    const single = await context.newPage();
-    try {
-      const 実測 = await 単独のSVGを開く(single, file);
-      expect(実測.backgroundColor).toBe(期待);
-      同じ色(実測.帯, 期待);
-      console.log(`静止SVG ${theme}: 地 ${実測.帯.join(",")} / 画面 ${期待} 一致`);
-    } finally {
-      await single.close();
-    }
-  });
-
-  test(`静止SVG: ${theme} を暗い画面で書き出しても地が画面と同じ (#2800)`, async ({
-    page,
-    context,
-  }, testInfo) => {
-    await openEditorTheme(page, 見本("flow"), theme, true);
+    await openEditorTheme(page, 見本("flow"), theme);
     const 期待 = await 画面の地(page);
     const file = await 書き出す(page, testInfo, 書き出しの札.静止SVG, "svg");
     const single = await context.newPage();
@@ -209,7 +191,7 @@ for (const theme of THEMES) {
     page,
     context,
   }, testInfo) => {
-    await openEditorTheme(page, 見本("flow"), theme, false);
+    await openEditorTheme(page, 見本("flow"), theme);
     const 期待 = await 画面の地(page);
     const file = await 書き出す(page, testInfo, 書き出しの札.動くSVG, "svg");
     const single = await context.newPage();
@@ -224,7 +206,7 @@ for (const theme of THEMES) {
   });
 
   test(`PNG: ${theme} の紙の色が意匠の地の色になる (#2800)`, async ({ page }, testInfo) => {
-    await openEditorTheme(page, 見本("flow"), theme, false);
+    await openEditorTheme(page, 見本("flow"), theme);
     const 期待 = await 画面の地(page);
     const file = await 書き出す(page, testInfo, "PNG", "png");
     const 実測 = await PNGの地(file);
@@ -237,7 +219,7 @@ for (const theme of THEMES) {
       page,
       context,
     }, testInfo) => {
-      await openEditorTheme(page, 見本(type), theme, false);
+      await openEditorTheme(page, 見本(type), theme);
       const 使う定義 = await 画面が使う定義(page);
       const 静止file = await 書き出す(page, testInfo, 書き出しの札.静止SVG, "svg");
       const 動くfile = await 書き出す(page, testInfo, 書き出しの札.動くSVG, "svg");
@@ -275,7 +257,7 @@ test("副作用: 書き出しの名前空間と動きの扱いが従来どおり
   page,
   context,
 }, testInfo) => {
-  await openEditorTheme(page, 見本("flow"), "sketch", false);
+  await openEditorTheme(page, 見本("flow"), "sketch");
   const 期待 = await 画面の地(page);
   await page.locator(".v4-editor-preview svg[data-cdl-stage]").evaluate((stage, namespace) => {
     const path = document.createElementNS(namespace, "path");

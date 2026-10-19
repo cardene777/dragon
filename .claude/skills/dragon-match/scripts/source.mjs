@@ -17,7 +17,8 @@ const 意匠名 = {
 const STEP_MS = 100;
 const MAX_CLOCK_MS = 30_000;
 const STILL_STEPS = 15;
-const 画面の色 = "site-colours";
+/** palette を省いた見本帳の図は、サイトの既定の意匠 (活版) で描かれる (#2962) */
+const 既定の意匠 = "letterpress";
 
 function 必須の字(value, name) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -90,9 +91,9 @@ async function 最後まで進める(page, lastPhase) {
 async function catalogを開く(page, source) {
   const pageName = 必須の字(source.page, "catalog.page");
   const name = 必須の字(source.name, "catalog.name");
-  const palette = source.palette === undefined ? 画面の色 : 必須の字(source.palette, "catalog.palette");
+  const palette = source.palette === undefined ? 既定の意匠 : 必須の字(source.palette, "catalog.palette");
   const label = 意匠名[palette];
-  if (palette !== 画面の色 && label === undefined) {
+  if (label === undefined) {
     throw new Error(`catalog.palette が不明です: ${palette}`);
   }
 
@@ -119,13 +120,13 @@ async function catalogを開く(page, source) {
   await root.waitFor({ state: "visible" });
   await page
     .getByRole("combobox", { name: "図の色味" })
-    .selectOption({ label: palette === 画面の色 ? "画面の色" : label });
+    .selectOption({ label });
   for (let index = 0; index < 50; index += 1) {
     const selected = (await 状態(page)).palette;
-    if (palette === 画面の色 ? selected === null : selected === palette) break;
+    if (selected === palette) break;
     await page.clock.runFor(STEP_MS);
     if (index === 49) {
-      throw new Error(`${palette === 画面の色 ? "画面の色" : `意匠 ${palette}`} に切り替わりませんでした`);
+      throw new Error(`意匠 ${palette} に切り替わりませんでした`);
     }
   }
   await page.evaluate(() => document.fonts.ready);
@@ -1068,14 +1069,9 @@ export function 比較一覧(config) {
         ? (entry.actual?.type === "html" ? entry.actual.palette : undefined) ??
           (entry.expected?.type === "html" ? entry.expected.palette : undefined) ??
           null
-        : (catalogSource.palette ?? 画面の色);
+        : (catalogSource.palette ?? 既定の意匠);
     return {
-      label:
-        palette === 画面の色
-          ? "画面の色"
-          : typeof entry.label === "string" && entry.label !== ""
-            ? entry.label
-            : fallbackLabel,
+      label: typeof entry.label === "string" && entry.label !== "" ? entry.label : fallbackLabel,
       palette,
       expected: entry.expected,
       actual: entry.actual,

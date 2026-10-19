@@ -7,7 +7,6 @@ import {
   FIXED_THEME_DEVICE_SCALE_FACTOR,
   checkFixedThemeAcrossTypes,
   openEditorTheme,
-  samplesByType,
 } from "./helpers/fixed-theme-checks";
 import {
   captureThemeAppear,
@@ -85,43 +84,17 @@ test.describe("terminal theme (#2793)", () => {
     deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
   });
 
-  for (const dark of [false, true]) {
-    const mode = dark ? "暗" : "明";
-    test(`terminal / ${mode}: 全図種で固定色と contrast が出る`, async ({ page }) => {
-      const result = await checkFixedThemeAcrossTypes(page, terminal, dark);
+  test("terminal: 全図種で固定色と contrast が出る", async ({ page }) => {
+    const result = await checkFixedThemeAcrossTypes(page, terminal);
 
-      expect(result.applied, "terminal が当たった図種").toBe(PRESET_TYPES.size);
-      expect(result.boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);
-      expect(result.edgeTypes, "線を測れた図種が 0 件").toBeGreaterThan(0);
-      expect(
-        result.halfFrames,
-        "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
-      ).toBeGreaterThan(0);
-      expect(result.failures, `terminal/${mode} の違反`).toEqual([]);
-    });
-  }
-
-  test("terminal dark-ground: 全図種の地は html.dark でも意匠帳の台から変わらない", async ({
-    page,
-  }) => {
-    const samples = samplesByType();
-    const expected = hexToRgb(terminal.value.ground);
-    const failures: string[] = [];
-    for (const [type, source] of samples) {
-      const values: string[] = [];
-      for (const dark of [false, true]) {
-        await openEditorTheme(page, source, "terminal", dark);
-        values.push(
-          await stage(page).evaluate((element) => getComputedStyle(element).backgroundColor),
-        );
-      }
-      console.log(`terminal dark-ground ${type}: light=${values[0]} dark=${values[1]}`);
-      if (values[0] !== expected || values[1] !== expected) {
-        failures.push(`${type}: light ${values[0]} / dark ${values[1]} / 台 ${expected}`);
-      }
-    }
-    expect(samples.size).toBe(PRESET_TYPES.size);
-    expect(failures).toEqual([]);
+    expect(result.applied, "terminal が当たった図種").toBe(PRESET_TYPES.size);
+    expect(result.boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);
+    expect(result.edgeTypes, "線を測れた図種が 0 件").toBeGreaterThan(0);
+    expect(
+      result.halfFrames,
+      "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    expect(result.failures, "terminal の違反").toEqual([]);
   });
 
   test("terminal initial-animation: 箱と線は各 1 回だけ打つ", async ({ page }) => {
@@ -189,7 +162,7 @@ test.describe("terminal theme (#2793)", () => {
     let chartBars = 0;
     let rowStripes = 0;
     for (const type of ["record", "flowchart", "chart"] as const) {
-      await openEditorTheme(page, sample(type), "terminal", false);
+      await openEditorTheme(page, sample(type), "terminal");
       const background = await stage(page).evaluate((element) => {
         const style = getComputedStyle(element);
         return { image: style.backgroundImage, size: style.backgroundSize };
@@ -301,7 +274,7 @@ test.describe("terminal theme (#2793)", () => {
     expect(chartBars, "単系列の棒を 1 件も測れていない").toBeGreaterThan(0);
     expect(rowStripes, "表の箱の行の帯を 1 件も測れていない").toBeGreaterThan(0);
 
-    await openEditorTheme(page, 段のない六色の記法, "terminal", false);
+    await openEditorTheme(page, 段のない六色の記法, "terminal");
     const tonedLabels = await readEdgeLabels(page);
     expect(tonedLabels.length, "面に色みを持つ線の札が無い").toBe(6);
     expect(tonedLabels.every((label) => label.tone !== null), "段のない六色の札に色みが無い")
@@ -319,7 +292,7 @@ test.describe("terminal theme (#2793)", () => {
       new Set(chart.colors.slice(0, 3).map(hexToRgb)),
     );
 
-    await openEditorTheme(page, 六色の記法, "terminal", false);
+    await openEditorTheme(page, 六色の記法, "terminal");
     const stagedLabels = await readEdgeLabels(page);
     expect(stagedLabels.length, "段のある六色の札が揃わない").toBe(6);
     for (const label of stagedLabels) {
@@ -329,7 +302,7 @@ test.describe("terminal theme (#2793)", () => {
       expect(label.fits, `${label.tone} の札の字が面からはみ出す`).toBe(true);
     }
 
-    await openEditorTheme(page, sample("gantt"), "terminal", false);
+    await openEditorTheme(page, sample("gantt"), "terminal");
     const ganttRows = await stage(page)
       .locator('[data-cdl-role="gantt-row"]')
       .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).fill));

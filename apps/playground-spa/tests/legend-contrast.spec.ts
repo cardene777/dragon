@@ -47,21 +47,21 @@ const 見本のある意匠 = [
 
 type 凡例の字 = { text: string; box: Box; px: number; weight: number };
 
-async function 凡例の対比を測る(page: Page, theme: string, mode: string): Promise<void> {
+async function 凡例の対比を測る(page: Page, theme: string): Promise<void> {
   await stopDiagram(page);
   const stage = page.locator("svg[data-cdl-stage]");
   const stageBox = await stage.boundingBox();
-  expect(stageBox, `${theme}/${mode}: 舞台の矩形が無い`).not.toBeNull();
+  expect(stageBox, `${theme}: 舞台の矩形が無い`).not.toBeNull();
   if (stageBox === null) return;
   const viewport = page.viewportSize();
-  expect(viewport, `${theme}/${mode}: viewport の矩形が無い`).not.toBeNull();
+  expect(viewport, `${theme}: viewport の矩形が無い`).not.toBeNull();
   if (viewport === null) return;
   expect(
     stageBox.x >= 0 &&
       stageBox.y >= 0 &&
     stageBox.x + stageBox.width <= viewport.width &&
       stageBox.y + stageBox.height <= viewport.height,
-    `${theme}/${mode}: 舞台 (${stageBox.x.toFixed(1)}, ${stageBox.y.toFixed(1)}, ` +
+    `${theme}: 舞台 (${stageBox.x.toFixed(1)}, ${stageBox.y.toFixed(1)}, ` +
       `${stageBox.width.toFixed(1)} × ${stageBox.height.toFixed(1)}) が viewport ` +
       `(${viewport.width} × ${viewport.height}) に収まらない`,
   ).toBe(true);
@@ -81,7 +81,7 @@ async function 凡例の対比を測る(page: Page, theme: string, mode: string)
       };
     }),
   )) as 凡例の字[];
-  expect(texts, `${theme}/${mode}: 凡例の字を 3 つ測れていない`).toHaveLength(3);
+  expect(texts, `${theme}: 凡例の字を 3 つ測れていない`).toHaveLength(3);
 
   await stage.locator('[data-cdl-role="legend-text"]').evaluateAll((elements) => {
     for (const element of elements) (element as SVGElement).style.visibility = "hidden";
@@ -103,33 +103,30 @@ async function 凡例の対比を測る(page: Page, theme: string, mode: string)
       width: text.box.width * scale,
       height: text.box.height * scale,
     });
-    expect(result.kind, `${theme}/${mode}/${text.text}: 字の芯を測れない`).toBe("ok");
+    expect(result.kind, `${theme}/${text.text}: 字の芯を測れない`).toBe("ok");
     if (result.kind !== "ok") continue;
     const need = Math.max(4.5, requiredRatio(text.px, text.weight));
     console.log(
-      `${theme}/${mode}/${text.text}: rgb(${result.fg.join(",")}) on rgb(${result.bg.join(",")}) ` +
+      `${theme}/${text.text}: rgb(${result.fg.join(",")}) on rgb(${result.bg.join(",")}) ` +
         `${result.ratio.toFixed(2)}:1 / 要 ${need}:1`,
     );
     expect(
       result.ratio,
-      `${theme}/${mode}/${text.text}: 凡例の字が台に溶ける`,
+      `${theme}/${text.text}: 凡例の字が台に溶ける`,
     ).toBeGreaterThanOrEqual(need);
   }
 }
 
 for (const theme of THEMES) {
-  for (const dark of [false, true]) {
-    const mode = dark ? "dark" : "light";
-    test(`${theme} / ${mode}: 凡例の字が台の上で読める (#2834)`, async ({ page }) => {
-      await openEditorTheme(page, 凡例つき, theme, dark);
-      await 凡例の対比を測る(page, theme, mode);
-    });
-  }
+  test(`${theme}: 凡例の字が台の上で読める (#2834)`, async ({ page }) => {
+    await openEditorTheme(page, 凡例つき, theme);
+    await 凡例の対比を測る(page, theme);
+  });
 }
 
 for (const theme of 見本のある意匠) {
   test(`${theme}: 凡例の印が印の変数と見本の戻る線の色に揃う (#2834)`, async ({ page }) => {
-    await openEditorTheme(page, 印の色を測る凡例つき, theme, false);
+    await openEditorTheme(page, 印の色を測る凡例つき, theme);
 
     const 色 = await page.locator("svg[data-cdl-stage]").evaluate((stage) => {
       const 要素を得る = (selector: string): SVGElement => {

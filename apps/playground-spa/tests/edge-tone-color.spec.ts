@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { 明るい画面の意匠, 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 import { 記法をURLに載せる, 六色の記法 } from "./box-and-edge-figure";
 
 /**
@@ -9,15 +10,18 @@ import { 記法をURLに載せる, 六色の記法 } from "./box-and-edge-figure
  * 画面では全 edge が同じ色になっていた。 したがって「cdl の属性」 ではなく
  * 「画面で解決された色」 を測る必要がある。
  *
- * 測るのは 3 つ。
- *   1. 6 tone が別々の色になる (因果の向きが線から読める)
- *   2. 紙に対する対比が WCAG の非文字要素の下限 3:1 以上 (線が薄くて追えない状態にならない)
+ * 測るのは 2 つ。
+ *   1. 紙に対する対比が WCAG の非文字要素の下限 3:1 以上 (線が薄くて追えない状態にならない)
  *      (以前は文字の基準 4.5 を当てていた。 旧配色の濃さに合わせて厳しい側を採ったもので
  *       線に求められる標準ではない。 見た目の判断は `.pen` に一本化したため標準に戻した。
  *       user 明示指示「いらない・pencil が全て。 デザインに関しては。」)
- *   3. 隣り合う色が見分けられる (ΔE 15 以上、 暗くして同じ明度に揃うと accent と info が潰れる)
+ *   2. 矢頭が線と同じ色になる
  *
- * 紙の色は画面から読む。 catalog は明暗どちらでも cream、 editor は明暗で別なので、
+ * **6 つの色味が別々の色になることは測らない** (#2962)。 図は必ずどれかの意匠で描かれ、
+ * 意匠は 6 つの色味を意匠帳の 3 色へ割り当てる。 割り当ては
+ * `rendered-contrast.spec.ts` の「六色の記法が意匠帳の 3 色へ割り当たる」 が見る。
+ *
+ * 紙の色は図の舞台から読む。 地の明るい画面と暗い画面の意匠で、
  * 4 通り (catalog / editor × 明 / 暗) を回す。
  */
 
@@ -32,8 +36,6 @@ const TONES = ["accent", "teal", "success", "error", "warning", "info"] as const
  * 標準そのものに戻す。
  */
 const MIN_CONTRAST = 3;
-/** 色の見分けの下限。 ΔE 10 未満は並べても判別しづらい。 */
-const MIN_DELTA_E = 15;
 
 type Rgb = [number, number, number];
 
@@ -66,7 +68,7 @@ function applyOpacity(fg: Rgb, bg: Rgb, alpha: number): Rgb {
 /**
  * 実効色を 8bit に丸めた時に取り得る 8 通り (各成分の floor / ceil)。
  *
- * 描画側がどちら向きに丸めるかは実装依存で、 丸めの向きで対比と ΔE が 0.7 ほど動く。
+ * 描画側がどちら向きに丸めるかは実装依存で、 丸めの向きで対比が動く。
  * 判定を境界ちょうどに置くと丸め次第で下回るため、 全組合せの最悪値で見る。
  */
 function quantized(v: Rgb): Rgb[] {
@@ -75,40 +77,6 @@ function quantized(v: Rgb): Rgb[] {
     out.push([0, 1, 2].map((i) => ((bits >> i) & 1 ? Math.ceil(v[i]!) : Math.floor(v[i]!))) as Rgb);
   }
   return out;
-}
-
-/**
- * sRGB (0-255 の実数) を CIE Lab に変換する。
- *
- * CSS Color 4 の定義通り sRGB -> D65 XYZ -> Bradford で D50 に適応 -> Lab の順で計算する。
- * D65 XYZ をそのまま Lab の式に入れると、 Lab が D50 基準なので白色点がずれて ΔE が 0.7 ほど
- * 動く。 判定を 15 に置いている以上、 この差は無視できない。
- */
-function toLab([r, g, b]: Rgb): [number, number, number] {
-  const R = linear(r);
-  const G = linear(g);
-  const B = linear(b);
-  // sRGB -> D65 XYZ
-  const x65 = R * 0.4124564 + G * 0.3575761 + B * 0.1804375;
-  const y65 = R * 0.2126729 + G * 0.7151522 + B * 0.072175;
-  const z65 = R * 0.0193339 + G * 0.119192 + B * 0.9503041;
-  // Bradford D65 -> D50
-  const x = 1.0479298208405488 * x65 + 0.022946793341019088 * y65 - 0.05019222954313557 * z65;
-  const y = 0.029627815688159344 * x65 + 0.990434484573249 * y65 - 0.01707382502938514 * z65;
-  const z = -0.009243058152591178 * x65 + 0.015055144896577895 * y65 + 0.7518742899580008 * z65;
-  // D50 白色点で正規化して Lab
-  const wp = [0.9642956764295677, 1.0, 0.8251046025104602];
-  const f = (t: number) => (t > 216 / 24389 ? Math.cbrt(t) : ((24389 / 27) * t + 16) / 116);
-  const fx = f(x / wp[0]!);
-  const fy = f(y / wp[1]!);
-  const fz = f(z / wp[2]!);
-  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
-}
-
-function deltaE(a: Rgb, b: Rgb): number {
-  const A = toLab(a);
-  const B = toLab(b);
-  return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]);
 }
 
 /**
@@ -132,7 +100,8 @@ async function readToneColors(
   const 読めた = await page.evaluate(() => {
     const 先頭 = document.querySelector("[data-cdl-edge]");
     if (!先頭) throw new Error("edge が 1 本も無い");
-    let el: HTMLElement | null = 先頭.closest("svg")?.parentElement ?? null;
+    // 舞台の svg から辿る。 舞台は図の地を自分で塗るので、 親の画面の地を読むと別の色になる (#2962)
+    let el: Element | null = 先頭.closest("svg[data-cdl-stage]");
     let paper: string | null = null;
     while (el && !paper) {
       const c = getComputedStyle(el).backgroundColor;
@@ -164,9 +133,8 @@ async function readToneColors(
 }
 
 async function open(page: Page, path: string, dark: boolean): Promise<void> {
-  await page.goto(path);
+  await page.goto(画面の意匠を付ける(path, dark ? 暗い画面の意匠 : 明るい画面の意匠));
   await page.waitForLoadState("networkidle");
-  await page.evaluate((d) => document.documentElement.classList.toggle("dark", d), dark);
   await page.waitForTimeout(1500);
 }
 
@@ -224,14 +192,6 @@ for (const screen of SCREENS) {
       });
     }
 
-    test(`${label}: 描かれた色味が別々の色になる`, async ({ page }) => {
-      await open(page, screen.path, dark);
-      const { tones } = await readToneColors(page);
-      const 色味 = 測れた色味(tones);
-      const strokes = 色味.map((t) => tones[t]!.stroke);
-      expect(new Set(strokes).size, `色が重複している: ${strokes.join(" / ")}`).toBe(色味.length);
-    });
-
     test(`${label}: 紙に対する対比が ${MIN_CONTRAST}:1 以上 (丸めの最悪値で)`, async ({ page }) => {
       await open(page, screen.path, dark);
       const { paper, tones } = await readToneColors(page);
@@ -244,28 +204,6 @@ for (const screen of SCREENS) {
         if (r < MIN_CONTRAST) low.push(`${t} ${r.toFixed(2)} (${tones[t]!.stroke} on ${paper}, 不透明度 ${alpha})`);
       }
       expect(low, `対比が足りない tone:\n${low.join("\n")}`).toHaveLength(0);
-    });
-
-    test(`${label}: 実効色で隣り合う色が見分けられる (ΔE ${MIN_DELTA_E} 以上、 丸めの最悪値で)`, async ({ page }) => {
-      // 生の色ではなく、 紙に重ねた後の色で測る。 不透明度で紙に寄るため生の色より近づく。
-      // さらに丸めの向きで 0.7 ほど動くので、 全組合せの最悪値で判定する。
-      await open(page, screen.path, dark);
-      const { paper, tones } = await readToneColors(page);
-      const alpha = await readInactiveOpacity(page);
-      const bg = parseRgb(paper);
-      const eff = (t: string) => quantized(applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha));
-      const 色味 = 測れた色味(tones);
-      const close: string[] = [];
-      for (let i = 0; i < 色味.length; i++) {
-        for (let j = i + 1; j < 色味.length; j++) {
-          const a = 色味[i]!;
-          const b = 色味[j]!;
-          let worst = Infinity;
-          for (const qa of eff(a)) for (const qb of eff(b)) worst = Math.min(worst, deltaE(qa, qb));
-          if (worst < MIN_DELTA_E) close.push(`${a} / ${b} ΔE ${worst.toFixed(1)}`);
-        }
-      }
-      expect(close, `見分けづらい組:\n${close.join("\n")}`).toHaveLength(0);
     });
 
     test(`${label}: 矢頭も線と同じ色になる`, async ({ page }) => {
@@ -315,11 +253,6 @@ test("実在する edge も tone の色で描かれる (複製ではなく本物
     return out;
   });
   expect(seen.length, "edge が読めていない").toBeGreaterThan(0);
-  // tone が 2 種類以上あるなら、 色も 2 種類以上になる (以前は全部同じ色だった)
-  const tones = new Set(seen.map((s) => s.tone));
-  if (tones.size > 1) {
-    expect(new Set(seen.map((s) => s.stroke)).size).toBeGreaterThan(1);
-  }
   for (const s of seen) {
     // 焼き付けの色 (#6d3f18 / #f0b840) が残っていない
     expect(s.stroke).not.toBe("rgb(109, 63, 24)");

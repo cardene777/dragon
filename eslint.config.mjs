@@ -197,6 +197,8 @@ export default [
   {
     files: [
       "apps/**/*.{ts,tsx,mjs}",
+      // 束ねずにそのまま配る script (`index.html` が頭で読む、#2962)
+      "apps/*/public/**/*.js",
       "packages/**/src/render/**/*.{ts,tsx}",
       "packages/cdl/src/**/*.tsx",
     ],

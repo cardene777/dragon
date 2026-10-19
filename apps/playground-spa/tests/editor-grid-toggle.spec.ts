@@ -15,13 +15,14 @@
  * `background-image` を見る。
  */
 import { test, expect } from "@playwright/test";
+import { 明るい画面の意匠, 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 
 const 舞台 = "editor-preview-stage";
 const 釦 = "editor-toggle-grid";
 
-async function 開く(page: import("@playwright/test").Page): Promise<void> {
+async function 開く(page: import("@playwright/test").Page, 画面の意匠 = 明るい画面の意匠): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("editor");
+  await page.goto(画面の意匠を付ける("editor", 画面の意匠));
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1800);
 }
@@ -79,9 +80,8 @@ test.describe("舞台の方眼 (#1141)", () => {
     expect(後, `舞台の色が変わった (${前} → ${後})`).toBe(前);
   });
 
-  test("暗い配色でも同じ", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "dark" });
-    await 開く(page);
+  test("地の暗い画面の意匠でも同じ", async ({ page }) => {
+    await 開く(page, 暗い画面の意匠);
     expect((await 背景(page)).image, "暗い配色の既定で方眼が出ている").toBe("none");
 
     await page.getByTestId(釦).click();

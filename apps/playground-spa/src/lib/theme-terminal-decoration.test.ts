@@ -7,9 +7,6 @@ import { readCdlThemeCssRules } from "./theme-role-table-test-helpers";
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 const palettes = [
-  { name: "画面の色", value: undefined, hidden: 3 },
-  { name: "生成り", value: "kinari", hidden: 3 },
-  { name: "青磁", value: "celadon", hidden: 3 },
   { name: "図面", value: "blueprint", hidden: 3 },
   { name: "活版", value: "letterpress", hidden: 3 },
   { name: "図録", value: "catalog", hidden: 3 },

@@ -1,8 +1,8 @@
 {
   "description": "図面の通常の棒だけ、枠を青灰から赤へ変える",
   "file": "apps/playground-spa/src/styles/cdl-theme.css",
-  "search": "stroke: #6a8596 !important;",
-  "replacement": "stroke: #ff0000 !important;",
+  "search": "--dragon-chart-bar-secondary-frame: #6a8596;",
+  "replacement": "--dragon-chart-bar-secondary-frame: #ff0000;",
   "figure": {
     "page": "charts",
     "itemId": "営業所ごとの取扱数"

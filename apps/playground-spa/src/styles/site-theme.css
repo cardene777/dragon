@@ -1,0 +1,484 @@
+/* ================================================================
+ * サイトの見た目を決める意匠ごとの値の表 (#2962)。
+ *
+ * html の `data-site-theme` に記法の意匠の名前 (`THEMES` の 7 つ) が付き、この file の表が
+ * 画面の変数 (`--d-*`) を全部宣言する。 部品の規則 (`globals.css` / 画面ごとの css) は
+ * 変数だけを読み、意匠の名前を読まない。 意匠を替えると表が替わり、部品はそのまま追随する。
+ *
+ * `data-site-theme` を付けるのは `public/site-theme.js` で、React が描く前に住所の `?theme=`
+ * を読む。 書かなければ活版。 状態は `lib/useSiteTheme.ts` が持つ。
+ *
+ * 図の値の表 (`cdl-theme.css`) は画面の変数を読まない。 図の舞台は同じ名前を自分の表から
+ * 宣言し直すので、図に書いた意匠はサイトの意匠に関わらず同じに描かれる。
+ *
+ * ## 表の中身
+ *
+ * 7 組とも同じ名前の組を宣言する (欠けた名前は部品が値を失い既定値へ落ちる)。
+ * 揃っていることは `lib/site-theme-table.test.ts` がサイトの source から読む名前と突き合わせる。
+ *
+ * | 群 | 変数 |
+ * |---|---|
+ * | 地と面 | `bg` / `surface` / `surface-2` / `surface-3` / `border` / `border-strong` |
+ * | 字 | `text-primary` / `text-secondary` / `text-muted` |
+ * | 強調 | `accent` / `accent-soft` / `accent-face` / `on-accent` |
+ * | 窪み (記述欄) | `code-bg` / `code-selection-bg` |
+ * | 知らせ | `err` / `warn` / `hint` と、それぞれの `-soft` |
+ * | 図表と系統 | `chart-1` から `chart-6` / `dg-1` から `dg-6` |
+ * | 覆い | `scrim` / `overlay-dark` / `on-dark` |
+ * | 字体 | `display` / `body` / `mono` |
+ * | 図の線の薄さ | `tree-edge-opacity` / `mind-edge-opacity` / `journey-chip-opacity` / `relation-edge-opacity` / `relation-edge-opacity-active` |
+ * | 器 | 角 `r-1` / `r-2` / `r-3`、頁の左右余白 `gutter`、押せる的の余白 `tap-pad` |
+ * | 頭 | 上の帯の高さ `topbar-h` |
+ *
+ * `color-scheme` も表が持つ。 選択欄やスクロールバーの明暗を地に合わせるためで、値は地
+ * (`--d-bg`) の明暗と一致させる (`site-theme-table.test.ts` が地の輝度から導いて突き合わせる)。
+ * 編集画面の記述欄 (CodeMirror) の明暗は、この値と同じ組を `lib/site-theme.ts` の `地が暗いか` が持って渡す
+ * (記述欄は描く前に明暗を受け取るので、表を読まない)。
+ *
+ * ## 値の出どころ
+ *
+ * 明暗の切り替えを外した時に、明るい表示と暗い表示の値をそのまま写した。
+ * 地が明るい 4 意匠 (図面 / 活版 / 手描き / 浮彫) は明るい表示の値、地が暗い 3 意匠
+ * (図録 / 端末 / 電飾) は暗い表示の値を持つ。 地が明るいか暗いかは図の値の表の台で決めた。
+ *
+ * ## 値ごとの理由
+ *
+ * `text-muted` は明暗の非対称 (明 3.67 / 暗 5.46) を #1116 で揃えた値。 明は白地で 5.47、
+ * 暗は面の上で 5.46。 暗い側は #1112 で面を持ち上げた時に箱の上で沈まない値へ上げた。
+ *
+ * `accent-face` は強調した箱の面 (#1143)。 箱の枠は `accent` で描き、枠に対比 4.61 を課す。
+ * 明では `accent-soft` との対比が 4.17 で届かず白で 4.86、暗では `accent-soft` が 4.82 で満たす。
+ * 必要な向きが明暗で逆なので `accent-soft` と別に持つ。
+ *
+ * `accent-soft` の暗い値は、強調色の文字が乗るので面より一段落とした (`#4a2a20` だと 4.38)。
+ *
+ * `chart-*` は図表の並んだ系列を見分ける色 (#1480)。 意味の色 (`dg-*`) とは役割が違う。
+ * 明は描画側の既定と同じ値。 暗は明の値のままだと暗い箱の上で 3 色が下限 3.0 を割るため
+ * (藍 1.76 / 紅 2.31 / 若草 2.79)、色相を保って 1 段明るくした。 もう 1 段明るい案は
+ * 見分けの隔たりが 44.6 から 28.8 に落ちるので採らない。
+ *
+ * `tree-edge-opacity` / `mind-edge-opacity` / `journey-chip-opacity` は描画側が薄めて描く枝と縁の濃さ。
+ * 暗い地は面が明るいぶん沈むので 0.92 (0.85 でも紫が 2.94)。
+ *
+ * `relation-edge-opacity` はクラス図と表のつながりの図の線の薄さ (#2535)。 明暗で分けない。
+ * 引ける幅は明るい側で決まり、cdl の 0.9 でも明るい側は 3.45 しかない (0.8 で 3.14 / 0.7 で 2.67)。
+ * 光っている線との差 0.05 は cdl と同じにする (差を潰すと光っている線が濃さから読めない)。
+ *
+ * `code-selection-bg` は記述欄で選んだ範囲の地。 どの構文色も選ぶ前の対比から 1 割以上落ちない
+ * 値にした (面の色を流用すると 12.5px の色 5 種が 3.26 から 4.45 で下限を割った)。
+ *
+ * `scrim` は重ね窓の背後、`overlay-dark` と `on-dark` は絵の上に敷く暗い覆いとその上の字。
+ * 覆いは地に依らず暗いので対で固定する (`on-accent` を流用すると暗い地で黒い字になる、実測 1.24)。
+ *
+ * `tap-pad` は押せる的を 24px (WCAG 2.2 の 2.5.8) に広げる余白 (#2541)。 上下に足して同じ分を
+ * 負の余白で戻すので配置は動かない。 最も低い的 (パンくずの 18px) が 26px になる 4px。
+ *
+ * 字体は同梱した可変幅の字を先頭に置く (#1122)。 2 番目の非可変名は同梱が読めなかった時の保険。
+ *
+ * ## 対比が基準を下回るが、設計どおり据え置く箇所 (#1120)
+ *
+ * 9 画面を測ると、明るい地で 17 件、暗い地で 7 件が下限を割る。 いずれも意図した見た目。
+ *
+ *   群 A = 装飾数字 `01/02/03` と `404` の左右の `4`。 明 1.56 / 暗 2.12 (要 3)、色は `border-strong`。
+ *          隣に同じ内容の見出しがあり、情報は失われていない
+ *   群 B = 強調色。 前置き `3 steps` / 選択中の項目名 / 札 `er`。 4.00 から 4.48 (要 4.5)、
+ *          明 12 件 / 暗 2 件で 4 つの変数に分かれる
+ *            明 `accent` (`#c8442a`) 10 件 = 4.17 / 4.30 / 4.42
+ *            明 `dg-2`   (`#2a7a57`)  2 件 = 4.48
+ *            暗 `accent` (`#f2704c`)  1 件 = 4.00
+ *            暗 `dg-4`   (`#a98de8`)  1 件 = 4.25
+ *
+ * 構文色 (`->` 等) は #1310 で群 B から外れた。 記述の色を `syntax.css` に集め、地を `code-bg` に
+ * 揃えて測り直した (対比は `lib/syntax-colors.test.ts` が 7 意匠の表から測る)。
+ *
+ * 群 B は直す手段がある (明 `accent` を `#be3d24` 等)。 採らないのは、強調色がボタン / リンク /
+ * 見出し / ロゴにも使われ全画面の印象が変わるため。 不足は最大 11% / 最小 0.4% で、
+ * 対象は前置きの札で本文ではない。 「基準を満たしていないから直す」 を認めると、決めた配色を
+ * 正とする原則が基準側に置き換わる (`text-muted` を動かした #1116 は明暗の非対称が理由で、
+ * 本節の 2 群とは理由が違う)。
+ * ================================================================ */
+
+html[data-site-theme="blueprint"] {
+  color-scheme: light;
+
+  --d-bg: #f6f1e6;
+  --d-surface: #fffdf7;
+  --d-surface-2: #fffdf7;
+  --d-surface-3: #efe8d8;
+  --d-border: #e6dfcd;
+  --d-border-strong: #cfc4a9;
+  --d-text-primary: #2a231d;
+  --d-text-secondary: #5e5446;
+  --d-text-muted: #6a5f50;
+  --d-accent: #c0421f;
+  --d-accent-soft: #f7e5da;
+  --d-accent-face: #ffffff;
+  --d-on-accent: #ffffff;
+  --d-code-bg: #f2ecdd;
+  --d-code-selection-bg: #efe6d3;
+  --d-err: #8a3d2b;
+  --d-warn: #6d5626;
+  --d-hint: #3d312a;
+  --d-err-soft: #f6e4dd;
+  --d-warn-soft: #f3ead2;
+  --d-hint-soft: #eee8db;
+  --d-chart-1: #3c3833;
+  --d-chart-2: #2f6f8f;
+  --d-chart-3: #b1622a;
+  --d-chart-4: #3f7a58;
+  --d-chart-5: #8a4a7a;
+  --d-chart-6: #6a6f2e;
+  --d-dg-1: #221811;
+  --d-dg-2: #52674f;
+  --d-dg-3: #7a5a24;
+  --d-dg-4: #4f4339;
+  --d-dg-5: #7a3f52;
+  --d-dg-6: #1f3937;
+  --d-scrim: #100e0cb8;
+  --d-overlay-dark: rgba(0, 0, 0, 0.7);
+  --d-on-dark: #ffffff;
+  --d-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --d-tree-edge-opacity: 0.85;
+  --d-mind-edge-opacity: 0.85;
+  --d-journey-chip-opacity: 0.6;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+  --d-r-1: 3px;
+  --d-r-2: 5px;
+  --d-r-3: 6px;
+  --d-gutter: clamp(20px, 8.4vw, 120px);
+  --d-tap-pad: 4px;
+  --d-topbar-h: 60px;
+}
+
+html[data-site-theme="letterpress"] {
+  color-scheme: light;
+
+  --d-bg: #f6f1e6;
+  --d-surface: #fffdf7;
+  --d-surface-2: #fffdf7;
+  --d-surface-3: #efe8d8;
+  --d-border: #e6dfcd;
+  --d-border-strong: #cfc4a9;
+  --d-text-primary: #2a231d;
+  --d-text-secondary: #5e5446;
+  --d-text-muted: #6a5f50;
+  --d-accent: #c0421f;
+  --d-accent-soft: #f7e5da;
+  --d-accent-face: #ffffff;
+  --d-on-accent: #ffffff;
+  --d-code-bg: #f2ecdd;
+  --d-code-selection-bg: #efe6d3;
+  --d-err: #8a3d2b;
+  --d-warn: #6d5626;
+  --d-hint: #3d312a;
+  --d-err-soft: #f6e4dd;
+  --d-warn-soft: #f3ead2;
+  --d-hint-soft: #eee8db;
+  --d-chart-1: #3c3833;
+  --d-chart-2: #2f6f8f;
+  --d-chart-3: #b1622a;
+  --d-chart-4: #3f7a58;
+  --d-chart-5: #8a4a7a;
+  --d-chart-6: #6a6f2e;
+  --d-dg-1: #221811;
+  --d-dg-2: #52674f;
+  --d-dg-3: #7a5a24;
+  --d-dg-4: #4f4339;
+  --d-dg-5: #7a3f52;
+  --d-dg-6: #1f3937;
+  --d-scrim: #100e0cb8;
+  --d-overlay-dark: rgba(0, 0, 0, 0.7);
+  --d-on-dark: #ffffff;
+  --d-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --d-tree-edge-opacity: 0.85;
+  --d-mind-edge-opacity: 0.85;
+  --d-journey-chip-opacity: 0.6;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+  --d-r-1: 3px;
+  --d-r-2: 5px;
+  --d-r-3: 6px;
+  --d-gutter: clamp(20px, 8.4vw, 120px);
+  --d-tap-pad: 4px;
+  --d-topbar-h: 60px;
+}
+
+html[data-site-theme="catalog"] {
+  color-scheme: dark;
+
+  --d-bg: #1a1611;
+  --d-surface: #241f18;
+  --d-surface-2: #2f2920;
+  --d-surface-3: #3b3328;
+  --d-border: #453d31;
+  --d-border-strong: #5c5244;
+  --d-text-primary: #f3ece0;
+  --d-text-secondary: #c9bda6;
+  --d-text-muted: #a89b86;
+  --d-accent: #ee6b3f;
+  --d-accent-soft: #3d2116;
+  --d-accent-face: #3d2116;
+  --d-on-accent: #1a0e07;
+  --d-code-bg: #201b15;
+  --d-code-selection-bg: #2a231a;
+  --d-err: #e08a76;
+  --d-warn: #cfae72;
+  --d-hint: #d0c3ae;
+  --d-err-soft: #452520;
+  --d-warn-soft: #3d3119;
+  --d-hint-soft: #332c22;
+  --d-chart-1: #cdc5b8;
+  --d-chart-2: #6fb0d4;
+  --d-chart-3: #e0995c;
+  --d-chart-4: #74c095;
+  --d-chart-5: #cf8bbd;
+  --d-chart-6: #b7bd6a;
+  --d-dg-1: #ecdfc9;
+  --d-dg-2: #a0c9b0;
+  --d-dg-3: #d5b071;
+  --d-dg-4: #baac96;
+  --d-dg-5: #d59aab;
+  --d-dg-6: #7eabae;
+  --d-scrim: #100e0cb8;
+  --d-overlay-dark: rgba(0, 0, 0, 0.7);
+  --d-on-dark: #ffffff;
+  --d-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --d-tree-edge-opacity: 0.92;
+  --d-mind-edge-opacity: 0.92;
+  --d-journey-chip-opacity: 0.92;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+  --d-r-1: 3px;
+  --d-r-2: 5px;
+  --d-r-3: 6px;
+  --d-gutter: clamp(20px, 8.4vw, 120px);
+  --d-tap-pad: 4px;
+  --d-topbar-h: 60px;
+}
+
+html[data-site-theme="terminal"] {
+  color-scheme: dark;
+
+  --d-bg: #1a1611;
+  --d-surface: #241f18;
+  --d-surface-2: #2f2920;
+  --d-surface-3: #3b3328;
+  --d-border: #453d31;
+  --d-border-strong: #5c5244;
+  --d-text-primary: #f3ece0;
+  --d-text-secondary: #c9bda6;
+  --d-text-muted: #a89b86;
+  --d-accent: #ee6b3f;
+  --d-accent-soft: #3d2116;
+  --d-accent-face: #3d2116;
+  --d-on-accent: #1a0e07;
+  --d-code-bg: #201b15;
+  --d-code-selection-bg: #2a231a;
+  --d-err: #e08a76;
+  --d-warn: #cfae72;
+  --d-hint: #d0c3ae;
+  --d-err-soft: #452520;
+  --d-warn-soft: #3d3119;
+  --d-hint-soft: #332c22;
+  --d-chart-1: #cdc5b8;
+  --d-chart-2: #6fb0d4;
+  --d-chart-3: #e0995c;
+  --d-chart-4: #74c095;
+  --d-chart-5: #cf8bbd;
+  --d-chart-6: #b7bd6a;
+  --d-dg-1: #ecdfc9;
+  --d-dg-2: #a0c9b0;
+  --d-dg-3: #d5b071;
+  --d-dg-4: #baac96;
+  --d-dg-5: #d59aab;
+  --d-dg-6: #7eabae;
+  --d-scrim: #100e0cb8;
+  --d-overlay-dark: rgba(0, 0, 0, 0.7);
+  --d-on-dark: #ffffff;
+  --d-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --d-tree-edge-opacity: 0.92;
+  --d-mind-edge-opacity: 0.92;
+  --d-journey-chip-opacity: 0.92;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+  --d-r-1: 3px;
+  --d-r-2: 5px;
+  --d-r-3: 6px;
+  --d-gutter: clamp(20px, 8.4vw, 120px);
+  --d-tap-pad: 4px;
+  --d-topbar-h: 60px;
+}
+
+html[data-site-theme="sketch"] {
+  color-scheme: light;
+
+  --d-bg: #f6f1e6;
+  --d-surface: #fffdf7;
+  --d-surface-2: #fffdf7;
+  --d-surface-3: #efe8d8;
+  --d-border: #e6dfcd;
+  --d-border-strong: #cfc4a9;
+  --d-text-primary: #2a231d;
+  --d-text-secondary: #5e5446;
+  --d-text-muted: #6a5f50;
+  --d-accent: #c0421f;
+  --d-accent-soft: #f7e5da;
+  --d-accent-face: #ffffff;
+  --d-on-accent: #ffffff;
+  --d-code-bg: #f2ecdd;
+  --d-code-selection-bg: #efe6d3;
+  --d-err: #8a3d2b;
+  --d-warn: #6d5626;
+  --d-hint: #3d312a;
+  --d-err-soft: #f6e4dd;
+  --d-warn-soft: #f3ead2;
+  --d-hint-soft: #eee8db;
+  --d-chart-1: #3c3833;
+  --d-chart-2: #2f6f8f;
+  --d-chart-3: #b1622a;
+  --d-chart-4: #3f7a58;
+  --d-chart-5: #8a4a7a;
+  --d-chart-6: #6a6f2e;
+  --d-dg-1: #221811;
+  --d-dg-2: #52674f;
+  --d-dg-3: #7a5a24;
+  --d-dg-4: #4f4339;
+  --d-dg-5: #7a3f52;
+  --d-dg-6: #1f3937;
+  --d-scrim: #100e0cb8;
+  --d-overlay-dark: rgba(0, 0, 0, 0.7);
+  --d-on-dark: #ffffff;
+  --d-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --d-tree-edge-opacity: 0.85;
+  --d-mind-edge-opacity: 0.85;
+  --d-journey-chip-opacity: 0.6;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+  --d-r-1: 3px;
+  --d-r-2: 5px;
+  --d-r-3: 6px;
+  --d-gutter: clamp(20px, 8.4vw, 120px);
+  --d-tap-pad: 4px;
+  --d-topbar-h: 60px;
+}
+
+html[data-site-theme="neon"] {
+  color-scheme: dark;
+
+  --d-bg: #1a1611;
+  --d-surface: #241f18;
+  --d-surface-2: #2f2920;
+  --d-surface-3: #3b3328;
+  --d-border: #453d31;
+  --d-border-strong: #5c5244;
+  --d-text-primary: #f3ece0;
+  --d-text-secondary: #c9bda6;
+  --d-text-muted: #a89b86;
+  --d-accent: #ee6b3f;
+  --d-accent-soft: #3d2116;
+  --d-accent-face: #3d2116;
+  --d-on-accent: #1a0e07;
+  --d-code-bg: #201b15;
+  --d-code-selection-bg: #2a231a;
+  --d-err: #e08a76;
+  --d-warn: #cfae72;
+  --d-hint: #d0c3ae;
+  --d-err-soft: #452520;
+  --d-warn-soft: #3d3119;
+  --d-hint-soft: #332c22;
+  --d-chart-1: #cdc5b8;
+  --d-chart-2: #6fb0d4;
+  --d-chart-3: #e0995c;
+  --d-chart-4: #74c095;
+  --d-chart-5: #cf8bbd;
+  --d-chart-6: #b7bd6a;
+  --d-dg-1: #ecdfc9;
+  --d-dg-2: #a0c9b0;
+  --d-dg-3: #d5b071;
+  --d-dg-4: #baac96;
+  --d-dg-5: #d59aab;
+  --d-dg-6: #7eabae;
+  --d-scrim: #100e0cb8;
+  --d-overlay-dark: rgba(0, 0, 0, 0.7);
+  --d-on-dark: #ffffff;
+  --d-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --d-tree-edge-opacity: 0.92;
+  --d-mind-edge-opacity: 0.92;
+  --d-journey-chip-opacity: 0.92;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+  --d-r-1: 3px;
+  --d-r-2: 5px;
+  --d-r-3: 6px;
+  --d-gutter: clamp(20px, 8.4vw, 120px);
+  --d-tap-pad: 4px;
+  --d-topbar-h: 60px;
+}
+
+html[data-site-theme="relief"] {
+  color-scheme: light;
+
+  --d-bg: #f6f1e6;
+  --d-surface: #fffdf7;
+  --d-surface-2: #fffdf7;
+  --d-surface-3: #efe8d8;
+  --d-border: #e6dfcd;
+  --d-border-strong: #cfc4a9;
+  --d-text-primary: #2a231d;
+  --d-text-secondary: #5e5446;
+  --d-text-muted: #6a5f50;
+  --d-accent: #c0421f;
+  --d-accent-soft: #f7e5da;
+  --d-accent-face: #ffffff;
+  --d-on-accent: #ffffff;
+  --d-code-bg: #f2ecdd;
+  --d-code-selection-bg: #efe6d3;
+  --d-err: #8a3d2b;
+  --d-warn: #6d5626;
+  --d-hint: #3d312a;
+  --d-err-soft: #f6e4dd;
+  --d-warn-soft: #f3ead2;
+  --d-hint-soft: #eee8db;
+  --d-chart-1: #3c3833;
+  --d-chart-2: #2f6f8f;
+  --d-chart-3: #b1622a;
+  --d-chart-4: #3f7a58;
+  --d-chart-5: #8a4a7a;
+  --d-chart-6: #6a6f2e;
+  --d-dg-1: #221811;
+  --d-dg-2: #52674f;
+  --d-dg-3: #7a5a24;
+  --d-dg-4: #4f4339;
+  --d-dg-5: #7a3f52;
+  --d-dg-6: #1f3937;
+  --d-scrim: #100e0cb8;
+  --d-overlay-dark: rgba(0, 0, 0, 0.7);
+  --d-on-dark: #ffffff;
+  --d-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --d-tree-edge-opacity: 0.85;
+  --d-mind-edge-opacity: 0.85;
+  --d-journey-chip-opacity: 0.6;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+  --d-r-1: 3px;
+  --d-r-2: 5px;
+  --d-r-3: 6px;
+  --d-gutter: clamp(20px, 8.4vw, 120px);
+  --d-tap-pad: 4px;
+  --d-topbar-h: 60px;
+}

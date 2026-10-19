@@ -16,6 +16,7 @@ import {
   describeOversizeSource,
   countDiagramElements,
   type CompileNotice,
+  type DslTheme,
 } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
@@ -76,6 +77,7 @@ import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from 
 import { 直せない軸の案内, まとめて直せない案内 } from "@/lib/axis-names";
 import { 指摘の本文 } from "@/lib/audit-detail";
 import { yaml } from "@codemirror/lang-yaml";
+import type { Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
@@ -86,8 +88,11 @@ import { sampleLabel } from "@/data/editor-samples";
 import { categoryLabel } from "@/lib/catalog";
 import type { Locale } from "@/lib/i18n";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
+import { 図の意匠 } from "@/lib/palette-switch";
+import { 図に意匠を当てる, 地が暗いか } from "@/lib/site-theme";
+import { useSiteTheme } from "@/lib/useSiteTheme";
 
-// 記述の色分け。 値は globals.css の変数から取るので、 明暗の切替は html.dark 1 本で済む。
+// 記述の色分け。 値は画面の変数 (`--d-*`) から取るので、 意匠ごとの表が替われば追随する (#2962)。
 // 鍵は dg-1、 値と文字列は dg-2、 区切りと注記は控えめな色、 という 04 編集画面の割り当てに合わせる。
 const CODE_TAG_COLORS = [
   { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "var(--d-dg-1)", fontWeight: "500" },
@@ -102,8 +107,10 @@ const CODE_TAG_COLORS = [
 // どちらの明暗でも当てる
 const v4Highlight = HighlightStyle.define(CODE_TAG_COLORS);
 
-// 明暗で同じ指定を使う。 中の色はすべて変数なので、 html.dark が付いた時点で追随する。
+// 明暗で同じ指定を使う。 中の色はすべて変数なので、 意匠の表が替われば追随する。
 // 明暗の 2 つを作るのは CodeMirror が明暗の別を内部の判定に使うためで、 見た目の差は変数側が持つ。
+// 明暗は意匠の地から決める (`地が暗いか`、#2962)。 `color-scheme` も同じ明暗で持たせ、 html から
+// 継いだ値に頼らない (欄の中の scrollbar と選択の既定色が記述欄の地に合う)。
 const CODE_THEME_RULES = {
   "&": {
     backgroundColor: "var(--d-code-bg)",
@@ -129,8 +136,13 @@ const CODE_THEME_RULES = {
   "&.cm-focused": { outline: "none" },
 };
 
-const v4EditorThemeLight = EditorView.theme(CODE_THEME_RULES, { dark: false });
-const v4EditorThemeDark = EditorView.theme(CODE_THEME_RULES, { dark: true });
+const 記述欄の指定 = (dark: boolean): Extension =>
+  EditorView.theme(
+    { ...CODE_THEME_RULES, "&": { ...CODE_THEME_RULES["&"], colorScheme: dark ? "dark" : "light" } },
+    { dark },
+  );
+const v4EditorThemeLight = 記述欄の指定(false);
+const v4EditorThemeDark = 記述欄の指定(true);
 
 /** SAMPLES の各 sample に slug (kebab-case) を持たせて、`#preset=<slug>` と一致検索する。
  *  slug は `#preset=` から引く kebab-case の識別子。 複数 sample が同 slug を共有する場合
@@ -221,11 +233,19 @@ function collectActorNamesFromSrc(src: string): Set<string> {
  * 終わってもやり直さず、 パーツが空の箱のまま残る (実測 = 共有 URL でパーツ入りの本文を開くと、
  * 一覧を開いた後も箱のままだった)。
  */
-function buildKey(tab: "cdl" | "yaml", src: string, yamlSrc: string, partsCount: number, locale: string): string {
+function buildKey(
+  tab: "cdl" | "yaml",
+  src: string,
+  yamlSrc: string,
+  partsCount: number,
+  locale: string,
+  意匠: DslTheme,
+): string {
   // 長さを持つ形で繋ぐ。 区切り文字で繋ぐと、 その文字が本文に出た時に別の中身が同じ鍵になる
   // 画面の言語も混ぜる (#1910)。 形の絵の中の字が言語で変わるので、切り替えたのに覚えてある
-  // 別の言語の図を戻すと、画面と違う言語の字が残る
-  return JSON.stringify([tab, partsCount, locale, tab === "yaml" ? yamlSrc : src]);
+  // 別の言語の図を戻すと、画面と違う言語の字が残る。 意匠を書かない図に当てる画面の意匠も
+  // 同じ理由で混ぜる (#2962)
+  return JSON.stringify([tab, partsCount, locale, 意匠, tab === "yaml" ? yamlSrc : src]);
 }
 
 /**
@@ -448,7 +468,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     if (activeSample === 新しい書類) return 字.新規ファイル;
     return activeSample;
   })();
-  const [isDark, setIsDark] = useState(false);
+  // 意匠を書かない図に当てる意匠と、 記述欄の明暗 (#2962)。 どちらも住所の `?theme=` から決まる
+  const [画面の意匠] = useSiteTheme();
+  const 地が暗い = 地が暗いか(画面の意匠);
 
   /**
    * 脇の一覧の tab (見本 / 部品 / 記法の説明)。 既定は見本。
@@ -647,16 +669,6 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const q = search.toLowerCase();
     return partsItems.filter((p) => p.title.toLowerCase().includes(q) || p.subtitle.toLowerCase().includes(q));
   }, [partsItems, search]);
-
-  // html.dark の変化を監視して CodeMirror theme を切替
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const update = (): void => setIsDark(document.documentElement.classList.contains("dark"));
-    update();
-    const observer = new MutationObserver(update);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
 
   const filteredSamples = useMemo(() => {
     if (!search.trim()) return SAMPLES;
@@ -985,7 +997,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
    */
   const commitBuilt = useCallback((d: CdlDiagram, built: BuildResult, notices: CompileNotice[]): void => {
     buildCacheRef.current[activeTab] = {
-      key: buildKey(activeTab, src, yamlSrc, partsItems.length, locale),
+      key: buildKey(activeTab, src, yamlSrc, partsItems.length, locale, 画面の意匠),
       diagram: d,
       laid: built.laid,
       warnings: built.warnings,
@@ -999,15 +1011,16 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     setDiagram(d);
     setWarnings(built.warnings);
     setCompileNotices(notices);
-  }, [activeTab, src, yamlSrc, partsItems.length, locale]);
+  }, [activeTab, src, yamlSrc, partsItems.length, locale, 画面の意匠]);
 
   /** 組み立てて載せるまでを 1 度に済ませる経路 (測った配置を途中で使わない入口向け) */
   // **集めた知らせをそのまま渡す**。 空配列を渡していたため、 YAML 欄で集めた知らせが捨てられ
   // ていた (review 指摘)。 呼出側が集めていないなら空でよいが、 集めたなら渡す
   const applyDiagram = useCallback((d: CdlDiagram, notices: CompileNotice[] = []): void => {
-    const 言語を当てた図 = 図に画面の言語を当てる(d, locale);
-    commitBuilt(言語を当てた図, buildAndValidate(言語を当てた図), notices);
-  }, [commitBuilt, locale]);
+    // 意匠を書かない図は画面の意匠で描く (#2962)。 組み立ての前に当て、 配置も当てた図で測る
+    const 当てた図 = 図に意匠を当てる(図に画面の言語を当てる(d, locale), 画面の意匠);
+    commitBuilt(当てた図, buildAndValidate(当てた図), notices);
+  }, [commitBuilt, locale, 画面の意匠]);
 
   // src 変更時 debounce (CDL = 300ms 従来通り、 YAML = 500ms spec AC 3) で parse + render
   useEffect(() => {
@@ -1018,7 +1031,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     if (activeTab === "yaml") void loadYamlAdapter().catch(() => undefined);
     // 欄を切り替えただけで中身が変わっていないなら、 覚えてある図を戻すだけにする (#1006)。
     // 組み立ては図の規模に比例して重く、 往復のたびに計算し直すと画面が止まる
-    const key = buildKey(activeTab, src, yamlSrc, partsItems.length, locale);
+    const key = buildKey(activeTab, src, yamlSrc, partsItems.length, locale, 画面の意匠);
     const cached = buildCacheRef.current[activeTab];
     if (cached && cached.key === key) {
       renderedDiagramSourceRef.current = {
@@ -1140,13 +1153,17 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           // edge が本文のどの行から来たかを受け取る (#998)。 preset によっては書いた step と
           // 生成される edge が一致しないため、 これが無いと自動修正が別の行を書き換える。
           const edgeLines = new Map<string, number>();
-          const diagram = 図に画面の言語を当てる(
-            textDslToDiagram(本文, {
-              partsCatalog,
-              onNotice: (n) => notices.push(n),
-              onEdgeSource: (id, line) => edgeLines.set(id, line),
-            }),
-            locale,
+          // 意匠を書かない図は画面の意匠で描く (#2962)
+          const diagram = 図に意匠を当てる(
+            図に画面の言語を当てる(
+              textDslToDiagram(本文, {
+                partsCatalog,
+                onNotice: (n) => notices.push(n),
+                onEdgeSource: (id, line) => edgeLines.set(id, line),
+              }),
+              locale,
+            ),
+            画面の意匠,
           );
           return { diagram, notices, edgeLines };
         });
@@ -1221,8 +1238,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     // 抽出をやり直さないため、 パーツが図の中の空の箱のまま残る (実測 = 共有 URL で
     // パーツ入りの本文を開くと、 一覧を開いた後も箱のままだった)
     //
-    // `commitBuilt` が見る 5 つ (`activeTab` / `src` / `yamlSrc` / `partsItems` / `locale`) は
-    // 既にこの一覧に在るので、書き足しても走る回数は増えない。
+    // `commitBuilt` が見る 6 つ (`activeTab` / `src` / `yamlSrc` / `partsItems` / `locale` /
+    // `画面の意匠`) は既にこの一覧に在るので、書き足しても走る回数は増えない。
     // `showStageNotice` は空の依存で作るので書き換わらない
   }, [
     src,
@@ -1231,6 +1248,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     partsCatalog,
     partsItems,
     locale,
+    画面の意匠,
     applyDiagram,
     commitBuilt,
     showStageNotice,
@@ -2048,7 +2066,7 @@ animation:
         <div className="v4-editor-code-body" data-testid={`editor-code-body-${activeTab}`}>
           <CodeMirror
             value={activeTab === "yaml" ? yamlSrc : src}
-            theme={isDark ? v4EditorThemeDark : v4EditorThemeLight}
+            theme={地が暗い ? v4EditorThemeDark : v4EditorThemeLight}
             extensions={
               // 記法のタブは記法の分解器で色を付ける (#1310)。 汎用 YAML 文法と併用すると
               // 同じ語に 2 つの色が当たって後勝ちになるため、記法では YAML 文法を外す。
@@ -2387,7 +2405,16 @@ animation:
                         userSelect: "none",
                       }}
                     >
-                      <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(p.item.diagram, locale)} hideHeader emitGeometryWarn={false} />
+                      {/* 重ねる部品は本図と同じ意匠で描く (#2962)。 部品に書いた意匠があればそれを使う */}
+                      <CdlDiagramView
+                        hideMiniPhaseIndicator
+                        diagram={図に意匠を当てる(
+                          図に画面の言語を当てる(p.item.diagram, locale),
+                          diagram ? 図の意匠(diagram, 画面の意匠) : 画面の意匠,
+                        )}
+                        hideHeader
+                        emitGeometryWarn={false}
+                      />
                     </div>
                   );
                 })}

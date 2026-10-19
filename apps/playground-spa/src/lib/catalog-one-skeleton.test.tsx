@@ -11,10 +11,11 @@ import { describe, expect, it, vi } from "vitest";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
 import { カタログの図を組む } from "./catalog-layout";
 import { 記法つき, 部品の一覧 } from "./catalog-source-cases";
-import { 図の配色を変える, 画面の色, type 配色 } from "./palette-switch";
+import { 図の配色を変える } from "./palette-switch";
+import { 既定の意匠 } from "./site-theme";
 import { 骨組みの差, 骨組みの許容差, 骨組みを測る } from "./skeleton-test-helpers";
 
-const 比べる配色 = [...THEMES, 画面の色] as const satisfies readonly 配色[];
+const 比べる配色 = THEMES;
 
 type 見本 = {
   id: string;
@@ -59,14 +60,15 @@ describe("見本帳は配色を替えても図ごとの骨組みを保つ (#2908
     }
   }, 120_000);
 
-  it("全ての見本の箱・線・線札・段見出し・円の区画・図枠が 10 配色で同じ", async () => {
+  it("全ての見本の箱・線・線札・段見出し・円の区画・図枠が 7 配色で同じ", async () => {
     const warnings = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
       const differences: string[] = [];
       for (const { id, diagram } of await 頁に出る見本を集める()) {
         const built = カタログの図を組む(diagram);
         expect(built.textMetrics, `${id} の字の測り方`).toBe("widest");
-        const baseDiagram = 図の配色を変える(built, 画面の色);
+        // 基準は意匠を書かない見本を開いた時の意匠 (#2962)
+        const baseDiagram = 図の配色を変える(built, 既定の意匠);
         const base = 骨組みを測る(baseDiagram, baseDiagram);
         for (const palette of 比べる配色) {
           const themed = 図の配色を変える(built, palette);

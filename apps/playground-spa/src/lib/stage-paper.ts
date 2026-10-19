@@ -1,3 +1,5 @@
+import { 名前の意匠, 地が暗いか } from "./site-theme";
+
 /**
  * 図面の紙の色を **画面から読む** (#1060)。
  *
@@ -10,8 +12,8 @@
 /**
  * 画面と色が合わなくなった時に使う最後の手段。 実際に読めた時は使わない。
  *
- * 値は `globals.css` の `--d-surface` (明暗それぞれ) と揃える。 図の紙は一覧でも編集画面でも
- * この面の色なので、 ずれると読めなかった時だけ別の紙で書き出される。
+ * 値は `site-theme.css` の各意匠の表の `--d-surface` と揃える (地の明るい意匠と暗い意匠で 1 色ずつ)。
+ * ずれると読めなかった時だけ別の紙で書き出される (`stage-paper.test.ts` が 7 意匠で突き合わせる)。
  */
 const FALLBACK_DARK = "#241f18";
 const FALLBACK_LIGHT = "#fffdf7";
@@ -30,12 +32,13 @@ function isTransparent(color: string): boolean {
  * 図面が載っている面の色を返す。
  *
  * 要素自身が透けている場合は、色を持つ祖先まで遡る。 どこまで遡っても色が無ければ
- * 画面の明暗に応じた既定に落ちる (書き出しを止めるより、近い色で出す方が良い)。
+ * 画面の意匠 (html の `data-site-theme`) の地の明暗に応じた既定に落ちる
+ * (書き出しを止めるより、近い色で出す方が良い)。
  */
 export function stagePaperColor(stage: Element | null | undefined): string {
   const doc = stage?.ownerDocument ?? (typeof document === "undefined" ? null : document);
-  const dark = doc?.documentElement.classList.contains("dark") ?? false;
-  const fallback = dark ? FALLBACK_DARK : FALLBACK_LIGHT;
+  const 付いた意匠 = 名前の意匠(doc?.documentElement.getAttribute("data-site-theme") ?? null);
+  const fallback = 地が暗いか(付いた意匠) ? FALLBACK_DARK : FALLBACK_LIGHT;
   if (!stage || typeof getComputedStyle !== "function") return fallback;
 
   let node: Element | null = stage;

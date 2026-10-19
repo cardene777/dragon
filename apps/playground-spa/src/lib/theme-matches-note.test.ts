@@ -4,7 +4,7 @@
  * 意匠帳と画面の CSS の 9 つの口を突き合わせる (#2790)。
  *
  * 同じ意匠の塊は足し合わせる。図面は色の塊と作りの塊を持つため、後の塊で前を上書きすると
- * 9 色を 0 件にしても検査が通る。明暗か固定かは意匠帳の表の列数から読む。
+ * 9 色を 0 件にしても検査が通る。どの意匠も地まで含めた 1 枚の絵なので、表は 1 組だけ持つ。
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -37,6 +37,7 @@ import {
 import { contrast } from "../../tests/helpers/pixel-contrast";
 import { over } from "../../tests/helpers/effective-color";
 import {
+  ancestorScopedThemeTables,
   readThemeRoleTable,
   readTimelineLabelSkeleton,
   resolveThemeRole,
@@ -45,12 +46,9 @@ import {
 const 読む = (rel: string): string =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 
-type CssTheme = { light: Map<ThemePort, string>; dark: Map<ThemePort, string>; hasDarkBlock: boolean };
+type CssTheme = Map<ThemePort, string>;
 type CssChartTheme = { cdl: string[]; dragon: string[]; colors: string[] };
-type CssMetroTheme = {
-  light: Map<MetroColorRole, string>;
-  dark: Map<MetroColorRole, string>;
-};
+type CssMetroTheme = Map<MetroColorRole, string>;
 const METRO_CSS_ROLES = {
   main: "main",
   yes: "yes",
@@ -91,11 +89,7 @@ function cssThemes(cssText: string): Map<string, CssTheme> {
         return value === undefined ? [] : [[port, value] as const];
       }),
     );
-    out.set(name, {
-      light: ports(table.light),
-      dark: table.hasDarkBlock ? ports(table.dark) : new Map<ThemePort, string>(),
-      hasDarkBlock: table.hasDarkBlock,
-    });
+    out.set(name, ports(table));
   }
   return out;
 }
@@ -110,10 +104,7 @@ function cssMetroThemes(cssText: string): Map<string, CssMetroTheme> {
         return value === undefined ? [] : [[noteRole, value] as const];
       }),
     );
-    out.set(name, {
-      light: colors(table.light),
-      dark: table.hasDarkBlock ? colors(table.dark) : new Map<MetroColorRole, string>(),
-    });
+    out.set(name, colors(table));
   }
   return out;
 }
@@ -121,7 +112,7 @@ function cssMetroThemes(cssText: string): Map<string, CssMetroTheme> {
 function cssChartThemes(cssText: string, fixedNames: Set<string>): Map<string, CssChartTheme> {
   const out = new Map<string, CssChartTheme>();
   for (const themeName of fixedNames) {
-    const declarations = readThemeRoleTable(cssText, themeName).light;
+    const declarations = readThemeRoleTable(cssText, themeName);
     const chartValues = (prefix: "cdl" | "d"): string[] =>
       Array.from({ length: 6 }, (_, index) => {
         const name = `--${prefix}-chart-${index + 1}`;
@@ -168,7 +159,7 @@ function hueDifference(left: string, right: string): number {
 
 function cssFixedThemeDeclarations(cssText: string, themeName: string): Map<string, string> {
   return new Map(
-    [...readThemeRoleTable(cssText, themeName).light]
+    [...readThemeRoleTable(cssText, themeName)]
       .map(([role, value]) => [role.slice(2), value]),
   );
 }
@@ -323,7 +314,7 @@ function compare(notes: Map<DslTheme, ThemeNote>, css: Map<string, CssTheme>): {
     const actual = css.get(name);
     if (!actual) continue;
     for (const port of THEME_PORTS) {
-      const got = actual.light.get(port);
+      const got = actual.get(port);
       if (got === undefined) continue;
       count += 1;
       if (got !== note.value[port]) mismatch.push(`${name}.${port} 固定: 意匠帳 ${note.value[port]} / CSS ${got}`);
@@ -341,22 +332,22 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect([...actual.keys()].sort()).toEqual([...THEMES].sort());
   });
 
-  it("全ての口が意匠帳と一致し、固定の意匠は暗い塊を持たない", () => {
+  it("全ての口が意匠帳と一致し、表の値を祖先の状態で差し替える塊を持たない", () => {
     const notes = readThemeNotes();
     const css = cssThemes(cssText);
     const mismatch: string[] = [];
     for (const name of notes.keys()) {
       const actual = css.get(name);
       if (!actual) continue;
-      expect([...actual.light.keys()].sort(), `${name} の固定の口`).toEqual([...THEME_PORTS].sort());
-      expect(actual.hasDarkBlock, `${name} は固定なのに html.dark の塊を持つ`).toBe(false);
-      expect(actual.dark.size, `${name} は固定なのに暗の値を持つ`).toBe(0);
+      expect([...actual.keys()].sort(), `${name} の固定の口`).toEqual([...THEME_PORTS].sort());
+      // サイトの意匠や画面の状態で値を替えると、同じ意匠の図がサイトごとに別の色になる (#2962)
+      expect(ancestorScopedThemeTables(cssText, name), `${name} の表を祖先で差し替える塊`).toEqual([]);
     }
 
     const result = compare(notes, css);
     const expected = notes.size * THEME_PORTS.length;
     mismatch.push(...result.mismatch);
-    expect(result.count, "突き合わせた組の数が意匠 × 口 × 明暗と違う").toBe(expected);
+    expect(result.count, "突き合わせた組の数が意匠 × 口と違う").toBe(expected);
     expect(mismatch, "意匠帳と CSS の値が食い違う").toEqual([]);
   });
 
@@ -374,12 +365,11 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       }
       for (const [role, expectedColor] of Object.entries(note.value) as Array<[MetroColorRole, string]>) {
         checked += 1;
-        const actualColor = css.light.get(role);
+        const actualColor = css.get(role);
         if (actualColor !== expectedColor) {
           failures.push(`${name}/固定/${role}: 意匠帳 ${expectedColor} / CSS ${actualColor ?? "無し"}`);
         }
       }
-      if (css.dark.size > 0) failures.push(`${name}: 固定意匠なのに暗い路線図の色を持つ`);
     }
 
     expect(checked, "路線図の色を 1 件も突き合わせていない").toBe(notes.size * 16);

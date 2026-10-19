@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link, useLocation } from "react-router";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useLocale } from "@/lib/useLocale";
 import { 画面の名前を引く } from "@/lib/site-destinations";
 
@@ -29,7 +29,7 @@ const 広い幅の条件 = `(min-width: ${折りたたむ幅 + 1}px)`;
  * 幅の判定を引く。 持たない環境では `null` を返す。
  *
  * jsdom は `matchMedia` を持たない。 素で呼ぶと帯を描く検査が全部落ちる
- * (実測 = 帯を含む 4 file 19 件)。 同じ file の配色の判定も try で包んでいる。
+ * (実測 = 帯を含む 4 file 19 件)。
  */
 function 幅の判定(): MediaQueryList | null {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return null;
@@ -60,29 +60,9 @@ const 今広いか = (): boolean => 幅の判定()?.matches ?? true;
 const 描き出しは広い = (): boolean => true;
 
 /**
- * 描き始める時の配色が暗いか (#2018)。 保存した配色を先に見て、無ければ端末の設定に従う。
- *
- * `useState` の初期値として最初の描画で読む。 header は頁ごとに作り直されるので、描いた後の
- * 効果で読むと、暗い配色の人は頁を移るたびに切替ボタンの印と読み上げの文言が 1 回逆になる。
- */
-function 描き始めは暗いか(): boolean {
-  try {
-    const t = localStorage.getItem("v4-theme");
-    const prefersDark =
-      !t &&
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return t === "dark" || prefersDark;
-  } catch {
-    // localStorage / matchMedia 非対応環境では明るい配色を使う
-    return false;
-  }
-}
-
-/**
  * 全 page 共通の header。 見た目の SSOT = docs/design/app.pen の C / TopBar、
  * class の中身は src/styles/header.css。
- * 明暗は html 要素の dark class 1 本で切替わり、 その値は localStorage に残る。
+ * 明暗の切り替えは持たない。 見た目は住所の `?theme=` が決める意匠の表で決まる (#2962)。
  *
  * ## 狭い幅では行き先を折りたたむ (#2539)
  *
@@ -95,7 +75,6 @@ function 描き始めは暗いか(): boolean {
 export function SiteHeader(): React.ReactElement {
   const location = useLocation();
   const pathname = location.pathname;
-  const [isDark, setIsDark] = useState<boolean>(描き始めは暗いか);
   const [locale, setLocale] = useLocale();
   /*
    * 開いているかを直に持たず、**どの画面で開いたか** を持つ (#2539)。
@@ -108,12 +87,6 @@ export function SiteHeader(): React.ReactElement {
   const 広いか = useSyncExternalStore(幅を見張る, 今広いか, 描き出しは広い);
   const 開いている = 開いた道 === pathname && !広いか;
 
-  // `dark` class は足すだけで外さない。 外すのは切替ボタンだけ = 保存が読めない環境で暗くした後に
-  // 頁を移っても、読み直した「明るい」 で上書きしない
-  useEffect(() => {
-    if (isDark) document.documentElement.classList.add("dark");
-  }, [isDark]);
-
   // 逃げ道を 1 つ残す。 面の外を押す形だけだと、画面を読み上げて操作する人が閉じられない
   useEffect(() => {
     if (!開いている) return;
@@ -124,32 +97,11 @@ export function SiteHeader(): React.ReactElement {
     return () => document.removeEventListener("keydown", 押した);
   }, [開いている]);
 
-  const toggleTheme = (): void => {
-    const cur = document.documentElement.classList.contains("dark") ? "dark" : "light";
-    const next = cur === "dark" ? "light" : "dark";
-    if (next === "dark") document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-    try {
-      localStorage.setItem("v4-theme", next);
-    } catch {
-      // localStorage / matchMedia 非対応環境では default 値を維持
-    }
-    setIsDark(next === "dark");
-  };
-
   const toggleLocale = (): void => {
     setLocale(locale === "ja" ? "en" : "ja");
   };
 
   const openEditorLabel = locale === "ja" ? "編集画面を開く →" : "open editor →";
-  const themeLabel =
-    locale === "ja"
-      ? isDark
-        ? "明るい配色に切り替える"
-        : "暗い配色に切り替える"
-      : isDark
-        ? "Switch to light mode"
-        : "Switch to dark mode";
   const langLabel = locale === "ja" ? "Switch to English" : "日本語に切替";
   const menuLabel = 開いている
     ? locale === "ja"
@@ -209,15 +161,6 @@ export function SiteHeader(): React.ReactElement {
         >
           <span className={`v4-nav-lang-seg${locale === "ja" ? " is-on" : ""}`}>JA</span>
           <span className={`v4-nav-lang-seg${locale === "en" ? " is-on" : ""}`}>EN</span>
-        </button>
-        <button
-          type="button"
-          className="v4-nav-icon-btn v4-nav-theme-toggle"
-          onClick={toggleTheme}
-          aria-label={themeLabel}
-          title={themeLabel}
-        >
-          {isDark ? <Moon size={15} /> : <Sun size={15} />}
         </button>
         <button
           type="button"

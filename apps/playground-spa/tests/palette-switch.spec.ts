@@ -57,8 +57,8 @@ test("switch: 意匠の札が全て並び、配色を持つ図で切り替えら
     await expect(色味(page).getByRole("option", { name: label, exact: true })).toHaveCount(1);
   for (const label of ["生成りに茶", "青磁に墨"])
     await expect(色味(page).getByRole("option", { name: label, exact: true }), `${label} の札が残っている`).toHaveCount(0);
-  // 見本は意匠を書かず、画面で選んだ意匠で開く (#2960)
-  expect(await 配色(page, "delivery-relations-demo"), "意匠を書かない見本が意匠を持っている").toBeNull();
+  // 見本は意匠を書かず、画面の意匠で開く (#2960)。 `?theme=` を付けない画面の意匠は活版 (#2962)
+  expect(await 配色(page, "delivery-relations-demo"), "意匠を書かない見本が画面の意匠で描かれていない").toBe("letterpress");
 
   await 色味(page).selectOption({ label: "図面" });
   await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("blueprint");
@@ -187,12 +187,12 @@ flow:
   - ${細い名前} -> Receiver: "送る"
 `;
 
-  await openEditorTheme(page, 本文, "letterpress", false);
+  await openEditorTheme(page, 本文, "letterpress");
   const 活版の面 = page.locator(`[data-cdl-node="${細い名前}"] [data-cdl-role="node-body"]`);
   await expect(活版の面, "活版で細い名前の箱面を読めない").toHaveCount(1);
   const 活版の箱幅 = await 活版の面.evaluate((面) => 面.getBoundingClientRect().width);
 
-  await openEditorTheme(page, 本文, "terminal", false);
+  await openEditorTheme(page, 本文, "terminal");
   const 端末の面 = page.locator(`[data-cdl-node="${細い名前}"] [data-cdl-role="node-body"]`);
   await expect(端末の面, "端末で細い名前の箱面を読めない").toHaveCount(1);
   const 端末の箱幅 = await 端末の面.evaluate((面) => 面.getBoundingClientRect().width);
@@ -228,11 +228,11 @@ flow:
   );
 });
 
-test("switch: 配色を持たない図にも切替が出て、図面を当てられる (#2790)", async ({ page }) => {
+test("switch: 配色を書いていない図は画面の意匠で描き、図面を当てられる (#2790 / #2962)", async ({ page }) => {
   await 開く(page, "presets", "infra-demo");
-  expect(await 配色(page, "infra-demo"), "この図が配色を持ってしまっている").toBeNull();
-  await expect(色味(page), "配色を持たない図に選ぶ欄が出ていない").toBeVisible();
-  await expect(色味(page)).toHaveValue("site-colours");
+  expect(await 配色(page, "infra-demo"), "配色を書いていない図が既定の画面の意匠で描かれていない").toBe("letterpress");
+  await expect(色味(page), "配色を書いていない図に選ぶ欄が出ていない").toBeVisible();
+  await expect(色味(page)).toHaveValue("letterpress");
 
   await 色味(page).selectOption({ label: 配色の札("blueprint", "ja") });
   await expect
@@ -363,6 +363,6 @@ test("switch: 項目を選び直すと既定へ戻る (#1569)", async ({ page })
 
   await 一覧の行(page, "delivery-classes-demo").click();
   await page.waitForSelector('[data-cdl-diagram="delivery-classes-demo"]', { timeout: 15000 });
-  // 見本は意匠を書かないので、選び直した図は意匠を持たずに開く (#2960)
-  await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBeNull();
+  // 見本は意匠を書かないので、選び直した図は画面の意匠 (`?theme=` 無しは活版) で開く (#2960 / #2962)
+  await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBe("letterpress");
 });

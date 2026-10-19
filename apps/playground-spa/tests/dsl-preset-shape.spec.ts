@@ -91,8 +91,9 @@ test("見本「四半期ロードマップ」 で帯と目盛りが描かれる 
     const g = document.querySelector('[data-cdl-kind="gantt-timeline"]');
     if (!g) return null;
     const box = g.getBoundingClientRect();
-    // 帯 = 図の幅の 1 割から 6 割に収まる矩形。 枠や背景 (ほぼ全幅) と区別する
-    const 帯 = [...g.querySelectorAll("rect")]
+    // 帯 = 帯の役を持ち、 図の幅の 1 割から 6 割に収まる部品。 枠や背景 (ほぼ全幅) と区別する。
+    // 要素の種類では数えない = 意匠によって矩形でも path でも描く (#2962)
+    const 帯 = [...g.querySelectorAll('[data-cdl-role="gantt-bar"]')]
       .map((r) => r.getBoundingClientRect())
       .filter((r) => r.width > box.width * 0.05 && r.width < box.width * 0.6 && r.height > 4)
       .map((r) => ({ w: Math.round(r.width), x: Math.round(r.x) }));
@@ -147,7 +148,7 @@ test("タスクが多いガントでも帯が箱に収まる (#1077)", async ({ 
     if (!g) return null;
     const body = g.querySelector("[data-cdl-role='node-body']") ?? g;
     const b = body.getBoundingClientRect();
-    const 帯 = [...g.querySelectorAll("rect")]
+    const 帯 = [...g.querySelectorAll('[data-cdl-role="gantt-bar"]')]
       .map((r) => r.getBoundingClientRect())
       .filter((r) => r.width > b.width * 0.02 && r.width < b.width * 0.6 && r.height > 4);
     return {

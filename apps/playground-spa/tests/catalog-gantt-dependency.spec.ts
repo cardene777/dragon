@@ -15,7 +15,7 @@ type 帯 = { left: number; right: number; top: number; bottom: number };
 
 for (const theme of 意匠) {
   test(`${theme}: 工程の節目・今日・主役と依存線を見本どおり描く (#2854 C14)`, async ({ page }) => {
-    await openEditorTheme(page, sourceYaml__sortingShelfGantt, theme, false);
+    await openEditorTheme(page, sourceYaml__sortingShelfGantt, theme);
     const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     await expect(stage).toBeVisible();
 

@@ -28,18 +28,21 @@ const 端 = (page: Page): Promise<string | null> => page.locator(台).first().ge
  * 機能は壊れていない = 同じ窓で 19 見本を測ると `階層構成図` (195px) と
  * `入れ子の状態遷移図` (182px) は今も器から出て、どちらも印が `右` で付く。
  *
- * **窓を狭くして、器が広くなる変更に前提を委ねない**。 窓 1000×720 での実測。
+ * **窓を狭くして、器が広くなる変更に前提を委ねない**。
+ *
+ * #2962 で意匠を書かない見本も既定の活版で描くようになり、`フロー` の中身が 890px に縮んで
+ * 窓 1000px の器 (938px) に収まった。 窓を 900px に狭めた。 窓 900×720 での実測 (活版)。
  *
  * | 見本 | 器 | 中身 | 余り | 印 |
  * |---|---|---|---|---|
- * | `フロー` | 938px | 1199px | 261px | 右 |
- * | `円グラフ` (対照) | 938px | 938px | 0px | 付かない |
+ * | `フロー` | 844px | 918px | 74px | 右 |
+ * | `円グラフ` (対照) | 844px | 844px | 0px | 付かない |
  *
  * 器から出る別の見本に差し替える形は採らない。 器が広がるたびに差し替えることになる。
  * 対照の見本も同じ窓で開く = 片方だけ窓を変えると、2 つの検査が別の条件を見る。
  */
 async function 拡大を開く(page: Page, 分類: string, 見本: string): Promise<void> {
-  await page.setViewportSize({ width: 1000, height: 720 });
+  await page.setViewportSize({ width: 900, height: 720 });
   await page.goto(`catalog/${分類}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page

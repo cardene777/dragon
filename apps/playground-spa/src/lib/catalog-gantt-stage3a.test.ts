@@ -33,7 +33,7 @@ const 工程の沈んだ字 = {
 
 describe("工程の図の 7 意匠", () => {
   it.each(意匠)("%s の沈んだ色と工程専用色を見本の口へ当てる", (name) => {
-    const declarations = readCdlThemeRoleTable(name).light;
+    const declarations = readCdlThemeRoleTable(name);
     expect(declarations.get("--cdl-tone-muted"), `${name} の沈んだ色`).toBe(沈んだ色[name]);
     expect(declarations.get("--dragon-chart-axis-text"), `${name} の沈んだ字`).toBe(工程の沈んだ字[name]);
     expect(declarations.get("--cdl-gantt-arrow"), `${name} の依存の線`).toBe("var(--cdl-chart-2)");
@@ -43,9 +43,9 @@ describe("工程の図の 7 意匠", () => {
 
   it("沈んだ帯と電飾の管の枠の値を表に持つ", () => {
     for (const name of ["blueprint", "letterpress"] as const) {
-      expect(readCdlThemeRoleTable(name).light.get("--dragon-chart-band-frame")).toBe("currentColor");
+      expect(readCdlThemeRoleTable(name).get("--dragon-chart-band-frame")).toBe("currentColor");
     }
-    expect(readCdlThemeRoleTable("neon").light.get("--dragon-chart-band-frame")).toBe(
+    expect(readCdlThemeRoleTable("neon").get("--dragon-chart-band-frame")).toBe(
       "color-mix(in srgb, currentColor 35%, white 65%)",
     );
   });

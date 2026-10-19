@@ -6,8 +6,8 @@ import { describe, expect, it } from "vitest";
 
 import { parseCssRules } from "../../scripts/theme-css-equivalence-core.mjs";
 import {
-  ALL_TABLE_THEMES,
   directDimensionsAndEffects,
+  FIXED_THEMES,
   sectionHeadings,
   tableDeclarations,
   THEME_ROLE_TABLE_BASELINE,
@@ -32,7 +32,6 @@ function sectionAfter(heading: string): string {
 const sectionGroups = {
   "値の表": ["図の配色 (#1553)"],
   "共通の決まり": [
-    "cdl 内部の図 (chart 系 / tree / mind-map / journey-map) が読む変数。",
     "文字に線を引かせない。",
     "箱",
     "線",
@@ -84,18 +83,15 @@ describe("意匠の値表の最後の確かめ (#2883)", () => {
     expect(direct).toEqual([]);
   });
 
-  it("9 意匠の表は読む役を空値や fallback で補わず、不足は 0 件", () => {
+  it("7 意匠の表は読む役を空値や fallback で補わず、不足は 0 件", () => {
     const tables = tableDeclarations(css);
     const empty = [...tables].flatMap(([theme, values]) =>
       [...values].filter(([, value]) => value.trim() === "").map(([role]) => `${theme}: ${role}`));
-    const missing = missingThemeRoleReads(css, {
-      themes: ALL_TABLE_THEMES,
-      fixedThemes: ALL_TABLE_THEMES.slice(0, 7),
-    });
+    const missing = missingThemeRoleReads(css, FIXED_THEMES);
 
     console.log(`意匠 ${tables.size} 件、空値 ${empty.length} 件、読む役の不足 ${missing.length} 件`);
     if (missing.length > 0) console.log(`不足:\n${missing.join("\n")}`);
-    expect([...tables.keys()]).toEqual([...ALL_TABLE_THEMES]);
+    expect([...tables.keys()]).toEqual([...FIXED_THEMES]);
     for (const [theme, values] of tables) {
       expect(values.size, `${theme} の表が空`).toBeGreaterThan(0);
     }

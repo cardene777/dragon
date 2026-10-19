@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import "@fontsource-variable/inter/wght.css";
 import "@fontsource-variable/space-grotesk/wght.css";
 import "@fontsource-variable/jetbrains-mono/wght.css";
+// 意匠ごとの画面の値の表 (#2962)。 `--d-*` を読む他の file より先に置く
+import "./styles/site-theme.css";
 import "./styles/globals.css";
 import "./styles/cdl-theme.css";
 import "./styles/theme-motion.css";
@@ -24,6 +26,7 @@ import "./styles/phase-chrome.css";
 import { SvgDefs } from "./components/SvgDefs";
 import { ToastProvider } from "./components/Toast";
 import { LocaleProvider } from "./lib/useLocale";
+import { SiteThemeProvider } from "./lib/useSiteTheme";
 import { HomePage } from "./pages/HomePage";
 
 // catalog / editor 系ページは catalog-items.ts 経由で見本の図を eager 構築するため、
@@ -56,26 +59,28 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter basename={routerBasename}>
       <SvgDefs />
       <LocaleProvider>
-        <ToastProvider>
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/catalog" element={<CatalogIndexPage />} />
-              <Route path="/catalog/:slug" element={<CategoryPage />} />
-              <Route path="/editor" element={<EditorPage />} />
-              {/* 拡張子で最初の欄を決める経路 (`/editor/diagram.yml`)。 `resolveInitialTab` が
-                  pathname の末尾を見るため、 ここを通さないと 404 に落ちて判定に届かない */}
-              <Route path="/editor/:filename" element={<EditorPage />} />
-              <Route path="/docs" element={<DocsPage />} />
-              <Route path="/release-notes" element={<ReleaseNotesPage />} />
-              {/* 実ブラウザでしか測れない検査に、 見本に無い形の図を通すための頁
-                  (cardene777/cdl#397)。 静的 import にしてあるので、 公開ビルドでは分岐ごと
-                  落ちて chunk も出ない (`lazy` だと参照の無い chunk が残る)。 */}
-              {import.meta.env.DEV && <Route path="/__render" element={<RenderProbePage />} />}
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </Suspense>
-        </ToastProvider>
+        <SiteThemeProvider>
+          <ToastProvider>
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/catalog" element={<CatalogIndexPage />} />
+                <Route path="/catalog/:slug" element={<CategoryPage />} />
+                <Route path="/editor" element={<EditorPage />} />
+                {/* 拡張子で最初の欄を決める経路 (`/editor/diagram.yml`)。 `resolveInitialTab` が
+                    pathname の末尾を見るため、 ここを通さないと 404 に落ちて判定に届かない */}
+                <Route path="/editor/:filename" element={<EditorPage />} />
+                <Route path="/docs" element={<DocsPage />} />
+                <Route path="/release-notes" element={<ReleaseNotesPage />} />
+                {/* 実ブラウザでしか測れない検査に、 見本に無い形の図を通すための頁
+                    (cardene777/cdl#397)。 静的 import にしてあるので、 公開ビルドでは分岐ごと
+                    落ちて chunk も出ない (`lazy` だと参照の無い chunk が残る)。 */}
+                {import.meta.env.DEV && <Route path="/__render" element={<RenderProbePage />} />}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </ToastProvider>
+        </SiteThemeProvider>
       </LocaleProvider>
     </BrowserRouter>
   </StrictMode>,

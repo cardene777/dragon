@@ -13,10 +13,10 @@
  *
  * ## 明暗をどう測るか
  *
- * `cdl-theme.css` は色を直に書かず `var(--d-*)` で参照する。 明暗の差は `globals.css` が
- * `:root` と `html.dark` で同じ変数に別の値を置くことで生まれる。
+ * `cdl-theme.css` は色を直に書かず `var(--d-*)` で参照する。 画面の変数の値は意匠ごとの表
+ * (`site-theme.css`) が持ち、 地の明るい意匠と暗い意匠で値が分かれる (#2962)。
  *
- * そこで `globals.css` から明暗 2 通りの変数表を作り、 `cdl-theme.css` の `var()` を
+ * そこで地の明るい既定の活版と、地の暗い端末の 2 表を明暗の代表として作り、 `cdl-theme.css` の `var()` を
  * 置き換えてから読む。 変数の連鎖が解けない (定義が無い) 場合は `var()` が残るので、
  * 範囲外として落ちる = 変数表と実際の参照がずれたら気付ける。
  *
@@ -69,34 +69,34 @@ import {
   requiredContrastRatio,
 } from "@cardenelabs/cdl";
 
-/** 明暗の値を持つ変数表の出どころ。 */
-const GLOBALS_PATH = fileURLToPath(
-  new URL("../../../apps/playground-spa/src/styles/globals.css", import.meta.url),
+/** 意匠ごとの画面の変数表の出どころ (#2962)。 */
+const SITE_THEME_PATH = fileURLToPath(
+  new URL("../../../apps/playground-spa/src/styles/site-theme.css", import.meta.url),
 );
 
 type Mode = "light" | "dark";
 
 /**
- * `globals.css` から明暗 2 通りの変数表を作る。
+ * `site-theme.css` から明暗 2 通りの変数表を作る。
  *
- * `:root` が明るい表示の値、 `html.dark` が暗い表示の上書き。 暗い表を作る時は
- * `:root` を土台にして `html.dark` を重ねる (上書きが無い変数は明るい値のまま効く)。
+ * 明るい側は地の明るい既定の活版、 暗い側は地の暗い端末の表。 どちらの表も画面の変数を
+ * 全部宣言する (`site-theme-table.test.ts` が確かめる) ので、 重ねずにそのまま使う。
  *
  * 取り出しは中括弧の対応を数えて行う。 正規表現で `{[^}]*}` と書くと、 中に別の規則を
  * 持つ形 (`@layer` 等) で途中で切れる。
  */
-function readVarTables(globalsText: string): Record<Mode, Map<string, string>> {
+function readVarTables(siteThemeText: string): Record<Mode, Map<string, string>> {
   const block = (selector: string): string => {
-    const head = new RegExp(`(^|\\})\\s*${selector}\\s*\\{`, "m").exec(globalsText);
+    const head = new RegExp(`(^|\\})\\s*${selector}\\s*\\{`, "m").exec(siteThemeText);
     if (!head) return "";
     let depth = 1;
     const start = head.index + head[0].length;
-    for (let i = start; i < globalsText.length; i++) {
-      const c = globalsText[i];
+    for (let i = start; i < siteThemeText.length; i++) {
+      const c = siteThemeText[i];
       if (c === "{") depth++;
       else if (c === "}") {
         depth--;
-        if (depth === 0) return globalsText.slice(start, i);
+        if (depth === 0) return siteThemeText.slice(start, i);
       }
     }
     return "";
@@ -109,10 +109,8 @@ function readVarTables(globalsText: string): Record<Mode, Map<string, string>> {
     }
     return out;
   };
-  const light = decls(block(":root"));
-  const dark = new Map(light);
-  for (const [k, v] of decls(block("html\\.dark"))) dark.set(k, v);
-  return { light, dark };
+  const table = (theme: string): Map<string, string> => decls(block(`html\\[data-site-theme="${theme}"\\]`));
+  return { light: table("letterpress"), dark: table("terminal") };
 }
 
 /**
@@ -548,7 +546,7 @@ function resolve(byMode: Record<Mode, Collected>): Sample[] {
   return out;
 }
 
-const VARS = readVarTables(readFileSync(GLOBALS_PATH, "utf8"));
+const VARS = readVarTables(readFileSync(SITE_THEME_PATH, "utf8"));
 const parserFixture = `
   [data-cdl-role="edge-label-bg"] { fill: #ffffff !important; }
   [data-cdl-role="edge-label"] {

@@ -16,10 +16,11 @@
  * | 光った墨のベタ | 題と面の対比 4.61 以上 / 説明と面の対比 4.5 以上 |
  * | 光っていない墨のベタ | 題と面の対比 4.61 以上、面が光った箱の面と違う (光らせる規則が漏れていない) |
  *
- * **明暗の両方で見る**。 光った面の色 (`--d-accent-face`) は明で白、暗で焦げ茶と向きが逆で、
+ * **地の明るい画面の意匠と暗い画面の意匠の両方で見る** (#2962)。 光った面の色は地の明暗で向きが逆で、
  * 片方だけ見ていると気付けない。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 明るい画面の意匠, 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 
 /**
  * 墨のベタの箱を 4 つ並べ、1 段目で A と B、2 段目で B と C を光らせる。
@@ -54,9 +55,9 @@ function 共有(src: string): string {
   return `#s=${Buffer.from(unescape(encodeURIComponent(src)), "binary").toString("base64")}`;
 }
 
-async function 開く(page: Page): Promise<void> {
+async function 開く(page: Page, 画面の意匠: string): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`editor${共有(記法)}`);
+  await page.goto(画面の意匠を付ける(`editor${共有(記法)}`, 画面の意匠));
   await page.waitForLoadState("networkidle");
   await page.waitForSelector(".v4-editor-stage svg", { timeout: 30000 });
   // 光った箱と光っていない箱の両方が出るまで待つ
@@ -120,10 +121,9 @@ function 対比(a: string, b: string): number {
 }
 
 test.describe("段で光らせた墨のベタの箱の字 (#2137)", () => {
-  for (const 明暗 of ["light", "dark"] as const) {
-    test(`光った箱の字が面の上で読める (${明暗})`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: 明暗 });
-      await 開く(page);
+  for (const 画面の意匠 of [明るい画面の意匠, 暗い画面の意匠]) {
+    test(`光った箱の字が面の上で読める (${画面の意匠})`, async ({ page }) => {
+      await 開く(page, 画面の意匠);
       const { 光った } = await 測る(page);
       expect(光った, "光った墨のベタの箱を測れていない").not.toBeNull();
       // 閾値は `editor-phase-chrome.spec.ts` が光った箱の文字に課しているものと同じ 4.61
@@ -131,9 +131,8 @@ test.describe("段で光らせた墨のベタの箱の字 (#2137)", () => {
       expect(対比(光った!.面, 光った!.説明), `説明が面に沈む (面 ${光った!.面} / 説明 ${光った!.説明})`).toBeGreaterThanOrEqual(4.5);
     });
 
-    test(`光っていない箱は墨のベタのまま (${明暗})`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: 明暗 });
-      await 開く(page);
+    test(`光っていない箱は墨のベタのまま (${画面の意匠})`, async ({ page }) => {
+      await 開く(page, 画面の意匠);
       const { 光った, 光らない } = await 測る(page);
       expect(光らない, "光っていない墨のベタの箱を測れていない").not.toBeNull();
       expect(対比(光らない!.面, 光らない!.題), "光っていない箱の題が面に沈む").toBeGreaterThanOrEqual(4.61);

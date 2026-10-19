@@ -1,5 +1,8 @@
 import { CdlDiagramView, type CdlDiagram } from "@cardenelabs/cdl";
 
+import { 図に意匠を当てる } from "@/lib/site-theme";
+import { useSiteTheme } from "@/lib/useSiteTheme";
+
 /**
  * URL で渡された図を 1 件だけ描く頁 (cardene777/cdl#397)。
  *
@@ -12,9 +15,11 @@ import { CdlDiagramView, type CdlDiagram } from "@cardenelabs/cdl";
  *
  * **開発時のみ登録する** (`main.tsx` が `import.meta.env.DEV` で分岐)。 公開ビルドには出ない。
  *
- * 使い方 = `/__render#d=<base64url の CdlDiagram JSON>`。
+ * 使い方 = `/__render#d=<base64url の CdlDiagram JSON>`。 意匠を書かない図は他の画面と同じく
+ * 画面の意匠 (`?theme=`) で描く (#2962)。
  */
 export function RenderProbePage(): React.ReactElement {
+  const [画面の意匠] = useSiteTheme();
   // `useMemo` にしない。 hash は React の管理外なので、 依存に書けるものが無い
   // (React Compiler が「保てない memo」 として弾く)。 解く処理は base64 の decode 1 回で、
   // 描くたびに走っても問題にならない。
@@ -35,7 +40,7 @@ export function RenderProbePage(): React.ReactElement {
   if (!diagram) return <p data-render-probe-error>{error}</p>;
   return (
     <div data-render-probe style={{ width: 1200 }}>
-      <CdlDiagramView diagram={diagram} hideHeader hideMiniPhaseIndicator />
+      <CdlDiagramView diagram={図に意匠を当てる(diagram, 画面の意匠)} hideHeader hideMiniPhaseIndicator />
     </div>
   );
 }

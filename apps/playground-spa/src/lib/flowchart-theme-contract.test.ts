@@ -172,7 +172,7 @@ function flatRules(source: string): Array<{ selector: string; body: string }> {
 }
 
 function tableDeclarations(palette: string): Map<string, string> {
-  return readThemeRoleTable(css, palette).light;
+  return readThemeRoleTable(css, palette);
 }
 
 function resolvedRole(table: Map<string, string>, role: string): string | undefined {

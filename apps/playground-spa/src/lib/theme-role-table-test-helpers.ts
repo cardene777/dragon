@@ -2,17 +2,6 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export type ThemeRoleTable = {
-  light: Map<string, string>;
-  dark: Map<string, string>;
-  hasDarkBlock: boolean;
-};
-
-export type MissingThemeRoleOptions = {
-  themes: readonly string[];
-  fixedThemes: readonly string[];
-};
-
 export type CssRule = { selector: string; body: string };
 
 export type CssDeclaration = {
@@ -61,6 +50,9 @@ const shapeProperties = new Set([
 
 const normalized = (value: string): string => value.replace(/\s+/g, " ").trim();
 
+/** 意匠の値の表の選択子 */
+const tableSelector = (theme: string): string => `svg[data-cdl-stage][data-cdl-palette="${theme}"]`;
+
 export function readCdlThemeCssRules(): CssRule[] {
   themeCssSource ??= readFileSync(themeCssPath, "utf8");
   return rules(themeCssSource);
@@ -93,31 +85,27 @@ export function themeSpecificShapeDeclarations(sourceRules: readonly CssRule[]):
 let themeCssSource: string | undefined;
 const themeCssPath = resolve(dirname(fileURLToPath(import.meta.url)), "../styles/cdl-theme.css");
 
-export function readCdlThemeRoleTable(theme: string): ThemeRoleTable {
+export function readCdlThemeRoleTable(theme: string): Map<string, string> {
   themeCssSource ??= readFileSync(themeCssPath, "utf8");
   return readThemeRoleTable(themeCssSource, theme);
 }
 
-export function readThemeRoleTable(source: string, theme: string): ThemeRoleTable {
-  const selector = `svg[data-cdl-stage][data-cdl-palette="${theme}"]`;
-  const light = new Map<string, string>();
-  const darkOverrides = new Map<string, string>();
-  let hasDarkBlock = false;
+/** 意匠の値の表を 1 組読む。 同じ選択子の塊が複数あれば後の塊で上書きする (CSS と同じ順) */
+export function readThemeRoleTable(source: string, theme: string): Map<string, string> {
+  return new Map(themeTableBodies(source, theme).flatMap(declarations));
+}
 
-  for (const rule of rules(source)) {
-    if (rule.selector === selector) {
-      for (const [role, value] of declarations(rule.body)) light.set(role, value);
-    } else if (rule.selector === `html.dark ${selector}`) {
-      hasDarkBlock = true;
-      for (const [role, value] of declarations(rule.body)) darkOverrides.set(role, value);
-    }
-  }
-
-  return {
-    light,
-    dark: new Map([...light, ...darkOverrides]),
-    hasDarkBlock,
-  };
+/**
+ * 表の選択子の前に頁の根 (`html` / `:root` / `body`) を足して、画面の状態で値を差し替える塊 (#2962)。
+ *
+ * 意匠は地まで含めた 1 枚の絵なので、画面の意匠や明暗で値を替えない。 頁の根で差し替える塊が
+ * あると、同じ意匠の図が画面ごとに別の色になる。 図の id で絞った塊 (見本ごとの調整) は数えない。
+ */
+export function ancestorScopedThemeTables(source: string, theme: string): string[] {
+  const selector = tableSelector(theme);
+  return rules(source)
+    .filter((rule) => rule.selector.endsWith(` ${selector}`) && /^(?:html|:root|body)\b/.test(rule.selector))
+    .map((rule) => rule.selector);
 }
 
 export function resolveThemeRole(
@@ -133,17 +121,9 @@ export function resolveThemeRole(
   return resolveThemeRole(table, referencedRole, new Set([...seen, role]));
 }
 
-export function missingThemeRoleReads(
-  source: string,
-  { themes, fixedThemes }: MissingThemeRoleOptions,
-): string[] {
-  const tables = new Map(themes.map((theme) => [theme, readThemeRoleTable(source, theme).light]));
-  const tableSelectors = new Set(
-    themes.flatMap((theme) => {
-      const selector = `svg[data-cdl-stage][data-cdl-palette="${theme}"]`;
-      return [selector, `html.dark ${selector}`];
-    }),
-  );
+export function missingThemeRoleReads(source: string, themes: readonly string[]): string[] {
+  const tables = new Map(themes.map((theme) => [theme, readThemeRoleTable(source, theme)]));
+  const tableSelectors = new Set(themes.map(tableSelector));
   // `data-cdl-tone` の規則が対象要素へ置く値で、意匠の表が持つ役ではない。
   const locallyScopedRoles = new Set(["--dragon-edge-tone"]);
   const missing: string[] = [];
@@ -154,7 +134,7 @@ export function missingThemeRoleReads(
     const namedThemes = themes.filter((theme) =>
       rule.selector.includes(`[data-cdl-palette="${theme}"]`));
     const allPalettes = rule.selector.includes("svg[data-cdl-stage][data-cdl-palette]");
-    const targets = common ? fixedThemes : allPalettes ? themes : namedThemes;
+    const targets = common || allPalettes ? themes : namedThemes;
     if (targets.length === 0) continue;
 
     for (const match of rule.body.matchAll(/var\(\s*(--(?:dragon-|theme-)[a-z0-9-]+)(?:\s*,\s*([^)]+))?\)/gi)) {
@@ -175,3 +155,27 @@ export function missingThemeRoleReads(
   return [...new Set(missing)].sort();
 }
 
+/** 意匠の値の表 (`svg[data-cdl-stage][data-cdl-palette="<意匠>"]`) の塊の中身を全部返す */
+export function themeTableBodies(source: string, theme: string): string[] {
+  const selector = tableSelector(theme);
+  return rules(source).filter((rule) => rule.selector === selector).map((rule) => rule.body);
+}
+
+/** 意匠を問わず舞台に当てる塊 (`svg[data-cdl-stage][data-cdl-palette]` だけの選択子) の中身を全部返す */
+export function commonStageBodies(source: string): string[] {
+  return rules(source)
+    .filter((rule) => rule.selector === "svg[data-cdl-stage][data-cdl-palette]")
+    .map((rule) => rule.body);
+}
+
+/** 意匠を持たない舞台だけに当てる規則の選択子。 舞台は必ず意匠を持つので 0 件が正 (#2962) */
+export function paletteLessStageSelectors(source: string): string[] {
+  return rules(source)
+    .filter((rule) => rule.selector.includes(":not([data-cdl-palette])"))
+    .map((rule) => rule.selector);
+}
+
+/** 塊の全ての中身 (選択子を問わない)。 読む変数を数える検査が使う */
+export function allRuleBodies(source: string): string[] {
+  return rules(source).map((rule) => rule.body);
+}

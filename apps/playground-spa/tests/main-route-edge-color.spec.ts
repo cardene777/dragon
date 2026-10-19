@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { 明るい画面の意匠, 暗い画面の意匠, 画面の意匠を付ける } from "./helpers/site-theme-url";
 import { cores, shoot, type Box } from "./helpers/pixel-contrast";
 import { 記法をURLに載せる } from "./box-and-edge-figure";
 import { 一覧の行 } from "./catalog-item-pick";
@@ -13,7 +14,8 @@ import { 一覧の行 } from "./catalog-item-pick";
  * 矢じりは `<defs>` の `marker` にあり、名前が色味だけで決まる。 順路と枝が同じ色味なら同じ
  * 矢じりを共有するので、線の色だけを直すと矢じりが墨色のまま残る。 そこで 2 つを測る。
  *
- *   1. 線の計算値 = 順路は `--cdl-now`、 枝はそれと違う色
+ *   1. 線の計算値 = 順路は `--cdl-now`、 枝はそれと違う色 (枝の色を見るのは、強調の色と線の色を
+ *      分ける意匠 = 活版だけ。 残る 6 意匠は意匠帳で強調の色と線の色を同じ色に置く、 #2962)
  *   2. 描いた画素 = 矢じりの色が、同じ線の色と一致する
  *
  * **2 は計算値で読まない**。 矢じりは線の色を `context-stroke` で継ぐため、計算値は色ではなく
@@ -87,24 +89,35 @@ type 線の値 = {
 test.use({ viewport: { width: 1500, height: 1000 }, deviceScaleFactor: 2 });
 
 async function 開く(page: Page, dark: boolean): Promise<void> {
-  await page.goto(`editor#s=${記法をURLに載せる(順路の記法)}`);
+  await page.goto(
+    画面の意匠を付ける(`editor#s=${記法をURLに載せる(順路の記法)}`, dark ? 暗い画面の意匠 : 明るい画面の意匠),
+  );
   await page.waitForLoadState("networkidle");
-  await page.evaluate((d) => document.documentElement.classList.toggle("dark", d), dark);
   // 1 段目で名指しした線は起点から伸びる。 伸び終わるまで待つ
   await page.waitForTimeout(3500);
 }
 
-/** `--cdl-now` を色として解決する。 変数の値は `#c0421f` の形なので、要素に塗って計算値で読む */
-async function 強調の色(page: Page): Promise<string> {
-  return page.evaluate(() => {
+/**
+ * `--cdl-now` を色として解決する。 変数の値は `#c0421f` の形なので、要素に塗って計算値で読む。
+ *
+ * **値は舞台で読む**。 `--cdl-now` は意匠の表が舞台の中で宣言する (#2962)。 頁の中の要素で読むと
+ * サイトの意匠の値になり、図の強調の色とは別の色になる。
+ */
+async function 強調の色(page: Page, 舞台: string): Promise<string> {
+  return page.evaluate((sel) => {
+    const stage = document.querySelector(sel);
+    if (!stage) throw new Error(`${sel} が無い`);
     const 見本 = document.createElement("span");
-    見本.style.color = "var(--cdl-now)";
+    見本.style.color = getComputedStyle(stage).getPropertyValue("--cdl-now").trim();
     document.body.appendChild(見本);
     const 色 = getComputedStyle(見本).color;
     見本.remove();
     return 色;
-  });
+  }, 舞台);
 }
+
+/** 編集画面の図の舞台 */
+const 編集画面の舞台 = '[data-testid="editor-preview-stage"] svg[data-cdl-stage]';
 
 async function 線を読む(page: Page): Promise<線の値[]> {
   const 線 = await page.evaluate(() => {
@@ -203,7 +216,7 @@ test("カタログの線の役目: 切替で main を選ぶと通り道の 2 本
   await page.waitForTimeout(800);
   await 一覧の行(page, "線の役目", true).click();
   await page.waitForTimeout(1500);
-  const 色 = await 強調の色(page);
+  const 色 = await 強調の色(page, ".catalog-preview-stage:not([hidden]) svg[data-cdl-stage]");
 
   const 読む = () =>
     page.locator(".catalog-preview-stage [data-cdl-role='edge-line']").evaluateAll((線) =>
@@ -228,10 +241,13 @@ test("カタログの線の役目: 切替で main を選ぶと通り道の 2 本
 
 for (const dark of [false, true]) {
   const 画面 = dark ? "暗い画面" : "明るい画面";
+  // 地の暗い画面の意匠 (端末) は、意匠帳で強調の色と線の色を同じ緑に置く。 枝が強調と違う色に
+  // なるのは強調の色を線の色と分ける意匠 (活版 = 地の明るい画面の意匠) だけ (#2962)
+  const 枝の色も見る = !dark;
 
-  test(`${画面}: 順路の線を強調の色で引き、枝の線はそれと違う色で引く`, async ({ page }) => {
+  test(`${画面}: 順路の線を強調の色で引く${枝の色も見る ? "、枝の線はそれと違う色で引く" : ""}`, async ({ page }) => {
     await 開く(page, dark);
-    const 色 = await 強調の色(page);
+    const 色 = await 強調の色(page, 編集画面の舞台);
     const 線 = await 線を読む(page);
     const 順路 = 線.filter((l) => l.順路);
     const 枝 = 線.filter((l) => !l.順路);
@@ -240,6 +256,8 @@ for (const dark of [false, true]) {
       順路.map((l) => `${l.edge} ${l.stroke}`),
       "順路の線が強調の色で描かれていない",
     ).toEqual(順路.map((l) => `${l.edge} ${色}`));
+    expect(枝.length, "枝の線を 1 本も読めていない (検査が空振りしている)").toBeGreaterThan(0);
+    if (!枝の色も見る) return;
     for (const l of 枝) {
       expect(l.stroke, `${l.edge} が順路と同じ色で描かれている`).not.toBe(色);
     }
@@ -247,7 +265,7 @@ for (const dark of [false, true]) {
 
   test(`${画面}: 矢じりを線と同じ色で塗り、順路の線は強調の色で描かれる`, async ({ page }) => {
     await 開く(page, dark);
-    const 色 = rgb(await 強調の色(page));
+    const 色 = rgb(await 強調の色(page, 編集画面の舞台));
     const 違い: string[] = [];
     for (const l of await 線を読む(page)) {
       const 線の色 = await 描いた色(page, l, "線");

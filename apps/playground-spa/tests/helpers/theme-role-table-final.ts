@@ -8,19 +8,16 @@ export const FIXED_THEMES = [
   "relief",
 ] as const;
 
-export const COLOR_ONLY_THEMES = ["kinari", "celadon"] as const;
-export const ALL_TABLE_THEMES = [...FIXED_THEMES, ...COLOR_ONLY_THEMES] as const;
-
 export const THEME_ROLE_TABLE_BASELINE = {
   carryoverMarkers: 22,
-  diagramOnlyRules: 240,
-  namedDiagramOnlyRules: 238,
-  tableRules: 19,
-  inspectedRules: 529,
+  diagramOnlyRules: 239,
+  namedDiagramOnlyRules: 237,
+  tableRules: 15,
+  inspectedRules: 531,
   riskyRules: 31,
 } as const;
 
-export type ThemeName = (typeof ALL_TABLE_THEMES)[number];
+export type ThemeName = (typeof FIXED_THEMES)[number];
 
 export type CssDeclaration = {
   property: string;
@@ -88,10 +85,8 @@ export function themeRuleAudit(source: string): ThemeRuleAudit {
   };
   const namedRules = rules.filter(({ selector }) => fixedThemesIn(selector).length > 0);
   const tableRules = rules.filter(({ selector, start }) =>
-    (start >= tableStart && start < tableEnd) || FIXED_THEMES.some((theme) => {
-      const plain = `svg[data-cdl-stage][data-cdl-palette="${theme}"]`;
-      return selector === plain || selector === `html.dark ${plain}`;
-    }));
+    (start >= tableStart && start < tableEnd) ||
+    FIXED_THEMES.some((theme) => selector === `svg[data-cdl-stage][data-cdl-palette="${theme}"]`));
   const inspectedRules = namedRules.filter((rule) =>
     !tableRules.includes(rule) && !hasCarryoverMarker(rule));
   return {
@@ -119,7 +114,7 @@ export function directDimensionsAndEffects(rules: CssRule[]): string[] {
 
 export function tableDeclarations(source: string): Map<ThemeName, Map<string, string>> {
   return new Map(
-    ALL_TABLE_THEMES.map((theme) => [theme, readThemeRoleTable(source, theme).light]),
+    FIXED_THEMES.map((theme) => [theme, readThemeRoleTable(source, theme)]),
   );
 }
 
