@@ -96,6 +96,10 @@
    固定意匠と生成り・青磁はそれぞれの意匠の値を保つため、配色属性を持たない既定の図だけへ当てる。 */
 svg[data-cdl-stage]:not([data-cdl-palette]) {
   --cdl-surface-sunken: var(--d-bg);
+  /* 走る丸と関係の線が読む「線」 と「台」 (#2977)。 意匠を書いた図は値の表がこの 2 つを持つ。
+     画面の色で描く図はここで持たせないと、丸の芯が線の色を引けない。 値は画面の線と図の紙 */
+  --er-line: var(--cdl-line);
+  --er-ground: var(--d-surface);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -549,8 +553,10 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   transform-origin: 9px 5px;
 }
 
+/* 走る丸の 3 枚は意匠を書かない図にも当てる (#2977)。 芯を線の色で塗り、外の 2 枚を波にする
+   決まりは意匠に依らない。 当てないと 3 枚とも描く側の塗りの円になり、線のそばの字を覆う。 */
 /* 持ち越しの目印: 描く側の半径 12 で走る丸の芯を選ぶ */
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"] {
+svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="12"] {
   fill: var(--er-line) !important;
   stroke: var(--er-ground) !important;
   stroke-width: 3.5px;
@@ -558,7 +564,7 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"]
 }
 
 /* 持ち越しの目印: 描く側の半径 28 で走る丸の外の波を選ぶ */
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="28"] {
+svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="28"] {
   fill: none !important;
   stroke: var(--er-line) !important;
   filter: blur(1.2px);
@@ -566,7 +572,7 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="28"]
 }
 
 /* 持ち越しの目印: 描く側の半径 18 で走る丸の内の波を選ぶ */
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"] {
+svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="18"] {
   fill: none !important;
   stroke: var(--er-line) !important;
   filter: blur(0.6px);
@@ -792,6 +798,28 @@ svg[data-cdl-stage][data-cdl-type="record"]:has(
   [data-cdl-active="true"]
   [data-cdl-role="edge-line"] {
   stroke-opacity: var(--d-relation-edge-opacity-active) !important;
+}
+
+/*
+ * 意匠を書かない関係の図は、関係の線を箱の枠と同じ画面の線の色で引く (#2977)。
+ *
+ * 意匠を書いた図は値の表が意味の色 `info` (`--d-dg-4`) を線の色へ差し替えている。
+ * 意匠を書かない図は `info` のまま引かれ、暗い画面では枠より暗い `#baac96` になる。
+ * 線の端は箱の枠の縁の画素に重なるため、線が枠より暗いとその画素で対比が 2.90 まで下がった
+ * (`relation-edge-opacity.spec.ts`)。 枠と同じ色なら、重なった画素は枠の色へ寄るだけで済む。
+ *
+ * 囲いは上の薄くする規則と同じにする。 他の図は 6 つの意味の色を描き分けたまま残す。
+ */
+svg[data-cdl-stage]:not([data-cdl-palette]):is([data-cdl-type="er"], [data-cdl-type="class"]),
+svg[data-cdl-stage]:not([data-cdl-palette])[data-cdl-type="record"]:has(
+    [data-cdl-edge-head="one"],
+    [data-cdl-edge-head="many"],
+    [data-cdl-edge-head="zero-one"],
+    [data-cdl-edge-head="zero-many"],
+    [data-cdl-edge-head="triangle"][data-cdl-edge-head-fill="hollow"],
+    [data-cdl-edge-head="diamond"]
+  ) {
+  --d-dg-4: var(--er-line);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -10356,6 +10384,20 @@ svg[data-cdl-stage]:is(
   [data-cdl-tone="teal"]
   [data-cdl-role="edge-line"] {
   stroke: var(--delivery-relation-use) !important;
+  stroke-opacity: 1 !important;
+}
+
+/* 意匠を書かない時も状態線と「使う」 を透かさない (#2977)。 見本色を持たないので色は意味の色の
+   まま描き、不透明度だけを上の 2 規則と揃える。 `:not([data-cdl-palette])` は上の
+   `[data-cdl-palette]` と同じ強さなので、関係の線を薄くする規則に勝つ並びも同じになる。 */
+[data-cdl-diagram="delivery-relations-demo"]
+  svg[data-cdl-stage]:not([data-cdl-palette])
+  [data-cdl-tone="warning"]
+  [data-cdl-role="edge-line"],
+[data-cdl-diagram="delivery-relations-demo"]
+  svg[data-cdl-stage]:not([data-cdl-palette])[data-cdl-type="record"]
+  [data-cdl-tone="teal"]
+  [data-cdl-role="edge-line"] {
   stroke-opacity: 1 !important;
 }
 

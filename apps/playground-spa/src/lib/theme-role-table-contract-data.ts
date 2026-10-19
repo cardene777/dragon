@@ -211,15 +211,15 @@ export const THEME_ROLE_TABLE_CARRYOVER_RULES = [
       `svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
         transform: scale(1.2142857143, 1.3571428571); transform-origin: 9px 5px;
       }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"] {
+      `svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="12"] {
         fill: var(--er-line) !important; stroke: var(--er-ground) !important;
         stroke-width: 3.5px; filter: drop-shadow(0 0 6px var(--er-line));
       }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="28"] {
+      `svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="28"] {
         fill: none !important; stroke: var(--er-line) !important; filter: blur(1.2px);
         animation: running-dot-wave-outer 1.4s linear infinite;
       }`,
-      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"] {
+      `svg[data-cdl-stage] [data-cdl-role="edge-flow"] circle[r="18"] {
         fill: none !important; stroke: var(--er-line) !important; filter: blur(0.6px);
         animation: running-dot-wave-inner 1.4s linear infinite -0.7s;
       }`,

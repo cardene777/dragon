@@ -13,8 +13,8 @@ export const ALL_TABLE_THEMES = [...FIXED_THEMES, ...COLOR_ONLY_THEMES] as const
 
 export const THEME_ROLE_TABLE_BASELINE = {
   carryoverMarkers: 22,
-  diagramOnlyRules: 239,
-  namedDiagramOnlyRules: 237,
+  diagramOnlyRules: 240,
+  namedDiagramOnlyRules: 238,
   tableRules: 19,
   inspectedRules: 529,
   riskyRules: 31,

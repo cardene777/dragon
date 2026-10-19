@@ -846,7 +846,8 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     expect(rules).toContain('--delivery-relation-use: var(--dragon-delivery-relation-use);');
     expect(rules).toContain("stroke: var(--delivery-relation-state) !important;");
     expect(rules).toContain("stroke: var(--delivery-relation-use) !important;");
-    expect(rules.match(/stroke-opacity: 1 !important;/g)).toHaveLength(2);
+    // 7 意匠の状態線と「使う」 の 2 規則と、意匠を書かない時に同じ 2 本を透かさない 1 規則 (#2977)
+    expect(rules.match(/stroke-opacity: 1 !important;/g)).toHaveLength(3);
     expect(css).not.toContain('[data-cdl-diagram="契約と荷物と配送状態の関係"]');
   });
 
