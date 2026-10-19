@@ -224,7 +224,7 @@ export function fixedThemes(): Array<Extract<ThemeNote, { mode: "fixed" }>> {
   );
 }
 
-export const BOX_PAINT_SELECTOR = [
+const BOX_PAINT_SELECTOR = [
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]):is(rect, path, ellipse, circle, polygon, polyline, line)',
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect',
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path',

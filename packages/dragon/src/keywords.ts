@@ -155,22 +155,23 @@ export function shapesForDiagramType(type: string): readonly DslDiagramShape[] {
  *
  * **名前を自由文字列にしない**。 書き間違えると既定の色みのまま出るので、書き手には
  * 「効かない」 としか見えない。 語を絞れば読めない語をその場で知らせられる。
+ *
+ * どの意匠も地まで含めた 1 枚の絵で、画面の明暗に従わない。 色だけを変える生成りに茶と
+ * 青磁に墨は外した (#2960、置き換え先は `v05/removed-syntax.ts` の `外した意匠`)。
  */
-export const THEMES = ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const;
+export const THEMES = ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const;
 export type DslTheme = (typeof THEMES)[number];
 
 /**
  * 意匠の別名 (#2790 / #2791 / #2792 / #2793 / #2794 / #2795 / #2796)。 向きと同じく日本語と英語の両方で書ける。
  *
- * `kinari` = 生成りに茶、 `celadon` = 青磁に墨、 `blueprint` = 図面、 `letterpress` = 活版、
- * `catalog` = 図録、 `terminal` = 端末、 `sketch` = 手描き、 `neon` = 電飾、 `relief` = 浮彫。
+ * `blueprint` = 図面、 `letterpress` = 活版、 `catalog` = 図録、 `terminal` = 端末、
+ * `sketch` = 手描き、 `neon` = 電飾、 `relief` = 浮彫。
  *
- * record は用途を一つに決められないため既定の意匠を持たない。UML クラス図に生成り色が要る時も
- * 書き手が `theme:` を明記する。
+ * record は用途を一つに決められないため既定の意匠を持たない。 意匠が要る時は書き手が
+ * `theme:` を明記する。
  */
 export const THEME_ALIAS: Record<string, DslTheme> = {
-  kinari: "kinari",
-  celadon: "celadon",
   blueprint: "blueprint",
   letterpress: "letterpress",
   catalog: "catalog",
@@ -178,10 +179,6 @@ export const THEME_ALIAS: Record<string, DslTheme> = {
   sketch: "sketch",
   neon: "neon",
   relief: "relief",
-  生成り: "kinari",
-  生成りに茶: "kinari",
-  青磁: "celadon",
-  青磁に墨: "celadon",
   図面: "blueprint",
   活版: "letterpress",
   図録: "catalog",
@@ -264,13 +261,13 @@ export function 棒を描く節か(
  *
  * 手描きの見本は楕円の角 (`10px 14px 6px 12px / 14px 8px 12px 6px`) だが、cdl は
  * 円の角だけを持つため、各隅の横と縦の平均を丸めて 12 / 11 / 9 / 9 とする。
- * 生成りと青磁には見本が無いため値を返さず、記法で組み立てた形を保つ。
+ * 棒を描かない節には値を返さない。
  */
 export function 意匠の棒の角(
   theme: DslTheme,
   node: Pick<CdlNode, "kind" | "funnelForm">,
 ): BarCornerRadii | undefined {
-  if (!棒を描く節か(node) || theme === "kinari" || theme === "celadon") return undefined;
+  if (!棒を描く節か(node)) return undefined;
 
   const category = node.kind === "chart-bar"
     ? "vertical"
@@ -303,6 +300,38 @@ export function 意匠の棒の角(
   } as const;
   const [topLeft, topRight, bottomRight, bottomLeft] = values[theme][category];
   return { topLeft, topRight, bottomRight, bottomLeft };
+}
+
+/**
+ * 意匠で決まる棒の角と行の縞を箱に当てる (#1553 / #2863 / #2960)。
+ *
+ * 記法と JSON の組み立て (`compile.ts`) と、組み立てた図へ外から意匠を当てる側 (見本帳の
+ * 意匠の切替) の両方がこの関数を通る。 側ごとに持つと、外から当てた図だけ縞が欠ける
+ * (切替が縞を宅配の 2 図でしか扱っていなかった、#2960)。
+ *
+ * - 棒の角は意匠の値で置き換える
+ * - 縞は行を書いた表の箱 (`storage`) にだけ敷く。 縞は行を横に追う目印なので、行が無い箱には
+ *   追う相手が無い (#2782)。 書き手が `rowStripe` を書いた箱はその値を保つ
+ *
+ * 変わらない時は同じ object を返す。 見本帳の切替は object が同じかで描き直すかを決める。
+ */
+export function 意匠を箱に当てる<T extends CdlNode>(node: T, theme: DslTheme): T {
+  let next = node;
+  const 棒の角 = 意匠の棒の角(theme, node);
+  if (棒の角 !== undefined && !同じ角か(node.barCornerRadii, 棒の角)) {
+    next = { ...next, barCornerRadii: 棒の角 };
+  }
+  if (node.kind === "storage" && (node.rows?.length ?? 0) > 0 && node.rowStripe === undefined) {
+    next = { ...next, rowStripe: true };
+  }
+  return next;
+}
+
+function 同じ角か(a: BarCornerRadii | undefined, b: BarCornerRadii): boolean {
+  return a?.topLeft === b.topLeft &&
+    a.topRight === b.topRight &&
+    a.bottomRight === b.bottomRight &&
+    a.bottomLeft === b.bottomLeft;
 }
 
 /** NodeKind 別名 (日本語 → English) */

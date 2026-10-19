@@ -67,7 +67,7 @@ describe("見本帳の段階ごとの箱 (#2797)", () => {
     for (const item of items) expect(textDsl[`sourceJson__${item.key}` as keyof typeof textDsl]).toEqual(expect.any(String));
   });
 
-  it.each([undefined, "kinari", "blueprint"] as const)("意匠 %s でも段階の列、担当付きの札、曲線が描かれる", (theme) => {
+  it.each([undefined, "letterpress", "blueprint"] as const)("意匠 %s でも段階の列、担当付きの札、曲線が描かれる", (theme) => {
     const item = 段階の見本()[0];
     expect(item).toBeDefined();
     if (!item) return;

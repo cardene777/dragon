@@ -10013,10 +10013,14 @@ svg[data-cdl-stage]:is(
   filter: var(--dragon-delivery-row-well-effect) !important;
 }
 
-/* 浮彫の縞は rowStripe: false で描かない。cdl に欄がない罫だけ CSS で消す。 */
+/*
+ * 浮彫の見本に行の縞と罫は無い。縞は図の値 (rowStripe) では外さない = 外から当てた意匠と
+ * 書いた意匠で同じ値を持たせるため (#2960)。縞も罫と同じく模様として CSS で消す。
+ */
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
   svg[data-cdl-stage][data-cdl-palette="relief"]
   :is(
+    [data-cdl-role="node-row-stripe"],
     [data-cdl-role="node-row-rule"],
     [data-cdl-role="node-row-group-divider"],
     [data-cdl-role="node-row-divider"]
@@ -10414,9 +10418,14 @@ svg[data-cdl-stage]:is(
   stroke-width: var(--dragon-delivery-group-divider-width) !important;
 }
 
+/*
+ * 電飾の見本に行間の罫と行の縞は無い。縞は図の値 (rowStripe) では外さない = 外から当てた
+ * 意匠と書いた意匠で同じ値を持たせるため (#2960)。罫と同じく模様として CSS で消す。
+ */
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
   svg[data-cdl-stage][data-cdl-palette="neon"]
-  [data-cdl-role="node-row-rule"] {
+  :is([data-cdl-role="node-row-rule"], [data-cdl-role="node-row-stripe"]) {
+  fill: none !important;
   stroke: none !important;
 }
 

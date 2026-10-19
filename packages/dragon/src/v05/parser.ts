@@ -84,7 +84,7 @@ import {
   resolveLegendMark,
 } from "../keywords";
 import { 区画 } from "../compile/word-state";
-import { 外した図種の知らせ, 外した種類の知らせ } from "./removed-syntax";
+import { 外した意匠の知らせ, 外した図種の知らせ, 外した種類の知らせ } from "./removed-syntax";
 // 行頭の印の古い語の読み替え (#2782)。 印を作る側と同じ file が表を持つ = 縦に並べた形と
 // 中括弧の形と JSON の 3 経路が同じ表を通る
 import { 行頭の語へ読み替える } from "../compile/row-marks";
@@ -853,6 +853,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let themeLine = 0;
   let palette: DslTheme | null = null;
   let paletteLine = 0;
+  const removedThemes: NonNullable<DslDocument["removedThemes"]> = [];
   let axes: DslAxes | undefined = undefined;
   let axesLine = 0;
   let regions: DslRegions | undefined = undefined;
@@ -1018,7 +1019,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const v = (head.value ?? "").trim();
       const 書いた語 = 書いた頭?.key ?? head.key;
       if (v.length > 0) {
-        const 解けた = resolveTheme(v);
+        // 外した意匠は誤りにせず置き換え先で読む (#2960)。 警告は組み立てが出す
+        const 外した = 外した意匠の知らせ(v);
+        if (外した !== undefined) removedThemes.push({ written: v, line: line.no });
+        const 解けた = 外した?.replacement ?? resolveTheme(v);
         if (解けた !== null) {
           if (書いた語 === "theme") {
             theme = 解けた;
@@ -2180,6 +2184,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(theme !== null && palette !== null
         ? { themeAlsoPalettePos: { themeLine, paletteLine } }
         : {}),
+      ...(removedThemes.length > 0 ? { removedThemes } : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
       ...(regions !== undefined ? { regions } : {}),
       actors,

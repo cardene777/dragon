@@ -122,7 +122,7 @@ test("凡例が静止 SVG・動く SVG・PNG の図の下へ残る (#2834)", asy
   page,
   context,
 }, testInfo) => {
-  await openEditorTheme(page, 凡例つき, "kinari", false);
+  await openEditorTheme(page, 凡例つき, "letterpress", false);
   const 静止file = await 書き出す(page, testInfo, 書き出しの札.静止SVG, "svg", "legend-still");
   const 動くfile = await 書き出す(page, testInfo, 書き出しの札.動くSVG, "svg", "legend-animated");
   const 凡例PNGfile = await 書き出す(page, testInfo, "PNG", "png", "legend");
@@ -142,7 +142,7 @@ test("凡例が静止 SVG・動く SVG・PNG の図の下へ残る (#2834)", asy
   }
 
   const 凡例PNG = PNG.sync.read(await readFile(凡例PNGfile));
-  await openEditorTheme(page, 見本, "kinari", false);
+  await openEditorTheme(page, 見本, "letterpress", false);
   const 通常PNGfile = await 書き出す(page, testInfo, "PNG", "png", "without-legend");
   const 通常PNG = PNG.sync.read(await readFile(通常PNGfile));
   expect(凡例PNG.height, "凡例を含む PNG の下側が広がっていない").toBeGreaterThan(通常PNG.height);

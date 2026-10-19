@@ -68,7 +68,6 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 /** 枝分かれしない最小の形。 繋がりを一直線に追える */
 export const sourceYaml__erShapeSmall = `title: "小さい形 / 3 表 2 関係"
 type: record
-palette: kinari
 # 順番を持たない図なので、線は最初から全部出して触れた関係を光らせる
 relations: hover
 reveal: all
@@ -109,7 +108,6 @@ export const sourceJson__erShapeSmall = `{
   "type": "record",
   "relations": "hover",
   "reveal": "all",
-  "palette": "kinari",
   "lanes": {
     "c0": {
       "width": 450
@@ -223,7 +221,6 @@ export const sourceJson__erShapeSmall = `{
 /** 1 つの表に何本も集まる形。 利用者を中心に据えると出る */
 export const sourceYaml__erShapeHub = `title: "集まる形 / 6 表 5 関係"
 type: record
-palette: kinari
 # 順番を持たない図なので、線は最初から全部出して触れた関係を光らせる
 relations: hover
 reveal: all
@@ -274,7 +271,6 @@ export const sourceJson__erShapeHub = `{
   "type": "record",
   "relations": "hover",
   "reveal": "all",
-  "palette": "kinari",
   "lanes": {
     "c0": {
       "width": 450
@@ -478,7 +474,6 @@ export const sourceJson__erShapeHub = `{
 /** 端から端まで一直線に繋がる形。 所有が階層になると出る */
 export const sourceYaml__erShapeChain = `title: "連なる形 / 6 表 5 関係"
 type: record
-palette: kinari
 # 順番を持たない図なので、線は最初から全部出して触れた関係を光らせる
 relations: hover
 reveal: all
@@ -525,7 +520,6 @@ export const sourceJson__erShapeChain = `{
   "type": "record",
   "relations": "hover",
   "reveal": "all",
-  "palette": "kinari",
   "lanes": {
     "c0": {
       "width": 340
@@ -716,7 +710,6 @@ export const sourceJson__erShapeChain = `{
 /** 中間の表を挟んで両側から繋がる組がある形。 割当や貼り付けを表すと出る */
 export const sourceYaml__erShapeMesh = `title: "多対多の形 / 8 表 8 関係"
 type: record
-palette: kinari
 # 順番を持たない図なので、線は最初から全部出して触れた関係を光らせる
 relations: hover
 reveal: all
@@ -773,7 +766,6 @@ export const sourceJson__erShapeMesh = `{
   "type": "record",
   "relations": "hover",
   "reveal": "all",
-  "palette": "kinari",
   "lanes": {
     "c0": {
       "width": 280

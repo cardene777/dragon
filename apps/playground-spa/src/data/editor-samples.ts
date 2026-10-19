@@ -202,7 +202,6 @@ animation:
     slug: "er",
     code: `title: "利用者・投稿・コメントのスキーマ"
 type: record
-palette: kinari
 
 actors:
   - 利用者: storage ["id: PK", "email: string", "name: string"]
@@ -258,7 +257,6 @@ animation:
     slug: "class",
     code: `title: "動物クラス階層"
 type: record
-palette: kinari
 
 actors:
   - 動物: { rows: ["name: string", "age: int", "speak: void"], marks: ["", "", "外"] }

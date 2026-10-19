@@ -12,8 +12,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { 配色の札, 配色の選択肢 } from "../src/lib/palette-switch";
 import { 一覧の行 } from "./catalog-item-pick";
-import { colorKey, openEditorTheme } from "./helpers/fixed-theme-checks";
-import { LABEL_TONE_SOURCE } from "./helpers/label-tone-checks";
+import { openEditorTheme } from "./helpers/fixed-theme-checks";
 import { readThemeNotes } from "./helpers/theme-notes";
 
 /** 見本を id で名指しして開く */
@@ -52,16 +51,20 @@ test("switch: 意匠の札が全て並び、配色を持つ図で切り替えら
 
   await expect(色味(page), "配色を持つ図に選ぶ欄が出ていない").toBeVisible();
   const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
-  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末", "手描き", "電飾", "浮彫"]);
+  // 色だけを変える生成りに茶と青磁に墨は外した (#2960)。札は地まで含めて描く 7 意匠だけ
+  expect(expected).toEqual(["図面", "活版", "図録", "端末", "手描き", "電飾", "浮彫"]);
   for (const label of expected)
     await expect(色味(page).getByRole("option", { name: label, exact: true })).toHaveCount(1);
-  expect(await 配色(page, "delivery-relations-demo"), "既定が生成りに茶でない").toBe("kinari");
+  for (const label of ["生成りに茶", "青磁に墨"])
+    await expect(色味(page).getByRole("option", { name: label, exact: true }), `${label} の札が残っている`).toHaveCount(0);
+  // 見本は意匠を書かず、画面で選んだ意匠で開く (#2960)
+  expect(await 配色(page, "delivery-relations-demo"), "意匠を書かない見本が意匠を持っている").toBeNull();
 
-  await 色味(page).selectOption({ label: "青磁に墨" });
-  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("celadon");
+  await 色味(page).selectOption({ label: "図面" });
+  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("blueprint");
 
-  await 色味(page).selectOption({ label: "生成りに茶" });
-  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("kinari");
+  await 色味(page).selectOption({ label: "活版" });
+  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("letterpress");
 });
 
 test('switch: 意匠の札を全て並べても「図 / コード」 のタブは 1 行のまま (#2794)', async ({
@@ -138,31 +141,31 @@ test("switch: クラス図でも切り替えられる (#1569)", async ({ page })
   await 開く(page, "presets", "delivery-classes-demo");
   await expect(色味(page), "クラス図に選ぶ欄が出ていない").toBeVisible();
 
-  await 色味(page).selectOption({ label: "青磁に墨" });
-  await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBe("celadon");
+  await 色味(page).selectOption({ label: "図面" });
+  await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBe("blueprint");
 });
 
-test("terminal switch: 見本帳は端末と生成りで同じ字幅の骨組みを使う (#2908)", async ({
+test("terminal switch: 見本帳は端末と活版で同じ字幅の骨組みを使う (#2908)", async ({
   page,
 }) => {
   await 開く(page, "presets", "infra-demo");
 
-  await 色味(page).selectOption({ label: 配色の札("kinari", "ja") });
-  await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("kinari");
-  const 生成り = await 描いた大きさ(page, "infra-demo");
-  expect(生成り, "生成りの data-cdl-viewbox が無く、骨組みの検査が空振りしている").not.toBeNull();
-  if (生成り === null) throw new Error("生成りの data-cdl-viewbox を文字列として確かめられない");
-  expect(生成り, "生成りの data-cdl-viewbox が 4 つの数でない").toMatch(/^-?[\d.]+ -?[\d.]+ [\d.]+ [\d.]+$/);
+  await 色味(page).selectOption({ label: 配色の札("letterpress", "ja") });
+  await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("letterpress");
+  const 活版 = await 描いた大きさ(page, "infra-demo");
+  expect(活版, "活版の data-cdl-viewbox が無く、骨組みの検査が空振りしている").not.toBeNull();
+  if (活版 === null) throw new Error("活版の data-cdl-viewbox を文字列として確かめられない");
+  expect(活版, "活版の data-cdl-viewbox が 4 つの数でない").toMatch(/^-?[\d.]+ -?[\d.]+ [\d.]+ [\d.]+$/);
 
   await 色味(page).selectOption({ label: 配色の札("terminal", "ja") });
   await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("terminal");
-  await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).toBe(生成り);
+  await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).toBe(活版);
   const 端末 = await 描いた大きさ(page, "infra-demo");
 
-  await 色味(page).selectOption({ label: 配色の札("kinari", "ja") });
-  await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).toBe(生成り);
+  await 色味(page).selectOption({ label: 配色の札("letterpress", "ja") });
+  await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).toBe(活版);
   const 戻した後 = await 描いた大きさ(page, "infra-demo");
-  console.log(`生成り=${生成り} 端末=${端末} 戻した後=${戻した後}`);
+  console.log(`活版=${活版} 端末=${端末} 戻した後=${戻した後}`);
 });
 
 test("terminal: どの色味も英数字 24 字の名前を比例と等幅の広い方で測り、同じ箱幅で端末の字を収める (#2818 / #2918)", async ({
@@ -184,16 +187,16 @@ flow:
   - ${細い名前} -> Receiver: "送る"
 `;
 
-  await openEditorTheme(page, 本文, "kinari", false);
-  const 生成りの面 = page.locator(`[data-cdl-node="${細い名前}"] [data-cdl-role="node-body"]`);
-  await expect(生成りの面, "生成りで細い名前の箱面を読めない").toHaveCount(1);
-  const 生成りの箱幅 = await 生成りの面.evaluate((面) => 面.getBoundingClientRect().width);
+  await openEditorTheme(page, 本文, "letterpress", false);
+  const 活版の面 = page.locator(`[data-cdl-node="${細い名前}"] [data-cdl-role="node-body"]`);
+  await expect(活版の面, "活版で細い名前の箱面を読めない").toHaveCount(1);
+  const 活版の箱幅 = await 活版の面.evaluate((面) => 面.getBoundingClientRect().width);
 
   await openEditorTheme(page, 本文, "terminal", false);
   const 端末の面 = page.locator(`[data-cdl-node="${細い名前}"] [data-cdl-role="node-body"]`);
   await expect(端末の面, "端末で細い名前の箱面を読めない").toHaveCount(1);
   const 端末の箱幅 = await 端末の面.evaluate((面) => 面.getBoundingClientRect().width);
-  const 箱幅の差 = Math.abs(端末の箱幅 - 生成りの箱幅);
+  const 箱幅の差 = Math.abs(端末の箱幅 - 活版の箱幅);
   expect(箱幅の差).toBeLessThanOrEqual(0.5);
 
   const 字と箱 = await page.locator(`[data-cdl-node="${細い名前}"]`).evaluate((node) => {
@@ -220,7 +223,7 @@ flow:
   }
   const 字の右端 = Math.max(...字と箱.字.map(({ 矩形 }) => 矩形.right));
   console.log(
-    `比例と等幅の広い方で測った生成りの箱幅=${生成りの箱幅} 端末の箱幅=${端末の箱幅} 幅差=${箱幅の差} ` +
+    `比例と等幅の広い方で測った活版の箱幅=${活版の箱幅} 端末の箱幅=${端末の箱幅} 幅差=${箱幅の差} ` +
       `端末の字の右端=${字の右端} 箱の右端=${字と箱.面の矩形.right}`,
   );
 });
@@ -355,108 +358,11 @@ test("relief switch: 配色のない図と表の図へ浮彫の名前と地が�
 test("switch: 項目を選び直すと既定へ戻る (#1569)", async ({ page }) => {
   // 残すと、次の図が別の色みで出る理由を見失う (速さ / 描き方 と同じ扱い)
   await 開く(page, "presets", "delivery-relations-demo");
-  await 色味(page).selectOption({ label: "青磁に墨" });
-  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("celadon");
+  await 色味(page).selectOption({ label: "図面" });
+  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("blueprint");
 
   await 一覧の行(page, "delivery-classes-demo").click();
   await page.waitForSelector('[data-cdl-diagram="delivery-classes-demo"]', { timeout: 15000 });
-  await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBe("kinari");
-});
-
-test("switch: 生成りと青磁では札へ線の色みが漏れない", async ({ page }, testInfo) => {
-  for (const theme of ["kinari", "celadon"] as const) {
-    const note = readThemeNotes().get(theme);
-    if (note?.mode !== "light-dark") throw new Error(`${theme} の意匠帳が明暗の表ではない`);
-    for (const dark of [false, true]) {
-      const mode = dark ? "暗" : "明";
-      const values = dark ? note.dark : note.light;
-      await openEditorTheme(page, LABEL_TONE_SOURCE, theme, dark);
-      const actual = await page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`).evaluate(
-        (stage) => {
-          const labels = [...stage.querySelectorAll<SVGGraphicsElement>("[data-cdl-edge-label-for]")]
-            .flatMap((group) => {
-              const background = group.querySelector<SVGGraphicsElement>('[data-cdl-role="edge-label-bg"]');
-              const label = group.querySelector<SVGGraphicsElement>('[data-cdl-role="edge-label"]');
-              if (!background || !label) return [];
-              return [{
-                tone: group.getAttribute("data-cdl-tone"),
-                fill: getComputedStyle(background).fill,
-                stroke: getComputedStyle(background).stroke,
-                ink: getComputedStyle(label).fill,
-              }];
-            });
-          const lines = [...stage.querySelectorAll<SVGGraphicsElement>("[data-cdl-edge]")]
-            .flatMap((edge) => {
-              const line = edge.querySelector<SVGGraphicsElement>('[data-cdl-role="edge-line"]');
-              return line ? [{
-                tone: edge.getAttribute("data-cdl-tone"),
-                role: edge.getAttribute("data-cdl-edge-role"),
-                stroke: getComputedStyle(line).stroke,
-              }] : [];
-            });
-          const boxes = [...stage.querySelectorAll<SVGGraphicsElement>('rect[data-cdl-role="node-body"]')]
-            .map((box) => ({
-              active: box.closest("[data-cdl-active]")?.getAttribute("data-cdl-active") === "true",
-              fill: getComputedStyle(box).fill,
-              stroke: getComputedStyle(box).stroke,
-            }));
-          const resolveStageColor = (property: "--d-err" | "--d-warn"): string => {
-            const probe = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            probe.style.fill = `var(${property})`;
-            stage.append(probe);
-            const color = getComputedStyle(probe).fill;
-            probe.remove();
-            return color;
-          };
-          return {
-            labels,
-            lines,
-            boxes,
-            semantic: {
-              error: resolveStageColor("--d-err"),
-              warning: resolveStageColor("--d-warn"),
-            },
-          };
-        },
-      );
-      expect(actual.labels).toHaveLength(4);
-      expect(new Set(actual.labels.map((label) => colorKey(label.fill)))).toEqual(
-        new Set([colorKey(values.stripe)]),
-      );
-      expect(new Set(actual.labels.map((label) => colorKey(label.stroke)))).toEqual(
-        new Set([colorKey(values.line)]),
-      );
-      expect(new Set(actual.labels.map((label) => colorKey(label.ink)))).toEqual(
-        new Set([colorKey(values.line)]),
-      );
-      const expectedLines = new Map([
-        ["accent", values.line],
-        ["info", values.line],
-        ["success", values.link],
-        ["teal", values.own],
-        ["error", actual.semantic.error],
-        ["warning", actual.semantic.warning],
-      ]);
-      for (const line of actual.lines) {
-        const expected = line.role === "main" ? values.line : expectedLines.get(line.tone ?? "");
-        if (!expected) throw new Error(`${theme}/${mode} の線の色み ${line.tone} を読めない`);
-        expect(colorKey(line.stroke), `${theme}/${mode}/${line.tone} の線`).toBe(colorKey(expected));
-      }
-      expect(actual.boxes.length, `${theme}/${mode} の箱`).toBeGreaterThan(0);
-      expect(new Set(actual.boxes.map((box) => colorKey(box.fill)))).toEqual(
-        new Set([colorKey(values.face)]),
-      );
-      expect(actual.boxes.some((box) => box.active), `${theme}/${mode} の強調した箱`).toBe(true);
-      expect(actual.boxes.some((box) => !box.active), `${theme}/${mode} の強調していない箱`).toBe(true);
-      for (const box of actual.boxes) {
-        expect(colorKey(box.stroke), `${theme}/${mode} の${box.active ? "強調した" : "通常の"}箱`).toBe(
-          colorKey(box.active ? values.line : values.frame),
-        );
-      }
-      const report = `${theme} ${mode} labels leak-free: fill=${actual.labels[0]?.fill} ` +
-        `stroke=${actual.labels[0]?.stroke} ink=${actual.labels[0]?.ink}`;
-      console.log(report);
-      testInfo.annotations.push({ type: `${theme} ${mode} labels`, description: report });
-    }
-  }
+  // 見本は意匠を書かないので、選び直した図は意匠を持たずに開く (#2960)
+  await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBeNull();
 });

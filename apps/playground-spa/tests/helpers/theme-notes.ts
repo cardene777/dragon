@@ -18,9 +18,8 @@ export const THEME_PORTS = [
 export type ThemePort = (typeof THEME_PORTS)[number];
 export type ThemeValues = Record<ThemePort, string>;
 
-export type ThemeNote =
-  | { name: DslTheme; mode: "light-dark"; light: ThemeValues; dark: ThemeValues }
-  | { name: DslTheme; mode: "fixed"; value: ThemeValues };
+/** 意匠帳の値。 どの意匠も地まで含めた 1 枚の絵なので、明暗で組を替えない (#2960) */
+export type ThemeNote = { name: DslTheme; mode: "fixed"; value: ThemeValues };
 
 export const METRO_COLOR_ROLES = {
   路線図の本線: "main",
@@ -43,9 +42,7 @@ export const METRO_COLOR_ROLES = {
 
 export type MetroColorRole = (typeof METRO_COLOR_ROLES)[keyof typeof METRO_COLOR_ROLES];
 export type MetroThemeValues = Record<MetroColorRole, string>;
-export type MetroThemeNote =
-  | { name: DslTheme; mode: "light-dark"; light: MetroThemeValues; dark: MetroThemeValues }
-  | { name: DslTheme; mode: "fixed"; value: MetroThemeValues };
+export type MetroThemeNote = { name: DslTheme; mode: "fixed"; value: MetroThemeValues };
 
 export type ThemeChartSeries = { roles: string[]; colors: string[] };
 export type ThemeGroundText = { ink: string; type: string };
@@ -127,11 +124,6 @@ export const ROLE_TO_PORT = {
   向きだけ: "link",
 } as const satisfies Record<string, ThemePort>;
 
-const ER_HEADINGS: Partial<Record<DslTheme, string>> = {
-  kinari: "既定 — 生成りに茶",
-  celadon: "指定した時だけ当たる — 青磁に墨",
-};
-
 const 読む = (rel: string): string =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 
@@ -161,38 +153,33 @@ function 二列表を読む(節: string): Map<string, string> {
   return rows;
 }
 
-function 路線図の表を読む(節: string): { columns: 2 | 3; rows: Map<MetroColorRole, string[]> } {
+function 路線図の表を読む(節: string): Map<MetroColorRole, string> {
   const 行たち = 節.split("\n");
   const 見出し = 行たち.findIndex((行) => /^\|/.test(行) && 列に分ける(行)[0] === "役");
   if (見出し < 0) throw new Error("意匠帳に路線図の色の表が無い");
   const columns = 列に分ける(行たち[見出し] ?? "").length;
-  if (columns !== 2 && columns !== 3) throw new Error(`路線図の色の表が ${columns} 列ある`);
+  if (columns !== 2) throw new Error(`路線図の色の表が ${columns} 列ある (2 列が要る)`);
 
-  const rows = new Map<MetroColorRole, string[]>();
+  const rows = new Map<MetroColorRole, string>();
   for (const 行 of 行たち.slice(見出し + 2)) {
     if (!行.trim().startsWith("|")) break;
     const 列 = 列に分ける(行);
     const 役 = 列[0] ?? "";
     if (!Object.hasOwn(METRO_COLOR_ROLES, 役)) continue;
     if (列.length !== columns) throw new Error(`意匠帳の「${役}」が ${列.length} 列ある`);
-    const 値 = 列.slice(1).map((色) => {
-      const m = /^`(#[0-9a-fA-F]{6})`$/.exec(色);
-      if (!m) throw new Error(`意匠帳の「${役}」の値が #rrggbb ではない (${色})`);
-      return m[1]!.toLowerCase();
-    });
+    const 色 = 列[1] ?? "";
+    const m = /^`(#[0-9a-fA-F]{6})`$/.exec(色);
+    if (!m) throw new Error(`意匠帳の「${役}」の値が #rrggbb ではない (${色})`);
+    const 値 = m[1]!.toLowerCase();
     rows.set(METRO_COLOR_ROLES[役 as keyof typeof METRO_COLOR_ROLES], 値);
   }
-  return { columns, rows };
+  return rows;
 }
 
-function 路線図の値を揃える(
-  rows: Map<MetroColorRole, string[]>,
-  index: number,
-  name: string,
-): MetroThemeValues {
+function 路線図の値を揃える(rows: Map<MetroColorRole, string>, name: string): MetroThemeValues {
   const out = {} as MetroThemeValues;
   for (const role of Object.values(METRO_COLOR_ROLES)) {
-    const value = rows.get(role)?.[index];
+    const value = rows.get(role);
     if (value === undefined) throw new Error(`意匠帳の ${name} に路線図の ${role} が無い`);
     out[role] = value;
   }
@@ -202,34 +189,33 @@ function 路線図の値を揃える(
   return out;
 }
 
-function 表を読む(節: string): { columns: 2 | 3; rows: Map<ThemePort, string[]> } {
+function 表を読む(節: string): Map<ThemePort, string> {
   const 行たち = 節.split("\n");
   const 見出し = 行たち.findIndex((行) => /^\|/.test(行) && 列に分ける(行)[0] === "役");
   if (見出し < 0) throw new Error("意匠帳の役の表が無い");
   const columns = 列に分ける(行たち[見出し] ?? "").length;
-  if (columns !== 2 && columns !== 3) throw new Error(`意匠帳の表が ${columns} 列ある (2 列か 3 列が要る)`);
+  if (columns !== 2) throw new Error(`意匠帳の表が ${columns} 列ある (2 列が要る)`);
 
-  const rows = new Map<ThemePort, string[]>();
+  const rows = new Map<ThemePort, string>();
   for (const 行 of 行たち.slice(見出し + 2)) {
     if (!行.trim().startsWith("|")) break;
     const 列 = 列に分ける(行);
     const 役 = 列[0] ?? "";
     if (!Object.hasOwn(ROLE_TO_PORT, 役)) continue;
     if (列.length !== columns) throw new Error(`意匠帳の「${役}」が ${列.length} 列ある`);
-    const 値 = 列.slice(1).map((色) => {
-      const m = /^`(#[0-9a-fA-F]{6})`$/.exec(色);
-      if (!m) throw new Error(`意匠帳の「${役}」の値が #rrggbb ではない (${色})`);
-      return m[1]!.toLowerCase();
-    });
+    const 色 = 列[1] ?? "";
+    const m = /^`(#[0-9a-fA-F]{6})`$/.exec(色);
+    if (!m) throw new Error(`意匠帳の「${役}」の値が #rrggbb ではない (${色})`);
+    const 値 = m[1]!.toLowerCase();
     rows.set(ROLE_TO_PORT[役 as keyof typeof ROLE_TO_PORT], 値);
   }
-  return { columns, rows };
+  return rows;
 }
 
-function 値を揃える(rows: Map<ThemePort, string[]>, index: number, name: string): ThemeValues {
+function 値を揃える(rows: Map<ThemePort, string>, name: string): ThemeValues {
   const out = {} as ThemeValues;
   for (const port of THEME_PORTS) {
-    const value = rows.get(port)?.[index];
+    const value = rows.get(port);
     if (value === undefined) throw new Error(`意匠帳の ${name} に ${port} の値が無い`);
     out[port] = value;
   }
@@ -240,29 +226,17 @@ function 値を揃える(rows: Map<ThemePort, string[]>, index: number, name: st
 }
 
 /**
- * 全ての意匠帳を読む。3 列なら明暗、2 列なら固定と表の形から判定する。
+ * 全ての意匠帳を読む。各意匠の `docs/design/{name}/note.md` の「値」 の表 (役と値の 2 列) を読む。
  *
  * `overrides` は本文の変異試験用。file を書き換えず、同じ読み手へ変更した本文を渡せる。
  */
 export function readThemeNotes(overrides: Partial<Record<DslTheme, string>> = {}): Map<DslTheme, ThemeNote> {
-  const er = (): string => overrides.kinari ?? overrides.celadon ?? 読む("../../../../docs/design/er/note.md");
   const out = new Map<DslTheme, ThemeNote>();
 
   for (const name of THEMES) {
-    const erHeading = ER_HEADINGS[name];
-    const 本文 = overrides[name] ?? (erHeading ? er() : 読む(`../../../../docs/design/${name}/note.md`));
-    const 節 = erHeading ? 節を取る(本文, erHeading, 3) : 節を取る(本文, "値", 2);
-    const 表 = 表を読む(節);
-    if (表.columns === 3) {
-      out.set(name, {
-        name,
-        mode: "light-dark",
-        light: 値を揃える(表.rows, 0, name),
-        dark: 値を揃える(表.rows, 1, name),
-      });
-    } else {
-      out.set(name, { name, mode: "fixed", value: 値を揃える(表.rows, 0, name) });
-    }
+    const 本文 = overrides[name] ?? readThemeNoteText(name);
+    const rows = 表を読む(節を取る(本文, "値", 2));
+    out.set(name, { name, mode: "fixed", value: 値を揃える(rows, name) });
   }
 
   if (out.size !== THEMES.length) {
@@ -275,25 +249,12 @@ export function readThemeNotes(overrides: Partial<Record<DslTheme, string>> = {}
 export function readMetroThemeNotes(
   overrides: Partial<Record<DslTheme, string>> = {},
 ): Map<DslTheme, MetroThemeNote> {
-  const er = (): string => overrides.kinari ?? overrides.celadon ?? 読む("../../../../docs/design/er/note.md");
   const out = new Map<DslTheme, MetroThemeNote>();
 
   for (const name of THEMES) {
-    const erHeading = ER_HEADINGS[name];
-    const 本文 = overrides[name] ?? (erHeading ? er() : 読む(`../../../../docs/design/${name}/note.md`));
-    const 親 = erHeading ? 節を取る(本文, erHeading, 3) : 本文;
-    const 路線節 = 節を取る(親, "路線図の色", erHeading ? 4 : 3);
-    const 表 = 路線図の表を読む(路線節);
-    if (表.columns === 3) {
-      out.set(name, {
-        name,
-        mode: "light-dark",
-        light: 路線図の値を揃える(表.rows, 0, name),
-        dark: 路線図の値を揃える(表.rows, 1, name),
-      });
-    } else {
-      out.set(name, { name, mode: "fixed", value: 路線図の値を揃える(表.rows, 0, name) });
-    }
+    const 本文 = overrides[name] ?? readThemeNoteText(name);
+    const rows = 路線図の表を読む(節を取る(本文, "路線図の色", 3));
+    out.set(name, { name, mode: "fixed", value: 路線図の値を揃える(rows, name) });
   }
 
   if (out.size !== THEMES.length) throw new Error(`路線図の意匠帳を ${out.size} 件しか読めない`);
@@ -301,10 +262,7 @@ export function readMetroThemeNotes(
 }
 
 export function readThemeNoteText(name: DslTheme): string {
-  const erHeading = ER_HEADINGS[name];
-  return erHeading
-    ? 読む("../../../../docs/design/er/note.md")
-    : 読む(`../../../../docs/design/${name}/note.md`);
+  return 読む(`../../../../docs/design/${name}/note.md`);
 }
 
 /** 固定の意匠の主役「一」を読む。行が無い意匠は線を主役として扱う。 */

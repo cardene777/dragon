@@ -1389,8 +1389,6 @@ export const sourceJson__textDslTopology = `{
 export const sourceYaml__textDslEr = `
 title: "表と関係の設計"
 type: record
-# 列を 1 つも書かない図なので、見分ける行から配色を導けない = 書いて指す (#2782)
-palette: kinari
 # 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
 relations: hover
@@ -1537,7 +1535,6 @@ export const pattern__textDslEr__多重度を全て並べる = textDslToDiagram(
 export const sourceJson__textDslEr = `{
   "title": "表と関係の設計",
   "type": "record",
-  "palette": "kinari",
   "relations": "hover",
   "reveal": "all",
   "actors": [
@@ -1595,7 +1592,6 @@ export const sourceJson__textDslEr = `{
 // 同じ通り道を並走する線 / 交わる線 / 札の位置は、表が 3 つの図では 1 つも見えない。
 export const sourceYaml__textDslErMesh = `title: "多対多が 2 組 / 8 表 8 関係"
 type: record
-palette: kinari
 # 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
 relations: hover
@@ -1657,7 +1653,6 @@ export const sourceJson__textDslErMesh = `{
   "type": "record",
   "relations": "hover",
   "reveal": "all",
-  "palette": "kinari",
   "lanes": { "c0": { "width": 470 }, "c1": { "width": 470 } },
   "actors": [
     {
@@ -3073,7 +3068,6 @@ export const pattern__textDslValueKeys__日本語で書く = textDslToDiagram(
 
 export const sourceYaml__textDslRowMarkKeys = `title: "行と印を英語で書く"
 type: record
-palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)
 relations: hover
 reveal: all
@@ -3105,7 +3099,6 @@ animation:
 export const sourceJson__textDslRowMarkKeys = `{
   "title": "行と印を英語で書く",
   "type": "record",
-  "palette": "kinari",
   "relations": "hover",
   "reveal": "all",
   "actors": [
@@ -3157,7 +3150,6 @@ export const patternBase__textDslRowMarkKeys = "英語で書く";
 
 export const sourceYaml__pattern__textDslRowMarkKeys__日本語で書く = `title: "行と印を日本語で書く"
 type: record
-palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)
 relations: hover
 reveal: all

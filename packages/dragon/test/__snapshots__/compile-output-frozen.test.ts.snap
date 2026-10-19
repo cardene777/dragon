@@ -342,7 +342,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > class の図と
             "shape": "chevron",
           },
         ],
-        "rowStripe": true,
         "rows": [
           "name: string",
           "age: int",
@@ -365,7 +364,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > class の図と
             "shape": "chevron",
           },
         ],
-        "rowStripe": true,
         "rows": [
           "breed: string",
           "bark: void",
@@ -387,7 +385,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > class の図と
             "shape": "chevron",
           },
         ],
-        "rowStripe": true,
         "rows": [
           "indoor: boolean",
           "meow: void",
@@ -396,7 +393,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > class の図と
         "title": "猫",
       },
     ],
-    "palette": "kinari",
     "phases": [
       {
         "activate": [
@@ -504,7 +500,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > er の図と知
         "kind": "storage",
         "lane": "lane-利用者",
         "rowMarks": [],
-        "rowStripe": true,
         "rows": [
           "id: PK",
           "email: string",
@@ -518,7 +513,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > er の図と知
         "kind": "storage",
         "lane": "lane-投稿",
         "rowMarks": [],
-        "rowStripe": true,
         "rows": [
           "id: PK",
           "userId: FK",
@@ -533,7 +527,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > er の図と知
         "kind": "storage",
         "lane": "lane-コメント",
         "rowMarks": [],
-        "rowStripe": true,
         "rows": [
           "id: PK",
           "postId: FK",
@@ -543,7 +536,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > er の図と知
         "title": "コメント",
       },
     ],
-    "palette": "kinari",
     "phases": [
       {
         "activate": [

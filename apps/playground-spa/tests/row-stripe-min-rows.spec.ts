@@ -12,19 +12,18 @@
  * 1 行の箱に出ないことだけを見ると、全ての箱から縞が消えた形でも通る。
  * 2 行以上の箱で出ることを併せて数える。
  *
- * ## 配色を書いた図だけを見る
+ * ## 意匠を当てた図を見る
  *
- * 縞の色は配色から取る (`--cdl-row-stripe`)。 配色を書かない図では箱の面と同じ色に落ちて
- * 見えないが、`data-cdl-role="node-row-stripe"` の要素自体は出る = DOM で数える本検査は
- * 配色の有無に依らない。 それでも配色を書いた図を選ぶのは、目で見て確かめられる図に
- * 合わせるため。
+ * 縞は意匠が決まった図の、行を書いた表の箱にだけ敷く。 見本は意匠を書かない (#2960) ので、
+ * 見本帳の切替で意匠を当ててから数える。 切替も記法で意匠を書いた時と同じ当て方を通る。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 配色の札 } from "../src/lib/palette-switch";
 import { 一覧の行 } from "./catalog-item-pick";
 
 /**
  * 縞を持つ見本。宅配の型・関係は Phase 1 の 7 意匠すべてで縞が無いのが正解なので対象外。
- * 1 行側は `pattern-call-rw`、2 行以上側は配色つきの「行と印を英語で書く」で測る。
+ * 1 行側は `pattern-call-rw`、2 行以上側は「行と印を英語で書く」で測る。
  * text DSL の export 名ではなく、一覧と図に実際に載る diagram id を使う。
  * 宅配の 2 図を外しても、「出ない / 出る」の両方を別の現行見本で保つ。
  */
@@ -33,11 +32,21 @@ const 見本 = [
   { slug: "text-dsl", id: "行と印を英語で書く" },
 ] as const;
 
+/**
+ * 見本を開き、意匠を当てる。
+ *
+ * 見本は意匠を書かず、縞は画面で選んだ意匠が敷く (#2960)。 意匠を当てずに数えると、
+ * 2 行以上の箱にも縞が出ない。
+ */
 async function 開く(page: Page, slug: string, id: string): Promise<void> {
   await page.goto(`catalog/${slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
   await 一覧の行(page, id).click();
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
+  await page.getByRole("combobox", { name: "図の色味" }).selectOption({ label: 配色の札("catalog", "ja") });
+  await page.waitForSelector(`[data-cdl-diagram="${id}"] svg[data-cdl-stage][data-cdl-palette="catalog"]`, {
+    timeout: 15000,
+  });
   await page.evaluate(() => document.fonts.ready);
 }
 

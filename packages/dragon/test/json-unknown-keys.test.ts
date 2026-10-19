@@ -190,7 +190,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     quadrantSize: { plotSize: 325 },
     // 図の意匠とその別名 (#1553 / #2790)
     theme: "blueprint",
-    palette: "celadon",
+    palette: "catalog",
     legend: [{ mark: "diamond", text: "分かれ道" }],
     legendFontSize: 18,
     edgeEndGap: 2,

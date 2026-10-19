@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { THEMES, textDslToDiagram } from "@cardenelabs/dragon";
+import { THEMES, textDslToDiagram, type DslTheme } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
+import { sourceYaml__erShapeSmall } from "@/topics/catalog/er-shapes";
+import {
+  sourceYaml__presetDeliveryClasses,
+  sourceYaml__presetDeliveryRelations,
+} from "@/topics/catalog/presets.cdl";
 import { 図の配色を変える, 配色の選択肢, 押される配色, 画面の色 } from "./palette-switch";
 
 const 図 = (palette?: string, textMetrics?: CdlDiagram["textMetrics"]): CdlDiagram => ({
@@ -14,6 +19,75 @@ const 図 = (palette?: string, textMetrics?: CdlDiagram["textMetrics"]): CdlDiag
   phases: [],
   ...(palette === undefined ? {} : { palette }),
   ...(textMetrics === undefined ? {} : { textMetrics }),
+});
+
+describe("見本帳の意匠の切替から色だけの 2 意匠を外す (#2960)", () => {
+  it("意匠の選択肢は地まで含めて描く 7 つの意匠だけを並べる", () => {
+    expect(配色の選択肢).toEqual(["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"]);
+  });
+});
+
+/*
+ * 外から意匠を当てた図と、同じ意匠を書いた図を比べる (#2960)。
+ *
+ * 見本は行の縞を敷くために `palette: kinari` を書いていた。 その行を消すと縞は外から当てた
+ * 意匠に頼るが、切替は縞を宅配の 2 図でしか扱わなかった。 書いた時と同じ処理を通ることを、
+ * 宅配の 2 図と、それ以外の行を書いた表の箱と、棒の図で確かめる。
+ */
+describe("外から当てた意匠は書いた意匠と同じ棒の角と行の縞になる (#2960)", () => {
+  /** 意匠で決まる 2 つの値。 骨組みは別の検査 (`catalog-delivery-four-templates`) が見る */
+  const 意匠で決まる値 = (diagram: CdlDiagram) =>
+    diagram.nodes.map((node) => ({ id: node.id, rowStripe: node.rowStripe, barCornerRadii: node.barCornerRadii }));
+
+  /** 本文の最上位の意匠の行を外す。 字下げした行 (箱や段の中) には触れない */
+  const 意匠を外す = (本文: string): string => 本文.replace(/^(?:theme|palette):.*\n/gm, "");
+  /** 本文の `type:` の次の行に意匠を書く */
+  const 意匠を書く = (本文: string, 意匠: DslTheme): string =>
+    意匠を外す(本文).replace(/^(type:.*\n)/m, `$1theme: ${意匠}\n`);
+
+  /** 行を書いた表の箱と、書き手が縞を断った箱と、行の無い箱を持つ表の図 */
+  const 表の図 = [
+    'title: "確かめ"',
+    "type: record",
+    "",
+    "actors:",
+    '  - users: { kind: storage, rows: ["id: bigint", "email: text"], marks: ["pk", ""] }',
+    '  - orders: { kind: storage, rowStripe: false, rows: ["id: bigint", "user_id: bigint"], marks: ["pk", "fk"] }',
+    "  - 待機: { kind: storage }",
+    "",
+    "flow:",
+    '  - users -> orders: "注文する"',
+    "",
+  ].join("\n");
+
+  const 棒の図 = 'title: "確かめ"\ntype: chart\nshape: bar\n\nactors:\n  - A: "80"\n  - B: "20"\n\nflow:\n  - A -> B\n';
+
+  /** 見本帳と同じく、組み立てた図へ id を載せる。 切替が id で図を見分けていても同じ形で通る */
+  const 図たち = [
+    ["表の図", "t-record", 表の図],
+    ["棒の図", "t-chart", 棒の図],
+    ["見本帳の小さい表の図", "er-shape-small", sourceYaml__erShapeSmall],
+    ["宅配の関係", "delivery-relations-demo", sourceYaml__presetDeliveryRelations],
+    ["宅配の型", "delivery-classes-demo", sourceYaml__presetDeliveryClasses],
+  ] as const;
+
+  const 組 = 図たち.flatMap(([名前, id, 本文]) => THEMES.map((意匠) => [名前, 意匠, id, 本文] as const));
+
+  it("比べる組がある (検査が空振りしていない)", () => {
+    expect(組.length).toBe(図たち.length * THEMES.length);
+  });
+
+  it("表の図は行を書いた箱を持つ (縞を比べる相手がいる)", () => {
+    const 縞 = textDslToDiagram(意匠を書く(表の図, "catalog")).nodes.map((node) => node.rowStripe);
+    expect(縞).toContain(true);
+  });
+
+  it.each(組)("%s へ外から %s を当てると、書いた図と同じ値になる", (_名前, 意匠, id, 本文) => {
+    const 元 = textDslToDiagram(意匠を外す(本文));
+    元.id = id;
+    const 書いた = textDslToDiagram(意匠を書く(本文, 意匠));
+    expect(意匠で決まる値(図の配色を変える(元, 意匠))).toEqual(意匠で決まる値(書いた));
+  });
 });
 
 describe("見本帳の意匠の切替 (#2790)", () => {
@@ -29,7 +103,7 @@ describe("見本帳の意匠の切替 (#2790)", () => {
   });
 
   it("画面の色は palette だけを外し、元から無ければ同じ object を返す", () => {
-    const 持つ = 図("kinari");
+    const 持つ = 図("letterpress");
     const 外した = 図の配色を変える(持つ, 画面の色);
     expect(外した).not.toBe(持つ);
     expect(外した.palette).toBeUndefined();
@@ -38,8 +112,8 @@ describe("見本帳の意匠の切替 (#2790)", () => {
   });
 
   it("意匠は同じなら元の object、違うなら palette を差し替えた copy を返す", () => {
-    const 元 = 図("kinari");
-    expect(図の配色を変える(元, "kinari")).toBe(元);
+    const 元 = 図("letterpress");
+    expect(図の配色を変える(元, "letterpress")).toBe(元);
     const 次 = 図の配色を変える(元, "blueprint");
     expect(次).not.toBe(元);
     expect(次.palette).toBe("blueprint");
@@ -96,19 +170,19 @@ describe("見本帳の意匠の切替 (#2790)", () => {
   it("未選択の押された札は図の意匠に従い、意匠が無ければ画面の色になる", () => {
     expect(押される配色(図("blueprint"), null)).toBe("blueprint");
     expect(押される配色(図(), null)).toBe(画面の色);
-    expect(押される配色(図("kinari"), "celadon")).toBe("celadon");
+    expect(押される配色(図("blueprint"), "catalog")).toBe("catalog");
   });
 });
 
 describe("配色と字の測り方を切り離す (#2908)", () => {
-  it("生成りの図で端末を選んでも textMetrics を足さない", () => {
-    const 次 = 図の配色を変える(図("kinari"), "terminal");
+  it("活版の図で端末を選んでも textMetrics を足さない", () => {
+    const 次 = 図の配色を変える(図("letterpress"), "terminal");
     expect(次.palette).toBe("terminal");
     expect(Object.hasOwn(次, "textMetrics")).toBe(false);
   });
 
   it("配色を替えても元の textMetrics を保つ", () => {
-    expect(図の配色を変える(図("blueprint", "proportional"), "kinari").textMetrics).toBe("proportional");
+    expect(図の配色を変える(図("blueprint", "proportional"), "letterpress").textMetrics).toBe("proportional");
   });
 
   it("画面の色は palette だけを外し、textMetrics を保つ", () => {
@@ -121,7 +195,7 @@ describe("配色と字の測り方を切り離す (#2908)", () => {
     expect(図の配色を変える(元, "terminal")).toBe(元);
   });
 
-  it("widest は9配色と画面の色の全てで変えない", () => {
+  it("widest は7配色と画面の色の全てで変えない", () => {
     for (const palette of [...THEMES, 画面の色] as const) {
       expect(図の配色を変える(図("terminal", "widest"), palette).textMetrics, palette).toBe("widest");
     }
@@ -156,8 +230,8 @@ flow:
     expect(図の配色を変える(電飾, "neon")).toBe(電飾);
   });
 
-  it.each(["kinari", "celadon", 画面の色] as const)("%s へ替えると角の key を外す", (theme) => {
-    const next = 図の配色を変える(棒("neon"), theme);
+  it("画面の色へ替えると角の key を外す", () => {
+    const next = 図の配色を変える(棒("neon"), 画面の色);
     expect(Object.hasOwn(next.nodes[0] ?? {}, "barCornerRadii")).toBe(false);
   });
 

@@ -90,11 +90,11 @@ import {
 } from "./keywords";
 // 区画の語の表 (#2667)。 記法と同じ表から直す = 同じ区画を 2 通りで呼ばない
 import { 区画 } from "./compile/word-state";
-import { 外した図種の知らせ, 外した種類, 外した種類の知らせ } from "./v05/removed-syntax";
+import { 外した意匠の知らせ, 外した図種の知らせ, 外した種類, 外した種類の知らせ } from "./v05/removed-syntax";
 // 行頭の印の古い語の読み替え (#2782)。 記法と同じ表を通す = JSON だけ古い語が印を持たない
 // 形にならない
 import { 行頭の語へ読み替える } from "./compile/row-marks";
-import type { DslDiagramShape, DslShape } from "./keywords";
+import type { DslDiagramShape, DslShape, DslTheme } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
   CdlDiagram,
@@ -1578,7 +1578,8 @@ function 値を検査(
       return;
     case "意匠":
       if (v === undefined) return;
-      if (typeof v !== "string" || resolveTheme(v) === null) {
+      // 外した意匠は誤りにせず置き換え先で描く (#2960)。 警告は組み立てが出す
+      if (typeof v !== "string" || (resolveTheme(v) === null && 外した意匠の知らせ(v) === undefined)) {
         errors.push({
           path,
           message: `${名前} must be one of: ${THEMES.join(", ")}`,
@@ -3931,9 +3932,18 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       pos: 位置("actors", i),
     };
   });
-  // 図の意匠 (#1553 / #2790)。 正の語と別名を別々に解き、順番に依らず `theme` を優先する
-  const 意匠 = json.theme === undefined ? null : resolveTheme(json.theme);
-  const 別名の意匠 = json.palette === undefined ? null : resolveTheme(json.palette);
+  // 図の意匠 (#1553 / #2790)。 正の語と別名を別々に解き、順番に依らず `theme` を優先する。
+  // 外した意匠は記法と同じく置き換え先で読み、書いた語ごとに控える (#2960)
+  const removedThemes: NonNullable<DslDocument["removedThemes"]> = [];
+  const 意匠を解く = (書いた: string | undefined, 欄: "theme" | "palette"): DslTheme | null => {
+    if (書いた === undefined) return null;
+    const 外した = 外した意匠の知らせ(書いた);
+    if (外した === undefined) return resolveTheme(書いた);
+    removedThemes.push({ written: 書いた.trim(), line: 位置(欄).line });
+    return 外した.replacement;
+  };
+  const 意匠 = 意匠を解く(json.theme, "theme");
+  const 別名の意匠 = 意匠を解く(json.palette, "palette");
   const 選んだ意匠 = 意匠 ?? 別名の意匠;
   const 並び順 = json.order === undefined ? null : resolveOrder(json.order);
   const 形 = json.shape === undefined ? null : resolveDiagramShape(json.shape);
@@ -4242,6 +4252,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
           },
         }
       : {}),
+    ...(removedThemes.length > 0 ? { removedThemes } : {}),
     pos: 位置(),
   };
 }

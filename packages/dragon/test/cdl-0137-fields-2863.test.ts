@@ -113,10 +113,6 @@ describe("意匠ごとの棒の角 (#2863)", () => {
     expect(意匠の棒の角(theme, { kind: "chart-stacked-bar", funnelForm: undefined })).toEqual(horizontal);
   });
 
-  it.each(["kinari", "celadon"] as const)("%s は値を返さない", (theme) => {
-    expect(意匠の棒の角(theme, { kind: "chart-bar", funnelForm: undefined })).toBeUndefined();
-  });
-
   it("棒を描く節だけを判定し、既定の台形漏斗を外す", () => {
     expect(棒を描く節か({ kind: "chart-bar", funnelForm: undefined })).toBe(true);
     expect(棒を描く節か({ kind: "gantt-timeline", funnelForm: undefined })).toBe(true);

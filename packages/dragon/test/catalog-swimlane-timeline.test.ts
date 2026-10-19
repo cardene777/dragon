@@ -125,7 +125,7 @@ describe("見本帳の時間軸の形 (#2798)", () => {
       expect(textDsl[`sourceJson__${item.key}` as keyof typeof textDsl]).toEqual(expect.any(String));
   });
 
-  it.each([undefined, "kinari", "blueprint"] as const)(
+  it.each([undefined, "letterpress", "blueprint"] as const)(
     "意匠 %s でも軸・番号・札を描く",
     (theme) => {
       const item = 時間軸の見本()[0];

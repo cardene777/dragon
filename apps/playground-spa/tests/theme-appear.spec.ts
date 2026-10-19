@@ -92,15 +92,3 @@ for (const note of edgeAppearingThemes()) {
     await expect(page.locator('[data-cdl-role="edge-line"]')).not.toHaveCount(0);
   });
 }
-
-test("kinari initial-animation: 生成りには固定の意匠の現れ方を足さない (#2790)", async ({
-  page,
-}) => {
-  await capture(page);
-  await page.goto(`editor#s=${記法をURLに載せる(source("kinari"))}`);
-  await page.waitForSelector('svg[data-cdl-stage][data-cdl-palette="kinari"]');
-  await page.waitForTimeout(1_000);
-
-  expect(Object.values(await counts(page)).reduce((sum, value) => sum + value, 0)).toBe(0);
-  await expect(page.locator('[data-cdl-role="node-body"]')).not.toHaveCount(0);
-});

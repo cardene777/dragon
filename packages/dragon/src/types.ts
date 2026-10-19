@@ -386,11 +386,18 @@ export type DslDocument = {
    *
    * 名前だけを持つ。 実際の色は消費側 (`cdl-theme.css`) が決めるので、ここには値を書かない。
    * `palette:` も同じ意匠を書く別名として読む。record の用途は一つに決められないため、
-   * UML クラス図の生成り色が要る時も本文で明記する。
+   * 意匠が要る時も本文で明記する。
    */
   theme?: DslTheme;
   /** `theme:` と別名の `palette:` を両方書いた時の行 (#2790)。 */
   themeAlsoPalettePos?: { themeLine: number; paletteLine: number };
+  /**
+   * 外した意匠を書いた語と行 (#2960)。 置き換え先は `v05/removed-syntax.ts` の表から引く。
+   *
+   * 書いた語ごとに 1 件。 `theme:` に残る意匠を書いて使われなかった `palette:` の外した意匠も
+   * 数える = 使われない側でも、外した書き方を黙って受けない。
+   */
+  removedThemes?: { written: string; line: number }[];
   groups?: Record<string, DslGroup>;
   /**
    * 値を見せる部品 (`readouts:`、 #1374)。 割合の輪や数え上げを図の脇に出す。

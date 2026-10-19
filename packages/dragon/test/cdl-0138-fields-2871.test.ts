@@ -29,7 +29,7 @@ flow:
 
 describe("cdl 0.138.0 の公開欄 (#2871)", () => {
   it("公開済みの円の区画の間は、どの意匠と節でも値を返さない", () => {
-    for (const theme of ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
+    for (const theme of ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
       expect(意匠の円の区画の間(theme, { kind: "chart-pie" })).toBeUndefined();
       expect(意匠の円の区画の間(theme, { kind: "chart-bar" })).toBeUndefined();
     }

@@ -32,6 +32,8 @@ export type CompileNotice = {
     | "track-from-name"
     // `theme:` とその別名 `palette:` を両方書き、`theme:` を使った (#2790)
     | "theme-palette-both"
+    // 外した意匠 (生成りに茶 / 青磁に墨) を書き、置き換え先で描いた (#2960)
+    | "theme-removed"
     // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)
     | "scale-reserved"
     // 部品に書いた色が効かない (#1973)。 色番号を入れる状態を 1 つも持たない部品に色番号を

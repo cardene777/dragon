@@ -134,7 +134,7 @@ flow:
 | `ganttSize` | 工程名の列・時間軸の右余白・目盛り・帯・節目・依存線の寸法 |
 | `quadrantLabelPosition` | `outside-corners` で四象限の区画名を角の外へ置く |
 | `quadrantSize` | 四象限の面・点・字・札間の寸法 |
-| `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
+| `theme`     | 図の意匠 (`blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
 | `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 印付きは `{ mark, text, tone?, lineStyle? }`、注記は `{ text, align?, lead? }`。和名なら `{ 印, 説明 }`。 印の種類は下の節を参照 |
 | `legendFontSize` | 凡例の字の大きさ |
 | `legendOffset` | 図全体の凡例の位置をずらす (`{ x?, y? }`) |
