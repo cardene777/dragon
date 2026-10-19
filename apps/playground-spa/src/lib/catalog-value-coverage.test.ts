@@ -621,7 +621,7 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.reveal=phase": { 種類: "既定", 別の値: "all" },
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
   "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
-  "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
+  "$.palette": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.chartLineSeries[].marker=dot": {
     種類: "記法一覧",
     理由: "折れ線の点の印の値は README で見せる",

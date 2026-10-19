@@ -322,18 +322,12 @@ function compare(notes: Map<DslTheme, ThemeNote>, css: Map<string, CssTheme>): {
   for (const [name, note] of notes) {
     const actual = css.get(name);
     if (!actual) continue;
-    const compareSide = (side: "明" | "暗" | "固定", expected: Record<ThemePort, string>, values: Map<ThemePort, string>): void => {
-      for (const port of THEME_PORTS) {
-        const got = values.get(port);
-        if (got === undefined) continue;
-        count += 1;
-        if (got !== expected[port]) mismatch.push(`${name}.${port} ${side}: 意匠帳 ${expected[port]} / CSS ${got}`);
-      }
-    };
-    if (note.mode === "light-dark") {
-      compareSide("明", note.light, actual.light);
-      compareSide("暗", note.dark, actual.dark);
-    } else compareSide("固定", note.value, actual.light);
+    for (const port of THEME_PORTS) {
+      const got = actual.light.get(port);
+      if (got === undefined) continue;
+      count += 1;
+      if (got !== note.value[port]) mismatch.push(`${name}.${port} 固定: 意匠帳 ${note.value[port]} / CSS ${got}`);
+    }
   }
   return { count, mismatch };
 }
@@ -351,23 +345,16 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const notes = readThemeNotes();
     const css = cssThemes(cssText);
     const mismatch: string[] = [];
-    for (const [name, note] of notes) {
+    for (const name of notes.keys()) {
       const actual = css.get(name);
       if (!actual) continue;
-      expect([...actual.light.keys()].sort(), `${name} の明 / 固定の口`).toEqual([...THEME_PORTS].sort());
-      if (note.mode === "light-dark") {
-        expect([...actual.dark.keys()].sort(), `${name} の暗の口`).toEqual([...THEME_PORTS].sort());
-      } else {
-        expect(actual.hasDarkBlock, `${name} は固定なのに html.dark の塊を持つ`).toBe(false);
-        expect(actual.dark.size, `${name} は固定なのに暗の値を持つ`).toBe(0);
-      }
+      expect([...actual.light.keys()].sort(), `${name} の固定の口`).toEqual([...THEME_PORTS].sort());
+      expect(actual.hasDarkBlock, `${name} は固定なのに html.dark の塊を持つ`).toBe(false);
+      expect(actual.dark.size, `${name} は固定なのに暗の値を持つ`).toBe(0);
     }
 
     const result = compare(notes, css);
-    const expected = [...notes.values()].reduce(
-      (sum, note) => sum + THEME_PORTS.length * (note.mode === "light-dark" ? 2 : 1),
-      0,
-    );
+    const expected = notes.size * THEME_PORTS.length;
     mismatch.push(...result.mismatch);
     expect(result.count, "突き合わせた組の数が意匠 × 口 × 明暗と違う").toBe(expected);
     expect(mismatch, "意匠帳と CSS の値が食い違う").toEqual([]);
@@ -385,53 +372,41 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         failures.push(`${name}: CSS の路線図の色が無い`);
         continue;
       }
-      const compareSide = (mode: string, expected: Record<MetroColorRole, string>, values: Map<MetroColorRole, string>): void => {
-        for (const [role, expectedColor] of Object.entries(expected) as Array<[MetroColorRole, string]>) {
-          checked += 1;
-          const actualColor = values.get(role);
-          if (actualColor !== expectedColor) {
-            failures.push(`${name}/${mode}/${role}: 意匠帳 ${expectedColor} / CSS ${actualColor ?? "無し"}`);
-          }
+      for (const [role, expectedColor] of Object.entries(note.value) as Array<[MetroColorRole, string]>) {
+        checked += 1;
+        const actualColor = css.light.get(role);
+        if (actualColor !== expectedColor) {
+          failures.push(`${name}/固定/${role}: 意匠帳 ${expectedColor} / CSS ${actualColor ?? "無し"}`);
         }
-      };
-      if (note.mode === "light-dark") {
-        compareSide("明", note.light, css.light);
-        compareSide("暗", note.dark, css.dark);
-      } else {
-        compareSide("固定", note.value, css.light);
-        if (css.dark.size > 0) failures.push(`${name}: 固定意匠なのに暗い路線図の色を持つ`);
       }
+      if (css.dark.size > 0) failures.push(`${name}: 固定意匠なのに暗い路線図の色を持つ`);
     }
 
-    expect(checked, "路線図の色を 1 件も突き合わせていない").toBe(11 * 16);
+    expect(checked, "路線図の色を 1 件も突き合わせていない").toBe(notes.size * 16);
     expect(failures, "路線図の色が意匠帳と CSS で食い違う").toEqual([]);
   });
 
-  it("路線図の駅名・名札の名前・名札の補足は 9 意匠の明暗で対比 4.5 以上になる", () => {
+  it("路線図の駅名・名札の名前・名札の補足は全ての意匠で対比 4.5 以上になる", () => {
     const failures: string[] = [];
     let checked = 0;
 
     for (const [name, note] of readMetroThemeNotes()) {
-      const sides = note.mode === "light-dark"
-        ? [["明", note.light], ["暗", note.dark]] as const
-        : [["明", note.value], ["暗", note.value]] as const;
-      for (const [mode, colors] of sides) {
-        const pairs = [
-          ["駅名", colors.stationInk, colors.stationGround],
-          ["名札の名前", colors.badgeTitle, colors.badgeFace],
-          ["名札の補足", colors.badgeSubtitle, colors.badgeFace],
-        ] as const;
-        for (const [role, foreground, background] of pairs) {
-          checked += 1;
-          const ratio = contrast(rgb(foreground), rgb(background));
-          if (ratio < 4.5) {
-            failures.push(`${name}/${mode}/${role}: ${ratio.toFixed(2)}:1 (${foreground} / ${background})`);
-          }
+      const colors = note.value;
+      const pairs = [
+        ["駅名", colors.stationInk, colors.stationGround],
+        ["名札の名前", colors.badgeTitle, colors.badgeFace],
+        ["名札の補足", colors.badgeSubtitle, colors.badgeFace],
+      ] as const;
+      for (const [role, foreground, background] of pairs) {
+        checked += 1;
+        const ratio = contrast(rgb(foreground), rgb(background));
+        if (ratio < 4.5) {
+          failures.push(`${name}/固定/${role}: ${ratio.toFixed(2)}:1 (${foreground} / ${background})`);
         }
       }
     }
 
-    expect(checked, "路線図の字の対比を 1 件も調べていない").toBe(THEMES.length * 2 * 3);
+    expect(checked, "路線図の字の対比を 1 件も調べていない").toBe(THEMES.length * 3);
     expect(failures, "路線図の字の対比が 4.5:1 に届かない").toEqual([]);
   });
 
@@ -880,8 +855,6 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
 
   it("時間軸の軸と終わりの印の色を palette 名ごとに見本の口へ結ぶ", () => {
     const expected = {
-      kinari: { axis: "var(--er-line)", end: "var(--er-ink)" },
-      celadon: { axis: "var(--er-line)", end: "var(--er-ink)" },
       blueprint: { axis: "var(--er-line)", end: "var(--er-ink)" },
       letterpress: { axis: "var(--theme-lead)", end: "var(--er-ink)" },
       catalog: { axis: "var(--er-line)", end: "var(--theme-ground-ink)" },

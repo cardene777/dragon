@@ -95,26 +95,18 @@ async function open(page: Page, source: string, theme: string): Promise<void> {
   await stopDiagram(page);
 }
 
-async function openRolelessPalette(
-  page: Page,
-  source: string,
-  palette: "kinari" | "celadon" | undefined,
-  dark: boolean,
-): Promise<void> {
-  if (palette !== undefined) {
-    await openEditorTheme(page, source, palette, dark);
-  } else {
-    await page.goto(`editor#s=${記法をURLに載せる(source)}`);
-    await page.reload();
-    await page.waitForSelector("svg[data-cdl-stage]:not([data-cdl-palette])");
-    await page.evaluate((value) => document.documentElement.classList.toggle("dark", value), dark);
-    await page.waitForFunction(
-      (value) => document.documentElement.classList.contains("dark") === value,
-      dark,
-    );
-    await page.evaluate(() => document.fonts.ready);
-    await page.waitForTimeout(700);
-  }
+/** 意匠を書かない図を画面の色で開く。 色だけの意匠 (生成り・青磁) は外した (#2960) */
+async function openRolelessPalette(page: Page, source: string, dark: boolean): Promise<void> {
+  await page.goto(`editor#s=${記法をURLに載せる(source)}`);
+  await page.reload();
+  await page.waitForSelector("svg[data-cdl-stage]:not([data-cdl-palette])");
+  await page.evaluate((value) => document.documentElement.classList.toggle("dark", value), dark);
+  await page.waitForFunction(
+    (value) => document.documentElement.classList.contains("dark") === value,
+    dark,
+  );
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(700);
   await stopDiagram(page);
 }
 
@@ -537,16 +529,10 @@ test("時間軸の札の高さは全配色、点列・線幅・菱形・矢じ�
     await computedStyleValue(page, "filter", role("neon", "--dragon-timeline-decision-effect")),
   );
 
-  for (const [palette, paletteName] of [
-    ["kinari", "生成り"],
-    ["celadon", "青磁"],
-    [undefined, "画面の色"],
-  ] as const) {
-    await openRolelessPalette(page, source, palette, false);
-    const height = await page.locator('[data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"]').first()
-      .evaluate((element) => getComputedStyle(element).height);
-    expect(height, paletteName).toBe("40px");
-  }
+  await openRolelessPalette(page, source, false);
+  const height = await page.locator('[data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"]').first()
+    .evaluate((element) => getComputedStyle(element).height);
+  expect(height, "画面の色").toBe("40px");
 });
 
 test("7 意匠の単系列棒は計算後に意匠帳の塗り・濃さ・枠を使う", async ({ page }) => {
@@ -823,36 +809,30 @@ const rolelessPaletteTargets = [
   },
 ] as const;
 
-for (const [palette, paletteName] of [
-  ["kinari", "生成り"],
-  ["celadon", "青磁"],
-  [undefined, "画面の色"],
-] as const) {
-  test(`${paletteName}の図表は明暗とも cdl の属性色を計算後の塗りと線に使う`, async ({ page }) => {
-    for (const dark of [false, true]) {
-      const label = `${paletteName} / ${dark ? "暗" : "明"}`;
-      for (const { source, targets } of rolelessPaletteTargets) {
-        await openRolelessPalette(page, source, palette, dark);
-        for (const target of targets) {
-          const measured = await presentationPaint(page, target.selector, target.property);
-          expect(measured.actual, `${label} / ${target.selector} / ${target.property}`)
-            .toBe(measured.presentation);
-          if ("nonNone" in target) {
-            expect(measured.actual, `${label} の傾き図の線`).not.toBe("none");
-          }
-          if ("contrast" in target) {
-            expect(measured.actual, `${label} / ${target.selector} が黒へ崩れている`)
-              .not.toBe("rgb(0, 0, 0)");
-            expect(
-              contrast(color(measured.actual), color(measured.background)),
-              `${label} / ${target.selector} / ${JSON.stringify(measured)}`,
-            ).toBeGreaterThanOrEqual(4.5);
-          }
+test("画面の色の図表は明暗とも cdl の属性色を計算後の塗りと線に使う", async ({ page }) => {
+  for (const dark of [false, true]) {
+    const label = `画面の色 / ${dark ? "暗" : "明"}`;
+    for (const { source, targets } of rolelessPaletteTargets) {
+      await openRolelessPalette(page, source, dark);
+      for (const target of targets) {
+        const measured = await presentationPaint(page, target.selector, target.property);
+        expect(measured.actual, `${label} / ${target.selector} / ${target.property}`)
+          .toBe(measured.presentation);
+        if ("nonNone" in target) {
+          expect(measured.actual, `${label} の傾き図の線`).not.toBe("none");
+        }
+        if ("contrast" in target) {
+          expect(measured.actual, `${label} / ${target.selector} が黒へ崩れている`)
+            .not.toBe("rgb(0, 0, 0)");
+          expect(
+            contrast(color(measured.actual), color(measured.background)),
+            `${label} / ${target.selector} / ${JSON.stringify(measured)}`,
+          ).toBeGreaterThanOrEqual(4.5);
         }
       }
     }
-  });
-}
+  }
+});
 
 test("沈んだ工程帯と電飾の工程帯は計算後の面と枠を使う", async ({ page }) => {
   for (const theme of ["blueprint", "letterpress"] as const) {
@@ -970,7 +950,7 @@ test("段の箱の線・札・凡例・戻る線は 7 意匠で計算後の表�
 
 test("画面配色の線札は明暗とも計算後の色・大きさ・太さで WCAG AA を満たす", async ({ page }) => {
   for (const dark of [false, true]) {
-    await openRolelessPalette(page, withoutAnimation(sourceYaml__presetDeliveryFlow), undefined, dark);
+    await openRolelessPalette(page, withoutAnimation(sourceYaml__presetDeliveryFlow), dark);
     const labels = await page.locator('[data-cdl-edge-label-for]').evaluateAll((groups) =>
       groups.flatMap((group) => {
         const background = group.querySelector<SVGElement>('[data-cdl-role="edge-label-bg"]');

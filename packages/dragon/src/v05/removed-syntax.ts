@@ -1,8 +1,9 @@
 /**
- * 外した書き方と置き換え先 (#2947)。
+ * 外した書き方と置き換え先 (#2947 / #2960)。
  *
  * dragon はどの分野にも寄らずに図を描く道具なので、特定の技術や会社に向けた書き方を外した。
- * 外した書き方を黙って受けないために、**書いた人に置き換え先を誤りとして返す**。
+ * 外した書き方を黙って受けないために、**書いた人に置き換え先を返す**。 図種と箱の種類は
+ * 誤りとして返し、意匠は警告を出して置き換え先で描く (`外した意匠` の説明)。
  *
  * 外した語を受理集合 (`NODE_KIND_VALID` / `TYPE_ALIASES`) から消すだけだと、箱の種類は
  * 見本 (parts) の名前として扱われて「そんな部品は無い」 と出て、図種は「図種が読めません」
@@ -11,6 +12,7 @@
  * 記法 (`v05/parser.ts`) と JSON (`json-parser.ts`) の両方の入口がこの表を引く。
  * 入口ごとに表を持つと、片方だけ受け付ける形が残る。
  */
+import type { DslTheme } from "../keywords";
 
 /** 外した図種と、同じ図を描く書き方 */
 export const 外した図種: ReadonlyMap<string, string> = new Map<string, string>([
@@ -112,4 +114,36 @@ export function 外した図種の知らせ(type: string): { message: string; hi
   const 代わり = 外した図種.get(type);
   if (代わり === undefined) return undefined;
   return { message: `図種 "${type}" は外しました`, hint: `代わりに ${代わり} を書く` };
+}
+
+/**
+ * 外した意匠と、置き換え先 (#2960)。
+ *
+ * 生成りに茶と青磁に墨は色だけを変える意匠で、残る 7 つは地まで含めた 1 枚の絵になる。
+ * 色だけの 2 つを外し、近い色みの絵へ置き換える。
+ *
+ * 図種と箱の種類 (上の 2 つの表) と違い、**誤りにせず置き換え先で描く**。 意匠は図の骨組みを
+ * 変えないので、置き換えても図が崩れない。 書いた人には警告で置き換え先を知らせる。
+ */
+export const 外した意匠: ReadonlyMap<string, DslTheme> = new Map<string, DslTheme>([
+  ["kinari", "letterpress"],
+  ["生成り", "letterpress"],
+  ["生成りに茶", "letterpress"],
+  ["celadon", "blueprint"],
+  ["青磁", "blueprint"],
+  ["青磁に墨", "blueprint"],
+]);
+
+/** 外した意匠なら、置き換え先と知らせの文面を返す。 意匠と同じく大文字小文字を区別しない */
+export function 外した意匠の知らせ(
+  theme: string,
+): { replacement: DslTheme; message: string; hint: string } | undefined {
+  const 書いた語 = theme.trim();
+  const 代わり = 外した意匠.get(書いた語.toLowerCase());
+  if (代わり === undefined) return undefined;
+  return {
+    replacement: 代わり,
+    message: `意匠 "${書いた語}" は外しました。 置き換え先の ${代わり} で描きます`,
+    hint: `代わりに ${代わり} を書く`,
+  };
 }

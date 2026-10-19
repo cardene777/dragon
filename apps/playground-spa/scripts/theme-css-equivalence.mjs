@@ -50,8 +50,6 @@ const CLOCK_TIME = new Date("2026-10-14T09:00:00+09:00");
 
 export const PALETTES = Object.freeze([
   { value: "site-colours", label: "画面の色", reference: false },
-  { value: "kinari", label: "生成りに茶", reference: false },
-  { value: "celadon", label: "青磁に墨", reference: false },
   { value: "blueprint", label: "図面", reference: true },
   { value: "letterpress", label: "活版", reference: true },
   { value: "catalog", label: "図録", reference: true },

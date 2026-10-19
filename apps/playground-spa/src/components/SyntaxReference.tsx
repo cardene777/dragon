@@ -150,7 +150,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
           {themes.map(([theme, aliases]) => (
             <div key={theme} className="v4-editor-syntax-row">
               <code className="v4-editor-syntax-code" data-theme={theme}>{theme}</code>
-              {/* 別名は記法に書く値そのもの (`生成り` / `青磁` / `図面`)。 人が読む添え書きと同じ見た目だが
+              {/* 別名は記法に書く値そのもの (`図面` / `活版` / `図録`)。 人が読む添え書きと同じ見た目だが
                   訳す対象ではないので、印を付けて画面の言語を数える検査から外す (#2463) */}
               <span className="v4-editor-syntax-note" data-notation="">
                 {aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}

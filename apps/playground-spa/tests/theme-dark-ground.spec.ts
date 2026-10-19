@@ -14,7 +14,8 @@ function fixedVariableNames(name: string): string[] {
 const er = EDITOR_SAMPLES.find((sample) => sample.slug === "er");
 if (!er) throw new Error("editor-samples に er の見本が無い");
 
-const source = (name: string): string => er.code.replace(/^palette:.*$/m, `theme: ${name}`);
+// 見本は意匠を書かない (#2960) ので、図種の次の行に意匠を書き足す
+const source = (name: string): string => er.code.replace(/^(type:.*)$/m, `$1\ntheme: ${name}`);
 
 const fixedThemes = (): Array<Extract<ThemeNote, { mode: "fixed" }>> =>
   [...readThemeNotes().values()].filter(
@@ -42,14 +43,6 @@ async function ground(page: Page): Promise<string> {
     .locator("svg[data-cdl-stage]")
     .evaluate((stage) => getComputedStyle(stage).backgroundColor);
 }
-
-test("kinari dark-ground: 生成りの地は明暗で変わる (#2790)", async ({ page }) => {
-  await open(page, er.code, false);
-  const kinariLight = await ground(page);
-  await open(page, er.code, true);
-  const kinariDark = await ground(page);
-  expect(kinariDark).not.toBe(kinariLight);
-});
 
 for (const note of fixedThemes()) {
   test(`${note.name} dark-ground: 台は明暗で変わらず意匠帳と一致する`, async ({ page }) => {

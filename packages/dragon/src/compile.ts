@@ -99,12 +99,12 @@ import type { CdlDiagram, CdlEdge, CdlLegendItem, CdlNode } from "@cardenelabs/c
 import { parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS, 描く語がその図を指すか } from "./v05/parser";
+import { 外した意匠の知らせ } from "./v05/removed-syntax";
 import {
   DIAGRAM_SHAPES,
   resolveShape,
   shapesForDiagramType,
-  棒を描く節か,
-  意匠の棒の角,
+  意匠を箱に当てる,
   type DslShape,
 } from "./keywords";
 import { pointsOutside, stripExternalPaint } from "./color";
@@ -284,6 +284,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportStageFromLane(書いたまま, opts?.onNotice);
   reportTrackFromName(書いたまま, opts?.onNotice);
   reportThemeAlsoPalette(書いたまま, opts?.onNotice);
+  reportRemovedTheme(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
   reportAxesNotHonored(書いたまま, opts?.onNotice);
@@ -664,15 +665,6 @@ function 静止した図の焦点を外す(diagram: CdlDiagram, doc: DslDocument
 }
 
 /**
- * 行を書いた箱か (#2782)。 縞を敷く相手を決める。
- *
- * 縞の目的は行を横に追うことなので、行が無い箱に敷いても追う対象が無い。
- */
-function 行を書いた箱か(node: CdlNode): boolean {
-  return (node.rows?.length ?? 0) > 0;
-}
-
-/**
  * 図の字幅・配色と、行を書いた箱の縞を当てる (#1553 / #2782 / #2918)。
  *
  * ## 配色
@@ -684,37 +676,33 @@ function 行を書いた箱か(node: CdlNode): boolean {
  * この出口は後段の配置計算より前なので、箱・札・縦列の隙間も同じ幅で測られる (#2818)。
  *
  * **`record` は書かなければ配色を持たない** (#2782)。 畳む前は `type: er` が書かなくても
- * `kinari` (生成りに茶) になったが、畳んだ先には移り変わりを書いた図も入る。
+ * 既定の配色になったが、畳んだ先には移り変わりを書いた図も入る。
  * 表の図と移り変わりの図は行の有無でも行の中身でも分かれない = 同じ `kind: storage` に
  * 同じ形の行 (`督促を送る: 7 日ごと`) を書く。 分けられない材料で推し量ると、
  * どちらかの図が書いていない色みを名乗る。
  *
  * これは #2782 で落とした 3 つの既定 (始まりと終わりの札 / 矢印の先端 / 箱の種類) と
  * 同じ形で、**書かないものを図が名乗らない** 側に倒している。
- * 表の図には見本の側で `palette: kinari` を書く。
+ * 見本帳の見本は意匠を書かず、画面で選んだ意匠を外から当てる (#2960)。
  *
- * ## 行の縞
+ * ## 行の縞と棒の角
  *
  * 縞の色は配色からしか来ない。 配色が無い図に敷くと箱の面と同じ色に落ちて 1 本も出ないので、
  * **配色が決まった図の、行を書いた表の箱** にだけ敷く。
  *
  * 畳む前は組み立て器 `er()` が縞を敷く経路と、箱を直に組む経路の 2 つがあり、同じ図が
  * 動きの有無で縞を持ったり持たなかったりしていた。 経路が 1 本になった後も出口で揃える。
+ *
+ * 当て方は `意匠を箱に当てる` が持つ。 外から意匠を当てる側 (見本帳の切替) も同じ関数を通り、
+ * 書いた図と外から当てた図で縞と棒の角が揃う。
  */
 function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
   diagram.textMetrics = "widest";
   const 配色 = doc.theme;
   if (配色 === undefined) return;
   diagram.palette = 配色;
-  for (const node of diagram.nodes) {
-    if (棒を描く節か(node)) {
-      const 棒の角 = 意匠の棒の角(配色, node);
-      if (棒の角 !== undefined) node.barCornerRadii = 棒の角;
-    }
-    if (node.kind === "storage" && 行を書いた箱か(node) && node.rowStripe === undefined) {
-      node.rowStripe = true;
-    }
-  }
+  // 箱の object は置き換えず、当てた値をその場へ写す (この出口は前から箱を書き換えていた)
+  for (const node of diagram.nodes) Object.assign(node, 意匠を箱に当てる(node, 配色));
 }
 
 /**
@@ -3165,4 +3153,14 @@ function reportThemeAlsoPalette(doc: DslDocument, onNotice?: (n: CompileNotice) 
     message: `theme: と palette: を両方書きました。 palette: は theme: の別名なので theme: の値 (${doc.theme}) を使います`,
     hint: "palette: の行を消してください",
   });
+}
+
+/** 外した意匠を書いた時に、置き換え先で描いたことを書いた語ごとに伝える (#2960)。 */
+function reportRemovedTheme(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  for (const { written, line } of doc.removedThemes ?? []) {
+    const 知らせ = 外した意匠の知らせ(written);
+    if (知らせ === undefined) continue;
+    onNotice({ kind: "theme-removed", actor: doc.title, line, message: 知らせ.message, hint: 知らせ.hint });
+  }
 }

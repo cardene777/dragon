@@ -3,7 +3,7 @@ import {
   THEMES,
   type DslTheme,
   棒を描く節か,
-  意匠の棒の角,
+  意匠を箱に当てる,
 } from "@cardenelabs/dragon";
 import { 字を引く, type 二言語 } from "./bilingual";
 import type { Locale } from "./i18n";
@@ -26,8 +26,6 @@ import type { Locale } from "./i18n";
  * 出ていた = 字を訳すと型と状態の値が同時に変わるため、訳す側だけを動かせなかった。
  */
 const 値と札 = {
-  kinari: { ja: "生成りに茶", en: "Ecru and brown" },
-  celadon: { ja: "青磁に墨", en: "Celadon and ink" },
   blueprint: { ja: "図面", en: "Blueprint" },
   letterpress: { ja: "活版", en: "Letterpress" },
   catalog: { ja: "図録", en: "Catalog" },
@@ -47,36 +45,21 @@ export type 配色 = DslTheme | typeof 画面の色;
 /** `null` は選んでいない状態で、図に書かれた意匠をそのまま使う。 */
 export type 配色の選択 = 配色 | null;
 
-function 棒の角を当てる(node: CdlNode, theme: DslTheme | undefined): CdlNode {
-  if (!棒を描く節か(node)) return node;
-
-  const target = theme === undefined ? undefined : 意匠の棒の角(theme, node);
-  const same = target === undefined
-    ? !Object.hasOwn(node, "barCornerRadii")
-    : node.barCornerRadii?.topLeft === target.topLeft &&
-      node.barCornerRadii.topRight === target.topRight &&
-      node.barCornerRadii.bottomRight === target.bottomRight &&
-      node.barCornerRadii.bottomLeft === target.bottomLeft;
-  if (same) return node;
-
+/**
+ * 箱へ選んだ意匠を当てる (#2960)。
+ *
+ * 意匠を選んだ時は、記法で意匠を書いた図と同じ `意匠を箱に当てる` を通す = 棒の角と行の縞が
+ * 書いた図と揃う。 図ごとに扱いを分けない (宅配の 2 図だけ縞を扱っていた間、ほかの表の図は
+ * 外から意匠を当てても縞を持たなかった)。
+ *
+ * 画面の色は意匠を持たないので、意匠で決まる棒の角だけを外す。
+ */
+function 選んだ配色を箱に当てる(node: CdlNode, theme: DslTheme | undefined): CdlNode {
+  if (theme !== undefined) return 意匠を箱に当てる(node, theme);
+  if (!棒を描く節か(node) || !Object.hasOwn(node, "barCornerRadii")) return node;
   const next = { ...node };
-  if (target === undefined) delete next.barCornerRadii;
-  else next.barCornerRadii = target;
+  delete next.barCornerRadii;
   return next;
-}
-
-/** 宅配の表は骨組みを変えず、元の意匠に縞が無かった浮彫・電飾だけ模様を外す。 */
-function 宅配表の縞を当てる<T extends CdlDiagram>(diagram: T, theme: DslTheme | undefined): T["nodes"] {
-  if (diagram.id !== "delivery-relations-demo" && diagram.id !== "delivery-classes-demo") {
-    return diagram.nodes;
-  }
-
-  const rowStripe = theme !== "relief" && theme !== "neon";
-  return diagram.nodes.map((node) =>
-    node.kind === "storage" && node.rowStripe !== rowStripe
-      ? { ...node, rowStripe }
-      : node,
-  );
 }
 
 /** 画面に出す札を引く */
@@ -116,21 +99,13 @@ export function 図の配色を変える<T extends CdlDiagram>(diagram: T, 選�
   const 配色が同じ = 次の配色 === undefined
     ? !Object.hasOwn(diagram, "palette")
     : diagram.palette === 次の配色;
-  const 次の棒角の節 = diagram.nodes.map((node) => 棒の角を当てる(node, 次の配色));
-  const 次の縞の節 = 宅配表の縞を当てる({ ...diagram, nodes: 次の棒角の節 }, 次の配色);
-  const 棒の角が同じ = diagram.nodes.every((node, index) => 次の棒角の節[index] === node);
-  const 縞が同じ = 次の棒角の節.every((node, index) => 次の縞の節[index] === node);
-  if (
-    配色が同じ &&
-    棒の角が同じ &&
-    縞が同じ
-  ) return diagram;
+  const 次の節 = diagram.nodes.map((node) => 選んだ配色を箱に当てる(node, 次の配色));
+  const 節が同じ = diagram.nodes.every((node, index) => 次の節[index] === node);
+  if (配色が同じ && 節が同じ) return diagram;
 
   const 次: T = { ...diagram };
   if (次の配色 === undefined) delete 次.palette;
   else 次.palette = 次の配色;
-  if (!棒の角が同じ || !縞が同じ) {
-    次.nodes = 次の縞の節;
-  }
+  if (!節が同じ) 次.nodes = 次の節;
   return 次;
 }

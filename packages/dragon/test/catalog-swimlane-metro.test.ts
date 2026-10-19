@@ -57,7 +57,7 @@ describe("見本帳の路線図の形 (#2799)", () => {
     for (const item of items) expect(textDsl[`sourceJson__${item.key}` as keyof typeof textDsl]).toEqual(expect.any(String));
   });
 
-  it.each([undefined, "kinari", "blueprint"] as const)("意匠 %s でも駅、路線、線路を描く", (theme) => {
+  it.each([undefined, "letterpress", "blueprint"] as const)("意匠 %s でも駅、路線、線路を描く", (theme) => {
     const item = 路線図の見本()[0];
     expect(item).toBeDefined();
     if (!item) return;

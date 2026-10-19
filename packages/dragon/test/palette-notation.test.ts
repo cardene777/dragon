@@ -91,12 +91,12 @@ describe("図の意匠 (#1553 / #2790)", () => {
   });
 
   it("書いた名前が勝つ", () => {
-    expect(textDslToDiagram(ER("celadon")).palette).toBe("celadon");
+    expect(textDslToDiagram(ER("blueprint")).palette).toBe("blueprint");
   });
 
   it("日本語でも書ける", () => {
-    expect(textDslToDiagram(ER("青磁")).palette).toBe("celadon");
-    expect(textDslToDiagram(ER("生成り")).palette).toBe("kinari");
+    expect(textDslToDiagram(ER("図面")).palette).toBe("blueprint");
+    expect(textDslToDiagram(ER("活版")).palette).toBe("letterpress");
   });
 
   it("`flow` 図と `topology` 図は書かなければ配色を持たない", () => {
@@ -109,7 +109,7 @@ describe("図の意匠 (#1553 / #2790)", () => {
   });
 
   it("`record` 以外でも書けば載る", () => {
-    expect(textDslToDiagram(流れ("celadon")).palette).toBe("celadon");
+    expect(textDslToDiagram(流れ("blueprint")).palette).toBe("blueprint");
   });
 
   it("知らない名前は v05 の theme と palette、JSON の theme と palette の全てで正の名前を並べる", () => {
@@ -392,12 +392,12 @@ describe("図の意匠 (#1553 / #2790)", () => {
 
   it("theme と palette を両方書くと順番に依らず theme が勝ち、v05 と JSON で知らせが 1 件になる", () => {
     const 本文たち = [
-      ER("kinari", "theme").replace("theme: kinari", "theme: blueprint\npalette: celadon"),
-      ER("kinari", "theme").replace("theme: kinari", "palette: celadon\ntheme: blueprint"),
+      ER("catalog", "theme").replace("theme: catalog", "theme: blueprint\npalette: catalog"),
+      ER("catalog", "theme").replace("theme: catalog", "palette: catalog\ntheme: blueprint"),
     ];
     const JSONたち = [
-      { theme: "blueprint", palette: "celadon" },
-      { palette: "celadon", theme: "blueprint" },
+      { theme: "blueprint", palette: "catalog" },
+      { palette: "catalog", theme: "blueprint" },
     ];
     const 結果: Array<{ palette: string | undefined; notices: CompileNotice[] }> = [];
     for (const src of 本文たち) {
@@ -424,9 +424,9 @@ describe("図の意匠 (#1553 / #2790)", () => {
     expect(結果[1]?.notices[0]?.line, "palette: の行を指していない").toBe(3);
   });
 
-  it("palette: kinari と theme: kinari の組み立て結果が完全に一致する", () => {
-    expect(textDslToDiagram(ER("kinari", "palette"))).toEqual(
-      textDslToDiagram(ER("kinari", "theme")),
+  it("palette: letterpress と theme: letterpress の組み立て結果が完全に一致する", () => {
+    expect(textDslToDiagram(ER("letterpress", "palette"))).toEqual(
+      textDslToDiagram(ER("letterpress", "theme")),
     );
   });
 });
@@ -489,7 +489,7 @@ describe("全ての図は字を比例・等幅の広い方で測る (#2918)", ()
 
 describe("行の縞 (#1553)", () => {
   it("配色を書いた表の図の箱は縞を持つ", () => {
-    const d = textDslToDiagram(ER("kinari"));
+    const d = textDslToDiagram(ER("letterpress"));
     const 表 = d.nodes.filter((n) => n.kind === "storage");
     // 0 件だと下の照合が「対象なし」 で素通りする
     expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
@@ -500,7 +500,7 @@ describe("行の縞 (#1553)", () => {
     // 畳む前は組み立て器 `er()` が縞を敷く経路と箱を直に組む経路の 2 つがあり、同じ図が
     // 動きの有無で縞を持ったり持たなかったりしていた。 経路が 1 本になった後も出口で揃える
     const src = [
-      ER("kinari").trimEnd(),
+      ER("letterpress").trimEnd(),
       "",
       "animation:",
       '  - step: "1" 0.9s',
@@ -527,7 +527,7 @@ describe("行の縞 (#1553)", () => {
     const src = [
       'title: "確かめ"',
       "type: record",
-      "palette: kinari",
+      "palette: letterpress",
       "",
       "actors:",
       '  - 待機: { kind: storage }',
@@ -600,18 +600,18 @@ describe("record で書く UML 関係図の配色と行の縞", () => {
   });
 
   it("record に書いた配色は記法と JSON のどちらでも届く", () => {
-    expect(textDslToDiagram(クラス("celadon")).palette).toBe("celadon");
-    expect(jsonToDiagram(JSONのクラス("celadon")).palette).toBe("celadon");
+    expect(textDslToDiagram(クラス("blueprint")).palette).toBe("blueprint");
+    expect(jsonToDiagram(JSONのクラス("blueprint")).palette).toBe("blueprint");
   });
 
   it("配色を書いた UML 関係図の表の箱は縞を持つ", () => {
-    const 表 = textDslToDiagram(クラス("kinari")).nodes.filter((n) => n.kind === "storage");
+    const 表 = textDslToDiagram(クラス("letterpress")).nodes.filter((n) => n.kind === "storage");
     expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
     for (const n of 表) expect(n.rowStripe).toBe(true);
   });
 
   it("動きを書いた UML 関係図の表の箱も縞を持つ", () => {
-    const 表 = textDslToDiagram(クラス("kinari", true)).nodes.filter((n) => n.kind === "storage");
+    const 表 = textDslToDiagram(クラス("letterpress", true)).nodes.filter((n) => n.kind === "storage");
     expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
     for (const n of 表) expect(n.rowStripe).toBe(true);
   });

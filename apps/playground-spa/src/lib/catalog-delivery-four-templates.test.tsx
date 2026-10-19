@@ -644,6 +644,12 @@ const 崩れを数える = (svg: string, diagram?: CdlDiagram): 崩れの数 => 
 };
 
 describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
+  /** 見本帳で選べる全ての意匠と画面の色。 骨組みと縞が配色で変わらないことを全てで確かめる */
+  const palettes = [
+    "blueprint", "letterpress", "catalog", "terminal",
+    "sketch", "neon", "relief", "site-colours",
+  ] as const;
+
   it("宅配の骨組み 4 見本は斜めの直線の線分を持たない", () => {
     let 確かめた線 = 0;
     for (const diagram of 宅配の骨組み見本) {
@@ -662,10 +668,6 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
   });
 
   it("構成の全ての線分は c4-l2 の見出しを通らない", () => {
-    const palettes = [
-      "kinari", "celadon", "blueprint", "letterpress", "catalog",
-      "terminal", "sketch", "neon", "relief", "site-colours",
-    ] as const;
     let 確かめた見出し = 0;
     let 確かめた線 = 0;
     for (const palette of palettes) {
@@ -688,8 +690,8 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
       }
       確かめた見出し += 1;
     }
-    expect(確かめた見出し).toBe(10);
-    expect(確かめた線).toBe(100);
+    expect(確かめた見出し).toBe(palettes.length);
+    expect(確かめた線).toBe(palettes.length * 10);
   });
 
   it("順序の列 610・帯 30 と、構成の「聞く」の直角経路を描き手へ渡す", () => {
@@ -709,10 +711,6 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
   });
 
   it("関係の箱と固定線は全配色で浮彫由来の共通骨組みを保つ", () => {
-    const palettes = [
-      "kinari", "celadon", "blueprint", "letterpress", "catalog",
-      "terminal", "sketch", "neon", "relief", "site-colours",
-    ] as const;
     for (const palette of palettes) {
       const relation = 図の配色を変える(Catalog.presetDeliveryRelations, palette);
       expect(relation.nodes.find((node) => node.id === "契約"), palette).toMatchObject({
@@ -720,13 +718,13 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
         posH: 218.890625,
         posY: 155.4453125,
         rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
-        rowStripe: palette !== "neon" && palette !== "relief",
+        rowStripe: true,
       });
       expect(relation.nodes.find((node) => node.id === "受付"), palette).toMatchObject({
         h: 125,
         posH: 125,
         posY: 195.5,
-        rowStripe: palette !== "neon" && palette !== "relief",
+        rowStripe: true,
       });
       expect(relation.edges.find((edge) => edge.label === "である"), palette).toMatchObject({
         posX1: 232,
@@ -750,23 +748,19 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
   });
 
   it("型の箱と固定線は全配色で浮彫由来の共通骨組みを保つ", () => {
-    const palettes = [
-      "kinari", "celadon", "blueprint", "letterpress", "catalog",
-      "terminal", "sketch", "neon", "relief", "site-colours",
-    ] as const;
     for (const palette of palettes) {
       const diagram = 図の配色を変える(Catalog.presetDeliveryClasses, palette);
       expect(diagram.nodes.find((node) => node.id === "荷主"), palette).toMatchObject({
         h: 236.890625,
         posY: 188.4453125,
         rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
-        rowStripe: palette !== "neon" && palette !== "relief",
+        rowStripe: true,
       });
       expect(diagram.nodes.find((node) => node.id === "荷物"), palette).toMatchObject({
         h: 353.890625,
         posY: 246.9453125,
         rowLayout: { titleBaseline: 73, rowTop: 133.9, rowPitch: 46.5 },
-        rowStripe: palette !== "neon" && palette !== "relief",
+        rowStripe: true,
       });
       expect(diagram.edges.find((edge) => edge.label === "である"), palette).toMatchObject({
         posX1: 530,
@@ -796,10 +790,6 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
       Catalog.presetDeliveryClasses,
       Catalog.presetDeliveryComponents,
     ];
-    const palettes = [
-      "kinari", "celadon", "blueprint", "letterpress", "catalog",
-      "terminal", "sketch", "neon", "relief", "site-colours",
-    ] as const;
 
     let 受付済の使う札 = 0;
     for (const sourceDiagram of diagrams) {
@@ -833,7 +823,7 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
         }
       }
     }
-    expect(受付済の使う札, "受付済から仕分けへの「使う」を見た配色数").toBe(10);
+    expect(受付済の使う札, "受付済から仕分けへの「使う」を見た配色数").toBe(palettes.length);
   });
 
   it("図録の宅配関係線は表の役を読み、見本帳の図だけで不透明にする", () => {
@@ -860,7 +850,9 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     expect(css).not.toContain('[data-cdl-diagram="契約と荷物と配送状態の関係"]');
   });
 
-  it("関係・型の縞は元の8配色で描き、電飾・浮彫だけ描かない", () => {
+  it("関係・型の縞は全配色で同じ値を持ち、電飾・浮彫だけ模様として CSS で消す (#2960)", () => {
+    // 縞を図の値で外すと、外から当てた意匠と書いた意匠で値がずれる。値は揃え、見本に縞の無い
+    // 電飾と浮彫は罫と同じく CSS で消す
     const css = readFileSync(join(ROOT, "apps/playground-spa/src/styles/cdl-theme.css"), "utf8");
     const tableStart = css.indexOf('svg[data-cdl-stage][data-cdl-palette="neon"] {');
     const tableEnd = css.indexOf('svg[data-cdl-stage][data-cdl-palette="relief"] {', tableStart);
@@ -890,8 +882,15 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     expect(rules).toContain("stroke-width: var(--dragon-delivery-divider-width) !important;");
     expect(rules).toContain("stroke-width: var(--dragon-delivery-group-divider-width) !important;");
     expect(rules).toContain("stroke-opacity: 1 !important;");
-    expect(rules).toContain('[data-cdl-role="node-row-rule"] {\n  stroke: none !important;');
-    expect(rules).not.toContain("node-row-stripe");
+    expect(rules).toContain(
+      ':is([data-cdl-role="node-row-rule"], [data-cdl-role="node-row-stripe"]) {\n  fill: none !important;\n  stroke: none !important;',
+    );
+    const reliefStart = css.indexOf("/*\n * 浮彫の見本に行の縞と罫は無い。");
+    expect(reliefStart, "浮彫の表の縞と罫を消す規則の始まり").toBeGreaterThan(-1);
+    const reliefRule = css.slice(reliefStart, css.indexOf("}", reliefStart));
+    expect(reliefRule).toContain('[data-cdl-palette="relief"]');
+    expect(reliefRule).toContain('[data-cdl-role="node-row-stripe"]');
+    expect(reliefRule).toContain("fill: none !important;");
 
     const counts = (diagram: CdlDiagram) => {
       const document = new JSDOM(最後を描く(diagram), { contentType: "image/svg+xml" }).window.document;
@@ -909,22 +908,15 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     const neonClasses = counts(図の配色を変える(Catalog.presetDeliveryClasses, "neon"));
     expect(neonRelations.title, "関係の題の下の罫").toBeGreaterThan(0);
     expect(neonRelations.footer, "関係の足の上の罫").toBe(10);
-    expect(neonRelations.stripes, "関係の縞").toBe(0);
-    expect(neonClasses).toEqual({ title: 6, footer: 0, group: 6, rows: 7, stripes: 0 });
+    expect(neonRelations.stripes, "関係の縞").toBe(6);
+    expect(neonClasses).toEqual({ title: 6, footer: 0, group: 6, rows: 7, stripes: 11 });
 
     for (const [sourceDiagram, visibleCount] of [
       [Catalog.presetDeliveryRelations, 6],
       [Catalog.presetDeliveryClasses, 11],
     ] as const) {
-      const allThemes = ([
-        "kinari", "celadon", "blueprint", "letterpress", "catalog",
-        "terminal", "sketch", "neon", "relief", "site-colours",
-      ] as const)
-        .map((theme) => counts(図の配色を変える(sourceDiagram, theme)).stripes);
-      expect(allThemes, `${sourceDiagram.id} の縞`).toEqual([
-        visibleCount, visibleCount, visibleCount, visibleCount, visibleCount,
-        visibleCount, visibleCount, 0, 0, visibleCount,
-      ]);
+      const allThemes = palettes.map((theme) => counts(図の配色を変える(sourceDiagram, theme)).stripes);
+      expect(allThemes, `${sourceDiagram.id} の縞`).toEqual(allThemes.map(() => visibleCount));
     }
   });
 

@@ -2806,8 +2806,6 @@
     "theme": {
       "type": "string",
       "enum": [
-        "kinari",
-        "celadon",
         "blueprint",
         "letterpress",
         "catalog",
@@ -2816,13 +2814,11 @@
         "neon",
         "relief"
       ],
-      "description": "図の意匠 (`kinari` = 生成りに茶、`celadon` = 青磁に墨、`blueprint` = 図面、`letterpress` = 活版、`catalog` = 図録、`terminal` = 端末、`sketch` = 手描き、`neon` = 電飾、`relief` = 浮彫)。 名前だけが図に載り、色の値は使う側が決める。"
+      "description": "図の意匠 (`blueprint` = 図面、`letterpress` = 活版、`catalog` = 図録、`terminal` = 端末、`sketch` = 手描き、`neon` = 電飾、`relief` = 浮彫)。 名前だけが図に載り、色の値は使う側が決める。"
     },
     "palette": {
       "type": "string",
       "enum": [
-        "kinari",
-        "celadon",
         "blueprint",
         "letterpress",
         "catalog",

@@ -50,7 +50,7 @@ export type Section = {
    * **書式の例 (`code`) は訳さない**。 記法そのものなので、画面の言語が変わっても変えると
    * 書き写した記法が読めなくなる。 訳すのは人が読む字だけ。
    *
-   * **英語の側に日本語を書かない**。 記法の日本語の値 (`direction: 縦` / `theme: 青磁`) は
+   * **英語の側に日本語を書かない**。 記法の日本語の値 (`direction: 縦` / `theme: 図面`) は
    * すぐ左の例が見せているので、添え書きは「日本語の名前も書ける」 と言えば足りる。
    * 書くと、英語の画面に残る日本語を数える検査が拾う。
    */
@@ -433,9 +433,7 @@ export const FORMS: Section[] = [
       flow: ['  - users -> orders: "注文する"'],
     },
     lines: [
-      { code: "theme: kinari", note: "生成りに茶。 palette: と書いても読める", noteEn: "Ecru and brown. You can also write the alias palette:" },
-      { code: "theme: celadon", note: "青磁に墨", noteEn: "Celadon with sumi ink" },
-      { code: "theme: blueprint", note: "図面", noteEn: "Blueprint" },
+      { code: "theme: blueprint", note: "図面。 palette: と書いても読める", noteEn: "Blueprint. You can also write the alias palette:" },
       { code: "theme: 図面", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
       { code: "theme: letterpress", note: "活版", noteEn: "Letterpress" },
       { code: "theme: 活版", note: "日本語でも書ける", noteEn: "The Japanese name works too" },

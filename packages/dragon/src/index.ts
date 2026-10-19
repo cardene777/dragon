@@ -53,6 +53,7 @@ export {
   意匠の円の区画の間,
   棒を描く節か,
   意匠の棒の角,
+  意匠を箱に当てる,
 } from "./keywords";
 export type { DslTheme, DslShape, DslSwimlaneShape, DslDiagramShape } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";

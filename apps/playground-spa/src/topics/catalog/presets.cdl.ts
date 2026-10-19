@@ -833,7 +833,6 @@ export const pattern__presetTopology__複雑 = withSteps(topoComplex.build(), [
 
 export const sourceYaml__presetDeliveryComponents = `title: "配送システムの部品"
 type: c4
-palette: kinari
 relations: hover
 reveal: all
 legendFontSize: 21
@@ -888,7 +887,6 @@ animation:
 export const sourceJson__presetDeliveryComponents = JSON.stringify({
   title: "配送システムの部品",
   type: "c4",
-  palette: "kinari",
   relations: "hover",
   reveal: "all",
   legendFontSize: 21,
@@ -944,7 +942,6 @@ presetDeliveryComponents.id = "delivery-components-demo";
 // 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か (棒 = 必須 / 丸 = 任意)。
 export const sourceYaml__presetDeliveryRelations = `title: "契約と荷物と配送状態の関係"
 type: record
-palette: kinari
 relations: hover
 reveal: all
 legendFontSize: 21
@@ -1011,7 +1008,6 @@ animation:
 export const sourceJson__presetDeliveryRelations = JSON.stringify({
   title: "契約と荷物と配送状態の関係",
   type: "record",
-  palette: "kinari",
   relations: "hover",
   reveal: "all",
   legendFontSize: 21,
@@ -1065,7 +1061,9 @@ const erComplex = er({
   id: "er-complex-demo",
   topic: "商取引の表と必須・任意の関係を表す ER 図",
   defaultTone: "info",
-  palette: "kinari",
+  // 縞は画面で選んだ意匠が敷く (#2960)。 組み立て器の既定は意匠と無関係に縞を敷くため、
+  // 意匠を書かない記法 (縞を持たない) と同じ図にならない
+  rowStripe: false,
 })
   .entity({
     id: "users",
@@ -1730,7 +1728,6 @@ export const pattern__presetInfrastructure__複雑 = withSteps(
 // 記法 3 形とも書かない形で揃える。
 export const sourceYaml__presetDeliveryClasses = `title: "荷物を運ぶ型"
 type: record
-palette: kinari
 relations: hover
 reveal: all
 legendFontSize: 21
@@ -1779,7 +1776,6 @@ animation:
 export const sourceJson__presetDeliveryClasses = JSON.stringify({
   title: "荷物を運ぶ型",
   type: "record",
-  palette: "kinari",
   relations: "hover",
   reveal: "all",
   legendFontSize: 21,
@@ -1866,7 +1862,8 @@ const presetClassComplexSteps = withSteps(
     classDiagram({
       id: "class-complex-demo",
       topic: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
-      palette: "kinari",
+      // 縞は画面で選んだ意匠が敷く (#2960)。 理由は `erComplex` と同じ
+      rowStripe: false,
     })
       .class({
         id: "RiskCheck",
@@ -3951,7 +3948,6 @@ export const presetStateMachine2 = withSteps(
 
 export const sourceYaml__pattern__presetDeliveryRelations__複雑 = `title: "商取引の表と必須・任意の関係を表す ER 図"
 type: record
-palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
 relations: hover
@@ -4035,7 +4031,6 @@ export const sourceJson__pattern__presetDeliveryRelations__複雑 = JSON.stringi
   {
     title: "商取引の表と必須・任意の関係を表す ER 図",
     type: "record",
-    palette: "kinari",
     relations: "hover",
     reveal: "all",
     lanes: {
@@ -5115,7 +5110,6 @@ export const sourceJson__presetSwimlane = `{
 
 export const sourceYaml__pattern__presetDeliveryClasses__複雑 = `title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図"
 type: record
-palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
 relations: hover
@@ -5192,7 +5186,6 @@ export const sourceJson__pattern__presetDeliveryClasses__複雑 = JSON.stringify
   {
     title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
     type: "record",
-    palette: "kinari",
     relations: "hover",
     reveal: "all",
     actors: [

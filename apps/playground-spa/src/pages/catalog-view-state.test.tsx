@@ -277,11 +277,11 @@ describe("見せ方の帯 (#2867)", () => {
     ]);
 
     act(() => {
-      fireEvent.change(select, { target: { value: "celadon" } });
+      fireEvent.change(select, { target: { value: "blueprint" } });
     });
-    expect(select.value).toBe("celadon");
+    expect(select.value).toBe("blueprint");
     expect(screen.getByTestId("catalog-diagram").getAttribute("data-cdl-palette")).toBe(
-      "celadon",
+      "blueprint",
     );
     expect(screen.getByTestId("catalog-diagram").getAttribute("data-text-metrics")).toBe("widest");
     expect(screen.getByTestId("catalog-diagram").getAttribute("data-laid-reused")).toBe("true");

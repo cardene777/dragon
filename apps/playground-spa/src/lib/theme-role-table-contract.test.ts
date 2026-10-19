@@ -1071,8 +1071,8 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     const tableMonospace = themes.filter((theme) =>
       /mono/i.test(tableDeclarations(theme).get("--dragon-theme-font") ?? ""));
     expect(tableMonospace).toEqual(["terminal"]);
-    expect(themes.map((theme) => 意匠の字の測り方(theme))).toEqual(
-      themes.map(() => "widest"),
+    expect(fixedThemes.map((theme) => 意匠の字の測り方(theme))).toEqual(
+      fixedThemes.map(() => "widest"),
     );
   });
 

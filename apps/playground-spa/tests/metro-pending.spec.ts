@@ -11,13 +11,13 @@ import { MetroMapPage } from "./metro-map-page";
 // 8 段を約 3.1 秒ずつ待ち、測定中に進んだ時は次の周回で 1 回だけ測り直すため、既定の 60 秒を延ばす。
 test.setTimeout(120_000);
 
-test("路線図は生成りと図面の全 4 段で 10 本を残し、まだの線だけを薄くする (#2833)", async ({
+test("路線図は活版と図面の全 4 段で 10 本を残し、まだの線だけを薄くする (#2833)", async ({
   page,
 }) => {
   const metro = new MetroMapPage(page);
   await metro.open();
 
-  for (const palette of ["生成りに茶", "図面"]) {
+  for (const palette of ["活版", "図面"]) {
     await metro.choosePalette(palette);
     for (let phase = 0; phase < 4; phase += 1) {
       const lines = await metro.measurePhase(phase);
