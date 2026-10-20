@@ -1,347 +1,56 @@
 # dragon
 
-> Mermaid 感覚で書く **animated SVG diagram の Text DSL**。
-> 人 / LLM が YAML / JSON で書き、 内部で cdl engine が SVG 描画。
+> 動く図を、人は書きやすい記法で、AI は JSON で書く。
 
 [![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![types](https://img.shields.io/badge/types-TypeScript-blue.svg)](https://www.typescriptlang.org/)
 
-**cdl (`@cardenelabs/cdl`) engine** の **人 / LLM 向け記法層**。 YAML DSL (人向け) と JSON DSL (LLM 向け) を parser し、 裏で cdl engine が SVG 描画を担う。 加えて記法 catalog SPA を提供して「どう書けば何が描けるか」 の見本を並べる。
+## 作り直しの最中
 
-## 60 秒で動かす
+dragon は図の書き方と描き方を根本から作り直している。
+進み具合と決めたことは [#2982](https://github.com/cardene777/dragon/issues/2982) にまとめている。
 
-```bash
-pnpm add @cardenelabs/dragon @cardenelabs/cdl react react-dom
-```
+今までの記法 (日本語の鍵の YAML と JSON)、`@cardenelabs/cdl` へ渡して描く仕組み、見本帳の図の一覧と編集画面、7 つの意匠は [#2983](https://github.com/cardene777/dragon/issues/2983) で消した。
+`@cardenelabs/dragon` は今は何も公開せず、見本帳は作り直しの最中であることを伝える 1 頁だけを配る。
 
-```tsx
-import { textDslToDiagram } from "@cardenelabs/dragon";
-import { CdlDiagramView } from "@cardenelabs/cdl";
+作り直した後の形は次のとおり。
 
-const dsl = `
-タイトル: User Login
-種類: シーケンス
-登場人物: User, API, DB
-流れ:
-  - User → API: POST /login
-  - API → DB: SELECT credentials
-  - DB → API: rows (成功)
-  - API → User: 200 OK (成功)
-`;
-
-const diagram = textDslToDiagram(dsl);
-
-export default function Demo() {
-  return <CdlDiagramView diagram={diagram} />;
-}
-```
-
-これで browser に animated sequence diagram が表示される。 phase 切替 / edge glow / 進行点 wave まで自動。
-
-## LLM から使う (JSON DSL)
-
-```tsx
-import { jsonToDiagram } from "@cardenelabs/dragon";
-import { CdlDiagramView } from "@cardenelabs/cdl";
-
-// LLM (Claude / GPT 等) が structured output で吐き出す JSON
-const json = {
-  id: "auth",
-  topic: "User Login",
-  kind: "sequence",
-  actors: ["User", "API", "DB"],
-  steps: [
-    { from: "User", to: "API", label: "POST /login" },
-    { from: "API", to: "DB", label: "SELECT credentials" },
-    { from: "DB", to: "API", label: "rows", tone: "success" },
-    { from: "API", to: "User", label: "200 OK", tone: "success" },
-  ],
-};
-
-const diagram = jsonToDiagram(json);
-return <CdlDiagramView diagram={diagram} />;
-```
-
-## catalog SPA (実例集)
-
-playground SPA (本 repo `apps/playground-spa/`) で実例を閲覧。 分類 (ひな形 / 実用例 / 組み方の型 / 基本要素 / テキスト記法 / 動く図 / 図表 / 部品 / 線と色 / 操作で動く) で「いつ何のために使うか」 を探索できる。 local 起動 = `pnpm run dev` (http://localhost:4323)。
-
-## 思想 (dragon の存在理由)
-
-dragon の value proposition = **「見てて楽しくて理解しやすい」 図を作れる DSL**。 mermaid が持たない **rich layered animation** で「見てて楽しい」 を、 情報伝達目的の設計原則で「理解しやすい」 を両立する。
-
-### 中心規範
-
-1. **見てて楽しい (fun to watch)** = viewer が「もう 1 回見たい」「面白い」 と感じる rich layered animation
-2. **理解しやすい (easy to understand)** = 見た瞬間に何が起きているか読める情報伝達目的の設計
-3. **両立が dragon の強み** = mermaid は静的で理解しやすいが楽しくない、 D3 は楽しいが書くのが難しい、 dragon は「書きやすさ + 楽しさ + 理解しやすさ」 の 3 拍子
-
-### rich layered animation とは
-
-単一 animation (edge の色付けだけ / phase.tween だけ) は poor。 dragon 記法の真価は **複数 visual layer を同時発火** することにある:
-
-- layer 1 = arrow が順番に色付き (edge activate 連鎖)
-- layer 2 = rectangle border が光る (glow / pulse)
-- layer 3 = rectangle 内部で wave 高さが数値を示す (dyn-wave 内包)
-- layer 4 = readout 数値が変化 (countup / gauge / stat)
-- layer 5 = badge state 遷移
-
-この layer 組合せで rectangle 1 個の情報密度が数倍になり、 「rectangle だらけ」 の静的な図が「見てて楽しい」 rich な図に変わる。
-
-### 設計原則 5 (P0-P4)
-
-- **P0 = 見てて楽しい + 理解しやすい を両立** = dragon の value proposition、 どちらか片方だけの図は作らない
-- **P1 = 情報伝達が目的** = 図を作る前に「何を伝えるか」 を 1 文で書く、 topic 必須明記
-- **P2 = 逆算設計 (parts の使用機会が先)** = 「bar が必要な状況」 「gauge が必要な状況」 「dyn-wave が必要な状況」 を先に enumerate、 それに対応する図を作る。 primitive audit から始めない
-- **P3 = animation は積極活用、 layer 組合せで rich に** = 「animation を消しても情報伝わる」 = YES でも animation は残す、 但し layer 組合せで rich にする、 単純 4 phase tween template は禁止
-- **P4 = 長方形一律の呪縛から脱出** = rectangle + line は表現手段の 1 つ、 情報要求に応じて containment / heat / spatial / matrix / 比喩 / dyn-wave / dyn-arc / dyn-polygon 等を frank に組み合わせる、 shape 40+ の primitive を使いこなす
-
-### mermaid との差別化 (dragon の勝負所)
-
-| 観点 | mermaid | dragon |
-|---|---|---|
-| 書きやすさ | ○ (テキスト DSL) | ○ (YAML / JSON DSL) |
-| 静的な理解しやすさ | ○ | ○ |
-| **rich layered animation** | ✕ (static のみ) | **◎ (複数 layer 同時発火)** |
-| **見てて楽しい** | ✕ | **◎ (arrow + glow + wave + readout + badge)** |
-| shape 表現力 | △ (基本形状のみ) | ◎ (49 kind + dyn-* / matrix / heatmap) |
-| 情報密度 / 単位面積 | 低 (rectangle + line) | 高 (layered animation で数倍) |
-
-dragon が mermaid に勝つのは「rich layered animation で情報密度と楽しさを両立」 する 1 点、 ここに全リソースを集中する。
-
-### 廃止した過去 SSOT
-
-- **v2 pattern SSOT (「6 shape + 4 phase + 4 readout tween」 template)** = 2026-07-14 に廃止 (76 例全 revert)。 template 均一化で「見てて楽しくない」 rectangle 並列を量産していた。 layer 組合せで rich にする方針に置換
-- **「animation 必要性テスト = 消しても伝われば削除」 方針** = 廃止。 animation は積極活用、 layer 組合せで rich にする方針が正解
-
-detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference (clarity-gate.md / high-quality-diagram-process.md / review-rubrics.md 等) を参照。
-
-
-## 責任分担 (cdl vs dragon)
-
-人 / LLM が図を書く時は **dragon 記法を書く** のが標準、 cdl は engine として dragon の裏で動く。 dragon が担うのは「書きやすさ」、 cdl が担うのは「描画」。
-
-| 層 | dragon (本 repo) | cdl ([リポジトリ](https://github.com/cardene777/cdl)) |
-|---|---|---|
-| **役割** | 記法層 = 人 / LLM 向け DSL parser + catalog SPA | engine = shape 描画 + builder API + layout + render |
-| **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け) / catalog の実例 | 基本の形と汎用の挿絵の shape kind / TypeScript builder / layout engine / animation runtime |
-| **書く主体** | 人 / LLM が書く | dragon が裏で呼ぶ (人 / LLM は直接触らない前提) |
-| **npm package** | `@cardenelabs/dragon` | `@cardenelabs/cdl` (描画の出口は `@cardenelabs/cdl/react`) |
-
-**流れ**。
-
-```
-[人が書く YAML]  ─┐
-                  ├─→ dragon parser ─→ cdl builder ─→ SVG (React component)
-[LLM が書く JSON] ─┘
-```
-
-**dragon の SSOT 責任**。
-- **人向け YAML DSL parser** ... `packages/dragon/src/parser.ts` (現行 v0.4 / v0.5)
-- **LLM 向け JSON DSL** ... `jsonToDiagram` / `validateDragonJson` / `diagramJsonSchema` (JSON Schema Draft 7) を提供、 Claude / GPT の structured output で確実に diagram を生成できる
-- **compile 層** ... YAML / JSON AST → cdl builder call 変換 (`compile.ts`)
-- **catalog SPA** ... 実例で「どう書けば何が描けるか」 見本 (`apps/playground-spa/`)
-- **notation lint** ... 記法 error / 冗長 / 未定義参照 診断 (`notation-lint.ts`)
-
-**cdl 側の SSOT 責任 (dragon は触らない)**。
-- shape 49 kind の SVG 描画 component (`packages/cdl/src/kinds/shape-*.tsx`)
-- DSL builder API (`.diagram(...).lane().node().edge().phase()`)
-- layout engine (lane / stack 座標計算 + routing)
-- animation runtime (phase / tween / set / activate / badge)
-
-記法変更は本 repo の PR、 shape / engine 変更は cdl 側の PR。
-
-## 記法 example (人向け YAML)
-
-```yaml
-title: "ログインAPI"
-type: sequence
-actors:
-  - ユーザー
-  - API
-  - データベース
-flow:
-  - ユーザー -> API: "ログイン要求"
-  - API -> データベース: "ユーザー検索"
-  - データベース -> API: "結果"
-  - API -> ユーザー: "認証成功" (success)
-animation:
-  - step: "call" 1.4s
-    focus: [ユーザー, API, "ユーザー -> API"]
-  - step: "query" 1.4s
-    focus: [API, データベース, "API -> データベース"]
-```
-
-`theme:` で図の意匠を `blueprint` / `letterpress` / `catalog` / `terminal` / `sketch` / `neon` / `relief` から選べる。
-`palette:` も `theme:` の別名として読む。
-編集画面から書き出す動く SVG・静止 SVG・PNG には、選んだ意匠の地、方眼や光、影、模様、配色が含まれる。
-SVG は単独で開いても画面と同じ見た目になり、PNG の紙は意匠の地の色になる。
-字体は file に含めないため、開く側に同じ字体が無い時は近い字体で表示される。
-
-catalog SPA で実例を確認可能、 コピペして応用する使い方が標準。
-
-### 登場人物の書き方
-
-値は空白で並べる。 `{ }` は要らない。
-
-```yaml
-actors:
-  - Client
-  - API: service
-  - Web: service "APIサーバー"
-  - 決済: service "決済基盤" 失敗
-  - 表: storage ["id: PK", "name: 文字列"]
-```
-
-値は形で見分ける。 引用符付きは補足、 角括弧は行、 色名は色、 残りが種類。
-形が違うので並べる順番は自由で、 `- 決済: 失敗 "決済基盤" service` と書いても同じ。
-
-項目が多い時は縦に並べられる。 何を指定できるかが読み取りやすい。
-
-```yaml
-actors:
-  - Web:
-      kind: service
-      補足: "APIサーバー"
-      色: 失敗
-```
-
-項目名は日本語でも英語でもよい (`種類` / `kind`、 `補足` / `subtitle`、 `行` / `rows`)。
-色は `色:` 1 つにまとめてあり、 意味の色 (`失敗`) と色番号 (`"#f59e0b"`) の両方を受け付ける。
-
-順序図では、 書いた種類が縦線の上下にある名札の形になる。 名札の高さは全て揃うので、 縦線の
-始まる位置はばらけない (`大きさ` の高さを書いた名札は書いた値のまま)。 種類ごとに描ける項目が
-違う (`行` は `storage` 等の行を描く種類でだけ出る) ため、 書いたのに出ない項目は editor の
-画面に警告として出る。
-
-特定の技術や会社に向けた書き方 (`type: solidity`、 Solidity の図の種類、 AWS の名前) は外した。
-書くと置き換え先を示す誤りが出る (一覧は `packages/dragon/src/v05/removed-syntax.ts`)。
-
-### 位置と大きさ
-
-書かなければ自動で決まる。 決めたい時だけ書く。
-
-```yaml
-actors:
-  - Web: service @300,200
-  - DB:
-      kind: database
-      位置: 300,400
-      大きさ: 400,180
-```
-
-位置は左からの距離と上からの距離、 大きさは幅と高さ。
-どちらも 2 つ揃って初めて効くので、 1 つの項目にまとめてある。
-
-座標が分からない時は、 他の箱を基準にして置ける。
-
-```yaml
-actors:
-  - Web: service
-  - API:
-      kind: service
-      位置: Web の右
-  - DB:
-      kind: database
-      位置: Web の下 200
-```
-
-向きは `右` / `左` / `上` / `下` の 4 つ。 英語 (`right` / `left` / `above` / `below`) でも書ける。
-数を書くとその分だけ離し、 書かなければ隣に置く。 離す距離は箱の縁から測る。
-
-基準にした箱がまた別の箱を基準にしていてもよい。 書く順番は問わない。
-パーツも同じように置ける (パーツを基準にする / パーツを他の箱の隣に置く、 どちらも書ける)。
-
-図種によって効かない向きがある (順序図の縦位置は、 縦列が横に並ぶものなので動かせない)。
-効かなかった時は自動配置に戻り、 editor の画面にその旨が出る。
-
-`focus:` に書いた相手が居ない場合も同じく画面に出る。 名前に `-` を含む箱 (`api-gateway`) も
-そのまま書ける (以前は矢印と読まれて光らなかった)。
-
-editor の「位置を表示」 を押すと、 各要素が今どこに居るかが図に重なって出る。
-その数字を押すと `位置: 300,200` として本文に入るので、 そこから数を足し引きして調整できる。
-座標を知らないまま書き始めて、 細かく詰める時だけ数字に落とす使い方になる。
-
-色は矢印と同じ名前と別名 (`成功` / `失敗` / `警告` / `情報` / `中立`) を受け付ける。
-全図種で効く。 未知の名前を書いた場合は既定色のままになる。
-
-parts (`kind` に parts の名前を書いたもの) では `tone` は状態の上書きとして扱われ、 色にはならない。
-
-パーツだけを大きくしたい時は `倍率:` (英語なら `scale:`) を書く。 3 つの書き方すべてで同じ意味になる。
-
-```yaml
-actors:
-  - 実績1: achievement 倍率=2
-  - 実績2: { kind: achievement, 倍率: 2 }
-  - 実績3:
-      kind: achievement
-      倍率: 2
-```
-
-`大きさ:` と一緒に書くと掛け合わさる (`大きさ: 800,400` に `倍率: 2` で 1600x800)。
-`倍率` と `scale` はパーツの倍率として予約されているので、 同じ名前の状態を上書きしたい時は
-`state: { scale: 2 }` と明示する。
-
-### 流れの書き方
-
-矢印も同じく空白で並べる。
-
-```yaml
-flow:
-  - Client -> API: "ログイン要求"
-  - API -> DB: "検索" 成功
-  - DB -> API: "結果" 成功 dotted-flow
-```
-
-説明文は引用符で囲むので、 中に色名が入っていても色として取られない。
-
-従来の `{ }` と `( )` の書き方も引き続き動く。
-
-## 関連 repo (相互リンク SSOT)
-
-- **[cdl](https://github.com/cardene777/cdl)** ... engine SSOT + layout / routing / rendering
-  - engine SPEC ... `packages/cdl/SPEC.md` (routing v10 / v10.1 / px-projection / clearance SSOT)
-  - 本 repo が `@cardenelabs/cdl` として consume する engine
-- **dragon** (本 repo)
-  - `packages/dragon/` = text DSL parser (`textDslToDiagram`)
-  - `apps/playground-spa/` = Vite + React SPA playground (分類ごとの catalog + editor + preset detail + docs)
+| 項目 | 形 |
+|---|---|
+| 原本 | 共通の骨格と図の種類ごとの欄を持つ JSON。版を持ち、古い版は読む時に変換する |
+| 人が書く記法 | 1 行が 1 つの文になる行ごとの記法。JSON と行き来でき、書き戻す時は整えた形で出す |
+| 描く部品 | `packages/dragon` の中に持つ。cdl には頼らない |
+| 最初に作る図 | 時系列図と構成図 |
 
 ## 構成
 
 ```
 dragon/
 ├── packages/
-│   └── dragon/                ... text DSL parser (cdl engine wrap)
-│       └── src/               ... YAML-like → CdlDiagram compile
+│   └── dragon/            ... 図の原本と記法と描画の部品を持つ package (作り直しの最中)
 ├── apps/
-│   └── playground-spa/        ... Vite + React 19 + Tailwind 4 SPA
-│       ├── src/
-│       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / PresetDetailPage / DocsPage
-│       │   ├── topics/catalog ... 分類ごとの diagram (presets / cookbook / patterns / primitives / text-dsl / animation / charts / parts / styles / interactive)
-│       │   ├── lib/           ... CATEGORIES + CATALOG_ITEMS SSOT
-│       │   └── components/    ... CdlEditor / InViewMount / SiteHeader / SvgDefs / Toast
-│       └── tests/             ... Playwright E2E (home / catalog / editor)
+│   └── playground-spa/    ... 見本帳 (Vite + React 19)。今は仮の 1 頁
+├── test-support/          ... vitest の前処理 (dist が src より古くないかを見る)
 ├── eslint.config.mjs
-└── tsconfig.json              ... solution-style (packages/dragon + apps/playground-spa)
+└── tsconfig.json          ... solution-style (packages/dragon + apps/playground-spa + test-support)
 ```
 
 ## 開発
 
-型の出力先が 2 つある。 束ねた 1 file (`dist/index.d.ts`、 `tsup` が出す) が package の公開型で、
-型検査 (`tsc -b`) の出力は `dist-types/` に分ける。 同じ場所に出すと交互に上書きし、
-`package.json` の `types` が指す中身が「最後に走った側」 で決まる。
+型の出力先が 2 つある。
+束ねた 1 file (`dist/index.d.ts`、 `tsup` が出す) が package の公開型で、型検査 (`tsc -b`) の出力は `dist-types/` に分ける。
+同じ場所に出すと交互に上書きし、 `package.json` の `types` が指す中身が「最後に走った側」 で決まる。
 
 ```sh
 pnpm install
 
-# playground SPA 起動 (localhost:4323)
+# 見本帳の開発 server を起動する (localhost:4323)
 pnpm dev
 
 # build
 pnpm build
 
 # 検証
-pnpm verify   # typecheck + vitest
+pnpm verify   # typecheck + build + lint + vitest
 ```
 
 ### 依存の脆弱性を確かめる
@@ -439,32 +148,6 @@ esbuild が別に束ね直すので、変換先も別に決まる (`#1528` / `#1
 | Chrome / Edge | 94 |
 | Firefox | 93 |
 | Safari | 15.4 |
-
-## 検知システム / 修正システム
-
-開発者向けの「検知」 と、図を書く人向けの「修正」 は別の仕組み。
-どちらも言語モデルを使わず、図の寸法と決まった規則だけで判定する。
-
-検知システムは 3 層の検査で、実装の不具合を見つける。
-
-| 層 | 何を見るか | 命令 |
-|---|---|---|
-| 層 1 = 画面 | 画面の検査を全て走らせる (画面を開いて誤りや重なりが無いかなど) | `pnpm check:cdl` |
-| 層 2 = 図の置き方 | カタログの全ての図を描画エンジンの検査に通す | `pnpm check:dragon` |
-| 層 3 = 型ごとの描き方 | 描いた SVG の形を図の型ごとに測る (ガントチャートの矢印の向き、ファネル図の幅の減り方など) | `pnpm check:kind` |
-
-`pnpm check:all` は型検査と 3 つの層を順に走らせる。
-
-修正システムは記法の検査で、読む人へ伝わらない書き方を指摘する。
-
-| 命令 | すること |
-|---|---|
-| `pnpm lint:notation` | カタログの図に記法の検査を当て、指摘を端末に出す (図の説明に入り込んだ実装の書き方、無い部品を指す参照、値や項目が空の図表など) |
-| `pnpm fix:notation` | カタログの `presets.cdl.ts` に自動修正を当てた結果を、隣の `presets.lint-fix.json` に書き出す。 元の図は変えない |
-
-プログラムからは `import { lintDiagram, autoFix } from "@cardenelabs/dragon"` で使う。
-
-くわしくは `apps/playground-spa/audit-reports/README.md` にある。
 
 ## license
 
