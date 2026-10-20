@@ -35,7 +35,7 @@ const 外れる場所 = [
 
 /** lint の対象に残っているはずの場所。 全部を外す指定でも通らないようにする */
 const 残る場所 = [
-  "apps/playground-spa/src/lib/chart-slope-options.ts",
+  "apps/playground-spa/src/main.tsx",
   "packages/dragon/src/index.ts",
 ];
 

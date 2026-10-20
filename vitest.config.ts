@@ -10,8 +10,8 @@ export default defineConfig({
     },
   },
   test: {
-    // test は `@cardenelabs/dragon` / `@cardenelabs/cdl` を package として import する = どちらも
-    // `dist` を読む。 `pnpm test` に build は含まれていないため、 古い `dist` が残っていると
+    // test は `@cardenelabs/dragon` を package として import する = `dist` を読む。
+    // `pnpm test` に build は含まれていないため、 古い `dist` が残っていると
     // src を壊しても通ってしまう。 走らせる前に検知する (#979)。
     globalSetup: ["./test-support/global-setup.ts"],
     /*
@@ -36,7 +36,7 @@ export default defineConfig({
       "apps/**/src/**/*.test.tsx",
     ],
     // bench.test.ts は bench() のみ含み regular test mode で `bench is only available in benchmark mode` を起こすため除外。
-    // apps/playground-spa/tests/**/*.spec.ts は Playwright e2e 経路、 vitest v4 の default include
+    // tests/**/*.spec.ts は Playwright e2e 経路、 vitest v4 の default include
     // (`**/*.{test,spec}.?(c|m)[jt]s?(x)`) と merge されて拾われると
     // `Playwright Test did not expect test() to be called here` で崩れるため明示除外。
     exclude: [
@@ -49,13 +49,10 @@ export default defineConfig({
      * 既定は node。 画面の部品を要る検査は、file 冒頭に `// @vitest-environment jsdom` を書く (#2089)。
      *
      * ここで glob と環境の対応表 (`environmentMatchGlobs`) を持っていたが、今の vitest はこの指定を
-     * 読まない。 実測 = vitest 4.1.11 の配布物に字が 1 つも無く、当たるはずの検査
-     * (`catalog-motion-render.test.tsx`) の実行時間の `environment` が 0ms だった (jsdom を組み立てていない)。
-     * 対応表を消しても走る環境は 1 file も変わらない。
+     * 読まない。 実測 = vitest 4.1.11 の配布物に字が 1 つも無く、当たるはずの検査の実行時間の
+     * `environment` が 0ms だった (jsdom を組み立てていない)。
      *
      * file 冒頭に書く形を採るのは、要る検査だけが jsdom を組み立てるため。
-     * 実測では素の `document` / `window` を使う 14 file が全て既にこの指定を持っていた。
-     * 書き忘れは `packages/dragon/test/vitest-env-declared-per-file.test.ts` が落とす。
      */
     environment: "node",
     globals: false,

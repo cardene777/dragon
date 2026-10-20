@@ -1,7 +1,7 @@
 {
   "name": "@cardenelabs/dragon",
   "version": "0.34.0",
-  "description": "Dragon — Mermaid 感覚で animated SVG を生成する Text DSL。 cdl engine を内部利用。",
+  "description": "Dragon — 動く図を、人は行ごとの記法で、AI は JSON で書く。作り直しの最中で、まだ何も公開しない。",
   "license": "MIT",
   "author": "cardene777",
   "homepage": "https://github.com/cardene777/dragon",
@@ -30,13 +30,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./schemas/diagram.json": "./src/schemas/diagram.json"
+    }
   },
   "files": [
     "dist",
     "src",
-    "examples",
     "README.md"
   ],
   "publishConfig": {
@@ -55,9 +53,6 @@
     "test:watch": "cd ../.. && vitest packages/dragon",
     "lint": "tsc --noEmit",
     "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
-  },
-  "dependencies": {
-    "@cardenelabs/cdl": "^0.141.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",

@@ -31,5 +31,5 @@
     },
     "types": ["node", "vite/client"]
   },
-  "include": ["src", "vite.config.ts", "tests", "playwright.config.ts"]
+  "include": ["src", "vite.config.ts"]
 }
