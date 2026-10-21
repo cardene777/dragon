@@ -33,6 +33,7 @@ interface CliText {
   noFile: (path: string) => string;
   unreadable: (path: string, detail: string) => string;
   badJson: (path: string, detail: string) => string;
+  cannotWrite: (path: string, detail: string) => string;
 }
 
 /** 命令が出す文。英語は日本語の文をそのまま英語にする */
@@ -55,6 +56,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     noFile: (path) => `図の file が無い: ${path}`,
     unreadable: (path, detail) => `図の file を読めない: ${path} (${detail})`,
     badJson: (path, detail) => `JSON として読めない: ${path} (${detail})`,
+    cannotWrite: (path, detail) => `書き出せない: ${path} (${detail})`,
   },
   en: {
     usage: [
@@ -74,6 +76,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     noFile: (path) => `No such diagram file: ${path}`,
     unreadable: (path, detail) => `Cannot read the diagram file: ${path} (${detail})`,
     badJson: (path, detail) => `Cannot read as JSON: ${path} (${detail})`,
+    cannotWrite: (path, detail) => `Cannot write: ${path} (${detail})`,
   },
 };
 
@@ -104,6 +107,12 @@ function optionProblem(args: string[], text: CliText): string | undefined {
     if (token.value === undefined || (!token.inlineValue && token.value.startsWith("-"))) return text.missingValue(token.rawName);
   }
   return undefined;
+}
+
+/** Node が file か dir を扱えなかった誤りなら、扱えなかった path を返す。それ以外の誤りは `undefined` */
+function failedPath(error: unknown): string | undefined {
+  if (!(error instanceof Error) || !("syscall" in error) || !("path" in error)) return undefined;
+  return typeof error.path === "string" ? error.path : undefined;
 }
 
 /** 図の file を読む。記法の file はその言葉も返し、JSON の原本は言葉を持たない */
@@ -159,17 +168,25 @@ async function main(argv: string[]): Promise<number> {
   const { diagram, lang: fileLang } = read(file, early);
   // 渡した言葉を記法の file の言葉より先に使う。JSON の原本で渡さなければ、書き出しの既定 (日本語) になる
   const lang = isLang(chosen) ? chosen : fileLang;
-  const result = await exportDiagram(diagram, {
-    outDir: resolve(values.out ?? "."),
-    name: basename(file, extname(file)),
-    ...(values.format ? { formats: values.format.split(",") as ExportFormat[] } : {}),
-    ...(width === undefined ? {} : { width }),
-    ...(values.palette ? { palette: values.palette } : {}),
-    ...(values.theme ? { theme: values.theme as Theme } : {}),
-    ...(lang ? { lang } : {}),
-    ...(fps === undefined ? {} : { fps }),
-    ...(gifFps === undefined ? {} : { gifFps }),
-  });
+  let result: Awaited<ReturnType<typeof exportDiagram>>;
+  try {
+    result = await exportDiagram(diagram, {
+      outDir: resolve(values.out ?? "."),
+      name: basename(file, extname(file)),
+      ...(values.format ? { formats: values.format.split(",") as ExportFormat[] } : {}),
+      ...(width === undefined ? {} : { width }),
+      ...(values.palette ? { palette: values.palette } : {}),
+      ...(values.theme ? { theme: values.theme as Theme } : {}),
+      ...(lang ? { lang } : {}),
+      ...(fps === undefined ? {} : { fps }),
+      ...(gifFps === undefined ? {} : { gifFps }),
+    });
+  } catch (error) {
+    // 書き出し先に書けない時だけ命令の言葉で書き直す。描けない時と道具が無い時の断りは、書き出しが言葉に合わせて出す (#3009)
+    const path = failedPath(error);
+    if (path !== undefined) throw new Error(CLI_TEXT[lang ?? "ja"].cannotWrite(path, detail(error)));
+    throw error instanceof Error ? error : new Error(String(error));
+  }
   for (const path of Object.values(result.files)) console.log(path);
   return 0;
 }

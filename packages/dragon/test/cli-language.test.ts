@@ -237,3 +237,41 @@ describe("命令の使い方の文と誤りの文の言葉 (#3003)", () => {
     }
   });
 });
+
+describe("書き出し先に書けない時の文の言葉 (#3009)", () => {
+  /** 書けない時の文の頭と、括弧で閉じた Node の文を確かめる */
+  function expectCannotWrite(message: string, head: string, code: string): void {
+    expect(message.startsWith(`${head}${code}`), `書けない時の文が ${head}${code} で始まらない: ${message}`).toBe(true);
+    expect(message.endsWith(")"), `書けない時の文が Node の文を括弧で閉じない: ${message}`).toBe(true);
+  }
+
+  it("cli-cannot-create-out-dir-follows-language", async () => {
+    const out = join(scratch(), "not-a-dir");
+    writeFileSync(out, "");
+    for (const [args, head] of [
+      [[JSON_FILE], `書き出せない: ${out} (`],
+      [[JSON_FILE, "--lang", "en"], `Cannot write: ${out} (`],
+      [[ENGLISH_NOTATION], `Cannot write: ${out} (`],
+    ] as const) {
+      const ran = await runCli(["export", ...args, "--out", out, "--format", "html"]);
+      expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
+      expectCannotWrite(ran.stderr.trim(), head, "EEXIST");
+    }
+  });
+
+  it("cli-cannot-write-file-follows-language", async () => {
+    const out = scratch();
+    for (const [args, name, head] of [
+      [[JSON_FILE], "oauth", "書き出せない: "],
+      [[JSON_FILE, "--lang", "en"], "oauth", "Cannot write: "],
+      [[ENGLISH_NOTATION], "oauth.en", "Cannot write: "],
+    ] as const) {
+      // 書き出す file と同じ名前の dir を置いて、file を書けなくする
+      const blocked = join(out, `${name}.html`);
+      mkdirSync(blocked, { recursive: true });
+      const ran = await runCli(["export", ...args, "--out", out, "--format", "html"]);
+      expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
+      expectCannotWrite(ran.stderr.trim(), `${head}${blocked} (`, "EISDIR");
+    }
+  });
+});
