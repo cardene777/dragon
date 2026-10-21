@@ -116,6 +116,26 @@ async function click(page: Page, name: string): Promise<void> {
   await page.locator(sel(name)).click();
 }
 
+/** JSON の側に切り替え、出ている図の JSON を読む (#2999) */
+async function jsonSide(page: Page): Promise<Diagram> {
+  await click(page, "tab-json");
+  let current: Diagram | undefined;
+  await expect
+    .poll(
+      async () => {
+        try {
+          current = JSON.parse((await editorValue(page)) ?? "") as Diagram;
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { ...WAIT, message: "JSON の側に図の JSON が出ない" },
+    )
+    .toBe(true);
+  return current as Diagram;
+}
+
 async function setEditor(page: Page, text: string): Promise<void> {
   await expect.poll(() => count(page, "editor"), { ...WAIT, message: "書く欄が無い" }).toBe(1);
   await page.locator(sel("editor")).fill(text);
@@ -520,6 +540,58 @@ describe("公開する頁 (#2995)", () => {
       expect(await statusText(en.page), "最初の行が読めない時に頁の言葉 (英語) で出ない").not.toMatch(KANA_KANJI);
       await setEditor(ja.page, "not a diagram");
       await expect.poll(() => statusText(ja.page), { ...WAIT, message: "最初の行が読めない時に頁の言葉 (日本語) で出ない" }).toMatch(KANA_KANJI);
+    },
+    SLOW,
+  );
+
+  it(
+    "page-json-errors-follow-page-language",
+    async () => {
+      // 英語の頁で JSON の側に書けない欄を足すと、誤りの文を英語で出す (#2999)
+      const en = await open({ locale: "en-US" });
+      await drawn(en.page);
+      const english = await jsonSide(en.page);
+      (english.boxes[0] as unknown as Record<string, unknown>).colour = "blue";
+      await setEditor(en.page, JSON.stringify(english, null, 2));
+      await expect.poll(() => statusText(en.page), { ...WAIT, message: "英語の頁で JSON の誤りが欄の下に出ない" }).toContain("colour");
+      expect(await statusText(en.page), "英語の頁の JSON の誤りの文が英語でない").not.toMatch(KANA_KANJI);
+
+      // 日本語の頁で型の誤りを書くと、ajv の英語の文ではなく日本語で出す
+      const ja = await open({ locale: "ja-JP" });
+      await drawn(ja.page);
+      const japanese = await jsonSide(ja.page);
+      await setEditor(ja.page, JSON.stringify({ ...japanese, title: 3 }, null, 2));
+      await expect.poll(() => statusText(ja.page), { ...WAIT, message: "日本語の頁で JSON の誤りが欄の下に出ない" }).toContain("/title");
+      expect(await statusText(ja.page), "日本語の頁の JSON の誤りの文が日本語でない").toMatch(KANA_KANJI);
+      expect(await statusText(ja.page), "日本語の頁の JSON の誤りの文に ajv の英語の文が残る").not.toMatch(/\bmust\b/u);
+    },
+    SLOW,
+  );
+
+  it(
+    "page-json-error-follows-language-switch",
+    async () => {
+      // 記法の欄が見本のまま、JSON の側に書けない欄を足して誤りを出す (#2999)
+      const { page } = await open({ locale: "ja-JP" });
+      await drawn(page);
+      const edited = await jsonSide(page);
+      (edited.boxes[0] as unknown as Record<string, unknown>).colour = "blue";
+      const written = JSON.stringify(edited, null, 2);
+      await setEditor(page, written);
+      await expect.poll(() => statusText(page), { ...WAIT, message: "JSON の誤りが欄の下に出ない" }).toContain("colour");
+      expect(await statusText(page)).toMatch(KANA_KANJI);
+
+      // 言葉を切り替えても、書いた JSON は見本の英語版に替わらずに残り、誤りを英語で出し直す
+      await click(page, "lang-en");
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: "頁の言葉が英語にならない" }).toBe("en");
+      expect(await editorValue(page), "言葉を切り替えると JSON の側に書いた中身が消える").toBe(written.trimEnd());
+      await expect.poll(() => statusText(page), { ...WAIT, message: "言葉を切り替えても JSON の誤りが英語で出し直されない" }).not.toMatch(KANA_KANJI);
+      expect(await statusText(page), "言葉を切り替えると JSON の誤りが消える").toContain("colour");
+
+      // 日本語に戻すと、日本語で出し直す
+      await click(page, "lang-ja");
+      await expect.poll(() => statusText(page), { ...WAIT, message: "日本語に戻しても JSON の誤りが日本語で出し直されない" }).toMatch(KANA_KANJI);
+      expect(await editorValue(page)).toBe(written.trimEnd());
     },
     SLOW,
   );
