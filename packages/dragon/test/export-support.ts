@@ -62,10 +62,19 @@ export interface Ran {
   stderr: string;
 }
 
+/** 命令を走らせる場。`env` は今の環境変数に足し、`nodeArgs` は node に命令より先に渡す (#3003) */
+export interface RunPlace {
+  env?: Record<string, string>;
+  nodeArgs?: string[];
+}
+
 /** 書き出しの命令を node で走らせる。落ちても投げずに終わり方を返す */
-export async function runCli(args: string[]): Promise<Ran> {
+export async function runCli(args: string[], place: RunPlace = {}): Promise<Ran> {
   try {
-    const { stdout, stderr } = await promisify(execFile)(process.execPath, [CLI, ...args], { encoding: "utf8" });
+    const { stdout, stderr } = await promisify(execFile)(process.execPath, [...(place.nodeArgs ?? []), CLI, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, ...place.env },
+    });
     return { code: 0, stdout, stderr };
   } catch (error) {
     const failed = error as { code?: unknown; stdout?: string; stderr?: string };

@@ -98,7 +98,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   const mp4 = formats.includes("mp4");
   const gif = formats.includes("gif");
   if (mp4 || gif || formats.includes("png")) {
-    const browser = await launch();
+    const browser = await launch(lang);
     try {
       if (formats.includes("png")) {
         const fixed = await stage(browser, rendered.svg, fontCss, "");
