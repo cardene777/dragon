@@ -14,7 +14,7 @@ body:
     attributes:
       label: 解決したい問題
       description: なぜこの feature が必要か (シナリオ + 痛点)
-      placeholder: "ER 図で composite key を表現したいが、 現状 row 列挙のみで PK の組合せが表現できない"
+      placeholder: "時系列図で、同じ段の中の 2 本の線を同時に走らせたいが、 今は 1 本ずつ順に走る"
     validations:
       required: true
 
@@ -23,13 +23,13 @@ body:
     attributes:
       label: 提案する解
       description: 書きたい記法のイメージ / 動作仕様 / 代替案との比較
-      render: tsx
+      render: text
       placeholder: |
-        # こう書けると嬉しい、という記法のイメージ
-        type: er
-
-        actors:
-          - user_role: { kind: storage, rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
+        // こう書けると嬉しい、という記法のイメージ
+        # 両方へ送る
+        > アプリが API と記録へ同時に送る。
+        アプリ -> API : 登録
+        アプリ -> 記録 : 登録 [同時]
     validations:
       required: true
 
@@ -45,11 +45,11 @@ body:
       label: 影響範囲
       multiple: true
       options:
-        - "@cardenelabs/dragon (記法の parser / compiler)"
+        - "@cardenelabs/dragon (原本の JSON / 記法 / 描画)"
         - dragon 記法そのもの (書ける欄を増やす)
-        - apps/playground-spa (editor / catalog)
+        - 書き出し (dragon export の mp4 / GIF / HTML / PNG)
+        - apps/playground-spa (公開する頁)
         - docs / README
-        - "@cardenelabs/cdl (engine、別 repo で直す)"
     validations:
       required: true
 

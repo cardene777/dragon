@@ -1,5 +1,5 @@
 /**
- * 作り直しの片付け (#2983) で消した物が repo に戻っていないかを確かめる。
+ * 作り直しの片付け (#2983、#2993) で消した物が repo に戻っていないかを確かめる。
  *
  * 見るのは作業木に実在する file で、git の index ではない。
  * 消した後に `git rm` を忘れた状態も、消し忘れた file も、どちらも同じく落とす。
@@ -34,6 +34,35 @@ const DESIGN_ATTRS = ["data-site-theme", "data-cdl-palette"];
 const DESIGN_ID = /["'`](letterpress|blueprint|neon|relief|sketch)["'`]/;
 const CODE = /\.(ts|tsx|js|mjs|cjs|css|html|json)$/;
 
+// 消した見本帳と cdl を前提に組んだ skill と、前の記法と描き方の文書 (#2993)
+const STALE_PATHS = [
+  ".claude/skills/dragon-design/",
+  ".claude/skills/dragon-diagram/",
+  ".claude/skills/dragon-match/",
+  ".claude/skills/dragon-redraw/",
+  ".claude-plugin/",
+  "docs/spec-parts-actors-unified.md",
+  "docs/spec-reactive-diagram.md",
+  "docs/spec-widgets-syntax.md",
+  "docs/layout-diversity-patterns.md",
+  "docs/diagram-skills/",
+  "docs/design/class/",
+  "docs/design/er/",
+  "docs/design/record/",
+  "docs/design/drawing/",
+];
+// 前の入口と、前に頼っていた描画の package の名前
+const OLD_ENTRY = /textDslToDiagram|CdlDiagramView|@cardenelabs\/cdl/;
+// 作り直しの経緯として前の名前を書いてよい file
+const HISTORY = new Set([
+  "README.md",
+  "packages/dragon/README.md",
+  "CHANGELOG.md",
+  ".ikkan/premises/tech.md",
+  "packages/dragon/scripts/lib/dep-integrity.mjs",
+  "packages/dragon/test/dep-integrity.test.ts",
+]);
+
 describe("作り直しの片付け", () => {
   it("designs-folded-into-one-look", () => {
     const files = presentFiles();
@@ -54,5 +83,19 @@ describe("作り直しの片付け", () => {
     const topics = files.filter((path) => path.startsWith("apps/playground-spa/src/topics/"));
     const cdl = files.filter((path) => path.endsWith(".cdl.ts"));
     expect({ topics, cdl }).toEqual({ topics: [], cdl: [] });
+  });
+
+  it("stale-skills-and-docs-removed", () => {
+    const files = presentFiles();
+    const stale = files.filter((path) => STALE_PATHS.some((dir) => path.startsWith(dir)));
+    const mentions = files.filter(
+      (path) =>
+        !HISTORY.has(path) &&
+        path !== SELF &&
+        !path.endsWith(".png") &&
+        !path.endsWith(".pen") &&
+        OLD_ENTRY.test(readFileSync(join(ROOT, path), "utf8")),
+    );
+    expect({ stale, mentions }).toEqual({ stale: [], mentions: [] });
   });
 });

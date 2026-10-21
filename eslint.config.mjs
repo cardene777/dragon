@@ -81,8 +81,6 @@ export default [
       // 実測で `pnpm lint` が手元の probe script 2 件で落ちていた。
       "**/.context/**",
       "apps/web/src/env.d.ts",
-      // `.cdl.d.ts` = tsc build 生成の宣言 file、 lint 対象外 (source は `.cdl.ts`)。
-      "apps/playground-spa/src/topics/**/*.cdl.d.ts",
     ],
   },
   js.configs.recommended,
@@ -199,7 +197,6 @@ export default [
       // 束ねずにそのまま配る script (`index.html` が頭で読む、#2962)
       "apps/*/public/**/*.js",
       "packages/**/src/render/**/*.{ts,tsx}",
-      "packages/cdl/src/**/*.tsx",
     ],
     languageOptions: {
       globals: browserGlobals,

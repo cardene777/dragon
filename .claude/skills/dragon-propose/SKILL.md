@@ -10,8 +10,7 @@ description: 図の案を 2 から 4 つ並べ、クリックで原寸に拡大�
 図を変える判断は、文章では決まらない。
 「数が小さい」 も「間伸びしてる」 も、絵を並べて初めて何が違うか分かる。
 
-この repo の skill は 3 本あるが、どれも候補を複数並べる段を持たない。
-そのため案を見せたい時は毎回その場で頁を組むことになり、作り方も拡大の仕方も毎回変わる。
+候補を複数並べる段を持たないと、案を見せたい時は毎回その場で頁を組むことになり、作り方も拡大の仕方も毎回変わる。
 
 本 skill がその段を 1 箇所に持つ。
 呼ぶ側は候補を考えて絵を撮るところまでを持ち、並べ方と拡大と回答の受け取りは本 skill が持つ。
@@ -31,7 +30,7 @@ user 明示起動、または上流 skill からの呼び出し。
 ## 前提
 
 - 起動 dir は dragon repo root
-- 見本帳の dev server が動いている (`pnpm dev` → `http://localhost:4323`)
+- 描画の package を build 済み (`pnpm build:packages`)。 絵は `packages/dragon/dist/cli.js` の書き出しの命令で撮る
 - 作業 branch に居る (既定 branch では書けない)
 
 ## 段取り
@@ -56,7 +55,7 @@ user 明示起動、または上流 skill からの呼び出し。
 変えない案が無いと、変えた側どうしの比較になり、そもそも変えるべきかが決まらない。
 
 4 つを超えない。
-5 つ以上は人が比べきれないので、先に `/grilling` か `/discuss` で絞る。
+5 つ以上は人が比べきれないので、先に `/ikkan:ikkan-discuss` で絞る。
 
 ### 3. 絵を撮る
 
@@ -64,11 +63,19 @@ user 明示起動、または上流 skill からの呼び出し。
 
 | 何を | 大きさ | なぜ |
 |---|---|---|
-| 図ぜんたい | 実寸 (見本帳と同じ倍率) | 全体の釣り合いが見える。 候補どうしの差はここに出る |
+| 図ぜんたい | 書き出しの PNG のまま (表示の 2 倍の画素) | 全体の釣り合いが見える。 候補どうしの差はここに出る |
 | 決めたい所 | 4 倍 | 細部 (数と印の隙間 / 玉が印に入っていないか) は実寸では判定できない |
 
 撮り方は呼ぶ側が持つ。
-Playwright で見本帳を開き、候補ごとに値を差し替えて撮る script を `.context/scratch/` に書く。
+候補ごとに値を差し替えた原本の JSON を `.context/propose/<topic>/src/` に書き、書き出しの命令で PNG にする。
+
+```bash
+node packages/dragon/dist/cli.js export .context/propose/<topic>/src/a.json \
+  --format png --out .context/propose/<topic>/img
+```
+
+PNG は最後の段まで進めて止めた全体の絵になる。
+決めたい所の 4 倍は、書き出した PNG からその所を切り出して拡大する。
 
 置き場は `.context/propose/<topic>/img/`。
 
@@ -127,7 +134,7 @@ Artifact(file_path: ".context/propose/<topic>/sheet.html",
 ```json
 {
   "題": "端の数と走る玉の寸法",
-  "小見出し": "dragon 見本帳 / クラス図",
+  "小見出し": "dragon / 時系列図",
   "ねらい": "何を決めたいかを 1 から 2 文",
   "問い": "どの案で通しますか。",
   "脚注": "絵をどう撮ったか",
@@ -179,22 +186,18 @@ Artifact(file_path: ".context/propose/<topic>/sheet.html",
 
 ## 統合先 skill
 
-| 関係 | skill | 何を渡すか |
+| 関係 | 呼ぶ側 | 何を渡すか |
 |---|---|---|
-| 上流 | `/dragon-diagram` | 新しい図の案を 2 から 4 つ (題材が同じで組み方が違うもの) |
-| 上流 | `/dragon-design` | 見た目の案 (配色 / 寸法 / 配置) |
-| 上流 | `/dragon-redraw` | 今の絵と狙いの絵 (段取り 4 がこれを呼ぶ) |
-| 併用 | `artifact-design` | 頁の契約 |
+| 上流 | 図を足すか見た目を変える作業 (会話か ikkan の課題) | 候補の原本の JSON と、撮った絵 |
 | 下流 | 無し | 選ばれた案を返して終わる。 実装は呼んだ側へ戻す |
 
 ## 責務外
 
-- 候補の考案 (何を変えた案にするか) は呼ぶ側が持つ。 本 skill が案を作り始めると `/dragon-diagram` と重なる
-- 絵の撮影 (dev server の操作と Playwright) は呼ぶ側が持つ。 何を変えた案かは呼ぶ側しか知らない
+- 候補の考案 (何を変えた案にするか) は呼ぶ側が持つ
+- 絵の撮影 (原本の JSON を書いて書き出す) は呼ぶ側が持つ。 何を変えた案かは呼ぶ側しか知らない
 - 選んだ後の実装は呼ぶ側に戻す
-- 記法を足すこと / 例文の題材を決めることは `/dragon-diagram` が持つ
-- 決めた内容を repo に残すことは `/dragon-design` (`docs/design/notation/`) と `/dragon-redraw` (`docs/design/drawing/`) が持つ
-- 文章の赤入れは `/redline` が持つ。 本 skill が相手にするのは絵だけ
+- 決めた見た目を repo に残すことは呼ぶ側が持つ。 図の見た目の決まりは `docs/design/base/` に在る
+- 文章の赤入れは `/ikkan:ikkan-redline` が持つ。 本 skill が相手にするのは絵だけ
 
 ## 落とし穴
 

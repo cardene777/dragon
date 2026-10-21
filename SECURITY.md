@@ -7,15 +7,15 @@
 
 | Version | Supported |
 | --- | --- |
-| 0.5.x | Yes |
-| < 0.5 | No |
+| 0.34.x | Yes |
+| < 0.34 | No |
 
 ## 報告経路
 
-cdl の dependency / runtime に脆弱性を見つけた場合は、 **public issue を起票せず** 次のいずれかで連絡してください。
+dragon (`@cardenelabs/dragon`) の依存か動作に脆弱性を見つけた場合は、 **public issue を起票せず** 次のいずれかで連絡してください。
 
 1. **GitHub Security Advisory** (推奨)
-   - https://github.com/cardene777/cdl/security/advisories/new
+   - https://github.com/cardene777/dragon/security/advisories/new
    - non-public な channel で著者と直接やり取りできる
 2. GitHub の private contact form 経由
 
@@ -32,9 +32,9 @@ cdl の dependency / runtime に脆弱性を見つけた場合は、 **public is
 - Critical / High は patch release を最優先で準備
 - 公開タイミングは reporter と協議 (default は patch release 同日)
 
-cdl は小さな OSS なので、 対応に時間がかかる可能性があります。
+dragon は小さな OSS なので、 対応に時間がかかる可能性があります。
 緊急性が高い問題は advisory 内で明示してください。
 
 ## 公開済み advisory
 
-GitHub Security Advisory の active list は [security advisories](https://github.com/cardene777/cdl/security/advisories) を参照。
+GitHub Security Advisory の active list は [security advisories](https://github.com/cardene777/dragon/security/advisories) を参照。
