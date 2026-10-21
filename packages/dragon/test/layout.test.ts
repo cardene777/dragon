@@ -37,11 +37,9 @@ const layoutOf = (diagram: Json): Layout => draw("renderDiagram")(diagram).layou
 function expectGaps(name: string, layout: Layout): void {
   const { boxes, labels } = layout;
   expect(boxes.length, `${name} の箱`).toBeGreaterThan(1);
-  for (let i = 0; i < boxes.length; i++) {
-    for (let j = i + 1; j < boxes.length; j++) {
-      expect(gap(boxes[i], boxes[j]), `${name} の ${boxes[i].id} と ${boxes[j].id}`).toBeGreaterThanOrEqual(10);
-    }
-  }
+  boxes.forEach((a, i) => {
+    for (const b of boxes.slice(i + 1)) expect(gap(a, b), `${name} の ${a.id} と ${b.id}`).toBeGreaterThanOrEqual(10);
+  });
   for (const label of labels) {
     for (const box of boxes) {
       expect(gap(label, box), `${name} の線の名前「${label.text}」と ${box.id}`).toBeGreaterThanOrEqual(10);
@@ -59,6 +57,7 @@ describe("離す", () => {
     expect(long.labels).toHaveLength(1);
     expectGaps("長い名前の線", long);
     const [label] = long.labels;
+    if (!label) return;
     expect(label.x).toBeGreaterThanOrEqual(0);
     expect(label.x + label.w).toBeLessThanOrEqual(long.width);
   });
@@ -124,6 +123,8 @@ describe("寄せの指示", () => {
       const arch = layoutOf(architectureSides(side));
       const [line] = arch.edges;
       const [label] = arch.labels;
+      expect(line && label, `${side} の線と名前`).toBeTruthy();
+      if (!line || !label) return;
       const segment = longestSegment(line.points);
       expect(segment.vertical, "上下の区画を結ぶ線は縦").toBe(true);
       const x = segment.a[0];

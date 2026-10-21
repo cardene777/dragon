@@ -8,7 +8,9 @@
 
 export type Sight = "normal" | "protan" | "deutan" | "tritan";
 
-const MACHADO: Record<Exclude<Sight, "normal">, number[][]> = {
+type Vec3 = [number, number, number];
+
+const MACHADO: Record<Exclude<Sight, "normal">, [Vec3, Vec3, Vec3]> = {
   protan: [
     [0.152286, 1.052583, -0.204868],
     [0.114503, 0.786281, 0.099216],
@@ -28,17 +30,21 @@ const MACHADO: Record<Exclude<Sight, "normal">, number[][]> = {
 
 const toLinear = (c: number): number => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 
-function linearRgb(hex: string): number[] {
+function linearRgb(hex: string): Vec3 {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new Error(`6 桁の色ではない: ${hex}`);
-  return [1, 3, 5].map((i) => toLinear(Number.parseInt(hex.slice(i, i + 2), 16) / 255));
+  const channel = (i: number): number => toLinear(Number.parseInt(hex.slice(i, i + 2), 16) / 255);
+  return [channel(1), channel(3), channel(5)];
 }
 
-function simulate(rgb: number[], sight: Sight): number[] {
+function simulate(rgb: Vec3, sight: Sight): Vec3 {
   if (sight === "normal") return rgb;
-  return MACHADO[sight].map((row) => Math.min(1, Math.max(0, row[0] * rgb[0] + row[1] * rgb[1] + row[2] * rgb[2])));
+  const [r, g, b] = rgb;
+  const mix = ([x, y, z]: Vec3): number => Math.min(1, Math.max(0, x * r + y * g + z * b));
+  const [first, second, third] = MACHADO[sight];
+  return [mix(first), mix(second), mix(third)];
 }
 
-function oklab([r, g, b]: number[]): number[] {
+function oklab([r, g, b]: Vec3): Vec3 {
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
   const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
@@ -59,11 +65,11 @@ export function colorDistance(a: string, b: string, sight: Sight): number {
 /** 色の並びの全ての組のうち、一番近い組の差と、その組の 2 色。 */
 export function closestPair(colors: string[], sight: Sight): { distance: number; pair: [string, string] } {
   let best = { distance: Number.POSITIVE_INFINITY, pair: ["", ""] as [string, string] };
-  for (let i = 0; i < colors.length; i++) {
-    for (let j = i + 1; j < colors.length; j++) {
-      const distance = colorDistance(colors[i], colors[j], sight);
-      if (distance < best.distance) best = { distance, pair: [colors[i], colors[j]] };
+  colors.forEach((a, i) => {
+    for (const b of colors.slice(i + 1)) {
+      const distance = colorDistance(a, b, sight);
+      if (distance < best.distance) best = { distance, pair: [a, b] };
     }
-  }
+  });
   return best;
 }

@@ -70,16 +70,18 @@ function expectStepsInOrder(diagram: Json, count: number): void {
   expect(timeline.steps).toHaveLength(count);
   timeline.steps.forEach((step, i) => {
     expect(step.end, `段 ${i + 1} の長さ`).toBeGreaterThan(step.start);
-    if (i > 0) expect(step.start, `段 ${i + 1} の始まり`).toBeGreaterThanOrEqual(timeline.steps[i - 1].end - 1e-9);
+    if (i > 0) expect(step.start, `段 ${i + 1} の始まり`).toBeGreaterThanOrEqual((timeline.steps[i - 1]?.end ?? Number.POSITIVE_INFINITY) - 1e-9);
   });
-  expect(timeline.total).toBeGreaterThanOrEqual(timeline.steps[count - 1].end);
+  expect(timeline.total).toBeGreaterThanOrEqual(timeline.steps[count - 1]?.end ?? Number.POSITIVE_INFINITY);
 
   source.steps.forEach((step, s) => {
     step.events.forEach((event, e) => {
       if (event.type !== "edge") return;
       const drawn = timeline.edges.filter((span) => span.step === s && span.event === e);
       expect(drawn, `段 ${s + 1} の ${e + 1} 番目の線`).toHaveLength(1);
-      expect(within(drawn[0], timeline.steps[s]), `段 ${s + 1} の ${e + 1} 番目の線がその段の間に引かれる`).toBe(true);
+      const [line] = drawn;
+      const span = timeline.steps[s];
+      expect(Boolean(line && span && within(line, span)), `段 ${s + 1} の ${e + 1} 番目の線がその段の間に引かれる`).toBe(true);
     });
   });
 }
@@ -111,7 +113,8 @@ describe("見える物の数", () => {
       const named = source.steps.flatMap((step) => step.events.filter((event) => event.type === "edge" && event.label)).length;
       expect(timeline.labels, `${name} の線の名前の数`).toHaveLength(named);
       for (const label of timeline.labels) {
-        expect(within(label, timeline.steps[label.step]), `${name} の段 ${label.step + 1} の名前`).toBe(true);
+        const span = timeline.steps[label.step];
+        expect(span !== undefined && within(label, span), `${name} の段 ${label.step + 1} の名前`).toBe(true);
       }
       for (const t of sampleTimes(timeline)) {
         const shown = timeline.labels.filter((span) => covers(span, t)).length;
@@ -126,8 +129,8 @@ describe("見える物の数", () => {
       expect(timeline.badges.map((badge) => badge.step), `${name} の番号`).toEqual(timeline.steps.map((_, i) => i));
       for (const badge of timeline.badges) {
         const step = timeline.steps[badge.step];
-        expect(badge.appears, `${name} の段 ${badge.step + 1} の番号`).toBeGreaterThanOrEqual(step.start);
-        expect(badge.appears, `${name} の段 ${badge.step + 1} の番号`).toBeLessThan(step.end);
+        expect(badge.appears, `${name} の段 ${badge.step + 1} の番号`).toBeGreaterThanOrEqual(step?.start ?? Number.POSITIVE_INFINITY);
+        expect(badge.appears, `${name} の段 ${badge.step + 1} の番号`).toBeLessThan(step?.end ?? Number.NEGATIVE_INFINITY);
       }
     }
   });

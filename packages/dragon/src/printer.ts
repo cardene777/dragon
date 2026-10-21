@@ -5,7 +5,7 @@
  * 同じ内容の JSON からは毎回同じ文字列になる。書き手の行の並べ方とコメントは保たない。
  * 段の中で起きることは JSON の並び順 (起きる順) のまま書く。
  */
-import { CARRIES, KINDS, SIDES } from "./parser";
+import { CARRIES, KINDS, SIDES, VIEWS } from "./parser";
 import type { Box, Carry, Diagram, DiagramEvent, LabelSide, Region } from "./schema";
 
 const invert = <V extends string>(table: Readonly<Record<string, V>>): Record<V, string> =>
@@ -14,6 +14,7 @@ const invert = <V extends string>(table: Readonly<Record<string, V>>): Record<V,
 const KIND_WORD = invert(KINDS);
 const CARRY_WORD = invert(CARRIES);
 const SIDE_WORD = invert<LabelSide>(SIDES);
+const VIEW_WORD = invert(VIEWS);
 
 const note = (text: string | undefined): string => (text === undefined ? "" : `「${text}」`);
 const attrs = (pairs: [string, string | undefined][]): string =>
@@ -47,6 +48,7 @@ function event(e: DiagramEvent): string {
 
 export function printNotation(diagram: Diagram): string {
   const head = [
+    ...(diagram.view ? [`見せ方 ${VIEW_WORD[diagram.view]}`] : []),
     ...(diagram.regions ?? []).map(region),
     ...diagram.boxes.map(box),
     ...(diagram.strip ? [`帯 ${diagram.strip.title} = ${diagram.strip.fields.join(", ")}`] : []),

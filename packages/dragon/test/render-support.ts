@@ -110,8 +110,8 @@ export function gap(a: Rect, b: Rect): number {
 
 /** 最初の段の始まりから最後の段の終わりまでを、`every` 秒ごとに数えた時刻。見本帳の `probe.mjs` と同じ範囲。 */
 export function sampleTimes(timeline: Timeline, every = 0.25): number[] {
-  const first = timeline.steps[0].start;
-  const last = timeline.steps[timeline.steps.length - 1].end;
+  const first = timeline.steps[0]?.start ?? 0;
+  const last = timeline.steps[timeline.steps.length - 1]?.end ?? first;
   const times: number[] = [];
   for (let t = first; t < last; t += every) times.push(t);
   return times;
@@ -121,10 +121,13 @@ export const covers = (span: Span, t: number): boolean => span.start <= t && t <
 
 /** 折れ線のうち一番長い区間。向き (縦か横) と、その区間の座標を返す。 */
 export function longestSegment(points: [number, number][]): { vertical: boolean; a: [number, number]; b: [number, number] } {
-  let best = { length: -1, a: points[0], b: points[1] };
-  for (let i = 1; i < points.length; i++) {
-    const length = Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
-    if (length > best.length) best = { length, a: points[i - 1], b: points[i] };
-  }
+  const [start = [0, 0], next = start] = points;
+  let best = { length: -1, a: start, b: next };
+  points.forEach((b, i) => {
+    const a = points[i - 1];
+    if (!a) return;
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (length > best.length) best = { length, a, b };
+  });
   return { vertical: Math.abs(best.b[0] - best.a[0]) < Math.abs(best.b[1] - best.a[1]), a: best.a, b: best.b };
 }

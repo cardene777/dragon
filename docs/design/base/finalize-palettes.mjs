@@ -42,7 +42,6 @@ for (const p of Object.values(P)) {
       const t = textOf(m[`c-${slot}`], mode, m.bg, m.surf);
       if (t) m[`t-${slot}`] = t;
     }
-    if (m.now) m["now-t"] = textOf(m.now, mode, m.bg, m.surf);
     m.coint = textOf(m.coin, mode, m.bg, m.surf);
   }
 }

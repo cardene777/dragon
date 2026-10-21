@@ -11,7 +11,7 @@ import { draw, type Player } from "./render-support";
 
 /** 頁の設定を模す。jsdom は `matchMedia` を持たないため、系の境目として差し替える。 */
 function prefersReducedMotion(reduce: boolean): void {
-  window.matchMedia = ((query: string) => ({
+  window.matchMedia = (query: string) => ({
     matches: reduce && query.includes("prefers-reduced-motion") && query.includes("reduce"),
     media: query,
     onchange: null,
@@ -20,7 +20,7 @@ function prefersReducedMotion(reduce: boolean): void {
     addListener: () => {},
     removeListener: () => {},
     dispatchEvent: () => false,
-  })) as typeof window.matchMedia;
+  });
 }
 
 const players: Player[] = [];
@@ -51,22 +51,22 @@ describe("動きを嫌う設定", () => {
 
     // 設定が無い人には自動で流す
     prefersReducedMotion(false);
-    const moving = mount(oauth as unknown as Json);
+    const moving = mount(oauth);
     expect(moving.player.playing).toBe(true);
     expect(moving.host.querySelector("svg")?.getAttribute("data-motion")).not.toBe("still");
     moving.player.destroy();
 
     // 設定がある人には、描いた時から止め絵で見せ、釦で段を送る
     prefersReducedMotion(true);
-    const { host, player } = mount(oauth as unknown as Json);
+    const { host, player } = mount(oauth);
     expect(player.playing).toBe(false);
     expect(host.querySelector("svg")?.getAttribute("data-motion")).toBe("still");
     expect(player.step).toBe(0);
-    expect(stepTitle(host)).toBe(oauth.steps[0].title);
+    expect(stepTitle(host)).toBe(oauth.steps[0]?.title);
 
     click(host, "next");
     expect(player.step).toBe(1);
-    expect(stepTitle(host)).toBe(oauth.steps[1].title);
+    expect(stepTitle(host)).toBe(oauth.steps[1]?.title);
     expect(player.playing).toBe(false);
 
     click(host, "prev");
@@ -80,7 +80,7 @@ describe("動きを嫌う設定", () => {
     expect(player.step).toBe(last);
     click(host, "next");
     expect(player.step).toBe(last);
-    expect(stepTitle(host)).toBe(oauth.steps[last].title);
+    expect(stepTitle(host)).toBe(oauth.steps[last]?.title);
     expect(player.playing).toBe(false);
   });
 });
@@ -89,8 +89,10 @@ describe("読み上げ", () => {
   it("steps-exposed-to-screen-readers", () => {
     prefersReducedMotion(false);
     const diagram = exampleJson("oauth.json") as { steps: { title: string; body: string }[] };
-    diagram.steps[1].body = "1 行目の本文。\n2 行目の本文。";
-    const { host } = mount(diagram as unknown as Json);
+    const second = diagram.steps[1];
+    expect(second).toBeDefined();
+    if (second) second.body = "1 行目の本文。\n2 行目の本文。";
+    const { host } = mount(diagram);
 
     const list = host.querySelector('[data-dragon="steps"]');
     expect(list?.tagName).toBe("OL");
@@ -104,10 +106,13 @@ describe("読み上げ", () => {
     expect(items).toHaveLength(diagram.steps.length);
     items.forEach((item, i) => {
       const text = item.textContent ?? "";
-      const { title, body } = diagram.steps[i];
+      const step = diagram.steps[i];
+      expect(step, `段 ${i + 1}`).toBeDefined();
+      if (!step) return;
+      const { title, body } = step;
       expect(text, `段 ${i + 1} の題`).toContain(title);
       for (const line of body.split("\n")) expect(text, `段 ${i + 1} の本文`).toContain(line);
-      expect(text.indexOf(title), `段 ${i + 1} は題が本文より先`).toBeLessThan(text.indexOf(body.split("\n")[0]));
+      expect(text.indexOf(title), `段 ${i + 1} は題が本文より先`).toBeLessThan(text.indexOf(body.split("\n")[0] ?? body));
     });
 
     // 図そのものは読み上げの道具から隠し、同じ中身を 2 度読ませない

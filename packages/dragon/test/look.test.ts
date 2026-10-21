@@ -39,7 +39,7 @@ describe("色味", () => {
     const floors: Record<Sight, number> = { normal: 15, protan: 6, deutan: 6, tritan: 6 };
     for (const palette of Object.values(palettes)) {
       for (const theme of ["light", "dark"] as const) {
-        const colors = SLOTS.map((slot) => palette[theme][slot]);
+        const colors = SLOTS.map((slot) => palette[theme][slot] ?? "");
         for (const [sight, floor] of Object.entries(floors) as [Sight, number][]) {
           const { distance, pair } = closestPair(colors, sight);
           expect(distance, `${palette.id} ${theme} ${sight} ${pair.join(" と ")}`).toBeGreaterThanOrEqual(floor);
@@ -106,8 +106,8 @@ describe("字", () => {
     expect(svg).toMatch(new RegExp(`--sans:\\s*"${fonts.sans}"\\s*[;}]`));
     expect(svg).toMatch(new RegExp(`--mono:\\s*"${fonts.mono}"\\s*[;}]`));
     expect(svg).not.toMatch(/font-family\s*=/);
-    for (const m of svg.matchAll(/font-family\s*:\s*([^;}]+)/g)) expect(m[1].trim()).toMatch(/^var\(--(sans|mono)\)$/);
-    for (const m of svg.matchAll(/(?:^|[;{\s])font\s*:\s*([^;}]+)/g)) expect(m[1].trim()).toMatch(/var\(--(sans|mono)\)$/);
+    for (const m of svg.matchAll(/font-family\s*:\s*([^;}]+)/g)) expect(m[1]?.trim()).toMatch(/^var\(--(sans|mono)\)$/);
+    for (const m of svg.matchAll(/(?:^|[;{\s])font\s*:\s*([^;}]+)/g)) expect(m[1]?.trim()).toMatch(/var\(--(sans|mono)\)$/);
     expect(svg).not.toMatch(/system-ui|sans-serif|monospace|Hiragino|Menlo|Meiryo|Yu Gothic/);
   });
 });
