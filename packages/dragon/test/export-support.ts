@@ -30,6 +30,8 @@ export interface ExportOptions {
   theme?: "light" | "dark";
   fps?: number;
   gifFps?: number;
+  /** 図の中の字 (全体図の札、読み上げの名前、断りの文) の言葉 (#3001) */
+  lang?: "ja" | "en";
 }
 
 /** 書き出した file と、動画のコマの大きさ (CSS の px) */
@@ -144,6 +146,50 @@ export interface Rect {
   y: number;
   w: number;
   h: number;
+}
+
+/** 書き出した HTML を開いた時の言葉と、読み上げの名前と、寄って見せる時の全体図の札 (#3001) */
+export interface PlayerWords {
+  /** `<html>` の `lang` 属性 */
+  htmlLang: string | null;
+  prev: string | null;
+  /** 動かしている間の止める釦 */
+  pause: string | null;
+  /** 押して止めた後の止める釦 */
+  play: string | null;
+  next: string | null;
+  steps: string | null;
+  overview: string | null;
+  /** 全体図の札の描いた幅が、全体図の地の描いた幅の中に収まるか */
+  overviewFits: boolean;
+}
+
+/** 書き出した HTML を `width` の幅で開いて読む。寄って見せる見せ方になる幅で開く */
+export async function playerWords(html: string, width: number): Promise<PlayerWords> {
+  return withPage(html, { width, height: 2000 }, async (page) => {
+    await page.locator('[data-dragon="player"] svg[data-view="follow"]').waitFor({ state: "attached" });
+    const label = (name: string): Promise<string | null> => page.locator(`[data-dragon="${name}"]`).getAttribute("aria-label");
+    const pause = await label("toggle");
+    const overview = await page.evaluate(() => {
+      const text = document.querySelector<SVGTextElement>('[data-dragon="player"] svg .dg-mm-t');
+      const ground = document.querySelector<SVGRectElement>('[data-dragon="player"] svg .dg-mm-bg');
+      if (!text || !ground) return { text: null, fits: false };
+      const t = text.getBBox();
+      const g = ground.getBBox();
+      return { text: text.textContent, fits: t.x >= g.x && t.x + t.width <= g.x + g.width };
+    });
+    await page.locator('[data-dragon="toggle"]').click();
+    return {
+      htmlLang: await page.evaluate(() => document.documentElement.getAttribute("lang")),
+      prev: await label("prev"),
+      pause,
+      play: await label("toggle"),
+      next: await label("next"),
+      steps: await label("steps"),
+      overview: overview.text,
+      overviewFits: overview.fits,
+    };
+  });
 }
 
 /** 書き出した HTML を `width` の幅で開き、隅の全体図の中身の四角 (CSS の px) を読む */

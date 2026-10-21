@@ -96,6 +96,14 @@ const editorValue = (page: Page): Promise<string | null> =>
 const stepsLabel = (page: Page): Promise<string | null> =>
   page.evaluate((s) => document.querySelector(`${s} [data-dragon="steps"]`)?.getAttribute("aria-label") ?? null, sel("stage"));
 
+/** 再生の釦と段の一覧の読み上げの名前と、寄って動かす見せ方の全体図の札 (#3001)。図が無ければ `null` */
+const playerNames = (page: Page): Promise<{ prev: string | null; toggle: string | null; next: string | null; steps: string | null; overview: string | null }> =>
+  page.evaluate((s) => {
+    const name = (n: string): string | null => document.querySelector(`${s} [data-dragon="${n}"]`)?.getAttribute("aria-label") ?? null;
+    const overview = document.querySelector(`${s} svg .dg-mm-t`)?.textContent ?? null;
+    return { prev: name("prev"), toggle: name("toggle"), next: name("next"), steps: name("steps"), overview };
+  }, sel("stage"));
+
 const stepNo = (page: Page): Promise<string | null> =>
   page.evaluate((s) => document.querySelector(`${s} [data-dragon="step-no"]`)?.textContent ?? null, sel("stage"));
 
@@ -592,6 +600,51 @@ describe("公開する頁 (#2995)", () => {
       await click(page, "lang-ja");
       await expect.poll(() => statusText(page), { ...WAIT, message: "日本語に戻しても JSON の誤りが日本語で出し直されない" }).toMatch(KANA_KANJI);
       expect(await editorValue(page)).toBe(written.trimEnd());
+    },
+    SLOW,
+  );
+
+  it(
+    "page-player-labels-follow-page-language",
+    async () => {
+      // 手を入れた記法を寄って動かす見せ方で描く。見本ではないので、言葉を切り替えても書いた記法は替わらない (#3001)
+      const { page } = await open({ locale: "ja-JP" });
+      await drawn(page);
+      const [head = "", ...rest] = EDITED.split("\n");
+      const written = [head, "見せ方 寄る", ...rest].join("\n");
+      await setEditor(page, written);
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "手を入れた記法で図が描き直されない" }).toContain("書き換えた図");
+
+      await click(page, "lang-en");
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: "頁の言葉が英語にならない" }).toBe("en");
+      expect(await editorValue(page), "言葉を切り替えると手を入れた記法が替わる").toBe(written);
+      await expect
+        .poll(() => playerNames(page), { ...WAIT, message: "言葉を EN にしても再生の釦と全体図の札が英語にならない" })
+        .toMatchObject({ prev: "Previous step", next: "Next step", steps: "Steps of 書き換えた図", overview: "Overview" });
+      expect((await playerNames(page)).toggle, "止める釦の読み上げの名前が英語でない").toMatch(/^(Pause|Play)$/u);
+
+      await click(page, "lang-ja");
+      await expect
+        .poll(() => playerNames(page), { ...WAIT, message: "日本語に戻しても再生の釦と全体図の札が日本語に戻らない" })
+        .toMatchObject({ prev: "前の段", next: "次の段", steps: "書き換えた図 の段", overview: "全体図" });
+      expect((await playerNames(page)).toggle).toMatch(/^(止める|動かす)$/u);
+    },
+    SLOW,
+  );
+
+  it(
+    "page-player-labels-ignore-notation-language",
+    async () => {
+      // 日本語の頁で英語の語の記法を描いても、再生の釦と全体図の札は頁の言葉で出す (#3001)
+      const { page } = await open({ locale: "ja-JP" });
+      await drawn(page);
+      const [head = "", ...rest] = EDITED_EN.split("\n");
+      await setEditor(page, [head, "view follow", ...rest].join("\n"));
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "英語の語の記法で図が描かれない" }).toContain("Edited diagram");
+      await expect
+        .poll(() => playerNames(page), { ...WAIT, message: "日本語の頁で再生の釦と全体図の札が日本語で出ない" })
+        .toMatchObject({ prev: "前の段", next: "次の段", steps: "Edited diagram の段", overview: "全体図" });
+      expect((await playerNames(page)).toggle).toMatch(/^(止める|動かす)$/u);
     },
     SLOW,
   );
