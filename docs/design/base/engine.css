@@ -9,7 +9,7 @@ html,body{margin:0}
 
 /* 頁の頭 */
 .gh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:0 2px 16px}
-/* 色味と明暗の切り替え。今動いている所の色 (--now) を持たない色味では、区画の色 (--c) がそのまま使われる */
+/* 色味と明暗の切り替え */
 .sw{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
 .gk{font:700 11px var(--mono);letter-spacing:.04em;color:var(--mute)}
 .gh h1{margin:5px 0 0;font:700 19px/1.4 var(--sans);color:var(--ink)}
@@ -63,8 +63,8 @@ html,body{margin:0}
 .bx{font:500 11px var(--sans);fill:var(--mute)}
 /* 箱 */
 .st{fill:var(--surf);stroke:var(--hair)}
-.st-halo{fill:none;stroke:var(--now,var(--c));stroke-width:7;stroke-opacity:.16}
-.st-on{fill:none;stroke:var(--now,var(--c));stroke-width:1.75}
+.st-halo{fill:none;stroke:var(--c);stroke-width:7;stroke-opacity:.16}
+.st-on{fill:none;stroke:var(--c);stroke-width:1.75}
 .ic{fill:color-mix(in srgb,var(--c) 14%,var(--surf))}
 .gl{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .sn{font:650 13px var(--sans);fill:var(--ink)}
@@ -75,20 +75,20 @@ html,body{margin:0}
 /* 線 */
 .e{fill:none;stroke:var(--line);stroke-width:1.7;stroke-linecap:round;stroke-dasharray:0 5}
 .eh{fill:none;stroke:var(--line);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.e-on{fill:none;stroke:var(--now,var(--c));stroke-width:2.25;stroke-linecap:round;stroke-dasharray:1 2}
-.eh-on{fill:none;stroke:var(--now,var(--c));stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
+.e-on{fill:none;stroke:var(--c);stroke-width:2.25;stroke-linecap:round;stroke-dasharray:1 2}
+.eh-on{fill:none;stroke:var(--c);stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
 .e-flow{fill:none;stroke:var(--surf);stroke-width:1.3;stroke-linecap:round;stroke-dasharray:1.5 9}
 /* 段の印 */
 .bd{cursor:pointer;outline:none}
 .bd:hover .bdp,.bd:focus-visible .bdp,.bd:hover .bdf,.bd:focus-visible .bdf{stroke:var(--ink);stroke-width:1.75}
-.bdf{fill:var(--now,var(--c))}
+.bdf{fill:var(--c)}
 .bdft{font:700 10.5px var(--mono);fill:var(--on-c)}
-.bdr{fill:none;stroke:var(--now,var(--c));stroke-width:1.5}
+.bdr{fill:none;stroke:var(--c);stroke-width:1.5}
 .bdp{fill:color-mix(in srgb,var(--c) 14%,var(--surf));stroke:color-mix(in srgb,var(--c) 70%,transparent);stroke-width:1}
 .bdpt{font:700 10.5px var(--mono);fill:var(--ct)}
 /* 呼び出しの名札 */
-.cap rect{fill:color-mix(in srgb,var(--now,var(--c)) 12%,var(--surf));stroke:color-mix(in srgb,var(--now,var(--c)) 42%,transparent)}
-.cap text{font:600 11px var(--mono);fill:var(--now-t,var(--ct))}
+.cap rect{fill:color-mix(in srgb,var(--c) 12%,var(--surf));stroke:color-mix(in srgb,var(--c) 42%,transparent)}
+.cap text{font:600 11px var(--mono);fill:var(--ct)}
 .capj text{font:650 11px var(--sans)}
 .cap-past rect{fill:var(--surf);stroke:var(--hair)}
 .cap-past text{fill:var(--mute)}
@@ -135,7 +135,7 @@ html,body{margin:0}
 /* 語り */
 .narr{position:relative;height:122px;margin-top:4px}
 .it{position:absolute;inset:12px 6px 0 6px;display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:start}
-.nno{font:700 24px/1 var(--mono);color:var(--now-t,var(--ct));font-variant-numeric:tabular-nums;padding-top:1px}
+.nno{font:700 24px/1 var(--mono);color:var(--ct);font-variant-numeric:tabular-nums;padding-top:1px}
 .nno small{font-size:11px;color:var(--mute);font-weight:500;margin-left:3px}
 .nt{font-size:15.5px;font-weight:650;color:var(--ink);display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .nz{font:650 10.5px var(--sans);color:var(--ct);background:color-mix(in srgb,var(--c) 12%,var(--surf));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 38%,transparent);border-radius:999px;padding:2px 9px}

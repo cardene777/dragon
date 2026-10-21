@@ -1,4 +1,4 @@
-// palettes.json の 4 案それぞれの 6 色を、明暗の地の色に対して検査にかける。
+// palettes.json の 3 案それぞれの 6 色を、明暗の地の色に対して検査にかける。
 // 隣り合う組と全ての組の両方を見る (図では離れた区画の色も並んで見えるため)
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";

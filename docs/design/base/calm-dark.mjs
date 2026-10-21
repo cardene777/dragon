@@ -4,13 +4,13 @@
 //
 // | 値 | 変え方 |
 // |---|---|
-// | c-* と now | 明るさと色相を保ち、鮮やかさを 0.85 倍にする。検査に落ちる色味は 0.9 / 0.95 倍と戻し、通る中で一番落とした値を採る |
-// | t-* と now-t | 落とした c-* から、地と箱の両方に 7:1 を満たす濃さを求め直す (finalize-palettes.mjs と同じ決め方) |
+// | c-* | 明るさと色相を保ち、鮮やかさを 0.85 倍にする。検査に落ちる色味は 0.9 / 0.95 倍と戻し、通る中で一番落とした値を採る |
+// | t-* | 落とした c-* から、地と箱の両方に 7:1 を満たす濃さを求め直す (finalize-palettes.mjs と同じ決め方) |
 // | tint / edge | 区画の地と縁に混ぜる色を 8% → 6%、26% → 19% にする |
 //
 // 鮮やかさを 0.85 倍より落とさないのは、澄んだ色で 0.8 倍にすると紫と青の差が見分けの下限 (ΔE 15) を割るため。
 // 明るさも落とさない。0.95 倍で紫と赤が箱の色に対して 3:1 を割る。
-// 今の値で既に見分けの検査に落ちる色味 (区画を灰で描く墨と朱) は、検査で比べずに 0.85 倍を当てる
+// 今の値で既に見分けの検査に落ちる色味は、検査で比べずに 0.85 倍を当てる
 // 封筒と札の塗り (carry) は暗い側では持たない。暗い背景では白い塗りが灰より強く見えず、灰は沈んで見えたため、字の色 (ink) で塗る
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -63,7 +63,6 @@ const calmed = (d0, f) => {
     d[`c-${s}`] = calm(d[`c-${s}`], f);
     d[`t-${s}`] = textOf(d[`c-${s}`], d.bg, d.surf);
   }
-  if (d.now) { d.now = calm(d.now, f); d["now-t"] = textOf(d.now, d.bg, d.surf); }
   d.tint = "6%";
   d.edge = "19%";
   return d;
@@ -81,7 +80,7 @@ for (const [id, p] of Object.entries(P)) {
   if (!ok) failed++;
   p.dark = d;
   console.log(`${id} ${!judged ? "見分けの検査の対象外 (今の値で既に落ちる)" : ok ? "通る" : "落ちる"} 鮮やかさ ${f} 倍`);
-  console.log("  " + SLOTS.map((s) => `${s} ${d[`c-${s}`]}/${d[`t-${s}`]}`).join("  ") + (d.now ? `  now ${d.now}/${d["now-t"]}` : ""));
+  console.log("  " + SLOTS.map((s) => `${s} ${d[`c-${s}`]}/${d[`t-${s}`]}`).join("  "));
   if (missing.length) console.log(`  求められなかった値 ${missing.join(" ")}`);
   if (judged) console.log("  " + v.lines.join(" | "));
 }

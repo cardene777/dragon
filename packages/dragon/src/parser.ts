@@ -5,6 +5,7 @@
  * 段ごとに見出し (`#`) と本文 (`>`) の下へ、その段で起きることを起きる順に 1 行ずつ並べる。
  *
  *   時系列図 <題>
+ *   見せ方 <止める か 寄る>                            書かなければ字の大きさで選ぶ
  *   区画 <名札> = <名前>「<添え書き>」 [色 <色>] [印 <印>]
  *   <名札> = <名前>「<下の小さな字>」 [色 <色>] [印 <印>] [区画 <名札>]
  *   帯 <題> = <欄>, <欄>
@@ -18,7 +19,7 @@
  *
  * 誤りは最初の 1 つで止め、行と列を示す。
  */
-import type { Box, Carry, Color, Diagram, DiagramEvent, LabelSide, Region, Step } from "./schema";
+import type { Box, Carry, Color, Diagram, DiagramEvent, LabelSide, Region, Step, ViewMode } from "./schema";
 import { columnOf, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION } from "./version";
 
@@ -34,6 +35,7 @@ export const KINDS = { 時系列図: "sequence", 構成図: "architecture" } as 
 const COLORS: readonly Color[] = ["blue", "amber", "green", "violet", "rose", "slate", "coin"];
 export const SIDES: Readonly<Record<string, LabelSide>> = { 上: "above", 下: "below", 左: "left", 右: "right" };
 export const CARRIES: Readonly<Record<string, Carry["kind"]>> = { 封筒: "envelope", 札: "tag", 硬貨: "coin", なし: "none" };
+export const VIEWS: Readonly<Record<string, ViewMode>> = { 止める: "fixed", 寄る: "follow" };
 
 class NotationError extends Error {
   constructor(
@@ -98,6 +100,7 @@ function parseLines(lines: SourceLine[]): Diagram {
   const boxes: Box[] = [];
   const ids = new Set<string>();
   let strip: { title: string; fields: string[] } | undefined;
+  let view: ViewMode | undefined;
   const steps: Step[] = [];
   let building: Building | undefined;
 
@@ -144,6 +147,7 @@ function parseLines(lines: SourceLine[]): Diagram {
     version: FORMAT_VERSION,
     kind,
     title,
+    ...(view ? { view } : {}),
     ...(regions.length > 0 ? { regions } : {}),
     boxes,
     ...(strip ? { strip } : {}),
@@ -153,6 +157,14 @@ function parseLines(lines: SourceLine[]): Diagram {
 
   function parseDeclaration(source: SourceLine): void {
     const text = source.text;
+    const viewDecl = /^見せ方\s+(\S+)$/.exec(text);
+    if (viewDecl) {
+      if (view) throw fail(source, 0, "見せ方は 1 行だけ書く");
+      const chosen = VIEWS[viewDecl[1] ?? ""];
+      if (!chosen) throw fail(source, text.indexOf(viewDecl[1] ?? ""), "見せ方は 止める か 寄る");
+      view = chosen;
+      return;
+    }
     const stripDecl = /^帯\s+(.+?)\s*=\s*(.+)$/.exec(text);
     if (stripDecl) {
       if (strip) throw fail(source, 0, "中身の帯は 1 つだけ宣言する");

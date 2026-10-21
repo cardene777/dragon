@@ -5,7 +5,6 @@
   // 見た目の値は全て palettes.json の色味から読む (build.py が DRAGON_PALETTES として埋める)。
   // 色味ごとに明るい背景と暗い背景で別の値を持ち、色味は .p-<id>、明暗は .lt / .dk の class で切り替える。
   // 色の枠は blue / amber / green / violet / rose / slate の 6 つで、c- が線と塗り、t- が字に使う濃さ。
-  // now (今の色) を持つ色味は、今動いている所 (光る縁、引いている線、今の段の番号) だけをその 1 色で示す
   const PALETTES = window.DRAGON_PALETTES;
   const vars = (o) => Object.entries(o).map(([k, v]) => `--${k}:${v}`).join(";");
   const baseCss = document.createElement("style");
@@ -419,7 +418,7 @@
     const only = document.body.dataset.only;
     const list = only ? SCENES.filter((s) => s.id === only) : SCENES;
     const sd = document.createElement("div");
-    sd.className = "sd lt p-clear";
+    sd.className = "sd lt p-paper";
     sd.innerHTML = `<div class="wrap"><header class="gh"><div><div class="gk">dragon の見た目の見本 ・ ${list.length} 枚</div><h1>図の形と題材を変えて、同じ見た目が保てるかを見る</h1></div>` +
       `<div class="sw"><div class="seg" role="group" aria-label="色味">${Object.entries(PALETTES).map(([id, p]) => `<button data-pal="${id}" aria-pressed="false">${p.name}</button>`).join("")}</div>` +
       `<div class="seg" role="group" aria-label="背景"><button data-theme="lt" aria-pressed="true">明るい</button><button data-theme="dk" aria-pressed="false">暗い</button></div></div></header>` +
@@ -440,7 +439,7 @@
       remember();
     };
     // 今の図、明暗、色味を URL に残し、開き直しても同じ見え方に戻す
-    let pal = "clear", mode = "lt";
+    let pal = "paper", mode = "lt";
     const remember = () => {
       const id = sd.querySelector('.jc[aria-current="true"]')?.dataset.id ?? list[0].id;
       try { history.replaceState(null, "", `?scene=${id}&theme=${mode}&palette=${pal}`); } catch {}
@@ -453,7 +452,7 @@
       remember();
     };
     const theme = (t) => { mode = t === "dk" ? "dk" : "lt"; paint(); };
-    const palette = (p) => { pal = PALETTES[p] ? p : "clear"; paint(); };
+    const palette = (p) => { pal = PALETTES[p] ? p : "paper"; paint(); };
     sd.querySelectorAll(".jc").forEach((b) => b.addEventListener("click", () => show(b.dataset.id)));
     sd.querySelectorAll("[data-theme]").forEach((b) => b.addEventListener("click", () => theme(b.dataset.theme)));
     sd.querySelectorAll("[data-pal]").forEach((b) => b.addEventListener("click", () => palette(b.dataset.pal)));
@@ -466,7 +465,7 @@
       else if (/^[1-9]$/.test(e.key) && list[Number(e.key) - 1]) show(list[Number(e.key) - 1].id);
     });
     mode = params.get("theme") === "dk" ? "dk" : "lt";
-    palette(params.get("palette") ?? "clear");
+    palette(params.get("palette") ?? "paper");
     show(params.get("scene") ?? list[0].id);
     window.__gallery = { show, theme, palette };
   };

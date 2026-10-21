@@ -8,6 +8,7 @@
     "version": { "description": "形式の版", "type": "integer", "minimum": 1 },
     "kind": { "description": "図の種類", "enum": ["sequence", "architecture"] },
     "title": { "$ref": "#/definitions/text" },
+    "view": { "description": "見せ方。書かなければ字の大きさで選ぶ。fixed は全体を止めて中だけ動かし、follow は寄って動かし全体図で今どこかを示す", "enum": ["fixed", "follow"] },
     "regions": { "type": "array", "items": { "$ref": "#/definitions/region" } },
     "boxes": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/box" } },
     "strip": { "$ref": "#/definitions/strip" },

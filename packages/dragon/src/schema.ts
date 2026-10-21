@@ -30,6 +30,9 @@ export type Carry = { kind: "envelope" } | { kind: "tag"; text: string } | { kin
 
 export type LabelSide = "above" | "below" | "left" | "right";
 
+/** 見せ方。`fixed` は全体を止めて中だけ動かし、`follow` は寄って動かし全体図で今どこかを示す。 */
+export type ViewMode = "fixed" | "follow";
+
 export type DiagramEvent =
   | { type: "edge"; from: string; to: string; label?: string; carry: Carry; labelSide?: LabelSide }
   | { type: "action"; box: string; label: string }
@@ -47,6 +50,7 @@ export interface Diagram {
   version: number;
   kind: "sequence" | "architecture";
   title: string;
+  view?: ViewMode;
   regions?: Region[];
   boxes: Box[];
   strip?: { title: string; fields: string[] };

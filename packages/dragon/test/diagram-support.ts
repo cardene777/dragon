@@ -6,6 +6,7 @@
  * `api()` が先に「出ているか」を判定してから渡す。
  */
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { expect } from "vitest";
 
@@ -53,10 +54,12 @@ export function api<K extends keyof DragonApi>(name: K): DragonApi[K] {
   return value as DragonApi[K];
 }
 
-const examples = new URL("../examples/", import.meta.url);
+// 例の置き場は repo の根 (vitest を回す場所) から引く。
+// jsdom の環境で回す検査では `import.meta.url` が `file:` の URL にならず、そこから file を開けないため
+const examples = join(process.cwd(), "packages/dragon/examples");
 
 export function exampleText(file: string): string {
-  return readFileSync(new URL(file, examples), "utf8");
+  return readFileSync(join(examples, file), "utf8");
 }
 
 export function exampleJson(file: string): Json {
