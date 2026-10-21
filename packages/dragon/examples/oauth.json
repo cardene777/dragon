@@ -1,0 +1,331 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "OAuth 2.0 でログインして API を呼ぶ (認可コードと PKCE)",
+  "boxes": [
+    {
+      "id": "ブラウザ",
+      "name": "利用者のブラウザ",
+      "sub": "利用者が操作する",
+      "color": "slate",
+      "icon": "globe"
+    },
+    {
+      "id": "アプリ",
+      "name": "アプリ",
+      "sub": "ログインを頼む側",
+      "color": "blue",
+      "icon": "app"
+    },
+    {
+      "id": "認可",
+      "name": "認可サーバー",
+      "sub": "本人を確かめる",
+      "color": "violet",
+      "icon": "shield"
+    },
+    {
+      "id": "API",
+      "name": "API",
+      "sub": "利用者のデータ",
+      "color": "green",
+      "icon": "server"
+    }
+  ],
+  "strip": {
+    "title": "アプリが持つ値",
+    "fields": [
+      "state",
+      "code_verifier",
+      "認可コード",
+      "アクセストークン",
+      "リフレッシュトークン"
+    ]
+  },
+  "steps": [
+    {
+      "title": "ログインを押す",
+      "body": "利用者がアプリのログインを押す。アプリは ID もパスワードも受け取らず、本人の確認を認可サーバーに任せる。",
+      "code": "GET /login",
+      "events": [
+        {
+          "type": "edge",
+          "from": "ブラウザ",
+          "to": "アプリ",
+          "label": "GET /login",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "鍵の元を作る",
+      "body": "アプリが使い捨ての code_verifier を作り、その SHA-256 を code_challenge にする。戻りを見分ける state も作り、手元に残す。",
+      "code": "code_challenge = BASE64URL(SHA-256(code_verifier))",
+      "events": [
+        {
+          "type": "action",
+          "box": "アプリ",
+          "label": "鍵の元を作る"
+        },
+        {
+          "type": "strip",
+          "field": "code_verifier",
+          "value": "dBjf…"
+        },
+        {
+          "type": "strip",
+          "field": "state",
+          "value": "af0i…"
+        }
+      ]
+    },
+    {
+      "title": "認可サーバーへ回す",
+      "body": "アプリはブラウザを認可サーバーへリダイレクトする。code_challenge と state は URL に載り、ブラウザを通って運ばれる。",
+      "code": "GET /authorize?code_challenge=…&state=…",
+      "events": [
+        {
+          "type": "edge",
+          "from": "アプリ",
+          "to": "ブラウザ",
+          "label": "302 で転送",
+          "carry": {
+            "kind": "tag",
+            "text": "challenge"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "ブラウザ",
+          "to": "認可",
+          "label": "GET /authorize",
+          "carry": {
+            "kind": "tag",
+            "text": "challenge"
+          }
+        }
+      ]
+    },
+    {
+      "title": "ログインと同意",
+      "body": "認可サーバーが利用者を確かめ、アプリに渡す範囲 (scope) への同意を取る。パスワードはアプリに一度も渡らない。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "認可",
+          "to": "ブラウザ",
+          "label": "ログイン画面",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "ブラウザ",
+          "to": "認可",
+          "label": "ID とパスワードと同意",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "認可コードを付けて戻す",
+      "body": "認可サーバーは短命の認可コードを発行し、登録済みの redirect_uri へブラウザを戻す。コードもブラウザを通る。",
+      "code": "302 redirect_uri?code=…&state=…",
+      "events": [
+        {
+          "type": "edge",
+          "from": "認可",
+          "to": "ブラウザ",
+          "label": "302 で転送",
+          "carry": {
+            "kind": "tag",
+            "text": "code"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "ブラウザ",
+          "to": "アプリ",
+          "label": "GET /callback",
+          "carry": {
+            "kind": "tag",
+            "text": "code"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "認可コード",
+          "value": "Splx…"
+        }
+      ]
+    },
+    {
+      "title": "state を確かめる",
+      "body": "アプリは戻った state が送った値と同じかを確かめる。違えば他人が仕組んだ戻りとみなして捨てる。",
+      "events": [
+        {
+          "type": "action",
+          "box": "アプリ",
+          "label": "state を照らす"
+        },
+        {
+          "type": "strip",
+          "field": "state",
+          "tag": "一致"
+        }
+      ]
+    },
+    {
+      "title": "コードを交換する",
+      "body": "アプリは認可コードと code_verifier を、ブラウザを通さず認可サーバーへ直接送る。",
+      "code": "POST /token  code=…&code_verifier=…",
+      "events": [
+        {
+          "type": "edge",
+          "from": "アプリ",
+          "to": "認可",
+          "label": "直接 POST /token",
+          "carry": {
+            "kind": "tag",
+            "text": "code + verifier"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "code_verifier",
+          "tag": "渡した"
+        },
+        {
+          "type": "strip",
+          "field": "認可コード",
+          "tag": "渡した"
+        }
+      ]
+    },
+    {
+      "title": "照らし合わせる",
+      "body": "認可サーバーは code_verifier の SHA-256 が最初の code_challenge と同じか、コードが未使用で期限内かを確かめ、コードを使用済みにする。",
+      "events": [
+        {
+          "type": "action",
+          "box": "認可",
+          "label": "照らし合わせる"
+        },
+        {
+          "type": "strip",
+          "field": "認可コード",
+          "tag": "使えない"
+        }
+      ]
+    },
+    {
+      "title": "トークンを返す",
+      "body": "通ればアクセストークンとリフレッシュトークンを返す。コードだけを盗んだ者は code_verifier を知らないので、前の段で弾かれる。",
+      "code": "access_token, refresh_token, expires_in",
+      "events": [
+        {
+          "type": "edge",
+          "from": "認可",
+          "to": "アプリ",
+          "label": "直接 200 トークン",
+          "carry": {
+            "kind": "tag",
+            "text": "access + refresh"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "アプリ",
+          "text": "トークンを持つ"
+        },
+        {
+          "type": "strip",
+          "field": "アクセストークン",
+          "value": "eyJh…",
+          "tag": "60 分"
+        },
+        {
+          "type": "strip",
+          "field": "リフレッシュトークン",
+          "value": "8xLO…",
+          "tag": "保管"
+        }
+      ]
+    },
+    {
+      "title": "API を呼ぶ",
+      "body": "アプリはアクセストークンを Authorization ヘッダに載せて API を呼ぶ。",
+      "code": "Authorization: Bearer <access_token>",
+      "events": [
+        {
+          "type": "edge",
+          "from": "アプリ",
+          "to": "API",
+          "label": "GET /me",
+          "carry": {
+            "kind": "tag",
+            "text": "Bearer"
+          }
+        }
+      ]
+    },
+    {
+      "title": "確かめて返す",
+      "body": "API はトークンの署名、期限、許された範囲を確かめ、通れば利用者のデータを返す。",
+      "events": [
+        {
+          "type": "action",
+          "box": "API",
+          "label": "トークンを確かめる"
+        },
+        {
+          "type": "edge",
+          "from": "API",
+          "to": "アプリ",
+          "label": "200 データ",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "API",
+          "text": "データを返した"
+        }
+      ]
+    },
+    {
+      "title": "ログイン後の画面を返す",
+      "body": "アプリはデータで画面を作って返す。アクセストークンが切れたら、リフレッシュトークンで新しく取り直す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "アプリ",
+          "to": "ブラウザ",
+          "label": "ログイン後の画面",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "ブラウザ",
+          "text": "ログイン済み"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "ブラウザ",
+      "アプリ",
+      "認可",
+      "API"
+    ]
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "title": "dragon の図の原本",
+  "description": "区画、箱、線、運ぶ物、段、中身の帯の 6 部品を共通の骨組みに置き、図の種類だけの物は種類の欄に置く。座標は持たない。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "title", "boxes", "steps"],
+  "properties": {
+    "version": { "description": "形式の版", "type": "integer", "minimum": 1 },
+    "kind": { "description": "図の種類", "enum": ["sequence", "architecture"] },
+    "title": { "$ref": "#/definitions/text" },
+    "regions": { "type": "array", "items": { "$ref": "#/definitions/region" } },
+    "boxes": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/box" } },
+    "strip": { "$ref": "#/definitions/strip" },
+    "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/step" } },
+    "sequence": { "$ref": "#/definitions/sequence" }
+  },
+  "if": { "required": ["kind"], "properties": { "kind": { "const": "sequence" } } },
+  "then": { "required": ["sequence"] },
+  "else": { "not": { "required": ["sequence"] } },
+  "definitions": {
+    "text": { "type": "string", "minLength": 1 },
+    "id": { "type": "string", "pattern": "^[^\\s\\[\\]「」=:]+$" },
+    "color": { "enum": ["blue", "amber", "green", "violet", "rose", "slate", "coin"] },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "name": { "$ref": "#/definitions/text" },
+        "note": { "$ref": "#/definitions/text" },
+        "color": { "$ref": "#/definitions/color" },
+        "icon": { "$ref": "#/definitions/text" }
+      }
+    },
+    "box": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "name": { "$ref": "#/definitions/text" },
+        "sub": { "$ref": "#/definitions/text" },
+        "color": { "$ref": "#/definitions/color" },
+        "icon": { "$ref": "#/definitions/text" },
+        "region": { "$ref": "#/definitions/id" }
+      }
+    },
+    "strip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "fields"],
+      "properties": {
+        "title": { "$ref": "#/definitions/text" },
+        "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/text" } }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body", "events"],
+      "properties": {
+        "title": { "$ref": "#/definitions/text" },
+        "body": { "$ref": "#/definitions/text" },
+        "code": { "$ref": "#/definitions/text" },
+        "events": { "type": "array", "items": { "$ref": "#/definitions/event" } }
+      }
+    },
+    "event": {
+      "description": "段の中で起きること。起きる順に並べる",
+      "type": "object",
+      "required": ["type"],
+      "discriminator": { "propertyName": "type" },
+      "oneOf": [
+        {
+          "description": "線。運ぶ物を載せて送る側から受ける側へ走る",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "from", "to", "carry"],
+          "properties": {
+            "type": { "const": "edge" },
+            "from": { "$ref": "#/definitions/id" },
+            "to": { "$ref": "#/definitions/id" },
+            "label": { "$ref": "#/definitions/text" },
+            "carry": { "$ref": "#/definitions/carry" },
+            "labelSide": { "description": "線の名前を置く側 (寄せの指示)", "enum": ["above", "below", "left", "right"] }
+          }
+        },
+        {
+          "description": "箱の中の処理",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "box", "label"],
+          "properties": {
+            "type": { "const": "action" },
+            "box": { "$ref": "#/definitions/id" },
+            "label": { "$ref": "#/definitions/text" }
+          }
+        },
+        {
+          "description": "箱の下の小さな字の書き換え",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "box", "text"],
+          "properties": {
+            "type": { "const": "swap" },
+            "box": { "$ref": "#/definitions/id" },
+            "text": { "$ref": "#/definitions/text" }
+          }
+        },
+        {
+          "description": "中身の帯の欄の値と札",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "field"],
+          "anyOf": [{ "required": ["value"] }, { "required": ["tag"] }],
+          "properties": {
+            "type": { "const": "strip" },
+            "field": { "$ref": "#/definitions/text" },
+            "value": { "$ref": "#/definitions/text" },
+            "tag": { "$ref": "#/definitions/text" }
+          }
+        }
+      ]
+    },
+    "carry": {
+      "description": "線の上を走る物。封筒 (メッセージや要求)、札 (名前のある値)、硬貨 (価値)、無し",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["envelope", "tag", "coin", "none"] },
+        "text": { "$ref": "#/definitions/text" }
+      },
+      "if": { "required": ["kind"], "properties": { "kind": { "const": "tag" } } },
+      "then": { "required": ["text"] },
+      "else": { "not": { "required": ["text"] } }
+    },
+    "sequence": {
+      "description": "時系列図の種類の欄。生存線を左から並べる順",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lifelines"],
+      "properties": {
+        "lifelines": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/id" } }
+      }
+    }
+  }
+}

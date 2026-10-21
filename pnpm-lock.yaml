@@ -146,6 +146,9 @@ importers:
 
   packages/dragon:
     dependencies:
+      ajv:
+        specifier: ^8.18.0
+        version: 8.18.0
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
