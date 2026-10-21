@@ -29,6 +29,7 @@ interface CliText {
   usage: string;
   unknownOption: (name: string) => string;
   missingValue: (name: string) => string;
+  extraFiles: (extra: string[]) => string;
   noFile: (path: string) => string;
   unreadable: (path: string, detail: string) => string;
   badJson: (path: string, detail: string) => string;
@@ -50,6 +51,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     ].join("\n"),
     unknownOption: (name) => `知らない設定: ${name}`,
     missingValue: (name) => `設定に値が無い: ${name}`,
+    extraFiles: (extra) => `図の file は 1 つだけ渡す。余分な引数: ${extra.join(" ")}`,
     noFile: (path) => `図の file が無い: ${path}`,
     unreadable: (path, detail) => `図の file を読めない: ${path} (${detail})`,
     badJson: (path, detail) => `JSON として読めない: ${path} (${detail})`,
@@ -68,6 +70,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     ].join("\n"),
     unknownOption: (name) => `Unknown option: ${name}`,
     missingValue: (name) => `Option needs a value: ${name}`,
+    extraFiles: (extra) => `Pass only one diagram file. Extra arguments: ${extra.join(" ")}`,
     noFile: (path) => `No such diagram file: ${path}`,
     unreadable: (path, detail) => `Cannot read the diagram file: ${path} (${detail})`,
     badJson: (path, detail) => `Cannot read as JSON: ${path} (${detail})`,
@@ -140,9 +143,14 @@ async function main(argv: string[]): Promise<number> {
     return 2;
   }
   const { values, positionals } = parseArgs({ args: rest, options: OPTIONS, allowPositionals: true });
-  const file = positionals[0];
+  const [file, ...extra] = positionals;
   if (!file || (chosen !== undefined && !isLang(chosen))) {
     console.error(early.usage);
+    return 2;
+  }
+  // 2 つ目以降を黙って捨てると、`--out` を書き忘れた時に思った所と違う所へ書き出す (#3007)
+  if (extra.length > 0) {
+    console.error(`${early.extraFiles(extra)}\n${early.usage}`);
     return 2;
   }
   const width = number(values.width);
