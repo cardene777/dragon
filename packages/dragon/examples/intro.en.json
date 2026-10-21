@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "Ask to sign in",
+  "boxes": [
+    {
+      "id": "browser",
+      "name": "User's browser",
+      "sub": "operated by the user",
+      "color": "slate",
+      "icon": "globe"
+    },
+    {
+      "id": "app",
+      "name": "App",
+      "sub": "asks for sign-in",
+      "color": "blue",
+      "icon": "app"
+    }
+  ],
+  "steps": [
+    {
+      "title": "Press sign in",
+      "body": "The user presses the app's sign-in button. The app leaves identity checks to the authorization server.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "browser",
+          "to": "app",
+          "label": "GET /login",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "browser",
+      "app"
+    ]
+  }
+}

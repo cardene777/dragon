@@ -1,0 +1,437 @@
+{
+  "version": 1,
+  "kind": "architecture",
+  "title": "Send tokens to another chain with Chainlink CCIP",
+  "regions": [
+    {
+      "id": "src",
+      "name": "Source chain",
+      "note": "e.g. Ethereum",
+      "color": "blue",
+      "icon": "chain"
+    },
+    {
+      "id": "net",
+      "name": "Chainlink network",
+      "note": "DON",
+      "color": "amber",
+      "icon": "net"
+    },
+    {
+      "id": "dst",
+      "name": "Destination chain",
+      "note": "e.g. Arbitrum",
+      "color": "green",
+      "icon": "chain"
+    }
+  ],
+  "boxes": [
+    {
+      "id": "senderApp",
+      "name": "Sending app",
+      "sub": "builds the message",
+      "icon": "app",
+      "region": "src"
+    },
+    {
+      "id": "srcRouter",
+      "name": "Router",
+      "sub": "the single entry",
+      "icon": "router",
+      "region": "src"
+    },
+    {
+      "id": "OnRamp",
+      "name": "OnRamp",
+      "sub": "checks and sends out",
+      "icon": "on",
+      "region": "src"
+    },
+    {
+      "id": "srcPool",
+      "name": "Token Pool",
+      "sub": "locks or burns",
+      "icon": "pool",
+      "region": "src"
+    },
+    {
+      "id": "block",
+      "name": "Block",
+      "sub": "source chain record",
+      "icon": "block",
+      "region": "src"
+    },
+    {
+      "id": "Verifier",
+      "name": "Committee Verifier",
+      "sub": "signs and builds a proof",
+      "icon": "sign",
+      "region": "net"
+    },
+    {
+      "id": "Indexer",
+      "name": "Indexer",
+      "sub": "stores proofs",
+      "icon": "idx",
+      "region": "net"
+    },
+    {
+      "id": "Executor",
+      "name": "Executor",
+      "sub": "requests execution",
+      "icon": "exe",
+      "region": "net"
+    },
+    {
+      "id": "OffRamp",
+      "name": "OffRamp",
+      "sub": "checks and executes",
+      "icon": "off",
+      "region": "dst"
+    },
+    {
+      "id": "dstRouter",
+      "name": "Router",
+      "sub": "the single entry",
+      "icon": "router",
+      "region": "dst"
+    },
+    {
+      "id": "dstPool",
+      "name": "Token Pool",
+      "sub": "releases or mints",
+      "icon": "pool",
+      "region": "dst"
+    },
+    {
+      "id": "receiverApp",
+      "name": "Receiving app",
+      "sub": "receives and handles",
+      "icon": "app",
+      "region": "dst"
+    }
+  ],
+  "strip": {
+    "title": "Message",
+    "fields": [
+      "ID",
+      "destination",
+      "receiver",
+      "data",
+      "tokens",
+      "signatures",
+      "status"
+    ]
+  },
+  "steps": [
+    {
+      "title": "Send",
+      "body": "The sending app builds a message and calls the Router's ccipSend(). The message holds the receiver, the data and the tokens to send, and the fee is paid in LINK or the chain's own currency.",
+      "code": "ccipSend(destination chain, message)",
+      "events": [
+        {
+          "type": "strip",
+          "field": "ID",
+          "value": "not yet"
+        },
+        {
+          "type": "strip",
+          "field": "destination",
+          "value": "Arbitrum"
+        },
+        {
+          "type": "strip",
+          "field": "receiver",
+          "value": "0x7a1c…3f"
+        },
+        {
+          "type": "strip",
+          "field": "data",
+          "value": "order #42"
+        },
+        {
+          "type": "strip",
+          "field": "tokens",
+          "value": "100 USDC"
+        },
+        {
+          "type": "edge",
+          "from": "senderApp",
+          "to": "srcRouter",
+          "label": "ccipSend()",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    },
+    {
+      "title": "Accept",
+      "body": "The Router hands the message to the OnRamp for the destination. The Router is the app's single entry and has the same shape on every chain.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "srcRouter",
+          "to": "OnRamp",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Check the contents",
+      "body": "The OnRamp checks the token amount, the gas limit and the data length, and that the destination is not under an emergency stop. A message that passes gets its ID.",
+      "events": [
+        {
+          "type": "action",
+          "box": "OnRamp",
+          "label": "check the contents"
+        },
+        {
+          "type": "strip",
+          "field": "ID",
+          "value": "0x9f3c…a1"
+        }
+      ]
+    },
+    {
+      "title": "Deposit the tokens",
+      "body": "The OnRamp calls the Token Pool's lockOrBurn(). The tokens are locked or burned and leave the source chain. The limit on how much can be sent at once also applies here.",
+      "code": "lockOrBurn()",
+      "events": [
+        {
+          "type": "edge",
+          "from": "OnRamp",
+          "to": "srcPool",
+          "label": "lockOrBurn()",
+          "carry": {
+            "kind": "coin"
+          },
+          "labelSide": "below"
+        },
+        {
+          "type": "swap",
+          "box": "srcPool",
+          "text": "−100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "Record the event",
+      "body": "The OnRamp emits CCIPMessageSent, and the message is recorded in a block on the source chain.",
+      "code": "CCIPMessageSent",
+      "events": [
+        {
+          "type": "edge",
+          "from": "OnRamp",
+          "to": "block",
+          "label": "CCIPMessageSent",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "left"
+        }
+      ]
+    },
+    {
+      "title": "Wait for finality",
+      "body": "By default nothing moves on until that block is final. Verification starts once the chain's finality rule is met and the block can no longer roll back.",
+      "events": [
+        {
+          "type": "action",
+          "box": "block",
+          "label": "wait for finality"
+        }
+      ]
+    },
+    {
+      "title": "Verify and sign",
+      "body": "Each node of the Committee Verifier (Chainlink's DON) checks that the message matches the source chain record and signs it. Once a quorum of signatures is in, they form the message's proof.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "block",
+          "to": "Verifier",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "action",
+          "box": "Verifier",
+          "label": "collect signatures"
+        },
+        {
+          "type": "strip",
+          "field": "signatures",
+          "tag": "proof"
+        }
+      ]
+    },
+    {
+      "title": "Store the proof",
+      "body": "The proof is stored in the Indexer under the message ID, where anyone can fetch it.",
+      "code": "VerifierResult",
+      "events": [
+        {
+          "type": "edge",
+          "from": "Verifier",
+          "to": "Indexer",
+          "label": "VerifierResult",
+          "carry": {
+            "kind": "tag",
+            "text": "proof"
+          },
+          "labelSide": "above"
+        },
+        {
+          "type": "swap",
+          "box": "Indexer",
+          "text": "stored the proof"
+        }
+      ]
+    },
+    {
+      "title": "Gather the proofs",
+      "body": "The Executor gathers the message and every proof the destination asks for from the Indexer and carries them to the destination chain.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "Indexer",
+          "to": "Executor",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Request execution",
+      "body": "The Executor calls execute() on the destination chain's OffRamp. Anyone may make this call, and the Executor only makes it on someone's behalf.",
+      "code": "OffRamp.execute()",
+      "events": [
+        {
+          "type": "edge",
+          "from": "Executor",
+          "to": "OffRamp",
+          "label": "execute()",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "right"
+        },
+        {
+          "type": "strip",
+          "field": "status",
+          "value": "UNTOUCHED"
+        }
+      ]
+    },
+    {
+      "title": "Check the proofs",
+      "body": "The OffRamp has each CCV check the proofs. If any required CCV fails, it does not execute.",
+      "events": [
+        {
+          "type": "action",
+          "box": "OffRamp",
+          "label": "check the proofs"
+        },
+        {
+          "type": "swap",
+          "box": "OffRamp",
+          "text": "checked by CCVs"
+        },
+        {
+          "type": "strip",
+          "field": "signatures",
+          "tag": "verified"
+        }
+      ]
+    },
+    {
+      "title": "Hand over the tokens",
+      "body": "The OffRamp calls the Token Pool's releaseOrMint(). The tokens are released or newly minted and go straight to the receiver.",
+      "code": "releaseOrMint()",
+      "events": [
+        {
+          "type": "swap",
+          "box": "OffRamp",
+          "text": "checks and executes"
+        },
+        {
+          "type": "edge",
+          "from": "OffRamp",
+          "to": "dstPool",
+          "label": "releaseOrMint()",
+          "carry": {
+            "kind": "none"
+          },
+          "labelSide": "above"
+        },
+        {
+          "type": "swap",
+          "box": "dstPool",
+          "text": "minted 100 USDC"
+        },
+        {
+          "type": "edge",
+          "from": "dstPool",
+          "to": "receiverApp",
+          "carry": {
+            "kind": "coin"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "receiverApp",
+          "text": "+100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "Deliver",
+      "body": "The OffRamp calls the receiver's ccipReceive() through the Router. When it all goes through, the message is recorded as SUCCESS.",
+      "code": "ccipReceive()",
+      "events": [
+        {
+          "type": "edge",
+          "from": "OffRamp",
+          "to": "dstRouter",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "dstRouter",
+          "to": "receiverApp",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "receiverApp",
+          "text": "ccipReceive()"
+        },
+        {
+          "type": "strip",
+          "field": "status",
+          "value": "SUCCESS"
+        },
+        {
+          "type": "swap",
+          "box": "receiverApp",
+          "text": "order #42 and 100 USDC"
+        },
+        {
+          "type": "swap",
+          "box": "OffRamp",
+          "text": "recorded SUCCESS"
+        }
+      ]
+    }
+  ]
+}

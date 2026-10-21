@@ -33,6 +33,16 @@ const titleOf = (text: string): string | undefined => {
 
 /** 書き換えに使う、箱 2 つと線 1 本の図 */
 const EDITED = ["時系列図 書き換えた図", "", "甲 = 甲のサービス", "乙 = 乙のサービス", "", "# 呼ぶ", "> 甲が乙を呼ぶ。", "甲 -> 乙 : 呼ぶ"].join("\n");
+/** `EDITED` と同じ形を英語の語で書いた図 (#2997) */
+const EDITED_EN = ["sequence Edited diagram", "", "app = App service", "api = API service", "", "# Call", "> App calls API.", "app -> api : call"].join("\n");
+
+/**
+ * 記法の日本語の語 (#2997)。行の頭の語と、行の終わりの指定の語。
+ * 語の表は `@cardenelabs/dragon` の中にあり、頁の検査は表を読まずに、日本語の語が書く欄に残っていないかだけを見る。
+ */
+const JAPANESE_WORDS = /^\s*(時系列図|構成図|区画|帯|見せ方)\s|\[(色|印|区画|名前|札|硬貨|なし|封筒)[\s\]]/mu;
+/** 仮名と漢字。英語の誤りの文に入らない */
+const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 
 let built: Built;
 let server: Awaited<ReturnType<typeof servePage>>;
@@ -412,6 +422,104 @@ describe("公開する頁 (#2995)", () => {
       const { page } = await open();
       await expect.poll(() => page.evaluate(() => document.body.innerText), { ...WAIT, message: "書き出しの命令の案内が無い" }).toContain("dragon export");
       expect(await page.evaluate(() => document.body.innerText)).not.toContain("作り直しの最中");
+    },
+    SLOW,
+  );
+
+  it(
+    "english-page-examples-use-english-words",
+    async () => {
+      const { page } = await open({ locale: "en-US" });
+      await drawn(page);
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: "英語の端末で英語の頁にならない" }).toBe("en");
+      for (const key of ["intro", "ccip", "oauth"]) {
+        const text = example(`${key}.en.dragon`) ?? "";
+        expect(text, `${key} の英語版の見本が無い`).not.toBe("");
+        await page.locator(sel("example")).selectOption(key);
+        await expect.poll(() => editorValue(page), { ...WAIT, message: `${key} の英語版が書く欄に入らない` }).toBe(text.trimEnd());
+        expect((await editorValue(page))?.match(JAPANESE_WORDS)?.[0], `${key} の英語版の見本に日本語の語がある`).toBeUndefined();
+        await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${key} の英語版の図が描かれない` }).toContain(titleOf(text));
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "json-edit-keeps-notation-language",
+    async () => {
+      /** JSON の側で題を書き換え、記法の側に戻した時の書く欄の中身 */
+      const retitle = async (page: Page, title: string): Promise<string | null> => {
+        await click(page, "tab-json");
+        let current: Diagram | undefined;
+        await expect
+          .poll(
+            async () => {
+              try {
+                current = JSON.parse((await editorValue(page)) ?? "") as Diagram;
+                return true;
+              } catch {
+                return false;
+              }
+            },
+            { ...WAIT, message: "JSON の側に図の JSON が出ない" },
+          )
+          .toBe(true);
+        await setEditor(page, JSON.stringify({ ...current, title }, null, 2));
+        await expect.poll(() => stepsLabel(page), { ...WAIT, message: "JSON の書き換えが図に反映しない" }).toContain(title);
+        await click(page, "tab-notation");
+        return editorValue(page);
+      };
+
+      // 日本語の頁で英語の語の記法を書いていた時は、英語の語で書き戻す
+      const ja = await open({ locale: "ja-JP" });
+      await drawn(ja.page);
+      await setEditor(ja.page, EDITED_EN);
+      await expect.poll(() => stepsLabel(ja.page), { ...WAIT, message: "英語の語の記法で図が描かれない" }).toContain("Edited diagram");
+      const fromEnglish = await retitle(ja.page, "Retitled in JSON");
+      expect(fromEnglish?.split("\n")[0], "英語の語で書いた記法が英語の語で書き戻されない").toBe("sequence Retitled in JSON");
+      expect(fromEnglish?.match(JAPANESE_WORDS)?.[0], "英語の語で書き戻した記法に日本語の語がある").toBeUndefined();
+
+      // 英語の頁で日本語の語の記法を書いていた時は、日本語の語で書き戻す
+      const en = await open({ locale: "en-US" });
+      await drawn(en.page);
+      await setEditor(en.page, EDITED);
+      await expect.poll(() => stepsLabel(en.page), { ...WAIT, message: "日本語の語の記法で図が描かれない" }).toContain("書き換えた図");
+      const fromJapanese = await retitle(en.page, "JSON で直した図");
+      expect(fromJapanese?.split("\n")[0], "日本語の語で書いた記法が日本語の語で書き戻されない").toBe("時系列図 JSON で直した図");
+
+      // 書く欄の最初の行が読めない時は、頁の言葉で書き戻す
+      await setEditor(en.page, "not a diagram");
+      await expect.poll(() => en.page.locator(sel("status")).getAttribute("data-state"), { ...WAIT, message: "読めない記法が誤りにならない" }).toBe("error");
+      const fromUnreadable = await retitle(en.page, "Back from JSON");
+      expect(fromUnreadable?.split("\n")[0], "最初の行が読めない時に頁の言葉 (英語) で書き戻されない").toBe("sequence Back from JSON");
+    },
+    SLOW,
+  );
+
+  it(
+    "page-errors-follow-notation-language",
+    async () => {
+      // 日本語の頁で英語の語の記法に誤りがある時は、英語で出す
+      const ja = await open({ locale: "ja-JP" });
+      await drawn(ja.page);
+      await setEditor(ja.page, `${EDITED_EN}\napp -> nowhere : lost`);
+      await expect.poll(() => ja.page.locator(sel("status")).getAttribute("data-state"), { ...WAIT, message: "誤りが欄の下に出ない" }).toBe("error");
+      await expect.poll(() => statusText(ja.page), { ...WAIT, message: "英語の語の記法の誤りが英語で出ない" }).not.toMatch(KANA_KANJI);
+      expect(await statusText(ja.page), "誤りの箱の名前が出ない").toContain("nowhere");
+
+      // 英語の頁で日本語の語の記法に誤りがある時は、日本語で出す
+      const en = await open({ locale: "en-US" });
+      await drawn(en.page);
+      await setEditor(en.page, `${EDITED}\n甲 -> 届け先 : 迷う`);
+      await expect.poll(() => statusText(en.page), { ...WAIT, message: "日本語の語の記法の誤りが日本語で出ない" }).toContain("届け先 という箱は宣言していない");
+      expect(await statusText(en.page), "誤りの行の番号が記法の言葉で出ない").toContain("9 行目");
+
+      // 最初の行が読めない時は、頁の言葉で出す
+      await setEditor(en.page, "not a diagram");
+      await expect.poll(() => en.page.locator(sel("status")).getAttribute("data-state"), { ...WAIT, message: "読めない記法が誤りにならない" }).toBe("error");
+      expect(await statusText(en.page), "最初の行が読めない時に頁の言葉 (英語) で出ない").not.toMatch(KANA_KANJI);
+      await setEditor(ja.page, "not a diagram");
+      await expect.poll(() => statusText(ja.page), { ...WAIT, message: "最初の行が読めない時に頁の言葉 (日本語) で出ない" }).toMatch(KANA_KANJI);
     },
     SLOW,
   );
