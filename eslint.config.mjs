@@ -211,21 +211,6 @@ export default [
     },
   },
   {
-    // React Compiler 系 rule (immutability / refs / preserve-manual-memoization) は他 file では
-    // error 維持し新規 correctness regression を検出する。 CdlEditor.tsx のみ warn 降格 (#865):
-    // canvas の imperative 操作 (document.body.style.cursor 代入 / previewRef.current 読取り) が
-    // 本質的に必要で React Compiler が false positive を出す。 全体 warn 降格ではなく本 file 限定に
-    // することで、 他 component の render 中 ref 読取り / props mutation は error で捕捉し続ける。
-    // React Compiler の diagnostic は閉じ括弧など不正確な行を報告するため per-line disable より
-    // file scoped override が堅牢。
-    files: ["apps/playground-spa/src/components/CdlEditor.tsx"],
-    rules: {
-      "react-hooks/immutability": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/preserve-manual-memoization": "warn",
-    },
-  },
-  {
     // Buffer は Node 実行 context (dev script + Node test) のみで使用、 browser code には無い (#865)。
     // 全 file に global 付与すると browser component への誤混入時に no-undef が検出できず実行時
     // ReferenceError を招くため、 Node context の file に限定する。
