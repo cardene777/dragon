@@ -32,7 +32,7 @@ body:
     attributes:
       label: 何が起きたか
       description: 観測した現象を 1-3 文で
-      placeholder: "flow の行に (success) を付けても、矢印の色が既定のまま変わらない"
+      placeholder: "寄って追う見せ方で書き出した mp4 で、全体図の今見ている所の枠が動かない"
     validations:
       required: true
 
@@ -41,7 +41,7 @@ body:
     attributes:
       label: 期待する動作
       description: あるべき挙動
-      placeholder: "成功を表す色で矢印が描かれる"
+      placeholder: "段が進むたびに、全体図の枠が今の段の所へ動く"
     validations:
       required: true
 
@@ -49,22 +49,19 @@ body:
     id: reproduction
     attributes:
       label: 再現手順
-      description: 最小再現コード (dragon 記法) または playground URL
-      render: tsx
+      description: 最小再現の記法 (`.dragon`) か原本の JSON と、打った命令
+      render: text
       placeholder: |
-        import { textDslToDiagram } from "@cardenelabs/dragon";
+        時系列図 最小再現
 
-        const diagram = textDslToDiagram(`
-        title: "最小再現"
-        type: sequence
+        A = 送る側
+        B = 受ける側
 
-        actors:
-          - A
-          - B
+        # 送る
+        > A が B に送る。
+        A -> B : msg
 
-        flow:
-          - A -> B: "msg" (success)
-        `);
+        dragon export small.dragon --width 480 --format mp4
     validations:
       required: true
 

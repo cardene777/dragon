@@ -7,14 +7,14 @@ body:
     attributes:
       value: |
         質問歓迎です。
-        docs / playground catalog で見当たらない動作仕様は遠慮なくどうぞ。
+        README と例 (`packages/dragon/examples/`) で見当たらない動作仕様は遠慮なくどうぞ。
 
   - type: textarea
     id: question
     attributes:
       label: 質問内容
       description: 何を知りたいか
-      placeholder: "phase 内で tween と set を同じ state に対して併用したらどう動く？"
+      placeholder: "--width を渡さない時、全体を止める見せ方と寄って追う見せ方のどちらになる？"
     validations:
       required: true
 
@@ -36,7 +36,7 @@ body:
     attributes:
       label: 確認
       options:
-        - label: README / docs / catalog で探した
+        - label: README / docs / 例で探した
           required: true
         - label: 既存 issue を検索した
           required: true

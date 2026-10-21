@@ -6,7 +6,7 @@
  *
  * ```
  * pnpm verify:deps            # 全ての依存を見る
- * pnpm verify:deps @cardenelabs/cdl   # 名前を渡すとその依存だけ
+ * pnpm verify:deps ajv      # 名前を渡すとその依存だけ
  * ```
  *
  * ## network を使う

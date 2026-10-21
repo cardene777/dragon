@@ -18,7 +18,7 @@ export default defineConfig([
     shims: true,
     treeshake: true,
     // 字の package は束ねず、頁を束ねる道具に CSS と字の file を運ばせる
-    external: ["@cardenelabs/cdl", "react", "react-dom", "@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono"],
+    external: ["react", "react-dom", "@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono"],
     outDir: "dist",
     target: "es2022",
   },

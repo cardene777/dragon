@@ -7,9 +7,6 @@ import { join, sep } from "node:path";
  * dragon 自身の test は `@cardenelabs/dragon` (= `dist`) を読む。 test script に build は
  * 含まれていないため、 古い `dist` が手元に残っていると **src を壊しても test が通る**。
  *
- * cdl はここの対象外。 `#1166` で `link:` を外して公開版 (`^0.6.1`) に寄せたため、
- * 手元の build 状態に左右されない。
- *
  * `dist` が無い場合は import 解決に失敗して落ちるので見逃しにならない。 危ないのは
  * 「古い `dist` が残っている」 場合だけで、 それを検知する。
  */
@@ -118,7 +115,7 @@ function isInstalled(dir: string): boolean {
  * 環境で常に落ちる。
  *
  * 配布物を外すのは、 npm が展開時に mtime を書くため `dist` と `src` の前後が中身と無関係に
- * 決まるから (cdl は `files` に `src` を含むので、 install 先にも `src` が存在する)。
+ * 決まるから (`files` に `src` を含む package は、 install 先にも `src` が存在する)。
  */
 export function checkFreshness(pkgDir: string): FreshnessVerdict {
   if (isInstalled(pkgDir)) return { kind: "installed" };

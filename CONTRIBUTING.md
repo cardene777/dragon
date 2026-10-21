@@ -8,8 +8,9 @@ Thanks for considering a contribution. dragon は小さな OSS プロジェク�
 git clone git@github.com:cardene777/dragon.git
 cd dragon
 pnpm install
+pnpm build:packages  # 検査が読む描画の package の dist を作る
 pnpm test            # vitest 全 pass を確認
-pnpm dev             # http://localhost:4323 で playground SPA 起動
+pnpm dev             # http://localhost:4323 で公開する頁を起動
 ```
 
 `pnpm test` で全件 pass する状態が baseline。 ローカル開発開始前に必ず緑を確認。
@@ -18,10 +19,10 @@ pnpm dev             # http://localhost:4323 で playground SPA 起動
 
 | path | 役割 |
 | --- | --- |
-| `packages/dragon/` | text DSL parser (`@cardenelabs/dragon`) ... YAML-like → CdlDiagram |
-| `apps/playground-spa/` | Vite + React 19 + Tailwind 4 SPA ... Catalog + Editor + Compare + Docs |
+| `packages/dragon/` | 原本の JSON、行ごとの記法、描画、書き出しの命令 (`@cardenelabs/dragon`) |
+| `apps/playground-spa/` | GitHub Pages に配る頁 (Vite + React)。 作り直しの間は案内の 1 頁だけを配る |
 
-engine (`@cardenelabs/cdl`) は別 repo (`github.com/cardene777/cdl`) SSOT。
+描く部品は `packages/dragon` の中に持ち、 別の描画の package には頼らない。
 
 ## 開発フロー
 
@@ -40,23 +41,14 @@ engine (`@cardenelabs/cdl`) は別 repo (`github.com/cardene777/cdl`) SSOT。
 
 ### 絞り込んだ結果を提出の根拠にしない
 
-**変更した dir と、その file を読む検査の dir は一致しない**。
-`apps/playground-spa` の見本を 1 枚足しただけでも、`packages/dragon/test` にある
-見本の実物を読む検査 30 file 以上が影響を受ける。
+**変更した file と、その file を読む検査は一致しない**。
+`packages/dragon/examples/` の例を 1 つ直しただけでも、例の実物を読む検査
+(記法の往復、描画、書き出し) が影響を受ける。
 
 絞り込んで回して緑を見て提出し、取り込んだ後に赤が残ったことを 3 度続けた (`#2602`)。
 4 file / 6 件が積み上がり、次の作業で一式を回すまで 1 度も表に出なかった。
 
-絞り込む理由は実測に対して薄い。
-
-| 段 | cmd | 実測 |
-|---|---|---|
-| 1 | `pnpm typecheck` | 6.7 秒 |
-| 2 | `pnpm build` | 9.0 秒 |
-| 3 | `pnpm lint` | 20.1 秒 |
-| 4 | `pnpm test` | 47.3 秒 (516 file / 43719 件) |
-
-通しで回すと 72.9 秒 (段ごとに測った和より短い)。
+一式の所要時間は、検査の数が変わるたびに変わるので自分で測る。
 節約できる時間より、積み上がった赤を切り分ける時間のほうが長い。
 
 `build` が 2 番目に居るのは、検査が dist の新しさを見るため。
@@ -101,7 +93,7 @@ network に届かない時や呼出の上限に達した時など、表に無い
 ### なぜこの手順があるか
 
 2026-08-06 の棚卸しで、GitHub が 0 件になった時点で Linear の tool が出ておらず、
-`.mcp.json` を見ないまま「非該当」 と判断した。 実際は未認証だっただけで、認証したら
+MCP の設定 file を見ないまま「非該当」 と判断した。 実際は未認証だっただけで、認証したら
 Backlog 7 件 / In Progress 4 件が残っていた。 そのまま報告していれば 11 件を見落として
 「残作業 0」 と書くところだった。
 
@@ -126,162 +118,26 @@ pnpm test                                        # vitest 全件 (unit + integra
 pnpm test:watch                                  # vitest watch mode
 pnpm lint                                        # eslint
 pnpm typecheck                                   # tsc -b 全 workspace
-pnpm build                                       # 記法の package と画面
+pnpm build                                       # 描画の package と頁
 ```
 
-新機能を追加する PR は test を必ず添える。 test の置き場所は `packages/dragon/test/` または `apps/playground-spa/tests/` のいずれか。
+新機能を追加する PR は test を必ず添える。 test の置き場所は `packages/dragon/test/` または `apps/playground-spa/src/lib/` のいずれか。
 
-### 画面の検査 (Playwright)
+### 検査は build 済みの package を読む
 
-**server を 2 つ立ててから回す**。 立てずに回すと、見に行く先が無い検査がまとめて落ちる。
+検査は `@cardenelabs/dragon` を package として読む (= `dist` を読む)。
+`pnpm test` は build を含まないため、`src` を直したら `pnpm build:packages` を回してから検査を回す。
+古い `dist` が残っていると、検査は始まる前に「dist が src より古い package がある」 で止まる
+(`test-support/global-setup.ts`)。
+
+### 書き出しの検査は Chromium を使う
+
+`packages/dragon/test/export.test.ts` は画面なしの Chromium で mp4、GIF、HTML、PNG を書き出して確かめる。
+Chromium を入れていない機械では、先に 1 度だけ入れる。
 
 ```bash
-# 1. 本番 build の preview (ほぼ全ての検査がここを見る)
-pnpm build
-cd apps/playground-spa && pnpm preview
-
-# 2. 開発 server (`/__render` を使う spec だけがここを見る、別の terminal で)
-pnpm dev
-
-# 3. 検査を回す (さらに別の terminal で)
-pnpm --filter dragon-playground-spa test:e2e
+pnpm exec playwright install chromium
 ```
-
-#### 回す枠の一覧
-
-`playwright.config.ts` は検査を枠 (`projects`) に分ける。
-**枠を絞って回した run は「全件通過」 ではない**。
-
-| 枠 | 何を回すか | 見に行く先 |
-| --- | --- | --- |
-| `default` | 大半の検査 | 本番 build の preview |
-| `dev-setup` | 開発 server が居るかを先に見る | 開発 server |
-| `dev` | 開発時だけの頁 (`/__render`) を使う検査 | 開発 server |
-| `serial` | 1 件ずつ回す 3 file (同時に走ると標本を取り損ねる) | 本番 build の preview |
-
-この表と `playwright.config.ts` の `projects` が一致することを
-`src/lib/playwright-projects.test.ts` が見る。 枠を足したらこの表も直す。
-
-**取り込みの前は 2 回に分けて回す**。 1 回で全ての枠を回すと、開発 server (Vite) と
-検査が同じ機械の CPU を取り合い、固定の待ちを並べた検査が時間切れで落ちる
-(実測 = `phone-diagram-legibility` の 2 件と `row-divider-tone` の 1 件が
-`Test timeout of 44000ms exceeded`、開発 server を止めると 14 件とも通る)。
-
-```bash
-# 1 回目 … 開発 server を止めて回す (default と serial、実測 904 件)
-pnpm test:screens
-
-# 2 回目 … 開発 server を立てて回す (dev-setup と dev、実測 5 件)
-pnpm dev
-npx playwright test --project dev-setup --project dev
-```
-
-`pnpm test:screens` は build、preview の起動、`default` と `serial` の順次実行、preview の停止を
-1 命令で行う。 `serial` は `--no-deps` で回すため、`default` は 2 回走らない。絞り込みなどの
-Playwright 引数は `pnpm test:screens -- --grep foo` の形で両方へ渡せる。
-絞り込みに当たる検査が無い枠は回さず、どちらの枠にも当たる検査が無ければ終了値 1 で止める。
-
-開発 server を見る `dev-setup` と `dev` は従来どおり別に回す。
-
-開発 server の port が別の作業で埋まっている時は、空いている port で立てて
-`DEV_SPA_URL` で向ける (下の 見に行く先を差し替える表 と同じ経路)。
-
-**枠を絞った run を取り込みの関門にしない**。 作業中に絞るのは速さのためで、
-絞ったまま「どこも落ちていない」 と書くと、走っていない検査の赤が見えないまま溜まる
-(実測 = `muted-text-symmetry.spec.ts` が 1 ヶ月以上赤いまま取り込まれ続けていた、#2496)。
-
-**検査は build 済の画面を見る**。 開発 server を見ていた間、実行中に file を編集すると
-Vite が繋いでいる画面を全再読み込みし、走行中の検査が巻き添えで落ちていた (#1438)。
-落ち方が「要素が現れず時間切れ」 に見えるため flake と区別が付かない。 build 済の画面は
-編集で作り直されないので、この経路が消える。
-
-代償として **画面を直したら `pnpm build` を回し直す**。 preview が配るのは build の成果物で、
-`src/` の編集は自動では反映されない。
-
-開発 server が要るのは `row-bounds-offset.spec.ts` だけ。 図を流し込む頁 (`/__render`) が
-`import.meta.env.DEV` の時しか繋がらず、build 済には route が無いため。 対象は
-`playwright.config.ts` の `開発serverの検査` が持つ。
-
-`prod-check` / `a11y-check` / `final-check` の 3 spec は従来どおり `PROD_BASE_URL` から
-自分で絶対 URL を組んで preview を見る。
-
-port は `apps/playground-spa/ports.ts` が持つ。 開発と preview で別の port を使うので、
-2 つを同時に立てたままにできる。
-
-文書 (この手引きや `README.md`) に書いた `localhost:<数字>` は、`src/lib/ports.test.ts` が
-`ports.ts` と突き合わせる (#2054)。 port を変えたら文書の数字も直す。 preview の URL は
-`/dragon/` まで書く (base path の下にしか配らない)。
-
-**spec の `goto` は先頭 `/` を付けずに書く**。 build 済は `/dragon/` の下に配られ、
-`new URL(path, base)` は先頭 `/` を「origin 直下」 と読んで base を捨てる = `goto("/editor")`
-は base の外を開き、画面が出ないまま落ちる。 `src/lib/spec-base-url.test.ts` が literal の
-先頭 `/` を検出する。
-
-見に行く先は環境変数で差し替えられる。
-
-| 変数 | 差し替える先 | 既定 |
-| --- | --- | --- |
-| `SPA_URL` | build 済を見る検査 (大半) | `ports.ts` の `PREVIEW_BASE_URL` |
-| `DEV_SPA_URL` | 開発 server を見る spec | `ports.ts` の `DEV_URL` |
-| `PROD_BASE_URL` | 本番 build を見る 3 spec | `ports.ts` の `PREVIEW_URL` |
-
-**依存の版を上げた直後は server を立て直す**。 Vite は起動時に依存を抱え込むため、
-動いている server は古い版を配り続ける。
-
-開発 server を見る spec は、開発 server を立て直す。 port を別の作業が使っていて立て直せない時は、
-空いている port で立て、`DEV_SPA_URL` でそこへ向ける (#2052)。 `SPA_URL` は build 済を見る検査の
-差し替えで、開発 server を見る spec には届かない。
-
-```bash
-pnpm -C apps/playground-spa dev --port <空いている port> --strictPort
-DEV_SPA_URL=http://localhost:<空いている port> pnpm -C apps/playground-spa exec playwright test --project dev
-```
-
-立てた時に `Re-optimizing dependencies because lockfile has changed` が出れば、束は作り直されている。
-束が古いかは `dev-deps-fresh.setup.ts` が見て、古ければ直し方を出して止まる。
-
-#### 書いた cmd が実在することを検査で見る
-
-この節に書いた `pnpm` の cmd は `src/lib/contributing-commands.test.ts` が
-`package.json` と突き合わせる。
-
-実在しない script を `--filter` 付きで呼ぶと、pnpm は **黙って skip して exit 0 を返す**。
-以前この節には `pnpm --filter dragon-playground-spa test` と書かれていたが、その script は
-無く、手順どおりに打つと 1 件も走らないまま「成功」 に見えていた (`#1328`)。
-
-### 値が動くことの検査は実経路に載せる
-
-記法に書いた値 (`states:` / `values:`) が動くことを見る検査は、**描画側と同じ入口を通す**。
-
-```ts
-// 記法 → 組み立て → 配置 → その瞬間に描画側が読む値
-const values = computeStateValues(layout(textDslToDiagram(src)), 段, 進み);
-```
-
-engine の解く関数 (`applyDerivedValues` / `withDerivedValues`) を検査から直接呼ばない。
-渡す値を手で組み立てると、**図に状態が 1 件も載らない形を通り抜ける**。 実際に
-`#1179` はこの書き方で「値が届く」 ことを証明したつもりになり、`animation:` を書かない図で
-値が 1 つも届かない状態を素通りさせた。 `packages/dragon/test/values-compile.test.ts` の
-「検査が実経路を迂回していない」 が、検査 file 全件を走査してこれを禁止している。
-
-**値が絵に出るところまで見る検査を 1 本は置く**
-(`apps/playground-spa/src/lib/values-on-screen.test.tsx`)。 値の計算が合っていても、その値を
-描く経路が無ければ画面は変わらない。 実際に `#1173` は 110 件に手を入れて 79 件が画面上
-動かず、宣言だけを見る検査がそれを「動いている」 と判定した。
-
-```ts
-const svg = renderToStaticMarkup(<CdlDiagramView diagram={textDslToDiagram(src)} />);
-expect(svg).toContain(">6<");
-expect(svg).not.toContain("{waiting}");
-```
-
-段の途中 (`進み` が 0 と 1 の間) は静止した描画では作れないので、そこは
-`computeStateValues` を直接見る。 2 段の役割はこう分かれる。
-
-| 段 | 見るもの |
-|---|---|
-| `computeStateValues` | 段ごとの値、段の補間の途中の値、解けない値の扱い |
-| SVG 文字列 | 値が実際に絵の文字として出ること (描く経路の有無を含む) |
 
 ### 対象を決める規則を変える前に実データで数える
 
@@ -304,8 +160,8 @@ expect(svg).not.toContain("{waiting}");
 何件あるか** は分からない。 そこを飛ばすと、理論上ありうる形を根拠に述語を厳しくして、
 実在する多数派を巻き込む。
 
-`#1279` で実際に踏んだ。 `changelog-covers-commits.test.ts` の「commit の本文のどの行を
-元件名とみなすか」 という述語 1 つを、review 4 round にわたって往復させている。
+`#1279` で実際に踏んだ。 CHANGELOG が commit を漏れなく載せているかを見る検査 (今は無い) の
+「commit の本文のどの行を元件名とみなすか」 という述語 1 つを、review 4 round にわたって往復させている。
 
 | round | 述語 | 外れ方 |
 |---|---|---|
