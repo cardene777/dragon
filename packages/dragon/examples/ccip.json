@@ -1,0 +1,437 @@
+{
+  "version": 1,
+  "kind": "architecture",
+  "title": "Chainlink CCIP でトークンを別のチェーンへ送る",
+  "regions": [
+    {
+      "id": "送信元",
+      "name": "送信元チェーン",
+      "note": "例 Ethereum",
+      "color": "blue",
+      "icon": "chain"
+    },
+    {
+      "id": "網",
+      "name": "Chainlink ネットワーク",
+      "note": "DON",
+      "color": "amber",
+      "icon": "net"
+    },
+    {
+      "id": "送信先",
+      "name": "送信先チェーン",
+      "note": "例 Arbitrum",
+      "color": "green",
+      "icon": "chain"
+    }
+  ],
+  "boxes": [
+    {
+      "id": "送るアプリ",
+      "name": "送る側のアプリ",
+      "sub": "メッセージを作る",
+      "icon": "app",
+      "region": "送信元"
+    },
+    {
+      "id": "送信元Router",
+      "name": "Router",
+      "sub": "ただ 1 つの入口",
+      "icon": "router",
+      "region": "送信元"
+    },
+    {
+      "id": "OnRamp",
+      "name": "OnRamp",
+      "sub": "確かめて送り出す",
+      "icon": "on",
+      "region": "送信元"
+    },
+    {
+      "id": "送信元Pool",
+      "name": "Token Pool",
+      "sub": "預かるか焼く",
+      "icon": "pool",
+      "region": "送信元"
+    },
+    {
+      "id": "ブロック",
+      "name": "ブロック",
+      "sub": "送信元チェーンの記録",
+      "icon": "block",
+      "region": "送信元"
+    },
+    {
+      "id": "Verifier",
+      "name": "Committee Verifier",
+      "sub": "署名を集めて証明を作る",
+      "icon": "sign",
+      "region": "網"
+    },
+    {
+      "id": "Indexer",
+      "name": "Indexer",
+      "sub": "証明を置く",
+      "icon": "idx",
+      "region": "網"
+    },
+    {
+      "id": "Executor",
+      "name": "Executor",
+      "sub": "実行を頼む",
+      "icon": "exe",
+      "region": "網"
+    },
+    {
+      "id": "OffRamp",
+      "name": "OffRamp",
+      "sub": "確かめて実行する",
+      "icon": "off",
+      "region": "送信先"
+    },
+    {
+      "id": "送信先Router",
+      "name": "Router",
+      "sub": "ただ 1 つの入口",
+      "icon": "router",
+      "region": "送信先"
+    },
+    {
+      "id": "送信先Pool",
+      "name": "Token Pool",
+      "sub": "解放するか発行",
+      "icon": "pool",
+      "region": "送信先"
+    },
+    {
+      "id": "受けるアプリ",
+      "name": "受け取る側のアプリ",
+      "sub": "受け取って処理する",
+      "icon": "app",
+      "region": "送信先"
+    }
+  ],
+  "strip": {
+    "title": "メッセージ",
+    "fields": [
+      "ID",
+      "宛先",
+      "受け取る側",
+      "データ",
+      "トークン",
+      "署名",
+      "状態"
+    ]
+  },
+  "steps": [
+    {
+      "title": "送る",
+      "body": "送る側のアプリがメッセージを作り、Router の ccipSend() を呼ぶ。メッセージには受け取る側、データ、送るトークンを入れ、手数料を LINK かそのチェーンの通貨で払う。",
+      "code": "ccipSend(宛先チェーン, メッセージ)",
+      "events": [
+        {
+          "type": "strip",
+          "field": "ID",
+          "value": "まだ無い"
+        },
+        {
+          "type": "strip",
+          "field": "宛先",
+          "value": "Arbitrum"
+        },
+        {
+          "type": "strip",
+          "field": "受け取る側",
+          "value": "0x7a1c…3f"
+        },
+        {
+          "type": "strip",
+          "field": "データ",
+          "value": "注文 #42"
+        },
+        {
+          "type": "strip",
+          "field": "トークン",
+          "value": "100 USDC"
+        },
+        {
+          "type": "edge",
+          "from": "送るアプリ",
+          "to": "送信元Router",
+          "label": "ccipSend()",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    },
+    {
+      "title": "受け付ける",
+      "body": "Router が宛先に合った OnRamp へ渡す。Router はアプリから見たただ 1 つの入口で、どのチェーンでも同じ形をしている。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "送信元Router",
+          "to": "OnRamp",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "中身を確かめる",
+      "body": "OnRamp がトークンの数、ガスの上限、データの長さを確かめ、宛先が緊急停止されていないことも確かめる。通ったメッセージの ID が決まる。",
+      "events": [
+        {
+          "type": "action",
+          "box": "OnRamp",
+          "label": "中身を確かめる"
+        },
+        {
+          "type": "strip",
+          "field": "ID",
+          "value": "0x9f3c…a1"
+        }
+      ]
+    },
+    {
+      "title": "トークンを預ける",
+      "body": "OnRamp が Token Pool の lockOrBurn() を呼ぶ。トークンは預かられるか焼かれ、送信元チェーンから出ていく。一度に送れる量の上限もここで効く。",
+      "code": "lockOrBurn()",
+      "events": [
+        {
+          "type": "edge",
+          "from": "OnRamp",
+          "to": "送信元Pool",
+          "label": "lockOrBurn()",
+          "carry": {
+            "kind": "coin"
+          },
+          "labelSide": "below"
+        },
+        {
+          "type": "swap",
+          "box": "送信元Pool",
+          "text": "−100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "出来事を残す",
+      "body": "OnRamp が CCIPMessageSent を出し、メッセージは送信元チェーンのブロックに記録される。",
+      "code": "CCIPMessageSent",
+      "events": [
+        {
+          "type": "edge",
+          "from": "OnRamp",
+          "to": "ブロック",
+          "label": "CCIPMessageSent",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "left"
+        }
+      ]
+    },
+    {
+      "title": "確定を待つ",
+      "body": "既定では、そのブロックが確定するまで先へ進まない。チェーンごとの確定の条件を満たし、巻き戻らない状態になってから検証に入る。",
+      "events": [
+        {
+          "type": "action",
+          "box": "ブロック",
+          "label": "確定を待つ"
+        }
+      ]
+    },
+    {
+      "title": "検証して署名する",
+      "body": "Committee Verifier (Chainlink の DON) の各ノードが、送信元チェーンの記録とメッセージが合っているかを確かめて署名する。定足数の署名がそろうと、そのメッセージの証明になる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "ブロック",
+          "to": "Verifier",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "action",
+          "box": "Verifier",
+          "label": "署名を集める"
+        },
+        {
+          "type": "strip",
+          "field": "署名",
+          "tag": "証明"
+        }
+      ]
+    },
+    {
+      "title": "証明を置く",
+      "body": "証明はメッセージの ID に結び付けて Indexer に置かれ、誰でも取り出せる。",
+      "code": "VerifierResult",
+      "events": [
+        {
+          "type": "edge",
+          "from": "Verifier",
+          "to": "Indexer",
+          "label": "VerifierResult",
+          "carry": {
+            "kind": "tag",
+            "text": "証明"
+          },
+          "labelSide": "above"
+        },
+        {
+          "type": "swap",
+          "box": "Indexer",
+          "text": "証明を置いた"
+        }
+      ]
+    },
+    {
+      "title": "証明をそろえる",
+      "body": "Executor がメッセージと、送信先が求める全ての証明を Indexer から集め、送信先チェーンへ運ぶ。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "Indexer",
+          "to": "Executor",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "実行を頼む",
+      "body": "Executor が送信先チェーンの OffRamp の execute() を呼ぶ。この呼び出しは誰でもでき、Executor は代わりに打っているだけ。",
+      "code": "OffRamp.execute()",
+      "events": [
+        {
+          "type": "edge",
+          "from": "Executor",
+          "to": "OffRamp",
+          "label": "execute()",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "right"
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "value": "UNTOUCHED"
+        }
+      ]
+    },
+    {
+      "title": "証明を確かめる",
+      "body": "OffRamp が各 CCV に証明を確かめさせる。求められた CCV が 1 つでも通らなければ実行しない。",
+      "events": [
+        {
+          "type": "action",
+          "box": "OffRamp",
+          "label": "証明を確かめる"
+        },
+        {
+          "type": "swap",
+          "box": "OffRamp",
+          "text": "CCV で確かめる"
+        },
+        {
+          "type": "strip",
+          "field": "署名",
+          "tag": "検証済"
+        }
+      ]
+    },
+    {
+      "title": "トークンを渡す",
+      "body": "OffRamp が Token Pool の releaseOrMint() を呼ぶ。トークンは解放されるか新しく発行され、受け取る側へ直接渡る。",
+      "code": "releaseOrMint()",
+      "events": [
+        {
+          "type": "swap",
+          "box": "OffRamp",
+          "text": "確かめて実行する"
+        },
+        {
+          "type": "edge",
+          "from": "OffRamp",
+          "to": "送信先Pool",
+          "label": "releaseOrMint()",
+          "carry": {
+            "kind": "none"
+          },
+          "labelSide": "above"
+        },
+        {
+          "type": "swap",
+          "box": "送信先Pool",
+          "text": "100 USDC を発行"
+        },
+        {
+          "type": "edge",
+          "from": "送信先Pool",
+          "to": "受けるアプリ",
+          "carry": {
+            "kind": "coin"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "受けるアプリ",
+          "text": "+100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "届ける",
+      "body": "OffRamp が Router を通して受け取る側の ccipReceive() を呼ぶ。最後まで通ると、メッセージは SUCCESS として記録される。",
+      "code": "ccipReceive()",
+      "events": [
+        {
+          "type": "edge",
+          "from": "OffRamp",
+          "to": "送信先Router",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "送信先Router",
+          "to": "受けるアプリ",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "受けるアプリ",
+          "text": "ccipReceive()"
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "value": "SUCCESS"
+        },
+        {
+          "type": "swap",
+          "box": "受けるアプリ",
+          "text": "注文 #42 と 100 USDC"
+        },
+        {
+          "type": "swap",
+          "box": "OffRamp",
+          "text": "SUCCESS を記録"
+        }
+      ]
+    }
+  ]
+}
