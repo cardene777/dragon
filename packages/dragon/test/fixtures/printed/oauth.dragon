@@ -1,0 +1,78 @@
+時系列図 OAuth 2.0 でログインして API を呼ぶ (認可コードと PKCE)
+
+ブラウザ = 利用者のブラウザ「利用者が操作する」 [色 slate] [印 globe]
+アプリ = アプリ「ログインを頼む側」 [色 blue] [印 app]
+認可 = 認可サーバー「本人を確かめる」 [色 violet] [印 shield]
+API = API「利用者のデータ」 [色 green] [印 server]
+帯 アプリが持つ値 = state, code_verifier, 認可コード, アクセストークン, リフレッシュトークン
+
+# ログインを押す
+> 利用者がアプリのログインを押す。アプリは ID もパスワードも受け取らず、本人の確認を認可サーバーに任せる。
+`GET /login`
+ブラウザ -> アプリ : GET /login
+
+# 鍵の元を作る
+> アプリが使い捨ての code_verifier を作り、その SHA-256 を code_challenge にする。戻りを見分ける state も作り、手元に残す。
+`code_challenge = BASE64URL(SHA-256(code_verifier))`
+アプリ : 鍵の元を作る
+帯 code_verifier = dBjf…
+帯 state = af0i…
+
+# 認可サーバーへ回す
+> アプリはブラウザを認可サーバーへリダイレクトする。code_challenge と state は URL に載り、ブラウザを通って運ばれる。
+`GET /authorize?code_challenge=…&state=…`
+アプリ -> ブラウザ : 302 で転送 [札 challenge]
+ブラウザ -> 認可 : GET /authorize [札 challenge]
+
+# ログインと同意
+> 認可サーバーが利用者を確かめ、アプリに渡す範囲 (scope) への同意を取る。パスワードはアプリに一度も渡らない。
+認可 -> ブラウザ : ログイン画面
+ブラウザ -> 認可 : ID とパスワードと同意
+
+# 認可コードを付けて戻す
+> 認可サーバーは短命の認可コードを発行し、登録済みの redirect_uri へブラウザを戻す。コードもブラウザを通る。
+`302 redirect_uri?code=…&state=…`
+認可 -> ブラウザ : 302 で転送 [札 code]
+ブラウザ -> アプリ : GET /callback [札 code]
+帯 認可コード = Splx…
+
+# state を確かめる
+> アプリは戻った state が送った値と同じかを確かめる。違えば他人が仕組んだ戻りとみなして捨てる。
+アプリ : state を照らす
+帯 state [一致]
+
+# コードを交換する
+> アプリは認可コードと code_verifier を、ブラウザを通さず認可サーバーへ直接送る。
+`POST /token  code=…&code_verifier=…`
+アプリ -> 認可 : 直接 POST /token [札 code + verifier]
+帯 code_verifier [渡した]
+帯 認可コード [渡した]
+
+# 照らし合わせる
+> 認可サーバーは code_verifier の SHA-256 が最初の code_challenge と同じか、コードが未使用で期限内かを確かめ、コードを使用済みにする。
+認可 : 照らし合わせる
+帯 認可コード [使えない]
+
+# トークンを返す
+> 通ればアクセストークンとリフレッシュトークンを返す。コードだけを盗んだ者は code_verifier を知らないので、前の段で弾かれる。
+`access_token, refresh_token, expires_in`
+認可 -> アプリ : 直接 200 トークン [札 access + refresh]
+アプリ「トークンを持つ」
+帯 アクセストークン = eyJh… [60 分]
+帯 リフレッシュトークン = 8xLO… [保管]
+
+# API を呼ぶ
+> アプリはアクセストークンを Authorization ヘッダに載せて API を呼ぶ。
+`Authorization: Bearer <access_token>`
+アプリ -> API : GET /me [札 Bearer]
+
+# 確かめて返す
+> API はトークンの署名、期限、許された範囲を確かめ、通れば利用者のデータを返す。
+API : トークンを確かめる
+API -> アプリ : 200 データ
+API「データを返した」
+
+# ログイン後の画面を返す
+> アプリはデータで画面を作って返す。アクセストークンが切れたら、リフレッシュトークンで新しく取り直す。
+アプリ -> ブラウザ : ログイン後の画面
+ブラウザ「ログイン済み」

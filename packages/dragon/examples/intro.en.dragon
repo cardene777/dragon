@@ -1,8 +1,8 @@
 // Starter example. Two boxes and one line show the shape of the notation
-時系列図 Ask to sign in
+sequence Ask to sign in
 
-browser = User's browser「operated by the user」 [色 slate] [印 globe]
-app = App「asks for sign-in」 [色 blue] [印 app]
+browser = User's browser "operated by the user" [color slate] [icon globe]
+app = App "asks for sign-in" [color blue] [icon app]
 
 # Press sign in
 > The user presses the app's sign-in button. The app leaves identity checks to the authorization server.

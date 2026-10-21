@@ -1,0 +1,331 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "Sign in with OAuth 2.0 and call an API (authorization code and PKCE)",
+  "boxes": [
+    {
+      "id": "browser",
+      "name": "User's browser",
+      "sub": "operated by the user",
+      "color": "slate",
+      "icon": "globe"
+    },
+    {
+      "id": "app",
+      "name": "App",
+      "sub": "asks for sign-in",
+      "color": "blue",
+      "icon": "app"
+    },
+    {
+      "id": "auth",
+      "name": "Authorization server",
+      "sub": "checks who you are",
+      "color": "violet",
+      "icon": "shield"
+    },
+    {
+      "id": "API",
+      "name": "API",
+      "sub": "the user's data",
+      "color": "green",
+      "icon": "server"
+    }
+  ],
+  "strip": {
+    "title": "Values the app holds",
+    "fields": [
+      "state",
+      "code_verifier",
+      "authorization code",
+      "access token",
+      "refresh token"
+    ]
+  },
+  "steps": [
+    {
+      "title": "Press sign in",
+      "body": "The user presses the app's sign-in button. The app never receives an ID or a password and leaves identity checks to the authorization server.",
+      "code": "GET /login",
+      "events": [
+        {
+          "type": "edge",
+          "from": "browser",
+          "to": "app",
+          "label": "GET /login",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Make the key material",
+      "body": "The app makes a one-time code_verifier and uses its SHA-256 as the code_challenge. It also makes a state to recognise the return trip and keeps it.",
+      "code": "code_challenge = BASE64URL(SHA-256(code_verifier))",
+      "events": [
+        {
+          "type": "action",
+          "box": "app",
+          "label": "make the key material"
+        },
+        {
+          "type": "strip",
+          "field": "code_verifier",
+          "value": "dBjf…"
+        },
+        {
+          "type": "strip",
+          "field": "state",
+          "value": "af0i…"
+        }
+      ]
+    },
+    {
+      "title": "Send to the authorization server",
+      "body": "The app redirects the browser to the authorization server. code_challenge and state ride in the URL and travel through the browser.",
+      "code": "GET /authorize?code_challenge=…&state=…",
+      "events": [
+        {
+          "type": "edge",
+          "from": "app",
+          "to": "browser",
+          "label": "302 redirect",
+          "carry": {
+            "kind": "tag",
+            "text": "challenge"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "browser",
+          "to": "auth",
+          "label": "GET /authorize",
+          "carry": {
+            "kind": "tag",
+            "text": "challenge"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Sign in and consent",
+      "body": "The authorization server checks the user and asks for consent to the scope the app will get. The password never reaches the app.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "auth",
+          "to": "browser",
+          "label": "sign-in screen",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "browser",
+          "to": "auth",
+          "label": "ID, password and consent",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Return with an authorization code",
+      "body": "The authorization server issues a short-lived authorization code and sends the browser back to the registered redirect_uri. The code also passes through the browser.",
+      "code": "302 redirect_uri?code=…&state=…",
+      "events": [
+        {
+          "type": "edge",
+          "from": "auth",
+          "to": "browser",
+          "label": "302 redirect",
+          "carry": {
+            "kind": "tag",
+            "text": "code"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "browser",
+          "to": "app",
+          "label": "GET /callback",
+          "carry": {
+            "kind": "tag",
+            "text": "code"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "authorization code",
+          "value": "Splx…"
+        }
+      ]
+    },
+    {
+      "title": "Check the state",
+      "body": "The app checks that the returned state equals the one it sent. If not, it treats the return as forged and drops it.",
+      "events": [
+        {
+          "type": "action",
+          "box": "app",
+          "label": "compare the state"
+        },
+        {
+          "type": "strip",
+          "field": "state",
+          "tag": "match"
+        }
+      ]
+    },
+    {
+      "title": "Exchange the code",
+      "body": "The app sends the authorization code and code_verifier straight to the authorization server, not through the browser.",
+      "code": "POST /token  code=…&code_verifier=…",
+      "events": [
+        {
+          "type": "edge",
+          "from": "app",
+          "to": "auth",
+          "label": "direct POST /token",
+          "carry": {
+            "kind": "tag",
+            "text": "code + verifier"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "code_verifier",
+          "tag": "sent"
+        },
+        {
+          "type": "strip",
+          "field": "authorization code",
+          "tag": "sent"
+        }
+      ]
+    },
+    {
+      "title": "Compare",
+      "body": "The authorization server checks that the SHA-256 of code_verifier equals the first code_challenge and that the code is unused and unexpired, then marks the code as used.",
+      "events": [
+        {
+          "type": "action",
+          "box": "auth",
+          "label": "compare"
+        },
+        {
+          "type": "strip",
+          "field": "authorization code",
+          "tag": "spent"
+        }
+      ]
+    },
+    {
+      "title": "Return the tokens",
+      "body": "If everything matches, it returns an access token and a refresh token. Someone who stole only the code does not know code_verifier, so the previous step stops them.",
+      "code": "access_token, refresh_token, expires_in",
+      "events": [
+        {
+          "type": "edge",
+          "from": "auth",
+          "to": "app",
+          "label": "direct 200 tokens",
+          "carry": {
+            "kind": "tag",
+            "text": "access + refresh"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "app",
+          "text": "holds the tokens"
+        },
+        {
+          "type": "strip",
+          "field": "access token",
+          "value": "eyJh…",
+          "tag": "60 min"
+        },
+        {
+          "type": "strip",
+          "field": "refresh token",
+          "value": "8xLO…",
+          "tag": "stored"
+        }
+      ]
+    },
+    {
+      "title": "Call the API",
+      "body": "The app puts the access token in the Authorization header and calls the API.",
+      "code": "Authorization: Bearer <access_token>",
+      "events": [
+        {
+          "type": "edge",
+          "from": "app",
+          "to": "API",
+          "label": "GET /me",
+          "carry": {
+            "kind": "tag",
+            "text": "Bearer"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Check and answer",
+      "body": "The API checks the token's signature, expiry and allowed scope, and returns the user's data if it passes.",
+      "events": [
+        {
+          "type": "action",
+          "box": "API",
+          "label": "check the token"
+        },
+        {
+          "type": "edge",
+          "from": "API",
+          "to": "app",
+          "label": "200 data",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "API",
+          "text": "returned the data"
+        }
+      ]
+    },
+    {
+      "title": "Return the signed-in page",
+      "body": "The app builds a page from the data and returns it. When the access token expires, it gets a new one with the refresh token.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "app",
+          "to": "browser",
+          "label": "signed-in page",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "browser",
+          "text": "signed in"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "browser",
+      "app",
+      "auth",
+      "API"
+    ]
+  }
+}

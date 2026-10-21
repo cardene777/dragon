@@ -39,3 +39,21 @@
 | 寄って見せる図を動画に書き出した時、最初のコマと途中のコマで見ている範囲が違う | `pnpm test`の検査`export-video-follows-camera`が通る | #2986 |
 | HTML に書き出した時、図で使った字だけを含む字の file が HTML の中に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #2986 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2986 |
+| 英語の語で書き直した 3 つの見本の英語版 (`packages/dragon/examples` の `intro.en.dragon` と `oauth.en.dragon` と `ccip.en.dragon`) を読んだ時、日本語の語で書いていた時と同じ JSON になる | `pnpm test`の検査`english-words-compile-to-same-json`が通る | #2997 |
+| 日本語の語で書いた今の見本 (`intro.dragon` と `oauth.dragon` と `ccip.dragon`) を読んだ時、今と同じ JSON になる | `pnpm test`の検査`japanese-examples-compile-unchanged`が通る | #2997 |
+| 記法の語は役割ごとに日本語と英語の組で 1 つの表に並び、どちらかの言葉が欠けた役割か、語の無い原本の JSON の値 (図の種類、運ぶ物、見せ方、名前の側) があると検査が落ちる | `pnpm test`の検査`keyword-table-pairs-every-role`が通る | #2997 |
+| 最初の行と違う言葉の語を書いた行がある時 (英語の file の `区画 src = …` や、日本語の file の `[color blue]`)、その行と列を示し、file の言葉の語を示して落ちる | `pnpm test`の検査`other-language-word-reports-file-word`が通る | #2997 |
+| 語と同じ綴りの名札 (英語の file の `region` や `strip` や `view`、日本語の file の `帯`) の箱を宣言した時、その箱が宣言でも線でも処理でも書き換えでも箱として読まれる。名札の次に `->` が来る行 (`帯 -> 受け手 : 1 通`) は線と読む | `pnpm test`の検査`keyword-spelled-ids-read-as-boxes`が通る | #2997 |
+| 帯の値に `->` を含む行 (`帯 状態 = A -> B`) は、今と同じく帯の値の行として読まれる | `pnpm test`の検査`strip-value-with-arrow-stays-strip`が通る | #2997 |
+| 英語の語の file で、区画の添え書きと箱の下の字と書き換えの字を `"…"` で囲んだ時、「」で囲んだ時と同じ JSON になる。英語の語の file でも「」で囲んだ字を読める | `pnpm test`の検査`double-quotes-read-like-corner-brackets`が通る | #2997 |
+| 日本語の語の file では `"` を囲みとして読まず、`a = App "x"` の箱の名前は今と同じく `App "x"` のまま読まれる | `pnpm test`の検査`japanese-file-keeps-double-quotes-literal`が通る | #2997 |
+| 英語の言葉を渡して JSON から記法へ書き戻した時、英語の語で書き、添え書きと下の字と書き換えの字を `"…"` で囲む。名前か字に `"` を含む物は「」で囲む。3 つの見本と、名前に `"` を含む箱を書き戻して読み直すと、元の JSON と一致する | `pnpm test`の検査`roundtrip-in-english-keeps-json-identical`が通る | #2997 |
+| 言葉を渡さずに JSON から記法へ書き戻した時、今と同じ日本語の語と「」で書く | `pnpm test`の検査`print-defaults-to-japanese`が通る | #2997 |
+| 英語の語の file に誤りがある時、行と列を示し、誤りの文を英語で出す (誤りの文に仮名と漢字が入らない) | `pnpm test`の検査`english-file-errors-in-english`が通る | #2997 |
+| 日本語の語の file に誤りがある時、今と同じ日本語の誤りの文を出す | `pnpm test`の検査`japanese-file-errors-stay-japanese`が通る | #2997 |
+| 最初の行が読めず言葉が決まらない時、呼ぶ側が渡した言葉で誤りの文を出し、渡さなければ日本語で出す | `pnpm test`の検査`unknown-language-errors-use-given-language`が通る | #2997 |
+| 日本語の語の囲みと英語の語の囲みを 1 つの Markdown に並べた時、囲みごとにその言葉で読まれる | `pnpm test`の検査`markdown-fences-read-each-language`が通る | #2997 |
+| 使い方の文書の英語版 `packages/dragon/examples/quick-start.en.md` が在り、その中の dragon の囲みがすべて英語の語で書かれて読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #2997 |
+| 公開する頁で言葉を EN にした時、3 つの見本のどれを選んでも、書く欄の記法に日本語の語 (`時系列図` や `帯`) が 1 つも無い | `pnpm test`の検査`english-page-examples-use-english-words`が通る | #2997 |
+| 頁で JSON の側を書き換えた時、書く欄の記法は書き換える前の記法の言葉の語で書き戻される。書く欄の最初の行が読めない時は頁の言葉で書き戻す | `pnpm test`の検査`json-edit-keeps-notation-language`が通る | #2997 |
+| 頁の書く欄の記法に誤りがある時、欄の下の誤りの文を記法の言葉で出す。最初の行が読めない時は頁の言葉で出す | `pnpm test`の検査`page-errors-follow-notation-language`が通る | #2997 |

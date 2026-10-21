@@ -12,6 +12,8 @@ import type { ErrorObject } from "ajv";
 import validate from "./schemas/validate-diagram.js";
 
 export type Color = "blue" | "amber" | "green" | "violet" | "rose" | "slate" | "coin";
+/** 色の役の一覧。記法の `[色 …]` で書ける値と、誤りの文に並べる値 */
+export const COLORS: readonly Color[] = ["blue", "amber", "green", "violet", "rose", "slate", "coin"];
 
 export interface Region {
   id: string;

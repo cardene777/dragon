@@ -5,6 +5,9 @@
  * 頁の色と字も図と同じ値の表 (`PALETTES` と `FONTS`) から読み、色味と明暗を替えると頁と図が揃って替わる。
  * 記法と JSON のどちらの側でも書け、書いた側から図ともう一方へ反映する。
  * 記法に誤りがあるあいだは、誤りの行と理由を欄の下に出し、図は最後に描けた物を残す。
+ *
+ * 記法は日本語の語でも英語の語でも書ける (#2997)。JSON の側から書き戻す時と、記法の誤りを出す時は、
+ * 書いている記法の言葉 (最初の行の図の種類の語) に従い、最初の行が読めない時だけ頁の言葉に従う。
  */
 import "@cardenelabs/dragon/fonts";
 import {
@@ -12,6 +15,7 @@ import {
   type Diagram,
   FONTS,
   mountDiagram,
+  notationLanguage,
   PALETTES,
   parseNotation,
   printNotation,
@@ -30,7 +34,8 @@ type Tab = "notation" | "json";
 type ThemeChoice = "auto" | Theme;
 
 type Problem =
-  | { kind: "line"; line: number; message: string }
+  /** `lang` は誤りを出す言葉。記法の言葉で、決まらない時は頁の言葉 */
+  | { kind: "line"; lang: Lang; line: number; message: string }
   | { kind: "field"; pointer: string; message: string }
   | { kind: "json"; message: string }
   | { kind: "draw"; message: string };
@@ -54,11 +59,13 @@ function check(input: unknown): Outcome {
   return { ok: true, diagram: read.diagram };
 }
 
-function fromNotation(text: string): Outcome {
-  const parsed = parseNotation(text);
+/** 記法を読む。`pageLang` は記法の言葉が決まらない時に誤りを出す言葉 */
+function fromNotation(text: string, pageLang: Lang): Outcome {
+  const parsed = parseNotation(text, { lang: pageLang });
   if (!parsed.ok) {
     const first = parsed.errors[0];
-    return { ok: false, problem: { kind: "line", line: first?.line ?? 0, message: first?.message ?? "" } };
+    const lang = notationLanguage(text) ?? pageLang;
+    return { ok: false, problem: { kind: "line", lang, line: first?.line ?? 0, message: first?.message ?? "" } };
   }
   return check(parsed.diagram);
 }
@@ -91,7 +98,7 @@ function start(): Start {
   const lang = deviceLang(navigator.languages.length > 0 ? navigator.languages : [navigator.language]);
   const shared = fromHash(location.hash);
   const text = shared ?? exampleText(FIRST_EXAMPLE, lang);
-  return { lang, text, example: shared === undefined ? FIRST_EXAMPLE : (whichExample(text)?.key ?? null), outcome: fromNotation(text) };
+  return { lang, text, example: shared === undefined ? FIRST_EXAMPLE : (whichExample(text)?.key ?? null), outcome: fromNotation(text, lang) };
 }
 
 export function Playground(): ReactElement {
@@ -152,7 +159,7 @@ export function Playground(): ReactElement {
     setText(next);
     setExample(whichExample(next)?.key ?? null);
     share(next);
-    const outcome = fromNotation(next);
+    const outcome = fromNotation(next, lang);
     if (outcome.ok) accept(outcome.diagram);
     else setProblem(outcome.problem);
   };
@@ -165,7 +172,8 @@ export function Playground(): ReactElement {
       return;
     }
     accept(outcome.diagram);
-    const notation = printNotation(outcome.diagram);
+    // 書いていた記法の言葉で書き戻す。最初の行が読めない時は頁の言葉で書く
+    const notation = printNotation(outcome.diagram, { lang: notationLanguage(text) ?? lang });
     setText(notation);
     setExample(whichExample(notation)?.key ?? null);
     share(notation);
@@ -174,7 +182,7 @@ export function Playground(): ReactElement {
   /** 見本を書く欄に入れる。見本は URL に載せなくても開けるので、`#` の後ろを外す */
   const load = (key: ExampleKey, to: Lang): void => {
     const next = exampleText(key, to);
-    const outcome = fromNotation(next);
+    const outcome = fromNotation(next, to);
     setText(next);
     setExample(key);
     share(undefined);
@@ -192,7 +200,7 @@ export function Playground(): ReactElement {
       setProblem(null);
       return;
     }
-    const outcome = fromNotation(text);
+    const outcome = fromNotation(text, lang);
     setProblem(outcome.ok ? null : outcome.problem);
   };
 
@@ -200,7 +208,15 @@ export function Playground(): ReactElement {
     setLang(next);
     // 見本をそのまま開いている時だけ、見本も英語版に替える。書き換えた中身は替えない
     const opened = whichExample(text);
-    if (opened && opened.lang !== next) load(opened.key, next);
+    if (opened && opened.lang !== next) {
+      load(opened.key, next);
+      return;
+    }
+    // 言葉の決まらない記法の誤りは頁の言葉で出すので、替えた頁の言葉で出し直す
+    if (tab === "notation" && problem?.kind === "line") {
+      const outcome = fromNotation(text, next);
+      if (!outcome.ok) setProblem(outcome.problem);
+    }
   };
 
   const value = tab === "notation" ? text : json;
@@ -208,7 +224,7 @@ export function Playground(): ReactElement {
   const errorLine = tab === "notation" && problem?.kind === "line" ? problem.line : undefined;
   const status = (() => {
     if (!problem) return drawn ? t.readable(drawn.boxes.length, drawn.steps.length) : "";
-    if (problem.kind === "line") return t.lineError(problem.line, problem.message);
+    if (problem.kind === "line") return TEXT[problem.lang].lineError(problem.line, problem.message);
     if (problem.kind === "field") return `${problem.pointer || "/"} — ${problem.message}`;
     if (problem.kind === "json") return t.notJson(problem.message);
     return t.cannotDraw(problem.message);
