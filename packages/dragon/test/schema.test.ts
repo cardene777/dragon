@@ -4,10 +4,28 @@
  * 誤りは JSON Pointer で場所を示す。座標の欄 (x / y) はどの部品にも許さず、段の題と本文と
  * 形式の版は必須にする。
  */
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 
+const require_ = createRequire(import.meta.url);
+
 describe("原本の JSON の検査", () => {
+  it("validator-matches-schema", () => {
+    // 頁の CSP の下で動くように前もって書き出した検査の関数が、今の schema から書き出した物と同じ (#2995)
+    const { generate, OUT } = require_("../scripts/build-validator.mjs") as { generate: () => string; OUT: string };
+    expect(readFileSync(OUT, "utf8") === generate(), "schema を直した後に build-validator.mjs を回していない").toBe(true);
+  });
+
+  it("schema-reports-enum-choices", () => {
+    // 決まった値の欄は、使える値を並べて示す
+    const checked = api("validateDiagram")(patched(smallSequence(), ["boxes", 0, "color"], "purple"));
+    expect(checked.ok).toBe(false);
+    const error = checked.ok ? undefined : checked.errors.find((e) => e.pointer === "/boxes/0/color");
+    expect(error?.message).toBe("blue / amber / green / violet / rose / slate / coin のどれかにする");
+  });
+
   it("schema-reports-pointer-of-invalid-field", () => {
     const validate = api("validateDiagram");
 
