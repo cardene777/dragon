@@ -66,11 +66,10 @@ export default [
       // sandbox 内 file は tsconfig include 外で type-aware rule が parser service を得られず
       // eslint が crash するため lint 対象から除外する。
       "**/.stryker-tmp/**",
-      // `docs/design/notation/**/source.cdl.ts` = 意匠帳に納めた記法の抜粋。
-      // 単体で成り立つ module ではなく (宣言のかたまりをそのまま写している)、
-      // tsconfig の対象外なので type-aware rule が parser service を得られず落ちる。
-      // 読むための写しなので lint の対象にしない。
-      "docs/design/notation/**",
+      // `docs/design/base/` = 見本帳の部品と図。 `build.py` が 1 枚の HTML に連ねて読む script で、
+      // 図の file は部品が置く global (`DRAGON`) を前提にし、単体では module として成り立たない。
+      // 製品の描画は `packages/dragon` に作り、ここは見本として読むために置くので lint の対象にしない。
+      "docs/design/base/**",
       // `.mts` script (apps/playground-spa/scripts/*.mts) = tsconfig include 外の開発 script。
       // type-aware rule (await-thenable 等) が parser service を得られず eslint が crash するため除外。
       "**/*.mts",

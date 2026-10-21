@@ -1,0 +1,146 @@
+html,body{margin:0}
+.sd{
+  --sans:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  background:var(--page);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  padding:22px 16px 28px;box-sizing:border-box;transition:background-color .25s ease;
+}
+.wrap{max-width:800px;margin:0 auto}
+
+/* 頁の頭 */
+.gh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:0 2px 16px}
+/* 色味と明暗の切り替え。今動いている所の色 (--now) を持たない色味では、区画の色 (--c) がそのまま使われる */
+.sw{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.gk{font:700 11px var(--mono);letter-spacing:.04em;color:var(--mute)}
+.gh h1{margin:5px 0 0;font:700 19px/1.4 var(--sans);color:var(--ink)}
+.seg{display:inline-flex;flex:none;padding:3px;border-radius:10px;background:var(--sunk);box-shadow:inset 0 0 0 1px var(--hair)}
+.seg button{all:unset;cursor:pointer;font:600 12px var(--sans);color:var(--mute);padding:6px 12px;border-radius:7px}
+.seg button[aria-pressed="true"]{background:var(--surf);color:var(--ink);box-shadow:0 1px 2px color-mix(in srgb,var(--sh) 14%,transparent),inset 0 0 0 1px var(--hair)}
+.seg button:focus-visible,.jc:focus-visible,.ctl button:focus-visible{outline:2px solid var(--c-blue);outline-offset:2px}
+
+/* 図へ飛ぶ */
+.jump{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:8px;margin:0 0 20px}
+.jc{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:42px 1fr;gap:11px;align-items:center;padding:9px 12px 9px 9px;border-radius:12px;background:var(--surf);box-shadow:inset 0 0 0 1px var(--hair);transition:box-shadow .15s ease}
+.jc:hover{box-shadow:inset 0 0 0 1px var(--line)}
+.jc[aria-current="true"]{box-shadow:inset 0 0 0 1.5px var(--ink),0 2px 6px color-mix(in srgb,var(--sh) 10%,transparent)}
+.ji{width:42px;height:42px;border-radius:10px;background:var(--sunk);display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--hair)}
+.ji svg{width:28px;height:28px;overflow:visible}
+.ji path,.ji circle,.ji rect{fill:none;stroke:var(--ink2);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ji .f{fill:var(--ink2);stroke:none}
+.jc[aria-current="true"] .ji{background:var(--ink);box-shadow:none}
+.jc[aria-current="true"] .ji path,.jc[aria-current="true"] .ji circle,.jc[aria-current="true"] .ji rect{stroke:var(--page)}
+.jc[aria-current="true"] .ji .f{fill:var(--page)}
+.jt{font:650 13px/1.35 var(--sans);color:var(--ink)}
+.jn{font:700 10.5px var(--mono);color:var(--mute);margin-right:6px}
+.jm{font:500 11px/1.3 var(--sans);color:var(--mute);margin-top:2px}
+
+/* 図の頭 */
+.sc-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 2px 12px}
+.sc-h b{font:700 16.5px var(--sans);color:var(--ink);margin-right:4px}
+.pill{font:650 11px var(--sans);padding:3px 10px;border-radius:999px;background:var(--surf);color:var(--ink2);box-shadow:inset 0 0 0 1px var(--hair)}
+
+/* 再生の釦 */
+.top{display:flex;align-items:center;gap:12px;margin:0 0 12px}
+.ctl{display:flex;gap:6px;align-items:center}
+.ctl button{all:unset;box-sizing:border-box;height:30px;min-width:30px;padding:0 8px;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--ink);background:var(--surf);box-shadow:inset 0 0 0 1px var(--hair);font:600 11.5px var(--mono)}
+.ctl button:hover{box-shadow:inset 0 0 0 1px var(--line)}
+.ctl .main{background:var(--ink);color:var(--page);box-shadow:none;min-width:38px}
+.track{position:relative;flex:1;height:30px;cursor:pointer}
+.track .rail,.track b{position:absolute;left:0;right:0;top:13px;height:4px;border-radius:2px}
+.track .rail{background:var(--hair)}
+.track b{background:var(--ink);transform-origin:0 50%}
+.track i{position:absolute;top:10px;width:1.5px;height:10px;border-radius:1px;background:var(--mute);opacity:.45}
+
+.pn{background:var(--bg);color:var(--ink);border-radius:16px;padding:14px 14px 10px;box-shadow:inset 0 0 0 1px var(--hair),0 1px 2px color-mix(in srgb,var(--sh) 6%,transparent)}
+.fig{display:block;width:100%;height:auto;overflow:visible}
+.a{animation-duration:var(--T);animation-timing-function:linear;animation-iteration-count:infinite;animation-fill-mode:both}
+.popc{transform-box:fill-box;transform-origin:center}
+
+/* 区画 */
+.band{fill:color-mix(in srgb,var(--c) var(--tint),var(--bg));stroke:color-mix(in srgb,var(--c) var(--edge),transparent)}
+.bi{fill:color-mix(in srgb,var(--c) 16%,var(--surf));stroke:color-mix(in srgb,var(--c) 34%,transparent)}
+.bz{font:700 12.5px var(--sans);fill:var(--ct)}
+.bx{font:500 11px var(--sans);fill:var(--mute)}
+/* 箱 */
+.st{fill:var(--surf);stroke:var(--hair)}
+.st-halo{fill:none;stroke:var(--now,var(--c));stroke-width:7;stroke-opacity:.16}
+.st-on{fill:none;stroke:var(--now,var(--c));stroke-width:1.75}
+.ic{fill:color-mix(in srgb,var(--c) 14%,var(--surf))}
+.gl{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sn{font:650 13px var(--sans);fill:var(--ink)}
+.ss{font:500 11px var(--sans);fill:var(--mute)}
+.ss-ok{font:700 11px var(--sans);fill:var(--ct)}
+.ss-coin{font:700 11px var(--mono);fill:var(--coint)}
+.ss-code{font:600 11px var(--mono);fill:var(--ink)}
+/* 線 */
+.e{fill:none;stroke:var(--line);stroke-width:1.7;stroke-linecap:round;stroke-dasharray:0 5}
+.eh{fill:none;stroke:var(--line);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.e-on{fill:none;stroke:var(--now,var(--c));stroke-width:2.25;stroke-linecap:round;stroke-dasharray:1 2}
+.eh-on{fill:none;stroke:var(--now,var(--c));stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
+.e-flow{fill:none;stroke:var(--surf);stroke-width:1.3;stroke-linecap:round;stroke-dasharray:1.5 9}
+/* 段の印 */
+.bd{cursor:pointer;outline:none}
+.bd:hover .bdp,.bd:focus-visible .bdp,.bd:hover .bdf,.bd:focus-visible .bdf{stroke:var(--ink);stroke-width:1.75}
+.bdf{fill:var(--now,var(--c))}
+.bdft{font:700 10.5px var(--mono);fill:var(--on-c)}
+.bdr{fill:none;stroke:var(--now,var(--c));stroke-width:1.5}
+.bdp{fill:color-mix(in srgb,var(--c) 14%,var(--surf));stroke:color-mix(in srgb,var(--c) 70%,transparent);stroke-width:1}
+.bdpt{font:700 10.5px var(--mono);fill:var(--ct)}
+/* 呼び出しの名札 */
+.cap rect{fill:color-mix(in srgb,var(--now,var(--c)) 12%,var(--surf));stroke:color-mix(in srgb,var(--now,var(--c)) 42%,transparent)}
+.cap text{font:600 11px var(--mono);fill:var(--now-t,var(--ct))}
+.capj text{font:650 11px var(--sans)}
+.cap-past rect{fill:var(--surf);stroke:var(--hair)}
+.cap-past text{fill:var(--mute)}
+/* 運ぶ物の札 (名前のある値)。運ぶ物 (封筒と札) は明るい背景では色味の carry (灰) で塗る。黒で塗ると図で一番強い物になるため。
+   暗い背景は carry を持たず字の色 (白) で塗る。白は暗い地で強く見えず、灰は沈んで見えるため */
+.car{fill:var(--carry,var(--ink))}
+.car-t{font:700 10.5px var(--mono);fill:var(--bg)}
+/* 印と運ばれる物 */
+.slot{fill:none;stroke:var(--line);stroke-width:1.2}
+.ok{fill:var(--c)}
+.ck{fill:none;stroke:var(--on-c);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sig{fill:var(--c)}
+.env{fill:var(--carry,var(--ink));stroke:var(--surf);stroke-width:1.5}
+.env-in{fill:none;stroke:var(--surf);stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round}
+.coin{fill:var(--coin);stroke:var(--surf);stroke-width:1.2}
+.coin-in{fill:none;stroke:var(--coinin);stroke-width:1.1}
+.coin-ghost{fill:none;stroke:var(--coin);stroke-width:1.3;stroke-dasharray:2 2}
+.spark{fill:var(--coin)}
+.flash{fill:none;stroke:var(--coin);stroke-width:2.5}
+.proof{fill:var(--c);stroke:var(--surf);stroke-width:1.2}
+/* 中身の帯 */
+.strip{fill:var(--surf);stroke:var(--hair)}
+.sep{stroke:var(--hair);stroke-width:1}
+.sh{font:700 12.5px var(--sans);fill:var(--ink)}
+.fl{font:600 10.5px var(--sans);fill:var(--mute)}
+.fv{font:600 12px var(--mono);fill:var(--ink)}
+.fv-mute{font:500 11px var(--sans);fill:var(--mute)}
+.fv-id{font:700 12px var(--mono);fill:var(--ct)}
+.tg rect{fill:var(--c)}
+.tg text{font:700 10.5px var(--sans);fill:var(--on-c)}
+.tgo rect{fill:color-mix(in srgb,var(--c) 10%,var(--surf));stroke:var(--c)}
+.tgo text{font:700 10.5px var(--mono);fill:var(--ct)}
+.tgm text{font:700 10.5px var(--mono)}
+/* 寄って追う図 */
+.vp-bg{fill:var(--bg)}
+.vp-dot{fill:color-mix(in srgb,var(--ink) 13%,transparent)}
+.vp-frame{fill:none;stroke:var(--hair)}
+.mm-bg{fill:var(--surf);stroke:var(--hair)}
+.mm-t{font:700 10.5px var(--sans);fill:var(--mute)}
+.mm-world{fill:var(--sunk);stroke:var(--hair)}
+.mm-band{fill:color-mix(in srgb,var(--c) 16%,var(--surf));stroke:color-mix(in srgb,var(--c) 36%,transparent);stroke-width:.6}
+.mm-card{fill:color-mix(in srgb,var(--c) 62%,var(--surf))}
+.mm-vp{fill:color-mix(in srgb,var(--ink) 6%,transparent);stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke}
+/* 語り */
+.narr{position:relative;height:122px;margin-top:4px}
+.it{position:absolute;inset:12px 6px 0 6px;display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:start}
+.nno{font:700 24px/1 var(--mono);color:var(--now-t,var(--ct));font-variant-numeric:tabular-nums;padding-top:1px}
+.nno small{font-size:11px;color:var(--mute);font-weight:500;margin-left:3px}
+.nt{font-size:15.5px;font-weight:650;color:var(--ink);display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.nz{font:650 10.5px var(--sans);color:var(--ct);background:color-mix(in srgb,var(--c) 12%,var(--surf));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 38%,transparent);border-radius:999px;padding:2px 9px}
+.nb{font-size:13.5px;line-height:1.65;color:var(--ink2);margin-top:4px}
+.it code{display:inline-block;margin-top:6px;font:500 11.5px var(--mono);padding:2px 8px;border-radius:6px;background:var(--sunk);color:var(--ink);box-shadow:inset 0 0 0 1px var(--hair)}
+.keys{margin:12px 4px 0;font:500 11px var(--sans);color:var(--mute)}
+.keys kbd{font:600 10.5px var(--mono);padding:1px 6px;border-radius:5px;background:var(--surf);box-shadow:inset 0 0 0 1px var(--hair);color:var(--ink2)}
+@media (max-width:560px){.gh{flex-direction:column;align-items:flex-start}.it{grid-template-columns:44px 1fr;gap:10px}.nno{font-size:18px}}
