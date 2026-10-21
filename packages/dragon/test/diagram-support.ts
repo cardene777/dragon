@@ -43,8 +43,8 @@ export interface Migrated {
 
 interface DragonApi {
   FORMAT_VERSION: number;
-  validateDiagram(input: unknown): Checked;
-  readDiagram(input: unknown): Read;
+  validateDiagram(input: unknown, options?: { lang?: NotationLang }): Checked;
+  readDiagram(input: unknown, options?: { lang?: NotationLang }): Read;
   migrateFile(path: string): Promise<Migrated>;
   parseNotation(text: string, options?: { lang?: NotationLang }): Parsed;
   printNotation(diagram: unknown, options?: { lang?: NotationLang }): string;

@@ -6,7 +6,9 @@
  * 今は版 1 しか無いため、版を上げる変換はまだ持たない。版 2 を作る時に、版 1 から 2 への変換と
  * 古い版を読んだ時の警告をここに足す。
  */
-import { type Diagram, type FieldError, validateDiagram } from "./schema";
+import { FIELD_MESSAGES } from "./field-messages";
+import { type CheckOptions, type Diagram, type FieldError, validateDiagram } from "./schema";
+import type { NotationLang } from "./words";
 
 /** この道具が読める原本の版 */
 export const FORMAT_VERSION = 1;
@@ -25,16 +27,16 @@ function newerThanTool(input: unknown): number | undefined {
   return typeof version === "number" && version > FORMAT_VERSION ? version : undefined;
 }
 
-const newerError = (version: number): FieldError => ({
+const newerError = (version: number, lang: NotationLang): FieldError => ({
   pointer: "/version",
-  message: `版 ${version} の図は、この道具 (版 ${FORMAT_VERSION}) より新しいので読めない。道具を新しくする`,
+  message: FIELD_MESSAGES[lang].newer(version, FORMAT_VERSION),
 });
 
-/** 原本を読む。道具より新しい版は描かずに断り、形の誤りは検査の誤りとして返す。 */
-export function readDiagram(input: unknown): Read {
+/** 原本を読む。道具より新しい版は描かずに断り、形の誤りは検査の誤りとして返す。誤りの文は `options.lang` (渡さなければ日本語) で出す。 */
+export function readDiagram(input: unknown, options: CheckOptions = {}): Read {
   const newer = newerThanTool(input);
-  if (newer !== undefined) return { ok: false, errors: [newerError(newer)] };
-  const checked = validateDiagram(input);
+  if (newer !== undefined) return { ok: false, errors: [newerError(newer, options.lang ?? "ja")] };
+  const checked = validateDiagram(input, options);
   if (!checked.ok) return checked;
   return { ok: true, diagram: input as Diagram, warnings: [] };
 }
