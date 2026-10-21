@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import type { Browser, Page } from "playwright-core";
+import type { NotationLang } from "../words";
 
 const require_ = createRequire(import.meta.url);
 /** 頁に読ませる詰める道具。どちらも 1 file の ES module */
@@ -21,19 +22,36 @@ const SCRIPTS: Record<string, string> = {
 /** CSS の 1px を何画素で撮るか */
 const SCALE = 2;
 
-const INSTALL = "`pnpm add -D playwright-core` で入れ、`pnpm exec playwright-core install chromium` で Chromium を入れる";
+const INSTALL_ADD = "`pnpm add -D playwright-core`";
+const INSTALL_CHROMIUM = "`pnpm exec playwright-core install chromium`";
 
-export async function launch(): Promise<Browser> {
+/** 書き出す道具が無い時の断りの文。言葉ごとに持つ (#3003) */
+const LAUNCH_TEXT: Record<NotationLang, { missing: string; cannotLaunch: string; install: string }> = {
+  ja: {
+    missing: "書き出しには playwright-core が要る。",
+    cannotLaunch: "Chromium を起動できない。",
+    install: `${INSTALL_ADD} で入れ、${INSTALL_CHROMIUM} で Chromium を入れる`,
+  },
+  en: {
+    missing: "Exporting needs playwright-core. ",
+    cannotLaunch: "Cannot launch Chromium. ",
+    install: `Install playwright-core with ${INSTALL_ADD} and Chromium with ${INSTALL_CHROMIUM}`,
+  },
+};
+
+/** 画面なしの Chromium を起こす。起こせない時は、渡した言葉で入れ方を添えて断る */
+export async function launch(lang: NotationLang): Promise<Browser> {
+  const text = LAUNCH_TEXT[lang];
   let chromium: (typeof import("playwright-core"))["chromium"];
   try {
     ({ chromium } = await import("playwright-core"));
   } catch {
-    throw new Error(`書き出しには playwright-core が要る。${INSTALL}`);
+    throw new Error(`${text.missing}${text.install}`);
   }
   try {
     return await chromium.launch();
   } catch (error) {
-    throw new Error(`Chromium を起動できない。${INSTALL} (${String(error).split("\n")[0]})`);
+    throw new Error(`${text.cannotLaunch}${text.install} (${String(error).split("\n")[0]})`);
   }
 }
 
