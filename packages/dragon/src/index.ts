@@ -13,6 +13,7 @@ export {
   type Box,
   type Carry,
   type Checked,
+  type CheckOptions,
   type Color,
   type Diagram,
   type DiagramEvent,

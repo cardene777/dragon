@@ -44,9 +44,9 @@ type Outcome = { ok: true; diagram: Diagram } | { ok: false; problem: Problem };
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
-/** 原本の形を検査し、描けるかまで確かめる。描けない図を受け取ると、最後に描けた図を失う */
-function check(input: unknown): Outcome {
-  const read = readDiagram(input);
+/** 原本の形を検査し、描けるかまで確かめる。描けない図を受け取ると、最後に描けた図を失う。`lang` は形の誤りを出す言葉 */
+function check(input: unknown, lang: Lang): Outcome {
+  const read = readDiagram(input, { lang });
   if (!read.ok) {
     const first = read.errors[0];
     return { ok: false, problem: { kind: "field", pointer: first?.pointer ?? "", message: first?.message ?? "" } };
@@ -62,22 +62,23 @@ function check(input: unknown): Outcome {
 /** 記法を読む。`pageLang` は記法の言葉が決まらない時に誤りを出す言葉 */
 function fromNotation(text: string, pageLang: Lang): Outcome {
   const parsed = parseNotation(text, { lang: pageLang });
+  const lang = notationLanguage(text) ?? pageLang;
   if (!parsed.ok) {
     const first = parsed.errors[0];
-    const lang = notationLanguage(text) ?? pageLang;
     return { ok: false, problem: { kind: "line", lang, line: first?.line ?? 0, message: first?.message ?? "" } };
   }
-  return check(parsed.diagram);
+  return check(parsed.diagram, lang);
 }
 
-function fromJson(text: string): Outcome {
+/** JSON を読む。JSON は語を持たず言葉が決まらないので、誤りは頁の言葉で出す (#2999) */
+function fromJson(text: string, pageLang: Lang): Outcome {
   let value: unknown;
   try {
     value = JSON.parse(text);
   } catch (error) {
     return { ok: false, problem: { kind: "json", message: messageOf(error) } };
   }
-  return check(value);
+  return check(value, pageLang);
 }
 
 const asJson = (diagram: Diagram | null): string => (diagram ? JSON.stringify(diagram, null, 2) : "");
@@ -166,7 +167,7 @@ export function Playground(): ReactElement {
 
   const writeJson = (next: string): void => {
     setJson(next);
-    const outcome = fromJson(next);
+    const outcome = fromJson(next, lang);
     if (!outcome.ok) {
       setProblem(outcome.problem);
       return;
@@ -206,6 +207,12 @@ export function Playground(): ReactElement {
 
   const switchLang = (next: Lang): void => {
     setLang(next);
+    // JSON の側に誤りが出ている間は、書いた JSON を見本に替えずに残し、誤りを替えた頁の言葉で出し直す
+    if (tab === "json" && problem) {
+      const outcome = fromJson(json, next);
+      if (!outcome.ok) setProblem(outcome.problem);
+      return;
+    }
     // 見本をそのまま開いている時だけ、見本も英語版に替える。書き換えた中身は替えない
     const opened = whichExample(text);
     if (opened && opened.lang !== next) {
