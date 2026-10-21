@@ -78,7 +78,12 @@ export async function servePage(dir: string): Promise<{ origin: string; close: (
   const { port } = server.address() as AddressInfo;
   return {
     origin: `http://127.0.0.1:${port}`,
-    close: () => new Promise<void>((done) => server.close(() => done())),
+    // browser が開いたままにする接続 (keep-alive) を先に切る。切らないと close は接続が切れるまで返らない
+    close: () =>
+      new Promise<void>((done) => {
+        server.close(() => done());
+        server.closeAllConnections();
+      }),
   };
 }
 

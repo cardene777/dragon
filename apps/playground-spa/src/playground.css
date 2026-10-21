@@ -1,0 +1,432 @@
+/*
+ * 公開する頁の見た目 (#2995)。絵は docs/design/playground/playground.pen。
+ *
+ * 色と字は変数で読み、値は Playground.tsx が図と同じ値の表 (PALETTES と FONTS) から根に置く。
+ * 幅が狭い時は図を上、書く欄を下に積み、書く欄を畳めるようにする。
+ */
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--sans), sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+button,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 2px;
+}
+
+.pg {
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr);
+  height: 100vh;
+}
+
+.pg-gap {
+  flex: 1;
+}
+
+/* 上の帯 */
+.pg-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 28px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--hair);
+  min-width: 0;
+}
+
+.pg-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+}
+
+.pg-name strong {
+  font-weight: 800;
+}
+
+.pg-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--c-blue);
+}
+
+.pg-tag,
+.pg-label {
+  color: var(--mute);
+}
+
+.pg-label {
+  font-size: 12px;
+}
+
+.pg-seg {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pg-seg button {
+  border: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: transparent;
+  color: var(--ink2);
+}
+
+.pg-seg button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.pg-look {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.pg-swatches {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pg-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+.pg-swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink);
+}
+
+.pg-look-open {
+  display: none;
+}
+
+.pg-gh {
+  color: var(--ink2);
+  text-decoration: none;
+}
+
+/* 本体。広い時は左に書く欄、右に図 */
+.pg-body {
+  display: grid;
+  grid-template-columns: 540px minmax(0, 1fr);
+  grid-template-areas: "editor stage";
+  min-height: 0;
+}
+
+.pg-stage {
+  grid-area: stage;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pg-kept {
+  margin: 0;
+  font-size: 12px;
+  color: var(--mute);
+}
+
+/*
+ * 図は枠に収める。原寸より大きくせず、枠より大きい時だけ縦横の比を保って縮める。
+ * 段の釦と本文は図の下に出したまま、図の全体と同時に見える。
+ */
+.pg-figure {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  background: var(--surf);
+}
+
+.pg-figure > .dg-player {
+  flex: 1;
+  min-height: 0;
+}
+
+.pg-figure .dg-frame {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.pg-figure .dg-frame svg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pg-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.pg-hint code {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--sunk);
+  color: var(--ink);
+  font-family: var(--mono), monospace;
+}
+
+/* 書く欄 */
+.pg-editor {
+  grid-area: editor;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+  border-right: 1px solid var(--hair);
+}
+
+.pg-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.pg-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--sunk);
+}
+
+.pg-tabs button {
+  border: 0;
+  padding: 3px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: transparent;
+  color: var(--ink2);
+}
+
+.pg-tabs button[aria-selected="true"] {
+  background: var(--surf);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.pg-pick {
+  max-width: 240px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surf);
+  font-size: 12px;
+}
+
+.pg-fold {
+  display: none;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
+}
+
+.pg-code {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.pg-code[hidden] {
+  display: none;
+}
+
+.pg-gutter {
+  flex: none;
+  width: 34px;
+  overflow: hidden;
+  padding: 12px 0;
+  text-align: right;
+  color: var(--mute);
+  font-size: 11px;
+  user-select: none;
+}
+
+.pg-gutter .is-error {
+  color: var(--t-rose);
+  font-weight: 700;
+}
+
+.pg-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 16px 12px 12px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+}
+
+.pg-status {
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--hair);
+  font-size: 12px;
+  color: var(--t-green);
+}
+
+.pg-status[data-state="error"] {
+  color: var(--t-rose);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--t-rose) 8%, transparent);
+}
+
+/* 幅が狭い時は図を上、書く欄を下に積む */
+@media (max-width: 760px) {
+  .pg {
+    height: auto;
+    grid-template-rows: 52px auto;
+  }
+
+  .pg-head {
+    gap: 10px;
+    padding: 0 14px;
+    position: relative;
+  }
+
+  .pg-tag,
+  .pg-gh {
+    display: none;
+  }
+
+  .pg-look-open {
+    display: block;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: transparent;
+  }
+
+  .pg-look {
+    display: none;
+    position: absolute;
+    top: 52px;
+    right: 14px;
+    z-index: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surf);
+  }
+
+  .pg-look[data-open="true"] {
+    display: flex;
+  }
+
+  .pg-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "stage" "editor";
+  }
+
+  .pg-stage {
+    padding: 12px;
+  }
+
+  /* 狭い時は図の高さを枠で決めず、幅に合わせて図の側で決める */
+  .pg-figure {
+    padding: 8px;
+  }
+
+  .pg-figure > .dg-player,
+  .pg-figure .dg-frame {
+    flex: none;
+  }
+
+  .pg-figure .dg-frame {
+    display: block;
+  }
+
+  .pg-figure .dg-frame svg {
+    width: 100%;
+    max-height: none;
+  }
+
+  .pg-editor {
+    border-right: 0;
+    border-top: 1px solid var(--hair);
+  }
+
+  .pg-bar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .pg-pick {
+    max-width: 120px;
+  }
+
+  .pg-fold {
+    display: block;
+  }
+
+  .pg-code {
+    height: 50vh;
+    flex: none;
+  }
+}
