@@ -67,17 +67,19 @@ const schemaEnum = (path: string[]): string[] => {
   return node as unknown as string[];
 };
 
+/** 運ぶ物。札だけは字を持つ */
+const carryOf = (kind: string): Json => (kind === "tag" ? { kind, text: "token" } : { kind });
+
 /** 原本の JSON が持てる語の値を全部使った図。図の種類と見せ方ごとに作る */
 function everyWord(kind: string, view: string | undefined): Json {
   const version = api("FORMAT_VERSION");
   const carries = schemaEnum(["definitions", "carry", "properties", "kind", "enum"]);
   const sides = enumOf(schema, "labelSide") ?? [];
   expect(sides.length, "schema に線の名前の側の値が無い").toBeGreaterThan(0);
-  return {
+  const diagram: { [key: string]: Json } = {
     version,
     kind,
     title: "Every word",
-    ...(view === undefined ? {} : { view }),
     regions: [{ id: "zone", name: "Zone", note: "zone note", color: "blue", icon: "cloud" }],
     boxes: [
       { id: "a", name: "A", sub: "a sub", color: "amber", icon: "user", region: "zone" },
@@ -95,7 +97,7 @@ function everyWord(kind: string, view: string | undefined): Json {
             from: "a",
             to: "b",
             label: `carry ${i}`,
-            carry: carry === "tag" ? { kind: carry, text: "token" } : { kind: carry },
+            carry: carryOf(carry),
           })),
           ...sides.map((side, i) => ({ type: "edge", from: "b", to: "a", label: `side ${i}`, carry: { kind: "envelope" }, labelSide: side })),
           { type: "action", box: "a", label: "work" },
@@ -105,8 +107,10 @@ function everyWord(kind: string, view: string | undefined): Json {
         ],
       },
     ],
-    ...(kind === "sequence" ? { sequence: { lifelines: ["a", "b"] } } : {}),
   };
+  if (view !== undefined) diagram.view = view;
+  if (kind === "sequence") diagram.sequence = { lifelines: ["a", "b"] };
+  return diagram;
 }
 
 describe("英語の語で書いた記法を読む", () => {
