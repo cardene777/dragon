@@ -57,3 +57,12 @@
 | 公開する頁で言葉を EN にした時、3 つの見本のどれを選んでも、書く欄の記法に日本語の語 (`時系列図` や `帯`) が 1 つも無い | `pnpm test`の検査`english-page-examples-use-english-words`が通る | #2997 |
 | 頁で JSON の側を書き換えた時、書く欄の記法は書き換える前の記法の言葉の語で書き戻される。書く欄の最初の行が読めない時は頁の言葉で書き戻す | `pnpm test`の検査`json-edit-keeps-notation-language`が通る | #2997 |
 | 頁の書く欄の記法に誤りがある時、欄の下の誤りの文を記法の言葉で出す。最初の行が読めない時は頁の言葉で出す | `pnpm test`の検査`page-errors-follow-notation-language`が通る | #2997 |
+| 原本の JSON の検査に英語を渡した時、書けない欄、要る欄、決まった値、道具より新しい版、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文に仮名と漢字が 1 つも無い | `pnpm test`の検査`json-errors-in-english`が通る | #2999 |
+| 言葉を渡さずに原本の JSON を検査した時、書けない欄、要る欄、決まった値、道具より新しい版の誤りの文が今と同じ文字列になる | `pnpm test`の検査`json-errors-default-japanese-unchanged`が通る | #2999 |
+| 日本語を渡した時と言葉を渡さない時、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文が日本語で書かれ、ajv の英語の文 (`must …`) を含まない | `pnpm test`の検査`json-errors-in-japanese-for-ajv-rules`が通る | #2999 |
+| 名札の形の誤りは、正規表現ではなく書けない字 (空白と `[` `]` `「` `」` `=` `:`) を並べた文で出す | `pnpm test`の検査`pattern-error-lists-forbidden-characters`が通る | #2999 |
+| 書けない組み合わせ (`sequence` の欄と、運ぶ物の `text` の欄) の誤りは、書けない欄の名前とその欄を書ける時 (`kind` が `sequence` の図だけ、運ぶ物の `kind` が `tag` の時だけ) を示し、場所 (JSON Pointer) をその欄にする。`kind` が無い時と綴りを誤った時も、同じ文で出る | `pnpm test`の検査`not-error-names-the-field`が通る | #2999 |
+| 帯の値に `value` も `tag` も無い時、誤りは 1 つで、どちらかを書くよう示す | `pnpm test`の検査`any-of-error-is-one-message`が通る | #2999 |
+| schema が使う決まり (`discriminator` を含む) のどれかに日本語か英語の誤りの文が無い時、検査が落ちる | `pnpm test`の検査`every-schema-keyword-has-messages`が通る | #2999 |
+| 公開する頁で JSON の側に誤りがある時、欄の下の誤りの文を頁の言葉で出す (EN の頁は仮名と漢字を含まず、日本語の頁は `must …` を含まない) | `pnpm test`の検査`page-json-errors-follow-page-language`が通る | #2999 |
+| JSON の側を書き換えて誤りが出ている間に頁の言葉を切り替えた時、書いた JSON を見本の英語版に替えずに残し、誤りの文を切り替えた言葉で出し直す。記法の欄が見本のままの時も同じ | `pnpm test`の検査`page-json-error-follows-language-switch`が通る | #2999 |
