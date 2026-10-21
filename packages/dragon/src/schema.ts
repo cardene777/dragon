@@ -3,9 +3,13 @@
  *
  * 形の正は `schemas/diagram.schema.json` の 1 本で、下の型はその写し。
  * 誤りは JSON Pointer で場所を示す。欄が足りない時と知らない欄がある時は、その欄の場所まで示す。
+ *
+ * 検査の関数は schema から前もって書き出した物 (`schemas/validate-diagram.js`) を使う。
+ * ajv に schema をその場で組み立てさせると `new Function` を使い、`eval` を許さない頁の CSP で止まる。
+ * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false }` で行う。
  */
-import Ajv, { type ErrorObject } from "ajv";
-import schema from "./schemas/diagram.schema.json";
+import type { ErrorObject } from "ajv";
+import validate from "./schemas/validate-diagram.js";
 
 export type Color = "blue" | "amber" | "green" | "violet" | "rose" | "slate" | "coin";
 
@@ -66,8 +70,6 @@ export interface FieldError {
 
 export type Checked = { ok: true } | { ok: false; errors: FieldError[] };
 
-const validate = new Ajv({ allErrors: true, discriminator: true, strictTypes: false }).compile(schema);
-
 const escape = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
 
 function toFieldError(error: ErrorObject): FieldError {
@@ -79,6 +81,9 @@ function toFieldError(error: ErrorObject): FieldError {
   if (error.keyword === "required") {
     const key = String(params.missingProperty);
     return { pointer: `${error.instancePath}/${escape(key)}`, message: `${key} の欄が要る` };
+  }
+  if (error.keyword === "enum" && Array.isArray(params.allowedValues)) {
+    return { pointer: error.instancePath, message: `${params.allowedValues.map(String).join(" / ")} のどれかにする` };
   }
   return { pointer: error.instancePath, message: error.message ?? error.keyword };
 }

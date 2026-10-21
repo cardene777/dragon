@@ -1,0 +1,79 @@
+// Sign in with the OAuth 2.0 authorization code and PKCE, then call an API
+時系列図 Sign in with OAuth 2.0 and call an API (authorization code and PKCE)
+
+browser = User's browser「operated by the user」 [色 slate] [印 globe]
+app = App「asks for sign-in」 [色 blue] [印 app]
+auth = Authorization server「checks who you are」 [色 violet] [印 shield]
+API = API「the user's data」 [色 green] [印 server]
+帯 Values the app holds = state, code_verifier, authorization code, access token, refresh token
+
+# Press sign in
+> The user presses the app's sign-in button. The app never receives an ID or a password and leaves identity checks to the authorization server.
+`GET /login`
+browser -> app : GET /login
+
+# Make the key material
+> The app makes a one-time code_verifier and uses its SHA-256 as the code_challenge. It also makes a state to recognise the return trip and keeps it.
+`code_challenge = BASE64URL(SHA-256(code_verifier))`
+app : make the key material
+帯 code_verifier = dBjf…
+帯 state = af0i…
+
+# Send to the authorization server
+> The app redirects the browser to the authorization server. code_challenge and state ride in the URL and travel through the browser.
+`GET /authorize?code_challenge=…&state=…`
+app -> browser : 302 redirect [札 challenge]
+browser -> auth : GET /authorize [札 challenge]
+
+# Sign in and consent
+> The authorization server checks the user and asks for consent to the scope the app will get. The password never reaches the app.
+auth -> browser : sign-in screen
+browser -> auth : ID, password and consent
+
+# Return with an authorization code
+> The authorization server issues a short-lived authorization code and sends the browser back to the registered redirect_uri. The code also passes through the browser.
+`302 redirect_uri?code=…&state=…`
+auth -> browser : 302 redirect [札 code]
+browser -> app : GET /callback [札 code]
+帯 authorization code = Splx…
+
+# Check the state
+> The app checks that the returned state equals the one it sent. If not, it treats the return as forged and drops it.
+app : compare the state
+帯 state [match]
+
+# Exchange the code
+> The app sends the authorization code and code_verifier straight to the authorization server, not through the browser.
+`POST /token  code=…&code_verifier=…`
+app -> auth : direct POST /token [札 code + verifier]
+帯 code_verifier [sent]
+帯 authorization code [sent]
+
+# Compare
+> The authorization server checks that the SHA-256 of code_verifier equals the first code_challenge and that the code is unused and unexpired, then marks the code as used.
+auth : compare
+帯 authorization code [spent]
+
+# Return the tokens
+> If everything matches, it returns an access token and a refresh token. Someone who stole only the code does not know code_verifier, so the previous step stops them.
+`access_token, refresh_token, expires_in`
+auth -> app : direct 200 tokens [札 access + refresh]
+app「holds the tokens」
+帯 access token = eyJh… [60 min]
+帯 refresh token = 8xLO… [stored]
+
+# Call the API
+> The app puts the access token in the Authorization header and calls the API.
+`Authorization: Bearer <access_token>`
+app -> API : GET /me [札 Bearer]
+
+# Check and answer
+> The API checks the token's signature, expiry and allowed scope, and returns the user's data if it passes.
+API : check the token
+API -> app : 200 data
+API「returned the data」
+
+# Return the signed-in page
+> The app builds a page from the data and returns it. When the access token expires, it gets a new one with the refresh token.
+app -> browser : signed-in page
+browser「signed in」
