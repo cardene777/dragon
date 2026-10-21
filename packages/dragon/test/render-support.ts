@@ -86,13 +86,16 @@ export interface Player {
   destroy(): void;
 }
 
+/** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉 (#3001) */
+export type Lang = "ja" | "en";
+
 interface DrawApi {
   PALETTES: Record<string, Palette>;
   FONTS: { sans: string; mono: string };
   resolvePalette(id?: string): Palette;
-  renderDiagram(diagram: unknown, options?: { palette?: string; theme?: Theme }): Rendered;
+  renderDiagram(diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang }): Rendered;
   chooseView(rendered: Rendered, frameWidth: number): { mode: ViewMode; textPx: number };
-  mountDiagram(host: HTMLElement, diagram: unknown, options?: { palette?: string; theme?: Theme }): Player;
+  mountDiagram(host: HTMLElement, diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang }): Player;
 }
 
 export function draw<K extends keyof DrawApi>(name: K): DrawApi[K] {

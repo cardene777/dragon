@@ -8,17 +8,19 @@ import { readFileSync } from "node:fs";
 import type { Theme } from "../look/values";
 import { esc } from "../render/parts";
 import type { Diagram } from "../schema";
+import type { NotationLang } from "../words";
 
 /** 頁に図を置いて動かす script。build で `player-global.ts` を 1 file に束ねた物 */
 const PLAYER = new URL("./player.global.js", import.meta.url);
 
-export function pageHtml(diagram: Diagram, look: { palette: string; theme: Theme; vars: string }, fontCss: string): string {
+/** `lang` は図の中の字 (全体図の札と読み上げの名前) の言葉。頁の `lang` 属性も同じにし、名前をその言葉の声で読ませる (#3001) */
+export function pageHtml(diagram: Diagram, look: { palette: string; theme: Theme; vars: string; lang: NotationLang }, fontCss: string): string {
   // `</script>` で script が途切れないよう、`<` を JSON の逃がし方で書く
   const json = JSON.stringify(diagram).replace(/</g, "\\u003c");
-  const options = JSON.stringify({ palette: look.palette, theme: look.theme });
+  const options = JSON.stringify({ palette: look.palette, theme: look.theme, lang: look.lang });
   return [
     "<!doctype html>",
-    '<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
+    `<html lang="${look.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`,
     `<title>${esc(diagram.title)}</title>`,
     `<style>${fontCss}:root{${look.vars}}html,body{margin:0}body{background:var(--bg)}</style>`,
     '</head><body><div id="dragon"></div>',

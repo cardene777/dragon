@@ -5,7 +5,9 @@
  * 止めるか流すかは `--play` の変数で外から変えられる (頁に置く `player.ts` がこれを使う)。
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  */
+import { FIGURE_TEXT } from "../figure-text";
 import { layoutArchitecture } from "../layout/architecture";
+import { textWidth } from "../layout/measure";
 import type { Layout, Rect } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
 import { FONTS } from "../look/fonts";
@@ -13,6 +15,7 @@ import { type ColorKey, EASE, FONT_VARS, LOOK, MOTION, type Palette, paletteVars
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
+import type { NotationLang } from "../words";
 import { action, badge, band, card, carrier, type Ctx, cs, edge, esc, type FieldChange, label, lifeline, strip, type SubChange } from "./parts";
 import { Motion } from "./motion";
 
@@ -20,6 +23,8 @@ export interface RenderOptions {
   /** 色味の名前。書かないか知らない名前なら紙と墨 */
   palette?: string;
   theme?: Theme;
+  /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ日本語 (#3001) */
+  lang?: NotationLang;
 }
 
 export interface Rendered {
@@ -184,11 +189,14 @@ function fieldChanges(diagram: Diagram, timeline: Timeline, layout: Layout): Map
 export interface FollowFrame {
   /** 枠の幅 (px)。寄って追う窓はこの幅で、字を原寸で見せる */
   width: number;
+  /** 隅の全体図の札の言葉。渡し忘れを型の検査で止めるため、省けない欄にする */
+  lang: NotationLang;
 }
 
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。 */
 export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame): string {
-  const id = nameOf(`${JSON.stringify(diagram)}|${palette.id}|${theme}|${follow ? follow.width : ""}`);
+  // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける
+  const id = nameOf(`${JSON.stringify(diagram)}|${palette.id}|${theme}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
   const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end };
   const on = involved(diagram);
@@ -225,7 +233,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
 
   const { near, far, nearY, farY } = LOOK.shadow;
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
-  const view = follow ? followView(layout, timeline, diagram, m, id, content, follow.width) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
+  const view = follow ? followView(layout, timeline, diagram, m, id, content, follow) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${paletteVars(palette, theme)}}${PART_CSS}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}">` +
@@ -257,10 +265,10 @@ function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefin
 }
 
 /** 寄って追う窓。段ごとに動く所へ寄り、隅の全体図に今見ている所の枠を同じ動きで出す。 */
-function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, frame: number): { body: string; w: number; h: number } {
+function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
-  const vw = Math.min(layout.width, Math.max(1, frame));
+  const vw = Math.min(layout.width, Math.max(1, follow.width));
   const vh = Math.min(layout.height, Math.max(F.minH, vw * F.aspect));
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
   const clampY = (y: number): number => Math.min(layout.height - vh / 2, Math.max(vh / 2, y));
@@ -288,7 +296,11 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   const mw = Math.min(M.w, vw * 0.4, ((vh * 0.4) / layout.height) * layout.width);
   const k = mw / layout.width;
   const mh = layout.height * k;
-  const mx = vw - mw - M.inset - M.pad;
+  // 地の幅は図の縦横の比で決まるので、縦に長い図では札より狭くなる。その時は地を札の幅まで広げ、図は広げた地の真ん中に置く
+  const title = FIGURE_TEXT[follow.lang].overview;
+  const bw = Math.max(mw, Math.ceil(textWidth(title, TYPE.miniTitle)));
+  const bx = vw - bw - M.inset - M.pad;
+  const mx = bx + (bw - mw) / 2;
   const my = M.inset + M.pad + M.title;
   const shapes = [
     ...layout.regions.map((r) => `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="3"/>`),
@@ -296,8 +308,8 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   ].join("");
   const vp = m.move(cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]));
   const mini =
-    `<rect class="dg-mm-bg" x="${mx - M.pad}" y="${my - M.pad - M.title}" width="${mw + M.pad * 2}" height="${mh + M.pad * 2 + M.title}" rx="${M.radius}"/>` +
-    `<text class="dg-mm-t" x="${mx}" y="${my - M.pad + 2}">全体図</text>` +
+    `<rect class="dg-mm-bg" x="${bx - M.pad}" y="${my - M.pad - M.title}" width="${bw + M.pad * 2}" height="${mh + M.pad * 2 + M.title}" rx="${M.radius}"/>` +
+    `<text class="dg-mm-t" x="${bx}" y="${my - M.pad + 2}">${title}</text>` +
     `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a" width="${vw * k}" height="${vh * k}" rx="2" style="${vp}"/></g>`;
   const body =
     `<defs><clipPath id="dg-vp-${id}"><rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/></clipPath><clipPath id="dg-mm-${id}"><rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="4"/></clipPath></defs>` +
@@ -308,8 +320,9 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
 
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */
 export function renderDiagram(input: unknown, options: RenderOptions = {}): Rendered {
-  const read = readDiagram(input);
-  if (!read.ok) throw new Error(`図を描けない: ${read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")}`);
+  const lang = options.lang ?? "ja";
+  const read = readDiagram(input, { lang });
+  if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
   const diagram = read.diagram;
   const palette = resolvePalette(options.palette);
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
