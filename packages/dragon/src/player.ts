@@ -52,7 +52,12 @@ function ensureCss(doc: Document): void {
   doc.head.appendChild(style);
 }
 
+/** 釦に出す字。HTML に書き出す時は、この字も字の file に残す。 */
+export const BUTTON_TEXT = { prev: "‹", pause: "❚❚", play: "▶", next: "›" } as const;
+
 const pad = (n: number): string => String(n).padStart(2, "0");
+/** 段の番号の札 (`01/12`)。`step` は 0 から数える。 */
+export const stepNo = (step: number, count: number): string => `${pad(step + 1)}/${pad(count)}`;
 
 export function mountDiagram(host: HTMLElement, diagram: unknown, options: RenderOptions = {}): Player {
   const doc = host.ownerDocument;
@@ -82,9 +87,9 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Rende
     b.textContent = text;
     return b;
   };
-  const prevButton = button("prev", "前の段", "‹");
-  const toggleButton = button("toggle", "止める", "❚❚");
-  const nextButton = button("next", "次の段", "›");
+  const prevButton = button("prev", "前の段", BUTTON_TEXT.prev);
+  const toggleButton = button("toggle", "止める", BUTTON_TEXT.pause);
+  const nextButton = button("next", "次の段", BUTTON_TEXT.next);
   const buttons = doc.createElement("div");
   buttons.className = "dg-btns";
   buttons.append(prevButton, toggleButton, nextButton);
@@ -173,11 +178,11 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Rende
   };
   const show = (): void => {
     const current = steps[step];
-    no.textContent = `${pad(step + 1)}/${pad(count)}`;
+    no.textContent = stepNo(step, count);
     title.textContent = current?.title ?? "";
     body.textContent = current?.body ?? "";
     toggleButton.setAttribute("aria-label", playing ? "止める" : "動かす");
-    toggleButton.textContent = playing ? "❚❚" : "▶";
+    toggleButton.textContent = playing ? BUTTON_TEXT.pause : BUTTON_TEXT.play;
   };
   const restart = (t: number, play: boolean): void => {
     at = t;

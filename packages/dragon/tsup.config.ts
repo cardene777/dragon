@@ -1,20 +1,41 @@
 import { defineConfig } from "tsup";
 
-export default defineConfig({
-  // 字を読み込む入口 (fonts) は CSS を読むだけなので型を出さない
-  entry: { index: "src/index.ts", fonts: "src/load-fonts.ts" },
-  format: ["esm", "cjs"],
-  dts: {
-    resolve: true,
-    entry: { index: "src/index.ts" },
-    compilerOptions: { composite: false },
+export default defineConfig([
+  {
+    // 字を読み込む入口 (fonts) は CSS を読むだけなので型を出さない。
+    // 書き出し (export) と命令 (cli) は node で動き、画面なしのブラウザを動かす
+    entry: { index: "src/index.ts", fonts: "src/load-fonts.ts", export: "src/export/index.ts", cli: "src/cli.ts" },
+    format: ["esm", "cjs"],
+    dts: {
+      resolve: true,
+      entry: { index: "src/index.ts", export: "src/export/index.ts" },
+      compilerOptions: { composite: false },
+    },
+    splitting: false,
+    sourcemap: true,
+    // 2 つの設定は同時に走るので、もう一方が書いた頁の script (player.global.js) を消さない
+    clean: ["!player.global.js"],
+    shims: true,
+    treeshake: true,
+    // 字の package は束ねず、頁を束ねる道具に CSS と字の file を運ばせる
+    external: ["@cardenelabs/cdl", "react", "react-dom", "@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono"],
+    outDir: "dist",
+    target: "es2022",
   },
-  splitting: false,
-  sourcemap: true,
-  clean: true,
-  treeshake: true,
-  // 字の package は束ねず、頁を束ねる道具に CSS と字の file を運ばせる
-  external: ["@cardenelabs/cdl", "react", "react-dom", "@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono"],
-  outDir: "dist",
-  target: "es2022",
-});
+  {
+    // HTML に書き出す頁へ埋める script。依存ごと 1 file に束ね、`DragonPlayer.mountDiagram` として頁に置く。
+    // 移行の命令が読む node の file 読みは頁では呼ばない
+    entry: { player: "src/player-global.ts" },
+    format: ["iife"],
+    globalName: "DragonPlayer",
+    platform: "browser",
+    noExternal: [/.*/],
+    external: ["node:fs/promises"],
+    minify: true,
+    sourcemap: false,
+    clean: false,
+    dts: false,
+    outDir: "dist",
+    target: "es2022",
+  },
+]);
