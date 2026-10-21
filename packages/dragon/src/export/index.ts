@@ -50,7 +50,8 @@ export interface ExportResult {
   height: number;
 }
 
-const FORMATS: ExportFormat[] = ["mp4", "gif", "html", "png"];
+/** 書き出せる形。命令が `--format` の値を確かめる時にも使う */
+export const FORMATS: readonly ExportFormat[] = ["mp4", "gif", "html", "png"];
 const DEFAULTS = { fps: 30, gifFps: 10, followWidth: 728 };
 
 const unescape = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");

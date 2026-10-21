@@ -9,8 +9,8 @@
 import { readFileSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { type ExportFormat, exportDiagram } from "./export/index";
-import type { Theme } from "./look/values";
+import { type ExportFormat, exportDiagram, FORMATS } from "./export/index";
+import { PALETTES, type Theme } from "./look/values";
 import { parseNotation } from "./parser";
 import { type NotationLang, notationLanguage } from "./words";
 
@@ -25,6 +25,12 @@ const OPTIONS = {
   format: { type: "string" },
 } as const;
 
+type Values = Partial<Record<keyof typeof OPTIONS, string>>;
+
+const THEMES: readonly Theme[] = ["light", "dark"];
+/** 色味の名前。使い方の文と `--palette` の値の確かめに使う */
+const PALETTE_NAMES = Object.keys(PALETTES).join(" / ");
+
 interface CliText {
   usage: string;
   unknownOption: (name: string) => string;
@@ -34,6 +40,9 @@ interface CliText {
   unreadable: (path: string, detail: string) => string;
   badJson: (path: string, detail: string) => string;
   cannotWrite: (path: string, detail: string) => string;
+  badValue: (option: string, value: string, allowed: string) => string;
+  /** 設定ごとの許す値の言い方 */
+  allowed: { lang: string; theme: string; positive: string; format: string };
 }
 
 /** 命令が出す文。英語は日本語の文をそのまま英語にする */
@@ -43,7 +52,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "使い方: dragon export <図の file (.json か .dragon)> [設定]",
       "  --out <dir>        書き出す先 (既定は今の dir)",
       "  --width <px>       枠の幅。見せ方を選び、寄って見せる窓の幅になる",
-      "  --palette <名前>   色味 (clear / paper / night)",
+      `  --palette <名前>   色味 (${PALETTE_NAMES})`,
       "  --theme <明暗>     light か dark",
       "  --lang <言葉>      図の中の字と命令の文の言葉 (ja か en)。既定は記法の file の言葉で、JSON は ja",
       "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
@@ -57,13 +66,15 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     unreadable: (path, detail) => `図の file を読めない: ${path} (${detail})`,
     badJson: (path, detail) => `JSON として読めない: ${path} (${detail})`,
     cannotWrite: (path, detail) => `書き出せない: ${path} (${detail})`,
+    badValue: (option, value, allowed) => `使えない値: ${option} ${value} (${allowed})`,
+    allowed: { lang: "ja か en", theme: "light か dark", positive: "0 より大きい数", format: `${FORMATS.join(" / ")} を , で区切る` },
   },
   en: {
     usage: [
       "Usage: dragon export <diagram file (.json or .dragon)> [options]",
       "  --out <dir>        Where to write (default: the current dir)",
       "  --width <px>       Frame width. Picks the view and sets the window width when following",
-      "  --palette <name>   Colors (clear / paper / night)",
+      `  --palette <name>   Colors (${PALETTE_NAMES})`,
       "  --theme <mode>     light or dark",
       "  --lang <lang>      Language of the diagram text and command messages (ja or en). Defaults to the notation file's language, and ja for JSON",
       "  --fps <n>          Frames per second of the mp4 (default 30)",
@@ -77,6 +88,8 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     unreadable: (path, detail) => `Cannot read the diagram file: ${path} (${detail})`,
     badJson: (path, detail) => `Cannot read as JSON: ${path} (${detail})`,
     cannotWrite: (path, detail) => `Cannot write: ${path} (${detail})`,
+    badValue: (option, value, allowed) => `Invalid value: ${option} ${value} (${allowed})`,
+    allowed: { lang: "ja or en", theme: "light or dark", positive: "a number above 0", format: `${FORMATS.join(" / ")} separated by ,` },
   },
 };
 
@@ -105,6 +118,25 @@ function optionProblem(args: string[], text: CliText): string | undefined {
     if (token.kind !== "option") continue;
     if (!Object.hasOwn(OPTIONS, token.name)) return text.unknownOption(token.rawName);
     if (token.value === undefined || (!token.inlineValue && token.value.startsWith("-"))) return text.missingValue(token.rawName);
+  }
+  return undefined;
+}
+
+/**
+ * 設定の値を確かめ、使えない値を命令の言葉で返す。使えない値が無ければ `undefined` (#3011)。
+ * 確かめないと、`--format xyz` は何も書き出さずに成功として終わり、`--theme blue` などは既定の値で黙って書き出す。
+ */
+function valueProblem(values: Values, text: CliText): string | undefined {
+  const bad = (name: keyof typeof OPTIONS, value: string, allowed: string): string => text.badValue(`--${name}`, value, allowed);
+  if (values.lang !== undefined && !isLang(values.lang)) return bad("lang", values.lang, text.allowed.lang);
+  if (values.theme !== undefined && !THEMES.some((theme) => theme === values.theme)) return bad("theme", values.theme, text.allowed.theme);
+  if (values.palette !== undefined && !Object.hasOwn(PALETTES, values.palette)) return bad("palette", values.palette, PALETTE_NAMES);
+  if (values.format !== undefined && !values.format.split(",").every((format) => FORMATS.some((known) => known === format))) {
+    return bad("format", values.format, text.allowed.format);
+  }
+  for (const name of ["width", "fps", "gif-fps"] as const) {
+    const value = values[name];
+    if (value !== undefined && !(Number.isFinite(Number(value)) && Number(value) > 0)) return bad(name, value, text.allowed.positive);
   }
   return undefined;
 }
@@ -152,8 +184,13 @@ async function main(argv: string[]): Promise<number> {
     return 2;
   }
   const { values, positionals } = parseArgs({ args: rest, options: OPTIONS, allowPositionals: true });
+  const badValue = valueProblem(values, early);
+  if (badValue !== undefined) {
+    console.error(`${badValue}\n${early.usage}`);
+    return 2;
+  }
   const [file, ...extra] = positionals;
-  if (!file || (chosen !== undefined && !isLang(chosen))) {
+  if (!file) {
     console.error(early.usage);
     return 2;
   }
