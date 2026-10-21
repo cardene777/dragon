@@ -8,11 +8,12 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Palette, paletteVars, resolvePalette, type Theme } from "../look/values";
+import { paletteVars, resolvePalette, type Theme } from "../look/values";
 import { BUTTON_TEXT, stepNo } from "../player";
 import { drawSvg, type Rendered, renderDiagram } from "../render/svg";
 import type { ViewMode } from "../schema";
 import { chooseView } from "../view";
+import type { NotationLang } from "../words";
 import { film, launch, sizeOf, stage, still } from "./capture";
 import { charsOf, fontFaces } from "./fonts";
 import { pageHtml } from "./html";
@@ -34,6 +35,8 @@ export interface ExportOptions {
   fps?: number;
   /** GIF の 1 秒のコマの数 */
   gifFps?: number;
+  /** 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) の言葉。書かなければ日本語 (#3001) */
+  lang?: NotationLang;
 }
 
 export interface ExportResult {
@@ -55,28 +58,31 @@ const unescape = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g,
 /** SVG の中で描かれる字 (`<text>` の中身) */
 const svgTexts = (svg: string): string[] => [...svg.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/g)].map((m) => unescape((m[1] ?? "").replace(/<[^>]+>/g, "")));
 
-/** 頁と書き出しで描かれうる字。寄って見せる時の全体図の題と、釦と段の番号の字も含む */
-function drawnTexts(rendered: Rendered, palette: Palette, width: number): string[] {
-  const { diagram, layout, timeline, theme } = rendered;
-  const svgs = [rendered.svg];
-  if (rendered.view !== "fixed") svgs.push(drawSvg(diagram, layout, timeline, palette, theme, { width }));
+/** 頁と書き出しで描かれうる字。寄って見せる時の全体図の題 (`followSvg` の中) と、釦と段の番号の字も含む */
+function drawnTexts(rendered: Rendered, followSvg: string | undefined): string[] {
+  const { diagram } = rendered;
+  const svgs = followSvg === undefined ? [rendered.svg] : [rendered.svg, followSvg];
   const count = diagram.steps.length;
   return [...svgs.flatMap(svgTexts), ...diagram.steps.flatMap((step, s) => [step.title, step.body, stepNo(s, count)]), ...Object.values(BUTTON_TEXT)];
 }
 
 export async function exportDiagram(input: unknown, options: ExportOptions): Promise<ExportResult> {
   const formats = options.formats ?? FORMATS;
+  const lang = options.lang ?? "ja";
   const rendered = renderDiagram(input, {
     ...(options.palette ? { palette: options.palette } : {}),
     ...(options.theme ? { theme: options.theme } : {}),
+    lang,
   });
   const { diagram, layout, timeline, theme } = rendered;
   const palette = resolvePalette(rendered.palette);
   const vars = paletteVars(palette, theme);
   const width = options.width ?? (rendered.view === "follow" ? DEFAULTS.followWidth : layout.width);
   const view = chooseView(rendered, width).mode;
-  const videoSvg = view === "follow" ? drawSvg(diagram, layout, timeline, palette, theme, { width }) : rendered.svg;
-  const fontCss = await fontFaces(charsOf(drawnTexts(rendered, palette, width)));
+  // 寄って見せる図は動画と字の file の両方に使うので 1 度だけ描き、2 つの全体図の札の言葉を揃える
+  const followSvg = rendered.view === "fixed" ? undefined : drawSvg(diagram, layout, timeline, palette, theme, { width, lang });
+  const videoSvg = view === "follow" && followSvg ? followSvg : rendered.svg;
+  const fontCss = await fontFaces(charsOf(drawnTexts(rendered, followSvg)));
 
   mkdirSync(options.outDir, { recursive: true });
   const files: Partial<Record<ExportFormat, string>> = {};
@@ -86,7 +92,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
     files[format] = path;
   };
 
-  if (formats.includes("html")) write("html", pageHtml(diagram, { palette: palette.id, theme, vars }, fontCss));
+  if (formats.includes("html")) write("html", pageHtml(diagram, { palette: palette.id, theme, vars, lang }, fontCss));
 
   let frames = 0;
   const mp4 = formats.includes("mp4");

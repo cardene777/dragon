@@ -43,6 +43,7 @@ dragon export ccip.json --out out
 | `--width <px>` | 枠の幅。見せ方 (全体を止める / 寄って追う) を選び、寄って追う窓の幅になる |
 | `--palette <名前>` | 色味 (`clear` / `paper` / `night`、既定は `paper`) |
 | `--theme <明暗>` | `light` か `dark` |
+| `--lang <言葉>` | 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) の言葉 (`ja` か `en`)。既定は記法の file の言葉で、JSON の原本は `ja` |
 | `--fps <数>` | mp4 の 1 秒のコマの数 (既定 30) |
 | `--gif-fps <数>` | GIF の 1 秒のコマの数 (既定 10) |
 | `--format <形>` | 書き出す形を `,` で区切る (既定 `mp4,gif,html,png`) |

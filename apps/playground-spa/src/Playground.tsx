@@ -144,11 +144,12 @@ export function Playground(): ReactElement {
     document.title = t.title;
   }, [lang, t]);
 
+  // 再生の釦の読み上げと全体図の札は頁の言葉で出し、言葉を切り替えたら置き直す (#3001)
   useEffect(() => {
     if (!host.current || !drawn) return;
-    const player = mountDiagram(host.current, drawn, { palette, theme });
+    const player = mountDiagram(host.current, drawn, { palette, theme, lang });
     return () => player.destroy();
-  }, [drawn, palette, theme]);
+  }, [drawn, palette, theme, lang]);
 
   /** 描けた図を受け取る。中身が同じなら置き直さず、動きを最初から数え直さない */
   const accept = (diagram: Diagram): void => {

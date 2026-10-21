@@ -5,7 +5,9 @@
  * 段ごとの止め絵を釦で送る。各段の題と本文は、読み上げの道具が段の順に読める番号付きの一覧として置き、
  * 図そのものは読み上げから隠して同じ中身を 2 度読ませない。
  * 見せ方は枠の幅で選び (`view.ts`)、寄って追う時は窓と全体図で描き直す。
+ * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
  */
+import { FIGURE_TEXT } from "./figure-text";
 import { FONT_VARS, LOOK, paletteVars, resolvePalette, type TextStyle, TYPE } from "./look/values";
 import { drawSvg, type RenderOptions, renderDiagram } from "./render/svg";
 import type { Span } from "./timeline";
@@ -65,6 +67,8 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Rende
   // 描く前に読む。描いた後に読むと、動きを嫌う人にも一瞬だけ流れてしまう
   const reduce = Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
   const rendered = renderDiagram(diagram, options);
+  const lang = options.lang ?? "ja";
+  const words = FIGURE_TEXT[lang];
   const palette = resolvePalette(rendered.palette);
   const { timeline } = rendered;
   const steps = rendered.diagram.steps;
@@ -87,11 +91,13 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Rende
     b.textContent = text;
     return b;
   };
-  const prevButton = button("prev", "前の段", BUTTON_TEXT.prev);
-  const toggleButton = button("toggle", "止める", BUTTON_TEXT.pause);
-  const nextButton = button("next", "次の段", BUTTON_TEXT.next);
+  const prevButton = button("prev", words.prev, BUTTON_TEXT.prev);
+  const toggleButton = button("toggle", words.pause, BUTTON_TEXT.pause);
+  const nextButton = button("next", words.next, BUTTON_TEXT.next);
   const buttons = doc.createElement("div");
   buttons.className = "dg-btns";
+  // 置いた頁の言葉と違っても、釦の名前を名前の言葉の声で読ませる
+  buttons.setAttribute("lang", lang);
   buttons.append(prevButton, toggleButton, nextButton);
 
   // 見える語り。読み上げには下の一覧を読ませるので、こちらは読み上げから隠す
@@ -118,7 +124,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Rende
   const list = doc.createElement("ol");
   list.className = "dg-sr";
   list.dataset.dragon = "steps";
-  list.setAttribute("aria-label", `${rendered.diagram.title} の段`);
+  list.setAttribute("aria-label", words.steps(rendered.diagram.title));
   for (const step of steps) {
     const item = doc.createElement("li");
     const head = doc.createElement("strong");
@@ -166,7 +172,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Rende
     svg = next;
     born = Date.now();
   };
-  const markup = (): string => (mode === "follow" ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, { width }) : rendered.svg);
+  const markup = (): string => (mode === "follow" ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, { width, lang }) : rendered.svg);
 
   const now = (): number => (playing ? (at + (Date.now() - born) / 1000) % timeline.total : at);
   const stepAt = (t: number): number => {
@@ -181,7 +187,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Rende
     no.textContent = stepNo(step, count);
     title.textContent = current?.title ?? "";
     body.textContent = current?.body ?? "";
-    toggleButton.setAttribute("aria-label", playing ? "止める" : "動かす");
+    toggleButton.setAttribute("aria-label", playing ? words.pause : words.play);
     toggleButton.textContent = playing ? BUTTON_TEXT.pause : BUTTON_TEXT.play;
   };
   const restart = (t: number, play: boolean): void => {
