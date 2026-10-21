@@ -6,8 +6,9 @@
  * 頁に字を読み込むのは別の入口 `@cardenelabs/dragon/fonts`。
  */
 export { extractDiagrams, type Fence } from "./markdown";
-export { type LineError, type Parsed, parseNotation } from "./parser";
-export { printNotation } from "./printer";
+export { type LineError, type ParseOptions, type Parsed, parseNotation } from "./parser";
+export { type PrintOptions, printNotation } from "./printer";
+export { type NotationLang, notationLanguage } from "./words";
 export {
   type Box,
   type Carry,

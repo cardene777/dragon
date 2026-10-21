@@ -1,32 +1,32 @@
 // How a message and tokens travel from the source chain to the destination chain with Chainlink CCIP
-構成図 Send tokens to another chain with Chainlink CCIP
+architecture Send tokens to another chain with Chainlink CCIP
 
-区画 src = Source chain「e.g. Ethereum」 [色 blue] [印 chain]
-区画 net = Chainlink network「DON」 [色 amber] [印 net]
-区画 dst = Destination chain「e.g. Arbitrum」 [色 green] [印 chain]
-senderApp = Sending app「builds the message」 [印 app] [区画 src]
-srcRouter = Router「the single entry」 [印 router] [区画 src]
-OnRamp = OnRamp「checks and sends out」 [印 on] [区画 src]
-srcPool = Token Pool「locks or burns」 [印 pool] [区画 src]
-block = Block「source chain record」 [印 block] [区画 src]
-Verifier = Committee Verifier「signs and builds a proof」 [印 sign] [区画 net]
-Indexer = Indexer「stores proofs」 [印 idx] [区画 net]
-Executor = Executor「requests execution」 [印 exe] [区画 net]
-OffRamp = OffRamp「checks and executes」 [印 off] [区画 dst]
-dstRouter = Router「the single entry」 [印 router] [区画 dst]
-dstPool = Token Pool「releases or mints」 [印 pool] [区画 dst]
-receiverApp = Receiving app「receives and handles」 [印 app] [区画 dst]
-帯 Message = ID, destination, receiver, data, tokens, signatures, status
+region src = Source chain "e.g. Ethereum" [color blue] [icon chain]
+region net = Chainlink network "DON" [color amber] [icon net]
+region dst = Destination chain "e.g. Arbitrum" [color green] [icon chain]
+senderApp = Sending app "builds the message" [icon app] [region src]
+srcRouter = Router "the single entry" [icon router] [region src]
+OnRamp = OnRamp "checks and sends out" [icon on] [region src]
+srcPool = Token Pool "locks or burns" [icon pool] [region src]
+block = Block "source chain record" [icon block] [region src]
+Verifier = Committee Verifier "signs and builds a proof" [icon sign] [region net]
+Indexer = Indexer "stores proofs" [icon idx] [region net]
+Executor = Executor "requests execution" [icon exe] [region net]
+OffRamp = OffRamp "checks and executes" [icon off] [region dst]
+dstRouter = Router "the single entry" [icon router] [region dst]
+dstPool = Token Pool "releases or mints" [icon pool] [region dst]
+receiverApp = Receiving app "receives and handles" [icon app] [region dst]
+strip Message = ID, destination, receiver, data, tokens, signatures, status
 
 # Send
 > The sending app builds a message and calls the Router's ccipSend(). The message holds the receiver, the data and the tokens to send, and the fee is paid in LINK or the chain's own currency.
 `ccipSend(destination chain, message)`
-帯 ID = not yet
-帯 destination = Arbitrum
-帯 receiver = 0x7a1c…3f
-帯 data = order #42
-帯 tokens = 100 USDC
-senderApp -> srcRouter : ccipSend() [名前 下]
+strip ID = not yet
+strip destination = Arbitrum
+strip receiver = 0x7a1c…3f
+strip data = order #42
+strip tokens = 100 USDC
+senderApp -> srcRouter : ccipSend() [label below]
 
 # Accept
 > The Router hands the message to the OnRamp for the destination. The Router is the app's single entry and has the same shape on every chain.
@@ -35,18 +35,18 @@ srcRouter -> OnRamp
 # Check the contents
 > The OnRamp checks the token amount, the gas limit and the data length, and that the destination is not under an emergency stop. A message that passes gets its ID.
 OnRamp : check the contents
-帯 ID = 0x9f3c…a1
+strip ID = 0x9f3c…a1
 
 # Deposit the tokens
 > The OnRamp calls the Token Pool's lockOrBurn(). The tokens are locked or burned and leave the source chain. The limit on how much can be sent at once also applies here.
 `lockOrBurn()`
-OnRamp -> srcPool : lockOrBurn() [硬貨] [名前 下]
-srcPool「−100 USDC」
+OnRamp -> srcPool : lockOrBurn() [coin] [label below]
+srcPool "−100 USDC"
 
 # Record the event
 > The OnRamp emits CCIPMessageSent, and the message is recorded in a block on the source chain.
 `CCIPMessageSent`
-OnRamp -> block : CCIPMessageSent [名前 左]
+OnRamp -> block : CCIPMessageSent [label left]
 
 # Wait for finality
 > By default nothing moves on until that block is final. Verification starts once the chain's finality rule is met and the block can no longer roll back.
@@ -56,13 +56,13 @@ block : wait for finality
 > Each node of the Committee Verifier (Chainlink's DON) checks that the message matches the source chain record and signs it. Once a quorum of signatures is in, they form the message's proof.
 block -> Verifier
 Verifier : collect signatures
-帯 signatures [proof]
+strip signatures [proof]
 
 # Store the proof
 > The proof is stored in the Indexer under the message ID, where anyone can fetch it.
 `VerifierResult`
-Verifier -> Indexer : VerifierResult [札 proof] [名前 上]
-Indexer「stored the proof」
+Verifier -> Indexer : VerifierResult [tag proof] [label above]
+Indexer "stored the proof"
 
 # Gather the proofs
 > The Executor gathers the message and every proof the destination asks for from the Indexer and carries them to the destination chain.
@@ -71,30 +71,30 @@ Indexer -> Executor
 # Request execution
 > The Executor calls execute() on the destination chain's OffRamp. Anyone may make this call, and the Executor only makes it on someone's behalf.
 `OffRamp.execute()`
-Executor -> OffRamp : execute() [名前 右]
-帯 status = UNTOUCHED
+Executor -> OffRamp : execute() [label right]
+strip status = UNTOUCHED
 
 # Check the proofs
 > The OffRamp has each CCV check the proofs. If any required CCV fails, it does not execute.
 OffRamp : check the proofs
-OffRamp「checked by CCVs」
-帯 signatures [verified]
+OffRamp "checked by CCVs"
+strip signatures [verified]
 
 # Hand over the tokens
 > The OffRamp calls the Token Pool's releaseOrMint(). The tokens are released or newly minted and go straight to the receiver.
 `releaseOrMint()`
-OffRamp「checks and executes」
-OffRamp -> dstPool : releaseOrMint() [なし] [名前 上]
-dstPool「minted 100 USDC」
-dstPool -> receiverApp [硬貨]
-receiverApp「+100 USDC」
+OffRamp "checks and executes"
+OffRamp -> dstPool : releaseOrMint() [none] [label above]
+dstPool "minted 100 USDC"
+dstPool -> receiverApp [coin]
+receiverApp "+100 USDC"
 
 # Deliver
 > The OffRamp calls the receiver's ccipReceive() through the Router. When it all goes through, the message is recorded as SUCCESS.
 `ccipReceive()`
 OffRamp -> dstRouter
 dstRouter -> receiverApp
-receiverApp「ccipReceive()」
-帯 status = SUCCESS
-receiverApp「order #42 and 100 USDC」
-OffRamp「recorded SUCCESS」
+receiverApp "ccipReceive()"
+strip status = SUCCESS
+receiverApp "order #42 and 100 USDC"
+OffRamp "recorded SUCCESS"
