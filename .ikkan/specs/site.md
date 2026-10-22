@@ -8,6 +8,7 @@
 | 明るい側で開いた時、頁の地・面・字・差し色が前のサイトの既定の見た目 (`letterpress`) の値 (地 `#f6f1e6`、面 `#fffdf7`、字 `#2a231d`、差し色 `#c0421f`) になる | `pnpm test`の検査`site-colors-match-previous-site`が通る | #3030 |
 | 7 画面のどれを幅 1440 と幅 390 で、明暗それぞれで開いても、頁が横にあふれない | `pnpm test`の検査`site-screens-no-overflow`が通る | #3030 |
 | 7 画面のどれでも言語を EN に切り替えると、帯と画面の言葉が英語になり、仮名と漢字が残らない | `pnpm test`の検査`site-screens-switch-to-english`が通る | #3030 |
+| 概要の頁に、呼びかけ、記法と図の実物、特長 3 つ、3 手順、用例 3 つ、最後の呼びかけの 6 区画がこの順で並び、実物の図と用例の図は今の記法で書いた見本が動いて描かれる | `pnpm test`の検査`home-has-six-sections-with-live-diagrams`が通る | #3032 |
 | 編集画面の左の棚に新規作成の釦、見本と部品と記法の 3 つの見出し、絞り込みの入力欄があり、見本を選ぶとその記法が書く欄に入り、部品を選ぶとその部品の行が書く欄に足され、絞り込むと一覧が絞れる | `pnpm test`の検査`editor-shelf-loads-samples-parts-and-filters`が通る | #3031 |
 | 編集画面の書く欄の上に記法と JSON の切替、書類名、取り込みと書き出しの釦があり、取り込んだ file の記法が欄に入り、書き出しで今の記法が `.dragon` の file として保存される | `pnpm test`の検査`editor-imports-and-exports-notation`が通る | #3031 |
 | 編集画面の図の側に字の大きさ、拡大、縮小、全体に合わせる、格子、全画面の道具があり、拡大と縮小で図の大きさが変わり、格子を出すと 24px 刻みの点が出る | `pnpm test`の検査`editor-stage-tools-change-view`が通る | #3031 |

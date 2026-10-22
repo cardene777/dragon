@@ -1,0 +1,623 @@
+/* ================================================================
+ * 概要の頁 (#3032)。
+ *
+ * 配置と見た目は 0.35.0 より前のサイトの `styles/home.css` (5b16743c の 1 つ前) を写し、class の名前だけを替えた。
+ * 色はサイトの値の表 (`site/site.css` の `--d-*`) だけを読む。字は同梱の字 (`--sans` と `--mono`) で出す。
+ * 図の色は図の色味の表が持ち、ここでは図の外側の枠だけを決める。
+ * ================================================================ */
+
+.home h1,
+.home h2,
+.home h3,
+.home p,
+.home pre {
+  margin: 0;
+}
+
+/* 区画の中身は 1200px で頭打ちにして中央に置く。区画自体は幅一杯まで伸び、地の色を敷いた区画が端まで届く */
+.home-hero > *,
+.home-demo > *,
+.home-features > *,
+.home-steps > *,
+.home-uses > *,
+.home-closing > * {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+/* ── 押しどころ ── */
+
+.home-btn-primary,
+.home-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--d-r-1);
+  font-size: 13.5px;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.home-btn-primary {
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-weight: 600;
+  border: 1px solid var(--d-accent);
+}
+
+.home-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.home-btn-primary:active {
+  filter: brightness(0.94);
+}
+
+.home-btn-secondary {
+  background: transparent;
+  color: var(--d-text-primary);
+  font-weight: 500;
+  border: 1px solid var(--d-border-strong);
+}
+
+.home-btn-secondary:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+.home-btn-secondary:active {
+  background: var(--d-surface-2);
+}
+
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-block: 4px;
+  margin-block: -4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--d-accent);
+  text-decoration: none;
+}
+
+.home-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── 呼びかけ ── */
+
+.home-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  padding: 92px var(--d-gutter) 84px;
+  text-align: center;
+}
+
+.home-eyebrow,
+.home-hero .home-cta {
+  width: auto;
+}
+
+.home-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.home-chip {
+  padding: 4px 9px;
+  border-radius: var(--d-r-1);
+  background: var(--d-surface-2);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--d-text-secondary);
+}
+
+.home-hero h1 {
+  font-size: clamp(38px, 5.2vw, 74px);
+  font-weight: 700;
+  letter-spacing: -0.027em;
+  line-height: 1.14;
+  color: var(--d-text-primary);
+}
+
+.home-hero h1 em {
+  font-style: normal;
+  color: var(--d-accent);
+}
+
+.home-lead {
+  max-width: 700px;
+  font-size: 15.5px;
+  line-height: 1.95;
+  color: var(--d-text-secondary);
+}
+
+.home-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── 記法と図の実物 ── */
+
+.home-demo {
+  padding: 0 var(--d-gutter) 100px;
+}
+
+.home-canvas {
+  overflow: hidden;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: 6px;
+}
+
+.home-canvas-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  background: var(--d-surface-2);
+  border-bottom: 1px solid var(--d-border);
+}
+
+.home-canvas-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.home-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-dots span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--d-border-strong);
+}
+
+.home-file {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  color: var(--d-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 9px;
+  border-radius: var(--d-r-1);
+  background: var(--d-accent-soft);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--d-accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-live-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--d-accent);
+  animation: home-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes home-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-live-dot {
+    animation: none;
+  }
+}
+
+.home-canvas-body {
+  display: flex;
+  min-height: 476px;
+}
+
+.home-code {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 520px;
+  width: 520px;
+  padding: 18px 0;
+  background: var(--d-code-bg);
+  border-right: 1px solid var(--d-border);
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.home-code-line {
+  display: flex;
+  align-items: center;
+  padding: 2px 14px 2px 0;
+  min-height: 20px;
+}
+
+.home-code-line[data-current="true"] {
+  background: var(--d-accent-soft);
+}
+
+.home-ln {
+  flex: 0 0 34px;
+  width: 34px;
+  padding-right: 14px;
+  text-align: right;
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--d-text-muted);
+}
+
+.home-code-line[data-current="true"] .home-ln {
+  color: var(--d-accent);
+}
+
+.home-code-text {
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  white-space: pre;
+  color: var(--d-text-primary);
+}
+
+.home-code-line[data-kind="head"] .home-code-text,
+.home-code-line[data-kind="step"] .home-code-text {
+  font-weight: 700;
+}
+
+.home-code-line[data-kind="say"] .home-code-text,
+.home-code-line[data-kind="comment"] .home-code-text {
+  color: var(--d-text-secondary);
+}
+
+.home-canvas-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 24px;
+  background: var(--d-surface);
+}
+
+/* 図の側は図だけを見せる。段の題と本文は左の記法と段の札が持つ */
+.home-canvas-stage .dg-player {
+  width: 100%;
+  max-width: 440px;
+}
+
+.home-canvas-stage .dg-bar,
+.home-use-thumb .dg-bar {
+  display: none;
+}
+
+.home-canvas-stage svg[data-dragon="figure"] {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ── 区画の見出し ── */
+
+.home-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-head-eyebrow {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--d-accent);
+}
+
+.home-head h2 {
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 1.25;
+  color: var(--d-text-primary);
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 44px;
+  align-items: start;
+}
+
+/* ── 特長 3 つ ── */
+
+.home-features {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding: 0 var(--d-gutter) 100px;
+}
+
+.home-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 22px;
+  border-top: 2px solid var(--d-accent);
+}
+
+.home-feature-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background-color: var(--d-text-primary);
+  mask: center / 20px 20px no-repeat;
+}
+
+.home-feature-icon[data-icon="write"] {
+  mask-image: url("./icons/write.svg");
+}
+
+.home-feature-icon[data-icon="play"] {
+  mask-image: url("./icons/play.svg");
+}
+
+.home-feature-icon[data-icon="share"] {
+  mask-image: url("./icons/share.svg");
+}
+
+.home-feature h3,
+.home-step h3 {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--d-text-primary);
+}
+
+.home-feature p,
+.home-step p {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--d-text-secondary);
+}
+
+/* ── 3 手順 ── */
+
+.home-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding: 76px var(--d-gutter) 100px;
+  background: var(--d-surface-2);
+}
+
+.home-step {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.home-step-no {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1;
+  color: var(--d-border-strong);
+}
+
+.home-step-code {
+  padding: 14px;
+  background: var(--d-code-bg);
+  border: 1px solid var(--d-border);
+  border-radius: 4px;
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--d-text-secondary);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* ── 用例 3 つ ── */
+
+.home-uses {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  padding: 92px var(--d-gutter) 100px;
+}
+
+.home-use-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.home-use {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.home-use:hover {
+  border-color: var(--d-border-strong);
+}
+
+/* 縮小版は札の幅に合わせ (原寸より大きくはしない)、図の上から見せる。
+ * 縦に長い図を高さに合わせると、幅が札の 2 割ほどの細い帯になり何の図かが分からないため */
+.home-use-thumb {
+  height: 172px;
+  padding: 12px 12px 0;
+  overflow: hidden;
+  background: var(--d-bg);
+  border-bottom: 1px solid var(--d-border);
+  box-sizing: border-box;
+}
+
+.home-use-thumb .dg-frame {
+  display: flex;
+  justify-content: center;
+}
+
+.home-use-thumb svg[data-dragon="figure"] {
+  display: block;
+  flex: none;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+}
+
+.home-use-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 20px;
+}
+
+.home-use-kind {
+  padding: 3px 8px;
+  border-radius: var(--d-r-1);
+  background: var(--d-surface-2);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--d-text-primary);
+}
+
+.home-use-body h3 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--d-text-primary);
+}
+
+.home-use-body p {
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--d-text-secondary);
+}
+
+.home-uses-more {
+  display: flex;
+}
+
+/* ── 最後の呼びかけ ── */
+
+.home-closing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 96px var(--d-gutter);
+  background: var(--d-accent-soft);
+  border-top: 1px solid var(--d-border);
+  text-align: center;
+}
+
+.home-closing h2 {
+  font-size: clamp(28px, 3.4vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.033em;
+  line-height: 1.2;
+  color: var(--d-text-primary);
+}
+
+.home-closing p {
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--d-text-secondary);
+}
+
+.home-closing .home-cta {
+  padding-top: 8px;
+}
+
+/* ── 狭い画面 ── */
+
+@media (max-width: 1024px) {
+  .home-canvas-body {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .home-code {
+    flex: 0 0 auto;
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--d-border);
+  }
+
+  .home-canvas-stage {
+    min-height: 320px;
+    padding: 16px 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .home-grid,
+  .home-use-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .home-hero {
+    padding-top: 56px;
+    padding-bottom: 56px;
+  }
+
+  .home-features,
+  .home-uses {
+    padding-bottom: 64px;
+  }
+
+  .home-steps {
+    padding-top: 56px;
+    padding-bottom: 64px;
+  }
+
+  .home-closing {
+    padding-block: 64px;
+  }
+}

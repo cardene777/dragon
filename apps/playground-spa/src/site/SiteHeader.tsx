@@ -9,9 +9,7 @@ import type { Theme } from "@cardenelabs/dragon";
 import { type ReactElement, useEffect, useState } from "react";
 
 import { type Lang, TEXT } from "../text";
-import { follow, PATHS, type Route } from "./routes";
-
-const REPO = "https://github.com/cardene777/dragon";
+import { follow, PATHS, REPO, type Route } from "./routes";
 
 /** 帯に並べる画面。名前は `TEXT` の `site.nav` から引く */
 const DESTINATIONS = ["home", "catalog", "editor", "docs", "release-notes"] as const;

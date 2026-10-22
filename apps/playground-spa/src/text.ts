@@ -1,5 +1,5 @@
 /**
- * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030)。
+ * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030、#3032)。
  *
  * 記法の語 (`時系列図` や `帯`) は見本の file が持ち、ここには持たない。
  */
@@ -20,8 +20,34 @@ export const TEXT = {
       openEditor: "編集画面を開く →",
       toDark: "暗い表示にする",
       toLight: "明るい表示にする",
+      home: {
+        chip: (kinds: readonly string[]) => [...kinds, "段ごとの再生"].join(" × "),
+        /** 見出しを強める語の前と、強める語と、後ろ */
+        title: ["より自由な", "図", "を"],
+        lead: "箱と線を書き、段ごとに動かす。型に合わせて諦めていた図が、文章のまま組み上がる。",
+        readDocs: "使い方を読む",
+        features: {
+          eyebrow: "なぜ dragon か",
+          title: "書く手間を、動く成果に。",
+          items: [
+            { title: "文章で書ける", text: "箱と線と段を 1 行ずつ書くだけ。座標も図の部品も組まない。" },
+            { title: "段ごとに動き出す", text: "段を切り替えると、線の上を封筒や札が走り、箱の中の処理が進む。順序と因果が目に見える。" },
+            { title: "URL と file で渡せる", text: "書いた記法は URL に載せて共有できる。CLI で mp4、GIF、HTML、PNG にも書き出せる。" },
+          ],
+        },
+        steps: {
+          eyebrow: "3 手順",
+          title: "1 分で走り出す。",
+          items: [
+            { title: "編集画面を開く", text: "ブラウザで編集画面を開く。導入作業は要らない。" },
+            { title: "記法を書く", text: "箱と線と段を 1 行ずつ書く。最初の行で図の種類を選ぶ。" },
+            { title: "図が動き出す", text: "右の実況表示に、段ごとに動く図が出る。URL で共有でき、file にも書き出せる。" },
+          ],
+        },
+        uses: { eyebrow: "使いどころ", title: "こんな図が書ける。", more: "カタログで図を見る →" },
+        closing: { title: "今すぐ、書いて動かす。", lead: "記法を 1 つ書くだけ。動く図を 1 分後に手に入れる。" },
+      },
       screens: {
-        home: { title: "文章で書くと、動く図になる", lead: "記法を書くと、その場で図が動く。" },
         catalog: { title: "カタログ", lead: "今の記法で書いた見本を、図の種類ごとに並べる。" },
         category: { title: "カタログの分類", lead: "この分類の見本を並べる。" },
         editor: { title: "編集画面", lead: "" },
@@ -120,8 +146,36 @@ export const TEXT = {
       openEditor: "Open editor →",
       toDark: "Switch to dark",
       toLight: "Switch to light",
+      home: {
+        chip: (kinds: readonly string[]) => [...kinds, "step playback"].join(" × "),
+        title: ["", "Diagrams", " beyond the template"],
+        lead: "Write the boxes and the edges, and move them step by step. Diagrams you gave up on because the template could not hold them now build themselves from plain text.",
+        readDocs: "Read the docs",
+        features: {
+          eyebrow: "Why dragon",
+          title: "Turn your writing into diagrams that move.",
+          items: [
+            { title: "Write it as text", text: "Write boxes, edges and steps one line at a time. No coordinates, no hand-built parts." },
+            {
+              title: "Motion, step by step",
+              text: "Switch steps and envelopes and tags run along the edges while actions play inside the boxes. Order and causality become visible.",
+            },
+            { title: "Hand it over by URL or file", text: "Put the notation in a URL to share it, or export it to mp4, GIF, HTML or PNG with the CLI." },
+          ],
+        },
+        steps: {
+          eyebrow: "3 steps",
+          title: "Up and running in a minute.",
+          items: [
+            { title: "Open the editor", text: "Open the editor in your browser. Nothing to install." },
+            { title: "Write the notation", text: "Write boxes, edges and steps one line at a time. The first line picks the diagram kind." },
+            { title: "The diagram starts moving", text: "The live view on the right shows a diagram that moves step by step. Share it by URL, or export it to a file." },
+          ],
+        },
+        uses: { eyebrow: "Use cases", title: "Diagrams you can write.", more: "Browse the catalog →" },
+        closing: { title: "Write it now, watch it move.", lead: "One notation file is all it takes. A moving diagram is yours a minute later." },
+      },
       screens: {
-        home: { title: "Write it as text, get a moving diagram", lead: "Write the notation and the diagram moves right away." },
         catalog: { title: "Catalog", lead: "Examples written in the current notation, grouped by diagram kind." },
         category: { title: "Catalog category", lead: "The examples in this category." },
         editor: { title: "Editor", lead: "" },

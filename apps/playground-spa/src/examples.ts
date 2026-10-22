@@ -1,5 +1,5 @@
 /**
- * 頁で選べる見本 3 つと、新規作成の雛形。記法の file を字のまま読み込む (#2995、#3031)。
+ * 頁で選べる見本 3 つと、新規作成の雛形。記法の file を字のまま読み込む (#2995、#3031、#3032)。
  *
  * 見本の正は `packages/dragon/examples` の file で、英語版は同じ名前に `.en` を付けた file。
  */
@@ -9,6 +9,8 @@ import introJa from "../../../packages/dragon/examples/intro.dragon?raw";
 import introEn from "../../../packages/dragon/examples/intro.en.dragon?raw";
 import oauthJa from "../../../packages/dragon/examples/oauth.dragon?raw";
 import oauthEn from "../../../packages/dragon/examples/oauth.en.dragon?raw";
+
+import { type Diagram, parseNotation } from "@cardenelabs/dragon";
 
 import type { Lang } from "./text";
 
@@ -25,6 +27,27 @@ const EXAMPLES: Record<ExampleKey, Record<Lang, string>> = {
 };
 
 export const exampleText = (key: ExampleKey, lang: Lang): string => EXAMPLES[key][lang].trimEnd();
+
+export interface ExampleInfo {
+  title: string;
+  kind: Diagram["kind"];
+  /** 何を示す見本か。file の最初の注釈の行 */
+  about: string;
+}
+
+/**
+ * 見本の題と図の種類と説明 (#3032)。
+ *
+ * 題と種類は記法を読んで取り、説明は file の最初の注釈の行 (`// `) から取る。頁の側に写して持たない。
+ * 読めない見本は `undefined`。
+ */
+export function exampleInfo(key: ExampleKey, lang: Lang): ExampleInfo | undefined {
+  const text = exampleText(key, lang);
+  const parsed = parseNotation(text);
+  if (!parsed.ok) return undefined;
+  const first = text.split("\n")[0] ?? "";
+  return { title: parsed.diagram.title, kind: parsed.diagram.kind, about: first.startsWith("//") ? first.replace(/^\/\/\s*/u, "") : "" };
+}
 
 /** 新規作成で書く欄に入れる雛形。箱 2 つと段 1 つの、そのまま描ける図 (#3031) */
 export const TEMPLATE: Record<Lang, string> = {
