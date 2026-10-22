@@ -11,6 +11,7 @@ import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { Blob as HbBlob, Face } from "harfbuzzjs";
 import { chromium, type Page } from "playwright-core";
@@ -67,6 +68,11 @@ export interface RunPlace {
   env?: Record<string, string>;
   nodeArgs?: string[];
 }
+
+/** `playwright-core` が入っていない場。撮る道具が無い時の断りを確かめる (#3003、#3013) */
+export const withoutPlaywright = (): RunPlace => ({
+  nodeArgs: ["--import", pathToFileURL(join(process.cwd(), "packages/dragon/test/fixtures/hide-playwright-core.mjs")).href],
+});
 
 /** 書き出しの命令を node で走らせる。落ちても投げずに終わり方を返す */
 export async function runCli(args: string[], place: RunPlace = {}): Promise<Ran> {

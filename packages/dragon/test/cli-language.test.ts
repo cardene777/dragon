@@ -9,9 +9,8 @@
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
-import { type RunPlace, runCli } from "./export-support";
+import { type RunPlace, runCli, withoutPlaywright } from "./export-support";
 
 /** 道具が無い時の断りを待つ時間。Chromium を探す時間を含む */
 const SLOW = 60_000;
@@ -46,10 +45,6 @@ const isLangLine = (line: string): boolean => /^\s+--lang\s/u.test(line);
 /** 使い方の文の `--lang` の行の説明 */
 const langDescription = (usage: string): string => /^\s+--lang\s+<[^>]+>\s+(.*)$/mu.exec(usage)?.[1] ?? "";
 
-/** `playwright-core` が入っていない場 */
-const withoutPlaywright = (): RunPlace => ({
-  nodeArgs: ["--import", pathToFileURL(join(process.cwd(), "packages/dragon/test/fixtures/hide-playwright-core.mjs")).href],
-});
 /** Chromium が入っていない場。置き場を空の dir に向ける */
 const withoutChromium = (): RunPlace => {
   const empty = join(scratch(), "browsers");

@@ -6,7 +6,7 @@
  * PNG は最後の段の止め絵を、全体を止めた見せ方で撮る。
  * 字は図で描く字だけに削り、撮る頁と HTML の両方に同じ物を埋める。
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paletteVars, resolvePalette, type Theme } from "../look/values";
 import { BUTTON_TEXT, stepNo } from "../player";
@@ -21,7 +21,7 @@ import { pageHtml } from "./html";
 export type ExportFormat = "mp4" | "gif" | "html" | "png";
 
 export interface ExportOptions {
-  /** 書き出す先の dir。無ければ作る */
+  /** 書き出す先の dir。無ければ作り、書き出しに失敗した時は作った dir を残さない (#3013) */
   outDir: string;
   /** file の名前 (拡張子を除く)。既定は `diagram` */
   name?: string;
@@ -85,15 +85,10 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   const videoSvg = view === "follow" && followSvg ? followSvg : rendered.svg;
   const fontCss = await fontFaces(charsOf(drawnTexts(rendered, followSvg)));
 
-  mkdirSync(options.outDir, { recursive: true });
-  const files: Partial<Record<ExportFormat, string>> = {};
-  const write = (format: ExportFormat, data: string | Buffer): void => {
-    const path = join(options.outDir, `${options.name ?? "diagram"}.${format}`);
-    writeFileSync(path, data);
-    files[format] = path;
-  };
+  // 撮る物を全て撮り終えてから書く。撮る所で失敗した時に、書き出し先の dir と途中の file を残さないため (#3013)
+  const outputs: [ExportFormat, string | Buffer][] = [];
 
-  if (formats.includes("html")) write("html", pageHtml(diagram, { palette: palette.id, theme, vars, lang }, fontCss));
+  if (formats.includes("html")) outputs.push(["html", pageHtml(diagram, { palette: palette.id, theme, vars, lang }, fontCss)]);
 
   let frames = 0;
   const mp4 = formats.includes("mp4");
@@ -103,7 +98,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
     try {
       if (formats.includes("png")) {
         const fixed = await stage(browser, rendered.svg, fontCss, "");
-        write("png", await still(fixed, timeline.stills[timeline.stills.length - 1] ?? 0));
+        outputs.push(["png", await still(fixed, timeline.stills[timeline.stills.length - 1] ?? 0)]);
       }
       if (mp4 || gif) {
         const fps = mp4 ? (options.fps ?? DEFAULTS.fps) : (options.gifFps ?? DEFAULTS.gifFps);
@@ -117,12 +112,35 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
           samples: [0, ...timeline.stills],
         });
         frames = shot.frames;
-        if (shot.mp4) write("mp4", shot.mp4);
-        if (shot.gif) write("gif", shot.gif);
+        if (shot.mp4) outputs.push(["mp4", shot.mp4]);
+        if (shot.gif) outputs.push(["gif", shot.gif]);
       }
     } finally {
       await browser.close();
     }
   }
+  const files = writeOutputs(options.outDir, options.name ?? "diagram", outputs);
   return { files, view, frames, ...sizeOf(videoSvg) };
+}
+
+/**
+ * 書き出し先の dir を作り、撮った物を並びの順に書く。
+ * 書いている途中で失敗した時は、この回に作った dir を中身ごと消してから投げ直す (#3013)。
+ * 前から在った dir は消さない。
+ */
+function writeOutputs(outDir: string, name: string, outputs: [ExportFormat, string | Buffer][]): Partial<Record<ExportFormat, string>> {
+  // 作った dir の内で一番上の path。前から在った時は undefined
+  const created = mkdirSync(outDir, { recursive: true });
+  const files: Partial<Record<ExportFormat, string>> = {};
+  try {
+    for (const [format, data] of outputs) {
+      const path = join(outDir, `${name}.${format}`);
+      writeFileSync(path, data);
+      files[format] = path;
+    }
+  } catch (error) {
+    if (created !== undefined) rmSync(created, { recursive: true, force: true });
+    throw error;
+  }
+  return files;
 }
