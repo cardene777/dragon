@@ -1,6 +1,6 @@
 {
   "name": "@cardenelabs/dragon",
-  "version": "0.35.0",
+  "version": "0.35.1",
   "description": "Dragon — 動く図を、人は行ごとの記法で、AI は JSON で書く。時系列図と構成図を段ごとに動かし、mp4・GIF・HTML・PNG に書き出す。",
   "license": "MIT",
   "author": "cardene777",
@@ -26,21 +26,32 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "dragon": "./dist/cli.js"
+    "dragon": "dist/cli.js"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./fonts": {
       "import": "./dist/fonts.js",
       "require": "./dist/fonts.cjs"
     },
     "./export": {
-      "types": "./dist/export.d.ts",
-      "import": "./dist/export.js"
+      "import": {
+        "types": "./dist/export.d.ts",
+        "default": "./dist/export.js"
+      },
+      "require": {
+        "types": "./dist/export.d.cts",
+        "default": "./dist/export.cjs"
+      }
     }
   },
   "files": [
