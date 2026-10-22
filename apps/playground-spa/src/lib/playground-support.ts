@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
+import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 
 const run = promisify(execFile);
 
@@ -84,6 +85,80 @@ export async function servePage(dir: string): Promise<{ origin: string; close: (
         server.close(() => done());
         server.closeAllConnections();
       }),
+  };
+}
+
+export interface OpenOptions {
+  /** 頁の置き場からの path。`url` を渡した時は読まない */
+  path?: string;
+  url?: string;
+  locale?: string;
+  colorScheme?: "light" | "dark";
+  viewport?: { width: number; height: number };
+}
+
+export interface Opened {
+  page: Page;
+  /** CSP に止められた読み込みと実行 */
+  violations: () => Promise<string[]>;
+}
+
+export interface Site {
+  origin: string;
+  built: Built;
+  /** 新しい context で頁を開く。開いた context は `closeContexts` で閉じる */
+  open: (o?: OpenOptions) => Promise<Opened>;
+  closeContexts: () => Promise<void>;
+  close: () => Promise<void>;
+}
+
+/**
+ * 頁を build して配り、画面なしの Chromium を起こす (#3030)。
+ *
+ * 編集画面の検査とサイトの帯と経路の検査が同じ形で頁を開けるよう、開く手順をここに 1 つだけ持つ。
+ */
+export async function startSite(): Promise<Site> {
+  const built = await buildPage();
+  const server = await servePage(built.dir);
+  const browser: Browser = await chromium.launch();
+  const contexts: BrowserContext[] = [];
+
+  const open = async (o: OpenOptions = {}): Promise<Opened> => {
+    const context = await browser.newContext({
+      locale: o.locale ?? "ja-JP",
+      colorScheme: o.colorScheme ?? "light",
+      viewport: o.viewport ?? { width: 1280, height: 860 },
+    });
+    contexts.push(context);
+    await context.addInitScript(() => {
+      const w = window as unknown as { __csp: string[] };
+      w.__csp = [];
+      document.addEventListener("securitypolicyviolation", (e) => w.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
+    });
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(o.url ?? `${server.origin}${o.path ?? BASE}`);
+    return {
+      page,
+      violations: async () => [
+        ...(await page.evaluate(() => (window as unknown as { __csp: string[] }).__csp)),
+        ...errors.filter((m) => /Content Security Policy|EvalError|unsafe-eval/u.test(m)),
+      ],
+    };
+  };
+
+  return {
+    origin: server.origin,
+    built,
+    open,
+    closeContexts: async () => {
+      await Promise.all(contexts.splice(0).map((c) => c.close()));
+    },
+    close: async () => {
+      await browser.close();
+      await server.close();
+    },
   };
 }
 
