@@ -2,7 +2,8 @@
  * 編集画面 (#2995、#3030、#3031)。前の編集画面と同じ 3 列で、左に棚、中に書く欄、右に動く図を置く。
  *
  * 図は `@cardenelabs/dragon` の再生の部品 (`mountDiagram`) で描き、頁の側では SVG を組まない (`editor/Stage.tsx`)。
- * 言葉と明暗はサイトの上の帯が持ち、ここは受け取って図に当てる。色味はここで選び、図だけに当てる。
+ * 言葉と明暗と色味はサイトの上の帯が持ち、ここは受け取って図に当てる (#3033)。
+ * 図の側の色味の釦はこの図だけの色味を選び、帯の色味が替わると帯の色味に戻る。
  * 記法と JSON のどちらの側でも書け、書いた側から図ともう一方へ反映する。
  * 誤りがあるあいだは、誤りを行番号付きで欄の下の知らせの欄に並べ、図は最後に描けた物を残す。
  * 行番号を押すと、書く欄がその行を選ぶ。
@@ -11,7 +12,6 @@
  * 書いている記法の言葉 (最初の行の図の種類の語) に従い、最初の行が読めない時だけ頁の言葉に従う。
  */
 import {
-  DEFAULT_PALETTE,
   type Diagram,
   notationLanguage,
   parseNotation,
@@ -124,6 +124,8 @@ interface Props {
   lang: Lang;
   /** 頁の明暗。図にも同じ明暗を当てる */
   theme: Theme;
+  /** 上の帯で選んだ色味。図の側で選ぶまで図に当てる */
+  palette: string;
   /**
    * 言葉を替える前に呼ぶ処理を帯の側へ渡す口。
    * 見本を英語版に替える処理は替える前の言葉と書く欄の中身を読むので、帯が言葉を替える前に呼ばせる。
@@ -131,7 +133,7 @@ interface Props {
   onBeforeLang: (handler: ((next: Lang) => void) | null) => void;
 }
 
-export function Playground({ lang, theme, onBeforeLang }: Props): ReactElement {
+export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: Props): ReactElement {
   const [first] = useState(() => start(lang));
   const [tab, setTab] = useState<Tab>("notation");
   const [text, setText] = useState(first.text);
@@ -139,7 +141,12 @@ export function Playground({ lang, theme, onBeforeLang }: Props): ReactElement {
   const [example, setExample] = useState<ExampleKey | null>(first.example);
   const [drawn, setDrawn] = useState<Diagram | null>(first.outcome.ok ? first.outcome.diagram : null);
   const [problem, setProblem] = useState<Problem | null>(first.outcome.ok ? null : first.outcome.problem);
-  const [palette, setPalette] = useState(DEFAULT_PALETTE);
+  /*
+   * 図の側で選んだ色味を、選んだ時の帯の色味と組で持つ。
+   * 帯の色味が替わると組が食い違うので、戻す処理を別に書かずに帯の色味へ戻る。
+   */
+  const [chosen, setChosen] = useState<{ site: string; palette: string } | null>(null);
+  const palette = chosen?.site === sitePalette ? chosen.palette : sitePalette;
   const [folded, setFolded] = useState(false);
   const [fileName, setFileName] = useState(first.example === null ? UNTITLED : `${first.example}.dragon`);
   const [shelfOpen, setShelfOpen] = useState(false);
@@ -434,7 +441,15 @@ export function Playground({ lang, theme, onBeforeLang }: Props): ReactElement {
         </div>
       </section>
 
-      <Stage diagram={drawn} palette={palette} onPalette={setPalette} theme={theme} lang={lang} kept={problem !== null && drawn !== null} fileName={asFileName(fileName)} />
+      <Stage
+        diagram={drawn}
+        palette={palette}
+        onPalette={(id) => setChosen({ site: sitePalette, palette: id })}
+        theme={theme}
+        lang={lang}
+        kept={problem !== null && drawn !== null}
+        fileName={asFileName(fileName)}
+      />
     </div>
   );
 }

@@ -1,23 +1,21 @@
 /**
- * 概要と編集画面のほかの 5 画面 (#3030)。
+ * 中身をまだ作っていない画面 (#3030)。使い方、更新履歴、見つからない頁。
  *
  * 経路と帯を先に立てるため、ここでは画面を見分けられる最小の形 (見出しと前置き) だけを置く。
- * カタログ、使い方、更新履歴、見つからない頁の中身は、#3029 を分けた後の課題で作る。
- * 概要は `home/Home.tsx` (#3032)、編集画面は `Playground.tsx` が持つ。
+ * 使い方と更新履歴の中身は、#3029 を分けた後の課題で作る。
+ * 概要は `home/Home.tsx` (#3032)、カタログは `catalog/` (#3033)、編集画面は `Playground.tsx` が持つ。
  */
 import type { ReactElement } from "react";
 
 import { type Lang, TEXT } from "../text";
-import { follow, PATHS, type Screen as ScreenName } from "./routes";
+import { follow, PATHS } from "./routes";
 
 interface Props {
-  screen: Exclude<ScreenName, "home" | "editor">;
-  /** カタログの分類の頁が出す分類の名前 */
-  category?: string;
+  screen: "docs" | "release-notes" | "not-found";
   lang: Lang;
 }
 
-export function Screen({ screen, category, lang }: Props): ReactElement {
+export function Screen({ screen, lang }: Props): ReactElement {
   const t = TEXT[lang].site;
   const text = t.screens[screen];
   return (
@@ -27,7 +25,6 @@ export function Screen({ screen, category, lang }: Props): ReactElement {
           404
         </p>
       )}
-      {category !== undefined && <p className="site-eyebrow">{category}</p>}
       <h1>{text.title}</h1>
       <p className="site-lead">{text.lead}</p>
       {screen === "not-found" && (

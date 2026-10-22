@@ -1,5 +1,5 @@
 /**
- * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030、#3032)。
+ * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030、#3032、#3033)。
  *
  * 記法の語 (`時系列図` や `帯`) は見本の file が持ち、ここには持たない。
  */
@@ -47,9 +47,38 @@ export const TEXT = {
         uses: { eyebrow: "使いどころ", title: "こんな図が書ける。", more: "カタログで図を見る →" },
         closing: { title: "今すぐ、書いて動かす。", lead: "記法を 1 つ書くだけ。動く図を 1 分後に手に入れる。" },
       },
+      catalog: {
+        crumb: "現在地",
+        lead: (kinds: number, samples: number) =>
+          `今の記法で書いた見本を、図の種類ごとに ${kinds} つの分類に並べる。各分類の頁で見本を検索し、動く図とコードを見て、編集画面で開ける。合計 ${samples} 件の見本。`,
+        count: (n: number) => `${n} 件`,
+        open: "開く →",
+        kinds: {
+          sequence: "登場する物の間で、誰が誰に何を渡すかを段ごとに追う図。ログインの流れや API の呼び出しの順を、線の上を走る封筒で見せる。",
+          architecture: "区画と箱で仕組みの構成を描き、段ごとにどこからどこへ何が流れるかを見せる図。チェーンをまたぐ送金や、サービスの間の受け渡しに使う。",
+        },
+        total: (n: number) => `全 ${n} 件`,
+        showing: (n: number) => `${n} 件 表示中`,
+        search: "検索 (名前 / 説明)",
+        searchLabel: "見本を検索",
+        clearSearch: "検索語を消す",
+        list: "見本の一覧",
+        nothing: "当てはまる見本が無い",
+        preview: "図の表示",
+        views: "表示の切替",
+        figure: "図",
+        code: "コード",
+        sameAsSite: "サイトと同じ",
+        expand: "拡大",
+        expandLabel: (title: string) => `${title} を拡大して見る`,
+        close: "閉じる",
+        openEditor: "編集画面で開く →",
+        source: "この図の記法",
+        copy: "コードを写す",
+        copied: "写しました",
+      },
       screens: {
-        catalog: { title: "カタログ", lead: "今の記法で書いた見本を、図の種類ごとに並べる。" },
-        category: { title: "カタログの分類", lead: "この分類の見本を並べる。" },
+        catalog: { title: "カタログ" },
         editor: { title: "編集画面", lead: "" },
         docs: { title: "使い方", lead: "記法の書き方と、図の書き出し方。" },
         "release-notes": { title: "更新履歴", lead: "版ごとの変更。" },
@@ -175,9 +204,38 @@ export const TEXT = {
         uses: { eyebrow: "Use cases", title: "Diagrams you can write.", more: "Browse the catalog →" },
         closing: { title: "Write it now, watch it move.", lead: "One notation file is all it takes. A moving diagram is yours a minute later." },
       },
+      catalog: {
+        crumb: "You are here",
+        lead: (kinds: number, samples: number) =>
+          `Examples written in the current notation, sorted into ${kinds} groups by diagram kind. Each group page lets you search them, watch the diagram move, read the code, and open it in the editor. ${samples} examples in total.`,
+        count: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
+        open: "Open →",
+        kinds: {
+          sequence: "Follow who hands what to whom, step by step. Show a sign-in flow or the order of API calls with envelopes running along the edges.",
+          architecture: "Draw a system as regions and boxes, and show what flows where in each step. Use it for cross-chain transfers or hand-offs between services.",
+        },
+        total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
+        showing: (n: number) => `showing ${n}`,
+        search: "Search (name / description)",
+        searchLabel: "Search the examples",
+        clearSearch: "Clear the search",
+        list: "Example list",
+        nothing: "No example matches",
+        preview: "Diagram",
+        views: "What to show",
+        figure: "Diagram",
+        code: "Code",
+        sameAsSite: "Same as the site",
+        expand: "Enlarge",
+        expandLabel: (title: string) => `Enlarge ${title}`,
+        close: "Close",
+        openEditor: "Open in the editor →",
+        source: "Notation for this diagram",
+        copy: "Copy the code",
+        copied: "Copied",
+      },
       screens: {
-        catalog: { title: "Catalog", lead: "Examples written in the current notation, grouped by diagram kind." },
-        category: { title: "Catalog category", lead: "The examples in this category." },
+        catalog: { title: "Catalog" },
         editor: { title: "Editor", lead: "" },
         docs: { title: "Docs", lead: "How to write the notation and export diagrams." },
         "release-notes": { title: "Release notes", lead: "Changes in each version." },

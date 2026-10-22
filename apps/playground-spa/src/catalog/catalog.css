@@ -1,0 +1,720 @@
+/* ================================================================
+ * カタログの一覧と分類の頁と拡大の重ね窓 (#3033)。
+ *
+ * 配置と見た目は 0.35.0 より前のサイトの `styles/catalog-new.css` を写し、色と字面はサイトの値 (`--d-*`) だけを読む。
+ * 図の枠と段の札と進み具合の帯は、編集画面の図の側と同じ部品の見た目 (`playground.css` の `.pg-figure` など) を使う。
+ * 幅 860 以下では一覧を見本の上に積む。
+ * ================================================================ */
+
+.catalog-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--d-gutter) 110px;
+  box-sizing: border-box;
+  color: var(--d-text-primary);
+}
+
+/* ── 頁の頭 ── */
+
+.catalog-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 54px 0 44px;
+}
+
+.catalog-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  color: var(--d-text-muted);
+}
+
+.catalog-crumb a {
+  color: var(--d-text-muted);
+  text-decoration: none;
+}
+
+.catalog-crumb a:hover {
+  color: var(--d-accent);
+}
+
+.catalog-crumb-here {
+  color: var(--d-text-secondary);
+}
+
+.catalog-title {
+  margin: 0;
+  font-size: clamp(30px, 3.8vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.catalog-desc {
+  max-width: 760px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--d-text-secondary);
+}
+
+.catalog-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catalog-count {
+  padding: 4px 9px;
+  border-radius: var(--d-r-1);
+  background: var(--d-surface-2);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--d-text-secondary);
+}
+
+.catalog-count-filter {
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+}
+
+/* ── 一覧の札 ── */
+
+.catalog-index-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.catalog-index-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 206px;
+  padding: 22px;
+  box-sizing: border-box;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+  color: var(--d-text-primary);
+  text-decoration: none;
+}
+
+.catalog-index-card:hover {
+  border-color: var(--d-border-strong);
+}
+
+.catalog-index-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.catalog-index-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catalog-index-card-no {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--d-accent);
+}
+
+.catalog-index-card-count {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--d-text-muted);
+}
+
+.catalog-index-card-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.catalog-index-card-desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--d-text-secondary);
+}
+
+.catalog-index-card-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-accent);
+}
+
+/* ── 分類の頁の 2 面 ── */
+
+.catalog-body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.catalog-sidebar {
+  position: sticky;
+  top: calc(var(--d-topbar-h) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(100dvh - var(--d-topbar-h) - 32px);
+  padding: 14px;
+  box-sizing: border-box;
+  overflow: auto;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+}
+
+/* 枠は薄くして面で見せ、focus は色ではなく輪郭の広がりで示す */
+.catalog-search-wrap {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  background: var(--d-surface-2);
+  border: 1px solid var(--d-border);
+  border-radius: 10px;
+  transition:
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.catalog-search-wrap:hover {
+  border-color: var(--d-border-strong);
+}
+
+.catalog-search-wrap:focus-within {
+  background: var(--d-surface);
+  border-color: var(--d-accent);
+  box-shadow: 0 0 0 3px var(--d-accent-soft);
+}
+
+.catalog-search-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background-color: var(--d-text-muted);
+  mask: url("./icons/search.svg") center / 14px 14px no-repeat;
+}
+
+.catalog-search-wrap:focus-within .catalog-search-icon {
+  background-color: var(--d-accent);
+}
+
+.catalog-search {
+  flex: 1;
+  align-self: stretch;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--d-text-primary);
+}
+
+.catalog-search::placeholder {
+  color: var(--d-text-muted);
+}
+
+.catalog-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--d-text-muted);
+}
+
+.catalog-search-clear:hover {
+  background: var(--d-surface-3);
+  color: var(--d-text-primary);
+}
+
+.catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.catalog-list-empty {
+  margin: 0;
+  padding: 14px 9px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--d-text-muted);
+}
+
+.catalog-list-item {
+  padding: 7px 9px;
+  border: none;
+  border-radius: var(--d-r-1);
+  background: transparent;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--d-text-secondary);
+  text-align: left;
+}
+
+.catalog-list-item:hover {
+  background: var(--d-surface-2);
+}
+
+.catalog-list-item[aria-current="true"] {
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+  font-weight: 600;
+}
+
+/* ── 右の見本 ── */
+
+.catalog-preview {
+  min-width: 0;
+}
+
+.catalog-preview-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+}
+
+/* 図とコードは残したまま表示だけを入れ替える。`hidden` 属性の既定は要素の `display` に負けるので、ここで消す */
+.catalog-preview-card [hidden] {
+  display: none;
+}
+
+.catalog-preview-head {
+  padding: 20px 22px;
+}
+
+.catalog-preview-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+.catalog-preview-sub {
+  max-width: 720px;
+  margin: 9px 0 0;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--d-text-secondary);
+}
+
+/* 見出しは押す先の名前なので折らず、空きが足りない時は道具の列の側を折り返す */
+.catalog-preview-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--d-border);
+}
+
+.catalog-tablist {
+  display: flex;
+  gap: 4px;
+}
+
+/* 下線で選択を示す。枠で囲むと記法の切替と見分けが付かない */
+.catalog-preview-tab {
+  flex-shrink: 0;
+  padding: 7px 14px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 13px;
+  color: var(--d-text-secondary);
+  white-space: nowrap;
+}
+
+.catalog-preview-tab:hover {
+  color: var(--d-text-primary);
+}
+
+.catalog-preview-tab[aria-selected="true"] {
+  border-bottom-color: var(--d-accent);
+  color: var(--d-text-primary);
+}
+
+.catalog-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-left: auto;
+}
+
+.catalog-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.catalog-option-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--d-text-secondary);
+  white-space: nowrap;
+}
+
+.catalog-select-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.catalog-select-field::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 9px;
+  border-top: 5px solid var(--d-text-secondary);
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  pointer-events: none;
+}
+
+.catalog-select {
+  appearance: none;
+  min-height: 28px;
+  padding: 4px 26px 4px 9px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: 5px;
+  background: var(--d-bg);
+  font-size: 12px;
+  color: var(--d-text-primary);
+}
+
+.catalog-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+  background: var(--d-surface);
+}
+
+.catalog-zoom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--d-r-1);
+  background: transparent;
+  color: var(--d-text-primary);
+}
+
+.catalog-zoom-btn:hover:not(:disabled) {
+  background: var(--d-surface-2);
+}
+
+.catalog-zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 桁が変わっても位置がぶれないよう、幅を取っておく */
+.catalog-zoom-value {
+  min-width: 48px;
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  color: var(--d-text-secondary);
+  text-align: center;
+}
+
+.catalog-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--d-text-primary);
+}
+
+.catalog-expand-btn:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+/*
+ * 図の枠。編集画面の図の側と同じ見た目の部品で描き、高さだけをここで決める。
+ * 枠の高さを決めて段の本文と進み具合の帯を図の下に見え続けさせ、縦に長い図は枠の中で送る。
+ * 部品の `flex: 1` のままだと縦に並べた札の中で高さが中身なりに伸びるので、伸び縮みを止める。
+ */
+.catalog-preview-stage {
+  flex: none;
+  height: clamp(360px, 58vh, 620px);
+  border-top: 1px solid var(--d-border);
+  background: var(--d-bg);
+}
+
+/* 段の本文は枠の外に出し、図の描く場所を削らない。図の部品の語りの欄は重なるので隠す */
+.catalog-preview-stage .dg-say {
+  display: none;
+}
+
+.catalog-preview-note {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 22px 16px;
+  border-top: 1px solid var(--d-border);
+}
+
+.catalog-step-note {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.8;
+  white-space: pre-line;
+  color: var(--d-text-secondary);
+}
+
+/* ── コードの見出し ── */
+
+.catalog-source {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--d-border);
+}
+
+.catalog-source-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 18px;
+  background: var(--d-surface-2);
+  border-bottom: 1px solid var(--d-border);
+}
+
+/* 2 つの書き方を 1 つの枠に収め、選んだ側だけ色を反転する */
+.catalog-source-tabs {
+  display: flex;
+}
+
+.catalog-source-tab {
+  padding: 6px 14px;
+  border: 1px solid var(--d-border-strong);
+  background: transparent;
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  color: var(--d-text-secondary);
+}
+
+.catalog-source-tab:first-child {
+  border-radius: var(--d-r-1) 0 0 var(--d-r-1);
+}
+
+.catalog-source-tab + .catalog-source-tab {
+  border-left: none;
+  border-radius: 0 var(--d-r-1) var(--d-r-1) 0;
+}
+
+.catalog-source-tab:hover {
+  color: var(--d-text-primary);
+}
+
+.catalog-source-tab[aria-pressed="true"] {
+  background: var(--d-accent);
+  border-color: var(--d-accent);
+  color: var(--d-on-accent);
+  font-weight: 600;
+}
+
+.catalog-source-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--d-text-primary);
+}
+
+.catalog-source-copy:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+.catalog-copy-icon {
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  mask: url("./icons/copy.svg") center / 14px 14px no-repeat;
+}
+
+.catalog-source-code {
+  max-height: 62vh;
+  margin: 0;
+  padding: 18px 22px;
+  overflow: auto;
+  background: var(--d-code-bg);
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--d-text-secondary);
+}
+
+.catalog-preview-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 22px;
+  border-top: 1px solid var(--d-border);
+}
+
+.catalog-preview-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-accent);
+  text-decoration: none;
+}
+
+.catalog-preview-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── 拡大の重ね窓 ── */
+
+.catalog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--d-text-primary) 46%, transparent);
+}
+
+.catalog-overlay-card {
+  display: flex;
+  flex-direction: column;
+  width: min(1200px, 100%);
+  height: min(90vh, 960px);
+  overflow: hidden;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-2);
+}
+
+.catalog-overlay-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: var(--d-surface-2);
+  border-bottom: 1px solid var(--d-border);
+}
+
+.catalog-overlay-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.catalog-overlay-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--d-text-secondary);
+}
+
+.catalog-overlay-close {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--d-text-secondary);
+}
+
+.catalog-overlay-close:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+.catalog-overlay-stage {
+  background: var(--d-bg);
+}
+
+/* ── 狭い画面 ── */
+
+@media (max-width: 1100px) {
+  .catalog-index-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .catalog-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .catalog-sidebar {
+    position: static;
+    max-height: 340px;
+  }
+  .catalog-index-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .catalog-hero {
+    padding: 36px 0 32px;
+  }
+  .catalog-preview-actions {
+    margin-left: 0;
+  }
+  /* 狭い幅では読むのは重ね窓で行うので、入口を指で押せる大きさにする */
+  .catalog-expand-btn {
+    min-height: 44px;
+    padding: 6px 14px;
+  }
+  .catalog-overlay {
+    padding: 8px;
+  }
+}
