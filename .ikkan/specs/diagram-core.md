@@ -54,7 +54,7 @@
 | 最初の行が読めず言葉が決まらない時、呼ぶ側が渡した言葉で誤りの文を出し、渡さなければ日本語で出す | `pnpm test`の検査`unknown-language-errors-use-given-language`が通る | #2997 |
 | 日本語の語の囲みと英語の語の囲みを 1 つの Markdown に並べた時、囲みごとにその言葉で読まれる | `pnpm test`の検査`markdown-fences-read-each-language`が通る | #2997 |
 | 使い方の文書の英語版 `packages/dragon/examples/quick-start.en.md` が在り、その中の dragon の囲みがすべて英語の語で書かれて読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #2997 |
-| 公開する頁で言葉を EN にした時、3 つの見本のどれを選んでも、書く欄の記法に日本語の語 (`時系列図` や `帯`) が 1 つも無い | `pnpm test`の検査`english-page-examples-use-english-words`が通る | #2997 |
+| 公開する頁で言葉を EN にした時、編集画面の左の棚の 3 つの見本のどれを選んでも、書く欄の記法に日本語の語 (`時系列図` や `帯`) が 1 つも無い | `pnpm test`の検査`english-page-examples-use-english-words`が通る | #2997、#3031 |
 | 頁で JSON の側を書き換えた時、書く欄の記法は書き換える前の記法の言葉の語で書き戻される。書く欄の最初の行が読めない時は頁の言葉で書き戻す | `pnpm test`の検査`json-edit-keeps-notation-language`が通る | #2997 |
 | 頁の書く欄の記法に誤りがある時、欄の下の誤りの文を記法の言葉で出す。最初の行が読めない時は頁の言葉で出す | `pnpm test`の検査`page-errors-follow-notation-language`が通る | #2997 |
 | 原本の JSON の検査に英語を渡した時、書けない欄、要る欄、決まった値、道具より新しい版、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文に仮名と漢字が 1 つも無い | `pnpm test`の検査`json-errors-in-english`が通る | #2999 |

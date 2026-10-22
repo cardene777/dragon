@@ -1,5 +1,5 @@
 /**
- * 頁で選べる見本 3 つ。記法の file を字のまま読み込む (#2995)。
+ * 頁で選べる見本 3 つと、新規作成の雛形。記法の file を字のまま読み込む (#2995、#3031)。
  *
  * 見本の正は `packages/dragon/examples` の file で、英語版は同じ名前に `.en` を付けた file。
  */
@@ -25,6 +25,15 @@ const EXAMPLES: Record<ExampleKey, Record<Lang, string>> = {
 };
 
 export const exampleText = (key: ExampleKey, lang: Lang): string => EXAMPLES[key][lang].trimEnd();
+
+/** 新規作成で書く欄に入れる雛形。箱 2 つと段 1 つの、そのまま描ける図 (#3031) */
+export const TEMPLATE: Record<Lang, string> = {
+  ja: ["時系列図 新しい図", "", "甲 = 甲", "乙 = 乙", "", "# 最初の段", "> この段で起きることを書く。", "甲 -> 乙 : 呼ぶ"].join("\n"),
+  en: ["sequence New diagram", "", "a = A", "b = B", "", "# First step", "> Write what happens in this step.", "a -> b : call"].join("\n"),
+};
+
+/** 新規作成で付ける書類名 */
+export const UNTITLED = "untitled.dragon";
 
 /** 書く欄の中身がどれかの見本そのままなら、その見本と言葉 */
 export function whichExample(text: string): { key: ExampleKey; lang: Lang } | undefined {

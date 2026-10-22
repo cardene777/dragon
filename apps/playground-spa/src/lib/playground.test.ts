@@ -722,6 +722,22 @@ describe("公開する頁 (#2995)", () => {
       for (const item of narrowed) expect(item.text, `${item.name} が絞り込みの字を含まない`).toContain("->");
       await page.locator(sel("shelf-filter")).fill("");
 
+      // 箱が 1 つしかない図に線の部品を足すと、相手の箱も足して読める線にする
+      const lonely = ["時系列図 一人の図", "", "甲 = 甲", "", "# 考える", "> 甲が考える。", "甲 : 考える"].join("\n");
+      await setEditor(page, lonely);
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "箱が 1 つの図が描かれない" }).toContain("一人の図");
+      await click(page, "part-edge");
+      await expect
+        .poll(async () => { const d = await editorDiagram(page); return [d?.boxes.length, d?.steps.at(-1)?.events.at(-1)?.type]; }, { ...WAIT, message: "箱が 1 つの図に線の部品を足すと読めない" })
+        .toEqual([2, "edge"]);
+
+      // 英語の語で書いた記法には、英語の語で部品の行を足す
+      await setEditor(page, EDITED_EN);
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "英語の語の記法で図が描かれない" }).toContain("Edited diagram");
+      for (const name of ["part-box", "part-edge-tag", "part-step"]) await click(page, name);
+      await expect.poll(async () => (await editorDiagram(page))?.steps.length, { ...WAIT, message: "英語の語の記法に部品を足すと読めない" }).toBe(2);
+      expect((await editorValue(page))?.match(JAPANESE_WORDS)?.[0], "英語の語の記法に日本語の語の部品が足される").toBeUndefined();
+
       // 記法の見出しには、行の形の早見が並ぶ
       await click(page, "shelf-tab-notation");
       await expect.poll(async () => (await items(page, "syntax-")).length, { ...WAIT, message: "記法の早見が無い" }).toBeGreaterThan(5);
@@ -929,16 +945,16 @@ describe("公開する頁 (#2995)", () => {
       await click(page, "notice-line");
       await expect.poll(() => editorSelection(page), { ...WAIT, message: "行番号を押しても書く欄がその行を選ばない" }).toEqual({ focused: true, text: broken.split("\n")[line - 1] });
 
-      // schema の誤りが 2 つある JSON。どちらも行番号付きで出し、2 つ目を押すとその行を選ぶ
+      // schema の誤りが 2 つ (型の誤りと書けない欄) ある JSON。どちらも行番号付きで出し、2 つ目を押すとその行を選ぶ
       await setEditor(page, OAUTH);
       const diagram = await jsonSide(page);
-      const wrong = structuredClone(diagram) as unknown as { title: unknown; boxes: { color?: string }[] };
+      const wrong = structuredClone(diagram) as unknown as { title: unknown; boxes: Record<string, unknown>[] };
       wrong.title = 3;
-      (wrong.boxes[1] as { color?: string }).color = "purple";
+      (wrong.boxes[1] as Record<string, unknown>).colour = "blue";
       const json = JSON.stringify(wrong, null, 2);
       const jsonLines = json.split("\n");
       const titleLine = jsonLines.findIndex((l) => l.trim() === '"title": 3,') + 1;
-      const colorLine = jsonLines.findIndex((l) => l.includes('"color": "purple"')) + 1;
+      const colorLine = jsonLines.findIndex((l) => l.includes('"colour": "blue"')) + 1;
       expect(titleLine * colorLine, "検査に使う JSON に誤りの行が無い").toBeGreaterThan(0);
       await setEditor(page, json);
       await expect
