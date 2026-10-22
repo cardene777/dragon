@@ -112,7 +112,7 @@ async function clickSite(page: Page, name: string): Promise<void> {
 
 /** 上の帯の明暗の切替を押して、頁の明暗を `theme` にする (#3030) */
 async function setSiteTheme(page: Page, theme: "light" | "dark"): Promise<void> {
-  const now = (): Promise<string | null> => page.evaluate(() => document.documentElement.getAttribute("data-site-theme"));
+  const now = (): Promise<string | null> => page.evaluate(() => document.documentElement.getAttribute("data-scheme"));
   if ((await now()) !== theme) await clickSite(page, "theme");
   await expect.poll(now, { ...WAIT, message: `明暗の切替で頁が ${theme} にならない` }).toBe(theme);
 }
@@ -154,7 +154,7 @@ const look = (page: Page): Promise<{ diagram: string; diagramInk: string; page: 
     return { diagram: v("--bg"), diagramInk: v("--ink"), page: getComputedStyle(document.body).backgroundColor };
   }, sel("stage"));
 
-/** 前のサイトの地の色。明るい側は `letterpress`、暗い側は同じ色相の `catalog` (#3030) */
+/** 前のサイトの地の色。明るい側は既定の意匠 (活版)、暗い側は同じ色相で地が暗い意匠 (図録) の値 (#3030) */
 const SITE_BG = { light: "#f6f1e6", dark: "#1a1611" } as const;
 
 const lookOf = (palette: string, theme: "light" | "dark"): { diagram: string; diagramInk: string; page: string } => {

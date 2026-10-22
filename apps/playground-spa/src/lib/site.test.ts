@@ -49,7 +49,7 @@ const DESTINATIONS = [
   { ja: "GitHub", en: "GitHub", href: REPO },
 ] as const;
 
-/** 前のサイトの値。明るい側は `letterpress`、暗い側は同じ色相の `catalog` の表 */
+/** 前のサイトの値。明るい側は既定の意匠 (活版)、暗い側は同じ色相で地が暗い意匠 (図録) の表 */
 const COLORS = {
   light: { bg: "#f6f1e6", surface: "#fffdf7", text: "#2a231d", accent: "#c0421f" },
   dark: { bg: "#1a1611", surface: "#241f18", text: "#f3ece0", accent: "#ee6b3f" },
@@ -182,7 +182,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         expect(await headerOf(page), `${screen} の帯の部品が足りない`).toEqual({
           mark: "yes",
           name: "dragon",
-          tagline: expect.stringMatching(/\S/u) as unknown as string,
+          tagline: expect.stringMatching(/\S/u),
           langJa: "yes",
           langEn: "yes",
           theme: "yes",
@@ -325,7 +325,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       expect(await page.evaluate(() => location.pathname), "前に共有した URL のアドレスが編集画面にならない").toBe(`${BASE}editor`);
       expect(await page.evaluate(() => location.hash), "前に共有した URL の # の後ろが消えた").toBe(hash);
       await expect
-        .poll(() => page.evaluate(() => (document.querySelector('[data-playground="editor"]') as HTMLTextAreaElement | null)?.value.trimEnd() ?? null), {
+        .poll(() => page.evaluate(() => document.querySelector<HTMLTextAreaElement>('[data-playground="editor"]')?.value.trimEnd() ?? null), {
           ...WAIT,
           message: "前に共有した URL の記法が書く欄に入らない",
         })

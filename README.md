@@ -10,7 +10,7 @@ dragon は 0.35.0 で図の書き方と描き方を根本から作り直した�
 作り直しで決めたことは [#2982](https://github.com/cardene777/dragon/issues/2982) にまとめている。
 
 今までの記法 (日本語の鍵の YAML と JSON)、`@cardenelabs/cdl` へ渡して描く仕組み、見本帳の図の一覧と編集画面、7 つの意匠は [#2983](https://github.com/cardene777/dragon/issues/2983) で消した。
-`@cardenelabs/dragon` は npm で配り、見本帳は記法を書くと動く図になる頁を配る。
+`@cardenelabs/dragon` は npm で配り、見本帳は概要、カタログ、編集画面、使い方、更新履歴の画面を持つサイトとして GitHub Pages で配る。
 
 | 項目 | 形 |
 |---|---|
@@ -27,7 +27,7 @@ dragon/
 ├── packages/
 │   └── dragon/            ... 図の原本と記法と描画と書き出しの部品を持つ package
 ├── apps/
-│   └── playground-spa/    ... 見本帳 (Vite + React 19)。記法を書くと動く図になる頁
+│   └── playground-spa/    ... 見本帳 (Vite + React 19)。上の帯と 7 画面のサイト。編集画面で記法を書くと動く図になる
 ├── test-support/          ... vitest の前処理 (dist が src より古くないかを見る)
 ├── eslint.config.mjs
 └── tsconfig.json          ... solution-style (packages/dragon + apps/playground-spa + test-support)

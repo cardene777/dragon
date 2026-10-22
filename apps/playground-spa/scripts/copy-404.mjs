@@ -2,8 +2,8 @@
 /**
  * GitHub Pages が無い path に返す `404.html` を、頁の `index.html` の写しとして作る。
  *
- * 前の見本帳の経路 (`/dragon/catalog` や `/dragon/editor` など) を開いた人にも、この写しで新しい頁を出す (#2995)。
- * 頁は開いた後にアドレス欄を `/dragon/` へ書き換える (`src/main.tsx`)。応答の status は 404 のまま残る。
+ * 頁の経路 (`/dragon/catalog` や `/dragon/editor` など) を直に開いた人にも、この写しで同じ頁を出す (#2995)。
+ * 頁は開いた path から 7 画面のどれを出すかを決める (`src/site/routes.ts`、#3030)。応答の status は 404 のまま残る。
  *
  * 使い方: `node scripts/copy-404.mjs [build した dir]`。dir を渡さなければ `dist`。
  */
