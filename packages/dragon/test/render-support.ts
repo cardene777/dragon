@@ -36,12 +36,35 @@ export interface LaidEdge {
   points: [number, number][];
 }
 
+/** 箱が自分で行う処理の札。`box` は処理する箱の id。 */
+export interface LaidAction extends Rect {
+  step: number;
+  event: number;
+  box: string;
+}
+
+/** 段の番号の丸の中心。 */
+export interface LaidBadge {
+  step: number;
+  x: number;
+  y: number;
+}
+
+/** 時系列図の生存線。`id` は箱の id。 */
+export interface LaidLifeline {
+  id: string;
+  x: number;
+}
+
 export interface Layout {
   width: number;
   height: number;
   boxes: LaidBox[];
   labels: LaidLabel[];
   edges: LaidEdge[];
+  actions: LaidAction[];
+  badges: LaidBadge[];
+  lifelines: LaidLifeline[];
 }
 
 /** 秒で表した、見えている間。`end` の時刻は含まない。 */

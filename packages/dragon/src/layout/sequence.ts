@@ -138,9 +138,10 @@ export function layoutSequence(diagram: Diagram): Layout {
           });
         }
       } else {
+        // 札は生存線の上の番号の丸を隠さないよう、丸の右に出す (#3017)
         const x = xs[column.get(event.box) ?? 0] as number;
         const w = textWidth(event.label, TYPE.action) + LOOK.action.padX * 2;
-        actions.push({ step: s, event: e, box: event.box, text: event.label, color: colors.get(event.box) ?? "slate", x: x - w / 2, y: y - LOOK.action.h / 2, w, h: LOOK.action.h });
+        actions.push({ step: s, event: e, box: event.box, text: event.label, color: colors.get(event.box) ?? "slate", x: x + LOOK.badge.r + 4, y: y - LOOK.action.h / 2, w, h: LOOK.action.h });
       }
     });
   });
@@ -169,7 +170,10 @@ export function layoutSequence(diagram: Diagram): Layout {
   return layout;
 }
 
-/** 段の番号。その段の最初の線の始まりに置き、線が無ければ処理の札の左、無ければ書き換わる箱の角。 */
+/**
+ * 段の番号。その段の最初の線の始まりに置き、線が無ければ処理する箱の生存線の上、無ければ書き換わる箱の角。
+ * 処理の札はその段の終わりに消えるので、札に付けると止め絵で丸だけが浮く (#3017)。
+ */
 function badges(diagram: Diagram, layout: Layout): SceneBadge[] {
   return diagram.steps.map((step, s) => {
     const edge = layout.edges.find((e) => e.step === s);
@@ -178,7 +182,8 @@ function badges(diagram: Diagram, layout: Layout): SceneBadge[] {
       return { step: s, x, y, color: edge.color };
     }
     const action = layout.actions.find((a) => a.step === s);
-    if (action) return { step: s, x: action.x, y: action.y + action.h / 2, color: action.color };
+    const lifeline = action && layout.lifelines.find((l) => l.id === action.box);
+    if (action && lifeline) return { step: s, x: lifeline.x, y: action.y + action.h / 2, color: action.color };
     return cornerBadge(step.events, s, layout);
   });
 }
