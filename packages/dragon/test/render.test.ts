@@ -135,3 +135,66 @@ describe("見える物の数", () => {
     }
   });
 });
+
+/** 段の番号の丸の半径 (`look/values.ts` の `badge.r`)。 */
+const BADGE_R = 9.5;
+
+const near = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
+
+/** 線を持たず、処理の札だけを持つ段の番号。 */
+function actionOnlySteps(layout: Rendered["layout"]): number[] {
+  return layout.badges.map((badge) => badge.step).filter((s) => !layout.edges.some((e) => e.step === s) && layout.actions.some((a) => a.step === s));
+}
+
+/** 点が折れ線のどこかの区間の上に在るか。 */
+function onPath(x: number, y: number, points: [number, number][]): boolean {
+  return points.slice(1).some(([x2, y2], i) => {
+    const [x1, y1] = points[i] as [number, number];
+    const cross = (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1);
+    const inside = Math.min(x1, x2) - 1e-6 <= x && x <= Math.max(x1, x2) + 1e-6 && Math.min(y1, y2) - 1e-6 <= y && y <= Math.max(y1, y2) + 1e-6;
+    return Math.abs(cross) < 1e-6 && inside;
+  });
+}
+
+describe("段の番号の置き場 (#3017)", () => {
+  it("oauth-action-steps-are-2-6-8", () => {
+    expect(actionOnlySteps(render(oauth()).layout).map((s) => s + 1)).toEqual([2, 6, 8]);
+  });
+
+  it("action-step-badge-on-lifeline", () => {
+    for (const [name, diagram] of [["OAuth", oauth()], ["静かな段を持つ図", quiet()]] as const) {
+      const { layout } = render(diagram);
+      const steps = actionOnlySteps(layout);
+      expect(steps.length, `${name} の処理だけの段`).toBeGreaterThan(0);
+      for (const s of steps) {
+        const badge = layout.badges.find((b) => b.step === s);
+        const action = layout.actions.find((a) => a.step === s);
+        const lifeline = layout.lifelines.find((l) => l.id === action?.box);
+        expect(Boolean(badge && lifeline && near(badge.x, lifeline.x)), `${name} の段 ${s + 1} の丸が ${action?.box} の生存線の上に在る (丸 ${badge?.x}、生存線 ${lifeline?.x})`).toBe(true);
+        expect(Boolean(badge && action && near(badge.y, action.y + action.h / 2)), `${name} の段 ${s + 1} の丸が札と同じ高さに在る`).toBe(true);
+      }
+    }
+  });
+
+  it("action-label-right-of-badge", () => {
+    for (const [name, diagram] of [["OAuth", oauth()], ["静かな段を持つ図", quiet()]] as const) {
+      const { layout } = render(diagram);
+      for (const s of actionOnlySteps(layout)) {
+        const badge = layout.badges.find((b) => b.step === s);
+        const action = layout.actions.find((a) => a.step === s);
+        expect(Boolean(badge && action && action.x >= badge.x + BADGE_R), `${name} の段 ${s + 1} の札の左端 ${action?.x} が丸の右端 ${badge && badge.x + BADGE_R} より右に在る`).toBe(true);
+      }
+    }
+  });
+
+  it("edge-step-badge-on-its-line", () => {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["静かな段を持つ図", quiet()]] as const) {
+      const { layout } = render(diagram);
+      for (const badge of layout.badges) {
+        const edge = layout.edges.find((e) => e.step === badge.step);
+        if (!edge) continue;
+        expect(onPath(badge.x, badge.y, edge.points), `${name} の段 ${badge.step + 1} の丸がその段の最初の線の上に在る`).toBe(true);
+      }
+    }
+  });
+});
