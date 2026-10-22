@@ -77,7 +77,8 @@
     "test": "cd ../.. && vitest run packages/dragon",
     "test:watch": "cd ../.. && vitest packages/dragon",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
+    "check:pack": "node scripts/check-pack.mjs",
+    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm run check:pack"
   },
   "peerDependencies": {
     "playwright-core": ">=1.49.0"
