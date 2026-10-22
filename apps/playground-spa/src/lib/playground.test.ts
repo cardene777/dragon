@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Diagram, FONTS, PALETTES, parseNotation } from "@cardenelabs/dragon";
+import { DEFAULT_PALETTE, type Diagram, FONTS, PALETTES, parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -186,7 +186,8 @@ const phase = (page: Page): Promise<{ badge: string | null; segments: number; do
 /**
  * 図の地と字の色と、頁の地の色。
  *
- * 色味は図だけに当て、頁は前のサイトの値で塗る (#3030)。頁の地は明暗だけで決まる。
+ * 図の側の色味の釦は図だけに当て、頁は上の帯の色味 (選ぶまで紙と墨) で塗る (#3033)。
+ * 帯の色味を替えないかぎり、頁の地は明暗だけで決まる。
  */
 const look = (page: Page): Promise<{ diagram: string; diagramInk: string; page: string }> =>
   page.evaluate((s) => {
@@ -195,12 +196,11 @@ const look = (page: Page): Promise<{ diagram: string; diagramInk: string; page: 
     return { diagram: v("--bg"), diagramInk: v("--ink"), page: getComputedStyle(document.body).backgroundColor };
   }, sel("stage"));
 
-/** 前のサイトの地の色。明るい側は既定の意匠 (活版)、暗い側は同じ色相で地が暗い意匠 (図録) の値 (#3030) */
-const SITE_BG = { light: "#f6f1e6", dark: "#1a1611" } as const;
-
 const lookOf = (palette: string, theme: "light" | "dark"): { diagram: string; diagramInk: string; page: string } => {
   const v = PALETTES[palette]?.[theme] ?? {};
-  return { diagram: (v.bg ?? "").toLowerCase(), diagramInk: (v.ink ?? "").toLowerCase(), page: rgb(SITE_BG[theme]) };
+  // 頁の地は帯の色味の地。帯の色味を選んでいないので紙と墨
+  const page = PALETTES[DEFAULT_PALETTE]?.[theme].page ?? "";
+  return { diagram: (v.bg ?? "").toLowerCase(), diagramInk: (v.ink ?? "").toLowerCase(), page: rgb(page) };
 };
 
 describe("公開する頁 (#2995)", () => {
@@ -391,7 +391,7 @@ describe("公開する頁 (#2995)", () => {
     async () => {
       const { page } = await open({ colorScheme: "light" });
       await drawn(page);
-      // 色味は編集画面で図に当て、明暗は帯で頁と図の両方に当てる。頁の地は色味で替わらない (#3030)
+      // 図の側の色味は図に当て、明暗は帯で頁と図の両方に当てる。頁の地は図の側の色味で替わらない (#3033)
       for (const [palette, theme] of [["night", "dark"], ["clear", "light"], ["paper", "dark"]] as const) {
         await click(page, `palette-${palette}`);
         await setSiteTheme(page, theme);

@@ -1,15 +1,21 @@
 /**
  * 全画面に共通する上の帯 (#3030)。0.35.0 より前のサイトの帯 (`SiteHeader.tsx`、`header.css`) と同じ並びにする。
  *
- * 左に印と名前と添え書き、中に行き先 6 つ、右に言語と明暗の切替と `編集画面を開く →` の釦を置く。
+ * 左に印と名前と添え書き、中に行き先 6 つ、右に言語と色味と明暗の切替と `編集画面を開く →` の釦を置く。
  * 今いる画面の行き先に現在地の印を付け、行き先は頁を読み直さずに移る (`routes.ts`)。
- * 幅 720 以下では行き先を畳み、開く釦から面を出す。
+ * 色味の切替はサイトの色と全部の図の色味を替える (#3033)。色味は図の色味の表 (`PALETTES`) の順に並べる。
+ * 幅 720 以下では行き先と色味の切替を畳み、開く釦から出す面に置く。
  */
-import type { Theme } from "@cardenelabs/dragon";
-import { type ReactElement, useEffect, useState } from "react";
+import { type Palette, PALETTES, type Theme } from "@cardenelabs/dragon";
+import { type CSSProperties, type ReactElement, useEffect, useState } from "react";
 
 import { type Lang, TEXT } from "../text";
 import { follow, PATHS, REPO, type Route } from "./routes";
+import { accentOf } from "./site-colors";
+
+/** 色味の見本の丸。明るい側と暗い側の地を斜めに分け、縁を差し色で塗る */
+const swatchStyle = (p: Palette): CSSProperties =>
+  ({ "--sw-light": p.light.page, "--sw-dark": p.dark.page, "--sw-accent": accentOf(p.id, "light") }) as CSSProperties;
 
 /** 帯に並べる画面。名前は `TEXT` の `site.nav` から引く */
 const DESTINATIONS = ["home", "catalog", "editor", "docs", "release-notes"] as const;
@@ -25,12 +31,16 @@ interface Props {
   route: Route;
   lang: Lang;
   theme: Theme;
+  /** サイトと図の色味 */
+  palette: string;
   onLang: (next: Lang) => void;
   onTheme: () => void;
+  onPalette: (id: string) => void;
 }
 
-export function SiteHeader({ path, route, lang, theme, onLang, onTheme }: Props): ReactElement {
+export function SiteHeader({ path, route, lang, theme, palette, onLang, onTheme, onPalette }: Props): ReactElement {
   const t = TEXT[lang].site;
+  const names = TEXT[lang].paletteNames;
   const current = currentOf(route);
   /*
    * 開いているかを直に持たず、開いた時の画面を持つ。
@@ -87,6 +97,22 @@ export function SiteHeader({ path, route, lang, theme, onLang, onTheme }: Props)
             </button>
           ))}
         </div>
+        <div className="site-palette" data-site="palette" role="group" aria-label={TEXT[lang].palette}>
+          {Object.values(PALETTES).map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="site-palette-btn"
+              data-site={`palette-${p.id}`}
+              aria-pressed={palette === p.id}
+              aria-label={names[p.id] ?? p.name}
+              title={names[p.id] ?? p.name}
+              onClick={() => onPalette(p.id)}
+            >
+              <span className="site-swatch" style={swatchStyle(p)} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           className="site-icon-btn"
@@ -119,6 +145,24 @@ export function SiteHeader({ path, route, lang, theme, onLang, onTheme }: Props)
             <nav data-site="sheet" aria-label={t.navLabel}>
               {links("site-sheet-link", () => setOpenedOn(null))}
             </nav>
+            <div className="site-sheet-palette" data-site="sheet-palette" role="group" aria-label={TEXT[lang].palette}>
+              <span className="site-sheet-label" aria-hidden="true">
+                {TEXT[lang].palette}
+              </span>
+              {Object.values(PALETTES).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="site-sheet-swatch"
+                  data-site={`palette-${p.id}`}
+                  aria-pressed={palette === p.id}
+                  onClick={() => onPalette(p.id)}
+                >
+                  <span className="site-swatch" style={swatchStyle(p)} aria-hidden="true" />
+                  {names[p.id] ?? p.name}
+                </button>
+              ))}
+            </div>
             <a className="site-sheet-cta" href={PATHS.editor} onClick={(e) => follow(e, () => setOpenedOn(null))}>
               {t.openEditor}
             </a>

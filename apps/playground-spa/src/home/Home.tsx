@@ -44,7 +44,14 @@ function lineKind(line: string, index: number): string | undefined {
   return index === 0 ? "head" : undefined;
 }
 
-function Demo({ lang, theme }: { lang: Lang; theme: Theme }): ReactElement {
+/** 概要の頁が受け取る言葉と明暗と、上の帯で選んだ色味 */
+interface Look {
+  lang: Lang;
+  theme: Theme;
+  palette: string;
+}
+
+function Demo({ lang, theme, palette }: Look): ReactElement {
   const t = TEXT[lang];
   const text = DEMO[lang];
   const [step, setStep] = useState(0);
@@ -90,14 +97,14 @@ function Demo({ lang, theme }: { lang: Lang; theme: Theme }): ReactElement {
             ))}
           </div>
           {/* 箱 3 つの小さな図なので、幅 390 でも全体を止めて見せる (箱の名前の字は 10px ほどに留まる) */}
-          <LiveFigure className="home-canvas-stage" notation={text} lang={lang} theme={theme} onStep={setStep} whole />
+          <LiveFigure className="home-canvas-stage" notation={text} lang={lang} theme={theme} palette={palette} onStep={setStep} whole />
         </div>
       </div>
     </section>
   );
 }
 
-export function Home({ lang, theme }: { lang: Lang; theme: Theme }): ReactElement {
+export function Home({ lang, theme, palette }: Look): ReactElement {
   const t = TEXT[lang].site;
   const home = t.home;
   const [before, em, after] = home.title;
@@ -128,7 +135,7 @@ export function Home({ lang, theme }: { lang: Lang; theme: Theme }): ReactElemen
         </div>
       </section>
 
-      <Demo lang={lang} theme={theme} />
+      <Demo lang={lang} theme={theme} palette={palette} />
 
       <section className="home-features" data-home="features">
         <div className="home-head">
@@ -177,7 +184,7 @@ export function Home({ lang, theme }: { lang: Lang; theme: Theme }): ReactElemen
         <div className="home-use-grid">
           {uses.map((use) => (
             <a key={use.key} className="home-use" data-home="use" href={`${PATHS.catalog}/${use.kind}`} onClick={(e) => follow(e)}>
-              <LiveFigure className="home-use-thumb" notation={exampleText(use.key, lang)} lang={lang} theme={theme} whole />
+              <LiveFigure className="home-use-thumb" notation={exampleText(use.key, lang)} lang={lang} theme={theme} palette={palette} whole />
               <div className="home-use-body">
                 <span className="home-use-kind" data-home="use-kind">
                   {kinds[use.kind]}

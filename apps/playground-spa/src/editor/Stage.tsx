@@ -2,16 +2,17 @@
  * 編集画面の図の側 (#3031)。前の編集画面の舞台の配置を、今の再生の部品で戻す。
  *
  * 上の段に色味と道具 (語りの字の大きさ、格子、全画面、全体に合わせる、縮小、拡大) を置く。
- * 図は再生の部品 (`mountDiagram`) で描き、頁の側では SVG を組まない。
+ * 図は再生の部品 (`mountDiagram`) で描き、頁の側では SVG を組まない (`useFittedFigure.ts`)。
  * 止めて見せる図 (`data-view="fixed"`) は枠に合わせた倍率 (`fit.ts`) で描き、拡大と縮小はその倍率に掛ける。
  * 寄って追う図は再生の部品が枠の幅で描き直すので、倍率を当てない。
  * 段を 2 つ以上持つ図は、左上に今の段の札を、下端に段の数で区切った進み具合の帯を出す。
  */
-import { type Diagram, mountDiagram, PALETTES, type Theme } from "@cardenelabs/dragon";
+import { type Diagram, PALETTES, type Theme } from "@cardenelabs/dragon";
 import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
 
 import { type Lang, TEXT } from "../text";
-import { fitScale, ZOOM_RANGE, ZOOM_STEP, zoomed } from "./fit";
+import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "./fit";
+import { useFittedFigure } from "./useFittedFigure";
 
 interface Props {
   /** 最後に描けた図 */
@@ -25,14 +26,6 @@ interface Props {
   /** 書き出しの案内に出す書類名 */
   fileName: string;
 }
-
-/** 止めて見せる図の大きさと、枠に合わせた倍率 */
-interface Fit {
-  width: number;
-  scale: number;
-}
-
-const px = (value: string): number => Number.parseFloat(value) || 0;
 
 /** 語りの字の倍率の段と範囲 */
 const SAY_STEP = 1.15;
@@ -64,43 +57,11 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
   const stage = useRef<HTMLElement>(null);
   const host = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
-  const [fit, setFit] = useState<Fit | null>(null);
   const [factor, setFactor] = useState(1);
   const [grid, setGrid] = useState(false);
   const [say, setSay] = useState(1);
   const [full, setFull] = useState(false);
-
-  // 再生の釦の読み上げと全体図の札は頁の言葉で出し、言葉を切り替えたら置き直す (#3001)
-  useEffect(() => {
-    const el = host.current;
-    if (!el || !diagram) return;
-    const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: setStep });
-    const frame = el.querySelector<HTMLElement>(".dg-frame");
-    /** 枠の中身の大きさと図の原寸から、枠に合わせる倍率を出す。寄って追う図には当てない */
-    const measure = (): void => {
-      const svg = el.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
-      if (!frame || !svg || svg.dataset.view !== "fixed") {
-        setFit(null);
-        return;
-      }
-      const style = getComputedStyle(frame);
-      const inner = {
-        width: frame.clientWidth - px(style.paddingLeft) - px(style.paddingRight),
-        height: frame.clientHeight - px(style.paddingTop) - px(style.paddingBottom),
-      };
-      const view = svg.viewBox.baseVal;
-      const name = svg.querySelector(".dg-sn");
-      const namePx = name ? px(getComputedStyle(name).fontSize) : 0;
-      setFit({ width: view.width, scale: fitScale(inner, { width: view.width, height: view.height }, namePx) });
-    };
-    // 再生の部品も同じ枠を見て見せ方を選び直すので、その後に測る (先に見始めた方が先に呼ばれる)
-    const observer = new ResizeObserver(measure);
-    if (frame) observer.observe(frame);
-    return () => {
-      observer.disconnect();
-      player.destroy();
-    };
-  }, [diagram, palette, theme, lang]);
+  const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: setStep });
 
   useEffect(() => {
     const onChange = (): void => setFull(document.fullscreenElement !== null && document.fullscreenElement === stage.current);

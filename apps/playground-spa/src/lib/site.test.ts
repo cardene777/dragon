@@ -849,8 +849,9 @@ describe("サイトの帯と経路 (#3030)", () => {
         Object.defineProperty(navigator, "clipboard", {
           configurable: true,
           value: {
-            writeText: async (text: string) => {
+            writeText: (text: string): Promise<void> => {
               w.__copied = text;
+              return Promise.resolve();
             },
           },
         });

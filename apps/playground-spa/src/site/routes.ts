@@ -75,10 +75,16 @@ export function usePath(): string {
   return useSyncExternalStore(subscribe, () => location.pathname);
 }
 
-/** 頁を読み直さずに `to` へ移り、頁の上へ戻す */
+/**
+ * 頁を読み直さずに `to` へ移り、頁の上へ戻す。
+ *
+ * `#` の後ろも運ぶ (#3033)。カタログの「編集画面で開く」は記法を `#` の後ろに載せ、編集画面は開いた時にそれを読む。
+ * 今の画面と同じ path で `#` の後ろを持たない行き先は移らない。編集画面で帯の編集画面を押しても、書いた記法の共有の URL を消さない。
+ */
 export function navigate(to: string): void {
-  if (to !== location.pathname) {
-    history.pushState(null, "", to);
+  const url = new URL(to, location.href);
+  if (url.pathname !== location.pathname || (url.hash !== "" && url.hash !== location.hash)) {
+    history.pushState(null, "", `${url.pathname}${url.hash}`);
     for (const listener of listeners) listener();
   }
   scrollTo(0, 0);
@@ -92,6 +98,6 @@ export function navigate(to: string): void {
 export function follow(event: MouseEvent<HTMLAnchorElement>, then?: () => void): void {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  navigate(new URL(event.currentTarget.href).pathname);
+  navigate(event.currentTarget.href);
   then?.();
 }

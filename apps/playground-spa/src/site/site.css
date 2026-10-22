@@ -1,63 +1,15 @@
 /* ================================================================
- * サイトの値の表と、全画面に共通する上の帯 (#3030)。
+ * サイトの値と、全画面に共通する上の帯 (#3030、#3033)。
  *
- * 値は 0.35.0 より前のサイトの意匠の表 (5b16743c の 1 つ前の `styles/site-theme.css`) から写した。
- * 明るい側は既定の意匠 (活版)、暗い側は同じ色相で地が暗い意匠 (図録) の値を持つ。
- * 意匠を選ぶ仕組みは戻さず、明暗の 2 つだけを持つ (意匠は作り直しの片付け #2983 で 1 つの見た目に畳んだ)。
- * html の `data-scheme` (`light` か `dark`) を `main.tsx` が置き、部品は `--d-*` の変数だけを読む。
+ * 色の値はここに持たない。`main.tsx` が帯で選んだ色味と明暗から `site-colors.ts` で引き、html に置く。
+ * 値の出どころは図の色味の表 (`@cardenelabs/dragon` の `PALETTES`) 1 つで、サイトと図は同じ色味になる。
+ * ここが持つのは色に関わらない値 (角、余白、帯の高さ) と、置かれた色を混ぜて作る値だけ。
  * 帯の見た目は前の `styles/header.css` を写し、class の名前だけを替えた。
- *
- * 図の色は図の色味の表 (`@cardenelabs/dragon` の `PALETTES`) が持ち、ここの値を読まない。
  * ================================================================ */
 
-:root,
-html[data-scheme="light"] {
-  color-scheme: light;
-
-  --d-bg: #f6f1e6;
-  --d-surface: #fffdf7;
-  --d-surface-2: #fffdf7;
-  --d-surface-3: #efe8d8;
-  --d-border: #e6dfcd;
-  --d-border-strong: #cfc4a9;
-  --d-text-primary: #2a231d;
-  --d-text-secondary: #5e5446;
-  --d-text-muted: #6a5f50;
-  --d-accent: #c0421f;
-  --d-accent-soft: #f7e5da;
-  --d-on-accent: #ffffff;
-  --d-code-bg: #f2ecdd;
-  --d-code-selection-bg: #efe6d3;
-  --d-err: #8a3d2b;
-  --d-err-soft: #f6e4dd;
-  --d-ok: #3f7a58;
-  --d-scrim: #100e0cb8;
-}
-
-html[data-scheme="dark"] {
-  color-scheme: dark;
-
-  --d-bg: #1a1611;
-  --d-surface: #241f18;
-  --d-surface-2: #2f2920;
-  --d-surface-3: #3b3328;
-  --d-border: #453d31;
-  --d-border-strong: #5c5244;
-  --d-text-primary: #f3ece0;
-  --d-text-secondary: #c9bda6;
-  --d-text-muted: #a89b86;
-  --d-accent: #ee6b3f;
-  --d-accent-soft: #3d2116;
-  --d-on-accent: #1a0e07;
-  --d-code-bg: #201b15;
-  --d-code-selection-bg: #2a231a;
-  --d-err: #e08a76;
-  --d-err-soft: #452520;
-  --d-ok: #74c095;
-  --d-scrim: #100e0cb8;
-}
-
 :root {
+  --d-accent-soft: color-mix(in srgb, var(--d-accent) 14%, var(--d-surface));
+  --d-err-soft: color-mix(in srgb, var(--d-err) 12%, var(--d-surface));
   --d-r-1: 3px;
   --d-r-2: 5px;
   --d-gutter: clamp(20px, 8.4vw, 120px);
@@ -238,6 +190,53 @@ textarea:focus-visible {
   border-color: var(--d-border-strong);
 }
 
+/* 色味の切替 (#3033)。見本の丸は明るい側と暗い側の地を斜めに分け、縁を色味の差し色で塗る */
+.site-palette {
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface);
+}
+
+.site-palette:hover {
+  border-color: var(--d-border-strong);
+}
+
+.site-palette-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 21px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.site-palette-btn[aria-pressed="true"] {
+  background: var(--d-surface-3);
+}
+
+.site-swatch {
+  display: block;
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sw-light) 50%, var(--sw-dark) 50%);
+  box-shadow: inset 0 0 0 2px var(--sw-accent);
+}
+
+[aria-pressed="true"] > .site-swatch {
+  box-shadow:
+    inset 0 0 0 2px var(--sw-accent),
+    0 0 0 1.5px var(--d-surface),
+    0 0 0 3px var(--d-text-primary);
+}
+
 .site-icon-btn {
   display: flex;
   align-items: center;
@@ -306,7 +305,8 @@ textarea:focus-visible {
 }
 
 @media (max-width: 720px) {
-  .site-nav {
+  .site-nav,
+  .site-palette {
     display: none;
   }
   .site-menu-btn {
@@ -365,6 +365,42 @@ textarea:focus-visible {
   box-shadow: inset 3px 0 0 var(--d-accent);
 }
 
+/* 畳んだ面の色味の切替。帯から外した切替を、名前を添えてここに並べる */
+.site-sheet-palette {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 10px 14px 4px;
+  border-top: 1px solid var(--d-border);
+}
+
+.site-sheet-label {
+  margin-right: 4px;
+  font-size: 12px;
+  color: var(--d-text-muted);
+}
+
+.site-sheet-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-1);
+  background: transparent;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--d-text-secondary);
+}
+
+.site-sheet-swatch[aria-pressed="true"] {
+  border-color: var(--d-text-primary);
+  color: var(--d-text-primary);
+  font-weight: 600;
+}
+
 .site-sheet-cta {
   margin-top: 6px;
   padding: 12px 14px;
@@ -405,13 +441,6 @@ textarea:focus-visible {
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.5px;
-}
-
-.site-eyebrow {
-  margin: 0 0 8px;
-  font-family: var(--mono), monospace;
-  font-size: 12px;
-  color: var(--d-accent);
 }
 
 .site-lead {
