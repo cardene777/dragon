@@ -5,6 +5,20 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.35.1] - 2026-10-22
+
+### Fixed
+
+- **書き出しの部品を `require` で読むと断られていたのを直した** (#3021)
+
+  0.35.0 は `exports` の `./export` に `require` の行が無く、`require("@cardenelabs/dragon/export")` が `ERR_PACKAGE_PATH_NOT_EXPORTED` で断られた。
+  `require` は `dist/export.cjs` を指し、`import` と同じ file を書き出す。
+
+  あわせて `.` と `./export` は、`import` で入れる人には `.d.ts` の型を、`require` で入れる人には `.d.cts` の型を渡すようにした。
+  今までは `require` で入れる人にも ESM 用の型を渡していた。
+
+  命令 `dragon` の path を `dist/cli.js` と書き、公開の時に npm が「無効なので外した」と警告しないようにした (命令は 0.35.0 にも入っている)。
+
 ## [0.35.0] - 2026-10-22
 
 dragon を根本から作り直した版 (#2982)。
