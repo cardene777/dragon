@@ -5,11 +5,16 @@
  * 頁は build して GitHub Pages と同じ形で配り、画面なしの Chromium で開く (`playground-support.ts`)。
  * 画面は `data-site-screen` の札で見分け、帯の部品は `data-site` の札で探す。
  */
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { DEFAULT_PALETTE, PALETTES, parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { EXAMPLE_KEYS, exampleText, TEMPLATE } from "../examples";
 import { toHash } from "../share";
-import { BASE, rgb, type Site, startSite } from "./playground-support";
+import { type Lang, TEXT } from "../text";
+import { app, BASE, rgb, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -77,9 +82,98 @@ const leftover = (page: Page): Promise<string> =>
 /** 書く欄を確かめる記法 (`playground.test.ts` の `EDITED` と同じ形) */
 const EDITED = ["時系列図 書き換えた図", "", "甲 = 甲のサービス", "乙 = 乙のサービス", "", "# 呼ぶ", "> 甲が乙を呼ぶ。", "甲 -> 乙 : 呼ぶ"].join("\n");
 
+/** 概要の頁の部品 (#3032) */
+const homeSel = (name: string): string => `[data-home="${name}"]`;
+
+/** 概要の 6 区画の並び */
+const HOME_SECTIONS = ["hero", "demo", "features", "steps", "uses", "closing"] as const;
+
+/** 実物の窓に出す記法の file。無ければ `undefined` */
+const demoText = (lang: Lang): string | undefined => {
+  const path = join(app, "src/home", lang === "ja" ? "demo.dragon" : "demo.en.dragon");
+  return existsSync(path) ? readFileSync(path, "utf8").trimEnd() : undefined;
+};
+
+/** 記法の段ごとの行の範囲 (1 から数える)。段の `#` の行から、次の段の前の空でない行まで */
+const stepLines = (text: string): number[][] => {
+  const lines = text.split("\n");
+  const heads = lines.flatMap((line, i) => (line.startsWith("#") ? [i] : []));
+  return heads.map((head, k) => {
+    let end = (heads[k + 1] ?? lines.length) - 1;
+    while (end > head && (lines[end] ?? "").trim() === "") end--;
+    return Array.from({ length: end - head + 1 }, (_, i) => head + i + 1);
+  });
+};
+
+/** 見本の file の最初の注釈 (`// ` の後ろ) */
+const aboutOf = (text: string): string => (text.split("\n")[0] ?? "").replace(/^\/\/\s*/u, "");
+
+/** 実物の窓の書類名と段の札と、記法の行と光っている行の番号 */
+const demoOf = (page: Page): Promise<{ file: string; phase: string; code: string; current: number[]; names: string[] } | null> =>
+  page.evaluate(() => {
+    const demo = document.querySelector('[data-home="demo"]');
+    if (!demo) return null;
+    const lines = [...demo.querySelectorAll<HTMLElement>('[data-home="demo-code"] [data-line]')];
+    const svg = demo.querySelector('svg[data-dragon="figure"]');
+    return {
+      file: demo.querySelector('[data-home="demo-file"]')?.textContent?.trim() ?? "",
+      phase: demo.querySelector('[data-home="demo-phase"]')?.textContent?.trim() ?? "",
+      code: lines.map((l) => l.querySelector('[data-home="code-text"]')?.textContent ?? "").join("\n"),
+      current: lines.filter((l) => l.dataset.current === "true").map((l) => Number(l.dataset.line)),
+      names: svg ? [...new Set([...svg.querySelectorAll(".dg-sn")].map((n) => n.textContent ?? ""))].sort() : [],
+    };
+  });
+
+/** 用例の札の題と名札と説明と行き先と、縮小版の図の箱の名前と見せ方と動き */
+const usesOf = (
+  page: Page,
+): Promise<{ title: string; kind: string; about: string; href: string; names: string[]; view: string | null; motion: string | null }[]> =>
+  page.evaluate(() =>
+    [...document.querySelectorAll<HTMLAnchorElement>('[data-home="use"]')].map((card) => {
+      const svg = card.querySelector('svg[data-dragon="figure"]');
+      return {
+        title: card.querySelector("h3")?.textContent?.trim() ?? "",
+        kind: card.querySelector('[data-home="use-kind"]')?.textContent?.trim() ?? "",
+        about: card.querySelector("p")?.textContent?.trim() ?? "",
+        href: card.href ? new URL(card.href).pathname : "",
+        names: svg ? [...new Set([...svg.querySelectorAll(".dg-sn")].map((n) => n.textContent ?? ""))].sort() : [],
+        view: svg?.getAttribute("data-view") ?? null,
+        motion: svg?.getAttribute("data-motion") ?? null,
+      };
+    }),
+  );
+
+/** 区画の中の link の行き先。頁の中は path、外は URL */
+const linksIn = (page: Page, name: string): Promise<{ text: string; href: string }[]> =>
+  page.evaluate(
+    (s) =>
+      [...document.querySelectorAll<HTMLAnchorElement>(`${s} a`)].map((a) => ({
+        text: (a.textContent ?? "").trim(),
+        href: new URL(a.href).origin === location.origin ? new URL(a.href).pathname : a.href.replace(/\/$/u, ""),
+      })),
+    homeSel(name),
+  );
+
+/** 概要の図の色 (図の地と字) を、置いた図ごとに */
+const homeLooks = (page: Page): Promise<string[]> =>
+  page.evaluate(() =>
+    [...document.querySelectorAll('[data-site-screen="home"] .dg-player')].map((p) => {
+      const v = (name: string): string => getComputedStyle(p).getPropertyValue(name).trim().toLowerCase();
+      return `${v("--bg")} ${v("--ink")}`;
+    }),
+  );
+
+/** 見本の題と図の種類と箱の名前 */
+const sampleOf = (text: string): { title: string; kind: "sequence" | "architecture"; names: string[] } | undefined => {
+  const parsed = parseNotation(text);
+  if (!parsed.ok) return undefined;
+  const { title, kind, boxes } = parsed.diagram;
+  return { title, kind, names: [...new Set(boxes.map((b) => b.name))].sort() };
+};
+
 let site: Site;
 
-const screenOf = (page: Page): Promise<string | null> =>
+const screenOf =(page: Page): Promise<string | null> =>
   page.evaluate(() => document.querySelector("[data-site-screen]")?.getAttribute("data-site-screen") ?? null);
 
 async function onScreen(page: Page, screen: Screen, message: string): Promise<void> {
@@ -330,6 +424,126 @@ describe("サイトの帯と経路 (#3030)", () => {
           message: "前に共有した URL の記法が書く欄に入らない",
         })
         .toBe(EDITED);
+    },
+    SLOW,
+  );
+
+  it(
+    "home-has-six-sections-with-live-diagrams",
+    async () => {
+      const { page } = await site.open({ path: BASE, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "home", "概要の頁が出ない");
+
+      // 6 区画がこの順で並ぶ
+      const sections = (): Promise<(string | null)[]> =>
+        page.evaluate(
+          (names) => [...document.querySelectorAll("[data-home]")].map((e) => e.getAttribute("data-home")).filter((n) => names.includes(n ?? "")),
+          [...HOME_SECTIONS] as string[],
+        );
+      await expect.poll(sections, { ...WAIT, message: "概要の 6 区画がこの順で並ばない" }).toEqual([...HOME_SECTIONS]);
+
+      // 呼びかけ。見出しと、編集画面と使い方への釦
+      expect(await page.locator(`${homeSel("hero")} h1`).count(), "呼びかけに見出しが無い").toBe(1);
+      expect(await linksIn(page, "hero"), "呼びかけの釦が編集画面と使い方へ向かない").toEqual([
+        { text: "編集画面を開く →", href: `${BASE}editor` },
+        { text: "使い方を読む", href: `${BASE}docs` },
+      ]);
+
+      // 記法と図の実物。窓の記法が見本の記法で、図はその記法の箱を描き、今の段の行が光る
+      const ja = demoText("ja");
+      expect(ja, "実物の窓に出す記法の file (src/home/demo.dragon) が無い").toBeDefined();
+      const demo = sampleOf(ja ?? "");
+      expect(demo, "実物の窓の記法が読めない").toBeDefined();
+      const parsed = parseNotation(ja ?? "");
+      const steps = parsed.ok ? parsed.diagram.steps : [];
+      expect(steps.length, "実物の窓の記法が段を 2 つ以上持たない").toBeGreaterThanOrEqual(2);
+      const ranges = stepLines(ja ?? "");
+      const phaseOf = (n: number): string => TEXT.ja.stage.phase(n + 1, steps.length, steps[n]?.title ?? "");
+      await expect.poll(async () => (await demoOf(page))?.code ?? null, { ...WAIT, message: "実物の窓の記法が見本の記法でない" }).toBe(ja);
+      await expect.poll(async () => (await demoOf(page))?.names ?? null, { ...WAIT, message: "実物の窓の図が記法の箱を描かない" }).toEqual(demo?.names);
+      const first = await demoOf(page);
+      expect(first?.file, "実物の窓に書類名が無い").toMatch(/\.dragon$/u);
+      expect(first?.phase, "実物の窓の段の札が最初の段でない").toBe(phaseOf(0));
+      expect(first?.current, "実物の窓で最初の段の行が光らない").toEqual(ranges[0]);
+      // 図は自分で次の段へ進み、段の札と光る行が付いてくる
+      await expect
+        .poll(async () => (await demoOf(page))?.phase ?? null, { timeout: 20_000, interval: 200, message: "実物の窓の図が次の段へ進まない" })
+        .toBe(phaseOf(1));
+      expect((await demoOf(page))?.current, "段が進んでも光る行が替わらない").toEqual(ranges[1]);
+
+      // 特長 3 つ。印と見出しと説明
+      const features = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-home="feature"]')].map((f) => ({
+          icon: f.querySelector('[data-home="feature-icon"]') !== null,
+          title: f.querySelector("h3")?.textContent?.trim() ?? "",
+          text: f.querySelector("p")?.textContent?.trim() ?? "",
+        })),
+      );
+      expect(features.length, "特長が 3 つ並ばない").toBe(3);
+      for (const f of features) expect(f.icon && f.title !== "" && f.text !== "", `特長「${f.title}」に印か見出しか説明が無い`).toBe(true);
+
+      // 3 手順。番号と見出しと説明、2 つ目に新規作成の雛形の抜粋
+      const quick = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-home="step"]')].map((s) => ({
+          no: s.querySelector('[data-home="step-no"]')?.textContent?.trim() ?? "",
+          title: s.querySelector("h3")?.textContent?.trim() ?? "",
+          code: s.querySelector('[data-home="step-code"]')?.textContent ?? null,
+        })),
+      );
+      expect(quick.map((s) => s.no), "3 手順の番号が 01 から 03 でない").toEqual(["01", "02", "03"]);
+      expect(quick.every((s) => s.title !== ""), "3 手順に見出しの無い手順がある").toBe(true);
+      expect(quick.map((s) => s.code?.trimEnd() ?? null), "3 手順の 2 つ目だけに新規作成の雛形が出ない").toEqual([null, TEMPLATE.ja, null]);
+
+      // 用例 3 つ。見本ごとに、縮小版の動く図と、図の種類の名札と題と説明。押すとその図の種類の分類へ移る
+      const expected = (lang: Lang): { title: string; kind: string; about: string; href: string; names: string[]; view: string; motion: string }[] =>
+        EXAMPLE_KEYS.map((key) => {
+          const text = exampleText(key, lang);
+          const s = sampleOf(text);
+          return {
+            title: s?.title ?? "",
+            kind: s ? TEXT[lang].shelf.kinds[s.kind] : "",
+            about: aboutOf(text),
+            href: `${BASE}catalog/${s?.kind ?? ""}`,
+            names: s?.names ?? [],
+            view: "fixed",
+            motion: "play",
+          };
+        });
+      await expect.poll(() => usesOf(page), { ...WAIT, message: "用例の札が見本 3 つの図と題と名札と説明を出さない" }).toEqual(expected("ja"));
+      expect(await linksIn(page, "uses-more"), "用例の下にカタログへの行き先が無い").toEqual([{ text: "カタログで図を見る →", href: `${BASE}catalog` }]);
+
+      // 最後の呼びかけ。編集画面と GitHub への釦
+      expect(await page.locator(`${homeSel("closing")} h2`).count(), "最後の呼びかけに見出しが無い").toBe(1);
+      expect(await linksIn(page, "closing"), "最後の呼びかけの釦が編集画面と GitHub へ向かない").toEqual([
+        { text: "編集画面を開く →", href: `${BASE}editor` },
+        { text: "GitHub ↗", href: REPO },
+      ]);
+
+      // 図は頁の明暗に合わせて描かれ、明暗を替えると描き直される
+      const looks = (theme: "light" | "dark"): string => {
+        const v = PALETTES[DEFAULT_PALETTE]?.[theme] ?? {};
+        return `${(v.bg ?? "").toLowerCase()} ${(v.ink ?? "").toLowerCase()}`;
+      };
+      expect(await homeLooks(page), "概要の図が明るい側の色で描かれない").toEqual(Array(1 + EXAMPLE_KEYS.length).fill(looks("light")));
+      await page.locator(siteSel("theme")).click();
+      await expect
+        .poll(() => homeLooks(page), { ...WAIT, message: "明暗を替えても概要の図が暗い側の色で描き直されない" })
+        .toEqual(Array(1 + EXAMPLE_KEYS.length).fill(looks("dark")));
+
+      // 英語に替えると、実物の窓の記法と用例の札が英語の見本になる
+      await page.locator(siteSel("lang-en")).click();
+      const en = demoText("en");
+      expect(en, "実物の窓に出す英語の記法の file (src/home/demo.en.dragon) が無い").toBeDefined();
+      await expect.poll(async () => (await demoOf(page))?.code ?? null, { ...WAIT, message: "英語に替えても実物の窓の記法が英語の見本にならない" }).toBe(en);
+      await expect.poll(async () => (await demoOf(page))?.names ?? null, { ...WAIT, message: "英語の実物の窓の図が記法の箱を描かない" }).toEqual(sampleOf(en ?? "")?.names);
+      await expect.poll(() => usesOf(page), { ...WAIT, message: "英語に替えても用例の札が英語の見本にならない" }).toEqual(expected("en"));
+
+      // 用例の札を押すと、その図の種類の分類の頁へ移る
+      const card = page.locator(homeSel("use")).last();
+      const href = (await usesOf(page)).at(-1)?.href ?? "";
+      await card.click();
+      await onScreen(page, "category", "用例の札を押しても分類の頁へ移らない");
+      expect(await page.evaluate(() => location.pathname), "用例の札が見本の図の種類の分類へ向かない").toBe(href);
     },
     SLOW,
   );
