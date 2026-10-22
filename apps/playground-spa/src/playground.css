@@ -1,199 +1,422 @@
 /*
- * 編集画面の見た目 (#2995、#3030)。絵は docs/design/playground/playground.pen。
+ * 編集画面の見た目 (#2995、#3030、#3031)。
  *
- * 色はサイトの値の表 (`site/site.css` の `--d-*`) を編集画面の短い名前に読み替えて使う。
- * 図の色は図の再生の部品が自分の要素に色味の値を置くので、ここの読み替えは図に届かない。
- * 幅が狭い時は図を上、書く欄を下に積み、書く欄を畳めるようにする。
+ * 配置と見た目は 0.35.0 より前のサイトの編集画面 (`styles/editor.css` と `styles/phase-chrome.css`) を写した。
+ * 左に棚、中に書く欄、右に図の 3 列で、幅 1440 で棚 240、書く欄 300、図が残り (約 900) になる。
+ * 図の列は、CCIP (幅 1056) を箱の名前の字 11px で収めるのに 894px 要るので、横の余白を持たない。
+ *
+ * 色はサイトの値の表 (`site/site.css` の `--d-*`) を使う。
+ * 図の色は図の再生の部品が自分の要素に色味の値を置くので、ここの値は図に届かない。
+ * 幅 1100 以下では棚を引き出しに畳み、幅 760 以下では図を上、書く欄を下に積んで書く欄を畳めるようにする。
  */
 .pg {
-  --bg: var(--d-surface);
-  --surf: var(--d-surface);
-  --sunk: var(--d-code-bg);
-  --hair: var(--d-border);
-  --line: var(--d-border-strong);
-  --ink: var(--d-text-primary);
-  --ink2: var(--d-text-secondary);
-  --mute: var(--d-text-muted);
-  --t-rose: var(--d-err);
-  --t-green: var(--d-ok);
-
+  position: relative;
   display: grid;
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: 240px 300px minmax(0, 1fr);
+  grid-template-areas: "shelf code stage";
   height: calc(100dvh - var(--d-topbar-h));
+  background: var(--d-bg);
 }
 
 .pg-gap {
   flex: 1;
 }
 
-/* 図の上の段。図の色味を選ぶ */
-.pg-stage-bar {
-  display: flex;
+/* ── 道具の釦。字の代わりに線の絵 (`editor/icons/`) を字の色で塗る ── */
+
+.pg-tool {
+  display: inline-flex;
   align-items: center;
-  gap: 16px;
-  min-height: 22px;
-}
-
-.pg-label {
-  font-size: 12px;
-  color: var(--mute);
-}
-
-.pg-swatches {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pg-swatch {
-  width: 18px;
-  height: 18px;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   padding: 0;
-  border-radius: 50%;
-  border: 2px solid;
+  border: 1px solid transparent;
+  border-radius: var(--d-r-1);
+  background: transparent;
+  color: var(--d-text-secondary);
 }
 
-.pg-swatch[aria-pressed="true"] {
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink);
+.pg-tool:hover:not(:disabled) {
+  border-color: var(--d-border-strong);
+  color: var(--d-text-primary);
 }
 
-/* 本体。広い時は左に書く欄、右に図 */
-.pg-body {
-  display: grid;
-  grid-template-columns: 540px minmax(0, 1fr);
-  grid-template-areas: "editor stage";
-  min-height: 0;
+/* 入になっている切り替えは、押せる釦と見分けが付くようにする */
+.pg-tool[aria-pressed="true"] {
+  background: var(--d-accent-soft);
+  border-color: var(--d-accent);
+  color: var(--d-accent);
 }
 
-.pg-stage {
-  grid-area: stage;
+.pg-tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pg-tool-primary,
+.pg-tool-primary:hover:not(:disabled) {
+  background: var(--d-accent);
+  border-color: var(--d-accent);
+  color: var(--d-on-accent);
+}
+
+.pg-tool-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.pg-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  mask: center / 16px 16px no-repeat;
+}
+
+.pg-icon[data-icon="text-down"] {
+  mask-image: url("./editor/icons/text-down.svg");
+}
+.pg-icon[data-icon="text-up"] {
+  mask-image: url("./editor/icons/text-up.svg");
+}
+.pg-icon[data-icon="grid"] {
+  mask-image: url("./editor/icons/grid.svg");
+}
+.pg-icon[data-icon="fullscreen"] {
+  mask-image: url("./editor/icons/fullscreen.svg");
+}
+.pg-icon[data-icon="fit"] {
+  mask-image: url("./editor/icons/fit.svg");
+}
+.pg-icon[data-icon="zoom-out"] {
+  mask-image: url("./editor/icons/zoom-out.svg");
+}
+.pg-icon[data-icon="zoom-in"] {
+  mask-image: url("./editor/icons/zoom-in.svg");
+}
+.pg-icon[data-icon="import"] {
+  mask-image: url("./editor/icons/import.svg");
+}
+.pg-icon[data-icon="export"] {
+  mask-image: url("./editor/icons/export.svg");
+}
+.pg-icon[data-icon="list"] {
+  mask-image: url("./editor/icons/list.svg");
+}
+
+/* ── 左の棚 ── */
+
+.pg-shelf {
+  grid-area: shelf;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px;
-  min-width: 0;
   min-height: 0;
+  padding: 16px 12px;
+  box-sizing: border-box;
+  background: var(--d-surface);
+  border-right: 1px solid var(--d-border);
 }
 
-.pg-kept {
-  margin: 0;
-  font-size: 12px;
-  color: var(--mute);
-}
-
-/*
- * 図は枠に収める。原寸より大きくせず、枠より大きい時だけ縦横の比を保って縮める。
- * 段の釦と本文は図の下に出したまま、図の全体と同時に見える。
- */
-.pg-figure {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  padding: 16px;
-  border: 1px solid var(--hair);
-  border-radius: 14px;
-  background: var(--surf);
-}
-
-.pg-figure > .dg-player {
-  flex: 1;
-  min-height: 0;
-}
-
-.pg-figure .dg-frame {
-  flex: 1;
+.pg-new {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 0;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--d-r-1);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.pg-figure .dg-frame svg {
-  display: block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
-  min-width: 0;
-  min-height: 0;
+.pg-new:hover {
+  filter: brightness(1.08);
 }
 
-.pg-hint {
+.pg-new-plus {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.pg-shelf-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--d-border);
+}
+
+.pg-shelf-tabs button {
+  flex: 1;
+  padding: 8px 6px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--d-text-muted);
+  font-size: 13px;
+}
+
+.pg-shelf-tabs button:hover {
+  color: var(--d-text-primary);
+}
+
+.pg-shelf-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--d-accent);
+  color: var(--d-text-primary);
+  font-weight: 600;
+}
+
+.pg-filter {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface-2);
+  color: var(--d-text-primary);
+  font: inherit;
+  outline: none;
+}
+
+.pg-filter:focus,
+.pg-filter:focus-visible {
+  border-color: var(--d-accent);
+  outline: none;
+}
+
+.pg-filter::placeholder {
+  color: var(--d-text-muted);
+}
+
+.pg-shelf-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.pg-group {
+  margin-bottom: 14px;
+}
+
+.pg-group-title {
   margin: 0;
-  font-size: 12px;
-  color: var(--ink2);
-}
-
-.pg-hint code {
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--sunk);
-  color: var(--ink);
+  padding: 8px 8px 4px;
   font-family: var(--mono), monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--d-text-muted);
 }
 
-/* 書く欄 */
-.pg-editor {
-  grid-area: editor;
+.pg-item {
+  display: block;
+  width: 100%;
+  margin-bottom: 1px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--d-r-1);
+  background: transparent;
+  color: var(--d-text-secondary);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pg-item:hover {
+  background: var(--d-surface-3);
+  color: var(--d-text-primary);
+}
+
+.pg-item[aria-current="true"] {
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+  font-weight: 600;
+}
+
+.pg-shelf-hint {
+  margin: 0 0 8px;
+  padding: 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--d-text-muted);
+}
+
+/* 部品と記法の早見の 1 項目。名前か説明と、記法の行を縦に並べる */
+.pg-entry {
   display: flex;
   flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  margin-bottom: 2px;
+  padding: 7px 10px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--d-r-1);
+  background: transparent;
+  text-align: left;
+}
+
+.pg-entry-button:hover {
+  background: var(--d-surface-3);
+}
+
+.pg-entry-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--d-text-primary);
+}
+
+.pg-entry-code {
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--d-text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pg-entry > .pg-entry-code:first-child {
+  color: var(--d-text-primary);
+}
+
+.pg-entry-note {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--d-text-muted);
+}
+
+.pg-shelf-empty {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--d-text-muted);
+}
+
+/* 引き出しの外を覆う幕と開く口は、棚を畳む幅でだけ出す */
+.pg-shelf-scrim,
+.pg-shelf-toggle {
+  display: none;
+}
+
+/* ── 書く欄 ── */
+
+.pg-code {
+  grid-area: code;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   min-height: 0;
-  background: var(--bg);
-  border-right: 1px solid var(--hair);
+  background: var(--d-code-bg);
+  border-right: 1px solid var(--d-border);
 }
 
-.pg-bar {
+/* 書く欄と図の上の段。狭い時は段の中で横に送り、頁を横に溢れさせない */
+.pg-bar,
+.pg-stage-bar {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--hair);
+  gap: 4px;
+  height: 46px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--d-border);
+  background: var(--d-surface);
 }
 
+.pg-bar::-webkit-scrollbar,
+.pg-stage-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.pg-bar > *,
+.pg-stage-bar > * {
+  flex-shrink: 0;
+}
+
+/* 記法と JSON の切替。1 つの枠に収め、選ばれている側だけ色を反転する */
 .pg-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 8px;
-  background: var(--sunk);
+  display: inline-flex;
 }
 
 .pg-tabs button {
-  border: 0;
-  padding: 3px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 5px 8px;
+  border: 1px solid var(--d-border-strong);
   background: transparent;
-  color: var(--ink2);
+  color: var(--d-text-secondary);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pg-tabs button:first-child {
+  border-radius: var(--d-r-1) 0 0 var(--d-r-1);
+}
+
+.pg-tabs button + button {
+  border-left: 0;
+  border-radius: 0 var(--d-r-1) var(--d-r-1) 0;
+}
+
+.pg-tabs button:hover {
+  color: var(--d-text-primary);
 }
 
 .pg-tabs button[aria-selected="true"] {
-  background: var(--surf);
-  color: var(--ink);
-  font-weight: 700;
+  background: var(--d-accent);
+  border-color: var(--d-accent);
+  color: var(--d-on-accent);
+  font-weight: 600;
 }
 
-.pg-pick {
-  max-width: 240px;
-  padding: 4px 8px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--surf);
-  font-size: 12px;
+/* 書類名は縮む側に置く。釦は押せないと困るが、名前は端が切れても読める */
+.pg-bar > .pg-file {
+  flex: 1 1 0;
+  min-width: 56px;
+  padding: 5px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--d-r-1);
+  background: transparent;
+  color: var(--d-text-muted);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.pg-bar > .pg-file:hover {
+  border-color: var(--d-border);
+}
+
+.pg-bar > .pg-file:focus,
+.pg-bar > .pg-file:focus-visible {
+  border-color: var(--d-accent);
+  color: var(--d-text-primary);
+  outline: none;
 }
 
 .pg-fold {
   display: none;
+  align-items: center;
+  gap: 4px;
   padding: 4px 8px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
   background: transparent;
+  color: var(--d-text-secondary);
   font-size: 12px;
 }
 
-.pg-code {
+.pg-code-body {
   flex: 1;
   display: flex;
   min-height: 0;
@@ -202,23 +425,29 @@
   line-height: 20px;
 }
 
-.pg-code[hidden] {
+.pg-code-body[hidden] {
   display: none;
 }
 
 .pg-gutter {
   flex: none;
-  width: 34px;
+  width: 36px;
   overflow: hidden;
   padding: 12px 0;
-  text-align: right;
-  color: var(--mute);
+  border-right: 1px solid var(--d-border);
+  color: var(--d-text-muted);
   font-size: 11px;
+  text-align: right;
   user-select: none;
 }
 
+.pg-gutter > div {
+  padding-right: 8px;
+}
+
 .pg-gutter .is-error {
-  color: var(--t-rose);
+  background: var(--d-err-soft);
+  color: var(--d-err);
   font-weight: 700;
 }
 
@@ -226,88 +455,425 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  padding: 12px 16px 12px 12px;
+  padding: 12px 14px 12px 10px;
   border: 0;
-  outline: none;
-  resize: none;
   background: transparent;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
+  color: var(--d-text-primary);
+  font: inherit;
   white-space: pre;
   overflow: auto;
+  resize: none;
   tab-size: 2;
 }
 
-.pg-status {
-  margin: 0;
+.pg-text:focus,
+.pg-text:focus-visible {
+  outline: none;
+}
+
+/* 知らせの欄の行番号で選んだ行が見えるよう、選んだ字の地を差し色で薄く塗る */
+.pg-text::selection {
+  background: color-mix(in srgb, var(--d-accent) 24%, transparent);
+}
+
+/* ── 知らせの欄 ── */
+
+.pg-notices {
+  flex: none;
+  max-height: 180px;
+  overflow-y: auto;
   padding: 10px 16px;
-  border-top: 1px solid var(--hair);
+  border-top: 1px solid var(--d-border);
+  font-size: 12.5px;
+}
+
+.pg-notices[data-state="error"] {
+  padding: 11px 16px 12px;
+  background: var(--d-err-soft);
+}
+
+.pg-ok {
+  margin: 0;
   font-size: 12px;
-  color: var(--t-green);
+  color: var(--d-ok);
 }
 
-.pg-status[data-state="error"] {
-  color: var(--t-rose);
+.pg-notices-head {
+  margin: 0 0 8px;
+}
+
+.pg-notices-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--d-err);
+  border-radius: 9px;
+  color: var(--d-err);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
   font-weight: 600;
-  background: color-mix(in srgb, var(--t-rose) 8%, transparent);
 }
 
-/* 幅が狭い時は図を上、書く欄を下に積む */
+.pg-notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 行番号の札を 1 段目に、文を残りの幅に置く。幅が足りない時は文を 2 段目へ折り返す */
+.pg-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+}
+
+.pg-notice-line {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--d-err) 45%, transparent);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface);
+  color: var(--d-err);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pg-notice-line:hover {
+  background: var(--d-err);
+  border-color: var(--d-err);
+  color: var(--d-surface);
+}
+
+.pg-notice-text {
+  flex: 1 1 160px;
+  min-width: 0;
+  line-height: 1.6;
+  color: var(--d-text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* ── 図の側 ── */
+
+.pg-stage {
+  grid-area: stage;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--d-bg);
+}
+
+.pg-stage-bar {
+  padding: 0 14px;
+}
+
+.pg-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  color: var(--d-text-muted);
+}
+
+.pg-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--d-accent);
+  animation: pg-live 1.8s ease-in-out infinite;
+}
+
+@keyframes pg-live {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.pg-swatches {
+  display: flex;
+  gap: 8px;
+  margin-left: 14px;
+}
+
+.pg-swatch {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 2px solid;
+  border-radius: 50%;
+}
+
+.pg-swatch[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px var(--d-surface),
+    0 0 0 4px var(--d-text-primary);
+}
+
+.pg-tool-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--d-border);
+}
+
+/* 桁が変わっても位置がぶれないよう、幅を取っておく */
+.pg-zoom {
+  min-width: 44px;
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--d-border);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--d-text-muted);
+  text-align: right;
+}
+
+.pg-figure {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 格子は罫ではなく点で出す。図の中身 (生存線や線) が線なので、罫だと同じ種類の物が競り合う */
+.pg-figure[data-grid] {
+  background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--d-border-strong) 70%, transparent) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.pg-player,
+.pg-player > .dg-player {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/*
+ * 図の枠。枠に合わせた倍率で収まらない分は、枠の中で縦横に送る。
+ * 図は `margin: auto` で真ん中に置き、はみ出す時は上と左から送れるよう端に寄せる。
+ */
+.pg-figure .dg-player .dg-frame {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  padding: 16px 0;
+  overflow: auto;
+  border-radius: 0;
+}
+
+/* 段の札の下から図を描き、札が箱に重ならないようにする */
+.pg-figure[data-phased] .dg-player .dg-frame {
+  padding-top: 48px;
+}
+
+.pg-figure .dg-frame svg {
+  display: block;
+  flex: none;
+  max-width: 100%;
+  height: auto;
+  margin: auto;
+}
+
+.pg-figure .dg-frame svg[data-view="fixed"] {
+  width: var(--fig-w, auto);
+  max-width: none;
+}
+
+.pg-figure .dg-bar {
+  padding: 10px 16px 0;
+}
+
+/* 語りの字の大きさ。図の中の字は配置の寸法に入っているので変えず、語りの段だけを大きくする */
+.pg-figure .dg-say {
+  zoom: var(--say, 1);
+}
+
+.pg-phase {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  max-width: calc(100% - 28px);
+  margin: 0;
+  padding: 4px 9px;
+  box-sizing: border-box;
+  border-radius: var(--d-r-1);
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.pg-phase-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--d-accent);
+  vertical-align: 1px;
+}
+
+.pg-kept {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  max-width: 45%;
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface);
+  color: var(--d-text-secondary);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.pg-stage-foot {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 16px 12px;
+}
+
+/* 区切りは段の数だけ並べて等分する。幅を数から計算すると、段が増えた時に式と並びが 2 か所に分かれる */
+.pg-progress {
+  display: flex;
+  gap: 6px;
+}
+
+.pg-progress-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--d-border);
+}
+
+.pg-progress-seg[data-done="true"] {
+  background: var(--d-accent);
+}
+
+.pg-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--d-text-muted);
+}
+
+.pg-hint code {
+  padding: 1px 6px;
+  border-radius: var(--d-r-1);
+  background: var(--d-code-bg);
+  color: var(--d-text-primary);
+  font-family: var(--mono), monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-live-dot {
+    animation: none;
+  }
+}
+
+/* ── 幅 1100 以下。棚を引き出しに畳み、書く欄と図に全幅を渡す ── */
+
+@media (max-width: 1100px) {
+  .pg {
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-areas: "code stage";
+  }
+
+  /* 本体を押し出さずに重ねる。畳んだ間は Tab の順と読み上げからも外す */
+  .pg-shelf {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    width: min(280px, 84vw);
+    transform: translateX(-101%);
+    visibility: hidden;
+    transition:
+      transform 0.18s ease,
+      visibility 0s linear 0.18s;
+    box-shadow:
+      0 0 0 1px var(--d-border),
+      8px 0 24px rgb(0 0 0 / 18%);
+  }
+
+  .pg-shelf[data-open] {
+    transform: none;
+    visibility: visible;
+    transition:
+      transform 0.18s ease,
+      visibility 0s;
+  }
+
+  .pg-shelf-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 39;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: color-mix(in srgb, var(--d-text-primary) 28%, transparent);
+  }
+
+  .pg-shelf-toggle {
+    display: inline-flex;
+  }
+}
+
+/* ── 幅 760 以下。図を上、書く欄を下に積み、書く欄を畳めるようにする ── */
+
 @media (max-width: 760px) {
   .pg {
     height: auto;
-    grid-template-rows: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "stage" "code";
   }
 
-  .pg-body {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "stage" "editor";
+  .pg-shelf,
+  .pg-shelf-scrim {
+    position: fixed;
+    top: var(--d-topbar-h);
   }
 
   .pg-stage {
-    padding: 12px;
-  }
-
-  /* 狭い時は図の高さを枠で決めず、幅に合わせて図の側で決める */
-  .pg-figure {
-    padding: 8px;
-  }
-
-  .pg-figure > .dg-player,
-  .pg-figure .dg-frame {
-    flex: none;
-  }
-
-  .pg-figure .dg-frame {
-    display: block;
-  }
-
-  .pg-figure .dg-frame svg {
-    width: 100%;
-    max-height: none;
-  }
-
-  .pg-editor {
-    border-right: 0;
-    border-top: 1px solid var(--hair);
-  }
-
-  .pg-bar {
-    padding: 10px 12px;
-    gap: 8px;
-  }
-
-  .pg-pick {
-    max-width: 120px;
-  }
-
-  .pg-fold {
-    display: block;
+    height: min(72dvh, 600px);
   }
 
   .pg-code {
-    height: 50vh;
+    border-right: 0;
+    border-top: 1px solid var(--d-border);
+  }
+
+  .pg-fold {
+    display: inline-flex;
+  }
+
+  .pg-code-body {
     flex: none;
+    height: 50vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-shelf,
+  .pg-shelf[data-open] {
+    transition: none;
   }
 }

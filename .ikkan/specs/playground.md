@@ -4,10 +4,10 @@
 |---|---|---|
 | 編集画面 (`/dragon/editor`) を開いた時、書く欄に OAuth の見本の記法が入り、右に OAuth の図が描かれて段が進む | `pnpm test`の検査`playground-opens-with-oauth`が通る | #2995、#3030 |
 | 書く欄の記法を書き換えた時、右の図が書き換えた内容で描き直される | `pnpm test`の検査`editing-notation-redraws-diagram`が通る | #2995 |
-| 記法に誤りがある時、誤りの行の番号と理由を欄の下に出し、図は最後に描けた図のまま残す | `pnpm test`の検査`notation-error-shows-line-and-keeps-diagram`が通る | #2995 |
+| 記法に誤りがある時、誤りの行の番号と理由を欄の下の知らせの欄に出し、図は最後に描けた図のまま残す | `pnpm test`の検査`notation-error-shows-line-and-keeps-diagram`が通る | #2995、#3031 |
 | JSON の側に切り替えた時、今の図の JSON が出て、JSON を書き換えると図と記法の側に反映する | `pnpm test`の検査`json-side-edits-sync-to-notation`が通る | #2995 |
 | JSON に誤りがある時、eval を許さない頁の CSP の下で、誤った欄の場所 (JSON Pointer) と理由を出す | `pnpm test`の検査`json-error-shows-pointer-under-csp`が通る | #2995 |
-| 見本を選ぶ欄で入門の例か CCIP を選んだ時、その見本の記法が欄に入り、図が替わる | `pnpm test`の検査`example-picker-loads-example`が通る | #2995 |
+| 編集画面の左の棚の見本の一覧で入門の例か CCIP を選んだ時、その見本の記法が欄に入り、図が替わる | `pnpm test`の検査`example-picker-loads-example`が通る | #2995、#3031 |
 | 書いた中身が URL の `#` の後ろに入り、その URL を新しく開くと同じ記法と図が出る | `pnpm test`の検査`url-hash-restores-notation`が通る | #2995 |
 | 言葉を EN に切り替えた時、頁の言葉と選んでいる見本が英語版になる。端末の言語が日本語でない時は英語で開く | `pnpm test`の検査`english-switches-page-and-example`が通る | #2995 |
 | 見本 3 つの英語版が、日本語版と同じ数の箱と線と段を持つ | `pnpm test`の検査`english-examples-match-japanese`が通る | #2995 |

@@ -119,3 +119,22 @@ describe("読み上げ", () => {
     expect(host.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
   });
 });
+
+describe("段の知らせ", () => {
+  it("player-reports-step-changes", () => {
+    // 頁の側の段の札と進み具合の帯は、再生の部品が知らせる段で出す (#3031)
+    prefersReducedMotion(true);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const seen: number[] = [];
+    const player = draw("mountDiagram")(host, exampleJson("oauth.json"), { onStep: (step) => seen.push(step) });
+    players.push(player);
+    expect(seen, "置いた時に最初の段を知らせない").toEqual([0]);
+    click(host, "next");
+    click(host, "next");
+    click(host, "prev");
+    expect(seen.at(-1), "釦で送った段を知らせない").toBe(1);
+    expect([...new Set(seen)], "知らせた段の並びが送った順でない").toEqual([0, 1, 2]);
+    expect(seen.at(-1)).toBe(player.step);
+  });
+});

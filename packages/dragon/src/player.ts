@@ -6,12 +6,18 @@
  * 図そのものは読み上げから隠して同じ中身を 2 度読ませない。
  * 見せ方は枠の幅で選び (`view.ts`)、寄って追う時は窓と全体図で描き直す。
  * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
+ * 段が替わるたびに `options.onStep` で今の段を知らせ、頁の側が段の札や進み具合を出せるようにする (#3031)。
  */
 import { FIGURE_TEXT } from "./figure-text";
 import { FONT_VARS, LOOK, paletteVars, resolvePalette, type TextStyle, TYPE } from "./look/values";
 import { drawSvg, type RenderOptions, renderDiagram } from "./render/svg";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
+
+export interface PlayerOptions extends RenderOptions {
+  /** 段が替わるたびに今の段 (0 から) を受け取る。置いた時にも最初の段で 1 度呼ぶ。頁の側で段の札や進み具合を出す時に使う (#3031) */
+  onStep?: (step: number) => void;
+}
 
 export interface Player {
   /** 今の段 (0 から) */
@@ -61,7 +67,7 @@ const pad = (n: number): string => String(n).padStart(2, "0");
 /** 段の番号の札 (`01/12`)。`step` は 0 から数える。 */
 export const stepNo = (step: number, count: number): string => `${pad(step + 1)}/${pad(count)}`;
 
-export function mountDiagram(host: HTMLElement, diagram: unknown, options: RenderOptions = {}): Player {
+export function mountDiagram(host: HTMLElement, diagram: unknown, options: PlayerOptions = {}): Player {
   const doc = host.ownerDocument;
   const win = doc.defaultView;
   // 描く前に読む。描いた後に読むと、動きを嫌う人にも一瞬だけ流れてしまう
@@ -189,6 +195,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Rende
     body.textContent = current?.body ?? "";
     toggleButton.setAttribute("aria-label", playing ? words.pause : words.play);
     toggleButton.textContent = playing ? BUTTON_TEXT.pause : BUTTON_TEXT.play;
+    options.onStep?.(step);
   };
   const restart = (t: number, play: boolean): void => {
     at = t;
