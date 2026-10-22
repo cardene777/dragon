@@ -1,7 +1,7 @@
 {
   "name": "@cardenelabs/dragon",
-  "version": "0.34.0",
-  "description": "Dragon — 動く図を、人は行ごとの記法で、AI は JSON で書く。作り直しの最中で、まだ何も公開しない。",
+  "version": "0.35.0",
+  "description": "Dragon — 動く図を、人は行ごとの記法で、AI は JSON で書く。時系列図と構成図を段ごとに動かし、mp4・GIF・HTML・PNG に書き出す。",
   "license": "MIT",
   "author": "cardene777",
   "homepage": "https://github.com/cardene777/dragon",
@@ -69,28 +69,18 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
     "playwright-core": ">=1.49.0"
   },
   "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    },
     "playwright-core": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@types/react": "^19.1.0",
     "ajv": "^8.18.0",
     "fontverter": "^2.0.0",
     "harfbuzzjs": "^1.6.3",
     "playwright-core": "1.61.1",
-    "react": "^19.1.0",
     "tsup": "^8.5.1",
     "typescript": "^5.8.0"
   },

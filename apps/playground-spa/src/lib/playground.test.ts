@@ -17,6 +17,12 @@ import { BASE, buildPage, type Built, bundleSizes, example, pageSources, rgb, se
 const SETUP = 300_000;
 /** 頁の振る舞いを 1 つ確かめるのに許す時間 */
 const SLOW = 90_000;
+/**
+ * Chromium を閉じて配る場所を止めるまでに許す時間。
+ * 機械が混んだ時 (load average 120 から 144) に、閉じるだけで既定の 30 秒を 3 回中 2 回超え、
+ * 検査が全て通っても組ごと落ちた (#3019)。起こす側 (`SETUP`) と同じく、混み具合で結果が決まらない長さにする。
+ */
+const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -180,7 +186,7 @@ describe("公開する頁 (#2995)", () => {
   afterAll(async () => {
     await browser?.close();
     await server?.close();
-  });
+  }, TEARDOWN);
 
   it(
     "playground-opens-with-oauth",
