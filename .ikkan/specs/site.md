@@ -5,7 +5,7 @@
 | `/dragon/`、`/dragon/catalog`、`/dragon/catalog/<分類>`、`/dragon/editor`、`/dragon/docs`、`/dragon/release-notes` と、それ以外の経路を開いた時、それぞれ概要、カタログの一覧、カタログの分類、編集画面、使い方、更新履歴、見つからない頁が出る | `pnpm test`の検査`site-routes-render-each-screen`が通る | #3030 |
 | 7 画面のどれでも、上部の帯に印と名前 `dragon` と添え書き、行き先 6 つ (概要 / カタログ / 編集画面 / 使い方 / 更新履歴 / GitHub)、言語の切替、明暗の切替、`編集画面を開く →` の釦が乗る | `pnpm test`の検査`site-header-on-every-screen`が通る | #3030 |
 | 帯の行き先のうち今いる画面の物に現在地の印が付き、行き先を押すと頁を読み直さずにその画面へ移る | `pnpm test`の検査`site-header-marks-current-and-navigates`が通る | #3030 |
-| 色味を選んでいない時、サイトの地と面と字と差し色は紙と墨の値で、端末が暗い時は暗い側の値になり、明暗の切替で替わる (前の活版の値で固定した色の条件を置き換えた) | `pnpm test`の検査`site-colors-follow-palette`が通る | #3030、#3033 |
+| 色味を選んでいない時、サイトの地と面と字と差し色は紙と墨の値で、端末が暗い時は暗い側の値になり、明暗の切替で替わる (前の活版の値で固定した色の検査を置き換える) | `pnpm test`の検査`site-colors-follow-palette`が通る | #3030、#3033 |
 | 上の帯の色味の切替 (紙と墨、澄んだ色、夜の計器) で、サイトの地と面と字と差し色と頁の全部の図が今の明暗の側の色味の値に替わり、頁を開き直しても残り、幅 720 以下では畳んだ行き先の面の中で切り替えられる | `pnpm test`の検査`site-palette-switch-recolors-site-and-diagrams`が通る | #3033 |
 | 7 画面のどれを幅 1440 と幅 390 で、明暗それぞれで開いても、頁が横にあふれない | `pnpm test`の検査`site-screens-no-overflow`が通る | #3030 |
 | 7 画面のどれでも言語を EN に切り替えると、帯と画面の言葉が英語になり、仮名と漢字が残らない | `pnpm test`の検査`site-screens-switch-to-english`が通る | #3030 |
