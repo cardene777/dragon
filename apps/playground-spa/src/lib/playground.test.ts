@@ -1,17 +1,17 @@
 /**
  * 公開する頁 (#2995)。
  *
- * 左の書く欄に記法を書くと、右に動く図が描かれる 1 枚の頁を確かめる。
+ * 編集画面 (`/dragon/editor`、#3030) で、左の書く欄に記法を書くと右に動く図が描かれることを確かめる。
  * 頁は build して GitHub Pages と同じ形で配り、画面なしの Chromium で開く (`playground-support.ts`)。
  * 頁の部品は `data-playground` の札で探し、図は `@cardenelabs/dragon` の再生の部品 (`data-dragon` の札) で読む。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Diagram, FONTS, PALETTES, parseNotation } from "@cardenelabs/dragon";
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { BASE, buildPage, type Built, bundleSizes, example, pageSources, rgb, servePage } from "./playground-support";
+import { BASE, bundleSizes, example, type Opened, type OpenOptions, pageSources, rgb, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -27,6 +27,11 @@ const TEARDOWN = 90_000;
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
 const sel = (name: string): string => `[data-playground="${name}"]`;
+/** 全画面に共通する上の帯の部品 (#3030) */
+const siteSel = (name: string): string => `[data-site="${name}"]`;
+
+/** 編集画面の経路 (#3030) */
+const EDITOR = `${BASE}editor`;
 
 const OAUTH = example("oauth.dragon") ?? "";
 const CCIP = example("ccip.dragon") ?? "";
@@ -50,43 +55,10 @@ const JAPANESE_WORDS = /^\s*(時系列図|構成図|区画|帯|見せ方)\s|\[(�
 /** 仮名と漢字。英語の誤りの文に入らない */
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 
-let built: Built;
-let server: Awaited<ReturnType<typeof servePage>>;
-let browser: Browser;
-const contexts: BrowserContext[] = [];
+let site: Site;
 
-interface Opened {
-  page: Page;
-  /** CSP に止められた読み込みと実行 */
-  violations: () => Promise<string[]>;
-}
-
-async function open(
-  o: { path?: string; url?: string; locale?: string; colorScheme?: "light" | "dark"; viewport?: { width: number; height: number } } = {},
-): Promise<Opened> {
-  const context = await browser.newContext({
-    locale: o.locale ?? "ja-JP",
-    colorScheme: o.colorScheme ?? "light",
-    viewport: o.viewport ?? { width: 1280, height: 860 },
-  });
-  contexts.push(context);
-  await context.addInitScript(() => {
-    const w = window as unknown as { __csp: string[] };
-    w.__csp = [];
-    document.addEventListener("securitypolicyviolation", (e) => w.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
-  });
-  const page = await context.newPage();
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto(o.url ?? `${server.origin}${o.path ?? BASE}`);
-  return {
-    page,
-    violations: async () => [
-      ...(await page.evaluate(() => (window as unknown as { __csp: string[] }).__csp)),
-      ...errors.filter((m) => /Content Security Policy|EvalError|unsafe-eval/u.test(m)),
-    ],
-  };
-}
+/** 編集画面を開く。経路を渡さない時は `/dragon/editor` */
+const open = (o: OpenOptions = {}): Promise<Opened> => site.open({ path: EDITOR, ...o });
 
 const count = (page: Page, name: string): Promise<number> =>
   page.evaluate((s) => document.querySelectorAll(s).length, sel(name));
@@ -130,6 +102,21 @@ async function click(page: Page, name: string): Promise<void> {
   await page.locator(sel(name)).click();
 }
 
+/** 上の帯の釦を押す。言語の切替は帯が持つ (#3030) */
+async function clickSite(page: Page, name: string): Promise<void> {
+  await expect
+    .poll(() => page.evaluate((s) => document.querySelectorAll(s).length, siteSel(name)), { ...WAIT, message: `帯に ${name} の釦が無い` })
+    .toBe(1);
+  await page.locator(siteSel(name)).click();
+}
+
+/** 上の帯の明暗の切替を押して、頁の明暗を `theme` にする (#3030) */
+async function setSiteTheme(page: Page, theme: "light" | "dark"): Promise<void> {
+  const now = (): Promise<string | null> => page.evaluate(() => document.documentElement.getAttribute("data-scheme"));
+  if ((await now()) !== theme) await clickSite(page, "theme");
+  await expect.poll(now, { ...WAIT, message: `明暗の切替で頁が ${theme} にならない` }).toBe(theme);
+}
+
 /** JSON の側に切り替え、出ている図の JSON を読む (#2999) */
 async function jsonSide(page: Page): Promise<Diagram> {
   await click(page, "tab-json");
@@ -155,37 +142,37 @@ async function setEditor(page: Page, text: string): Promise<void> {
   await page.locator(sel("editor")).fill(text);
 }
 
-/** 頁の地の色と字の色と、図の地の色 */
-const look = (page: Page): Promise<{ page: string; ink: string; diagram: string }> =>
+/**
+ * 図の地と字の色と、頁の地の色。
+ *
+ * 色味は図だけに当て、頁は前のサイトの値で塗る (#3030)。頁の地は明暗だけで決まる。
+ */
+const look = (page: Page): Promise<{ diagram: string; diagramInk: string; page: string }> =>
   page.evaluate((s) => {
-    const body = getComputedStyle(document.body);
     const player = document.querySelector(`${s} .dg-player`);
-    return {
-      page: body.backgroundColor,
-      ink: body.color,
-      diagram: player ? getComputedStyle(player).getPropertyValue("--bg").trim().toLowerCase() : "",
-    };
+    const v = (name: string): string => (player ? getComputedStyle(player).getPropertyValue(name).trim().toLowerCase() : "");
+    return { diagram: v("--bg"), diagramInk: v("--ink"), page: getComputedStyle(document.body).backgroundColor };
   }, sel("stage"));
 
-const lookOf = (palette: string, theme: "light" | "dark"): { page: string; ink: string; diagram: string } => {
+/** 前のサイトの地の色。明るい側は既定の意匠 (活版)、暗い側は同じ色相で地が暗い意匠 (図録) の値 (#3030) */
+const SITE_BG = { light: "#f6f1e6", dark: "#1a1611" } as const;
+
+const lookOf = (palette: string, theme: "light" | "dark"): { diagram: string; diagramInk: string; page: string } => {
   const v = PALETTES[palette]?.[theme] ?? {};
-  return { page: rgb(v.page ?? ""), ink: rgb(v.ink ?? ""), diagram: (v.bg ?? "").toLowerCase() };
+  return { diagram: (v.bg ?? "").toLowerCase(), diagramInk: (v.ink ?? "").toLowerCase(), page: rgb(SITE_BG[theme]) };
 };
 
 describe("公開する頁 (#2995)", () => {
   beforeAll(async () => {
-    built = await buildPage();
-    server = await servePage(built.dir);
-    browser = await chromium.launch();
+    site = await startSite();
   }, SETUP);
 
   afterEach(async () => {
-    await Promise.all(contexts.splice(0).map((c) => c.close()));
+    await site?.closeContexts();
   });
 
   afterAll(async () => {
-    await browser?.close();
-    await server?.close();
+    await site?.close();
   }, TEARDOWN);
 
   it(
@@ -344,7 +331,7 @@ describe("公開する頁 (#2995)", () => {
       const { page } = await open({ locale: "ja-JP" });
       await drawn(page);
       expect(await page.evaluate(() => document.documentElement.lang)).toBe("ja");
-      await click(page, "lang-en");
+      await clickSite(page, "lang-en");
       await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: "頁の言葉が英語にならない" }).toBe("en");
       await expect.poll(() => page.locator(sel("tab-notation")).textContent(), { ...WAIT, message: "頁の札が英語にならない" }).toBe("Notation");
       await expect.poll(() => editorValue(page), { ...WAIT, message: "選んでいる見本が英語版にならない" }).toBe(oauthEn);
@@ -359,13 +346,14 @@ describe("公開する頁 (#2995)", () => {
   );
 
   it(
-    "palette-and-theme-apply-to-page-and-diagram",
+    "palette-and-theme-apply-to-diagram",
     async () => {
       const { page } = await open({ colorScheme: "light" });
       await drawn(page);
+      // 色味は編集画面で図に当て、明暗は帯で頁と図の両方に当てる。頁の地は色味で替わらない (#3030)
       for (const [palette, theme] of [["night", "dark"], ["clear", "light"], ["paper", "dark"]] as const) {
         await click(page, `palette-${palette}`);
-        await click(page, `theme-${theme}`);
+        await setSiteTheme(page, theme);
         await expect.poll(() => look(page), { ...WAIT, message: `${palette} と ${theme} の値にならない` }).toEqual(lookOf(palette, theme));
       }
     },
@@ -409,20 +397,7 @@ describe("公開する頁 (#2995)", () => {
       expect(fonts.editor, "書く欄の字が同梱の等幅の字でない").toBe(FONTS.mono);
       expect(fonts.loaded, "同梱の字が読み込まれていない").toEqual(expect.arrayContaining([FONTS.sans, FONTS.mono]));
       expect(fonts.files.length, "字の file を読んでいない").toBeGreaterThan(0);
-      for (const file of fonts.files) expect(file.startsWith(`${server.origin}${BASE}`), `頁の外から字を読んでいる: ${file}`).toBe(true);
-    },
-    SLOW,
-  );
-
-  it(
-    "old-routes-land-on-playground",
-    async () => {
-      expect(built.notFound.ok, `404.html を作る script が落ちた: ${built.notFound.stderr}`).toBe(true);
-      for (const path of [`${BASE}catalog`, `${BASE}editor`, `${BASE}catalog/oauth`]) {
-        const { page } = await open({ path });
-        await drawn(page, `${path} を開いても新しい頁が出ない`);
-        await expect.poll(() => page.evaluate(() => location.pathname), { ...WAIT, message: `${path} のアドレスが ${BASE} にならない` }).toBe(BASE);
-      }
+      for (const file of fonts.files) expect(file.startsWith(`${site.origin}${BASE}`), `頁の外から字を読んでいる: ${file}`).toBe(true);
     },
     SLOW,
   );
@@ -596,14 +571,14 @@ describe("公開する頁 (#2995)", () => {
       expect(await statusText(page)).toMatch(KANA_KANJI);
 
       // 言葉を切り替えても、書いた JSON は見本の英語版に替わらずに残り、誤りを英語で出し直す
-      await click(page, "lang-en");
+      await clickSite(page, "lang-en");
       await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: "頁の言葉が英語にならない" }).toBe("en");
       expect(await editorValue(page), "言葉を切り替えると JSON の側に書いた中身が消える").toBe(written.trimEnd());
       await expect.poll(() => statusText(page), { ...WAIT, message: "言葉を切り替えても JSON の誤りが英語で出し直されない" }).not.toMatch(KANA_KANJI);
       expect(await statusText(page), "言葉を切り替えると JSON の誤りが消える").toContain("colour");
 
       // 日本語に戻すと、日本語で出し直す
-      await click(page, "lang-ja");
+      await clickSite(page, "lang-ja");
       await expect.poll(() => statusText(page), { ...WAIT, message: "日本語に戻しても JSON の誤りが日本語で出し直されない" }).toMatch(KANA_KANJI);
       expect(await editorValue(page)).toBe(written.trimEnd());
     },
@@ -621,7 +596,7 @@ describe("公開する頁 (#2995)", () => {
       await setEditor(page, written);
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "手を入れた記法で図が描き直されない" }).toContain("書き換えた図");
 
-      await click(page, "lang-en");
+      await clickSite(page, "lang-en");
       await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: "頁の言葉が英語にならない" }).toBe("en");
       expect(await editorValue(page), "言葉を切り替えると手を入れた記法が替わる").toBe(written);
       await expect
@@ -629,7 +604,7 @@ describe("公開する頁 (#2995)", () => {
         .toMatchObject({ prev: "Previous step", next: "Next step", steps: "Steps of 書き換えた図", overview: "Overview" });
       expect((await playerNames(page)).toggle, "止める釦の読み上げの名前が英語でない").toMatch(/^(Pause|Play)$/u);
 
-      await click(page, "lang-ja");
+      await clickSite(page, "lang-ja");
       await expect
         .poll(() => playerNames(page), { ...WAIT, message: "日本語に戻しても再生の釦と全体図の札が日本語に戻らない" })
         .toMatchObject({ prev: "前の段", next: "次の段", steps: "書き換えた図 の段", overview: "全体図" });
@@ -656,7 +631,7 @@ describe("公開する頁 (#2995)", () => {
   );
 
   it("page-bundle-within-budget", () => {
-    const sizes = bundleSizes(built.dir);
+    const sizes = bundleSizes(site.built.dir);
     const total = Object.values(sizes).reduce((a, b) => a + b, 0);
     expect(Object.keys(sizes).length, "build した script と CSS が無い").toBeGreaterThan(0);
     expect(total, `script と CSS の合計が gzip で ${(total / 1024).toFixed(1)}KB (${JSON.stringify(sizes)})`).toBeLessThanOrEqual(250 * 1024);
@@ -677,7 +652,7 @@ describe("公開する頁 (#2995)", () => {
   });
 
   it("csp-script-self-only", () => {
-    const html = readFileSync(join(built.dir, "index.html"), "utf8");
+    const html = readFileSync(join(site.built.dir, "index.html"), "utf8");
     const meta = html.match(/<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]*)"/u);
     expect(meta, "配る頁に CSP の meta が無い").not.toBeNull();
     // build は属性の中の引用符を文字の参照 (`&#39;`) で書く

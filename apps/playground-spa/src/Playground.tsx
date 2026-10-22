@@ -1,19 +1,17 @@
 /**
- * 公開する頁 (#2995)。左の書く欄に記法を書くと、右に動く図が描かれる。
+ * 編集画面 (#2995、#3030)。左の書く欄に記法を書くと、右に動く図が描かれる。
  *
  * 図は `@cardenelabs/dragon` の再生の部品 (`mountDiagram`) で描き、頁の側では SVG を組まない。
- * 頁の色と字も図と同じ値の表 (`PALETTES` と `FONTS`) から読み、色味と明暗を替えると頁と図が揃って替わる。
+ * 言葉と明暗はサイトの上の帯が持ち、ここは受け取って図に当てる。色味はここで選び、図だけに当てる。
  * 記法と JSON のどちらの側でも書け、書いた側から図ともう一方へ反映する。
  * 記法に誤りがあるあいだは、誤りの行と理由を欄の下に出し、図は最後に描けた物を残す。
  *
  * 記法は日本語の語でも英語の語でも書ける (#2997)。JSON の側から書き戻す時と、記法の誤りを出す時は、
  * 書いている記法の言葉 (最初の行の図の種類の語) に従い、最初の行が読めない時だけ頁の言葉に従う。
  */
-import "@cardenelabs/dragon/fonts";
 import {
   DEFAULT_PALETTE,
   type Diagram,
-  FONTS,
   mountDiagram,
   notationLanguage,
   PALETTES,
@@ -21,17 +19,15 @@ import {
   printNotation,
   readDiagram,
   renderDiagram,
-  resolvePalette,
   type Theme,
 } from "@cardenelabs/dragon";
-import { type ReactElement, useEffect, useRef, useState } from "react";
+import { type ReactElement, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, FIRST_EXAMPLE, whichExample } from "./examples";
 import { fromHash, toHash } from "./share";
-import { deviceLang, type Lang, TEXT } from "./text";
+import { type Lang, TEXT } from "./text";
 
 type Tab = "notation" | "json";
-type ThemeChoice = "auto" | Theme;
 
 type Problem =
   /** `lang` は誤りを出す言葉。記法の言葉で、決まらない時は頁の言葉 */
@@ -88,23 +84,32 @@ const share = (text: string | undefined): void => {
 };
 
 interface Start {
-  lang: Lang;
   text: string;
   example: ExampleKey | null;
   outcome: Outcome;
 }
 
-/** URL の `#` の後ろに書いた中身があればそれを、無ければ端末の言葉の最初の見本を開く */
-function start(): Start {
-  const lang = deviceLang(navigator.languages.length > 0 ? navigator.languages : [navigator.language]);
+/** URL の `#` の後ろに書いた中身があればそれを、無ければ頁の言葉の最初の見本を開く */
+function start(lang: Lang): Start {
   const shared = fromHash(location.hash);
   const text = shared ?? exampleText(FIRST_EXAMPLE, lang);
-  return { lang, text, example: shared === undefined ? FIRST_EXAMPLE : (whichExample(text)?.key ?? null), outcome: fromNotation(text, lang) };
+  return { text, example: shared === undefined ? FIRST_EXAMPLE : (whichExample(text)?.key ?? null), outcome: fromNotation(text, lang) };
 }
 
-export function Playground(): ReactElement {
-  const [first] = useState(start);
-  const [lang, setLang] = useState<Lang>(first.lang);
+interface Props {
+  /** 頁の言葉。上の帯の切替で替わる */
+  lang: Lang;
+  /** 頁の明暗。図にも同じ明暗を当てる */
+  theme: Theme;
+  /**
+   * 言葉を替える前に呼ぶ処理を帯の側へ渡す口。
+   * 見本を英語版に替える処理は替える前の言葉と書く欄の中身を読むので、帯が言葉を替える前に呼ばせる。
+   */
+  onBeforeLang: (handler: ((next: Lang) => void) | null) => void;
+}
+
+export function Playground({ lang, theme, onBeforeLang }: Props): ReactElement {
+  const [first] = useState(() => start(lang));
   const [tab, setTab] = useState<Tab>("notation");
   const [text, setText] = useState(first.text);
   const [json, setJson] = useState("");
@@ -112,37 +117,11 @@ export function Playground(): ReactElement {
   const [drawn, setDrawn] = useState<Diagram | null>(first.outcome.ok ? first.outcome.diagram : null);
   const [problem, setProblem] = useState<Problem | null>(first.outcome.ok ? null : first.outcome.problem);
   const [palette, setPalette] = useState(DEFAULT_PALETTE);
-  const [choice, setChoice] = useState<ThemeChoice>("auto");
-  const [device, setDevice] = useState<Theme>(() => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
   const [folded, setFolded] = useState(false);
-  const [lookOpen, setLookOpen] = useState(false);
   const host = useRef<HTMLDivElement>(null);
   const gutter = useRef<HTMLDivElement>(null);
 
   const t = TEXT[lang];
-  const theme: Theme = choice === "auto" ? device : choice;
-
-  // 端末の明暗が替わったら、明暗を選んでいない時の頁と図も替える
-  useEffect(() => {
-    const media = matchMedia("(prefers-color-scheme: dark)");
-    const follow = (): void => setDevice(media.matches ? "dark" : "light");
-    media.addEventListener("change", follow);
-    return () => media.removeEventListener("change", follow);
-  }, []);
-
-  // 頁の色と字は図と同じ値の表から読む
-  useEffect(() => {
-    const root = document.documentElement;
-    for (const [key, value] of Object.entries(resolvePalette(palette)[theme])) root.style.setProperty(`--${key}`, value);
-    root.style.setProperty("--sans", `"${FONTS.sans}"`);
-    root.style.setProperty("--mono", `"${FONTS.mono}"`);
-    root.style.colorScheme = theme;
-  }, [palette, theme]);
-
-  useEffect(() => {
-    document.documentElement.lang = lang;
-    document.title = t.title;
-  }, [lang, t]);
 
   // 再生の釦の読み上げと全体図の札は頁の言葉で出し、言葉を切り替えたら置き直す (#3001)
   useEffect(() => {
@@ -206,8 +185,8 @@ export function Playground(): ReactElement {
     setProblem(outcome.ok ? null : outcome.problem);
   };
 
+  /** 帯が言葉を `next` に替える前に呼ぶ。言葉そのものは帯が替える */
   const switchLang = (next: Lang): void => {
-    setLang(next);
     // JSON の側に誤りが出ている間は、書いた JSON を見本に替えずに残し、誤りを替えた頁の言葉で出し直す
     if (tab === "json" && problem) {
       const outcome = fromJson(json, next);
@@ -227,6 +206,12 @@ export function Playground(): ReactElement {
     }
   };
 
+  // 描くたびに今の書く欄の中身を読む処理を渡し直す。編集画面を離れたら外す
+  useLayoutEffect(() => {
+    onBeforeLang(switchLang);
+    return () => onBeforeLang(null);
+  });
+
   const value = tab === "notation" ? text : json;
   const lines = value.split("\n").length;
   const errorLine = tab === "notation" && problem?.kind === "line" ? problem.line : undefined;
@@ -240,56 +225,27 @@ export function Playground(): ReactElement {
 
   return (
     <div className="pg">
-      <header className="pg-head">
-        <div className="pg-name">
-          <span className="pg-mark" aria-hidden="true" />
-          <strong>dragon</strong>
-        </div>
-        <span className="pg-tag">{t.tagline}</span>
-        <span className="pg-gap" />
-        <div className="pg-seg" role="group" aria-label={t.language}>
-          {(["ja", "en"] as const).map((l) => (
-            <button key={l} type="button" data-playground={`lang-${l}`} aria-pressed={lang === l} onClick={() => switchLang(l)}>
-              {l === "ja" ? "日本語" : "EN"}
-            </button>
-          ))}
-        </div>
-        <button type="button" className="pg-look-open" aria-expanded={lookOpen} aria-label={t.look} onClick={() => setLookOpen(!lookOpen)}>
-          ◐
-        </button>
-        <div className="pg-look" data-open={lookOpen}>
-          <div className="pg-swatches" role="group" aria-label={t.palette}>
-            <span className="pg-label">{t.palette}</span>
-            {Object.values(PALETTES).map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className="pg-swatch"
-                data-playground={`palette-${p.id}`}
-                aria-pressed={palette === p.id}
-                aria-label={t.paletteNames[p.id] ?? p.name}
-                title={t.paletteNames[p.id] ?? p.name}
-                style={{ background: `linear-gradient(135deg, ${p.light.page} 50%, ${p.dark.page} 50%)`, borderColor: p.light["c-blue"] }}
-                onClick={() => setPalette(p.id)}
-              />
-            ))}
-          </div>
-          <div className="pg-seg" role="group" aria-label={t.theme}>
-            {(["auto", "light", "dark"] as const).map((c) => (
-              <button key={c} type="button" data-playground={`theme-${c}`} aria-pressed={choice === c} onClick={() => setChoice(c)}>
-                {t.themes[c]}
-              </button>
-            ))}
-          </div>
-        </div>
-        <a className="pg-gh" href="https://github.com/cardene777/dragon">
-          GitHub ↗
-        </a>
-      </header>
-
-      <main className="pg-body">
+      <div className="pg-body">
         <section className="pg-stage" data-playground="stage">
-          {problem && drawn && <p className="pg-kept">↺ {t.kept}</p>}
+          <div className="pg-stage-bar">
+            <div className="pg-swatches" role="group" aria-label={t.palette}>
+              <span className="pg-label">{t.palette}</span>
+              {Object.values(PALETTES).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="pg-swatch"
+                  data-playground={`palette-${p.id}`}
+                  aria-pressed={palette === p.id}
+                  aria-label={t.paletteNames[p.id] ?? p.name}
+                  title={t.paletteNames[p.id] ?? p.name}
+                  style={{ background: `linear-gradient(135deg, ${p.light.page} 50%, ${p.dark.page} 50%)`, borderColor: p.light["c-blue"] }}
+                  onClick={() => setPalette(p.id)}
+                />
+              ))}
+            </div>
+            {problem && drawn && <p className="pg-kept">↺ {t.kept}</p>}
+          </div>
           <div className="pg-figure" ref={host} />
           <p className="pg-hint">
             {t.exportLead} <code>dragon export {example ?? "diagram"}.dragon</code> {t.exportTail}
@@ -349,7 +305,7 @@ export function Playground(): ReactElement {
             <span aria-hidden="true">{problem ? "!" : "✓"}</span> {status}
           </p>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

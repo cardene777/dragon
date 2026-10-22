@@ -1,7 +1,7 @@
 /**
- * 頁の言葉。日本語と英語の 2 つを持ち、頁の上の切り替えで替える (#2995)。
+ * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030)。
  *
- * 記法の語 (`時系列図` や `帯`) はどちらの言葉でも日本語のまま。英語の語で書けるようにするのは別の課題。
+ * 記法の語 (`時系列図` や `帯`) は見本の file が持ち、ここには持たない。
  */
 export type Lang = "ja" | "en";
 
@@ -12,9 +12,25 @@ export const TEXT = {
     language: "言葉",
     palette: "色味",
     paletteNames: { clear: "澄んだ色", paper: "紙と墨", night: "夜の計器" } as Record<string, string>,
-    theme: "明暗",
-    themes: { auto: "端末", light: "明", dark: "暗" },
-    look: "色味と明暗を開く",
+    site: {
+      nav: { home: "概要", catalog: "カタログ", editor: "編集画面", docs: "使い方", "release-notes": "更新履歴" },
+      navLabel: "行き先",
+      openMenu: "行き先を開く",
+      closeMenu: "行き先を閉じる",
+      openEditor: "編集画面を開く →",
+      toDark: "暗い表示にする",
+      toLight: "明るい表示にする",
+      screens: {
+        home: { title: "文章で書くと、動く図になる", lead: "記法を書くと、その場で図が動く。" },
+        catalog: { title: "カタログ", lead: "今の記法で書いた見本を、図の種類ごとに並べる。" },
+        category: { title: "カタログの分類", lead: "この分類の見本を並べる。" },
+        editor: { title: "編集画面", lead: "" },
+        docs: { title: "使い方", lead: "記法の書き方と、図の書き出し方。" },
+        "release-notes": { title: "更新履歴", lead: "版ごとの変更。" },
+        "not-found": { title: "そこは、まだ書かれていない。", lead: "お探しの頁は移動したか、削除されたか、はじめから無い。" },
+      },
+      backHome: "概要へ戻る",
+    },
     notation: "記法",
     example: "見本を選ぶ",
     examples: { intro: "見本 — 入門 (時系列図)", oauth: "見本 — OAuth 2.0 (時系列図)", ccip: "見本 — CCIP (構成図)" },
@@ -36,9 +52,25 @@ export const TEXT = {
     language: "Language",
     palette: "Palette",
     paletteNames: { clear: "Clear", paper: "Paper and ink", night: "Night gauges" } as Record<string, string>,
-    theme: "Theme",
-    themes: { auto: "Auto", light: "Light", dark: "Dark" },
-    look: "Open palette and theme",
+    site: {
+      nav: { home: "Home", catalog: "Catalog", editor: "Editor", docs: "Docs", "release-notes": "Release notes" },
+      navLabel: "Main navigation",
+      openMenu: "Open navigation",
+      closeMenu: "Close navigation",
+      openEditor: "Open editor →",
+      toDark: "Switch to dark",
+      toLight: "Switch to light",
+      screens: {
+        home: { title: "Write it as text, get a moving diagram", lead: "Write the notation and the diagram moves right away." },
+        catalog: { title: "Catalog", lead: "Examples written in the current notation, grouped by diagram kind." },
+        category: { title: "Catalog category", lead: "The examples in this category." },
+        editor: { title: "Editor", lead: "" },
+        docs: { title: "Docs", lead: "How to write the notation and export diagrams." },
+        "release-notes": { title: "Release notes", lead: "Changes in each version." },
+        "not-found": { title: "That page has not been written yet.", lead: "The page you are looking for was moved, deleted, or never existed." },
+      },
+      backHome: "Back to home",
+    },
     notation: "Notation",
     example: "Choose an example",
     examples: { intro: "Example — Starter (sequence)", oauth: "Example — OAuth 2.0 (sequence)", ccip: "Example — CCIP (architecture)" },

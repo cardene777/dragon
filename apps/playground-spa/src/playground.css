@@ -1,113 +1,42 @@
 /*
- * 公開する頁の見た目 (#2995)。絵は docs/design/playground/playground.pen。
+ * 編集画面の見た目 (#2995、#3030)。絵は docs/design/playground/playground.pen。
  *
- * 色と字は変数で読み、値は Playground.tsx が図と同じ値の表 (PALETTES と FONTS) から根に置く。
+ * 色はサイトの値の表 (`site/site.css` の `--d-*`) を編集画面の短い名前に読み替えて使う。
+ * 図の色は図の再生の部品が自分の要素に色味の値を置くので、ここの読み替えは図に届かない。
  * 幅が狭い時は図を上、書く欄を下に積み、書く欄を畳めるようにする。
  */
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-}
-
-body {
-  background: var(--page);
-  color: var(--ink);
-  font-family: var(--sans), sans-serif;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-button,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-button:focus-visible,
-select:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--c-blue);
-  outline-offset: 2px;
-}
-
 .pg {
+  --bg: var(--d-surface);
+  --surf: var(--d-surface);
+  --sunk: var(--d-code-bg);
+  --hair: var(--d-border);
+  --line: var(--d-border-strong);
+  --ink: var(--d-text-primary);
+  --ink2: var(--d-text-secondary);
+  --mute: var(--d-text-muted);
+  --t-rose: var(--d-err);
+  --t-green: var(--d-ok);
+
   display: grid;
-  grid-template-rows: 56px minmax(0, 1fr);
-  height: 100vh;
+  grid-template-rows: minmax(0, 1fr);
+  height: calc(100dvh - var(--d-topbar-h));
 }
 
 .pg-gap {
   flex: 1;
 }
 
-/* 上の帯 */
-.pg-head {
+/* 図の上の段。図の色味を選ぶ */
+.pg-stage-bar {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 0 28px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--hair);
-  min-width: 0;
+  gap: 16px;
+  min-height: 22px;
 }
 
-.pg-name {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 18px;
-}
-
-.pg-name strong {
-  font-weight: 800;
-}
-
-.pg-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: var(--c-blue);
-}
-
-.pg-tag,
 .pg-label {
+  font-size: 12px;
   color: var(--mute);
-}
-
-.pg-label {
-  font-size: 12px;
-}
-
-.pg-seg {
-  display: flex;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.pg-seg button {
-  border: 0;
-  padding: 4px 10px;
-  font-size: 12px;
-  background: transparent;
-  color: var(--ink2);
-}
-
-.pg-seg button[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--bg);
-}
-
-.pg-look {
-  display: flex;
-  align-items: center;
-  gap: 20px;
 }
 
 .pg-swatches {
@@ -126,15 +55,6 @@ a:focus-visible {
 
 .pg-swatch[aria-pressed="true"] {
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink);
-}
-
-.pg-look-open {
-  display: none;
-}
-
-.pg-gh {
-  color: var(--ink2);
-  text-decoration: none;
 }
 
 /* 本体。広い時は左に書く欄、右に図 */
@@ -337,46 +257,7 @@ a:focus-visible {
 @media (max-width: 760px) {
   .pg {
     height: auto;
-    grid-template-rows: 52px auto;
-  }
-
-  .pg-head {
-    gap: 10px;
-    padding: 0 14px;
-    position: relative;
-  }
-
-  .pg-tag,
-  .pg-gh {
-    display: none;
-  }
-
-  .pg-look-open {
-    display: block;
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: transparent;
-  }
-
-  .pg-look {
-    display: none;
-    position: absolute;
-    top: 52px;
-    right: 14px;
-    z-index: 1;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--surf);
-  }
-
-  .pg-look[data-open="true"] {
-    display: flex;
+    grid-template-rows: auto;
   }
 
   .pg-body {
