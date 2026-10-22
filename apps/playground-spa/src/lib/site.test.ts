@@ -1,17 +1,17 @@
 /**
- * サイトの上の帯と 7 画面の経路 (#3030)。
+ * サイトの上の帯と 7 画面の経路 (#3030)、概要 (#3032)、カタログと色味 (#3033)。
  *
  * 0.35.0 より前のサイトと同じ経路で 7 画面を出し分け、どの画面にも同じ上の帯を載せる。
  * 頁は build して GitHub Pages と同じ形で配り、画面なしの Chromium で開く (`playground-support.ts`)。
- * 画面は `data-site-screen` の札で見分け、帯の部品は `data-site` の札で探す。
+ * 画面は `data-site-screen` の札で見分け、帯の部品は `data-site`、カタログの部品は `data-catalog` の札で探す。
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_PALETTE, PALETTES, parseNotation } from "@cardenelabs/dragon";
+import { DEFAULT_PALETTE, PALETTES, parseNotation, readDiagram } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { EXAMPLE_KEYS, exampleText, TEMPLATE } from "../examples";
+import { EXAMPLE_KEYS, type ExampleKey, exampleText, TEMPLATE } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
 import { app, BASE, rgb, type Site, startSite } from "./playground-support";
@@ -54,11 +54,36 @@ const DESTINATIONS = [
   { ja: "GitHub", en: "GitHub", href: REPO },
 ] as const;
 
-/** 前のサイトの値。明るい側は既定の意匠 (活版)、暗い側は同じ色相で地が暗い意匠 (図録) の表 */
-const COLORS = {
-  light: { bg: "#f6f1e6", surface: "#fffdf7", text: "#2a231d", accent: "#c0421f" },
-  dark: { bg: "#1a1611", surface: "#241f18", text: "#f3ece0", accent: "#ee6b3f" },
-} as const;
+/** 色味ごとにサイトの差し色にする字の色の欄 (#3033)。紙と墨は朱、澄んだ色と夜の計器は青 */
+const ACCENT: Record<string, string> = { paper: "t-rose", clear: "t-blue", night: "t-blue" };
+
+/** 帯の色味の切替に並ぶ色味。図の色味の表の順 */
+const PALETTE_IDS = Object.keys(PALETTES);
+
+type Scheme = "light" | "dark";
+
+/** 色味と明暗のサイトの地、帯の面、字、釦の差し色。図の色味の表 (`PALETTES`) から引く */
+const siteLook = (id: string, scheme: Scheme): { bg: string; surface: string; text: string; accent: string } => {
+  const v: Record<string, string> = PALETTES[id]?.[scheme] ?? {};
+  return { bg: v.page ?? "", surface: v.surf ?? "", text: v.ink ?? "", accent: v[ACCENT[id] ?? ""] ?? "" };
+};
+
+/** 色味と明暗の図の地と字 (`.dg-player` の `--bg` と `--ink`) */
+const figureLook = (id: string, scheme: Scheme): string => {
+  const v: Record<string, string> = PALETTES[id]?.[scheme] ?? {};
+  return `${(v.bg ?? "").toLowerCase()} ${(v.ink ?? "").toLowerCase()}`;
+};
+
+/** 頁の中の図ごとの地と字。`within` の中の図だけを見る */
+const figureLooks = (page: Page, within = "body"): Promise<string[]> =>
+  page.evaluate(
+    (s) =>
+      [...document.querySelectorAll(`${s} .dg-player`)].map((p) => {
+        const v = (name: string): string => getComputedStyle(p).getPropertyValue(name).trim().toLowerCase();
+        return `${v("--bg")} ${v("--ink")}`;
+      }),
+    within,
+  );
 
 /**
  * 見えている字のうち仮名と漢字を、それを含む字の並びごとに最大 5 つ返す。
@@ -170,6 +195,123 @@ const sampleOf = (text: string): { title: string; kind: "sequence" | "architectu
   const { title, kind, boxes } = parsed.diagram;
   return { title, kind, names: [...new Set(boxes.map((b) => b.name))].sort() };
 };
+
+/** カタログの部品 (#3033) */
+const catalogSel = (name: string): string => `[data-catalog="${name}"]`;
+
+type Kind = "sequence" | "architecture";
+
+/** カタログの分類の並び。図の種類の名前の表 (`TEXT.ja.shelf.kinds`) の順 */
+const KINDS = Object.keys(TEXT.ja.shelf.kinds) as Kind[];
+
+/** 分類に載る見本。見本の記法を読み、図の種類で束ねる */
+const samplesOf = (kind: Kind): ExampleKey[] => EXAMPLE_KEYS.filter((key) => sampleOf(exampleText(key, "ja"))?.kind === kind);
+
+/** 見本の原本の JSON。編集画面の JSON の側と同じく、読んで検査した図を 2 字下げで書く */
+const jsonOf = (text: string): string => {
+  const parsed = parseNotation(text);
+  const read = parsed.ok ? readDiagram(parsed.diagram) : undefined;
+  return read?.ok ? JSON.stringify(read.diagram, null, 2) : "";
+};
+
+/** カタログの一覧の札 */
+const cardsOf = (page: Page): Promise<{ no: string; count: string; title: string; desc: string; open: string; href: string }[]> =>
+  page.evaluate(() =>
+    [...document.querySelectorAll<HTMLAnchorElement>('[data-catalog="card"]')].map((card) => {
+      const text = (name: string): string => card.querySelector(`[data-catalog="${name}"]`)?.textContent?.trim() ?? "";
+      return {
+        no: text("card-no"),
+        count: text("card-count"),
+        title: card.querySelector("h2")?.textContent?.trim() ?? "",
+        desc: text("card-desc"),
+        open: text("card-open"),
+        href: card.href ? new URL(card.href).pathname : "",
+      };
+    }),
+  );
+
+/** 分類の頁の一覧と、右に出ている見本 */
+interface Category {
+  count: string;
+  items: { title: string; current: boolean }[];
+  empty: boolean;
+  /** 一覧が見本の左に並ぶ */
+  sideBySide: boolean;
+  title: string;
+  about: string;
+  names: string[];
+  phase: string;
+  segs: number;
+  done: number;
+  note: string;
+  editor: string;
+}
+
+const categoryOf = (page: Page): Promise<Category> =>
+  page.evaluate(() => {
+    const q = (name: string): Element | null => document.querySelector(`[data-catalog="${name}"]`);
+    const text = (name: string): string => q(name)?.textContent?.trim() ?? "";
+    const svg = document.querySelector('[data-catalog="stage"] svg[data-dragon="figure"]');
+    const side = q("sidebar")?.getBoundingClientRect();
+    const preview = q("preview")?.getBoundingClientRect();
+    const editor = q("open-editor");
+    const segs = [...document.querySelectorAll<HTMLElement>('[data-catalog="progress-seg"]')];
+    return {
+      count: text("count"),
+      items: [...document.querySelectorAll<HTMLElement>('[data-catalog="item"]')].map((i) => ({
+        title: i.textContent?.trim() ?? "",
+        current: i.getAttribute("aria-current") === "true",
+      })),
+      empty: q("empty") !== null,
+      sideBySide: side !== undefined && preview !== undefined && side.width > 0 && side.right <= preview.left,
+      title: document.querySelector('[data-catalog="preview"] h2')?.textContent?.trim() ?? "",
+      about: text("about"),
+      names: svg ? [...new Set([...svg.querySelectorAll(".dg-sn")].map((n) => n.textContent ?? ""))].sort() : [],
+      phase: text("phase-badge"),
+      segs: segs.length,
+      done: segs.filter((s) => s.dataset.done === "true").length,
+      note: text("step-note"),
+      editor: editor instanceof HTMLAnchorElement ? `${new URL(editor.href).pathname}${new URL(editor.href).hash}` : "",
+    };
+  });
+
+/** 右に出る見本の、段に関わらない中身 */
+const shownOf = (c: Category): Pick<Category, "title" | "about" | "names" | "segs" | "editor"> => ({
+  title: c.title,
+  about: c.about,
+  names: c.names,
+  segs: c.segs,
+  editor: c.editor,
+});
+
+/** 見本を右に出した時に期待する、段に関わらない中身 */
+const expectedShown = (key: ExampleKey, lang: Lang): ReturnType<typeof shownOf> => {
+  const text = exampleText(key, lang);
+  const s = sampleOf(text);
+  const parsed = parseNotation(text);
+  const steps = parsed.ok ? parsed.diagram.steps.length : 0;
+  return { title: s?.title ?? "", about: aboutOf(text), names: s?.names ?? [], segs: steps > 1 ? steps : 0, editor: `${BASE}editor${toHash(text)}` };
+};
+
+/**
+ * 段の札と段の本文と進み具合の帯が、同じ段を指しているか。図は自分で段を進めるので、どの段かは決めずに見る。
+ * 食い違えば何が食い違ったかを返し、揃っていれば空を返す。
+ */
+const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
+  const parsed = parseNotation(exampleText(key, lang));
+  const steps = parsed.ok ? parsed.diagram.steps : [];
+  if (steps.length < 2) return c.phase === "" ? "" : `段が 1 つの見本に段の札「${c.phase}」が出た`;
+  const at = steps.findIndex((s, i) => TEXT[lang].stage.phase(i + 1, steps.length, s.title) === c.phase);
+  if (at < 0) return `段の札「${c.phase}」がどの段の札でもない`;
+  if (c.note !== (steps[at]?.body ?? "").trim()) return `段 ${at + 1} の本文が出ない (出た本文「${c.note}」)`;
+  if (c.done !== at + 1) return `段 ${at + 1} なのに進み具合の帯が ${c.done} 区切り進んでいる`;
+  return "";
+};
+
+/** 右の見本の道具のうち、頁に無い物 */
+const PREVIEW_TOOLS = ["tab-figure", "tab-code", "palette", "zoom-out", "zoom-in", "fit", "zoom-level", "expand", "stage", "phase-badge", "progress", "step-note", "open-editor"] as const;
+const missingTools = (page: Page): Promise<string[]> =>
+  page.evaluate((names) => names.filter((n) => document.querySelector(`[data-catalog="preview"] [data-catalog="${n}"]`) === null), [...PREVIEW_TOOLS] as string[]);
 
 let site: Site;
 
@@ -333,22 +475,26 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   it(
-    "site-colors-match-previous-site",
+    "site-colors-follow-palette",
     async () => {
       const light = await site.open({ path: BASE, colorScheme: "light" });
       await onScreen(light.page, "home", "概要の頁が出ない");
-      await expect.poll(() => colorsOf(light.page), { ...WAIT, message: "明るい側の頁の色が前のサイトの値でない" }).toEqual(rgbOf(COLORS.light));
+      await expect
+        .poll(() => colorsOf(light.page), { ...WAIT, message: "色味を選ぶ前の明るい側の頁の色が紙と墨の値でない" })
+        .toEqual(rgbOf(siteLook(DEFAULT_PALETTE, "light")));
 
       // 端末が暗い設定なら暗い側で開く
       const dark = await site.open({ path: BASE, colorScheme: "dark" });
       await onScreen(dark.page, "home", "概要の頁が出ない");
-      await expect.poll(() => colorsOf(dark.page), { ...WAIT, message: "暗い側の頁の色が前のサイトの値でない" }).toEqual(rgbOf(COLORS.dark));
+      await expect
+        .poll(() => colorsOf(dark.page), { ...WAIT, message: "色味を選ぶ前の暗い側の頁の色が紙と墨の値でない" })
+        .toEqual(rgbOf(siteLook(DEFAULT_PALETTE, "dark")));
 
       // 明暗の切替を押すと替わり、もう 1 度押すと戻る
       await light.page.locator(siteSel("theme")).click();
-      await expect.poll(() => colorsOf(light.page), { ...WAIT, message: "明暗の切替で暗い側にならない" }).toEqual(rgbOf(COLORS.dark));
+      await expect.poll(() => colorsOf(light.page), { ...WAIT, message: "明暗の切替で暗い側にならない" }).toEqual(rgbOf(siteLook(DEFAULT_PALETTE, "dark")));
       await light.page.locator(siteSel("theme")).click();
-      await expect.poll(() => colorsOf(light.page), { ...WAIT, message: "明暗の切替で明るい側に戻らない" }).toEqual(rgbOf(COLORS.light));
+      await expect.poll(() => colorsOf(light.page), { ...WAIT, message: "明暗の切替で明るい側に戻らない" }).toEqual(rgbOf(siteLook(DEFAULT_PALETTE, "light")));
     },
     SLOW,
   );
@@ -544,6 +690,372 @@ describe("サイトの帯と経路 (#3030)", () => {
       await card.click();
       await onScreen(page, "category", "用例の札を押しても分類の頁へ移らない");
       expect(await page.evaluate(() => location.pathname), "用例の札が見本の図の種類の分類へ向かない").toBe(href);
+    },
+    SLOW,
+  );
+
+  it(
+    "catalog-cards-count-from-samples",
+    async () => {
+      const { page } = await site.open({ path: `${BASE}catalog`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "catalog", "カタログの一覧が出ない");
+
+      // 分類ごとの札。番号、件数、見出し、説明、開く。件数は分類に載る見本を数えた数
+      const expected = KINDS.map((kind, i) => ({
+        no: String(i + 1).padStart(2, "0"),
+        count: `${samplesOf(kind).length} 件`,
+        title: TEXT.ja.shelf.kinds[kind],
+        href: `${BASE}catalog/${kind}`,
+        open: "開く →",
+      }));
+      await expect
+        .poll(async () => (await cardsOf(page)).map(({ no, count, title, href, open }) => ({ no, count, title, href, open })), {
+          ...WAIT,
+          message: "カタログの一覧に分類の札が見本の数どおりに並ばない",
+        })
+        .toEqual(expected);
+      const cards = await cardsOf(page);
+      expect(cards.every((c) => c.desc !== ""), "説明の無い分類の札がある").toBe(true);
+      expect(new Set(cards.map((c) => c.desc)).size, "分類の札の説明が分類ごとに違わない").toBe(cards.length);
+
+      // 道筋と見出しと説明。説明は分類の数と見本の数を数えて出す
+      expect(
+        await page.evaluate(() => [...document.querySelectorAll<HTMLAnchorElement>('[data-catalog="crumb"] a')].map((a) => new URL(a.href).pathname)),
+        "一覧の道筋が概要へ戻らない",
+      ).toEqual([BASE]);
+      expect(await page.locator(`${catalogSel("index")} h1`).textContent(), "一覧の見出しがカタログでない").toBe("カタログ");
+      const desc = (await page.locator(catalogSel("desc")).textContent()) ?? "";
+      expect(desc, "一覧の説明が分類の数を出さない").toContain(`${KINDS.length}`);
+      expect(desc, "一覧の説明が見本の数を出さない").toContain(`${EXAMPLE_KEYS.length}`);
+
+      // 英語に替えると、札の見出しと開くの字が英語になる
+      await page.locator(siteSel("lang-en")).click();
+      await expect
+        .poll(async () => (await cardsOf(page)).map(({ title, open }) => ({ title, open })), { ...WAIT, message: "英語に替えても分類の札が英語にならない" })
+        .toEqual(KINDS.map((kind) => ({ title: TEXT.en.shelf.kinds[kind], open: "Open →" })));
+
+      // 札を押すと、その分類の頁へ移る
+      await page.locator(catalogSel("card")).first().click();
+      await onScreen(page, "category", "分類の札を押しても分類の頁が出ない");
+      expect(await page.evaluate(() => location.pathname), "最初の分類の札が最初の分類へ向かない").toBe(`${BASE}catalog/${KINDS[0]}`);
+    },
+    SLOW,
+  );
+
+  it(
+    "category-page-lists-samples-and-previews-one",
+    async () => {
+      const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "category", "時系列図の分類の頁が出ない");
+      const keys = samplesOf("sequence");
+      const titleOf = (key: ExampleKey, lang: Lang = "ja"): string => sampleOf(exampleText(key, lang))?.title ?? "";
+
+      // 左の一覧に分類の見本が並び、最初の見本を選んでいる
+      await expect
+        .poll(async () => (await categoryOf(page)).items, { ...WAIT, message: "分類の頁の一覧に見本が並ばない" })
+        .toEqual(keys.map((key, i) => ({ title: titleOf(key), current: i === 0 })));
+      const first = await categoryOf(page);
+      expect(first.count, "分類の頁に見本の件数が出ない").toBe(`全 ${keys.length} 件`);
+      expect(first.sideBySide, "一覧が見本の左に並ばない").toBe(true);
+      expect(await page.locator(`${catalogSel("category")} h1`).textContent(), "分類の頁の見出しが図の種類の名前でない").toBe(TEXT.ja.shelf.kinds.sequence);
+      expect(
+        await page.evaluate(() => [...document.querySelectorAll<HTMLAnchorElement>('[data-catalog="crumb"] a')].map((a) => new URL(a.href).pathname)),
+        "分類の頁の道筋が概要とカタログへ戻らない",
+      ).toEqual([BASE, `${BASE}catalog`]);
+
+      // 右に選んだ見本 1 つ。名前と説明、動く図、編集画面で開く
+      const firstKey = keys[0] as ExampleKey;
+      await expect.poll(async () => shownOf(await categoryOf(page)), { ...WAIT, message: "右に最初の見本が出ない" }).toEqual(expectedShown(firstKey, "ja"));
+      expect(stepMismatch(await categoryOf(page), firstKey, "ja"), "最初の見本の段の札と本文と帯が揃わない").toBe("");
+
+      // 一覧で別の見本を選ぶと、右がその見本に替わる
+      const lastKey = keys.at(-1) as ExampleKey;
+      await page.locator(catalogSel("item")).last().click();
+      await expect.poll(async () => shownOf(await categoryOf(page)), { ...WAIT, message: "一覧で選んだ見本に右が替わらない" }).toEqual(expectedShown(lastKey, "ja"));
+      expect((await categoryOf(page)).items.map((i) => i.current), "選んだ見本に印が移らない").toEqual(keys.map((_, i) => i === keys.length - 1));
+      expect(stepMismatch(await categoryOf(page), lastKey, "ja"), "選んだ見本の段の札と本文と帯が揃わない").toBe("");
+      // 段を 2 つ以上持つ見本には、図とコードの見出し、色味、縮小と拡大と幅に合わせる、拡大の釦、段の札、帯、段の本文が揃う
+      expect(await missingTools(page), "右の見本に道具が欠けている").toEqual([]);
+
+      // 検索で一覧が絞られる。当てはまる見本が無ければ、無いと出す
+      await page.locator(catalogSel("search")).fill("OAuth");
+      await expect
+        .poll(async () => (await categoryOf(page)).items.map((i) => i.title), { ...WAIT, message: "検索で一覧が絞られない" })
+        .toEqual(keys.filter((key) => titleOf(key).includes("OAuth")).map((key) => titleOf(key)));
+      await page.locator(catalogSel("search")).fill("当てはまらない語");
+      await expect
+        .poll(async () => {
+          const c = await categoryOf(page);
+          return { items: c.items.length, empty: c.empty };
+        }, { ...WAIT, message: "当てはまる見本が無い時に、無いと出ない" })
+        .toEqual({ items: 0, empty: true });
+
+      // 見本が 1 つしかない分類
+      const one = samplesOf("architecture");
+      const arch = await site.open({ path: `${BASE}catalog/architecture`, viewport: { width: 1440, height: 900 } });
+      await onScreen(arch.page, "category", "構成図の分類の頁が出ない");
+      await expect
+        .poll(async () => (await categoryOf(arch.page)).items, { ...WAIT, message: "構成図の分類の一覧に見本が並ばない" })
+        .toEqual(one.map((key) => ({ title: titleOf(key), current: true })));
+      expect((await categoryOf(arch.page)).count).toBe(`全 ${one.length} 件`);
+      await expect
+        .poll(async () => shownOf(await categoryOf(arch.page)), { ...WAIT, message: "構成図の分類で右に見本が出ない" })
+        .toEqual(expectedShown(one[0] as ExampleKey, "ja"));
+
+      // 知らない分類は見つからない頁にする
+      const unknown = await site.open({ path: `${BASE}catalog/unknown` });
+      await onScreen(unknown.page, "not-found", "知らない分類で見つからない頁が出ない");
+    },
+    SLOW,
+  );
+
+  it(
+    "category-item-shows-source",
+    async () => {
+      const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "category", "時系列図の分類の頁が出ない");
+      const key = samplesOf("sequence")[0] as ExampleKey;
+      const source = (): Promise<string | null> => page.evaluate(() => document.querySelector('[data-catalog="source-code"]')?.textContent ?? null);
+      const shown = (): Promise<{ stage: boolean; source: boolean; tab: string | null }> =>
+        page.evaluate(() => {
+          const visible = (s: string): boolean => {
+            const e = document.querySelector<HTMLElement>(s);
+            return e !== null && e.checkVisibility();
+          };
+          return {
+            stage: visible('[data-catalog="stage"]'),
+            source: visible('[data-catalog="source"]'),
+            tab: document.querySelector('[data-catalog="preview"] [role="tab"][aria-selected="true"]')?.getAttribute("data-catalog") ?? null,
+          };
+        });
+
+      await expect.poll(shown, { ...WAIT, message: "分類の頁が図の見出しで開かない" }).toEqual({ stage: true, source: false, tab: "tab-figure" });
+
+      // コードの見出しで、図の代わりに記法の本文を出す
+      await page.locator(catalogSel("tab-code")).click();
+      await expect.poll(shown, { ...WAIT, message: "コードの見出しで記法の本文に替わらない" }).toEqual({ stage: false, source: true, tab: "tab-code" });
+      await expect.poll(source, { ...WAIT, message: "コードの見出しの本文が見本の記法でない" }).toBe(exampleText(key, "ja"));
+      expect(await page.locator(catalogSel("source-notation")).getAttribute("aria-pressed"), "記法の側が選ばれていない").toBe("true");
+
+      // JSON の側に替えると、原本の JSON を出す
+      await page.locator(catalogSel("source-json")).click();
+      await expect.poll(source, { ...WAIT, message: "JSON の側に替えても原本の JSON が出ない" }).toBe(jsonOf(exampleText(key, "ja")));
+      expect(await page.locator(catalogSel("source-json")).getAttribute("aria-pressed"), "JSON の側が選ばれていない").toBe("true");
+
+      // 写す釦で、選んだ側の本文を写す
+      await page.evaluate(() => {
+        const w = window as unknown as { __copied: string | null };
+        w.__copied = null;
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: async (text: string) => {
+              w.__copied = text;
+            },
+          },
+        });
+      });
+      await page.locator(catalogSel("copy")).click();
+      await expect
+        .poll(() => page.evaluate(() => (window as unknown as { __copied: string | null }).__copied), { ...WAIT, message: "写す釦で JSON の本文を写さない" })
+        .toBe(jsonOf(exampleText(key, "ja")));
+
+      // 記法の側に戻して英語に替えると、英語の見本の記法になる
+      await page.locator(catalogSel("source-notation")).click();
+      await page.locator(siteSel("lang-en")).click();
+      await expect.poll(source, { ...WAIT, message: "英語に替えてもコードの見出しの記法が英語の見本にならない" }).toBe(exampleText(key, "en"));
+
+      // 図の見出しに戻すと、図に戻る
+      await page.locator(catalogSel("tab-figure")).click();
+      await expect.poll(shown, { ...WAIT, message: "図の見出しで図に戻らない" }).toEqual({ stage: true, source: false, tab: "tab-figure" });
+    },
+    SLOW,
+  );
+
+  it(
+    "category-item-opens-overlay-and-editor",
+    async () => {
+      const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "category", "時系列図の分類の頁が出ない");
+      const key = samplesOf("sequence").at(-1) as ExampleKey;
+      const text = exampleText(key, "ja");
+      const sample = sampleOf(text);
+      await page.locator(catalogSel("item")).last().click();
+      await expect.poll(async () => (await categoryOf(page)).title, { ...WAIT, message: "選んだ見本が右に出ない" }).toBe(sample?.title);
+
+      const overlay = (): Promise<{ covers: boolean; title: string; names: string[]; figures: number; larger: boolean } | null> =>
+        page.evaluate(() => {
+          const o = document.querySelector('[data-catalog="overlay"]');
+          if (!o || !(o as HTMLElement).checkVisibility()) return null;
+          const r = o.getBoundingClientRect();
+          const svg = o.querySelector('svg[data-dragon="figure"]');
+          const inStage = document.querySelector('[data-catalog="stage"] svg[data-dragon="figure"]');
+          return {
+            covers: r.left <= 0 && r.top <= 0 && r.right >= innerWidth && r.bottom >= innerHeight,
+            title: o.querySelector('[data-catalog="overlay-title"]')?.textContent?.trim() ?? "",
+            names: svg ? [...new Set([...svg.querySelectorAll(".dg-sn")].map((n) => n.textContent ?? ""))].sort() : [],
+            figures: o.querySelectorAll('svg[data-dragon="figure"]').length,
+            larger: svg !== null && inStage !== null && svg.getBoundingClientRect().width > inStage.getBoundingClientRect().width,
+          };
+        });
+      const opened = { covers: true, title: sample?.title ?? "", names: sample?.names ?? [], figures: 1, larger: true };
+
+      // 拡大の釦で、画面を覆う重ね窓に図 1 つが大きく出る
+      await page.locator(catalogSel("expand")).click();
+      await expect.poll(overlay, { ...WAIT, message: "拡大の釦で重ね窓に図が大きく出ない" }).toEqual(opened);
+      // 閉じる釦で閉じる
+      await page.locator(catalogSel("overlay-close")).click();
+      await expect.poll(overlay, { ...WAIT, message: "閉じる釦で重ね窓が閉じない" }).toBeNull();
+      // Escape でも閉じる
+      await page.locator(catalogSel("expand")).click();
+      await expect.poll(overlay, { ...WAIT, message: "もう一度押しても重ね窓が開かない" }).toEqual(opened);
+      await page.keyboard.press("Escape");
+      await expect.poll(overlay, { ...WAIT, message: "Escape で重ね窓が閉じない" }).toBeNull();
+
+      // 編集画面で開くと、頁を読み直さずにその記法が入った編集画面が開く
+      await page.evaluate(() => {
+        (window as unknown as { __stay: number }).__stay = 1;
+      });
+      await page.locator(catalogSel("open-editor")).click();
+      await onScreen(page, "editor", "編集画面で開くで編集画面が出ない");
+      await expect
+        .poll(() => page.evaluate(() => document.querySelector<HTMLTextAreaElement>('[data-playground="editor"]')?.value.trimEnd() ?? null), {
+          ...WAIT,
+          message: "編集画面で開いても見本の記法が書く欄に入らない",
+        })
+        .toBe(text);
+      expect(await page.evaluate(() => location.hash), "編集画面のアドレスに記法が載らない").toBe(toHash(text));
+      expect(await page.evaluate(() => (window as unknown as { __stay?: number }).__stay), "編集画面で開く時に頁を読み直した").toBe(1);
+    },
+    SLOW,
+  );
+
+  it(
+    "catalog-samples-all-valid",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}catalog`, locale: lang === "ja" ? "ja-JP" : "en-US" });
+        await onScreen(page, "catalog", "カタログの一覧が出ない");
+        await expect.poll(async () => (await cardsOf(page)).length, { ...WAIT, message: "カタログの一覧に分類の札が無い" }).toBeGreaterThan(0);
+        const hrefs = (await cardsOf(page)).map((c) => c.href);
+        const errors: string[] = [];
+        let total = 0;
+        for (const href of hrefs) {
+          await page.goto(`${site.origin}${href}`);
+          await onScreen(page, "category", `${href} で分類の頁が出ない`);
+          await expect.poll(async () => (await categoryOf(page)).items.length, { ...WAIT, message: `${href} に見本が無い` }).toBeGreaterThan(0);
+          const items = (await categoryOf(page)).items;
+          for (const [i, item] of items.entries()) {
+            await page.locator(catalogSel("item")).nth(i).click();
+            await expect.poll(async () => (await categoryOf(page)).title, { ...WAIT, message: `${href} の「${item.title}」が右に出ない` }).toBe(item.title);
+            await page.locator(catalogSel("tab-code")).click();
+            await page.locator(catalogSel("source-notation")).click();
+            const text = (await page.locator(catalogSel("source-code")).textContent()) ?? "";
+            const parsed = parseNotation(text);
+            if (!parsed.ok) {
+              errors.push(`${lang} ${href}「${item.title}」が記法として読めない: ${parsed.errors.map((e) => `${e.line} 行目 ${e.message}`).join(" / ")}`);
+              continue;
+            }
+            const read = readDiagram(parsed.diagram);
+            if (!read.ok) errors.push(`${lang} ${href}「${item.title}」が schema の検査で落ちる: ${read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")}`);
+            total += 1;
+            await page.locator(catalogSel("tab-figure")).click();
+          }
+        }
+        expect(errors, `${lang} のカタログに読めない見本がある`).toEqual([]);
+        expect(total, `${lang} のカタログに載る見本の数が見本の数と合わない`).toBe(EXAMPLE_KEYS.length);
+      }
+    },
+    SWEEP,
+  );
+
+  it(
+    "category-palette-overrides-one-diagram",
+    async () => {
+      const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport: { width: 1440, height: 900 }, colorScheme: "light" });
+      await onScreen(page, "category", "時系列図の分類の頁が出ない");
+      const stageLook = (): Promise<string[]> => figureLooks(page, catalogSel("stage"));
+      const pick = (value: string): Promise<string[]> => page.locator(catalogSel("palette")).selectOption(value);
+
+      // 色味の切替は「サイトと同じ」と 3 つの色味。最初は「サイトと同じ」で、帯の色味で描く
+      expect(
+        await page.evaluate(() => [...document.querySelectorAll<HTMLOptionElement>('[data-catalog="palette"] option')].map((o) => o.value)),
+        "見本の色味の切替が「サイトと同じ」と 3 つの色味でない",
+      ).toEqual(["site", ...PALETTE_IDS]);
+      expect(await page.locator(catalogSel("palette")).inputValue(), "見本の色味の切替が「サイトと同じ」で始まらない").toBe("site");
+      await expect.poll(stageLook, { ...WAIT, message: "見本の図が帯の色味で描かれない" }).toEqual([figureLook(DEFAULT_PALETTE, "light")]);
+
+      // 見本の色味を選ぶと、その図だけが替わり、サイトの色は替わらない
+      await pick("night");
+      await expect.poll(stageLook, { ...WAIT, message: "見本の色味を夜の計器にしても図が替わらない" }).toEqual([figureLook("night", "light")]);
+      expect(await colorsOf(page), "見本の色味を選ぶとサイトの色まで替わった").toEqual(rgbOf(siteLook(DEFAULT_PALETTE, "light")));
+
+      // 帯の色味を替えてから「サイトと同じ」に戻すと、帯の色味で描く
+      await page.locator(`${siteSel("palette")} ${siteSel("palette-clear")}`).click();
+      await pick("site");
+      await expect.poll(stageLook, { ...WAIT, message: "「サイトと同じ」に戻しても帯の色味で描かれない" }).toEqual([figureLook("clear", "light")]);
+    },
+    SLOW,
+  );
+
+  it(
+    "site-palette-switch-recolors-site-and-diagrams",
+    async () => {
+      const { page } = await site.open({ path: BASE, viewport: { width: 1440, height: 900 }, colorScheme: "light" });
+      await onScreen(page, "home", "概要の頁が出ない");
+      const header = `${siteSel("header")} ${siteSel("palette")}`;
+      const switchOf = (): Promise<{ id: string; pressed: boolean; label: string | null }[]> =>
+        page.evaluate(
+          (s) =>
+            [...document.querySelectorAll<HTMLButtonElement>(`${s} button`)].map((b) => ({
+              id: b.dataset.site ?? "",
+              pressed: b.getAttribute("aria-pressed") === "true",
+              label: b.getAttribute("aria-label"),
+            })),
+          header,
+        );
+      const pressedOnly = (id: string): { id: string; pressed: boolean; label: string | null }[] =>
+        PALETTE_IDS.map((p) => ({ id: `palette-${p}`, pressed: p === id, label: TEXT.ja.paletteNames[p] ?? null }));
+
+      // 帯に 3 つの色味が並び、紙と墨を選んでいる
+      expect(await switchOf(), "帯の色味の切替が 3 つの色味でないか、紙と墨を選んでいない").toEqual(pressedOnly(DEFAULT_PALETTE));
+
+      // 色味を選ぶと、サイトの色と頁の全部の図が替わる
+      const figures = 1 + EXAMPLE_KEYS.length;
+      for (const id of PALETTE_IDS) {
+        await page.locator(`${header} ${siteSel(`palette-${id}`)}`).click();
+        await expect.poll(() => colorsOf(page), { ...WAIT, message: `${id} を選んでもサイトの色が替わらない` }).toEqual(rgbOf(siteLook(id, "light")));
+        await expect.poll(() => figureLooks(page), { ...WAIT, message: `${id} を選んでも概要の図が替わらない` }).toEqual(Array(figures).fill(figureLook(id, "light")));
+        expect(await switchOf(), `${id} を選んだ印が付かない`).toEqual(pressedOnly(id));
+      }
+
+      // 色味を選んだ後に明暗を切り替えると、選んだ色味の暗い側になる
+      await page.locator(`${header} ${siteSel("palette-clear")}`).click();
+      await page.locator(siteSel("theme")).click();
+      await expect.poll(() => colorsOf(page), { ...WAIT, message: "澄んだ色で明暗を替えても暗い側の値にならない" }).toEqual(rgbOf(siteLook("clear", "dark")));
+      await expect.poll(() => figureLooks(page), { ...WAIT, message: "澄んだ色で明暗を替えても図が暗い側にならない" }).toEqual(Array(figures).fill(figureLook("clear", "dark")));
+
+      // 頁を開き直しても選んだ色味が残る。明暗は端末の設定に戻る
+      await page.reload();
+      await onScreen(page, "home", "開き直した概要の頁が出ない");
+      await expect.poll(() => colorsOf(page), { ...WAIT, message: "開き直すと選んだ色味が残らない" }).toEqual(rgbOf(siteLook("clear", "light")));
+      expect(await switchOf(), "開き直すと選んだ色味の印が残らない").toEqual(pressedOnly("clear"));
+
+      // 編集画面とカタログの図も帯の色味で描く
+      await page.locator(`${siteSel("nav")} a`, { hasText: "編集画面" }).click();
+      await onScreen(page, "editor", "帯から編集画面へ移れない");
+      await expect.poll(() => figureLooks(page, '[data-playground="stage"]'), { ...WAIT, message: "編集画面の図が帯の色味で描かれない" }).toEqual([figureLook("clear", "light")]);
+      await page.goto(`${site.origin}${BASE}catalog/sequence`);
+      await onScreen(page, "category", "分類の頁が出ない");
+      await expect.poll(() => figureLooks(page, catalogSel("stage")), { ...WAIT, message: "分類の頁の図が帯の色味で描かれない" }).toEqual([figureLook("clear", "light")]);
+
+      // 幅 720 以下では、畳んだ行き先の面の中で色味を切り替える
+      const narrow = await site.open({ path: BASE, viewport: { width: 390, height: 844 }, colorScheme: "light" });
+      await onScreen(narrow.page, "home", "幅 390 で概要の頁が出ない");
+      expect(await narrow.page.locator(header).isVisible(), "幅 390 で帯の色味の切替が畳まれない").toBe(false);
+      await narrow.page.locator(siteSel("menu")).click();
+      await narrow.page.locator(`${siteSel("sheet-palette")} ${siteSel("palette-night")}`).click();
+      await expect.poll(() => colorsOf(narrow.page), { ...WAIT, message: "畳んだ面の色味の切替でサイトの色が替わらない" }).toEqual(rgbOf(siteLook("night", "light")));
     },
     SLOW,
   );
