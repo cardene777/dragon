@@ -142,6 +142,47 @@ async function setEditor(page: Page, text: string): Promise<void> {
   await page.locator(sel("editor")).fill(text);
 }
 
+/** `data-playground` の札が `prefix` で始まる部品の札と字。棚の一覧の項目を読む (#3031) */
+const items = (page: Page, prefix: string): Promise<{ name: string; text: string }[]> =>
+  page.evaluate(
+    (p) =>
+      [...document.querySelectorAll<HTMLElement>(`[data-playground^="${p}"]`)].map((e) => ({ name: e.dataset.playground ?? "", text: e.textContent ?? "" })),
+    prefix,
+  );
+
+/** 書く欄の記法を読んだ図。読めなければ `undefined` */
+const editorDiagram = async (page: Page): Promise<Diagram | undefined> => {
+  const parsed = parseNotation((await editorValue(page)) ?? "");
+  return parsed.ok ? parsed.diagram : undefined;
+};
+
+/** 書く欄で選ばれている字と、書く欄に焦点があるか (#3031) */
+const editorSelection = (page: Page): Promise<{ focused: boolean; text: string } | null> =>
+  page.evaluate((s) => {
+    const e = document.querySelector(s);
+    return e instanceof HTMLTextAreaElement ? { focused: document.activeElement === e, text: e.value.slice(e.selectionStart, e.selectionEnd) } : null;
+  }, sel("editor"));
+
+/** 知らせの欄の行番号の札の字 (#3031) */
+const noticeLines = (page: Page): Promise<string[]> =>
+  page.evaluate((s) => [...document.querySelectorAll(s)].map((e) => (e.textContent ?? "").trim()), sel("notice-line"));
+
+/** 図の SVG の画面の上の幅 (#3031) */
+const figureWidth = (page: Page): Promise<number> =>
+  page.evaluate((s) => document.querySelector(`${s} svg[data-dragon="figure"]`)?.getBoundingClientRect().width ?? 0, sel("stage"));
+
+/** 段の札と進み具合の帯 (#3031) */
+const phase = (page: Page): Promise<{ badge: string | null; segments: number; done: number; stepNo: string | null }> =>
+  page.evaluate(
+    ([stage, badge, segment]) => ({
+      badge: document.querySelector(badge)?.textContent?.trim() ?? null,
+      segments: document.querySelectorAll(segment).length,
+      done: document.querySelectorAll(`${segment}[data-done="true"]`).length,
+      stepNo: document.querySelector(`${stage} [data-dragon="step-no"]`)?.textContent ?? null,
+    }),
+    [sel("stage"), sel("phase-badge"), sel("progress-seg")] as const,
+  );
+
 /**
  * 図の地と字の色と、頁の地の色。
  *
@@ -293,9 +334,9 @@ describe("公開する頁 (#2995)", () => {
 
       const { page } = await open();
       await drawn(page);
-      await expect.poll(() => count(page, "example"), { ...WAIT, message: "見本を選ぶ欄が無い" }).toBe(1);
+      // 見本は左の棚の見本の一覧から選ぶ (#3031)
       for (const [value, text] of [["intro", intro ?? ""], ["ccip", CCIP], ["oauth", OAUTH]] as const) {
-        await page.locator(sel("example")).selectOption(value);
+        await click(page, `sample-${value}`);
         await expect.poll(() => editorValue(page), { ...WAIT, message: `${value} を選んでも書く欄に入らない` }).toBe(text);
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${value} を選んでも図が替わらない` }).toContain(titleOf(text));
       }
@@ -444,7 +485,7 @@ describe("公開する頁 (#2995)", () => {
       for (const key of ["intro", "ccip", "oauth"]) {
         const text = example(`${key}.en.dragon`) ?? "";
         expect(text, `${key} の英語版の見本が無い`).not.toBe("");
-        await page.locator(sel("example")).selectOption(key);
+        await click(page, `sample-${key}`);
         await expect.poll(() => editorValue(page), { ...WAIT, message: `${key} の英語版が書く欄に入らない` }).toBe(text.trimEnd());
         expect((await editorValue(page))?.match(JAPANESE_WORDS)?.[0], `${key} の英語版の見本に日本語の語がある`).toBeUndefined();
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${key} の英語版の図が描かれない` }).toContain(titleOf(text));
@@ -626,6 +667,292 @@ describe("公開する頁 (#2995)", () => {
         .poll(() => playerNames(page), { ...WAIT, message: "日本語の頁で再生の釦と全体図の札が日本語で出ない" })
         .toMatchObject({ prev: "前の段", next: "次の段", steps: "Edited diagram の段", overview: "全体図" });
       expect((await playerNames(page)).toggle).toMatch(/^(止める|動かす)$/u);
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-shelf-loads-samples-parts-and-filters",
+    async () => {
+      const intro = example("intro.dragon") ?? "";
+      const { page } = await open();
+      await drawn(page);
+      for (const name of ["new-file", "shelf-tab-samples", "shelf-tab-parts", "shelf-tab-notation", "shelf-filter"]) {
+        await expect.poll(() => count(page, name), { ...WAIT, message: `左の棚に ${name} が無い` }).toBe(1);
+      }
+
+      // 見本を選ぶと、その見本の記法が書く欄に入り、図が替わる
+      for (const [key, text] of [["intro", intro], ["ccip", CCIP]] as const) {
+        await click(page, `sample-${key}`);
+        await expect.poll(() => editorValue(page), { ...WAIT, message: `見本 ${key} を選んでも書く欄に入らない` }).toBe(text);
+        await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} を選んでも図が替わらない` }).toContain(titleOf(text));
+      }
+
+      // 絞り込むと見本の一覧が絞れ、空にすると戻る
+      const samples = await items(page, "sample-");
+      expect(samples.length, "見本の一覧が 2 つ未満").toBeGreaterThan(1);
+      await page.locator(sel("shelf-filter")).fill("CCIP");
+      await expect.poll(async () => (await items(page, "sample-")).map((i) => i.name), { ...WAIT, message: "絞り込んでも見本の一覧が絞れない" }).toEqual(["sample-ccip"]);
+      await page.locator(sel("shelf-filter")).fill("");
+      await expect.poll(async () => (await items(page, "sample-")).length, { ...WAIT, message: "絞り込みを空にしても見本の一覧が戻らない" }).toBe(samples.length);
+
+      // 部品を選ぶと、その部品の行が書く欄に足され、記法は読めるまま図が描き直される
+      await click(page, "shelf-tab-parts");
+      const parts = (await items(page, "part-")).map((i) => i.name);
+      expect(parts, "部品の一覧に箱と段と線と処理が無い").toEqual(expect.arrayContaining(["part-box", "part-step", "part-edge", "part-action"]));
+      const before = await editorDiagram(page);
+      expect(before, "見本の記法が読めない").toBeDefined();
+      const lastEvents = (d: Diagram | undefined): number => d?.steps.at(-1)?.events.length ?? -1;
+      await click(page, "part-box");
+      await expect.poll(async () => (await editorDiagram(page))?.boxes.length, { ...WAIT, message: "箱の部品で箱の行が足されない" }).toBe((before?.boxes.length ?? 0) + 1);
+      await click(page, "part-edge");
+      await expect.poll(async () => lastEvents(await editorDiagram(page)), { ...WAIT, message: "線の部品で最後の段に線の行が足されない" }).toBe(lastEvents(before) + 1);
+      await click(page, "part-step");
+      await expect.poll(async () => (await editorDiagram(page))?.steps.length, { ...WAIT, message: "段の部品で段が足されない" }).toBe((before?.steps.length ?? 0) + 1);
+      await expect.poll(() => page.locator(sel("status")).getAttribute("data-state"), { ...WAIT, message: "部品を足した記法が誤りになる" }).toBe("ok");
+      await expect.poll(async () => (await stepsLabel(page)) ?? "", { ...WAIT, message: "部品を足した記法で図が描き直されない" }).toContain(before?.title ?? "");
+
+      // 絞り込むと部品の一覧が絞れる。残った項目はどれも絞り込みの字を含む
+      await page.locator(sel("shelf-filter")).fill("->");
+      await expect
+        .poll(async () => (await items(page, "part-")).length, { ...WAIT, message: "絞り込んでも部品の一覧が絞れない" })
+        .toBeLessThan(parts.length);
+      const narrowed = await items(page, "part-");
+      expect(narrowed.length, "絞り込むと部品が 1 つも残らない").toBeGreaterThan(0);
+      for (const item of narrowed) expect(item.text, `${item.name} が絞り込みの字を含まない`).toContain("->");
+      await page.locator(sel("shelf-filter")).fill("");
+
+      // 記法の見出しには、行の形の早見が並ぶ
+      await click(page, "shelf-tab-notation");
+      await expect.poll(async () => (await items(page, "syntax-")).length, { ...WAIT, message: "記法の早見が無い" }).toBeGreaterThan(5);
+
+      // 新規作成で、読める雛形が書く欄に入り、書類名が新しい名前になる
+      await click(page, "new-file");
+      await expect.poll(async () => (await editorDiagram(page)) !== undefined, { ...WAIT, message: "新規作成の雛形が読めない" }).toBe(true);
+      expect(await page.locator(sel("file-name")).inputValue(), "新規作成で書類名が新しい名前にならない").toBe("untitled.dragon");
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "新規作成の雛形で図が描かれない" }).toContain((await editorDiagram(page))?.title ?? "");
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-imports-and-exports-notation",
+    async () => {
+      const { page } = await open();
+      await drawn(page);
+      for (const name of ["tab-notation", "tab-json", "file-name", "import", "export"]) {
+        await expect.poll(() => count(page, name), { ...WAIT, message: `書く欄の上に ${name} が無い` }).toBe(1);
+      }
+      expect(await page.locator(sel("file-name")).inputValue(), "開いた見本の書類名でない").toBe("oauth.dragon");
+
+      // 取り込んだ file の記法が書く欄に入り、書類名がその file の名前になる
+      await page.locator(sel("import-file")).setInputFiles({ name: "edited.dragon", mimeType: "text/plain", buffer: Buffer.from(EDITED, "utf8") });
+      await expect.poll(() => editorValue(page), { ...WAIT, message: "取り込んだ記法が書く欄に入らない" }).toBe(EDITED);
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "取り込んだ記法で図が描かれない" }).toContain("書き換えた図");
+      expect(await page.locator(sel("file-name")).inputValue(), "書類名が取り込んだ file の名前にならない").toBe("edited.dragon");
+
+      // 書き出すと、今の記法が書類名の `.dragon` の file として保存される
+      const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
+      expect(download.suggestedFilename(), "書き出す file の名前が書類名でない").toBe("edited.dragon");
+      expect(readFileSync(await download.path(), "utf8").trimEnd(), "書き出した file の中身が今の記法でない").toBe(EDITED);
+
+      // 拡張子の無い書類名でも `.dragon` を付けて書き出す
+      await page.locator(sel("file-name")).fill("memo");
+      const [named] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
+      expect(named.suggestedFilename(), "拡張子の無い書類名に .dragon が付かない").toBe("memo.dragon");
+
+      // 図の原本の JSON の file を取り込むと、記法の側に記法で入る
+      const parsed = parseNotation(CCIP);
+      expect(parsed.ok).toBe(true);
+      const ccip = parsed.ok ? parsed.diagram : undefined;
+      await page.locator(sel("import-file")).setInputFiles({ name: "ccip.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(ccip), "utf8") });
+      await expect.poll(() => editorDiagram(page), { ...WAIT, message: "取り込んだ JSON の図が記法で入らない" }).toEqual(ccip);
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-stage-tools-change-view",
+    async () => {
+      const { page } = await open();
+      await drawn(page);
+      for (const name of ["font-down", "font-up", "zoom-out", "zoom-in", "fit", "grid", "fullscreen"]) {
+        await expect.poll(() => count(page, name), { ...WAIT, message: `図の側に ${name} の道具が無い` }).toBe(1);
+      }
+
+      // 拡大と縮小で図の大きさが変わり、全体に合わせると元の大きさに戻る
+      await expect.poll(() => figureWidth(page), { ...WAIT, message: "図の幅が測れない" }).toBeGreaterThan(0);
+      const fitted = await figureWidth(page);
+      await click(page, "zoom-in");
+      await expect.poll(() => figureWidth(page), { ...WAIT, message: "拡大しても図が大きくならない" }).toBeGreaterThan(fitted * 1.1);
+      await click(page, "zoom-out");
+      await click(page, "zoom-out");
+      await expect.poll(() => figureWidth(page), { ...WAIT, message: "縮小しても図が小さくならない" }).toBeLessThan(fitted * 0.95);
+      await click(page, "fit");
+      await expect.poll(async () => Math.abs((await figureWidth(page)) - fitted), { ...WAIT, message: "全体に合わせても元の大きさに戻らない" }).toBeLessThan(1);
+
+      // 格子を出すと、図の地に 24px 刻みの点が出る
+      const grid = (): Promise<{ image: string; size: string }> =>
+        page.evaluate((s) => {
+          const e = document.querySelector(s);
+          const style = e ? getComputedStyle(e) : undefined;
+          return { image: style?.backgroundImage ?? "", size: style?.backgroundSize ?? "" };
+        }, sel("figure"));
+      expect((await grid()).image, "格子を出す前から点がある").toBe("none");
+      await click(page, "grid");
+      await expect.poll(grid, { ...WAIT, message: "格子を出しても 24px 刻みの点が出ない" }).toEqual({ image: expect.stringContaining("radial-gradient"), size: "24px 24px" });
+
+      // 字の大きさを替えると、段の題の字が大きくなり小さくなる
+      const titleHeight = (): Promise<number> =>
+        page.evaluate((s) => document.querySelector(`${s} [data-dragon="step-title"]`)?.getBoundingClientRect().height ?? 0, sel("stage"));
+      const plain = await titleHeight();
+      expect(plain, "段の題が描かれていない").toBeGreaterThan(0);
+      await click(page, "font-up");
+      await expect.poll(titleHeight, { ...WAIT, message: "字を大きくしても段の題が大きくならない" }).toBeGreaterThan(plain);
+      await click(page, "font-down");
+      await click(page, "font-down");
+      await expect.poll(titleHeight, { ...WAIT, message: "字を小さくしても段の題が小さくならない" }).toBeLessThan(plain);
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-diagram-readable-and-not-clipped",
+    async () => {
+      for (const [key, text] of [["oauth", OAUTH], ["ccip", CCIP]] as const) {
+        const { page } = await open({ viewport: { width: 1440, height: 900 } });
+        await drawn(page);
+        await click(page, `sample-${key}`);
+        await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));
+        const measure = (): Promise<{ font: number; boxes: number; outside: string[]; overview: number; covered: number } | null> =>
+          page.evaluate(
+            ([stageSel, badgeSel]) => {
+              const stage = document.querySelector(stageSel);
+              const svg = stage?.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
+              const frame = stage?.querySelector(".dg-frame");
+              if (!stage || !svg || !frame) return null;
+              // 箱の名前の字の画面の上の大きさ。SVG の中の字の大きさに、図を描いた倍率を掛ける
+              const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+              const name = svg.querySelector(".dg-sn");
+              const font = name ? Number.parseFloat(getComputedStyle(name).fontSize) * scale : 0;
+              const area = frame.getBoundingClientRect();
+              const boxes = [...svg.querySelectorAll("rect.dg-st")].map((r) => r.getBoundingClientRect());
+              const outside = boxes
+                .filter((r) => r.left < area.left - 0.5 || r.right > area.right + 0.5 || r.top < area.top - 0.5 || r.bottom > area.bottom + 0.5)
+                .map((r) => `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`);
+              const hit = (a: DOMRect, b: DOMRect): boolean => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+              const map = svg.querySelector(".dg-mm-bg")?.getBoundingClientRect();
+              const badge = document.querySelector(badgeSel)?.getBoundingClientRect();
+              return {
+                font,
+                boxes: boxes.length,
+                outside,
+                overview: map ? boxes.filter((r) => hit(r, map)).length : 0,
+                covered: badge ? boxes.filter((r) => hit(r, badge)).length : 0,
+              };
+            },
+            [sel("stage"), sel("phase-badge")] as const,
+          );
+        // 図を枠に合わせ終えるまで待つ
+        await expect.poll(async () => (await measure())?.font ?? 0, { ...WAIT, message: `見本 ${key} の箱の名前の字が 11px を割る` }).toBeGreaterThanOrEqual(10.99);
+        const seen = await measure();
+        expect(seen?.boxes, `見本 ${key} の箱が描かれていない`).toBeGreaterThan(0);
+        expect(seen?.outside, `見本 ${key} の箱が図の領域の外に出る`).toEqual([]);
+        expect(seen?.overview, `見本 ${key} の全体図が箱に重なる`).toBe(0);
+        expect(seen?.covered, `見本 ${key} の段の札が箱に重なる`).toBe(0);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-phase-badge-and-progress",
+    async () => {
+      const parsed = parseNotation(OAUTH);
+      expect(parsed.ok).toBe(true);
+      const steps = parsed.ok ? parsed.diagram.steps : [];
+      expect(steps.length, "OAuth の見本の段が 2 つ未満").toBeGreaterThan(1);
+
+      const { page } = await open();
+      await drawn(page);
+      await expect.poll(() => count(page, "phase-badge"), { ...WAIT, message: "段の札が無い" }).toBe(1);
+      // 止めてから読む。動いている間は段が進む
+      await page.locator(`${sel("stage")} [data-dragon="toggle"]`).click();
+      const expected = (no: string | null): { badge: string; segments: number; done: number; stepNo: string | null } => {
+        const n = Number.parseInt(no ?? "", 10);
+        return { badge: `段 ${n} / ${steps.length} · ${steps[n - 1]?.title}`, segments: steps.length, done: n, stepNo: no };
+      };
+      /** 札と帯が、再生の部品の段の番号と同じ段を示すまで待つ */
+      const settled = async (message: string): Promise<Awaited<ReturnType<typeof phase>>> => {
+        await expect
+          .poll(async () => {
+            const p = await phase(page);
+            return JSON.stringify(p) === JSON.stringify(expected(p.stepNo));
+          }, { ...WAIT, message })
+          .toBe(true);
+        return phase(page);
+      };
+      const now = await settled("段の札と進み具合の帯が今の段を示さない");
+      expect(now).toEqual(expected(now.stepNo));
+
+      // 次の段へ送ると、札と帯がその段を示す
+      const n = Number.parseInt(now.stepNo ?? "", 10);
+      await page.locator(`${sel("stage")} [data-dragon="${n < steps.length ? "next" : "prev"}"]`).click();
+      await expect.poll(async () => (await phase(page)).stepNo, { ...WAIT, message: "段が送られない" }).not.toBe(now.stepNo);
+      const moved = await settled("段を送っても札と帯が今の段を示さない");
+      expect(moved).toEqual(expected(moved.stepNo));
+
+      // 段が 1 つの図では、札も帯も出さない
+      await click(page, "sample-intro");
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "入門の図が描かれない" }).toContain(titleOf(example("intro.dragon") ?? ""));
+      await expect.poll(async () => { const p = await phase(page); return [p.badge, p.segments]; }, { ...WAIT, message: "段が 1 つの図に札か帯が出る" }).toEqual([null, 0]);
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-notice-lists-errors-with-lines",
+    async () => {
+      const { page } = await open();
+      await drawn(page);
+
+      // 記法の読み取りの誤り。行番号を押すと、書く欄がその行を選ぶ
+      const lines = OAUTH.split("\n");
+      const colored = lines.findIndex((l) => /\[色 [a-z]+\]/u.test(l));
+      expect(colored, "OAuth の見本に色を書いた行が無い").toBeGreaterThan(0);
+      const broken = lines.map((l, i) => (i === colored ? l.replace(/\[色 [a-z]+\]/u, "[色 purple]") : l)).join("\n");
+      const error = parseNotation(broken);
+      expect(error.ok, "検査に使う記法が誤りにならない").toBe(false);
+      const line = error.ok ? 0 : (error.errors[0]?.line ?? 0);
+      await setEditor(page, broken);
+      await expect.poll(() => noticeLines(page), { ...WAIT, message: "記法の誤りが行番号付きで知らせの欄に出ない" }).toEqual([`${line} 行目`]);
+      await click(page, "notice-line");
+      await expect.poll(() => editorSelection(page), { ...WAIT, message: "行番号を押しても書く欄がその行を選ばない" }).toEqual({ focused: true, text: broken.split("\n")[line - 1] });
+
+      // schema の誤りが 2 つある JSON。どちらも行番号付きで出し、2 つ目を押すとその行を選ぶ
+      await setEditor(page, OAUTH);
+      const diagram = await jsonSide(page);
+      const wrong = structuredClone(diagram) as unknown as { title: unknown; boxes: { color?: string }[] };
+      wrong.title = 3;
+      (wrong.boxes[1] as { color?: string }).color = "purple";
+      const json = JSON.stringify(wrong, null, 2);
+      const jsonLines = json.split("\n");
+      const titleLine = jsonLines.findIndex((l) => l.trim() === '"title": 3,') + 1;
+      const colorLine = jsonLines.findIndex((l) => l.includes('"color": "purple"')) + 1;
+      expect(titleLine * colorLine, "検査に使う JSON に誤りの行が無い").toBeGreaterThan(0);
+      await setEditor(page, json);
+      await expect
+        .poll(() => noticeLines(page), { ...WAIT, message: "JSON の schema の誤りが 2 つとも行番号付きで出ない" })
+        .toEqual([`${titleLine} 行目`, `${colorLine} 行目`]);
+      await page.locator(sel("notice-line")).nth(1).click();
+      await expect.poll(() => editorSelection(page), { ...WAIT, message: "2 つ目の行番号を押しても書く欄がその行を選ばない" }).toEqual({ focused: true, text: jsonLines[colorLine - 1] });
+
+      // JSON の字として読めない誤りも、読めなくなった行の番号で出す
+      const unreadable = JSON.stringify(diagram, null, 2).replace('"title":', '"title"');
+      const badLine = unreadable.split("\n").findIndex((l) => l.trim().startsWith('"title" ')) + 1;
+      expect(badLine, "検査に使う JSON に題の行が無い").toBeGreaterThan(0);
+      await setEditor(page, unreadable);
+      await expect.poll(() => noticeLines(page), { ...WAIT, message: "JSON の読めない誤りが行番号付きで出ない" }).toEqual([`${badLine} 行目`]);
     },
     SLOW,
   );
