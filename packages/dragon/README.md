@@ -2,22 +2,23 @@
 
 動く図を、人は行ごとの記法で、AI は JSON で書くための package。
 
-## 作り直しの最中
+## 入れ方
 
-dragon は図の書き方と描き方を根本から作り直している。
-進み具合と決めたことは [#2982](https://github.com/cardene777/dragon/issues/2982) にまとめている。
+```sh
+npm install @cardenelabs/dragon
+```
 
-今までの記法 (日本語の鍵の YAML と JSON) と、`@cardenelabs/cdl` へ渡して描く仕組みは [#2983](https://github.com/cardene777/dragon/issues/2983) で消した。
-今の版は何も公開しない。
-`textDslToDiagram` と `jsonToDiagram` を含む前の入口は、この版から使えない。
+0.35.0 は根本から作り直した版で、0.34.0 までの記法と入口は使えない。
+今までの記法 (日本語の鍵の YAML と JSON)、`textDslToDiagram` と `jsonToDiagram` を含む入口、`@cardenelabs/cdl` へ渡して描く仕組みは [#2983](https://github.com/cardene777/dragon/issues/2983) で消した。
+作り直しで決めたことは [#2982](https://github.com/cardene777/dragon/issues/2982) にまとめている。
 
-作り直した後は、次の 3 つをこの package が持つ。
+この package は次の 4 つを持つ。
 
 | 持つ物 | 形 |
 |---|---|
 | 原本 | 共通の骨格と図の種類ごとの欄を持つ JSON。版を持ち、古い版は読む時に変換する |
-| 記法 | 1 行が 1 つの文になる行ごとの記法。JSON と行き来でき、日本語の語でも英語の語でも書ける (`examples/quick-start.md` と `examples/quick-start.en.md`) |
-| 描く部品 | 原本から動く図を描く部品。cdl には頼らない |
+| 記法 | 1 行が 1 つの文になる行ごとの記法。JSON と行き来でき、日本語の語でも英語の語でも書ける ([書き方](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md)、[英語の語の書き方](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
+| 描く部品 | 原本から時系列図と構成図を描き、段ごとに動かす部品。cdl には頼らない |
 | 書き出し | 同じ原本から mp4、GIF、HTML、PNG を書き出す命令 |
 
 ## 書き出し

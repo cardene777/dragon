@@ -4,31 +4,30 @@
 
 [![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 作り直しの最中
+## 今の形
 
-dragon は図の書き方と描き方を根本から作り直している。
-進み具合と決めたことは [#2982](https://github.com/cardene777/dragon/issues/2982) にまとめている。
+dragon は 0.35.0 で図の書き方と描き方を根本から作り直した。
+作り直しで決めたことは [#2982](https://github.com/cardene777/dragon/issues/2982) にまとめている。
 
 今までの記法 (日本語の鍵の YAML と JSON)、`@cardenelabs/cdl` へ渡して描く仕組み、見本帳の図の一覧と編集画面、7 つの意匠は [#2983](https://github.com/cardene777/dragon/issues/2983) で消した。
-`@cardenelabs/dragon` は今は何も公開せず、見本帳は作り直しの最中であることを伝える 1 頁だけを配る。
-
-作り直した後の形は次のとおり。
+`@cardenelabs/dragon` は npm で配り、見本帳は記法を書くと動く図になる頁を配る。
 
 | 項目 | 形 |
 |---|---|
 | 原本 | 共通の骨格と図の種類ごとの欄を持つ JSON。版を持ち、古い版は読む時に変換する |
-| 人が書く記法 | 1 行が 1 つの文になる行ごとの記法。JSON と行き来でき、書き戻す時は整えた形で出す |
+| 人が書く記法 | 1 行が 1 つの文になる行ごとの記法。JSON と行き来でき、書き戻す時は整えた形で出す。日本語の語でも英語の語でも書ける |
 | 描く部品 | `packages/dragon` の中に持つ。cdl には頼らない |
-| 最初に作る図 | 時系列図と構成図 |
+| 描ける図 | 時系列図と構成図 |
+| 書き出し | 同じ原本から mp4、GIF、HTML、PNG を書き出す命令 `dragon export` |
 
 ## 構成
 
 ```
 dragon/
 ├── packages/
-│   └── dragon/            ... 図の原本と記法と描画の部品を持つ package (作り直しの最中)
+│   └── dragon/            ... 図の原本と記法と描画と書き出しの部品を持つ package
 ├── apps/
-│   └── playground-spa/    ... 見本帳 (Vite + React 19)。今は仮の 1 頁
+│   └── playground-spa/    ... 見本帳 (Vite + React 19)。記法を書くと動く図になる頁
 ├── test-support/          ... vitest の前処理 (dist が src より古くないかを見る)
 ├── eslint.config.mjs
 └── tsconfig.json          ... solution-style (packages/dragon + apps/playground-spa + test-support)
