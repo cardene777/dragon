@@ -29,6 +29,9 @@ export const PATHS = {
   "release-notes": `${BASE}release-notes`,
 } as const;
 
+/** 帯と概要の最後の呼びかけが外へ向ける行き先 */
+export const REPO = "https://github.com/cardene777/dragon";
+
 /** 1 段の経路で開く画面 */
 const SINGLE: Readonly<Record<string, Screen>> = { catalog: "catalog", editor: "editor", docs: "docs", "release-notes": "release-notes" };
 

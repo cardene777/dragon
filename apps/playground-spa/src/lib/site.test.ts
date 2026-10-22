@@ -134,7 +134,7 @@ const usesOf = (
       return {
         title: card.querySelector("h3")?.textContent?.trim() ?? "",
         kind: card.querySelector('[data-home="use-kind"]')?.textContent?.trim() ?? "",
-        about: card.querySelector("p")?.textContent?.trim() ?? "",
+        about: card.querySelector('[data-home="use-about"]')?.textContent?.trim() ?? "",
         href: card.href ? new URL(card.href).pathname : "",
         names: svg ? [...new Set([...svg.querySelectorAll(".dg-sn")].map((n) => n.textContent ?? ""))].sort() : [],
         view: svg?.getAttribute("data-view") ?? null,

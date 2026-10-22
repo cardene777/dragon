@@ -1,0 +1,18 @@
+時系列図 ログイン処理
+
+利用者 = 利用者「画面」 [色 slate] [印 user]
+API = API「受付」 [色 blue] [印 server]
+台帳 = 台帳「DB」 [色 green] [印 db]
+
+# 認証を頼む
+> 利用者が ID とパスワードを API に送る。
+利用者 -> API : POST /login
+
+# 台帳を引く
+> API が台帳から利用者の行を引く。
+API -> 台帳 : SELECT user
+台帳 -> API : row
+
+# 結果を返す
+> API が利用者にログインの結果を返す。
+API -> 利用者 : 200 OK

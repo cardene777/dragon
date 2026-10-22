@@ -3,6 +3,7 @@ import { FONTS, type Theme } from "@cardenelabs/dragon";
 import { type ReactElement, StrictMode, useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 
+import { Home } from "./home/Home";
 import { Playground } from "./Playground";
 import { redirectSharedLink, routeOf, usePath } from "./site/routes";
 import { Screen } from "./site/screens";
@@ -14,7 +15,7 @@ import "./playground.css";
 /**
  * サイトの入口 (#3030)。
  *
- * 0.35.0 より前のサイトと同じ 7 画面を経路で出し分け、どの画面にも同じ上の帯を載せる。
+ * 0.35.0 より前のサイトと同じ 7 画面を経路で出し分け、どの画面にも同じ上の帯を載せる。概要は `home/Home.tsx` が持つ (#3032)。
  * 言葉と明暗はサイト全体で 1 つ持ち、帯の切替で替える。明暗は選ぶまで端末の設定に従う。
  * 頁の色は前のサイトの値の表 (`site/site.css`) から読み、html の `data-scheme` で明暗を選ぶ。
  */
@@ -73,7 +74,13 @@ function Site(): ReactElement {
         onTheme={() => setChoice(theme === "dark" ? "light" : "dark")}
       />
       <main className="site-main" data-site-screen={route.screen}>
-        {route.screen === "editor" ? <Playground lang={lang} theme={theme} onBeforeLang={onBeforeLang} /> : <Screen route={route} lang={lang} />}
+        {route.screen === "home" ? (
+          <Home lang={lang} theme={theme} />
+        ) : route.screen === "editor" ? (
+          <Playground lang={lang} theme={theme} onBeforeLang={onBeforeLang} />
+        ) : (
+          <Screen screen={route.screen} category={route.category} lang={lang} />
+        )}
       </main>
     </div>
   );
