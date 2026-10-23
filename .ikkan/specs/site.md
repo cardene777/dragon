@@ -34,3 +34,12 @@
 | カタログの構成図の頁 (`/dragon/catalog/architecture`) を幅 390px と 860px で開いた時、寄って追う図の窓の枠 (`.dg-vp-frame`) と全体図の地 (`.dg-mm-bg`) が、図の枠 (`.dg-frame`) の中に全部収まる | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3044 |
 | 時系列図のカタログの頁 (`/dragon/catalog/sequence`) を幅 390px と 860px と 1440px (高さ 900px) で開いた時、全体を止めて見せる図の枠 (`[data-catalog="stage"]`) の高さが 522px (`clamp(360px, 58vh, 620px)` の値) のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3044 |
 | 編集画面を幅 390px と 860px で開き、oauth と ccip の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3044 |
+| 画面の大きさ 390 × 844、860 × 900、1024 × 768、1440 × 900、1280 × 720 で、構成図と時系列図のカタログの頁の全部の見本について拡大の重ね窓を開き、段を 1 つずつ送った時、どの段でも図の枠 (`.dg-frame`) を送らずに図の全体が見える。寄って追う図では窓の枠 (`.dg-vp-frame`) と全体図の地 (`.dg-mm-bg`) が図の枠の中に全部収まる | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3047 |
+| 再生の部品に枠の中で見える高さに収めるよう頼んだ時 (`fitHeight`)、幅 390px と 560px の枠で oauth と ccip を寄って追う図にすると、図の高さが枠の中で見える高さを超えない | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3047 |
+| 再生の部品に `fitHeight` を頼んだ時、枠の高さに全体を収めると箱の名前の字が読める下限を割る図 (幅 1200px と高さ 675px の枠の oauth) は寄って追う図になり、収めても読める図 (同じ枠の ccip) と、書き手が見せ方を決めた図は今の見せ方のまま | `pnpm test`の検査`fit-height-turns-tall-figure-follow`が通る | #3047 |
+| 再生の部品に `fitHeight` を頼まない時は、枠の高さが低くても見せ方を枠の幅だけで選ぶ (幅 1200px と高さ 300px の枠の oauth は全体を止めて見せる図) | `pnpm test`の検査`view-by-width-without-fit-height`が通る | #3047 |
+| 再生の部品に高さを頼まない時、幅 390px と 560px の枠で oauth と ccip を寄って追う図にすると、窓の高さは今と同じく枠の幅の 0.75 倍 (320px 以上、図の高さ以下) | `pnpm test`の検査`follow-window-height-from-width`が通る | #3047 |
+| 拡大の重ね窓の図が、見本の枠の図より大きく出る | `pnpm test`の検査`category-item-opens-overlay-and-editor`が通る | #3047 |
+| カタログの構成図の頁の見本の枠で、寄って追う図の窓と全体図が枠の中に全部収まる | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3047 |
+| 編集画面で oauth と ccip の見本を段 1 から最後まで進めた時、全体図が窓と重ならず図の枠の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3047 |
+| 1440 × 900 の編集画面で oauth と ccip の見本を開いた時、箱の名前の字が今と同じく 11px 以上で、箱が図の枠の外に出ない | `pnpm test`の検査`editor-diagram-readable-and-not-clipped`が通る | #3047 |

@@ -637,7 +637,8 @@
   display: flex;
   flex-direction: column;
   width: min(1200px, 100%);
-  height: min(90vh, 960px);
+  /* 重ね窓の余白を除いた画面の高さいっぱいに取り、図を送らずに見せる場所を広げる (#3047) */
+  height: 100%;
   overflow: hidden;
   background: var(--d-surface);
   border: 1px solid var(--d-border-strong);
@@ -691,6 +692,14 @@
 
 .catalog-overlay-stage {
   background: var(--d-bg);
+}
+
+/*
+ * 縦に長い図は、重ね窓では高さに収めるため寄って追う図になり、図の幅が枠より狭くなる (#3047)。
+ * 図の部品は自身を枠の幅いっぱいに広げるので、ここでは原寸の幅に戻し、字を引き伸ばさずに高さの中に収める
+ */
+.catalog-overlay-stage .dg-frame svg[data-view="follow"] {
+  width: auto;
 }
 
 /* ── 狭い画面 ── */

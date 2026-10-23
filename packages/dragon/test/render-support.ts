@@ -118,7 +118,7 @@ interface DrawApi {
   resolvePalette(id?: string): Palette;
   renderDiagram(diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang }): Rendered;
   chooseView(rendered: Rendered, frameWidth: number): { mode: ViewMode; textPx: number };
-  mountDiagram(host: HTMLElement, diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang; onStep?: (step: number) => void }): Player;
+  mountDiagram(host: HTMLElement, diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang; onStep?: (step: number) => void; fitHeight?: boolean }): Player;
 }
 
 export function draw<K extends keyof DrawApi>(name: K): DrawApi[K] {
