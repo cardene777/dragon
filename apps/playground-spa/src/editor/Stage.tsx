@@ -10,8 +10,9 @@
  * 段を 2 つ以上持つ図は、左上に今の段の札を、下端に段の数で区切った進み具合の帯を出す。
  */
 import { type Diagram, PALETTES, type Theme } from "@cardenelabs/dragon";
-import { type CSSProperties, type ReactElement, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
 
+import { usePhone } from "../site/usePhone";
 import { type Lang, TEXT } from "../text";
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "./fit";
 import { useFittedFigure } from "./useFittedFigure";
@@ -33,17 +34,6 @@ interface Props {
 const SAY_STEP = 1.15;
 const SAY_RANGE = [0.7, 1.6] as const;
 const clampSay = (v: number): number => Math.min(SAY_RANGE[1], Math.max(SAY_RANGE[0], v));
-
-/** 携帯の幅。`playground.css` の「幅 439 以下」の区画と同じ境目にする */
-const PHONE = "(max-width: 439px)";
-
-function subscribePhone(listener: () => void): () => void {
-  const media = matchMedia(PHONE);
-  media.addEventListener("change", listener);
-  return () => media.removeEventListener("change", listener);
-}
-
-const isPhone = (): boolean => matchMedia(PHONE).matches;
 
 interface ToolProps {
   /** `data-playground` の札 */
@@ -74,7 +64,7 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
   const [grid, setGrid] = useState(false);
   const [say, setSay] = useState(1);
   const [full, setFull] = useState(false);
-  const phone = useSyncExternalStore(subscribePhone, isPhone);
+  const phone = usePhone();
   const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: setStep });
 
   useEffect(() => {

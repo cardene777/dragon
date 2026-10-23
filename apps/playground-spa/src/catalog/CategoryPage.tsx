@@ -3,6 +3,8 @@
  *
  * 左に検索と見本の一覧、右に選んだ見本 1 つを置く。右の見本は名前と説明、図とコードの見出し、色味の切替、
  * 縮小と拡大と全体に合わせる、拡大の釦、段の札、動く図、進み具合の帯、段の本文、編集画面で開くを持つ。
+ * 携帯の幅では部品を指で押せる大きさ (44px) にし、編集画面と同じく全体に合わせるの釦を出さず、
+ * 倍率を縮小と拡大の間の釦にして、押すと全体に合わせる (#3067)。
  * 図とコードはどちらも残したまま表示だけを入れ替え、切り替えるたびに図を描き直さない。
  * コードの見出しは記法と JSON の切替と写す釦と本文を持ち、拡大の釦は画面を覆う重ね窓に同じ図を大きく出す。
  * 色味の切替は「サイトと同じ」と 3 つの色味で、この頁の図だけを替える。帯の色味が替わると「サイトと同じ」に戻る。
@@ -16,6 +18,7 @@ import { useFittedFigure } from "../editor/useFittedFigure";
 import { type ExampleKey, exampleInfo, exampleText } from "../examples";
 import { toHash } from "../share";
 import { follow, PATHS } from "../site/routes";
+import { usePhone } from "../site/usePhone";
 import { type Lang, TEXT } from "../text";
 import { type Kind, samplesOf } from "./catalog";
 
@@ -112,7 +115,7 @@ export function CategoryPage({ kind, lang, theme, palette: sitePalette }: Props)
               onChange={(e) => setQuery(e.target.value)}
             />
             {query !== "" && (
-              <button type="button" className="catalog-search-clear" aria-label={c.clearSearch} onClick={() => setQuery("")}>
+              <button type="button" className="catalog-search-clear" data-catalog="search-clear" aria-label={c.clearSearch} onClick={() => setQuery("")}>
                 ×
               </button>
             )}
@@ -196,6 +199,7 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
   const [step, setStep] = useState(0);
   const [factor, setFactor] = useState(1);
   const [copied, setCopied] = useState(false);
+  const phone = usePhone();
   const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: setStep });
 
   useEffect(() => {
@@ -210,6 +214,7 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
   const scale = fit ? zoomed(fit.scale, factor) : null;
   // 倍率の釦は図を見ている間だけ押せる。コードの見出しでは図が隠れていて、押しても変わって見えない
   const zoomable = fit !== null && view === "figure";
+  const level = scale === null || !zoomable ? "—" : `${Math.round(scale * 100)}%`;
   const zoomBy = (by: number): void => {
     if (!fit) return;
     // 範囲の端で押しても戻りが遅れないよう、範囲に収めた倍率から係数を出し直す
@@ -266,11 +271,25 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
           </label>
           <div className="catalog-zoom" role="group" aria-label={t.stage.zoom}>
             <ZoomButton name="zoom-out" icon="zoom-out" label={t.stage.zoomOut} disabled={!zoomable || scale === ZOOM_RANGE[0]} onClick={() => zoomBy(1 / ZOOM_STEP)} />
-            <span className="catalog-zoom-value" data-catalog="zoom-level">
-              {scale === null || !zoomable ? "—" : `${Math.round(scale * 100)}%`}
-            </span>
+            {phone ? (
+              <button
+                type="button"
+                className="catalog-zoom-btn catalog-zoom-fit"
+                data-catalog="zoom-level"
+                aria-label={`${t.stage.fit} (${level})`}
+                title={t.stage.fit}
+                disabled={!zoomable}
+                onClick={() => setFactor(1)}
+              >
+                {level}
+              </button>
+            ) : (
+              <span className="catalog-zoom-value" data-catalog="zoom-level">
+                {level}
+              </span>
+            )}
             <ZoomButton name="zoom-in" icon="zoom-in" label={t.stage.zoomIn} disabled={!zoomable || scale === ZOOM_RANGE[1]} onClick={() => zoomBy(ZOOM_STEP)} />
-            <ZoomButton name="fit" icon="fit" label={t.stage.fit} disabled={!zoomable} onClick={() => setFactor(1)} />
+            {!phone && <ZoomButton name="fit" icon="fit" label={t.stage.fit} disabled={!zoomable} onClick={() => setFactor(1)} />}
           </div>
           <button type="button" className="catalog-expand-btn" data-catalog="expand" aria-label={c.expandLabel(title)} onClick={onExpand}>
             <span className="pg-icon" data-icon="fullscreen" aria-hidden="true" />

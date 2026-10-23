@@ -745,4 +745,82 @@
   .catalog-overlay-desc {
     display: none;
   }
+
+  /*
+   * 押せる部品を、指で押す的の目安の 44 × 44px にする (#3067)。編集画面の携帯の幅 (#3065) と揃え、
+   * 縮小と拡大の組は全体に合わせるの釦を出さずに倍率を釦にして (`CategoryPage.tsx`)、360px でも拡大の釦と同じ段に収める
+   */
+  .catalog-search-wrap {
+    min-height: 46px;
+  }
+
+  /* 消す釦は角まで押せるよう四角にし、欄の右の余白まで広げる */
+  .catalog-search-clear {
+    width: 44px;
+    height: 44px;
+    margin-right: -12px;
+    border-radius: 0;
+  }
+
+  .catalog-search-clear:hover {
+    background: transparent;
+  }
+
+  .catalog-list-item {
+    min-height: 44px;
+  }
+
+  .catalog-preview-tab {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .catalog-select {
+    min-height: 44px;
+  }
+
+  .catalog-select-field::after {
+    top: 20px;
+  }
+
+  .catalog-zoom-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* 倍率の釦。押すと全体に合わせることを枠で示す */
+  .catalog-zoom-fit {
+    width: auto;
+    min-width: 52px;
+    border: 1px solid var(--d-border-strong);
+    font-family: var(--mono), monospace;
+    font-size: 11.5px;
+  }
+
+  .catalog-source-bar {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .catalog-source-tab,
+  .catalog-source-copy {
+    min-height: 44px;
+  }
+
+  /* 編集画面で開くは字の見た目のまま押せる高さを取り、その分だけ枠の下の余白を詰める */
+  .catalog-preview-foot {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .catalog-preview-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .catalog-overlay-close {
+    width: 44px;
+    height: 44px;
+  }
 }
