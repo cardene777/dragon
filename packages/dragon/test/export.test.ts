@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
-import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, exporter, fontChars, formatOf, inkCentroid, miniWorld, runCli } from "./export-support";
+import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, runCli } from "./export-support";
 
 /** 書き出し 1 回に許す時間。Chromium の起動とコマを撮る時間を含む */
 const SLOW = 180_000;
@@ -156,19 +156,41 @@ describe("書き出し (#2986)", () => {
   it(
     "html-export-narrow-caption-stacks-body",
     async () => {
-      // 携帯の幅では釦と番号と題と本文を横 1 列に並べ、本文の欄が帯の幅の 4 割ほどに細って帯が高くなっていた (#3057)
+      // 携帯の幅では釦と番号と題と本文を横 1 列に並べ、本文の欄が帯の幅の 4 割ほどに細って帯が高くなっていた (#3057)。
+      // 釦を指で押せる 44px にすると題に回る幅が減って題が細かく折れるので、題を釦の下の段の全幅に置く (#3069)
       const exportDiagram = await exporter();
       const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
       const html = readFileSync(result.files.html as string, "utf8");
       for (const width of [360, 390, 430]) {
         const { inner, buttons, no, title, body } = await captionLayout(html, width);
         const sameRow = (r: { y: number; h: number }): boolean => r.y < buttons.y + buttons.h && r.y + r.h > buttons.y;
-        expect({ no: sameRow(no), title: sameRow(title) }, `幅 ${width}px で、段の番号か題が釦と同じ段に無い`).toEqual({ no: true, title: true });
-        expect(body.y, `幅 ${width}px で、本文が釦と題の段の下に無い`).toBeGreaterThanOrEqual(Math.max(buttons.y + buttons.h, title.y + title.h) - 0.5);
-        expect(
-          { left: Math.abs(body.x - buttons.x) <= 1, right: Math.abs(body.x + body.w - inner.right) <= 1 },
-          `幅 ${width}px で、本文が釦の左端から帯の中身の右端までの幅を使わない`,
-        ).toEqual({ left: true, right: true });
+        const full = (r: { x: number; w: number }): { left: boolean; right: boolean } => ({ left: Math.abs(r.x - buttons.x) <= 1, right: Math.abs(r.x + r.w - inner.right) <= 1 });
+        expect({ no: sameRow(no), title: sameRow(title) }, `幅 ${width}px で、段の番号が釦と同じ段に無いか、題が釦と同じ段にある`).toEqual({ no: true, title: false });
+        expect(title.y, `幅 ${width}px で、題が釦の段の下に無い`).toBeGreaterThanOrEqual(buttons.y + buttons.h - 0.5);
+        expect(body.y, `幅 ${width}px で、本文が題の下に無い`).toBeGreaterThanOrEqual(title.y + title.h - 0.5);
+        expect({ title: full(title), body: full(body) }, `幅 ${width}px で、題か本文が釦の左端から帯の中身の右端までの幅を使わない`).toEqual({
+          title: { left: true, right: true },
+          body: { left: true, right: true },
+        });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "html-export-player-buttons-touch-size",
+    async () => {
+      // 段を送る釦は 36px で間が 5px しか無く、携帯の幅では前と次を押し違えやすかった (#3069)。帯の中身が 440px より狭い時だけ 44px にする
+      const exportDiagram = await exporter();
+      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
+      const html = readFileSync(result.files.html as string, "utf8");
+      for (const [width, size] of [
+        [360, "44x44"],
+        [390, "44x44"],
+        [430, "44x44"],
+        [1440, "36x36"],
+      ] as const) {
+        expect(await playerButtons(html, width), `幅 ${width}px で、段を送る釦が ${size} でない`).toEqual([size, size, size]);
       }
     },
     SLOW,
