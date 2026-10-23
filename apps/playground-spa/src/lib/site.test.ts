@@ -1340,12 +1340,18 @@ describe("サイトの帯と経路 (#3030)", () => {
     { key: "ccip", category: "architecture" },
   ] as const satisfies readonly { key: ExampleKey; category: Kind }[];
 
-  /** 分類の頁で見本 `key` を重ね窓で開く。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする */
-  const openOverlay = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false): Promise<Page> => {
+  /** 分類の頁で見本 `key` を選ぶ。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする */
+  const openItem = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false): Promise<Page> => {
     const { page } = await site.open({ path: `${BASE}catalog/${sample.category}`, viewport });
     if (still) await page.emulateMedia({ reducedMotion: "reduce" });
     await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${sample.category} の分類の頁が出ない`);
     await page.locator(catalogSel("item")).nth(samplesOf(sample.category).indexOf(sample.key)).click();
+    return page;
+  };
+
+  /** 分類の頁で見本 `key` を重ね窓で開く。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする */
+  const openOverlay = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false): Promise<Page> => {
+    const page = await openItem(viewport, sample, still);
     await page.locator(catalogSel("expand")).click();
     return page;
   };
@@ -1623,6 +1629,190 @@ describe("サイトの帯と経路 (#3030)", () => {
               return seen && { title: seen.title.length > 0, desc: (seen.desc ?? "").length > 0 };
             }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の ${sample.key} の重ね窓で、見出しに題か説明が見えない` })
             .toEqual({ title: true, desc: true });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  /**
+   * 編集画面の図の側の上の部分 (#3061)。段の札が見える時はその字、図の枠の上の余白、道具の帯と図の枠の中の間、
+   * 最初の画面に見える記法の欄の高さ、道具の帯に重なる箱と図の枠の中の上端より上に出る箱の数、前の図を出している旨の札が見えるかと、
+   * その札に重なる箱の数。寄って追う窓は窓の外の箱を左右と下で枠の外に置くので、上の向きだけを数える。
+   * 重なりは 0.5px までを許す。2 回続けて同じ値を読めた時だけ返す
+   */
+  const editorTopOf = (
+    page: Page,
+  ): Promise<{ badge: string | null; pad: number; above: number; code: number; underTools: number; overTop: number; kept: boolean; covered: number } | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const read = () => {
+        const stage = document.querySelector('[data-playground="stage"]');
+        const tools = stage?.querySelector(".pg-stage-bar");
+        const frameEl = stage?.querySelector<HTMLElement>(".dg-frame");
+        const foot = stage?.querySelector(".pg-stage-foot");
+        const boxes = [...(frameEl?.querySelectorAll('svg[data-dragon="figure"] rect.dg-st') ?? [])].map((r) => r.getBoundingClientRect());
+        if (!tools || !frameEl || !foot || boxes.length === 0) return null;
+        const badge = stage?.querySelector<HTMLElement>('[data-playground="phase-badge"]');
+        const kept = stage?.querySelector(".pg-kept");
+        const t = tools.getBoundingClientRect();
+        const f = frameEl.getBoundingClientRect();
+        const pad = Number.parseFloat(getComputedStyle(frameEl).paddingTop);
+        const hit = (a: DOMRect, b: DOMRect): boolean => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+        const keptBox = kept?.checkVisibility() ? kept.getBoundingClientRect() : null;
+        return {
+          badge: badge?.checkVisibility() ? (badge.textContent?.trim() ?? "") : null,
+          pad: Math.round(pad),
+          above: Math.round(f.top + pad - t.bottom),
+          code: Math.round(innerHeight - foot.getBoundingClientRect().bottom),
+          underTools: boxes.filter((b) => hit(b, t)).length,
+          overTop: boxes.filter((b) => b.top < f.top + pad - 0.5).length,
+          kept: keptBox !== null,
+          covered: keptBox ? boxes.filter((b) => hit(b, keptBox)).length : 0,
+        };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    });
+
+  /** 段の札の字が、見本 `key` のどれかの段の `段 {N} / {全体} · {題}` と同じか */
+  const badgeOfSample = (text: string | null | undefined, key: ExampleKey): boolean => {
+    const parsed = parseNotation(exampleText(key, "ja"));
+    const titles = parsed.ok ? parsed.diagram.steps.map((s) => s.title) : [];
+    return titles.length > 1 && titles.some((title, i) => TEXT.ja.stage.phase(i + 1, titles.length, title) === text);
+  };
+
+  it(
+    "narrow-editor-hides-phase-badge",
+    async () => {
+      // 携帯の幅の編集画面では、段の札がすぐ下の段の本文の帯と同じ番号と題を 2 回並べ、枠の上に 48px を取っていた (#3061)
+      for (const viewport of PHONES) {
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openEditor(viewport, sample.key, true);
+          await expect
+            .poll(async () => (await editorTopOf(page))?.badge, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${sample.key} で、段の札が見える` })
+            .toBeNull();
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-editor-figure-starts-higher",
+    async () => {
+      // 札を出さない分だけ図の枠の上の余白が詰まり、記法の欄が最初の画面に多く見える (#3061)
+      const before = {
+        "360 × 780": { oauth: 93, ccip: -41 },
+        "390 × 844": { oauth: 163, ccip: 16 },
+      } as const;
+      for (const viewport of PHONES.slice(0, 2)) {
+        const size = `${viewport.width} × ${viewport.height}` as keyof typeof before;
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openEditor(viewport, sample.key, true);
+          const code = before[size][sample.key];
+          await expect
+            .poll(async () => {
+              const seen = await editorTopOf(page);
+              return seen && { closer: seen.above < 48, more: seen.code > code };
+            }, { ...WAIT, message: `${size} の編集画面の ${sample.key} で、道具の帯と図の枠の中の間が 48px より小さくならないか、見える記法の欄が ${code}px より高くならない` })
+            .toEqual({ closer: true, more: true });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-editor-figure-clear-of-toolbar",
+    async () => {
+      // 枠の上の余白を詰めても、図の箱は道具の帯に重ならず、図の枠の中の上端より上に出ない (#3061)
+      for (const viewport of PHONES) {
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openEditor(viewport, sample.key, true);
+          await expect
+            .poll(async () => {
+              const seen = await editorTopOf(page);
+              return seen && { underTools: seen.underTools, overTop: seen.overTop };
+            }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${sample.key} で、図の箱が道具の帯に重なるか、図の枠の中の上端より上に出る` })
+            .toEqual({ underTools: 0, overTop: 0 });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-editor-kept-notice-keeps-room",
+    async () => {
+      // 記法に誤りがあり前の図を出している間は、その旨の札のために枠の上の余白を今のまま取る (#3061)
+      const viewport = { width: 390, height: 844 };
+      for (const sample of CAPTION_SAMPLES) {
+        const broken = `${exampleText(sample.key, "ja")}\n!!! 読めない行\n`;
+        expect(parseNotation(broken).ok, "検査に使う記法が誤りにならない").toBe(false);
+        const page = await openEditor(viewport, sample.key, true);
+        await expect.poll(async () => (await editorTopOf(page))?.kept, { ...WAIT, message: `編集画面の ${sample.key} の図が描かれない` }).toBe(false);
+        await page.locator('[data-playground="editor"]').fill(broken);
+        await expect
+          .poll(async () => {
+            const seen = await editorTopOf(page);
+            return seen && { kept: seen.kept, pad: seen.pad, covered: seen.covered };
+          }, { ...WAIT, message: `390 × 844 の編集画面の ${sample.key} で、前の図を出している旨の札が出ないか、枠の上の余白が 48px でないか、札が箱に重なる` })
+          .toEqual({ kept: true, pad: 48, covered: 0 });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "wide-editor-keeps-phase-badge",
+    async () => {
+      // 440px 以上の編集画面は、今と同じく段の札を出し、枠の上に 48px を取る (#3061)
+      for (const viewport of [
+        { width: 560, height: 900 },
+        { width: 1440, height: 900 },
+      ]) {
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openEditor(viewport, sample.key, true);
+          await expect
+            .poll(async () => {
+              const seen = await editorTopOf(page);
+              return seen && { badge: badgeOfSample(seen.badge, sample.key), pad: seen.pad };
+            }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${sample.key} で、段の札が出ないか、枠の上の余白が 48px でない` })
+            .toEqual({ badge: true, pad: 48 });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "catalog-preview-keeps-phase-badge",
+    async () => {
+      // カタログの頁の見本の枠では帯が段の題を出さないので、携帯の幅でも札を出す (#3061)
+      for (const viewport of [
+        { width: 390, height: 844 },
+        { width: 1440, height: 900 },
+      ]) {
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openItem(viewport, sample);
+          await expect
+            .poll(
+              async () =>
+                badgeOfSample(
+                  await page.evaluate(() => {
+                    const badge = document.querySelector<HTMLElement>('[data-catalog="preview"] [data-catalog="phase-badge"]');
+                    return badge?.checkVisibility() ? (badge.textContent?.trim() ?? "") : null;
+                  }),
+                  sample.key,
+                ),
+              { ...WAIT, message: `${viewport.width} × ${viewport.height} のカタログの頁の ${sample.key} の見本の枠で、段の札が出ない` },
+            )
+            .toBe(true);
         }
       }
     },
