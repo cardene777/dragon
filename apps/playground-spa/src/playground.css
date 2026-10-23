@@ -886,6 +886,23 @@
   }
 }
 
+/* ── 幅 439 以下 (携帯の幅)。段の札を出さず、図を上から描く ── */
+
+@media (max-width: 439px) {
+  /*
+   * 段の番号と題は、すぐ下の段の本文の帯が同じ中身で出している (#3061)。
+   * カタログの見本の枠は帯が段の題を出さないので、札を残す
+   */
+  .pg-figure[data-playground="figure"] .pg-phase {
+    display: none;
+  }
+
+  /* 図の枠の上の余白を札の無い時と同じにする。前の図を出している旨の札が出ている間は、札が図に重ならないよう今のまま取る */
+  .pg-figure[data-playground="figure"][data-phased]:not(:has(.pg-kept)) .dg-player .dg-frame {
+    padding-top: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pg-shelf,
   .pg-shelf[data-open] {

@@ -24,7 +24,7 @@
 | 編集画面の書く欄の上に記法と JSON の切替、書類名、取り込みと書き出しの釦があり、取り込んだ file の記法が欄に入り、書き出しで今の記法が `.dragon` の file として保存される | `pnpm test`の検査`editor-imports-and-exports-notation`が通る | #3031 |
 | 編集画面の図の側に字の大きさ、拡大、縮小、全体に合わせる、格子、全画面の道具があり、拡大と縮小で図の大きさが変わり、格子を出すと 24px 刻みの点が出る | `pnpm test`の検査`editor-stage-tools-change-view`が通る | #3031 |
 | 幅 1440 で編集画面に OAuth と CCIP の見本を出した時、箱の名前の字が 11px 以上で描かれ、どの箱も図の領域の内側に収まり、全体図が箱に重ならない | `pnpm test`の検査`editor-diagram-readable-and-not-clipped`が通る | #3031 |
-| 編集画面で段を 2 つ以上持つ図を出した時、図の左上に `段 {N} / {全体} · {題}` の札が、下端に段の数だけ区切った進み具合の帯が出る | `pnpm test`の検査`editor-phase-badge-and-progress`が通る | #3031 |
+| 編集画面で段を 2 つ以上持つ図を出した時、図の左上に `段 {N} / {全体} · {題}` の札が、下端に段の数だけ区切った進み具合の帯が出る | `pnpm test`の検査`editor-phase-badge-and-progress`が通る | #3031、#3061 |
 | 編集画面の書く欄の下の知らせの欄に、記法の読み取りと schema の誤りを行番号付きで出し、行番号を押すと書く欄がその行へ動いて行が選ばれる | `pnpm test`の検査`editor-notice-lists-errors-with-lines`が通る | #3031 |
 | 編集画面で書く欄の記法を書き換えた時、右の図が書き換えた内容で描き直される | `pnpm test`の検査`editing-notation-redraws-diagram`が通る | #3030、#3031 |
 | 編集画面で JSON の側に切り替えた時、今の図の JSON が出て、JSON を書き換えると図と記法の側に反映する | `pnpm test`の検査`json-side-edits-sync-to-notation`が通る | #3030、#3031 |
@@ -57,5 +57,12 @@
 | 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3059 |
 | 390 × 844 と 1440 × 900 の oauth の重ね窓で、寄って追う窓の高さが図の枠の中で見える高さと合い、図が枠に収まる | `pnpm test`の検査`overlay-follow-window-fills-frame-height`が通る | #3059 |
 | 360 × 780 から 430 × 932 の重ね窓で、oauth の寄って追う窓が枠の幅いっぱいで、図が枠の中に送らずに収まる | `pnpm test`の検査`narrow-follow-window-fills-frame-width`が通る | #3059 |
-| 360 × 780 から 430 × 932 の重ね窓と編集画面で、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じで、題と本文が帯の中身の幅に収まる | `pnpm test`の検査`narrow-caption-steady-and-inside`が通る | #3059 |
+| 360 × 780 から 430 × 932 の重ね窓と編集画面で、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じで、題と本文が帯の中身の幅に収まる | `pnpm test`の検査`narrow-caption-steady-and-inside`が通る | #3059、#3061 |
 | 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3059 |
+| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を編集画面で開いた時、段の札が見えない | `pnpm test`の検査`narrow-editor-hides-phase-badge`が通る | #3061 |
+| 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を編集画面で開いた時、道具の帯と図の枠の中の間が今 (48px) より小さく、最初の画面に見える記法の欄が今 (360 × 780 で 93px と -41px、390 × 844 で 163px と 16px) より高い | `pnpm test`の検査`narrow-editor-figure-starts-higher`が通る | #3061 |
+| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を編集画面で開いた時、図の箱が道具の帯に重ならず、図の枠の中の上端より上に出ない | `pnpm test`の検査`narrow-editor-figure-clear-of-toolbar`が通る | #3061 |
+| 画面の大きさ 390 × 844 の編集画面で、記法に誤りがあり前の図を出している間、図の枠の上の余白が今と同じ 48px で、その旨の札が図の箱に重ならない | `pnpm test`の検査`narrow-editor-kept-notice-keeps-room`が通る | #3061 |
+| 画面の大きさ 560 × 900 と 1440 × 900 で oauth と ccip を編集画面で開いた時、段の札が `段 {N} / {全体} · {題}` で出て、図の枠の上の余白が 48px のまま | `pnpm test`の検査`wide-editor-keeps-phase-badge`が通る | #3061 |
+| 画面の大きさ 390 × 844 と 1440 × 900 のカタログの頁の見本の枠で、段の札が `段 {N} / {全体} · {題}` で出る | `pnpm test`の検査`catalog-preview-keeps-phase-badge`が通る | #3061 |
+| 編集画面の見本の図で、箱の名前の字が 11px を割らず、箱が図の領域の外に出ず、全体図と段の札が箱に重ならない | `pnpm test`の検査`editor-diagram-readable-and-not-clipped`が通る | #3061 |
