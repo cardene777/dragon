@@ -11,7 +11,7 @@ import { DEFAULT_PALETTE, type Diagram, FONTS, PALETTES, parseNotation } from "@
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { BASE, bundleSizes, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, rgb, type Site, startSite } from "./playground-support";
+import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, rgb, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -892,6 +892,23 @@ describe("公開する頁 (#2995)", () => {
         await click(page, `sample-${key}`);
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));
         await expectSteadyAcrossSteps(page, sel("stage"), `編集画面の見本 ${key}`);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-caption-clear-of-bottom-edge",
+    async () => {
+      // 段の本文の帯の下に余白が無く、本文の最後の行が図の側の下の縁 (進み具合の帯の上) に接していた (#3051)
+      for (const [key, text] of [["oauth", OAUTH], ["ccip", CCIP]] as const) {
+        const { page } = await open({ viewport: { width: 1440, height: 900 } });
+        await drawn(page);
+        await click(page, `sample-${key}`);
+        await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));
+        await expect
+          .poll(() => captionClearance(page, sel("stage"), sel("figure")), { ...WAIT, message: `見本 ${key} で、本文の最後の行と図の側の下の縁の間が 8px に足りない` })
+          .toBeGreaterThanOrEqual(8);
       }
     },
     SLOW,
