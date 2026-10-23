@@ -1822,6 +1822,12 @@ describe("サイトの帯と経路 (#3030)", () => {
   /** 編集画面の道具の帯の道具。左から今の並び (#3063) */
   const STAGE_TOOLS = ["font-down", "font-up", "grid", "fullscreen", "fit", "zoom-out", "zoom-in", "zoom-level"] as const;
 
+  /** 携帯の幅の道具の帯の道具。合わせるの釦を出さず、倍率を縮小と拡大の間の釦にする (#3065) */
+  const PHONE_TOOLS = ["font-down", "font-up", "grid", "fullscreen", "zoom-out", "zoom-level", "zoom-in"] as const;
+
+  /** 記法の欄の上の帯の部品。左から今の並び (#3065) */
+  const CODE_PARTS = ["shelf-toggle", "tab-notation", "tab-json", "file-name", "import", "export", "fold"] as const;
+
   /** 道具の帯を確かめる見本。図を枠に合わせて描く intro と、携帯の幅で寄って追う窓で描く oauth */
   const TOOL_SAMPLES = ["intro", "oauth"] as const satisfies readonly ExampleKey[];
 
@@ -1862,14 +1868,15 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "narrow-editor-tools-fit-one-row",
     async () => {
-      // 携帯の幅の道具の帯は並べるのに 487px 要り、拡大の釦と倍率が画面の外に出て、帯を送れることも分からなかった (#3063)
+      // 携帯の幅の道具の帯は並べるのに 487px 要り、拡大の釦と倍率が画面の外に出て、帯を送れることも分からなかった (#3063)。
+      // 合わせるの釦は倍率の釦が持つ (#3065)
       for (const viewport of PHONES) {
         for (const key of TOOL_SAMPLES) {
           const page = await openEditor(viewport, key, true);
           await expect
             .poll(async () => {
               const seen = await toolsOf(page);
-              return seen && { scrolls: seen.hidden > 0, tools: STAGE_TOOLS.every((tool) => seen.shown.includes(tool)), cut: seen.cut };
+              return seen && { scrolls: seen.hidden > 0, tools: PHONE_TOOLS.every((tool) => seen.shown.includes(tool)), cut: seen.cut };
             }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${key} で、道具の帯を送る分が残るか、道具が帯からはみ出す` })
             .toEqual({ scrolls: false, tools: true, cut: [] });
         }
@@ -1898,7 +1905,8 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "narrow-editor-tools-zoom-works",
     async () => {
-      // 携帯の幅でも、図を枠に合わせて描く見本では拡大と縮小と合わせるが働き、頁は横にあふれない (#3063)
+      // 携帯の幅でも、図を枠に合わせて描く見本では拡大と縮小が働き、頁は横にあふれない (#3063)。
+      // 合わせるは倍率の釦が持ち、`narrow-editor-zoom-level-fits` が確かめる (#3065)
       const page = await openEditor({ width: 360, height: 780 }, "intro", true);
       const level = async (): Promise<number> => Number.parseInt((await toolsOf(page))?.level ?? "", 10);
       const overflows = (): Promise<boolean> => page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
@@ -1910,10 +1918,146 @@ describe("サイトの帯と経路 (#3030)", () => {
       expect(await overflows(), "拡大すると頁が横にあふれる").toBe(false);
       await page.locator('[data-playground="zoom-out"]').click();
       await expect.poll(level, { ...WAIT, message: "縮小の釦で倍率が下がらない" }).toBeLessThan(larger);
-      await page.locator('[data-playground="zoom-in"]').click();
-      await page.locator('[data-playground="fit"]').click();
-      await expect.poll(level, { ...WAIT, message: "合わせるの釦で元の倍率に戻らない" }).toBe(base);
       expect(await overflows(), "頁が横にあふれる").toBe(false);
+    },
+    SLOW,
+  );
+
+  /**
+   * 編集画面の 2 つの帯 (道具の帯と記法の欄の上の帯) の押せる部品 (#3065)。部品ごとに `data-playground` の名前、幅と高さ、
+   * 四隅から 2px 内側 (角の丸み 3px の外を避ける) を押した時にその部品に当たるか。帯を画面に入れてから読み、2 回続けて同じ値を読めた時だけ返す
+   */
+  const targetsOf = (page: Page): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const bars = [...document.querySelectorAll<HTMLElement>(".pg-stage-bar, .pg-bar")];
+      const read = () => {
+        if (bars.length !== 2 || !document.querySelector('[data-playground="stage"] svg[data-dragon="figure"]')) return null;
+        return bars.flatMap((bar) => {
+          bar.scrollIntoView({ block: "nearest" });
+          return [...bar.querySelectorAll<HTMLElement>("button[data-playground], input[data-playground]")]
+            .filter((el) => el.checkVisibility())
+            .map((el) => {
+              const r = el.getBoundingClientRect();
+              const corners = [
+                [r.left + 2, r.top + 2],
+                [r.right - 2, r.top + 2],
+                [r.left + 2, r.bottom - 2],
+                [r.right - 2, r.bottom - 2],
+              ].every(([x, y]) => {
+                const hit = document.elementFromPoint(x, y);
+                return hit !== null && el.contains(hit);
+              });
+              return { name: el.dataset.playground ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+            });
+        });
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    });
+
+  it(
+    "narrow-editor-bars-touch-targets",
+    async () => {
+      // 携帯の幅の 2 つの帯の釦は 30 × 30px で隣との間が 4px しか無く、指で隣を押し違えやすかった (#3065)。指で押す的の目安は 44 × 44px
+      const required = [...PHONE_TOOLS, ...CODE_PARTS];
+      for (const viewport of PHONES) {
+        for (const key of TOOL_SAMPLES) {
+          const page = await openEditor(viewport, key, true);
+          await expect
+            .poll(async () => {
+              const parts = await targetsOf(page);
+              return (
+                parts && {
+                  missing: required.filter((name) => !parts.some((p) => p.name === name)),
+                  small: parts.filter((p) => p.width < 44 || p.height < 44 || !p.corners).map((p) => `${p.name} ${p.width}x${p.height}${p.corners ? "" : " 隅が外れる"}`),
+                }
+              );
+            }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${key} で、押せる部品が揃わないか、44px に届かない部品がある` })
+            .toEqual({ missing: [], small: [] });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-editor-zoom-level-fits",
+    async () => {
+      // 44px の釦を 1 列に収めるため、携帯の幅では合わせるの釦を出さず、倍率を縮小と拡大の間の釦にして、押すと枠に合わせる (#3065)
+      for (const viewport of PHONES) {
+        const page = await openEditor(viewport, "intro", true);
+        const where = `${viewport.width} × ${viewport.height} の編集画面の intro`;
+        await expect.poll(async () => (await toolsOf(page))?.shown, { ...WAIT, message: `${where} で、道具の帯の並びが違う` }).toEqual([...PHONE_TOOLS]);
+        const level = async (): Promise<number> => Number.parseInt((await toolsOf(page))?.level ?? "", 10);
+        const base = await level();
+        expect(base, `${where} で、倍率が出ない`).toBeGreaterThan(0);
+        await page.locator('[data-playground="zoom-in"]').click();
+        await expect.poll(level, { ...WAIT, message: `${where} で、拡大の釦で倍率が上がらない` }).toBeGreaterThan(base);
+        await page.locator('[data-playground="zoom-level"]').click();
+        await expect.poll(level, { ...WAIT, message: `${where} で、倍率の釦で元の倍率に戻らない` }).toBe(base);
+      }
+      const page = await openEditor({ width: 360, height: 780 }, "oauth", true);
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() => {
+              const el = document.querySelector('[data-playground="stage"] svg[data-dragon="figure"]') && document.querySelector('.pg-stage-bar [data-playground="zoom-level"]');
+              return el ? { button: el instanceof HTMLButtonElement, disabled: el instanceof HTMLButtonElement && el.disabled, text: el.textContent?.trim() ?? "" } : null;
+            }),
+          { ...WAIT, message: "360 × 780 の編集画面の oauth で、倍率が押せない状態の釦でないか、「—」を出さない" },
+        )
+        .toEqual({ button: true, disabled: true, text: "—" });
+    },
+    SLOW,
+  );
+
+  /** 記法の欄の上の帯を送る分の幅、見えている部品の名前の並び、帯の中に収まらない部品 (#3065) */
+  const codeBarOf = (page: Page): Promise<{ hidden: number; shown: string[]; cut: string[] } | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const bar = document.querySelector(".pg-bar");
+      if (!bar) return null;
+      const b = bar.getBoundingClientRect();
+      const parts = [...bar.querySelectorAll<HTMLElement>("[data-playground]")].filter((el) => el.checkVisibility());
+      return {
+        hidden: bar.scrollWidth - bar.clientWidth,
+        shown: parts.map((el) => el.dataset.playground ?? ""),
+        cut: parts
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.left < b.left - 0.5 || r.right > b.right + 0.5;
+          })
+          .map((el) => el.dataset.playground ?? ""),
+      };
+    });
+
+  it(
+    "narrow-editor-code-bar-works",
+    async () => {
+      // 携帯の幅で記法の欄の上の帯の部品を 44px にしても、1 列に収まり、切替の札と畳むの釦が今と同じに働く (#3065)
+      for (const viewport of PHONES) {
+        const page = await openEditor(viewport, "intro", true);
+        const where = `${viewport.width} × ${viewport.height} の編集画面`;
+        await expect
+          .poll(async () => {
+            const seen = await codeBarOf(page);
+            return seen && { scrolls: seen.hidden > 0, shown: seen.shown, cut: seen.cut };
+          }, { ...WAIT, message: `${where} で、記法の欄の上の帯を送る分が残るか、部品が揃わないか、帯からはみ出す` })
+          .toEqual({ scrolls: false, shown: [...CODE_PARTS], cut: [] });
+        await page.locator('[data-playground="tab-json"]').click();
+        await expect
+          .poll(() => page.locator('[data-playground="editor"]').inputValue(), { ...WAIT, message: `${where} で、JSON の札で JSON の側に替わらない` })
+          .toMatch(/^\s*\{/);
+        await page.locator('[data-playground="fold"]').click();
+        await expect
+          .poll(() => page.evaluate(() => document.querySelector<HTMLElement>(".pg-code-body")?.hidden ?? null), { ...WAIT, message: `${where} で、畳むの釦で書く欄が畳まれない` })
+          .toBe(true);
+      }
     },
     SLOW,
   );
@@ -1952,6 +2096,44 @@ describe("サイトの帯と経路 (#3030)", () => {
             }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${key} で、道具の帯の並びが今と違うか、帯からはみ出す` })
             .toEqual({ scrolls: false, shown: all, cut: [] });
         }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "wide-editor-bars-keep-size",
+    async () => {
+      // 440px 以上の編集画面の 2 つの帯は、部品の大きさを今のまま保ち、倍率を字で出す (#3065)
+      for (const viewport of [
+        { width: 560, height: 900 },
+        { width: 1440, height: 900 },
+      ]) {
+        const page = await openEditor(viewport, "intro", true);
+        await expect
+          .poll(
+            () =>
+              page.evaluate(async () => {
+                await document.fonts.ready;
+                const visible = (sel: string): Element[] => [...document.querySelectorAll(sel)].filter((el) => el.checkVisibility());
+                const height = (el: Element | null): number | null => (el ? Math.round(el.getBoundingClientRect().height) : null);
+                return {
+                  tools: [
+                    ...new Set(
+                      visible(".pg-stage-bar .pg-tool, .pg-bar .pg-tool").map((el) => {
+                        const r = el.getBoundingClientRect();
+                        return `${Math.round(r.width)}x${Math.round(r.height)}`;
+                      }),
+                    ),
+                  ],
+                  tabs: visible('.pg-bar [role="tab"]').map(height),
+                  file: height(document.querySelector('.pg-bar [data-playground="file-name"]')),
+                  level: document.querySelector('.pg-stage-bar [data-playground="zoom-level"]')?.tagName.toLowerCase() ?? null,
+                };
+              }),
+            { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面で、2 つの帯の部品の大きさが今と違うか、倍率が字で出ない` },
+          )
+          .toEqual({ tools: ["30x30"], tabs: [27, 27], file: 26, level: "span" });
       }
     },
     SLOW,
