@@ -49,3 +49,13 @@
 | 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3051 |
 | 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3051 |
 | 編集画面で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`editor-figure-steady-across-steps`が通る | #3051 |
+| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を拡大の重ね窓で開いた時、見出しに説明が見えず、題は切れずに全部見える | `pnpm test`の検査`narrow-overlay-head-title-only`が通る | #3059 |
+| 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を拡大の重ね窓で開いた時、見出しが今 (360 × 780 で 133px と 156px、390 × 844 で 133px と 133px) より低く、図の枠の中が今 (472px と 435px、542px と 522px) より高い | `pnpm test`の検査`narrow-overlay-head-lower`が通る | #3059 |
+| 画面の大きさ 360 × 780、390 × 844、430 × 932 で重ね窓を開いた時、見出しの題と閉じる釦が見出しの中に収まって重ならず、閉じる釦を押すと重ね窓が閉じる | `pnpm test`の検査`narrow-overlay-head-close-works`が通る | #3059 |
+| 画面の大きさ 560 × 900 と 1440 × 900 で oauth と ccip を拡大の重ね窓で開いた時、見出しに題と説明が見える | `pnpm test`の検査`wide-overlay-head-keeps-description`が通る | #3059 |
+| 1440 × 900 のカタログの頁で、拡大の釦で画面を覆う重ね窓に見本の題と図が出て、閉じる釦と Escape で閉じる | `pnpm test`の検査`category-item-opens-overlay-and-editor`が通る | #3059 |
+| 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3059 |
+| 390 × 844 と 1440 × 900 の oauth の重ね窓で、寄って追う窓の高さが図の枠の中で見える高さと合い、図が枠に収まる | `pnpm test`の検査`overlay-follow-window-fills-frame-height`が通る | #3059 |
+| 360 × 780 から 430 × 932 の重ね窓で、oauth の寄って追う窓が枠の幅いっぱいで、図が枠の中に送らずに収まる | `pnpm test`の検査`narrow-follow-window-fills-frame-width`が通る | #3059 |
+| 360 × 780 から 430 × 932 の重ね窓と編集画面で、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じで、題と本文が帯の中身の幅に収まる | `pnpm test`の検査`narrow-caption-steady-and-inside`が通る | #3059 |
+| 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3059 |
