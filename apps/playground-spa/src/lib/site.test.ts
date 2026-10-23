@@ -416,6 +416,9 @@ const VERSION = ((): string => {
   return `v${version.split(".").slice(0, 2).join(".")}`;
 })();
 
+/** 札の字を空白で区切った語。版は語として比べ、`v0.35.1` のような版の写し違いを `v0.35` に一致させない */
+const wordsOf = (text: string): string[] => text.split(/\s+/u);
+
 /** 更新履歴の頁の部品 (#3035) */
 const releaseOf = (
   page: Page,
@@ -1310,11 +1313,11 @@ describe("サイトの帯と経路 (#3030)", () => {
         // 更新履歴の前置きの札
         const release = await site.open({ path: `${BASE}release-notes`, locale });
         await onScreen(release.page, "release-notes", "更新履歴の頁が出ない");
-        await expect.poll(async () => (await releaseOf(release.page)).eyebrow, { ...WAIT, message: `${lang} の更新履歴の札に package の版が無い` }).toContain(VERSION);
+        await expect.poll(async () => wordsOf((await releaseOf(release.page)).eyebrow), { ...WAIT, message: `${lang} の更新履歴の札に package の版が無い` }).toContain(VERSION);
         // 使い方の前置きの札
         const docs = await site.open({ path: `${BASE}docs`, locale });
         await onScreen(docs.page, "docs", "使い方の頁が出ない");
-        await expect.poll(() => eyebrowOf(docs.page, docsSel("eyebrow")), { ...WAIT, message: `${lang} の使い方の札に package の版が無い` }).toContain(VERSION);
+        await expect.poll(async () => wordsOf(await eyebrowOf(docs.page, docsSel("eyebrow"))), { ...WAIT, message: `${lang} の使い方の札に package の版が無い` }).toContain(VERSION);
       }
     },
     SLOW,
@@ -1331,7 +1334,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         await expect.poll(async () => (await releaseOf(page)).title, { ...WAIT, message: `${lang} の更新履歴の見出しが出ない` }).toBe(TEXT[lang].site.screens["release-notes"].title);
         const release = await releaseOf(page);
         expect(release.crumb, `${lang} の更新履歴の道筋が概要へ戻らない`).toEqual([BASE]);
-        expect(release.eyebrow, `${lang} の更新履歴の札に版が無い`).toContain(VERSION);
+        expect(wordsOf(release.eyebrow), `${lang} の更新履歴の札に版が無い`).toContain(VERSION);
         expect(release.lead, `${lang} の更新履歴に説明が無い`).not.toBe("");
         // 釦は変更の記録を GitHub で見る 1 つだけで、新しいタブで開く
         expect(release.links.map((l) => l.href), `${lang} の更新履歴の釦が変更の記録 1 つでない`).toEqual([changelog]);

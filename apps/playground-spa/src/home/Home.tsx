@@ -13,6 +13,7 @@ import { type ReactElement, useMemo, useState } from "react";
 import { EXAMPLE_KEYS, exampleInfo, exampleText, TEMPLATE } from "../examples";
 import { LiveFigure } from "../site/LiveFigure";
 import { follow, PATHS, REPO } from "../site/routes";
+import { VERSION } from "../site/version";
 import { type Lang, TEXT } from "../text";
 import demoJa from "./demo.dragon?raw";
 import demoEn from "./demo.en.dragon?raw";
@@ -117,6 +118,9 @@ export function Home({ lang, theme, palette }: Look): ReactElement {
     <div className="home">
       <section className="home-hero" data-home="hero">
         <div className="home-eyebrow">
+          <span className="home-chip" data-home="version">
+            {VERSION}
+          </span>
           <span className="home-chip">{home.chip(Object.values(kinds))}</span>
         </div>
         <h1>

@@ -1,0 +1,110 @@
+/* ================================================================
+ * 更新履歴の頁 (#3035)。
+ *
+ * 配置と見た目は 0.35.0 より前のサイトの `styles/compare.css` (5b16743c の 1 つ前) の頭の区画を写し、class の名前だけを替えた。
+ * 色はサイトの値の表 (`site/site.css` の `--d-*`) だけを読む。字は同梱の字 (`--sans` と `--mono`) で出す。
+ * ================================================================ */
+
+.release {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 54px var(--d-gutter) 44px;
+  box-sizing: border-box;
+}
+
+.release h1,
+.release p {
+  margin: 0;
+}
+
+.release-crumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  color: var(--d-text-muted);
+}
+
+.release-crumb a {
+  padding-block: 4px;
+  color: var(--d-text-muted);
+  text-decoration: none;
+}
+
+.release-crumb a:hover {
+  color: var(--d-accent);
+}
+
+.release-crumb-here {
+  color: var(--d-text-secondary);
+}
+
+.release-eyebrow {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--d-accent);
+}
+
+.release h1 {
+  font-size: clamp(28px, 3.6vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--d-text-primary);
+}
+
+.release-accent {
+  color: var(--d-accent);
+}
+
+.release-lead {
+  max-width: 740px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--d-text-secondary);
+}
+
+.release-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.release-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border: 1px solid var(--d-accent);
+  border-radius: var(--d-r-1);
+  background: var(--d-accent);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--d-on-accent);
+  text-decoration: none;
+}
+
+.release-btn:hover {
+  filter: brightness(1.08);
+}
+
+.release-btn-arrow {
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .release {
+    padding-top: 36px;
+    padding-bottom: 32px;
+  }
+}

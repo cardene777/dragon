@@ -36,7 +36,8 @@ export const COMMANDS: Partial<Record<SectionId, readonly (string | null)[]>> = 
 };
 
 interface DocsText {
-  eyebrow: string;
+  /** 前置きの札。`version` は版の札と同じ `v{major}.{minor}` */
+  eyebrow: (version: string) => string;
   lead: string;
   /** 前置きの強い釦 (編集画面へ) と弱い釦 (カタログへ) */
   start: string;
@@ -49,7 +50,7 @@ interface DocsText {
 
 export const DOCS: Record<Lang, DocsText> = {
   ja: {
-    eyebrow: "使い方の案内",
+    eyebrow: (version) => `使い方の案内 · ${version}`,
     lead: "記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、箱、線、区画、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しもここで扱う。",
     start: "5 分で始める →",
     browse: "カタログで図を見る",
@@ -159,7 +160,8 @@ export const DOCS: Record<Lang, DocsText> = {
     },
   },
   en: {
-    eyebrow: "guide",
+    // 英語の側の区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
+    eyebrow: (version) => `guide • ${version}`,
     lead: "One page that lays out how to write the notation. Get a diagram moving in the first five minutes, then take in the parts of the notation in order: boxes, lines, regions, steps, the strip and what travels. Going between the notation and JSON, and exporting to mp4 or GIF, are covered here too.",
     start: "Start in five minutes →",
     browse: "Browse the catalog",

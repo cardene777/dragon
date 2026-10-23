@@ -8,9 +8,10 @@ import { CatalogIndex } from "./catalog/CatalogIndex";
 import { CategoryPage } from "./catalog/CategoryPage";
 import { Docs } from "./docs/Docs";
 import { Home } from "./home/Home";
+import { NotFound } from "./not-found/NotFound";
 import { Playground } from "./Playground";
+import { ReleaseNotes } from "./release-notes/ReleaseNotes";
 import { redirectSharedLink, type Route, routeOf, usePath } from "./site/routes";
-import { Screen } from "./site/screens";
 import { paintSite, storedPalette, storePalette } from "./site/site-colors";
 import { SiteHeader } from "./site/SiteHeader";
 import { deviceLang, type Lang, TEXT } from "./text";
@@ -22,7 +23,8 @@ import "./catalog/catalog.css";
  * サイトの入口 (#3030)。
  *
  * 0.35.0 より前のサイトと同じ 7 画面を経路で出し分け、どの画面にも同じ上の帯を載せる。
- * 概要は `home/Home.tsx` (#3032)、カタログは `catalog/` (#3033)、使い方は `docs/Docs.tsx` (#3034) が持つ。知らない分類の経路は見つからない頁にする。
+ * 概要は `home/Home.tsx` (#3032)、カタログは `catalog/` (#3033)、使い方は `docs/Docs.tsx` (#3034)、
+ * 更新履歴は `release-notes/ReleaseNotes.tsx`、見つからない頁は `not-found/NotFound.tsx` (#3035) が持つ。知らない分類の経路は見つからない頁にする。
  * 言葉と明暗と色味はサイト全体で 1 つ持ち、帯の切替で替える。明暗は選ぶまで端末の設定に従う。
  * 色味は選ぶまで紙と墨で、選んだ色味は次に開いた時にも残す (#3033)。
  * 頁の色は色味と明暗から `site/site-colors.ts` で引いて html に置き、図も同じ色味で描く。
@@ -117,8 +119,10 @@ function Site(): ReactElement {
           <CategoryPage key={route.category} kind={route.category} lang={lang} theme={theme} palette={palette} />
         ) : route.screen === "docs" ? (
           <Docs lang={lang} theme={theme} palette={palette} />
+        ) : route.screen === "release-notes" ? (
+          <ReleaseNotes lang={lang} />
         ) : (
-          <Screen screen={route.screen === "category" ? "not-found" : route.screen} lang={lang} />
+          <NotFound lang={lang} path={path} />
         )}
       </main>
     </div>
