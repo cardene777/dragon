@@ -410,6 +410,45 @@ const docsOf = (
     };
   });
 
+/** 版の札に出す版 (#3035)。`packages/dragon/package.json` の版の `v{major}.{minor}` */
+const VERSION = ((): string => {
+  const { version } = JSON.parse(readFileSync(join(root, "packages/dragon/package.json"), "utf8")) as { version: string };
+  return `v${version.split(".").slice(0, 2).join(".")}`;
+})();
+
+/** 更新履歴の頁の部品 (#3035) */
+const releaseOf = (
+  page: Page,
+): Promise<{ crumb: string[]; eyebrow: string; title: string; lead: string; links: { text: string; href: string; target: string | null; rel: string }[] }> =>
+  page.evaluate(() => {
+    const at = (name: string): Element | null => document.querySelector(`[data-release="${name}"]`);
+    return {
+      crumb: [...(at("crumb")?.querySelectorAll("a") ?? [])].map((a) => new URL(a.href).pathname),
+      eyebrow: at("eyebrow")?.textContent?.trim() ?? "",
+      title: at("hero")?.querySelector("h1")?.textContent?.trim() ?? "",
+      lead: at("lead")?.textContent?.trim() ?? "",
+      links: [...document.querySelectorAll<HTMLAnchorElement>('[data-release="actions"] a')].map((a) => ({
+        text: (a.textContent ?? "").replace("↗", "").trim(),
+        href: a.href,
+        target: a.getAttribute("target"),
+        rel: a.getAttribute("rel") ?? "",
+      })),
+    };
+  });
+
+/** 見つからない頁の部品 (#3035) */
+const notFoundOf = (page: Page): Promise<{ code: string; title: string; lead: string; links: string[]; path: string }> =>
+  page.evaluate(() => {
+    const at = (name: string): Element | null => document.querySelector(`[data-not-found="${name}"]`);
+    return {
+      code: (at("code")?.textContent ?? "").replace(/\s/gu, ""),
+      title: document.querySelector('[data-site-screen="not-found"] h1')?.textContent?.trim() ?? "",
+      lead: at("lead")?.textContent?.trim() ?? "",
+      links: [...document.querySelectorAll<HTMLAnchorElement>('[data-not-found="cta"] a')].map((a) => new URL(a.href).pathname),
+      path: at("path")?.textContent?.trim() ?? "",
+    };
+  });
+
 /** 右の見本の道具のうち、頁に無い物 */
 const PREVIEW_TOOLS = ["tab-figure", "tab-code", "palette", "zoom-out", "zoom-in", "fit", "zoom-level", "expand", "stage", "phase-badge", "progress", "step-note", "open-editor"] as const;
 const missingTools = (page: Page): Promise<string[]> =>
@@ -1253,6 +1292,74 @@ describe("サイトの帯と経路 (#3030)", () => {
       await page.locator(siteSel("lang-en")).click();
       await expect.poll(async () => (await docsOf(page)).title, { ...WAIT, message: "英語に替えても使い方の見出しが英語にならない" }).toBe(TEXT.en.site.screens.docs.title);
       await expectDocs("en");
+    },
+    SLOW,
+  );
+
+  it(
+    "version-badge-from-package",
+    async () => {
+      expect(VERSION, "packages/dragon/package.json から版を読めない").toMatch(/^v\d+\.\d+$/u);
+      const eyebrowOf = (page: Page, sel: string): Promise<string> => page.evaluate((s) => document.querySelector(s)?.textContent?.trim() ?? "", sel);
+      for (const lang of ["ja", "en"] as const) {
+        const locale = lang === "ja" ? "ja-JP" : "en-US";
+        // 概要の呼びかけの版の札
+        const home = await site.open({ path: BASE, locale });
+        await onScreen(home.page, "home", "概要の頁が出ない");
+        await expect.poll(() => eyebrowOf(home.page, homeSel("version")), { ...WAIT, message: `${lang} の概要の版の札が package の版でない` }).toBe(VERSION);
+        // 更新履歴の前置きの札
+        const release = await site.open({ path: `${BASE}release-notes`, locale });
+        await onScreen(release.page, "release-notes", "更新履歴の頁が出ない");
+        await expect.poll(async () => (await releaseOf(release.page)).eyebrow, { ...WAIT, message: `${lang} の更新履歴の札に package の版が無い` }).toContain(VERSION);
+        // 使い方の前置きの札
+        const docs = await site.open({ path: `${BASE}docs`, locale });
+        await onScreen(docs.page, "docs", "使い方の頁が出ない");
+        await expect.poll(() => eyebrowOf(docs.page, docsSel("eyebrow")), { ...WAIT, message: `${lang} の使い方の札に package の版が無い` }).toContain(VERSION);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "release-notes-shows-version-and-changelog-link",
+    async () => {
+      const changelog = `${REPO}/blob/main/CHANGELOG.md`;
+      expect(existsSync(join(root, "CHANGELOG.md")), "釦が指す CHANGELOG.md が repo に無い").toBe(true);
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}release-notes`, locale: lang === "ja" ? "ja-JP" : "en-US" });
+        await onScreen(page, "release-notes", "更新履歴の頁が出ない");
+        await expect.poll(async () => (await releaseOf(page)).title, { ...WAIT, message: `${lang} の更新履歴の見出しが出ない` }).toBe(TEXT[lang].site.screens["release-notes"].title);
+        const release = await releaseOf(page);
+        expect(release.crumb, `${lang} の更新履歴の道筋が概要へ戻らない`).toEqual([BASE]);
+        expect(release.eyebrow, `${lang} の更新履歴の札に版が無い`).toContain(VERSION);
+        expect(release.lead, `${lang} の更新履歴に説明が無い`).not.toBe("");
+        // 釦は変更の記録を GitHub で見る 1 つだけで、新しいタブで開く
+        expect(release.links.map((l) => l.href), `${lang} の更新履歴の釦が変更の記録 1 つでない`).toEqual([changelog]);
+        expect(release.links[0]?.text, `${lang} の更新履歴の釦に名前が無い`).not.toBe("");
+        expect(release.links[0]?.target, `${lang} の更新履歴の釦が新しいタブで開かない`).toBe("_blank");
+        expect(release.links[0]?.rel, `${lang} の更新履歴の釦が開いた先に頁を渡す`).toContain("noopener");
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "not-found-counts-destinations",
+    async () => {
+      const destinations = [`${BASE}editor`, `${BASE}catalog`, `${BASE}docs`];
+      for (const lang of ["ja", "en"] as const) {
+        const path = `${BASE}no-such-page`;
+        const { page } = await site.open({ path, locale: lang === "ja" ? "ja-JP" : "en-US" });
+        await onScreen(page, "not-found", "見つからない頁が出ない");
+        await expect.poll(async () => (await notFoundOf(page)).code, { ...WAIT, message: `${lang} の見つからない頁に大きな 404 が無い` }).toBe("404");
+        const nf = await notFoundOf(page);
+        expect(nf.title, `${lang} の見つからない頁に見出しが無い`).not.toBe("");
+        expect(nf.links, `${lang} の見つからない頁の釦が編集画面とカタログと使い方へ向かない`).toEqual(destinations);
+        // 説明が言う入口の数は、並んだ釦の数
+        const said = [...nf.lead.matchAll(/\d+/gu)].map((m) => Number(m[0]));
+        expect(said, `${lang} の見つからない頁の説明の入口の数が釦の数 ${nf.links.length} と合わない (${nf.lead})`).toEqual([nf.links.length]);
+        expect(nf.path, `${lang} の見つからない頁に開いた path が出ない`).toBe(path);
+      }
     },
     SLOW,
   );
