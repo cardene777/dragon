@@ -12,6 +12,7 @@ import { Fragment, type ReactElement, type ReactNode, useEffect } from "react";
 
 import { LiveFigure } from "../site/LiveFigure";
 import { follow, PATHS } from "../site/routes";
+import { VERSION } from "../site/version";
 import { type Lang, TEXT } from "../text";
 import { CARDS, COMMANDS, DOCS, type Exit, EXITS, type SectionId, SECTIONS } from "./content";
 import "./docs.css";
@@ -120,7 +121,9 @@ export function Docs({ lang, theme, palette }: Look): ReactElement {
   return (
     <div className="docs">
       <section className="docs-hero" data-docs="hero">
-        <div className="docs-eyebrow">{t.eyebrow}</div>
+        <div className="docs-eyebrow" data-docs="eyebrow">
+          {t.eyebrow(VERSION)}
+        </div>
         <h1>{TEXT[lang].site.screens.docs.title}</h1>
         <p className="docs-lead" data-docs="lead">
           {t.lead}
