@@ -1500,6 +1500,135 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /**
+   * 重ね窓の見出しの高さ、図の枠の中の高さ、題の字と題が切れずに全部見えるか、説明が見えるかと説明の字、
+   * 題と閉じる釦が見出しの中に収まって重ならないか (#3059)。2 回続けて同じ値を読めた時だけ返す
+   */
+  const overlayHeadOf = (
+    page: Page,
+  ): Promise<{ head: number; frame: number; title: string; whole: boolean; desc: string | null; fits: boolean } | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const read = () => {
+        const root = document.querySelector('[data-catalog="overlay"]');
+        const head = root?.querySelector(".catalog-overlay-head");
+        const title = root?.querySelector<HTMLElement>('[data-catalog="overlay-title"]');
+        const close = root?.querySelector('[data-catalog="overlay-close"]');
+        const frameEl = root?.querySelector<HTMLElement>(".dg-frame");
+        if (!head || !title || !close || !frameEl || !frameEl.querySelector('svg[data-dragon="figure"]')) return null;
+        const desc = root?.querySelector<HTMLElement>(".catalog-overlay-desc");
+        const h = head.getBoundingClientRect();
+        const t = title.getBoundingClientRect();
+        const c = close.getBoundingClientRect();
+        const inHead = (r: DOMRect): boolean => r.left >= h.left - 0.5 && r.right <= h.right + 0.5 && r.top >= h.top - 0.5 && r.bottom <= h.bottom + 0.5;
+        const style = getComputedStyle(frameEl);
+        return {
+          head: Math.round(h.height),
+          frame: Math.round(frameEl.clientHeight - Number.parseFloat(style.paddingTop) - Number.parseFloat(style.paddingBottom)),
+          title: title.textContent?.trim() ?? "",
+          whole: title.checkVisibility() && title.scrollHeight <= title.clientHeight + 1 && title.scrollWidth <= title.clientWidth + 1,
+          desc: desc?.checkVisibility() ? (desc.textContent?.trim() ?? "") : null,
+          fits: inHead(t) && inHead(c) && t.right <= c.left,
+        };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    });
+
+  const PHONES = [
+    { width: 360, height: 780 },
+    { width: 390, height: 844 },
+    { width: 430, height: 932 },
+  ] as const;
+
+  it(
+    "narrow-overlay-head-title-only",
+    async () => {
+      // 携帯の幅では重ね窓の見出しに題と説明を折り返して出し、見出しが 107 から 156px を取って図の枠を押し下げていた (#3059)
+      for (const viewport of PHONES) {
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openOverlay(viewport, sample);
+          const title = sampleOf(exampleText(sample.key, "ja"))?.title;
+          await expect
+            .poll(async () => {
+              const seen = await overlayHeadOf(page);
+              return seen && { title: seen.title, whole: seen.whole, desc: seen.desc };
+            }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の ${sample.key} の重ね窓で、見出しに説明が見えるか、題が切れる` })
+            .toEqual({ title, whole: true, desc: null });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-overlay-head-lower",
+    async () => {
+      // 携帯の幅の重ね窓では、見出しが低くなった分だけ図の枠が高くなる (#3059)
+      const before = {
+        "360 × 780": { oauth: { head: 133, frame: 472 }, ccip: { head: 156, frame: 435 } },
+        "390 × 844": { oauth: { head: 133, frame: 542 }, ccip: { head: 133, frame: 522 } },
+      } as const;
+      for (const viewport of PHONES.slice(0, 2)) {
+        const size = `${viewport.width} × ${viewport.height}` as keyof typeof before;
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openOverlay(viewport, sample);
+          const now = before[size][sample.key];
+          await expect
+            .poll(async () => {
+              const seen = await overlayHeadOf(page);
+              return seen && { lower: seen.head < now.head, taller: seen.frame > now.frame };
+            }, { ...WAIT, message: `${size} の ${sample.key} の重ね窓で、見出しが ${now.head}px より低くならないか、図の枠の中が ${now.frame}px より高くならない` })
+            .toEqual({ lower: true, taller: true });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-overlay-head-close-works",
+    async () => {
+      // 携帯の幅で見出しを替えても、題と閉じる釦が見出しに収まり、閉じる釦で閉じる (#3059)
+      for (const viewport of PHONES) {
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openOverlay(viewport, sample);
+          const label = `${viewport.width} × ${viewport.height} の ${sample.key} の重ね窓`;
+          await expect.poll(async () => (await overlayHeadOf(page))?.fits, { ...WAIT, message: `${label} で、題か閉じる釦が見出しからはみ出すか、2 つが重なる` }).toBe(true);
+          await page.locator(catalogSel("overlay-close")).click();
+          await expect.poll(() => page.locator(catalogSel("overlay")).count(), { ...WAIT, message: `${label} が閉じる釦で閉じない` }).toBe(0);
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "wide-overlay-head-keeps-description",
+    async () => {
+      // 560px 以上の画面の重ね窓は、今と同じく見出しに題と説明を出す (#3059)
+      for (const viewport of [
+        { width: 560, height: 900 },
+        { width: 1440, height: 900 },
+      ]) {
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openOverlay(viewport, sample);
+          await expect
+            .poll(async () => {
+              const seen = await overlayHeadOf(page);
+              return seen && { title: seen.title.length > 0, desc: (seen.desc ?? "").length > 0 };
+            }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の ${sample.key} の重ね窓で、見出しに題か説明が見えない` })
+            .toEqual({ title: true, desc: true });
+        }
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {
