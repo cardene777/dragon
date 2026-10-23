@@ -22,6 +22,17 @@ const SAMPLES = [
 ] as const;
 /** 携帯の幅と、記法と並べた編集画面の図の枠の幅 */
 const WIDTHS = [390, 560] as const;
+/**
+ * 全体図を出す見本と枠の幅。縦長の全体図は枠の幅が 440px より狭いと出さない (#3055) ので、oauth は 560px だけで、
+ * 横長の全体図はどの幅でも出すので、ccip は 390px と 560px で見る
+ */
+const CASES = [
+  ["oauth", "oauth.json", 560],
+  ["ccip", "ccip.json", 390],
+  ["ccip", "ccip.json", 560],
+] as const;
+/** 縦長の全体図を出さない、携帯の幅の枠 (#3055) */
+const NARROW = [360, 390, 430] as const;
 /** 枠の中で見える高さ。どちらも今の寄って追う図より低い */
 const HEIGHTS = [300, 400] as const;
 /** 今の寄って追う図の窓より高い、枠の中で見える高さ。ccip は 700px で全体図の下までが枠いっぱいになり、900px で図の高さで止まる */
@@ -75,44 +86,56 @@ const viewOf = (svg: SVGSVGElement): string | null => svg.getAttribute("data-vie
 
 describe("寄って追う図を枠の中で見える高さに収める (#3047)", () => {
   it("follow-figure-fits-frame-height", () => {
-    for (const [name, file] of SAMPLES) {
-      for (const width of WIDTHS) {
-        for (const height of HEIGHTS) {
-          const svg = mount(file, { width, height }, { fitHeight: true, view: "follow" });
-          const label = `${name} / 枠 ${width} × ${height}px`;
-          expect(viewOf(svg), `${label} が寄って追う図にならない`).toBe("follow");
-          expect(Number(svg.getAttribute("height")), `${label} の図が見える高さを超える`).toBeLessThanOrEqual(height);
-          expect(attr(svg, ".dg-mm-bg", "y") + attr(svg, ".dg-mm-bg", "height"), `${label} の全体図が見える高さの外に出る`).toBeLessThanOrEqual(height);
-          expect(Number(svg.getAttribute("width")), `${label} の図の幅が枠を超える`).toBeLessThanOrEqual(width);
-          reset();
-        }
+    for (const [name, file, width] of CASES) {
+      for (const height of HEIGHTS) {
+        const svg = mount(file, { width, height }, { fitHeight: true, view: "follow" });
+        const label = `${name} / 枠 ${width} × ${height}px`;
+        expect(viewOf(svg), `${label} が寄って追う図にならない`).toBe("follow");
+        expect(Number(svg.getAttribute("height")), `${label} の図が見える高さを超える`).toBeLessThanOrEqual(height);
+        expect(attr(svg, ".dg-mm-bg", "y") + attr(svg, ".dg-mm-bg", "height"), `${label} の全体図が見える高さの外に出る`).toBeLessThanOrEqual(height);
+        expect(Number(svg.getAttribute("width")), `${label} の図の幅が枠を超える`).toBeLessThanOrEqual(width);
+        reset();
       }
     }
   });
 
   it("follow-window-grows-to-frame-height", () => {
     // 窓の高さは枠が低い時に縮むだけで、枠が高い時は幅から決めた高さで止まり、枠の下が空いていた (#3053)
-    for (const [name, file] of SAMPLES) {
+    for (const [name, file, width] of CASES) {
       const figureHeight = draw("renderDiagram")(exampleJson(file)).layout.height;
-      for (const width of WIDTHS) {
-        for (const height of TALL) {
-          const label = `${name} / 枠 ${width} × ${height}px`;
-          // 高さを頼まない時の窓と全体図が、今の寸法
-          const natural = mount(file, { width, height }, { view: "follow" });
-          const before = attr(natural, ".dg-vp-frame", "height") + 1;
-          const mini = { w: attr(natural, ".dg-mm-bg", "width"), h: attr(natural, ".dg-mm-bg", "height") };
-          const beside = attr(natural, ".dg-mm-bg", "y") === 0;
-          reset();
-          const svg = mount(file, { width, height }, { fitHeight: true, view: "follow" });
-          // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図はその分だけ窓の高さを減らす
-          const expected = Math.min(figureHeight, beside ? height : height - mini.h - INSET);
-          expect(expected, `${label} の枠が今の窓より高くない`).toBeGreaterThan(before);
-          expect(attr(svg, ".dg-vp-frame", "height") + 1, `${label} の窓の高さ`).toBeCloseTo(expected, 5);
-          expect(attr(svg, ".dg-mm-bg", "width"), `${label} の全体図の幅が今と違う`).toBeCloseTo(mini.w, 5);
-          expect(attr(svg, ".dg-mm-bg", "height"), `${label} の全体図の高さが今と違う`).toBeCloseTo(mini.h, 5);
-          expect(Number(svg.getAttribute("height")), `${label} の図が見える高さを超える`).toBeLessThanOrEqual(height);
-          reset();
-        }
+      for (const height of TALL) {
+        const label = `${name} / 枠 ${width} × ${height}px`;
+        // 高さを頼まない時の窓と全体図が、今の寸法
+        const natural = mount(file, { width, height }, { view: "follow" });
+        const before = attr(natural, ".dg-vp-frame", "height") + 1;
+        const mini = { w: attr(natural, ".dg-mm-bg", "width"), h: attr(natural, ".dg-mm-bg", "height") };
+        const beside = attr(natural, ".dg-mm-bg", "y") === 0;
+        reset();
+        const svg = mount(file, { width, height }, { fitHeight: true, view: "follow" });
+        // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図はその分だけ窓の高さを減らす
+        const expected = Math.min(figureHeight, beside ? height : height - mini.h - INSET);
+        expect(expected, `${label} の枠が今の窓より高くない`).toBeGreaterThan(before);
+        expect(attr(svg, ".dg-vp-frame", "height") + 1, `${label} の窓の高さ`).toBeCloseTo(expected, 5);
+        expect(attr(svg, ".dg-mm-bg", "width"), `${label} の全体図の幅が今と違う`).toBeCloseTo(mini.w, 5);
+        expect(attr(svg, ".dg-mm-bg", "height"), `${label} の全体図の高さが今と違う`).toBeCloseTo(mini.h, 5);
+        expect(Number(svg.getAttribute("height")), `${label} の図が見える高さを超える`).toBeLessThanOrEqual(height);
+        reset();
+      }
+    }
+  });
+
+  it("narrow-tall-figure-drops-overview", () => {
+    // 携帯の幅では縦長の全体図の列が枠の幅の 3 割を取り、窓が図の横の 3 割ほどしか見せなかった (#3055)
+    const height = 500;
+    for (const width of NARROW) {
+      for (const fitHeight of [false, true]) {
+        const label = `oauth / 枠の幅 ${width}px${fitHeight ? " / 高さに収める" : ""}`;
+        const svg = mount("oauth.json", { width, height }, { fitHeight, view: "follow" });
+        expect(svg.querySelectorAll(".dg-mm-bg, .dg-mm-world, .dg-mm-vp, .dg-mm-t").length, `${label} に全体図が在る`).toBe(0);
+        expect(attr(svg, ".dg-vp-frame", "width") + 1, `${label} の窓の幅が枠の幅と違う`).toBeCloseTo(width, 5);
+        expect(Number(svg.getAttribute("width")), `${label} の図の幅が枠の幅と違う`).toBe(width);
+        if (fitHeight) expect(Number(svg.getAttribute("height")), `${label} の図が見える高さを超える`).toBeLessThanOrEqual(height);
+        reset();
       }
     }
   });

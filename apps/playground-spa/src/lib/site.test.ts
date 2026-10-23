@@ -1080,7 +1080,8 @@ describe("サイトの帯と経路 (#3030)", () => {
                   const seen = await overlayFigureOf(page);
                   if (!seen) return null;
                   const follow = seen.view === "follow";
-                  return { step: seen.step, scrolls: seen.scrolls, figure: seen.figure, window: follow ? seen.window : true, overview: follow ? seen.overview : true };
+                  // 全体図は出す時だけ枠の中かを見る。携帯の幅の縦長の全体図は出さない (#3055)
+                  return { step: seen.step, scrolls: seen.scrolls, figure: seen.figure, window: follow ? seen.window : true, overview: follow ? seen.overview !== false : true };
                 }, { ...WAIT, message: `${label} を重ね窓で開くと、送らないと図の全体が見えない` })
                 .toEqual({ step, scrolls: false, figure: true, window: true, overview: true });
               if (s < steps - 1) await page.locator('[data-catalog="overlay"] [data-dragon="next"]').click();
@@ -1258,6 +1259,76 @@ describe("サイトの帯と経路 (#3030)", () => {
             return seen && { view: seen.view, gap: Math.abs(seen.gap) <= 1 ? 0 : seen.gap, inside: seen.inside };
           }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の重ね窓で、窓の高さが図の枠の中で見える高さと合わないか、図が枠に収まらない` })
           .toEqual({ view: "follow", gap: 0, inside: true });
+      }
+    },
+    SLOW,
+  );
+
+  /**
+   * 置き場 `scope` の寄って追う図の全体図の数と、窓の幅と図の枠の中の幅の差と、図が枠の中に送らずに収まるか (#3055)。
+   * 2 回続けて同じ値を読めた時だけ返す
+   */
+  const narrowFollowOf = (page: Page, scope: string): Promise<{ view: string | null; overview: number; gap: number; inside: boolean } | null> =>
+    page.evaluate(async (scope) => {
+      await document.fonts.ready;
+      const read = () => {
+        const frameEl = document.querySelector<HTMLElement>(`${scope} .dg-frame`);
+        const svg = frameEl?.querySelector('svg[data-dragon="figure"]');
+        const win = svg?.querySelector(".dg-vp-frame");
+        if (!frameEl || !svg || !win) return null;
+        const style = getComputedStyle(frameEl);
+        const frame = frameEl.getBoundingClientRect();
+        const box = svg.getBoundingClientRect();
+        // 図の属性の寸法を、画面に描かれた寸法へ直す倍率
+        const scale = box.width / Number(svg.getAttribute("width"));
+        const room = frameEl.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+        return {
+          view: svg.getAttribute("data-view"),
+          overview: svg.querySelectorAll(".dg-mm-bg").length,
+          gap: Math.round((Number(win.getAttribute("width")) + 1) * scale - room),
+          inside:
+            box.left >= frame.left - 0.5 &&
+            box.right <= frame.right + 0.5 &&
+            box.top >= frame.top - 0.5 &&
+            box.bottom <= frame.bottom + 0.5 &&
+            frameEl.scrollHeight <= frameEl.clientHeight + 1,
+        };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    }, scope);
+
+  it(
+    "narrow-follow-window-fills-frame-width",
+    async () => {
+      // 携帯の幅では縦長の全体図の列が枠の幅の 3 割を取り、窓が oauth の横の 3 割ほどしか見せなかった (#3055)
+      const oauth = exampleText("oauth", "ja");
+      for (const viewport of [
+        { width: 360, height: 780 },
+        { width: 390, height: 844 },
+        { width: 430, height: 932 },
+      ]) {
+        const size = `${viewport.width} × ${viewport.height}`;
+        const expectWide = async (page: Page, scope: string, where: string): Promise<void> => {
+          await expect
+            .poll(async () => {
+              const seen = await narrowFollowOf(page, scope);
+              return seen && { view: seen.view, overview: seen.overview, gap: Math.abs(seen.gap) <= 1 ? 0 : seen.gap, inside: seen.inside };
+            }, { ...WAIT, message: `${size} の${where}の oauth で、全体図が残るか、窓が枠の幅いっぱいでないか、図が枠に収まらない` })
+            .toEqual({ view: "follow", overview: 0, gap: 0, inside: true });
+        };
+        const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport });
+        await onScreen(page, "category", `${size} で時系列図の分類の頁が出ない`);
+        await page.locator(catalogSel("item")).nth(samplesOf("sequence").indexOf("oauth")).click();
+        await expectWide(page, '[data-catalog="stage"]', "カタログの頁の見本の枠");
+        await page.locator(catalogSel("expand")).click();
+        await expectWide(page, '[data-catalog="overlay"]', "拡大の重ね窓");
+        const editor = await site.open({ path: `${BASE}editor${toHash(oauth)}`, viewport });
+        await expectWide(editor.page, '[data-playground="stage"]', "編集画面");
       }
     },
     SLOW,

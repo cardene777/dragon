@@ -14,8 +14,8 @@ import { drawnText, embeddedFonts, exporter, fontChars, type PlayerWords, player
 
 /** 書き出し 1 回に許す時間。Chromium の起動を含む */
 const SLOW = 180_000;
-/** 寄って見せる見せ方になる、狭い枠の幅 */
-const NARROW = 200;
+/** 寄って見せる見せ方になり、縦長の全体図を出す枠の幅。440px より狭い枠は縦長の全体図を出さない (#3055) */
+const NARROW = 440;
 
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
@@ -80,7 +80,7 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       const exportDiagram = await exporter();
       for (const lang of ["ja", "en"] as const) {
         const result = await exportDiagram(tall(), { outDir: scratch(), formats: ["html"], lang });
-        const words = await playerWords(readFileSync(result.files.html as string, "utf8"), 375);
+        const words = await playerWords(readFileSync(result.files.html as string, "utf8"), NARROW);
         expect(words.overview, `${lang} の全体図の札`).toBe(expected(lang, "").overview);
         expect(words.overviewFits, `${lang} の全体図の札 (${words.overview}) が縦に長い図の全体図の地からはみ出す`).toBe(true);
       }

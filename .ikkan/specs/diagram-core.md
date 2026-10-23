@@ -117,3 +117,17 @@
 | 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3053 |
 | 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3053 |
 | 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3053 |
+| 枠の幅が 440px より狭く全体図が縦に長い時 (oauth、枠の幅 360、390、430px、高さに収める時と収めない時)、全体図を描かず、窓の幅が枠の幅と同じ | `pnpm test`の検査`narrow-tall-figure-drops-overview`が通る | #3055 |
+| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth をカタログの頁の見本の枠、拡大の重ね窓、編集画面で開いた時、全体図が無く、窓の幅と図の枠の中の幅の差が 1px 以下で、図が枠の中に送らずに収まる | `pnpm test`の検査`narrow-follow-window-fills-frame-width`が通る | #3055 |
+| 縦に長い全体図は枠の幅 440px 以上で窓の右に、横に長い全体図は枠の幅に関わらず窓の下に出る (oauth は 440 と 560px、ccip は 390 と 560px) | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3055 |
+| 全体図を出す時、全体図が窓に重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3055 |
+| 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3055 |
+| 全体図を出す時、全体図が今見ている所の枠と札を持つ | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3055 |
+| 枠の中で見える高さが今の窓より低い時、窓と全体図がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3055 |
+| 枠の中で見える高さが今の窓より高い時、窓が伸び、全体図の大きさは変わらない | `pnpm test`の検査`follow-window-grows-to-frame-height`が通る | #3055 |
+| 書き出した HTML を幅 440px で開いた時、再生の釦と全体図の札が記法の言葉で出る | `pnpm test`の検査`export-follows-notation-language`が通る | #3055 |
+| 書き出しの命令に言葉を渡した時、再生の釦と全体図の札がその言葉で出る | `pnpm test`の検査`export-lang-flag`が通る | #3055 |
+| 縦に長い図の書き出した HTML を幅 440px で開いた時、全体図の札が全体図の地からはみ出さない | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3055 |
+| 編集画面で、全体図を出す見本 (860px の oauth と ccip、390px の ccip) の全体図が窓に重ならず図の枠の中にある | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3055 |
+| 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3055 |
+| 1024 × 768 から 1440 × 900 の重ね窓で、oauth の窓が図の横幅の全部を見せる | `pnpm test`の検査`overlay-follow-window-shows-whole-width`が通る | #3055 |
