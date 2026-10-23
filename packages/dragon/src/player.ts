@@ -8,7 +8,8 @@
  * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
  * 段が替わるたびに `options.onStep` で今の段を知らせ、頁の側が段の札や進み具合を出せるようにする (#3031)。
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
- * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、釦と段の番号と題を上の段に、本文を下の段の全幅に置く (#3057)。
+ * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、段を送る釦を指で押せる大きさにして段の番号と上の段に並べ、
+ * 題と本文をその下の段の全幅に置く (#3057、#3069)。
  */
 import { FIGURE_TEXT } from "./figure-text";
 import { FONT_VARS, LOOK, paletteVars, resolvePalette, type TextStyle, TYPE } from "./look/values";
@@ -61,17 +62,18 @@ function playerCss(): string {
     `.dg-tt{${font(TYPE.stepTitle)};margin:0}`,
     `.dg-tb{${font(TYPE.stepBody)};color:var(--ink2);margin:0;white-space:pre-line}`,
     `.dg-sr{position:absolute;width:${hidden};height:${hidden};margin:-${hidden};padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}`,
-    // 狭い帯では、釦の横の空きに番号と題を置き、本文だけを下の段の全幅に置く (#3057)。
-    // 題と本文を包む箱を外して写しも同じ升に重ねるので、上の段は最も高い題、下の段は最も長い本文の高さになる。
-    // 番号と題は釦の高さの中で縦の真ん中に置き、上端を揃えて段を送っても題の位置を変えない
+    // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにし、その横に番号を置き、
+    // 題を 2 段目、本文を 3 段目に置いてどちらも帯の全幅を使う (#3057、#3069)。
+    // 釦を大きくすると横に題を置く幅が足りず題が細かく折れるため、題は釦の段に置かない。
+    // 題と本文を包む箱を外して写しも同じ升に重ねるので、2 段目は最も高い題、3 段目は最も長い本文の高さになる
     `@container dg-bar (width < ${px(P.narrow)}){` +
-      `.dg-row{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:start;gap:${px(P.gap / 2)} ${px(P.gap)}}` +
+      `.dg-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:${px(P.gap / 2)} ${px(P.gap)}}` +
       `.dg-say,.dg-txt,.dg-txt>*{display:contents}` +
       `.dg-btns{grid-area:1/1}` +
-      `.dg-no,.dg-tt{display:flex;align-items:center;min-height:${px(P.button)}}` +
-      `.dg-no{grid-area:1/2;padding-top:0}` +
-      `.dg-tt{grid-area:1/3}` +
-      `.dg-tb{grid-area:2/1/3/4}` +
+      `.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}` +
+      `.dg-no{grid-area:1/2;display:flex;align-items:center;min-height:${px(P.touch)};padding-top:0}` +
+      `.dg-tt{grid-area:2/1/3/3}` +
+      `.dg-tb{grid-area:3/1/4/3}` +
       `}`,
   ].join("");
 }
