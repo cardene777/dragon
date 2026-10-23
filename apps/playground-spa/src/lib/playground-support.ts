@@ -205,9 +205,10 @@ export function rgb(hex: string): string {
 /** 段の番号の札の字 (`01/12`)。`step` は 0 から数える */
 export const stepLabel = (step: number, count: number): string => `${String(step + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`;
 
-/** 再生の部品の今の段の番号、段の本文の帯の高さ、図の幅と高さと上端の位置 (px) */
+/** 再生の部品の今の段の番号、図の見せ方、段の本文の帯の高さ、図の幅と高さと上端の位置 (px) */
 export interface StepShape {
   step: string;
+  view: string | null;
   bar: number;
   width: number;
   height: number;
@@ -229,6 +230,7 @@ export const stepShapeOf = (page: Page, scope: string): Promise<StepShape | null
       const box = svg.getBoundingClientRect();
       return {
         step: root.querySelector('[data-dragon="step-no"]')?.textContent ?? "",
+        view: svg.getAttribute("data-view"),
         bar: Math.round(bar.getBoundingClientRect().height),
         width: Math.round(box.width),
         height: Math.round(box.height),
@@ -243,16 +245,13 @@ export const stepShapeOf = (page: Page, scope: string): Promise<StepShape | null
     return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
   }, scope);
 
+const STEP_WAIT = { timeout: 8_000, interval: 100 } as const;
+
 /**
- * 自動で送らずに `scope` の中の再生の部品の段を 1 つずつ送り、どの段でも段の本文の帯の高さと、図の幅と高さと上端の位置が
- * 1 段目と同じかを確かめる (#3049)。呼ぶ前に動きを嫌う設定 (`reducedMotion: "reduce"`) にしておく。
- * 1 段目の形は、置いた直後に図を合わせ直している間を拾わないよう、続けて 2 度同じに読めた形を使う
+ * `scope` の中の再生の部品の、定まった形。置いた直後に図を合わせ直している間を拾わないよう、
+ * 間をあけて続けて 2 度同じに読めた形を返す (#3049、#3051)
  */
-export async function expectSteadyAcrossSteps(page: Page, scope: string, label: string): Promise<void> {
-  const wait = { timeout: 8_000, interval: 100 } as const;
-  const items = page.locator(`${scope} [data-dragon="steps"] > li`);
-  await expect.poll(() => items.count(), { ...wait, message: `${label} の段が読めない` }).toBeGreaterThan(1);
-  const count = await items.count();
+export async function settledStepShape(page: Page, scope: string, label: string): Promise<StepShape> {
   let last = "";
   await expect
     .poll(
@@ -262,10 +261,38 @@ export async function expectSteadyAcrossSteps(page: Page, scope: string, label: 
         last = now;
         return settled;
       },
-      { ...wait, message: `${label} の 1 段目の形が定まらない` },
+      { ...STEP_WAIT, message: `${label} の形が定まらない` },
     )
     .toBe(true);
-  const first = JSON.parse(last) as StepShape;
+  return JSON.parse(last) as StepShape;
+}
+
+/**
+ * `scope` の中の再生の部品で、本文が最も長い段の本文の下端と `edge` の下の縁の間 (px、#3051)。部品が無ければ `null`。
+ * 帯の高さは全部の段の題と本文の写しを重ねて決まる (#3049) ので、写しの本文の下端のうち最も下の物で測る
+ */
+export const captionClearance = (page: Page, scope: string, edge: string): Promise<number | null> =>
+  page.evaluate(
+    async ([scope, edge]) => {
+      await document.fonts.ready;
+      const bodies = [...document.querySelectorAll(`${scope} [data-dragon="caption-room"] > :last-child`)];
+      const holder = document.querySelector(edge);
+      if (bodies.length === 0 || !holder) return null;
+      const lowest = Math.max(...bodies.map((body) => body.getBoundingClientRect().bottom));
+      return holder.getBoundingClientRect().bottom - lowest;
+    },
+    [scope, edge] as const,
+  );
+
+/**
+ * 自動で送らずに `scope` の中の再生の部品の段を 1 つずつ送り、どの段でも段の本文の帯の高さと、図の幅と高さと上端の位置が
+ * 1 段目と同じかを確かめる (#3049)。呼ぶ前に動きを嫌う設定 (`reducedMotion: "reduce"`) にしておく
+ */
+export async function expectSteadyAcrossSteps(page: Page, scope: string, label: string): Promise<void> {
+  const items = page.locator(`${scope} [data-dragon="steps"] > li`);
+  await expect.poll(() => items.count(), { ...STEP_WAIT, message: `${label} の段が読めない` }).toBeGreaterThan(1);
+  const count = await items.count();
+  const first = await settledStepShape(page, scope, `${label} の 1 段目`);
   expect(first.step, `${label} が 1 段目から始まらない`).toBe(stepLabel(0, count));
   /**
    * 今の段の題の上端から本文の下端までの高さと、それを入れる欄の高さ。欄は全部の段の写しを重ねた高さになる。
@@ -283,7 +310,7 @@ export async function expectSteadyAcrossSteps(page: Page, scope: string, label: 
   for (let s = 1; s < count; s++) {
     await page.locator(`${scope} [data-dragon="next"]`).click();
     await expect
-      .poll(() => stepShapeOf(page, scope), { ...wait, message: `${label} の ${s + 1} 段目で、段の本文の帯の高さか図の大きさか位置が 1 段目と違う` })
+      .poll(() => stepShapeOf(page, scope), { ...STEP_WAIT, message: `${label} の ${s + 1} 段目で、段の本文の帯の高さか図の大きさか位置が 1 段目と違う` })
       .toEqual({ ...first, step: stepLabel(s, count) });
     seen.push(await caption());
   }

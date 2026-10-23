@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, TEMPLATE } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, expectSteadyAcrossSteps, rgb, root, type Site, startSite } from "./playground-support";
+import { app, BASE, captionClearance, expectSteadyAcrossSteps, rgb, root, type Site, settledStepShape, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -1124,6 +1124,52 @@ describe("サイトの帯と経路 (#3030)", () => {
           }
         }
       }
+    },
+    SLOW,
+  );
+
+  it(
+    "overlay-caption-clear-of-bottom-edge",
+    async () => {
+      // 段の本文の帯の下に余白が無く、本文の最後の行が重ね窓の札の縁に接していた (#3051)
+      const sizes = [
+        { width: 390, height: 844 },
+        { width: 860, height: 900 },
+        { width: 1024, height: 768 },
+        { width: 1280, height: 720 },
+        { width: 1440, height: 900 },
+      ];
+      for (const category of ["architecture", "sequence"] as const) {
+        const count = samplesOf(category).length;
+        for (const viewport of sizes) {
+          const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport });
+          await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${category} の分類の頁が出ない`);
+          for (let i = 0; i < count; i++) {
+            const label = `${viewport.width} × ${viewport.height} の ${category} の ${i + 1} 番目の見本の重ね窓`;
+            await page.locator(catalogSel("item")).nth(i).click();
+            await page.locator(catalogSel("expand")).click();
+            await expect
+              .poll(() => captionClearance(page, '[data-catalog="overlay"]', ".catalog-overlay-card"), { ...WAIT, message: `${label} で、本文の最後の行と札の下の縁の間が 8px に足りない` })
+              .toBeGreaterThanOrEqual(8);
+            await page.keyboard.press("Escape");
+            await expect.poll(() => page.locator('[data-catalog="overlay"]').count(), { ...WAIT, message: `${label} が閉じない` }).toBe(0);
+          }
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "overlay-low-screen-keeps-whole-figure",
+    async () => {
+      // 帯に余白を足して図の枠を低くすると、低い画面で構成図の全体が見えず寄って追う図に替わる (#3051)
+      const { page } = await site.open({ path: `${BASE}catalog/architecture`, viewport: { width: 1280, height: 720 } });
+      await onScreen(page, "category", "1280 × 720 で構成図の分類の頁が出ない");
+      await page.locator(catalogSel("item")).first().click();
+      await page.locator(catalogSel("expand")).click();
+      const shape = await settledStepShape(page, '[data-catalog="overlay"]', "1280 × 720 の構成図の 1 番目の見本の重ね窓");
+      expect(shape.view, "1280 × 720 の構成図の重ね窓が、全体を止めて見せる図でない").toBe("fixed");
     },
     SLOW,
   );

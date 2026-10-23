@@ -43,3 +43,9 @@
 | カタログの構成図の頁の見本の枠で、寄って追う図の窓と全体図が枠の中に全部収まる | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3047 |
 | 編集画面で oauth と ccip の見本を段 1 から最後まで進めた時、全体図が窓と重ならず図の枠の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3047 |
 | 1440 × 900 の編集画面で oauth と ccip の見本を開いた時、箱の名前の字が今と同じく 11px 以上で、箱が図の枠の外に出ない | `pnpm test`の検査`editor-diagram-readable-and-not-clipped`が通る | #3047 |
+| 画面の大きさ 390 × 844、860 × 900、1024 × 768、1280 × 720、1440 × 900 で、構成図と時系列図のカタログの頁の全部の見本を拡大の重ね窓で開いた時、本文が最も長い段の本文の下端と重ね窓の札 (`.catalog-overlay-card`) の下の縁の間が 8px 以上ある | `pnpm test`の検査`overlay-caption-clear-of-bottom-edge`が通る | #3051 |
+| 1440 × 900 の編集画面で oauth と ccip の見本を開いた時、本文が最も長い段の本文の下端と図の側 (`[data-playground="figure"]`) の下の縁の間が 8px 以上ある | `pnpm test`の検査`editor-caption-clear-of-bottom-edge`が通る | #3051 |
+| 1280 × 720 で構成図のカタログの頁の 1 番目の見本を拡大の重ね窓で開いた時、図は今と同じく全体を止めて見せる図 (`data-view="fixed"`) のまま | `pnpm test`の検査`overlay-low-screen-keeps-whole-figure`が通る | #3051 |
+| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3051 |
+| 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3051 |
+| 編集画面で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`editor-figure-steady-across-steps`が通る | #3051 |
