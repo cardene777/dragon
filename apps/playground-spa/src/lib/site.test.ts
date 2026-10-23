@@ -1939,12 +1939,13 @@ describe("サイトの帯と経路 (#3030)", () => {
             .filter((el) => el.checkVisibility())
             .map((el) => {
               const r = el.getBoundingClientRect();
-              const corners = [
+              const points: [number, number][] = [
                 [r.left + 2, r.top + 2],
                 [r.right - 2, r.top + 2],
                 [r.left + 2, r.bottom - 2],
                 [r.right - 2, r.bottom - 2],
-              ].every(([x, y]) => {
+              ];
+              const corners = points.every(([x, y]) => {
                 const hit = document.elementFromPoint(x, y);
                 return hit !== null && el.contains(hit);
               });
