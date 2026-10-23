@@ -886,7 +886,7 @@
   }
 }
 
-/* ── 幅 439 以下 (携帯の幅)。道具を 1 列に収め、段の札を出さず、図を上から描く ── */
+/* ── 幅 439 以下 (携帯の幅)。道具を指で押せる大きさで 1 列に収め、段の札を出さず、図を上から描く ── */
 
 @media (max-width: 439px) {
   /*
@@ -895,6 +895,59 @@
    */
   .pg-stage-bar :is(.pg-live, .pg-swatches) {
     display: none;
+  }
+
+  /*
+   * 2 つの帯の押せる部品を、指で押す的の目安の 44 × 44px にする (#3065)。
+   * 道具の帯は全体に合わせるの釦を出さずに倍率を釦にして (`editor/Stage.tsx`)、360px で残り 0 まで詰めて 1 列に収める。
+   * 記法の欄の上の帯は書類名の欄を縮めて収める
+   */
+  :is(.pg-stage-bar, .pg-bar) .pg-tool {
+    width: 44px;
+    height: 44px;
+  }
+
+  .pg-stage-bar,
+  .pg-bar {
+    padding: 0 8px;
+  }
+
+  .pg-stage-bar {
+    justify-content: flex-end;
+  }
+
+  .pg-stage-bar .pg-gap {
+    display: none;
+  }
+
+  .pg-tool-sep {
+    margin: 0 2px;
+  }
+
+  /* 倍率の釦。押すと全体に合わせることを枠で示し、桁が増えた時は字の幅に合わせて広げる */
+  .pg-stage-bar .pg-zoom-fit {
+    width: auto;
+    min-width: 44px;
+    padding: 0 6px;
+    border-color: var(--d-border-strong);
+    font-family: var(--mono), monospace;
+    font-size: 11px;
+  }
+
+  .pg-tabs button {
+    min-width: 44px;
+    height: 44px;
+    padding: 0 10px;
+  }
+
+  .pg-bar > .pg-file {
+    box-sizing: border-box;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .pg-fold {
+    height: 44px;
   }
 
   /*
