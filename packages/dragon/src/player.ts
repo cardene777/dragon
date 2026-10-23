@@ -8,6 +8,7 @@
  * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
  * 段が替わるたびに `options.onStep` で今の段を知らせ、頁の側が段の札や進み具合を出せるようにする (#3031)。
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
+ * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、釦と段の番号と題を上の段に、本文を下の段の全幅に置く (#3057)。
  */
 import { FIGURE_TEXT } from "./figure-text";
 import { FONT_VARS, LOOK, paletteVars, resolvePalette, type TextStyle, TYPE } from "./look/values";
@@ -46,7 +47,9 @@ function playerCss(): string {
   return [
     `.dg-player{display:flex;flex-direction:column;gap:${px(P.gap)};color:var(--ink)}`,
     `.dg-player .dg-frame{border-radius:${px(P.radius)};overflow:hidden}`,
-    `.dg-bar{display:flex;align-items:flex-start;gap:${px(P.gap)}}`,
+    // 並べ方は帯の中身の幅で選ぶ。帯の中の 1 段 (`.dg-row`) が並べ替わり、帯の左右の余白は置いた頁が帯に付ける
+    `.dg-bar{container:dg-bar/inline-size}`,
+    `.dg-row{display:flex;align-items:flex-start;gap:${px(P.gap)}}`,
     `.dg-btns{display:flex;gap:${px(P.gap / 2)};flex:none}`,
     `.dg-btn{width:${px(P.button)};height:${px(P.button)};border-radius:${px(P.radius)};border:${px(LOOK.stroke.hair)} solid var(--hair);background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer}`,
     `.dg-btn:focus-visible{outline:${px(P.focus)} solid var(--c-blue);outline-offset:${px(P.focus)}}`,
@@ -58,6 +61,18 @@ function playerCss(): string {
     `.dg-tt{${font(TYPE.stepTitle)};margin:0}`,
     `.dg-tb{${font(TYPE.stepBody)};color:var(--ink2);margin:0;white-space:pre-line}`,
     `.dg-sr{position:absolute;width:${hidden};height:${hidden};margin:-${hidden};padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}`,
+    // 狭い帯では、釦の横の空きに番号と題を置き、本文だけを下の段の全幅に置く (#3057)。
+    // 題と本文を包む箱を外して写しも同じ升に重ねるので、上の段は最も高い題、下の段は最も長い本文の高さになる。
+    // 番号と題は釦の高さの中で縦の真ん中に置き、上端を揃えて段を送っても題の位置を変えない
+    `@container dg-bar (width < ${px(P.narrow)}){` +
+      `.dg-row{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:start;gap:${px(P.gap / 2)} ${px(P.gap)}}` +
+      `.dg-say,.dg-txt,.dg-txt>*{display:contents}` +
+      `.dg-btns{grid-area:1/1}` +
+      `.dg-no,.dg-tt{display:flex;align-items:center;min-height:${px(P.button)}}` +
+      `.dg-no{grid-area:1/2;padding-top:0}` +
+      `.dg-tt{grid-area:1/3}` +
+      `.dg-tb{grid-area:2/1/3/4}` +
+      `}`,
   ].join("");
 }
 
@@ -149,9 +164,15 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
     text.append(room);
   }
   say.append(no, text);
+  // 狭い帯では語りの箱を外して番号と題と本文を釦と同じ升の並びに置く (#3057)。
+  // 箱を外した要素の読み上げからの隠し方に頼らず、見える語りの 1 つずつも読み上げから隠す
+  for (const shown of [no, title, body]) shown.setAttribute("aria-hidden", "true");
+  const row = doc.createElement("div");
+  row.className = "dg-row";
+  row.append(buttons, say);
   const bar = doc.createElement("div");
   bar.className = "dg-bar";
-  bar.append(buttons, say);
+  bar.append(row);
 
   // 読み上げの道具が段の順に読む一覧。見た目からは外すが、読み上げからは隠さない
   const list = doc.createElement("ol");

@@ -219,6 +219,44 @@ export async function captionSteps(html: string, width: number): Promise<Caption
   });
 }
 
+/** 段の本文の帯の中の、釦、段の番号、今の段の題と本文の箱と、帯の左右の余白を除いた中身の左端と右端 (px、#3057) */
+export interface CaptionLayout {
+  inner: { left: number; right: number };
+  buttons: Rect;
+  no: Rect;
+  title: Rect;
+  body: Rect;
+}
+
+/** 書き出した HTML を動きを嫌う設定で幅 `width` で開き、1 段目の段の本文の帯の並べ方を読む (#3057) */
+export async function captionLayout(html: string, width: number): Promise<CaptionLayout> {
+  return withPage(html, { width, height: 2000 }, async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.evaluate(() => document.fonts.ready);
+    return page.evaluate(() => {
+      const rect = (selector: string): Rect => {
+        const box = document.querySelector(selector)?.getBoundingClientRect();
+        return { x: box?.x ?? Number.NaN, y: box?.y ?? Number.NaN, w: box?.width ?? Number.NaN, h: box?.height ?? Number.NaN };
+      };
+      const bar = document.querySelector(".dg-bar");
+      const box = bar?.getBoundingClientRect();
+      const style = bar ? getComputedStyle(bar) : null;
+      return {
+        inner: {
+          left: (box?.left ?? Number.NaN) + Number.parseFloat(style?.paddingLeft ?? "0"),
+          right: (box?.right ?? Number.NaN) - Number.parseFloat(style?.paddingRight ?? "0"),
+        },
+        buttons: rect(".dg-btns"),
+        no: rect('[data-dragon="step-no"]'),
+        title: rect('[data-dragon="step-title"]'),
+        body: rect('[data-dragon="step-body"]'),
+      };
+    });
+  });
+}
+
 export async function playerWords(html: string, width: number): Promise<PlayerWords> {
   return withPage(html, { width, height: 2000 }, async (page) => {
     await page.locator('[data-dragon="player"] svg[data-view="follow"]').waitFor({ state: "attached" });

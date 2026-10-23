@@ -110,8 +110,11 @@ export const LOOK = {
   /** 浮いて出る物が下から上がる長さと、弾んで出る物の始まりの大きさ */
   rise: 5,
   popFrom: 0.4,
-  /** 動きを嫌わない人の頁の部品 */
-  player: { gap: 10, radius: 12, button: 36, hidden: 1, focus: 2 },
+  /**
+   * 動きを嫌わない人の頁の部品。
+   * `narrow` は段の本文の帯を横 1 列に並べる帯の中身の幅の下限で、これより狭い帯 (携帯の幅) では本文を釦と題の段の下に置く (#3057)
+   */
+  player: { gap: 10, radius: 12, button: 36, hidden: 1, focus: 2, narrow: 440 },
 } as const;
 
 /** 動きの長さ (秒)。 */

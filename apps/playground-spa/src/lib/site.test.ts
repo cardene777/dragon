@@ -1334,6 +1334,172 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /** 帯の並べ方を確かめる見本。時系列図の oauth と、本文の最も長い段が長い構成図の ccip */
+  const CAPTION_SAMPLES = [
+    { key: "oauth", category: "sequence" },
+    { key: "ccip", category: "architecture" },
+  ] as const satisfies readonly { key: ExampleKey; category: Kind }[];
+
+  /** 分類の頁で見本 `key` を重ね窓で開く。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする */
+  const openOverlay = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false): Promise<Page> => {
+    const { page } = await site.open({ path: `${BASE}catalog/${sample.category}`, viewport });
+    if (still) await page.emulateMedia({ reducedMotion: "reduce" });
+    await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${sample.category} の分類の頁が出ない`);
+    await page.locator(catalogSel("item")).nth(samplesOf(sample.category).indexOf(sample.key)).click();
+    await page.locator(catalogSel("expand")).click();
+    return page;
+  };
+
+  /** 見本 `key` を編集画面で開く。`still` の時は動きを嫌う設定で開き直し、段を釦で送れるようにする */
+  const openEditor = async (viewport: { width: number; height: number }, key: ExampleKey, still = false): Promise<Page> => {
+    const { page } = await site.open({ path: `${BASE}editor${toHash(exampleText(key, "ja"))}`, viewport });
+    if (still) {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.reload();
+    }
+    return page;
+  };
+
+  interface CaptionBox {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  }
+
+  /**
+   * 置き場 `scope` の段の本文の帯の高さ、図の枠の中の高さ、帯の左右の余白を除いた中身の左端と右端、釦と段の番号と今の段の題と本文の箱、
+   * 全部の段の写しの題と本文が帯の中身の幅に収まるか (#3057)。2 回続けて同じ値を読めた時だけ返す
+   */
+  const captionOf = (
+    page: Page,
+    scope: string,
+  ): Promise<{ bar: number; frame: number; inner: { left: number; right: number }; buttons: CaptionBox; no: CaptionBox; title: CaptionBox; body: CaptionBox; inside: boolean } | null> =>
+    page.evaluate(async (scope) => {
+      await document.fonts.ready;
+      const read = () => {
+        const bar = document.querySelector(`${scope} .dg-bar`);
+        const frameEl = document.querySelector<HTMLElement>(`${scope} .dg-frame`);
+        const parts = [".dg-btns", '[data-dragon="step-no"]', '[data-dragon="step-title"]', '[data-dragon="step-body"]'].map((s) => document.querySelector(`${scope} ${s}`));
+        if (!bar || !frameEl || parts.some((part) => !part)) return null;
+        const box = (el: Element): CaptionBox => {
+          const r = el.getBoundingClientRect();
+          return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right) };
+        };
+        const barBox = bar.getBoundingClientRect();
+        const style = getComputedStyle(bar);
+        const inner = { left: Math.round(barBox.left + Number.parseFloat(style.paddingLeft)), right: Math.round(barBox.right - Number.parseFloat(style.paddingRight)) };
+        const frameStyle = getComputedStyle(frameEl);
+        const texts = [...document.querySelectorAll(`${scope} [data-dragon="caption-room"] > *, ${scope} [data-dragon="step-title"], ${scope} [data-dragon="step-body"]`)];
+        const [buttons, no, title, body] = parts.map((part) => box(part as Element)) as [CaptionBox, CaptionBox, CaptionBox, CaptionBox];
+        return {
+          bar: Math.round(barBox.height),
+          frame: Math.round(frameEl.clientHeight - Number.parseFloat(frameStyle.paddingTop) - Number.parseFloat(frameStyle.paddingBottom)),
+          inner,
+          buttons,
+          no,
+          title,
+          body,
+          inside: texts.every((text) => {
+            const r = text.getBoundingClientRect();
+            return r.left >= inner.left - 0.5 && r.right <= inner.right + 0.5 && text.scrollWidth <= text.clientWidth + 1;
+          }),
+        };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    }, scope);
+
+  it(
+    "narrow-overlay-caption-lower",
+    async () => {
+      // 携帯の幅では釦と番号と題と本文を横 1 列に並べ、本文の欄が細って帯が高くなり、重ね窓の図の枠を押し下げていた (#3057)
+      const before = {
+        "360 × 780": { oauth: { bar: 191, frame: 398 }, ccip: { bar: 211, frame: 355 } },
+        "390 × 844": { oauth: { bar: 151, frame: 502 }, ccip: { bar: 191, frame: 462 } },
+      } as const;
+      for (const viewport of [
+        { width: 360, height: 780 },
+        { width: 390, height: 844 },
+      ]) {
+        const size = `${viewport.width} × ${viewport.height}` as keyof typeof before;
+        for (const sample of CAPTION_SAMPLES) {
+          const page = await openOverlay(viewport, sample);
+          const now = before[size][sample.key];
+          await expect
+            .poll(async () => {
+              const seen = await captionOf(page, '[data-catalog="overlay"]');
+              return seen && { lower: seen.bar < now.bar, taller: seen.frame > now.frame };
+            }, { ...WAIT, message: `${size} の ${sample.key} の重ね窓で、帯が ${now.bar}px より低くならないか、図の枠の中が ${now.frame}px より高くならない` })
+            .toEqual({ lower: true, taller: true });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-caption-steady-and-inside",
+    async () => {
+      // 携帯の幅で帯の並べ方を替えても、段を送った時に帯と図が動かず、題と本文が帯からはみ出さない (#3049、#3057)
+      for (const viewport of [
+        { width: 360, height: 780 },
+        { width: 390, height: 844 },
+        { width: 430, height: 932 },
+      ]) {
+        const size = `${viewport.width} × ${viewport.height}`;
+        for (const sample of CAPTION_SAMPLES) {
+          for (const [where, scope, page] of [
+            ["重ね窓", '[data-catalog="overlay"]', await openOverlay(viewport, sample, true)],
+            ["編集画面", '[data-playground="stage"]', await openEditor(viewport, sample.key, true)],
+          ] as const) {
+            const label = `${size} の${where}の ${sample.key}`;
+            await expect.poll(async () => (await captionOf(page, scope))?.inside, { ...WAIT, message: `${label} で、題か本文が帯の中身の幅からはみ出す` }).toBe(true);
+            await expectSteadyAcrossSteps(page, scope, label);
+          }
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "wide-caption-stays-one-row",
+    async () => {
+      // 帯の中身の幅が 440px 以上の時は、釦と番号と題と本文を横 1 列に並べる今の形のまま (#3057)
+      for (const viewport of [
+        { width: 560, height: 900 },
+        { width: 1440, height: 900 },
+      ]) {
+        const size = `${viewport.width} × ${viewport.height}`;
+        for (const sample of CAPTION_SAMPLES) {
+          for (const [where, scope, page] of [
+            ["重ね窓", '[data-catalog="overlay"]', await openOverlay(viewport, sample)],
+            ["編集画面", '[data-playground="stage"]', await openEditor(viewport, sample.key)],
+          ] as const) {
+            await expect
+              .poll(async () => {
+                const seen = await captionOf(page, scope);
+                if (!seen) return null;
+                const { buttons, no, title, body } = seen;
+                return {
+                  titleBesideButtons: title.left > buttons.right && title.top < buttons.bottom,
+                  noBesideButtons: no.left > buttons.right && no.right <= title.left && no.top < buttons.bottom,
+                  bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
+                };
+              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でない` })
+              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true });
+          }
+        }
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {
