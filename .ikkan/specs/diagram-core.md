@@ -107,3 +107,13 @@
 | 動きを嫌う設定で図を開いた時、自動再生せず、段の題が今の段の題を出す | `pnpm test`の検査`reduced-motion-shows-stills`が通る | #3049 |
 | 編集画面で字の大きさを替えると、段の題の字が大きくなり小さくなる | `pnpm test`の検査`editor-stage-tools-change-view`が通る | #3049 |
 | カタログの時系列図の頁の見本の枠の高さが、今と同じ `clamp(360px, 58vh, 620px)` の値のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3049 |
+| 画面の大きさ 1024 × 768、1280 × 720、1440 × 900 で時系列図のカタログの頁の oauth の見本を拡大の重ね窓で開いた時、寄って追う図の窓が図の原寸の横幅の全部を見せる | `pnpm test`の検査`overlay-follow-window-shows-whole-width`が通る | #3053 |
+| 画面の大きさ 390 × 844 と 1440 × 900 で oauth の見本を拡大の重ね窓で開いた時、窓の高さと図の枠の中で見える高さの差が 1px 以下で、窓と全体図が図の枠の中に収まる | `pnpm test`の検査`overlay-follow-window-fills-frame-height`が通る | #3053 |
+| 枠の幅が図の原寸の幅と全体図の列を足した幅より広い時 (oauth、枠の幅 1200px)、寄って追う図の窓の幅が図の原寸の幅と同じで、全体図が窓の右に重ならずに出る | `pnpm test`の検査`follow-window-takes-figure-width`が通る | #3053 |
+| 高さに収めると頼んだ時 (`fitHeight`)、枠の中で見える高さが今の窓より高ければ、窓の高さが見える高さ (全体図を下に置く時はその分を除く) と図の高さの小さい方になり、全体図の大きさは今と同じ (oauth と ccip) | `pnpm test`の検査`follow-window-grows-to-frame-height`が通る | #3053 |
+| 高さに収めると頼まない時、窓の高さは今と同じく枠の幅から決まる | `pnpm test`の検査`follow-window-height-from-width`が通る | #3053 |
+| 枠の中で見える高さが今の窓より低い時、窓と全体図がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3053 |
+| 寄って追う図の全体図が窓に重ならずに窓の外に出る | `pnpm test`の検査`overview-outside-window`が通る | #3053 |
+| 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3053 |
+| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3053 |
+| 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3053 |
