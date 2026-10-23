@@ -2140,6 +2140,212 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /** 時系列図の分類の頁を開く。最初の見本 (入門の例) を選んでいて、図は枠に合わせて描く (#3067) */
+  const openSequence = async (viewport: { width: number; height: number }): Promise<Page> => {
+    const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await onScreen(page, "category", `${viewport.width} × ${viewport.height} で時系列図の分類の頁が出ない`);
+    await page.waitForSelector(`${catalogSel("stage")} svg[data-dragon="figure"]`);
+    return page;
+  };
+
+  /**
+   * カタログの分類の頁の置き場 `scope` の押せる部品 (#3067)。図の下の段を送る釦 (描画の部品が持つ) は除く。
+   * 部品ごとに `data-catalog` の名前、幅と高さ、画面に入れてから四隅の 2px 内側 (角の丸みの外を避ける) を押した時にその部品に当たるか。
+   * 2 回続けて同じ値を読めた時だけ返す
+   */
+  const catalogTargetsOf = (page: Page, scope: string): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
+    page.evaluate(async (scope) => {
+      await document.fonts.ready;
+      const read = () => {
+        const root = document.querySelector(scope);
+        if (!root) return null;
+        return [...root.querySelectorAll<HTMLElement>("button, a[href], select, input")]
+          .filter((el) => el.checkVisibility() && el.closest(".dg-player") === null)
+          .map((el) => {
+            el.scrollIntoView({ block: "center" });
+            const r = el.getBoundingClientRect();
+            const points: [number, number][] = [
+              [r.left + 2, r.top + 2],
+              [r.right - 2, r.top + 2],
+              [r.left + 2, r.bottom - 2],
+              [r.right - 2, r.bottom - 2],
+            ];
+            const corners = points.every(([x, y]) => {
+              const hit = document.elementFromPoint(x, y);
+              return hit !== null && el.contains(hit);
+            });
+            return { name: el.dataset.catalog ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+          });
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    }, scope);
+
+  /** 置き場 `scope` の押せる部品のうち、`required` の名前が揃わないものと、44px に届かないか四隅が外れるもの (#3067) */
+  const catalogShortOf = async (page: Page, scope: string, required: readonly string[]): Promise<{ missing: string[]; small: string[] } | null> => {
+    const parts = await catalogTargetsOf(page, scope);
+    return (
+      parts && {
+        missing: required.filter((name) => !parts.some((p) => p.name === name)),
+        small: parts.filter((p) => p.width < 44 || p.height < 44 || !p.corners).map((p) => `${p.name} ${p.width}x${p.height}${p.corners ? "" : " 隅が外れる"}`),
+      }
+    );
+  };
+
+  it(
+    "narrow-catalog-touch-targets",
+    async () => {
+      // 携帯の幅のカタログの頁は、縮小と拡大と合わせるの釦が 28 × 26px で間が 2px しか無く、指で隣を押し違えやすかった (#3067)。
+      // 指で押す的の目安は 44 × 44px
+      for (const viewport of PHONES) {
+        const page = await openSequence(viewport);
+        const where = `${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("sidebar"), ["search", "item"]), { ...WAIT, message: `${where} の一覧で、部品が揃わないか、44px に届かない部品がある` })
+          .toEqual({ missing: [], small: [] });
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("preview"), ["tab-figure", "tab-code", "palette", "zoom-out", "zoom-level", "zoom-in", "expand", "open-editor"]), {
+            ...WAIT,
+            message: `${where} の見本の枠で、部品が揃わないか、44px に届かない部品がある`,
+          })
+          .toEqual({ missing: [], small: [] });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-catalog-touch-targets-after-action",
+    async () => {
+      // 検索に字を入れた時、コードの側に替えた時、重ね窓を開いた時に出る部品も、指で押せる大きさにする (#3067)
+      for (const viewport of PHONES) {
+        const page = await openSequence(viewport);
+        const where = `${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        await page.locator(catalogSel("search")).fill("OAuth");
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("sidebar"), ["search", "search-clear", "item"]), { ...WAIT, message: `${where} で検索に字を入れた時、一覧の部品が揃わないか、44px に届かない部品がある` })
+          .toEqual({ missing: [], small: [] });
+        await page.locator(catalogSel("search")).fill("");
+        await page.locator(catalogSel("tab-code")).click();
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("source"), ["source-notation", "source-json", "copy"]), { ...WAIT, message: `${where} のコードの側で、部品が揃わないか、44px に届かない部品がある` })
+          .toEqual({ missing: [], small: [] });
+        await page.locator(catalogSel("tab-figure")).click();
+        await page.locator(catalogSel("expand")).click();
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("overlay"), ["overlay-close"]), { ...WAIT, message: `${where} の重ね窓で、閉じるの釦が無いか、44px に届かない` })
+          .toEqual({ missing: [], small: [] });
+      }
+    },
+    SLOW,
+  );
+
+  /** 見本の枠の縮小と拡大の組に見えている部品の名前の並びと、倍率の字 (#3067) */
+  const catalogZoomOf = (page: Page): Promise<{ shown: string[]; level: string; button: boolean; disabled: boolean }> =>
+    page.evaluate(() => {
+      const group = document.querySelector('[data-catalog="preview"] .catalog-zoom');
+      const level = group?.querySelector('[data-catalog="zoom-level"]');
+      return {
+        shown: [...(group?.querySelectorAll<HTMLElement>("[data-catalog]") ?? [])].filter((el) => el.checkVisibility()).map((el) => el.dataset.catalog ?? ""),
+        level: level?.textContent?.trim() ?? "",
+        button: level instanceof HTMLButtonElement,
+        disabled: level instanceof HTMLButtonElement && level.disabled,
+      };
+    });
+
+  it(
+    "narrow-catalog-zoom-level-fits",
+    async () => {
+      // 44px の釦を拡大の釦と同じ段に収めるため、携帯の幅では合わせるの釦を出さず、倍率を縮小と拡大の間の釦にして、押すと枠に合わせる。
+      // 編集画面の携帯の幅と同じ形 (#3065、#3067)
+      for (const viewport of PHONES) {
+        const page = await openSequence(viewport);
+        const where = `${viewport.width} × ${viewport.height} の時系列図の分類の頁の最初の見本`;
+        await expect.poll(async () => (await catalogZoomOf(page)).shown, { ...WAIT, message: `${where} で、縮小と拡大の組の並びが違う` }).toEqual(["zoom-out", "zoom-level", "zoom-in"]);
+        const level = async (): Promise<number> => Number.parseInt((await catalogZoomOf(page)).level, 10);
+        await expect.poll(level, { ...WAIT, message: `${where} で、倍率が出ない` }).toBeGreaterThan(0);
+        const base = await level();
+        await page.locator(`${catalogSel("preview")} ${catalogSel("zoom-in")}`).click();
+        await expect.poll(level, { ...WAIT, message: `${where} で、拡大の釦で倍率が上がらない` }).toBeGreaterThan(base);
+        await page.locator(`${catalogSel("preview")} ${catalogSel("zoom-level")}`).click();
+        await expect.poll(level, { ...WAIT, message: `${where} で、倍率の釦で元の倍率に戻らない` }).toBe(base);
+        await page.locator(catalogSel("item")).nth(1).click();
+        await expect
+          .poll(async () => {
+            const seen = await catalogZoomOf(page);
+            return { button: seen.button, disabled: seen.disabled, level: seen.level };
+          }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の 2 つ目の見本で、倍率が押せない状態の釦でないか、「—」を出さない` })
+          .toEqual({ button: true, disabled: true, level: "—" });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-catalog-parts-work",
+    async () => {
+      // 携帯の幅で部品を 44px にしても、頁は横にあふれず、縮小、コードの側、JSON の切替、色味の選択が今と同じに働く (#3067)
+      for (const viewport of PHONES) {
+        const page = await openSequence(viewport);
+        const where = `${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), `${where} が横にあふれる`).toBe(false);
+        const level = async (): Promise<number> => Number.parseInt((await catalogZoomOf(page)).level, 10);
+        await expect.poll(level, { ...WAIT, message: `${where} で、倍率が出ない` }).toBeGreaterThan(0);
+        const base = await level();
+        await page.locator(`${catalogSel("preview")} ${catalogSel("zoom-out")}`).click();
+        await expect.poll(level, { ...WAIT, message: `${where} で、縮小の釦で倍率が下がらない` }).toBeLessThan(base);
+        await page.locator(catalogSel("tab-code")).click();
+        await expect.poll(() => page.locator(catalogSel("source")).isVisible(), { ...WAIT, message: `${where} で、コードの見出しでコードの側に替わらない` }).toBe(true);
+        await page.locator(catalogSel("source-json")).click();
+        await expect.poll(() => page.locator(catalogSel("source-json")).getAttribute("aria-pressed"), { ...WAIT, message: `${where} で、JSON の切替で JSON の側が選ばれない` }).toBe("true");
+        await page.locator(catalogSel("tab-figure")).click();
+        await page.locator(catalogSel("palette")).selectOption("paper");
+        await expect.poll(() => page.locator(catalogSel("palette")).inputValue(), { ...WAIT, message: `${where} で、色味の選択で紙と墨を選べない` }).toBe("paper");
+        expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), `${where} が部品を押した後に横にあふれる`).toBe(false);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "wide-catalog-parts-keep-size",
+    async () => {
+      // 440px 以上のカタログの頁は、部品の大きさを今のまま保ち、合わせるの釦を出して倍率を字で出す (#3067)
+      for (const viewport of [
+        { width: 560, height: 900 },
+        { width: 1440, height: 900 },
+      ]) {
+        const page = await openSequence(viewport);
+        const where = `${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        const sizeOf = (sel: string): Promise<string[]> =>
+          page.evaluate(
+            (sel) =>
+              [...new Set([...document.querySelectorAll(sel)].filter((el) => el.checkVisibility()).map((el) => `${Math.round(el.getBoundingClientRect().width)}x${Math.round(el.getBoundingClientRect().height)}`))],
+            sel,
+          );
+        await expect
+          .poll(
+            async () => ({
+              zoom: await sizeOf(`${catalogSel("preview")} .catalog-zoom-btn`),
+              palette: await page.evaluate(() => Math.round(document.querySelector('[data-catalog="palette"]')?.getBoundingClientRect().height ?? 0)),
+              fit: await page.locator(`${catalogSel("preview")} ${catalogSel("fit")}`).isVisible(),
+              level: await page.evaluate(() => document.querySelector('[data-catalog="preview"] [data-catalog="zoom-level"]')?.tagName.toLowerCase() ?? null),
+            }),
+            { ...WAIT, message: `${where} で、見本の枠の部品の大きさが今と違うか、合わせるの釦が無いか、倍率が字で出ない` },
+          )
+          .toEqual({ zoom: ["28x26"], palette: 29, fit: true, level: "span" });
+        await page.locator(catalogSel("expand")).click();
+        await expect.poll(() => sizeOf(catalogSel("overlay-close")), { ...WAIT, message: `${where} の重ね窓で、閉じるの釦の大きさが今と違う` }).toEqual(["34x34"]);
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {
