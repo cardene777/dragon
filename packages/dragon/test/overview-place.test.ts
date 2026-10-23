@@ -19,6 +19,8 @@ const SAMPLES = [
 ] as const;
 /** 携帯の幅と、記法と並べた編集画面の図の枠の幅 */
 const WIDTHS = [390, 560] as const;
+/** 幅 1440px の画面の重ね窓の図の枠の幅。oauth の原寸の幅と全体図の列を並べても余る */
+const WIDE = 1200;
 
 const players: Player[] = [];
 afterEach(() => {
@@ -97,6 +99,16 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
         expect(overview.y + overview.h, `${name} / ${width}px の全体図が図の高さの外に出る`).toBeLessThanOrEqual(Number(svg.getAttribute("height")));
       }
     }
+  });
+
+  it("follow-window-takes-figure-width", () => {
+    // 窓と全体図を図の原寸の幅に収めていたため、枠が余っても窓は図より狭く、右端の登場する物の札が切れていた (#3053)
+    const figureWidth = draw("renderDiagram")(exampleJson("oauth.json")).layout.width;
+    const { svg, window, overview } = parts("oauth.json", WIDE);
+    expect(window.w + 1, `枠の幅 ${WIDE}px の oauth の窓の幅が、図の原寸の幅と違う`).toBeCloseTo(figureWidth, 5);
+    expect(gap(window, overview), `枠の幅 ${WIDE}px の oauth の全体図が窓に重なる`).toBeGreaterThanOrEqual(0);
+    expect(overview.x, `枠の幅 ${WIDE}px の oauth の全体図が窓の右に無い`).toBeGreaterThanOrEqual(window.x + window.w);
+    expect(Number(svg.getAttribute("width")), `枠の幅 ${WIDE}px の oauth の図の幅が枠を超える`).toBeLessThanOrEqual(WIDE);
   });
 
   it("overview-shows-viewport-box", () => {
