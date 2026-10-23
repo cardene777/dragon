@@ -7,6 +7,7 @@
  * 見せ方は枠の幅で選び (`view.ts`)、寄って追う時は窓と全体図で描き直す。
  * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
  * 段が替わるたびに `options.onStep` で今の段を知らせ、頁の側が段の札や進み具合を出せるようにする (#3031)。
+ * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
  */
 import { FIGURE_TEXT } from "./figure-text";
 import { FONT_VARS, LOOK, paletteVars, resolvePalette, type TextStyle, TYPE } from "./look/values";
@@ -51,6 +52,9 @@ function playerCss(): string {
     `.dg-btn:focus-visible{outline:${px(P.focus)} solid var(--c-blue);outline-offset:${px(P.focus)}}`,
     `.dg-say{display:flex;gap:${px(P.gap)};min-width:0}`,
     `.dg-no{${font(TYPE.stepNo)};color:var(--mute);padding-top:${px(P.focus)}}`,
+    `.dg-txt{display:grid;grid-template-columns:minmax(0,1fr);min-width:0}`,
+    `.dg-txt>*{grid-area:1/1}`,
+    `.dg-room{visibility:hidden}`,
     `.dg-tt{${font(TYPE.stepTitle)};margin:0}`,
     `.dg-tb{${font(TYPE.stepBody)};color:var(--ink2);margin:0;white-space:pre-line}`,
     `.dg-sr{position:absolute;width:${hidden};height:${hidden};margin:-${hidden};padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}`,
@@ -119,13 +123,31 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   no.className = "dg-no";
   no.dataset.dragon = "step-no";
   const text = doc.createElement("div");
+  text.className = "dg-txt";
   const title = doc.createElement("p");
   title.className = "dg-tt";
   title.dataset.dragon = "step-title";
   const body = doc.createElement("p");
   body.className = "dg-tb";
   body.dataset.dragon = "step-body";
-  text.append(title, body);
+  const live = doc.createElement("div");
+  live.append(title, body);
+  text.append(live);
+  // 全部の段の題と本文の写しを今の段と同じ升に重ね、見た目からは隠して場所だけを取る。
+  // 帯の高さが本文の最も長い段で決まり、段を送っても図の枠が伸び縮みしない (#3049)
+  for (const step of steps) {
+    const room = doc.createElement("div");
+    room.className = "dg-room";
+    room.dataset.dragon = "caption-room";
+    const roomTitle = doc.createElement("p");
+    roomTitle.className = "dg-tt";
+    roomTitle.textContent = step.title;
+    const roomBody = doc.createElement("p");
+    roomBody.className = "dg-tb";
+    roomBody.textContent = step.body;
+    room.append(roomTitle, roomBody);
+    text.append(room);
+  }
   say.append(no, text);
   const bar = doc.createElement("div");
   bar.className = "dg-bar";

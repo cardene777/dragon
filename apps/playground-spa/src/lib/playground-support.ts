@@ -13,6 +13,7 @@ import { extname, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { expect } from "vitest";
 
 const run = promisify(execFile);
 
@@ -199,4 +200,94 @@ export function example(name: string): string | undefined {
 export function rgb(hex: string): string {
   const n = Number.parseInt(hex.slice(1, 7), 16);
   return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
+
+/** 段の番号の札の字 (`01/12`)。`step` は 0 から数える */
+export const stepLabel = (step: number, count: number): string => `${String(step + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`;
+
+/** 再生の部品の今の段の番号、段の本文の帯の高さ、図の幅と高さと上端の位置 (px) */
+export interface StepShape {
+  step: string;
+  bar: number;
+  width: number;
+  height: number;
+  top: number;
+}
+
+/**
+ * `scope` の中の再生の部品の今の形 (#3049)。部品が無ければ `null`。
+ * 段を送ると帯は同じこまで替わり、図は後から合わせ直すので、2 こま続けて同じ形の時だけ返す。
+ */
+export const stepShapeOf = (page: Page, scope: string): Promise<StepShape | null> =>
+  page.evaluate(async (scope) => {
+    await document.fonts.ready;
+    const read = (): StepShape | null => {
+      const root = document.querySelector(scope);
+      const svg = root?.querySelector('svg[data-dragon="figure"]');
+      const bar = root?.querySelector(".dg-bar");
+      if (!root || !svg || !bar) return null;
+      const box = svg.getBoundingClientRect();
+      return {
+        step: root.querySelector('[data-dragon="step-no"]')?.textContent ?? "",
+        bar: Math.round(bar.getBoundingClientRect().height),
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+        top: Math.round(box.top),
+      };
+    };
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const first = read();
+    await frame();
+    await frame();
+    const second = read();
+    return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+  }, scope);
+
+/**
+ * 自動で送らずに `scope` の中の再生の部品の段を 1 つずつ送り、どの段でも段の本文の帯の高さと、図の幅と高さと上端の位置が
+ * 1 段目と同じかを確かめる (#3049)。呼ぶ前に動きを嫌う設定 (`reducedMotion: "reduce"`) にしておく。
+ * 1 段目の形は、置いた直後に図を合わせ直している間を拾わないよう、続けて 2 度同じに読めた形を使う
+ */
+export async function expectSteadyAcrossSteps(page: Page, scope: string, label: string): Promise<void> {
+  const wait = { timeout: 8_000, interval: 100 } as const;
+  const items = page.locator(`${scope} [data-dragon="steps"] > li`);
+  await expect.poll(() => items.count(), { ...wait, message: `${label} の段が読めない` }).toBeGreaterThan(1);
+  const count = await items.count();
+  let last = "";
+  await expect
+    .poll(
+      async () => {
+        const now = JSON.stringify(await stepShapeOf(page, scope));
+        const settled = now === last && now !== "null";
+        last = now;
+        return settled;
+      },
+      { ...wait, message: `${label} の 1 段目の形が定まらない` },
+    )
+    .toBe(true);
+  const first = JSON.parse(last) as StepShape;
+  expect(first.step, `${label} が 1 段目から始まらない`).toBe(stepLabel(0, count));
+  /**
+   * 今の段の題の上端から本文の下端までの高さと、それを入れる欄の高さ。欄は全部の段の写しを重ねた高さになる。
+   * 今の段の題と本文を包む箱は欄いっぱいに伸びるので、箱ではなく題と本文の端で測る
+   */
+  const caption = (): Promise<{ live: number; room: number }> =>
+    page.evaluate((scope) => {
+      const title = document.querySelector(`${scope} [data-dragon="step-title"]`);
+      const body = document.querySelector(`${scope} [data-dragon="step-body"]`);
+      const room = title?.parentElement?.parentElement;
+      if (!title || !body || !room) return { live: 0, room: -1 };
+      return { live: body.getBoundingClientRect().bottom - title.getBoundingClientRect().top, room: room.getBoundingClientRect().height };
+    }, scope);
+  const seen = [await caption()];
+  for (let s = 1; s < count; s++) {
+    await page.locator(`${scope} [data-dragon="next"]`).click();
+    await expect
+      .poll(() => stepShapeOf(page, scope), { ...wait, message: `${label} の ${s + 1} 段目で、段の本文の帯の高さか図の大きさか位置が 1 段目と違う` })
+      .toEqual({ ...first, step: stepLabel(s, count) });
+    seen.push(await caption());
+  }
+  // 欄は本文の最も長い段の高さで足り、写しを縦に積んで帯を高くしすぎない
+  const tallest = Math.max(...seen.map((c) => c.live));
+  for (const c of seen) expect(Math.abs(c.room - tallest), `${label} の本文の欄の高さが、本文の最も長い段の高さと違う`).toBeLessThan(1);
 }
