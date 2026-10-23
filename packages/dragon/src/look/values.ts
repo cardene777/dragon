@@ -97,8 +97,11 @@ export const LOOK = {
   stroke: { hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5 },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
   mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },
-  /** 寄って追う見せ方の窓の高さの、幅に対する割合と下限 */
-  follow: { aspect: 0.75, minH: 320, ease: 0.6 },
+  /**
+   * 寄って追う見せ方の窓の高さの、幅に対する割合と下限。
+   * `fitMinH` は見える高さに収める時 (#3047) の窓の高さの下限で、これより低い枠では収めずに枠の中で送る
+   */
+  follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6 },
   /** 色を混ぜる割合 (%) */
   mix: { icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6 },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */

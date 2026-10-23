@@ -1007,6 +1007,93 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /**
+   * 重ね窓の今の段の番号、図の枠を縦に送る必要があるか、図と寄って追う図の窓の枠と全体図の地が枠の中に収まるか。
+   * 重ね窓が無ければ `null`。段の説明の行の数で図の枠の高さが替わり、図は後から合わせ直すので、
+   * 2 こま続けて枠と図の寸法が同じ時だけ返す。合わせ直している間も `null` (#3047)
+   */
+  const overlayFigureOf = (
+    page: Page,
+  ): Promise<{ step: string; view: string | null; scrolls: boolean; figure: boolean; window: boolean | null; overview: boolean | null } | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const read = () => {
+        const overlay = document.querySelector('[data-catalog="overlay"]');
+        const frameEl = overlay?.querySelector(".dg-frame");
+        const svg = frameEl?.querySelector('svg[data-dragon="figure"]');
+        if (!overlay || !frameEl || !svg) return null;
+        const frame = frameEl.getBoundingClientRect();
+        const box = svg.getBoundingClientRect();
+        const inside = (el: Element | null | undefined): boolean | null => {
+          const r = el?.getBoundingClientRect();
+          return r ? r.left >= frame.left - 0.5 && r.right <= frame.right + 0.5 && r.top >= frame.top - 0.5 && r.bottom <= frame.bottom + 0.5 : null;
+        };
+        return {
+          size: [frameEl.clientHeight, frameEl.scrollHeight, box.width, box.height].map(Math.round).join(","),
+          seen: {
+            step: overlay.querySelector('[data-dragon="step-no"]')?.textContent ?? "",
+            view: svg.getAttribute("data-view"),
+            scrolls: frameEl.scrollHeight > frameEl.clientHeight + 1,
+            figure: inside(svg) === true,
+            window: inside(svg.querySelector(".dg-vp-frame")),
+            overview: inside(svg.querySelector(".dg-mm-bg")),
+          },
+        };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && first.size === second.size && first.seen.step === second.seen.step ? second.seen : null;
+    });
+
+  it(
+    "catalog-overlay-figure-whole-without-scroll",
+    async () => {
+      // 寄って追う図になる幅 (390、860)、止めて見せる図になる幅 (1024、1440)、低い画面 (1280 × 720)
+      const sizes = [
+        { width: 390, height: 844 },
+        { width: 860, height: 900 },
+        { width: 1024, height: 768 },
+        { width: 1440, height: 900 },
+        { width: 1280, height: 720 },
+      ];
+      for (const category of ["architecture", "sequence"] as const) {
+        const count = samplesOf(category).length;
+        for (const viewport of sizes) {
+          const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport });
+          // 段の説明の行の数で図の枠の高さが替わるので、自動で送らずに 1 段ずつ確かめる
+          await page.emulateMedia({ reducedMotion: "reduce" });
+          await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${category} の分類の頁が出ない`);
+          for (let i = 0; i < count; i++) {
+            await page.locator(catalogSel("item")).nth(i).click();
+            await page.locator(catalogSel("expand")).click();
+            const stepItems = page.locator('[data-catalog="overlay"] [data-dragon="steps"] > li');
+            await expect.poll(() => stepItems.count(), { ...WAIT, message: `${category} の ${i + 1} 番目の見本の段が読めない` }).toBeGreaterThan(0);
+            const steps = await stepItems.count();
+            for (let s = 0; s < steps; s++) {
+              const label = `${viewport.width} × ${viewport.height} の ${category} の ${i + 1} 番目の見本の ${s + 1} 段目`;
+              const step = `${String(s + 1).padStart(2, "0")}/${String(steps).padStart(2, "0")}`;
+              await expect
+                .poll(async () => {
+                  const seen = await overlayFigureOf(page);
+                  if (!seen) return null;
+                  const follow = seen.view === "follow";
+                  return { step: seen.step, scrolls: seen.scrolls, figure: seen.figure, window: follow ? seen.window : true, overview: follow ? seen.overview : true };
+                }, { ...WAIT, message: `${label} を重ね窓で開くと、送らないと図の全体が見えない` })
+                .toEqual({ step, scrolls: false, figure: true, window: true, overview: true });
+              if (s < steps - 1) await page.locator('[data-catalog="overlay"] [data-dragon="next"]').click();
+            }
+            await page.keyboard.press("Escape");
+            await expect.poll(() => overlayFigureOf(page), { ...WAIT, message: `${category} の ${i + 1} 番目の見本の重ね窓が閉じない` }).toBeNull();
+          }
+        }
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {

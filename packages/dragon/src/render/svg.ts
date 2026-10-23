@@ -189,6 +189,8 @@ function fieldChanges(diagram: Diagram, timeline: Timeline, layout: Layout): Map
 export interface FollowFrame {
   /** 枠の幅 (px)。寄って追う窓はこの幅で、字を原寸で見せる */
   width: number;
+  /** 枠の中で見える高さ (px)。渡すと、窓と全体図をこの高さに収める (#3047)。枠の高さが図で伸びる置き場では渡さない */
+  height?: number;
   /** 隅の全体図の札の言葉。渡し忘れを型の検査で止めるため、省けない欄にする */
   lang: NotationLang;
 }
@@ -268,22 +270,28 @@ function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefin
  * 寄って追う窓。段ごとに動く所へ寄り、窓の外の全体図に今見ている所の枠を同じ動きで出す。
  * 全体図は窓に重ねると今動く線や箱を覆うので、窓の外に置く (#3042)。
  * 縦長の全体図は窓の右に列を取り、横長の全体図は窓の下に置く。失う窓の幅か図の高さの小さい側を選ぶ。
+ * 枠の中で見える高さを渡された時は、窓と全体図がその高さに入るまで窓を低くする (#3047)。
  */
 function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
   const full = Math.min(layout.width, Math.max(1, follow.width));
-  const vh = Math.min(layout.height, Math.max(F.minH, full * F.aspect));
-  // 全体図の寸法は枠の幅と窓の高さで決め、置き場所に依らない
-  const mw = Math.min(M.w, full * 0.4, ((vh * 0.4) / layout.height) * layout.width);
-  const k = mw / layout.width;
-  const mh = layout.height * k;
-  // 地の幅は図の縦横の比で決まるので、縦に長い図では札より狭くなる。その時は地を札の幅まで広げ、図は広げた地の真ん中に置く
   const title = FIGURE_TEXT[follow.lang].overview;
-  const bw = Math.max(mw, Math.ceil(textWidth(title, TYPE.miniTitle)));
-  const bgW = bw + M.pad * 2;
-  const bgH = mh + M.pad * 2 + M.title;
-  const beside = mh > mw;
+  /** 窓の高さ `vh` の時の全体図の寸法。全体図は窓の高さで縮むので、窓を低くしたら測り直す */
+  const sized = (vh: number) => {
+    // 全体図の寸法は枠の幅と窓の高さで決め、置き場所に依らない
+    const mw = Math.min(M.w, full * 0.4, ((vh * 0.4) / layout.height) * layout.width);
+    const k = mw / layout.width;
+    const mh = layout.height * k;
+    // 地の幅は図の縦横の比で決まるので、縦に長い図では札より狭くなる。その時は地を札の幅まで広げ、図は広げた地の真ん中に置く
+    const bw = Math.max(mw, Math.ceil(textWidth(title, TYPE.miniTitle)));
+    // 縦横の比は窓の高さに依らないので、低くしても全体図の置き場所は変わらない
+    return { vh, mw, k, mh, bw, bgW: bw + M.pad * 2, bgH: mh + M.pad * 2 + M.title, beside: mh > mw };
+  };
+  const natural = sized(Math.min(layout.height, Math.max(F.minH, full * F.aspect)));
+  // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図は窓の高さに足される
+  const room = follow.height === undefined ? Number.POSITIVE_INFINITY : natural.beside ? follow.height : follow.height - natural.bgH - M.inset;
+  const { vh, mw, k, mh, bw, bgW, bgH, beside } = room < natural.vh ? sized(Math.max(F.fitMinH, room)) : natural;
   const vw = beside ? full - bgW - M.inset : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
   const clampY = (y: number): number => Math.min(layout.height - vh / 2, Math.max(vh / 2, y));

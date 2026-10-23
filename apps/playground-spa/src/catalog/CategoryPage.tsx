@@ -382,8 +382,8 @@ function Overlay({ sample, lang, theme, palette, onClose }: OverlayProps): React
   const diagram = useMemo(() => diagramOf(text), [text]);
   const host = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
-  // 見本の枠より大きく見せるため、幅に合わせて縦は窓の中で送る
-  const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: () => undefined, fitTo: "width" });
+  // 札を画面いっぱいに取り、図は送らずに全体が見えるよう枠の幅と高さに収める。高さに収めると字が読めない図は寄って追う図になる (#3047)
+  const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: () => undefined, fitHeight: true });
   // 閉じる処理は描くたびに替わりうるので、待ち受けを置き直さずに最新の物を呼ぶ
   const closeWith = useRef(onClose);
   useEffect(() => {

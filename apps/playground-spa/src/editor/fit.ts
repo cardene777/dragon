@@ -22,12 +22,13 @@ export interface Size {
 
 /**
  * 枠に合わせる倍率。`namePx` は図の原寸での箱の名前の字の大きさで、描いた図から読む。
+ * `readablePx` は字の下限で、渡さなければ `READABLE_PX`。
  * 枠の大きさが測れない時 (0 以下) は原寸の 1 を返す。
  */
-export function fitScale(frame: Size, figure: Size, namePx: number): number {
+export function fitScale(frame: Size, figure: Size, namePx: number, readablePx: number = READABLE_PX): number {
   if (frame.width <= 0 || frame.height <= 0 || figure.width <= 0 || figure.height <= 0) return 1;
   const fit = Math.min(frame.width / figure.width, frame.height / figure.height);
-  const floor = namePx > 0 ? READABLE_PX / namePx : 0;
+  const floor = namePx > 0 ? readablePx / namePx : 0;
   return Math.min(MAX_FIT, Math.max(floor, fit));
 }
 

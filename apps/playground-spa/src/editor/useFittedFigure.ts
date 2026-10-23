@@ -4,9 +4,11 @@
  * 編集画面の図の側とカタログの見本が同じ置き方と測り方を使うよう、ここに 1 つだけ持つ。
  * 図か色味か明暗か言葉が替わると、前の再生の部品を片付けてから置き直す (動きの時計を残さない)。
  * 寄って追う図 (`data-view="follow"`) は再生の部品が枠の幅で描き直すので、倍率を返さない。
- * 既定は枠の幅と高さの両方に収め、`fitTo: "width"` では幅だけに合わせて縦は枠の中で送る (拡大の重ね窓)。
+ * 止めて見せる図は枠の幅と高さの両方に収める。`fitHeight` では寄って追う図も枠の高さに収め、
+ * 高さに収めると字が読めない図は寄って追う図にする (拡大の重ね窓、#3047)。
+ * その時の字の下限は、再生の部品が見せ方を選ぶ字の大きさ (`@cardenelabs/dragon` の `READABLE_PX`) にそろえる。
  */
-import { type Diagram, mountDiagram, type Theme } from "@cardenelabs/dragon";
+import { type Diagram, mountDiagram, READABLE_PX as VIEW_READABLE_PX, type Theme } from "@cardenelabs/dragon";
 import { type RefObject, useEffect, useRef, useState } from "react";
 
 import type { Lang } from "../text";
@@ -24,8 +26,8 @@ interface Options {
   lang: Lang;
   /** 段が替わるたびに今の段 (0 から) を受け取る */
   onStep: (step: number) => void;
-  /** 枠の幅と高さの両方に収めるか、幅だけに合わせるか */
-  fitTo?: "frame" | "width";
+  /** 寄って追う図も枠の高さに収める。枠の高さが決まっている置き場だけで使い、図に合わせて伸びる枠では使わない */
+  fitHeight?: boolean;
 }
 
 const px = (value: string): number => Number.parseFloat(value) || 0;
@@ -33,7 +35,7 @@ const px = (value: string): number => Number.parseFloat(value) || 0;
 export function useFittedFigure(
   host: RefObject<HTMLDivElement | null>,
   diagram: Diagram | null,
-  { palette, theme, lang, onStep, fitTo = "frame" }: Options,
+  { palette, theme, lang, onStep, fitHeight = false }: Options,
 ): Fit | null {
   const [fit, setFit] = useState<Fit | null>(null);
   // 段の知らせ先は描くたびに替わりうるので、置き直さずに最新の物を呼ぶ
@@ -46,7 +48,7 @@ export function useFittedFigure(
   useEffect(() => {
     const el = host.current;
     if (!el || !diagram) return;
-    const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: (step) => stepTo.current(step) });
+    const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: (step) => stepTo.current(step), fitHeight });
     const frame = el.querySelector<HTMLElement>(".dg-frame");
     /** 枠の中身の大きさと図の原寸から、枠に合わせる倍率を出す。寄って追う図には当てない */
     const measure = (): void => {
@@ -60,13 +62,15 @@ export function useFittedFigure(
       const style = getComputedStyle(frame);
       const inner = {
         width: frame.clientWidth - px(style.paddingLeft) - px(style.paddingRight),
-        // 幅だけに合わせる時は、高さで縮めない
-        height: fitTo === "width" ? Number.POSITIVE_INFINITY : frame.clientHeight - px(style.paddingTop) - px(style.paddingBottom),
+        height: frame.clientHeight - px(style.paddingTop) - px(style.paddingBottom),
       };
       const view = svg.viewBox.baseVal;
       const name = svg.querySelector(".dg-sn");
       const namePx = name ? px(getComputedStyle(name).fontSize) : 0;
-      setFit({ width: view.width, scale: fitScale(inner, { width: view.width, height: view.height }, namePx) });
+      // 高さに収める時は、再生の部品が止めて見せる図を選ぶ字の大きさを下限にする。
+      // 下限が違うと、部品が止めて見せる図を選んだのに、ここで縮めるのを止めて送りが残る (#3047)
+      const readable = fitHeight ? VIEW_READABLE_PX : undefined;
+      setFit({ width: view.width, scale: fitScale(inner, { width: view.width, height: view.height }, namePx, readable) });
     };
     // 再生の部品も同じ枠を見て見せ方を選び直すので、その後に測る (先に見始めた方が先に呼ばれる)
     const observer = new ResizeObserver(measure);
@@ -75,7 +79,7 @@ export function useFittedFigure(
       observer.disconnect();
       player.destroy();
     };
-  }, [host, diagram, palette, theme, lang, fitTo]);
+  }, [host, diagram, palette, theme, lang, fitHeight]);
 
   return fit;
 }

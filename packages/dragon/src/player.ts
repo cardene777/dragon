@@ -17,6 +17,11 @@ import { chooseView } from "./view";
 export interface PlayerOptions extends RenderOptions {
   /** 段が替わるたびに今の段 (0 から) を受け取る。置いた時にも最初の段で 1 度呼ぶ。頁の側で段の札や進み具合を出す時に使う (#3031) */
   onStep?: (step: number) => void;
+  /**
+   * 図を、図の枠の中で見える高さに収める (#3047)。高さに収めると字が読めない図は寄って追う図にし、寄って追う窓と全体図をその高さに収める。
+   * 枠の高さが決まっている置き場 (カタログの拡大の重ね窓) で使う。枠の高さが図に合わせて伸びる置き場で使うと、描くたびに低くなる
+   */
+  fitHeight?: boolean;
 }
 
 export interface Player {
@@ -148,8 +153,16 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   host.append(root);
 
   const frameWidth = (): number => frame.clientWidth || host.clientWidth || rendered.layout.width;
-  let mode = chooseView(rendered, frameWidth()).mode;
+  /** 高さに収めると頼まれた時だけ、図の枠の中で見える高さ (上下の余白を除く)。測れない時は `undefined` で、幅だけで決める */
+  const frameHeight = (): number | undefined => {
+    if (!options.fitHeight || !win) return undefined;
+    const style = win.getComputedStyle(frame);
+    const inner = frame.clientHeight - (Number.parseFloat(style.paddingTop) || 0) - (Number.parseFloat(style.paddingBottom) || 0);
+    return inner > 0 ? inner : undefined;
+  };
+  let mode = chooseView(rendered, frameWidth(), frameHeight()).mode;
   let width = frameWidth();
+  let height = frameHeight();
   let svg: SVGSVGElement | null = null;
   let step = 0;
   let playing = !reduce;
@@ -178,7 +191,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
     svg = next;
     born = Date.now();
   };
-  const markup = (): string => (mode === "follow" ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, { width, lang }) : rendered.svg);
+  const markup = (): string => (mode === "follow" ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, { width, ...(height === undefined ? {} : { height }), lang }) : rendered.svg);
 
   const now = (): number => (playing ? (at + (Date.now() - born) / 1000) % timeline.total : at);
   const stepAt = (t: number): number => {
@@ -234,16 +247,18 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   toggleButton.addEventListener("click", onToggle);
   frame.addEventListener("click", onFigure);
 
-  // 枠の幅が変わったら見せ方を選び直す。寄って追う窓は幅で決まるので、幅が変われば描き直す
+  // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも) で決まるので、変われば描き直す
   const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)?.ResizeObserver;
   const observer = Observer
     ? new Observer(() => {
         const w = frameWidth();
-        const chosen = chooseView(rendered, w).mode;
-        if (chosen === mode && (mode === "fixed" || w === width)) return;
+        const h = frameHeight();
+        const chosen = chooseView(rendered, w, h).mode;
+        if (chosen === mode && (mode === "fixed" || (w === width && h === height))) return;
         const t = now();
         mode = chosen;
         width = w;
+        height = h;
         at = t;
         place(markup());
       })
