@@ -80,7 +80,7 @@ export const TEXT = {
       screens: {
         catalog: { title: "カタログ" },
         editor: { title: "編集画面", lead: "" },
-        docs: { title: "使い方", lead: "記法の書き方と、図の書き出し方。" },
+        docs: { title: "使い方" },
         "release-notes": { title: "更新履歴", lead: "版ごとの変更。" },
         "not-found": { title: "そこは、まだ書かれていない。", lead: "お探しの頁は移動したか、削除されたか、はじめから無い。" },
       },
@@ -237,7 +237,7 @@ export const TEXT = {
       screens: {
         catalog: { title: "Catalog" },
         editor: { title: "Editor", lead: "" },
-        docs: { title: "Docs", lead: "How to write the notation and export diagrams." },
+        docs: { title: "Docs" },
         "release-notes": { title: "Release notes", lead: "Changes in each version." },
         "not-found": { title: "That page has not been written yet.", lead: "The page you are looking for was moved, deleted, or never existed." },
       },

@@ -1,0 +1,10 @@
+sequence Take an order
+
+customer = Customer "places the order" [color slate] [icon user]
+shop = Shop app "takes the order" [color blue] [icon app]
+ledger = Ledger "keeps the order" [color green] [icon db]
+
+# Send the order
+> The customer sends an order to the shop app, and the shop app keeps it in the ledger.
+customer -> shop : place order
+shop -> ledger : keep

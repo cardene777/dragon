@@ -1,0 +1,16 @@
+sequence Follow the order
+
+customer = Customer "places the order" [color slate] [icon user]
+shop = Shop app "takes the order" [color blue] [icon app]
+strip Order = number, state
+
+# Place the order
+> The customer sends an order, and the shop app gives it a number.
+customer -> shop : place order
+strip number = 42
+strip state = received
+
+# Send the goods
+> The shop app sends the goods and marks the order as sent.
+shop -> customer : send the goods
+strip state [sent]

@@ -1,0 +1,18 @@
+sequence Tell what travels
+
+customer = Customer "pays" [color slate] [icon user]
+shop = Shop app "takes the order" [color blue] [icon app]
+payment = Payment "takes the money" [color violet] [icon card]
+
+# Place the order
+> The customer sends an order to the shop app.
+customer -> shop : place order
+
+# Pay
+> The shop app passes the order number to the payment service, and the customer pays.
+shop -> payment : ask to pay [tag #42]
+customer -> payment : 1200 yen [coin]
+
+# Tell the shop
+> The payment service tells the shop app that the order is paid.
+payment -> shop : paid [none]

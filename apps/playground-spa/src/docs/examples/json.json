@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "ログインを頼む",
+  "boxes": [
+    {
+      "id": "ブラウザ",
+      "name": "利用者のブラウザ",
+      "sub": "利用者が操作する"
+    },
+    {
+      "id": "アプリ",
+      "name": "アプリ",
+      "sub": "ログインを頼む側"
+    }
+  ],
+  "steps": [
+    {
+      "title": "ログインを押す",
+      "body": "利用者がアプリのログインを押す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "ブラウザ",
+          "to": "アプリ",
+          "label": "GET /login",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "ブラウザ",
+      "アプリ"
+    ]
+  }
+}

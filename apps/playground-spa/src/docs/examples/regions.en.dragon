@@ -1,0 +1,15 @@
+architecture Connect the shop and the warehouse
+
+region shopSide = Shop "takes orders" [color blue] [icon cart]
+region warehouseSide = Warehouse "sends goods" [color green] [icon box]
+desk = Order desk "takes the order" [icon app] [region shopSide]
+till = Till "takes the payment" [icon card] [region shopSide]
+shipping = Shipping "sends the goods" [icon truck] [region warehouseSide]
+
+# Ask for payment
+> The order desk takes the order and asks the till for the payment.
+desk -> till : ask for payment
+
+# Pass to shipping
+> Once the payment is in, the till passes the order to shipping.
+till -> shipping : ready to send
