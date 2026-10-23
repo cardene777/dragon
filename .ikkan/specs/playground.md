@@ -11,7 +11,7 @@
 | 書いた中身が URL の `#` の後ろに入り、その URL を新しく開くと同じ記法と図が出る | `pnpm test`の検査`url-hash-restores-notation`が通る | #2995 |
 | 言葉を EN に切り替えた時、頁の言葉と選んでいる見本が英語版になる。端末の言語が日本語でない時は英語で開く | `pnpm test`の検査`english-switches-page-and-example`が通る | #2995 |
 | 見本 3 つの英語版が、日本語版と同じ数の箱と線と段を持つ | `pnpm test`の検査`english-examples-match-japanese`が通る | #2995 |
-| 色味 3 案を編集画面で、明暗を上の帯で選んだ時、図の地の色と字の色が選んだ色味と明暗の値になり、頁の地は色味で替わらず前のサイトの明暗の値になる | `pnpm test`の検査`palette-and-theme-apply-to-diagram`が通る | #2995、#3030、#3063 |
+| 色味 3 案を編集画面で、明暗を上の帯で選んだ時、図の地の色と字の色が選んだ色味と明暗の値になり、頁の地は色味で替わらず前のサイトの明暗の値になる | `pnpm test`の検査`palette-and-theme-apply-to-diagram`が通る | #2995、#3030 |
 | 明暗を選んでいない時は端末の明暗の設定に従い、図の色味は紙と墨で開き、頁の地は前のサイトの明暗の値になる | `pnpm test`の検査`theme-follows-device-by-default`が通る | #2995、#3030 |
 | 頁の字が、図と同じ同梱した字 (Noto Sans JP と JetBrains Mono) で描かれる | `pnpm test`の検査`page-text-uses-bundled-fonts`が通る | #2995 |
 | 前に共有した URL (`/dragon/#n=...`) を開いた時、編集画面 (`/dragon/editor`) へ移り、`#` の後ろの記法が書く欄に入る | `pnpm test`の検査`old-share-link-opens-editor`が通る | #3030 |
