@@ -1,0 +1,10 @@
+sequence Check the stock
+
+shop = Shop app "takes the order" [color blue] [icon app]
+warehouse = Warehouse "holds the stock" [color amber] [icon box]
+
+# Ask for stock
+> The shop app asks the warehouse for stock, and the warehouse counts the shelf before it answers.
+shop -> warehouse : in stock?
+warehouse : count the shelf
+warehouse -> shop : 3 left

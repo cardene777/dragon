@@ -1,0 +1,344 @@
+/* ================================================================
+ * 使い方の頁 (#3034)。
+ *
+ * 配置と見た目は 0.35.0 より前のサイトの `styles/docs-site.css` (5b16743c の 1 つ前) を写し、class の名前だけを替えた。
+ * 色はサイトの値の表 (`site/site.css` の `--d-*`) だけを読む。字は同梱の字 (`--sans` と `--mono`) で出す。
+ * 前の頁に無かった物 (記法の例の字と図の囲み、書き出しの設定の表) は、概要の実物の窓と同じ枠の扱いにした。
+ * ================================================================ */
+
+.docs h1,
+.docs h2,
+.docs p,
+.docs pre {
+  margin: 0;
+}
+
+.docs {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--d-gutter) 110px;
+  box-sizing: border-box;
+}
+
+/* ── 頁の頭 ── */
+
+.docs-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 58px 0 44px;
+}
+
+.docs-eyebrow {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--d-accent);
+}
+
+.docs-hero h1 {
+  font-size: clamp(30px, 3.8vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--d-text-primary);
+}
+
+.docs-lead {
+  max-width: 760px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--d-text-secondary);
+}
+
+.docs-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+}
+
+.docs-btn-primary,
+.docs-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--d-r-1);
+  font-size: 13.5px;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.docs-btn-primary {
+  border: 1px solid var(--d-accent);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-weight: 600;
+}
+
+.docs-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.docs-btn-secondary {
+  border: 1px solid var(--d-border-strong);
+  background: transparent;
+  color: var(--d-text-primary);
+  font-weight: 500;
+}
+
+.docs-btn-secondary:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+/* ── 特長の札。枠で囲わず、頭の 2px の罫線だけで区切る ── */
+
+.docs-features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 24px;
+  padding-bottom: 64px;
+}
+
+.docs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 2px solid var(--d-border-strong);
+  text-decoration: none;
+}
+
+.docs-card:hover {
+  border-top-color: var(--d-accent);
+}
+
+.docs-card-icon {
+  display: block;
+  width: 17px;
+  height: 17px;
+  background-color: var(--d-accent);
+  mask: center / 17px 17px no-repeat;
+}
+
+.docs-card-icon[data-icon="start"] {
+  mask-image: url("./icons/start.svg");
+}
+
+.docs-card-icon[data-icon="boxes"] {
+  mask-image: url("./icons/boxes.svg");
+}
+
+.docs-card-icon[data-icon="regions"] {
+  mask-image: url("./icons/regions.svg");
+}
+
+.docs-card-icon[data-icon="steps"] {
+  mask-image: url("./icons/steps.svg");
+}
+
+.docs-card-icon[data-icon="json"] {
+  mask-image: url("./icons/json.svg");
+}
+
+.docs-card-icon[data-icon="export"] {
+  mask-image: url("./icons/export.svg");
+}
+
+.docs-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--d-text-primary);
+}
+
+.docs-card p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--d-text-secondary);
+}
+
+/* ── 本文の節。枠で囲わず、頭の番号と見出しだけで区切る ── */
+
+.docs-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.docs-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  /* 上の帯の下に節の頭が隠れないよう、帯の高さだけ空けて止める */
+  scroll-margin-top: calc(var(--d-topbar-h) + 24px);
+}
+
+.docs-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.docs-sec-no {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  color: var(--d-accent);
+}
+
+.docs-sec h2 {
+  font-size: clamp(21px, 2.4vw, 27px);
+  font-weight: 600;
+  letter-spacing: -0.026em;
+  color: var(--d-text-primary);
+}
+
+.docs-sec-text {
+  max-width: 64ch;
+  font-size: 14.5px;
+  line-height: 1.95;
+  color: var(--d-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.docs-sec-text code,
+.docs-options td code {
+  padding: 1px 5px;
+  border-radius: var(--d-r-1);
+  background: var(--d-code-bg);
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  color: var(--d-text-primary);
+  white-space: pre-wrap;
+}
+
+/* 命令と例の字の囲み。字は折り返さず、囲みの中で横に流す */
+.docs-command,
+.docs-example-code {
+  width: 100%;
+  padding: 16px 20px;
+  background: var(--d-code-bg);
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.docs-command {
+  border: 1px solid var(--d-border);
+  border-radius: 4px;
+}
+
+.docs-command code,
+.docs-example-code code {
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--d-text-primary);
+  white-space: pre;
+}
+
+/* 記法の例。左に字、右にその字を読んで描いた図 */
+.docs-example {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  align-self: stretch;
+  overflow: hidden;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: 6px;
+}
+
+.docs-example-code {
+  border-right: 1px solid var(--d-border);
+}
+
+.docs-example-figure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 20px;
+}
+
+/* 例は箱 2 つか 3 つの小さな図なので、右の半分一杯に広げず、概要の実物の窓と同じ程の幅で止める */
+.docs-example-figure .dg-player {
+  width: 100%;
+  max-width: 480px;
+}
+
+.docs-example-figure svg[data-dragon="figure"] {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 書き出しの設定の表 */
+.docs-options {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.docs-options th,
+.docs-options td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--d-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-options th {
+  background: var(--d-surface-2);
+  font-weight: 600;
+  color: var(--d-text-primary);
+}
+
+.docs-options td {
+  line-height: 1.7;
+  color: var(--d-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.docs-options td:first-child code {
+  white-space: nowrap;
+}
+
+.docs-sec-cta {
+  align-self: flex-start;
+  padding-block: 4px;
+  font-size: 13.5px;
+  color: var(--d-accent);
+  text-decoration: none;
+}
+
+.docs-sec-cta:hover {
+  text-decoration: underline;
+}
+
+/* ── 狭い画面。札を 1 列に積み、例の字と図を縦に積む ── */
+
+@media (max-width: 860px) {
+  .docs-features {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 48px;
+  }
+
+  .docs-hero {
+    padding: 36px 0 32px;
+  }
+
+  .docs {
+    padding-bottom: 64px;
+  }
+
+  .docs-example {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .docs-example-code {
+    border-right: none;
+    border-bottom: 1px solid var(--d-border);
+  }
+}

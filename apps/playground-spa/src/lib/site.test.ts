@@ -7,14 +7,14 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_PALETTE, PALETTES, parseNotation, readDiagram } from "@cardenelabs/dragon";
+import { DEFAULT_PALETTE, type Diagram, PALETTES, parseNotation, readDiagram } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, TEMPLATE } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, rgb, type Site, startSite } from "./playground-support";
+import { app, BASE, rgb, root, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -307,6 +307,108 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
   if (c.done !== at + 1) return `段 ${at + 1} なのに進み具合の帯が ${c.done} 区切り進んでいる`;
   return "";
 };
+
+/** 使い方の部品 (#3034) */
+const docsSel = (name: string): string => `[data-docs="${name}"]`;
+
+/** 使い方の節の並び。節の番号はこの並びから付く */
+const DOC_SECTIONS = ["start", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "export"] as const;
+
+/** 節の例の file。JSON の節は原本の JSON。無ければ `undefined` */
+const docsExample = (id: string, lang: Lang): string | undefined => {
+  const name = `${id}${lang === "en" ? ".en" : ""}.${id === "json" ? "json" : "dragon"}`;
+  const path = join(app, "src/docs/examples", name);
+  return existsSync(path) ? readFileSync(path, "utf8").trimEnd() : undefined;
+};
+
+/** 節の例を読んで検査を通した図。JSON の節は原本の JSON として読む */
+const docsDiagram = (id: string, text: string): Diagram | undefined => {
+  let input: unknown;
+  if (id === "json") {
+    try {
+      input = JSON.parse(text);
+    } catch {
+      return undefined;
+    }
+  } else {
+    const parsed = parseNotation(text);
+    if (!parsed.ok) return undefined;
+    input = parsed.diagram;
+  }
+  const read = readDiagram(input);
+  return read.ok ? read.diagram : undefined;
+};
+
+const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.flatMap((s) => s.events);
+
+/** 節の例が、その節で説明する記法の要素を使っているか */
+const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
+  start: (d) => d.boxes.length >= 2 && d.steps.length >= 1,
+  boxes: (d) => d.boxes.length >= 3 && d.boxes.every((b) => b.color !== undefined) && d.boxes.some((b) => b.icon !== undefined && b.sub !== undefined),
+  edges: (d) => eventsOf(d).filter((e) => e.type === "edge" && e.label !== undefined).length >= 2 && eventsOf(d).some((e) => e.type === "action"),
+  regions: (d) => d.kind === "architecture" && (d.regions?.length ?? 0) >= 2 && d.boxes.some((b) => b.region !== undefined),
+  steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
+  strip: (d) => d.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
+  carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
+  json: (d) => d.version >= 1 && d.steps.length >= 1,
+};
+
+/** package の README の `sh` の囲みの行。書き出しの節の命令はこれと同じ物を出す */
+const readmeCommands = (): string[] => {
+  const readme = readFileSync(join(root, "packages/dragon/README.md"), "utf8");
+  return [...readme.matchAll(/```sh\n([\s\S]*?)```/gu)].flatMap((m) => (m[1] ?? "").split("\n").filter((line) => line.trim() !== ""));
+};
+
+/** 書き出しの命令の使い方の表示に並ぶ設定の名前 (`--out` など) */
+const cliOptions = (): string[] => {
+  const cli = readFileSync(join(root, "packages/dragon/src/cli.ts"), "utf8");
+  const usage = cli.slice(cli.indexOf("usage: ["), cli.indexOf("].join"));
+  return [...usage.matchAll(/["`] {2}(--[a-z][a-z-]*) /gu)].map((m) => m[1] ?? "");
+};
+
+/** 使い方の頁の前置きと札と節 */
+const docsOf = (
+  page: Page,
+): Promise<{
+  title: string;
+  lead: string;
+  ctas: string[];
+  cards: { href: string; name: string; text: string }[];
+  sections: { id: string; no: string; title: string; texts: number; code: string | null; names: string[]; commands: string[]; cta: string | null; body: string }[];
+}> =>
+  page.evaluate(() => {
+    const where = (a: HTMLAnchorElement): string => {
+      const url = new URL(a.href);
+      return url.origin === location.origin ? `${url.pathname}${url.hash}` : a.href;
+    };
+    const hero = document.querySelector('[data-docs="hero"]');
+    return {
+      title: hero?.querySelector("h1")?.textContent?.trim() ?? "",
+      lead: hero?.querySelector('[data-docs="lead"]')?.textContent?.trim() ?? "",
+      ctas: [...document.querySelectorAll<HTMLAnchorElement>('[data-docs="cta"] a')].map(where),
+      cards: [...document.querySelectorAll<HTMLAnchorElement>('a[data-docs="card"]')].map((a) => ({
+        href: new URL(a.href).hash,
+        name: a.querySelector('[data-docs="card-name"]')?.textContent?.trim() ?? "",
+        text: a.querySelector("p")?.textContent?.trim() ?? "",
+      })),
+      sections: [...document.querySelectorAll<HTMLElement>('section[data-docs="section"]')].map((s) => {
+        const example = s.querySelector('[data-docs="example"]');
+        const svg = example?.querySelector('svg[data-dragon="figure"]');
+        const cta = s.querySelector<HTMLAnchorElement>('a[data-docs="section-cta"]');
+        return {
+          id: s.id,
+          no: s.querySelector('[data-docs="section-no"]')?.textContent?.trim() ?? "",
+          title: s.querySelector("h2")?.textContent?.trim() ?? "",
+          texts: [...s.querySelectorAll('[data-docs="text"]')].filter((p) => (p.textContent ?? "").trim() !== "").length,
+          code: example?.querySelector('[data-docs="example-code"]')?.textContent ?? null,
+          names: svg ? [...new Set([...svg.querySelectorAll(".dg-sn")].map((n) => n.textContent ?? ""))].sort() : [],
+          commands: [...s.querySelectorAll('[data-docs="command"]')].map((c) => c.textContent ?? ""),
+          cta: cta ? where(cta) : null,
+          body: s.textContent ?? "",
+        };
+      }),
+    };
+  });
 
 /** 右の見本の道具のうち、頁に無い物 */
 const PREVIEW_TOOLS = ["tab-figure", "tab-code", "palette", "zoom-out", "zoom-in", "fit", "zoom-level", "expand", "stage", "phase-badge", "progress", "step-note", "open-editor"] as const;
@@ -1057,6 +1159,100 @@ describe("サイトの帯と経路 (#3030)", () => {
       await narrow.page.locator(siteSel("menu")).click();
       await narrow.page.locator(`${siteSel("sheet-palette")} ${siteSel("palette-night")}`).click();
       await expect.poll(() => colorsOf(narrow.page), { ...WAIT, message: "畳んだ面の色味の切替でサイトの色が替わらない" }).toEqual(rgbOf(siteLook("night", "light")));
+    },
+    SLOW,
+  );
+
+  it(
+    "docs-sections-cover-notation-and-examples-parse",
+    async () => {
+      const { page } = await site.open({ path: `${BASE}docs`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "docs", "使い方の頁が出ない");
+
+      // 前置き。見出しと前置きの文と、編集画面とカタログへの釦
+      await expect.poll(async () => (await docsOf(page)).title, { ...WAIT, message: "使い方の頁に見出しが無い" }).toBe(TEXT.ja.site.screens.docs.title);
+      const head = await docsOf(page);
+      expect(head.lead, "使い方の頁に前置きの文が無い").not.toBe("");
+      expect(head.ctas, "前置きの釦が編集画面とカタログへ向かない").toEqual([`${BASE}editor`, `${BASE}catalog`]);
+
+      const commands = readmeCommands();
+      const options = cliOptions();
+      expect(commands.length, "package の README から命令を読めない").toBeGreaterThan(0);
+      expect(options.length, "書き出しの命令の使い方の表示から設定を読めない").toBeGreaterThan(0);
+
+      const expectDocs = async (lang: Lang): Promise<void> => {
+        // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の例は頁の言葉の語で書く
+        const words = lang === "ja" ? ["時系列図", "構成図"] : ["sequence", "architecture"];
+        const want = DOC_SECTIONS.map((id, i) => {
+          const text = id === "export" ? undefined : docsExample(id, lang);
+          const diagram = text === undefined ? undefined : docsDiagram(id, text);
+          if (id !== "export") {
+            expect(text, `${lang} の ${id} の節の例の file (src/docs/examples/) が無い`).toBeDefined();
+            expect(diagram, `${lang} の ${id} の節の例が読めないか検査を通らない`).toBeDefined();
+            expect(diagram !== undefined && DOC_COVERS[id]?.(diagram), `${lang} の ${id} の節の例がその節の記法の要素を使わない`).toBe(true);
+          }
+          if (text !== undefined && id !== "json") {
+            const first = text.split("\n").find((line) => line.trim() !== "" && !line.startsWith("//")) ?? "";
+            expect(words, `${lang} の ${id} の節の例が頁の言葉の語で書かれない`).toContain(first.split(" ")[0]);
+          }
+          return { id, no: String(i + 1).padStart(2, "0"), code: text ?? null, names: diagram ? [...new Set(diagram.boxes.map((b) => b.name))].sort() : [] };
+        });
+
+        // 節は今の記法の要素の順に並び、番号は並びから付く。例の字は file のままで、隣の図はその例の箱を描く
+        await expect
+          .poll(async () => (await docsOf(page)).sections.map((s) => ({ id: s.id, no: s.no, code: s.code?.trimEnd() ?? null, names: s.names })), {
+            ...WAIT,
+            message: `${lang} の使い方の節が記法の要素の順に並ばないか、例の字と図が file の例と合わない`,
+          })
+          .toEqual(want);
+        const { sections, cards } = await docsOf(page);
+        for (const s of sections) {
+          expect(s.title !== "" && s.texts >= 1, `${lang} の ${s.id} の節に見出しか本文が無い`).toBe(true);
+          const [path, hash] = (s.cta ?? "").split("#");
+          expect(s.cta?.startsWith(BASE), `${lang} の ${s.id} の節にサイトの中への出口が無い`).toBe(true);
+          if (hash !== undefined) expect(path === `${BASE}docs` && (DOC_SECTIONS as readonly string[]).includes(hash), `${lang} の ${s.id} の節の出口が使い方の節を指さない`).toBe(true);
+        }
+
+        // 書き出しの節は、README と同じ命令を図を描かない囲みに出し、命令の使い方の表示にある設定をすべて説明する
+        const exporting = sections.find((s) => s.id === "export");
+        const lines = (exporting?.commands ?? []).flatMap((c) => c.split("\n")).map((line) => line.trim()).filter((line) => line !== "");
+        for (const line of commands.filter((l) => !l.startsWith("dragon "))) expect(lines, `${lang} の書き出しの節に README の命令「${line}」が無い`).toContain(line);
+        expect(lines.some((line) => line.startsWith("dragon export ")), `${lang} の書き出しの節に dragon export の命令が無い`).toBe(true);
+        for (const option of options) expect(exporting?.body ?? "", `${lang} の書き出しの節に設定 ${option} の説明が無い`).toContain(option);
+
+        // 特長の札 6 つ。名前は行き先の節の見出しで、説明を持つ
+        expect(cards.length, `${lang} の特長の札が 6 つ並ばない`).toBe(6);
+        expect(new Set(cards.map((c) => c.href)).size, `${lang} の特長の札の行き先が重なる`).toBe(cards.length);
+        for (const c of cards) {
+          const target = sections.find((s) => `#${s.id}` === c.href);
+          expect(target, `${lang} の特長の札「${c.name}」の行き先 ${c.href} が節でない`).toBeDefined();
+          expect(c.name, `${lang} の特長の札の名前が行き先の節の見出しでない`).toBe(target?.title);
+          expect(c.text, `${lang} の特長の札「${c.name}」に説明が無い`).not.toBe("");
+        }
+      };
+      await expectDocs("ja");
+
+      // 特長の札を押すと、同じ頁のその節へ移る
+      const card = page.locator(docsSel("card")).last();
+      const href = (await docsOf(page)).cards.at(-1)?.href ?? "";
+      await card.click();
+      await expect.poll(() => page.evaluate(() => location.hash), { ...WAIT, message: "特長の札を押してもアドレスが節を指さない" }).toBe(href);
+      expect(await page.evaluate(() => location.pathname), "特長の札を押すと使い方の頁から離れる").toBe(`${BASE}docs`);
+      await expect
+        .poll(
+          () =>
+            page.evaluate((id) => {
+              const top = document.getElementById(id)?.getBoundingClientRect().top;
+              return top !== undefined && top >= 0 && top < window.innerHeight / 2;
+            }, href.slice(1)),
+          { ...WAIT, message: "特長の札を押しても行き先の節が画面の上に来ない" },
+        )
+        .toBe(true);
+
+      // 英語に替えると、節の例が英語の語の記法になる
+      await page.locator(siteSel("lang-en")).click();
+      await expect.poll(async () => (await docsOf(page)).title, { ...WAIT, message: "英語に替えても使い方の見出しが英語にならない" }).toBe(TEXT.en.site.screens.docs.title);
+      await expectDocs("en");
     },
     SLOW,
   );
