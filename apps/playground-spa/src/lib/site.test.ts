@@ -953,6 +953,60 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /** 見本の図の枠と、図の見せ方と、寄って追う図の窓の枠と全体図の地が枠の中に収まるか。図が無ければ `null` */
+  const stageFigureOf = (page: Page): Promise<{ stage: number; view: string | null; window: boolean | null; overview: boolean | null } | null> =>
+    page.evaluate((s) => {
+      const stage = document.querySelector(s);
+      const frame = stage?.querySelector(".dg-frame")?.getBoundingClientRect();
+      const svg = stage?.querySelector('svg[data-dragon="figure"]');
+      if (!stage || !frame || !svg) return null;
+      const inside = (el: Element | null | undefined): boolean | null => {
+        const r = el?.getBoundingClientRect();
+        return r ? r.left >= frame.left - 0.5 && r.right <= frame.right + 0.5 && r.top >= frame.top - 0.5 && r.bottom <= frame.bottom + 0.5 : null;
+      };
+      return {
+        // 枠の上の罫 (1px) を除いた高さ。`clamp(360px, 58vh, 620px)` が決める高さと同じ物
+        stage: stage.clientHeight,
+        view: svg.getAttribute("data-view"),
+        window: inside(svg.querySelector(".dg-vp-frame")),
+        overview: inside(svg.querySelector(".dg-mm-bg")),
+      };
+    }, catalogSel("stage"));
+
+  it(
+    "catalog-follow-figure-whole-in-frame",
+    async () => {
+      // 構成図の見本は、この 2 つの幅で寄って追う図になり、横長の全体図を窓の下に出す (#3042、#3044)
+      for (const width of [390, 860]) {
+        const { page } = await site.open({ path: `${BASE}catalog/architecture`, viewport: { width, height: 900 } });
+        await onScreen(page, "category", `${width}px で構成図の分類の頁が出ない`);
+        await expect.poll(async () => (await stageFigureOf(page))?.view, { ...WAIT, message: `${width}px で構成図の見本が寄って追う図にならない` }).toBe("follow");
+        await expect
+          .poll(async () => {
+            const seen = await stageFigureOf(page);
+            return { window: seen?.window, overview: seen?.overview };
+          }, { ...WAIT, message: `${width}px で寄って追う図の窓か全体図が図の枠からはみ出す` })
+          .toEqual({ window: true, overview: true });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "catalog-fixed-figure-keeps-frame-height",
+    async () => {
+      // 全体を止めて見せる図の枠は `clamp(360px, 58vh, 620px)` のまま。高さ 900px なら 522px
+      const expected = Math.min(620, Math.max(360, 0.58 * 900));
+      for (const width of [390, 860, 1440]) {
+        const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport: { width, height: 900 } });
+        await onScreen(page, "category", `${width}px で時系列図の分類の頁が出ない`);
+        await expect.poll(async () => (await stageFigureOf(page))?.view, { ...WAIT, message: `${width}px で時系列図の見本が全体を止めて見せる図にならない` }).toBe("fixed");
+        expect((await stageFigureOf(page))?.stage, `${width}px で止めて見せる図の枠の高さが変わる`).toBeCloseTo(expected, 0);
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {
