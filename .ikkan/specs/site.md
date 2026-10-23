@@ -31,3 +31,6 @@
 | 書いた中身が URL の `#` の後ろに入り、その URL を新しく開くと同じ記法と図が出る | `pnpm test`の検査`url-hash-restores-notation`が通る | #3030、#3031 |
 | 頁の図を描く code が `@cardenelabs/dragon` の部品を呼び、`apps/playground-spa` の中に SVG を組む code が無い | `pnpm test`の検査`page-draws-with-package-parts`が通る | #3030、#3031 |
 | 配る頁の CSP が、script を自分の置き場だけにし、inline と eval を許さない | `pnpm test`の検査`csp-script-self-only`が通る | #3030 |
+| カタログの構成図の頁 (`/dragon/catalog/architecture`) を幅 390px と 860px で開いた時、寄って追う図の窓の枠 (`.dg-vp-frame`) と全体図の地 (`.dg-mm-bg`) が、図の枠 (`.dg-frame`) の中に全部収まる | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3044 |
+| 時系列図のカタログの頁 (`/dragon/catalog/sequence`) を幅 390px と 860px と 1440px (高さ 900px) で開いた時、全体を止めて見せる図の枠 (`[data-catalog="stage"]`) の高さが 522px (`clamp(360px, 58vh, 620px)` の値) のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3044 |
+| 編集画面を幅 390px と 860px で開き、oauth と ccip の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3044 |
