@@ -1819,6 +1819,144 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /** 編集画面の道具の帯の道具。左から今の並び (#3063) */
+  const STAGE_TOOLS = ["font-down", "font-up", "grid", "fullscreen", "fit", "zoom-out", "zoom-in", "zoom-level"] as const;
+
+  /** 道具の帯を確かめる見本。図を枠に合わせて描く intro と、携帯の幅で寄って追う窓で描く oauth */
+  const TOOL_SAMPLES = ["intro", "oauth"] as const satisfies readonly ExampleKey[];
+
+  /**
+   * 編集画面の道具の帯 (#3063)。帯を横に送る分の幅、見えている部品の名前の並び (実況表示の札は `live`、色味の丸と道具は `data-playground` の名前)、
+   * 見えていて帯の中に収まらない部品、倍率の字。2 回続けて同じ値を読めた時だけ返す
+   */
+  const toolsOf = (page: Page): Promise<{ hidden: number; shown: string[]; cut: string[]; level: string } | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const read = () => {
+        const stage = document.querySelector('[data-playground="stage"]');
+        const bar = stage?.querySelector(".pg-stage-bar");
+        if (!bar || !stage?.querySelector('svg[data-dragon="figure"]')) return null;
+        const b = bar.getBoundingClientRect();
+        const parts = [...bar.querySelectorAll<HTMLElement>(".pg-live, [data-playground]")].filter((el) => el.checkVisibility());
+        const name = (el: HTMLElement): string => (el.classList.contains("pg-live") ? "live" : (el.dataset.playground ?? ""));
+        return {
+          hidden: bar.scrollWidth - bar.clientWidth,
+          shown: parts.map(name),
+          cut: parts
+            .filter((el) => {
+              const r = el.getBoundingClientRect();
+              return r.left < b.left - 0.5 || r.right > b.right + 0.5;
+            })
+            .map(name),
+          level: bar.querySelector('[data-playground="zoom-level"]')?.textContent?.trim() ?? "",
+        };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    });
+
+  it(
+    "narrow-editor-tools-fit-one-row",
+    async () => {
+      // 携帯の幅の道具の帯は並べるのに 487px 要り、拡大の釦と倍率が画面の外に出て、帯を送れることも分からなかった (#3063)
+      for (const viewport of PHONES) {
+        for (const key of TOOL_SAMPLES) {
+          const page = await openEditor(viewport, key, true);
+          await expect
+            .poll(async () => {
+              const seen = await toolsOf(page);
+              return seen && { scrolls: seen.hidden > 0, tools: STAGE_TOOLS.every((tool) => seen.shown.includes(tool)), cut: seen.cut };
+            }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${key} で、道具の帯を送る分が残るか、道具が帯からはみ出す` })
+            .toEqual({ scrolls: false, tools: true, cut: [] });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-editor-tools-hide-live-and-swatches",
+    async () => {
+      // 携帯の幅では実況表示の札と色味の丸を出さず、道具を 1 列に収める。色味は上の帯の切替で替える (#3063)
+      for (const viewport of PHONES) {
+        const page = await openEditor(viewport, "intro", true);
+        await expect
+          .poll(async () => {
+            const seen = await toolsOf(page);
+            return seen && { live: seen.shown.includes("live"), swatches: seen.shown.filter((n) => n.startsWith("palette-")) };
+          }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面で、実況表示の札か色味の丸が見える` })
+          .toEqual({ live: false, swatches: [] });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-editor-tools-zoom-works",
+    async () => {
+      // 携帯の幅でも、図を枠に合わせて描く見本では拡大と縮小と合わせるが働き、頁は横にあふれない (#3063)
+      const page = await openEditor({ width: 360, height: 780 }, "intro", true);
+      const level = async (): Promise<number> => Number.parseInt((await toolsOf(page))?.level ?? "", 10);
+      const overflows = (): Promise<boolean> => page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+      await expect.poll(level, { ...WAIT, message: "360 × 780 の編集画面の intro で、倍率が出ない" }).toBeGreaterThan(0);
+      const base = await level();
+      await page.locator('[data-playground="zoom-in"]').click();
+      await expect.poll(level, { ...WAIT, message: "拡大の釦で倍率が上がらない" }).toBeGreaterThan(base);
+      const larger = await level();
+      expect(await overflows(), "拡大すると頁が横にあふれる").toBe(false);
+      await page.locator('[data-playground="zoom-out"]').click();
+      await expect.poll(level, { ...WAIT, message: "縮小の釦で倍率が下がらない" }).toBeLessThan(larger);
+      await page.locator('[data-playground="zoom-in"]').click();
+      await page.locator('[data-playground="fit"]').click();
+      await expect.poll(level, { ...WAIT, message: "合わせるの釦で元の倍率に戻らない" }).toBe(base);
+      expect(await overflows(), "頁が横にあふれる").toBe(false);
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-editor-site-palette-recolors-figure",
+    async () => {
+      // 携帯の幅では編集画面の色味の丸を出さないので、上の帯の畳んだ面の切替で図の色味を替える (#3063)
+      const { page } = await site.open({ path: `${BASE}editor${toHash(exampleText("oauth", "ja"))}`, viewport: { width: 390, height: 844 }, colorScheme: "light" });
+      await onScreen(page, "editor", "390 × 844 で編集画面が出ない");
+      await expect.poll(() => figureLooks(page, '[data-playground="stage"]'), { ...WAIT, message: "編集画面の図が紙と墨で描かれない" }).toEqual([figureLook("paper", "light")]);
+      await page.locator(siteSel("menu")).click();
+      await page.locator(`${siteSel("sheet-palette")} ${siteSel("palette-night")}`).click();
+      await expect
+        .poll(() => figureLooks(page, '[data-playground="stage"]'), { ...WAIT, message: "畳んだ面の色味の切替で、編集画面の図が夜の計器で描かれない" })
+        .toEqual([figureLook("night", "light")]);
+    },
+    SLOW,
+  );
+
+  it(
+    "wide-editor-tools-keep-all",
+    async () => {
+      // 440px 以上の編集画面の道具の帯は、実況表示の札と色味の丸と道具を今と同じ並びで 1 列に出す (#3063)
+      const all = ["live", ...PALETTE_IDS.map((id) => `palette-${id}`), ...STAGE_TOOLS];
+      for (const viewport of [
+        { width: 560, height: 900 },
+        { width: 1440, height: 900 },
+      ]) {
+        for (const key of TOOL_SAMPLES) {
+          const page = await openEditor(viewport, key, true);
+          await expect
+            .poll(async () => {
+              const seen = await toolsOf(page);
+              return seen && { scrolls: seen.hidden > 0, shown: seen.shown, cut: seen.cut };
+            }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${key} で、道具の帯の並びが今と違うか、帯からはみ出す` })
+            .toEqual({ scrolls: false, shown: all, cut: [] });
+        }
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {
