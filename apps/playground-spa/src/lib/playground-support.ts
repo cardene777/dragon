@@ -296,15 +296,17 @@ export async function expectSteadyAcrossSteps(page: Page, scope: string, label: 
   expect(first.step, `${label} が 1 段目から始まらない`).toBe(stepLabel(0, count));
   /**
    * 今の段の題の上端から本文の下端までの高さと、それを入れる欄の高さ。欄は全部の段の写しを重ねた高さになる。
-   * 今の段の題と本文を包む箱は欄いっぱいに伸びるので、箱ではなく題と本文の端で測る
+   * 今の段の題と本文を包む箱は欄いっぱいに伸びるので、箱ではなく題と本文の端で測る。
+   * 欄は写しの題と本文を囲む範囲で測る。狭い帯では題と本文を別の段に置き、写しを包む箱が無くなる (#3057)
    */
   const caption = (): Promise<{ live: number; room: number }> =>
     page.evaluate((scope) => {
       const title = document.querySelector(`${scope} [data-dragon="step-title"]`);
       const body = document.querySelector(`${scope} [data-dragon="step-body"]`);
-      const room = title?.parentElement?.parentElement;
-      if (!title || !body || !room) return { live: 0, room: -1 };
-      return { live: body.getBoundingClientRect().bottom - title.getBoundingClientRect().top, room: room.getBoundingClientRect().height };
+      const copies = [...document.querySelectorAll(`${scope} [data-dragon="caption-room"] > *`)].map((copy) => copy.getBoundingClientRect());
+      if (!title || !body || copies.length === 0) return { live: 0, room: -1 };
+      const room = Math.max(...copies.map((copy) => copy.bottom)) - Math.min(...copies.map((copy) => copy.top));
+      return { live: body.getBoundingClientRect().bottom - title.getBoundingClientRect().top, room };
     }, scope);
   const seen = [await caption()];
   for (let s = 1; s < count; s++) {

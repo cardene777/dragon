@@ -833,6 +833,38 @@ describe("公開する頁 (#2995)", () => {
   );
 
   it(
+    "narrow-editor-caption-font-scales",
+    async () => {
+      // 携帯の幅で帯の並べ方を替えても、字の大きさの釦が段の題と本文の字に効く (#3057)
+      const { page } = await open({ viewport: { width: 360, height: 780 } });
+      await drawn(page);
+      const sizes = (): Promise<{ title: number; body: number }> =>
+        page.evaluate((s) => {
+          const height = (name: string): number => document.querySelector(`${s} [data-dragon="${name}"]`)?.getBoundingClientRect().height ?? 0;
+          return { title: height("step-title"), body: height("step-body") };
+        }, sel("stage"));
+      const plain = await sizes();
+      expect(plain.title > 0 && plain.body > 0, "段の題か本文が描かれていない").toBe(true);
+      await click(page, "font-up");
+      await expect
+        .poll(async () => {
+          const now = await sizes();
+          return now.title > plain.title && now.body > plain.body;
+        }, { ...WAIT, message: "字を大きくしても段の題か本文が大きくならない" })
+        .toBe(true);
+      await click(page, "font-down");
+      await click(page, "font-down");
+      await expect
+        .poll(async () => {
+          const now = await sizes();
+          return now.title < plain.title && now.body < plain.body;
+        }, { ...WAIT, message: "字を小さくしても段の題か本文が小さくならない" })
+        .toBe(true);
+    },
+    SLOW,
+  );
+
+  it(
     "editor-diagram-readable-and-not-clipped",
     async () => {
       for (const [key, text] of [["oauth", OAUTH], ["ccip", CCIP]] as const) {
