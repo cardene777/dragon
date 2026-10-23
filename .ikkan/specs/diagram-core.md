@@ -147,3 +147,4 @@
 | oauth を書き出した HTML を幅 360、390、430px で開いた時、段を送る 3 つの釦が 44 × 44px で、幅 1440px で開いた時は 36 × 36px | `pnpm test`の検査`html-export-player-buttons-touch-size`が通る | #3069 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 の oauth の編集画面で、次の釦で段が 1 つ進み、前の釦で 1 つ戻り、再生の釦で動き出して止めるの釦に替わる | `pnpm test`の検査`narrow-player-buttons-work`が通る | #3069 |
 | 画面の大きさ 1440 × 900 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、段を送る釦が 36 × 36px のまま | `pnpm test`の検査`wide-player-buttons-keep-size`が通る | #3069 |
+| 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を拡大の重ね窓で開いた時、見出しが今 (360 × 780 で 133px と 156px、390 × 844 で 133px と 133px) より低く、図の枠の中が今 (472px と 435px、542px と 522px) より高い | `pnpm test`の検査`narrow-overlay-head-lower`が通る | #3069 |
