@@ -856,6 +856,14 @@
     height: min(72dvh, 600px);
   }
 
+  /*
+   * 寄って追う図は窓の高さが決まっていて、枠に合わせて縮めない。全体図を窓の下に出すと図が高くなり、
+   * 枠の高さを決めたままでは全体図が枠の外へ出るので、枠を図の高さまで伸ばす (#3042)
+   */
+  .pg-stage:has(svg[data-view="follow"]) {
+    height: auto;
+  }
+
   .pg-code {
     border-right: 0;
     border-top: 1px solid var(--d-border);
