@@ -264,12 +264,27 @@ function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefin
   return { x, y, w: Math.max(...rects.map((r) => r.x + r.w)) - x, h: Math.max(...rects.map((r) => r.y + r.h)) - y };
 }
 
-/** 寄って追う窓。段ごとに動く所へ寄り、隅の全体図に今見ている所の枠を同じ動きで出す。 */
+/**
+ * 寄って追う窓。段ごとに動く所へ寄り、窓の外の全体図に今見ている所の枠を同じ動きで出す。
+ * 全体図は窓に重ねると今動く線や箱を覆うので、窓の外に置く (#3042)。
+ * 縦長の全体図は窓の右に列を取り、横長の全体図は窓の下に置く。失う窓の幅か図の高さの小さい側を選ぶ。
+ */
 function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
-  const vw = Math.min(layout.width, Math.max(1, follow.width));
-  const vh = Math.min(layout.height, Math.max(F.minH, vw * F.aspect));
+  const full = Math.min(layout.width, Math.max(1, follow.width));
+  const vh = Math.min(layout.height, Math.max(F.minH, full * F.aspect));
+  // 全体図の寸法は枠の幅と窓の高さで決め、置き場所に依らない
+  const mw = Math.min(M.w, full * 0.4, ((vh * 0.4) / layout.height) * layout.width);
+  const k = mw / layout.width;
+  const mh = layout.height * k;
+  // 地の幅は図の縦横の比で決まるので、縦に長い図では札より狭くなる。その時は地を札の幅まで広げ、図は広げた地の真ん中に置く
+  const title = FIGURE_TEXT[follow.lang].overview;
+  const bw = Math.max(mw, Math.ceil(textWidth(title, TYPE.miniTitle)));
+  const bgW = bw + M.pad * 2;
+  const bgH = mh + M.pad * 2 + M.title;
+  const beside = mh > mw;
+  const vw = beside ? full - bgW - M.inset : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
   const clampY = (y: number): number => Math.min(layout.height - vh / 2, Math.max(vh / 2, y));
   let prev: [number, number] = [layout.width / 2, layout.height / 2];
@@ -293,29 +308,26 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   cam.push([timeline.last, cl[0], cl[1], 1, EASE.inOut], [timeline.total, c0[0], c0[1]]);
   const camKf = m.move(cam.map(([t, cx, cy, s, e]) => [t, vw / 2 - cx, vh / 2 - cy, s, e]));
 
-  const mw = Math.min(M.w, vw * 0.4, ((vh * 0.4) / layout.height) * layout.width);
-  const k = mw / layout.width;
-  const mh = layout.height * k;
-  // 地の幅は図の縦横の比で決まるので、縦に長い図では札より狭くなる。その時は地を札の幅まで広げ、図は広げた地の真ん中に置く
-  const title = FIGURE_TEXT[follow.lang].overview;
-  const bw = Math.max(mw, Math.ceil(textWidth(title, TYPE.miniTitle)));
-  const bx = vw - bw - M.inset - M.pad;
+  // 右に出す時は窓の上端に揃え、下に出す時は窓の右端から内へ寄せる
+  const bgX = beside ? vw + M.inset : vw - bgW - M.inset;
+  const bgY = beside ? 0 : vh + M.inset;
+  const bx = bgX + M.pad;
   const mx = bx + (bw - mw) / 2;
-  const my = M.inset + M.pad + M.title;
+  const my = bgY + M.pad + M.title;
   const shapes = [
     ...layout.regions.map((r) => `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="3"/>`),
     ...layout.boxes.map((b) => `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="1.5"/>`),
   ].join("");
   const vp = m.move(cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]));
   const mini =
-    `<rect class="dg-mm-bg" x="${bx - M.pad}" y="${my - M.pad - M.title}" width="${bw + M.pad * 2}" height="${mh + M.pad * 2 + M.title}" rx="${M.radius}"/>` +
+    `<rect class="dg-mm-bg" x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" rx="${M.radius}"/>` +
     `<text class="dg-mm-t" x="${bx}" y="${my - M.pad + 2}">${title}</text>` +
     `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a" width="${vw * k}" height="${vh * k}" rx="2" style="${vp}"/></g>`;
   const body =
     `<defs><clipPath id="dg-vp-${id}"><rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/></clipPath><clipPath id="dg-mm-${id}"><rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="4"/></clipPath></defs>` +
     `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g></g>` +
     `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>${mini}`;
-  return { body, w: vw, h: vh };
+  return { body, w: full, h: beside ? vh : bgY + bgH };
 }
 
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */

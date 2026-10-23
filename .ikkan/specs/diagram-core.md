@@ -36,7 +36,7 @@
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2985 |
 | 書き出しの命令を実行した時、同じ JSON から mp4、GIF、HTML、PNG の 4 つが書き出される | `pnpm test`の検査`export-writes-four-formats`が通る | #2986 |
 | 同じ JSON を 2 回書き出した時、PNG がバイト単位で一致する | `pnpm test`の検査`export-is-deterministic`が通る | #2986 |
-| 寄って見せる図を動画に書き出した時、最初のコマと途中のコマで見ている範囲が違う | `pnpm test`の検査`export-video-follows-camera`が通る | #2986 |
+| 寄って見せる図を動画に書き出した時、最初のコマと途中のコマで見ている範囲が違う | `pnpm test`の検査`export-video-follows-camera`が通る | #2986 #3042 |
 | HTML に書き出した時、図で使った字だけを含む字の file が HTML の中に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #2986 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2986 |
 | 英語の語で書き直した 3 つの見本の英語版 (`packages/dragon/examples` の `intro.en.dragon` と `oauth.en.dragon` と `ccip.en.dragon`) を読んだ時、日本語の語で書いていた時と同じ JSON になる | `pnpm test`の検査`english-words-compile-to-same-json`が通る | #2997 |
@@ -91,3 +91,10 @@
 | 言葉を選ばずに JSON の原本で同じ 2 つの場から PNG を書き出した時、断りの文は今と同じ `書き出しには playwright-core が要る。<入れ方>` と `Chromium を起動できない。<入れ方> (<Playwright の文>)` になる | `pnpm test`の検査`cli-export-refusal-default-japanese-unchanged`が通る | #3003 |
 | `--lang` と記法の file の言葉が違う時、記法の行の誤りの文は file の言葉で出る。英語の記法の file に `--lang ja` を付けると `<path>:<行> Cannot read this line.` で始まり、日本語の記法の file に `--lang en` を付けると `<path>:<行> 読めない行。` で始まる | `pnpm test`の検査`cli-notation-errors-follow-file`が通る | #3003 |
 | `--lang` に `ja` と `en` 以外を渡した時、何も書き出さずに終了 2 で終わり、日本語の使い方を出す | `pnpm test`の検査`export-rejects-unknown-lang`が通る | #3003 |
+| 再生の部品 (`mountDiagram`) で枠の幅 390px と 560px に寄って追う図 (`view` が `follow`) を置いた時、時系列図 (oauth) と構成図 (ccip) のどちらでも、全体図の地 (`.dg-mm-bg`) が窓の枠 (`.dg-vp-frame`) と重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3042 |
+| 寄って追う図で、全体図の高さが幅より大きい時 (oauth) は全体図が窓の右に、幅が高さ以上の時 (ccip) は窓の下に出る | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3042 |
+| 公開する頁の編集画面を幅 390px と 860px で開き、oauth と ccip の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠 (`.dg-frame`) の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3042 |
+| 寄って追う図の幅 (`svg` の `width`) は、全体図を右に出す時も下に出す時も、渡した枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3042 |
+| 寄って追う図の全体図に、今見ている所の枠 (`.dg-mm-vp`) と、全体図の札 (`全体図`) が出る | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3042 |
+| 全体を止めて見せる図 (`data-view="fixed"`) は全体図を持たず、図の幅と高さが配置の幅と高さのまま | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3042 |
+| 寄って動かす見せ方で縦に長い図を置いた時も、全体図の札が全体図の地の中に収まる | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3042 |
