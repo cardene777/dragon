@@ -272,6 +272,7 @@ function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefin
  * 縦長の全体図は窓の右に列を取り、横長の全体図は窓の下に置く。失う窓の幅か図の高さの小さい側を選ぶ。
  * 枠の中で見える高さを渡された時は、窓と全体図がその高さに入るまで窓を低くする (#3047)。
  * 枠が余る時は窓を広げ、図の原寸の幅と、見える高さか図の高さまで使う。全体図は今の大きさのまま置く (#3053)。
+ * 枠の幅が `LOOK.follow.narrow` より狭い時は、縦長の全体図を出さずに窓へ枠の幅の全部を渡す (#3055)。
  */
 function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame): { body: string; w: number; h: number } {
   const F = LOOK.follow;
@@ -291,6 +292,9 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
     return { vh, mw, k, mh, bw, bgW: bw + M.pad * 2, bgH: mh + M.pad * 2 + M.title, beside: mh > mw };
   };
   const natural = sized(Math.min(layout.height, Math.max(F.minH, full * F.aspect)));
+  // 携帯の幅では縦長の全体図の列が枠の幅の 3 割を取り、窓が図の横の 3 割ほどしか見せない。その時は全体図を出さない。
+  // 横長の全体図は窓の下に出して幅を取らないので、狭い枠でも出す
+  const bare = natural.beside && frameWidth < F.narrow;
   // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図は窓の高さに足される
   const room = follow.height === undefined ? Number.POSITIVE_INFINITY : natural.beside ? follow.height : follow.height - natural.bgH - M.inset;
   // 見える高さが窓より低ければ窓と全体図を縮め、高ければ全体図はそのままに窓を図の高さまで伸ばす。
@@ -298,7 +302,7 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   const { vh, mw, k, mh, bw, bgW, bgH, beside } =
     room < natural.vh ? sized(Math.max(F.fitMinH, room)) : { ...natural, vh: Number.isFinite(room) ? Math.min(layout.height, room) : natural.vh };
   // 右の全体図の列は枠の余りに置き、窓は図の原寸の幅まで広げる。枠が図より狭い時は今までどおり枠の幅から列を引く
-  const vw = beside ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
+  const vw = beside && !bare ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
   const clampY = (y: number): number => Math.min(layout.height - vh / 2, Math.max(vh / 2, y));
   let prev: [number, number] = [layout.width / 2, layout.height / 2];
@@ -328,20 +332,27 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   const bx = bgX + M.pad;
   const mx = bx + (bw - mw) / 2;
   const my = bgY + M.pad + M.title;
-  const shapes = [
-    ...layout.regions.map((r) => `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="3"/>`),
-    ...layout.boxes.map((b) => `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="1.5"/>`),
-  ].join("");
-  const vp = m.move(cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]));
-  const mini =
-    `<rect class="dg-mm-bg" x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" rx="${M.radius}"/>` +
-    `<text class="dg-mm-t" x="${bx}" y="${my - M.pad + 2}">${title}</text>` +
-    `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a" width="${vw * k}" height="${vh * k}" rx="2" style="${vp}"/></g>`;
+  /** 全体図の地と札と、今見ている所の枠。窓と同じ動きで枠を動かす */
+  const overview = (): { clip: string; body: string } => {
+    const shapes = [
+      ...layout.regions.map((r) => `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="3"/>`),
+      ...layout.boxes.map((b) => `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="1.5"/>`),
+    ].join("");
+    const vp = m.move(cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]));
+    return {
+      clip: `<clipPath id="dg-mm-${id}"><rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="4"/></clipPath>`,
+      body:
+        `<rect class="dg-mm-bg" x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" rx="${M.radius}"/>` +
+        `<text class="dg-mm-t" x="${bx}" y="${my - M.pad + 2}">${title}</text>` +
+        `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a" width="${vw * k}" height="${vh * k}" rx="2" style="${vp}"/></g>`,
+    };
+  };
+  const mini = bare ? { clip: "", body: "" } : overview();
   const body =
-    `<defs><clipPath id="dg-vp-${id}"><rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/></clipPath><clipPath id="dg-mm-${id}"><rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="4"/></clipPath></defs>` +
+    `<defs><clipPath id="dg-vp-${id}"><rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/></clipPath>${mini.clip}</defs>` +
     `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g></g>` +
-    `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>${mini}`;
-  return { body, w: beside ? vw + M.inset + bgW : full, h: beside ? vh : bgY + bgH };
+    `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>${mini.body}`;
+  return { body, w: beside && !bare ? vw + M.inset + bgW : full, h: beside ? vh : bgY + bgH };
 }
 
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */

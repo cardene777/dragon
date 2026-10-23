@@ -917,43 +917,47 @@ describe("公開する頁 (#2995)", () => {
   it(
     "editor-overview-beside-window-and-in-frame",
     async () => {
-      // 寄って追う図になる幅で開く。携帯の幅と、記法と並べて図の枠が 560px になる幅 (#3042)
-      for (const width of [390, 860]) {
-        for (const [key, text] of [["oauth", OAUTH], ["ccip", CCIP]] as const) {
-          const parsed = parseNotation(text);
-          const steps = parsed.ok ? parsed.diagram.steps.length : 0;
-          expect(steps, `見本 ${key} の段が無い`).toBeGreaterThan(1);
-          // 狭い幅では見本の棚が畳まれるので、見本は共有の形の URL (`#n=`) で開く
-          const shared = `${EDITOR}#n=${Buffer.from(text, "utf8").toString("base64url")}`;
-          const { page } = await open({ path: shared, viewport: { width, height: 900 } });
-          await drawn(page);
-          await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${width}px で見本 ${key} の図が描かれない` }).toContain(titleOf(text));
-          // 止めてから段を送る。動いている間は段が進む
-          await page.locator(`${sel("stage")} [data-dragon="toggle"]`).click();
-          const measure = (): Promise<{ view: string | null; covers: boolean; inside: boolean } | null> =>
-            page.evaluate((s) => {
-              const svg = document.querySelector(`${s} svg[data-dragon="figure"]`);
-              const frame = document.querySelector(`${s} .dg-frame`)?.getBoundingClientRect();
-              const view = svg?.querySelector(".dg-vp-frame")?.getBoundingClientRect();
-              const map = svg?.querySelector(".dg-mm-bg")?.getBoundingClientRect();
-              if (!svg || !frame || !view || !map) return null;
-              return {
-                view: svg.getAttribute("data-view"),
-                covers: view.left < map.right && map.left < view.right && view.top < map.bottom && map.top < view.bottom,
-                inside: map.left >= frame.left - 0.5 && map.right <= frame.right + 0.5 && map.top >= frame.top - 0.5 && map.bottom <= frame.bottom + 0.5,
-              };
-            }, sel("stage"));
-          for (let s = 1; s <= steps; s++) {
-            if (s > 1) await page.locator(`${sel("stage")} [data-dragon="next"]`).click();
-            await expect
-              .poll(async () => Number.parseInt((await stepNo(page)) ?? "", 10), { ...WAIT, message: `${width}px の見本 ${key} が段 ${s} へ進まない` })
-              .toBe(s);
-            const seen = await measure();
-            expect(seen, `${width}px の見本 ${key} の段 ${s} に窓か全体図が無い`).not.toBeNull();
-            expect(seen?.view, `${width}px の見本 ${key} が寄って追う見せ方にならない`).toBe("follow");
-            expect(seen?.covers, `${width}px の見本 ${key} の段 ${s} で全体図が窓に重なる`).toBe(false);
-            expect(seen?.inside, `${width}px の見本 ${key} の段 ${s} で全体図が図の枠からはみ出す`).toBe(true);
-          }
+      // 寄って追う図になる幅で開く。携帯の幅と、記法と並べて図の枠が 560px になる幅 (#3042)。
+      // 縦長の全体図を持つ oauth は、携帯の幅では全体図を出さない (#3055) ので 860px だけで見る
+      const cases = [
+        [860, "oauth", OAUTH],
+        [390, "ccip", CCIP],
+        [860, "ccip", CCIP],
+      ] as const;
+      for (const [width, key, text] of cases) {
+        const parsed = parseNotation(text);
+        const steps = parsed.ok ? parsed.diagram.steps.length : 0;
+        expect(steps, `見本 ${key} の段が無い`).toBeGreaterThan(1);
+        // 狭い幅では見本の棚が畳まれるので、見本は共有の形の URL (`#n=`) で開く
+        const shared = `${EDITOR}#n=${Buffer.from(text, "utf8").toString("base64url")}`;
+        const { page } = await open({ path: shared, viewport: { width, height: 900 } });
+        await drawn(page);
+        await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${width}px で見本 ${key} の図が描かれない` }).toContain(titleOf(text));
+        // 止めてから段を送る。動いている間は段が進む
+        await page.locator(`${sel("stage")} [data-dragon="toggle"]`).click();
+        const measure = (): Promise<{ view: string | null; covers: boolean; inside: boolean } | null> =>
+          page.evaluate((s) => {
+            const svg = document.querySelector(`${s} svg[data-dragon="figure"]`);
+            const frame = document.querySelector(`${s} .dg-frame`)?.getBoundingClientRect();
+            const view = svg?.querySelector(".dg-vp-frame")?.getBoundingClientRect();
+            const map = svg?.querySelector(".dg-mm-bg")?.getBoundingClientRect();
+            if (!svg || !frame || !view || !map) return null;
+            return {
+              view: svg.getAttribute("data-view"),
+              covers: view.left < map.right && map.left < view.right && view.top < map.bottom && map.top < view.bottom,
+              inside: map.left >= frame.left - 0.5 && map.right <= frame.right + 0.5 && map.top >= frame.top - 0.5 && map.bottom <= frame.bottom + 0.5,
+            };
+          }, sel("stage"));
+        for (let s = 1; s <= steps; s++) {
+          if (s > 1) await page.locator(`${sel("stage")} [data-dragon="next"]`).click();
+          await expect
+            .poll(async () => Number.parseInt((await stepNo(page)) ?? "", 10), { ...WAIT, message: `${width}px の見本 ${key} が段 ${s} へ進まない` })
+            .toBe(s);
+          const seen = await measure();
+          expect(seen, `${width}px の見本 ${key} の段 ${s} に窓か全体図が無い`).not.toBeNull();
+          expect(seen?.view, `${width}px の見本 ${key} が寄って追う見せ方にならない`).toBe("follow");
+          expect(seen?.covers, `${width}px の見本 ${key} の段 ${s} で全体図が窓に重なる`).toBe(false);
+          expect(seen?.inside, `${width}px の見本 ${key} の段 ${s} で全体図が図の枠からはみ出す`).toBe(true);
         }
       }
     },

@@ -4,6 +4,7 @@
  *
  * 全体図を窓の右上に重ねると、狭い枠で今動く線や箱を覆う。
  * 全体図は窓の外に出し、縦長の全体図は窓の右に、横長の全体図は窓の下に置く。
+ * 枠の幅が 440px より狭い時は、縦長の全体図の列が窓を狭めすぎるので出さない (#3055)。
  * 置き場所は描いた `svg` の属性で読む。jsdom は配置を測れないが、窓と全体図の地は座標を属性に持つ。
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,8 +18,17 @@ const SAMPLES = [
   ["oauth", "oauth.json"],
   ["ccip", "ccip.json"],
 ] as const;
-/** 携帯の幅と、記法と並べた編集画面の図の枠の幅 */
-const WIDTHS = [390, 560] as const;
+/**
+ * 全体図を出す見本と枠の幅。時系列図 (oauth) は縦長の全体図を、構成図 (ccip) は横長の全体図を持つ。
+ * 縦長の全体図は枠の幅が 440px より狭いと出さない (#3055) ので、oauth は境目の 440px と、記法と並べた編集画面の図の枠の幅 560px で見る。
+ * 横長の全体図はどの幅でも出すので、ccip は携帯の幅 390px と 560px で見る
+ */
+const CASES = [
+  ["oauth", "oauth.json", 440],
+  ["oauth", "oauth.json", 560],
+  ["ccip", "ccip.json", 390],
+  ["ccip", "ccip.json", 560],
+] as const;
 /** 幅 1440px の画面の重ね窓の図の枠の幅。oauth の原寸の幅と全体図の列を並べても余る */
 const WIDE = 1200;
 
@@ -60,44 +70,38 @@ function parts(file: string, width: number): { svg: SVGSVGElement; window: Rect;
 
 describe("寄って追う図の全体図の置き場所 (#3042)", () => {
   it("overview-outside-window", () => {
-    for (const [name, file] of SAMPLES) {
-      for (const width of WIDTHS) {
-        const { window, overview } = parts(file, width);
-        expect(gap(window, overview), `${name} / ${width}px の全体図が窓に重なる`).toBeGreaterThanOrEqual(0);
-      }
+    for (const [name, file, width] of CASES) {
+      const { window, overview } = parts(file, width);
+      expect(gap(window, overview), `${name} / ${width}px の全体図が窓に重なる`).toBeGreaterThanOrEqual(0);
     }
   });
 
   it("overview-side-follows-its-shape", () => {
-    for (const [name, file] of SAMPLES) {
-      for (const width of WIDTHS) {
-        const { svg, window, overview } = parts(file, width);
-        const world = rectOf(svg, ".dg-mm-world") as Rect;
-        const tall = world.h > world.w;
-        expect(tall, `${name} の全体図の縦横`).toBe(name === "oauth");
-        const right = window.x + window.w;
-        const bottom = window.y + window.h;
-        if (tall) {
-          expect(overview.x, `${name} / ${width}px の縦長の全体図が窓の右に無い`).toBeGreaterThanOrEqual(right);
-          expect(overview.y, `${name} / ${width}px の縦長の全体図が窓の上端より上に在る`).toBeGreaterThanOrEqual(window.y - 1);
-          expect(overview.y + overview.h, `${name} / ${width}px の縦長の全体図が窓の下へはみ出す`).toBeLessThanOrEqual(bottom + 1);
-        } else {
-          expect(overview.y, `${name} / ${width}px の横長の全体図が窓の下に無い`).toBeGreaterThanOrEqual(bottom);
-          expect(overview.x + overview.w, `${name} / ${width}px の横長の全体図が窓の右へはみ出す`).toBeLessThanOrEqual(right + 1);
-        }
+    for (const [name, file, width] of CASES) {
+      const { svg, window, overview } = parts(file, width);
+      const world = rectOf(svg, ".dg-mm-world") as Rect;
+      const tall = world.h > world.w;
+      expect(tall, `${name} の全体図の縦横`).toBe(name === "oauth");
+      const right = window.x + window.w;
+      const bottom = window.y + window.h;
+      if (tall) {
+        expect(overview.x, `${name} / ${width}px の縦長の全体図が窓の右に無い`).toBeGreaterThanOrEqual(right);
+        expect(overview.y, `${name} / ${width}px の縦長の全体図が窓の上端より上に在る`).toBeGreaterThanOrEqual(window.y - 1);
+        expect(overview.y + overview.h, `${name} / ${width}px の縦長の全体図が窓の下へはみ出す`).toBeLessThanOrEqual(bottom + 1);
+      } else {
+        expect(overview.y, `${name} / ${width}px の横長の全体図が窓の下に無い`).toBeGreaterThanOrEqual(bottom);
+        expect(overview.x + overview.w, `${name} / ${width}px の横長の全体図が窓の右へはみ出す`).toBeLessThanOrEqual(right + 1);
       }
     }
   });
 
   it("follow-figure-within-frame-width", () => {
-    for (const [name, file] of SAMPLES) {
-      for (const width of WIDTHS) {
-        const { svg, overview } = parts(file, width);
-        const drawn = Number(svg.getAttribute("width"));
-        expect(drawn, `${name} / ${width}px の図の幅が枠を超える`).toBeLessThanOrEqual(width);
-        expect(overview.x + overview.w, `${name} / ${width}px の全体図が図の幅の外に出る`).toBeLessThanOrEqual(drawn);
-        expect(overview.y + overview.h, `${name} / ${width}px の全体図が図の高さの外に出る`).toBeLessThanOrEqual(Number(svg.getAttribute("height")));
-      }
+    for (const [name, file, width] of CASES) {
+      const { svg, overview } = parts(file, width);
+      const drawn = Number(svg.getAttribute("width"));
+      expect(drawn, `${name} / ${width}px の図の幅が枠を超える`).toBeLessThanOrEqual(width);
+      expect(overview.x + overview.w, `${name} / ${width}px の全体図が図の幅の外に出る`).toBeLessThanOrEqual(drawn);
+      expect(overview.y + overview.h, `${name} / ${width}px の全体図が図の高さの外に出る`).toBeLessThanOrEqual(Number(svg.getAttribute("height")));
     }
   });
 
@@ -112,12 +116,10 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
   });
 
   it("overview-shows-viewport-box", () => {
-    for (const [name, file] of SAMPLES) {
-      for (const width of WIDTHS) {
-        const { svg } = parts(file, width);
-        expect(svg.querySelectorAll(".dg-mm-vp").length, `${name} / ${width}px の全体図に今見ている所の枠が無い`).toBe(1);
-        expect(svg.querySelector(".dg-mm-t")?.textContent, `${name} / ${width}px の全体図の札`).toBe("全体図");
-      }
+    for (const [name, file, width] of CASES) {
+      const { svg } = parts(file, width);
+      expect(svg.querySelectorAll(".dg-mm-vp").length, `${name} / ${width}px の全体図に今見ている所の枠が無い`).toBe(1);
+      expect(svg.querySelector(".dg-mm-t")?.textContent, `${name} / ${width}px の全体図の札`).toBe("全体図");
     }
   });
 
