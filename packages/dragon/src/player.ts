@@ -65,11 +65,12 @@ function playerCss(): string {
     // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにし、その横に番号を置き、
     // 題を 2 段目、本文を 3 段目に置いてどちらも帯の全幅を使う (#3057、#3069)。
     // 釦を大きくすると横に題を置く幅が足りず題が細かく折れるため、題は釦の段に置かない。
-    // 題と本文を包む箱を外して写しも同じ升に重ねるので、2 段目は最も高い題、3 段目は最も長い本文の高さになる
+    // 題と本文を包む箱を外して写しも同じ升に重ねるので、2 段目は最も高い題、3 段目は最も長い本文の高さになる。
+    // 題と本文の間は広い帯と同じく空けず、釦の段の下にだけ間を取って、帯が高くなる分を抑える
     `@container dg-bar (width < ${px(P.narrow)}){` +
-      `.dg-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:${px(P.gap / 2)} ${px(P.gap)}}` +
+      `.dg-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:0 ${px(P.gap)}}` +
       `.dg-say,.dg-txt,.dg-txt>*{display:contents}` +
-      `.dg-btns{grid-area:1/1}` +
+      `.dg-btns{grid-area:1/1;margin-bottom:${px(P.gap / 2)}}` +
       `.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}` +
       `.dg-no{grid-area:1/2;display:flex;align-items:center;min-height:${px(P.touch)};padding-top:0}` +
       `.dg-tt{grid-area:2/1/3/3}` +
