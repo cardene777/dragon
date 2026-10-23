@@ -257,6 +257,19 @@ export async function captionLayout(html: string, width: number): Promise<Captio
   });
 }
 
+/** 書き出した HTML を幅 `width` で開き、段を送る釦 (前、再生、次) の幅と高さを `幅x高さ` の形で読む (#3069) */
+export async function playerButtons(html: string, width: number): Promise<string[]> {
+  return withPage(html, { width, height: 2000 }, async (page) => {
+    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    return page.evaluate(() =>
+      [...document.querySelectorAll(".dg-btn")].map((button) => {
+        const box = button.getBoundingClientRect();
+        return `${Math.round(box.width)}x${Math.round(box.height)}`;
+      }),
+    );
+  });
+}
+
 export async function playerWords(html: string, width: number): Promise<PlayerWords> {
   return withPage(html, { width, height: 2000 }, async (page) => {
     await page.locator('[data-dragon="player"] svg[data-view="follow"]').waitFor({ state: "attached" });

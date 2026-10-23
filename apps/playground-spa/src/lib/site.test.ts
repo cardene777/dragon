@@ -2346,6 +2346,116 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /** 段を送る釦を確かめる置き場。oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁 (#3069) */
+  const PLAYER_PLACES = ["editor", "catalog", "overlay", "docs"] as const;
+
+  /** 置き場 `place` を開き、段を送る釦を探す範囲と一緒に返す。カタログの見本の枠と重ね窓は時系列図の最初の見本 (#3069) */
+  const openPlayerPlace = async (viewport: { width: number; height: number }, place: (typeof PLAYER_PLACES)[number]): Promise<{ page: Page; scope: string }> => {
+    if (place === "editor") return { page: await openEditor(viewport, "oauth", true), scope: '[data-playground="stage"]' };
+    if (place === "docs") {
+      const { page } = await site.open({ path: `${BASE}docs`, viewport });
+      await onScreen(page, "docs", `${viewport.width} × ${viewport.height} で使い方の頁が出ない`);
+      return { page, scope: "body" };
+    }
+    const page = await openSequence(viewport);
+    if (place === "catalog") return { page, scope: catalogSel("preview") };
+    await page.locator(catalogSel("expand")).click();
+    return { page, scope: catalogSel("overlay") };
+  };
+
+  /**
+   * 置き場 `scope` に見える段を送る釦 (#3069)。釦ごとに名前 (`data-dragon`)、幅と高さ、
+   * 画面に入れてから四隅の 4px 内側 (角の丸み 12px の外を避ける) を押した時にその釦に当たるか
+   */
+  const playerButtonsOf = (page: Page, scope: string): Promise<{ name: string; width: number; height: number; corners: boolean }[]> =>
+    page.evaluate(async (scope) => {
+      await document.fonts.ready;
+      const root = document.querySelector(scope);
+      return [...(root?.querySelectorAll<HTMLElement>(".dg-btn") ?? [])]
+        .filter((el) => el.checkVisibility())
+        .map((el) => {
+          el.scrollIntoView({ block: "center" });
+          const r = el.getBoundingClientRect();
+          const points: [number, number][] = [
+            [r.left + 4, r.top + 4],
+            [r.right - 4, r.top + 4],
+            [r.left + 4, r.bottom - 4],
+            [r.right - 4, r.bottom - 4],
+          ];
+          const corners = points.every(([x, y]) => {
+            const hit = document.elementFromPoint(x, y);
+            return hit !== null && el.contains(hit);
+          });
+          return { name: el.dataset.dragon ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+        });
+    }, scope);
+
+  it(
+    "narrow-player-buttons-touch-targets",
+    async () => {
+      // 段を送る釦は 36px で間が 5px しか無く、携帯の幅では前と次を押し違えやすかった (#3069)。指で押す的の目安は 44 × 44px
+      for (const viewport of PHONES) {
+        for (const place of PLAYER_PLACES) {
+          const { page, scope } = await openPlayerPlace(viewport, place);
+          await expect
+            .poll(
+              async () => {
+                const buttons = await playerButtonsOf(page, scope);
+                return {
+                  some: buttons.length >= 3,
+                  small: buttons.filter((b) => b.width < 44 || b.height < 44 || !b.corners).map((b) => `${b.name} ${b.width}x${b.height}${b.corners ? "" : " 隅が外れる"}`),
+                };
+              },
+              { ...WAIT, message: `${viewport.width} × ${viewport.height} の ${place} で、段を送る釦が無いか、44px に届かない釦がある` },
+            )
+            .toEqual({ some: true, small: [] });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-player-buttons-work",
+    async () => {
+      // 携帯の幅で段を送る釦を 44px にし、題を釦の下の段に置いても、前と次と再生の働きは今と同じ (#3069)
+      for (const viewport of PHONES) {
+        const page = await openEditor(viewport, "oauth", true);
+        const where = `${viewport.width} × ${viewport.height} の oauth の編集画面`;
+        const stage = '[data-playground="stage"]';
+        const no = async (): Promise<string> => (await page.locator(`${stage} [data-dragon="step-no"]`).textContent()) ?? "";
+        const toggle = async (): Promise<string> => (await page.locator(`${stage} [data-dragon="toggle"]`).textContent()) ?? "";
+        await expect.poll(no, { ...WAIT, message: `${where} で、1 段目から始まらない` }).toMatch(/^01\//);
+        await page.locator(`${stage} [data-dragon="next"]`).click();
+        await expect.poll(no, { ...WAIT, message: `${where} で、次の釦で段が進まない` }).toMatch(/^02\//);
+        await page.locator(`${stage} [data-dragon="prev"]`).click();
+        await expect.poll(no, { ...WAIT, message: `${where} で、前の釦で段が戻らない` }).toMatch(/^01\//);
+        expect(await toggle(), `${where} で、動きを嫌う設定なのに再生の釦が出ない`).toBe("▶");
+        await page.locator(`${stage} [data-dragon="toggle"]`).click();
+        await expect.poll(toggle, { ...WAIT, message: `${where} で、再生の釦で動き出さない` }).toBe("❚❚");
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "wide-player-buttons-keep-size",
+    async () => {
+      // 広い帯の段を送る釦は、今と同じ 36px のまま (#3069)
+      const viewport = { width: 1440, height: 900 };
+      for (const place of PLAYER_PLACES) {
+        const { page, scope } = await openPlayerPlace(viewport, place);
+        await expect
+          .poll(async () => [...new Set((await playerButtonsOf(page, scope)).map((b) => `${b.width}x${b.height}`))], {
+            ...WAIT,
+            message: `1440 × 900 の ${place} で、段を送る釦の大きさが今と違う`,
+          })
+          .toEqual(["36x36"]);
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {
