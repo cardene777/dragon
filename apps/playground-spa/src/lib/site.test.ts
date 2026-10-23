@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, TEMPLATE } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, rgb, root, type Site, startSite } from "./playground-support";
+import { app, BASE, expectSteadyAcrossSteps, rgb, root, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -1087,6 +1087,40 @@ describe("サイトの帯と経路 (#3030)", () => {
             }
             await page.keyboard.press("Escape");
             await expect.poll(() => overlayFigureOf(page), { ...WAIT, message: `${category} の ${i + 1} 番目の見本の重ね窓が閉じない` }).toBeNull();
+          }
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "overlay-figure-steady-across-steps",
+    async () => {
+      // 段の本文の行の数で帯の高さが替わり、図が縮むか上下に動いていた大きさを全部含める (#3049)
+      const sizes = [
+        { width: 390, height: 844 },
+        { width: 860, height: 900 },
+        { width: 1024, height: 768 },
+        { width: 1280, height: 720 },
+        { width: 1440, height: 900 },
+      ];
+      for (const category of ["architecture", "sequence"] as const) {
+        const count = samplesOf(category).length;
+        for (const viewport of sizes) {
+          const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport });
+          await page.emulateMedia({ reducedMotion: "reduce" });
+          await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${category} の分類の頁が出ない`);
+          for (let i = 0; i < count; i++) {
+            const label = `${viewport.width} × ${viewport.height} の ${category} の ${i + 1} 番目の見本の重ね窓`;
+            await page.locator(catalogSel("item")).nth(i).click();
+            await page.locator(catalogSel("expand")).click();
+            const steps = page.locator('[data-catalog="overlay"] [data-dragon="steps"] > li');
+            await expect.poll(() => steps.count(), { ...WAIT, message: `${label} が開かない` }).toBeGreaterThan(0);
+            // 段が 1 つだけの見本は送る先が無い
+            if ((await steps.count()) > 1) await expectSteadyAcrossSteps(page, '[data-catalog="overlay"]', label);
+            await page.keyboard.press("Escape");
+            await expect.poll(() => page.locator('[data-catalog="overlay"]').count(), { ...WAIT, message: `${label} が閉じない` }).toBe(0);
           }
         }
       }

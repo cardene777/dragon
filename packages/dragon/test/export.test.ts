@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
-import { bundledCovers, decodeFrames, drawnText, embeddedFonts, exporter, fontChars, formatOf, inkCentroid, miniWorld, runCli } from "./export-support";
+import { bundledCovers, captionSteps, decodeFrames, drawnText, embeddedFonts, exporter, fontChars, formatOf, inkCentroid, miniWorld, runCli } from "./export-support";
 
 /** 書き出し 1 回に許す時間。Chromium の起動とコマを撮る時間を含む */
 const SLOW = 180_000;
@@ -133,6 +133,22 @@ describe("書き出し (#2986)", () => {
       }
       const missing = [...drawn].filter((char) => char.trim() !== "" && bundledCovers(char) && !embedded.has(char));
       expect(missing, "図で描く字が埋めた字の file に無い").toEqual([]);
+    },
+    SLOW,
+  );
+
+  it(
+    "html-export-caption-bar-steady",
+    async () => {
+      // 段の本文の行の数で帯の高さが替わると、帯の下の中身が段ごとに上下する (#3049)
+      const exportDiagram = await exporter();
+      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
+      const steps = await captionSteps(readFileSync(result.files.html as string, "utf8"), 390);
+      expect(steps.length, "書き出した HTML の段が読めない").toBeGreaterThan(1);
+      const [first] = steps;
+      for (const step of steps) {
+        expect({ bar: step.bar, top: step.top }, `${step.step} の帯の高さか図の上端の位置が 1 段目と違う`).toEqual({ bar: first?.bar, top: first?.top });
+      }
     },
     SLOW,
   );

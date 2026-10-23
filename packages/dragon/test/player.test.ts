@@ -138,3 +138,36 @@ describe("段の知らせ", () => {
     expect(seen.at(-1)).toBe(player.step);
   });
 });
+
+describe("段の本文の帯の高さ (#3049)", () => {
+  it("player-caption-room-holds-every-step", () => {
+    // 帯の高さが段の本文の行の数で替わると、図の枠が伸び縮みして図が縮むか上下に動く
+    prefersReducedMotion(true);
+    const diagram = exampleJson("oauth.json") as { steps: { title: string; body: string }[] };
+    const { host } = mount(diagram);
+
+    // 今の段の題と本文は 1 つずつのままで、見えていて、今の段の中身を出す
+    expect(host.querySelectorAll('[data-dragon="step-title"]'), "段の題が 1 つでない").toHaveLength(1);
+    expect(host.querySelectorAll('[data-dragon="step-body"]'), "段の本文が 1 つでない").toHaveLength(1);
+    const title = host.querySelector<HTMLElement>('[data-dragon="step-title"]');
+    expect(title && getComputedStyle(title).visibility, "今の段の題が見えない").not.toBe("hidden");
+    expect(stepTitle(host)).toBe(diagram.steps[0]?.title);
+
+    // 帯の高さを決める写しは、全部の段の題と本文を段の順に持ち、場所だけを取って見た目と読み上げから隠れる
+    const rooms = [...host.querySelectorAll<HTMLElement>('[data-dragon="caption-room"]')];
+    expect(rooms, "帯の高さを決める写しが段の数だけ無い").toHaveLength(diagram.steps.length);
+    rooms.forEach((room, i) => {
+      const step = diagram.steps[i];
+      if (!step) return;
+      const text = room.textContent ?? "";
+      expect(text, `段 ${i + 1} の写しの題`).toContain(step.title);
+      for (const line of step.body.split("\n")) expect(text, `段 ${i + 1} の写しの本文`).toContain(line);
+      expect(getComputedStyle(room).visibility, `段 ${i + 1} の写しが見えている`).toBe("hidden");
+      expect(room.closest('[aria-hidden="true"]'), `段 ${i + 1} の写しが読み上げの道具に出る`).not.toBeNull();
+    });
+
+    // 段を送ると、今の段の題が送った段の題に替わる
+    click(host, "next");
+    expect(stepTitle(host)).toBe(diagram.steps[1]?.title);
+  });
+});

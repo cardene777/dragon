@@ -180,6 +180,45 @@ export interface PlayerWords {
 }
 
 /** 書き出した HTML を `width` の幅で開いて読む。寄って見せる見せ方になる幅で開く */
+/** 段ごとの段の番号の札の字、段の本文の帯の高さ、図の上端の位置 (px) */
+export interface CaptionStep {
+  step: string;
+  bar: number;
+  top: number;
+}
+
+/**
+ * 書き出した HTML を動きを嫌う設定で幅 `width` で開き、段を 1 つずつ送って、段ごとの帯の高さと図の上端の位置を返す (#3049)。
+ * 自動で送ると読む前に段が替わるので、止め絵を釦で送る
+ */
+export async function captionSteps(html: string, width: number): Promise<CaptionStep[]> {
+  return withPage(html, { width, height: 2000 }, async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.evaluate(() => document.fonts.ready);
+    const count = await page.locator('[data-dragon="steps"] > li').count();
+    const seen: CaptionStep[] = [];
+    for (let s = 0; s < count; s++) {
+      const label = `${String(s + 1).padStart(2, "0")}/${String(count).padStart(2, "0")}`;
+      await page.waitForFunction((label) => document.querySelector('[data-dragon="step-no"]')?.textContent === label, label);
+      seen.push(
+        await page.evaluate(() => {
+          const bar = document.querySelector(".dg-bar")?.getBoundingClientRect();
+          const svg = document.querySelector('[data-dragon="player"] svg')?.getBoundingClientRect();
+          return {
+            step: document.querySelector('[data-dragon="step-no"]')?.textContent ?? "",
+            bar: Math.round(bar?.height ?? -1),
+            top: Math.round(svg?.top ?? -1),
+          };
+        }),
+      );
+      if (s < count - 1) await page.locator('[data-dragon="next"]').click();
+    }
+    return seen;
+  });
+}
+
 export async function playerWords(html: string, width: number): Promise<PlayerWords> {
   return withPage(html, { width, height: 2000 }, async (page) => {
     await page.locator('[data-dragon="player"] svg[data-view="follow"]').waitFor({ state: "attached" });

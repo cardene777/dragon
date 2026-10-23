@@ -11,7 +11,7 @@ import { DEFAULT_PALETTE, type Diagram, FONTS, PALETTES, parseNotation } from "@
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { BASE, bundleSizes, example, type Opened, type OpenOptions, pageSources, rgb, type Site, startSite } from "./playground-support";
+import { BASE, bundleSizes, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, rgb, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -876,6 +876,22 @@ describe("公開する頁 (#2995)", () => {
         expect(seen?.outside, `見本 ${key} の箱が図の領域の外に出る`).toEqual([]);
         expect(seen?.overview, `見本 ${key} の全体図が箱に重なる`).toBe(0);
         expect(seen?.covered, `見本 ${key} の段の札が箱に重なる`).toBe(0);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-figure-steady-across-steps",
+    async () => {
+      // 段の本文の行の数で帯の高さが替わり、1440 × 900 の ccip で図が上下に動いていた (#3049)
+      for (const [key, text] of [["oauth", OAUTH], ["ccip", CCIP]] as const) {
+        const { page } = await open({ viewport: { width: 1440, height: 900 } });
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await drawn(page);
+        await click(page, `sample-${key}`);
+        await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));
+        await expectSteadyAcrossSteps(page, sel("stage"), `編集画面の見本 ${key}`);
       }
     },
     SLOW,
