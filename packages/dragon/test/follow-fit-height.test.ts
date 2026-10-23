@@ -24,6 +24,10 @@ const SAMPLES = [
 const WIDTHS = [390, 560] as const;
 /** 枠の中で見える高さ。どちらも今の寄って追う図より低い */
 const HEIGHTS = [300, 400] as const;
+/** 今の寄って追う図の窓より高い、枠の中で見える高さ。ccip は 700px で全体図の下までが枠いっぱいになり、900px で図の高さで止まる */
+const TALL = [700, 900] as const;
+/** 窓と、窓の下に置いた全体図の間 */
+const INSET = 12;
 /** 幅 1440px の画面の重ね窓の図の枠。oauth は高さに収めると箱の名前の字が読めず、ccip は読める */
 const WIDE = { width: 1200, height: 675 } as const;
 
@@ -80,6 +84,33 @@ describe("寄って追う図を枠の中で見える高さに収める (#3047)",
           expect(Number(svg.getAttribute("height")), `${label} の図が見える高さを超える`).toBeLessThanOrEqual(height);
           expect(attr(svg, ".dg-mm-bg", "y") + attr(svg, ".dg-mm-bg", "height"), `${label} の全体図が見える高さの外に出る`).toBeLessThanOrEqual(height);
           expect(Number(svg.getAttribute("width")), `${label} の図の幅が枠を超える`).toBeLessThanOrEqual(width);
+          reset();
+        }
+      }
+    }
+  });
+
+  it("follow-window-grows-to-frame-height", () => {
+    // 窓の高さは枠が低い時に縮むだけで、枠が高い時は幅から決めた高さで止まり、枠の下が空いていた (#3053)
+    for (const [name, file] of SAMPLES) {
+      const figureHeight = draw("renderDiagram")(exampleJson(file)).layout.height;
+      for (const width of WIDTHS) {
+        for (const height of TALL) {
+          const label = `${name} / 枠 ${width} × ${height}px`;
+          // 高さを頼まない時の窓と全体図が、今の寸法
+          const natural = mount(file, { width, height }, { view: "follow" });
+          const before = attr(natural, ".dg-vp-frame", "height") + 1;
+          const mini = { w: attr(natural, ".dg-mm-bg", "width"), h: attr(natural, ".dg-mm-bg", "height") };
+          const beside = attr(natural, ".dg-mm-bg", "y") === 0;
+          reset();
+          const svg = mount(file, { width, height }, { fitHeight: true, view: "follow" });
+          // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図はその分だけ窓の高さを減らす
+          const expected = Math.min(figureHeight, beside ? height : height - mini.h - INSET);
+          expect(expected, `${label} の枠が今の窓より高くない`).toBeGreaterThan(before);
+          expect(attr(svg, ".dg-vp-frame", "height") + 1, `${label} の窓の高さ`).toBeCloseTo(expected, 5);
+          expect(attr(svg, ".dg-mm-bg", "width"), `${label} の全体図の幅が今と違う`).toBeCloseTo(mini.w, 5);
+          expect(attr(svg, ".dg-mm-bg", "height"), `${label} の全体図の高さが今と違う`).toBeCloseTo(mini.h, 5);
+          expect(Number(svg.getAttribute("height")), `${label} の図が見える高さを超える`).toBeLessThanOrEqual(height);
           reset();
         }
       }

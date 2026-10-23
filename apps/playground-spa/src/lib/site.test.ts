@@ -1174,6 +1174,95 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /**
+   * 重ね窓の寄って追う図の窓が見せる図の横の割合 (1 なら横幅の全部) と、窓の高さと図の枠の中で見える高さの差と、
+   * 図が枠の中に送らずに収まるか (#3053)。2 回続けて同じ値を読めた時だけ返す
+   */
+  const followWindowOf = (page: Page): Promise<{ view: string | null; shown: number; gap: number; inside: boolean } | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const read = () => {
+        const frameEl = document.querySelector<HTMLElement>('[data-catalog="overlay"] .dg-frame');
+        const svg = frameEl?.querySelector('svg[data-dragon="figure"]');
+        if (!frameEl || !svg) return null;
+        const num = (selector: string, name: string): number => Number(svg.querySelector(selector)?.getAttribute(name) ?? Number.NaN);
+        const style = getComputedStyle(frameEl);
+        const frame = frameEl.getBoundingClientRect();
+        const box = svg.getBoundingClientRect();
+        // 図の属性の寸法を、画面に描かれた寸法へ直す倍率
+        const scale = box.height / Number(svg.getAttribute("height"));
+        const room = frameEl.clientHeight - Number.parseFloat(style.paddingTop) - Number.parseFloat(style.paddingBottom);
+        return {
+          view: svg.getAttribute("data-view"),
+          // 全体図の中の今見ている所の枠の幅と、全体図に描いた図の幅の比
+          shown: Math.round((num(".dg-mm-vp", "width") / num(".dg-mm-world", "width")) * 1000) / 1000,
+          gap: Math.round((num(".dg-vp-frame", "height") + 1) * scale - room),
+          inside:
+            box.left >= frame.left - 0.5 &&
+            box.right <= frame.right + 0.5 &&
+            box.top >= frame.top - 0.5 &&
+            box.bottom <= frame.bottom + 0.5 &&
+            frameEl.scrollHeight <= frameEl.clientHeight + 1,
+        };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    });
+
+  /** 時系列図の分類の頁で oauth の見本を重ね窓で開く */
+  const openOauthOverlay = async (viewport: { width: number; height: number }): Promise<Page> => {
+    const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport });
+    await onScreen(page, "category", `${viewport.width} × ${viewport.height} で時系列図の分類の頁が出ない`);
+    await page.locator(catalogSel("item")).nth(samplesOf("sequence").indexOf("oauth")).click();
+    await page.locator(catalogSel("expand")).click();
+    return page;
+  };
+
+  it(
+    "overlay-follow-window-shows-whole-width",
+    async () => {
+      // 窓と全体図を図の原寸の幅に収めていたため、枠が余っても右端の API の札が窓で切れていた (#3053)
+      for (const viewport of [
+        { width: 1024, height: 768 },
+        { width: 1280, height: 720 },
+        { width: 1440, height: 900 },
+      ]) {
+        const page = await openOauthOverlay(viewport);
+        await expect
+          .poll(async () => {
+            const seen = await followWindowOf(page);
+            return seen && { view: seen.view, shown: seen.shown };
+          }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の重ね窓で、窓が図の横幅の全部を見せない` })
+          .toEqual({ view: "follow", shown: 1 });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "overlay-follow-window-fills-frame-height",
+    async () => {
+      // 窓の高さが幅から決めた高さで止まり、枠の下が空いていた (#3053)
+      for (const viewport of [
+        { width: 390, height: 844 },
+        { width: 1440, height: 900 },
+      ]) {
+        const page = await openOauthOverlay(viewport);
+        await expect
+          .poll(async () => {
+            const seen = await followWindowOf(page);
+            return seen && { view: seen.view, gap: Math.abs(seen.gap) <= 1 ? 0 : seen.gap, inside: seen.inside };
+          }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の重ね窓で、窓の高さが図の枠の中で見える高さと合わないか、図が枠に収まらない` })
+          .toEqual({ view: "follow", gap: 0, inside: true });
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {

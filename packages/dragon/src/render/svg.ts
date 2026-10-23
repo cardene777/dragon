@@ -189,7 +189,7 @@ function fieldChanges(diagram: Diagram, timeline: Timeline, layout: Layout): Map
 export interface FollowFrame {
   /** 枠の幅 (px)。寄って追う窓はこの幅で、字を原寸で見せる */
   width: number;
-  /** 枠の中で見える高さ (px)。渡すと、窓と全体図をこの高さに収める (#3047)。枠の高さが図で伸びる置き場では渡さない */
+  /** 枠の中で見える高さ (px)。渡すと、窓と全体図をこの高さに収め (#3047)、窓をこの高さまで伸ばす (#3053)。枠の高さが図で伸びる置き場では渡さない */
   height?: number;
   /** 隅の全体図の札の言葉。渡し忘れを型の検査で止めるため、省けない欄にする */
   lang: NotationLang;
@@ -271,11 +271,13 @@ function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefin
  * 全体図は窓に重ねると今動く線や箱を覆うので、窓の外に置く (#3042)。
  * 縦長の全体図は窓の右に列を取り、横長の全体図は窓の下に置く。失う窓の幅か図の高さの小さい側を選ぶ。
  * 枠の中で見える高さを渡された時は、窓と全体図がその高さに入るまで窓を低くする (#3047)。
+ * 枠が余る時は窓を広げ、図の原寸の幅と、見える高さか図の高さまで使う。全体図は今の大きさのまま置く (#3053)。
  */
 function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
-  const full = Math.min(layout.width, Math.max(1, follow.width));
+  const frameWidth = Math.max(1, follow.width);
+  const full = Math.min(layout.width, frameWidth);
   const title = FIGURE_TEXT[follow.lang].overview;
   /** 窓の高さ `vh` の時の全体図の寸法。全体図は窓の高さで縮むので、窓を低くしたら測り直す */
   const sized = (vh: number) => {
@@ -291,8 +293,12 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   const natural = sized(Math.min(layout.height, Math.max(F.minH, full * F.aspect)));
   // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図は窓の高さに足される
   const room = follow.height === undefined ? Number.POSITIVE_INFINITY : natural.beside ? follow.height : follow.height - natural.bgH - M.inset;
-  const { vh, mw, k, mh, bw, bgW, bgH, beside } = room < natural.vh ? sized(Math.max(F.fitMinH, room)) : natural;
-  const vw = beside ? full - bgW - M.inset : full;
+  // 見える高さが窓より低ければ窓と全体図を縮め、高ければ全体図はそのままに窓を図の高さまで伸ばす。
+  // 全体図も伸ばすと、狭い枠では右の全体図の列が太って窓が狭くなる
+  const { vh, mw, k, mh, bw, bgW, bgH, beside } =
+    room < natural.vh ? sized(Math.max(F.fitMinH, room)) : { ...natural, vh: Number.isFinite(room) ? Math.min(layout.height, room) : natural.vh };
+  // 右の全体図の列は枠の余りに置き、窓は図の原寸の幅まで広げる。枠が図より狭い時は今までどおり枠の幅から列を引く
+  const vw = beside ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
   const clampY = (y: number): number => Math.min(layout.height - vh / 2, Math.max(vh / 2, y));
   let prev: [number, number] = [layout.width / 2, layout.height / 2];
@@ -335,7 +341,7 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
     `<defs><clipPath id="dg-vp-${id}"><rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/></clipPath><clipPath id="dg-mm-${id}"><rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="4"/></clipPath></defs>` +
     `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g></g>` +
     `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>${mini}`;
-  return { body, w: full, h: beside ? vh : bgY + bgH };
+  return { body, w: beside ? vw + M.inset + bgW : full, h: beside ? vh : bgY + bgH };
 }
 
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */
