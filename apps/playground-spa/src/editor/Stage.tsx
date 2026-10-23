@@ -2,13 +2,15 @@
  * 編集画面の図の側 (#3031)。前の編集画面の舞台の配置を、今の再生の部品で戻す。
  *
  * 上の段に色味と道具 (語りの字の大きさ、格子、全画面、全体に合わせる、縮小、拡大) を置く。
+ * 携帯の幅では道具を指で押せる大きさ (44px) にして 1 列に収めるため、全体に合わせるの釦を出さず、
+ * 倍率を縮小と拡大の間の釦にして、押すと全体に合わせる (#3065)。
  * 図は再生の部品 (`mountDiagram`) で描き、頁の側では SVG を組まない (`useFittedFigure.ts`)。
  * 止めて見せる図 (`data-view="fixed"`) は枠に合わせた倍率 (`fit.ts`) で描き、拡大と縮小はその倍率に掛ける。
  * 寄って追う図は再生の部品が枠の幅で描き直すので、倍率を当てない。
  * 段を 2 つ以上持つ図は、左上に今の段の札を、下端に段の数で区切った進み具合の帯を出す。
  */
 import { type Diagram, PALETTES, type Theme } from "@cardenelabs/dragon";
-import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type ReactElement, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { type Lang, TEXT } from "../text";
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "./fit";
@@ -31,6 +33,17 @@ interface Props {
 const SAY_STEP = 1.15;
 const SAY_RANGE = [0.7, 1.6] as const;
 const clampSay = (v: number): number => Math.min(SAY_RANGE[1], Math.max(SAY_RANGE[0], v));
+
+/** 携帯の幅。`playground.css` の「幅 439 以下」の区画と同じ境目にする */
+const PHONE = "(max-width: 439px)";
+
+function subscribePhone(listener: () => void): () => void {
+  const media = matchMedia(PHONE);
+  media.addEventListener("change", listener);
+  return () => media.removeEventListener("change", listener);
+}
+
+const isPhone = (): boolean => matchMedia(PHONE).matches;
 
 interface ToolProps {
   /** `data-playground` の札 */
@@ -61,6 +74,7 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
   const [grid, setGrid] = useState(false);
   const [say, setSay] = useState(1);
   const [full, setFull] = useState(false);
+  const phone = useSyncExternalStore(subscribePhone, isPhone);
   const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: setStep });
 
   useEffect(() => {
@@ -78,6 +92,7 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
   const current = diagram?.steps[Math.min(step, count - 1)];
   const phased = count > 1 && current !== undefined;
   const scale = fit ? zoomed(fit.scale, factor) : null;
+  const level = scale === null ? "—" : `${Math.round(scale * 100)}%`;
   const zoomBy = (by: number): void => {
     if (!fit) return;
     // 範囲の端で押しても、倍率の数だけ増えて戻りが遅れないよう、範囲に収めた倍率から係数を出し直す
@@ -116,12 +131,27 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
         <Tool name="grid" icon="grid" label={t.stage.grid} pressed={grid} onClick={() => setGrid(!grid)} />
         <Tool name="fullscreen" icon="fullscreen" label={t.stage.fullscreen} pressed={full} onClick={toggleFull} />
         <span className="pg-tool-sep" aria-hidden="true" />
-        <Tool name="fit" icon="fit" label={t.stage.fit} disabled={!fit} onClick={() => setFactor(1)} />
+        {!phone && <Tool name="fit" icon="fit" label={t.stage.fit} disabled={!fit} onClick={() => setFactor(1)} />}
         <Tool name="zoom-out" icon="zoom-out" label={t.stage.zoomOut} disabled={!fit || scale === ZOOM_RANGE[0]} onClick={() => zoomBy(1 / ZOOM_STEP)} />
+        {phone && (
+          <button
+            type="button"
+            className="pg-tool pg-zoom-fit"
+            data-playground="zoom-level"
+            aria-label={`${t.stage.fit} (${level})`}
+            title={t.stage.fit}
+            disabled={!fit}
+            onClick={() => setFactor(1)}
+          >
+            {level}
+          </button>
+        )}
         <Tool name="zoom-in" icon="zoom-in" label={t.stage.zoomIn} disabled={!fit || scale === ZOOM_RANGE[1]} onClick={() => zoomBy(ZOOM_STEP)} />
-        <span className="pg-zoom" data-playground="zoom-level" aria-label={t.stage.zoom}>
-          {scale === null ? "—" : `${Math.round(scale * 100)}%`}
-        </span>
+        {!phone && (
+          <span className="pg-zoom" data-playground="zoom-level" aria-label={t.stage.zoom}>
+            {level}
+          </span>
+        )}
       </div>
 
       <div className="pg-figure" data-playground="figure" data-grid={grid ? "on" : undefined} data-phased={phased ? "on" : undefined} style={figureStyle}>
