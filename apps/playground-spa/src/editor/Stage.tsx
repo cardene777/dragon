@@ -100,6 +100,7 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
           <span className="pg-live-dot" aria-hidden="true" />
           {t.stage.live}
         </span>
+        {/* 釦と見本の丸を分け、指で触る時は丸の大きさのまま釦だけを 44px にする (#3077) */}
         <div className="pg-swatches" role="group" aria-label={t.palette}>
           {Object.values(PALETTES).map((p) => (
             <button
@@ -110,9 +111,14 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
               aria-pressed={palette === p.id}
               aria-label={t.paletteNames[p.id] ?? p.name}
               title={t.paletteNames[p.id] ?? p.name}
-              style={{ background: `linear-gradient(135deg, ${p.light.page} 50%, ${p.dark.page} 50%)`, borderColor: p.light["c-blue"] }}
               onClick={() => onPalette(p.id)}
-            />
+            >
+              <span
+                className="pg-swatch-dot"
+                aria-hidden="true"
+                style={{ background: `linear-gradient(135deg, ${p.light.page} 50%, ${p.dark.page} 50%)`, borderColor: p.light["c-blue"] }}
+              />
+            </button>
           ))}
         </div>
         <span className="pg-gap" />

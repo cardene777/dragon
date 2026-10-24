@@ -2140,6 +2140,204 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /**
+   * 編集画面の棚の押せる部品 (#3077)。部品ごとに `data-playground` の名前、幅と高さ、四隅から 2px 内側を押した時にその部品に当たるか。
+   * 部品を画面に入れてから読み、2 回続けて同じ値を読めた時だけ返す
+   */
+  const shelfTargetsOf = (page: Page): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const read = () =>
+        [...document.querySelectorAll<HTMLElement>('[data-playground="shelf"] :is(button, input)[data-playground]')]
+          .filter((el) => el.checkVisibility())
+          .map((el) => {
+            el.scrollIntoView({ block: "nearest" });
+            const r = el.getBoundingClientRect();
+            const points: [number, number][] = [
+              [r.left + 2, r.top + 2],
+              [r.right - 2, r.top + 2],
+              [r.left + 2, r.bottom - 2],
+              [r.right - 2, r.bottom - 2],
+            ];
+            const corners = points.every(([x, y]) => {
+              const hit = document.elementFromPoint(x, y);
+              return hit !== null && el.contains(hit);
+            });
+            return { name: el.dataset.playground ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+          });
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    });
+
+  /** 指で触る端末を模して編集画面を確かめる画面の大きさ。768 と 1024 は棚を畳む幅、1366 は棚を横に並べる幅 (#3077) */
+  const TOUCH_EDITOR_SIZES = [
+    { width: 768, height: 1024 },
+    { width: 1024, height: 1366 },
+    { width: 1366, height: 1024 },
+  ] as const;
+
+  /** 棚を畳む幅では棚を開く釦で開き、開き終えるまで待つ (#3077) */
+  const openShelf = async (page: Page, where: string): Promise<void> => {
+    const toggle = page.locator('[data-playground="shelf-toggle"]');
+    if (!(await toggle.isVisible())) return;
+    await toggle.click();
+    await expect.poll(() => page.locator('[data-playground="shelf"]').getAttribute("data-open"), { ...WAIT, message: `${where} で、棚を開く釦で棚が開かない` }).toBe("on");
+  };
+
+  it(
+    "coarse-editor-touch-targets",
+    async () => {
+      // 指で触るタブレットの編集画面は、棚と 2 つの帯の部品が 16 から 41px で指で押し違えやすかった (#3077)。指で触る時は幅に関わらず 44 × 44px にする
+      for (const viewport of [{ width: 360, height: 780 }, ...TOUCH_EDITOR_SIZES]) {
+        const where = `指で触る ${viewport.width} × ${viewport.height} の編集画面`;
+        const page = await openEditor(viewport, "intro", true, true);
+        const short = (parts: { name: string; width: number; height: number; corners: boolean }[]): string[] =>
+          parts.filter((p) => p.width < 44 || p.height < 44 || !p.corners).map((p) => `${p.name} ${p.width}x${p.height}${p.corners ? "" : " 隅が外れる"}`);
+        await expect
+          .poll(async () => {
+            const parts = await targetsOf(page);
+            return parts && { some: parts.length > 0, small: short(parts) };
+          }, { ...WAIT, message: `${where}の 2 つの帯で、部品が無いか、44px に届かない部品がある` })
+          .toEqual({ some: true, small: [] });
+        await openShelf(page, where);
+        await expect
+          .poll(async () => {
+            const parts = await shelfTargetsOf(page);
+            return parts && { some: parts.some((p) => p.name.startsWith("sample-")), small: short(parts) };
+          }, { ...WAIT, message: `${where}の棚で、見本の行が無いか、44px に届かない部品がある` })
+          .toEqual({ some: true, small: [] });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-editor-tools-drop-when-narrow",
+    async () => {
+      // 指で触る時は道具の帯の部品を 44px にするので、帯の幅が 720px より狭い時は携帯の幅と同じく実況表示の札と色味の丸を外す。
+      // 外すかは画面の幅でなく帯の幅で決める。1180 × 820 は棚を横に並べて帯が狭くなる (#3077)
+      const all = ["live", ...PALETTE_IDS.map((id) => `palette-${id}`), ...STAGE_TOOLS];
+      for (const [viewport, shown] of [
+        [{ width: 768, height: 1024 }, [...STAGE_TOOLS]],
+        [{ width: 1180, height: 820 }, [...STAGE_TOOLS]],
+        [{ width: 1024, height: 1366 }, all],
+        [{ width: 1366, height: 1024 }, all],
+      ] as const) {
+        const page = await openEditor(viewport, "intro", true, true);
+        await expect
+          .poll(async () => (await toolsOf(page))?.shown, { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の編集画面で、道具の帯の並びが違う` })
+          .toEqual(shown);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-editor-bars-fit",
+    async () => {
+      // 指で触る時に 44px の部品を並べても、2 つの帯は日本語でも英語でも横に送る分を持たず、部品が帯からはみ出さない (#3077)
+      for (const viewport of [...TOUCH_EDITOR_SIZES, { width: 1180, height: 820 }]) {
+        for (const lang of ["ja", "en"] as const) {
+          const where = `指で触る ${viewport.width} × ${viewport.height} の${lang === "en" ? "英語の" : ""}編集画面`;
+          const page = await openEditor(viewport, "intro", true, true);
+          if (lang === "en") {
+            await page.locator(siteSel("lang-en")).click();
+            await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${where} で、英語に切り替わらない` }).toBe("en");
+          }
+          await expect
+            .poll(async () => {
+              const tools = await toolsOf(page);
+              const code = await codeBarOf(page);
+              return tools && code && { tools: { scrolls: tools.hidden > 0, cut: tools.cut }, code: { scrolls: code.hidden > 0, cut: code.cut } };
+            }, { ...WAIT, message: `${where} で、帯を送る分が残るか、部品が帯からはみ出す` })
+            .toEqual({ tools: { scrolls: false, cut: [] }, code: { scrolls: false, cut: [] } });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-editor-controls-work",
+    async () => {
+      // 指で触る時に部品を 44px にしても、棚と 2 つの帯の部品の働きは今と同じ (#3077)
+      const wide = await openEditor({ width: 1366, height: 1024 }, "intro", true, true);
+      const where = "指で触る 1366 × 1024 の編集画面";
+      const stage = '[data-playground="stage"]';
+      await expect.poll(() => figureLooks(wide, stage), { ...WAIT, message: `${where} で、図が出ない` }).toHaveLength(1);
+      const look = await figureLooks(wide, stage);
+      await wide.locator(`.pg-stage-bar [data-playground="palette-night"]`).click();
+      await expect.poll(() => figureLooks(wide, stage), { ...WAIT, message: `${where} で、色味の丸で図の色味が替わらない` }).not.toEqual(look);
+      const level = async (): Promise<number> => Number.parseInt((await toolsOf(wide))?.level ?? "", 10);
+      await expect.poll(level, { ...WAIT, message: `${where} で、倍率が出ない` }).toBeGreaterThan(0);
+      const base = await level();
+      await wide.locator('[data-playground="zoom-in"]').click();
+      await expect.poll(level, { ...WAIT, message: `${where} で、拡大の釦で倍率が上がらない` }).toBeGreaterThan(base);
+      await wide.locator('[data-playground="tab-json"]').click();
+      await expect.poll(() => wide.locator('[data-playground="editor"]').inputValue(), { ...WAIT, message: `${where} で、JSON の札で JSON の側に替わらない` }).toMatch(/^\s*\{/);
+      await wide.locator('[data-playground="shelf-tab-parts"]').click();
+      await expect.poll(() => wide.locator('[data-playground="part-box"]').isVisible(), { ...WAIT, message: `${where} で、棚の部品の札で部品の一覧に替わらない` }).toBe(true);
+
+      const narrow = await openEditor({ width: 768, height: 1024 }, "intro", true, true);
+      await openShelf(narrow, "指で触る 768 × 1024 の編集画面");
+      await narrow.locator('[data-playground="sample-oauth"]').click();
+      const head = exampleText("oauth", "ja").split("\n")[0] ?? "";
+      await expect
+        .poll(() => narrow.locator('[data-playground="editor"]').inputValue(), { ...WAIT, message: "指で触る 768 × 1024 の編集画面で、見本の行を押しても oauth が書く欄に入らない" })
+        .toContain(head);
+    },
+    SLOW,
+  );
+
+  it(
+    "mouse-tablet-editor-keeps-size",
+    async () => {
+      // マウスで使う時は、768px でも編集画面の棚と 2 つの帯の部品は今の大きさのまま (#3077)
+      for (const viewport of [
+        { width: 768, height: 1024 },
+        { width: 1440, height: 900 },
+      ]) {
+        const page = await openEditor(viewport, "intro", true);
+        await expect
+          .poll(
+            () =>
+              page.evaluate(async () => {
+                await document.fonts.ready;
+                const all = (sel: string): Element[] => [...document.querySelectorAll(sel)].filter((el) => el.checkVisibility());
+                const sizes = (sel: string): string[] => [
+                  ...new Set(
+                    all(sel).map((el) => {
+                      const r = el.getBoundingClientRect();
+                      return `${Math.round(r.width)}x${Math.round(r.height)}`;
+                    }),
+                  ),
+                ];
+                const heights = (sel: string): number[] => [...new Set(all(sel).map((el) => Math.round(el.getBoundingClientRect().height)))];
+                return {
+                  tools: sizes(".pg-stage-bar .pg-tool, .pg-bar .pg-tool"),
+                  swatches: sizes('.pg-stage-bar [data-playground^="palette-"]'),
+                  tabs: heights('.pg-bar [role="tab"]'),
+                  file: heights('.pg-bar [data-playground="file-name"]'),
+                  shelf: {
+                    new: heights('[data-playground="new-file"]'),
+                    tabs: heights('[data-playground^="shelf-tab-"]'),
+                    filter: heights('[data-playground="shelf-filter"]'),
+                    items: heights('[data-playground^="sample-"]'),
+                  },
+                };
+              }),
+            { ...WAIT, message: `マウスで使う ${viewport.width} × ${viewport.height} の編集画面で、棚か 2 つの帯の部品の大きさが今と違う` },
+          )
+          .toEqual({ tools: ["30x30"], swatches: ["16x16"], tabs: [27], file: [26], shelf: { new: [41], tabs: [39], filter: [34], items: [35] } });
+      }
+    },
+    SLOW,
+  );
+
   /** 時系列図の分類の頁を開く。最初の見本 (入門の例) を選んでいて、図は枠に合わせて描く (#3067)。`touch` の時は指で触る端末を模す (#3076) */
   const openSequence = async (viewport: { width: number; height: number }, touch = false): Promise<Page> => {
     const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport, touch });

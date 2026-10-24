@@ -601,15 +601,29 @@
   margin-left: 14px;
 }
 
+/* 釦は押す範囲、中の丸が見本。マウスで使う時は釦と丸が同じ 16px */
 .pg-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
   padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.pg-swatch-dot {
+  flex: none;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
   border: 2px solid;
   border-radius: 50%;
 }
 
-.pg-swatch[aria-pressed="true"] {
+.pg-swatch[aria-pressed="true"] > .pg-swatch-dot {
   box-shadow:
     0 0 0 2px var(--d-surface),
     0 0 0 4px var(--d-text-primary);
@@ -883,6 +897,87 @@
   .pg-code-body {
     flex: none;
     height: 50vh;
+  }
+}
+
+/* ── 指で触る時。幅に関わらず棚と 2 つの帯の押せる部品を指で押せる大きさにする (#3077) ── */
+
+@media (pointer: coarse) {
+  /* 棚の部品の枠を、指で押す的の目安の 44 × 44px にする。見本の行は上下の余白 7px と行の高さ 30px で 44px */
+  .pg-new {
+    box-sizing: border-box;
+    min-height: 44px;
+  }
+
+  .pg-shelf-tabs button {
+    min-height: 44px;
+  }
+
+  .pg-filter {
+    height: 44px;
+  }
+
+  .pg-item {
+    line-height: 30px;
+  }
+
+  :is(.pg-stage-bar, .pg-bar) .pg-tool {
+    width: 44px;
+    height: 44px;
+  }
+
+  .pg-tabs button {
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .pg-bar > .pg-file {
+    box-sizing: border-box;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  /* 色味の丸は 16px のまま、押す範囲の釦だけを 44px にする */
+  .pg-swatches {
+    gap: 0;
+    margin-left: 6px;
+  }
+
+  .pg-swatch {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--d-r-1);
+  }
+
+  /*
+   * 道具の帯に全部並べるには日本語で 650px、英語で 700px 要る。帯の幅が 720px より狭い時は、携帯の幅と同じく
+   * 実況表示の札と色味の丸を外す。色味は見出しの帯の切替で替える。
+   * 1101px 以上は棚を横に並べて帯が狭くなるので、画面の幅でなく帯の幅で決める
+   */
+  .pg-stage {
+    container: pg-stage / inline-size;
+  }
+
+  @container pg-stage (width < 720px) {
+    .pg-stage-bar :is(.pg-live, .pg-swatches) {
+      display: none;
+    }
+  }
+}
+
+/*
+ * 記法の欄の上の帯は 1100px 以下で幅 299px しか無く、英語では 44px の部品が 24px はみ出した (#3077)。
+ * 部品の間を 2px、両端の余白を 4px、記法と JSON の切替の左右の余白を 4px に詰めて 1 列に収める。
+ * 携帯の幅は帯が広く、下の区画の並びのままにする
+ */
+@media (pointer: coarse) and (min-width: 440px) {
+  .pg-bar {
+    gap: 2px;
+    padding: 0 4px;
+  }
+
+  .pg-tabs button {
+    padding: 0 4px;
   }
 }
 
