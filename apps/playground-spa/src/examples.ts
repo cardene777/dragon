@@ -55,8 +55,11 @@ export const TEMPLATE: Record<Lang, string> = {
   en: ["sequence New diagram", "", "a = A", "b = B", "", "# First step", "> Write what happens in this step.", "a -> b : call"].join("\n"),
 };
 
-/** 新規作成で付ける書類名 */
-export const UNTITLED = "untitled.dragon";
+/**
+ * 新規作成で付ける書類名。見本でない図を開いた時と、名前を空にして書き出した時も使う。
+ * 指で触るタブレットの英語の書類名の欄は 5 字までなので、untitled ではなく収まる new にする (#3089)
+ */
+export const NEW_FILE_NAME = "new.dragon";
 
 /** 書く欄の中身がどれかの見本そのままなら、その見本と言葉 */
 export function whichExample(text: string): { key: ExampleKey; lang: Lang } | undefined {
