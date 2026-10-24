@@ -96,6 +96,8 @@ export interface OpenOptions {
   locale?: string;
   colorScheme?: "light" | "dark";
   viewport?: { width: number; height: number };
+  /** 指で触る端末を模す。`(pointer: coarse)` が当たる (#3075) */
+  touch?: boolean;
 }
 
 export interface Opened {
@@ -129,6 +131,7 @@ export async function startSite(): Promise<Site> {
       locale: o.locale ?? "ja-JP",
       colorScheme: o.colorScheme ?? "light",
       viewport: o.viewport ?? { width: 1280, height: 860 },
+      hasTouch: o.touch ?? false,
     });
     contexts.push(context);
     await context.addInitScript(() => {
