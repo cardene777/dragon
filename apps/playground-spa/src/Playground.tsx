@@ -85,6 +85,12 @@ const asFileName = (name: string): string => {
   return trimmed.endsWith(".dragon") ? trimmed : `${trimmed}.dragon`;
 };
 
+/**
+ * 書類名の欄に持つ名前。書き出す時に `.dragon` を付けるので、欄には拡張子を外して持つ。
+ * 指で触るタブレットの英語では欄が 44px まで縮み、拡張子まで出すと見本の名前も切れた (#3087)
+ */
+const shownName = (name: string): string => name.replace(/\.dragon$/u, "");
+
 /** 書く欄の `line` 行目 (1 から) を選び、見える所まで送る */
 function selectLine(area: HTMLTextAreaElement, line: number): void {
   const lines = area.value.split("\n");
@@ -148,7 +154,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   const [chosen, setChosen] = useState<{ site: string; palette: string } | null>(null);
   const palette = chosen?.site === sitePalette ? chosen.palette : sitePalette;
   const [folded, setFolded] = useState(false);
-  const [fileName, setFileName] = useState(first.example === null ? UNTITLED : `${first.example}.dragon`);
+  const [fileName, setFileName] = useState(shownName(first.example === null ? UNTITLED : `${first.example}.dragon`));
   const [shelfOpen, setShelfOpen] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
   const gutter = useRef<HTMLDivElement>(null);
@@ -210,7 +216,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     const outcome = fromNotation(next, to);
     setText(next);
     setExample(key);
-    setFileName(name);
+    setFileName(shownName(name));
     share(undefined);
     if (outcome.ok) {
       accept(outcome.diagram);
@@ -236,7 +242,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     }
     setTab("notation");
     writeNotation(next);
-    setFileName(file.name.replace(/\.json$/iu, ".dragon"));
+    setFileName(shownName(file.name.replace(/\.json$/iu, ".dragon")));
   };
 
   /** 今の記法を書類名の `.dragon` の file として保存させる */
