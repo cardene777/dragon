@@ -2296,6 +2296,41 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   it(
+    "coarse-editor-new-file-name-fits",
+    async () => {
+      // 指で触るタブレットの英語の書類名の欄は 5 字までで、新規作成した時の untitled は「unti…」で切れた (#3089)。新しいファイルの名前は new
+      for (const viewport of [
+        { width: 768, height: 1024 },
+        { width: 834, height: 1194 },
+        { width: 1024, height: 768 },
+      ]) {
+        for (const lang of ["ja", "en"] as const) {
+          const where = `指で触る ${viewport.width} × ${viewport.height} の${lang === "en" ? "英語の" : ""}編集画面`;
+          const page = await openEditor(viewport, "oauth", true, true);
+          if (lang === "en") {
+            await page.locator(siteSel("lang-en")).click();
+            await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${where} で、英語に切り替わらない` }).toBe("en");
+          }
+          await openShelf(page, where);
+          await page.locator('[data-playground="new-file"]').click();
+          await expect
+            .poll(
+              () =>
+                page.evaluate(async () => {
+                  await document.fonts.ready;
+                  const field = document.querySelector<HTMLInputElement>('.pg-bar [data-playground="file-name"]');
+                  return field && { name: field.value, cut: field.scrollWidth > field.clientWidth };
+                }),
+              { ...WAIT, message: `${where} で、新規作成した書類名が new でないか、字が欄の中で切れる` },
+            )
+            .toEqual({ name: "new", cut: false });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
     "coarse-editor-controls-work",
     async () => {
       // 指で触る時に部品を 44px にしても、棚と 2 つの帯の部品の働きは今と同じ (#3077)
