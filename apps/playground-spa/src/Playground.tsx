@@ -26,7 +26,7 @@ import { fieldNotices, jsonErrorLine, lineNotices, type Notice } from "./editor/
 import { insertLines, type PartId, partLines } from "./editor/shelf-items";
 import { Shelf } from "./editor/Shelf";
 import { Stage } from "./editor/Stage";
-import { type ExampleKey, exampleText, FIRST_EXAMPLE, TEMPLATE, UNTITLED, whichExample } from "./examples";
+import { type ExampleKey, exampleText, FIRST_EXAMPLE, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
 import { fromHash, toHash } from "./share";
 import { type Lang, TEXT } from "./text";
 
@@ -81,7 +81,7 @@ function fromJson(text: string, pageLang: Lang): Outcome {
 /** 書き出す file の名前。空なら新規の名前にし、`.dragon` で終わらなければ付ける */
 const asFileName = (name: string): string => {
   const trimmed = name.trim();
-  if (trimmed === "") return UNTITLED;
+  if (trimmed === "") return NEW_FILE_NAME;
   return trimmed.endsWith(".dragon") ? trimmed : `${trimmed}.dragon`;
 };
 
@@ -154,7 +154,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   const [chosen, setChosen] = useState<{ site: string; palette: string } | null>(null);
   const palette = chosen?.site === sitePalette ? chosen.palette : sitePalette;
   const [folded, setFolded] = useState(false);
-  const [fileName, setFileName] = useState(shownName(first.example === null ? UNTITLED : `${first.example}.dragon`));
+  const [fileName, setFileName] = useState(shownName(first.example === null ? NEW_FILE_NAME : `${first.example}.dragon`));
   const [shelfOpen, setShelfOpen] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
   const gutter = useRef<HTMLDivElement>(null);
@@ -226,7 +226,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
 
   const load = (key: ExampleKey, to: Lang): void => replace(exampleText(key, to), key, `${key}.dragon`, to);
 
-  const newFile = (): void => replace(TEMPLATE[lang], null, UNTITLED, lang);
+  const newFile = (): void => replace(TEMPLATE[lang], null, NEW_FILE_NAME, lang);
 
   /** 取り込んだ file を記法の側に入れる。図の原本の JSON なら、頁の言葉の記法に書き直して入れる */
   const importFile = async (file: File): Promise<void> => {

@@ -742,11 +742,14 @@ describe("公開する頁 (#2995)", () => {
       await click(page, "shelf-tab-notation");
       await expect.poll(async () => (await items(page, "syntax-")).length, { ...WAIT, message: "記法の早見が無い" }).toBeGreaterThan(5);
 
-      // 新規作成で、読める雛形が書く欄に入り、書類名が新しい名前になる。欄には拡張子を出さない (#3087)
+      // 新規作成で、読める雛形が書く欄に入り、書類名が新しい名前になる。欄には拡張子を出さない (#3087)。
+      // 新しい名前は指で触るタブレットの英語の欄にも収まる new で、そのまま書き出すと new.dragon になる (#3089)
       await click(page, "new-file");
       await expect.poll(async () => (await editorDiagram(page)) !== undefined, { ...WAIT, message: "新規作成の雛形が読めない" }).toBe(true);
-      expect(await page.locator(sel("file-name")).inputValue(), "新規作成で書類名が新しい名前にならない").toBe("untitled");
+      expect(await page.locator(sel("file-name")).inputValue(), "新規作成で書類名が新しい名前にならない").toBe("new");
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "新規作成の雛形で図が描かれない" }).toContain((await editorDiagram(page))?.title ?? "");
+      const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
+      expect(download.suggestedFilename(), "新規作成した書類を書き出す file の名前が new.dragon でない").toBe("new.dragon");
     },
     SLOW,
   );

@@ -20,8 +20,8 @@
 | 概要の版の札と更新履歴の版が、`packages/dragon/package.json` の版を build 時に差し込んだ `v{major}.{minor}` になる | `pnpm test`の検査`version-badge-from-package`が通る | #3035 |
 | 更新履歴の頁に版と、変更の記録 (`CHANGELOG.md`) を GitHub で見る釦 1 つが出る | `pnpm test`の検査`release-notes-shows-version-and-changelog-link`が通る | #3035 |
 | 見つからない頁に大きな `404` と行き先の釦が並び、説明の入口の数が釦の数と一致する | `pnpm test`の検査`not-found-counts-destinations`が通る | #3035 |
-| 編集画面の左の棚に新規作成の釦、見本と部品と記法の 3 つの見出し、絞り込みの入力欄があり、見本を選ぶとその記法が書く欄に入り、部品を選ぶとその部品の行が書く欄に足され、絞り込むと一覧が絞れる。新規作成で書類名の欄に拡張子の無い untitled と出る | `pnpm test`の検査`editor-shelf-loads-samples-parts-and-filters`が通る | #3031、#3087 |
-| 編集画面の書く欄の上に記法と JSON の切替、書類名、取り込みと書き出しの釦があり、取り込んだ file の記法が欄に入り、書き出しで今の記法が `.dragon` の file として保存される。書類名の欄は拡張子を出さず、見本の oauth は oauth、取り込んだ edited.dragon は edited と出て、書き出す file は edited.dragon、欄に memo と書くと memo.dragon になる | `pnpm test`の検査`editor-imports-and-exports-notation`が通る | #3031、#3087 |
+| 編集画面の左の棚に新規作成の釦、見本と部品と記法の 3 つの見出し、絞り込みの入力欄があり、見本を選ぶとその記法が書く欄に入り、部品を選ぶとその部品の行が書く欄に足され、絞り込むと一覧が絞れる。新規作成で書類名の欄に拡張子の無い new と出て、そのまま書き出すと new.dragon で保存される | `pnpm test`の検査`editor-shelf-loads-samples-parts-and-filters`が通る | #3031、#3087、#3089 |
+| 編集画面の書く欄の上に記法と JSON の切替、書類名、取り込みと書き出しの釦があり、取り込んだ file の記法が欄に入り、書き出しで今の記法が `.dragon` の file として保存される。書類名の欄は拡張子を出さず、見本の oauth は oauth、取り込んだ edited.dragon は edited と出て、書き出す file は edited.dragon、欄に memo と書くと memo.dragon になる | `pnpm test`の検査`editor-imports-and-exports-notation`が通る | #3031、#3087、#3089 |
 | 編集画面の図の側に字の大きさ、拡大、縮小、全体に合わせる、格子、全画面の道具があり、拡大と縮小で図の大きさが変わり、格子を出すと 24px 刻みの点が出る | `pnpm test`の検査`editor-stage-tools-change-view`が通る | #3031、#3063、#3065、#3077 |
 | 幅 1440 で編集画面に OAuth と CCIP の見本を出した時、箱の名前の字が 11px 以上で描かれ、どの箱も図の領域の内側に収まり、全体図が箱に重ならない | `pnpm test`の検査`editor-diagram-readable-and-not-clipped`が通る | #3031 |
 | 編集画面で段を 2 つ以上持つ図を出した時、図の左上に `段 {N} / {全体} · {題}` の札が、下端に段の数だけ区切った進み具合の帯が出る | `pnpm test`の検査`editor-phase-badge-and-progress`が通る | #3031、#3061 |
@@ -108,4 +108,5 @@
 | 指で触る端末を模して画面の大きさ 768 × 1024 で、概要の呼びかけの編集画面を開くで編集画面へ、用例の下のカタログで図を見るでカタログの一覧へ、使い方の呼びかけの 5 分で始めるで編集画面へ移り、使い方の節の終わりの続きの札でその節へ移る | `pnpm test`の検査`coarse-pages-links-work`が通る | #3079、#3085 |
 | マウスで使う画面の大きさ 768 × 1024 と 1440 × 900 で、概要と使い方の頁の枠のある釦の高さが 40px、字だけの札の高さが 30px のまま | `pnpm test`の検査`mouse-tablet-pages-keep-size`が通る | #3079、#3085 |
 | 携帯の幅と指で触る時の段を送る釦が、四捨五入しない幅と高さで 44px 以上あり、四隅を押すとその釦に当たる。マウスで使う広い画面では 36 × 36px のまま | `pnpm test`の検査`narrow-player-buttons-touch-targets`、`coarse-player-buttons-touch-targets`、`wide-player-buttons-keep-size`が通る | #3085 |
-| 指で触る端末を模して画面の大きさ 768 × 1024、834 × 1194、1024 × 768 で見本の oauth を編集画面で開いた時、日本語でも英語でも記法の欄の上の帯の書類名の欄に拡張子の無い oauth と出て、字が欄の中で切れない | `pnpm test`の検査`coarse-editor-file-name-fits`が通る | #3087 |
+| 指で触る端末を模して画面の大きさ 768 × 1024、834 × 1194、1024 × 768 で見本の oauth を編集画面で開いた時、日本語でも英語でも記法の欄の上の帯の書類名の欄に拡張子の無い oauth と出て、字が欄の中で切れない | `pnpm test`の検査`coarse-editor-file-name-fits`が通る | #3087、#3089 |
+| 指で触る端末を模して画面の大きさ 768 × 1024、834 × 1194、1024 × 768 の編集画面で、日本語でも英語でも棚の新規作成を押した時、記法の欄の上の帯の書類名の欄に new と出て、字が欄の中で切れない | `pnpm test`の検査`coarse-editor-new-file-name-fits`が通る | #3089 |
