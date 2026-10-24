@@ -445,6 +445,66 @@ textarea:focus-visible {
   }
 }
 
+/*
+ * 指で触る時は、幅に関わらず帯と一覧の押せる部品の枠を 44 × 44px にする (#3075)。マウスで使う時は上のまま。
+ * 行き先は下線を下に寄せたまま高さを足し、色味の切替は枠の内側の隙間を詰めて 3 つを 44px にする
+ */
+@media (pointer: coarse) {
+  .site-brand {
+    min-height: 44px;
+  }
+  .site-nav-link {
+    justify-content: flex-end;
+    min-width: 44px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+  .site-lang button {
+    min-width: 44px;
+    height: 44px;
+    padding: 0 9px;
+    font-size: 12px;
+  }
+  .site-palette {
+    gap: 0;
+    padding: 0;
+  }
+  .site-palette-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .site-icon-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+  .site-cta {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+  .site-sheet-swatch {
+    min-height: 44px;
+  }
+  .site-sheet-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+}
+
+/* 指で触る時は 900px 以下で行き先と色味の切替を畳み、44px の部品どうしが詰まらない携帯の幅と同じ形にする (#3075) */
+@media (pointer: coarse) and (max-width: 900px) {
+  .site-nav,
+  .site-palette {
+    display: none;
+  }
+  .site-menu-btn {
+    display: flex;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .site-sheet {
     animation: site-sheet-in 140ms ease-out;

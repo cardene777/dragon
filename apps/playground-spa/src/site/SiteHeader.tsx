@@ -4,7 +4,7 @@
  * 左に印と名前と添え書き、中に行き先 6 つ、右に言語と色味と明暗の切替と `編集画面を開く →` の釦を置く。
  * 今いる画面の行き先に現在地の印を付け、行き先は頁を読み直さずに移る (`routes.ts`)。
  * 色味の切替はサイトの色と全部の図の色味を替える (#3033)。色味は図の色味の表 (`PALETTES`) の順に並べる。
- * 幅 720 以下では行き先と色味の切替を畳み、開く釦から出す面に置く。
+ * 幅 720 以下 (指で触る時は 900 以下、#3075) では行き先と色味の切替を畳み、開く釦から出す面に置く。
  */
 import { type Palette, PALETTES, type Theme } from "@cardenelabs/dragon";
 import { type CSSProperties, type ReactElement, useEffect, useState } from "react";
