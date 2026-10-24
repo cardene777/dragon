@@ -727,13 +727,16 @@
   .catalog-preview-actions {
     margin-left: 0;
   }
-  /* 狭い幅では読むのは重ね窓で行うので、入口を指で押せる大きさにする */
+  .catalog-overlay {
+    padding: 8px;
+  }
+}
+
+/* 狭い幅では読むのは重ね窓で行うので、入口を指で押せる大きさにする。指で触る時は幅に関わらず同じ大きさにする (#3078) */
+@media (max-width: 860px), (pointer: coarse) {
   .catalog-expand-btn {
     min-height: 44px;
     padding: 6px 14px;
-  }
-  .catalog-overlay {
-    padding: 8px;
   }
 }
 
@@ -745,11 +748,14 @@
   .catalog-overlay-desc {
     display: none;
   }
+}
 
-  /*
-   * 押せる部品を、指で押す的の目安の 44 × 44px にする (#3067)。編集画面の携帯の幅 (#3065) と揃え、
-   * 縮小と拡大の組は全体に合わせるの釦を出さずに倍率を釦にして (`CategoryPage.tsx`)、360px でも拡大の釦と同じ段に収める
-   */
+/*
+ * 携帯の幅と指で触る時は、押せる部品を指で押す的の目安の 44 × 44px にする (#3067、#3078)。編集画面の携帯の幅 (#3065) と揃え、
+ * 携帯の幅の縮小と拡大の組は全体に合わせるの釦を出さずに倍率を釦にして (`CategoryPage.tsx`)、360px でも拡大の釦と同じ段に収める。
+ * 指で触る広い幅は合わせるの釦も残し、見本の枠の上の帯に収まらない時は道具を 2 段目へ折り返す
+ */
+@media (max-width: 439px), (pointer: coarse) {
   .catalog-search-wrap {
     min-height: 46px;
   }
@@ -822,5 +828,25 @@
   .catalog-overlay-close {
     width: 44px;
     height: 44px;
+  }
+}
+
+/*
+ * 指で触る時は、道筋の札も 44px 四方以上で押せるようにする (#3078)。札を高さ 44px にして左右に 10px の押せる余白を足し、
+ * 同じだけ負の外側の余白で打ち消して、字の位置と頁の題までの間を変えない。隣の札と押せる範囲が重ならないよう、札の間を 7px から 12px に広げる。
+ * 大きい題は字の高さが行の高さを超えて上へ数 px はみ出し、札の下の端に重なるので、札を題より手前に置いてそこを押しても札に当たるようにする
+ */
+@media (pointer: coarse) {
+  .catalog-crumb {
+    gap: 12px;
+  }
+
+  .catalog-crumb a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 10px;
+    margin: -12px -10px;
   }
 }
