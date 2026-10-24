@@ -792,6 +792,19 @@ describe("公開する頁 (#2995)", () => {
   );
 
   it(
+    "editor-exports-empty-name-as-new",
+    async () => {
+      const { page } = await open();
+      await drawn(page);
+      // 書類名の欄を空にして書き出すと、新規作成と同じ new に `.dragon` を付けて保存する (#3091)
+      await page.locator(sel("file-name")).fill("");
+      const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
+      expect(download.suggestedFilename(), "書類名が空の時に書き出す file の名前が new.dragon でない").toBe("new.dragon");
+    },
+    SLOW,
+  );
+
+  it(
     "editor-stage-tools-change-view",
     async () => {
       const { page } = await open();
