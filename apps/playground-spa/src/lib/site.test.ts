@@ -2373,7 +2373,8 @@ describe("サイトの帯と経路 (#3030)", () => {
               const hit = document.elementFromPoint(x, y);
               return hit !== null && el.contains(hit);
             });
-            return { name: el.dataset.catalog ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+            // 道筋の札は `data-catalog` を持たないので字で名指す (#3078)
+            return { name: el.dataset.catalog ?? el.textContent?.trim() ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
           });
       };
       const frame = () => new Promise((done) => requestAnimationFrame(done));
@@ -2539,6 +2540,268 @@ describe("サイトの帯と経路 (#3030)", () => {
           .toEqual({ zoom: ["28x26"], palette: 29, fit: true, level: "span" });
         await page.locator(catalogSel("expand")).click();
         await expect.poll(() => sizeOf(catalogSel("overlay-close")), { ...WAIT, message: `${where} の重ね窓で、閉じるの釦の大きさが今と違う` }).toEqual(["34x34"]);
+      }
+    },
+    SLOW,
+  );
+
+  /** 指で触る端末を模してカタログの頁を確かめる画面の大きさ。360 は携帯の幅、768 は一覧を見本の上に積む幅、1024 と 1366 は横に並べる幅 (#3078) */
+  const TOUCH_CATALOG_SIZES = [
+    { width: 360, height: 780 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 1366 },
+    { width: 1366, height: 1024 },
+  ] as const;
+
+  /** 見本の枠の押せる部品の名前。携帯の幅では合わせるの釦の代わりに倍率の釦を出す (#3067、#3078) */
+  const previewPartsOf = (width: number): string[] => ["tab-figure", "tab-code", "palette", "zoom-out", width < 440 ? "zoom-level" : "fit", "zoom-in", "expand", "open-editor"];
+
+  /** 道筋の札の数と、44px に届かないか四隅が外れる札 (#3078) */
+  const catalogCrumbShortOf = async (page: Page): Promise<{ count: number; small: string[] } | null> => {
+    const parts = await catalogTargetsOf(page, catalogSel("crumb"));
+    return (
+      parts && {
+        count: parts.length,
+        small: parts.filter((p) => p.width < 44 || p.height < 44 || !p.corners).map((p) => `${p.name} ${p.width}x${p.height}${p.corners ? "" : " 隅が外れる"}`),
+      }
+    );
+  };
+
+  it(
+    "coarse-catalog-touch-targets",
+    async () => {
+      // 指で触るタブレットのカタログの頁は、道筋の札、一覧、見本の枠の部品が 19 から 38px で指で押し違えやすかった (#3078)。
+      // 指で触る時は幅に関わらず 44 × 44px にする。カタログの一覧の頁の道筋の札も同じ部品
+      for (const viewport of TOUCH_CATALOG_SIZES) {
+        const page = await openSequence(viewport, true);
+        const where = `指で触る ${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        await expect.poll(() => catalogCrumbShortOf(page), { ...WAIT, message: `${where} の道筋で、札が 2 つ無いか、44px に届かない札がある` }).toEqual({ count: 2, small: [] });
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("sidebar"), ["search", "item"]), { ...WAIT, message: `${where} の一覧で、部品が揃わないか、44px に届かない部品がある` })
+          .toEqual({ missing: [], small: [] });
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("preview"), previewPartsOf(viewport.width)), { ...WAIT, message: `${where} の見本の枠で、部品が揃わないか、44px に届かない部品がある` })
+          .toEqual({ missing: [], small: [] });
+
+        const { page: index } = await site.open({ path: `${BASE}catalog`, viewport, touch: true });
+        await onScreen(index, "catalog", `指で触る ${viewport.width} × ${viewport.height} でカタログの一覧が出ない`);
+        await expect
+          .poll(() => catalogCrumbShortOf(index), { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} のカタログの一覧の道筋で、札が無いか、44px に届かない` })
+          .toEqual({ count: 1, small: [] });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-catalog-touch-targets-after-action",
+    async () => {
+      // 指で触る時は、検索に字を入れた時、コードの側に替えた時、重ね窓を開いた時に出る部品も 44px にする (#3078)
+      for (const viewport of TOUCH_CATALOG_SIZES) {
+        const page = await openSequence(viewport, true);
+        const where = `指で触る ${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        await page.locator(catalogSel("search")).fill("OAuth");
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("sidebar"), ["search", "search-clear", "item"]), { ...WAIT, message: `${where} で検索に字を入れた時、一覧の部品が揃わないか、44px に届かない部品がある` })
+          .toEqual({ missing: [], small: [] });
+        await page.locator(catalogSel("search")).fill("");
+        await page.locator(catalogSel("tab-code")).click();
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("source"), ["source-notation", "source-json", "copy"]), { ...WAIT, message: `${where} のコードの側で、部品が揃わないか、44px に届かない部品がある` })
+          .toEqual({ missing: [], small: [] });
+        await page.locator(catalogSel("tab-figure")).click();
+        await page.locator(catalogSel("expand")).click();
+        await expect
+          .poll(() => catalogShortOf(page, catalogSel("overlay"), ["overlay-close"]), { ...WAIT, message: `${where} の重ね窓で、閉じるの釦が無いか、44px に届かない` })
+          .toEqual({ missing: [], small: [] });
+      }
+    },
+    SLOW,
+  );
+
+  /** 見本の枠の上の帯の押せる部品の数と、帯の外にはみ出す部品と、互いに重なる組と、頁が横にあふれるか (#3078) */
+  const catalogBarOf = (page: Page): Promise<{ count: number; cut: string[]; overlap: string[]; pageOver: boolean } | null> =>
+    page.evaluate(async () => {
+      await document.fonts.ready;
+      const bar = document.querySelector(".catalog-preview-tabs");
+      if (!bar) return null;
+      const b = bar.getBoundingClientRect();
+      const parts = [...bar.querySelectorAll<HTMLElement>("button, select")]
+        .filter((el) => el.checkVisibility())
+        .map((el) => ({ name: el.dataset.catalog ?? "", r: el.getBoundingClientRect() }));
+      const cut = parts.filter(({ r }) => r.left < b.left - 0.5 || r.right > b.right + 0.5 || r.top < b.top - 0.5 || r.bottom > b.bottom + 0.5).map((p) => p.name);
+      const overlap = parts.flatMap((p, i) =>
+        parts
+          .slice(i + 1)
+          .filter((q) => p.r.left < q.r.right - 0.5 && q.r.left < p.r.right - 0.5 && p.r.top < q.r.bottom - 0.5 && q.r.top < p.r.bottom - 0.5)
+          .map((q) => `${p.name}+${q.name}`),
+      );
+      return { count: parts.length, cut, overlap, pageOver: document.documentElement.scrollWidth > innerWidth };
+    });
+
+  it(
+    "coarse-catalog-bar-fits",
+    async () => {
+      // 指で触る時に 44px の部品を並べても、見本の枠の上の帯は日本語でも英語でも部品を帯の中に収め、収まらない幅では道具を折り返す (#3078)
+      for (const viewport of [...TOUCH_CATALOG_SIZES.slice(1), { width: 1180, height: 820 }]) {
+        for (const lang of ["ja", "en"] as const) {
+          const where = `指で触る ${viewport.width} × ${viewport.height} の${lang === "en" ? "英語の" : ""}時系列図の分類の頁`;
+          const page = await openSequence(viewport, true);
+          if (lang === "en") {
+            await page.locator(siteSel("lang-en")).click();
+            await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${where} で、英語に切り替わらない` }).toBe("en");
+          }
+          await expect
+            .poll(() => catalogBarOf(page), { ...WAIT, message: `${where} で、見本の枠の上の帯の部品が帯からはみ出すか、重なるか、頁が横にあふれる` })
+            .toEqual({ count: 7, cut: [], overlap: [], pageOver: false });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-catalog-crumb-keeps-place",
+    async () => {
+      // 道筋の札は字の位置を変えずに押せる範囲だけを広げる。最初の札の字は頁の題と左端が揃い、隣の札と押せる範囲が重ならない (#3078)
+      for (const viewport of TOUCH_CATALOG_SIZES) {
+        const page = await openSequence(viewport, true);
+        await expect
+          .poll(
+            () =>
+              page.evaluate(async () => {
+                await document.fonts.ready;
+                const textLeft = (node: Node): number => {
+                  const range = document.createRange();
+                  range.selectNodeContents(node);
+                  return range.getBoundingClientRect().left;
+                };
+                const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-catalog="crumb"] a')];
+                const first = links[0];
+                const title = document.querySelector(".catalog-title");
+                if (!first || !title) return null;
+                const boxes = links.map((a) => a.getBoundingClientRect());
+                return {
+                  aligned: Math.abs(textLeft(first) - textLeft(title)) < 1,
+                  apart: boxes.every((r, i) => i === 0 || r.left >= (boxes[i - 1]?.right ?? 0) - 0.5),
+                };
+              }),
+            { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の時系列図の分類の頁で、道筋の最初の札の字が題と揃わないか、札の押せる範囲が重なる` },
+          )
+          .toEqual({ aligned: true, apart: true });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-catalog-parts-work",
+    async () => {
+      // 指で触る時に部品を 44px にしても、カタログの頁の部品の働きは今と同じ (#3078)
+      for (const viewport of [
+        { width: 1366, height: 1024 },
+        { width: 768, height: 1024 },
+      ]) {
+        const page = await openSequence(viewport, true);
+        const where = `指で触る ${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        const preview = catalogSel("preview");
+        const level = async (): Promise<number> => Number.parseInt((await catalogZoomOf(page)).level, 10);
+        await expect.poll(level, { ...WAIT, message: `${where} で、倍率が出ない` }).toBeGreaterThan(0);
+        const base = await level();
+        await page.locator(`${preview} ${catalogSel("zoom-out")}`).click();
+        await expect.poll(level, { ...WAIT, message: `${where} で、縮小の釦で倍率が下がらない` }).toBeLessThan(base);
+        await page.locator(`${preview} ${catalogSel("zoom-in")}`).click();
+        await page.locator(`${preview} ${catalogSel("zoom-in")}`).click();
+        await expect.poll(level, { ...WAIT, message: `${where} で、拡大の釦で倍率が上がらない` }).toBeGreaterThan(base);
+        await page.locator(`${preview} ${catalogSel("fit")}`).click();
+        await expect.poll(level, { ...WAIT, message: `${where} で、合わせるの釦で元の倍率に戻らない` }).toBe(base);
+
+        await page.locator(catalogSel("tab-code")).click();
+        await expect.poll(() => page.locator(catalogSel("source")).isVisible(), { ...WAIT, message: `${where} で、コードの札でコードの側に替わらない` }).toBe(true);
+        await page.locator(catalogSel("source-json")).click();
+        await expect.poll(() => page.locator(catalogSel("source-json")).getAttribute("aria-pressed"), { ...WAIT, message: `${where} で、JSON の切替で JSON の側が選ばれない` }).toBe("true");
+        await page.locator(catalogSel("tab-figure")).click();
+        await page.locator(catalogSel("palette")).selectOption("paper");
+        await expect.poll(() => page.locator(catalogSel("palette")).inputValue(), { ...WAIT, message: `${where} で、色味の選択で紙と墨を選べない` }).toBe("paper");
+
+        await page.locator(catalogSel("expand")).click();
+        await expect.poll(() => page.locator(catalogSel("overlay")).isVisible(), { ...WAIT, message: `${where} で、拡大して見るの釦で重ね窓が開かない` }).toBe(true);
+        await page.locator(catalogSel("overlay-close")).click();
+        await expect.poll(() => page.locator(catalogSel("overlay")).count(), { ...WAIT, message: `${where} で、閉じるの釦で重ね窓が閉じない` }).toBe(0);
+
+        const items = page.locator(catalogSel("item"));
+        const all = await items.count();
+        await page.locator(catalogSel("search")).fill("OAuth");
+        await expect.poll(() => items.count(), { ...WAIT, message: `${where} で、検索に字を入れても一覧が絞られない` }).toBeLessThan(all);
+        await page.locator(catalogSel("search-clear")).click();
+        await expect.poll(() => items.count(), { ...WAIT, message: `${where} で、消す釦で一覧が戻らない` }).toBe(all);
+        const title = await page.locator(".catalog-preview-title").textContent();
+        await items.nth(1).click();
+        await expect.poll(() => page.locator(".catalog-preview-title").textContent(), { ...WAIT, message: `${where} で、一覧の行で見本が替わらない` }).not.toBe(title);
+
+        await page.locator(`${catalogSel("crumb")} a[href="${BASE}catalog"]`).click();
+        await expect.poll(() => page.evaluate(() => location.pathname), { ...WAIT, message: `${where} で、道筋のカタログの札でカタログの一覧へ移らない` }).toBe(`${BASE}catalog`);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "mouse-tablet-catalog-keeps-size",
+    async () => {
+      // マウスで使う時は、768px でもカタログの頁の部品は今の大きさのまま (#3078)
+      for (const viewport of [
+        { width: 768, height: 1024 },
+        { width: 1440, height: 900 },
+      ]) {
+        const page = await openSequence(viewport);
+        const where = `マウスで使う ${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        const read = (): Promise<{ sizes: Record<string, string[]>; heights: Record<string, number[]> }> =>
+          page.evaluate(async () => {
+            await document.fonts.ready;
+            const all = (sel: string): Element[] => [...document.querySelectorAll(sel)].filter((el) => el.checkVisibility());
+            const sizes = (sel: string): string[] => [
+              ...new Set(
+                all(sel).map((el) => {
+                  const r = el.getBoundingClientRect();
+                  return `${Math.round(r.width)}x${Math.round(r.height)}`;
+                }),
+              ),
+            ];
+            const heights = (sel: string): number[] => [...new Set(all(sel).map((el) => Math.round(el.getBoundingClientRect().height)))];
+            return {
+              sizes: {
+                zoom: sizes('[data-catalog="preview"] .catalog-zoom-btn'),
+                clear: sizes('[data-catalog="search-clear"]'),
+                close: sizes('[data-catalog="overlay-close"]'),
+              },
+              heights: {
+                crumb: heights('[data-catalog="crumb"] a'),
+                search: heights('[data-catalog="search"]'),
+                item: [Math.min(...all('[data-catalog="item"]').map((el) => Math.round(el.getBoundingClientRect().height)))],
+                tabs: heights('[data-catalog^="tab-"]'),
+                palette: heights('[data-catalog="palette"]'),
+                openEditor: heights('[data-catalog="open-editor"]'),
+                source: heights('[data-catalog^="source-"]:not([data-catalog="source-code"])'),
+                copy: heights('[data-catalog="copy"]'),
+              },
+            };
+          });
+        await expect
+          .poll(async () => (await read()).heights, { ...WAIT, message: `${where} で、道筋の札、一覧、見本の枠の部品の高さが今と違う` })
+          .toEqual({ crumb: [19], search: [36], item: [34], tabs: [38], palette: [29], openEditor: [21], source: [], copy: [] });
+        expect((await read()).sizes.zoom, `${where} で、縮小と拡大と合わせるの釦の大きさが今と違う`).toEqual(["28x26"]);
+        await page.locator(catalogSel("search")).fill("OAuth");
+        await expect.poll(async () => (await read()).sizes.clear, { ...WAIT, message: `${where} で、検索の消す釦の大きさが今と違う` }).toEqual(["24x24"]);
+        await page.locator(catalogSel("search")).fill("");
+        await page.locator(catalogSel("tab-code")).click();
+        await expect.poll(async () => {
+          const { source, copy } = (await read()).heights;
+          return { source, copy };
+        }, { ...WAIT, message: `${where} のコードの側で、切替か写すの釦の高さが今と違う` }).toEqual({ source: [32], copy: [34] });
+        await page.locator(catalogSel("tab-figure")).click();
+        await page.locator(catalogSel("expand")).click();
+        await expect.poll(async () => (await read()).sizes.close, { ...WAIT, message: `${where} の重ね窓で、閉じるの釦の大きさが今と違う` }).toEqual(["34x34"]);
       }
     },
     SLOW,
