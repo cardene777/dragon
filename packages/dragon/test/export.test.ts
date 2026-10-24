@@ -168,6 +168,11 @@ describe("書き出し (#2986)", () => {
         expect({ no: sameRow(no), title: sameRow(title) }, `幅 ${width}px で、段の番号が釦と同じ段に無いか、題が釦と同じ段にある`).toEqual({ no: true, title: false });
         expect(title.y, `幅 ${width}px で、題が釦の段の下に無い`).toBeGreaterThanOrEqual(buttons.y + buttons.h - 0.5);
         expect(body.y, `幅 ${width}px で、本文が題の下に無い`).toBeGreaterThanOrEqual(title.y + title.h - 0.5);
+        // 番号の箱は釦と同じ高さで、題は釦の段の下の間 (5px) の後に始まる。番号の箱が伸びると帯が高くなる (#3097)
+        expect(
+          { no: Math.round(no.h), gap: Math.round(title.y - (buttons.y + buttons.h)) },
+          `幅 ${width}px で、段の番号の箱が釦と同じ 44px でないか、題が釦の下端から 5px の所に無い`,
+        ).toEqual({ no: 44, gap: 5 });
         expect({ title: full(title), body: full(body) }, `幅 ${width}px で、題か本文が釦の左端から帯の中身の右端までの幅を使わない`).toEqual({
           title: { left: true, right: true },
           body: { left: true, right: true },
