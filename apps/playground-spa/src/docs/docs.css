@@ -342,3 +342,21 @@
     border-bottom: 1px solid var(--d-border);
   }
 }
+
+/*
+ * 指で触る時は、呼びかけの釦を指で押す的の目安の 44px にし、節の終わりの札は見た目と並びを変えずに押せる範囲だけを高さ 44px に広げる (#3079)。
+ * 札は上下に 7px ずつ押せる余白を足して同じだけ負の外側の余白で打ち消し、近くの部品より手前に置いて、広げた所を押しても札に当たるようにする
+ */
+@media (pointer: coarse) {
+  .docs-btn-primary,
+  .docs-btn-secondary {
+    box-sizing: border-box;
+    min-height: 44px;
+  }
+
+  .docs-sec-cta {
+    position: relative;
+    padding-block: 11px;
+    margin-block: -7px;
+  }
+}
