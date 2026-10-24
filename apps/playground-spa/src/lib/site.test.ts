@@ -3526,6 +3526,31 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   it(
+    "header-sheet-links-stay-44",
+    async () => {
+      // 一覧の行き先の行は、字 14px × 1.4 と上下 12px の余白を border-box の最小 44px に収めて 44px にする (#3085)。
+      // box-sizing を外すと 44px が字の部分に掛かり、行が 68px に伸びる (#3093)
+      for (const { viewport, touch } of [
+        ...PHONES.map((viewport) => ({ viewport, touch: false })),
+        { viewport: { width: 600, height: 960 }, touch: true },
+        { viewport: { width: 768, height: 1024 }, touch: true },
+      ]) {
+        const where = `${touch ? "指で触る " : ""}${viewport.width} × ${viewport.height} の一覧`;
+        const { page } = await site.open({ path: BASE, viewport, touch });
+        await onScreen(page, "home", "概要の頁が出ない");
+        await page.locator(siteSel("menu")).click();
+        await expect
+          .poll(() => page.evaluate(() => [...document.querySelectorAll(".site-sheet-link")].map((e) => e.getBoundingClientRect().height)), {
+            ...WAIT,
+            message: `${where}で、行き先の行が行き先の数だけ無いか、高さが 44px でない`,
+          })
+          .toEqual(DESTINATIONS.map(() => 44));
+      }
+    },
+    SLOW,
+  );
+
+  it(
     "coarse-header-controls-work",
     async () => {
       // 指で触る時も、行き先を帯に並べる幅で言葉、明暗、色味の切替と行き先が今と同じに働く (#3075)
