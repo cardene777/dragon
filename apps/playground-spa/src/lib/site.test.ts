@@ -1924,7 +1924,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   /**
-   * 編集画面の 2 つの帯 (道具の帯と記法の欄の上の帯) の押せる部品 (#3065)。部品ごとに `data-playground` の名前、幅と高さ、
+   * 編集画面の 2 つの帯 (道具の帯と記法の欄の上の帯) の押せる部品 (#3065)。部品ごとに `data-playground` の名前、四捨五入しない幅と高さ (#3085)、
    * 四隅から 2px 内側 (角の丸み 3px の外を避ける) を押した時にその部品に当たるか。帯を画面に入れてから読み、2 回続けて同じ値を読めた時だけ返す
    */
   const targetsOf = (page: Page): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
@@ -1949,7 +1949,7 @@ describe("サイトの帯と経路 (#3030)", () => {
                 const hit = document.elementFromPoint(x, y);
                 return hit !== null && el.contains(hit);
               });
-              return { name: el.dataset.playground ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+              return { name: el.dataset.playground ?? "", width: r.width, height: r.height, corners };
             });
         });
       };
@@ -2141,7 +2141,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   /**
-   * 編集画面の棚の押せる部品 (#3077)。部品ごとに `data-playground` の名前、幅と高さ、四隅から 2px 内側を押した時にその部品に当たるか。
+   * 編集画面の棚の押せる部品 (#3077)。部品ごとに `data-playground` の名前、四捨五入しない幅と高さ (#3085)、四隅から 2px 内側を押した時にその部品に当たるか。
    * 部品を画面に入れてから読み、2 回続けて同じ値を読めた時だけ返す
    */
   const shelfTargetsOf = (page: Page): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
@@ -2163,7 +2163,7 @@ describe("サイトの帯と経路 (#3030)", () => {
               const hit = document.elementFromPoint(x, y);
               return hit !== null && el.contains(hit);
             });
-            return { name: el.dataset.playground ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+            return { name: el.dataset.playground ?? "", width: r.width, height: r.height, corners };
           });
       const frame = () => new Promise((done) => requestAnimationFrame(done));
       const first = read();
@@ -2349,7 +2349,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
   /**
    * カタログの分類の頁の置き場 `scope` の押せる部品 (#3067)。図の下の段を送る釦 (描画の部品が持つ) は除く。
-   * 部品ごとに `data-catalog` の名前、幅と高さ、画面に入れてから四隅の 2px 内側 (角の丸みの外を避ける) を押した時にその部品に当たるか。
+   * 部品ごとに `data-catalog` の名前、四捨五入しない幅と高さ (#3085)、画面に入れてから四隅の 2px 内側 (角の丸みの外を避ける) を押した時にその部品に当たるか。
    * 2 回続けて同じ値を読めた時だけ返す
    */
   const catalogTargetsOf = (page: Page, scope: string): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
@@ -2374,7 +2374,7 @@ describe("サイトの帯と経路 (#3030)", () => {
               return hit !== null && el.contains(hit);
             });
             // 道筋の札は `data-catalog` を持たないので字で名指す (#3078)
-            return { name: el.dataset.catalog ?? el.textContent?.trim() ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+            return { name: el.dataset.catalog ?? el.textContent?.trim() ?? "", width: r.width, height: r.height, corners };
           });
       };
       const frame = () => new Promise((done) => requestAnimationFrame(done));
@@ -2834,7 +2834,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   };
 
   /**
-   * `sel` に当たる部品の数と、44px に届かないか四隅が外れる部品 (#3079)。部品を画面に入れてから四隅の 2px 内側を押した時にその部品に当たるかを見る。
+   * `sel` に当たる部品の数と、四捨五入しない幅か高さが 44px に届かないか四隅が外れる部品 (#3079、#3085)。部品を画面に入れてから四隅の 2px 内側を押した時にその部品に当たるかを見る。
    * 2 回続けて同じ値を読めた時だけ返す
    */
   const bodyShortOf = (page: Page, sel: string): Promise<{ count: number; small: string[] } | null> =>
@@ -2856,7 +2856,7 @@ describe("サイトの帯と経路 (#3030)", () => {
               const hit = document.elementFromPoint(x, y);
               return hit !== null && el.contains(hit);
             });
-            return { name: (el.textContent ?? "").trim(), width: Math.round(r.width), height: Math.round(r.height), corners };
+            return { name: (el.textContent ?? "").trim(), width: r.width, height: r.height, corners };
           });
       const frame = () => new Promise((done) => requestAnimationFrame(done));
       const first = read();
@@ -3014,7 +3014,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   };
 
   /**
-   * 置き場 `scope` に見える段を送る釦 (#3069)。釦ごとに名前 (`data-dragon`)、幅と高さ、
+   * 置き場 `scope` に見える段を送る釦 (#3069)。釦ごとに名前 (`data-dragon`)、四捨五入しない幅と高さ (#3085)、
    * 画面に入れてから四隅の 4px 内側 (角の丸み 12px の外を避ける) を押した時にその釦に当たるか
    */
   const playerButtonsOf = (page: Page, scope: string): Promise<{ name: string; width: number; height: number; corners: boolean }[]> =>
@@ -3036,7 +3036,7 @@ describe("サイトの帯と経路 (#3030)", () => {
             const hit = document.elementFromPoint(x, y);
             return hit !== null && el.contains(hit);
           });
-          return { name: el.dataset.dragon ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+          return { name: el.dataset.dragon ?? "", width: r.width, height: r.height, corners };
         });
     }, scope);
 
@@ -3096,7 +3096,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       for (const place of PLAYER_PLACES) {
         const { page, scope } = await openPlayerPlace(viewport, place);
         await expect
-          .poll(async () => [...new Set((await playerButtonsOf(page, scope)).map((b) => `${b.width}x${b.height}`))], {
+          .poll(async () => [...new Set((await playerButtonsOf(page, scope)).map((b) => `${Math.round(b.width)}x${Math.round(b.height)}`))], {
             ...WAIT,
             message: `1440 × 900 の ${place} で、段を送る釦の大きさが今と違う`,
           })
@@ -3209,7 +3209,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
   /**
    * 見出しの帯か開いた一覧 `scope` の押せる部品 (#3071)。
-   * 部品ごとに `data-site` の名前 (無ければ見えている字の 1 行目)、幅と高さ、四隅の 2px 内側を押した時にその部品に当たるか。
+   * 部品ごとに `data-site` の名前 (無ければ見えている字の 1 行目)、四捨五入しない幅と高さ (#3085)、四隅の 2px 内側を押した時にその部品に当たるか。
    * 2 回続けて同じ値を読めた時だけ返す
    */
   const headerTargetsOf = (page: Page, scope: string): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
@@ -3232,7 +3232,7 @@ describe("サイトの帯と経路 (#3030)", () => {
               const hit = document.elementFromPoint(x, y);
               return hit !== null && el.contains(hit);
             });
-            return { name: el.dataset.site ?? el.innerText.trim().split("\n")[0] ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+            return { name: el.dataset.site ?? el.innerText.trim().split("\n")[0] ?? "", width: r.width, height: r.height, corners };
           });
       };
       const frame = () => new Promise((done) => requestAnimationFrame(done));
@@ -3351,7 +3351,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         const { page } = await site.open({ path: BASE, viewport });
         await onScreen(page, "home", "概要の頁が出ない");
         await expect
-          .poll(async () => (await headerTargetsOf(page, siteSel("header")))?.map((p) => `${p.name} ${p.width}x${p.height}`), { ...WAIT, message: `${size} の見出しの帯の部品の大きさが今と違う` })
+          .poll(async () => (await headerTargetsOf(page, siteSel("header")))?.map((p) => `${p.name} ${Math.round(p.width)}x${Math.round(p.height)}`), { ...WAIT, message: `${size} の見出しの帯の部品の大きさが今と違う` })
           .toEqual(expected[size]);
       }
     },
@@ -3521,7 +3521,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         .poll(() => headerFoldOf(page), { ...WAIT, message: "マウスで使う 768 × 1024 で、行き先か色味の切替が畳まれている" })
         .toEqual({ nav: true, palette: true, menu: false });
       await expect
-        .poll(async () => (await headerTargetsOf(page, siteSel("header")))?.map((p) => `${p.name} ${p.width}x${p.height}`), { ...WAIT, message: "マウスで使う 768 × 1024 の見出しの帯の部品の大きさが今と違う" })
+        .poll(async () => (await headerTargetsOf(page, siteSel("header")))?.map((p) => `${p.name} ${Math.round(p.width)}x${Math.round(p.height)}`), { ...WAIT, message: "マウスで使う 768 × 1024 の見出しの帯の部品の大きさが今と違う" })
         .toEqual([
           "dragon 85x27",
           "概要 38x33",
