@@ -2810,6 +2810,185 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /**
+   * 指で触る時に確かめる概要と使い方の頁の本文の部品 (#3079)。`targets` は枠のある釦と字だけの札、`links` はそのうち字だけの札。
+   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと節の終わりの札 9 つ
+   */
+  const BODY_PAGES = [
+    { path: "", screen: "home", targets: '[data-home="hero"] a, [data-home="uses-more"] a, [data-home="closing"] a', links: '[data-home="uses-more"] a', count: 5 },
+    { path: "docs", screen: "docs", targets: '[data-docs="cta"] a, a[data-docs="section-cta"]', links: 'a[data-docs="section-cta"]', count: 11 },
+  ] as const;
+
+  /** 指で触る端末を模して 2 つの頁を確かめる画面の大きさ (#3079) */
+  const TOUCH_PAGE_SIZES = [
+    { width: 360, height: 780 },
+    { width: 768, height: 1024 },
+    { width: 1366, height: 1024 },
+  ] as const;
+
+  /** 頁 `body` を開く。`touch` の時は指で触る端末を模す (#3079) */
+  const openBodyPage = async (viewport: { width: number; height: number }, body: (typeof BODY_PAGES)[number], touch = false): Promise<Page> => {
+    const { page } = await site.open({ path: `${BASE}${body.path}`, viewport, touch });
+    await onScreen(page, body.screen, `${viewport.width} × ${viewport.height} で${body.screen === "home" ? "概要" : "使い方"}の頁が出ない`);
+    return page;
+  };
+
+  /**
+   * `sel` に当たる部品の数と、44px に届かないか四隅が外れる部品 (#3079)。部品を画面に入れてから四隅の 2px 内側を押した時にその部品に当たるかを見る。
+   * 2 回続けて同じ値を読めた時だけ返す
+   */
+  const bodyShortOf = (page: Page, sel: string): Promise<{ count: number; small: string[] } | null> =>
+    page.evaluate(async (sel) => {
+      await document.fonts.ready;
+      const read = (): { name: string; width: number; height: number; corners: boolean }[] =>
+        [...document.querySelectorAll<HTMLElement>(sel)]
+          .filter((el) => el.checkVisibility())
+          .map((el) => {
+            el.scrollIntoView({ block: "center" });
+            const r = el.getBoundingClientRect();
+            const points: [number, number][] = [
+              [r.left + 2, r.top + 2],
+              [r.right - 2, r.top + 2],
+              [r.left + 2, r.bottom - 2],
+              [r.right - 2, r.bottom - 2],
+            ];
+            const corners = points.every(([x, y]) => {
+              const hit = document.elementFromPoint(x, y);
+              return hit !== null && el.contains(hit);
+            });
+            return { name: (el.textContent ?? "").trim(), width: Math.round(r.width), height: Math.round(r.height), corners };
+          });
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      if (JSON.stringify(first) !== JSON.stringify(second)) return null;
+      return {
+        count: second.length,
+        small: second.filter((p) => p.width < 44 || p.height < 44 || !p.corners).map((p) => `${p.name} ${p.width}x${p.height}${p.corners ? "" : " 隅が外れる"}`),
+      };
+    }, sel);
+
+  it(
+    "coarse-pages-touch-targets",
+    async () => {
+      // 指で触る時、概要と使い方の頁の釦は高さ 40px、字だけの札は 30px で指で押し違えやすかった (#3079)。
+      // 釦は見た目ごと、字だけの札は押せる範囲だけを 44px にする
+      for (const viewport of TOUCH_PAGE_SIZES) {
+        for (const body of BODY_PAGES) {
+          const page = await openBodyPage(viewport, body, true);
+          await expect
+            .poll(() => bodyShortOf(page, body.targets), { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の${body.screen === "home" ? "概要" : "使い方"}の頁で、釦か札が揃わないか、44px に届かない` })
+            .toEqual({ count: body.count, small: [] });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  /**
+   * 字だけの札ごとに、すぐ上の部品の下端から字の上端までと、字の下端から札を持つ区画の下端まで (#3079)。
+   * 区画の高さでは比べない。指で触る時は区画の中の図の段を送る釦が大きくなり (#3076)、札と関係なく区画が高くなる
+   */
+  const textLinkPlacesOf = (page: Page, sel: string): Promise<{ above: number; below: number }[]> =>
+    page.evaluate(async (sel) => {
+      await document.fonts.ready;
+      const half = (v: number): number => Math.round(v * 2) / 2;
+      return [...document.querySelectorAll<HTMLElement>(sel)]
+        .filter((el) => el.checkVisibility())
+        .map((el) => {
+          const section = el.closest("section");
+          let node: Element | null = el;
+          while (node && node !== section && !node.previousElementSibling) node = node.parentElement;
+          const prev = node?.previousElementSibling?.getBoundingClientRect();
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const text = range.getBoundingClientRect();
+          return { above: half(text.top - (prev?.bottom ?? Number.NaN)), below: half((section?.getBoundingClientRect().bottom ?? Number.NaN) - text.bottom) };
+        });
+    }, sel);
+
+  it(
+    "coarse-pages-text-links-keep-place",
+    async () => {
+      // 字だけの札は見た目と並びを変えずに押せる範囲だけを広げる。指で触る時も字の位置と区画の高さはマウスで使う時と同じ (#3079)
+      for (const viewport of TOUCH_PAGE_SIZES) {
+        for (const body of BODY_PAGES) {
+          const mouse = await textLinkPlacesOf(await openBodyPage(viewport, body), body.links);
+          expect(mouse.length, `${viewport.width} × ${viewport.height} の${body.screen === "home" ? "概要" : "使い方"}の頁に字だけの札が無い`).toBeGreaterThan(0);
+          expect(
+            mouse.every((p) => Number.isFinite(p.above) && Number.isFinite(p.below)),
+            `${viewport.width} × ${viewport.height} の${body.screen === "home" ? "概要" : "使い方"}の頁で、字だけの札の上の部品か区画が見つからない`,
+          ).toBe(true);
+          const touch = await openBodyPage(viewport, body, true);
+          await expect
+            .poll(() => textLinkPlacesOf(touch, body.links), {
+              ...WAIT,
+              message: `指で触る ${viewport.width} × ${viewport.height} の${body.screen === "home" ? "概要" : "使い方"}の頁で、字だけの札の字の位置か区画の高さがマウスで使う時と違う`,
+            })
+            .toEqual(mouse);
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-pages-links-work",
+    async () => {
+      // 指で触る時に釦と札を大きくしても、押した時の行き先は今と同じ (#3079)
+      const viewport = { width: 768, height: 1024 };
+      const [home, docs] = BODY_PAGES;
+      const go = async (body: (typeof BODY_PAGES)[number], sel: string, want: string, what: string): Promise<void> => {
+        const page = await openBodyPage(viewport, body, true);
+        const link = page.locator(sel).first();
+        const href = await link.getAttribute("href");
+        await link.click();
+        const where = want === "hash" ? new URL(href ?? "", "http://x").hash : want;
+        await expect
+          .poll(() => page.evaluate((hash) => (hash ? location.hash : location.pathname), want === "hash"), { ...WAIT, message: `指で触る 768 × 1024 で、${what}を押しても行き先へ移らない` })
+          .toBe(where);
+      };
+      await go(home, '[data-home="hero"] a', `${BASE}editor`, "概要の呼びかけの編集画面を開く");
+      await go(home, '[data-home="uses-more"] a', `${BASE}catalog`, "用例の下のカタログで図を見る");
+      await go(docs, '[data-docs="cta"] a', `${BASE}editor`, "使い方の呼びかけの 5 分で始める");
+      await go(docs, 'a[data-docs="section-cta"][href^="#"]', "hash", "使い方の節の終わりの続きの札");
+    },
+    SLOW,
+  );
+
+  it(
+    "mouse-tablet-pages-keep-size",
+    async () => {
+      // マウスで使う時は、768px でも概要と使い方の頁の釦と札は今の大きさのまま (#3079)
+      for (const viewport of [
+        { width: 768, height: 1024 },
+        { width: 1440, height: 900 },
+      ]) {
+        for (const body of BODY_PAGES) {
+          const page = await openBodyPage(viewport, body);
+          await expect
+            .poll(
+              () =>
+                page.evaluate(
+                  async ({ targets, links }) => {
+                    await document.fonts.ready;
+                    const heights = (els: Element[]): number[] => [...new Set(els.filter((el) => el.checkVisibility()).map((el) => Math.round(el.getBoundingClientRect().height)))];
+                    const text = [...document.querySelectorAll(links)];
+                    return { buttons: heights([...document.querySelectorAll(targets)].filter((el) => !text.includes(el))), links: heights(text) };
+                  },
+                  { targets: body.targets, links: body.links },
+                ),
+              { ...WAIT, message: `マウスで使う ${viewport.width} × ${viewport.height} の${body.screen === "home" ? "概要" : "使い方"}の頁で、釦か字だけの札の高さが今と違う` },
+            )
+            .toEqual({ buttons: [40], links: [30] });
+        }
+      }
+    },
+    SLOW,
+  );
+
   /** 段を送る釦を確かめる置き場。oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁 (#3069) */
   const PLAYER_PLACES = ["editor", "catalog", "overlay", "docs"] as const;
 
