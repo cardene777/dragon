@@ -2663,7 +2663,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "coarse-catalog-crumb-keeps-place",
     async () => {
-      // 道筋の札は字の位置を変えずに押せる範囲だけを広げる。最初の札の字は頁の題と左端が揃い、隣の札と押せる範囲が重ならない (#3078)
+      // 道筋の札は字の位置を変えずに押せる範囲だけを広げる。最初の札の字は頁の題と左端が揃い、押せる範囲が隣の札にも区切りの › にも掛からない (#3078)
       for (const viewport of TOUCH_CATALOG_SIZES) {
         const page = await openSequence(viewport, true);
         await expect
@@ -2681,12 +2681,15 @@ describe("サイトの帯と経路 (#3030)", () => {
                 const title = document.querySelector(".catalog-title");
                 if (!first || !title) return null;
                 const boxes = links.map((a) => a.getBoundingClientRect());
+                // 押せる範囲は区切りの › に掛けず、札の間に押しても何も起きない隙間を残す
+                const marks = [...document.querySelectorAll<HTMLElement>('[data-catalog="crumb"] > [aria-hidden="true"]')].map((m) => m.getBoundingClientRect());
+                const meets = (a: DOMRect, b: DOMRect): boolean => a.left < b.right - 0.5 && b.left < a.right - 0.5;
                 return {
                   aligned: Math.abs(textLeft(first) - textLeft(title)) < 1,
-                  apart: boxes.every((r, i) => i === 0 || r.left >= (boxes[i - 1]?.right ?? 0) - 0.5),
+                  apart: marks.length > 0 && boxes.every((r, i) => boxes.slice(i + 1).every((q) => !meets(r, q)) && marks.every((m) => !meets(r, m))),
                 };
               }),
-            { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の時系列図の分類の頁で、道筋の最初の札の字が題と揃わないか、札の押せる範囲が重なる` },
+            { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の時系列図の分類の頁で、道筋の最初の札の字が題と揃わないか、札の押せる範囲が隣の札か区切りに掛かる` },
           )
           .toEqual({ aligned: true, apart: true });
       }
