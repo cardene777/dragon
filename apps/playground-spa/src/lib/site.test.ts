@@ -2643,18 +2643,39 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /** 帯の行き先のうち、字の幅と左右の余白の和より枠が狭い (縮んで隣と字が詰まる) 物の名前 (#3075) */
+  const squeezedOf = (page: Page): Promise<string[]> =>
+    page.evaluate(() =>
+      [...document.querySelectorAll<HTMLAnchorElement>('[data-site="nav"] a')]
+        .filter((a) => a.getClientRects().length > 0)
+        .filter((a) => {
+          const range = document.createRange();
+          range.selectNodeContents(a);
+          const style = getComputedStyle(a);
+          const room = range.getBoundingClientRect().width + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+          return a.getBoundingClientRect().width + 0.5 < room;
+        })
+        .map((a) => (a.textContent ?? "").trim()),
+    );
+
   it(
     "coarse-header-folds-below-900",
     async () => {
-      // 指で触る時、900px 以下では行き先と色味の切替を一覧に畳み、携帯の幅と同じ形にする (#3075)
+      // 指で触る時、900px 以下では行き先と色味の切替を一覧に畳み、携帯の幅と同じ形にする (#3075)。
+      // 901 から 1000px では 44px の部品が 1 行に収まらず行き先が縮むので、外側の編集画面を開く釦から隠す
       for (const [viewport, expected] of [
-        [{ width: 768, height: 1024 }, { nav: false, palette: false, menu: true }],
-        [{ width: 1024, height: 1366 }, { nav: true, palette: true, menu: false }],
+        [{ width: 768, height: 1024 }, { nav: false, palette: false, menu: true, cta: false, squeezed: [] }],
+        [{ width: 901, height: 1200 }, { nav: true, palette: true, menu: false, cta: false, squeezed: [] }],
+        [{ width: 1000, height: 1200 }, { nav: true, palette: true, menu: false, cta: false, squeezed: [] }],
+        [{ width: 1024, height: 1366 }, { nav: true, palette: true, menu: false, cta: true, squeezed: [] }],
       ] as const) {
         const { page } = await site.open({ path: BASE, viewport, touch: true });
         await onScreen(page, "home", "概要の頁が出ない");
         await expect
-          .poll(() => headerFoldOf(page), { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} で、行き先と色味の切替の畳み方が違う` })
+          .poll(async () => ({ ...(await headerFoldOf(page)), cta: await page.locator(`${siteSel("header")} ${siteSel("open-editor")}`).isVisible(), squeezed: await squeezedOf(page) }), {
+            ...WAIT,
+            message: `指で触る ${viewport.width} × ${viewport.height} で、行き先と色味の切替の畳み方か、編集画面を開く釦の出し方が違うか、行き先が縮んでいる`,
+          })
           .toEqual(expected);
       }
     },
