@@ -742,10 +742,10 @@ describe("公開する頁 (#2995)", () => {
       await click(page, "shelf-tab-notation");
       await expect.poll(async () => (await items(page, "syntax-")).length, { ...WAIT, message: "記法の早見が無い" }).toBeGreaterThan(5);
 
-      // 新規作成で、読める雛形が書く欄に入り、書類名が新しい名前になる
+      // 新規作成で、読める雛形が書く欄に入り、書類名が新しい名前になる。欄には拡張子を出さない (#3087)
       await click(page, "new-file");
       await expect.poll(async () => (await editorDiagram(page)) !== undefined, { ...WAIT, message: "新規作成の雛形が読めない" }).toBe(true);
-      expect(await page.locator(sel("file-name")).inputValue(), "新規作成で書類名が新しい名前にならない").toBe("untitled.dragon");
+      expect(await page.locator(sel("file-name")).inputValue(), "新規作成で書類名が新しい名前にならない").toBe("untitled");
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "新規作成の雛形で図が描かれない" }).toContain((await editorDiagram(page))?.title ?? "");
     },
     SLOW,
@@ -759,13 +759,14 @@ describe("公開する頁 (#2995)", () => {
       for (const name of ["tab-notation", "tab-json", "file-name", "import", "export"]) {
         await expect.poll(() => count(page, name), { ...WAIT, message: `書く欄の上に ${name} が無い` }).toBe(1);
       }
-      expect(await page.locator(sel("file-name")).inputValue(), "開いた見本の書類名でない").toBe("oauth.dragon");
+      // 書類名の欄には拡張子を出さない (#3087)
+      expect(await page.locator(sel("file-name")).inputValue(), "開いた見本の書類名でない").toBe("oauth");
 
       // 取り込んだ file の記法が書く欄に入り、書類名がその file の名前になる
       await page.locator(sel("import-file")).setInputFiles({ name: "edited.dragon", mimeType: "text/plain", buffer: Buffer.from(EDITED, "utf8") });
       await expect.poll(() => editorValue(page), { ...WAIT, message: "取り込んだ記法が書く欄に入らない" }).toBe(EDITED);
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "取り込んだ記法で図が描かれない" }).toContain("書き換えた図");
-      expect(await page.locator(sel("file-name")).inputValue(), "書類名が取り込んだ file の名前にならない").toBe("edited.dragon");
+      expect(await page.locator(sel("file-name")).inputValue(), "書類名が取り込んだ file の名前にならない").toBe("edited");
 
       // 書き出すと、今の記法が書類名の `.dragon` の file として保存される
       const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);

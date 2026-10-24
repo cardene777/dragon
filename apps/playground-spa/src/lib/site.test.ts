@@ -2262,6 +2262,40 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   it(
+    "coarse-editor-file-name-fits",
+    async () => {
+      // 指で触るタブレットの英語では書類名の欄が 44px まで縮み、見本の oauth が「oaut…」までしか見えなかった (#3087)。
+      // 欄には拡張子を外した名前を出し、書き出す時に `.dragon` を付ける
+      for (const viewport of [
+        { width: 768, height: 1024 },
+        { width: 834, height: 1194 },
+        { width: 1024, height: 768 },
+      ]) {
+        for (const lang of ["ja", "en"] as const) {
+          const where = `指で触る ${viewport.width} × ${viewport.height} の${lang === "en" ? "英語の" : ""}編集画面`;
+          const page = await openEditor(viewport, "oauth", true, true);
+          if (lang === "en") {
+            await page.locator(siteSel("lang-en")).click();
+            await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${where} で、英語に切り替わらない` }).toBe("en");
+          }
+          await expect
+            .poll(
+              () =>
+                page.evaluate(async () => {
+                  await document.fonts.ready;
+                  const field = document.querySelector<HTMLInputElement>('.pg-bar [data-playground="file-name"]');
+                  return field && { name: field.value, cut: field.scrollWidth > field.clientWidth };
+                }),
+              { ...WAIT, message: `${where} で、書類名の欄に oauth と出ないか、字が欄の中で切れる` },
+            )
+            .toEqual({ name: "oauth", cut: false });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
     "coarse-editor-controls-work",
     async () => {
       // 指で触る時に部品を 44px にしても、棚と 2 つの帯の部品の働きは今と同じ (#3077)
