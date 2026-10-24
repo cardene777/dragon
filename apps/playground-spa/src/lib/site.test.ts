@@ -2456,6 +2456,157 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /**
+   * 見出しの帯か開いた一覧 `scope` の押せる部品 (#3071)。
+   * 部品ごとに `data-site` の名前 (無ければ見えている字の 1 行目)、幅と高さ、四隅の 2px 内側を押した時にその部品に当たるか。
+   * 2 回続けて同じ値を読めた時だけ返す
+   */
+  const headerTargetsOf = (page: Page, scope: string): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
+    page.evaluate(async (scope) => {
+      await document.fonts.ready;
+      const read = () => {
+        const root = document.querySelector(scope);
+        if (!root) return null;
+        return [...root.querySelectorAll<HTMLElement>("button, a[href]")]
+          .filter((el) => el.checkVisibility())
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            const points: [number, number][] = [
+              [r.left + 2, r.top + 2],
+              [r.right - 2, r.top + 2],
+              [r.left + 2, r.bottom - 2],
+              [r.right - 2, r.bottom - 2],
+            ];
+            const corners = points.every(([x, y]) => {
+              const hit = document.elementFromPoint(x, y);
+              return hit !== null && el.contains(hit);
+            });
+            return { name: el.dataset.site ?? el.innerText.trim().split("\n")[0] ?? "", width: Math.round(r.width), height: Math.round(r.height), corners };
+          });
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    }, scope);
+
+  /** `scope` の押せる部品の数と、44px に届かないか四隅が外れる部品 (#3071) */
+  const headerShortOf = async (page: Page, scope: string): Promise<{ count: number; small: string[] } | null> => {
+    const parts = await headerTargetsOf(page, scope);
+    return parts && { count: parts.length, small: parts.filter((p) => p.width < 44 || p.height < 44 || !p.corners).map((p) => `${p.name} ${p.width}x${p.height}${p.corners ? "" : " 隅が外れる"}`) };
+  };
+
+  it(
+    "narrow-header-touch-targets",
+    async () => {
+      // 携帯の幅の見出しの帯は、部品が 25 から 29px で、日本語と英語の切替は間が 1px しか無く、指で押し違えやすかった (#3071)。
+      // 指で押す的の目安は 44 × 44px。帯に残る部品は名前の札、日本語と英語の切替、明暗の釦、一覧を開く釦の 5 つ
+      for (const viewport of PHONES) {
+        const { page } = await site.open({ path: BASE, viewport });
+        await onScreen(page, "home", "概要の頁が出ない");
+        await expect
+          .poll(() => headerShortOf(page, siteSel("header")), { ...WAIT, message: `${viewport.width} × ${viewport.height} の見出しの帯で、部品が 5 つ無いか、44px に届かない部品がある` })
+          .toEqual({ count: 5, small: [] });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-header-sheet-touch-targets",
+    async () => {
+      // 一覧の中の色味の札は高さ 32px、編集画面を開く釦は 42px だった (#3071)。行き先 6 つ、色味の札 3 つ、編集画面を開く釦の 10 個
+      for (const viewport of PHONES) {
+        const { page } = await site.open({ path: BASE, viewport });
+        await onScreen(page, "home", "概要の頁が出ない");
+        await page.locator(siteSel("menu")).click();
+        await expect
+          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の開いた一覧で、部品が 10 個無いか、44px に届かない部品がある` })
+          .toEqual({ count: 10, small: [] });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "narrow-header-controls-work",
+    async () => {
+      // 部品を大きくしても、言葉、明暗、一覧、色味の切替が今と同じに働く (#3071)
+      const surface = (page: Page): Promise<string> => page.evaluate(() => getComputedStyle(document.querySelector('[data-site="header"]') as Element).backgroundColor);
+      for (const viewport of PHONES) {
+        const where = `${viewport.width} × ${viewport.height} の概要の頁`;
+        const { page } = await site.open({ path: BASE, viewport });
+        await onScreen(page, "home", "概要の頁が出ない");
+
+        await page.locator(siteSel("lang-en")).click();
+        await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${where} で、英語に切り替わらない` }).toBe("en");
+        await page.locator(siteSel("lang-ja")).click();
+        await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${where} で、日本語に戻らない` }).toBe("ja");
+
+        const label = await page.locator(siteSel("theme")).getAttribute("aria-label");
+        const light = await surface(page);
+        await page.locator(siteSel("theme")).click();
+        await expect
+          .poll(async () => ({ label: (await page.locator(siteSel("theme")).getAttribute("aria-label")) !== label, surface: (await surface(page)) !== light }), {
+            ...WAIT,
+            message: `${where} で、明暗の釦を押しても明暗が替わらない`,
+          })
+          .toEqual({ label: true, surface: true });
+
+        await page.locator(siteSel("menu")).click();
+        await expect.poll(async () => (await navOf(page, "sheet")).length, { ...WAIT, message: `${where} で、一覧を開く釦で一覧が開かない` }).toBe(DESTINATIONS.length);
+        await page.locator(siteSel("menu")).click();
+        await expect.poll(async () => (await navOf(page, "sheet")).length, { ...WAIT, message: `${where} で、一覧を開く釦をもう一度押しても一覧が閉じない` }).toBe(0);
+
+        await page.locator(siteSel("menu")).click();
+        const before = await surface(page);
+        await page.locator(`${siteSel("sheet-palette")} ${siteSel("palette-night")}`).click();
+        await expect.poll(() => surface(page), { ...WAIT, message: `${where} で、一覧の色味の札で色味が替わらない` }).not.toBe(before);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "wide-header-keeps-size",
+    async () => {
+      // 440px 以上の見出しの帯の部品は今の大きさのまま (#3071)
+      const expected = {
+        "560 × 900": ["dragon 85x27", "lang-ja 31x25", "lang-en 32x25", "theme 29x27", "menu 29x27"],
+        "1440 × 900": [
+          "dragon 250x27",
+          "概要 48x35",
+          "カタログ 74x35",
+          "編集画面 74x35",
+          "使い方 61x35",
+          "更新履歴 74x35",
+          "GitHub ↗ 81x35",
+          "lang-ja 31x25",
+          "lang-en 32x25",
+          "palette-clear 23x21",
+          "palette-paper 23x21",
+          "palette-night 23x21",
+          "theme 29x27",
+          "open-editor 131x31",
+        ],
+      } as const;
+      for (const viewport of [
+        { width: 560, height: 900 },
+        { width: 1440, height: 900 },
+      ]) {
+        const size = `${viewport.width} × ${viewport.height}` as keyof typeof expected;
+        const { page } = await site.open({ path: BASE, viewport });
+        await onScreen(page, "home", "概要の頁が出ない");
+        await expect
+          .poll(async () => (await headerTargetsOf(page, siteSel("header")))?.map((p) => `${p.name} ${p.width}x${p.height}`), { ...WAIT, message: `${size} の見出しの帯の部品の大きさが今と違う` })
+          .toEqual(expected[size]);
+      }
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {

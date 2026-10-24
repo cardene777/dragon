@@ -414,6 +414,37 @@ textarea:focus-visible {
   text-decoration: none;
 }
 
+/*
+ * 携帯の幅では、帯と一覧の押せる部品の枠を指で押す的の目安の 44 × 44px にする (#3071)。
+ * 帯は 60px のままで、部品の上下に 8px ずつ残る。日本語と英語の切替は 1 つの組のまま大きくする
+ */
+@media (max-width: 439px) {
+  .site-brand {
+    min-height: 44px;
+  }
+  .site-lang button {
+    min-width: 44px;
+    height: 44px;
+    padding: 0 9px;
+    font-size: 12px;
+  }
+  .site-icon-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+  .site-sheet-swatch {
+    min-height: 44px;
+  }
+  .site-sheet-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .site-sheet {
     animation: site-sheet-in 140ms ease-out;
