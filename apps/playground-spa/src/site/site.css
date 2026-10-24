@@ -494,6 +494,16 @@ textarea:focus-visible {
   }
 }
 
+/*
+ * 指で触る時は 44px の部品が 1 行に収まるのが約 994px からなので、マウスで使う時と同じく外側の編集画面を開く釦から隠す (#3075)。
+ * 編集画面へは行き先の「編集画面」から移れる
+ */
+@media (pointer: coarse) and (max-width: 1000px) {
+  .site-cta {
+    display: none;
+  }
+}
+
 /* 指で触る時は 900px 以下で行き先と色味の切替を畳み、44px の部品どうしが詰まらない携帯の幅と同じ形にする (#3075) */
 @media (pointer: coarse) and (max-width: 900px) {
   .site-nav,
