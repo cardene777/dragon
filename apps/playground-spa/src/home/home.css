@@ -621,3 +621,20 @@
     padding-block: 64px;
   }
 }
+
+/*
+ * 指で触る時は、本文の釦を指で押す的の目安の 44px にし、字だけの札は見た目と並びを変えずに押せる範囲だけを高さ 44px に広げる (#3079)。
+ * 札は上下に押せる余白を足し、同じだけ負の外側の余白で打ち消す
+ */
+@media (pointer: coarse) {
+  .home-btn-primary,
+  .home-btn-secondary {
+    box-sizing: border-box;
+    min-height: 44px;
+  }
+
+  .home-link {
+    padding-block: 11px;
+    margin-block: -11px;
+  }
+}
