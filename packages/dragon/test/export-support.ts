@@ -99,11 +99,20 @@ export function formatOf(bytes: Buffer): Format | "unknown" {
 
 const MEDIABUNNY = join(dirname(require_.resolve("mediabunny")), "mediabunny.min.mjs");
 
-/** `http://localhost/` に頁を置いた Chromium で `run` を回す。WebCodecs は安全な頁でしか使えない */
-async function withPage<T>(html: string, viewport: { width: number; height: number }, run: (page: Page) => Promise<T>, extra: Record<string, Buffer> = {}): Promise<T> {
+/**
+ * `http://localhost/` に頁を置いた Chromium で `run` を回す。WebCodecs は安全な頁でしか使えない。
+ * `touch` の時は指で触る端末を模し、`(pointer: coarse)` が当たる (#3076)
+ */
+async function withPage<T>(
+  html: string,
+  viewport: { width: number; height: number },
+  run: (page: Page) => Promise<T>,
+  extra: Record<string, Buffer> = {},
+  touch = false,
+): Promise<T> {
   const browser = await chromium.launch();
   try {
-    const page = await browser.newPage({ viewport });
+    const page = await browser.newPage({ viewport, hasTouch: touch });
     await page.route("http://localhost/**", async (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path === "/") return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
@@ -257,17 +266,26 @@ export async function captionLayout(html: string, width: number): Promise<Captio
   });
 }
 
-/** 書き出した HTML を幅 `width` で開き、段を送る釦 (前、再生、次) の幅と高さを `幅x高さ` の形で読む (#3069) */
-export async function playerButtons(html: string, width: number): Promise<string[]> {
-  return withPage(html, { width, height: 2000 }, async (page) => {
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
-    return page.evaluate(() =>
-      [...document.querySelectorAll(".dg-btn")].map((button) => {
-        const box = button.getBoundingClientRect();
-        return `${Math.round(box.width)}x${Math.round(box.height)}`;
-      }),
-    );
-  });
+/**
+ * 書き出した HTML を幅 `width` で開き、段を送る釦 (前、再生、次) の幅と高さを `幅x高さ` の形で読む (#3069)。
+ * `touch` の時は指で触る端末を模して開く (#3076)
+ */
+export async function playerButtons(html: string, width: number, touch = false): Promise<string[]> {
+  return withPage(
+    html,
+    { width, height: 2000 },
+    async (page) => {
+      await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+      return page.evaluate(() =>
+        [...document.querySelectorAll(".dg-btn")].map((button) => {
+          const box = button.getBoundingClientRect();
+          return `${Math.round(box.width)}x${Math.round(box.height)}`;
+        }),
+      );
+    },
+    {},
+    touch,
+  );
 }
 
 export async function playerWords(html: string, width: number): Promise<PlayerWords> {

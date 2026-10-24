@@ -195,4 +195,16 @@ describe("書き出し (#2986)", () => {
     },
     SLOW,
   );
+
+  it(
+    "html-export-coarse-player-buttons",
+    async () => {
+      // 指で触るタブレットでは、広い帯の段を送る釦も 36px で押しにくかった (#3076)。指で触る時は帯の幅に関わらず 44px にする
+      const exportDiagram = await exporter();
+      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
+      const html = readFileSync(result.files.html as string, "utf8");
+      expect(await playerButtons(html, 1024, true), "指で触る幅 1024px で、段を送る釦が 44x44 でない").toEqual(["44x44", "44x44", "44x44"]);
+    },
+    SLOW,
+  );
 });

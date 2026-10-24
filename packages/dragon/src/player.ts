@@ -76,6 +76,9 @@ function playerCss(): string {
       `.dg-tt{grid-area:2/1/3/3}` +
       `.dg-tb{grid-area:3/1/4/3}` +
       `}`,
+    // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは横 1 列のまま変えない。
+    // 広い帯は本文が 2 行あれば帯の高さが変わらず、本文の無い帯だけが釦の分だけ高くなる
+    `@media (pointer: coarse){.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}}`,
   ].join("");
 }
 
