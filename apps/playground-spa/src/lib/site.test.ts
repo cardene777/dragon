@@ -2607,6 +2607,168 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /**
+   * 指で触る端末を模して開く画面の大きさ (#3075)。
+   * 600 は一覧を開く釦が出る幅、768 は 900px 以下、1024 と 1366 は行き先を帯に並べる幅
+   */
+  const TOUCH_SIZES = [
+    { width: 600, height: 960 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 1366 },
+    { width: 1366, height: 1024 },
+  ] as const;
+
+  /** 帯の行き先と色味の切替が見えているか、一覧を開く釦が見えているか (#3075) */
+  const headerFoldOf = async (page: Page): Promise<{ nav: boolean; palette: boolean; menu: boolean }> => ({
+    nav: (await navOf(page)).some((n) => n.visible),
+    palette: await page.locator(siteSel("palette")).isVisible(),
+    menu: await page.locator(siteSel("menu")).isVisible(),
+  });
+
+  it(
+    "coarse-header-touch-targets",
+    async () => {
+      // 指で触るタブレットの見出しの帯は、部品が 21 から 35px で指で押し違えやすかった (#3075)。指で触る時は幅に関わらず 44 × 44px にする
+      for (const viewport of TOUCH_SIZES) {
+        const { page } = await site.open({ path: BASE, viewport, touch: true });
+        await onScreen(page, "home", "概要の頁が出ない");
+        await expect
+          .poll(async () => {
+            const short = await headerShortOf(page, siteSel("header"));
+            return short && { some: short.count > 0, small: short.small };
+          }, { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の見出しの帯で、部品が無いか、44px に届かない部品がある` })
+          .toEqual({ some: true, small: [] });
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-header-folds-below-900",
+    async () => {
+      // 指で触る時、900px 以下では行き先と色味の切替を一覧に畳み、携帯の幅と同じ形にする (#3075)
+      for (const [viewport, expected] of [
+        [{ width: 768, height: 1024 }, { nav: false, palette: false, menu: true }],
+        [{ width: 1024, height: 1366 }, { nav: true, palette: true, menu: false }],
+      ] as const) {
+        const { page } = await site.open({ path: BASE, viewport, touch: true });
+        await onScreen(page, "home", "概要の頁が出ない");
+        await expect
+          .poll(() => headerFoldOf(page), { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} で、行き先と色味の切替の畳み方が違う` })
+          .toEqual(expected);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-header-sheet-touch-targets",
+    async () => {
+      // 指で触る時の一覧の部品も 44 × 44px にする (#3075)。行き先 6 つ、色味の札 3 つ、編集画面を開く釦の 10 個
+      for (const viewport of [
+        { width: 600, height: 960 },
+        { width: 768, height: 1024 },
+      ]) {
+        const where = `指で触る ${viewport.width} × ${viewport.height} の一覧`;
+        const { page } = await site.open({ path: BASE, viewport, touch: true });
+        await onScreen(page, "home", "概要の頁が出ない");
+        await page.locator(siteSel("menu")).click();
+        await expect
+          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${where}で、部品が 10 個無いか、44px に届かない部品がある` })
+          .toEqual({ count: 10, small: [] });
+        await page.locator(`${siteSel("sheet")} a`, { hasText: "使い方" }).click();
+        await onScreen(page, "docs", `${where}から使い方の頁へ移れない`);
+        await expect.poll(async () => (await navOf(page, "sheet")).length, { ...WAIT, message: `${where}が、移った後も開いたまま` }).toBe(0);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-header-controls-work",
+    async () => {
+      // 指で触る時も、行き先を帯に並べる幅で言葉、明暗、色味の切替と行き先が今と同じに働く (#3075)
+      const surface = (page: Page): Promise<string> => page.evaluate(() => getComputedStyle(document.querySelector('[data-site="header"]') as Element).backgroundColor);
+      const where = "指で触る 1366 × 1024 の概要の頁";
+      const { page } = await site.open({ path: BASE, viewport: { width: 1366, height: 1024 }, touch: true });
+      await onScreen(page, "home", "概要の頁が出ない");
+
+      await page.locator(siteSel("lang-en")).click();
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${where}で、英語に切り替わらない` }).toBe("en");
+      await page.locator(siteSel("lang-ja")).click();
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${where}で、日本語に戻らない` }).toBe("ja");
+
+      const label = await page.locator(siteSel("theme")).getAttribute("aria-label");
+      const light = await surface(page);
+      await page.locator(siteSel("theme")).click();
+      await expect
+        .poll(async () => ({ label: (await page.locator(siteSel("theme")).getAttribute("aria-label")) !== label, surface: (await surface(page)) !== light }), {
+          ...WAIT,
+          message: `${where}で、明暗の釦を押しても明暗が替わらない`,
+        })
+        .toEqual({ label: true, surface: true });
+
+      const before = await surface(page);
+      await page.locator(`${siteSel("palette")} ${siteSel("palette-night")}`).click();
+      await expect.poll(() => surface(page), { ...WAIT, message: `${where}で、帯の色味の切替で色味が替わらない` }).not.toBe(before);
+
+      await page.locator(`${siteSel("nav")} a`, { hasText: "使い方" }).click();
+      await onScreen(page, "docs", `${where}の行き先から使い方の頁へ移れない`);
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-screens-no-overflow",
+    async () => {
+      // 指で触る時に部品を大きくしても、どの画面も横にあふれない (#3075)
+      for (const viewport of [
+        { width: 600, height: 960 },
+        { width: 768, height: 1024 },
+        { width: 1366, height: 1024 },
+      ]) {
+        const { page } = await site.open({ path: BASE, viewport, touch: true });
+        for (const [screen, path] of SCREENS) {
+          await page.goto(`${site.origin}${path}`);
+          await onScreen(page, screen, `${path} を開いても ${screen} の画面が出ない`);
+          const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+          expect(over, `指で触る ${viewport.width} × ${viewport.height} で ${screen} を開くと ${over}px 横にあふれる`).toBeLessThanOrEqual(0);
+        }
+      }
+    },
+    SWEEP,
+  );
+
+  it(
+    "mouse-tablet-header-keeps-size",
+    async () => {
+      // マウスで使う時は、768px でも見出しの帯は今の並びと大きさのまま (#3075)
+      const { page } = await site.open({ path: BASE, viewport: { width: 768, height: 1024 } });
+      await onScreen(page, "home", "概要の頁が出ない");
+      await expect
+        .poll(() => headerFoldOf(page), { ...WAIT, message: "マウスで使う 768 × 1024 で、行き先か色味の切替が畳まれている" })
+        .toEqual({ nav: true, palette: true, menu: false });
+      await expect
+        .poll(async () => (await headerTargetsOf(page, siteSel("header")))?.map((p) => `${p.name} ${p.width}x${p.height}`), { ...WAIT, message: "マウスで使う 768 × 1024 の見出しの帯の部品の大きさが今と違う" })
+        .toEqual([
+          "dragon 85x27",
+          "概要 38x33",
+          "カタログ 62x33",
+          "編集画面 62x33",
+          "使い方 50x33",
+          "更新履歴 62x33",
+          "GitHub ↗ 68x33",
+          "lang-ja 31x25",
+          "lang-en 32x25",
+          "palette-clear 23x21",
+          "palette-paper 23x21",
+          "palette-night 23x21",
+          "theme 29x27",
+        ]);
+    },
+    SLOW,
+  );
+
   it(
     "category-item-shows-source",
     async () => {
