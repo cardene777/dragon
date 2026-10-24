@@ -1924,6 +1924,15 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   /**
+   * `read` が読む部品ごとの `名前 幅x高さ` (四捨五入) が `expected` と同じになるまで待つ (#3095)。
+   * 44px に届かない部品を拾う絞り込みは、44px にした部品がそれより大きくなっても落ちないため、決めた画面の大きさ 1 つで部品の大きさごと比べる
+   */
+  const expectSizes = (read: () => Promise<{ name: string; width: number; height: number }[] | null>, where: string, expected: readonly string[]): Promise<void> =>
+    expect
+      .poll(async () => (await read())?.map((p) => `${p.name} ${Math.round(p.width)}x${Math.round(p.height)}`), { ...WAIT, message: `${where}で、部品の大きさが今と違う` })
+      .toEqual(expected);
+
+  /**
    * 編集画面の 2 つの帯 (道具の帯と記法の欄の上の帯) の押せる部品 (#3065)。部品ごとに `data-playground` の名前、四捨五入しない幅と高さ (#3085)、
    * 四隅から 2px 内側 (角の丸み 3px の外を避ける) を押した時にその部品に当たるか。帯を画面に入れてから読み、2 回続けて同じ値を読めた時だけ返す
    */
@@ -1980,6 +1989,25 @@ describe("サイトの帯と経路 (#3030)", () => {
               );
             }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${key} で、押せる部品が揃わないか、44px に届かない部品がある` })
             .toEqual({ missing: [], small: [] });
+          // 書類名の欄の最小の幅が効くよう、欄が最も縮む 360px で比べる
+          if (viewport === PHONES[0] && key === TOOL_SAMPLES[0]) {
+            await expectSizes(() => targetsOf(page), `${viewport.width} × ${viewport.height} の編集画面の ${key} の 2 つの帯`, [
+              "shelf-toggle 44x44",
+              "tab-notation 44x44",
+              "tab-json 47x44",
+              "file-name 48x44",
+              "import 44x44",
+              "export 44x44",
+              "fold 52x44",
+              "font-down 44x44",
+              "font-up 44x44",
+              "grid 44x44",
+              "fullscreen 44x44",
+              "zoom-out 44x44",
+              "zoom-level 44x44",
+              "zoom-in 44x44",
+            ]);
+          }
         }
       }
     },
@@ -2203,6 +2231,43 @@ describe("サイトの帯と経路 (#3030)", () => {
             return parts && { some: parts.length > 0, small: short(parts) };
           }, { ...WAIT, message: `${where}の 2 つの帯で、部品が無いか、44px に届かない部品がある` })
           .toEqual({ some: true, small: [] });
+        if (viewport === TOUCH_EDITOR_SIZES[0]) {
+          await expectSizes(() => targetsOf(page), `${where}の 2 つの帯`, [
+            "shelf-toggle 44x44",
+            "tab-notation 44x44",
+            "tab-json 44x44",
+            "file-name 63x44",
+            "import 44x44",
+            "export 44x44",
+            "font-down 44x44",
+            "font-up 44x44",
+            "grid 44x44",
+            "fullscreen 44x44",
+            "fit 44x44",
+            "zoom-out 44x44",
+            "zoom-in 44x44",
+          ]);
+        }
+        // 色味の丸は道具の帯が 720px 以上の時だけ出る (#3077)
+        if (viewport === TOUCH_EDITOR_SIZES[2]) {
+          await expectSizes(() => targetsOf(page), `${where}の 2 つの帯`, [
+            "tab-notation 44x44",
+            "tab-json 44x44",
+            "file-name 109x44",
+            "import 44x44",
+            "export 44x44",
+            "palette-clear 44x44",
+            "palette-paper 44x44",
+            "palette-night 44x44",
+            "font-down 44x44",
+            "font-up 44x44",
+            "grid 44x44",
+            "fullscreen 44x44",
+            "fit 44x44",
+            "zoom-out 44x44",
+            "zoom-in 44x44",
+          ]);
+        }
         await openShelf(page, where);
         await expect
           .poll(async () => {
@@ -2210,6 +2275,18 @@ describe("サイトの帯と経路 (#3030)", () => {
             return parts && { some: parts.some((p) => p.name.startsWith("sample-")), small: short(parts) };
           }, { ...WAIT, message: `${where}の棚で、見本の行が無いか、44px に届かない部品がある` })
           .toEqual({ some: true, small: [] });
+        if (viewport === TOUCH_EDITOR_SIZES[0]) {
+          await expectSizes(() => shelfTargetsOf(page), `${where}の棚`, [
+            "new-file 255x44",
+            "shelf-tab-samples 82x44",
+            "shelf-tab-parts 82x44",
+            "shelf-tab-notation 82x44",
+            "shelf-filter 255x44",
+            "sample-intro 255x44",
+            "sample-oauth 255x44",
+            "sample-ccip 255x44",
+          ]);
+        }
       }
     },
     SLOW,
@@ -2289,6 +2366,10 @@ describe("サイトの帯と経路 (#3030)", () => {
               { ...WAIT, message: `${where} で、書類名の欄に oauth と出ないか、字が欄の中で切れる` },
             )
             .toEqual({ name: "oauth", cut: false });
+          // 英語の 768px では欄が最小の幅まで縮む (#3095)
+          if (lang === "en" && viewport.width === 768) {
+            await expectSizes(async () => (await targetsOf(page))?.filter((p) => p.name === "file-name") ?? null, `${where}の書類名の欄`, ["file-name 44x44"]);
+          }
         }
       }
     },
@@ -2389,6 +2470,8 @@ describe("サイトの帯と経路 (#3030)", () => {
                 return {
                   tools: sizes(".pg-stage-bar .pg-tool, .pg-bar .pg-tool"),
                   swatches: sizes('.pg-stage-bar [data-playground^="palette-"]'),
+                  // 倍率の字は桁が変わってもぶれないよう幅を取っておく (#3095)
+                  zoom: sizes('.pg-stage-bar [data-playground="zoom-level"]'),
                   tabs: heights('.pg-bar [role="tab"]'),
                   file: heights('.pg-bar [data-playground="file-name"]'),
                   shelf: {
@@ -2401,7 +2484,7 @@ describe("サイトの帯と経路 (#3030)", () => {
               }),
             { ...WAIT, message: `マウスで使う ${viewport.width} × ${viewport.height} の編集画面で、棚か 2 つの帯の部品の大きさが今と違う` },
           )
-          .toEqual({ tools: ["30x30"], swatches: ["16x16"], tabs: [27], file: [26], shelf: { new: [41], tabs: [39], filter: [34], items: [35] } });
+          .toEqual({ tools: ["30x30"], swatches: ["16x16"], zoom: ["55x18"], tabs: [27], file: [26], shelf: { new: [41], tabs: [39], filter: [34], items: [35] } });
       }
     },
     SLOW,
@@ -2482,6 +2565,19 @@ describe("サイトの帯と経路 (#3030)", () => {
             message: `${where} の見本の枠で、部品が揃わないか、44px に届かない部品がある`,
           })
           .toEqual({ missing: [], small: [] });
+        if (viewport === PHONES[1]) {
+          await expectSizes(() => catalogTargetsOf(page, catalogSel("sidebar")), `${where} の一覧`, ["search 247x44", "item 295x44", "item 295x53"]);
+          await expectSizes(() => catalogTargetsOf(page, catalogSel("preview")), `${where} の見本の枠`, [
+            "tab-figure 44x44",
+            "tab-code 67x44",
+            "palette 109x44",
+            "zoom-out 44x44",
+            "zoom-level 52x44",
+            "zoom-in 44x44",
+            "expand 78x44",
+            "open-editor 107x44",
+          ]);
+        }
       }
     },
     SLOW,
@@ -2494,20 +2590,24 @@ describe("サイトの帯と経路 (#3030)", () => {
       for (const viewport of PHONES) {
         const page = await openSequence(viewport);
         const where = `${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        const sized = viewport === PHONES[1];
         await page.locator(catalogSel("search")).fill("OAuth");
         await expect
           .poll(() => catalogShortOf(page, catalogSel("sidebar"), ["search", "search-clear", "item"]), { ...WAIT, message: `${where} で検索に字を入れた時、一覧の部品が揃わないか、44px に届かない部品がある` })
           .toEqual({ missing: [], small: [] });
+        if (sized) await expectSizes(() => catalogTargetsOf(page, catalogSel("sidebar")), `${where} で検索に字を入れた時の一覧`, ["search 207x44", "search-clear 44x44", "item 295x53"]);
         await page.locator(catalogSel("search")).fill("");
         await page.locator(catalogSel("tab-code")).click();
         await expect
           .poll(() => catalogShortOf(page, catalogSel("source"), ["source-notation", "source-json", "copy"]), { ...WAIT, message: `${where} のコードの側で、部品が揃わないか、44px に届かない部品がある` })
           .toEqual({ missing: [], small: [] });
+        if (sized) await expectSizes(() => catalogTargetsOf(page, catalogSel("source")), `${where} のコードの側`, ["source-notation 53x44", "source-json 57x44", "copy 122x44"]);
         await page.locator(catalogSel("tab-figure")).click();
         await page.locator(catalogSel("expand")).click();
         await expect
           .poll(() => catalogShortOf(page, catalogSel("overlay"), ["overlay-close"]), { ...WAIT, message: `${where} の重ね窓で、閉じるの釦が無いか、44px に届かない` })
           .toEqual({ missing: [], small: [] });
+        if (sized) await expectSizes(() => catalogTargetsOf(page, catalogSel("overlay")), `${where} の重ね窓`, ["overlay-close 44x44"]);
       }
     },
     SLOW,
@@ -2651,12 +2751,28 @@ describe("サイトの帯と経路 (#3030)", () => {
         await expect
           .poll(() => catalogShortOf(page, catalogSel("preview"), previewPartsOf(viewport.width)), { ...WAIT, message: `${where} の見本の枠で、部品が揃わないか、44px に届かない部品がある` })
           .toEqual({ missing: [], small: [] });
+        const sized = viewport === TOUCH_CATALOG_SIZES[1];
+        if (sized) {
+          await expectSizes(() => catalogTargetsOf(page, catalogSel("crumb")), `${where} の道筋`, ["概要 44x44", "カタログ 68x44"]);
+          await expectSizes(() => catalogTargetsOf(page, catalogSel("sidebar")), `${where} の一覧`, ["search 561x44", "item 609x44", "item 609x44"]);
+          await expectSizes(() => catalogTargetsOf(page, catalogSel("preview")), `${where} の見本の枠`, [
+            "tab-figure 44x44",
+            "tab-code 67x44",
+            "palette 109x44",
+            "zoom-out 44x44",
+            "zoom-in 44x44",
+            "fit 44x44",
+            "expand 78x44",
+            "open-editor 107x44",
+          ]);
+        }
 
         const { page: index } = await site.open({ path: `${BASE}catalog`, viewport, touch: true });
         await onScreen(index, "catalog", `指で触る ${viewport.width} × ${viewport.height} でカタログの一覧が出ない`);
         await expect
           .poll(() => catalogCrumbShortOf(index), { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} のカタログの一覧の道筋で、札が無いか、44px に届かない` })
           .toEqual({ count: 1, small: [] });
+        if (sized) await expectSizes(() => catalogTargetsOf(index, catalogSel("crumb")), `指で触る ${viewport.width} × ${viewport.height} のカタログの一覧の道筋`, ["概要 44x44"]);
       }
     },
     SLOW,
@@ -2669,20 +2785,24 @@ describe("サイトの帯と経路 (#3030)", () => {
       for (const viewport of TOUCH_CATALOG_SIZES) {
         const page = await openSequence(viewport, true);
         const where = `指で触る ${viewport.width} × ${viewport.height} の時系列図の分類の頁`;
+        const sized = viewport === TOUCH_CATALOG_SIZES[1];
         await page.locator(catalogSel("search")).fill("OAuth");
         await expect
           .poll(() => catalogShortOf(page, catalogSel("sidebar"), ["search", "search-clear", "item"]), { ...WAIT, message: `${where} で検索に字を入れた時、一覧の部品が揃わないか、44px に届かない部品がある` })
           .toEqual({ missing: [], small: [] });
+        if (sized) await expectSizes(() => catalogTargetsOf(page, catalogSel("sidebar")), `${where} で検索に字を入れた時の一覧`, ["search 521x44", "search-clear 44x44", "item 609x44"]);
         await page.locator(catalogSel("search")).fill("");
         await page.locator(catalogSel("tab-code")).click();
         await expect
           .poll(() => catalogShortOf(page, catalogSel("source"), ["source-notation", "source-json", "copy"]), { ...WAIT, message: `${where} のコードの側で、部品が揃わないか、44px に届かない部品がある` })
           .toEqual({ missing: [], small: [] });
+        if (sized) await expectSizes(() => catalogTargetsOf(page, catalogSel("source")), `${where} のコードの側`, ["source-notation 53x44", "source-json 57x44", "copy 122x44"]);
         await page.locator(catalogSel("tab-figure")).click();
         await page.locator(catalogSel("expand")).click();
         await expect
           .poll(() => catalogShortOf(page, catalogSel("overlay"), ["overlay-close"]), { ...WAIT, message: `${where} の重ね窓で、閉じるの釦が無いか、44px に届かない` })
           .toEqual({ missing: [], small: [] });
+        if (sized) await expectSizes(() => catalogTargetsOf(page, catalogSel("overlay")), `${where} の重ね窓`, ["overlay-close 44x44"]);
       }
     },
     SLOW,
@@ -2881,11 +3001,31 @@ describe("サイトの帯と経路 (#3030)", () => {
 
   /**
    * 指で触る時に確かめる概要と使い方の頁の本文の部品 (#3079)。`targets` は枠のある釦と字だけの札、`links` はそのうち字だけの札。
-   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと節の終わりの札 9 つ
+   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと節の終わりの札 9 つ。
+   * `touchSizes` は指で触る 768 × 1024 での `targets` の部品ごとの大きさ (#3095)
    */
   const BODY_PAGES = [
-    { path: "", screen: "home", targets: '[data-home="hero"] a, [data-home="uses-more"] a, [data-home="closing"] a', links: '[data-home="uses-more"] a', count: 5 },
-    { path: "docs", screen: "docs", targets: '[data-docs="cta"] a, a[data-docs="section-cta"]', links: 'a[data-docs="section-cta"]', count: 11 },
+    { path: "", screen: "home", targets: '[data-home="hero"] a, [data-home="uses-more"] a, [data-home="closing"] a', links: '[data-home="uses-more"] a', count: 5, touchSizes: ["編集画面を開く → 149x44", "使い方を読む 119x44", "カタログで図を見る → 143x44", "編集画面を開く → 149x44", "GitHub ↗ 100x44"] },
+    {
+      path: "docs",
+      screen: "docs",
+      targets: '[data-docs="cta"] a, a[data-docs="section-cta"]',
+      links: 'a[data-docs="section-cta"]',
+      count: 11,
+      touchSizes: [
+        "5 分で始める → 133x44",
+        "カタログで図を見る 160x44",
+        "編集画面で書いてみる → 151x46",
+        "続き → 線 60x46",
+        "続き → 区画 74x46",
+        "構成図の見本を見る → 138x46",
+        "続き → 帯 60x46",
+        "時系列図の見本を見る → 152x46",
+        "続き → JSON 82x46",
+        "編集画面で JSON を取り込む → 193x46",
+        "編集画面から書き出す → 152x46",
+      ],
+    },
   ] as const;
 
   /** 指で触る端末を模して 2 つの頁を確かめる画面の大きさ (#3079) */
@@ -2903,10 +3043,10 @@ describe("サイトの帯と経路 (#3030)", () => {
   };
 
   /**
-   * `sel` に当たる部品の数と、四捨五入しない幅か高さが 44px に届かないか四隅が外れる部品 (#3079、#3085)。部品を画面に入れてから四隅の 2px 内側を押した時にその部品に当たるかを見る。
+   * `sel` に当たる部品ごとの字、四捨五入しない幅と高さ (#3085)、部品を画面に入れてから四隅の 2px 内側を押した時にその部品に当たるか (#3079)。
    * 2 回続けて同じ値を読めた時だけ返す
    */
-  const bodyShortOf = (page: Page, sel: string): Promise<{ count: number; small: string[] } | null> =>
+  const bodyTargetsOf = (page: Page, sel: string): Promise<{ name: string; width: number; height: number; corners: boolean }[] | null> =>
     page.evaluate(async (sel) => {
       await document.fonts.ready;
       const read = (): { name: string; width: number; height: number; corners: boolean }[] =>
@@ -2932,12 +3072,19 @@ describe("サイトの帯と経路 (#3030)", () => {
       await frame();
       await frame();
       const second = read();
-      if (JSON.stringify(first) !== JSON.stringify(second)) return null;
-      return {
-        count: second.length,
-        small: second.filter((p) => p.width < 44 || p.height < 44 || !p.corners).map((p) => `${p.name} ${p.width}x${p.height}${p.corners ? "" : " 隅が外れる"}`),
-      };
+      return JSON.stringify(first) === JSON.stringify(second) ? second : null;
     }, sel);
+
+  /** `sel` に当たる部品の数と、四捨五入しない幅か高さが 44px に届かないか四隅が外れる部品 (#3079、#3085) */
+  const bodyShortOf = async (page: Page, sel: string): Promise<{ count: number; small: string[] } | null> => {
+    const parts = await bodyTargetsOf(page, sel);
+    return (
+      parts && {
+        count: parts.length,
+        small: parts.filter((p) => p.width < 44 || p.height < 44 || !p.corners).map((p) => `${p.name} ${p.width}x${p.height}${p.corners ? "" : " 隅が外れる"}`),
+      }
+    );
+  };
 
   it(
     "coarse-pages-touch-targets",
@@ -2950,6 +3097,9 @@ describe("サイトの帯と経路 (#3030)", () => {
           await expect
             .poll(() => bodyShortOf(page, body.targets), { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の${body.screen === "home" ? "概要" : "使い方"}の頁で、釦か札が揃わないか、44px に届かない` })
             .toEqual({ count: body.count, small: [] });
+          if (viewport === TOUCH_PAGE_SIZES[1]) {
+            await expectSizes(() => bodyTargetsOf(page, body.targets), `指で触る ${viewport.width} × ${viewport.height} の${body.screen === "home" ? "概要" : "使い方"}の頁`, body.touchSizes);
+          }
         }
       }
     },
@@ -3329,6 +3479,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         await expect
           .poll(() => headerShortOf(page, siteSel("header")), { ...WAIT, message: `${viewport.width} × ${viewport.height} の見出しの帯で、部品が 5 つ無いか、44px に届かない部品がある` })
           .toEqual({ count: 5, small: [] });
+        if (viewport === PHONES[1]) await expectSizes(() => headerTargetsOf(page, siteSel("header")), `${viewport.width} × ${viewport.height} の見出しの帯`, ["dragon 85x44", "lang-ja 44x44", "lang-en 44x44", "theme 44x44", "menu 44x44"]);
       }
     },
     SLOW,
@@ -3345,6 +3496,20 @@ describe("サイトの帯と経路 (#3030)", () => {
         await expect
           .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の開いた一覧で、部品が 10 個無いか、44px に届かない部品がある` })
           .toEqual({ count: 10, small: [] });
+        if (viewport === PHONES[1]) {
+          await expectSizes(() => headerTargetsOf(page, ".site-sheet"), `${viewport.width} × ${viewport.height} の開いた一覧`, [
+            "概要 374x44",
+            "カタログ 374x44",
+            "編集画面 374x44",
+            "使い方 374x44",
+            "更新履歴 374x44",
+            "GitHub ↗ 374x44",
+            "palette-clear 95x44",
+            "palette-paper 83x44",
+            "palette-night 95x44",
+            "編集画面を開く → 374x44",
+          ]);
+        }
       }
     },
     SLOW,
@@ -3458,6 +3623,24 @@ describe("サイトの帯と経路 (#3030)", () => {
             return short && { some: short.count > 0, small: short.small };
           }, { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の見出しの帯で、部品が無いか、44px に届かない部品がある` })
           .toEqual({ some: true, small: [] });
+        if (viewport === TOUCH_SIZES[2]) {
+          await expectSizes(() => headerTargetsOf(page, siteSel("header")), `指で触る ${viewport.width} × ${viewport.height} の見出しの帯`, [
+            "dragon 85x44",
+            "概要 48x44",
+            "カタログ 74x44",
+            "編集画面 74x44",
+            "使い方 61x44",
+            "更新履歴 74x44",
+            "GitHub ↗ 81x44",
+            "lang-ja 44x44",
+            "lang-en 44x44",
+            "palette-clear 44x44",
+            "palette-paper 44x44",
+            "palette-night 44x44",
+            "theme 44x44",
+            "open-editor 131x44",
+          ]);
+        }
       }
     },
     SLOW,
@@ -3517,6 +3700,20 @@ describe("サイトの帯と経路 (#3030)", () => {
         await expect
           .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${where}で、部品が 10 個無いか、44px に届かない部品がある` })
           .toEqual({ count: 10, small: [] });
+        if (viewport.width === 768) {
+          await expectSizes(() => headerTargetsOf(page, ".site-sheet"), where, [
+            "概要 752x44",
+            "カタログ 752x44",
+            "編集画面 752x44",
+            "使い方 752x44",
+            "更新履歴 752x44",
+            "GitHub ↗ 752x44",
+            "palette-clear 95x44",
+            "palette-paper 83x44",
+            "palette-night 95x44",
+            "編集画面を開く → 752x44",
+          ]);
+        }
         await page.locator(`${siteSel("sheet")} a`, { hasText: "使い方" }).click();
         await onScreen(page, "docs", `${where}から使い方の頁へ移れない`);
         await expect.poll(async () => (await navOf(page, "sheet")).length, { ...WAIT, message: `${where}が、移った後も開いたまま` }).toBe(0);
