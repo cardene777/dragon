@@ -416,7 +416,8 @@ textarea:focus-visible {
 
 /*
  * 携帯の幅では、帯と一覧の押せる部品の枠を指で押す的の目安の 44 × 44px にする (#3071)。
- * 帯は 60px のままで、部品の上下に 8px ずつ残る。日本語と英語の切替は 1 つの組のまま大きくする
+ * 帯は 60px のままで、部品の上下に 8px ずつ残る。日本語と英語の切替は 1 つの組のまま大きくする。
+ * 一覧の行き先は字の行 19.6px と上下の余白 12px で 43.6px にしかならないので、最小の高さで 44px にする (#3085)
  */
 @media (max-width: 439px) {
   .site-brand {
@@ -432,6 +433,10 @@ textarea:focus-visible {
     width: 44px;
     height: 44px;
     font-size: 16px;
+  }
+  .site-sheet-link {
+    box-sizing: border-box;
+    min-height: 44px;
   }
   .site-sheet-swatch {
     min-height: 44px;
@@ -481,6 +486,10 @@ textarea:focus-visible {
   .site-cta {
     min-height: 44px;
     box-sizing: border-box;
+  }
+  .site-sheet-link {
+    box-sizing: border-box;
+    min-height: 44px;
   }
   .site-sheet-swatch {
     min-height: 44px;
