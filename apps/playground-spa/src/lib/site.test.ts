@@ -1340,25 +1340,25 @@ describe("サイトの帯と経路 (#3030)", () => {
     { key: "ccip", category: "architecture" },
   ] as const satisfies readonly { key: ExampleKey; category: Kind }[];
 
-  /** 分類の頁で見本 `key` を選ぶ。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする */
-  const openItem = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false): Promise<Page> => {
-    const { page } = await site.open({ path: `${BASE}catalog/${sample.category}`, viewport });
+  /** 分類の頁で見本 `key` を選ぶ。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする。`touch` の時は指で触る端末を模す (#3076) */
+  const openItem = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false, touch = false): Promise<Page> => {
+    const { page } = await site.open({ path: `${BASE}catalog/${sample.category}`, viewport, touch });
     if (still) await page.emulateMedia({ reducedMotion: "reduce" });
     await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${sample.category} の分類の頁が出ない`);
     await page.locator(catalogSel("item")).nth(samplesOf(sample.category).indexOf(sample.key)).click();
     return page;
   };
 
-  /** 分類の頁で見本 `key` を重ね窓で開く。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする */
-  const openOverlay = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false): Promise<Page> => {
-    const page = await openItem(viewport, sample, still);
+  /** 分類の頁で見本 `key` を重ね窓で開く。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする。`touch` の時は指で触る端末を模す (#3076) */
+  const openOverlay = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false, touch = false): Promise<Page> => {
+    const page = await openItem(viewport, sample, still, touch);
     await page.locator(catalogSel("expand")).click();
     return page;
   };
 
-  /** 見本 `key` を編集画面で開く。`still` の時は動きを嫌う設定で開き直し、段を釦で送れるようにする */
-  const openEditor = async (viewport: { width: number; height: number }, key: ExampleKey, still = false): Promise<Page> => {
-    const { page } = await site.open({ path: `${BASE}editor${toHash(exampleText(key, "ja"))}`, viewport });
+  /** 見本 `key` を編集画面で開く。`still` の時は動きを嫌う設定で開き直し、段を釦で送れるようにする。`touch` の時は指で触る端末を模す (#3076) */
+  const openEditor = async (viewport: { width: number; height: number }, key: ExampleKey, still = false, touch = false): Promise<Page> => {
+    const { page } = await site.open({ path: `${BASE}editor${toHash(exampleText(key, "ja"))}`, viewport, touch });
     if (still) {
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.reload();
@@ -2140,9 +2140,9 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
-  /** 時系列図の分類の頁を開く。最初の見本 (入門の例) を選んでいて、図は枠に合わせて描く (#3067) */
-  const openSequence = async (viewport: { width: number; height: number }): Promise<Page> => {
-    const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport });
+  /** 時系列図の分類の頁を開く。最初の見本 (入門の例) を選んでいて、図は枠に合わせて描く (#3067)。`touch` の時は指で触る端末を模す (#3076) */
+  const openSequence = async (viewport: { width: number; height: number }, touch = false): Promise<Page> => {
+    const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport, touch });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await onScreen(page, "category", `${viewport.width} × ${viewport.height} で時系列図の分類の頁が出ない`);
     await page.waitForSelector(`${catalogSel("stage")} svg[data-dragon="figure"]`);
@@ -2349,15 +2349,22 @@ describe("サイトの帯と経路 (#3030)", () => {
   /** 段を送る釦を確かめる置き場。oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁 (#3069) */
   const PLAYER_PLACES = ["editor", "catalog", "overlay", "docs"] as const;
 
-  /** 置き場 `place` を開き、段を送る釦を探す範囲と一緒に返す。カタログの見本の枠と重ね窓は時系列図の最初の見本 (#3069) */
-  const openPlayerPlace = async (viewport: { width: number; height: number }, place: (typeof PLAYER_PLACES)[number]): Promise<{ page: Page; scope: string }> => {
-    if (place === "editor") return { page: await openEditor(viewport, "oauth", true), scope: '[data-playground="stage"]' };
+  /**
+   * 置き場 `place` を開き、段を送る釦を探す範囲と一緒に返す。カタログの見本の枠と重ね窓は時系列図の最初の見本 (#3069)。
+   * `touch` の時は指で触る端末を模す (#3076)
+   */
+  const openPlayerPlace = async (
+    viewport: { width: number; height: number },
+    place: (typeof PLAYER_PLACES)[number],
+    touch = false,
+  ): Promise<{ page: Page; scope: string }> => {
+    if (place === "editor") return { page: await openEditor(viewport, "oauth", true, touch), scope: '[data-playground="stage"]' };
     if (place === "docs") {
-      const { page } = await site.open({ path: `${BASE}docs`, viewport });
+      const { page } = await site.open({ path: `${BASE}docs`, viewport, touch });
       await onScreen(page, "docs", `${viewport.width} × ${viewport.height} で使い方の頁が出ない`);
       return { page, scope: "body" };
     }
-    const page = await openSequence(viewport);
+    const page = await openSequence(viewport, touch);
     if (place === "catalog") return { page, scope: catalogSel("preview") };
     await page.locator(catalogSel("expand")).click();
     return { page, scope: catalogSel("overlay") };
@@ -2451,6 +2458,107 @@ describe("サイトの帯と経路 (#3030)", () => {
             message: `1440 × 900 の ${place} で、段を送る釦の大きさが今と違う`,
           })
           .toEqual(["36x36"]);
+      }
+    },
+    SLOW,
+  );
+
+  /** 指で触る端末を模して段を送る釦を確かめる画面の大きさ。768 は縦のタブレット、1024 と 1366 は帯の中身が 440px 以上ある幅 (#3076) */
+  const TOUCH_PLAYER_SIZES = [
+    { width: 768, height: 1024 },
+    { width: 1024, height: 1366 },
+    { width: 1366, height: 1024 },
+  ] as const;
+
+  it(
+    "coarse-player-buttons-touch-targets",
+    async () => {
+      // 指で触るタブレットでは、広い帯の段を送る釦が 36px のままで押しにくかった (#3076)。指で触る時は帯の幅に関わらず 44 × 44px にする
+      for (const viewport of TOUCH_PLAYER_SIZES) {
+        for (const place of PLAYER_PLACES) {
+          const { page, scope } = await openPlayerPlace(viewport, place, true);
+          await expect
+            .poll(
+              async () => {
+                const buttons = await playerButtonsOf(page, scope);
+                return {
+                  some: buttons.length >= 3,
+                  small: buttons.filter((b) => b.width < 44 || b.height < 44 || !b.corners).map((b) => `${b.name} ${b.width}x${b.height}${b.corners ? "" : " 隅が外れる"}`),
+                };
+              },
+              { ...WAIT, message: `指で触る ${viewport.width} × ${viewport.height} の ${place} で、段を送る釦が無いか、44px に届かない釦がある` },
+            )
+            .toEqual({ some: true, small: [] });
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-player-buttons-work",
+    async () => {
+      // 指で触る時に広い帯の釦を 44px にしても、前と次と再生の働きと、段を送っても変わらない帯の高さは今と同じ (#3076)
+      const viewport = { width: 1366, height: 1024 };
+      const page = await openEditor(viewport, "oauth", true, true);
+      const where = "指で触る 1366 × 1024 の oauth の編集画面";
+      const stage = '[data-playground="stage"]';
+      const no = async (): Promise<string> => (await page.locator(`${stage} [data-dragon="step-no"]`).textContent()) ?? "";
+      const toggle = async (): Promise<string> => (await page.locator(`${stage} [data-dragon="toggle"]`).textContent()) ?? "";
+      const bar = (): Promise<number> => page.evaluate((s) => Math.round(document.querySelector(`${s} .dg-bar`)?.getBoundingClientRect().height ?? -1), stage);
+      await expect.poll(no, { ...WAIT, message: `${where} で、1 段目から始まらない` }).toMatch(/^01\//);
+      await page.locator(`${stage} [data-dragon="next"]`).click();
+      await expect.poll(no, { ...WAIT, message: `${where} で、次の釦で段が進まない` }).toMatch(/^02\//);
+      await page.locator(`${stage} [data-dragon="prev"]`).click();
+      await expect.poll(no, { ...WAIT, message: `${where} で、前の釦で段が戻らない` }).toMatch(/^01\//);
+
+      const count = Number((await no()).split("/")[1]);
+      expect(count, `${where} で、段の数が読めない`).toBeGreaterThan(1);
+      const first = await bar();
+      const heights: string[] = [];
+      for (let step = 2; step <= count; step++) {
+        await page.locator(`${stage} [data-dragon="next"]`).click();
+        await expect.poll(no, { ...WAIT, message: `${where} で、${step} 段目へ進まない` }).toMatch(new RegExp(`^${String(step).padStart(2, "0")}/`));
+        const height = await bar();
+        if (height !== first) heights.push(`${step} 段目 ${height}px`);
+      }
+      expect(heights, `${where} で、帯の高さが 1 段目 (${first}px) と違う段がある`).toEqual([]);
+
+      expect(await toggle(), `${where} で、動きを嫌う設定なのに再生の釦が出ない`).toBe("▶");
+      await page.locator(`${stage} [data-dragon="toggle"]`).click();
+      await expect.poll(toggle, { ...WAIT, message: `${where} で、再生の釦で動き出さない` }).toBe("❚❚");
+    },
+    SLOW,
+  );
+
+  it(
+    "coarse-caption-stays-one-row",
+    async () => {
+      // 指で触る時も、帯の中身の幅が 440px 以上の帯は釦と番号と題と本文を横 1 列に並べる今の形のまま (#3076)
+      for (const viewport of [
+        { width: 1024, height: 1366 },
+        { width: 1366, height: 1024 },
+      ]) {
+        const size = `指で触る ${viewport.width} × ${viewport.height}`;
+        for (const sample of CAPTION_SAMPLES) {
+          for (const [where, scope, page] of [
+            ["重ね窓", '[data-catalog="overlay"]', await openOverlay(viewport, sample, false, true)],
+            ["編集画面", '[data-playground="stage"]', await openEditor(viewport, sample.key, false, true)],
+          ] as const) {
+            await expect
+              .poll(async () => {
+                const seen = await captionOf(page, scope);
+                if (!seen) return null;
+                const { buttons, no, title, body } = seen;
+                return {
+                  titleBesideButtons: title.left > buttons.right && title.top < buttons.bottom,
+                  noBesideButtons: no.left > buttons.right && no.right <= title.left && no.top < buttons.bottom,
+                  bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
+                };
+              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でない` })
+              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true });
+          }
+        }
       }
     },
     SLOW,
