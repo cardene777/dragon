@@ -135,16 +135,20 @@
 | 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を拡大の重ね窓で開いた時、段の本文の帯が今 (360 × 780 で 191px と 211px、390 × 844 で 151px と 191px) より低く、図の枠の中の高さが今 (398px と 355px、502px と 462px) より高い | `pnpm test`の検査`narrow-overlay-caption-lower`が通る | #3057、#3069 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を拡大の重ね窓と編集画面で開き、自動で送らずに段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じで、全部の段の題と本文が帯の中身の幅に収まる | `pnpm test`の検査`narrow-caption-steady-and-inside`が通る | #3057、#3069 |
 | 画面の大きさ 360 × 780 の編集画面で、字の大きさの釦を押すと段の題と本文の字が大きくなり小さくなる | `pnpm test`の検査`narrow-editor-caption-font-scales`が通る | #3057、#3069 |
-| 画面の大きさ 560 × 900 と 1440 × 900 で oauth と ccip を拡大の重ね窓と編集画面で開いた時、帯は横 1 列のまま (釦と番号と題が同じ段に並び、本文が題の下で題と同じ左端から始まる) | `pnpm test`の検査`wide-caption-stays-one-row`が通る | #3057、#3069 |
+| 画面の大きさ 560 × 900 と 1440 × 900 で oauth と ccip を拡大の重ね窓と編集画面で開いた時、帯は横 1 列のまま (釦と番号と題が同じ段に並び、本文が題の下で題と同じ左端から始まる) | `pnpm test`の検査`wide-caption-stays-one-row`が通る | #3057、#3069、#3076 |
 | 画面の大きさ 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3057 |
 | 1440 × 900 の編集画面で oauth と ccip を開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`editor-figure-steady-across-steps`が通る | #3057 |
-| oauth を書き出した HTML を幅 390px で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の上端の位置が 1 段目と同じ | `pnpm test`の検査`html-export-caption-bar-steady`が通る | #3057、#3069 |
-| 段の題と本文は 1 つずつで今の段の中身を出し、全部の段の写しは見た目と読み上げの道具から隠れる | `pnpm test`の検査`player-caption-room-holds-every-step`が通る | #3057、#3069 |
+| oauth を書き出した HTML を幅 390px で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の上端の位置が 1 段目と同じ | `pnpm test`の検査`html-export-caption-bar-steady`が通る | #3057、#3069、#3076 |
+| 段の題と本文は 1 つずつで今の段の中身を出し、全部の段の写しは見た目と読み上げの道具から隠れる | `pnpm test`の検査`player-caption-room-holds-every-step`が通る | #3057、#3069、#3076 |
 | 重ね窓で、本文の最も長い段の本文の下端と札の下の縁の間が 8px 以上ある | `pnpm test`の検査`overlay-caption-clear-of-bottom-edge`が通る | #3057、#3069 |
 | 編集画面で、本文の最も長い段の本文の下端と図の側の下の縁の間が 8px 以上ある | `pnpm test`の検査`editor-caption-clear-of-bottom-edge`が通る | #3057、#3069 |
 | 1440 × 900 の編集画面で、字の大きさの釦で段の題の字が大きくなり小さくなる | `pnpm test`の検査`editor-stage-tools-change-view`が通る | #3057 |
-| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、見える図の段を送る 3 つの釦が縦横 44px 以上あり、それぞれの四隅を押すとその釦に当たる | `pnpm test`の検査`narrow-player-buttons-touch-targets`が通る | #3069 |
-| oauth を書き出した HTML を幅 360、390、430px で開いた時、段を送る 3 つの釦が 44 × 44px で、幅 1440px で開いた時は 36 × 36px | `pnpm test`の検査`html-export-player-buttons-touch-size`が通る | #3069 |
-| 画面の大きさ 360 × 780、390 × 844、430 × 932 の oauth の編集画面で、次の釦で段が 1 つ進み、前の釦で 1 つ戻り、再生の釦で動き出して止めるの釦に替わる | `pnpm test`の検査`narrow-player-buttons-work`が通る | #3069 |
-| 画面の大きさ 1440 × 900 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、段を送る釦が 36 × 36px のまま | `pnpm test`の検査`wide-player-buttons-keep-size`が通る | #3069 |
+| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、見える図の段を送る 3 つの釦が縦横 44px 以上あり、それぞれの四隅を押すとその釦に当たる | `pnpm test`の検査`narrow-player-buttons-touch-targets`が通る | #3069、#3076 |
+| oauth を書き出した HTML を幅 360、390、430px で開いた時、段を送る 3 つの釦が 44 × 44px で、幅 1440px で開いた時は 36 × 36px | `pnpm test`の検査`html-export-player-buttons-touch-size`が通る | #3069、#3076 |
+| 画面の大きさ 360 × 780、390 × 844、430 × 932 の oauth の編集画面で、次の釦で段が 1 つ進み、前の釦で 1 つ戻り、再生の釦で動き出して止めるの釦に替わる | `pnpm test`の検査`narrow-player-buttons-work`が通る | #3069、#3076 |
+| 画面の大きさ 1440 × 900 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、段を送る釦が 36 × 36px のまま | `pnpm test`の検査`wide-player-buttons-keep-size`が通る | #3069、#3076 |
 | 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を拡大の重ね窓で開いた時、見出しが今 (360 × 780 で 133px と 156px、390 × 844 で 133px と 133px) より低く、図の枠の中が今 (472px と 435px、542px と 522px) より高い | `pnpm test`の検査`narrow-overlay-head-lower`が通る | #3069 |
+| 指で触る端末を模して画面の大きさ 768 × 1024、1024 × 1366、1366 × 1024 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、見える図の段を送る 3 つの釦が縦横 44px 以上あり、それぞれの四隅を押すとその釦に当たる | `pnpm test`の検査`coarse-player-buttons-touch-targets`が通る | #3076 |
+| 指で触る端末を模して oauth を書き出した HTML を幅 1024px で開いた時、段を送る 3 つの釦が 44 × 44px | `pnpm test`の検査`html-export-coarse-player-buttons`が通る | #3076 |
+| 指で触る端末を模して画面の大きさ 1366 × 1024 の oauth の編集画面で、次の釦で段が 1 つ進み、前の釦で 1 つ戻り、再生の釦で動き出して止めるの釦に替わり、段を 1 つずつ最後まで送ってもどの段でも帯の高さが 1 段目と同じ | `pnpm test`の検査`coarse-player-buttons-work`が通る | #3076 |
+| 指で触る端末を模して画面の大きさ 1024 × 1366 と 1366 × 1024 で oauth と ccip を拡大の重ね窓と編集画面で開いた時、帯は横 1 列のまま (釦と番号と題が同じ段に並び、本文が題の下で題と同じ左端から始まる) | `pnpm test`の検査`coarse-caption-stays-one-row`が通る | #3076 |
