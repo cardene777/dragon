@@ -406,3 +406,64 @@ export async function drawnText(html: string): Promise<string> {
     return playing + paused + (await read());
   });
 }
+
+/** GIF の 1 コマ。`delay` は 1/100 秒、`dispose` は後始末の方法 (1 は前のコマを残す)、`table` は色の表の色の数 */
+export interface GifFrame {
+  delay: number;
+  dispose: number;
+  transparent?: number;
+  table: number;
+}
+
+/**
+ * GIF を块ごとに読み解く (#3115)。形が崩れていて最後の印 (`0x3b`) まで読めない時は投げる。
+ * 色の表は大きさの欄 (3 bit) の通りに飛ばすので、欄と書いた色の数が食い違うと、続く块の印が読めずに投げる。
+ */
+export function readGif(bytes: Buffer): { width: number; height: number; frames: GifFrame[] } {
+  let p = 0;
+  const u8 = (): number => bytes[p++] as number;
+  const u16 = (): number => u8() | (u8() << 8);
+  const skipBlocks = (): void => {
+    for (let n = u8(); n; n = u8()) p += n;
+  };
+  const head = bytes.subarray(0, 6).toString("latin1");
+  if (head !== "GIF89a") throw new Error(`GIF の頭が ${head}`);
+  p = 6;
+  const width = u16();
+  const height = u16();
+  const screen = u8();
+  p += 2;
+  const global = screen & 0x80 ? 2 ** ((screen & 7) + 1) : 0;
+  p += global * 3;
+  const frames: GifFrame[] = [];
+  let control: { delay: number; dispose: number; transparent?: number } | undefined;
+  for (;;) {
+    if (p >= bytes.length) throw new Error("GIF の最後の印 (0x3b) が無い");
+    const intro = u8();
+    if (intro === 0x3b) break;
+    if (intro === 0x21) {
+      const label = u8();
+      if (label !== 0xf9) {
+        skipBlocks();
+        continue;
+      }
+      p++;
+      const packed = u8();
+      const delay = u16();
+      const transparent = u8();
+      if (u8() !== 0) throw new Error(`GIF のコマの長さの块が ${p - 1} byte 目で閉じない`);
+      control = { delay, dispose: (packed >> 2) & 7, ...(packed & 1 ? { transparent } : {}) };
+    } else if (intro === 0x2c) {
+      p += 8;
+      const packed = u8();
+      const local = packed & 0x80 ? 2 ** ((packed & 7) + 1) : 0;
+      p += local * 3;
+      const minCode = u8();
+      if (minCode < 2 || minCode > 8) throw new Error(`GIF の画素の符号の長さが ${minCode}`);
+      skipBlocks();
+      frames.push({ delay: control?.delay ?? 0, dispose: control?.dispose ?? 0, ...(control?.transparent === undefined ? {} : { transparent: control.transparent }), table: local || global });
+      control = undefined;
+    } else throw new Error(`GIF の ${p - 1} byte 目に知らない块の印 0x${intro.toString(16)}`);
+  }
+  return { width, height, frames };
+}
