@@ -60,6 +60,28 @@ function twoLabels(): Json {
   };
 }
 
+/** 1 つの段に名前を持つ線が 3 本ある時系列図。3 つ目の名前が出る時に 1 つ目を消す。 */
+function threeLabels(): Json {
+  return {
+    version: 1,
+    kind: "sequence",
+    title: "名前が 3 つ並ぶ図",
+    boxes: [
+      { id: "a", name: "左" },
+      { id: "b", name: "中" },
+      { id: "c", name: "右" },
+    ],
+    steps: [
+      {
+        title: "3 本送る",
+        body: "左から中へ、中から右へ送り、右から左へ返す。",
+        events: [edge("a", "b", { kind: "envelope" }, "1 本目"), edge("b", "c", { kind: "envelope" }, "2 本目"), edge("c", "a", { kind: "envelope" }, "3 本目")],
+      },
+    ],
+    sequence: { lifelines: ["a", "b", "c"] },
+  };
+}
+
 /** 本文の長さだけが違う 3 つの段を持つ時系列図。どの段も運ぶ物の無い線を 1 本だけ引く。 */
 function bodies(): Json {
   const step = (title: string, body: string): Json => ({ title, body, events: [edge("a", "b", { kind: "none" })] });
@@ -144,7 +166,7 @@ describe("見える物の数", () => {
   });
 
   it("labels-show-only-during-their-step", () => {
-    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["名前が 2 つ並ぶ図", twoLabels()]] as const) {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["名前が 2 つ並ぶ図", twoLabels()], ["名前が 3 つ並ぶ図", threeLabels()]] as const) {
       const { timeline } = render(diagram);
       const source = diagram as unknown as Source;
       const named = source.steps.flatMap((step) => step.events.filter((event) => event.type === "edge" && event.label)).length;

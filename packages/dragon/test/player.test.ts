@@ -5,7 +5,7 @@
  * 動きを嫌う設定 (`prefers-reduced-motion: reduce`) の人には自動再生せず、段ごとの止め絵を釦で送る。
  * 各段の題と本文は、読み上げの道具が段の順に読める一覧として頁に置く。
  */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { exampleJson, type Json } from "./diagram-support";
 import { draw, type Player } from "./render-support";
 
@@ -136,6 +136,59 @@ describe("段の知らせ", () => {
     expect(seen.at(-1), "釦で送った段を知らせない").toBe(1);
     expect([...new Set(seen)], "知らせた段の並びが送った順でない").toEqual([0, 1, 2]);
     expect(seen.at(-1)).toBe(player.step);
+  });
+});
+
+describe("流して見せる (#3113)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  interface Seen {
+    step: number;
+    title: string | null | undefined;
+    no: string | null | undefined;
+  }
+
+  /** 偽の時計で OAuth を流して置く。`at(t)` は時刻を `t` 秒まで進めて、今の段と題と番号の札を読む */
+  function playedTo(): { at: (t: number) => Seen; timeline: { total: number; steps: { start: number }[] }; titles: string[] } {
+    prefersReducedMotion(false);
+    vi.useFakeTimers();
+    const diagram = exampleJson("oauth.json") as { steps: { title: string }[] };
+    const { host, player } = mount(diagram);
+    expect(player.playing, "設定が無い人に流れない").toBe(true);
+    const { timeline } = draw("renderDiagram")(diagram);
+    let now = 0;
+    const at = (t: number): Seen => {
+      vi.advanceTimersByTime(Math.round((t - now) * 1000));
+      now = t;
+      return { step: player.step, title: stepTitle(host), no: host.querySelector('[data-dragon="step-no"]')?.textContent };
+    };
+    return { at, timeline, titles: diagram.steps.map((s) => s.title) };
+  }
+
+  it("player-follows-real-time", () => {
+    // 流して見せる時は時刻の表の秒のとおりに段が進み、段が替わったら題と番号もすぐ替わる
+    const { at, timeline, titles } = playedTo();
+    const second = timeline.steps[1]?.start ?? Number.NaN;
+    const before = at(second - 0.2);
+    expect(before.step, `段 2 の始まり (${second.toFixed(2)} 秒) の 0.2 秒前に段 1 でない`).toBe(0);
+    expect(before.title).toBe(titles[0]);
+    const after = at(second + 0.2);
+    expect(after.step, `段 2 の始まりから 0.2 秒後に段 2 に替わらない`).toBe(1);
+    expect(after.title).toBe(titles[1]);
+    expect(after.no, "段 2 の始まりから 0.2 秒後の番号の札").toBe("02/12");
+  });
+
+  it("player-loops-after-total", () => {
+    // 1 周を終えたら最初の段へ戻って流れ続ける
+    const { at, timeline, titles } = playedTo();
+    const last = titles.length - 1;
+    const end = at(timeline.total - 0.2);
+    expect(end.step, "1 周の終わりの 0.2 秒前に最後の段でない").toBe(last);
+    const again = at(timeline.total + (timeline.steps[0]?.start ?? Number.NaN) + 0.2);
+    expect(again.step, "1 周を終えて最初の段の始まりから 0.2 秒後に段 1 へ戻らない").toBe(0);
+    expect(again.title).toBe(titles[0]);
   });
 });
 
