@@ -11,7 +11,8 @@ import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
-import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, runCli } from "./export-support";
+import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, readGif, runCli } from "./export-support";
+import { draw } from "./render-support";
 
 /** 書き出し 1 回に許す時間。Chromium の起動とコマを撮る時間を含む */
 const SLOW = 180_000;
@@ -38,6 +39,105 @@ function mixed(): Json {
     sequence: { lifelines: ["a", "b"] },
   };
 }
+
+/** 3 つの箱を 2 段で順に結ぶ構成図。2 段目の番号の丸は、1 段目の止め絵には出ない */
+function twoSteps(): Json {
+  const link = (from: string, to: string): Json => ({ type: "edge", from, to, carry: { kind: "envelope" } });
+  return {
+    version: 1,
+    kind: "architecture",
+    title: "2 段の構成図",
+    regions: [{ id: "r", name: "区画" }],
+    boxes: [
+      { id: "a", name: "入口", region: "r" },
+      { id: "b", name: "中", region: "r" },
+      { id: "c", name: "出口", region: "r" },
+    ],
+    steps: [
+      { title: "流す", body: "入口から中へ流す。", events: [link("a", "b")] },
+      { title: "渡す", body: "中から出口へ渡す。", events: [link("b", "c")] },
+    ],
+  };
+}
+
+/** 2 段の構成図を、コマの数を指定せずに mp4、GIF、PNG に書き出した物。3 つの検査が同じ書き出しを読む */
+let twoStepsShot: Promise<Exported> | undefined;
+const shootTwoSteps = (): Promise<Exported> => {
+  twoStepsShot ??= exporter().then((exportDiagram) => exportDiagram(twoSteps(), { outDir: scratch(), formats: ["mp4", "gif", "png"] }));
+  return twoStepsShot;
+};
+
+describe("書き出しのコマと形 (#3115)", () => {
+  it(
+    "export-default-frame-rates",
+    async () => {
+      // 使い方の文の既定のとおり、mp4 は 1 秒 30 コマ、GIF は 1 秒 10 コマで、GIF の 1 コマは 0.1 秒
+      const result = await shootTwoSteps();
+      const { total } = draw("renderDiagram")(twoSteps()).timeline;
+      expect(result.frames, `1 周 ${total} 秒の mp4 のコマの数`).toBe(Math.round(total * 30));
+      const gif = readGif(readFileSync(result.files.gif as string));
+      expect(gif.frames.length, `1 周 ${total} 秒の GIF のコマの数`).toBe(Math.round(total * 10));
+      expect([...new Set(gif.frames.map((frame) => frame.delay))], "GIF の 1 コマの長さ (1/100 秒)").toEqual([10]);
+    },
+    SLOW,
+  );
+
+  it(
+    "gif-keeps-unchanged-pixels",
+    async () => {
+      // 2 コマ目からは変わった所だけを書き、残りは透明にするので、後始末は前のコマを残す (1) でないと絵が欠ける
+      const gif = readGif(readFileSync((await shootTwoSteps()).files.gif as string));
+      expect(gif.frames.length, "GIF のコマが 2 つ以上無い").toBeGreaterThan(1);
+      gif.frames.slice(1).forEach((frame, i) => {
+        expect(frame.dispose, `GIF の ${i + 2} コマ目の後始末`).toBe(1);
+      });
+    },
+    SLOW,
+  );
+
+  it(
+    "gif-palette-fits-format",
+    async () => {
+      // GIF の色の表は 256 色まで。CCIP は表の上限まで色を使う
+      const exportDiagram = await exporter();
+      const result = await exportDiagram(exampleJson("ccip.json"), { outDir: scratch(), formats: ["gif"], gifFps: 1 });
+      const gif = readGif(readFileSync(result.files.gif as string));
+      expect(gif.frames.length, "CCIP の GIF にコマが無い").toBeGreaterThan(0);
+      gif.frames.forEach((frame, i) => {
+        expect(frame.table, `CCIP の GIF の ${i + 1} コマ目の色の表`).toBeLessThanOrEqual(256);
+        if (frame.transparent !== undefined) expect(frame.transparent, `CCIP の GIF の ${i + 1} コマ目の透明の色の番号`).toBeLessThan(frame.table);
+      });
+    },
+    SLOW,
+  );
+
+  it(
+    "png-export-shows-last-step",
+    async () => {
+      // PNG は最後の段の止め絵で撮る。まだ来ていない段の番号は出さないので、最初の段の止め絵には 2 段目の番号の丸が無い
+      const result = await shootTwoSteps();
+      const { layout } = draw("renderDiagram")(twoSteps());
+      const png = PNG.sync.read(readFileSync(result.files.png as string));
+      const scale = png.width / Math.ceil(layout.width);
+      const badge = layout.badges.at(-1);
+      expect(badge, "2 段の構成図に最後の段の番号の丸が無い").toBeDefined();
+      if (!badge) return;
+      // 丸の縁の淡い所を外し、半径 (9.5px) の 8 割の内側の画素が塗られているかを数える
+      const r = 9.5 * 0.8 * scale;
+      let inside = 0;
+      let painted = 0;
+      for (let y = Math.floor(badge.y * scale - r); y <= badge.y * scale + r; y++) {
+        for (let x = Math.floor(badge.x * scale - r); x <= badge.x * scale + r; x++) {
+          if (Math.hypot(x + 0.5 - badge.x * scale, y + 0.5 - badge.y * scale) > r) continue;
+          inside++;
+          if ((png.data[(y * png.width + x) * 4 + 3] as number) > 200) painted++;
+        }
+      }
+      expect(painted / inside, "PNG の最後の段の番号の丸の中で塗られた画素の割合").toBeGreaterThan(0.9);
+    },
+    SLOW,
+  );
+});
 
 describe("書き出し (#2986)", () => {
   it(
