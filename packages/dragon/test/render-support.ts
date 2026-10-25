@@ -77,6 +77,8 @@ export interface Span {
 
 export interface Timeline {
   total: number;
+  /** 最後の段の後に全体を見せ終え、繰り返す前に消え始める時刻 */
+  last: number;
   steps: Span[];
   /** 線を引いている間。`step` と `event` は原本の `steps[step].events[event]` を指す。`drawn` で引き終わる */
   edges: (Span & { step: number; event: number; drawn: number })[];
