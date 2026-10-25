@@ -323,3 +323,12 @@ export async function expectSteadyAcrossSteps(page: Page, scope: string, label: 
   const tallest = Math.max(...seen.map((c) => c.live));
   for (const c of seen) expect(Math.abs(c.room - tallest), `${label} の本文の欄の高さが、本文の最も長い段の高さと違う`).toBeLessThan(1);
 }
+
+/**
+ * `selector` の釦が押せなくなるまで押す (#3105)。
+ * 範囲の端に着いても釦が押せなくならない形でも止まるよう、`limit` 回で押すのをやめる
+ */
+export async function pressUntilDisabled(page: Page, selector: string, limit = 40): Promise<void> {
+  const button = page.locator(selector);
+  for (let pressed = 0; pressed < limit && !(await button.isDisabled()); pressed++) await button.click();
+}
