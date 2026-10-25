@@ -172,7 +172,7 @@ describe("流して見せる (#3113)", () => {
     const { at, timeline, titles } = playedTo();
     const second = timeline.steps[1]?.start ?? Number.NaN;
     const before = at(second - 0.2);
-    expect(before.step, `段 2 の始まり (${second} 秒) の 0.2 秒前に段 1 でない`).toBe(0);
+    expect(before.step, `段 2 の始まり (${second.toFixed(2)} 秒) の 0.2 秒前に段 1 でない`).toBe(0);
     expect(before.title).toBe(titles[0]);
     const after = at(second + 0.2);
     expect(after.step, `段 2 の始まりから 0.2 秒後に段 2 に替わらない`).toBe(1);
