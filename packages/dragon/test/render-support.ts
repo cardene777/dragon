@@ -34,6 +34,8 @@ export interface LaidEdge {
   from: string;
   to: string;
   points: [number, number][];
+  /** 運ぶ物が着いた後に寄って留まる所。構成図の線だけが持つ */
+  settle?: [number, number];
 }
 
 /** 箱が自分で行う処理の札。`box` は処理する箱の id。 */
@@ -78,8 +80,8 @@ export interface Timeline {
   steps: Span[];
   /** 線を引いている間。`step` と `event` は原本の `steps[step].events[event]` を指す。`drawn` で引き終わる */
   edges: (Span & { step: number; event: number; drawn: number })[];
-  /** 運ぶ物が見えている間。出発を待つ間と、着いた先で留まる間も含む。 */
-  carriers: (Span & { step: number; event: number })[];
+  /** 運ぶ物が見えている間。出発を待つ間と、着いた先で留まる間も含む。`depart` で出発し、`arrive` で線の終わりに着く */
+  carriers: (Span & { step: number; event: number; depart: number; arrive: number })[];
   labels: (Span & { step: number; event: number })[];
   badges: { step: number; appears: number }[];
   /** 処理、箱の字の書き換え、中身の帯の値が起きる時刻 */

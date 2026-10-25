@@ -49,6 +49,30 @@ function crowdedRow(): Json {
   };
 }
 
+/**
+ * 1 つの区画に 3 行 4 列の箱を並べ、左の列の上と下の箱を、間の箱を避けて回る縦の線で結ぶ構成図。
+ * 縦の線の長い名前は右の 3 列の箱に掛かり、右へ 400px 離しても空きが無いので、線に沿って行の間へずらす。
+ */
+function columnsRight(): Json {
+  const link = (from: string, to: string): Json => ({ type: "edge", from, to, carry: { kind: "envelope" } });
+  return {
+    version: 1,
+    kind: "architecture",
+    title: "右に箱の列が並ぶ縦の線",
+    regions: [{ id: "r", name: "区画" }],
+    boxes: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"].map((id) => ({ id, name: id.toUpperCase(), region: "r" })),
+    steps: [
+      { title: "下へ並べる", body: "上の箱から下の箱へ流す。", events: [edge("a", "b", "下", "right"), edge("b", "c", "下", "right")] },
+      {
+        title: "右へ並べる",
+        body: "左の列から右の列へ流す。",
+        events: [link("c", "f"), link("f", "i"), link("i", "l"), link("b", "e"), link("e", "h"), link("h", "k"), link("a", "d"), link("d", "g"), link("g", "j")],
+      },
+      { title: "回って下へ", body: "左の列の上から下へ回って流す。", events: [edge("a", "c", "とても長い名前を持つ線で列の間には収まらない")] },
+    ],
+  };
+}
+
 const layoutOf = (diagram: Json): Layout => draw("renderDiagram")(diagram).layout;
 
 function expectGaps(name: string, layout: Layout): void {
@@ -82,6 +106,11 @@ describe("離す", () => {
     const crowded = layoutOf(crowdedRow());
     expect(crowded.labels).toHaveLength(1);
     expectGaps("並んだ箱の間の長い名前", crowded);
+
+    // 縦の線の脇の名前も、右へ離して空きが無ければ線に沿って行の間へずらし、箱から 10px 以上離す
+    const columns = layoutOf(columnsRight());
+    expect(columns.labels).toHaveLength(3);
+    expectGaps("右に箱の列が並ぶ縦の線", columns);
   });
 });
 
