@@ -122,7 +122,10 @@ describe("書き出しのコマと形 (#3115)", () => {
       const badge = layout.badges.at(-1);
       expect(badge, "2 段の構成図に最後の段の番号の丸が無い").toBeDefined();
       if (!badge) return;
-      // 丸の縁の淡い所を外し、半径 (9.5px) の 8 割の内側の画素が塗られているかを数える
+      // 丸は区画の地の上に在る。丸の 20px 下 (線の下の、箱の間の地) の色を地の色とし、
+      // 丸の縁の淡い所を外した半径 (9.5px) の 8 割の内側で、地の色と離れた画素を数える
+      const at = (x: number, y: number): number[] => [...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 3)];
+      const ground = at(Math.round(badge.x * scale), Math.round((badge.y + 20) * scale));
       const r = 9.5 * 0.8 * scale;
       let inside = 0;
       let painted = 0;
@@ -130,10 +133,10 @@ describe("書き出しのコマと形 (#3115)", () => {
         for (let x = Math.floor(badge.x * scale - r); x <= badge.x * scale + r; x++) {
           if (Math.hypot(x + 0.5 - badge.x * scale, y + 0.5 - badge.y * scale) > r) continue;
           inside++;
-          if ((png.data[(y * png.width + x) * 4 + 3] as number) > 200) painted++;
+          if (at(x, y).reduce((sum, v, k) => sum + Math.abs(v - (ground[k] as number)), 0) > 60) painted++;
         }
       }
-      expect(painted / inside, "PNG の最後の段の番号の丸の中で塗られた画素の割合").toBeGreaterThan(0.9);
+      expect(painted / inside, `PNG の最後の段の番号の丸の中で、地の色 (${ground.join(", ")}) と違う画素の割合`).toBeGreaterThan(0.6);
     },
     SLOW,
   );
