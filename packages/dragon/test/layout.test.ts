@@ -32,6 +32,23 @@ function longLabel(): Json {
   };
 }
 
+/** 1 つの区画に 4 つの箱を並べ、中ほどの 2 つを長い名前の線で結ぶ構成図。線に沿ってずらしても両隣の箱に掛かる。 */
+function crowdedRow(): Json {
+  return {
+    version: 1,
+    kind: "architecture",
+    title: "並んだ箱の間の長い名前",
+    regions: [{ id: "r", name: "区画" }],
+    boxes: [
+      { id: "a", name: "左", region: "r" },
+      { id: "b", name: "中の左", region: "r" },
+      { id: "c", name: "中の右", region: "r" },
+      { id: "d", name: "右", region: "r" },
+    ],
+    steps: [{ title: "流す", body: "中の左から中の右へ流す。", events: [edge("b", "c", "とても長い名前を持つ線で二つの箱の間には収まらない")] }],
+  };
+}
+
 const layoutOf = (diagram: Json): Layout => draw("renderDiagram")(diagram).layout;
 
 function expectGaps(name: string, layout: Layout): void {
@@ -60,6 +77,11 @@ describe("離す", () => {
     if (!label) return;
     expect(label.x).toBeGreaterThanOrEqual(0);
     expect(label.x + label.w).toBeLessThanOrEqual(long.width);
+
+    // 線に沿ってずらすだけでは両隣の箱に掛かる名前も、線から離して箱から 10px 以上離す
+    const crowded = layoutOf(crowdedRow());
+    expect(crowded.labels).toHaveLength(1);
+    expectGaps("並んだ箱の間の長い名前", crowded);
   });
 });
 

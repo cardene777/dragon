@@ -76,12 +76,16 @@ export interface Span {
 export interface Timeline {
   total: number;
   steps: Span[];
-  /** 線を引いている間。`step` と `event` は原本の `steps[step].events[event]` を指す。 */
-  edges: (Span & { step: number; event: number })[];
+  /** 線を引いている間。`step` と `event` は原本の `steps[step].events[event]` を指す。`drawn` で引き終わる */
+  edges: (Span & { step: number; event: number; drawn: number })[];
   /** 運ぶ物が見えている間。出発を待つ間と、着いた先で留まる間も含む。 */
   carriers: (Span & { step: number; event: number })[];
   labels: (Span & { step: number; event: number })[];
   badges: { step: number; appears: number }[];
+  /** 処理、箱の字の書き換え、中身の帯の値が起きる時刻 */
+  events: { step: number; event: number; at: number }[];
+  /** 段ごとの止め絵の時刻 */
+  stills: number[];
 }
 
 export interface Rendered {
