@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, TEMPLATE } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, captionClearance, expectSteadyAcrossSteps, rgb, root, type Site, settledStepShape, startSite } from "./playground-support";
+import { app, BASE, captionClearance, expectSteadyAcrossSteps, pressUntilDisabled, rgb, root, type Site, settledStepShape, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -2666,6 +2666,22 @@ describe("サイトの帯と経路 (#3030)", () => {
           }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の 2 つ目の見本で、倍率が押せない状態の釦でないか、「—」を出さない` })
           .toEqual({ button: true, disabled: true, level: "—" });
       }
+    },
+    SLOW,
+  );
+
+  it(
+    "catalog-zoom-stops-at-range",
+    async () => {
+      // 見本の枠の拡大と縮小も、編集画面と同じ 25% から 400% の間で止まり、端に着くとその向きの釦が押せなくなる (#3105)
+      const page = await openSequence({ width: 1440, height: 900 });
+      const button = (name: string): string => `${catalogSel("preview")} ${catalogSel(name)}`;
+      await expect.poll(async () => (await catalogZoomOf(page)).level, { ...WAIT, message: "見本の枠に倍率が出ない" }).toMatch(/%$/);
+      const end = async (name: string): Promise<{ level: string; disabled: boolean }> => ({ level: (await catalogZoomOf(page)).level, disabled: await page.locator(button(name)).isDisabled() });
+      await pressUntilDisabled(page, button("zoom-in"));
+      await expect.poll(() => end("zoom-in"), { ...WAIT, message: "見本の枠で拡大を押し続けても 400% で止まらないか、拡大の釦が押せるまま残る" }).toEqual({ level: "400%", disabled: true });
+      await pressUntilDisabled(page, button("zoom-out"));
+      await expect.poll(() => end("zoom-out"), { ...WAIT, message: "見本の枠で縮小を押し続けても 25% で止まらないか、縮小の釦が押せるまま残る" }).toEqual({ level: "25%", disabled: true });
     },
     SLOW,
   );

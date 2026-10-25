@@ -11,7 +11,7 @@ import { DEFAULT_PALETTE, type Diagram, FONTS, PALETTES, parseNotation } from "@
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, rgb, type Site, startSite } from "./playground-support";
+import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -170,6 +170,19 @@ const noticeLines = (page: Page): Promise<string[]> =>
 /** 図の SVG の画面の上の幅 (#3031) */
 const figureWidth = (page: Page): Promise<number> =>
   page.evaluate((s) => document.querySelector(`${s} svg[data-dragon="figure"]`)?.getBoundingClientRect().width ?? 0, sel("stage"));
+
+/** 図の側の倍率の字 (#3105) */
+const zoomLevel = (page: Page): Promise<string> => page.evaluate((s) => document.querySelector(s)?.textContent?.trim() ?? "", sel("zoom-level"));
+
+/**
+ * 段の題に掛かる字の大きさの倍率 (小数 2 桁、#3103)。
+ * 字の大きさは `zoom` で段の番号と題と本文に掛かる。題の高さは行の高さの端数が丸まるので、倍率と揃わない
+ */
+const titleZoom = (page: Page): Promise<number> =>
+  page.evaluate((s) => {
+    const title = document.querySelector(`${s} [data-dragon="step-title"]`);
+    return title ? Math.round(Number(getComputedStyle(title).zoom) * 100) / 100 : 0;
+  }, sel("stage"));
 
 /** 段の札と進み具合の帯 (#3031) */
 const phase = (page: Page): Promise<{ badge: string | null; segments: number; done: number; stepNo: string | null }> =>
@@ -842,12 +855,8 @@ describe("公開する頁 (#2995)", () => {
         page.evaluate((s) => document.querySelector(`${s} [data-dragon="step-title"]`)?.getBoundingClientRect().height ?? 0, sel("stage"));
       const plain = await titleHeight();
       expect(plain, "段の題が描かれていない").toBeGreaterThan(0);
-      // 字の大きさの 1 回は 1.15 倍の刻みで、段の題に掛ける拡大の比で測る。行の高さは端数が丸まるので比が刻みと揃わない (#3103)
-      const say = (): Promise<number> =>
-        page.evaluate((s) => {
-          const title = document.querySelector(`${s} [data-dragon="step-title"]`);
-          return title ? Math.round(Number(getComputedStyle(title).zoom) * 100) / 100 : 0;
-        }, sel("stage"));
+      // 字の大きさの 1 回は 1.15 倍の刻み (#3103)
+      const say = (): Promise<number> => titleZoom(page);
       await click(page, "font-up");
       await expect.poll(titleHeight, { ...WAIT, message: "字を大きくしても段の題が大きくならない" }).toBeGreaterThan(plain);
       await expect.poll(say, { ...WAIT, message: "字を大きくしても段の題の字が 1.15 倍にならない" }).toBe(1.15);
@@ -855,6 +864,55 @@ describe("公開する頁 (#2995)", () => {
       await click(page, "font-down");
       await expect.poll(titleHeight, { ...WAIT, message: "字を小さくしても段の題が小さくならない" }).toBeLessThan(plain);
       await expect.poll(say, { ...WAIT, message: "続けて字を 2 回小さくしても段の題の字が 1 / 1.15 倍にならない" }).toBe(0.87);
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-zoom-stops-at-range",
+    async () => {
+      // 拡大と縮小は 25% から 400% の間で止まり、端に着くとその向きの釦が押せなくなる (#3105)
+      const { page } = await open();
+      await drawn(page);
+      await expect.poll(() => zoomLevel(page), { ...WAIT, message: "倍率が出ない" }).toMatch(/%$/);
+      const end = async (name: string): Promise<{ level: string; disabled: boolean }> => ({ level: await zoomLevel(page), disabled: await page.locator(sel(name)).isDisabled() });
+      await pressUntilDisabled(page, sel("zoom-in"));
+      await expect.poll(() => end("zoom-in"), { ...WAIT, message: "拡大を押し続けても 400% で止まらないか、拡大の釦が押せるまま残る" }).toEqual({ level: "400%", disabled: true });
+      await pressUntilDisabled(page, sel("zoom-out"));
+      await expect.poll(() => end("zoom-out"), { ...WAIT, message: "縮小を押し続けても 25% で止まらないか、縮小の釦が押せるまま残る" }).toEqual({ level: "25%", disabled: true });
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-text-size-stops-at-range",
+    async () => {
+      // 字の大きさは 0.7 倍から 1.6 倍の間で止まる。1.15 倍の刻みで、上の端には 4 回目、そこから下の端には 6 回目で着く (#3105)
+      const { page } = await open();
+      await drawn(page);
+      for (let i = 0; i < 5; i++) await click(page, "font-up");
+      await expect.poll(() => titleZoom(page), { ...WAIT, message: "字を大きくし続けても段の題の字が 1.6 倍で止まらない" }).toBe(1.6);
+      for (let i = 0; i < 8; i++) await click(page, "font-down");
+      await expect.poll(() => titleZoom(page), { ...WAIT, message: "字を小さくし続けても段の題の字が 0.7 倍で止まらない" }).toBe(0.7);
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-small-figure-fit-capped",
+    async () => {
+      // 枠より十分小さな図は、枠に収まる倍率 (1280 × 860 で 2.9 倍) まで膨らませず、1.5 倍で止める (#3105)
+      const { page } = await open();
+      await drawn(page);
+      await setEditor(page, ["時系列図 小さな図", "", "甲 = 甲", "乙 = 乙", "", "# 最初の段", "> 呼ぶ。", "甲 -> 乙 : 呼ぶ"].join("\n"));
+      const shown = async (): Promise<{ level: string; scale: number }> => ({
+        level: await zoomLevel(page),
+        scale: await page.evaluate((s) => {
+          const svg = document.querySelector<SVGSVGElement>(`${s} svg[data-dragon="figure"]`);
+          return svg ? Math.round((svg.getBoundingClientRect().width / svg.viewBox.baseVal.width) * 100) / 100 : 0;
+        }, sel("stage")),
+      });
+      await expect.poll(shown, { ...WAIT, message: "小さな図を枠に合わせた倍率が 150% で止まらない" }).toEqual({ level: "150%", scale: 1.5 });
     },
     SLOW,
   );
