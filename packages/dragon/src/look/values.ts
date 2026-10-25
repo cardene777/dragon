@@ -100,9 +100,10 @@ export const LOOK = {
   /**
    * 寄って追う見せ方の窓の高さの、幅に対する割合と下限。
    * `fitMinH` は見える高さに収める時 (#3047) の窓の高さの下限で、これより低い枠では収めずに枠の中で送る。
-   * `narrow` は縦長の全体図を出す枠の幅の下限で、これより狭い枠 (携帯の幅) では全体図を出さずに窓へ幅を渡す (#3055)
+   * `narrow` は縦長の全体図を出す枠の幅の下限で、これより狭い枠 (携帯の幅) では全体図を出さずに窓へ幅を渡す (#3055)。
+   * `badgeRoom` は番号の丸が窓から外れる段で窓を寄せ直す時に、丸の周りに空ける幅 (#3046)
    */
-  follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440 },
+  follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8 },
   /** 色を混ぜる割合 (%) */
   mix: { icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6 },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */
