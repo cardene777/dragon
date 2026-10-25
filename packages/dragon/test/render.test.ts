@@ -60,6 +60,43 @@ function twoLabels(): Json {
   };
 }
 
+/** 本文の長さだけが違う 3 つの段を持つ時系列図。どの段も運ぶ物の無い線を 1 本だけ引く。 */
+function bodies(): Json {
+  const step = (title: string, body: string): Json => ({ title, body, events: [edge("a", "b", { kind: "none" })] });
+  return {
+    version: 1,
+    kind: "sequence",
+    title: "本文の長さが違う段",
+    boxes: [
+      { id: "a", name: "送る側" },
+      { id: "b", name: "受ける側" },
+    ],
+    steps: [step("短い本文", "合図を送る。"), step("100 字の本文", "本文の字".repeat(25)), step("400 字の本文", "本文の字".repeat(100))],
+    sequence: { lifelines: ["a", "b"] },
+  };
+}
+
+/** 線が着いた後に、受ける側の箱の下の字を続けて 2 度書き換える時系列図。 */
+function quickSwaps(): Json {
+  return {
+    version: 1,
+    kind: "sequence",
+    title: "続けて書き換える図",
+    boxes: [
+      { id: "a", name: "送る側", sub: "待つ" },
+      { id: "b", name: "受ける側", sub: "空" },
+    ],
+    steps: [
+      {
+        title: "送って書き換える",
+        body: "送る側が送り、受ける側の字を続けて書き換える。",
+        events: [edge("a", "b", { kind: "envelope" }), { type: "swap", box: "b", text: "すぐ替わる字" }, { type: "swap", box: "b", text: "残る字" }],
+      },
+    ],
+    sequence: { lifelines: ["a", "b"] },
+  };
+}
+
 const render = (diagram: Json): Rendered => draw("renderDiagram")(diagram);
 const within = (span: Span, step: Span): boolean => span.start >= step.start - 1e-9 && span.end <= step.end + 1e-9;
 
@@ -136,6 +173,63 @@ describe("見える物の数", () => {
   });
 });
 
+/** 段の中で線を引き終え、書き換えが済む時刻。処理だけの段は処理を始める時刻。 */
+function settled(timeline: Rendered["timeline"], s: number): number {
+  const step = timeline.steps[s] as Span;
+  return Math.max(step.start, ...timeline.edges.filter((e) => e.step === s).map((e) => e.drawn), ...timeline.events.filter((e) => e.step === s).map((e) => e.at));
+}
+
+describe("段の長さ", () => {
+  it("step-length-follows-body", () => {
+    const lengths = render(bodies()).timeline.steps.map((span) => span.end - span.start);
+    // 段は本文を読める長さにする。短い本文でも 2.2 秒は見せ、1 字ごとに 0.025 秒伸ばし、5 秒で止める (`look/values.ts` の `MOTION`)
+    expect(lengths[0], "本文の短い段").toBeCloseTo(2.2, 6);
+    expect(lengths[1], "本文が 100 字の段").toBeCloseTo(3.7, 6);
+    expect(lengths[2], "本文が 400 字の段").toBeCloseTo(5, 6);
+  });
+
+  it("intro-shows-whole-figure-first", () => {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()]] as const) {
+      // 最初の段の前の 1.4 秒は、どの段も始めずに図の全体を見せる
+      expect(render(diagram).timeline.steps[0]?.start, `${name} の最初の段の始まり`).toBeCloseTo(1.4, 6);
+    }
+  });
+
+  it("step-dwells-after-last-change", () => {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["静かな段を持つ図", quiet()]] as const) {
+      const { timeline } = render(diagram);
+      timeline.steps.forEach((span, s) => {
+        // 段で起きることが全部見えてから 1.2 秒は留める。すぐ次の段へ移ると、何が起きたかを見る間が無い
+        expect(span.end - settled(timeline, s), `${name} の段 ${s + 1} が、線を引き終えて書き換えが済んでから留まる長さ`).toBeGreaterThanOrEqual(1.2 - 1e-9);
+      });
+    }
+  });
+
+  it("still-shows-whole-step", () => {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["静かな段を持つ図", quiet()]] as const) {
+      const { timeline } = render(diagram);
+      expect(timeline.stills, `${name} の止め絵の数`).toHaveLength(timeline.steps.length);
+      timeline.steps.forEach((span, s) => {
+        const still = timeline.stills[s] ?? Number.NaN;
+        // 止め絵は、その段で起きることが全部見えた後で、次の段が始まる前に撮る
+        expect(still, `${name} の段 ${s + 1} の止め絵が、線を引き終えて書き換えが済んだ後に在る`).toBeGreaterThanOrEqual(settled(timeline, s));
+        expect(still, `${name} の段 ${s + 1} の止め絵が、段の終わりより前に在る`).toBeLessThan(span.end);
+      });
+    }
+  });
+});
+
+describe("箱の下の字", () => {
+  it("quick-swap-text-not-drawn", () => {
+    const { svg, timeline } = render(quickSwaps());
+    const [first, second] = timeline.events;
+    expect(first && second && second.at - first.at, "2 度の書き換えの間").toBeCloseTo(0.12, 6);
+    // 0.8 秒より早く次の字に替わる字は読めないので出さない
+    expect(svg, "すぐ替わる字").not.toContain("すぐ替わる字");
+    expect(svg, "残る字").toContain("残る字");
+  });
+});
+
 /** 段の番号の丸の半径 (`look/values.ts` の `badge.r`)。 */
 const BADGE_R = 9.5;
 
@@ -156,7 +250,34 @@ function onPath(x: number, y: number, points: [number, number][]): boolean {
   });
 }
 
+const lengthOf = (points: [number, number][]): number => points.slice(1).reduce((sum, [x2, y2], i) => sum + Math.hypot(x2 - (points[i]?.[0] ?? x2), y2 - (points[i]?.[1] ?? y2)), 0);
+
+/** 折れ線の始まりから、線の上の点までの道のり。点が線の上に無ければ NaN。 */
+function distanceAlong(x: number, y: number, points: [number, number][]): number {
+  let sum = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1] as [number, number];
+    const b = points[i] as [number, number];
+    if (onPath(x, y, [a, b])) return sum + Math.hypot(x - a[0], y - a[1]);
+    sum += Math.hypot(b[0] - a[0], b[1] - a[1]);
+  }
+  return Number.NaN;
+}
+
 describe("段の番号の置き場 (#3017)", () => {
+  it("short-line-badge-at-middle", () => {
+    const { layout } = render(ccip());
+    const short = layout.badges.flatMap((badge) => {
+      const line = layout.edges.find((e) => e.step === badge.step);
+      return line && lengthOf(line.points) < 44 ? [{ badge, line }] : [];
+    });
+    expect(short.length, "CCIP の 44 より短い線に置いた番号").toBeGreaterThan(0);
+    for (const { badge, line } of short) {
+      // 短い線は始まりの近くに置くと箱と重なるので、線の中ほどに置く
+      expect(distanceAlong(badge.x, badge.y, line.points), `段 ${badge.step + 1} の丸の、線の始まりからの道のり`).toBeCloseTo(lengthOf(line.points) / 2, 6);
+    }
+  });
+
   it("oauth-action-steps-are-2-6-8", () => {
     expect(actionOnlySteps(render(oauth()).layout).map((s) => s + 1)).toEqual([2, 6, 8]);
   });

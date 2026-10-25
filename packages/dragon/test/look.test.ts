@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { closestPair, type Sight } from "./color-vision";
-import { smallSequence } from "./diagram-support";
+import { exampleJson, smallSequence } from "./diagram-support";
 import { draw } from "./render-support";
 
 const PACKAGE = fileURLToPath(new URL("../", import.meta.url));
@@ -109,5 +109,15 @@ describe("字", () => {
     for (const m of svg.matchAll(/font-family\s*:\s*([^;}]+)/g)) expect(m[1]?.trim()).toMatch(/^var\(--(sans|mono)\)$/);
     for (const m of svg.matchAll(/(?:^|[;{\s])font\s*:\s*([^;}]+)/g)) expect(m[1]?.trim()).toMatch(/var\(--(sans|mono)\)$/);
     expect(svg).not.toMatch(/system-ui|sans-serif|monospace|Hiragino|Menlo|Meiryo|Yu Gothic/);
+  });
+
+  it("rendered-text-at-least-10-5px", () => {
+    // 字の大きさはどれも 10.5 以上にする (`look/values.ts` の `TYPE`)。小さい字は図を原寸で見ても読めない
+    for (const name of ["oauth.json", "ccip.json", "intro.json"]) {
+      const { svg } = draw("renderDiagram")(exampleJson(name));
+      const sizes = [...svg.matchAll(/(?:^|[;{\s])font\s*:\s*\d+\s+([\d.]+)px/g), ...svg.matchAll(/font-size\s*[:=]\s*"?([\d.]+)/g)].map((m) => Number(m[1]));
+      expect(sizes.length, `${name} の字の大きさ`).toBeGreaterThan(0);
+      for (const size of sizes) expect(size, `${name} に ${size}px の字`).toBeGreaterThanOrEqual(10.5);
+    }
   });
 });
