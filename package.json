@@ -20,7 +20,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "verify": "pnpm run typecheck && pnpm run build && pnpm run lint && pnpm run test",
-    "test:mutation": "stryker run"
+    "test:mutation": "stryker run",
+    "test:mutation:values": "node scripts/mutate-values.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
