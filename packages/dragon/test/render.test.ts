@@ -182,7 +182,8 @@ describe("段の番号の置き場 (#3017)", () => {
       for (const s of actionOnlySteps(layout)) {
         const badge = layout.badges.find((b) => b.step === s);
         const action = layout.actions.find((a) => a.step === s);
-        expect(Boolean(badge && action && action.x >= badge.x + BADGE_R), `${name} の段 ${s + 1} の札の左端 ${action?.x} が丸の右端 ${badge && badge.x + BADGE_R} より右に在る`).toBe(true);
+        // 札は丸の右端から 4px の所に置く。離れると札がどの丸のものか分からなくなる (#3099)
+        expect(badge && action && action.x - (badge.x + BADGE_R), `${name} の段 ${s + 1} の札の左端 ${action?.x} が丸の右端 ${badge && badge.x + BADGE_R} から 4px の所に無い`).toBeCloseTo(4, 5);
       }
     }
   });

@@ -235,8 +235,8 @@ interface Category {
   count: string;
   items: { title: string; current: boolean }[];
   empty: boolean;
-  /** 一覧が見本の左に並ぶ */
-  sideBySide: boolean;
+  /** 一覧の幅と、一覧の右端から見本の左端までの間 (四捨五入)。一覧か見本が無い時は null */
+  side: { width: number; gap: number } | null;
   title: string;
   about: string;
   names: string[];
@@ -263,7 +263,7 @@ const categoryOf = (page: Page): Promise<Category> =>
         current: i.getAttribute("aria-current") === "true",
       })),
       empty: q("empty") !== null,
-      sideBySide: side !== undefined && preview !== undefined && side.width > 0 && side.right <= preview.left,
+      side: side && preview ? { width: Math.round(side.width), gap: Math.round(preview.left - side.right) } : null,
       title: document.querySelector('[data-catalog="preview"] h2')?.textContent?.trim() ?? "",
       about: text("about"),
       names: svg ? [...new Set([...svg.querySelectorAll(".dg-sn")].map((n) => n.textContent ?? ""))].sort() : [],
@@ -900,7 +900,8 @@ describe("サイトの帯と経路 (#3030)", () => {
         .toEqual(keys.map((key, i) => ({ title: titleOf(key), current: i === 0 })));
       const first = await categoryOf(page);
       expect(first.count, "分類の頁に見本の件数が出ない").toBe(`全 ${keys.length} 件`);
-      expect(first.sideBySide, "一覧が見本の左に並ばない").toBe(true);
+      // 一覧は 260px の幅で見本の左に並び、見本との間は 24px。間が広がると見本の面が細る (#3099)
+      expect(first.side, "一覧が 260px の幅で見本の左に並ばないか、一覧と見本の間が 24px でない").toEqual({ width: 260, gap: 24 });
       expect(await page.locator(`${catalogSel("category")} h1`).textContent(), "分類の頁の見出しが図の種類の名前でない").toBe(TEXT.ja.shelf.kinds.sequence);
       expect(
         await page.evaluate(() => [...document.querySelectorAll<HTMLAnchorElement>('[data-catalog="crumb"] a')].map((a) => new URL(a.href).pathname)),
@@ -1496,9 +1497,11 @@ describe("サイトの帯と経路 (#3030)", () => {
                   titleBesideButtons: title.left > buttons.right && title.top < buttons.bottom,
                   noBesideButtons: no.left > buttons.right && no.right <= title.left && no.top < buttons.bottom,
                   bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
+                  // 釦の右 10px に番号、番号の右 10px に題を置き、題は釦の上端にそろえる (#3099)
+                  gaps: { no: Math.round(no.left) - Math.round(buttons.right), title: Math.round(title.left) - Math.round(no.right), top: Math.round(title.top) - Math.round(buttons.top) },
                 };
-              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でない` })
-              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true });
+              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でないか、釦と番号と題の間が今と違う` })
+              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true, gaps: { no: 10, title: 10, top: 0 } });
           }
         }
       }
@@ -3416,9 +3419,11 @@ describe("サイトの帯と経路 (#3030)", () => {
                   titleBesideButtons: title.left > buttons.right && title.top < buttons.bottom,
                   noBesideButtons: no.left > buttons.right && no.right <= title.left && no.top < buttons.bottom,
                   bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
+                  // 釦の右 10px に番号、番号の右 10px に題を置き、題は釦の上端にそろえる (#3099)
+                  gaps: { no: Math.round(no.left) - Math.round(buttons.right), title: Math.round(title.left) - Math.round(no.right), top: Math.round(title.top) - Math.round(buttons.top) },
                 };
-              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でない` })
-              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true });
+              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でないか、釦と番号と題の間が今と違う` })
+              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true, gaps: { no: 10, title: 10, top: 0 } });
           }
         }
       }
