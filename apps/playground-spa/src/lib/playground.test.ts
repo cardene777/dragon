@@ -955,9 +955,13 @@ describe("公開する頁 (#2995)", () => {
         await drawn(page);
         await click(page, `sample-${key}`);
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));
+        // 帯の下の余白は 10px。広がると図の枠が低くなる (#3101)
         await expect
-          .poll(() => captionClearance(page, sel("stage"), sel("figure")), { ...WAIT, message: `見本 ${key} で、本文の最後の行と図の側の下の縁の間が 8px に足りない` })
-          .toBeGreaterThanOrEqual(8);
+          .poll(async () => {
+            const clearance = await captionClearance(page, sel("stage"), sel("figure"));
+            return clearance === null ? null : Math.round(clearance);
+          }, { ...WAIT, message: `見本 ${key} で、本文の最後の行と図の側の下の縁の間が 10px でない` })
+          .toBe(10);
       }
     },
     SLOW,

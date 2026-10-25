@@ -1150,9 +1150,13 @@ describe("サイトの帯と経路 (#3030)", () => {
             const label = `${viewport.width} × ${viewport.height} の ${category} の ${i + 1} 番目の見本の重ね窓`;
             await page.locator(catalogSel("item")).nth(i).click();
             await page.locator(catalogSel("expand")).click();
+            // 帯の下の余白は 10px で、本文の行の下の空きと合わせて 11px。広がると図の枠が低くなる (#3101)
             await expect
-              .poll(() => captionClearance(page, '[data-catalog="overlay"]', ".catalog-overlay-card"), { ...WAIT, message: `${label} で、本文の最後の行と札の下の縁の間が 8px に足りない` })
-              .toBeGreaterThanOrEqual(8);
+              .poll(async () => {
+                const clearance = await captionClearance(page, '[data-catalog="overlay"]', ".catalog-overlay-card");
+                return clearance === null ? null : Math.round(clearance);
+              }, { ...WAIT, message: `${label} で、本文の最後の行と札の下の縁の間が 11px でない` })
+              .toBe(11);
             await page.keyboard.press("Escape");
             await expect.poll(() => page.locator('[data-catalog="overlay"]').count(), { ...WAIT, message: `${label} が閉じない` }).toBe(0);
           }
@@ -1429,6 +1433,8 @@ describe("サイトの帯と経路 (#3030)", () => {
         "360 × 780": { oauth: { bar: 191, frame: 398 }, ccip: { bar: 211, frame: 355 } },
         "390 × 844": { oauth: { bar: 151, frame: 502 }, ccip: { bar: 191, frame: 462 } },
       } as const;
+      // 今の帯の高さ。題と本文の間や帯の下の余白が広がると帯が高くなる (#3101)
+      const bars = { oauth: 140, ccip: 160 } as const;
       for (const viewport of [
         { width: 360, height: 780 },
         { width: 390, height: 844 },
@@ -1440,9 +1446,9 @@ describe("サイトの帯と経路 (#3030)", () => {
           await expect
             .poll(async () => {
               const seen = await captionOf(page, '[data-catalog="overlay"]');
-              return seen && { lower: seen.bar < now.bar, taller: seen.frame > now.frame };
-            }, { ...WAIT, message: `${size} の ${sample.key} の重ね窓で、帯が ${now.bar}px より低くならないか、図の枠の中が ${now.frame}px より高くならない` })
-            .toEqual({ lower: true, taller: true });
+              return seen && { bar: Math.round(seen.bar), taller: seen.frame > now.frame };
+            }, { ...WAIT, message: `${size} の ${sample.key} の重ね窓で、帯が ${bars[sample.key]}px でないか、図の枠の中が ${now.frame}px より高くならない` })
+            .toEqual({ bar: bars[sample.key], taller: true });
         }
       }
     },
@@ -1497,11 +1503,16 @@ describe("サイトの帯と経路 (#3030)", () => {
                   titleBesideButtons: title.left > buttons.right && title.top < buttons.bottom,
                   noBesideButtons: no.left > buttons.right && no.right <= title.left && no.top < buttons.bottom,
                   bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
-                  // 釦の右 10px に番号、番号の右 10px に題を置き、題は釦の上端にそろえる (#3099)
-                  gaps: { no: Math.round(no.left) - Math.round(buttons.right), title: Math.round(title.left) - Math.round(no.right), top: Math.round(title.top) - Math.round(buttons.top) },
+                  // 釦の右 10px に番号、番号の右 10px に題を置き、題は釦の上端にそろえる (#3099)。本文は題のすぐ下に置く (#3101)
+                  gaps: {
+                    no: Math.round(no.left) - Math.round(buttons.right),
+                    title: Math.round(title.left) - Math.round(no.right),
+                    top: Math.round(title.top) - Math.round(buttons.top),
+                    body: Math.round(body.top) - Math.round(title.bottom),
+                  },
                 };
-              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でないか、釦と番号と題の間が今と違う` })
-              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true, gaps: { no: 10, title: 10, top: 0 } });
+              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でないか、釦と番号と題と本文の間が今と違う` })
+              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true, gaps: { no: 10, title: 10, top: 0, body: 0 } });
           }
         }
       }
@@ -1590,9 +1601,10 @@ describe("サイトの帯と経路 (#3030)", () => {
           await expect
             .poll(async () => {
               const seen = await overlayHeadOf(page);
-              return seen && { lower: seen.head < now.head, taller: seen.frame > now.frame };
-            }, { ...WAIT, message: `${size} の ${sample.key} の重ね窓で、見出しが ${now.head}px より低くならないか、図の枠の中が ${now.frame}px より高くならない` })
-            .toEqual({ lower: true, taller: true });
+              // 今の見出しは上下の余白 14px と題の 1 行で 80px。余白が広がると図の枠が低くなる (#3101)
+              return seen && { head: Math.round(seen.head), taller: seen.frame > now.frame };
+            }, { ...WAIT, message: `${size} の ${sample.key} の重ね窓で、見出しが 80px でないか、図の枠の中が ${now.frame}px より高くならない` })
+            .toEqual({ head: 80, taller: true });
         }
       }
     },
@@ -1721,9 +1733,10 @@ describe("サイトの帯と経路 (#3030)", () => {
           await expect
             .poll(async () => {
               const seen = await editorTopOf(page);
-              return seen && { closer: seen.above < 48, more: seen.code > code };
-            }, { ...WAIT, message: `${size} の編集画面の ${sample.key} で、道具の帯と図の枠の中の間が 48px より小さくならないか、見える記法の欄が ${code}px より高くならない` })
-            .toEqual({ closer: true, more: true });
+              // 道具の帯から図の枠の中までは枠の上の余白の 16px。広がると記法の欄が下へ押される (#3101)
+              return seen && { above: Math.round(seen.above), more: seen.code > code };
+            }, { ...WAIT, message: `${size} の編集画面の ${sample.key} で、道具の帯と図の枠の中の間が 16px でないか、見える記法の欄が ${code}px より高くならない` })
+            .toEqual({ above: 16, more: true });
         }
       }
     },
@@ -3419,11 +3432,16 @@ describe("サイトの帯と経路 (#3030)", () => {
                   titleBesideButtons: title.left > buttons.right && title.top < buttons.bottom,
                   noBesideButtons: no.left > buttons.right && no.right <= title.left && no.top < buttons.bottom,
                   bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
-                  // 釦の右 10px に番号、番号の右 10px に題を置き、題は釦の上端にそろえる (#3099)
-                  gaps: { no: Math.round(no.left) - Math.round(buttons.right), title: Math.round(title.left) - Math.round(no.right), top: Math.round(title.top) - Math.round(buttons.top) },
+                  // 釦の右 10px に番号、番号の右 10px に題を置き、題は釦の上端にそろえる (#3099)。本文は題のすぐ下に置く (#3101)
+                  gaps: {
+                    no: Math.round(no.left) - Math.round(buttons.right),
+                    title: Math.round(title.left) - Math.round(no.right),
+                    top: Math.round(title.top) - Math.round(buttons.top),
+                    body: Math.round(body.top) - Math.round(title.bottom),
+                  },
                 };
-              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でないか、釦と番号と題の間が今と違う` })
-              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true, gaps: { no: 10, title: 10, top: 0 } });
+              }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でないか、釦と番号と題と本文の間が今と違う` })
+              .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true, gaps: { no: 10, title: 10, top: 0, body: 0 } });
           }
         }
       }
