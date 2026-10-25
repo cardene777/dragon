@@ -92,6 +92,16 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
         expect(overview.y, `${name} / ${width}px の横長の全体図が窓の下に無い`).toBeGreaterThanOrEqual(bottom);
         expect(overview.x + overview.w, `${name} / ${width}px の横長の全体図が窓の右へはみ出す`).toBeLessThanOrEqual(right + 1);
       }
+      // 窓と全体図の間は 12px。縦長は窓の上端に、横長は窓の右端から 12px 内に揃え、図は窓と全体図をちょうど包む (#3099)。
+      // 図の幅と高さは端数を切り上げて書く
+      const view = rectOf(svg, ".dg-vp-bg") as Rect;
+      const size = { w: Number(svg.getAttribute("width")), h: Number(svg.getAttribute("height")) };
+      const place = tall
+        ? { gap: overview.x - (view.x + view.w), edge: overview.y - view.y, w: size.w - Math.ceil(overview.x + overview.w), h: size.h - Math.ceil(view.y + view.h) }
+        : { gap: overview.y - (view.y + view.h), edge: view.x + view.w - (overview.x + overview.w), w: size.w - Math.ceil(view.x + view.w), h: size.h - Math.ceil(overview.y + overview.h) };
+      for (const [key, value] of Object.entries({ gap: 12, edge: tall ? 0 : 12, w: 0, h: 0 })) {
+        expect(place[key as keyof typeof place], `${name} / ${width}px の全体図の ${key} が ${value}px でない`).toBeCloseTo(value, 5);
+      }
     }
   });
 
@@ -99,7 +109,8 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
     for (const [name, file, width] of CASES) {
       const { svg, overview } = parts(file, width);
       const drawn = Number(svg.getAttribute("width"));
-      expect(drawn, `${name} / ${width}px の図の幅が枠を超える`).toBeLessThanOrEqual(width);
+      // 枠が図の原寸より狭い時は、枠の幅を余さず使う。余すと窓が狭まり、右端の登場する物の札が切れる (#3053、#3099)
+      expect(drawn, `${name} / ${width}px の図の幅が枠の幅と違う`).toBe(width);
       expect(overview.x + overview.w, `${name} / ${width}px の全体図が図の幅の外に出る`).toBeLessThanOrEqual(drawn);
       expect(overview.y + overview.h, `${name} / ${width}px の全体図が図の高さの外に出る`).toBeLessThanOrEqual(Number(svg.getAttribute("height")));
     }

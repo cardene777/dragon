@@ -114,8 +114,9 @@ describe("寄せの指示", () => {
       const segment = longestSegment(line.points);
       expect(segment.vertical, "時系列図の線は横").toBe(false);
       const y = segment.a[1];
-      if (side === "above") expect(label.y + label.h, "上の名前は線より上").toBeLessThanOrEqual(y);
-      else expect(label.y, "下の名前は線より下").toBeGreaterThanOrEqual(y);
+      // 名前は線から 12px 離す。離れすぎると名前がどの線のものか分からなくなる (#3099)
+      const apart = side === "above" ? y - (label.y + label.h) : label.y - y;
+      expect(apart, `${side === "above" ? "上" : "下"}の名前と線の間が 12px でない`).toBeCloseTo(12, 5);
     }
 
     // 指示した側が図の左端でも、名前はその側に置かれ、図の外へ出ない
@@ -128,8 +129,9 @@ describe("寄せの指示", () => {
       const segment = longestSegment(line.points);
       expect(segment.vertical, "上下の区画を結ぶ線は縦").toBe(true);
       const x = segment.a[0];
-      if (side === "left") expect(label.x + label.w, "左の名前は線より左").toBeLessThanOrEqual(x);
-      else expect(label.x, "右の名前は線より右").toBeGreaterThanOrEqual(x);
+      // 縦の線の脇の名前は線から 14px 離す (#3099)
+      const apart = side === "left" ? x - (label.x + label.w) : label.x - x;
+      expect(apart, `${side === "left" ? "左" : "右"}の名前と線の間が 14px でない`).toBeCloseTo(14, 5);
       expect(label.x, `${side} の名前が図の左に出ない`).toBeGreaterThanOrEqual(0);
       expect(label.x + label.w, `${side} の名前が図の右に出ない`).toBeLessThanOrEqual(arch.width);
     }
