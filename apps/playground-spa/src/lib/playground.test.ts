@@ -816,11 +816,13 @@ describe("公開する頁 (#2995)", () => {
       // 拡大と縮小で図の大きさが変わり、全体に合わせると元の大きさに戻る
       await expect.poll(() => figureWidth(page), { ...WAIT, message: "図の幅が測れない" }).toBeGreaterThan(0);
       const fitted = await figureWidth(page);
+      // 拡大と縮小の 1 回は 1.2 倍の刻み。刻みが粗くなると見たい大きさに合わせにくい (#3103)
+      const zoomRatio = async (): Promise<number> => Math.round(((await figureWidth(page)) / fitted) * 100) / 100;
       await click(page, "zoom-in");
-      await expect.poll(() => figureWidth(page), { ...WAIT, message: "拡大しても図が大きくならない" }).toBeGreaterThan(fitted * 1.1);
+      await expect.poll(zoomRatio, { ...WAIT, message: "拡大しても図の幅が全体に合わせた時の 1.2 倍にならない" }).toBe(1.2);
       await click(page, "zoom-out");
       await click(page, "zoom-out");
-      await expect.poll(() => figureWidth(page), { ...WAIT, message: "縮小しても図が小さくならない" }).toBeLessThan(fitted * 0.95);
+      await expect.poll(zoomRatio, { ...WAIT, message: "続けて縮小を 2 回押しても図の幅が全体に合わせた時の 1 / 1.2 倍にならない" }).toBe(0.83);
       await click(page, "fit");
       await expect.poll(async () => Math.abs((await figureWidth(page)) - fitted), { ...WAIT, message: "全体に合わせても元の大きさに戻らない" }).toBeLessThan(1);
 
@@ -840,11 +842,19 @@ describe("公開する頁 (#2995)", () => {
         page.evaluate((s) => document.querySelector(`${s} [data-dragon="step-title"]`)?.getBoundingClientRect().height ?? 0, sel("stage"));
       const plain = await titleHeight();
       expect(plain, "段の題が描かれていない").toBeGreaterThan(0);
+      // 字の大きさの 1 回は 1.15 倍の刻みで、段の題に掛ける拡大の比で測る。行の高さは端数が丸まるので比が刻みと揃わない (#3103)
+      const say = (): Promise<number> =>
+        page.evaluate((s) => {
+          const title = document.querySelector(`${s} [data-dragon="step-title"]`);
+          return title ? Math.round(Number(getComputedStyle(title).zoom) * 100) / 100 : 0;
+        }, sel("stage"));
       await click(page, "font-up");
       await expect.poll(titleHeight, { ...WAIT, message: "字を大きくしても段の題が大きくならない" }).toBeGreaterThan(plain);
+      await expect.poll(say, { ...WAIT, message: "字を大きくしても段の題の字が 1.15 倍にならない" }).toBe(1.15);
       await click(page, "font-down");
       await click(page, "font-down");
       await expect.poll(titleHeight, { ...WAIT, message: "字を小さくしても段の題が小さくならない" }).toBeLessThan(plain);
+      await expect.poll(say, { ...WAIT, message: "続けて字を 2 回小さくしても段の題の字が 1 / 1.15 倍にならない" }).toBe(0.87);
     },
     SLOW,
   );

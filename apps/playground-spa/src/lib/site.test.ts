@@ -4182,16 +4182,17 @@ describe("サイトの帯と経路 (#3030)", () => {
       await card.click();
       await expect.poll(() => page.evaluate(() => location.hash), { ...WAIT, message: "特長の札を押してもアドレスが節を指さない" }).toBe(href);
       expect(await page.evaluate(() => location.pathname), "特長の札を押すと使い方の頁から離れる").toBe(`${BASE}docs`);
+      // 節の頭は上の帯 (60px) の 24px 下で止まる。下へずれると節の頭が画面の中ほどに来る (#3103)
       await expect
         .poll(
           () =>
             page.evaluate((id) => {
               const top = document.getElementById(id)?.getBoundingClientRect().top;
-              return top !== undefined && top >= 0 && top < window.innerHeight / 2;
+              return top === undefined ? null : Math.round(top);
             }, href.slice(1)),
-          { ...WAIT, message: "特長の札を押しても行き先の節が画面の上に来ない" },
+          { ...WAIT, message: "特長の札を押しても行き先の節の上端が上の帯の 24px 下 (84px) に来ない" },
         )
-        .toBe(true);
+        .toBe(84);
 
       // 英語に替えると、節の例が英語の語の記法になる
       await page.locator(siteSel("lang-en")).click();
