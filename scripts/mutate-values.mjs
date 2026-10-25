@@ -12,6 +12,8 @@
  * どの検査も落ちなかった変異が、検査の穴になる。
  * `--wide` では変異の `names` を使わず、`tests` の file の検査を全部回す。
  * 名前で絞った回で落ちなかった変異が、本当にどの検査にも捕まらないかを見る時に使う。
+ * 検査の前の build が落ちた変異と、検査が集計の行を出さずに終わった変異 (Ctrl-C で止めた時を含む) は、
+ * 結果の `unfinished` に理由を残して止まり、終わり方は 1 になる。
  *
  * 変異の一覧は JSON の配列で書く。
  *
@@ -72,15 +74,19 @@ export function readMutants(text) {
     for (const key of ["id", "file", "old", "new"]) {
       if (typeof m?.[key] !== "string") throw new Error(`${where} に "${key}" の字が無い`);
     }
-    if (!Array.isArray(m.tests) || m.tests.some((t) => typeof t !== "string")) throw new Error(`${where} の "tests" が file の配列でない`);
-    if (m.names !== undefined && m.names !== null && typeof m.names !== "string") throw new Error(`${where} の "names" が字でも null でもない`);
+    if (!Array.isArray(m.tests) || m.tests.some((t) => typeof t !== "string"))
+      throw new Error(`${where} の "tests" が file の配列でない`);
+    if (m.names !== undefined && m.names !== null && typeof m.names !== "string")
+      throw new Error(`${where} の "names" が字でも null でもない`);
   });
   return list;
 }
 
 /** 書き換えた file を HEAD の中身に戻す */
 function restore(root, path) {
-  const r = spawnSync("git", ["-C", root, "show", `HEAD:${path}`], { maxBuffer: 256 * 1024 * 1024 });
+  const r = spawnSync("git", ["-C", root, "show", `HEAD:${path}`], {
+    maxBuffer: 256 * 1024 * 1024,
+  });
   if (r.status !== 0) throw new Error(`${path} を HEAD の中身に戻せない: ${String(r.stderr)}`);
   writeFileSync(join(root, path), r.stdout);
 }
@@ -91,7 +97,7 @@ function readOutput(text) {
     summary: text
       .split("\n")
       .map((line) => line.trim())
-      .find((line) => line.startsWith("Tests ")) ?? "集計なし",
+      .find((line) => line.startsWith("Tests ")),
     failed: [...new Set([...text.matchAll(FAILED)].map((x) => x[1]))].sort(),
     messages: [...text.matchAll(MESSAGE)].map((x) => x[1]).slice(0, 3),
   };
@@ -100,16 +106,18 @@ function readOutput(text) {
 /**
  * 変異を 1 件ずつ当てて検査を回し、結果の file に 1 行ずつ足して、足した行を返す。
  * `exec` は検査と build の命令を回す所で、検査では差し替える。戻しは `exec` を通さず git で行う。
- * `stopped` が真を返すと、その時の変異を戻した後で次の変異へ進まずに終わる。
+ *
+ * 検査の前の build が落ちた変異と、検査が集計の行を出さずに終わった変異 (途中で止めた時を含む) は、
+ * 測れなかったとして `unfinished` に理由を残し、落ちた検査の名前を残さずに止まる。
+ * 落ちた検査が無いと残すと、どの検査にも捕まらない変異と見分けられない。
  */
-export function runMutants({ root, mutants, out, wide = false, exec = spawn, log = console.log, stopped = () => false }) {
+export function runMutants({ root, mutants, out, wide = false, exec = spawn, log = console.log }) {
   const rows = [];
   const record = (row) => {
     rows.push(row);
     appendFileSync(out, `${JSON.stringify(row)}\n`);
   };
   for (const m of mutants) {
-    if (stopped()) break;
     const source = readFileSync(join(root, m.file), "utf8");
     const count = source.split(m.old).length - 1;
     if (count !== 1) {
@@ -119,17 +127,36 @@ export function runMutants({ root, mutants, out, wide = false, exec = spawn, log
       continue;
     }
     const pkg = m.file.startsWith(PACKAGE_SOURCE);
-    writeFileSync(join(root, m.file), source.replace(m.old, () => m.new));
-    let result;
+    writeFileSync(
+      join(root, m.file),
+      source.replace(m.old, () => m.new),
+    );
+    let unfinished;
+    let seen;
     try {
-      if (pkg) exec("pnpm", ["build:packages"], root);
-      const names = wide || !m.names ? [] : ["-t", ` (${m.names})$`];
-      result = exec("pnpm", ["exec", "vitest", "run", "--reporter=verbose", ...m.tests, ...names], root);
+      const built = pkg ? exec("pnpm", ["build:packages"], root) : { status: 0 };
+      if (built.status !== 0) {
+        unfinished = `検査の前の build が終わらなかった (終わり方 ${built.status})`;
+      } else {
+        const names = wide || !m.names ? [] : ["-t", ` (${m.names})$`];
+        const result = exec(
+          "pnpm",
+          ["exec", "vitest", "run", "--reporter=verbose", ...m.tests, ...names],
+          root,
+        );
+        seen = readOutput(result.stdout + result.stderr);
+        if (seen.summary === undefined)
+          unfinished = `検査が集計の行を出さずに終わった (終わり方 ${result.status})`;
+      }
     } finally {
       restore(root, m.file);
       if (pkg) exec("pnpm", ["build:packages"], root);
     }
-    const seen = readOutput(result.stdout + result.stderr);
+    if (unfinished !== undefined) {
+      record({ id: m.id, wide, unfinished });
+      log(`${m.id} ${unfinished}。ここで止める`);
+      break;
+    }
     record({ id: m.id, wide, summary: seen.summary, failed: seen.failed, messages: seen.messages });
     log(`${m.id} ${seen.summary} 落ちた ${seen.failed.join(", ") || "無し"}`);
   }
@@ -147,15 +174,19 @@ function main(argv) {
   const from = process.env.INIT_CWD ?? process.cwd();
   const [list, out] = files.map((f) => resolve(from, f));
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-  // 止める合図に耳を持つと、Node は検査の命令が終わるまで落ちずに待ち、書き換えた file を戻してから止まる
-  let interrupted = false;
-  process.on("SIGINT", () => {
-    interrupted = true;
-    process.exitCode = 130;
+  // 止める合図 (Ctrl-C) を受け取る所を持たないと、Node は検査の命令の途中でそのまま落ち、書き換えた file が残る。
+  // 受け取る所を持つと、合図で止まった検査の命令が返ってから file を戻し、測れなかった変異として止まる
+  process.on("SIGINT", () => undefined);
+  const rows = runMutants({
+    root,
+    mutants: readMutants(readFileSync(list, "utf8")),
+    out,
+    wide: argv.includes("--wide"),
   });
-  runMutants({ root, mutants: readMutants(readFileSync(list, "utf8")), out, wide: argv.includes("--wide"), stopped: () => interrupted });
+  if (rows.some((row) => row.unfinished !== undefined)) process.exitCode = 1;
   const dirty = spawn("git", ["status", "--porcelain"], root).stdout;
   console.log(`戻した後の差分: ${dirty || "なし"}`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main(process.argv.slice(2));
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
+  main(process.argv.slice(2));

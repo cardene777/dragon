@@ -99,14 +99,14 @@ interface Call {
   seen: Record<string, string>;
 }
 
-/** 命令を差し替え、呼ばれた順に残す。検査には `output` が返す出力を返し、Error なら投げる */
-function fakeExec(root: string, output: (run: number) => string | Error = () => PASS): { exec: Exec; calls: Call[] } {
+/** 命令を差し替え、呼ばれた順に残す。検査には `output` が返す出力を返し、Error なら投げる。build は `buildStatus` で終わる */
+function fakeExec(root: string, output: (run: number) => string | Error = () => PASS, buildStatus = 0): { exec: Exec; calls: Call[] } {
   const calls: Call[] = [];
   const exec: Exec = (_cmd, args) => {
     const seen = Object.fromEntries(Object.keys(FILES).map((path) => [path, readFileSync(join(root, path), "utf8")]));
     const test = args.includes("vitest");
     calls.push({ what: test ? "vitest" : args.join(" "), args, seen });
-    if (!test) return { status: 0, stdout: "", stderr: "" };
+    if (!test) return { status: buildStatus, stdout: "", stderr: "" };
     const o = output(calls.filter((c) => c.what === "vitest").length);
     if (o instanceof Error) throw o;
     return { status: o === PASS ? 0 : 1, stdout: o, stderr: "" };
@@ -161,6 +161,37 @@ describe("値を 1 つずつ書き換えて検査が落ちるかを確かめる�
       expect(calls.find((c) => c.what === "vitest")?.seen["apps/a.ts"], `${label}、検査の前に書き換えていない`).toBe("export const STEP = 2;\n");
       expect(readFileSync(join(root, "apps/a.ts"), "utf8"), `${label}、書き換えた file が HEAD の中身に戻らない`).toBe(FILES["apps/a.ts"]);
       expect(git(root, "status", "--porcelain"), `${label}、作業場所に差分が残る`).toBe("");
+    }
+  });
+
+  it("mutate-values-stops-on-unfinished-run", () => {
+    // 端末の Ctrl-C で止めた検査は集計の行を出さずに終わる。落ちた検査が無いと残すと、どの検査にも捕まらない変異と見分けられない。
+    // 検査の前の build が止まると、書き換えを build しないまま検査が回り、変異が穴に見える
+    const cases = [
+      {
+        label: "検査が集計の行を出さずに終わった時",
+        first: mutant("m1", "apps/a.ts", "1.2", "2"),
+        output: " ✓ apps/x.test.ts > 群 > kept-test 12ms",
+        buildStatus: 0,
+        unfinished: "検査が集計の行を出さずに終わった (終わり方 1)",
+        commands: ["vitest"],
+      },
+      {
+        label: "検査の前の build が落ちた時",
+        first: mutant("pkg", "packages/dragon/src/b.ts", "10", "20"),
+        output: PASS,
+        buildStatus: 130,
+        unfinished: "検査の前の build が終わらなかった (終わり方 130)",
+        commands: ["build:packages", "build:packages"],
+      },
+    ];
+    for (const c of cases) {
+      const { root, out } = repo();
+      const { exec, calls } = fakeExec(root, () => c.output, c.buildStatus);
+      runMutants({ root, mutants: [c.first, mutant("next", "apps/a.ts", "1.2", "3")], out, exec, log: quiet });
+      expect(rowsOf(out), `${c.label}、測れなかったと記録していないか、落ちた検査の名前を残した`).toEqual([{ id: c.first.id, wide: false, unfinished: c.unfinished }]);
+      expect(calls.map((call) => call.what), `${c.label}、次の変異へ進んだか、build し直さなかった`).toEqual(c.commands);
+      expect(git(root, "status", "--porcelain"), `${c.label}、作業場所に差分が残る`).toBe("");
     }
   });
 
