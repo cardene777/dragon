@@ -38,16 +38,38 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** 寄って追う見せ方で、枠の幅を `width` にして図を置く。jsdom は幅を持たないため、置き場の幅を差し替える */
-function mount(file: string, width: number): SVGSVGElement {
+/** 寄って追う見せ方で、枠の幅を `width` にして原本 `source` を置く。jsdom は幅を持たないため、置き場の幅を差し替える */
+function mountSource(name: string, source: Json, width: number): SVGSVGElement {
   const host = document.createElement("div");
   Object.defineProperty(host, "clientWidth", { value: width });
   document.body.appendChild(host);
-  const diagram = { ...(structuredClone(exampleJson(file)) as Diagramish), view: "follow" };
+  const diagram = { ...(structuredClone(source) as Diagramish), view: "follow" };
   players.push(draw("mountDiagram")(host, diagram));
   const svg = host.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
-  expect(svg?.getAttribute("data-view"), `${file} を寄って追う見せ方で描けない`).toBe("follow");
+  expect(svg?.getAttribute("data-view"), `${name} を寄って追う見せ方で描けない`).toBe("follow");
   return svg as SVGSVGElement;
+}
+
+const mount = (file: string, width: number): SVGSVGElement => mountSource(file, exampleJson(file), width);
+
+/** 2 本の生存線の間を 20 段行き来する時系列図。高さが幅の 4 倍を超え、全体図の大きさを窓の高さが決める */
+function tallSequence(): Json {
+  const steps = Array.from({ length: 20 }, (_, i) => ({
+    title: `${i + 1} 回目`,
+    body: "送って返す。",
+    events: [i % 2 === 0 ? { type: "edge", from: "a", to: "b", carry: { kind: "envelope" } } : { type: "edge", from: "b", to: "a", carry: { kind: "envelope" } }],
+  }));
+  return {
+    version: 1,
+    kind: "sequence",
+    title: "縦に長い時系列図",
+    boxes: [
+      { id: "a", name: "送る側" },
+      { id: "b", name: "受ける側" },
+    ],
+    steps,
+    sequence: { lifelines: ["a", "b"] },
+  };
 }
 
 /** 四角の属性を読む。無い時は `undefined` */
@@ -124,6 +146,18 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
     expect(gap(window, overview), `枠の幅 ${WIDE}px の oauth の全体図が窓に重なる`).toBeGreaterThanOrEqual(0);
     expect(overview.x, `枠の幅 ${WIDE}px の oauth の全体図が窓の右に無い`).toBeGreaterThanOrEqual(window.x + window.w);
     expect(Number(svg.getAttribute("width")), `枠の幅 ${WIDE}px の oauth の図の幅が枠を超える`).toBeLessThanOrEqual(WIDE);
+  });
+
+  it("tall-overview-fits-beside-window", () => {
+    // 窓の高さに比べてとても縦に長い図でも、窓の右の全体図は窓の高さの中に収まる (全体図の高さは窓の高さの 4 割まで)
+    const svg = mountSource("縦に長い時系列図", tallSequence(), 560);
+    const window = rectOf(svg, ".dg-vp-frame") as Rect;
+    const overview = rectOf(svg, ".dg-mm-bg") as Rect;
+    const world = rectOf(svg, ".dg-mm-world") as Rect;
+    expect(window && overview && world, "縦に長い時系列図に窓の枠か全体図が無い").toBeTruthy();
+    expect(world.h, "縦に長い時系列図の全体図が縦長でない").toBeGreaterThan(world.w);
+    expect(overview.x, "縦に長い時系列図の全体図が窓の右に無い").toBeGreaterThanOrEqual(window.x + window.w);
+    expect(overview.y + overview.h, "縦に長い時系列図の全体図が窓の下へはみ出す").toBeLessThanOrEqual(window.y + window.h + 1);
   });
 
   it("overview-shows-viewport-box", () => {
