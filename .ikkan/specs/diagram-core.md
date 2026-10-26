@@ -153,5 +153,13 @@
 | 指で触る端末を模して画面の大きさ 1366 × 1024 の oauth の編集画面で、次の釦で段が 1 つ進み、前の釦で 1 つ戻り、再生の釦で動き出して止めるの釦に替わり、段を 1 つずつ最後まで送ってもどの段でも帯の高さが 1 段目と同じ | `pnpm test`の検査`coarse-player-buttons-work`が通る | #3076 |
 | 指で触る端末を模して画面の大きさ 1024 × 1366 と 1366 × 1024 で oauth と ccip を拡大の重ね窓と編集画面で開いた時、帯は横 1 列のまま (釦と番号と題が同じ段に並び、本文が題の下で題と同じ左端から始まる) | `pnpm test`の検査`coarse-caption-stays-one-row`が通る | #3076 |
 | oauth と ccip を寄って追う図にして枠の幅 390px と 560px (編集画面の幅 390px と 860px の図の枠) に置き、段 1 から最後の段まで送った時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3046 |
-| 同じ 4 つの置き方で、今の形で丸が窓に全部見えている段は、窓の位置が `ba9784a2` の時と同じ | `pnpm test`の検査`follow-window-keeps-fitting-steps`が通る | #3046 |
+| 構成図 (ccip) を同じ 2 つの枠の幅に置いた時、今の形で丸が窓に全部見えている段は、窓の位置が `ba9784a2` の時と同じ。時系列図の窓の位置は、頭の列の下へ寄せる位置に変えた (#3118) | `pnpm test`の検査`follow-window-keeps-fitting-steps`が通る | #3046 |
 | 動く物を全部囲んだ範囲が窓に収まらず丸が外れていた段で、丸に近い動く物を窓に入れる。ccip の段 13 では、丸の隣の OffRamp の箱が窓に全部入り、oauth の段 9、11、12 では、今の段の線の両端が窓に入る | `pnpm test`の検査`follow-window-holds-badge-neighbors`が通る | #3046 |
+| oauth を寄って追う図にして枠の幅 390px と 560px (編集画面の幅 390px と 860px の図の枠) に置き、段 9、11、12 の止め絵の時刻にした時、書き換わった字 (トークンを持つ、データを返した、ログイン済み) が、窓の上端に貼った頭の列の中で窓の枠の内側に見える | `pnpm test`の検査`follow-heads-show-swapped-text`が通る | #3118 |
+| 同じ 2 つの置き方で、どの段の止め絵でも、頭の列が窓の上端に在り、頭の列の横の位置が窓の中身の横の位置と同じ (頭の箱が自分の生存線の真上に在る) | `pnpm test`の検査`follow-heads-track-window-x`が通る | #3118 |
+| 同じ 2 つの置き方で、どの段でも今の段の番号の丸が、頭の列より下の窓に全部入る | `pnpm test`の検査`follow-badge-below-heads`が通る | #3118 |
+| 同じ 2 つの置き方で、頭の字が書き換わらない段 (段 1 から 8 と段 10) は、窓が頭の列の下の残りの高さで線を真ん中に見せる位置に止まる。今の位置から頭の列の高さの半分 (48px) 上へずれ、図の上端と下端では止まる | `pnpm test`の検査`follow-sequence-window-under-heads`が通る | #3118 |
+| 構成図 (ccip) を枠の幅 390px と 560px に寄って追う図で置いた時、頭の列を持たず、丸が見えていた段の窓の位置が `8e2b0c09` の時と同じ | `pnpm test`の検査`follow-window-keeps-fitting-steps`が通る | #3118 |
+| oauth と ccip を同じ 4 つの置き方にした時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる (#3046) | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3118 |
+| ccip の段 13 で丸の隣の OffRamp の箱が窓に全部入り、oauth の段 9、11、12 で今の段の線の両端が窓に入る (#3046) | `pnpm test`の検査`follow-window-holds-badge-neighbors`が通る | #3118 |
+| 止めて見せる図 (`renderDiagram` が返す SVG) は、時系列図でも頭の列を持たない | `pnpm test`の検査`fixed-view-has-no-heads-strip`が通る | #3118 |
