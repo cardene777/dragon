@@ -122,14 +122,17 @@ describe("寄って追う時系列図で頭の列を窓の上端に貼る (#3118
         const t = p.stillAt(s);
         const win = p.windowAt(s);
         const [sx, sy] = stripShift(p, strip, t);
-        const box = p.layout.boxes.find((b) => b.id === id);
-        expect(box, `oauth に ${id} の箱が無い`).toBeDefined();
+        // 頭の列の箱は、図の頭の箱と同じ並びで描く。頭の列で描いた箱の四角を読む (図の頭の箱と高さが違う、#3120)
+        const k = p.layout.boxes.findIndex((b) => b.id === id);
+        const card = strip.mover.querySelectorAll("rect.dg-st")[k];
+        expect(card, `枠の幅 ${width}px の頭の列に ${id} の箱が無い`).toBeDefined();
         const texts = [...strip.el.querySelectorAll("text")].filter((x) => x.textContent === word);
         expect(texts.length, `枠の幅 ${width}px の頭の列に「${word}」が無い`).toBeGreaterThan(0);
         const shown = Math.max(...texts.map((x) => p.opacity(x, t)));
         if (shown < 0.9) out.push(`枠の幅 ${width}px / 段 ${s + 1} の「${word}」の濃さが ${round(shown)}`);
         // 頭の列の中の箱の、窓の上での四角。窓の枠の内側で、頭の列の高さに収まる
-        const at = { x: (box?.x ?? 0) + sx, y: (box?.y ?? 0) + sy, w: box?.w ?? 0, h: box?.h ?? 0 };
+        const n = (attr: string): number => Number(card?.getAttribute(attr));
+        const at = { x: n("x") + sx, y: n("y") + sy, w: n("width"), h: n("height") };
         const over = overflow(at, { x: 0, y: 0, w: win.w, h: strip.h });
         if (over > 0.01) out.push(`枠の幅 ${width}px / 段 ${s + 1} の ${id} の箱が窓の上端の頭の列から ${round(over)}px 外れる`);
       }
