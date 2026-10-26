@@ -381,7 +381,10 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   const bx = bgX + M.pad;
   const mx = bx + (bw - mw) / 2;
   const my = bgY + M.pad + M.title;
-  /** 全体図の地と札と、今見ている所の枠。窓と同じ動きで枠を動かす */
+  /**
+   * 全体図の地と札と、今見ている所の枠。窓と同じ動きで枠を動かす。
+   * 時系列図の枠は頭の列の下の線を見せる所だけを囲む。頭の箱は頭の列に常に出ているため (#3122)
+   */
   const overview = (): { clip: string; body: string } => {
     const shapes = [
       ...layout.regions.map((r) => `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="3"/>`),
@@ -393,7 +396,7 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
       body:
         `<rect class="dg-mm-bg" x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" rx="${M.radius}"/>` +
         `<text class="dg-mm-t" x="${bx}" y="${my - M.pad + 2}">${title}</text>` +
-        `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a" width="${vw * k}" height="${vh * k}" rx="2" style="${vp}"/></g>`,
+        `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a"${strip === 0 ? "" : ` y="${strip * k}"`} width="${vw * k}" height="${(vh - strip) * k}" rx="2" style="${vp}"/></g>`,
     };
   };
   const mini = bare ? { clip: "", body: "" } : overview();
