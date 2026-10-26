@@ -209,6 +209,16 @@ describe("寄って追う時系列図で頭の列を窓の上端に貼る (#3118
         const y = Number(c.getAttribute("y"));
         expect(y >= 0 && y + HEAD_H <= STRIP_H, `枠の幅 ${width}px の頭の列の箱 (y ${y}) が頭の列からはみ出す`).toBe(true);
       }
+      // 箱ごとに、名前の基準線が下の字より上に在り、どちらも箱の中に在る
+      for (const group of strip.mover.querySelectorAll(":scope > g")) {
+        const y = Number(group.querySelector("rect.dg-st")?.getAttribute("y"));
+        const name = group.querySelector("text.dg-sn");
+        const subs = [...group.querySelectorAll('text[class^="dg-ss"]')].map((x) => Number(x.getAttribute("y")));
+        const ny = Number(name?.getAttribute("y"));
+        const inside = (v: number): boolean => v > y && v <= y + HEAD_H;
+        expect(subs.length, `枠の幅 ${width}px の頭の列の「${name?.textContent}」に下の字が無い`).toBeGreaterThan(0);
+        expect(inside(ny) && subs.every((v) => inside(v) && v > ny), `枠の幅 ${width}px の頭の列の「${name?.textContent}」の字 (名前 ${ny}、下の字 ${subs.join(", ")}) が箱 (${y} から ${y + HEAD_H}) の中に 2 段で並ばない`).toBe(true);
+      }
     }
   });
 
@@ -235,6 +245,16 @@ describe("寄って追う時系列図で頭の列を窓の上端に貼る (#3118
       }
     }
     expect(out, "図の頭の箱が頭の列より下の窓に見える段").toEqual([]);
+  });
+
+  it("fixed-view-cards-match-layout", () => {
+    // 箱の縁を描く部分は頭の列の箱と共に使う (#3120)。止めて見せる図の箱の縁は、置き場所の箱と同じ四角に在る
+    for (const file of ["oauth.json", "ccip.json"]) {
+      const { svg, layout } = draw("renderDiagram")(exampleJson(file));
+      const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+      const cards = [...doc.querySelectorAll("rect.dg-st")].map((c) => ["x", "y", "width", "height"].map((a) => Number(c.getAttribute(a))));
+      expect(cards, `${file} の止めて見せる図の箱の縁`).toEqual(layout.boxes.map((b) => [b.x, b.y, b.w, b.h].map(round)));
+    }
   });
 
   it("fixed-view-has-no-heads-strip", () => {
