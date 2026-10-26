@@ -1130,6 +1130,91 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /**
+   * 寄って追う時系列図の窓の上の頭の列に、図の外の部品が重なる点 (#3124)。
+   * 頭の列の地のうち窓の切り抜きの中に見える所へ横 13 × 縦 3 の点を並べ、その点で一番上に在る要素が図の外の物なら挙げる。
+   * 画面の外の点は数えない。頭の列が無い時は `null`。2 回続けて同じ値を読めた時だけ返す
+   */
+  const stripCoveredOf = (page: Page, scope: string): Promise<{ step: string; points: number; covered: string[] } | null> =>
+    page.evaluate(async (sel) => {
+      const read = () => {
+        const svg = document.querySelector<SVGSVGElement>(`${sel} svg[data-dragon="figure"]`);
+        const strip = svg?.querySelector("g.dg-hd > rect.dg-hd-bg");
+        const clip = svg?.querySelector('clipPath[id^="dg-vp-"] rect');
+        const ctm = svg?.getScreenCTM();
+        if (!svg || !strip || !clip || !ctm) return null;
+        const a = new DOMPoint(0, 0).matrixTransform(ctm);
+        const z = new DOMPoint(Number(clip.getAttribute("width")), Number(clip.getAttribute("height"))).matrixTransform(ctm);
+        const s = strip.getBoundingClientRect();
+        const left = Math.max(s.left, a.x);
+        const right = Math.min(s.right, z.x);
+        const top = Math.max(s.top, a.y);
+        const bottom = Math.min(s.bottom, z.y);
+        const covered: string[] = [];
+        let points = 0;
+        for (let i = 0; i <= 12; i++) {
+          for (const f of [0.12, 0.5, 0.88]) {
+            const x = left + 2 + ((right - left - 4) * i) / 12;
+            const y = top + (bottom - top) * f;
+            if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+            points += 1;
+            const hit = document.elementFromPoint(x, y);
+            if (hit && !svg.contains(hit)) covered.push(`${hit.tagName.toLowerCase()}.${String(hit.className).split(" ")[0]} (${Math.round(x)}, ${Math.round(y)})`);
+          }
+        }
+        return { step: document.querySelector(`${sel} [data-dragon="step-no"]`)?.textContent ?? "", points, covered };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
+    }, scope);
+
+  it(
+    "catalog-heads-strip-uncovered",
+    async () => {
+      // 頭の列を 2 段にした時、携帯の幅の編集画面で前の図を出している旨の札が頭の列の箱に重なった (#3120)。
+      // カタログの見本の枠と重ね窓でも、頭の列が出る全部の幅と段で、頭の列に頁の部品が重ならない (#3124)
+      const screens = [
+        { width: 360, height: 780, frame: true },
+        { width: 390, height: 844, frame: true },
+        { width: 430, height: 932, frame: true },
+        { width: 860, height: 960, frame: false },
+        { width: 1440, height: 900, frame: false },
+      ];
+      const oauth = samplesOf("sequence").indexOf("oauth");
+      expect(oauth, "時系列図のカタログに oauth が無い").toBeGreaterThanOrEqual(0);
+      for (const { frame, ...viewport } of screens) {
+        const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport });
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await onScreen(page, "category", `${viewport.width} × ${viewport.height} で時系列図の分類の頁が出ない`);
+        await page.locator(catalogSel("item")).nth(oauth).click();
+        const places = [...(frame ? [{ where: "見本の枠", scope: catalogSel("stage") }] : []), { where: "重ね窓", scope: catalogSel("overlay") }];
+        for (const { where, scope } of places) {
+          if (scope === catalogSel("overlay")) await page.locator(catalogSel("expand")).click();
+          else await page.locator(scope).scrollIntoViewIfNeeded();
+          const stepItems = page.locator(`${scope} [data-dragon="steps"] > li`);
+          await expect.poll(() => stepItems.count(), { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の${where}の段が読めない` }).toBeGreaterThan(1);
+          const steps = await stepItems.count();
+          for (let s = 0; s < steps; s++) {
+            const step = `${String(s + 1).padStart(2, "0")}/${String(steps).padStart(2, "0")}`;
+            await expect
+              .poll(() => stripCoveredOf(page, scope), { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の${where}の ${s + 1} 段目で、頭の列が無いか、画面の外に出るか、頭の列に頁の部品が重なる` })
+              .toEqual({ step, points: 39, covered: [] });
+            if (s < steps - 1) await page.locator(`${scope} [data-dragon="next"]`).click();
+          }
+          if (scope === catalogSel("overlay")) {
+            await page.keyboard.press("Escape");
+            await expect.poll(() => page.locator(scope).count(), { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の重ね窓が閉じない` }).toBe(0);
+          }
+        }
+      }
+    },
+    SLOW,
+  );
+
   it(
     "overlay-caption-clear-of-bottom-edge",
     async () => {
