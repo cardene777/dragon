@@ -5,6 +5,7 @@
  * 頭の箱は図の上端に、段の線は図の下の方に在り、窓に両方は入らない。頭の箱の字の書き換えが窓の外で起き、見えなかった。
  * 頭の列を窓の上端に貼り、窓が横に動く時だけ一緒に動かす。線は頭の列の下の残りの高さで真ん中に見せる。
  * 頭の列は窓を切り抜く部品の中の `.dg-hd` で、地の四角 `.dg-hd-bg` の高さが頭の列の高さ、横に動かす部品が `.dg-hd > .dg-a`。
+ * 頭の列の頭の箱は、アイコンを外した名前と下の字の 2 段にして、線を見せる高さを広げる (#3120)。
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { exampleJson } from "./diagram-support";
@@ -21,33 +22,39 @@ const SWAPS: [number, string, string][] = [
 ];
 /**
  * oauth の頭の字が書き換わらない段で、窓が止まる左上 (図の上の位置)。
- * 頭の列の下の残りの高さで線を真ん中に見せる位置で、頭の列を貼る前より頭の列の高さの半分 (48px) 上に在り、図の上端と下端で止まる。
- * 頭の列を貼る試しの形で、枠の幅ごとに測った `[段, x, y]`
+ * 頭の列の下の残りの高さで線を真ん中に見せる位置で、頭の列の高さの半分 (28px) だけ上に寄り、
+ * 図の頭の箱の下 (図の上から 96px) から線を見せ始める位置と、図の下端で止まる。
+ * 2 段の頭の列を貼る試しの形 (#3120) で、枠の幅ごとに測った `[段, x, y]`
  */
 const UNDER: Record<number, [number, number, number][]> = {
   390: [
-    [1, 0, 0],
-    [2, 99.5, 0],
-    [3, 35, 57],
-    [4, 36.5, 177],
-    [5, 36.5, 297],
-    [6, 103.55, 389],
-    [7, 115, 438],
-    [8, 252, 502],
-    [10, 185.75, 615],
+    [1, 0, 40],
+    [2, 99.5, 40],
+    [3, 35, 77],
+    [4, 36.5, 197],
+    [5, 36.5, 317],
+    [6, 103.55, 409],
+    [7, 115, 458],
+    [8, 252, 522],
+    [10, 185.75, 635],
   ],
   560: [
-    [1, 0, 0],
-    [2, 82.89, 0],
-    [3, 18.39, 7],
-    [4, 19.89, 127],
-    [5, 19.89, 247],
-    [6, 86.95, 339],
-    [7, 98.39, 388],
-    [8, 235.39, 452],
-    [10, 169.14, 565],
+    [1, 0, 40],
+    [2, 82.89, 40],
+    [3, 18.39, 40],
+    [4, 19.89, 147],
+    [5, 19.89, 267],
+    [6, 86.95, 359],
+    [7, 98.39, 408],
+    [8, 235.39, 472],
+    [10, 169.14, 585],
   ],
 };
+/** 頭の列の高さと、頭の列の頭の箱の高さ (#3120) */
+const STRIP_H = 56;
+const HEAD_H = 40;
+/** 枠の幅ごとの、頭の列の下の線を見せる高さ (#3120) */
+const LINE_ROOM: Record<number, number> = { 390: 264, 560: 364 };
 
 /**
  * 段 4 で線を 6 本引く時系列図。段 4 の線と札の並び (312px) は、頭の列の下の残りの高さ (224px) より高く、窓の高さ (320px) より低い。
@@ -180,6 +187,51 @@ describe("寄って追う時系列図で頭の列を窓の上端に貼る (#3118
       }
     }
     expect(moved, "頭の字が書き換わらない段の窓の位置").toEqual([]);
+  });
+
+  it("follow-heads-two-rows", () => {
+    for (const width of WIDTHS) {
+      const p = place("oauth", "oauth.json", width);
+      const strip = stripOf(p);
+      expect(strip.h, `枠の幅 ${width}px の頭の列の高さ`).toBe(STRIP_H);
+      // 頭の箱はアイコンの地 (.dg-ic) も絵 (.dg-gl) も持たず、名前と下の字の 2 段
+      expect(strip.el.querySelectorAll(".dg-ic, .dg-gl").length, `枠の幅 ${width}px の頭の列のアイコン`).toBe(0);
+      const cards = [...strip.mover.querySelectorAll("rect.dg-st")];
+      expect(cards.length, `枠の幅 ${width}px の頭の列の箱の数`).toBe(p.layout.boxes.length);
+      expect(
+        cards.map((c) => Number(c.getAttribute("height"))),
+        `枠の幅 ${width}px の頭の列の箱の高さ`,
+      ).toEqual(p.layout.boxes.map(() => HEAD_H));
+      for (const c of cards) {
+        const y = Number(c.getAttribute("y"));
+        expect(y >= 0 && y + HEAD_H <= STRIP_H, `枠の幅 ${width}px の頭の列の箱 (y ${y}) が頭の列からはみ出す`).toBe(true);
+      }
+    }
+  });
+
+  it("follow-heads-leave-line-room", () => {
+    for (const width of WIDTHS) {
+      const p = place("oauth", "oauth.json", width);
+      const strip = stripOf(p);
+      expect(p.windowAt(0).h - strip.h, `枠の幅 ${width}px の頭の列の下の線を見せる高さ`).toBe(LINE_ROOM[width]);
+    }
+  });
+
+  it("follow-heads-cover-figure-heads", () => {
+    const out: string[] = [];
+    for (const width of WIDTHS) {
+      const p = place("oauth", "oauth.json", width);
+      const strip = stripOf(p);
+      for (let s = 0; s < p.steps; s++) {
+        const win = p.windowAt(s);
+        for (const box of p.layout.boxes) {
+          // 図の頭の箱の下端が、頭の列の下端より上に在れば、頭の列の地に隠れるか窓の上に出る
+          const shown = box.y + box.h - (win.y + strip.h);
+          if (shown > 0.01) out.push(`枠の幅 ${width}px / 段 ${s + 1} の図の ${box.id} の頭の箱が頭の列の下に ${round(shown)}px 見える`);
+        }
+      }
+    }
+    expect(out, "図の頭の箱が頭の列より下の窓に見える段").toEqual([]);
   });
 
   it("fixed-view-has-no-heads-strip", () => {
