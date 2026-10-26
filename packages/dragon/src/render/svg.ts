@@ -96,6 +96,7 @@ const PART_CSS = [
   `.dg-tg text{${font(TYPE.tag)};fill:var(--on-c)}`,
   ".dg-vp-bg{fill:var(--bg)}",
   ".dg-vp-frame{fill:none;stroke:var(--hair)}",
+  ".dg-hd-bg{fill:var(--bg)}",
   ".dg-mm-bg{fill:var(--surf);stroke:var(--hair)}",
   `.dg-mm-t{${font(TYPE.miniTitle)};fill:var(--mute)}`,
   ".dg-mm-world{fill:var(--sunk);stroke:var(--hair)}",
@@ -235,7 +236,9 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
 
   const { near, far, nearY, farY } = LOOK.shadow;
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
-  const view = follow ? followView(layout, timeline, diagram, m, id, content, follow) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
+  // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。止めて見せる図では描かない
+  const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [])).join("") : "";
+  const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${paletteVars(palette, theme)}}${PART_CSS}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}">` +
@@ -300,8 +303,10 @@ function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
  * 枠が余る時は窓を広げ、図の原寸の幅と、見える高さか図の高さまで使う。全体図は今の大きさのまま置く (#3053)。
  * 枠の幅が `LOOK.follow.narrow` より狭い時は、縦長の全体図を出さずに窓へ枠の幅の全部を渡す (#3055)。
  * 段で動く物を全部囲んだ所の真ん中に寄せると今の段の番号の丸が窓から外れる段では、丸に近い動く物から窓に収まるだけ囲んだ所へ寄せる (#3046)。
+ * 時系列図は頭の箱 `heads` を窓の上端の頭の列に貼り、窓が横に動く時だけ一緒に動かす。頭の箱は図の上端に在り、線を追う窓からは外れるため。
+ * 窓は頭の列の下の残りの高さで動く物を真ん中に見せる (#3118)。
  */
-function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame): { body: string; w: number; h: number } {
+function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame, heads: string): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
   const frameWidth = Math.max(1, follow.width);
@@ -331,21 +336,27 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   // 右の全体図の列は枠の余りに置き、窓は図の原寸の幅まで広げる。枠が図より狭い時は今までどおり枠の幅から列を引く
   const vw = beside && !bare ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
-  const clampY = (y: number): number => Math.min(layout.height - vh / 2, Math.max(vh / 2, y));
+  // 時系列図は窓の上端に頭の列を貼るので、動く物は頭の列の下の残りの高さ `below` に見せる (#3118)
+  const strip = heads === "" ? 0 : Math.max(...layout.boxes.map((b) => b.y + b.h)) + F.headRoom;
+  const below = vh - strip;
+  /** 頭の列の下の残りの窓の真ん中の高さを、図の上端と下端で止める */
+  const clampY = (y: number): number => Math.min(layout.height - below / 2, Math.max(strip + below / 2, y));
   const r = LOOK.badge.r;
   let prev: [number, number] = [layout.width / 2, layout.height / 2];
-  const centers = timeline.steps.map((_, s) => {
+  // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
+  const middles = timeline.steps.map((_, s) => {
     const f = focusOf(layout, diagram, s);
     prev = f ? [f.x + f.w / 2, f.y + f.h / 2] : prev;
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
     // 動く物を全部囲んだ所が窓より大きいと、その端に在る番号の丸が窓から外れる。その段だけ丸の近くへ寄せ直す (#3046)
     const b = layout.badges.find((x) => x.step === s);
-    if (!b || (Math.abs(b.x - at[0]) <= vw / 2 - r && Math.abs(b.y - at[1]) <= vh / 2 - r)) return at;
-    const near = badgeFocus(b, focusParts(layout, diagram, s), vw, vh);
+    if (!b || (Math.abs(b.x - at[0]) <= vw / 2 - r && Math.abs(b.y - at[1]) <= below / 2 - r)) return at;
+    const near = badgeFocus(b, focusParts(layout, diagram, s), vw, below);
     // 動く物の無い次の段は、寄せ直した窓のまま止める
     prev = [near.x + near.w / 2, near.y + near.h / 2];
     return [clampX(prev[0]), clampY(prev[1])] as [number, number];
   });
+  const centers = middles.map(([x, y]): [number, number] => [x, y - strip / 2]);
   const c0 = centers[0] as [number, number];
   const cam: [number, number, number, number?, string?][] = [
     [0, c0[0], c0[1]],
@@ -383,9 +394,15 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
     };
   };
   const mini = bare ? { clip: "", body: "" } : overview();
+  // 頭の列は窓の中身の上に重ね、窓と同じ時刻と緩急で横にだけ動かす (#3118)
+  const head =
+    strip === 0
+      ? ""
+      : `<g class="dg-hd"><rect class="dg-hd-bg" width="${vw}" height="${strip}"/><line class="dg-sep" x1="0" y1="${strip}" x2="${vw}" y2="${strip}"/>` +
+        `<g class="dg-a" style="${m.move(cam.map(([t, cx, , s, e]) => [t, vw / 2 - cx, 0, s, e]))}">${heads}</g></g>`;
   const body =
     `<defs><clipPath id="dg-vp-${id}"><rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/></clipPath>${mini.clip}</defs>` +
-    `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g></g>` +
+    `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g>${head}</g>` +
     `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>${mini.body}`;
   return { body, w: beside && !bare ? vw + M.inset + bgW : full, h: beside ? vh : bgY + bgH };
 }
