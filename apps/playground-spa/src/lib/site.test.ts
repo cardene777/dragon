@@ -1133,6 +1133,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   /**
    * 寄って追う時系列図の窓の上の頭の列に、図の外の部品が重なる点 (#3124)。
    * 頭の列の地のうち窓の切り抜きの中に見える所へ横 13 × 縦 3 の点を並べ、その点で一番上に在る要素が図の外の物なら挙げる。
+   * 段の札のように `pointer-events: none` を持つ部品は点で引くと飛ばされるので、測る間だけ全部の部品を引ける形にする。
    * 画面の外の点は数えない。頭の列が無い時は `null`。2 回続けて同じ値を読めた時だけ返す
    */
   const stripCoveredOf = (page: Page, scope: string): Promise<{ step: string; points: number; covered: string[] } | null> =>
@@ -1152,6 +1153,9 @@ describe("サイトの帯と経路 (#3030)", () => {
         const bottom = Math.min(s.bottom, z.y);
         const covered: string[] = [];
         let points = 0;
+        const reach = document.createElement("style");
+        reach.textContent = "*, *::before, *::after { pointer-events: auto !important; }";
+        document.head.appendChild(reach);
         for (let i = 0; i <= 12; i++) {
           for (const f of [0.12, 0.5, 0.88]) {
             const x = left + 2 + ((right - left - 4) * i) / 12;
@@ -1162,6 +1166,7 @@ describe("サイトの帯と経路 (#3030)", () => {
             if (hit && !svg.contains(hit)) covered.push(`${hit.tagName.toLowerCase()}.${String(hit.className).split(" ")[0]} (${Math.round(x)}, ${Math.round(y)})`);
           }
         }
+        reach.remove();
         return { step: document.querySelector(`${sel} [data-dragon="step-no"]`)?.textContent ?? "", points, covered };
       };
       const frame = () => new Promise((done) => requestAnimationFrame(done));
