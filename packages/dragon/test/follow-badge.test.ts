@@ -4,14 +4,11 @@
  *
  * 窓は、その段で動く物を全部囲んだ範囲の真ん中へ寄る。範囲が窓より大きい段では、範囲の端に在る番号の丸が窓から外れていた。
  * 丸が外れる段だけ、丸を起点に、丸に近い動く物から順に窓に収まる間だけ囲み、その真ん中へ寄せる。
- * jsdom は配置を測れず CSS の動きも進めないので、窓の大きさは窓を切り抜く四角から、窓の位置は中身を動かす keyframes から読む。
+ * 窓の置き方の読み方は `follow-support.ts` が持つ。
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { exampleJson, type Json } from "./diagram-support";
-import { sampler } from "./motion-support";
-import { draw, type Layout, type Player, type Rect } from "./render-support";
-
-type Diagramish = { [key: string]: Json };
+import { overflow, place, releasePlaced, round } from "./follow-support";
+import type { Rect } from "./render-support";
 
 /** 時系列図と構成図の見本 */
 const SAMPLES = [
@@ -21,33 +18,12 @@ const SAMPLES = [
 /** 編集画面の幅 390px (携帯) と 860px (記法と並べた時) の、図の枠の幅 */
 const WIDTHS = [390, 560] as const;
 /**
- * 寄り方を変える前 (`ba9784a2`) に丸が窓に全部見えていた段と、その時の窓の左上 (図の上の位置)。
- * 丸が外れない段は寄り方を変えないので、この位置のまま残る。`見本/枠の幅` ごとに `[段, x, y]` を並べる
+ * 構成図 (ccip) で、寄り方を変える前 (`ba9784a2`) に丸が窓に全部見えていた段と、その時の窓の左上 (図の上の位置)。
+ * 丸が外れない段は寄り方を変えないので、この位置のまま残る。枠の幅ごとに `[段, x, y]` を並べる。
+ * 時系列図は窓の上端に頭の列を貼り、窓をその下の残りの高さで寄せるので、位置は `follow-heads.test.ts` が持つ (#3118)
  */
-const KEPT: Record<string, [number, number, number][]> = {
-  "oauth/390": [
-    [1, 0, 0],
-    [2, 99.5, 28],
-    [3, 35, 105],
-    [4, 36.5, 225],
-    [5, 36.5, 345],
-    [6, 103.55, 437],
-    [7, 115, 486],
-    [8, 252, 550],
-    [10, 185.75, 663],
-  ],
-  "oauth/560": [
-    [1, 0, 0],
-    [2, 82.89, 0],
-    [3, 18.39, 55],
-    [4, 19.89, 175],
-    [5, 19.89, 295],
-    [6, 86.95, 387],
-    [7, 98.39, 436],
-    [8, 235.39, 500],
-    [10, 169.14, 613],
-  ],
-  "ccip/390": [
+const KEPT: Record<number, [number, number, number][]> = {
+  390: [
     [1, 119.79, 0],
     [2, 392.58, 0],
     [3, 525.57, 0],
@@ -60,7 +36,7 @@ const KEPT: Record<string, [number, number, number][]> = {
     [10, 9.7, 201.5],
     [11, 0, 251],
   ],
-  "ccip/560": [
+  560: [
     [1, 34.79, 0],
     [2, 307.58, 0],
     [3, 440.57, 0],
@@ -76,68 +52,7 @@ const KEPT: Record<string, [number, number, number][]> = {
   ],
 };
 
-const players: Player[] = [];
-afterEach(() => {
-  for (const player of players.splice(0)) player.destroy();
-  document.body.innerHTML = "";
-});
-
-interface Placed {
-  name: string;
-  width: number;
-  layout: Layout;
-  steps: number;
-  /** 段 `step` で窓が止まっている時の、図の上での窓の四角 */
-  windowAt(step: number): Rect;
-  /** 段 `step` の番号の丸の塗りの中心と半径 */
-  badgeAt(step: number): { x: number; y: number; r: number };
-}
-
-/** 枠の幅 `width` に寄って追う図を置く */
-function place(name: string, file: string, width: number): Placed {
-  const host = document.createElement("div");
-  Object.defineProperty(host, "clientWidth", { value: width });
-  document.body.appendChild(host);
-  const diagram = { ...(structuredClone(exampleJson(file)) as Diagramish), view: "follow" };
-  players.push(draw("mountDiagram")(host, diagram));
-  const svg = host.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
-  expect(svg?.getAttribute("data-view"), `${name} / 枠の幅 ${width}px が寄って追う図にならない`).toBe("follow");
-  const figure = svg as SVGSVGElement;
-  const { layout, timeline } = draw("renderDiagram")(diagram);
-  const value = sampler(figure.outerHTML, timeline.total);
-  const clip = figure.querySelector('clipPath[id^="dg-vp-"] rect');
-  const camera = figure.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-a');
-  expect(clip, `${name} / 枠の幅 ${width}px に窓を切り抜く四角が無い`).not.toBeNull();
-  expect(camera, `${name} / 枠の幅 ${width}px に窓の中身を動かす部品が無い`).not.toBeNull();
-  const w = Number(clip?.getAttribute("width"));
-  const h = Number(clip?.getAttribute("height"));
-  return {
-    name,
-    width,
-    layout,
-    steps: timeline.steps.length,
-    windowAt(step) {
-      // 窓は段の始まりから寄り、次の段の始まりまで止まる。最後の段は 1 周の終わりに最初の段へ戻る前まで止まる
-      const next = timeline.steps[step + 1];
-      const t = (next ? next.start : timeline.last) - 0.05;
-      const [tx = 0, ty = 0] = value(camera as Element, "transform", t) ?? [];
-      return { x: -tx, y: -ty, w, h };
-    },
-    badgeAt(step) {
-      const dot = figure.querySelector(`g.dg-bd[data-step="${step}"] .dg-bdf`);
-      expect(dot, `${name} / 枠の幅 ${width}px の段 ${step + 1} に番号の丸が無い`).not.toBeNull();
-      const n = (attr: string): number => Number(dot?.getAttribute(attr));
-      return { x: n("cx"), y: n("cy"), r: n("r") };
-    },
-  };
-}
-
-/** 四角 `inner` が窓 `win` からはみ出す長さ。全部入る時は 0 */
-function overflow(inner: Rect, win: Rect): number {
-  return Math.max(0, win.x - inner.x, inner.x + inner.w - (win.x + win.w), win.y - inner.y, inner.y + inner.h - (win.y + win.h));
-}
-
-const round = (v: number): number => Math.round(v * 100) / 100;
+afterEach(releasePlaced);
 
 describe("寄って追う図で今の段の番号の丸を窓に入れる (#3046)", () => {
   it("follow-window-shows-step-badge", () => {
@@ -157,15 +72,13 @@ describe("寄って追う図で今の段の番号の丸を窓に入れる (#3046
 
   it("follow-window-keeps-fitting-steps", () => {
     const moved: string[] = [];
-    for (const [name, file] of SAMPLES) {
-      for (const width of WIDTHS) {
-        const placed = place(name, file, width);
-        const kept = KEPT[`${name}/${width}`] ?? [];
-        expect(kept.length, `${name} / 枠の幅 ${width}px の丸が見えていた段が無い`).toBeGreaterThan(0);
-        for (const [step, x, y] of kept) {
-          const win = placed.windowAt(step - 1);
-          if (Math.abs(win.x - x) > 0.01 || Math.abs(win.y - y) > 0.01) moved.push(`${name} / 枠の幅 ${width}px / 段 ${step} の窓が (${x}, ${y}) から (${round(win.x)}, ${round(win.y)}) へ動いた`);
-        }
+    for (const width of WIDTHS) {
+      const placed = place("ccip", "ccip.json", width);
+      // 構成図には頭の列を貼らない。窓の中身を覆わず、窓の位置も変えない
+      expect(placed.figure.querySelector(".dg-hd"), `ccip / 枠の幅 ${width}px に頭の列が在る`).toBeNull();
+      for (const [step, x, y] of KEPT[width] ?? []) {
+        const win = placed.windowAt(step - 1);
+        if (Math.abs(win.x - x) > 0.01 || Math.abs(win.y - y) > 0.01) moved.push(`ccip / 枠の幅 ${width}px / 段 ${step} の窓が (${x}, ${y}) から (${round(win.x)}, ${round(win.y)}) へ動いた`);
       }
     }
     expect(moved, "丸が見えていた段で窓が動いた").toEqual([]);
