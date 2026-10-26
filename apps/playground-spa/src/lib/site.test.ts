@@ -1653,7 +1653,8 @@ describe("サイトの帯と経路 (#3030)", () => {
   /**
    * 編集画面の図の側の上の部分 (#3061)。段の札が見える時はその字、図の枠の上の余白、道具の帯と図の枠の中の間、
    * 最初の画面に見える記法の欄の高さ、道具の帯に重なる箱と図の枠の中の上端より上に出る箱の数、前の図を出している旨の札が見えるかと、
-   * その札に重なる箱の数。寄って追う窓は窓の外の箱を左右と下で枠の外に置くので、上の向きだけを数える。
+   * その札に重なる箱の数。寄って追う窓は窓の外を切り抜いて見せないので、箱は窓の中に見える部分だけを数える。
+   * 図の頭の箱は窓の上の頭の列の裏で窓の上端より上に出る (#3120) が、切り抜かれて見えない。
    * 重なりは 0.5px までを許す。2 回続けて同じ値を読めた時だけ返す
    */
   const editorTopOf = (
@@ -1666,7 +1667,19 @@ describe("サイトの帯と経路 (#3030)", () => {
         const tools = stage?.querySelector(".pg-stage-bar");
         const frameEl = stage?.querySelector<HTMLElement>(".dg-frame");
         const foot = stage?.querySelector(".pg-stage-foot");
-        const boxes = [...(frameEl?.querySelectorAll('svg[data-dragon="figure"] rect.dg-st') ?? [])].map((r) => r.getBoundingClientRect());
+        const svg = frameEl?.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
+        const clip = svg?.querySelector('clipPath[id^="dg-vp-"] rect');
+        const ctm = svg?.getScreenCTM();
+        const corner = (x: number, y: number): DOMPoint => new DOMPoint(x, y).matrixTransform(ctm ?? undefined);
+        const win = clip && ctm ? [corner(0, 0), corner(Number(clip.getAttribute("width")), Number(clip.getAttribute("height")))] : null;
+        const seenPart = (b: DOMRect): DOMRect => {
+          if (!win) return b;
+          const [a, z] = win as [DOMPoint, DOMPoint];
+          const left = Math.max(b.left, a.x);
+          const top = Math.max(b.top, a.y);
+          return new DOMRect(left, top, Math.min(b.right, z.x) - left, Math.min(b.bottom, z.y) - top);
+        };
+        const boxes = [...(svg?.querySelectorAll("rect.dg-st") ?? [])].map((r) => seenPart(r.getBoundingClientRect())).filter((b) => b.width > 0 && b.height > 0);
         if (!tools || !frameEl || !foot || boxes.length === 0) return null;
         const badge = stage?.querySelector<HTMLElement>('[data-playground="phase-badge"]');
         const kept = stage?.querySelector(".pg-kept");
