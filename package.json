@@ -21,7 +21,8 @@
     "test:ui": "vitest --ui",
     "verify": "pnpm run typecheck && pnpm run build && pnpm run lint && pnpm run test",
     "test:mutation": "stryker run",
-    "test:mutation:values": "node scripts/mutate-values.mjs"
+    "test:mutation:values": "node scripts/mutate-values.mjs",
+    "test:mutation:table": "node scripts/mutate-values.mjs --table"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

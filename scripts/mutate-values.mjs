@@ -33,11 +33,24 @@
  *
  * `old` は file の中で 1 か所に決まる字にする。無いか 2 か所以上ある変異は書き換えずに飛ばし、結果に理由を残す。
  * `names` は vitest の `-t` に渡す名前の正規表現で、`null` か省くと絞らない。
- * `what` は人が読む説明で、道具は読まない。
+ * `what` は人が読む説明で、変異を回す時は読まず、表を作る時に壊した所へ写す。
  * `packages/dragon/src` の下を書き換える変異では、検査が `dist` を読むので、検査の前と戻した後に `pnpm build:packages` を回す。
  *
  * 戻す先は HEAD の中身なので、書き換える file に commit していない変更があると消える。
  * 変更を commit してから回す。
+ *
+ * ## 壊して測った結果の表を作る (#3130)
+ *
+ * ```
+ * pnpm test:mutation:table <変異の一覧> <結果の file> --step <数>
+ * ```
+ *
+ * 回し終えた結果の file から、ikkan の関門が読む `## 壊して測った結果 (step <数>)` の comment の本文を出す。
+ * 一覧の順に 1 変異 1 行で、壊した所は変異の `id` と `what` と落ちた検査の名前、件数は落ちた検査の数になる。
+ * 同じ変異を回し直した時は、結果の file の最後の行を使う。
+ * どの検査も落ちなかった変異は件数 0 の行に、飛ばした変異と測れなかった変異と回していない変異は
+ * 数字で始まらない件数の行になり、どちらも関門が断る。
+ * 引数の形が違う時と、結果に一覧に無い変異の行が在る時は、表を出さず終わり方 2 で止まる。
  *
  * ## Stryker (`pnpm test:mutation`) では足りない理由
  *
@@ -163,7 +176,105 @@ export function runMutants({ root, mutants, out, wide = false, exec = spawn, log
   return rows;
 }
 
+/** 表の欄の字。逃がしていない縦線は列の区切りに、改行は表の終わりに読まれる */
+const cell = (text) => text.replace(/\r?\n/g, " ").replaceAll("|", "\\|");
+
+/**
+ * 変異の一覧と結果の行から、ikkan の関門が読む壊して測った結果の comment の本文を作る (#3130)。
+ * 一覧の順に 1 変異 1 行で、同じ変異の行が 2 つ以上在る時は最後の行を使う。
+ *
+ * 件数は落ちた検査の数で、どの検査も落ちなかった変異は 0 になる。
+ * 飛ばした変異と測れなかった変異と結果に行の無い変異は、数字で始まらない件数にして表に残す。
+ * 表から消すと、関門は残った行だけを見て通してしまう。
+ * 結果に一覧に無い変異の行が在る時は、別の一覧の結果を渡したとして投げる。
+ */
+export function mutationTable({ mutants, rows, step }) {
+  const ids = new Set(mutants.map((m) => m.id));
+  const last = new Map();
+  for (const row of rows) {
+    if (!ids.has(row.id)) throw new Error(`結果に一覧に無い変異の行が在る (${row.id})`);
+    last.set(row.id, row);
+  }
+  const lines = mutants.map((m) => {
+    const row = last.get(m.id);
+    const failed = Array.isArray(row?.failed) ? row.failed : [];
+    const place = [
+      `\`${m.id}\``,
+      m.what,
+      failed.length > 0 ? `(落ちた検査 ${failed.join("、")})` : undefined,
+    ]
+      .filter((part) => typeof part === "string" && part !== "")
+      .join(" ");
+    let count;
+    if (row === undefined) count = "回していない";
+    else if (row.skipped !== undefined) count = `飛ばした、${row.skipped}`;
+    else if (row.unfinished !== undefined) count = `測れなかった、${row.unfinished}`;
+    // 落ちた検査の名前を持たない行を 0 と書くと、どの検査にも捕まらない変異と見分けられない
+    else if (!Array.isArray(row.failed)) count = "結果の行が読めない";
+    else count = String(failed.length);
+    return `| ${cell(place)} | ${cell(count)} |`;
+  });
+  return [
+    `## 壊して測った結果 (step ${step})`,
+    "",
+    "| 壊した所 | 落ちた判定の件数 |",
+    "|---|---|",
+    ...lines,
+  ].join("\n");
+}
+
+/** 表を作る呼び方の引数を読む。形が違えば理由を返す */
+function readTableArgs(argv) {
+  const files = [];
+  let step;
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === "--step") {
+      i += 1;
+      step = argv[i];
+    } else if (argv[i].startsWith("--")) return { error: `知らない札 ${argv[i]} が在る` };
+    else files.push(argv[i]);
+  }
+  if (files.length !== 2) return { error: `file が 2 つでない (${files.length} 個)` };
+  if (step === undefined || !/^[1-9][0-9]*$/.test(step))
+    return { error: "--step の後に 1 以上の数が無い" };
+  return { files, step: Number(step) };
+}
+
+function tableMain(argv) {
+  const args = readTableArgs(argv);
+  if (args.error !== undefined) {
+    console.error(
+      `${args.error}\n使い方: pnpm test:mutation:table <変異の一覧> <結果の file> --step <数>`,
+    );
+    process.exitCode = 2;
+    return;
+  }
+  const from = process.env.INIT_CWD ?? process.cwd();
+  const [list, out] = args.files.map((f) => resolve(from, f));
+  let text;
+  try {
+    const rows = readFileSync(out, "utf8")
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .map((line) => JSON.parse(line));
+    text = mutationTable({
+      mutants: readMutants(readFileSync(list, "utf8")),
+      rows,
+      step: args.step,
+    });
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    process.exitCode = 2;
+    return;
+  }
+  process.stdout.write(`${text}\n`);
+}
+
 function main(argv) {
+  if (argv.includes("--table")) {
+    tableMain(argv.filter((a) => a !== "--table"));
+    return;
+  }
   const files = argv.filter((a) => !a.startsWith("--"));
   if (files.length !== 2) {
     console.error("使い方: pnpm test:mutation:values <変異の一覧> <結果の file> [--wide]");
