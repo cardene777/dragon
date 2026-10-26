@@ -76,29 +76,49 @@ export function band(region: SceneRegion): string {
 /** 箱の下の小さな字の移り変わり。`[時刻, 字, class]` の並びで、最初は元の字。 */
 export type SubChange = [number, string, string];
 
-/** 箱。動く段は縁に色を付け、外側に淡い光を足す。下の小さな字は起きたことに合わせて書き換わる。 */
-export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[]): string {
-  const { m, sh } = ctx;
-  const { radius, icon, iconRadius, iconScale, iconY, nameY, subY } = LOOK.box;
+/** 箱の下の小さな字。基準線を `y` に置き、起きたことに合わせて書き換わる。 */
+function subLines(box: SceneBox, m: Motion, changes: SubChange[], y: number): string {
   const seq: SubChange[] = [[0, box.sub ?? "", "dg-ss"], ...changes];
-  const subs = seq
+  return seq
     .map(([t, text, cls], k) => {
       const next = seq[k + 1]?.[0];
       const anim = k === 0 ? (next === undefined ? "" : m.until(next - MOTION.untilFade)) : next === undefined ? m.rise(t) : m.rise(t, next - MOTION.untilFade);
       if (text === "") return "";
-      return `<g${anim ? ` class="dg-a" style="${anim}"` : ""}><text class="${cls}" x="${r1(box.cx)}" y="${r1(box.cy + subY)}" text-anchor="middle">${esc(text)}</text></g>`;
+      return `<g${anim ? ` class="dg-a" style="${anim}"` : ""}><text class="${cls}" x="${r1(box.cx)}" y="${r1(y)}" text-anchor="middle">${esc(text)}</text></g>`;
     })
     .join("");
+}
+
+/** 箱の地と縁。上端 `y` から高さ `h`。動く段 (`act` の間) は縁に色を付け、外側に淡い光を足す。 */
+function cardFrame(box: SceneBox, ctx: Ctx, act: string | undefined, y: number, h: number): string {
+  const rect = (cls: string, extra = ""): string => `<rect class="${cls}" x="${r1(box.x)}" y="${r1(y)}" width="${r1(box.w)}" height="${h}" rx="${LOOK.box.radius}"${extra}/>`;
+  return `${act ? `<g class="dg-a" style="${act}">${rect("dg-halo")}</g>` : ""}${rect("dg-st", ` ${ctx.sh}`)}${act ? `<g class="dg-a" style="${act}">${rect("dg-on")}</g>` : ""}`;
+}
+
+/** 箱。動く段は縁に色を付け、外側に淡い光を足す。下の小さな字は起きたことに合わせて書き換わる。 */
+export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[]): string {
+  const { icon, iconRadius, iconScale, iconY, nameY, subY } = LOOK.box;
+  const subs = subLines(box, ctx.m, changes, box.cy + subY);
   const act = on.length > 0 ? activeKf(ctx, on) : undefined;
-  const rect = (cls: string, extra = ""): string => `<rect class="${cls}" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${radius}"${extra}/>`;
   const mark =
     box.icon && ICONS[box.icon]
       ? `<rect class="dg-ic" x="${r1(box.cx - icon / 2)}" y="${r1(box.cy + iconY - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, box.cx, box.cy + iconY, iconScale)}`
       : "";
   return (
-    `<g style="${cs(box.color)}">${act ? `<g class="dg-a" style="${act}">${rect("dg-halo")}</g>` : ""}${rect("dg-st", ` ${sh}`)}${act ? `<g class="dg-a" style="${act}">${rect("dg-on")}</g>` : ""}` +
+    `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
     `${mark}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(box.cy + nameY)}" text-anchor="middle">${esc(box.name)}</text>${subs}</g>`
   );
+}
+
+/**
+ * 寄って追う時系列図の窓の上端に貼る頭の箱 (#3120)。図の頭の箱と同じ横の位置と縁で、アイコンを外して名前と下の字の 2 段にする。
+ * 携帯の幅では窓が低く、図の頭の箱のままでは窓の高さの 3 割を頭の列が取るため。
+ */
+export function headCard(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[]): string {
+  const { pad, h, nameY, subY } = LOOK.follow.head;
+  const subs = subLines(box, ctx.m, changes, pad + subY);
+  const act = on.length > 0 ? activeKf(ctx, on) : undefined;
+  return `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, pad, h)}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(pad + nameY)}" text-anchor="middle">${esc(box.name)}</text>${subs}</g>`;
 }
 
 export function lifeline(x: number, y1: number, y2: number): string {

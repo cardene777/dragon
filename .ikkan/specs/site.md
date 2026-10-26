@@ -61,8 +61,9 @@
 | 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3059 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を編集画面で開いた時、段の札が見えない | `pnpm test`の検査`narrow-editor-hides-phase-badge`が通る | #3061 |
 | 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を編集画面で開いた時、道具の帯と図の枠の中の間が今 (48px) より小さく、最初の画面に見える記法の欄が今 (360 × 780 で 93px と -41px、390 × 844 で 163px と 16px) より高い | `pnpm test`の検査`narrow-editor-figure-starts-higher`が通る | #3061、#3071 |
-| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を編集画面で開いた時、図の箱が道具の帯に重ならず、図の枠の中の上端より上に出ない | `pnpm test`の検査`narrow-editor-figure-clear-of-toolbar`が通る | #3061 |
+| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を編集画面で開いた時、図の箱が道具の帯に重ならず、図の枠の中の上端より上に出ない。寄って追う図では、窓の切り抜きの中に見える部分だけを箱として数える | `pnpm test`の検査`narrow-editor-figure-clear-of-toolbar`が通る | #3061、#3120 |
 | 画面の大きさ 390 × 844 の編集画面で、記法に誤りがあり前の図を出している間、図の枠の上の余白が今と同じ 48px で、その旨の札が図の箱に重ならない | `pnpm test`の検査`narrow-editor-kept-notice-keeps-room`が通る | #3061 |
+| 携帯の幅の編集画面で、前の図を出している旨の札が 1 行に収まり、寄って追う図の窓の上の頭の列の箱 (上から 8px) に重ならない | `pnpm test`の検査`narrow-editor-kept-notice-keeps-room`が通る | #3120 |
 | 画面の大きさ 560 × 900 と 1440 × 900 で oauth と ccip を編集画面で開いた時、段の札が `段 {N} / {全体} · {題}` で出て、図の枠の上の余白が 48px のまま | `pnpm test`の検査`wide-editor-keeps-phase-badge`が通る | #3061 |
 | 画面の大きさ 390 × 844 と 1440 × 900 のカタログの頁の見本の枠で、段の札が `段 {N} / {全体} · {題}` で出る | `pnpm test`の検査`catalog-preview-keeps-phase-badge`が通る | #3061 |
 | 編集画面の見本の図で、箱の名前の字が 11px を割らず、箱が図の領域の外に出ず、全体図と段の札が箱に重ならない | `pnpm test`の検査`editor-diagram-readable-and-not-clipped`が通る | #3061 |
