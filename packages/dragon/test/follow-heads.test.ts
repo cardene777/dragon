@@ -151,8 +151,10 @@ describe("寄って追う時系列図で頭の列を窓の上端に貼る (#3118
   it("fixed-view-has-no-heads-strip", () => {
     for (const file of ["oauth.json", "ccip.json"]) {
       const { svg } = draw("renderDiagram")(exampleJson(file));
-      expect(svg, `${file} の止めて見せる図`).toContain('data-view="fixed"');
-      expect(svg, `${file} の止めて見せる図に頭の列が在る`).not.toContain("dg-hd");
+      // 部品の見た目の CSS はどの図にも同じ字で入るので、字ではなく部品の有無を見る
+      const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+      expect(doc.documentElement.getAttribute("data-view"), `${file} の止めて見せる図`).toBe("fixed");
+      expect(doc.querySelector(".dg-hd"), `${file} の止めて見せる図に頭の列が在る`).toBeNull();
     }
   });
 });
