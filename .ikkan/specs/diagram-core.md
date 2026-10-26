@@ -173,3 +173,8 @@
 | 同じ 2 つの置き方で、頭の列が窓の上端に在り、窓の中身と同じだけ横に動く (#3118) | `pnpm test`の検査`follow-heads-track-window-x`が通る | #3120 |
 | 止めて見せる図 (`renderDiagram` が返す SVG) は頭の列を持たない (#3118) | `pnpm test`の検査`fixed-view-has-no-heads-strip`が通る | #3120 |
 | 止めて見せる図の箱の縁は、頭の列の箱と縁を描く部分を共に使った後も、置き場所の箱と同じ四角に在る | `pnpm test`の検査`fixed-view-cards-match-layout`が通る | #3120 |
+| oauth を寄って追う図にして枠の幅 560px と 1000px に置いた時、どの段でも全体図の四角が、窓の上の頭の列の下の線を見せる所 (窓の上端から頭の列の高さ 56px 下から窓の下端まで、窓と同じ幅) を全体図の倍率で囲む | `pnpm test`の検査`overview-frames-line-region`が通る | #3122 |
+| 同じ置き方で、どの段でも全体図の四角の上下の線が、全体図の頭の箱の帯の高さを通らない | `pnpm test`の検査`overview-clears-head-bars`が通る | #3122 |
+| ccip を寄って追う図にして枠の幅 560px と 1000px に置いた時、頭の列を持たない構成図の全体図の四角は、どの段でも窓の全体を全体図の倍率で囲む | `pnpm test`の検査`overview-architecture-frames-window`が通る | #3122 |
+| 枠の幅が 440px より狭い寄って追う oauth は全体図を持たない | `pnpm test`の検査`narrow-tall-figure-drops-overview`が通る | #3122 |
+| 止めて見せる図は全体図と窓を持たない | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3122 |
