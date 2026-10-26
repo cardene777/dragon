@@ -1057,6 +1057,14 @@
   .pg-figure[data-playground="figure"][data-phased]:not(:has(.pg-kept)) .dg-player .dg-frame {
     padding-top: 16px;
   }
+
+  /*
+   * 前の図を出している旨の札を 1 行に収め、枠の上の余白 48px の中に置く。
+   * 枠の幅の 45% では 2 行になって図の枠の中へ 14px はみ出し、寄って追う図の窓の上の頭の列の箱に重なる (#3120)
+   */
+  .pg-kept {
+    max-width: calc(100% - 28px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
