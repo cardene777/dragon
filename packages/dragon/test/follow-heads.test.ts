@@ -6,6 +6,7 @@
  * 頭の列を窓の上端に貼り、窓が横に動く時だけ一緒に動かす。線は頭の列の下の残りの高さで真ん中に見せる。
  * 頭の列は窓を切り抜く部品の中の `.dg-hd` で、地の四角 `.dg-hd-bg` の高さが頭の列の高さ、横に動かす部品が `.dg-hd > .dg-a`。
  * 頭の列の頭の箱は、アイコンを外した名前と下の字の 2 段にして、線を見せる高さを広げる (#3120)。
+ * 窓の横の全体図の四角は、頭の列の下の線を見せる所だけを囲む (#3122)。
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { exampleJson } from "./diagram-support";
@@ -265,5 +266,81 @@ describe("寄って追う時系列図で頭の列を窓の上端に貼る (#3118
       expect(doc.documentElement.getAttribute("data-view"), `${file} の止めて見せる図`).toBe("fixed");
       expect(doc.querySelector(".dg-hd"), `${file} の止めて見せる図に頭の列が在る`).toBeNull();
     }
+  });
+});
+
+/** 全体図を出す枠の幅。440px より狭い枠では縦長の全体図を出さない */
+const MAP_WIDTHS = [560, 1000] as const;
+
+/** 全体図の四角を、図の上の四角に直す。四角は全体図の倍率で縮め、窓と同じ時刻に動かして描く */
+function overviewBoxAt(p: Placed, step: number): { x: number; y: number; w: number; h: number } {
+  const vp = p.figure.querySelector(".dg-mm-vp");
+  const world = p.figure.querySelector(".dg-mm-world");
+  expect(vp, `${p.name} / 枠の幅 ${p.width}px の全体図に四角が無い`).not.toBeNull();
+  expect(world, `${p.name} / 枠の幅 ${p.width}px の全体図に図の地が無い`).not.toBeNull();
+  const n = (el: Element | null, name: string): number => Number(el?.getAttribute(name) ?? 0);
+  const k = n(world, "width") / p.layout.width;
+  const [tx = 0, ty = 0] = p.value(vp as Element, "transform", p.stillAt(step)) ?? [];
+  return {
+    x: round((tx + n(vp, "x") - n(world, "x")) / k),
+    y: round((ty + n(vp, "y") - n(world, "y")) / k),
+    w: round(n(vp, "width") / k),
+    h: round(n(vp, "height") / k),
+  };
+}
+
+describe("寄って追う図の全体図の四角が、窓に見えている所を囲む (#3122)", () => {
+  it("overview-frames-line-region", () => {
+    // 頭の箱は窓の上の頭の列に常に出ているので、四角は頭の列の下の線を見せる所だけを囲む
+    const out: string[] = [];
+    for (const width of MAP_WIDTHS) {
+      const p = place("oauth", "oauth.json", width);
+      for (let s = 0; s < p.steps; s++) {
+        const win = p.windowAt(s);
+        const want = { x: round(win.x), y: round(win.y + STRIP_H), w: round(win.w), h: round(win.h - STRIP_H) };
+        const got = overviewBoxAt(p, s);
+        const off = Math.max(...(["x", "y", "w", "h"] as const).map((key) => Math.abs(got[key] - want[key])));
+        if (off > 0.5) out.push(`枠の幅 ${width}px / 段 ${s + 1} の全体図の四角 ${JSON.stringify(got)} が、線を見せる所 ${JSON.stringify(want)} と違う`);
+      }
+    }
+    expect(out, "全体図の四角が頭の列の下の線を見せる所を囲まない段").toEqual([]);
+  });
+
+  it("overview-clears-head-bars", () => {
+    const out: string[] = [];
+    for (const width of MAP_WIDTHS) {
+      const p = place("oauth", "oauth.json", width);
+      const bars = [...p.figure.querySelectorAll(".dg-mm-card")].map((c) => [Number(c.getAttribute("y")), Number(c.getAttribute("y")) + Number(c.getAttribute("height"))]);
+      expect(bars.length, `枠の幅 ${width}px の全体図に頭の箱の帯が無い`).toBe(p.layout.boxes.length);
+      const top = Math.min(...bars.map(([a]) => a as number));
+      const bottom = Math.max(...bars.map(([, b]) => b as number));
+      const vp = p.figure.querySelector(".dg-mm-vp") as Element;
+      for (let s = 0; s < p.steps; s++) {
+        const [, ty = 0] = p.value(vp, "transform", p.stillAt(s)) ?? [];
+        const y1 = ty + Number(vp.getAttribute("y") ?? 0);
+        const y2 = y1 + Number(vp.getAttribute("height"));
+        for (const y of [y1, y2]) {
+          if (y > top + 0.01 && y < bottom - 0.01) out.push(`枠の幅 ${width}px / 段 ${s + 1} の全体図の四角の線 (y ${round(y)}) が頭の箱の帯 (y ${round(top)} から ${round(bottom)}) を横切る`);
+        }
+      }
+    }
+    expect(out, "全体図の四角の線が頭の箱の帯を横切る段").toEqual([]);
+  });
+
+  it("overview-architecture-frames-window", () => {
+    // 構成図は頭の列を持たないので、四角は窓の全体を囲む
+    const out: string[] = [];
+    for (const width of MAP_WIDTHS) {
+      const p = place("ccip", "ccip.json", width);
+      expect(p.figure.querySelector(".dg-hd"), `ccip / 枠の幅 ${width}px に頭の列が在る`).toBeNull();
+      for (let s = 0; s < p.steps; s++) {
+        const win = p.windowAt(s);
+        const want = { x: round(win.x), y: round(win.y), w: round(win.w), h: round(win.h) };
+        const got = overviewBoxAt(p, s);
+        const off = Math.max(...(["x", "y", "w", "h"] as const).map((key) => Math.abs(got[key] - want[key])));
+        if (off > 0.5) out.push(`枠の幅 ${width}px / 段 ${s + 1} の全体図の四角 ${JSON.stringify(got)} が、窓 ${JSON.stringify(want)} と違う`);
+      }
+    }
+    expect(out, "構成図の全体図の四角が窓の全体を囲まない段").toEqual([]);
   });
 });
