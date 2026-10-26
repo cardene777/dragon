@@ -163,7 +163,8 @@
 | oauth と ccip を同じ 4 つの置き方にした時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる (#3046) | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3118 |
 | ccip の段 13 で丸の隣の OffRamp の箱が窓に全部入り、oauth の段 9、11、12 で今の段の線の両端が窓に入る (#3046) | `pnpm test`の検査`follow-window-holds-badge-neighbors`が通る | #3118 |
 | 止めて見せる図 (`renderDiagram` が返す SVG) は、時系列図でも頭の列を持たない | `pnpm test`の検査`fixed-view-has-no-heads-strip`が通る | #3118 |
-| oauth を寄って追う図にして枠の幅 390px と 560px (編集画面の幅 390px と 860px の図の枠) に置いた時、窓の上の頭の列の頭の箱はアイコンを持たず、名前と下の字の 2 段で、箱の高さが 40px、頭の列の高さが 56px。名前は下の字より上に在り、どちらも箱の中に在る | `pnpm test`の検査`follow-heads-two-rows`が通る | #3120 |
+| oauth を寄って追う図にして枠の幅 390px と 560px (編集画面の幅 390px と 860px の図の枠) に置いた時、窓の上の頭の列の頭の箱はアイコンを持たず、名前と下の字の 2 段で、箱の高さが 40px、頭の列の高さが 56px | `pnpm test`の検査`follow-heads-two-rows`が通る | #3120 |
+| 同じ 2 つの置き方で、頭の列の頭の箱ごとに、名前が下の字より上に在り、どちらも箱の中に在る | `pnpm test`の検査`follow-heads-two-rows`が通る | #3120 |
 | 同じ 2 つの置き方で、頭の列の下の線を見せる高さが、枠の幅 390px で 264px、560px で 364px | `pnpm test`の検査`follow-heads-leave-line-room`が通る | #3120 |
 | 同じ 2 つの置き方で、頭の字が書き換わらない段 (段 1 から 8 と段 10) の窓が、線を図の頭の箱の下から見せ始める位置に止まる。#3118 の位置より中ほどの段で 20px、図の上端の段 (段 1 と 2) で 40px 下に在る | `pnpm test`の検査`follow-sequence-window-under-heads`が通る | #3120 |
 | 同じ 2 つの置き方で、どの段の止め絵でも、図の頭の箱が頭の列の下か窓の上に隠れ、頭の列より下の窓に見えない | `pnpm test`の検査`follow-heads-cover-figure-heads`が通る | #3120 |
