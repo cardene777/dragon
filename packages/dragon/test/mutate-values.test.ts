@@ -28,6 +28,7 @@ interface Mutant {
   new: string;
   tests: string[];
   names?: string | null;
+  what?: string;
 }
 interface Row {
   id: string;
@@ -36,6 +37,7 @@ interface Row {
   failed?: string[];
   messages?: string[];
   skipped?: string;
+  unfinished?: string;
 }
 interface Result {
   status: number;
@@ -45,9 +47,10 @@ interface Result {
 type Exec = (cmd: string, args: string[], cwd: string) => Result;
 
 const require_ = createRequire(import.meta.url);
-const { runMutants, readMutants } = require_("../../../scripts/mutate-values.mjs") as {
+const { runMutants, readMutants, mutationTable } = require_("../../../scripts/mutate-values.mjs") as {
   runMutants: (o: { root: string; mutants: Mutant[]; out: string; wide?: boolean; exec?: Exec; log?: (line: string) => void }) => Row[];
   readMutants: (text: string) => Mutant[];
+  mutationTable: (o: { mutants: Mutant[]; rows: Row[]; step: number }) => string;
 };
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -266,3 +269,117 @@ describe("値を 1 つずつ書き換えて検査が落ちるかを確かめる�
     expect(() => readMutants(JSON.stringify([{ id: "x", file: "a.ts", new: "2", tests: [] }])), "書き換え前の字が無い変異を読めてしまう").toThrow("old");
   });
 });
+
+/**
+ * 変異の結果から、ikkan の関門が読む壊して測った結果の表を作る (#3130)。
+ *
+ * 表を手で写すと、1 行の写し間違いで検査が捕まえていない所を捕まえたと残す。
+ * 落ちなかった変異と測れなかった変異は、関門が断れる形 (件数 0 か、数字で始まらない件数) で表に出す。
+ */
+describe("変異の結果から壊して測った結果の表を作る (#3130)", () => {
+  const named = (id: string, what: string): Mutant => ({ ...mutant(id, "apps/a.ts", "1.2", "2"), what });
+  const ran = (id: string, failed: string[], wide = false): Row => ({ id, wide, summary: "Tests  1 passed (1)", failed, messages: [] });
+  const heading = (step: number): string[] => [`## 壊して測った結果 (step ${step})`, "", "| 壊した所 | 落ちた判定の件数 |", "|---|---|"];
+  /** ikkan の関門と同じく、逃がしていない縦線で列を分ける */
+  const cellsOf = (line: string): string[] => line.trim().slice(1, -1).split(/(?<!\\)\|/).map((cell) => cell.trim());
+
+  it("mutation-table-lists-each-mutant", () => {
+    const text = mutationTable({
+      mutants: [named("r1", "拡大の上限 4 倍を 8 倍"), named("r2", "刻みを 3 に")],
+      rows: [ran("r2", ["c-test"]), ran("r1", ["a-test", "b-test"])],
+      step: 10,
+    });
+    expect(text, "見出しと 2 列の表が無いか、一覧の順に 1 変異 1 行で並ばないか、件数が落ちた検査の数でない").toBe(
+      [...heading(10), "| `r1` 拡大の上限 4 倍を 8 倍 (落ちた検査 a-test、b-test) | 2 |", "| `r2` 刻みを 3 に (落ちた検査 c-test) | 1 |"].join("\n"),
+    );
+  });
+
+  it("mutation-table-counts-a-survivor-as-zero", () => {
+    const text = mutationTable({ mutants: [named("r1", "刻みを 3 に")], rows: [ran("r1", [])], step: 18 });
+    expect(text, "どの検査も落ちなかった変異を件数 0 の行にしていない").toBe([...heading(18), "| `r1` 刻みを 3 に | 0 |"].join("\n"));
+  });
+
+  it("mutation-table-names-skipped-and-unfinished", () => {
+    const text = mutationTable({
+      mutants: [named("none", "無い字を替える"), named("stop", "build が落ちる")],
+      rows: [
+        { id: "none", skipped: "書き換える所が 1 か所に決まらない (0 か所)" },
+        { id: "stop", wide: false, unfinished: "検査の前の build が終わらなかった (終わり方 130)" },
+      ],
+      step: 10,
+    });
+    expect(text, "飛ばした変異と測れなかった変異の件数の欄が、理由の付いた数字で始まらない字になっていない").toBe(
+      [...heading(10), "| `none` 無い字を替える | 飛ばした、書き換える所が 1 か所に決まらない (0 か所) |", "| `stop` build が落ちる | 測れなかった、検査の前の build が終わらなかった (終わり方 130) |"].join("\n"),
+    );
+  });
+
+  it("mutation-table-marks-mutants-not-run", () => {
+    const text = mutationTable({
+      mutants: [named("stop", "検査が止まる"), named("after", "止まった後の変異")],
+      rows: [{ id: "stop", wide: false, unfinished: "検査が集計の行を出さずに終わった (終わり方 1)" }],
+      step: 10,
+    });
+    expect(text, "結果に行の無い変異が表から消えたか、回していないと出していない").toBe(
+      [...heading(10), "| `stop` 検査が止まる | 測れなかった、検査が集計の行を出さずに終わった (終わり方 1) |", "| `after` 止まった後の変異 | 回していない |"].join("\n"),
+    );
+  });
+
+  it("mutation-table-uses-the-last-row", () => {
+    const text = mutationTable({
+      mutants: [named("r1", "名前で絞ると落ちる"), named("r2", "一度止まった")],
+      rows: [ran("r1", ["a-test"]), { id: "r2", wide: false, unfinished: "検査が集計の行を出さずに終わった (終わり方 1)" }, ran("r1", [], true), ran("r2", ["b-test"])],
+      step: 10,
+    });
+    expect(text, "同じ変異の行が 2 つ以上在る時に、最後の行で表を作っていない").toBe(
+      [...heading(10), "| `r1` 名前で絞ると落ちる | 0 |", "| `r2` 一度止まった (落ちた検査 b-test) | 1 |"].join("\n"),
+    );
+  });
+
+  it("mutation-table-escapes-pipes", () => {
+    const text = mutationTable({ mutants: [named("r1", "名前を a|b に")], rows: [ran("r1", ["x|y"])], step: 10 });
+    const line = text.split("\n").at(-1) ?? "";
+    expect(line, "壊した所の字の縦線を逃がしていない").toBe("| `r1` 名前を a\\|b に (落ちた検査 x\\|y) | 1 |");
+    expect(cellsOf(line), "縦線を含む行が 2 列のまま読めない").toHaveLength(2);
+  });
+
+  it("mutation-table-is-a-package-script", () => {
+    const pkg = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8")) as { scripts: Record<string, string> };
+    expect(pkg.scripts["test:mutation:table"], "pnpm test:mutation:table が表を作る呼び方を起こさない").toBe("node scripts/mutate-values.mjs --table");
+    const { list, out } = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"])]);
+    const r = spawnSync(process.execPath, ["scripts/mutate-values.mjs", "--table", list, out, "--step", "10"], { cwd: REPO, encoding: "utf8" });
+    expect(r.status, `表を作る呼び方が終わり方 0 で終わらない: ${r.stderr}`).toBe(0);
+    expect(r.stdout, "表を作る呼び方が、変異の一覧と結果から作った表を出さない").toBe(`${[...heading(10), "| `r1` 刻みを 3 に (落ちた検査 a-test) | 1 |"].join("\n")}\n`);
+  });
+
+  it("mutation-table-refuses-bad-input", () => {
+    const { list, out } = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"])]);
+    const ghost = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"]), ran("ghost", [])]);
+    const cases: [string, string[]][] = [
+      ["file が 1 つの時", [list, "--step", "10"]],
+      ["file が 3 つの時", [list, out, out, "--step", "10"]],
+      ["--step が無い時", [list, out]],
+      ["--step の後に数が無い時", [list, out, "--step"]],
+      ["--step が数でない時", [list, out, "--step", "x"]],
+      ["--step が 0 の時", [list, out, "--step", "0"]],
+      ["知らない札が在る時", [list, out, "--step", "10", "--wide"]],
+      ["結果に一覧に無い変異の行が在る時", [ghost.list, ghost.out, "--step", "10"]],
+    ];
+    for (const [label, args] of cases) {
+      const r = spawnSync(process.execPath, ["scripts/mutate-values.mjs", "--table", ...args], { cwd: REPO, encoding: "utf8" });
+      expect(r.status, `${label}、終わり方 2 で止まらない`).toBe(2);
+      expect(r.stdout, `${label}、表を出した`).toBe("");
+      expect(r.stderr, `${label}、止めた理由を出していない`).not.toBe("");
+    }
+  });
+});
+
+/** 表を作る呼び方へ渡す、変異の一覧と結果の file (repo の外) */
+function tableInput(mutants: Mutant[], rows: Row[]): { list: string; out: string } {
+  const dir = mkdtempSync(join(tmpdir(), "mutation-table-"));
+  made.push(dir);
+  const list = join(dir, "mutants.json");
+  const out = join(dir, "result.jsonl");
+  writeFileSync(list, JSON.stringify(mutants));
+  writeFileSync(out, rows.map((row) => `${JSON.stringify(row)}\n`).join(""));
+  return { list, out };
+}
