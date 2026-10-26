@@ -16,7 +16,7 @@ import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import type { NotationLang } from "../words";
-import { action, badge, band, card, carrier, type Ctx, cs, edge, esc, type FieldChange, label, lifeline, strip, type SubChange } from "./parts";
+import { action, badge, band, card, carrier, type Ctx, cs, edge, esc, type FieldChange, headCard, label, lifeline, strip, type SubChange } from "./parts";
 import { Motion } from "./motion";
 
 export interface RenderOptions {
@@ -236,8 +236,8 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
 
   const { near, far, nearY, farY } = LOOK.shadow;
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
-  // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。止めて見せる図では描かない
-  const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [])).join("") : "";
+  // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。頭の列の箱はアイコンを外した 2 段 (#3120)。止めて見せる図では描かない
+  const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [])).join("") : "";
   const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${paletteVars(palette, theme)}}${PART_CSS}${m.frames.join("")}`;
   return (
@@ -305,6 +305,7 @@ function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
  * 段で動く物を全部囲んだ所の真ん中に寄せると今の段の番号の丸が窓から外れる段では、丸に近い動く物から窓に収まるだけ囲んだ所へ寄せる (#3046)。
  * 時系列図は頭の箱 `heads` を窓の上端の頭の列に貼り、窓が横に動く時だけ一緒に動かす。頭の箱は図の上端に在り、線を追う窓からは外れるため。
  * 窓は頭の列の下の残りの高さで動く物を真ん中に見せる (#3118)。
+ * 頭の列の箱はアイコンを外した 2 段にして低く貼り、線は図の頭の箱の下から見せ始める (#3120)。
  */
 function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame, heads: string): { body: string; w: number; h: number } {
   const F = LOOK.follow;
@@ -336,11 +337,13 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   // 右の全体図の列は枠の余りに置き、窓は図の原寸の幅まで広げる。枠が図より狭い時は今までどおり枠の幅から列を引く
   const vw = beside && !bare ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
-  // 時系列図は窓の上端に頭の列を貼るので、動く物は頭の列の下の残りの高さ `below` に見せる (#3118)
-  const strip = heads === "" ? 0 : Math.max(...layout.boxes.map((b) => b.y + b.h)) + F.headRoom;
+  // 時系列図は窓の上端に頭の列を貼るので、動く物は頭の列の下の残りの高さ `below` に見せる (#3118)。
+  // 線は図の頭の箱の下 `top` から見せ始め、図の頭の箱は頭の列の下か窓の上に隠す (#3120)
+  const top = heads === "" ? 0 : Math.max(...layout.boxes.map((b) => b.y + b.h)) + F.headRoom;
+  const strip = heads === "" ? 0 : F.head.pad * 2 + F.head.h;
   const below = vh - strip;
-  /** 頭の列の下の残りの窓の真ん中の高さを、図の上端と下端で止める */
-  const clampY = (y: number): number => Math.min(layout.height - below / 2, Math.max(strip + below / 2, y));
+  /** 頭の列の下の残りの窓の真ん中の高さを、図の頭の箱の下と図の下端で止める */
+  const clampY = (y: number): number => Math.min(layout.height - below / 2, Math.max(top + below / 2, y));
   const r = LOOK.badge.r;
   let prev: [number, number] = [layout.width / 2, layout.height / 2];
   // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る

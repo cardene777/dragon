@@ -102,9 +102,11 @@ export const LOOK = {
    * `fitMinH` は見える高さに収める時 (#3047) の窓の高さの下限で、これより低い枠では収めずに枠の中で送る。
    * `narrow` は縦長の全体図を出す枠の幅の下限で、これより狭い枠 (携帯の幅) では全体図を出さずに窓へ幅を渡す (#3055)。
    * `badgeRoom` は番号の丸が窓から外れる段で窓を寄せ直す時に、丸の周りに空ける幅 (#3046)。
-   * `headRoom` は時系列図の窓の上端に貼る頭の列で、頭の箱の下端から頭の列の下端までの幅 (#3118)
+   * `headRoom` は時系列図の図の頭の箱の下端から、窓に線を見せ始める所までの幅 (#3118)。
+   * `head` は時系列図の窓の上端に貼る頭の列の頭の箱で、アイコンを外した名前と下の字の 2 段 (#3120)。
+   * `pad` は頭の列の上下の余白、`h` は箱の高さ、`nameY` と `subY` は箱の上端から名前と下の字の基準線まで
    */
-  follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8, headRoom: 10 },
+  follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8, headRoom: 10, head: { pad: 8, h: 40, nameY: 17, subY: 31 } },
   /** 色を混ぜる割合 (%) */
   mix: { icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6 },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */
