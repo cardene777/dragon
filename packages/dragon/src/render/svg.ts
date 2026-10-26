@@ -243,8 +243,37 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   );
 }
 
+/** 四角を全部囲む四角。 */
+function union(rects: Rect[]): Rect {
+  const x = Math.min(...rects.map((r) => r.x));
+  const y = Math.min(...rects.map((r) => r.y));
+  return { x, y, w: Math.max(...rects.map((r) => r.x + r.w)) - x, h: Math.max(...rects.map((r) => r.y + r.h)) - y };
+}
+
 /** 段で動く物が占める所。 */
 function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefined {
+  const rects = focusParts(layout, diagram, step);
+  return rects.length === 0 ? undefined : union(rects);
+}
+
+/**
+ * 番号の丸が窓から外れる段で、窓に入れる所 (#3046)。
+ * 丸とその周りを起点に、丸に近い動く物から順に、窓 (`vw` × `vh`) に収まる間だけ囲む。収まらない物は飛ばして次を見る
+ */
+function badgeFocus(badge: { x: number; y: number }, parts: Rect[], vw: number, vh: number): Rect {
+  const room = LOOK.badge.r + LOOK.follow.badgeRoom;
+  const { x: bx, y: by } = badge;
+  const away = (p: Rect): number => Math.hypot(Math.max(0, p.x - bx, bx - p.x - p.w), Math.max(0, p.y - by, by - p.y - p.h));
+  let held: Rect = { x: bx - room, y: by - room, w: room * 2, h: room * 2 };
+  for (const p of [...parts].sort((a, b) => away(a) - away(b))) {
+    const next = union([held, p]);
+    if (next.w <= vw && next.h <= vh) held = next;
+  }
+  return held;
+}
+
+/** 段で動く物を 1 つずつ。 */
+function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
   const rects: Rect[] = [];
   for (const e of layout.edges.filter((x) => x.step === step)) {
     const xs = e.points.map((p) => p[0]);
@@ -260,10 +289,7 @@ function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefin
       if (box && (layout.kind === "architecture" || event.type === "swap")) rects.push(box);
     }
   }
-  if (rects.length === 0) return undefined;
-  const x = Math.min(...rects.map((r) => r.x));
-  const y = Math.min(...rects.map((r) => r.y));
-  return { x, y, w: Math.max(...rects.map((r) => r.x + r.w)) - x, h: Math.max(...rects.map((r) => r.y + r.h)) - y };
+  return rects;
 }
 
 /**
@@ -273,6 +299,7 @@ function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefin
  * 枠の中で見える高さを渡された時は、窓と全体図がその高さに入るまで窓を低くする (#3047)。
  * 枠が余る時は窓を広げ、図の原寸の幅と、見える高さか図の高さまで使う。全体図は今の大きさのまま置く (#3053)。
  * 枠の幅が `LOOK.follow.narrow` より狭い時は、縦長の全体図を出さずに窓へ枠の幅の全部を渡す (#3055)。
+ * 段で動く物を全部囲んだ所の真ん中に寄せると今の段の番号の丸が窓から外れる段では、丸に近い動く物から窓に収まるだけ囲んだ所へ寄せる (#3046)。
  */
 function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame): { body: string; w: number; h: number } {
   const F = LOOK.follow;
@@ -305,10 +332,18 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   const vw = beside && !bare ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
   const clampY = (y: number): number => Math.min(layout.height - vh / 2, Math.max(vh / 2, y));
+  const r = LOOK.badge.r;
   let prev: [number, number] = [layout.width / 2, layout.height / 2];
   const centers = timeline.steps.map((_, s) => {
     const f = focusOf(layout, diagram, s);
     prev = f ? [f.x + f.w / 2, f.y + f.h / 2] : prev;
+    const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
+    // 動く物を全部囲んだ所が窓より大きいと、その端に在る番号の丸が窓から外れる。その段だけ丸の近くへ寄せ直す (#3046)
+    const b = layout.badges.find((x) => x.step === s);
+    if (!b || (Math.abs(b.x - at[0]) <= vw / 2 - r && Math.abs(b.y - at[1]) <= vh / 2 - r)) return at;
+    const near = badgeFocus(b, focusParts(layout, diagram, s), vw, vh);
+    // 動く物の無い次の段は、寄せ直した窓のまま止める
+    prev = [near.x + near.w / 2, near.y + near.h / 2];
     return [clampX(prev[0]), clampY(prev[1])] as [number, number];
   });
   const c0 = centers[0] as [number, number];

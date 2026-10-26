@@ -65,11 +65,24 @@ export interface Motion {
 
 export function motionOf(diagram: unknown): Motion {
   const rendered = draw("renderDiagram")(diagram);
-  const frames = keyframesOf(rendered.svg);
-  expect(frames.size, "SVG に keyframes が無い").toBeGreaterThan(0);
   const doc = new DOMParser().parseFromString(rendered.svg, "image/svg+xml");
-  const total = rendered.timeline.total;
-  const value = (el: Element, prop: string, t: number): number[] | undefined => {
+  const value = sampler(rendered.svg, rendered.timeline.total);
+  const opacity = (el: Element, t: number): number => {
+    let o = 1;
+    for (let e: Element | null = el; e; e = e.parentElement) o *= Math.min(1, Math.max(0, value(e, "opacity", t)?.[0] ?? 1));
+    return o;
+  };
+  return { rendered, doc, value, opacity };
+}
+
+/**
+ * SVG の字の keyframes から、部品の性質 `prop` の時刻 `t` 秒の値 (数の並び) を求める。動かない性質は `undefined`。
+ * 再生の部品に置いた寄って追う図のように、`renderDiagram` の `svg` でない SVG を読む時はこれを使う
+ */
+export function sampler(svg: string, total: number): (el: Element, prop: string, t: number) => number[] | undefined {
+  const frames = keyframesOf(svg);
+  expect(frames.size, "SVG に keyframes が無い").toBeGreaterThan(0);
+  return (el: Element, prop: string, t: number): number[] | undefined => {
     const name = /animation-name:([\w-]+)/.exec(el.getAttribute("style") ?? "")?.[1];
     const points = (name ? (frames.get(name) ?? []) : []).filter((f) => prop in f.props);
     if (points.length === 0) return undefined;
@@ -86,10 +99,4 @@ export function motionOf(diagram: unknown): Motion {
     }
     return numbers((points[points.length - 1] as Frame).props[prop] as string);
   };
-  const opacity = (el: Element, t: number): number => {
-    let o = 1;
-    for (let e: Element | null = el; e; e = e.parentElement) o *= Math.min(1, Math.max(0, value(e, "opacity", t)?.[0] ?? 1));
-    return o;
-  };
-  return { rendered, doc, value, opacity };
 }
