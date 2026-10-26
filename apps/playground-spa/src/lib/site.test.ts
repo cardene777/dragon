@@ -1888,6 +1888,40 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   it(
+    "editor-heads-strip-uncovered",
+    async () => {
+      // 頭の列を 2 段にした時、携帯の幅の編集画面で前の図を出している旨の札が頭の列の箱に重なった (#3120)。
+      // 頭の列が出る全部の幅と段で、ふだんの状態と前の図を出している状態のどちらでも、頭の列に頁の部品が重ならない (#3126)
+      const scope = '[data-playground="stage"]';
+      const broken = `${exampleText("oauth", "ja")}\n!!! 読めない行\n`;
+      expect(parseNotation(broken).ok, "検査に使う記法が誤りにならない").toBe(false);
+      for (const viewport of [...PHONES, { width: 860, height: 960 }]) {
+        for (const kept of [false, true]) {
+          const where = `${viewport.width} × ${viewport.height} の oauth の編集画面${kept ? "で前の図を出している間" : ""}`;
+          const page = await openEditor(viewport, "oauth", true);
+          await expect.poll(() => stripCoveredOf(page, scope), { ...WAIT, message: `${where}、頭の列が描かれない` }).not.toBeNull();
+          if (kept) {
+            await page.locator('[data-playground="editor"]').fill(broken);
+            await expect.poll(() => page.locator(".pg-kept").isVisible(), { ...WAIT, message: `${where}、その旨の札が出ない` }).toBe(true);
+            // 記法の欄に書くと頁が欄まで送られるので、図の側を画面の上へ戻す
+            await page.evaluate(() => scrollTo(0, 0));
+          }
+          const steps = Number((await page.locator(`${scope} [data-dragon="step-no"]`).textContent())?.split("/")[1]);
+          expect(steps, `${where}、段の数が読めない`).toBeGreaterThan(1);
+          for (let s = 0; s < steps; s++) {
+            const step = `${String(s + 1).padStart(2, "0")}/${String(steps).padStart(2, "0")}`;
+            await expect
+              .poll(() => stripCoveredOf(page, scope), { ...WAIT, message: `${where}の ${s + 1} 段目で、頭の列が無いか、画面の外に出るか、頭の列に頁の部品が重なる` })
+              .toEqual({ step, points: 39, covered: [] });
+            if (s < steps - 1) await page.locator(`${scope} [data-dragon="next"]`).click();
+          }
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
     "wide-editor-keeps-phase-badge",
     async () => {
       // 440px 以上の編集画面は、今と同じく段の札を出し、枠の上に 48px を取る (#3061)
