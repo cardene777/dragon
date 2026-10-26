@@ -9,7 +9,7 @@ import { exampleJson, type Json } from "./diagram-support";
 import { sampler } from "./motion-support";
 import { draw, type Layout, type Player, type Rect } from "./render-support";
 
-type Diagramish = { [key: string]: Json };
+export type Diagramish = { [key: string]: Json };
 
 export interface Placed {
   name: string;
@@ -37,12 +37,12 @@ export function releasePlaced(): void {
   document.body.innerHTML = "";
 }
 
-/** 枠の幅 `width` に寄って追う図を置く */
-export function place(name: string, file: string, width: number): Placed {
+/** 枠の幅 `width` に寄って追う図を置く。`source` は見本の file の名前か、原本の JSON */
+export function place(name: string, source: string | Diagramish, width: number): Placed {
   const host = document.createElement("div");
   Object.defineProperty(host, "clientWidth", { value: width });
   document.body.appendChild(host);
-  const diagram = { ...(structuredClone(exampleJson(file)) as Diagramish), view: "follow" };
+  const diagram = { ...(structuredClone(typeof source === "string" ? exampleJson(source) : source) as Diagramish), view: "follow" };
   players.push(draw("mountDiagram")(host, diagram));
   const svg = host.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
   expect(svg?.getAttribute("data-view"), `${name} / 枠の幅 ${width}px が寄って追う図にならない`).toBe("follow");

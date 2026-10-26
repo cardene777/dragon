@@ -8,7 +8,7 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { exampleJson } from "./diagram-support";
-import { overflow, place, type Placed, releasePlaced, round } from "./follow-support";
+import { type Diagramish, overflow, place, type Placed, releasePlaced, round } from "./follow-support";
 import { draw } from "./render-support";
 
 /** 編集画面の幅 390px (携帯) と 860px (記法と並べた時) の、図の枠の幅 */
@@ -47,6 +47,35 @@ const UNDER: Record<number, [number, number, number][]> = {
     [8, 235.39, 452],
     [10, 169.14, 565],
   ],
+};
+
+/**
+ * 段 4 で線を 6 本引く時系列図。段 4 の線と札の並び (312px) は、頭の列の下の残りの高さ (224px) より高く、窓の高さ (320px) より低い。
+ * 丸を窓に入れるかを窓の高さ全部で見ると、段 4 の丸が頭の列に隠れる
+ */
+const send = (from: string, to: string, label: string): Diagramish => ({ type: "edge", from, to, label, carry: { kind: "envelope" } });
+const TALL: Diagramish = {
+  version: 1,
+  kind: "sequence",
+  title: "1 段で線を 6 本引く",
+  boxes: [
+    { id: "A", name: "受け付け", color: "blue" },
+    { id: "B", name: "仲立ち", color: "violet" },
+    { id: "C", name: "台帳", color: "green" },
+  ],
+  steps: [
+    { title: "頼む", body: "受け付けが仲立ちに頼む。", events: [send("A", "B", "頼む")] },
+    { title: "記す", body: "仲立ちが台帳に記す。", events: [send("B", "C", "記す")] },
+    { title: "返す", body: "台帳が受け付けに返す。", events: [send("C", "A", "返す")] },
+    {
+      title: "まとめて送る",
+      body: "受け付けと仲立ちと台帳が 6 件をまとめて送り合う。",
+      events: [send("A", "B", "1 件目"), send("B", "C", "2 件目"), send("C", "B", "3 件目"), send("B", "A", "4 件目"), send("A", "B", "5 件目"), send("B", "C", "6 件目")],
+    },
+    { title: "確かめる", body: "台帳が仲立ちに確かめる。", events: [send("C", "B", "確かめる")] },
+    { title: "終える", body: "仲立ちが受け付けに終わりを返す。", events: [send("B", "A", "終える")] },
+  ],
+  sequence: { lifelines: ["A", "B", "C"] },
 };
 
 afterEach(releasePlaced);
@@ -122,15 +151,20 @@ describe("寄って追う時系列図で頭の列を窓の上端に貼る (#3118
 
   it("follow-badge-below-heads", () => {
     const out: string[] = [];
-    for (const width of WIDTHS) {
-      const p = place("oauth", "oauth.json", width);
-      const strip = stripOf(p);
-      for (let s = 0; s < p.steps; s++) {
-        const b = p.badgeAt(s);
-        const win = p.windowAt(s);
-        const under = { x: win.x, y: win.y + strip.h, w: win.w, h: win.h - strip.h };
-        const over = overflow({ x: b.x - b.r, y: b.y - b.r, w: b.r * 2, h: b.r * 2 }, under);
-        if (over > 0.01) out.push(`枠の幅 ${width}px / 段 ${s + 1} の丸が頭の列より下の窓から ${round(over)}px 外れる`);
+    for (const [name, source] of [
+      ["oauth", "oauth.json"],
+      ["線を 6 本引く段", TALL],
+    ] as const) {
+      for (const width of WIDTHS) {
+        const p = place(name, source, width);
+        const strip = stripOf(p);
+        for (let s = 0; s < p.steps; s++) {
+          const b = p.badgeAt(s);
+          const win = p.windowAt(s);
+          const under = { x: win.x, y: win.y + strip.h, w: win.w, h: win.h - strip.h };
+          const over = overflow({ x: b.x - b.r, y: b.y - b.r, w: b.r * 2, h: b.r * 2 }, under);
+          if (over > 0.01) out.push(`${name} / 枠の幅 ${width}px / 段 ${s + 1} の丸が頭の列より下の窓から ${round(over)}px 外れる`);
+        }
       }
     }
     expect(out, "番号の丸が頭の列に隠れるか窓から外れる段").toEqual([]);
