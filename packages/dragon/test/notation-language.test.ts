@@ -35,7 +35,7 @@ describe("誤りの文の言葉", () => {
     段が無い: ["sequence Only", "box app"].join("\n"),
     題の無い段: insert(3, "step"),
     題の無い図: ["sequence", "box app"].join("\n"),
-    今の形の図の種類: replace(0, "時系列図 Errors"),
+    前の形の図の種類: replace(0, "時系列図 Errors"),
     読めない最初の行: "flow chart",
     空の記法: "",
   };
@@ -55,7 +55,7 @@ describe("誤りの文の言葉", () => {
       // en を渡した時は、同じ場所を英語の文で示す
       expect(en, `${label} に en を渡した時の誤りが無い`).toMatchObject({ line: ja?.line, column: ja?.column });
       expect(en?.message, `${label} に en を渡した時の誤りの文が空`).not.toBe("");
-      // 今の形の語を名指す文は、その語だけを除いて確かめる
+      // 前の形の語を名指す文は、その語だけを除いて確かめる
       const shown = (en?.message ?? "").replaceAll("時系列図", "");
       expect(shown, `${label} に en を渡した時の誤りの文が英語でない`).not.toMatch(KANA_KANJI);
     }

@@ -232,16 +232,19 @@ describe("記法から JSON へ", () => {
   it("notation-rejects-the-old-form", () => {
     const parse = api("parseNotation");
 
-    // 日本語の語で始まる今の形の file は、新しい形の図の種類の語で書いた行の形を示す。
+    // 日本語の語で始まる前の形の file は、新しい形の図の種類の語で書いた行の形を示す。
     // 語の一覧を並べるだけの誤りと見分けるため、語の後ろに穴 (`<題>` など) を続けた形を探す
     const sequence = firstError(parse(["時系列図 古い図", "甲 = 甲「下の字」", "# 段", "> 本文。", "甲 : 考える"].join("\n")));
     expect(sequence).toMatchObject({ line: 1, column: 1 });
     expect(sequence?.message).toContain("sequence <");
+    // 作り直す前の記法は、変更履歴と README と同じく「前の形」と呼ぶ (#3143)
+    expect(sequence?.message).toContain("前の形の書き方");
+    expect(sequence?.message).not.toContain("今の形");
     const architecture = firstError(parse(["", "構成図 古い図", "区画 店 = 店"].join("\n")));
     expect(architecture).toMatchObject({ line: 2, column: 1 });
     expect(architecture?.message).toContain("architecture <");
 
-    // 新しい形の file に紛れた今の形の行は、新しい形の語で書いた行の形を示す
+    // 新しい形の file に紛れた前の形の行は、新しい形の語で書いた行の形を示す
     const head = ["sequence 新しい図", "box 甲", "step 段", "  say 本文。"];
     for (const [line, word] of [
       ["  甲「書き換えた字」", "note"],
@@ -253,6 +256,7 @@ describe("記法から JSON へ", () => {
       const error = firstError(parse([...head, line].join("\n")));
       expect(error, `${line} が誤りにならない`).toMatchObject({ line: 5 });
       expect(error?.message, `${line} の誤りが ${word} の行の形を示さない`).toContain(`${word} <`);
+      expect(error?.message, `${line} の誤りが前の形の行と呼ばない`).toContain("前の形の書き方");
     }
     const declared = firstError(parse(["sequence 新しい図", "甲 = 甲「下の字」"].join("\n")));
     expect(declared).toMatchObject({ line: 2, column: 1 });

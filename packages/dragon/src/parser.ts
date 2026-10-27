@@ -214,7 +214,7 @@ function lookOf(source: SourceLine, attrs: Map<string, Attr>, m: Messages): { no
 }
 
 /**
- * 今の形 (#2997 まで) の行なら、その印と、新しい形で書く行の形。`inStep` は段の中の行か。
+ * 前の形 (#2997 まで) の行なら、その印と、新しい形で書く行の形。`inStep` は段の中の行か。
  * 新しい形で読めない行の誤りの文で、書き直し方を示すために引く。
  */
 function oldForm(text: string, inStep: boolean): { word: string; shape: Shape } | undefined {
