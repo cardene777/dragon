@@ -301,6 +301,29 @@ describe("記法から JSON へ", () => {
     // 閉じていない囲みは、文書の終わりまでを中身にする (CommonMark と同じ)
     expect(extract("```dragon\nsequence 閉じていない")).toEqual([{ source: "sequence 閉じていない", line: 2 }]);
   });
+
+  it("readme-notation-examples-parse", () => {
+    // 2 つの README は `## dragon記法` の節に決まり 4 つを同じ文で並べ、dragon の囲みの例はどれも新しい形で読める (#3138)
+    const extract = api("extractDiagrams");
+    const parse = api("parseNotation");
+    const rulesOf = (text: string): string[] => {
+      const section = text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+      return [...section.matchAll(/^\d+\. (.+)$/gmu)].map((m) => m[1] ?? "");
+    };
+    const readmes = ["README.md", "packages/dragon/README.md"].map((path) => ({ path, text: readFileSync(join(process.cwd(), path), "utf8") }));
+    for (const { path, text } of readmes) {
+      expect(rulesOf(text), `${path} の dragon記法の節に決まりが 4 つ並ばない`).toHaveLength(4);
+      const fences = extract(text);
+      expect(fences.length, `${path} に dragon の囲みが無い`).toBeGreaterThan(0);
+      const failed = fences.flatMap((fence) => {
+        const parsed = parse(fence.source);
+        return parsed.ok ? [] : [`${path}:${fence.line + (parsed.errors[0]?.line ?? 1) - 1} ${parsed.errors[0]?.message}`];
+      });
+      expect(failed, `${path} の読めない囲み`).toEqual([]);
+    }
+    const [root, dragon] = readmes;
+    expect(rulesOf(dragon?.text ?? ""), "2 つの README で決まりの文が違う").toEqual(rulesOf(root?.text ?? ""));
+  });
 });
 
 describe("JSON から記法へ", () => {
