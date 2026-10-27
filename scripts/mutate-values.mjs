@@ -184,6 +184,7 @@ const cell = (text) => text.replace(/\r?\n/g, " ").replaceAll("|", "\\|");
  * 一覧の順に 1 変異 1 行で、同じ変異の行が 2 つ以上在る時は最後の行を使う。
  *
  * 件数は落ちた検査の数で、どの検査も落ちなかった変異は 0 になる。
+ * 検査を回した変異は、壊した所の括弧の最後に、名前で絞った回か全部の検査で回した回かを書く。
  * 飛ばした変異と測れなかった変異と結果に行の無い変異は、数字で始まらない件数にして表に残す。
  * 表から消すと、関門は残った行だけを見て通してしまう。
  * 結果に一覧に無い変異の行が在る時は、別の一覧の結果を渡したとして投げる。
@@ -198,11 +199,18 @@ export function mutationTable({ mutants, rows, step }) {
   const lines = mutants.map((m) => {
     const row = last.get(m.id);
     const failed = Array.isArray(row?.failed) ? row.failed : [];
-    const place = [
-      `\`${m.id}\``,
-      m.what,
-      failed.length > 0 ? `(落ちた検査 ${failed.join("、")})` : undefined,
-    ]
+    // 回した行だけが wide を持つ。名前で絞って 0 の変異はほかの検査が捕まえている見込みが残り、
+    // 全部の検査で 0 の変異は検査の穴そのものなので、どちらの回の件数かを残す (#3134)
+    const run =
+      typeof row?.wide !== "boolean"
+        ? undefined
+        : row.wide || !m.names
+          ? "全部の検査で回した回"
+          : "名前で絞った回";
+    const notes = [failed.length > 0 ? `落ちた検査 ${failed.join("、")}` : undefined, run].filter(
+      (note) => note !== undefined,
+    );
+    const place = [`\`${m.id}\``, m.what, notes.length > 0 ? `(${notes.join("、")})` : undefined]
       .filter((part) => typeof part === "string" && part !== "")
       .join(" ");
     let count;
