@@ -39,21 +39,22 @@
 | 寄って見せる図を動画に書き出した時、最初のコマと途中のコマで見ている範囲が違う | `pnpm test`の検査`export-video-follows-camera`が通る | #2986 #3042 |
 | HTML に書き出した時、図で使った字だけを含む字の file が HTML の中に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #2986 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2986 |
-| 新しい形で書いた `packages/dragon/examples/oauth.dragon` と `ccip.dragon` を `parseNotation` が読み、`oauth.json` と `ccip.json` と同じ JSON を返す | `pnpm test`の検査`notation-compiles-oauth-to-json`と`notation-compiles-ccip-to-json`が通る | #3137 |
-| 行の頭の語の全ての種類を 1 つずつ書いた記法を読み、`as` の無い箱は名札を名前にし、`say` の下に字下げして続けた行は 1 つの本文につなぎ、段は次の `step` か file の終わりで閉じる。離れて並ぶ箱は同じ `group <名札>` をもう一度開いて足せ、2 度目に `as` か属性を書くと誤りで止まる | `pnpm test`の検査`notation-reads-every-line-kind`が通る | #3137 |
-| 空白を含む名前を `[` の前に置いた行と、`,` か `]` を含む値を引用符で囲んだ属性を読み、引用符の中の字をそのまま値にする | `pnpm test`の検査`notation-reads-quoted-and-spaced-values`が通る | #3137 |
-| `end` の無い `group`、一覧に無い行の頭の語、コロンの無い属性、知らない属性の鍵、宣言していない名札は、行と列を示した誤りで止まる | `pnpm test`の検査`notation-reports-line-and-column`と`notation-rejects-unclosed-group`が通る | #3137 |
-| 日本語の語で書いた前の形 (`時系列図` か `構成図` で始まる file、「」で囲んだ字) は読まず、新しい形の行の形を示す誤りで止まる | `pnpm test`の検査`notation-rejects-the-old-form`が通る | #3137 |
+| 新しい形で書いた `packages/dragon/examples/oauth.dragon` と `ccip.dragon` を `parseNotation` が読み、今と同じ `oauth.json` と `ccip.json` を返す | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-compiles-oauth-to-json`と`notation-compiles-ccip-to-json`が通る | #3137 |
+| 行の一覧の全ての種類を 1 つずつ書いた記法を読み、`as` の無い箱は名札を名前にし、`say` の下に字下げして続けた行は 1 つの本文につなぎ、段は次の `step` か file の終わりで閉じる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-reads-every-line-kind`が通る | #3137 |
+| 空白を含む名前を `[` の前に置いた行と、`,` か `]` を含む値を引用符で囲んだ属性を読み、引用符の中の字をそのまま値にする | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-reads-quoted-and-spaced-values`が通る | #3137 |
+| `end` の無い `group`、一覧に無い行の頭の語、コロンの無い属性、知らない属性の鍵、宣言していない名札は、行と列を示した誤りで止まる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-reports-line-and-column`と`notation-rejects-unclosed-group`が通る | #3137 |
+| 日本語の語で書いた今の形 (`時系列図` か `構成図` で始まる file、「」で囲んだ字) は読まず、新しい形の語を示す誤りで止まる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-rejects-the-old-form`が通る | #3137 |
 | 記法の誤りの文は呼ぶ側が渡した言葉 (`ja` か `en`) で出し、渡さなければ日本語で出す。file の字から言葉を決めない。英語の文は同じ行と列を示し、仮名と漢字を含まない | `pnpm test`の検査`errors-follow-given-language`が通る | #3137 |
-| `printNotation` が新しい形を出し、出した記法を読み直すと元の JSON と同じになる | `pnpm test`の検査`roundtrip-keeps-json-identical`が通る | #3137 |
-| `printNotation` が書き戻した記法が、`packages/dragon/test/fixtures/printed/` の見本と 1 字も違わない | `pnpm test`の検査`print-matches-the-printed-fixtures`が通る | #3137 |
-| `printNotation` は、`,` か `]` を含む値と `[` を含む名前だけを引用符で囲んで書き戻し、それ以外の値は囲まない | `pnpm test`の検査`print-quotes-only-when-needed`が通る | #3137 |
-| 欄の並び順だけが違う同じ内容の JSON は、同じ記法に書き戻す | `pnpm test`の検査`print-is-stable`が通る | #3137 |
-| repo の全ての `.dragon` の file (`git ls-files '*.dragon'` が挙げる file) を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3137 |
-| markdown の dragon の囲みから図の字を取り出す | `pnpm test`の検査`markdown-fence-extracts-every-diagram`が通る | #3137 |
+| `printNotation` が新しい形を出し、出した記法を読み直すと元の JSON と同じになる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`roundtrip-keeps-json-identical`が通る | #3137 |
+| `printNotation` が書き戻した記法が、`packages/dragon/test/fixtures/printed/` の見本と 1 字も違わない | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`print-matches-the-printed-fixtures`が通る | #3137 |
+| `printNotation` は、`,` か `]` を含む値と `[` を含む名前だけを引用符で囲んで書き戻し、それ以外の値は囲まない | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`print-quotes-only-when-needed`が通る | #3137 |
+| 欄の並び順だけが違う同じ内容の JSON は、今どおり同じ記法に書き戻す | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`print-is-stable`が通る | #3137 |
+| repo の全ての `.dragon` の file (`git ls-files '*.dragon'` が挙げる file) を `parseNotation` が誤り無く読む | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`every-dragon-file-parses`が通る | #3137 |
+| markdown の dragon の囲みから図の字を取り出す動きは今どおり | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`markdown-fence-extracts-every-diagram`が通る | #3137 |
 | 使い方の文書の英語版 `packages/dragon/examples/quick-start.en.md` が在り、その中の dragon の囲みがすべて新しい形で読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #2997、#3137 |
 | 公開する頁で言葉を EN にした時、編集画面の左の棚の 3 つの見本のどれを選んでも、書く欄の記法に日本語の語 (`時系列図` や `帯`) が 1 つも無い | `pnpm test`の検査`english-page-examples-use-english-words`が通る | #2997、#3031 |
-| 編集画面で JSON を直した後に書き戻す記法が、頁の言葉に関わらず新しい形になる。書く欄の最初の行が読めない時も新しい形で書き戻す | `pnpm test`の検査`json-edit-prints-dragon-notation`が通る | #2997、#3137 |
+| 編集画面で JSON を直した後に書き戻す記法が、新しい形になる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`json-edit-prints-dragon-notation`が通る | #2997、#3137 |
+| 使い方の頁の節が記法の全ての行の種類を扱い、頁に載せた例は全て新しい形で読める | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3137 |
 | 頁の書く欄の記法に誤りがある時、欄の下の誤りの文と行の番号を頁の言葉で出す。図の字の言葉には従わない | `pnpm test`の検査`page-errors-follow-page-language`が通る | #2997、#3137 |
 | 原本の JSON の検査に英語を渡した時、書けない欄、要る欄、決まった値、道具より新しい版、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文に仮名と漢字が 1 つも無い | `pnpm test`の検査`json-errors-in-english`が通る | #2999 |
 | 言葉を渡さずに原本の JSON を検査した時、書けない欄、要る欄、決まった値、道具より新しい版の誤りの文が今と同じ文字列になる | `pnpm test`の検査`json-errors-default-japanese-unchanged`が通る | #2999 |
