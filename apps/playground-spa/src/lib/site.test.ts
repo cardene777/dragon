@@ -383,10 +383,10 @@ const readmeRules = (): string[] => {
   return [...section.matchAll(/^\d+\. (.+)$/gmu)].map((m) => (m[1] ?? "").replaceAll("`", ""));
 };
 
-/** `CHANGELOG.md` の、見出しが `| 今の形 | 新しい形 |` の表の行。各欄は囲みの印を外した字 (#3138) */
+/** `CHANGELOG.md` の、見出しが `| 前の形 | 新しい形 |` の表の行。各欄は囲みの印を外した字 (#3138) */
 const changelogMigration = (): string[][] => {
   const lines = readFileSync(join(root, "CHANGELOG.md"), "utf8").split("\n");
-  const head = lines.findIndex((line) => line.trim() === "| 今の形 | 新しい形 |");
+  const head = lines.findIndex((line) => line.trim() === "| 前の形 | 新しい形 |");
   if (head < 0) return [];
   const rows: string[][] = [];
   for (const line of lines.slice(head + 2)) {

@@ -1,0 +1,15 @@
+architecture Pass orders to the warehouse
+
+group shopSide as Shop [note: takes orders, color: blue, icon: cart]
+  box desk as Order desk [note: takes the order, icon: app]
+end
+
+group warehouseSide as Warehouse [note: sends goods, color: green, icon: box]
+  box shipping as Shipping [note: sends the goods, icon: truck]
+end
+
+step Pass to shipping
+  say
+    The order desk passes two order numbers to shipping at once.
+    Shipping sends the goods in the order the numbers arrived.
+  desk -> shipping: ready to send [tag: "#42, #43"]

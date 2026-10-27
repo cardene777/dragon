@@ -1,0 +1,15 @@
+architecture 注文を倉庫へ回す
+
+group 店側 as 店 [note: 注文を受ける側, color: blue, icon: cart]
+  box 受付 [note: 注文を受ける, icon: app]
+end
+
+group 倉庫側 as 倉庫 [note: 品物を送る側, color: green, icon: box]
+  box 出荷 [note: 品物を送る, icon: truck]
+end
+
+step 出荷に回す
+  say
+    受付が注文の番号を 2 つまとめて出荷に回す。
+    出荷は届いた番号の順に品物を送る。
+  受付 -> 出荷: 送ってよい [tag: "#42, #43"]
