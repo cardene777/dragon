@@ -12,6 +12,10 @@ npm install @cardenelabs/dragon
 今までの記法 (日本語の鍵の YAML と JSON)、`textDslToDiagram` と `jsonToDiagram` を含む入口、`@cardenelabs/cdl` へ渡して描く仕組みは [#2983](https://github.com/cardene777/dragon/issues/2983) で消した。
 作り直しで決めたことは [#2982](https://github.com/cardene777/dragon/issues/2982) にまとめている。
 
+0.36.0 では記法を dragon記法に作り直したため、0.35.x の記法の file は書き直さないと読めない。
+原本の JSON は 0.35.x と同じ形で、そのまま読める。
+書き直す時は、下の dragon記法の節と、前の形と新しい形の対応表を見る。
+
 この package は次の 4 つを持つ。
 
 | 持つ物 | 形 |
