@@ -5,6 +5,16 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.36.3] - 2026-10-27
+
+### Fixed
+
+- **描いた結果の中身の型を入口から出した** (#3149)
+
+  `renderDiagram` が返す `layout` と `timeline` の中身の型 (`SceneBox` や `Span` など) と、色の名前の型 `ColorKey` と字の名前の型 `Family` を、入口が出していなかった。
+  `import type { SceneBox, Span } from "@cardenelabs/dragon"` のように名前で受け取れる。
+  build した型の file に宣言された型のうち、どの入口からも出ていない型を数える検査を足し、入口に型を並べ忘れると落ちるようにした。
+
 ## [0.36.2] - 2026-10-27
 
 ### Fixed
