@@ -290,13 +290,13 @@ describe("変異の結果から壊して測った結果の表を作る (#3130)",
       step: 10,
     });
     expect(text, "見出しと 2 列の表が無いか、一覧の順に 1 変異 1 行で並ばないか、件数が落ちた検査の数でない").toBe(
-      [...heading(10), "| `r1` 拡大の上限 4 倍を 8 倍 (落ちた検査 a-test、b-test) | 2 |", "| `r2` 刻みを 3 に (落ちた検査 c-test) | 1 |"].join("\n"),
+      [...heading(10), "| `r1` 拡大の上限 4 倍を 8 倍 (落ちた検査 a-test、b-test、全部の検査で回した回) | 2 |", "| `r2` 刻みを 3 に (落ちた検査 c-test、全部の検査で回した回) | 1 |"].join("\n"),
     );
   });
 
   it("mutation-table-counts-a-survivor-as-zero", () => {
     const text = mutationTable({ mutants: [named("r1", "刻みを 3 に")], rows: [ran("r1", [])], step: 18 });
-    expect(text, "どの検査も落ちなかった変異を件数 0 の行にしていない").toBe([...heading(18), "| `r1` 刻みを 3 に | 0 |"].join("\n"));
+    expect(text, "どの検査も落ちなかった変異を件数 0 の行にしていない").toBe([...heading(18), "| `r1` 刻みを 3 に (全部の検査で回した回) | 0 |"].join("\n"));
   });
 
   it("mutation-table-names-skipped-and-unfinished", () => {
@@ -309,7 +309,7 @@ describe("変異の結果から壊して測った結果の表を作る (#3130)",
       step: 10,
     });
     expect(text, "飛ばした変異と測れなかった変異の件数の欄が、理由の付いた数字で始まらない字になっていない").toBe(
-      [...heading(10), "| `none` 無い字を替える | 飛ばした、書き換える所が 1 か所に決まらない (0 か所) |", "| `stop` build が落ちる | 測れなかった、検査の前の build が終わらなかった (終わり方 130) |"].join("\n"),
+      [...heading(10), "| `none` 無い字を替える | 飛ばした、書き換える所が 1 か所に決まらない (0 か所) |", "| `stop` build が落ちる (全部の検査で回した回) | 測れなかった、検査の前の build が終わらなかった (終わり方 130) |"].join("\n"),
     );
   });
 
@@ -320,7 +320,7 @@ describe("変異の結果から壊して測った結果の表を作る (#3130)",
       step: 10,
     });
     expect(text, "結果に行の無い変異が表から消えたか、回していないと出していない").toBe(
-      [...heading(10), "| `stop` 検査が止まる | 測れなかった、検査が集計の行を出さずに終わった (終わり方 1) |", "| `after` 止まった後の変異 | 回していない |"].join("\n"),
+      [...heading(10), "| `stop` 検査が止まる (全部の検査で回した回) | 測れなかった、検査が集計の行を出さずに終わった (終わり方 1) |", "| `after` 止まった後の変異 | 回していない |"].join("\n"),
     );
   });
 
@@ -331,15 +331,50 @@ describe("変異の結果から壊して測った結果の表を作る (#3130)",
       step: 10,
     });
     expect(text, "同じ変異の行が 2 つ以上在る時に、最後の行で表を作っていない").toBe(
-      [...heading(10), "| `r1` 名前で絞ると落ちる | 0 |", "| `r2` 一度止まった (落ちた検査 b-test) | 1 |"].join("\n"),
+      [...heading(10), "| `r1` 名前で絞ると落ちる (全部の検査で回した回) | 0 |", "| `r2` 一度止まった (落ちた検査 b-test、全部の検査で回した回) | 1 |"].join("\n"),
     );
   });
 
   it("mutation-table-escapes-pipes", () => {
     const text = mutationTable({ mutants: [named("r1", "名前を a|b に")], rows: [ran("r1", ["x|y"])], step: 10 });
     const line = text.split("\n").at(-1) ?? "";
-    expect(line, "壊した所の字の縦線を逃がしていない").toBe("| `r1` 名前を a\\|b に (落ちた検査 x\\|y) | 1 |");
+    expect(line, "壊した所の字の縦線を逃がしていない").toBe("| `r1` 名前を a\\|b に (落ちた検査 x\\|y、全部の検査で回した回) | 1 |");
     expect(cellsOf(line), "縦線を含む行が 2 列のまま読めない").toHaveLength(2);
+  });
+
+  it("mutation-table-names-the-run", () => {
+    const text = mutationTable({
+      mutants: [
+        { ...named("n1", "名前で絞って残る"), names: "a-test" },
+        { ...named("n2", "名前で絞って落ちる"), names: "a-test" },
+        { ...named("w1", "全部で回して残る"), names: "a-test" },
+        named("z1", "名前の無い変異"),
+        { ...named("u1", "名前で絞って止まる"), names: "a-test" },
+      ],
+      rows: [ran("n1", []), ran("n2", ["a-test"]), ran("w1", [], true), ran("z1", ["b-test"]), { id: "u1", wide: false, unfinished: "検査が集計の行を出さずに終わった (終わり方 1)" }],
+      step: 10,
+    });
+    const lines = text.split("\n").slice(heading(10).length);
+    expect(lines, "名前で絞った回と全部の検査で回した回を、壊した所の括弧の最後で書き分けていない").toEqual([
+      "| `n1` 名前で絞って残る (名前で絞った回) | 0 |",
+      "| `n2` 名前で絞って落ちる (落ちた検査 a-test、名前で絞った回) | 1 |",
+      "| `w1` 全部で回して残る (全部の検査で回した回) | 0 |",
+      "| `z1` 名前の無い変異 (落ちた検査 b-test、全部の検査で回した回) | 1 |",
+      "| `u1` 名前で絞って止まる (名前で絞った回) | 測れなかった、検査が集計の行を出さずに終わった (終わり方 1) |",
+    ]);
+    expect(lines.map((line) => cellsOf(line)[1]), "回し方を書いた行の件数の欄が、数か理由のままでない").toEqual(["0", "1", "0", "1", "測れなかった、検査が集計の行を出さずに終わった (終わり方 1)"]);
+    for (const line of lines) expect(cellsOf(line), `回し方を書いた行が 2 列のまま読めない (${line})`).toHaveLength(2);
+  });
+
+  it("mutation-table-leaves-unrun-rows-unmarked", () => {
+    const text = mutationTable({
+      mutants: [{ ...named("s1", "無い字を替える"), names: "a-test" }, { ...named("after", "止まった後の変異"), names: "a-test" }],
+      rows: [{ id: "s1", skipped: "書き換える所が 1 か所に決まらない (0 か所)" }],
+      step: 10,
+    });
+    expect(text, "飛ばした変異と回していない変異の行に、回し方を書いた").toBe(
+      [...heading(10), "| `s1` 無い字を替える | 飛ばした、書き換える所が 1 か所に決まらない (0 か所) |", "| `after` 止まった後の変異 | 回していない |"].join("\n"),
+    );
   });
 
   it("mutation-table-is-a-package-script", () => {
@@ -348,7 +383,7 @@ describe("変異の結果から壊して測った結果の表を作る (#3130)",
     const { list, out } = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"])]);
     const r = spawnSync(process.execPath, ["scripts/mutate-values.mjs", "--table", list, out, "--step", "10"], { cwd: REPO, encoding: "utf8" });
     expect(r.status, `表を作る呼び方が終わり方 0 で終わらない: ${r.stderr}`).toBe(0);
-    expect(r.stdout, "表を作る呼び方が、変異の一覧と結果から作った表を出さない").toBe(`${[...heading(10), "| `r1` 刻みを 3 に (落ちた検査 a-test) | 1 |"].join("\n")}\n`);
+    expect(r.stdout, "表を作る呼び方が、変異の一覧と結果から作った表を出さない").toBe(`${[...heading(10), "| `r1` 刻みを 3 に (落ちた検査 a-test、全部の検査で回した回) | 1 |"].join("\n")}\n`);
   });
 
   it("mutation-table-refuses-bad-input", () => {
