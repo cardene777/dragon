@@ -3260,11 +3260,12 @@ describe("サイトの帯と経路 (#3030)", () => {
       screen: "docs",
       targets: '[data-docs="cta"] a, a[data-docs="section-cta"]',
       links: 'a[data-docs="section-cta"]',
-      count: 11,
+      count: 13,
       touchSizes: [
         "5 分で始める → 133x44",
         "カタログで図を見る 160x44",
         "編集画面で書いてみる → 151x46",
+        "続き → 箱 60x46",
         "続き → 線 60x46",
         "続き → 区画 74x46",
         "構成図の見本を見る → 138x46",
@@ -3273,6 +3274,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         "続き → JSON 82x46",
         "編集画面で JSON を取り込む → 193x46",
         "編集画面から書き出す → 152x46",
+        "編集画面で書き直す → 138x46",
       ],
     },
   ] as const;
