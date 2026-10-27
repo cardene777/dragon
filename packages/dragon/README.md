@@ -38,7 +38,7 @@ const parsed = parseNotation(source);
 if (!parsed.ok) throw new Error(parsed.errors.map((e) => `${e.line}: ${e.message}`).join("\n"));
 
 const host = document.getElementById("figure");
-if (host === null) throw new Error("図を置く要素が無い");
+if (host === null) throw new Error("#figure not found");
 const player = mountDiagram(host, parsed.diagram);
 ```
 
