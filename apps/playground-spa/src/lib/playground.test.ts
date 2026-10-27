@@ -1197,8 +1197,8 @@ describe("公開する頁 (#2995)", () => {
     for (const [path, text] of sources) {
       // 図を描くのは package の部品だけ。頁の側で SVG を組まない
       expect(text, `${path} が SVG を組んでいる`).not.toMatch(/createElementNS|<svg\b/u);
-      // package の中の file を直に読まず、公開している入口から読む
-      expect(text, `${path} が package の中の file を直に読んでいる`).not.toMatch(/@cardenelabs\/dragon\/(?!fonts["'])|packages\/dragon\/src/u);
+      // package の中の file を直に読まず、公開している入口から読む。字の入口は使い方の頁の本文が `` ` `` で囲んで名指す (#3155)
+      expect(text, `${path} が package の中の file を直に読んでいる`).not.toMatch(/@cardenelabs\/dragon\/(?!fonts["'`])|packages\/dragon\/src/u);
       if (/\b(mountDiagram|renderDiagram)\b/u.test(text)) {
         expect(text, `${path} が描く部品を @cardenelabs/dragon から読んでいない`).toMatch(/from\s+["']@cardenelabs\/dragon["']/u);
       }

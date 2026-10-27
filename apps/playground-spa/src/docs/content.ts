@@ -8,8 +8,11 @@
  */
 import type { Lang } from "../text";
 
-/** 節の並び。記法の決まりの後に記法の要素を書く順に並べ、前の形から書き直す人の対応表を最後に置く */
-export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "export", "migrate"] as const;
+/**
+ * 節の並び。記法の決まりの後に記法の要素を書く順に並べ、図を外で使う 2 つの形 (頁に置く、書き出す) を続け、
+ * 前の形から書き直す人の対応表を最後に置く
+ */
+export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** 特長の札が指す節。札はこの並びで並ぶ */
@@ -28,12 +31,32 @@ export const EXITS: Record<SectionId, Exit> = {
   strip: { kind: "sequence" },
   carry: { section: "json" },
   json: { screen: "editor" },
+  place: { section: "export" },
   export: { screen: "editor" },
   migrate: { screen: "editor" },
 };
 
-/** 節の本文の段落ごとに、その後ろへ図を描かない囲みで出す命令 (言葉で替わらない)。`null` の段落は命令を持たない */
+/**
+ * 節の本文の段落ごとに、その後ろへ図を描かない囲みで出す命令か code (言葉で替わらない)。`null` の段落は囲みを持たない。
+ * 頁に置く節の code は package の README の頁に置く節の例と同じ物 (検査が突き合わせる)
+ */
 export const COMMANDS: Partial<Record<SectionId, readonly (string | null)[]>> = {
+  place: [
+    [
+      'import "@cardenelabs/dragon/fonts";',
+      'import { mountDiagram, parseNotation } from "@cardenelabs/dragon";',
+      "",
+      'const source = await (await fetch("login.dragon")).text();',
+      "const parsed = parseNotation(source);",
+      'if (!parsed.ok) throw new Error(parsed.errors.map((e) => `${e.line}: ${e.message}`).join("\\n"));',
+      "",
+      'const host = document.getElementById("figure");',
+      'if (host === null) throw new Error("#figure not found");',
+      "const player = mountDiagram(host, parsed.diagram);",
+    ].join("\n"),
+    null,
+    null,
+  ],
   export: ["npm install @cardenelabs/dragon", "pnpm add -D playwright-core\npnpm exec playwright-core install chromium", "dragon export login.dragon --out out"],
 };
 
@@ -144,6 +167,15 @@ export const DOCS: Record<Lang, DocsText> = {
           "`parseNotation` は記法を JSON に、`printNotation` は JSON を記法に直し、`readDiagram` は JSON を確かめて読む。JSON から記法へ書き戻すと決まった並べ方に整うので、書き手の行の並べ方と `//` で始まる注釈の行は残らない。",
         ],
         exit: "編集画面で JSON を取り込む →",
+      },
+      place: {
+        title: "頁に置く",
+        text: [
+          "自分の頁に図を置く時は、頁で 1 度だけ字の入口 `@cardenelabs/dragon/fonts` を import し、記法を読んだ原本を `mountDiagram` に渡す。下の例は package の README と同じ物。",
+          "字の入口は、同梱の 2 つの字 (Noto Sans JP と JetBrains Mono) の CSS を読み込むだけで、何も出さない。図は同梱の字で測った字の幅で組むため、読み込まないと端末の字で描かれ、札から字がはみ出すことがある。CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。",
+          "`mountDiagram` が返す `player` で段を動かす (`next`、`prev`、`play`、`pause`、`destroy`)。3 つめの引数には、色味や段が替わった時に呼ぶ関数などの設定 (`PlayerOptions`) を渡す。",
+        ],
+        exit: "続き → 書き出し",
       },
       export: {
         title: "書き出し",
@@ -304,6 +336,15 @@ export const DOCS: Record<Lang, DocsText> = {
           "`parseNotation` turns the notation into JSON, `printNotation` turns JSON back into the notation, and `readDiagram` checks and reads JSON. Writing JSON back as notation uses a fixed layout, so the writer's line order and the comment lines that start with `//` are not kept.",
         ],
         exit: "Import JSON in the editor →",
+      },
+      place: {
+        title: "Placing on a page",
+        text: [
+          "To place a diagram on your own page, import the font entry `@cardenelabs/dragon/fonts` once on the page, and pass the source read from the notation to `mountDiagram`. The example below is the same as in the package README.",
+          "The font entry only loads the CSS for the two bundled fonts (Noto Sans JP and JetBrains Mono) and exports nothing. Diagrams are laid out with character widths measured from the bundled fonts, so without it they are drawn in the device's fonts and text can overflow its labels. A bundler (such as Vite) carries the CSS and font files to the page.",
+          "Use the `player` returned by `mountDiagram` to move through the steps (`next`, `prev`, `play`, `pause`, `destroy`). The third argument takes settings such as the palette and a function called when the step changes (`PlayerOptions`).",
+        ],
+        exit: "Next → Export",
       },
       export: {
         title: "Export",

@@ -312,9 +312,9 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "export", "migrate"] as const;
-/** 記法の例を持たない節。書き出しは命令を、前の形から書き直す節は対応表を出す */
-const WITHOUT_EXAMPLE: readonly string[] = ["export", "migrate"];
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+/** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
+const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
 
 /** 節の例の file。JSON の節は原本の JSON。無ければ `undefined` */
 const docsExample = (id: string, lang: Lang): string | undefined => {
@@ -361,6 +361,15 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
   strip: (d) => d.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
   json: (d) => d.version >= 1 && d.steps.length >= 1,
+};
+
+/** package の README の `## 頁に置く` の節の `ts` の囲みの中身。頁に置く節はこれと同じ code を出す (#3155) */
+const readmePlaceExample = (): string => {
+  const readme = readFileSync(join(root, "packages/dragon/README.md"), "utf8");
+  const start = readme.indexOf("\n## 頁に置く\n");
+  const end = readme.indexOf("\n## ", start + 1);
+  const section = start < 0 ? "" : readme.slice(start, end < 0 ? undefined : end);
+  return /```ts\n([\s\S]*?)```/u.exec(section)?.[1]?.trimEnd() ?? "";
 };
 
 /** package の README の `sh` の囲みの行。書き出しの節の命令はこれと同じ物を出す */
@@ -3250,7 +3259,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
   /**
    * 指で触る時に確かめる概要と使い方の頁の本文の部品 (#3079)。`targets` は枠のある釦と字だけの札、`links` はそのうち字だけの札。
-   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと節の終わりの札 9 つ。
+   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと、節ごとの終わりの札。
    * `touchSizes` は指で触る 768 × 1024 での `targets` の部品ごとの大きさ (#3095)
    */
   const BODY_PAGES = [
@@ -3260,7 +3269,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       screen: "docs",
       targets: '[data-docs="cta"] a, a[data-docs="section-cta"]',
       links: 'a[data-docs="section-cta"]',
-      count: 13,
+      count: 14,
       touchSizes: [
         "5 分で始める → 133x44",
         "カタログで図を見る 160x44",
@@ -3273,6 +3282,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         "時系列図の見本を見る → 152x46",
         "続き → JSON 82x46",
         "編集画面で JSON を取り込む → 193x46",
+        "続き → 書き出し 101x46",
         "編集画面から書き出す → 152x46",
         "編集画面で書き直す → 138x46",
       ],
@@ -4358,6 +4368,8 @@ describe("サイトの帯と経路 (#3030)", () => {
       const options = cliOptions();
       expect(commands.length, "package の README から命令を読めない").toBeGreaterThan(0);
       expect(options.length, "書き出しの命令の使い方の表示から設定を読めない").toBeGreaterThan(0);
+      const placeExample = readmePlaceExample();
+      expect(placeExample, "package の README から頁に置く節の例を読めない").toContain("mountDiagram(");
 
       const expectDocs = async (lang: Lang): Promise<void> => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
@@ -4410,6 +4422,10 @@ describe("サイトの帯と経路 (#3030)", () => {
         for (const line of commands.filter((l) => !l.startsWith("dragon "))) expect(lines, `${lang} の書き出しの節に README の命令「${line}」が無い`).toContain(line);
         expect(lines.some((line) => line.startsWith("dragon export ")), `${lang} の書き出しの節に dragon export の命令が無い`).toBe(true);
         for (const option of options) expect(exporting?.body ?? "", `${lang} の書き出しの節に設定 ${option} の説明が無い`).toContain(option);
+
+        // 頁に置く節は、README の頁に置く節と同じ code を図を描かない囲みに 1 つだけ出す (#3155)
+        const placing = sections.find((s) => s.id === "place");
+        expect(placing?.commands.map((c) => c.trimEnd()), `${lang} の頁に置く節の code が README の頁に置く節の例と違う`).toEqual([placeExample]);
 
         // 特長の札 6 つ。名前は行き先の節の見出しで、説明を持つ
         expect(cards.length, `${lang} の特長の札が 6 つ並ばない`).toBe(6);
