@@ -5,6 +5,15 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.36.2] - 2026-10-27
+
+### Fixed
+
+- **再生の部品の設定の型 `PlayerOptions` を入口から出した** (#3147)
+
+  0.36.0 で `mountDiagram` に足した `onStep` と `fitHeight` の設定は `PlayerOptions` の型が持つが、入口が型を出しておらず、設定を変数に組む時に名前で受け取れなかった。
+  `import type { PlayerOptions } from "@cardenelabs/dragon"` で受け取れ、`import` と `require` のどちらで入れても同じ型が渡る。
+
 ## [0.36.1] - 2026-10-27
 
 ### Fixed
