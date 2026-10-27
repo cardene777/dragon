@@ -89,6 +89,26 @@ describe("package の入口 (#3021)", () => {
   });
 });
 
+/** tmp の dir に file を書き、使う人と同じ設定 (`--module node16`、`--strict`) で型検査した時の誤りの行 */
+function typeErrors(files: Record<string, string>): string[] {
+  const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
+  const work = mkdtempSync(join(tmpdir(), "dragon-types-"));
+  try {
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(work, name), text);
+    const args = [tsc, "--noEmit", "--strict", "--skipLibCheck", "--module", "node16", "--moduleResolution", "node16", "--target", "es2022", "--lib", "es2022,dom", ...Object.keys(files)];
+    let out = "";
+    try {
+      out = execFileSync(process.execPath, args, { cwd: work, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    } catch (error) {
+      const failed = error as { stdout?: string; stderr?: string };
+      out = `${failed.stdout ?? ""}${failed.stderr ?? ""}`;
+    }
+    return out.match(/error TS\d+.*/g) ?? [];
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
+}
+
 /** 型の file の `export { … }` が出す名前 (`X as Y` は外から見える `Y`) */
 function exportedNames(text: string): string[] {
   return [...text.matchAll(/export \{([^}]*)\}/g)].flatMap((m) =>
@@ -117,31 +137,19 @@ describe("入口が出す型 (#3147)", () => {
 
   it("player-options-type-checks", () => {
     // 使う人と同じく、型で組んだ設定を変数に入れてから `mountDiagram` に渡す code を ESM と CJS の両方で型検査する
-    const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
-    const work = mkdtempSync(join(tmpdir(), "dragon-player-options-"));
     const body = [
       "const options: PlayerOptions = { onStep: (step: number) => void step, fitHeight: true };",
       "declare const host: HTMLElement;",
       "export const player = mountDiagram(host, {}, options);",
       "",
     ].join("\n");
-    try {
-      const esm = join(ROOT, "dist/index.js");
-      const cjs = join(ROOT, "dist/index.cjs");
-      writeFileSync(join(work, "check.mts"), `import { mountDiagram, type PlayerOptions } from ${JSON.stringify(esm)};\n${body}`);
-      writeFileSync(join(work, "check.cts"), `import { mountDiagram, type PlayerOptions } from ${JSON.stringify(cjs)};\n${body}`);
-      const args = [tsc, "--noEmit", "--strict", "--skipLibCheck", "--module", "node16", "--moduleResolution", "node16", "--lib", "es2022,dom", "check.mts", "check.cts"];
-      let out = "";
-      try {
-        out = execFileSync(process.execPath, args, { cwd: work, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-      } catch (error) {
-        const failed = error as { stdout?: string; stderr?: string };
-        out = `${failed.stdout ?? ""}${failed.stderr ?? ""}`;
-      }
-      expect(out.match(/error TS\d+.*/g) ?? [], "PlayerOptions で組んだ設定を渡す code の型の誤り").toEqual([]);
-    } finally {
-      rmSync(work, { recursive: true, force: true });
-    }
+    const esm = JSON.stringify(join(ROOT, "dist/index.js"));
+    const cjs = JSON.stringify(join(ROOT, "dist/index.cjs"));
+    const errors = typeErrors({
+      "check.mts": `import { mountDiagram, type PlayerOptions } from ${esm};\n${body}`,
+      "check.cts": `import { mountDiagram, type PlayerOptions } from ${cjs};\n${body}`,
+    });
+    expect(errors, "PlayerOptions で組んだ設定を渡す code の型の誤り").toEqual([]);
   });
 });
 
@@ -195,5 +203,34 @@ describe("入口から届く型 (#3149)", () => {
       }),
     );
     expect(missing, "型の file で、どの入口からも出ていない型").toEqual({ import: [], require: [] });
+  });
+});
+
+/** package の README の `## 頁に置く` の節の、`ts` の囲みの中身。節か囲みが無ければ空 */
+function mountExample(): string {
+  const readme = readFileSync(join(ROOT, "README.md"), "utf8");
+  const start = readme.indexOf("\n## 頁に置く\n");
+  if (start < 0) return "";
+  const end = readme.indexOf("\n## ", start + 1);
+  const section = readme.slice(start, end < 0 ? undefined : end);
+  return /```ts\n([\s\S]*?)```/u.exec(section)?.[1] ?? "";
+}
+
+describe("README の頁に置く節 (#3153)", () => {
+  it("readme-mount-imports-fonts", () => {
+    // 図は同梱の字で測った幅で組むので、頁で字の入口を読み込まないと端末の字で描かれて札から字がはみ出す
+    const lines = mountExample().split("\n");
+    expect(lines, "README の頁に置く節の例が字の入口を import しない").toContain('import "@cardenelabs/dragon/fonts";');
+    expect(lines.some((line) => line.includes("mountDiagram(")), "README の頁に置く節の例が mountDiagram を呼ばない").toBe(true);
+  });
+
+  it("readme-mount-example-type-checks", () => {
+    // 使う人が写して使うので、公開する型の file に対して型の誤りが無いかを確かめる。入口の名前は build した file の path に替える
+    const example = mountExample();
+    expect(example, "README に頁に置く節の ts の例が在る").not.toBe("");
+    const code = example
+      .replaceAll('"@cardenelabs/dragon/fonts"', JSON.stringify(join(ROOT, "dist/fonts.js")))
+      .replaceAll('"@cardenelabs/dragon"', JSON.stringify(join(ROOT, "dist/index.js")));
+    expect(typeErrors({ "example.mts": code }), "README の頁に置く節の例の型の誤り").toEqual([]);
   });
 });
