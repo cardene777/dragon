@@ -66,13 +66,13 @@ describe("字の大きさで選ぶ", () => {
     expect(follow.view).toBe("follow");
     expect(choose(follow, width * 3).mode).toBe("follow");
 
-    // 人は記法の `見せ方` の行で決め、JSON の `view` になる
+    // 人は記法の最初の行の `[view: …]` で決め、JSON の `view` になる
     const parse = api("parseNotation");
     const notation = (line: string): string =>
-      ["時系列図 見せ方を決めた図", line, "a = 送る側", "b = 受ける側", "# 送る", "> 送る側が受ける側へ送る。", "a -> b : 要求"].join("\n");
+      [line, "box a as 送る側", "box b as 受ける側", "step 送る", "  say 送る側が受ける側へ送る。", "  a -> b: 要求"].join("\n");
     for (const [line, view] of [
-      ["見せ方 止める", "fixed"],
-      ["見せ方 寄る", "follow"],
+      ["sequence 見せ方を決めた図 [view: fixed]", "fixed"],
+      ["sequence 見せ方を決めた図 [view: follow]", "follow"],
     ] as const) {
       const parsed = parse(notation(line));
       expect(parsed.ok, line).toBe(true);

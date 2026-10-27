@@ -9,7 +9,7 @@
 
 ## 利用者
 
-- 人は 1 行が 1 つの文になる行ごとの記法で書く。語は日本語でも英語でも書ける (`packages/dragon/src/parser.ts`、#2997)。
+- 人は dragon記法で書く。行の頭の英語の語 (`sequence` や `box` や `step`) が行の役目を決め、段の中の行は字下げして書く。記法の語は英語だけで、名前と本文の字は何語でもよく、誤りの文の言葉は呼ぶ側が渡す (既定は日本語) (`packages/dragon/src/parser.ts`、#3137)。
 - AI は原本の JSON で書き、schema で形を確かめる (`packages/dragon/src/schema.ts`、`packages/dragon/src/schemas`)。
 - 利用者の数と、どこで使われているかは不明。
 

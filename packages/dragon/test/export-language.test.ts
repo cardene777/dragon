@@ -1,7 +1,7 @@
 /**
  * 書き出しの部品と `dragon export` の命令が、図の中の字を選んだ言葉で書き出す (#3001)。
  *
- * 命令は `--lang` で言葉を選ぶ。渡さなければ、記法の file はその file の言葉、JSON の原本は日本語で書き出す。
+ * 命令は `--lang` で言葉を選ぶ。渡さなければ、記法の file も JSON の原本も日本語で書き出す (#3137)。
  * 図の中の字は、全体図の札、書き出した HTML の読み上げの名前と `lang` 属性、描けない時の断りの文。
  * 書き出しの時間を抑えるため、HTML だけを書き出して Chromium で開いて読む。
  */
@@ -89,10 +89,11 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
   );
 
   it(
-    "export-follows-notation-language",
+    "export-without-lang-is-japanese",
     async () => {
+      // dragon記法の語は英語だけで file から言葉が決まらないため、英語の見本も `--lang` が無ければ日本語の字で書き出す
       const en = await exported(join(EXAMPLES, "oauth.en.dragon"));
-      expect(en).toEqual({ ...expected("en", titleOf("oauth.en.json")), overviewFits: true });
+      expect(en).toEqual({ ...expected("ja", titleOf("oauth.en.json")), overviewFits: true });
       const ja = await exported(join(EXAMPLES, "oauth.dragon"));
       expect(ja).toEqual({ ...expected("ja", titleOf("oauth.json")), overviewFits: true });
     },

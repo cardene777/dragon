@@ -105,7 +105,7 @@ const leftover = (page: Page): Promise<string> =>
   });
 
 /** 書く欄を確かめる記法 (`playground.test.ts` の `EDITED` と同じ形) */
-const EDITED = ["時系列図 書き換えた図", "", "甲 = 甲のサービス", "乙 = 乙のサービス", "", "# 呼ぶ", "> 甲が乙を呼ぶ。", "甲 -> 乙 : 呼ぶ"].join("\n");
+const EDITED = ["sequence 書き換えた図", "", "box 甲 as 甲のサービス", "box 乙 as 乙のサービス", "", "step 呼ぶ", "  say 甲が乙を呼ぶ。", "  甲 -> 乙: 呼ぶ"].join("\n");
 
 /** 概要の頁の部品 (#3032) */
 const homeSel = (name: string): string => `[data-home="${name}"]`;
@@ -119,10 +119,10 @@ const demoText = (lang: Lang): string | undefined => {
   return existsSync(path) ? readFileSync(path, "utf8").trimEnd() : undefined;
 };
 
-/** 記法の段ごとの行の範囲 (1 から数える)。段の `#` の行から、次の段の前の空でない行まで */
+/** 記法の段ごとの行の範囲 (1 から数える)。段の `step` の行から、次の段の前の空でない行まで */
 const stepLines = (text: string): number[][] => {
   const lines = text.split("\n");
-  const heads = lines.flatMap((line, i) => (line.startsWith("#") ? [i] : []));
+  const heads = lines.flatMap((line, i) => (/^step(\s|$)/u.test(line) ? [i] : []));
   return heads.map((head, k) => {
     let end = (heads[k + 1] ?? lines.length) - 1;
     while (end > head && (lines[end] ?? "").trim() === "") end--;

@@ -1,8 +1,8 @@
 /**
  * `dragon export` の命令が出す使い方の文と誤りの文を、選んだ言葉で出す (#3003)。
  *
- * 言葉は図の中の字と同じく決める。`--lang` を渡せばその言葉、無ければ記法の file の言葉、
- * JSON の原本と file を読む前の誤りは日本語。記法の行の誤りだけは記法の file の言葉で出す。
+ * 言葉は図の中の字と同じく決める。`--lang` を渡せばその言葉、無ければ日本語。
+ * dragon記法の語は英語だけなので、記法の file も JSON の原本と同じく file から言葉を決めない (#3137)。
  * Node が出す文 (知らない設定、値の無い設定、無い file、読めない file、読めない JSON) も命令の言葉で書き直す。
  * 書き出す道具が無い場は、`playwright-core` の解決を断る hook と、空の Chromium の置き場で作る。
  */
@@ -170,7 +170,7 @@ describe("命令の使い方の文と誤りの文の言葉 (#3003)", () => {
     async () => {
       for (const args of [
         [JSON_FILE, "--lang", "en"],
-        [ENGLISH_NOTATION],
+        [ENGLISH_NOTATION, "--lang", "en"],
       ]) {
         const ran = await runCli(["export", ...args, "--out", scratch(), "--format", "png"], withoutPlaywright());
         expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
@@ -189,7 +189,7 @@ describe("命令の使い方の文と誤りの文の言葉 (#3003)", () => {
     async () => {
       for (const args of [
         [JSON_FILE, "--lang", "en"],
-        [ENGLISH_NOTATION],
+        [ENGLISH_NOTATION, "--lang", "en"],
       ]) {
         const ran = await runCli(["export", ...args, "--out", scratch(), "--format", "png"], withoutChromium());
         expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
@@ -218,17 +218,23 @@ describe("命令の使い方の文と誤りの文の言葉 (#3003)", () => {
     SLOW,
   );
 
-  it("cli-notation-errors-follow-file", async () => {
+  it("cli-notation-errors-follow-lang", async () => {
+    // 英語の見本と日本語の見本のどちらを壊しても、行の誤りは `--lang` の言葉で、無ければ日本語で出る
     const dir = scratch();
-    const english = brokenNotation(dir, "oauth.en.dragon", "colour blue");
-    const japanese = brokenNotation(dir, "oauth.dragon", "色 青");
-    for (const [path, lang, head] of [
-      [english, "ja", `${english}:3 Cannot read this line.`],
-      [japanese, "en", `${japanese}:3 読めない行。`],
+    for (const [example, word] of [
+      ["oauth.en.dragon", "colour"],
+      ["oauth.dragon", "色"],
     ] as const) {
-      const ran = await runCli(["export", path, "--out", join(dir, "out"), "--format", "html", "--lang", lang]);
-      expect(ran.code, `${path} で終了 1 にならない`).toBe(1);
-      expect(ran.stderr.startsWith(head), `${path} に --lang ${lang} を付けた時の行の誤りが ${head} で始まらない: ${ran.stderr}`).toBe(true);
+      const path = brokenNotation(dir, example, `${word} blue`);
+      for (const [extra, head] of [
+        [[], `${path}:3 ${word} は行の頭に書けない。`],
+        [["--lang", "ja"], `${path}:3 ${word} は行の頭に書けない。`],
+        [["--lang", "en"], `${path}:3 A line cannot start with ${word}.`],
+      ] as const) {
+        const ran = await runCli(["export", path, "--out", join(dir, "out"), "--format", "html", ...extra]);
+        expect(ran.code, `${path} ${extra.join(" ")} で終了 1 にならない`).toBe(1);
+        expect(ran.stderr.startsWith(head), `${path} ${extra.join(" ")} の行の誤りが ${head} で始まらない: ${ran.stderr}`).toBe(true);
+      }
     }
   });
 });
@@ -246,7 +252,9 @@ describe("書き出し先に書けない時の文の言葉 (#3009)", () => {
     for (const [args, head] of [
       [[JSON_FILE], `書き出せない: ${out} (`],
       [[JSON_FILE, "--lang", "en"], `Cannot write: ${out} (`],
-      [[ENGLISH_NOTATION], `Cannot write: ${out} (`],
+      // 英語の記法の file でも、`--lang` が無ければ日本語 (#3137)
+      [[ENGLISH_NOTATION], `書き出せない: ${out} (`],
+      [[ENGLISH_NOTATION, "--lang", "en"], `Cannot write: ${out} (`],
     ] as const) {
       const ran = await runCli(["export", ...args, "--out", out, "--format", "html"]);
       expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
@@ -259,7 +267,7 @@ describe("書き出し先に書けない時の文の言葉 (#3009)", () => {
     for (const [args, name, head] of [
       [[JSON_FILE], "oauth", "書き出せない: "],
       [[JSON_FILE, "--lang", "en"], "oauth", "Cannot write: "],
-      [[ENGLISH_NOTATION], "oauth.en", "Cannot write: "],
+      [[ENGLISH_NOTATION, "--lang", "en"], "oauth.en", "Cannot write: "],
     ] as const) {
       // 書き出す file と同じ名前の dir を置いて、file を書けなくする
       const blocked = join(out, `${name}.html`);

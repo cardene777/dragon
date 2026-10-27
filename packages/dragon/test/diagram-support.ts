@@ -27,7 +27,7 @@ export type Checked = { ok: true } | { ok: false; errors: FieldError[] };
 export type Read = { ok: true; diagram: Json; warnings: string[] } | { ok: false; errors: FieldError[] };
 export type Parsed = { ok: true; diagram: Json } | { ok: false; errors: LineError[] };
 
-/** 記法の語の言葉。1 つの file の言葉は最初の行の図の種類の語で決まる (#2997) */
+/** 誤りの文と図の中の字の言葉。dragon記法の語は英語だけで、file から言葉は決まらない (#3137) */
 export type NotationLang = "ja" | "en";
 
 export interface Fence {
@@ -47,7 +47,7 @@ interface DragonApi {
   readDiagram(input: unknown, options?: { lang?: NotationLang }): Read;
   migrateFile(path: string): Promise<Migrated>;
   parseNotation(text: string, options?: { lang?: NotationLang }): Parsed;
-  printNotation(diagram: unknown, options?: { lang?: NotationLang }): string;
+  printNotation(diagram: unknown): string;
   extractDiagrams(markdown: string): Fence[];
 }
 

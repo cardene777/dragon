@@ -25,10 +25,13 @@ const DEMO_FILE = "login.dragon";
 /** 特長の線の絵 (`home/icons/<名前>.svg`)。並びは `TEXT` の特長と同じ */
 const FEATURE_ICONS = ["write", "play", "share"] as const;
 
-/** 記法の段ごとの行の範囲 (1 から数える)。段の `#` の行から、次の段の前の空でない行まで */
+/** 段の行。行の頭が `step` */
+const STEP = /^step(\s|$)/u;
+
+/** 記法の段ごとの行の範囲 (1 から数える)。段の `step` の行から、次の段の前の空でない行まで */
 function stepLines(text: string): number[][] {
   const lines = text.split("\n");
-  const heads = lines.flatMap((line, i) => (line.startsWith("#") ? [i] : []));
+  const heads = lines.flatMap((line, i) => (STEP.test(line) ? [i] : []));
   return heads.map((head, k) => {
     let end = (heads[k + 1] ?? lines.length) - 1;
     while (end > head && (lines[end] ?? "").trim() === "") end--;
@@ -36,13 +39,24 @@ function stepLines(text: string): number[][] {
   });
 }
 
-/** 行の役目。色分けにだけ使う */
-function lineKind(line: string, index: number): string | undefined {
-  if (line.startsWith("//")) return "comment";
-  if (line.startsWith("#")) return "step";
-  if (line.startsWith(">")) return "say";
-  if (line.startsWith("`")) return "code";
-  return index === 0 ? "head" : undefined;
+/** 行の役目。色分けにだけ使う。行の頭の語で見分け、`say` の下に深く字下げした行も `say` にする */
+function lineKinds(lines: string[]): (string | undefined)[] {
+  let say: number | undefined;
+  return lines.map((line, index) => {
+    const text = line.trim();
+    const indent = line.length - line.trimStart().length;
+    if (say !== undefined && text !== "" && indent > say) return "say";
+    say = undefined;
+    const word = text.split(/\s/u)[0];
+    if (text.startsWith("//")) return "comment";
+    if (word === "step") return "step";
+    if (word === "say") {
+      say = indent;
+      return "say";
+    }
+    if (word === "code") return "code";
+    return index === 0 ? "head" : undefined;
+  });
 }
 
 /** 概要の頁が受け取る言葉と明暗と、上の帯で選んだ色味 */
@@ -61,6 +75,7 @@ function Demo({ lang, theme, palette }: Look): ReactElement {
     return parsed.ok ? parsed.diagram.steps : [];
   }, [text]);
   const current = new Set(stepLines(text)[step] ?? []);
+  const kinds = useMemo(() => lineKinds(text.split("\n")), [text]);
   const shown = steps[Math.min(step, steps.length - 1)];
   return (
     <section className="home-demo" data-home="demo">
@@ -87,7 +102,7 @@ function Demo({ lang, theme, palette }: Look): ReactElement {
           <div className="home-code" data-home="demo-code">
             {text.split("\n").map((line, i) => (
               // 行は番号で並びが決まり、入れ替わらない
-              <div key={i} className="home-code-line" data-line={i + 1} data-current={current.has(i + 1)} data-kind={lineKind(line, i)}>
+              <div key={i} className="home-code-line" data-line={i + 1} data-current={current.has(i + 1)} data-kind={kinds[i]}>
                 <span className="home-ln" aria-hidden="true">
                   {i + 1}
                 </span>

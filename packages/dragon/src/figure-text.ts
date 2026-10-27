@@ -2,7 +2,7 @@
  * 描く部品が出す字 (#3001)。
  *
  * 図の原本は語を持たないので、呼ぶ側が言葉を渡す。渡さなければ日本語で出す。
- * 頁は頁の言葉を、`dragon export` は記法の file の言葉 (`--lang` を渡せばその言葉) を渡す。
+ * 頁は頁の言葉を、`dragon export` は `--lang` の言葉 (渡さなければ日本語) を渡す。
  */
 import type { NotationLang } from "./words";
 
