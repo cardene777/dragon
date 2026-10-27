@@ -1,8 +1,8 @@
 sequence Ask to sign in
 
-browser = User's browser "operated by the user"
-app = App "asks for sign-in"
+box browser as User's browser [note: operated by the user]
+box app as App [note: asks for sign-in]
 
-# Press sign in
-> The user presses the app's sign-in button.
-browser -> app : GET /login
+step Press sign in
+  say The user presses the app's sign-in button.
+  browser -> app: GET /login

@@ -341,6 +341,9 @@ const docsDiagram = (id: string, text: string): Diagram | undefined => {
 
 const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.flatMap((s) => s.events);
 
+/** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
+const LINE_KINDS = ["sequence", "architecture", "group", "end", "box", "strip", "step", "say", "code", "act", "note", "set", "->"] as const;
+
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
   start: (d) => d.boxes.length >= 2 && d.steps.length >= 1,
@@ -374,7 +377,7 @@ const docsOf = (
   lead: string;
   ctas: string[];
   cards: { href: string; name: string; text: string }[];
-  sections: { id: string; no: string; title: string; texts: number; code: string | null; names: string[]; commands: string[]; cta: string | null; body: string }[];
+  sections: { id: string; no: string; title: string; texts: number; prose: string; code: string | null; names: string[]; commands: string[]; cta: string | null; body: string }[];
 }> =>
   page.evaluate(() => {
     const where = (a: HTMLAnchorElement): string => {
@@ -400,6 +403,7 @@ const docsOf = (
           no: s.querySelector('[data-docs="section-no"]')?.textContent?.trim() ?? "",
           title: s.querySelector("h2")?.textContent?.trim() ?? "",
           texts: [...s.querySelectorAll('[data-docs="text"]')].filter((p) => (p.textContent ?? "").trim() !== "").length,
+          prose: [...s.querySelectorAll('[data-docs="text"]')].map((p) => p.textContent ?? "").join("\n"),
           code: example?.querySelector('[data-docs="example-code"]')?.textContent ?? null,
           names: svg ? [...new Set([...svg.querySelectorAll(".dg-sn")].map((n) => n.textContent ?? ""))].sort() : [],
           commands: [...s.querySelectorAll('[data-docs="command"]')].map((c) => c.textContent ?? ""),
@@ -4278,8 +4282,8 @@ describe("サイトの帯と経路 (#3030)", () => {
       expect(options.length, "書き出しの命令の使い方の表示から設定を読めない").toBeGreaterThan(0);
 
       const expectDocs = async (lang: Lang): Promise<void> => {
-        // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の例は頁の言葉の語で書く
-        const words = lang === "ja" ? ["時系列図", "構成図"] : ["sequence", "architecture"];
+        // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
+        const words = ["sequence", "architecture"];
         const want = DOC_SECTIONS.map((id, i) => {
           const text = id === "export" ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);
@@ -4295,6 +4299,11 @@ describe("サイトの帯と経路 (#3030)", () => {
           return { id, no: String(i + 1).padStart(2, "0"), code: text ?? null, names: diagram ? [...new Set(diagram.boxes.map((b) => b.name))].sort() : [] };
         });
 
+        // 記法の全ての行の種類を、節の例のどれかが使い、節の本文のどれかが語で説明する
+        const used = new Set(want.flatMap((s) => (s.code ?? "").split("\n").map((line) => (line.includes(" -> ") ? "->" : (line.trim().split(/\s+/u)[0] ?? "")))));
+        const missing = LINE_KINDS.filter((kind) => !used.has(kind));
+        expect(missing, `${lang} の節の例が使わない行の種類`).toEqual([]);
+
         // 節は今の記法の要素の順に並び、番号は並びから付く。例の字は file のままで、隣の図はその例の箱を描く
         await expect
           .poll(async () => (await docsOf(page)).sections.map((s) => ({ id: s.id, no: s.no, code: s.code?.trimEnd() ?? null, names: s.names })), {
@@ -4303,6 +4312,9 @@ describe("サイトの帯と経路 (#3030)", () => {
           })
           .toEqual(want);
         const { sections, cards } = await docsOf(page);
+        const prose = sections.map((s) => s.prose).join("\n");
+        const unexplained = LINE_KINDS.filter((kind) => !new RegExp(`(^|[^A-Za-z-])${kind}($|[^A-Za-z-])`, "u").test(prose));
+        expect(unexplained, `${lang} の節の本文が語で説明しない行の種類`).toEqual([]);
         for (const s of sections) {
           expect(s.title !== "" && s.texts >= 1, `${lang} の ${s.id} の節に見出しか本文が無い`).toBe(true);
           const [path, hash] = (s.cta ?? "").split("#");

@@ -1,15 +1,16 @@
 sequence Pay for the order
 
-customer = Customer "pays" [color slate] [icon user]
-payment = Payment "takes the money" [color violet] [icon card]
+box customer as Customer [note: pays, color: slate, icon: user]
+box payment as Payment [note: takes the money, color: violet, icon: card]
 
-# Ask to pay
-> The customer pays 1200 yen by card.
-> The payment service checks the card holder before it takes the money.
-`pay(1200)`
-customer -> payment : pay 1200 yen
-payment : check the card holder
+step Ask to pay
+  say
+    The customer pays 1200 yen by card.
+    The payment service checks the card holder before it takes the money.
+  code pay(1200)
+  customer -> payment: pay 1200 yen
+  act payment: check the card holder
 
-# Take the money
-> The payment service takes the money and marks it as received.
-payment "received"
+step Take the money
+  say The payment service takes the money and marks it as received.
+  note payment: received

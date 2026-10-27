@@ -1,79 +1,80 @@
 // Sign in with the OAuth 2.0 authorization code and PKCE, then call an API
 sequence Sign in with OAuth 2.0 and call an API (authorization code and PKCE)
 
-browser = User's browser "operated by the user" [color slate] [icon globe]
-app = App "asks for sign-in" [color blue] [icon app]
-auth = Authorization server "checks who you are" [color violet] [icon shield]
-API = API "the user's data" [color green] [icon server]
-strip Values the app holds = state, code_verifier, authorization code, access token, refresh token
+box browser as User's browser [note: operated by the user, color: slate, icon: globe]
+box app as App [note: asks for sign-in, color: blue, icon: app]
+box auth as Authorization server [note: checks who you are, color: violet, icon: shield]
+box API [note: the user's data, color: green, icon: server]
 
-# Press sign in
-> The user presses the app's sign-in button. The app never receives an ID or a password and leaves identity checks to the authorization server.
-`GET /login`
-browser -> app : GET /login
+strip Values the app holds: state, code_verifier, authorization code, access token, refresh token
 
-# Make the key material
-> The app makes a one-time code_verifier and uses its SHA-256 as the code_challenge. It also makes a state to recognise the return trip and keeps it.
-`code_challenge = BASE64URL(SHA-256(code_verifier))`
-app : make the key material
-strip code_verifier = dBjf…
-strip state = af0i…
+step Press sign in
+  say The user presses the app's sign-in button. The app never receives an ID or a password and leaves identity checks to the authorization server.
+  code GET /login
+  browser -> app: GET /login
 
-# Send to the authorization server
-> The app redirects the browser to the authorization server. code_challenge and state ride in the URL and travel through the browser.
-`GET /authorize?code_challenge=…&state=…`
-app -> browser : 302 redirect [tag challenge]
-browser -> auth : GET /authorize [tag challenge]
+step Make the key material
+  say The app makes a one-time code_verifier and uses its SHA-256 as the code_challenge. It also makes a state to recognise the return trip and keeps it.
+  code code_challenge = BASE64URL(SHA-256(code_verifier))
+  act app: make the key material
+  set code_verifier: dBjf…
+  set state: af0i…
 
-# Sign in and consent
-> The authorization server checks the user and asks for consent to the scope the app will get. The password never reaches the app.
-auth -> browser : sign-in screen
-browser -> auth : ID, password and consent
+step Send to the authorization server
+  say The app redirects the browser to the authorization server. code_challenge and state ride in the URL and travel through the browser.
+  code GET /authorize?code_challenge=…&state=…
+  app -> browser: 302 redirect [tag: challenge]
+  browser -> auth: GET /authorize [tag: challenge]
 
-# Return with an authorization code
-> The authorization server issues a short-lived authorization code and sends the browser back to the registered redirect_uri. The code also passes through the browser.
-`302 redirect_uri?code=…&state=…`
-auth -> browser : 302 redirect [tag code]
-browser -> app : GET /callback [tag code]
-strip authorization code = Splx…
+step Sign in and consent
+  say The authorization server checks the user and asks for consent to the scope the app will get. The password never reaches the app.
+  auth -> browser: sign-in screen
+  browser -> auth: ID, password and consent
 
-# Check the state
-> The app checks that the returned state equals the one it sent. If not, it treats the return as forged and drops it.
-app : compare the state
-strip state [match]
+step Return with an authorization code
+  say The authorization server issues a short-lived authorization code and sends the browser back to the registered redirect_uri. The code also passes through the browser.
+  code 302 redirect_uri?code=…&state=…
+  auth -> browser: 302 redirect [tag: code]
+  browser -> app: GET /callback [tag: code]
+  set authorization code: Splx…
 
-# Exchange the code
-> The app sends the authorization code and code_verifier straight to the authorization server, not through the browser.
-`POST /token  code=…&code_verifier=…`
-app -> auth : direct POST /token [tag code + verifier]
-strip code_verifier [sent]
-strip authorization code [sent]
+step Check the state
+  say The app checks that the returned state equals the one it sent. If not, it treats the return as forged and drops it.
+  act app: compare the state
+  set state [tag: match]
 
-# Compare
-> The authorization server checks that the SHA-256 of code_verifier equals the first code_challenge and that the code is unused and unexpired, then marks the code as used.
-auth : compare
-strip authorization code [spent]
+step Exchange the code
+  say The app sends the authorization code and code_verifier straight to the authorization server, not through the browser.
+  code POST /token  code=…&code_verifier=…
+  app -> auth: direct POST /token [tag: code + verifier]
+  set code_verifier [tag: sent]
+  set authorization code [tag: sent]
 
-# Return the tokens
-> If everything matches, it returns an access token and a refresh token. Someone who stole only the code does not know code_verifier, so the previous step stops them.
-`access_token, refresh_token, expires_in`
-auth -> app : direct 200 tokens [tag access + refresh]
-app "holds the tokens"
-strip access token = eyJh… [60 min]
-strip refresh token = 8xLO… [stored]
+step Compare
+  say The authorization server checks that the SHA-256 of code_verifier equals the first code_challenge and that the code is unused and unexpired, then marks the code as used.
+  act auth: compare
+  set authorization code [tag: spent]
 
-# Call the API
-> The app puts the access token in the Authorization header and calls the API.
-`Authorization: Bearer <access_token>`
-app -> API : GET /me [tag Bearer]
+step Return the tokens
+  say If everything matches, it returns an access token and a refresh token. Someone who stole only the code does not know code_verifier, so the previous step stops them.
+  code access_token, refresh_token, expires_in
+  auth -> app: direct 200 tokens [tag: access + refresh]
+  note app: holds the tokens
+  set access token: eyJh… [tag: 60 min]
+  set refresh token: 8xLO… [tag: stored]
 
-# Check and answer
-> The API checks the token's signature, expiry and allowed scope, and returns the user's data if it passes.
-API : check the token
-API -> app : 200 data
-API "returned the data"
+step Call the API
+  say The app puts the access token in the Authorization header and calls the API.
+  code Authorization: Bearer <access_token>
+  app -> API: GET /me [tag: Bearer]
 
-# Return the signed-in page
-> The app builds a page from the data and returns it. When the access token expires, it gets a new one with the refresh token.
-app -> browser : signed-in page
-browser "signed in"
+step Check and answer
+  say The API checks the token's signature, expiry and allowed scope, and returns the user's data if it passes.
+  act API: check the token
+  API -> app: 200 data
+  note API: returned the data
+
+step Return the signed-in page
+  say The app builds a page from the data and returns it. When the access token expires, it gets a new one with the refresh token.
+  app -> browser: signed-in page
+  note browser: signed in

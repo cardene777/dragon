@@ -1,15 +1,18 @@
 architecture Connect the shop and the warehouse
 
-region shopSide = Shop "takes orders" [color blue] [icon cart]
-region warehouseSide = Warehouse "sends goods" [color green] [icon box]
-desk = Order desk "takes the order" [icon app] [region shopSide]
-till = Till "takes the payment" [icon card] [region shopSide]
-shipping = Shipping "sends the goods" [icon truck] [region warehouseSide]
+group shopSide as Shop [note: takes orders, color: blue, icon: cart]
+  box desk as Order desk [note: takes the order, icon: app]
+  box till as Till [note: takes the payment, icon: card]
+end
 
-# Ask for payment
-> The order desk takes the order and asks the till for the payment.
-desk -> till : ask for payment
+group warehouseSide as Warehouse [note: sends goods, color: green, icon: box]
+  box shipping as Shipping [note: sends the goods, icon: truck]
+end
 
-# Pass to shipping
-> Once the payment is in, the till passes the order to shipping.
-till -> shipping : ready to send
+step Ask for payment
+  say The order desk takes the order and asks the till for the payment.
+  desk -> till: ask for payment
+
+step Pass to shipping
+  say Once the payment is in, the till passes the order to shipping.
+  till -> shipping: ready to send

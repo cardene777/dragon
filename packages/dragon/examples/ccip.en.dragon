@@ -1,100 +1,106 @@
 // How a message and tokens travel from the source chain to the destination chain with Chainlink CCIP
 architecture Send tokens to another chain with Chainlink CCIP
 
-region src = Source chain "e.g. Ethereum" [color blue] [icon chain]
-region net = Chainlink network "DON" [color amber] [icon net]
-region dst = Destination chain "e.g. Arbitrum" [color green] [icon chain]
-senderApp = Sending app "builds the message" [icon app] [region src]
-srcRouter = Router "the single entry" [icon router] [region src]
-OnRamp = OnRamp "checks and sends out" [icon on] [region src]
-srcPool = Token Pool "locks or burns" [icon pool] [region src]
-block = Block "source chain record" [icon block] [region src]
-Verifier = Committee Verifier "signs and builds a proof" [icon sign] [region net]
-Indexer = Indexer "stores proofs" [icon idx] [region net]
-Executor = Executor "requests execution" [icon exe] [region net]
-OffRamp = OffRamp "checks and executes" [icon off] [region dst]
-dstRouter = Router "the single entry" [icon router] [region dst]
-dstPool = Token Pool "releases or mints" [icon pool] [region dst]
-receiverApp = Receiving app "receives and handles" [icon app] [region dst]
-strip Message = ID, destination, receiver, data, tokens, signatures, status
+group src as Source chain [note: e.g. Ethereum, color: blue, icon: chain]
+  box senderApp as Sending app [note: builds the message, icon: app]
+  box srcRouter as Router [note: the single entry, icon: router]
+  box OnRamp [note: checks and sends out, icon: on]
+  box srcPool as Token Pool [note: locks or burns, icon: pool]
+  box block as Block [note: source chain record, icon: block]
+end
 
-# Send
-> The sending app builds a message and calls the Router's ccipSend(). The message holds the receiver, the data and the tokens to send, and the fee is paid in LINK or the chain's own currency.
-`ccipSend(destination chain, message)`
-strip ID = not yet
-strip destination = Arbitrum
-strip receiver = 0x7a1c…3f
-strip data = order #42
-strip tokens = 100 USDC
-senderApp -> srcRouter : ccipSend() [label below]
+group net as Chainlink network [note: DON, color: amber, icon: net]
+  box Verifier as Committee Verifier [note: signs and builds a proof, icon: sign]
+  box Indexer [note: stores proofs, icon: idx]
+  box Executor [note: requests execution, icon: exe]
+end
 
-# Accept
-> The Router hands the message to the OnRamp for the destination. The Router is the app's single entry and has the same shape on every chain.
-srcRouter -> OnRamp
+group dst as Destination chain [note: e.g. Arbitrum, color: green, icon: chain]
+  box OffRamp [note: checks and executes, icon: off]
+  box dstRouter as Router [note: the single entry, icon: router]
+  box dstPool as Token Pool [note: releases or mints, icon: pool]
+  box receiverApp as Receiving app [note: receives and handles, icon: app]
+end
 
-# Check the contents
-> The OnRamp checks the token amount, the gas limit and the data length, and that the destination is not under an emergency stop. A message that passes gets its ID.
-OnRamp : check the contents
-strip ID = 0x9f3c…a1
+strip Message: ID, destination, receiver, data, tokens, signatures, status
 
-# Deposit the tokens
-> The OnRamp calls the Token Pool's lockOrBurn(). The tokens are locked or burned and leave the source chain. The limit on how much can be sent at once also applies here.
-`lockOrBurn()`
-OnRamp -> srcPool : lockOrBurn() [coin] [label below]
-srcPool "−100 USDC"
+step Send
+  say The sending app builds a message and calls the Router's ccipSend(). The message holds the receiver, the data and the tokens to send, and the fee is paid in LINK or the chain's own currency.
+  code ccipSend(destination chain, message)
+  set ID: not yet
+  set destination: Arbitrum
+  set receiver: 0x7a1c…3f
+  set data: order #42
+  set tokens: 100 USDC
+  senderApp -> srcRouter: ccipSend() [side: below]
 
-# Record the event
-> The OnRamp emits CCIPMessageSent, and the message is recorded in a block on the source chain.
-`CCIPMessageSent`
-OnRamp -> block : CCIPMessageSent [label left]
+step Accept
+  say The Router hands the message to the OnRamp for the destination. The Router is the app's single entry and has the same shape on every chain.
+  srcRouter -> OnRamp
 
-# Wait for finality
-> By default nothing moves on until that block is final. Verification starts once the chain's finality rule is met and the block can no longer roll back.
-block : wait for finality
+step Check the contents
+  say The OnRamp checks the token amount, the gas limit and the data length, and that the destination is not under an emergency stop. A message that passes gets its ID.
+  act OnRamp: check the contents
+  set ID: 0x9f3c…a1
 
-# Verify and sign
-> Each node of the Committee Verifier (Chainlink's DON) checks that the message matches the source chain record and signs it. Once a quorum of signatures is in, they form the message's proof.
-block -> Verifier
-Verifier : collect signatures
-strip signatures [proof]
+step Deposit the tokens
+  say The OnRamp calls the Token Pool's lockOrBurn(). The tokens are locked or burned and leave the source chain. The limit on how much can be sent at once also applies here.
+  code lockOrBurn()
+  OnRamp -> srcPool: lockOrBurn() [carry: coin, side: below]
+  note srcPool: −100 USDC
 
-# Store the proof
-> The proof is stored in the Indexer under the message ID, where anyone can fetch it.
-`VerifierResult`
-Verifier -> Indexer : VerifierResult [tag proof] [label above]
-Indexer "stored the proof"
+step Record the event
+  say The OnRamp emits CCIPMessageSent, and the message is recorded in a block on the source chain.
+  code CCIPMessageSent
+  OnRamp -> block: CCIPMessageSent [side: left]
 
-# Gather the proofs
-> The Executor gathers the message and every proof the destination asks for from the Indexer and carries them to the destination chain.
-Indexer -> Executor
+step Wait for finality
+  say By default nothing moves on until that block is final. Verification starts once the chain's finality rule is met and the block can no longer roll back.
+  act block: wait for finality
 
-# Request execution
-> The Executor calls execute() on the destination chain's OffRamp. Anyone may make this call, and the Executor only makes it on someone's behalf.
-`OffRamp.execute()`
-Executor -> OffRamp : execute() [label right]
-strip status = UNTOUCHED
+step Verify and sign
+  say Each node of the Committee Verifier (Chainlink's DON) checks that the message matches the source chain record and signs it. Once a quorum of signatures is in, they form the message's proof.
+  block -> Verifier
+  act Verifier: collect signatures
+  set signatures [tag: proof]
 
-# Check the proofs
-> The OffRamp has each CCV check the proofs. If any required CCV fails, it does not execute.
-OffRamp : check the proofs
-OffRamp "checked by CCVs"
-strip signatures [verified]
+step Store the proof
+  say The proof is stored in the Indexer under the message ID, where anyone can fetch it.
+  code VerifierResult
+  Verifier -> Indexer: VerifierResult [tag: proof, side: above]
+  note Indexer: stored the proof
 
-# Hand over the tokens
-> The OffRamp calls the Token Pool's releaseOrMint(). The tokens are released or newly minted and go straight to the receiver.
-`releaseOrMint()`
-OffRamp "checks and executes"
-OffRamp -> dstPool : releaseOrMint() [none] [label above]
-dstPool "minted 100 USDC"
-dstPool -> receiverApp [coin]
-receiverApp "+100 USDC"
+step Gather the proofs
+  say The Executor gathers the message and every proof the destination asks for from the Indexer and carries them to the destination chain.
+  Indexer -> Executor
 
-# Deliver
-> The OffRamp calls the receiver's ccipReceive() through the Router. When it all goes through, the message is recorded as SUCCESS.
-`ccipReceive()`
-OffRamp -> dstRouter
-dstRouter -> receiverApp
-receiverApp "ccipReceive()"
-strip status = SUCCESS
-receiverApp "order #42 and 100 USDC"
-OffRamp "recorded SUCCESS"
+step Request execution
+  say The Executor calls execute() on the destination chain's OffRamp. Anyone may make this call, and the Executor only makes it on someone's behalf.
+  code OffRamp.execute()
+  Executor -> OffRamp: execute() [side: right]
+  set status: UNTOUCHED
+
+step Check the proofs
+  say The OffRamp has each CCV check the proofs. If any required CCV fails, it does not execute.
+  act OffRamp: check the proofs
+  note OffRamp: checked by CCVs
+  set signatures [tag: verified]
+
+step Hand over the tokens
+  say The OffRamp calls the Token Pool's releaseOrMint(). The tokens are released or newly minted and go straight to the receiver.
+  code releaseOrMint()
+  note OffRamp: checks and executes
+  OffRamp -> dstPool: releaseOrMint() [carry: none, side: above]
+  note dstPool: minted 100 USDC
+  dstPool -> receiverApp [carry: coin]
+  note receiverApp: +100 USDC
+
+step Deliver
+  say The OffRamp calls the receiver's ccipReceive() through the Router. When it all goes through, the message is recorded as SUCCESS.
+  code ccipReceive()
+  OffRamp -> dstRouter
+  dstRouter -> receiverApp
+  note receiverApp: ccipReceive()
+  set status: SUCCESS
+  note receiverApp: order #42 and 100 USDC
+  note OffRamp: recorded SUCCESS
