@@ -6,8 +6,10 @@
  * `require("@cardenelabs/dragon/export")` が断られた。
  * ここでは package の中から自分の名前で引き (Node の self-reference)、使う人と同じ解き方で確かめる。
  */
-import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -82,6 +84,62 @@ describe("package の入口 (#3021)", () => {
     // npm は公開の時に bin の path の先頭の `./` を外し、「無効なので外した」と警告する
     for (const [command, path] of Object.entries(manifest().bin)) {
       expect(path.startsWith("./"), `bin の ${command} の path ${path}`).toBe(false);
+    }
+  });
+});
+
+/** 型の file の `export { … }` が出す名前 (`X as Y` は外から見える `Y`) */
+function exportedNames(text: string): string[] {
+  return [...text.matchAll(/export \{([^}]*)\}/g)].flatMap((m) =>
+    (m[1] ?? "")
+      .split(",")
+      .map((part) => part.replace(/\btype\s+/, "").split(/\s+as\s+/).at(-1)?.trim() ?? "")
+      .filter((name) => name !== ""),
+  );
+}
+
+describe("入口が出す型 (#3147)", () => {
+  it("player-options-type-exported", () => {
+    // `mountDiagram` の設定 (`onStep` と `fitHeight`) の型を、import と require のどちらで入れても名前で受け取れる
+    const main = manifest().exports["."];
+    expect(main, "exports に . が在る").toBeDefined();
+    if (main === undefined) return;
+    for (const condition of ["import", "require"] as const) {
+      const path = typesOf(main, condition);
+      expect(path, `. の ${condition} に渡る型`).toBeDefined();
+      if (path === undefined) continue;
+      const names = exportedNames(readFileSync(join(ROOT, path), "utf8"));
+      expect(names, `${path} が出す名前`).toContain("mountDiagram");
+      expect(names, `${path} が PlayerOptions を出さない`).toContain("PlayerOptions");
+    }
+  });
+
+  it("player-options-type-checks", () => {
+    // 使う人と同じく、型で組んだ設定を変数に入れてから `mountDiagram` に渡す code を ESM と CJS の両方で型検査する
+    const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
+    const work = mkdtempSync(join(tmpdir(), "dragon-player-options-"));
+    const body = [
+      "const options: PlayerOptions = { onStep: (step: number) => void step, fitHeight: true };",
+      "declare const host: HTMLElement;",
+      "export const player = mountDiagram(host, {}, options);",
+      "",
+    ].join("\n");
+    try {
+      const esm = join(ROOT, "dist/index.js");
+      const cjs = join(ROOT, "dist/index.cjs");
+      writeFileSync(join(work, "check.mts"), `import { mountDiagram, type PlayerOptions } from ${JSON.stringify(esm)};\n${body}`);
+      writeFileSync(join(work, "check.cts"), `import { mountDiagram, type PlayerOptions } from ${JSON.stringify(cjs)};\n${body}`);
+      const args = [tsc, "--noEmit", "--strict", "--skipLibCheck", "--module", "node16", "--moduleResolution", "node16", "--lib", "es2022,dom", "check.mts", "check.cts"];
+      let out = "";
+      try {
+        out = execFileSync(process.execPath, args, { cwd: work, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+      } catch (error) {
+        const failed = error as { stdout?: string; stderr?: string };
+        out = `${failed.stdout ?? ""}${failed.stderr ?? ""}`;
+      }
+      expect(out.match(/error TS\d+.*/g) ?? [], "PlayerOptions で組んだ設定を渡す code の型の誤り").toEqual([]);
+    } finally {
+      rmSync(work, { recursive: true, force: true });
     }
   });
 });
