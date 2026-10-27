@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -141,5 +142,58 @@ describe("入口が出す型 (#3147)", () => {
     } finally {
       rmSync(work, { recursive: true, force: true });
     }
+  });
+});
+
+/**
+ * build した型の file に宣言された型のうち、どの入口からも出ていない型 (`<file> <名前>` の形)。
+ * 型の file は入口から届く型だけを持つので、宣言されていて出ていない型は、使う人が名前で受け取れない型になる。
+ */
+function unexportedTypes(entries: string[]): string[] {
+  const program = ts.createProgram(entries, {
+    noEmit: true,
+    module: ts.ModuleKind.Node16,
+    moduleResolution: ts.ModuleResolutionKind.Node16,
+  });
+  const checker = program.getTypeChecker();
+  const exported = new Set<ts.Symbol>();
+  for (const entry of entries) {
+    const source = program.getSourceFile(entry);
+    const module = source === undefined ? undefined : checker.getSymbolAtLocation(source);
+    if (module === undefined) throw new Error(`${entry} を型の file として読めない`);
+    for (const symbol of checker.getExportsOfModule(module)) {
+      exported.add(symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol);
+    }
+  }
+  const dist = join(ROOT, "dist");
+  return program
+    .getSourceFiles()
+    .filter((source) => source.fileName.startsWith(dist))
+    .flatMap((source) =>
+      source.statements
+        .filter((node) => ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node))
+        .filter((node) => {
+          const symbol = checker.getSymbolAtLocation(node.name);
+          return symbol === undefined || !exported.has(symbol);
+        })
+        .map((node) => `${source.fileName.slice(dist.length + 1)} ${node.name.text}`),
+    );
+}
+
+describe("入口から届く型 (#3149)", () => {
+  it("entry-types-all-exported", () => {
+    // 入口の名前は手で並べているので、型を足して並べ忘れても build は通る。import 用と require 用の型の file ごとに、全部の入口を合わせて数える
+    const { exports } = manifest();
+    const missing = Object.fromEntries(
+      (["import", "require"] as const).map((condition) => {
+        const entries = Object.values(exports).flatMap((target) => {
+          const path = typesOf(target, condition);
+          return path === undefined ? [] : [join(ROOT, path)];
+        });
+        expect(entries.length, `${condition} に型を渡す入口の数`).toBeGreaterThan(1);
+        return [condition, unexportedTypes(entries)];
+      }),
+    );
+    expect(missing, "型の file で、どの入口からも出ていない型").toEqual({ import: [], require: [] });
   });
 });

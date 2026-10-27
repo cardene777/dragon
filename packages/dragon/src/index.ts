@@ -25,10 +25,23 @@ export {
   type ViewMode,
 } from "./schema";
 export { FORMAT_VERSION, type Migrated, migrateFile, type Read, readDiagram } from "./version";
-export type { Layout } from "./layout/scene";
-export { FONTS } from "./look/fonts";
-export { DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";
+export type {
+  Layout,
+  Point,
+  Rect,
+  SceneAction,
+  SceneBadge,
+  SceneBox,
+  SceneEdge,
+  SceneField,
+  SceneLabel,
+  SceneLifeline,
+  SceneRegion,
+  SceneStrip,
+} from "./layout/scene";
+export { type Family, FONTS } from "./look/fonts";
+export { type ColorKey, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
 export { type Rendered, type RenderOptions, renderDiagram } from "./render/svg";
-export type { Timeline } from "./timeline";
+export type { CarrierTime, EdgeTime, EventTime, LabelTime, Span, Timeline } from "./timeline";
 export { chooseView } from "./view";
