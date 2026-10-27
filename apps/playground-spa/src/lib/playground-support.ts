@@ -54,7 +54,7 @@ const TYPES: Readonly<Record<string, string>> = {
 
 const isFile = (path: string): boolean => existsSync(path) && statSync(path).isFile();
 
-/** build した頁を `/dragon/` の下で配る。無い path には、在れば `404.html` を 404 で返す */
+/** build した頁を `/dragon/` の下で配る。拡張子の無い経路には同じ名前の `.html` を、無い path には在れば `404.html` を 404 で返す */
 export async function servePage(dir: string): Promise<{ origin: string; close: () => Promise<void> }> {
   const server = createServer((req, res) => {
     const path = decodeURIComponent(new URL(req.url ?? "/", "http://localhost").pathname);
@@ -65,6 +65,12 @@ export async function servePage(dir: string): Promise<{ origin: string; close: (
     if (inside && isFile(file)) {
       res.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" });
       res.end(readFileSync(file));
+      return;
+    }
+    // Pages と同じく、拡張子の無い経路には同じ名前の `.html` を返す (#3157)
+    if (inside && extname(wanted) === "" && isFile(`${wanted}.html`)) {
+      res.writeHead(200, { "content-type": TYPES[".html"] });
+      res.end(readFileSync(`${wanted}.html`));
       return;
     }
     const notFound = join(dir, "404.html");

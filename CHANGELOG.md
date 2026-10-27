@@ -12,6 +12,13 @@ dragon DSL の主要変更履歴。
   JSON の節と書き出しの節の間に置き、package の README の頁に置く節と同じ例で、字の入口を 1 度 import して `mountDiagram` に原本を渡す書き方を示す。
   英語の頁でも同じ例を出すため、README の例の誤りの文を英語 (`#figure not found`) にした。
 
+### Fixed
+
+- **見本帳の画面の URL を直に開くと、GitHub Pages が 404 の status で返していたのを直した** (#3157)
+
+  `/dragon/docs` のような画面の経路は、無い path に返す `404.html` の写しで頁を出していたため、中身は出ても status は 404 だった。
+  build の後に画面の経路ごとの `.html` を頁の写しとして置き、Pages が 200 で返すようにした。表に無い path は今と同じく 404 で見つからない頁を出す。
+
 ## [0.36.4] - 2026-10-27
 
 ### Added
