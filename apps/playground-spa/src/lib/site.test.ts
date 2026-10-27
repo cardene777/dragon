@@ -312,7 +312,9 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "export"] as const;
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "export", "migrate"] as const;
+/** 記法の例を持たない節。書き出しは命令を、前の形から書き直す節は対応表を出す */
+const WITHOUT_EXAMPLE: readonly string[] = ["export", "migrate"];
 
 /** 節の例の file。JSON の節は原本の JSON。無ければ `undefined` */
 const docsExample = (id: string, lang: Lang): string | undefined => {
@@ -347,6 +349,11 @@ const LINE_KINDS = ["sequence", "architecture", "group", "end", "box", "strip", 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
   start: (d) => d.boxes.length >= 2 && d.steps.length >= 1,
+  // 決まり 4 つを全部使う。区画の入れ子、引用符で囲んだ `,` を含む値、字下げして続けた本文
+  rules: (d) =>
+    (d.regions?.length ?? 0) >= 1 &&
+    d.steps.some((s) => s.body.includes("\n")) &&
+    eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === "tag" && e.carry.text.includes(",")),
   boxes: (d) => d.boxes.length >= 3 && d.boxes.every((b) => b.color !== undefined) && d.boxes.some((b) => b.icon !== undefined && b.sub !== undefined),
   edges: (d) => eventsOf(d).filter((e) => e.type === "edge" && e.label !== undefined).length >= 2 && eventsOf(d).some((e) => e.type === "action"),
   regions: (d) => d.kind === "architecture" && (d.regions?.length ?? 0) >= 2 && d.boxes.some((b) => b.region !== undefined),
@@ -369,6 +376,55 @@ const cliOptions = (): string[] => {
   return [...usage.matchAll(/["`] {2}(--[a-z][a-z-]*) /gu)].map((m) => m[1] ?? "");
 };
 
+/** repo の README の `## dragon記法` の節の決まり。番号の後ろの字を、囲みの印を外して返す (#3138) */
+const readmeRules = (): string[] => {
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  const section = readme.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+  return [...section.matchAll(/^\d+\. (.+)$/gmu)].map((m) => (m[1] ?? "").replaceAll("`", ""));
+};
+
+/** `CHANGELOG.md` の、見出しが `| 前の形 | 新しい形 |` の表の行。各欄は囲みの印を外した字 (#3138) */
+const changelogMigration = (): string[][] => {
+  const lines = readFileSync(join(root, "CHANGELOG.md"), "utf8").split("\n");
+  const head = lines.findIndex((line) => line.trim() === "| 前の形 | 新しい形 |");
+  if (head < 0) return [];
+  const rows: string[][] = [];
+  for (const line of lines.slice(head + 2)) {
+    if (!line.trim().startsWith("|")) break;
+    rows.push(line.trim().slice(1, -1).split(" | ").map((cell) => cell.trim().replaceAll("`", "")));
+  }
+  return rows;
+};
+
+/**
+ * 記法を読む部品が読む図の種類と行の頭の語と、行ごとに受け付ける属性の鍵 (#3138)。
+ * 読む部品の英語の誤りの文から引き、検査に語の一覧を書き写さない。線の行は `->` の鍵に入れる
+ */
+const parserWords = (): { kinds: string[]; heads: string[]; attrs: Record<string, string[]> } => {
+  const said = (text: string): string => {
+    const parsed = parseNotation(text, { lang: "en" });
+    return parsed.ok ? "" : (parsed.errors[0]?.message ?? "");
+  };
+  const listed = (message: string, pattern: RegExp, separator: string): string[] => pattern.exec(message)?.[1]?.split(separator) ?? [];
+  const allowed = (text: string): string[] => listed(said(text), /^zzz cannot be written on this line\. Write (.+)$/u, " / ");
+  const step = "step s\n  say x.";
+  return {
+    kinds: listed(said("zzz t"), /^Start the first line with (.+), followed by the title$/u, " or "),
+    heads: listed(said("sequence t\nzzz"), /^A line cannot start with zzz\. Start a line with (.+), or <id> -> <id>$/u, " / "),
+    attrs: {
+      sequence: allowed(`sequence t [zzz: 1]\nbox a\n${step}`),
+      architecture: allowed(`architecture t [zzz: 1]\nbox a\n${step}`),
+      group: allowed(`architecture t\ngroup g [zzz: 1]\n  box a\nend\n${step}`),
+      box: allowed(`sequence t\nbox a [zzz: 1]\n${step}`),
+      "->": allowed(`sequence t\nbox a\nbox b\n${step}\n  a -> b [zzz: 1]`),
+      set: allowed(`sequence t\nbox a\nstrip t: f\n${step}\n  set f [zzz: 1]`),
+    },
+  };
+};
+
+/** 線の行の形。箱の名札の後ろに `->` が来る */
+const EDGE_FORM = /^\S+\s*->/u;
+
 /** 使い方の頁の前置きと札と節 */
 const docsOf = (
   page: Page,
@@ -377,7 +433,22 @@ const docsOf = (
   lead: string;
   ctas: string[];
   cards: { href: string; name: string; text: string }[];
-  sections: { id: string; no: string; title: string; texts: number; prose: string; code: string | null; names: string[]; commands: string[]; cta: string | null; body: string }[];
+  sections: {
+    id: string;
+    no: string;
+    title: string;
+    texts: number;
+    prose: string;
+    code: string | null;
+    names: string[];
+    commands: string[];
+    cta: string | null;
+    body: string;
+    /** 決まりの並びの字 */
+    rules: string[];
+    /** 対応表の行。前の形の欄の字と、新しい形の欄の `<code>` の字 */
+    migration: { old: string; forms: string[] }[];
+  }[];
 }> =>
   page.evaluate(() => {
     const where = (a: HTMLAnchorElement): string => {
@@ -409,6 +480,11 @@ const docsOf = (
           commands: [...s.querySelectorAll('[data-docs="command"]')].map((c) => c.textContent ?? ""),
           cta: cta ? where(cta) : null,
           body: s.textContent ?? "",
+          rules: [...s.querySelectorAll('[data-docs="rule"]')].map((r) => r.textContent?.trim() ?? ""),
+          migration: [...s.querySelectorAll('[data-docs="migration"] tbody tr')].map((tr) => {
+            const [old, now] = [...tr.querySelectorAll("td")];
+            return { old: old?.textContent?.trim() ?? "", forms: [...(now?.querySelectorAll("code") ?? [])].map((c) => c.textContent ?? "") };
+          }),
         };
       }),
     };
@@ -3184,11 +3260,12 @@ describe("サイトの帯と経路 (#3030)", () => {
       screen: "docs",
       targets: '[data-docs="cta"] a, a[data-docs="section-cta"]',
       links: 'a[data-docs="section-cta"]',
-      count: 11,
+      count: 13,
       touchSizes: [
         "5 分で始める → 133x44",
         "カタログで図を見る 160x44",
         "編集画面で書いてみる → 151x46",
+        "続き → 箱 60x46",
         "続き → 線 60x46",
         "続き → 区画 74x46",
         "構成図の見本を見る → 138x46",
@@ -3197,6 +3274,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         "続き → JSON 82x46",
         "編集画面で JSON を取り込む → 193x46",
         "編集画面から書き出す → 152x46",
+        "編集画面で書き直す → 138x46",
       ],
     },
   ] as const;
@@ -4285,9 +4363,9 @@ describe("サイトの帯と経路 (#3030)", () => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
         const words = ["sequence", "architecture"];
         const want = DOC_SECTIONS.map((id, i) => {
-          const text = id === "export" ? undefined : docsExample(id, lang);
+          const text = WITHOUT_EXAMPLE.includes(id) ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);
-          if (id !== "export") {
+          if (!WITHOUT_EXAMPLE.includes(id)) {
             expect(text, `${lang} の ${id} の節の例の file (src/docs/examples/) が無い`).toBeDefined();
             expect(diagram, `${lang} の ${id} の節の例が読めないか検査を通らない`).toBeDefined();
             expect(diagram !== undefined && DOC_COVERS[id]?.(diagram), `${lang} の ${id} の節の例がその節の記法の要素を使わない`).toBe(true);
@@ -4312,6 +4390,10 @@ describe("サイトの帯と経路 (#3030)", () => {
           })
           .toEqual(want);
         const { sections, cards } = await docsOf(page);
+        // 決まりの節は決まり 4 つを番号付きで並べ、日本語の頁の決まりは repo の README の決まりと同じ文 (#3138)
+        const rules = sections.find((s) => s.id === "rules")?.rules ?? [];
+        expect(rules, `${lang} の決まりの節に決まりが 4 つ並ばない`).toHaveLength(4);
+        if (lang === "ja") expect(rules, "使い方の頁の決まりが README.md の決まりと違う").toEqual(readmeRules());
         const prose = sections.map((s) => s.prose).join("\n");
         const unexplained = LINE_KINDS.filter((kind) => !new RegExp(`(^|[^A-Za-z-])${kind}($|[^A-Za-z-])`, "u").test(prose));
         expect(unexplained, `${lang} の節の本文が語で説明しない行の種類`).toEqual([]);
@@ -4363,6 +4445,46 @@ describe("サイトの帯と経路 (#3030)", () => {
       await page.locator(siteSel("lang-en")).click();
       await expect.poll(async () => (await docsOf(page)).title, { ...WAIT, message: "英語に替えても使い方の見出しが英語にならない" }).toBe(TEXT.en.site.screens.docs.title);
       await expectDocs("en");
+    },
+    SLOW,
+  );
+
+  it(
+    "notation-old-to-new-table-matches-the-parser",
+    async () => {
+      // 前の形で書いていた人が書き直すための対応表 (#3138)。新しい形の欄の行の頭の語は、読む部品が読む語とちょうど一致し、
+      // 属性の鍵はその行で読む部品が受け付ける鍵だけを使う。`CHANGELOG.md` は日本語の頁と同じ表を持つ
+      const words = parserWords();
+      expect(words.kinds.length > 0 && words.heads.length > 0, "読む部品の誤りの文から図の種類と行の頭の語を引けない").toBe(true);
+      for (const [line, keys] of Object.entries(words.attrs)) expect(keys.length, `読む部品の誤りの文から ${line} の行の属性の鍵を引けない`).toBeGreaterThan(0);
+
+      const { page } = await site.open({ path: `${BASE}docs`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "docs", "使い方の頁が出ない");
+      const tableOf = async (): Promise<{ old: string; forms: string[] }[]> => (await docsOf(page)).sections.find((s) => s.id === "migrate")?.migration ?? [];
+      const expectTable = async (lang: Lang): Promise<void> => {
+        await expect.poll(async () => (await tableOf()).length, { ...WAIT, message: `${lang} の使い方の頁に前の形と新しい形の対応表が無い` }).toBeGreaterThan(0);
+        const rows = await tableOf();
+        for (const row of rows) expect(row.old !== "" && row.forms.length > 0, `${lang} の対応表に、前の形か新しい形の欄が空の行がある: ${JSON.stringify(row)}`).toBe(true);
+        const forms = rows.flatMap((row) => row.forms);
+        const heads = [...new Set(forms.filter((form) => !EDGE_FORM.test(form)).map((form) => form.split(/\s+/u)[0] ?? ""))].sort();
+        expect(heads, `${lang} の対応表の新しい形の行の頭の語が、読む部品の語と一致しない`).toEqual([...words.kinds, ...words.heads].sort());
+        for (const form of forms) {
+          const keys = [...(/\[([^\]]*)\]\s*$/u.exec(form)?.[1] ?? "").matchAll(/(?:^|,\s*)([a-z]+):/gu)].map((m) => m[1] ?? "");
+          const line = EDGE_FORM.test(form) ? "->" : (form.split(/\s+/u)[0] ?? "");
+          const unknown = keys.filter((key) => !(words.attrs[line] ?? []).includes(key));
+          expect(unknown, `${lang} の対応表の ${form} に、読む部品がその行で受け付けない属性の鍵がある`).toEqual([]);
+        }
+      };
+      await expectTable("ja");
+      expect(changelogMigration(), "CHANGELOG.md の対応表が、使い方の頁の日本語の対応表と違う").toEqual(
+        await page.evaluate(() =>
+          [...document.querySelectorAll('#migrate [data-docs="migration"] tbody tr')].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent?.trim() ?? "")),
+        ),
+      );
+
+      await page.locator(siteSel("lang-en")).click();
+      await expect.poll(async () => (await docsOf(page)).title, { ...WAIT, message: "英語に替えても使い方の見出しが英語にならない" }).toBe(TEXT.en.site.screens.docs.title);
+      await expectTable("en");
     },
     SLOW,
   );

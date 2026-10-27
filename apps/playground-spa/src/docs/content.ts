@@ -8,8 +8,8 @@
  */
 import type { Lang } from "../text";
 
-/** 節の並び。記法の要素を書く順に並べる */
-export const SECTIONS = ["start", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "export"] as const;
+/** 節の並び。記法の決まりの後に記法の要素を書く順に並べ、前の形から書き直す人の対応表を最後に置く */
+export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** 特長の札が指す節。札はこの並びで並ぶ */
@@ -20,6 +20,7 @@ export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | {
 
 export const EXITS: Record<SectionId, Exit> = {
   start: { screen: "editor" },
+  rules: { section: "boxes" },
   boxes: { section: "edges" },
   edges: { section: "regions" },
   regions: { kind: "architecture" },
@@ -28,6 +29,7 @@ export const EXITS: Record<SectionId, Exit> = {
   carry: { section: "json" },
   json: { screen: "editor" },
   export: { screen: "editor" },
+  migrate: { screen: "editor" },
 };
 
 /** 節の本文の段落ごとに、その後ろへ図を描かない囲みで出す命令 (言葉で替わらない)。`null` の段落は命令を持たない */
@@ -46,12 +48,19 @@ interface DocsText {
   cards: Record<(typeof CARDS)[number], string>;
   /** 書き出しの設定の表。`palettes` は色味の名前の並び、`fallback` は既定の色味 */
   options: { head: readonly [string, string]; rows: (palettes: string, fallback: string) => readonly (readonly [string, string])[] };
+  /** 決まりの節に番号付きで並べる dragon記法の決まり。日本語は repo の README と同じ文 (検査が突き合わせる) */
+  rules: readonly [string, string, string, string];
+  /**
+   * 前の形から書き直す節の対応表。左が前の形、右が新しい形で、右の欄の `` ` `` で囲んだ字はどれも 1 行の形。
+   * 日本語の表は `CHANGELOG.md` と同じ物を、英語の表は前の英語の語の形を左に置く
+   */
+  migration: { head: readonly [string, string]; rows: readonly (readonly [string, string])[] };
 }
 
 export const DOCS: Record<Lang, DocsText> = {
   ja: {
     eyebrow: (version) => `使い方の案内 · ${version}`,
-    lead: "記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、箱、線、区画、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しもここで扱う。",
+    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
     start: "5 分で始める →",
     browse: "カタログで図を見る",
     sections: {
@@ -63,6 +72,14 @@ export const DOCS: Record<Lang, DocsText> = {
           "次に登場する箱を `box` の行で並べ、`step` の行の下に字下げして、その段で起きることを起きる順に書く。下の例は箱 2 つと段 1 つの、いちばん小さな図になる。",
         ],
         exit: "編集画面で書いてみる →",
+      },
+      rules: {
+        title: "決まり",
+        text: [
+          "dragon記法は、どの行も次の決まり 4 つに従う。決まりを押さえておけば、初めて見る行も形から読める。",
+          "下の例は 4 つの決まりを全部使う。区画を `group` と `end` で囲み、`,` を含む札の値を `\"` で囲み、長い本文を `say` の下に字下げして続けている。",
+        ],
+        exit: "続き → 箱",
       },
       boxes: {
         title: "箱",
@@ -137,6 +154,14 @@ export const DOCS: Record<Lang, DocsText> = {
         ],
         exit: "編集画面から書き出す →",
       },
+      migrate: {
+        title: "前の形から書き直す",
+        text: [
+          "前の形の記法 (`時系列図` か `構成図` で始まり、段を `#` で区切る形) は読めなくなった。前の形の行を読むと、その行の新しい形を示す誤りで止まる。",
+          "前の形を新しい形へ移す命令は無いので、下の表を見て行ごとに書き直す。左が前の形、右が新しい形になる。",
+        ],
+        exit: "編集画面で書き直す →",
+      },
     },
     cards: {
       start: "導入なし。編集画面を開いて書くだけで図が動く。",
@@ -159,11 +184,43 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--format <形>", "書き出す形を `,` で区切る (既定 `mp4,gif,html,png`)"],
       ],
     },
+    rules: [
+      "行の種類は行の頭の英語の語で決まる。矢印の行だけは箱の名札から始まる",
+      "鍵と値はコロンで区切り、属性は `[ ]` の中に `,` で並べる",
+      "空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `\"` で囲む",
+      "入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする",
+    ],
+    migration: {
+      head: ["前の形", "新しい形"],
+      rows: [
+        ["`時系列図 <題>`", "`sequence <題>`"],
+        ["`構成図 <題>`", "`architecture <題>`"],
+        ["`見せ方 止める`、`見せ方 寄る`", "`sequence <題> [view: fixed]`、`sequence <題> [view: follow]`"],
+        ["`区画 <名札> = <名前>「<添え書き>」`", "`group <名札> as <名前> [note: <添え書き>]` から `end` まで"],
+        ["箱の行の `[区画 <名札>]`", "`group <名札>` と `end` の間に `box` の行を書く"],
+        ["`<名札> = <名前>「<下の字>」`", "`box <名札> as <名前> [note: <下の字>]`"],
+        ["`[色 <色>]`、`[印 <印>]`", "`box <名札> [color: <色>, icon: <印>]`"],
+        ["`帯 <題> = <欄>, <欄>`", "`strip <題>: <欄>, <欄>`"],
+        ["`# <題>`", "`step <題>`"],
+        ["`> <本文>`", "`say <本文>`"],
+        ["バッククォートで囲んだ行", "`code <命令>`"],
+        ["`<名札> -> <名札> : <線の名前>`", "`<名札> -> <名札>: <線の名前>`"],
+        ["`[札 <値>]`、`[硬貨]`、`[なし]`", "`<名札> -> <名札> [tag: <値>]`、`<名札> -> <名札> [carry: coin]`、`<名札> -> <名札> [carry: none]`"],
+        ["`[名前 上]`", "`<名札> -> <名札> [side: above]`"],
+        ["`[名前 下]`", "`<名札> -> <名札> [side: below]`"],
+        ["`[名前 左]`", "`<名札> -> <名札> [side: left]`"],
+        ["`[名前 右]`", "`<名札> -> <名札> [side: right]`"],
+        ["`<名札> : <処理の名前>`", "`act <名札>: <処理の名前>`"],
+        ["`<名札>「<字>」`", "`note <名札>: <字>`"],
+        ["`帯 <欄> = <値>`", "`set <欄>: <値>`"],
+        ["`帯 <欄> [<札>]`", "`set <欄> [tag: <札>]`"],
+      ],
+    },
   },
   en: {
     // 英語の側の区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
     eyebrow: (version) => `guide • ${version}`,
-    lead: "One page that lays out how to write the notation. Get a diagram moving in the first five minutes, then take in the parts of the notation in order: boxes, lines, regions, steps, the strip and what travels. Going between the notation and JSON, and exporting to mp4 or GIF, are covered here too.",
+    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, steps, the strip and what travels. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
     start: "Start in five minutes →",
     browse: "Browse the catalog",
     sections: {
@@ -175,6 +232,14 @@ export const DOCS: Record<Lang, DocsText> = {
           "Then list the boxes that take part with `box` lines, and indented under a `step` line, write what happens in that step in the order it happens. The example below is the smallest diagram: two boxes and one step.",
         ],
         exit: "Write one in the editor →",
+      },
+      rules: {
+        title: "Rules",
+        text: [
+          "Every line of dragon notation follows the four rules below. Once you know them, you can read a line you have not seen before from its shape.",
+          'The example below uses all four rules. It wraps the regions in `group` and `end`, wraps a tag value that contains `,` in `"`, and continues a long body indented under `say`.',
+        ],
+        exit: "Next → Boxes",
       },
       boxes: {
         title: "Boxes",
@@ -249,6 +314,14 @@ export const DOCS: Record<Lang, DocsText> = {
         ],
         exit: "Export from the editor →",
       },
+      migrate: {
+        title: "Rewriting the old form",
+        text: [
+          "The old form of the notation (steps separated by `#`, bodies starting with `>`, and the same lines in Japanese words) is no longer read. Reading an old line stops with an error that shows the new form of that line.",
+          "There is no command that moves the old form to the new one, so rewrite each line with the table below. The left column is the old form with English words, and the right column is the new form.",
+        ],
+        exit: "Rewrite in the editor →",
+      },
     },
     cards: {
       start: "Nothing to set up. Open the editor and write.",
@@ -269,6 +342,37 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--fps <n>", "Frames per second of the mp4 (default 30)"],
         ["--gif-fps <n>", "Frames per second of the GIF (default 10)"],
         ["--format <list>", "Formats to write, separated by `,` (default `mp4,gif,html,png`)"],
+      ],
+    },
+    rules: [
+      "The first English word of a line decides its kind. Only arrow lines start with a box id",
+      "A colon separates a key from its value, and attributes go inside `[ ]`, separated by `,`",
+      'Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`',
+      "The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`",
+    ],
+    migration: {
+      head: ["Old form", "New form"],
+      rows: [
+        ["`sequence <title>`, `architecture <title>`", "`sequence <title>`, `architecture <title>` (unchanged)"],
+        ["`view fixed`, `view follow`", "`sequence <title> [view: fixed]`, `sequence <title> [view: follow]`"],
+        ['`region <id> = <name> "<note>"`', "`group <id> as <name> [note: <note>]` through `end`"],
+        ["`[region <id>]` on a box line", "`box` lines between `group <id>` and `end`"],
+        ['`<id> = <name> "<caption>"`', "`box <id> as <name> [note: <caption>]`"],
+        ["`[color <color>]`, `[icon <icon>]`", "`box <id> [color: <color>, icon: <icon>]`"],
+        ["`strip <title> = <field>, <field>`", "`strip <title>: <field>, <field>`"],
+        ["`# <heading>`", "`step <heading>`"],
+        ["`> <body>`", "`say <body>`"],
+        ["A line wrapped in backticks", "`code <command>`"],
+        ["`<id> -> <id> : <label>`", "`<id> -> <id>: <label>`"],
+        ["`[tag <value>]`, `[coin]`, `[none]`", "`<id> -> <id> [tag: <value>]`, `<id> -> <id> [carry: coin]`, `<id> -> <id> [carry: none]`"],
+        ["`[label above]`", "`<id> -> <id> [side: above]`"],
+        ["`[label below]`", "`<id> -> <id> [side: below]`"],
+        ["`[label left]`", "`<id> -> <id> [side: left]`"],
+        ["`[label right]`", "`<id> -> <id> [side: right]`"],
+        ["`<id> : <action>`", "`act <id>: <action>`"],
+        ['`<id> "<text>"`', "`note <id>: <text>`"],
+        ["`strip <field> = <value>`", "`set <field>: <value>`"],
+        ["`strip <field> [<tag>]`", "`set <field> [tag: <tag>]`"],
       ],
     },
   },

@@ -177,3 +177,5 @@
 | ccip を寄って追う図にして枠の幅 560px と 1000px に置いた時、頭の列を持たない構成図の全体図の四角は、どの段でも窓の全体を全体図の倍率で囲む | `pnpm test`の検査`overview-architecture-frames-window`が通る | #3122 |
 | 枠の幅が 440px より狭い寄って追う oauth は全体図を持たない | `pnpm test`の検査`narrow-tall-figure-drops-overview`が通る | #3122 |
 | 止めて見せる図は全体図と窓を持たない | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3122 |
+| 使い方の頁と `CHANGELOG.md` に、今の形と新しい形の対応表が在り、表の新しい形の行の頭の語が記法を読む部品の語と一致する | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3138 |
+| `README.md` と `packages/dragon/README.md` が決まり 4 つを載せ、2 つの README の記法の例が新しい形で読める | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`readme-notation-examples-parse`が通る | #3138 |

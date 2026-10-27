@@ -204,7 +204,19 @@
   overflow-wrap: anywhere;
 }
 
+/* 決まりの並び。本文と同じ字で、番号を前に置く (#3138) */
+.docs-rules {
+  max-width: 64ch;
+  margin: 0;
+  padding-left: 1.6em;
+  font-size: 14.5px;
+  line-height: 1.95;
+  color: var(--d-text-secondary);
+  overflow-wrap: anywhere;
+}
+
 .docs-sec-text code,
+.docs-rules code,
 .docs-options td code {
   padding: 1px 5px;
   border-radius: var(--d-r-1);
@@ -281,6 +293,11 @@
   font-size: 13.5px;
 }
 
+/* 対応表は 2 列を同じ幅にする。狭い幅で、左の欄の長い字に右の欄が押し潰されないように (#3138) */
+.docs-options[data-docs="migration"] {
+  table-layout: fixed;
+}
+
 .docs-options th,
 .docs-options td {
   padding: 10px 12px;
@@ -303,6 +320,11 @@
 
 .docs-options td:first-child code {
   white-space: nowrap;
+}
+
+/* 対応表の左の欄は前の形の 1 行で、設定の名前より長いので折り返す */
+.docs-options[data-docs="migration"] td:first-child code {
+  white-space: pre-wrap;
 }
 
 .docs-sec-cta {
