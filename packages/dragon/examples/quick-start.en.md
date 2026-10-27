@@ -13,12 +13,12 @@ One file uses one language; a line with a word from the other language is an err
 ```dragon
 sequence Ask to sign in
 
-browser = User's browser "operated by the user" [color slate]
-app = App "asks for sign-in" [color blue]
+box browser as User's browser [note: operated by the user, color: slate]
+box app as App [note: asks for sign-in, color: blue]
 
-# Press sign in
-> The user presses the app's sign-in button.
-browser -> app : GET /login
+step Press sign in
+  say The user presses the app's sign-in button.
+  browser -> app: GET /login
 ```
 
 ## Line forms

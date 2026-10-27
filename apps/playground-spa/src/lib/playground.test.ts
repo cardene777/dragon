@@ -43,15 +43,17 @@ const titleOf = (text: string): string | undefined => {
 };
 
 /** 書き換えに使う、箱 2 つと線 1 本の図 */
-const EDITED = ["時系列図 書き換えた図", "", "甲 = 甲のサービス", "乙 = 乙のサービス", "", "# 呼ぶ", "> 甲が乙を呼ぶ。", "甲 -> 乙 : 呼ぶ"].join("\n");
-/** `EDITED` と同じ形を英語の語で書いた図 (#2997) */
-const EDITED_EN = ["sequence Edited diagram", "", "app = App service", "api = API service", "", "# Call", "> App calls API.", "app -> api : call"].join("\n");
+const EDITED = ["sequence 書き換えた図", "", "box 甲 as 甲のサービス", "box 乙 as 乙のサービス", "", "step 呼ぶ", "  say 甲が乙を呼ぶ。", "  甲 -> 乙: 呼ぶ"].join("\n");
+/** `EDITED` と同じ形を英語で書いた図 (#2997) */
+const EDITED_EN = ["sequence Edited diagram", "", "box app as App service", "box api as API service", "", "step Call", "  say App calls API.", "  app -> api: call"].join("\n");
 
 /**
- * 記法の日本語の語 (#2997)。行の頭の語と、行の終わりの指定の語。
- * 語の表は `@cardenelabs/dragon` の中にあり、頁の検査は表を読まずに、日本語の語が書く欄に残っていないかだけを見る。
+ * 今の形の記法の日本語の語 (#2997)。行の頭の語と、行の終わりの指定の語。
+ * 新しい dragon記法は語を英語だけで書くので (#3137)、頁の検査は日本語の語が書く欄に残っていないかを見る。
  */
 const JAPANESE_WORDS = /^\s*(時系列図|構成図|区画|帯|見せ方)\s|\[(色|印|区画|名前|札|硬貨|なし|封筒)[\s\]]/mu;
+/** 今の形の記法の行 (#3137)。段の見出し `#`、段の本文 `>`、箱の下の字を囲む「」 */
+const OLD_FORM_LINES = /^\s*(時系列図|構成図|#|>)|「/mu;
 /** 仮名と漢字。英語の誤りの文に入らない */
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 
@@ -258,9 +260,9 @@ describe("公開する頁 (#2995)", () => {
   it(
     "notation-error-shows-line-and-keeps-diagram",
     async () => {
-      // 段「認可サーバーへ回す」の本文の行を消すと、その段の見出しの行が誤りになる
+      // 段「認可サーバーへ回す」の `say` の行を消すと、その段の `step` の行が誤りになる
       const lines = OAUTH.split("\n");
-      const head = lines.indexOf("# 認可サーバーへ回す");
+      const head = lines.indexOf("step 認可サーバーへ回す");
       expect(head, "OAuth の見本に段「認可サーバーへ回す」が無い").toBeGreaterThan(0);
       const broken = lines.filter((_, i) => i !== head + 1).join("\n");
       const parsed = parseNotation(broken);
@@ -508,7 +510,7 @@ describe("公開する頁 (#2995)", () => {
   );
 
   it(
-    "json-edit-keeps-notation-language",
+    "json-edit-prints-dragon-notation",
     async () => {
       /** JSON の側で題を書き換え、記法の側に戻した時の書く欄の中身 */
       const retitle = async (page: Page, title: string): Promise<string | null> => {
@@ -533,49 +535,54 @@ describe("公開する頁 (#2995)", () => {
         return editorValue(page);
       };
 
-      // 日本語の頁で英語の語の記法を書いていた時は、英語の語で書き戻す
-      const ja = await open({ locale: "ja-JP" });
-      await drawn(ja.page);
-      await setEditor(ja.page, EDITED_EN);
-      await expect.poll(() => stepsLabel(ja.page), { ...WAIT, message: "英語の語の記法で図が描かれない" }).toContain("Edited diagram");
-      const fromEnglish = await retitle(ja.page, "Retitled in JSON");
-      expect(fromEnglish?.split("\n")[0], "英語の語で書いた記法が英語の語で書き戻されない").toBe("sequence Retitled in JSON");
-      expect(fromEnglish?.match(JAPANESE_WORDS)?.[0], "英語の語で書き戻した記法に日本語の語がある").toBeUndefined();
+      /** 書き戻した記法が新しい形で、読み直すと JSON の側で直した題になる */
+      const expectDragonNotation = (written: string | null, title: string, where: string): void => {
+        expect(written?.split("\n")[0], `${where} で書き戻した最初の行が sequence と題でない`).toBe(`sequence ${title}`);
+        expect(written?.match(OLD_FORM_LINES)?.[0], `${where} で書き戻した記法に今の形の行がある`).toBeUndefined();
+        expect(written?.match(JAPANESE_WORDS)?.[0], `${where} で書き戻した記法に日本語の語がある`).toBeUndefined();
+        const parsed = parseNotation(written ?? "");
+        expect(parsed.ok && parsed.diagram.title, `${where} で書き戻した記法を読み直すと題が違う`).toBe(title);
+      };
 
-      // 英語の頁で日本語の語の記法を書いていた時は、日本語の語で書き戻す
-      const en = await open({ locale: "en-US" });
-      await drawn(en.page);
-      await setEditor(en.page, EDITED);
-      await expect.poll(() => stepsLabel(en.page), { ...WAIT, message: "日本語の語の記法で図が描かれない" }).toContain("書き換えた図");
-      const fromJapanese = await retitle(en.page, "JSON で直した図");
-      expect(fromJapanese?.split("\n")[0], "日本語の語で書いた記法が日本語の語で書き戻されない").toBe("時系列図 JSON で直した図");
+      // どちらの言葉の頁でも、JSON の側で直した図を dragon記法で書き戻す
+      for (const [locale, text, drawnTitle, title] of [
+        ["ja-JP", EDITED_EN, "Edited diagram", "Retitled in JSON"],
+        ["en-US", EDITED, "書き換えた図", "JSON で直した図"],
+      ] as const) {
+        const { page } = await open({ locale });
+        await drawn(page);
+        await setEditor(page, text);
+        await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${locale} の頁で書いた記法の図が描かれない` }).toContain(drawnTitle);
+        const back = await retitle(page, title);
+        expectDragonNotation(back, title, `${locale} の頁`);
+        expect(back, `${locale} の頁で書き戻した段が step の行で始まらない`).toMatch(/^step /mu);
 
-      // 書く欄の最初の行が読めない時は、頁の言葉で書き戻す
-      await setEditor(en.page, "not a diagram");
-      await expect.poll(() => en.page.locator(sel("status")).getAttribute("data-state"), { ...WAIT, message: "読めない記法が誤りにならない" }).toBe("error");
-      const fromUnreadable = await retitle(en.page, "Back from JSON");
-      expect(fromUnreadable?.split("\n")[0], "最初の行が読めない時に頁の言葉 (英語) で書き戻されない").toBe("sequence Back from JSON");
+        // 書く欄の最初の行が読めない時も、JSON の側で直した図を dragon記法で書き戻す
+        await setEditor(page, "not a diagram");
+        await expect.poll(() => page.locator(sel("status")).getAttribute("data-state"), { ...WAIT, message: "読めない記法が誤りにならない" }).toBe("error");
+        expectDragonNotation(await retitle(page, "Back from JSON"), "Back from JSON", `${locale} の頁の読めない記法から`);
+      }
     },
     SLOW,
   );
 
   it(
-    "page-errors-follow-notation-language",
+    "page-errors-follow-page-language",
     async () => {
-      // 日本語の頁で英語の語の記法に誤りがある時は、英語で出す
+      // dragon記法の語は英語だけで、図の字の言葉では誤りの言葉が決まらない。日本語の頁では、英語の字の図の誤りも日本語で出す (#3137)
       const ja = await open({ locale: "ja-JP" });
       await drawn(ja.page);
-      await setEditor(ja.page, `${EDITED_EN}\napp -> nowhere : lost`);
+      await setEditor(ja.page, `${EDITED_EN}\n  app -> nowhere: lost`);
       await expect.poll(() => ja.page.locator(sel("status")).getAttribute("data-state"), { ...WAIT, message: "誤りが欄の下に出ない" }).toBe("error");
-      await expect.poll(() => statusText(ja.page), { ...WAIT, message: "英語の語の記法の誤りが英語で出ない" }).not.toMatch(KANA_KANJI);
-      expect(await statusText(ja.page), "誤りの箱の名前が出ない").toContain("nowhere");
+      await expect.poll(() => statusText(ja.page), { ...WAIT, message: "日本語の頁で英語の字の図の誤りが日本語で出ない" }).toContain("nowhere という箱は宣言していない");
+      expect(await statusText(ja.page), "誤りの行の番号が頁の言葉で出ない").toContain("9 行目");
 
-      // 英語の頁で日本語の語の記法に誤りがある時は、日本語で出す
+      // 英語の頁では、日本語の字の図の誤りも英語で出す
       const en = await open({ locale: "en-US" });
       await drawn(en.page);
-      await setEditor(en.page, `${EDITED}\n甲 -> 届け先 : 迷う`);
-      await expect.poll(() => statusText(en.page), { ...WAIT, message: "日本語の語の記法の誤りが日本語で出ない" }).toContain("届け先 という箱は宣言していない");
-      expect(await statusText(en.page), "誤りの行の番号が記法の言葉で出ない").toContain("9 行目");
+      await setEditor(en.page, `${EDITED}\n  甲 -> 届け先: 迷う`);
+      await expect.poll(() => statusText(en.page), { ...WAIT, message: "英語の頁で日本語の字の図の誤りが英語で出ない" }).toContain("No box named 届け先 is declared");
+      expect(await statusText(en.page), "誤りの行の番号が頁の言葉で出ない").toContain("Line 9");
 
       // 最初の行が読めない時は、頁の言葉で出す
       await setEditor(en.page, "not a diagram");
@@ -646,7 +653,7 @@ describe("公開する頁 (#2995)", () => {
       const { page } = await open({ locale: "ja-JP" });
       await drawn(page);
       const [head = "", ...rest] = EDITED.split("\n");
-      const written = [head, "見せ方 寄る", ...rest].join("\n");
+      const written = [`${head} [view: follow]`, ...rest].join("\n");
       await setEditor(page, written);
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "手を入れた記法で図が描き直されない" }).toContain("書き換えた図");
 
@@ -670,12 +677,12 @@ describe("公開する頁 (#2995)", () => {
   it(
     "page-player-labels-ignore-notation-language",
     async () => {
-      // 日本語の頁で英語の語の記法を描いても、再生の釦と全体図の札は頁の言葉で出す (#3001)
+      // 日本語の頁で英語の字の図を描いても、再生の釦と全体図の札は頁の言葉で出す (#3001)
       const { page } = await open({ locale: "ja-JP" });
       await drawn(page);
       const [head = "", ...rest] = EDITED_EN.split("\n");
-      await setEditor(page, [head, "view follow", ...rest].join("\n"));
-      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "英語の語の記法で図が描かれない" }).toContain("Edited diagram");
+      await setEditor(page, [`${head} [view: follow]`, ...rest].join("\n"));
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "英語の字の図が描かれない" }).toContain("Edited diagram");
       await expect
         .poll(() => playerNames(page), { ...WAIT, message: "日本語の頁で再生の釦と全体図の札が日本語で出ない" })
         .toMatchObject({ prev: "前の段", next: "次の段", steps: "Edited diagram の段", overview: "全体図" });
@@ -736,7 +743,7 @@ describe("公開する頁 (#2995)", () => {
       await page.locator(sel("shelf-filter")).fill("");
 
       // 箱が 1 つしかない図に線の部品を足すと、相手の箱も足して読める線にする
-      const lonely = ["時系列図 一人の図", "", "甲 = 甲", "", "# 考える", "> 甲が考える。", "甲 : 考える"].join("\n");
+      const lonely = ["sequence 一人の図", "", "box 甲", "", "step 考える", "  say 甲が考える。", "  act 甲: 考える"].join("\n");
       await setEditor(page, lonely);
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "箱が 1 つの図が描かれない" }).toContain("一人の図");
       await click(page, "part-edge");
@@ -744,12 +751,12 @@ describe("公開する頁 (#2995)", () => {
         .poll(async () => { const d = await editorDiagram(page); return [d?.boxes.length, d?.steps.at(-1)?.events.at(-1)?.type]; }, { ...WAIT, message: "箱が 1 つの図に線の部品を足すと読めない" })
         .toEqual([2, "edge"]);
 
-      // 英語の語で書いた記法には、英語の語で部品の行を足す
+      // 英語の字の図にも、dragon記法の語で部品の行を足す (#3137)
       await setEditor(page, EDITED_EN);
-      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "英語の語の記法で図が描かれない" }).toContain("Edited diagram");
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: "英語の字の図が描かれない" }).toContain("Edited diagram");
       for (const name of ["part-box", "part-edge-tag", "part-step"]) await click(page, name);
-      await expect.poll(async () => (await editorDiagram(page))?.steps.length, { ...WAIT, message: "英語の語の記法に部品を足すと読めない" }).toBe(2);
-      expect((await editorValue(page))?.match(JAPANESE_WORDS)?.[0], "英語の語の記法に日本語の語の部品が足される").toBeUndefined();
+      await expect.poll(async () => (await editorDiagram(page))?.steps.length, { ...WAIT, message: "英語の字の図に部品を足すと読めない" }).toBe(2);
+      expect((await editorValue(page))?.match(JAPANESE_WORDS)?.[0], "部品が今の形の日本語の語で足される").toBeUndefined();
 
       // 記法の見出しには、行の形の早見が並ぶ
       await click(page, "shelf-tab-notation");
@@ -904,7 +911,7 @@ describe("公開する頁 (#2995)", () => {
       // 枠より十分小さな図は、枠に収まる倍率 (1280 × 860 で 2.9 倍) まで膨らませず、1.5 倍で止める (#3105)
       const { page } = await open();
       await drawn(page);
-      await setEditor(page, ["時系列図 小さな図", "", "甲 = 甲", "乙 = 乙", "", "# 最初の段", "> 呼ぶ。", "甲 -> 乙 : 呼ぶ"].join("\n"));
+      await setEditor(page, ["sequence 小さな図", "", "box 甲", "box 乙", "", "step 最初の段", "  say 呼ぶ。", "  甲 -> 乙: 呼ぶ"].join("\n"));
       const shown = async (): Promise<{ level: string; scale: number }> => ({
         level: await zoomLevel(page),
         scale: await page.evaluate((s) => {
@@ -1138,9 +1145,9 @@ describe("公開する頁 (#2995)", () => {
 
       // 記法の読み取りの誤り。行番号を押すと、書く欄がその行を選ぶ
       const lines = OAUTH.split("\n");
-      const colored = lines.findIndex((l) => /\[色 [a-z]+\]/u.test(l));
+      const colored = lines.findIndex((l) => /color: [a-z]+/u.test(l));
       expect(colored, "OAuth の見本に色を書いた行が無い").toBeGreaterThan(0);
-      const broken = lines.map((l, i) => (i === colored ? l.replace(/\[色 [a-z]+\]/u, "[色 purple]") : l)).join("\n");
+      const broken = lines.map((l, i) => (i === colored ? l.replace(/color: [a-z]+/u, "color: purple") : l)).join("\n");
       const error = parseNotation(broken);
       expect(error.ok, "検査に使う記法が誤りにならない").toBe(false);
       const line = error.ok ? 0 : (error.errors[0]?.line ?? 0);

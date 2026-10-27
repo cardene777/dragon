@@ -3,8 +3,8 @@
  * `dragon export <図の file>` の命令。原本の JSON (`.json`) か記法 (`.dragon`) を読み、mp4、GIF、HTML、PNG を書き出す。
  * 書き出した file の path を 1 行ずつ出す。
  *
- * 使い方の文と誤りの文は、図の中の字と同じ言葉で出す (#3003)。`--lang` を渡せばその言葉、無ければ記法の file の言葉、
- * JSON の原本と file を読む前の誤りは日本語。記法の行の誤りだけは、書き方の例が file の書き方に合うよう file の言葉で出す。
+ * 使い方の文と誤りの文は、図の中の字と同じ言葉で出す (#3003)。`--lang` を渡せばその言葉、無ければ日本語。
+ * dragon記法の語は英語だけで file から言葉が決まらないため、記法の file も JSON の原本と同じに扱う (#3137)。
  */
 import { readFileSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
@@ -12,7 +12,7 @@ import { parseArgs } from "node:util";
 import { type ExportFormat, exportDiagram, FORMATS } from "./export/index";
 import { PALETTES, type Theme } from "./look/values";
 import { parseNotation } from "./parser";
-import { type NotationLang, notationLanguage } from "./words";
+import type { NotationLang } from "./words";
 
 const OPTIONS = {
   out: { type: "string" },
@@ -54,7 +54,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --width <px>       枠の幅。見せ方を選び、寄って見せる窓の幅になる",
       `  --palette <名前>   色味 (${PALETTE_NAMES})`,
       "  --theme <明暗>     light か dark",
-      "  --lang <言葉>      図の中の字と命令の文の言葉 (ja か en)。既定は記法の file の言葉で、JSON は ja",
+      "  --lang <言葉>      図の中の字と命令の文の言葉 (ja か en)。既定は ja",
       "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
       "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
       "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
@@ -76,7 +76,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --width <px>       Frame width. Picks the view and sets the window width when following",
       `  --palette <name>   Colors (${PALETTE_NAMES})`,
       "  --theme <mode>     light or dark",
-      "  --lang <lang>      Language of the diagram text and command messages (ja or en). Defaults to the notation file's language, and ja for JSON",
+      "  --lang <lang>      Language of the diagram text and command messages (ja or en). Defaults to ja",
       "  --fps <n>          Frames per second of the mp4 (default 30)",
       "  --gif-fps <n>      Frames per second of the GIF (default 10)",
       "  --format <list>    Formats to write, separated by , (default mp4,gif,html,png)",
@@ -147,8 +147,8 @@ function failedPath(error: unknown): string | undefined {
   return typeof error.path === "string" ? error.path : undefined;
 }
 
-/** 図の file を読む。記法の file はその言葉も返し、JSON の原本は言葉を持たない */
-function read(file: string, text: CliText): { diagram: unknown; lang?: NotationLang } {
+/** 図の file を読む。記法の行の誤りは `lang` の言葉で出す */
+function read(file: string, text: CliText, lang: NotationLang): unknown {
   let source: string;
   try {
     source = readFileSync(file, "utf8");
@@ -158,15 +158,14 @@ function read(file: string, text: CliText): { diagram: unknown; lang?: NotationL
   }
   if (extname(file) !== ".dragon") {
     try {
-      return { diagram: JSON.parse(source) };
+      return JSON.parse(source);
     } catch (error) {
       throw new Error(text.badJson(file, detail(error)));
     }
   }
-  const parsed = parseNotation(source);
+  const parsed = parseNotation(source, { lang });
   if (!parsed.ok) throw new Error(parsed.errors.map((e) => `${file}:${e.line} ${e.message}`).join("\n"));
-  const lang = notationLanguage(source);
-  return lang === undefined ? { diagram: parsed.diagram } : { diagram: parsed.diagram, lang };
+  return parsed.diagram;
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -202,9 +201,9 @@ async function main(argv: string[]): Promise<number> {
   const width = number(values.width);
   const fps = number(values.fps);
   const gifFps = number(values["gif-fps"]);
-  const { diagram, lang: fileLang } = read(file, early);
-  // 渡した言葉を記法の file の言葉より先に使う。JSON の原本で渡さなければ、書き出しの既定 (日本語) になる
-  const lang = isLang(chosen) ? chosen : fileLang;
+  // 言葉は渡した物だけで決める。渡さなければ、書き出しの既定 (日本語) になる
+  const lang = isLang(chosen) ? chosen : undefined;
+  const diagram = read(file, early, lang ?? "ja");
   let result: Awaited<ReturnType<typeof exportDiagram>>;
   try {
     result = await exportDiagram(diagram, {

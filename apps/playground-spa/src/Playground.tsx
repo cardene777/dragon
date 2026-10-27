@@ -8,12 +8,11 @@
  * 誤りがあるあいだは、誤りを行番号付きで欄の下の知らせの欄に並べ、図は最後に描けた物を残す。
  * 行番号を押すと、書く欄がその行を選ぶ。
  *
- * 記法は日本語の語でも英語の語でも書ける (#2997)。JSON の側から書き戻す時と、記法の誤りを出す時は、
- * 書いている記法の言葉 (最初の行の図の種類の語) に従い、最初の行が読めない時だけ頁の言葉に従う。
+ * 記法は行の頭の英語の語で書く dragon記法で (#3137)、記法から言葉は決まらない。
+ * 記法の誤りは頁の言葉で出し、JSON の側から書き戻す時はどの頁でも同じ dragon記法を書く。
  */
 import {
   type Diagram,
-  notationLanguage,
   parseNotation,
   printNotation,
   readDiagram,
@@ -33,7 +32,7 @@ import { type Lang, TEXT } from "./text";
 type Tab = "notation" | "json";
 
 interface Problem {
-  /** 誤りを出す言葉。記法の誤りは記法の言葉 (決まらない時は頁の言葉)、JSON の誤りは頁の言葉 */
+  /** 誤りを出す言葉。記法の誤りも JSON の誤りも頁の言葉 (#3137) */
   lang: Lang;
   notices: Notice[];
 }
@@ -57,12 +56,11 @@ function check(input: unknown, lang: Lang, json?: string): Outcome {
   return { ok: true, diagram: read.diagram };
 }
 
-/** 記法を読む。`pageLang` は記法の言葉が決まらない時に誤りを出す言葉 */
+/** 記法を読む。誤りは頁の言葉で出す */
 function fromNotation(text: string, pageLang: Lang): Outcome {
   const parsed = parseNotation(text, { lang: pageLang });
-  const lang = notationLanguage(text) ?? pageLang;
-  if (!parsed.ok) return { ok: false, problem: { lang, notices: lineNotices(parsed.errors) } };
-  return check(parsed.diagram, lang);
+  if (!parsed.ok) return { ok: false, problem: { lang: pageLang, notices: lineNotices(parsed.errors) } };
+  return check(parsed.diagram, pageLang);
 }
 
 /** JSON を読む。JSON は語を持たず言葉が決まらないので、誤りは頁の言葉で出す (#2999) */
@@ -163,8 +161,6 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   const reveal = useRef<number | null>(null);
 
   const t = TEXT[lang];
-  /** 書く欄の記法の言葉。部品と記法の早見はこの言葉の語で出す */
-  const notationLang = notationLanguage(text) ?? lang;
   /** 部品を足す先の図。書く欄の記法が読めない時は最後に描けた図 */
   const base = useMemo(() => {
     const parsed = parseNotation(text, { lang });
@@ -201,8 +197,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
       return;
     }
     accept(outcome.diagram);
-    // 書いていた記法の言葉で書き戻す。最初の行が読めない時は頁の言葉で書く
-    const notation = printNotation(outcome.diagram, { lang: notationLanguage(text) ?? lang });
+    const notation = printNotation(outcome.diagram);
     setText(notation);
     setExample(whichExample(notation)?.key ?? null);
     share(notation);
@@ -228,14 +223,14 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
 
   const newFile = (): void => replace(TEMPLATE[lang], null, NEW_FILE_NAME, lang);
 
-  /** 取り込んだ file を記法の側に入れる。図の原本の JSON なら、頁の言葉の記法に書き直して入れる */
+  /** 取り込んだ file を記法の側に入れる。図の原本の JSON なら、記法に書き直して入れる */
   const importFile = async (file: File): Promise<void> => {
     const content = (await file.text()).replace(/\r\n?/gu, "\n").trimEnd();
     let next = content;
     if (/^\s*\{/u.test(content)) {
       try {
         const read = readDiagram(JSON.parse(content), { lang });
-        if (read.ok) next = printNotation(read.diagram, { lang });
+        if (read.ok) next = printNotation(read.diagram);
       } catch {
         // JSON として読めない時は、記法として入れて誤りを知らせの欄に出す
       }
@@ -259,7 +254,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   /** 部品の行を記法に足す。宣言は最初の段の前、段の中の行は最後の段に入る */
   const addPart = (id: PartId): void => {
     if (!base) return;
-    const added = insertLines(text, partLines(id, base, notationLang));
+    const added = insertLines(text, partLines(id, base, lang));
     if (tab !== "notation") setTab("notation");
     writeNotation(added.text);
     reveal.current = added.line;
@@ -301,7 +296,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
       replace(TEMPLATE[next], null, fileName, next);
       return;
     }
-    // 言葉の決まらない記法の誤りは頁の言葉で出すので、替えた頁の言葉で出し直す
+    // 記法の誤りは頁の言葉で出すので、替えた頁の言葉で出し直す
     if (tab === "notation" && problem) {
       const outcome = fromNotation(text, next);
       if (!outcome.ok) setProblem(outcome.problem);
@@ -330,7 +325,6 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     <div className="pg">
       <Shelf
         lang={lang}
-        notationLang={notationLang}
         base={base}
         active={example}
         open={shelfOpen}

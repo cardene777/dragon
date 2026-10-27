@@ -1,36 +1,35 @@
 /**
- * 人が書く記法を、図の原本の JSON へ変える。
+ * 人が書く dragon記法を、図の原本の JSON へ変える (#3137)。
  *
- * 記法は 1 行が 1 本の線になる行ごとの文で、最初の段の見出しより前に図の種類と題と箱を宣言し、
- * 段ごとに見出し (`#`) と本文 (`>`) の下へ、その段で起きることを起きる順に 1 行ずつ並べる。
+ * 行の種類は行の頭の英語の語で決まり、線の行だけは箱の名札から始まる。最初の `step` より前に
+ * 図の種類と題と区画と箱と帯を宣言し、`step` ごとに、その段で起きることを起きる順に並べる。
  *
- *   時系列図 <題>
- *   見せ方 <止める か 寄る>                            書かなければ字の大きさで選ぶ
- *   区画 <名札> = <名前>「<添え書き>」 [色 <色>] [印 <印>]
- *   <名札> = <名前>「<下の小さな字>」 [色 <色>] [印 <印>] [区画 <名札>]
- *   帯 <題> = <欄>, <欄>
- *   # <段の題>
- *   > <段の本文>
- *   `<段で打つ命令>`
- *   <名札> -> <名札> : <線の名前> [札 <値>] [名前 上]   線。運ぶ物を書かなければ封筒が走る
- *   <名札> : <処理の名前>                              箱の中の処理
- *   <名札>「<字>」                                     箱の下の小さな字の書き換え
- *   帯 <欄> = <値> [<札>]                              中身の帯の値
+ *   sequence <題> [view: fixed か follow]                書かなければ字の大きさで選ぶ
+ *   group <名札> as <名前> [note: <添え書き>, color: <色>, icon: <印>]
+ *     box <名札> as <名前> [note: <下の小さな字>, color: <色>, icon: <印>]
+ *   end                                                  同じ名札の group はもう一度開ける
+ *   box <名札> as <名前> [...]                           as が無ければ名札を名前にする
+ *   strip <題>: <欄>, <欄>
+ *   step <段の題>
+ *     say <段の本文>                                     say の下に字下げした行は本文の続き
+ *     code <段で打つ命令>
+ *     <名札> -> <名札>: <線の名前> [carry: <運ぶ物>, tag: <値>, side: <側>]
+ *     act <名札>: <処理の名前>                           箱の中の処理
+ *     note <名札>: <字>                                   箱の下の小さな字の書き換え
+ *     set <欄>: <値> [tag: <札>]                          中身の帯の値
  *
- * 語は英語でも書ける (#2997)。`sequence` / `architecture` で始めた file は、語を `words.ts` の表の
- * 英語の語で書き、`「…」` の代わりに `"…"` でも囲める。1 つの file の言葉は最初の行の図の種類の語で
- * 決まり、違う言葉の語を書いた行は誤りにする。誤りの文も file の言葉で出す。
+ * 鍵と値はコロンで区切り、属性は `[ ]` の中に `,` で並べて行の終わりに置く。
+ * 空白を含む名前と文は行の終わりか `[` の前に置き、`[` を含む名前と `,` か `]` を含む属性の値だけを
+ * `"` で囲む。囲みの中では `\"` が `"`、`\\` が `\` になる。字下げは `say` の続きの行を見分ける時だけ意味を持つ。
  *
- * 行の頭の語と同じ綴りの名札 (`帯` や `strip`) も書ける。行の頭の語と名札は行の形で見分け、
- * 名札の次に `->` か `:` か `=` か囲みが来る行は箱の行と読む。
- *
- * 誤りは最初の 1 つで止め、行と列を示す。
+ * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
+ * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
-import { type Messages, messagesFor } from "./messages";
+import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Box, type Carry, type Color, COLORS, type Diagram, type DiagramEvent, type LabelSide, type Region, type Step, type ViewMode } from "./schema";
-import { columnOf, type SourceLine, tokenize } from "./tokenize";
+import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION } from "./version";
-import { languageOf, type NotationLang, otherLang, valueOf, wordOf, type WORDS } from "./words";
+import { AS, ATTRS, CARRIES, HEADS, KINDS, type NotationLang, OLD_HEADS, SIDES, VIEWS } from "./words";
 
 export interface LineError {
   line: number;
@@ -41,7 +40,7 @@ export interface LineError {
 export type Parsed = { ok: true; diagram: Diagram } | { ok: false; errors: LineError[] };
 
 export interface ParseOptions {
-  /** 最初の行が読めず file の言葉が決まらない時に、誤りの文に使う言葉。既定は日本語 */
+  /** 誤りの文の言葉。既定は日本語 */
   lang?: NotationLang;
 }
 
@@ -58,108 +57,212 @@ class NotationError extends Error {
 const fail = (source: SourceLine, index: number, message: string): NotationError =>
   new NotationError(source.line, columnOf(source, index), message);
 
-/** `[鍵 値]` の指定。`raw` は括弧の中身そのまま、`at` は `[` の位置。 */
+/** 名札に使える字。原本の JSON の名札の形と同じ */
+const ID = /^[^\s[\]「」=:]+$/u;
+/** 線の行。名札、`->`、名札 */
+const EDGE = /^([^\s:[\]]+?)\s*->\s*([^\s:[\]]+)/du;
+
+const isOneOf = <T extends string>(list: readonly T[], word: string): word is T => (list as readonly string[]).includes(word);
+
+/** `at` から空白を飛ばした位置 */
+function skipSpaces(text: string, at: number): number {
+  let i = at;
+  while (i < text.length && /\s/u.test(text[i] ?? "")) i++;
+  return i;
+}
+
+/** `[<鍵>: <値>]` の 1 つ。`at` は鍵の位置 */
 interface Attr {
-  raw: string;
-  key: string;
   value: string;
   at: number;
 }
 
-/** 行の `start` から後ろの終わりに並ぶ `[...]` を外す。`end` は残った字の終わり。 */
-function trailingAttrs(source: SourceLine, start: number): { end: number; attrs: Attr[] } {
-  const attrs: Attr[] = [];
-  let end = source.text.length;
-  for (;;) {
-    const found = /\s*\[([^[\]]*)\]$/.exec(source.text.slice(start, end));
-    if (!found) break;
-    const raw = (found[1] ?? "").trim();
-    const [key = "", ...words] = raw.split(/\s+/);
-    attrs.unshift({ raw, key, value: words.join(" "), at: start + found.index + found[0].indexOf("[") });
-    end = start + found.index;
+/** `at` の `"` から閉じる `"` までを読む。`end` は閉じた `"` の次 */
+function readQuoted(source: SourceLine, at: number, m: Messages): { value: string; end: number } {
+  const text = source.text;
+  let value = "";
+  for (let i = at + 1; i < text.length; i++) {
+    const c = text[i] ?? "";
+    const next = text[i + 1] ?? "";
+    if (c === "\\" && (next === '"' || next === "\\")) {
+      value += next;
+      i++;
+    } else if (c === '"') {
+      return { value, end: i + 1 };
+    } else {
+      value += c;
+    }
   }
-  return { end, attrs };
-}
-
-const escape = (word: string): string => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/** 字を囲む形。日本語の語の file は「」だけ、英語の語の file は「」と "" を読む */
-const QUOTES: Record<NotationLang, readonly (readonly [string, string])[]> = {
-  ja: [["「", "」"]],
-  en: [
-    ["「", "」"],
-    ['"', '"'],
-  ],
-};
-
-/** `<名前>「<添え書き>」` を名前と添え書きに分ける。 */
-function nameAndNote(text: string, lang: NotationLang): { name: string; note?: string } {
-  for (const [open, close] of QUOTES[lang]) {
-    const found = new RegExp(`^(.*?)\\s*${escape(open)}(.*)${escape(close)}$`).exec(text);
-    if (found) return { name: (found[1] ?? "").trim(), note: found[2] ?? "" };
-  }
-  return { name: text.trim() };
-}
-
-/** `<名札>「<字>」` の書き換えの行。名札と字の位置を返す */
-function swapLine(text: string, lang: NotationLang): RegExpExecArray | null {
-  const opens = QUOTES[lang].map(([o]) => escape(o)).join("");
-  for (const [open, close] of QUOTES[lang]) {
-    const found = new RegExp(`^([^\\s${opens}]+)\\s*${escape(open)}(.*)${escape(close)}$`, "d").exec(text);
-    if (found) return found;
-  }
-  return null;
+  throw fail(source, at, m.quoteUnclosed);
 }
 
 /**
- * 1 つの言葉の、行の頭の語で始まる行の形。
- * `reading` は読んでいる file の言葉で、帯の値の行から外す箱の行 (名札の次に囲みが来る行) の形を決める。
+ * `at` から名前か文を読む。`"` で始まれば囲みの中、そうでなければ `[` の前か行の終わりまで。
+ * `rest` は名前の後ろの位置で、行の終わりか属性の `[` を指す。
  */
-function headShapes(lang: NotationLang, reading: NotationLang) {
-  const head = (key: keyof typeof WORDS.head): string => escape(wordOf("head", key, lang));
-  const opens = QUOTES[reading].map(([open]) => `|${escape(open)}`).join("");
+function readName(source: SourceLine, at: number, m: Messages): { value: string; rest: number } {
+  const text = source.text;
+  const start = skipSpaces(text, at);
+  if (text[start] === '"') {
+    const quoted = readQuoted(source, start, m);
+    const rest = skipSpaces(text, quoted.end);
+    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.afterQuote);
+    return { value: quoted.value, rest };
+  }
+  const open = text.indexOf("[", start);
+  const rest = open < 0 ? text.length : open;
+  return { value: text.slice(start, rest).trim(), rest };
+}
+
+/** `at` の `[` から行の終わりの `]` までの属性を読む。`allowed` に無い鍵は誤り */
+function readAttrs(source: SourceLine, at: number, allowed: readonly string[], m: Messages): Map<string, Attr> {
+  const text = source.text;
+  if (!text.endsWith("]")) throw fail(source, at, m.attrUnclosed);
+  const close = text.length - 1;
+  const attrs = new Map<string, Attr>();
+  for (let i = at + 1; ; ) {
+    const start = skipSpaces(text, i);
+    let colon = start;
+    while (colon < close && text[colon] !== ":" && text[colon] !== ",") colon++;
+    if (colon >= close || text[colon] !== ":") throw fail(source, start, m.attrNoColon(text.slice(start, colon).trim()));
+    const key = text.slice(start, colon).trim();
+    if (!allowed.includes(key)) throw fail(source, start, m.badAttr(key, allowed));
+    if (attrs.has(key)) throw fail(source, start, m.attrTwice(key));
+    let end = skipSpaces(text, colon + 1);
+    let value: string;
+    if (text[end] === '"') {
+      const quoted = readQuoted(source, end, m);
+      value = quoted.value;
+      end = skipSpaces(text, quoted.end);
+      if (end < close && text[end] !== ",") throw fail(source, end, m.afterQuote);
+    } else {
+      const comma = text.indexOf(",", end);
+      const stop = comma < 0 || comma > close ? close : comma;
+      value = text.slice(end, stop).trim();
+      end = stop;
+    }
+    if (value === "") throw fail(source, start, m.attrNoValue(key));
+    attrs.set(key, { value, at: start });
+    if (end >= close) return attrs;
+    i = end + 1;
+  }
+}
+
+/** `at` から `,` で区切った字の並びを行の終わりまで読む */
+function readList(source: SourceLine, at: number, m: Messages): string[] {
+  const text = source.text;
+  const items: string[] = [];
+  for (let i = at; ; ) {
+    const start = skipSpaces(text, i);
+    let value: string;
+    let end: number;
+    if (text[start] === '"') {
+      const quoted = readQuoted(source, start, m);
+      value = quoted.value;
+      end = skipSpaces(text, quoted.end);
+      if (end < text.length && text[end] !== ",") throw fail(source, end, m.afterQuote);
+    } else {
+      const comma = text.indexOf(",", start);
+      end = comma < 0 ? text.length : comma;
+      value = text.slice(start, end).trim();
+    }
+    if (value === "") throw fail(source, start, m.emptyStripField);
+    items.push(value);
+    if (end >= text.length) return items;
+    i = end + 1;
+  }
+}
+
+/** `group` と `box` の行の、名札と `as` の後ろの名前と属性 */
+interface Declared {
+  id: string;
+  idAt: number;
+  name?: string;
+  attrs: Map<string, Attr>;
+}
+
+function readDeclared(source: SourceLine, word: string, allowed: readonly string[], m: Messages): Declared {
+  const text = source.text;
+  const start = skipSpaces(text, word.length);
+  const id = /^[^\s[]+/u.exec(text.slice(start))?.[0];
+  if (id === undefined) throw fail(source, 0, m.needsId(word));
+  if (!ID.test(id)) throw fail(source, start, m.badId(id));
+  let rest = skipSpaces(text, start + id.length);
+  let name: string | undefined;
+  if (text.startsWith(AS, rest) && /^(\s|$)/u.test(text.slice(rest + AS.length, rest + AS.length + 1))) {
+    const named = readName(source, rest + AS.length, m);
+    if (named.value === "") throw fail(source, rest, m.emptyName(id));
+    name = named.value;
+    rest = named.rest;
+  }
+  if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.afterId);
+  const attrs = rest < text.length ? readAttrs(source, rest, allowed, m) : new Map<string, Attr>();
+  return { id, idAt: start, ...(name !== undefined ? { name } : {}), attrs };
+}
+
+/** 区画と箱の属性 (`note` と `color` と `icon`) */
+function lookOf(source: SourceLine, attrs: Map<string, Attr>, m: Messages): { note?: string; color?: Color; icon?: string } {
+  const color = attrs.get("color");
+  if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
+  const note = attrs.get("note")?.value;
+  const icon = attrs.get("icon")?.value;
   return {
-    view: new RegExp(`^${head("view")}\\s+(\\S+)$`),
-    strip: new RegExp(`^${head("strip")}\\s+(.+?)\\s*=\\s*(.+)$`),
-    region: new RegExp(`^${head("region")}\\s+([^\\s=]+)\\s*=\\s*`, "d"),
-    // 空白を全部読んでから次の字を見る (`\s` を外すと、空白 2 つの `帯  -> 受け手` を帯の値と読む)
-    stripValue: new RegExp(`^${head("strip")}\\s+(?!\\s|->|:|=${opens})`),
+    ...(note !== undefined ? { note } : {}),
+    ...(color ? { color: color.value as Color } : {}),
+    ...(icon !== undefined ? { icon } : {}),
   };
 }
 
+/**
+ * 今の形 (#2997 まで) の行なら、その印と、新しい形で書く行の形。`inStep` は段の中の行か。
+ * 新しい形で読めない行の誤りの文で、書き直し方を示すために引く。
+ */
+function oldForm(text: string, inStep: boolean): { word: string; shape: Shape } | undefined {
+  const first = text.split(/\s/u)[0] ?? "";
+  if (first === "帯") return { word: first, shape: inStep ? "set" : "strip" };
+  if (Object.hasOwn(OLD_HEADS, first)) return { word: first, shape: OLD_HEADS[first as keyof typeof OLD_HEADS] };
+  if (text.startsWith("#")) return { word: "#", shape: "step" };
+  if (text.startsWith(">")) return { word: ">", shape: "say" };
+  if (text.startsWith("`")) return { word: "`", shape: "code" };
+  if (text.includes("「")) return { word: "「」", shape: inStep ? "note" : "box" };
+  if (/^[^\s=:]+\s*=(?!>)/u.test(text)) return { word: "=", shape: "box" };
+  if (inStep && /^[^\s:]+\s*:/u.test(text)) return { word: ":", shape: "act" };
+  return undefined;
+}
+
+/** 読んでいる段。`body` は `say` を読むまで無い */
 interface Building {
   source: SourceLine;
   title: string;
-  body: string[];
+  body?: string[];
   code?: string;
   events: DiagramEvent[];
 }
 
-function parseLines(lines: SourceLine[], fallback: NotationLang): Diagram {
-  const [head, ...rest] = lines;
-  if (!head) throw new NotationError(1, 1, messagesFor(fallback).noHead);
-  const found = languageOf(head.text);
-  const m: Messages = messagesFor(found ?? fallback);
-  const header = /^(\S+)\s+(.+)$/.exec(head.text);
-  const kind = found && valueOf("kind", header?.[1] ?? "", found);
-  if (!found || !header || !kind) throw fail(head, 0, m.badHead);
-  const lang: NotationLang = found;
-  const title = header[2] ?? "";
-
-  const other = otherLang(lang);
-  const own = headShapes(lang, lang);
-  const foreign = headShapes(other, lang);
-  /** 違う言葉の語を書いた行の誤り。`group` の役割の、この file の言葉の語を示す */
-  const foreignWord = <G extends keyof typeof WORDS>(source: SourceLine, at: number, group: G, word: string): NotationError =>
-    fail(source, at, m.otherLanguageWord(word, wordOf(group, valueOf(group, word, other) as keyof (typeof WORDS)[G], lang)));
+function parseLines(lines: SourceLine[], m: Messages): Diagram {
+  const headAt = lines.findIndex((source) => !isBlankOrComment(source));
+  const head = lines[headAt];
+  if (!head) throw new NotationError(1, 1, m.noHead);
+  const kind = head.text.split(/\s/u)[0] ?? "";
+  if (!isOneOf(KINDS, kind)) {
+    const old = oldForm(head.text, false);
+    throw fail(head, 0, old ? m.oldForm(old.word, old.shape) : m.badHead);
+  }
+  const titled = readName(head, kind.length, m);
+  if (titled.value === "") throw fail(head, 0, m.badHead);
+  const title = titled.value;
+  const shown = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram, m).get("view") : undefined;
+  if (shown && !isOneOf(VIEWS, shown.value)) throw fail(head, shown.at, m.badView);
+  const view = shown?.value as ViewMode | undefined;
 
   const regions: Region[] = [];
   const boxes: Box[] = [];
   const ids = new Set<string>();
   let strip: { title: string; fields: string[] } | undefined;
-  let view: ViewMode | undefined;
   const steps: Step[] = [];
   let building: Building | undefined;
+  /** 開いている `group` */
+  let group: { source: SourceLine; id: string } | undefined;
 
   const declare = (source: SourceLine, id: string, at: number): void => {
     if (ids.has(id)) throw fail(source, at, m.duplicate(id));
@@ -169,9 +272,18 @@ function parseLines(lines: SourceLine[], fallback: NotationLang): Diagram {
     if (!boxes.some((box) => box.id === id)) throw fail(source, at, m.undeclaredBox(id));
     return id;
   };
+  /** 段の中に書く行の、書き先の段。最初の `step` より前なら誤り */
+  const inStep = (source: SourceLine): Building => {
+    if (!building) throw fail(source, 0, m.stepLineBeforeStep);
+    return building;
+  };
+  /** 宣言の行。最初の `step` より後なら誤り */
+  const beforeSteps = (source: SourceLine): void => {
+    if (building) throw fail(source, 0, m.declarationInStep);
+  };
   const finish = (): void => {
     if (!building) return;
-    if (building.body.length === 0) throw fail(building.source, 0, m.noBody(building.title));
+    if (building.body === undefined) throw fail(building.source, 0, m.noBody(building.title));
     steps.push({
       title: building.title,
       body: building.body.join("\n"),
@@ -180,21 +292,74 @@ function parseLines(lines: SourceLine[], fallback: NotationLang): Diagram {
     });
   };
 
-  for (const source of rest) {
+  const rest = lines.slice(headAt + 1);
+  for (let i = 0; i < rest.length; i++) {
+    const source = rest[i];
+    if (!source || isBlankOrComment(source)) continue;
     const text = source.text;
-    if (text.startsWith("#")) {
-      finish();
-      const stepTitle = text.slice(1).trim();
-      if (stepTitle === "") throw fail(source, 0, m.emptyStepTitle);
-      building = { source, title: stepTitle, body: [], events: [] };
+    // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
+    const edge = EDGE.exec(text);
+    if (edge) {
+      inStep(source).events.push(readEdge(source, edge));
       continue;
     }
-    if (!building) {
-      parseDeclaration(source);
-      continue;
+    const word = text.split(/\s/u)[0] ?? "";
+    if (!isOneOf(HEADS, word)) {
+      const old = oldForm(text, building !== undefined);
+      throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
     }
-    building.events.push(...parseStepLine(source, building));
+    switch (word) {
+      case "group":
+        readGroup(source);
+        break;
+      case "end":
+        if (text !== word) throw fail(source, word.length, m.endTakesNothing);
+        if (!group) throw fail(source, 0, m.strayEnd);
+        group = undefined;
+        break;
+      case "box":
+        readBox(source);
+        break;
+      case "strip":
+        readStrip(source);
+        break;
+      case "step": {
+        if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
+        finish();
+        const stepTitle = text.slice(word.length).trim();
+        if (stepTitle === "") throw fail(source, 0, m.emptyStepTitle);
+        building = { source, title: stepTitle, events: [] };
+        break;
+      }
+      case "say":
+        i = readSay(source, i);
+        break;
+      case "code": {
+        const step = inStep(source);
+        if (step.code !== undefined) throw fail(source, 0, m.codeTwice);
+        const command = text.slice(word.length).trim();
+        if (command === "") throw fail(source, 0, m.emptyCode);
+        step.code = command;
+        break;
+      }
+      case "act": {
+        const step = inStep(source);
+        const on = readOnBox(source, word, m.actShape);
+        step.events.push({ type: "action", box: on.box, label: on.text });
+        break;
+      }
+      case "note": {
+        const step = inStep(source);
+        const on = readOnBox(source, word, m.noteShape);
+        step.events.push({ type: "swap", box: on.box, text: on.text });
+        break;
+      }
+      case "set":
+        inStep(source).events.push(readSet(source));
+        break;
+    }
   }
+  if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
   finish();
 
   if (boxes.length === 0) throw fail(head, 0, m.noBoxes);
@@ -212,173 +377,165 @@ function parseLines(lines: SourceLine[], fallback: NotationLang): Diagram {
     ...(kind === "sequence" ? { sequence: { lifelines: boxes.map((box) => box.id) } } : {}),
   };
 
-  function parseDeclaration(source: SourceLine): void {
-    const text = source.text;
-    const viewDecl = own.view.exec(text);
-    if (viewDecl) {
-      if (view) throw fail(source, 0, m.viewTwice);
-      const word = viewDecl[1] ?? "";
-      const at = text.indexOf(word);
-      const chosen = valueOf("view", word, lang);
-      if (!chosen) {
-        if (valueOf("view", word, other) !== undefined) throw foreignWord(source, at, "view", word);
-        throw fail(source, at, m.badView);
-      }
-      view = chosen;
-      return;
+  /** `group` の行。同じ名札をもう一度開いた時は、名前も属性も書かない */
+  function readGroup(source: SourceLine): void {
+    beforeSteps(source);
+    if (group) throw fail(source, 0, m.nestedGroup);
+    const declared = readDeclared(source, "group", ATTRS.group, m);
+    if (regions.some((region) => region.id === declared.id)) {
+      if (declared.name !== undefined || declared.attrs.size > 0) throw fail(source, 0, m.regionReopened(declared.id));
+    } else {
+      declare(source, declared.id, declared.idAt);
+      regions.push({ id: declared.id, name: declared.name ?? declared.id, ...lookOf(source, declared.attrs, m) });
     }
-    const stripDecl = own.strip.exec(text);
-    if (stripDecl) {
-      if (strip) throw fail(source, 0, m.stripTwice);
-      const fields = (stripDecl[2] ?? "").split(",").map((field) => field.trim());
-      if (fields.some((field) => field === "")) throw fail(source, 0, m.emptyStripField);
-      strip = { title: stripDecl[1] ?? "", fields };
-      return;
-    }
-    const regionDecl = own.region.exec(text);
-    const boxDecl = regionDecl ? undefined : /^([^\s=]+)\s*=(?!>)\s*/d.exec(text);
-    const decl = regionDecl ?? boxDecl;
-    if (!decl?.indices?.[1]) {
-      if (foreign.view.test(text) || foreign.strip.test(text) || foreign.region.test(text)) {
-        throw foreignWord(source, 0, "head", text.split(/\s+/)[0] ?? "");
-      }
-      if (looksLikeStepLine(text, lang)) throw fail(source, 0, m.stepLineBeforeStep);
-      throw fail(source, 0, m.unreadableDeclaration);
-    }
-    const id = decl[1] ?? "";
-    declare(source, id, decl.indices[1][0]);
-    const { end, attrs } = trailingAttrs(source, decl[0].length);
-    const { name, note } = nameAndNote(text.slice(decl[0].length, end), lang);
-    if (name === "") throw fail(source, decl[0].length, m.emptyName(id));
-    const look: { color?: Color; icon?: string; region?: string } = {};
-    for (const attr of attrs) {
-      const key = valueOf("attr", attr.key, lang);
-      if (key === "color") {
-        if (!COLORS.includes(attr.value as Color)) throw fail(source, attr.at, m.badColor);
-        look.color = attr.value as Color;
-      } else if (key === "icon" && attr.value !== "") {
-        look.icon = attr.value;
-      } else if (key === "region" && !regionDecl) {
-        if (!regions.some((region) => region.id === attr.value)) throw fail(source, attr.at, m.regionFirst(attr.value));
-        look.region = attr.value;
-      } else {
-        if (valueOf("attr", attr.key, other) !== undefined) throw foreignWord(source, attr.at, "attr", attr.key);
-        throw fail(source, attr.at, m.badAttr(attr.raw));
-      }
-    }
-    if (regionDecl) {
-      regions.push({
-        id,
-        name,
-        ...(note !== undefined ? { note } : {}),
-        ...(look.color ? { color: look.color } : {}),
-        ...(look.icon ? { icon: look.icon } : {}),
-      });
-      return;
-    }
+    group = { source, id: declared.id };
+  }
+
+  /** `box` の行。開いている `group` の中なら、その区画に置く */
+  function readBox(source: SourceLine): void {
+    beforeSteps(source);
+    const declared = readDeclared(source, "box", ATTRS.box, m);
+    declare(source, declared.id, declared.idAt);
+    const { note, ...look } = lookOf(source, declared.attrs, m);
     boxes.push({
-      id,
-      name,
+      id: declared.id,
+      name: declared.name ?? declared.id,
       ...(note !== undefined ? { sub: note } : {}),
-      ...(look.color ? { color: look.color } : {}),
-      ...(look.icon ? { icon: look.icon } : {}),
-      ...(look.region ? { region: look.region } : {}),
+      ...look,
+      ...(group ? { region: group.id } : {}),
     });
   }
 
-  function parseStepLine(source: SourceLine, step: Building): DiagramEvent[] {
+  /** `strip <題>: <欄>, <欄>` の行 */
+  function readStrip(source: SourceLine): void {
+    beforeSteps(source);
+    if (strip) throw fail(source, 0, m.stripTwice);
     const text = source.text;
-    if (text.startsWith(">")) {
-      step.body.push(text.slice(1).trim());
-      return [];
+    const start = skipSpaces(text, "strip".length);
+    let stripTitle: string;
+    let colon: number;
+    if (text[start] === '"') {
+      const quoted = readQuoted(source, start, m);
+      stripTitle = quoted.value;
+      colon = skipSpaces(text, quoted.end);
+    } else {
+      colon = text.indexOf(":", start);
+      stripTitle = colon < 0 ? "" : text.slice(start, colon).trim();
     }
-    const code = /^`(.*)`$/.exec(text);
-    if (code) {
-      if (step.code !== undefined) throw fail(source, 0, m.codeTwice);
-      step.code = code[1] ?? "";
-      return [];
-    }
-    if (own.stripValue.test(text)) return [parseStripValue(source)];
-    if (foreign.stripValue.test(text)) throw foreignWord(source, 0, "head", text.split(/\s+/)[0] ?? "");
-    if (text.includes("->")) return [parseEdge(source)];
-    if (/^[^\s=]+\s*=(?!>)/.test(text)) throw fail(source, 0, m.declarationInStep);
-    const swap = swapLine(text, lang);
-    if (swap?.indices?.[1]) {
-      const box = boxAt(source, swap[1] ?? "", swap.indices[1][0]);
-      if ((swap[2] ?? "") === "") throw fail(source, swap.indices[1][1], m.emptySwap);
-      return [{ type: "swap", box, text: swap[2] ?? "" }];
-    }
-    const action = /^([^\s:]+)\s*:\s*(.+)$/d.exec(text);
-    if (action?.indices?.[1]) return [{ type: "action", box: boxAt(source, action[1] ?? "", action.indices[1][0]), label: action[2] ?? "" }];
-    throw fail(source, 0, m.unreadableStepLine);
+    if (stripTitle === "" || text[colon] !== ":") throw fail(source, 0, m.stripShape);
+    strip = { title: stripTitle, fields: readList(source, colon + 1, m) };
   }
 
-  function parseEdge(source: SourceLine): DiagramEvent {
-    const { end, attrs } = trailingAttrs(source, 0);
-    const edge = /^([^\s:]+)\s*->\s*([^\s:]+)(?:\s*:\s*(.+))?$/d.exec(source.text.slice(0, end));
-    if (!edge?.indices?.[1] || !edge.indices[2]) throw fail(source, 0, m.edgeShape);
-    const from = boxAt(source, edge[1] ?? "", edge.indices[1][0]);
-    const to = boxAt(source, edge[2] ?? "", edge.indices[2][0]);
-    let carry: Carry | undefined;
-    let labelSide: LabelSide | undefined;
-    for (const attr of attrs) {
-      const kind = valueOf("carry", attr.key, lang);
-      const label = valueOf("attr", attr.key, lang) === "label";
-      if (kind !== undefined) {
-        if (carry) throw fail(source, attr.at, m.carryTwice);
-        if (kind === "tag") {
-          if (attr.value === "") throw fail(source, attr.at, m.tagNeedsValue);
-          carry = { kind, text: attr.value };
-        } else {
-          if (attr.value !== "") throw fail(source, attr.at, m.carryTakesNoValue(attr.key));
-          carry = { kind };
-        }
-      } else if (label && valueOf("side", attr.value, lang) !== undefined) {
-        labelSide = valueOf("side", attr.value, lang);
-      } else {
-        if (label && valueOf("side", attr.value, other) !== undefined) throw foreignWord(source, attr.at, "side", attr.value);
-        if (valueOf("carry", attr.key, other) !== undefined) throw foreignWord(source, attr.at, "carry", attr.key);
-        if (valueOf("attr", attr.key, other) !== undefined) throw foreignWord(source, attr.at, "attr", attr.key);
-        throw fail(source, attr.at, m.badAttr(attr.raw));
+  /**
+   * `say` の行と、その下に `say` より深く字下げして続けた行を段の本文にする。
+   * 続きの行の間の空行は本文の空の行になる。返すのは読み終えた最後の行の番号。
+   */
+  function readSay(source: SourceLine, index: number): number {
+    const step = inStep(source);
+    if (step.body !== undefined) throw fail(source, 0, m.sayTwice);
+    const inline = source.text.slice("say".length).trim();
+    const body = inline === "" ? [] : [inline];
+    let blanks = 0;
+    let last = index;
+    for (let j = index + 1; j < rest.length; j++) {
+      const next = rest[j];
+      if (!next) break;
+      if (next.text === "") {
+        blanks++;
+        continue;
       }
+      if (next.indent <= source.indent) break;
+      body.push(...Array.from({ length: blanks }, () => ""), next.text);
+      blanks = 0;
+      last = j;
     }
+    if (body.length === 0) throw fail(source, 0, m.emptySay);
+    step.body = body;
+    return last;
+  }
+
+  /** `act <名札>: <字>` と `note <名札>: <字>` の行の、箱と字 */
+  function readOnBox(source: SourceLine, word: "act" | "note", shape: string): { box: string; text: string } {
+    const found = new RegExp(`^${word}\\s+([^\\s:]+)\\s*:\\s*(.*)$`, "du").exec(source.text);
+    const idAt = found?.indices?.[1]?.[0];
+    if (!found || idAt === undefined || (found[2] ?? "") === "") throw fail(source, 0, shape);
+    return { box: boxAt(source, found[1] ?? "", idAt), text: found[2] ?? "" };
+  }
+
+  /** `<名札> -> <名札>: <線の名前> [<属性>]` の行 */
+  function readEdge(source: SourceLine, edge: RegExpExecArray): DiagramEvent {
+    const text = source.text;
+    const from = boxAt(source, edge[1] ?? "", edge.indices?.[1]?.[0] ?? 0);
+    const to = boxAt(source, edge[2] ?? "", edge.indices?.[2]?.[0] ?? 0);
+    let at = skipSpaces(text, edge[0].length);
+    let label: string | undefined;
+    if (text[at] === ":") {
+      const named = readName(source, at + 1, m);
+      if (named.value === "") throw fail(source, at, m.emptyLabel);
+      label = named.value;
+      at = named.rest;
+    }
+    if (at < text.length && text[at] !== "[") throw fail(source, at, m.edgeShape);
+    const attrs = at < text.length ? readAttrs(source, at, ATTRS.edge, m) : new Map<string, Attr>();
+    const tag = attrs.get("tag");
+    const carried = attrs.get("carry");
+    if (tag && carried) throw fail(source, Math.max(tag.at, carried.at), m.carryTwice);
+    if (carried && !isOneOf(CARRIES, carried.value)) throw fail(source, carried.at, m.badCarry);
+    const side = attrs.get("side");
+    if (side && !isOneOf(SIDES, side.value)) throw fail(source, side.at, m.badSide);
+    let carry: Carry = { kind: "envelope" };
+    if (tag) carry = { kind: "tag", text: tag.value };
+    else if (carried) carry = carried.value === "coin" ? { kind: "coin" } : { kind: "none" };
     return {
       type: "edge",
       from,
       to,
-      ...(edge[3] !== undefined ? { label: edge[3] } : {}),
-      carry: carry ?? { kind: "envelope" },
-      ...(labelSide ? { labelSide } : {}),
+      ...(label !== undefined ? { label } : {}),
+      carry,
+      ...(side ? { labelSide: side.value as LabelSide } : {}),
     };
   }
 
-  function parseStripValue(source: SourceLine): DiagramEvent {
-    if (!strip) throw fail(source, 0, m.stripUndeclared);
-    const start = new RegExp(`^${escape(wordOf("head", "strip", lang))}\\s+`).exec(source.text)?.[0].length ?? 0;
-    const { end, attrs } = trailingAttrs(source, start);
-    if (attrs.length > 1) throw fail(source, attrs[1]?.at ?? 0, m.stripTagOnce);
-    const rest = source.text.slice(start, end);
-    const assigned = /^(.+?)\s*=\s*(.+)$/.exec(rest);
-    const field = (assigned ? assigned[1] : rest)?.trim() ?? "";
-    if (!strip.fields.includes(field)) throw fail(source, start, m.noSuchField(field));
-    const tag = attrs[0]?.raw;
-    if (!assigned && tag === undefined) throw fail(source, start, m.stripNeedsValue);
+  /** `set <欄>: <値> [tag: <札>]` か `set <欄> [tag: <札>]` の行 */
+  function readSet(source: SourceLine): DiagramEvent {
+    const declared = strip;
+    if (!declared) throw fail(source, 0, m.stripUndeclared);
+    const text = source.text;
+    const start = skipSpaces(text, "set".length);
+    let field: string;
+    let at: number;
+    if (text[start] === '"') {
+      const quoted = readQuoted(source, start, m);
+      field = quoted.value;
+      at = skipSpaces(text, quoted.end);
+    } else {
+      at = start;
+      while (at < text.length && text[at] !== ":" && text[at] !== "[") at++;
+      field = text.slice(start, at).trim();
+    }
+    if (!declared.fields.includes(field)) throw fail(source, start, m.noSuchField(field));
+    let value: string | undefined;
+    if (text[at] === ":") {
+      const named = readName(source, at + 1, m);
+      if (named.value === "") throw fail(source, at, m.stripNeedsValue);
+      value = named.value;
+      at = named.rest;
+    }
+    if (at < text.length && text[at] !== "[") throw fail(source, at, m.stripNeedsValue);
+    const tag = at < text.length ? readAttrs(source, at, ATTRS.set, m).get("tag")?.value : undefined;
+    if (value === undefined && tag === undefined) throw fail(source, 0, m.stripNeedsValue);
     return {
       type: "strip",
       field,
-      ...(assigned ? { value: assigned[2] ?? "" } : {}),
+      ...(value !== undefined ? { value } : {}),
       ...(tag !== undefined ? { tag } : {}),
     };
   }
 }
 
-function looksLikeStepLine(text: string, lang: NotationLang): boolean {
-  return text.startsWith(">") || text.startsWith("`") || text.includes("->") || swapLine(text, lang) !== null;
-}
-
 export function parseNotation(notation: string, options: ParseOptions = {}): Parsed {
   try {
-    return { ok: true, diagram: parseLines(tokenize(notation), options.lang ?? "ja") };
+    return { ok: true, diagram: parseLines(tokenize(notation), messagesFor(options.lang ?? "ja")) };
   } catch (error) {
     if (!(error instanceof NotationError)) throw error;
     return { ok: false, errors: [{ line: error.line, column: error.column, message: error.message }] };

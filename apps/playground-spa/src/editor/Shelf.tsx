@@ -3,10 +3,10 @@
  *
  * 新規作成の釦、見本と部品と記法の 3 つの見出し、絞り込みの入力欄、一覧を持つ。
  * 見本は図の種類ごとに束ね、部品は押すと書く欄に行を足し、記法は行の形の早見を出す。
- * 部品と記法の行は、書く欄の記法と同じ言葉の語で出す (`shelf-items.ts`)。
+ * 部品と記法の行は dragon記法で出し、部品が足す名前と早見の穴は頁の言葉で書く (`shelf-items.ts`)。
  * 幅が狭い時は引き出しに畳み、書く欄の上の釦で開く。
  */
-import type { Diagram, NotationLang } from "@cardenelabs/dragon";
+import type { Diagram } from "@cardenelabs/dragon";
 import { type ReactElement, useMemo, useState } from "react";
 
 import type { ExampleKey } from "../examples";
@@ -17,10 +17,8 @@ type Tab = "samples" | "parts" | "notation";
 const TABS: readonly Tab[] = ["samples", "parts", "notation"];
 
 interface Props {
-  /** 頁の言葉。見出しと説明と見本はこの言葉で出す */
+  /** 頁の言葉。見出しと説明と見本と、部品が足す名前と早見の穴はこの言葉で出す */
   lang: Lang;
-  /** 書く欄の記法の言葉。部品と記法の行はこの言葉の語で出す */
-  notationLang: NotationLang;
   /** 部品を足す先の図 */
   base: Diagram | null;
   /** 開いている見本 */
@@ -33,7 +31,7 @@ interface Props {
   onPart: (id: PartId) => void;
 }
 
-export function Shelf({ lang, notationLang, base, active, open, onClose, onNew, onSample, onPart }: Props): ReactElement {
+export function Shelf({ lang, base, active, open, onClose, onNew, onSample, onPart }: Props): ReactElement {
   const t = TEXT[lang].shelf;
   const [tab, setTab] = useState<Tab>("samples");
   const [query, setQuery] = useState("");
@@ -43,13 +41,13 @@ export function Shelf({ lang, notationLang, base, active, open, onClose, onNew, 
     () =>
       base
         ? PART_IDS.map((id) => {
-            const added = partLines(id, base, notationLang);
+            const added = partLines(id, base, lang);
             return { id, lines: [...added.declarations, ...added.steps] };
           })
         : [],
-    [base, notationLang],
+    [base, lang],
   );
-  const syntax = useMemo(() => syntaxLines(notationLang), [notationLang]);
+  const syntax = useMemo(() => syntaxLines(lang), [lang]);
 
   const q = query.trim().toLowerCase();
   const matches = (...texts: string[]): boolean => q === "" || texts.some((text) => text.toLowerCase().includes(q));

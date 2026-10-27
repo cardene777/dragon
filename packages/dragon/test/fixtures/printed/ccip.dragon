@@ -1,99 +1,105 @@
-構成図 Chainlink CCIP でトークンを別のチェーンへ送る
+architecture Chainlink CCIP でトークンを別のチェーンへ送る
 
-区画 送信元 = 送信元チェーン「例 Ethereum」 [色 blue] [印 chain]
-区画 網 = Chainlink ネットワーク「DON」 [色 amber] [印 net]
-区画 送信先 = 送信先チェーン「例 Arbitrum」 [色 green] [印 chain]
-送るアプリ = 送る側のアプリ「メッセージを作る」 [印 app] [区画 送信元]
-送信元Router = Router「ただ 1 つの入口」 [印 router] [区画 送信元]
-OnRamp = OnRamp「確かめて送り出す」 [印 on] [区画 送信元]
-送信元Pool = Token Pool「預かるか焼く」 [印 pool] [区画 送信元]
-ブロック = ブロック「送信元チェーンの記録」 [印 block] [区画 送信元]
-Verifier = Committee Verifier「署名を集めて証明を作る」 [印 sign] [区画 網]
-Indexer = Indexer「証明を置く」 [印 idx] [区画 網]
-Executor = Executor「実行を頼む」 [印 exe] [区画 網]
-OffRamp = OffRamp「確かめて実行する」 [印 off] [区画 送信先]
-送信先Router = Router「ただ 1 つの入口」 [印 router] [区画 送信先]
-送信先Pool = Token Pool「解放するか発行」 [印 pool] [区画 送信先]
-受けるアプリ = 受け取る側のアプリ「受け取って処理する」 [印 app] [区画 送信先]
-帯 メッセージ = ID, 宛先, 受け取る側, データ, トークン, 署名, 状態
+group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue, icon: chain]
+  box 送るアプリ as 送る側のアプリ [note: メッセージを作る, icon: app]
+  box 送信元Router as Router [note: ただ 1 つの入口, icon: router]
+  box OnRamp [note: 確かめて送り出す, icon: on]
+  box 送信元Pool as Token Pool [note: 預かるか焼く, icon: pool]
+  box ブロック [note: 送信元チェーンの記録, icon: block]
+end
 
-# 送る
-> 送る側のアプリがメッセージを作り、Router の ccipSend() を呼ぶ。メッセージには受け取る側、データ、送るトークンを入れ、手数料を LINK かそのチェーンの通貨で払う。
-`ccipSend(宛先チェーン, メッセージ)`
-帯 ID = まだ無い
-帯 宛先 = Arbitrum
-帯 受け取る側 = 0x7a1c…3f
-帯 データ = 注文 #42
-帯 トークン = 100 USDC
-送るアプリ -> 送信元Router : ccipSend() [名前 下]
+group 網 as Chainlink ネットワーク [note: DON, color: amber, icon: net]
+  box Verifier as Committee Verifier [note: 署名を集めて証明を作る, icon: sign]
+  box Indexer [note: 証明を置く, icon: idx]
+  box Executor [note: 実行を頼む, icon: exe]
+end
 
-# 受け付ける
-> Router が宛先に合った OnRamp へ渡す。Router はアプリから見たただ 1 つの入口で、どのチェーンでも同じ形をしている。
-送信元Router -> OnRamp
+group 送信先 as 送信先チェーン [note: 例 Arbitrum, color: green, icon: chain]
+  box OffRamp [note: 確かめて実行する, icon: off]
+  box 送信先Router as Router [note: ただ 1 つの入口, icon: router]
+  box 送信先Pool as Token Pool [note: 解放するか発行, icon: pool]
+  box 受けるアプリ as 受け取る側のアプリ [note: 受け取って処理する, icon: app]
+end
 
-# 中身を確かめる
-> OnRamp がトークンの数、ガスの上限、データの長さを確かめ、宛先が緊急停止されていないことも確かめる。通ったメッセージの ID が決まる。
-OnRamp : 中身を確かめる
-帯 ID = 0x9f3c…a1
+strip メッセージ: ID, 宛先, 受け取る側, データ, トークン, 署名, 状態
 
-# トークンを預ける
-> OnRamp が Token Pool の lockOrBurn() を呼ぶ。トークンは預かられるか焼かれ、送信元チェーンから出ていく。一度に送れる量の上限もここで効く。
-`lockOrBurn()`
-OnRamp -> 送信元Pool : lockOrBurn() [硬貨] [名前 下]
-送信元Pool「−100 USDC」
+step 送る
+  say 送る側のアプリがメッセージを作り、Router の ccipSend() を呼ぶ。メッセージには受け取る側、データ、送るトークンを入れ、手数料を LINK かそのチェーンの通貨で払う。
+  code ccipSend(宛先チェーン, メッセージ)
+  set ID: まだ無い
+  set 宛先: Arbitrum
+  set 受け取る側: 0x7a1c…3f
+  set データ: 注文 #42
+  set トークン: 100 USDC
+  送るアプリ -> 送信元Router: ccipSend() [side: below]
 
-# 出来事を残す
-> OnRamp が CCIPMessageSent を出し、メッセージは送信元チェーンのブロックに記録される。
-`CCIPMessageSent`
-OnRamp -> ブロック : CCIPMessageSent [名前 左]
+step 受け付ける
+  say Router が宛先に合った OnRamp へ渡す。Router はアプリから見たただ 1 つの入口で、どのチェーンでも同じ形をしている。
+  送信元Router -> OnRamp
 
-# 確定を待つ
-> 既定では、そのブロックが確定するまで先へ進まない。チェーンごとの確定の条件を満たし、巻き戻らない状態になってから検証に入る。
-ブロック : 確定を待つ
+step 中身を確かめる
+  say OnRamp がトークンの数、ガスの上限、データの長さを確かめ、宛先が緊急停止されていないことも確かめる。通ったメッセージの ID が決まる。
+  act OnRamp: 中身を確かめる
+  set ID: 0x9f3c…a1
 
-# 検証して署名する
-> Committee Verifier (Chainlink の DON) の各ノードが、送信元チェーンの記録とメッセージが合っているかを確かめて署名する。定足数の署名がそろうと、そのメッセージの証明になる。
-ブロック -> Verifier
-Verifier : 署名を集める
-帯 署名 [証明]
+step トークンを預ける
+  say OnRamp が Token Pool の lockOrBurn() を呼ぶ。トークンは預かられるか焼かれ、送信元チェーンから出ていく。一度に送れる量の上限もここで効く。
+  code lockOrBurn()
+  OnRamp -> 送信元Pool: lockOrBurn() [carry: coin, side: below]
+  note 送信元Pool: −100 USDC
 
-# 証明を置く
-> 証明はメッセージの ID に結び付けて Indexer に置かれ、誰でも取り出せる。
-`VerifierResult`
-Verifier -> Indexer : VerifierResult [札 証明] [名前 上]
-Indexer「証明を置いた」
+step 出来事を残す
+  say OnRamp が CCIPMessageSent を出し、メッセージは送信元チェーンのブロックに記録される。
+  code CCIPMessageSent
+  OnRamp -> ブロック: CCIPMessageSent [side: left]
 
-# 証明をそろえる
-> Executor がメッセージと、送信先が求める全ての証明を Indexer から集め、送信先チェーンへ運ぶ。
-Indexer -> Executor
+step 確定を待つ
+  say 既定では、そのブロックが確定するまで先へ進まない。チェーンごとの確定の条件を満たし、巻き戻らない状態になってから検証に入る。
+  act ブロック: 確定を待つ
 
-# 実行を頼む
-> Executor が送信先チェーンの OffRamp の execute() を呼ぶ。この呼び出しは誰でもでき、Executor は代わりに打っているだけ。
-`OffRamp.execute()`
-Executor -> OffRamp : execute() [名前 右]
-帯 状態 = UNTOUCHED
+step 検証して署名する
+  say Committee Verifier (Chainlink の DON) の各ノードが、送信元チェーンの記録とメッセージが合っているかを確かめて署名する。定足数の署名がそろうと、そのメッセージの証明になる。
+  ブロック -> Verifier
+  act Verifier: 署名を集める
+  set 署名 [tag: 証明]
 
-# 証明を確かめる
-> OffRamp が各 CCV に証明を確かめさせる。求められた CCV が 1 つでも通らなければ実行しない。
-OffRamp : 証明を確かめる
-OffRamp「CCV で確かめる」
-帯 署名 [検証済]
+step 証明を置く
+  say 証明はメッセージの ID に結び付けて Indexer に置かれ、誰でも取り出せる。
+  code VerifierResult
+  Verifier -> Indexer: VerifierResult [tag: 証明, side: above]
+  note Indexer: 証明を置いた
 
-# トークンを渡す
-> OffRamp が Token Pool の releaseOrMint() を呼ぶ。トークンは解放されるか新しく発行され、受け取る側へ直接渡る。
-`releaseOrMint()`
-OffRamp「確かめて実行する」
-OffRamp -> 送信先Pool : releaseOrMint() [なし] [名前 上]
-送信先Pool「100 USDC を発行」
-送信先Pool -> 受けるアプリ [硬貨]
-受けるアプリ「+100 USDC」
+step 証明をそろえる
+  say Executor がメッセージと、送信先が求める全ての証明を Indexer から集め、送信先チェーンへ運ぶ。
+  Indexer -> Executor
 
-# 届ける
-> OffRamp が Router を通して受け取る側の ccipReceive() を呼ぶ。最後まで通ると、メッセージは SUCCESS として記録される。
-`ccipReceive()`
-OffRamp -> 送信先Router
-送信先Router -> 受けるアプリ
-受けるアプリ「ccipReceive()」
-帯 状態 = SUCCESS
-受けるアプリ「注文 #42 と 100 USDC」
-OffRamp「SUCCESS を記録」
+step 実行を頼む
+  say Executor が送信先チェーンの OffRamp の execute() を呼ぶ。この呼び出しは誰でもでき、Executor は代わりに打っているだけ。
+  code OffRamp.execute()
+  Executor -> OffRamp: execute() [side: right]
+  set 状態: UNTOUCHED
+
+step 証明を確かめる
+  say OffRamp が各 CCV に証明を確かめさせる。求められた CCV が 1 つでも通らなければ実行しない。
+  act OffRamp: 証明を確かめる
+  note OffRamp: CCV で確かめる
+  set 署名 [tag: 検証済]
+
+step トークンを渡す
+  say OffRamp が Token Pool の releaseOrMint() を呼ぶ。トークンは解放されるか新しく発行され、受け取る側へ直接渡る。
+  code releaseOrMint()
+  note OffRamp: 確かめて実行する
+  OffRamp -> 送信先Pool: releaseOrMint() [carry: none, side: above]
+  note 送信先Pool: 100 USDC を発行
+  送信先Pool -> 受けるアプリ [carry: coin]
+  note 受けるアプリ: +100 USDC
+
+step 届ける
+  say OffRamp が Router を通して受け取る側の ccipReceive() を呼ぶ。最後まで通ると、メッセージは SUCCESS として記録される。
+  code ccipReceive()
+  OffRamp -> 送信先Router
+  送信先Router -> 受けるアプリ
+  note 受けるアプリ: ccipReceive()
+  set 状態: SUCCESS
+  note 受けるアプリ: 注文 #42 と 100 USDC
+  note OffRamp: SUCCESS を記録

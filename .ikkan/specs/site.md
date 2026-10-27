@@ -16,7 +16,7 @@
 | 拡大の釦で画面を覆う重ね窓に図 1 つが大きく出て、閉じる釦と Escape で閉じ、「編集画面で開く」でその記法が入った編集画面が開く | `pnpm test`の検査`category-item-opens-overlay-and-editor`が通る | #3033 |
 | カタログに載せた見本がすべて今の記法で読めて、schema の検査で誤りが 0 件になる | `pnpm test`の検査`catalog-samples-all-valid`が通る | #3033 |
 | 分類の頁の色味の切替 (サイトと同じ、紙と墨、澄んだ色、夜の計器) はその見本の図の色だけを替え、「サイトと同じ」で上の帯の色味に戻る | `pnpm test`の検査`category-palette-overrides-one-diagram`が通る | #3033 |
-| 使い方の頁に前置き、見出し、編集画面とカタログへの釦 2 つ、特長の札と、今の記法 (箱、線、区画、段、帯、運ぶ物、JSON、書き出し) を説明する節が並び、本文の記法の例はすべて読めて図が描かれる | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3034、#3079 |
+| 使い方の頁に前置き、見出し、編集画面とカタログへの釦 2 つ、特長の札と、今の記法 (箱、線、区画、段、帯、運ぶ物、JSON、書き出し) を説明する節が並び、本文の記法の例はすべて新しい形で読めて図が描かれる。dragon記法の全ての行の種類 (行の頭の語と、線の `->`) を節の例のどれかが使い、節の本文のどれかがその語で説明する | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3034、#3079、#3137 |
 | 概要の版の札と更新履歴の版が、`packages/dragon/package.json` の版を build 時に差し込んだ `v{major}.{minor}` になる | `pnpm test`の検査`version-badge-from-package`が通る | #3035 |
 | 更新履歴の頁に版と、変更の記録 (`CHANGELOG.md`) を GitHub で見る釦 1 つが出る | `pnpm test`の検査`release-notes-shows-version-and-changelog-link`が通る | #3035 |
 | 見つからない頁に大きな `404` と行き先の釦が並び、説明の入口の数が釦の数と一致する | `pnpm test`の検査`not-found-counts-destinations`が通る | #3035 |

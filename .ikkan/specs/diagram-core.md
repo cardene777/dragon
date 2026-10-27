@@ -39,24 +39,23 @@
 | 寄って見せる図を動画に書き出した時、最初のコマと途中のコマで見ている範囲が違う | `pnpm test`の検査`export-video-follows-camera`が通る | #2986 #3042 |
 | HTML に書き出した時、図で使った字だけを含む字の file が HTML の中に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #2986 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2986 |
-| 英語の語で書き直した 3 つの見本の英語版 (`packages/dragon/examples` の `intro.en.dragon` と `oauth.en.dragon` と `ccip.en.dragon`) を読んだ時、日本語の語で書いていた時と同じ JSON になる | `pnpm test`の検査`english-words-compile-to-same-json`が通る | #2997 |
-| 日本語の語で書いた今の見本 (`intro.dragon` と `oauth.dragon` と `ccip.dragon`) を読んだ時、今と同じ JSON になる | `pnpm test`の検査`japanese-examples-compile-unchanged`が通る | #2997 |
-| 記法の語は役割ごとに日本語と英語の組で 1 つの表に並び、どちらかの言葉が欠けた役割か、語の無い原本の JSON の値 (図の種類、運ぶ物、見せ方、名前の側) があると検査が落ちる | `pnpm test`の検査`keyword-table-pairs-every-role`が通る | #2997 |
-| 最初の行と違う言葉の語を書いた行がある時 (英語の file の `区画 src = …` や、日本語の file の `[color blue]`)、その行と列を示し、file の言葉の語を示して落ちる | `pnpm test`の検査`other-language-word-reports-file-word`が通る | #2997 |
-| 語と同じ綴りの名札 (英語の file の `region` や `strip` や `view`、日本語の file の `帯`) の箱を宣言した時、その箱が宣言でも線でも処理でも書き換えでも箱として読まれる。名札の次に `->` が来る行 (`帯 -> 受け手 : 1 通`) は線と読む | `pnpm test`の検査`keyword-spelled-ids-read-as-boxes`が通る | #2997 |
-| 帯の値に `->` を含む行 (`帯 状態 = A -> B`) は、今と同じく帯の値の行として読まれる | `pnpm test`の検査`strip-value-with-arrow-stays-strip`が通る | #2997 |
-| 英語の語の file で、区画の添え書きと箱の下の字と書き換えの字を `"…"` で囲んだ時、「」で囲んだ時と同じ JSON になる。英語の語の file でも「」で囲んだ字を読める | `pnpm test`の検査`double-quotes-read-like-corner-brackets`が通る | #2997 |
-| 日本語の語の file では `"` を囲みとして読まず、`a = App "x"` の箱の名前は今と同じく `App "x"` のまま読まれる | `pnpm test`の検査`japanese-file-keeps-double-quotes-literal`が通る | #2997 |
-| 英語の言葉を渡して JSON から記法へ書き戻した時、英語の語で書き、添え書きと下の字と書き換えの字を `"…"` で囲む。名前か字に `"` を含む物は「」で囲む。3 つの見本と、名前に `"` を含む箱を書き戻して読み直すと、元の JSON と一致する | `pnpm test`の検査`roundtrip-in-english-keeps-json-identical`が通る | #2997 |
-| 言葉を渡さずに JSON から記法へ書き戻した時、今と同じ日本語の語と「」で書く | `pnpm test`の検査`print-defaults-to-japanese`が通る | #2997 |
-| 英語の語の file に誤りがある時、行と列を示し、誤りの文を英語で出す (誤りの文に仮名と漢字が入らない) | `pnpm test`の検査`english-file-errors-in-english`が通る | #2997 |
-| 日本語の語の file に誤りがある時、今と同じ日本語の誤りの文を出す | `pnpm test`の検査`japanese-file-errors-stay-japanese`が通る | #2997 |
-| 最初の行が読めず言葉が決まらない時、呼ぶ側が渡した言葉で誤りの文を出し、渡さなければ日本語で出す | `pnpm test`の検査`unknown-language-errors-use-given-language`が通る | #2997 |
-| 日本語の語の囲みと英語の語の囲みを 1 つの Markdown に並べた時、囲みごとにその言葉で読まれる | `pnpm test`の検査`markdown-fences-read-each-language`が通る | #2997 |
-| 使い方の文書の英語版 `packages/dragon/examples/quick-start.en.md` が在り、その中の dragon の囲みがすべて英語の語で書かれて読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #2997 |
+| 新しい形で書いた `packages/dragon/examples/oauth.dragon` と `ccip.dragon` を `parseNotation` が読み、今と同じ `oauth.json` と `ccip.json` を返す | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-compiles-oauth-to-json`と`notation-compiles-ccip-to-json`が通る | #3137 |
+| 行の一覧の全ての種類を 1 つずつ書いた記法を読み、`as` の無い箱は名札を名前にし、`say` の下に字下げして続けた行は 1 つの本文につなぎ、段は次の `step` か file の終わりで閉じる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-reads-every-line-kind`が通る | #3137 |
+| 空白を含む名前を `[` の前に置いた行と、`,` か `]` を含む値を引用符で囲んだ属性を読み、引用符の中の字をそのまま値にする | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-reads-quoted-and-spaced-values`が通る | #3137 |
+| `end` の無い `group`、一覧に無い行の頭の語、コロンの無い属性、知らない属性の鍵、宣言していない名札は、行と列を示した誤りで止まる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-reports-line-and-column`と`notation-rejects-unclosed-group`が通る | #3137 |
+| 日本語の語で書いた今の形 (`時系列図` か `構成図` で始まる file、「」で囲んだ字) は読まず、新しい形の語を示す誤りで止まる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-rejects-the-old-form`が通る | #3137 |
+| 記法の誤りの文は呼ぶ側が渡した言葉 (`ja` か `en`) で出し、渡さなければ日本語で出す。file の字から言葉を決めない。英語の文は同じ行と列を示し、仮名と漢字を含まない | `pnpm test`の検査`errors-follow-given-language`が通る | #3137 |
+| `printNotation` が新しい形を出し、出した記法を読み直すと元の JSON と同じになる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`roundtrip-keeps-json-identical`が通る | #3137 |
+| `printNotation` が書き戻した記法が、`packages/dragon/test/fixtures/printed/` の見本と 1 字も違わない | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`print-matches-the-printed-fixtures`が通る | #3137 |
+| `printNotation` は、`,` か `]` を含む値と `[` を含む名前だけを引用符で囲んで書き戻し、それ以外の値は囲まない | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`print-quotes-only-when-needed`が通る | #3137 |
+| 欄の並び順だけが違う同じ内容の JSON は、今どおり同じ記法に書き戻す | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`print-is-stable`が通る | #3137 |
+| repo の全ての `.dragon` の file (`git ls-files '*.dragon'` が挙げる file) を `parseNotation` が誤り無く読む | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`every-dragon-file-parses`が通る | #3137 |
+| markdown の dragon の囲みから図の字を取り出す動きは今どおり | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`markdown-fence-extracts-every-diagram`が通る | #3137 |
+| 使い方の文書の英語版 `packages/dragon/examples/quick-start.en.md` が在り、その中の dragon の囲みがすべて新しい形で読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #2997、#3137 |
 | 公開する頁で言葉を EN にした時、編集画面の左の棚の 3 つの見本のどれを選んでも、書く欄の記法に日本語の語 (`時系列図` や `帯`) が 1 つも無い | `pnpm test`の検査`english-page-examples-use-english-words`が通る | #2997、#3031 |
-| 頁で JSON の側を書き換えた時、書く欄の記法は書き換える前の記法の言葉の語で書き戻される。書く欄の最初の行が読めない時は頁の言葉で書き戻す | `pnpm test`の検査`json-edit-keeps-notation-language`が通る | #2997 |
-| 頁の書く欄の記法に誤りがある時、欄の下の誤りの文を記法の言葉で出す。最初の行が読めない時は頁の言葉で出す | `pnpm test`の検査`page-errors-follow-notation-language`が通る | #2997 |
+| 編集画面で JSON を直した後に書き戻す記法が、新しい形になる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`json-edit-prints-dragon-notation`が通る | #2997、#3137 |
+| 使い方の頁の節が記法の全ての行の種類を扱い、頁に載せた例は全て新しい形で読める | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3137 |
+| 頁の書く欄の記法に誤りがある時、欄の下の誤りの文と行の番号を頁の言葉で出す。図の字の言葉には従わない | `pnpm test`の検査`page-errors-follow-page-language`が通る | #2997、#3137 |
 | 原本の JSON の検査に英語を渡した時、書けない欄、要る欄、決まった値、道具より新しい版、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文に仮名と漢字が 1 つも無い | `pnpm test`の検査`json-errors-in-english`が通る | #2999 |
 | 言葉を渡さずに原本の JSON を検査した時、書けない欄、要る欄、決まった値、道具より新しい版の誤りの文が今と同じ文字列になる | `pnpm test`の検査`json-errors-default-japanese-unchanged`が通る | #2999 |
 | 日本語を渡した時と言葉を渡さない時、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文が日本語で書かれ、ajv の英語の文 (`must …`) を含まない | `pnpm test`の検査`json-errors-in-japanese-for-ajv-rules`が通る | #2999 |
@@ -72,9 +71,9 @@
 | 言葉を渡さない時と日本語を渡した時、断りの文 (`図を描けない: <場所> <誤りの文>`)、全体図の札 (`全体図`)、読み上げの名前 (`前の段` `止める` `動かす` `次の段` `<題> の段`) が今と同じ文字列になる | `pnpm test`の検査`render-text-default-japanese-unchanged`が通る | #3001 |
 | 寄って動かす見せ方で、高さが幅の 6 倍ほどある縦に長い図 (箱 2 つで段 30) を置いた時も、全体図の札 (`全体図` と `Overview`) が全体図の地の中に収まる。収まりは書き出した HTML を Chromium で開き、札と地の描かれた幅 (`getBBox`) で比べる | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3001 |
 | 公開する頁で手を入れた記法を描いたまま言葉を EN に切り替えた時、再生の釦と段の一覧の読み上げの名前が英語になり、寄って動かす見せ方の図の全体図の札が `Overview` になる。日本語に戻すと日本語の名前と札に戻る | `pnpm test`の検査`page-player-labels-follow-page-language`が通る | #3001 |
-| 日本語の頁で英語の語の記法を描いた時、再生の釦と段の一覧の読み上げの名前と全体図の札は頁の言葉 (日本語) で出る | `pnpm test`の検査`page-player-labels-ignore-notation-language`が通る | #3001 |
-| `dragon export` に `--lang` なしで記法の file を渡した時、英語の語の file は英語、日本語の語の file は日本語で、書き出した HTML の `lang` 属性と、開いた時の読み上げの名前と、寄って見せる時の全体図の札が書かれる | `pnpm test`の検査`export-follows-notation-language`が通る | #3001 |
-| `dragon export` に `--lang` を渡した時は記法の file の言葉より `--lang` に従う。JSON の原本は `--lang en` なら英語、`--lang` なしなら今の日本語で、HTML の `lang` 属性と読み上げの名前と全体図の札を書き出す | `pnpm test`の検査`export-lang-flag`が通る | #3001 |
+| 日本語の頁で英語の字の図を描いた時、再生の釦と段の一覧の読み上げの名前と全体図の札は頁の言葉 (日本語) で出る | `pnpm test`の検査`page-player-labels-ignore-notation-language`が通る | #3001 |
+| `dragon export` に `--lang` なしで記法の file を渡した時、英語の字の見本も日本語の字の見本も日本語で、書き出した HTML の `lang` 属性と、開いた時の読み上げの名前と、寄って見せる時の全体図の札が書かれる | `pnpm test`の検査`export-without-lang-is-japanese`が通る | #3001、#3137 |
+| `dragon export` に `--lang` を渡した時は、記法の file でも JSON の原本でもその言葉に従う。JSON の原本は `--lang en` なら英語、`--lang` なしなら今の日本語で、HTML の `lang` 属性と読み上げの名前と全体図の札を書き出す | `pnpm test`の検査`export-lang-flag`が通る | #3001、#3137 |
 | `dragon export` に `--lang en` と形の誤りのある JSON の原本を渡した時、何も書き出さずに終了 1 で終わり、出した断りの文は `Cannot draw the diagram:` で始まって誤りの場所 (`/boxes/0/colour` など) を含み、仮名と漢字を含まない | `pnpm test`の検査`export-refusal-follows-language`が通る | #3001 |
 | `dragon export` の `--lang` に `ja` と `en` 以外を渡した時、何も書き出さずに終了 2 で終わり、使い方を出す。使い方には `--lang` の行がある | `pnpm test`の検査`export-rejects-unknown-lang`が通る | #3001 |
 | 書き出しの部品 (`exportDiagram`) に英語を渡して HTML を書き出した時、埋めた字の file は全体図の札 `Overview` の字を含み、`全体図` の字と図で描かない字を含まない (原本は大文字の `O` を持たない図にする) | `pnpm test`の検査`html-export-font-subset-follows-language`が通る | #3001 |
@@ -86,10 +85,10 @@
 | 無い file を渡した時、`図の file が無い: <渡した path>` の 1 行を出して終了 1 で終わる。`--lang en` を渡すと `No such diagram file: <渡した path>` になる | `pnpm test`の検査`cli-missing-file-follows-language`が通る | #3003 |
 | file の代わりに dir を渡した時、`図の file を読めない: <渡した path> (<Node の文>)` を出して終了 1 で終わる。`--lang en` を渡すと頭が `Cannot read the diagram file: <渡した path> (` になる | `pnpm test`の検査`cli-unreadable-file-follows-language`が通る | #3003 |
 | JSON として読めない `.json` の file を渡した時、`JSON として読めない: <渡した path> (<Node の文>)` を出して終了 1 で終わる。括弧の中は同じ中身を `JSON.parse` に渡した時の文と同じ。`--lang en` を渡すと頭が `Cannot read as JSON: <渡した path> (` になる | `pnpm test`の検査`cli-bad-json-follows-language`が通る | #3003 |
-| `playwright-core` が解決できない場で PNG を書き出した時、`--lang en` を渡した JSON の原本でも、`--lang` なしの英語の記法の file でも、断りの文は `Exporting needs playwright-core.` で始まり、入れ方の 2 つの命令 (`pnpm add -D playwright-core` と `pnpm exec playwright-core install chromium`) を含み、仮名と漢字を含まず、終了 1 で終わる。解決できない場は `node --import` で読ませる hook が `playwright-core` の解決を断って作る | `pnpm test`の検査`cli-missing-playwright-in-english`が通る | #3003 |
-| Chromium の置き場 (`PLAYWRIGHT_BROWSERS_PATH`) を空の dir に向けて PNG を書き出した時、`--lang en` を渡した JSON の原本でも、`--lang` なしの英語の記法の file でも、断りの文は `Cannot launch Chromium.` で始まり、入れ方の 2 つの命令を含み、括弧の中の Playwright の文を含めて仮名と漢字を含まず、終了 1 で終わる | `pnpm test`の検査`cli-chromium-refusal-in-english`が通る | #3003 |
+| `playwright-core` が解決できない場で PNG を書き出した時、`--lang en` を渡した JSON の原本でも、`--lang en` を渡した英語の記法の file でも、断りの文は `Exporting needs playwright-core.` で始まり、入れ方の 2 つの命令 (`pnpm add -D playwright-core` と `pnpm exec playwright-core install chromium`) を含み、仮名と漢字を含まず、終了 1 で終わる。解決できない場は `node --import` で読ませる hook が `playwright-core` の解決を断って作る | `pnpm test`の検査`cli-missing-playwright-in-english`が通る | #3003、#3137 |
+| Chromium の置き場 (`PLAYWRIGHT_BROWSERS_PATH`) を空の dir に向けて PNG を書き出した時、`--lang en` を渡した JSON の原本でも、`--lang en` を渡した英語の記法の file でも、断りの文は `Cannot launch Chromium.` で始まり、入れ方の 2 つの命令を含み、括弧の中の Playwright の文を含めて仮名と漢字を含まず、終了 1 で終わる | `pnpm test`の検査`cli-chromium-refusal-in-english`が通る | #3003、#3137 |
 | 言葉を選ばずに JSON の原本で同じ 2 つの場から PNG を書き出した時、断りの文は今と同じ `書き出しには playwright-core が要る。<入れ方>` と `Chromium を起動できない。<入れ方> (<Playwright の文>)` になる | `pnpm test`の検査`cli-export-refusal-default-japanese-unchanged`が通る | #3003 |
-| `--lang` と記法の file の言葉が違う時、記法の行の誤りの文は file の言葉で出る。英語の記法の file に `--lang ja` を付けると `<path>:<行> Cannot read this line.` で始まり、日本語の記法の file に `--lang en` を付けると `<path>:<行> 読めない行。` で始まる | `pnpm test`の検査`cli-notation-errors-follow-file`が通る | #3003 |
+| 記法の行の誤りの文は、英語の字の file でも日本語の字の file でも `--lang` の言葉で出て、`--lang` なしなら日本語で出る。一覧に無い行の頭の語を書くと、`--lang en` なら `<path>:<行> A line cannot start with <語>.`、それ以外は `<path>:<行> <語> は行の頭に書けない。` で始まる | `pnpm test`の検査`cli-notation-errors-follow-lang`が通る | #3003、#3137 |
 | `--lang` に `ja` と `en` 以外を渡した時、何も書き出さずに終了 2 で終わり、日本語の使い方を出す | `pnpm test`の検査`export-rejects-unknown-lang`が通る | #3003 |
 | 再生の部品 (`mountDiagram`) で枠の幅 390px と 560px に寄って追う図 (`view` が `follow`) を置いた時、時系列図 (oauth) と構成図 (ccip) のどちらでも、全体図の地 (`.dg-mm-bg`) が窓の枠 (`.dg-vp-frame`) と重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3042 |
 | 寄って追う図で、全体図の高さが幅より大きい時 (oauth) は全体図が窓の右に、幅が高さ以上の時 (ccip) は窓の下に出る | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3042 |
@@ -125,7 +124,7 @@
 | 全体図を出す時、全体図が今見ている所の枠と札を持つ | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3055 |
 | 枠の中で見える高さが今の窓より低い時、窓と全体図がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3055 |
 | 枠の中で見える高さが今の窓より高い時、窓が伸び、全体図の大きさは変わらない | `pnpm test`の検査`follow-window-grows-to-frame-height`が通る | #3055 |
-| 書き出した HTML を幅 440px で開いた時、再生の釦と全体図の札が記法の言葉で出る | `pnpm test`の検査`export-follows-notation-language`が通る | #3055 |
+| `--lang` なしで書き出した HTML を幅 440px で開いた時、再生の釦と全体図の札が日本語で出る | `pnpm test`の検査`export-without-lang-is-japanese`が通る | #3055、#3137 |
 | 書き出しの命令に言葉を渡した時、再生の釦と全体図の札がその言葉で出る | `pnpm test`の検査`export-lang-flag`が通る | #3055 |
 | 縦に長い図の書き出した HTML を幅 440px で開いた時、全体図の札が全体図の地からはみ出さない | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3055 |
 | 編集画面で、全体図を出す見本 (860px の oauth と ccip、390px の ccip) の全体図が窓に重ならず図の枠の中にある | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3055 |

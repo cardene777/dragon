@@ -1,78 +1,79 @@
-時系列図 OAuth 2.0 でログインして API を呼ぶ (認可コードと PKCE)
+sequence OAuth 2.0 でログインして API を呼ぶ (認可コードと PKCE)
 
-ブラウザ = 利用者のブラウザ「利用者が操作する」 [色 slate] [印 globe]
-アプリ = アプリ「ログインを頼む側」 [色 blue] [印 app]
-認可 = 認可サーバー「本人を確かめる」 [色 violet] [印 shield]
-API = API「利用者のデータ」 [色 green] [印 server]
-帯 アプリが持つ値 = state, code_verifier, 認可コード, アクセストークン, リフレッシュトークン
+box ブラウザ as 利用者のブラウザ [note: 利用者が操作する, color: slate, icon: globe]
+box アプリ [note: ログインを頼む側, color: blue, icon: app]
+box 認可 as 認可サーバー [note: 本人を確かめる, color: violet, icon: shield]
+box API [note: 利用者のデータ, color: green, icon: server]
 
-# ログインを押す
-> 利用者がアプリのログインを押す。アプリは ID もパスワードも受け取らず、本人の確認を認可サーバーに任せる。
-`GET /login`
-ブラウザ -> アプリ : GET /login
+strip アプリが持つ値: state, code_verifier, 認可コード, アクセストークン, リフレッシュトークン
 
-# 鍵の元を作る
-> アプリが使い捨ての code_verifier を作り、その SHA-256 を code_challenge にする。戻りを見分ける state も作り、手元に残す。
-`code_challenge = BASE64URL(SHA-256(code_verifier))`
-アプリ : 鍵の元を作る
-帯 code_verifier = dBjf…
-帯 state = af0i…
+step ログインを押す
+  say 利用者がアプリのログインを押す。アプリは ID もパスワードも受け取らず、本人の確認を認可サーバーに任せる。
+  code GET /login
+  ブラウザ -> アプリ: GET /login
 
-# 認可サーバーへ回す
-> アプリはブラウザを認可サーバーへリダイレクトする。code_challenge と state は URL に載り、ブラウザを通って運ばれる。
-`GET /authorize?code_challenge=…&state=…`
-アプリ -> ブラウザ : 302 で転送 [札 challenge]
-ブラウザ -> 認可 : GET /authorize [札 challenge]
+step 鍵の元を作る
+  say アプリが使い捨ての code_verifier を作り、その SHA-256 を code_challenge にする。戻りを見分ける state も作り、手元に残す。
+  code code_challenge = BASE64URL(SHA-256(code_verifier))
+  act アプリ: 鍵の元を作る
+  set code_verifier: dBjf…
+  set state: af0i…
 
-# ログインと同意
-> 認可サーバーが利用者を確かめ、アプリに渡す範囲 (scope) への同意を取る。パスワードはアプリに一度も渡らない。
-認可 -> ブラウザ : ログイン画面
-ブラウザ -> 認可 : ID とパスワードと同意
+step 認可サーバーへ回す
+  say アプリはブラウザを認可サーバーへリダイレクトする。code_challenge と state は URL に載り、ブラウザを通って運ばれる。
+  code GET /authorize?code_challenge=…&state=…
+  アプリ -> ブラウザ: 302 で転送 [tag: challenge]
+  ブラウザ -> 認可: GET /authorize [tag: challenge]
 
-# 認可コードを付けて戻す
-> 認可サーバーは短命の認可コードを発行し、登録済みの redirect_uri へブラウザを戻す。コードもブラウザを通る。
-`302 redirect_uri?code=…&state=…`
-認可 -> ブラウザ : 302 で転送 [札 code]
-ブラウザ -> アプリ : GET /callback [札 code]
-帯 認可コード = Splx…
+step ログインと同意
+  say 認可サーバーが利用者を確かめ、アプリに渡す範囲 (scope) への同意を取る。パスワードはアプリに一度も渡らない。
+  認可 -> ブラウザ: ログイン画面
+  ブラウザ -> 認可: ID とパスワードと同意
 
-# state を確かめる
-> アプリは戻った state が送った値と同じかを確かめる。違えば他人が仕組んだ戻りとみなして捨てる。
-アプリ : state を照らす
-帯 state [一致]
+step 認可コードを付けて戻す
+  say 認可サーバーは短命の認可コードを発行し、登録済みの redirect_uri へブラウザを戻す。コードもブラウザを通る。
+  code 302 redirect_uri?code=…&state=…
+  認可 -> ブラウザ: 302 で転送 [tag: code]
+  ブラウザ -> アプリ: GET /callback [tag: code]
+  set 認可コード: Splx…
 
-# コードを交換する
-> アプリは認可コードと code_verifier を、ブラウザを通さず認可サーバーへ直接送る。
-`POST /token  code=…&code_verifier=…`
-アプリ -> 認可 : 直接 POST /token [札 code + verifier]
-帯 code_verifier [渡した]
-帯 認可コード [渡した]
+step state を確かめる
+  say アプリは戻った state が送った値と同じかを確かめる。違えば他人が仕組んだ戻りとみなして捨てる。
+  act アプリ: state を照らす
+  set state [tag: 一致]
 
-# 照らし合わせる
-> 認可サーバーは code_verifier の SHA-256 が最初の code_challenge と同じか、コードが未使用で期限内かを確かめ、コードを使用済みにする。
-認可 : 照らし合わせる
-帯 認可コード [使えない]
+step コードを交換する
+  say アプリは認可コードと code_verifier を、ブラウザを通さず認可サーバーへ直接送る。
+  code POST /token  code=…&code_verifier=…
+  アプリ -> 認可: 直接 POST /token [tag: code + verifier]
+  set code_verifier [tag: 渡した]
+  set 認可コード [tag: 渡した]
 
-# トークンを返す
-> 通ればアクセストークンとリフレッシュトークンを返す。コードだけを盗んだ者は code_verifier を知らないので、前の段で弾かれる。
-`access_token, refresh_token, expires_in`
-認可 -> アプリ : 直接 200 トークン [札 access + refresh]
-アプリ「トークンを持つ」
-帯 アクセストークン = eyJh… [60 分]
-帯 リフレッシュトークン = 8xLO… [保管]
+step 照らし合わせる
+  say 認可サーバーは code_verifier の SHA-256 が最初の code_challenge と同じか、コードが未使用で期限内かを確かめ、コードを使用済みにする。
+  act 認可: 照らし合わせる
+  set 認可コード [tag: 使えない]
 
-# API を呼ぶ
-> アプリはアクセストークンを Authorization ヘッダに載せて API を呼ぶ。
-`Authorization: Bearer <access_token>`
-アプリ -> API : GET /me [札 Bearer]
+step トークンを返す
+  say 通ればアクセストークンとリフレッシュトークンを返す。コードだけを盗んだ者は code_verifier を知らないので、前の段で弾かれる。
+  code access_token, refresh_token, expires_in
+  認可 -> アプリ: 直接 200 トークン [tag: access + refresh]
+  note アプリ: トークンを持つ
+  set アクセストークン: eyJh… [tag: 60 分]
+  set リフレッシュトークン: 8xLO… [tag: 保管]
 
-# 確かめて返す
-> API はトークンの署名、期限、許された範囲を確かめ、通れば利用者のデータを返す。
-API : トークンを確かめる
-API -> アプリ : 200 データ
-API「データを返した」
+step API を呼ぶ
+  say アプリはアクセストークンを Authorization ヘッダに載せて API を呼ぶ。
+  code Authorization: Bearer <access_token>
+  アプリ -> API: GET /me [tag: Bearer]
 
-# ログイン後の画面を返す
-> アプリはデータで画面を作って返す。アクセストークンが切れたら、リフレッシュトークンで新しく取り直す。
-アプリ -> ブラウザ : ログイン後の画面
-ブラウザ「ログイン済み」
+step 確かめて返す
+  say API はトークンの署名、期限、許された範囲を確かめ、通れば利用者のデータを返す。
+  act API: トークンを確かめる
+  API -> アプリ: 200 データ
+  note API: データを返した
+
+step ログイン後の画面を返す
+  say アプリはデータで画面を作って返す。アクセストークンが切れたら、リフレッシュトークンで新しく取り直す。
+  アプリ -> ブラウザ: ログイン後の画面
+  note ブラウザ: ログイン済み

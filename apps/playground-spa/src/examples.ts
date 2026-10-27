@@ -51,8 +51,8 @@ export function exampleInfo(key: ExampleKey, lang: Lang): ExampleInfo | undefine
 
 /** 新規作成で書く欄に入れる雛形。箱 2 つと段 1 つの、そのまま描ける図 (#3031) */
 export const TEMPLATE: Record<Lang, string> = {
-  ja: ["時系列図 新しい図", "", "甲 = 甲", "乙 = 乙", "", "# 最初の段", "> この段で起きることを書く。", "甲 -> 乙 : 呼ぶ"].join("\n"),
-  en: ["sequence New diagram", "", "a = A", "b = B", "", "# First step", "> Write what happens in this step.", "a -> b : call"].join("\n"),
+  ja: ["sequence 新しい図", "", "box 甲", "box 乙", "", "step 最初の段", "  say この段で起きることを書く。", "  甲 -> 乙: 呼ぶ"].join("\n"),
+  en: ["sequence New diagram", "", "box a as A", "box b as B", "", "step First step", "  say Write what happens in this step.", "  a -> b: call"].join("\n"),
 };
 
 /**

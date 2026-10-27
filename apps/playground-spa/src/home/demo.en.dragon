@@ -1,18 +1,18 @@
 sequence Sign-in
 
-user = User "screen" [color slate] [icon user]
-api = API "front desk" [color blue] [icon server]
-ledger = Ledger "DB" [color green] [icon db]
+box user as User [note: screen, color: slate, icon: user]
+box api as API [note: front desk, color: blue, icon: server]
+box ledger as Ledger [note: DB, color: green, icon: db]
 
-# Ask to sign in
-> The user sends an ID and a password to the API.
-user -> api : POST /login
+step Ask to sign in
+  say The user sends an ID and a password to the API.
+  user -> api: POST /login
 
-# Look up the ledger
-> The API reads the user's row from the ledger.
-api -> ledger : SELECT user
-ledger -> api : row
+step Look up the ledger
+  say The API reads the user's row from the ledger.
+  api -> ledger: SELECT user
+  ledger -> api: row
 
-# Return the result
-> The API returns the sign-in result to the user.
-api -> user : 200 OK
+step Return the result
+  say The API returns the sign-in result to the user.
+  api -> user: 200 OK
