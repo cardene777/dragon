@@ -20,15 +20,12 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "verify": "pnpm run typecheck && pnpm run build && pnpm run lint && pnpm run test",
-    "test:mutation": "stryker run",
     "test:mutation:values": "node scripts/mutate-values.mjs",
     "test:mutation:table": "node scripts/mutate-values.mjs --table"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@playwright/test": "^1.61.1",
-    "@stryker-mutator/core": "^9.6.1",
-    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jsdom": "^30.0.0",

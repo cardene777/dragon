@@ -62,10 +62,6 @@ export default [
       "**/node_modules/**",
       "**/.astro/**",
       "**/.pagefind/**",
-      // `.stryker-tmp/` = Stryker mutation testing の sandbox (実行中に生成、 gitignore 済)。
-      // sandbox 内 file は tsconfig include 外で type-aware rule が parser service を得られず
-      // eslint が crash するため lint 対象から除外する。
-      "**/.stryker-tmp/**",
       // `docs/design/base/` = 見本帳の部品と図。 `build.py` が 1 枚の HTML に連ねて読む script で、
       // 図の file は部品が置く global (`DRAGON`) を前提にし、単体では module として成り立たない。
       // 製品の描画は `packages/dragon` に作り、ここは見本として読むために置くので lint の対象にしない。
