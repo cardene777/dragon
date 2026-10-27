@@ -7,13 +7,13 @@
 import { COLORS } from "./schema";
 import { CARRIES, HEADS, KINDS, type NotationLang, SIDES, VIEWS } from "./words";
 
-/** 新しい形のどの行の書き方を示すか。今の形の行に当たった時に、誤りの文が書き方を示す */
+/** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
 export type Shape = "sequence" | "architecture" | "group" | "box" | "strip" | "view" | "step" | "say" | "code" | "act" | "note" | "set";
 
 export interface Messages {
   noHead: string;
   badHead: string;
-  /** 今の形の `word` を書いた行。`shape` の行の書き方を示す */
+  /** 前の形の `word` を書いた行。`shape` の行の書き方を示す */
   oldForm: (word: string, shape: Shape) => string;
   unknownHead: (word: string) => string;
   duplicate: (id: string) => string;
@@ -81,7 +81,7 @@ const ja = (): Messages => {
   return {
     noHead: `最初の行に図の種類 (${list(KINDS)}) と題を書く`,
     badHead: `最初の行は ${KINDS.join(" か ")} で始め、続けて題を書く`,
-    oldForm: (word, shape) => `${word} は今の形の書き方。新しい形では ${shapes[shape]} と書く`,
+    oldForm: (word, shape) => `${word} は前の形の書き方。新しい形では ${shapes[shape]} と書く`,
     unknownHead: (word) => `${word} は行の頭に書けない。行は ${list(HEADS)} か、<名札> -> <名札> で始める`,
     duplicate: (id) => `${id} は既に宣言した名札`,
     needsId: (word) => `${word} の後ろに名札を書く`,

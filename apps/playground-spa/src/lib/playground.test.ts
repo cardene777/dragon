@@ -48,11 +48,11 @@ const EDITED = ["sequence 書き換えた図", "", "box 甲 as 甲のサービ�
 const EDITED_EN = ["sequence Edited diagram", "", "box app as App service", "box api as API service", "", "step Call", "  say App calls API.", "  app -> api: call"].join("\n");
 
 /**
- * 今の形の記法の日本語の語 (#2997)。行の頭の語と、行の終わりの指定の語。
+ * 前の形の記法の日本語の語 (#2997)。行の頭の語と、行の終わりの指定の語。
  * 新しい dragon記法は語を英語だけで書くので (#3137)、頁の検査は日本語の語が書く欄に残っていないかを見る。
  */
 const JAPANESE_WORDS = /^\s*(時系列図|構成図|区画|帯|見せ方)\s|\[(色|印|区画|名前|札|硬貨|なし|封筒)[\s\]]/mu;
-/** 今の形の記法の行 (#3137)。段の見出し `#`、段の本文 `>`、箱の下の字を囲む「」 */
+/** 前の形の記法の行 (#3137)。段の見出し `#`、段の本文 `>`、箱の下の字を囲む「」 */
 const OLD_FORM_LINES = /^\s*(時系列図|構成図|#|>)|「/mu;
 /** 仮名と漢字。英語の誤りの文に入らない */
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
@@ -538,7 +538,7 @@ describe("公開する頁 (#2995)", () => {
       /** 書き戻した記法が新しい形で、読み直すと JSON の側で直した題になる */
       const expectDragonNotation = (written: string | null, title: string, where: string): void => {
         expect(written?.split("\n")[0], `${where} で書き戻した最初の行が sequence と題でない`).toBe(`sequence ${title}`);
-        expect(written?.match(OLD_FORM_LINES)?.[0], `${where} で書き戻した記法に今の形の行がある`).toBeUndefined();
+        expect(written?.match(OLD_FORM_LINES)?.[0], `${where} で書き戻した記法に前の形の行がある`).toBeUndefined();
         expect(written?.match(JAPANESE_WORDS)?.[0], `${where} で書き戻した記法に日本語の語がある`).toBeUndefined();
         const parsed = parseNotation(written ?? "");
         expect(parsed.ok && parsed.diagram.title, `${where} で書き戻した記法を読み直すと題が違う`).toBe(title);
@@ -756,7 +756,7 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "英語の字の図が描かれない" }).toContain("Edited diagram");
       for (const name of ["part-box", "part-edge-tag", "part-step"]) await click(page, name);
       await expect.poll(async () => (await editorDiagram(page))?.steps.length, { ...WAIT, message: "英語の字の図に部品を足すと読めない" }).toBe(2);
-      expect((await editorValue(page))?.match(JAPANESE_WORDS)?.[0], "部品が今の形の日本語の語で足される").toBeUndefined();
+      expect((await editorValue(page))?.match(JAPANESE_WORDS)?.[0], "部品が前の形の日本語の語で足される").toBeUndefined();
 
       // 記法の見出しには、行の形の早見が並ぶ
       await click(page, "shelf-tab-notation");

@@ -40,8 +40,8 @@ export const VIEWS = keys<ViewMode>({ fixed: true, follow: true });
 export const SIDES = keys<LabelSide>({ above: true, below: true, left: true, right: true });
 
 /**
- * 今の形の行 (#2997 まで) が、新しい形のどの行に当たるか。誤りの文で新しい行の形を示すために引く。
- * 鍵は今の形の行の頭の語で、記号 (`#` など) で始まる行と、名札の後ろに `=` や「」が来る行は読む側が見分ける。
+ * 前の形の行 (#2997 まで) が、新しい形のどの行に当たるか。誤りの文で新しい行の形を示すために引く。
+ * 鍵は前の形の行の頭の語で、記号 (`#` など) で始まる行と、名札の後ろに `=` や「」が来る行は読む側が見分ける。
  */
 export const OLD_HEADS = {
   時系列図: "sequence",
