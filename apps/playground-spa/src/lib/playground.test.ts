@@ -5,13 +5,21 @@
  * 頁は build して GitHub Pages と同じ形で配り、画面なしの Chromium で開く (`playground-support.ts`)。
  * 頁の部品は `data-playground` の札で探し、図は `@cardenelabs/dragon` の再生の部品 (`data-dragon` の札) で読む。
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_PALETTE, type Diagram, FONTS, PALETTES, parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { KINDS } from "../catalog/catalog";
+import { PATHS } from "../site/routes";
 import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, type Site, startSite } from "./playground-support";
+
+/** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、カタログの分類から導く (#3157) */
+const screenRoutes = (): string[] => {
+  const relative = (path: string): string => path.slice(PATHS.home.length);
+  return [...Object.values(PATHS).map(relative).filter((path) => path !== ""), ...KINDS.map((kind) => `${relative(PATHS.catalog)}/${kind}`)].sort();
+};
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -1203,6 +1211,28 @@ describe("公開する頁 (#2995)", () => {
         expect(text, `${path} が描く部品を @cardenelabs/dragon から読んでいない`).toMatch(/from\s+["']@cardenelabs\/dragon["']/u);
       }
     }
+  });
+
+  it("page-routes-have-html-copies", () => {
+    // Pages は無い path に 404 で答えるので、画面の経路ごとに頁の写しを `.html` で置いて 200 で答えさせる (#3157)。
+    // 下にも経路を持つ経路 (カタログ) は、Pages が dir の側を選んだ時のために dir の `index.html` も置く
+    const routes = screenRoutes();
+    const parents = routes.filter((route) => routes.some((other) => other.startsWith(`${route}/`)));
+    const want = [...routes.map((route) => `${route}.html`), ...parents.map((route) => `${route}/index.html`)].sort();
+    const dir = site.built.dir;
+    const copies = (readdirSync(dir, { recursive: true }) as string[]).filter((path) => path.endsWith(".html") && path !== "index.html" && path !== "404.html").sort();
+    expect(copies, "build した頁の経路の写しが、経路の表とカタログの分類から導いた一覧と違う").toEqual(want);
+    const index = readFileSync(join(dir, "index.html"), "utf8");
+    for (const copy of copies) expect(readFileSync(join(dir, copy), "utf8") === index, `${copy} が index.html の写しでない`).toBe(true);
+  });
+
+  it("page-routes-answer-200", async () => {
+    // 検査の配り手は Pages と同じく、拡張子の無い経路に同じ名前の `.html` を返す (`servePage`)
+    const routes = screenRoutes();
+    const missing = ["nothing", "catalog/sequence/extra"];
+    const statuses = await Promise.all([...routes, ...missing].map(async (route) => [route, (await fetch(`${site.origin}${BASE}${route}`)).status] as const));
+    const want = [...routes.map((route) => [route, 200] as const), ...missing.map((route) => [route, 404] as const)];
+    expect(Object.fromEntries(statuses), "画面の経路が 200 で、無い path が 404 で答えない").toEqual(Object.fromEntries(want));
   });
 
   it("csp-script-self-only", () => {

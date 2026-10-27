@@ -2,7 +2,8 @@
  * サイトの経路 (#3030)。
  *
  * 0.35.0 より前のサイトと同じ経路で 7 画面を出し分ける。帯の行き先は `history.pushState` で移り、頁を読み直さない。
- * GitHub Pages は表に無い path に `404.html` (この頁の写し、`scripts/copy-404.mjs`) を返すので、
+ * build は画面の経路ごとの `.html` と `404.html` をこの頁の写しとして置く (`scripts/copy-404.mjs`)。
+ * GitHub Pages は画面の経路にその `.html` を 200 で、表に無い path に `404.html` を 404 で返すので (#3157)、
  * どの経路で直に開いても同じ script が経路を読む。
  */
 import { type MouseEvent, useSyncExternalStore } from "react";
