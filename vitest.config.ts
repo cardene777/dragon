@@ -60,10 +60,11 @@ export default defineConfig({
      * 速さの計測は `test/bench.test.ts` 1 file に集める (この repo の決まり)。
      * bench mode が既定で見るのは `*.bench.*` と `*.benchmark.*` だけなので、明示で上書きする。
      *
-     * **先頭を `packages/` で留める** (#2248)。 どこからでも当たる形にしていた間、
-     * 変異試験が残した作業用 dir (`.stryker-tmp` の下) の写しを 10 件拾い、
-     * そのどれもが package を解決できずに落ちていた。
-     * 実際の計測は出ているのに、走り終わりは失敗で返る。
+     * **先頭を `packages/` で留める** (#2248)。 repo の中には checkout の写しが置かれうる
+     * (Claude Code が subagent 用に作る作業場所 `.claude/worktrees/` の下など)。
+     * どこからでも当たる形にすると、その写しの計測まで拾う。
+     * #2248 では、当時入っていた変異試験の道具が残した作業用 dir の写しを 10 件拾い、
+     * そのどれもが package を解決できずに落ちて、実際の計測は出ているのに走り終わりが失敗で返った。
      * 検査の側 (`include`) が最初から `packages/` で留めており、そちらは巻き込まれていない。
      */
     benchmark: {
