@@ -16,7 +16,6 @@
 - vitest は回す前に、`packages/dragon` の `dist` が `src` より古くないかを見る (`test-support/global-setup.ts`)。
 - `pnpm run verify` は型、build、lint、`pnpm test` の順に回す (`package.json`)。
 - 見本帳の検査は、頁を build して GitHub Pages と同じ形で配り、Playwright で画面なしの Chromium に開いて確かめる (`apps/playground-spa/src/lib/playground-support.ts`)。
-- 変異の検査を stryker で持つが、名指した 3 file のうち `keywords.ts` と `compile.ts` は今は無い (`stryker.conf.json`)。
 - 頁の中で動く値は `pnpm test:mutation:values` で 1 つずつ書き換えて検査を回し、受入条件が全部 `今を守る` の課題に要る壊して測った結果の表は、その結果の file から `pnpm test:mutation:table <変異の一覧> <結果の file> --step <数>` で作る (`scripts/mutate-values.mjs`)。
 - 依存の中身が公開されている物と一致するかを `pnpm verify:deps` が確かめ、network を使う (`packages/dragon/scripts/verify-dep-integrity.mjs`)。
 - 依存の既知の脆弱性は `scripts/check-dependency-vulnerabilities.sh` が `osv-scanner` で見る。

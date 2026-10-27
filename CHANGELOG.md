@@ -19,6 +19,14 @@ dragon DSL の主要変更履歴。
   `/dragon/docs` のような画面の経路は、無い path に返す `404.html` の写しで頁を出していたため、中身は出ても status は 404 だった。
   build の後に画面の経路ごとの `.html` を頁の写しとして置き、Pages が 200 で返すようにした。表に無い path は今と同じく 404 で見つからない頁を出す。
 
+### Removed
+
+- **Stryker の変異の検査を外した** (#3159)
+
+  `stryker.conf.json` が名指す 3 file のうち 2 file はもう無く、`pnpm test:mutation` は今の描画の大半を書き換えていなかった。
+  設定と命令と 2 つの開発用の依存を外し、依存が連れていた `qs` の脆弱性 2 件の受容記録も消した。
+  頁の中で動く値を書き換える `pnpm test:mutation:values` は残す。
+
 ## [0.36.4] - 2026-10-27
 
 ### Added
