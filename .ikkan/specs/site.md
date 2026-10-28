@@ -125,3 +125,15 @@
 | 今の見本 (入門、OAuth、CCIP) は、今どおり図の頁から開いて重ね窓と編集画面で見られる | `pnpm test`の検査`category-item-opens-overlay-and-editor`が通る | #3166 |
 | 表に無い深い経路 (`/dragon/catalog/sequence/extra` など) は、今どおり見つからない頁を出す | `pnpm test`の検査`site-routes-render-each-screen`が通る | #3166 |
 | 一式 (型検査、build、lint、全ての検査) が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'` が終了 0 | #3166 |
+| 見本の file を読んだ時、`packages/dragon/examples/` に API の往復 (api)、失敗とやり直し (retry)、支払いと後から届く知らせ (payment)、ウォレットの署名 (wallet) の 4 つの見本が日本語と英語で在り、どれも時系列図で、記法から変換した JSON が同じ名前の `.json` の file と一致し、JSON Schema の検査を通る | `pnpm test`の検査`sequence-examples-compile-to-stored-json`が通る | #3167 |
+| 4 つの見本を記法から JSON、JSON から記法、記法から JSON と変換した時、最初の JSON と同じ JSON に戻る | `pnpm test`の検査`sequence-examples-roundtrip`が通る | #3167 |
+| 4 つの見本の記法を読んだ時、各見本が主に見せる部品の語を使う。往復は線と `side`、失敗は `act` と `note` と同じ 2 つの箱の間の線を 2 つの段で引く形、支払いは `carry: coin` と `strip` と `set`、署名は `tag` と `code` | `pnpm test`の検査`sequence-examples-use-their-parts`が通る | #3167 |
+| 4 つの見本の英語版を読んだ時、日本語版と同じ数の箱と段と線を持ち、仮名と漢字を含まない | `pnpm test`の検査`sequence-examples-english-match`が通る | #3167 |
+| 見本帳の時系列図の頁を開いた時、見本の一覧が入門、API の往復、失敗とやり直し、支払いと後から届く知らせ、ウォレットの署名、OAuth の順に並び、どれを選んでも右にその見本の図が出る | `pnpm test`の検査`catalog-sequence-lists-added-examples`が通る | #3167 |
+| 編集画面の棚を開いた時、時系列図の見本の一覧に足した 4 つが載り、押すとその見本の記法が記法の欄に入る | `pnpm test`の検査`editor-shelf-lists-added-examples`が通る | #3167 |
+| 部品の頁を開いた時、その部品の語を使う見本の札が並び、札を押すと図の頁へ移ってその見本が右に出る | `pnpm test`の検査`part-page-links-examples`が通る | #3167 |
+| 図の頁を `#<見本>` を付けた経路 (`/dragon/catalog/sequence#payment` など) で開いた時、その見本を選んだ状態で出る。表に無い見本の名前なら、最初の見本が出る | `pnpm test`の検査`category-opens-sample-from-hash`が通る | #3167 |
+| 概要の頁の使いどころは、今どおり入門、OAuth、CCIP の 3 つの札だけを並べる | `pnpm test`の検査`home-uses-stay-three`が通る | #3167 |
+| 今の見本 (入門、OAuth、CCIP) は、今どおり記法から JSON、JSON から記法、記法から JSON と変換して同じ JSON に戻る | `pnpm test`の検査`roundtrip-keeps-json-identical`が通る | #3167 |
+| 見本帳の全ての見本は、今どおり日本語と英語で記法として読めて schema の検査を通る | `pnpm test`の検査`catalog-samples-all-valid`が通る | #3167 |
+| 一式 (型検査、build、lint、全ての検査) が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'` が終了 0 | #3167 |
