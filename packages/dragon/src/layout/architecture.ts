@@ -334,7 +334,7 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     );
   }
 
-  const layout: Layout = { kind: "architecture", width: 0, height: 0, regions, boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [] };
+  const layout: Layout = { kind: "architecture", width: 0, height: 0, regions, boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths: [], ends: [] };
   // 名前が左へ出たら、帯の中身を右へ寄せる。帯は図の幅いっぱいに引き直す
   const shift = labels.length > 0 ? Math.max(0, margin + LOOK.label.soft - Math.min(...labels.map((l) => l.x))) : 0;
   if (shift > 0) shiftContent(layout, shift, 0);

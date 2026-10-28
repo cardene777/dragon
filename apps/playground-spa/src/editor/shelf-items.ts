@@ -233,7 +233,23 @@ const BUILD: Record<PartId, (d: Diagram, c: Content) => Diagram> = {
 /** 部品を `base` の図に足した時に足される行。`lang` は部品が足す名前の言葉 */
 export const partLines = (id: PartId, base: Diagram, lang: NotationLang): Added => addedLines(base, BUILD[id](base, CONTENT[lang]));
 
-export type SyntaxId = "kind" | "view" | "region" | "box" | "strip" | "step" | "code" | "edge" | "carry" | "side" | "action" | "swap" | "strip-value" | "comment";
+export type SyntaxId =
+  | "kind"
+  | "view"
+  | "region"
+  | "box"
+  | "strip"
+  | "step"
+  | "code"
+  | "edge"
+  | "carry"
+  | "side"
+  | "start-finish"
+  | "path"
+  | "action"
+  | "swap"
+  | "strip-value"
+  | "comment";
 
 /** 早見の行に置く穴の名前。`<名札>` のように山括弧で囲んで出す */
 const HOLE = {
@@ -258,8 +274,11 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     });
   const strip = { title: h.title, fields: [h.field] };
   const head = (d: Diagram): string => printNotation(d).split("\n")[0] ?? "";
+  // 始まりと終わりの印と通らない道は状態遷移図だけが書ける
+  const stateStep = draw({ ...empty("state"), steps: [step] });
+  const stateEdge = (from: string, to: string): object => ({ type: "edge", from, to, label: h.label, carry: { kind: "envelope" } });
   return [
-    { id: "kind", lines: [head(base), head(empty("architecture"))] },
+    { id: "kind", lines: [head(base), head(empty("architecture")), head(empty("state"))] },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
       id: "region",
@@ -275,6 +294,8 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "edge", lines: diff([[withStep, inStep([edgeOf({ kind: "envelope" })])]]) },
     { id: "carry", lines: diff([{ kind: "tag", text: h.value }, { kind: "coin" }, { kind: "none" }].map((carry) => [withStep, inStep([edgeOf(carry)])])) },
     { id: "side", lines: diff(["above", "below", "left", "right"].map((side) => [withStep, inStep([edgeOf({ kind: "envelope" }, side)])])) },
+    { id: "start-finish", lines: diff([[stateStep, draw({ ...stateStep, steps: [{ ...step, events: [stateEdge("start", h.id), stateEdge(h.id, "finish")] }] })]]) },
+    { id: "path", lines: diff([[stateStep, draw({ ...stateStep, state: { paths: [{ from: h.id, to: h.id, label: h.label }] } })]]) },
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
     { id: "strip-value", lines: diff([[draw({ ...withStep, strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },

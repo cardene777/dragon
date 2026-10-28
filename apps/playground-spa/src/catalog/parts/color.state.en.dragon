@@ -1,0 +1,13 @@
+state Color
+
+box draft as Draft [color: slate]
+box review as In review [color: amber]
+box live as Published [color: green]
+
+step Submit
+  say color picks one of 7 roles for a state box.
+  draft -> review: submit
+
+step Approve
+  say Pick roles by meaning, such as amber for waiting states and green for finished ones.
+  review -> live: approve

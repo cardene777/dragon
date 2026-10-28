@@ -28,11 +28,15 @@ export interface Built {
   notFound: { ok: boolean; stderr: string };
 }
 
-/** 頁を一時の場所へ build し、配る時と同じ script で `404.html` を作る */
+/**
+ * 頁を一時の場所へ build し、配る時と同じ script で `404.html` を作る。
+ * 検査の道具は `NODE_ENV` を `test` にして起きるので、そのまま build に渡すと React の開発用の版が入り、配る頁と中身も大きさも違う。
+ * 配る時の build (`NODE_ENV` を持たない `vite build`) と同じ `production` で build する (#3163)
+ */
 export async function buildPage(): Promise<Built> {
   const dir = mkdtempSync(join(tmpdir(), "dragon-page-"));
   const vite = join(app, "node_modules/vite/bin/vite.js");
-  await run(process.execPath, [vite, "build", "--outDir", dir, "--emptyOutDir", "--logLevel", "error"], { cwd: app });
+  await run(process.execPath, [vite, "build", "--outDir", dir, "--emptyOutDir", "--logLevel", "error"], { cwd: app, env: { ...process.env, NODE_ENV: "production" } });
   try {
     await run(process.execPath, [join(app, "scripts/copy-404.mjs"), dir], { cwd: app });
     return { dir, notFound: { ok: true, stderr: "" } };

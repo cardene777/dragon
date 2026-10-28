@@ -12,7 +12,7 @@
 import type { ErrorObject } from "ajv";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import validate from "./schemas/validate-diagram.js";
-import type { NotationLang } from "./words";
+import { type NotationLang, STATE_ENDS } from "./words";
 
 export type Color = "blue" | "amber" | "green" | "violet" | "rose" | "slate" | "coin";
 /** 色の役の一覧。記法の `color:` に書ける値と、誤りの文に並べる値 */
@@ -48,6 +48,13 @@ export type DiagramEvent =
   | { type: "swap"; box: string; text: string }
   | { type: "strip"; field: string; value?: string; tag?: string };
 
+/** 状態遷移図の、最初の段より前に書いた移れる道。`from` に `start`、`to` に `finish` を書ける */
+export interface StatePath {
+  from: string;
+  to: string;
+  label?: string;
+}
+
 export interface Step {
   title: string;
   body: string;
@@ -57,7 +64,7 @@ export interface Step {
 
 export interface Diagram {
   version: number;
-  kind: "sequence" | "architecture";
+  kind: "sequence" | "architecture" | "state";
   title: string;
   view?: ViewMode;
   regions?: Region[];
@@ -65,6 +72,7 @@ export interface Diagram {
   strip?: { title: string; fields: string[] };
   steps: Step[];
   sequence?: { lifelines: string[] };
+  state?: { paths: StatePath[] };
 }
 
 export interface FieldError {
@@ -84,13 +92,20 @@ export interface CheckOptions {
 const EVENT_TYPES = ["edge", "action", "swap", "strip"] as const satisfies readonly DiagramEvent["type"][];
 
 /**
- * schema の書けない組み合わせ (`else: { not: { required: [欄] } }`) の 2 か所。誤りの場所の最後の欄で引き、根は "" で引く。
- * 2 か所とも ajv の誤りでは決まりの場所 (`#/else/not`) が同じになるので、誤りの場所で分ける
+ * schema の書けない組み合わせ (`not: { required: [欄] }`) の欄。根の 3 か所は決まりの場所で引き、運ぶ物は誤りの場所の最後の欄で引く。
+ * 根の `sequence` と運ぶ物の `text` は ajv の誤りでは決まりの場所 (`#/else/not`) が同じになるので、誤りの場所でも分ける
  */
+const ROOT_NOT_ALLOWED: Record<string, Allowed> = {
+  "#/else/not": { field: "sequence", kind: "sequence" },
+  "#/then/not": { field: "state", kind: "state" },
+  "#/else/else/not": { field: "state", kind: "state" },
+};
 const NOT_ALLOWED: Record<string, Allowed> = {
-  "": { field: "sequence", kind: "sequence" },
   carry: { field: "text", kind: "tag" },
 };
+
+/** 状態遷移図の箱の名札に予約の名前を書いた時の決まりの場所 */
+const RESERVED_ID = /\/boxes\/items\/properties\/id\/not$/u;
 
 const escape = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
 
@@ -124,7 +139,8 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       return { pointer: `${at}/${escape(key)}`, message: m.required(key) };
     }
     case "not": {
-      const allowed = NOT_ALLOWED[at.slice(at.lastIndexOf("/") + 1)];
+      if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: m.reserved(STATE_ENDS) };
+      const allowed = at === "" ? ROOT_NOT_ALLOWED[error.schemaPath] : NOT_ALLOWED[at.slice(at.lastIndexOf("/") + 1)];
       return { pointer: allowed ? `${at}/${allowed.field}` : at, message: m.not(allowed) };
     }
     case "anyOf": {

@@ -1,0 +1,13 @@
+state Note
+
+box stocked as In stock [note: 1 left]
+box out as Sold out [note: awaiting stock]
+
+step Sell out
+  say note adds small text under the state name.
+  stocked -> out: last one sold
+
+step Restock
+  say A note line inside a step rewrites the small text from that step on.
+  out -> stocked: restocked
+  note stocked: 10 left

@@ -20,6 +20,7 @@ export {
   type FieldError,
   type LabelSide,
   type Region,
+  type StatePath,
   type Step,
   validateDiagram,
   type ViewMode,
@@ -33,15 +34,18 @@ export type {
   SceneBadge,
   SceneBox,
   SceneEdge,
+  SceneEnd,
   SceneField,
   SceneLabel,
   SceneLifeline,
+  ScenePath,
   SceneRegion,
+  SceneSide,
   SceneStrip,
 } from "./layout/scene";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
 export { type Rendered, type RenderOptions, renderDiagram } from "./render/svg";
-export type { CarrierTime, EdgeTime, EventTime, LabelTime, Span, Timeline } from "./timeline";
+export type { CarrierTime, EdgeTime, EventTime, LabelTime, Span, StateTime, Timeline } from "./timeline";
 export { chooseView } from "./view";

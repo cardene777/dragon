@@ -32,6 +32,8 @@ export interface FieldMessages {
   const: (value: string) => string;
   /** どの欄の組み合わせか判らない場所では `undefined` */
   not: (allowed: Allowed | undefined) => string;
+  /** 状態遷移図の箱の名札に、始まりと終わりの印の名前 (`names`) を書いた */
+  reserved: (names: readonly string[]) => string;
   /** 選べる決まりがどれも欄が足りない時の、足りない欄。それ以外の時は空 */
   anyOf: (fields: readonly string[]) => string;
   oneOf: string;
@@ -74,6 +76,7 @@ const ja: FieldMessages = {
   minimum: (limit) => `${limit} 以上にする`,
   const: (value) => `${value} にする`,
   not: (allowed) => (allowed ? `${allowed.field} の欄は kind が ${allowed.kind} の時だけ書ける` : "この欄の組み合わせは書けない"),
+  reserved: (names) => `${names.join(" と ")} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
   anyOf: (fields) =>
     fields.length > 0 ? `${fields.join(" か ")} の${fields.length === 2 ? "どちらか" : "どれか"}の欄が要る` : "書ける形のどれにも合わない",
   oneOf: "書ける形のどれか 1 つだけに合わせる",
@@ -95,6 +98,7 @@ const en: FieldMessages = {
   minimum: (limit) => `Use ${limit} or greater`,
   const: (value) => `Use ${value}`,
   not: (allowed) => (allowed ? `The ${allowed.field} field is allowed only when kind is ${allowed.kind}` : "This combination of fields is not allowed"),
+  reserved: (names) => `${names.join(" and ")} name the start and end marks of a state diagram and cannot be box ids`,
   anyOf: (fields) => (fields.length > 0 ? `Write one of the ${fields.join(" or ")} fields` : "Does not match any of the allowed shapes"),
   oneOf: "Match exactly one of the allowed shapes",
   discriminator: (tag, values) => `${tag} is one of ${values.join(" / ")}`,

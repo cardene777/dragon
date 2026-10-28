@@ -154,7 +154,7 @@ export function layoutSequence(diagram: Diagram): Layout {
     labels.push(placeLabel(request, { hard: boxes, soft }));
   }
 
-  const layout: Layout = { kind: "sequence", width: 0, height: 0, regions: [], boxes, lifelines, edges, labels, actions, badges: [] };
+  const layout: Layout = { kind: "sequence", width: 0, height: 0, regions: [], boxes, lifelines, edges, labels, actions, badges: [], paths: [], ends: [] };
 
   // 図の幅。名前が左に出たら全体を右へ寄せ、右端は一番右の物に余白を足した所
   const lefts = [...boxes.map((b) => b.x), ...labels.map((l) => l.x), ...actions.map((a) => a.x)];

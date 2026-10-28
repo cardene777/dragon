@@ -16,16 +16,19 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * カタログの部品の名札。部品の図の記法の file (`src/catalog/parts/<名札>.<図の種類>.dragon`) の名前から引く。
- * file は部品の表 (`src/catalog/parts.ts` の `PARTS`) の部品ごとにあり、過不足を頁の検査が数える (#3166)
+ * カタログの部品の名札と図の種類。部品の図の記法の file (`src/catalog/parts/<名札>.<図の種類>.dragon`) の名前から引く。
+ * file は部品の表 (`src/catalog/parts.ts` の `PARTS`) の部品と、その部品を描ける図の種類ごとにあり、過不足を頁の検査が数える (#3166)。
+ * どの図でも使う部品は全ての図の種類の file を持つので、file の名前の図の種類はカタログの分類を全て含む (#3163)
  */
-const PART_IDS = [...new Set(readdirSync(resolve(__dirname, "..", "src/catalog/parts")).filter((name) => name.endsWith(".dragon")).map((name) => name.split(".")[0]))];
+const SNIPPETS = readdirSync(resolve(__dirname, "..", "src/catalog/parts")).filter((name) => name.endsWith(".dragon"));
+const PART_IDS = [...new Set(SNIPPETS.map((name) => name.split(".")[0]))];
+const KINDS = [...new Set(SNIPPETS.map((name) => name.split(".")[1]))];
 
 /**
  * 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表 (`src/site/routes.ts` の `PATHS`) と、
  * カタログの分類 (`src/catalog/catalog.ts` の `KINDS`) と部品の表から導いた一覧と同じかを、頁の検査が突き合わせる
  */
-const ROUTES = ["catalog", "editor", "docs", "release-notes", "catalog/sequence", "catalog/architecture", ...PART_IDS.map((id) => `catalog/part/${id}`)];
+const ROUTES = ["catalog", "editor", "docs", "release-notes", ...KINDS.map((kind) => `catalog/${kind}`), ...PART_IDS.map((id) => `catalog/part/${id}`)];
 
 const distDir = resolve(process.argv[2] ?? resolve(__dirname, "..", "dist"));
 const indexHtml = resolve(distDir, "index.html");

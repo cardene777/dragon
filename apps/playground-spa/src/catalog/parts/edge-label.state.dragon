@@ -1,0 +1,12 @@
+state 線の名前
+
+box 甲
+box 乙
+
+step 上に置く
+  say コロンの後ろが線の名前。書かなければ線の上に置く。
+  甲 -> 乙: 上の名前
+
+step 下に置く
+  say side で名前を置く側を選ぶ。above、below、left、right の 4 つ。
+  乙 -> 甲: 下の名前 [side: below]

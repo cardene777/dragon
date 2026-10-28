@@ -1,0 +1,17 @@
+state 始まりと終わり
+
+box 受付
+box 完了
+
+step 始める
+  say start は始まりの印。start から最初の状態へ線を引く。
+  start -> 受付: 申し込む
+
+step 進める
+  say 状態どうしは名札で結ぶ。
+  受付 -> 完了: 片付ける
+
+step 終える
+  say finish は終わりの印。終わりの状態から finish へ線を引く。
+    start へ入る線と、finish から出る線は書けない。
+  完了 -> finish: 閉じる

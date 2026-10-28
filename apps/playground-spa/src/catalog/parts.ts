@@ -43,6 +43,8 @@ export const PARTS: readonly Part[] = [
   { id: "step", kinds: KINDS, words: ["head:step", "head:say", "head:code", "attr:diagram.view"] },
   { id: "lifeline", kinds: ["sequence"], words: ["kind:sequence"] },
   { id: "group", kinds: ["architecture"], words: ["kind:architecture", "head:group", "head:end", "attr:group.note", "attr:group.color", "attr:group.icon"] },
+  { id: "start-finish", kinds: ["state"], words: ["kind:state", "edge:start", "edge:finish"] },
+  { id: "side-path", kinds: ["state"], words: ["edge:before-step"] },
 ];
 
 /** どの図でも使える部品か。図の種類を全部持つ */
@@ -70,6 +72,7 @@ const edges = (d: Diagram) => events(d).flatMap((e) => (e.type === "edge" ? [e] 
 const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "kind:sequence": (d) => d.kind === "sequence",
   "kind:architecture": (d) => d.kind === "architecture",
+  "kind:state": (d) => d.kind === "state",
   "head:group": (d) => (d.regions ?? []).length > 0,
   "head:end": (d) => (d.regions ?? []).length > 0,
   "head:box": (d) => d.boxes.length > 0,
@@ -92,6 +95,9 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "attr:edge.side": (d) => edges(d).some((e) => e.labelSide !== undefined),
   "attr:set.tag": (d) => events(d).some((e) => e.type === "strip" && e.tag !== undefined),
   "edge:->": (d) => edges(d).length > 0,
+  "edge:start": (d) => edges(d).some((e) => e.from === "start"),
+  "edge:finish": (d) => edges(d).some((e) => e.to === "finish"),
+  "edge:before-step": (d) => (d.state?.paths ?? []).length > 0,
 };
 
 /** 見本の名前と、日本語の記法から作った図。読めない見本は外す */
@@ -107,9 +113,13 @@ export const samplesUsing = (part: Part): { key: ExampleKey; kind: Kind }[] =>
     kind: diagram.kind,
   }));
 
-/** 部品が受け持つ語を、記法に書く形にする (`head:box` は `box`、`attr:edge.side` は `[side: …]`) */
+/**
+ * 部品が受け持つ語を、記法に書く形にする (`head:box` は `box`、`attr:edge.side` は `[side: …]`)。
+ * 段より前の通らない道 (`edge:before-step`) は線の行と同じ形で書き、置く所だけが違うので `->` にする
+ */
 export const wordLabel = (word: string): string => {
   const [type, rest = ""] = word.split(":");
   if (type === "attr") return `[${rest.split(".")[1] ?? rest}: …]`;
+  if (word === "edge:before-step") return "->";
   return rest;
 };

@@ -1,0 +1,12 @@
+state Box
+
+box draft as Draft
+box live as Published
+
+step Publish
+  say A box line places one state. The name to show follows as.
+  draft -> live: publish
+
+step Withdraw
+  say Edges name the states by their tags.
+  live -> draft: withdraw

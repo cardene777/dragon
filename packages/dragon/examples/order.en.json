@@ -1,0 +1,398 @@
+{
+  "version": 1,
+  "kind": "state",
+  "title": "States of an online order from delivery to refund",
+  "boxes": [
+    {
+      "id": "received",
+      "name": "Received",
+      "sub": "Gets a number",
+      "color": "blue",
+      "icon": "doc"
+    },
+    {
+      "id": "awaiting",
+      "name": "Awaiting payment",
+      "sub": "Waits for funds",
+      "color": "amber",
+      "icon": "clock"
+    },
+    {
+      "id": "paid",
+      "name": "Paid",
+      "sub": "Payment cleared",
+      "color": "amber",
+      "icon": "card"
+    },
+    {
+      "id": "packing",
+      "name": "Packing",
+      "sub": "Off the shelf",
+      "color": "blue",
+      "icon": "box"
+    },
+    {
+      "id": "shipped",
+      "name": "Shipped",
+      "sub": "With the carrier",
+      "color": "violet",
+      "icon": "truck"
+    },
+    {
+      "id": "delivered",
+      "name": "Delivered",
+      "sub": "Handed over",
+      "color": "green",
+      "icon": "check"
+    },
+    {
+      "id": "returning",
+      "name": "Return requested",
+      "sub": "Awaiting the check",
+      "color": "rose",
+      "icon": "refresh"
+    },
+    {
+      "id": "refunded",
+      "name": "Refunded",
+      "sub": "Money goes back",
+      "color": "rose",
+      "icon": "card"
+    },
+    {
+      "id": "cancelled",
+      "name": "Cancelled",
+      "sub": "Payment returned",
+      "color": "rose",
+      "icon": "x"
+    }
+  ],
+  "strip": {
+    "title": "Order #1042",
+    "fields": [
+      "State",
+      "Payment",
+      "Stock",
+      "Tracking no.",
+      "Elapsed"
+    ]
+  },
+  "steps": [
+    {
+      "title": "Receive the order",
+      "body": "Confirming the cart starts the order at Received. It gets the number #1042, and every later move is recorded.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "start",
+          "to": "received",
+          "label": "Place order",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "State",
+          "tag": "Received"
+        },
+        {
+          "type": "strip",
+          "field": "Payment",
+          "value": "not yet"
+        },
+        {
+          "type": "strip",
+          "field": "Stock",
+          "value": "not held"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "0 min"
+        }
+      ]
+    },
+    {
+      "title": "Wait for payment",
+      "body": "Going to checkout moves the order to Awaiting payment. If it is not paid in time, it moves from here to Cancelled.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "received",
+          "to": "awaiting",
+          "label": "Check out",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "State",
+          "tag": "Awaiting payment"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "2 min"
+        }
+      ]
+    },
+    {
+      "title": "Confirm the payment",
+      "body": "The payment company reports the deposit, and the order moves to Paid. The amount of 4,980 yen is recorded.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "awaiting",
+          "to": "paid",
+          "label": "Confirm payment",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "State",
+          "tag": "Paid"
+        },
+        {
+          "type": "strip",
+          "field": "Payment",
+          "value": "4,980 yen"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "5 min"
+        }
+      ]
+    },
+    {
+      "title": "Hold the stock",
+      "body": "The warehouse holds the stock, and the order moves to Packing. Up to here it can be cancelled, and the payment is returned.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "paid",
+          "to": "packing",
+          "label": "Hold stock",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "State",
+          "tag": "Packing"
+        },
+        {
+          "type": "strip",
+          "field": "Stock",
+          "value": "held"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "3 h"
+        }
+      ]
+    },
+    {
+      "title": "Ship",
+      "body": "The parcel goes to the carrier with a tracking number, and the order moves to Shipped. After shipping, the cancel path is closed.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "packing",
+          "to": "shipped",
+          "label": "Issue label",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "State",
+          "tag": "Shipped"
+        },
+        {
+          "type": "strip",
+          "field": "Stock",
+          "value": "shipped"
+        },
+        {
+          "type": "strip",
+          "field": "Tracking no.",
+          "value": "4821-0937"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "1 day"
+        }
+      ]
+    },
+    {
+      "title": "Deliver",
+      "body": "The carrier records the handover, and the order moves to Delivered. A normal order ends here.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "shipped",
+          "to": "delivered",
+          "label": "Record delivery",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "State",
+          "tag": "Delivered"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "2 days"
+        }
+      ]
+    },
+    {
+      "title": "Request a return",
+      "body": "The buyer asks for a return, and the order moves to Return requested. This path is open only for a set number of days after delivery.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "delivered",
+          "to": "returning",
+          "label": "Request return",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "State",
+          "tag": "Return requested"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "6 days"
+        }
+      ]
+    },
+    {
+      "title": "Check the returned item",
+      "body": "The returned item is inspected. The state stays Return requested, so the arrow goes back to the same state.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "returning",
+          "to": "returning",
+          "label": "Inspect",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "returning",
+          "text": "Passed the check"
+        },
+        {
+          "type": "strip",
+          "field": "Stock",
+          "value": "back on shelf"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "9 days"
+        }
+      ]
+    },
+    {
+      "title": "Refund",
+      "body": "The item passed, so the refund runs and the order moves to Refunded. The payment field changes to refunded.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "returning",
+          "to": "refunded",
+          "label": "Run refund",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "refunded",
+          "text": "Fully returned"
+        },
+        {
+          "type": "strip",
+          "field": "State",
+          "tag": "Refunded"
+        },
+        {
+          "type": "strip",
+          "field": "Payment",
+          "value": "refunded"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "10 days"
+        }
+      ]
+    },
+    {
+      "title": "Close the order",
+      "body": "Refunded is a final state, and the order moves nowhere after it. The order closes, and the path it took stays on record.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "refunded",
+          "to": "finish",
+          "label": "Close order",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        }
+      ]
+    }
+  ],
+  "state": {
+    "paths": [
+      {
+        "from": "awaiting",
+        "to": "cancelled"
+      },
+      {
+        "from": "paid",
+        "to": "cancelled",
+        "label": "Cancel"
+      },
+      {
+        "from": "packing",
+        "to": "cancelled"
+      },
+      {
+        "from": "cancelled",
+        "to": "finish"
+      }
+    ]
+  }
+}

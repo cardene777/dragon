@@ -1,0 +1,17 @@
+state Action
+
+box received as Received
+box checking as Checking
+box approved as Approved
+
+step Submit
+  say The request arrives and moves to Checking.
+  received -> checking: submit
+
+step Check
+  say act shows work done inside the box without moving to another state.
+  act checking: match the papers
+
+step Approve
+  say An edge can follow the work.
+  checking -> approved: approve

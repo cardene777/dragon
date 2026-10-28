@@ -26,6 +26,8 @@ export interface SceneBox extends Rect {
   color: ColorKey;
   cx: number;
   cy: number;
+  /** 状態遷移図で、どの段も辿り着かない状態。点線の箱で脇道の囲みに描く */
+  ghost?: boolean;
 }
 
 export interface SceneRegion extends Rect {
@@ -58,6 +60,33 @@ export interface SceneLabel extends Rect {
   text: string;
   family: Family;
   color: ColorKey;
+}
+
+/** 状態遷移図の、最初の段より前に書いてどの段にも出ない線。点線で描き、運ぶ物を走らせない */
+export interface ScenePath {
+  from: string;
+  to: string;
+  points: Point[];
+  label?: Rect & { text: string; family: Family };
+}
+
+/** 状態遷移図の始まりと終わりの印。`ghost` は脇道の中の終わりの印 */
+export interface SceneEnd {
+  kind: "start" | "finish";
+  x: number;
+  y: number;
+  r: number;
+  ghost: boolean;
+  /** 印の右に添える字 */
+  text: string;
+  /** 終わりの印へ線を引く状態 */
+  box?: string;
+}
+
+/** 状態遷移図の脇道の囲み。`title` と `note` は囲みの左上に置く字 */
+export interface SceneSide extends Rect {
+  title: string;
+  note: string;
 }
 
 /** 時系列図の箱の中の処理。生存線の上に札で出す。 */
@@ -107,6 +136,12 @@ export interface Layout {
   actions: SceneAction[];
   badges: SceneBadge[];
   strip?: SceneStrip;
+  /** 状態遷移図の通らない道。他の図の種類では空 */
+  paths: ScenePath[];
+  /** 状態遷移図の始まりと終わりの印。他の図の種類では空 */
+  ends: SceneEnd[];
+  /** 状態遷移図の脇道の囲み。通らない状態が無ければ無い */
+  side?: SceneSide;
 }
 
 export type EdgeEvent = Extract<DiagramEvent, { type: "edge" }>;
@@ -325,6 +360,15 @@ export function shiftContent(layout: Layout, dx: number, dy: number): void {
     if (edge.settle) edge.settle = [edge.settle[0] + dx, edge.settle[1] + dy];
   }
   for (const label of layout.labels) move(label);
+  for (const path of layout.paths) {
+    path.points = path.points.map(([px, py]) => [px + dx, py + dy]);
+    if (path.label) move(path.label);
+  }
+  for (const end of layout.ends) {
+    end.x += dx;
+    end.y += dy;
+  }
+  if (layout.side) move(layout.side);
   for (const action of layout.actions) move(action);
   for (const badge of layout.badges) {
     badge.x += dx;

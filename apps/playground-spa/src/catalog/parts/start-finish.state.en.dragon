@@ -1,0 +1,17 @@
+state Start and end
+
+box received as Received
+box done as Done
+
+step Begin
+  say start is the start mark. Draw an edge from start to the first state.
+  start -> received: apply
+
+step Proceed
+  say States are joined by their tags.
+  received -> done: settle
+
+step End
+  say finish is the end mark. Draw an edge from the final state to finish.
+    No edge can go into start or come out of finish.
+  done -> finish: close

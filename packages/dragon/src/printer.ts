@@ -4,6 +4,7 @@
  * 並べ方は決まった形に整える。JSON の欄の並び順は見ず、欄の名前で読むので、
  * 同じ内容の JSON からは毎回同じ文字列になる。書き手の行の並べ方とコメントは保たない。
  * 段の中で起きることは JSON の並び順 (起きる順) のまま書く。
+ * 状態遷移図の移れる道 (`state.paths`) は、帯の宣言の後、最初の `step` より前に JSON の並びのまま書く (#3163)。
  *
  * `"` で囲むのは要る時だけにする。`[` を含む名前と、`,` か `]` を含む属性の値と、`"` で始まる字を囲む。
  * 箱は JSON の並びのまま書き、同じ区画の箱が続く所を 1 つの `group … end` にする。
@@ -44,11 +45,14 @@ const declareBox = (b: Box): string =>
     ["icon", b.icon],
   ])}`;
 
+/** 線の行の両端と名前 */
+const line = (from: string, to: string, label: string | undefined): string => `${from} -> ${to}${label === undefined ? "" : `: ${name(label)}`}`;
+
 function event(e: DiagramEvent): string {
   switch (e.type) {
     case "edge": {
       const carry: [string, string][] = e.carry.kind === "tag" ? [["tag", e.carry.text]] : e.carry.kind === "envelope" ? [] : [["carry", e.carry.kind]];
-      return `${e.from} -> ${e.to}${e.label === undefined ? "" : `: ${name(e.label)}`}${attrs([...carry, ["side", e.labelSide]])}`;
+      return `${line(e.from, e.to, e.label)}${attrs([...carry, ["side", e.labelSide]])}`;
     }
     case "action":
       return `act ${e.box}: ${e.label}`;
@@ -95,6 +99,7 @@ function declarations(diagram: Diagram): string[] {
 export function printNotation(diagram: Diagram): string {
   const blocks = [`${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`, ...declarations(diagram)];
   if (diagram.strip) blocks.push(`strip ${key(diagram.strip.title)}: ${diagram.strip.fields.map(field).join(", ")}`);
+  if (diagram.state) blocks.push(diagram.state.paths.map((p) => line(p.from, p.to, p.label)).join("\n"));
   for (const step of diagram.steps) {
     const body = step.body.split("\n");
     const say = body.length === 1 ? [`  say ${step.body}`] : ["  say", ...body.map((line) => (line === "" ? "" : `    ${line}`))];

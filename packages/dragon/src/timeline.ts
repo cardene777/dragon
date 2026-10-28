@@ -5,9 +5,11 @@
  * 運ぶ物は主役 (封筒と札は 1 つ、硬貨は別の 1 つ) ごとに途切れず見え続ける。着いた後は
  * 次の同じ主役が出発するまで着いた先に留まり、次が無ければ終わりまで留まる。
  * 線の名前はその段の間だけ出し、同じ段に何本あっても同時に見えるのは 2 つまでにする。
+ * 状態遷移図では、主役の運ぶ物が乗っている状態を光らせ、運ぶ物が出た状態には少し後に済んだ印を出す (#3163)。
  */
 import { MOTION } from "./look/values";
 import type { Diagram } from "./schema";
+import { STATE_ENDS } from "./words";
 
 /** 秒で表した、見えている間。`end` の時刻は含まない。 */
 export interface Span {
@@ -43,6 +45,13 @@ export interface EventTime {
   at: number;
 }
 
+/** 状態遷移図の状態ごとの、光っている間と、済んだ印が出る時刻。運ぶ物が出ていない状態は `done` を持たない */
+export interface StateTime {
+  box: string;
+  lit: Span[];
+  done?: number;
+}
+
 export interface Timeline {
   /** 1 周の長さ */
   total: number;
@@ -56,6 +65,8 @@ export interface Timeline {
   events: EventTime[];
   /** 段ごとの止め絵の時刻。その段で起きることが全部見えている */
   stills: number[];
+  /** 状態遷移図だけが持つ */
+  states?: StateTime[];
 }
 
 interface Planned {
@@ -151,6 +162,7 @@ export function buildTimeline(diagram: Diagram): Timeline {
     });
   }
   carriers.sort((x, y) => x.depart - y.depart);
+  const states = diagram.kind === "state" ? stateTimes(diagram, edges, last) : undefined;
 
   return {
     total,
@@ -162,5 +174,36 @@ export function buildTimeline(diagram: Diagram): Timeline {
     badges: steps.map((span, s) => ({ step: s, appears: span.start })),
     events,
     stills: steps.map((span) => span.end - MOTION.still),
+    ...(states ? { states } : {}),
   };
+}
+
+const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).includes(id);
+
+/**
+ * 状態遷移図の状態が光る間。段の線を引き終えて状態へ着いた時から、その状態を出る線を引き始めるまで光り、
+ * 出た少し後に済んだ印を出す。同じ状態へ戻る線では光ったまま、最後に着いた状態は終わりまで光る。
+ * 物が状態を移るのは線を辿った時なので、運ぶ物の種類 (硬貨や、運ばない線) を問わず全ての線で数える。
+ */
+function stateTimes(diagram: Diagram, edges: EdgeTime[], last: number): StateTime[] {
+  const times = new Map<string, StateTime>();
+  const of = (box: string): StateTime => {
+    const found = times.get(box) ?? { box, lit: [] };
+    times.set(box, found);
+    return found;
+  };
+  let on: { box: string; since: number } | undefined;
+  for (const edge of edges) {
+    const event = diagram.steps[edge.step]?.events[edge.event];
+    if (event?.type !== "edge" || event.from === event.to) continue;
+    if (on) {
+      const left = of(on.box);
+      left.lit.push({ start: on.since, end: edge.start });
+      if (on.box === event.from && left.done === undefined) left.done = edge.start + MOTION.done;
+      on = undefined;
+    }
+    if (!isEnd(event.to)) on = { box: event.to, since: edge.drawn };
+  }
+  if (on) of(on.box).lit.push({ start: on.since, end: last });
+  return [...times.values()];
 }

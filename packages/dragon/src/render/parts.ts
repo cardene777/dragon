@@ -5,7 +5,21 @@
  * 色は色の役の変数 (`--c` と `--ct`) だけを渡し、値は色味の表が持つ。
  */
 import { hasWide, textWidth } from "../layout/measure";
-import { along, type Point, pathLength, type SceneAction, type SceneBadge, type SceneBox, type SceneEdge, type SceneLabel, type SceneRegion, type SceneStrip } from "../layout/scene";
+import {
+  along,
+  type Point,
+  pathLength,
+  type SceneAction,
+  type SceneBadge,
+  type SceneBox,
+  type SceneEdge,
+  type SceneEnd,
+  type SceneLabel,
+  type ScenePath,
+  type SceneRegion,
+  type SceneSide,
+  type SceneStrip,
+} from "../layout/scene";
 import { type ColorKey, EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { CarrierTime, EdgeTime, LabelTime, Span, Timeline } from "../timeline";
 import { ICONS } from "./icons";
@@ -95,11 +109,14 @@ function cardFrame(box: SceneBox, ctx: Ctx, act: string | undefined, y: number, 
   return `${act ? `<g class="dg-a" style="${act}">${rect("dg-halo")}</g>` : ""}${rect("dg-st", ` ${ctx.sh}`)}${act ? `<g class="dg-a" style="${act}">${rect("dg-on")}</g>` : ""}`;
 }
 
-/** 箱。動く段は縁に色を付け、外側に淡い光を足す。下の小さな字は起きたことに合わせて書き換わる。 */
-export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[]): string {
+/**
+ * 箱。動く段は縁に色を付け、外側に淡い光を足す。下の小さな字は起きたことに合わせて書き換わる。
+ * `lit` を渡すと、動く段ではなくその間だけ光らせる (状態遷移図の、運ぶ物が乗っている状態)。
+ */
+export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[], lit?: Span[]): string {
   const { icon, iconRadius, iconScale, iconY, nameY, subY } = LOOK.box;
   const subs = subLines(box, ctx.m, changes, box.cy + subY);
-  const act = on.length > 0 ? activeKf(ctx, on) : undefined;
+  const act = lit ? (lit.length > 0 ? rangeKf(ctx.m, lit.map((s) => [s.start, s.end])) : undefined) : on.length > 0 ? activeKf(ctx, on) : undefined;
   const mark =
     box.icon && ICONS[box.icon]
       ? `<rect class="dg-ic" x="${r1(box.cx - icon / 2)}" y="${r1(box.cy + iconY - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, box.cx, box.cy + iconY, iconScale)}`
@@ -119,6 +136,57 @@ export function headCard(box: SceneBox, ctx: Ctx, on: number[], changes: SubChan
   const subs = subLines(box, ctx.m, changes, pad + subY);
   const act = on.length > 0 ? activeKf(ctx, on) : undefined;
   return `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, pad, h)}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(pad + nameY)}" text-anchor="middle">${esc(box.name)}</text>${subs}</g>`;
+}
+
+/** 状態遷移図の、どの段も辿り着かない状態。点線の縁で、光らず、字も書き換わらない */
+export function ghostCard(box: SceneBox): string {
+  const { icon, iconRadius, iconScale, iconY, nameY, subY, radius } = LOOK.box;
+  const mark =
+    box.icon && ICONS[box.icon]
+      ? `<rect class="dg-ic" x="${r1(box.cx - icon / 2)}" y="${r1(box.cy + iconY - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, box.cx, box.cy + iconY, iconScale)}`
+      : "";
+  const sub = box.sub ? `<text class="dg-ss" x="${r1(box.cx)}" y="${r1(box.cy + subY)}" text-anchor="middle">${esc(box.sub)}</text>` : "";
+  return (
+    `<g data-ghost="${esc(box.id)}" style="${cs(box.color)}"><rect class="dg-ghost" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${radius}"/>` +
+    `${mark}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(box.cy + nameY)}" text-anchor="middle">${esc(box.name)}</text>${sub}</g>`
+  );
+}
+
+/** 状態遷移図の、出た状態の右上の済んだ印。`at` に弾んで出て、繰り返す前に消える */
+export function doneMark(box: SceneBox, at: number, ctx: Ctx): string {
+  const { r, inset } = LOOK.state.done;
+  const x = box.x + box.w - inset;
+  const y = box.y + inset;
+  return `<g class="dg-popc dg-a" data-done="${esc(box.id)}" style="${cs(box.color)};${ctx.m.pop(at)}"><circle class="dg-done" cx="${r1(x)}" cy="${r1(y)}" r="${r}"/>${glyph("check", x, y, 0.5, "dg-done-ck")}</g>`;
+}
+
+/** 状態遷移図の通らない道。点線で道と向きだけを見せ、運ぶ物を走らせない */
+export function path(p: ScenePath, color: ColorKey): string {
+  const label = p.label
+    ? `<text class="dg-path-t${p.label.family === "sans" ? " dg-path-tj" : ""}" x="${r1(p.label.x + LOOK.label.padX)}" y="${r1(p.label.y + p.label.h / 2 + LOOK.baseline.label)}">${esc(p.label.text)}</text>`
+    : "";
+  return `<g data-path="${esc(`${p.from}->${p.to}`)}" style="${cs(color)}"><path class="dg-path" d="${pathOf(p.points)}"/><path class="dg-path-h" d="${arrowHead(p.points)}"/>${label}</g>`;
+}
+
+/** 状態遷移図の脇道の囲み。左上に囲みの名前と添え書きを置く */
+export function side(s: SceneSide, color: ColorKey): string {
+  const { pad } = LOOK.state.side;
+  const title = s.y + pad + TYPE.regionName.size;
+  return (
+    `<g style="${cs(color)}"><rect class="dg-side" x="${r1(s.x + 0.5)}" y="${r1(s.y + 0.5)}" width="${r1(s.w - 1)}" height="${r1(s.h - 1)}" rx="${LOOK.region.radius}"/>` +
+    `<text class="dg-side-t" x="${r1(s.x + pad)}" y="${r1(title)}">${esc(s.title)}</text><text class="dg-side-n" x="${r1(s.x + pad)}" y="${r1(title + LOOK.region.line)}">${esc(s.note)}</text></g>`
+  );
+}
+
+/** 状態遷移図の始まりと終わりの印。始まりは塗った丸、終わりは輪の中の丸で、脇道の中の終わりは点線の輪 */
+export function endMark(e: SceneEnd, color: ColorKey): string {
+  const { end } = LOOK.state;
+  const text = e.text === "" ? "" : `<text class="dg-mark" x="${r1(e.x + LOOK.state.text)}" y="${r1(e.y + LOOK.baseline.mark)}">${esc(e.text)}</text>`;
+  const x = r1(e.x);
+  const y = r1(e.y);
+  if (e.kind === "start") return `<g data-end="start"><circle class="dg-start" cx="${x}" cy="${y}" r="${e.r}"/>${text}</g>`;
+  if (e.ghost) return `<g data-end="finish" style="${cs(color)}"><circle class="dg-end-x" cx="${x}" cy="${y}" r="${e.r}"/><circle class="dg-end-xi" cx="${x}" cy="${y}" r="${end.inner}"/>${text}</g>`;
+  return `<g data-end="finish"><circle class="dg-end" cx="${x}" cy="${y}" r="${e.r}"/><circle class="dg-end-in" cx="${x}" cy="${y}" r="${end.inner}"/>${text}</g>`;
 }
 
 export function lifeline(x: number, y1: number, y2: number): string {
