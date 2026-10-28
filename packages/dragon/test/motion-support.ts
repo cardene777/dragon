@@ -64,7 +64,11 @@ export interface Motion {
 }
 
 export function motionOf(diagram: unknown): Motion {
-  const rendered = draw("renderDiagram")(diagram);
+  return motionFrom(draw("renderDiagram")(diagram));
+}
+
+/** 描いた結果を、時刻を指して読めるようにする。言語を指して描いた見本を読む時はこれを使う */
+export function motionFrom(rendered: Rendered): Motion {
   const doc = new DOMParser().parseFromString(rendered.svg, "image/svg+xml");
   const value = sampler(rendered.svg, rendered.timeline.total);
   const opacity = (el: Element, t: number): number => {
