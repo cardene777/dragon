@@ -125,10 +125,17 @@ export const LOOK = {
   badge: { r: 9.5, ring: 9, inset: 4, along: 14, short: 44 },
   carrier: { envW: 24, envH: 17, coinR: 6.5, coinIn: 3.8, tagH: 18, tagPadX: 8, samples: 16 },
   /**
+   * 運ぶ物の置き場 (#3176)。運ぶ物を出し入れする箱は、絵柄の右に点線の枠を持ち、運ぶ物は着いた後と走り出す前にそこで待つ。
+   * `gap` は絵柄と枠の間、`pad` は枠と運ぶ物の間、`spread` は枠の中に横に並べた運ぶ物の間、`h` と `radius` は枠の高さと角の丸み。
+   * `clear` は状態遷移図の右上の済んだ印と枠の間に空ける最小の隙間。`lifeline` は時系列図で生存線と運ぶ物の間、
+   * `mark` は状態遷移図の始まりの印と、その左で走り出しを待つ運ぶ物の間
+   */
+  slot: { gap: 6, pad: 3, spread: 4, h: 24, radius: 7, clear: 2, lifeline: 5, mark: 4 },
+  /**
    * `trail` は状態遷移図の帯の最後の、通った状態の点 (#3171)。`r` は点の半径、`step` は点の中心どうしの間、`now` は変わった値の欄の名前の横の点の半径と、名前からの離れ
    */
   strip: { h: 72, line: 44, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43, trail: { r: 5.4, step: 16 }, now: { r: 3, gap: 7 } },
-  stroke: { hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2, trail: 1.2 },
+  stroke: { slot: 1.2, hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2, trail: 1.2 },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
   mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },
   /**
@@ -142,7 +149,7 @@ export const LOOK = {
    */
   follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8, headRoom: 10, head: { pad: 8, h: 40, nameY: 17, subY: 31 } },
   /** 色を混ぜる割合 (%) */
-  mix: { icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72 },
+  mix: { slot: 45, icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72 },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */
   baseline: { label: 3.8, badge: 3.5, carrier: 3.7, stripTitle: 4.5, tag: 3.6, action: 3.8, mark: 4 },
   /** 浮いて出る物が下から上がる長さと、弾んで出る物の始まりの大きさ */

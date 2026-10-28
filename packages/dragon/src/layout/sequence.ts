@@ -8,6 +8,7 @@ import { LOOK, TYPE } from "../look/values";
 import type { Diagram } from "../schema";
 import { textWidth } from "./measure";
 import {
+  carrierHalf,
   badgeRect,
   boxColors,
   cornerBadge,
@@ -127,7 +128,18 @@ export function layoutSequence(diagram: Diagram): Layout {
                 [xt - dir * LOOK.edge.inset, y],
               ];
         const color = edgeColor(event, colors);
-        edges.push({ step: s, event: e, from: event.from, to: event.to, points, color, carry: event.carry });
+        // 運ぶ物は着いた生存線の向こう側に留まって矢印の先を隠さず、出る生存線の手前側で走り出しを待って段の番号を隠さない (#3176)
+        const seats: Pick<SceneEdge, "settle" | "wait"> = {};
+        if (event.carry.kind !== "none") {
+          const reach = LOOK.slot.lifeline + carrierHalf(event.carry)[0];
+          const [p0, p1] = points as [Point, Point];
+          const [q0, q1] = points.slice(-2) as [Point, Point];
+          const out = Math.sign(p1[0] - p0[0]) || 1;
+          const into = Math.sign(q1[0] - q0[0]) || -1;
+          seats.wait = [xf - out * reach, p0[1]];
+          seats.settle = [xt + into * reach, q1[1]];
+        }
+        edges.push({ step: s, event: e, from: event.from, to: event.to, points, color, carry: event.carry, ...seats });
         if (event.label !== undefined) {
           requests.push({
             step: s,

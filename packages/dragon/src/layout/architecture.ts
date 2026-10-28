@@ -22,13 +22,17 @@ import {
   layoutStrip,
   type Point,
   placeLabel,
+  placeSlot,
   type Rect,
   regionColors,
   type SceneBox,
   type SceneEdge,
   type SceneLabel,
   type SceneRegion,
+  seatCarriers,
   shiftContent,
+  slotBoxWidth,
+  slotRooms,
   stripNeed,
 } from "./scene";
 
@@ -157,7 +161,9 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
 
   // 列の幅と列の間。隣の列を横に結ぶ名前のある線は、名前が収まるまで間を広げる (広げすぎる時は脇へ寄せる)
   const columnCount = Math.max(1, ...[...slots.values()].map((s) => s.col + 1));
-  const widths = new Map(diagram.boxes.map((b) => [b.id, boxWidth(diagram, b.id, true)]));
+  // 運ぶ物を出し入れする箱は、絵柄の横に置き場を並べられる幅にする (#3176)
+  const carriedIn = slotRooms(diagram);
+  const widths = new Map(diagram.boxes.map((b) => [b.id, Math.max(boxWidth(diagram, b.id, true), slotBoxWidth(carriedIn.get(b.id), b.icon !== undefined, B.padX))]));
   const colW = Array.from({ length: columnCount }, (_, c) => Math.max(B.minW, ...[...slots].filter(([, s]) => s.col === c).map(([id]) => widths.get(id) ?? B.minW)));
   const between = Array.from({ length: Math.max(0, columnCount - 1) }, () => A.columnGap as number);
   for (const { edge } of edges) {
@@ -209,6 +215,7 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     cursor += h + R.gap;
   });
   const bandsBottom = cursor - R.gap;
+  for (const box of boxes) placeSlot(box, carriedIn.get(box.id));
 
   const byId = new Map(boxes.map((b) => [b.id, b]));
   const bandOf = (id: string) => bands[slots.get(id)?.group ?? 0] as (typeof bands)[number];
@@ -279,19 +286,17 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     return candidates.find((points) => !blocked(points, from, to)) ?? (candidates[2] as Point[]);
   };
 
-  const sceneEdges: SceneEdge[] = edges.map(({ step, event, edge }) => {
-    const target = byId.get(edge.to) as SceneBox;
-    return {
-      step,
-      event,
-      from: edge.from,
-      to: edge.to,
-      points: route(edge.from, edge.to),
-      color: edgeColor(edge, colors),
-      carry: edge.carry,
-      settle: [target.cx, target.cy + B.iconY],
-    };
-  });
+  const sceneEdges: SceneEdge[] = edges.map(({ step, event, edge }) => ({
+    step,
+    event,
+    from: edge.from,
+    to: edge.to,
+    points: route(edge.from, edge.to),
+    color: edgeColor(edge, colors),
+    carry: edge.carry,
+  }));
+  // 運ぶ物は着いた箱の置き場に留まり、出る箱の置き場で走り出しを待つ (#3176)
+  seatCarriers(sceneEdges, byId, carriedIn);
   // 同じ 2 つの箱を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする。
   // ずらした線の名前は、ずらした側 (もう一方の線の反対側) に置き、どちらの線の名前かを取り違えないようにする (#3175)
   const outward = new Map<SceneEdge, LabelSide>();
@@ -350,9 +355,11 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
   const contentRight = Math.max(...boxes.map((b) => b.x + b.w + R.pad), ...labels.map((l) => l.x + l.w + LOOK.label.soft), ...sceneEdges.flatMap((e) => e.points.map((p) => p[0] + R.pad)));
   const width = Math.max(contentRight + margin, stripNeed(diagram) + margin * 2);
   for (const region of regions) region.w = width - margin * 2;
-  const strip = layoutStrip(diagram, margin, bandsBottom + gap, width - margin * 2);
+  // 箱の下を回る線の名前は帯の下へ出ることがあるので、名前の下端まで図に入れる (#3176)
+  const contentBottom = Math.max(bandsBottom, ...labels.map((l) => l.y + l.h));
+  const strip = layoutStrip(diagram, margin, contentBottom + gap, width - margin * 2);
   layout.width = width;
-  layout.height = (strip ? strip.y + strip.h : bandsBottom) + margin;
+  layout.height = (strip ? strip.y + strip.h : contentBottom) + margin;
   if (strip) layout.strip = strip;
   const lines = lineBadges(sceneEdges, diagram.steps.length);
   layout.badges = diagram.steps.map((step, s) => {

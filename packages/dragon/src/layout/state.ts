@@ -21,6 +21,7 @@ import {
   badgeRect,
   boxColors,
   boxWidth,
+  carrierHalf,
   cornerBadge,
   edgeColor,
   edgesOf,
@@ -32,6 +33,7 @@ import {
   markText,
   type Point,
   placeLabel,
+  placeSlot,
   type Rect,
   type SceneBox,
   type SceneEdge,
@@ -39,7 +41,10 @@ import {
   type SceneLabel,
   type ScenePath,
   type SceneSide,
+  seatCarriers,
   shiftContent,
+  slotBoxWidth,
+  slotRooms,
   stripNeed,
 } from "./scene";
 
@@ -56,14 +61,6 @@ export function visitOrder(diagram: Diagram): string[] {
     add(edge.to);
   }
   return order;
-}
-
-/** 運ぶ物の幅の半分 */
-function carrierHalf(carry: Carry): number {
-  const C = LOOK.carrier;
-  if (carry.kind === "tag") return (textWidth(carry.text, hasWide(carry.text) ? TYPE.carrierJa : TYPE.carrier) + C.tagPadX * 2) / 2;
-  if (carry.kind === "coin") return C.coinR;
-  return C.envW / 2;
 }
 
 /** 線の両端が同じ 2 つの線か */
@@ -85,7 +82,12 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     const source = diagram.boxes.find((b) => b.id === id);
     return G.pad * 2 + B.icon + G.gap + Math.max(textWidth(source?.name ?? id, TYPE.boxName), textWidth(source?.sub ?? "", TYPE.boxSub));
   };
-  const widths = new Map(diagram.boxes.map((b) => [b.id, ghosts.includes(b.id) ? ghostWidth(b.id) : boxWidth(diagram, b.id, true)]));
+  // 運ぶ物を出し入れする状態は、絵柄の横に置き場を並べ、置き場の枠を右上の済んだ印から離せる幅にする (#3176)
+  const carriedIn = slotRooms(diagram);
+  const doneSide = Math.max(B.padX, T.done.inset + T.done.r + LOOK.slot.clear);
+  const widths = new Map(
+    diagram.boxes.map((b) => [b.id, ghosts.includes(b.id) ? ghostWidth(b.id) : Math.max(boxWidth(diagram, b.id, true), slotBoxWidth(carriedIn.get(b.id), b.icon !== undefined, doneSide))]),
+  );
   const columnCount = Math.max(1, Math.min(T.columns, walked.length));
   const rowCount = Math.max(1, Math.ceil(walked.length / T.columns));
   // 奇数番目の段は右から左へ並べ、段の最後の状態の真下から次の段を始める
@@ -145,6 +147,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     const s = slot.get(id) as { row: number; col: number };
     return boxOf(id, center(s.col), rowY(s.row), false);
   });
+  for (const box of boxes) placeSlot(box, carriedIn.get(box.id), doneSide);
   const byId = new Map(boxes.map((b) => [b.id, b]));
   const below = (box: SceneBox): boolean => boxes.some((other) => other !== box && Math.abs(other.cx - box.cx) < 0.5 && other.y > box.y);
 
@@ -275,20 +278,24 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   };
 
   /**
-   * 運ぶ物が着いた後に留まる所。状態へ着いた札はその状態の印に乗り (同じ状態へ戻る輪も、回った後に印へ戻る)、
-   * 終わりへ着いた札は終わりの印と字に掛からないよう、下に置いた印なら左、右に置いた印なら下に留まる
+   * 終わりへ着いた札が留まる所。終わりの印と字に掛からないよう、下に置いた印なら左、右に置いた印なら下に留まる。
+   * 状態へ着いた札は、その状態の置き場に留まる (同じ状態へ戻る輪も、回った後に置き場へ戻る)
    */
   const settleOf = (edge: EdgeEvent): Point | undefined => {
-    const target = byId.get(edge.to);
-    if (target) return [target.cx, target.cy + B.iconY];
     const end = edge.to === "finish" ? finishOf(edge.from) : undefined;
     if (!end) return undefined;
     const from = byId.get(edge.from);
-    return from && Math.abs(end.x - from.cx) < 0.5 ? [end.x - end.r - gap - carrierHalf(edge.carry), end.y] : [end.x, end.y + end.r + gap + LOOK.carrier.tagH / 2];
+    return from && Math.abs(end.x - from.cx) < 0.5 ? [end.x - end.r - gap - carrierHalf(edge.carry)[0], end.y] : [end.x, end.y + end.r + gap + LOOK.carrier.tagH / 2];
+  };
+  /** 始まりの印から出る札は、印の右の字に掛からないよう、印の左で走り出しを待つ。段の番号を載せた線の上では待たない */
+  const waitOf = (edge: EdgeEvent): Point | undefined => {
+    const start = edge.from === "start" ? ends.find((e) => e.kind === "start") : undefined;
+    return start ? [start.x - start.r - LOOK.slot.mark - carrierHalf(edge.carry)[0], start.y] : undefined;
   };
 
   const sceneEdges: SceneEdge[] = steps.map(({ step, event, edge }) => {
     const settle = settleOf(edge);
+    const wait = edge.carry.kind === "none" ? undefined : waitOf(edge);
     return {
       step,
       event,
@@ -298,8 +305,11 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
       color: colorOf(edge, colors),
       carry: edge.carry,
       ...(settle ? { settle } : {}),
+      ...(wait ? { wait } : {}),
     };
   });
+  // 状態を出入りする運ぶ物は、着いた状態の置き場に留まり、出る状態の置き場で走り出しを待つ (#3176)
+  seatCarriers(sceneEdges, byId, carriedIn);
   // 同じ 2 つの状態を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする。
   // ずらした線の名前は、ずらした側 (もう一方の線の反対側) に置き、どちらの線の名前かを取り違えないようにする (#3175)
   const outward = new Map<SceneEdge, LabelSide>();

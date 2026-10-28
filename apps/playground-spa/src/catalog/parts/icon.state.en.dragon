@@ -9,5 +9,5 @@ step Submit
   draft -> review: submit
 
 step Approve
-  say The carried item rests on the icon of the state it reaches.
+  say The carried item rests in the slot beside the icon of the state it reaches.
   review -> live: approve

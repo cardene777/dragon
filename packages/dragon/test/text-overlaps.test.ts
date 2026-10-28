@@ -9,8 +9,11 @@
  *
  * 線が札を持たない字 (薄く残す線の名前など) を横切る所も重なりに数え、線の両端の名前で返す。
  * 札に入った字は札の地が線を隠すので、線が横切っても数えない。
+ *
+ * 箱の絵柄と、着いて留まる運ぶ物も重なりに数える (#3176)。絵柄は `<箱の名前> の絵柄` の名前で返す。
  */
 import { describe, expect, it } from "vitest";
+import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
 import { renderDiagram, renderLayout } from "../src/render/svg";
 import type { Diagram } from "../src/schema";
@@ -59,6 +62,13 @@ const crossings = (list: Overlap[] | undefined): string[] => (list ?? []).flatMa
 /** 2 段の状態遷移図。1 段目の線の名前は、2 段目には札を外した薄い字で残る。 */
 function state(): Diagram {
   const parsed = parseNotation(["state 線と字", "", "box 受付", "box 発送", "", "step 受ける", "  say 受け付ける。", "  start -> 受付: 受け付ける", "", "step 送る", "  say 送る。", "  受付 -> 発送: 送る"].join("\n"));
+  if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
+  return parsed.diagram;
+}
+
+/** 2 段目に札 #42 が決済へ着く構成図。決済は絵柄を持つ */
+function carrying(): Diagram {
+  const parsed = parseNotation(["architecture 札と絵柄", "", "box 店 [icon: app]", "box 決済 [icon: card]", "", "step 頼む", "  say 店が決済に頼む。", "  店 -> 決済: 頼む", "", "step 渡す", "  say 店が番号を渡す。", "  店 -> 決済: 渡す [tag: #42]"].join("\n"));
   if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
   return parsed.diagram;
 }
@@ -149,5 +159,21 @@ describe("字の重なりをエンジンが見つける (#3175)", () => {
     const [x0, y0] = first.points[0] as [number, number];
     Object.assign(back, { x: x0 + 10, y: y0 - back.h / 2 });
     expect(crossings(renderLayout(seq.diagram, moved, seq.timeline).overlaps), "札の下を通る線を数えた").toEqual([]);
+  });
+
+  it("overlaps-lists-carrier-over-icon", () => {
+    // 運ぶ物は絵柄の横の置き場に留まるので、描いた結果に運ぶ物と絵柄の重なりは無い (#3176)
+    const rendered = renderDiagram(carrying());
+    expect(pairs(rendered.overlaps).filter((p) => p.includes("の絵柄")), "置き場に留まる運ぶ物を絵柄との重なりに数えた").toEqual([]);
+
+    // 2 段目の札を決済の絵柄の上に留めると、札と絵柄の重なりを、その段の番号で数える
+    const layout = structuredClone(rendered.layout);
+    const pay = layout.boxes.find((b) => b.id === "決済");
+    const tag = layout.edges.find((e) => e.step === 1);
+    expect(pay && tag, "決済か札の線が見つからない").toBeTruthy();
+    if (!pay || !tag) return;
+    const iconX = (pay as { iconX?: number }).iconX ?? pay.cx;
+    tag.settle = [iconX, pay.cy + LOOK.box.iconY];
+    expect(pairs(renderLayout(rendered.diagram, layout, rendered.timeline).overlaps)).toContain("1:#42|決済 の絵柄");
   });
 });
