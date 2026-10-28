@@ -13,9 +13,9 @@
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { LOOK, TYPE } from "../look/values";
-import type { Carry, Diagram, LabelSide, StatePath } from "../schema";
+import type { Diagram, LabelSide, StatePath } from "../schema";
 import { type NotationLang, STATE_ENDS } from "../words";
-import { hasWide, textBox, textWidth } from "./measure";
+import { textBox, textWidth } from "./measure";
 import {
   badgeOnPath,
   badgeRect,
