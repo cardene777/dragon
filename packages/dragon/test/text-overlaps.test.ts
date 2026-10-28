@@ -84,7 +84,8 @@ describe("字の重なりをエンジンが見つける (#3175)", () => {
     const check = layout.labels.find((l) => l.text === "確かめる");
     expect(back && check, "2 段目の線の名前が見つからない").toBeTruthy();
     if (!back || !check) return;
-    Object.assign(check, { x: back.x, y: back.y });
+    // 真ん中を揃える。左端を揃えると、長い方の札が右へはみ出して段の番号の丸にも届く (札が線に寄った #3177 から)
+    Object.assign(check, { x: back.x + back.w / 2 - check.w / 2, y: back.y });
     const crossed = renderLayout(rendered.diagram, layout, rendered.timeline);
     expect(pairs(crossed.overlaps)).toEqual(["1:確かめる|返す"]);
   });

@@ -209,3 +209,10 @@
 | 状態遷移図で、運ぶ物がどの時刻にも見えていて、段の番号は段より前に出ない | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-keeps-carrier-and-badge-rules`が通る | #3176 |
 | 段の番号はその段の線の上に在る | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`edge-step-badge-on-its-line`が通る | #3176 |
 | 全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3176 |
+| 時系列図で、上に置く線の名前の札の下端と線の間、下に置く札の上端と線の間が、どちらも 6 | `pnpm exec vitest run packages/dragon/test/layout.test.ts`の検査`layout-honors-label-side-hint`が通る | #3177 |
+| 時系列図で、頭の箱の下端から上に名前を持つ最初の線までが 36、同じ段の名前の無い線と線の間が 32、上に名前を持つ次の段の線と前の線の間が 48、最後の線から生存線の終わりまでが 20 | `pnpm exec vitest run packages/dragon/test/sequence-height.test.ts`の検査`sequence-rows-packed`が通る | #3177 |
+| 部品「絵」の時系列図の見本 (英語) の図の高さが 250 以下 | `pnpm exec vitest run apps/playground-spa/src/lib/sequence-height.test.ts`の検査`icon-sequence-example-shorter`が通る | #3177 |
+| 時系列図の全ての見本の全ての段で、線の名前の札が自分の線と他の線に食い込まない | `pnpm exec vitest run apps/playground-spa/src/lib/sequence-height.test.ts`の検査`sequence-labels-clear-of-lines-in-every-example`が通る | #3177 |
+| 構成図と状態遷移図で、上に置く線の名前の札の下端と線の間は今どおり 12 | `pnpm exec vitest run packages/dragon/test/sequence-height.test.ts`の検査`architecture-and-state-label-gap-unchanged`が通る | #3177 |
+| 全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3177 |
+| 全ての見本の全ての段で、運ぶ物が絵柄と字と段の番号と矢印の先を隠さない | `pnpm exec vitest run apps/playground-spa/src/lib/carrier-slot.test.ts`の検査`carriers-clear-in-every-example`が通る | #3177 |

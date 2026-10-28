@@ -101,8 +101,8 @@ export function layoutSequence(diagram: Diagram): Layout {
         const side = event.labelSide ?? "above";
         const self = event.from === event.to;
         const named = event.label !== undefined;
-        above = named && side === "above" ? L.offset + L.h / 2 : gap;
-        under = self ? Q.selfH + gap : named && side === "below" ? L.offset + L.h / 2 : gap;
+        above = named && side === "above" ? Q.labelOffset + L.h / 2 : gap;
+        under = self ? Q.selfH + gap : named && side === "below" ? Q.labelOffset + L.h / 2 : gap;
       } else {
         above = LOOK.action.h / 2;
         under = LOOK.action.h / 2;
@@ -148,6 +148,7 @@ export function layoutSequence(diagram: Diagram): Layout {
             points,
             color,
             ...(event.labelSide ? { side: event.labelSide } : xf === xt ? { side: "right" as const } : {}),
+            offset: Q.labelOffset,
           });
         }
       } else {
