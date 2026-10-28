@@ -6,12 +6,16 @@
  *
  * 置き場所の計算はもう字を重ねないので、重なる図は置き場所を書き換えて作り、描く所 (`renderLayout`) へ直に渡す。
  * 描く所が記録した字を数えるので、箱の名前のように描く所が位置を決める字も対象に入っていることを、ここで確かめる。
+ *
+ * 線が札を持たない字 (薄く残す線の名前など) を横切る所も重なりに数え、線の両端の名前で返す。
+ * 札に入った字は札の地が線を隠すので、線が横切っても数えない。
  */
 import { describe, expect, it } from "vitest";
+import { parseNotation } from "../src/parser";
 import { renderDiagram, renderLayout } from "../src/render/svg";
 import type { Diagram } from "../src/schema";
 
-type Overlap = { step: number; texts: [string, string] };
+type Overlap = { kind?: string; step: number; texts?: [string, string]; text?: string; line?: { from: string; to: string } };
 
 const edge = (from: string, to: string, label: string) => ({ type: "edge" as const, from, to, label, carry: { kind: "none" as const } });
 
@@ -47,7 +51,17 @@ function architecture(): Diagram {
   } as unknown as Diagram;
 }
 
-const pairs = (list: Overlap[] | undefined): string[] => (list ?? []).map((o) => `${o.step}:${[...o.texts].sort().join("|")}`).sort();
+/** 2 つの字の重なりを `段:字|字` の形に並べる */
+const pairs = (list: Overlap[] | undefined): string[] => (list ?? []).flatMap((o) => (o.texts ? [`${o.step}:${[...o.texts].sort().join("|")}`] : [])).sort();
+/** 線が字を横切る所を `段:字|送る側->受ける側` の形に並べる */
+const crossings = (list: Overlap[] | undefined): string[] => (list ?? []).flatMap((o) => (o.kind === "line" && o.text && o.line ? [`${o.step}:${o.text}|${o.line.from}->${o.line.to}`] : [])).sort();
+
+/** 2 段の状態遷移図。1 段目の線の名前は、2 段目には札を外した薄い字で残る。 */
+function state(): Diagram {
+  const parsed = parseNotation(["state 線と字", "", "box 受付", "box 発送", "", "step 受ける", "  say 受け付ける。", "  start -> 受付: 受け付ける", "", "step 送る", "  say 送る。", "  受付 -> 発送: 送る"].join("\n"));
+  if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
+  return parsed.diagram;
+}
 
 describe("字の重なりをエンジンが見つける (#3175)", () => {
   it("overlaps-lists-texts-and-step", () => {
@@ -93,5 +107,47 @@ describe("字の重なりをエンジンが見つける (#3175)", () => {
     const covered = renderLayout(rendered.diagram, layout, rendered.timeline);
     expect(pairs(covered.overlaps)).toEqual(expect.arrayContaining(["0:API|呼ぶ", "0:受け付ける|呼ぶ"]));
     expect(pairs(covered.overlaps).some((p) => p.includes("API") && p.includes("受け付ける")), "箱の名前と下の字を重なりに数えた").toBe(false);
+  });
+
+  it("overlaps-lists-lines-through-text", () => {
+    const rendered = renderDiagram(state());
+    expect(rendered.overlaps, "描いた結果に重なりの一覧が無い").toEqual([]);
+
+    // 1 段目の名前を 2 段目の線の真ん中に被せる。1 段目の間は札で線を隠し、2 段目に薄い字で残ると線が横切る
+    const layout = structuredClone(rendered.layout);
+    const take = layout.labels.find((l) => l.text === "受け付ける");
+    const send = layout.edges.find((e) => e.from === "受付" && e.to === "発送");
+    expect(take && send, "名前か線が見つからない").toBeTruthy();
+    if (!take || !send) return;
+    const [[ax, ay], [bx, by]] = [send.points[0] as [number, number], send.points[send.points.length - 1] as [number, number]];
+    Object.assign(take, { x: (ax + bx) / 2 - take.w / 2, y: (ay + by) / 2 - take.h / 2 });
+    const crossed = renderLayout(rendered.diagram, layout, rendered.timeline);
+    expect(crossings(crossed.overlaps)).toEqual(["1:受け付ける|受付->発送"]);
+  });
+
+  it("overlaps-ignore-lines-under-pills", () => {
+    // 1 段目の名前を 2 段目の線の上に置く。1 段目の間は札の地が線を隠すので数えず、2 段目に札を外した字で残ると数える
+    const rendered = renderDiagram(state());
+    const layout = structuredClone(rendered.layout);
+    const take = layout.labels.find((l) => l.text === "受け付ける");
+    const send = layout.edges.find((e) => e.from === "受付" && e.to === "発送");
+    expect(take && send, "名前か線が見つからない").toBeTruthy();
+    if (!take || !send) return;
+    const [[ax, ay], [bx, by]] = [send.points[0] as [number, number], send.points[send.points.length - 1] as [number, number]];
+    Object.assign(take, { x: (ax + bx) / 2 - take.w / 2, y: (ay + by) / 2 - take.h / 2 });
+    const list = crossings(renderLayout(rendered.diagram, layout, rendered.timeline).overlaps);
+    expect(list, "札を外した字を横切る線を数えていない").toContain("1:受け付ける|受付->発送");
+    expect(list.filter((c) => c.startsWith("0:")), "札の下を通る線を数えた").toEqual([]);
+
+    // 時系列図の名前はいつも札に入っているので、別の線の上に置いても数えない
+    const seq = renderDiagram(sequence());
+    const moved = structuredClone(seq.layout);
+    const back = moved.labels.find((l) => l.text === "返す");
+    const first = moved.edges.find((e) => e.step === 0);
+    expect(back && first, "時系列図の名前か線が見つからない").toBeTruthy();
+    if (!back || !first) return;
+    const [x0, y0] = first.points[0] as [number, number];
+    Object.assign(back, { x: x0 + 10, y: y0 - back.h / 2 });
+    expect(crossings(renderLayout(seq.diagram, moved, seq.timeline).overlaps), "札の下を通る線を数えた").toEqual([]);
   });
 });

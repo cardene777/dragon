@@ -50,9 +50,30 @@ function examples(): Example[] {
   return out;
 }
 
-/** 見本ごとの重なりを 1 件 1 行にする。 */
+type Found = { kind?: string; step: number; texts?: [string, string]; text?: string; line?: { from: string; to: string } };
+
+/** 見本ごとの重なりを 1 件 1 行にする。線が字を横切る所は、線の両端の名前で書く。 */
 function overlapReport(list: Example[]): string[] {
-  return list.flatMap(({ name, rendered }) => rendered.overlaps.map((o) => `${name} 段 ${o.step + 1}: ${o.texts[0]} × ${o.texts[1]}`));
+  return list.flatMap(({ name, rendered }) =>
+    (rendered.overlaps as Found[]).map((o) =>
+      o.kind === "line" && o.line ? `${name} 段 ${o.step + 1}: ${o.text ?? ""} × 線 ${o.line.from} → ${o.line.to}` : `${name} 段 ${o.step + 1}: ${o.texts?.[0] ?? ""} × ${o.texts?.[1] ?? ""}`,
+    ),
+  );
+}
+
+/** 折れ線が四角の内側を通るか。四角の縁から 1px 内側を内側とみなす。 */
+function crosses(rect: Rect, points: Point[]): boolean {
+  for (let i = 1; i < points.length; i++) {
+    const [ax, ay] = points[i - 1] as Point;
+    const [bx, by] = points[i] as Point;
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay)));
+    for (let k = 0; k <= n; k++) {
+      const x = ax + ((bx - ax) * k) / n;
+      const y = ay + ((by - ay) * k) / n;
+      if (x > rect.x + 1 && x < rect.x + rect.w - 1 && y > rect.y + 1 && y < rect.y + rect.h - 1) return true;
+    }
+  }
+  return false;
 }
 
 /** 2 つの四角の隙間。重なる時は負になる。 */
@@ -83,6 +104,17 @@ describe("見本の字が重ならない (#3175)", () => {
       expect(cancel, `${file} に通らない道の名前が無い`).toBeDefined();
       if (!cancel) continue;
       for (const label of layout.labels) expect(gap(cancel, label), `${file} の「${cancel.text}」が「${label.text}」に重なる`).toBeGreaterThan(0);
+    }
+  });
+
+  it("state-step-label-clear-of-side-path", () => {
+    for (const file of ["state.dragon", "state.en.dragon"]) {
+      const { layout } = draw(DOCS, file);
+      const start = layout.labels.find((l) => l.text === "注文を確定" || l.text === "Place order");
+      const side = layout.paths.find((p) => p.label?.text === "取り消す" || p.label?.text === "Cancel");
+      expect(start && side, `${file} に始まりの線の名前か通らない道が無い`).toBeTruthy();
+      if (!start || !side) continue;
+      expect(crosses(start, side.points), `${file} の「${start.text}」を通らない道の点線が横切る`).toBe(false);
     }
   });
 
