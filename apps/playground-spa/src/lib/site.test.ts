@@ -2524,9 +2524,8 @@ describe("サイトの帯と経路 (#3030)", () => {
             "shelf-tab-parts 82x44",
             "shelf-tab-notation 82x44",
             "shelf-filter 255x44",
-            "sample-intro 255x44",
-            "sample-oauth 255x44",
-            "sample-ccip 255x44",
+            // 見本の行は図の種類ごとに束ねて並ぶ。どの見本の題も 1 行に収まる (#3167)
+            ...[...samplesOf("sequence"), ...samplesOf("architecture")].map((key) => `sample-${key} 255x44`),
           ]);
         }
       }
