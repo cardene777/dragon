@@ -179,3 +179,15 @@
 | 止めて見せる図は全体図と窓を持たない | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3122 |
 | 使い方の頁と `CHANGELOG.md` に、今の形と新しい形の対応表が在り、表の新しい形の行の頭の語が記法を読む部品の語と一致する | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3138 |
 | `README.md` と `packages/dragon/README.md` が決まり 4 つを載せ、2 つの README の記法の例が新しい形で読める | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`readme-notation-examples-parse`が通る | #3138 |
+| 字が重なる図を描いた時、`renderDiagram` の結果の `overlaps` が、重なる 2 つの字とその段の番号を 1 件ずつ持つ | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-lists-texts-and-step`が通る | #3175 |
+| 別々の段の間だけ見える 2 つの字が同じ所に在る時、`overlaps` に数えない | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-ignore-texts-not-shown-together`が通る | #3175 |
+| 箱の名前と下の字のように、上下に並べた 2 行の字を `overlaps` に数えない | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-ignore-stacked-lines`が通る | #3175 |
+| 使い方の頁の状態遷移図の例 (日本語と英語) の全ての段で、「取り消す」と「注文を確定」(英語は `Cancel` と `Place order`) が重ならない | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-side-label-clear-of-step-labels`が通る | #3175 |
+| 同じ線を 2 つの段で通る時、後の段の番号を線に沿って前の段の番号の隣に置き、番号どうしが重ならない (部品「運ぶ物」の構成図と状態遷移図の日本語と英語) | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`repeated-line-badges-side-by-side`が通る | #3175 |
+| 状態遷移図で同じ線に 2 つの段の名前を薄く残す時、名前どうしが重ならない (部品「運ぶ物」の状態遷移図の日本語と英語) | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-past-labels-on-one-line-clear`が通る | #3175 |
+| 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples` の全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3175 |
+| 全ての見本を見る検査に字が重なる見本を 1 つ混ぜると、検査が見本の名前と段と重なる 2 つの字を出して落ちる | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-check-names-example-step-and-texts`が通る | #3175 |
+| 時系列図と構成図では、線の名前はその段の間だけ出て、どの時刻でも同時に見える数が 2 個以下 | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`labels-show-only-during-their-step`が通る | #3175 |
+| 段の番号はその段の線の上に在る | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`edge-step-badge-on-its-line`が通る | #3175 |
+| 状態遷移図で段が終わった後も、その段の線の名前を薄く残し、普通の濃さで見える線の名前はどの時刻でも 2 個以下 | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-keeps-past-line-names-faint`が通る | #3175 |
+| 脇道の囲みは右上に在り、始まりの印とその添え書きに重ならない | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-renders-side-path-top-right`が通る | #3175 |
