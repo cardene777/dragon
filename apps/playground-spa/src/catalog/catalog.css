@@ -188,6 +188,49 @@
   color: var(--d-text-secondary);
 }
 
+/* 部品「絵」の頁の使える絵柄。形の札を上に、icon に書く名前を下に置いて並べる (#3172) */
+.catalog-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 8px 12px;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+}
+
+.catalog-icon-chip {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--d-accent-soft);
+}
+
+/* 絵柄の線は字の色 (currentColor) で描かれるので、札の差し色を字の色として渡す */
+.catalog-icon-chip svg {
+  width: 28px;
+  height: 28px;
+  color: var(--d-accent);
+}
+
+.catalog-icon-name {
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  color: var(--d-text-primary);
+}
+
 .catalog-part-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
@@ -971,6 +1014,11 @@
 @media (max-width: 439px) {
   .catalog-overlay-desc {
     display: none;
+  }
+
+  /* 使える絵柄の札は、2 列だと 18 段に伸びるので 3 列に詰める (#3172) */
+  .catalog-icon-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

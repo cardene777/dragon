@@ -58,7 +58,7 @@ CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `group` `end` `box` `strip` `step` `say` `code` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `group` `end` `box` `strip` `step` `say` `code` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 
 ```dragon
 architecture 注文を倉庫へ回す
@@ -82,6 +82,37 @@ step 出荷に回す
 誤りの文の言葉は `parseNotation(text, { lang: "en" })` のように渡した言葉で決まり、渡さなければ日本語になる。
 前の形の記法 (`時系列図` か `構成図` で始まる形) は読まず、その行の新しい形を示す誤りで止まる。
 前の形と新しい形の対応表は [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md) にある。
+
+### 状態遷移図
+
+`state` で始めると、1 つの物が状態を移る様子を段ごとに追う状態遷移図になる。箱が状態で、線は状態から状態への移り変わり。
+線の送る側に `start` を書くと始まりの印から出る線に、受ける側に `finish` を書くと終わりの印へ入る線になる。
+最初の `step` より前に書いた線は、移れるが今回は通らない道として点線で引く。
+
+```dragon
+state 注文が届くまでの状態
+
+box 支払い待ち [note: 入金を待つ, color: amber, icon: clock]
+box 発送済み [note: 業者が運ぶ, color: violet, icon: truck]
+box 配達完了 [note: 受け取られた, color: green, icon: check]
+box キャンセル [note: 払った分は返す, color: rose, icon: x]
+
+支払い待ち -> キャンセル: 取り消す
+キャンセル -> finish
+
+step 注文する
+  say 注文を確定すると、支払い待ちから始まる。
+  start -> 支払い待ち: 注文を確定 [tag: #1042]
+
+step 発送する
+  say 入金を確かめて品物を送り、発送済みに移る。
+  支払い待ち -> 発送済み: 発送 [tag: #1042]
+
+step 届く
+  say 品物が届いて配達完了に移り、注文を閉じる。
+  発送済み -> 配達完了: 受け取り [tag: #1042]
+  配達完了 -> finish: 注文を閉じる [tag: #1042]
+```
 
 ## 書き出し
 

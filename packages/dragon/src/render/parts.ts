@@ -36,6 +36,16 @@ export function glyph(name: string | undefined, x: number, y: number, scale: num
   return d ? `<path class="${cls}" transform="translate(${r1(x)} ${r1(y)}) scale(${scale})" d="${d}"/>` : "";
 }
 
+/**
+ * 絵柄を 1 つだけ描いた SVG (#3172)。見本帳の部品「絵」の頁が、使える絵柄を並べる時に使う。
+ * 線の太さは箱の印と同じ割合 (印の線の太さ × 印の縮み) で、色は置いた所の字の色 (`currentColor`) を使う。知らない名前は `undefined`
+ */
+export function iconSvg(name: string): string | undefined {
+  if (!Object.hasOwn(ICONS, name)) return undefined;
+  const width = LOOK.stroke.glyph * LOOK.box.iconScale;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-12 -12 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"/></svg>`;
+}
+
 /** 点を辿る線。曲がる所は共通の値の表の半径 (`LOOK.edge.bend`) で丸め、直角の角を作らない (#3171)。 */
 export function pathOf(points: Point[]): string {
   const pts = points.filter((p, i) => i === 0 || p[0] !== (points[i - 1] as Point)[0] || p[1] !== (points[i - 1] as Point)[1]);

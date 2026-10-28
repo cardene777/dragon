@@ -1,0 +1,22 @@
+state States of an order until it arrives
+
+box awaiting as Awaiting payment [note: Waits for funds, color: amber, icon: clock]
+box shipped as Shipped [note: With the carrier, color: violet, icon: truck]
+box delivered as Delivered [note: Handed over, color: green, icon: check]
+box cancelled as Cancelled [note: Payment returned, color: rose, icon: x]
+
+awaiting -> cancelled: Cancel
+cancelled -> finish
+
+step Place the order
+  say Confirming the order starts it at Awaiting payment.
+  start -> awaiting: Place order [tag: #1042]
+
+step Ship
+  say Once the payment clears, the goods go out and the order moves to Shipped.
+  awaiting -> shipped: Ship [tag: #1042]
+
+step Arrive
+  say The goods arrive, the order moves to Delivered, and it closes.
+  shipped -> delivered: Receive [tag: #1042]
+  delivered -> finish: Close the order [tag: #1042]

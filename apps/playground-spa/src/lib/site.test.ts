@@ -312,7 +312,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
 
@@ -344,7 +344,7 @@ const docsDiagram = (id: string, text: string): Diagram | undefined => {
 const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.flatMap((s) => s.events);
 
 /** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
-const LINE_KINDS = ["sequence", "architecture", "group", "end", "box", "strip", "step", "say", "code", "act", "note", "set", "->"] as const;
+const LINE_KINDS = ["sequence", "architecture", "state", "group", "end", "box", "strip", "step", "say", "code", "act", "note", "set", "->"] as const;
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
@@ -357,6 +357,12 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
   boxes: (d) => d.boxes.length >= 3 && d.boxes.every((b) => b.color !== undefined) && d.boxes.some((b) => b.icon !== undefined && b.sub !== undefined),
   edges: (d) => eventsOf(d).filter((e) => e.type === "edge" && e.label !== undefined).length >= 2 && eventsOf(d).some((e) => e.type === "action"),
   regions: (d) => d.kind === "architecture" && (d.regions?.length ?? 0) >= 2 && d.boxes.some((b) => b.region !== undefined),
+  // 始まりと終わりの線と、最初の段より前に書く通らない道 (#3172)
+  state: (d) =>
+    d.kind === "state" &&
+    (d.state?.paths.length ?? 0) >= 1 &&
+    eventsOf(d).some((e) => e.type === "edge" && e.from === "start") &&
+    eventsOf(d).some((e) => e.type === "edge" && e.to === "finish"),
   steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
   strip: (d) => d.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
@@ -3265,7 +3271,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
   /**
    * 指で触る時に確かめる概要と使い方の頁の本文の部品 (#3079)。`targets` は枠のある釦と字だけの札、`links` はそのうち字だけの札。
-   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと、節ごとの終わりの札。
+   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと、節ごとの終わりの札と、箱の節の部品「絵」の頁への案内 (#3172)。
    * `touchSizes` は指で触る 768 × 1024 での `targets` の部品ごとの大きさ (#3095)
    */
   const BODY_PAGES = [
@@ -3273,17 +3279,19 @@ describe("サイトの帯と経路 (#3030)", () => {
     {
       path: "docs",
       screen: "docs",
-      targets: '[data-docs="cta"] a, a[data-docs="section-cta"]',
-      links: 'a[data-docs="section-cta"]',
-      count: 14,
+      targets: '[data-docs="cta"] a, a[data-docs="section-cta"], a[data-docs="icon-link"]',
+      links: 'a[data-docs="section-cta"], a[data-docs="icon-link"]',
+      count: 16,
       touchSizes: [
         "5 分で始める → 133x44",
         "カタログで図を見る 160x44",
         "編集画面で書いてみる → 151x46",
         "続き → 箱 60x46",
+        "使える絵柄を部品「絵」の頁で全て見る → 259x46",
         "続き → 線 60x46",
         "続き → 区画 74x46",
         "構成図の見本を見る → 138x46",
+        "状態遷移図の見本を見る → 165x46",
         "続き → 帯 60x46",
         "時系列図の見本を見る → 152x46",
         "続き → JSON 82x46",
@@ -4379,7 +4387,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
       const expectDocs = async (lang: Lang): Promise<void> => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
-        const words = ["sequence", "architecture"];
+        const words = ["sequence", "architecture", "state"];
         const want = DOC_SECTIONS.map((id, i) => {
           const text = WITHOUT_EXAMPLE.includes(id) ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);

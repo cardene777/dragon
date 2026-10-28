@@ -16,7 +16,7 @@
 | 拡大の釦で画面を覆う重ね窓に図 1 つが大きく出て、閉じる釦と Escape で閉じ、「編集画面で開く」でその記法が入った編集画面が開く | `pnpm test`の検査`category-item-opens-overlay-and-editor`が通る | #3033 |
 | カタログに載せた見本がすべて今の記法で読めて、schema の検査で誤りが 0 件になる | `pnpm test`の検査`catalog-samples-all-valid`が通る | #3033 |
 | 分類の頁の色味の切替 (サイトと同じ、紙と墨、澄んだ色、夜の計器) はその見本の図の色だけを替え、「サイトと同じ」で上の帯の色味に戻る | `pnpm test`の検査`category-palette-overrides-one-diagram`が通る | #3033 |
-| 使い方の頁に前置き、見出し、編集画面とカタログへの釦 2 つ、特長の札と、今の記法 (箱、線、区画、段、帯、運ぶ物、JSON、書き出し) を説明する節が並び、本文の記法の例はすべて新しい形で読めて図が描かれる。dragon記法の全ての行の種類 (行の頭の語と、線の `->`) を節の例のどれかが使い、節の本文のどれかがその語で説明する | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3034、#3079、#3137 |
+| 使い方の頁に前置き、見出し、編集画面とカタログへの釦 2 つ、特長の札と、今の記法 (箱、線、区画、状態遷移図、段、帯、運ぶ物、JSON、書き出し) を説明する節が並び、本文の記法の例はすべて新しい形で読めて図が描かれる。dragon記法の全ての行の種類 (行の頭の語と、線の `->`) を節の例のどれかが使い、節の本文のどれかがその語で説明する | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3034、#3079、#3137、#3172 |
 | 概要の版の札と更新履歴の版が、`packages/dragon/package.json` の版を build 時に差し込んだ `v{major}.{minor}` になる | `pnpm test`の検査`version-badge-from-package`が通る | #3035 |
 | 更新履歴の頁に版と、変更の記録 (`CHANGELOG.md`) を GitHub で見る釦 1 つが出る | `pnpm test`の検査`release-notes-shows-version-and-changelog-link`が通る | #3035 |
 | 見つからない頁に大きな `404` と行き先の釦が並び、説明の入口の数が釦の数と一致する | `pnpm test`の検査`not-found-counts-destinations`が通る | #3035 |
@@ -137,3 +137,15 @@
 | 今の見本 (入門、OAuth、CCIP) は、今どおり記法から JSON、JSON から記法、記法から JSON と変換して同じ JSON に戻る | `pnpm test`の検査`roundtrip-keeps-json-identical`が通る | #3167 |
 | 見本帳の全ての見本は、今どおり日本語と英語で記法として読めて schema の検査を通る | `pnpm test`の検査`catalog-samples-all-valid`が通る | #3167 |
 | 一式 (型検査、build、lint、全ての検査) が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'` が終了 0 | #3167 |
+| 使い方の頁 (日本語と英語) を開いた時、区画の節の次に状態遷移図の節が出る。節の本文は `state` の頭の行、`start` と `finish`、最初の `step` より前に書く通らない道を説明し、節の例の図は状態遷移図として描かれ、節の出口はカタログの状態遷移図の頁へ向かう | `pnpm test`の検査`docs-state-section-follows-regions`が通る | #3172 |
+| 使い方の頁の状態遷移図の節の例の記法 (日本語と英語) を `parseNotation` が誤り無く読み、JSON Schema の検査を通り、`start` の線、`finish` の線、通らない道を 1 つ以上ずつ持つ | `pnpm test`の検査`docs-state-example-parses`が通る | #3172 |
+| 使い方の頁の箱の節に部品「絵」の頁への案内があり、その頁 (日本語と英語) に package の全ての絵柄が形と名前で並ぶ。並ぶ名前の一覧は package の絵柄の定義と一致する | `pnpm test`の検査`docs-boxes-lead-to-every-icon`が通る | #3172 |
+| repo の README の描ける図の欄に状態遷移図があり、行の頭の表に `state` の行と、`start` と `finish` の線の行がある。package の README の行の頭の語に `state` があり、`start`、`finish`、通らない道を使う `state` の例を載せた状態遷移図の小節がある | `pnpm test`の検査`readme-notation-covers-state`が通る | #3172 |
+| 書き方の手引き `quick-start.md` と英語版の行の形の節に `state` の行があり、`state` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-state`が通る | #3172 |
+| package の版が 0.37.0 以上で、`CHANGELOG.md` の `## [0.37.0]` の節に状態遷移図 (#3163) と見た目を揃えた変更 (#3171) の項がある | `pnpm test`の検査`changelog-0-37-0-releases-state`が通る | #3172 |
+| package の版が前提の配り方の節と、`CHANGELOG.md` の版の見出しに書かれている | `pnpm test`の検査`release-version-in-premise`と`release-version-in-changelog`が通る | #3172 |
+| 使い方の頁の全ての節の例が読めて検査を通り、その節の記法の要素を使う | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3172 |
+| 2 つの README の dragon記法の節に決まりが 4 つ並び、dragon の囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3172 |
+| 書き方の手引きの英語版の例の数が日本語版と同じで、どれも読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #3172 |
+| 記法の全ての語をどれかの部品が受け持ち、部品の頁の経路が組み立てで作られる | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-routes-built`が通る | #3172 |
+| 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3172 |
