@@ -1,0 +1,16 @@
+sequence Action
+
+box app as App
+box server as Server
+
+step Send
+  say The app sends a signed order to the server.
+  app -> server: order
+
+step Check
+  say act shows work done inside a box, with no edge.
+  act server: check signature
+
+step Reply
+  say Edges can follow the action.
+  server -> app: accepted

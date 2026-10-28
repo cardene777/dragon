@@ -49,8 +49,32 @@ export const TEXT = {
       },
       catalog: {
         crumb: "現在地",
-        lead: (kinds: number, samples: number) =>
-          `今の記法で書いた見本を、図の種類ごとに ${kinds} つの分類に並べる。各分類の頁で見本を検索し、動く図とコードを見て、編集画面で開ける。合計 ${samples} 件の見本。`,
+        lead: (parts: number, kinds: number, samples: number) =>
+          `今の記法の部品 ${parts} 個と、部品を組み合わせた ${kinds} 種類の図を並べる。部品の頁で書き方と見え方を確かめ、図の頁で見本を検索して動かし、編集画面で開ける。合計 ${samples} 件の見本。`,
+        sections: {
+          parts: { title: "部品", lead: "どの図でも使う部品。部品ごとに、時系列図と構成図で描いた見え方を並べる。" },
+          "kind-parts": { title: "図の種類だけの部品", lead: "1 つの図の種類でだけ使う部品。" },
+          kinds: { title: "図", lead: "部品を組み合わせた図。図ごとに、使う部品の一覧と見本を載せる。" },
+        },
+        parts: {
+          box: { name: "箱", desc: "box の行で、図に登場する物を 1 つ置く。名札と見せる名前を書き、線はこの名札で引く。" },
+          edge: { name: "線", desc: "送る側の箱から受ける側の箱へ引く線。1 つの段に何本でも並べ、書いた順に引く。" },
+          "edge-label": { name: "線の名前", desc: "線に添える名前。side で、上、下、左、右のどこに置くかを選ぶ。" },
+          carry: { name: "運ぶ物", desc: "線の上を走る物。封筒、値を書いた札、硬貨、何も走らせないの 4 つから選ぶ。" },
+          color: { name: "色の役", desc: "箱と区画に付ける色の役。7 つの役から選び、色そのものは色味が決める。" },
+          icon: { name: "絵", desc: "箱と区画の名前に添える絵。user や db などの名前で選ぶ。" },
+          note: { name: "小さな字", desc: "箱と区画の名前の下に添える小さな字。段の中で箱の小さな字を書き換えられる。" },
+          act: { name: "箱の中の処理", desc: "線を引かずに、箱の中で起きる処理を札で見せる。" },
+          strip: { name: "中身の帯と欄", desc: "図の下に置く中身の帯。段ごとに欄の値を入れ替え、運ばれる物の中身を追う。" },
+          step: { name: "段", desc: "図を区切る段。段ごとに本文と打つ命令を書き、1 段ずつ送って見る。view で、枠が段を追うか全体を止めて見せるかを選ぶ。" },
+          lifeline: { name: "生存線", desc: "時系列図だけの部品。箱の下に縦の線が伸び、上から下へ時が進む。" },
+          group: { name: "区画", desc: "構成図だけの部品。group から end までの箱を 1 つの区画に囲み、仕組みの境目を見せる。" },
+        },
+        kindOnly: (kind: string) => `${kind}だけ`,
+        partKinds: "使える図",
+        words: "記法の語",
+        uses: "この図で使う部品",
+        usesLead: "部品を押すと、その部品の書き方と見え方の頁へ移る。",
         count: (n: number) => `${n} 件`,
         open: "開く →",
         kinds: {
@@ -220,8 +244,32 @@ export const TEXT = {
       },
       catalog: {
         crumb: "You are here",
-        lead: (kinds: number, samples: number) =>
-          `Examples written in the current notation, sorted into ${kinds} groups by diagram kind. Each group page lets you search them, watch the diagram move, read the code, and open it in the editor. ${samples} examples in total.`,
+        lead: (parts: number, kinds: number, samples: number) =>
+          `The ${parts} parts of the current notation, and the ${kinds} diagram kinds built from them. A part page shows how to write the part and how it looks; a diagram page lets you search its examples, watch them move, and open them in the editor. ${samples} examples in total.`,
+        sections: {
+          parts: { title: "Parts", lead: "Parts every diagram uses. Each part page shows the part in a sequence diagram and in an architecture diagram." },
+          "kind-parts": { title: "Parts for one kind", lead: "Parts that only one diagram kind uses." },
+          kinds: { title: "Diagrams", lead: "Diagrams built from the parts. Each lists the parts it uses and its examples." },
+        },
+        parts: {
+          box: { name: "Box", desc: "A box line places one thing in the diagram. Write a tag and the name to show; edges use the tag." },
+          edge: { name: "Edge", desc: "A line from the sending box to the receiving box. A step can hold any number, drawn in the order written." },
+          "edge-label": { name: "Edge label", desc: "The name beside an edge. side puts it above, below, left or right." },
+          carry: { name: "Carry", desc: "What runs along an edge: an envelope, a tag with a value, a coin, or nothing." },
+          color: { name: "Color", desc: "The color role of a box or a group. Pick one of seven roles; the palette decides the actual color." },
+          icon: { name: "Icon", desc: "A picture beside the name of a box or a group, chosen by a name such as user or db." },
+          note: { name: "Note", desc: "Small text under the name of a box or a group. A step can rewrite the small text of a box." },
+          act: { name: "Action", desc: "Shows work done inside a box as a badge, with no edge." },
+          strip: { name: "Strip", desc: "A strip of fields under the diagram. Each step can rewrite a field to follow what is carried." },
+          step: { name: "Step", desc: "A step of the diagram, with its own text and command, played one at a time. view picks whether the frame follows the step or holds the whole diagram." },
+          lifeline: { name: "Lifeline", desc: "Sequence diagrams only. A line runs down from each box, and time moves down the page." },
+          group: { name: "Group", desc: "Architecture diagrams only. The boxes between group and end sit inside one region that marks a boundary in the system." },
+        },
+        kindOnly: (kind: string) => `${kind} only`,
+        partKinds: "Used in",
+        words: "Notation",
+        uses: "Parts this diagram uses",
+        usesLead: "Pick a part to see how to write it and how it looks.",
         count: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         open: "Open →",
         kinds: {

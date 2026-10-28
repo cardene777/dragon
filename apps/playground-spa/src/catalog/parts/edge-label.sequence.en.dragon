@@ -1,0 +1,12 @@
+sequence Edge label
+
+box a as A
+box b as B
+
+step Above
+  say The text after the colon is the label. It sits above by default.
+  a -> b: label above
+
+step Below
+  say side picks where the label sits: above or below.
+  b -> a: label below [side: below]

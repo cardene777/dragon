@@ -9,6 +9,7 @@
  * コードの見出しは記法と JSON の切替と写す釦と本文を持ち、拡大の釦は画面を覆う重ね窓に同じ図を大きく出す。
  * 色味の切替は「サイトと同じ」と 3 つの色味で、この頁の図だけを替える。帯の色味が替わると「サイトと同じ」に戻る。
  * 前の頁にあった cdl だけの道具 (パターン、描き方、速さ) は、今の記法に無いので置かない。
+ * 2 面の下には、この図の種類で使える部品の札を部品の表の並びで置き、部品の頁へ飛べるようにする (#3166)。
  */
 import { type Diagram, PALETTES, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon";
 import { type CSSProperties, type ReactElement, useEffect, useMemo, useRef, useState } from "react";
@@ -21,6 +22,8 @@ import { follow, PATHS } from "../site/routes";
 import { usePhone } from "../site/usePhone";
 import { type Lang, TEXT } from "../text";
 import { type Kind, samplesOf } from "./catalog";
+import { PartCard } from "./CatalogIndex";
+import { partsOf } from "./parts";
 
 type View = "figure" | "code";
 type Source = "notation" | "json";
@@ -162,6 +165,18 @@ export function CategoryPage({ kind, lang, theme, palette: sitePalette }: Props)
           )}
         </section>
       </div>
+
+      <section className="catalog-section catalog-uses" data-catalog="uses" aria-label={c.uses}>
+        <header className="catalog-section-head">
+          <h2 className="catalog-section-title">{c.uses}</h2>
+          <p className="catalog-section-lead">{c.usesLead}</p>
+        </header>
+        <div className="catalog-part-grid">
+          {partsOf(kind).map((part) => (
+            <PartCard key={part.id} part={part} lang={lang} name="uses-part" />
+          ))}
+        </div>
+      </section>
 
       {expanded && current !== undefined && (
         <Overlay sample={current} lang={lang} theme={theme} palette={palette} onClose={() => setExpanded(false)} />

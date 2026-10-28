@@ -1,0 +1,18 @@
+architecture 線
+
+box ブラウザ
+box サーバー
+box DB
+
+step 呼ぶ
+  say 線は送る側の名札から受ける側の名札へ -> で引く。
+  ブラウザ -> サーバー: GET /items
+
+step 読む
+  say 1 つの段に線を何本でも並べられる。書いた順に引く。
+  サーバー -> DB: SELECT
+  DB -> サーバー: 行
+
+step 返す
+  say 返す線は逆向きに書く。
+  サーバー -> ブラウザ: 200 OK

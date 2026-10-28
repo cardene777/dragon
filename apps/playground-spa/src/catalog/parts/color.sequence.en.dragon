@@ -1,0 +1,15 @@
+sequence Color
+
+box user as User [color: slate]
+box app as App [color: blue]
+box pay as Payment [color: coin]
+box store as Warehouse [color: green]
+
+step Ask
+  say color gives a box one of seven roles, such as blue or coin.
+  user -> app: buy
+
+step Pay
+  say The palette sets the colors. Boxes with one role share a color.
+  app -> pay: bill
+  app -> store: ship

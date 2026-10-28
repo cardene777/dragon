@@ -21,9 +21,9 @@ const swatchStyle = (p: Palette): CSSProperties =>
 const DESTINATIONS = ["home", "catalog", "editor", "docs", "release-notes"] as const;
 type Destination = (typeof DESTINATIONS)[number];
 
-/** 今いる画面に印を付ける行き先。カタログの分類の頁ではカタログに付ける */
+/** 今いる画面に印を付ける行き先。カタログの分類の頁と部品の頁ではカタログに付ける */
 const currentOf = (route: Route): Destination | undefined =>
-  route.screen === "category" ? "catalog" : DESTINATIONS.find((d) => d === route.screen);
+  route.screen === "category" || route.screen === "part" ? "catalog" : DESTINATIONS.find((d) => d === route.screen);
 
 interface Props {
   /** 今の path。畳んだ行き先を開いた画面を覚えるのに使う */

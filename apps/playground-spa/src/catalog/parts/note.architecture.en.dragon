@@ -1,0 +1,18 @@
+architecture Note
+
+group device as Device [note: the user side]
+  box wallet as Wallet [note: balance 50 USD]
+end
+
+group store as Shop system [note: the selling side]
+  box shop as Shop app [note: waiting]
+end
+
+step Pay
+  say note adds small text under the name of a box or a group.
+  wallet -> shop: 12 USD [carry: coin]
+
+step Rewrite
+  say A note line in a step rewrites a box's small text from then on.
+  note wallet: balance 38 USD
+  note shop: paid

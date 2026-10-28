@@ -1,0 +1,17 @@
+architecture 中身の帯と欄
+
+box アプリ
+box サーバー
+
+strip 注文: 番号, 状態
+
+step 作る
+  say strip で図の下に中身の帯と欄を置き、set で欄に値を入れる。
+  アプリ -> サーバー: 注文する
+  set 番号: 42
+  set 状態: 受付
+
+step 進める
+  say set の tag で、欄の値に札を添える。
+  act サーバー: 確かめる
+  set 状態: 確定 [tag: 済]

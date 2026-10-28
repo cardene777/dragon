@@ -1,7 +1,8 @@
 /**
  * サイトの経路 (#3030)。
  *
- * 0.35.0 より前のサイトと同じ経路で 7 画面を出し分ける。帯の行き先は `history.pushState` で移り、頁を読み直さない。
+ * 0.35.0 より前のサイトと同じ経路の 7 画面に、カタログの部品の頁 (`/catalog/part/<部品>`、#3166) を足して出し分ける。
+ * 帯の行き先は `history.pushState` で移り、頁を読み直さない。
  * build は画面の経路ごとの `.html` と `404.html` をこの頁の写しとして置く (`scripts/copy-404.mjs`)。
  * GitHub Pages は画面の経路にその `.html` を 200 で、表に無い path に `404.html` を 404 で返すので (#3157)、
  * どの経路で直に開いても同じ script が経路を読む。
@@ -10,12 +11,14 @@ import { type MouseEvent, useSyncExternalStore } from "react";
 
 import { fromHash } from "../share";
 
-export type Screen = "home" | "catalog" | "category" | "editor" | "docs" | "release-notes" | "not-found";
+export type Screen = "home" | "catalog" | "category" | "part" | "editor" | "docs" | "release-notes" | "not-found";
 
 export interface Route {
   screen: Screen;
   /** カタログの分類の頁が出す分類の名前 */
   category?: string;
+  /** カタログの部品の頁が出す部品の名札 */
+  part?: string;
 }
 
 /** 頁の置き場。build では `/dragon/`、開発 server では `/` */
@@ -41,9 +44,10 @@ export function routeOf(pathname: string): Route {
   if (`${pathname}/` === BASE) return { screen: "home" };
   if (!pathname.startsWith(BASE)) return { screen: "not-found" };
   const parts = pathname.slice(BASE.length).split("/").filter(Boolean);
-  const [head, second] = parts;
+  const [head, second, third] = parts;
   if (head === undefined) return { screen: "home" };
   if (head === "catalog" && second !== undefined && parts.length === 2) return { screen: "category", category: decodeURIComponent(second) };
+  if (head === "catalog" && second === "part" && third !== undefined && parts.length === 3) return { screen: "part", part: decodeURIComponent(third) };
   const screen = SINGLE[head];
   return screen !== undefined && parts.length === 1 ? { screen } : { screen: "not-found" };
 }

@@ -1,0 +1,15 @@
+architecture 段 [view: fixed]
+
+box 端末
+box サーバー
+
+step 打つ
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code curl /api/items
+  端末 -> サーバー: GET /api/items
+
+step 返る
+  say 段は 1 つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  サーバー -> 端末: 200 OK

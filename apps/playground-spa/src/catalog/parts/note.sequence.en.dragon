@@ -1,0 +1,13 @@
+sequence Note
+
+box wallet as Wallet [note: balance 50 USD]
+box shop as Shop [note: waiting]
+
+step Pay
+  say note adds small text under the box name.
+  wallet -> shop: 12 USD [carry: coin]
+
+step Rewrite
+  say A note line in a step rewrites the small text from then on.
+  note wallet: balance 38 USD
+  note shop: paid

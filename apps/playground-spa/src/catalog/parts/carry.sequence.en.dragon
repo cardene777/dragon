@@ -1,0 +1,20 @@
+sequence Carry
+
+box wallet as Wallet
+box shop as Shop
+
+step Envelope
+  say With nothing written, an envelope runs along the edge.
+  wallet -> shop: order
+
+step Tag
+  say tag writes a value on a tag that runs along the edge.
+  shop -> wallet: bill [tag: #42]
+
+step Coin
+  say carry: coin shows money moving as a coin.
+  wallet -> shop: pay [carry: coin]
+
+step Nothing
+  say carry: none draws the edge and runs nothing along it.
+  shop -> wallet: received [carry: none]

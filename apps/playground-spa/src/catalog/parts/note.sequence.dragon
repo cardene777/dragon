@@ -1,0 +1,13 @@
+sequence 小さな字
+
+box 財布 [note: 残高 5000 円]
+box 店 [note: 待っている]
+
+step 払う
+  say note で箱の名前の下に小さな字を添える。
+  財布 -> 店: 1200 円 [carry: coin]
+
+step 書き換える
+  say 段の中の note の行で、その段から小さな字を書き換える。
+  note 財布: 残高 3800 円
+  note 店: 受け取った

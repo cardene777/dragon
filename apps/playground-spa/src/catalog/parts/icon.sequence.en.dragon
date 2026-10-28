@@ -1,0 +1,15 @@
+sequence Icon
+
+box user as User [icon: user]
+box app as App [icon: app]
+box vault as Key vault [icon: key]
+box db as DB [icon: db]
+
+step Open
+  say icon puts a picture above the box name, such as user or db.
+  user -> app: open
+
+step Read
+  say The picture tells what a box is before you read its name.
+  app -> vault: borrow key
+  app -> db: read

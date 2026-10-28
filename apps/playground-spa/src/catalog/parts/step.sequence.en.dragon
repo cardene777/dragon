@@ -1,0 +1,16 @@
+sequence Step [view: fixed]
+
+box term as Terminal
+box server as Server
+
+step Run
+  say step starts a step and say writes its text.
+    The command run in the step goes in code.
+  code curl /api/items
+  term -> server: GET /api/items
+
+step Return
+  say Steps play one at a time.
+    view picks whether the frame follows the step
+    or holds the whole diagram.
+  server -> term: 200 OK
