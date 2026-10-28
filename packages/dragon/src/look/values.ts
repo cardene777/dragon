@@ -87,7 +87,11 @@ export const LOOK = {
   box: { h: 72, minW: 92, padX: 12, radius: 12, icon: 24, iconRadius: 7, iconY: -16, iconScale: 0.74, nameY: 12, subY: 27 },
   region: { pad: 18, gap: 10, radius: 14, inset: 14, icon: 24, iconRadius: 7, iconScale: 0.68, nameY: 58, line: 16, minH: 108 },
   architecture: { columns: 4, columnGap: 56, maxColumnGap: 160, rowGap: 44, labelRoom: 16 },
-  sequence: { columnGap: 40, labelRoom: 16, firstRow: 22, rowGap: 14, stepGap: 8, minPitch: 40, tail: 18, selfW: 34, selfH: 18 },
+  /**
+   * 時系列図。線の名前の札は、構成図と状態遷移図より線に寄せる (`labelOffset` は線から札の真ん中まで)。
+   * 札と線の離れが図の他の空きと同じ 6 になり、行を詰めても札がどの線の名前かが分かる (#3177)。
+   */
+  sequence: { columnGap: 40, labelRoom: 16, labelOffset: 16, firstRow: 10, rowGap: 6, stepGap: 6, minPitch: 32, tail: 10, selfW: 34, selfH: 18 },
   /**
    * 状態遷移図 (#3163)。状態は `columns` つずつ並べて次の段へ折り返し、段の間 (`rowGap`) の真ん中を、段をまたぐ線が通る。
    * `start` と `end` は始まりと終わりの印の半径と、印の中の丸の半径。`drop` は最初の状態の上端から始まりの印の中心まで、

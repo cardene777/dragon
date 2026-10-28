@@ -1282,17 +1282,18 @@ describe("サイトの帯と経路 (#3030)", () => {
     "catalog-heads-strip-uncovered",
     async () => {
       // 頭の列を 2 段にした時、携帯の幅の編集画面で前の図を出している旨の札が頭の列の箱に重なった (#3120)。
-      // カタログの見本の枠と重ね窓でも、頭の列が出る全部の幅と段で、頭の列に頁の部品が重ならない (#3124)
+      // カタログの見本の枠と重ね窓でも、頭の列が出る全部の幅と段で、頭の列に頁の部品が重ならない (#3124)。
+      // 860 × 960 の重ね窓は、時系列図の行を詰めて図が低くなり、全体が収まって寄って追わない (#3177)。頭の列を出さないことを確かめる
       const screens = [
         { width: 360, height: 780, frame: true },
         { width: 390, height: 844, frame: true },
         { width: 430, height: 932, frame: true },
-        { width: 860, height: 960, frame: false },
+        { width: 860, height: 960, frame: false, fits: true },
         { width: 1440, height: 900, frame: false },
       ];
       const oauth = samplesOf("sequence").indexOf("oauth");
       expect(oauth, "時系列図のカタログに oauth が無い").toBeGreaterThanOrEqual(0);
-      for (const { frame, ...viewport } of screens) {
+      for (const { frame, fits, ...viewport } of screens) {
         const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport });
         await page.emulateMedia({ reducedMotion: "reduce" });
         await onScreen(page, "category", `${viewport.width} × ${viewport.height} で時系列図の分類の頁が出ない`);
@@ -1303,13 +1304,19 @@ describe("サイトの帯と経路 (#3030)", () => {
           else await page.locator(scope).scrollIntoViewIfNeeded();
           const stepItems = page.locator(`${scope} [data-dragon="steps"] > li`);
           await expect.poll(() => stepItems.count(), { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の${where}の段が読めない` }).toBeGreaterThan(1);
-          const steps = await stepItems.count();
-          for (let s = 0; s < steps; s++) {
-            const step = `${String(s + 1).padStart(2, "0")}/${String(steps).padStart(2, "0")}`;
-            await expect
-              .poll(() => stripCoveredOf(page, scope), { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の${where}の ${s + 1} 段目で、頭の列が無いか、画面の外に出るか、頭の列に頁の部品が重なる` })
-              .toEqual({ step, points: 39, covered: [] });
-            if (s < steps - 1) await page.locator(`${scope} [data-dragon="next"]`).click();
+          if (fits) {
+            const figure = page.locator(`${scope} svg[data-dragon="figure"]`);
+            await expect.poll(() => figure.getAttribute("data-view"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の${where}が全体を止めて見せない` }).toBe("fixed");
+            await expect.poll(() => figure.locator("g.dg-hd").count(), { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の${where}に頭の列が出る` }).toBe(0);
+          } else {
+            const steps = await stepItems.count();
+            for (let s = 0; s < steps; s++) {
+              const step = `${String(s + 1).padStart(2, "0")}/${String(steps).padStart(2, "0")}`;
+              await expect
+                .poll(() => stripCoveredOf(page, scope), { ...WAIT, message: `${viewport.width} × ${viewport.height} の oauth の${where}の ${s + 1} 段目で、頭の列が無いか、画面の外に出るか、頭の列に頁の部品が重なる` })
+                .toEqual({ step, points: 39, covered: [] });
+              if (s < steps - 1) await page.locator(`${scope} [data-dragon="next"]`).click();
+            }
           }
           if (scope === catalogSel("overlay")) {
             await page.keyboard.press("Escape");

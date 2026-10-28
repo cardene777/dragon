@@ -414,6 +414,8 @@ export interface LabelRequest {
   slide?: number;
   /** 指示の側が埋まっている時、同じ離れで反対の側も探す (#3175) */
   flip?: boolean;
+  /** 札を線の上か下に置く時の、線から札の真ん中までの離れ。無ければ `LOOK.label.offset` (#3177) */
+  offset?: number;
 }
 
 export interface Obstacles {
@@ -443,7 +445,8 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
   const mx = (segment.a[0] + segment.b[0]) / 2;
   const my = (segment.a[1] + segment.b[1]) / 2;
   const preferred = request.side ?? (segment.vertical ? "right" : "above");
-  const { offset, side: sideGap } = LOOK.label;
+  const { side: sideGap } = LOOK.label;
+  const offset = request.offset ?? LOOK.label.offset;
   const baseOf = (side: LabelSide): Rect =>
     side === "above"
       ? { x: mx - w / 2, y: my - offset - h / 2, w, h }

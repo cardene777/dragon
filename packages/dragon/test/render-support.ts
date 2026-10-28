@@ -54,10 +54,12 @@ export interface LaidBadge {
   y: number;
 }
 
-/** 時系列図の生存線。`id` は箱の id。 */
+/** 時系列図の生存線。`id` は箱の id。`y1` と `y2` は線の上端と下端。 */
 export interface LaidLifeline {
   id: string;
   x: number;
+  y1: number;
+  y2: number;
 }
 
 export interface Layout {
