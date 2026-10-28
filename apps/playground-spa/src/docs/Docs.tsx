@@ -2,7 +2,8 @@
  * 使い方の頁 (#3034)。0.35.0 より前のサイトの使い方 (`pages/DocsPage.tsx`) と同じ並びを、今の記法で作る。
  *
  * 前置き (札、見出し、前置きの文、編集画面とカタログへの釦)、特長の札、番号付きの節の順に縦に積む。
- * 節は dragon記法の決まりと記法の要素 (箱、線、区画、段、帯、運ぶ物、JSON、書き出し) を説明し、記法の例は字と動く図 (`LiveFigure`) を並べる。
+ * 節は dragon記法の決まりと記法の要素 (箱、線、区画、状態遷移図、段、帯、運ぶ物、JSON、書き出し) を説明し、記法の例は字と動く図 (`LiveFigure`) を並べる。
+ * 箱の節の本文の後には、使える絵柄を全て並べた部品「絵」の頁への案内を、節の終わりの札と同じ見た目で置く (#3172)。
  * 決まりの節は決まり 4 つを番号付きで並べ、最後の節は前の形と新しい形の対応表を書き出しの設定と同じ形の表で出す (#3138)。
  * 例の字は `examples/` の file から読み、図はその字をそのまま読んで描く。JSON の節は原本の JSON として読む。
  * 命令は図を描かない囲みに出す。特長の札は同じ頁の節へ移り、札の名前は行き先の節の見出しを使う。
@@ -100,6 +101,11 @@ function Section({ id, index, lang, theme, palette }: Look & { id: SectionId; in
           )}
         </Fragment>
       ))}
+      {id === "boxes" && (
+        <a className="docs-sec-cta" data-docs="icon-link" href={`${PATHS.catalog}/part/icon`} onClick={(e) => follow(e)}>
+          {DOCS[lang].iconLink}
+        </a>
+      )}
       {id === "rules" && (
         <ol className="docs-rules" data-docs="rules">
           {rules.map((rule) => (

@@ -85,6 +85,8 @@ export const TEXT = {
         usesLead: "部品を押すと、その部品の書き方と見え方の頁へ移る。",
         partSamples: "この部品を使う見本",
         partSamplesLead: "見本を押すと、図の頁でその見本を開く。",
+        partIcons: "使える絵柄",
+        partIconsLead: (count: number) => `箱と区画の icon に下の名前を書くと、その絵柄が名前の横に付く。使える絵柄は ${count} 個。`,
         count: (n: number) => `${n} 件`,
         open: "開く →",
         kinds: {
@@ -293,6 +295,8 @@ export const TEXT = {
         usesLead: "Pick a part to see how to write it and how it looks.",
         partSamples: "Examples that use this part",
         partSamplesLead: "Pick an example to open it on its diagram page.",
+        partIcons: "Available icons",
+        partIconsLead: (count: number) => `Write one of these names as the icon of a box or a group to put that picture beside its name. There are ${count} icons.`,
         count: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         open: "Open →",
         kinds: {

@@ -2,7 +2,7 @@
 
 dragon の図は、人は dragon記法で書き、道具は JSON (原本) で持つ。
 行の種類は行の頭の英語の語で決まり、段の `step` の行の下に、その段で起きることを起きる順に並べる。
-書き方の全部を使った例は、同じ directory の `oauth.dragon` (時系列図) と `ccip.dragon` (構成図) にある。
+書き方の全部を使った例は、同じ directory の `oauth.dragon` (時系列図) と `ccip.dragon` (構成図) と `order.dragon` (状態遷移図) にある。
 
 記法の語は英語だけで、箱の名前や段の本文は日本語で書ける。
 英語の書き方は同じ directory の `quick-start.en.md` にある。
@@ -35,7 +35,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>` か `architecture <題>`。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 中身の帯 | `strip <題>: <欄>, <欄>` | `strip メッセージ: ID, 宛先, 状態` |
@@ -60,6 +60,35 @@ step ログインを押す
 
 同じ区画の箱が離れて並ぶ時は、同じ `group <名札>` をもう一度開いて続きの箱を書く。
 2 度目は名札だけを書き、名前と属性は最初の 1 度だけ書く。
+
+状態遷移図 (`state <題>`) では、箱が状態になり、線は状態から状態への移り変わりになる。
+線の送る側に `start` を書くと始まりの印から出る線に、受ける側に `finish` を書くと終わりの印へ入る線になる。
+最初の `step` の行より前に書いた線は、移れるが今回は通らない道として点線で引く。
+
+```dragon
+state 注文が届くまでの状態
+
+box 支払い待ち [note: 入金を待つ, color: amber, icon: clock]
+box 発送済み [note: 業者が運ぶ, color: violet, icon: truck]
+box 配達完了 [note: 受け取られた, color: green, icon: check]
+box キャンセル [note: 払った分は返す, color: rose, icon: x]
+
+支払い待ち -> キャンセル: 取り消す
+キャンセル -> finish
+
+step 注文する
+  say 注文を確定すると、支払い待ちから始まる。
+  start -> 支払い待ち: 注文を確定 [tag: #1042]
+
+step 発送する
+  say 入金を確かめて品物を送り、発送済みに移る。
+  支払い待ち -> 発送済み: 発送 [tag: #1042]
+
+step 届く
+  say 品物が届いて配達完了に移り、注文を閉じる。
+  発送済み -> 配達完了: 受け取り [tag: #1042]
+  配達完了 -> finish: 注文を閉じる [tag: #1042]
+```
 
 ## 属性
 

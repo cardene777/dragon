@@ -6,8 +6,9 @@
  * 図はどれも部品の記法の file (`parts/<名札>.<図の種類>.dragon`) を再生の部品で描き、記法の本文と編集画面で開くを添える。
  * 部品の図は箱 2 つから 4 つの小さな図なので、使い方の頁の記法の例と同じく全体を止めて見せる。
  * 図の下には、その部品の語を使う見本の札を並べ、押すと図の頁でその見本を選んだ状態で開く (#3167)。
+ * 部品「絵」の頁だけは、図の下に使える絵柄を全て形と名前で並べる。一覧は package の絵柄の表 (`ICONS`) から作り、形は package の `iconSvg` が描く (#3172)。
  */
-import type { Theme } from "@cardenelabs/dragon";
+import { ICONS, iconSvg, type Theme } from "@cardenelabs/dragon";
 import type { ReactElement } from "react";
 
 import { exampleInfo } from "../examples";
@@ -78,6 +79,8 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
         ))}
       </div>
 
+      {part.id === "icon" && <IconList lang={lang} />}
+
       <section className="catalog-section" data-catalog="part-samples" aria-label={c.partSamples}>
         <header className="catalog-section-head">
           <h2 className="catalog-section-title">{c.partSamples}</h2>
@@ -103,6 +106,31 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
         </div>
       </section>
     </div>
+  );
+}
+
+/**
+ * 使える絵柄の一覧。名前の順に並べ、形は図の中の印と同じ道筋と太さで package が描く。
+ * 頁に差し込む字は package の絵柄の表から作った SVG だけで、人が書いた字を含まない
+ */
+function IconList({ lang }: { lang: Lang }): ReactElement {
+  const c = TEXT[lang].site.catalog;
+  const names = Object.keys(ICONS).sort();
+  return (
+    <section className="catalog-section" data-catalog="part-icons" aria-label={c.partIcons}>
+      <header className="catalog-section-head">
+        <h2 className="catalog-section-title">{c.partIcons}</h2>
+        <p className="catalog-section-lead">{c.partIconsLead(names.length)}</p>
+      </header>
+      <ul className="catalog-icon-grid">
+        {names.map((name) => (
+          <li key={name} className="catalog-icon" data-icon={name}>
+            <span className="catalog-icon-chip" dangerouslySetInnerHTML={{ __html: iconSvg(name) ?? "" }} />
+            <code className="catalog-icon-name">{name}</code>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

@@ -2,7 +2,7 @@
 
 A dragon diagram is written by people in dragon notation and kept by tools as JSON (the source).
 The first English word of each line decides its kind, and under each `step` line you list what happens in that step, in order.
-Examples that use every form are `oauth.en.dragon` (a sequence diagram) and `ccip.en.dragon` (an architecture diagram) in this directory.
+Examples that use every form are `oauth.en.dragon` (a sequence diagram), `ccip.en.dragon` (an architecture diagram), and `order.en.dragon` (a state diagram) in this directory.
 
 The words of the notation are English only, and box names and step bodies can be written in any language.
 The Japanese guide is `quick-start.md` in this directory.
@@ -35,7 +35,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>` or `architecture <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, or `state <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Strip | `strip <title>: <field>, <field>` | `strip Message: ID, receiver, state` |
@@ -60,6 +60,35 @@ Screen readers read each step's title and body in step order.
 
 When boxes of the same region are not next to each other, open the same `group <id>` again and write the rest of its boxes.
 The second time, write only the id, and give the name and attributes only the first time.
+
+In a state diagram (`state <title>`), each box is a state and each line is a move from one state to another.
+Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark.
+Lines written before the first `step` line are paths the diagram could take but does not this time, drawn dotted.
+
+```dragon
+state States of an order until it arrives
+
+box awaiting as Awaiting payment [note: Waits for funds, color: amber, icon: clock]
+box shipped as Shipped [note: With the carrier, color: violet, icon: truck]
+box delivered as Delivered [note: Handed over, color: green, icon: check]
+box cancelled as Cancelled [note: Payment returned, color: rose, icon: x]
+
+awaiting -> cancelled: Cancel
+cancelled -> finish
+
+step Place the order
+  say Confirming the order starts it at Awaiting payment.
+  start -> awaiting: Place order [tag: #1042]
+
+step Ship
+  say Once the payment clears, the goods go out and the order moves to Shipped.
+  awaiting -> shipped: Ship [tag: #1042]
+
+step Arrive
+  say The goods arrive, the order moves to Delivered, and it closes.
+  shipped -> delivered: Receive [tag: #1042]
+  delivered -> finish: Close the order [tag: #1042]
+```
 
 ## Attributes
 

@@ -80,4 +80,25 @@ describe("使い方の文書", () => {
       expect(parsed.ok, `${fence.line} 行目の囲みが読めない ${JSON.stringify(firstError(parsed))}`).toBe(true);
     }
   });
+
+  it("quick-start-covers-state", () => {
+    // 書き方の手引きは書き方の全部を名乗るので、状態遷移図 (#3163) の行の形と例も載せる (#3172)
+    const extract = api("extractDiagrams");
+    const parse = api("parseNotation");
+    for (const [file, heading] of [
+      ["quick-start.md", "行の形"],
+      ["quick-start.en.md", "Line forms"],
+    ] as const) {
+      const text = exampleText(file);
+      const forms = text.split(new RegExp(`^## ${heading}$`, "mu"))[1]?.split(/^## /mu)[0] ?? "";
+      expect(forms, `${file} に ## ${heading} の節が無い`).not.toBe("");
+      expect(/(^|[^A-Za-z-])state($|[^A-Za-z-])/mu.test(forms), `${file} の ${heading} の節に state の行が無い`).toBe(true);
+      const states = extract(text).filter((fence) => fence.source.trimStart().startsWith("state "));
+      expect(states.length, `${file} に state で始まる例が無い`).toBeGreaterThan(0);
+      for (const fence of states) {
+        const parsed = parse(fence.source);
+        expect(parsed.ok, `${file} の ${fence.line} 行目の state の例が読めない ${JSON.stringify(firstError(parsed))}`).toBe(true);
+      }
+    }
+  });
 });

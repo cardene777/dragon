@@ -49,4 +49,14 @@ describe("版の記録 (#3151)", () => {
     expect(mentions("10.36.3 として出した", "0.36.3")).toBe(false);
     expect(mentions("0.36.3.1 として出した", "0.36.3")).toBe(false);
   });
+
+  it("changelog-0-37-0-releases-state", () => {
+    // 状態遷移図 (#3163) と、その見た目を試作に揃えた変更 (#3171) は 0.37.0 で出す (#3172)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 37, `package の版 ${version()} が 0.37.0 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.37\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.37.0"), "0.37.0");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.37.0] の節が無い").not.toBe("");
+    expect(released, "CHANGELOG.md の 0.37.0 の節に状態遷移図 (#3163) の項が無い").toContain("(#3163)");
+    expect(released, "CHANGELOG.md の 0.37.0 の節に見た目を揃えた変更 (#3171) の項が無い").toContain("(#3171)");
+  });
 });

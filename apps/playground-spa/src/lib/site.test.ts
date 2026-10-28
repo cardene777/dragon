@@ -312,7 +312,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
 
@@ -344,7 +344,7 @@ const docsDiagram = (id: string, text: string): Diagram | undefined => {
 const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.flatMap((s) => s.events);
 
 /** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
-const LINE_KINDS = ["sequence", "architecture", "group", "end", "box", "strip", "step", "say", "code", "act", "note", "set", "->"] as const;
+const LINE_KINDS = ["sequence", "architecture", "state", "group", "end", "box", "strip", "step", "say", "code", "act", "note", "set", "->"] as const;
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
@@ -357,6 +357,12 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
   boxes: (d) => d.boxes.length >= 3 && d.boxes.every((b) => b.color !== undefined) && d.boxes.some((b) => b.icon !== undefined && b.sub !== undefined),
   edges: (d) => eventsOf(d).filter((e) => e.type === "edge" && e.label !== undefined).length >= 2 && eventsOf(d).some((e) => e.type === "action"),
   regions: (d) => d.kind === "architecture" && (d.regions?.length ?? 0) >= 2 && d.boxes.some((b) => b.region !== undefined),
+  // 始まりと終わりの線と、最初の段より前に書く通らない道 (#3172)
+  state: (d) =>
+    d.kind === "state" &&
+    (d.state?.paths.length ?? 0) >= 1 &&
+    eventsOf(d).some((e) => e.type === "edge" && e.from === "start") &&
+    eventsOf(d).some((e) => e.type === "edge" && e.to === "finish"),
   steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
   strip: (d) => d.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
@@ -3265,7 +3271,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
   /**
    * 指で触る時に確かめる概要と使い方の頁の本文の部品 (#3079)。`targets` は枠のある釦と字だけの札、`links` はそのうち字だけの札。
-   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと、節ごとの終わりの札。
+   * 概要は呼びかけの釦 2 つ、用例の下のカタログで図を見る、最後の呼びかけの釦 2 つ。使い方は呼びかけの釦 2 つと、節ごとの終わりの札と、箱の節の部品「絵」の頁への案内 (#3172)。
    * `touchSizes` は指で触る 768 × 1024 での `targets` の部品ごとの大きさ (#3095)
    */
   const BODY_PAGES = [
@@ -3273,17 +3279,19 @@ describe("サイトの帯と経路 (#3030)", () => {
     {
       path: "docs",
       screen: "docs",
-      targets: '[data-docs="cta"] a, a[data-docs="section-cta"]',
-      links: 'a[data-docs="section-cta"]',
-      count: 14,
+      targets: '[data-docs="cta"] a, a[data-docs="section-cta"], a[data-docs="icon-link"]',
+      links: 'a[data-docs="section-cta"], a[data-docs="icon-link"]',
+      count: 16,
       touchSizes: [
         "5 分で始める → 133x44",
         "カタログで図を見る 160x44",
         "編集画面で書いてみる → 151x46",
         "続き → 箱 60x46",
+        "使える絵柄を部品「絵」の頁で全て見る → 259x46",
         "続き → 線 60x46",
         "続き → 区画 74x46",
         "構成図の見本を見る → 138x46",
+        "状態遷移図の見本を見る → 165x46",
         "続き → 帯 60x46",
         "時系列図の見本を見る → 152x46",
         "続き → JSON 82x46",
@@ -4379,7 +4387,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
       const expectDocs = async (lang: Lang): Promise<void> => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
-        const words = ["sequence", "architecture"];
+        const words = ["sequence", "architecture", "state"];
         const want = DOC_SECTIONS.map((id, i) => {
           const text = WITHOUT_EXAMPLE.includes(id) ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);
@@ -4577,6 +4585,92 @@ describe("サイトの帯と経路 (#3030)", () => {
         const said = [...nf.lead.matchAll(/\d+/gu)].map((m) => Number(m[0]));
         expect(said, `${lang} の見つからない頁の説明の入口の数が釦の数 ${nf.links.length} と合わない (${nf.lead})`).toEqual([nf.links.length]);
         expect(nf.path, `${lang} の見つからない頁に開いた path が出ない`).toBe(path);
+      }
+    },
+    SLOW,
+  );
+
+  it("docs-state-example-parses", () => {
+    // 状態遷移図の節の例は、始まりと終わりの線と、最初の段より前に書く通らない道を使う (#3172)
+    for (const lang of ["ja", "en"] as const) {
+      const text = docsExample("state", lang);
+      expect(text, `${lang} の状態遷移図の節の例の file (src/docs/examples/state${lang === "en" ? ".en" : ""}.dragon) が無い`).toBeDefined();
+      if (text === undefined) continue;
+      const parsed = parseNotation(text);
+      expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), `${lang} の状態遷移図の節の例が読めない`).toEqual([]);
+      const diagram = docsDiagram("state", text);
+      expect(diagram?.kind, `${lang} の状態遷移図の節の例が検査を通らないか、状態遷移図でない`).toBe("state");
+      const edges = diagram ? eventsOf(diagram).flatMap((e) => (e.type === "edge" ? [e] : [])) : [];
+      expect(edges.some((e) => e.from === "start"), `${lang} の状態遷移図の節の例に start から出る線が無い`).toBe(true);
+      expect(edges.some((e) => e.to === "finish"), `${lang} の状態遷移図の節の例に finish へ入る線が無い`).toBe(true);
+      expect(diagram?.state?.paths.length ?? 0, `${lang} の状態遷移図の節の例に通らない道が無い`).toBeGreaterThan(0);
+    }
+  });
+
+  it(
+    "docs-state-section-follows-regions",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
+        const { sections } = await docsOf(page);
+        const ids = sections.map((s) => s.id);
+        expect(ids[ids.indexOf("regions") + 1], `${lang} の区画の節の次が状態遷移図の節でない`).toBe("state");
+        const state = sections.find((s) => s.id === "state");
+        // 本文は頭の行と始まりと終わりの線と、段より前に書く通らない道を語で説明する
+        for (const word of ["state", "start", "finish", "step"]) {
+          expect(new RegExp(`(^|[^A-Za-z-])${word}($|[^A-Za-z-])`, "u").test(state?.prose ?? ""), `${lang} の状態遷移図の節の本文が ${word} を説明しない`).toBe(true);
+        }
+        // 例の図は状態遷移図として、始まりの印 1 つと、始まりと終わりの印を持って描かれる
+        await expect
+          .poll(
+            () =>
+              page.evaluate(() => {
+                const svg = document.querySelector('section#state [data-docs="example"] svg[data-dragon="figure"]');
+                return (svg?.querySelectorAll(".dg-start").length ?? 0) === 1 && (svg?.querySelectorAll("[data-end]").length ?? 0) >= 2;
+              }),
+            { ...WAIT, message: `${lang} の状態遷移図の節の例が、始まりと終わりの印を持つ状態遷移図として描かれない` },
+          )
+          .toBe(true);
+        expect(state?.cta, `${lang} の状態遷移図の節の出口がカタログの状態遷移図の頁へ向かない`).toBe(`${BASE}catalog/state`);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "docs-boxes-lead-to-every-icon",
+    async () => {
+      // 使える絵柄の名前は package の絵柄の定義から引き、検査に一覧を書き写さない (#3172)
+      const icons = Object.keys(((await import("@cardenelabs/dragon")) as { ICONS?: Readonly<Record<string, string>> }).ICONS ?? {}).sort();
+      expect(icons.length, "package の入口から絵柄の定義 (ICONS) を読めない").toBeGreaterThan(0);
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        // 箱の節から部品「絵」の頁へ移れる
+        const link = page.locator(`section#boxes a[href$="${BASE}catalog/part/icon"]`).first();
+        await expect.poll(() => link.count(), { ...WAIT, message: `${lang} の箱の節に部品「絵」の頁への案内が無い` }).toBe(1);
+        await link.click();
+        await expect.poll(() => page.evaluate(() => location.pathname), { ...WAIT, message: `${lang} の箱の節の案内を押しても部品「絵」の頁へ移らない` }).toBe(`${BASE}catalog/part/icon`);
+        // 部品「絵」の頁に、全ての絵柄が形と名前で並ぶ
+        await expect
+          .poll(() => page.evaluate(() => [...document.querySelectorAll('[data-catalog="part-icons"] [data-icon]')].map((el) => el.getAttribute("data-icon") ?? "").sort()), {
+            ...WAIT,
+            message: `${lang} の部品「絵」の頁に並ぶ絵柄が package の絵柄の定義と合わない`,
+          })
+          .toEqual(icons);
+        const items = await page.evaluate(() =>
+          [...document.querySelectorAll('[data-catalog="part-icons"] [data-icon]')].map((el) => ({
+            name: el.getAttribute("data-icon") ?? "",
+            label: el.textContent?.trim() ?? "",
+            drawn: (el.querySelector("svg path")?.getAttribute("d") ?? "") !== "",
+          })),
+        );
+        for (const item of items) {
+          expect(item.label, `${lang} の部品「絵」の頁の ${item.name} に名前が出ない`).toBe(item.name);
+          expect(item.drawn, `${lang} の部品「絵」の頁の ${item.name} に形が描かれない`).toBe(true);
+        }
       }
     },
     SLOW,

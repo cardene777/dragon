@@ -3,6 +3,7 @@
  *
  * 見本帳 (`docs/design/base/engine.js` の `G`) と同じ形を持つ。`block` だけは見本帳が絵を手で描いていたので、ここで足した。
  * `undo` (戻る矢印) と `yen` (円の印) は、注文の試作 (`docs/design/base/scenes/order.js`) が返品と返金に足した形 (#3171)。
+ * package の入口からも出し、見本帳の部品「絵」の頁がこの表から使える絵柄の一覧を作る。1 つずつの絵は `iconSvg` が描く (#3172)。
  */
 export const ICONS: Readonly<Record<string, string>> = {
   app: "M -9 -7 h18 a2 2 0 0 1 2 2 v10 a2 2 0 0 1 -2 2 h-18 a2 2 0 0 1 -2 -2 v-10 a2 2 0 0 1 2 -2 z M -11 -2 h22",
