@@ -24,7 +24,7 @@ import {
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
 import type { CarrierTime, EdgeTime, LabelTime, Span, Timeline } from "../timeline";
 import { ICONS } from "./icons";
-import { ALWAYS, type Ink, type Shown } from "./ink";
+import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
 export const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -89,6 +89,8 @@ export interface Ctx {
   end: number;
   /** 描いた字の記録 (#3175) */
   ink: Ink[];
+  /** 描いた線の記録 (#3175)。札を持たない字を横切る線を数える */
+  traces: Trace[];
 }
 
 /**
@@ -205,7 +207,8 @@ export function doneMark(box: SceneBox, at: number, ctx: Ctx): string {
 }
 
 /** 状態遷移図の通らない道。点線で道と向きだけを見せ、運ぶ物を走らせない */
-export function path(p: ScenePath, color: ColorKey, ink: Ink[]): string {
+export function path(p: ScenePath, color: ColorKey, ink: Ink[], traces: Trace[]): string {
+  traces.push({ from: p.from, to: p.to, points: p.points, shown: ALWAYS });
   const sans = p.label?.family === "sans";
   const label = p.label
     ? write(ink, `dg-path-t${sans ? " dg-path-tj" : ""}`, p.label.x + LOOK.label.padX, p.label.y + p.label.h / 2 + LOOK.baseline.label, p.label.text, sans ? TYPE.labelJa : TYPE.label)
@@ -247,6 +250,8 @@ export function lifeline(x: number, y1: number, y2: number): string {
  */
 export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false): { base: string; lit: string } {
   const { m } = ctx;
+  // 点線の道は初めから最後まで見えている
+  ctx.traces.push({ from: e.from, to: e.to, points: e.points, shown: ALWAYS });
   const d = pathOf(e.points);
   const head = arrowHead(e.points);
   const { start: a, drawn: b, end } = time;
@@ -295,7 +300,7 @@ export function label(l: SceneLabel, time: LabelTime, ctx: Ctx): string {
   const ja = l.family === "sans" ? " dg-capj" : "";
   const { radius } = LOOK.label;
   // 札の間は札の四角を、薄く残す間は札を外した字の四角を記録する
-  ctx.ink.push({ text: l.text, rect: l, shown: [[time.start, time.end]] });
+  ctx.ink.push({ text: l.text, rect: l, shown: [[time.start, time.end]], boxed: true });
   if (time.after) ctx.ink.push({ text: l.text, rect: textBox(l.text, l.x + l.w / 2, l.y + l.h / 2 + LOOK.baseline.label, l.family === "sans" ? TYPE.labelJa : TYPE.label, "middle"), shown: [[time.after.start, time.after.end]] });
   const x = r1(l.x + l.w / 2);
   const y = r1(l.y + l.h / 2 + LOOK.baseline.label);
@@ -305,7 +310,7 @@ export function label(l: SceneLabel, time: LabelTime, ctx: Ctx): string {
 
 /** 時系列図の箱の中の処理の札。その段の間だけ生存線の上に出す。 */
 export function action(a: SceneAction, at: number, until: number, ctx: Ctx): string {
-  ctx.ink.push({ text: a.text, rect: a, shown: [[at, until]] });
+  ctx.ink.push({ text: a.text, rect: a, shown: [[at, until]], boxed: true });
   return `<g class="dg-act dg-a" style="${cs(a.color)};${ctx.m.rise(at, until, true)}"><rect x="${r1(a.x)}" y="${r1(a.y)}" width="${r1(a.w)}" height="${a.h}" rx="${LOOK.action.radius}"/><text x="${r1(a.x + a.w / 2)}" y="${r1(a.y + a.h / 2 + LOOK.baseline.action)}" text-anchor="middle">${esc(a.text)}</text></g>`;
 }
 
@@ -344,7 +349,7 @@ export function carrier(e: SceneEdge, time: CarrierTime, ctx: Ctx): string {
   if (e.carry.kind === "tag") {
     const C = LOOK.carrier;
     const w = textWidth(e.carry.text, hasWide(e.carry.text) ? TYPE.carrierJa : TYPE.carrier) + C.tagPadX * 2;
-    ctx.ink.push({ text: e.carry.text, rect: { x: rest[0] - w / 2, y: rest[1] - C.tagH / 2, w, h: C.tagH }, shown: [[b, gone]] });
+    ctx.ink.push({ text: e.carry.text, rect: { x: rest[0] - w / 2, y: rest[1] - C.tagH / 2, w, h: C.tagH }, shown: [[b, gone]], boxed: true });
   }
   // 次の運ぶ物と入れ替わる時は、重なって 2 つに見えないよう素早く消す
   const fade = gone < m.last ? 0.05 : 0.18;
@@ -381,7 +386,7 @@ export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const y = r1(b.y);
   const ty = r1(b.y + LOOK.baseline.badge);
   const no = b.step + 1;
-  ctx.ink.push({ text: String(no), rect: { x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 }, shown: [[a, m.last]] });
+  ctx.ink.push({ text: String(no), rect: { x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 }, shown: [[a, m.last]], boxed: true });
   return (
     `<g class="dg-bd" data-step="${b.step}" style="${cs(b.color)}"><circle class="dg-bdr dg-popc dg-a" cx="${x}" cy="${y}" r="${rr}" style="${ring}"/>` +
     `<g class="dg-a" style="${past}"><circle class="${grey ? "dg-bdp-g" : "dg-bdp"}" cx="${x}" cy="${y}" r="${rr}"/><text class="${grey ? "dg-bdpt-g" : "dg-bdpt"}" x="${x}" y="${ty}" text-anchor="middle">${no}</text></g>` +
@@ -450,7 +455,7 @@ export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: C
       const x = field.x + (shown ? textWidth(shown, hasWide(shown) ? TYPE.fieldValueJa : TYPE.fieldValue) + S.tagGap : 0);
       const w = textWidth(tag, TYPE.tag) + S.tagPadX * 2;
       const y = field.y + S.valueY - S.tagH / 2 - LOOK.baseline.tag;
-      ctx.ink.push({ text: tag, rect: { x, y, w, h: S.tagH }, shown: [[c.at, next === undefined ? Number.POSITIVE_INFINITY : next - MOTION.untilFade]] });
+      ctx.ink.push({ text: tag, rect: { x, y, w, h: S.tagH }, shown: [[c.at, next === undefined ? Number.POSITIVE_INFINITY : next - MOTION.untilFade]], boxed: true });
       parts.push(
         `<g class="dg-tg dg-popc dg-a" style="${cs(c.color)};${next === undefined ? m.pop(c.at) : m.pop(c.at, next - MOTION.untilFade)}"><rect x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${S.tagH}" rx="${S.tagH / 2}"/><text x="${r1(x + w / 2)}" y="${r1(y + S.tagH / 2 + LOOK.baseline.tag)}" text-anchor="middle">${esc(tag)}</text></g>`,
       );

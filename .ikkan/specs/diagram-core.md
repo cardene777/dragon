@@ -182,10 +182,13 @@
 | 字が重なる図を描いた時、`renderDiagram` の結果の `overlaps` が、重なる 2 つの字とその段の番号を 1 件ずつ持つ | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-lists-texts-and-step`が通る | #3175 |
 | 別々の段の間だけ見える 2 つの字が同じ所に在る時、`overlaps` に数えない | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-ignore-texts-not-shown-together`が通る | #3175 |
 | 箱の名前と下の字のように、上下に並べた 2 行の字を `overlaps` に数えない | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-ignore-stacked-lines`が通る | #3175 |
+| 線が札を持たない字 (薄く残す線の名前、通らない道の名前、始まりと終わりの印の字、区画と脇道の名前と添え書き) を横切る図を描いた時、`overlaps` が、その字と線の両端の名前とその段の番号を 1 件ずつ持つ | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-lists-lines-through-text`が通る | #3175 |
+| 札に入った字 (線の名前の札、処理の札、段の番号) を線が横切っても、`overlaps` に数えない | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-ignore-lines-under-pills`が通る | #3175 |
 | 使い方の頁の状態遷移図の例 (日本語と英語) の全ての段で、「取り消す」と「注文を確定」(英語は `Cancel` と `Place order`) が重ならない | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-side-label-clear-of-step-labels`が通る | #3175 |
+| 使い方の頁の状態遷移図の例 (日本語と英語) の全ての段で、「取り消す」の点線が「注文を確定」(英語は `Place order`) を横切らない | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-step-label-clear-of-side-path`が通る | #3175 |
 | 同じ線を 2 つの段で通る時、後の段の番号を線に沿って前の段の番号の隣に置き、番号どうしが重ならない (部品「運ぶ物」の構成図と状態遷移図の日本語と英語) | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`repeated-line-badges-side-by-side`が通る | #3175 |
 | 状態遷移図で同じ線に 2 つの段の名前を薄く残す時、名前どうしが重ならない (部品「運ぶ物」の状態遷移図の日本語と英語) | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-past-labels-on-one-line-clear`が通る | #3175 |
-| 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples` の全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3175 |
+| 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples` の全ての見本の全ての段で、`overlaps` が 0 件 (字どうしの重なりも、線が札を持たない字を横切る所も無い) | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`と`state-step-label-clear-of-side-path`が通る | #3175 |
 | 全ての見本を見る検査に字が重なる見本を 1 つ混ぜると、検査が見本の名前と段と重なる 2 つの字を出して落ちる | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-check-names-example-step-and-texts`が通る | #3175 |
 | 時系列図と構成図では、線の名前はその段の間だけ出て、どの時刻でも同時に見える数が 2 個以下 | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`labels-show-only-during-their-step`が通る | #3175 |
 | 段の番号はその段の線の上に在る | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`edge-step-badge-on-its-line`が通る | #3175 |

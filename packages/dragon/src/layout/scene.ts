@@ -206,6 +206,35 @@ export function gapBetween(a: Rect, b: Rect): number {
   return Math.max(dx, dy);
 }
 
+/**
+ * 折れ線が四角の内側を通るか (#3175)。四角を縁から `inset` だけ内へ縮めて見る。負の `inset` は四角を広げる。
+ * 区間ごとに、四角の左右と上下の境で区間を切り詰め (Liang-Barsky の切り取り)、残りが在れば通る
+ */
+export function crossesRect(points: Point[], rect: Rect, inset = 0): boolean {
+  const x0 = rect.x + inset;
+  const y0 = rect.y + inset;
+  const x1 = rect.x + rect.w - inset;
+  const y1 = rect.y + rect.h - inset;
+  if (x1 <= x0 || y1 <= y0) return false;
+  for (let i = 1; i < points.length; i++) {
+    const [ax, ay] = points[i - 1] as Point;
+    const [bx, by] = points[i] as Point;
+    const dx = bx - ax;
+    const dy = by - ay;
+    let lo = 0;
+    let hi = 1;
+    const cut = (p: number, q: number): boolean => {
+      if (p === 0) return q > 0;
+      const r = q / p;
+      if (p < 0) lo = Math.max(lo, r);
+      else hi = Math.min(hi, r);
+      return lo < hi;
+    };
+    if (cut(-dx, ax - x0) && cut(dx, x1 - ax) && cut(-dy, ay - y0) && cut(dy, y1 - ay)) return true;
+  }
+  return false;
+}
+
 /** 折れ線のうち一番長い区間。 */
 export function longest(points: Point[]): { a: Point; b: Point; vertical: boolean } {
   let best = { a: points[0] as Point, b: (points[1] ?? points[0]) as Point, length: -1 };
@@ -301,6 +330,8 @@ export interface Obstacles {
   soft: Rect[];
   /** 食い込まなければよい物 (同じ時刻に見えている段の番号の丸、#3175)。線のすぐ脇に置く名前を、線の上の丸のために遠ざけない */
   touch?: Rect[];
+  /** 名前を横切らせない線 (#3175)。札を外して薄く残す名前は、地の色で線を隠せないため */
+  lines?: Point[][];
 }
 
 export const labelStyle = (text: string) => (hasWide(text) ? TYPE.labelJa : TYPE.label);
@@ -333,7 +364,8 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
   const clear = (rect: Rect): boolean =>
     obstacles.hard.every((box) => gapBetween(rect, box) >= LOOK.gap) &&
     obstacles.soft.every((other) => gapBetween(rect, other) >= LOOK.label.soft) &&
-    (obstacles.touch ?? []).every((mark) => gapBetween(rect, mark) >= LOOK.label.touch);
+    (obstacles.touch ?? []).every((mark) => gapBetween(rect, mark) >= LOOK.label.touch) &&
+    (obstacles.lines ?? []).every((line) => !crossesRect(line, rect, -LOOK.label.touch));
   const { search, searchMax } = LOOK.label;
   for (let d = 0; d <= searchMax; d += search) {
     for (const side of sides) {

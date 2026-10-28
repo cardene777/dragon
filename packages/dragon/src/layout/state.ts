@@ -328,6 +328,8 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   const marks: Rect[] = ends.flatMap((e) => (e.text === "" ? [] : [textBox(e.text, ...markText(e), TYPE.regionNote)]));
   const badgeRects = [...lineBadges(sceneEdges, diagram.steps.length, badgeAt).values()].map((b) => badgeRect(b.point));
   const soft: Rect[] = [...(side ? [{ x: side.x, y: side.y, w: T.side.pad + titleW, h: side.h }] : []), ...marks];
+  // 名前は段が終わると札を外した薄い字で残り、通らない道の名前は初めから札を持たないので、自分の線より他の線と道に横切らせない
+  const others = (own: Point[]): Point[][] => [...sceneEdges.map((o) => o.points), ...paths.map((o) => o.points)].filter((line) => line !== own);
   for (const e of sceneEdges) {
     const source = diagram.steps[e.step]?.events[e.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
@@ -340,7 +342,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     labels.push(
       placeLabel(
         { step: e.step, event: e.event, text: source.label, points: e.points, color: e.color, ...(side2 ? { side: side2 } : loop ? {} : { flip: true }), ...below },
-        { hard: boxes, soft: [...soft, ...labels], touch: badgeRects },
+        { hard: boxes, soft: [...soft, ...labels], touch: badgeRects, lines: others(e.points) },
       ),
     );
   }
@@ -353,7 +355,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     const into = byId.get(p.to)?.ghost === true && byId.get(p.from)?.ghost !== true;
     const x0 = (path.points[0] as Point)[0];
     const lead = into ? { side: "below" as const, base: { x: x0 + LOOK.label.soft, y: lane + LOOK.label.soft }, slide: Math.max(...path.points.map(([x]) => Math.abs(x - x0))) } : {};
-    const rect = placeLabel({ step: -1, event: i, text: p.label, points: path.points, color: "slate", ...lead }, { hard: boxes, soft: [...soft, ...labels, ...placed], touch: badgeRects });
+    const rect = placeLabel({ step: -1, event: i, text: p.label, points: path.points, color: "slate", ...lead }, { hard: boxes, soft: [...soft, ...labels, ...placed], touch: badgeRects, lines: others(path.points) });
     placed.push(rect);
     path.label = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, text: p.label, family: style.family };
   });

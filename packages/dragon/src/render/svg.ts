@@ -39,7 +39,7 @@ import {
   strip,
   type SubChange,
 } from "./parts";
-import { findOverlaps, type Ink, type Overlap } from "./ink";
+import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
 export interface RenderOptions {
@@ -60,7 +60,7 @@ export interface Rendered {
   layout: Layout;
   timeline: Timeline;
   diagram: Diagram;
-  /** 段ごとの止め絵で、同時に見えている字どうしの重なり (#3175)。重なりが無ければ空 */
+  /** 段ごとの止め絵で、同時に見えている字どうしの重なりと、線が札を持たない字を横切る所 (#3175)。重なりが無ければ空 */
   overlaps: Overlap[];
 }
 
@@ -251,11 +251,11 @@ export interface FollowFrame {
 }
 
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
-export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = []): string {
+export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = [], traces: Trace[] = []): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける
   const id = nameOf(`${JSON.stringify(diagram)}|${palette.id}|${theme}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
-  const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink };
+  const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink, traces };
   const on = involved(diagram);
   // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
   const subs = subChanges(diagram, timeline, layout.kind !== "sequence");
@@ -266,7 +266,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   if (layout.side) L.band.push(side(layout.side, ghostColor, ink));
   // 脇道へ入る道は脇道の状態の色、それ以外の道は送る側の色で描く
   const boxColor = (id: string, ghost?: boolean): ColorKey | undefined => layout.boxes.find((b) => b.id === id && (ghost === undefined || b.ghost === ghost))?.color;
-  for (const p of layout.paths) L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor, ink));
+  for (const p of layout.paths) L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor, ink, traces));
   for (const e of layout.ends) L.node.push(endMark(e, ghostColor, ink));
   // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
   const isState = layout.kind === "state";
@@ -504,7 +504,8 @@ export function renderLayout(diagram: Diagram, layout: Layout, timeline: Timelin
   const palette = resolvePalette(options.palette);
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
   const ink: Ink[] = [];
-  const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink);
+  const traces: Trace[] = [];
+  const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces);
   return {
     svg,
     palette: palette.id,
@@ -514,6 +515,6 @@ export function renderLayout(diagram: Diagram, layout: Layout, timeline: Timelin
     layout,
     timeline,
     diagram,
-    overlaps: findOverlaps(ink, timeline.stills),
+    overlaps: findOverlaps(ink, timeline.stills, traces),
   };
 }

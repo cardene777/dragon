@@ -8,33 +8,43 @@
  * 札に入った字 (線の名前、処理、段の番号、帯の札、運ぶ物の札) は、札の形が人に見える物なので札の四角を記録する。
  * 走っている途中の運ぶ物は数えず、着いて留まっている間だけ記録する。
  */
-import type { Rect } from "../layout/scene";
+import { crossesRect, type Point, type Rect } from "../layout/scene";
 
 /** 見えている間。`[出る時刻, 消える時刻)` */
 export type Shown = [number, number];
 
-/** 初めから最後まで見えている字 */
+/** 初めから最後まで見えている字と線 */
 export const ALWAYS: Shown[] = [[0, Number.POSITIVE_INFINITY]];
 
 export interface Ink {
   text: string;
   rect: Rect;
   shown: Shown[];
+  /** 札に入った字。札の地が下の線を隠すので、線が横切っても重なりに数えない */
+  boxed?: boolean;
 }
 
-/** 字の重なり。`step` は重なりが見える段 (0 から数える)、`texts` は重なる 2 つの字 */
-export interface Overlap {
-  step: number;
-  texts: [string, string];
+/** 描いた線。`from` と `to` は線の両端の箱の名札 */
+export interface Trace {
+  from: string;
+  to: string;
+  points: Point[];
+  shown: Shown[];
 }
+
+/**
+ * 重なり。`step` は重なりが見える段 (0 から数える)。
+ * `texts` は重なる 2 つの字、`line` は札を持たない字 `text` を横切る線の両端の名札
+ */
+export type Overlap = { kind: "texts"; step: number; texts: [string, string] } | { kind: "line"; step: number; text: string; line: { from: string; to: string } };
 
 /** 重なりに数える食い込みの下限 (px)。縁が触れただけの字を数えない */
 const BITE = 0.5;
 
-const visible = (ink: Ink, t: number): boolean => ink.shown.some(([a, b]) => a <= t && t < b);
+const visible = (item: { shown: Shown[] }, t: number): boolean => item.shown.some(([a, b]) => a <= t && t < b);
 
-/** 段ごとの止め絵の時刻 `stills` で、同時に見えている字どうしの重なりを、段の順と記録した順に並べる。 */
-export function findOverlaps(inks: Ink[], stills: number[]): Overlap[] {
+/** 段ごとの止め絵の時刻 `stills` で、同時に見えている字どうしの重なりと、札を持たない字を横切る線を、段の順と記録した順に並べる。 */
+export function findOverlaps(inks: Ink[], stills: number[], traces: Trace[] = []): Overlap[] {
   const out: Overlap[] = [];
   stills.forEach((t, step) => {
     const seen = inks.filter((ink) => visible(ink, t));
@@ -42,9 +52,14 @@ export function findOverlaps(inks: Ink[], stills: number[]): Overlap[] {
       for (const b of seen.slice(i + 1)) {
         const w = Math.min(a.rect.x + a.rect.w, b.rect.x + b.rect.w) - Math.max(a.rect.x, b.rect.x);
         const h = Math.min(a.rect.y + a.rect.h, b.rect.y + b.rect.h) - Math.max(a.rect.y, b.rect.y);
-        if (w > BITE && h > BITE) out.push({ step, texts: [a.text, b.text] });
+        if (w > BITE && h > BITE) out.push({ kind: "texts", step, texts: [a.text, b.text] });
       }
     });
+    const lines = traces.filter((trace) => visible(trace, t));
+    for (const ink of seen) {
+      if (ink.boxed) continue;
+      for (const line of lines) if (crossesRect(line.points, ink.rect, BITE)) out.push({ kind: "line", step, text: ink.text, line: { from: line.from, to: line.to } });
+    }
   });
   return out;
 }
