@@ -1,0 +1,18 @@
+architecture Icon
+
+group cloud as Cloud [icon: cloud]
+  box app as App [icon: app]
+  box db as DB [icon: db]
+end
+
+group device as Device [icon: user]
+  box user as User [icon: user]
+end
+
+step Open
+  say Both boxes and groups take a picture with icon.
+  user -> app: open
+
+step Read
+  say A group shows its picture left of the group name.
+  app -> db: read

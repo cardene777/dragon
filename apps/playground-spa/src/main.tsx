@@ -6,6 +6,8 @@ import { createRoot } from "react-dom/client";
 import { isKind } from "./catalog/catalog";
 import { CatalogIndex } from "./catalog/CatalogIndex";
 import { CategoryPage } from "./catalog/CategoryPage";
+import { PartPage } from "./catalog/PartPage";
+import { partOf } from "./catalog/parts";
 import { Docs } from "./docs/Docs";
 import { Home } from "./home/Home";
 import { NotFound } from "./not-found/NotFound";
@@ -24,7 +26,8 @@ import "./catalog/catalog.css";
  *
  * 0.35.0 より前のサイトと同じ 7 画面を経路で出し分け、どの画面にも同じ上の帯を載せる。
  * 概要は `home/Home.tsx` (#3032)、カタログは `catalog/` (#3033)、使い方は `docs/Docs.tsx` (#3034)、
- * 更新履歴は `release-notes/ReleaseNotes.tsx`、見つからない頁は `not-found/NotFound.tsx` (#3035) が持つ。知らない分類の経路は見つからない頁にする。
+ * 更新履歴は `release-notes/ReleaseNotes.tsx`、見つからない頁は `not-found/NotFound.tsx` (#3035) が持つ。
+ * カタログの部品の頁は `catalog/PartPage.tsx` (#3166) が持つ。知らない分類と部品の経路は見つからない頁にする。
  * 言葉と明暗と色味はサイト全体で 1 つ持ち、帯の切替で替える。明暗は選ぶまで端末の設定に従う。
  * 色味は選ぶまで紙と墨で、選んだ色味は次に開いた時にも残す (#3033)。
  * 頁の色は色味と明暗から `site/site-colors.ts` で引いて html に置き、図も同じ色味で描く。
@@ -39,23 +42,30 @@ function subscribeDevice(listener: () => void): () => void {
 
 const deviceTheme = (): Theme => (matchMedia(DARK).matches ? "dark" : "light");
 
-/** 経路の画面。カタログに無い分類は見つからない頁にする */
+/** 経路の画面。カタログに無い分類と部品は見つからない頁にする */
 function screenRoute(path: string): Route {
   const route = routeOf(path);
-  return route.screen === "category" && !isKind(route.category) ? { screen: "not-found" } : route;
+  if (route.screen === "category" && !isKind(route.category)) return { screen: "not-found" };
+  if (route.screen === "part" && partOf(route.part) === undefined) return { screen: "not-found" };
+  return route;
 }
 
-/** 頁の題に出す画面の名前。概要は名前を付けず、分類の頁は図の種類の名前にする */
+/** 頁の題に出す画面の名前。概要は名前を付けず、分類の頁は図の種類の名前に、部品の頁は部品の名前にする */
 function screenName(route: Route, lang: Lang): string | null {
   const t = TEXT[lang];
   if (route.screen === "home") return null;
   if (route.screen === "category") return isKind(route.category) ? t.shelf.kinds[route.category] : null;
+  if (route.screen === "part") {
+    const part = partOf(route.part);
+    return part ? t.site.catalog.parts[part.id].name : null;
+  }
   return t.site.screens[route.screen].title;
 }
 
 function Site(): ReactElement {
   const path = usePath();
   const route = screenRoute(path);
+  const part = partOf(route.part);
   const [lang, setLang] = useState<Lang>(() => deviceLang(navigator.languages.length > 0 ? navigator.languages : [navigator.language]));
   const [choice, setChoice] = useState<Theme | null>(null);
   const [palette, setPalette] = useState(storedPalette);
@@ -117,6 +127,9 @@ function Site(): ReactElement {
         ) : route.screen === "category" && isKind(route.category) ? (
           // 分類を移ると検索と選んだ見本を持ち越さないよう、分類ごとに置き直す
           <CategoryPage key={route.category} kind={route.category} lang={lang} theme={theme} palette={palette} />
+        ) : route.screen === "part" && part ? (
+          // 部品を移ると段を持ち越さないよう、部品ごとに置き直す
+          <PartPage key={part.id} part={part} lang={lang} theme={theme} palette={palette} />
         ) : route.screen === "docs" ? (
           <Docs lang={lang} theme={theme} palette={palette} />
         ) : route.screen === "release-notes" ? (

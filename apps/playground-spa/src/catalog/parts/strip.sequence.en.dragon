@@ -1,0 +1,17 @@
+sequence Strip
+
+box app as App
+box server as Server
+
+strip Order: number, state
+
+step Create
+  say strip puts a strip of fields under the diagram. set fills a field.
+  app -> server: place order
+  set number: 42
+  set state: received
+
+step Advance
+  say tag on a set line adds a tag to the field value.
+  act server: check
+  set state: confirmed [tag: done]

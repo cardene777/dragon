@@ -1,0 +1,18 @@
+architecture Group
+
+group device as Device [note: the user side, color: slate, icon: user]
+  box browser as Browser
+end
+
+group cloud as Cloud [note: the service side, color: blue, icon: cloud]
+  box app as App
+  box db as DB
+end
+
+step Open
+  say The boxes between group and end sit inside one group.
+  browser -> app: open
+
+step Read
+  say A group takes small text, a color role and a picture too.
+  app -> db: read

@@ -1,0 +1,14 @@
+sequence Lifeline
+
+box user as User
+box app as App
+box server as Server
+
+step Open
+  say A line runs down from each box, and time moves down the page.
+  user -> app: open
+
+step Fetch
+  say Each later step draws its edges on a lower row.
+  app -> server: read
+  server -> app: data

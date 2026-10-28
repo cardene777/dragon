@@ -1,0 +1,18 @@
+architecture Edge
+
+box browser as Browser
+box server as Server
+box db as DB
+
+step Call
+  say An edge runs from the sender tag to the receiver tag with ->.
+  browser -> server: GET /items
+
+step Read
+  say One step can hold any number of edges, drawn in the order written.
+  server -> db: SELECT
+  db -> server: rows
+
+step Reply
+  say Write the reply the other way round.
+  server -> browser: 200 OK

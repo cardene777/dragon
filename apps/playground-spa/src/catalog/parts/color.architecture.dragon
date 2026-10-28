@@ -1,0 +1,18 @@
+architecture 色の役
+
+group 手元 as 手元の端末 [color: slate]
+  box 利用者 [color: slate]
+end
+
+group 店 as 店の仕組み [color: blue]
+  box アプリ [color: blue]
+  box 決済 [color: coin]
+end
+
+step 頼む
+  say 箱と区画は同じ 7 つの役から色を選ぶ。
+  利用者 -> アプリ: 買う
+
+step 払う
+  say 区画の中の箱にも、区画と違う役を付けられる。
+  アプリ -> 決済: 請求

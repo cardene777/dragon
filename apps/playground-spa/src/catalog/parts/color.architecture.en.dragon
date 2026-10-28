@@ -1,0 +1,18 @@
+architecture Color
+
+group device as Device [color: slate]
+  box user as User [color: slate]
+end
+
+group shop as Shop system [color: blue]
+  box app as App [color: blue]
+  box pay as Payment [color: coin]
+end
+
+step Ask
+  say Boxes and groups pick their color from the same seven roles.
+  user -> app: buy
+
+step Pay
+  say A box inside a group can take a different role from its group.
+  app -> pay: bill

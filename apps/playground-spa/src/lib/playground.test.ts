@@ -12,13 +12,18 @@ import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { KINDS } from "../catalog/catalog";
+import { PARTS } from "../catalog/parts";
 import { PATHS } from "../site/routes";
 import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, type Site, startSite } from "./playground-support";
 
 /** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、カタログの分類から導く (#3157) */
 const screenRoutes = (): string[] => {
   const relative = (path: string): string => path.slice(PATHS.home.length);
-  return [...Object.values(PATHS).map(relative).filter((path) => path !== ""), ...KINDS.map((kind) => `${relative(PATHS.catalog)}/${kind}`)].sort();
+  return [
+    ...Object.values(PATHS).map(relative).filter((path) => path !== ""),
+    ...KINDS.map((kind) => `${relative(PATHS.catalog)}/${kind}`),
+    ...PARTS.map((part) => `${relative(PATHS.catalog)}/part/${part.id}`),
+  ].sort();
 };
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
@@ -1221,7 +1226,7 @@ describe("公開する頁 (#2995)", () => {
     const want = [...routes.map((route) => `${route}.html`), ...parents.map((route) => `${route}/index.html`)].sort();
     const dir = site.built.dir;
     const copies = (readdirSync(dir, { recursive: true }) as string[]).filter((path) => path.endsWith(".html") && path !== "index.html" && path !== "404.html").sort();
-    expect(copies, "build した頁の経路の写しが、経路の表とカタログの分類から導いた一覧と違う").toEqual(want);
+    expect(copies, "build した頁の経路の写しが、経路の表とカタログの分類と部品の表から導いた一覧と違う").toEqual(want);
     const index = readFileSync(join(dir, "index.html"), "utf8");
     for (const copy of copies) expect(readFileSync(join(dir, copy), "utf8") === index, `${copy} が index.html の写しでない`).toBe(true);
   });

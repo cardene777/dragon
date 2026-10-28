@@ -1,0 +1,15 @@
+sequence 絵
+
+box 利用者 [icon: user]
+box アプリ [icon: app]
+box 鍵 as 鍵の置き場 [icon: key]
+box DB [icon: db]
+
+step 開く
+  say icon で箱の名前の上に絵を置く。絵は user や db の名前で選ぶ。
+  利用者 -> アプリ: 開く
+
+step 読む
+  say 絵があると、箱が何かを名前より先に見分けられる。
+  アプリ -> 鍵: 鍵を借りる
+  アプリ -> DB: 読む

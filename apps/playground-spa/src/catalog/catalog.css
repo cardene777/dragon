@@ -153,6 +153,216 @@
   color: var(--d-accent);
 }
 
+/* ── 一覧の段と部品の札 (#3166) ── */
+
+.catalog-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 56px;
+}
+
+.catalog-hero + .catalog-section {
+  margin-top: 0;
+}
+
+.catalog-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--d-border);
+}
+
+.catalog-section-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.catalog-section-lead {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--d-text-secondary);
+}
+
+.catalog-part-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
+  gap: 12px;
+}
+
+.catalog-part-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 92px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+  color: var(--d-text-primary);
+  text-decoration: none;
+}
+
+.catalog-part-card:hover {
+  border-color: var(--d-border-strong);
+}
+
+.catalog-part-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.catalog-part-card-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.catalog-part-card-kind {
+  padding: 2px 7px;
+  border-radius: var(--d-r-1);
+  background: var(--d-accent-soft);
+  font-size: 11px;
+  color: var(--d-accent);
+}
+
+/* 受け持つ記法の語。部品の札と部品の頁で同じ見た目にする */
+.catalog-part-card-words,
+.catalog-part-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.catalog-part-card-words code,
+.catalog-part-words code {
+  padding: 2px 6px;
+  border-radius: var(--d-r-1);
+  background: var(--d-surface-2);
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  color: var(--d-text-secondary);
+}
+
+/* ── 部品の頁 (#3166) ── */
+
+.catalog-part-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin: 0;
+}
+
+.catalog-part-fact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catalog-part-fact dt {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--d-text-muted);
+}
+
+.catalog-part-fact dd {
+  margin: 0;
+}
+
+.catalog-part-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.catalog-part-kinds a {
+  padding: 3px 9px;
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-1);
+  font-size: 12.5px;
+  color: var(--d-text-primary);
+  text-decoration: none;
+}
+
+.catalog-part-kinds a:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+/* 部品の図。どの図でも使える部品は 2 つを横に並べ、図の種類だけの部品は 1 つを広げすぎずに置く */
+.catalog-part-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.catalog-part-figures[data-count="1"] {
+  grid-template-columns: minmax(0, 720px);
+}
+
+.catalog-part-figure {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+}
+
+.catalog-part-figure-title {
+  margin: 0;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--d-border);
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--d-text-secondary);
+}
+
+.catalog-part-stage {
+  display: flex;
+  justify-content: center;
+  padding: 22px;
+}
+
+.catalog-part-stage .dg-player {
+  width: 100%;
+  max-width: 560px;
+}
+
+/* 部品の図は箱が 2 つの物もあり、枠の幅に広げると箱と字が大きくなりすぎるので、描いた大きさのまま枠の幅で止める */
+.catalog-part-stage svg[data-dragon="figure"] {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.catalog-part-source {
+  margin: 0;
+  padding: 14px 18px;
+  overflow-x: auto;
+  background: var(--d-code-bg);
+  border-top: 1px solid var(--d-border);
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--d-text-primary);
+}
+
+.catalog-part-open {
+  align-self: flex-start;
+  padding: 12px 18px;
+}
+
 /* ── 分類の頁の 2 面 ── */
 
 .catalog-body {
@@ -714,6 +924,9 @@
   .catalog-body {
     grid-template-columns: minmax(0, 1fr);
   }
+  .catalog-part-figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .catalog-sidebar {
     position: static;
     max-height: 340px;
@@ -839,6 +1052,13 @@
 @media (pointer: coarse) {
   .catalog-crumb {
     gap: 12px;
+  }
+
+  /* 部品の頁の図の種類の札も、指で押せる 44px にする */
+  .catalog-part-kinds a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 
   .catalog-crumb a {

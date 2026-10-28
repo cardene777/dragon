@@ -1,0 +1,15 @@
+sequence 色の役
+
+box 利用者 [color: slate]
+box アプリ [color: blue]
+box 決済 [color: coin]
+box 倉庫 [color: green]
+
+step 頼む
+  say color で箱に色の役を付ける。役は blue や coin など 7 つ。
+  利用者 -> アプリ: 買う
+
+step 払う
+  say 色は色味ごとに決まり、役が同じ箱は同じ色で描く。
+  アプリ -> 決済: 請求
+  アプリ -> 倉庫: 出荷

@@ -1,0 +1,18 @@
+architecture 絵
+
+group 雲 as クラウド [icon: cloud]
+  box アプリ [icon: app]
+  box DB [icon: db]
+end
+
+group 手元 as 手元の端末 [icon: user]
+  box 利用者 [icon: user]
+end
+
+step 開く
+  say 箱と区画のどちらにも icon で絵を付けられる。
+  利用者 -> アプリ: 開く
+
+step 読む
+  say 区画の絵は区画の名前の左に置く。
+  アプリ -> DB: 読む

@@ -1,0 +1,18 @@
+architecture 小さな字
+
+group 手元 as 手元の端末 [note: 利用者の側]
+  box 財布 [note: 残高 5000 円]
+end
+
+group 売り場 as 店の仕組み [note: 売る側]
+  box 店 as 店のアプリ [note: 待っている]
+end
+
+step 払う
+  say note で箱と区画の名前の下に小さな字を添える。
+  財布 -> 店: 1200 円 [carry: coin]
+
+step 書き換える
+  say 段の中の note の行で、その段から箱の小さな字を書き換える。
+  note 財布: 残高 3800 円
+  note 店: 受け取った

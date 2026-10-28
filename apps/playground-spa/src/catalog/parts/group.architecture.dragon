@@ -1,0 +1,18 @@
+architecture 区画
+
+group 手元 as 手元の端末 [note: 利用者の側, color: slate, icon: user]
+  box ブラウザ
+end
+
+group 雲 as クラウド [note: サービスの側, color: blue, icon: cloud]
+  box アプリ
+  box DB
+end
+
+step 開く
+  say group から end までの箱を 1 つの区画に囲む。
+  ブラウザ -> アプリ: 開く
+
+step 読む
+  say 区画にも、名前の下の小さな字と色の役と絵を付けられる。
+  アプリ -> DB: 読む

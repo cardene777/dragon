@@ -1,0 +1,12 @@
+sequence Box
+
+box user as User
+box app as Order app
+
+step Ask
+  say A box line places one box. The name to show follows as.
+  user -> app: place order
+
+step Reply
+  say Edges name the boxes by their tags.
+  app -> user: accepted

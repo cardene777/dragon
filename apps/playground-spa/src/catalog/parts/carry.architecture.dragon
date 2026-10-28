@@ -1,0 +1,20 @@
+architecture 運ぶ物
+
+box 財布
+box 店
+
+step 封筒
+  say 何も書かなければ、線の上を封筒が走る。
+  財布 -> 店: 注文
+
+step 札
+  say tag で、線の上を走る札に値を書く。
+  店 -> 財布: 請求 [tag: #42]
+
+step 硬貨
+  say carry: coin で、お金が動くことを硬貨で見せる。
+  財布 -> 店: 払う [carry: coin]
+
+step 運ばない
+  say carry: none で、線だけを引いて何も走らせない。
+  店 -> 財布: 受け取った [carry: none]
