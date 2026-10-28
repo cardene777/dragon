@@ -165,9 +165,9 @@ describe("寄せの指示", () => {
       const segment = longestSegment(line.points);
       expect(segment.vertical, "時系列図の線は横").toBe(false);
       const y = segment.a[1];
-      // 名前は線から 12px 離す。離れすぎると名前がどの線のものか分からなくなる (#3099)
+      // 名前は線から 6px 離す。離れすぎると名前がどの線のものか分からなくなり (#3099)、図も縦に長くなる (#3177)
       const apart = side === "above" ? y - (label.y + label.h) : label.y - y;
-      expect(apart, `${side === "above" ? "上" : "下"}の名前と線の間が 12px でない`).toBeCloseTo(12, 5);
+      expect(apart, `${side === "above" ? "上" : "下"}の名前と線の間が 6px でない`).toBeCloseTo(6, 5);
     }
 
     // 指示した側が図の左端でも、名前はその側に置かれ、図の外へ出ない
