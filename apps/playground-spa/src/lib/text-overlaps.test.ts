@@ -50,13 +50,9 @@ function examples(): Example[] {
   return out;
 }
 
-/** 見本ごとの重なりを 1 件 1 行にする。一覧を持たない描いた結果も 1 行にして落とす。 */
+/** 見本ごとの重なりを 1 件 1 行にする。 */
 function overlapReport(list: Example[]): string[] {
-  return list.flatMap(({ name, rendered }) => {
-    const overlaps = (rendered as Rendered & { overlaps?: { step: number; texts: [string, string] }[] }).overlaps;
-    if (!Array.isArray(overlaps)) return [`${name}: 描いた結果に重なりの一覧が無い`];
-    return overlaps.map((o) => `${name} 段 ${o.step + 1}: ${o.texts[0]} × ${o.texts[1]}`);
-  });
+  return list.flatMap(({ name, rendered }) => rendered.overlaps.map((o) => `${name} 段 ${o.step + 1}: ${o.texts[0]} × ${o.texts[1]}`));
 }
 
 /** 2 つの四角の隙間。重なる時は負になる。 */
@@ -138,7 +134,7 @@ describe("見本の字が重ならない (#3175)", () => {
     if (!start || !cancel) return;
     Object.assign(cancel, { x: start.x, y: start.y });
     const crossed = renderLayout(rendered.diagram, layout, rendered.timeline);
-    const report = overlapReport([{ name: "docs/examples/state.dragon", rendered: crossed as Rendered }]);
+    const report = overlapReport([{ name: "docs/examples/state.dragon", rendered: crossed }]);
     expect(report.some((line) => line.includes("docs/examples/state.dragon 段 1:") && line.includes("取り消す") && line.includes("注文を確定")), report.join("\n")).toBe(true);
   });
 });

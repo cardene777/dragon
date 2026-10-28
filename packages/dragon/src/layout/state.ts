@@ -13,11 +13,12 @@
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { LOOK, TYPE } from "../look/values";
-import type { Carry, Diagram, StatePath } from "../schema";
+import type { Carry, Diagram, LabelSide, StatePath } from "../schema";
 import { type NotationLang, STATE_ENDS } from "../words";
-import { hasWide, textWidth } from "./measure";
+import { hasWide, textBox, textWidth } from "./measure";
 import {
   badgeOnPath,
+  badgeRect,
   boxColors,
   boxWidth,
   cornerBadge,
@@ -26,7 +27,9 @@ import {
   type EdgeEvent,
   labelStyle,
   type Layout,
+  lineBadges,
   layoutStrip,
+  markText,
   type Point,
   placeLabel,
   type Rect,
@@ -297,55 +300,71 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
       ...(settle ? { settle } : {}),
     };
   });
-  // 同じ 2 つの状態を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする
+  // 同じ 2 つの状態を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする。
+  // ずらした線の名前は、ずらした側 (もう一方の線の反対側) に置き、どちらの線の名前かを取り違えないようにする (#3175)
+  const outward = new Map<SceneEdge, LabelSide>();
   for (const e of sceneEdges) {
     if (e.points.length !== 2 || !sceneEdges.some((o) => o.from === e.to && o.to === e.from && o.points.length === 2)) continue;
     const [p, q] = e.points as [Point, Point];
     const flat = Math.abs(q[1] - p[1]) < Math.abs(q[0] - p[0]);
     const d = (e.from < e.to ? 1 : -1) * LOOK.edge.parallel;
     e.points = e.points.map(([x, y]) => (flat ? [x, y + d] : [x + d, y]));
+    outward.set(e, flat ? (d > 0 ? "below" : "above") : d > 0 ? "right" : "left");
   }
 
   const paths: ScenePath[] = notTaken.map((p) => ({ from: p.from, to: p.to, points: route(p.from, p.to) }));
 
-  // 線の名前。同じ状態へ戻る輪は輪の下に置き、終わりへ移る線は印の字と反対の左に置く
+  // 線の名前。同じ状態へ戻る輪は輪の下に置き、終わりへ移る線は印の字と反対の左に置く。
+  // 段が終わった名前も薄く残るので、段を問わず先に置いた全ての名前と、印に添えた字を避ける (#3175)
+  // 段の番号も済んだ後まで残るので、全ての番号を避ける。同じ状態へ戻る弧の番号は、弧に重ねず弧の右に置く
+  const badgeAt = (edge: SceneEdge, taken: Point[]): Point => {
+    if (edge.from !== edge.to) return badgeOnPath(edge.points, taken);
+    const right = Math.max(...edge.points.map(([px]) => px));
+    const top = (edge.points[0] as Point)[1];
+    const deep = Math.max(...edge.points.map(([, py]) => py));
+    return [right + LOOK.badge.r + LOOK.badge.inset, top + (deep - top) * T.loop.badgeAt];
+  };
   const labels: SceneLabel[] = [];
-  const soft: Rect[] = side ? [{ x: side.x, y: side.y, w: T.side.pad + titleW, h: side.h }] : [];
+  const marks: Rect[] = ends.flatMap((e) => (e.text === "" ? [] : [textBox(e.text, ...markText(e), TYPE.regionNote)]));
+  const badgeRects = [...lineBadges(sceneEdges, diagram.steps.length, badgeAt).values()].map((b) => badgeRect(b.point));
+  const soft: Rect[] = [...(side ? [{ x: side.x, y: side.y, w: T.side.pad + titleW, h: side.h }] : []), ...marks];
   for (const e of sceneEdges) {
     const source = diagram.steps[e.step]?.events[e.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
-    const style = labelStyle(source.label);
-    if (e.from === e.to) {
-      const w = textWidth(source.label, style) + LOOK.label.padX * 2;
-      const bottom = Math.max(...e.points.map(([, y]) => y));
-      labels.push({ step: e.step, event: e.event, text: source.label, family: style.family, color: e.color, x: (e.points[0]?.[0] ?? 0) - T.loop.w / 2 - w / 2, y: bottom + LOOK.label.soft, w, h: LOOK.label.h });
-      continue;
-    }
-    const side2 = source.labelSide ?? (e.to === "finish" ? "left" : undefined);
+    const loop = e.from === e.to;
+    const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
+    // 輪の名前は輪の下から探し、空いていなければ横へずらす
+    const below = loop ? { side: "below" as const, base: { x: (e.points[0]?.[0] ?? 0) - T.loop.w / 2 - w / 2, y: Math.max(...e.points.map(([, y]) => y)) + LOOK.label.soft } } : {};
+    // 指示の無い線の名前は、空いていなければ反対の側も探す。ずらした線は自分の側だけを探す
+    const side2 = source.labelSide ?? (e.to === "finish" ? "left" : outward.get(e));
     labels.push(
       placeLabel(
-        { step: e.step, event: e.event, text: source.label, points: e.points, color: e.color, ...(side2 ? { side: side2 } : {}) },
-        { hard: boxes, soft: [...soft, ...labels.filter((l) => l.step === e.step)] },
+        { step: e.step, event: e.event, text: source.label, points: e.points, color: e.color, ...(side2 ? { side: side2 } : loop ? {} : { flip: true }), ...below },
+        { hard: boxes, soft: [...soft, ...labels], touch: badgeRects },
       ),
     );
   }
-  // 脇道へ入る線の名前は、横に通る所の下の、状態から上へ出る所の右に置く
+  // 脇道へ入る線の名前は、横に通る所の下の、状態から上へ出る所の右に置く。他の名前に重なる時は、横に通る所に沿って右か左へずらす (#3175)
+  const placed: Rect[] = [];
   notTaken.forEach((p, i) => {
     const path = paths[i] as ScenePath;
     if (p.label === undefined || path.points.length === 0) return;
     const style = labelStyle(p.label);
     const into = byId.get(p.to)?.ghost === true && byId.get(p.from)?.ghost !== true;
-    const rect: Rect = into
-      ? { x: (path.points[0] as Point)[0] + LOOK.label.soft, y: lane + LOOK.label.soft, w: textWidth(p.label, style) + LOOK.label.padX * 2, h: LOOK.label.h }
-      : placeLabel({ step: -1, event: i, text: p.label, points: path.points, color: "slate" }, { hard: boxes, soft });
+    const x0 = (path.points[0] as Point)[0];
+    const lead = into ? { side: "below" as const, base: { x: x0 + LOOK.label.soft, y: lane + LOOK.label.soft }, slide: Math.max(...path.points.map(([x]) => Math.abs(x - x0))) } : {};
+    const rect = placeLabel({ step: -1, event: i, text: p.label, points: path.points, color: "slate", ...lead }, { hard: boxes, soft: [...soft, ...labels, ...placed], touch: badgeRects });
+    placed.push(rect);
     path.label = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, text: p.label, family: style.family };
   });
 
   const layout: Layout = { kind: "state", width: 0, height: 0, regions: [], boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths, ends, ...(side ? { side } : {}) };
-  // 名前が左へ出たら、全体を右へ寄せる
+  // 名前が左か上へ出たら、全体を右か下へ寄せる
   const lefts = [...boxes.map((b) => b.x), ...labels.map((l) => l.x), ...paths.flatMap((p) => (p.label ? [p.label.x] : []))];
+  const tops = [...labels.map((l) => l.y), ...paths.flatMap((p) => (p.label ? [p.label.y] : []))];
   const shift = Math.max(0, margin - Math.min(...lefts));
-  if (shift > 0) shiftContent(layout, shift, 0);
+  const drop = tops.length > 0 ? Math.max(0, margin - Math.min(...tops)) : 0;
+  if (shift > 0 || drop > 0) shiftContent(layout, shift, drop);
   const endRight = (e: SceneEnd): number => e.x + (e.text === "" ? e.r : T.text + textWidth(e.text, TYPE.regionNote));
   const rights = [
     ...boxes.map((b) => b.x + b.w),
@@ -364,18 +383,11 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   layout.width = width;
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
   if (strip) layout.strip = strip;
+  const placedBadges = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
   layout.badges = diagram.steps.map((step, s) => {
-    const edge = sceneEdges.find((e) => e.step === s && e.points.length > 0);
-    if (!edge) return cornerBadge(step.events, s, layout);
-    // 同じ状態へ戻る弧の番号は、弧に重ねず弧の右に置く
-    if (edge.from === edge.to) {
-      const right = Math.max(...edge.points.map(([px]) => px));
-      const top = (edge.points[0] as Point)[1];
-      const deep = Math.max(...edge.points.map(([, py]) => py));
-      return { step: s, x: right + LOOK.badge.r + LOOK.badge.inset, y: top + (deep - top) * T.loop.badgeAt, color: edge.color };
-    }
-    const [x, y] = badgeOnPath(edge.points);
-    return { step: s, x, y, color: edge.color };
+    const line = placedBadges.get(s);
+    if (!line) return cornerBadge(step.events, s, layout);
+    return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
   });
   return layout;
 }

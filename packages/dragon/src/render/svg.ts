@@ -39,6 +39,7 @@ import {
   strip,
   type SubChange,
 } from "./parts";
+import { findOverlaps, type Ink, type Overlap } from "./ink";
 import { Motion } from "./motion";
 
 export interface RenderOptions {
@@ -59,6 +60,8 @@ export interface Rendered {
   layout: Layout;
   timeline: Timeline;
   diagram: Diagram;
+  /** 段ごとの止め絵で、同時に見えている字どうしの重なり (#3175)。重なりが無ければ空 */
+  overlaps: Overlap[];
 }
 
 const font = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
@@ -247,24 +250,24 @@ export interface FollowFrame {
   lang: NotationLang;
 }
 
-/** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。 */
-export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame): string {
+/** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
+export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = []): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける
   const id = nameOf(`${JSON.stringify(diagram)}|${palette.id}|${theme}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
-  const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end };
+  const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink };
   const on = involved(diagram);
   // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
   const subs = subChanges(diagram, timeline, layout.kind !== "sequence");
 
   const L = { band: [] as string[], base: [] as string[], lit: [] as string[], node: [] as string[], badge: [] as string[], top: [] as string[] };
-  for (const region of layout.regions) L.band.push(band(region));
+  for (const region of layout.regions) L.band.push(band(region, ink));
   const ghostColor = layout.boxes.find((b) => b.ghost)?.color ?? "slate";
-  if (layout.side) L.band.push(side(layout.side, ghostColor));
+  if (layout.side) L.band.push(side(layout.side, ghostColor, ink));
   // 脇道へ入る道は脇道の状態の色、それ以外の道は送る側の色で描く
   const boxColor = (id: string, ghost?: boolean): ColorKey | undefined => layout.boxes.find((b) => b.id === id && (ghost === undefined || b.ghost === ghost))?.color;
-  for (const p of layout.paths) L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor));
-  for (const e of layout.ends) L.node.push(endMark(e, ghostColor));
+  for (const p of layout.paths) L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor, ink));
+  for (const e of layout.ends) L.node.push(endMark(e, ghostColor, ink));
   // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
   const isState = layout.kind === "state";
   const arrivals = new Map((timeline.states ?? []).flatMap((s) => (s.lit[0] ? [[s.box, s.lit[0].start] as [string, number]] : [])));
@@ -280,7 +283,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const states = new Map((timeline.states ?? []).map((s) => [s.box, s]));
   for (const box of layout.boxes) {
     if (box.ghost) {
-      L.node.push(ghostCard(box));
+      L.node.push(ghostCard(box, ink));
       continue;
     }
     const state = states.get(box.id);
@@ -489,12 +492,21 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
   const read = readDiagram(input, { lang });
   if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
   const diagram = read.diagram;
+  const layout = diagram.kind === "sequence" ? layoutSequence(diagram) : diagram.kind === "state" ? layoutState(diagram, lang) : layoutArchitecture(diagram);
+  return renderLayout(diagram, layout, buildTimeline(diagram), options);
+}
+
+/**
+ * 置き場所を決めた図を描き、描いた字の重なりを数える (#3175)。`renderDiagram` が原本を読んで置き場所を決めた後に呼ぶ。
+ * 重なりは、字を描く部品が記録した字だけから数えるので、描く所が位置を決める字 (箱の名前) も対象に入る
+ */
+export function renderLayout(diagram: Diagram, layout: Layout, timeline: Timeline, options: RenderOptions = {}): Rendered {
   const palette = resolvePalette(options.palette);
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
-  const layout = diagram.kind === "sequence" ? layoutSequence(diagram) : diagram.kind === "state" ? layoutState(diagram, lang) : layoutArchitecture(diagram);
-  const timeline = buildTimeline(diagram);
+  const ink: Ink[] = [];
+  const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink);
   return {
-    svg: drawSvg(diagram, layout, timeline, palette, theme),
+    svg,
     palette: palette.id,
     theme,
     ...(diagram.view ? { view: diagram.view } : {}),
@@ -502,5 +514,6 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
     layout,
     timeline,
     diagram,
+    overlaps: findOverlaps(ink, timeline.stills),
   };
 }
