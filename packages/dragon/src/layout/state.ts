@@ -1,13 +1,15 @@
 /**
  * 状態遷移図の置き場所 (#3163)。
  *
- * 状態は段で初めて辿り着く順に、左から右へ `LOOK.state.columns` つずつ並べ、次の段へ折り返す。どの段も左から右へ読み、
- * 2 段目より下の状態は 1 段目の同じ列に揃える。段をまたぐ線は、2 つの段の間の真ん中を横に通って次の段の状態へ入る。
+ * 状態は段で初めて辿り着く順に `LOOK.state.columns` つずつ並べ、段ごとに読む向きを替えて折り返す (#3171)。
+ * 1 段目は左から右へ、2 段目は右から左へ、3 段目は再び左から右へ読み、どの段の状態も 1 段目の同じ列に揃える。
+ * 段の最後の状態の真下に次の段の最初の状態が来るので、段をまたぐ線は真下への 1 本になる。
  * 始まりの印は最初の状態の上に、終わりの印は終わりへ移る状態の下に置く。
  *
- * どの段も辿り着かない状態は点線の箱にして、1 段目の上の脇道の囲みへ寄せる。最初の段より前に書いた線のうち、
- * どの段にも出ない線は通らない道として点線で引き、脇道の状態から出る線と終わりの印も囲みの中に置く。
- * 脇道へ入る線は、1 段目の上端と囲みの間を横に通り、点線の箱の下端へ並べて入る。
+ * どの段も辿り着かない状態は点線の札にして、1 段目の上の脇道の囲みへ寄せる。札は絵柄を左に、名前を右に並べる (#3171)。
+ * 囲みは脇道へ入る状態のうち最も左の状態の列から図の右端までを占め、始まりの印が囲みの左に収まる時は、
+ * 始まりの印を囲みと同じ高さに置く。最初の段より前に書いた線のうち、どの段にも出ない線は通らない道として点線で引き、
+ * 脇道の状態から出る線と終わりの印も囲みの中に置く。脇道へ入る線は、1 段目の上端と囲みの間を横に通り、点線の札の下端へ並べて入る。
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { LOOK, TYPE } from "../look/values";
@@ -74,10 +76,23 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   const ghosts = diagram.boxes.map((b) => b.id).filter((id) => !walked.includes(id));
   const notTaken: StatePath[] = (diagram.state?.paths ?? []).filter((p) => !steps.some(({ edge }) => same(edge, p)));
   const lines: { from: string; to: string; label?: string }[] = [...steps.map(({ edge }) => edge), ...notTaken];
-  const widths = new Map(diagram.boxes.map((b) => [b.id, boxWidth(diagram, b.id, true)]));
-  const slot = new Map(walked.map((id, k) => [id, { row: Math.floor(k / T.columns), col: k % T.columns }]));
+  const G = T.ghost;
+  // 点線の札は絵柄の右に名前と下の字を並べるので、その幅を測る
+  const ghostWidth = (id: string): number => {
+    const source = diagram.boxes.find((b) => b.id === id);
+    return G.pad * 2 + B.icon + G.gap + Math.max(textWidth(source?.name ?? id, TYPE.boxName), textWidth(source?.sub ?? "", TYPE.boxSub));
+  };
+  const widths = new Map(diagram.boxes.map((b) => [b.id, ghosts.includes(b.id) ? ghostWidth(b.id) : boxWidth(diagram, b.id, true)]));
   const columnCount = Math.max(1, Math.min(T.columns, walked.length));
   const rowCount = Math.max(1, Math.ceil(walked.length / T.columns));
+  // 奇数番目の段は右から左へ並べ、段の最後の状態の真下から次の段を始める
+  const slot = new Map(
+    walked.map((id, k) => {
+      const row = Math.floor(k / T.columns);
+      const at = k % T.columns;
+      return [id, { row, col: row % 2 === 0 ? at : columnCount - 1 - at }];
+    }),
+  );
 
   // 列の幅と列の間。隣の列を横に結ぶ名前のある線は、名前が収まるまで間を広げる
   const colW = Array.from({ length: columnCount }, (_, c) => Math.max(B.minW, ...walked.filter((id) => slot.get(id)?.col === c).map((id) => widths.get(id) ?? B.minW)));
@@ -93,9 +108,12 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   for (let c = 0; c < columnCount; c++) colLeft.push(c === 0 ? margin : (colLeft[c - 1] as number) + (colW[c - 1] as number) + (between[c - 1] as number));
   const center = (c: number): number => (colLeft[c] as number) + (colW[c] as number) / 2;
 
-  // 脇道の囲みの高さ。囲みの名前と添え書きと、点線の箱が並ぶ
-  const titleW = Math.max(textWidth(words.side, TYPE.regionName), textWidth(words.sideNote, TYPE.regionNote));
-  const sideH = T.side.pad * 2 + B.h;
+  // 脇道の囲みの高さ。囲みの名前と 2 行の添え書きと、点線の札が並ぶ
+  const isGhost = (id: string): boolean => ghosts.includes(id);
+  const enteringFrom = new Set(notTaken.filter((p) => isGhost(p.to) && !isGhost(p.from) && !isEnd(p.from)).map((p) => p.from));
+  const notes = [words.sideNote, ...(enteringFrom.size > 0 ? [words.sideFrom(enteringFrom.size)] : [])];
+  const titleW = Math.max(textWidth(words.side, TYPE.regionName), ...notes.map((note) => textWidth(note, TYPE.regionNote)));
+  const sideH = T.side.pad * 2 + Math.max(G.h, TYPE.regionName.size + LOOK.region.line * notes.length + T.side.pad / 4);
   // 1 段目の上には、脇道の囲みか、始まりの印から最初の状態へ下りる間を空ける。どちらも無ければ空けない
   const starts = lines.some((line) => line.from === "start");
   const top0 = margin + (ghosts.length > 0 ? sideH + T.side.gap : starts ? T.start + T.drop : 0);
@@ -104,6 +122,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   const boxOf = (id: string, cx: number, y: number, ghost: boolean): SceneBox => {
     const source = diagram.boxes.find((b) => b.id === id);
     const w = widths.get(id) ?? B.minW;
+    const h = ghost ? G.h : B.h;
     return {
       id,
       name: source?.name ?? id,
@@ -113,9 +132,9 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
       x: cx - w / 2,
       y,
       w,
-      h: B.h,
+      h,
       cx,
-      cy: y + B.h / 2,
+      cy: y + h / 2,
       ...(ghost ? { ghost: true } : {}),
     };
   };
@@ -126,12 +145,11 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   const byId = new Map(boxes.map((b) => [b.id, b]));
   const below = (box: SceneBox): boolean => boxes.some((other) => other !== box && Math.abs(other.cx - box.cx) < 0.5 && other.y > box.y);
 
-  // 始まりの印は最初の状態の上
   const ends: SceneEnd[] = [];
   const first = boxes[0];
-  if (first && starts) ends.push({ kind: "start", x: first.cx, y: first.y - T.drop, r: T.start, ghost: false, text: words.start });
+  const contentRight = Math.max(...boxes.map((b) => b.x + b.w));
 
-  // 脇道の囲み。囲みの左端は脇道へ入る状態のうち最も左の箱に揃え、点線の箱は入ってくる状態の真ん中に置く
+  // 脇道の囲み。囲みの左端は脇道へ入る状態のうち最も左の箱に揃え、右端は図の右端まで伸ばす。点線の札は入ってくる状態の真ん中に置く
   let side: SceneSide | undefined;
   const lane = margin + sideH + T.side.lane;
   if (ghosts.length > 0) {
@@ -148,7 +166,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     for (const { id, cx } of wanted) {
       const w = widths.get(id) ?? B.minW;
       const left = Math.max(cx - w / 2, cursor);
-      const ghost = boxOf(id, left + w / 2, margin + T.side.pad, true);
+      const ghost = boxOf(id, left + w / 2, margin + (sideH - G.h) / 2, true);
       boxes.push(ghost);
       byId.set(id, ghost);
       const finishes = notTaken.some((p) => p.from === id && p.to === "finish");
@@ -156,8 +174,15 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
       right = finishes ? ghost.x + ghost.w + T.beside + T.end.r : ghost.x + ghost.w;
       cursor = right + gap * 2;
     }
-    const rightmost = Math.max(right + T.side.pad, ...all.map((b) => b.x + b.w));
-    side = { x, y: margin, w: rightmost - x, h: sideH, title: words.side, note: words.sideNote };
+    const rightmost = Math.max(right + T.side.pad, contentRight);
+    side = { x, y: margin, w: rightmost - x, h: sideH, title: words.side, notes };
+  }
+
+  // 始まりの印は最初の状態の上。脇道の囲みの左に字まで収まる時は、囲みと同じ高さに置く
+  if (first && starts) {
+    const reach = first.cx + T.start + T.text + textWidth(words.start, TYPE.regionNote) + gap;
+    const y = side && reach < side.x ? side.y + T.side.pad + T.start : first.y - T.drop;
+    ends.unshift({ kind: "start", x: first.cx, y, r: T.start, ghost: false, text: words.start });
   }
 
   // 終わりの印は終わりへ移る状態の下。下に状態がある時は右に置く
@@ -204,15 +229,20 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   const exitX = (box: SceneBox): number => (starts && box === first ? box.cx + T.side.entry : box.cx);
 
   const finishOf = (id: string): SceneEnd | undefined => ends.find((e) => e.kind === "finish" && e.box === id);
+  /** 同じ状態へ戻る線。箱の下端の右から出て、下へ膨らむ弧を描いて左から箱へ戻る。運ぶ物が弧の上を走れるよう、点で区切る */
   const loopOf = (box: SceneBox): Point[] => {
-    const { w, h } = T.loop;
+    const { w, h, samples } = T.loop;
     const bottom = box.y + box.h;
-    return [
-      [box.cx + w / 2, bottom],
-      [box.cx + w / 2, bottom + h],
-      [box.cx - w / 2, bottom + h],
-      [box.cx - w / 2, bottom + inset],
-    ];
+    const p0: Point = [box.cx + w / 2, bottom];
+    const c1: Point = [box.cx + (w * 3) / 4, bottom + (h * 4) / 3];
+    const c2: Point = [box.cx - (w * 3) / 4, bottom + (h * 4) / 3];
+    const p3: Point = [box.cx - w / 2, bottom + inset];
+    return Array.from({ length: samples + 1 }, (_, k): Point => {
+      const t = k / samples;
+      const u = 1 - t;
+      const at = (i: 0 | 1): number => u * u * u * p0[i] + 3 * u * u * t * c1[i] + 3 * u * t * t * c2[i] + t * t * t * p3[i];
+      return [at(0), at(1)];
+    });
   };
   const route = (from: string, to: string): Point[] => {
     if (from === "start") {
@@ -326,22 +356,32 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     ...(side ? [side.x + side.w] : []),
   ];
   const bottoms = [...boxes.map((b) => b.y + b.h), ...labels.map((l) => l.y + l.h), ...ends.map((e) => e.y + e.r), ...sceneEdges.flatMap((e) => e.points.map((p) => p[1]))];
-  const width = Math.max(Math.max(...rights) + margin, stripNeed(diagram) + margin * 2);
+  // 帯の最後に、段が辿り着く順に状態を点で並べる
+  const trail = { title: words.trail, states: walked.map((id) => ({ box: id, color: colors.get(id) ?? "slate" })) };
+  const width = Math.max(Math.max(...rights) + margin, stripNeed(diagram, trail) + margin * 2);
   const bottom = Math.max(...bottoms, rowY(rowCount - 1) + B.h);
-  const strip = layoutStrip(diagram, margin, bottom + gap, width - margin * 2);
+  const strip = layoutStrip(diagram, margin, bottom + gap, width - margin * 2, trail);
   layout.width = width;
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
   if (strip) layout.strip = strip;
   layout.badges = diagram.steps.map((step, s) => {
     const edge = sceneEdges.find((e) => e.step === s && e.points.length > 0);
     if (!edge) return cornerBadge(step.events, s, layout);
+    // 同じ状態へ戻る弧の番号は、弧に重ねず弧の右に置く
+    if (edge.from === edge.to) {
+      const right = Math.max(...edge.points.map(([px]) => px));
+      const top = (edge.points[0] as Point)[1];
+      const deep = Math.max(...edge.points.map(([, py]) => py));
+      return { step: s, x: right + LOOK.badge.r + LOOK.badge.inset, y: top + (deep - top) * T.loop.badgeAt, color: edge.color };
+    }
     const [x, y] = badgeOnPath(edge.points);
     return { step: s, x, y, color: edge.color };
   });
   return layout;
 }
 
-/** 線の色。始まりから出る線は着く状態の色、それ以外は構成図と同じく送る側の色 */
+/** 線の色。移った先の状態の色で、終わりへ移る線は終わる状態の色。硬貨を運ぶ線は構成図と同じく硬貨の色 (#3171) */
 function colorOf(edge: EdgeEvent, colors: Map<string, ReturnType<typeof edgeColor>>): ReturnType<typeof edgeColor> {
-  return edge.from === "start" && edge.carry.kind !== "coin" ? (colors.get(edge.to) ?? "slate") : edgeColor(edge, colors);
+  if (edge.carry.kind === "coin") return edgeColor(edge, colors);
+  return colors.get(edge.to === "finish" ? edge.from : edge.to) ?? "slate";
 }

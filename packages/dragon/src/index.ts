@@ -42,6 +42,7 @@ export type {
   SceneRegion,
   SceneSide,
   SceneStrip,
+  SceneTrail,
 } from "./layout/scene";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";

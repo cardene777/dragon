@@ -65,6 +65,8 @@ const font = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.f
 const mix = (pct: number, base = "var(--surf)"): string => `color-mix(in srgb,var(--c) ${pct}%,${base})`;
 const S = LOOK.stroke;
 const X = LOOK.mix;
+/** 状態遷移図で段が終わった線と番号の灰 (#3171) */
+const PAST = `color-mix(in srgb,var(--mute) ${X.past}%,var(--bg))`;
 
 /** 部品の見た目。どの値も値の表から読む。 */
 const PART_CSS = [
@@ -91,15 +93,21 @@ const PART_CSS = [
   `.dg-e-on{fill:none;stroke:var(--c);stroke-width:${S.edgeOn};stroke-linecap:round;stroke-dasharray:1 2}`,
   `.dg-eh-on{fill:none;stroke:var(--c);stroke-width:${S.edgeOn};stroke-linecap:round;stroke-linejoin:round}`,
   `.dg-flow{fill:none;stroke:var(--surf);stroke-width:${S.flow};stroke-linecap:round;stroke-dasharray:1.5 ${LOOK.edge.flowDash}}`,
+  `.dg-e-past{fill:none;stroke:${PAST};stroke-width:${S.edge};stroke-linecap:round}`,
+  `.dg-eh-past{fill:none;stroke:${PAST};stroke-width:${S.arrow};stroke-linecap:round;stroke-linejoin:round}`,
   ".dg-bd{cursor:pointer}",
   ".dg-bdf{fill:var(--c)}",
   `.dg-bdft{${font(TYPE.badge)};fill:var(--on-c)}`,
   `.dg-bdr{fill:none;stroke:var(--c);stroke-width:${S.badgeRing}}`,
   `.dg-bdp{fill:${mix(X.badgePast)};stroke:${mix(X.badgePastEdge, "transparent")};stroke-width:${S.hair}}`,
   `.dg-bdpt{${font(TYPE.badge)};fill:var(--ct)}`,
+  `.dg-bdp-g{fill:var(--surf);stroke:${PAST};stroke-width:${S.hair}}`,
+  `.dg-bdpt-g{${font(TYPE.badge)};fill:var(--mute)}`,
   `.dg-cap rect,.dg-act rect{fill:${mix(X.cap)};stroke:${mix(X.capEdge, "transparent")}}`,
   `.dg-cap text{${font(TYPE.label)};fill:var(--ct)}`,
   `.dg-capj text{${font(TYPE.labelJa)}}`,
+  `.dg-cap-past text{${font(TYPE.label)};fill:var(--mute);fill-opacity:${LOOK.state.pastLabel}}`,
+  `.dg-cap-pastj text{${font(TYPE.labelJa)}}`,
   `.dg-act text{${font(TYPE.action)};fill:var(--ct)}`,
   ".dg-car{fill:var(--carry,var(--ink))}",
   `.dg-car-t{${font(TYPE.carrier)};fill:var(--bg)}`,
@@ -114,6 +122,10 @@ const PART_CSS = [
   `.dg-fl{${font(TYPE.fieldName)};fill:var(--mute)}`,
   `.dg-fv{${font(TYPE.fieldValue)};fill:var(--ink)}`,
   `.dg-fvj{${font(TYPE.fieldValueJa)};fill:var(--ink)}`,
+  ".dg-fv-c{fill:var(--ct)}",
+  ".dg-fl-now{fill:var(--c)}",
+  `.dg-tr-ring{fill:none;stroke:var(--line);stroke-width:${S.trail}}`,
+  ".dg-tr-fill{fill:var(--c)}",
   ".dg-tg rect{fill:var(--c)}",
   `.dg-tg text{${font(TYPE.tag)};fill:var(--on-c)}`,
   `.dg-side{fill:color-mix(in srgb,var(--c) ${X.side}%,var(--bg));stroke:${mix(X.sideEdge, "transparent")};stroke-dasharray:4 4}`,
@@ -130,8 +142,8 @@ const PART_CSS = [
   `.dg-end-x{fill:var(--bg);stroke:${mix(X.path, "transparent")};stroke-width:${S.arrow};stroke-dasharray:2 2.5}`,
   `.dg-end-xi{fill:${mix(X.path, "transparent")}}`,
   `.dg-mark{${font(TYPE.regionNote)};fill:var(--mute)}`,
-  `.dg-done{fill:var(--c);stroke:var(--surf);stroke-width:${S.done}}`,
-  `.dg-done-ck{fill:none;stroke:var(--on-c);stroke-width:${S.glyph};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-done{fill:var(--ink);stroke:var(--surf);stroke-width:${S.done}}`,
+  `.dg-done-ck{fill:none;stroke:var(--surf);stroke-width:${S.glyph};stroke-linecap:round;stroke-linejoin:round}`,
   ".dg-vp-bg{fill:var(--bg)}",
   ".dg-vp-frame{fill:none;stroke:var(--hair)}",
   ".dg-hd-bg{fill:var(--bg)}",
@@ -219,7 +231,8 @@ function fieldChanges(diagram: Diagram, timeline: Timeline, layout: Layout): Map
     if (event?.type !== "strip") continue;
     const color: ColorKey = layout.badges[time.step]?.color ?? "slate";
     const list = out.get(event.field) ?? [];
-    list.push({ at: time.at, color, ...(event.value !== undefined ? { value: event.value } : {}), ...(event.tag !== undefined ? { tag: event.tag } : {}) });
+    const until = (timeline.steps[time.step] as Span).end;
+    list.push({ at: time.at, color, step: time.step, until, ...(event.value !== undefined ? { value: event.value } : {}), ...(event.tag !== undefined ? { tag: event.tag } : {}) });
     out.set(event.field, list);
   }
   return out;
@@ -252,12 +265,15 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const boxColor = (id: string, ghost?: boolean): ColorKey | undefined => layout.boxes.find((b) => b.id === id && (ghost === undefined || b.ghost === ghost))?.color;
   for (const p of layout.paths) L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor));
   for (const e of layout.ends) L.node.push(endMark(e, ghostColor));
-  if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx));
+  // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
+  const isState = layout.kind === "state";
+  const arrivals = new Map((timeline.states ?? []).flatMap((s) => (s.lit[0] ? [[s.box, s.lit[0].start] as [string, number]] : [])));
+  if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals));
   for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
   for (const e of layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
     if (!time) continue;
-    const drawn = edge(e, time, ctx);
+    const drawn = edge(e, time, ctx, isState);
     L.base.push(drawn.base);
     L.lit.push(drawn.lit);
   }
@@ -268,10 +284,10 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
       continue;
     }
     const state = states.get(box.id);
-    L.node.push(card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [], layout.kind === "state" ? (state?.lit ?? []) : undefined));
+    L.node.push(card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [], isState ? (state?.lit ?? []) : undefined));
     if (state?.done !== undefined) L.node.push(doneMark(box, state.done, ctx));
   }
-  for (const b of layout.badges) L.badge.push(badge(b, ctx));
+  for (const b of layout.badges) L.badge.push(badge(b, ctx, isState));
   for (const l of layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
     if (time) L.top.push(label(l, time, ctx));

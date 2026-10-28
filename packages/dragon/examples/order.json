@@ -50,14 +50,14 @@
       "name": "返品の受付",
       "sub": "検品を待つ",
       "color": "rose",
-      "icon": "refresh"
+      "icon": "undo"
     },
     {
       "id": "返金済み",
       "name": "返金済み",
       "sub": "代金を戻す",
       "color": "rose",
-      "icon": "card"
+      "icon": "yen"
     },
     {
       "id": "キャンセル",
@@ -70,7 +70,6 @@
   "strip": {
     "title": "注文 #1042",
     "fields": [
-      "状態",
       "支払い",
       "在庫",
       "伝票番号",
@@ -91,11 +90,6 @@
             "kind": "tag",
             "text": "#1042"
           }
-        },
-        {
-          "type": "strip",
-          "field": "状態",
-          "tag": "注文受付"
         },
         {
           "type": "strip",
@@ -130,11 +124,6 @@
         },
         {
           "type": "strip",
-          "field": "状態",
-          "tag": "支払い待ち"
-        },
-        {
-          "type": "strip",
           "field": "経過",
           "value": "2 分"
         }
@@ -153,11 +142,6 @@
             "kind": "tag",
             "text": "#1042"
           }
-        },
-        {
-          "type": "strip",
-          "field": "状態",
-          "tag": "支払い済み"
         },
         {
           "type": "strip",
@@ -187,11 +171,6 @@
         },
         {
           "type": "strip",
-          "field": "状態",
-          "tag": "発送準備"
-        },
-        {
-          "type": "strip",
           "field": "在庫",
           "value": "確保した"
         },
@@ -215,11 +194,6 @@
             "kind": "tag",
             "text": "#1042"
           }
-        },
-        {
-          "type": "strip",
-          "field": "状態",
-          "tag": "発送済み"
         },
         {
           "type": "strip",
@@ -254,11 +228,6 @@
         },
         {
           "type": "strip",
-          "field": "状態",
-          "tag": "配達完了"
-        },
-        {
-          "type": "strip",
           "field": "経過",
           "value": "2 日"
         }
@@ -277,11 +246,6 @@
             "kind": "tag",
             "text": "#1042"
           }
-        },
-        {
-          "type": "strip",
-          "field": "状態",
-          "tag": "返品の受付"
         },
         {
           "type": "strip",
@@ -339,11 +303,6 @@
           "type": "swap",
           "box": "返金済み",
           "text": "全額を戻した"
-        },
-        {
-          "type": "strip",
-          "field": "状態",
-          "tag": "返金済み"
         },
         {
           "type": "strip",

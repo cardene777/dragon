@@ -50,14 +50,14 @@
       "name": "Return requested",
       "sub": "Awaiting the check",
       "color": "rose",
-      "icon": "refresh"
+      "icon": "undo"
     },
     {
       "id": "refunded",
       "name": "Refunded",
       "sub": "Money goes back",
       "color": "rose",
-      "icon": "card"
+      "icon": "yen"
     },
     {
       "id": "cancelled",
@@ -70,7 +70,6 @@
   "strip": {
     "title": "Order #1042",
     "fields": [
-      "State",
       "Payment",
       "Stock",
       "Tracking no.",
@@ -91,11 +90,6 @@
             "kind": "tag",
             "text": "#1042"
           }
-        },
-        {
-          "type": "strip",
-          "field": "State",
-          "tag": "Received"
         },
         {
           "type": "strip",
@@ -130,11 +124,6 @@
         },
         {
           "type": "strip",
-          "field": "State",
-          "tag": "Awaiting payment"
-        },
-        {
-          "type": "strip",
           "field": "Elapsed",
           "value": "2 min"
         }
@@ -153,11 +142,6 @@
             "kind": "tag",
             "text": "#1042"
           }
-        },
-        {
-          "type": "strip",
-          "field": "State",
-          "tag": "Paid"
         },
         {
           "type": "strip",
@@ -187,11 +171,6 @@
         },
         {
           "type": "strip",
-          "field": "State",
-          "tag": "Packing"
-        },
-        {
-          "type": "strip",
           "field": "Stock",
           "value": "held"
         },
@@ -215,11 +194,6 @@
             "kind": "tag",
             "text": "#1042"
           }
-        },
-        {
-          "type": "strip",
-          "field": "State",
-          "tag": "Shipped"
         },
         {
           "type": "strip",
@@ -254,11 +228,6 @@
         },
         {
           "type": "strip",
-          "field": "State",
-          "tag": "Delivered"
-        },
-        {
-          "type": "strip",
           "field": "Elapsed",
           "value": "2 days"
         }
@@ -277,11 +246,6 @@
             "kind": "tag",
             "text": "#1042"
           }
-        },
-        {
-          "type": "strip",
-          "field": "State",
-          "tag": "Return requested"
         },
         {
           "type": "strip",
@@ -339,11 +303,6 @@
           "type": "swap",
           "box": "refunded",
           "text": "Fully returned"
-        },
-        {
-          "type": "strip",
-          "field": "State",
-          "tag": "Refunded"
         },
         {
           "type": "strip",

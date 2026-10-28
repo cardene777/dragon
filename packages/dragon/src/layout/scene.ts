@@ -83,10 +83,11 @@ export interface SceneEnd {
   box?: string;
 }
 
-/** 状態遷移図の脇道の囲み。`title` と `note` は囲みの左上に置く字 */
+/** 状態遷移図の脇道の囲み。`title` と `notes` は囲みの左上に置く字 */
 export interface SceneSide extends Rect {
   title: string;
-  note: string;
+  /** 囲みの名前の下に 1 行ずつ置く添え書き */
+  notes: string[];
 }
 
 /** 時系列図の箱の中の処理。生存線の上に札で出す。 */
@@ -119,9 +120,19 @@ export interface SceneField {
   w: number;
 }
 
+/** 状態遷移図の帯の最後の欄。段が辿り着く順に状態を点で並べ、着いた状態を塗る (#3171) */
+export interface SceneTrail {
+  title: string;
+  states: { box: string; color: ColorKey }[];
+  x: number;
+  y: number;
+  w: number;
+}
+
 export interface SceneStrip extends Rect {
   title: string;
   fields: SceneField[];
+  trail?: SceneTrail;
 }
 
 export interface Layout {
@@ -307,32 +318,43 @@ function fieldWidth(diagram: Diagram, name: string): number {
   return Math.max(textWidth(name, TYPE.fieldName), both);
 }
 
+/** 帯の最後に並べる通った状態の欄の名前と点。状態遷移図だけが渡す */
+export type TrailSource = Pick<SceneTrail, "title" | "states">;
+
+const trailWidth = (trail: TrailSource): number => Math.max(textWidth(trail.title, TYPE.fieldName), trail.states.length * LOOK.strip.trail.step);
+
 /** 1 行に並べた時に帯が要る幅。 */
-export function stripNeed(diagram: Diagram): number {
+export function stripNeed(diagram: Diagram, trail?: TrailSource): number {
   if (!diagram.strip) return 0;
   const { titleX, fieldGap, pad } = LOOK.strip;
   const start = titleX + textWidth(diagram.strip.title, TYPE.stripTitle) + fieldGap;
-  return start + diagram.strip.fields.reduce((sum, name) => sum + fieldWidth(diagram, name) + fieldGap, 0) - fieldGap + pad;
+  const widths = [...diagram.strip.fields.map((name) => fieldWidth(diagram, name)), ...(trail ? [trailWidth(trail)] : [])];
+  return start + widths.reduce((sum, w) => sum + w + fieldGap, 0) - fieldGap + pad;
 }
 
-/** 中身の帯。欄は左から並べ、幅に収まらない欄は次の行へ送る。 */
-export function layoutStrip(diagram: Diagram, x: number, y: number, width: number): SceneStrip | undefined {
+/** 中身の帯。欄は左から並べ、幅に収まらない欄は次の行へ送る。通った状態の欄を渡すと、最後の欄の後に同じ決まりで置く。 */
+export function layoutStrip(diagram: Diagram, x: number, y: number, width: number, trail?: TrailSource): SceneStrip | undefined {
   if (!diagram.strip) return undefined;
   const { titleX, fieldGap, pad, line, h } = LOOK.strip;
   const start = titleX + textWidth(diagram.strip.title, TYPE.stripTitle) + fieldGap;
   const fields: SceneField[] = [];
   let cx = start;
   let row = 0;
-  for (const name of diagram.strip.fields) {
-    const w = fieldWidth(diagram, name);
+  const place = (w: number): { x: number; y: number } => {
     if (cx > start && cx + w > width - pad) {
       cx = start;
       row++;
     }
-    fields.push({ name, x: x + cx, y: y + row * line, w });
+    const at = { x: x + cx, y: y + row * line };
     cx += w + fieldGap;
+    return at;
+  };
+  for (const name of diagram.strip.fields) {
+    const w = fieldWidth(diagram, name);
+    fields.push({ name, ...place(w), w });
   }
-  return { x, y, w: width, h: h + row * line, title: diagram.strip.title, fields };
+  const laidTrail = trail ? { ...trail, ...place(trailWidth(trail)), w: trailWidth(trail) } : undefined;
+  return { x, y, w: width, h: h + row * line, title: diagram.strip.title, fields, ...(laidTrail ? { trail: laidTrail } : {}) };
 }
 
 /** 場面の全ての物を (dx, dy) だけ動かす。区画と帯は動かさず、横いっぱいの形を保つ。 */
@@ -379,6 +401,10 @@ export function shiftContent(layout: Layout, dx: number, dy: number): void {
     for (const field of layout.strip.fields) {
       field.x += dx;
       field.y += dy;
+    }
+    if (layout.strip.trail) {
+      layout.strip.trail.x += dx;
+      layout.strip.trail.y += dy;
     }
   }
 }

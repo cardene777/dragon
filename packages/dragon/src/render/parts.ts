@@ -36,7 +36,26 @@ export function glyph(name: string | undefined, x: number, y: number, scale: num
   return d ? `<path class="${cls}" transform="translate(${r1(x)} ${r1(y)}) scale(${scale})" d="${d}"/>` : "";
 }
 
-export const pathOf = (points: Point[]): string => points.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${r1(x)} ${r1(y)}`).join(" ");
+/** 点を辿る線。曲がる所は共通の値の表の半径 (`LOOK.edge.bend`) で丸め、直角の角を作らない (#3171)。 */
+export function pathOf(points: Point[]): string {
+  const pts = points.filter((p, i) => i === 0 || p[0] !== (points[i - 1] as Point)[0] || p[1] !== (points[i - 1] as Point)[1]);
+  const [x0, y0] = pts[0] as Point;
+  let d = `M ${r1(x0)} ${r1(y0)}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i - 1] as Point;
+    const [bx, by] = pts[i] as Point;
+    const [cx, cy] = pts[i + 1] as Point;
+    const l1 = Math.hypot(bx - ax, by - ay);
+    const l2 = Math.hypot(cx - bx, cy - by);
+    const a = Math.min(LOOK.edge.bend, l1 / 2, l2 / 2);
+    d += ` L ${r1(bx - ((bx - ax) / l1) * a)} ${r1(by - ((by - ay) / l1) * a)} Q ${r1(bx)} ${r1(by)} ${r1(bx + ((cx - bx) / l2) * a)} ${r1(by + ((cy - by) / l2) * a)}`;
+  }
+  if (pts.length > 1) {
+    const [lx, ly] = pts[pts.length - 1] as Point;
+    d += ` L ${r1(lx)} ${r1(ly)}`;
+  }
+  return d;
+}
 
 /** 矢じり。線の最後の 2 点の向きに開く。 */
 export function arrowHead(points: Point[]): string {
@@ -138,17 +157,18 @@ export function headCard(box: SceneBox, ctx: Ctx, on: number[], changes: SubChan
   return `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, pad, h)}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(pad + nameY)}" text-anchor="middle">${esc(box.name)}</text>${subs}</g>`;
 }
 
-/** 状態遷移図の、どの段も辿り着かない状態。点線の縁で、光らず、字も書き換わらない */
+/** 状態遷移図の、どの段も辿り着かない状態。点線の縁の札で、絵柄を左に、名前と下の字を右に並べる (#3171)。光らず、字も書き換わらない */
 export function ghostCard(box: SceneBox): string {
-  const { icon, iconRadius, iconScale, iconY, nameY, subY, radius } = LOOK.box;
-  const mark =
-    box.icon && ICONS[box.icon]
-      ? `<rect class="dg-ic" x="${r1(box.cx - icon / 2)}" y="${r1(box.cy + iconY - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, box.cx, box.cy + iconY, iconScale)}`
-      : "";
-  const sub = box.sub ? `<text class="dg-ss" x="${r1(box.cx)}" y="${r1(box.cy + subY)}" text-anchor="middle">${esc(box.sub)}</text>` : "";
+  const { icon, iconRadius, iconScale, radius } = LOOK.box;
+  const G = LOOK.state.ghost;
+  const ix = box.x + G.pad + icon / 2;
+  const tx = box.x + G.pad + icon + G.gap;
+  const mark = box.icon && ICONS[box.icon] ? `<rect class="dg-ic" x="${r1(ix - icon / 2)}" y="${r1(box.cy - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, ix, box.cy, iconScale)}` : "";
+  const nameY = box.sub ? G.nameY : LOOK.baseline.mark;
+  const sub = box.sub ? `<text class="dg-ss" x="${r1(tx)}" y="${r1(box.cy + G.subY)}" text-anchor="start">${esc(box.sub)}</text>` : "";
   return (
     `<g data-ghost="${esc(box.id)}" style="${cs(box.color)}"><rect class="dg-ghost" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${radius}"/>` +
-    `${mark}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(box.cy + nameY)}" text-anchor="middle">${esc(box.name)}</text>${sub}</g>`
+    `${mark}<text class="dg-sn" x="${r1(tx)}" y="${r1(box.cy + nameY)}" text-anchor="start">${esc(box.name)}</text>${sub}</g>`
   );
 }
 
@@ -168,13 +188,14 @@ export function path(p: ScenePath, color: ColorKey): string {
   return `<g data-path="${esc(`${p.from}->${p.to}`)}" style="${cs(color)}"><path class="dg-path" d="${pathOf(p.points)}"/><path class="dg-path-h" d="${arrowHead(p.points)}"/>${label}</g>`;
 }
 
-/** 状態遷移図の脇道の囲み。左上に囲みの名前と添え書きを置く */
+/** 状態遷移図の脇道の囲み。左上に囲みの名前を、その下に添え書きを 1 行ずつ置く */
 export function side(s: SceneSide, color: ColorKey): string {
   const { pad } = LOOK.state.side;
   const title = s.y + pad + TYPE.regionName.size;
+  const notes = s.notes.map((note, k) => `<text class="dg-side-n" x="${r1(s.x + pad)}" y="${r1(title + LOOK.region.line * (k + 1))}">${esc(note)}</text>`).join("");
   return (
     `<g style="${cs(color)}"><rect class="dg-side" x="${r1(s.x + 0.5)}" y="${r1(s.y + 0.5)}" width="${r1(s.w - 1)}" height="${r1(s.h - 1)}" rx="${LOOK.region.radius}"/>` +
-    `<text class="dg-side-t" x="${r1(s.x + pad)}" y="${r1(title)}">${esc(s.title)}</text><text class="dg-side-n" x="${r1(s.x + pad)}" y="${r1(title + LOOK.region.line)}">${esc(s.note)}</text></g>`
+    `<text class="dg-side-t" x="${r1(s.x + pad)}" y="${r1(title)}">${esc(s.title)}</text>${notes}</g>`
   );
 }
 
@@ -196,20 +217,27 @@ export function lifeline(x: number, y1: number, y2: number): string {
 /**
  * 線。点線で道を見せておき、その段で色の線を引いて、段の終わりまで流れる点で向きを見せる。
  * 済んだ段は薄く残し、最後の段の後に通った道を全て濃くし直す。
+ * `past` を立てると (状態遷移図、#3171)、段が終わった後は色の線を消して灰の実線に替え、最後の段まで残す。
  */
-export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx): { base: string; lit: string } {
+export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false): { base: string; lit: string } {
   const { m } = ctx;
   const d = pathOf(e.points);
   const head = arrowHead(e.points);
   const { start: a, drawn: b, end } = time;
-  const tail: Frame[] = [
-    [end, { opacity: 1 }, EASE.inOut],
-    [end + 0.4, { opacity: 0.45 }],
-    [ctx.end + 0.3, { opacity: 0.45 }, EASE.inOut],
-    [ctx.end + 1, { opacity: 0.95 }],
-    [m.last, { opacity: 0.95 }, EASE.inOut],
-    [m.total, { opacity: 0 }],
-  ];
+  const tail: Frame[] = past
+    ? [
+        [end, { opacity: 1 }, EASE.inOut],
+        [end + 0.4, { opacity: 0 }],
+        [m.total, { opacity: 0 }],
+      ]
+    : [
+        [end, { opacity: 1 }, EASE.inOut],
+        [end + 0.4, { opacity: 0.45 }],
+        [ctx.end + 0.3, { opacity: 0.45 }, EASE.inOut],
+        [ctx.end + 1, { opacity: 0.95 }],
+        [m.last, { opacity: 0.95 }, EASE.inOut],
+        [m.total, { opacity: 0 }],
+      ];
   const line = m.kf([
     [0, { opacity: 0, "stroke-dashoffset": 1 }],
     [a, { opacity: 0, "stroke-dashoffset": 1 }, EASE.inOut],
@@ -229,17 +257,21 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx): { base: string; li
     [end + 0.2, { opacity: 0, "stroke-dashoffset": run }],
     [m.total, { opacity: 0, "stroke-dashoffset": run }],
   ]);
+  const grey = past ? m.kf([[0, { opacity: 0 }], [end, { opacity: 0 }, EASE.inOut], [end + 0.4, { opacity: 1 }], [m.last, { opacity: 1 }, EASE.inOut], [m.total, { opacity: 0 }]]) : "";
   return {
-    base: `<path class="dg-e" d="${d}"/><path class="dg-eh" d="${head}"/>`,
+    base: `<path class="dg-e" d="${d}"/><path class="dg-eh" d="${head}"/>${past ? `<path class="dg-e-past dg-a" d="${d}" style="${grey}"/><path class="dg-eh-past dg-a" d="${head}" style="${grey}"/>` : ""}`,
     lit: `<g style="${cs(e.color)}"><path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}"/><path class="dg-eh-on dg-a" d="${head}" style="${hk}"/><path class="dg-flow dg-a" d="${d}" style="${flow}"/></g>`,
   };
 }
 
-/** 線の名前の札。その段の間だけ出し、段の終わりまでに消え終わる。 */
+/** 線の名前の札。その段の間だけ出し、段の終わりまでに消え終わる。時刻の表が `after` を持つ時は、その間だけ札を外した灰の字で薄く残す (#3171)。 */
 export function label(l: SceneLabel, time: LabelTime, ctx: Ctx): string {
   const ja = l.family === "sans" ? " dg-capj" : "";
   const { radius } = LOOK.label;
-  return `<g class="dg-cap${ja} dg-a" style="${cs(l.color)};${ctx.m.rise(time.start, time.end, true)}"><rect x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${radius}"/><text x="${r1(l.x + l.w / 2)}" y="${r1(l.y + l.h / 2 + LOOK.baseline.label)}" text-anchor="middle">${esc(l.text)}</text></g>`;
+  const x = r1(l.x + l.w / 2);
+  const y = r1(l.y + l.h / 2 + LOOK.baseline.label);
+  const past = time.after ? `<g class="dg-cap-past${l.family === "sans" ? " dg-cap-pastj" : ""} dg-a" style="${ctx.m.vis(time.after.start, time.after.end)}"><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>` : "";
+  return `${past}<g class="dg-cap${ja} dg-a" style="${cs(l.color)};${ctx.m.rise(time.start, time.end, true)}"><rect x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${radius}"/><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`;
 }
 
 /** 時系列図の箱の中の処理の札。その段の間だけ生存線の上に出す。 */
@@ -283,8 +315,11 @@ export function carrier(e: SceneEdge, time: CarrierTime, ctx: Ctx): string {
   return `<g class="dg-a" style="${m.move(pts, m.blink(from + 0.02, gone, fade))}">${carrierShape(e, ctx.sh)}</g>`;
 }
 
-/** 段の番号。まだ来ていない段は出さず、今の段は塗り、済んだ段は縁取りに変えて番号を読めるまま残す。 */
-export function badge(b: SceneBadge, ctx: Ctx): string {
+/**
+ * 段の番号。まだ来ていない段は出さず、今の段は塗り、済んだ段は縁取りに変えて番号を読めるまま残す。
+ * `grey` を立てると (状態遷移図、#3171)、済んだ段の縁取りを線と同じ灰にする。
+ */
+export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const { m } = ctx;
   const span = ctx.t.steps[b.step] as Span;
   const a = span.start;
@@ -312,7 +347,7 @@ export function badge(b: SceneBadge, ctx: Ctx): string {
   const no = b.step + 1;
   return (
     `<g class="dg-bd" data-step="${b.step}" style="${cs(b.color)}"><circle class="dg-bdr dg-popc dg-a" cx="${x}" cy="${y}" r="${rr}" style="${ring}"/>` +
-    `<g class="dg-a" style="${past}"><circle class="dg-bdp" cx="${x}" cy="${y}" r="${rr}"/><text class="dg-bdpt" x="${x}" y="${ty}" text-anchor="middle">${no}</text></g>` +
+    `<g class="dg-a" style="${past}"><circle class="${grey ? "dg-bdp-g" : "dg-bdp"}" cx="${x}" cy="${y}" r="${rr}"/><text class="${grey ? "dg-bdpt-g" : "dg-bdpt"}" x="${x}" y="${ty}" text-anchor="middle">${no}</text></g>` +
     `<g class="dg-popc dg-a" style="${fill}"><circle class="dg-bdf" cx="${x}" cy="${y}" r="${r}"/><text class="dg-bdft" x="${x}" y="${ty}" text-anchor="middle">${no}</text></g></g>`
   );
 }
@@ -323,9 +358,16 @@ export interface FieldChange {
   value?: string;
   tag?: string;
   color: ColorKey;
+  /** 変わった段と、その段の終わり */
+  step: number;
+  until: number;
 }
 
-export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: Ctx): string {
+/**
+ * 中身の帯。`now` を立てると (状態遷移図、#3171)、段の中で変わった値をその段の終わりまで線の色 (今の状態の色) で描き、
+ * 欄の名前の横に同じ色の点を置く。帯の通った状態の欄は、`arrivals` が持つ着いた時刻に点を塗る。
+ */
+export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: Ctx, now = false, arrivals = new Map<string, number>()): string {
   const { m, sh } = ctx;
   const S = LOOK.strip;
   const my = s.y + S.h / 2;
@@ -347,8 +389,19 @@ export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: C
     values.forEach((c, k) => {
       const next = values[k + 1]?.at;
       const value = c.value as string;
-      const anim = next === undefined ? m.rise(c.at) : m.rise(c.at, next - MOTION.untilFade);
-      parts.push(`<g class="dg-a" style="${anim}"><text class="${hasWide(value) ? "dg-fvj" : "dg-fv"}" x="${r1(field.x)}" y="${r1(field.y + S.valueY)}">${esc(value)}</text></g>`);
+      const cls = hasWide(value) ? "dg-fvj" : "dg-fv";
+      const textOf = (c: string): string => `<text class="${c}" x="${r1(field.x)}" y="${r1(field.y + S.valueY)}">${esc(value)}</text>`;
+      const text = textOf(cls);
+      if (!now) {
+        const anim = next === undefined ? m.rise(c.at) : m.rise(c.at, next - MOTION.untilFade);
+        parts.push(`<g class="dg-a" style="${anim}">${text}</g>`);
+        return;
+      }
+      // 変わった段の間は今の状態の色で、段が終わると墨に戻す
+      const until = Math.min(c.until, next ?? c.until);
+      const dot = `<circle class="dg-fl-now" cx="${r1(field.x + textWidth(field.name, TYPE.fieldName) + S.now.gap)}" cy="${r1(field.y + S.nameY - TYPE.fieldName.size / 3)}" r="${S.now.r}"/>`;
+      parts.push(`<g class="dg-fv-now dg-a" data-step="${c.step}" style="${cs(c.color)};${m.rise(c.at, until - MOTION.untilFade)}">${textOf(`${cls} dg-fv-c`)}${dot}</g>`);
+      if (next === undefined || next > until) parts.push(`<g class="dg-a" style="${m.vis(until - MOTION.untilFade, next === undefined ? m.last : next - MOTION.untilFade)}">${text}</g>`);
     });
     tags.forEach((c, k) => {
       const next = tags[k + 1]?.at;
@@ -363,5 +416,21 @@ export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: C
       );
     });
   });
+  if (s.trail) {
+    const t = s.trail;
+    const last = s.fields[s.fields.length - 1];
+    if (last && last.y === t.y) {
+      const sx = t.x - S.fieldGap / 2;
+      parts.push(`<line class="dg-sep" x1="${r1(sx)}" y1="${r1(t.y + S.sepInset)}" x2="${r1(sx)}" y2="${r1(t.y + S.h - S.sepInset)}"/>`);
+    }
+    parts.push(`<text class="dg-fl" x="${r1(t.x)}" y="${r1(t.y + S.nameY)}">${esc(t.title)}</text>`);
+    const dy = t.y + S.valueY - TYPE.fieldValue.size / 3;
+    t.states.forEach((state, k) => {
+      const cx = r1(t.x + S.trail.r + k * S.trail.step);
+      const at = arrivals.get(state.box);
+      const fill = at === undefined ? "" : `<circle class="dg-tr-fill dg-a" cx="${cx}" cy="${r1(dy)}" r="${S.trail.r}" style="${m.pop(at)}"/>`;
+      parts.push(`<g data-trail="${esc(state.box)}" style="${cs(state.color)}"><circle class="dg-tr-ring" cx="${cx}" cy="${r1(dy)}" r="${S.trail.r}"/>${fill}</g>`);
+    });
+  }
   return parts.join("");
 }

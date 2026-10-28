@@ -2,6 +2,7 @@
  * 箱と区画の印の形。どれも (0, 0) を中心に 20 四方へ収める。
  *
  * 見本帳 (`docs/design/base/engine.js` の `G`) と同じ形を持つ。`block` だけは見本帳が絵を手で描いていたので、ここで足した。
+ * `undo` (戻る矢印) と `yen` (円の印) は、注文の試作 (`docs/design/base/scenes/order.js`) が返品と返金に足した形 (#3171)。
  */
 export const ICONS: Readonly<Record<string, string>> = {
   app: "M -9 -7 h18 a2 2 0 0 1 2 2 v10 a2 2 0 0 1 -2 2 h-18 a2 2 0 0 1 -2 -2 v-10 a2 2 0 0 1 2 -2 z M -11 -2 h22",
@@ -34,6 +35,8 @@ export const ICONS: Readonly<Record<string, string>> = {
   branch: "M -4 -4.5 v9 M 5 0.5 c0 4 -9 3 -9 6.5 M -6.2 -7 a2.2 2.2 0 1 0 4.4 0 a2.2 2.2 0 1 0 -4.4 0 M -6.2 7 a2.2 2.2 0 1 0 4.4 0 a2.2 2.2 0 1 0 -4.4 0 M 2.8 -2 a2.2 2.2 0 1 0 4.4 0 a2.2 2.2 0 1 0 -4.4 0",
   cloud: "M -7 6 h13 a4.5 4.5 0 0 0 0.5 -9 a6 6 0 0 0 -11.5 -1 a4.5 4.5 0 0 0 -2 10 z",
   refresh: "M 7 -3 a7.5 7.5 0 1 0 0.5 5 M 7.5 -8 v5 h-5",
+  undo: "M -7 -2 h10 a5 5 0 0 1 0 10 h-6 M -3 -6 l-4 4 l4 4",
+  yen: "M -6 -8 l6 7 l6 -7 M 0 -1 v9 M -5 1.5 h10 M -5 5 h10",
   layers: "M 0 -8 l9 4.5 l-9 4.5 l-9 -4.5 z M -9 2.5 l9 4.5 l9 -4.5",
   code: "M -4 -6 l-5 6 l5 6 M 4 -6 l5 6 l-5 6",
   paint: "M -8 8 c 0 -3 2 -5 4.5 -5 l 9 -9 l 3.5 3.5 l -9 9 c 0 2.5 -2 4.5 -5 4.5 z",
