@@ -113,3 +113,15 @@
 | 指で触る端末を模して画面の大きさ 768 × 1024、834 × 1194、1024 × 768 の編集画面で、日本語でも英語でも棚の新規作成を押した時、記法の欄の上の帯の書類名の欄に new と出て、字が欄の中で切れない | `pnpm test`の検査`coarse-editor-new-file-name-fits`が通る | #3089 |
 | カタログの時系列図の oauth を、見本の枠 (画面の幅 360px、390px、430px) と拡大の重ね窓 (360px、390px、430px、860px、1440px) で開いて段 1 から最後まで送った時、どの段でも頭の列の上に並べた点で一番上に在る要素が図の中の物である | `pnpm test`の検査`catalog-heads-strip-uncovered`が通る | #3124、#3128 |
 | 編集画面で oauth を画面の幅 360px、390px、430px、860px で開き、ふだんの状態と記法に誤りがあって前の図を出している状態のそれぞれで段 1 から最後まで送った時、どの段でも頭の列の上に並べた点で一番上に在る要素が図の中の物である | `pnpm test`の検査`editor-heads-strip-uncovered`が通る | #3126、#3128 |
+| `/dragon/catalog` を開いた時、一覧が部品、図の種類だけの部品、図の 3 つの段に分かれ、どの段にも 1 件以上の札が並ぶ | `pnpm test`の検査`catalog-index-three-sections`が通る | #3166 |
+| どの図でも使う部品の頁 (`/dragon/catalog/part/<部品>`) を開いた時、時系列図と構成図の 2 つの図が並び、どちらも記法から描いた物として段を送れる | `pnpm test`の検査`catalog-common-part-shows-both-kinds`が通る | #3166 |
+| 図の種類だけの部品 (生存線、区画) の頁を開いた時、図は 1 つで、それを使える図の種類の名前と、その図の頁への飛び先が載る | `pnpm test`の検査`catalog-kind-part-names-its-kind`が通る | #3166 |
+| 図の頁 (`/dragon/catalog/<図の種類>`) を開いた時、その図が使う部品の一覧が載り、どの部品の札もその部品の頁へ飛ぶ | `pnpm test`の検査`catalog-kind-page-links-parts`が通る | #3166 |
+| 部品の頁の図の記法を編集画面で開いた時、編集画面の欄にその記法がそのまま入る | `pnpm test`の検査`catalog-part-opens-in-editor`が通る | #3166 |
+| 英語に切り替えた時、部品の頁の名前と説明と図の記法が英語で出る | `pnpm test`の検査`catalog-parts-in-english`が通る | #3166 |
+| `words.ts` の表 (`KINDS`、`HEADS`、`ATTRS`) が持つ語と鍵のうち、どの部品にも割り当てられていない物が 0 件 | `pnpm test`の検査`catalog-parts-cover-every-word`が通る | #3166 |
+| どの部品の図の記法も、その部品に割り当てた語と鍵を使い、記法から原本の JSON に変換できて JSON Schema の検査を通る | `pnpm test`の検査`catalog-part-snippets-use-their-words`が通る | #3166 |
+| build した頁の置き場に、どの部品の頁の経路にも `.html` の写しがあり、直に開いても見つからない頁にならない | `pnpm test`の検査`catalog-part-routes-built`が通る | #3166 |
+| 今の見本 (入門、OAuth、CCIP) は、今どおり図の頁から開いて重ね窓と編集画面で見られる | `pnpm test`の検査`category-item-opens-overlay-and-editor`が通る | #3166 |
+| 表に無い深い経路 (`/dragon/catalog/sequence/extra` など) は、今どおり見つからない頁を出す | `pnpm test`の検査`site-routes-render-each-screen`が通る | #3166 |
+| 一式 (型検査、build、lint、全ての検査) が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'` が終了 0 | #3166 |
