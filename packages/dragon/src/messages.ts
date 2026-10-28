@@ -59,6 +59,12 @@ export interface Messages {
   badCarry: string;
   badSide: string;
   carryTwice: string;
+  /** 状態遷移図の箱の名札に、始まりか終わりの印の名前を書いた */
+  reservedId: (id: string) => string;
+  intoStart: string;
+  outOfFinish: string;
+  /** 状態遷移図の最初の step より前の線に、属性を書いた */
+  pathNoAttrs: string;
 }
 
 const list = (words: readonly string[]): string => words.join(" / ");
@@ -126,6 +132,10 @@ const ja = (): Messages => {
     badCarry: `carry は ${list(CARRIES)} のどれか。札は tag: <値> で書く`,
     badSide: `side は ${list(SIDES)} のどれか`,
     carryTwice: "運ぶ物は 1 本の線に 1 つまで。carry と tag は一緒に書かない",
+    reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
+    intoStart: "start へ入る線は書けない。start は始まりの印で、線は start から出る",
+    outOfFinish: "finish から出る線は書けない。finish は終わりの印で、線は finish へ入る",
+    pathNoAttrs: "最初の step より前の線は今回は通らない道なので、属性 (carry と tag と side) を書けない",
   };
 };
 
@@ -192,6 +202,10 @@ const en = (): Messages => {
     badCarry: `carry is one of ${list(CARRIES)}. Write a tag as tag: <value>`,
     badSide: `side is one of ${list(SIDES)}`,
     carryTwice: "A line carries one thing. Do not write carry and tag together",
+    reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,
+    intoStart: "A line cannot go into start. start is the start mark, and lines leave it",
+    outOfFinish: "A line cannot leave finish. finish is the end mark, and lines go into it",
+    pathNoAttrs: "A line before the first step is a path not taken, so it takes no attributes (carry, tag, side)",
   };
 };
 

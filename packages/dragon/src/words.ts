@@ -16,7 +16,14 @@ export type NotationLang = "ja" | "en";
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */
-export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true });
+export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true });
+
+/**
+ * 状態遷移図の始まりと終わりの印の名前 (#3163)。線の送る側に `start`、受ける側に `finish` を書き、
+ * 状態遷移図では箱の名札に使えない。時系列図と構成図では、宣言して使う普通の名札
+ */
+export const STATE_ENDS = ["start", "finish"] as const;
+export type StateEnd = (typeof STATE_ENDS)[number];
 
 /** 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる */
 export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "act", "note", "set"] as const;

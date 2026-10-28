@@ -4,7 +4,7 @@
  * 行の種類は行の頭の英語の語で決まり、線の行だけは箱の名札から始まる。最初の `step` より前に
  * 図の種類と題と区画と箱と帯を宣言し、`step` ごとに、その段で起きることを起きる順に並べる。
  *
- *   sequence <題> [view: fixed か follow]                書かなければ字の大きさで選ぶ
+ *   sequence <題> [view: fixed か follow]                書かなければ字の大きさで選ぶ。図の種類は sequence と architecture と state
  *   group <名札> as <名前> [note: <添え書き>, color: <色>, icon: <印>]
  *     box <名札> as <名前> [note: <下の小さな字>, color: <色>, icon: <印>]
  *   end                                                  同じ名札の group はもう一度開ける
@@ -22,14 +22,18 @@
  * 空白を含む名前と文は行の終わりか `[` の前に置き、`[` を含む名前と `,` か `]` を含む属性の値だけを
  * `"` で囲む。囲みの中では `\"` が `"`、`\\` が `\` になる。字下げは `say` の続きの行を見分ける時だけ意味を持つ。
  *
+ * 状態遷移図 (`state`) では、線の送る側に始まりの印 `start`、受ける側に終わりの印 `finish` を書ける。
+ * 最初の `step` より前に書いた線は、移れるが段で通るとは限らない道 (`state.paths`) になり、属性を持たない (#3163)。
+ * 状態遷移図の `start` と `finish` は箱の名札に使えない。時系列図と構成図では宣言して使う普通の名札のまま。
+ *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { type Box, type Carry, type Color, COLORS, type Diagram, type DiagramEvent, type LabelSide, type Region, type Step, type ViewMode } from "./schema";
+import { type Box, type Carry, type Color, COLORS, type Diagram, type DiagramEvent, type LabelSide, type Region, type StatePath, type Step, type ViewMode } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION } from "./version";
-import { AS, ATTRS, CARRIES, HEADS, KINDS, type NotationLang, OLD_HEADS, SIDES, VIEWS } from "./words";
+import { AS, ATTRS, CARRIES, HEADS, KINDS, type NotationLang, OLD_HEADS, SIDES, STATE_ENDS, VIEWS } from "./words";
 
 export interface LineError {
   line: number;
@@ -255,8 +259,10 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   if (shown && !isOneOf(VIEWS, shown.value)) throw fail(head, shown.at, m.badView);
   const view = shown?.value as ViewMode | undefined;
 
+  const isState = kind === "state";
   const regions: Region[] = [];
   const boxes: Box[] = [];
+  const paths: StatePath[] = [];
   const ids = new Set<string>();
   let strip: { title: string; fields: string[] } | undefined;
   const steps: Step[] = [];
@@ -271,6 +277,16 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const boxAt = (source: SourceLine, id: string, at: number): string => {
     if (!boxes.some((box) => box.id === id)) throw fail(source, at, m.undeclaredBox(id));
     return id;
+  };
+  /** 線の端。状態遷移図では送る側に `start`、受ける側に `finish` を書ける */
+  const endAt = (source: SourceLine, id: string, at: number, side: "from" | "to"): string => {
+    if (!isState || !isOneOf(STATE_ENDS, id)) return boxAt(source, id, at);
+    if ((id === "start") !== (side === "from")) throw fail(source, at, id === "start" ? m.intoStart : m.outOfFinish);
+    return id;
+  };
+  /** 状態遷移図の箱と区画の名札に、始まりと終わりの印の名前は使えない */
+  const notReserved = (source: SourceLine, id: string, at: number): void => {
+    if (isState && isOneOf(STATE_ENDS, id)) throw fail(source, at, m.reservedId(id));
   };
   /** 段の中に書く行の、書き先の段。最初の `step` より前なら誤り */
   const inStep = (source: SourceLine): Building => {
@@ -300,7 +316,9 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
     const edge = EDGE.exec(text);
     if (edge) {
-      inStep(source).events.push(readEdge(source, edge));
+      // 状態遷移図の最初の step より前の線は、移れる道の地図
+      if (isState && !building) paths.push(readPath(source, edge));
+      else inStep(source).events.push(readEdge(source, edge));
       continue;
     }
     const word = text.split(/\s/u)[0] ?? "";
@@ -375,6 +393,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     ...(strip ? { strip } : {}),
     steps,
     ...(kind === "sequence" ? { sequence: { lifelines: boxes.map((box) => box.id) } } : {}),
+    ...(paths.length > 0 ? { state: { paths } } : {}),
   };
 
   /** `group` の行。同じ名札をもう一度開いた時は、名前も属性も書かない */
@@ -385,6 +404,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (regions.some((region) => region.id === declared.id)) {
       if (declared.name !== undefined || declared.attrs.size > 0) throw fail(source, 0, m.regionReopened(declared.id));
     } else {
+      notReserved(source, declared.id, declared.idAt);
       declare(source, declared.id, declared.idAt);
       regions.push({ id: declared.id, name: declared.name ?? declared.id, ...lookOf(source, declared.attrs, m) });
     }
@@ -395,6 +415,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   function readBox(source: SourceLine): void {
     beforeSteps(source);
     const declared = readDeclared(source, "box", ATTRS.box, m);
+    notReserved(source, declared.id, declared.idAt);
     declare(source, declared.id, declared.idAt);
     const { note, ...look } = lookOf(source, declared.attrs, m);
     boxes.push({
@@ -462,19 +483,29 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     return { box: boxAt(source, found[1] ?? "", idAt), text: found[2] ?? "" };
   }
 
+  /** 線の行の両端と、`:` の後ろの線の名前。`at` は名前の後ろの位置 */
+  function readLine(source: SourceLine, edge: RegExpExecArray): { from: string; to: string; label?: string; at: number } {
+    const text = source.text;
+    const from = endAt(source, edge[1] ?? "", edge.indices?.[1]?.[0] ?? 0, "from");
+    const to = endAt(source, edge[2] ?? "", edge.indices?.[2]?.[0] ?? 0, "to");
+    const at = skipSpaces(text, edge[0].length);
+    if (text[at] !== ":") return { from, to, at };
+    const named = readName(source, at + 1, m);
+    if (named.value === "") throw fail(source, at, m.emptyLabel);
+    return { from, to, label: named.value, at: named.rest };
+  }
+
+  /** 状態遷移図の最初の `step` より前の `<名札> -> <名札>: <線の名前>` の行。属性は書けない */
+  function readPath(source: SourceLine, edge: RegExpExecArray): StatePath {
+    const { from, to, label, at } = readLine(source, edge);
+    if (at < source.text.length) throw fail(source, at, source.text[at] === "[" ? m.pathNoAttrs : m.edgeShape);
+    return { from, to, ...(label !== undefined ? { label } : {}) };
+  }
+
   /** `<名札> -> <名札>: <線の名前> [<属性>]` の行 */
   function readEdge(source: SourceLine, edge: RegExpExecArray): DiagramEvent {
     const text = source.text;
-    const from = boxAt(source, edge[1] ?? "", edge.indices?.[1]?.[0] ?? 0);
-    const to = boxAt(source, edge[2] ?? "", edge.indices?.[2]?.[0] ?? 0);
-    let at = skipSpaces(text, edge[0].length);
-    let label: string | undefined;
-    if (text[at] === ":") {
-      const named = readName(source, at + 1, m);
-      if (named.value === "") throw fail(source, at, m.emptyLabel);
-      label = named.value;
-      at = named.rest;
-    }
+    const { from, to, label, at } = readLine(source, edge);
     if (at < text.length && text[at] !== "[") throw fail(source, at, m.edgeShape);
     const attrs = at < text.length ? readAttrs(source, at, ATTRS.edge, m) : new Map<string, Attr>();
     const tag = attrs.get("tag");
