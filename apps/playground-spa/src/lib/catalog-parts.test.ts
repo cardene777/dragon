@@ -25,11 +25,13 @@ import { parseNotation, validateDiagram } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { ATTRS, HEADS, KINDS as WORD_KINDS } from "../../../../packages/dragon/src/words";
+import * as WORDS from "../../../../packages/dragon/src/words";
 import { KINDS, type Kind } from "../catalog/catalog";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
 import { app, BASE, root, type Site, startSite, stepLabel } from "./playground-support";
+
+const { ATTRS, HEADS, KINDS: WORD_KINDS } = WORDS;
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -98,15 +100,22 @@ const figureSel = (kind: Kind): string => `${catalogSel("part-figure")}[data-kin
 const partText = (lang: Lang, id: string): { name: string; desc: string } | undefined =>
   ((TEXT[lang].site.catalog as Record<string, unknown>).parts as Record<string, { name: string; desc: string }> | undefined)?.[id];
 
+/** 状態遷移図の線の、始まりと終わりの予約の名前 (#3163)。語の表が持たない間は空 */
+const STATE_ENDS: readonly string[] = (WORDS as { STATE_ENDS?: readonly string[] }).STATE_ENDS ?? [];
+
 /**
  * 記法の語の表 (`words.ts`) の語を、部品が受け持つ語の形にした物。
- * 線の行は頭の語を持たず、表には属性の鍵の行 (`ATTRS.edge`) としてだけ現れるので、行の形 `<名札> -> <名札>` の `->` を語として足す
+ * 線の行は頭の語を持たず、表には属性の鍵の行 (`ATTRS.edge`) としてだけ現れるので、行の形 `<名札> -> <名札>` の `->` を語として足す。
+ * 状態遷移図の線の形も頭の語を持たないので、始まりと終わりの予約の名前 (`edge:start` `edge:finish`) と、
+ * 最初の段より前に書く通らない道 (`edge:before-step`) を語として足す。段より前の線は状態遷移図だけが書ける (#3163)
  */
 const NOTATION_WORDS: readonly string[] = [
   ...WORD_KINDS.map((kind) => `kind:${kind}`),
   ...HEADS.map((head) => `head:${head}`),
   ...Object.entries(ATTRS).flatMap(([line, keys]) => keys.map((key) => `attr:${line}.${key}`)),
   "edge:->",
+  ...STATE_ENDS.map((name) => `edge:${name}`),
+  ...((WORD_KINDS as readonly string[]).includes("state") ? ["edge:before-step"] : []),
 ];
 
 /** 記法の、空でなく注釈でもない行 */
@@ -127,7 +136,13 @@ const usesWord = (text: string, word: string): boolean => {
   const [type, rest = ""] = word.split(":") as [string, string?];
   if (type === "kind") return headOf(lines[0] ?? "") === rest;
   if (type === "head") return lines.some((line, i) => i > 0 && !isEdge(line) && headOf(line) === rest);
-  if (type === "edge") return lines.some(isEdge);
+  if (type === "edge") {
+    if (rest === "->") return lines.some(isEdge);
+    const firstStep = lines.findIndex((line) => headOf(line) === "step");
+    if (rest === "before-step") return lines.some((line, i) => i > 0 && (firstStep < 0 || i < firstStep) && isEdge(line));
+    // 始まりは線の送る側、終わりは受ける側にだけ書ける
+    return lines.some((line) => isEdge(line) && line.split(" -> ")[rest === "start" ? 0 : 1]?.trim().split(/[\s:[]/u)[0] === rest);
+  }
   if (type === "attr") {
     const [line, key] = rest.split(".");
     return lines.some((l, i) => lineKind(l, i) === line && attrKeys(l).includes(key ?? ""));
