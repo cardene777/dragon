@@ -162,7 +162,7 @@ export function buildTimeline(diagram: Diagram): Timeline {
     });
   }
   carriers.sort((x, y) => x.depart - y.depart);
-  const states = diagram.kind === "state" ? stateTimes(diagram, carriers, last) : undefined;
+  const states = diagram.kind === "state" ? stateTimes(diagram, edges, last) : undefined;
 
   return {
     total,
@@ -181,10 +181,11 @@ export function buildTimeline(diagram: Diagram): Timeline {
 const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).includes(id);
 
 /**
- * 状態遷移図の状態が光る間。主役の運ぶ物が着いた時から、その状態を出る線で出発するまで光り、
- * 出発した少し後に済んだ印を出す。同じ状態へ戻る線では光ったまま、最後に着いた状態は終わりまで光る。
+ * 状態遷移図の状態が光る間。段の線を引き終えて状態へ着いた時から、その状態を出る線を引き始めるまで光り、
+ * 出た少し後に済んだ印を出す。同じ状態へ戻る線では光ったまま、最後に着いた状態は終わりまで光る。
+ * 物が状態を移るのは線を辿った時なので、運ぶ物の種類 (硬貨や、運ばない線) を問わず全ての線で数える。
  */
-function stateTimes(diagram: Diagram, carriers: CarrierTime[], last: number): StateTime[] {
+function stateTimes(diagram: Diagram, edges: EdgeTime[], last: number): StateTime[] {
   const times = new Map<string, StateTime>();
   const of = (box: string): StateTime => {
     const found = times.get(box) ?? { box, lit: [] };
@@ -192,16 +193,16 @@ function stateTimes(diagram: Diagram, carriers: CarrierTime[], last: number): St
     return found;
   };
   let on: { box: string; since: number } | undefined;
-  for (const carrier of carriers.filter((c) => c.who === "main")) {
-    const event = diagram.steps[carrier.step]?.events[carrier.event];
+  for (const edge of edges) {
+    const event = diagram.steps[edge.step]?.events[edge.event];
     if (event?.type !== "edge" || event.from === event.to) continue;
     if (on) {
       const left = of(on.box);
-      left.lit.push({ start: on.since, end: carrier.depart });
-      if (on.box === event.from && left.done === undefined) left.done = carrier.depart + MOTION.done;
+      left.lit.push({ start: on.since, end: edge.start });
+      if (on.box === event.from && left.done === undefined) left.done = edge.start + MOTION.done;
       on = undefined;
     }
-    if (!isEnd(event.to)) on = { box: event.to, since: carrier.arrive };
+    if (!isEnd(event.to)) on = { box: event.to, since: edge.drawn };
   }
   if (on) of(on.box).lit.push({ start: on.since, end: last });
   return [...times.values()];

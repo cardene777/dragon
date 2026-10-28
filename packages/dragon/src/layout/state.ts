@@ -96,7 +96,9 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   // 脇道の囲みの高さ。囲みの名前と添え書きと、点線の箱が並ぶ
   const titleW = Math.max(textWidth(words.side, TYPE.regionName), textWidth(words.sideNote, TYPE.regionNote));
   const sideH = T.side.pad * 2 + B.h;
-  const top0 = ghosts.length > 0 ? margin + sideH + T.side.gap : margin + T.start + T.drop;
+  // 1 段目の上には、脇道の囲みか、始まりの印から最初の状態へ下りる間を空ける。どちらも無ければ空けない
+  const starts = lines.some((line) => line.from === "start");
+  const top0 = margin + (ghosts.length > 0 ? sideH + T.side.gap : starts ? T.start + T.drop : 0);
   const rowY = (row: number): number => top0 + row * (B.h + T.rowGap);
 
   const boxOf = (id: string, cx: number, y: number, ghost: boolean): SceneBox => {
@@ -127,7 +129,6 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   // 始まりの印は最初の状態の上
   const ends: SceneEnd[] = [];
   const first = boxes[0];
-  const starts = lines.some((line) => line.from === "start");
   if (first && starts) ends.push({ kind: "start", x: first.cx, y: first.y - T.drop, r: T.start, ghost: false, text: words.start });
 
   // 脇道の囲み。囲みの左端は脇道へ入る状態のうち最も左の箱に揃え、点線の箱は入ってくる状態の真ん中に置く
