@@ -328,6 +328,37 @@ describe("記法から JSON へ", () => {
     const [root, dragon] = readmes;
     expect(rulesOf(dragon?.text ?? ""), "2 つの README で決まりの文が違う").toEqual(rulesOf(root?.text ?? ""));
   });
+
+  it("readme-notation-covers-state", () => {
+    // 2 つの README が状態遷移図 (#3163) の書き方を載せる (#3172)
+    const extract = api("extractDiagrams");
+    const parse = api("parseNotation");
+    const read = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
+    const notationOf = (text: string): string => text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+
+    // repo の README は、描ける図の欄に状態遷移図を、行の頭の表に `state` の行と `start` と `finish` の線の行を持つ
+    const root = read("README.md");
+    expect(/^\| 描ける図 \| (.+) \|$/mu.exec(root)?.[1] ?? "", "README.md の描ける図の欄に状態遷移図が無い").toContain("状態遷移図");
+    const heads = [...notationOf(root).matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
+    expect(heads.some((head) => head.includes("`state`")), "README.md の行の頭の表に state の行が無い").toBe(true);
+    expect(heads.some((head) => head.includes("`start`")) && heads.some((head) => head.includes("`finish`")), "README.md の行の頭の表に start と finish の線の行が無い").toBe(true);
+
+    // package の README は、行の頭の語に `state` を並べ、状態遷移図の小節に始まりと終わりと通らない道を使う例を置く
+    const notation = notationOf(read("packages/dragon/README.md"));
+    expect(/^行の頭の語は (.+) で/mu.exec(notation)?.[1] ?? "", "package の README の行の頭の語に state が無い").toContain("`state`");
+    const part = notation.split(/^### 状態遷移図$/mu)[1]?.split(/^#{2,3} /mu)[0] ?? "";
+    expect(part, "package の README の dragon記法の節に ### 状態遷移図 の小節が無い").not.toBe("");
+    const states = extract(part).flatMap((fence) => {
+      const parsed = parse(fence.source);
+      return parsed.ok ? [parsed.diagram as { kind?: string; state?: { paths?: unknown[] }; steps?: { events?: { from?: string; to?: string }[] }[] }] : [];
+    });
+    const example = states.find((d) => d.kind === "state");
+    expect(example, "package の README の状態遷移図の小節に読める state の例が無い").toBeDefined();
+    const edges = (example?.steps ?? []).flatMap((s) => s.events ?? []);
+    expect(edges.some((e) => e.from === "start"), "README の状態遷移図の例に start から出る線が無い").toBe(true);
+    expect(edges.some((e) => e.to === "finish"), "README の状態遷移図の例に finish へ入る線が無い").toBe(true);
+    expect(example?.state?.paths?.length ?? 0, "README の状態遷移図の例に通らない道が無い").toBeGreaterThan(0);
+  });
 });
 
 describe("JSON から記法へ", () => {

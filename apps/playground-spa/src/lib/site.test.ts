@@ -4581,4 +4581,90 @@ describe("サイトの帯と経路 (#3030)", () => {
     },
     SLOW,
   );
+
+  it("docs-state-example-parses", () => {
+    // 状態遷移図の節の例は、始まりと終わりの線と、最初の段より前に書く通らない道を使う (#3172)
+    for (const lang of ["ja", "en"] as const) {
+      const text = docsExample("state", lang);
+      expect(text, `${lang} の状態遷移図の節の例の file (src/docs/examples/state${lang === "en" ? ".en" : ""}.dragon) が無い`).toBeDefined();
+      if (text === undefined) continue;
+      const parsed = parseNotation(text);
+      expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), `${lang} の状態遷移図の節の例が読めない`).toEqual([]);
+      const diagram = docsDiagram("state", text);
+      expect(diagram?.kind, `${lang} の状態遷移図の節の例が検査を通らないか、状態遷移図でない`).toBe("state");
+      const edges = diagram ? eventsOf(diagram).flatMap((e) => (e.type === "edge" ? [e] : [])) : [];
+      expect(edges.some((e) => e.from === "start"), `${lang} の状態遷移図の節の例に start から出る線が無い`).toBe(true);
+      expect(edges.some((e) => e.to === "finish"), `${lang} の状態遷移図の節の例に finish へ入る線が無い`).toBe(true);
+      expect(diagram?.state?.paths.length ?? 0, `${lang} の状態遷移図の節の例に通らない道が無い`).toBeGreaterThan(0);
+    }
+  });
+
+  it(
+    "docs-state-section-follows-regions",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
+        const { sections } = await docsOf(page);
+        const ids = sections.map((s) => s.id);
+        expect(ids[ids.indexOf("regions") + 1], `${lang} の区画の節の次が状態遷移図の節でない`).toBe("state");
+        const state = sections.find((s) => s.id === "state");
+        // 本文は頭の行と始まりと終わりの線と、段より前に書く通らない道を語で説明する
+        for (const word of ["state", "start", "finish", "step"]) {
+          expect(new RegExp(`(^|[^A-Za-z-])${word}($|[^A-Za-z-])`, "u").test(state?.prose ?? ""), `${lang} の状態遷移図の節の本文が ${word} を説明しない`).toBe(true);
+        }
+        // 例の図は状態遷移図として、始まりの印 1 つと、始まりと終わりの印を持って描かれる
+        await expect
+          .poll(
+            () =>
+              page.evaluate(() => {
+                const svg = document.querySelector('section#state [data-docs="example"] svg[data-dragon="figure"]');
+                return (svg?.querySelectorAll(".dg-start").length ?? 0) === 1 && (svg?.querySelectorAll("[data-end]").length ?? 0) >= 2;
+              }),
+            { ...WAIT, message: `${lang} の状態遷移図の節の例が、始まりと終わりの印を持つ状態遷移図として描かれない` },
+          )
+          .toBe(true);
+        expect(state?.cta, `${lang} の状態遷移図の節の出口がカタログの状態遷移図の頁へ向かない`).toBe(`${BASE}catalog/state`);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "docs-boxes-lead-to-every-icon",
+    async () => {
+      // 使える絵柄の名前は package の絵柄の定義から引き、検査に一覧を書き写さない (#3172)
+      const icons = Object.keys(((await import("@cardenelabs/dragon")) as { ICONS?: Readonly<Record<string, string>> }).ICONS ?? {}).sort();
+      expect(icons.length, "package の入口から絵柄の定義 (ICONS) を読めない").toBeGreaterThan(0);
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        // 箱の節から部品「絵」の頁へ移れる
+        const link = page.locator(`section#boxes a[href$="${BASE}catalog/part/icon"]`).first();
+        await expect.poll(() => link.count(), { ...WAIT, message: `${lang} の箱の節に部品「絵」の頁への案内が無い` }).toBe(1);
+        await link.click();
+        await expect.poll(() => page.evaluate(() => location.pathname), { ...WAIT, message: `${lang} の箱の節の案内を押しても部品「絵」の頁へ移らない` }).toBe(`${BASE}catalog/part/icon`);
+        // 部品「絵」の頁に、全ての絵柄が形と名前で並ぶ
+        await expect
+          .poll(() => page.evaluate(() => [...document.querySelectorAll('[data-catalog="part-icons"] [data-icon]')].map((el) => el.getAttribute("data-icon") ?? "").sort()), {
+            ...WAIT,
+            message: `${lang} の部品「絵」の頁に並ぶ絵柄が package の絵柄の定義と合わない`,
+          })
+          .toEqual(icons);
+        const items = await page.evaluate(() =>
+          [...document.querySelectorAll('[data-catalog="part-icons"] [data-icon]')].map((el) => ({
+            name: el.getAttribute("data-icon") ?? "",
+            label: el.textContent?.trim() ?? "",
+            drawn: (el.querySelector("svg path")?.getAttribute("d") ?? "") !== "",
+          })),
+        );
+        for (const item of items) {
+          expect(item.label, `${lang} の部品「絵」の頁の ${item.name} に名前が出ない`).toBe(item.name);
+          expect(item.drawn, `${lang} の部品「絵」の頁の ${item.name} に形が描かれない`).toBe(true);
+        }
+      }
+    },
+    SLOW,
+  );
 });
