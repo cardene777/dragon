@@ -206,7 +206,7 @@ describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
       for (const id of STATE_PARTS) {
         const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 } });
         await onScreen(page, "part", `${id} の部品の頁が出ない`);
-        await expect.poll(partSamplesOf, { ...WAIT, message: `${id} の頁の見本の札が、状態遷移図の頁の注文へ向かう 1 枚でない` }).toEqual([`${BASE}catalog/state#order`]);
+        await expect.poll(() => partSamplesOf(page), { ...WAIT, message: `${id} の頁の見本の札が、状態遷移図の頁の注文へ向かう 1 枚でない` }).toEqual([`${BASE}catalog/state#order`]);
         await page.locator(`${catalogSel("part-sample")}[data-sample="order"]`).click();
         await onScreen(page, "category", `${id} の頁の注文の札を押しても図の頁が出ない`);
         await expect

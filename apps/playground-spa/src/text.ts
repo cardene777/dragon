@@ -52,7 +52,7 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `今の記法の部品 ${parts} 個と、部品を組み合わせた ${kinds} 種類の図を並べる。部品の頁で書き方と見え方を確かめ、図の頁で見本を検索して動かし、編集画面で開ける。合計 ${samples} 件の見本。`,
         sections: {
-          parts: { title: "部品", lead: "どの図でも使う部品。部品ごとに、時系列図と構成図で描いた見え方を並べる。" },
+          parts: { title: "部品", lead: "どの図でも使う部品。部品ごとに、時系列図と構成図と状態遷移図で描いた見え方を並べる。" },
           "kind-parts": { title: "図の種類だけの部品", lead: "1 つの図の種類でだけ使う部品。" },
           kinds: { title: "図", lead: "部品を組み合わせた図。図ごとに、使う部品の一覧と見本を載せる。" },
         },
@@ -69,6 +69,14 @@ export const TEXT = {
           step: { name: "段", desc: "図を区切る段。段ごとに本文と打つ命令を書き、1 段ずつ送って見る。view で、枠が段を追うか全体を止めて見せるかを選ぶ。" },
           lifeline: { name: "生存線", desc: "時系列図だけの部品。箱の下に縦の線が伸び、上から下へ時が進む。" },
           group: { name: "区画", desc: "構成図だけの部品。group から end までの箱を 1 つの区画に囲み、仕組みの境目を見せる。" },
+          "start-finish": {
+            name: "始まりと終わり",
+            desc: "状態遷移図だけの部品。線の送る側に start、受ける側に finish を書くと、始まりの印から出る線と、終わりの印へ入る線になる。",
+          },
+          "side-path": {
+            name: "通らない道",
+            desc: "状態遷移図だけの部品。最初の step より前に書いた線は、移れるが今回は通らない道として点線で引く。どの段も辿り着かない状態は点線の箱にして、脇道の囲みに入れる。",
+          },
         },
         kindOnly: (kind: string) => `${kind}だけ`,
         partKinds: "使える図",
@@ -82,6 +90,7 @@ export const TEXT = {
         kinds: {
           sequence: "登場する物の間で、誰が誰に何を渡すかを段ごとに追う図。ログインの流れや API の呼び出しの順を、線の上を走る封筒で見せる。",
           architecture: "区画と箱で仕組みの構成を描き、段ごとにどこからどこへ何が流れるかを見せる図。チェーンをまたぐ送金や、サービスの間の受け渡しに使う。",
+          state: "1 つの物が状態を移る様子を段ごとに追う図。注文や申請が受付から閉じるまでにどの状態を通るかを、線の上を走る札で見せる。",
         },
         total: (n: number) => `全 ${n} 件`,
         showing: (n: number) => `${n} 件 表示中`,
@@ -145,7 +154,7 @@ export const TEXT = {
       filter: "絞り込む…",
       filterLabel: "一覧を絞り込む",
       nothing: "当てはまる物が無い",
-      kinds: { sequence: "時系列図", architecture: "構成図" },
+      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: {
@@ -172,6 +181,8 @@ export const TEXT = {
         edge: "線。運ぶ物を書かなければ封筒が走る",
         carry: "線の上を運ぶ物",
         side: "線の名前を置く側",
+        "start-finish": "始まりと終わり。状態遷移図の線の送る側に start、受ける側に finish を書く",
+        path: "通らない道。状態遷移図の最初の step より前に書く",
         action: "箱の中の処理",
         swap: "箱の下の小さな字の書き換え",
         "strip-value": "帯の値",
@@ -249,7 +260,7 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `The ${parts} parts of the current notation, and the ${kinds} diagram kinds built from them. A part page shows how to write the part and how it looks; a diagram page lets you search its examples, watch them move, and open them in the editor. ${samples} examples in total.`,
         sections: {
-          parts: { title: "Parts", lead: "Parts every diagram uses. Each part page shows the part in a sequence diagram and in an architecture diagram." },
+          parts: { title: "Parts", lead: "Parts every diagram uses. Each part page shows the part in a sequence diagram, an architecture diagram, and a state diagram." },
           "kind-parts": { title: "Parts for one kind", lead: "Parts that only one diagram kind uses." },
           kinds: { title: "Diagrams", lead: "Diagrams built from the parts. Each lists the parts it uses and its examples." },
         },
@@ -266,6 +277,14 @@ export const TEXT = {
           step: { name: "Step", desc: "A step of the diagram, with its own text and command, played one at a time. view picks whether the frame follows the step or holds the whole diagram." },
           lifeline: { name: "Lifeline", desc: "Sequence diagrams only. A line runs down from each box, and time moves down the page." },
           group: { name: "Group", desc: "Architecture diagrams only. The boxes between group and end sit inside one region that marks a boundary in the system." },
+          "start-finish": {
+            name: "Start and end",
+            desc: "State diagrams only. Write start as the sender of a line and finish as its receiver, and the line leaves the start mark or goes into the end mark.",
+          },
+          "side-path": {
+            name: "Path not taken",
+            desc: "State diagrams only. A line written before the first step is a path the object could take but does not this time, drawn dotted. A state that no step reaches becomes a dotted box inside the side path area.",
+          },
         },
         kindOnly: (kind: string) => `${kind} only`,
         partKinds: "Used in",
@@ -279,6 +298,7 @@ export const TEXT = {
         kinds: {
           sequence: "Follow who hands what to whom, step by step. Show a sign-in flow or the order of API calls with envelopes running along the edges.",
           architecture: "Draw a system as regions and boxes, and show what flows where in each step. Use it for cross-chain transfers or hand-offs between services.",
+          state: "Follow one object as it moves between states, step by step. A tag running along the lines shows which states an order or a request passes before it closes.",
         },
         total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         showing: (n: number) => `showing ${n}`,
@@ -342,7 +362,7 @@ export const TEXT = {
       filter: "Filter…",
       filterLabel: "Filter the list",
       nothing: "Nothing matches",
-      kinds: { sequence: "Sequence", architecture: "Architecture" },
+      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: {
@@ -369,6 +389,8 @@ export const TEXT = {
         edge: "Edge. An envelope runs when nothing is carried",
         carry: "What runs along the edge",
         side: "Where the edge label sits",
+        "start-finish": "Start and end. In a state diagram, write start as a line's sender and finish as its receiver",
+        path: "Path not taken. In a state diagram, write it before the first step",
         action: "Action inside a box",
         swap: "Rewrite the small text under a box",
         "strip-value": "Strip value",

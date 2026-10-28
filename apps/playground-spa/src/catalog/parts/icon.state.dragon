@@ -1,0 +1,13 @@
+state 絵
+
+box 下書き [icon: doc]
+box 審査中 [icon: clock]
+box 公開中 [icon: globe]
+
+step 出す
+  say icon で状態の箱に絵を付ける。
+  下書き -> 審査中: 審査に出す
+
+step 通る
+  say 運ぶ物は、着いた状態の絵の上に留まる。
+  審査中 -> 公開中: 通す

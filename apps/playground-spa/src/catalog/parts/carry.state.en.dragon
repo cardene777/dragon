@@ -1,0 +1,21 @@
+state Carry
+
+box ordered as Ordered
+box paying as Awaiting payment
+box done as Done
+
+step Envelope
+  say With nothing written, an envelope runs along the edge.
+  ordered -> paying: check out
+
+step Tag
+  say tag writes a value on a tag that runs along the edge.
+  paying -> ordered: send back [tag: #42]
+
+step Coin
+  say carry: coin shows money moving as a coin.
+  ordered -> paying: pay [carry: coin]
+
+step Nothing
+  say carry: none draws the edge and runs nothing along it.
+  paying -> done: close [carry: none]

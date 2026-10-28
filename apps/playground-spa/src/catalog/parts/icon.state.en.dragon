@@ -1,0 +1,13 @@
+state Icon
+
+box draft as Draft [icon: doc]
+box review as In review [icon: clock]
+box live as Published [icon: globe]
+
+step Submit
+  say icon puts a picture on a state box.
+  draft -> review: submit
+
+step Approve
+  say The carried item rests on the icon of the state it reaches.
+  review -> live: approve

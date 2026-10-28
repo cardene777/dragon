@@ -1,0 +1,19 @@
+state Path not taken
+
+box received as Received
+box paid as Paid
+box shipped as Shipped
+box cancelled as Cancelled
+
+received -> cancelled
+paid -> cancelled: cancel
+
+step Pay
+  say Edges written before the first step are paths that could be taken but are not this time.
+    They are dotted and carry nothing.
+  received -> paid: pay
+
+step Ship
+  say A state that no step reaches becomes a dotted box in the side path area.
+    Writing the same edge inside a step makes it a path taken.
+  paid -> shipped: ship

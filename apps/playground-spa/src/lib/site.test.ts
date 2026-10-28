@@ -189,7 +189,7 @@ const homeLooks = (page: Page): Promise<string[]> =>
   );
 
 /** 見本の題と図の種類と箱の名前 */
-const sampleOf = (text: string): { title: string; kind: "sequence" | "architecture"; names: string[] } | undefined => {
+const sampleOf = (text: string): { title: string; kind: Kind; names: string[] } | undefined => {
   const parsed = parseNotation(text);
   if (!parsed.ok) return undefined;
   const { title, kind, boxes } = parsed.diagram;
@@ -199,7 +199,7 @@ const sampleOf = (text: string): { title: string; kind: "sequence" | "architectu
 /** カタログの部品 (#3033) */
 const catalogSel = (name: string): string => `[data-catalog="${name}"]`;
 
-type Kind = "sequence" | "architecture";
+type Kind = Diagram["kind"];
 
 /** カタログの分類の並び。図の種類の名前の表 (`TEXT.ja.shelf.kinds`) の順 */
 const KINDS = Object.keys(TEXT.ja.shelf.kinds) as Kind[];
@@ -2525,7 +2525,7 @@ describe("サイトの帯と経路 (#3030)", () => {
             "shelf-tab-notation 82x44",
             "shelf-filter 255x44",
             // 見本の行は図の種類ごとに束ねて並ぶ。どの見本の題も 1 行に収まる (#3167)
-            ...[...samplesOf("sequence"), ...samplesOf("architecture")].map((key) => `sample-${key} 255x44`),
+            ...KINDS.flatMap(samplesOf).map((key) => `sample-${key} 255x44`),
           ]);
         }
       }

@@ -1,0 +1,13 @@
+state 色の役
+
+box 下書き [color: slate]
+box 審査中 [color: amber]
+box 公開中 [color: green]
+
+step 出す
+  say color で、状態の箱に 7 つの役から色を選ぶ。
+  下書き -> 審査中: 審査に出す
+
+step 通る
+  say 役は意味で選ぶ。待つ状態は amber、終えた状態は green のように揃える。
+  審査中 -> 公開中: 通す

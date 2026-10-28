@@ -1,0 +1,17 @@
+state Step [view: fixed]
+
+box stopped as Stopped
+box running as Running
+
+step Launch
+  say step starts a step and say writes its text.
+    The command run in the step goes in code.
+  code systemctl start app
+  stopped -> running: launch
+
+step Halt
+  say Steps play one at a time.
+    view picks whether the frame follows the step
+    or holds the whole diagram.
+  code systemctl stop app
+  running -> stopped: halt

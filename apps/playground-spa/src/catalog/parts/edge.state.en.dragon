@@ -1,0 +1,17 @@
+state Edge
+
+box open as Open
+box working as In progress
+box solved as Solved
+
+step Assign
+  say An edge runs with -> from the state before the move to the state after it.
+  open -> working: assign
+
+step Solve
+  say Each step writes the edges it moves along.
+  working -> solved: fixed
+
+step Reopen
+  say An edge back to an earlier state is written the same way.
+  solved -> working: reopen

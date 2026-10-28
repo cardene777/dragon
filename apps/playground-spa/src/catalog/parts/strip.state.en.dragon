@@ -1,0 +1,18 @@
+state Strip
+
+box received as Received
+box shipped as Shipped
+box delivered as Delivered
+
+strip Order: number, state
+
+step Ship
+  say strip puts a strip of fields under the diagram. set fills a field.
+  received -> shipped: ship
+  set number: 42
+  set state: shipped
+
+step Deliver
+  say tag on a set line adds a tag to the field value.
+  shipped -> delivered: hand over
+  set state: delivered [tag: done]
