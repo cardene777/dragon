@@ -18,6 +18,12 @@ export interface FigureText {
   next: string;
   /** 段の一覧の読み上げの名前 */
   steps: (title: string) => string;
+  /** 状態遷移図の脇道の囲みの名前と添え書き (#3163) */
+  side: string;
+  sideNote: string;
+  /** 状態遷移図の始まりと終わりの印の字 */
+  start: string;
+  end: string;
 }
 
 export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
@@ -29,6 +35,10 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     play: "動かす",
     next: "次の段",
     steps: (title) => `${title} の段`,
+    side: "脇道",
+    sideNote: "今回は通らない",
+    start: "始まり",
+    end: "終わり",
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
@@ -38,5 +48,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     play: "Play",
     next: "Next step",
     steps: (title) => `Steps of ${title}`,
+    side: "Side path",
+    sideNote: "Not taken this time",
+    start: "Start",
+    end: "End",
   },
 };

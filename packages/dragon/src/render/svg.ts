@@ -10,13 +10,35 @@ import { layoutArchitecture } from "../layout/architecture";
 import { textWidth } from "../layout/measure";
 import type { Layout, Rect } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
+import { layoutState } from "../layout/state";
 import { FONTS } from "../look/fonts";
 import { type ColorKey, EASE, FONT_VARS, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import type { NotationLang } from "../words";
-import { action, badge, band, card, carrier, type Ctx, cs, edge, esc, type FieldChange, headCard, label, lifeline, strip, type SubChange } from "./parts";
+import {
+  action,
+  badge,
+  band,
+  card,
+  carrier,
+  type Ctx,
+  cs,
+  doneMark,
+  edge,
+  endMark,
+  esc,
+  type FieldChange,
+  ghostCard,
+  headCard,
+  label,
+  lifeline,
+  path,
+  side,
+  strip,
+  type SubChange,
+} from "./parts";
 import { Motion } from "./motion";
 
 export interface RenderOptions {
@@ -94,6 +116,22 @@ const PART_CSS = [
   `.dg-fvj{${font(TYPE.fieldValueJa)};fill:var(--ink)}`,
   ".dg-tg rect{fill:var(--c)}",
   `.dg-tg text{${font(TYPE.tag)};fill:var(--on-c)}`,
+  `.dg-side{fill:color-mix(in srgb,var(--c) ${X.side}%,var(--bg));stroke:${mix(X.sideEdge, "transparent")};stroke-dasharray:4 4}`,
+  `.dg-side-t{${font(TYPE.regionName)};fill:var(--ct)}`,
+  `.dg-side-n{${font(TYPE.regionNote)};fill:var(--mute)}`,
+  `.dg-ghost{fill:var(--surf);stroke:${mix(X.ghostEdge, "transparent")};stroke-dasharray:4 3}`,
+  `.dg-path{fill:none;stroke:${mix(X.path, "transparent")};stroke-width:${S.path};stroke-linecap:round;stroke-dasharray:0 ${LOOK.edge.ghostDash}}`,
+  `.dg-path-h{fill:none;stroke:${mix(X.path, "transparent")};stroke-width:${S.arrow};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-path-t{${font(TYPE.label)};fill:var(--ct)}`,
+  `.dg-path-tj{${font(TYPE.labelJa)}}`,
+  ".dg-start{fill:var(--ink)}",
+  `.dg-end{fill:var(--bg);stroke:var(--ink);stroke-width:${S.end}}`,
+  ".dg-end-in{fill:var(--ink)}",
+  `.dg-end-x{fill:var(--bg);stroke:${mix(X.path, "transparent")};stroke-width:${S.arrow};stroke-dasharray:2 2.5}`,
+  `.dg-end-xi{fill:${mix(X.path, "transparent")}}`,
+  `.dg-mark{${font(TYPE.regionNote)};fill:var(--mute)}`,
+  `.dg-done{fill:var(--c);stroke:var(--surf);stroke-width:${S.done}}`,
+  `.dg-done-ck{fill:none;stroke:var(--on-c);stroke-width:${S.glyph};stroke-linecap:round;stroke-linejoin:round}`,
   ".dg-vp-bg{fill:var(--bg)}",
   ".dg-vp-frame{fill:none;stroke:var(--hair)}",
   ".dg-hd-bg{fill:var(--bg)}",
@@ -203,10 +241,17 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
   const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end };
   const on = involved(diagram);
-  const subs = subChanges(diagram, timeline, layout.kind === "architecture");
+  // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
+  const subs = subChanges(diagram, timeline, layout.kind !== "sequence");
 
   const L = { band: [] as string[], base: [] as string[], lit: [] as string[], node: [] as string[], badge: [] as string[], top: [] as string[] };
   for (const region of layout.regions) L.band.push(band(region));
+  const ghostColor = layout.boxes.find((b) => b.ghost)?.color ?? "slate";
+  if (layout.side) L.band.push(side(layout.side, ghostColor));
+  // 脇道へ入る道は脇道の状態の色、それ以外の道は送る側の色で描く
+  const boxColor = (id: string, ghost?: boolean): ColorKey | undefined => layout.boxes.find((b) => b.id === id && (ghost === undefined || b.ghost === ghost))?.color;
+  for (const p of layout.paths) L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor));
+  for (const e of layout.ends) L.node.push(endMark(e, ghostColor));
   if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx));
   for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
   for (const e of layout.edges) {
@@ -216,7 +261,16 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.base.push(drawn.base);
     L.lit.push(drawn.lit);
   }
-  for (const box of layout.boxes) L.node.push(card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? []));
+  const states = new Map((timeline.states ?? []).map((s) => [s.box, s]));
+  for (const box of layout.boxes) {
+    if (box.ghost) {
+      L.node.push(ghostCard(box));
+      continue;
+    }
+    const state = states.get(box.id);
+    L.node.push(card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [], layout.kind === "state" ? (state?.lit ?? []) : undefined));
+    if (state?.done !== undefined) L.node.push(doneMark(box, state.done, ctx));
+  }
   for (const b of layout.badges) L.badge.push(badge(b, ctx));
   for (const l of layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
@@ -421,7 +475,7 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
   const diagram = read.diagram;
   const palette = resolvePalette(options.palette);
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
-  const layout = diagram.kind === "sequence" ? layoutSequence(diagram) : layoutArchitecture(diagram);
+  const layout = diagram.kind === "sequence" ? layoutSequence(diagram) : diagram.kind === "state" ? layoutState(diagram, lang) : layoutArchitecture(diagram);
   const timeline = buildTimeline(diagram);
   return {
     svg: drawSvg(diagram, layout, timeline, palette, theme),
