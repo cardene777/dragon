@@ -434,6 +434,12 @@ const parserWords = (): { kinds: string[]; heads: string[]; attrs: Record<string
 /** 線の行の形。箱の名札の後ろに `->` が来る */
 const EDGE_FORM = /^\S+\s*->/u;
 
+/**
+ * 前の形と新しい形の対応表 (#3138) を作った後に足した記法の語。前の形が無いので対応表に行を持たない。
+ * 対応表は出した版 (0.36.0) の `CHANGELOG.md` の表と同じで、後から行を足さない
+ */
+const ADDED_AFTER_MIGRATION = ["state"];
+
 /** 使い方の頁の前置きと札と節 */
 const docsOf = (
   page: Page,
@@ -4472,6 +4478,9 @@ describe("サイトの帯と経路 (#3030)", () => {
       // 属性の鍵はその行で読む部品が受け付ける鍵だけを使う。`CHANGELOG.md` は日本語の頁と同じ表を持つ
       const words = parserWords();
       expect(words.kinds.length > 0 && words.heads.length > 0, "読む部品の誤りの文から図の種類と行の頭の語を引けない").toBe(true);
+      // 後から足した語として外す語は、読む部品が今も読む語に限る
+      const known = [...words.kinds, ...words.heads];
+      expect(ADDED_AFTER_MIGRATION.filter((word) => !known.includes(word)), "対応表の後に足した語に、読む部品が読まない語がある").toEqual([]);
       for (const [line, keys] of Object.entries(words.attrs)) expect(keys.length, `読む部品の誤りの文から ${line} の行の属性の鍵を引けない`).toBeGreaterThan(0);
 
       const { page } = await site.open({ path: `${BASE}docs`, viewport: { width: 1440, height: 900 } });
@@ -4483,7 +4492,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         for (const row of rows) expect(row.old !== "" && row.forms.length > 0, `${lang} の対応表に、前の形か新しい形の欄が空の行がある: ${JSON.stringify(row)}`).toBe(true);
         const forms = rows.flatMap((row) => row.forms);
         const heads = [...new Set(forms.filter((form) => !EDGE_FORM.test(form)).map((form) => form.split(/\s+/u)[0] ?? ""))].sort();
-        expect(heads, `${lang} の対応表の新しい形の行の頭の語が、読む部品の語と一致しない`).toEqual([...words.kinds, ...words.heads].sort());
+        expect(heads, `${lang} の対応表の新しい形の行の頭の語が、読む部品の語と一致しない`).toEqual(known.filter((word) => !ADDED_AFTER_MIGRATION.includes(word)).sort());
         for (const form of forms) {
           const keys = [...(/\[([^\]]*)\]\s*$/u.exec(form)?.[1] ?? "").matchAll(/(?:^|,\s*)([a-z]+):/gu)].map((m) => m[1] ?? "");
           const line = EDGE_FORM.test(form) ? "->" : (form.split(/\s+/u)[0] ?? "");
