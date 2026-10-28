@@ -1,0 +1,27 @@
+// 失敗してやり直す見本。同じ線を 2 度引き、待つ処理と何回目かを箱の中と下に見せる
+sequence 決済を頼み直す
+
+box アプリ as 店のアプリ [note: 1 回目, color: blue, icon: app]
+box 決済 as 決済 API [note: 混んでいる, color: violet, icon: card]
+
+step 頼む
+  say 店のアプリが決済 API に支払いを頼む。
+  アプリ -> 決済: POST /charges
+
+step 断られる
+  say 決済 API が混んでいて、503 で断る。
+  決済 -> アプリ: 503 混んでいる [side: below]
+
+step 待つ
+  say アプリはすぐに頼み直さず、1 秒待ってから 2 回目を送る。
+  act アプリ: 1 秒待つ
+  note アプリ: 2 回目
+
+step 頼み直す
+  say 同じ頼みをもう一度送る。決済 API の混み具合は落ち着いている。
+  アプリ -> 決済: POST /charges
+  note 決済: 空いている
+
+step 通る
+  say 2 回目は通り、決済 API が支払いの番号を 200 OK で返す。
+  決済 -> アプリ: 200 OK [side: below]

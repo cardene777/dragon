@@ -1,27 +1,43 @@
 /**
- * 頁で選べる見本 3 つと、新規作成の雛形。記法の file を字のまま読み込む (#2995、#3031、#3032)。
+ * 頁で選べる見本と、新規作成の雛形。記法の file を字のまま読み込む (#2995、#3031、#3032)。
  *
  * 見本の正は `packages/dragon/examples` の file で、英語版は同じ名前に `.en` を付けた file。
+ * 時系列図の見本は、入門と OAuth の間に、よく描く形 (往復、やり直し、支払い、署名) を易しい順に並べる (#3167)。
  */
+import apiJa from "../../../packages/dragon/examples/api.dragon?raw";
+import apiEn from "../../../packages/dragon/examples/api.en.dragon?raw";
 import ccipJa from "../../../packages/dragon/examples/ccip.dragon?raw";
 import ccipEn from "../../../packages/dragon/examples/ccip.en.dragon?raw";
 import introJa from "../../../packages/dragon/examples/intro.dragon?raw";
 import introEn from "../../../packages/dragon/examples/intro.en.dragon?raw";
 import oauthJa from "../../../packages/dragon/examples/oauth.dragon?raw";
 import oauthEn from "../../../packages/dragon/examples/oauth.en.dragon?raw";
+import paymentJa from "../../../packages/dragon/examples/payment.dragon?raw";
+import paymentEn from "../../../packages/dragon/examples/payment.en.dragon?raw";
+import retryJa from "../../../packages/dragon/examples/retry.dragon?raw";
+import retryEn from "../../../packages/dragon/examples/retry.en.dragon?raw";
+import walletJa from "../../../packages/dragon/examples/wallet.dragon?raw";
+import walletEn from "../../../packages/dragon/examples/wallet.en.dragon?raw";
 
 import { type Diagram, parseNotation } from "@cardenelabs/dragon";
 
 import type { Lang } from "./text";
 
-export const EXAMPLE_KEYS = ["intro", "oauth", "ccip"] as const;
+export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip"] as const;
 export type ExampleKey = (typeof EXAMPLE_KEYS)[number];
 
 /** 頁を開いた時に出す見本 */
 export const FIRST_EXAMPLE: ExampleKey = "oauth";
 
+/** 概要の頁の使いどころに並べる見本。見本を足しても概要の頁は替えない (#3167) */
+export const HOME_USES: readonly ExampleKey[] = ["intro", "oauth", "ccip"];
+
 const EXAMPLES: Record<ExampleKey, Record<Lang, string>> = {
   intro: { ja: introJa, en: introEn },
+  api: { ja: apiJa, en: apiEn },
+  retry: { ja: retryJa, en: retryEn },
+  payment: { ja: paymentJa, en: paymentEn },
+  wallet: { ja: walletJa, en: walletEn },
   oauth: { ja: oauthJa, en: oauthEn },
   ccip: { ja: ccipJa, en: ccipEn },
 };

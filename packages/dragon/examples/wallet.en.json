@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "Sign in the wallet and send",
+  "boxes": [
+    {
+      "id": "dapp",
+      "name": "Exchange dApp",
+      "sub": "builds the transaction",
+      "color": "blue",
+      "icon": "app"
+    },
+    {
+      "id": "wallet",
+      "name": "Wallet",
+      "sub": "holds the key",
+      "color": "amber",
+      "icon": "key"
+    },
+    {
+      "id": "node",
+      "name": "RPC node",
+      "sub": "accepts transactions",
+      "color": "slate",
+      "icon": "server"
+    },
+    {
+      "id": "chain",
+      "name": "Blockchain",
+      "sub": "records transactions",
+      "color": "green",
+      "icon": "chain"
+    }
+  ],
+  "steps": [
+    {
+      "title": "Ask to sign",
+      "body": "The dApp builds the transaction and asks the wallet to sign and send it.",
+      "code": "eth_sendTransaction",
+      "events": [
+        {
+          "type": "edge",
+          "from": "dapp",
+          "to": "wallet",
+          "label": "request transaction",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Sign",
+      "body": "The user checks the details in the wallet and approves, and the wallet signs with its key.",
+      "events": [
+        {
+          "type": "action",
+          "box": "wallet",
+          "label": "approve and sign"
+        }
+      ]
+    },
+    {
+      "title": "Send",
+      "body": "The wallet sends the signed transaction to the RPC node.",
+      "code": "eth_sendRawTransaction",
+      "events": [
+        {
+          "type": "edge",
+          "from": "wallet",
+          "to": "node",
+          "label": "signed transaction",
+          "carry": {
+            "kind": "tag",
+            "text": "0x02f8…"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Included",
+      "body": "The node spreads the transaction to the network, and a block includes it.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "node",
+          "to": "chain",
+          "label": "broadcast",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Get the receipt",
+      "body": "The dApp fetches the transaction receipt and shows that it succeeded.",
+      "code": "eth_getTransactionReceipt",
+      "events": [
+        {
+          "type": "edge",
+          "from": "dapp",
+          "to": "node",
+          "label": "get receipt",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "node",
+          "to": "dapp",
+          "label": "status 1",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "dapp",
+      "wallet",
+      "node",
+      "chain"
+    ]
+  }
+}

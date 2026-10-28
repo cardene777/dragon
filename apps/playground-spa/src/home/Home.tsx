@@ -4,13 +4,13 @@
  * 呼びかけ、記法と図の実物、特長 3 つ、3 手順、用例 3 つ、最後の呼びかけの順に縦に積む。
  * 実物の窓の図と用例の縮小版は、今の記法で書いた見本を再生の部品で動かす (`LiveFigure`)。
  * 実物の窓は、図の今の段に合わせて段の札を替え、その段の行 (段の `step` の行から次の段の前まで) を光らせる。
- * 用例の札は見本 3 つから作り、題と図の種類と説明は見本の file から読む (`exampleInfo`)。
+ * 用例の札は概要に並べる見本 (`HOME_USES`) の 3 つから作り、題と図の種類と説明は見本の file から読む (`exampleInfo`)。
  * 見た目は前の `styles/home.css` を `home.css` に写した。
  */
 import { parseNotation, type Theme } from "@cardenelabs/dragon";
 import { type ReactElement, useMemo, useState } from "react";
 
-import { EXAMPLE_KEYS, exampleInfo, exampleText, TEMPLATE } from "../examples";
+import { exampleInfo, exampleText, HOME_USES, TEMPLATE } from "../examples";
 import { LiveFigure } from "../site/LiveFigure";
 import { follow, PATHS, REPO } from "../site/routes";
 import { VERSION } from "../site/version";
@@ -125,7 +125,7 @@ export function Home({ lang, theme, palette }: Look): ReactElement {
   const home = t.home;
   const [before, em, after] = home.title;
   const kinds = TEXT[lang].shelf.kinds;
-  const uses = EXAMPLE_KEYS.flatMap((key) => {
+  const uses = HOME_USES.flatMap((key) => {
     const info = exampleInfo(key, lang);
     return info ? [{ key, ...info }] : [];
   });

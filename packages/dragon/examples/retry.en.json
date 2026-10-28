@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "Retry the payment",
+  "boxes": [
+    {
+      "id": "app",
+      "name": "Shop app",
+      "sub": "attempt 1",
+      "color": "blue",
+      "icon": "app"
+    },
+    {
+      "id": "pay",
+      "name": "Payment API",
+      "sub": "busy",
+      "color": "violet",
+      "icon": "card"
+    }
+  ],
+  "steps": [
+    {
+      "title": "Ask",
+      "body": "The shop app asks the payment API to charge the card.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "app",
+          "to": "pay",
+          "label": "POST /charges",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Turned away",
+      "body": "The payment API is busy and answers 503.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "pay",
+          "to": "app",
+          "label": "503 busy",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    },
+    {
+      "title": "Wait",
+      "body": "The app does not retry at once. It waits one second before the second attempt.",
+      "events": [
+        {
+          "type": "action",
+          "box": "app",
+          "label": "wait 1 second"
+        },
+        {
+          "type": "swap",
+          "box": "app",
+          "text": "attempt 2"
+        }
+      ]
+    },
+    {
+      "title": "Ask again",
+      "body": "The app sends the same request again. The payment API has calmed down.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "app",
+          "to": "pay",
+          "label": "POST /charges",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "pay",
+          "text": "free"
+        }
+      ]
+    },
+    {
+      "title": "Through",
+      "body": "The second attempt goes through, and the payment API returns the payment ID with 200 OK.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "pay",
+          "to": "app",
+          "label": "200 OK",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "app",
+      "pay"
+    ]
+  }
+}

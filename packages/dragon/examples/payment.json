@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "カードで払い、後から知らせを受ける",
+  "boxes": [
+    {
+      "id": "客",
+      "name": "客",
+      "sub": "払う人",
+      "color": "slate",
+      "icon": "user"
+    },
+    {
+      "id": "店",
+      "name": "店のアプリ",
+      "sub": "注文を受ける",
+      "color": "blue",
+      "icon": "cart"
+    },
+    {
+      "id": "決済",
+      "name": "決済サービス",
+      "sub": "カードを処理する",
+      "color": "violet",
+      "icon": "card"
+    }
+  ],
+  "strip": {
+    "title": "注文",
+    "fields": [
+      "番号",
+      "金額",
+      "状態"
+    ]
+  },
+  "steps": [
+    {
+      "title": "注文する",
+      "body": "客が店のアプリで注文を確定する。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "客",
+          "to": "店",
+          "label": "注文する",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "番号",
+          "value": "#1024"
+        },
+        {
+          "type": "strip",
+          "field": "金額",
+          "value": "3200 円"
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "value": "支払い待ち"
+        }
+      ]
+    },
+    {
+      "title": "払う",
+      "body": "客がカードで払う。お金は決済サービスへ動く。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "客",
+          "to": "決済",
+          "label": "3200 円",
+          "carry": {
+            "kind": "coin"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "value": "処理中"
+        }
+      ]
+    },
+    {
+      "title": "受け付けを返す",
+      "body": "決済サービスは、受け付けたことだけを先に客へ返す。支払いが済んだかは、まだ店に届いていない。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "決済",
+          "to": "客",
+          "label": "受け付けた",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    },
+    {
+      "title": "後から知らせる",
+      "body": "支払いが済むと、決済サービスが店のアプリへ webhook で知らせる。店はこの知らせで注文を確定する。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "決済",
+          "to": "店",
+          "label": "支払い済み",
+          "carry": {
+            "kind": "tag",
+            "text": "webhook"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "value": "支払い済み",
+          "tag": "確定"
+        }
+      ]
+    },
+    {
+      "title": "受け取ったと返す",
+      "body": "店のアプリは知らせを受け取ったと 200 で返す。返さなければ、決済サービスは同じ知らせを送り直す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "店",
+          "to": "決済",
+          "label": "200 OK",
+          "carry": {
+            "kind": "none"
+          },
+          "labelSide": "below"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "客",
+      "店",
+      "決済"
+    ]
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "決済を頼み直す",
+  "boxes": [
+    {
+      "id": "アプリ",
+      "name": "店のアプリ",
+      "sub": "1 回目",
+      "color": "blue",
+      "icon": "app"
+    },
+    {
+      "id": "決済",
+      "name": "決済 API",
+      "sub": "混んでいる",
+      "color": "violet",
+      "icon": "card"
+    }
+  ],
+  "steps": [
+    {
+      "title": "頼む",
+      "body": "店のアプリが決済 API に支払いを頼む。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "アプリ",
+          "to": "決済",
+          "label": "POST /charges",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "断られる",
+      "body": "決済 API が混んでいて、503 で断る。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "決済",
+          "to": "アプリ",
+          "label": "503 混んでいる",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    },
+    {
+      "title": "待つ",
+      "body": "アプリはすぐに頼み直さず、1 秒待ってから 2 回目を送る。",
+      "events": [
+        {
+          "type": "action",
+          "box": "アプリ",
+          "label": "1 秒待つ"
+        },
+        {
+          "type": "swap",
+          "box": "アプリ",
+          "text": "2 回目"
+        }
+      ]
+    },
+    {
+      "title": "頼み直す",
+      "body": "同じ頼みをもう一度送る。決済 API の混み具合は落ち着いている。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "アプリ",
+          "to": "決済",
+          "label": "POST /charges",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "決済",
+          "text": "空いている"
+        }
+      ]
+    },
+    {
+      "title": "通る",
+      "body": "2 回目は通り、決済 API が支払いの番号を 200 OK で返す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "決済",
+          "to": "アプリ",
+          "label": "200 OK",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "アプリ",
+      "決済"
+    ]
+  }
+}

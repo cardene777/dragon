@@ -15,6 +15,9 @@
  * 部品の頁は `part` の画面で、図ごとの塊は `part-figure` の札と `data-kind` を持つ。
  * 部品の表と file が無い間も、file を読み込んだ所で落とさず、表が無いと断って落とす。
  * 同じ file の他の検査と、`site.test.ts` の経路と編集画面の検査を巻き込まないため。
+ *
+ * 部品の頁は、その部品の語を使う見本の札も並べる (#3167)。どの見本が使うかは、見本の記法の file
+ * (`packages/dragon/examples/<見本>.dragon`) をこの file の語の数え方 (`usesWord`) で読んで導き、頁の側の判定とは別に数える。
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -26,7 +29,7 @@ import { ATTRS, HEADS, KINDS as WORD_KINDS } from "../../../../packages/dragon/s
 import { KINDS, type Kind } from "../catalog/catalog";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, type Site, startSite, stepLabel } from "./playground-support";
+import { app, BASE, root, type Site, startSite, stepLabel } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -131,6 +134,19 @@ const usesWord = (text: string, word: string): boolean => {
   }
   return false;
 };
+
+/** 見本の記法の file の置き場 */
+const EXAMPLES_DIR = join(root, "packages/dragon/examples");
+
+/** 見本ごとの名札と記法と図の種類と題。日本語の記法の file (`<見本>.dragon`) から読む */
+const examplesOnDisk = (): { name: string; text: string; kind: string; title: string }[] =>
+  readdirSync(EXAMPLES_DIR)
+    .filter((file) => /^[a-z0-9-]+\.dragon$/u.test(file))
+    .map((file) => {
+      const text = readFileSync(join(EXAMPLES_DIR, file), "utf8");
+      const parsed = parseNotation(text);
+      return { name: file.replace(/\.dragon$/u, ""), text, kind: parsed.ok ? parsed.diagram.kind : "", title: parsed.ok ? parsed.diagram.title : "" };
+    });
 
 let site: Site;
 
@@ -438,6 +454,50 @@ describe("カタログの部品の頁 (#3166)", () => {
         await expect.poll(() => leftover(page), { ...WAIT, message: `${part.id} の頁を EN に替えても仮名か漢字が残る` }).toBe("");
         await site.closeContexts();
       }
+    },
+    SWEEP,
+  );
+
+  it(
+    "part-page-links-examples",
+    async () => {
+      const parts = await partsTable();
+      const examples = examplesOnDisk();
+      expect(examples.length, "見本の記法の file が無い").toBeGreaterThan(0);
+      const samplesOf = (page: Page): Promise<string[]> =>
+        page.evaluate(() =>
+          [...document.querySelectorAll<HTMLAnchorElement>('[data-catalog="part"] [data-catalog="part-samples"] a[data-catalog="part-sample"]')].map(
+            (a) => `${new URL(a.href).pathname}${new URL(a.href).hash}`,
+          ),
+        );
+      // その部品を描ける図の種類の見本のうち、部品の語を 1 つでも使う見本の札を並べ、図の頁のその見本へ向ける
+      for (const part of parts) {
+        const want = examples
+          .filter((e) => (part.kinds as readonly string[]).includes(e.kind) && part.words.some((word) => usesWord(e.text, word)))
+          .map((e) => `${BASE}catalog/${e.kind}#${e.name}`)
+          .sort();
+        const { page } = await site.open({ path: partPath(part.id), viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
+        await expect
+          .poll(async () => [...(await samplesOf(page))].sort(), { ...WAIT, message: `${part.id} の頁の見本の札が、その部品の語を使う見本と違う` })
+          .toEqual(want);
+        await site.closeContexts();
+      }
+
+      // 札を押すと図の頁へ移り、その見本が右に出る。運ぶ物の頁の支払いの見本で確かめる
+      const payment = examples.find((e) => e.name === "payment");
+      expect(payment, "支払いの見本 (payment.dragon) が無い").toBeDefined();
+      const { page } = await site.open({ path: partPath("carry"), viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "part", "運ぶ物の部品の頁が出ない");
+      await page.locator(`${catalogSel("part-sample")}[data-sample="payment"]`).click();
+      await onScreen(page, "category", "運ぶ物の頁の支払いの札を押しても図の頁が出ない");
+      expect(await page.evaluate(() => `${location.pathname}${location.hash}`), "支払いの札が時系列図の頁の支払いへ向かない").toBe(`${BASE}catalog/sequence#payment`);
+      await expect
+        .poll(() => page.evaluate(() => document.querySelector('[data-catalog="preview"] h2')?.textContent?.trim() ?? ""), {
+          ...WAIT,
+          message: "支払いの札で移った図の頁の右に、支払いの見本が出ない",
+        })
+        .toBe(payment?.title);
     },
     SWEEP,
   );

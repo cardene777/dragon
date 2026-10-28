@@ -1,0 +1,31 @@
+// ウォレットで署名して取引を送る見本。署名した取引を札で運び、段ごとに呼ぶ命令を見せる
+sequence ウォレットで署名して送る
+
+box dApp as 取引所の dApp [note: 取引を組む, color: blue, icon: app]
+box ウォレット [note: 鍵を持つ, color: amber, icon: key]
+box ノード as RPC ノード [note: 取引を受け付ける, color: slate, icon: server]
+box チェーン as ブロックチェーン [note: 取引を記録する, color: green, icon: chain]
+
+step 署名を頼む
+  say dApp が送る取引を組み、ウォレットに署名と送信を頼む。
+  code eth_sendTransaction
+  dApp -> ウォレット: 取引を頼む
+
+step 署名する
+  say 利用者がウォレットの画面で中身を確かめて承認し、ウォレットが鍵で署名する。
+  act ウォレット: 承認して署名する
+
+step 送る
+  say ウォレットが署名した取引を RPC ノードへ送る。
+  code eth_sendRawTransaction
+  ウォレット -> ノード: 署名した取引 [tag: 0x02f8…]
+
+step 取り込まれる
+  say ノードが取引をネットワークへ広め、取引がブロックに取り込まれる。
+  ノード -> チェーン: 取引を広める
+
+step 受領書を受け取る
+  say dApp が取引の受領書を引き、成功したことを画面に出す。
+  code eth_getTransactionReceipt
+  dApp -> ノード: 受領書を引く
+  ノード -> dApp: status 1 [side: below]

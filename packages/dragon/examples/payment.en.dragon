@@ -1,0 +1,33 @@
+// Payment and later notice example. Money moves as a coin, and the strip follows the order state
+sequence Pay by card and get notified later
+
+box customer as Customer [note: pays, color: slate, icon: user]
+box shop as Shop app [note: takes orders, color: blue, icon: cart]
+box pay as Payment service [note: processes cards, color: violet, icon: card]
+
+strip Order: number, amount, state
+
+step Order
+  say The customer confirms the order in the shop app.
+  customer -> shop: place order
+  set number: #1024
+  set amount: 32 USD
+  set state: awaiting payment
+
+step Pay
+  say The customer pays by card. The money moves to the payment service.
+  customer -> pay: 32 USD [carry: coin]
+  set state: processing
+
+step Acknowledge
+  say The payment service first tells the customer only that it accepted the request. The shop does not know yet whether the payment went through.
+  pay -> customer: accepted [side: below]
+
+step Notify later
+  say When the payment goes through, the payment service notifies the shop app by webhook. The shop confirms the order on this notice.
+  pay -> shop: paid [tag: webhook]
+  set state: paid [tag: confirmed]
+
+step Confirm receipt
+  say The shop app answers 200 to say it got the notice. Without it, the payment service sends the same notice again.
+  shop -> pay: 200 OK [carry: none, side: below]
