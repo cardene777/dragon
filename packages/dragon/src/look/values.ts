@@ -119,7 +119,8 @@ export const LOOK = {
   },
   /** `bend` は線の曲がりを丸める半径 (#3171) */
   edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9, bend: 12 },
-  label: { h: 20, padX: 9, radius: 10, offset: 22, side: 14, search: 4, searchMax: 400, soft: 6 },
+  /** `touch` は線の名前と、同じ時刻に見えている段の番号の丸の間に空ける最小の隙間 (#3175) */
+  label: { h: 20, padX: 9, radius: 10, offset: 22, side: 14, search: 4, searchMax: 400, soft: 6, touch: 2 },
   action: { h: 22, padX: 10, radius: 11 },
   badge: { r: 9.5, ring: 9, inset: 4, along: 14, short: 44 },
   carrier: { envW: 24, envH: 17, coinR: 6.5, coinIn: 3.8, tagH: 18, tagPadX: 8, samples: 16 },

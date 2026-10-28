@@ -206,6 +206,35 @@ export function gapBetween(a: Rect, b: Rect): number {
   return Math.max(dx, dy);
 }
 
+/**
+ * 折れ線が四角の内側を通るか (#3175)。四角を縁から `inset` だけ内へ縮めて見る。負の `inset` は四角を広げる。
+ * 区間ごとに、四角の左右と上下の境で区間を切り詰め (Liang-Barsky の切り取り)、残りが在れば通る
+ */
+export function crossesRect(points: Point[], rect: Rect, inset = 0): boolean {
+  const x0 = rect.x + inset;
+  const y0 = rect.y + inset;
+  const x1 = rect.x + rect.w - inset;
+  const y1 = rect.y + rect.h - inset;
+  if (x1 <= x0 || y1 <= y0) return false;
+  for (let i = 1; i < points.length; i++) {
+    const [ax, ay] = points[i - 1] as Point;
+    const [bx, by] = points[i] as Point;
+    const dx = bx - ax;
+    const dy = by - ay;
+    let lo = 0;
+    let hi = 1;
+    const cut = (p: number, q: number): boolean => {
+      if (p === 0) return q > 0;
+      const r = q / p;
+      if (p < 0) lo = Math.max(lo, r);
+      else hi = Math.min(hi, r);
+      return lo < hi;
+    };
+    if (cut(-dx, ax - x0) && cut(dx, x1 - ax) && cut(-dy, ay - y0) && cut(dy, y1 - ay)) return true;
+  }
+  return false;
+}
+
 /** 折れ線のうち一番長い区間。 */
 export function longest(points: Point[]): { a: Point; b: Point; vertical: boolean } {
   let best = { a: points[0] as Point, b: (points[1] ?? points[0]) as Point, length: -1 };
@@ -241,11 +270,43 @@ export function pathLength(points: Point[]): number {
   return sum;
 }
 
-/** 段の番号を置く点。線の始まりから少し進んだ所。短い線は始まりに置くと箱と重なるので中ほど。 */
-export function badgeOnPath(points: Point[]): Point {
+/**
+ * 段の番号を置く点。線の始まりから少し進んだ所。短い線は始まりに置くと箱と重なるので中ほど。
+ * 同じ線を前の段が通っていて、先に置いた番号 (`taken`) に重なる時は、線に沿って進めて前の番号の隣に置く (#3175)
+ */
+export function badgeOnPath(points: Point[], taken: Point[] = []): Point {
   const length = pathLength(points);
-  return along(points, length < LOOK.badge.short ? length / 2 : LOOK.badge.along);
+  const first = length < LOOK.badge.short ? length / 2 : LOOK.badge.along;
+  const apart = LOOK.badge.r * 2 + LOOK.badge.inset;
+  for (let d = first; d <= length; d += 1) {
+    const p = along(points, d);
+    if (taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart)) return p;
+  }
+  return along(points, first);
 }
+
+/**
+ * 線を持つ段の番号の点 (#3175)。段の最初の線の上に `at` で置き、同じ線を前の段が通っていれば前の番号の隣へずらす。
+ * 番号は線だけで決まるので、線の名前を置く前に求め、名前が同じ時刻に見える番号を避けられるようにする
+ */
+export function lineBadges(edges: SceneEdge[], steps: number, at: (edge: SceneEdge, taken: Point[]) => Point = (edge, taken) => badgeOnPath(edge.points, taken)): Map<number, { point: Point; edge: SceneEdge }> {
+  const out = new Map<number, { point: Point; edge: SceneEdge }>();
+  const taken: Point[] = [];
+  for (let s = 0; s < steps; s++) {
+    const edge = edges.find((e) => e.step === s && e.points.length > 0);
+    if (!edge) continue;
+    const point = at(edge, taken);
+    taken.push(point);
+    out.set(s, { point, edge });
+  }
+  return out;
+}
+
+/** 段の番号の丸を囲む四角。線の名前が避ける相手にする (#3175) */
+export const badgeRect = ([x, y]: Point): Rect => ({ x: x - LOOK.badge.r, y: y - LOOK.badge.r, w: LOOK.badge.r * 2, h: LOOK.badge.r * 2 });
+
+/** 状態遷移図の始まりと終わりの印の右に添える字の左端と基準線。描く部品と、線の名前が字を避ける所の両方が読む (#3175) */
+export const markText = (e: SceneEnd): Point => [e.x + LOOK.state.text, e.y + LOOK.baseline.mark];
 
 export interface LabelRequest {
   step: number;
@@ -254,6 +315,12 @@ export interface LabelRequest {
   points: Point[];
   side?: LabelSide;
   color: ColorKey;
+  /** 初めに試す札の左上。無ければ一番長い区間の真ん中から `side` の側へ離した所 (#3175) */
+  base?: { x: number; y: number };
+  /** 線に沿ってずらす長さの上限。無ければ上か下に置く札は札の幅、左か右に置く札は札の高さの 4 倍 (#3175) */
+  slide?: number;
+  /** 指示の側が埋まっている時、同じ離れで反対の側も探す (#3175) */
+  flip?: boolean;
 }
 
 export interface Obstacles {
@@ -261,13 +328,20 @@ export interface Obstacles {
   hard: Rect[];
   /** 重ならなければよい物 (区画の名前、同じ段の線の名前) */
   soft: Rect[];
+  /** 食い込まなければよい物 (同じ時刻に見えている段の番号の丸、#3175)。線のすぐ脇に置く名前を、線の上の丸のために遠ざけない */
+  touch?: Rect[];
+  /** 名前を横切らせない線 (#3175)。札を外して薄く残す名前は、地の色で線を隠せないため */
+  lines?: Point[][];
 }
 
 export const labelStyle = (text: string) => (hasWide(text) ? TYPE.labelJa : TYPE.label);
 
+const OPPOSITE: Record<LabelSide, LabelSide> = { above: "below", below: "above", left: "right", right: "left" };
+
 /**
  * 線の名前を置く。線の一番長い区間の中ほどから、寄せの指示の側 (無ければ横の線は上、縦の線は右) へ
  * 離して置く。箱や区画の名前に掛かる時は、指示の側へさらに離し、線に沿ってもずらして空きを探す。
+ * `flip` を立てると、同じ離れで反対の側も探す (#3175)。片側だけを遠くまで探すと、図の端の外へ出るため
  */
 export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLabel {
   const w = textWidth(request.text, labelStyle(request.text)) + LOOK.label.padX * 2;
@@ -275,9 +349,9 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
   const segment = longest(request.points);
   const mx = (segment.a[0] + segment.b[0]) / 2;
   const my = (segment.a[1] + segment.b[1]) / 2;
-  const side = request.side ?? (segment.vertical ? "right" : "above");
+  const preferred = request.side ?? (segment.vertical ? "right" : "above");
   const { offset, side: sideGap } = LOOK.label;
-  const base: Rect =
+  const baseOf = (side: LabelSide): Rect =>
     side === "above"
       ? { x: mx - w / 2, y: my - offset - h / 2, w, h }
       : side === "below"
@@ -285,22 +359,30 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
         : side === "left"
           ? { x: mx - sideGap - w, y: my - h / 2, w, h }
           : { x: mx + sideGap, y: my - h / 2, w, h };
-  // 離す向き (指示の側) と、ずらす向き (それに直交する向き)
-  const away: Point = side === "above" ? [0, -1] : side === "below" ? [0, 1] : side === "left" ? [-1, 0] : [1, 0];
-  const slideAxis: Point = [Math.abs(away[1]), Math.abs(away[0])];
-  const slideMax = side === "above" || side === "below" ? w : h * 4;
+  const first: Rect = request.base ? { ...request.base, w, h } : baseOf(preferred);
+  const sides = request.flip ? [preferred, OPPOSITE[preferred]] : [preferred];
   const clear = (rect: Rect): boolean =>
-    obstacles.hard.every((box) => gapBetween(rect, box) >= LOOK.gap) && obstacles.soft.every((other) => gapBetween(rect, other) >= LOOK.label.soft);
+    obstacles.hard.every((box) => gapBetween(rect, box) >= LOOK.gap) &&
+    obstacles.soft.every((other) => gapBetween(rect, other) >= LOOK.label.soft) &&
+    (obstacles.touch ?? []).every((mark) => gapBetween(rect, mark) >= LOOK.label.touch) &&
+    (obstacles.lines ?? []).every((line) => !crossesRect(line, rect, -LOOK.label.touch));
   const { search, searchMax } = LOOK.label;
   for (let d = 0; d <= searchMax; d += search) {
-    for (let s = 0; s <= slideMax; s += search) {
-      for (const sign of s === 0 ? [1] : [1, -1]) {
-        const rect = { x: base.x + away[0] * d + slideAxis[0] * s * sign, y: base.y + away[1] * d + slideAxis[1] * s * sign, w, h };
-        if (clear(rect)) return { ...rect, step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
+    for (const side of sides) {
+      const base = side === preferred ? first : baseOf(side);
+      // 離す向き (その側) と、ずらす向き (それに直交する向き)
+      const away: Point = side === "above" ? [0, -1] : side === "below" ? [0, 1] : side === "left" ? [-1, 0] : [1, 0];
+      const slideAxis: Point = [Math.abs(away[1]), Math.abs(away[0])];
+      const slideMax = request.slide ?? (side === "above" || side === "below" ? w : h * 4);
+      for (let s = 0; s <= slideMax; s += search) {
+        for (const sign of s === 0 ? [1] : [1, -1]) {
+          const rect = { x: base.x + away[0] * d + slideAxis[0] * s * sign, y: base.y + away[1] * d + slideAxis[1] * s * sign, w, h };
+          if (clear(rect)) return { ...rect, step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
+        }
       }
     }
   }
-  return { ...base, step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
+  return { ...first, step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
 }
 
 /** 中身の帯の欄の幅。欄の名前と、入る値と札を並べた最も長い形が収まる幅。 */

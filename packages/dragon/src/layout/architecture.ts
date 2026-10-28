@@ -10,7 +10,7 @@ import { LOOK, TYPE } from "../look/values";
 import type { Diagram, LabelSide, Region } from "../schema";
 import { textWidth } from "./measure";
 import {
-  badgeOnPath,
+  badgeRect,
   boxColors,
   boxWidth,
   cornerBadge,
@@ -18,6 +18,7 @@ import {
   edgesOf,
   labelStyle,
   type Layout,
+  lineBadges,
   layoutStrip,
   type Point,
   placeLabel,
@@ -291,7 +292,9 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
       settle: [target.cx, target.cy + B.iconY],
     };
   });
-  // 同じ 2 つの箱を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする
+  // 同じ 2 つの箱を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする。
+  // ずらした線の名前は、ずらした側 (もう一方の線の反対側) に置き、どちらの線の名前かを取り違えないようにする (#3175)
+  const outward = new Map<SceneEdge, LabelSide>();
   for (const edge of sceneEdges) {
     if (edge.points.length !== 2) continue;
     const back = sceneEdges.some((other) => other.from === edge.to && other.to === edge.from && other.points.length === 2);
@@ -300,6 +303,7 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     const flat = Math.abs(q[1] - p[1]) < Math.abs(q[0] - p[0]);
     const d = (edge.from < edge.to ? 1 : -1) * LOOK.edge.parallel;
     edge.points = edge.points.map(([x, y]) => (flat ? [x, y + d] : [x + d, y]));
+    outward.set(edge, flat ? (d > 0 ? "below" : "above") : d > 0 ? "right" : "left");
   }
 
   const regions: SceneRegion[] = [];
@@ -321,15 +325,20 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     });
   });
 
+  // 線の名前は、同じ時刻に見えている段の番号 (その段とそれより前の段の番号) も避ける (#3175)
+  const early = lineBadges(sceneEdges, diagram.steps.length);
   const labels: SceneLabel[] = [];
   for (const edge of sceneEdges) {
     const source = diagram.steps[edge.step]?.events[edge.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
+    const seen = [...early].filter(([s]) => s <= edge.step).map(([, b]) => badgeRect(b.point));
     const soft: Rect[] = [...regions.map((r) => r.header), ...labels.filter((l) => l.step === edge.step)];
+    // 指示の無い線の名前は、空いていなければ反対の側も探す。ずらした線は自分の側だけを探す
+    const side = source.labelSide ?? outward.get(edge);
     labels.push(
       placeLabel(
-        { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(source.labelSide ? { side: source.labelSide } : {}) },
-        { hard: boxes, soft },
+        { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(side ? { side } : { flip: true }) },
+        { hard: boxes, soft, touch: seen },
       ),
     );
   }
@@ -345,11 +354,11 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
   layout.width = width;
   layout.height = (strip ? strip.y + strip.h : bandsBottom) + margin;
   if (strip) layout.strip = strip;
+  const lines = lineBadges(sceneEdges, diagram.steps.length);
   layout.badges = diagram.steps.map((step, s) => {
-    const edge = sceneEdges.find((e) => e.step === s);
-    if (!edge) return cornerBadge(step.events, s, layout);
-    const [x, y] = badgeOnPath(edge.points);
-    return { step: s, x, y, color: edge.color };
+    const line = lines.get(s);
+    if (!line) return cornerBadge(step.events, s, layout);
+    return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
   });
   return layout;
 }

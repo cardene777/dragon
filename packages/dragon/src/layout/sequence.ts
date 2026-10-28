@@ -8,13 +8,14 @@ import { LOOK, TYPE } from "../look/values";
 import type { Diagram } from "../schema";
 import { textWidth } from "./measure";
 import {
-  badgeOnPath,
+  badgeRect,
   boxColors,
   cornerBadge,
   boxWidth,
   edgeColor,
   labelStyle,
   type Layout,
+  lineBadges,
   layoutStrip,
   type Point,
   placeLabel,
@@ -148,10 +149,13 @@ export function layoutSequence(diagram: Diagram): Layout {
   const bottom = (first ? headBottom : y + below) + Q.tail;
   const lifelines = order.map((id, i) => ({ id, x: xs[i] as number, y1: headBottom, y2: bottom }));
 
+  // 線の名前は、同じ時刻に見えている段の番号 (その段とそれより前の段の番号) も避ける (#3175)
+  const early = lineBadges(edges, diagram.steps.length);
   const labels: SceneLabel[] = [];
   for (const request of requests) {
+    const seen = [...early].filter(([s]) => s <= request.step).map(([, b]) => badgeRect(b.point));
     const soft = [...labels.filter((l) => l.step === request.step), ...actions];
-    labels.push(placeLabel(request, { hard: boxes, soft }));
+    labels.push(placeLabel(request, { hard: boxes, soft, touch: seen }));
   }
 
   const layout: Layout = { kind: "sequence", width: 0, height: 0, regions: [], boxes, lifelines, edges, labels, actions, badges: [], paths: [], ends: [] };
@@ -175,12 +179,10 @@ export function layoutSequence(diagram: Diagram): Layout {
  * 処理の札はその段の終わりに消えるので、札に付けると止め絵で丸だけが浮く (#3017)。
  */
 function badges(diagram: Diagram, layout: Layout): SceneBadge[] {
+  const lines = lineBadges(layout.edges, diagram.steps.length);
   return diagram.steps.map((step, s) => {
-    const edge = layout.edges.find((e) => e.step === s);
-    if (edge) {
-      const [x, y] = badgeOnPath(edge.points);
-      return { step: s, x, y, color: edge.color };
-    }
+    const line = lines.get(s);
+    if (line) return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
     const action = layout.actions.find((a) => a.step === s);
     const lifeline = action && layout.lifelines.find((l) => l.id === action.box);
     if (action && lifeline) return { step: s, x: lifeline.x, y: action.y + action.h / 2, color: action.color };
