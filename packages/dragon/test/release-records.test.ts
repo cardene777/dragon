@@ -59,4 +59,13 @@ describe("版の記録 (#3151)", () => {
     expect(released, "CHANGELOG.md の 0.37.0 の節に状態遷移図 (#3163) の項が無い").toContain("(#3163)");
     expect(released, "CHANGELOG.md の 0.37.0 の節に見た目を揃えた変更 (#3171) の項が無い").toContain("(#3171)");
   });
+
+  it("changelog-0-38-0-releases-fixes", () => {
+    // 0.37.0 を手元で見て受けた 3 つの指摘の直し (字の重なり #3175、運ぶ物の置き場 #3176、時系列図の縦の長さ #3177) は 0.38.0 で出す (#3182)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 38, `package の版 ${version()} が 0.38.0 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.38\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.38.0"), "0.38.0");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.38.0] の節が無い").not.toBe("");
+    for (const issue of ["#3175", "#3176", "#3177"]) expect(released, `CHANGELOG.md の 0.38.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+  });
 });
