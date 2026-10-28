@@ -39,6 +39,7 @@ export function siteColors(palette: string, theme: Theme): Record<string, string
     "--d-code-bg": v("sunk"),
     "--d-err": v("t-rose"),
     "--d-ok": v("t-green"),
+    "--d-warn": v("t-amber"),
   };
 }
 

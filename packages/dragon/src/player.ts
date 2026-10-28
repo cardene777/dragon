@@ -7,11 +7,13 @@
  * 見せ方は枠の幅で選び (`view.ts`)、寄って追う時は窓と全体図で描き直す。
  * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
  * 段が替わるたびに `options.onStep` で今の段を知らせ、頁の側が段の札や進み具合を出せるようにする (#3031)。
+ * 頁は `goTo` で段へ移って止め、`mark` で図の上に点線の四角を描く。頁の側では SVG を組まないので、編集画面が字の重なりを囲む時もこれを呼ぶ (#3178)。
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
  * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、段を送る釦を指で押せる大きさにして段の番号と上の段に並べ、
  * 題と本文をその下の段の全幅に置く (#3057、#3069)。
  */
 import { FIGURE_TEXT } from "./figure-text";
+import type { Rect } from "./layout/scene";
 import { FONT_VARS, LOOK, paletteVars, resolvePalette, type TextStyle, TYPE } from "./look/values";
 import { drawSvg, type RenderOptions, renderDiagram } from "./render/svg";
 import type { Span } from "./timeline";
@@ -36,6 +38,10 @@ export interface Player {
   prev(): void;
   play(): void;
   pause(): void;
+  /** 段 `step` (0 から) へ移って止める。段の数を超えた時は最後の段で止める (#3178) */
+  goTo(step: number): void;
+  /** 図の上に点線の四角を描く。四角は図の座標で渡し、空を渡すと消す。図を置き直しても残る (#3178) */
+  mark(rects: readonly Rect[]): void;
   destroy(): void;
 }
 
@@ -79,6 +85,7 @@ function playerCss(): string {
     // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは横 1 列のまま変えない。
     // 広い帯は本文が 2 行あれば帯の高さが変わらず、本文の無い帯だけが釦の分だけ高くなる
     `@media (pointer: coarse){.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}}`,
+    `.dg-mark{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
   ].join("");
 }
 
@@ -92,6 +99,9 @@ function ensureCss(doc: Document): void {
 
 /** 釦に出す字。HTML に書き出す時は、この字も字の file に残す。 */
 export const BUTTON_TEXT = { prev: "‹", pause: "❚❚", play: "▶", next: "›" } as const;
+
+/** 図の上に四角を描く時の SVG の名前空間 */
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 const pad = (n: number): string => String(n).padStart(2, "0");
 /** 段の番号の札 (`01/12`)。`step` は 0 から数える。 */
@@ -217,6 +227,31 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   let playing = !reduce;
   let at = reduce ? (timeline.stills[0] ?? 0) : 0;
   let born = Date.now();
+  let marked: readonly Rect[] = [];
+
+  /**
+   * 渡された四角を点線で囲む。寄って追う図では窓の中身と一緒に動く所に置き、止めて見せる図では図の上に置く。
+   * 囲みは字の四角より `LOOK.mark.pad` だけ広げ、字の縁に線が掛からないようにする
+   */
+  const drawMarks = (): void => {
+    if (!svg) return;
+    for (const old of svg.querySelectorAll(".dg-marks")) old.remove();
+    if (marked.length === 0) return;
+    const M = LOOK.mark;
+    const group = doc.createElementNS(SVG_NS, "g");
+    group.setAttribute("class", "dg-marks");
+    for (const r of marked) {
+      const rect = doc.createElementNS(SVG_NS, "rect");
+      rect.setAttribute("class", "dg-mark");
+      rect.setAttribute("x", String(r.x - M.pad));
+      rect.setAttribute("y", String(r.y - M.pad));
+      rect.setAttribute("width", String(r.w + M.pad * 2));
+      rect.setAttribute("height", String(r.h + M.pad * 2));
+      rect.setAttribute("rx", String(M.radius));
+      group.append(rect);
+    }
+    (svg.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-a') ?? svg).append(group);
+  };
 
   /** 動きの変数を付けた図を置き直す。置き直すと動きの時計が最初から数え直される */
   const place = (markup?: string): void => {
@@ -239,6 +274,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
     else frame.append(next);
     svg = next;
     born = Date.now();
+    drawMarks();
   };
   const markup = (): string => (mode === "follow" ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, { width, ...(height === undefined ? {} : { height }), lang }) : rendered.svg);
 
@@ -328,6 +364,14 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
     },
     pause: () => {
       if (playing) restart(now(), false);
+    },
+    goTo: (target: number) => {
+      playing = false;
+      go(target);
+    },
+    mark: (rects: readonly Rect[]) => {
+      marked = rects;
+      drawMarks();
     },
     destroy: () => {
       if (timer !== undefined) win?.clearInterval(timer);

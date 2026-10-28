@@ -27,7 +27,17 @@ export interface FigureText {
   /** 状態遷移図の始まりと終わりの印の字 */
   start: string;
   end: string;
+  /** 字の重なりを知らせる文 (#3178)。段の番号の呼び方、字の囲み方、2 つの字の重なり、線が字を横切る所 */
+  badgeName: (no: string) => string;
+  quoted: (text: string) => string;
+  textsOverlap: (a: string, b: string) => string;
+  lineCrosses: (from: string, to: string, text: string) => string;
 }
+
+/** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
+const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
+/** 英語の文の頭を大文字にする */
+const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
   ja: {
@@ -44,6 +54,10 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     trail: "通った状態",
     start: "始まり",
     end: "終わり",
+    badgeName: (no) => `段の番号 ${no}`,
+    quoted: (text) => `「${text}」`,
+    textsOverlap: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
+    lineCrosses: (from, to, text) => `線 ${from} → ${to} が${spaced(text)}を横切る`,
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
@@ -59,5 +73,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     trail: "States passed",
     start: "Start",
     end: "End",
+    badgeName: (no) => `step number ${no}`,
+    quoted: (text) => `"${text}"`,
+    textsOverlap: (a, b) => capital(`${a} and ${b} overlap`),
+    lineCrosses: (from, to, text) => `The line ${from} → ${to} crosses ${text}`,
   },
 };

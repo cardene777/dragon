@@ -8,8 +8,9 @@
  * 止めて見せる図 (`data-view="fixed"`) は枠に合わせた倍率 (`fit.ts`) で描き、拡大と縮小はその倍率に掛ける。
  * 寄って追う図は再生の部品が枠の幅で描き直すので、倍率を当てない。
  * 段を 2 つ以上持つ図は、左上に今の段の札を、下端に段の数で区切った進み具合の帯を出す。
+ * 字の重なりがある時は、今の段で重なる字を再生の部品に点線で囲ませ、知らせの欄の段の札で頼まれた段へ移って止める (#3178)。
  */
-import { type Diagram, PALETTES, type Theme } from "@cardenelabs/dragon";
+import { type Diagram, type Overlap, PALETTES, type Player, type Theme } from "@cardenelabs/dragon";
 import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
 
 import { usePhone } from "../site/usePhone";
@@ -28,6 +29,10 @@ interface Props {
   kept: boolean;
   /** 書き出しの案内に出す書類名 */
   fileName: string;
+  /** 描けた図の字の重なり */
+  overlaps: Overlap[];
+  /** 知らせの欄の段の札で頼まれた移り先。`count` が増えるたびに移る */
+  jump: { step: number; count: number } | null;
 }
 
 /** 語りの字の倍率の段と範囲 */
@@ -55,7 +60,7 @@ function Tool({ name, icon, label, onClick, pressed, disabled }: ToolProps): Rea
   );
 }
 
-export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName }: Props): ReactElement {
+export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName, overlaps, jump }: Props): ReactElement {
   const t = TEXT[lang];
   const stage = useRef<HTMLElement>(null);
   const host = useRef<HTMLDivElement>(null);
@@ -65,7 +70,25 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
   const [say, setSay] = useState(1);
   const [full, setFull] = useState(false);
   const phone = usePhone();
-  const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: setStep });
+  const player = useRef<Player | null>(null);
+  const fit = useFittedFigure(host, diagram, {
+    palette,
+    theme,
+    lang,
+    onStep: setStep,
+    onPlayer: (placed) => {
+      player.current = placed;
+    },
+  });
+
+  // 今の段で重なる字を囲む。図を置き直すと囲みも消えるので、置き直す時の値も見る
+  useEffect(() => {
+    player.current?.mark(overlaps.filter((o) => o.step === step).flatMap((o) => o.spots.map((spot) => spot.rect)));
+  }, [overlaps, step, diagram, palette, theme, lang]);
+
+  useEffect(() => {
+    if (jump) player.current?.goTo(jump.step);
+  }, [jump]);
 
   useEffect(() => {
     const onChange = (): void => setFull(document.fullscreenElement !== null && document.fullscreenElement === stage.current);

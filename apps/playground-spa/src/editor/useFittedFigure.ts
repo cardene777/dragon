@@ -8,7 +8,7 @@
  * 高さに収めると字が読めない図は寄って追う図にする (拡大の重ね窓、#3047)。
  * その時の字の下限は、再生の部品が見せ方を選ぶ字の大きさ (`@cardenelabs/dragon` の `READABLE_PX`) にそろえる。
  */
-import { type Diagram, mountDiagram, READABLE_PX as VIEW_READABLE_PX, type Theme } from "@cardenelabs/dragon";
+import { type Diagram, mountDiagram, type Player, READABLE_PX as VIEW_READABLE_PX, type Theme } from "@cardenelabs/dragon";
 import { type RefObject, useEffect, useRef, useState } from "react";
 
 import type { Lang } from "../text";
@@ -28,6 +28,8 @@ interface Options {
   onStep: (step: number) => void;
   /** 寄って追う図も枠の高さに収める。枠の高さが決まっている置き場だけで使い、図に合わせて伸びる枠では使わない */
   fitHeight?: boolean;
+  /** 再生の部品を置いた時にそれを、片付けた時に `null` を受け取る。段へ移る時と図の上を囲む時に呼ぶ (#3178) */
+  onPlayer?: (player: Player | null) => void;
 }
 
 const px = (value: string): number => Number.parseFloat(value) || 0;
@@ -35,13 +37,15 @@ const px = (value: string): number => Number.parseFloat(value) || 0;
 export function useFittedFigure(
   host: RefObject<HTMLDivElement | null>,
   diagram: Diagram | null,
-  { palette, theme, lang, onStep, fitHeight = false }: Options,
+  { palette, theme, lang, onStep, fitHeight = false, onPlayer }: Options,
 ): Fit | null {
   const [fit, setFit] = useState<Fit | null>(null);
   // 段の知らせ先は描くたびに替わりうるので、置き直さずに最新の物を呼ぶ
   const stepTo = useRef(onStep);
+  const playerTo = useRef(onPlayer);
   useEffect(() => {
     stepTo.current = onStep;
+    playerTo.current = onPlayer;
   });
 
   // 再生の釦の読み上げと全体図の札は頁の言葉で出し、言葉を切り替えたら置き直す (#3001)
@@ -49,6 +53,7 @@ export function useFittedFigure(
     const el = host.current;
     if (!el || !diagram) return;
     const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: (step) => stepTo.current(step), fitHeight });
+    playerTo.current?.(player);
     const frame = el.querySelector<HTMLElement>(".dg-frame");
     /** 枠の中身の大きさと図の原寸から、枠に合わせる倍率を出す。寄って追う図には当てない */
     const measure = (): void => {
@@ -78,6 +83,7 @@ export function useFittedFigure(
     return () => {
       observer.disconnect();
       player.destroy();
+      playerTo.current?.(null);
     };
   }, [host, diagram, palette, theme, lang, fitHeight]);
 

@@ -135,11 +135,13 @@ export const LOOK = {
    * `mark` は状態遷移図の始まりの印と、その左で走り出しを待つ運ぶ物の間
    */
   slot: { gap: 6, pad: 3, spread: 4, h: 24, radius: 7, clear: 2, lifeline: 5, mark: 4 },
+  /** 編集画面が重なる字を囲む点線の四角 (#3178)。`pad` は字の四角の外へ広げる幅、`dash` と `gap` は点線の線と隙間の長さ */
+  mark: { pad: 3, radius: 5, dash: 4, gap: 3 },
   /**
    * `trail` は状態遷移図の帯の最後の、通った状態の点 (#3171)。`r` は点の半径、`step` は点の中心どうしの間、`now` は変わった値の欄の名前の横の点の半径と、名前からの離れ
    */
   strip: { h: 72, line: 44, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43, trail: { r: 5.4, step: 16 }, now: { r: 3, gap: 7 } },
-  stroke: { slot: 1.2, hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2, trail: 1.2 },
+  stroke: { mark: 1.6, slot: 1.2, hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2, trail: 1.2 },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
   mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },
   /**

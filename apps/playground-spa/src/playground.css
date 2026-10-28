@@ -549,6 +549,43 @@
   color: var(--d-surface);
 }
 
+/* 字の重なりの欄。図は描けているので誤りの赤ではなく注意の色で、「読めています」の下に置く (#3178) */
+.pg-overlaps {
+  margin-top: 10px;
+  padding: 10px 12px 11px;
+  border-radius: var(--d-r-2);
+  background: color-mix(in srgb, var(--d-warn) 10%, var(--d-surface));
+}
+
+.pg-overlaps-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--d-warn);
+  border-radius: 9px;
+  color: var(--d-warn);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pg-overlap-step {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--d-warn) 45%, transparent);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface);
+  color: var(--d-warn);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pg-overlap-step:hover {
+  background: var(--d-warn);
+  border-color: var(--d-warn);
+  color: var(--d-surface);
+}
+
 .pg-notice-text {
   flex: 1 1 160px;
   min-width: 0;

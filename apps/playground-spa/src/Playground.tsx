@@ -7,12 +7,15 @@
  * 記法と JSON のどちらの側でも書け、書いた側から図ともう一方へ反映する。
  * 誤りがあるあいだは、誤りを行番号付きで欄の下の知らせの欄に並べ、図は最後に描けた物を残す。
  * 行番号を押すと、書く欄がその行を選ぶ。
+ * 描けた図に字の重なりがある時は、知らせの欄に「読めています」と並べて重なりの欄を出し、重なりを段の札と文で 1 件 1 行で並べる。
+ * 段の札を押すと図がその段へ移って止まり、図の側が今の段で重なる字を囲む (#3178)。
  *
  * 記法は行の頭の英語の語で書く dragon記法で (#3137)、記法から言葉は決まらない。
  * 記法の誤りは頁の言葉で出し、JSON の側から書き戻す時はどの頁でも同じ dragon記法を書く。
  */
 import {
   type Diagram,
+  describeOverlap,
   parseNotation,
   printNotation,
   readDiagram,
@@ -154,6 +157,8 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   const [folded, setFolded] = useState(false);
   const [fileName, setFileName] = useState(shownName(first.example === null ? NEW_FILE_NAME : `${first.example}.dragon`));
   const [shelfOpen, setShelfOpen] = useState(false);
+  /** 重なりの段の札で頼んだ移り先。同じ段を 2 度押しても移るよう、押した回数も持つ */
+  const [jump, setJump] = useState<{ step: number; count: number } | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
   const gutter = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -310,6 +315,8 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   });
 
   const value = tab === "notation" ? text : json;
+  // 図の側と同じ言葉で描いた時の重なり。誤りの間は最後に描けた図の重なりになるが、欄は誤りを出すので見せない
+  const overlaps = useMemo(() => (drawn ? renderDiagram(drawn, { lang }).overlaps : []), [drawn, lang]);
   const lines = value.split("\n").length;
   const errorLines = new Set(problem?.notices.flatMap((n) => (n.line === undefined ? [] : [n.line])));
   const said = problem ? TEXT[problem.lang].notices : undefined;
@@ -434,9 +441,38 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
               </ul>
             </>
           ) : (
-            <p className="pg-ok">
-              <span aria-hidden="true">✓</span> {drawn ? t.readable(drawn.boxes.length, drawn.steps.length) : ""}
-            </p>
+            <>
+              <p className="pg-ok">
+                <span aria-hidden="true">✓</span> {drawn ? t.readable(drawn.boxes.length, drawn.steps.length) : ""}
+              </p>
+              {overlaps.length > 0 && (
+                <div className="pg-overlaps" data-playground="overlaps">
+                  <p className="pg-notices-head">
+                    <span className="pg-overlaps-badge" data-playground="overlaps-count">
+                      {t.overlaps.count(overlaps.length)}
+                    </span>
+                  </p>
+                  <ul className="pg-notice-list">
+                    {overlaps.map((o, i) => (
+                      <li key={`${i}-${o.step}`} className="pg-notice" data-playground="overlap">
+                        <button
+                          type="button"
+                          className="pg-overlap-step"
+                          data-playground="overlap-step"
+                          aria-label={t.overlaps.goTo(o.step + 1)}
+                          onClick={() => setJump((before) => ({ step: o.step, count: (before?.count ?? 0) + 1 }))}
+                        >
+                          {t.overlaps.step(o.step + 1)}
+                        </button>
+                        <span className="pg-notice-text" data-playground="overlap-text">
+                          {describeOverlap(o, lang)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
@@ -448,6 +484,8 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
         theme={theme}
         lang={lang}
         kept={problem !== null && drawn !== null}
+        overlaps={overlaps}
+        jump={jump}
         fileName={asFileName(fileName)}
       />
     </div>
