@@ -4,13 +4,13 @@
  * 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples` の見本を全て描き、エンジンが返す重なりの一覧 (`overlaps`) が
  * 全ての段で 0 件かを見る。落ちる時は、見本の名前と段と重なる 2 つの字を 1 件 1 行で出す。
  * 重なっていた 3 つの見本 (使い方の状態遷移図の例、部品「運ぶ物」の構成図と状態遷移図) は、直した形を置き場所で確かめる。
+ * 部品「運ぶ物」は同じ線を 2 つの段で通り、後の段の番号は前の段の番号と同じ所に置いて数字を入れ替える (#3184)。
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseNotation, type Rendered, renderDiagram } from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 
-import { LOOK } from "../../../../packages/dragon/src/look/values";
 import { renderLayout } from "../../../../packages/dragon/src/render/svg";
 import { app, root } from "./playground-support";
 
@@ -118,8 +118,7 @@ describe("見本の字が重ならない (#3175)", () => {
     }
   });
 
-  it("repeated-line-badges-side-by-side", () => {
-    const r = LOOK.badge.r;
+  it("repeated-line-badges-share-one-spot", () => {
     for (const file of ["carry.architecture.dragon", "carry.architecture.en.dragon", "carry.state.dragon", "carry.state.en.dragon"]) {
       const { layout } = draw(PARTS, file);
       const lineOf = (step: number) => layout.edges.find((e) => e.step === step);
@@ -131,9 +130,7 @@ describe("見本の字が重ならない (#3175)", () => {
           const eb = lineOf(b.step);
           if (!ea || !eb || ea.from !== eb.from || ea.to !== eb.to) continue;
           compared++;
-          const apart = Math.hypot(b.x - a.x, b.y - a.y);
-          expect(apart, `${file} の段の番号 ${a.step + 1} と ${b.step + 1} が重なる`).toBeGreaterThanOrEqual(r * 2);
-          expect(apart, `${file} の段の番号 ${b.step + 1} が ${a.step + 1} の隣に無い`).toBeLessThanOrEqual(r * 2 + 8);
+          expect(Math.hypot(b.x - a.x, b.y - a.y), `${file} の段の番号 ${b.step + 1} が、同じ線を通る段の番号 ${a.step + 1} と別の所に在る`).toBeLessThanOrEqual(0.5);
           expect(distanceToLine([b.x, b.y], eb.points), `${file} の段の番号 ${b.step + 1} が線の上に無い`).toBeLessThanOrEqual(0.5);
         }
       }

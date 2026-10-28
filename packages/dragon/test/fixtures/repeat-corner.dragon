@@ -1,0 +1,26 @@
+architecture 線の無い段が同じ箱と帯を続けて書き換える
+
+box 画面 [icon: app]
+box API [icon: db]
+
+strip 注文 #1042: 状態
+
+step 送る
+  say 画面が API に注文を送る。
+  画面 -> API: 注文を送る
+
+step 受け付ける
+  say 画面に受け付けたと出る。
+  note 画面: 受け付けた
+
+step 待つ
+  say 画面に届くのを待つと出る。
+  note 画面: 届くのを待つ
+
+step 届く
+  say 注文の状態が届いたに変わる。
+  set 状態: 届いた
+
+step 閉じる
+  say 注文の状態が閉じたに変わる。
+  set 状態: 閉じた

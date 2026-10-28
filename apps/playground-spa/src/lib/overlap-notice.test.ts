@@ -5,8 +5,8 @@
  * 今の段で重なる字は図の上で点線の四角で囲み、段の札を押すとその段へ移る。
  * 囲みと段へ移る動きは再生の部品が持ち、頁の側では SVG を組まない。
  *
- * 字の重なる図は、同じ線を 5 段で通る構成図 (`packages/dragon/test/fixtures/repeat-line.dragon`)。5 段目で段の番号 5 が段の番号 1 に重なる。
- * 積み重なりを直す時 (#3184) は、この見本を別の重なる形に替える。
+ * 字の重なる図は、名前の長い箱へ戻る線を持つ構成図 (`packages/dragon/test/fixtures/self-line.dragon`)。構成図は同じ箱へ戻る線を輪に描かないので、2 段目の番号が箱の名前に重なる。
+ * 同じ箱へ戻る線を輪に描く時 (#3186) は、この見本を別の重なる形に替える。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -26,7 +26,7 @@ const TEARDOWN = 90_000;
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
 const EDITOR = `${BASE}editor`;
-const REPEATED = readFileSync(join(root, "packages/dragon/test/fixtures/repeat-line.dragon"), "utf8");
+const OVERLAPPING = readFileSync(join(root, "packages/dragon/test/fixtures/self-line.dragon"), "utf8");
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -92,16 +92,16 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
   it(
     "editor-lists-overlaps",
     async () => {
-      const ja = await openWith(REPEATED);
+      const ja = await openWith(OVERLAPPING);
       await expect.poll(() => ja.locator(sel("overlaps")).count(), { ...WAIT, message: "重なりの欄が出ない" }).toBe(1);
       expect(await ja.locator(".pg-ok").innerText(), "重なりの欄と並んで「読めています」が出ない").toContain("読めています");
       expect(await ja.locator(sel("overlaps-count")).innerText()).toBe("字の重なり 1 件");
-      expect(await listed(ja)).toEqual([["段 5", "段の番号 1 と段の番号 5 が重なる"]]);
+      expect(await listed(ja)).toEqual([["段 2", "「注文を受け付ける窓口」と段の番号 2 が重なる"]]);
 
-      const en = await openWith(REPEATED, "en-US");
+      const en = await openWith(OVERLAPPING, "en-US");
       await expect.poll(() => en.locator(sel("overlaps")).count(), { ...WAIT, message: "英語の頁に重なりの欄が出ない" }).toBe(1);
       expect(await en.locator(sel("overlaps-count")).innerText()).toBe("1 text overlap");
-      expect(await listed(en)).toEqual([["Step 5", "Step number 1 and step number 5 overlap"]]);
+      expect(await listed(en)).toEqual([["Step 2", '"注文を受け付ける窓口" and step number 2 overlap']]);
     },
     SLOW,
   );
@@ -109,20 +109,20 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
   it(
     "editor-marks-overlaps-on-figure",
     async () => {
-      const parsed = parseNotation(REPEATED);
+      const parsed = parseNotation(OVERLAPPING);
       if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
-      const [pile] = renderDiagram(parsed.diagram).overlaps;
-      const spots = pile?.spots;
+      const [overlap] = renderDiagram(parsed.diagram).overlaps;
+      const spots = overlap?.spots;
       expect(spots, "エンジンの重なりが字の四角を持たない").toBeDefined();
 
-      const page = await openWith(REPEATED);
-      await expect.poll(() => phase(page), { ...WAIT, message: "1 段目に止まらない" }).toContain("段 1 / 5");
+      const page = await openWith(OVERLAPPING);
+      await expect.poll(() => phase(page), { ...WAIT, message: "1 段目に止まらない" }).toContain("段 1 / 2");
       expect(await marks(page), "重なりの無い段で図の上に四角が出た").toEqual([]);
-      await forward(page, 4);
-      await expect.poll(() => phase(page), { ...WAIT, message: "5 段目へ進まない" }).toContain("段 5 / 5");
+      await forward(page, 1);
+      await expect.poll(() => phase(page), { ...WAIT, message: "2 段目へ進まない" }).toContain("段 2 / 2");
       await expect.poll(() => marks(page).then((m) => m.length), { ...WAIT, message: "重なりの段で図の上に四角が出ない" }).toBeGreaterThan(0);
       const drawn = await marks(page);
-      for (const spot of spots ?? []) expect(drawn.some((m) => covers(m, spot.rect)), `段の番号 ${spot.text} を覆う四角が無い`).toBe(true);
+      for (const spot of spots ?? []) expect(drawn.some((m) => covers(m, spot.rect)), `重なる字「${spot.text}」を覆う四角が無い`).toBe(true);
       // 囲みは線だけで描き、中の字を隠さない。図の中の別の字と同じ名前の見た目を当てると塗られて字が消える
       const fills = await page.evaluate((f) => [...document.querySelectorAll(`${f} rect.dg-spot`)].map((m) => getComputedStyle(m).fill), sel("figure"));
       expect(fills, "囲みが塗られて中の字を隠す").toEqual(fills.map(() => "none"));
@@ -133,11 +133,11 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
   it(
     "editor-overlap-step-jumps",
     async () => {
-      const page = await openWith(REPEATED);
-      await expect.poll(() => phase(page), { ...WAIT, message: "1 段目に止まらない" }).toContain("段 1 / 5");
+      const page = await openWith(OVERLAPPING);
+      await expect.poll(() => phase(page), { ...WAIT, message: "1 段目に止まらない" }).toContain("段 1 / 2");
       await expect.poll(() => page.locator(sel("overlap-step")).count(), { ...WAIT, message: "重なりの欄に段の札が無い" }).toBe(1);
       await page.locator(sel("overlap-step")).click();
-      await expect.poll(() => phase(page), { ...WAIT, message: "段の札を押しても 5 段目へ移らない" }).toContain("段 5 / 5");
+      await expect.poll(() => phase(page), { ...WAIT, message: "段の札を押しても 2 段目へ移らない" }).toContain("段 2 / 2");
       await expect.poll(() => marks(page).then((m) => m.length), { ...WAIT, message: "移った段で図の上に四角が出ない" }).toBeGreaterThan(0);
     },
     SLOW,
