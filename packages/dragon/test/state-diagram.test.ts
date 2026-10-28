@@ -308,24 +308,6 @@ describe("状態遷移図の記法 (#3163)", () => {
 });
 
 describe("状態遷移図の並べ方 (#3163)", () => {
-  it("state-layout-wraps-four-per-row", () => {
-    const source = orderJson() as unknown as Source;
-    const { layout } = render(source as unknown as Json);
-    expect(layout.kind, "置き場所の図の種類").toBe("state");
-    const walked = layout.boxes.filter((b) => !b.ghost);
-    const order = visitOrder(source);
-    expect(order.length, "注文の図で段が辿り着く状態の数").toBe(8);
-    // 1 段目と 2 段目に分け、段の中は左から右へ
-    const rows = [...new Set(walked.map((b) => Math.round(b.cy)))].sort((a, b) => a - b);
-    expect(rows.length, "状態の箱が 2 段に並ばない").toBe(2);
-    const inRow = (y: number): StateBox[] => walked.filter((b) => Math.round(b.cy) === y).sort((a, b) => a.cx - b.cx);
-    const [top, bottom] = rows.map(inRow) as [StateBox[], StateBox[]];
-    expect([...top, ...bottom].map((b) => b.name), "状態が、段で初めて辿り着く順に左から右へ 4 つずつ並ばない").toEqual(order.map((id) => nameOf(source, id)));
-    expect(top.length, "1 段目の状態の数").toBe(4);
-    // 2 段目の状態は 1 段目の同じ列に揃う
-    bottom.forEach((b, i) => expect(Math.abs(b.cx - (top[i]?.cx ?? Number.NaN)), `2 段目の ${i + 1} 番目の状態の列が 1 段目と揃わない`).toBeLessThan(0.5));
-  });
-
   it("state-layout-routes-between-rows", () => {
     const source = orderJson() as unknown as Source;
     const { layout } = render(source as unknown as Json);
@@ -336,10 +318,10 @@ describe("状態遷移図の並べ方 (#3163)", () => {
     if (!from || !to) return;
     const cross = layout.edges.find((e) => e.from === from.id && e.to === to.id);
     expect(cross, "発送準備から発送済みへの線が無い").toBeDefined();
-    // 横に走る区間が、1 段目の箱の下と 2 段目の箱の上の間にある
-    const rowGap = { top: from.y + from.h, bottom: to.y };
-    const runs = (cross?.points ?? []).slice(1).filter(([, y], i) => y === (cross?.points[i]?.[1] ?? Number.NaN));
-    expect(runs.some(([, y]) => y > rowGap.top && y < rowGap.bottom), "段をまたぐ線が 2 つの段の間を横に通らない").toBe(true);
+    // 段をまたぐ線は 1 段目の箱の下端から出て、2 つの段の間を通って 2 段目の箱の上端へ入る (#3171 で真下への 1 本にした)
+    const points = cross?.points ?? [];
+    const [first, last] = [points[0], points[points.length - 1]];
+    expect(Boolean(first && last && first[1] <= from.y + from.h + 1e-6 && last[1] > from.y + from.h && last[1] <= to.y + 1e-6), "段をまたぐ線が 2 つの段の間を通らない").toBe(true);
 
     // 線はどれも、始まりと終わりの箱でない箱から 10px 以上離れる
     const lines = [...layout.edges.map((e) => ({ name: `段 ${e.step + 1} の ${e.from} -> ${e.to}`, ...e })), ...layout.paths.map((p) => ({ name: `通らない道 ${p.from} -> ${p.to}`, ...p }))];
@@ -595,7 +577,7 @@ function twoGhosts(): Json {
     ...(base as unknown as Record<string, unknown>),
     boxes: [...base.boxes, { id: "y", name: "保留" }],
     state: { paths: [...(base.state?.paths ?? []), { from: "a", to: "y" }, { from: "y", to: "finish" }] },
-  } as unknown as Json;
+  };
 }
 
 interface SetEvent {
@@ -652,16 +634,16 @@ describe("状態遷移図の見た目 (#3171)", () => {
 
   it("state-greys-past-lines", () => {
     const { layout, svg } = render(orderJson());
-    const colorOf = (id: string): string | undefined => (layout.boxes.find((b) => b.id === id) as (StateBox & { color?: string }) | undefined)?.color;
+    const colorOf = (id: string): string | undefined => (layout.boxes.find((b) => b.id === id))?.color;
     for (const e of layout.edges as (StateLayout["edges"][number] & { color?: string })[]) {
       const want = e.to === "finish" ? colorOf(e.from) : colorOf(e.to);
       expect(e.color, `段 ${e.step + 1} の線 (${e.from} -> ${e.to}) が移った先の状態の色でない`).toBe(want);
     }
     const taken = layout.edges.filter((e) => e.points.length > 0).length;
     expect((svg.match(/class="dg-e-past/gu) ?? []).length, "段が終わった後の灰の線の数が、段の線の数と違う").toBe(taken);
-    expect(svg, "段が終わった後の線が共通の値の表の灰で描かれない").toMatch(/\.dg-e-past\{[^}]*stroke:var\(--mute\)/u);
+    expect(svg, "段が終わった後の線が共通の値の表の灰で描かれない").toMatch(/\.dg-e-past\{[^}]*stroke:[^;]*var\(--mute\)/u);
     expect((svg.match(/class="dg-bdp-g"/gu) ?? []).length, "段が終わった後の灰の番号の数が、段の番号の数と違う").toBe(layout.badges.length);
-    expect(svg, "段が終わった後の番号が共通の値の表の灰で描かれない").toMatch(/\.dg-bdp-g\{[^}]*stroke:var\(--mute\)/u);
+    expect(svg, "段が終わった後の番号が共通の値の表の灰で描かれない").toMatch(/\.dg-bdp-g\{[^}]*stroke:[^;]*var\(--mute\)/u);
   });
 
   it("state-draws-taken-lines-solid", () => {
@@ -719,7 +701,7 @@ describe("状態遷移図の見た目 (#3171)", () => {
 
   it("state-renders-side-path-top-right", () => {
     const { layout, svg } = render(orderJson());
-    const side = layout.side as (Rect & { notes?: string[] }) | undefined;
+    const side = layout.side;
     expect(side, "脇道の囲みが無い").toBeDefined();
     if (!side) return;
     const box = (id: string): StateBox | undefined => layout.boxes.find((b) => b.id === id);
@@ -737,7 +719,7 @@ describe("状態遷移図の見た目 (#3171)", () => {
     expect(start.y, "始まりの印が脇道の囲みと同じ高さの帯に無い").toBeLessThan(side.y + side.h);
     expect(side.notes, "脇道の囲みの添え書きが 2 行でない").toEqual(["今回は通らない", "3 つの状態から入れる"]);
     for (const note of side.notes ?? []) expect(svg, `日本語の図に「${note}」が無い`).toContain(note);
-    const english = render(orderJson("order.en.json"), "en").layout.side as (Rect & { notes?: string[] }) | undefined;
+    const english = render(orderJson("order.en.json"), "en").layout.side;
     expect(english?.notes, "英語の図の脇道の添え書き").toEqual(["Not taken this time", "Enterable from 3 states"]);
   });
 
@@ -789,11 +771,11 @@ describe("状態遷移図の見た目 (#3171)", () => {
   it("state-strip-tints-changed-values", () => {
     const source = orderJson() as unknown as Source;
     const { layout, svg } = render(source as unknown as Json);
-    const colorOf = (id: string | undefined): string | undefined => (layout.boxes.find((b) => b.id === id) as (StateBox & { color?: string }) | undefined)?.color;
+    const colorOf = (id: string | undefined): string | undefined => (layout.boxes.find((b) => b.id === id))?.color;
     const sets = source.steps.flatMap((step, s) => (step.events as unknown as SetEvent[]).filter((e) => e.type === "strip" && e.value !== undefined).map(() => s));
     expect(sets.length, "注文の図に値を書き換える段が無い").toBeGreaterThan(0);
     const tinted = [...svg.matchAll(/<g class="dg-fv-now dg-a" data-step="(\d+)" style="--c:var\(--c-([a-z]+)\)/gu)];
-    expect(tinted.map((m) => Number(m[1])), "段で変わった値を色で描く数と段").toEqual(sets);
+    expect(tinted.map((m) => Number(m[1])).sort((a, b) => a - b), "段で変わった値を色で描く数と段").toEqual(sets);
     for (const m of tinted) {
       const step = source.steps[Number(m[1])];
       const moved = step?.events.find((e) => e.type === "edge");

@@ -94,7 +94,11 @@ export const LOOK = {
    * `below` は状態の下端から終わりの印の中心まで、`beside` は状態の右端から右に置く終わりの印の中心まで、`text` は印の中心から字の左端まで。
    * `loop` は同じ状態へ戻る輪の幅と深さ。`side` は脇道の囲みの内側の余白、1 段目の上端との間、脇道へ入る線が横に通る所の囲みの下端からの離れ、
    * 点線の線が箱へ入る所を箱の端から離す幅。
-   * `done` は出た状態の右上の済んだ印の半径と、箱の右上の角からの離れ
+   * `ghost` は脇道の点線の札で、絵柄を左に、名前と下の字を右に並べる (#3171)。`h` は札の高さ、`pad` は左右の余白、`gap` は絵柄と字の間、
+   * `nameY` と `subY` は札の真ん中から名前と下の字の基準線まで。
+   * `done` は出た状態の右上の済んだ印の半径と、箱の右上の角からの離れ。
+   * `loop` の `samples` は同じ状態へ戻る弧を区切る点の数、`badgeAt` は弧の段の番号を弧の上端から深さのどこに置くかの割合。
+   * `pastLabel` は段が終わった後に薄く残す線の名前の濃さ (#3171)
    */
   state: {
     columns: 4,
@@ -107,17 +111,23 @@ export const LOOK = {
     below: 64,
     beside: 38,
     text: 16,
-    loop: { w: 24, h: 34 },
+    loop: { w: 24, h: 34, samples: 12, badgeAt: 0.6 },
     side: { pad: 16, gap: 76, lane: 30, entry: 28 },
+    ghost: { h: 52, pad: 12, gap: 10, nameY: -2, subY: 14 },
     done: { r: 6.5, inset: 13 },
+    pastLabel: 0.85,
   },
-  edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9 },
+  /** `bend` は線の曲がりを丸める半径 (#3171) */
+  edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9, bend: 12 },
   label: { h: 20, padX: 9, radius: 10, offset: 22, side: 14, search: 4, searchMax: 400, soft: 6 },
   action: { h: 22, padX: 10, radius: 11 },
   badge: { r: 9.5, ring: 9, inset: 4, along: 14, short: 44 },
   carrier: { envW: 24, envH: 17, coinR: 6.5, coinIn: 3.8, tagH: 18, tagPadX: 8, samples: 16 },
-  strip: { h: 72, line: 44, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43 },
-  stroke: { hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2 },
+  /**
+   * `trail` は状態遷移図の帯の最後の、通った状態の点 (#3171)。`r` は点の半径、`step` は点の中心どうしの間、`now` は変わった値の欄の名前の横の点の半径と、名前からの離れ
+   */
+  strip: { h: 72, line: 44, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43, trail: { r: 5.4, step: 16 }, now: { r: 3, gap: 7 } },
+  stroke: { hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2, trail: 1.2 },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
   mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },
   /**
@@ -131,7 +141,7 @@ export const LOOK = {
    */
   follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8, headRoom: 10, head: { pad: 8, h: 40, nameY: 17, subY: 31 } },
   /** 色を混ぜる割合 (%) */
-  mix: { icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55 },
+  mix: { icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72 },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */
   baseline: { label: 3.8, badge: 3.5, carrier: 3.7, stripTitle: 4.5, tag: 3.6, action: 3.8, mark: 4 },
   /** 浮いて出る物が下から上がる長さと、弾んで出る物の始まりの大きさ */

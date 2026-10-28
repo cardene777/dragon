@@ -18,9 +18,12 @@ export interface FigureText {
   next: string;
   /** 段の一覧の読み上げの名前 */
   steps: (title: string) => string;
-  /** 状態遷移図の脇道の囲みの名前と添え書き (#3163) */
+  /** 状態遷移図の脇道の囲みの名前と添え書き (#3163)。添え書きの 2 行目は脇道へ入れる状態の数を言う (#3171) */
   side: string;
   sideNote: string;
+  sideFrom: (count: number) => string;
+  /** 状態遷移図の帯の最後の、通った状態の欄の名前 (#3171) */
+  trail: string;
   /** 状態遷移図の始まりと終わりの印の字 */
   start: string;
   end: string;
@@ -37,6 +40,8 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     steps: (title) => `${title} の段`,
     side: "脇道",
     sideNote: "今回は通らない",
+    sideFrom: (count) => `${count} つの状態から入れる`,
+    trail: "通った状態",
     start: "始まり",
     end: "終わり",
   },
@@ -50,6 +55,8 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     steps: (title) => `Steps of ${title}`,
     side: "Side path",
     sideNote: "Not taken this time",
+    sideFrom: (count) => `Enterable from ${count} ${count === 1 ? "state" : "states"}`,
+    trail: "States passed",
     start: "Start",
     end: "End",
   },

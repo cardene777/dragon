@@ -5,6 +5,7 @@
  * 運ぶ物は主役 (封筒と札は 1 つ、硬貨は別の 1 つ) ごとに途切れず見え続ける。着いた後は
  * 次の同じ主役が出発するまで着いた先に留まり、次が無ければ終わりまで留まる。
  * 線の名前はその段の間だけ出し、同じ段に何本あっても同時に見えるのは 2 つまでにする。
+ * 状態遷移図では、段が終わった後も線の名前を最後の段まで薄く残す (#3171)。薄い名前は 2 つまでの数に入れない。
  * 状態遷移図では、主役の運ぶ物が乗っている状態を光らせ、運ぶ物が出た状態には少し後に済んだ印を出す (#3163)。
  */
 import { MOTION } from "./look/values";
@@ -36,6 +37,8 @@ export interface CarrierTime extends Span {
 export interface LabelTime extends Span {
   step: number;
   event: number;
+  /** 状態遷移図だけが持つ。段が終わった後に薄く残す間 */
+  after?: Span;
 }
 
 /** 処理、箱の字の書き換え、中身の帯の値が起きる時刻。 */
@@ -137,6 +140,7 @@ export function buildTimeline(diagram: Diagram): Timeline {
       const later = named[k + 2];
       if (later) label.end = Math.min(label.end, later.start);
     });
+    if (diagram.kind === "state") for (const label of named) label.after = { start: label.end, end: last };
     labels.push(...named);
     for (const event of p.events) events.push({ step: s, event: event.event, at: span.start + event.at });
   });

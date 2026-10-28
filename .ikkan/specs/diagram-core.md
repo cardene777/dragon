@@ -25,7 +25,7 @@
 | 全体を枠に収めた時の字が 10.5px を下回る図を開いた時、寄って動かし全体図で今どこかを示す見せ方になる | `pnpm test`の検査`view-mode-follow-when-text-too-small`が通る | #2985 |
 | 書き手が見せ方を指定した時、字の大きさに関わらず指定した見せ方になる | `pnpm test`の検査`view-mode-honors-explicit-choice`が通る | #2985 |
 | OAuth と CCIP を 0.25 秒ごとに止めて数えた時、運ぶ物が図のどこにも見えない時刻が全体の 2% 以下 | `pnpm test`の検査`carrier-stays-visible`が通る | #2985 |
-| 線の名前はその段の間だけ出て、どの時刻でも同時に見える数が 2 個以下 | `pnpm test`の検査`labels-show-only-during-their-step`が通る | #2985 |
+| 時系列図と構成図では、線の名前はその段の間だけ出て、どの時刻でも同時に見える数が 2 個以下。状態遷移図は段が終わった線の名前を薄く残す | `pnpm test`の検査`labels-show-only-during-their-step`が通る | #2985 #3171 |
 | 段の番号は、その段が始まるまで出ない | `pnpm test`の検査`badges-hidden-before-their-step`が通る | #2985 |
 | 色味を指定せずに描いた時、紙と墨で描く | `pnpm test`の検査`palette-defaults-to-paper`が通る | #2985 |
 | 色味 3 案 (澄んだ色 / 紙と墨 / 夜の計器) の明暗それぞれで、1 型 / 2 型 / 3 型を模した全ての 2 色の差が 6 以上、通常の見え方の差が 15 以上ある | `pnpm test`の検査`palettes-keep-cvd-separation`が通る | #2985 |
