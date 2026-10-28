@@ -194,3 +194,18 @@
 | 段の番号はその段の線の上に在る | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`edge-step-badge-on-its-line`が通る | #3175 |
 | 状態遷移図で段が終わった後も、その段の線の名前を薄く残し、普通の濃さで見える線の名前はどの時刻でも 2 個以下 | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-keeps-past-line-names-faint`が通る | #3175 |
 | 脇道の囲みは右上に在り、始まりの印とその添え書きに重ならない | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-renders-side-path-top-right`が通る | #3175 |
+| 構成図と状態遷移図で運ぶ物が箱に着いて留まる時、運ぶ物は絵柄の右の置き場に在り、絵柄と名前と下の字に重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`carrier-rests-beside-icon`が通る | #3176 |
+| 同じ段に同じ箱へ着く 2 つの運ぶ物は、置き場に横に並んで重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`carriers-in-one-box-side-by-side`が通る | #3176 |
+| 運ぶ物を出し入れする箱は、初めの段から絵柄の右に点線の置き場の枠を持ち、出し入れしない箱は枠を持たずに絵柄を真ん中に置く | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`slot-frame-only-on-carrier-boxes`が通る | #3176 |
+| 置き場の枠と留まる札は箱の右上の済んだ印に重ならず、長い札 (例 `#1042`) が着く箱は札が枠に収まる幅に広がる | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`slot-clear-of-done-mark`が通る | #3176 |
+| 構成図と状態遷移図で、走り出す前の運ぶ物は出る箱の置き場で待ち、段の番号に重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`carrier-waits-in-slot-before-departing`が通る | #3176 |
+| 時系列図で、着いた運ぶ物は生存線の向こう側に留まって矢印の先に重ならず、走り出す前の運ぶ物は出る生存線の手前側で待って段の番号に重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`sequence-carrier-beside-lifeline`が通る | #3176 |
+| 運ぶ物が絵柄に重なる図を描いた時、`overlaps` がその運ぶ物と絵柄と段の番号を 1 件ずつ持つ | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-lists-carrier-over-icon`が通る | #3176 |
+| 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples` の全ての見本の全ての段で、留まる運ぶ物と走り出す前の運ぶ物が、絵柄と名前と下の字と段の番号と矢印の先に重ならない | `pnpm exec vitest run apps/playground-spa/src/lib/carrier-slot.test.ts`の検査`carriers-clear-in-every-example`が通る | #3176 |
+| 部品「絵」の状態遷移図の見本の説明文 (日本語と英語) が、運ぶ物は着いた状態の絵柄の横の置き場に留まると書いている | `pnpm exec vitest run apps/playground-spa/src/lib/carrier-slot.test.ts`の検査`icon-state-example-describes-slot`が通る | #3176 |
+| 構成図で箱の下を回る線の名前が、図の外へはみ出さない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`architecture-labels-inside-figure`が通る | #3176 |
+| 段ごとの止め絵で、運ぶ物は着いた先に居る | `pnpm exec vitest run packages/dragon/test/motion.test.ts`の検査`still-carrier-at-rest`が通る | #3176 |
+| どの時刻にも運ぶ物が 1 つ以上見えている | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`carrier-stays-visible`が通る | #3176 |
+| 状態遷移図で、運ぶ物がどの時刻にも見えていて、段の番号は段より前に出ない | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-keeps-carrier-and-badge-rules`が通る | #3176 |
+| 段の番号はその段の線の上に在る | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`edge-step-badge-on-its-line`が通る | #3176 |
+| 全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3176 |

@@ -7,6 +7,7 @@
 import { hasWide, textBox, textWidth } from "../layout/measure";
 import {
   along,
+  carrierHalf,
   markText,
   type Point,
   pathLength,
@@ -162,13 +163,18 @@ export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[]
   const { icon, iconRadius, iconScale, iconY, nameY, subY } = LOOK.box;
   const subs = subLines(box, ctx.m, changes, box.cy + subY, ctx.ink);
   const act = lit ? (lit.length > 0 ? rangeKf(ctx.m, lit.map((s) => [s.start, s.end])) : undefined) : on.length > 0 ? activeKf(ctx, on) : undefined;
-  const mark =
-    box.icon && ICONS[box.icon]
-      ? `<rect class="dg-ic" x="${r1(box.cx - icon / 2)}" y="${r1(box.cy + iconY - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, box.cx, box.cy + iconY, iconScale)}`
-      : "";
+  // 置き場を持つ箱は絵柄を左へ寄せ、右に点線の枠を初めから見せる (#3176)
+  const ix = box.iconX ?? box.cx;
+  const slot = box.slot ? `<rect class="dg-slot" x="${r1(box.slot.x)}" y="${r1(box.slot.y)}" width="${r1(box.slot.w)}" height="${r1(box.slot.h)}" rx="${LOOK.slot.radius}"/>` : "";
+  let mark = "";
+  if (box.icon && ICONS[box.icon]) {
+    const rect = { x: ix - icon / 2, y: box.cy + iconY - icon / 2, w: icon, h: icon };
+    ctx.ink.push({ text: `${box.name} の絵柄`, rect, shown: ALWAYS, boxed: true });
+    mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, ix, box.cy + iconY, iconScale)}`;
+  }
   return (
     `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
-    `${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + nameY, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`
+    `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + nameY, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`
   );
 }
 
@@ -328,15 +334,19 @@ function carrierShape(e: SceneEdge, sh: string): string {
 
 const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
-/** 運ぶ物。線の上を走り、着いた先 (`settle`) へ寄って、次の同じ主役が出発するまで留まる。 */
+/**
+ * 運ぶ物。走り出す前は待つ点 (`wait`) に居て、そこから線の始まりへ出て線の上を走り、
+ * 着いた先 (`settle`) へ寄って、次の同じ主役が出発するまで留まる。
+ */
 export function carrier(e: SceneEdge, time: CarrierTime, ctx: Ctx): string {
   const { m } = ctx;
   const n = LOOK.carrier.samples;
-  const length = pathLength(e.points);
+  const route = e.wait ? [e.wait, ...e.points] : e.points;
+  const length = pathLength(route);
   const { depart: a, arrive: b, start: from, end: gone } = time;
   const path: [number, number, number][] = [];
   for (let k = 0; k <= n; k++) {
-    const [x, y] = along(e.points, easeInOut(k / n) * length);
+    const [x, y] = along(route, easeInOut(k / n) * length);
     path.push([a + ((b - a) * k) / n, x, y]);
   }
   const first = path[0] as [number, number, number];
@@ -345,12 +355,12 @@ export function carrier(e: SceneEdge, time: CarrierTime, ctx: Ctx): string {
   const pts: [number, number, number][] = [[0, first[1], first[2]], ...path];
   if (e.settle) pts.push([Math.min(b + 0.3, Math.max(gone, b + 0.01)), rest[0], rest[1]]);
   pts.push([gone, rest[0], rest[1]], [m.total, rest[0], rest[1]]);
-  // 札は着いて留まっている間だけ記録する。走っている途中は数えない (#3175)
-  if (e.carry.kind === "tag") {
-    const C = LOOK.carrier;
-    const w = textWidth(e.carry.text, hasWide(e.carry.text) ? TYPE.carrierJa : TYPE.carrier) + C.tagPadX * 2;
-    ctx.ink.push({ text: e.carry.text, rect: { x: rest[0] - w / 2, y: rest[1] - C.tagH / 2, w, h: C.tagH }, shown: [[b, gone]], boxed: true });
-  }
+  // 運ぶ物は、走り出しを待つ間と着いて留まる間を記録する。走っている途中は数えない (#3175, #3176)
+  const [hx, hy] = carrierHalf(e.carry);
+  const name = e.carry.kind === "tag" ? e.carry.text : e.carry.kind === "coin" ? "硬貨" : "封筒";
+  const box = (p: Point) => ({ x: p[0] - hx, y: p[1] - hy, w: hx * 2, h: hy * 2 });
+  if (a > from) ctx.ink.push({ text: name, rect: box([first[1], first[2]]), shown: [[from, a]], boxed: true });
+  ctx.ink.push({ text: name, rect: box(rest), shown: [[b, gone]], boxed: true });
   // 次の運ぶ物と入れ替わる時は、重なって 2 つに見えないよう素早く消す
   const fade = gone < m.last ? 0.05 : 0.18;
   return `<g class="dg-a" style="${m.move(pts, m.blink(from + 0.02, gone, fade))}">${carrierShape(e, ctx.sh)}</g>`;

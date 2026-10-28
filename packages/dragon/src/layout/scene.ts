@@ -28,6 +28,10 @@ export interface SceneBox extends Rect {
   cy: number;
   /** 状態遷移図で、どの段も辿り着かない状態。点線の箱で脇道の囲みに描く */
   ghost?: boolean;
+  /** 運ぶ物の置き場の枠 (#3176)。運ぶ物を出し入れする箱だけが持つ */
+  slot?: Rect;
+  /** 絵柄の真ん中の x。置き場を持つ箱は、絵柄を左へ寄せて右を置き場にする。無ければ箱の真ん中 */
+  iconX?: number;
 }
 
 export interface SceneRegion extends Rect {
@@ -52,6 +56,8 @@ export interface SceneEdge {
   carry: Carry;
   /** 着いた運ぶ物が留まる点。無ければ線の終わり */
   settle?: Point;
+  /** 走り出す前に運ぶ物が待つ点 (#3176)。運ぶ物はここから線の始まりへ出て線を走る。無ければ線の始まり */
+  wait?: Point;
 }
 
 export interface SceneLabel extends Rect {
@@ -197,6 +203,93 @@ export function boxWidth(diagram: Diagram, id: string, withActions: boolean): nu
     }
   }
   return Math.max(LOOK.box.minW, Math.max(...lines) + LOOK.box.padX * 2);
+}
+
+/** 運ぶ物の半分の幅と高さ */
+export function carrierHalf(carry: Carry): Point {
+  const C = LOOK.carrier;
+  if (carry.kind === "tag") return [(textWidth(carry.text, hasWide(carry.text) ? TYPE.carrierJa : TYPE.carrier) + C.tagPadX * 2) / 2, C.tagH / 2];
+  if (carry.kind === "coin") return [C.coinR, C.coinR];
+  return [C.envW / 2, C.envH / 2];
+}
+
+/**
+ * 置き場の中身の幅 (#3176)。主役の運ぶ物 (封筒と札) と硬貨は別々に動き、同じ箱に同時に留まることがあるので、
+ * 両方が出入りする箱は主役を左、硬貨を右に並べる。それぞれの幅は、その箱を出入りする物の最も広い幅
+ */
+export interface SlotRoom {
+  main: number;
+  coin: number;
+}
+
+const roomWidth = (room: SlotRoom): number => room.main + room.coin + (room.main > 0 && room.coin > 0 ? LOOK.slot.spread : 0);
+
+/** 運ぶ物を出し入れする箱ごとの置き場の中身の幅。何も運ばない線だけの箱は持たない */
+export function slotRooms(diagram: Diagram): Map<string, SlotRoom> {
+  const rooms = new Map<string, SlotRoom>();
+  const ids = new Set(diagram.boxes.map((b) => b.id));
+  for (const step of diagram.steps) {
+    for (const event of step.events) {
+      if (event.type !== "edge" || event.carry.kind === "none") continue;
+      const who = event.carry.kind === "coin" ? "coin" : "main";
+      const w = carrierHalf(event.carry)[0] * 2;
+      for (const id of [event.from, event.to]) {
+        if (!ids.has(id)) continue;
+        const room = rooms.get(id) ?? { main: 0, coin: 0 };
+        room[who] = Math.max(room[who], w);
+        rooms.set(id, room);
+      }
+    }
+  }
+  return rooms;
+}
+
+/**
+ * 置き場を持つ箱の幅。絵柄と枠を並べた幅の左に箱の余白を、右に `right` を空ける。
+ * 状態遷移図は右上の済んだ印を避けるため `right` を広く取る。両脇を同じだけ広げないのは、図が広がって読める大きさで収まらなくなるため
+ */
+export function slotBoxWidth(room: SlotRoom | undefined, icon: boolean, right: number): number {
+  if (!room) return 0;
+  return (icon ? LOOK.box.icon + LOOK.slot.gap : 0) + roomWidth(room) + LOOK.slot.pad * 2 + LOOK.box.padX + right;
+}
+
+/**
+ * 箱の絵柄の行に、絵柄と置き場の枠を並べる。絵柄を持たない箱は枠だけを置く。
+ * 並びは真ん中に置き、右に `right` を空けられない時だけ、空けられる所まで左へ寄せる
+ */
+export function placeSlot(box: SceneBox, room: SlotRoom | undefined, right: number = LOOK.box.padX): void {
+  if (!room) return;
+  const B = LOOK.box;
+  const S = LOOK.slot;
+  const w = roomWidth(room) + S.pad * 2;
+  const lead = box.icon ? B.icon + S.gap : 0;
+  const left = Math.max(box.x + B.padX, Math.min(box.cx - (lead + w) / 2, box.x + box.w - right - (lead + w)));
+  if (box.icon) box.iconX = left + B.icon / 2;
+  box.slot = { x: left + lead, y: box.cy + B.iconY - S.h / 2, w, h: S.h };
+}
+
+/**
+ * 箱を出入りする運ぶ物を、箱の置き場に座らせる。着いた物は着いた箱の置き場に留まり (`settle`)、
+ * 走り出す前の物は出る箱の置き場で待つ (`wait`)。主役は枠の左の区画、硬貨は右の区画の真ん中に置く
+ */
+export function seatCarriers(edges: SceneEdge[], boxes: Map<string, SceneBox>, rooms: Map<string, SlotRoom>): void {
+  const S = LOOK.slot;
+  const seat = (id: string, carry: Carry): Point | undefined => {
+    const box = boxes.get(id);
+    const room = rooms.get(id);
+    if (!box?.slot || !room) return undefined;
+    const inner = box.slot.x + S.pad;
+    const y = box.slot.y + box.slot.h / 2;
+    if (room.main > 0 && room.coin > 0) return carry.kind === "coin" ? [inner + room.main + S.spread + room.coin / 2, y] : [inner + room.main / 2, y];
+    return [box.slot.x + box.slot.w / 2, y];
+  };
+  for (const edge of edges) {
+    if (edge.carry.kind === "none") continue;
+    const settle = seat(edge.to, edge.carry);
+    const wait = seat(edge.from, edge.carry);
+    if (settle) edge.settle = settle;
+    if (wait) edge.wait = wait;
+  }
 }
 
 /** 2 つの四角の隙間。重なる時は負。縦か横のどちらかで離れていれば、その離れ方の大きい方。 */
@@ -449,6 +542,8 @@ export function shiftContent(layout: Layout, dx: number, dy: number): void {
     move(box);
     box.cx += dx;
     box.cy += dy;
+    if (box.slot) move(box.slot);
+    if (box.iconX !== undefined) box.iconX += dx;
   }
   for (const region of layout.regions) {
     region.y += dy;
@@ -462,6 +557,7 @@ export function shiftContent(layout: Layout, dx: number, dy: number): void {
   for (const edge of layout.edges) {
     edge.points = edge.points.map(([px, py]) => [px + dx, py + dy]);
     if (edge.settle) edge.settle = [edge.settle[0] + dx, edge.settle[1] + dy];
+    if (edge.wait) edge.wait = [edge.wait[0] + dx, edge.wait[1] + dy];
   }
   for (const label of layout.labels) move(label);
   for (const path of layout.paths) {

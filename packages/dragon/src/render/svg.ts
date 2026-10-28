@@ -85,6 +85,7 @@ const PART_CSS = [
   `.dg-halo{fill:none;stroke:var(--c);stroke-width:${S.halo};stroke-opacity:.16}`,
   `.dg-on{fill:none;stroke:var(--c);stroke-width:${S.on}}`,
   `.dg-ic{fill:${mix(X.icon)}}`,
+  `.dg-slot{fill:none;stroke:${mix(X.slot, "transparent")};stroke-width:${S.slot};stroke-dasharray:3 3}`,
   `.dg-gl{fill:none;stroke:var(--c);stroke-width:${S.glyph};stroke-linecap:round;stroke-linejoin:round}`,
   `.dg-sn{${font(TYPE.boxName)};fill:var(--ink)}`,
   `.dg-ss{${font(TYPE.boxSub)};fill:var(--mute)}`,

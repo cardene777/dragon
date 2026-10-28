@@ -174,12 +174,15 @@ describe("運ぶ物の置き場 (#3176)", () => {
     ] as const) {
       const m = motionOf(diagram(lines));
       const boxes = ids(m);
+      // 待つ間を持つのは、主役と硬貨のそれぞれ最初の運ぶ物。状態遷移図では始まりの印から出る
       for (const c of carried(m)) {
         const t = waiting(c);
-        if (t === undefined || !boxes.includes(c.edge.from)) continue;
+        if (t === undefined) continue;
         const r = carrierRect(m, c, t);
         const where = `${name}の段 ${c.step + 1} で ${c.edge.from} から出る運ぶ物`;
         for (const badge of m.rendered.layout.badges) expect(overlap(r, badgeRect(badge)), `${where}が走り出す前に段 ${badge.step + 1} の番号に重なる`).toBe(false);
+        checked++;
+        if (!boxes.includes(c.edge.from)) continue;
         const slot = cardOf(m, c.edge.from)?.slot;
         expect(slot, `${where}の置き場の枠が無い`).toBeDefined();
         if (!slot) continue;
@@ -188,7 +191,8 @@ describe("運ぶ物の置き場 (#3176)", () => {
         checked++;
       }
     }
-    expect(checked, "走り出す前に待つ運ぶ物を 1 つも見ていない").toBeGreaterThanOrEqual(2);
+    // 構成図は客から出る封筒の番号と置き場、状態遷移図は始まりの印から出る札の番号を見る
+    expect(checked, "走り出す前に待つ運ぶ物を見た数が足りない").toBeGreaterThanOrEqual(3);
   });
 
   it("sequence-carrier-beside-lifeline", () => {
