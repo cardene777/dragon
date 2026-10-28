@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "Pay by card and get notified later",
+  "boxes": [
+    {
+      "id": "customer",
+      "name": "Customer",
+      "sub": "pays",
+      "color": "slate",
+      "icon": "user"
+    },
+    {
+      "id": "shop",
+      "name": "Shop app",
+      "sub": "takes orders",
+      "color": "blue",
+      "icon": "cart"
+    },
+    {
+      "id": "pay",
+      "name": "Payment service",
+      "sub": "processes cards",
+      "color": "violet",
+      "icon": "card"
+    }
+  ],
+  "strip": {
+    "title": "Order",
+    "fields": [
+      "number",
+      "amount",
+      "state"
+    ]
+  },
+  "steps": [
+    {
+      "title": "Order",
+      "body": "The customer confirms the order in the shop app.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "customer",
+          "to": "shop",
+          "label": "place order",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "number",
+          "value": "#1024"
+        },
+        {
+          "type": "strip",
+          "field": "amount",
+          "value": "32 USD"
+        },
+        {
+          "type": "strip",
+          "field": "state",
+          "value": "awaiting payment"
+        }
+      ]
+    },
+    {
+      "title": "Pay",
+      "body": "The customer pays by card. The money moves to the payment service.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "customer",
+          "to": "pay",
+          "label": "32 USD",
+          "carry": {
+            "kind": "coin"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "state",
+          "value": "processing"
+        }
+      ]
+    },
+    {
+      "title": "Acknowledge",
+      "body": "The payment service first tells the customer only that it accepted the request. The shop does not know yet whether the payment went through.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "pay",
+          "to": "customer",
+          "label": "accepted",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    },
+    {
+      "title": "Notify later",
+      "body": "When the payment goes through, the payment service notifies the shop app by webhook. The shop confirms the order on this notice.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "pay",
+          "to": "shop",
+          "label": "paid",
+          "carry": {
+            "kind": "tag",
+            "text": "webhook"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "state",
+          "value": "paid",
+          "tag": "confirmed"
+        }
+      ]
+    },
+    {
+      "title": "Confirm receipt",
+      "body": "The shop app answers 200 to say it got the notice. Without it, the payment service sends the same notice again.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "shop",
+          "to": "pay",
+          "label": "200 OK",
+          "carry": {
+            "kind": "none"
+          },
+          "labelSide": "below"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "customer",
+      "shop",
+      "pay"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+// Retry example. Draw the same line twice, and show the wait and the attempt count inside and under the box
+sequence Retry the payment
+
+box app as Shop app [note: attempt 1, color: blue, icon: app]
+box pay as Payment API [note: busy, color: violet, icon: card]
+
+step Ask
+  say The shop app asks the payment API to charge the card.
+  app -> pay: POST /charges
+
+step Turned away
+  say The payment API is busy and answers 503.
+  pay -> app: 503 busy [side: below]
+
+step Wait
+  say The app does not retry at once. It waits one second before the second attempt.
+  act app: wait 1 second
+  note app: attempt 2
+
+step Ask again
+  say The app sends the same request again. The payment API has calmed down.
+  app -> pay: POST /charges
+  note pay: free
+
+step Through
+  say The second attempt goes through, and the payment API returns the payment ID with 200 OK.
+  pay -> app: 200 OK [side: below]

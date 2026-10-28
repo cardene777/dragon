@@ -1,0 +1,31 @@
+// Wallet signing example. The signed transaction runs as a tag, and each step shows the call it makes
+sequence Sign in the wallet and send
+
+box dapp as Exchange dApp [note: builds the transaction, color: blue, icon: app]
+box wallet as Wallet [note: holds the key, color: amber, icon: key]
+box node as RPC node [note: accepts transactions, color: slate, icon: server]
+box chain as Blockchain [note: records transactions, color: green, icon: chain]
+
+step Ask to sign
+  say The dApp builds the transaction and asks the wallet to sign and send it.
+  code eth_sendTransaction
+  dapp -> wallet: request transaction
+
+step Sign
+  say The user checks the details in the wallet and approves, and the wallet signs with its key.
+  act wallet: approve and sign
+
+step Send
+  say The wallet sends the signed transaction to the RPC node.
+  code eth_sendRawTransaction
+  wallet -> node: signed transaction [tag: 0x02f8…]
+
+step Included
+  say The node spreads the transaction to the network, and a block includes it.
+  node -> chain: broadcast
+
+step Get the receipt
+  say The dApp fetches the transaction receipt and shows that it succeeded.
+  code eth_getTransactionReceipt
+  dapp -> node: get receipt
+  node -> dapp: status 1 [side: below]

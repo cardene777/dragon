@@ -1,0 +1,22 @@
+// API の往復の見本。行きの線と戻りの線を引き、戻りの線の名前は線の下に置く
+sequence 注文の一覧を取る
+
+box ブラウザ as 利用者のブラウザ [note: 一覧の画面を開く, color: slate, icon: globe]
+box API as API サーバー [note: 注文の一覧を返す, color: blue, icon: server]
+box DB as 注文の DB [note: 注文を持つ, color: violet, icon: db]
+
+step 一覧を頼む
+  say 利用者が注文の画面を開くと、ブラウザが API サーバーに注文の一覧を頼む。
+  ブラウザ -> API: GET /orders
+
+step 注文を読む
+  say API サーバーが、その利用者の注文を DB から読む。
+  API -> DB: SELECT orders
+
+step 行が返る
+  say DB が当てはまる行を返す。戻りの線の名前は線の下に置き、行きの線の名前と見分ける。
+  DB -> API: 12 行 [side: below]
+
+step 一覧を返す
+  say API サーバーが行を JSON にして、ブラウザに 200 OK で返す。
+  API -> ブラウザ: 200 OK [side: below]

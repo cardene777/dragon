@@ -1,0 +1,22 @@
+// API round trip example. Draw the request and the reply, and put the reply labels under the line
+sequence Fetch the order list
+
+box browser as User's browser [note: opens the order screen, color: slate, icon: globe]
+box api as API server [note: returns the order list, color: blue, icon: server]
+box db as Order DB [note: holds the orders, color: violet, icon: db]
+
+step Ask for the list
+  say The user opens the order screen, and the browser asks the API server for the order list.
+  browser -> api: GET /orders
+
+step Read the orders
+  say The API server reads that user's orders from the DB.
+  api -> db: SELECT orders
+
+step Rows come back
+  say The DB returns the matching rows. The reply label sits under the line so it reads apart from the request label.
+  db -> api: 12 rows [side: below]
+
+step Return the list
+  say The API server turns the rows into JSON and returns them to the browser with 200 OK.
+  api -> browser: 200 OK [side: below]

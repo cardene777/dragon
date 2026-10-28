@@ -250,6 +250,17 @@
   color: var(--d-text-secondary);
 }
 
+/* 部品の頁の見本の札の説明。札の高さを揃えるため 2 行で切る (#3167) */
+.catalog-part-sample-about {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--d-text-secondary);
+}
+
 /* ── 部品の頁 (#3166) ── */
 
 .catalog-part-facts {

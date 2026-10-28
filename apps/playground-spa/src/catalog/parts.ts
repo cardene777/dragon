@@ -11,7 +11,12 @@
  * 色の役と絵と小さな字の部品は、構成図の図で同じ属性を区画にも付けて見せる。
  *
  * 部品の図は `parts/<名札>.<図の種類>.dragon` と英語の `.en.dragon` の記法の file で、file の名前から引く。
+ *
+ * 部品の頁は、その部品の語を 1 つでも使う見本を並べる (#3167)。見本が語を使うかは、見本の記法から作った原本の JSON の形で決める。
  */
+import { type Diagram, type DiagramEvent, parseNotation } from "@cardenelabs/dragon";
+
+import { EXAMPLE_KEYS, type ExampleKey, exampleText } from "../examples";
 import { type Lang, TEXT } from "../text";
 import { KINDS, type Kind } from "./catalog";
 
@@ -54,6 +59,53 @@ const SNIPPETS = import.meta.glob<string>("./parts/*.dragon", { query: "?raw", i
 /** 部品をその図の種類で描いた図の記法 */
 export const snippetOf = (id: PartId, kind: Kind, lang: Lang): string =>
   (SNIPPETS[`./parts/${id}.${kind}${lang === "en" ? ".en" : ""}.dragon`] ?? "").trimEnd();
+
+const events = (d: Diagram): DiagramEvent[] => d.steps.flatMap((step) => step.events);
+const edges = (d: Diagram) => events(d).flatMap((e) => (e.type === "edge" ? [e] : []));
+
+/**
+ * 記法の語ごとの、図がその語を使ったか。原本の JSON のどこに現れるかで決める。
+ * 区画の行を閉じる `end` は区画があれば必ず書くので、区画があるかで決める
+ */
+const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
+  "kind:sequence": (d) => d.kind === "sequence",
+  "kind:architecture": (d) => d.kind === "architecture",
+  "head:group": (d) => (d.regions ?? []).length > 0,
+  "head:end": (d) => (d.regions ?? []).length > 0,
+  "head:box": (d) => d.boxes.length > 0,
+  "head:strip": (d) => d.strip !== undefined,
+  "head:step": (d) => d.steps.length > 0,
+  "head:say": (d) => d.steps.some((step) => step.body !== ""),
+  "head:code": (d) => d.steps.some((step) => step.code !== undefined),
+  "head:act": (d) => events(d).some((e) => e.type === "action"),
+  "head:note": (d) => events(d).some((e) => e.type === "swap"),
+  "head:set": (d) => events(d).some((e) => e.type === "strip"),
+  "attr:diagram.view": (d) => d.view !== undefined,
+  "attr:group.note": (d) => (d.regions ?? []).some((r) => r.note !== undefined),
+  "attr:group.color": (d) => (d.regions ?? []).some((r) => r.color !== undefined),
+  "attr:group.icon": (d) => (d.regions ?? []).some((r) => r.icon !== undefined),
+  "attr:box.note": (d) => d.boxes.some((b) => b.sub !== undefined),
+  "attr:box.color": (d) => d.boxes.some((b) => b.color !== undefined),
+  "attr:box.icon": (d) => d.boxes.some((b) => b.icon !== undefined),
+  "attr:edge.carry": (d) => edges(d).some((e) => e.carry.kind === "coin" || e.carry.kind === "none"),
+  "attr:edge.tag": (d) => edges(d).some((e) => e.carry.kind === "tag"),
+  "attr:edge.side": (d) => edges(d).some((e) => e.labelSide !== undefined),
+  "attr:set.tag": (d) => events(d).some((e) => e.type === "strip" && e.tag !== undefined),
+  "edge:->": (d) => edges(d).length > 0,
+};
+
+/** 見本の名前と、日本語の記法から作った図。読めない見本は外す */
+const SAMPLES = EXAMPLE_KEYS.flatMap((key) => {
+  const parsed = parseNotation(exampleText(key, "ja"));
+  return parsed.ok ? [{ key, diagram: parsed.diagram }] : [];
+});
+
+/** その部品の語を 1 つでも使う見本と、その見本の図の種類。部品を描ける図の種類の見本だけを、見本の並び (`EXAMPLE_KEYS`) の順に返す */
+export const samplesUsing = (part: Part): { key: ExampleKey; kind: Kind }[] =>
+  SAMPLES.filter(({ diagram }) => part.kinds.includes(diagram.kind) && part.words.some((word) => USES[word]?.(diagram) === true)).map(({ key, diagram }) => ({
+    key,
+    kind: diagram.kind,
+  }));
 
 /** 部品が受け持つ語を、記法に書く形にする (`head:box` は `box`、`attr:edge.side` は `[side: …]`) */
 export const wordLabel = (word: string): string => {

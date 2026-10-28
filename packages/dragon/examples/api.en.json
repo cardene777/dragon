@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "Fetch the order list",
+  "boxes": [
+    {
+      "id": "browser",
+      "name": "User's browser",
+      "sub": "opens the order screen",
+      "color": "slate",
+      "icon": "globe"
+    },
+    {
+      "id": "api",
+      "name": "API server",
+      "sub": "returns the order list",
+      "color": "blue",
+      "icon": "server"
+    },
+    {
+      "id": "db",
+      "name": "Order DB",
+      "sub": "holds the orders",
+      "color": "violet",
+      "icon": "db"
+    }
+  ],
+  "steps": [
+    {
+      "title": "Ask for the list",
+      "body": "The user opens the order screen, and the browser asks the API server for the order list.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "browser",
+          "to": "api",
+          "label": "GET /orders",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Read the orders",
+      "body": "The API server reads that user's orders from the DB.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "api",
+          "to": "db",
+          "label": "SELECT orders",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Rows come back",
+      "body": "The DB returns the matching rows. The reply label sits under the line so it reads apart from the request label.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "db",
+          "to": "api",
+          "label": "12 rows",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    },
+    {
+      "title": "Return the list",
+      "body": "The API server turns the rows into JSON and returns them to the browser with 200 OK.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "api",
+          "to": "browser",
+          "label": "200 OK",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "browser",
+      "api",
+      "db"
+    ]
+  }
+}

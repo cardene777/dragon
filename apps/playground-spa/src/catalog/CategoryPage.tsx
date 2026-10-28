@@ -10,6 +10,7 @@
  * 色味の切替は「サイトと同じ」と 3 つの色味で、この頁の図だけを替える。帯の色味が替わると「サイトと同じ」に戻る。
  * 前の頁にあった cdl だけの道具 (パターン、描き方、速さ) は、今の記法に無いので置かない。
  * 2 面の下には、この図の種類で使える部品の札を部品の表の並びで置き、部品の頁へ飛べるようにする (#3166)。
+ * 経路の `#` の後ろに分類の見本の名前がある時 (`/catalog/sequence#payment`) は、その見本を選んだ状態で開く (#3167)。
  */
 import { type Diagram, PALETTES, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon";
 import { type CSSProperties, type ReactElement, useEffect, useMemo, useRef, useState } from "react";
@@ -39,6 +40,12 @@ function diagramOf(text: string): Diagram | null {
   return read.ok ? read.diagram : null;
 }
 
+/** 経路の `#` の後ろが名指す見本。分類に無い名前なら `null` */
+function sampleFromHash(keys: readonly ExampleKey[]): ExampleKey | null {
+  const name = decodeURIComponent(location.hash.slice(1));
+  return keys.find((key) => key === name) ?? null;
+}
+
 /** 見本の名前か説明か鍵に、検索の語が含まれるか。大文字と小文字を見分けない */
 function matches(key: ExampleKey, lang: Lang, query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -60,7 +67,8 @@ export function CategoryPage({ kind, lang, theme, palette: sitePalette }: Props)
   const c = t.site.catalog;
   const keys = samplesOf(kind);
   const [query, setQuery] = useState("");
-  const [picked, setPicked] = useState<ExampleKey | null>(null);
+  // 部品の頁の見本の札から来た時は、`#` の後ろの見本を選んだ状態で開く。分類を移ると頁ごと置き直すので、開いた時に 1 度だけ読む
+  const [picked, setPicked] = useState<ExampleKey | null>(() => sampleFromHash(keys));
   const [view, setView] = useState<View>("figure");
   const [source, setSource] = useState<Source>("notation");
   /*

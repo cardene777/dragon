@@ -75,6 +75,8 @@ export const TEXT = {
         words: "記法の語",
         uses: "この図で使う部品",
         usesLead: "部品を押すと、その部品の書き方と見え方の頁へ移る。",
+        partSamples: "この部品を使う見本",
+        partSamplesLead: "見本を押すと、図の頁でその見本を開く。",
         count: (n: number) => `${n} 件`,
         open: "開く →",
         kinds: {
@@ -270,6 +272,8 @@ export const TEXT = {
         words: "Notation",
         uses: "Parts this diagram uses",
         usesLead: "Pick a part to see how to write it and how it looks.",
+        partSamples: "Examples that use this part",
+        partSamplesLead: "Pick an example to open it on its diagram page.",
         count: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         open: "Open →",
         kinds: {

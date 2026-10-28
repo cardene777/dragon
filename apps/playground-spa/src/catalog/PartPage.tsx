@@ -5,16 +5,18 @@
  * 部品を図の種類ごとに描いた図を並べる。どの図でも使える部品は時系列図と構成図の 2 つ、図の種類だけの部品は 1 つ。
  * 図はどれも部品の記法の file (`parts/<名札>.<図の種類>.dragon`) を再生の部品で描き、記法の本文と編集画面で開くを添える。
  * 部品の図は箱 2 つから 4 つの小さな図なので、使い方の頁の記法の例と同じく全体を止めて見せる。
+ * 図の下には、その部品の語を使う見本の札を並べ、押すと図の頁でその見本を選んだ状態で開く (#3167)。
  */
 import type { Theme } from "@cardenelabs/dragon";
 import type { ReactElement } from "react";
 
+import { exampleInfo } from "../examples";
 import { toHash } from "../share";
 import { LiveFigure } from "../site/LiveFigure";
 import { follow, PATHS } from "../site/routes";
 import { type Lang, TEXT } from "../text";
 import type { Kind } from "./catalog";
-import { type Part, snippetOf, wordLabel } from "./parts";
+import { type Part, samplesUsing, snippetOf, wordLabel } from "./parts";
 
 interface Props {
   part: Part;
@@ -75,6 +77,31 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
           <PartFigure key={kind} part={part} kind={kind} lang={lang} theme={theme} palette={palette} />
         ))}
       </div>
+
+      <section className="catalog-section" data-catalog="part-samples" aria-label={c.partSamples}>
+        <header className="catalog-section-head">
+          <h2 className="catalog-section-title">{c.partSamples}</h2>
+          <p className="catalog-section-lead">{c.partSamplesLead}</p>
+        </header>
+        <div className="catalog-part-grid">
+          {samplesUsing(part).map(({ key, kind }) => (
+            <a
+              key={key}
+              className="catalog-part-card"
+              data-catalog="part-sample"
+              data-sample={key}
+              href={`${PATHS.catalog}/${kind}#${key}`}
+              onClick={(e) => follow(e)}
+            >
+              <span className="catalog-part-card-head">
+                <span className="catalog-part-card-name">{exampleInfo(key, lang)?.title ?? key}</span>
+                <span className="catalog-part-card-kind">{t.shelf.kinds[kind]}</span>
+              </span>
+              <span className="catalog-part-sample-about">{exampleInfo(key, lang)?.about}</span>
+            </a>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

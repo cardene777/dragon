@@ -11,7 +11,7 @@ import { DEFAULT_PALETTE, type Diagram, PALETTES, parseNotation, readDiagram } f
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { EXAMPLE_KEYS, type ExampleKey, exampleText, TEMPLATE } from "../examples";
+import { EXAMPLE_KEYS, type ExampleKey, exampleText, HOME_USES, TEMPLATE } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
 import { app, BASE, captionClearance, expectSteadyAcrossSteps, pressUntilDisabled, rgb, root, type Site, settledStepShape, startSite } from "./playground-support";
@@ -875,7 +875,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
       // 用例 3 つ。見本ごとに、縮小版の動く図と、図の種類の名札と題と説明。押すとその図の種類の分類へ移る
       const expected = (lang: Lang): { title: string; kind: string; about: string; href: string; names: string[]; view: string; motion: string }[] =>
-        EXAMPLE_KEYS.map((key) => {
+        HOME_USES.map((key) => {
           const text = exampleText(key, lang);
           const s = sampleOf(text);
           return {
@@ -903,11 +903,11 @@ describe("サイトの帯と経路 (#3030)", () => {
         const v = PALETTES[DEFAULT_PALETTE]?.[theme] ?? {};
         return `${(v.bg ?? "").toLowerCase()} ${(v.ink ?? "").toLowerCase()}`;
       };
-      expect(await homeLooks(page), "概要の図が明るい側の色で描かれない").toEqual(Array(1 + EXAMPLE_KEYS.length).fill(looks("light")));
+      expect(await homeLooks(page), "概要の図が明るい側の色で描かれない").toEqual(Array(1 + HOME_USES.length).fill(looks("light")));
       await page.locator(siteSel("theme")).click();
       await expect
         .poll(() => homeLooks(page), { ...WAIT, message: "明暗を替えても概要の図が暗い側の色で描き直されない" })
-        .toEqual(Array(1 + EXAMPLE_KEYS.length).fill(looks("dark")));
+        .toEqual(Array(1 + HOME_USES.length).fill(looks("dark")));
 
       // 英語に替えると、実物の窓の記法と用例の札が英語の見本になる
       await page.locator(siteSel("lang-en")).click();
@@ -2808,7 +2808,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           })
           .toEqual({ missing: [], small: [] });
         if (viewport === PHONES[1]) {
-          await expectSizes(() => catalogTargetsOf(page, catalogSel("sidebar")), `${where} の一覧`, ["search 247x44", "item 295x44", "item 295x53"]);
+          await expectSizes(() => catalogTargetsOf(page, catalogSel("sidebar")), `${where} の一覧`, ["search 247x44", ...Array<string>(5).fill("item 295x44"), "item 295x53"]);
           await expectSizes(() => catalogTargetsOf(page, catalogSel("preview")), `${where} の見本の枠`, [
             "tab-figure 44x44",
             "tab-code 67x44",
@@ -2884,12 +2884,13 @@ describe("サイトの帯と経路 (#3030)", () => {
         await expect.poll(level, { ...WAIT, message: `${where} で、拡大の釦で倍率が上がらない` }).toBeGreaterThan(base);
         await page.locator(`${catalogSel("preview")} ${catalogSel("zoom-level")}`).click();
         await expect.poll(level, { ...WAIT, message: `${where} で、倍率の釦で元の倍率に戻らない` }).toBe(base);
-        await page.locator(catalogSel("item")).nth(1).click();
+        // 寄って追う見せ方の見本 (OAuth) では、倍率が押せない状態になる
+        await page.locator(catalogSel("item")).nth(samplesOf("sequence").indexOf("oauth")).click();
         await expect
           .poll(async () => {
             const seen = await catalogZoomOf(page);
             return { button: seen.button, disabled: seen.disabled, level: seen.level };
-          }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の 2 つ目の見本で、倍率が押せない状態の釦でないか、「—」を出さない` })
+          }, { ...WAIT, message: `${viewport.width} × ${viewport.height} の OAuth の見本で、倍率が押せない状態の釦でないか、「—」を出さない` })
           .toEqual({ button: true, disabled: true, level: "—" });
       }
     },
@@ -3012,7 +3013,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         const sized = viewport === TOUCH_CATALOG_SIZES[1];
         if (sized) {
           await expectSizes(() => catalogTargetsOf(page, catalogSel("crumb")), `${where} の道筋`, ["概要 44x44", "カタログ 68x44"]);
-          await expectSizes(() => catalogTargetsOf(page, catalogSel("sidebar")), `${where} の一覧`, ["search 561x44", "item 609x44", "item 609x44"]);
+          await expectSizes(() => catalogTargetsOf(page, catalogSel("sidebar")), `${where} の一覧`, ["search 561x44", ...Array<string>(6).fill("item 609x44")]);
           await expectSizes(() => catalogTargetsOf(page, catalogSel("preview")), `${where} の見本の枠`, [
             "tab-figure 44x44",
             "tab-code 67x44",
@@ -4313,7 +4314,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       expect(await switchOf(), "帯の色味の切替が 3 つの色味でないか、紙と墨を選んでいない").toEqual(pressedOnly(DEFAULT_PALETTE));
 
       // 色味を選ぶと、サイトの色と頁の全部の図が替わる
-      const figures = 1 + EXAMPLE_KEYS.length;
+      const figures = 1 + HOME_USES.length;
       for (const id of PALETTE_IDS) {
         await page.locator(`${header} ${siteSel(`palette-${id}`)}`).click();
         await expect.poll(() => colorsOf(page), { ...WAIT, message: `${id} を選んでもサイトの色が替わらない` }).toEqual(rgbOf(siteLook(id, "light")));

@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "ウォレットで署名して送る",
+  "boxes": [
+    {
+      "id": "dApp",
+      "name": "取引所の dApp",
+      "sub": "取引を組む",
+      "color": "blue",
+      "icon": "app"
+    },
+    {
+      "id": "ウォレット",
+      "name": "ウォレット",
+      "sub": "鍵を持つ",
+      "color": "amber",
+      "icon": "key"
+    },
+    {
+      "id": "ノード",
+      "name": "RPC ノード",
+      "sub": "取引を受け付ける",
+      "color": "slate",
+      "icon": "server"
+    },
+    {
+      "id": "チェーン",
+      "name": "ブロックチェーン",
+      "sub": "取引を記録する",
+      "color": "green",
+      "icon": "chain"
+    }
+  ],
+  "steps": [
+    {
+      "title": "署名を頼む",
+      "body": "dApp が送る取引を組み、ウォレットに署名と送信を頼む。",
+      "code": "eth_sendTransaction",
+      "events": [
+        {
+          "type": "edge",
+          "from": "dApp",
+          "to": "ウォレット",
+          "label": "取引を頼む",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "署名する",
+      "body": "利用者がウォレットの画面で中身を確かめて承認し、ウォレットが鍵で署名する。",
+      "events": [
+        {
+          "type": "action",
+          "box": "ウォレット",
+          "label": "承認して署名する"
+        }
+      ]
+    },
+    {
+      "title": "送る",
+      "body": "ウォレットが署名した取引を RPC ノードへ送る。",
+      "code": "eth_sendRawTransaction",
+      "events": [
+        {
+          "type": "edge",
+          "from": "ウォレット",
+          "to": "ノード",
+          "label": "署名した取引",
+          "carry": {
+            "kind": "tag",
+            "text": "0x02f8…"
+          }
+        }
+      ]
+    },
+    {
+      "title": "取り込まれる",
+      "body": "ノードが取引をネットワークへ広め、取引がブロックに取り込まれる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "ノード",
+          "to": "チェーン",
+          "label": "取引を広める",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "受領書を受け取る",
+      "body": "dApp が取引の受領書を引き、成功したことを画面に出す。",
+      "code": "eth_getTransactionReceipt",
+      "events": [
+        {
+          "type": "edge",
+          "from": "dApp",
+          "to": "ノード",
+          "label": "受領書を引く",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "ノード",
+          "to": "dApp",
+          "label": "status 1",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "dApp",
+      "ウォレット",
+      "ノード",
+      "チェーン"
+    ]
+  }
+}
