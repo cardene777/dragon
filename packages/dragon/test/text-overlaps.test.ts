@@ -12,6 +12,8 @@
  *
  * 箱の絵柄と、着いて留まる運ぶ物も重なりに数える (#3176)。絵柄は `<箱の名前> の絵柄` の名前で返す。
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
@@ -88,6 +90,53 @@ describe("字の重なりをエンジンが見つける (#3175)", () => {
     Object.assign(check, { x: back.x + back.w / 2 - check.w / 2, y: back.y });
     const crossed = renderLayout(rendered.diagram, layout, rendered.timeline);
     expect(pairs(crossed.overlaps)).toEqual(["1:確かめる|返す"]);
+  });
+
+  it("overlaps-carry-rects", () => {
+    // 重なりは、重なる字ごとに字の四角と段の番号かどうかを持つ。編集画面が図の上で囲む所になる (#3178)
+    type Spot = { text: string; rect: { x: number; y: number; w: number; h: number }; badge: boolean };
+    const box = (r: { x: number; y: number; w: number; h: number }) => ({ x: r.x, y: r.y, w: r.w, h: r.h });
+
+    const rendered = renderDiagram(sequence());
+    const layout = structuredClone(rendered.layout);
+    const back = layout.labels.find((l) => l.text === "返す");
+    const check = layout.labels.find((l) => l.text === "確かめる");
+    expect(back && check, "2 段目の線の名前が見つからない").toBeTruthy();
+    if (!back || !check) return;
+    Object.assign(check, { x: back.x + back.w / 2 - check.w / 2, y: back.y });
+    const [both] = renderLayout(rendered.diagram, layout, rendered.timeline).overlaps.filter((o) => o.kind === "texts");
+    const byText = (a: Spot, b: Spot): number => (a.text < b.text ? -1 : 1);
+    expect([...(both?.spots ?? [])].sort(byText), "2 つの字の重なりが字の四角を持たない").toEqual(
+      [
+        { text: "確かめる", rect: box(check), badge: false },
+        { text: "返す", rect: box(back), badge: false },
+      ].sort(byText),
+    );
+
+    // 線が字を横切る所は、横切られる字の四角を 1 つ持つ
+    const faint = renderDiagram(state());
+    const moved = structuredClone(faint.layout);
+    const take = moved.labels.find((l) => l.text === "受け付ける");
+    const send = moved.edges.find((e) => e.from === "受付" && e.to === "発送");
+    expect(take && send, "名前か線が見つからない").toBeTruthy();
+    if (!take || !send) return;
+    const [[ax, ay], [bx, by]] = [send.points[0] as [number, number], send.points[send.points.length - 1] as [number, number]];
+    Object.assign(take, { x: (ax + bx) / 2 - take.w / 2, y: (ay + by) / 2 - take.h / 2 });
+    const [crossed] = renderLayout(faint.diagram, moved, faint.timeline).overlaps.filter((o) => o.kind === "line");
+    const spots = crossed?.spots ?? [];
+    expect(spots.map((s) => [s.text, s.badge]), "線が横切る字の四角が 1 つ無い").toEqual([["受け付ける", false]]);
+    const [mx, my] = [(ax + bx) / 2, (ay + by) / 2];
+    const r = spots[0]?.rect;
+    expect(r !== undefined && r.x <= mx && mx <= r.x + r.w && r.y <= my && my <= r.y + r.h, "横切られる字の四角が線の真ん中を含まない").toBe(true);
+
+    // 段の番号の重なりは、段の番号の字を段の番号として持つ
+    const parsed = parseNotation(readFileSync(join(process.cwd(), "packages/dragon/test/fixtures/repeat-line.dragon"), "utf8"));
+    if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
+    const [pile] = renderDiagram(parsed.diagram).overlaps;
+    expect(pile?.spots.map((s) => [s.text, s.badge]), "重なる段の番号を段の番号として持たない").toEqual([
+      ["1", true],
+      ["5", true],
+    ]);
   });
 
   it("overlaps-ignore-texts-not-shown-together", () => {

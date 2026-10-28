@@ -10,6 +10,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paletteVars, resolvePalette, type Theme } from "../look/values";
 import { BUTTON_TEXT, stepNo } from "../player";
+import type { Overlap } from "../render/ink";
 import { drawSvg, type Rendered, renderDiagram } from "../render/svg";
 import type { ViewMode } from "../schema";
 import { chooseView } from "../view";
@@ -48,6 +49,8 @@ export interface ExportResult {
   /** 動画のコマの大きさ (CSS の px)。撮る画素はこの 2 倍 */
   width: number;
   height: number;
+  /** 段ごとの止め絵で同時に見えている字の重なり (#3178)。命令はこれを標準エラーに出す */
+  overlaps: Overlap[];
 }
 
 /** 書き出せる形。命令が `--format` の値を確かめる時にも使う */
@@ -120,7 +123,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
     }
   }
   const files = writeOutputs(options.outDir, options.name ?? "diagram", outputs);
-  return { files, view, frames, ...sizeOf(videoSvg) };
+  return { files, view, frames, ...sizeOf(videoSvg), overlaps: rendered.overlaps };
 }
 
 /**

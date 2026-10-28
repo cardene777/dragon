@@ -1,0 +1,24 @@
+architecture 注文の状態を何度も聞く
+
+box 画面 [icon: app]
+box API [icon: db]
+
+step 注文する
+  say 画面が API に注文を送る。
+  画面 -> API: 注文を送る
+
+step 1 回目
+  say 画面が注文の状態を聞く。
+  画面 -> API: 状態を聞く
+
+step 2 回目
+  say まだ届いていないので、もう一度聞く。
+  画面 -> API: 状態を聞く
+
+step 3 回目
+  say もう一度聞く。
+  画面 -> API: 状態を聞く
+
+step 4 回目
+  say 届いたと分かる。
+  画面 -> API: 状態を聞く

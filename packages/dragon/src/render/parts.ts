@@ -396,7 +396,7 @@ export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const y = r1(b.y);
   const ty = r1(b.y + LOOK.baseline.badge);
   const no = b.step + 1;
-  ctx.ink.push({ text: String(no), rect: { x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 }, shown: [[a, m.last]], boxed: true });
+  ctx.ink.push({ text: String(no), rect: { x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 }, shown: [[a, m.last]], boxed: true, badge: true });
   return (
     `<g class="dg-bd" data-step="${b.step}" style="${cs(b.color)}"><circle class="dg-bdr dg-popc dg-a" cx="${x}" cy="${y}" r="${rr}" style="${ring}"/>` +
     `<g class="dg-a" style="${past}"><circle class="${grey ? "dg-bdp-g" : "dg-bdp"}" cx="${x}" cy="${y}" r="${rr}"/><text class="${grey ? "dg-bdpt-g" : "dg-bdpt"}" x="${x}" y="${ty}" text-anchor="middle">${no}</text></g>` +

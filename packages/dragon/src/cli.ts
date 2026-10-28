@@ -2,6 +2,8 @@
 /**
  * `dragon export <図の file>` の命令。原本の JSON (`.json`) か記法 (`.dragon`) を読み、mp4、GIF、HTML、PNG を書き出す。
  * 書き出した file の path を 1 行ずつ出す。
+ * 図に字の重なりがある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出し、終わり方は 0 のままにする (#3178)。
+ * 重なりは描けない誤りではなく、止めると避けられない重なりを持つ図を書き出せなくなるため。
  *
  * 使い方の文と誤りの文は、図の中の字と同じ言葉で出す (#3003)。`--lang` を渡せばその言葉、無ければ日本語。
  * dragon記法の語は英語だけで file から言葉が決まらないため、記法の file も JSON の原本と同じに扱う (#3137)。
@@ -12,6 +14,7 @@ import { parseArgs } from "node:util";
 import { type ExportFormat, exportDiagram, FORMATS } from "./export/index";
 import { PALETTES, type Theme } from "./look/values";
 import { parseNotation } from "./parser";
+import { describeOverlap } from "./render/ink";
 import type { NotationLang } from "./words";
 
 const OPTIONS = {
@@ -43,6 +46,8 @@ interface CliText {
   badValue: (option: string, value: string, allowed: string) => string;
   /** 設定ごとの許す値の言い方 */
   allowed: { lang: string; theme: string; positive: string; format: string };
+  /** 字の重なりの 1 行。`step` は 1 から数える */
+  overlap: (step: number, text: string) => string;
 }
 
 /** 命令が出す文。英語は日本語の文をそのまま英語にする */
@@ -68,6 +73,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     cannotWrite: (path, detail) => `書き出せない: ${path} (${detail})`,
     badValue: (option, value, allowed) => `使えない値: ${option} ${value} (${allowed})`,
     allowed: { lang: "ja か en", theme: "light か dark", positive: "0 より大きい数", format: `${FORMATS.join(" / ")} を , で区切る` },
+    overlap: (step, text) => `段 ${step}: ${text}`,
   },
   en: {
     usage: [
@@ -90,6 +96,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     cannotWrite: (path, detail) => `Cannot write: ${path} (${detail})`,
     badValue: (option, value, allowed) => `Invalid value: ${option} ${value} (${allowed})`,
     allowed: { lang: "ja or en", theme: "light or dark", positive: "a number above 0", format: `${FORMATS.join(" / ")} separated by ,` },
+    overlap: (step, text) => `Step ${step}: ${text}`,
   },
 };
 
@@ -224,6 +231,8 @@ async function main(argv: string[]): Promise<number> {
     throw error instanceof Error ? error : new Error(String(error));
   }
   for (const path of Object.values(result.files)) console.log(path);
+  const said = lang ?? "ja";
+  for (const overlap of result.overlaps) console.error(CLI_TEXT[said].overlap(overlap.step + 1, describeOverlap(overlap, said)));
   return 0;
 }
 

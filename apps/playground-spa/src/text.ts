@@ -213,6 +213,11 @@ export const TEXT = {
       count: (n: number) => `誤り ${n} 件`,
       goTo: (line: number) => `${line} 行目へ移る`,
     },
+    overlaps: {
+      count: (n: number) => `字の重なり ${n} 件`,
+      step: (n: number) => `段 ${n}`,
+      goTo: (n: number) => `段 ${n} へ移る`,
+    },
   },
   en: {
     title: "dragon — write it as text, get a moving diagram",
@@ -422,6 +427,11 @@ export const TEXT = {
       line: (line: number) => `Line ${line}`,
       count: (n: number) => `${n} ${n === 1 ? "error" : "errors"}`,
       goTo: (line: number) => `Go to line ${line}`,
+    },
+    overlaps: {
+      count: (n: number) => `${n} text ${n === 1 ? "overlap" : "overlaps"}`,
+      step: (n: number) => `Step ${n}`,
+      goTo: (n: number) => `Go to step ${n}`,
     },
   },
 } as const;

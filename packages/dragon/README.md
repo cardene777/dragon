@@ -143,6 +143,7 @@ dragon export ccip.json --out out
 | `--format <形>` | 書き出す形を `,` で区切る (既定 `mp4,gif,html,png`) |
 
 PNG は最後の段の止め絵を、全体を止めた見せ方で撮る。
+図の中で字が重なる段がある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出す (例 `段 5: 段の番号 1 と段の番号 5 が重なる`)。終わり方は 0 のまま変えない。
 HTML は図で描く字だけに削った字の file を埋めた 1 file で、外へ何も取りに行かない。
 node から呼ぶ時は `@cardenelabs/dragon/export` の `exportDiagram` を使う。
 

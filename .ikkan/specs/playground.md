@@ -20,3 +20,15 @@
 | build した頁の script と CSS の合計が、gzip で 250KB 以下に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #2995 |
 | 頁の図を描く code が `@cardenelabs/dragon` の部品を呼び、`apps/playground-spa` の中に SVG を組む code が無い | `pnpm test`の検査`page-draws-with-package-parts`が通る | #2995 |
 | 配る頁の CSP が、script を自分の置き場だけにし、inline と eval を許さない | `pnpm test`の検査`csp-script-self-only`が通る | #2995 |
+| 重なりの一覧の各件が、重なる字の四角を持つ (2 つの字の重なりは 2 つ、線が字を横切る所は横切られる字の 1 つ) | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-carry-rects`が通る | #3178 |
+| 重なりを知らせる文は、重なる 2 つの字を日本語と英語で書き、段の番号を「段の番号 N」(英語は `step number N`) と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-message-in-both-languages`が通る | #3178 |
+| 再生の部品の段へ移る呼び出しで、図がその段で止まる | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`player-goes-to-step`が通る | #3178 |
+| 再生の部品に四角を渡すと、図の上に点線の四角を描き、空を渡すと消す。止めて見せる図でも寄って追う図でも、四角は図の中身と同じ所に在る | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`player-marks-rects`が通る | #3178 |
+| 書き出しの命令が字の重なる図を書き出す時、file を書き出し、標準エラーに重なりを 1 件 1 行で段と文で出して、終わり方 0 で終える | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-warns-overlaps`が通る | #3178 |
+| 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3178 |
+| 編集画面で字が重なる図を書くと、知らせの欄に「読めています」と並んで重なりの欄が出て、重なりを段の札と文で 1 件 1 行で並べる (日本語と英語) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3178 |
+| 編集画面で、今の段で重なる字を図の上で点線の四角で囲み、四角が重なる字を覆う | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-marks-overlaps-on-figure`が通る | #3178 |
+| 編集画面で重なりの段の札を押すと、図がその段へ移る | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-overlap-step-jumps`が通る | #3178 |
+| 編集画面で字の重ならない見本を開いた時、「読めています」だけが出て、重なりの欄も図の上の囲みも出ない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3178 |
+| 頁の側では SVG を組まない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-draws-with-package-parts`が通る | #3178 |
+| 全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3178 |
