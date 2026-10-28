@@ -342,3 +342,35 @@ describe("段の番号の置き場 (#3017)", () => {
     }
   });
 });
+
+describe("線の形と模様 (#3171)", () => {
+  const order = (): Json => exampleJson("order.json");
+
+  it("lines-round-their-bends", () => {
+    let rounded = 0;
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["注文", order()]] as const) {
+      const { svg } = render(diagram);
+      const ds = [...svg.matchAll(/class="dg-(?:e|e-on dg-a|path)"[^>]*? d="([^"]*)"/gu)].map((m) => m[1] as string);
+      expect(ds.length, `${name} に線が無い`).toBeGreaterThan(0);
+      for (const d of ds) {
+        expect(d, `${name} の線が直角の角を持つ: ${d}`).not.toMatch(/L -?[\d.]+ -?[\d.]+ L/u);
+        if (d.includes(" Q ")) rounded++;
+      }
+    }
+    expect(rounded, "曲がりを丸めた線が 1 本も無い").toBeGreaterThan(0);
+  });
+
+  it("non-state-lines-keep-dotted-texture", () => {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()]] as const) {
+      const { svg, layout, timeline } = render(diagram);
+      const taken = layout.edges.filter((e) => e.points.length > 0).length;
+      expect((svg.match(/class="dg-e-on dg-a"/gu) ?? []).length, `${name} の色の線の数`).toBe(taken);
+      expect(svg, `${name} の済んだ線が薄く残らない`).toMatch(/opacity:0\.45/u);
+      for (const cls of ["dg-e-past", "dg-bdp-g", "dg-cap-past", "dg-fv-now"]) expect(svg, `${name} に状態遷移図だけの部品 ${cls} が出る`).not.toContain(`class="${cls}`);
+      expect(
+        timeline.labels.every((l) => !("after" in l)),
+        `${name} の線の名前が段の後に残る`,
+      ).toBe(true);
+    }
+  });
+});

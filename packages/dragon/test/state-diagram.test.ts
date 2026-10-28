@@ -505,17 +505,13 @@ describe("状態遷移図の描き方 (#3163)", () => {
     expect(label && label.y >= bottom, "輪の名前が箱の下に無い").toBe(true);
   });
 
-  it("state-keeps-motion-rules", () => {
+  // 線の名前の数の決まりは、薄く残す名前を数えない形で `state-keeps-past-line-names-faint` が確かめる (#3171)
+  it("state-keeps-carrier-and-badge-rules", () => {
     const source = orderJson() as unknown as Source;
     const { timeline } = render(source as unknown as Json);
     const times = sampleTimes(timeline);
     const empty = times.filter((t) => !timeline.carriers.some((span) => covers(span, t)));
     expect(empty.length / times.length, `運ぶ物が見えない時刻 ${empty.slice(0, 5).join(", ")}`).toBeLessThanOrEqual(0.02);
-    for (const label of timeline.labels) {
-      const span = timeline.steps[label.step];
-      expect(Boolean(span && label.start >= span.start - 1e-9 && label.end <= span.end + 1e-9), `段 ${label.step + 1} の線の名前が段の外に出る`).toBe(true);
-    }
-    for (const t of times) expect(timeline.labels.filter((span) => covers(span, t)).length, `${t} 秒に見える線の名前`).toBeLessThanOrEqual(2);
     expect(timeline.badges.map((b) => b.step), "段の番号").toEqual(timeline.steps.map((_, i) => i));
     for (const badge of timeline.badges) {
       const step = timeline.steps[badge.step];
@@ -576,5 +572,242 @@ describe("注文の見本の file (#3163)", () => {
     if (!ja.ok || !en.ok) return;
     expect(shape(en.diagram as unknown as Source), "注文の英語版の状態と段と線の数が日本語版と違う").toEqual(shape(ja.diagram as unknown as Source));
     expect((ja.diagram as unknown as Source).kind, "注文の見本の図の種類").toBe("state");
+  });
+});
+
+/** 始まりから `n` 個の状態を 1 列に辿って終わる状態遷移図。段の折り返しを 3 段まで確かめる */
+function chainState(n: number): Json {
+  const ids = Array.from({ length: n }, (_, i) => `s${i + 1}`);
+  const lines: [string, string][] = [["start", "s1"], ...ids.slice(1).map((id, i): [string, string] => [ids[i] as string, id]), [ids[n - 1] as string, "finish"]];
+  return {
+    version: 1,
+    kind: "state",
+    title: "一列に辿る状態の図",
+    boxes: ids.map((id, i) => ({ id, name: `状態${i + 1}` })),
+    steps: lines.map(([from, to], i) => ({ title: `段${i + 1}`, body: `${to} へ移る。`, events: [edge(from, to)] })),
+  };
+}
+
+/** 脇道の状態を 2 つ持つ状態遷移図 */
+function twoGhosts(): Json {
+  const base = smallState() as unknown as Source;
+  return {
+    ...(base as unknown as Record<string, unknown>),
+    boxes: [...base.boxes, { id: "y", name: "保留" }],
+    state: { paths: [...(base.state?.paths ?? []), { from: "a", to: "y" }, { from: "y", to: "finish" }] },
+  } as unknown as Json;
+}
+
+interface SetEvent {
+  type: string;
+  field?: string;
+  value?: string;
+}
+
+interface TintedStrip extends Rect {
+  fields: { name: string }[];
+  /** 状態遷移図の帯の最後の、通った状態の欄 */
+  trail?: { title: string; states: { box: string }[] };
+}
+
+/** 点の列 3 つが作る曲がりの角度 (度)。まっすぐなら 0 */
+const turn = (a: Point, b: Point, c: Point): number => {
+  const u = Math.atan2(b[1] - a[1], b[0] - a[0]);
+  const v = Math.atan2(c[1] - b[1], c[0] - b[0]);
+  const d = Math.abs(u - v) % (2 * Math.PI);
+  return ((d > Math.PI ? 2 * Math.PI - d : d) * 180) / Math.PI;
+};
+
+describe("状態遷移図の見た目 (#3171)", () => {
+  it("state-layout-snakes-rows", () => {
+    const source = orderJson() as unknown as Source;
+    const { layout } = render(source as unknown as Json);
+    const walked = layout.boxes.filter((b) => !b.ghost);
+    const ordered = visitOrder(source).map((id) => walked.find((b) => b.id === id));
+    expect(ordered.every(Boolean), "段が辿り着く状態の箱が揃わない").toBe(true);
+    const boxes = ordered as StateBox[];
+    const rows = [...new Set(walked.map((b) => Math.round(b.cy)))].sort((a, b) => a - b);
+    expect(rows.length, "状態の箱が 2 段に並ばない").toBe(2);
+    const top = boxes.slice(0, 4);
+    const bottom = boxes.slice(4);
+    for (const b of top) expect(Math.round(b.cy), `${b.name} が 1 段目に無い`).toBe(rows[0]);
+    for (const b of bottom) expect(Math.round(b.cy), `${b.name} が 2 段目に無い`).toBe(rows[1]);
+    top.slice(1).forEach((b, i) => expect(b.cx, `1 段目の ${b.name} が左から右へ並ばない`).toBeGreaterThan((top[i] as StateBox).cx));
+    bottom.slice(1).forEach((b, i) => expect(b.cx, `2 段目の ${b.name} が右から左へ並ばない`).toBeLessThan((bottom[i] as StateBox).cx));
+    const last = top[3] as StateBox;
+    const next = bottom[0] as StateBox;
+    expect(Math.abs(next.cx - last.cx), "2 段目の最初の状態が 1 段目の最後の状態の真下に無い").toBeLessThan(0.5);
+    const cross = layout.edges.find((e) => e.from === last.id && e.to === next.id);
+    expect(cross?.points, "1 段目の最後から 2 段目の最初への線が真下への 1 本でない").toHaveLength(2);
+    expect(Math.abs((cross?.points[0]?.[0] ?? 0) - (cross?.points[1]?.[0] ?? Number.NaN)), "段をまたぐ線が真下へ下りない").toBeLessThan(0.5);
+
+    // 9 つ以上の状態では 3 段目を再び左から右へ並べる
+    const chain = render(chainState(10)).layout.boxes;
+    const at = (id: string): StateBox => chain.find((b) => b.id === id) as StateBox;
+    expect(new Set(chain.map((b) => Math.round(b.cy))).size, "10 個の状態が 3 段に並ばない").toBe(3);
+    expect(Math.abs(at("s9").cx - at("s8").cx), "3 段目の最初の状態が 2 段目の最後の状態の真下に無い").toBeLessThan(0.5);
+    expect(at("s9").cy, "3 段目が 2 段目より下に無い").toBeGreaterThan(at("s8").cy);
+    expect(at("s10").cx, "3 段目が左から右へ並ばない").toBeGreaterThan(at("s9").cx);
+  });
+
+  it("state-greys-past-lines", () => {
+    const { layout, svg } = render(orderJson());
+    const colorOf = (id: string): string | undefined => (layout.boxes.find((b) => b.id === id) as (StateBox & { color?: string }) | undefined)?.color;
+    for (const e of layout.edges as (StateLayout["edges"][number] & { color?: string })[]) {
+      const want = e.to === "finish" ? colorOf(e.from) : colorOf(e.to);
+      expect(e.color, `段 ${e.step + 1} の線 (${e.from} -> ${e.to}) が移った先の状態の色でない`).toBe(want);
+    }
+    const taken = layout.edges.filter((e) => e.points.length > 0).length;
+    expect((svg.match(/class="dg-e-past/gu) ?? []).length, "段が終わった後の灰の線の数が、段の線の数と違う").toBe(taken);
+    expect(svg, "段が終わった後の線が共通の値の表の灰で描かれない").toMatch(/\.dg-e-past\{[^}]*stroke:var\(--mute\)/u);
+    expect((svg.match(/class="dg-bdp-g"/gu) ?? []).length, "段が終わった後の灰の番号の数が、段の番号の数と違う").toBe(layout.badges.length);
+    expect(svg, "段が終わった後の番号が共通の値の表の灰で描かれない").toMatch(/\.dg-bdp-g\{[^}]*stroke:var\(--mute\)/u);
+  });
+
+  it("state-draws-taken-lines-solid", () => {
+    const { svg } = render(orderJson());
+    const rule = (cls: string): string | undefined => svg.match(new RegExp(`\\.${cls}\\{([^}]*)\\}`, "u"))?.[1];
+    const past = rule("dg-e-past");
+    expect(past, "状態遷移図に通った線の部品が無い").toBeDefined();
+    expect(past, "通った線が点線で描かれる").not.toContain("dasharray");
+    expect(rule("dg-e"), "まだ通っていない線が点線でない").toContain("dasharray");
+    const width = (r: string | undefined): number => Number(r?.match(/stroke-width:([\d.]+)/u)?.[1] ?? Number.NaN);
+    expect(width(past), "通った線が、下に敷いた点線を覆う太さでない").toBeGreaterThanOrEqual(width(rule("dg-e")));
+  });
+
+  it("state-marks-done-in-ink", () => {
+    const { svg } = render(orderJson());
+    expect(svg, "済んだ印が墨で塗られない").toMatch(/\.dg-done\{fill:var\(--ink\)/u);
+  });
+
+  it("state-draws-self-loop-as-arc", () => {
+    const { layout } = render(orderJson());
+    const loop = layout.edges.find((e) => e.from === e.to);
+    const box = layout.boxes.find((b) => b.id === loop?.from);
+    expect(loop && box, "注文の図に同じ状態へ戻る線が無い").toBeTruthy();
+    if (!loop || !box) return;
+    const points = loop.points as Point[];
+    expect(points.length, "同じ状態へ戻る線が弧として点を持たない").toBeGreaterThanOrEqual(8);
+    const bottom = box.y + box.h;
+    const depth = Math.max(...points.map(([, y]) => y)) - bottom;
+    expect(depth, "弧の深さ").toBeGreaterThanOrEqual(20);
+    for (const [x, y] of points) {
+      expect(y, "弧が箱の下から上へはみ出す").toBeGreaterThanOrEqual(bottom - 1e-6);
+      expect(x >= box.x && x <= box.x + box.w, "弧が箱の幅から横へはみ出す").toBe(true);
+    }
+    points.slice(1).forEach((p, i) => {
+      const q = points[i] as Point;
+      expect(Math.hypot(p[0] - q[0], p[1] - q[1]), `弧の ${i + 1} 番目の区間がまっすぐに長い`).toBeLessThanOrEqual(depth / 2);
+    });
+    for (let i = 1; i < points.length - 1; i++) expect(turn(points[i - 1] as Point, points[i] as Point, points[i + 1] as Point), `弧の ${i} 番目の点で急に曲がる`).toBeLessThan(60);
+  });
+
+  it("state-keeps-past-line-names-faint", () => {
+    const { layout, timeline, svg } = render(orderJson());
+    const labels = timeline.labels as (Timeline["labels"][number] & { after?: Span })[];
+    expect(labels.length, "注文の図に線の名前が無い").toBeGreaterThan(0);
+    for (const label of labels) {
+      const span = timeline.steps[label.step];
+      expect(Boolean(span && label.start >= span.start - 1e-9 && label.end <= span.end + 1e-9), `段 ${label.step + 1} の線の名前が段の外で普通の濃さに出る`).toBe(true);
+      expect(label.after, `段 ${label.step + 1} の線の名前が段の後に薄く残らない`).toBeDefined();
+      expect((label.after?.start ?? Number.POSITIVE_INFINITY) >= label.end - 1e-9, `段 ${label.step + 1} の線の名前が段の終わりより前に薄くなる`).toBe(true);
+      expect(label.after?.end ?? 0, `段 ${label.step + 1} の線の名前が最後の段まで薄く残らない`).toBeGreaterThanOrEqual(timeline.last - 1e-9);
+    }
+    for (const t of sampleTimes(timeline)) expect(labels.filter((span) => covers(span, t)).length, `${t} 秒に普通の濃さで見える線の名前`).toBeLessThanOrEqual(2);
+    expect((svg.match(/class="dg-cap-past/gu) ?? []).length, "薄く残す線の名前の数が、線の名前の数と違う").toBe(layout.labels.length);
+  });
+
+  it("state-renders-side-path-top-right", () => {
+    const { layout, svg } = render(orderJson());
+    const side = layout.side as (Rect & { notes?: string[] }) | undefined;
+    expect(side, "脇道の囲みが無い").toBeDefined();
+    if (!side) return;
+    const box = (id: string): StateBox | undefined => layout.boxes.find((b) => b.id === id);
+    const entering = layout.paths.flatMap((p) => (box(p.to)?.ghost && !box(p.from)?.ghost ? [box(p.from) as StateBox] : []));
+    expect(entering.length, "脇道へ入る線が無い").toBeGreaterThan(0);
+    const leftmost = Math.min(...entering.map((b) => b.x));
+    expect(side.x, "脇道の囲みの左端が、脇道へ入る最も左の状態の列に揃わない").toBeLessThanOrEqual(leftmost);
+    expect(side.x, "脇道の囲みの左端が、脇道へ入る最も左の状態の列より大きく左へ出る").toBeGreaterThan(leftmost - 40);
+    const right = Math.max(...layout.boxes.filter((b) => !b.ghost).map((b) => b.x + b.w));
+    expect(side.x + side.w, "脇道の囲みが図の右端まで届かない").toBeGreaterThanOrEqual(right - 0.5);
+    const start = layout.ends.find((e) => e.kind === "start");
+    expect(start, "始まりの印が無い").toBeDefined();
+    if (!start) return;
+    expect(start.x + start.r, "始まりの印が脇道の囲みに重なる").toBeLessThan(side.x);
+    expect(start.y, "始まりの印が脇道の囲みと同じ高さの帯に無い").toBeLessThan(side.y + side.h);
+    expect(side.notes, "脇道の囲みの添え書きが 2 行でない").toEqual(["今回は通らない", "3 つの状態から入れる"]);
+    for (const note of side.notes ?? []) expect(svg, `日本語の図に「${note}」が無い`).toContain(note);
+    const english = render(orderJson("order.en.json"), "en").layout.side as (Rect & { notes?: string[] }) | undefined;
+    expect(english?.notes, "英語の図の脇道の添え書き").toEqual(["Not taken this time", "Enterable from 3 states"]);
+  });
+
+  it("state-lines-up-side-states", () => {
+    const { svg } = render(orderJson());
+    const ghost = svg.match(/<g data-ghost="[^"]*"[^>]*>(.*?)<\/g>/u)?.[1] ?? "";
+    const icon = ghost.match(/<rect class="dg-ic" x="([\d.]+)" y="[\d.]+" width="([\d.]+)"/u);
+    const name = ghost.match(/<text class="dg-sn" x="([\d.]+)"[^>]*text-anchor="([a-z]+)"/u);
+    expect(icon && name, "点線の札に絵柄と名前が無い").toBeTruthy();
+    expect(name?.[2], "点線の札の名前が左揃えでない").toBe("start");
+    expect(Number(name?.[1]), "点線の札の名前が絵柄の右に無い").toBeGreaterThan(Number(icon?.[1]) + Number(icon?.[2]));
+
+    const { layout } = render(twoGhosts());
+    const ghosts = layout.boxes.filter((b) => b.ghost);
+    expect(ghosts.length, "脇道の状態が 2 つにならない").toBe(2);
+    const [a, b] = [...ghosts].sort((p, q) => p.x - q.x) as [StateBox, StateBox];
+    expect(Math.abs(a.y - b.y), "脇道の状態が横に並ばない").toBeLessThan(0.5);
+    expect(gap(a, b), "脇道の状態どうしの隙間").toBeGreaterThanOrEqual(10);
+    for (const g of ghosts) expect(Boolean(layout.side && rectInside(g, layout.side)), `${g.name} が脇道の囲みの中に無い`).toBe(true);
+  });
+
+  it("state-order-uses-undo-and-yen", () => {
+    for (const name of ["order.json", "order.en.json"]) {
+      const source = orderJson(name) as unknown as Source & { boxes: { id: string; icon?: string }[] };
+      const order = visitOrder(source);
+      const iconOf = (id: string | undefined): string | undefined => source.boxes.find((b) => b.id === id)?.icon;
+      expect(iconOf(order[6]), `${name} の返品の受付の絵柄`).toBe("undo");
+      expect(iconOf(order[7]), `${name} の返金済みの絵柄`).toBe("yen");
+      const { svg } = render(source as unknown as Json, name.includes(".en.") ? "en" : "ja");
+      expect((svg.match(/class="dg-ic"/gu) ?? []).length, `${name} で絵柄を描けない状態がある`).toBe(source.boxes.filter((b) => b.icon !== undefined).length);
+    }
+  });
+
+  it("state-strip-shows-passed-states", () => {
+    const source = orderJson() as unknown as Source;
+    const { layout, svg } = render(source as unknown as Json);
+    const strip = layout.strip as TintedStrip | undefined;
+    expect(strip, "注文の図に帯が無い").toBeDefined();
+    expect(strip?.fields.map((f) => f.name), "注文の見本の帯に状態の欄が残る").not.toContain("状態");
+    expect(strip?.trail?.title, "帯に通った状態の欄が無い").toBe("通った状態");
+    expect(strip?.trail?.states.map((s) => s.box), "通った状態の欄の点の並び").toEqual(visitOrder(source));
+    expect((svg.match(/data-trail="/gu) ?? []).length, "通った状態の点の数").toBe(visitOrder(source).length);
+    expect((svg.match(/class="dg-tr-ring"/gu) ?? []).length, "まだ着いていない状態の輪郭の点の数").toBe(visitOrder(source).length);
+    expect((svg.match(/class="dg-tr-fill dg-a"/gu) ?? []).length, "着いた状態を塗る点の数").toBe(visitOrder(source).length);
+    const english = render(orderJson("order.en.json"), "en").layout.strip as TintedStrip | undefined;
+    expect(english?.trail?.title, "英語の図の通った状態の欄").toBe("States passed");
+  });
+
+  it("state-strip-tints-changed-values", () => {
+    const source = orderJson() as unknown as Source;
+    const { layout, svg } = render(source as unknown as Json);
+    const colorOf = (id: string | undefined): string | undefined => (layout.boxes.find((b) => b.id === id) as (StateBox & { color?: string }) | undefined)?.color;
+    const sets = source.steps.flatMap((step, s) => (step.events as unknown as SetEvent[]).filter((e) => e.type === "strip" && e.value !== undefined).map(() => s));
+    expect(sets.length, "注文の図に値を書き換える段が無い").toBeGreaterThan(0);
+    const tinted = [...svg.matchAll(/<g class="dg-fv-now dg-a" data-step="(\d+)" style="--c:var\(--c-([a-z]+)\)/gu)];
+    expect(tinted.map((m) => Number(m[1])), "段で変わった値を色で描く数と段").toEqual(sets);
+    for (const m of tinted) {
+      const step = source.steps[Number(m[1])];
+      const moved = step?.events.find((e) => e.type === "edge");
+      const state = moved?.to === "finish" ? moved.from : moved?.to;
+      expect(m[2], `段 ${Number(m[1]) + 1} で変わった値が今の状態の色でない`).toBe(colorOf(state));
+    }
+    expect((svg.match(/class="dg-fl-now"/gu) ?? []).length, "変わった値の欄の名前の横の点の数").toBe(sets.length);
+  });
+
+  it("state-shows-future-lines-dotted", () => {
+    const { layout, svg } = render(orderJson());
+    const taken = layout.edges.filter((e) => e.points.length > 0).length;
+    expect((svg.match(/<path class="dg-e" d="/gu) ?? []).length, "段が来る前から見える点線の数が、段の線の数と違う").toBe(taken);
+    expect(svg, "段が来る前の線が点線でない").toMatch(/\.dg-e\{[^}]*stroke-dasharray/u);
+    expect((svg.match(/class="dg-e-on dg-a"/gu) ?? []).length, "段で引く色の線の数が、段の線の数と違う").toBe(taken);
   });
 });
