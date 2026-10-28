@@ -60,7 +60,7 @@ const phase = (page: Page): Promise<string> => page.locator(sel("phase-badge")).
 const marks = (page: Page): Promise<Rect[]> =>
   page.evaluate(
     (s) =>
-      [...document.querySelectorAll(`${s} rect.dg-mark`)].map((m) => ({
+      [...document.querySelectorAll(`${s} rect.dg-spot`)].map((m) => ({
         x: Number(m.getAttribute("x")),
         y: Number(m.getAttribute("y")),
         w: Number(m.getAttribute("width")),
@@ -123,6 +123,9 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
       await expect.poll(() => marks(page).then((m) => m.length), { ...WAIT, message: "重なりの段で図の上に四角が出ない" }).toBeGreaterThan(0);
       const drawn = await marks(page);
       for (const spot of spots ?? []) expect(drawn.some((m) => covers(m, spot.rect)), `段の番号 ${spot.text} を覆う四角が無い`).toBe(true);
+      // 囲みは線だけで描き、中の字を隠さない。図の中の別の字と同じ名前の見た目を当てると塗られて字が消える
+      const fills = await page.evaluate((f) => [...document.querySelectorAll(`${f} rect.dg-spot`)].map((m) => getComputedStyle(m).fill), sel("figure"));
+      expect(fills, "囲みが塗られて中の字を隠す").toEqual(fills.map(() => "none"));
     },
     SLOW,
   );

@@ -40,7 +40,7 @@ function mount(diagram: unknown, width?: number): { host: HTMLElement; player: P
   return { host, player: dragon.mountDiagram(host, diagram) };
 }
 
-const marks = (host: HTMLElement): SVGRectElement[] => [...host.querySelectorAll<SVGRectElement>("rect.dg-mark")];
+const marks = (host: HTMLElement): SVGRectElement[] => [...host.querySelectorAll<SVGRectElement>("rect.dg-spot")];
 const rectOf = (el: Element): Rect => ({ x: Number(el.getAttribute("x")), y: Number(el.getAttribute("y")), w: Number(el.getAttribute("width")), h: Number(el.getAttribute("height")) });
 const covers = (outer: Rect, inner: Rect): boolean => outer.x <= inner.x && outer.y <= inner.y && outer.x + outer.w >= inner.x + inner.w && outer.y + outer.h >= inner.y + inner.h;
 

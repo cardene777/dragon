@@ -85,7 +85,7 @@ function playerCss(): string {
     // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは横 1 列のまま変えない。
     // 広い帯は本文が 2 行あれば帯の高さが変わらず、本文の無い帯だけが釦の分だけ高くなる
     `@media (pointer: coarse){.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}}`,
-    `.dg-mark{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
+    `.dg-spot{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
   ].join("");
 }
 
@@ -235,14 +235,14 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
    */
   const drawMarks = (): void => {
     if (!svg) return;
-    for (const old of svg.querySelectorAll(".dg-marks")) old.remove();
+    for (const old of svg.querySelectorAll(".dg-spots")) old.remove();
     if (marked.length === 0) return;
     const M = LOOK.mark;
     const group = doc.createElementNS(SVG_NS, "g");
-    group.setAttribute("class", "dg-marks");
+    group.setAttribute("class", "dg-spots");
     for (const r of marked) {
       const rect = doc.createElementNS(SVG_NS, "rect");
-      rect.setAttribute("class", "dg-mark");
+      rect.setAttribute("class", "dg-spot");
       rect.setAttribute("x", String(r.x - M.pad));
       rect.setAttribute("y", String(r.y - M.pad));
       rect.setAttribute("width", String(r.w + M.pad * 2));
