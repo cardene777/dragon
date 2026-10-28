@@ -52,6 +52,8 @@ interface StateBox extends Rect {
   cy: number;
   /** どの段も辿り着かない状態 */
   ghost?: boolean;
+  /** 状態の色 */
+  color?: string;
 }
 
 interface StatePath {
@@ -76,10 +78,12 @@ interface StateLayout extends Omit<Layout, "boxes"> {
   boxes: StateBox[];
   /** 最初の段より前に書いた線のうち、どの段にも出ない線 */
   paths: StatePath[];
-  /** 脇道の囲み */
-  side?: Rect;
+  /** 脇道の囲みと、囲みの名前の下の添え書き */
+  side?: Rect & { notes?: string[] };
   /** 始まりと終わりの印 */
   ends: StateEnd[];
+  /** 中身の帯 */
+  strip?: TintedStrip;
 }
 
 interface StateTimeline extends Timeline {
@@ -104,7 +108,7 @@ interface Source {
   kind: string;
   title: string;
   view?: string;
-  boxes: { id: string; name: string }[];
+  boxes: { id: string; name: string; icon?: string }[];
   steps: { title: string; events: SourceEdge[] }[];
   state?: { paths: { from: string; to: string; label?: string }[] };
 }
@@ -634,7 +638,7 @@ describe("状態遷移図の見た目 (#3171)", () => {
 
   it("state-greys-past-lines", () => {
     const { layout, svg } = render(orderJson());
-    const colorOf = (id: string): string | undefined => (layout.boxes.find((b) => b.id === id))?.color;
+    const colorOf = (id: string): string | undefined => layout.boxes.find((b) => b.id === id)?.color;
     for (const e of layout.edges as (StateLayout["edges"][number] & { color?: string })[]) {
       const want = e.to === "finish" ? colorOf(e.from) : colorOf(e.to);
       expect(e.color, `段 ${e.step + 1} の線 (${e.from} -> ${e.to}) が移った先の状態の色でない`).toBe(want);
@@ -743,7 +747,7 @@ describe("状態遷移図の見た目 (#3171)", () => {
 
   it("state-order-uses-undo-and-yen", () => {
     for (const name of ["order.json", "order.en.json"]) {
-      const source = orderJson(name) as unknown as Source & { boxes: { id: string; icon?: string }[] };
+      const source = orderJson(name) as unknown as Source;
       const order = visitOrder(source);
       const iconOf = (id: string | undefined): string | undefined => source.boxes.find((b) => b.id === id)?.icon;
       expect(iconOf(order[6]), `${name} の返品の受付の絵柄`).toBe("undo");
@@ -756,7 +760,7 @@ describe("状態遷移図の見た目 (#3171)", () => {
   it("state-strip-shows-passed-states", () => {
     const source = orderJson() as unknown as Source;
     const { layout, svg } = render(source as unknown as Json);
-    const strip = layout.strip as TintedStrip | undefined;
+    const { strip } = layout;
     expect(strip, "注文の図に帯が無い").toBeDefined();
     expect(strip?.fields.map((f) => f.name), "注文の見本の帯に状態の欄が残る").not.toContain("状態");
     expect(strip?.trail?.title, "帯に通った状態の欄が無い").toBe("通った状態");
@@ -764,14 +768,14 @@ describe("状態遷移図の見た目 (#3171)", () => {
     expect((svg.match(/data-trail="/gu) ?? []).length, "通った状態の点の数").toBe(visitOrder(source).length);
     expect((svg.match(/class="dg-tr-ring"/gu) ?? []).length, "まだ着いていない状態の輪郭の点の数").toBe(visitOrder(source).length);
     expect((svg.match(/class="dg-tr-fill dg-a"/gu) ?? []).length, "着いた状態を塗る点の数").toBe(visitOrder(source).length);
-    const english = render(orderJson("order.en.json"), "en").layout.strip as TintedStrip | undefined;
+    const english = render(orderJson("order.en.json"), "en").layout.strip;
     expect(english?.trail?.title, "英語の図の通った状態の欄").toBe("States passed");
   });
 
   it("state-strip-tints-changed-values", () => {
     const source = orderJson() as unknown as Source;
     const { layout, svg } = render(source as unknown as Json);
-    const colorOf = (id: string | undefined): string | undefined => (layout.boxes.find((b) => b.id === id))?.color;
+    const colorOf = (id: string | undefined): string | undefined => layout.boxes.find((b) => b.id === id)?.color;
     const sets = source.steps.flatMap((step, s) => (step.events as unknown as SetEvent[]).filter((e) => e.type === "strip" && e.value !== undefined).map(() => s));
     expect(sets.length, "注文の図に値を書き換える段が無い").toBeGreaterThan(0);
     const tinted = [...svg.matchAll(/<g class="dg-fv-now dg-a" data-step="(\d+)" style="--c:var\(--c-([a-z]+)\)/gu)];
