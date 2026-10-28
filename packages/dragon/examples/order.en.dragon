@@ -1,0 +1,87 @@
+// The states of online order #1042, from the order to delivery, then a return and a refund that close it (#3163).
+// The lines before the first step are the cancel path, which the order could take but does not this time.
+state States of an online order from delivery to refund
+
+box received as Received [note: Gets a number, color: blue, icon: doc]
+box awaiting as Awaiting payment [note: Waits for funds, color: amber, icon: clock]
+box paid as Paid [note: Payment cleared, color: amber, icon: card]
+box packing as Packing [note: Off the shelf, color: blue, icon: box]
+box shipped as Shipped [note: With the carrier, color: violet, icon: truck]
+box delivered as Delivered [note: Handed over, color: green, icon: check]
+box returning as Return requested [note: Awaiting the check, color: rose, icon: refresh]
+box refunded as Refunded [note: Money goes back, color: rose, icon: card]
+box cancelled as Cancelled [note: Payment returned, color: rose, icon: x]
+
+strip Order #1042: State, Payment, Stock, Tracking no., Elapsed
+
+awaiting -> cancelled
+paid -> cancelled: Cancel
+packing -> cancelled
+cancelled -> finish
+
+step Receive the order
+  say Confirming the cart starts the order at Received. It gets the number #1042, and every later move is recorded.
+  start -> received: Place order [tag: #1042]
+  set State [tag: Received]
+  set Payment: not yet
+  set Stock: not held
+  set Elapsed: 0 min
+
+step Wait for payment
+  say Going to checkout moves the order to Awaiting payment. If it is not paid in time, it moves from here to Cancelled.
+  received -> awaiting: Check out [tag: #1042]
+  set State [tag: Awaiting payment]
+  set Elapsed: 2 min
+
+step Confirm the payment
+  say The payment company reports the deposit, and the order moves to Paid. The amount of 4,980 yen is recorded.
+  awaiting -> paid: Confirm payment [tag: #1042]
+  set State [tag: Paid]
+  set Payment: 4,980 yen
+  set Elapsed: 5 min
+
+step Hold the stock
+  say The warehouse holds the stock, and the order moves to Packing. Up to here it can be cancelled, and the payment is returned.
+  paid -> packing: Hold stock [tag: #1042]
+  set State [tag: Packing]
+  set Stock: held
+  set Elapsed: 3 h
+
+step Ship
+  say The parcel goes to the carrier with a tracking number, and the order moves to Shipped. After shipping, the cancel path is closed.
+  packing -> shipped: Issue label [tag: #1042]
+  set State [tag: Shipped]
+  set Stock: shipped
+  set Tracking no.: 4821-0937
+  set Elapsed: 1 day
+
+step Deliver
+  say The carrier records the handover, and the order moves to Delivered. A normal order ends here.
+  shipped -> delivered: Record delivery [tag: #1042]
+  set State [tag: Delivered]
+  set Elapsed: 2 days
+
+step Request a return
+  say The buyer asks for a return, and the order moves to Return requested. This path is open only for a set number of days after delivery.
+  delivered -> returning: Request return [tag: #1042]
+  set State [tag: Return requested]
+  set Elapsed: 6 days
+
+step Check the returned item
+  say The returned item is inspected. The state stays Return requested, so the arrow goes back to the same state.
+  returning -> returning: Inspect [tag: #1042]
+  note returning: Passed the check
+  set Stock: back on shelf
+  set Elapsed: 9 days
+
+step Refund
+  say The item passed, so the refund runs and the order moves to Refunded. The payment field changes to refunded.
+  returning -> refunded: Run refund [tag: #1042]
+  note refunded: Fully returned
+  set State [tag: Refunded]
+  set Payment: refunded
+  set Elapsed: 10 days
+
+step Close the order
+  say Refunded is a final state, and the order moves nowhere after it. The order closes, and the path it took stays on record.
+  refunded -> finish: Close order [tag: #1042]

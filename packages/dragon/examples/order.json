@@ -1,0 +1,398 @@
+{
+  "version": 1,
+  "kind": "state",
+  "title": "ネット通販の注文が届いて返金されるまでの状態",
+  "boxes": [
+    {
+      "id": "注文受付",
+      "name": "注文受付",
+      "sub": "番号を付ける",
+      "color": "blue",
+      "icon": "doc"
+    },
+    {
+      "id": "支払い待ち",
+      "name": "支払い待ち",
+      "sub": "入金を待つ",
+      "color": "amber",
+      "icon": "clock"
+    },
+    {
+      "id": "支払い済み",
+      "name": "支払い済み",
+      "sub": "決済が通った",
+      "color": "amber",
+      "icon": "card"
+    },
+    {
+      "id": "発送準備",
+      "name": "発送準備",
+      "sub": "棚から出す",
+      "color": "blue",
+      "icon": "box"
+    },
+    {
+      "id": "発送済み",
+      "name": "発送済み",
+      "sub": "業者が運ぶ",
+      "color": "violet",
+      "icon": "truck"
+    },
+    {
+      "id": "配達完了",
+      "name": "配達完了",
+      "sub": "受け取られた",
+      "color": "green",
+      "icon": "check"
+    },
+    {
+      "id": "返品の受付",
+      "name": "返品の受付",
+      "sub": "検品を待つ",
+      "color": "rose",
+      "icon": "refresh"
+    },
+    {
+      "id": "返金済み",
+      "name": "返金済み",
+      "sub": "代金を戻す",
+      "color": "rose",
+      "icon": "card"
+    },
+    {
+      "id": "キャンセル",
+      "name": "キャンセル",
+      "sub": "払った分は返す",
+      "color": "rose",
+      "icon": "x"
+    }
+  ],
+  "strip": {
+    "title": "注文 #1042",
+    "fields": [
+      "状態",
+      "支払い",
+      "在庫",
+      "伝票番号",
+      "経過"
+    ]
+  },
+  "steps": [
+    {
+      "title": "注文を受け付ける",
+      "body": "カートの中身で注文を確定すると、注文受付から始まる。注文番号 #1042 が付き、ここから先の動きは全て記録に残る。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "start",
+          "to": "注文受付",
+          "label": "注文を確定",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "tag": "注文受付"
+        },
+        {
+          "type": "strip",
+          "field": "支払い",
+          "value": "まだ"
+        },
+        {
+          "type": "strip",
+          "field": "在庫",
+          "value": "未確保"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "0 分"
+        }
+      ]
+    },
+    {
+      "title": "支払いを待つ",
+      "body": "決済へ進むと支払い待ちに移る。期限までに払われなければ、この状態から取り消しへ移る。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "注文受付",
+          "to": "支払い待ち",
+          "label": "決済へ進む",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "tag": "支払い待ち"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "2 分"
+        }
+      ]
+    },
+    {
+      "title": "支払いが確定する",
+      "body": "決済会社から入金の知らせが届き、支払い済みに移る。金額の 4,980 円が記録に入る。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "支払い待ち",
+          "to": "支払い済み",
+          "label": "支払いを確定",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "tag": "支払い済み"
+        },
+        {
+          "type": "strip",
+          "field": "支払い",
+          "value": "4,980 円"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "5 分"
+        }
+      ]
+    },
+    {
+      "title": "在庫を確保する",
+      "body": "倉庫が在庫を引き当て、発送準備に移る。ここまでは取り消せて、取り消すと払った分を返す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "支払い済み",
+          "to": "発送準備",
+          "label": "在庫を確保",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "tag": "発送準備"
+        },
+        {
+          "type": "strip",
+          "field": "在庫",
+          "value": "確保した"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "3 時間"
+        }
+      ]
+    },
+    {
+      "title": "発送する",
+      "body": "配送業者に渡して伝票番号を発行し、発送済みに移る。発送した後は取り消しの道が閉じる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "発送準備",
+          "to": "発送済み",
+          "label": "伝票を発行",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "tag": "発送済み"
+        },
+        {
+          "type": "strip",
+          "field": "在庫",
+          "value": "出荷した"
+        },
+        {
+          "type": "strip",
+          "field": "伝票番号",
+          "value": "4821-0937"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "1 日"
+        }
+      ]
+    },
+    {
+      "title": "届く",
+      "body": "配送業者が受け取りを記録すると、配達完了に移る。普通の注文はここで終わる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "発送済み",
+          "to": "配達完了",
+          "label": "配達を記録",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "tag": "配達完了"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "2 日"
+        }
+      ]
+    },
+    {
+      "title": "返品を申し込む",
+      "body": "購入者が返品を申し込み、返品の受付に移る。届いてから決まった日数の間だけ選べる道。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "配達完了",
+          "to": "返品の受付",
+          "label": "返品を申請",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "tag": "返品の受付"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "6 日"
+        }
+      ]
+    },
+    {
+      "title": "戻った品を確かめる",
+      "body": "戻った商品を検品する。状態は返品の受付のまま変わらないので、同じ状態へ戻る矢印で表す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "返品の受付",
+          "to": "返品の受付",
+          "label": "検品する",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "返品の受付",
+          "text": "検品を通った"
+        },
+        {
+          "type": "strip",
+          "field": "在庫",
+          "value": "棚へ戻した"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "9 日"
+        }
+      ]
+    },
+    {
+      "title": "返金する",
+      "body": "検品を通ったので返金を実行し、返金済みに移る。支払いの欄が返金した、に変わる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "返品の受付",
+          "to": "返金済み",
+          "label": "返金を実行",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "返金済み",
+          "text": "全額を戻した"
+        },
+        {
+          "type": "strip",
+          "field": "状態",
+          "tag": "返金済み"
+        },
+        {
+          "type": "strip",
+          "field": "支払い",
+          "value": "返金した"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "10 日"
+        }
+      ]
+    },
+    {
+      "title": "注文を閉じる",
+      "body": "返金済みは終わりの状態で、ここから先へは移らない。注文は閉じ、通った道は記録として残る。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "返金済み",
+          "to": "finish",
+          "label": "注文を閉じる",
+          "carry": {
+            "kind": "tag",
+            "text": "#1042"
+          }
+        }
+      ]
+    }
+  ],
+  "state": {
+    "paths": [
+      {
+        "from": "支払い待ち",
+        "to": "キャンセル"
+      },
+      {
+        "from": "支払い済み",
+        "to": "キャンセル",
+        "label": "取り消す"
+      },
+      {
+        "from": "発送準備",
+        "to": "キャンセル"
+      },
+      {
+        "from": "キャンセル",
+        "to": "finish"
+      }
+    ]
+  }
+}
