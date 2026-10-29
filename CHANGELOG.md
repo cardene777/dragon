@@ -5,6 +5,8 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-10-29
+
 ### Changed
 
 - **原本の file を今の版へ移す `migrateFile` を、Node でだけ動く入口 `@cardenelabs/dragon/node` へ移した** (#3206)
