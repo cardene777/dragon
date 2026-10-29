@@ -229,3 +229,16 @@
 | 字の重なる図を編集画面に書く時、重なりの欄が重なりを並べる (#3178) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3184 |
 | 英語で重なりを知らせる時、箱の絵柄を `The icon of "<箱の名前>"`、硬貨を `the coin`、封筒を `the envelope` と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-names-parts-in-english`が通る | #3184 |
 | 日本語で重なりを知らせる時、箱の絵柄を「<箱の名前> の絵柄」、運ぶ物を「硬貨」「封筒」と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-names-parts-in-japanese`が通る | #3184 |
+| 構成図で同じ箱へ戻る線を持つ図 (packages/dragon/test/fixtures/arch-self-loop.dragon) を描いた時、全ての段で `overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-no-overlaps`が通る | #3186 |
+| 構成図で同じ箱へ戻る線は、箱の下端から出て箱の下へ膨らみ、箱の下端へ戻る輪になる | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-loops-below-box`が通る | #3186 |
+| 構成図の輪の段の番号は輪の右に、線の名前は輪の下に置かれる | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-badge-and-label`が通る | #3186 |
+| 構成図の輪に載せた運ぶ物は、輪の上を通って箱の置き場に着く | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-carrier-on-loop`が通る | #3186 |
+| 同じ箱へ戻る線を持つ箱の真下に別の箱が在る時、輪と名前と番号が下の箱に重ならない | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-clear-of-box-below`が通る | #3186 |
+| 区画の中の箱に同じ箱へ戻る線を書いた時、輪と名前と番号が区画の中に収まる | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-inside-region`が通る | #3186 |
+| 輪を持つ箱から出入りするほかの線 (packages/dragon/test/fixtures/arch-self-region.dragon、arch-self-side.dragon、arch-self-wide.dragon) は、輪と名前の置き場を通らず箱の脇から列の間を回る | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-other-lines-avoid-loop`が通る | #3186 |
+| 同じ列の箱どうしを列の間で回る線は、列で一番幅の広い箱の中を通らない (packages/dragon/test/fixtures/arch-self-wide.dragon) | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-detour-clear-of-wide-box`が通る | #3186 |
+| 状態遷移図の同じ状態へ戻る線は、今のまま状態の下に輪で描く | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-draws-self-loop-under-box`が通る | #3186 |
+| 時系列図の自分への矢印は、今のまま生存線の右へ出て戻る | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`sequence-self-message-unchanged`が通る | #3186 |
+| 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3186 |
+| 字の重なる図を書き出す時、書き出しの命令は重なりを標準エラーに出す (#3178) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-warns-overlaps`が通る | #3186 |
+| 字の重なる図を編集画面に書く時、重なりの欄が重なりを並べる (#3178) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3186 |
