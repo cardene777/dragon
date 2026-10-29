@@ -1,0 +1,13 @@
+state Link
+
+box order as Order received
+box check as Checking payment [link: https://github.com/cardene777/dragon]
+
+step Receive
+  say link on a state box makes the box a link to that place in the drawn diagram.
+  start -> order
+
+step Check
+  say When another diagram draws how the check works, link to its page.
+  order -> check: Paid
+  check -> finish

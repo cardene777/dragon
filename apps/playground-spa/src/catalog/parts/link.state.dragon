@@ -1,0 +1,13 @@
+state 飛び先
+
+box 注文 as 注文を受けた
+box 支払い as 支払いを確かめる [link: https://github.com/cardene777/dragon]
+
+step 受ける
+  say link で状態の箱に飛び先を書くと、描いた図でその箱を押して飛び先へ移れる。
+  start -> 注文
+
+step 確かめる
+  say 確かめ方を別の図に描いた時は、その図の頁を飛び先にする。
+  注文 -> 支払い: 払った
+  支払い -> finish

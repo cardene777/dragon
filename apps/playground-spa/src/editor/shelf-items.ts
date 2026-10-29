@@ -241,6 +241,7 @@ export type SyntaxId =
   | "strip"
   | "step"
   | "code"
+  | "source"
   | "edge"
   | "carry"
   | "side"
@@ -265,12 +266,15 @@ const HOLE = {
     note: "添え書き",
     color: "色",
     icon: "印",
+    link: "飛び先",
     field: "欄",
     value: "値",
     tag: "札",
     stepTitle: "段の題",
     stepBody: "段の本文",
     command: "命令",
+    source: "出典の名前",
+    url: "URL",
     label: "線の名前",
     action: "処理の名前",
     text: "字",
@@ -286,12 +290,15 @@ const HOLE = {
     note: "note",
     color: "color",
     icon: "icon",
+    link: "link",
     field: "field",
     value: "value",
     tag: "tag",
     stepTitle: "step title",
     stepBody: "step body",
     command: "command",
+    source: "source name",
+    url: "URL",
     label: "label",
     action: "action",
     text: "text",
@@ -336,10 +343,11 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
       ]),
     },
     // 区画に置く書き方は region の早見の group … end が見せる
-    { id: "box", lines: diff([[base, draw({ ...base, boxes: [{ id: h.id, name: h.name, sub: h.note, color: h.color, icon: h.icon }] })]]) },
+    { id: "box", lines: diff([[base, draw({ ...base, boxes: [{ id: h.id, name: h.name, sub: h.note, color: h.color, icon: h.icon, link: h.link }] })]]) },
     { id: "strip", lines: diff([[base, draw({ ...base, strip: { title: h.title, fields: [h.field, h.field] } })]]) },
     { id: "step", lines: diff([[base, withStep]]) },
     { id: "code", lines: diff([[withStep, draw({ ...base, steps: [{ ...step, code: h.command }] })]]) },
+    { id: "source", lines: diff([[withStep, draw({ ...base, steps: [{ ...step, sources: [{ name: h.source, url: h.url }] }] })]]) },
     { id: "edge", lines: diff([[withStep, inStep([edgeOf({ kind: "envelope" })])]]) },
     { id: "carry", lines: diff([{ kind: "tag", text: h.value }, { kind: "coin" }, { kind: "none" }].map((carry) => [withStep, inStep([edgeOf(carry)])])) },
     { id: "side", lines: diff(["above", "below", "left", "right"].map((side) => [withStep, inStep([edgeOf({ kind: "envelope" }, side)])])) },

@@ -1,0 +1,12 @@
+architecture Link
+
+box app as App
+box pay as Payment system [link: https://github.com/cardene777/dragon]
+
+step Ask
+  say link on a box makes the box a link to that place in the drawn diagram.
+  app -> pay: Charge
+
+step Answer
+  say When another diagram draws what is inside the box, link to its page.
+  pay -> app: Done

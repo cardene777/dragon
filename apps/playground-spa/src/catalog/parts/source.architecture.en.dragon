@@ -1,0 +1,15 @@
+architecture Source
+
+box app as App
+box pay as Payment system
+
+step Ask
+  say source gives a step the name and url of a source. A step takes any number.
+  source dragon README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  app -> pay: Charge
+
+step Answer
+  say Sources stay out of the diagram and the text, and appear as links in the step list.
+  source Notation guide [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md]
+  source dragon repo [url: https://github.com/cardene777/dragon]
+  pay -> app: Done
