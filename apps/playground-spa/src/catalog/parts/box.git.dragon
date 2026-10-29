@@ -1,0 +1,15 @@
+git 箱
+
+branch main
+
+box 作業ツリー [note: 手元のファイル]
+
+step 積む
+  say box の行で、枝の帯の横に物を 1 つ置く。commit の外で変わる物に使う。
+  commit A on main [hash: 3fa0c19]
+  note 作業ツリー: A の中身
+
+step 進める
+  say 段の中の note の行で、箱の下の小さな字を書き換える。
+  commit B on main [hash: 8b04f71]
+  note 作業ツリー: B の中身

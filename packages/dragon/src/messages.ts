@@ -65,6 +65,23 @@ export interface Messages {
   outOfFinish: string;
   /** 状態遷移図の最初の step より前の線に、属性を書いた */
   pathNoAttrs: string;
+  /** 枝分かれの図だけの行 (`branch` と `commit`) を、別の種類の図に書いた (#3164) */
+  gitOnly: (word: string) => string;
+  gitNoGroup: string;
+  noBranches: string;
+  branchShape: string;
+  commitShape: string;
+  fromShape: string;
+  undeclaredBranch: (id: string) => string;
+  /** 札を動かす線の送る側が、枝の名札でも HEAD でもない */
+  undeclaredRef: (id: string) => string;
+  noCommit: (id: string) => string;
+  /** 取り込む枝が、まだどの commit も指していない */
+  emptyBranch: (id: string) => string;
+  mergeSelf: (id: string) => string;
+  /** 枝分かれの図で、今いる場所の札の名前 (`name`) を名札にした */
+  headReserved: (name: string) => string;
+  badHash: string;
 }
 
 const list = (words: readonly string[]): string => words.join(" / ");
@@ -102,8 +119,8 @@ const ja = (): Messages => {
     sayTwice: "1 つの段に say は 1 つまで。長い本文は say の下に字下げして続ける",
     codeTwice: "1 つの段に code は 1 行まで",
     emptyCode: "code の後ろに命令を書く",
-    declarationInStep: "group と box と strip は最初の step より前に書く",
-    stepLineBeforeStep: "線と say と code と act と note と set は step の下に書く",
+    declarationInStep: "group と box と strip と branch は最初の step より前に書く",
+    stepLineBeforeStep: "線と say と code と act と note と set と commit と枝を切る行は step の下に書く",
     nestedGroup: "group の中に group は書けない。先に end で閉じる",
     strayEnd: "end の前に、閉じる group が無い",
     endTakesNothing: "end の後ろには何も書かない",
@@ -136,6 +153,19 @@ const ja = (): Messages => {
     intoStart: "start へ入る線は書けない。start は始まりの印で、線は start から出る",
     outOfFinish: "finish から出る線は書けない。finish は終わりの印で、線は finish へ入る",
     pathNoAttrs: "最初の step より前の線は今回は通らない道なので、属性 (carry と tag と side) を書けない",
+    gitOnly: (word) => `${word} の行は git (枝分かれの図) でだけ書ける`,
+    gitNoGroup: "git (枝分かれの図) には group を書けない。枝は branch の行で宣言する",
+    noBranches: "branch の行で枝を 1 つ以上宣言する",
+    branchShape: "branch は branch <名札> [note: <添え書き>] の形で書く",
+    commitShape: "commit は commit <名札> on <枝> [hash: <hash>, note: <一言>] の形で書く。当て直しは copy <commit> を、取り込みは merge <枝> を on <枝> の後ろに書く",
+    fromShape: "枝を切る行は <枝> from <commit> の形で書く",
+    undeclaredBranch: (id) => `${id} という枝は宣言していない`,
+    undeclaredRef: (id) => `${id} という枝は宣言していない。札を動かす線は枝の名札か HEAD から引く`,
+    noCommit: (id) => `${id} という commit はまだ積んでいない`,
+    emptyBranch: (id) => `${id} の枝はまだどの commit も指していないので取り込めない`,
+    mergeSelf: (id) => `${id} は積む枝なので、取り込む枝にできない`,
+    headReserved: (name) => `${name} は枝分かれの図で今いる場所の札の名前で、名札に使えない`,
+    badHash: "hash は 0 から 9 と a から f の字で 4 から 40 字にする",
   };
 };
 
@@ -172,8 +202,8 @@ const en = (): Messages => {
     sayTwice: "A step takes one say. Continue a long body on indented lines below it",
     codeTwice: "A step takes at most one code line",
     emptyCode: "Write the command after code",
-    declarationInStep: "Write group, box and strip before the first step",
-    stepLineBeforeStep: "Write lines, say, code, act, note and set under a step",
+    declarationInStep: "Write group, box, strip and branch before the first step",
+    stepLineBeforeStep: "Write lines, say, code, act, note, set, commit and branch cuts under a step",
     nestedGroup: "A group cannot hold another group. Close it with end first",
     strayEnd: "There is no group for this end to close",
     endTakesNothing: "Write nothing after end",
@@ -206,6 +236,19 @@ const en = (): Messages => {
     intoStart: "A line cannot go into start. start is the start mark, and lines leave it",
     outOfFinish: "A line cannot leave finish. finish is the end mark, and lines go into it",
     pathNoAttrs: "A line before the first step is a path not taken, so it takes no attributes (carry, tag, side)",
+    gitOnly: (word) => `${word} lines can be written only in git diagrams`,
+    gitNoGroup: "A git diagram takes no group. Declare branches with branch lines",
+    noBranches: "Declare at least one branch with a branch line",
+    branchShape: "Write a branch as branch <id> [note: <note>]",
+    commitShape: "Write a commit as commit <id> on <branch> [hash: <hash>, note: <note>]. For a replayed commit add copy <commit>, and for a merge commit add merge <branch>, after on <branch>",
+    fromShape: "Write a branch cut as <branch> from <commit>",
+    undeclaredBranch: (id) => `No branch named ${id} is declared`,
+    undeclaredRef: (id) => `No branch named ${id} is declared. A line that moves a ref starts from a branch id or HEAD`,
+    noCommit: (id) => `No commit named ${id} has been made yet`,
+    emptyBranch: (id) => `Branch ${id} does not point at any commit yet, so it cannot be merged`,
+    mergeSelf: (id) => `${id} is the branch being committed to, so it cannot be the branch merged in`,
+    headReserved: (name) => `${name} names where you are in a git diagram and cannot be an id`,
+    badHash: "Write a hash as 4 to 40 characters of 0-9 and a-f",
   };
 };
 

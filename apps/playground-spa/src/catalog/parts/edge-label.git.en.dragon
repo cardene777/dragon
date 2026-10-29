@@ -1,0 +1,16 @@
+git Edge label
+
+branch main
+
+step Commit
+  say Add A and B on main.
+  commit A on main
+  commit B on main
+
+step Above
+  say The text after the colon is the label. Without side it sits above the tags.
+  HEAD -> A: detach
+
+step Below
+  say side picks where the label sits: above, below, left or right.
+  HEAD -> B: go back [side: below]

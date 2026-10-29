@@ -10,8 +10,10 @@
  * 箱は JSON の並びのまま書き、同じ区画の箱が続く所を 1 つの `group … end` にする。
  * 区画の箱が飛び飛びの時は同じ `group` を開き直す。区画の並びが箱の現れる順と違う時と、
  * 箱の無い区画がある時は、先に全ての区画を中の無い `group … end` で宣言してから開き直す。
+ * 枝分かれの図 (#3164) は、枝の `branch` の行を箱より前に書き、札を動かす線の運ぶ物が送る側の名前の札なら書かない。
  */
 import type { Box, Diagram, DiagramEvent, Region } from "./schema";
+import { COPY, FROM, MERGE, ON } from "./words";
 
 const quote = (text: string): string => `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 /** 行の終わりか `[` の前に置く名前と文 */
@@ -48,10 +50,12 @@ const declareBox = (b: Box): string =>
 /** 線の行の両端と名前 */
 const line = (from: string, to: string, label: string | undefined): string => `${from} -> ${to}${label === undefined ? "" : `: ${name(label)}`}`;
 
-function event(e: DiagramEvent): string {
+/** 段の中の 1 行。`git` は枝分かれの図か。枝分かれの図の線は、送る側の名前の札を書かない時の運ぶ物にする */
+function event(e: DiagramEvent, git: boolean): string {
   switch (e.type) {
     case "edge": {
-      const carry: [string, string][] = e.carry.kind === "tag" ? [["tag", e.carry.text]] : e.carry.kind === "envelope" ? [] : [["carry", e.carry.kind]];
+      const plain = git ? e.carry.kind === "tag" && e.carry.text === e.from : e.carry.kind === "envelope";
+      const carry: [string, string][] = plain ? [] : e.carry.kind === "tag" ? [["tag", e.carry.text]] : [["carry", e.carry.kind]];
       return `${line(e.from, e.to, e.label)}${attrs([...carry, ["side", e.labelSide]])}`;
     }
     case "action":
@@ -60,6 +64,13 @@ function event(e: DiagramEvent): string {
       return `note ${e.box}: ${e.text}`;
     case "strip":
       return `set ${key(e.field)}${e.value === undefined ? "" : `: ${name(e.value)}`}${attrs([["tag", e.tag]])}`;
+    case "commit":
+      return `commit ${e.id} ${ON} ${e.branch}${e.copy === undefined ? "" : ` ${COPY} ${e.copy}`}${e.merge === undefined ? "" : ` ${MERGE} ${e.merge}`}${attrs([
+        ["hash", e.hash],
+        ["note", e.note],
+      ])}`;
+    case "branch":
+      return `${e.branch} ${FROM} ${e.from}`;
   }
 }
 
@@ -97,14 +108,15 @@ function declarations(diagram: Diagram): string[] {
 }
 
 export function printNotation(diagram: Diagram): string {
-  const blocks = [`${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`, ...declarations(diagram)];
+  const branches = (diagram.git?.branches ?? []).map((b) => `branch ${b.id}${attrs([["note", b.note]])}`);
+  const blocks = [`${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`, ...(branches.length > 0 ? [branches.join("\n")] : []), ...declarations(diagram)];
   if (diagram.strip) blocks.push(`strip ${key(diagram.strip.title)}: ${diagram.strip.fields.map(field).join(", ")}`);
   if (diagram.state) blocks.push(diagram.state.paths.map((p) => line(p.from, p.to, p.label)).join("\n"));
   for (const step of diagram.steps) {
     const body = step.body.split("\n");
     const say = body.length === 1 ? [`  say ${step.body}`] : ["  say", ...body.map((line) => (line === "" ? "" : `    ${line}`))];
     blocks.push(
-      [`step ${step.title}`, ...say, ...(step.code === undefined ? [] : [`  code ${step.code}`]), ...step.events.map((e) => `  ${event(e)}`)].join("\n"),
+      [`step ${step.title}`, ...say, ...(step.code === undefined ? [] : [`  code ${step.code}`]), ...step.events.map((e) => `  ${event(e, diagram.kind === "git")}`)].join("\n"),
     );
   }
   return `${blocks.join("\n\n")}\n`;

@@ -1,0 +1,15 @@
+git 段 [view: fixed]
+
+branch main
+
+step 積む
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code git commit
+  commit A on main
+
+step 続ける
+  say 段は 1 つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  code git commit
+  commit B on main

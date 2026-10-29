@@ -46,7 +46,29 @@ export type DiagramEvent =
   | { type: "edge"; from: string; to: string; label?: string; carry: Carry; labelSide?: LabelSide }
   | { type: "action"; box: string; label: string }
   | { type: "swap"; box: string; text: string }
-  | { type: "strip"; field: string; value?: string; tag?: string };
+  | { type: "strip"; field: string; value?: string; tag?: string }
+  | GitCommit
+  | { type: "branch"; branch: string; from: string };
+
+/**
+ * 枝分かれの図 (#3164) の commit を積む出来事。積んだ枝の札と、その枝を指す HEAD が新しい commit へ進む。
+ * 当て直し (`copy`) は枝の札を動かさず、merge commit (`merge`) は取り込む枝の先端も親に持つ
+ */
+export interface GitCommit {
+  type: "commit";
+  id: string;
+  branch: string;
+  copy?: string;
+  merge?: string;
+  hash?: string;
+  note?: string;
+}
+
+/** 枝分かれの図の枝。上から宣言した順に帯を並べる */
+export interface GitBranch {
+  id: string;
+  note?: string;
+}
 
 /** 状態遷移図の、最初の段より前に書いた移れる道。`from` に `start`、`to` に `finish` を書ける */
 export interface StatePath {
@@ -64,7 +86,7 @@ export interface Step {
 
 export interface Diagram {
   version: number;
-  kind: "sequence" | "architecture" | "state";
+  kind: "sequence" | "architecture" | "state" | "git";
   title: string;
   view?: ViewMode;
   regions?: Region[];
@@ -73,6 +95,7 @@ export interface Diagram {
   steps: Step[];
   sequence?: { lifelines: string[] };
   state?: { paths: StatePath[] };
+  git?: { branches: GitBranch[] };
 }
 
 export interface FieldError {
@@ -89,25 +112,31 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch"] as const satisfies readonly DiagramEvent["type"][];
 
 /**
- * schema の書けない組み合わせ (`not: { required: [欄] }`) の欄。根の 3 か所は決まりの場所で引き、運ぶ物は誤りの場所の最後の欄で引く。
- * 根の `sequence` と運ぶ物の `text` は ajv の誤りでは決まりの場所 (`#/else/not`) が同じになるので、誤りの場所でも分ける
+ * その種類の図に書けない根の欄を書いた時の決まりの場所 (#3164)。根の欄に `not: {}` を置く決まり (`absent`) を指し、
+ * 誤りの場所の最後の欄が書いた欄になる。種類の欄は、その欄と同じ名前の図の種類だけが書ける
  */
-const ROOT_NOT_ALLOWED: Record<string, Allowed> = {
-  "#/else/not": { field: "sequence", kind: "sequence" },
-  "#/then/not": { field: "state", kind: "state" },
-  "#/else/else/not": { field: "state", kind: "state" },
-};
+const ABSENT = "#/definitions/absent/not";
+/** 種類の欄でない根の欄を書ける図の種類。区画は枝分かれの図に書けない */
+const ABSENT_KINDS: Record<string, string> = { regions: "sequence / architecture / state" };
+/** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
 const NOT_ALLOWED: Record<string, Allowed> = {
   carry: { field: "text", kind: "tag" },
 };
 
 /** 状態遷移図の箱の名札に予約の名前を書いた時の決まりの場所 */
 const RESERVED_ID = /\/boxes\/items\/properties\/id\/not$/u;
+/** 枝分かれの図でない図に、枝分かれの図だけの出来事を書いた時の決まりの場所 (#3164) */
+const GIT_EVENT = /\/events\/items\/properties\/type\/not$/u;
+/** 枝分かれの図だけが書ける出来事 */
+const GIT_EVENTS = ["commit", "branch"] as const satisfies readonly DiagramEvent["type"][];
 
 const escape = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
+
+/** commit の hash の決まり (`^[0-9a-f]{<最小>,<最大>}$`)。字の数の幅を読む */
+const HEX = /^\^\[0-9a-f\]\{(\d+),(\d+)\}\$$/u;
 
 /** `^[^…]+$` の形の決まりから書けない字を読む。違う形の決まりでは `undefined` */
 function forbiddenOf(pattern: string): Forbidden | undefined {
@@ -140,7 +169,10 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
     }
     case "not": {
       if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: m.reserved(STATE_ENDS) };
-      const allowed = at === "" ? ROOT_NOT_ALLOWED[error.schemaPath] : NOT_ALLOWED[at.slice(at.lastIndexOf("/") + 1)];
+      if (GIT_EVENT.test(error.schemaPath)) return { pointer: at, message: m.kindOnly(GIT_EVENTS, "git") };
+      const last = at.slice(at.lastIndexOf("/") + 1);
+      if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };
+      const allowed = NOT_ALLOWED[last];
       return { pointer: allowed ? `${at}/${allowed.field}` : at, message: m.not(allowed) };
     }
     case "anyOf": {
@@ -158,8 +190,10 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       return { pointer: at, message: m.type(String(params.type)) };
     case "minLength":
       return { pointer: at, message: m.minLength(Number(params.limit)) };
-    case "pattern":
-      return { pointer: at, message: m.pattern(forbiddenOf(String(params.pattern))) };
+    case "pattern": {
+      const hex = HEX.exec(String(params.pattern));
+      return { pointer: at, message: hex ? m.hex(Number(hex[1]), Number(hex[2])) : m.pattern(forbiddenOf(String(params.pattern))) };
+    }
     case "minItems":
       return { pointer: at, message: m.minItems(Number(params.limit)) };
     case "minimum":

@@ -1,0 +1,84 @@
+// 作業の枝 feature を main の先端へ rebase し、main を早送りで進めて履歴を 1 本にするまで (#3164)。
+// 上の帯が main、下の帯が feature。commit は丸で、hash と一言を丸の外に添える。
+// 当て直した C' と D' は main の帯に積み、枝の札は動かさない。HEAD は枝から離れた間だけ札で出す。
+git 作業の枝を rebase して main へ取り込む
+
+branch main [note: 取り込む先]
+branch feature [note: 作業の枝]
+
+box 作業ツリー [note: 手元のファイル, color: violet, icon: doc]
+
+strip 参照: main, feature, HEAD, 履歴の形
+
+step main にある
+  say main に commit A と B がある。main は B を指し、HEAD は main を指している。手元で開いているのは B の中身。
+  commit A on main [hash: 3fa0c19, note: 最初の形]
+  commit B on main [hash: 8b04f71, note: 一覧を足す]
+  set main: B 8b04f71
+  set HEAD: main
+  set 履歴の形: 一直線
+
+step 枝を切る
+  say B から作業の枝 feature を作って移る。feature も B を指し、HEAD は feature を指す。中身はまだ main と同じ。
+  code git switch -c feature
+  feature from B
+  set feature: B 8b04f71
+  set HEAD: feature
+
+step 作業を積む
+  say feature に C と D を積む。commit のたびに feature が新しい commit へ進み、HEAD も付いていく。main は B のまま。
+  code git commit
+  commit C on feature [hash: c41d0e5, note: 価格を丸める]
+  commit D on feature [hash: d72b9a3, note: 送料を足す]
+  set feature: D d72b9a3
+
+step main が進む
+  say その間に他の人の変更 E が main に入り、手元の main も取り込んで E を指す。feature は古い B から分かれたまま。
+  commit E on main [hash: e5f8312, note: 税率を直す]
+  set main: E e5f8312
+  set 履歴の形: 枝分かれ
+
+step rebase を始める
+  say Git は分かれ目の B まで戻って C と D を控え、HEAD を E へ移す。HEAD は枝を通さず E を直接指す (切り離し)。ここから 1 つずつ当て直す。
+  code git rebase main
+  HEAD -> E: git rebase main
+  set HEAD: E (切り離し)
+  set 履歴の形: 当て直し中
+
+step 衝突で止まる
+  say C を E の上へ当て直すと、E も同じ行を変えていたので衝突する。rebase はそこで止まり、直すのを待つ。
+  note 作業ツリー: src/price.ts で衝突
+  set 履歴の形: 衝突で停止
+
+step 直して続ける
+  say 衝突した行を直して続けると、C と同じ変更を持つ C' ができる。親が B から E に変わったので hash も変わる。
+  code git add → git rebase --continue
+  note 作業ツリー: 直して git add した
+  commit C' on main copy C [hash: a90c6b4, note: 価格を丸める]
+  set HEAD: C' (切り離し)
+  set 履歴の形: 当て直し中
+
+step D を当て直す
+  say D は衝突せず D' になる。当て終わると feature が D' へ移り、HEAD も feature に戻る。元の C と D はどこからも指されない。
+  commit D' on main copy D [hash: f1e7d28, note: 送料を足す]
+  feature -> D'
+  set feature: D' f1e7d28
+  set HEAD: feature
+  set 履歴の形: 早送りできる
+
+step 検査が通る
+  say D' は E の変更も含んだ形になっている。この形で検査を回し、全て通ることを確かめてから取り込む。
+  note 作業ツリー: D' で検査を回す
+  note 作業ツリー: 型、単体、結合が通った
+
+step main を早送り
+  say main を D' まで進める。main の先に C' と D' が一直線に続くので、merge commit を作らず参照を動かすだけで済む。
+  code git switch main → git merge --ff-only feature
+  main -> D': git merge --ff-only feature
+  set main: D' f1e7d28
+  set HEAD: main
+  set 履歴の形: 一直線
+
+step 一直線の履歴
+  say main の履歴を先端から辿ると D'、C'、E、B、A の 1 本になる。元の C と D は reflog に残るが、期限が過ぎると掃除される。
+  code git log --oneline

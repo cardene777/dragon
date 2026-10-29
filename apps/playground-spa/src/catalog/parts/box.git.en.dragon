@@ -1,0 +1,15 @@
+git Box
+
+branch main
+
+box worktree as Worktree [note: Local files]
+
+step Commit
+  say A box line places one thing beside the branch lanes. Use it for things that change outside commits.
+  commit A on main [hash: 3fa0c19]
+  note worktree: A's files
+
+step Move on
+  say A note line inside a step rewrites the small text under the box.
+  commit B on main [hash: 8b04f71]
+  note worktree: B's files

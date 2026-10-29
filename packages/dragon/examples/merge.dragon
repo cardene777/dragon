@@ -1,0 +1,52 @@
+// 直しの枝 fix と作業の枝 feature を、merge commit で main へ取り込むまで (#3164)。
+// 上の帯が main、その下に fix と feature。merge commit は取り込む先の先端と取り込む枝の先端の 2 つを親に持つ。
+// 取り込む先の札だけが merge commit へ進み、取り込んだ枝の札は元の commit に残る。
+git 2 本の枝を merge commit で main へ取り込む
+
+branch main [note: 取り込む先]
+branch fix [note: 直しの枝]
+branch feature [note: 作業の枝]
+
+strip 参照: main, fix, feature
+
+step main にある
+  say main に commit A と B がある。main は B を指し、HEAD は main を指している。
+  commit A on main [hash: 3fa0c19, note: 最初の形]
+  commit B on main [hash: 8b04f71, note: 一覧を足す]
+  set main: B 8b04f71
+
+step 枝を 2 本切る
+  say B から直しの枝 fix と作業の枝 feature を切る。どちらも B を指し、HEAD は後から切った feature を指す。
+  code git branch fix → git switch -c feature
+  fix from B
+  feature from B
+  set fix: B 8b04f71
+  set feature: B 8b04f71
+
+step 直しを積む
+  say fix に誤字の直し F を積む。fix は F へ進み、feature と main は B のまま。
+  commit F on fix [hash: 5b2e7a1, note: 誤字を直す]
+  set fix: F 5b2e7a1
+
+step 作業を積む
+  say feature に C と D を積む。commit のたびに feature が新しい commit へ進む。
+  code git commit
+  commit C on feature [hash: c41d0e5, note: 価格を丸める]
+  commit D on feature [hash: d72b9a3, note: 送料を足す]
+  set feature: D d72b9a3
+
+step 直しを取り込む
+  say main で fix を取り込むと、merge commit の M1 ができる。M1 の親は main の先端の B と fix の先端の F の 2 つで、main だけが M1 へ進む。
+  code git switch main → git merge fix
+  commit M1 on main merge fix [hash: 9a1c3e4, note: fix を取り込む]
+  set main: M1 9a1c3e4
+
+step 作業を取り込む
+  say 続けて feature を取り込むと、M1 と D を親に持つ M2 ができる。fix と feature の札は元の commit に残る。
+  code git merge feature
+  commit M2 on main merge feature [hash: 4e8f0b2, note: feature を取り込む]
+  set main: M2 4e8f0b2
+
+step 枝の形が残る
+  say merge commit は枝の commit を作り直さないので、hash は変わらず、枝分かれの形も履歴に残る。rebase で 1 本にする時との違いはここにある。
+  code git log --graph --oneline

@@ -1,0 +1,19 @@
+git 線
+
+branch main
+branch topic
+
+step 積む
+  say main に A と B を積み、A から切った topic に C を積む。
+  commit A on main
+  commit B on main
+  topic from A
+  commit C on topic
+
+step HEAD を動かす
+  say 線は札の名前から commit の名札へ -> で引き、その札を commit へ動かす。HEAD から引くと、HEAD が枝から離れる。
+  HEAD -> B
+
+step 枝の札を動かす
+  say 枝の札も同じ形で動かす。札を動かす線は commit を作らない。
+  main -> C

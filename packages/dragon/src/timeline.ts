@@ -7,6 +7,9 @@
  * 線の名前はその段の間だけ出し、同じ段に何本あっても同時に見えるのは 2 つまでにする。
  * 状態遷移図では、段が終わった後も線の名前を最後の段まで薄く残す (#3171)。薄い名前は 2 つまでの数に入れない。
  * 状態遷移図では、主役の運ぶ物が乗っている状態を光らせ、運ぶ物が出た状態には少し後に済んだ印を出す (#3163)。
+ * 枝分かれの図では、commit を積む出来事と枝を切る出来事も線と同じ間で引く (#3164)。
+ * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
+ * 枝分かれの図を描く部品が札ごとに動かす。線に書いた運ぶ物 (`tag` と `carry`) だけを表に載せる。
  */
 import { MOTION } from "./look/values";
 import type { Diagram } from "./schema";
@@ -18,7 +21,7 @@ export interface Span {
   end: number;
 }
 
-/** 線を引いている間。`start` で引き始め、`drawn` で引き終わり、`end` (段の終わり) まで濃く残す。 */
+/** 線を引いている間。`start` で引き始め、`drawn` で引き終わり、`end` (段の終わり) まで濃く残す。枝分かれの図では commit を積む出来事と枝を切る出来事も持つ */
 export interface EdgeTime extends Span {
   step: number;
   event: number;
@@ -85,7 +88,16 @@ function plan(step: Diagram["steps"][number]): Planned {
   let arrived: number | undefined;
   let changes = 0;
   step.events.forEach((event, e) => {
-    if (event.type === "edge") {
+    // 枝分かれの図の commit を積む出来事と枝を切る出来事は、親から引く線と同じ間で引く
+    if (event.type === "commit" || event.type === "branch") {
+      const a = cursor;
+      const b = a + MOTION.draw;
+      out.edges.push({ event: e, a, b, carries: false, coin: false, named: false });
+      cursor = a + MOTION.stagger;
+      arrived = b;
+      changes = 0;
+      out.busy = Math.max(out.busy, b);
+    } else if (event.type === "edge") {
       const carries = event.carry.kind !== "none";
       const a = cursor;
       const b = a + (carries ? MOTION.drawCarry : MOTION.draw);
@@ -132,7 +144,10 @@ export function buildTimeline(diagram: Diagram): Timeline {
     for (const edge of p.edges) {
       const a = span.start + edge.a;
       edges.push({ step: s, event: edge.event, start: a, drawn: span.start + edge.b, end: span.end });
-      if (edge.carries) departures.push({ step: s, event: edge.event, who: edge.coin ? "coin" : "main", a, b: span.start + edge.b });
+      // 枝分かれの図の、札を書かない線が運ぶ札は、枝分かれの図を描く部品が札ごとに動かす
+      const event = diagram.steps[s]?.events[edge.event];
+      const own = diagram.kind === "git" && event?.type === "edge" && event.carry.kind === "tag" && event.carry.text === event.from;
+      if (edge.carries && !own) departures.push({ step: s, event: edge.event, who: edge.coin ? "coin" : "main", a, b: span.start + edge.b });
       if (edge.named) named.push({ step: s, event: edge.event, start: a + MOTION.labelDelay, end: span.end });
     }
     // 3 つ目の名前が出る時に 1 つ目を消す

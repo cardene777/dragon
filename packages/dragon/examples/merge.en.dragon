@@ -1,0 +1,52 @@
+// Bringing the fix branch and the feature branch into main with merge commits (#3164).
+// The top lane is main, with fix and feature below it. A merge commit has two parents: the tip of the target and the tip of the merged branch.
+// Only the target's ref moves to the merge commit; the merged branch's ref stays on its own commit.
+git Merge two branches into main with merge commits
+
+branch main [note: Merge target]
+branch fix [note: Fix branch]
+branch feature [note: Work branch]
+
+strip Refs: main, fix, feature
+
+step On main
+  say main has commits A and B. main points at B, and HEAD points at main.
+  commit A on main [hash: 3fa0c19, note: First shape]
+  commit B on main [hash: 8b04f71, note: Add the list]
+  set main: B 8b04f71
+
+step Cut two branches
+  say Cut the fix branch fix and the work branch feature from B. Both point at B, and HEAD points at feature, the one cut last.
+  code git branch fix → git switch -c feature
+  fix from B
+  feature from B
+  set fix: B 8b04f71
+  set feature: B 8b04f71
+
+step Commit a fix
+  say Add the typo fix F on fix. fix moves to F, while feature and main stay at B.
+  commit F on fix [hash: 5b2e7a1, note: Fix a typo]
+  set fix: F 5b2e7a1
+
+step Commit work
+  say Add C and D on feature. Each commit moves feature to the new commit.
+  code git commit
+  commit C on feature [hash: c41d0e5, note: Round prices]
+  commit D on feature [hash: d72b9a3, note: Add shipping]
+  set feature: D d72b9a3
+
+step Merge the fix
+  say Merging fix on main creates the merge commit M1. M1 has two parents, B at the tip of main and F at the tip of fix, and only main moves to M1.
+  code git switch main → git merge fix
+  commit M1 on main merge fix [hash: 9a1c3e4, note: Merge fix]
+  set main: M1 9a1c3e4
+
+step Merge the work
+  say Merging feature next creates M2, with M1 and D as parents. The fix and feature refs stay on their own commits.
+  code git merge feature
+  commit M2 on main merge feature [hash: 4e8f0b2, note: Merge feature]
+  set main: M2 4e8f0b2
+
+step The branches stay
+  say A merge commit does not rewrite the branch commits, so their hashes stay the same and the branching shape stays in the history. That is the difference from rebasing into one line.
+  code git log --graph --oneline

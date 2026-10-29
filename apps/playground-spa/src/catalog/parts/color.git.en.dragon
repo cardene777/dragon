@@ -1,0 +1,16 @@
+git Color
+
+branch main
+
+box worktree as Worktree [color: violet]
+box stash as Stash [color: amber]
+
+step Commit
+  say color picks one of seven roles for a box. Branch lanes get their colors in order from the top.
+  commit A on main
+  note worktree: Changed
+
+step Stash
+  say Pick roles by meaning: violet for what is at hand, amber for what is set aside.
+  commit B on main
+  note stash: Stashed

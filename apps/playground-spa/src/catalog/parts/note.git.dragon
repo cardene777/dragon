@@ -1,0 +1,15 @@
+git 小さな字
+
+branch main
+
+box 作業ツリー [note: 変更なし]
+
+step 書き換える
+  say note で箱の名前の下に小さな字を添える。
+  commit A on main
+  note 作業ツリー: 2 つ書き換えた
+
+step 積む
+  say 段の中の note の行で、その段から箱の小さな字を書き換える。
+  commit B on main
+  note 作業ツリー: 変更なし

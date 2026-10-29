@@ -1,0 +1,20 @@
+git 当て直し
+
+branch main
+branch topic
+
+step 分かれる
+  say main と topic にそれぞれ commit を積む。
+  commit A on main
+  topic from A
+  commit C on topic
+  commit B on main
+
+step 当て直す
+  say HEAD を B へ移し、copy で C の変更を B の上に当て直す。枝の札は動かない。
+  HEAD -> B
+  commit C' on main copy C
+
+step 枝を移す
+  say topic を C' へ動かすと、元の C はどの札からも辿れなくなり、点線の丸に変わる。
+  topic -> C'

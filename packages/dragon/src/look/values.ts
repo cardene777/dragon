@@ -76,6 +76,10 @@ export const TYPE = {
   stepBody: text(13.5, 500),
   stepNo: text(13, 700, "mono"),
   button: text(14, 700),
+  /** 枝分かれの図 (#3164) の、丸の中の commit の名札と、丸の外に添える hash と一言 */
+  gitId: text(11, 700),
+  gitHash: text(10.5, 600, "mono"),
+  gitNote: text(10.5, 650),
 } as const;
 
 /** 置き場所と部品の大きさ。単位は図の座標 (字が原寸の時の px)。 */
@@ -121,6 +125,41 @@ export const LOOK = {
     done: { r: 6.5, inset: 13 },
     pastLabel: 0.85,
   },
+  /**
+   * 枝分かれの図 (#3164)。見本帳の試作 (`scenes/git.js`) の寸法を写す。
+   * commit は列ごとに `pitch` ずつ右へ並べ、一番上でない帯の commit は列の半分だけ右へずらす。`x0` は最初の列の真ん中の x の下限、
+   * `textGap` は隣の列の hash と一言の間に空ける最小の隙間。`r` は丸の半径、`orphan` はどの札からも辿れなくなった commit の点線の丸の半径。
+   * `topLine` と `line` は帯の上端から丸を並べる線まで (一番上の帯と、それより下の帯)、`topBelow` と `below` は線から帯の下端まで。
+   * `bare` は線の名前を下に置かない帯の、線から帯の下端まで。
+   * hash と一言は一番上の帯では丸の上に、ほかの帯では丸の下に置き、`above` と `under` は丸の真ん中から丸に近い行の基準線まで、`lineStep` は行の間。
+   * 札は丸の上に段を重ねて置き、`tagTop` と `tag` は丸の真ん中から 1 段目の札の真ん中まで (一番上の帯と、ほかの帯)、`row` は札の段の間。
+   * 札の段が 2 段より多い commit がある帯は、多い段の分だけ線を下げる。
+   * `turn` は枝へ分かれる線と枝から入る線が曲がり終えて横へ進むまでの長さ、`samples` は曲がりを区切る点の数、`boxGap` は commit の並びと箱の間。
+   * `labelUnder` はほかの帯で、丸の真ん中から線の名前の札の上端まで。`colors` は帯の色を上から配る順
+   */
+  git: {
+    x0: 120,
+    pitch: 90,
+    textGap: 12,
+    r: 12,
+    orphan: 13.5,
+    topLine: 120,
+    line: 90,
+    topBelow: 30,
+    below: 82,
+    bare: 62,
+    above: 18,
+    under: 27,
+    lineStep: 13,
+    tagTop: 58,
+    tag: 30,
+    row: 22,
+    turn: 60,
+    samples: 12,
+    boxGap: 24,
+    labelUnder: 50,
+    colors: ["blue", "violet", "green", "amber", "rose"],
+  },
   /** `bend` は線の曲がりを丸める半径 (#3171) */
   edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9, bend: 12 },
   /** `touch` は線の名前と、同じ時刻に見えている段の番号の丸の間に空ける最小の隙間 (#3175) */
@@ -141,7 +180,7 @@ export const LOOK = {
    * `trail` は状態遷移図の帯の最後の、通った状態の点 (#3171)。`r` は点の半径、`step` は点の中心どうしの間、`now` は変わった値の欄の名前の横の点の半径と、名前からの離れ
    */
   strip: { h: 72, line: 44, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43, trail: { r: 5.4, step: 16 }, now: { r: 3, gap: 7 } },
-  stroke: { mark: 1.6, slot: 1.2, hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2, trail: 1.2 },
+  stroke: { git: 2.25, gitOrphan: 1.5, mark: 1.6, slot: 1.2, hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2, trail: 1.2 },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
   mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },
   /**

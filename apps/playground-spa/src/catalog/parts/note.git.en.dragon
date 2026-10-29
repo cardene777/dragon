@@ -1,0 +1,15 @@
+git Note
+
+branch main
+
+box worktree as Worktree [note: Clean]
+
+step Edit
+  say note adds small text under the name of a box.
+  commit A on main
+  note worktree: Two files changed
+
+step Commit
+  say A note line inside a step rewrites the small text of the box from that step.
+  commit B on main
+  note worktree: Clean

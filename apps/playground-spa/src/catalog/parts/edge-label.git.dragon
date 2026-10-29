@@ -1,0 +1,16 @@
+git 線の名前
+
+branch main
+
+step 積む
+  say main に A と B を積む。
+  commit A on main
+  commit B on main
+
+step 上に置く
+  say コロンの後ろが線の名前。書かなければ札の上に置く。
+  HEAD -> A: 切り離す
+
+step 下に置く
+  say side で名前を置く側を選ぶ。above、below、left、right の 4 つ。
+  HEAD -> B: 戻る [side: below]

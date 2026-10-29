@@ -1,0 +1,16 @@
+git Icon
+
+branch main
+
+box worktree as Worktree [icon: doc]
+box remote as Remote repo [icon: cloud]
+
+step Commit
+  say icon puts a picture on a box.
+  commit A on main
+  note worktree: Wrote A
+
+step Push
+  say The picture sits above the box name.
+  commit B on main
+  note remote: Received B

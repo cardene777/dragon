@@ -1,31 +1,52 @@
 {
   "title": "dragon の図の原本",
-  "description": "区画、箱、線、運ぶ物、段、中身の帯の 6 部品を共通の骨組みに置き、図の種類だけの物は種類の欄に置く。座標は持たない。",
+  "description": "区画、箱、線、運ぶ物、段、中身の帯の 6 部品を共通の骨組みに置き、図の種類だけの物は種類の欄に置く。座標は持たない。箱は枝分かれの図だけが持たなくてよい。",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "kind", "title", "boxes", "steps"],
   "properties": {
     "version": { "description": "形式の版", "type": "integer", "minimum": 1 },
-    "kind": { "description": "図の種類", "enum": ["sequence", "architecture", "state"] },
+    "kind": { "description": "図の種類", "enum": ["sequence", "architecture", "state", "git"] },
     "title": { "$ref": "#/definitions/text" },
     "view": { "description": "見せ方。書かなければ字の大きさで選ぶ。fixed は全体を止めて中だけ動かし、follow は寄って動かし全体図で今どこかを示す", "enum": ["fixed", "follow"] },
     "regions": { "type": "array", "items": { "$ref": "#/definitions/region" } },
-    "boxes": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/box" } },
+    "boxes": { "type": "array", "items": { "$ref": "#/definitions/box" } },
     "strip": { "$ref": "#/definitions/strip" },
     "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/step" } },
     "sequence": { "$ref": "#/definitions/sequence" },
-    "state": { "$ref": "#/definitions/state" }
+    "state": { "$ref": "#/definitions/state" },
+    "git": { "$ref": "#/definitions/git" }
   },
   "if": { "required": ["kind"], "properties": { "kind": { "const": "sequence" } } },
-  "then": { "required": ["sequence"], "not": { "required": ["state"] } },
+  "then": {
+    "required": ["sequence"],
+    "properties": { "boxes": { "minItems": 1 }, "steps": { "$ref": "#/definitions/plainSteps" }, "state": { "$ref": "#/definitions/absent" }, "git": { "$ref": "#/definitions/absent" } }
+  },
   "else": {
-    "not": { "required": ["sequence"] },
+    "properties": { "sequence": { "$ref": "#/definitions/absent" } },
     "if": { "required": ["kind"], "properties": { "kind": { "const": "state" } } },
-    "then": { "properties": { "boxes": { "items": { "properties": { "id": { "description": "始まりと終わりの印の名前は箱の名札に使えない", "not": { "enum": ["start", "finish"] } } } } } } },
-    "else": { "not": { "required": ["state"] } }
+    "then": {
+      "properties": {
+        "boxes": { "minItems": 1, "items": { "properties": { "id": { "description": "始まりと終わりの印の名前は箱の名札に使えない", "not": { "enum": ["start", "finish"] } } } } },
+        "steps": { "$ref": "#/definitions/plainSteps" },
+        "git": { "$ref": "#/definitions/absent" }
+      }
+    },
+    "else": {
+      "if": { "required": ["kind"], "properties": { "kind": { "const": "git" } } },
+      "then": { "required": ["git"], "properties": { "state": { "$ref": "#/definitions/absent" }, "regions": { "$ref": "#/definitions/absent" } } },
+      "else": {
+        "properties": { "boxes": { "minItems": 1 }, "steps": { "$ref": "#/definitions/plainSteps" }, "state": { "$ref": "#/definitions/absent" }, "git": { "$ref": "#/definitions/absent" } }
+      }
+    }
   },
   "definitions": {
     "text": { "type": "string", "minLength": 1 },
+    "absent": { "description": "この図の種類では書けない欄", "not": {} },
+    "plainSteps": {
+      "description": "枝分かれの図でない図の段。枝分かれの図だけの出来事 (commit と branch) を書けない",
+      "items": { "properties": { "events": { "items": { "properties": { "type": { "not": { "enum": ["commit", "branch"] } } } } } } }
+    },
     "id": { "type": "string", "pattern": "^[^\\s\\[\\]「」=:]+$" },
     "color": { "enum": ["blue", "amber", "green", "violet", "rose", "slate", "coin"] },
     "region": {
@@ -116,6 +137,32 @@
           }
         },
         {
+          "description": "commit を積む。枝分かれの図だけが書ける。積んだ枝の札と、その枝を指す HEAD が進む。当て直し (copy) は枝の札を動かさず、merge commit (merge) は取り込む枝の先端も親に持つ",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "branch"],
+          "properties": {
+            "type": { "const": "commit" },
+            "id": { "$ref": "#/definitions/id" },
+            "branch": { "$ref": "#/definitions/id" },
+            "copy": { "$ref": "#/definitions/id" },
+            "merge": { "$ref": "#/definitions/id" },
+            "hash": { "$ref": "#/definitions/hash" },
+            "note": { "$ref": "#/definitions/text" }
+          }
+        },
+        {
+          "description": "枝を切る。枝分かれの図だけが書ける。枝の札を from の commit へ置き、HEAD をその枝へ移す",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "branch", "from"],
+          "properties": {
+            "type": { "const": "branch" },
+            "branch": { "$ref": "#/definitions/id" },
+            "from": { "$ref": "#/definitions/id" }
+          }
+        },
+        {
           "description": "中身の帯の欄の値と札",
           "type": "object",
           "additionalProperties": false,
@@ -161,6 +208,26 @@
         "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/path" } }
       }
     },
+    "git": {
+      "description": "枝分かれの図の種類の欄。枝を上から帯に並べる順",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["branches"],
+      "properties": {
+        "branches": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/branch" } }
+      }
+    },
+    "branch": {
+      "description": "枝。帯の左に名札と添え書きを置く",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "note": { "$ref": "#/definitions/text" }
+      }
+    },
+    "hash": { "description": "commit の hash。16 進の字で 4 から 40 字", "type": "string", "pattern": "^[0-9a-f]{4,40}$" },
     "path": {
       "description": "移れる道。送る側に始まりの印 start、受ける側に終わりの印 finish を書ける。どの段にも出ない道は点線で描き、運ぶ物を走らせない",
       "type": "object",

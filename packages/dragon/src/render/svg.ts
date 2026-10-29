@@ -7,6 +7,7 @@
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { layoutArchitecture } from "../layout/architecture";
+import { isGitLayout, layoutGit } from "../layout/git";
 import { textWidth } from "../layout/measure";
 import type { Layout, Rect, SceneLabel } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
@@ -39,6 +40,7 @@ import {
   strip,
   type SubChange,
 } from "./parts";
+import { drawGit } from "./git";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
@@ -148,6 +150,14 @@ const PART_CSS = [
   `.dg-mark{${font(TYPE.regionNote)};fill:var(--mute)}`,
   `.dg-done{fill:var(--ink);stroke:var(--surf);stroke-width:${S.done}}`,
   `.dg-done-ck{fill:none;stroke:var(--surf);stroke-width:${S.glyph};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-git-l{fill:none;stroke:var(--c);stroke-width:${S.git};stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 2}`,
+  `.dg-git-cp{fill:none;stroke:var(--c);stroke-width:${S.gitOrphan};stroke-linecap:round;stroke-dasharray:3 3;stroke-opacity:.7}`,
+  `.dg-git-c{fill:var(--surf);stroke:var(--c);stroke-width:${S.git}}`,
+  `.dg-git-id{${font(TYPE.gitId)};fill:var(--ct)}`,
+  `.dg-git-h{${font(TYPE.gitHash)};fill:var(--mute)}`,
+  `.dg-git-n{${font(TYPE.gitNote)};fill:var(--ink2)}`,
+  `.dg-git-old{fill:var(--surf);stroke:var(--c);stroke-width:${S.gitOrphan};stroke-dasharray:3 3;stroke-opacity:.6}`,
+  `.dg-git-oldl{${font(TYPE.gitId)};fill:var(--ct);opacity:.55}`,
   ".dg-vp-bg{fill:var(--bg)}",
   ".dg-vp-frame{fill:none;stroke:var(--hair)}",
   ".dg-hd-bg{fill:var(--bg)}",
@@ -282,6 +292,14 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const arrivals = new Map((timeline.states ?? []).flatMap((s) => (s.lit[0] ? [[s.box, s.lit[0].start] as [string, number]] : [])));
   if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals));
   for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
+  // 枝分かれの図の線と commit と札は、枝分かれの図を描く部品が描く (#3164)
+  if (isGitLayout(layout)) {
+    const git = drawGit(layout, diagram, timeline, ctx);
+    L.base.push(git.links);
+    L.lit.push(git.lines);
+    L.node.push(git.commits);
+    L.top.push(git.tags);
+  }
   for (const e of layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
     if (!time) continue;
@@ -501,7 +519,14 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
   const read = readDiagram(input, { lang });
   if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
   const diagram = read.diagram;
-  const layout = diagram.kind === "sequence" ? layoutSequence(diagram) : diagram.kind === "state" ? layoutState(diagram, lang) : layoutArchitecture(diagram);
+  const layout =
+    diagram.kind === "sequence"
+      ? layoutSequence(diagram)
+      : diagram.kind === "state"
+        ? layoutState(diagram, lang)
+        : diagram.kind === "git"
+          ? layoutGit(diagram)
+          : layoutArchitecture(diagram);
   return renderLayout(diagram, layout, buildTimeline(diagram), options);
 }
 

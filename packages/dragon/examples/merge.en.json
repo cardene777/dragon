@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "kind": "git",
+  "title": "Merge two branches into main with merge commits",
+  "boxes": [],
+  "strip": {
+    "title": "Refs",
+    "fields": [
+      "main",
+      "fix",
+      "feature"
+    ]
+  },
+  "steps": [
+    {
+      "title": "On main",
+      "body": "main has commits A and B. main points at B, and HEAD points at main.",
+      "events": [
+        {
+          "type": "commit",
+          "id": "A",
+          "branch": "main",
+          "hash": "3fa0c19",
+          "note": "First shape"
+        },
+        {
+          "type": "commit",
+          "id": "B",
+          "branch": "main",
+          "hash": "8b04f71",
+          "note": "Add the list"
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "B 8b04f71"
+        }
+      ]
+    },
+    {
+      "title": "Cut two branches",
+      "body": "Cut the fix branch fix and the work branch feature from B. Both point at B, and HEAD points at feature, the one cut last.",
+      "code": "git branch fix → git switch -c feature",
+      "events": [
+        {
+          "type": "branch",
+          "branch": "fix",
+          "from": "B"
+        },
+        {
+          "type": "branch",
+          "branch": "feature",
+          "from": "B"
+        },
+        {
+          "type": "strip",
+          "field": "fix",
+          "value": "B 8b04f71"
+        },
+        {
+          "type": "strip",
+          "field": "feature",
+          "value": "B 8b04f71"
+        }
+      ]
+    },
+    {
+      "title": "Commit a fix",
+      "body": "Add the typo fix F on fix. fix moves to F, while feature and main stay at B.",
+      "events": [
+        {
+          "type": "commit",
+          "id": "F",
+          "branch": "fix",
+          "hash": "5b2e7a1",
+          "note": "Fix a typo"
+        },
+        {
+          "type": "strip",
+          "field": "fix",
+          "value": "F 5b2e7a1"
+        }
+      ]
+    },
+    {
+      "title": "Commit work",
+      "body": "Add C and D on feature. Each commit moves feature to the new commit.",
+      "code": "git commit",
+      "events": [
+        {
+          "type": "commit",
+          "id": "C",
+          "branch": "feature",
+          "hash": "c41d0e5",
+          "note": "Round prices"
+        },
+        {
+          "type": "commit",
+          "id": "D",
+          "branch": "feature",
+          "hash": "d72b9a3",
+          "note": "Add shipping"
+        },
+        {
+          "type": "strip",
+          "field": "feature",
+          "value": "D d72b9a3"
+        }
+      ]
+    },
+    {
+      "title": "Merge the fix",
+      "body": "Merging fix on main creates the merge commit M1. M1 has two parents, B at the tip of main and F at the tip of fix, and only main moves to M1.",
+      "code": "git switch main → git merge fix",
+      "events": [
+        {
+          "type": "commit",
+          "id": "M1",
+          "branch": "main",
+          "merge": "fix",
+          "hash": "9a1c3e4",
+          "note": "Merge fix"
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "M1 9a1c3e4"
+        }
+      ]
+    },
+    {
+      "title": "Merge the work",
+      "body": "Merging feature next creates M2, with M1 and D as parents. The fix and feature refs stay on their own commits.",
+      "code": "git merge feature",
+      "events": [
+        {
+          "type": "commit",
+          "id": "M2",
+          "branch": "main",
+          "merge": "feature",
+          "hash": "4e8f0b2",
+          "note": "Merge feature"
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "M2 4e8f0b2"
+        }
+      ]
+    },
+    {
+      "title": "The branches stay",
+      "body": "A merge commit does not rewrite the branch commits, so their hashes stay the same and the branching shape stays in the history. That is the difference from rebasing into one line.",
+      "code": "git log --graph --oneline",
+      "events": []
+    }
+  ],
+  "git": {
+    "branches": [
+      {
+        "id": "main",
+        "note": "Merge target"
+      },
+      {
+        "id": "fix",
+        "note": "Fix branch"
+      },
+      {
+        "id": "feature",
+        "note": "Work branch"
+      }
+    ]
+  }
+}

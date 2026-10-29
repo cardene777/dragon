@@ -1,0 +1,16 @@
+git 色の役
+
+branch main
+
+box 作業ツリー [color: violet]
+box 置き場 [color: amber]
+
+step 積む
+  say color で、箱に 7 つの役から色を選ぶ。枝の帯の色は上から順に配る。
+  commit A on main
+  note 作業ツリー: 変えた
+
+step 控える
+  say 役は意味で選ぶ。手元の物は violet、控えは amber のように揃える。
+  commit B on main
+  note 置き場: 控えた

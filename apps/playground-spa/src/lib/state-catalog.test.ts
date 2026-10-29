@@ -26,7 +26,7 @@ const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
-/** 見本帳の図の分類の名前の並び */
+/** 見本帳の図の分類のうち、状態遷移図までに並ぶ名前。分類の数は図の種類を足すたびに増えるので、数は足した課題の検査が持つ (#3164) */
 const KIND_NAMES = ["時系列図", "構成図", "状態遷移図"] as const;
 /** 状態遷移図だけの部品 */
 const STATE_PARTS = ["start-finish", "side-path"] as const;
@@ -127,7 +127,9 @@ describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
       await onScreen(page, "catalog", "見本帳の一覧が出ない");
       const kinds = (): Promise<string[]> =>
         page.evaluate(() => [...document.querySelectorAll('[data-catalog="section"][data-section="kinds"] [data-catalog="card"] h2')].map((h) => h.textContent?.trim() ?? ""));
-      await expect.poll(kinds, { ...WAIT, message: "見本帳の図の分類が、時系列図、構成図、状態遷移図の 3 つでない" }).toEqual([...KIND_NAMES]);
+      await expect
+        .poll(async () => (await kinds()).slice(0, KIND_NAMES.length), { ...WAIT, message: "見本帳の図の分類が、時系列図、構成図、状態遷移図の順で始まらない" })
+        .toEqual([...KIND_NAMES]);
 
       const title = order().title;
       const opened = await site.open({ path: `${BASE}catalog/state`, viewport: { width: 1440, height: 900 } });

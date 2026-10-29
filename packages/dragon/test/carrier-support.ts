@@ -40,18 +40,37 @@ export const overlap = (a: Rect, b: Rect, pad = 0): boolean => a.x < b.x + b.w +
 /** 段の番号の丸を囲む四角 */
 export const badgeRect = (b: { x: number; y: number }): Rect => ({ x: b.x - LOOK.badge.r, y: b.y - LOOK.badge.r, w: LOOK.badge.r * 2, h: LOOK.badge.r * 2 });
 
+/** 枝分かれの図で札を動かす線。札の名前から、動かした先の commit へ引く */
+interface GitMoveLine {
+  step: number;
+  event: number;
+  ref: string;
+  target?: string;
+  line?: [number, number][];
+}
+
+/** 運ぶ物が走る線。枝分かれの図では、運ぶ物は札を動かす線を走る */
+function linesOf(layout: Motion["rendered"]["layout"]): LaidEdge[] {
+  const moves = (layout as { moves?: GitMoveLine[] }).moves ?? [];
+  const git = moves.flatMap((mv) => (mv.line ? [{ step: mv.step, event: mv.event, from: mv.ref, to: mv.target ?? mv.ref, points: mv.line }] : []));
+  return [...layout.edges, ...git];
+}
+
 /** 描いた運ぶ物を、線の順に、走る線と見えている間と組にする */
 export function carried(m: Motion): Carried[] {
   const { layout, timeline } = m.rendered;
-  const shapes = [...new Set([...m.doc.querySelectorAll(".dg-coin, .dg-car, .dg-env")].map((el) => el.parentElement as Element))];
-  const spans = timeline.carriers.filter((c) => layout.edges.some((e) => e.step === c.step && e.event === c.event));
+  const lines = linesOf(layout);
+  // 枝分かれの図の札 (`data-ref`) は運ぶ物の札と同じ見た目だが、運ぶ物ではない
+  const parts = [...m.doc.querySelectorAll(".dg-coin, .dg-car, .dg-env")].filter((el) => !el.closest("[data-ref]"));
+  const shapes = [...new Set(parts.map((el) => el.parentElement as Element))];
+  const spans = timeline.carriers.filter((c) => lines.some((e) => e.step === c.step && e.event === c.event));
   if (shapes.length !== spans.length) throw new Error(`運ぶ物の部品 ${shapes.length} 個と時刻 ${spans.length} 件が合わない`);
   return spans.map((c, i) => {
     const g = shapes[i] as Element;
     const coin = g.querySelector(".dg-coin");
     const body = g.querySelector(".dg-car, .dg-env");
     const half: [number, number] = coin ? [num(coin, "r"), num(coin, "r")] : [num(body as Element, "width") / 2, num(body as Element, "height") / 2];
-    const edge = layout.edges.find((e) => e.step === c.step && e.event === c.event) as LaidEdge;
+    const edge = lines.find((e) => e.step === c.step && e.event === c.event) as LaidEdge;
     return { g, half, edge, step: c.step, start: c.start, depart: c.depart, arrive: c.arrive, end: c.end };
   });
 }

@@ -1,0 +1,84 @@
+// Rebasing the work branch feature onto the tip of main, then fast-forwarding main into one straight history (#3164).
+// The top lane is main and the lower lane is feature. Commits are circles, with the hash and a short note beside them.
+// The replayed C' and D' sit on the main lane and do not move branch refs. HEAD shows as a tag only while it is detached.
+git Rebase a work branch and bring it into main
+
+branch main [note: Merge target]
+branch feature [note: Work branch]
+
+box worktree as Worktree [note: Local files, color: violet, icon: doc]
+
+strip Refs: main, feature, HEAD, History
+
+step On main
+  say main has commits A and B. main points at B, and HEAD points at main. The files you have open are B's.
+  commit A on main [hash: 3fa0c19, note: First shape]
+  commit B on main [hash: 8b04f71, note: Add the list]
+  set main: B 8b04f71
+  set HEAD: main
+  set History: Straight
+
+step Cut a branch
+  say Create the work branch feature from B and switch to it. feature also points at B, and HEAD points at feature. The files are still the same as main.
+  code git switch -c feature
+  feature from B
+  set feature: B 8b04f71
+  set HEAD: feature
+
+step Commit work
+  say Add C and D on feature. Each commit moves feature to the new commit, and HEAD follows. main stays at B.
+  code git commit
+  commit C on feature [hash: c41d0e5, note: Round prices]
+  commit D on feature [hash: d72b9a3, note: Add shipping]
+  set feature: D d72b9a3
+
+step main moves on
+  say Meanwhile someone else's change E lands on main, and the local main pulls it in and points at E. feature still branches off the old B.
+  commit E on main [hash: e5f8312, note: Fix the tax rate]
+  set main: E e5f8312
+  set History: Branched
+
+step Start the rebase
+  say Git walks back to the fork point B, sets C and D aside, and moves HEAD to E. HEAD points at E directly, not through a branch (detached). From here it replays one commit at a time.
+  code git rebase main
+  HEAD -> E: git rebase main
+  set HEAD: E (detached)
+  set History: Replaying
+
+step Stop on a conflict
+  say Replaying C on top of E conflicts, because E changed the same lines. The rebase stops there and waits for a fix.
+  note worktree: Conflict in src/price.ts
+  set History: Stopped on a conflict
+
+step Fix and continue
+  say Fix the conflicting lines and continue, and C' appears with the same change as C. Its parent changed from B to E, so its hash changes too.
+  code git add → git rebase --continue
+  note worktree: Fixed and staged
+  commit C' on main copy C [hash: a90c6b4, note: Round prices]
+  set HEAD: C' (detached)
+  set History: Replaying
+
+step Replay D
+  say D replays without a conflict and becomes D'. When the replay ends, feature moves to D' and HEAD returns to feature. The old C and D are no longer pointed at by anything.
+  commit D' on main copy D [hash: f1e7d28, note: Add shipping]
+  feature -> D'
+  set feature: D' f1e7d28
+  set HEAD: feature
+  set History: Can fast-forward
+
+step Checks pass
+  say D' now includes the change in E. Run the checks on this shape and make sure they all pass before bringing it in.
+  note worktree: Running checks on D'
+  note worktree: Types, unit, integration pass
+
+step Fast-forward main
+  say Move main up to D'. C' and D' continue in a straight line after main, so no merge commit is needed; only the ref moves.
+  code git switch main → git merge --ff-only feature
+  main -> D': git merge --ff-only feature
+  set main: D' f1e7d28
+  set HEAD: main
+  set History: Straight
+
+step A straight history
+  say Following main back from its tip gives one line: D', C', E, B, A. The old C and D stay in the reflog until they expire and are cleaned up.
+  code git log --oneline

@@ -102,12 +102,15 @@ const partText = (lang: Lang, id: string): { name: string; desc: string } | unde
 
 /** 状態遷移図の線の、始まりと終わりの予約の名前 (#3163)。語の表が持たない間は空 */
 const STATE_ENDS: readonly string[] = (WORDS as { STATE_ENDS?: readonly string[] }).STATE_ENDS ?? [];
+/** 枝分かれの図の行の中の語 (#3164)。枝を切る `from`、当て直しの `copy`、merge commit の `merge`。語の表が持たない間は空 */
+const GIT_WORDS: readonly string[] = (WORDS as { GIT_WORDS?: readonly string[] }).GIT_WORDS ?? [];
 
 /**
  * 記法の語の表 (`words.ts`) の語を、部品が受け持つ語の形にした物。
  * 線の行は頭の語を持たず、表には属性の鍵の行 (`ATTRS.edge`) としてだけ現れるので、行の形 `<名札> -> <名札>` の `->` を語として足す。
  * 状態遷移図の線の形も頭の語を持たないので、始まりと終わりの予約の名前 (`edge:start` `edge:finish`) と、
- * 最初の段より前に書く通らない道 (`edge:before-step`) を語として足す。段より前の線は状態遷移図だけが書ける (#3163)
+ * 最初の段より前に書く通らない道 (`edge:before-step`) を語として足す。段より前の線は状態遷移図だけが書ける (#3163)。
+ * 枝分かれの図の行の中の語 (`from` と `copy` と `merge`) も頭の語でも属性でもないので、`git:<語>` として足す (#3164)
  */
 const NOTATION_WORDS: readonly string[] = [
   ...WORD_KINDS.map((kind) => `kind:${kind}`),
@@ -116,6 +119,7 @@ const NOTATION_WORDS: readonly string[] = [
   "edge:->",
   ...STATE_ENDS.map((name) => `edge:${name}`),
   ...((WORD_KINDS as readonly string[]).includes("state") ? ["edge:before-step"] : []),
+  ...GIT_WORDS.map((word) => `git:${word}`),
 ];
 
 /** 記法の、空でなく注釈でもない行 */
@@ -147,6 +151,14 @@ const usesWord = (text: string, word: string): boolean => {
     const [line, key] = rest.split(".");
     return lines.some((l, i) => lineKind(l, i) === line && attrKeys(l).includes(key ?? ""));
   }
+  // 枝を切る `from` は `<枝> from <commit>` の行の 2 語目に、`copy` と `merge` は commit の行に書く。
+  // 説明の文と命令の行と線の名前に書いた同じ語 (`git merge` など) は数えない
+  if (type === "git")
+    return lines.some((line, i) => {
+      const parts = line.trim().split(/\s+/u);
+      if (i === 0 || isEdge(line)) return false;
+      return rest === "from" ? parts.length === 3 && parts[1] === rest && !["say", "code"].includes(headOf(line)) : headOf(line) === "commit" && parts.includes(rest);
+    });
   return false;
 };
 

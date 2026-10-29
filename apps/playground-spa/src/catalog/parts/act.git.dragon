@@ -1,0 +1,17 @@
+git 箱の中の処理
+
+branch main
+
+box 作業ツリー
+
+step 積む
+  say main に A を積む。
+  commit A on main
+
+step 確かめる
+  say act で、commit を積まずに箱の中で起きる処理を見せる。
+  act 作業ツリー: 検査を回す
+
+step 続ける
+  say 処理の後に commit を続けられる。
+  commit B on main

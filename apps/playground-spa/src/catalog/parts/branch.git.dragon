@@ -1,0 +1,14 @@
+git 枝
+
+branch main [note: 取り込む先]
+branch topic [note: 作業の枝]
+
+step 宣言する
+  say branch の行で枝を上から順に宣言し、枝ごとに帯を並べる。note で帯に添え書きを付ける。
+  commit A on main
+  commit B on main
+
+step 枝を切る
+  say 段の中で <枝> from <commit> と書くと、その commit から枝を切り、HEAD がその枝へ移る。
+  topic from A
+  commit C on topic
