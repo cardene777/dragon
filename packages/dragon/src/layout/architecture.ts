@@ -388,7 +388,7 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
 
   // 線の名前は、同じ時刻に見えている段の番号 (その段とそれより前の段の番号) も避ける (#3175)
   // 輪の番号は弧に重ねず弧の右に置く (#3186)
-  const badgeAt = (edge: SceneEdge, taken: Point[]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken));
+  const badgeAt = (edge: SceneEdge, taken: Point[], lines: Point[][]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken, lines));
   const early = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
   const labels: SceneLabel[] = [];
   for (const edge of sceneEdges) {

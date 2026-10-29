@@ -317,7 +317,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   // 線の名前。同じ状態へ戻る輪は輪の下に置き、終わりへ移る線は印の字と反対の左に置く。
   // 段が終わった名前も薄く残るので、段を問わず先に置いた全ての名前と、印に添えた字を避ける (#3175)
   // 段の番号も済んだ後まで残るので、全ての番号を避ける。同じ状態へ戻る弧の番号は、弧に重ねず弧の右に置く
-  const badgeAt = (edge: SceneEdge, taken: Point[]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken));
+  const badgeAt = (edge: SceneEdge, taken: Point[], lines: Point[][]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken, lines));
   const labels: SceneLabel[] = [];
   const marks: Rect[] = ends.flatMap((e) => (e.text === "" ? [] : [textBox(e.text, ...markText(e), TYPE.regionNote)]));
   const badgeRects = [...lineBadges(sceneEdges, diagram.steps.length, badgeAt).values()].map((b) => badgeRect(b.point));
