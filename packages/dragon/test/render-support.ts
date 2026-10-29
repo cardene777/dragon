@@ -124,13 +124,16 @@ export interface Player {
 /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉 (#3001) */
 export type Lang = "ja" | "en";
 
+/** 色味に重ねる色の値。鍵は色の変数の名前 (`bg`、`ink`、`c-green` など) (#3198) */
+export type Colors = Record<string, string>;
+
 interface DrawApi {
   PALETTES: Record<string, Palette>;
   FONTS: { sans: string; mono: string };
   resolvePalette(id?: string): Palette;
-  renderDiagram(diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang }): Rendered;
+  renderDiagram(diagram: unknown, options?: { palette?: string; colors?: Colors; theme?: Theme; lang?: Lang }): Rendered;
   chooseView(rendered: Rendered, frameWidth: number): { mode: ViewMode; textPx: number };
-  mountDiagram(host: HTMLElement, diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang; onStep?: (step: number) => void; fitHeight?: boolean }): Player;
+  mountDiagram(host: HTMLElement, diagram: unknown, options?: { palette?: string; colors?: Colors; theme?: Theme; lang?: Lang; onStep?: (step: number) => void; fitHeight?: boolean }): Player;
 }
 
 export function draw<K extends keyof DrawApi>(name: K): DrawApi[K] {
@@ -138,6 +141,55 @@ export function draw<K extends keyof DrawApi>(name: K): DrawApi[K] {
   expect(value, `${name} が @cardenelabs/dragon から出ていない`).toBeDefined();
   return value as DrawApi[K];
 }
+
+/**
+ * bitsumi が CSS で上書きしている 22 色を模した、緑と黒の色の値の組 (#3198)。
+ * 地と面と字と線と、6 色の役の線の色と字の色を持ち、影と硬貨と混ぜる割合は持たない。16 進の値に、色の関数で書いた値も混ぜる
+ */
+export const ARCADE_COLORS: Colors = {
+  page: "#050805",
+  bg: "#0a0f0a",
+  surf: "#101810",
+  sunk: "#0c130c",
+  ink: "#39ff14",
+  ink2: "#2bd40f",
+  mute: "#1f9a0b",
+  hair: "rgb(57 255 20 / 12%)",
+  line: "color-mix(in srgb,#39ff14 40%,transparent)",
+  "on-c": "#050805",
+  "c-blue": "#22d3ee",
+  "t-blue": "#67e8f9",
+  "c-amber": "#facc15",
+  "t-amber": "#fde047",
+  "c-green": "#39ff14",
+  "t-green": "#86ff6b",
+  "c-violet": "#c084fc",
+  "t-violet": "#d8b4fe",
+  "c-rose": "#fb7185",
+  "t-rose": "#fda4af",
+  "c-slate": "#4ade80",
+  "t-slate": "#86efac",
+};
+
+/** CSS の宣言の並び (`--bg:#fff;--ink:#000`) が書く変数の、名前 (`--` を除く) と値 */
+export function cssVars(declarations: string): Record<string, string> {
+  const vars: Record<string, string> = {};
+  for (const part of declarations.split(";")) {
+    const m = /^\s*--([\w-]+)\s*:(.*)$/su.exec(part);
+    if (m?.[1] !== undefined && m[2] !== undefined) vars[m[1]] = m[2].trim();
+  }
+  return vars;
+}
+
+/** 描いた SVG が図の名前の class に書く変数 (色と字と 1 周の長さ)。`<style>` の最初の規則から読む */
+export function figureVars(svg: string): Record<string, string> {
+  const block = /<style>\.dg-[0-9a-z]+\{([^}]*)\}/u.exec(svg)?.[1];
+  expect(block, "描いた SVG の style に変数を書く規則が無い").toBeDefined();
+  return cssVars(block ?? "");
+}
+
+/** 描いた SVG の図の名前の class。同じ頁に置いた図どうしは、この名前で変数と動きを分ける */
+export const figureClass = (svg: string): string | undefined => /class="dg (dg-[0-9a-z]+)"/u.exec(svg)?.[1];
 
 /** 2 つの四角の隙間。重なる時は負になる。縦か横のどちらかで離れていれば、その離れ方の大きい方。 */
 export function gap(a: Rect, b: Rect): number {

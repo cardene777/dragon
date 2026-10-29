@@ -2,6 +2,7 @@
  * 見た目の値の表と色味と字 (#2985)。
  *
  * 色味は澄んだ色 / 紙と墨 / 夜の計器の 3 案で、既定は紙と墨。墨と朱は持たない。
+ * 呼ぶ側は `colors` で色の値を渡し、名前で選んだ色味の色を上書きできる (#3198)。
  * 描く file は色の値と字の大きさを直接書かず、共通の値の表から読む。字は同梱した 2 つだけを使う。
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -11,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { closestPair, type Sight } from "./color-vision";
 import { exampleJson, smallSequence } from "./diagram-support";
-import { draw } from "./render-support";
+import { ARCADE_COLORS, draw, figureClass, figureVars, type Lang } from "./render-support";
 
 const PACKAGE = fileURLToPath(new URL("../", import.meta.url));
 const SLOTS = ["c-blue", "c-amber", "c-green", "c-violet", "c-rose"];
@@ -46,6 +47,70 @@ describe("色味", () => {
         }
       }
     }
+  });
+});
+
+/** 仮名と漢字。英語の断りの文に入らない */
+const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
+/** 図の名前の class に色と並んで書く、色でない変数 (字と 1 周の長さ) */
+const NOT_COLORS = new Set(["sans", "mono", "T"]);
+
+/** `colors` を渡して小さな時系列図を描いた時の断りの文。描けた時は空 */
+function colorsRefusal(colors: Record<string, unknown>, lang?: Lang): string {
+  try {
+    draw("renderDiagram")(smallSequence(), { colors: colors as Record<string, string>, ...(lang ? { lang } : {}) });
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  return "";
+}
+
+describe("色の値 (#3198)", () => {
+  it("render-colors-override-palette", () => {
+    const renderDiagram = draw("renderDiagram");
+    for (const theme of ["light", "dark"] as const) {
+      const base = draw("resolvePalette")("paper")[theme];
+      const rendered = renderDiagram(smallSequence(), { palette: "paper", theme, colors: ARCADE_COLORS });
+      const vars = figureVars(rendered.svg);
+      for (const [name, value] of Object.entries(ARCADE_COLORS)) expect(vars[name], `${theme} の ${name}`).toBe(value);
+      // 渡さない色 (影、硬貨、混ぜる割合など) は紙と墨の値のまま残る
+      const kept = Object.entries(base).filter(([name]) => !Object.hasOwn(ARCADE_COLORS, name));
+      expect(kept.length, "渡さない色が無い").toBeGreaterThan(0);
+      for (const [name, value] of kept) expect(vars[name], `${theme} の ${name}`).toBe(value);
+      expect(rendered.palette).toBe("paper");
+      // 色を渡さない図と同じ頁に並べても、渡した色はこの図にだけ効く (変数を書く class の名前が分かれる)
+      expect(figureClass(rendered.svg)).toBeDefined();
+      expect(figureClass(rendered.svg)).not.toBe(figureClass(renderDiagram(smallSequence(), { palette: "paper", theme }).svg));
+    }
+  });
+
+  it("render-colors-reject-unknown-or-unsafe", () => {
+    expect(colorsRefusal({ glow: "#39ff14" }), "色味に無い名前").toMatch(/^図を描けない: .*glow/u);
+    // 宣言を抜ける `;` と `}`、属性を抜ける `"`、要素を抜ける `<`、後ろの宣言を呑む閉じない括弧、外の file を読む `url(`、空と字でない値
+    for (const value of ["#000;--ink:red", '#000" onload="x', "</style><script>", "red}", "rgb(0 0 0", "url(a.svg#b)", "", 12]) {
+      expect(colorsRefusal({ "c-green": value }), `${JSON.stringify(value)} を描いた`).toMatch(/^図を描けない: .*c-green/u);
+    }
+    // 断りの文は渡した言葉で出し、誤った名前を全て挙げる
+    const english = colorsRefusal({ glow: "#39ff14", bg: "red;" }, "en");
+    expect(english, "英語の断りの文の頭").toMatch(/^Cannot draw the diagram: /u);
+    expect(english).toContain("glow");
+    expect(english).toContain("bg");
+    expect(english, "英語の断りの文に仮名か漢字がある").not.toMatch(KANA_KANJI);
+  });
+
+  it("render-colors-absent-keeps-palette", () => {
+    const renderDiagram = draw("renderDiagram");
+    const palettes = draw("PALETTES");
+    for (const palette of Object.values(palettes)) {
+      for (const theme of ["light", "dark"] as const) {
+        const rendered = renderDiagram(smallSequence(), { palette: palette.id, theme });
+        const vars = figureVars(rendered.svg);
+        for (const [name, value] of Object.entries(palette[theme])) expect(vars[name], `${palette.id} ${theme} の ${name}`).toBe(value);
+        expect(Object.keys(vars).filter((name) => !NOT_COLORS.has(name)).sort(), `${palette.id} ${theme} の色の名前`).toEqual(Object.keys(palette[theme]).sort());
+        expect(rendered.palette).toBe(palette.id);
+      }
+    }
+    expect(figureVars(renderDiagram(smallSequence()).svg).bg, "名前を書かない時の地").toBe(palettes.paper?.light.bg);
   });
 });
 
