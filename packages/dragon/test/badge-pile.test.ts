@@ -147,9 +147,7 @@ describe("同じ所の段の番号を入れ替える (#3184)", () => {
       const moved = layout.badges[last];
       if (!kept || !moved) throw new Error("段の番号が無い");
       Object.assign(moved, { x: kept.x, y: kept.y });
-      const pairs = renderLayout(rendered.diagram, layout, rendered.timeline)
-        .overlaps.filter((o) => o.step === last && o.kind === "texts")
-        .map((o) => [...o.texts].sort());
+      const pairs = renderLayout(rendered.diagram, layout, rendered.timeline).overlaps.flatMap((o) => (o.step === last && o.kind === "texts" ? [[...o.texts].sort()] : []));
       expect(pairs, `段の番号 ${i + 1} が最後の段で消えている`).toContainEqual([String(i + 1), String(last + 1)].sort());
     }
   });
