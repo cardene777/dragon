@@ -11,17 +11,19 @@
  * 区画の箱が飛び飛びの時は同じ `group` を開き直す。区画の並びが箱の現れる順と違う時と、
  * 箱の無い区画がある時は、先に全ての区画を中の無い `group … end` で宣言してから開き直す。
  * 枝分かれの図 (#3164) は、枝の `branch` の行を箱より前に書き、札を動かす線の運ぶ物が送る側の名前の札なら書かない。
+ * 時間軸の図 (#3165) は、目盛りと区切りと印の列と節目と拡大の範囲の行を箱より前に書き、物差しの欄の後ろに `[meter: <割合>]` を書く。
+ * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
  */
-import type { Box, Diagram, DiagramEvent, Region } from "./schema";
-import { COPY, FROM, MERGE, ON } from "./words";
+import type { Box, Diagram, DiagramEvent, Region, TimeSpec } from "./schema";
+import { AT, COPY, FROM, MERGE, NOW, ON } from "./words";
 
 const quote = (text: string): string => `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 /** 行の終わりか `[` の前に置く名前と文 */
 const name = (text: string): string => (text.includes("[") || text.startsWith('"') ? quote(text) : text);
 /** `:` の前に置く字 (帯の題と、`set` の欄) */
 const key = (text: string): string => (text.includes(":") || text.includes("[") || text.startsWith('"') ? quote(text) : text);
-/** `strip` の行に `,` で並べる欄 */
-const field = (text: string): string => (text.includes(",") || text.startsWith('"') ? quote(text) : text);
+/** `strip` の行に `,` で並べる欄。時間軸の図の欄は後ろに物差しの属性を書けるので、`[` を含む名前も囲む */
+const field = (text: string, time: boolean): string => (text.includes(",") || text.startsWith('"') || (time && text.includes("[")) ? quote(text) : text);
 /** 属性の値 */
 const value = (text: string): string => (text.includes(",") || text.includes("]") || text.startsWith('"') ? quote(text) : text);
 
@@ -50,18 +52,32 @@ const declareBox = (b: Box): string =>
 /** 線の行の両端と名前 */
 const line = (from: string, to: string, label: string | undefined): string => `${from} -> ${to}${label === undefined ? "" : `: ${name(label)}`}`;
 
-/** 段の中の 1 行。`git` は枝分かれの図か。枝分かれの図の線は、送る側の名前の札を書かない時の運ぶ物にする */
-function event(e: DiagramEvent, git: boolean): string {
+/** 目盛りの範囲。1 つの目盛りは番号だけを書く */
+const range = (from: number, to: number): string => (from === to ? `${from}` : `${from}-${to}`);
+/** 数の属性の値 */
+const num = (n: number | undefined): string | undefined => (n === undefined ? undefined : `${n}`);
+
+/** 段の中の 1 行。`kind` は図の種類。枝分かれの図の線は、送る側の名前の札を書かない時の運ぶ物にする */
+function event(e: DiagramEvent, kind: Diagram["kind"]): string {
   switch (e.type) {
     case "edge": {
-      const plain = git ? e.carry.kind === "tag" && e.carry.text === e.from : e.carry.kind === "envelope";
+      const plain = kind === "git" ? e.carry.kind === "tag" && e.carry.text === e.from : e.carry.kind === "envelope";
       const carry: [string, string][] = plain ? [] : e.carry.kind === "tag" ? [["tag", e.carry.text]] : [["carry", e.carry.kind]];
-      return `${line(e.from, e.to, e.label)}${attrs([...carry, ["side", e.labelSide]])}`;
+      return `${line(e.from, e.to, e.label)}${attrs([...carry, ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`;
     }
     case "action":
       return `act ${e.box}: ${e.label}`;
     case "swap":
-      return `note ${e.box}: ${e.text}`;
+      return kind === "time" ? `note ${e.box}: ${name(e.text)}${attrs([["color", e.color]])}` : `note ${e.box}: ${e.text}`;
+    case "now":
+      return `${NOW} -> ${e.to}`;
+    case "mark":
+      return `mark ${e.row} ${range(e.from, e.to)}${attrs([["color", e.color]])}`;
+    case "span":
+      return `span ${range(e.from, e.to)}: ${name(e.text)}${attrs([
+        ["shape", e.shape],
+        ["color", e.color],
+      ])}`;
     case "strip":
       return `set ${key(e.field)}${e.value === undefined ? "" : `: ${name(e.value)}`}${attrs([["tag", e.tag]])}`;
     case "commit":
@@ -72,6 +88,23 @@ function event(e: DiagramEvent, git: boolean): string {
     case "branch":
       return `${e.branch} ${FROM} ${e.from}`;
   }
+}
+
+/** 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲の宣言の塊 */
+function timeBlocks(time: TimeSpec): string[] {
+  const head = [
+    `scale ${time.scale.unit} ${time.scale.length} ${time.scale.count}${attrs([["from", num(time.scale.from)]])}`,
+    ...(time.period ? [`period ${time.period.name} ${time.period.length}${attrs([["from", num(time.period.from)]])}`] : []),
+  ];
+  const rows = time.rows.map(
+    (r) =>
+      `row ${r.id}${shown(r.id, r.name)}${attrs([
+        ["color", r.color],
+        ["empty", r.empty && r.empty.length > 0 ? r.empty.join(" ") : undefined],
+      ])}`,
+  );
+  const points = (time.points ?? []).map((p) => `point ${p.id} ${AT} ${p.at}`);
+  return [head.join("\n"), rows.join("\n"), ...(points.length > 0 ? [points.join("\n")] : []), ...(time.zoom ? [`zoom ${range(time.zoom.from, time.zoom.to)}`] : [])];
 }
 
 /** 区画と箱の宣言の塊。塊どうしは空行で区切る */
@@ -109,14 +142,24 @@ function declarations(diagram: Diagram): string[] {
 
 export function printNotation(diagram: Diagram): string {
   const branches = (diagram.git?.branches ?? []).map((b) => `branch ${b.id}${attrs([["note", b.note]])}`);
-  const blocks = [`${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`, ...(branches.length > 0 ? [branches.join("\n")] : []), ...declarations(diagram)];
-  if (diagram.strip) blocks.push(`strip ${key(diagram.strip.title)}: ${diagram.strip.fields.map(field).join(", ")}`);
+  const time = diagram.kind === "time";
+  const blocks = [
+    `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
+    ...(branches.length > 0 ? [branches.join("\n")] : []),
+    ...(diagram.time ? timeBlocks(diagram.time) : []),
+    ...declarations(diagram),
+  ];
+  if (diagram.strip) {
+    const meters = new Map((diagram.strip.meters ?? []).map((m) => [m.field, m.line]));
+    const fields = diagram.strip.fields.map((f) => `${field(f, time)}${attrs([["meter", meters.get(f)]])}`);
+    blocks.push(`strip ${key(diagram.strip.title)}: ${fields.join(", ")}`);
+  }
   if (diagram.state) blocks.push(diagram.state.paths.map((p) => line(p.from, p.to, p.label)).join("\n"));
   for (const step of diagram.steps) {
     const body = step.body.split("\n");
     const say = body.length === 1 ? [`  say ${step.body}`] : ["  say", ...body.map((line) => (line === "" ? "" : `    ${line}`))];
     blocks.push(
-      [`step ${step.title}`, ...say, ...(step.code === undefined ? [] : [`  code ${step.code}`]), ...step.events.map((e) => `  ${event(e, diagram.kind === "git")}`)].join("\n"),
+      [`step ${step.title}`, ...say, ...(step.code === undefined ? [] : [`  code ${step.code}`]), ...step.events.map((e) => `  ${event(e, diagram.kind)}`)].join("\n"),
     );
   }
   return `${blocks.join("\n\n")}\n`;

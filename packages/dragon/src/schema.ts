@@ -43,12 +43,79 @@ export type LabelSide = "above" | "below" | "left" | "right";
 export type ViewMode = "fixed" | "follow";
 
 export type DiagramEvent =
-  | { type: "edge"; from: string; to: string; label?: string; carry: Carry; labelSide?: LabelSide }
+  | { type: "edge"; from: string; to: string; label?: string; carry: Carry; labelSide?: LabelSide; at?: number; into?: number }
   | { type: "action"; box: string; label: string }
-  | { type: "swap"; box: string; text: string }
+  | { type: "swap"; box: string; text: string; color?: Color }
   | { type: "strip"; field: string; value?: string; tag?: string }
   | GitCommit
-  | { type: "branch"; branch: string; from: string };
+  | { type: "branch"; branch: string; from: string }
+  | { type: "now"; to: number }
+  | TimeMarkEvent
+  | TimeSpanEvent;
+
+/** 時間軸の図 (#3165) の、印の列 `row` の `from` から `to` の目盛りの印の色を変える出来事 */
+export interface TimeMarkEvent {
+  type: "mark";
+  row: string;
+  from: number;
+  to: number;
+  color: Color;
+}
+
+/** 時間軸の図の、`from` から `to` の目盛りの括弧と字。`shape` が `box` なら印の列を囲み、字を縁の札にする */
+export interface TimeSpanEvent {
+  type: "span";
+  from: number;
+  to: number;
+  text: string;
+  shape?: "box";
+  color?: Color;
+}
+
+/** 時間軸の図の目盛り。`unit` の名前の目盛りを `length` の長さ (`12s` など) で `count` 個並べ、最初の目盛りの番号を `from` にする */
+export interface TimeScale {
+  unit: string;
+  length: string;
+  count: number;
+  from?: number;
+}
+
+/** 時間軸の図の区切り。目盛り `length` 個ごとに `name` の区切りを置き、最初の区切りの番号を `from` にする */
+export interface TimePeriod {
+  name: string;
+  length: number;
+  from?: number;
+}
+
+/** 時間軸の図の印の列。目盛りごとに印を 1 つ置き、`empty` の目盛りは空きの印にする */
+export interface TimeRow {
+  id: string;
+  name: string;
+  color?: Color;
+  empty?: number[];
+}
+
+/** 時間軸の図の節目。`at` の目盛りの印の下に旗の丸と名札を置く */
+export interface TimePoint {
+  id: string;
+  at: number;
+}
+
+/** 時間軸の図の種類の欄 */
+export interface TimeSpec {
+  scale: TimeScale;
+  period?: TimePeriod;
+  rows: TimeRow[];
+  points?: TimePoint[];
+  /** 拡大の帯に列を作る目盛りの範囲 */
+  zoom?: { from: number; to: number };
+}
+
+/** 中身の帯の物差しの欄。`line` の割合 (`2/3` か `97%`) の所に線を引く */
+export interface StripMeter {
+  field: string;
+  line: string;
+}
 
 /**
  * 枝分かれの図 (#3164) の commit を積む出来事。積んだ枝の札と、その枝を指す HEAD が新しい commit へ進む。
@@ -86,16 +153,17 @@ export interface Step {
 
 export interface Diagram {
   version: number;
-  kind: "sequence" | "architecture" | "state" | "git";
+  kind: "sequence" | "architecture" | "state" | "git" | "time";
   title: string;
   view?: ViewMode;
   regions?: Region[];
   boxes: Box[];
-  strip?: { title: string; fields: string[] };
+  strip?: { title: string; fields: string[]; meters?: StripMeter[] };
   steps: Step[];
   sequence?: { lifelines: string[] };
   state?: { paths: StatePath[] };
   git?: { branches: GitBranch[] };
+  time?: TimeSpec;
 }
 
 export interface FieldError {
@@ -112,15 +180,18 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span"] as const satisfies readonly DiagramEvent["type"][];
 
 /**
  * その種類の図に書けない根の欄を書いた時の決まりの場所 (#3164)。根の欄に `not: {}` を置く決まり (`absent`) を指し、
  * 誤りの場所の最後の欄が書いた欄になる。種類の欄は、その欄と同じ名前の図の種類だけが書ける
  */
 const ABSENT = "#/definitions/absent/not";
-/** 種類の欄でない根の欄を書ける図の種類。区画は枝分かれの図に書けない */
-const ABSENT_KINDS: Record<string, string> = { regions: "sequence / architecture / state" };
+/**
+ * 種類の欄でない欄を書ける図の種類。区画は枝分かれの図と時間軸の図に書けない。
+ * 線の列 (`at` と `into`)、節目の丸の色 (`color`)、物差し (`meters`) は時間軸の図だけが書ける (#3165)
+ */
+const ABSENT_KINDS: Record<string, string> = { regions: "sequence / architecture / state", at: "time", into: "time", color: "time", meters: "time" };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
 const NOT_ALLOWED: Record<string, Allowed> = {
   carry: { field: "text", kind: "tag" },
@@ -132,6 +203,14 @@ const RESERVED_ID = /\/boxes\/items\/properties\/id\/not$/u;
 const GIT_EVENT = /\/events\/items\/properties\/type\/not$/u;
 /** 枝分かれの図だけが書ける出来事 */
 const GIT_EVENTS = ["commit", "branch"] as const satisfies readonly DiagramEvent["type"][];
+/** 時間軸の図でない図に、時間軸の図だけの出来事を書いた時の決まりの場所 (#3165)。出来事に `not` を置く */
+const TIME_EVENT = /\/events\/items\/not$/u;
+/** 時間軸の図だけが書ける出来事 */
+const TIME_EVENTS = ["now", "mark", "span"] as const satisfies readonly DiagramEvent["type"][];
+/** 時間軸の図の目盛りの長さの決まり (`^[0-9]+(\.[0-9]+)?(<単位>|<単位>)$`)。書ける単位を読む */
+const DURATION = /^\^\[0-9\]\+\(\\\.\[0-9\]\+\)\?\(([a-z|]+)\)\$$/u;
+/** 割合の決まり。百分率の `%` を持つ */
+const RATIO = /%\)\$$/u;
 
 const escape = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
 
@@ -170,6 +249,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
     case "not": {
       if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: m.reserved(STATE_ENDS) };
       if (GIT_EVENT.test(error.schemaPath)) return { pointer: at, message: m.kindOnly(GIT_EVENTS, "git") };
+      if (TIME_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TIME_EVENTS, "time") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };
       const allowed = NOT_ALLOWED[last];
@@ -191,8 +271,13 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
     case "minLength":
       return { pointer: at, message: m.minLength(Number(params.limit)) };
     case "pattern": {
-      const hex = HEX.exec(String(params.pattern));
-      return { pointer: at, message: hex ? m.hex(Number(hex[1]), Number(hex[2])) : m.pattern(forbiddenOf(String(params.pattern))) };
+      const pattern = String(params.pattern);
+      const hex = HEX.exec(pattern);
+      if (hex) return { pointer: at, message: m.hex(Number(hex[1]), Number(hex[2])) };
+      const duration = DURATION.exec(pattern);
+      if (duration) return { pointer: at, message: m.duration((duration[1] ?? "").split("|")) };
+      if (RATIO.test(pattern)) return { pointer: at, message: m.ratio };
+      return { pointer: at, message: m.pattern(forbiddenOf(pattern)) };
     }
     case "minItems":
       return { pointer: at, message: m.minItems(Number(params.limit)) };
