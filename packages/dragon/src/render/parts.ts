@@ -98,7 +98,7 @@ export interface Ctx {
  * 字を 1 つ描き、字の四角と見えている間を `ink` に記録する (#3175)。`ink` を渡さない字 (寄って追う窓の頭の列) は記録しない。
  * `anchor` を渡さない字は左端を `x` に置き、`text-anchor` を書かない
  */
-function write(ink: Ink[] | undefined, cls: string, x: number, y: number, text: string, style: TextStyle, shown: Shown[] = ALWAYS, anchor?: "start" | "middle"): string {
+export function write(ink: Ink[] | undefined, cls: string, x: number, y: number, text: string, style: TextStyle, shown: Shown[] = ALWAYS, anchor?: "start" | "middle"): string {
   ink?.push({ text, rect: textBox(text, x, y, style, anchor), shown });
   return `<text class="${cls}" x="${r1(x)}" y="${r1(y)}"${anchor ? ` text-anchor="${anchor}"` : ""}>${esc(text)}</text>`;
 }
