@@ -252,9 +252,9 @@
 | 札を置く枠を持つ構成図の箱に `note` だけを書いた段 (packages/dragon/test/fixtures/corner-slot.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-architecture-slot-no-overlaps`が通る | #3187 |
 | 線の無い段の番号の中心が、状態遷移図と構成図と時系列図のどれでも、書き換わる箱の左上の角に在る | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-centered-on-corner`が通る | #3187 |
 | 中身の帯だけを書き換える線の無い段の番号は、今までどおり帯の左上の角から 4px 内側に在る | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-strip-unchanged`が通る | #3187 |
-| 箱が図の左端と上端に在る 4 つの見本 (corner-note、corner-empty、corner-slot、corner-seq) で、線の無い段の番号が図の外へはみ出さない | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-inside-figure`が通る | #3187 |
+| 箱が図の左端と上端に在る 4 つの見本 (corner-note、corner-empty、corner-slot、時系列図の書き込みだけの段) で、線の無い段の番号が図の外へはみ出さない | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-inside-figure`が通る | #3187 |
 | 線の無い段が同じ箱か中身の帯を続けて書き換える時、段の番号は同じ角に置かれ、全ての段で `overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`corner-badges-share-one-spot`が通る | #3187 |
 | 重なりを知らせる文は、番号を絵柄に重ねた図で、日本語と英語の文を出す。重なりは描いた後の置き場所を書き換えて作る | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-message-in-both-languages`が通る | #3187 |
 | 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3187 |
 | 編集画面で字の重ならない見本を開いた時、「読めています」だけが出て、重なりの欄も図の上の囲みも出ない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3187 |
-| 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3187 |
+| 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で、`overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3187 |
