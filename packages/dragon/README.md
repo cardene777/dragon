@@ -58,7 +58,7 @@ CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `group` `end` `box` `strip` `step` `say` `code` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `group` `end` `box` `branch` `strip` `step` `say` `code` `commit` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 
 ```dragon
 architecture 注文を倉庫へ回す
@@ -112,6 +112,42 @@ step 届く
   say 品物が届いて配達完了に移り、注文を閉じる。
   発送済み -> 配達完了: 受け取り [tag: #1042]
   配達完了 -> finish: 注文を閉じる [tag: #1042]
+```
+
+### 枝分かれの図
+
+`git` で始めると、git の枝に commit を積み、取り込むまでを段ごとに追う枝分かれの図になる。枝は `branch` の行で上から順に宣言し、枝ごとに帯が並ぶ。
+段の中では `commit <名札> on <枝>` で枝の先に commit を積み、`copy <元>` で当て直しの commit を、`merge <枝>` で merge commit を作る。`hash` と `note` で丸の外に hash と一言を添える。
+`<枝> from <commit>` で枝を切り、`<札> -> <commit>` で commit を作らずに枝の札か `HEAD` を動かす。どの札からも辿れなくなった commit は点線の丸に変わる。
+
+```dragon
+git fix は merge commit で、feature は当て直して取り込む
+
+branch main [note: 取り込む先]
+branch feature [note: 作業の枝]
+branch fix [note: 直しの枝]
+
+step 枝を切る
+  say main の A から fix と feature を切り、それぞれに commit を積む。
+  commit A on main [hash: 3fa0c19, note: 最初の形]
+  fix from A
+  commit F on fix [hash: 9b2e4d1, note: 誤字を直す]
+  feature from A
+  commit C on feature [hash: c41d0e5, note: 検索を足す]
+
+step merge commit で取り込む
+  say fix を merge commit M で main へ取り込む。M は A と F の 2 つを親に持つ。
+  commit M on main merge fix [hash: 7d3a5e2, note: fix を取り込む]
+
+step 当て直す
+  say HEAD を M へ動かして枝から離し、C を M の先へ写して C' を作る。
+  HEAD -> M
+  commit C' on main copy C [hash: a90c6b4, note: 検索を足す]
+
+step 早送りする
+  say feature を C' へ動かし、main も C' まで進める。元の C はどの枝からも辿れなくなる。
+  feature -> C'
+  main -> C'
 ```
 
 ## 書き出し
