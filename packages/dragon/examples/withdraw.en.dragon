@@ -1,0 +1,39 @@
+// The 7-day wait when withdrawing assets from L2 to L1 (#3165).
+// One unit is one day, and the axis shows 10 days. A box marks the 7 days in which anyone can dispute the state sent to L1,
+// and the needle moves through those 7 days before the assets can be received on L1. A diagram of the axis and points only, with no boxes or zoom band.
+time The 7-day wait to withdraw from L2 to L1
+
+scale day 1d 10
+row batch as Posted to L1 [color: blue]
+point request at 0
+point receive at 8
+
+strip Withdrawal: Elapsed, Dispute days left, Withdrawal
+
+step Request the withdrawal
+  say The user sends a withdrawal on L2. It takes seconds inside L2, but receiving it on L1 is still a while away.
+  note request: Requested [color: violet]
+  set Elapsed: 0 d
+  set Withdrawal: Requested
+
+step Post the state to L1
+  say L2 posts the state that bundles the transactions to L1. From this post, anyone has 7 days to dispute it.
+  now -> 0
+  note request: Posted to L1 [color: blue]
+  set Elapsed: 1 d
+  set Dispute days left: 7 d
+
+step Wait 7 days
+  say If the posted state is wrong, anyone can submit a fraud proof within the 7 days and cancel it. With no dispute the state becomes settled.
+  span 1-7: 7 days to dispute [shape: box, color: amber]
+  now -> 7
+  set Elapsed: 8 d
+  set Dispute days left: 0 d
+
+step Receive on L1
+  say No dispute came in the 7 days, so the user proves the withdrawal on L1 and receives the assets.
+  request -> receive: withdraw [carry: coin]
+  note receive: Received [color: green]
+  now -> 8
+  set Elapsed: 9 d
+  set Withdrawal: Received

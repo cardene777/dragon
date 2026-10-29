@@ -1,0 +1,434 @@
+{
+  "version": 1,
+  "kind": "time",
+  "title": "How an Ethereum block becomes final",
+  "boxes": [
+    {
+      "id": "proposer",
+      "name": "proposer",
+      "color": "blue",
+      "icon": "user"
+    },
+    {
+      "id": "block",
+      "name": "block",
+      "color": "blue",
+      "icon": "box"
+    },
+    {
+      "id": "committee",
+      "name": "committee",
+      "sub": "1/32 of all",
+      "color": "amber"
+    }
+  ],
+  "strip": {
+    "title": "Finality",
+    "fields": [
+      "Elapsed",
+      "C100",
+      "C101",
+      "C102",
+      "Votes this epoch"
+    ],
+    "meters": [
+      {
+        "field": "Votes this epoch",
+        "line": "2/3"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Propose a block",
+      "body": "Time is cut into 12-second slots. In each slot one validator is chosen as the proposer and puts out one block.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "proposer",
+          "to": "block",
+          "carry": {
+            "kind": "envelope"
+          },
+          "at": 0
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "0 s"
+        }
+      ]
+    },
+    {
+      "title": "The committee votes",
+      "body": "Each validator votes (attests) once per epoch, in its assigned slot. A vote points at the head block and at a checkpoint.",
+      "code": "attestation = { head, source, target }",
+      "events": [
+        {
+          "type": "edge",
+          "from": "committee",
+          "to": "block",
+          "carry": {
+            "kind": "tag",
+            "text": "vote"
+          },
+          "at": 0
+        },
+        {
+          "type": "now",
+          "to": 0
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "12 s"
+        },
+        {
+          "type": "strip",
+          "field": "Votes this epoch",
+          "value": "3%"
+        }
+      ]
+    },
+    {
+      "title": "Some slots stay empty",
+      "body": "When the proposer does not respond, the slot passes without a block. The chain does not stop, and the votes of that slot point at the block before it.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "proposer",
+          "to": "block",
+          "carry": {
+            "kind": "envelope"
+          },
+          "at": 1
+        },
+        {
+          "type": "edge",
+          "from": "committee",
+          "to": "block",
+          "carry": {
+            "kind": "tag",
+            "text": "vote"
+          },
+          "at": 1
+        },
+        {
+          "type": "edge",
+          "from": "proposer",
+          "to": "block",
+          "carry": {
+            "kind": "envelope"
+          },
+          "at": 2
+        },
+        {
+          "type": "edge",
+          "from": "committee",
+          "to": "block",
+          "carry": {
+            "kind": "tag",
+            "text": "vote"
+          },
+          "at": 2
+        },
+        {
+          "type": "edge",
+          "from": "committee",
+          "to": "block",
+          "carry": {
+            "kind": "tag",
+            "text": "vote"
+          },
+          "at": 3,
+          "into": 2
+        },
+        {
+          "type": "now",
+          "to": 3
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "48 s"
+        },
+        {
+          "type": "strip",
+          "field": "Votes this epoch",
+          "value": "12%"
+        }
+      ]
+    },
+    {
+      "title": "Pick the checkpoint",
+      "body": "32 slots (6.4 minutes) make one epoch. The block in the first slot of an epoch becomes its checkpoint, called C100 here.",
+      "events": [
+        {
+          "type": "swap",
+          "box": "C100",
+          "text": "Proposed",
+          "color": "blue"
+        },
+        {
+          "type": "span",
+          "from": 0,
+          "to": 31,
+          "text": "32 slots = 6.4 min",
+          "color": "slate"
+        },
+        {
+          "type": "strip",
+          "field": "C100",
+          "value": "Proposed"
+        }
+      ]
+    },
+    {
+      "title": "Votes pile up",
+      "body": "Every validator votes once during the epoch, so the votes for C100 pile up slot by slot. A vote weighs as much as the stake behind it.",
+      "events": [
+        {
+          "type": "now",
+          "to": 31
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "6 min 24 s"
+        },
+        {
+          "type": "strip",
+          "field": "Votes this epoch",
+          "value": "97%"
+        }
+      ]
+    },
+    {
+      "title": "Justify",
+      "body": "At the end of the epoch, if the votes for C100 pass 2/3 of all stake, C100 is justified.",
+      "events": [
+        {
+          "type": "swap",
+          "box": "C100",
+          "text": "Justified",
+          "color": "violet"
+        },
+        {
+          "type": "strip",
+          "field": "C100",
+          "value": "Justified"
+        }
+      ]
+    },
+    {
+      "title": "The next epoch does the same",
+      "body": "In the next epoch the votes gather on C101. They count from C100, the last justified checkpoint (source), to C101 (target).",
+      "code": "source C100 → target C101",
+      "events": [
+        {
+          "type": "swap",
+          "box": "C101",
+          "text": "Proposed",
+          "color": "blue"
+        },
+        {
+          "type": "now",
+          "to": 63
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "12 min 48 s"
+        },
+        {
+          "type": "strip",
+          "field": "Votes this epoch",
+          "value": "97%"
+        },
+        {
+          "type": "strip",
+          "field": "C101",
+          "value": "Proposed"
+        }
+      ]
+    },
+    {
+      "title": "The earlier checkpoint is finalized",
+      "body": "When C101 is justified too, the earlier of the two justified checkpoints in a row, C100, is finalized. About 2 epochs, 12.8 minutes, after C100 was proposed.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "C100",
+          "to": "C101",
+          "label": "passed 2/3",
+          "carry": {
+            "kind": "none"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "C101",
+          "text": "Justified",
+          "color": "violet"
+        },
+        {
+          "type": "swap",
+          "box": "C100",
+          "text": "Final",
+          "color": "green"
+        },
+        {
+          "type": "mark",
+          "row": "block",
+          "from": 0,
+          "to": 0,
+          "color": "green"
+        },
+        {
+          "type": "span",
+          "from": 0,
+          "to": 63,
+          "text": "From C100 proposed to final, about 12.8 min",
+          "color": "green"
+        },
+        {
+          "type": "strip",
+          "field": "C101",
+          "value": "Justified"
+        },
+        {
+          "type": "strip",
+          "field": "C100",
+          "value": "Final"
+        }
+      ]
+    },
+    {
+      "title": "Finality moves one epoch at a time",
+      "body": "The same happens every epoch after that. Justifying C102 finalizes the blocks up to C101, so the final range grows one epoch at a time.",
+      "events": [
+        {
+          "type": "swap",
+          "box": "C102",
+          "text": "Proposed",
+          "color": "blue"
+        },
+        {
+          "type": "now",
+          "to": 95
+        },
+        {
+          "type": "edge",
+          "from": "C101",
+          "to": "C102",
+          "label": "passed 2/3",
+          "carry": {
+            "kind": "none"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "C102",
+          "text": "Justified",
+          "color": "violet"
+        },
+        {
+          "type": "swap",
+          "box": "C101",
+          "text": "Final",
+          "color": "green"
+        },
+        {
+          "type": "mark",
+          "row": "block",
+          "from": 1,
+          "to": 32,
+          "color": "green"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "19 min 12 s"
+        },
+        {
+          "type": "strip",
+          "field": "Votes this epoch",
+          "value": "97%"
+        },
+        {
+          "type": "strip",
+          "field": "C101",
+          "value": "Final"
+        },
+        {
+          "type": "strip",
+          "field": "C102",
+          "value": "Justified"
+        }
+      ]
+    },
+    {
+      "title": "Final cannot be reverted",
+      "body": "Reverting a final block needs validators holding at least 1/3 of all stake to cast conflicting votes and be punished (slashed).",
+      "events": [
+        {
+          "type": "span",
+          "from": 0,
+          "to": 32,
+          "text": "Final and cannot be reverted",
+          "shape": "box",
+          "color": "rose"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "scale": {
+      "unit": "slot",
+      "length": "12s",
+      "count": 96,
+      "from": 3200
+    },
+    "period": {
+      "name": "epoch",
+      "length": 32,
+      "from": 100
+    },
+    "rows": [
+      {
+        "id": "block",
+        "name": "block",
+        "color": "blue",
+        "empty": [
+          3,
+          13,
+          45,
+          79
+        ]
+      },
+      {
+        "id": "vote",
+        "name": "vote",
+        "color": "amber"
+      }
+    ],
+    "points": [
+      {
+        "id": "C100",
+        "at": 0
+      },
+      {
+        "id": "C101",
+        "at": 32
+      },
+      {
+        "id": "C102",
+        "at": 64
+      }
+    ],
+    "zoom": {
+      "from": 0,
+      "to": 3
+    }
+  }
+}

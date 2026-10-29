@@ -1,0 +1,13 @@
+time Row of marks
+
+scale slot 12s 8
+row block [color: blue, empty: 2 5]
+row vote [color: amber]
+
+step Fill the marks
+  say Declare rows from top to bottom with row. Marks fill once the needle passes, and units in empty stay empty.
+  now -> 7
+
+step Recolor
+  say mark inside a step recolors a range of marks in a row.
+  mark block 0-3 [color: green]

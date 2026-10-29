@@ -1,0 +1,96 @@
+// Ethereum でブロックが出てから確定して戻せなくなるまで (#3165)。
+// 上の帯が最初の 4 slot の拡大、下が 3 epoch 分 (96 slot) の時間軸で、細い棒 1 本が 1 slot (12 秒)。
+// 全体を止めたまま針を進め、checkpoint が提案、正当化、確定と進む様子を下の帯と一緒に追う。
+time Ethereum のブロックが確定して戻せなくなるまで
+
+scale slot 12s 96 [from: 3200]
+period epoch 32 [from: 100]
+row ブロック [color: blue, empty: 3 13 45 79]
+row 票 [color: amber]
+point C100 at 0
+point C101 at 32
+point C102 at 64
+zoom 0-3
+
+box 提案者 [color: blue, icon: user]
+box ブロック [color: blue, icon: box]
+box 委員会 [note: 全体の 1/32, color: amber]
+
+strip 確定の進み: 経過, C100, C101, C102, 今の epoch の票 [meter: 2/3]
+
+step ブロックを出す
+  say 時間は 12 秒ごとの slot に区切られる。slot ごとに validator から 1 人が提案者に選ばれ、ブロックを 1 つ出す。
+  提案者 -> ブロック [at: 0]
+  set 経過: 0 秒
+
+step 委員会が投票する
+  say 各 validator は 1 epoch に 1 回、割り当てられた slot で投票 (attestation) する。票は先頭のブロックと checkpoint を指す。
+  code attestation = { head, source, target }
+  委員会 -> ブロック [tag: 票, at: 0]
+  now -> 0
+  set 経過: 12 秒
+  set 今の epoch の票: 3%
+
+step 空く slot もある
+  say 提案者が応答しないと、その slot はブロックの無いまま過ぎる。チェーンは止まらず、その slot の票は 1 つ前のブロックを指す。
+  提案者 -> ブロック [at: 1]
+  委員会 -> ブロック [tag: 票, at: 1]
+  提案者 -> ブロック [at: 2]
+  委員会 -> ブロック [tag: 票, at: 2]
+  委員会 -> ブロック [tag: 票, at: 3, into: 2]
+  now -> 3
+  set 経過: 48 秒
+  set 今の epoch の票: 12%
+
+step checkpoint を決める
+  say 32 slot (6.4 分) で 1 epoch。epoch の最初の slot のブロックが、その epoch の checkpoint になる。ここでは C100 と呼ぶ。
+  note C100: 提案済み [color: blue]
+  span 0-31: 32 slot = 6.4 分 [color: slate]
+  set C100: 提案済み
+
+step 票が積み上がる
+  say epoch の間に全 validator が 1 回ずつ投票するので、C100 への票は slot ごとに積み上がる。票の重さは持っている stake で量る。
+  now -> 31
+  set 経過: 6 分 24 秒
+  set 今の epoch の票: 97%
+
+step 正当化する
+  say epoch の終わりの集計で、C100 への票が全体の stake の 2/3 を超えていれば、C100 は正当化 (justified) される。
+  note C100: 正当化 [color: violet]
+  set C100: 正当化
+
+step 次の epoch も同じ
+  say 次の epoch では C101 へ票が集まる。票は直前に正当化された C100 を起点 (source)、C101 を目標 (target) として数える。
+  code source C100 → target C101
+  note C101: 提案済み [color: blue]
+  now -> 63
+  set 経過: 12 分 48 秒
+  set 今の epoch の票: 97%
+  set C101: 提案済み
+
+step 前の checkpoint が確定する
+  say C101 も正当化されると、続けて正当化された 2 つのうち前の C100 が確定 (finalized) する。C100 の提案から約 2 epoch、12.8 分。
+  C100 -> C101: 2/3 を超えた [carry: none]
+  note C101: 正当化 [color: violet]
+  note C100: 確定 [color: green]
+  mark ブロック 0 [color: green]
+  span 0-63: C100 の提案から確定まで 約 12.8 分 [color: green]
+  set C101: 正当化
+  set C100: 確定
+
+step 確定が 1 epoch ずつ進む
+  say 以後は epoch ごとに同じことが起き、C102 の正当化で C101 までのブロックが確定する。確定した範囲は 1 epoch ずつ伸びる。
+  note C102: 提案済み [color: blue]
+  now -> 95
+  C101 -> C102: 2/3 を超えた [carry: none]
+  note C102: 正当化 [color: violet]
+  note C101: 確定 [color: green]
+  mark ブロック 1-32 [color: green]
+  set 経過: 19 分 12 秒
+  set 今の epoch の票: 97%
+  set C101: 確定
+  set C102: 正当化
+
+step 確定したら戻せない
+  say 確定したブロックを戻すには、全体の stake の 1/3 以上を持つ validator が矛盾した票を出し、罰 (slashing) を受けなければならない。
+  span 0-32: 確定して戻せない [shape: box, color: rose]

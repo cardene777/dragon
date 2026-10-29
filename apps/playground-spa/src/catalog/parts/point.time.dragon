@@ -1,0 +1,17 @@
+time 節目
+
+scale epoch 6.4min 4 [from: 100]
+row 確定
+point C100 at 0
+point C101 at 2
+
+step 状態を変える
+  say point で目盛りの印の下に節目の旗の丸を置き、note で状態の字を書き換える。
+  note C100: 提案済み [color: blue]
+  now -> 0
+
+step 色を変える
+  say note の color で丸の色を変える。節目どうしは線で結べる。
+  note C100: 確定 [color: green]
+  C100 -> C101: 次の epoch [carry: none]
+  now -> 2

@@ -5,7 +5,7 @@
  * (渡さなければ日本語) で出す。文の中の記法の語は語の表から引き、表と文で語が食い違わないようにする。
  */
 import { COLORS } from "./schema";
-import { CARRIES, HEADS, KINDS, type NotationLang, SIDES, VIEWS } from "./words";
+import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SIDES, SPAN_SHAPES, VIEWS } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
 export type Shape = "sequence" | "architecture" | "group" | "box" | "strip" | "view" | "step" | "say" | "code" | "act" | "note" | "set";
@@ -82,6 +82,43 @@ export interface Messages {
   /** 枝分かれの図で、今いる場所の札の名前 (`name`) を名札にした */
   headReserved: (name: string) => string;
   badHash: string;
+  /** 時間軸の図だけの行か属性 (`word`) を、別の種類の図に書いた (#3165) */
+  timeOnly: (word: string) => string;
+  /** 時間軸の図の宣言の行を 2 つ書いた */
+  timeTwice: (word: string) => string;
+  noScale: string;
+  noRows: string;
+  scaleShape: string;
+  periodShape: string;
+  rowShape: string;
+  pointShape: string;
+  zoomShape: string;
+  nowShape: string;
+  markShape: string;
+  spanShape: string;
+  badLength: string;
+  badCount: (word: string) => string;
+  /** 目盛りの位置か範囲 (`text`) が、0 から `count - 1` の外か、範囲の形でない */
+  badUnit: (text: string, count: number) => string;
+  /** 針を前の時刻 (`at` の目盛りの終わり) より先へ進めない `now` */
+  nowBack: (text: string, at: number) => string;
+  /** 拡大の帯の外の列 */
+  outOfZoom: (from: number, to: number) => string;
+  noZoom: string;
+  /** 時間軸の図の箱を宣言したのに、拡大の帯 (`zoom`) が無い */
+  boxNeedsZoom: string;
+  boxLineNeedsAt: string;
+  pointLineNoAt: string;
+  mixedLine: string;
+  undeclaredRow: (id: string) => string;
+  /** 時間軸の図の note の行の名札が、箱でも節目でもない */
+  undeclaredNote: (id: string) => string;
+  nowReserved: (name: string) => string;
+  noteColorPointOnly: string;
+  badShape: string;
+  badRatio: string;
+  /** 物差しの欄 `field` の値が割合でない */
+  meterValue: (field: string) => string;
 }
 
 const list = (words: readonly string[]): string => words.join(" / ");
@@ -119,8 +156,8 @@ const ja = (): Messages => {
     sayTwice: "1 つの段に say は 1 つまで。長い本文は say の下に字下げして続ける",
     codeTwice: "1 つの段に code は 1 行まで",
     emptyCode: "code の後ろに命令を書く",
-    declarationInStep: "group と box と strip と branch は最初の step より前に書く",
-    stepLineBeforeStep: "線と say と code と act と note と set と commit と枝を切る行は step の下に書く",
+    declarationInStep: "group と box と strip と branch と、scale と period と row と point と zoom は最初の step より前に書く",
+    stepLineBeforeStep: "線と say と code と act と note と set と commit と枝を切る行と、now と mark と span の行は step の下に書く",
     nestedGroup: "group の中に group は書けない。先に end で閉じる",
     strayEnd: "end の前に、閉じる group が無い",
     endTakesNothing: "end の後ろには何も書かない",
@@ -166,6 +203,35 @@ const ja = (): Messages => {
     mergeSelf: (id) => `${id} は積む枝なので、取り込む枝にできない`,
     headReserved: (name) => `${name} は枝分かれの図で今いる場所の札の名前で、名札に使えない`,
     badHash: "hash は 0 から 9 と a から f の字で 4 から 40 字にする",
+    timeOnly: (word) => `${word} は time (時間軸の図) でだけ書ける`,
+    timeTwice: (word) => `${word} は 1 つだけ宣言する`,
+    noScale: "scale の行で目盛りを宣言する",
+    noRows: "row の行で印の列を 1 つ以上宣言する",
+    scaleShape: "scale は scale <単位> <長さ> <数> [from: <番号>] の形で書く",
+    periodShape: "period は period <名前> <目盛りの数> [from: <番号>] の形で書く",
+    rowShape: "row は row <名札> as <名前> [color: <色>, empty: <目盛り> <目盛り>] の形で書く",
+    pointShape: "point は point <名札> at <目盛り> の形で書く",
+    zoomShape: "zoom は zoom <目盛り>-<目盛り> の形で書く",
+    nowShape: "針を進める行は now -> <目盛り> の形で書く",
+    markShape: "mark は mark <列> <目盛り>-<目盛り> [color: <色>] の形で書く",
+    spanShape: `span は span <目盛り>-<目盛り>: <字> [shape: ${list(SPAN_SHAPES)}, color: <色>] の形で書く`,
+    badLength: `長さは数と単位 (${list(DURATION_UNITS)}) の組で書く (12s など)`,
+    badCount: (word) => `${word} の目盛りの数は 1 以上の整数にする`,
+    badUnit: (text, count) => `${text} は目盛りの位置にできない。0 から ${count - 1} の数か、その範囲 (0-3 など) を書く`,
+    nowBack: (text, at) => `now -> ${text} は針を進めない。前の now (${at}) より後の目盛りを書く`,
+    outOfZoom: (from, to) => `拡大の帯の列は ${from} から ${to} の目盛りから選ぶ`,
+    noZoom: "at と into は、zoom で拡大の帯を宣言した図の箱どうしの線にだけ書ける",
+    boxNeedsZoom: "時間軸の図の箱は拡大の帯に置く。zoom <目盛り>-<目盛り> で拡大の範囲を書く",
+    boxLineNeedsAt: "拡大の帯の箱どうしの線には [at: <目盛り>] で列を書く",
+    pointLineNoAt: "節目どうしの線は軸の上に引くので、at と into を書けない",
+    mixedLine: "線は箱どうしか、節目どうしで引く",
+    undeclaredRow: (id) => `${id} という印の列は宣言していない`,
+    undeclaredNote: (id) => `${id} という箱か節目は宣言していない`,
+    nowReserved: (name) => `${name} は時間軸の図で針を進める行の語で、名札に使えない`,
+    noteColorPointOnly: "note の color は節目の丸の色で、節目の note にだけ書ける",
+    badShape: `shape は ${list(SPAN_SHAPES)} だけ書ける。括弧は shape を書かない`,
+    badRatio: "物差しの線は分数 (2/3) か百分率 (97%) で書く",
+    meterValue: (field) => `${field} は物差しの欄なので、値を分数 (2/3) か百分率 (97%) で書く`,
   };
 };
 
@@ -202,8 +268,8 @@ const en = (): Messages => {
     sayTwice: "A step takes one say. Continue a long body on indented lines below it",
     codeTwice: "A step takes at most one code line",
     emptyCode: "Write the command after code",
-    declarationInStep: "Write group, box, strip and branch before the first step",
-    stepLineBeforeStep: "Write lines, say, code, act, note, set, commit and branch cuts under a step",
+    declarationInStep: "Write group, box, strip, branch, scale, period, row, point and zoom before the first step",
+    stepLineBeforeStep: "Write lines, say, code, act, note, set, commit, branch cuts, now, mark and span under a step",
     nestedGroup: "A group cannot hold another group. Close it with end first",
     strayEnd: "There is no group for this end to close",
     endTakesNothing: "Write nothing after end",
@@ -249,6 +315,35 @@ const en = (): Messages => {
     mergeSelf: (id) => `${id} is the branch being committed to, so it cannot be the branch merged in`,
     headReserved: (name) => `${name} names where you are in a git diagram and cannot be an id`,
     badHash: "Write a hash as 4 to 40 characters of 0-9 and a-f",
+    timeOnly: (word) => `${word} can be written only in time diagrams`,
+    timeTwice: (word) => `Declare only one ${word}`,
+    noScale: "Declare the scale with a scale line",
+    noRows: "Declare at least one row with a row line",
+    scaleShape: "Write a scale as scale <unit> <length> <count> [from: <number>]",
+    periodShape: "Write a period as period <name> <units> [from: <number>]",
+    rowShape: "Write a row as row <id> as <name> [color: <color>, empty: <unit> <unit>]",
+    pointShape: "Write a point as point <id> at <unit>",
+    zoomShape: "Write a zoom as zoom <unit>-<unit>",
+    nowShape: "Write a needle line as now -> <unit>",
+    markShape: "Write a mark as mark <row> <unit>-<unit> [color: <color>]",
+    spanShape: `Write a span as span <unit>-<unit>: <text> [shape: ${list(SPAN_SHAPES)}, color: <color>]`,
+    badLength: `Write a length as a number and a unit (${list(DURATION_UNITS)}), such as 12s`,
+    badCount: (word) => `The unit count of ${word} is a whole number of 1 or more`,
+    badUnit: (text, count) => `${text} cannot be a unit. Write a number from 0 to ${count - 1}, or a range such as 0-3`,
+    nowBack: (text, at) => `now -> ${text} does not move the needle forward. Write a unit after the previous now (${at})`,
+    outOfZoom: (from, to) => `Pick a zoom column from units ${from} to ${to}`,
+    noZoom: "at and into are allowed only on lines between boxes in a diagram that declares a zoom",
+    boxNeedsZoom: "Boxes of a time diagram sit in the zoom band. Write the zoom range as zoom <unit>-<unit>",
+    boxLineNeedsAt: "Write the column of a line between zoom boxes as [at: <unit>]",
+    pointLineNoAt: "A line between points runs along the axis, so it takes no at or into",
+    mixedLine: "Draw a line between two boxes or between two points",
+    undeclaredRow: (id) => `No row named ${id} is declared`,
+    undeclaredNote: (id) => `No box or point named ${id} is declared`,
+    nowReserved: (name) => `${name} starts the needle line of a time diagram and cannot be an id`,
+    noteColorPointOnly: "The color of a note colors the circle of a point, so write it only on the note of a point",
+    badShape: `shape takes only ${list(SPAN_SHAPES)}. A bracket takes no shape`,
+    badRatio: "Write the meter line as a fraction (2/3) or a percentage (97%)",
+    meterValue: (field) => `${field} is a meter, so write its value as a fraction (2/3) or a percentage (97%)`,
   };
 };
 

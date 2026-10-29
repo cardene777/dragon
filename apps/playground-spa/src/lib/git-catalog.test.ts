@@ -128,7 +128,9 @@ describe("見本帳と編集画面の枝分かれの図 (#3164)", () => {
       await onScreen(page, "catalog", "見本帳の一覧が出ない");
       const kinds = (): Promise<string[]> =>
         page.evaluate(() => [...document.querySelectorAll('[data-catalog="section"][data-section="kinds"] [data-catalog="card"] h2')].map((h) => h.textContent?.trim() ?? ""));
-      await expect.poll(kinds, { ...WAIT, message: "見本帳の図の分類が、時系列図、構成図、状態遷移図、枝分かれの図の 4 つでない" }).toEqual([...KIND_NAMES]);
+      await expect
+        .poll(async () => (await kinds()).slice(0, KIND_NAMES.length), { ...WAIT, message: "見本帳の図の分類が、時系列図、構成図、状態遷移図、枝分かれの図の順で始まらない" })
+        .toEqual([...KIND_NAMES]);
 
       const titles = GIT_SAMPLES.map((key) => sample(key).title);
       const opened = await site.open({ path: `${BASE}catalog/git`, viewport: { width: 1440, height: 900 } });

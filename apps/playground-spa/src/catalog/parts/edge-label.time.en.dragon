@@ -1,0 +1,16 @@
+time Edge label
+
+scale epoch 6.4min 4
+row final
+point A at 0
+point B at 2
+
+step Below
+  say The text after the colon is the label. A line between points puts it below unless you say otherwise.
+  note A: Justified [color: violet]
+  A -> B: over 2/3 [carry: none]
+
+step Above
+  say side picks where the label sits: above, below, left or right.
+  note B: Justified [color: violet]
+  A -> B: next epoch [carry: none, side: above]

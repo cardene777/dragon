@@ -128,6 +128,8 @@ export interface SceneField {
   x: number;
   y: number;
   w: number;
+  /** 時間軸の図の物差しの欄 (#3165)。`line` の割合の所に線を引き、線の字 `text` を添える。棒は `x` から幅 `w` */
+  meter?: { line: number; text: string; x: number; w: number };
 }
 
 /** 状態遷移図の帯の最後の欄。段が辿り着く順に状態を点で並べ、着いた状態を塗る (#3171) */
@@ -578,8 +580,23 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
   return { ...first, step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
 }
 
-/** 中身の帯の欄の幅。欄の名前と、入る値と札を並べた最も長い形が収まる幅。 */
+/**
+ * 割合の字 (`2/3` か `97%`) の値 (#3165)。0 から 1 の間に収める。割合の形でない字は `undefined`
+ */
+export function ratioOf(text: string): number | undefined {
+  const percent = /^([0-9]+(?:\.[0-9]+)?)%$/u.exec(text.trim());
+  if (percent) return Math.min(1, Math.max(0, Number(percent[1]) / 100));
+  const fraction = /^([0-9]+)\/([0-9]+)$/u.exec(text.trim());
+  if (fraction && Number(fraction[2]) > 0) return Math.min(1, Math.max(0, Number(fraction[1]) / Number(fraction[2])));
+  return undefined;
+}
+
+/** 欄に付けた物差し (#3165)。時間軸の図だけが持つ */
+const meterOf = (diagram: Diagram, name: string) => diagram.strip?.meters?.find((m) => m.field === name);
+
+/** 中身の帯の欄の幅。欄の名前と、入る値と札を並べた最も長い形が収まる幅。物差しの欄は物差しの幅 */
 function fieldWidth(diagram: Diagram, name: string): number {
+  if (meterOf(diagram, name)) return Math.max(textWidth(name, TYPE.fieldName), LOOK.time.meter.w);
   let value = 0;
   let tag = 0;
   for (const step of diagram.steps) {
@@ -626,7 +643,10 @@ export function layoutStrip(diagram: Diagram, x: number, y: number, width: numbe
   };
   for (const name of diagram.strip.fields) {
     const w = fieldWidth(diagram, name);
-    fields.push({ name, ...place(w), w });
+    const at = place(w);
+    const meter = meterOf(diagram, name);
+    const line = meter ? ratioOf(meter.line) : undefined;
+    fields.push({ name, ...at, w, ...(meter && line !== undefined ? { meter: { line, text: meter.line, x: at.x, w: LOOK.time.meter.w } } : {}) });
   }
   const laidTrail = trail ? { ...trail, ...place(trailWidth(trail)), w: trailWidth(trail) } : undefined;
   return { x, y, w: width, h: h + row * line, title: diagram.strip.title, fields, ...(laidTrail ? { trail: laidTrail } : {}) };
@@ -679,6 +699,7 @@ export function shiftContent(layout: Layout, dx: number, dy: number): void {
     for (const field of layout.strip.fields) {
       field.x += dx;
       field.y += dy;
+      if (field.meter) field.meter.x += dx;
     }
     if (layout.strip.trail) {
       layout.strip.trail.x += dx;

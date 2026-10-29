@@ -1,0 +1,16 @@
+time 線の名前
+
+scale epoch 6.4min 4
+row 確定
+point A at 0
+point B at 2
+
+step 下に置く
+  say コロンの後ろが線の名前。節目どうしの線は、書かなければ線の下に置く。
+  note A: 正当化 [color: violet]
+  A -> B: 2/3 を超えた [carry: none]
+
+step 上に置く
+  say side で名前を置く側を選ぶ。above、below、left、right の 4 つ。
+  note B: 正当化 [color: violet]
+  A -> B: 次の epoch [carry: none, side: above]

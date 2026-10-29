@@ -1,0 +1,18 @@
+time 色
+
+scale slot 12s 6
+row ブロック [color: blue]
+zoom 0-2
+
+box 提案者 [color: violet]
+box ブロック [color: blue]
+
+step 色を付ける
+  say color で箱に色の役を付ける。線は送る側の箱の色で引く。
+  提案者 -> ブロック [at: 0]
+  now -> 0
+
+step 印の列
+  say 印の列にも color を書くと、塗る印がその色になる。
+  提案者 -> ブロック [at: 1]
+  now -> 1

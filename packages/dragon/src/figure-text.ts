@@ -36,6 +36,15 @@ export interface FigureText {
   envelope: string;
   textsOverlap: (a: string, b: string) => string;
   lineCrosses: (from: string, to: string, text: string) => string;
+  /**
+   * 時間軸の図 (#3165)。時刻の字の単位、拡大の帯の名前、目盛りの番号の範囲の書き方、列の上の目盛りの番号と時刻の間、
+   * 空きの目盛りの枠の字
+   */
+  timeUnits: Record<"ms" | "s" | "min" | "h" | "d", string>;
+  zoom: string;
+  range: (from: string, to: string) => string;
+  headJoin: string;
+  empty: string;
 }
 
 /** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
@@ -65,6 +74,11 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "「封筒」",
     textsOverlap: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
     lineCrosses: (from, to, text) => `線 ${from} → ${to} が${spaced(text)}を横切る`,
+    timeUnits: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
+    zoom: "拡大",
+    range: (from, to) => `${from}〜${to}`,
+    headJoin: " ・ ",
+    empty: "空き",
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
@@ -87,5 +101,10 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "the envelope",
     textsOverlap: (a, b) => capital(`${a} and ${b} overlap`),
     lineCrosses: (from, to, text) => `The line ${from} → ${to} crosses ${text}`,
+    timeUnits: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
+    zoom: "Zoom",
+    range: (from, to) => `${from}–${to}`,
+    headJoin: " · ",
+    empty: "Empty",
   },
 };

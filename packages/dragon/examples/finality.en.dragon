@@ -1,0 +1,96 @@
+// How an Ethereum block becomes final and cannot be reverted (#3165).
+// The top band zooms into the first 4 slots, and the bottom is a timeline of 3 epochs (96 slots), one thin bar per slot (12 seconds).
+// The whole view stays still while the needle moves, and the strip follows the checkpoints from proposed to justified to finalized.
+time How an Ethereum block becomes final
+
+scale slot 12s 96 [from: 3200]
+period epoch 32 [from: 100]
+row block [color: blue, empty: 3 13 45 79]
+row vote [color: amber]
+point C100 at 0
+point C101 at 32
+point C102 at 64
+zoom 0-3
+
+box proposer [color: blue, icon: user]
+box block [color: blue, icon: box]
+box committee [note: 1/32 of all, color: amber]
+
+strip Finality: Elapsed, C100, C101, C102, Votes this epoch [meter: 2/3]
+
+step Propose a block
+  say Time is cut into 12-second slots. In each slot one validator is chosen as the proposer and puts out one block.
+  proposer -> block [at: 0]
+  set Elapsed: 0 s
+
+step The committee votes
+  say Each validator votes (attests) once per epoch, in its assigned slot. A vote points at the head block and at a checkpoint.
+  code attestation = { head, source, target }
+  committee -> block [tag: vote, at: 0]
+  now -> 0
+  set Elapsed: 12 s
+  set Votes this epoch: 3%
+
+step Some slots stay empty
+  say When the proposer does not respond, the slot passes without a block. The chain does not stop, and the votes of that slot point at the block before it.
+  proposer -> block [at: 1]
+  committee -> block [tag: vote, at: 1]
+  proposer -> block [at: 2]
+  committee -> block [tag: vote, at: 2]
+  committee -> block [tag: vote, at: 3, into: 2]
+  now -> 3
+  set Elapsed: 48 s
+  set Votes this epoch: 12%
+
+step Pick the checkpoint
+  say 32 slots (6.4 minutes) make one epoch. The block in the first slot of an epoch becomes its checkpoint, called C100 here.
+  note C100: Proposed [color: blue]
+  span 0-31: 32 slots = 6.4 min [color: slate]
+  set C100: Proposed
+
+step Votes pile up
+  say Every validator votes once during the epoch, so the votes for C100 pile up slot by slot. A vote weighs as much as the stake behind it.
+  now -> 31
+  set Elapsed: 6 min 24 s
+  set Votes this epoch: 97%
+
+step Justify
+  say At the end of the epoch, if the votes for C100 pass 2/3 of all stake, C100 is justified.
+  note C100: Justified [color: violet]
+  set C100: Justified
+
+step The next epoch does the same
+  say In the next epoch the votes gather on C101. They count from C100, the last justified checkpoint (source), to C101 (target).
+  code source C100 → target C101
+  note C101: Proposed [color: blue]
+  now -> 63
+  set Elapsed: 12 min 48 s
+  set Votes this epoch: 97%
+  set C101: Proposed
+
+step The earlier checkpoint is finalized
+  say When C101 is justified too, the earlier of the two justified checkpoints in a row, C100, is finalized. About 2 epochs, 12.8 minutes, after C100 was proposed.
+  C100 -> C101: passed 2/3 [carry: none]
+  note C101: Justified [color: violet]
+  note C100: Final [color: green]
+  mark block 0 [color: green]
+  span 0-63: From C100 proposed to final, about 12.8 min [color: green]
+  set C101: Justified
+  set C100: Final
+
+step Finality moves one epoch at a time
+  say The same happens every epoch after that. Justifying C102 finalizes the blocks up to C101, so the final range grows one epoch at a time.
+  note C102: Proposed [color: blue]
+  now -> 95
+  C101 -> C102: passed 2/3 [carry: none]
+  note C102: Justified [color: violet]
+  note C101: Final [color: green]
+  mark block 1-32 [color: green]
+  set Elapsed: 19 min 12 s
+  set Votes this epoch: 97%
+  set C101: Final
+  set C102: Justified
+
+step Final cannot be reverted
+  say Reverting a final block needs validators holding at least 1/3 of all stake to cast conflicting votes and be punished (slashed).
+  span 0-32: Final and cannot be reverted [shape: box, color: rose]

@@ -1,0 +1,19 @@
+time Scale and needle
+
+scale slot 12s 8 [from: 3200]
+period epoch 4 [from: 100]
+row block
+
+strip Progress: Votes this epoch [meter: 2/3]
+
+step Move the needle
+  say scale gives the unit name, the length of one unit and the count. now inside a step moves the needle at a fixed speed to the end of that unit.
+  now -> 3
+  set Votes this epoch: 97%
+  span 0-3: 1 epoch = 48 s
+
+step Box a range
+  say period adds periods, and span with shape: box draws a box around a range.
+  now -> 7
+  set Votes this epoch: 97%
+  span 0-3: cannot be reverted [shape: box, color: rose]
