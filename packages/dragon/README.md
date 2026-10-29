@@ -77,7 +77,7 @@ mountDiagram(host, parsed.diagram, {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `group` `end` `box` `branch` `strip` `step` `say` `code` `source` `commit` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `group` `end` `box` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 箱の行の属性 `link` に飛び先を書くと、描いた図でその箱が飛び先への link になる。
 段の中の `source <名前> [url: <URL>]` の行は段の出典になり、1 つの段に何行でも書け、読み上げの段の一覧に名前の link で出る。
 飛び先と出典の URL には、`/` で始まる path か、`http://` か `https://` で始まる URL だけを書ける。
@@ -170,6 +170,59 @@ step 早送りする
   say feature を C' へ動かし、main も C' まで進める。元の C はどの枝からも辿れなくなる。
   feature -> C'
   main -> C'
+```
+
+### 時間軸の図
+
+`time` で始めると、決まった間隔で進む時間の上で、出来事がどの目盛りで起きたかを段ごとに追う時間軸の図になる。`scale <単位> <長さ> <数>` で目盛りを宣言し、`period` で区切りを、`row` で印の列を、`point` で軸の下の節目を、`zoom <範囲>` で上の帯に拡大する目盛りを宣言する。
+段の中では `now -> <目盛り>` で針を進める。針は目盛り 1 つを決まった速さで進み、過ぎた目盛りの印がその時に出る。`mark` で印の色を変え、`span` で軸の下に範囲の括弧か、印の列を囲む枠を出す。
+中身の帯の欄に `[meter: <割合>]` を付けると物差しになり、`set` で書いた割合まで針と一緒に満ちる。
+
+```dragon
+time ブロックが確定して戻せなくなるまで
+
+scale slot 12s 64
+period epoch 32
+row ブロック [color: blue, empty: 5]
+point C0 at 0
+point C1 at 32
+zoom 0-1
+
+box 提案者 [color: blue, icon: user]
+box ブロック [color: blue, icon: box]
+
+strip 確定の進み: 経過, 今の epoch の票 [meter: 2/3]
+
+step ブロックを出す
+  say slot ごとに提案者が 1 人選ばれ、ブロックを 1 つ出す。上の帯は最初の 2 slot を拡大した所。
+  提案者 -> ブロック [at: 0]
+  提案者 -> ブロック [at: 1]
+  now -> 1
+  set 経過: 24 秒
+
+step 1 epoch 分の票を集める
+  say 32 slot で 1 epoch。針が過ぎた slot にブロックの印が出て、提案者が応答しなかった slot は空きの印になる。
+  note C0: 提案済み [color: blue]
+  span 0-31: 1 epoch = 6.4 分 [color: slate]
+  now -> 31
+  set 経過: 6 分 24 秒
+  set 今の epoch の票: 97%
+
+step 次の epoch へ進む
+  say C0 への票が全体の 2/3 を超えたので、C0 は正当化される。次の epoch では C1 へ票が集まる。
+  note C0: 正当化 [color: violet]
+  note C1: 提案済み [color: blue]
+  now -> 63
+  set 経過: 12 分 48 秒
+  set 今の epoch の票: 97%
+
+step C0 が確定する
+  say C1 も正当化されると、続けて正当化された 2 つのうち前の C0 が確定する。確定したブロックは戻せない。
+  C0 -> C1: 2/3 を超えた [carry: none]
+  note C1: 正当化 [color: violet]
+  note C0: 確定 [color: green]
+  mark ブロック 0-31 [color: green]
+  span 0-31: 確定して戻せない [shape: box, color: rose]
 ```
 
 ## 書き出し

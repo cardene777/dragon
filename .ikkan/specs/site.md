@@ -158,3 +158,16 @@
 | 使い方の頁の前の形との対応表が、読む部品の語と一致し、`CHANGELOG.md` の対応表と同じ | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3202 |
 | 部品の頁を編集画面で開く検査は、部品の頁を部品ごとに 1 回だけ開き、頁の全ての図の「編集画面で開く」の行き先をアプリの読み方 (`fromHash`) で記法に戻して部品の記法と照らす。実際に押して、書く欄にその記法が入り頁を読み直さないことを確かめるのは、図の種類ごとに 1 つの図にする | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-part-opens-in-editor`が通る | #3208 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使い、部品の頁が英語でも出て、部品の頁の見本の札がその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`と`catalog-parts-in-english`と`part-page-links-examples`が通る | #3208 |
+| 使い方の頁 (日本語と英語) を開いた時、枝分かれの図の節の次に時間軸の図の節が出る。節の本文は `time` の頭の行、`scale`、`period`、`row`、`point`、`zoom` の宣言、段の中の `now`、`mark`、`span`、中身の帯の欄の `meter` を説明し、節の例の図は針と印の列と節目を持つ時間軸の図として描かれ、節の出口は見本帳の時間軸の図の頁へ向かう。頁の前置きは記法の要素の並びに時間軸の図を挙げる | `pnpm test`の検査`docs-time-section-follows-git`が通る | #3221 |
+| 使い方の頁の時間軸の図の節の例の記法 (日本語と英語) を `parseNotation` が誤り無く読み、JSON Schema の検査を通り、4 段を持ち、区切り、印の列、2 つ以上の節目、拡大の範囲を宣言し、針を進める出来事、印の色を変える出来事、範囲の出来事、物差しの欄を 1 つ以上ずつ持つ | `pnpm test`の検査`docs-time-example-parses`が通る | #3221 |
+| repo の README の描ける図の欄に時間軸の図があり、行の頭の表に `time`、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` の行と、針を進める `now ->` の行がある。package の README の行の頭の語に `time`、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` があり、`now`、`mark`、`span`、`[meter: ]` を使う `time` の例を載せた時間軸の図の小節がある | `pnpm test`の検査`readme-notation-covers-time`が通る | #3221 |
+| 書き方の手引き `quick-start.md` と英語版の行の形の節に `time`、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` の行があり、`time` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-time`が通る | #3221 |
+| `CHANGELOG.md` に、時間軸の図の書き方を使い方の頁と README と書き方の手引きに載せたこの課題 (#3221) の項がある | `pnpm test`の検査`changelog-lists-time-docs`が通る | #3221 |
+| 使い方の頁の状態遷移図の次に枝分かれの図の節が出て、その節の本文と例と出口は今どおり | `pnpm test`の検査`docs-git-section-follows-state`が通る | #3221 |
+| package の版が前提の配り方の節と、`CHANGELOG.md` の版の見出しに書かれている | `pnpm test`の検査`release-version-in-premise`と`release-version-in-changelog`が通る | #3221 |
+| 使い方の頁の全ての節の例が読めて検査を通り、その節の記法の要素を使う | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3221 |
+| 2 つの README の dragon記法の節に決まりが 4 つ並び、dragon の囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3221 |
+| 書き方の手引きの英語版の例の数が日本語版と同じで、どれも読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #3221 |
+| 使い方の頁の例を含む全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`overlaps-none-in-every-example`が通る | #3221 |
+| 使い方の頁の前の形との対応表が、読む部品の語と一致し、`CHANGELOG.md` の対応表と同じ | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3221 |
+| 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3221 |

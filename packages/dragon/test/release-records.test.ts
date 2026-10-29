@@ -113,4 +113,15 @@ describe("版の記録 (#3151)", () => {
     expect(released, "CHANGELOG.md に日付付きの ## [0.42.0] の節が無い").not.toBe("");
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
+
+  it("changelog-lists-time-docs", () => {
+    // 時間軸の図の書き方を使い方と README に載せた変更 (#3221) を更新履歴に載せる。版は #3222 が切るので、どの版の節に移っても通る形で見る
+    const items = readFileSync(join(ROOT, "CHANGELOG.md"), "utf8")
+      .split("\n")
+      .filter((line) => line.startsWith("- **"));
+    expect(
+      items.some((line) => line.includes("(#3221)")),
+      "CHANGELOG.md に時間軸の図の書き方を載せた変更 (#3221) の項が無い",
+    ).toBe(true);
+  });
 });

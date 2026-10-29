@@ -35,11 +35,16 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
-| 中身の帯 | `strip <題>: <欄>, <欄>` | `strip メッセージ: ID, 宛先, 状態` |
+| 中身の帯 | `strip <題>: <欄>, <欄>`。時間軸の図では欄の名前の後ろに `[meter: <割合>]` を付けると物差しになる | `strip メッセージ: ID, 宛先, 状態` |
 | 枝 | `branch <枝> [note: <添え書き>]`。枝分かれの図だけで書け、宣言した順に上から帯が並ぶ | `branch feature [note: 作業の枝]` |
+| 目盛り | `scale <単位> <長さ> <数> [from: <最初の番号>]`。長さは数と単位 (`ms`、`s`、`min`、`h`、`d`) の組で書き、その数の目盛りが軸に等間隔で並ぶ。時間軸の図だけで書ける | `scale slot 12s 64` |
+| 区切り | `period <名前> <目盛りの数> [from: <最初の番号>]`。境ごとに名前と番号を置く | `period epoch 32` |
+| 印の列 | `row <名札> [color: <色>, empty: <目盛り>]`。目盛りごとに印が並び、`empty` に書いた目盛りは空きの印になる | `row ブロック [color: blue, empty: 5]` |
+| 節目 | `point <名札> at <目盛り>`。軸の下に旗の丸と名札を置く | `point C0 at 0` |
+| 拡大の帯 | `zoom <範囲>`。その目盛りごとに上の帯へ列を作り、宣言した箱を列ごとに同じ並びで置く | `zoom 0-1` |
 
 段の中には、次の行を起きる順に字下げして並べる。
 
@@ -56,6 +61,10 @@ step ログインを押す
 | commit | `commit <名札> on <枝> [hash: <hash>, note: <一言>]`。`copy <元>` で当て直しの commit、`merge <枝>` で merge commit になる。枝分かれの図だけで書ける | `commit M on main merge fix [hash: 7d3a5e2]` |
 | 枝を切る | `<枝> from <commit>`。HEAD がその枝へ移る | `feature from A` |
 | 札を動かす | `<枝か HEAD> -> <commit>`。枝分かれの図では commit を作らずに札だけを動かす | `HEAD -> M` |
+| 針を進める | `now -> <目盛り>`。針が決まった速さでその目盛りまで進み、過ぎた目盛りの印がその時に出る。時間軸の図だけで書ける | `now -> 31` |
+| 印の色 | `mark <列> <範囲> [color: <色>]`。その列の範囲の印の色を変える | `mark ブロック 0-31 [color: green]` |
+| 範囲 | `span <範囲>: <字>`。軸の下に範囲の括弧を出し、`[shape: box]` を付けると印の列を囲む枠になる | `span 0-31: 1 epoch = 6.4 分` |
+| 拡大の帯の線 | `<名札> -> <名札> [at: <目盛り>, into: <目盛り>]`。`at` の列の箱から出て、`into` の列の箱が受ける | `提案者 -> ブロック [at: 0]` |
 
 `fixed` は全体を止めて中だけ動かし、`follow` は今動いている所へ寄って動かし、隅の全体図で今どこかを示す。
 見せ方を書かない時は、全体を枠に収めた字が 10.5px 以上なら `fixed`、下回るなら `follow` になる。
@@ -127,6 +136,57 @@ step 早送りする
   say feature を C' へ動かし、main も C' まで進める。元の C はどの枝からも辿れなくなる。
   feature -> C'
   main -> C'
+```
+
+時間軸の図 (`time <題>`) では、`scale` で宣言した目盛りが軸に等間隔で並び、段の中の `now` で針を進める。
+針は目盛り 1 つを決まった速さで進むので、秒数は書かない。`zoom` で選んだ目盛りは上の帯に列として並び、線は `[at: <目盛り>]` で列を選ぶ。
+中身の帯の欄に `[meter: <割合>]` を付けると、`set` で書いた割合まで針と一緒に満ちる物差しになる。
+
+```dragon
+time ブロックが確定して戻せなくなるまで
+
+scale slot 12s 64
+period epoch 32
+row ブロック [color: blue, empty: 5]
+point C0 at 0
+point C1 at 32
+zoom 0-1
+
+box 提案者 [color: blue, icon: user]
+box ブロック [color: blue, icon: box]
+
+strip 確定の進み: 経過, 今の epoch の票 [meter: 2/3]
+
+step ブロックを出す
+  say slot ごとに提案者が 1 人選ばれ、ブロックを 1 つ出す。上の帯は最初の 2 slot を拡大した所。
+  提案者 -> ブロック [at: 0]
+  提案者 -> ブロック [at: 1]
+  now -> 1
+  set 経過: 24 秒
+
+step 1 epoch 分の票を集める
+  say 32 slot で 1 epoch。針が過ぎた slot にブロックの印が出て、提案者が応答しなかった slot は空きの印になる。
+  note C0: 提案済み [color: blue]
+  span 0-31: 1 epoch = 6.4 分 [color: slate]
+  now -> 31
+  set 経過: 6 分 24 秒
+  set 今の epoch の票: 97%
+
+step 次の epoch へ進む
+  say C0 への票が全体の 2/3 を超えたので、C0 は正当化される。次の epoch では C1 へ票が集まる。
+  note C0: 正当化 [color: violet]
+  note C1: 提案済み [color: blue]
+  now -> 63
+  set 経過: 12 分 48 秒
+  set 今の epoch の票: 97%
+
+step C0 が確定する
+  say C1 も正当化されると、続けて正当化された 2 つのうち前の C0 が確定する。確定したブロックは戻せない。
+  C0 -> C1: 2/3 を超えた [carry: none]
+  note C1: 正当化 [color: violet]
+  note C0: 確定 [color: green]
+  mark ブロック 0-31 [color: green]
+  span 0-31: 確定して戻せない [shape: box, color: rose]
 ```
 
 ## 属性

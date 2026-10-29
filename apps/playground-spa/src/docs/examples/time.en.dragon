@@ -1,0 +1,44 @@
+time How a block becomes final
+
+scale slot 12s 64
+period epoch 32
+row block [color: blue, empty: 5]
+point C0 at 0
+point C1 at 32
+zoom 0-1
+
+box proposer [color: blue, icon: user]
+box block [color: blue, icon: box]
+
+strip Finality: Elapsed, Votes this epoch [meter: 2/3]
+
+step Propose blocks
+  say In each slot one proposer is chosen and proposes one block. The top band zooms in on the first 2 slots.
+  proposer -> block [at: 0]
+  proposer -> block [at: 1]
+  now -> 1
+  set Elapsed: 24 s
+
+step Collect one epoch of votes
+  say 32 slots make one epoch. A block mark appears on each slot the needle passes, and a slot whose proposer did not answer gets an empty mark.
+  note C0: Proposed [color: blue]
+  span 0-31: 1 epoch = 6.4 min [color: slate]
+  now -> 31
+  set Elapsed: 6 min 24 s
+  set Votes this epoch: 97%
+
+step Move to the next epoch
+  say Votes for C0 passed 2/3 of the total, so C0 is justified. In the next epoch, votes gather on C1.
+  note C0: Justified [color: violet]
+  note C1: Proposed [color: blue]
+  now -> 63
+  set Elapsed: 12 min 48 s
+  set Votes this epoch: 97%
+
+step C0 becomes final
+  say Once C1 is justified too, the earlier of the two justified in a row, C0, becomes final. A final block cannot be undone.
+  C0 -> C1: over 2/3 [carry: none]
+  note C1: Justified [color: violet]
+  note C0: Final [color: green]
+  mark block 0-31 [color: green]
+  span 0-31: Final, cannot be undone [shape: box, color: rose]
