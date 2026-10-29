@@ -1,0 +1,25 @@
+time Carry
+
+scale slot 12s 6
+row block
+zoom 0-2
+
+box proposer [icon: user]
+box block [icon: box]
+box committee
+
+step Envelope
+  say Without carry, an envelope runs along the line.
+  proposer -> block [at: 0]
+  now -> 0
+
+step Tag
+  say tag writes a value on a tag that runs along the line.
+  committee -> block [at: 1, tag: vote]
+  now -> 1
+
+step Coin
+  say carry: coin runs a coin, and carry: none draws only the line.
+  proposer -> block [at: 2, carry: coin]
+  committee -> block [at: 2, carry: none]
+  now -> 2

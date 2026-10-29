@@ -1,0 +1,25 @@
+time 運ぶ物
+
+scale slot 12s 6
+row ブロック
+zoom 0-2
+
+box 提案者 [icon: user]
+box ブロック [icon: box]
+box 委員会
+
+step 封筒
+  say carry を書かなければ、線の上を封筒が走る。
+  提案者 -> ブロック [at: 0]
+  now -> 0
+
+step 札
+  say tag で、線の上を走る札に字を書く。
+  委員会 -> ブロック [at: 1, tag: 票]
+  now -> 1
+
+step 硬貨
+  say carry: coin で硬貨を走らせ、carry: none で線だけを引く。
+  提案者 -> ブロック [at: 2, carry: coin]
+  委員会 -> ブロック [at: 2, carry: none]
+  now -> 2

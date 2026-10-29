@@ -1,0 +1,18 @@
+time Color
+
+scale slot 12s 6
+row block [color: blue]
+zoom 0-2
+
+box proposer [color: violet]
+box block [color: blue]
+
+step Add color
+  say color gives a box a color role. A line takes the color of the box that sends it.
+  proposer -> block [at: 0]
+  now -> 0
+
+step Row of marks
+  say Write color on a row too, and its marks fill in that color.
+  proposer -> block [at: 1]
+  now -> 1

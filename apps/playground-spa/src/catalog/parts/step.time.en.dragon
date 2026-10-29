@@ -1,0 +1,15 @@
+time Step [view: fixed]
+
+scale slot 12s 6
+row block
+
+step Advance
+  say step starts a step, and say writes its text.
+    Write the command for the step with code.
+  code attestation = { head, source, target }
+  now -> 2
+
+step Continue
+  say Steps are shown one at a time.
+    view picks whether the frame follows each step or shows the whole diagram still.
+  now -> 5
