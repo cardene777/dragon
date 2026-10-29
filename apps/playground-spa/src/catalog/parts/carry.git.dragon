@@ -1,0 +1,25 @@
+git 運ぶ物
+
+branch main
+
+step 積む
+  say main に A と B と C を積む。
+  commit A on main
+  commit B on main
+  commit C on main
+
+step 動かす札
+  say 何も書かなければ、動かす札 (枝の名前か HEAD) が線を走る。
+  HEAD -> A
+
+step 札
+  say tag で、線の上を走る札に値を書く。動かす札は着いた所へ移る。
+  HEAD -> B [tag: 切り替え]
+
+step 硬貨
+  say carry: coin で、線の上に硬貨を走らせる。
+  HEAD -> C [carry: coin]
+
+step 運ばない
+  say carry: none で、線だけを引いて何も走らせない。
+  HEAD -> A [carry: none]

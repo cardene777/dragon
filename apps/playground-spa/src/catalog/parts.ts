@@ -5,7 +5,7 @@
  * カタログは「どの図でも使える部品」「図の種類だけの部品」「図 (部品を組み合わせた物と見本)」の 3 段に並べる。
  *
  * 1 行は部品の名札と、その部品を描ける図の種類と、その部品が受け持つ記法の語を持つ。図の種類を全部持つ部品が、どの図でも使える部品。
- * 語は `kind:<図の種類>`、`head:<行の頭の語>`、`attr:<行>.<鍵>`、線の行の `edge:->` の形で書き、
+ * 語は `kind:<図の種類>`、`head:<行の頭の語>`、`attr:<行>.<鍵>`、線の行の `edge:->`、枝分かれの図の行の中の語の `git:<語>` の形で書き、
  * package の記法の語の表 (`words.ts`) の語を、どれかの部品が必ず受け持つ (`catalog-parts.test.ts` が数える)。
  * 区画は時系列図に描かれないので、区画の属性 (`attr:group.*`) は区画の部品が受け持つ。
  * 色の役と絵と小さな字の部品は、構成図の図で同じ属性を区画にも付けて見せる。
@@ -45,6 +45,10 @@ export const PARTS: readonly Part[] = [
   { id: "group", kinds: ["architecture"], words: ["kind:architecture", "head:group", "head:end", "attr:group.note", "attr:group.color", "attr:group.icon"] },
   { id: "start-finish", kinds: ["state"], words: ["kind:state", "edge:start", "edge:finish"] },
   { id: "side-path", kinds: ["state"], words: ["edge:before-step"] },
+  { id: "branch", kinds: ["git"], words: ["kind:git", "head:branch", "attr:branch.note", "git:from"] },
+  { id: "commit", kinds: ["git"], words: ["head:commit", "attr:commit.hash", "attr:commit.note"] },
+  { id: "copy", kinds: ["git"], words: ["git:copy"] },
+  { id: "merge", kinds: ["git"], words: ["git:merge"] },
 ];
 
 /** どの図でも使える部品か。図の種類を全部持つ */
@@ -64,6 +68,9 @@ export const snippetOf = (id: PartId, kind: Kind, lang: Lang): string =>
 
 const events = (d: Diagram): DiagramEvent[] => d.steps.flatMap((step) => step.events);
 const edges = (d: Diagram) => events(d).flatMap((e) => (e.type === "edge" ? [e] : []));
+const commits = (d: Diagram) => events(d).flatMap((e) => (e.type === "commit" ? [e] : []));
+/** 札を運ぶ線のうち、札を書いた線。枝分かれの図の線は書かなければ送る側の名前の札を運ぶので、その札は書いた札に数えない */
+const writtenTag = (d: Diagram, e: ReturnType<typeof edges>[number]): boolean => e.carry.kind === "tag" && !(d.kind === "git" && e.carry.text === e.from);
 
 /**
  * 記法の語ごとの、図がその語を使ったか。原本の JSON のどこに現れるかで決める。
@@ -73,6 +80,7 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "kind:sequence": (d) => d.kind === "sequence",
   "kind:architecture": (d) => d.kind === "architecture",
   "kind:state": (d) => d.kind === "state",
+  "kind:git": (d) => d.kind === "git",
   "head:group": (d) => (d.regions ?? []).length > 0,
   "head:end": (d) => (d.regions ?? []).length > 0,
   "head:box": (d) => d.boxes.length > 0,
@@ -91,13 +99,21 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "attr:box.color": (d) => d.boxes.some((b) => b.color !== undefined),
   "attr:box.icon": (d) => d.boxes.some((b) => b.icon !== undefined),
   "attr:edge.carry": (d) => edges(d).some((e) => e.carry.kind === "coin" || e.carry.kind === "none"),
-  "attr:edge.tag": (d) => edges(d).some((e) => e.carry.kind === "tag"),
+  "attr:edge.tag": (d) => edges(d).some((e) => writtenTag(d, e)),
   "attr:edge.side": (d) => edges(d).some((e) => e.labelSide !== undefined),
   "attr:set.tag": (d) => events(d).some((e) => e.type === "strip" && e.tag !== undefined),
   "edge:->": (d) => edges(d).length > 0,
   "edge:start": (d) => edges(d).some((e) => e.from === "start"),
   "edge:finish": (d) => edges(d).some((e) => e.to === "finish"),
   "edge:before-step": (d) => (d.state?.paths ?? []).length > 0,
+  "head:branch": (d) => (d.git?.branches ?? []).length > 0,
+  "head:commit": (d) => commits(d).length > 0,
+  "attr:branch.note": (d) => (d.git?.branches ?? []).some((b) => b.note !== undefined),
+  "attr:commit.hash": (d) => commits(d).some((c) => c.hash !== undefined),
+  "attr:commit.note": (d) => commits(d).some((c) => c.note !== undefined),
+  "git:from": (d) => events(d).some((e) => e.type === "branch"),
+  "git:copy": (d) => commits(d).some((c) => c.copy !== undefined),
+  "git:merge": (d) => commits(d).some((c) => c.merge !== undefined),
 };
 
 /** 見本の名前と、日本語の記法から作った図。読めない見本は外す */

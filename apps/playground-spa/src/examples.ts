@@ -10,12 +10,16 @@ import ccipJa from "../../../packages/dragon/examples/ccip.dragon?raw";
 import ccipEn from "../../../packages/dragon/examples/ccip.en.dragon?raw";
 import introJa from "../../../packages/dragon/examples/intro.dragon?raw";
 import introEn from "../../../packages/dragon/examples/intro.en.dragon?raw";
+import mergeJa from "../../../packages/dragon/examples/merge.dragon?raw";
+import mergeEn from "../../../packages/dragon/examples/merge.en.dragon?raw";
 import oauthJa from "../../../packages/dragon/examples/oauth.dragon?raw";
 import oauthEn from "../../../packages/dragon/examples/oauth.en.dragon?raw";
 import orderJa from "../../../packages/dragon/examples/order.dragon?raw";
 import orderEn from "../../../packages/dragon/examples/order.en.dragon?raw";
 import paymentJa from "../../../packages/dragon/examples/payment.dragon?raw";
 import paymentEn from "../../../packages/dragon/examples/payment.en.dragon?raw";
+import rebaseJa from "../../../packages/dragon/examples/rebase.dragon?raw";
+import rebaseEn from "../../../packages/dragon/examples/rebase.en.dragon?raw";
 import retryJa from "../../../packages/dragon/examples/retry.dragon?raw";
 import retryEn from "../../../packages/dragon/examples/retry.en.dragon?raw";
 import walletJa from "../../../packages/dragon/examples/wallet.dragon?raw";
@@ -25,7 +29,7 @@ import { type Diagram, parseNotation } from "@cardenelabs/dragon";
 
 import type { Lang } from "./text";
 
-export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "order"] as const;
+export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "order", "rebase", "merge"] as const;
 export type ExampleKey = (typeof EXAMPLE_KEYS)[number];
 
 /** 頁を開いた時に出す見本 */
@@ -43,6 +47,8 @@ const EXAMPLES: Record<ExampleKey, Record<Lang, string>> = {
   oauth: { ja: oauthJa, en: oauthEn },
   ccip: { ja: ccipJa, en: ccipEn },
   order: { ja: orderJa, en: orderEn },
+  rebase: { ja: rebaseJa, en: rebaseEn },
+  merge: { ja: mergeJa, en: mergeEn },
 };
 
 export const exampleText = (key: ExampleKey, lang: Lang): string => EXAMPLES[key][lang].trimEnd();

@@ -246,6 +246,11 @@ export type SyntaxId =
   | "side"
   | "start-finish"
   | "path"
+  | "branch"
+  | "commit"
+  | "copy"
+  | "merge"
+  | "ref"
   | "action"
   | "swap"
   | "strip-value"
@@ -253,8 +258,48 @@ export type SyntaxId =
 
 /** 早見の行に置く穴の名前。`<名札>` のように山括弧で囲んで出す */
 const HOLE = {
-  ja: { title: "題", id: "名札", name: "名前", note: "添え書き", color: "色", icon: "印", field: "欄", value: "値", tag: "札", stepTitle: "段の題", stepBody: "段の本文", command: "命令", label: "線の名前", action: "処理の名前", text: "字", memo: "メモ" },
-  en: { title: "title", id: "id", name: "name", note: "note", color: "color", icon: "icon", field: "field", value: "value", tag: "tag", stepTitle: "step title", stepBody: "step body", command: "command", label: "label", action: "action", text: "text", memo: "memo" },
+  ja: {
+    title: "題",
+    id: "名札",
+    name: "名前",
+    note: "添え書き",
+    color: "色",
+    icon: "印",
+    field: "欄",
+    value: "値",
+    tag: "札",
+    stepTitle: "段の題",
+    stepBody: "段の本文",
+    command: "命令",
+    label: "線の名前",
+    action: "処理の名前",
+    text: "字",
+    memo: "メモ",
+    branch: "枝",
+    hash: "hash",
+    message: "一言",
+  },
+  en: {
+    title: "title",
+    id: "id",
+    name: "name",
+    note: "note",
+    color: "color",
+    icon: "icon",
+    field: "field",
+    value: "value",
+    tag: "tag",
+    stepTitle: "step title",
+    stepBody: "step body",
+    command: "command",
+    label: "label",
+    action: "action",
+    text: "text",
+    memo: "memo",
+    branch: "branch",
+    hash: "hash",
+    message: "message",
+  },
 } as const satisfies Record<NotationLang, Record<string, string>>;
 
 /** 記法の行の形。穴の字は型の値 (色の名前など) に当たらないので、書くためだけに図の形として扱う */
@@ -277,8 +322,12 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   // 始まりと終わりの印と通らない道は状態遷移図だけが書ける
   const stateStep = draw({ ...empty("state"), steps: [step] });
   const stateEdge = (from: string, to: string): object => ({ type: "edge", from, to, label: h.label, carry: { kind: "envelope" } });
+  // 枝と commit と当て直しと merge commit と札の動きは枝分かれの図だけが書ける (#3164)
+  const gitBase = draw({ ...empty("git"), git: { branches: [{ id: h.branch }] }, steps: [step] });
+  const inGit = (events: object[]): Diagram => draw({ ...gitBase, steps: [{ ...step, events }] });
+  const commitOf = (extra: object): object => ({ type: "commit", id: h.id, branch: h.branch, ...extra });
   return [
-    { id: "kind", lines: [head(base), head(empty("architecture")), head(empty("state"))] },
+    { id: "kind", lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git"))] },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
       id: "region",
@@ -296,6 +345,17 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "side", lines: diff(["above", "below", "left", "right"].map((side) => [withStep, inStep([edgeOf({ kind: "envelope" }, side)])])) },
     { id: "start-finish", lines: diff([[stateStep, draw({ ...stateStep, steps: [{ ...step, events: [stateEdge("start", h.id), stateEdge(h.id, "finish")] }] })]]) },
     { id: "path", lines: diff([[stateStep, draw({ ...stateStep, state: { paths: [{ from: h.id, to: h.id, label: h.label }] } })]]) },
+    {
+      id: "branch",
+      lines: diff([
+        [draw({ ...empty("git"), steps: [step] }), draw({ ...gitBase, git: { branches: [{ id: h.branch, note: h.note }] } })],
+        [gitBase, inGit([{ type: "branch", branch: h.branch, from: h.id }])],
+      ]),
+    },
+    { id: "commit", lines: diff([[gitBase, inGit([commitOf({ hash: h.hash, note: h.message })])]]) },
+    { id: "copy", lines: diff([[gitBase, inGit([commitOf({ copy: h.id })])]]) },
+    { id: "merge", lines: diff([[gitBase, inGit([commitOf({ merge: h.branch })])]]) },
+    { id: "ref", lines: diff([[gitBase, inGit([{ type: "edge", from: h.branch, to: h.id, label: h.label, carry: { kind: "tag", text: h.branch } }])]]) },
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
     { id: "strip-value", lines: diff([[draw({ ...withStep, strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },

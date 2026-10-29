@@ -1,0 +1,16 @@
+git 絵
+
+branch main
+
+box 作業ツリー [icon: doc]
+box 遠く as 遠くの repo [icon: cloud]
+
+step 積む
+  say icon で箱に絵を付ける。
+  commit A on main
+  note 作業ツリー: A を書いた
+
+step 送る
+  say 絵は箱の名前の上に置く。
+  commit B on main
+  note 遠く: B を受け取った

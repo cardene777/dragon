@@ -1,0 +1,15 @@
+git Step [view: fixed]
+
+branch main
+
+step Commit
+  say step starts a step, and say writes its text.
+    Write the command run in the step with code.
+  code git commit
+  commit A on main
+
+step Go on
+  say Steps are played one at a time.
+    view picks whether the frame follows the step or holds the whole diagram.
+  code git commit
+  commit B on main

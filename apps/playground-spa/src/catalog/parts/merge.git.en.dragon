@@ -1,0 +1,15 @@
+git Merge commit
+
+branch main
+branch topic
+
+step Diverge
+  say Add a commit on each of main and topic.
+  commit A on main
+  topic from A
+  commit C on topic
+  commit B on main
+
+step Merge
+  say merge brings topic in and makes M, with B and C as parents. Only main's ref moves.
+  commit M on main merge topic

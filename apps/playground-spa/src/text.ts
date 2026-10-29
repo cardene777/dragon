@@ -52,7 +52,7 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `今の記法の部品 ${parts} 個と、部品を組み合わせた ${kinds} 種類の図を並べる。部品の頁で書き方と見え方を確かめ、図の頁で見本を検索して動かし、編集画面で開ける。合計 ${samples} 件の見本。`,
         sections: {
-          parts: { title: "部品", lead: "どの図でも使う部品。部品ごとに、時系列図と構成図と状態遷移図で描いた見え方を並べる。" },
+          parts: { title: "部品", lead: "どの図でも使う部品。部品ごとに、時系列図と構成図と状態遷移図と枝分かれの図で描いた見え方を並べる。" },
           "kind-parts": { title: "図の種類だけの部品", lead: "1 つの図の種類でだけ使う部品。" },
           kinds: { title: "図", lead: "部品を組み合わせた図。図ごとに、使う部品の一覧と見本を載せる。" },
         },
@@ -77,6 +77,22 @@ export const TEXT = {
             name: "通らない道",
             desc: "状態遷移図だけの部品。最初の step より前に書いた線は、移れるが今回は通らない道として点線で引く。どの段も辿り着かない状態は点線の箱にして、脇道の囲みに入れる。",
           },
+          branch: {
+            name: "枝",
+            desc: "枝分かれの図だけの部品。branch の行で枝を上から順に宣言すると、枝ごとに横長の帯が並ぶ。段の中で <枝> from <commit> と書くと、その commit から枝を切る。",
+          },
+          commit: {
+            name: "commit",
+            desc: "枝分かれの図だけの部品。commit <名札> on <枝> で枝に commit を積み、hash と一言を丸の外に添える。積んだ枝の札と、その枝を指す HEAD が新しい commit へ進む。",
+          },
+          copy: {
+            name: "当て直し",
+            desc: "枝分かれの図だけの部品。on <枝> の後ろに copy <commit> を書くと、元の commit と同じ変更を当て直した commit になり、元から点線で結ぶ。rebase で作り直す commit に使い、枝の札は動かさない。",
+          },
+          merge: {
+            name: "merge commit",
+            desc: "枝分かれの図だけの部品。on <枝> の後ろに merge <枝> を書くと、取り込む先の先端と取り込む枝の先端の 2 つを親に持つ commit になる。取り込む先の札だけが進む。",
+          },
         },
         kindOnly: (kind: string) => `${kind}だけ`,
         partKinds: "使える図",
@@ -93,6 +109,7 @@ export const TEXT = {
           sequence: "登場する物の間で、誰が誰に何を渡すかを段ごとに追う図。ログインの流れや API の呼び出しの順を、線の上を走る封筒で見せる。",
           architecture: "区画と箱で仕組みの構成を描き、段ごとにどこからどこへ何が流れるかを見せる図。チェーンをまたぐ送金や、サービスの間の受け渡しに使う。",
           state: "1 つの物が状態を移る様子を段ごとに追う図。注文や申請が受付から閉じるまでにどの状態を通るかを、線の上を走る札で見せる。",
+          git: "git の枝に commit が積まれ、rebase や merge commit で取り込まれる様子を段ごとに追う図。枝と HEAD がどの commit を指すかを、丸の上の札で見せる。",
         },
         total: (n: number) => `全 ${n} 件`,
         showing: (n: number) => `${n} 件 表示中`,
@@ -156,7 +173,7 @@ export const TEXT = {
       filter: "絞り込む…",
       filterLabel: "一覧を絞り込む",
       nothing: "当てはまる物が無い",
-      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図" },
+      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: {
@@ -185,6 +202,11 @@ export const TEXT = {
         side: "線の名前を置く側",
         "start-finish": "始まりと終わり。状態遷移図の線の送る側に start、受ける側に finish を書く",
         path: "通らない道。状態遷移図の最初の step より前に書く",
+        branch: "枝。枝分かれの図で上から帯に並べ、段の中の from で commit から枝を切る",
+        commit: "commit を積む。hash と一言を丸の外に添える",
+        copy: "当て直した commit。枝の札を動かさない",
+        merge: "merge commit。取り込む枝の先端も親に持つ",
+        ref: "札を動かす。枝の名札か HEAD から commit へ引く",
         action: "箱の中の処理",
         swap: "箱の下の小さな字の書き換え",
         "strip-value": "帯の値",
@@ -267,7 +289,7 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `The ${parts} parts of the current notation, and the ${kinds} diagram kinds built from them. A part page shows how to write the part and how it looks; a diagram page lets you search its examples, watch them move, and open them in the editor. ${samples} examples in total.`,
         sections: {
-          parts: { title: "Parts", lead: "Parts every diagram uses. Each part page shows the part in a sequence diagram, an architecture diagram, and a state diagram." },
+          parts: { title: "Parts", lead: "Parts every diagram uses. Each part page shows the part in a sequence diagram, an architecture diagram, a state diagram, and a git graph." },
           "kind-parts": { title: "Parts for one kind", lead: "Parts that only one diagram kind uses." },
           kinds: { title: "Diagrams", lead: "Diagrams built from the parts. Each lists the parts it uses and its examples." },
         },
@@ -292,6 +314,22 @@ export const TEXT = {
             name: "Path not taken",
             desc: "State diagrams only. A line written before the first step is a path the object could take but does not this time, drawn dotted. A state that no step reaches becomes a dotted box inside the side path area.",
           },
+          branch: {
+            name: "Branch",
+            desc: "Git graphs only. Declare branches top to bottom with branch lines, and each gets its own lane. Inside a step, <branch> from <commit> cuts the branch at that commit.",
+          },
+          commit: {
+            name: "Commit",
+            desc: "Git graphs only. commit <id> on <branch> adds a commit to the branch, with its hash and a short note beside the circle. The branch's ref, and HEAD when it points at that branch, move to the new commit.",
+          },
+          copy: {
+            name: "Replay",
+            desc: "Git graphs only. Add copy <commit> after on <branch> to replay the same change as that commit, joined to it by a dotted line. Use it for commits a rebase rewrites; branch refs do not move.",
+          },
+          merge: {
+            name: "Merge commit",
+            desc: "Git graphs only. Add merge <branch> after on <branch> to make a commit with two parents: the tip of the target and the tip of the merged branch. Only the target's ref moves.",
+          },
         },
         kindOnly: (kind: string) => `${kind} only`,
         partKinds: "Used in",
@@ -308,6 +346,7 @@ export const TEXT = {
           sequence: "Follow who hands what to whom, step by step. Show a sign-in flow or the order of API calls with envelopes running along the edges.",
           architecture: "Draw a system as regions and boxes, and show what flows where in each step. Use it for cross-chain transfers or hand-offs between services.",
           state: "Follow one object as it moves between states, step by step. A tag running along the lines shows which states an order or a request passes before it closes.",
+          git: "Follow commits piling up on git branches and coming together through a rebase or a merge commit, step by step. Tags above the circles show which commit each branch and HEAD point at.",
         },
         total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         showing: (n: number) => `showing ${n}`,
@@ -371,7 +410,7 @@ export const TEXT = {
       filter: "Filter…",
       filterLabel: "Filter the list",
       nothing: "Nothing matches",
-      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State" },
+      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: {
@@ -400,6 +439,11 @@ export const TEXT = {
         side: "Where the edge label sits",
         "start-finish": "Start and end. In a state diagram, write start as a line's sender and finish as its receiver",
         path: "Path not taken. In a state diagram, write it before the first step",
+        branch: "Branch. In a git graph, lanes go top to bottom; from inside a step cuts a branch at a commit",
+        commit: "Add a commit, with its hash and a short note beside the circle",
+        copy: "Replayed commit. Branch refs do not move",
+        merge: "Merge commit. The merged branch's tip is a parent too",
+        ref: "Move a ref, from a branch id or HEAD to a commit",
         action: "Action inside a box",
         swap: "Rewrite the small text under a box",
         "strip-value": "Strip value",

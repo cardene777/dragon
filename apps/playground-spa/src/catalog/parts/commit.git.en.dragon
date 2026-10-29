@@ -1,0 +1,12 @@
+git Commit
+
+branch main
+
+step Commit
+  say commit <id> on <branch> adds a commit to the branch. The branch's ref moves to the new commit.
+  commit A on main
+  commit B on main
+
+step Add text
+  say hash and note put a hash and a short note beside the circle.
+  commit C on main [hash: c41d0e5, note: Round prices]

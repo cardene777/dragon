@@ -1,0 +1,19 @@
+git Edge
+
+branch main
+branch topic
+
+step Commit
+  say Add A and B on main, cut topic at A, and add C on topic.
+  commit A on main
+  commit B on main
+  topic from A
+  commit C on topic
+
+step Move HEAD
+  say Draw a line with -> from a ref name to a commit id, and the ref moves there. A line from HEAD detaches HEAD from its branch.
+  HEAD -> B
+
+step Move a branch
+  say A branch ref moves the same way. A line that moves a ref makes no commit.
+  main -> C

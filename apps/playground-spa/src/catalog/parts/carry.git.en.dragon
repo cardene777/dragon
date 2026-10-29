@@ -1,0 +1,25 @@
+git Carry
+
+branch main
+
+step Commit
+  say Add A, B and C on main.
+  commit A on main
+  commit B on main
+  commit C on main
+
+step The moving ref
+  say Without carry, the moving ref (a branch name or HEAD) runs along the line.
+  HEAD -> A
+
+step Tag
+  say tag writes a value on a tag that runs along the line. The moving ref moves to the end.
+  HEAD -> B [tag: switch]
+
+step Coin
+  say carry: coin runs a coin along the line.
+  HEAD -> C [carry: coin]
+
+step Nothing
+  say carry: none draws only the line and runs nothing.
+  HEAD -> A [carry: none]

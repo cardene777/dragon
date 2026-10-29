@@ -1,0 +1,20 @@
+git Replay
+
+branch main
+branch topic
+
+step Diverge
+  say Add a commit on each of main and topic.
+  commit A on main
+  topic from A
+  commit C on topic
+  commit B on main
+
+step Replay
+  say Move HEAD to B, and copy replays the change in C on top of B. Branch refs do not move.
+  HEAD -> B
+  commit C' on main copy C
+
+step Move the branch
+  say Move topic to C', and the old C is no longer reached by any ref, so it turns into a dotted circle.
+  topic -> C'

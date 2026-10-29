@@ -1,0 +1,12 @@
+git commit
+
+branch main
+
+step 積む
+  say commit <名札> on <枝> で枝に commit を積む。積んだ枝の札が新しい commit へ進む。
+  commit A on main
+  commit B on main
+
+step 字を添える
+  say hash と note で、丸の外に hash と一言を添える。
+  commit C on main [hash: c41d0e5, note: 価格を丸める]

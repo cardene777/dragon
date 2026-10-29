@@ -1,0 +1,17 @@
+git Action
+
+branch main
+
+box worktree as Worktree
+
+step Commit
+  say Add A on main.
+  commit A on main
+
+step Check
+  say act shows work done inside a box without adding a commit.
+  act worktree: Run the checks
+
+step Go on
+  say A commit can follow the action.
+  commit B on main

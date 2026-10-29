@@ -1,0 +1,14 @@
+git Branch
+
+branch main [note: Merge target]
+branch topic [note: Work branch]
+
+step Declare
+  say Declare branches top to bottom with branch lines, and each gets a lane. note adds a note to the lane.
+  commit A on main
+  commit B on main
+
+step Cut
+  say Inside a step, <branch> from <commit> cuts the branch at that commit, and HEAD moves to the branch.
+  topic from A
+  commit C on topic

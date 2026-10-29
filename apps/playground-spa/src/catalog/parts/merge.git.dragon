@@ -1,0 +1,15 @@
+git merge commit
+
+branch main
+branch topic
+
+step 分かれる
+  say main と topic にそれぞれ commit を積む。
+  commit A on main
+  topic from A
+  commit C on topic
+  commit B on main
+
+step 取り込む
+  say merge で topic を取り込むと、B と C の 2 つを親に持つ M ができる。main の札だけが進む。
+  commit M on main merge topic
