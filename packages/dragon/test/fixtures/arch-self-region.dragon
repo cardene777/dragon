@@ -1,0 +1,20 @@
+architecture 区画の中の箱へ戻る線
+
+group 店 as お店の仕組み [note: 注文を受ける, color: blue, icon: app]
+  box 画面 [icon: app]
+  box API [icon: card]
+end
+
+box 決済 [icon: card]
+
+step 送る
+  say 画面が API に注文を送る。
+  画面 -> API: 注文を送る
+
+step 確かめる
+  say API が自分で中身を確かめる。
+  API -> API: 中身を確かめる
+
+step 払う
+  say API が決済に払う。
+  API -> 決済: 払う [carry: coin]

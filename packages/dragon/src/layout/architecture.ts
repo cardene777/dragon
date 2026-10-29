@@ -10,6 +10,7 @@ import { LOOK, TYPE } from "../look/values";
 import type { Diagram, LabelSide, Region } from "../schema";
 import { textWidth } from "./measure";
 import {
+  badgeOnPath,
   badgeRect,
   boxColors,
   boxWidth,
@@ -19,6 +20,10 @@ import {
   labelStyle,
   type Layout,
   lineBadges,
+  LOOP_ROOM,
+  loopBadge,
+  loopLabelBase,
+  loopUnder,
   replaceSameSpot,
   layoutStrip,
   type Point,
@@ -181,6 +186,14 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
   for (let c = 0; c < columnCount; c++) colLeft.push(c === 0 ? margin + (headerW > 0 ? headerW : R.pad) : (colLeft[c - 1] as number) + (colW[c - 1] as number) + (between[c - 1] as number));
   const center = (c: number): number => (colLeft[c] as number) + (colW[c] as number) / 2;
 
+  // 同じ箱へ戻る線は箱の下の輪で描くので、輪を持つ箱の行の下は、輪とその下の名前が収まるだけ空ける (#3186)
+  const looped = new Set(edges.filter(({ edge }) => edge.from === edge.to).map(({ edge }) => edge.from));
+  const loopRows = new Set([...looped].flatMap((id) => {
+    const slot = slots.get(id);
+    return slot ? [`${slot.group}:${slot.row}`] : [];
+  }));
+  const loopRoom = (g: number, row: number): number => (loopRows.has(`${g}:${row}`) ? LOOP_ROOM : 0);
+
   // 帯を上から積む
   const boxes: SceneBox[] = [];
   const bands: { group: number; y: number; h: number; rows: number }[] = [];
@@ -189,12 +202,15 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     const rows = Math.max(1, ...group.members.map((id) => (slots.get(id)?.row ?? 0) + 1));
     const room = rooms[g] as Room;
     const top = cursor + R.pad + room.top;
+    // 行の上端。輪を持つ行の下は、行の間に輪の分を足す
+    const rowTop: number[] = [0];
+    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + B.h + A.rowGap + loopRoom(g, r - 1));
     for (const id of group.members) {
       const slot = slots.get(id) as Slot;
       const source = diagram.boxes.find((b) => b.id === id);
       const w = widths.get(id) ?? B.minW;
       const cx = center(slot.col);
-      const y = top + slot.row * (B.h + A.rowGap);
+      const y = top + (rowTop[slot.row] as number);
       boxes.push({
         id,
         name: source?.name ?? id,
@@ -209,7 +225,7 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
         cy: y + B.h / 2,
       });
     }
-    const contentBottom = top + rows * B.h + (rows - 1) * A.rowGap;
+    const contentBottom = top + (rowTop[rows - 1] as number) + B.h + loopRoom(g, rows - 1);
     const header = headers[g];
     const h = Math.max(contentBottom + R.pad + room.bottom - cursor, header ? header.h + R.inset * 2 : 0, group.region ? R.minH : 0);
     bands.push({ group: g, y: cursor, h, rows });
@@ -220,22 +236,30 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
 
   const byId = new Map(boxes.map((b) => [b.id, b]));
   const bandOf = (id: string) => bands[slots.get(id)?.group ?? 0] as (typeof bands)[number];
+  /** 折れ線のどれかの区間が、四角を `pad` だけ広げた所に掛かる */
+  const crosses = (points: Point[], rect: Rect, pad: number): boolean => {
+    for (let i = 1; i < points.length; i++) {
+      const [x1, y1] = points[i - 1] as Point;
+      const [x2, y2] = points[i] as Point;
+      if (Math.min(x1, x2) <= rect.x + rect.w + pad && Math.max(x1, x2) >= rect.x - pad && Math.min(y1, y2) <= rect.y + rect.h + pad && Math.max(y1, y2) >= rect.y - pad) return true;
+    }
+    return false;
+  };
+  // 輪を持つ箱の下の、輪と名前の置き場。ほかの線は、その箱から出る線と入る線も含めてここを通さない (#3186)
+  const loopZones: Rect[] = [...looped].flatMap((id) => {
+    const box = byId.get(id);
+    return box ? [{ x: box.x, y: box.y + box.h, w: box.w, h: LOOP_ROOM }] : [];
+  });
+  const onLoop = (points: Point[]): boolean => loopZones.some((zone) => crosses(points, zone, 0));
   const blocked = (points: Point[], a: string, b: string): boolean =>
-    boxes.some((box) => {
-      if (box.id === a || box.id === b) return false;
-      const pad = LOOK.label.search;
-      for (let i = 1; i < points.length; i++) {
-        const [x1, y1] = points[i - 1] as Point;
-        const [x2, y2] = points[i] as Point;
-        if (Math.min(x1, x2) <= box.x + box.w + pad && Math.max(x1, x2) >= box.x - pad && Math.min(y1, y2) <= box.y + box.h + pad && Math.max(y1, y2) >= box.y - pad) return true;
-      }
-      return false;
-    });
-  // 箱の下 (上) の、次の行か次の帯との間の真ん中
+    boxes.some((box) => box.id !== a && box.id !== b && crosses(points, box, LOOK.label.search)) || onLoop(points);
+  // 箱の下 (上) の、次の行か次の帯との間の真ん中。箱の下に輪が在る時は、輪と名前の下を通す (#3186)
   const laneBelow = (id: string): number => {
     const box = byId.get(id) as SceneBox;
     const band = bandOf(id);
-    return (slots.get(id)?.row ?? 0) < band.rows - 1 ? box.y + box.h + A.rowGap / 2 : Math.min(box.y + box.h + R.pad / 2, band.y + band.h - LOOK.edge.inset);
+    const slot = slots.get(id);
+    const under = box.y + box.h + (slot ? loopRoom(slot.group, slot.row) : 0);
+    return (slot?.row ?? 0) < band.rows - 1 ? under + A.rowGap / 2 : Math.min(under + R.pad / 2, band.y + band.h - LOOK.edge.inset);
   };
   const laneAbove = (id: string): number => {
     const box = byId.get(id) as SceneBox;
@@ -243,9 +267,14 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     return (slots.get(id)?.row ?? 0) > 0 ? box.y - A.rowGap / 2 : Math.max(box.y - R.pad / 2, band.y + LOOK.edge.inset);
   };
   const inset = LOOK.edge.inset;
+  /** 列 `col` の右 (左) の、隣の列との間の真ん中。同じ列の箱は幅が違うので、箱ではなく列の端から測る (幅の広い箱の中を通さない) */
+  const gapX = (col: number, toRight: boolean): number =>
+    toRight ? (colLeft[col] as number) + (colW[col] as number) + (between[col] ?? A.columnGap) / 2 : (colLeft[col] as number) - (between[col - 1] ?? A.columnGap) / 2;
   const route = (from: string, to: string): Point[] => {
     const a = byId.get(from) as SceneBox;
     const b = byId.get(to) as SceneBox;
+    // 同じ箱へ戻る線は、状態遷移図と同じ箱の下の輪で描く (#3186)
+    if (from === to) return loopUnder(a);
     const sa = slots.get(from) as Slot;
     const sb = slots.get(to) as Slot;
     if (sa.group === sb.group && sa.row === sb.row) {
@@ -255,13 +284,23 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
         [right ? b.x - inset : b.x + b.w + inset, b.cy],
       ];
       if (!blocked(straight, from, to)) return straight;
-      const lane = laneBelow(from);
-      return [
+      const below = laneBelow(from);
+      const under: Point[] = [
         [a.cx, a.y + a.h],
-        [a.cx, lane],
-        [b.cx, lane],
+        [a.cx, below],
+        [b.cx, below],
         [b.cx, b.y + b.h + inset],
       ];
+      if (!onLoop(under)) return under;
+      // 下を回ると輪を横切る時は、上を回る
+      const above = laneAbove(from);
+      const over: Point[] = [
+        [a.cx, a.y],
+        [a.cx, above],
+        [b.cx, above],
+        [b.cx, b.y - inset],
+      ];
+      return onLoop(over) ? under : over;
     }
     const down = b.cy > a.cy;
     const leave: Point = [a.cx, down ? a.y + a.h : a.y];
@@ -269,7 +308,7 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     if (sa.col === sb.col) {
       const straight: Point[] = [leave, enter];
       if (!blocked(straight, from, to)) return straight;
-      const x = a.x + a.w + (between[sa.col] ?? A.columnGap) / 2;
+      const x = gapX(sa.col, true);
       return [
         [a.x + a.w, a.cy],
         [x, a.cy],
@@ -284,6 +323,22 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
       [[right ? a.x + a.w : a.x, a.cy], [b.cx, a.cy], enter],
       [leave, [a.cx, lane], [b.cx, lane], enter],
     ];
+    // 輪を持つ箱の下からは出入りしない。箱の脇から列の間へ出て、列の間を縦に走る (#3186)
+    if (looped.has(from) || looped.has(to)) {
+      const ax = gapX(sa.col, right);
+      const bx = gapX(sb.col, !right);
+      const out: Point[] = [
+        [right ? a.x + a.w : a.x, a.cy],
+        [ax, a.cy],
+      ];
+      const side: Point = [right ? b.x - inset : b.x + b.w + inset, b.cy];
+      candidates.push(
+        [...out, [ax, b.cy], side],
+        [...out, [ax, lane], [b.cx, lane], enter],
+        [leave, [a.cx, lane], [bx, lane], [bx, b.cy], side],
+        [...out, [ax, lane], [bx, lane], [bx, b.cy], side],
+      );
+    }
     return candidates.find((points) => !blocked(points, from, to)) ?? (candidates[2] as Point[]);
   };
 
@@ -332,7 +387,9 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
   });
 
   // 線の名前は、同じ時刻に見えている段の番号 (その段とそれより前の段の番号) も避ける (#3175)
-  const early = lineBadges(sceneEdges, diagram.steps.length);
+  // 輪の番号は弧に重ねず弧の右に置く (#3186)
+  const badgeAt = (edge: SceneEdge, taken: Point[]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken));
+  const early = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
   const labels: SceneLabel[] = [];
   for (const edge of sceneEdges) {
     const source = diagram.steps[edge.step]?.events[edge.event];
@@ -341,9 +398,11 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
     const soft: Rect[] = [...regions.map((r) => r.header), ...labels.filter((l) => l.step === edge.step)];
     // 指示の無い線の名前は、空いていなければ反対の側も探す。ずらした線は自分の側だけを探す
     const side = source.labelSide ?? outward.get(edge);
+    // 輪の名前は輪の下から探す (#3186)
+    const below = edge.from === edge.to ? { side: "below" as const, base: loopLabelBase(edge.points, textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2) } : undefined;
     labels.push(
       placeLabel(
-        { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(side ? { side } : { flip: true }) },
+        { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(below ?? (side ? { side } : { flip: true })) },
         { hard: boxes, soft, touch: seen },
       ),
     );
@@ -362,7 +421,7 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
   layout.width = width;
   layout.height = (strip ? strip.y + strip.h : contentBottom) + margin;
   if (strip) layout.strip = strip;
-  const lines = lineBadges(sceneEdges, diagram.steps.length);
+  const lines = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
   // 同じ所に置いた番号は、後の段が始まると入れ替える (#3184)
   layout.badges = replaceSameSpot(
     diagram.steps.map((step, s) => {

@@ -368,6 +368,41 @@ export function pathLength(points: Point[]): number {
 }
 
 /**
+ * 同じ箱へ戻る輪 (状態遷移図 #3163、構成図 #3186)。箱の下端の右から出て、下へ膨らむ弧を描いて左から箱へ戻る。
+ * 運ぶ物が弧の上を走れるよう、点で区切る。大きさは状態遷移図の値 (`LOOK.state.loop`) を 2 つの図で分け合う
+ */
+export function loopUnder(box: { cx: number; y: number; h: number }): Point[] {
+  const { w, h, samples } = LOOK.state.loop;
+  const bottom = box.y + box.h;
+  const p0: Point = [box.cx + w / 2, bottom];
+  const c1: Point = [box.cx + (w * 3) / 4, bottom + (h * 4) / 3];
+  const c2: Point = [box.cx - (w * 3) / 4, bottom + (h * 4) / 3];
+  const p3: Point = [box.cx - w / 2, bottom + LOOK.edge.inset];
+  return Array.from({ length: samples + 1 }, (_, k): Point => {
+    const t = k / samples;
+    const u = 1 - t;
+    const at = (i: 0 | 1): number => u * u * u * p0[i] + 3 * u * u * t * c1[i] + 3 * u * t * t * c2[i] + t * t * t * p3[i];
+    return [at(0), at(1)];
+  });
+}
+
+/** 輪の段の番号の点。弧に重ねず弧の右に置き、高さは弧の上端から深さの `LOOK.state.loop.badgeAt` の所 */
+export function loopBadge(points: Point[]): Point {
+  const right = Math.max(...points.map(([px]) => px));
+  const top = (points[0] as Point)[1];
+  const deep = Math.max(...points.map(([, py]) => py));
+  return [right + LOOK.badge.r + LOOK.badge.inset, top + (deep - top) * LOOK.state.loop.badgeAt];
+}
+
+/** 輪の名前を探し始める札の左上。幅 `w` の札を輪の真下の真ん中に置く */
+export function loopLabelBase(points: Point[], w: number): { x: number; y: number } {
+  return { x: (points[0]?.[0] ?? 0) - LOOK.state.loop.w / 2 - w / 2, y: Math.max(...points.map(([, y]) => y)) + LOOK.label.soft };
+}
+
+/** 輪と、その下に置く名前の札が、箱の下に要る高さ (#3186) */
+export const LOOP_ROOM = LOOK.state.loop.h + LOOK.label.soft * 2 + LOOK.label.h;
+
+/**
  * 段の番号を置く点。線の始まりから少し進んだ所。短い線は始まりに置くと箱と重なるので中ほど。
  * 同じ線を前の段が通っていて、先に置いた番号 (`taken`) に重なる時は、線に沿って進めて前の番号の隣に置く (#3175)
  */

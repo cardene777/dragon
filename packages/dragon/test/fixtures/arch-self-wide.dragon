@@ -1,0 +1,15 @@
+architecture 幅の広い箱へ下から戻る
+
+group 店 as お店の仕組み [note: 注文を受ける, color: blue, icon: app]
+  box とても長い名前の受け付け [icon: db]
+end
+
+box API [icon: app]
+
+step 数える
+  say 受け付けが自分で在庫を数える。
+  とても長い名前の受け付け -> とても長い名前の受け付け: 在庫を数える
+
+step 確かめる
+  say API が受け付けに確かめる。
+  API -> とても長い名前の受け付け: 確かめる

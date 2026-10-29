@@ -6,8 +6,8 @@
  * 編集画面と書き出しの命令が同じ文を出す。書き出しの命令は file を書き出したうえで、標準エラーに重なりを 1 件 1 行で出して終わり方 0 で終える。
  * 頁の側では SVG を組まないので、図の上の囲みと段へ移る動きは再生の部品が持つ (`mark` と `goTo`)。
  *
- * 字の重なる図の見本は、名前の長い箱へ戻る線を持つ構成図 (`fixtures/self-line.dragon`)。構成図は同じ箱へ戻る線を輪に描かないので、2 段目の番号が箱の名前に重なる。
- * 同じ箱へ戻る線を輪に描く時 (#3186) は、この見本を別の重なる形に替える。
+ * 字の重なる図の見本は、2 段目に書き込みだけを持つ状態遷移図 (`fixtures/corner-note.dragon`)。線の無い段の番号は状態の左上の角に置かれ、絵柄にかかる。
+ * 線の無い段の番号の置き場所を直す時 (#3187) は、この見本を別の重なる形に替える。
  * 段を移る検査と四角を描く検査は、重なりと関わらないので 5 段の構成図 (`fixtures/repeat-line.dragon`) で見る。
  *
  * 箱の絵柄と運ぶ物 (硬貨と封筒) は、知らせる文の言葉で呼ぶ (#3184)。日本語は「<箱の名前> の絵柄」「硬貨」「封筒」、英語は `the icon of "<箱の名前>"`、`the coin`、`the envelope`。
@@ -27,7 +27,7 @@ type Rect = { x: number; y: number; w: number; h: number };
 /** 書き出しの命令を待つ時間 */
 const SLOW = 60_000;
 const FIXTURE = join(process.cwd(), "packages/dragon/test/fixtures/repeat-line.dragon");
-const OVERLAPPING = join(process.cwd(), "packages/dragon/test/fixtures/self-line.dragon");
+const OVERLAPPING = join(process.cwd(), "packages/dragon/test/fixtures/corner-note.dragon");
 const OAUTH = join(process.cwd(), "packages/dragon/examples/oauth.json");
 
 function read(file: string, lang: "ja" | "en" = "ja"): dragon.Diagram {
@@ -88,7 +88,7 @@ describe("字の重なりを知らせる (#3178)", () => {
     expect(typeof dragon.describeOverlap, "知らせる文の関数 describeOverlap が package の入口から出ていない").toBe("function");
     const say = dragon.describeOverlap;
     const rendered = renderDiagram(read(OVERLAPPING));
-    expect(rendered.overlaps.map((o) => [o.step, say(o, "ja"), say(o, "en")])).toEqual([[1, "「注文を受け付ける窓口」と段の番号 2 が重なる", '"注文を受け付ける窓口" and step number 2 overlap']]);
+    expect(rendered.overlaps.map((o) => [o.step, say(o, "ja"), say(o, "en")])).toEqual([[1, "「支払い待ち の絵柄」と段の番号 2 が重なる", 'The icon of "支払い待ち" and step number 2 overlap']]);
 
     // 字どうしの重なりと、線が字を横切る所も、日本語と英語で書く。段の番号でない字は鉤括弧か引用符で囲む
     const rect = { x: 0, y: 0, w: 10, h: 10 };
@@ -158,11 +158,11 @@ describe("字の重なりを知らせる (#3178)", () => {
       const out = mkdtempSync(join(tmpdir(), "dragon-overlap-"));
       const ja = await runCli(["export", OVERLAPPING, "--format", "html", "--out", out]);
       expect(ja.code, ja.stderr).toBe(0);
-      expect(readdirSync(out), "重なる図を書き出さなかった").toContain("self-line.html");
-      expect(lines(ja.stderr), "標準エラーに重なりが 1 件 1 行で出ない").toEqual(["段 2: 「注文を受け付ける窓口」と段の番号 2 が重なる"]);
+      expect(readdirSync(out), "重なる図を書き出さなかった").toContain("corner-note.html");
+      expect(lines(ja.stderr), "標準エラーに重なりが 1 件 1 行で出ない").toEqual(["段 2: 「支払い待ち の絵柄」と段の番号 2 が重なる"]);
       const en = await runCli(["export", OVERLAPPING, "--format", "html", "--out", out, "--lang", "en"]);
       expect(en.code, en.stderr).toBe(0);
-      expect(lines(en.stderr), "英語の標準エラーに重なりが 1 件 1 行で出ない").toEqual(['Step 2: "注文を受け付ける窓口" and step number 2 overlap']);
+      expect(lines(en.stderr), "英語の標準エラーに重なりが 1 件 1 行で出ない").toEqual(['Step 2: The icon of "支払い待ち" and step number 2 overlap']);
     },
     SLOW,
   );
