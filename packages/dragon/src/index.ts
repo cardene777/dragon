@@ -25,6 +25,14 @@ export {
   type Region,
   type StatePath,
   type Step,
+  type StripMeter,
+  type TimeMarkEvent,
+  type TimePeriod,
+  type TimePoint,
+  type TimeRow,
+  type TimeScale,
+  type TimeSpanEvent,
+  type TimeSpec,
   validateDiagram,
   type ViewMode,
 } from "./schema";
@@ -47,6 +55,7 @@ export type {
   SceneStrip,
   SceneTrail,
 } from "./layout/scene";
+export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTick, TimeWire, TimeZoom } from "./layout/time";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";

@@ -251,6 +251,14 @@ export type SyntaxId =
   | "copy"
   | "merge"
   | "ref"
+  | "scale"
+  | "period"
+  | "row"
+  | "point"
+  | "zoom"
+  | "now"
+  | "mark"
+  | "span"
   | "action"
   | "swap"
   | "strip-value"
@@ -278,6 +286,13 @@ const HOLE = {
     branch: "枝",
     hash: "hash",
     message: "一言",
+    unit: "目盛りの名前",
+    length: "長さ",
+    count: "数",
+    number: "番号",
+    tick: "目盛り",
+    first: "最初",
+    last: "最後",
   },
   en: {
     title: "title",
@@ -299,6 +314,13 @@ const HOLE = {
     branch: "branch",
     hash: "hash",
     message: "message",
+    unit: "unit",
+    length: "length",
+    count: "count",
+    number: "number",
+    tick: "tick",
+    first: "first",
+    last: "last",
   },
 } as const satisfies Record<NotationLang, Record<string, string>>;
 
@@ -326,8 +348,14 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const gitBase = draw({ ...empty("git"), git: { branches: [{ id: h.branch }] }, steps: [step] });
   const inGit = (events: object[]): Diagram => draw({ ...gitBase, steps: [{ ...step, events }] });
   const commitOf = (extra: object): object => ({ type: "commit", id: h.id, branch: h.branch, ...extra });
+  // 目盛りと区切りと印の列と節目と拡大の帯と、針と印の色と範囲は時間軸の図だけが書ける (#3165)
+  const scale = { unit: h.unit, length: h.length, count: h.count };
+  const timeOf = (extra: object = {}): Diagram => draw({ ...empty("time"), time: { scale, rows: [], ...extra }, steps: [step] });
+  const timeBase = timeOf();
+  const inTime = (events: object[], base: Diagram = timeBase): Diagram => draw({ ...base, steps: [{ ...step, events }] });
+  const zoomBase = draw({ ...timeOf({ zoom: { from: h.first, to: h.last } }), boxes: [{ id: h.id, name: h.id }] });
   return [
-    { id: "kind", lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git"))] },
+    { id: "kind", lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time"))] },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
       id: "region",
@@ -356,6 +384,26 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "copy", lines: diff([[gitBase, inGit([commitOf({ copy: h.id })])]]) },
     { id: "merge", lines: diff([[gitBase, inGit([commitOf({ merge: h.branch })])]]) },
     { id: "ref", lines: diff([[gitBase, inGit([{ type: "edge", from: h.branch, to: h.id, label: h.label, carry: { kind: "tag", text: h.branch } }])]]) },
+    { id: "scale", lines: diff([[draw({ ...empty("time"), steps: [step] }), timeOf({ scale: { ...scale, from: h.number } })]]) },
+    { id: "period", lines: diff([[timeBase, timeOf({ period: { name: h.name, length: h.count, from: h.number } })]]) },
+    { id: "row", lines: diff([[timeBase, timeOf({ rows: [{ id: h.id, name: h.name, color: h.color, empty: [h.tick] }] })]]) },
+    { id: "point", lines: diff([[timeBase, timeOf({ points: [{ id: h.id, at: h.tick }] })]]) },
+    {
+      id: "zoom",
+      lines: diff([
+        [timeBase, timeOf({ zoom: { from: h.first, to: h.last } })],
+        [zoomBase, inTime([{ type: "edge", from: h.id, to: h.id, carry: { kind: "envelope" }, at: h.tick, into: h.tick }], zoomBase)],
+      ]),
+    },
+    { id: "now", lines: diff([[timeBase, inTime([{ type: "now", to: h.tick }])]]) },
+    { id: "mark", lines: diff([[timeBase, inTime([{ type: "mark", row: h.id, from: h.first, to: h.last, color: h.color }])]]) },
+    {
+      id: "span",
+      lines: diff([
+        [timeBase, inTime([{ type: "span", from: h.first, to: h.last, text: h.text }])],
+        [timeBase, inTime([{ type: "span", from: h.first, to: h.last, text: h.text, shape: "box", color: h.color }])],
+      ]),
+    },
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
     { id: "strip-value", lines: diff([[draw({ ...withStep, strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },

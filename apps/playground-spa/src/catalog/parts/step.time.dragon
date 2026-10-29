@@ -1,0 +1,15 @@
+time 段 [view: fixed]
+
+scale slot 12s 6
+row ブロック
+
+step 進める
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code attestation = { head, source, target }
+  now -> 2
+
+step 続ける
+  say 段は 1 つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  now -> 5

@@ -1,0 +1,17 @@
+time 中身の帯と欄
+
+scale slot 12s 8
+period epoch 4
+row ブロック
+
+strip 進み: 経過, 状態, 今の epoch の票 [meter: 2/3]
+
+step 進める
+  say strip で図の下に中身の帯と欄を置き、set で欄に値を入れる。物差しの欄は針と一緒に満ちる。
+  now -> 3
+  set 経過: 48 秒
+  set 今の epoch の票: 97%
+
+step 札を添える
+  say set の tag で、欄の値に札を添える。
+  set 状態: 正当化 [tag: 2/3]

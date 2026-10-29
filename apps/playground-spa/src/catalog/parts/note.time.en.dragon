@@ -1,0 +1,18 @@
+time Note
+
+scale slot 12s 6
+row block
+point C at 0
+zoom 0-2
+
+box proposer [note: one is picked]
+box block
+
+step Small text
+  say note adds small text under the box name.
+  proposer -> block [at: 0]
+  now -> 0
+
+step Rewrite
+  say A note line inside a step rewrites the state of a point.
+  note C: Proposed

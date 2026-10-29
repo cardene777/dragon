@@ -1,12 +1,12 @@
 {
   "title": "dragon の図の原本",
-  "description": "区画、箱、線、運ぶ物、段、中身の帯の 6 部品を共通の骨組みに置き、図の種類だけの物は種類の欄に置く。座標は持たない。箱は枝分かれの図だけが持たなくてよい。",
+  "description": "区画、箱、線、運ぶ物、段、中身の帯の 6 部品を共通の骨組みに置き、図の種類だけの物は種類の欄に置く。座標は持たない。箱は枝分かれの図と時間軸の図だけが持たなくてよい。",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "kind", "title", "boxes", "steps"],
   "properties": {
     "version": { "description": "形式の版", "type": "integer", "minimum": 1 },
-    "kind": { "description": "図の種類", "enum": ["sequence", "architecture", "state", "git"] },
+    "kind": { "description": "図の種類", "enum": ["sequence", "architecture", "state", "git", "time"] },
     "title": { "$ref": "#/definitions/text" },
     "view": { "description": "見せ方。書かなければ字の大きさで選ぶ。fixed は全体を止めて中だけ動かし、follow は寄って動かし全体図で今どこかを示す", "enum": ["fixed", "follow"] },
     "regions": { "type": "array", "items": { "$ref": "#/definitions/region" } },
@@ -15,12 +15,20 @@
     "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/step" } },
     "sequence": { "$ref": "#/definitions/sequence" },
     "state": { "$ref": "#/definitions/state" },
-    "git": { "$ref": "#/definitions/git" }
+    "git": { "$ref": "#/definitions/git" },
+    "time": { "$ref": "#/definitions/time" }
   },
   "if": { "required": ["kind"], "properties": { "kind": { "const": "sequence" } } },
   "then": {
     "required": ["sequence"],
-    "properties": { "boxes": { "minItems": 1 }, "steps": { "$ref": "#/definitions/plainSteps" }, "state": { "$ref": "#/definitions/absent" }, "git": { "$ref": "#/definitions/absent" } }
+    "properties": {
+      "boxes": { "minItems": 1 },
+      "steps": { "$ref": "#/definitions/plainSteps" },
+      "strip": { "$ref": "#/definitions/plainStrip" },
+      "state": { "$ref": "#/definitions/absent" },
+      "git": { "$ref": "#/definitions/absent" },
+      "time": { "$ref": "#/definitions/absent" }
+    }
   },
   "else": {
     "properties": { "sequence": { "$ref": "#/definitions/absent" } },
@@ -29,14 +37,44 @@
       "properties": {
         "boxes": { "minItems": 1, "items": { "properties": { "id": { "description": "始まりと終わりの印の名前は箱の名札に使えない", "not": { "enum": ["start", "finish"] } } } } },
         "steps": { "$ref": "#/definitions/plainSteps" },
-        "git": { "$ref": "#/definitions/absent" }
+        "strip": { "$ref": "#/definitions/plainStrip" },
+        "git": { "$ref": "#/definitions/absent" },
+        "time": { "$ref": "#/definitions/absent" }
       }
     },
     "else": {
       "if": { "required": ["kind"], "properties": { "kind": { "const": "git" } } },
-      "then": { "required": ["git"], "properties": { "state": { "$ref": "#/definitions/absent" }, "regions": { "$ref": "#/definitions/absent" } } },
+      "then": {
+        "required": ["git"],
+        "properties": {
+          "steps": { "$ref": "#/definitions/gitSteps" },
+          "strip": { "$ref": "#/definitions/plainStrip" },
+          "state": { "$ref": "#/definitions/absent" },
+          "regions": { "$ref": "#/definitions/absent" },
+          "time": { "$ref": "#/definitions/absent" }
+        }
+      },
       "else": {
-        "properties": { "boxes": { "minItems": 1 }, "steps": { "$ref": "#/definitions/plainSteps" }, "state": { "$ref": "#/definitions/absent" }, "git": { "$ref": "#/definitions/absent" } }
+        "if": { "required": ["kind"], "properties": { "kind": { "const": "time" } } },
+        "then": {
+          "required": ["time"],
+          "properties": {
+            "steps": { "$ref": "#/definitions/timeSteps" },
+            "state": { "$ref": "#/definitions/absent" },
+            "git": { "$ref": "#/definitions/absent" },
+            "regions": { "$ref": "#/definitions/absent" }
+          }
+        },
+        "else": {
+          "properties": {
+            "boxes": { "minItems": 1 },
+            "steps": { "$ref": "#/definitions/plainSteps" },
+            "strip": { "$ref": "#/definitions/plainStrip" },
+            "state": { "$ref": "#/definitions/absent" },
+            "git": { "$ref": "#/definitions/absent" },
+            "time": { "$ref": "#/definitions/absent" }
+          }
+        }
       }
     }
   },
@@ -44,8 +82,48 @@
     "text": { "type": "string", "minLength": 1 },
     "absent": { "description": "この図の種類では書けない欄", "not": {} },
     "plainSteps": {
-      "description": "枝分かれの図でない図の段。枝分かれの図だけの出来事 (commit と branch) を書けない",
+      "description": "枝分かれの図でも時間軸の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) を書けない",
+      "items": {
+        "properties": {
+          "events": {
+            "items": {
+              "not": { "$ref": "#/definitions/timeEvent" },
+              "properties": {
+                "type": { "not": { "enum": ["commit", "branch"] } },
+                "at": { "$ref": "#/definitions/absent" },
+                "into": { "$ref": "#/definitions/absent" },
+                "color": { "$ref": "#/definitions/absent" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "gitSteps": {
+      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) を書けない",
+      "items": {
+        "properties": {
+          "events": {
+            "items": {
+              "not": { "$ref": "#/definitions/timeEvent" },
+              "properties": { "at": { "$ref": "#/definitions/absent" }, "into": { "$ref": "#/definitions/absent" }, "color": { "$ref": "#/definitions/absent" } }
+            }
+          }
+        }
+      }
+    },
+    "timeSteps": {
+      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) を書けない",
       "items": { "properties": { "events": { "items": { "properties": { "type": { "not": { "enum": ["commit", "branch"] } } } } } } }
+    },
+    "timeEvent": {
+      "description": "時間軸の図だけが書ける出来事",
+      "required": ["type"],
+      "properties": { "type": { "enum": ["now", "mark", "span"] } }
+    },
+    "plainStrip": {
+      "description": "時間軸の図でない図の中身の帯。物差しを書けない",
+      "properties": { "meters": { "$ref": "#/definitions/absent" } }
     },
     "id": { "type": "string", "pattern": "^[^\\s\\[\\]「」=:]+$" },
     "color": { "enum": ["blue", "amber", "green", "violet", "rose", "slate", "coin"] },
@@ -80,9 +158,21 @@
       "required": ["title", "fields"],
       "properties": {
         "title": { "$ref": "#/definitions/text" },
-        "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/text" } }
+        "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/text" } },
+        "meters": { "description": "物差しにする欄。時間軸の図だけが書ける", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/meter" } }
       }
     },
+    "meter": {
+      "description": "物差しの欄。line の割合の所に線を引き、set の値まで針と一緒に満ちる",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "line"],
+      "properties": {
+        "field": { "$ref": "#/definitions/text" },
+        "line": { "$ref": "#/definitions/ratio" }
+      }
+    },
+    "ratio": { "description": "割合。分数 (2/3) か百分率 (97%)", "type": "string", "pattern": "^([0-9]+/[0-9]+|[0-9]+(\\.[0-9]+)?%)$" },
     "step": {
       "type": "object",
       "additionalProperties": false,
@@ -111,7 +201,9 @@
             "to": { "$ref": "#/definitions/id" },
             "label": { "$ref": "#/definitions/text" },
             "carry": { "$ref": "#/definitions/carry" },
-            "labelSide": { "description": "線の名前を置く側 (寄せの指示)", "enum": ["above", "below", "left", "right"] }
+            "labelSide": { "description": "線の名前を置く側 (寄せの指示)", "enum": ["above", "below", "left", "right"] },
+            "at": { "description": "時間軸の図の拡大の帯で、線を引く列の目盛り", "$ref": "#/definitions/unit" },
+            "into": { "description": "時間軸の図の拡大の帯で、受ける箱を選ぶ列の目盛り。書かなければ at の列", "$ref": "#/definitions/unit" }
           }
         },
         {
@@ -133,7 +225,8 @@
           "properties": {
             "type": { "const": "swap" },
             "box": { "$ref": "#/definitions/id" },
-            "text": { "$ref": "#/definitions/text" }
+            "text": { "$ref": "#/definitions/text" },
+            "color": { "description": "時間軸の図の節目の丸の色", "$ref": "#/definitions/color" }
           }
         },
         {
@@ -160,6 +253,43 @@
             "type": { "const": "branch" },
             "branch": { "$ref": "#/definitions/id" },
             "from": { "$ref": "#/definitions/id" }
+          }
+        },
+        {
+          "description": "時間軸の図の今の時刻の針を、to の目盛りの終わりまで進める",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "to"],
+          "properties": {
+            "type": { "const": "now" },
+            "to": { "$ref": "#/definitions/unit" }
+          }
+        },
+        {
+          "description": "時間軸の図の印の列 row の、from から to の目盛りの印の色を変える",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "row", "from", "to", "color"],
+          "properties": {
+            "type": { "const": "mark" },
+            "row": { "$ref": "#/definitions/id" },
+            "from": { "$ref": "#/definitions/unit" },
+            "to": { "$ref": "#/definitions/unit" },
+            "color": { "$ref": "#/definitions/color" }
+          }
+        },
+        {
+          "description": "時間軸の図の from から to の目盛りに、括弧と字を出す。shape が box なら印の列を囲み、字を縁の札にする",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "from", "to", "text"],
+          "properties": {
+            "type": { "const": "span" },
+            "from": { "$ref": "#/definitions/unit" },
+            "to": { "$ref": "#/definitions/unit" },
+            "text": { "$ref": "#/definitions/text" },
+            "shape": { "enum": ["box"] },
+            "color": { "$ref": "#/definitions/color" }
           }
         },
         {
@@ -228,6 +358,76 @@
       }
     },
     "hash": { "description": "commit の hash。16 進の字で 4 から 40 字", "type": "string", "pattern": "^[0-9a-f]{4,40}$" },
+    "time": {
+      "description": "時間軸の図の種類の欄。目盛り、区切り、印の列、節目、拡大の範囲",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scale", "rows"],
+      "properties": {
+        "scale": { "$ref": "#/definitions/scale" },
+        "period": { "$ref": "#/definitions/period" },
+        "rows": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/row" } },
+        "points": { "type": "array", "items": { "$ref": "#/definitions/point" } },
+        "zoom": { "$ref": "#/definitions/zoom" }
+      }
+    },
+    "scale": {
+      "description": "目盛り。unit の名前の目盛りを length の長さで count 個並べ、最初の目盛りの番号を from にする",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "length", "count"],
+      "properties": {
+        "unit": { "$ref": "#/definitions/text" },
+        "length": { "$ref": "#/definitions/duration" },
+        "count": { "type": "integer", "minimum": 1 },
+        "from": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "duration": { "description": "長さ。数と単位 (ms、s、min、h、d) の組", "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$" },
+    "unit": { "description": "目盛りの位置。0 から数える", "type": "integer", "minimum": 0 },
+    "period": {
+      "description": "区切り。目盛り length 個ごとに name の区切りを置き、最初の区切りの番号を from にする",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "length"],
+      "properties": {
+        "name": { "$ref": "#/definitions/text" },
+        "length": { "type": "integer", "minimum": 1 },
+        "from": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "row": {
+      "description": "印の列。目盛りごとに印を 1 つ置き、empty の目盛りは空きの印にする",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "name": { "$ref": "#/definitions/text" },
+        "color": { "$ref": "#/definitions/color" },
+        "empty": { "type": "array", "items": { "$ref": "#/definitions/unit" } }
+      }
+    },
+    "point": {
+      "description": "節目。at の目盛りの印の下に旗の丸と名札を置く",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "at"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "at": { "$ref": "#/definitions/unit" }
+      }
+    },
+    "zoom": {
+      "description": "拡大の範囲。from から to の目盛りごとに拡大の帯に列を作る",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "$ref": "#/definitions/unit" },
+        "to": { "$ref": "#/definitions/unit" }
+      }
+    },
     "path": {
       "description": "移れる道。送る側に始まりの印 start、受ける側に終わりの印 finish を書ける。どの段にも出ない道は点線で描き、運ぶ物を走らせない",
       "type": "object",

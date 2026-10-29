@@ -4,6 +4,7 @@
  * 見本帳 (`docs/design/base/engine.js` の `G`) と同じ形を持つ。`block` だけは見本帳が絵を手で描いていたので、ここで足した。
  * `undo` (戻る矢印) と `yen` (円の印) は、注文の試作 (`docs/design/base/scenes/order.js`) が返品と返金に足した形 (#3171)。
  * package の入口からも出し、見本帳の部品「絵」の頁がこの表から使える絵柄の一覧を作る。1 つずつの絵は `iconSvg` が描く (#3172)。
+ * `flag` (旗) は、時間軸の図の節目の丸に描く形 (#3165)。ブロックの確定の試作 (`docs/design/base/scenes/finality.js`) が持っていた。
  */
 export const ICONS: Readonly<Record<string, string>> = {
   app: "M -9 -7 h18 a2 2 0 0 1 2 2 v10 a2 2 0 0 1 -2 2 h-18 a2 2 0 0 1 -2 -2 v-10 a2 2 0 0 1 2 -2 z M -11 -2 h22",
@@ -18,6 +19,7 @@ export const ICONS: Readonly<Record<string, string>> = {
   env: "M -8 -5.5 h16 v11 h-16 z M -8 -5.5 l8 6 l8 -6",
   lock: "M -5.5 -1 h11 v8 h-11 z M -3.5 -1 v-3 a3.5 3.5 0 0 1 7 0 v3",
   check: "M -5 0 l3.5 3.5 l6.5 -7",
+  flag: "M -4 8 V -8 M -4 -7 H 6 L 3.5 -3.5 L 6 0 H -4",
   x: "M -5 -5 l10 10 M 5 -5 l-10 10",
   chain: "M -1.5 4.5 l-2 2 a3.5 3.5 0 0 1 -5 -5 l3 -3 a3.5 3.5 0 0 1 5 0 M 1.5 -4.5 l2 -2 a3.5 3.5 0 0 1 5 5 l-3 3 a3.5 3.5 0 0 1 -5 0 M -2.5 2.5 l5 -5",
   net: "M -1.3 -4.6 L -5.8 3 M 1.3 -4.6 L 5.8 3 M -4.3 5.5 H 4.3 M -2.2 -7 a 2.2 2.2 0 1 0 4.4 0 a 2.2 2.2 0 1 0 -4.4 0 M -9.2 5.5 a 2.2 2.2 0 1 0 4.4 0 a 2.2 2.2 0 1 0 -4.4 0 M 4.8 5.5 a 2.2 2.2 0 1 0 4.4 0 a 2.2 2.2 0 1 0 -4.4 0",

@@ -9,9 +9,10 @@ import { FIGURE_TEXT } from "../figure-text";
 import { layoutArchitecture } from "../layout/architecture";
 import { isGitLayout, layoutGit } from "../layout/git";
 import { textWidth } from "../layout/measure";
-import type { Layout, Rect, SceneLabel } from "../layout/scene";
+import type { Layout, Rect, SceneField, SceneLabel } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
 import { layoutState } from "../layout/state";
+import { isTimeLayout, layoutTime } from "../layout/time";
 import { FONTS } from "../look/fonts";
 import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
@@ -41,6 +42,7 @@ import {
   type SubChange,
 } from "./parts";
 import { drawGit } from "./git";
+import { drawTime, meterField, sansOf, timeFocus } from "./time";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
@@ -163,6 +165,45 @@ const PART_CSS = [
   `.dg-git-n{${font(TYPE.gitNote)};fill:var(--ink2)}`,
   `.dg-git-old{fill:var(--surf);stroke:var(--c);stroke-width:${S.gitOrphan};stroke-dasharray:3 3;stroke-opacity:.6}`,
   `.dg-git-oldl{${font(TYPE.gitId)};fill:var(--ct);opacity:.55}`,
+  // 時間軸の図 (#3165)。和文を含む字は、末尾に j を付けた class で同じ大きさと太さの和文の字にする
+  `.dg-tm-ep{fill:color-mix(in srgb,var(--ink) ${X.timeShade}%,transparent)}`,
+  `.dg-tm-sep{stroke:var(--hair);stroke-width:${S.hair};stroke-dasharray:2 4}`,
+  `.dg-tm-hd{${font(TYPE.timeHead)};fill:var(--ink)}`,
+  `.dg-tm-hdj{${font(sansOf(TYPE.timeHead))}}`,
+  `.dg-tm-slot{fill:none;stroke:var(--line);stroke-width:${S.timeSlot};opacity:.55}`,
+  ".dg-tm-m{fill:var(--c)}",
+  ".dg-tm-x{fill:var(--c-slate)}",
+  `.dg-tm-fr{fill:none;stroke:var(--c-blue);stroke-width:${S.timeFrame};stroke-dasharray:3 2}`,
+  `.dg-tm-gd{fill:none;stroke:color-mix(in srgb,var(--c-blue) ${X.timeGuide}%,transparent);stroke-width:${S.hair};stroke-dasharray:2 3}`,
+  `.dg-tm-ax{fill:none;stroke:var(--line);stroke-width:${S.timeAxis}}`,
+  `.dg-tm-tk{${font(TYPE.timeTick)};fill:var(--mute)}`,
+  `.dg-tm-tkj{${font(sansOf(TYPE.timeTick))}}`,
+  `.dg-tm-en{${font(TYPE.timePeriod)};fill:var(--ink2)}`,
+  `.dg-tm-er{${font(TYPE.timeRange)};fill:var(--mute)}`,
+  `.dg-tm-erj{${font(sansOf(TYPE.timeRange))}}`,
+  `.dg-tm-rn{${font(TYPE.timeRow)};fill:var(--ink2)}`,
+  `.dg-tm-br{fill:none;stroke:var(--c);stroke-width:${S.timeSpan};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-tm-bt{${font(TYPE.spanText)};fill:var(--ct)}`,
+  `.dg-tm-bx{fill:color-mix(in srgb,var(--c) ${X.timeSpan}%,transparent);stroke:var(--c);stroke-width:${S.timeSpan};stroke-dasharray:4 3}`,
+  `.dg-tm-con{fill:none;stroke:var(--line);stroke-width:${S.timeDrop};stroke-linecap:round;stroke-dasharray:0 3.5}`,
+  ".dg-tm-pg{fill:var(--surf);stroke:var(--line);stroke-dasharray:2 2.5}",
+  `.dg-tm-pgl{fill:none;stroke:var(--mute);stroke-width:${S.timeFlag};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-tm-pc{fill:var(--surf);stroke:var(--c);stroke-width:${S.timePoint}}`,
+  `.dg-tm-pcg{fill:none;stroke:var(--c);stroke-width:${S.timeFlag};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-tm-pn{${font(TYPE.pointName)};fill:var(--ink)}`,
+  `.dg-tm-pnj{${font(sansOf(TYPE.pointName))}}`,
+  ".dg-tm-pn-g{fill:var(--mute)}",
+  `.dg-tm-ps{${font(TYPE.pointState)};fill:var(--ct)}`,
+  `.dg-tm-ln{fill:none;stroke:var(--c);stroke-width:${S.edgeOn};stroke-linecap:round;stroke-dasharray:1 2}`,
+  `.dg-tm-nd{stroke:var(--ink);stroke-width:${S.timeNeedle};opacity:.55}`,
+  ".dg-tm-nh{fill:var(--ink)}",
+  ".dg-tm-ph{fill:none;stroke:var(--line);stroke-dasharray:3 3}",
+  `.dg-tm-ex{fill:color-mix(in srgb,var(--c-slate) ${X.timeEmpty}%,var(--surf));stroke:var(--c-slate);stroke-width:${S.timeFrame};stroke-dasharray:3 3}`,
+  `.dg-tm-ext{${font(TYPE.emptyText)};fill:var(--t-slate)}`,
+  ".dg-tm-mt{fill:var(--hair)}",
+  ".dg-tm-mf{fill:var(--c);transform-box:fill-box;transform-origin:0 50%}",
+  `.dg-tm-mk{stroke:var(--ink2);stroke-width:${S.timeMeter}}`,
+  `.dg-tm-ml{${font(TYPE.meterLine)};fill:var(--ink2)}`,
   ".dg-vp-bg{fill:var(--bg)}",
   ".dg-vp-frame{fill:none;stroke:var(--hair)}",
   ".dg-hd-bg{fill:var(--bg)}",
@@ -297,7 +338,10 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
   const isState = layout.kind === "state";
   const arrivals = new Map((timeline.states ?? []).flatMap((s) => (s.lit[0] ? [[s.box, s.lit[0].start] as [string, number]] : [])));
-  if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals));
+  // 時間軸の図の物差しの欄は、満ち具合の動きで棒を伸ばす (#3165)
+  const meters = new Map((timeline.meters ?? []).map((meter) => [meter.field, meter.keys]));
+  const gauge = (field: SceneField): string | undefined => (field.meter ? meterField({ ...field, meter: field.meter }, meters.get(field.name) ?? [[0, 0]], ctx) : undefined);
+  if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals, gauge));
   for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
   // 枝分かれの図の線と commit と札は、枝分かれの図を描く部品が描く (#3164)
   if (isGitLayout(layout)) {
@@ -307,15 +351,25 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.node.push(git.commits);
     L.top.push(git.tags);
   }
+  // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く
+  const timeLayout = isTimeLayout(layout) ? layout : undefined;
+  if (timeLayout) {
+    const drawn = drawTime(timeLayout, diagram, timeline, ctx, subs);
+    L.base.push(drawn.base);
+    L.lit.push(drawn.lit);
+    L.node.push(drawn.node);
+    L.top.push(drawn.top);
+  }
+  const wired = new Set((timeLayout?.wires ?? []).map((w) => `${w.step}/${w.event}`));
   for (const e of layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
-    if (!time) continue;
+    if (!time || (timeLayout && !wired.has(`${e.step}/${e.event}`))) continue;
     const drawn = edge(e, time, ctx, isState);
     L.base.push(drawn.base);
     L.lit.push(drawn.lit);
   }
   const states = new Map((timeline.states ?? []).map((s) => [s.box, s]));
-  for (const box of layout.boxes) {
+  for (const box of timeLayout ? [] : layout.boxes) {
     if (box.ghost) {
       L.node.push(ghostCard(box, ink));
       continue;
@@ -455,6 +509,12 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   let prev: [number, number] = [layout.width / 2, layout.height / 2];
   // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
   const middles = timeline.steps.map((_, s) => {
+    // 時間軸の図は、針と印の列を必ず窓に入れる (#3165)。番号の丸へ寄せ直すと、針が窓から外れるため
+    if (isTimeLayout(layout)) {
+      const f = timeFocus(layout, timeline, s, focusParts(layout, diagram, s), vw, below);
+      prev = [f.x + f.w / 2, f.y + f.h / 2];
+      return [clampX(prev[0]), clampY(prev[1])] as [number, number];
+    }
     const f = focusOf(layout, diagram, s);
     prev = f ? [f.x + f.w / 2, f.y + f.h / 2] : prev;
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
@@ -546,7 +606,9 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
         ? layoutState(diagram, lang)
         : diagram.kind === "git"
           ? layoutGit(diagram)
-          : layoutArchitecture(diagram);
+          : diagram.kind === "time"
+            ? layoutTime(diagram, lang)
+            : layoutArchitecture(diagram);
   return renderLayout(diagram, layout, buildTimeline(diagram), options);
 }
 
