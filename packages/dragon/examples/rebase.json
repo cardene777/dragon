@@ -1,0 +1,308 @@
+{
+  "version": 1,
+  "kind": "git",
+  "title": "作業の枝を rebase して main へ取り込む",
+  "boxes": [
+    {
+      "id": "作業ツリー",
+      "name": "作業ツリー",
+      "sub": "手元のファイル",
+      "color": "violet",
+      "icon": "doc"
+    }
+  ],
+  "strip": {
+    "title": "参照",
+    "fields": [
+      "main",
+      "feature",
+      "HEAD",
+      "履歴の形"
+    ]
+  },
+  "steps": [
+    {
+      "title": "main にある",
+      "body": "main に commit A と B がある。main は B を指し、HEAD は main を指している。手元で開いているのは B の中身。",
+      "events": [
+        {
+          "type": "commit",
+          "id": "A",
+          "branch": "main",
+          "hash": "3fa0c19",
+          "note": "最初の形"
+        },
+        {
+          "type": "commit",
+          "id": "B",
+          "branch": "main",
+          "hash": "8b04f71",
+          "note": "一覧を足す"
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "B 8b04f71"
+        },
+        {
+          "type": "strip",
+          "field": "HEAD",
+          "value": "main"
+        },
+        {
+          "type": "strip",
+          "field": "履歴の形",
+          "value": "一直線"
+        }
+      ]
+    },
+    {
+      "title": "枝を切る",
+      "body": "B から作業の枝 feature を作って移る。feature も B を指し、HEAD は feature を指す。中身はまだ main と同じ。",
+      "code": "git switch -c feature",
+      "events": [
+        {
+          "type": "branch",
+          "branch": "feature",
+          "from": "B"
+        },
+        {
+          "type": "strip",
+          "field": "feature",
+          "value": "B 8b04f71"
+        },
+        {
+          "type": "strip",
+          "field": "HEAD",
+          "value": "feature"
+        }
+      ]
+    },
+    {
+      "title": "作業を積む",
+      "body": "feature に C と D を積む。commit のたびに feature が新しい commit へ進み、HEAD も付いていく。main は B のまま。",
+      "code": "git commit",
+      "events": [
+        {
+          "type": "commit",
+          "id": "C",
+          "branch": "feature",
+          "hash": "c41d0e5",
+          "note": "価格を丸める"
+        },
+        {
+          "type": "commit",
+          "id": "D",
+          "branch": "feature",
+          "hash": "d72b9a3",
+          "note": "送料を足す"
+        },
+        {
+          "type": "strip",
+          "field": "feature",
+          "value": "D d72b9a3"
+        }
+      ]
+    },
+    {
+      "title": "main が進む",
+      "body": "その間に他の人の変更 E が main に入り、手元の main も取り込んで E を指す。feature は古い B から分かれたまま。",
+      "events": [
+        {
+          "type": "commit",
+          "id": "E",
+          "branch": "main",
+          "hash": "e5f8312",
+          "note": "税率を直す"
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "E e5f8312"
+        },
+        {
+          "type": "strip",
+          "field": "履歴の形",
+          "value": "枝分かれ"
+        }
+      ]
+    },
+    {
+      "title": "rebase を始める",
+      "body": "Git は分かれ目の B まで戻って C と D を控え、HEAD を E へ移す。HEAD は枝を通さず E を直接指す (切り離し)。ここから 1 つずつ当て直す。",
+      "code": "git rebase main",
+      "events": [
+        {
+          "type": "edge",
+          "from": "HEAD",
+          "to": "E",
+          "label": "git rebase main",
+          "carry": {
+            "kind": "tag",
+            "text": "HEAD"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "HEAD",
+          "value": "E (切り離し)"
+        },
+        {
+          "type": "strip",
+          "field": "履歴の形",
+          "value": "当て直し中"
+        }
+      ]
+    },
+    {
+      "title": "衝突で止まる",
+      "body": "C を E の上へ当て直すと、E も同じ行を変えていたので衝突する。rebase はそこで止まり、直すのを待つ。",
+      "events": [
+        {
+          "type": "swap",
+          "box": "作業ツリー",
+          "text": "src/price.ts で衝突"
+        },
+        {
+          "type": "strip",
+          "field": "履歴の形",
+          "value": "衝突で停止"
+        }
+      ]
+    },
+    {
+      "title": "直して続ける",
+      "body": "衝突した行を直して続けると、C と同じ変更を持つ C' ができる。親が B から E に変わったので hash も変わる。",
+      "code": "git add → git rebase --continue",
+      "events": [
+        {
+          "type": "swap",
+          "box": "作業ツリー",
+          "text": "直して git add した"
+        },
+        {
+          "type": "commit",
+          "id": "C'",
+          "branch": "main",
+          "copy": "C",
+          "hash": "a90c6b4",
+          "note": "価格を丸める"
+        },
+        {
+          "type": "strip",
+          "field": "HEAD",
+          "value": "C' (切り離し)"
+        },
+        {
+          "type": "strip",
+          "field": "履歴の形",
+          "value": "当て直し中"
+        }
+      ]
+    },
+    {
+      "title": "D を当て直す",
+      "body": "D は衝突せず D' になる。当て終わると feature が D' へ移り、HEAD も feature に戻る。元の C と D はどこからも指されない。",
+      "events": [
+        {
+          "type": "commit",
+          "id": "D'",
+          "branch": "main",
+          "copy": "D",
+          "hash": "f1e7d28",
+          "note": "送料を足す"
+        },
+        {
+          "type": "edge",
+          "from": "feature",
+          "to": "D'",
+          "carry": {
+            "kind": "tag",
+            "text": "feature"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "feature",
+          "value": "D' f1e7d28"
+        },
+        {
+          "type": "strip",
+          "field": "HEAD",
+          "value": "feature"
+        },
+        {
+          "type": "strip",
+          "field": "履歴の形",
+          "value": "早送りできる"
+        }
+      ]
+    },
+    {
+      "title": "検査が通る",
+      "body": "D' は E の変更も含んだ形になっている。この形で検査を回し、全て通ることを確かめてから取り込む。",
+      "events": [
+        {
+          "type": "swap",
+          "box": "作業ツリー",
+          "text": "D' で検査を回す"
+        },
+        {
+          "type": "swap",
+          "box": "作業ツリー",
+          "text": "型、単体、結合が通った"
+        }
+      ]
+    },
+    {
+      "title": "main を早送り",
+      "body": "main を D' まで進める。main の先に C' と D' が一直線に続くので、merge commit を作らず参照を動かすだけで済む。",
+      "code": "git switch main → git merge --ff-only feature",
+      "events": [
+        {
+          "type": "edge",
+          "from": "main",
+          "to": "D'",
+          "label": "git merge --ff-only feature",
+          "carry": {
+            "kind": "tag",
+            "text": "main"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "D' f1e7d28"
+        },
+        {
+          "type": "strip",
+          "field": "HEAD",
+          "value": "main"
+        },
+        {
+          "type": "strip",
+          "field": "履歴の形",
+          "value": "一直線"
+        }
+      ]
+    },
+    {
+      "title": "一直線の履歴",
+      "body": "main の履歴を先端から辿ると D'、C'、E、B、A の 1 本になる。元の C と D は reflog に残るが、期限が過ぎると掃除される。",
+      "code": "git log --oneline",
+      "events": []
+    }
+  ],
+  "git": {
+    "branches": [
+      {
+        "id": "main",
+        "note": "取り込む先"
+      },
+      {
+        "id": "feature",
+        "note": "作業の枝"
+      }
+    ]
+  }
+}
