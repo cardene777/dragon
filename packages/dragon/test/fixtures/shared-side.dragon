@@ -1,0 +1,21 @@
+architecture 同じ箱の下に線が集まる
+
+group 店 as お店の仕組み [note: 注文を受ける, color: blue, icon: app]
+  box 支払い [icon: box]
+  box 台帳 [icon: check]
+end
+
+box 受け付け [icon: truck]
+box 認証 [icon: check]
+
+step 頼む
+  say 受け付けが支払いに頼む。
+  受け付け -> 支払い: 頼む
+
+step 確かめる
+  say 支払いが認証に確かめる。
+  支払い -> 認証: 確かめる
+
+step 渡す
+  say 支払いが受け付けに渡す。
+  支払い -> 受け付け: 渡す

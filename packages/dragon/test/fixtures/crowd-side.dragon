@@ -1,0 +1,25 @@
+architecture 1 つの箱の下に 3 本の線が集まる
+
+group 店 as お店の仕組み [note: 注文を受ける, color: blue, icon: app]
+  box 受け付け [icon: card]
+  box 画面 [icon: db]
+end
+
+box API [icon: card]
+box 通知 [icon: check]
+
+step 送る
+  say 受け付けが通知に送る。
+  受け付け -> 通知: 送る
+
+step 返す
+  say 画面が通知に返す。
+  画面 -> 通知: 返す
+
+step 頼む
+  say API が画面に頼む。
+  API -> 画面: 頼む
+
+step 渡す
+  say 画面が API に渡す。
+  画面 -> API: 渡す
