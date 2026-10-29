@@ -9,6 +9,9 @@ import type { NotationLang } from "./words";
 export interface FigureText {
   /** 描けない時の断りの文。`detail` は誤りの場所と文を並べた物 */
   cannotDraw: (detail: string) => string;
+  /** 描く設定の `colors` (#3198) の誤り。色味に無い色の名前と、色の値として読めない値の色の名前 */
+  unknownColor: (name: string) => string;
+  unreadableColor: (name: string) => string;
   /** 寄って動かす見せ方の、隅の全体図の札 */
   overview: string;
   /** 再生の釦の読み上げの名前 */
@@ -46,6 +49,8 @@ const capital = (text: string): string => text.charAt(0).toUpperCase() + text.sl
 export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
   ja: {
     cannotDraw: (detail) => `図を描けない: ${detail}`,
+    unknownColor: (name) => `colors の ${name} は色味に無い色の名前`,
+    unreadableColor: (name) => `colors の ${name} の値を色として読めない`,
     overview: "全体図",
     prev: "前の段",
     pause: "止める",
@@ -68,6 +73,8 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
+    unknownColor: (name) => `colors.${name} is not a color name of the palette`,
+    unreadableColor: (name) => `colors.${name} cannot be read as a color`,
     overview: "Overview",
     prev: "Previous step",
     pause: "Pause",

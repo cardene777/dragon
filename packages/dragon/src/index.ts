@@ -48,7 +48,7 @@ export type {
   SceneTrail,
 } from "./layout/scene";
 export { type Family, FONTS } from "./look/fonts";
-export { type ColorKey, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";
+export { type ColorKey, type ColorName, type Colors, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
 export { ICONS } from "./render/icons";
 export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from "./render/ink";
