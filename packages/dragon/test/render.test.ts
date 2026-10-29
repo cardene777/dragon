@@ -5,6 +5,7 @@
  * 運ぶ物、線の名前、段の番号がいつ見えるかを、表を 0.25 秒ごとに数えて確かめる (見本帳の `probe.mjs` と同じ範囲)。
  */
 import { describe, expect, it } from "vitest";
+import { LOOK } from "../src/look/values";
 import { exampleJson, type Json } from "./diagram-support";
 import { covers, draw, type Rendered, sampleTimes, type Span } from "./render-support";
 
@@ -287,16 +288,21 @@ function distanceAlong(x: number, y: number, points: [number, number][]): number
 }
 
 describe("段の番号の置き場 (#3017)", () => {
-  it("short-line-badge-at-middle", () => {
+  it("short-line-badge-at-start", () => {
     const { layout } = render(ccip());
     const short = layout.badges.flatMap((badge) => {
       const line = layout.edges.find((e) => e.step === badge.step);
-      return line && lengthOf(line.points) < 44 ? [{ badge, line }] : [];
+      return line && lengthOf(line.points) < LOOK.badge.short ? [{ badge, line }] : [];
     });
     expect(short.length, "CCIP の 44 より短い線に置いた番号").toBeGreaterThan(0);
     for (const { badge, line } of short) {
-      // 短い線は始まりの近くに置くと箱と重なるので、線の中ほどに置く
-      expect(distanceAlong(badge.x, badge.y, line.points), `段 ${badge.step + 1} の丸の、線の始まりからの道のり`).toBeCloseTo(lengthOf(line.points) / 2, 6);
+      // 短い線も始まりに置く。中ほどに置くと、往復する 2 本の短い線で 2 つの番号が同じ高さに並んで重なる (#3189)。
+      // 出る箱の縁から番号の半径と 1px だけ進めるので、丸は出る箱に掛からない
+      expect(distanceAlong(badge.x, badge.y, line.points), `段 ${badge.step + 1} の丸の、線の始まりからの道のり`).toBeCloseTo(LOOK.badge.r + 1, 6);
+      const from = layout.boxes.find((b) => b.id === line.from);
+      if (!from) throw new Error(`段 ${badge.step + 1} の線が出る箱が無い`);
+      const gap = Math.hypot(Math.max(from.x - badge.x, 0, badge.x - (from.x + from.w)), Math.max(from.y - badge.y, 0, badge.y - (from.y + from.h)));
+      expect(gap, `段 ${badge.step + 1} の丸が出る箱に掛かる`).toBeGreaterThanOrEqual(LOOK.badge.r);
     }
   });
 

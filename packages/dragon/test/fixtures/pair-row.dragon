@@ -1,0 +1,24 @@
+architecture 同じ帯の上下の行を往復する
+
+group 店 as お店の仕組み [note: 注文を受ける, color: blue, icon: app]
+  box 画面 [icon: app]
+  box 受け付け [icon: doc]
+  box 在庫 [icon: box]
+  box 支払い [icon: card]
+  box 台帳 [icon: db]
+end
+
+step 並べる
+  say 画面から順に受け付け、在庫、支払い、台帳へ渡す。
+  画面 -> 受け付け: 渡す
+  受け付け -> 在庫: 渡す
+  在庫 -> 支払い: 渡す
+  支払い -> 台帳: 渡す
+
+step 書く
+  say 支払いが台帳に書く。
+  支払い -> 台帳: 書く
+
+step 返す
+  say 台帳が支払いに返す。
+  台帳 -> 支払い: 返す

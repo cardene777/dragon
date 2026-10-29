@@ -403,18 +403,46 @@ export function loopLabelBase(points: Point[], w: number): { x: number; y: numbe
 export const LOOP_ROOM = LOOK.state.loop.h + LOOK.label.soft * 2 + LOOK.label.h;
 
 /**
- * 段の番号を置く点。線の始まりから少し進んだ所。短い線は始まりに置くと箱と重なるので中ほど。
- * 同じ線を前の段が通っていて、先に置いた番号 (`taken`) に重なる時は、線に沿って進めて前の番号の隣に置く (#3175)
+ * 段の番号を置く点。線の始まりから少し進んだ所。`LOOK.badge.short` より短い線も始まりに置き、出る箱の縁から番号の半径と 1px だけ進める。
+ * 中ほどに置くと、往復する 2 本の短い線で 2 つの番号が同じ高さに並んで重なるため (#3189)。
+ * 先に置いた番号 (`taken`) に重なる時は、線に沿って進めて前の番号を避ける (#3175)。
+ * 線の上で避けきれない時は線の脇へずらし、ずらす向きはほかの線 (`lines`) に乗らない側にする (#3189)
  */
-export function badgeOnPath(points: Point[], taken: Point[] = []): Point {
+export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[][] = []): Point {
   const length = pathLength(points);
-  const first = length < LOOK.badge.short ? length / 2 : LOOK.badge.along;
+  const first = length < LOOK.badge.short ? Math.min(LOOK.badge.r + 1, length / 2) : LOOK.badge.along;
   const apart = LOOK.badge.r * 2 + LOOK.badge.inset;
   for (let d = first; d <= length; d += 1) {
     const p = along(points, d);
     if (taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart)) return p;
   }
-  return along(points, first);
+  return besideLine(points, first, taken, lines) ?? along(points, first);
+}
+
+/**
+ * 線の上で前の番号を避けきれない番号を、線の向きと直角に脇へずらした点 (#3189)。
+ * 前の番号の四角にも、ほかの線にも掛からない所のうち、線に一番近い所。番号 1 つ分ずらしても無ければ返さない。
+ * ほかの線は先に矢じりの幅だけ太らせて避け、それで空きが無い時だけ線そのものを避ける (矢じりに少し掛かっても、番号どうしを重ねるよりよい)
+ */
+function besideLine(points: Point[], at: number, taken: Point[], lines: Point[][]): Point | undefined {
+  const length = pathLength(points);
+  const [px, py] = along(points, at);
+  const [ax, ay] = along(points, Math.max(0, at - 1));
+  const [bx, by] = along(points, Math.min(length, at + 1));
+  const n = Math.hypot(bx - ax, by - ay);
+  if (n === 0) return undefined;
+  const [nx, ny] = [-(by - ay) / n, (bx - ax) / n];
+  const size = LOOK.badge.r * 2;
+  for (const margin of [LOOK.edge.arrowHalf, 0]) {
+    for (let s = 1; s <= size + LOOK.badge.inset; s++) {
+      for (const sign of [1, -1]) {
+        const c: Point = [px + nx * s * sign, py + ny * s * sign];
+        const free = taken.every(([x, y]) => Math.max(Math.abs(c[0] - x), Math.abs(c[1] - y)) >= size + 1);
+        if (free && lines.every((line) => !crossesRect(line, badgeRect(c), -margin))) return c;
+      }
+    }
+  }
+  return undefined;
 }
 
 /** 引いた線の形を表す鍵。同じ 2 つの箱を結んでも、時系列図の別の行のように形が違えば別の線 (#3184) */
@@ -423,9 +451,14 @@ export const lineKey = (edge: SceneEdge): string => edge.points.map(([x, y]) => 
 /**
  * 線を持つ段の番号の点 (#3175)。段の最初の線の上に `at` で置き、別の線の番号に重なる時は線に沿ってずらす。
  * 同じ線を前の段が通っていれば、前の段の番号と同じ所に置く。前の番号は後の段が始まると消え、数字が入れ替わる (#3184)。
- * 番号は線だけで決まるので、線の名前を置く前に求め、名前が同じ時刻に見える番号を避けられるようにする
+ * 番号は線だけで決まるので、線の名前を置く前に求め、名前が同じ時刻に見える番号を避けられるようにする。
+ * `at` には、形の違うほかの線 (段の前に点線で見えている線も含む) を渡し、脇へずらす番号がそれらに乗らないようにする (#3189)
  */
-export function lineBadges(edges: SceneEdge[], steps: number, at: (edge: SceneEdge, taken: Point[]) => Point = (edge, taken) => badgeOnPath(edge.points, taken)): Map<number, { point: Point; edge: SceneEdge }> {
+export function lineBadges(
+  edges: SceneEdge[],
+  steps: number,
+  at: (edge: SceneEdge, taken: Point[], lines: Point[][]) => Point = (edge, taken, lines) => badgeOnPath(edge.points, taken, lines),
+): Map<number, { point: Point; edge: SceneEdge }> {
   const out = new Map<number, { point: Point; edge: SceneEdge }>();
   const taken: Point[] = [];
   const placed = new Map<string, Point>();
@@ -438,7 +471,8 @@ export function lineBadges(edges: SceneEdge[], steps: number, at: (edge: SceneEd
       out.set(s, { point: before, edge });
       continue;
     }
-    const point = at(edge, taken);
+    const lines = edges.filter((e) => e.points.length > 1 && lineKey(e) !== key).map((e) => e.points);
+    const point = at(edge, taken, lines);
     taken.push(point);
     placed.set(key, point);
     out.set(s, { point, edge });
