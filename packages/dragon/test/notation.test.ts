@@ -559,6 +559,16 @@ describe("箱の飛び先と段の出典 (#3199)", () => {
       { href: "/diagrams/entry", names: ["入口"] },
       { href: REPO, names: ["外の仕組み"] },
     ]);
+
+    // 時間軸の図 (#3165) の拡大の帯の箱も、時間軸の図を描く部品が飛び先への link にする。
+    // 印の列と同じ名札の箱は線が届いた列 (目盛り 0) にだけ描き、届かない列は点線の枠だけを置く
+    const time = api("parseNotation")(
+      ["time 飛び先", "scale slot 12s 3", "row ブロック", "zoom 0-2", `box 提案者 [link: /diagrams/proposer]`, `box ブロック [link: ${REPO}]`, "step 送る", "  say 提案者からブロックへ送る。", "  提案者 -> ブロック [at: 0]", "  now -> 0"].join("\n"),
+    );
+    expect(time.ok, JSON.stringify(firstError(time))).toBe(true);
+    if (!time.ok) return;
+    const proposer = { href: "/diagrams/proposer", names: ["提案者"] };
+    expect(anchorsOf(draw("renderDiagram")(time.diagram).svg)).toEqual([proposer, { href: REPO, names: ["ブロック"] }, proposer, proposer]);
   });
 
   it("notation-link-source-roundtrip", () => {

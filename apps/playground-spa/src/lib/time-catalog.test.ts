@@ -186,7 +186,7 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
     "common-parts-draw-time",
     async () => {
       const common = PARTS.filter(isCommon).map((p) => p.id);
-      expect(common.length, "どの図でも使う部品の数").toBe(10);
+      expect(common.length, "どの図でも使う部品の数").toBe(12);
       // 中身の帯の頁の時間軸の図は物差しを使う
       expect(snippetOf("strip", "ja") ?? "", "中身の帯の部品の時間軸の図が物差しを使わない").toContain("[meter:");
       expect(snippetOf("strip", "en") ?? "", "中身の帯の部品の英語の時間軸の図が物差しを使わない").toContain("[meter:");

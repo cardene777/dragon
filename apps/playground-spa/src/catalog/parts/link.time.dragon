@@ -1,0 +1,18 @@
+time 飛び先
+
+scale slot 12s 6
+row ブロック
+zoom 0-2
+
+box 提案者
+box ブロック [link: https://github.com/cardene777/dragon]
+
+step 頼む
+  say link で箱に飛び先を書くと、描いた図でその箱を押して飛び先へ移れる。
+  提案者 -> ブロック [at: 0]
+  now -> 0
+
+step 続ける
+  say 箱の中の仕組みを別の図に描いた時は、その図の頁を飛び先にする。
+  提案者 -> ブロック [at: 1]
+  now -> 1

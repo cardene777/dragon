@@ -14,7 +14,7 @@ import { EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
 import type { Diagram } from "../schema";
 import type { Span, Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
-import { arrowHead, card, type Ctx, cs, esc, glyph, pathOf, type SubChange, write } from "./parts";
+import { arrowHead, card, type Ctx, cs, esc, glyph, linkTo, pathOf, type SubChange, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 
@@ -102,7 +102,7 @@ export function drawTime(layout: TimeLayout, diagram: Diagram, timeline: Timelin
       const mark = shown === undefined ? "" : `<g class="dg-a" style="${m.vis(shown)}">${frame("dg-tm-ex")}${write(ink, "dg-tm-ext", box.cx, box.cy + LOOK.baseline.mark, word, TYPE.emptyText, [[shown, Number.POSITIVE_INFINITY]], "middle")}</g>`;
       return `<g data-empty="${esc(box.id)}">${frame("dg-tm-ph")}${mark}</g>`;
     }
-    const drawn = card(box, ctx, on, subs.get(box.id) ?? []);
+    const drawn = linkTo(diagram.boxes.find((b) => b.id === box.id)?.link, card(box, ctx, on, subs.get(box.id) ?? []));
     if (!box.row) return drawn;
     // 印の列と同じ名札の箱は、線が届くまで点線の枠で待つ
     const shown = filled(box.row, unit);
