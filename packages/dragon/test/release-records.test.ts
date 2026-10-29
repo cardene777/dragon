@@ -86,4 +86,13 @@ describe("版の記録 (#3151)", () => {
     expect(released, "CHANGELOG.md に日付付きの ## [0.40.0] の節が無い").not.toBe("");
     for (const issue of ["#3164", "#3202"]) expect(released, `CHANGELOG.md の 0.40.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
+
+  it("changelog-0-41-0-releases-browser-entry", () => {
+    // 頁で描く入口から Node でだけ動く migrateFile を外した変更 (#3206) は 0.41.0 で出す (#3209)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 41, `package の版 ${version()} が 0.41.0 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.41\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.41.0"), "0.41.0");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.41.0] の節が無い").not.toBe("");
+    expect(released, "CHANGELOG.md の 0.41.0 の節に #3206 の項が無い").toContain("(#3206)");
+  });
 });
