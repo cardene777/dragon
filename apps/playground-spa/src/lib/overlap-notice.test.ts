@@ -5,8 +5,8 @@
  * 今の段で重なる字は図の上で点線の四角で囲み、段の札を押すとその段へ移る。
  * 囲みと段へ移る動きは再生の部品が持ち、頁の側では SVG を組まない。
  *
- * 字の重なる図は、名前の長い箱へ戻る線を持つ構成図 (`packages/dragon/test/fixtures/self-line.dragon`)。構成図は同じ箱へ戻る線を輪に描かないので、2 段目の番号が箱の名前に重なる。
- * 同じ箱へ戻る線を輪に描く時 (#3186) は、この見本を別の重なる形に替える。
+ * 字の重なる図は、2 段目に書き込みだけを持つ状態遷移図 (`packages/dragon/test/fixtures/corner-note.dragon`)。線の無い段の番号は状態の左上の角に置かれ、絵柄にかかる。
+ * 線の無い段の番号の置き場所を直す時 (#3187) は、この見本を別の重なる形に替える。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -26,7 +26,7 @@ const TEARDOWN = 90_000;
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
 const EDITOR = `${BASE}editor`;
-const OVERLAPPING = readFileSync(join(root, "packages/dragon/test/fixtures/self-line.dragon"), "utf8");
+const OVERLAPPING = readFileSync(join(root, "packages/dragon/test/fixtures/corner-note.dragon"), "utf8");
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -96,12 +96,12 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
       await expect.poll(() => ja.locator(sel("overlaps")).count(), { ...WAIT, message: "重なりの欄が出ない" }).toBe(1);
       expect(await ja.locator(".pg-ok").innerText(), "重なりの欄と並んで「読めています」が出ない").toContain("読めています");
       expect(await ja.locator(sel("overlaps-count")).innerText()).toBe("字の重なり 1 件");
-      expect(await listed(ja)).toEqual([["段 2", "「注文を受け付ける窓口」と段の番号 2 が重なる"]]);
+      expect(await listed(ja)).toEqual([["段 2", "「支払い待ち の絵柄」と段の番号 2 が重なる"]]);
 
       const en = await openWith(OVERLAPPING, "en-US");
       await expect.poll(() => en.locator(sel("overlaps")).count(), { ...WAIT, message: "英語の頁に重なりの欄が出ない" }).toBe(1);
       expect(await en.locator(sel("overlaps-count")).innerText()).toBe("1 text overlap");
-      expect(await listed(en)).toEqual([["Step 2", '"注文を受け付ける窓口" and step number 2 overlap']]);
+      expect(await listed(en)).toEqual([["Step 2", 'The icon of "支払い待ち" and step number 2 overlap']]);
     },
     SLOW,
   );

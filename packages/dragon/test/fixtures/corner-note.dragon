@@ -1,0 +1,12 @@
+state 督促の知らせを書き込む
+
+box 支払い待ち [icon: clock]
+box 支払い済み [icon: card]
+
+step 待つ
+  say 支払いを待つ。
+  start -> 支払い待ち: 注文を確定
+
+step 督促する
+  say 督促の知らせを送ったと書き込む。
+  note 支払い待ち: 督促した

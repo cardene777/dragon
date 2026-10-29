@@ -1,0 +1,19 @@
+architecture 真下に箱が在る箱へ戻る線
+
+box 画面 [icon: app]
+box API [icon: card]
+box 認証 [icon: lock]
+box 台帳 [icon: db]
+box 通知 [icon: bell]
+
+step 確かめる
+  say 画面が自分で入力を確かめる。
+  画面 -> 画面: 入力を確かめる
+
+step 送る
+  say 画面が API に送る。
+  画面 -> API: 送る
+
+step 知らせる
+  say API が通知に知らせる。
+  API -> 通知: 知らせる

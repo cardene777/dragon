@@ -1,0 +1,21 @@
+architecture 注文を確かめてから書き込む
+
+box 画面 [icon: app]
+box API [icon: card]
+box 台帳 [icon: db]
+
+step 送る
+  say 画面が API に注文を送る。
+  画面 -> API: 注文を送る [tag: #1042]
+
+step 確かめる
+  say API が自分で注文の中身を確かめる。
+  API -> API: 中身を確かめる [tag: 確認中]
+
+step 書き込む
+  say API が台帳に注文を書き込む。
+  API -> 台帳: 書き込む [tag: #1042]
+
+step 返す
+  say API が画面に受け付けたと返す。
+  API -> 画面: 受け付けた
