@@ -1,0 +1,12 @@
+sequence 書き込みだけの段
+
+box 画面
+box API
+
+step 送る
+  say 画面が API に送る。
+  画面 -> API: 送る
+
+step 調べる
+  say API が中で調べる。
+  note API: 調べた
