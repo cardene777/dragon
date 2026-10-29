@@ -118,19 +118,38 @@ export interface Player {
   playing: boolean;
   next(): void;
   prev(): void;
+  /** 段 `step` (0 から) へ移って止める (#3178) */
+  goTo(step: number): void;
   destroy(): void;
 }
 
 /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉 (#3001) */
 export type Lang = "ja" | "en";
 
+export interface RenderOptions {
+  palette?: string;
+  theme?: Theme;
+  lang?: Lang;
+  /** 最後の段の止め絵に、全ての段の線の名前と箱の中の処理を出す (#3200) */
+  still?: boolean;
+}
+
+export interface PlayerOptions extends RenderOptions {
+  onStep?: (step: number) => void;
+  fitHeight?: boolean;
+  /** 置いた時に流さず、この段 (0 から) の止め絵で止めて置く (#3200) */
+  pausedAt?: number;
+  /** 流した時に最後の段の止め絵で止め、繰り返さない (#3200) */
+  playOnce?: boolean;
+}
+
 interface DrawApi {
   PALETTES: Record<string, Palette>;
   FONTS: { sans: string; mono: string };
   resolvePalette(id?: string): Palette;
-  renderDiagram(diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang }): Rendered;
+  renderDiagram(diagram: unknown, options?: RenderOptions): Rendered;
   chooseView(rendered: Rendered, frameWidth: number): { mode: ViewMode; textPx: number };
-  mountDiagram(host: HTMLElement, diagram: unknown, options?: { palette?: string; theme?: Theme; lang?: Lang; onStep?: (step: number) => void; fitHeight?: boolean }): Player;
+  mountDiagram(host: HTMLElement, diagram: unknown, options?: PlayerOptions): Player;
 }
 
 export function draw<K extends keyof DrawApi>(name: K): DrawApi[K] {

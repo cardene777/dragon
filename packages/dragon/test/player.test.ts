@@ -7,7 +7,8 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { exampleJson, type Json } from "./diagram-support";
-import { draw, type Player } from "./render-support";
+import { motionFrom, tagOpacity } from "./motion-support";
+import { draw, type LaidAction, type Player, type PlayerOptions } from "./render-support";
 
 /** 頁の設定を模す。jsdom は `matchMedia` を持たないため、系の境目として差し替える。 */
 function prefersReducedMotion(reduce: boolean): void {
@@ -29,10 +30,10 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-function mount(diagram: Json): { host: HTMLElement; player: Player } {
+function mount(diagram: Json, options: PlayerOptions = {}): { host: HTMLElement; player: Player } {
   const host = document.createElement("div");
   document.body.appendChild(host);
-  const player = draw("mountDiagram")(host, diagram);
+  const player = draw("mountDiagram")(host, diagram, options);
   players.push(player);
   return { host, player };
 }
@@ -222,5 +223,112 @@ describe("段の本文の帯の高さ (#3049)", () => {
     // 段を送ると、今の段の題が送った段の題に替わる
     click(host, "next");
     expect(stepTitle(host)).toBe(diagram.steps[1]?.title);
+  });
+});
+
+describe("止めて置く、1 度だけ流す (#3200)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  type Oauth = { steps: { title: string }[] };
+
+  /** 置いた SVG が止める時刻と、止めているか流しているか */
+  const placed = (host: HTMLElement): { at: number; motion: string | null | undefined } => {
+    const svg = host.querySelector("svg");
+    return { at: Number(svg?.style.getPropertyValue("--at")), motion: svg?.getAttribute("data-motion") };
+  };
+
+  /** 置いた SVG を、止める時刻で読んだ時の線の名前と処理の札の見える濃さ。札は止め絵を選んで描いた置き場所から引く */
+  function shownTags(host: HTMLElement, diagram: Json): { step: number; text: string; opacity: number }[] {
+    const svg = host.querySelector("svg");
+    expect(svg, "図が置かれていない").not.toBeNull();
+    const rendered = draw("renderDiagram")(diagram, { still: true });
+    const motion = motionFrom({ ...rendered, svg: svg?.outerHTML ?? "" });
+    const at = placed(host).at;
+    const labels = rendered.layout.labels.map((l) => ({ step: l.step, text: l.text, opacity: tagOpacity(motion, "dg-cap", l, at) }));
+    const actions = (rendered.layout.actions as (LaidAction & { text: string })[]).map((a) => ({ step: a.step, text: a.text, opacity: tagOpacity(motion, "dg-act", a, at) }));
+    return [...labels, ...actions];
+  }
+
+  /** 偽の時計を `t` 秒進める */
+  const advance = (t: number): void => {
+    vi.advanceTimersByTime(Math.round(t * 1000));
+  };
+
+  it("player-start-paused-at-step", () => {
+    prefersReducedMotion(false);
+    vi.useFakeTimers();
+    const diagram = exampleJson("oauth.json") as Oauth;
+    const { timeline } = draw("renderDiagram")(diagram);
+    const { host, player } = mount(diagram, { pausedAt: 3 });
+    expect(player.playing, "止めて置く設定を渡した図が、置いた時から流れる").toBe(false);
+    expect(player.step, "止めて置く段").toBe(3);
+    expect(stepTitle(host)).toBe(diagram.steps[3]?.title);
+    expect(placed(host), "置いた図が段 4 の止め絵で止まっていない").toEqual({ at: timeline.stills[3], motion: "still" });
+    advance(timeline.total * 2);
+    expect(player.step, "止めて置いた図が時刻とともに段を進める").toBe(3);
+    expect(player.playing).toBe(false);
+  });
+
+  it("player-plays-once-then-still", () => {
+    prefersReducedMotion(false);
+    vi.useFakeTimers();
+    const diagram = exampleJson("oauth.json") as Oauth;
+    const { timeline } = draw("renderDiagram")(diagram, { still: true });
+    const last = diagram.steps.length - 1;
+    const { host, player } = mount(diagram, { playOnce: true, still: true });
+    expect(player.playing, "1 度だけ流す図が、置いた時から流れない").toBe(true);
+    expect(player.step).toBe(0);
+    advance((timeline.stills[last] ?? Number.NaN) - 0.5);
+    expect(player.step, "最後の段の止め絵の 0.5 秒前に最後の段でない").toBe(last);
+    expect(player.playing, "最後の段の止め絵より前に止まる").toBe(true);
+    advance(1);
+    expect(player.playing, "1 度だけ流す図が、最後の段の止め絵を過ぎても止まらない").toBe(false);
+    expect(placed(host), "1 度流した図が最後の段の止め絵で止まっていない").toEqual({ at: timeline.stills[last], motion: "still" });
+    advance(timeline.total * 2);
+    expect(player.step, "1 度流した図が繰り返して最初の段へ戻る").toBe(last);
+    expect(player.playing).toBe(false);
+    expect(stepTitle(host)).toBe(diagram.steps[last]?.title);
+    for (const tag of shownTags(host, diagram)) expect(tag.opacity, `止まった図に段 ${tag.step + 1} の「${tag.text}」が最後の段と同じ濃さで出ない`).toBeGreaterThan(0.99);
+  });
+
+  it("player-still-middle-step-own-labels", () => {
+    prefersReducedMotion(false);
+    const diagram = exampleJson("oauth.json") as Oauth;
+    const { timeline } = draw("renderDiagram")(diagram, { still: true });
+    const { host, player } = mount(diagram, { still: true });
+    for (let step = 0; step < diagram.steps.length - 1; step++) {
+      player.goTo(step);
+      expect(placed(host), `段 ${step + 1} へ送った図が段 ${step + 1} の止め絵で止まっていない`).toEqual({ at: timeline.stills[step], motion: "still" });
+      for (const tag of shownTags(host, diagram)) {
+        if (tag.step === step) expect(tag.opacity, `段 ${step + 1} の止め絵にその段の「${tag.text}」が出ない`).toBeGreaterThan(0.99);
+        else expect(tag.opacity, `段 ${step + 1} の止め絵に段 ${tag.step + 1} の「${tag.text}」が出る`).toBeLessThan(0.01);
+      }
+    }
+  });
+
+  it("player-default-loops", () => {
+    prefersReducedMotion(false);
+    vi.useFakeTimers();
+    const diagram = exampleJson("oauth.json") as Oauth;
+    const { timeline } = draw("renderDiagram")(diagram);
+    const last = diagram.steps.length - 1;
+    const { host, player } = mount(diagram);
+    expect(player.playing, "設定を渡さない図が、置いた時から流れない").toBe(true);
+    expect(placed(host).motion).toBe("play");
+    const first = timeline.steps[0]?.start ?? Number.NaN;
+    let now = 0;
+    const stepAt = (t: number): number => {
+      advance(t - now);
+      now = t;
+      return player.step;
+    };
+    for (const round of [0, 1, 2]) {
+      const start = round * timeline.total;
+      expect(stepAt(start + first + 0.2), `${round + 1} 周目の最初の段の始まりから 0.2 秒後に段 1 でない`).toBe(0);
+      expect(stepAt(start + timeline.total - 0.2), `${round + 1} 周目の終わりの 0.2 秒前に最後の段でない`).toBe(last);
+      expect(player.playing, `${round + 1} 周目の終わりに止まる`).toBe(true);
+    }
   });
 });
