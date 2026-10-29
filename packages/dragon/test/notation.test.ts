@@ -359,6 +359,41 @@ describe("記法から JSON へ", () => {
     expect(edges.some((e) => e.to === "finish"), "README の状態遷移図の例に finish へ入る線が無い").toBe(true);
     expect(example?.state?.paths?.length ?? 0, "README の状態遷移図の例に通らない道が無い").toBeGreaterThan(0);
   });
+
+  it("readme-notation-covers-git", () => {
+    // 2 つの README が枝分かれの図 (#3164) の書き方を載せる (#3202)
+    const extract = api("extractDiagrams");
+    const parse = api("parseNotation");
+    const read = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
+    const notationOf = (text: string): string => text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+
+    // repo の README は、描ける図の欄に枝分かれの図を、行の頭の表に `git` と `branch` と `commit` の行と、枝を切る行と札を動かす行を持つ
+    const root = read("README.md");
+    expect(/^\| 描ける図 \| (.+) \|$/mu.exec(root)?.[1] ?? "", "README.md の描ける図の欄に枝分かれの図が無い").toContain("枝分かれの図");
+    const heads = [...notationOf(root).matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
+    for (const word of ["git", "branch", "commit"]) expect(heads.some((head) => head.includes(`\`${word}\``)), `README.md の行の頭の表に ${word} の行が無い`).toBe(true);
+    expect(heads.some((head) => head.includes("`from`")), "README.md の行の頭の表に枝を切る from の行が無い").toBe(true);
+    expect(heads.some((head) => head.includes("`HEAD`") && head.includes("`->`")), "README.md の行の頭の表に札を動かす線の行が無い").toBe(true);
+
+    // package の README は、行の頭の語に `git` と `branch` と `commit` を並べ、枝分かれの図の小節に枝を切り、当て直し、merge commit を作り、札を動かす例を置く
+    const notation = notationOf(read("packages/dragon/README.md"));
+    const words = /^行の頭の語は (.+) で/mu.exec(notation)?.[1] ?? "";
+    for (const word of ["git", "branch", "commit"]) expect(words, `package の README の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
+    const part = notation.split(/^### 枝分かれの図$/mu)[1]?.split(/^#{2,3} /mu)[0] ?? "";
+    expect(part, "package の README の dragon記法の節に ### 枝分かれの図 の小節が無い").not.toBe("");
+    type GitEvent = { type?: string; copy?: string; merge?: string };
+    const graphs = extract(part).flatMap((fence) => {
+      const parsed = parse(fence.source);
+      return parsed.ok ? [parsed.diagram as { kind?: string; steps?: { events?: GitEvent[] }[] }] : [];
+    });
+    const example = graphs.find((d) => d.kind === "git");
+    expect(example, "package の README の枝分かれの図の小節に読める git の例が無い").toBeDefined();
+    const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
+    expect(events.some((e) => e.type === "branch"), "README の枝分かれの図の例に枝を切る行が無い").toBe(true);
+    expect(events.some((e) => e.type === "commit" && e.copy !== undefined), "README の枝分かれの図の例に当て直しの commit が無い").toBe(true);
+    expect(events.some((e) => e.type === "commit" && e.merge !== undefined), "README の枝分かれの図の例に merge commit が無い").toBe(true);
+    expect(events.some((e) => e.type === "edge"), "README の枝分かれの図の例に札を動かす線が無い").toBe(true);
+  });
 });
 
 describe("JSON から記法へ", () => {

@@ -1,6 +1,6 @@
 {
   "name": "@cardenelabs/dragon",
-  "version": "0.39.0",
+  "version": "0.40.0",
   "description": "Dragon — 動く図を、人は行ごとの記法で、AI は JSON で書く。時系列図と構成図を段ごとに動かし、mp4・GIF・HTML・PNG に書き出す。",
   "license": "MIT",
   "author": "cardene777",

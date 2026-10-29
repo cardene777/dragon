@@ -2,7 +2,7 @@
 
 dragon の図は、人は dragon記法で書き、道具は JSON (原本) で持つ。
 行の種類は行の頭の英語の語で決まり、段の `step` の行の下に、その段で起きることを起きる順に並べる。
-書き方の全部を使った例は、同じ directory の `oauth.dragon` (時系列図) と `ccip.dragon` (構成図) と `order.dragon` (状態遷移図) にある。
+書き方の全部を使った例は、同じ directory の `oauth.dragon` (時系列図) と `ccip.dragon` (構成図) と `order.dragon` (状態遷移図) と `rebase.dragon` (枝分かれの図) にある。
 
 記法の語は英語だけで、箱の名前や段の本文は日本語で書ける。
 英語の書き方は同じ directory の `quick-start.en.md` にある。
@@ -35,10 +35,11 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 中身の帯 | `strip <題>: <欄>, <欄>` | `strip メッセージ: ID, 宛先, 状態` |
+| 枝 | `branch <枝> [note: <添え書き>]`。枝分かれの図だけで書け、宣言した順に上から帯が並ぶ | `branch feature [note: 作業の枝]` |
 
 段の中には、次の行を起きる順に字下げして並べる。
 
@@ -51,6 +52,9 @@ step ログインを押す
 | 箱の中の処理 | `act <名札>: <処理の名前>` | `act OnRamp: 中身を確かめる` |
 | 箱の下の字の書き換え | `note <名札>: <字>` | `note 送信元Pool: −100 USDC` |
 | 中身の帯の値 | `set <欄>: <値>` か `set <欄> [tag: <札>]` | `set 状態: SUCCESS` |
+| commit | `commit <名札> on <枝> [hash: <hash>, note: <一言>]`。`copy <元>` で当て直しの commit、`merge <枝>` で merge commit になる。枝分かれの図だけで書ける | `commit M on main merge fix [hash: 7d3a5e2]` |
+| 枝を切る | `<枝> from <commit>`。HEAD がその枝へ移る | `feature from A` |
+| 札を動かす | `<枝か HEAD> -> <commit>`。枝分かれの図では commit を作らずに札だけを動かす | `HEAD -> M` |
 
 `fixed` は全体を止めて中だけ動かし、`follow` は今動いている所へ寄って動かし、隅の全体図で今どこかを示す。
 見せ方を書かない時は、全体を枠に収めた字が 10.5px 以上なら `fixed`、下回るなら `follow` になる。
@@ -88,6 +92,40 @@ step 届く
   say 品物が届いて配達完了に移り、注文を閉じる。
   発送済み -> 配達完了: 受け取り [tag: #1042]
   配達完了 -> finish: 注文を閉じる [tag: #1042]
+```
+
+枝分かれの図 (`git <題>`) では、`branch` の行で宣言した枝ごとに帯が並び、段の中で commit を積む。箱は無くてもよい。
+`copy <元>` を付けた commit は元の commit を写した当て直しの commit になり、枝の札を動かさない。`merge <枝>` を付けた commit は、取り込む先とその枝の先端の 2 つを親に持つ。
+札を動かす線は commit を作らず、`HEAD` を動かすと枝から離れる。どの札からも辿れなくなった commit は点線の丸に変わる。
+
+```dragon
+git fix は merge commit で、feature は当て直して取り込む
+
+branch main [note: 取り込む先]
+branch feature [note: 作業の枝]
+branch fix [note: 直しの枝]
+
+step 枝を切る
+  say main の A から fix と feature を切り、それぞれに commit を積む。
+  commit A on main [hash: 3fa0c19, note: 最初の形]
+  fix from A
+  commit F on fix [hash: 9b2e4d1, note: 誤字を直す]
+  feature from A
+  commit C on feature [hash: c41d0e5, note: 検索を足す]
+
+step merge commit で取り込む
+  say fix を merge commit M で main へ取り込む。M は A と F の 2 つを親に持つ。
+  commit M on main merge fix [hash: 7d3a5e2, note: fix を取り込む]
+
+step 当て直す
+  say HEAD を M へ動かして枝から離し、C を M の先へ写して C' を作る。
+  HEAD -> M
+  commit C' on main copy C [hash: a90c6b4, note: 検索を足す]
+
+step 早送りする
+  say feature を C' へ動かし、main も C' まで進める。元の C はどの枝からも辿れなくなる。
+  feature -> C'
+  main -> C'
 ```
 
 ## 属性

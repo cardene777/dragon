@@ -12,14 +12,14 @@ import type { Lang } from "../text";
  * 節の並び。記法の決まりの後に記法の要素を書く順に並べ、図を外で使う 2 つの形 (頁に置く、書き出す) を続け、
  * 前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** 特長の札が指す節。札はこの並びで並ぶ */
 export const CARDS = ["start", "boxes", "regions", "steps", "json", "export"] as const satisfies readonly SectionId[];
 
 /** 節の出口。同じ頁の節か、サイトの画面か、カタログの分類 */
-export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" };
+export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" | "git" };
 
 export const EXITS: Record<SectionId, Exit> = {
   start: { screen: "editor" },
@@ -28,6 +28,7 @@ export const EXITS: Record<SectionId, Exit> = {
   edges: { section: "regions" },
   regions: { kind: "architecture" },
   state: { kind: "state" },
+  git: { kind: "git" },
   steps: { section: "strip" },
   strip: { kind: "sequence" },
   carry: { section: "json" },
@@ -86,7 +87,7 @@ interface DocsText {
 export const DOCS: Record<Lang, DocsText> = {
   ja: {
     eyebrow: (version) => `使い方の案内 · ${version}`,
-    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
+    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
     start: "5 分で始める →",
     browse: "カタログで図を見る",
     iconLink: "使える絵柄を部品「絵」の頁で全て見る →",
@@ -143,6 +144,15 @@ export const DOCS: Record<Lang, DocsText> = {
           "最初の `step` の行より前に書いた線は、移れるが今回は通らない道として点線で引き、運ぶ物を走らせない。どの段も辿り着かない状態 (例のキャンセル) は、図の右上の脇道の囲みに入る。",
         ],
         exit: "状態遷移図の見本を見る →",
+      },
+      git: {
+        title: "枝分かれの図",
+        text: [
+          "git の枝に commit を積み、取り込むまでを段ごとに追う時は、最初の行を `git <題>` にする。枝は `branch <枝> [note: <添え書き>]` の行で上から順に宣言し、枝ごとに帯が並ぶ。箱は無くてもよい。",
+          "段の中では `commit <名札> on <枝>` で枝の先に commit を積み、`[hash: <hash>, note: <一言>]` で丸の外に hash と一言を添える。`copy <元>` を付けると元の commit を写した当て直しの commit に、`merge <枝>` を付けるとその枝の先端も親に持つ merge commit になる。",
+          "`<枝> from <commit>` でその commit から枝を切る。`<札> -> <commit>` は commit を作らずに枝の札か `HEAD` を動かし、`HEAD` を動かすと枝から離れる。どの札からも辿れなくなった commit (例の C) は点線の丸に変わる。",
+        ],
+        exit: "枝分かれの図の見本を見る →",
       },
       steps: {
         title: "段",
@@ -265,7 +275,7 @@ export const DOCS: Record<Lang, DocsText> = {
   en: {
     // 英語の側の区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
     eyebrow: (version) => `guide • ${version}`,
-    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, steps, the strip and what travels. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
+    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, steps, the strip and what travels. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
     start: "Start in five minutes →",
     browse: "Browse the catalog",
     iconLink: "See every icon on the Icon part page →",
@@ -322,6 +332,15 @@ export const DOCS: Record<Lang, DocsText> = {
           "Lines written before the first `step` line are paths the diagram could take but does not take this time. They are drawn dotted, and nothing travels on them. A state that no step reaches (Cancelled in the example) goes in the side-path box at the top right.",
         ],
         exit: "See the state diagram samples →",
+      },
+      git: {
+        title: "Git graphs",
+        text: [
+          "To follow commits on git branches step by step until they are merged, start the first line with `git <title>`. Declare branches from top to bottom with `branch <branch> [note: <note>]` lines, and each branch gets its own band. Boxes are optional.",
+          "Inside a step, `commit <id> on <branch>` adds a commit at the tip of the branch, and `[hash: <hash>, note: <note>]` puts a hash and a short note beside the circle. Add `copy <source>` for a replayed copy of another commit, or `merge <branch>` for a merge commit whose parents include the tip of that branch.",
+          "`<branch> from <commit>` cuts a branch at that commit. `<ref> -> <commit>` moves a branch ref or `HEAD` without making a commit, and moving `HEAD` detaches it from its branch. A commit that no ref can reach any more (C in the example) turns into a dotted circle.",
+        ],
+        exit: "See the git graph samples →",
       },
       steps: {
         title: "Steps",
