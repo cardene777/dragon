@@ -39,6 +39,12 @@ const LAUNCH_TEXT: Record<NotationLang, { missing: string; cannotLaunch: string;
   },
 };
 
+/** 撮る頁が字の file を読めない時の断りの文。読めない file を `"<字の名前>" <字の範囲>` で並べて名指す (#3212) */
+const FONT_TEXT: Record<NotationLang, (faces: string[]) => string> = {
+  ja: (faces) => `書き出しに埋める字の file を Chromium が読めない (${faces.join("、")})`,
+  en: (faces) => `Chromium cannot read the font files embedded in the export (${faces.join("; ")})`,
+};
+
 /** 画面なしの Chromium を起こす。起こせない時は、渡した言葉で入れ方を添えて断る */
 export async function launch(lang: NotationLang): Promise<Browser> {
   const text = LAUNCH_TEXT[lang];
@@ -70,8 +76,9 @@ export interface Stage {
 /**
  * 図 1 枚を置いた頁を開き、字が読み込まれるまで待つ。`body` は頁の地の CSS。
  * 図は置く前から止めておく。置いてから止めると、止めるまでに進んだ分だけ毎回絵がずれる。
+ * 字の file を 1 つでも読めない時は、読めない file を `lang` の言葉で名指して断る。
  */
-export async function stage(browser: Browser, svg: string, fontCss: string, body: string): Promise<Stage> {
+export async function stage(browser: Browser, svg: string, fontCss: string, body: string, lang: NotationLang): Promise<Stage> {
   const { width, height } = sizeOf(svg);
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: SCALE });
   const paused = svg.replace(/^<svg\b/, '<svg style="--play:paused;--at:0"');
@@ -86,12 +93,17 @@ export async function stage(browser: Browser, svg: string, fontCss: string, body
   });
   await page.goto("http://localhost/");
   await page.waitForFunction(() => "__tools" in window);
-  await page.evaluate(async () => {
-    const loads: Promise<FontFace>[] = [];
-    document.fonts.forEach((face) => loads.push(face.load()));
-    await Promise.all(loads);
+  const unreadable = await page.evaluate(async () => {
+    const faces: FontFace[] = [];
+    document.fonts.forEach((face) => faces.push(face));
+    const loads = await Promise.allSettled(faces.map((face) => face.load()));
     await document.fonts.ready;
+    return faces.filter((_, i) => loads[i]?.status === "rejected").map((face) => `"${face.family.replace(/^["']|["']$/g, "")}" ${face.unicodeRange}`);
   });
+  if (unreadable.length) {
+    await page.close();
+    throw new Error(FONT_TEXT[lang](unreadable));
+  }
   return { page, width, height };
 }
 

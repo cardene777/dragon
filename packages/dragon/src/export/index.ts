@@ -100,13 +100,13 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
     const browser = await launch(lang);
     try {
       if (formats.includes("png")) {
-        const fixed = await stage(browser, rendered.svg, fontCss, "");
+        const fixed = await stage(browser, rendered.svg, fontCss, "", lang);
         outputs.push(["png", await still(fixed, timeline.stills[timeline.stills.length - 1] ?? 0)]);
       }
       if (mp4 || gif) {
         const fps = mp4 ? (options.fps ?? DEFAULTS.fps) : (options.gifFps ?? DEFAULTS.gifFps);
         const gifEvery = gif ? Math.max(1, Math.round(fps / (options.gifFps ?? DEFAULTS.gifFps))) : 0;
-        const shot = await film(await stage(browser, videoSvg, fontCss, `${vars};background:var(--bg)`), {
+        const shot = await film(await stage(browser, videoSvg, fontCss, `${vars};background:var(--bg)`, lang), {
           total: timeline.total,
           fps,
           mp4,
