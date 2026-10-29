@@ -16,6 +16,7 @@ import {
   type SceneBox,
   type SceneEdge,
   type SceneEnd,
+  type SceneField,
   type SceneLabel,
   type ScenePath,
   type SceneRegion,
@@ -440,8 +441,9 @@ export interface FieldChange {
 /**
  * 中身の帯。`now` を立てると (状態遷移図、#3171)、段の中で変わった値をその段の終わりまで線の色 (今の状態の色) で描き、
  * 欄の名前の横に同じ色の点を置く。帯の通った状態の欄は、`arrivals` が持つ着いた時刻に点を塗る。
+ * `meter` を渡すと (時間軸の図、#3165)、物差しの欄は値の字の代わりに `meter` が描く物差しを置く
  */
-export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: Ctx, now = false, arrivals = new Map<string, number>()): string {
+export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: Ctx, now = false, arrivals = new Map<string, number>(), meter?: (field: SceneField) => string | undefined): string {
   const { m, sh } = ctx;
   const S = LOOK.strip;
   const my = s.y + S.h / 2;
@@ -457,6 +459,11 @@ export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: C
       parts.push(`<line class="dg-sep" x1="${r1(sx)}" y1="${r1(field.y + S.sepInset)}" x2="${r1(sx)}" y2="${r1(field.y + S.h - S.sepInset)}"/>`);
     }
     parts.push(write(ctx.ink, "dg-fl", field.x, field.y + S.nameY, field.name, TYPE.fieldName));
+    const gauge = meter?.(field);
+    if (gauge !== undefined) {
+      parts.push(gauge);
+      return;
+    }
     const list = changes.get(field.name) ?? [];
     const values = list.filter((c) => c.value !== undefined);
     const tags = list.filter((c) => c.tag !== undefined);

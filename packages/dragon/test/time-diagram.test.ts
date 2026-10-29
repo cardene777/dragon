@@ -653,8 +653,8 @@ describe("時間軸の図の並べ方 (#3165)", () => {
       const b = pointOf(layout, String(link.to));
       const laid = layout.edges.find((x) => x.step === link.step && x.event === link.event);
       const points = laid?.points ?? [];
-      const [x0, y0] = (points[0] ?? [Number.NaN, Number.NaN]) as Point;
-      const [x1, y1] = (points[points.length - 1] ?? [Number.NaN, Number.NaN]) as Point;
+      const [x0, y0] = points[0] ?? [Number.NaN, Number.NaN];
+      const [x1, y1] = points[points.length - 1] ?? [Number.NaN, Number.NaN];
       expect(x0 >= a.cx + a.r - 1e-6 && x1 <= b.cx - b.r + 1e-6, `${link.from} から ${link.to} の線が 2 つの丸の間に無い`).toBe(true);
       expect(near(y0, a.cy, 1) && near(y1, b.cy, 1), `${link.from} から ${link.to} の線が丸の高さに無い`).toBe(true);
       const label = layout.labels.find((l) => l.step === link.step && l.event === link.event);
@@ -794,7 +794,7 @@ describe("時間軸の図の描き方 (#3165)", () => {
   it("time-follows-needle-when-narrow", () => {
     const narrow = 360;
     const rendered = render(exampleJson("finality.json"));
-    const chosen = draw("chooseView")(rendered as unknown as Rendered, narrow);
+    const chosen = draw("chooseView")(rendered, narrow);
     expect(chosen.textPx, `${narrow}px の枠で全体を収めた字の大きさ`).toBeLessThan(10.5);
     expect(chosen.mode, `${narrow}px の枠のブロックの確定の見せ方`).toBe("follow");
     const placed = place("finality", "finality.json", narrow);

@@ -735,7 +735,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     const color = readAttrs(source, rest, ATTRS.mark, m).get("color");
     if (!color) throw fail(source, rest, m.markShape);
     if (!isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-    return { type: "mark", row, from, to, color: color.value as Color };
+    return { type: "mark", row, from, to, color: color.value };
   }
 
   /** `span <範囲>: <字> [shape: box, color: <色>]` の行 */
