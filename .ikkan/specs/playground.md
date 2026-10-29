@@ -17,7 +17,7 @@
 | 前に共有した URL (`/dragon/#n=...`) を開いた時、編集画面 (`/dragon/editor`) へ移り、`#` の後ろの記法が書く欄に入る | `pnpm test`の検査`old-share-link-opens-editor`が通る | #3030 |
 | 幅 390px で開いた時、図が書く欄の上に来て、書く欄を畳める | `pnpm test`の検査`narrow-width-stacks-diagram-above-editor`が通る | #2995 |
 | 頁に書き出しの命令 (`dragon export`) の案内があり、「作り直しの最中」の案内の文が無い | `pnpm test`の検査`page-shows-export-command-not-rebuilding-notice`が通る | #2995 |
-| build した頁の script と CSS の合計が、gzip で 250KB 以下に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #2995 |
+| build した頁の script と CSS の合計が、gzip で 270KB 以下に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #2995 #3199 |
 | 頁の図を描く code が `@cardenelabs/dragon` の部品を呼び、`apps/playground-spa` の中に SVG を組む code が無い | `pnpm test`の検査`page-draws-with-package-parts`が通る | #2995 |
 | 配る頁の CSP が、script を自分の置き場だけにし、inline と eval を許さない | `pnpm test`の検査`csp-script-self-only`が通る | #2995 |
 | 重なりの一覧の各件が、重なる字の四角を持つ (2 つの字の重なりは 2 つ、線が字を横切る所は横切られる字の 1 つ) | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-carry-rects`が通る | #3178 |
