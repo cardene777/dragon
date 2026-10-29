@@ -395,6 +395,39 @@ describe("記法から JSON へ", () => {
     expect(events.some((e) => e.type === "commit" && e.merge !== undefined), "README の枝分かれの図の例に merge commit が無い").toBe(true);
     expect(events.some((e) => e.type === "edge"), "README の枝分かれの図の例に札を動かす線が無い").toBe(true);
   });
+
+  it("readme-notation-covers-time", () => {
+    // 2 つの README が時間軸の図 (#3165) の書き方を載せる (#3221)
+    const extract = api("extractDiagrams");
+    const parse = api("parseNotation");
+    const read = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
+    const notationOf = (text: string): string => text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+    const heads = ["time", "scale", "period", "row", "point", "zoom", "mark", "span"];
+
+    // repo の README は、描ける図の欄に時間軸の図を、行の頭の表に時間軸の図の 8 つの行と、針を進める `now ->` の行を持つ
+    const root = read("README.md");
+    expect(/^\| 描ける図 \| (.+) \|$/mu.exec(root)?.[1] ?? "", "README.md の描ける図の欄に時間軸の図が無い").toContain("時間軸の図");
+    const rows = [...notationOf(root).matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
+    for (const word of heads) expect(rows.some((head) => head.includes(`\`${word}`)), `README.md の行の頭の表に ${word} の行が無い`).toBe(true);
+    expect(rows.some((head) => head.includes("`now ->")), "README.md の行の頭の表に針を進める now -> の行が無い").toBe(true);
+
+    // package の README は、行の頭の語に時間軸の図の 8 つの語を並べ、時間軸の図の小節に針を進め、印の色を変え、範囲を出し、物差しを満たす例を置く
+    const notation = notationOf(read("packages/dragon/README.md"));
+    const words = /^行の頭の語は (.+) で/mu.exec(notation)?.[1] ?? "";
+    for (const word of heads) expect(words, `package の README の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
+    const part = notation.split(/^### 時間軸の図$/mu)[1]?.split(/^#{2,3} /mu)[0] ?? "";
+    expect(part, "package の README の dragon記法の節に ### 時間軸の図 の小節が無い").not.toBe("");
+    type TimeDiagram = { kind?: string; strip?: { meters?: unknown[] }; steps?: { events?: { type?: string }[] }[] };
+    const examples = extract(part).flatMap((fence) => {
+      const parsed = parse(fence.source);
+      return parsed.ok ? [parsed.diagram as TimeDiagram] : [];
+    });
+    const example = examples.find((d) => d.kind === "time");
+    expect(example, "package の README の時間軸の図の小節に読める time の例が無い").toBeDefined();
+    const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
+    for (const type of ["now", "mark", "span"]) expect(events.some((e) => e.type === type), `README の時間軸の図の例に ${type} の行が無い`).toBe(true);
+    expect(example?.strip?.meters?.length ?? 0, "README の時間軸の図の例に物差しの欄が無い").toBeGreaterThan(0);
+  });
 });
 
 describe("JSON から記法へ", () => {

@@ -4708,6 +4708,68 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  it("docs-time-example-parses", () => {
+    // 時間軸の図の節の例は 4 段で、区切りと印の列と 2 つの節目と拡大の範囲を宣言し、針を進め、印の色を変え、範囲を出し、物差しを満たす (#3221)
+    for (const lang of ["ja", "en"] as const) {
+      const text = docsExample("time", lang);
+      expect(text, `${lang} の時間軸の図の節の例の file (src/docs/examples/time${lang === "en" ? ".en" : ""}.dragon) が無い`).toBeDefined();
+      if (text === undefined) continue;
+      const parsed = parseNotation(text);
+      expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), `${lang} の時間軸の図の節の例が読めない`).toEqual([]);
+      const diagram = docsDiagram("time", text);
+      expect(diagram?.kind, `${lang} の時間軸の図の節の例が検査を通らないか、時間軸の図でない`).toBe("time");
+      expect(diagram?.steps.length, `${lang} の時間軸の図の節の例が 4 段でない`).toBe(4);
+      const time = diagram?.time;
+      expect(time?.period, `${lang} の時間軸の図の節の例が区切りを宣言しない`).toBeDefined();
+      expect(time?.rows.length ?? 0, `${lang} の時間軸の図の節の例が印の列を宣言しない`).toBeGreaterThanOrEqual(1);
+      expect(time?.points?.length ?? 0, `${lang} の時間軸の図の節の例が節目を 2 つ宣言しない`).toBeGreaterThanOrEqual(2);
+      expect(time?.zoom, `${lang} の時間軸の図の節の例が拡大の範囲を宣言しない`).toBeDefined();
+      const events = diagram === undefined ? [] : eventsOf(diagram);
+      expect(events.some((e) => e.type === "now"), `${lang} の時間軸の図の節の例に針を進める行が無い`).toBe(true);
+      expect(events.some((e) => e.type === "mark"), `${lang} の時間軸の図の節の例に印の色を変える行が無い`).toBe(true);
+      expect(events.some((e) => e.type === "span"), `${lang} の時間軸の図の節の例に範囲の行が無い`).toBe(true);
+      expect(diagram?.strip?.meters?.length ?? 0, `${lang} の時間軸の図の節の例に物差しの欄が無い`).toBeGreaterThan(0);
+    }
+  });
+
+  it(
+    "docs-time-section-follows-git",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
+        const { lead, sections } = await docsOf(page);
+        // 前置きは記法の要素の並びに時間軸の図を挙げる
+        expect(lead, `${lang} の使い方の頁の前置きが時間軸の図を挙げない`).toMatch(lang === "ja" ? /時間軸の図/u : /time diagram/iu);
+        const ids = sections.map((s) => s.id);
+        expect(ids[ids.indexOf("git") + 1], `${lang} の枝分かれの図の節の次が時間軸の図の節でない`).toBe("time");
+        const time = sections.find((s) => s.id === "time");
+        // 本文は頭の行と 5 つの宣言と、段の中の 3 つの行と、物差しの欄を語で説明する
+        for (const word of ["time", "scale", "period", "row", "point", "zoom", "now", "mark", "span", "meter"]) {
+          expect(new RegExp(`(^|[^A-Za-z-])${word}($|[^A-Za-z-])`, "u").test(time?.prose ?? ""), `${lang} の時間軸の図の節の本文が ${word} を説明しない`).toBe(true);
+        }
+        // 例の図は、針と印の列と節目を持つ時間軸の図として描かれる
+        await expect
+          .poll(
+            () =>
+              page.evaluate(() => {
+                const svg = document.querySelector('section#time [data-docs="example"] svg[data-dragon="figure"]');
+                return (
+                  (svg?.querySelectorAll("[data-needle]").length ?? 0) === 1 &&
+                  (svg?.querySelectorAll("[data-row]").length ?? 0) >= 1 &&
+                  (svg?.querySelectorAll("[data-point]").length ?? 0) >= 2
+                );
+              }),
+            { ...WAIT, message: `${lang} の時間軸の図の節の例が、針と印の列と節目を持つ時間軸の図として描かれない` },
+          )
+          .toBe(true);
+        expect(time?.cta, `${lang} の時間軸の図の節の出口がカタログの時間軸の図の頁へ向かない`).toBe(`${BASE}catalog/time`);
+      }
+    },
+    SLOW,
+  );
+
   it(
     "docs-boxes-lead-to-every-icon",
     async () => {
