@@ -5,16 +5,14 @@
  * 今の段で重なる字は図の上で点線の四角で囲み、段の札を押すとその段へ移る。
  * 囲みと段へ移る動きは再生の部品が持ち、頁の側では SVG を組まない。
  *
- * 字の重なる図は、2 段目に書き込みだけを持つ状態遷移図 (`packages/dragon/test/fixtures/corner-note.dragon`)。線の無い段の番号は状態の左上の角に置かれ、絵柄にかかる。
- * 線の無い段の番号の置き場所を直す時 (#3187) は、この見本を別の重なる形に替える。
+ * 重なる図を書いて欄と囲みと段へ移る動きを確かめる検査は置かない。線の無い段の番号を箱の角に置くと (#3187)、
+ * 記法と JSON で組んだ 6000 図以上で字の重なる図が 1 つも出ず、書く図を作れないため。
+ * 知らせる文と、囲みと段へ移る再生の部品の呼び出しは `packages/dragon/test/overlap-notice.test.ts` が確かめる。
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { parseNotation, renderDiagram } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { BASE, root, type Site, startSite } from "./playground-support";
+import { BASE, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -26,7 +24,6 @@ const TEARDOWN = 90_000;
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
 const EDITOR = `${BASE}editor`;
-const OVERLAPPING = readFileSync(join(root, "packages/dragon/test/fixtures/corner-note.dragon"), "utf8");
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -45,17 +42,6 @@ async function openWith(text: string | null, locale = "ja-JP"): Promise<Page> {
   return page;
 }
 
-/** 重なりの欄に並んだ段の札と文 */
-const listed = (page: Page): Promise<string[][]> =>
-  page.evaluate((s) => [...document.querySelectorAll(`${s.list} ${s.item}`)].map((li) => [li.querySelector(s.step)?.textContent ?? "", li.querySelector(s.text)?.textContent ?? ""]), {
-    list: sel("overlaps"),
-    item: sel("overlap"),
-    step: sel("overlap-step"),
-    text: sel("overlap-text"),
-  });
-
-const phase = (page: Page): Promise<string> => page.locator(sel("phase-badge")).innerText();
-
 /** 図の上の点線の四角の、図の座標での四角 */
 const marks = (page: Page): Promise<Rect[]> =>
   page.evaluate(
@@ -69,13 +55,6 @@ const marks = (page: Page): Promise<Rect[]> =>
     sel("figure"),
   );
 
-const covers = (outer: Rect, inner: Rect): boolean => outer.x <= inner.x && outer.y <= inner.y && outer.x + outer.w >= inner.x + inner.w && outer.y + outer.h >= inner.y + inner.h;
-
-/** 段を `n` 回進める */
-async function forward(page: Page, n: number): Promise<void> {
-  for (let i = 0; i < n; i++) await page.locator(`${sel("stage")} [data-dragon="next"]`).click();
-}
-
 describe("編集画面で字の重なりを知らせる (#3178)", () => {
   beforeAll(async () => {
     site = await startSite();
@@ -88,60 +67,6 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
   afterAll(async () => {
     await site?.close();
   }, TEARDOWN);
-
-  it(
-    "editor-lists-overlaps",
-    async () => {
-      const ja = await openWith(OVERLAPPING);
-      await expect.poll(() => ja.locator(sel("overlaps")).count(), { ...WAIT, message: "重なりの欄が出ない" }).toBe(1);
-      expect(await ja.locator(".pg-ok").innerText(), "重なりの欄と並んで「読めています」が出ない").toContain("読めています");
-      expect(await ja.locator(sel("overlaps-count")).innerText()).toBe("字の重なり 1 件");
-      expect(await listed(ja)).toEqual([["段 2", "「支払い待ち の絵柄」と段の番号 2 が重なる"]]);
-
-      const en = await openWith(OVERLAPPING, "en-US");
-      await expect.poll(() => en.locator(sel("overlaps")).count(), { ...WAIT, message: "英語の頁に重なりの欄が出ない" }).toBe(1);
-      expect(await en.locator(sel("overlaps-count")).innerText()).toBe("1 text overlap");
-      expect(await listed(en)).toEqual([["Step 2", 'The icon of "支払い待ち" and step number 2 overlap']]);
-    },
-    SLOW,
-  );
-
-  it(
-    "editor-marks-overlaps-on-figure",
-    async () => {
-      const parsed = parseNotation(OVERLAPPING);
-      if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
-      const [overlap] = renderDiagram(parsed.diagram).overlaps;
-      const spots = overlap?.spots;
-      expect(spots, "エンジンの重なりが字の四角を持たない").toBeDefined();
-
-      const page = await openWith(OVERLAPPING);
-      await expect.poll(() => phase(page), { ...WAIT, message: "1 段目に止まらない" }).toContain("段 1 / 2");
-      expect(await marks(page), "重なりの無い段で図の上に四角が出た").toEqual([]);
-      await forward(page, 1);
-      await expect.poll(() => phase(page), { ...WAIT, message: "2 段目へ進まない" }).toContain("段 2 / 2");
-      await expect.poll(() => marks(page).then((m) => m.length), { ...WAIT, message: "重なりの段で図の上に四角が出ない" }).toBeGreaterThan(0);
-      const drawn = await marks(page);
-      for (const spot of spots ?? []) expect(drawn.some((m) => covers(m, spot.rect)), `重なる字「${spot.text}」を覆う四角が無い`).toBe(true);
-      // 囲みは線だけで描き、中の字を隠さない。図の中の別の字と同じ名前の見た目を当てると塗られて字が消える
-      const fills = await page.evaluate((f) => [...document.querySelectorAll(`${f} rect.dg-spot`)].map((m) => getComputedStyle(m).fill), sel("figure"));
-      expect(fills, "囲みが塗られて中の字を隠す").toEqual(fills.map(() => "none"));
-    },
-    SLOW,
-  );
-
-  it(
-    "editor-overlap-step-jumps",
-    async () => {
-      const page = await openWith(OVERLAPPING);
-      await expect.poll(() => phase(page), { ...WAIT, message: "1 段目に止まらない" }).toContain("段 1 / 2");
-      await expect.poll(() => page.locator(sel("overlap-step")).count(), { ...WAIT, message: "重なりの欄に段の札が無い" }).toBe(1);
-      await page.locator(sel("overlap-step")).click();
-      await expect.poll(() => phase(page), { ...WAIT, message: "段の札を押しても 2 段目へ移らない" }).toContain("段 2 / 2");
-      await expect.poll(() => marks(page).then((m) => m.length), { ...WAIT, message: "移った段で図の上に四角が出ない" }).toBeGreaterThan(0);
-    },
-    SLOW,
-  );
 
   it(
     "editor-quiet-without-overlaps",

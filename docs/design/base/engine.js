@@ -275,8 +275,8 @@
       CARRIES.length = 0;
     }
 
-    // 線を持たない段の番号は、その段で動く箱の左上の角に置く
-    const stepAt = (i, box) => badge(i, r1(box.x + 4), r1(box.y + 4));
+    // 線を持たない段の番号は、中心をその段で動く箱の左上の角に置く。箱の内側に置くと左上の絵柄に掛かる (#3187)
+    const stepAt = (i, box) => badge(i, r1(box.x), r1(box.y));
 
     // 中身の帯の 1 欄。seq は [時刻, 字, class] の並びで、時刻ごとに字が入れ替わる
     function field(x, y, name, seq, at = INTRO) {

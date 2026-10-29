@@ -1,0 +1,15 @@
+state 何も書かない段を挟む
+
+box 支払い待ち [icon: clock]
+box 支払い済み [icon: card]
+
+step 待つ
+  say 支払いを待つ。
+  start -> 支払い待ち: 注文を確定
+
+step 様子を見る
+  say 何も変わらないまま様子を見る。
+
+step 払う
+  say 代金が払われる。
+  支払い待ち -> 支払い済み: 払う

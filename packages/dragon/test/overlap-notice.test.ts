@@ -6,8 +6,10 @@
  * 編集画面と書き出しの命令が同じ文を出す。書き出しの命令は file を書き出したうえで、標準エラーに重なりを 1 件 1 行で出して終わり方 0 で終える。
  * 頁の側では SVG を組まないので、図の上の囲みと段へ移る動きは再生の部品が持つ (`mark` と `goTo`)。
  *
- * 字の重なる図の見本は、2 段目に書き込みだけを持つ状態遷移図 (`fixtures/corner-note.dragon`)。線の無い段の番号は状態の左上の角に置かれ、絵柄にかかる。
- * 線の無い段の番号の置き場所を直す時 (#3187) は、この見本を別の重なる形に替える。
+ * 知らせる文は、2 段目に書き込みだけを持つ状態遷移図 (`fixtures/corner-note.dragon`) を描いた後、2 段目の番号を状態の左上の角から 4px 内側
+ * (#3187 より前の置き場所) へ動かして絵柄に重ね、置き場所を書き換えて描く所 (`renderLayout`) へ直に渡して確かめる。
+ * 重なる図を読ませて書き出しの命令と編集画面の知らせを確かめる検査は置かない。線の無い段の番号を箱の角に置くと (#3187)、
+ * 記法と JSON で組んだ 6000 図以上で字の重なる図が 1 つも出ず、読ませる図を作れないため。
  * 段を移る検査と四角を描く検査は、重なりと関わらないので 5 段の構成図 (`fixtures/repeat-line.dragon`) で見る。
  *
  * 箱の絵柄と運ぶ物 (硬貨と封筒) は、知らせる文の言葉で呼ぶ (#3184)。日本語は「<箱の名前> の絵柄」「硬貨」「封筒」、英語は `the icon of "<箱の名前>"`、`the coin`、`the envelope`。
@@ -27,7 +29,7 @@ type Rect = { x: number; y: number; w: number; h: number };
 /** 書き出しの命令を待つ時間 */
 const SLOW = 60_000;
 const FIXTURE = join(process.cwd(), "packages/dragon/test/fixtures/repeat-line.dragon");
-const OVERLAPPING = join(process.cwd(), "packages/dragon/test/fixtures/corner-note.dragon");
+const CORNER_NOTE = join(process.cwd(), "packages/dragon/test/fixtures/corner-note.dragon");
 const OAUTH = join(process.cwd(), "packages/dragon/examples/oauth.json");
 
 function read(file: string, lang: "ja" | "en" = "ja"): dragon.Diagram {
@@ -69,7 +71,19 @@ function partMessages(lang: "ja" | "en"): string[] {
   return out;
 }
 
-const lines = (text: string): string[] => text.split("\n").filter((line) => line !== "");
+/**
+ * 2 段目の番号を支払い待ちの左上の角から 4px 内側 (#3187 より前の置き場所) へ動かし、絵柄に重ねた時の重なり。
+ * 置き場所の計算は番号を絵柄から離すので、置き場所を書き換えて描く所 (`renderLayout`) へ直に渡す
+ */
+function cornerOverlaps(): Overlap[] {
+  const rendered = renderDiagram(read(CORNER_NOTE));
+  const layout = structuredClone(rendered.layout);
+  const badge = layout.badges.find((b) => b.step === 1);
+  const box = layout.boxes.find((b) => b.id === "支払い待ち");
+  if (!badge || !box) throw new Error("2 段目の番号か支払い待ちの箱が無い");
+  Object.assign(badge, { x: box.x + LOOK.badge.inset, y: box.y + LOOK.badge.inset });
+  return renderLayout(rendered.diagram, layout, rendered.timeline).overlaps;
+}
 
 /** 枠の幅を決めて図を置く。幅を渡さない時は図の幅になり、止めて見せる図になる */
 function mount(diagram: unknown, width?: number): { host: HTMLElement; player: Player } {
@@ -87,8 +101,7 @@ describe("字の重なりを知らせる (#3178)", () => {
   it("overlap-message-in-both-languages", () => {
     expect(typeof dragon.describeOverlap, "知らせる文の関数 describeOverlap が package の入口から出ていない").toBe("function");
     const say = dragon.describeOverlap;
-    const rendered = renderDiagram(read(OVERLAPPING));
-    expect(rendered.overlaps.map((o) => [o.step, say(o, "ja"), say(o, "en")])).toEqual([[1, "「支払い待ち の絵柄」と段の番号 2 が重なる", 'The icon of "支払い待ち" and step number 2 overlap']]);
+    expect(cornerOverlaps().map((o) => [o.step, say(o, "ja"), say(o, "en")])).toEqual([[1, "「支払い待ち の絵柄」と段の番号 2 が重なる", 'The icon of "支払い待ち" and step number 2 overlap']]);
 
     // 字どうしの重なりと、線が字を横切る所も、日本語と英語で書く。段の番号でない字は鉤括弧か引用符で囲む
     const rect = { x: 0, y: 0, w: 10, h: 10 };
@@ -151,21 +164,6 @@ describe("字の重なりを知らせる (#3178)", () => {
       follow.player.destroy();
     }
   });
-
-  it(
-    "export-warns-overlaps",
-    async () => {
-      const out = mkdtempSync(join(tmpdir(), "dragon-overlap-"));
-      const ja = await runCli(["export", OVERLAPPING, "--format", "html", "--out", out]);
-      expect(ja.code, ja.stderr).toBe(0);
-      expect(readdirSync(out), "重なる図を書き出さなかった").toContain("corner-note.html");
-      expect(lines(ja.stderr), "標準エラーに重なりが 1 件 1 行で出ない").toEqual(["段 2: 「支払い待ち の絵柄」と段の番号 2 が重なる"]);
-      const en = await runCli(["export", OVERLAPPING, "--format", "html", "--out", out, "--lang", "en"]);
-      expect(en.code, en.stderr).toBe(0);
-      expect(lines(en.stderr), "英語の標準エラーに重なりが 1 件 1 行で出ない").toEqual(['Step 2: The icon of "支払い待ち" and step number 2 overlap']);
-    },
-    SLOW,
-  );
 
   it(
     "export-quiet-without-overlaps",

@@ -1,0 +1,12 @@
+architecture 札を置く枠を持つ箱に書き込む
+
+box 画面 [icon: card]
+box 通知 [icon: check]
+
+step 書く
+  say 画面に書き込む。
+  note 画面: 通った
+
+step 送る
+  say 画面が通知に送る。
+  画面 -> 通知: 送る [tag: #121]

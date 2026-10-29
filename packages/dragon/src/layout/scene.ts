@@ -687,15 +687,18 @@ export function shiftContent(layout: Layout, dx: number, dy: number): void {
   }
 }
 
-/** 線も処理も無い段の番号。書き換わる箱の左上か、中身の帯の左上か、最初の箱の左上。 */
+/**
+ * 線も処理も無い段の番号。書き換わる箱か最初の箱では、番号の中心を箱の左上の角に置き、半分を箱の外へ出す (#3187)。
+ * 箱の左上には絵柄が在り、箱の内側に置くと番号が絵柄の角に掛かるため。中身の帯だけを書き換える段は、帯の左上の角から内側に置く。
+ */
 export function cornerBadge(events: DiagramEvent[], step: number, layout: Layout): SceneBadge {
   const { inset } = LOOK.badge;
   for (const event of events) {
     const id = event.type === "swap" || event.type === "action" ? event.box : undefined;
     const box = layout.boxes.find((b) => b.id === id);
-    if (box) return { step, x: box.x + inset, y: box.y + inset, color: box.color };
+    if (box) return { step, x: box.x, y: box.y, color: box.color };
   }
   if (layout.strip && events.some((event) => event.type === "strip")) return { step, x: layout.strip.x + inset, y: layout.strip.y + inset, color: "slate" };
   const box = layout.boxes[0] as SceneBox;
-  return { step, x: box.x + inset, y: box.y + inset, color: box.color };
+  return { step, x: box.x, y: box.y, color: box.color };
 }
