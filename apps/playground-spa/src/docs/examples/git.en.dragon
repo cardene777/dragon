@@ -1,0 +1,27 @@
+git Merge fix with a merge commit and replay feature
+
+branch main [note: Target]
+branch feature [note: Work branch]
+branch fix [note: Fix branch]
+
+step Cut branches
+  say Cut fix and feature from A on main, and add a commit to each.
+  commit A on main [hash: 3fa0c19, note: First shape]
+  fix from A
+  commit F on fix [hash: 9b2e4d1, note: Fix a typo]
+  feature from A
+  commit C on feature [hash: c41d0e5, note: Add search]
+
+step Merge commit
+  say Merge fix into main with merge commit M. M has two parents, A and F.
+  commit M on main merge fix [hash: 7d3a5e2, note: Merge fix]
+
+step Replay
+  say Move HEAD to M to detach it, and copy C onto M as C'.
+  HEAD -> M
+  commit C' on main copy C [hash: a90c6b4, note: Add search]
+
+step Fast-forward
+  say Move feature to C', and move main up to C' too. The old C can no longer be reached from any branch.
+  feature -> C'
+  main -> C'

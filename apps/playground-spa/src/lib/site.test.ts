@@ -312,7 +312,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
 
@@ -344,7 +344,7 @@ const docsDiagram = (id: string, text: string): Diagram | undefined => {
 const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.flatMap((s) => s.events);
 
 /** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
-const LINE_KINDS = ["sequence", "architecture", "state", "group", "end", "box", "strip", "step", "say", "code", "act", "note", "set", "->"] as const;
+const LINE_KINDS = ["sequence", "architecture", "state", "git", "group", "end", "box", "branch", "strip", "step", "say", "code", "commit", "act", "note", "set", "->"] as const;
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
@@ -3296,7 +3296,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       screen: "docs",
       targets: '[data-docs="cta"] a, a[data-docs="section-cta"], a[data-docs="icon-link"]',
       links: 'a[data-docs="section-cta"], a[data-docs="icon-link"]',
-      count: 16,
+      count: 17,
       touchSizes: [
         "5 分で始める → 133x44",
         "カタログで図を見る 160x44",
@@ -3307,6 +3307,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         "続き → 区画 74x46",
         "構成図の見本を見る → 138x46",
         "状態遷移図の見本を見る → 165x46",
+        "枝分かれの図の見本を見る → 179x46",
         "続き → 帯 60x46",
         "時系列図の見本を見る → 152x46",
         "続き → JSON 82x46",
