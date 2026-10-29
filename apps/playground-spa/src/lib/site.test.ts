@@ -363,6 +363,14 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
     (d.state?.paths.length ?? 0) >= 1 &&
     eventsOf(d).some((e) => e.type === "edge" && e.from === "start") &&
     eventsOf(d).some((e) => e.type === "edge" && e.to === "finish"),
+  // 枝を 3 本宣言し、枝を切り、merge commit と当て直しを作り、札を動かす (#3202)
+  git: (d) =>
+    d.kind === "git" &&
+    (d.git?.branches.length ?? 0) >= 3 &&
+    eventsOf(d).some((e) => e.type === "branch") &&
+    eventsOf(d).some((e) => e.type === "commit" && e.copy !== undefined) &&
+    eventsOf(d).some((e) => e.type === "commit" && e.merge !== undefined) &&
+    eventsOf(d).some((e) => e.type === "edge"),
   steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
   strip: (d) => d.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
@@ -4394,7 +4402,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
       const expectDocs = async (lang: Lang): Promise<void> => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
-        const words = ["sequence", "architecture", "state"];
+        const words = ["sequence", "architecture", "state", "git"];
         const want = DOC_SECTIONS.map((id, i) => {
           const text = WITHOUT_EXAMPLE.includes(id) ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);
@@ -4641,6 +4649,59 @@ describe("サイトの帯と経路 (#3030)", () => {
           )
           .toBe(true);
         expect(state?.cta, `${lang} の状態遷移図の節の出口がカタログの状態遷移図の頁へ向かない`).toBe(`${BASE}catalog/state`);
+      }
+    },
+    SLOW,
+  );
+
+  it("docs-git-example-parses", () => {
+    // 枝分かれの図の節の例は、枝を 3 本宣言し、枝を切り、merge commit と当て直しを作り、札を動かす (#3202)
+    for (const lang of ["ja", "en"] as const) {
+      const text = docsExample("git", lang);
+      expect(text, `${lang} の枝分かれの図の節の例の file (src/docs/examples/git${lang === "en" ? ".en" : ""}.dragon) が無い`).toBeDefined();
+      if (text === undefined) continue;
+      const parsed = parseNotation(text);
+      expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), `${lang} の枝分かれの図の節の例が読めない`).toEqual([]);
+      const diagram = docsDiagram("git", text);
+      expect(diagram?.kind, `${lang} の枝分かれの図の節の例が検査を通らないか、枝分かれの図でない`).toBe("git");
+      expect(diagram?.git?.branches.length ?? 0, `${lang} の枝分かれの図の節の例が枝を 3 本宣言しない`).toBeGreaterThanOrEqual(3);
+      const events = diagram ? eventsOf(diagram) : [];
+      expect(events.some((e) => e.type === "branch"), `${lang} の枝分かれの図の節の例に枝を切る行が無い`).toBe(true);
+      expect(events.some((e) => e.type === "commit" && e.copy !== undefined), `${lang} の枝分かれの図の節の例に当て直しの commit が無い`).toBe(true);
+      expect(events.some((e) => e.type === "commit" && e.merge !== undefined), `${lang} の枝分かれの図の節の例に merge commit が無い`).toBe(true);
+      expect(events.some((e) => e.type === "edge"), `${lang} の枝分かれの図の節の例に札を動かす線が無い`).toBe(true);
+    }
+  });
+
+  it(
+    "docs-git-section-follows-state",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
+        const { lead, sections } = await docsOf(page);
+        // 前置きは記法の要素の並びに枝分かれの図を挙げる
+        expect(lead, `${lang} の使い方の頁の前置きが枝分かれの図を挙げない`).toMatch(lang === "ja" ? /枝分かれの図/u : /git graph/iu);
+        const ids = sections.map((s) => s.id);
+        expect(ids[ids.indexOf("state") + 1], `${lang} の状態遷移図の節の次が枝分かれの図の節でない`).toBe("git");
+        const git = sections.find((s) => s.id === "git");
+        // 本文は頭の行と枝の宣言と commit の行の語と、枝を切る行と札を動かす線を語で説明する
+        for (const word of ["git", "branch", "commit", "on", "copy", "merge", "from", "HEAD"]) {
+          expect(new RegExp(`(^|[^A-Za-z-])${word}($|[^A-Za-z-])`, "u").test(git?.prose ?? ""), `${lang} の枝分かれの図の節の本文が ${word} を説明しない`).toBe(true);
+        }
+        // 例の図は、commit の丸と枝の札を持つ枝分かれの図として描かれる
+        await expect
+          .poll(
+            () =>
+              page.evaluate(() => {
+                const svg = document.querySelector('section#git [data-docs="example"] svg[data-dragon="figure"]');
+                return (svg?.querySelectorAll("[data-commit]").length ?? 0) >= 5 && (svg?.querySelectorAll("[data-ref]").length ?? 0) >= 3;
+              }),
+            { ...WAIT, message: `${lang} の枝分かれの図の節の例が、commit の丸と枝の札を持つ枝分かれの図として描かれない` },
+          )
+          .toBe(true);
+        expect(git?.cta, `${lang} の枝分かれの図の節の出口がカタログの枝分かれの図の頁へ向かない`).toBe(`${BASE}catalog/git`);
       }
     },
     SLOW,
