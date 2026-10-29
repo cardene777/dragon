@@ -263,3 +263,7 @@
 | 撮る頁で字の file を読めない時、書き出しは読めない file の字の名前と字の範囲を名指す文で止まる。英語を渡した時の文は仮名と漢字を含まない | `pnpm test`の検査`export-names-unreadable-font`が通る | #3212 |
 | 空白の類だけが入る字の file は、描く空白の類の字のほかに、同じ file の形のある字を 1 つだけ足して含む | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`が通る | #3212 |
 | 空白の類だけが入る字の file の `unicode-range` は、描く空白の類の字だけを載せ、足した字を載せない | `pnpm test`の検査`font-subset-range-lists-drawn-chars`が通る | #3212 |
+| `renderDiagram` に `colors` を渡すと、描いた SVG の色の変数 (`--bg`、`--ink`、`--c-green` など) が渡した値になり、渡さない色は `palette` の名前の色味の値のまま残る | `pnpm test`の検査`render-colors-override-palette`が通る | #3198 |
+| `mountDiagram` に同じ `colors` を渡すと、置いた図と寄って追う時の全体図の色の変数が渡した値になる | `pnpm test`の検査`player-colors-override-palette`が通る | #3198 |
+| `colors` に知らない色の名前か、色の値として読めない値 (`;`、`"`、`<` などを含む値) を渡すと、描かずに、その名前を示す error を投げる | `pnpm test`の検査`render-colors-reject-unknown-or-unsafe`が通る | #3198 |
+| `colors` を渡さない時は、今と同じく `palette` の名前の色味で描く | `pnpm test`の検査`render-colors-absent-keeps-palette`が通る | #3198 |
