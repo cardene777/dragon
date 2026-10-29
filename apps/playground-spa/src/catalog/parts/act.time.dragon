@@ -1,0 +1,17 @@
+time 処理
+
+scale slot 12s 6
+row ブロック
+zoom 0-2
+
+box 提案者 [icon: user]
+box ブロック [icon: box]
+
+step 処理する
+  say act で、箱が自分で行う処理を箱の下の字に出す。
+  act 提案者: ブロックを作る
+
+step 渡す
+  say 処理の後に線を引くと、作った物が次の箱へ届く。
+  提案者 -> ブロック [at: 0]
+  now -> 0

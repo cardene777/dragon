@@ -1,0 +1,17 @@
+time Strip and fields
+
+scale slot 12s 8
+period epoch 4
+row block
+
+strip Progress: Elapsed, State, Votes this epoch [meter: 2/3]
+
+step Advance
+  say strip puts a strip of fields under the diagram, and set fills a field. A meter field fills with the needle.
+  now -> 3
+  set Elapsed: 48 s
+  set Votes this epoch: 97%
+
+step Add a tag
+  say tag on set adds a tag next to the value.
+  set State: Justified [tag: 2/3]

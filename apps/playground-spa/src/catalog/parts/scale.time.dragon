@@ -1,0 +1,19 @@
+time 目盛りと針
+
+scale slot 12s 8 [from: 3200]
+period epoch 4 [from: 100]
+row ブロック
+
+strip 進み: 今の epoch の票 [meter: 2/3]
+
+step 針を進める
+  say scale で目盛りの名前と 1 つの長さと数を書く。段の中の now で、針がその目盛りの終わりまで決まった速さで進む。
+  now -> 3
+  set 今の epoch の票: 97%
+  span 0-3: 1 epoch = 48 秒
+
+step 範囲を囲む
+  say period で区切りを置き、span の shape: box で範囲を囲む。
+  now -> 7
+  set 今の epoch の票: 97%
+  span 0-3: 戻せない [shape: box, color: rose]

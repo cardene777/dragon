@@ -38,6 +38,10 @@ export interface FieldMessages {
   kindOnly: (types: readonly string[], kind: string) => string;
   /** 16 進の字を `min` から `max` 字で書く決まり (commit の hash、#3164) */
   hex: (min: number, max: number) => string;
+  /** 数と単位 (`units`) の組で書く決まり (時間軸の図の目盛りの長さ、#3165) */
+  duration: (units: readonly string[]) => string;
+  /** 分数か百分率で書く決まり (物差しの線、#3165) */
+  ratio: string;
   /** 選べる決まりがどれも欄が足りない時の、足りない欄。それ以外の時は空 */
   anyOf: (fields: readonly string[]) => string;
   oneOf: string;
@@ -83,6 +87,8 @@ const ja: FieldMessages = {
   reserved: (names) => `${names.join(" と ")} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
   kindOnly: (types, kind) => `${types.join(" と ")} の出来事は kind が ${kind} の時だけ書ける`,
   hex: (min, max) => `0 から 9 と a から f の字で ${min} から ${max} 字にする`,
+  duration: (units) => `数と単位 (${units.join(" / ")}) の組で書く (12s など)`,
+  ratio: "分数 (2/3) か百分率 (97%) で書く",
   anyOf: (fields) =>
     fields.length > 0 ? `${fields.join(" か ")} の${fields.length === 2 ? "どちらか" : "どれか"}の欄が要る` : "書ける形のどれにも合わない",
   oneOf: "書ける形のどれか 1 つだけに合わせる",
@@ -107,6 +113,8 @@ const en: FieldMessages = {
   reserved: (names) => `${names.join(" and ")} name the start and end marks of a state diagram and cannot be box ids`,
   kindOnly: (types, kind) => `${types.join(" and ")} events are allowed only when kind is ${kind}`,
   hex: (min, max) => `Use ${min} to ${max} characters of 0-9 and a-f`,
+  duration: (units) => `Write a number and a unit (${units.join(" / ")}), such as 12s`,
+  ratio: "Write a fraction (2/3) or a percentage (97%)",
   anyOf: (fields) => (fields.length > 0 ? `Write one of the ${fields.join(" or ")} fields` : "Does not match any of the allowed shapes"),
   oneOf: "Match exactly one of the allowed shapes",
   discriminator: (tag, values) => `${tag} is one of ${values.join(" / ")}`,

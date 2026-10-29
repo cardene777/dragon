@@ -55,6 +55,19 @@ CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。
 `still` は `renderDiagram` にも渡せる。
 どれも渡さなければ、置いた時から全ての段を繰り返し流す。
 
+色味は名前 (`palette`) で選び、`colors` に色の変数の名前と値を渡すと、渡した色だけを描く明暗 (`theme`) の色として上書きする。
+鍵は色味が持つ名前 (`bg`、`surf`、`ink`、`line`、`c-green`、`t-green` など。型は `ColorName`) で、渡さない色は名前で選んだ色味の値のまま残る。
+置いた図、寄って追う時の全体図、釦と段の帯のどれも同じ色で塗る。`renderDiagram` も同じ `colors` を受ける。
+
+```ts
+mountDiagram(host, parsed.diagram, {
+  palette: "night",
+  colors: { bg: "#0a0f0a", surf: "#101810", ink: "#39ff14", line: "#1f9a0b", "c-green": "#39ff14" },
+});
+```
+
+色味に無い名前と、`;`、`"`、`<` などを含む色として読めない値を渡すと、その名前を挙げて描かずに断る。
+
 ## dragon記法
 
 どの行も次の決まり 4 つに従う。

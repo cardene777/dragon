@@ -1,0 +1,21 @@
+time Zoom band
+
+scale slot 12s 8 [from: 3200]
+row block [empty: 2]
+zoom 0-2
+
+box proposer [icon: user]
+box block [icon: box]
+box committee
+
+step Lay out columns
+  say zoom gives a range of units, laid out as columns of boxes in the band above. A line joins the boxes of the column in at.
+  proposer -> block [at: 0]
+  committee -> block [at: 0, tag: vote]
+  now -> 0
+
+step Another column
+  say into takes the receiving box from another column. In an empty unit, the box named like the row becomes an empty frame.
+  proposer -> block [at: 1]
+  committee -> block [at: 2, into: 1, tag: vote]
+  now -> 2

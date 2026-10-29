@@ -6,6 +6,7 @@
  * 図そのものは読み上げから隠して同じ中身を 2 度読ませない。
  * 見せ方は枠の幅で選び (`view.ts`)、寄って追う時は窓と全体図で描き直す。
  * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
+ * 色は `options.palette` の名前の色味に `options.colors` の色の値を重ね、図と全体図と釦と段の帯を同じ色で塗る (#3198)。
  * 段が替わるたびに `options.onStep` で今の段を知らせ、頁の側が段の札や進み具合を出せるようにする (#3031)。
  * 置いた時に流さず決めた段で止めて置く (`options.pausedAt`) ことと、1 度だけ流して最後の段で止める (`options.playOnce`) ことを選べる。
  * 止め絵を選んだ図 (`options.still`) は、最後の段で止まった時に全ての段の線の名前を出す (#3200)。
@@ -16,8 +17,8 @@
  */
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
-import { FONT_VARS, LOOK, paletteVars, resolvePalette, type TextStyle, TYPE } from "./look/values";
-import { drawSvg, type RenderOptions, renderDiagram } from "./render/svg";
+import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
+import { drawSvg, paletteOf, type RenderOptions, renderDiagram } from "./render/svg";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
 
@@ -121,7 +122,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   const rendered = renderDiagram(diagram, options);
   const lang = options.lang ?? "ja";
   const words = FIGURE_TEXT[lang];
-  const palette = resolvePalette(rendered.palette);
+  const palette = paletteOf(options, rendered.theme);
   const { timeline } = rendered;
   const steps = rendered.diagram.steps;
   const count = steps.length;
