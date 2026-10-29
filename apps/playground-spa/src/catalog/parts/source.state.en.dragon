@@ -1,0 +1,16 @@
+state Source
+
+box order as Order received
+box check as Checking payment
+
+step Receive
+  say source gives a step the name and url of a source. A step takes any number.
+  source dragon README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  start -> order
+
+step Check
+  say Sources stay out of the diagram and the text, and appear as links in the step list.
+  source Notation guide [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md]
+  source dragon repo [url: https://github.com/cardene777/dragon]
+  order -> check: Paid
+  check -> finish

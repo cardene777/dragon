@@ -30,7 +30,9 @@ import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
 export const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const r1 = (v: number): number => Math.round(v * 100) / 100;
+/** 箱の飛び先 (#3199)。飛び先を持つ箱の札を、その飛び先への link で包む */
+export const linkTo = (link: string | undefined, markup: string): string => (link === undefined ? markup : `<a href="${esc(link)}">${markup}</a>`);
+const r1 =(v: number): number => Math.round(v * 100) / 100;
 
 /** 色の役を部品へ渡す変数。 */
 export const cs = (k: ColorKey): string => (k === "coin" ? "--c:var(--coin);--ct:var(--coint)" : `--c:var(--c-${k});--ct:var(--t-${k})`);

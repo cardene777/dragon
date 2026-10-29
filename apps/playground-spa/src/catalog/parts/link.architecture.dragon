@@ -1,0 +1,12 @@
+architecture 飛び先
+
+box アプリ
+box 決済 as 決済の仕組み [link: https://github.com/cardene777/dragon]
+
+step 頼む
+  say link で箱に飛び先を書くと、描いた図でその箱を押して飛び先へ移れる。
+  アプリ -> 決済: 請求
+
+step 返す
+  say 箱の中の仕組みを別の図に描いた時は、その図の頁を飛び先にする。
+  決済 -> アプリ: 済

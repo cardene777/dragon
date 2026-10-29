@@ -1,0 +1,14 @@
+git 飛び先
+
+branch main
+
+box 遠く as 遠くの repo [link: https://github.com/cardene777/dragon]
+
+step 積む
+  say link で箱に飛び先を書くと、描いた図でその箱を押して飛び先へ移れる。
+  commit A on main
+
+step 送る
+  say 飛び先は / で始まる path か、http:// か https:// で始まる URL で書く。
+  commit B on main
+  note 遠く: B を受け取った

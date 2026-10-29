@@ -77,7 +77,10 @@ mountDiagram(host, parsed.diagram, {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `group` `end` `box` `branch` `strip` `step` `say` `code` `commit` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `group` `end` `box` `branch` `strip` `step` `say` `code` `source` `commit` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+箱の行の属性 `link` に飛び先を書くと、描いた図でその箱が飛び先への link になる。
+段の中の `source <名前> [url: <URL>]` の行は段の出典になり、1 つの段に何行でも書け、読み上げの段の一覧に名前の link で出る。
+飛び先と出典の URL には、`/` で始まる path か、`http://` か `https://` で始まる URL だけを書ける。
 
 ```dragon
 architecture 注文を倉庫へ回す

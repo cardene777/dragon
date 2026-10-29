@@ -1,0 +1,12 @@
+sequence 飛び先
+
+box 利用者
+box 認可 as 認可サーバー [link: https://github.com/cardene777/dragon]
+
+step 頼む
+  say link で箱に飛び先を書くと、描いた図でその箱を押して飛び先へ移れる。
+  利用者 -> 認可: 許可を求める
+
+step 返す
+  say 飛び先は / で始まる path か、http:// か https:// で始まる URL で書く。
+  認可 -> 利用者: 許可した

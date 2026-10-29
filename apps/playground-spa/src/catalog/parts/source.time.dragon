@@ -1,0 +1,21 @@
+time 出典
+
+scale slot 12s 6
+row ブロック
+zoom 0-2
+
+box 提案者
+box ブロック
+
+step 頼む
+  say source で段に出典の名前と url を書く。1 つの段に何行でも書ける。
+  source dragon の README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  提案者 -> ブロック [at: 0]
+  now -> 0
+
+step 続ける
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前の link で出る。
+  source 記法の書き方 [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source dragon の repo [url: https://github.com/cardene777/dragon]
+  提案者 -> ブロック [at: 1]
+  now -> 1

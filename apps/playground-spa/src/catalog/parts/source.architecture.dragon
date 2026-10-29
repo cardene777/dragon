@@ -1,0 +1,15 @@
+architecture 出典
+
+box アプリ
+box 決済 as 決済の仕組み
+
+step 頼む
+  say source で段に出典の名前と url を書く。1 つの段に何行でも書ける。
+  source dragon の README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  アプリ -> 決済: 請求
+
+step 返す
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前の link で出る。
+  source 記法の書き方 [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source dragon の repo [url: https://github.com/cardene777/dragon]
+  決済 -> アプリ: 済

@@ -6,7 +6,7 @@
  * 各段の題と本文は、読み上げの道具が段の順に読める一覧として頁に置く。
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { exampleJson, type Json } from "./diagram-support";
+import { api, exampleJson, type Json } from "./diagram-support";
 import { motionFrom, tagOpacity } from "./motion-support";
 import { ARCADE_COLORS, cssVars, draw, figureVars, type LaidAction, type Player, type PlayerOptions } from "./render-support";
 
@@ -118,6 +118,47 @@ describe("読み上げ", () => {
 
     // 図そのものは読み上げの道具から隠し、同じ中身を 2 度読ませない
     expect(host.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
+describe("段の出典 (#3199)", () => {
+  it("notation-step-sources", () => {
+    prefersReducedMotion(true);
+    const README = "https://github.com/cardene777/dragon/blob/main/README.md";
+    const text = [
+      "sequence 出典のある段",
+      "box 送る側",
+      "box 受ける側",
+      "step 送る",
+      "  say 送る側が受ける側へ送る。",
+      `  source dragon の README [url: ${README}]`,
+      "  source 中の仕組み [url: /diagrams/entry]",
+      "  送る側 -> 受ける側",
+      "step 返す",
+      "  say 受ける側が送る側へ返す。",
+      "  受ける側 -> 送る側",
+    ].join("\n");
+    const parsed = api("parseNotation")(text);
+    expect(parsed.ok, JSON.stringify(parsed.ok ? undefined : parsed.errors[0])).toBe(true);
+    if (!parsed.ok) return;
+
+    // 1 つの段に書いた出典の行は、書いた順に段の出典になる。書かない段は出典の欄を持たない
+    const steps = (parsed.diagram as { steps: Json[] }).steps as { sources?: Json }[];
+    const sources = [
+      { name: "dragon の README", url: README },
+      { name: "中の仕組み", url: "/diagrams/entry" },
+    ];
+    expect(steps[0]?.sources).toEqual(sources);
+    expect(steps[1] && Object.hasOwn(steps[1], "sources"), "出典を書かない段が出典の欄を持つ").toBe(false);
+
+    // 読み上げの段の一覧では、出典を書いた段にだけ、出典の名前の link が書いた順に並ぶ
+    const { host } = mount(parsed.diagram);
+    const items = [...host.querySelectorAll('[data-dragon="steps"] > li')];
+    expect(items).toHaveLength(2);
+    const linksOf = (item: Element | undefined): { name: string; url: string }[] =>
+      [...(item?.querySelectorAll("a") ?? [])].map((a) => ({ name: a.textContent ?? "", url: a.getAttribute("href") ?? "" }));
+    expect(linksOf(items[0])).toEqual(sources);
+    expect(linksOf(items[1])).toEqual([]);
   });
 });
 

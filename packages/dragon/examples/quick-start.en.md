@@ -48,6 +48,7 @@ Inside a step, indent these lines in the order things happen.
 | Step title | `step <title>`. A step runs until the next `step` or the end of the file | `step Lock the tokens` |
 | Step body | `say <body>`. To split it over two or more lines, write `say` alone and continue on lines indented further below it | `say OnRamp calls the Token Pool.` |
 | Command for the step | `code <command>`. At most one per step | `code lockOrBurn()` |
+| Source of the step | `source <name> [url: <URL>]`. A step can have any number, shown as links named by the source in the step list that screen readers read | `source How CCIP works [url: /diagrams/ccip]` |
 | Line | `<id> -> <id>: <label>`. The label can be left out | `OnRamp -> sourcePool: lockOrBurn() [carry: coin]` |
 | Action in a box | `act <id>: <action>` | `act OnRamp: check the contents` |
 | New caption under a box | `note <id>: <text>` | `note sourcePool: −100 USDC` |
@@ -60,7 +61,7 @@ Inside a step, indent these lines in the order things happen.
 Without a view, the view is `fixed` when the text of the whole diagram in the frame is 10.5px or larger, and `follow` when it is smaller.
 
 Every step needs a body.
-Screen readers read each step's title and body in step order.
+Screen readers read each step's title, body and sources in step order.
 
 When boxes of the same region are not next to each other, open the same `group <id>` again and write the rest of its boxes.
 The second time, write only the id, and give the name and attributes only the first time.
@@ -138,6 +139,8 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | Region and box | `note` | The note of a region, or the caption under a box |
 | Region and box | `color` | Colour role. One of `blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` |
 | Region and box | `icon` | Icon next to the name |
+| Box | `link` | Where the box leads. The box becomes a link in the drawn diagram. A path that starts with `/` or a URL that starts with `http://` or `https://` |
+| Source of a step | `url` | Where the source is. Takes the same forms as `link` |
 | Line | `carry` | What travels on the line. `coin` or `none`. Without it, an envelope travels |
 | Line and strip value | `tag` | The text of a tag that travels on the line, or a tag on a strip field |
 | Line | `side` | Which side of the line the label goes. `above` / `below` / `left` / `right`. Write it only when the automatic placement breaks |

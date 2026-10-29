@@ -1,0 +1,12 @@
+sequence Link
+
+box user as User
+box auth as Auth server [link: https://github.com/cardene777/dragon]
+
+step Ask
+  say link on a box makes the box a link to that place in the drawn diagram.
+  user -> auth: Ask for access
+
+step Answer
+  say Write a path that starts with / or a URL that starts with http:// or https://.
+  auth -> user: Granted

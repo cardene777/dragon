@@ -1,0 +1,16 @@
+state 出典
+
+box 注文 as 注文を受けた
+box 支払い as 支払いを確かめる
+
+step 受ける
+  say source で段に出典の名前と url を書く。1 つの段に何行でも書ける。
+  source dragon の README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  start -> 注文
+
+step 確かめる
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前の link で出る。
+  source 記法の書き方 [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source dragon の repo [url: https://github.com/cardene777/dragon]
+  注文 -> 支払い: 払った
+  支払い -> finish

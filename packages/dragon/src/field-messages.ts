@@ -42,6 +42,8 @@ export interface FieldMessages {
   duration: (units: readonly string[]) => string;
   /** 分数か百分率で書く決まり (物差しの線、#3165) */
   ratio: string;
+  /** 頁を移る形だけを書ける決まり (箱の飛び先と段の出典の URL、#3199) */
+  url: string;
   /** 選べる決まりがどれも欄が足りない時の、足りない欄。それ以外の時は空 */
   anyOf: (fields: readonly string[]) => string;
   oneOf: string;
@@ -89,6 +91,7 @@ const ja: FieldMessages = {
   hex: (min, max) => `0 から 9 と a から f の字で ${min} から ${max} 字にする`,
   duration: (units) => `数と単位 (${units.join(" / ")}) の組で書く (12s など)`,
   ratio: "分数 (2/3) か百分率 (97%) で書く",
+  url: "/ で始まる path か、http:// か https:// で始まる URL にする",
   anyOf: (fields) =>
     fields.length > 0 ? `${fields.join(" か ")} の${fields.length === 2 ? "どちらか" : "どれか"}の欄が要る` : "書ける形のどれにも合わない",
   oneOf: "書ける形のどれか 1 つだけに合わせる",
@@ -115,6 +118,7 @@ const en: FieldMessages = {
   hex: (min, max) => `Use ${min} to ${max} characters of 0-9 and a-f`,
   duration: (units) => `Write a number and a unit (${units.join(" / ")}), such as 12s`,
   ratio: "Write a fraction (2/3) or a percentage (97%)",
+  url: "Use a path that starts with / or a URL that starts with http:// or https://",
   anyOf: (fields) => (fields.length > 0 ? `Write one of the ${fields.join(" or ")} fields` : "Does not match any of the allowed shapes"),
   oneOf: "Match exactly one of the allowed shapes",
   discriminator: (tag, values) => `${tag} is one of ${values.join(" / ")}`,

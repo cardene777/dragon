@@ -25,6 +25,7 @@ export {
   type Region,
   type StatePath,
   type Step,
+  type StepSource,
   type StripMeter,
   type TimeMarkEvent,
   type TimePeriod,

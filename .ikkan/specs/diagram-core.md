@@ -274,3 +274,9 @@
 | `mountDiagram` に 1 度だけ流す設定を渡すと、最初の段から最後の段まで流して最後の段で止まり、繰り返さない。止め絵も選んでいれば、止まった図は全ての段の名前を出す | `pnpm test`の検査`player-plays-once-then-still`が通る | #3200 |
 | 止め絵を選んで置いた図で途中の段へ送ると、今と同じくその段の名前だけを出す | `pnpm test`の検査`player-still-middle-step-own-labels`が通る | #3200 |
 | 設定を渡さない時は、今と同じく置いた時から全ての段を繰り返し流す | `pnpm test`の検査`player-default-loops`が通る | #3200 |
+| 箱の行に `[link: <飛び先>]` を書くと、原本の箱が `link` を持ち、描いた SVG のその箱が飛び先への link になる | `pnpm test`の検査`notation-box-link`が通る | #3199 |
+| 段の中に `source <名前> [url: <URL>]` の行を書くと、原本の段が `sources` を持ち、読み上げの段の一覧のその段に出典の名前の link が出る。1 つの段に 2 行書くと 2 つとも出る | `pnpm test`の検査`notation-step-sources`が通る | #3199 |
+| 飛び先と出典を書いた記法を原本の JSON にして記法へ書き戻すと、同じ飛び先と出典が残る | `pnpm test`の検査`notation-link-source-roundtrip`が通る | #3199 |
+| 飛び先か出典の URL に、`/` で始まる path と `http://`、`https://` の URL 以外 (`javascript:` など) を書くと、行の番号を付けた誤りになる | `pnpm test`の検査`notation-link-rejects-unsafe-url`が通る | #3199 |
+| 原本の JSON の検査 (JSON Schema) が、箱の `link` と段の `sources` を持つ JSON を通す | `pnpm test`の検査`schema-accepts-link-and-sources`が通る | #3199 |
+| 飛び先も出典も書かない図は、今と同じく link を持たない SVG を描く | `pnpm test`の検査`notation-without-link-unchanged`が通る | #3199 |

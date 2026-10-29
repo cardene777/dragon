@@ -1,0 +1,14 @@
+git Link
+
+branch main
+
+box remote as Remote repo [link: https://github.com/cardene777/dragon]
+
+step Commit
+  say link on a box makes the box a link to that place in the drawn diagram.
+  commit A on main
+
+step Push
+  say Write a path that starts with / or a URL that starts with http:// or https://.
+  commit B on main
+  note remote: Received B

@@ -1197,11 +1197,13 @@ describe("公開する頁 (#2995)", () => {
     SLOW,
   );
 
+  // 上限は 250KB で始め、#3199 で 270KB にした。図の種類が 5 つになり、記法の語ごとに全ての図の種類と 2 つの言葉の
+  // 見本帳の部品を置く決まりのため、語を 1 つ足すと 1KB ほど増える。#3199 の前の main で残りが 1.3KB しか無かった
   it("page-bundle-within-budget", () => {
     const sizes = bundleSizes(site.built.dir);
     const total = Object.values(sizes).reduce((a, b) => a + b, 0);
     expect(Object.keys(sizes).length, "build した script と CSS が無い").toBeGreaterThan(0);
-    expect(total, `script と CSS の合計が gzip で ${(total / 1024).toFixed(1)}KB (${JSON.stringify(sizes)})`).toBeLessThanOrEqual(250 * 1024);
+    expect(total, `script と CSS の合計が gzip で ${(total / 1024).toFixed(1)}KB (${JSON.stringify(sizes)})`).toBeLessThanOrEqual(270 * 1024);
   });
 
   it("page-draws-with-package-parts", () => {

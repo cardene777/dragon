@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, exampleText, type Json, type LineError, type Parsed, reversedKeys } from "./diagram-support";
+import { draw } from "./render-support";
 
 const EXAMPLES = ["intro", "oauth", "ccip"] as const;
 
@@ -512,6 +513,145 @@ describe("JSON から記法へ", () => {
       expect(print(json), name).toBe(print(json));
       // 欄の並び順だけが違う同じ内容の JSON は、同じ文字列になる
       expect(print(reversedKeys(json)), name).toBe(print(json));
+    }
+  });
+});
+
+describe("箱の飛び先と段の出典 (#3199)", () => {
+  const README = "https://github.com/cardene777/dragon/blob/main/README.md";
+  const REPO = "https://github.com/cardene777/dragon";
+  /** 飛び先を持つ箱と持たない箱、出典を 2 つ持つ段と持たない段を並べた図 */
+  const linked = [
+    "architecture 飛び先と出典",
+    "box 入口 [note: 受け付ける, link: /diagrams/entry]",
+    `box 外 as 外の仕組み [link: ${REPO}]`,
+    "box 出口",
+    "step 流す",
+    "  say 入口から出口へ流す。",
+    `  source dragon の README [url: ${README}]`,
+    "  source 中の仕組み [url: /diagrams/entry]",
+    "  入口 -> 出口",
+    "step 返す",
+    "  say 出口から入口へ返す。",
+    "  出口 -> 入口",
+  ].join("\n");
+
+  /** SVG の `<a>` ごとの飛び先と、中に描いた箱の名前 */
+  const anchorsOf = (svg: string): { href: string; names: string[] }[] =>
+    [...svg.matchAll(/<a\b[^>]*\bhref="([^"]*)"[^>]*>(.*?)<\/a>/gsu)].map((m) => ({
+      href: m[1] ?? "",
+      names: [...(m[2] ?? "").matchAll(/<text class="dg-sn"[^>]*>([^<]*)<\/text>/gu)].map((n) => n[1] ?? ""),
+    }));
+
+  it("notation-box-link", () => {
+    const parsed = api("parseNotation")(linked);
+    expect(parsed.ok, JSON.stringify(firstError(parsed))).toBe(true);
+    if (!parsed.ok) return;
+    expect((parsed.diagram as { boxes: Json[] }).boxes).toEqual([
+      { id: "入口", name: "入口", sub: "受け付ける", link: "/diagrams/entry" },
+      { id: "外", name: "外の仕組み", link: REPO },
+      { id: "出口", name: "出口" },
+    ]);
+
+    // 描いた図では、飛び先を持つ箱だけが、その飛び先への link になる
+    const anchors = anchorsOf(draw("renderDiagram")(parsed.diagram).svg).sort((a, b) => a.href.localeCompare(b.href));
+    expect(anchors).toEqual([
+      { href: "/diagrams/entry", names: ["入口"] },
+      { href: REPO, names: ["外の仕組み"] },
+    ]);
+
+    // 時間軸の図 (#3165) の拡大の帯の箱も、時間軸の図を描く部品が飛び先への link にする。
+    // 印の列と同じ名札の箱は線が届いた列 (目盛り 0) にだけ描き、届かない列は点線の枠だけを置く
+    const time = api("parseNotation")(
+      ["time 飛び先", "scale slot 12s 3", "row ブロック", "zoom 0-2", `box 提案者 [link: /diagrams/proposer]`, `box ブロック [link: ${REPO}]`, "step 送る", "  say 提案者からブロックへ送る。", "  提案者 -> ブロック [at: 0]", "  now -> 0"].join("\n"),
+    );
+    expect(time.ok, JSON.stringify(firstError(time))).toBe(true);
+    if (!time.ok) return;
+    const proposer = { href: "/diagrams/proposer", names: ["提案者"] };
+    expect(anchorsOf(draw("renderDiagram")(time.diagram).svg)).toEqual([proposer, { href: REPO, names: ["ブロック"] }, proposer, proposer]);
+  });
+
+  it("notation-link-source-roundtrip", () => {
+    const parse = api("parseNotation");
+    const print = api("printNotation");
+    const first = parse(linked);
+    expect(first.ok, JSON.stringify(firstError(first))).toBe(true);
+    if (!first.ok) return;
+    const printed = print(first.diagram);
+    expect(printed.split("\n")).toEqual(
+      expect.arrayContaining([
+        "box 入口 [note: 受け付ける, link: /diagrams/entry]",
+        `box 外 as 外の仕組み [link: ${REPO}]`,
+        `  source dragon の README [url: ${README}]`,
+        "  source 中の仕組み [url: /diagrams/entry]",
+      ]),
+    );
+    expect(parse(printed)).toEqual({ ok: true, diagram: first.diagram });
+
+    // `,` か `]` を含む URL と、`[` を含む出典の名前は `"` で囲んで書き戻す
+    const json: Json = {
+      version: 1,
+      kind: "sequence",
+      title: "囲む飛び先と出典",
+      boxes: [
+        { id: "a", name: "a", link: "/diagrams/a?tab=1,2" },
+        { id: "b", name: "b", link: `${REPO}/issues?q=[x]` },
+      ],
+      steps: [
+        {
+          title: "送る",
+          body: "送る。",
+          sources: [
+            { name: "仕様 [下書き]", url: `${REPO}/issues?q=a,b` },
+            { name: "中の仕組み", url: "/diagrams/a" },
+          ],
+          events: [edge("a", "b")],
+        },
+      ],
+      sequence: { lifelines: ["a", "b"] },
+    };
+    expect(parse(print(json))).toEqual({ ok: true, diagram: json });
+  });
+
+  it("notation-link-rejects-unsafe-url", () => {
+    const parse = api("parseNotation");
+    const withLink = (url: string): string => ["architecture 飛び先の形", `box 入口 [link: "${url}"]`, "box 出口", "step 流す", "  say 流す。", "  入口 -> 出口"].join("\n");
+    const withSource = (url: string): string => ["architecture 出典の形", "box 入口", "box 出口", "step 流す", "  say 流す。", `  source 出典 [url: "${url}"]`, "  入口 -> 出口"].join("\n");
+
+    // 頁を移る形 (`/` で始まる path と、http:// と https:// の URL) は受ける
+    for (const url of ["/diagrams/entry", "/", `http://github.com/cardene777/dragon`, REPO]) {
+      expect(parse(withLink(url)).ok, `飛び先 ${url} を受けない: ${JSON.stringify(firstError(parse(withLink(url))))}`).toBe(true);
+      expect(parse(withSource(url)).ok, `出典 ${url} を受けない: ${JSON.stringify(firstError(parse(withSource(url))))}`).toBe(true);
+    }
+
+    // それ以外の形は、書いた行の番号を付けて断り、書ける形を示す
+    for (const url of ["javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,<script>x</script>", "vbscript:msgbox(1)", "diagrams/entry", "ftp://github.com/cardene777/dragon"]) {
+      for (const lang of ["ja", "en"] as const) {
+        const box = firstError(parse(withLink(url), { lang }));
+        expect(box, `${lang} 飛び先 ${url} を断らない`).toMatchObject({ line: 2 });
+        expect(box?.message, `${lang} 飛び先 ${url} の誤りが書ける形を示さない`).toContain("http://");
+        expect(box?.message, `${lang} 飛び先 ${url} の誤りが書ける形を示さない`).toContain("https://");
+        const source = firstError(parse(withSource(url), { lang }));
+        expect(source, `${lang} 出典 ${url} を断らない`).toMatchObject({ line: 6 });
+        expect(source?.message, `${lang} 出典 ${url} の誤りが書ける形を示さない`).toContain("http://");
+        expect(source?.message, `${lang} 出典 ${url} の誤りが書ける形を示さない`).toContain("https://");
+      }
+    }
+  });
+
+  it("notation-without-link-unchanged", () => {
+    const parse = api("parseNotation");
+    const render = draw("renderDiagram");
+    for (const name of EXAMPLES.flatMap((key) => [key, `${key}.en`])) {
+      const parsed = parse(exampleText(`${name}.dragon`));
+      expect(parsed.ok, name).toBe(true);
+      if (!parsed.ok) continue;
+      // 飛び先と出典を書かない図は、原本にも欄を足さず、link を持たない SVG を描く
+      expect(parsed.diagram, name).toEqual(exampleJson(`${name}.json`));
+      const { boxes, steps } = parsed.diagram as { boxes: Json[]; steps: Json[] };
+      expect(boxes.filter((box) => Object.hasOwn(box as object, "link")), `${name} の箱`).toEqual([]);
+      expect(steps.filter((step) => Object.hasOwn(step as object, "sources")), `${name} の段`).toEqual([]);
+      expect(render(parsed.diagram).svg, name).not.toMatch(/<a[\s>]/u);
     }
   });
 });

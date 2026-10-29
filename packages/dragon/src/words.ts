@@ -38,9 +38,9 @@ export const NOW = "now";
 
 /**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
- * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)
+ * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)。`source` は段の出典 (#3199)
  */
-export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "act", "note", "set", "branch", "commit", ...TIME_HEADS] as const;
+export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "source", "act", "note", "set", "branch", "commit", ...TIME_HEADS] as const;
 type Head = (typeof HEADS)[number];
 
 /** 箱と区画の名札の後ろに、見せる名前を続ける語 (`box <名札> as <名前>`) */
@@ -63,11 +63,13 @@ export const AT = "at";
 /**
  * 行ごとに書ける属性の鍵。線の `at` と `into`、`note` の `color`、中身の帯の欄の `meter` は時間軸の図だけが書ける (#3165)。
  * `meter` は `strip` の行の欄ごとに、欄の名前の後ろに書く (`strip <題>: <欄> [meter: <割合>]`)
+ * 箱の `link` は飛び先、段の出典の `url` は出典の在り処 (#3199)
  */
 export const ATTRS = {
   diagram: ["view"],
   group: ["note", "color", "icon"],
-  box: ["note", "color", "icon"],
+  box: ["note", "color", "icon", "link"],
+  source: ["url"],
   edge: ["carry", "tag", "side", "at", "into"],
   note: ["color"],
   set: ["tag"],

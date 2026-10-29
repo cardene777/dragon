@@ -29,6 +29,8 @@ export interface Messages {
   sayTwice: string;
   codeTwice: string;
   emptyCode: string;
+  /** 段の出典の行の形 (#3199) */
+  sourceShape: string;
   declarationInStep: string;
   stepLineBeforeStep: string;
   nestedGroup: string;
@@ -58,6 +60,8 @@ export interface Messages {
   badView: string;
   badCarry: string;
   badSide: string;
+  /** 箱の飛び先 (`link`) か段の出典 (`url`) に、頁を移る形でない URL を書いた (#3199) */
+  badUrl: (key: string) => string;
   carryTwice: string;
   /** 状態遷移図の箱の名札に、始まりか終わりの印の名前を書いた */
   reservedId: (id: string) => string;
@@ -156,8 +160,9 @@ const ja = (): Messages => {
     sayTwice: "1 つの段に say は 1 つまで。長い本文は say の下に字下げして続ける",
     codeTwice: "1 つの段に code は 1 行まで",
     emptyCode: "code の後ろに命令を書く",
+    sourceShape: "source は source <名前> [url: <URL>] の形で書く",
     declarationInStep: "group と box と strip と branch と、scale と period と row と point と zoom は最初の step より前に書く",
-    stepLineBeforeStep: "線と say と code と act と note と set と commit と枝を切る行と、now と mark と span の行は step の下に書く",
+    stepLineBeforeStep: "線と say と code と source と act と note と set と commit と枝を切る行と、now と mark と span の行は step の下に書く",
     nestedGroup: "group の中に group は書けない。先に end で閉じる",
     strayEnd: "end の前に、閉じる group が無い",
     endTakesNothing: "end の後ろには何も書かない",
@@ -185,6 +190,7 @@ const ja = (): Messages => {
     badView: `view は ${list(VIEWS)} のどれか`,
     badCarry: `carry は ${list(CARRIES)} のどれか。札は tag: <値> で書く`,
     badSide: `side は ${list(SIDES)} のどれか`,
+    badUrl: (key) => `${key} には / で始まる path か、http:// か https:// で始まる URL を書く`,
     carryTwice: "運ぶ物は 1 本の線に 1 つまで。carry と tag は一緒に書かない",
     reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
     intoStart: "start へ入る線は書けない。start は始まりの印で、線は start から出る",
@@ -268,8 +274,9 @@ const en = (): Messages => {
     sayTwice: "A step takes one say. Continue a long body on indented lines below it",
     codeTwice: "A step takes at most one code line",
     emptyCode: "Write the command after code",
+    sourceShape: "Write a source as source <name> [url: <URL>]",
     declarationInStep: "Write group, box, strip, branch, scale, period, row, point and zoom before the first step",
-    stepLineBeforeStep: "Write lines, say, code, act, note, set, commit, branch cuts, now, mark and span under a step",
+    stepLineBeforeStep: "Write lines, say, code, source, act, note, set, commit, branch cuts, now, mark and span under a step",
     nestedGroup: "A group cannot hold another group. Close it with end first",
     strayEnd: "There is no group for this end to close",
     endTakesNothing: "Write nothing after end",
@@ -297,6 +304,7 @@ const en = (): Messages => {
     badView: `view is one of ${list(VIEWS)}`,
     badCarry: `carry is one of ${list(CARRIES)}. Write a tag as tag: <value>`,
     badSide: `side is one of ${list(SIDES)}`,
+    badUrl: (key) => `Write a path that starts with / or a URL that starts with http:// or https:// for ${key}`,
     carryTwice: "A line carries one thing. Do not write carry and tag together",
     reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,
     intoStart: "A line cannot go into start. start is the start mark, and lines leave it",

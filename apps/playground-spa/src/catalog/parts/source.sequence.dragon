@@ -1,0 +1,15 @@
+sequence 出典
+
+box 利用者
+box 認可 as 認可サーバー
+
+step 頼む
+  say source で段に出典の名前と url を書く。1 つの段に何行でも書ける。
+  source dragon の README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  利用者 -> 認可: 許可を求める
+
+step 返す
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前の link で出る。
+  source 記法の書き方 [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source dragon の repo [url: https://github.com/cardene777/dragon]
+  認可 -> 利用者: 許可した

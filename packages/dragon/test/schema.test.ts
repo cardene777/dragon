@@ -77,6 +77,34 @@ describe("原本の JSON の検査", () => {
     expect(pointers(result)).toContain("/version");
   });
 
+  it("schema-accepts-link-and-sources", () => {
+    // 箱の飛び先と、段の出典 (名前と URL の組の並び) は書かなくてよい欄 (#3199)
+    const validate = api("validateDiagram");
+    const sources = [
+      { name: "dragon の README", url: "https://github.com/cardene777/dragon/blob/main/README.md" },
+      { name: "中の仕組み", url: "/diagrams/entry" },
+    ];
+    const architecture = patched(patched(smallArchitecture(), ["boxes", 0, "link"], "/diagrams/entry"), ["steps", 0, "sources"], sources);
+    const sequence = patched(patched(smallSequence(), ["boxes", 1, "link"], "http://github.com/cardene777/dragon"), ["steps", 0, "sources"], sources);
+    expect(validate(architecture)).toEqual({ ok: true });
+    expect(validate(sequence)).toEqual({ ok: true });
+
+    // 頁を移らない形の飛び先と出典は、その欄の場所を示して断る
+    for (const lang of ["ja", "en"] as const) {
+      const cases: [ReturnType<typeof smallSequence>, string][] = [
+        [patched(architecture, ["boxes", 0, "link"], "javascript:alert(1)"), "/boxes/0/link"],
+        [patched(architecture, ["steps", 0, "sources", 1, "url"], "javascript:alert(1)"), "/steps/0/sources/1/url"],
+        [patched(sequence, ["boxes", 1, "link"], "diagrams/entry"), "/boxes/1/link"],
+      ];
+      for (const [diagram, pointer] of cases) {
+        const result = validate(diagram, { lang });
+        expect(pointers(result), `${lang} ${pointer}`).toEqual([pointer]);
+        const message = result.ok ? "" : (result.errors[0]?.message ?? "");
+        expect(message, `${lang} ${pointer} の誤りが書ける形を示さない`).toContain("https://");
+      }
+    }
+  });
+
   it("schema-accepts-common-skeleton-with-form-fields", () => {
     const validate = api("validateDiagram");
     // 生存線の欄を持つ時系列図と、種類の欄を持たない構成図

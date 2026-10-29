@@ -34,12 +34,13 @@ dragon は 0.35.0 で図の書き方と描き方を根本から作り直した�
 |---|---|
 | `sequence` `architecture` `state` `git` | 図の種類と題。見せ方は属性の `view` |
 | `group` … `end` | 区画。間に書いた `box` の行の箱を区画の中に置く |
-| `box` | 箱。`as` の後が見せる名前 |
+| `box` | 箱。`as` の後が見せる名前。飛び先は属性の `link` で、描いた図で箱が link になる |
 | `strip` | 中身の帯と、その欄 |
 | `branch` | 枝分かれの図の枝。上から順に帯を並べる |
 | `step` | 段。次の `step` まで続く |
 | `say` | 段の本文。長い時は次の行から字下げして続ける |
 | `code` | 段で打つ命令 |
+| `source` | 段の出典。名前の後ろの属性 `url` に在り処を書き、読み上げの段の一覧に名前の link で出る |
 | `commit` 名札 `on` 枝 | 枝分かれの図で枝に積む commit。`copy` で当て直しの commit、`merge` で merge commit になり、`hash` と `note` は属性 |
 | 枝 `from` commit | 枝分かれの図で、その commit から枝を切る |
 | 名札 `->` 名札 | 線。運ぶ物 (`carry`、`tag`) と名前を置く側 (`side`) は属性 |

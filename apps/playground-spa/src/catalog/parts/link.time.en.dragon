@@ -1,0 +1,18 @@
+time Link
+
+scale slot 12s 6
+row block
+zoom 0-2
+
+box proposer
+box block [link: https://github.com/cardene777/dragon]
+
+step Ask
+  say link on a box makes the box a link to that place in the drawn diagram.
+  proposer -> block [at: 0]
+  now -> 0
+
+step Next
+  say When another diagram draws what is inside the box, link to its page.
+  proposer -> block [at: 1]
+  now -> 1

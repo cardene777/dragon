@@ -33,6 +33,8 @@ export interface Box {
   color?: Color;
   icon?: string;
   region?: string;
+  /** 飛び先。描いた図ではこの箱がここへの link になる。`/` で始まる path か、http:// か https:// で始まる URL (#3199) */
+  link?: string;
 }
 
 export type Carry = { kind: "envelope" } | { kind: "tag"; text: string } | { kind: "coin" } | { kind: "none" };
@@ -144,10 +146,18 @@ export interface StatePath {
   label?: string;
 }
 
+/** 段の出典。読み上げの段の一覧に、名前を URL への link にして出す。URL の形は箱の飛び先と同じ (#3199) */
+export interface StepSource {
+  name: string;
+  url: string;
+}
+
 export interface Step {
   title: string;
   body: string;
   code?: string;
+  /** 書いた順の出典。書かない段は欄を持たない */
+  sources?: StepSource[];
   events: DiagramEvent[];
 }
 
@@ -214,6 +224,9 @@ const RATIO = /%\)\$$/u;
 
 const escape = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
 
+/** 箱の飛び先と段の出典の URL の決まりの場所 (#3199) */
+const URL_RULE = "#/definitions/url/pattern";
+
 /** commit の hash の決まり (`^[0-9a-f]{<最小>,<最大>}$`)。字の数の幅を読む */
 const HEX = /^\^\[0-9a-f\]\{(\d+),(\d+)\}\$$/u;
 
@@ -271,6 +284,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
     case "minLength":
       return { pointer: at, message: m.minLength(Number(params.limit)) };
     case "pattern": {
+      if (error.schemaPath === URL_RULE) return { pointer: at, message: m.url };
       const pattern = String(params.pattern);
       const hex = HEX.exec(pattern);
       if (hex) return { pointer: at, message: m.hex(Number(hex[1]), Number(hex[2])) };
