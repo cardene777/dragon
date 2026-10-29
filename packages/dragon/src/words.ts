@@ -16,7 +16,7 @@ export type NotationLang = "ja" | "en";
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */
-export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true });
+export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true });
 
 /**
  * 状態遷移図の始まりと終わりの印の名前 (#3163)。線の送る側に `start`、受ける側に `finish` を書き、
@@ -25,12 +25,26 @@ export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true,
 export const STATE_ENDS = ["start", "finish"] as const;
 export type StateEnd = (typeof STATE_ENDS)[number];
 
-/** 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる */
-export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "act", "note", "set"] as const;
+/**
+ * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
+ * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)
+ */
+export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "act", "note", "set", "branch", "commit"] as const;
 type Head = (typeof HEADS)[number];
 
 /** 箱と区画の名札の後ろに、見せる名前を続ける語 (`box <名札> as <名前>`) */
 export const AS = "as";
+
+/** 枝分かれの図 (#3164) の `commit` の行で、積む枝、当て直しの元、取り込む枝を続ける語 (`commit <名札> on <枝> copy <commit>`) */
+export const ON = "on";
+export const COPY = "copy";
+export const MERGE = "merge";
+/** 枝分かれの図で枝を切る行の、枝の後ろに切る commit を続ける語 (`<枝> from <commit>`) */
+export const FROM = "from";
+/** 枝分かれの図で今いる場所を指す札の名前。枝と commit と箱の名札に使えない */
+export const HEAD = "HEAD";
+/** 枝分かれの図の行の中の語のうち、行の頭の語でも属性でもない語。見本帳の部品が受け持つ語に数える (`on` は commit の行に必ず書くので数えない) */
+export const GIT_WORDS = [FROM, COPY, MERGE] as const;
 
 /** 行ごとに書ける属性の鍵 */
 export const ATTRS = {
@@ -39,6 +53,8 @@ export const ATTRS = {
   box: ["note", "color", "icon"],
   edge: ["carry", "tag", "side"],
   set: ["tag"],
+  branch: ["note"],
+  commit: ["hash", "note"],
 } as const;
 
 /** `carry` に書ける運ぶ物。封筒は書かない時、札は `tag` で書く */

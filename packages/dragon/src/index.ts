@@ -18,6 +18,8 @@ export {
   type Diagram,
   type DiagramEvent,
   type FieldError,
+  type GitBranch,
+  type GitCommit,
   type LabelSide,
   type Region,
   type StatePath,
