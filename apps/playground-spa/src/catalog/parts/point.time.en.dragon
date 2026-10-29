@@ -1,0 +1,17 @@
+time Point
+
+scale epoch 6.4min 4 [from: 100]
+row final
+point C100 at 0
+point C101 at 2
+
+step Change the state
+  say point puts a flag circle under the marks of a unit, and note rewrites its state.
+  note C100: Proposed [color: blue]
+  now -> 0
+
+step Change the color
+  say color on note changes the color of the circle. Lines can join two points.
+  note C100: Final [color: green]
+  C100 -> C101: next epoch [carry: none]
+  now -> 2

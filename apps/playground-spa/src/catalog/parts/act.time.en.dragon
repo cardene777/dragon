@@ -1,0 +1,17 @@
+time Action
+
+scale slot 12s 6
+row block
+zoom 0-2
+
+box proposer [icon: user]
+box block [icon: box]
+
+step Act
+  say act shows what a box does by itself, in the small text under it.
+  act proposer: build a block
+
+step Hand over
+  say Draw a line after the action, and what it made reaches the next box.
+  proposer -> block [at: 0]
+  now -> 0

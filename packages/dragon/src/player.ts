@@ -6,7 +6,10 @@
  * 図そのものは読み上げから隠して同じ中身を 2 度読ませない。
  * 見せ方は枠の幅で選び (`view.ts`)、寄って追う時は窓と全体図で描き直す。
  * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
+ * 色は `options.palette` の名前の色味に `options.colors` の色の値を重ね、図と全体図と釦と段の帯を同じ色で塗る (#3198)。
  * 段が替わるたびに `options.onStep` で今の段を知らせ、頁の側が段の札や進み具合を出せるようにする (#3031)。
+ * 置いた時に流さず決めた段で止めて置く (`options.pausedAt`) ことと、1 度だけ流して最後の段で止める (`options.playOnce`) ことを選べる。
+ * 止め絵を選んだ図 (`options.still`) は、最後の段で止まった時に全ての段の線の名前を出す (#3200)。
  * 頁は `goTo` で段へ移って止め、`mark` で図の上に点線の四角を描く。頁の側では SVG を組まないので、編集画面が字の重なりを囲む時もこれを呼ぶ (#3178)。
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
  * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、段を送る釦を指で押せる大きさにして段の番号と上の段に並べ、
@@ -14,8 +17,8 @@
  */
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
-import { FONT_VARS, LOOK, paletteVars, resolvePalette, type TextStyle, TYPE } from "./look/values";
-import { drawSvg, type RenderOptions, renderDiagram } from "./render/svg";
+import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
+import { drawSvg, paletteOf, type RenderOptions, renderDiagram } from "./render/svg";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
 
@@ -27,6 +30,10 @@ export interface PlayerOptions extends RenderOptions {
    * 枠の高さが決まっている置き場 (カタログの拡大の重ね窓) で使う。枠の高さが図に合わせて伸びる置き場で使うと、描くたびに低くなる
    */
   fitHeight?: boolean;
+  /** 置いた時に流さず、段 `pausedAt` (0 から) の止め絵で止めて置く。段の数を超えた時は最後の段で止める。書かなければ置いた時から流す (#3200) */
+  pausedAt?: number;
+  /** 流した時に最後の段の止め絵で止め、繰り返さない。最後の段で止まった図を流すと、最初の段から流し直す (#3200) */
+  playOnce?: boolean;
 }
 
 export interface Player {
@@ -115,7 +122,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   const rendered = renderDiagram(diagram, options);
   const lang = options.lang ?? "ja";
   const words = FIGURE_TEXT[lang];
-  const palette = resolvePalette(rendered.palette);
+  const palette = paletteOf(options, rendered.theme);
   const { timeline } = rendered;
   const steps = rendered.diagram.steps;
   const count = steps.length;
@@ -236,9 +243,12 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   let width = frameWidth();
   let height = frameHeight();
   let svg: SVGSVGElement | null = null;
-  let step = 0;
-  let playing = !reduce;
-  let at = reduce ? (timeline.stills[0] ?? 0) : 0;
+  // 止めて置く段を渡された図は、動きを嫌う人と同じく止め絵で置く
+  let step = options.pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, options.pausedAt));
+  let playing = !reduce && options.pausedAt === undefined;
+  let at = playing ? 0 : (timeline.stills[step] ?? 0);
+  /** 1 度だけ流す図が止まる時刻 (最後の段の止め絵) */
+  const lastStill = timeline.stills[count - 1] ?? 0;
   let born = Date.now();
   let marked: readonly Rect[] = [];
 
@@ -320,11 +330,26 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
     restart(playing ? span.start : (timeline.stills[step] ?? span.start), playing);
   };
 
+  /** 流し始める。1 度だけ流す図が最後の段の止め絵まで来ていれば、最初の段から流し直す */
+  const resume = (): void => {
+    if (options.playOnce && at >= lastStill) {
+      step = 0;
+      at = 0;
+    }
+    restart(at, true);
+  };
+
   place(markup());
   show();
 
   const timer = win?.setInterval(() => {
     if (!playing) return;
+    // 1 度だけ流す図は、1 周の中の時刻に直す前の経った時間で最後の段の止め絵まで来たかを見る
+    if (options.playOnce && at + (Date.now() - born) / 1000 >= lastStill) {
+      step = count - 1;
+      restart(lastStill, false);
+      return;
+    }
     const s = stepAt(now());
     if (s !== step) {
       step = s;
@@ -333,7 +358,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   }, 120);
   const onPrev = (): void => go(step - 1);
   const onNext = (): void => go(step + 1);
-  const onToggle = (): void => (playing ? restart(now(), false) : restart(at, true));
+  const onToggle = (): void => (playing ? restart(now(), false) : resume());
   // 段の番号を押すとその段へ移る
   const onFigure = (event: Event): void => {
     const target = (event.target as Element | null)?.closest?.("[data-step]");
@@ -373,7 +398,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
     next: onNext,
     prev: onPrev,
     play: () => {
-      if (!playing) restart(at, true);
+      if (!playing) resume();
     },
     pause: () => {
       if (playing) restart(now(), false);

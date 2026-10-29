@@ -79,6 +79,27 @@ export function motionFrom(rendered: Rendered): Motion {
   return { rendered, doc, value, opacity };
 }
 
+/** 札の左上と字。線の名前の札と処理の札の置き場所 (`layout.labels`、`layout.actions`) をそのまま渡せる */
+export interface Tag {
+  x: number;
+  y: number;
+  text: string;
+}
+
+/**
+ * 札 (`cls` が線の名前の `dg-cap` か処理の `dg-act`) のうち、左上と字が `tag` に合う物の、時刻 `t` 秒の見える濃さ (#3200)。
+ * 同じ札を 2 度描く図 (止め絵で全ての段の名前を出し直す図) は、濃い方を読む。合う札が無ければ 0
+ */
+export function tagOpacity(motion: Motion, cls: "dg-cap" | "dg-act", tag: Tag, t: number): number {
+  let best = 0;
+  for (const g of motion.doc.querySelectorAll(`g.${cls}`)) {
+    const rect = g.querySelector("rect");
+    const near = (name: string, v: number): boolean => Math.abs(Number(rect?.getAttribute(name)) - v) < 0.01;
+    if (g.querySelector("text")?.textContent === tag.text && near("x", tag.x) && near("y", tag.y)) best = Math.max(best, motion.opacity(g, t));
+  }
+  return best;
+}
+
 /**
  * SVG の字の keyframes から、部品の性質 `prop` の時刻 `t` 秒の値 (数の並び) を求める。動かない性質は `undefined`。
  * 再生の部品に置いた寄って追う図のように、`renderDiagram` の `svg` でない SVG を読む時はこれを使う

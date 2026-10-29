@@ -1,0 +1,18 @@
+time Box
+
+scale slot 12s 6
+row block
+zoom 0-2
+
+box proposer
+box block
+
+step Propose
+  say A box line puts the same box in every column of the zoom band.
+  proposer -> block [at: 0]
+  now -> 0
+
+step Next
+  say Declare a box once, and it shows in every column in the same order.
+  proposer -> block [at: 1]
+  now -> 1

@@ -1,0 +1,18 @@
+time Icon
+
+scale slot 12s 6
+row block
+zoom 0-2
+
+box proposer [icon: user]
+box block [icon: box]
+
+step Add an icon
+  say icon puts a picture above the box name.
+  proposer -> block [at: 0]
+  now -> 0
+
+step Next
+  say The icon names you can use are listed on the icon part page.
+  proposer -> block [at: 1]
+  now -> 1

@@ -1,0 +1,18 @@
+time 小さな字
+
+scale slot 12s 6
+row ブロック
+point C at 0
+zoom 0-2
+
+box 提案者 [note: 1 人を選ぶ]
+box ブロック
+
+step 箱の下の字
+  say note で、箱の名前の下に小さな字を添える。
+  提案者 -> ブロック [at: 0]
+  now -> 0
+
+step 書き換える
+  say 段の中の note の行で、節目の状態の字を書き換える。
+  note C: 提案済み

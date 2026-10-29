@@ -1,0 +1,13 @@
+time 印の列
+
+scale slot 12s 8
+row ブロック [color: blue, empty: 2 5]
+row 票 [color: amber]
+
+step 印を塗る
+  say row で印の列を上から宣言する。針が過ぎた目盛りの印が塗られ、empty の目盛りは空きの印になる。
+  now -> 7
+
+step 色を変える
+  say 段の中の mark で、列の目盛りの範囲の印の色を変える。
+  mark ブロック 0-3 [color: green]

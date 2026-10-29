@@ -16,6 +16,7 @@ import {
   type SceneBox,
   type SceneEdge,
   type SceneEnd,
+  type SceneField,
   type SceneLabel,
   type ScenePath,
   type SceneRegion,
@@ -29,7 +30,9 @@ import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
 export const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const r1 = (v: number): number => Math.round(v * 100) / 100;
+/** 箱の飛び先 (#3199)。飛び先を持つ箱の札を、その飛び先への link で包む */
+export const linkTo = (link: string | undefined, markup: string): string => (link === undefined ? markup : `<a href="${esc(link)}">${markup}</a>`);
+const r1 =(v: number): number => Math.round(v * 100) / 100;
 
 /** 色の役を部品へ渡す変数。 */
 export const cs = (k: ColorKey): string => (k === "coin" ? "--c:var(--coin);--ct:var(--coint)" : `--c:var(--c-${k});--ct:var(--t-${k})`);
@@ -301,23 +304,34 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false): { ba
   };
 }
 
-/** 線の名前の札。その段の間だけ出し、段の終わりまでに消え終わる。時刻の表が `after` を持つ時は、その間だけ札を外した灰の字で薄く残す (#3171)。 */
+/**
+ * 線の名前の札。その段の間だけ出し、段の終わりまでに消え終わる。時刻の表が `after` を持つ時は、その間だけ札を外した灰の字で薄く残す (#3171)。
+ * `again` を持つ時は (止め絵を選んだ図、#3200)、その間に同じ札をもう 1 つ出す。
+ */
 export function label(l: SceneLabel, time: LabelTime, ctx: Ctx): string {
   const ja = l.family === "sans" ? " dg-capj" : "";
   const { radius } = LOOK.label;
+  const shown: Shown[] = time.again ? [[time.start, time.end], [time.again.start, time.again.end]] : [[time.start, time.end]];
   // 札の間は札の四角を、薄く残す間は札を外した字の四角を記録する
-  ctx.ink.push({ text: l.text, rect: l, shown: [[time.start, time.end]], boxed: true });
+  ctx.ink.push({ text: l.text, rect: l, shown, boxed: true });
   if (time.after) ctx.ink.push({ text: l.text, rect: textBox(l.text, l.x + l.w / 2, l.y + l.h / 2 + LOOK.baseline.label, l.family === "sans" ? TYPE.labelJa : TYPE.label, "middle"), shown: [[time.after.start, time.after.end]] });
   const x = r1(l.x + l.w / 2);
   const y = r1(l.y + l.h / 2 + LOOK.baseline.label);
   const past = time.after ? `<g class="dg-cap-past${l.family === "sans" ? " dg-cap-pastj" : ""} dg-a" style="${ctx.m.vis(time.after.start, time.after.end)}"><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>` : "";
-  return `${past}<g class="dg-cap${ja} dg-a" style="${cs(l.color)};${ctx.m.rise(time.start, time.end, true)}"><rect x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${radius}"/><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`;
+  const caps = shown.map(([a, b]) => `<g class="dg-cap${ja} dg-a" style="${cs(l.color)};${ctx.m.rise(a, b, true)}"><rect x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${radius}"/><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`);
+  return `${past}${caps.join("")}`;
 }
 
-/** 時系列図の箱の中の処理の札。その段の間だけ生存線の上に出す。 */
-export function action(a: SceneAction, at: number, until: number, ctx: Ctx): string {
-  ctx.ink.push({ text: a.text, rect: a, shown: [[at, until]], boxed: true });
-  return `<g class="dg-act dg-a" style="${cs(a.color)};${ctx.m.rise(at, until, true)}"><rect x="${r1(a.x)}" y="${r1(a.y)}" width="${r1(a.w)}" height="${a.h}" rx="${LOOK.action.radius}"/><text x="${r1(a.x + a.w / 2)}" y="${r1(a.y + a.h / 2 + LOOK.baseline.action)}" text-anchor="middle">${esc(a.text)}</text></g>`;
+/** 時系列図の箱の中の処理の札。その段の間だけ生存線の上に出す。`again` を渡すと (止め絵を選んだ図、#3200)、その間に同じ札をもう 1 つ出す。 */
+export function action(a: SceneAction, at: number, until: number, ctx: Ctx, again?: Span): string {
+  const shown: Shown[] = again ? [[at, until], [again.start, again.end]] : [[at, until]];
+  ctx.ink.push({ text: a.text, rect: a, shown, boxed: true });
+  return shown
+    .map(
+      ([from, to]) =>
+        `<g class="dg-act dg-a" style="${cs(a.color)};${ctx.m.rise(from, to, true)}"><rect x="${r1(a.x)}" y="${r1(a.y)}" width="${r1(a.w)}" height="${a.h}" rx="${LOOK.action.radius}"/><text x="${r1(a.x + a.w / 2)}" y="${r1(a.y + a.h / 2 + LOOK.baseline.action)}" text-anchor="middle">${esc(a.text)}</text></g>`,
+    )
+    .join("");
 }
 
 function carrierShape(e: SceneEdge, sh: string): string {
@@ -440,8 +454,9 @@ export interface FieldChange {
 /**
  * 中身の帯。`now` を立てると (状態遷移図、#3171)、段の中で変わった値をその段の終わりまで線の色 (今の状態の色) で描き、
  * 欄の名前の横に同じ色の点を置く。帯の通った状態の欄は、`arrivals` が持つ着いた時刻に点を塗る。
+ * `meter` を渡すと (時間軸の図、#3165)、物差しの欄は値の字の代わりに `meter` が描く物差しを置く
  */
-export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: Ctx, now = false, arrivals = new Map<string, number>()): string {
+export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: Ctx, now = false, arrivals = new Map<string, number>(), meter?: (field: SceneField) => string | undefined): string {
   const { m, sh } = ctx;
   const S = LOOK.strip;
   const my = s.y + S.h / 2;
@@ -457,6 +472,11 @@ export function strip(s: SceneStrip, changes: Map<string, FieldChange[]>, ctx: C
       parts.push(`<line class="dg-sep" x1="${r1(sx)}" y1="${r1(field.y + S.sepInset)}" x2="${r1(sx)}" y2="${r1(field.y + S.h - S.sepInset)}"/>`);
     }
     parts.push(write(ctx.ink, "dg-fl", field.x, field.y + S.nameY, field.name, TYPE.fieldName));
+    const gauge = meter?.(field);
+    if (gauge !== undefined) {
+      parts.push(gauge);
+      return;
+    }
     const list = changes.get(field.name) ?? [];
     const values = list.filter((c) => c.value !== undefined);
     const tags = list.filter((c) => c.tag !== undefined);

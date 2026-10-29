@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "kind": "time",
+  "title": "The 7-day wait to withdraw from L2 to L1",
+  "boxes": [],
+  "strip": {
+    "title": "Withdrawal",
+    "fields": [
+      "Elapsed",
+      "Dispute days left",
+      "Withdrawal"
+    ]
+  },
+  "steps": [
+    {
+      "title": "Request the withdrawal",
+      "body": "The user sends a withdrawal on L2. It takes seconds inside L2, but receiving it on L1 is still a while away.",
+      "events": [
+        {
+          "type": "swap",
+          "box": "request",
+          "text": "Requested",
+          "color": "violet"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "0 d"
+        },
+        {
+          "type": "strip",
+          "field": "Withdrawal",
+          "value": "Requested"
+        }
+      ]
+    },
+    {
+      "title": "Post the state to L1",
+      "body": "L2 posts the state that bundles the transactions to L1. From this post, anyone has 7 days to dispute it.",
+      "events": [
+        {
+          "type": "now",
+          "to": 0
+        },
+        {
+          "type": "swap",
+          "box": "request",
+          "text": "Posted to L1",
+          "color": "blue"
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "1 d"
+        },
+        {
+          "type": "strip",
+          "field": "Dispute days left",
+          "value": "7 d"
+        }
+      ]
+    },
+    {
+      "title": "Wait 7 days",
+      "body": "If the posted state is wrong, anyone can submit a fraud proof within the 7 days and cancel it. With no dispute the state becomes settled.",
+      "events": [
+        {
+          "type": "span",
+          "from": 1,
+          "to": 7,
+          "text": "7 days to dispute",
+          "shape": "box",
+          "color": "amber"
+        },
+        {
+          "type": "now",
+          "to": 7
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "8 d"
+        },
+        {
+          "type": "strip",
+          "field": "Dispute days left",
+          "value": "0 d"
+        }
+      ]
+    },
+    {
+      "title": "Receive on L1",
+      "body": "No dispute came in the 7 days, so the user proves the withdrawal on L1 and receives the assets.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "request",
+          "to": "receive",
+          "label": "withdraw",
+          "carry": {
+            "kind": "coin"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "receive",
+          "text": "Received",
+          "color": "green"
+        },
+        {
+          "type": "now",
+          "to": 8
+        },
+        {
+          "type": "strip",
+          "field": "Elapsed",
+          "value": "9 d"
+        },
+        {
+          "type": "strip",
+          "field": "Withdrawal",
+          "value": "Received"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "scale": {
+      "unit": "day",
+      "length": "1d",
+      "count": 10
+    },
+    "rows": [
+      {
+        "id": "batch",
+        "name": "Posted to L1",
+        "color": "blue"
+      }
+    ],
+    "points": [
+      {
+        "id": "request",
+        "at": 0
+      },
+      {
+        "id": "receive",
+        "at": 8
+      }
+    ]
+  }
+}

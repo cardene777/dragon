@@ -51,6 +51,15 @@ export const PARTS: readonly Part[] = [
   { id: "commit", kinds: ["git"], words: ["head:commit", "attr:commit.hash", "attr:commit.note"] },
   { id: "copy", kinds: ["git"], words: ["git:copy"] },
   { id: "merge", kinds: ["git"], words: ["git:merge"] },
+  // 時間軸の図 (#3165)。中身の帯の物差し (`attr:strip.meter`) は時間軸の図でしか書けないので、目盛りと針の部品が受け持つ
+  {
+    id: "scale",
+    kinds: ["time"],
+    words: ["kind:time", "head:scale", "attr:scale.from", "head:period", "attr:period.from", "head:span", "attr:span.shape", "attr:span.color", "attr:strip.meter"],
+  },
+  { id: "row", kinds: ["time"], words: ["head:row", "attr:row.color", "attr:row.empty", "head:mark", "attr:mark.color"] },
+  { id: "point", kinds: ["time"], words: ["head:point", "attr:note.color"] },
+  { id: "zoom", kinds: ["time"], words: ["head:zoom", "attr:edge.at", "attr:edge.into"] },
 ];
 
 /** どの図でも使える部品か。図の種類を全部持つ */
@@ -71,6 +80,7 @@ export const snippetOf = (id: PartId, kind: Kind, lang: Lang): string =>
 const events = (d: Diagram): DiagramEvent[] => d.steps.flatMap((step) => step.events);
 const edges = (d: Diagram) => events(d).flatMap((e) => (e.type === "edge" ? [e] : []));
 const commits = (d: Diagram) => events(d).flatMap((e) => (e.type === "commit" ? [e] : []));
+const spans = (d: Diagram) => events(d).flatMap((e) => (e.type === "span" ? [e] : []));
 /** 札を運ぶ線のうち、札を書いた線。枝分かれの図の線は書かなければ送る側の名前の札を運ぶので、その札は書いた札に数えない */
 const writtenTag = (d: Diagram, e: ReturnType<typeof edges>[number]): boolean => e.carry.kind === "tag" && !(d.kind === "git" && e.carry.text === e.from);
 
@@ -119,6 +129,25 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "git:from": (d) => events(d).some((e) => e.type === "branch"),
   "git:copy": (d) => commits(d).some((c) => c.copy !== undefined),
   "git:merge": (d) => commits(d).some((c) => c.merge !== undefined),
+  "kind:time": (d) => d.kind === "time",
+  "head:scale": (d) => d.time !== undefined,
+  "attr:scale.from": (d) => d.time?.scale.from !== undefined,
+  "head:period": (d) => d.time?.period !== undefined,
+  "attr:period.from": (d) => d.time?.period?.from !== undefined,
+  "head:span": (d) => spans(d).length > 0,
+  "attr:span.shape": (d) => spans(d).some((e) => e.shape !== undefined),
+  "attr:span.color": (d) => spans(d).some((e) => e.color !== undefined),
+  "attr:strip.meter": (d) => (d.strip?.meters ?? []).length > 0,
+  "head:row": (d) => (d.time?.rows ?? []).length > 0,
+  "attr:row.color": (d) => (d.time?.rows ?? []).some((r) => r.color !== undefined),
+  "attr:row.empty": (d) => (d.time?.rows ?? []).some((r) => r.empty !== undefined),
+  "head:mark": (d) => events(d).some((e) => e.type === "mark"),
+  "attr:mark.color": (d) => events(d).some((e) => e.type === "mark"),
+  "head:point": (d) => (d.time?.points ?? []).length > 0,
+  "attr:note.color": (d) => events(d).some((e) => e.type === "swap" && e.color !== undefined),
+  "head:zoom": (d) => d.time?.zoom !== undefined,
+  "attr:edge.at": (d) => edges(d).some((e) => e.at !== undefined),
+  "attr:edge.into": (d) => edges(d).some((e) => e.into !== undefined),
 };
 
 /** 見本の名前と、日本語の記法から作った図。読めない見本は外す */

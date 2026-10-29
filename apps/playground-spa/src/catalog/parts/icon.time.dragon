@@ -1,0 +1,18 @@
+time 絵
+
+scale slot 12s 6
+row ブロック
+zoom 0-2
+
+box 提案者 [icon: user]
+box ブロック [icon: box]
+
+step 絵を付ける
+  say icon で、箱の名前の上に絵柄を付ける。
+  提案者 -> ブロック [at: 0]
+  now -> 0
+
+step 続ける
+  say 使える絵柄の名前は、絵の部品の頁に並んでいる。
+  提案者 -> ブロック [at: 1]
+  now -> 1

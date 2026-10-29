@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "kind": "time",
+  "title": "L2 から L1 へ引き出すまでの 7 日の待ち",
+  "boxes": [],
+  "strip": {
+    "title": "引き出しの進み",
+    "fields": [
+      "経過",
+      "異議を出せる残り",
+      "引き出し"
+    ]
+  },
+  "steps": [
+    {
+      "title": "引き出しを申し込む",
+      "body": "利用者は L2 で引き出しの取引を出す。L2 の中では数秒で済むが、L1 で受け取るのはまだ先になる。",
+      "events": [
+        {
+          "type": "swap",
+          "box": "申し込み",
+          "text": "申し込んだ",
+          "color": "violet"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "0 日"
+        },
+        {
+          "type": "strip",
+          "field": "引き出し",
+          "value": "申し込んだ"
+        }
+      ]
+    },
+    {
+      "title": "状態を L1 へ出す",
+      "body": "L2 は取引をまとめた状態を L1 へ出す。この提出から、誰でも異議を出せる 7 日が始まる。",
+      "events": [
+        {
+          "type": "now",
+          "to": 0
+        },
+        {
+          "type": "swap",
+          "box": "申し込み",
+          "text": "L1 に提出",
+          "color": "blue"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "1 日"
+        },
+        {
+          "type": "strip",
+          "field": "異議を出せる残り",
+          "value": "7 日"
+        }
+      ]
+    },
+    {
+      "title": "7 日待つ",
+      "body": "出した状態が誤っていれば、誰でも 7 日の間に不正の証明を出して取り消せる。異議が無ければ状態は確かになる。",
+      "events": [
+        {
+          "type": "span",
+          "from": 1,
+          "to": 7,
+          "text": "異議を出せる 7 日",
+          "shape": "box",
+          "color": "amber"
+        },
+        {
+          "type": "now",
+          "to": 7
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "8 日"
+        },
+        {
+          "type": "strip",
+          "field": "異議を出せる残り",
+          "value": "0 日"
+        }
+      ]
+    },
+    {
+      "title": "L1 で受け取る",
+      "body": "7 日の間に異議が出なかったので、利用者は L1 で引き出しを確かめて資産を受け取る。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "申し込み",
+          "to": "受け取り",
+          "label": "引き出す",
+          "carry": {
+            "kind": "coin"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "受け取り",
+          "text": "受け取った",
+          "color": "green"
+        },
+        {
+          "type": "now",
+          "to": 8
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "9 日"
+        },
+        {
+          "type": "strip",
+          "field": "引き出し",
+          "value": "受け取った"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "scale": {
+      "unit": "日",
+      "length": "1d",
+      "count": 10
+    },
+    "rows": [
+      {
+        "id": "提出",
+        "name": "L1 への提出",
+        "color": "blue"
+      }
+    ],
+    "points": [
+      {
+        "id": "申し込み",
+        "at": 0
+      },
+      {
+        "id": "受け取り",
+        "at": 8
+      }
+    ]
+  }
+}

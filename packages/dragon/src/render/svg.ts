@@ -4,16 +4,18 @@
  * 動きは全て SVG の中の CSS の keyframes が回す。1 周の長さは `--T`、止める時刻は `--at`、
  * 止めるか流すかは `--play` の変数で外から変えられる (頁に置く `player.ts` がこれを使う)。
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
+ * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { layoutArchitecture } from "../layout/architecture";
 import { isGitLayout, layoutGit } from "../layout/git";
 import { textWidth } from "../layout/measure";
-import type { Layout, Rect, SceneLabel } from "../layout/scene";
+import type { Layout, Rect, SceneField, SceneLabel } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
 import { layoutState } from "../layout/state";
+import { isTimeLayout, layoutTime } from "../layout/time";
 import { FONTS } from "../look/fonts";
-import { type ColorKey, EASE, FONT_VARS, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
+import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
 import { buildTimeline, type LabelTime, type Span, type Timeline } from "../timeline";
@@ -35,21 +37,33 @@ import {
   headCard,
   label,
   lifeline,
+  linkTo,
   path,
   side,
   strip,
   type SubChange,
 } from "./parts";
 import { drawGit } from "./git";
+import { drawTime, meterField, sansOf, timeFocus } from "./time";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
 export interface RenderOptions {
   /** 色味の名前。書かないか知らない名前なら紙と墨 */
   palette?: string;
+  /**
+   * `palette` の色味に重ねる色の値 (#3198)。鍵は色味が持つ色の変数の名前 (`bg`、`ink`、`c-green` など) で、値は描く `theme` の色になる。
+   * 渡さない色は色味の値のまま残る。色味に無い名前と、色の値として読めない値は、名前を挙げて描かずに断る
+   */
+  colors?: Colors;
   theme?: Theme;
   /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ日本語 (#3001) */
   lang?: NotationLang;
+  /**
+   * 最後の段の止め絵に、全ての段の線の名前と箱の中の処理を最後の段と同じ濃さで出す (#3200)。途中の段の止め絵は今の段の名前だけを出す。
+   * 箱の下の 1 行に出す処理は、その箱で最後に起きた処理か書き換えの字を出す。違う段の名前が重なっても置き直さず、最後の段の重なり (`overlaps`) に出す
+   */
+  still?: boolean;
 }
 
 export interface Rendered {
@@ -158,6 +172,45 @@ const PART_CSS = [
   `.dg-git-n{${font(TYPE.gitNote)};fill:var(--ink2)}`,
   `.dg-git-old{fill:var(--surf);stroke:var(--c);stroke-width:${S.gitOrphan};stroke-dasharray:3 3;stroke-opacity:.6}`,
   `.dg-git-oldl{${font(TYPE.gitId)};fill:var(--ct);opacity:.55}`,
+  // 時間軸の図 (#3165)。和文を含む字は、末尾に j を付けた class で同じ大きさと太さの和文の字にする
+  `.dg-tm-ep{fill:color-mix(in srgb,var(--ink) ${X.timeShade}%,transparent)}`,
+  `.dg-tm-sep{stroke:var(--hair);stroke-width:${S.hair};stroke-dasharray:2 4}`,
+  `.dg-tm-hd{${font(TYPE.timeHead)};fill:var(--ink)}`,
+  `.dg-tm-hdj{${font(sansOf(TYPE.timeHead))}}`,
+  `.dg-tm-slot{fill:none;stroke:var(--line);stroke-width:${S.timeSlot};opacity:.55}`,
+  ".dg-tm-m{fill:var(--c)}",
+  ".dg-tm-x{fill:var(--c-slate)}",
+  `.dg-tm-fr{fill:none;stroke:var(--c-blue);stroke-width:${S.timeFrame};stroke-dasharray:3 2}`,
+  `.dg-tm-gd{fill:none;stroke:color-mix(in srgb,var(--c-blue) ${X.timeGuide}%,transparent);stroke-width:${S.hair};stroke-dasharray:2 3}`,
+  `.dg-tm-ax{fill:none;stroke:var(--line);stroke-width:${S.timeAxis}}`,
+  `.dg-tm-tk{${font(TYPE.timeTick)};fill:var(--mute)}`,
+  `.dg-tm-tkj{${font(sansOf(TYPE.timeTick))}}`,
+  `.dg-tm-en{${font(TYPE.timePeriod)};fill:var(--ink2)}`,
+  `.dg-tm-er{${font(TYPE.timeRange)};fill:var(--mute)}`,
+  `.dg-tm-erj{${font(sansOf(TYPE.timeRange))}}`,
+  `.dg-tm-rn{${font(TYPE.timeRow)};fill:var(--ink2)}`,
+  `.dg-tm-br{fill:none;stroke:var(--c);stroke-width:${S.timeSpan};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-tm-bt{${font(TYPE.spanText)};fill:var(--ct)}`,
+  `.dg-tm-bx{fill:color-mix(in srgb,var(--c) ${X.timeSpan}%,transparent);stroke:var(--c);stroke-width:${S.timeSpan};stroke-dasharray:4 3}`,
+  `.dg-tm-con{fill:none;stroke:var(--line);stroke-width:${S.timeDrop};stroke-linecap:round;stroke-dasharray:0 3.5}`,
+  ".dg-tm-pg{fill:var(--surf);stroke:var(--line);stroke-dasharray:2 2.5}",
+  `.dg-tm-pgl{fill:none;stroke:var(--mute);stroke-width:${S.timeFlag};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-tm-pc{fill:var(--surf);stroke:var(--c);stroke-width:${S.timePoint}}`,
+  `.dg-tm-pcg{fill:none;stroke:var(--c);stroke-width:${S.timeFlag};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-tm-pn{${font(TYPE.pointName)};fill:var(--ink)}`,
+  `.dg-tm-pnj{${font(sansOf(TYPE.pointName))}}`,
+  ".dg-tm-pn-g{fill:var(--mute)}",
+  `.dg-tm-ps{${font(TYPE.pointState)};fill:var(--ct)}`,
+  `.dg-tm-ln{fill:none;stroke:var(--c);stroke-width:${S.edgeOn};stroke-linecap:round;stroke-dasharray:1 2}`,
+  `.dg-tm-nd{stroke:var(--ink);stroke-width:${S.timeNeedle};opacity:.55}`,
+  ".dg-tm-nh{fill:var(--ink)}",
+  ".dg-tm-ph{fill:none;stroke:var(--line);stroke-dasharray:3 3}",
+  `.dg-tm-ex{fill:color-mix(in srgb,var(--c-slate) ${X.timeEmpty}%,var(--surf));stroke:var(--c-slate);stroke-width:${S.timeFrame};stroke-dasharray:3 3}`,
+  `.dg-tm-ext{${font(TYPE.emptyText)};fill:var(--t-slate)}`,
+  ".dg-tm-mt{fill:var(--hair)}",
+  ".dg-tm-mf{fill:var(--c);transform-box:fill-box;transform-origin:0 50%}",
+  `.dg-tm-mk{stroke:var(--ink2);stroke-width:${S.timeMeter}}`,
+  `.dg-tm-ml{${font(TYPE.meterLine)};fill:var(--ink2)}`,
   ".dg-vp-bg{fill:var(--bg)}",
   ".dg-vp-frame{fill:none;stroke:var(--hair)}",
   ".dg-hd-bg{fill:var(--bg)}",
@@ -196,17 +249,22 @@ function involved(diagram: Diagram): Map<string, number[]> {
   return new Map([...on].map(([id, steps]) => [id, [...steps].sort((a, b) => a - b)]));
 }
 
-/** 箱の下の字の移り変わり。書き換えはそのまま残し、構成図の処理はその段の間だけ出して元へ戻す。 */
+/**
+ * 箱の下の字の移り変わり。書き換えはそのまま残し、構成図の処理はその段の間だけ出して元へ戻す。
+ * 止め絵を選んだ図は、その箱で最後に起きたのが処理なら、最後の段で起きることが済んだ時にその処理を出し直して繰り返す前まで残す (#3200)
+ */
 function subChanges(diagram: Diagram, timeline: Timeline, actionsInBox: boolean): Map<string, SubChange[]> {
   type Raw = { t: number; order: number; box: string; set?: string; act?: string | null };
   const raw: Raw[] = [];
+  const { whole } = timeline;
   let order = 0;
   for (const time of timeline.events) {
     const event = diagram.steps[time.step]?.events[time.event];
     if (event?.type === "swap") raw.push({ t: time.at, order: order++, box: event.box, set: event.text });
     if (actionsInBox && event?.type === "action") {
       raw.push({ t: time.at, order: order++, box: event.box, act: event.label });
-      raw.push({ t: (timeline.steps[time.step] as Span).end, order: order++, box: event.box, act: null });
+      const end = (timeline.steps[time.step] as Span).end;
+      if (!whole || end <= whole.start) raw.push({ t: end, order: order++, box: event.box, act: null });
     }
   }
   raw.sort((a, b) => a.t - b.t || a.order - b.order);
@@ -216,7 +274,10 @@ function subChanges(diagram: Diagram, timeline: Timeline, actionsInBox: boolean)
     let acting: string | undefined;
     let shown = base.join("|");
     const list: SubChange[] = [];
-    for (const change of raw.filter((r) => r.box === box.id)) {
+    const changes = raw.filter((r) => r.box === box.id);
+    const latest = [...changes].reverse().find((r) => r.set !== undefined || typeof r.act === "string");
+    if (whole && typeof latest?.act === "string") changes.push({ t: whole.start, order: order++, box: box.id, act: latest.act });
+    for (const change of changes) {
       // 書き換えは、出ている処理の字も置き換える
       if (change.set !== undefined) {
         base = [change.set, "dg-ss-ok"];
@@ -261,18 +322,24 @@ export interface FollowFrame {
   lang: NotationLang;
 }
 
-/** 同じ線の同じ名前を後の段が置く時は、薄く残した名前をその段が始まるまでで消す (#3184) */
+/**
+ * 同じ線の同じ名前を後の段が置く時は、薄く残した名前をその段が始まるまでで消す (#3184)。
+ * 止め絵で全ての段の名前を出し直す間は、同じ所に出る後の段の名前に任せる (#3200)
+ */
 function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): LabelTime {
-  if (l.until === undefined || !time.after) return time;
+  if (l.until === undefined) return time;
+  const { after, again: _again, ...rest } = time;
+  if (!after) return rest;
   const cut = (steps[l.until] as Span).start;
-  const { after, ...rest } = time;
   return cut > after.start ? { ...rest, after: { start: after.start, end: Math.min(after.end, cut) } } : rest;
 }
 
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
 export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = [], traces: Trace[] = []): string {
-  // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける
-  const id = nameOf(`${JSON.stringify(diagram)}|${palette.id}|${theme}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
+  // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける。
+  // 色は色味の名前でなく色の値から名前を作り、色の値を重ねた図 (#3198) と同じ色味の名前の図の変数の規則を分ける
+  const vars = paletteVars(palette, theme);
+  const id = nameOf(`${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
   const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink, traces };
   const on = involved(diagram);
@@ -290,7 +357,10 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
   const isState = layout.kind === "state";
   const arrivals = new Map((timeline.states ?? []).flatMap((s) => (s.lit[0] ? [[s.box, s.lit[0].start] as [string, number]] : [])));
-  if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals));
+  // 時間軸の図の物差しの欄は、満ち具合の動きで棒を伸ばす (#3165)
+  const meters = new Map((timeline.meters ?? []).map((meter) => [meter.field, meter.keys]));
+  const gauge = (field: SceneField): string | undefined => (field.meter ? meterField({ ...field, meter: field.meter }, meters.get(field.name) ?? [[0, 0]], ctx) : undefined);
+  if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals, gauge));
   for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
   // 枝分かれの図の線と commit と札は、枝分かれの図を描く部品が描く (#3164)
   if (isGitLayout(layout)) {
@@ -300,21 +370,28 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.node.push(git.commits);
     L.top.push(git.tags);
   }
+  // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く
+  const timeLayout = isTimeLayout(layout) ? layout : undefined;
+  if (timeLayout) {
+    const drawn = drawTime(timeLayout, diagram, timeline, ctx, subs);
+    L.base.push(drawn.base);
+    L.lit.push(drawn.lit);
+    L.node.push(drawn.node);
+    L.top.push(drawn.top);
+  }
+  const wired = new Set((timeLayout?.wires ?? []).map((w) => `${w.step}/${w.event}`));
   for (const e of layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
-    if (!time) continue;
+    if (!time || (timeLayout && !wired.has(`${e.step}/${e.event}`))) continue;
     const drawn = edge(e, time, ctx, isState);
     L.base.push(drawn.base);
     L.lit.push(drawn.lit);
   }
   const states = new Map((timeline.states ?? []).map((s) => [s.box, s]));
-  // 飛び先を持つ箱は、箱の札をその飛び先への link で包む (#3199)
+  // 飛び先を持つ箱は、箱の札をその飛び先への link で包む (#3199)。時間軸の図の箱は時間軸の図を描く部品が包む
   const links = new Map(diagram.boxes.flatMap((b) => (b.link === undefined ? [] : [[b.id, b.link] as [string, string]])));
-  const linked = (id: string, markup: string): string => {
-    const link = links.get(id);
-    return link === undefined ? markup : `<a href="${esc(link)}">${markup}</a>`;
-  };
-  for (const box of layout.boxes) {
+  const linked = (id: string, markup: string): string => linkTo(links.get(id), markup);
+  for (const box of timeLayout ? [] : layout.boxes) {
     if (box.ghost) {
       L.node.push(linked(box.id, ghostCard(box, ink)));
       continue;
@@ -328,9 +405,13 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
     if (time) L.top.push(label(l, fadeBefore(l, time, timeline.steps), ctx));
   }
+  // 止め絵を選んだ図は、全ての段の名前を出す間にも処理の札を出す。その間に見えている札は繰り返す前まで延ばす (#3200)
+  const { whole } = timeline;
   for (const a of layout.actions) {
     const time = timeline.events.find((t) => t.step === a.step && t.event === a.event);
-    if (time) L.top.push(action(a, time.at, (timeline.steps[a.step] as Span).end, ctx));
+    if (!time) continue;
+    const until = (timeline.steps[a.step] as Span).end;
+    L.top.push(whole && until > whole.start ? action(a, time.at, whole.end, ctx) : action(a, time.at, until, ctx, whole));
   }
   for (const time of timeline.carriers) {
     const e = layout.edges.find((x) => x.step === time.step && x.event === time.event);
@@ -345,7 +426,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。頭の列の箱はアイコンを外した 2 段 (#3120)。止めて見せる図では描かない
   const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => linked(box.id, headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? []))).join("") : "";
   const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${paletteVars(palette, theme)}}${PART_CSS}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}">` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -454,6 +535,12 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   let prev: [number, number] = [layout.width / 2, layout.height / 2];
   // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
   const middles = timeline.steps.map((_, s) => {
+    // 時間軸の図は、針と印の列を必ず窓に入れる (#3165)。番号の丸へ寄せ直すと、針が窓から外れるため
+    if (isTimeLayout(layout)) {
+      const f = timeFocus(layout, timeline, s, focusParts(layout, diagram, s), vw, below);
+      prev = [f.x + f.w / 2, f.y + f.h / 2];
+      return [clampX(prev[0]), clampY(prev[1])] as [number, number];
+    }
     const f = focusOf(layout, diagram, s);
     prev = f ? [f.x + f.w / 2, f.y + f.h / 2] : prev;
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
@@ -519,6 +606,19 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   return { body, w: beside && !bare ? vw + M.inset + bgW : full, h: beside ? vh : bgY + bgH };
 }
 
+/**
+ * 描く色味。名前で選んだ色味の `theme` の色に `colors` の色を重ねる (#3198)。
+ * 色味に無い色の名前と、色の値として読めない値は、名前を全て挙げて描かずに断る
+ */
+export function paletteOf(options: RenderOptions, theme: Theme): Palette {
+  const palette = resolvePalette(options.palette);
+  if (!options.colors) return palette;
+  const words = FIGURE_TEXT[options.lang ?? "ja"];
+  const errors = Object.entries(options.colors).flatMap(([name, value]) => (!isColorName(name) ? [words.unknownColor(name)] : isColorValue(value) ? [] : [words.unreadableColor(name)]));
+  if (errors.length > 0) throw new Error(words.cannotDraw(errors.join(" / ")));
+  return { ...palette, [theme]: { ...palette[theme], ...options.colors } };
+}
+
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */
 export function renderDiagram(input: unknown, options: RenderOptions = {}): Rendered {
   const lang = options.lang ?? "ja";
@@ -532,8 +632,10 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
         ? layoutState(diagram, lang)
         : diagram.kind === "git"
           ? layoutGit(diagram)
-          : layoutArchitecture(diagram);
-  return renderLayout(diagram, layout, buildTimeline(diagram), options);
+          : diagram.kind === "time"
+            ? layoutTime(diagram, lang)
+            : layoutArchitecture(diagram);
+  return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 
 /**
@@ -541,8 +643,8 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
  * 重なりは、字を描く部品が記録した字だけから数えるので、描く所が位置を決める字 (箱の名前) も対象に入る
  */
 export function renderLayout(diagram: Diagram, layout: Layout, timeline: Timeline, options: RenderOptions = {}): Rendered {
-  const palette = resolvePalette(options.palette);
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
+  const palette = paletteOf(options, theme);
   const ink: Ink[] = [];
   const traces: Trace[] = [];
   const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces);

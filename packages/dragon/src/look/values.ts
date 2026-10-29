@@ -31,6 +31,41 @@ export function resolvePalette(id?: string): Palette {
   return found ?? (PALETTES[DEFAULT_PALETTE] as Palette);
 }
 
+/**
+ * 色味が持つ色の変数の名前 (#3198)。呼ぶ側が `colors` で値を渡せる鍵。
+ * 外へ出す型を `palettes.json` から作ると、束ねた型の file に JSON の中身が初期値付きで写り、型の検査を通らなくなるため、名前を並べて作る。
+ * 並びが `palettes.json` の明るい背景の名前と食い違うと、下の 2 つの `_` で始まる型が、余る名前か足りない名前を挙げて型の検査で落ちる
+ */
+const COLOR_NAMES = ["page", "bg", "surf", "sunk", "ink", "ink2", "mute", "hair", "line", "sh", "on-c", "c-blue", "t-blue", "c-amber", "t-amber", "c-green", "t-green", "c-violet", "t-violet", "c-rose", "t-rose", "c-slate", "t-slate", "coin", "coint", "coinin", "tint", "edge", "shA", "shB", "carry"] as const;
+export type ColorName = (typeof COLOR_NAMES)[number];
+type Never<T extends never> = T;
+type PaletteColor = keyof (typeof palettes)[typeof DEFAULT_PALETTE]["light"];
+type _NotInPalette = Never<Exclude<ColorName, PaletteColor>>;
+type _NotListed = Never<Exclude<PaletteColor, ColorName>>;
+
+/** 名前で選んだ色味に重ねる色の値。渡さない色は色味の値のまま残る (#3198) */
+export type Colors = Partial<Record<ColorName, string>>;
+
+const COLOR_NAME_SET: ReadonlySet<string> = new Set(COLOR_NAMES);
+
+/** 色味が持つ色の変数の名前か。 */
+export const isColorName = (name: string): name is ColorName => COLOR_NAME_SET.has(name);
+
+/**
+ * 色の値として読めるか。値は CSS の変数として SVG の style と頁の要素の style にそのまま入るので、
+ * 宣言と要素から抜け出す字 (`;`、`{`、`}`、`"`、`'`、`<`、`>`、`&`、`\`、`:` など) を持たない字の並びで、
+ * 括弧が閉じていて (閉じない括弧は後ろの宣言を呑む)、外の file を読む `url(` を持たない値だけを通す
+ */
+export function isColorValue(value: unknown): value is string {
+  if (typeof value !== "string" || !/^[\w\s#%.,()/+-]+$/u.test(value) || /url\(/iu.test(value)) return false;
+  let depth = 0;
+  for (const char of value) {
+    depth += char === "(" ? 1 : char === ")" ? -1 : 0;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
 /** 色味の値を CSS の変数として並べる。 */
 export function paletteVars(palette: Palette, theme: Theme): string {
   return Object.entries(palette[theme])
@@ -80,6 +115,20 @@ export const TYPE = {
   gitId: text(11, 700),
   gitHash: text(10.5, 600, "mono"),
   gitNote: text(10.5, 650),
+  /**
+   * 時間軸の図 (#3165)。拡大の帯の列の上の字、印の列の名前、時刻の字、区切りの名前と目盛りの番号の範囲、
+   * 節目の名札と状態、範囲の括弧の字、空きの枠の字、物差しの線の字。和文を含む字は同じ大きさと太さの和文の字で描く
+   */
+  timeHead: text(11, 650, "mono"),
+  timeRow: text(11, 600),
+  timeTick: text(10.5, 600, "mono"),
+  timePeriod: text(11.5, 650),
+  timeRange: text(10.5, 500, "mono"),
+  pointName: text(11, 700, "mono"),
+  pointState: text(11.5, 700),
+  spanText: text(11, 650),
+  emptyText: text(11, 700),
+  meterLine: text(10.5, 700, "mono"),
 } as const;
 
 /** 置き場所と部品の大きさ。単位は図の座標 (字が原寸の時の px)。 */
@@ -160,6 +209,60 @@ export const LOOK = {
     labelUnder: 50,
     colors: ["blue", "violet", "green", "amber", "rose"],
   },
+  /**
+   * 時間軸の図 (#3165)。見本帳の試作 (`scenes/finality.js`) の寸法を写す。
+   * 図の幅は `width` で、時間軸は左の `axisX` から右の余白 `right` の手前まで。印の列の名前が長い時は、名前の右に `gutterGap` を空けて軸を右へ寄せる。
+   * 拡大の帯は列ごとに、上端から `head` に列の上の字の基準線を、`boxTop` に最初の箱の上端を置き、箱を `boxGap` ずつ空けて縦に並べ、
+   * 最後の箱の下に `zoomBottom` を空ける。`sep` は列の区切りの点線を帯の上下から縮める長さ、`zoomGap` は拡大の帯と時間軸の帯の間。
+   * 時間軸の帯は、上端から `rowsTop` に最初の印の列を置き、列の高さ `row` と間 `rowGap` で並べる。
+   * 印の幅は目盛りの幅の `markRatio` で、`markMin` と `markMax` の間に収める。`shade` は区切りの地を印の列の上下へ広げる長さ、
+   * `frame` は拡大した目盛りを囲む枠を印の外へ広げる長さ、`emptyR` は空きの印の点の半径。
+   * `point` は節目で、印の下端から丸の真ん中まで `drop`、丸の半径 `r`、丸の真ん中から字の左端まで `text`、名札と状態の基準線の高さ `nameY` と `stateY`。
+   * 節目どうしの線は名札の右から `link` 空けて引き始め、次の丸の手前 `end` で止める。`room` は線の名前を下に置く時に丸の下に空ける高さ、`plain` は置かない時。
+   * `bracket` は範囲の括弧で、上の物から `gap` 空けて置き、`tick` は括弧の足の長さ、`text` は足の先から字の基準線まで、`lane` は括弧を重ねる時の間。
+   * `box` は範囲の囲みで、`pad` は印の列の外へ広げる長さ、`tagX` は左端から縁の札まで、`tagH` と `tagPadX` は札の高さと字の左右の余白。
+   * `axisGap` は上の物から時刻の目盛りの線まで、`major` と `minor` は目盛りの線の長さ、`minorPx` は細かい目盛りの間の下限、
+   * `tickY` は目盛りの線から時刻の字の基準線まで、`rangeY` は区切りの名前の基準線から目盛りの番号の範囲の基準線まで、`nameGap` は時刻の字と区切りの名前の間の下限、
+   * `ticks` は区切りの無い図の時刻の字の数の上限、`bottom` は時刻の字の下の余白。
+   * `needle` は針で、印の列の上下へ `over` だけ伸ばし、`head` は上の三角の高さ、`dot` は目盛りの線の上の点の半径。
+   * `meter` は中身の帯の物差しで、幅 `w`、高さ `h`、欄の上端から棒の上端まで `y`、線の印を棒の上下へ伸ばす長さ `mark`、欄の上端から線の字の基準線まで `textY`。色は `color`
+   */
+  time: {
+    width: 728,
+    axisX: 118,
+    right: 16,
+    gutterGap: 12,
+    head: 22,
+    boxTop: 34,
+    boxGap: 36,
+    zoomBottom: 14,
+    sep: 12,
+    zoomGap: 12,
+    rowsTop: 24,
+    row: 20,
+    rowGap: 6,
+    markRatio: 0.5,
+    markMin: 1.5,
+    markMax: 18,
+    markRadius: 1.5,
+    shade: 8,
+    frame: 2.5,
+    emptyR: 1.7,
+    point: { drop: 40, r: 9, text: 15, nameY: -2, stateY: 12, link: 10, end: 6, room: 30, plain: 12, glyph: 0.62 },
+    bracket: { gap: 12, tick: 6, text: 16, lane: 34 },
+    box: { pad: 6, tagX: 12, tagH: 16, tagPadX: 7 },
+    axisGap: 18,
+    major: 12,
+    minor: 6,
+    minorPx: 40,
+    tickY: 18,
+    rangeY: 14,
+    nameGap: 8,
+    ticks: 6,
+    bottom: 12,
+    needle: { over: 8, head: 6, dot: 3.5 },
+    meter: { w: 150, h: 6, y: 36, mark: 5, textY: 59, color: "amber" },
+  },
   /** `bend` は線の曲がりを丸める半径 (#3171) */
   edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9, bend: 12 },
   /** `touch` は線の名前と、同じ時刻に見えている段の番号の丸の間に空ける最小の隙間 (#3175) */
@@ -180,7 +283,37 @@ export const LOOK = {
    * `trail` は状態遷移図の帯の最後の、通った状態の点 (#3171)。`r` は点の半径、`step` は点の中心どうしの間、`now` は変わった値の欄の名前の横の点の半径と、名前からの離れ
    */
   strip: { h: 72, line: 44, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43, trail: { r: 5.4, step: 16 }, now: { r: 3, gap: 7 } },
-  stroke: { git: 2.25, gitOrphan: 1.5, mark: 1.6, slot: 1.2, hair: 1, edge: 1.7, edgeOn: 2.25, arrow: 1.5, flow: 1.3, halo: 7, on: 1.75, glyph: 2, lifeline: 1.2, envelope: 1.5, badgeRing: 1.5, path: 1.6, end: 1.6, done: 1.2, trail: 1.2 },
+  /** `time` から始まる値は時間軸の図 (#3165) の、目盛りの印の枠、拡大の枠、時刻の線、範囲の括弧と囲み、節目へ下ろす点線、節目の丸、針、物差しの線の印 */
+  stroke: {
+    git: 2.25,
+    gitOrphan: 1.5,
+    mark: 1.6,
+    slot: 1.2,
+    hair: 1,
+    edge: 1.7,
+    edgeOn: 2.25,
+    arrow: 1.5,
+    flow: 1.3,
+    halo: 7,
+    on: 1.75,
+    glyph: 2,
+    lifeline: 1.2,
+    envelope: 1.5,
+    badgeRing: 1.5,
+    path: 1.6,
+    end: 1.6,
+    done: 1.2,
+    trail: 1.2,
+    timeSlot: 0.6,
+    timeFrame: 1.25,
+    timeAxis: 1,
+    timeSpan: 1.5,
+    timeDrop: 1.4,
+    timePoint: 1.75,
+    timeFlag: 1.8,
+    timeNeedle: 1.25,
+    timeMeter: 1.25,
+  },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
   mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },
   /**
@@ -194,7 +327,8 @@ export const LOOK = {
    */
   follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8, headRoom: 10, head: { pad: 8, h: 40, nameY: 17, subY: 31 } },
   /** 色を混ぜる割合 (%) */
-  mix: { slot: 45, icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72 },
+  /** `time` から始まる値は時間軸の図 (#3165) の、区切りの地、範囲の囲みの地、空きの枠の地、拡大の点線の濃さ */
+  mix: { slot: 45, icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72, timeShade: 3.5, timeSpan: 6, timeEmpty: 8, timeGuide: 50 },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */
   baseline: { label: 3.8, badge: 3.5, carrier: 3.7, stripTitle: 4.5, tag: 3.6, action: 3.8, mark: 4 },
   /** 浮いて出る物が下から上がる長さと、弾んで出る物の始まりの大きさ */
@@ -242,6 +376,12 @@ export const MOTION = {
   still: 0.45,
   /** 状態遷移図で、札が状態を出てから済んだ印が出るまで */
   done: 0.3,
+  /**
+   * 時間軸の図 (#3165) の針。目盛り 1 つを進む長さは、軸の端から端までを `axis` 秒で進む長さを `unitMin` と `unitMax` の間に収めた値で、どの段でも同じ。
+   * 拡大した目盛りでは、その段のその列の線を引き終えてから `wait` 秒待って次の目盛りへ進む。
+   * `after` は針が止まってから次の出来事を起こすまで、`reset` は区切りが替わって物差しが 0 に戻る長さ
+   */
+  time: { axis: 11.5, unitMin: 0.12, unitMax: 0.4, wait: 0.15, after: 0.15, reset: 0.05 },
 } as const;
 
 /** 見せ方を決める字の大きさ。全体を枠に収めた時の箱の名前がこれを下回ると寄って追う。 */

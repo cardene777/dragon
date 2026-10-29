@@ -1,0 +1,18 @@
+time Edge
+
+scale slot 12s 6
+row block
+zoom 0-2
+
+box proposer
+box block
+
+step Column line
+  say A line joins the boxes of the column in at. Without carry, an envelope runs along it.
+  proposer -> block [at: 0]
+  now -> 0
+
+step Next column
+  say The needle waits in the unit until the line of that column arrives.
+  proposer -> block [at: 1]
+  now -> 1
