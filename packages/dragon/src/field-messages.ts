@@ -38,6 +38,8 @@ export interface FieldMessages {
   kindOnly: (types: readonly string[], kind: string) => string;
   /** 16 進の字を `min` から `max` 字で書く決まり (commit の hash、#3164) */
   hex: (min: number, max: number) => string;
+  /** 頁を移る形だけを書ける決まり (箱の飛び先と段の出典の URL、#3199) */
+  url: string;
   /** 選べる決まりがどれも欄が足りない時の、足りない欄。それ以外の時は空 */
   anyOf: (fields: readonly string[]) => string;
   oneOf: string;
@@ -83,6 +85,7 @@ const ja: FieldMessages = {
   reserved: (names) => `${names.join(" と ")} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
   kindOnly: (types, kind) => `${types.join(" と ")} の出来事は kind が ${kind} の時だけ書ける`,
   hex: (min, max) => `0 から 9 と a から f の字で ${min} から ${max} 字にする`,
+  url: "/ で始まる path か、http:// か https:// で始まる URL にする",
   anyOf: (fields) =>
     fields.length > 0 ? `${fields.join(" か ")} の${fields.length === 2 ? "どちらか" : "どれか"}の欄が要る` : "書ける形のどれにも合わない",
   oneOf: "書ける形のどれか 1 つだけに合わせる",
@@ -107,6 +110,7 @@ const en: FieldMessages = {
   reserved: (names) => `${names.join(" and ")} name the start and end marks of a state diagram and cannot be box ids`,
   kindOnly: (types, kind) => `${types.join(" and ")} events are allowed only when kind is ${kind}`,
   hex: (min, max) => `Use ${min} to ${max} characters of 0-9 and a-f`,
+  url: "Use a path that starts with / or a URL that starts with http:// or https://",
   anyOf: (fields) => (fields.length > 0 ? `Write one of the ${fields.join(" or ")} fields` : "Does not match any of the allowed shapes"),
   oneOf: "Match exactly one of the allowed shapes",
   discriminator: (tag, values) => `${tag} is one of ${values.join(" / ")}`,

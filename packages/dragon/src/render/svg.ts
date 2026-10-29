@@ -308,13 +308,19 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.lit.push(drawn.lit);
   }
   const states = new Map((timeline.states ?? []).map((s) => [s.box, s]));
+  // 飛び先を持つ箱は、箱の札をその飛び先への link で包む (#3199)
+  const links = new Map(diagram.boxes.flatMap((b) => (b.link === undefined ? [] : [[b.id, b.link] as [string, string]])));
+  const linked = (id: string, markup: string): string => {
+    const link = links.get(id);
+    return link === undefined ? markup : `<a href="${esc(link)}">${markup}</a>`;
+  };
   for (const box of layout.boxes) {
     if (box.ghost) {
-      L.node.push(ghostCard(box, ink));
+      L.node.push(linked(box.id, ghostCard(box, ink)));
       continue;
     }
     const state = states.get(box.id);
-    L.node.push(card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [], isState ? (state?.lit ?? []) : undefined));
+    L.node.push(linked(box.id, card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [], isState ? (state?.lit ?? []) : undefined)));
     if (state?.done !== undefined) L.node.push(doneMark(box, state.done, ctx));
   }
   for (const b of layout.badges) L.badge.push(badge(b, ctx, isState));
@@ -337,7 +343,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const { near, far, nearY, farY } = LOOK.shadow;
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
   // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。頭の列の箱はアイコンを外した 2 段 (#3120)。止めて見せる図では描かない
-  const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [])).join("") : "";
+  const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => linked(box.id, headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? []))).join("") : "";
   const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${paletteVars(palette, theme)}}${PART_CSS}${m.frames.join("")}`;
   return (

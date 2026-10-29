@@ -2,7 +2,7 @@
  * 頁に図を置いて動かす。
  *
  * 動きを嫌う設定 (`prefers-reduced-motion: reduce`) は描く前に読み、その人には一瞬も自動再生せず、
- * 段ごとの止め絵を釦で送る。各段の題と本文は、読み上げの道具が段の順に読める番号付きの一覧として置き、
+ * 段ごとの止め絵を釦で送る。各段の題と本文と出典は、読み上げの道具が段の順に読める番号付きの一覧として置き、
  * 図そのものは読み上げから隠して同じ中身を 2 度読ませない。
  * 見せ方は枠の幅で選び (`view.ts`)、寄って追う時は窓と全体図で描き直す。
  * 釦と段の一覧の読み上げの名前と全体図の札は、渡した言葉 (`options.lang`、書かなければ日本語) で出す (#3001)。
@@ -190,7 +190,8 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   bar.className = "dg-bar";
   bar.append(row);
 
-  // 読み上げの道具が段の順に読む一覧。見た目からは外すが、読み上げからは隠さない
+  // 読み上げの道具が段の順に読む一覧。見た目からは外すが、読み上げからは隠さない。
+  // 段の出典は本文の後ろに、名前を URL への link にして書いた順に並べる (#3199)
   const list = doc.createElement("ol");
   list.className = "dg-sr";
   list.dataset.dragon = "steps";
@@ -204,6 +205,18 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
       const p = doc.createElement("p");
       p.textContent = line;
       item.append(p);
+    }
+    if (step.sources) {
+      const sources = doc.createElement("ul");
+      for (const source of step.sources) {
+        const link = doc.createElement("a");
+        link.href = source.url;
+        link.textContent = source.name;
+        const entry = doc.createElement("li");
+        entry.append(link);
+        sources.append(entry);
+      }
+      item.append(sources);
     }
     list.append(item);
   }

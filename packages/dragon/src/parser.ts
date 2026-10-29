@@ -6,13 +6,14 @@
  *
  *   sequence <題> [view: fixed か follow]                書かなければ字の大きさで選ぶ。図の種類は sequence と architecture と state
  *   group <名札> as <名前> [note: <添え書き>, color: <色>, icon: <印>]
- *     box <名札> as <名前> [note: <下の小さな字>, color: <色>, icon: <印>]
+ *     box <名札> as <名前> [note: <下の小さな字>, color: <色>, icon: <印>, link: <飛び先>]
  *   end                                                  同じ名札の group はもう一度開ける
  *   box <名札> as <名前> [...]                           as が無ければ名札を名前にする
  *   strip <題>: <欄>, <欄>
  *   step <段の題>
  *     say <段の本文>                                     say の下に字下げした行は本文の続き
  *     code <段で打つ命令>
+ *     source <出典の名前> [url: <URL>]                   1 つの段に何行でも書ける
  *     <名札> -> <名札>: <線の名前> [carry: <運ぶ物>, tag: <値>, side: <側>]
  *     act <名札>: <処理の名前>                           箱の中の処理
  *     note <名札>: <字>                                   箱の下の小さな字の書き換え
@@ -21,6 +22,9 @@
  * 鍵と値はコロンで区切り、属性は `[ ]` の中に `,` で並べて行の終わりに置く。
  * 空白を含む名前と文は行の終わりか `[` の前に置き、`[` を含む名前と `,` か `]` を含む属性の値だけを
  * `"` で囲む。囲みの中では `\"` が `"`、`\\` が `\` になる。字下げは `say` の続きの行を見分ける時だけ意味を持つ。
+ *
+ * 箱の飛び先 (`link`) と段の出典の `url` は描いた図と段の一覧の link にそのまま入るため、頁を移る形
+ * (`/` で始まる path か、`http://` か `https://` で始まる URL) だけを受ける (#3199)。
  *
  * 状態遷移図 (`state`) では、線の送る側に始まりの印 `start`、受ける側に終わりの印 `finish` を書ける。
  * 最初の `step` より前に書いた線は、移れるが段で通るとは限らない道 (`state.paths`) になり、属性を持たない (#3163)。
@@ -49,6 +53,7 @@ import {
   type Region,
   type StatePath,
   type Step,
+  type StepSource,
   type ViewMode,
 } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
@@ -91,6 +96,8 @@ const COMMIT = new RegExp(`^commit\\s+([^\\s[]+)(?:\\s+${ON}\\s+([^\\s[]+))?(?:\
 const CUT = new RegExp(`^([^\\s[]+)\\s+${FROM}(?:\\s+([^\\s[]+))?\\s*$`, "du");
 /** commit の hash。原本の JSON の hash の形と同じ */
 const HASH = /^[0-9a-f]{4,40}$/u;
+/** 箱の飛び先と段の出典の URL。原本の JSON の URL の形と同じ */
+const URL_FORM = /^(\/|https?:\/\/)/u;
 
 const isOneOf = <T extends string>(list: readonly T[], word: string): word is T => (list as readonly string[]).includes(word);
 
@@ -266,6 +273,7 @@ interface Building {
   title: string;
   body?: string[];
   code?: string;
+  sources: StepSource[];
   events: DiagramEvent[];
 }
 
@@ -352,6 +360,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       title: building.title,
       body: building.body.join("\n"),
       ...(building.code !== undefined ? { code: building.code } : {}),
+      ...(building.sources.length > 0 ? { sources: building.sources } : {}),
       events: building.events,
     });
   };
@@ -401,7 +410,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         finish();
         const stepTitle = text.slice(word.length).trim();
         if (stepTitle === "") throw fail(source, 0, m.emptyStepTitle);
-        building = { source, title: stepTitle, events: [] };
+        building = { source, title: stepTitle, sources: [], events: [] };
         break;
       }
       case "say":
@@ -415,6 +424,9 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         step.code = command;
         break;
       }
+      case "source":
+        inStep(source).sources.push(readSource(source));
+        break;
       case "act": {
         const step = inStep(source);
         const on = readOnBox(source, word, m.actShape);
@@ -484,13 +496,29 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     notReserved(source, declared.id, declared.idAt);
     declare(source, declared.id, declared.idAt);
     const { note, ...look } = lookOf(source, declared.attrs, m);
+    const link = declared.attrs.get("link");
     boxes.push({
       id: declared.id,
       name: declared.name ?? declared.id,
       ...(note !== undefined ? { sub: note } : {}),
       ...look,
       ...(group ? { region: group.id } : {}),
+      ...(link ? { link: urlOf(source, "link", link) } : {}),
     });
+  }
+
+  /** `source <名前> [url: <URL>]` の行 */
+  function readSource(source: SourceLine): StepSource {
+    const named = readName(source, "source".length, m);
+    const url = named.rest < source.text.length ? readAttrs(source, named.rest, ATTRS.source, m).get("url") : undefined;
+    if (named.value === "" || !url) throw fail(source, 0, m.sourceShape);
+    return { name: named.value, url: urlOf(source, "url", url) };
+  }
+
+  /** 頁を移る形の URL。ほかの形 (`javascript:` など) は、その属性の位置を示して断る */
+  function urlOf(source: SourceLine, key: string, attr: Attr): string {
+    if (!URL_FORM.test(attr.value)) throw fail(source, attr.at, m.badUrl(key));
+    return attr.value;
   }
 
   /** 枝分かれの図の `branch <名札> [note: <添え書き>]` の行。枝は宣言した順に上から帯に並ぶ */

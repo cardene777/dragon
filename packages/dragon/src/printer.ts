@@ -11,6 +11,7 @@
  * 区画の箱が飛び飛びの時は同じ `group` を開き直す。区画の並びが箱の現れる順と違う時と、
  * 箱の無い区画がある時は、先に全ての区画を中の無い `group … end` で宣言してから開き直す。
  * 枝分かれの図 (#3164) は、枝の `branch` の行を箱より前に書き、札を動かす線の運ぶ物が送る側の名前の札なら書かない。
+ * 段の出典 (#3199) は `say` と `code` の後ろ、段の中で起きることより前に、JSON の並びのまま 1 つずつ `source` の行に書く。
  */
 import type { Box, Diagram, DiagramEvent, Region } from "./schema";
 import { COPY, FROM, MERGE, ON } from "./words";
@@ -45,6 +46,7 @@ const declareBox = (b: Box): string =>
     ["note", b.sub],
     ["color", b.color],
     ["icon", b.icon],
+    ["link", b.link],
   ])}`;
 
 /** 線の行の両端と名前 */
@@ -116,7 +118,13 @@ export function printNotation(diagram: Diagram): string {
     const body = step.body.split("\n");
     const say = body.length === 1 ? [`  say ${step.body}`] : ["  say", ...body.map((line) => (line === "" ? "" : `    ${line}`))];
     blocks.push(
-      [`step ${step.title}`, ...say, ...(step.code === undefined ? [] : [`  code ${step.code}`]), ...step.events.map((e) => `  ${event(e, diagram.kind === "git")}`)].join("\n"),
+      [
+        `step ${step.title}`,
+        ...say,
+        ...(step.code === undefined ? [] : [`  code ${step.code}`]),
+        ...(step.sources ?? []).map((s) => `  source ${name(s.name)}${attrs([["url", s.url]])}`),
+        ...step.events.map((e) => `  ${event(e, diagram.kind === "git")}`),
+      ].join("\n"),
     );
   }
   return `${blocks.join("\n\n")}\n`;

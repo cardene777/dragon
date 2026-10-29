@@ -25,6 +25,7 @@ export {
   type Region,
   type StatePath,
   type Step,
+  type StepSource,
   validateDiagram,
   type ViewMode,
 } from "./schema";
