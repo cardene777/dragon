@@ -30,14 +30,14 @@
 | 色味を指定せずに描いた時、紙と墨で描く | `pnpm test`の検査`palette-defaults-to-paper`が通る | #2985 |
 | 色味 3 案 (澄んだ色 / 紙と墨 / 夜の計器) の明暗それぞれで、1 型 / 2 型 / 3 型を模した全ての 2 色の差が 6 以上、通常の見え方の差が 15 以上ある | `pnpm test`の検査`palettes-keep-cvd-separation`が通る | #2985 |
 | 図の種類ごとの描画が、色、字、余白、動きの値を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #2985 |
-| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #2985 |
+| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #2985 #3212 |
 | 動きを嫌う設定で図を開いた時、自動再生せず、段ごとの止め絵を釦で送れる | `pnpm test`の検査`reduced-motion-shows-stills`が通る | #2985 |
 | 図を開いた時、各段の題と本文を段の順に読み上げの道具から読める | `pnpm test`の検査`steps-exposed-to-screen-readers`が通る | #2985 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2985 |
-| 書き出しの命令を実行した時、同じ JSON から mp4、GIF、HTML、PNG の 4 つが書き出される | `pnpm test`の検査`export-writes-four-formats`が通る | #2986 |
+| 書き出しの命令を実行した時、同じ JSON から mp4、GIF、HTML、PNG の 4 つが書き出される | `pnpm test`の検査`export-writes-four-formats`が通る | #2986 #3212 |
 | 同じ JSON を 2 回書き出した時、PNG がバイト単位で一致する | `pnpm test`の検査`export-is-deterministic`が通る | #2986 |
 | 寄って見せる図を動画に書き出した時、最初のコマと途中のコマで見ている範囲が違う | `pnpm test`の検査`export-video-follows-camera`が通る | #2986 #3042 |
-| HTML に書き出した時、図で使った字だけを含む字の file が HTML の中に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #2986 |
+| HTML に書き出した時、形のある字が入る字の file は、図で使った字だけを含む | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #2986 #3212 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2986 |
 | 新しい形で書いた `packages/dragon/examples/oauth.dragon` と `ccip.dragon` を `parseNotation` が読み、今と同じ `oauth.json` と `ccip.json` を返す | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-compiles-oauth-to-json`と`notation-compiles-ccip-to-json`が通る | #3137 |
 | 行の一覧の全ての種類を 1 つずつ書いた記法を読み、`as` の無い箱は名札を名前にし、`say` の下に字下げして続けた行は 1 つの本文につなぎ、段は次の `step` か file の終わりで閉じる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-reads-every-line-kind`が通る | #3137 |
@@ -76,7 +76,7 @@
 | `dragon export` に `--lang` を渡した時は、記法の file でも JSON の原本でもその言葉に従う。JSON の原本は `--lang en` なら英語、`--lang` なしなら今の日本語で、HTML の `lang` 属性と読み上げの名前と全体図の札を書き出す | `pnpm test`の検査`export-lang-flag`が通る | #3001、#3137 |
 | `dragon export` に `--lang en` と形の誤りのある JSON の原本を渡した時、何も書き出さずに終了 1 で終わり、出した断りの文は `Cannot draw the diagram:` で始まって誤りの場所 (`/boxes/0/colour` など) を含み、仮名と漢字を含まない | `pnpm test`の検査`export-refusal-follows-language`が通る | #3001 |
 | `dragon export` の `--lang` に `ja` と `en` 以外を渡した時、何も書き出さずに終了 2 で終わり、使い方を出す。使い方には `--lang` の行がある | `pnpm test`の検査`export-rejects-unknown-lang`が通る | #3001 |
-| 書き出しの部品 (`exportDiagram`) に英語を渡して HTML を書き出した時、埋めた字の file は全体図の札 `Overview` の字を含み、`全体図` の字と図で描かない字を含まない (原本は大文字の `O` を持たない図にする) | `pnpm test`の検査`html-export-font-subset-follows-language`が通る | #3001 |
+| 書き出しの部品 (`exportDiagram`) に英語を渡して HTML を書き出した時、埋めた字の file は全体図の札 `Overview` の字を含み、`全体図` の字を含まない。形のある字が入る字の file は図で描かない字を含まない (原本は大文字の `O` を持たない図にする) | `pnpm test`の検査`html-export-font-subset-follows-language`が通る | #3001 #3212 |
 | `dragon export --lang en` を図の file を渡さずに打った時と、`dragon help --lang en` のように `export` 以外を打った時、標準エラーの使い方の文は `Usage: dragon export <diagram file (.json or .dragon)> [options]` で始まり、8 つの設定 (`--out` `--width` `--palette` `--theme` `--lang` `--fps` `--gif-fps` `--format`) の行を持ち、仮名と漢字を含まず、終了 2 で終わる | `pnpm test`の検査`cli-usage-in-english`が通る | #3003 |
 | 言葉を選ばずに図の file を渡さずに打った時、使い方の文は `--lang` の行を除いて今と同じ文字列で、終了 2 で終わる | `pnpm test`の検査`cli-usage-default-japanese-unchanged`が通る | #3003 |
 | 使い方の文の `--lang` の行は、命令の文の言葉も決めることを書く。日本語の行は `図の中の字と命令の文の言葉 (ja か en)` で始まる説明を持ち、英語の行は `Language of the diagram text and command messages (ja or en)` で始まる説明を持つ | `pnpm test`の検査`cli-usage-lang-line-names-messages`が通る | #3003 |
@@ -258,3 +258,8 @@
 | 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3187 |
 | 編集画面で字の重ならない見本を開いた時、「読めています」だけが出て、重なりの欄も図の上の囲みも出ない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3187 |
 | 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で、`overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3187 |
+| `dragon export` に英語の見本 `order.en.json` と `--format png --lang en` を渡した時、終わり方 0 で PNG が書き出される | `pnpm test`の検査`export-english-only-png`が通る | #3212 |
+| 英語の見本 10 個と、全体で止めて見せる図に全角空白 (`U+3000`) を `Noto Sans JP` の file `[117]` の他の字なしで描く図のそれぞれで、書き出した HTML が埋める字の file を Chromium で 1 つずつ読ませると、全て読める | `pnpm test`の検査`export-font-faces-all-load`が通る | #3212 |
+| 撮る頁で字の file を読めない時、書き出しは読めない file の字の名前と字の範囲を名指す文で止まる。英語を渡した時の文は仮名と漢字を含まない | `pnpm test`の検査`export-names-unreadable-font`が通る | #3212 |
+| 空白の類だけが入る字の file は、描く空白の類の字のほかに、同じ file の形のある字を 1 つだけ足して含む | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`が通る | #3212 |
+| 空白の類だけが入る字の file の `unicode-range` は、描く空白の類の字だけを載せ、足した字を載せない | `pnpm test`の検査`font-subset-range-lists-drawn-chars`が通る | #3212 |

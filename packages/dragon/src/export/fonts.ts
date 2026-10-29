@@ -4,6 +4,9 @@
  * 同梱した字の package は、字の範囲ごとに分けた file (woff2) と、file ごとの範囲の表 (`unicode.json`) を持つ。
  * 描く字が入る file だけを、描く字だけに削り、`data:` で埋めた `@font-face` にする。
  * 太さの軸は、値の表 (`TYPE`) が使う太さの間に縮める。
+ *
+ * 形を 1 つも持たない字の file を Chromium は読まない。空白の類だけを描く file には、
+ * 同じ file の形のある字を 1 つ足して削る。足した字は `unicode-range` に載せないので描かれない (#3212)。
  */
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -39,6 +42,20 @@ function ranges(list: string): [number, number][] {
 
 const hex = (code: number): string => `U+${code.toString(16).toUpperCase()}`;
 
+/** 形を持たない字 (空白の類、書式の字、制御の字) か */
+const shapeless = (char: string): boolean => /^[\s\p{Cf}\p{Cc}]$/u.test(char);
+
+/** 範囲の中で最初の、形を持つ字。空白の類だけを描く file を読める形にするために足す */
+function shapedIn(span: [number, number][]): string | undefined {
+  for (const [from, to] of span) {
+    for (let code = from; code <= to; code++) {
+      const char = String.fromCodePoint(code);
+      if (!shapeless(char)) return char;
+    }
+  }
+  return undefined;
+}
+
 /** 字を空白ごと集める。改行は字の file に要らない */
 export function charsOf(texts: string[]): string[] {
   return [...new Set([...texts.join("")])].filter((char) => char !== "\n" && char !== "\r" && char !== "\t").sort();
@@ -57,8 +74,9 @@ export async function fontFaces(chars: string[]): Promise<string> {
           return span.some(([from, to]) => code >= from && code <= to);
         });
         if (!own.length) return "";
+        const filler = own.every(shapeless) ? (shapedIn(span) ?? "") : "";
         const file = join(base, "files", `${name}-${key.replace(/[[\]]/g, "")}-wght-normal.woff2`);
-        const woff2 = await subsetFont(await readFile(file), own.join(""), { targetFormat: "woff2", variationAxes: { wght: WEIGHT } });
+        const woff2 = await subsetFont(await readFile(file), own.join("") + filler, { targetFormat: "woff2", variationAxes: { wght: WEIGHT } });
         const unicode = own.map((char) => hex(char.codePointAt(0) ?? 0)).join(",");
         return `@font-face{font-family:"${family}";font-style:normal;font-display:block;font-weight:${WEIGHT.min} ${WEIGHT.max};src:url(data:font/woff2;base64,${woff2.toString("base64")}) format("woff2");unicode-range:${unicode}}`;
       });

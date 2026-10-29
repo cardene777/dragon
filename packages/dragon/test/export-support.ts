@@ -351,15 +351,55 @@ export function inkCentroid(frame: Frame, rect: Rect, scale: number): { x: numbe
   return count ? { x: sx / count, y: sy / count, count } : { x: Number.NaN, y: Number.NaN, count };
 }
 
-/** HTML に埋めた字の file。`@font-face` ごとに、字の名前と中身を返す */
-export function embeddedFonts(html: string): { family: string; woff2: Buffer }[] {
-  const out: { family: string; woff2: Buffer }[] = [];
+/** HTML に埋めた字の file。`@font-face` ごとに、字の名前と中身と、範囲 (`unicode-range`) に載せた字を返す */
+export function embeddedFonts(html: string): { family: string; woff2: Buffer; range: string[] }[] {
+  const out: { family: string; woff2: Buffer; range: string[] }[] = [];
   for (const [, rule = ""] of html.matchAll(/@font-face\s*\{([^}]*)\}/g)) {
     const family = /font-family:\s*["']?([^;"']+)/.exec(rule)?.[1]?.trim() ?? "";
     const data = /url\(\s*["']?data:font\/woff2;base64,([A-Za-z0-9+/=]+)/.exec(rule)?.[1];
-    if (data) out.push({ family, woff2: Buffer.from(data, "base64") });
+    const range = (/unicode-range:\s*([^;}]*)/.exec(rule)?.[1] ?? "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter((part) => part !== "")
+      .map((part) => String.fromCodePoint(parseInt(part.replace(/^U\+/i, ""), 16)));
+    if (data) out.push({ family, woff2: Buffer.from(data, "base64"), range });
   }
   return out;
+}
+
+/** 形を持たない字 (空白の類、書式の字、制御の字) か */
+export const isBlank = (char: string): boolean => /^[\s\p{Cf}\p{Cc}]$/u.test(char);
+
+/**
+ * HTML に埋めた字の file のうち、Chromium が読めない物 (#3212)。
+ * 1 つずつ別の頁に置いて読ませ、読めない file を `<名前>: <字の名前> <字の範囲>` の形で返す。
+ * 頁で同時に読ませると、範囲の重なる別の file が字を描き、読めない file が隠れる。
+ */
+export async function unreadableFonts(htmls: [string, string][]): Promise<string[]> {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const out: string[] = [];
+    for (const [name, html] of htmls) {
+      for (const [rule] of html.matchAll(/@font-face\s*\{[^}]*\}/g)) {
+        await page.setContent(`<style>${rule}</style>`);
+        const failed = await page.evaluate(async () => {
+          const [face] = [...document.fonts];
+          if (!face) return "字の file を頁が読み込まない";
+          try {
+            await face.load();
+            return "";
+          } catch {
+            return `${face.family} ${face.unicodeRange}`;
+          }
+        });
+        if (failed) out.push(`${name}: ${failed}`);
+      }
+    }
+    return out;
+  } finally {
+    await browser.close();
+  }
 }
 
 /** 字の file が持つ字 */
