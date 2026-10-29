@@ -5,6 +5,13 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Changed
+
+- **原本の file を今の版へ移す `migrateFile` を、Node でだけ動く入口 `@cardenelabs/dragon/node` へ移した** (#3206)
+
+  頁で描く入口 `@cardenelabs/dragon` は Node の組み込みの module を 1 つも読まなくなり、呼ばない読み込みまで解く道具 (Next.js の Turbopack など) でブラウザ向けに束ねても build が止まらない。
+  これまで `@cardenelabs/dragon` から `migrateFile` を引いていた code は、`import { migrateFile } from "@cardenelabs/dragon/node"` に書き換える。型 `Migrated` も同じ入口から出す。
+
 ## [0.40.0] - 2026-10-29
 
 ### Added
