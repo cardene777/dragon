@@ -3,12 +3,12 @@ import { defineConfig } from "tsup";
 export default defineConfig([
   {
     // 字を読み込む入口 (fonts) は CSS を読むだけなので型を出さない。
-    // 書き出し (export) と命令 (cli) は node で動き、画面なしのブラウザを動かす
-    entry: { index: "src/index.ts", fonts: "src/load-fonts.ts", export: "src/export/index.ts", cli: "src/cli.ts" },
+    // 書き出し (export) と命令 (cli) は node で動き、画面なしのブラウザを動かす。原本の file を移す入口 (node) も node で動く
+    entry: { index: "src/index.ts", fonts: "src/load-fonts.ts", export: "src/export/index.ts", node: "src/node.ts", cli: "src/cli.ts" },
     format: ["esm", "cjs"],
     dts: {
       resolve: true,
-      entry: { index: "src/index.ts", export: "src/export/index.ts" },
+      entry: { index: "src/index.ts", export: "src/export/index.ts", node: "src/node.ts" },
       compilerOptions: { composite: false },
     },
     splitting: false,
@@ -23,14 +23,12 @@ export default defineConfig([
     target: "es2022",
   },
   {
-    // HTML に書き出す頁へ埋める script。依存ごと 1 file に束ね、`DragonPlayer.mountDiagram` として頁に置く。
-    // 移行の命令が読む node の file 読みは頁では呼ばない
+    // HTML に書き出す頁へ埋める script。依存ごと 1 file に束ね、`DragonPlayer.mountDiagram` として頁に置く
     entry: { player: "src/player-global.ts" },
     format: ["iife"],
     globalName: "DragonPlayer",
     platform: "browser",
     noExternal: [/.*/],
-    external: ["node:fs/promises"],
     minify: true,
     sourcemap: false,
     clean: false,

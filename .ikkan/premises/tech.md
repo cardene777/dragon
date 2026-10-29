@@ -9,6 +9,7 @@
 - 見本帳は Vite と React 19 で作り、経路は依存を足さずに `history` で持つ (`apps/playground-spa/src/site/routes.ts`)。Tailwind 4 の plugin は Vite の設定に残るが、今の頁は使っていない (`apps/playground-spa/package.json`、`apps/playground-spa/vite.config.ts`)。
 - 見本帳の公開の build は、読み込んでよい場所を CSP の meta で絞る (`apps/playground-spa/vite-csp.ts`)。
 - 字は Noto Sans JP と JetBrains Mono を同梱し、`@cardenelabs/dragon/fonts` の入口から読む (`packages/dragon/src/load-fonts.ts`)。
+- 頁で描く入口 `@cardenelabs/dragon` は Node の組み込みの module を読まず、原本の file を移す `migrateFile` は Node でだけ動く入口 `@cardenelabs/dragon/node` に置く (`packages/dragon/src/node.ts`、#3206)。
 
 ## 検査
 
