@@ -6,6 +6,8 @@
  * 次の同じ主役が出発するまで着いた先に留まり、次が無ければ終わりまで留まる。
  * 線の名前はその段の間だけ出し、同じ段に何本あっても同時に見えるのは 2 つまでにする。
  * 状態遷移図では、段が終わった後も線の名前を最後の段まで薄く残す (#3171)。薄い名前は 2 つまでの数に入れない。
+ * 止め絵を選んだ図では、最後の段で起きることが済んでから繰り返す前まで (`whole`)、全ての段の線の名前を最後の段と同じ濃さで出す (#3200)。
+ * その間に見えている名前は繰り返す前まで延ばし、見えていない名前は同じ間に出し直す (`again`)。状態遷移図の薄い名前はその間の前で消す。
  * 状態遷移図では、主役の運ぶ物が乗っている状態を光らせ、運ぶ物が出た状態には少し後に済んだ印を出す (#3163)。
  * 枝分かれの図では、commit を積む出来事と枝を切る出来事も線と同じ間で引く (#3164)。
  * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
@@ -42,6 +44,8 @@ export interface LabelTime extends Span {
   event: number;
   /** 状態遷移図だけが持つ。段が終わった後に薄く残す間 */
   after?: Span;
+  /** 止め絵を選んだ図だけが持つ。最後の段で起きることが済んでから、最後の段と同じ濃さで出し直す間 (#3200) */
+  again?: Span;
 }
 
 /** 処理、箱の字の書き換え、中身の帯の値が起きる時刻。 */
@@ -71,6 +75,8 @@ export interface Timeline {
   events: EventTime[];
   /** 段ごとの止め絵の時刻。その段で起きることが全部見えている */
   stills: number[];
+  /** 止め絵を選んだ図だけが持つ。最後の段で起きることが済んでから繰り返す前まで、全ての段の線の名前と箱の中の処理を出す間 (#3200) */
+  whole?: Span;
   /** 状態遷移図だけが持つ */
   states?: StateTime[];
 }
@@ -120,7 +126,8 @@ function plan(step: Diagram["steps"][number]): Planned {
   return out;
 }
 
-export function buildTimeline(diagram: Diagram): Timeline {
+/** 時刻の表を作る。`still` を立てると、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出す間 (`whole`) を持つ (#3200) */
+export function buildTimeline(diagram: Diagram, still = false): Timeline {
   const plans = diagram.steps.map(plan);
   const steps: Span[] = [];
   let t = MOTION.intro;
@@ -133,6 +140,10 @@ export function buildTimeline(diagram: Diagram): Timeline {
   const end = t;
   const total = Math.ceil(end + MOTION.outro);
   const last = total - MOTION.tail;
+  const lastSpan = steps[steps.length - 1];
+  const whole = still && lastSpan ? { start: lastSpan.start + (plans[plans.length - 1]?.busy ?? 0), end: last } : undefined;
+  // 状態遷移図の薄い名前は、全ての段の名前を出し直す前に消す
+  const faint = whole?.start ?? last;
 
   const edges: EdgeTime[] = [];
   const labels: LabelTime[] = [];
@@ -155,7 +166,13 @@ export function buildTimeline(diagram: Diagram): Timeline {
       const later = named[k + 2];
       if (later) label.end = Math.min(label.end, later.start);
     });
-    if (diagram.kind === "state") for (const label of named) label.after = { start: label.end, end: last };
+    for (const label of named) {
+      if (whole && label.end > whole.start) label.end = whole.end;
+      else {
+        if (diagram.kind === "state" && label.end < faint) label.after = { start: label.end, end: faint };
+        if (whole) label.again = whole;
+      }
+    }
     labels.push(...named);
     for (const event of p.events) events.push({ step: s, event: event.event, at: span.start + event.at });
   });
@@ -193,6 +210,7 @@ export function buildTimeline(diagram: Diagram): Timeline {
     badges: steps.map((span, s) => ({ step: s, appears: span.start })),
     events,
     stills: steps.map((span) => span.end - MOTION.still),
+    ...(whole ? { whole } : {}),
     ...(states ? { states } : {}),
   };
 }
