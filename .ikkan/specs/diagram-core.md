@@ -225,8 +225,6 @@
 | 時系列図で同じ 2 つの箱の間を何度も行き来する時、段の番号はそれぞれの行の線に置かれる | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`sequence-repeat-badges-on-own-rows`が通る | #3184 |
 | 状態遷移図で同じ線に違う名前が付く段は、名前を別々の所に置く | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-past-labels-on-one-line-clear`が通る | #3184 |
 | 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3184 |
-| 字の重なる図を書き出す時、書き出しの命令は重なりを標準エラーに出す (#3178) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-warns-overlaps`が通る | #3184 |
-| 字の重なる図を編集画面に書く時、重なりの欄が重なりを並べる (#3178) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3184 |
 | 英語で重なりを知らせる時、箱の絵柄を `The icon of "<箱の名前>"`、硬貨を `the coin`、封筒を `the envelope` と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-names-parts-in-english`が通る | #3184 |
 | 日本語で重なりを知らせる時、箱の絵柄を「<箱の名前> の絵柄」、運ぶ物を「硬貨」「封筒」と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-names-parts-in-japanese`が通る | #3184 |
 | 構成図で同じ箱へ戻る線を持つ図 (packages/dragon/test/fixtures/arch-self-loop.dragon) を描いた時、全ての段で `overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-no-overlaps`が通る | #3186 |
@@ -240,8 +238,6 @@
 | 状態遷移図の同じ状態へ戻る線は、今のまま状態の下に輪で描く | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-draws-self-loop-under-box`が通る | #3186 |
 | 時系列図の自分への矢印は、今のまま生存線の右へ出て戻る | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`sequence-self-message-unchanged`が通る | #3186 |
 | 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3186 |
-| 字の重なる図を書き出す時、書き出しの命令は重なりを標準エラーに出す (#3178) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-warns-overlaps`が通る | #3186 |
-| 字の重なる図を編集画面に書く時、重なりの欄が重なりを並べる (#3178) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3186 |
 | 区画の中の箱と下の帯の箱を往復する 2 本の線を持つ構成図 (packages/dragon/test/fixtures/pair-band.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-pair-band-no-overlaps`が通る | #3189 |
 | 同じ帯の上下の行の箱を往復する 2 本の線を持つ構成図 (packages/dragon/test/fixtures/pair-row.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-pair-row-no-overlaps`が通る | #3189 |
 | 別の箱どうしの線が同じ箱の同じ辺から出るか入る構成図 (packages/dragon/test/fixtures/shared-side.dragon、crowd-side.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-shared-side-no-overlaps`が通る | #3189 |
@@ -251,3 +247,14 @@
 | 同じ線を後の段がまた通る時、番号は同じ所に置かれて入れ替わる (#3184) | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`repeat-line-badges-share-one-spot`が通る | #3189 |
 | 構成図の同じ箱へ戻る輪の番号は、今のまま輪の右に置かれる (#3186) | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-badge-and-label`が通る | #3189 |
 | 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3189 |
+| 状態に `note` だけを書いた段を持つ状態遷移図 (packages/dragon/test/fixtures/corner-note.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-state-note-no-overlaps`が通る | #3187 |
+| 何も書かない段を持つ状態遷移図 (packages/dragon/test/fixtures/corner-empty.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-state-empty-no-overlaps`が通る | #3187 |
+| 札を置く枠を持つ構成図の箱に `note` だけを書いた段 (packages/dragon/test/fixtures/corner-slot.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-architecture-slot-no-overlaps`が通る | #3187 |
+| 線の無い段の番号の中心が、状態遷移図と構成図と時系列図のどれでも、書き換わる箱の左上の角に在る | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-centered-on-corner`が通る | #3187 |
+| 中身の帯だけを書き換える線の無い段の番号は、今までどおり帯の左上の角から 4px 内側に在る | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-strip-unchanged`が通る | #3187 |
+| 箱が図の左端と上端に在る 4 つの見本 (corner-note、corner-empty、corner-slot、corner-seq) で、線の無い段の番号が図の外へはみ出さない | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-inside-figure`が通る | #3187 |
+| 線の無い段が同じ箱か中身の帯を続けて書き換える時、段の番号は同じ角に置かれ、全ての段で `overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`corner-badges-share-one-spot`が通る | #3187 |
+| 重なりを知らせる文は、番号を絵柄に重ねた図で、日本語と英語の文を出す。重なりは描いた後の置き場所を書き換えて作る | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-message-in-both-languages`が通る | #3187 |
+| 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3187 |
+| 編集画面で字の重ならない見本を開いた時、「読めています」だけが出て、重なりの欄も図の上の囲みも出ない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3187 |
+| 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3187 |
