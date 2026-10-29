@@ -186,7 +186,6 @@
 | 札に入った字 (線の名前の札、処理の札、段の番号) を線が横切っても、`overlaps` に数えない | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-ignore-lines-under-pills`が通る | #3175 |
 | 使い方の頁の状態遷移図の例 (日本語と英語) の全ての段で、「取り消す」と「注文を確定」(英語は `Cancel` と `Place order`) が重ならない | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-side-label-clear-of-step-labels`が通る | #3175 |
 | 使い方の頁の状態遷移図の例 (日本語と英語) の全ての段で、「取り消す」の点線が「注文を確定」(英語は `Place order`) を横切らない | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-step-label-clear-of-side-path`が通る | #3175 |
-| 同じ線を 2 つの段で通る時、後の段の番号を線に沿って前の段の番号の隣に置き、番号どうしが重ならない (部品「運ぶ物」の構成図と状態遷移図の日本語と英語) | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`repeated-line-badges-side-by-side`が通る | #3175 |
 | 状態遷移図で同じ線に 2 つの段の名前を薄く残す時、名前どうしが重ならない (部品「運ぶ物」の状態遷移図の日本語と英語) | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-past-labels-on-one-line-clear`が通る | #3175 |
 | 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples` の全ての見本の全ての段で、`overlaps` が 0 件 (字どうしの重なりも、線が札を持たない字を横切る所も無い) | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`と`state-step-label-clear-of-side-path`が通る | #3175 |
 | 全ての見本を見る検査に字が重なる見本を 1 つ混ぜると、検査が見本の名前と段と重なる 2 つの字を出して落ちる | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-check-names-example-step-and-texts`が通る | #3175 |
@@ -216,3 +215,17 @@
 | 構成図と状態遷移図で、上に置く線の名前の札の下端と線の間は今どおり 12 | `pnpm exec vitest run packages/dragon/test/sequence-height.test.ts`の検査`architecture-and-state-label-gap-unchanged`が通る | #3177 |
 | 全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3177 |
 | 全ての見本の全ての段で、運ぶ物が絵柄と字と段の番号と矢印の先を隠さない | `pnpm exec vitest run apps/playground-spa/src/lib/carrier-slot.test.ts`の検査`carriers-clear-in-every-example`が通る | #3177 |
+| 同じ線を 5 段で通る構成図 (packages/dragon/test/fixtures/repeat-line.dragon) を描いた時、全ての段で `overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`architecture-repeat-no-overlaps`が通る | #3184 |
+| 同じ状態へ戻る線を 5 段で通る状態遷移図を描いた時、全ての段で `overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`state-loop-repeat-no-overlaps`が通る | #3184 |
+| 同じ線を何度も通る時、その線を通る段の番号は全て同じ所に置かれる | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`repeat-line-badges-share-one-spot`が通る | #3184 |
+| 線の無い段が同じ箱か中身の帯を続けて書き換える時、段の番号は同じ角に置かれ、全ての段で `overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`corner-badges-share-one-spot`が通る | #3184 |
+| 状態遷移図で同じ線に同じ名前が付く段が続く時、名前は 1 つの所に置かれ、図の高さは 1 回だけ通る図と同じ | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`state-same-name-once`が通る | #3184 |
+| 部品「運ぶ物」の構成図と状態遷移図で、同じ線を 2 つの段で通る組の番号が同じ所に置かれる | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`repeated-line-badges-share-one-spot`が通る | #3184 |
+| 同じ線を 1 度しか通らない段の番号は、後の段が始まっても消えずに残る | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`single-pass-badges-stay`が通る | #3184 |
+| 時系列図で同じ 2 つの箱の間を何度も行き来する時、段の番号はそれぞれの行の線に置かれる | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`sequence-repeat-badges-on-own-rows`が通る | #3184 |
+| 状態遷移図で同じ線に違う名前が付く段は、名前を別々の所に置く | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`state-past-labels-on-one-line-clear`が通る | #3184 |
+| 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3184 |
+| 字の重なる図を書き出す時、書き出しの命令は重なりを標準エラーに出す (#3178) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-warns-overlaps`が通る | #3184 |
+| 字の重なる図を編集画面に書く時、重なりの欄が重なりを並べる (#3178) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3184 |
+| 英語で重なりを知らせる時、箱の絵柄を `The icon of "<箱の名前>"`、硬貨を `the coin`、封筒を `the envelope` と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-names-parts-in-english`が通る | #3184 |
+| 日本語で重なりを知らせる時、箱の絵柄を「<箱の名前> の絵柄」、運ぶ物を「硬貨」「封筒」と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-names-parts-in-japanese`が通る | #3184 |
