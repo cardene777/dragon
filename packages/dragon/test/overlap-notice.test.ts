@@ -6,8 +6,11 @@
  * 編集画面と書き出しの命令が同じ文を出す。書き出しの命令は file を書き出したうえで、標準エラーに重なりを 1 件 1 行で出して終わり方 0 で終える。
  * 頁の側では SVG を組まないので、図の上の囲みと段へ移る動きは再生の部品が持つ (`mark` と `goTo`)。
  *
- * 字の重なる図の見本は、同じ線を 5 段で通る構成図 (`fixtures/repeat-line.dragon`)。段の番号が線に沿って積み重なり、5 段目で段の番号 5 が段の番号 1 に重なる。
- * 積み重なりを直す時 (#3184) は、この見本を別の重なる形に替える。
+ * 字の重なる図の見本は、名前の長い箱へ戻る線を持つ構成図 (`fixtures/self-line.dragon`)。構成図は同じ箱へ戻る線を輪に描かないので、2 段目の番号が箱の名前に重なる。
+ * 同じ箱へ戻る線を輪に描く時 (#3186) は、この見本を別の重なる形に替える。
+ * 段を移る検査と四角を描く検査は、重なりと関わらないので 5 段の構成図 (`fixtures/repeat-line.dragon`) で見る。
+ *
+ * 箱の絵柄と運ぶ物 (硬貨と封筒) は、知らせる文の言葉で呼ぶ (#3184)。日本語は「<箱の名前> の絵柄」「硬貨」「封筒」、英語は `the icon of "<箱の名前>"`、`the coin`、`the envelope`。
  */
 import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -15,6 +18,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import * as dragon from "../src/index";
 import { type Overlap, parseNotation, type Player, renderDiagram } from "../src/index";
+import { LOOK } from "../src/look/values";
+import { renderLayout } from "../src/render/svg";
 import { runCli } from "./export-support";
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -22,12 +27,46 @@ type Rect = { x: number; y: number; w: number; h: number };
 /** 書き出しの命令を待つ時間 */
 const SLOW = 60_000;
 const FIXTURE = join(process.cwd(), "packages/dragon/test/fixtures/repeat-line.dragon");
+const OVERLAPPING = join(process.cwd(), "packages/dragon/test/fixtures/self-line.dragon");
 const OAUTH = join(process.cwd(), "packages/dragon/examples/oauth.json");
 
-function repeated(): dragon.Diagram {
-  const parsed = parseNotation(readFileSync(FIXTURE, "utf8"));
+function read(file: string, lang: "ja" | "en" = "ja"): dragon.Diagram {
+  const parsed = parseNotation(readFileSync(file, "utf8"), { lang });
   if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
   return parsed.diagram;
+}
+
+const repeated = (): dragon.Diagram => read(FIXTURE);
+
+/** 1 段目に封筒、2 段目に硬貨が決済へ着く構成図。決済は絵柄を持つ */
+const CARRYING = ["architecture 運ぶ物と絵柄", "", "box 店 [icon: app]", "box 決済 [icon: card]", "", "step 頼む", "  say 店が決済に頼む。", "  店 -> 決済: 頼む", "", "step 払う", "  say 店が払う。", "  店 -> 決済: 払う [carry: coin]"].join("\n");
+
+/**
+ * 運ぶ物を決済の絵柄の上に留めた時と、1 段目の番号を絵柄に重ねた時の知らせる文を、段ごとに並べる。
+ * 置き場所の計算は運ぶ物と番号を絵柄から離すので、置き場所を書き換えて描く所 (`renderLayout`) へ直に渡す
+ */
+function partMessages(lang: "ja" | "en"): string[] {
+  const parsed = parseNotation(CARRYING, { lang });
+  if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
+  const rendered = renderDiagram(parsed.diagram, { lang });
+  const out: string[] = [];
+  const pay = rendered.layout.boxes.find((b) => b.id === "決済");
+  if (!pay) throw new Error("決済の箱が無い");
+  const icon: [number, number] = [(pay as { iconX?: number }).iconX ?? pay.cx, pay.cy + LOOK.box.iconY];
+  for (const step of [0, 1]) {
+    const layout = structuredClone(rendered.layout);
+    const edge = layout.edges.find((e) => e.step === step);
+    if (!edge) throw new Error(`${step + 1} 段目の線が無い`);
+    edge.settle = icon;
+    const moved = renderLayout(rendered.diagram, layout, rendered.timeline, { lang }).overlaps.filter((o) => o.step === step);
+    out.push(...moved.map((o) => dragon.describeOverlap(o, lang)));
+  }
+  const layout = structuredClone(rendered.layout);
+  const badge = layout.badges.find((b) => b.step === 0);
+  if (!badge) throw new Error("1 段目の番号が無い");
+  Object.assign(badge, { x: icon[0], y: icon[1] });
+  out.push(...renderLayout(rendered.diagram, layout, rendered.timeline, { lang }).overlaps.filter((o) => o.step === 0).map((o) => dragon.describeOverlap(o, lang)));
+  return out;
 }
 
 const lines = (text: string): string[] => text.split("\n").filter((line) => line !== "");
@@ -48,16 +87,25 @@ describe("字の重なりを知らせる (#3178)", () => {
   it("overlap-message-in-both-languages", () => {
     expect(typeof dragon.describeOverlap, "知らせる文の関数 describeOverlap が package の入口から出ていない").toBe("function");
     const say = dragon.describeOverlap;
-    const rendered = renderDiagram(repeated());
-    expect(rendered.overlaps.map((o) => [o.step, say(o, "ja"), say(o, "en")])).toEqual([[4, "段の番号 1 と段の番号 5 が重なる", "Step number 1 and step number 5 overlap"]]);
+    const rendered = renderDiagram(read(OVERLAPPING));
+    expect(rendered.overlaps.map((o) => [o.step, say(o, "ja"), say(o, "en")])).toEqual([[1, "「注文を受け付ける窓口」と段の番号 2 が重なる", '"注文を受け付ける窓口" and step number 2 overlap']]);
 
     // 字どうしの重なりと、線が字を横切る所も、日本語と英語で書く。段の番号でない字は鉤括弧か引用符で囲む
     const rect = { x: 0, y: 0, w: 10, h: 10 };
     const texts = { kind: "texts", step: 1, texts: ["確かめる", "返す"], spots: [{ text: "確かめる", rect, badge: false }, { text: "返す", rect, badge: false }] } as unknown as Overlap;
     const mixed = { kind: "texts", step: 1, texts: ["確かめる", "2"], spots: [{ text: "確かめる", rect, badge: false }, { text: "2", rect, badge: true }] } as unknown as Overlap;
     const line = { kind: "line", step: 1, text: "受け付ける", line: { from: "受付", to: "発送" }, spots: [{ text: "受け付ける", rect, badge: false }] } as unknown as Overlap;
-    expect([texts, mixed, line].map((o) => say(o, "ja"))).toEqual(["「確かめる」と「返す」が重なる", "「確かめる」と段の番号 2 が重なる", "線 受付 → 発送 が「受け付ける」を横切る"]);
-    expect([texts, mixed, line].map((o) => say(o, "en"))).toEqual(['"確かめる" and "返す" overlap', '"確かめる" and step number 2 overlap', 'The line 受付 → 発送 crosses "受け付ける"']);
+    const badges = { kind: "texts", step: 4, texts: ["1", "5"], spots: [{ text: "1", rect, badge: true }, { text: "5", rect, badge: true }] } as unknown as Overlap;
+    expect([texts, mixed, line, badges].map((o) => say(o, "ja"))).toEqual(["「確かめる」と「返す」が重なる", "「確かめる」と段の番号 2 が重なる", "線 受付 → 発送 が「受け付ける」を横切る", "段の番号 1 と段の番号 5 が重なる"]);
+    expect([texts, mixed, line, badges].map((o) => say(o, "en"))).toEqual(['"確かめる" and "返す" overlap', '"確かめる" and step number 2 overlap', 'The line 受付 → 発送 crosses "受け付ける"', "Step number 1 and step number 5 overlap"]);
+  });
+
+  it("overlap-names-parts-in-japanese", () => {
+    expect(partMessages("ja")).toEqual(["「決済 の絵柄」と「封筒」が重なる", "「決済 の絵柄」と「硬貨」が重なる", "「決済 の絵柄」と段の番号 1 が重なる"]);
+  });
+
+  it("overlap-names-parts-in-english", () => {
+    expect(partMessages("en")).toEqual(['The icon of "決済" and the envelope overlap', 'The icon of "決済" and the coin overlap', 'The icon of "決済" and step number 1 overlap']);
   });
 
   it("player-goes-to-step", () => {
@@ -108,13 +156,13 @@ describe("字の重なりを知らせる (#3178)", () => {
     "export-warns-overlaps",
     async () => {
       const out = mkdtempSync(join(tmpdir(), "dragon-overlap-"));
-      const ja = await runCli(["export", FIXTURE, "--format", "html", "--out", out]);
+      const ja = await runCli(["export", OVERLAPPING, "--format", "html", "--out", out]);
       expect(ja.code, ja.stderr).toBe(0);
-      expect(readdirSync(out), "重なる図を書き出さなかった").toContain("repeat-line.html");
-      expect(lines(ja.stderr), "標準エラーに重なりが 1 件 1 行で出ない").toEqual(["段 5: 段の番号 1 と段の番号 5 が重なる"]);
-      const en = await runCli(["export", FIXTURE, "--format", "html", "--out", out, "--lang", "en"]);
+      expect(readdirSync(out), "重なる図を書き出さなかった").toContain("self-line.html");
+      expect(lines(ja.stderr), "標準エラーに重なりが 1 件 1 行で出ない").toEqual(["段 2: 「注文を受け付ける窓口」と段の番号 2 が重なる"]);
+      const en = await runCli(["export", OVERLAPPING, "--format", "html", "--out", out, "--lang", "en"]);
       expect(en.code, en.stderr).toBe(0);
-      expect(lines(en.stderr), "英語の標準エラーに重なりが 1 件 1 行で出ない").toEqual(["Step 5: Step number 1 and step number 5 overlap"]);
+      expect(lines(en.stderr), "英語の標準エラーに重なりが 1 件 1 行で出ない").toEqual(['Step 2: "注文を受け付ける窓口" and step number 2 overlap']);
     },
     SLOW,
   );

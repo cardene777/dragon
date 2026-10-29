@@ -12,8 +12,6 @@
  *
  * 箱の絵柄と、着いて留まる運ぶ物も重なりに数える (#3176)。絵柄は `<箱の名前> の絵柄` の名前で返す。
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
@@ -129,13 +127,17 @@ describe("字の重なりをエンジンが見つける (#3175)", () => {
     const r = spots[0]?.rect;
     expect(r !== undefined && r.x <= mx && mx <= r.x + r.w && r.y <= my && my <= r.y + r.h, "横切られる字の四角が線の真ん中を含まない").toBe(true);
 
-    // 段の番号の重なりは、段の番号の字を段の番号として持つ
-    const parsed = parseNotation(readFileSync(join(process.cwd(), "packages/dragon/test/fixtures/repeat-line.dragon"), "utf8"));
-    if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
-    const [pile] = renderDiagram(parsed.diagram).overlaps;
+    // 段の番号の重なりは、段の番号の字を段の番号として持つ。2 段目の番号を 1 段目の番号の所へ動かして重ねる
+    // (同じ線を何度も通る番号は 1 つの丸で入れ替えるので、描いた図には段の番号どうしの重なりが無い、#3184)
+    const piled = structuredClone(rendered.layout);
+    const [one, two] = [piled.badges.find((b) => b.step === 0), piled.badges.find((b) => b.step === 1)];
+    expect(one && two, "段の番号が見つからない").toBeTruthy();
+    if (!one || !two) return;
+    Object.assign(two, { x: one.x, y: one.y });
+    const [pile] = renderLayout(rendered.diagram, piled, rendered.timeline).overlaps.filter((o) => o.spots.every((s) => s.badge));
     expect(pile?.spots.map((s) => [s.text, s.badge]), "重なる段の番号を段の番号として持たない").toEqual([
       ["1", true],
-      ["5", true],
+      ["2", true],
     ]);
   });
 

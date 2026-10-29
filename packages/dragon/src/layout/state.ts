@@ -29,6 +29,8 @@ import {
   labelStyle,
   type Layout,
   lineBadges,
+  lineKey,
+  replaceSameSpot,
   layoutStrip,
   markText,
   type Point,
@@ -344,6 +346,15 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     const source = diagram.steps[e.step]?.events[e.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
     const loop = e.from === e.to;
+    // 同じ線に同じ名前を置いた段が前に在れば、その名前の所に重ねて名前を 1 つにまとめる。前の段の薄い名前はこの段が始まると消す (#3184)
+    const key = lineKey(e);
+    const named = labels.filter((l) => l.text === source.label && sceneEdges.some((o) => o.step === l.step && o.event === l.event && lineKey(o) === key));
+    const same = named[named.length - 1];
+    if (same) {
+      same.until = e.step;
+      labels.push({ x: same.x, y: same.y, w: same.w, h: same.h, step: e.step, event: e.event, text: same.text, family: same.family, color: e.color });
+      continue;
+    }
     const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
     // 輪の名前は輪の下から探し、空いていなければ横へずらす
     const below = loop ? { side: "below" as const, base: { x: (e.points[0]?.[0] ?? 0) - T.loop.w / 2 - w / 2, y: Math.max(...e.points.map(([, y]) => y)) + LOOK.label.soft } } : {};
@@ -396,11 +407,14 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
   if (strip) layout.strip = strip;
   const placedBadges = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
-  layout.badges = diagram.steps.map((step, s) => {
-    const line = placedBadges.get(s);
-    if (!line) return cornerBadge(step.events, s, layout);
-    return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
-  });
+  // 同じ所に置いた番号は、後の段が始まると入れ替える (#3184)
+  layout.badges = replaceSameSpot(
+    diagram.steps.map((step, s) => {
+      const line = placedBadges.get(s);
+      if (!line) return cornerBadge(step.events, s, layout);
+      return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
+    }),
+  );
   return layout;
 }
 

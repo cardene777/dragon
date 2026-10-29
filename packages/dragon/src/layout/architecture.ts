@@ -19,6 +19,7 @@ import {
   labelStyle,
   type Layout,
   lineBadges,
+  replaceSameSpot,
   layoutStrip,
   type Point,
   placeLabel,
@@ -362,11 +363,14 @@ function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, ro
   layout.height = (strip ? strip.y + strip.h : contentBottom) + margin;
   if (strip) layout.strip = strip;
   const lines = lineBadges(sceneEdges, diagram.steps.length);
-  layout.badges = diagram.steps.map((step, s) => {
-    const line = lines.get(s);
-    if (!line) return cornerBadge(step.events, s, layout);
-    return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
-  });
+  // 同じ所に置いた番号は、後の段が始まると入れ替える (#3184)
+  layout.badges = replaceSameSpot(
+    diagram.steps.map((step, s) => {
+      const line = lines.get(s);
+      if (!line) return cornerBadge(step.events, s, layout);
+      return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
+    }),
+  );
   return layout;
 }
 

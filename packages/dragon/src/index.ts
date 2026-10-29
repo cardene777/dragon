@@ -48,7 +48,7 @@ export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
 export { ICONS } from "./render/icons";
-export { describeOverlap, type Overlap, type OverlapSpot } from "./render/ink";
+export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from "./render/ink";
 export { iconSvg } from "./render/parts";
 export { type Rendered, type RenderOptions, renderDiagram } from "./render/svg";
 export type { CarrierTime, EdgeTime, EventTime, LabelTime, Span, StateTime, Timeline } from "./timeline";

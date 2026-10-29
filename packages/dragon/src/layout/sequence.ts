@@ -17,6 +17,7 @@ import {
   labelStyle,
   type Layout,
   lineBadges,
+  replaceSameSpot,
   layoutStrip,
   type Point,
   placeLabel,
@@ -193,7 +194,7 @@ export function layoutSequence(diagram: Diagram): Layout {
  */
 function badges(diagram: Diagram, layout: Layout): SceneBadge[] {
   const lines = lineBadges(layout.edges, diagram.steps.length);
-  return diagram.steps.map((step, s) => {
+  const placed = diagram.steps.map((step, s): SceneBadge => {
     const line = lines.get(s);
     if (line) return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
     const action = layout.actions.find((a) => a.step === s);
@@ -201,4 +202,6 @@ function badges(diagram: Diagram, layout: Layout): SceneBadge[] {
     if (action && lifeline) return { step: s, x: lifeline.x, y: action.y + action.h / 2, color: action.color };
     return cornerBadge(step.events, s, layout);
   });
+  // 同じ所に置いた番号は、後の段が始まると入れ替える (#3184)
+  return replaceSameSpot(placed);
 }

@@ -169,7 +169,7 @@ export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[]
   let mark = "";
   if (box.icon && ICONS[box.icon]) {
     const rect = { x: ix - icon / 2, y: box.cy + iconY - icon / 2, w: icon, h: icon };
-    ctx.ink.push({ text: `${box.name} の絵柄`, rect, shown: ALWAYS, boxed: true });
+    ctx.ink.push({ text: `${box.name} の絵柄`, rect, shown: ALWAYS, boxed: true, part: { kind: "icon", box: box.name } });
     mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, ix, box.cy + iconY, iconScale)}`;
   }
   return (
@@ -358,9 +358,11 @@ export function carrier(e: SceneEdge, time: CarrierTime, ctx: Ctx): string {
   // 運ぶ物は、走り出しを待つ間と着いて留まる間を記録する。走っている途中は数えない (#3175, #3176)
   const [hx, hy] = carrierHalf(e.carry);
   const name = e.carry.kind === "tag" ? e.carry.text : e.carry.kind === "coin" ? "硬貨" : "封筒";
+  // 札は書き手の字なので部品の種類を持たず、硬貨と封筒は知らせる文の言葉で呼ぶ (#3184)
+  const part: Pick<Ink, "part"> = e.carry.kind === "tag" ? {} : { part: { kind: e.carry.kind === "coin" ? "coin" : "envelope" } };
   const box = (p: Point) => ({ x: p[0] - hx, y: p[1] - hy, w: hx * 2, h: hy * 2 });
-  if (a > from) ctx.ink.push({ text: name, rect: box([first[1], first[2]]), shown: [[from, a]], boxed: true });
-  ctx.ink.push({ text: name, rect: box(rest), shown: [[b, gone]], boxed: true });
+  if (a > from) ctx.ink.push({ text: name, rect: box([first[1], first[2]]), shown: [[from, a]], boxed: true, ...part });
+  ctx.ink.push({ text: name, rect: box(rest), shown: [[b, gone]], boxed: true, ...part });
   // 次の運ぶ物と入れ替わる時は、重なって 2 つに見えないよう素早く消す
   const fade = gone < m.last ? 0.05 : 0.18;
   return `<g class="dg-a" style="${m.move(pts, m.blink(from + 0.02, gone, fade))}">${carrierShape(e, ctx.sh)}</g>`;
@@ -369,6 +371,8 @@ export function carrier(e: SceneEdge, time: CarrierTime, ctx: Ctx): string {
 /**
  * 段の番号。まだ来ていない段は出さず、今の段は塗り、済んだ段は縁取りに変えて番号を読めるまま残す。
  * `grey` を立てると (状態遷移図、#3171)、済んだ段の縁取りを線と同じ灰にする。
+ * 同じ所に後の段の番号が来る時 (`until`) は、その段が始まる時に素早く消して数字を入れ替える (#3184)。
+ * 見えていない間は `visibility` も隠し、同じ所に重ねたまだ来ていない段の番号が、押した時に前の段の番号を遮らないようにする。
  */
 export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const { m } = ctx;
@@ -376,15 +380,33 @@ export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const a = span.start;
   const e = span.end;
   const { r, ring: rr } = LOOK.badge;
+  const shown = { visibility: "visible" };
+  const hidden = { visibility: "hidden" };
+  const swap = b.until === undefined ? undefined : (ctx.t.steps[b.until] as Span).start;
+  // 次の段がすぐ入れ替える時は、塗った番号のまま素早く消し、縁取りを出さない
+  const next = swap !== undefined && swap <= e + 1e-6;
   const fill = m.kf([
-    [0, { opacity: 0, transform: "scale(.5)" }],
-    [a, { opacity: 0, transform: "scale(.5)" }, EASE.pop],
-    [a + 0.35, { opacity: 1, transform: "scale(1)" }],
-    [e, { opacity: 1, transform: "scale(1)" }, EASE.inOut],
-    [e + 0.4, { opacity: 0, transform: "scale(1)" }],
-    [m.total, { opacity: 0, transform: "scale(.5)" }],
+    [0, { opacity: 0, transform: "scale(.5)", ...hidden }],
+    [a, { opacity: 0, transform: "scale(.5)", ...hidden }, EASE.pop],
+    [a + 0.35, { opacity: 1, transform: "scale(1)", ...shown }],
+    [e, { opacity: 1, transform: "scale(1)", ...shown }, EASE.inOut],
+    [e + (next ? MOTION.untilFade : 0.4), { opacity: 0, transform: "scale(1)", ...hidden }],
+    [m.total, { opacity: 0, transform: "scale(.5)", ...hidden }],
   ]);
-  const past = m.kf([[0, { opacity: 0 }], [e, { opacity: 0 }, EASE.inOut], [e + 0.4, { opacity: 1 }], [m.last, { opacity: 1 }, EASE.inOut], [m.total, { opacity: 0 }]]);
+  const pastEnd = swap ?? m.last;
+  const past = next
+    ? m.kf([
+        [0, { opacity: 0, ...hidden }],
+        [m.total, { opacity: 0, ...hidden }],
+      ])
+    : m.kf([
+        [0, { opacity: 0, ...hidden }],
+        [e, { opacity: 0, ...hidden }, EASE.inOut],
+        [e + 0.4, { opacity: 1, ...shown }],
+        [pastEnd, { opacity: 1, ...shown }, EASE.inOut],
+        ...(swap === undefined ? [] : [[swap + MOTION.untilFade, { opacity: 0, ...hidden }] as Frame]),
+        [m.total, { opacity: 0, ...hidden }],
+      ]);
   const ring = m.kf([
     [0, { opacity: 0, transform: "scale(1)" }],
     [a + 0.05, { opacity: 0, transform: "scale(1)" }],
@@ -396,7 +418,7 @@ export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const y = r1(b.y);
   const ty = r1(b.y + LOOK.baseline.badge);
   const no = b.step + 1;
-  ctx.ink.push({ text: String(no), rect: { x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 }, shown: [[a, m.last]], boxed: true, badge: true });
+  ctx.ink.push({ text: String(no), rect: { x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 }, shown: [[a, pastEnd]], boxed: true, badge: true });
   return (
     `<g class="dg-bd" data-step="${b.step}" style="${cs(b.color)}"><circle class="dg-bdr dg-popc dg-a" cx="${x}" cy="${y}" r="${rr}" style="${ring}"/>` +
     `<g class="dg-a" style="${past}"><circle class="${grey ? "dg-bdp-g" : "dg-bdp"}" cx="${x}" cy="${y}" r="${rr}"/><text class="${grey ? "dg-bdpt-g" : "dg-bdpt"}" x="${x}" y="${ty}" text-anchor="middle">${no}</text></g>` +
