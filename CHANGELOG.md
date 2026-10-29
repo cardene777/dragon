@@ -5,6 +5,8 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-10-29
+
 ### Added
 
 - **図の種類に枝分かれの図 (`git`) を足した** (#3164)
@@ -17,6 +19,12 @@ dragon DSL の主要変更履歴。
   `branch` と `commit` の行は枝分かれの図でだけ書け、ほかの図では `main` や `HEAD` も今どおり普通の名札として読む。
   見本は rebase (`rebase`) と merge (`merge`) を日本語と英語の記法と原本の JSON で置き、見本帳の枝分かれの図の頁と編集画面の棚に載せた。
   見本帳の図の種類だけの部品に枝、commit、当て直し、merge commit を足し、どの図でも使う 10 個の部品の頁にも枝分かれの図で描いた図を並べた。
+
+- **使い方の頁と README と書き方の手引きに枝分かれの図の書き方を載せた** (#3202)
+
+  使い方の頁は状態遷移図の節の次に枝分かれの図の節を置き、`git` の頭の行、`branch` の宣言、`commit` の行の `on` と `copy` と `merge`、枝を切る `from`、札を動かす線を例と一緒に説明する。
+  例は main から fix と feature を切り、fix を merge commit で取り込み、feature を当て直して早送りする 4 段の図で、節の出口は見本帳の枝分かれの図の頁へ向かう。
+  2 つの README と書き方の手引き (`packages/dragon/examples/quick-start.md` と英語版) にも、`git`、`branch`、`commit` の行と同じ例を足した。
 
 ## [0.39.0] - 2026-10-29
 
