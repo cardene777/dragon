@@ -30,6 +30,9 @@ import {
   type Layout,
   lineBadges,
   lineKey,
+  loopBadge,
+  loopLabelBase,
+  loopUnder,
   replaceSameSpot,
   layoutStrip,
   markText,
@@ -237,21 +240,6 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   const exitX = (box: SceneBox): number => (starts && box === first ? box.cx + T.side.entry : box.cx);
 
   const finishOf = (id: string): SceneEnd | undefined => ends.find((e) => e.kind === "finish" && e.box === id);
-  /** 同じ状態へ戻る線。箱の下端の右から出て、下へ膨らむ弧を描いて左から箱へ戻る。運ぶ物が弧の上を走れるよう、点で区切る */
-  const loopOf = (box: SceneBox): Point[] => {
-    const { w, h, samples } = T.loop;
-    const bottom = box.y + box.h;
-    const p0: Point = [box.cx + w / 2, bottom];
-    const c1: Point = [box.cx + (w * 3) / 4, bottom + (h * 4) / 3];
-    const c2: Point = [box.cx - (w * 3) / 4, bottom + (h * 4) / 3];
-    const p3: Point = [box.cx - w / 2, bottom + inset];
-    return Array.from({ length: samples + 1 }, (_, k): Point => {
-      const t = k / samples;
-      const u = 1 - t;
-      const at = (i: 0 | 1): number => u * u * u * p0[i] + 3 * u * u * t * c1[i] + 3 * u * t * t * c2[i] + t * t * t * p3[i];
-      return [at(0), at(1)];
-    });
-  };
   const route = (from: string, to: string): Point[] => {
     if (from === "start") {
       const start = ends.find((e) => e.kind === "start");
@@ -268,7 +256,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     }
     const b = byId.get(to);
     if (!b) return [];
-    if (from === to) return loopOf(a);
+    if (from === to) return loopUnder(a);
     if (b.ghost && !a.ghost) {
       const sx = exitX(a);
       const ex = entryOf(from, b);
@@ -329,13 +317,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
   // 線の名前。同じ状態へ戻る輪は輪の下に置き、終わりへ移る線は印の字と反対の左に置く。
   // 段が終わった名前も薄く残るので、段を問わず先に置いた全ての名前と、印に添えた字を避ける (#3175)
   // 段の番号も済んだ後まで残るので、全ての番号を避ける。同じ状態へ戻る弧の番号は、弧に重ねず弧の右に置く
-  const badgeAt = (edge: SceneEdge, taken: Point[]): Point => {
-    if (edge.from !== edge.to) return badgeOnPath(edge.points, taken);
-    const right = Math.max(...edge.points.map(([px]) => px));
-    const top = (edge.points[0] as Point)[1];
-    const deep = Math.max(...edge.points.map(([, py]) => py));
-    return [right + LOOK.badge.r + LOOK.badge.inset, top + (deep - top) * T.loop.badgeAt];
-  };
+  const badgeAt = (edge: SceneEdge, taken: Point[]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken));
   const labels: SceneLabel[] = [];
   const marks: Rect[] = ends.flatMap((e) => (e.text === "" ? [] : [textBox(e.text, ...markText(e), TYPE.regionNote)]));
   const badgeRects = [...lineBadges(sceneEdges, diagram.steps.length, badgeAt).values()].map((b) => badgeRect(b.point));
@@ -357,7 +339,7 @@ export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
     }
     const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
     // 輪の名前は輪の下から探し、空いていなければ横へずらす
-    const below = loop ? { side: "below" as const, base: { x: (e.points[0]?.[0] ?? 0) - T.loop.w / 2 - w / 2, y: Math.max(...e.points.map(([, y]) => y)) + LOOK.label.soft } } : {};
+    const below = loop ? { side: "below" as const, base: loopLabelBase(e.points, w) } : {};
     // 指示の無い線の名前は、空いていなければ反対の側も探す。ずらした線は自分の側だけを探す
     const side2 = source.labelSide ?? (e.to === "finish" ? "left" : outward.get(e));
     labels.push(

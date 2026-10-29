@@ -1,0 +1,21 @@
+architecture 輪を持つ箱から隣の列の下へ
+
+group 店 as お店の仕組み [note: 注文を受ける, color: blue, icon: app]
+  box 画面 [icon: doc]
+  box とても長い名前の受け付け [icon: clock]
+end
+
+box 支払い [icon: card]
+box API [icon: doc]
+
+step 頼む
+  say 支払いが画面に頼む。
+  支払い -> 画面: 頼む
+
+step 払う
+  say 画面が API に払う。
+  画面 -> API: 払う
+
+step 確かめる
+  say 画面が自分で確かめる。
+  画面 -> 画面: 確かめる

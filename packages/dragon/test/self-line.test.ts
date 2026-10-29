@@ -4,13 +4,15 @@
  * 輪は箱の下端の右から出て下へ膨らみ、箱の下端の左へ戻る。段の番号は輪の右に、線の名前は輪の下に置く。
  * 運ぶ物は輪の上を通って、箱の置き場に着く。
  * 輪を持つ箱の真下に別の箱が在っても、輪と名前と番号はその箱に重ならず、区画の中の箱なら区画の中に収まる。
+ * 輪を持つ箱から出入りするほかの線は、輪と名前の置き場を通らず、箱の脇から列の間へ回る。
+ * 列の間を回る線は、列で一番幅の広い箱の外を通る。
  *
  * 状態遷移図の同じ状態へ戻る輪と、時系列図の自分への矢印は今のまま。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { Layout, Point, Rect, SceneEdge } from "../src/layout/scene";
+import { type Layout, LOOP_ROOM, type Point, type Rect, type SceneEdge } from "../src/layout/scene";
 import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
 import { describeOverlap, type Overlap } from "../src/render/ink";
@@ -55,6 +57,13 @@ const boundsOf = (points: Point[]): Rect => {
   return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
 };
 
+/** 折れ線の区間ごとの四角。縦か横の区間は幅か高さが 0 になるので、食い込みを数えられるよう 1 だけ持たせる */
+const segmentsOf = (points: Point[]): Rect[] =>
+  points.slice(1).map((p, i) => {
+    const rect = boundsOf([points[i] as Point, p]);
+    return { ...rect, w: Math.max(rect.w, 1), h: Math.max(rect.h, 1) };
+  });
+
 /** 描いた SVG から、札 `text` を運ぶ物が通る点を、動きの keyframes の順に取り出す */
 function carrierPath(svg: string, text: string): Point[] {
   const found = new RegExp(`<g class="dg-a" style="animation-name:([\\w-]+)"><rect class="dg-car"[^>]*/><text[^>]*>${text}</text>`).exec(svg);
@@ -70,7 +79,7 @@ const SEQUENCE = ["sequence 自分で確かめる", "", "box 画面", "box API",
 
 describe("構成図で同じ箱へ戻る線を箱の下の輪で描く (#3186)", () => {
   it("architecture-self-line-no-overlaps", () => {
-    for (const file of ["arch-self-loop.dragon", "self-line.dragon", "arch-self-below.dragon", "arch-self-region.dragon"]) {
+    for (const file of ["arch-self-loop.dragon", "self-line.dragon", "arch-self-below.dragon", "arch-self-region.dragon", "arch-self-side.dragon", "arch-self-wide.dragon"]) {
       expect(report(renderDiagram(fixture(file)).overlaps), `${file} で字が重なる`).toEqual([]);
     }
   });
@@ -132,6 +141,36 @@ describe("構成図で同じ箱へ戻る線を箱の下の輪で描く (#3186)",
     expect(inside(region, boundsOf(edge.points)), "輪が区画の外へ出る").toBe(true);
     expect(inside(region, badge), "番号が区画の外へ出る").toBe(true);
     expect(inside(region, label), "名前が区画の外へ出る").toBe(true);
+  });
+
+  it("architecture-other-lines-avoid-loop", () => {
+    for (const file of ["arch-self-region.dragon", "arch-self-side.dragon", "arch-self-wide.dragon"]) {
+      const { layout } = renderDiagram(fixture(file));
+      const zones = layout.edges.filter((e) => e.from === e.to).map((e) => {
+        const { box } = selfLine(layout, e.from);
+        return { id: e.from, rect: { x: box.x, y: bottomOf(box), w: box.w, h: LOOP_ROOM } };
+      });
+      expect(zones.length, `${file} に同じ箱へ戻る線が無い`).toBeGreaterThan(0);
+      for (const edge of layout.edges.filter((e) => e.from !== e.to)) {
+        for (const zone of zones) {
+          const crossed = segmentsOf(edge.points).some((segment) => bites(segment, zone.rect));
+          expect(crossed, `${file} で ${edge.from} から ${edge.to} への線が ${zone.id} の輪と名前の置き場を通る`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("architecture-detour-clear-of-wide-box", () => {
+    const { layout } = renderDiagram(fixture("arch-self-wide.dragon"));
+    const wide = layout.boxes.find((b) => b.id === "とても長い名前の受け付け");
+    const api = layout.boxes.find((b) => b.id === "API");
+    const edge = layout.edges.find((e) => e.from === "API" && e.to === "とても長い名前の受け付け");
+    if (!wide || !api || !edge) throw new Error("幅の広い箱か API か、その間の線が無い");
+    expect(wide.w, "上の箱が API より幅広くない").toBeGreaterThan(api.w);
+    expect(edge.points.length, "API から上の箱への線が脇を回らない").toBeGreaterThan(2);
+    // 箱の縁から 1px 内側に食い込む区間を数える (縁に着く矢じりは数えない)
+    const inner: Rect = { x: wide.x + 1, y: wide.y + 1, w: wide.w - 2, h: wide.h - 2 };
+    expect(segmentsOf(edge.points).some((segment) => bites(segment, inner)), "脇を回る線が幅の広い箱の中を通る").toBe(false);
   });
 
   it("sequence-self-message-unchanged", () => {
