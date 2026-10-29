@@ -429,25 +429,34 @@ describe("カタログの部品の頁 (#3166)", () => {
   it(
     "catalog-part-opens-in-editor",
     async () => {
+      // 頁を開き直して押す回数が多いほど、PC が一時的に止まった回に押す操作が時間切れに当たる (#3208)。
+      // 部品の頁は部品ごとに 1 回だけ開き、押して確かめるのは図の種類ごとに 1 つの図にする
       const parts = await partsTable();
+      const kinds = [...new Set(parts.flatMap((part) => part.kinds))];
+      let opened = 0;
+      let clicked = 0;
       const { page } = await site.open({ path: `${BASE}catalog`, viewport: { width: 1440, height: 900 } });
       for (const part of parts) {
         for (const kind of part.kinds) {
           const text = snippetOf(part.id, kind, "ja");
           expect(text, `${snippetName(part.id, kind, "ja")} が無い`).toBeDefined();
           await page.goto(`${site.origin}${partPath(part.id)}`);
+          opened++;
           await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
           // 頁を読み直すと消える印を置き、編集画面へ移った後も残っているかで読み直していないことを見る
           await page.evaluate(() => {
             (window as unknown as { __stay: number }).__stay = 1;
           });
           await page.locator(`${figureSel(kind)} ${catalogSel("part-open-editor")}`).click();
+          clicked++;
           await onScreen(page, "editor", `${part.id} の ${kind} の図の編集画面で開くで編集画面が出ない`);
           await expect.poll(() => editorValue(page), { ...WAIT, message: `${part.id} の ${kind} の図を編集画面で開いても、その記法が書く欄に入らない` }).toBe(text);
           expect(await page.evaluate(() => location.hash), `${part.id} の ${kind} の図の編集画面のアドレスに記法が載らない`).toBe(toHash(text ?? ""));
           expect(await page.evaluate(() => (window as unknown as { __stay?: number }).__stay), "編集画面で開く時に頁を読み直した").toBe(1);
         }
       }
+      expect(opened, "部品の頁を開いた回数が部品の数と違う").toBe(parts.length);
+      expect(clicked, "編集画面で開くを押した回数が図の種類の数と違う").toBe(kinds.length);
     },
     SWEEP,
   );
