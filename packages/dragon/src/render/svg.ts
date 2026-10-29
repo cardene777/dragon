@@ -8,14 +8,14 @@
 import { FIGURE_TEXT } from "../figure-text";
 import { layoutArchitecture } from "../layout/architecture";
 import { textWidth } from "../layout/measure";
-import type { Layout, Rect } from "../layout/scene";
+import type { Layout, Rect, SceneLabel } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
 import { layoutState } from "../layout/state";
 import { FONTS } from "../look/fonts";
 import { type ColorKey, EASE, FONT_VARS, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
-import { buildTimeline, type Span, type Timeline } from "../timeline";
+import { buildTimeline, type LabelTime, type Span, type Timeline } from "../timeline";
 import type { NotationLang } from "../words";
 import {
   action,
@@ -102,7 +102,7 @@ const PART_CSS = [
   ".dg-bd{cursor:pointer}",
   ".dg-bdf{fill:var(--c)}",
   `.dg-bdft{${font(TYPE.badge)};fill:var(--on-c)}`,
-  `.dg-bdr{fill:none;stroke:var(--c);stroke-width:${S.badgeRing}}`,
+  `.dg-bdr{fill:none;stroke:var(--c);stroke-width:${S.badgeRing};pointer-events:none}`,
   `.dg-bdp{fill:${mix(X.badgePast)};stroke:${mix(X.badgePastEdge, "transparent")};stroke-width:${S.hair}}`,
   `.dg-bdpt{${font(TYPE.badge)};fill:var(--ct)}`,
   `.dg-bdp-g{fill:var(--surf);stroke:${PAST};stroke-width:${S.hair}}`,
@@ -251,6 +251,14 @@ export interface FollowFrame {
   lang: NotationLang;
 }
 
+/** 同じ線の同じ名前を後の段が置く時は、薄く残した名前をその段が始まるまでで消す (#3184) */
+function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): LabelTime {
+  if (l.until === undefined || !time.after) return time;
+  const cut = (steps[l.until] as Span).start;
+  const { after, ...rest } = time;
+  return cut > after.start ? { ...rest, after: { start: after.start, end: Math.min(after.end, cut) } } : rest;
+}
+
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
 export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = [], traces: Trace[] = []): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける
@@ -294,7 +302,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   for (const b of layout.badges) L.badge.push(badge(b, ctx, isState));
   for (const l of layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
-    if (time) L.top.push(label(l, time, ctx));
+    if (time) L.top.push(label(l, fadeBefore(l, time, timeline.steps), ctx));
   }
   for (const a of layout.actions) {
     const time = timeline.events.find((t) => t.step === a.step && t.event === a.event);

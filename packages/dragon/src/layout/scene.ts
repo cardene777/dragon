@@ -66,6 +66,8 @@ export interface SceneLabel extends Rect {
   text: string;
   family: Family;
   color: ColorKey;
+  /** 同じ線の同じ名前を次に置く段 (状態遷移図、#3184)。その段が始まると、薄く残した名前を消す */
+  until?: number;
 }
 
 /** 状態遷移図の、最初の段より前に書いてどの段にも出ない線。点線で描き、運ぶ物を走らせない */
@@ -110,6 +112,8 @@ export interface SceneBadge {
   x: number;
   y: number;
   color: ColorKey;
+  /** 同じ所に次に番号を置く段 (#3184)。その段が始まると、この番号を消して数字を入れ替える。無ければ最後まで残る */
+  until?: number;
 }
 
 export interface SceneLifeline {
@@ -378,21 +382,45 @@ export function badgeOnPath(points: Point[], taken: Point[] = []): Point {
   return along(points, first);
 }
 
+/** 引いた線の形を表す鍵。同じ 2 つの箱を結んでも、時系列図の別の行のように形が違えば別の線 (#3184) */
+export const lineKey = (edge: SceneEdge): string => edge.points.map(([x, y]) => `${Math.round(x * 10)},${Math.round(y * 10)}`).join(" ");
+
 /**
- * 線を持つ段の番号の点 (#3175)。段の最初の線の上に `at` で置き、同じ線を前の段が通っていれば前の番号の隣へずらす。
+ * 線を持つ段の番号の点 (#3175)。段の最初の線の上に `at` で置き、別の線の番号に重なる時は線に沿ってずらす。
+ * 同じ線を前の段が通っていれば、前の段の番号と同じ所に置く。前の番号は後の段が始まると消え、数字が入れ替わる (#3184)。
  * 番号は線だけで決まるので、線の名前を置く前に求め、名前が同じ時刻に見える番号を避けられるようにする
  */
 export function lineBadges(edges: SceneEdge[], steps: number, at: (edge: SceneEdge, taken: Point[]) => Point = (edge, taken) => badgeOnPath(edge.points, taken)): Map<number, { point: Point; edge: SceneEdge }> {
   const out = new Map<number, { point: Point; edge: SceneEdge }>();
   const taken: Point[] = [];
+  const placed = new Map<string, Point>();
   for (let s = 0; s < steps; s++) {
     const edge = edges.find((e) => e.step === s && e.points.length > 0);
     if (!edge) continue;
+    const key = lineKey(edge);
+    const before = placed.get(key);
+    if (before) {
+      out.set(s, { point: before, edge });
+      continue;
+    }
     const point = at(edge, taken);
     taken.push(point);
+    placed.set(key, point);
     out.set(s, { point, edge });
   }
   return out;
+}
+
+/**
+ * 同じ所に置いた段の番号を入れ替える (#3184)。後の段の番号が前の段の番号と同じ所に来る時、前の段の番号に `until` を付けて、
+ * 後の段が始まると消す。同じ線を何度も通る段と、線の無い段が同じ箱か帯を続けて書き換える段がこれに当たる
+ */
+export function replaceSameSpot(badges: SceneBadge[]): SceneBadge[] {
+  const same = (a: SceneBadge, b: SceneBadge): boolean => Math.hypot(a.x - b.x, a.y - b.y) <= 0.5;
+  return badges.map((badge) => {
+    const next = badges.filter((other) => other.step > badge.step && same(other, badge)).sort((a, b) => a.step - b.step)[0];
+    return next ? { ...badge, until: next.step } : badge;
+  });
 }
 
 /** 段の番号の丸を囲む四角。線の名前が避ける相手にする (#3175) */

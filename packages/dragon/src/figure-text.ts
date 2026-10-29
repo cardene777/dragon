@@ -30,6 +30,10 @@ export interface FigureText {
   /** 字の重なりを知らせる文 (#3178)。段の番号の呼び方、字の囲み方、2 つの字の重なり、線が字を横切る所 */
   badgeName: (no: string) => string;
   quoted: (text: string) => string;
+  /** 書き手が書いていない図の部品の呼び方 (#3184)。箱 `box` の絵柄と、運ぶ物の硬貨と封筒 */
+  iconOf: (box: string) => string;
+  coin: string;
+  envelope: string;
   textsOverlap: (a: string, b: string) => string;
   lineCrosses: (from: string, to: string, text: string) => string;
 }
@@ -56,6 +60,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     end: "終わり",
     badgeName: (no) => `段の番号 ${no}`,
     quoted: (text) => `「${text}」`,
+    iconOf: (box) => `「${box} の絵柄」`,
+    coin: "「硬貨」",
+    envelope: "「封筒」",
     textsOverlap: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
     lineCrosses: (from, to, text) => `線 ${from} → ${to} が${spaced(text)}を横切る`,
   },
@@ -75,6 +82,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     end: "End",
     badgeName: (no) => `step number ${no}`,
     quoted: (text) => `"${text}"`,
+    iconOf: (box) => `the icon of "${box}"`,
+    coin: "the coin",
+    envelope: "the envelope",
     textsOverlap: (a, b) => capital(`${a} and ${b} overlap`),
     lineCrosses: (from, to, text) => `The line ${from} → ${to} crosses ${text}`,
   },
