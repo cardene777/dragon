@@ -9,8 +9,9 @@ import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { launch, stage } from "../src/export/capture";
 import { exampleJson, type Json } from "./diagram-support";
-import { drawnText, embeddedFonts, exporter, fontChars, type PlayerWords, playerWords, runCli } from "./export-support";
+import { drawnText, embeddedFonts, exporter, fontChars, formatOf, isBlank, type PlayerWords, playerWords, runCli } from "./export-support";
 
 /** 書き出し 1 回に許す時間。Chromium の起動を含む */
 const SLOW = 180_000;
@@ -156,14 +157,58 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       const result = await exportDiagram(english(), { outDir: scratch(), formats: ["html"], lang: "en" });
       const html = readFileSync(result.files.html as string, "utf8");
       const embedded = new Set<string>();
-      for (const font of embeddedFonts(html)) for (const char of await fontChars(font.woff2)) embedded.add(char);
+      // 空白の類だけが入る file は、読める形にするために範囲に載せない字を 1 つ足すので、図で描かない字を数える対象から外す (#3212)
+      const shaped = new Set<string>();
+      for (const font of embeddedFonts(html)) {
+        const chars = await fontChars(font.woff2);
+        chars.forEach((char) => embedded.add(char));
+        if (!font.range.every(isBlank)) chars.forEach((char) => shaped.add(char));
+      }
       const missing = [..."Overview"].filter((char) => !embedded.has(char));
       expect(missing, "英語の全体図の札の字が埋めた字の file に無い").toEqual([]);
       const japanese = [..."全体図"].filter((char) => embedded.has(char));
       expect(japanese, "英語で書き出したのに日本語の全体図の札の字を埋めた").toEqual([]);
       const drawn = new Set(await drawnText(html));
-      const extra = [...embedded].filter((char) => !drawn.has(char));
-      expect(extra, "図で描かない字を埋めた").toEqual([]);
+      const extra = [...shaped].filter((char) => !drawn.has(char));
+      expect(extra, "形のある字が入る字の file に図で描かない字を埋めた").toEqual([]);
+    },
+    SLOW,
+  );
+
+  it(
+    "export-english-only-png",
+    async () => {
+      const out = scratch();
+      const ran = await runCli(["export", join(EXAMPLES, "order.en.json"), "--out", out, "--format", "png", "--lang", "en"]);
+      expect(ran.code, `英語の見本を PNG に書き出すと終了 0 で終わらない: ${ran.stderr}`).toBe(0);
+      expect(readdirSync(out)).toEqual(["order.en.png"]);
+      expect(formatOf(readFileSync(join(out, "order.en.png")))).toBe("png");
+    },
+    SLOW,
+  );
+
+  it(
+    "export-names-unreadable-font",
+    async () => {
+      // 中身の壊れた字の file。Chromium は読めずに字の読み込みを断る
+      const broken = '@font-face{font-family:"Broken Font";src:url(data:font/woff2;base64,AAAA) format("woff2");unicode-range:U+41}';
+      for (const lang of ["ja", "en"] as const) {
+        const browser = await launch(lang);
+        try {
+          const failed = await stage(browser, '<svg width="10" height="10"></svg>', broken, "", lang).then(
+            () => undefined,
+            (error: unknown) => error,
+          );
+          expect(failed, `${lang} で読めない字の file を置いても撮る頁が止まらない`).toBeInstanceOf(Error);
+          const message = (failed as Error).message;
+          expect(message, `${lang} の断りの文が読めない字の file の字の名前を名指さない`).toContain("Broken Font");
+          expect(message, `${lang} の断りの文が読めない字の file の字の範囲を名指さない`).toContain("U+41");
+          if (lang === "en") expect(message, "英語の断りの文が仮名か漢字を含む").not.toMatch(KANA_KANJI);
+          else expect(message, "日本語の断りの文が日本語で書かれていない").toMatch(KANA_KANJI);
+        } finally {
+          await browser.close();
+        }
+      }
     },
     SLOW,
   );
