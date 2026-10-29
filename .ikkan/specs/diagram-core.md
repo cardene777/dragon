@@ -263,3 +263,9 @@
 | 撮る頁で字の file を読めない時、書き出しは読めない file の字の名前と字の範囲を名指す文で止まる。英語を渡した時の文は仮名と漢字を含まない | `pnpm test`の検査`export-names-unreadable-font`が通る | #3212 |
 | 空白の類だけが入る字の file は、描く空白の類の字のほかに、同じ file の形のある字を 1 つだけ足して含む | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`が通る | #3212 |
 | 空白の類だけが入る字の file の `unicode-range` は、描く空白の類の字だけを載せ、足した字を載せない | `pnpm test`の検査`font-subset-range-lists-drawn-chars`が通る | #3212 |
+| 箱の行に `[link: <飛び先>]` を書くと、原本の箱が `link` を持ち、描いた SVG のその箱が飛び先への link になる | `pnpm test`の検査`notation-box-link`が通る | #3199 |
+| 段の中に `source <名前> [url: <URL>]` の行を書くと、原本の段が `sources` を持ち、読み上げの段の一覧のその段に出典の名前の link が出る。1 つの段に 2 行書くと 2 つとも出る | `pnpm test`の検査`notation-step-sources`が通る | #3199 |
+| 飛び先と出典を書いた記法を原本の JSON にして記法へ書き戻すと、同じ飛び先と出典が残る | `pnpm test`の検査`notation-link-source-roundtrip`が通る | #3199 |
+| 飛び先か出典の URL に、`/` で始まる path と `http://`、`https://` の URL 以外 (`javascript:` など) を書くと、行の番号を付けた誤りになる | `pnpm test`の検査`notation-link-rejects-unsafe-url`が通る | #3199 |
+| 原本の JSON の検査 (JSON Schema) が、箱の `link` と段の `sources` を持つ JSON を通す | `pnpm test`の検査`schema-accepts-link-and-sources`が通る | #3199 |
+| 飛び先も出典も書かない図は、今と同じく link を持たない SVG を描く | `pnpm test`の検査`notation-without-link-unchanged`が通る | #3199 |
