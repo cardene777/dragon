@@ -4,6 +4,7 @@
  * 動きは全て SVG の中の CSS の keyframes が回す。1 周の長さは `--T`、止める時刻は `--at`、
  * 止めるか流すかは `--play` の変数で外から変えられる (頁に置く `player.ts` がこれを使う)。
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
+ * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { layoutArchitecture } from "../layout/architecture";
@@ -57,6 +58,11 @@ export interface RenderOptions {
   theme?: Theme;
   /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ日本語 (#3001) */
   lang?: NotationLang;
+  /**
+   * 最後の段の止め絵に、全ての段の線の名前と箱の中の処理を最後の段と同じ濃さで出す (#3200)。途中の段の止め絵は今の段の名前だけを出す。
+   * 箱の下の 1 行に出す処理は、その箱で最後に起きた処理か書き換えの字を出す。違う段の名前が重なっても置き直さず、最後の段の重なり (`overlaps`) に出す
+   */
+  still?: boolean;
 }
 
 export interface Rendered {
@@ -242,17 +248,22 @@ function involved(diagram: Diagram): Map<string, number[]> {
   return new Map([...on].map(([id, steps]) => [id, [...steps].sort((a, b) => a - b)]));
 }
 
-/** 箱の下の字の移り変わり。書き換えはそのまま残し、構成図の処理はその段の間だけ出して元へ戻す。 */
+/**
+ * 箱の下の字の移り変わり。書き換えはそのまま残し、構成図の処理はその段の間だけ出して元へ戻す。
+ * 止め絵を選んだ図は、その箱で最後に起きたのが処理なら、最後の段で起きることが済んだ時にその処理を出し直して繰り返す前まで残す (#3200)
+ */
 function subChanges(diagram: Diagram, timeline: Timeline, actionsInBox: boolean): Map<string, SubChange[]> {
   type Raw = { t: number; order: number; box: string; set?: string; act?: string | null };
   const raw: Raw[] = [];
+  const { whole } = timeline;
   let order = 0;
   for (const time of timeline.events) {
     const event = diagram.steps[time.step]?.events[time.event];
     if (event?.type === "swap") raw.push({ t: time.at, order: order++, box: event.box, set: event.text });
     if (actionsInBox && event?.type === "action") {
       raw.push({ t: time.at, order: order++, box: event.box, act: event.label });
-      raw.push({ t: (timeline.steps[time.step] as Span).end, order: order++, box: event.box, act: null });
+      const end = (timeline.steps[time.step] as Span).end;
+      if (!whole || end <= whole.start) raw.push({ t: end, order: order++, box: event.box, act: null });
     }
   }
   raw.sort((a, b) => a.t - b.t || a.order - b.order);
@@ -262,7 +273,10 @@ function subChanges(diagram: Diagram, timeline: Timeline, actionsInBox: boolean)
     let acting: string | undefined;
     let shown = base.join("|");
     const list: SubChange[] = [];
-    for (const change of raw.filter((r) => r.box === box.id)) {
+    const changes = raw.filter((r) => r.box === box.id);
+    const latest = [...changes].reverse().find((r) => r.set !== undefined || typeof r.act === "string");
+    if (whole && typeof latest?.act === "string") changes.push({ t: whole.start, order: order++, box: box.id, act: latest.act });
+    for (const change of changes) {
       // 書き換えは、出ている処理の字も置き換える
       if (change.set !== undefined) {
         base = [change.set, "dg-ss-ok"];
@@ -307,11 +321,15 @@ export interface FollowFrame {
   lang: NotationLang;
 }
 
-/** 同じ線の同じ名前を後の段が置く時は、薄く残した名前をその段が始まるまでで消す (#3184) */
+/**
+ * 同じ線の同じ名前を後の段が置く時は、薄く残した名前をその段が始まるまでで消す (#3184)。
+ * 止め絵で全ての段の名前を出し直す間は、同じ所に出る後の段の名前に任せる (#3200)
+ */
 function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): LabelTime {
-  if (l.until === undefined || !time.after) return time;
+  if (l.until === undefined) return time;
+  const { after, again: _again, ...rest } = time;
+  if (!after) return rest;
   const cut = (steps[l.until] as Span).start;
-  const { after, ...rest } = time;
   return cut > after.start ? { ...rest, after: { start: after.start, end: Math.min(after.end, cut) } } : rest;
 }
 
@@ -383,9 +401,13 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
     if (time) L.top.push(label(l, fadeBefore(l, time, timeline.steps), ctx));
   }
+  // 止め絵を選んだ図は、全ての段の名前を出す間にも処理の札を出す。その間に見えている札は繰り返す前まで延ばす (#3200)
+  const { whole } = timeline;
   for (const a of layout.actions) {
     const time = timeline.events.find((t) => t.step === a.step && t.event === a.event);
-    if (time) L.top.push(action(a, time.at, (timeline.steps[a.step] as Span).end, ctx));
+    if (!time) continue;
+    const until = (timeline.steps[a.step] as Span).end;
+    L.top.push(whole && until > whole.start ? action(a, time.at, whole.end, ctx) : action(a, time.at, until, ctx, whole));
   }
   for (const time of timeline.carriers) {
     const e = layout.edges.find((x) => x.step === time.step && x.event === time.event);
@@ -609,7 +631,7 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
           : diagram.kind === "time"
             ? layoutTime(diagram, lang)
             : layoutArchitecture(diagram);
-  return renderLayout(diagram, layout, buildTimeline(diagram), options);
+  return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 
 /**
