@@ -95,4 +95,13 @@ describe("版の記録 (#3151)", () => {
     expect(released, "CHANGELOG.md に日付付きの ## [0.41.0] の節が無い").not.toBe("");
     expect(released, "CHANGELOG.md の 0.41.0 の節に #3206 の項が無い").toContain("(#3206)");
   });
+
+  it("changelog-0-41-1-releases-blank-font-fix", () => {
+    // 空白の類しか残らない字の file を読める形にして、英語だけの図も書き出せるようにした直し (#3212) は 0.41.1 で出す (#3215)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 41 || (minor === 41 && patch >= 1), `package の版 ${version()} が 0.41.1 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.41\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.41.1"), "0.41.1");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.41.1] の節が無い").not.toBe("");
+    expect(released, "CHANGELOG.md の 0.41.1 の節に #3212 の項が無い").toContain("(#3212)");
+  });
 });
