@@ -143,9 +143,16 @@
 | repo の README の描ける図の欄に状態遷移図があり、行の頭の表に `state` の行と、`start` と `finish` の線の行がある。package の README の行の頭の語に `state` があり、`start`、`finish`、通らない道を使う `state` の例を載せた状態遷移図の小節がある | `pnpm test`の検査`readme-notation-covers-state`が通る | #3172 |
 | 書き方の手引き `quick-start.md` と英語版の行の形の節に `state` の行があり、`state` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-state`が通る | #3172 |
 | package の版が 0.37.0 以上で、`CHANGELOG.md` の `## [0.37.0]` の節に状態遷移図 (#3163) と見た目を揃えた変更 (#3171) の項がある | `pnpm test`の検査`changelog-0-37-0-releases-state`が通る | #3172 |
-| package の版が前提の配り方の節と、`CHANGELOG.md` の版の見出しに書かれている | `pnpm test`の検査`release-version-in-premise`と`release-version-in-changelog`が通る | #3172 |
-| 使い方の頁の全ての節の例が読めて検査を通り、その節の記法の要素を使う | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3172 |
-| 2 つの README の dragon記法の節に決まりが 4 つ並び、dragon の囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3172 |
-| 書き方の手引きの英語版の例の数が日本語版と同じで、どれも読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #3172 |
+| package の版が前提の配り方の節と、`CHANGELOG.md` の版の見出しに書かれている | `pnpm test`の検査`release-version-in-premise`と`release-version-in-changelog`が通る | #3172 #3202 |
+| 使い方の頁の全ての節の例が読めて検査を通り、その節の記法の要素を使う | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3172 #3202 |
+| 2 つの README の dragon記法の節に決まりが 4 つ並び、dragon の囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3172 #3202 |
+| 書き方の手引きの英語版の例の数が日本語版と同じで、どれも読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #3172 #3202 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の頁の経路が組み立てで作られる | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-routes-built`が通る | #3172 |
-| 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3172 |
+| 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3172 #3202 |
+| 使い方の頁 (日本語と英語) を開いた時、状態遷移図の節の次に枝分かれの図の節が出る。節の本文は `git` の頭の行、`branch` の宣言、`commit` の行の `on` と `copy` と `merge`、枝を切る `from`、札を動かす `HEAD` の線を説明し、節の例の図は commit の丸と枝の札を持つ枝分かれの図として描かれ、節の出口は見本帳の枝分かれの図の頁へ向かう。頁の前置きは記法の要素の並びに枝分かれの図を挙げる | `pnpm test`の検査`docs-git-section-follows-state`が通る | #3202 |
+| 使い方の頁の枝分かれの図の節の例の記法 (日本語と英語) を `parseNotation` が誤り無く読み、JSON Schema の検査を通り、枝を 3 本以上宣言し、枝を切る出来事、当て直しの commit、merge commit、札を動かす線を 1 つ以上ずつ持つ | `pnpm test`の検査`docs-git-example-parses`が通る | #3202 |
+| repo の README の描ける図の欄に枝分かれの図があり、行の頭の表に `git` と `branch` と `commit` の行と、`<枝> from <commit>` と `<札> -> <commit>` の行がある。package の README の行の頭の語に `git`、`branch`、`commit` があり、`copy`、`merge`、`from`、札を動かす線を使う `git` の例を載せた枝分かれの図の小節がある | `pnpm test`の検査`readme-notation-covers-git`が通る | #3202 |
+| 書き方の手引き `quick-start.md` と英語版の行の形の節に `git`、`branch`、`commit` の行があり、`git` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-git`が通る | #3202 |
+| package の版が 0.40.0 以上で、`CHANGELOG.md` の `## [0.40.0]` の節に枝分かれの図 (#3164) と、書き方を載せたこの課題 (#3202) の項がある | `pnpm test`の検査`changelog-0-40-0-releases-git`が通る | #3202 |
+| 使い方の頁の例を含む全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`overlaps-none-in-every-example`が通る | #3202 |
+| 使い方の頁の前の形との対応表が、読む部品の語と一致し、`CHANGELOG.md` の対応表と同じ | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3202 |
