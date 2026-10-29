@@ -35,17 +35,10 @@ export interface Fence {
   line: number;
 }
 
-export interface Migrated {
-  changed: boolean;
-  from: number;
-  to: number;
-}
-
 interface DragonApi {
   FORMAT_VERSION: number;
   validateDiagram(input: unknown, options?: { lang?: NotationLang }): Checked;
   readDiagram(input: unknown, options?: { lang?: NotationLang }): Read;
-  migrateFile(path: string): Promise<Migrated>;
   parseNotation(text: string, options?: { lang?: NotationLang }): Parsed;
   printNotation(diagram: unknown): string;
   extractDiagrams(markdown: string): Fence[];

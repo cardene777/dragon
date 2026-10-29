@@ -8,7 +8,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { builtinModules, createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,6 +48,14 @@ function typesOf(entry: Target, condition: "import" | "require"): string | undef
   return typeof branch === "object" ? branch.types : undefined;
 }
 
+/** build した file の `import` と `require` が読む先のうち、Node の組み込みの module (`node:` の付く名前を含む) */
+function nodeBuiltinsRead(file: string): string[] {
+  const builtins = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]));
+  const text = readFileSync(file, "utf8");
+  const read = [...text.matchAll(/(?:\bimport\s*\(\s*|\brequire\s*\(\s*|\bfrom\s*|\bimport\s+)["']([^"']+)["']/g)].map((match) => match[1] ?? "");
+  return [...new Set(read.filter((name) => builtins.has(name)))].sort();
+}
+
 describe("package の入口 (#3021)", () => {
   it("export-entry-requirable", () => {
     const require = createRequire(MANIFEST);
@@ -62,9 +70,40 @@ describe("package の入口 (#3021)", () => {
     expect(typeof loaded.renderDiagram, "require で描く部品を引く").toBe("function");
   });
 
+  it("node-entry-requirable", async () => {
+    const require = createRequire(MANIFEST);
+    const required = require(`${manifest().name}/node`) as { migrateFile?: unknown };
+    const imported = (await import(/* @vite-ignore */ `${manifest().name}/node`)) as { migrateFile?: unknown };
+    expect({ require: typeof required.migrateFile, import: typeof imported.migrateFile }, "Node の入口から原本の file を移す部品を引く").toEqual({
+      require: "function",
+      import: "function",
+    });
+  });
+
+  it("main-entry-browser-safe", () => {
+    // 頁を束ねる道具は、呼ぶかどうかに関わらず入口の file の読み込みを全て解く。Node の組み込みの module を 1 つでも読むと、
+    // ブラウザ向けの build が止まる (Next.js の Turbopack が `migrateFile` の `fs/promises` で止まった、#3206)
+    const main = manifest().exports["."];
+    expect(main, "exports に . が在る").toBeDefined();
+    if (main === undefined) return;
+    const files = targets(main).filter((path) => !/\.d\.c?ts$/.test(path));
+    expect(files, "頁の入口の file").toEqual(["./dist/index.js", "./dist/index.cjs"]);
+    const builtins = Object.fromEntries(files.map((file) => [file, nodeBuiltinsRead(join(ROOT, file))]));
+    expect(builtins, "頁の入口の file が読む Node の組み込みの module").toEqual({ "./dist/index.js": [], "./dist/index.cjs": [] });
+    // 陰性でない対照。node で動く書き出しの入口では、同じ走査が組み込みの module を見つける (走査が空振りしていない)
+    expect(nodeBuiltinsRead(join(ROOT, "dist/export.js")).length, "書き出しの入口が読む組み込みの module の数").toBeGreaterThan(0);
+
+    const require = createRequire(MANIFEST);
+    const loaded = require(manifest().name) as { migrateFile?: unknown; readDiagram?: unknown };
+    expect({ migrateFile: typeof loaded.migrateFile, readDiagram: typeof loaded.readDiagram }, "頁の入口が出す部品").toEqual({
+      migrateFile: "undefined",
+      readDiagram: "function",
+    });
+  });
+
   it("entry-types-match-module-system", () => {
     const { exports } = manifest();
-    for (const entry of [".", "./export"]) {
+    for (const entry of [".", "./export", "./node"]) {
       const target = exports[entry];
       expect(target, `exports に ${entry} が在る`).toBeDefined();
       if (target === undefined) continue;

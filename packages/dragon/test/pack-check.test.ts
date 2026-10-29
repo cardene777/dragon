@@ -57,6 +57,8 @@ describe("確かめる入口 (#3023)", () => {
         "require @cardenelabs/dragon/fonts",
         "import @cardenelabs/dragon/export",
         "require @cardenelabs/dragon/export",
+        "import @cardenelabs/dragon/node",
+        "require @cardenelabs/dragon/node",
       ].sort(),
     );
   });
@@ -70,7 +72,7 @@ describe("確かめる入口 (#3023)", () => {
   });
 
   it("typed-entries", () => {
-    expect(型を持つ入口(current()).sort()).toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export"]);
+    expect(型を持つ入口(current()).sort()).toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export", "@cardenelabs/dragon/node"]);
     expect(型を持つ入口(released0350).sort(), "条件のどれかに型があれば型を持つ入口").toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export"]);
   });
 
