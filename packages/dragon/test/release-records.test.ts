@@ -114,6 +114,15 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-42-1-releases-time-docs", () => {
+    // 時間軸の図の書き方を使い方の頁と README と書き方の手引きに載せた変更 (#3221) は 0.42.1 で出す (#3225)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 42 || (minor === 42 && patch >= 1), `package の版 ${version()} が 0.42.1 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.42\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.42.1"), "0.42.1");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.42.1] の節が無い").not.toBe("");
+    expect(released, "CHANGELOG.md の 0.42.1 の節に #3221 の項が無い").toContain("(#3221)");
+  });
+
   it("changelog-lists-time-docs", () => {
     // 時間軸の図の書き方を使い方と README に載せた変更 (#3221) を更新履歴に載せる。版は #3222 が切るので、どの版の節に移っても通る形で見る
     const items = readFileSync(join(ROOT, "CHANGELOG.md"), "utf8")
