@@ -263,3 +263,10 @@
 | 撮る頁で字の file を読めない時、書き出しは読めない file の字の名前と字の範囲を名指す文で止まる。英語を渡した時の文は仮名と漢字を含まない | `pnpm test`の検査`export-names-unreadable-font`が通る | #3212 |
 | 空白の類だけが入る字の file は、描く空白の類の字のほかに、同じ file の形のある字を 1 つだけ足して含む | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`が通る | #3212 |
 | 空白の類だけが入る字の file の `unicode-range` は、描く空白の類の字だけを載せ、足した字を載せない | `pnpm test`の検査`font-subset-range-lists-drawn-chars`が通る | #3212 |
+| 止め絵を選んで描いた SVG は、最後の段の形に、全ての段の線の名前と箱の中の処理を、最後の段と同じ濃さで出す (状態遷移図の過ぎた段の名前も同じ濃さになる) | `pnpm test`の検査`render-still-shows-all-labels`が通る | #3200 |
+| 構成図で 1 つの箱に違う段の処理が 2 つ以上在る時、止め絵のその箱には最後の段の処理を出す | `pnpm test`の検査`render-still-box-last-action`が通る | #3200 |
+| 止め絵で違う段の名前どうしが重なる時、その重なりが描いた結果の重なりの報告 (`overlaps`) に出る | `pnpm test`の検査`render-still-reports-overlaps`が通る | #3200 |
+| `mountDiagram` に止めて置く設定と段の番号を渡すと、置いた時に流さず、その段の止まった形で出る | `pnpm test`の検査`player-start-paused-at-step`が通る | #3200 |
+| `mountDiagram` に 1 度だけ流す設定を渡すと、最初の段から最後の段まで流して最後の段で止まり、繰り返さない。止め絵も選んでいれば、止まった図は全ての段の名前を出す | `pnpm test`の検査`player-plays-once-then-still`が通る | #3200 |
+| 止め絵を選んで置いた図で途中の段へ送ると、今と同じくその段の名前だけを出す | `pnpm test`の検査`player-still-middle-step-own-labels`が通る | #3200 |
+| 設定を渡さない時は、今と同じく置いた時から全ての段を繰り返し流す | `pnpm test`の検査`player-default-loops`が通る | #3200 |
