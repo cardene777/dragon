@@ -242,3 +242,12 @@
 | 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3186 |
 | 字の重なる図を書き出す時、書き出しの命令は重なりを標準エラーに出す (#3178) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-warns-overlaps`が通る | #3186 |
 | 字の重なる図を編集画面に書く時、重なりの欄が重なりを並べる (#3178) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3186 |
+| 区画の中の箱と下の帯の箱を往復する 2 本の線を持つ構成図 (packages/dragon/test/fixtures/pair-band.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-pair-band-no-overlaps`が通る | #3189 |
+| 同じ帯の上下の行の箱を往復する 2 本の線を持つ構成図 (packages/dragon/test/fixtures/pair-row.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-pair-row-no-overlaps`が通る | #3189 |
+| 別の箱どうしの線が同じ箱の同じ辺から出るか入る構成図 (packages/dragon/test/fixtures/shared-side.dragon、crowd-side.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-shared-side-no-overlaps`が通る | #3189 |
+| 44px より短い線の段の番号は、線の始まりから番号の半径と 1px だけ進んだ所に置かれる | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-short-line-at-start`が通る | #3189 |
+| 線の上で前の番号を避けられない時、番号は線の脇へずれ、ほかの線に乗らない (crowd-side.dragon) | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-crowd-aside-clear-of-lines`が通る | #3189 |
+| 44px 以上の線の段の番号は、今までどおり線の始まりから 14px 進んだ所に置かれる | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-long-line-unchanged`が通る | #3189 |
+| 同じ線を後の段がまた通る時、番号は同じ所に置かれて入れ替わる (#3184) | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`repeat-line-badges-share-one-spot`が通る | #3189 |
+| 構成図の同じ箱へ戻る輪の番号は、今のまま輪の右に置かれる (#3186) | `pnpm exec vitest run packages/dragon/test/self-line.test.ts`の検査`architecture-self-line-badge-and-label`が通る | #3189 |
+| 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で `overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3189 |
