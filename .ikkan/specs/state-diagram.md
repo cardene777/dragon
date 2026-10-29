@@ -23,7 +23,7 @@
 | `dragon export` に注文の図の JSON を渡した時、mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`export-writes-state-diagram`が通る | #3163 #3171 |
 | `packages/dragon/examples` に `order.dragon`、`order.en.dragon`、`order.json`、`order.en.json` があり、英語版の状態と段と段ごとの線の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`order-example-files-match`が通る | #3163 |
 | repo の全ての `.dragon` の file を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3163 |
-| 見本帳の一覧に図の分類が 3 つ (時系列図、構成図、状態遷移図) 並び、状態遷移図の頁に注文の見本が載り、選ぶと 10 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`catalog-lists-state-with-order`が通る | #3163 |
+| 見本帳の一覧の図の分類が時系列図、構成図、状態遷移図の順で始まり、状態遷移図の頁に注文の見本が載り、選ぶと 10 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`catalog-lists-state-with-order`が通る | #3163 #3164 |
 | 見本帳の図の種類だけの部品に「始まりと終わり」と「通らない道」の 2 つが状態遷移図の部品として並び、頁ごとに日本語と英語の記法と、状態遷移図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`catalog-has-two-state-parts`が通る | #3163 |
 | どの図でも使う 10 個の部品の頁に、状態遷移図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`common-parts-draw-state`が通る | #3163 |
 | 「始まりと終わり」の頁は `start` か `finish` の線を持つ見本の札を、「通らない道」の頁は最初の段より前に線を書いた見本の札を並べ、札は状態遷移図の頁のその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`state-part-pages-link-order`が通る | #3163 |

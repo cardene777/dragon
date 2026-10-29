@@ -5,6 +5,19 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- **図の種類に枝分かれの図 (`git`) を足した** (#3164)
+
+  git の枝に commit を積み、当て直し (rebase) と取り込み (merge) で枝と HEAD の札が動く様子を段ごとに追う図。
+  枝は `branch` の行で上から順に宣言し、枝ごとに帯を並べる。原本の JSON では種類の欄 `git.branches` に入り、箱を 1 つも持たない図も書ける。
+  段の中では `commit <名札> on <枝>` で commit を積み、`copy <名札>` で当て直した commit、`merge <枝>` で 2 つの親を持つ merge commit になる。`hash` と `note` で丸の外に hash と一言を添える。
+  `<枝> from <commit>` で枝を切り、`<札> -> <commit>` で枝の札か HEAD を動かす。札を動かす線は commit を作らず、その段の間だけ引く。
+  HEAD は最初に積んだ枝を指し、枝から離れた間だけ札を出す。どの札からも辿れなくなった commit は、その段で点線の丸に変わる。
+  `branch` と `commit` の行は枝分かれの図でだけ書け、ほかの図では `main` や `HEAD` も今どおり普通の名札として読む。
+  見本は rebase (`rebase`) と merge (`merge`) を日本語と英語の記法と原本の JSON で置き、見本帳の枝分かれの図の頁と編集画面の棚に載せた。
+  見本帳の図の種類だけの部品に枝、commit、当て直し、merge commit を足し、どの図でも使う 10 個の部品の頁にも枝分かれの図で描いた図を並べた。
+
 ## [0.39.0] - 2026-10-29
 
 ### Added
