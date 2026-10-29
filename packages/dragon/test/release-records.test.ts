@@ -68,4 +68,13 @@ describe("版の記録 (#3151)", () => {
     expect(released, "CHANGELOG.md に日付付きの ## [0.38.0] の節が無い").not.toBe("");
     for (const issue of ["#3175", "#3176", "#3177"]) expect(released, `CHANGELOG.md の 0.38.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
+
+  it("changelog-0-39-0-releases-fixes", () => {
+    // 字の重なりの知らせ (#3178) と、段の番号が重なる所の直し (#3184、#3186、#3189、#3187) は 0.39.0 で出す (#3193)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 39, `package の版 ${version()} が 0.39.0 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.39\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.39.0"), "0.39.0");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.39.0] の節が無い").not.toBe("");
+    for (const issue of ["#3178", "#3184", "#3186", "#3189", "#3187"]) expect(released, `CHANGELOG.md の 0.39.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+  });
 });
