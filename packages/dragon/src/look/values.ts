@@ -31,6 +31,41 @@ export function resolvePalette(id?: string): Palette {
   return found ?? (PALETTES[DEFAULT_PALETTE] as Palette);
 }
 
+/**
+ * 色味が持つ色の変数の名前 (#3198)。呼ぶ側が `colors` で値を渡せる鍵。
+ * 外へ出す型を `palettes.json` から作ると、束ねた型の file に JSON の中身が初期値付きで写り、型の検査を通らなくなるため、名前を並べて作る。
+ * 並びが `palettes.json` の明るい背景の名前と食い違うと、下の 2 つの `_` で始まる型が、余る名前か足りない名前を挙げて型の検査で落ちる
+ */
+const COLOR_NAMES = ["page", "bg", "surf", "sunk", "ink", "ink2", "mute", "hair", "line", "sh", "on-c", "c-blue", "t-blue", "c-amber", "t-amber", "c-green", "t-green", "c-violet", "t-violet", "c-rose", "t-rose", "c-slate", "t-slate", "coin", "coint", "coinin", "tint", "edge", "shA", "shB", "carry"] as const;
+export type ColorName = (typeof COLOR_NAMES)[number];
+type Never<T extends never> = T;
+type PaletteColor = keyof (typeof palettes)[typeof DEFAULT_PALETTE]["light"];
+type _NotInPalette = Never<Exclude<ColorName, PaletteColor>>;
+type _NotListed = Never<Exclude<PaletteColor, ColorName>>;
+
+/** 名前で選んだ色味に重ねる色の値。渡さない色は色味の値のまま残る (#3198) */
+export type Colors = Partial<Record<ColorName, string>>;
+
+const COLOR_NAME_SET: ReadonlySet<string> = new Set(COLOR_NAMES);
+
+/** 色味が持つ色の変数の名前か。 */
+export const isColorName = (name: string): name is ColorName => COLOR_NAME_SET.has(name);
+
+/**
+ * 色の値として読めるか。値は CSS の変数として SVG の style と頁の要素の style にそのまま入るので、
+ * 宣言と要素から抜け出す字 (`;`、`{`、`}`、`"`、`'`、`<`、`>`、`&`、`\`、`:` など) を持たない字の並びで、
+ * 括弧が閉じていて (閉じない括弧は後ろの宣言を呑む)、外の file を読む `url(` を持たない値だけを通す
+ */
+export function isColorValue(value: unknown): value is string {
+  if (typeof value !== "string" || !/^[\w\s#%.,()/+-]+$/u.test(value) || /url\(/iu.test(value)) return false;
+  let depth = 0;
+  for (const char of value) {
+    depth += char === "(" ? 1 : char === ")" ? -1 : 0;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
 /** 色味の値を CSS の変数として並べる。 */
 export function paletteVars(palette: Palette, theme: Theme): string {
   return Object.entries(palette[theme])

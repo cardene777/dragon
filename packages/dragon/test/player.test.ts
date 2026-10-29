@@ -7,7 +7,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { exampleJson, type Json } from "./diagram-support";
-import { draw, type Player } from "./render-support";
+import { ARCADE_COLORS, cssVars, draw, figureVars, type Player } from "./render-support";
 
 /** 頁の設定を模す。jsdom は `matchMedia` を持たないため、系の境目として差し替える。 */
 function prefersReducedMotion(reduce: boolean): void {
@@ -222,5 +222,29 @@ describe("段の本文の帯の高さ (#3049)", () => {
     // 段を送ると、今の段の題が送った段の題に替わる
     click(host, "next");
     expect(stepTitle(host)).toBe(diagram.steps[1]?.title);
+  });
+});
+
+describe("色の値 (#3198)", () => {
+  it("player-colors-override-palette", () => {
+    prefersReducedMotion(false);
+    const sh = draw("resolvePalette")("paper").light.sh;
+    for (const view of ["fixed", "follow"] as const) {
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+      players.push(draw("mountDiagram")(host, { ...(exampleJson("oauth.json") as Record<string, Json>), view }, { palette: "paper", colors: ARCADE_COLORS }));
+      const svg = host.querySelector('svg[data-dragon="figure"]');
+      expect(svg?.getAttribute("data-view"), "置いた図の見せ方").toBe(view);
+      // 寄って追う図は全体図を同じ SVG に描き、全体図の地と札も SVG の変数の色で塗る
+      if (view === "follow") expect(svg?.querySelector(".dg-mm-bg"), "寄って追う図に全体図が無い").not.toBeNull();
+      const figure = figureVars(svg?.outerHTML ?? "");
+      const bar = cssVars(host.querySelector('[data-dragon="player"]')?.getAttribute("style") ?? "");
+      for (const [name, value] of Object.entries(ARCADE_COLORS)) {
+        expect(figure[name], `${view} の図の ${name}`).toBe(value);
+        expect(bar[name], `${view} の釦と段の帯の ${name}`).toBe(value);
+      }
+      // 渡さない色は紙と墨の値のまま残る
+      expect(figure.sh, `${view} の図の影`).toBe(sh);
+    }
   });
 });

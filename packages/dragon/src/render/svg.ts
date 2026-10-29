@@ -14,7 +14,7 @@ import { layoutSequence } from "../layout/sequence";
 import { layoutState } from "../layout/state";
 import { isTimeLayout, layoutTime } from "../layout/time";
 import { FONTS } from "../look/fonts";
-import { type ColorKey, EASE, FONT_VARS, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
+import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
 import { buildTimeline, type LabelTime, type Span, type Timeline } from "../timeline";
@@ -49,6 +49,11 @@ import { Motion } from "./motion";
 export interface RenderOptions {
   /** 色味の名前。書かないか知らない名前なら紙と墨 */
   palette?: string;
+  /**
+   * `palette` の色味に重ねる色の値 (#3198)。鍵は色味が持つ色の変数の名前 (`bg`、`ink`、`c-green` など) で、値は描く `theme` の色になる。
+   * 渡さない色は色味の値のまま残る。色味に無い名前と、色の値として読めない値は、名前を挙げて描かずに断る
+   */
+  colors?: Colors;
   theme?: Theme;
   /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ日本語 (#3001) */
   lang?: NotationLang;
@@ -312,8 +317,10 @@ function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): LabelTime {
 
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
 export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = [], traces: Trace[] = []): string {
-  // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける
-  const id = nameOf(`${JSON.stringify(diagram)}|${palette.id}|${theme}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
+  // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける。
+  // 色は色味の名前でなく色の値から名前を作り、色の値を重ねた図 (#3198) と同じ色味の名前の図の変数の規則を分ける
+  const vars = paletteVars(palette, theme);
+  const id = nameOf(`${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
   const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink, traces };
   const on = involved(diagram);
@@ -393,7 +400,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。頭の列の箱はアイコンを外した 2 段 (#3120)。止めて見せる図では描かない
   const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [])).join("") : "";
   const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${paletteVars(palette, theme)}}${PART_CSS}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}">` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -573,6 +580,19 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   return { body, w: beside && !bare ? vw + M.inset + bgW : full, h: beside ? vh : bgY + bgH };
 }
 
+/**
+ * 描く色味。名前で選んだ色味の `theme` の色に `colors` の色を重ねる (#3198)。
+ * 色味に無い色の名前と、色の値として読めない値は、名前を全て挙げて描かずに断る
+ */
+export function paletteOf(options: RenderOptions, theme: Theme): Palette {
+  const palette = resolvePalette(options.palette);
+  if (!options.colors) return palette;
+  const words = FIGURE_TEXT[options.lang ?? "ja"];
+  const errors = Object.entries(options.colors).flatMap(([name, value]) => (!isColorName(name) ? [words.unknownColor(name)] : isColorValue(value) ? [] : [words.unreadableColor(name)]));
+  if (errors.length > 0) throw new Error(words.cannotDraw(errors.join(" / ")));
+  return { ...palette, [theme]: { ...palette[theme], ...options.colors } };
+}
+
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */
 export function renderDiagram(input: unknown, options: RenderOptions = {}): Rendered {
   const lang = options.lang ?? "ja";
@@ -597,8 +617,8 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
  * 重なりは、字を描く部品が記録した字だけから数えるので、描く所が位置を決める字 (箱の名前) も対象に入る
  */
 export function renderLayout(diagram: Diagram, layout: Layout, timeline: Timeline, options: RenderOptions = {}): Rendered {
-  const palette = resolvePalette(options.palette);
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
+  const palette = paletteOf(options, theme);
   const ink: Ink[] = [];
   const traces: Trace[] = [];
   const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces);
