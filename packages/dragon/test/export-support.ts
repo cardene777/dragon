@@ -370,6 +370,80 @@ export function embeddedFonts(html: string): { family: string; woff2: Buffer; ra
 /** 形を持たない字 (空白の類、書式の字、制御の字) か */
 export const isBlank = (char: string): boolean => /^[\s\p{Cf}\p{Cc}]$/u.test(char);
 
+/** 字の名前と、その字を持つ同梱の package。書き出しが字の file を引く package と同じ */
+const FONT_PACKAGES = [
+  { family: "Noto Sans JP Variable", name: "noto-sans-jp" },
+  { family: "JetBrains Mono Variable", name: "jetbrains-mono" },
+] as const;
+
+const subsetFont = require_("subset-font") as (
+  font: Buffer,
+  text: string,
+  options: { targetFormat: "woff2"; variationAxes: Record<string, { min: number; max: number }> },
+) => Promise<Buffer>;
+
+/** `U+30-39,U+3000-303F` の形の範囲に字が入るか */
+function inRanges(list: string, char: string): boolean {
+  const code = char.codePointAt(0) ?? -1;
+  return list.split(",").some((part) => {
+    const [from = "", to = from] = part.trim().replace(/^U\+/i, "").split("-");
+    return code >= parseInt(from, 16) && code <= parseInt(to, 16);
+  });
+}
+
+/**
+ * 直す前の書き出しと同じ埋め方で、`chars` を削って埋めた `@font-face` の並び (#3213)。
+ * 直す前は、字の範囲が字の表のどの file に重なって入っていても、入る file の全てに埋めていた。
+ * 空白の類だけが入る file には、#3212 と同じく同じ file の形のある字を 1 つ足し、範囲には載せない。
+ * 太さの軸は、比べる書き出しの字の CSS (`css`) と同じにする。
+ * 書き出しの字の CSS からでなく図の字から作るので、書き出しがどの file にも入れなかった字も比べる側には入る。
+ */
+export async function facesBeforeDedupe(chars: string[], css: string): Promise<string> {
+  const weight = /font-weight:\s*([\d.]+)\s+([\d.]+)/.exec(css);
+  const axis = { min: Number(weight?.[1] ?? 400), max: Number(weight?.[2] ?? 400) };
+  const out: string[] = [];
+  for (const { family, name } of FONT_PACKAGES) {
+    const base = dirname(require_.resolve(`@fontsource-variable/${name}/unicode.json`));
+    const table = Object.entries(JSON.parse(readFileSync(join(base, "unicode.json"), "utf8")) as Record<string, string>);
+    for (const [key, list] of table) {
+      const own = chars.filter((char) => inRanges(list, char));
+      if (!own.length) continue;
+      let filler = "";
+      if (own.every(isBlank)) {
+        for (let code = 0x21; code <= 0x10ffff && filler === ""; code++) {
+          const char = String.fromCodePoint(code);
+          if (inRanges(list, char) && !isBlank(char)) filler = char;
+        }
+      }
+      const file = join(base, "files", `${name}-${key.replace(/[[\]]/g, "")}-wght-normal.woff2`);
+      const woff2 = await subsetFont(readFileSync(file), own.join("") + filler, { targetFormat: "woff2", variationAxes: { wght: axis } });
+      const range = own.map((char) => `U+${(char.codePointAt(0) ?? 0).toString(16).toUpperCase()}`).join(",");
+      out.push(
+        `@font-face{font-family:"${family}";font-style:normal;font-display:block;font-weight:${axis.min} ${axis.max};src:url(data:font/woff2;base64,${woff2.toString("base64")}) format("woff2");unicode-range:${range}}`,
+      );
+    }
+  }
+  return out.join("");
+}
+
+/** SVG が字として描く字。要素と `<style>` を外し、字の参照を戻す。改行と字下げは数えない */
+export function svgChars(svg: string): string[] {
+  const text = svg
+    .replace(/<style[\s\S]*?<\/style>/g, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
+    .replace(/&amp;/g, "&");
+  return [...new Set(text)].filter((char) => char !== "\n" && char !== "\r" && char !== "\t").sort();
+}
+
+/** HTML に埋めた字の CSS。`@font-face` の並びをそのまま返す */
+export const fontCssOf = (html: string): string => [...html.matchAll(/@font-face\s*\{[^}]*\}/g)].map((m) => m[0]).join("");
+
 /**
  * HTML に埋めた字の file のうち、Chromium が読めない物 (#3212)。
  * 1 つずつ別の頁に置いて読ませ、読めない file を `<名前>: <字の名前> <字の範囲>` の形で返す。
