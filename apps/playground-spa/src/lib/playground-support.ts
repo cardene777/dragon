@@ -108,14 +108,39 @@ export interface OpenOptions {
   locale?: string;
   colorScheme?: "light" | "dark";
   viewport?: { width: number; height: number };
-  /** 指で触る端末を模す。`(pointer: coarse)` が当たる (#3075) */
+  /** 指で触る端末を模す。`(pointer: coarse)` が当たる (#3075)。開く時は当たるまで待つ (`waitForCoarse`、#3231) */
   touch?: boolean;
+  /**
+   * 動きを嫌う設定。頁の入れ物を作る時に当て、頁の読み込みより先に当たる (#3231)。
+   * 再生の部品はこの設定を図を描く時に 1 度だけ読むので、開いた後に `emulateMedia` で当てると、先に描かれた図が自動で段を送る
+   */
+  reducedMotion?: "reduce" | "no-preference";
+}
+
+/** 頁が読み込みの最初の瞬間に読んだ、動きを嫌う設定と指で触る設定が当たっているか */
+export interface StartMedia {
+  reduce: boolean;
+  coarse: boolean;
 }
 
 export interface Opened {
   page: Page;
   /** CSP に止められた読み込みと実行 */
   violations: () => Promise<string[]>;
+  /** 最初に開いた頁が、読み込みの最初の瞬間に読んだ設定 */
+  startMedia: () => Promise<StartMedia>;
+}
+
+/**
+ * 指で触る設定 (`(pointer: coarse)`) が当たるまで待つ (#3231)。`timeout` の間に当たらない時は、頁の path を名指して落とす。
+ * 当たらないまま部品の大きさを測ると、部品が小さいのか設定が当たっていないのかを分けられないため、測る前にここで分ける
+ */
+export async function waitForCoarse(page: Page, timeout = 5_000): Promise<void> {
+  try {
+    await page.waitForFunction(() => matchMedia("(pointer: coarse)").matches, undefined, { timeout });
+  } catch {
+    throw new Error(`指で触る設定 (pointer: coarse) が当たらない: ${new URL(page.url()).pathname}`);
+  }
 }
 
 export interface Site {
@@ -145,23 +170,27 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
       colorScheme: o.colorScheme ?? "light",
       viewport: o.viewport ?? { width: 1280, height: 860 },
       hasTouch: o.touch ?? false,
+      reducedMotion: o.reducedMotion ?? "no-preference",
     });
     contexts.push(context);
     await context.addInitScript(() => {
-      const w = window as unknown as { __csp: string[] };
+      const w = window as unknown as { __csp: string[]; __startMedia: StartMedia };
       w.__csp = [];
       document.addEventListener("securitypolicyviolation", (e) => w.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
+      w.__startMedia = { reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, coarse: matchMedia("(pointer: coarse)").matches };
     });
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(o.url ?? `${server.origin}${o.path ?? BASE}`);
+    if (o.touch) await waitForCoarse(page);
     return {
       page,
       violations: async () => [
         ...(await page.evaluate(() => (window as unknown as { __csp: string[] }).__csp)),
         ...errors.filter((m) => /Content Security Policy|EvalError|unsafe-eval/u.test(m)),
       ],
+      startMedia: () => page.evaluate(() => (window as unknown as { __startMedia: StartMedia }).__startMedia),
     };
   };
 

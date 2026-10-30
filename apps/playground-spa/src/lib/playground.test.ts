@@ -1023,8 +1023,7 @@ describe("公開する頁 (#2995)", () => {
     async () => {
       // 段の本文の行の数で帯の高さが替わり、1440 × 900 の ccip で図が上下に動いていた (#3049)
       for (const [key, text] of [["oauth", OAUTH], ["ccip", CCIP]] as const) {
-        const { page } = await open({ viewport: { width: 1440, height: 900 } });
-        await page.emulateMedia({ reducedMotion: "reduce" });
+        const { page } = await open({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
         await drawn(page);
         await click(page, `sample-${key}`);
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));

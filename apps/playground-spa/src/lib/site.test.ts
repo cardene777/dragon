@@ -1180,9 +1180,8 @@ describe("サイトの帯と経路 (#3030)", () => {
       for (const category of ["architecture", "sequence"] as const) {
         const count = samplesOf(category).length;
         for (const viewport of sizes) {
-          const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport });
           // 段の説明の行の数で図の枠の高さが替わるので、自動で送らずに 1 段ずつ確かめる
-          await page.emulateMedia({ reducedMotion: "reduce" });
+          const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport, reducedMotion: "reduce" });
           await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${category} の分類の頁が出ない`);
           for (let i = 0; i < count; i++) {
             await page.locator(catalogSel("item")).nth(i).click();
@@ -1227,8 +1226,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       for (const category of ["architecture", "sequence"] as const) {
         const count = samplesOf(category).length;
         for (const viewport of sizes) {
-          const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport });
-          await page.emulateMedia({ reducedMotion: "reduce" });
+          const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport, reducedMotion: "reduce" });
           await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${category} の分類の頁が出ない`);
           for (let i = 0; i < count; i++) {
             const label = `${viewport.width} × ${viewport.height} の ${category} の ${i + 1} 番目の見本の重ね窓`;
@@ -1310,8 +1308,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       const oauth = samplesOf("sequence").indexOf("oauth");
       expect(oauth, "時系列図のカタログに oauth が無い").toBeGreaterThanOrEqual(0);
       for (const { frame, fits, ...viewport } of screens) {
-        const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport });
-        await page.emulateMedia({ reducedMotion: "reduce" });
+        const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport, reducedMotion: "reduce" });
         await onScreen(page, "category", `${viewport.width} × ${viewport.height} で時系列図の分類の頁が出ない`);
         await page.locator(catalogSel("item")).nth(oauth).click();
         const places = [...(frame ? [{ where: "見本の枠", scope: catalogSel("stage") }] : []), { where: "重ね窓", scope: catalogSel("overlay") }];
@@ -1561,8 +1558,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
   /** 分類の頁で見本 `key` を選ぶ。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする。`touch` の時は指で触る端末を模す (#3076) */
   const openItem = async (viewport: { width: number; height: number }, sample: (typeof CAPTION_SAMPLES)[number], still = false, touch = false): Promise<Page> => {
-    const { page } = await site.open({ path: `${BASE}catalog/${sample.category}`, viewport, touch });
-    if (still) await page.emulateMedia({ reducedMotion: "reduce" });
+    const { page } = await site.open({ path: `${BASE}catalog/${sample.category}`, viewport, touch, reducedMotion: still ? "reduce" : "no-preference" });
     await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${sample.category} の分類の頁が出ない`);
     await page.locator(catalogSel("item")).nth(samplesOf(sample.category).indexOf(sample.key)).click();
     return page;
@@ -1575,13 +1571,9 @@ describe("サイトの帯と経路 (#3030)", () => {
     return page;
   };
 
-  /** 見本 `key` を編集画面で開く。`still` の時は動きを嫌う設定で開き直し、段を釦で送れるようにする。`touch` の時は指で触る端末を模す (#3076) */
+  /** 見本 `key` を編集画面で開く。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする。`touch` の時は指で触る端末を模す (#3076) */
   const openEditor = async (viewport: { width: number; height: number }, key: ExampleKey, still = false, touch = false): Promise<Page> => {
-    const { page } = await site.open({ path: `${BASE}editor${toHash(exampleText(key, "ja"))}`, viewport, touch });
-    if (still) {
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.reload();
-    }
+    const { page } = await site.open({ path: `${BASE}editor${toHash(exampleText(key, "ja"))}`, viewport, touch, reducedMotion: still ? "reduce" : "no-preference" });
     return page;
   };
 
@@ -2768,8 +2760,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
   /** 時系列図の分類の頁を開く。最初の見本 (入門の例) を選んでいて、図は枠に合わせて描く (#3067)。`touch` の時は指で触る端末を模す (#3076) */
   const openSequence = async (viewport: { width: number; height: number }, touch = false): Promise<Page> => {
-    const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport, touch });
-    await page.emulateMedia({ reducedMotion: "reduce" });
+    const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport, touch, reducedMotion: "reduce" });
     await onScreen(page, "category", `${viewport.width} × ${viewport.height} で時系列図の分類の頁が出ない`);
     await page.waitForSelector(`${catalogSel("stage")} svg[data-dragon="figure"]`);
     return page;

@@ -47,10 +47,9 @@ let paired: Site | undefined;
 
 async function openWith(on: Site | undefined, text: string | null, locale = "ja-JP"): Promise<Page> {
   if (!on) throw new Error("頁が起きていない");
-  const { page } = await on.open({ path: EDITOR, locale });
-  await expect.poll(() => page.locator(sel("editor")).count(), { ...WAIT, message: "書く欄が無い" }).toBe(1);
   // 動きを減らす設定にすると、書き換えて置き直した図は 1 段目で止まる
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  const { page } = await on.open({ path: EDITOR, locale, reducedMotion: "reduce" });
+  await expect.poll(() => page.locator(sel("editor")).count(), { ...WAIT, message: "書く欄が無い" }).toBe(1);
   if (text !== null) await page.locator(sel("editor")).fill(text);
   await expect.poll(() => page.locator(`${sel("stage")} .dg-player`).count(), { ...WAIT, message: "図が描かれない" }).toBe(1);
   return page;
