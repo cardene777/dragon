@@ -14,7 +14,7 @@ import { launch, stage, still } from "../src/export/capture";
 import { fontFaces } from "../src/export/fonts";
 import { renderDiagram } from "../src/render/svg";
 import { exampleJson, type Json } from "./diagram-support";
-import { embeddedFonts, exporter, fontChars, fontCssOf, isBlank, overlappedFaces, unreadableFonts } from "./export-support";
+import { embeddedFonts, exporter, facesBeforeDedupe, fontChars, fontCssOf, isBlank, svgChars, unreadableFonts } from "./export-support";
 
 /** 書き出し 1 回に許す時間。Chromium の起動を含む */
 const SLOW = 180_000;
@@ -152,7 +152,7 @@ describe("書き出しが同じ字を 1 つの字の file にだけ埋める (#3
   it(
     "export-png-unchanged-by-font-dedupe",
     async () => {
-      // 範囲の重なる字を前に並ぶ字の file にも足して撮った絵 (直す前の重なり) と、書き出しの字の CSS だけで撮った絵を比べる
+      // 図の字を直す前と同じく入る file の全てに埋めて撮った絵と、書き出しの字の CSS で撮った絵を比べる
       const exportDiagram = await exporter();
       const differ: string[] = [];
       for (const lang of ["ja", "en"] as const) {
@@ -172,14 +172,14 @@ describe("書き出しが同じ字を 1 つの字の file にだけ埋める (#3
               }
             };
             const now = await shoot(css);
-            const before = await shoot((await overlappedFaces(css)) + css);
+            const before = await shoot(await facesBeforeDedupe(svgChars(rendered.svg), css));
             if (!now.equals(before)) differ.push(name);
           }
         } finally {
           await browser.close();
         }
       }
-      expect(differ, "範囲の重なる字を前の file にも足して撮った絵と画素が違う見本").toEqual([]);
+      expect(differ, "直す前の埋め方で撮った絵と画素が違う見本").toEqual([]);
     },
     SLOWER,
   );

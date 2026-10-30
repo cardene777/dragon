@@ -392,21 +392,21 @@ function inRanges(list: string, char: string): boolean {
 }
 
 /**
- * 書き出しの字の CSS が載せた字のうち、同じ package の字の表で後にも並ぶ字を、前に並ぶ字の file に削って埋めた `@font-face` の並び (#3213)。
- * 直す前の書き出しは、範囲の重なる字を全ての file に埋めていた。この並びを書き出しの CSS の前に置くと、直す前と同じ重なりを作れる。
+ * 直す前の書き出しと同じ埋め方で、`chars` を削って埋めた `@font-face` の並び (#3213)。
+ * 直す前は、字の範囲が字の表のどの file に重なって入っていても、入る file の全てに埋めていた。
  * 空白の類だけが入る file には、#3212 と同じく同じ file の形のある字を 1 つ足し、範囲には載せない。
+ * 太さの軸は、比べる書き出しの字の CSS (`css`) と同じにする。
+ * 書き出しの字の CSS からでなく図の字から作るので、書き出しがどの file にも入れなかった字も比べる側には入る。
  */
-export async function overlappedFaces(css: string): Promise<string> {
-  const faces = embeddedFonts(css);
+export async function facesBeforeDedupe(chars: string[], css: string): Promise<string> {
   const weight = /font-weight:\s*([\d.]+)\s+([\d.]+)/.exec(css);
   const axis = { min: Number(weight?.[1] ?? 400), max: Number(weight?.[2] ?? 400) };
   const out: string[] = [];
   for (const { family, name } of FONT_PACKAGES) {
-    const drawn = [...new Set(faces.filter((face) => face.family === family).flatMap((face) => face.range))];
     const base = dirname(require_.resolve(`@fontsource-variable/${name}/unicode.json`));
     const table = Object.entries(JSON.parse(readFileSync(join(base, "unicode.json"), "utf8")) as Record<string, string>);
-    for (const [i, [key, list]] of table.entries()) {
-      const own = drawn.filter((char) => inRanges(list, char) && table.slice(i + 1).some(([, later]) => inRanges(later, char)));
+    for (const [key, list] of table) {
+      const own = chars.filter((char) => inRanges(list, char));
       if (!own.length) continue;
       let filler = "";
       if (own.every(isBlank)) {
@@ -424,6 +424,21 @@ export async function overlappedFaces(css: string): Promise<string> {
     }
   }
   return out.join("");
+}
+
+/** SVG が字として描く字。要素と `<style>` を外し、字の参照を戻す。改行と字下げは数えない */
+export function svgChars(svg: string): string[] {
+  const text = svg
+    .replace(/<style[\s\S]*?<\/style>/g, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
+    .replace(/&amp;/g, "&");
+  return [...new Set(text)].filter((char) => char !== "\n" && char !== "\r" && char !== "\t").sort();
 }
 
 /** HTML に埋めた字の CSS。`@font-face` の並びをそのまま返す */
