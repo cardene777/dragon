@@ -1,4 +1,4 @@
-// Bringing the fix branch and the feature branch into main with merge commits (#3164).
+// Bringing the fix branch and the feature branch into main with merge commits.
 // The top lane is main, with fix and feature below it. A merge commit has two parents: the tip of the target and the tip of the merged branch.
 // Only the target's ref moves to the merge commit; the merged branch's ref stays on its own commit.
 git Merge two branches into main with merge commits

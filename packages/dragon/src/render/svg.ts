@@ -399,8 +399,8 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   }
   // 木の図の木の線と通った跡と木の箱と札は、木の図を描く部品が描く (#3233)。木の線を走る線は通った跡が見せるので、ほかの線と同じ線で描かない
   const treeLayout = isTreeLayout(layout) ? layout : undefined;
-  if (treeLayout) {
-    const tree = drawTree(treeLayout, diagram, timeline, ctx);
+  const tree = treeLayout ? drawTree(treeLayout, diagram, timeline, ctx) : undefined;
+  if (tree) {
     L.base.push(tree.links);
     L.lit.push(tree.trails);
     L.node.push(tree.nodes);
@@ -426,7 +426,9 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   for (const e of layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
     if (!time || (timeLayout && !wired.has(`${e.step}/${e.event}`)) || runs.has(`${e.step}/${e.event}`)) continue;
-    const drawn = edge(e, time, ctx, isState);
+    // 木の図の箱は段ごとに現れるので、木の線を走らない線の点線は、両端の木の箱が現れてから出す (#3240)
+    const since = Math.max(tree?.appear.get(e.from) ?? 0, tree?.appear.get(e.to) ?? 0);
+    const drawn = edge(e, time, ctx, isState, since);
     L.base.push(drawn.base);
     L.lit.push(drawn.lit);
   }

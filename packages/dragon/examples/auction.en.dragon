@@ -1,4 +1,4 @@
-// How a transaction sent on Ethereum gets into a block through builder bids and is voted on (#3239).
+// How a transaction sent on Ethereum gets into a block through builder bids and is voted on.
 // Each lane belongs to one party and each chip is one transaction. Your own transaction is the coloured chip.
 // Builders reorder and seal their lanes, and the proposer picks by price alone and signs without seeing the contents.
 lineup How an auction decides what goes in a block

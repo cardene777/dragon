@@ -1,4 +1,4 @@
-// Prove that transaction 3 is in a Merkle tree built from 8 transactions, by climbing to the root (#3233).
+// Prove that transaction 3 is in a Merkle tree built from 8 transactions, by climbing to the root.
 // The first 4 steps build the tree from the leaves to the root. The last 4 climb from the value of transaction 3 with the neighbouring values.
 // The root sits at the top center and the leaves below. A leaf with a value shows the value in its box and its id on the card below.
 tree Proving a transaction with a Merkle tree

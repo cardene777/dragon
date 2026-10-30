@@ -263,11 +263,12 @@ export function lifeline(x: number, y1: number, y2: number): string {
  * 線。点線で道を見せておき、その段で色の線を引いて、段の終わりまで流れる点で向きを見せる。
  * 済んだ段は薄く残し、最後の段の後に通った道を全て濃くし直す。
  * `past` を立てると (状態遷移図、#3171)、段が終わった後は色の線を消して灰の実線に替え、最後の段まで残す。
+ * `since` を渡すと (木の図の後から現れる箱へ向かう線、#3240)、点線の道をその時刻から出す。
  */
-export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false): { base: string; lit: string } {
+export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false, since = 0): { base: string; lit: string } {
   const { m } = ctx;
-  // 点線の道は初めから最後まで見えている
-  ctx.traces.push({ from: e.from, to: e.to, points: e.points, shown: ALWAYS });
+  // 点線の道は `since` から最後まで見えている。`since` が 0 なら初めから見えている
+  ctx.traces.push({ from: e.from, to: e.to, points: e.points, shown: since > 0 ? [[since, Number.POSITIVE_INFINITY]] : ALWAYS });
   const d = pathOf(e.points);
   const head = arrowHead(e.points);
   const { start: a, drawn: b, end } = time;
@@ -305,8 +306,9 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false): { ba
     [m.total, { opacity: 0, "stroke-dashoffset": run }],
   ]);
   const grey = past ? m.kf([[0, { opacity: 0 }], [end, { opacity: 0 }, EASE.inOut], [end + 0.4, { opacity: 1 }], [m.last, { opacity: 1 }, EASE.inOut], [m.total, { opacity: 0 }]]) : "";
+  const path = `<path class="dg-e" d="${d}"/><path class="dg-eh" d="${head}"/>`;
   return {
-    base: `<path class="dg-e" d="${d}"/><path class="dg-eh" d="${head}"/>${past ? `<path class="dg-e-past dg-a" d="${d}" style="${grey}"/><path class="dg-eh-past dg-a" d="${head}" style="${grey}"/>` : ""}`,
+    base: `${since > 0 ? `<g class="dg-a" style="${m.vis(since)}">${path}</g>` : path}${past ? `<path class="dg-e-past dg-a" d="${d}" style="${grey}"/><path class="dg-eh-past dg-a" d="${head}" style="${grey}"/>` : ""}`,
     lit: `<g style="${cs(e.color)}"><path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}"/><path class="dg-eh-on dg-a" d="${head}" style="${hk}"/><path class="dg-flow dg-a" d="${d}" style="${flow}"/></g>`,
   };
 }

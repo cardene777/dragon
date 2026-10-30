@@ -1,4 +1,4 @@
-// 作業の枝 feature を main の先端へ rebase し、main を早送りで進めて履歴を 1 本にするまで (#3164)。
+// 作業の枝 feature を main の先端へ rebase し、main を早送りで進めて履歴を 1 本にするまで。
 // 上の帯が main、下の帯が feature。commit は丸で、hash と一言を丸の外に添える。
 // 当て直した C' と D' は main の帯に積み、枝の札は動かさない。HEAD は枝から離れた間だけ札で出す。
 git 作業の枝を rebase して main へ取り込む
