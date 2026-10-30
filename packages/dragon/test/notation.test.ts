@@ -428,6 +428,37 @@ describe("記法から JSON へ", () => {
     for (const type of ["now", "mark", "span"]) expect(events.some((e) => e.type === type), `README の時間軸の図の例に ${type} の行が無い`).toBe(true);
     expect(example?.strip?.meters?.length ?? 0, "README の時間軸の図の例に物差しの欄が無い").toBeGreaterThan(0);
   });
+
+  it("readme-notation-covers-tree", () => {
+    // 2 つの README が木の図 (#3233) の書き方を載せる (#3235)
+    const extract = api("extractDiagrams");
+    const parse = api("parseNotation");
+    const read = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
+    const notationOf = (text: string): string => text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+    const heads = ["tree", "leaf", "node"];
+
+    // repo の README は、描ける図の欄に木の図を、行の頭の表に木の図の 3 つの行を持つ
+    const root = read("README.md");
+    expect(/^\| 描ける図 \| (.+) \|$/mu.exec(root)?.[1] ?? "", "README.md の描ける図の欄に木の図が無い").toContain("木の図");
+    const rows = [...notationOf(root).matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
+    for (const word of heads) expect(rows.some((head) => head.includes(`\`${word}`)), `README.md の行の頭の表に ${word} の行が無い`).toBe(true);
+
+    // package の README は、行の頭の語に木の図の 3 つの語を並べ、木の図の小節に値を持つ葉と親の例を置く
+    const notation = notationOf(read("packages/dragon/README.md"));
+    const words = /^行の頭の語は (.+) で/mu.exec(notation)?.[1] ?? "";
+    for (const word of heads) expect(words, `package の README の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
+    const part = notation.split(/^### 木の図$/mu)[1]?.split(/^#{2,3} /mu)[0] ?? "";
+    expect(part, "package の README の dragon記法の節に ### 木の図 の小節が無い").not.toBe("");
+    type TreeDiagram = { kind?: string; steps?: { events?: { type?: string; hash?: string }[] }[] };
+    const examples = extract(part).flatMap((fence) => {
+      const parsed = parse(fence.source);
+      return parsed.ok ? [parsed.diagram as TreeDiagram] : [];
+    });
+    const example = examples.find((d) => d.kind === "tree");
+    expect(example, "package の README の木の図の小節に読める tree の例が無い").toBeDefined();
+    const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
+    for (const type of ["leaf", "node"]) expect(events.some((e) => e.type === type && e.hash !== undefined), `README の木の図の例に値を持つ ${type} の行が無い`).toBe(true);
+  });
 });
 
 describe("JSON から記法へ", () => {

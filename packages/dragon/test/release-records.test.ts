@@ -123,6 +123,11 @@ describe("版の記録 (#3151)", () => {
     expect(released, "CHANGELOG.md の 0.42.2 の節に #3213 の項が無い").toContain("(#3213)");
   });
 
+  it("changelog-records-tree-docs", () => {
+    // 木の図の書き方を使い方の頁と README と書き方の手引きに載せた変更 (#3235) を更新履歴に残す。版を切っても項は残るので節を問わない
+    expect(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8"), "CHANGELOG.md に #3235 の項が無い").toContain("(#3235)");
+  });
+
   it("changelog-0-42-1-releases-time-docs", () => {
     // 時間軸の図の書き方を使い方の頁と README と書き方の手引きに載せた変更 (#3221) は 0.42.1 で出す (#3225)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);

@@ -4770,6 +4770,66 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  it("docs-tree-example-parses", () => {
+    // 木の図の節の例は 4 段で、葉を 4 つと親を 3 つ持ち、葉と親の全てが値を持ち、親子の箱どうしの運ぶ物の線を通す (#3235)
+    for (const lang of ["ja", "en"] as const) {
+      const text = docsExample("tree", lang);
+      expect(text, `${lang} の木の図の節の例の file (src/docs/examples/tree${lang === "en" ? ".en" : ""}.dragon) が無い`).toBeDefined();
+      if (text === undefined) continue;
+      const parsed = parseNotation(text);
+      expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), `${lang} の木の図の節の例が読めない`).toEqual([]);
+      const diagram = docsDiagram("tree", text);
+      expect(diagram?.kind, `${lang} の木の図の節の例が検査を通らないか、木の図でない`).toBe("tree");
+      expect(diagram?.steps.length, `${lang} の木の図の節の例が 4 段でない`).toBe(4);
+      const events = diagram === undefined ? [] : eventsOf(diagram);
+      const leaves = events.filter((e) => e.type === "leaf");
+      const nodes = events.filter((e) => e.type === "node");
+      expect(leaves.length, `${lang} の木の図の節の例の葉が 4 つでない`).toBe(4);
+      expect(nodes.length, `${lang} の木の図の節の例の親が 3 つでない`).toBe(3);
+      expect([...leaves, ...nodes].every((e) => e.hash !== undefined), `${lang} の木の図の節の例に値を持たない葉か親がある`).toBe(true);
+      const parentOf = new Map(nodes.flatMap((n) => n.children.map((child) => [child, n.id] as const)));
+      expect(events.some((e) => e.type === "edge" && e.carry.kind !== "none" && parentOf.get(e.from) === e.to), `${lang} の木の図の節の例に親子の箱どうしの運ぶ物の線が無い`).toBe(true);
+    }
+  });
+
+  it(
+    "docs-tree-section-follows-time",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
+        const { lead, sections } = await docsOf(page);
+        // 前置きは記法の要素の並びに木の図を挙げる
+        expect(lead, `${lang} の使い方の頁の前置きが木の図を挙げない`).toMatch(lang === "ja" ? /木の図/u : /tree diagram/iu);
+        const ids = sections.map((s) => s.id);
+        expect(ids[ids.indexOf("time") + 1], `${lang} の時間軸の図の節の次が木の図の節でない`).toBe("tree");
+        const tree = sections.find((s) => s.id === "tree");
+        // 本文は頭の行と 2 つの宣言と、親と子をつなぐ語と、値の属性を語で説明する
+        for (const word of ["tree", "leaf", "node", "of", "hash"]) {
+          expect(new RegExp(`(^|[^A-Za-z-])${word}($|[^A-Za-z-])`, "u").test(tree?.prose ?? ""), `${lang} の木の図の節の本文が ${word} を説明しない`).toBe(true);
+        }
+        // 例の図は、葉 4 つと親 3 つの箱と、根の印と、親子を結ぶ 6 本の木の線を持つ木の図として描かれる
+        await expect
+          .poll(
+            () =>
+              page.evaluate(() => {
+                const svg = document.querySelector('section#tree [data-docs="example"] svg[data-dragon="figure"]');
+                return {
+                  nodes: svg?.querySelectorAll("[data-tree-node]").length ?? 0,
+                  roots: svg?.querySelectorAll("[data-tree-root]").length ?? 0,
+                  links: svg?.querySelectorAll("[data-tree-link]").length ?? 0,
+                };
+              }),
+            { ...WAIT, message: `${lang} の木の図の節の例が、木の箱と木の線を持つ木の図として描かれない` },
+          )
+          .toEqual({ nodes: 7, roots: 1, links: 6 });
+        expect(tree?.cta, `${lang} の木の図の節の出口がカタログの木の図の頁へ向かない`).toBe(`${BASE}catalog/tree`);
+      }
+    },
+    SLOW,
+  );
+
   it(
     "docs-boxes-lead-to-every-icon",
     async () => {
