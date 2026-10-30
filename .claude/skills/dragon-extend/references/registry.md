@@ -37,14 +37,15 @@
 | `apps/playground-spa/src/catalog/parts.ts` | 見本帳の部品の一覧 | 図の種類を2つ以上持つ部品がどの図でも使える部品になる (`isCommon`)。新しい種類を既存の部品に足すと分類が変わる |
 | `apps/playground-spa/src/catalog/parts/` | 部品ごとの図の記法 (`<名札>.<種類>.dragon` と `.en.dragon`) | 記法の語ごとに、描ける全ての種類と2つの言葉の file を置く |
 | `apps/playground-spa/src/editor/shelf-items.ts` | 編集画面の棚 | 新しい種類の書き始めの形を足す |
-| `apps/playground-spa/src/examples.ts` | 見本帳の図の頁が読む見本 | 見本の file を読む行を足す |
+| `apps/playground-spa/src/examples.ts` | 見本の並び (`EXAMPLE_KEYS`) | 新しい見本の名前を並びに足す。最初に読む見本 (`FIRST_SCREEN_EXAMPLES`) のほかは、ここで記法を読まない |
+| `apps/playground-spa/src/examples-later.ts` | 後から読む見本の記法 | 見本の file を読む行を足す。最初に読む script に入れると `first-load-carries-no-catalog-notation` が落ちる |
 | `apps/playground-spa/src/text.ts` | 見本帳と編集画面の言葉 | 日本語と英語の両方に種類の名前と説明を足す |
 | `apps/playground-spa/src/docs/content.ts` | 使い方の頁の本文 | 記法と同じ PR で書き方の節を足す |
 | `apps/playground-spa/src/docs/examples/` | 使い方の頁の例 | 日本語と英語の例をそろえる |
 | `apps/playground-spa/src/lib/<種類>-catalog.test.ts` | 見本帳での描け方の検査 | 既存の種類の検査が図の分類を全部並べて照らしていると、新しい種類で落ちる。先頭から既存の種類の順で始まるかを見る形にする |
 | `apps/playground-spa/src/lib/site.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
 | `apps/playground-spa/src/lib/catalog-parts.test.ts` | 部品の頁の検査 | 部品の分類は `isCommon` と同じ規則で数える |
-| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限は290KB。超える時は #3246 で見本と部品の図を後から読む形に分けるまで上限を上げず、本人に聞く |
+| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限290KBは頁が最初に読む script と CSS に当てる。見本と部品の図の記法は後から読む塊に入るので増えないが、描く部品と検査の関数は種類ごとに約6.5KB増える (#3248)。超える時は上限を上げず本人に聞く |
 
 ## 部品を足す時
 
@@ -77,4 +78,4 @@
 | `apps/playground-spa/src/lib/<種類>-catalog.test.ts` | 部品を描く種類ごとの見本帳の検査 | 部品の数を数える検査は、足した数に直す |
 | `apps/playground-spa/src/lib/site.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
 | `apps/playground-spa/src/lib/catalog-parts.test.ts` | 部品の頁の検査 | 部品の分類は `isCommon` と同じ規則で数える |
-| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 部品の語を1つ足すと1KBほど増える。上限は290KBで、超える時は本人に聞く |
+| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 部品の図の記法は後から読む塊に入るので、最初に読む量は描く部品の分だけ増える。上限は290KBで、超える時は本人に聞く |

@@ -9,7 +9,9 @@
 import type { Diagram } from "@cardenelabs/dragon";
 import { type ReactElement, useMemo, useState } from "react";
 
-import type { ExampleKey } from "../examples";
+import { LaterFailed } from "../catalog/LaterFailed";
+import { type ExampleKey, LATER_EXAMPLES } from "../examples";
+import { useLater } from "../site/later";
 import { type Lang, TEXT } from "../text";
 import { PART_IDS, type PartId, partLines, sampleGroups, syntaxLines } from "./shelf-items";
 
@@ -36,7 +38,10 @@ export function Shelf({ lang, base, active, open, onClose, onNew, onSample, onPa
   const [tab, setTab] = useState<Tab>("samples");
   const [query, setQuery] = useState("");
 
-  const groups = useMemo(() => sampleGroups(lang), [lang]);
+  // 後から読む見本が届いたら束ね直す。届くまでは最初に読む見本だけを並べ、読めなかった時は読み直す釦を出す (#3246)
+  const later = useLater(LATER_EXAMPLES);
+  const arrived = later.status === "ready";
+  const groups = useMemo(() => sampleGroups(lang, arrived), [lang, arrived]);
   const parts = useMemo(
     () =>
       base
@@ -94,6 +99,7 @@ export function Shelf({ lang, base, active, open, onClose, onNew, onSample, onPa
       />
 
       <div className="pg-shelf-list" role="tabpanel">
+        {tab === "samples" && later.status === "failed" && <LaterFailed lang={lang} />}
         {tab === "samples" &&
           shownGroups.map((g) => (
             <section key={g.kind} className="pg-group">

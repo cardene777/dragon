@@ -755,6 +755,41 @@
   height: auto;
 }
 
+/* 後から読む塊を読めなかった時の一言と読み直す釦 (#3246)。図の枠の真ん中に置く */
+.catalog-later-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  min-height: 160px;
+  padding: 24px;
+  text-align: center;
+}
+
+.catalog-later-failed-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--d-text-secondary);
+}
+
+.catalog-later-reload {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-text-primary);
+}
+
+.catalog-later-reload:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
 /* 段の本文は枠の外に出し、図の描く場所を削らない。図の部品の語りの欄は重なるので隠す */
 .catalog-preview-stage .dg-say {
   display: none;

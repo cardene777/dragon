@@ -17,13 +17,15 @@ import { type CSSProperties, type ReactElement, useEffect, useMemo, useRef, useS
 
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "../editor/fit";
 import { useFittedFigure } from "../editor/useFittedFigure";
-import { type ExampleKey, exampleInfo, exampleText } from "../examples";
+import { type ExampleKey, exampleInfo, exampleText, LATER_EXAMPLES } from "../examples";
 import { toHash } from "../share";
+import { useLater } from "../site/later";
 import { follow, PATHS } from "../site/routes";
 import { usePhone } from "../site/usePhone";
 import { type Lang, TEXT } from "../text";
 import { type Kind, samplesOf } from "./catalog";
 import { PartCard } from "./CatalogIndex";
+import { LaterFailed } from "./LaterFailed";
 import { partsOf } from "./parts";
 
 type View = "figure" | "code";
@@ -39,6 +41,9 @@ function diagramOf(text: string): Diagram | null {
   const read = readDiagram(parsed.diagram);
   return read.ok ? read.diagram : null;
 }
+
+/** 見本の記法。右の見本と拡大の重ね窓は後から読む見本が届いた後にだけ置くので、届いた記法を読む */
+const sampleText = (key: ExampleKey, lang: Lang): string => exampleText(key, lang) ?? "";
 
 /** 経路の `#` の後ろが名指す見本。分類に無い名前なら `null` */
 function sampleFromHash(keys: readonly ExampleKey[]): ExampleKey | null {
@@ -62,7 +67,78 @@ interface Props {
   palette: string;
 }
 
-export function CategoryPage({ kind, lang, theme, palette: sitePalette }: Props): ReactElement {
+/**
+ * 分類の頁。分類に載る見本は全ての見本を読んで図の種類で決めるので、後から読む見本が届いてから一覧と右の見本を出す (#3246)。
+ * 届く前は道筋と名前と説明と、右の図の枠だけを出し、枠の高さを先に取って届いた時に頁が跳ねないようにする
+ */
+export function CategoryPage(props: Props): ReactElement {
+  const later = useLater(LATER_EXAMPLES);
+  return later.status === "ready" ? <CategoryContent {...props} /> : <CategoryPending kind={props.kind} lang={props.lang} failed={later.status === "failed"} />;
+}
+
+/** 道筋と分類の名前と説明。見本の数は届いた後だけ出す */
+function CategoryHero({ kind, lang, counts }: { kind: Kind; lang: Lang; counts: { total: number; shown: number } | null }): ReactElement {
+  const t = TEXT[lang];
+  const c = t.site.catalog;
+  const kindName = t.shelf.kinds[kind];
+  return (
+    <div className="catalog-hero">
+      <nav className="catalog-crumb" data-catalog="crumb" aria-label={c.crumb}>
+        <a href={PATHS.home} onClick={(e) => follow(e)}>
+          {t.site.nav.home}
+        </a>
+        <span aria-hidden="true">›</span>
+        <a href={PATHS.catalog} onClick={(e) => follow(e)}>
+          {t.site.screens.catalog.title}
+        </a>
+        <span aria-hidden="true">›</span>
+        <span className="catalog-crumb-here" aria-current="page">
+          {kindName}
+        </span>
+      </nav>
+      <h1 className="catalog-title">{kindName}</h1>
+      <p className="catalog-desc" data-catalog="desc">
+        {c.kinds[kind]}
+      </p>
+      <div className="catalog-meta">
+        {counts ? (
+          <>
+            <span className="catalog-count" data-catalog="count">
+              {c.total(counts.total)}
+            </span>
+            {counts.shown !== counts.total && <span className="catalog-count catalog-count-filter">{c.showing(counts.shown)}</span>}
+          </>
+        ) : (
+          <span className="catalog-count" aria-hidden="true" style={{ visibility: "hidden" }}>
+            {c.total(0)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 後から読む見本が届く前の分類の頁。読めなかった時は図の枠に読み直す釦を出す */
+function CategoryPending({ kind, lang, failed }: { kind: Kind; lang: Lang; failed: boolean }): ReactElement {
+  const c = TEXT[lang].site.catalog;
+  return (
+    <div className="catalog-page" data-catalog="category" data-later={failed ? "failed" : "loading"}>
+      <CategoryHero kind={kind} lang={lang} counts={null} />
+      <div className="catalog-body">
+        <aside className="catalog-sidebar" data-catalog="sidebar" aria-label={c.list} />
+        <section className="catalog-preview" data-catalog="preview" aria-label={c.preview} aria-busy={!failed}>
+          <article className="catalog-preview-card">
+            <div className="catalog-preview-stage pg-figure" data-catalog="stage">
+              {failed && <LaterFailed lang={lang} />}
+            </div>
+          </article>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function CategoryContent({ kind, lang, theme, palette: sitePalette }: Props): ReactElement {
   const t = TEXT[lang];
   const c = t.site.catalog;
   const keys = samplesOf(kind);
@@ -82,35 +158,10 @@ export function CategoryPage({ kind, lang, theme, palette: sitePalette }: Props)
   const filtered = keys.filter((key) => matches(key, lang, query));
   // 検索で一覧から外れても、選んだ見本は右に残す
   const current = picked !== null && keys.includes(picked) ? picked : keys[0];
-  const kindName = t.shelf.kinds[kind];
 
   return (
     <div className="catalog-page" data-catalog="category">
-      <div className="catalog-hero">
-        <nav className="catalog-crumb" data-catalog="crumb" aria-label={c.crumb}>
-          <a href={PATHS.home} onClick={(e) => follow(e)}>
-            {t.site.nav.home}
-          </a>
-          <span aria-hidden="true">›</span>
-          <a href={PATHS.catalog} onClick={(e) => follow(e)}>
-            {t.site.screens.catalog.title}
-          </a>
-          <span aria-hidden="true">›</span>
-          <span className="catalog-crumb-here" aria-current="page">
-            {kindName}
-          </span>
-        </nav>
-        <h1 className="catalog-title">{kindName}</h1>
-        <p className="catalog-desc" data-catalog="desc">
-          {c.kinds[kind]}
-        </p>
-        <div className="catalog-meta">
-          <span className="catalog-count" data-catalog="count">
-            {c.total(keys.length)}
-          </span>
-          {filtered.length !== keys.length && <span className="catalog-count catalog-count-filter">{c.showing(filtered.length)}</span>}
-        </div>
-      </div>
+      <CategoryHero kind={kind} lang={lang} counts={{ total: keys.length, shown: filtered.length }} />
 
       <div className="catalog-body">
         <aside className="catalog-sidebar" data-catalog="sidebar" aria-label={c.list}>
@@ -213,7 +264,7 @@ interface PreviewProps {
 function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView, source, onSource, onExpand }: PreviewProps): ReactElement {
   const t = TEXT[lang];
   const c = t.site.catalog;
-  const text = exampleText(sample, lang);
+  const text = sampleText(sample, lang);
   const info = exampleInfo(sample, lang);
   const title = info?.title ?? sample;
   // 言葉を替えると見本の記法も替わるので、記法が替わった時だけ読み直して描き直す
@@ -419,7 +470,7 @@ interface OverlayProps {
  */
 function Overlay({ sample, lang, theme, palette, onClose }: OverlayProps): ReactElement {
   const t = TEXT[lang];
-  const text = exampleText(sample, lang);
+  const text = sampleText(sample, lang);
   const info = exampleInfo(sample, lang);
   const diagram = useMemo(() => diagramOf(text), [text]);
   const host = useRef<HTMLDivElement>(null);

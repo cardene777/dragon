@@ -8,7 +8,8 @@
  */
 import type { ReactElement } from "react";
 
-import { EXAMPLE_KEYS } from "../examples";
+import { EXAMPLE_KEYS, LATER_EXAMPLES } from "../examples";
+import { useLater } from "../site/later";
 import { follow, PATHS } from "../site/routes";
 import { type Lang, TEXT } from "../text";
 import { KINDS, samplesOf } from "./catalog";
@@ -19,6 +20,8 @@ type Section = "parts" | "kind-parts" | "kinds";
 export function CatalogIndex({ lang }: { lang: Lang }): ReactElement {
   const t = TEXT[lang];
   const c = t.site.catalog;
+  // 札の件数は全ての見本を図の種類で数えるので、後から読む見本が届いてから出す (#3246)
+  const arrived = useLater(LATER_EXAMPLES).status === "ready";
   const head = (section: Section): ReactElement => (
     <header className="catalog-section-head">
       <h2 className="catalog-section-title">{c.sections[section].title}</h2>
@@ -71,9 +74,15 @@ export function CatalogIndex({ lang }: { lang: Lang }): ReactElement {
                   <span className="catalog-index-card-no" data-catalog="card-no">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="catalog-index-card-count" data-catalog="card-count">
-                    {c.count(samplesOf(kind).length)}
-                  </span>
+                  {arrived ? (
+                    <span className="catalog-index-card-count" data-catalog="card-count">
+                      {c.count(samplesOf(kind).length)}
+                    </span>
+                  ) : (
+                    <span className="catalog-index-card-count" aria-hidden="true" style={{ visibility: "hidden" }}>
+                      {c.count(0)}
+                    </span>
+                  )}
                 </div>
                 <h2 className="catalog-index-card-title">{t.shelf.kinds[kind]}</h2>
                 <p className="catalog-index-card-desc" data-catalog="card-desc">

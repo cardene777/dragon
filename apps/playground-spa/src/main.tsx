@@ -7,12 +7,14 @@ import { isKind } from "./catalog/catalog";
 import { CatalogIndex } from "./catalog/CatalogIndex";
 import { CategoryPage } from "./catalog/CategoryPage";
 import { PartPage } from "./catalog/PartPage";
-import { partOf } from "./catalog/parts";
+import { LATER_SNIPPETS, partOf } from "./catalog/parts";
 import { Docs } from "./docs/Docs";
+import { LATER_EXAMPLES } from "./examples";
 import { Home } from "./home/Home";
 import { NotFound } from "./not-found/NotFound";
 import { Playground } from "./Playground";
 import { ReleaseNotes } from "./release-notes/ReleaseNotes";
+import { startWhenIdle } from "./site/later";
 import { redirectSharedLink, type Route, routeOf, usePath } from "./site/routes";
 import { paintSite, storedPalette, storePalette } from "./site/site-colors";
 import { SiteHeader } from "./site/SiteHeader";
@@ -151,3 +153,5 @@ createRoot(document.getElementById("root")!).render(
     <Site />
   </StrictMode>,
 );
+// 見本と部品の図の記法は最初の画面を描いた後に裏で読み始め、見本帳を開く頃には届いているようにする (#3246)
+startWhenIdle([LATER_EXAMPLES, LATER_SNIPPETS]);
