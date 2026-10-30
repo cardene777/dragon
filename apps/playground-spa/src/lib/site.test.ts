@@ -1137,6 +1137,157 @@ describe("サイトの帯と経路 (#3030)", () => {
     SLOW,
   );
 
+  /** 縦に長い見本を確かめる画面の大きさ。高さ 800px では 6 件の見本が枠の下に切れていた (#3250) */
+  const LAPTOP = { width: 1280, height: 800 } as const;
+
+  /**
+   * 見本の枠の高さ (上の罫を除く高さと、罫を含めた画面の上の高さ)、図の枠の中を縦に送る必要があるか、図の見せ方、図の全体が図の枠の中に入るか、
+   * 止めて見せる図の箱の名前の字の画面の上の大きさ (箱の名前が無い図は `null`)、上の帯を除いた画面の高さ。
+   * 図は枠の大きさを測ってから合わせ直すので、2 こま続けて同じ値を読めた時だけ返す。図が無ければ `null` (#3250)
+   */
+  const previewFrameOf = (
+    page: Page,
+  ): Promise<{ stage: number; stageBox: number; clipped: boolean; view: string | null; whole: boolean; namePx: number | null; room: number } | null> =>
+    page.evaluate(async (s) => {
+      const read = () => {
+        const stage = document.querySelector<HTMLElement>(s);
+        const frameEl = stage?.querySelector<HTMLElement>(".dg-frame");
+        const svg = frameEl?.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
+        if (!stage || !frameEl || !svg) return null;
+        const frame = frameEl.getBoundingClientRect();
+        const box = svg.getBoundingClientRect();
+        const view = svg.getAttribute("data-view");
+        const name = svg.querySelector(".dg-sn");
+        const width = svg.viewBox.baseVal.width;
+        const namePx = view === "fixed" && name && width > 0 ? Number.parseFloat(getComputedStyle(name).fontSize) * (box.width / width) : null;
+        const header = document.querySelector('[data-site="header"]')?.getBoundingClientRect().height ?? 0;
+        return {
+          size: [stage.clientHeight, frameEl.clientHeight, frameEl.scrollHeight, box.width, box.height].map(Math.round).join(","),
+          seen: {
+            stage: stage.clientHeight,
+            stageBox: stage.getBoundingClientRect().height,
+            clipped: frameEl.scrollHeight > frameEl.clientHeight + 1,
+            view,
+            whole: box.top >= frame.top - 0.5 && box.bottom <= frame.bottom + 0.5,
+            namePx,
+            room: window.innerHeight - header,
+          },
+        };
+      };
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      const first = read();
+      await frame();
+      await frame();
+      const second = read();
+      return first && second && first.size === second.size ? second.seen : null;
+    }, catalogSel("stage"));
+
+  /**
+   * 分類の頁で i 番目の見本を選び、その見本の図を置き終えるまで待つ。
+   * 段の一覧の読み上げの名前が見本の題になったことで、前の見本の図を測らないようにする
+   */
+  const pickSample = async (page: Page, i: number): Promise<void> => {
+    const item = page.locator(catalogSel("item")).nth(i);
+    await item.click();
+    const title = (await item.textContent())?.trim() ?? "";
+    await expect
+      .poll(async () => (await page.locator(`${catalogSel("stage")} [data-dragon="steps"]`).getAttribute("aria-label")) ?? "", { ...WAIT, message: `${title} の図が置かれない` })
+      .toContain(title);
+  };
+
+  /** 分類の頁で i 番目の見本を選び、最後の段まで送る */
+  const lastStepOf = async (page: Page, i: number): Promise<void> => {
+    await pickSample(page, i);
+    const count = await page.locator(`${catalogSel("stage")} [data-dragon="steps"] > li`).count();
+    for (let s = 0; s < count - 1; s++) await page.locator(`${catalogSel("stage")} [data-dragon="next"]`).click();
+  };
+
+  it(
+    "catalog-tall-figure-not-clipped",
+    async () => {
+      // 枠を図の高さまで伸ばすか寄って追う図にして、どの見本も図の枠の中を送らずに見える (#3250)
+      for (const locale of ["ja-JP", "en-US"]) {
+        for (const kind of KINDS) {
+          const { page } = await site.open({ path: `${BASE}catalog/${kind}`, viewport: LAPTOP, locale, reducedMotion: "reduce" });
+          await onScreen(page, "category", `${locale} で ${kind} の分類の頁が出ない`);
+          const samples = samplesOf(kind);
+          for (let i = 0; i < samples.length; i++) {
+            await lastStepOf(page, i);
+            await expect
+              .poll(async () => (await previewFrameOf(page))?.clipped ?? null, { ...WAIT, message: `${locale} の ${samples[i]} の図が枠の下に切れる` })
+              .toBe(false);
+          }
+        }
+      }
+    },
+    SLOW * 2,
+  );
+
+  it(
+    "catalog-tall-figure-grows-frame",
+    async () => {
+      // 画面に収まる高さの図は、枠を図の高さまで伸ばし、全体を止めて見せる (#3250)
+      const fixedHeight = Math.min(620, Math.max(360, 0.58 * LAPTOP.height));
+      const { page } = await site.open({ path: `${BASE}catalog/tree`, viewport: LAPTOP, reducedMotion: "reduce" });
+      await onScreen(page, "category", "木の図の分類の頁が出ない");
+      await expect
+        .poll(
+          async () => {
+            const seen = await previewFrameOf(page);
+            return seen && { view: seen.view, grown: seen.stage > fixedHeight + 8, whole: seen.whole };
+          },
+          { ...WAIT, message: "Merkle 木の見本の枠が図の高さまで伸びない" },
+        )
+        .toEqual({ view: "fixed", grown: true, whole: true });
+    },
+    SLOW,
+  );
+
+  it(
+    "catalog-figure-taller-than-screen-follows",
+    async () => {
+      // 枠を伸ばしても画面より高い図は、寄って追う図にして枠を画面に収める (#3250)
+      const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport: LAPTOP, reducedMotion: "reduce" });
+      await onScreen(page, "category", "時系列図の分類の頁が出ない");
+      await pickSample(page, samplesOf("sequence").indexOf("oauth"));
+      await expect
+        .poll(
+          async () => {
+            const seen = await previewFrameOf(page);
+            return seen && { view: seen.view, fits: seen.stageBox <= seen.room };
+          },
+          { ...WAIT, message: "OAuth の見本が寄って追う図にならないか、枠が画面に収まらない" },
+        )
+        .toEqual({ view: "follow", fits: true });
+    },
+    SLOW,
+  );
+
+  it(
+    "catalog-figure-names-readable",
+    async () => {
+      // 枠に収めるために字を下限 (11px) より小さくしない (#3031、#3250)
+      for (const kind of KINDS) {
+        const { page } = await site.open({ path: `${BASE}catalog/${kind}`, viewport: LAPTOP, reducedMotion: "reduce" });
+        await onScreen(page, "category", `${kind} の分類の頁が出ない`);
+        const samples = samplesOf(kind);
+        for (let i = 0; i < samples.length; i++) {
+          await pickSample(page, i);
+          await expect
+            .poll(
+              async () => {
+                const seen = await previewFrameOf(page);
+                return seen && (seen.namePx === null || seen.namePx >= 11 - 0.05);
+              },
+              { ...WAIT, message: `${samples[i]} の箱の名前の字が 11px より小さい` },
+            )
+            .toBe(true);
+        }
+      }
+    },
+    SLOW,
+  );
+
   /**
    * 重ね窓の今の段の番号、図の枠を縦に送る必要があるか、図と寄って追う図の窓の枠と全体図の地が枠の中に収まるか。
    * 重ね窓が無ければ `null`。段の説明の行の数で図の枠の高さが替わり、図は後から合わせ直すので、
