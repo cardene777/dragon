@@ -35,7 +35,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, or `time <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, or `tree <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Strip | `strip <title>: <field>, <field>`. In a time diagram, `[meter: <ratio>]` after a field name makes that field a meter | `strip Message: ID, receiver, state` |
@@ -65,6 +65,8 @@ Inside a step, indent these lines in the order things happen.
 | Recolor marks | `mark <row> <range> [color: <color>]`. Changes the color of the marks in that range of the row | `mark block 0-31 [color: green]` |
 | Span | `span <range>: <text>`. Puts a bracket under the axis, and `[shape: box]` turns it into a frame around the rows | `span 0-31: 1 epoch = 6.4 min` |
 | Line in the zoom band | `<id> -> <id> [at: <tick>, into: <tick>]`. Leaves the box in the `at` column and arrives at the box in the `into` column | `proposer -> block [at: 0]` |
+| Leaf | `leaf <id> [hash: <value>]`. Leaves line up from the left in written order. With a value, the box shows it and a card below the leaf shows the id. Only in a tree diagram | `leaf tx1 [hash: 3fa0]` |
+| Parent | `node <id> of <child>, <child> [hash: <value>]`. Sits above the middle of its children, and the box that no parent takes becomes the root. Only in a tree diagram | `node root of 1to2, 3to4 [hash: e71c]` |
 
 `fixed` keeps the whole diagram still and moves only what is inside; `follow` moves to where things are happening and shows the current place in a small overview in the corner.
 Without a view, the view is `fixed` when the text of the whole diagram in the frame is 10.5px or larger, and `follow` when it is smaller.
@@ -187,6 +189,37 @@ step C0 becomes final
   note C0: Final [color: green]
   mark block 0-31 [color: green]
   span 0-31: Final, cannot be undone [shape: box, color: rose]
+```
+
+In a tree diagram (`tree <title>`), `leaf` writes a leaf and `node` writes a parent inside a step, and each box appears in the step that writes it.
+Leaves line up from the left in written order, a parent sits above the middle of its children, and the box that no parent takes becomes the root.
+A carrier on a line between a parent and a child runs along the tree line, and the tree line keeps that color once passed.
+
+```dragon
+tree Proving a transaction is included
+
+step Hash each transaction
+  say Compute a value from each of the 4 transactions. These values become the leaves.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  leaf tx3 [hash: c41d]
+  leaf tx4 [hash: e5f8]
+
+step Pair them up
+  say Join neighbouring values two at a time and hash again. Two parents appear.
+  node 1to2 of tx1, tx2 [hash: 7a21]
+  node 3to4 of tx3, tx4 [hash: b9e4]
+
+step The root appears
+  say Joining the last two gives one root that sums up every transaction.
+  node root of 1to2, 3to4 [hash: e71c]
+
+step Climb from tx3 to the root
+  say Take the neighbouring value at each level and climb. The root comes out without reading tx1 or tx2.
+  tx3 -> 3to4 [tag: c41d]
+  tx4 -> 3to4 [tag: e5f8]
+  3to4 -> root [tag: b9e4]
+  1to2 -> root [tag: 7a21]
 ```
 
 ## Attributes

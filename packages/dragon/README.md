@@ -77,7 +77,7 @@ mountDiagram(host, parsed.diagram, {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `group` `end` `box` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 箱の行の属性 `link` に飛び先を書くと、描いた図でその箱が飛び先への link になる。
 段の中の `source <名前> [url: <URL>]` の行は段の出典になり、1 つの段に何行でも書け、読み上げの段の一覧に名前の link で出る。
 飛び先と出典の URL には、`/` で始まる path か、`http://` か `https://` で始まる URL だけを書ける。
@@ -223,6 +223,39 @@ step C0 が確定する
   note C0: 確定 [color: green]
   mark ブロック 0-31 [color: green]
   span 0-31: 確定して戻せない [shape: box, color: rose]
+```
+
+### 木の図
+
+`tree` で始めると、葉の値を親へ畳み上げて1つの根にまとめる構造を段ごとに追う木の図になる。段の中の `leaf <名札> [hash: <値>]` で葉を、`node <名札> of <子>, <子> [hash: <値>]` で親を書くと、書いた段で箱が現れる。
+葉は書いた順に左から並び、親は子の真ん中の上に置かれ、どの親にも組まれなかった箱が根になる。
+親子の箱どうしの線の運ぶ物は木の線の上を走り、通った木の線はその色で残る。木の線を運ぶ物が通った段から後は、運ぶ物を送るか受けた箱だけを濃く出す。
+
+```dragon
+tree 取引が含まれることを確かめる
+
+step 取引ごとに値を出す
+  say 4件の取引それぞれから値を出す。この値が木の葉になる。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+  leaf 取引3 [hash: c41d]
+  leaf 取引4 [hash: e5f8]
+
+step 2つずつ組む
+  say 隣どうしの値を2つずつつないで、もう1度値を出す。親が2つできる。
+  node 1と2 of 取引1, 取引2 [hash: 7a21]
+  node 3と4 of 取引3, 取引4 [hash: b9e4]
+
+step 根ができる
+  say 残った2つを組むと、全ての取引の値をまとめた根が1つできる。
+  node 根 of 1と2, 3と4 [hash: e71c]
+
+step 取引3から根まで上る
+  say 隣の値を受け取りながら親へ上る。取引1と取引2を読まなくても、根の値が出る。
+  取引3 -> 3と4 [tag: c41d]
+  取引4 -> 3と4 [tag: e5f8]
+  3と4 -> 根 [tag: b9e4]
+  1と2 -> 根 [tag: 7a21]
 ```
 
 ## 書き出し

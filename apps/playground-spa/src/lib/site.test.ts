@@ -312,7 +312,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
 
@@ -344,7 +344,7 @@ const docsDiagram = (id: string, text: string): Diagram | undefined => {
 const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.flatMap((s) => s.events);
 
 /** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
-const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
+const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "tree", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "leaf", "node", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
@@ -379,6 +379,12 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
     d.time?.zoom !== undefined &&
     ["now", "mark", "span"].every((type) => eventsOf(d).some((e) => e.type === type)) &&
     (d.strip?.meters?.length ?? 0) >= 1,
+  // 値を持つ葉と親を書き、運ぶ物の線を通す (#3235)
+  tree: (d) =>
+    d.kind === "tree" &&
+    eventsOf(d).some((e) => e.type === "leaf" && e.hash !== undefined) &&
+    eventsOf(d).some((e) => e.type === "node" && e.hash !== undefined) &&
+    eventsOf(d).some((e) => e.type === "edge" && e.carry.kind !== "none"),
   steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
   strip: (d) => d.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
@@ -3295,7 +3301,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       screen: "docs",
       targets: '[data-docs="cta"] a, a[data-docs="section-cta"], a[data-docs="icon-link"]',
       links: 'a[data-docs="section-cta"], a[data-docs="icon-link"]',
-      count: 18,
+      count: 19,
       touchSizes: [
         "5 分で始める → 133x44",
         "カタログで図を見る 160x44",
@@ -3308,6 +3314,7 @@ describe("サイトの帯と経路 (#3030)", () => {
         "状態遷移図の見本を見る → 165x46",
         "枝分かれの図の見本を見る → 179x46",
         "時間軸の図の見本を見る → 165x46",
+        "木の図の見本を見る → 138x46",
         "続き → 帯 60x46",
         "時系列図の見本を見る → 152x46",
         "続き → JSON 82x46",
@@ -4403,7 +4410,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
       const expectDocs = async (lang: Lang): Promise<void> => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
-        const words = ["sequence", "architecture", "state", "git", "time"];
+        const words = ["sequence", "architecture", "state", "git", "time", "tree"];
         const want = DOC_SECTIONS.map((id, i) => {
           const text = WITHOUT_EXAMPLE.includes(id) ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);
@@ -4765,6 +4772,66 @@ describe("サイトの帯と経路 (#3030)", () => {
           )
           .toBe(true);
         expect(time?.cta, `${lang} の時間軸の図の節の出口がカタログの時間軸の図の頁へ向かない`).toBe(`${BASE}catalog/time`);
+      }
+    },
+    SLOW,
+  );
+
+  it("docs-tree-example-parses", () => {
+    // 木の図の節の例は 4 段で、葉を 4 つと親を 3 つ持ち、葉と親の全てが値を持ち、親子の箱どうしの運ぶ物の線を通す (#3235)
+    for (const lang of ["ja", "en"] as const) {
+      const text = docsExample("tree", lang);
+      expect(text, `${lang} の木の図の節の例の file (src/docs/examples/tree${lang === "en" ? ".en" : ""}.dragon) が無い`).toBeDefined();
+      if (text === undefined) continue;
+      const parsed = parseNotation(text);
+      expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), `${lang} の木の図の節の例が読めない`).toEqual([]);
+      const diagram = docsDiagram("tree", text);
+      expect(diagram?.kind, `${lang} の木の図の節の例が検査を通らないか、木の図でない`).toBe("tree");
+      expect(diagram?.steps.length, `${lang} の木の図の節の例が 4 段でない`).toBe(4);
+      const events = diagram === undefined ? [] : eventsOf(diagram);
+      const leaves = events.filter((e) => e.type === "leaf");
+      const nodes = events.filter((e) => e.type === "node");
+      expect(leaves.length, `${lang} の木の図の節の例の葉が 4 つでない`).toBe(4);
+      expect(nodes.length, `${lang} の木の図の節の例の親が 3 つでない`).toBe(3);
+      expect([...leaves, ...nodes].every((e) => e.hash !== undefined), `${lang} の木の図の節の例に値を持たない葉か親がある`).toBe(true);
+      const parentOf = new Map(nodes.flatMap((n) => n.children.map((child) => [child, n.id] as const)));
+      expect(events.some((e) => e.type === "edge" && e.carry.kind !== "none" && parentOf.get(e.from) === e.to), `${lang} の木の図の節の例に親子の箱どうしの運ぶ物の線が無い`).toBe(true);
+    }
+  });
+
+  it(
+    "docs-tree-section-follows-time",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
+        const { lead, sections } = await docsOf(page);
+        // 前置きは記法の要素の並びに木の図を挙げる
+        expect(lead, `${lang} の使い方の頁の前置きが木の図を挙げない`).toMatch(lang === "ja" ? /木の図/u : /tree diagram/iu);
+        const ids = sections.map((s) => s.id);
+        expect(ids[ids.indexOf("time") + 1], `${lang} の時間軸の図の節の次が木の図の節でない`).toBe("tree");
+        const tree = sections.find((s) => s.id === "tree");
+        // 本文は頭の行と 2 つの宣言と、親と子をつなぐ語と、値の属性を語で説明する
+        for (const word of ["tree", "leaf", "node", "of", "hash"]) {
+          expect(new RegExp(`(^|[^A-Za-z-])${word}($|[^A-Za-z-])`, "u").test(tree?.prose ?? ""), `${lang} の木の図の節の本文が ${word} を説明しない`).toBe(true);
+        }
+        // 例の図は、葉 4 つと親 3 つの箱と、根の印と、親子を結ぶ 6 本の木の線を持つ木の図として描かれる
+        await expect
+          .poll(
+            () =>
+              page.evaluate(() => {
+                const svg = document.querySelector('section#tree [data-docs="example"] svg[data-dragon="figure"]');
+                return {
+                  nodes: svg?.querySelectorAll("[data-tree-node]").length ?? 0,
+                  roots: svg?.querySelectorAll("[data-tree-root]").length ?? 0,
+                  links: svg?.querySelectorAll("[data-tree-link]").length ?? 0,
+                };
+              }),
+            { ...WAIT, message: `${lang} の木の図の節の例が、木の箱と木の線を持つ木の図として描かれない` },
+          )
+          .toEqual({ nodes: 7, roots: 1, links: 6 });
+        expect(tree?.cta, `${lang} の木の図の節の出口がカタログの木の図の頁へ向かない`).toBe(`${BASE}catalog/tree`);
       }
     },
     SLOW,

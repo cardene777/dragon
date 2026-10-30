@@ -147,4 +147,27 @@ describe("使い方の文書", () => {
       }
     }
   });
+
+  it("quick-start-covers-tree", () => {
+    // 書き方の手引きは書き方の全部を名乗るので、木の図 (#3233) の行の形と例も載せる (#3235)
+    const extract = api("extractDiagrams");
+    const parse = api("parseNotation");
+    for (const [file, heading] of [
+      ["quick-start.md", "行の形"],
+      ["quick-start.en.md", "Line forms"],
+    ] as const) {
+      const text = exampleText(file);
+      const forms = text.split(new RegExp(`^## ${heading}$`, "mu"))[1]?.split(/^## /mu)[0] ?? "";
+      expect(forms, `${file} に ## ${heading} の節が無い`).not.toBe("");
+      for (const word of ["tree", "leaf", "node"]) {
+        expect(new RegExp(`(^|[^A-Za-z-])${word}($|[^A-Za-z-])`, "mu").test(forms), `${file} の ${heading} の節に ${word} の行が無い`).toBe(true);
+      }
+      const examples = extract(text).filter((fence) => fence.source.trimStart().startsWith("tree "));
+      expect(examples.length, `${file} に tree で始まる例が無い`).toBeGreaterThan(0);
+      for (const fence of examples) {
+        const parsed = parse(fence.source);
+        expect(parsed.ok, `${file} の ${fence.line} 行目の tree の例が読めない ${JSON.stringify(firstError(parsed))}`).toBe(true);
+      }
+    }
+  });
 });
