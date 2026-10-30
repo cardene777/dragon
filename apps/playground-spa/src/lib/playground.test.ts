@@ -1211,9 +1211,10 @@ describe("公開する頁 (#2995)", () => {
     expect(first.length, "build した頁が最初に読む script と CSS が無い").toBeGreaterThan(0);
     expect(first.filter((name) => sizes[name] === undefined), "最初に読む file が build の assets に無い").toEqual([]);
     const report = `最初に読む script と CSS が gzip で ${kb(loaded)} (${JSON.stringify(Object.fromEntries(first.map((name) => [name, sizes[name]])))})、全部の塊の合計が ${kb(all)}`;
-    // 分ける前 (#3239 の後の main) は、最初に読む量が全部の合計と同じ 277.6KB だった
-    expect(loaded, report).toBeLessThan(277.6 * 1024);
     expect(loaded, report).toBeLessThanOrEqual(290 * 1024);
+    // 分ける前は最初に読む量が全部の合計と同じだった (0.44.0 の後の main で 277.59KB)。見本と部品の図の記法は gzip で 20KB を超えるので、
+    // 外せば全部の合計より 20KB 以上小さくなる
+    expect(all - loaded, report).toBeGreaterThanOrEqual(20 * 1024);
   });
 
   it("page-draws-with-package-parts", () => {
