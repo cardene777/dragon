@@ -164,10 +164,18 @@
 | 書き方の手引き `quick-start.md` と英語版の行の形の節に `time`、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` の行があり、`time` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-time`が通る | #3221 |
 | `CHANGELOG.md` に、時間軸の図の書き方を使い方の頁と README と書き方の手引きに載せたこの課題 (#3221) の項がある | `pnpm test`の検査`changelog-lists-time-docs`が通る | #3221 |
 | 使い方の頁の状態遷移図の次に枝分かれの図の節が出て、その節の本文と例と出口は今どおり | `pnpm test`の検査`docs-git-section-follows-state`が通る | #3221 |
-| package の版が前提の配り方の節と、`CHANGELOG.md` の版の見出しに書かれている | `pnpm test`の検査`release-version-in-premise`と`release-version-in-changelog`が通る | #3221 |
-| 使い方の頁の全ての節の例が読めて検査を通り、その節の記法の要素を使う | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3221 |
+| package の版が前提の配り方の節と、`CHANGELOG.md` の版の見出しに書かれている | `pnpm test`の検査`release-version-in-premise`と`release-version-in-changelog`が通る | #3221、#3235 |
+| 使い方の頁の全ての節の例が読めて検査を通り、その節の記法の要素を使う | `pnpm test`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3221、#3235 |
 | 2 つの README の dragon記法の節に決まりが 4 つ並び、dragon の囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3221 |
-| 書き方の手引きの英語版の例の数が日本語版と同じで、どれも読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #3221 |
-| 使い方の頁の例を含む全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`overlaps-none-in-every-example`が通る | #3221 |
+| 書き方の手引きの英語版の例の数が日本語版と同じで、どれも読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #3221、#3235 |
+| 使い方の頁の例を含む全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`overlaps-none-in-every-example`が通る | #3221、#3235 |
 | 使い方の頁の前の形との対応表が、読む部品の語と一致し、`CHANGELOG.md` の対応表と同じ | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3221 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3221 |
+| 使い方の頁 (日本語と英語) を開いた時、時間軸の図の節の次に木の図の節が出る。節の本文は `tree` の頭の行、`leaf`、`node`、`of`、`[hash: ]` を説明し、節の例の図は木の箱と木の線を持つ木の図として描かれ、節の出口は見本帳の木の図の頁へ向かう。頁の前置きは記法の要素の並びに木の図を挙げる | `pnpm test`の検査`docs-tree-section-follows-time`が通る | #3235 |
+| 使い方の頁の木の図の節の例の記法 (日本語と英語) を `parseNotation` が誤り無く読み、JSON Schema の検査を通り、4段を持ち、葉を4つと親を3つ持ち、値を持つ葉と親が全てで、親子の箱どうしの運ぶ物の線を1つ以上持つ | `pnpm test`の検査`docs-tree-example-parses`が通る | #3235 |
+| repoのREADMEの描ける図の欄に木の図があり、行の頭の表に `tree`、`leaf`、`node` の行がある。packageのREADMEの行の頭の語に `tree`、`leaf`、`node` があり、`[hash: ]` を使う `tree` の例を載せた木の図の小節がある | `pnpm test`の検査`readme-notation-covers-tree`が通る | #3235 |
+| 書き方の手引き `quick-start.md` と英語版の行の形の節に `tree`、`leaf`、`node` の行があり、`tree` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-tree`が通る | #3235 |
+| `CHANGELOG.md` に木の図の書き方を載せたこの課題 (#3235) の項がある | `pnpm test`の検査`changelog-records-tree-docs`が通る | #3235 |
+| 使い方の頁の枝分かれの図の次に時間軸の図の節が出て、その節の本文と例と出口は今どおり | `pnpm test`の検査`docs-time-section-follows-git`が通る | #3235 |
+| 2つのREADMEのdragon記法の節に決まりが4つ並び、dragonの囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3235 |
+| 型の検査、build、lintと、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3235 |
