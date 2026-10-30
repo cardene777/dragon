@@ -280,3 +280,12 @@
 | 飛び先か出典の URL に、`/` で始まる path と `http://`、`https://` の URL 以外 (`javascript:` など) を書くと、行の番号を付けた誤りになる | `pnpm test`の検査`notation-link-rejects-unsafe-url`が通る | #3199 |
 | 原本の JSON の検査 (JSON Schema) が、箱の `link` と段の `sources` を持つ JSON を通す | `pnpm test`の検査`schema-accepts-link-and-sources`が通る | #3199 |
 | 飛び先も出典も書かない図は、今と同じく link を持たない SVG を描く | `pnpm test`の検査`notation-without-link-unchanged`が通る | #3199 |
+| `fontFaces` に、`Noto Sans JP` の file の範囲が重なる字 (英字、空白、改行しない空白、`ä`) と重ならない字 (`あ`、全角空白) を渡した時、どの字も同じ字の名前の `@font-face` のうち 1 つの `unicode-range` にだけ載る | `pnpm test`の検査`font-chars-in-one-file-each`が通る | #3213 |
+| `packages/dragon/examples` の英語と日本語の見本 (`.json` の 24 個) をそれぞれ HTML に書き出した時、同じ字の名前の字の file どうしで、同じ字が 2 つ以上の `unicode-range` に載らない | `pnpm test`の検査`export-font-files-do-not-overlap`が通る | #3213 |
+| `order.en.json` を `--lang en` で HTML に書き出した時、埋めた字の file (woff2) の大きさの合計が 20000 byte を下回る。直す前は 28164 byte | `pnpm test`の検査`order-en-embeds-under-20kb`が通る | #3213 |
+| 英語と日本語の見本 (`.json` の 24 個) を PNG に撮った絵が、範囲の重なる字を前に並ぶ字の file にも足して撮った絵と画素で一致する | `pnpm test`の検査`export-png-unchanged-by-font-dedupe`が通る | #3213 |
+| 空白の類だけが入る字の file は、描く空白の類の字のほかに同じ file の形のある字を 1 つだけ足して含み、`unicode-range` には描く空白の類の字だけを載せる | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`と`font-subset-range-lists-drawn-chars`が通る | #3213 |
+| 英語の見本 10 個と、全角空白だけを `[117]` の file で描く図で、書き出した HTML が埋める字の file を Chromium が全て読める | `pnpm test`の検査`export-font-faces-all-load`が通る | #3213 |
+| HTML に書き出した時、形のある字が入る字の file は図で使った字だけを含み、図で描く字はどれかの字の file に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #3213 |
+| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #3213 |
+| 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3213 |
