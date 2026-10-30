@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "kind": "tree",
+  "title": "Proving a transaction with a Merkle tree",
+  "boxes": [
+    {
+      "id": "header",
+      "name": "Block header",
+      "sub": "root e71c",
+      "color": "green",
+      "icon": "box"
+    }
+  ],
+  "strip": {
+    "title": "Proof",
+    "fields": [
+      "Transaction",
+      "Values used",
+      "Computed root",
+      "Result"
+    ]
+  },
+  "steps": [
+    {
+      "title": "Hash each transaction",
+      "body": "Compute a value from each of the 8 transactions. These values become the leaves.",
+      "events": [
+        {
+          "type": "leaf",
+          "id": "tx1",
+          "hash": "3fa0"
+        },
+        {
+          "type": "leaf",
+          "id": "tx2",
+          "hash": "8b04"
+        },
+        {
+          "type": "leaf",
+          "id": "tx3",
+          "hash": "c41d"
+        },
+        {
+          "type": "leaf",
+          "id": "tx4",
+          "hash": "e5f8"
+        },
+        {
+          "type": "leaf",
+          "id": "tx5",
+          "hash": "a90c"
+        },
+        {
+          "type": "leaf",
+          "id": "tx6",
+          "hash": "d72b"
+        },
+        {
+          "type": "leaf",
+          "id": "tx7",
+          "hash": "f1e7"
+        },
+        {
+          "type": "leaf",
+          "id": "tx8",
+          "hash": "5c3e"
+        }
+      ]
+    },
+    {
+      "title": "Pair them up",
+      "body": "Join neighbouring values two at a time and hash again. Four parents appear.",
+      "events": [
+        {
+          "type": "node",
+          "id": "1to2",
+          "children": [
+            "tx1",
+            "tx2"
+          ],
+          "hash": "7a21"
+        },
+        {
+          "type": "node",
+          "id": "3to4",
+          "children": [
+            "tx3",
+            "tx4"
+          ],
+          "hash": "b9e4"
+        },
+        {
+          "type": "node",
+          "id": "5to6",
+          "children": [
+            "tx5",
+            "tx6"
+          ],
+          "hash": "4d0f"
+        },
+        {
+          "type": "node",
+          "id": "7to8",
+          "children": [
+            "tx7",
+            "tx8"
+          ],
+          "hash": "92c6"
+        }
+      ]
+    },
+    {
+      "title": "Pair the parents",
+      "body": "Pair the parent values the same way. Two parents remain.",
+      "events": [
+        {
+          "type": "node",
+          "id": "1to4",
+          "children": [
+            "1to2",
+            "3to4"
+          ],
+          "hash": "1e8b"
+        },
+        {
+          "type": "node",
+          "id": "5to8",
+          "children": [
+            "5to6",
+            "7to8"
+          ],
+          "hash": "6f53"
+        }
+      ]
+    },
+    {
+      "title": "The root appears",
+      "body": "Joining the last two gives one root that sums up every transaction. The block header records only this root.",
+      "events": [
+        {
+          "type": "node",
+          "id": "root",
+          "children": [
+            "1to4",
+            "5to8"
+          ],
+          "hash": "e71c"
+        }
+      ]
+    },
+    {
+      "title": "Hash transaction 3",
+      "body": "To check that transaction 3 is included, first compute its value c41d from the transaction itself.",
+      "events": [
+        {
+          "type": "strip",
+          "field": "Transaction",
+          "value": "tx3",
+          "tag": "c41d"
+        }
+      ]
+    },
+    {
+      "title": "Pair with e5f8",
+      "body": "Take the neighbouring value e5f8, pair it with c41d and compute the parent value b9e4. The other transactions stay unread.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "tx3",
+          "to": "3to4",
+          "carry": {
+            "kind": "tag",
+            "text": "c41d"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "tx4",
+          "to": "3to4",
+          "carry": {
+            "kind": "tag",
+            "text": "e5f8"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "Values used",
+          "value": "e5f8"
+        }
+      ]
+    },
+    {
+      "title": "Pair with 7a21",
+      "body": "Take the neighbouring value 7a21, pair it with b9e4 and compute the next parent value 1e8b.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "3to4",
+          "to": "1to4",
+          "carry": {
+            "kind": "tag",
+            "text": "b9e4"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "1to2",
+          "to": "1to4",
+          "carry": {
+            "kind": "tag",
+            "text": "7a21"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "Values used",
+          "value": "e5f8, 7a21"
+        }
+      ]
+    },
+    {
+      "title": "Pair with 6f53 and compare",
+      "body": "Pairing with 6f53 gives the root value. It matches the e71c recorded in the block header, so transaction 3 is included.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "1to4",
+          "to": "root",
+          "carry": {
+            "kind": "tag",
+            "text": "1e8b"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "5to8",
+          "to": "root",
+          "carry": {
+            "kind": "tag",
+            "text": "6f53"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "header",
+          "to": "root",
+          "label": "Compare",
+          "carry": {
+            "kind": "tag",
+            "text": "e71c"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "Values used",
+          "value": "e5f8, 7a21, 6f53"
+        },
+        {
+          "type": "strip",
+          "field": "Computed root",
+          "value": "e71c"
+        },
+        {
+          "type": "strip",
+          "field": "Result",
+          "value": "Match"
+        }
+      ]
+    }
+  ]
+}

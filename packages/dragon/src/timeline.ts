@@ -153,8 +153,8 @@ function plan(step: Diagram["steps"][number], needle?: Needle): Planned {
       return;
     }
     if (event.type === "now" || (needle && pulled(event))) return;
-    // 枝分かれの図の commit を積む出来事と枝を切る出来事は、親から引く線と同じ間で引く
-    if (event.type === "commit" || event.type === "branch") {
+    // 枝分かれの図の commit を積む出来事と枝を切る出来事と、木の図の葉と親を出す出来事は、親から引く線と同じ間で引く
+    if (event.type === "commit" || event.type === "branch" || event.type === "leaf" || event.type === "node") {
       const a = cursor;
       const b = a + MOTION.draw;
       out.edges.push({ event: e, a, b, carries: false, coin: false, named: false });

@@ -116,6 +116,15 @@ export const TYPE = {
   gitHash: text(10.5, 600, "mono"),
   gitNote: text(10.5, 650),
   /**
+   * 木の図 (#3233) の、箱の中の値 (hash) と名札、根の箱の値と名札、葉の下の札の字。
+   * 値を持たない箱の名札は箱の名前 (`boxName`) の字で描く
+   */
+  treeHash: text(13.5, 700, "mono"),
+  treeName: text(10.5, 600),
+  rootHash: text(15, 700, "mono"),
+  rootName: text(11, 700),
+  treeCard: text(11.5, 650),
+  /**
    * 時間軸の図 (#3165)。拡大の帯の列の上の字、印の列の名前、時刻の字、区切りの名前と目盛りの番号の範囲、
    * 節目の名札と状態、範囲の括弧の字、空きの枠の字、物差しの線の字。和文を含む字は同じ大きさと太さの和文の字で描く
    */
@@ -208,6 +217,36 @@ export const LOOK = {
     boxGap: 24,
     labelUnder: 50,
     colors: ["blue", "violet", "green", "amber", "rose"],
+  },
+  /**
+   * 木の図 (#3233)。step 2 で本人が選んだ「根を上」の試作 (`.context/propose/merkle-look/`) の寸法を写す。
+   * 木の箱は幅の下限 `w`、高さ `h`、字の左右の余白 `padX`、角の丸み `radius`。根の箱は `root` の幅の下限と高さと角の丸みを持ち、
+   * 左に絵柄を置いて (`iconX` は箱の左端から絵柄の左端まで)、`textX` から字を左に揃えて並べ、右に `padR` を空ける。
+   * `nameY` と `hashY` は根の箱の真ん中から名札と値の基準線まで。ほかの箱の値と名札は `hashY` と `nameY`、1 行の字は `oneY` に置く。
+   * 葉は書いた順に横に並べ、隣の葉の箱の間を `slotGap` 空ける。根の上端は図の上の余白から `top` 下げ、深さの段の真ん中どうしは `row` 離す。
+   * `card` は値を持つ葉の下の名札の札で、葉の真ん中から札の真ん中まで `drop`、高さ `h`、幅の下限 `minW`、
+   * 字の左右の余白 `padX`、絵柄の幅 `icon` と絵柄と字の間 `gap`、絵柄の縮み `glyph`、角の丸み `radius`。
+   * `boxGap` は木と木でない箱の列の間、`badgeAlong` は木の線を走る段の番号を、曲がり角から横の線に沿って進める長さ。
+   * `faint` は木の線を運ぶ物が通った段から後に、運ぶ物を送りも受けもしていない木の箱を薄く出す濃さ。`color` と `rootColor` は木の箱と根の箱の色
+   */
+  tree: {
+    w: 74,
+    h: 44,
+    padX: 10,
+    radius: 10,
+    root: { w: 112, h: 54, radius: 13, iconX: 10, textX: 46, padR: 14, nameY: -4, hashY: 14 },
+    hashY: -1,
+    nameY: 14,
+    oneY: 4.5,
+    slotGap: 12,
+    top: 16,
+    row: 102,
+    card: { drop: 78, h: 30, minW: 70, padX: 10, icon: 12, gap: 6, glyph: 0.62, radius: 9 },
+    boxGap: 24,
+    badgeAlong: 22,
+    faint: 0.42,
+    color: "violet",
+    rootColor: "green",
   },
   /**
    * 時間軸の図 (#3165)。見本帳の試作 (`scenes/finality.js`) の寸法を写す。
@@ -313,6 +352,9 @@ export const LOOK = {
     timeFlag: 1.8,
     timeNeedle: 1.25,
     timeMeter: 1.25,
+    tree: 1.5,
+    treeTrail: 2.6,
+    treeCon: 1.3,
   },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
   mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },

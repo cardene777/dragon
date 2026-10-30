@@ -34,6 +34,8 @@ export {
   type TimeScale,
   type TimeSpanEvent,
   type TimeSpec,
+  type TreeLeaf,
+  type TreeNode,
   validateDiagram,
   type ViewMode,
 } from "./schema";
@@ -57,6 +59,7 @@ export type {
   SceneTrail,
 } from "./layout/scene";
 export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTick, TimeWire, TimeZoom } from "./layout/time";
+export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./layout/tree";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
