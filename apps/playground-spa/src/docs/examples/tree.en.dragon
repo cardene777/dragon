@@ -1,0 +1,24 @@
+tree Proving a transaction is included
+
+step Hash each transaction
+  say Compute a value from each of the 4 transactions. These values become the leaves.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  leaf tx3 [hash: c41d]
+  leaf tx4 [hash: e5f8]
+
+step Pair them up
+  say Join neighbouring values two at a time and hash again. Two parents appear.
+  node 1to2 of tx1, tx2 [hash: 7a21]
+  node 3to4 of tx3, tx4 [hash: b9e4]
+
+step The root appears
+  say Joining the last two gives one root that sums up every transaction.
+  node root of 1to2, 3to4 [hash: e71c]
+
+step Climb from tx3 to the root
+  say Take the neighbouring value at each level and climb. The root comes out without reading tx1 or tx2.
+  tx3 -> 3to4 [tag: c41d]
+  tx4 -> 3to4 [tag: e5f8]
+  3to4 -> root [tag: b9e4]
+  1to2 -> root [tag: 7a21]

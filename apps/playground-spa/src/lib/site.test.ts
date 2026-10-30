@@ -312,7 +312,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
 
@@ -344,7 +344,7 @@ const docsDiagram = (id: string, text: string): Diagram | undefined => {
 const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.flatMap((s) => s.events);
 
 /** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
-const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
+const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "tree", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "leaf", "node", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
@@ -379,6 +379,12 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
     d.time?.zoom !== undefined &&
     ["now", "mark", "span"].every((type) => eventsOf(d).some((e) => e.type === type)) &&
     (d.strip?.meters?.length ?? 0) >= 1,
+  // 値を持つ葉と親を書き、運ぶ物の線を通す (#3235)
+  tree: (d) =>
+    d.kind === "tree" &&
+    eventsOf(d).some((e) => e.type === "leaf" && e.hash !== undefined) &&
+    eventsOf(d).some((e) => e.type === "node" && e.hash !== undefined) &&
+    eventsOf(d).some((e) => e.type === "edge" && e.carry.kind !== "none"),
   steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
   strip: (d) => d.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
@@ -3295,7 +3301,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       screen: "docs",
       targets: '[data-docs="cta"] a, a[data-docs="section-cta"], a[data-docs="icon-link"]',
       links: 'a[data-docs="section-cta"], a[data-docs="icon-link"]',
-      count: 18,
+      count: 19,
       touchSizes: [
         "5 分で始める → 133x44",
         "カタログで図を見る 160x44",
@@ -4403,7 +4409,7 @@ describe("サイトの帯と経路 (#3030)", () => {
 
       const expectDocs = async (lang: Lang): Promise<void> => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
-        const words = ["sequence", "architecture", "state", "git", "time"];
+        const words = ["sequence", "architecture", "state", "git", "time", "tree"];
         const want = DOC_SECTIONS.map((id, i) => {
           const text = WITHOUT_EXAMPLE.includes(id) ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);
