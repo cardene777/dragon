@@ -115,6 +115,8 @@ export interface OpenOptions {
    * 再生の部品はこの設定を図を描く時に 1 度だけ読むので、開いた後に `emulateMedia` で当てると、先に描かれた図が自動で段を送る
    */
   reducedMotion?: "reduce" | "no-preference";
+  /** 頁を開く前に済ませる処理。読み込みを止めたり遅らせたりする道 (`page.route`) はここで置く (#3246) */
+  prepare?: (page: Page) => Promise<void>;
 }
 
 /** 頁が読み込みの最初の瞬間に読んだ、動きを嫌う設定と指で触る設定が当たっているか */
@@ -182,6 +184,7 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    await o.prepare?.(page);
     await page.goto(o.url ?? `${server.origin}${o.path ?? BASE}`);
     if (o.touch) await waitForCoarse(page);
     return {
@@ -217,6 +220,16 @@ export function bundleSizes(dir: string): Record<string, number> {
       .filter((name) => /\.(js|css)$/u.test(name))
       .map((name) => [name, gzipSync(readFileSync(join(assets, name))).length]),
   );
+}
+
+/**
+ * build した頁が最初に読む script と CSS の file の名前 (#3246)。
+ * `index.html` が `src` と `href` で名指す `assets/` の下の file で、入口と、入口が先に読むよう名指す file を含む。
+ * ほかの script は頁が動いてから読む後から読む塊
+ */
+export function firstLoadFiles(dir: string): string[] {
+  const html = readFileSync(join(dir, "index.html"), "utf8");
+  return [...new Set([...html.matchAll(/\b(?:src|href)="[^"]*\/assets\/([^"/]+\.(?:js|css))"/gu)].map((m) => m[1] ?? ""))].filter(Boolean).sort();
 }
 
 /** 頁の source (検査と検査の助けを除く) を path と中身の組で返す */

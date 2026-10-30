@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { PATHS } from "../site/routes";
-import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, type Site, startSite, waitForCoarse } from "./playground-support";
+import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, firstLoadFiles, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, type Site, startSite, waitForCoarse } from "./playground-support";
 
 /** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、カタログの分類から導く (#3157) */
 const screenRoutes = (): string[] => {
@@ -1199,11 +1199,21 @@ describe("公開する頁 (#2995)", () => {
   // 上限は 250KB で始め、#3199 で 270KB にした。図の種類が 5 つになり、記法の語ごとに全ての図の種類と 2 つの言葉の
   // 見本帳の部品を置く決まりのため、語を 1 つ足すと 1KB ほど増える。#3199 の前の main で残りが 1.3KB しか無かった。
   // #3239 で 290KB にした。列の図を足すと 266.2KB から 277.6KB に増える (検査の関数 3.5KB、部品と見本の記法 5KB、描く部品 3KB)
+  // #3246 で、上限を頁が最初に読む script と CSS に当てる形にした。見本と部品の図の記法は後から読む塊に分け、
+  // 全部の塊の合計は分けてもほぼ減らないので上限を当てず、前の記録と同じ数え方で比べられるよう落ちた時の文に並べる
   it("page-bundle-within-budget", () => {
     const sizes = bundleSizes(site.built.dir);
-    const total = Object.values(sizes).reduce((a, b) => a + b, 0);
-    expect(Object.keys(sizes).length, "build した script と CSS が無い").toBeGreaterThan(0);
-    expect(total, `script と CSS の合計が gzip で ${(total / 1024).toFixed(1)}KB (${JSON.stringify(sizes)})`).toBeLessThanOrEqual(290 * 1024);
+    const first = firstLoadFiles(site.built.dir);
+    const kb = (bytes: number): string => `${(bytes / 1024).toFixed(1)}KB`;
+    const sum = (names: string[]): number => names.reduce((a, name) => a + (sizes[name] ?? 0), 0);
+    const all = sum(Object.keys(sizes));
+    const loaded = sum(first);
+    expect(first.length, "build した頁が最初に読む script と CSS が無い").toBeGreaterThan(0);
+    expect(first.filter((name) => sizes[name] === undefined), "最初に読む file が build の assets に無い").toEqual([]);
+    const report = `最初に読む script と CSS が gzip で ${kb(loaded)} (${JSON.stringify(Object.fromEntries(first.map((name) => [name, sizes[name]])))})、全部の塊の合計が ${kb(all)}`;
+    // 分ける前 (#3239 の後の main) は、最初に読む量が全部の合計と同じ 277.6KB だった
+    expect(loaded, report).toBeLessThan(277.6 * 1024);
+    expect(loaded, report).toBeLessThanOrEqual(290 * 1024);
   });
 
   it("page-draws-with-package-parts", () => {
