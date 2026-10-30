@@ -262,6 +262,12 @@ export type SyntaxId =
   | "span"
   | "leaf"
   | "node"
+  | "item"
+  | "line"
+  | "seal"
+  | "open"
+  | "pick"
+  | "stamp"
   | "action"
   | "swap"
   | "strip-value"
@@ -300,6 +306,8 @@ const HOLE = {
     first: "最初",
     last: "最後",
     child: "子",
+    lane: "列",
+    chip: "チップ",
   },
   en: {
     title: "title",
@@ -332,6 +340,8 @@ const HOLE = {
     first: "first",
     last: "last",
     child: "child",
+    lane: "lane",
+    chip: "chip",
   },
 } as const satisfies Record<NotationLang, Record<string, string>>;
 
@@ -368,8 +378,14 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   // 葉と親は木の図だけが書ける (#3233)
   const treeBase = draw({ ...empty("tree"), steps: [step] });
   const inTree = (events: object[]): Diagram => draw({ ...treeBase, steps: [{ ...step, events }] });
+  // チップと列の並びと封と選ぶと札は列の図だけが書ける (#3239)
+  const lineupBase = draw({ ...empty("lineup"), lineup: { items: [] }, steps: [step] });
+  const inLineup = (events: object[]): Diagram => draw({ ...lineupBase, steps: [{ ...step, events }] });
   return [
-    { id: "kind", lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree"))] },
+    {
+      id: "kind",
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup"))],
+    },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
       id: "region",
@@ -421,6 +437,12 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     },
     { id: "leaf", lines: diff([[treeBase, inTree([{ type: "leaf", id: h.id, hash: h.hash }])]]) },
     { id: "node", lines: diff([[treeBase, inTree([{ type: "node", id: h.id, children: [h.child, h.child], hash: h.hash }])]]) },
+    { id: "item", lines: diff([[lineupBase, draw({ ...lineupBase, lineup: { items: [{ id: h.id, color: h.color, label: h.text }] } })]]) },
+    { id: "line", lines: diff([[lineupBase, inLineup([{ type: "line", box: h.lane, items: [h.chip, h.chip] }])]]) },
+    { id: "seal", lines: diff([[lineupBase, inLineup([{ type: "seal", box: h.lane }])]]) },
+    { id: "open", lines: diff([[lineupBase, inLineup([{ type: "open", box: h.lane }])]]) },
+    { id: "pick", lines: diff([[lineupBase, inLineup([{ type: "pick", box: h.lane }])]]) },
+    { id: "stamp", lines: diff([[lineupBase, inLineup([{ type: "stamp", box: h.lane, text: h.text }])]]) },
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
     { id: "strip-value", lines: diff([[draw({ ...withStep, strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },

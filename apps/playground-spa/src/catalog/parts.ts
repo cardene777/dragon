@@ -4,7 +4,8 @@
  * package の描く部品 (`render/parts.ts`) は図の種類の間で共通で、図の種類ごとに違うのは並べ方だけなので、
  * カタログは「どの図でも使える部品」「図の種類だけの部品」「図 (部品を組み合わせた物と見本)」の 3 段に並べる。
  *
- * 1 行は部品の名札と、その部品を描ける図の種類と、その部品が受け持つ記法の語を持つ。図の種類を全部持つ部品が、どの図でも使える部品。
+ * 1 行は部品の名札と、その部品を描ける図の種類と、その部品が受け持つ記法の語を持つ。図の種類を 2 つ以上持つ部品が、どの図でも使える部品。
+ * 列の図 (#3239) は線と箱の中の処理を持たないので、線と線の名前と運ぶ物と絵と飛び先と箱の中の処理の部品は、列の図を除いた図の種類を持つ。
  * 語は `kind:<図の種類>`、`head:<行の頭の語>`、`attr:<行>.<鍵>`、線の行の `edge:->`、枝分かれの図の行の中の語の `git:<語>` の形で書き、
  * package の記法の語の表 (`words.ts`) の語を、どれかの部品が必ず受け持つ (`catalog-parts.test.ts` が数える)。
  * 区画は時系列図に描かれないので、区画の属性 (`attr:group.*`) は区画の部品が受け持つ。
@@ -29,17 +30,20 @@ export interface Part {
   readonly words: readonly string[];
 }
 
+/** 線を引ける図の種類。列の図は線と箱の中の処理を持たない */
+const LINED = KINDS.filter((kind) => kind !== "lineup");
+
 /** 部品の表。並びは一覧の札と図の頁の使う部品の並び */
 export const PARTS: readonly Part[] = [
   { id: "box", kinds: KINDS, words: ["head:box"] },
-  { id: "edge", kinds: KINDS, words: ["edge:->"] },
-  { id: "edge-label", kinds: KINDS, words: ["attr:edge.side"] },
-  { id: "carry", kinds: KINDS, words: ["attr:edge.carry", "attr:edge.tag"] },
+  { id: "edge", kinds: LINED, words: ["edge:->"] },
+  { id: "edge-label", kinds: LINED, words: ["attr:edge.side"] },
+  { id: "carry", kinds: LINED, words: ["attr:edge.carry", "attr:edge.tag"] },
   { id: "color", kinds: KINDS, words: ["attr:box.color"] },
-  { id: "icon", kinds: KINDS, words: ["attr:box.icon"] },
-  { id: "link", kinds: KINDS, words: ["attr:box.link"] },
+  { id: "icon", kinds: LINED, words: ["attr:box.icon"] },
+  { id: "link", kinds: LINED, words: ["attr:box.link"] },
   { id: "note", kinds: KINDS, words: ["attr:box.note", "head:note"] },
-  { id: "act", kinds: KINDS, words: ["head:act"] },
+  { id: "act", kinds: LINED, words: ["head:act"] },
   { id: "strip", kinds: KINDS, words: ["head:strip", "head:set", "attr:set.tag"] },
   { id: "step", kinds: KINDS, words: ["head:step", "head:say", "head:code", "attr:diagram.view"] },
   { id: "source", kinds: KINDS, words: ["head:source", "attr:source.url"] },
@@ -63,10 +67,16 @@ export const PARTS: readonly Part[] = [
   // 木の図 (#3233)
   { id: "leaf", kinds: ["tree"], words: ["kind:tree", "head:leaf", "attr:leaf.hash"] },
   { id: "node", kinds: ["tree"], words: ["head:node", "attr:node.hash"] },
+  // 列の図 (#3239)
+  { id: "item", kinds: ["lineup"], words: ["kind:lineup", "head:item", "attr:item.color", "attr:item.label"] },
+  { id: "line", kinds: ["lineup"], words: ["head:line"] },
+  { id: "seal", kinds: ["lineup"], words: ["head:seal", "head:open"] },
+  { id: "pick", kinds: ["lineup"], words: ["head:pick"] },
+  { id: "stamp", kinds: ["lineup"], words: ["head:stamp"] },
 ];
 
-/** どの図でも使える部品か。図の種類を全部持つ */
-export const isCommon = (part: Part): boolean => KINDS.every((kind) => part.kinds.includes(kind));
+/** どの図でも使える部品か。図の種類を 2 つ以上持つ */
+export const isCommon = (part: Part): boolean => part.kinds.length > 1;
 
 /** 名札の部品。表に無ければ `undefined` */
 export const partOf = (id: string | undefined): Part | undefined => PARTS.find((part) => part.id === id);
@@ -156,6 +166,15 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "attr:leaf.hash": (d) => events(d).some((e) => e.type === "leaf" && e.hash !== undefined),
   "head:node": (d) => events(d).some((e) => e.type === "node"),
   "attr:node.hash": (d) => events(d).some((e) => e.type === "node" && e.hash !== undefined),
+  "kind:lineup": (d) => d.kind === "lineup",
+  "head:item": (d) => (d.lineup?.items ?? []).length > 0,
+  "attr:item.color": (d) => (d.lineup?.items ?? []).some((i) => i.color !== undefined),
+  "attr:item.label": (d) => (d.lineup?.items ?? []).some((i) => i.label !== undefined),
+  "head:line": (d) => events(d).some((e) => e.type === "line"),
+  "head:seal": (d) => events(d).some((e) => e.type === "seal"),
+  "head:open": (d) => events(d).some((e) => e.type === "open"),
+  "head:pick": (d) => events(d).some((e) => e.type === "pick"),
+  "head:stamp": (d) => events(d).some((e) => e.type === "stamp"),
 };
 
 /** 見本の名前と、日本語の記法から作った図。読めない見本は外す */

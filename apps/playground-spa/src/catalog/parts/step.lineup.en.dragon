@@ -1,0 +1,17 @@
+lineup Steps [view: fixed]
+
+box waiting as Waiting
+
+item a, b, c
+
+step Line up
+  say step separates steps, and say writes the body of a step.
+    code writes the command typed in that step.
+  code send a b c
+  line waiting: a, b, c
+
+step Reorder
+  say Steps are viewed one at a time.
+    view picks whether the frame follows the step or holds the whole diagram.
+  code sort
+  line waiting: c, b, a

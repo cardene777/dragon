@@ -102,6 +102,28 @@ export interface Messages {
   twoParents: (id: string) => string;
   /** 最後の段を終えて、親を持たない箱が根の外に残った */
   manyRoots: (id: string, root: string) => string;
+  /** 列の図だけの行 (`item`、`line`、`seal`、`open`、`pick`、`stamp`) を、別の種類の図に書いた (#3239) */
+  lineupOnly: (word: string) => string;
+  lineupNoGroup: string;
+  lineupNoEdge: string;
+  lineupNoAct: string;
+  noItems: string;
+  itemShape: string;
+  lineShape: string;
+  /** `seal`、`open`、`pick` の行の形 */
+  laneShape: (word: string) => string;
+  stampShape: string;
+  /** チップの字が上限の字数を超えた */
+  labelTooLong: (limit: number) => string;
+  /** `line` の行に、宣言していないチップを書いた */
+  noSuchItem: (id: string) => string;
+  /** 同じ `line` の行に、同じチップを 2 度書いた */
+  itemTwice: (id: string) => string;
+  /** `line` の行のチップが、1 列の上限を超えた */
+  laneFull: (lane: string, limit: number) => string;
+  lineOnSealed: (lane: string) => string;
+  sealTwice: (lane: string) => string;
+  openUnsealed: (lane: string) => string;
   /** 時間軸の図の宣言の行を 2 つ書いた */
   timeTwice: (word: string) => string;
   noScale: string;
@@ -233,6 +255,22 @@ const ja = (): Messages => {
     notTreeBox: (id) => `${id} は box の行で置いた箱で、木の箱でない。子は leaf か node で書いた名札にする`,
     twoParents: (id) => `${id} はもう別の親の子になっている。木の箱の親は 1 つだけ`,
     manyRoots: (id, root) => `${id} が親を持たないまま残る。木の根は 1 つだけで、${id} も ${root} も最後に 1 つの根へ組む`,
+    lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
+    lineupNoGroup: "lineup (列の図) には group を書けない。列は box の行で宣言する",
+    lineupNoEdge: "lineup (列の図) には線の行を書けない。チップは line の行で列の並びを書くと動く",
+    lineupNoAct: "lineup (列の図) には act の行を書けない。列の右上の字は note の行で書き換える",
+    noItems: "item の行でチップを 1 つ以上宣言する",
+    itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>] の形で書く",
+    lineShape: "line は line <列>: <チップ>, <チップ> の形で書く",
+    laneShape: (word) => `${word} は ${word} <列> の形で書く`,
+    stampShape: "stamp は stamp <列>: <字> の形で書く",
+    labelTooLong: (limit) => `label は ${limit} 字までにする`,
+    noSuchItem: (id) => `${id} というチップは宣言していない`,
+    itemTwice: (id) => `${id} はこの行に 2 度書いている。同じ列に同じチップは 1 枚だけ`,
+    laneFull: (lane, limit) => `${lane} の列に並べられるチップは ${limit} 枚まで`,
+    lineOnSealed: (lane) => `${lane} の列は封をしているので並びを書けない。先に open で開ける`,
+    sealTwice: (lane) => `${lane} の列にはもう封をしている`,
+    openUnsealed: (lane) => `${lane} の列には封をしていない`,
     timeTwice: (word) => `${word} は 1 つだけ宣言する`,
     noScale: "scale の行で目盛りを宣言する",
     noRows: "row の行で印の列を 1 つ以上宣言する",
@@ -356,6 +394,22 @@ const en = (): Messages => {
     notTreeBox: (id) => `${id} is a box from a box line, not a tree box. A child must be an id written with leaf or node`,
     twoParents: (id) => `${id} is already a child of another node. A tree box has only one parent`,
     manyRoots: (id, root) => `${id} is left without a parent. A tree has one root, so join ${id} and ${root} under one root by the end`,
+    lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
+    lineupNoGroup: "A lineup diagram takes no group. Declare the lanes with box lines",
+    lineupNoEdge: "A lineup diagram takes no edge lines. Chips move when a line line rewrites a lane",
+    lineupNoAct: "A lineup diagram takes no act lines. Rewrite the text at the top right of a lane with a note line",
+    noItems: "Declare at least one chip with an item line",
+    itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>]",
+    lineShape: "Write a line as line <lane>: <chip>, <chip>",
+    laneShape: (word) => `Write ${word} as ${word} <lane>`,
+    stampShape: "Write a stamp as stamp <lane>: <text>",
+    labelTooLong: (limit) => `A label is at most ${limit} characters`,
+    noSuchItem: (id) => `The chip ${id} is not declared`,
+    itemTwice: (id) => `${id} is written twice on this line. A lane holds one of each chip`,
+    laneFull: (lane, limit) => `The lane ${lane} holds at most ${limit} chips`,
+    lineOnSealed: (lane) => `The lane ${lane} is sealed, so its order cannot be written. Open it first`,
+    sealTwice: (lane) => `The lane ${lane} is already sealed`,
+    openUnsealed: (lane) => `The lane ${lane} is not sealed`,
     timeTwice: (word) => `Declare only one ${word}`,
     noScale: "Declare the scale with a scale line",
     noRows: "Declare at least one row with a row line",

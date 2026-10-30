@@ -52,7 +52,7 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `今の記法の部品 ${parts} 個と、部品を組み合わせた ${kinds} 種類の図を並べる。部品の頁で書き方と見え方を確かめ、図の頁で見本を検索して動かし、編集画面で開ける。合計 ${samples} 件の見本。`,
         sections: {
-          parts: { title: "部品", lead: "どの図でも使う部品。部品ごとに、時系列図と構成図と状態遷移図と枝分かれの図と時間軸の図と木の図で描いた見え方を並べる。" },
+          parts: { title: "部品", lead: "いくつもの図で使う部品。部品ごとに、使える図の種類それぞれで描いた見え方を並べる。列の図は線を引かないので、線と箱の中の処理の部品は列の図に無い。" },
           "kind-parts": { title: "図の種類だけの部品", lead: "1 つの図の種類でだけ使う部品。" },
           kinds: { title: "図", lead: "部品を組み合わせた図。図ごとに、使う部品の一覧と見本を載せる。" },
         },
@@ -119,6 +119,26 @@ export const TEXT = {
             name: "組んだ親",
             desc: "木の図だけの部品。段の中に node <名札> of <子>, <子> [hash: <値>] と書くと、前に書いた葉か親を子にして親の箱が現れ、子と親を木の線で結ぶ。親子の箱どうしの線は木の線の上を走る。親を持たない箱は最後に根の 1 つだけ残す。",
           },
+          item: {
+            name: "チップ",
+            desc: "列の図だけの部品。最初の step より前に item <名札>, <名札> [color: <色>, label: <字>] と書くと、列に並べるチップを宣言する。色を付けたチップは色で塗り、label の字は 4 字まで載る。",
+          },
+          line: {
+            name: "列の並び",
+            desc: "列の図だけの部品。段の中に line <列>: <チップ>, <チップ> と書くと、その列のチップが書いた順に並び直す。ほかの列に居たチップはその席から滑って来て、どこにも居なかったチップは弾んで現れる。1 列は 12 枚まで。",
+          },
+          seal: {
+            name: "封",
+            desc: "列の図だけの部品。段の中に seal <列> と書くと、縞の封が列の左から伸びて中身を隠し、open <列> と書くと封が消えて中身が戻る。封をした列の並びは開けるまで書けない。",
+          },
+          pick: {
+            name: "選ぶ",
+            desc: "列の図だけの部品。段の中に pick <列> と書くと、その列の縁に色が付き、ほかの列が薄くなる。薄くなった列は、後の段で並びを書き換えるか選ぶと濃く戻る。",
+          },
+          stamp: {
+            name: "札",
+            desc: "列の図だけの部品。段の中に stamp <列>: <字> と書くと、列の右に傾いた札が押される。署名や承認のように、列の中身に触れずに起きたことを見せる。",
+          },
         },
         kindOnly: (kind: string) => `${kind}だけ`,
         partKinds: "使える図",
@@ -138,6 +158,7 @@ export const TEXT = {
           git: "git の枝に commit が積まれ、rebase や merge commit で取り込まれる様子を段ごとに追う図。枝と HEAD がどの commit を指すかを、丸の上の札で見せる。",
           time: "決まった間隔で刻む時間の上で、何がいつ起きたかを段ごとに追う図。ブロックの確定や引き出しの待ちのように、時間が長さとして効く仕組みを、進む針と塗られる印で見せる。",
           tree: "親子で枝分かれする箱を葉から根まで組み上げ、根と葉の間を段ごとに辿る図。Merkle 木のように少しの値で全体を確かめる仕組みを、木の線の上を走る札で見せる。",
+          lineup: "横長の列にチップを並べ、段ごとに並びが替わる様子を追う図。入札でブロックの中身が決まる流れのように、順番と隠す中身が効く仕組みを、列の間を滑るチップと封で見せる。",
         },
         total: (n: number) => `全 ${n} 件`,
         showing: (n: number) => `${n} 件 表示中`,
@@ -201,7 +222,7 @@ export const TEXT = {
       filter: "絞り込む…",
       filterLabel: "一覧を絞り込む",
       nothing: "当てはまる物が無い",
-      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図" },
+      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: {
@@ -246,6 +267,12 @@ export const TEXT = {
         span: "範囲の括弧。shape: box で印の列を囲む",
         leaf: "葉を出す。hash に値を書くと箱に値を、下の札に名札を出す",
         node: "親を組む。of の後ろに子を書く。親を持たない箱は最後に根の 1 つだけ",
+        item: "チップ。列の図で最初の step より前に宣言する。label は 4 字まで",
+        line: "列の並びを書く。段の中で、列のチップを書いた順に並べ直す",
+        seal: "封をする。段の中で、列の中身を隠す",
+        open: "封を開ける。段の中で、隠した中身を戻す",
+        pick: "列を選ぶ。選んだ列の縁に色が付き、ほかの列が薄くなる",
+        stamp: "札を押す。段の中で、列の右に字の札を置く",
         action: "箱の中の処理",
         swap: "箱の下の小さな字の書き換え",
         "strip-value": "帯の値",
@@ -328,7 +355,10 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `The ${parts} parts of the current notation, and the ${kinds} diagram kinds built from them. A part page shows how to write the part and how it looks; a diagram page lets you search its examples, watch them move, and open them in the editor. ${samples} examples in total.`,
         sections: {
-          parts: { title: "Parts", lead: "Parts every diagram uses. Each part page shows the part in a sequence diagram, an architecture diagram, a state diagram, a git graph, a time diagram, and a tree diagram." },
+          parts: {
+            title: "Parts",
+            lead: "Parts that many diagrams use. Each part page shows the part in every diagram kind that can use it. Lineup diagrams draw no edges, so the edge and action parts are not part of them.",
+          },
           "kind-parts": { title: "Parts for one kind", lead: "Parts that only one diagram kind uses." },
           kinds: { title: "Diagrams", lead: "Diagrams built from the parts. Each lists the parts it uses and its examples." },
         },
@@ -401,6 +431,26 @@ export const TEXT = {
             name: "Parent node",
             desc: "Tree diagrams only. Write node <id> of <child>, <child> [hash: <value>] in a step and a parent box appears over the leaves or parents written earlier, joined to them by tree lines. A line between a parent and its child runs along the tree line. Only the root is left without a parent at the end.",
           },
+          item: {
+            name: "Chip",
+            desc: "Lineup diagrams only. Write item <id>, <id> [color: <color>, label: <text>] before the first step to declare the chips the lanes hold. A chip with a color is filled with it, and a label of up to 4 characters sits on the chip.",
+          },
+          line: {
+            name: "Lane order",
+            desc: "Lineup diagrams only. Write line <lane>: <chip>, <chip> in a step and the chips of that lane line up in the order written. A chip that was in another lane slides over from its seat, and a chip that was nowhere pops in. A lane holds up to 12 chips.",
+          },
+          seal: {
+            name: "Seal",
+            desc: "Lineup diagrams only. Write seal <lane> in a step and a striped seal grows from the left of the lane and hides its contents. open <lane> removes the seal and brings the contents back. The order of a sealed lane cannot be written until it is opened.",
+          },
+          pick: {
+            name: "Pick",
+            desc: "Lineup diagrams only. Write pick <lane> in a step and the edge of that lane lights up while the other lanes fade. A faded lane comes back when a later step rewrites its order or picks it.",
+          },
+          stamp: {
+            name: "Stamp",
+            desc: "Lineup diagrams only. Write stamp <lane>: <text> in a step and a tilted stamp lands on the right of the lane. Use it for something that happens without touching the contents, such as a signature or an approval.",
+          },
         },
         kindOnly: (kind: string) => `${kind} only`,
         partKinds: "Used in",
@@ -420,6 +470,8 @@ export const TEXT = {
           git: "Follow commits piling up on git branches and coming together through a rebase or a merge commit, step by step. Tags above the circles show which commit each branch and HEAD point at.",
           time: "Follow what happens when on time cut into fixed units, step by step. For mechanisms where time itself matters, like block finality or a withdrawal wait, a moving needle and filling marks show it.",
           tree: "Build boxes that branch into parents and children from the leaves up to the root, then follow the path between root and leaf step by step. For mechanisms like a Merkle tree, where a few values prove the whole, tags running along the tree lines show it.",
+          lineup:
+            "Line chips up in long lanes and follow how their order changes, step by step. For mechanisms where order and hidden contents matter, like an auction that decides what goes in a block, chips sliding between lanes and seals show it.",
         },
         total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         showing: (n: number) => `showing ${n}`,
@@ -483,7 +535,7 @@ export const TEXT = {
       filter: "Filter…",
       filterLabel: "Filter the list",
       nothing: "Nothing matches",
-      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram" },
+      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: {
@@ -528,6 +580,12 @@ export const TEXT = {
         span: "Range bracket. shape: box draws a box around the rows",
         leaf: "Add a leaf. With a hash, the box shows the value and a card below shows the id",
         node: "Build a parent. List its children after of. Only the root is left without a parent at the end",
+        item: "Chip. In a lineup diagram, declare it before the first step. A label is up to 4 characters",
+        line: "Write a lane's order. Inside a step, the chips line up in the order written",
+        seal: "Seal a lane. Inside a step, hide its contents",
+        open: "Open a seal. Inside a step, bring the hidden contents back",
+        pick: "Pick a lane. Its edge lights up and the other lanes fade",
+        stamp: "Stamp a lane. Inside a step, put a text stamp on the right of the lane",
         action: "Action inside a box",
         swap: "Rewrite the small text under a box",
         "strip-value": "Strip value",

@@ -1,0 +1,50 @@
+// How a transaction sent on Ethereum gets into a block through builder bids and is voted on.
+// Each lane belongs to one party and each chip is one transaction. Your own transaction is the coloured chip.
+// Builders reorder and seal their lanes, and the proposer picks by price alone and signs without seeing the contents.
+lineup How an auction decides what goes in a block
+
+box Mempool
+box BuilderA as Builder A
+box BuilderB as Builder B [color: amber]
+box BuilderC as Builder C
+box Validators [color: green]
+
+item mine [color: amber]
+item t1, t2, t3, t4, t5, t6, t7
+item private1, private2 [color: blue]
+item v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12 [color: green, label: ✓]
+
+step Transactions line up
+  say A transaction you send enters the mempool and waits with everyone else's.
+  line Mempool: t1, t2, mine, t3, t4, t5, t6, t7
+
+step Builders pick an order and bid
+  say Builders reorder the transactions, add private ones the mempool never saw, and name a price.
+  line BuilderA: t1, t2, mine, t3, t4, t5, t6, t7
+  line BuilderB: private1, private2, t3, mine, t1, t2, t4, t5
+  line BuilderC: t1, t2, t3, t4, t5, t6, t7
+  note BuilderA: 0.05 ETH
+  note BuilderB: 0.12 ETH
+  note BuilderC: 0.08 ETH
+
+step The relay seals the contents
+  say The relay holds the contents and hides them, so the proposer cannot steal them.
+  seal BuilderA
+  seal BuilderB
+  seal BuilderC
+
+step The proposer sees only the price
+  say Only the price reaches the proposer, who picks the highest bid, Builder B.
+  pick BuilderB
+
+step The proposer signs without looking
+  say The proposer signs the block header without seeing the contents.
+  stamp BuilderB: Signed
+
+step The seal opens and the block is published
+  say With the signature in hand, the relay publishes the full block. The losing lanes stay hidden.
+  open BuilderB
+
+step Validators vote
+  say Validators re-execute the block and vote for it if it is correct.
+  line Validators: v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12

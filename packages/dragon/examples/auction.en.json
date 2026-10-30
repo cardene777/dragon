@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "kind": "lineup",
+  "title": "How an auction decides what goes in a block",
+  "boxes": [
+    {
+      "id": "Mempool",
+      "name": "Mempool"
+    },
+    {
+      "id": "BuilderA",
+      "name": "Builder A"
+    },
+    {
+      "id": "BuilderB",
+      "name": "Builder B",
+      "color": "amber"
+    },
+    {
+      "id": "BuilderC",
+      "name": "Builder C"
+    },
+    {
+      "id": "Validators",
+      "name": "Validators",
+      "color": "green"
+    }
+  ],
+  "steps": [
+    {
+      "title": "Transactions line up",
+      "body": "A transaction you send enters the mempool and waits with everyone else's.",
+      "events": [
+        {
+          "type": "line",
+          "box": "Mempool",
+          "items": [
+            "t1",
+            "t2",
+            "mine",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Builders pick an order and bid",
+      "body": "Builders reorder the transactions, add private ones the mempool never saw, and name a price.",
+      "events": [
+        {
+          "type": "line",
+          "box": "BuilderA",
+          "items": [
+            "t1",
+            "t2",
+            "mine",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7"
+          ]
+        },
+        {
+          "type": "line",
+          "box": "BuilderB",
+          "items": [
+            "private1",
+            "private2",
+            "t3",
+            "mine",
+            "t1",
+            "t2",
+            "t4",
+            "t5"
+          ]
+        },
+        {
+          "type": "line",
+          "box": "BuilderC",
+          "items": [
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7"
+          ]
+        },
+        {
+          "type": "swap",
+          "box": "BuilderA",
+          "text": "0.05 ETH"
+        },
+        {
+          "type": "swap",
+          "box": "BuilderB",
+          "text": "0.12 ETH"
+        },
+        {
+          "type": "swap",
+          "box": "BuilderC",
+          "text": "0.08 ETH"
+        }
+      ]
+    },
+    {
+      "title": "The relay seals the contents",
+      "body": "The relay holds the contents and hides them, so the proposer cannot steal them.",
+      "events": [
+        {
+          "type": "seal",
+          "box": "BuilderA"
+        },
+        {
+          "type": "seal",
+          "box": "BuilderB"
+        },
+        {
+          "type": "seal",
+          "box": "BuilderC"
+        }
+      ]
+    },
+    {
+      "title": "The proposer sees only the price",
+      "body": "Only the price reaches the proposer, who picks the highest bid, Builder B.",
+      "events": [
+        {
+          "type": "pick",
+          "box": "BuilderB"
+        }
+      ]
+    },
+    {
+      "title": "The proposer signs without looking",
+      "body": "The proposer signs the block header without seeing the contents.",
+      "events": [
+        {
+          "type": "stamp",
+          "box": "BuilderB",
+          "text": "Signed"
+        }
+      ]
+    },
+    {
+      "title": "The seal opens and the block is published",
+      "body": "With the signature in hand, the relay publishes the full block. The losing lanes stay hidden.",
+      "events": [
+        {
+          "type": "open",
+          "box": "BuilderB"
+        }
+      ]
+    },
+    {
+      "title": "Validators vote",
+      "body": "Validators re-execute the block and vote for it if it is correct.",
+      "events": [
+        {
+          "type": "line",
+          "box": "Validators",
+          "items": [
+            "v1",
+            "v2",
+            "v3",
+            "v4",
+            "v5",
+            "v6",
+            "v7",
+            "v8",
+            "v9",
+            "v10",
+            "v11",
+            "v12"
+          ]
+        }
+      ]
+    }
+  ],
+  "lineup": {
+    "items": [
+      {
+        "id": "mine",
+        "color": "amber"
+      },
+      {
+        "id": "t1"
+      },
+      {
+        "id": "t2"
+      },
+      {
+        "id": "t3"
+      },
+      {
+        "id": "t4"
+      },
+      {
+        "id": "t5"
+      },
+      {
+        "id": "t6"
+      },
+      {
+        "id": "t7"
+      },
+      {
+        "id": "private1",
+        "color": "blue"
+      },
+      {
+        "id": "private2",
+        "color": "blue"
+      },
+      {
+        "id": "v1",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v2",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v3",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v4",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v5",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v6",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v7",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v8",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v9",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v10",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v11",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v12",
+        "color": "green",
+        "label": "✓"
+      }
+    ]
+  }
+}

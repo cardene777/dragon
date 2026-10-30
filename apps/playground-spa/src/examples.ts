@@ -6,6 +6,8 @@
  */
 import apiJa from "../../../packages/dragon/examples/api.dragon?raw";
 import apiEn from "../../../packages/dragon/examples/api.en.dragon?raw";
+import auctionJa from "../../../packages/dragon/examples/auction.dragon?raw";
+import auctionEn from "../../../packages/dragon/examples/auction.en.dragon?raw";
 import ccipJa from "../../../packages/dragon/examples/ccip.dragon?raw";
 import ccipEn from "../../../packages/dragon/examples/ccip.en.dragon?raw";
 import finalityJa from "../../../packages/dragon/examples/finality.dragon?raw";
@@ -35,7 +37,7 @@ import { type Diagram, parseNotation } from "@cardenelabs/dragon";
 
 import type { Lang } from "./text";
 
-export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "order", "rebase", "merge", "finality", "withdraw", "merkle"] as const;
+export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "order", "rebase", "merge", "finality", "withdraw", "merkle", "auction"] as const;
 export type ExampleKey = (typeof EXAMPLE_KEYS)[number];
 
 /** 頁を開いた時に出す見本 */
@@ -58,6 +60,7 @@ const EXAMPLES: Record<ExampleKey, Record<Lang, string>> = {
   finality: { ja: finalityJa, en: finalityEn },
   withdraw: { ja: withdrawJa, en: withdrawEn },
   merkle: { ja: merkleJa, en: merkleEn },
+  auction: { ja: auctionJa, en: auctionEn },
 };
 
 export const exampleText = (key: ExampleKey, lang: Lang): string => EXAMPLES[key][lang].trimEnd();

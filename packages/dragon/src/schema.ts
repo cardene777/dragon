@@ -55,7 +55,10 @@ export type DiagramEvent =
   | TimeMarkEvent
   | TimeSpanEvent
   | TreeLeaf
-  | TreeNode;
+  | TreeNode
+  | LineupOrder
+  | { type: "seal" | "open" | "pick"; box: string }
+  | LineupStamp;
 
 /** 時間軸の図 (#3165) の、印の列 `row` の `from` から `to` の目盛りの印の色を変える出来事 */
 export interface TimeMarkEvent {
@@ -152,6 +155,27 @@ export interface TreeNode {
   hash?: string;
 }
 
+/** 列の図 (#3239) の、列 `box` の並びを `items` に書き換える出来事。前の段との差分を描く部品が滑る動きに変える */
+export interface LineupOrder {
+  type: "line";
+  box: string;
+  items: string[];
+}
+
+/** 列の図の、列 `box` の右に `text` の札を押す出来事 */
+export interface LineupStamp {
+  type: "stamp";
+  box: string;
+  text: string;
+}
+
+/** 列の図のチップ。`color` を書かないチップは薄い色で、`label` を書かないチップは色だけで出す */
+export interface LineupItem {
+  id: string;
+  color?: Color;
+  label?: string;
+}
+
 /** 枝分かれの図の枝。上から宣言した順に帯を並べる */
 export interface GitBranch {
   id: string;
@@ -182,7 +206,7 @@ export interface Step {
 
 export interface Diagram {
   version: number;
-  kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree";
+  kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup";
   title: string;
   view?: ViewMode;
   regions?: Region[];
@@ -193,6 +217,7 @@ export interface Diagram {
   state?: { paths: StatePath[] };
   git?: { branches: GitBranch[] };
   time?: TimeSpec;
+  lineup?: { items: LineupItem[] };
 }
 
 export interface FieldError {
@@ -209,7 +234,7 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp"] as const satisfies readonly DiagramEvent["type"][];
 
 /**
  * その種類の図に書けない根の欄を書いた時の決まりの場所 (#3164)。根の欄に `not: {}` を置く決まり (`absent`) を指し、
@@ -220,7 +245,16 @@ const ABSENT = "#/definitions/absent/not";
  * 種類の欄でない欄を書ける図の種類。区画は枝分かれの図と時間軸の図に書けない。
  * 線の列 (`at` と `into`)、節目の丸の色 (`color`)、物差し (`meters`) は時間軸の図だけが書ける (#3165)
  */
-const ABSENT_KINDS: Record<string, string> = { regions: "sequence / architecture / state", at: "time", into: "time", color: "time", meters: "time" };
+const ABSENT_KINDS: Record<string, string> = {
+  regions: "sequence / architecture / state",
+  at: "time",
+  into: "time",
+  color: "time",
+  meters: "time",
+  region: "sequence / architecture / state",
+  icon: "sequence / architecture / state / git / time / tree",
+  link: "sequence / architecture / state / git / time / tree",
+};
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
 const NOT_ALLOWED: Record<string, Allowed> = {
   carry: { field: "text", kind: "tag" },
@@ -240,6 +274,14 @@ const TIME_EVENTS = ["now", "mark", "span"] as const satisfies readonly DiagramE
 const TREE_EVENT = /\/events\/items\/allOf\/0\/not$/u;
 /** 木の図だけが書ける出来事 */
 const TREE_EVENTS = ["leaf", "node"] as const satisfies readonly DiagramEvent["type"][];
+/** 列の図でない図に、列の図だけの出来事を書いた時の決まりの場所 (#3239) */
+const LINEUP_EVENT = "#/definitions/notLineupEvent/not";
+/** 列の図だけが書ける出来事 */
+const LINEUP_EVENTS = ["line", "seal", "open", "pick", "stamp"] as const satisfies readonly DiagramEvent["type"][];
+/** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
+const WIRED_EVENT = "#/definitions/notWiredEvent/not";
+/** 列の図が書けない、箱と線の図の出来事 */
+const WIRED_EVENTS = ["edge", "action"] as const satisfies readonly DiagramEvent["type"][];
 /** 時間軸の図の目盛りの長さの決まり (`^[0-9]+(\.[0-9]+)?(<単位>|<単位>)$`)。書ける単位を読む */
 const DURATION = /^\^\[0-9\]\+\(\\\.\[0-9\]\+\)\?\(([a-z|]+)\)\$$/u;
 /** 割合の決まり。百分率の `%` を持つ */
@@ -287,6 +329,8 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       if (GIT_EVENT.test(error.schemaPath)) return { pointer: at, message: m.kindOnly(GIT_EVENTS, "git") };
       if (TIME_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TIME_EVENTS, "time") };
       if (TREE_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TREE_EVENTS, "tree") };
+      if (error.schemaPath === LINEUP_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(LINEUP_EVENTS, "lineup") };
+      if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };
       const allowed = NOT_ALLOWED[last];
@@ -307,6 +351,8 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       return { pointer: at, message: m.type(String(params.type)) };
     case "minLength":
       return { pointer: at, message: m.minLength(Number(params.limit)) };
+    case "maxLength":
+      return { pointer: at, message: m.maxLength(Number(params.limit)) };
     case "pattern": {
       if (error.schemaPath === URL_RULE) return { pointer: at, message: m.url };
       const pattern = String(params.pattern);
@@ -319,6 +365,8 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
     }
     case "minItems":
       return { pointer: at, message: m.minItems(Number(params.limit)) };
+    case "maxItems":
+      return { pointer: at, message: m.maxItems(Number(params.limit)) };
     case "minimum":
       return { pointer: at, message: m.minimum(Number(params.limit)) };
     case "const":

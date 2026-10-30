@@ -55,6 +55,11 @@
  * 前に書いた葉か親を子にして親を組む。箱は書いた段で現れ、親は 1 つだけ持てる。最後の段を終えた時に親を持たない木の箱は根の 1 つだけ。
  * 線の端には木の箱も `box` の箱も書ける。木の図に区画 (`group`) は書けず、`leaf` と `node` の行は木の図でだけ書ける。
  *
+ * 列の図 (`lineup`、#3239) は、`box` の行が列になり、最初の `step` より前に `item <名札>, <名札> [color: <色>, label: <字>]` でチップを宣言する。
+ * 段の中で `line <列>: <チップ>, <チップ>` と書くと列の並びが替わり、`seal <列>` で封をし、`open <列>` で開け、`pick <列>` で列を選び、
+ * `stamp <列>: <字>` で札を押す。列の図に区画 (`group`) と線と `act` の行は書けない。封をした列の並びは、開けるまで書けない。
+ * `item`、`line`、`seal`、`open`、`pick`、`stamp` の行は列の図でだけ書ける。
+ *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
@@ -69,6 +74,7 @@ import {
   type GitBranch,
   type GitCommit,
   type LabelSide,
+  type LineupItem,
   type Region,
   type StatePath,
   type Step,
@@ -92,6 +98,10 @@ import {
   HEAD,
   HEADS,
   KINDS,
+  LABEL_MOST,
+  LANE_ATTRS,
+  LANE_MOST,
+  LINEUP_HEADS,
   MERGE,
   type NotationLang,
   NOW,
@@ -144,6 +154,10 @@ const CUT = new RegExp(`^([^\\s[]+)\\s+${FROM}(?:\\s+([^\\s[]+))?\\s*$`, "du");
 /** 木の図の `leaf` の行の名札と、`node` の行の名札と `of` */
 const LEAF = /^leaf\s+([^\s[]+)/du;
 const NODE = new RegExp(`^node\\s+([^\\s[]+)\\s+${OF}\\s+`, "du");
+/** 列の図の、`line <列>:` と `stamp <列>:` の行の列と、`seal`、`open`、`pick` の行の列 */
+const ORDER = /^line\s+([^\s:[]+)\s*:/du;
+const STAMP = /^stamp\s+([^\s:[]+)\s*:/du;
+const ON_LANE = /^(?:seal|open|pick)\s+(\S+)\s*$/du;
 /** commit の hash。原本の JSON の hash の形と同じ */
 const HASH = /^[0-9a-f]{4,40}$/u;
 /** 箱の飛び先と段の出典の URL。原本の JSON の URL の形と同じ */
@@ -366,6 +380,10 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const isGit = kind === "git";
   const isTime = kind === "time";
   const isTree = kind === "tree";
+  const isLineup = kind === "lineup";
+  /** 列の図で宣言したチップと、今封をしている列 (#3239) */
+  const items: LineupItem[] = [];
+  const sealed = new Set<string>();
   /** 木の図で書いた木の箱と、書いた行と名札の位置。子の箱から親の名札 */
   const trees = new Map<string, { source: SourceLine; at: number }>();
   const parents = new Map<string, string>();
@@ -472,6 +490,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
     const edge = EDGE.exec(text);
     if (edge) {
+      if (isLineup) throw fail(source, 0, m.lineupNoEdge);
       // 状態遷移図の最初の step より前の線は、移れる道の地図
       if (isState && !building) paths.push(readPath(source, edge));
       else inStep(source).events.push(readEdge(source, edge));
@@ -487,6 +506,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (!isGit && (word === "branch" || word === "commit")) throw fail(source, 0, m.gitOnly(word));
     if (!isTime && isOneOf(TIME_HEADS, word)) throw fail(source, 0, m.timeOnly(word));
     if (!isTree && isOneOf(TREE_HEADS, word)) throw fail(source, 0, m.treeOnly(word));
+    if (!isLineup && isOneOf(LINEUP_HEADS, word)) throw fail(source, 0, m.lineupOnly(word));
     if (!isOneOf(HEADS, word)) {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
@@ -530,6 +550,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         inStep(source).sources.push(readSource(source));
         break;
       case "act": {
+        if (isLineup) throw fail(source, 0, m.lineupNoAct);
         const step = inStep(source);
         const on = readOnBox(source, word, m.actShape);
         step.events.push({ type: "action", box: on.box, label: on.text });
@@ -587,6 +608,26 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         step.events.push(readNode(source));
         break;
       }
+      case "item":
+        readItem(source);
+        break;
+      case "line": {
+        const step = inStep(source);
+        step.events.push(readOrder(source));
+        break;
+      }
+      case "seal":
+      case "open":
+      case "pick": {
+        const step = inStep(source);
+        step.events.push(readOnLane(source, word));
+        break;
+      }
+      case "stamp": {
+        const step = inStep(source);
+        step.events.push(readStamp(source));
+        break;
+      }
     }
   }
   if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
@@ -595,6 +636,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
 
   if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
   if (isTree && trees.size === 0) throw fail(head, 0, m.noLeaves);
+  if (isLineup && items.length === 0) throw fail(head, 0, m.noItems);
   if (boxes.length === 0 && !isGit && !isTime && !isTree) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
   // 木の形は全ての行を読んでから確かめる。親を持たない木の箱が 2 つ以上なら、書いた順で 2 つ目を示す
@@ -615,6 +657,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     ...(kind === "sequence" ? { sequence: { lifelines: boxes.map((box) => box.id) } } : {}),
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
+    ...(isLineup ? { lineup: { items } } : {}),
     ...(isTime && scale
       ? {
           time: {
@@ -818,6 +861,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     beforeSteps(source);
     if (isGit) throw fail(source, 0, m.gitNoGroup);
     if (isTree) throw fail(source, 0, m.treeNoGroup);
+    if (isLineup) throw fail(source, 0, m.lineupNoGroup);
     if (group) throw fail(source, 0, m.nestedGroup);
     const declared = readDeclared(source, "group", ATTRS.group, m);
     if (regions.some((region) => region.id === declared.id)) {
@@ -833,7 +877,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   /** `box` の行。開いている `group` の中なら、その区画に置く */
   function readBox(source: SourceLine): void {
     beforeSteps(source);
-    const declared = readDeclared(source, "box", ATTRS.box, m);
+    const declared = readDeclared(source, "box", isLineup ? LANE_ATTRS : ATTRS.box, m);
     notReserved(source, declared.id, declared.idAt);
     declare(source, declared.id, declared.idAt);
     firstBox ??= source;
@@ -984,6 +1028,84 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     const hash = readAttrs(source, at, keys, m).get("hash");
     if (hash && !HASH.test(hash.value)) throw fail(source, hash.at, m.badHash);
     return hash?.value;
+  }
+
+  /** `from` から `to` の前までの、`,` で区切った名札と、それぞれの位置 */
+  function namesAt(source: SourceLine, from: number, to: number, shape: string): { value: string; at: number }[] {
+    const text = source.text;
+    const names: { value: string; at: number }[] = [];
+    for (let i = from; ; ) {
+      const start = skipSpaces(text, i);
+      const comma = text.indexOf(",", start);
+      const end = comma < 0 || comma > to ? to : comma;
+      const value = text.slice(start, end).trim();
+      if (value === "") throw fail(source, start, shape);
+      if (!ID.test(value)) throw fail(source, start, m.badId(value));
+      names.push({ value, at: start });
+      if (end >= to) return names;
+      i = end + 1;
+    }
+  }
+
+  /** 列の図の `item <名札>, <名札> [color: <色>, label: <字>]` の行。並べた名札ごとに、同じ色と字のチップを宣言する */
+  function readItem(source: SourceLine): void {
+    beforeSteps(source);
+    const open = source.text.indexOf("[");
+    const end = open < 0 ? source.text.length : open;
+    const attrs = open < 0 ? new Map<string, Attr>() : readAttrs(source, open, ATTRS.item, m);
+    const color = attrs.get("color");
+    if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
+    const label = attrs.get("label");
+    if (label && [...label.value].length > LABEL_MOST) throw fail(source, label.at, m.labelTooLong(LABEL_MOST));
+    for (const { value, at } of namesAt(source, "item".length, end, m.itemShape)) {
+      declare(source, value, at);
+      items.push({ id: value, ...(color ? { color: color.value as Color } : {}), ...(label ? { label: label.value } : {}) });
+    }
+  }
+
+  /** 列の図の `line <列>: <チップ>, <チップ>` の行。チップは宣言したチップで、列に 1 枚ずつ、上限まで。封をした列には書けない */
+  function readOrder(source: SourceLine): DiagramEvent {
+    const found = ORDER.exec(source.text);
+    const lane = found?.[1];
+    if (!found || lane === undefined) throw fail(source, 0, m.lineShape);
+    const at = found.indices?.[1]?.[0] ?? 0;
+    const box = boxAt(source, lane, at);
+    if (sealed.has(box)) throw fail(source, at, m.lineOnSealed(box));
+    const chips = namesAt(source, found[0].length, source.text.length, m.lineShape);
+    const seen = new Set<string>();
+    chips.forEach(({ value, at: chipAt }, k) => {
+      if (!items.some((item) => item.id === value)) throw fail(source, chipAt, m.noSuchItem(value));
+      if (seen.has(value)) throw fail(source, chipAt, m.itemTwice(value));
+      if (k >= LANE_MOST) throw fail(source, chipAt, m.laneFull(box, LANE_MOST));
+      seen.add(value);
+    });
+    return { type: "line", box, items: chips.map((chip) => chip.value) };
+  }
+
+  /** 列の図の `seal <列>`、`open <列>`、`pick <列>` の行。封は 1 列に 1 つで、封をした列だけを開けられる */
+  function readOnLane(source: SourceLine, word: "seal" | "open" | "pick"): DiagramEvent {
+    const found = ON_LANE.exec(source.text);
+    const lane = found?.[1];
+    if (!found || lane === undefined) throw fail(source, 0, m.laneShape(word));
+    const at = found.indices?.[1]?.[0] ?? 0;
+    const box = boxAt(source, lane, at);
+    if (word === "seal") {
+      if (sealed.has(box)) throw fail(source, at, m.sealTwice(box));
+      sealed.add(box);
+    }
+    if (word === "open" && !sealed.delete(box)) throw fail(source, at, m.openUnsealed(box));
+    return { type: word, box };
+  }
+
+  /** 列の図の `stamp <列>: <字>` の行 */
+  function readStamp(source: SourceLine): DiagramEvent {
+    const found = STAMP.exec(source.text);
+    const lane = found?.[1];
+    if (!found || lane === undefined) throw fail(source, 0, m.stampShape);
+    const box = boxAt(source, lane, found.indices?.[1]?.[0] ?? 0);
+    const named = readName(source, found[0].length, m);
+    if (named.value === "" || named.rest < source.text.length) throw fail(source, 0, m.stampShape);
+    return { type: "stamp", box, text: named.value };
   }
 
   /** `strip <題>: <欄>, <欄>` の行 */

@@ -9,6 +9,7 @@
 import { FIGURE_TEXT } from "../figure-text";
 import { layoutArchitecture } from "../layout/architecture";
 import { isGitLayout, layoutGit } from "../layout/git";
+import { isLineupLayout, layoutLineup } from "../layout/lineup";
 import { textWidth } from "../layout/measure";
 import type { Layout, Rect, SceneField, SceneLabel } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
@@ -45,6 +46,7 @@ import {
   type SubChange,
 } from "./parts";
 import { drawGit } from "./git";
+import { drawLineup } from "./lineup";
 import { drawTime, meterField, sansOf, timeFocus } from "./time";
 import { drawTree } from "./tree";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
@@ -187,6 +189,16 @@ const PART_CSS = [
   `.dg-tree-one{${font(TYPE.boxName)};fill:var(--ink)}`,
   `.dg-tree-rh{${font(TYPE.rootHash)};fill:var(--ink)}`,
   `.dg-tree-rn{${font(TYPE.rootName)};fill:var(--mute)}`,
+  // 列の図 (#3239)。封は列の左端から右へ伸びる
+  ".dg-ln-chip{fill:var(--c)}",
+  `.dg-ln-plain{fill:color-mix(in srgb,var(--mute) ${X.chipPlain}%,var(--surf))}`,
+  `.dg-ln-t{${font(TYPE.chip)};fill:var(--on-c)}`,
+  `.dg-ln-tp{${font(TYPE.chip)};fill:var(--ink)}`,
+  ".dg-ln-seal{transform-box:fill-box;transform-origin:0 50%}",
+  `.dg-ln-sd{fill:color-mix(in srgb,var(--mute) ${X.sealDark}%,var(--surf))}`,
+  `.dg-ln-sl{fill:color-mix(in srgb,var(--mute) ${X.sealLight}%,var(--surf))}`,
+  `.dg-ln-stamp{fill:var(--surf);stroke:var(--c);stroke-width:${S.stamp}}`,
+  `.dg-ln-st{${font(TYPE.stamp)};fill:var(--ct)}`,
   // 時間軸の図 (#3165)。和文を含む字は、末尾に j を付けた class で同じ大きさと太さの和文の字にする
   `.dg-tm-ep{fill:color-mix(in srgb,var(--ink) ${X.timeShade}%,transparent)}`,
   `.dg-tm-sep{stroke:var(--hair);stroke-width:${S.hair};stroke-dasharray:2 4}`,
@@ -356,7 +368,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const vars = paletteVars(palette, theme);
   const id = nameOf(`${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
-  const ctx: Ctx = { m, t: timeline, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink, traces };
+  const ctx: Ctx = { m, t: timeline, id, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink, traces };
   const on = involved(diagram);
   // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
   const subs = subChanges(diagram, timeline, layout.kind !== "sequence");
@@ -394,6 +406,13 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.node.push(tree.nodes);
   }
   const runs = new Set((treeLayout?.runs ?? []).map((r) => `${r.step}/${r.event}`));
+  // 列の図の列とチップと封と札は、列の図を描く部品が描く (#3239)
+  const lineupLayout = isLineupLayout(layout) ? layout : undefined;
+  if (lineupLayout) {
+    const lineup = drawLineup(lineupLayout, diagram, timeline, ctx, subs);
+    L.base.push(lineup.lanes);
+    L.node.push(lineup.chips);
+  }
   // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く
   const timeLayout = isTimeLayout(layout) ? layout : undefined;
   if (timeLayout) {
@@ -417,7 +436,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   // 飛び先を持つ箱は、箱の札をその飛び先への link で包む (#3199)。時間軸の図の箱は時間軸の図を描く部品が包む
   const links = new Map(diagram.boxes.flatMap((b) => (b.link === undefined ? [] : [[b.id, b.link] as [string, string]])));
   const linked = (id: string, markup: string): string => linkTo(links.get(id), markup);
-  for (const box of timeLayout ? [] : layout.boxes) {
+  for (const box of timeLayout || lineupLayout ? [] : layout.boxes) {
     if (box.ghost) {
       L.node.push(linked(box.id, ghostCard(box, ink)));
       continue;
@@ -507,6 +526,11 @@ function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
       const ys = l.points.map((p) => p[1]);
       rects.push({ x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) });
     }
+  }
+  // 列の図は、その段で変わる列を見る (#3239)
+  if (isLineupLayout(layout)) {
+    const changed = new Set((diagram.steps[step]?.events ?? []).flatMap((e) => ("box" in e ? [e.box] : [])));
+    rects.push(...layout.lanes.filter((lane) => changed.has(lane.id)));
   }
   for (const event of diagram.steps[step]?.events ?? []) {
     const ids = event.type === "edge" ? [event.from, event.to] : event.type === "action" || event.type === "swap" ? [event.box] : [];
@@ -674,7 +698,9 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
             ? layoutTime(diagram, lang)
             : diagram.kind === "tree"
               ? layoutTree(diagram)
-              : layoutArchitecture(diagram);
+              : diagram.kind === "lineup"
+                ? layoutLineup(diagram)
+                : layoutArchitecture(diagram);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 

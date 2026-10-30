@@ -1,0 +1,21 @@
+lineup 封
+
+box 列A
+box 列B
+
+item 一, 二, 三, 五
+item 四 [color: amber]
+
+step 並べる
+  say 2つの列にチップを並べる。
+  line 列A: 一, 二, 三
+  line 列B: 四, 五
+
+step 封をする
+  say seal で、縞の封が列の左から伸びて中身を隠す。
+  seal 列A
+  seal 列B
+
+step 開ける
+  say open で封が消えて中身が戻る。開けなかった列は隠れたまま。
+  open 列B

@@ -1,0 +1,17 @@
+lineup Pick
+
+box planA as Plan A [note: 5]
+box planB as Plan B [color: amber, note: 8]
+box planC as Plan C [note: 3]
+
+item one, two, three, four
+
+step Line up
+  say Each of the three lanes gets its own order.
+  line planA: one, two, three
+  line planB: two, four, one
+  line planC: three, one
+
+step Pick
+  say pick lights up the edge of a lane and fades the other lanes.
+  pick planB

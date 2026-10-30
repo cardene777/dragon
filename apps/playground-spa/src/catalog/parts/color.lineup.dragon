@@ -1,0 +1,16 @@
+lineup 色の役
+
+box 待ち
+box 選んだ列 [color: amber]
+
+item 自分 [color: amber]
+item 甲, 乙
+
+step 並べる
+  say color で、列とチップに7つの役から色を選ぶ。
+  line 待ち: 甲, 自分, 乙
+
+step 選ぶ
+  say 色を付けた列は、選んだ時に縁がその色になる。役は意味で選び、自分の分を amber で揃える。
+  line 選んだ列: 自分, 甲
+  pick 選んだ列

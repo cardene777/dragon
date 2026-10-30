@@ -22,6 +22,9 @@ export {
   type GitBranch,
   type GitCommit,
   type LabelSide,
+  type LineupItem,
+  type LineupOrder,
+  type LineupStamp,
   type Region,
   type StatePath,
   type Step,
@@ -60,6 +63,7 @@ export type {
 } from "./layout/scene";
 export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTick, TimeWire, TimeZoom } from "./layout/time";
 export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./layout/tree";
+export type { LaneText, LineupAt, LineupLane, LineupLayout, LineupPick, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced } from "./layout/lineup";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";

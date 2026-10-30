@@ -1,0 +1,17 @@
+lineup 選ぶ
+
+box 案A [note: 5]
+box 案B [color: amber, note: 8]
+box 案C [note: 3]
+
+item 一, 二, 三, 四
+
+step 並べる
+  say 3つの列に、それぞれの並びを書く。
+  line 案A: 一, 二, 三
+  line 案B: 二, 四, 一
+  line 案C: 三, 一
+
+step 選ぶ
+  say pick で、選んだ列の縁に色が付き、ほかの列が薄くなる。
+  pick 案B

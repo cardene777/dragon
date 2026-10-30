@@ -1,0 +1,17 @@
+lineup 箱
+
+box 待ち [note: 3件]
+box 箱詰め
+
+item 甲, 乙, 丙
+
+step 並べる
+  say box の行が列になり、宣言した順に上から同じ幅で並ぶ。
+  line 待ち: 甲, 乙, 丙
+
+step 移す
+  say 段の中の note の行で、列の右上の字を書き換える。
+  line 箱詰め: 甲, 乙
+  line 待ち: 丙
+  note 待ち: 1件
+  note 箱詰め: 2件
