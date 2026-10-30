@@ -7,6 +7,9 @@
  *
  * 形を 1 つも持たない字の file を Chromium は読まない。空白の類だけを描く file には、
  * 同じ file の形のある字を 1 つ足して削る。足した字は `unicode-range` に載せないので描かれない (#3212)。
+ *
+ * 範囲の重なる字 (`Noto Sans JP` の英字は番号付きの file と `latin` の両方に入る) は、字の表で後に並ぶ 1 つの file にだけ入れる。
+ * 範囲が重なる時は後に宣言した `@font-face` が勝つので、前の file に埋めた字は描かれず、大きさだけを取っていた (#3213)。
  */
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -42,6 +45,12 @@ function ranges(list: string): [number, number][] {
 
 const hex = (code: number): string => `U+${code.toString(16).toUpperCase()}`;
 
+/** 字が範囲の一覧のどれかに入るか */
+function within(span: [number, number][], char: string): boolean {
+  const code = char.codePointAt(0) ?? -1;
+  return span.some(([from, to]) => code >= from && code <= to);
+}
+
 /** 形を持たない字 (空白の類、書式の字、制御の字) か */
 const shapeless = (char: string): boolean => /^[\s\p{Cf}\p{Cc}]$/u.test(char);
 
@@ -67,12 +76,10 @@ export async function fontFaces(chars: string[]): Promise<string> {
     PACKAGES.flatMap(({ family, name }) => {
       const base = dirname(require_.resolve(`@fontsource-variable/${name}/unicode.json`));
       const table = JSON.parse(readFileSync(join(base, "unicode.json"), "utf8")) as Record<string, string>;
-      return Object.entries(table).map(async ([key, list]) => {
-        const span = ranges(list);
-        const own = chars.filter((char) => {
-          const code = char.codePointAt(0) ?? -1;
-          return span.some(([from, to]) => code >= from && code <= to);
-        });
+      const spans = Object.entries(table).map(([key, list]) => ({ key, span: ranges(list) }));
+      return spans.map(async ({ key, span }, index) => {
+        // 後に並ぶ file の範囲にも入る字は、そちらにだけ入れる
+        const own = chars.filter((char) => within(span, char) && !spans.slice(index + 1).some((later) => within(later.span, char)));
         if (!own.length) return "";
         const filler = own.every(shapeless) ? (shapedIn(span) ?? "") : "";
         const file = join(base, "files", `${name}-${key.replace(/[[\]]/g, "")}-wght-normal.woff2`);
