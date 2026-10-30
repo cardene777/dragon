@@ -28,3 +28,9 @@
 | 編集画面で字の重ならない見本を開いた時、「読めています」だけが出て、重なりの欄も図の上の囲みも出ない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3178 |
 | 頁の側では SVG を組まない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-draws-with-package-parts`が通る | #3178 |
 | 全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3178 |
+| 書き出しの命令が、2 段目に図に描いた 2 つの字を組にした重なりを 1 件足した状態遷移図 (packages/dragon/test/fixtures/corner-note.dragon) を書き出した時、file を書き出し、標準エラーに「段 2」と文を並べた 1 行だけを出し、終わり方 0 で終える。英語を選ぶと「Step 2」と英語の文を出す | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`が通る | #3197 |
+| 編集画面が、2 段目に同じ作りの重なりを 1 件足した図を描いた時、「読めています」と並べて重なりの欄を出し、件数と、段の札と文の 1 行を並べる。英語の頁では英語の件数と札と文を並べる | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3197 |
+| 編集画面で、重なりの無い 1 段目では図の上に四角が出ず、2 段目に移ると点線の四角が出て、組にした 2 つの字が描かれた所をどちらも覆う。四角は塗らず、中の字を隠さない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-marks-overlaps-on-figure`が通る | #3197 |
+| 編集画面で重なりの欄の段の札を押すと、図が 2 段目へ移り、点線の四角が出る | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-overlap-step-jumps`が通る | #3197 |
+| 本番と同じ build で開いた編集画面は、重ならない見本で「読めています」だけを出し、重なりの欄も図の上の四角も出さない (重なりを足す包みが本番の build に入らない) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3197 |
+| 組み上がった書き出しの命令は、重ならない図を書き出す時に標準エラーに何も出さない (重なりを足す包みが組み上がった命令に入らない) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3197 |
