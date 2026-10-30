@@ -31,12 +31,14 @@ export interface Built {
 /**
  * 頁を一時の場所へ build し、配る時と同じ script で `404.html` を作る。
  * 検査の道具は `NODE_ENV` を `test` にして起きるので、そのまま build に渡すと React の開発用の版が入り、配る頁と中身も大きさも違う。
- * 配る時の build (`NODE_ENV` を持たない `vite build`) と同じ `production` で build する (#3163)
+ * 配る時の build (`NODE_ENV` を持たない `vite build`) と同じ `production` で build する (#3163)。
+ * `config` を渡すと、`vite.config.ts` の代わりにその設定で build する (字の重なりを 1 件持つ図を描く検査だけの build、#3197)
  */
-export async function buildPage(): Promise<Built> {
+export async function buildPage(config?: string): Promise<Built> {
   const dir = mkdtempSync(join(tmpdir(), "dragon-page-"));
   const vite = join(app, "node_modules/vite/bin/vite.js");
-  await run(process.execPath, [vite, "build", "--outDir", dir, "--emptyOutDir", "--logLevel", "error"], { cwd: app, env: { ...process.env, NODE_ENV: "production" } });
+  const chosen = config === undefined ? [] : ["--config", config];
+  await run(process.execPath, [vite, "build", ...chosen, "--outDir", dir, "--emptyOutDir", "--logLevel", "error"], { cwd: app, env: { ...process.env, NODE_ENV: "production" } });
   try {
     await run(process.execPath, [join(app, "scripts/copy-404.mjs"), dir], { cwd: app });
     return { dir, notFound: { ok: true, stderr: "" } };
@@ -129,9 +131,10 @@ export interface Site {
  * 頁を build して配り、画面なしの Chromium を起こす (#3030)。
  *
  * 編集画面の検査とサイトの帯と経路の検査が同じ形で頁を開けるよう、開く手順をここに 1 つだけ持つ。
+ * `config` は `buildPage` に渡す build の設定
  */
-export async function startSite(): Promise<Site> {
-  const built = await buildPage();
+export async function startSite(o: { config?: string } = {}): Promise<Site> {
+  const built = await buildPage(o.config);
   const server = await servePage(built.dir);
   const browser: Browser = await chromium.launch();
   const contexts: BrowserContext[] = [];
