@@ -1,4 +1,4 @@
-// The states of online order #1042, from the order to delivery, then a return and a refund that close it (#3163).
+// The states of online order #1042, from the order to delivery, then a return and a refund that close it.
 // The lines before the first step are the cancel path, which the order could take but does not this time.
 state States of an online order from delivery to refund
 

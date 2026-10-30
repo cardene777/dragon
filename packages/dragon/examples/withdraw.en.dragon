@@ -1,4 +1,4 @@
-// The 7-day wait when withdrawing assets from L2 to L1 (#3165).
+// The 7-day wait when withdrawing assets from L2 to L1.
 // One unit is one day, and the axis shows 10 days. A box marks the 7 days in which anyone can dispute the state sent to L1,
 // and the needle moves through those 7 days before the assets can be received on L1. A diagram of the axis and points only, with no boxes or zoom band.
 time The 7-day wait to withdraw from L2 to L1

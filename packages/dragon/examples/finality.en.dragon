@@ -1,4 +1,4 @@
-// How an Ethereum block becomes final and cannot be reverted (#3165).
+// How an Ethereum block becomes final and cannot be reverted.
 // The top band zooms into the first 4 slots, and the bottom is a timeline of 3 epochs (96 slots), one thin bar per slot (12 seconds).
 // The whole view stays still while the needle moves, and the strip follows the checkpoints from proposed to justified to finalized.
 time How an Ethereum block becomes final
