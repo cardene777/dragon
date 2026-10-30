@@ -13,10 +13,11 @@
  * 枝分かれの図 (#3164) は、枝の `branch` の行を箱より前に書き、札を動かす線の運ぶ物が送る側の名前の札なら書かない。
  * 時間軸の図 (#3165) は、目盛りと区切りと印の列と節目と拡大の範囲の行を箱より前に書き、物差しの欄の後ろに `[meter: <割合>]` を書く。
  * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
+ * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で書く。
  * 段の出典 (#3199) は `say` と `code` の後ろ、段の中で起きることより前に、JSON の並びのまま 1 つずつ `source` の行に書く。
  */
 import type { Box, Diagram, DiagramEvent, Region, TimeSpec } from "./schema";
-import { AT, COPY, FROM, MERGE, NOW, ON } from "./words";
+import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 
 const quote = (text: string): string => `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 /** 行の終わりか `[` の前に置く名前と文 */
@@ -89,6 +90,10 @@ function event(e: DiagramEvent, kind: Diagram["kind"]): string {
       ])}`;
     case "branch":
       return `${e.branch} ${FROM} ${e.from}`;
+    case "leaf":
+      return `leaf ${e.id}${attrs([["hash", e.hash]])}`;
+    case "node":
+      return `node ${e.id} ${OF} ${e.children.join(", ")}${attrs([["hash", e.hash]])}`;
   }
 }
 

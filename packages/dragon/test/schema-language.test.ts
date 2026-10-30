@@ -155,7 +155,7 @@ describe("原本の JSON の誤りの文の言葉", () => {
     const schema = JSON.parse(readFileSync(join(process.cwd(), "packages/dragon/src/schemas/diagram.schema.json"), "utf8")) as Json;
     const keywords = new Set<string>();
     /** 誤りを出さない欄と、中の schema を辿るだけの欄 */
-    const NOT_JUDGED = new Set(["title", "description", "$ref", "$schema", "$id", "properties", "definitions", "items", "if", "then", "else"]);
+    const NOT_JUDGED = new Set(["title", "description", "$ref", "$schema", "$id", "properties", "definitions", "items", "if", "then", "else", "allOf"]);
     const walk = (node: Json): void => {
       if (node === null || typeof node !== "object" || Array.isArray(node)) return;
       for (const [key, value] of Object.entries(node)) {

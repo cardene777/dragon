@@ -265,16 +265,17 @@ describe("木の図の記法 (#3233)", () => {
 
   it("notation-rejects-misused-tree-lines", () => {
     const parse = api("parseNotation");
-    const head = ["tree 小さな木", "box 記録"];
+    // 誤りの文は書き手の名札をそのまま引くので、英語の文を確かめるこの検査の箱の名札は英字にする
+    const head = ["tree 小さな木", "box ledger"];
     const step = ["step 組む", "  say 組む。", "  leaf x1 [hash: 3fa0]", "  leaf x2"];
     // 記法の行と、誤りの行 (0 から数える) と、その行の中の誤りを指す語の位置 (0 から数える)。
     // 木の形の誤り (親を持たない箱が 2 つ以上残る) は全ての行を読んだ後に確かめるので、行の誤りが無い時だけ出る
     const at =(line: string, token: string, from = 0): number => line.indexOf(token, from);
     const cases: [string, string[], number, number][] = [
       ["まだ書いていない名札を子にした node", [...head, ...step, "  node y of x1, zz"], 6, at("  node y of x1, zz", "zz")],
-      ["木の箱でない箱を子にした node", [...head, ...step, "  node y of x1, 記録"], 6, at("  node y of x1, 記録", "記録")],
+      ["木の箱でない箱を子にした node", [...head, ...step, "  node y of x1, ledger"], 6, at("  node y of x1, ledger", "ledger")],
       ["既にある葉と同じ名札の leaf", [...head, ...step, "  leaf x1"], 6, at("  leaf x1", "x1")],
-      ["既にある箱と同じ名札の leaf", [...head, ...step, "  leaf 記録"], 6, at("  leaf 記録", "記録")],
+      ["既にある箱と同じ名札の leaf", [...head, ...step, "  leaf ledger"], 6, at("  leaf ledger", "ledger")],
       ["2 つの親の子になる箱", [...head, ...step, "  node y1 of x1, x2", "  node y2 of x2"], 7, at("  node y2 of x2", "x2", 10)],
       ["最初の step より前の leaf", ["tree 小さな木", "leaf x1", ...step], 1, 0],
       ["親を持たない箱が 2 つ以上残る木", [...head, ...step], 5, at("  leaf x2", "x2")],
@@ -299,7 +300,7 @@ describe("木の図の記法 (#3233)", () => {
       ["構成図の node の行", ["architecture 木の行", "box a", "box b", "step 送る", "  say 送る。", "  a -> b", "  node y of a"], 7],
       ["状態遷移図の leaf の行", ["state 木の行", "box a", "step 送る", "  say 送る。", "  start -> a", "  leaf x1"], 6],
       ["枝分かれの図の leaf の行", ["git 木の行", "branch main", "step 積む", "  say 積む。", "  commit A on main", "  leaf x1"], 6],
-      ["時間軸の図の node の行", ["time 木の行", "scale slot 12s 4", "step 進む", "  say 進む。", "  now -> 1", "  node y of a"], 6],
+      ["時間軸の図の node の行", ["time 木の行", "scale slot 12s 4", "row a", "step 進む", "  say 進む。", "  now -> 1", "  node y of a"], 7],
     ];
     for (const [name, lines, line] of cases) {
       for (const lang of ["ja", "en"] as const) {
@@ -411,7 +412,7 @@ describe("木の図の並べ方 (#3233)", () => {
     expect(svg, "根の箱の印 (data-tree-root) が無い").toContain('data-tree-root="top"');
     for (const n of layout.nodes) if (!n.root) expect(top.w * top.h, `根の箱が ${n.id} の箱より大きくない`).toBeGreaterThan(n.w * n.h);
     // 札は最初の段から見え、段 2 で書いた葉 c の箱はまだ見えない
-    const motion = motionFrom(rendered as unknown as Rendered);
+    const motion = motionFrom(rendered);
     const first = timeline.stills[0] ?? 0;
     expect(seen(motion, '[data-tree-card="c"]', first), "段 1 の止め絵で葉 c の札が見えない").toBeGreaterThan(0.9);
     expect(seen(motion, '[data-tree-node="c"]', first), "段 1 の止め絵で段 2 の葉 c の箱が見える").toBeLessThan(0.1);
@@ -424,7 +425,7 @@ describe("木の図の並べ方 (#3233)", () => {
     ] as const) {
       const rendered = render(diagram);
       const { layout, timeline } = rendered;
-      const motion = motionFrom(rendered as unknown as Rendered);
+      const motion = motionFrom(rendered);
       const source = diagram as unknown as Source;
       for (const type of ["leaf", "node"] as const) {
         for (const e of treeEventsOf(source, type)) expect(nodeOf(layout, e.id ?? "").step, `${name} の ${e.id} を書いた段`).toBe(e.step);
@@ -455,7 +456,7 @@ describe("木の図の描き方 (#3233)", () => {
       const rendered = render(diagram);
       const { layout, svg } = rendered;
       const source = diagram as unknown as Source;
-      const motion = motionFrom(rendered as unknown as Rendered);
+      const motion = motionFrom(rendered);
       let along = 0;
       source.steps.forEach((step, s) => {
         step.events.forEach((e, k) => {
@@ -487,7 +488,7 @@ describe("木の図の描き方 (#3233)", () => {
 
   it("tree-proof-fades-untouched-boxes", () => {
     const rendered = render(exampleJson("merkle.json"));
-    const motion = motionFrom(rendered as unknown as Rendered);
+    const motion = motionFrom(rendered);
     const { stills } = rendered.timeline;
     const last = stills[7] ?? 0;
     for (const id of PROOF_BOXES) expect(seen(motion, `[data-tree-node="${id}"]`, last), `段 8 の止め絵で証明に使った ${id} の箱が濃くない`).toBeGreaterThan(0.9);
@@ -539,7 +540,7 @@ describe("木の図の描き方 (#3233)", () => {
   it("tree-follows-when-narrow", () => {
     const narrow = 390;
     const rendered = render(exampleJson("merkle.json"));
-    const chosen = draw("chooseView")(rendered as unknown as Rendered, narrow);
+    const chosen = draw("chooseView")(rendered, narrow);
     expect(chosen.textPx, `${narrow}px の枠で全体を収めた字の大きさ`).toBeLessThan(10.5);
     expect(chosen.mode, `${narrow}px の枠の Merkle の図の見せ方`).toBe("follow");
     const placed = place("merkle", "merkle.json", narrow);
