@@ -1,0 +1,15 @@
+lineup Chips
+
+box waiting as Waiting
+
+item a, b [color: amber]
+item c
+item done1, done2 [color: green, label: ✓]
+
+step Line up
+  say item declares the chips the lanes hold, before the first step. color fills a chip.
+  line waiting: a, b, c
+
+step Add labels
+  say label puts up to 4 characters on a chip.
+  line waiting: a, b, c, done1, done2

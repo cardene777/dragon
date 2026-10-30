@@ -75,8 +75,8 @@ async function partsTable(): Promise<readonly PartRow[]> {
   return parts ?? [];
 }
 
-/** どの図でも使える部品か。図の種類を全部持つ */
-const isCommon = (part: PartRow): boolean => KINDS.every((kind) => part.kinds.includes(kind));
+/** どの図でも使える部品か。図の種類を 2 つ以上持つ。列の図は線を持たないので、線の部品は列の図を除いた図の種類を持つ (#3239) */
+const isCommon = (part: PartRow): boolean => part.kinds.length > 1;
 
 /** 部品の図の記法の file の置き場 */
 const PARTS_DIR = join(app, "src/catalog/parts");
@@ -353,20 +353,20 @@ describe("カタログの部品の頁 (#3166)", () => {
         await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
         // 同じ部品を、図の種類ごとに 1 つずつ描いて並べる
         await expect
-          .poll(async () => (await figuresOf(page)).map((f) => f.kind), { ...WAIT, message: `${part.id} の頁に図の種類ごとの図が並ばない` })
-          .toEqual([...KINDS]);
+          .poll(async () => (await figuresOf(page)).map((f) => f.kind), { ...WAIT, message: `${part.id} の頁に、部品を使える図の種類ごとの図が並ばない` })
+          .toEqual([...part.kinds]);
         await expect
           .poll(async () => (await figuresOf(page)).map((f) => ({ kind: f.kind, svgs: f.svgs, names: f.names, source: f.source })), {
             ...WAIT,
             message: `${part.id} の頁の図が、部品の記法の file の図と記法で描かれない`,
           })
           .toEqual(
-            KINDS.map((kind) => {
+            part.kinds.map((kind) => {
               const text = snippetOf(part.id, kind, "ja") ?? "";
               return { kind, svgs: 1, names: namesOf(text), source: text };
             }),
           );
-        for (const kind of KINDS) await expectStepsAdvance(page, `${catalogSel("part")} ${figureSel(kind)}`, `${part.id} の ${kind} の図`);
+        for (const kind of part.kinds) await expectStepsAdvance(page, `${catalogSel("part")} ${figureSel(kind)}`, `${part.id} の ${kind} の図`);
         await site.closeContexts();
       }
     },

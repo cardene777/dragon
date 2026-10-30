@@ -1,0 +1,17 @@
+lineup 段 [view: fixed]
+
+box 待ち
+
+item 甲, 乙, 丙
+
+step 並べる
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code send 甲 乙 丙
+  line 待ち: 甲, 乙, 丙
+
+step 並べ替える
+  say 段は1つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  code sort
+  line 待ち: 丙, 乙, 甲

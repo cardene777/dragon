@@ -1,0 +1,16 @@
+lineup Color
+
+box waiting as Waiting
+box chosen as Chosen [color: amber]
+
+item mine [color: amber]
+item a, b
+
+step Line up
+  say color picks one of seven roles for a lane or a chip.
+  line waiting: a, mine, b
+
+step Pick
+  say A lane with a color lights up its edge in that color when picked. Pick roles by meaning, such as amber for your own chip.
+  line chosen: mine, a
+  pick chosen

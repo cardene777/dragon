@@ -14,6 +14,7 @@
  * 段の中の書いた順に依らず、針がその目盛りに入った時に引き、線を引き終えるまで針は次の目盛りへ進まない。
  * 針を進める出来事より後に書いた出来事は、針が止まってから起こす。物差しの欄は、針が進む段では針の進みに比例して満ち、
  * 区切りの境から進む時は 0 から満ち直す。針が進まない段では値を書いた時に変わる。
+ * 列の図 (#3239) の列の並びを書く出来事と、封と札の出来事も線と同じ表に載せ、並びは滑り終えるまで、封は覆い終えるまでを引く間にする。
  * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
  * 枝分かれの図を描く部品が札ごとに動かす。線に書いた運ぶ物 (`tag` と `carry`) だけを表に載せる。
  */
@@ -102,6 +103,9 @@ interface Planned {
 
 type EdgeEvent = Extract<Diagram["steps"][number]["events"][number], { type: "edge" }>;
 
+/** 列の図の出来事の長さ */
+const LINEUP_LENGTH = { line: MOTION.lineup.slide, seal: MOTION.lineup.seal, open: MOTION.fade, pick: MOTION.fade, stamp: MOTION.popFade } as const;
+
 /** 時間軸の図の段を組む時に渡す、段の始まりの針の位置と、目盛り 1 つを進む秒数 */
 interface Needle {
   from: number;
@@ -153,6 +157,16 @@ function plan(step: Diagram["steps"][number], needle?: Needle): Planned {
       return;
     }
     if (event.type === "now" || (needle && pulled(event))) return;
+    if (event.type === "line" || event.type === "seal" || event.type === "open" || event.type === "pick" || event.type === "stamp") {
+      const a = cursor;
+      const b = a + LINEUP_LENGTH[event.type];
+      out.edges.push({ event: e, a, b, carries: false, coin: false, named: false });
+      cursor = a + MOTION.lineup.stagger;
+      arrived = b;
+      changes = 0;
+      out.busy = Math.max(out.busy, b);
+      return;
+    }
     // 枝分かれの図の commit を積む出来事と枝を切る出来事と、木の図の葉と親を出す出来事は、親から引く線と同じ間で引く
     if (event.type === "commit" || event.type === "branch" || event.type === "leaf" || event.type === "node") {
       const a = cursor;

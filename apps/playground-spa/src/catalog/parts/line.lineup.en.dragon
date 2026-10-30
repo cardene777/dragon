@@ -1,0 +1,19 @@
+lineup Lane order
+
+box waiting as Waiting
+box packed as Packed
+
+item a [color: amber]
+item b, c, d
+
+step Line up
+  say A line line inside a step lines up the chips of a lane in the order written.
+  line waiting: a, b, c, d
+
+step Reorder
+  say A chip that was in another lane slides over from its seat. If that lane is not rewritten, the chip stays there too.
+  line packed: c, a, b
+
+step Remove
+  say A chip left out of a lane disappears. A lane holds up to 12 chips.
+  line waiting: d

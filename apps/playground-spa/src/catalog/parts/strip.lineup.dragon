@@ -1,0 +1,17 @@
+lineup 中身の帯と欄
+
+strip 状態: 件数, 先頭
+
+box 待ち
+
+item 甲, 乙, 丙
+
+step 並べる
+  say strip で図の下に中身の帯と欄を置き、set で欄に値を入れる。
+  line 待ち: 甲, 乙, 丙
+  set 件数: 3
+
+step 並べ替える
+  say set の tag で、欄の値に札を添える。
+  line 待ち: 丙, 甲, 乙
+  set 先頭: 丙 [tag: 替わった]

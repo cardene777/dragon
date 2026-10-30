@@ -25,9 +25,11 @@ export interface FieldMessages {
   enum: (values: readonly string[]) => string;
   type: (type: string) => string;
   minLength: (limit: number) => string;
+  maxLength: (limit: number) => string;
   /** 書けない字を読めない形の決まりでは `undefined` */
   pattern: (forbidden: Forbidden | undefined) => string;
   minItems: (limit: number) => string;
+  maxItems: (limit: number) => string;
   minimum: (limit: number) => string;
   const: (value: string) => string;
   /** どの欄の組み合わせか判らない場所では `undefined` */
@@ -80,9 +82,11 @@ const ja: FieldMessages = {
   enum: (values) => `${values.join(" / ")} のどれかにする`,
   type: (type) => TYPES_JA[type] ?? `${type} にする`,
   minLength: (limit) => `${limit} 字以上書く`,
+  maxLength: (limit) => `${limit} 字までにする`,
   pattern: (forbidden) =>
     forbidden ? `${forbidden.space ? "空白と " : ""}${forbidden.chars.join(" ")} は使えない` : "使えない字が入っている",
   minItems: (limit) => `${limit} つ以上書く`,
+  maxItems: (limit) => `${limit} つまでにする`,
   minimum: (limit) => `${limit} 以上にする`,
   const: (value) => `${value} にする`,
   not: (allowed) => (allowed ? `${allowed.field} の欄は kind が ${allowed.kind} の時だけ書ける` : "この欄の組み合わせは書けない"),
@@ -105,11 +109,13 @@ const en: FieldMessages = {
   enum: (values) => `Use one of ${values.join(" / ")}`,
   type: (type) => TYPES_EN[type] ?? `Use ${type}`,
   minLength: (limit) => `Write at least ${plural(limit, "character")}`,
+  maxLength: (limit) => `Write at most ${plural(limit, "character")}`,
   pattern: (forbidden) =>
     forbidden
       ? `Cannot contain ${forbidden.space ? "spaces or " : ""}${forbidden.chars.join(" ")}`
       : "Contains characters that are not allowed",
   minItems: (limit) => `Write at least ${plural(limit, "item")}`,
+  maxItems: (limit) => `Write at most ${plural(limit, "item")}`,
   minimum: (limit) => `Use ${limit} or greater`,
   const: (value) => `Use ${value}`,
   not: (allowed) => (allowed ? `The ${allowed.field} field is allowed only when kind is ${allowed.kind}` : "This combination of fields is not allowed"),

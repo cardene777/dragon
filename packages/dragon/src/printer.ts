@@ -14,9 +14,10 @@
  * 時間軸の図 (#3165) は、目盛りと区切りと印の列と節目と拡大の範囲の行を箱より前に書き、物差しの欄の後ろに `[meter: <割合>]` を書く。
  * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
  * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で書く。
+ * 列の図 (#3239) のチップは箱の後ろに `item` の行で書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
  * 段の出典 (#3199) は `say` と `code` の後ろ、段の中で起きることより前に、JSON の並びのまま 1 つずつ `source` の行に書く。
  */
-import type { Box, Diagram, DiagramEvent, Region, TimeSpec } from "./schema";
+import type { Box, Diagram, DiagramEvent, LineupItem, Region, TimeSpec } from "./schema";
 import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 
 const quote = (text: string): string => `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -94,7 +95,34 @@ function event(e: DiagramEvent, kind: Diagram["kind"]): string {
       return `leaf ${e.id}${attrs([["hash", e.hash]])}`;
     case "node":
       return `node ${e.id} ${OF} ${e.children.join(", ")}${attrs([["hash", e.hash]])}`;
+    case "line":
+      return `line ${e.box}: ${e.items.join(", ")}`;
+    case "seal":
+    case "open":
+    case "pick":
+      return `${e.type} ${e.box}`;
+    case "stamp":
+      return `stamp ${e.box}: ${name(e.text)}`;
   }
+}
+
+/** 列の図のチップの宣言の行。色が同じで字を持たないチップが続く所は 1 行に並べる */
+function itemLines(items: LineupItem[]): string {
+  const rows: LineupItem[][] = [];
+  for (const item of items) {
+    const row = rows.at(-1);
+    if (row && item.label === undefined && row[0]?.label === undefined && row[0]?.color === item.color) row.push(item);
+    else rows.push([item]);
+  }
+  return rows
+    .map(
+      (row) =>
+        `item ${row.map((item) => item.id).join(", ")}${attrs([
+          ["color", row[0]?.color],
+          ["label", row[0]?.label],
+        ])}`,
+    )
+    .join("\n");
 }
 
 /** 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲の宣言の塊 */
@@ -155,6 +183,7 @@ export function printNotation(diagram: Diagram): string {
     ...(branches.length > 0 ? [branches.join("\n")] : []),
     ...(diagram.time ? timeBlocks(diagram.time) : []),
     ...declarations(diagram),
+    ...(diagram.lineup && diagram.lineup.items.length > 0 ? [itemLines(diagram.lineup.items)] : []),
   ];
   if (diagram.strip) {
     const meters = new Map((diagram.strip.meters ?? []).map((m) => [m.field, m.line]));

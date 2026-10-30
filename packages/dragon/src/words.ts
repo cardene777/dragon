@@ -16,7 +16,7 @@ export type NotationLang = "ja" | "en";
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */
-export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true, time: true, tree: true });
+export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true, time: true, tree: true, lineup: true });
 
 /**
  * 状態遷移図の始まりと終わりの印の名前 (#3163)。線の送る側に `start`、受ける側に `finish` を書き、
@@ -42,10 +42,22 @@ export const NOW = "now";
 export const TREE_HEADS = ["leaf", "node"] as const;
 
 /**
+ * 列の図 (`lineup`、#3239) だけが書ける行の頭の語。最初の段より前にチップを宣言し (`item`)、
+ * 段の中で列の並びを書き (`line`)、封をして開け (`seal` と `open`)、列を選び (`pick`)、札を押す (`stamp`)
+ */
+export const LINEUP_HEADS = ["item", "line", "seal", "open", "pick", "stamp"] as const;
+/** 1 列に並べられるチップの上限。図の幅はこの枚数の列の幅で決まる */
+export const LANE_MOST = 12;
+/** チップの字の上限 */
+export const LABEL_MOST = 4;
+/** 列の図の `box` の行に書ける属性の鍵。列は絵柄と飛び先を持たない */
+export const LANE_ATTRS = ["note", "color"] as const;
+
+/**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
  * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)。`source` は段の出典 (#3199)
  */
-export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "source", "act", "note", "set", "branch", "commit", ...TIME_HEADS, ...TREE_HEADS] as const;
+export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "source", "act", "note", "set", "branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS] as const;
 type Head = (typeof HEADS)[number];
 
 /** 箱と区画の名札の後ろに、見せる名前を続ける語 (`box <名札> as <名前>`) */
@@ -86,6 +98,7 @@ export const ATTRS = {
   commit: ["hash", "note"],
   leaf: ["hash"],
   node: ["hash"],
+  item: ["color", "label"],
   scale: ["from"],
   period: ["from"],
   row: ["color", "empty"],

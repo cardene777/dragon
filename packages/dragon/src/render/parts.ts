@@ -87,6 +87,8 @@ export function arrowHead(points: Point[]): string {
 export interface Ctx {
   m: Motion;
   t: Timeline;
+  /** 図の名前。図の中の定義 (影の filter、封の縞) の名札に使う */
+  id: string;
   /** 影の filter を付ける属性 */
   sh: string;
   /** 最後の段の終わり */
@@ -138,8 +140,11 @@ export function band(region: SceneRegion, ink: Ink[]): string {
 /** 箱の下の小さな字の移り変わり。`[時刻, 字, class]` の並びで、最初は元の字。 */
 export type SubChange = [number, string, string];
 
-/** 箱の下の小さな字。基準線を `y` に置き、起きたことに合わせて書き換わる。 */
-function subLines(box: SceneBox, m: Motion, changes: SubChange[], y: number, ink?: Ink[]): string {
+/**
+ * 箱の下の小さな字。基準線を `y` に置き、起きたことに合わせて書き換わる。
+ * `right` を渡すと、箱の真ん中でなく字の右端を `right` に揃える (列の図の列の右上の字、#3239)
+ */
+export function subLines(box: SceneBox, m: Motion, changes: SubChange[], y: number, ink?: Ink[], right?: number): string {
   const seq: SubChange[] = [[0, box.sub ?? "", "dg-ss"], ...changes];
   return seq
     .map(([t, text, cls], k) => {
@@ -147,7 +152,9 @@ function subLines(box: SceneBox, m: Motion, changes: SubChange[], y: number, ink
       const anim = k === 0 ? (next === undefined ? "" : m.until(next - MOTION.untilFade)) : next === undefined ? m.rise(t) : m.rise(t, next - MOTION.untilFade);
       if (text === "") return "";
       const shown: Shown[] = [[k === 0 ? 0 : t, next === undefined ? Number.POSITIVE_INFINITY : next - MOTION.untilFade]];
-      return `<g${anim ? ` class="dg-a" style="${anim}"` : ""}>${write(ink, cls, box.cx, y, text, cls === "dg-ss" ? TYPE.boxSub : TYPE.boxSubStrong, shown, "middle")}</g>`;
+      const style = cls === "dg-ss" ? TYPE.boxSub : TYPE.boxSubStrong;
+      const drawn = right === undefined ? write(ink, cls, box.cx, y, text, style, shown, "middle") : write(ink, cls, right - textWidth(text, style), y, text, style, shown);
+      return `<g${anim ? ` class="dg-a" style="${anim}"` : ""}>${drawn}</g>`;
     })
     .join("");
 }

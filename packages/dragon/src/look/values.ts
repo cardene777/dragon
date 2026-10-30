@@ -124,6 +124,9 @@ export const TYPE = {
   rootHash: text(15, 700, "mono"),
   rootName: text(11, 700),
   treeCard: text(11.5, 650),
+  /** 列の図 (#3239) の、チップの字と札の字 */
+  chip: text(10.5, 700, "mono"),
+  stamp: text(11, 700),
   /**
    * 時間軸の図 (#3165)。拡大の帯の列の上の字、印の列の名前、時刻の字、区切りの名前と目盛りの番号の範囲、
    * 節目の名札と状態、範囲の括弧の字、空きの枠の字、物差しの線の字。和文を含む字は同じ大きさと太さの和文の字で描く
@@ -249,6 +252,26 @@ export const LOOK = {
     rootColor: "green",
   },
   /**
+   * 列の図 (#3239)。step 2 で本人が選んだ見本の「列の図」の形で、1 列 12 枚の図の幅が携帯の幅で全体を見せられる 400 に収まる寸法にする。
+   * 列は左右の余白 `padX`、高さ `h`、角の丸み `radius`。列の名前と右上の字の基準線は列の上端から `textY`、チップの上端は列の上端から `trackY`、
+   * 名前と右上の字の間の下限は `textGap`、選ばなかった列の濃さは `faint`。
+   * `chip` はチップの幅の下限 `w`、高さ `h`、隣のチップとの間 `gap`、角の丸み `radius`、字の左右の余白 `padX`。字が幅を超える図は全てのチップの幅を広げる。
+   * `seal` は封で、チップの並びの外へ `over` 広げ、角の丸み `radius`、縞の幅 `stripe`。
+   * `stamp` は札で、高さ `h`、字の左右の余白 `padX`、角の丸み `radius`、傾き `tilt`、色 `color`
+   */
+  lineup: {
+    padX: 12,
+    h: 61,
+    radius: 10,
+    textY: 20,
+    trackY: 33,
+    textGap: 10,
+    faint: 0.35,
+    chip: { w: 25, h: 18, gap: 4, radius: 4, padX: 3 },
+    seal: { over: 3, radius: 5, stripe: 7 },
+    stamp: { h: 22, padX: 8, radius: 5, tilt: -4, color: "green" },
+  },
+  /**
    * 時間軸の図 (#3165)。見本帳の試作 (`scenes/finality.js`) の寸法を写す。
    * 図の幅は `width` で、時間軸は左の `axisX` から右の余白 `right` の手前まで。印の列の名前が長い時は、名前の右に `gutterGap` を空けて軸を右へ寄せる。
    * 拡大の帯は列ごとに、上端から `head` に列の上の字の基準線を、`boxTop` に最初の箱の上端を置き、箱を `boxGap` ずつ空けて縦に並べ、
@@ -355,6 +378,7 @@ export const LOOK = {
     tree: 1.5,
     treeTrail: 2.6,
     treeCon: 1.3,
+    stamp: 2,
   },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
   mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },
@@ -369,8 +393,8 @@ export const LOOK = {
    */
   follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8, headRoom: 10, head: { pad: 8, h: 40, nameY: 17, subY: 31 } },
   /** 色を混ぜる割合 (%) */
-  /** `time` から始まる値は時間軸の図 (#3165) の、区切りの地、範囲の囲みの地、空きの枠の地、拡大の点線の濃さ */
-  mix: { slot: 45, icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72, timeShade: 3.5, timeSpan: 6, timeEmpty: 8, timeGuide: 50 },
+  /** `time` から始まる値は時間軸の図 (#3165) の、区切りの地、範囲の囲みの地、空きの枠の地、拡大の点線の濃さ。`chip` と `seal` から始まる値は列の図 (#3239) の、色を持たないチップの地と封の縞の濃さ */
+  mix: { slot: 45, icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72, timeShade: 3.5, timeSpan: 6, timeEmpty: 8, timeGuide: 50, chipPlain: 34, sealDark: 60, sealLight: 34 },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */
   baseline: { label: 3.8, badge: 3.5, carrier: 3.7, stripTitle: 4.5, tag: 3.6, action: 3.8, mark: 4 },
   /** 浮いて出る物が下から上がる長さと、弾んで出る物の始まりの大きさ */
@@ -424,6 +448,11 @@ export const MOTION = {
    * `after` は針が止まってから次の出来事を起こすまで、`reset` は区切りが替わって物差しが 0 に戻る長さ
    */
   time: { axis: 11.5, unitMin: 0.12, unitMax: 0.4, wait: 0.15, after: 0.15, reset: 0.05 },
+  /**
+   * 列の図 (#3239)。`slide` はチップが滑る長さ、`seal` は封が列を覆う長さ、`stagger` は同じ段の出来事を起こす間、
+   * `cut` はチップと封が一瞬で入れ替わる長さ
+   */
+  lineup: { slide: 0.7, seal: 0.6, stagger: 0.2, cut: 0.01 },
 } as const;
 
 /** 見せ方を決める字の大きさ。全体を枠に収めた時の箱の名前がこれを下回ると寄って追う。 */

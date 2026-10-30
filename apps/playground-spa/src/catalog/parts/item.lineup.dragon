@@ -1,0 +1,15 @@
+lineup チップ
+
+box 待ち
+
+item 甲, 乙 [color: amber]
+item 丙
+item 済1, 済2 [color: green, label: ✓]
+
+step 並べる
+  say item で、列に並べるチップを最初の step より前に宣言する。color で色を付ける。
+  line 待ち: 甲, 乙, 丙
+
+step 字を載せる
+  say label で、チップに4字までの字を載せる。
+  line 待ち: 甲, 乙, 丙, 済1, 済2

@@ -1,0 +1,16 @@
+lineup 小さな字
+
+box 入札A [note: 0 ETH]
+box 入札B [note: 0 ETH]
+
+item 一, 二, 三
+
+step 並べる
+  say note で、列の右上に小さな字を添える。
+  line 入札A: 一, 二
+  line 入札B: 三, 一
+
+step 書き換える
+  say 段の中の note の行で、その段から列の右上の字を書き換える。
+  note 入札A: 0.05 ETH
+  note 入札B: 0.12 ETH
