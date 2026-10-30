@@ -6,6 +6,7 @@
  * 木の線を走る運ぶ物は着いた所で消え、通った木の線を運ぶ物の色で最後まで残す (`data-tree-trail`)。
  * 木の線を運ぶ物が初めて通った段から後は、それまでに運ぶ物を送るか受けた木の箱だけを濃く出し、ほかの木の箱と札と木の線を薄く出す。
  * 線の両端になった木の箱は、その段の間だけ縁に色を付ける。
+ * 木の箱が現れる時刻 (`appear`) を返し、木の線を走らない線の点線はその時刻から出す (#3240)。
  */
 import type { TreeLayout } from "../layout/tree";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
@@ -17,7 +18,7 @@ import { activeKf, arrowHead, type Ctx, cs, esc, glyph, pathOf, write } from "./
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 
-export function drawTree(layout: TreeLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx): { links: string; trails: string; nodes: string } {
+export function drawTree(layout: TreeLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx): { links: string; trails: string; nodes: string; appear: Map<string, number> } {
   const { m } = ctx;
   const T = LOOK.tree;
   const B = LOOK.box;
@@ -160,5 +161,5 @@ export function drawTree(layout: TreeLayout, diagram: Diagram, timeline: Timelin
     })
     .join("");
 
-  return { links: links + ties, trails, nodes: cards + nodes };
+  return { links: links + ties, trails, nodes: cards + nodes, appear: drawnAt };
 }

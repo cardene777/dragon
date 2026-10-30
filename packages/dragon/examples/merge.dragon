@@ -1,4 +1,4 @@
-// 直しの枝 fix と作業の枝 feature を、merge commit で main へ取り込むまで (#3164)。
+// 直しの枝 fix と作業の枝 feature を、merge commit で main へ取り込むまで。
 // 上の帯が main、その下に fix と feature。merge commit は取り込む先の先端と取り込む枝の先端の 2 つを親に持つ。
 // 取り込む先の札だけが merge commit へ進み、取り込んだ枝の札は元の commit に残る。
 git 2 本の枝を merge commit で main へ取り込む

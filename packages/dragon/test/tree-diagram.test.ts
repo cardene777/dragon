@@ -566,6 +566,26 @@ describe("木の図の描き方 (#3233)", () => {
   });
 });
 
+describe("後から現れる木の箱への線 (#3240)", () => {
+  it("tree-edge-path-waits-for-node", () => {
+    // 線の点線は色の線を引く前に道を見せる部品だが、木の図の箱は段ごとに現れる。行き先の箱が無い間に点線を出すと、空中で止まった矢印になる
+    const rendered = render(exampleJson("merkle.json"));
+    const { layout, timeline } = rendered;
+    const motion = motionFrom(rendered);
+    // Merkle の見本で木の線を走らない線は、ブロックの頭から根への 1 本だけ
+    expect(motion.doc.querySelectorAll("path.dg-e").length, "木の線を走らない線の点線の数").toBe(1);
+    const root = nodeOf(layout, "根").step;
+    expect(timeline.stills, "止め絵の数").toHaveLength(8);
+    timeline.stills.forEach((t, s) => {
+      for (const part of ["path.dg-e", "path.dg-eh"]) {
+        const o = seen(motion, part, t);
+        if (s < root) expect(o, `段 ${s + 1} の止め絵で、まだ現れていない根への線 (${part}) が見える`).toBeLessThan(0.1);
+        else expect(o, `段 ${s + 1} の止め絵で、根への線 (${part}) が見えない`).toBeGreaterThan(0.5);
+      }
+    });
+  });
+});
+
 describe("木の図の書き出し (#3233)", () => {
   it(
     "export-writes-tree-diagram",

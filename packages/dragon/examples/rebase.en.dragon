@@ -1,4 +1,4 @@
-// Rebasing the work branch feature onto the tip of main, then fast-forwarding main into one straight history (#3164).
+// Rebasing the work branch feature onto the tip of main, then fast-forwarding main into one straight history.
 // The top lane is main and the lower lane is feature. Commits are circles, with the hash and a short note beside them.
 // The replayed C' and D' sit on the main lane and do not move branch refs. HEAD shows as a tag only while it is detached.
 git Rebase a work branch and bring it into main
