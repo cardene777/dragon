@@ -1,0 +1,17 @@
+lineup Boxes
+
+box waiting as Waiting [note: 3 items]
+box packed as Packed
+
+item a, b, c
+
+step Line up
+  say Each box line becomes a lane, stacked top to bottom in the order declared, all the same width.
+  line waiting: a, b, c
+
+step Move
+  say A note line inside a step rewrites the text at the top right of a lane.
+  line packed: a, b
+  line waiting: c
+  note waiting: 1 item
+  note packed: 2 items

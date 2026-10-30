@@ -1,0 +1,21 @@
+lineup Seal
+
+box laneA as Lane A
+box laneB as Lane B
+
+item one, two, three, five
+item four [color: amber]
+
+step Line up
+  say Two lanes get their chips.
+  line laneA: one, two, three
+  line laneB: four, five
+
+step Seal
+  say seal grows a striped seal from the left of a lane and hides its contents.
+  seal laneA
+  seal laneB
+
+step Open
+  say open removes the seal and brings the contents back. A lane left sealed stays hidden.
+  open laneB

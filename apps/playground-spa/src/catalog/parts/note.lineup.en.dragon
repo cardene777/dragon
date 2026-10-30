@@ -1,0 +1,16 @@
+lineup Small text
+
+box bidA as Bid A [note: 0 ETH]
+box bidB as Bid B [note: 0 ETH]
+
+item one, two, three
+
+step Line up
+  say note adds small text at the top right of a lane.
+  line bidA: one, two
+  line bidB: three, one
+
+step Rewrite
+  say A note line inside a step rewrites that text from that step on.
+  note bidA: 0.05 ETH
+  note bidB: 0.12 ETH

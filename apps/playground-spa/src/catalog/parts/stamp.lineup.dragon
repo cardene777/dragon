@@ -1,0 +1,13 @@
+lineup 札
+
+box 申請 [color: amber]
+
+item 書類1, 書類2, 書類3
+
+step 並べる
+  say 列にチップを並べる。
+  line 申請: 書類1, 書類2, 書類3
+
+step 札を押す
+  say stamp で、列の右に傾いた札を押す。中身に触れずに起きたことを見せる。
+  stamp 申請: 承認済み

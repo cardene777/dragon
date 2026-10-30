@@ -1,0 +1,13 @@
+lineup Stamp
+
+box request as Request [color: amber]
+
+item doc1, doc2, doc3
+
+step Line up
+  say A lane gets its chips.
+  line request: doc1, doc2, doc3
+
+step Stamp
+  say stamp lands a tilted stamp on the right of a lane. It shows what happens without touching the contents.
+  stamp request: Approved

@@ -5,7 +5,7 @@
 - dragon は、文字で書いて動く SVG の図を描く道具である (`README.md`)。
 - 書いた図は、段ごとに線が光り、点が進む動きを持つ (`README.md`、#2982)。
 - 古い記法と描画は #2983 で消し、作り直した記法の読み書き (`parser.ts`、`printer.ts`)、描画 (`render/`)、再生 (`player.ts`)、書き出し (`export/`) を `packages/dragon/src` に持つ (#2982)。
-- 描ける図の種類は時系列図 (`sequence`) と構成図 (`architecture`) と状態遷移図 (`state`、#3163) と枝分かれの図 (`git`、#3164) と時間軸の図 (`time`、#3165) と木の図 (`tree`、#3233) の 6 つ (`packages/dragon/src/schema.ts`)。
+- 描ける図の種類は時系列図 (`sequence`) と構成図 (`architecture`) と状態遷移図 (`state`、#3163) と枝分かれの図 (`git`、#3164) と時間軸の図 (`time`、#3165) と木の図 (`tree`、#3233) と列の図 (`lineup`、#3239) の 7 つ (`packages/dragon/src/schema.ts`)。
 
 ## 利用者
 
