@@ -1,0 +1,15 @@
+tree 色の役
+
+box 記録 [color: violet]
+box 控え [color: amber]
+
+step 葉を出す
+  say color で、箱に7つの役から色を選ぶ。木の箱の色は決まっている。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+  note 記録: 葉が2つ
+
+step 組む
+  say 役は意味で選ぶ。元の記録は violet、控えは amber のように揃える。
+  node 根 of 取引1, 取引2 [hash: 7a21]
+  note 控え: 根 7a21

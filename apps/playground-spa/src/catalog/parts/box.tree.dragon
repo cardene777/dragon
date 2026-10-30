@@ -1,0 +1,14 @@
+tree 箱
+
+box 記録 [note: まだ無い]
+
+step 葉を出す
+  say box の行で、木の右に物を1つ置く。木の外で変わる物に使う。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+  note 記録: 葉が2つ
+
+step 組む
+  say 段の中の note の行で、箱の下の小さな字を書き換える。
+  node 根 of 取引1, 取引2 [hash: 7a21]
+  note 記録: 根 7a21

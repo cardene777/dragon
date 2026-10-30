@@ -5,6 +5,7 @@
  * `undo` (戻る矢印) と `yen` (円の印) は、注文の試作 (`docs/design/base/scenes/order.js`) が返品と返金に足した形 (#3171)。
  * package の入口からも出し、見本帳の部品「絵」の頁がこの表から使える絵柄の一覧を作る。1 つずつの絵は `iconSvg` が描く (#3172)。
  * `flag` (旗) は、時間軸の図の節目の丸に描く形 (#3165)。ブロックの確定の試作 (`docs/design/base/scenes/finality.js`) が持っていた。
+ * `tree` (親子に分かれる木) は、木の図の根の箱に描く形 (#3233)。step 2 で本人が選んだ試作が持っていた。
  */
 export const ICONS: Readonly<Record<string, string>> = {
   app: "M -9 -7 h18 a2 2 0 0 1 2 2 v10 a2 2 0 0 1 -2 2 h-18 a2 2 0 0 1 -2 -2 v-10 a2 2 0 0 1 2 -2 z M -11 -2 h22",
@@ -43,5 +44,6 @@ export const ICONS: Readonly<Record<string, string>> = {
   layers: "M 0 -8 l9 4.5 l-9 4.5 l-9 -4.5 z M -9 2.5 l9 4.5 l9 -4.5",
   code: "M -4 -6 l-5 6 l5 6 M 4 -6 l5 6 l-5 6",
   paint: "M -8 8 c 0 -3 2 -5 4.5 -5 l 9 -9 l 3.5 3.5 l -9 9 c 0 2.5 -2 4.5 -5 4.5 z",
+  tree: "M 0 -5 v4 M -6 -1 h12 M -6 -1 v3 M 6 -1 v3 M -9 2 h6 v6 h-6 z M 3 2 h6 v6 h-6 z M -3 -10 h6 v5 h-6 z",
   block: "M -9 -7 h18 a2 2 0 0 1 2 2 v10 a2 2 0 0 1 -2 2 h-18 a2 2 0 0 1 -2 -2 v-10 a2 2 0 0 1 2 -2 z M -11 -2.5 h22 M -6 2.5 h8",
 };

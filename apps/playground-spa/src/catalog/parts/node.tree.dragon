@@ -1,0 +1,17 @@
+tree 組んだ親
+
+step 葉を出す
+  say 親を組む前に、子になる葉を書く。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+  leaf 取引3 [hash: c41d]
+  leaf 取引4 [hash: e5f8]
+
+step 親を組む
+  say node の行で、of の後ろに書いた子から親を組む。親は子の真ん中の上に置かれる。
+  node 左 of 取引1, 取引2 [hash: 7a21]
+  node 右 of 取引3, 取引4 [hash: b9e4]
+
+step 根まで組む
+  say 親を持たない箱が最後に1つ残り、それが根になる。
+  node 根 of 左, 右 [hash: e71c]

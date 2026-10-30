@@ -1,0 +1,16 @@
+tree 箱の中の処理
+
+box 記録
+
+step 葉を出す
+  say 葉を2つ出す。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+
+step 確かめる
+  say act で、箱を足さずに箱の中で起きる処理を見せる。
+  act 記録: 値を確かめる
+
+step 組む
+  say 処理の後に親を組める。
+  node 根 of 取引1, 取引2 [hash: 7a21]

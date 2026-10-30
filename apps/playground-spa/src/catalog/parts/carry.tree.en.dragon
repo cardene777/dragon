@@ -1,0 +1,23 @@
+tree What travels
+
+step Join
+  say Add two leaves and join them under a parent.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  node root of tx1, tx2 [hash: 7a21]
+
+step Envelope
+  say With nothing written, an envelope runs along the line.
+  tx1 -> root
+
+step Tag
+  say tag writes a value on a tag that runs along the line.
+  tx2 -> root [tag: 8b04]
+
+step Coin
+  say carry: coin runs a coin along the line.
+  root -> tx1 [carry: coin]
+
+step Nothing
+  say carry: none draws the line with nothing on it.
+  root -> tx2 [carry: none]

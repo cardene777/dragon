@@ -1,0 +1,60 @@
+// Prove that transaction 3 is in a Merkle tree built from 8 transactions, by climbing to the root (#3233).
+// The first 4 steps build the tree from the leaves to the root. The last 4 climb from the value of transaction 3 with the neighbouring values.
+// The root sits at the top center and the leaves below. A leaf with a value shows the value in its box and its id on the card below.
+tree Proving a transaction with a Merkle tree
+
+box header as Block header [note: root e71c, color: green, icon: box]
+
+strip Proof: Transaction, Values used, Computed root, Result
+
+step Hash each transaction
+  say Compute a value from each of the 8 transactions. These values become the leaves.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  leaf tx3 [hash: c41d]
+  leaf tx4 [hash: e5f8]
+  leaf tx5 [hash: a90c]
+  leaf tx6 [hash: d72b]
+  leaf tx7 [hash: f1e7]
+  leaf tx8 [hash: 5c3e]
+
+step Pair them up
+  say Join neighbouring values two at a time and hash again. Four parents appear.
+  node 1to2 of tx1, tx2 [hash: 7a21]
+  node 3to4 of tx3, tx4 [hash: b9e4]
+  node 5to6 of tx5, tx6 [hash: 4d0f]
+  node 7to8 of tx7, tx8 [hash: 92c6]
+
+step Pair the parents
+  say Pair the parent values the same way. Two parents remain.
+  node 1to4 of 1to2, 3to4 [hash: 1e8b]
+  node 5to8 of 5to6, 7to8 [hash: 6f53]
+
+step The root appears
+  say Joining the last two gives one root that sums up every transaction. The block header records only this root.
+  node root of 1to4, 5to8 [hash: e71c]
+
+step Hash transaction 3
+  say To check that transaction 3 is included, first compute its value c41d from the transaction itself.
+  set Transaction: tx3 [tag: c41d]
+
+step Pair with e5f8
+  say Take the neighbouring value e5f8, pair it with c41d and compute the parent value b9e4. The other transactions stay unread.
+  tx3 -> 3to4 [tag: c41d]
+  tx4 -> 3to4 [tag: e5f8]
+  set Values used: e5f8
+
+step Pair with 7a21
+  say Take the neighbouring value 7a21, pair it with b9e4 and compute the next parent value 1e8b.
+  3to4 -> 1to4 [tag: b9e4]
+  1to2 -> 1to4 [tag: 7a21]
+  set Values used: e5f8, 7a21
+
+step Pair with 6f53 and compare
+  say Pairing with 6f53 gives the root value. It matches the e71c recorded in the block header, so transaction 3 is included.
+  1to4 -> root [tag: 1e8b]
+  5to8 -> root [tag: 6f53]
+  header -> root: Compare [tag: e71c]
+  set Values used: e5f8, 7a21, 6f53
+  set Computed root: e71c
+  set Result: Match

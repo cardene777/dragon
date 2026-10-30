@@ -52,7 +52,7 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `今の記法の部品 ${parts} 個と、部品を組み合わせた ${kinds} 種類の図を並べる。部品の頁で書き方と見え方を確かめ、図の頁で見本を検索して動かし、編集画面で開ける。合計 ${samples} 件の見本。`,
         sections: {
-          parts: { title: "部品", lead: "どの図でも使う部品。部品ごとに、時系列図と構成図と状態遷移図と枝分かれの図と時間軸の図で描いた見え方を並べる。" },
+          parts: { title: "部品", lead: "どの図でも使う部品。部品ごとに、時系列図と構成図と状態遷移図と枝分かれの図と時間軸の図と木の図で描いた見え方を並べる。" },
           "kind-parts": { title: "図の種類だけの部品", lead: "1 つの図の種類でだけ使う部品。" },
           kinds: { title: "図", lead: "部品を組み合わせた図。図ごとに、使う部品の一覧と見本を載せる。" },
         },
@@ -111,6 +111,14 @@ export const TEXT = {
             name: "拡大の帯",
             desc: "時間軸の図だけの部品。zoom の行で目盛りの範囲を書くと、上の帯にその目盛りを列にして並べ、宣言した箱を列ごとに繰り返す。線は [at: <目盛り>] の列の箱どうしを結び、受ける箱を別の列から選ぶ時は into を書く。",
           },
+          leaf: {
+            name: "葉と札",
+            desc: "木の図だけの部品。段の中に leaf <名札> [hash: <値>] と書くと、その段で葉の箱が現れる。値を持つ葉は箱に値を、葉の下の札に名札を出す。札は最初の段から見える。",
+          },
+          node: {
+            name: "組んだ親",
+            desc: "木の図だけの部品。段の中に node <名札> of <子>, <子> [hash: <値>] と書くと、前に書いた葉か親を子にして親の箱が現れ、子と親を木の線で結ぶ。親子の箱どうしの線は木の線の上を走る。親を持たない箱は最後に根の 1 つだけ残す。",
+          },
         },
         kindOnly: (kind: string) => `${kind}だけ`,
         partKinds: "使える図",
@@ -129,6 +137,7 @@ export const TEXT = {
           state: "1 つの物が状態を移る様子を段ごとに追う図。注文や申請が受付から閉じるまでにどの状態を通るかを、線の上を走る札で見せる。",
           git: "git の枝に commit が積まれ、rebase や merge commit で取り込まれる様子を段ごとに追う図。枝と HEAD がどの commit を指すかを、丸の上の札で見せる。",
           time: "決まった間隔で刻む時間の上で、何がいつ起きたかを段ごとに追う図。ブロックの確定や引き出しの待ちのように、時間が長さとして効く仕組みを、進む針と塗られる印で見せる。",
+          tree: "親子で枝分かれする箱を葉から根まで組み上げ、根と葉の間を段ごとに辿る図。Merkle 木のように少しの値で全体を確かめる仕組みを、木の線の上を走る札で見せる。",
         },
         total: (n: number) => `全 ${n} 件`,
         showing: (n: number) => `${n} 件 表示中`,
@@ -192,7 +201,7 @@ export const TEXT = {
       filter: "絞り込む…",
       filterLabel: "一覧を絞り込む",
       nothing: "当てはまる物が無い",
-      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図" },
+      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: {
@@ -235,6 +244,8 @@ export const TEXT = {
         now: "針を進める。段の中で、その目盛りの終わりまで進める",
         mark: "印の色を変える。段の中で、列の目盛りの範囲を塗り直す",
         span: "範囲の括弧。shape: box で印の列を囲む",
+        leaf: "葉を出す。hash に値を書くと箱に値を、下の札に名札を出す",
+        node: "親を組む。of の後ろに子を書く。親を持たない箱は最後に根の 1 つだけ",
         action: "箱の中の処理",
         swap: "箱の下の小さな字の書き換え",
         "strip-value": "帯の値",
@@ -317,7 +328,7 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `The ${parts} parts of the current notation, and the ${kinds} diagram kinds built from them. A part page shows how to write the part and how it looks; a diagram page lets you search its examples, watch them move, and open them in the editor. ${samples} examples in total.`,
         sections: {
-          parts: { title: "Parts", lead: "Parts every diagram uses. Each part page shows the part in a sequence diagram, an architecture diagram, a state diagram, a git graph, and a time diagram." },
+          parts: { title: "Parts", lead: "Parts every diagram uses. Each part page shows the part in a sequence diagram, an architecture diagram, a state diagram, a git graph, a time diagram, and a tree diagram." },
           "kind-parts": { title: "Parts for one kind", lead: "Parts that only one diagram kind uses." },
           kinds: { title: "Diagrams", lead: "Diagrams built from the parts. Each lists the parts it uses and its examples." },
         },
@@ -382,6 +393,14 @@ export const TEXT = {
             name: "Zoom band",
             desc: "Time diagrams only. A zoom line gives a range of units, laid out as columns in the band above, with the declared boxes repeated in every column. A line joins the boxes of the column in [at: <unit>]; write into to take the receiving box from another column.",
           },
+          leaf: {
+            name: "Leaf and card",
+            desc: "Tree diagrams only. Write leaf <id> [hash: <value>] in a step and a leaf box appears in that step. A leaf with a value shows the value in the box and its id on a card below. The card is there from the first step.",
+          },
+          node: {
+            name: "Parent node",
+            desc: "Tree diagrams only. Write node <id> of <child>, <child> [hash: <value>] in a step and a parent box appears over the leaves or parents written earlier, joined to them by tree lines. A line between a parent and its child runs along the tree line. Only the root is left without a parent at the end.",
+          },
         },
         kindOnly: (kind: string) => `${kind} only`,
         partKinds: "Used in",
@@ -400,6 +419,7 @@ export const TEXT = {
           state: "Follow one object as it moves between states, step by step. A tag running along the lines shows which states an order or a request passes before it closes.",
           git: "Follow commits piling up on git branches and coming together through a rebase or a merge commit, step by step. Tags above the circles show which commit each branch and HEAD point at.",
           time: "Follow what happens when on time cut into fixed units, step by step. For mechanisms where time itself matters, like block finality or a withdrawal wait, a moving needle and filling marks show it.",
+          tree: "Build boxes that branch into parents and children from the leaves up to the root, then follow the path between root and leaf step by step. For mechanisms like a Merkle tree, where a few values prove the whole, tags running along the tree lines show it.",
         },
         total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         showing: (n: number) => `showing ${n}`,
@@ -463,7 +483,7 @@ export const TEXT = {
       filter: "Filter…",
       filterLabel: "Filter the list",
       nothing: "Nothing matches",
-      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram" },
+      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: {
@@ -506,6 +526,8 @@ export const TEXT = {
         now: "Move the needle to the end of a unit, inside a step",
         mark: "Recolor marks. Inside a step, repaint a range of a row",
         span: "Range bracket. shape: box draws a box around the rows",
+        leaf: "Add a leaf. With a hash, the box shows the value and a card below shows the id",
+        node: "Build a parent. List its children after of. Only the root is left without a parent at the end",
         action: "Action inside a box",
         swap: "Rewrite the small text under a box",
         "strip-value": "Strip value",

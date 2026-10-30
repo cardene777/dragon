@@ -1,0 +1,13 @@
+tree 飛び先
+
+box 遠く as 遠くの台帳 [link: https://github.com/cardene777/dragon]
+
+step 葉を出す
+  say link で箱に飛び先を書くと、描いた図でその箱を押して飛び先へ移れる。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+
+step 組む
+  say 飛び先は / で始まる path か、http:// か https:// で始まる URL で書く。
+  node 根 of 取引1, 取引2 [hash: 7a21]
+  note 遠く: 根を受け取った

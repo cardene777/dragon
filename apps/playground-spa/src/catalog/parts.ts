@@ -60,6 +60,9 @@ export const PARTS: readonly Part[] = [
   { id: "row", kinds: ["time"], words: ["head:row", "attr:row.color", "attr:row.empty", "head:mark", "attr:mark.color"] },
   { id: "point", kinds: ["time"], words: ["head:point", "attr:note.color"] },
   { id: "zoom", kinds: ["time"], words: ["head:zoom", "attr:edge.at", "attr:edge.into"] },
+  // 木の図 (#3233)
+  { id: "leaf", kinds: ["tree"], words: ["kind:tree", "head:leaf", "attr:leaf.hash"] },
+  { id: "node", kinds: ["tree"], words: ["head:node", "attr:node.hash"] },
 ];
 
 /** どの図でも使える部品か。図の種類を全部持つ */
@@ -148,6 +151,11 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "head:zoom": (d) => d.time?.zoom !== undefined,
   "attr:edge.at": (d) => edges(d).some((e) => e.at !== undefined),
   "attr:edge.into": (d) => edges(d).some((e) => e.into !== undefined),
+  "kind:tree": (d) => d.kind === "tree",
+  "head:leaf": (d) => events(d).some((e) => e.type === "leaf"),
+  "attr:leaf.hash": (d) => events(d).some((e) => e.type === "leaf" && e.hash !== undefined),
+  "head:node": (d) => events(d).some((e) => e.type === "node"),
+  "attr:node.hash": (d) => events(d).some((e) => e.type === "node" && e.hash !== undefined),
 };
 
 /** 見本の名前と、日本語の記法から作った図。読めない見本は外す */

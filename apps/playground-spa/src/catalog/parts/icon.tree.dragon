@@ -1,0 +1,15 @@
+tree 絵
+
+box 記録 [icon: doc]
+box 遠く as 遠くの台帳 [icon: cloud]
+
+step 葉を出す
+  say icon で箱に絵を付ける。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+  note 記録: 葉が2つ
+
+step 組む
+  say 絵は箱の名前の上に置く。
+  node 根 of 取引1, 取引2 [hash: 7a21]
+  note 遠く: 根を受け取った

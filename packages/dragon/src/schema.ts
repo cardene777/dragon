@@ -53,7 +53,9 @@ export type DiagramEvent =
   | { type: "branch"; branch: string; from: string }
   | { type: "now"; to: number }
   | TimeMarkEvent
-  | TimeSpanEvent;
+  | TimeSpanEvent
+  | TreeLeaf
+  | TreeNode;
 
 /** 時間軸の図 (#3165) の、印の列 `row` の `from` から `to` の目盛りの印の色を変える出来事 */
 export interface TimeMarkEvent {
@@ -133,6 +135,23 @@ export interface GitCommit {
   note?: string;
 }
 
+/**
+ * 木の図 (#3233) の葉を出す出来事。書いた段で葉の箱が現れる。`hash` を書くと箱に値を出し、名札を葉の下の札に出す
+ */
+export interface TreeLeaf {
+  type: "leaf";
+  id: string;
+  hash?: string;
+}
+
+/** 木の図の、1 つ以上の子から親を組む出来事。書いた段で親の箱と、子から親への木の線が現れる */
+export interface TreeNode {
+  type: "node";
+  id: string;
+  children: string[];
+  hash?: string;
+}
+
 /** 枝分かれの図の枝。上から宣言した順に帯を並べる */
 export interface GitBranch {
   id: string;
@@ -163,7 +182,7 @@ export interface Step {
 
 export interface Diagram {
   version: number;
-  kind: "sequence" | "architecture" | "state" | "git" | "time";
+  kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree";
   title: string;
   view?: ViewMode;
   regions?: Region[];
@@ -190,7 +209,7 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node"] as const satisfies readonly DiagramEvent["type"][];
 
 /**
  * その種類の図に書けない根の欄を書いた時の決まりの場所 (#3164)。根の欄に `not: {}` を置く決まり (`absent`) を指し、
@@ -217,6 +236,10 @@ const GIT_EVENTS = ["commit", "branch"] as const satisfies readonly DiagramEvent
 const TIME_EVENT = /\/events\/items\/not$/u;
 /** 時間軸の図だけが書ける出来事 */
 const TIME_EVENTS = ["now", "mark", "span"] as const satisfies readonly DiagramEvent["type"][];
+/** 木の図でない図に、木の図だけの出来事を書いた時の決まりの場所 (#3233)。出来事の `allOf` の中に `not` を置く */
+const TREE_EVENT = /\/events\/items\/allOf\/0\/not$/u;
+/** 木の図だけが書ける出来事 */
+const TREE_EVENTS = ["leaf", "node"] as const satisfies readonly DiagramEvent["type"][];
 /** 時間軸の図の目盛りの長さの決まり (`^[0-9]+(\.[0-9]+)?(<単位>|<単位>)$`)。書ける単位を読む */
 const DURATION = /^\^\[0-9\]\+\(\\\.\[0-9\]\+\)\?\(([a-z|]+)\)\$$/u;
 /** 割合の決まり。百分率の `%` を持つ */
@@ -263,6 +286,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: m.reserved(STATE_ENDS) };
       if (GIT_EVENT.test(error.schemaPath)) return { pointer: at, message: m.kindOnly(GIT_EVENTS, "git") };
       if (TIME_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TIME_EVENTS, "time") };
+      if (TREE_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TREE_EVENTS, "tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };
       const allowed = NOT_ALLOWED[last];

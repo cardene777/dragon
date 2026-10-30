@@ -51,6 +51,10 @@
  * 中身の帯の欄の名前の後ろに `[meter: <割合>]` を書くと物差しになり、`set` の値を割合 (`97%` か `2/3`) で書く。
  * 印の列と箱は同じ名札を持てる (空いた目盛りの列でその箱を空きの枠にするため)。時間軸の図では `now` を名札に使えない。
  *
+ * 木の図 (`tree`、#3233) は、段の中に `leaf <名札> [hash: <hash>]` で葉を出し、`node <名札> of <子>, <子> [hash: <hash>]` で
+ * 前に書いた葉か親を子にして親を組む。箱は書いた段で現れ、親は 1 つだけ持てる。最後の段を終えた時に親を持たない木の箱は根の 1 つだけ。
+ * 線の端には木の箱も `box` の箱も書ける。木の図に区画 (`group`) は書けず、`leaf` と `node` の行は木の図でだけ書ける。
+ *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
@@ -91,6 +95,7 @@ import {
   MERGE,
   type NotationLang,
   NOW,
+  OF,
   OLD_HEADS,
   ON,
   SIDES,
@@ -98,6 +103,7 @@ import {
   STATE_ENDS,
   TIME_EDGE_ATTRS,
   TIME_HEADS,
+  TREE_HEADS,
   VIEWS,
 } from "./words";
 
@@ -135,6 +141,9 @@ const EDGE = /^([^\s:[\]]+?)\s*->\s*([^\s:[\]]+)/du;
 const COMMIT = new RegExp(`^commit\\s+([^\\s[]+)(?:\\s+${ON}\\s+([^\\s[]+))?(?:\\s+${COPY}\\s+([^\\s[]+))?(?:\\s+${MERGE}\\s+([^\\s[]+))?`, "du");
 /** 枝分かれの図の、枝を切る行。枝と `from` と切る commit */
 const CUT = new RegExp(`^([^\\s[]+)\\s+${FROM}(?:\\s+([^\\s[]+))?\\s*$`, "du");
+/** 木の図の `leaf` の行の名札と、`node` の行の名札と `of` */
+const LEAF = /^leaf\s+([^\s[]+)/du;
+const NODE = new RegExp(`^node\\s+([^\\s[]+)\\s+${OF}\\s+`, "du");
 /** commit の hash。原本の JSON の hash の形と同じ */
 const HASH = /^[0-9a-f]{4,40}$/u;
 /** 箱の飛び先と段の出典の URL。原本の JSON の URL の形と同じ */
@@ -356,6 +365,10 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const isState = kind === "state";
   const isGit = kind === "git";
   const isTime = kind === "time";
+  const isTree = kind === "tree";
+  /** 木の図で書いた木の箱と、書いた行と名札の位置。子の箱から親の名札 */
+  const trees = new Map<string, { source: SourceLine; at: number }>();
+  const parents = new Map<string, string>();
   /** 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲 (#3165) */
   let scale: TimeScale | undefined;
   let period: TimePeriod | undefined;
@@ -414,6 +427,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       if (!boxes.some((box) => box.id === id) && !points.some((point) => point.id === id)) throw fail(source, at, m.undeclaredNote(id));
       return id;
     }
+    if (isTree && trees.has(id)) return id;
     if (!isState || !isOneOf(STATE_ENDS, id)) return boxAt(source, id, at);
     if ((id === "start") !== (side === "from")) throw fail(source, at, id === "start" ? m.intoStart : m.outOfFinish);
     return id;
@@ -472,6 +486,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     }
     if (!isGit && (word === "branch" || word === "commit")) throw fail(source, 0, m.gitOnly(word));
     if (!isTime && isOneOf(TIME_HEADS, word)) throw fail(source, 0, m.timeOnly(word));
+    if (!isTree && isOneOf(TREE_HEADS, word)) throw fail(source, 0, m.treeOnly(word));
     if (!isOneOf(HEADS, word)) {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
@@ -562,6 +577,16 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       case "span":
         inStep(source).events.push(readSpan(source));
         break;
+      case "leaf": {
+        const step = inStep(source);
+        step.events.push(readLeaf(source));
+        break;
+      }
+      case "node": {
+        const step = inStep(source);
+        step.events.push(readNode(source));
+        break;
+      }
     }
   }
   if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
@@ -569,8 +594,14 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   finish();
 
   if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
-  if (boxes.length === 0 && !isGit && !isTime) throw fail(head, 0, m.noBoxes);
+  if (isTree && trees.size === 0) throw fail(head, 0, m.noLeaves);
+  if (boxes.length === 0 && !isGit && !isTime && !isTree) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
+  // 木の形は全ての行を読んでから確かめる。親を持たない木の箱が 2 つ以上なら、書いた順で 2 つ目を示す
+  const roots = [...trees.keys()].filter((id) => !parents.has(id));
+  const [root, stray] = roots;
+  const strayAt = stray === undefined ? undefined : trees.get(stray);
+  if (root !== undefined && stray !== undefined && strayAt) throw fail(strayAt.source, strayAt.at, m.manyRoots(stray, root));
 
   return {
     version: FORMAT_VERSION,
@@ -786,6 +817,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   function readGroup(source: SourceLine): void {
     beforeSteps(source);
     if (isGit) throw fail(source, 0, m.gitNoGroup);
+    if (isTree) throw fail(source, 0, m.treeNoGroup);
     if (group) throw fail(source, 0, m.nestedGroup);
     const declared = readDeclared(source, "group", ATTRS.group, m);
     if (regions.some((region) => region.id === declared.id)) {
@@ -896,6 +928,62 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     commitAt(source, from, found.indices?.[2]?.[0] ?? 0);
     tips.set(branch, from);
     return { type: "branch", branch, from };
+  }
+
+  /** 木の図の `leaf <名札> [hash: <hash>]` の行 */
+  function readLeaf(source: SourceLine): DiagramEvent {
+    const text = source.text;
+    const found = LEAF.exec(text);
+    const id = found?.[1];
+    if (!found || id === undefined) throw fail(source, 0, m.leafShape);
+    const idAt = found.indices?.[1]?.[0] ?? 0;
+    if (!ID.test(id)) throw fail(source, idAt, m.badId(id));
+    declare(source, id, idAt);
+    trees.set(id, { source, at: idAt });
+    const rest = skipSpaces(text, found[0].length);
+    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.leafShape);
+    const hash = treeHash(source, rest, ATTRS.leaf);
+    return { type: "leaf", id, ...(hash !== undefined ? { hash } : {}) };
+  }
+
+  /**
+   * 木の図の `node <名札> of <子>, <子> [hash: <hash>]` の行。子は前に書いた葉か親で、まだ親を持たない箱に限る。
+   * 子は `,` で区切り、`[` か行の終わりで終わる
+   */
+  function readNode(source: SourceLine): DiagramEvent {
+    const text = source.text;
+    const found = NODE.exec(text);
+    const id = found?.[1];
+    if (!found || id === undefined) throw fail(source, 0, m.nodeShape);
+    const idAt = found.indices?.[1]?.[0] ?? 0;
+    if (!ID.test(id)) throw fail(source, idAt, m.badId(id));
+    declare(source, id, idAt);
+    const children: string[] = [];
+    let end = found[0].length;
+    for (;;) {
+      const start = skipSpaces(text, end);
+      end = start;
+      while (end < text.length && text[end] !== "," && text[end] !== "[") end++;
+      const child = text.slice(start, end).trim();
+      if (child === "" || !ID.test(child)) throw fail(source, start, m.nodeShape);
+      if (!trees.has(child)) throw fail(source, start, ids.has(child) && child !== id ? m.notTreeBox(child) : m.noTreeChild(child));
+      if (parents.has(child)) throw fail(source, start, m.twoParents(child));
+      parents.set(child, id);
+      children.push(child);
+      if (text[end] !== ",") break;
+      end++;
+    }
+    const hash = treeHash(source, end, ATTRS.node);
+    trees.set(id, { source, at: idAt });
+    return { type: "node", id, children, ...(hash !== undefined ? { hash } : {}) };
+  }
+
+  /** 葉と親の行の名札の後ろの `[hash: <hash>]`。`at` は `[` か行の終わり */
+  function treeHash(source: SourceLine, at: number, keys: readonly string[]): string | undefined {
+    if (at >= source.text.length) return undefined;
+    const hash = readAttrs(source, at, keys, m).get("hash");
+    if (hash && !HASH.test(hash.value)) throw fail(source, hash.at, m.badHash);
+    return hash?.value;
   }
 
   /** `strip <題>: <欄>, <欄>` の行 */

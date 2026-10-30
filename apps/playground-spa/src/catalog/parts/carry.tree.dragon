@@ -1,0 +1,23 @@
+tree 運ぶ物
+
+step 組む
+  say 葉を2つ出して、親を組む。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+  node 根 of 取引1, 取引2 [hash: 7a21]
+
+step 封筒
+  say 何も書かなければ、封筒が線の上を走る。
+  取引1 -> 根
+
+step 札
+  say tag で、線の上を走る札に値を書く。
+  取引2 -> 根 [tag: 8b04]
+
+step 硬貨
+  say carry: coin で、線の上に硬貨を走らせる。
+  根 -> 取引1 [carry: coin]
+
+step 運ばない
+  say carry: none で、線だけを引いて何も走らせない。
+  根 -> 取引2 [carry: none]

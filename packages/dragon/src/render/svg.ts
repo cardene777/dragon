@@ -14,6 +14,7 @@ import type { Layout, Rect, SceneField, SceneLabel } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
 import { layoutState } from "../layout/state";
 import { isTimeLayout, layoutTime } from "../layout/time";
+import { isTreeLayout, layoutTree } from "../layout/tree";
 import { FONTS } from "../look/fonts";
 import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
@@ -45,6 +46,7 @@ import {
 } from "./parts";
 import { drawGit } from "./git";
 import { drawTime, meterField, sansOf, timeFocus } from "./time";
+import { drawTree } from "./tree";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
@@ -172,6 +174,19 @@ const PART_CSS = [
   `.dg-git-n{${font(TYPE.gitNote)};fill:var(--ink2)}`,
   `.dg-git-old{fill:var(--surf);stroke:var(--c);stroke-width:${S.gitOrphan};stroke-dasharray:3 3;stroke-opacity:.6}`,
   `.dg-git-oldl{${font(TYPE.gitId)};fill:var(--ct);opacity:.55}`,
+  // 木の図 (#3233)。木の線は線の灰で、運ぶ物が通った跡は運ぶ物の色で引く
+  `.dg-tree-l{fill:none;stroke:var(--line);stroke-width:${S.tree};stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 2}`,
+  `.dg-tree-tr{fill:none;stroke:var(--c);stroke-width:${S.treeTrail};stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 2}`,
+  `.dg-tree-h{fill:none;stroke:var(--c);stroke-width:${S.treeTrail};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-tree-con{fill:none;stroke:var(--line);stroke-width:${S.treeCon};stroke-linecap:round;stroke-dasharray:2 3.5}`,
+  `.dg-tree-card{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
+  `.dg-tree-cg{fill:none;stroke:var(--mute);stroke-width:${S.glyph};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-tree-ct{${font(TYPE.treeCard)};fill:var(--ink)}`,
+  `.dg-tree-hash{${font(TYPE.treeHash)};fill:var(--ink)}`,
+  `.dg-tree-name{${font(TYPE.treeName)};fill:var(--mute)}`,
+  `.dg-tree-one{${font(TYPE.boxName)};fill:var(--ink)}`,
+  `.dg-tree-rh{${font(TYPE.rootHash)};fill:var(--ink)}`,
+  `.dg-tree-rn{${font(TYPE.rootName)};fill:var(--mute)}`,
   // 時間軸の図 (#3165)。和文を含む字は、末尾に j を付けた class で同じ大きさと太さの和文の字にする
   `.dg-tm-ep{fill:color-mix(in srgb,var(--ink) ${X.timeShade}%,transparent)}`,
   `.dg-tm-sep{stroke:var(--hair);stroke-width:${S.hair};stroke-dasharray:2 4}`,
@@ -370,6 +385,15 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.node.push(git.commits);
     L.top.push(git.tags);
   }
+  // 木の図の木の線と通った跡と木の箱と札は、木の図を描く部品が描く (#3233)。木の線を走る線は通った跡が見せるので、ほかの線と同じ線で描かない
+  const treeLayout = isTreeLayout(layout) ? layout : undefined;
+  if (treeLayout) {
+    const tree = drawTree(treeLayout, diagram, timeline, ctx);
+    L.base.push(tree.links);
+    L.lit.push(tree.trails);
+    L.node.push(tree.nodes);
+  }
+  const runs = new Set((treeLayout?.runs ?? []).map((r) => `${r.step}/${r.event}`));
   // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く
   const timeLayout = isTimeLayout(layout) ? layout : undefined;
   if (timeLayout) {
@@ -382,7 +406,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const wired = new Set((timeLayout?.wires ?? []).map((w) => `${w.step}/${w.event}`));
   for (const e of layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
-    if (!time || (timeLayout && !wired.has(`${e.step}/${e.event}`))) continue;
+    if (!time || (timeLayout && !wired.has(`${e.step}/${e.event}`)) || runs.has(`${e.step}/${e.event}`)) continue;
     const drawn = edge(e, time, ctx, isState);
     L.base.push(drawn.base);
     L.lit.push(drawn.lit);
@@ -413,9 +437,10 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     const until = (timeline.steps[a.step] as Span).end;
     L.top.push(whole && until > whole.start ? action(a, time.at, whole.end, ctx) : action(a, time.at, until, ctx, whole));
   }
+  // 木の図の運ぶ物は着いた所で消える。通った跡が行き先を残し、兄弟の箱から同じ親へ着いた運ぶ物が重ならないため
   for (const time of timeline.carriers) {
     const e = layout.edges.find((x) => x.step === time.step && x.event === time.event);
-    if (e) L.top.push(carrier(e, time, ctx));
+    if (e) L.top.push(carrier(e, treeLayout ? { ...time, start: time.depart, end: time.arrive + MOTION.fade } : time, ctx));
   }
   const content = Object.values(L)
     .map((parts) => parts.join(""))
@@ -471,6 +496,16 @@ function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
     rects.push({ x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) });
   }
   rects.push(...layout.labels.filter((l) => l.step === step), ...layout.actions.filter((a) => a.step === step));
+  // 木の図は、その段で現れる木の箱と木の線と、線の両端の木の箱を見る (#3233)
+  if (isTreeLayout(layout)) {
+    const ends = new Set((diagram.steps[step]?.events ?? []).flatMap((e) => (e.type === "edge" ? [e.from, e.to] : [])));
+    rects.push(...layout.nodes.filter((n) => n.step === step || ends.has(n.id)));
+    for (const l of layout.links.filter((x) => x.step === step)) {
+      const xs = l.points.map((p) => p[0]);
+      const ys = l.points.map((p) => p[1]);
+      rects.push({ x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) });
+    }
+  }
   for (const event of diagram.steps[step]?.events ?? []) {
     const ids = event.type === "edge" ? [event.from, event.to] : event.type === "action" || event.type === "swap" ? [event.box] : [];
     for (const id of ids) {
@@ -582,6 +617,7 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
     const shapes = [
       ...layout.regions.map((r) => `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="3"/>`),
       ...layout.boxes.map((b) => `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="1.5"/>`),
+      ...(isTreeLayout(layout) ? layout.nodes : []).map((n) => `<rect class="dg-mm-card" style="${cs(n.color)}" x="${mx + n.x * k}" y="${my + n.y * k}" width="${n.w * k}" height="${n.h * k}" rx="1.5"/>`),
     ].join("");
     const vp = m.move(cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]));
     return {
@@ -634,7 +670,9 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
           ? layoutGit(diagram)
           : diagram.kind === "time"
             ? layoutTime(diagram, lang)
-            : layoutArchitecture(diagram);
+            : diagram.kind === "tree"
+              ? layoutTree(diagram)
+              : layoutArchitecture(diagram);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 

@@ -16,7 +16,7 @@ export type NotationLang = "ja" | "en";
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */
-export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true, time: true });
+export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true, time: true, tree: true });
 
 /**
  * 状態遷移図の始まりと終わりの印の名前 (#3163)。線の送る側に `start`、受ける側に `finish` を書き、
@@ -37,10 +37,15 @@ export const TIME_HEADS = ["scale", "period", "row", "point", "zoom", "mark", "s
 export const NOW = "now";
 
 /**
+ * 木の図 (`tree`、#3233) だけが書ける行の頭の語。段の中で葉を出し (`leaf`)、1 つ以上の子から親を組む (`node`)
+ */
+export const TREE_HEADS = ["leaf", "node"] as const;
+
+/**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
  * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)。`source` は段の出典 (#3199)
  */
-export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "source", "act", "note", "set", "branch", "commit", ...TIME_HEADS] as const;
+export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "source", "act", "note", "set", "branch", "commit", ...TIME_HEADS, ...TREE_HEADS] as const;
 type Head = (typeof HEADS)[number];
 
 /** 箱と区画の名札の後ろに、見せる名前を続ける語 (`box <名札> as <名前>`) */
@@ -60,6 +65,9 @@ export const GIT_WORDS = [FROM, COPY, MERGE] as const;
 /** 時間軸の図の節目の行で、節目を置く目盛りを続ける語 (`point <名札> at <目盛り>`)。必ず書くので部品の語に数えない */
 export const AT = "at";
 
+/** 木の図の `node` の行で、親の名札の後ろに子を続ける語 (`node <名札> of <子>, <子>`)。必ず書くので部品の語に数えない */
+export const OF = "of";
+
 /**
  * 行ごとに書ける属性の鍵。線の `at` と `into`、`note` の `color`、中身の帯の欄の `meter` は時間軸の図だけが書ける (#3165)。
  * `meter` は `strip` の行の欄ごとに、欄の名前の後ろに書く (`strip <題>: <欄> [meter: <割合>]`)
@@ -76,6 +84,8 @@ export const ATTRS = {
   strip: ["meter"],
   branch: ["note"],
   commit: ["hash", "note"],
+  leaf: ["hash"],
+  node: ["hash"],
   scale: ["from"],
   period: ["from"],
   row: ["color", "empty"],

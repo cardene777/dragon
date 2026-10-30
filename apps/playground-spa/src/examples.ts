@@ -14,6 +14,8 @@ import introJa from "../../../packages/dragon/examples/intro.dragon?raw";
 import introEn from "../../../packages/dragon/examples/intro.en.dragon?raw";
 import mergeJa from "../../../packages/dragon/examples/merge.dragon?raw";
 import mergeEn from "../../../packages/dragon/examples/merge.en.dragon?raw";
+import merkleJa from "../../../packages/dragon/examples/merkle.dragon?raw";
+import merkleEn from "../../../packages/dragon/examples/merkle.en.dragon?raw";
 import oauthJa from "../../../packages/dragon/examples/oauth.dragon?raw";
 import oauthEn from "../../../packages/dragon/examples/oauth.en.dragon?raw";
 import orderJa from "../../../packages/dragon/examples/order.dragon?raw";
@@ -33,7 +35,7 @@ import { type Diagram, parseNotation } from "@cardenelabs/dragon";
 
 import type { Lang } from "./text";
 
-export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "order", "rebase", "merge", "finality", "withdraw"] as const;
+export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "order", "rebase", "merge", "finality", "withdraw", "merkle"] as const;
 export type ExampleKey = (typeof EXAMPLE_KEYS)[number];
 
 /** 頁を開いた時に出す見本 */
@@ -55,6 +57,7 @@ const EXAMPLES: Record<ExampleKey, Record<Lang, string>> = {
   merge: { ja: mergeJa, en: mergeEn },
   finality: { ja: finalityJa, en: finalityEn },
   withdraw: { ja: withdrawJa, en: withdrawEn },
+  merkle: { ja: merkleJa, en: merkleEn },
 };
 
 export const exampleText = (key: ExampleKey, lang: Lang): string => EXAMPLES[key][lang].trimEnd();

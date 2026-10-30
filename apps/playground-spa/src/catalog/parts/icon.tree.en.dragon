@@ -1,0 +1,15 @@
+tree Icons
+
+box ledger as Ledger [icon: doc]
+box remote as Remote ledger [icon: cloud]
+
+step Add leaves
+  say icon gives a box a picture.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  note ledger: 2 leaves
+
+step Join
+  say The picture sits above the box name.
+  node root of tx1, tx2 [hash: 7a21]
+  note remote: got the root

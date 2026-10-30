@@ -1,0 +1,17 @@
+tree 線の名前
+
+box 記録
+
+step 組む
+  say 葉を2つ出して、親を組む。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+  node 根 of 取引1, 取引2 [hash: 7a21]
+
+step 上に置く
+  say コロンの後ろが線の名前。書かなければ線の上に置く。
+  根 -> 記録: 残す
+
+step 下に置く
+  say side で名前を置く側を選ぶ。above、below、left、right の4つ。
+  記録 -> 根: 照らす [side: below]

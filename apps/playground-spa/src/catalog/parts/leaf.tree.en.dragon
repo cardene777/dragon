@@ -1,0 +1,10 @@
+tree Leaf and card
+
+step Add leaves
+  say A leaf line adds a leaf. With a hash, the box shows the value and a card below shows the id.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+
+step Join
+  say Cards are there from the first step, and a dotted line ties them to the leaf when it appears.
+  node root of tx1, tx2 [hash: 7a21]
