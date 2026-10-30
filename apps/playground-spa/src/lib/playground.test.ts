@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { PATHS } from "../site/routes";
-import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, type Site, startSite } from "./playground-support";
+import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, type Site, startSite, waitForCoarse } from "./playground-support";
 
 /** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、カタログの分類から導く (#3157) */
 const screenRoutes = (): string[] => {
@@ -1219,6 +1219,45 @@ describe("公開する頁 (#2995)", () => {
       }
     }
   });
+
+  it(
+    "open-sets-reduced-motion-before-load",
+    async () => {
+      // 再生の部品は動きを嫌う設定を描く時に 1 度だけ読む。頁を開いた後に当てると、先に描かれた図が自動で段を送る (#3231)
+      const still = await open({ reducedMotion: "reduce" });
+      expect(typeof still.startMedia, "開いた頁が読み込みの最初の設定を返す startMedia を持たない").toBe("function");
+      expect((await still.startMedia()).reduce, "動きを嫌う設定を渡して開いた頁で、読み込みの最初に設定が当たっていない").toBe(true);
+      const moving = await open();
+      expect((await moving.startMedia()).reduce, "動きを嫌う設定を渡さずに開いた頁で、設定が当たっている").toBe(false);
+    },
+    SLOW,
+  );
+
+  it("page-tests-set-motion-at-open", () => {
+    // 動きを嫌う設定は頁を開く時に渡す。開いた後に emulateMedia で当てると、図を描く処理と競って検査が揺れる (#3231)
+    const dir = join(__dirname);
+    const late = readdirSync(dir)
+      .filter((name) => name.endsWith(".test.ts"))
+      .flatMap((name) =>
+        readFileSync(join(dir, name), "utf8")
+          .split("\n")
+          .flatMap((line, i) => (/emulateMedia\(\{\s*reducedMotion/u.test(line) ? [`${name}:${i + 1}`] : [])),
+      );
+    expect(late, "画面の検査が、頁を開いた後に emulateMedia で動きを嫌う設定を当てている").toEqual([]);
+  });
+
+  it(
+    "touch-open-waits-for-coarse",
+    async () => {
+      // 指で触る頁は (pointer: coarse) が当たるまで待ち、当たらない時は部品の大きさより先に設定が当たらないと名指して落ちる (#3231)
+      expect(typeof waitForCoarse, "指で触る設定が当たるまで待つ waitForCoarse が支えから出ていない").toBe("function");
+      const touch = await open({ touch: true });
+      expect(await touch.page.evaluate(() => matchMedia("(pointer: coarse)").matches), "指で触る頁を開いた後に (pointer: coarse) が当たっていない").toBe(true);
+      const mouse = await open();
+      await expect(waitForCoarse(mouse.page, 500), "指で触る設定が当たらない頁で、待つ所が名指して落ちない").rejects.toThrow("指で触る設定 (pointer: coarse) が当たらない: /dragon/editor");
+    },
+    SLOW,
+  );
 
   it("page-routes-have-html-copies", () => {
     // Pages は無い path に 404 で答えるので、画面の経路ごとに頁の写しを `.html` で置いて 200 で答えさせる (#3157)。
