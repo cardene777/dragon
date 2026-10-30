@@ -114,6 +114,15 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-43-0-releases-tree", () => {
+    // 木の図 (#3233) と、その書き方を載せた変更 (#3235) は 0.43.0 で出す (#3237)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 43, `package の版 ${version()} が 0.43.0 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.43\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.43.0"), "0.43.0");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.43.0] の節が無い").not.toBe("");
+    for (const issue of ["#3233", "#3235"]) expect(released, `CHANGELOG.md の 0.43.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+  });
+
   it("changelog-0-42-2-releases-font-dedupe", () => {
     // 書き出しが同じ字を 2 つの字の file に重ねて埋めないようにした変更 (#3213) は 0.42.2 で出す (#3229)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
