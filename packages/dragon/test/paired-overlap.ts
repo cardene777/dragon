@@ -7,7 +7,7 @@
  * 重なりの四角は描いた字の四角そのままなので、編集画面の点線の四角が描いた字を覆うかを確かめられる。
  *
  * 書き出しの命令の検査 (`overlap-cli.test.ts`) は `vi.mock` で、編集画面の検査は検査用の build の設定
- * (`apps/playground-spa/src/lib/overlap-build.config.ts`) で、この包みを `findOverlaps` の代わりに読ませる。
+ * (`apps/playground-spa/src/lib/overlap-build-support.ts`) で、この包みを `findOverlaps` の代わりに読ませる。
  * 製品の code はこの file を読まない。
  */
 import type { Ink, Overlap, Trace } from "../src/render/ink";

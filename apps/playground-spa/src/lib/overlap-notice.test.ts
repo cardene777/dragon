@@ -6,7 +6,7 @@
  * 囲みと段へ移る動きは再生の部品が持ち、頁の側では SVG を組まない。
  *
  * 線の無い段の番号を箱の角に置いてから (#3187)、記法と JSON で組んだ 6000 図以上で字の重なる図が 1 つも出ず、書く図を作れない。
- * そこで重なりの欄と囲みと段へ移る動きは、検査だけの build (`overlap-build.config.ts`) を開いて確かめる (#3197)。
+ * そこで重なりの欄と囲みと段へ移る動きは、検査だけの build (`overlap-build-support.ts`) を開いて確かめる (#3197)。
  * その build は重なりを探す所だけを包み、2 段目に図に描いた 2 つの字を組にした重なりを 1 件足す (`packages/dragon/test/paired-overlap.ts`)。
  * 重ならない見本で何も出さないことは、本番と同じ build を開いて確かめ、包みが本番の build に入らないことの守りも兼ねる。
  * 知らせる文と、囲みと段へ移る再生の部品の呼び出しは `packages/dragon/test/overlap-notice.test.ts` が確かめる。
@@ -125,7 +125,7 @@ async function forward(page: Page, n: number): Promise<void> {
 describe("編集画面で字の重なりを知らせる (#3178)", () => {
   beforeAll(async () => {
     site = await startSite();
-    paired = await startSite({ config: join(app, "src/lib/overlap-build.config.ts") });
+    paired = await startSite({ config: join(app, "src/lib/overlap-build-support.ts") });
   }, SETUP);
 
   afterEach(async () => {
