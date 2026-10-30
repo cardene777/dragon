@@ -260,6 +260,8 @@ export type SyntaxId =
   | "now"
   | "mark"
   | "span"
+  | "leaf"
+  | "node"
   | "action"
   | "swap"
   | "strip-value"
@@ -297,6 +299,7 @@ const HOLE = {
     tick: "目盛り",
     first: "最初",
     last: "最後",
+    child: "子",
   },
   en: {
     title: "title",
@@ -328,6 +331,7 @@ const HOLE = {
     tick: "tick",
     first: "first",
     last: "last",
+    child: "child",
   },
 } as const satisfies Record<NotationLang, Record<string, string>>;
 
@@ -361,8 +365,11 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const timeBase = timeOf();
   const inTime = (events: object[], base: Diagram = timeBase): Diagram => draw({ ...base, steps: [{ ...step, events }] });
   const zoomBase = draw({ ...timeOf({ zoom: { from: h.first, to: h.last } }), boxes: [{ id: h.id, name: h.id }] });
+  // 葉と親は木の図だけが書ける (#3233)
+  const treeBase = draw({ ...empty("tree"), steps: [step] });
+  const inTree = (events: object[]): Diagram => draw({ ...treeBase, steps: [{ ...step, events }] });
   return [
-    { id: "kind", lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time"))] },
+    { id: "kind", lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree"))] },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
       id: "region",
@@ -412,6 +419,8 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
         [timeBase, inTime([{ type: "span", from: h.first, to: h.last, text: h.text, shape: "box", color: h.color }])],
       ]),
     },
+    { id: "leaf", lines: diff([[treeBase, inTree([{ type: "leaf", id: h.id, hash: h.hash }])]]) },
+    { id: "node", lines: diff([[treeBase, inTree([{ type: "node", id: h.id, children: [h.child, h.child], hash: h.hash }])]]) },
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
     { id: "strip-value", lines: diff([[draw({ ...withStep, strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },

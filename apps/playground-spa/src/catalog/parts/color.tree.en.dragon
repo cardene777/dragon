@@ -1,0 +1,15 @@
+tree Color roles
+
+box ledger as Ledger [color: violet]
+box backup as Backup [color: amber]
+
+step Add leaves
+  say color picks one of 7 roles for a box. Tree boxes have fixed colors.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  note ledger: 2 leaves
+
+step Join
+  say Pick roles by meaning: violet for the original and amber for the backup, say.
+  node root of tx1, tx2 [hash: 7a21]
+  note backup: root 7a21

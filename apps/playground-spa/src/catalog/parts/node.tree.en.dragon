@@ -1,0 +1,17 @@
+tree Parent node
+
+step Add leaves
+  say Write the leaves that become children before the parent.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  leaf tx3 [hash: c41d]
+  leaf tx4 [hash: e5f8]
+
+step Build parents
+  say A node line builds a parent from the children written after of. The parent sits above the middle of them.
+  node left of tx1, tx2 [hash: 7a21]
+  node right of tx3, tx4 [hash: b9e4]
+
+step Up to the root
+  say One box is left without a parent at the end. That box is the root.
+  node root of left, right [hash: e71c]

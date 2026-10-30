@@ -1,0 +1,16 @@
+tree Work in a box
+
+box ledger as Ledger
+
+step Add leaves
+  say Add two leaves.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+
+step Check
+  say act shows work happening inside a box without adding a box.
+  act ledger: Check the values
+
+step Join
+  say The tree can grow again after the work.
+  node root of tx1, tx2 [hash: 7a21]

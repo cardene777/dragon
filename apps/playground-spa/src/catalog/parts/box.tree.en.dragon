@@ -1,0 +1,14 @@
+tree Boxes
+
+box ledger as Ledger [note: empty]
+
+step Add leaves
+  say A box line places one thing to the right of the tree. Use it for what changes outside the tree.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  note ledger: 2 leaves
+
+step Join
+  say A note line inside a step rewrites the small text under a box.
+  node root of tx1, tx2 [hash: 7a21]
+  note ledger: root 7a21

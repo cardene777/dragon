@@ -1,0 +1,13 @@
+tree 小さな字
+
+box 記録 [note: まだ無い]
+
+step 葉を出す
+  say note で箱の名前の下に小さな字を添える。
+  leaf 取引1 [hash: 3fa0]
+  leaf 取引2 [hash: 8b04]
+
+step 組む
+  say 段の中の note の行で、その段から箱の小さな字を書き換える。
+  node 根 of 取引1, 取引2 [hash: 7a21]
+  note 記録: 根 7a21

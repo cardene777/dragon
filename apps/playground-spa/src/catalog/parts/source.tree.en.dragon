@@ -1,0 +1,13 @@
+tree Sources
+
+step Add leaves
+  say source gives a step a source name and url. A step can have any number of them.
+  source The dragon README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+
+step Join
+  say Sources stay out of the figure and appear as named links in the spoken step list.
+  source How to write the notation [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source The dragon repo [url: https://github.com/cardene777/dragon]
+  node root of tx1, tx2 [hash: 7a21]
