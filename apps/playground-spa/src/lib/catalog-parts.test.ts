@@ -349,8 +349,7 @@ describe("カタログの部品の頁 (#3166)", () => {
       const common = (await partsTable()).filter(isCommon);
       expect(common.length, "部品の表にどの図でも使える部品が無い").toBeGreaterThan(0);
       for (const part of common) {
-        const { page } = await site.open({ path: partPath(part.id), viewport: { width: 1440, height: 900 } });
-        await page.emulateMedia({ reducedMotion: "reduce" });
+        const { page } = await site.open({ path: partPath(part.id), viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
         await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
         // 同じ部品を、図の種類ごとに 1 つずつ描いて並べる
         await expect

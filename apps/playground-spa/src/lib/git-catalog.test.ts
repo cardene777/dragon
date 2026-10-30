@@ -133,8 +133,7 @@ describe("見本帳と編集画面の枝分かれの図 (#3164)", () => {
         .toEqual([...KIND_NAMES]);
 
       const titles = GIT_SAMPLES.map((key) => sample(key).title);
-      const opened = await site.open({ path: `${BASE}catalog/git`, viewport: { width: 1440, height: 900 } });
-      await opened.page.emulateMedia({ reducedMotion: "reduce" });
+      const opened = await site.open({ path: `${BASE}catalog/git`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
       await onScreen(opened.page, "category", "枝分かれの図の頁が出ない");
       const items = (): Promise<string[]> => opened.page.evaluate(() => [...document.querySelectorAll('[data-catalog="item"]')].map((i) => i.textContent?.trim() ?? ""));
       await expect.poll(items, { ...WAIT, message: "枝分かれの図の頁の一覧に rebase と merge の見本が無い" }).toEqual(expect.arrayContaining(titles));
@@ -165,8 +164,7 @@ describe("見本帳と編集画面の枝分かれの図 (#3164)", () => {
           const parsed = parseNotation(text ?? "", { lang });
           expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が枝分かれの図として読めない`).toBe("git");
         }
-        const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 } });
-        await opened.page.emulateMedia({ reducedMotion: "reduce" });
+        const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
         await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
         await expect
           .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が枝分かれの図の図を 1 つ、部品の記法で描かない` })
@@ -188,8 +186,7 @@ describe("見本帳と編集画面の枝分かれの図 (#3164)", () => {
       const common = PARTS.filter(isCommon).map((p) => p.id);
       expect(common.length, "どの図でも使う部品の数").toBe(12);
       for (const id of common) {
-        const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 } });
-        await page.emulateMedia({ reducedMotion: "reduce" });
+        const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
         await onScreen(page, "part", `${id} の部品の頁が出ない`);
         await expect
           .poll(async () => (await figuresOf(page)).filter((f) => f.kind === "git"), { ...WAIT, message: `${id} の頁に枝分かれの図で描いた図が無い` })

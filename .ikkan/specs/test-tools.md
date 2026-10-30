@@ -24,3 +24,10 @@
 | #3130 で足した表の検査が、回し方を書き足した形で通る | `pnpm exec vitest run packages/dragon/test/mutate-values.test.ts`の検査`mutation-table-lists-each-mutant`と`mutation-table-counts-a-survivor-as-zero`と`mutation-table-names-skipped-and-unfinished`と`mutation-table-marks-mutants-not-run`と`mutation-table-uses-the-last-row`と`mutation-table-escapes-pipes`と`mutation-table-is-a-package-script`が通る | #3134 |
 | 引数の形が違う時と結果に一覧に無い変異の行が在る時は今どおり終わり方 2 で止まり、変異を回す命令は今どおり落ちた検査の名前を記録する | `pnpm exec vitest run packages/dragon/test/mutate-values.test.ts`の検査`mutation-table-refuses-bad-input`と`mutate-values-records-failed-names`が通る | #3134 |
 | 一式 (型検査、build、lint、検査) が終了 0 で終わる | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3107 |
+| 頁を開く支え (`site.open`) に動きを嫌う設定を渡して開いた頁は、読み込みの最初の瞬間に `(prefers-reduced-motion: reduce)` が当たっている。渡さずに開いた頁では当たっていない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`open-sets-reduced-motion-before-load`が通る | #3231 |
+| apps/playground-spa/src/lib の画面の検査の file で、`emulateMedia` で動きを嫌う設定を当てる所が 0 か所 | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-tests-set-motion-at-open`が通る | #3231 |
+| 指で触る頁を開く時、支えは `(pointer: coarse)` が当たるまで待つ。当たらない頁では、決めた時間で「指で触る設定 (pointer: coarse) が当たらない」と頁の path を名指して落ちる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`touch-open-waits-for-coarse`が通る | #3231 |
+| 部品の頁で、どの図でも使える部品を図の種類ごとに描き、段を 1 つずつ送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-part-shows-both-kinds`が通る | #3231 |
+| 枝分かれの図の部品の頁で、図を 1 段目から 1 段ずつ送れる | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`catalog-has-four-git-parts`が通る | #3231 |
+| 指で触る幅の時系列図の分類の頁で、検索に字を入れた時とコードの側と重ね窓の部品が 44px に届く | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`coarse-catalog-touch-targets-after-action`が通る | #3231 |
+| 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3231 |

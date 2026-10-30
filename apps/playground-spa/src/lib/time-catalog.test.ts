@@ -133,8 +133,7 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
       await expect.poll(kinds, { ...WAIT, message: "見本帳の図の分類が、時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図の 5 つでない" }).toEqual([...KIND_NAMES]);
 
       const titles = TIME_SAMPLES.map((key) => sample(key).title);
-      const opened = await site.open({ path: `${BASE}catalog/time`, viewport: { width: 1440, height: 900 } });
-      await opened.page.emulateMedia({ reducedMotion: "reduce" });
+      const opened = await site.open({ path: `${BASE}catalog/time`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
       await onScreen(opened.page, "category", "時間軸の図の頁が出ない");
       const items = (): Promise<string[]> => opened.page.evaluate(() => [...document.querySelectorAll('[data-catalog="item"]')].map((i) => i.textContent?.trim() ?? ""));
       await expect.poll(items, { ...WAIT, message: "時間軸の図の頁の一覧にブロックの確定と引き出しの見本が無い" }).toEqual(expect.arrayContaining(titles));
@@ -165,8 +164,7 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
           const parsed = parseNotation(text ?? "", { lang });
           expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が時間軸の図として読めない`).toBe("time");
         }
-        const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 } });
-        await opened.page.emulateMedia({ reducedMotion: "reduce" });
+        const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
         await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
         await expect
           .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が時間軸の図の図を 1 つ、部品の記法で描かない` })
@@ -191,8 +189,7 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
       expect(snippetOf("strip", "ja") ?? "", "中身の帯の部品の時間軸の図が物差しを使わない").toContain("[meter:");
       expect(snippetOf("strip", "en") ?? "", "中身の帯の部品の英語の時間軸の図が物差しを使わない").toContain("[meter:");
       for (const id of common) {
-        const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 } });
-        await page.emulateMedia({ reducedMotion: "reduce" });
+        const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
         await onScreen(page, "part", `${id} の部品の頁が出ない`);
         await expect
           .poll(async () => (await figuresOf(page)).filter((f) => f.kind === "time"), { ...WAIT, message: `${id} の頁に時間軸の図で描いた図が無い` })
