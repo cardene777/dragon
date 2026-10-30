@@ -13,19 +13,19 @@
 import type { Ink, Overlap, Trace } from "../src/render/ink";
 
 /** 重なりを足す段 (0 から数える)。2 段目に足し、1 段目は重なりの無い段として残す */
-export const PAIRED_STEP = 1;
+const PAIRED_STEP = 1;
 
 const visibleAt = (ink: Ink, t: number): boolean => ink.shown.some(([a, b]) => a <= t && t < b);
 
-/** `step` 段目の止め絵の時刻に見えている、札にも段の番号にも図の部品にも当たらない字を 2 つ組にした重なり。2 つ無い時は無い */
-export function pairedOverlap(inks: Ink[], stills: number[], step: number = PAIRED_STEP): Overlap | undefined {
-  const t = stills[step];
+/** 2 段目の止め絵の時刻に見えている、札にも段の番号にも図の部品にも当たらない字を 2 つ組にした重なり。2 つ無い時は無い */
+function pairedOverlap(inks: Ink[], stills: number[]): Overlap | undefined {
+  const t = stills[PAIRED_STEP];
   if (t === undefined) return undefined;
   const [a, b] = inks.filter((ink) => !ink.boxed && !ink.badge && !ink.part && visibleAt(ink, t));
   if (!a || !b) return undefined;
   return {
     kind: "texts",
-    step,
+    step: PAIRED_STEP,
     texts: [a.text, b.text],
     spots: [
       { text: a.text, rect: { ...a.rect }, badge: false },
