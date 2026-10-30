@@ -153,7 +153,7 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
       const requested: string[] = [];
       const { page } = await site.open({
         path: BASE,
-        prepare: async (p) => {
+        prepare: (p) => {
           p.on("request", (request) => requested.push(fileOf(request.url())));
         },
       });
@@ -176,7 +176,7 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
         path: `${BASE}catalog`,
         viewport: { width: 1440, height: 900 },
         reducedMotion: "reduce",
-        prepare: async (p) => {
+        prepare: (p) => {
           p.on("request", (request) => requested.push(fileOf(request.url())));
         },
       });

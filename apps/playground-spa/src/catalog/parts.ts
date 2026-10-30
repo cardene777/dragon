@@ -12,12 +12,14 @@
  * 色の役と絵と小さな字の部品は、構成図の図で同じ属性を区画にも付けて見せる。
  *
  * 部品の図は `parts/<名札>.<図の種類>.dragon` と英語の `.en.dragon` の記法の file で、file の名前から引く。
+ * 部品の図の記法は最初に読む script に入れず、1 つの塊にして後から読む (#3246)。
  *
  * 部品の頁は、その部品の語を 1 つでも使う見本を並べる (#3167)。見本が語を使うかは、見本の記法から作った原本の JSON の形で決める。
  */
 import { type Diagram, type DiagramEvent, parseNotation } from "@cardenelabs/dragon";
 
-import { EXAMPLE_KEYS, type ExampleKey, exampleText } from "../examples";
+import { EXAMPLE_KEYS, type ExampleKey, exampleText, LATER_EXAMPLES } from "../examples";
+import { laterChunk } from "../site/later";
 import { type Lang, TEXT } from "../text";
 import { KINDS, type Kind } from "./catalog";
 
@@ -84,11 +86,15 @@ export const partOf = (id: string | undefined): Part | undefined => PARTS.find((
 /** その図の種類で使える部品。部品の表の並び */
 export const partsOf = (kind: Kind): Part[] => PARTS.filter((part) => part.kinds.includes(kind));
 
-const SNIPPETS = import.meta.glob<string>("./parts/*.dragon", { query: "?raw", import: "default", eager: true });
+/** 部品の図の記法の塊。`snippets.ts` を 1 つの塊にして後から読む (#3246) */
+export const LATER_SNIPPETS = laterChunk(() => import("./snippets").then((m) => m.SNIPPETS));
 
-/** 部品をその図の種類で描いた図の記法 */
-export const snippetOf = (id: PartId, kind: Kind, lang: Lang): string =>
-  (SNIPPETS[`./parts/${id}.${kind}${lang === "en" ? ".en" : ""}.dragon`] ?? "").trimEnd();
+/** 部品をその図の種類で描いた図の記法。部品の図の塊がまだ届いていないか読めなかった時は `undefined` */
+export function snippetOf(id: PartId, kind: Kind, lang: Lang): string | undefined {
+  const later = LATER_SNIPPETS.state();
+  if (later.status !== "ready") return undefined;
+  return (later.value[`./parts/${id}.${kind}${lang === "en" ? ".en" : ""}.dragon`] ?? "").trimEnd();
+}
 
 const events = (d: Diagram): DiagramEvent[] => d.steps.flatMap((step) => step.events);
 const edges = (d: Diagram) => events(d).flatMap((e) => (e.type === "edge" ? [e] : []));
@@ -177,18 +183,28 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "head:stamp": (d) => events(d).some((e) => e.type === "stamp"),
 };
 
-/** 見本の名前と、日本語の記法から作った図。読めない見本は外す */
-const SAMPLES = EXAMPLE_KEYS.flatMap((key) => {
-  const parsed = parseNotation(exampleText(key, "ja"));
-  return parsed.ok ? [{ key, diagram: parsed.diagram }] : [];
-});
+/** 後から読む見本が届いた後に作った、見本の名前と日本語の記法から作った図 */
+let samples: { key: ExampleKey; diagram: Diagram }[] | undefined;
 
-/** その部品の語を 1 つでも使う見本と、その見本の図の種類。部品を描ける図の種類の見本だけを、見本の並び (`EXAMPLE_KEYS`) の順に返す */
-export const samplesUsing = (part: Part): { key: ExampleKey; kind: Kind }[] =>
-  SAMPLES.filter(({ diagram }) => part.kinds.includes(diagram.kind) && part.words.some((word) => USES[word]?.(diagram) === true)).map(({ key, diagram }) => ({
-    key,
-    kind: diagram.kind,
-  }));
+/** 見本の名前と、日本語の記法から作った図。読めない見本は外す。後から読む見本が届くまでは `undefined` */
+function allSamples(): { key: ExampleKey; diagram: Diagram }[] | undefined {
+  if (samples !== undefined) return samples;
+  if (LATER_EXAMPLES.state().status !== "ready") return undefined;
+  samples = EXAMPLE_KEYS.flatMap((key) => {
+    const parsed = parseNotation(exampleText(key, "ja") ?? "");
+    return parsed.ok ? [{ key, diagram: parsed.diagram }] : [];
+  });
+  return samples;
+}
+
+/**
+ * その部品の語を 1 つでも使う見本と、その見本の図の種類。部品を描ける図の種類の見本だけを、見本の並び (`EXAMPLE_KEYS`) の順に返す。
+ * 後から読む見本が届くまでは `undefined`
+ */
+export const samplesUsing = (part: Part): { key: ExampleKey; kind: Kind }[] | undefined =>
+  allSamples()
+    ?.filter(({ diagram }) => part.kinds.includes(diagram.kind) && part.words.some((word) => USES[word]?.(diagram) === true))
+    .map(({ key, diagram }) => ({ key, kind: diagram.kind }));
 
 /**
  * 部品が受け持つ語を、記法に書く形にする (`head:box` は `box`、`attr:edge.side` は `[side: …]`)。

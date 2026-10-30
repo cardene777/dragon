@@ -11,10 +11,16 @@ import { DEFAULT_PALETTE, type Diagram, PALETTES, parseNotation, readDiagram } f
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { EXAMPLE_KEYS, type ExampleKey, exampleText, HOME_USES, TEMPLATE } from "../examples";
+import { EXAMPLE_KEYS, type ExampleKey, HOME_USES, TEMPLATE } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, captionClearance, expectSteadyAcrossSteps, pressUntilDisabled, rgb, root, type Site, settledStepShape, startSite } from "./playground-support";
+import { app, BASE, captionClearance, example, expectSteadyAcrossSteps, pressUntilDisabled, rgb, root, type Site, settledStepShape, startSite } from "./playground-support";
+
+/**
+ * 見本の記法。見本の正の file (`packages/dragon/examples`) から読む。
+ * 頁の側は概要の頁と編集画面の最初の見本のほかを後から読む塊に分けたので (#3246)、検査は頁の側の見本の表を読まない
+ */
+const exampleText = (key: ExampleKey, lang: Lang): string => example(`${key}${lang === "en" ? ".en" : ""}.dragon`) ?? "";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -4307,10 +4313,13 @@ describe("サイトの帯と経路 (#3030)", () => {
       const pick = (value: string): Promise<string[]> => page.locator(catalogSel("palette")).selectOption(value);
 
       // 色味の切替は「サイトと同じ」と 3 つの色味。最初は「サイトと同じ」で、帯の色味で描く
-      expect(
-        await page.evaluate(() => [...document.querySelectorAll<HTMLOptionElement>('[data-catalog="palette"] option')].map((o) => o.value)),
-        "見本の色味の切替が「サイトと同じ」と 3 つの色味でない",
-      ).toEqual(["site", ...PALETTE_IDS]);
+      // 右の見本は後から読む見本が届いてから出るので、切替が出るまで待つ (#3246)
+      await expect
+        .poll(() => page.evaluate(() => [...document.querySelectorAll<HTMLOptionElement>('[data-catalog="palette"] option')].map((o) => o.value)), {
+          ...WAIT,
+          message: "見本の色味の切替が「サイトと同じ」と 3 つの色味でない",
+        })
+        .toEqual(["site", ...PALETTE_IDS]);
       expect(await page.locator(catalogSel("palette")).inputValue(), "見本の色味の切替が「サイトと同じ」で始まらない").toBe("site");
       await expect.poll(stageLook, { ...WAIT, message: "見本の図が帯の色味で描かれない" }).toEqual([figureLook(DEFAULT_PALETTE, "light")]);
 

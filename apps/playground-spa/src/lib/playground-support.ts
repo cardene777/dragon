@@ -116,7 +116,7 @@ export interface OpenOptions {
    */
   reducedMotion?: "reduce" | "no-preference";
   /** 頁を開く前に済ませる処理。読み込みを止めたり遅らせたりする道 (`page.route`) はここで置く (#3246) */
-  prepare?: (page: Page) => Promise<void>;
+  prepare?: (page: Page) => Promise<void> | void;
 }
 
 /** 頁が読み込みの最初の瞬間に読んだ、動きを嫌う設定と指で触る設定が当たっているか */

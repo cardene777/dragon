@@ -8,7 +8,7 @@
  */
 import { type Diagram, type DiagramEvent, FORMAT_VERSION, type NotationLang, parseNotation, printNotation, type Step } from "@cardenelabs/dragon";
 
-import { EXAMPLE_KEYS, type ExampleKey, exampleText } from "../examples";
+import { EXAMPLE_KEYS, type ExampleKey, exampleText, FIRST_SCREEN_EXAMPLES } from "../examples";
 
 export interface Sample {
   key: ExampleKey;
@@ -20,11 +20,16 @@ export interface SampleGroup {
   samples: Sample[];
 }
 
-/** 見本を図の種類ごとに束ねる。題と種類は見本の記法から読む */
-export function sampleGroups(lang: NotationLang): SampleGroup[] {
+/**
+ * 見本を図の種類ごとに束ねる。題と種類は見本の記法から読む。
+ * `arrived` は後から読む見本が届いたか。届く前は最初に読む見本だけを束ねる (#3246)
+ */
+export function sampleGroups(lang: NotationLang, arrived: boolean): SampleGroup[] {
   const groups: SampleGroup[] = [];
   for (const key of EXAMPLE_KEYS) {
-    const parsed = parseNotation(exampleText(key, lang), { lang });
+    const text = arrived || (FIRST_SCREEN_EXAMPLES as readonly ExampleKey[]).includes(key) ? exampleText(key, lang) : undefined;
+    if (text === undefined) continue;
+    const parsed = parseNotation(text, { lang });
     if (!parsed.ok) continue;
     const { kind, title } = parsed.diagram;
     const group = groups.find((g) => g.kind === kind);

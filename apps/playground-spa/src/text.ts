@@ -179,6 +179,8 @@ export const TEXT = {
         source: "この図の記法",
         copy: "コードを写す",
         copied: "写しました",
+        loadFailed: "図を読み込めませんでした",
+        reload: "読み直す",
       },
       screens: {
         catalog: { title: "カタログ" },
@@ -492,6 +494,8 @@ export const TEXT = {
         source: "Notation for this diagram",
         copy: "Copy the code",
         copied: "Copied",
+        loadFailed: "Could not load the diagram",
+        reload: "Reload",
       },
       screens: {
         catalog: { title: "Catalog" },

@@ -28,8 +28,9 @@ import { fieldNotices, jsonErrorLine, lineNotices, type Notice } from "./editor/
 import { insertLines, type PartId, partLines } from "./editor/shelf-items";
 import { Shelf } from "./editor/Shelf";
 import { Stage } from "./editor/Stage";
-import { type ExampleKey, exampleText, FIRST_EXAMPLE, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
+import { type ExampleKey, exampleText, FIRST_EXAMPLE, firstScreenText, LATER_EXAMPLES, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
 import { fromHash, toHash } from "./share";
+import { useLater } from "./site/later";
 import { type Lang, TEXT } from "./text";
 
 type Tab = "notation" | "json";
@@ -122,7 +123,7 @@ interface Start {
 /** URL の `#` の後ろに書いた中身があればそれを、無ければ頁の言葉の最初の見本を開く */
 function start(lang: Lang): Start {
   const shared = fromHash(location.hash);
-  const text = shared ?? exampleText(FIRST_EXAMPLE, lang);
+  const text = shared ?? firstScreenText(FIRST_EXAMPLE, lang);
   return { text, example: shared === undefined ? FIRST_EXAMPLE : (whichExample(text)?.key ?? null), outcome: fromNotation(text, lang) };
 }
 
@@ -164,6 +165,21 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   const picker = useRef<HTMLInputElement>(null);
   /** 部品を足した後に見せる行。描き直した後に書く欄を送る */
   const reveal = useRef<number | null>(null);
+
+  /*
+   * 共有の link で開いた中身が後から読む見本そのままの時は、開いた時にはまだ見本と分からない (#3246)。
+   * 見本が届いた時に 1 度だけ見本と照らし、見本ならその見本として扱い、書類名も見本の名前にする
+   */
+  const later = useLater(LATER_EXAMPLES);
+  const [seenLater, setSeenLater] = useState(later);
+  if (seenLater !== later) {
+    setSeenLater(later);
+    const found = later.status === "ready" && example === null ? whichExample(text) : undefined;
+    if (found) {
+      setExample(found.key);
+      if (fileName === shownName(NEW_FILE_NAME)) setFileName(shownName(`${found.key}.dragon`));
+    }
+  }
 
   const t = TEXT[lang];
   /** 部品を足す先の図。書く欄の記法が読めない時は最後に描けた図 */
@@ -224,7 +240,11 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     } else setProblem(outcome.problem);
   };
 
-  const load = (key: ExampleKey, to: Lang): void => replace(exampleText(key, to), key, `${key}.dragon`, to);
+  /** 見本を開く。棚はまだ届いていない見本を出さないので、届いていない見本は開かない */
+  const load = (key: ExampleKey, to: Lang): void => {
+    const next = exampleText(key, to);
+    if (next !== undefined) replace(next, key, `${key}.dragon`, to);
+  };
 
   const newFile = (): void => replace(TEMPLATE[lang], null, NEW_FILE_NAME, lang);
 

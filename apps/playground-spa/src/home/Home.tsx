@@ -10,7 +10,7 @@
 import { parseNotation, type Theme } from "@cardenelabs/dragon";
 import { type ReactElement, useMemo, useState } from "react";
 
-import { exampleInfo, exampleText, HOME_USES, TEMPLATE } from "../examples";
+import { exampleInfo, firstScreenText, HOME_USES, TEMPLATE } from "../examples";
 import { LiveFigure } from "../site/LiveFigure";
 import { follow, PATHS, REPO } from "../site/routes";
 import { VERSION } from "../site/version";
@@ -203,7 +203,7 @@ export function Home({ lang, theme, palette }: Look): ReactElement {
         <div className="home-use-grid">
           {uses.map((use) => (
             <a key={use.key} className="home-use" data-home="use" href={`${PATHS.catalog}/${use.kind}`} onClick={(e) => follow(e)}>
-              <LiveFigure className="home-use-thumb" notation={exampleText(use.key, lang)} lang={lang} theme={theme} palette={palette} whole />
+              <LiveFigure className="home-use-thumb" notation={firstScreenText(use.key, lang)} lang={lang} theme={theme} palette={palette} whole />
               <div className="home-use-body">
                 <span className="home-use-kind" data-home="use-kind">
                   {kinds[use.kind]}

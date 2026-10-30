@@ -11,13 +11,15 @@
 import { ICONS, iconSvg, type Theme } from "@cardenelabs/dragon";
 import type { ReactElement } from "react";
 
-import { exampleInfo } from "../examples";
+import { exampleInfo, LATER_EXAMPLES } from "../examples";
 import { toHash } from "../share";
+import { useLater } from "../site/later";
 import { LiveFigure } from "../site/LiveFigure";
 import { follow, PATHS } from "../site/routes";
 import { type Lang, TEXT } from "../text";
 import type { Kind } from "./catalog";
-import { type Part, samplesUsing, snippetOf, wordLabel } from "./parts";
+import { LaterFailed } from "./LaterFailed";
+import { LATER_SNIPPETS, type Part, samplesUsing, snippetOf, wordLabel } from "./parts";
 
 interface Props {
   part: Part;
@@ -31,6 +33,9 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
   const t = TEXT[lang];
   const c = t.site.catalog;
   const text = c.parts[part.id];
+  // 見本の札は後から読む見本が届いてから並べる (#3246)
+  const examples = useLater(LATER_EXAMPLES);
+  const samples = examples.status === "ready" ? (samplesUsing(part) ?? []) : [];
   return (
     <div className="catalog-page" data-catalog="part">
       <div className="catalog-hero">
@@ -86,8 +91,9 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
           <h2 className="catalog-section-title">{c.partSamples}</h2>
           <p className="catalog-section-lead">{c.partSamplesLead}</p>
         </header>
-        <div className="catalog-part-grid">
-          {samplesUsing(part).map(({ key, kind }) => (
+        {examples.status === "failed" && <LaterFailed lang={lang} />}
+        <div className="catalog-part-grid" aria-busy={examples.status === "loading"}>
+          {samples.map(({ key, kind }) => (
             <a
               key={key}
               className="catalog-part-card"
@@ -134,11 +140,25 @@ function IconList({ lang }: { lang: Lang }): ReactElement {
   );
 }
 
-/** 部品を 1 つの図の種類で描いた図と、その記法と、編集画面で開く */
+/**
+ * 部品を 1 つの図の種類で描いた図と、その記法と、編集画面で開く。
+ * 部品の図の記法は後から読む塊にあるので、届く前は図の枠だけを置き、読めなかった時は枠に読み直す釦を出す (#3246)
+ */
 function PartFigure({ part, kind, lang, theme, palette }: Props & { kind: Kind }): ReactElement {
   const t = TEXT[lang];
   const c = t.site.catalog;
-  const notation = snippetOf(part.id, kind, lang);
+  const later = useLater(LATER_SNIPPETS);
+  const notation = later.status === "ready" ? snippetOf(part.id, kind, lang) : undefined;
+  if (notation === undefined) {
+    return (
+      <section className="catalog-part-figure" data-catalog="part-figure" data-kind={kind} aria-label={t.shelf.kinds[kind]} aria-busy={later.status === "loading"}>
+        <h2 className="catalog-part-figure-title">{t.shelf.kinds[kind]}</h2>
+        <div className="catalog-part-stage pg-figure" data-catalog="stage">
+          {later.status === "failed" && <LaterFailed lang={lang} />}
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="catalog-part-figure" data-catalog="part-figure" data-kind={kind} aria-label={t.shelf.kinds[kind]}>
       <h2 className="catalog-part-figure-title">{t.shelf.kinds[kind]}</h2>
