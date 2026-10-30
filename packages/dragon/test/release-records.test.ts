@@ -114,6 +114,15 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-44-0-releases-lineup-and-tree-fixes", () => {
+    // 列の図 (#3239) と、木の図の点線と見本の説明の直し (#3240) は 0.44.0 で出す (#3243)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 44, `package の版 ${version()} が 0.44.0 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.44\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.44.0"), "0.44.0");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.44.0] の節が無い").not.toBe("");
+    for (const issue of ["#3239", "#3240"]) expect(released, `CHANGELOG.md の 0.44.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+  });
+
   it("changelog-0-43-0-releases-tree", () => {
     // 木の図 (#3233) と、その書き方を載せた変更 (#3235) は 0.43.0 で出す (#3237)
     const [major = 0, minor = 0] = version().split(".").map(Number);
