@@ -114,6 +114,15 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-45-1-releases-site-fixes", () => {
+    // 編集画面の状態の欄の直し (#3261) と、図を待つ間の字の位置の直し (#3264) は 0.45.1 で見本帳に出す (#3266)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 45 || (minor === 45 && patch >= 1), `package の版 ${version()} が 0.45.1 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.45\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.45.1"), "0.45.1");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.45.1] の節が無い").not.toBe("");
+    for (const issue of ["#3261", "#3264"]) expect(released, `CHANGELOG.md の 0.45.1 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+  });
+
   it("changelog-0-45-0-releases-light-entry-and-tall-figure-fix", () => {
     // 軽い入口 (#3248) と、最初に読む量を減らした変更 (#3246) と、図の下が切れる形の直し (#3250) と、受容の記録 (#3251) と、編集画面の状態の欄の直し (#3259) は 0.45.0 で出す (#3258)。0.44.1 は出さない (#3254)
     const [major = 0, minor = 0] = version().split(".").map(Number);
