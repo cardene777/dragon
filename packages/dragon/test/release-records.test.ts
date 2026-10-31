@@ -114,6 +114,15 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-44-1-releases-tall-figure-fix", () => {
+    // 見本帳で図の下が切れる形の直し (#3250) と、最初に読む量を減らした変更 (#3246) と、受容の記録 (#3251) は 0.44.1 で出す (#3254)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 44 || (minor === 44 && patch >= 1), `package の版 ${version()} が 0.44.1 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.44\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.44.1"), "0.44.1");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.44.1] の節が無い").not.toBe("");
+    for (const issue of ["#3246", "#3250", "#3251"]) expect(released, `CHANGELOG.md の 0.44.1 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+  });
+
   it("changelog-0-44-0-releases-lineup-and-tree-fixes", () => {
     // 列の図 (#3239) と、木の図の点線と見本の説明の直し (#3240) は 0.44.0 で出す (#3243)
     const [major = 0, minor = 0] = version().split(".").map(Number);
