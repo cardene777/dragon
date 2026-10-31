@@ -28,6 +28,14 @@ export default defineConfig({
      */
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    /*
+     * 同時に動かす数は 4 に留める (#3268)。
+     *
+     * 一式の所要時間の大半は Chromium で画面を開く検査で、CPU を奪い合うと数を増やしても速くならない。
+     * 実測 = 12 コアの機械で既定と 4 を交互に 3 回ずつ回すと、平均 336 秒に対して 4 は 286 秒で、3 組とも 4 が短い。
+     * 落ちた検査は既定も 4 も 0 件で、機械が混むと落ちる形が直ったとは言えない。
+     */
+    maxWorkers: 4,
     include: [
       "packages/**/test/**/*.test.ts",
       "packages/**/test/**/*.test.tsx",
