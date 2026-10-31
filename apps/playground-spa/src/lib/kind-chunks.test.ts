@@ -10,6 +10,7 @@ import { join } from "node:path";
 import type { Page, Route } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { toHash } from "../share";
 import { BASE, firstLoadFiles, root, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
@@ -224,6 +225,47 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       await expect
         .poll(async () => (await page.locator(`${scope} svg[data-dragon="figure"]`).first().innerHTML()) !== before, { ...WAIT, message: "塊が届いても新しい図に替わらない" })
         .toBe(true);
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-status-waits-for-kind",
+    async () => {
+      const git = ["git 枝の図", "", "branch main", "", "step 積む", "  say 枝に積む。", "  commit A on main"].join("\n");
+      const name = chunkNamed("git");
+      const status = (page: Page) => page.locator('[data-playground="status"]');
+
+      // 開いた見本から書き替えた時
+      let gate: ReturnType<typeof holdChunk> | undefined;
+      const { page } = await site.open({
+        path: `${BASE}editor`,
+        prepare: (p) => {
+          gate = holdChunk(p, name);
+        },
+      });
+      await expect.poll(() => figures(page, '[data-playground="figure"]'), { ...WAIT, message: "最初の見本の図が描かれない" }).toBeGreaterThan(0);
+      const shown = (await status(page).innerText()).trim();
+      await page.locator('[data-playground="editor"]').fill(git);
+      await expect.poll(() => status(page).getAttribute("data-state"), { ...WAIT, message: "塊を待つ間の状態にならない" }).toBe("waiting");
+      const waiting = await status(page).innerText();
+      expect(waiting, "塊を待つ間に読み込み中と出ない").toContain("読み込み中");
+      expect(waiting, "塊を待つ間に前の図の数が残る").not.toContain(shown);
+      gate?.release();
+      await expect.poll(() => status(page).getAttribute("data-state"), { ...WAIT, message: "塊が届いても待つ間の状態のまま" }).toBe("ok");
+      expect(await status(page).innerText(), "塊が届いた後に新しい図の数が出ない").toContain("箱 0 つ、段 1");
+
+      // 待つ種類の記法を載せた URL で開いた時
+      let held: ReturnType<typeof holdChunk> | undefined;
+      const shared = await site.open({
+        path: `${BASE}editor${toHash(git)}`,
+        prepare: (p) => {
+          held = holdChunk(p, name);
+        },
+      });
+      await expect.poll(() => status(shared.page).getAttribute("data-state"), { ...WAIT, message: "URL で開いた時に待つ間の状態にならない" }).toBe("waiting");
+      expect(await status(shared.page).innerText(), "URL で開いた時に読み込み中と出ない").toContain("読み込み中");
+      held?.release();
     },
     SLOW,
   );
