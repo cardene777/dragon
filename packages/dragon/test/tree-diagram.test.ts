@@ -551,9 +551,15 @@ describe("木の図の描き方 (#3233)", () => {
       const win = placed.windowAt(s);
       // その段の番号の丸
       const badge = placed.badgeAt(s);
+      const events = source.steps[s]?.events ?? [];
+      // 表の値だけが変わる段の丸は、窓の下の表の隅に在る (#3270)
+      if (events.every((e) => e.type === "strip")) {
+        const table = placed.figure.querySelector(".dg-strip");
+        expect(badge.y, `段 ${s + 1} の番号の丸が表の高さに無い`).toBeGreaterThanOrEqual(Number(table?.getAttribute("y")));
+        continue;
+      }
       expect(inside(win, badge.x, badge.y), `段 ${s + 1} の終わりに番号の丸 (${badge.x}, ${badge.y}) が窓 (${win.x}, ${win.y}, ${win.w}, ${win.h}) の中に無い`).toBe(true);
       // その段で運ぶ物が最後に着いた箱か、運ぶ物の無い段では最初に現れた木の箱
-      const events = source.steps[s]?.events ?? [];
       const lastEdge = [...events].reverse().find((e) => e.type === "edge");
       const firstTree = events.find((e) => e.type === "leaf" || e.type === "node");
       const target = lastEdge?.to ?? firstTree?.id;

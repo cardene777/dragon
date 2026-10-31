@@ -1203,6 +1203,35 @@ describe("サイトの帯と経路 (#3030)", () => {
   };
 
   it(
+    "catalog-follow-strip-whole",
+    async () => {
+      // OAuth の見本は時系列図の 6 つ目で、幅 1280px では寄って追う図になる。窓は切り抜くので、窓の中身の欄は枠の内側でも見えない (#3270)
+      const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport: LAPTOP, reducedMotion: "reduce" });
+      await onScreen(page, "category", "時系列図の分類の頁が出ない");
+      await lastStepOf(page, 5);
+      await expect.poll(async () => (await stageFigureOf(page))?.view, { ...WAIT, message: "OAuth の見本が寄って追う図にならない" }).toBe("follow");
+      await expect
+        .poll(
+          () =>
+            page.evaluate((stage) => {
+              const root = document.querySelector(stage);
+              const frame = root?.querySelector(".dg-frame")?.getBoundingClientRect();
+              const names = [...(root?.querySelectorAll(".dg-fl") ?? [])];
+              const hidden = names.filter((el) => {
+                const r = el.getBoundingClientRect();
+                const outside = !frame || r.left < frame.left - 0.5 || r.right > frame.right + 0.5 || r.top < frame.top - 0.5 || r.bottom > frame.bottom + 0.5;
+                return outside || el.closest('g[clip-path^="url(#dg-vp-"]') !== null;
+              });
+              return { fields: names.length, hidden: hidden.map((el) => el.textContent) };
+            }, catalogSel("stage")),
+          { ...WAIT, message: "OAuth の見本の表の欄が図の枠の中に見えない" },
+        )
+        .toEqual({ fields: 5, hidden: [] });
+    },
+    SLOW,
+  );
+
+  it(
     "catalog-tall-figure-not-clipped",
     async () => {
       // 枠を図の高さまで伸ばすか寄って追う図にして、どの見本も図の枠の中を送らずに見える (#3250)
@@ -1555,7 +1584,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   /**
-   * 重ね窓の寄って追う図の窓が見せる図の横の割合 (1 なら横幅の全部) と、窓の高さと図の枠の中で見える高さの差と、
+   * 重ね窓の寄って追う図の窓が見せる図の横の割合 (1 なら横幅の全部) と、窓の下の値の表の下端と図の枠の中で見える高さの差と、
    * 図が枠の中に送らずに収まるか (#3053)。2 回続けて同じ値を読めた時だけ返す
    */
   const followWindowOf = (page: Page): Promise<{ view: string | null; shown: number; gap: number; inside: boolean } | null> =>
@@ -1576,7 +1605,8 @@ describe("サイトの帯と経路 (#3030)", () => {
           view: svg.getAttribute("data-view"),
           // 全体図の中の今見ている所の枠の幅と、全体図に描いた図の幅の比
           shown: Math.round((num(".dg-mm-vp", "width") / num(".dg-mm-world", "width")) * 1000) / 1000,
-          gap: Math.round((num(".dg-vp-frame", "height") + 1) * scale - room),
+          // 値の表は窓の下に置き、窓は表の分だけ低くなる (#3270)。表の四角は 0.5px 内側に書かれる
+          gap: Math.round((num(".dg-strip", "y") + num(".dg-strip", "height") + 0.5) * scale - room),
           inside:
             box.left >= frame.left - 0.5 &&
             box.right <= frame.right + 0.5 &&
@@ -1626,7 +1656,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "overlay-follow-window-fills-frame-height",
     async () => {
-      // 窓の高さが幅から決めた高さで止まり、枠の下が空いていた (#3053)
+      // 窓の高さが幅から決めた高さで止まり、枠の下が空いていた (#3053)。窓と窓の下の値の表で見える高さを埋める (#3270)
       for (const viewport of [
         { width: 390, height: 844 },
         { width: 1440, height: 900 },
@@ -2102,10 +2132,12 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "narrow-editor-figure-starts-higher",
     async () => {
-      // 札を出さない分だけ図の枠の上の余白が詰まり、記法の欄が最初の画面に多く見える (#3061)
+      // 札を出さない分だけ図の枠の上の余白が詰まり、記法の欄が最初の画面に多く見える (#3061)。
+      // 比べる値は #3061 より前の値から、値の表を窓の下に置いて図が高くなった分を引いた値 (#3270)。
+      // 図の高さは oauth が 320px から 488px、ccip が 360px の枠で 440px から 597px、390px の枠で 447px から 602px になった
       const before = {
-        "360 × 780": { oauth: 93, ccip: -41 },
-        "390 × 844": { oauth: 163, ccip: 16 },
+        "360 × 780": { oauth: 93 - 168, ccip: -41 - 157 },
+        "390 × 844": { oauth: 163 - 168, ccip: 16 - 155 },
       } as const;
       for (const viewport of PHONES.slice(0, 2)) {
         const size = `${viewport.width} × ${viewport.height}` as keyof typeof before;
@@ -2375,7 +2407,8 @@ describe("サイトの帯と経路 (#3030)", () => {
       const read = () => {
         if (bars.length !== 2 || !document.querySelector('[data-playground="stage"] svg[data-dragon="figure"]')) return null;
         return bars.flatMap((bar) => {
-          bar.scrollIntoView({ block: "nearest" });
+          // 一番近い端へ送ると、図が高く頁が送れる時に、画面の上に貼り付く上の帯の下に入る (#3270)
+          bar.scrollIntoView({ block: "center" });
           return [...bar.querySelectorAll<HTMLElement>("button[data-playground], input[data-playground]")]
             .filter((el) => el.checkVisibility())
             .map((el) => {

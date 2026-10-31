@@ -12,7 +12,7 @@ import { layoutArchitecture } from "../layout/architecture";
 import type { GitLayout } from "../layout/git";
 import type { LineupLayout } from "../layout/lineup";
 import { textWidth } from "../layout/measure";
-import type { Layout, Rect, SceneField, SceneLabel } from "../layout/scene";
+import { type Layout, type Rect, rewrapStrip, type SceneField, type SceneLabel, type SceneStrip } from "../layout/scene";
 import { layoutSequence } from "../layout/sequence";
 import type { TimeLayout } from "../layout/time";
 import type { TreeLayout } from "../layout/tree";
@@ -390,7 +390,9 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   // 時間軸の図の物差しの欄は、満ち具合の動きで棒を伸ばす (#3165)
   const meters = new Map((timeline.meters ?? []).map((meter) => [meter.field, meter.keys]));
   const gauge = (field: SceneField): string | undefined => (field.meter ? kindParts("time").meterField({ ...field, meter: field.meter }, meters.get(field.name) ?? [[0, 0]], ctx) : undefined);
-  if (layout.strip) L.band.push(strip(layout.strip, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals, gauge));
+  const drawStrip = (s: SceneStrip): string => strip(s, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals, gauge);
+  // 寄って追う図の表は窓の下に置くので、窓の中身には描かない (#3270)
+  if (layout.strip && !follow) L.band.push(drawStrip(layout.strip));
   for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
   // 枝分かれの図の線と commit と札は、枝分かれの図を描く部品が描く (#3164)
   if (isGitLayout(layout)) {
@@ -448,7 +450,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.node.push(linked(box.id, card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [], isState ? (state?.lit ?? []) : undefined)));
     if (state?.done !== undefined) L.node.push(doneMark(box, state.done, ctx));
   }
-  for (const b of layout.badges) L.badge.push(badge(b, ctx, isState));
+  for (const b of layout.badges) if (!(follow && onStrip(layout, b))) L.badge.push(badge(b, ctx, isState));
   for (const l of layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
     if (time) L.top.push(label(l, fadeBefore(l, time, timeline.steps), ctx));
@@ -474,7 +476,11 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
   // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。頭の列の箱はアイコンを外した 2 段 (#3120)。止めて見せる図では描かない
   const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => linked(box.id, headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? []))).join("") : "";
-  const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
+  // 表の値だけが変わる段の番号の丸は表の隅に在るので、表と一緒に窓の下へ移す (#3270)。
+  // 窓の下の表は図の左端から始まるので、丸の半径だけ内へ寄せる。寄せないと丸の左が図の端で切れる
+  const drawTable = (s: SceneStrip, from: SceneStrip): string =>
+    drawStrip(s) + layout.badges.filter((b) => onStrip(layout, b)).map((b) => badge({ ...b, x: b.x - from.x + s.x + LOOK.badge.r, y: b.y - from.y + s.y }, ctx, isState)).join("");
+  const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}">` +
@@ -487,6 +493,11 @@ function union(rects: Rect[]): Rect {
   const x = Math.min(...rects.map((r) => r.x));
   const y = Math.min(...rects.map((r) => r.y));
   return { x, y, w: Math.max(...rects.map((r) => r.x + r.w)) - x, h: Math.max(...rects.map((r) => r.y + r.h)) - y };
+}
+
+/** 番号の丸が値の表の上に在るか。表の値だけが変わる段の丸は表の隅に置かれる */
+function onStrip(layout: Layout, badge: { y: number }): boolean {
+  return layout.strip !== undefined && badge.y >= layout.strip.y;
 }
 
 /** 段で動く物が占める所。 */
@@ -557,34 +568,39 @@ function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
  * 時系列図は頭の箱 `heads` を窓の上端の頭の列に貼り、窓が横に動く時だけ一緒に動かす。頭の箱は図の上端に在り、線を追う窓からは外れるため。
  * 窓は頭の列の下の残りの高さで動く物を真ん中に見せる (#3118)。
  * 頭の列の箱はアイコンを外した 2 段にして低く貼り、線は図の頭の箱の下から見せ始める (#3120)。
+ * 値の表は図の一番下に在り、窓が近づくまで映らず、窓より広い表は右側が切れる。全体図と同じ理由で窓の外に出し、
+ * 窓と全体図の下に図の枠の幅で組み直す (#3270)。窓と全体図は表を除いた図の高さ `worldH` の中だけを見る。
  */
-function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame, heads: string): { body: string; w: number; h: number } {
+function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame, heads: string, drawTable: (s: SceneStrip, from: SceneStrip) => string): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
   const frameWidth = Math.max(1, follow.width);
   const full = Math.min(layout.width, frameWidth);
+  const worldH = layout.strip ? layout.strip.y : layout.height;
   const title = FIGURE_TEXT[follow.lang].overview;
   /** 窓の高さ `vh` の時の全体図の寸法。全体図は窓の高さで縮むので、窓を低くしたら測り直す */
   const sized = (vh: number) => {
     // 全体図の寸法は枠の幅と窓の高さで決め、置き場所に依らない
+    // 全体図の幅は表を含む図の比で決める。表を除いた比にすると全体図の列が太り、窓が狭くなる
     const mw = Math.min(M.w, full * 0.4, ((vh * 0.4) / layout.height) * layout.width);
     const k = mw / layout.width;
-    const mh = layout.height * k;
+    const mh = worldH * k;
     // 地の幅は図の縦横の比で決まるので、縦に長い図では札より狭くなる。その時は地を札の幅まで広げ、図は広げた地の真ん中に置く
     const bw = Math.max(mw, Math.ceil(textWidth(title, TYPE.miniTitle)));
     // 縦横の比は窓の高さに依らないので、低くしても全体図の置き場所は変わらない
     return { vh, mw, k, mh, bw, bgW: bw + M.pad * 2, bgH: mh + M.pad * 2 + M.title, beside: mh > mw };
   };
-  const natural = sized(Math.min(layout.height, Math.max(F.minH, full * F.aspect)));
+  const natural = sized(Math.min(worldH, Math.max(F.minH, full * F.aspect)));
   // 携帯の幅では縦長の全体図の列が枠の幅の 3 割を取り、窓が図の横の 3 割ほどしか見せない。その時は全体図を出さない。
   // 横長の全体図は窓の下に出して幅を取らないので、狭い枠でも出す
   const bare = natural.beside && frameWidth < F.narrow;
-  // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図は窓の高さに足される
-  const room = follow.height === undefined ? Number.POSITIVE_INFINITY : natural.beside ? follow.height : follow.height - natural.bgH - M.inset;
+  const tableH = layout.strip ? rewrapStrip(layout.strip, 0, 0, full).h + M.inset : 0;
+  // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図と表は窓の高さに足される
+  const room = follow.height === undefined ? Number.POSITIVE_INFINITY : (natural.beside ? follow.height : follow.height - natural.bgH - M.inset) - tableH;
   // 見える高さが窓より低ければ窓と全体図を縮め、高ければ全体図はそのままに窓を図の高さまで伸ばす。
   // 全体図も伸ばすと、狭い枠では右の全体図の列が太って窓が狭くなる
   const { vh, mw, k, mh, bw, bgW, bgH, beside } =
-    room < natural.vh ? sized(Math.max(F.fitMinH, room)) : { ...natural, vh: Number.isFinite(room) ? Math.min(layout.height, room) : natural.vh };
+    room < natural.vh ? sized(Math.max(F.fitMinH, room)) : { ...natural, vh: Number.isFinite(room) ? Math.min(worldH, room) : natural.vh };
   // 右の全体図の列は枠の余りに置き、窓は図の原寸の幅まで広げる。枠が図より狭い時は今までどおり枠の幅から列を引く
   const vw = beside && !bare ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
@@ -594,9 +610,9 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   const strip = heads === "" ? 0 : F.head.pad * 2 + F.head.h;
   const below = vh - strip;
   /** 頭の列の下の残りの窓の真ん中の高さを、図の頭の箱の下と図の下端で止める */
-  const clampY = (y: number): number => Math.min(layout.height - below / 2, Math.max(top + below / 2, y));
+  const clampY = (y: number): number => Math.min(worldH - below / 2, Math.max(top + below / 2, y));
   const r = LOOK.badge.r;
-  let prev: [number, number] = [layout.width / 2, layout.height / 2];
+  let prev: [number, number] = [layout.width / 2, worldH / 2];
   // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
   const middles = timeline.steps.map((_, s) => {
     // 時間軸の図は、針と印の列を必ず窓に入れる (#3165)。番号の丸へ寄せ直すと、針が窓から外れるため
@@ -610,7 +626,7 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
     // 動く物を全部囲んだ所が窓より大きいと、その端に在る番号の丸が窓から外れる。その段だけ丸の近くへ寄せ直す (#3046)
     const b = layout.badges.find((x) => x.step === s);
-    if (!b || (Math.abs(b.x - at[0]) <= vw / 2 - r && Math.abs(b.y - at[1]) <= below / 2 - r)) return at;
+    if (!b || onStrip(layout, b) || (Math.abs(b.x - at[0]) <= vw / 2 - r && Math.abs(b.y - at[1]) <= below / 2 - r)) return at;
     const near = badgeFocus(b, focusParts(layout, diagram, s), vw, below);
     // 動く物の無い次の段は、寄せ直した窓のまま止める
     prev = [near.x + near.w / 2, near.y + near.h / 2];
@@ -668,7 +684,11 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
     `<defs><clipPath id="dg-vp-${id}"><rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/></clipPath>${mini.clip}</defs>` +
     `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g>${head}</g>` +
     `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>${mini.body}`;
-  return { body, w: beside && !bare ? vw + M.inset + bgW : full, h: beside ? vh : bgY + bgH };
+  const w = beside && !bare ? vw + M.inset + bgW : full;
+  const bottom = beside ? vh : bgY + bgH;
+  if (!layout.strip) return { body, w, h: bottom };
+  const table = rewrapStrip(layout.strip, 0, bottom + M.inset, full);
+  return { body: body + drawTable(table, layout.strip), w, h: table.y + table.h };
 }
 
 /**

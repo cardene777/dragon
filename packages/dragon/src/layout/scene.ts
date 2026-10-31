@@ -618,28 +618,48 @@ const trailWidth = (trail: TrailSource): number => Math.max(textWidth(trail.titl
 /** 1 行に並べた時に帯が要る幅。 */
 export function stripNeed(diagram: Diagram, trail?: TrailSource): number {
   if (!diagram.strip) return 0;
-  const { titleX, fieldGap, pad } = LOOK.strip;
-  const start = titleX + textWidth(diagram.strip.title, TYPE.stripTitle) + fieldGap;
-  const widths = [...diagram.strip.fields.map((name) => fieldWidth(diagram, name)), ...(trail ? [trailWidth(trail)] : [])];
-  return start + widths.reduce((sum, w) => sum + w + fieldGap, 0) - fieldGap + pad;
+  return rowNeed(diagram.strip.title, [...diagram.strip.fields.map((name) => fieldWidth(diagram, name)), ...(trail ? [trailWidth(trail)] : [])]);
+}
+
+/** 帯の題の右に、幅 `widths` の欄を 1 行に並べた時に帯が要る幅。 */
+function rowNeed(title: string, widths: number[]): number {
+  const { fieldGap, pad } = LOOK.strip;
+  return stripStart(title) + widths.reduce((sum, w) => sum + w + fieldGap, 0) - fieldGap + pad;
+}
+
+/** 題の右の、欄を並べ始める所。 */
+function stripStart(title: string): number {
+  return LOOK.strip.titleX + textWidth(title, TYPE.stripTitle) + LOOK.strip.fieldGap;
+}
+
+/** 欄を `start` から左へ詰めて並べ、幅 `width` に収まらない欄を次の行へ送る。`rows` は使った行の数から 1 を引いた値を返す */
+function fieldPlacer(start: number, width: number): { place: (w: number) => { x: number; row: number }; rows: () => number } {
+  const { fieldGap, pad } = LOOK.strip;
+  let cx = start;
+  let row = 0;
+  return {
+    place(w) {
+      if (cx > start && cx + w > width - pad) {
+        cx = start;
+        row++;
+      }
+      const at = { x: cx, row };
+      cx += w + fieldGap;
+      return at;
+    },
+    rows: () => row,
+  };
 }
 
 /** 中身の帯。欄は左から並べ、幅に収まらない欄は次の行へ送る。通った状態の欄を渡すと、最後の欄の後に同じ決まりで置く。 */
 export function layoutStrip(diagram: Diagram, x: number, y: number, width: number, trail?: TrailSource): SceneStrip | undefined {
   if (!diagram.strip) return undefined;
-  const { titleX, fieldGap, pad, line, h } = LOOK.strip;
-  const start = titleX + textWidth(diagram.strip.title, TYPE.stripTitle) + fieldGap;
+  const { line, h } = LOOK.strip;
   const fields: SceneField[] = [];
-  let cx = start;
-  let row = 0;
+  const placer = fieldPlacer(stripStart(diagram.strip.title), width);
   const place = (w: number): { x: number; y: number } => {
-    if (cx > start && cx + w > width - pad) {
-      cx = start;
-      row++;
-    }
-    const at = { x: x + cx, y: y + row * line };
-    cx += w + fieldGap;
-    return at;
+    const at = placer.place(w);
+    return { x: x + at.x, y: y + at.row * line };
   };
   for (const name of diagram.strip.fields) {
     const w = fieldWidth(diagram, name);
@@ -649,7 +669,29 @@ export function layoutStrip(diagram: Diagram, x: number, y: number, width: numbe
     fields.push({ name, ...at, w, ...(meter && line !== undefined ? { meter: { line, text: meter.line, x: at.x, w: LOOK.time.meter.w } } : {}) });
   }
   const laidTrail = trail ? { ...trail, ...place(trailWidth(trail)), w: trailWidth(trail) } : undefined;
-  return { x, y, w: width, h: h + row * line, title: diagram.strip.title, fields, ...(laidTrail ? { trail: laidTrail } : {}) };
+  return { x, y, w: width, h: h + placer.rows() * line, title: diagram.strip.title, fields, ...(laidTrail ? { trail: laidTrail } : {}) };
+}
+
+/**
+ * 帯を置き場所 (x, y) と幅 `width` で組み直す (#3270)。寄って追う図は帯を窓の下に置くので、図を組んだ時と幅が違う。
+ * 欄が題の右の 1 行に収まる幅では題の右に並べ、収まらない幅では題に 1 行を取って欄を左端から並べる。
+ * 題の右で折り返すと、携帯の幅では欄に残る幅が欄 1 つ分ほどになるため
+ */
+export function rewrapStrip(s: SceneStrip, x: number, y: number, width: number): SceneStrip {
+  const { line, h, pad, titleRow } = LOOK.strip;
+  const stacked = rowNeed(s.title, [...s.fields.map((f) => f.w), ...(s.trail ? [s.trail.w] : [])]) > width;
+  const top = stacked ? titleRow : 0;
+  const placer = fieldPlacer(stacked ? pad : stripStart(s.title), width);
+  const place = (w: number): { x: number; y: number } => {
+    const at = placer.place(w);
+    return { x: x + at.x, y: y + top + at.row * line };
+  };
+  const fields = s.fields.map((field) => {
+    const at = place(field.w);
+    return { ...field, ...at, ...(field.meter ? { meter: { ...field.meter, x: at.x } } : {}) };
+  });
+  const trail = s.trail ? { ...s.trail, ...place(s.trail.w) } : undefined;
+  return { ...s, x, y, w: width, h: h + placer.rows() * line + top, fields, ...(trail ? { trail } : {}) };
 }
 
 /** 場面の全ての物を (dx, dy) だけ動かす。区画と帯は動かさず、横いっぱいの形を保つ。 */

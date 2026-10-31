@@ -292,7 +292,8 @@ export const stepShapeOf = (page: Page, scope: string): Promise<StepShape | null
         bar: Math.round(bar.getBoundingClientRect().height),
         width: Math.round(box.width),
         height: Math.round(box.height),
-        top: Math.round(box.top),
+        // 頁の上からの位置。段を送る釦が画面の下に在ると、押す時に頁が送られて画面の上からの位置が変わる (#3270)
+        top: Math.round(box.top + scrollY),
       };
     };
     const frame = () => new Promise((done) => requestAnimationFrame(done));
