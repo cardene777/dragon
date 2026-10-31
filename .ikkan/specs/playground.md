@@ -33,6 +33,7 @@
 | 編集画面で、重なりの無い 1 段目では図の上に四角が出ず、2 段目に移ると点線の四角が出て、組にした 2 つの字が描かれた所をどちらも覆う。四角は塗らず、中の字を隠さない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-marks-overlaps-on-figure`が通る | #3197 |
 | 編集画面で重なりの欄の段の札を押すと、図が 2 段目へ移り、点線の四角が出る | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-overlap-step-jumps`が通る | #3197 |
 | 本番と同じ build で開いた編集画面は、重ならない見本で「読めています」だけを出し、重なりの欄も図の上の四角も出さない (重なりを足す包みが本番の build に入らない) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3197 |
+| 編集画面の状態の欄が図の種類の主な部品を部品の頁と同じ呼び名で数えて出す。箱と枝と印の列と列を数え、英語の頁は 1 の時に単数形を出す | `pnpm exec vitest run apps/playground-spa/src/lib/editor-status.test.ts`の検査`editor-status-counts-by-kind`が通る | #3261 |
 | 組み上がった書き出しの命令は、重ならない図を書き出す時に標準エラーに何も出さない (重なりを足す包みが組み上がった命令に入らない) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3197 |
 | 見本帳の build で、最初に読む script に、概要の頁と編集画面の最初の見本 (`intro`、`oauth`、`ccip`) を除く見本の記法と、部品の図の記法の字の並びが含まれない | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-carries-no-catalog-notation`が通る | #3246 |
 | 見本帳の build で、後から読む塊のうち見本の記法を持つ塊と部品の図の記法を持つ塊がそれぞれ1つだけで、除いた全ての見本と全ての部品の図の記法を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-notation-in-two-chunks`が通る | #3246 |

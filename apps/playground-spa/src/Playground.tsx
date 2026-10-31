@@ -33,7 +33,7 @@ import { type ExampleKey, exampleText, FIRST_EXAMPLE, firstScreenText, LATER_EXA
 import { fromHash, toHash } from "./share";
 import { kindFailed, onKindSettled } from "./site/kinds";
 import { useLater } from "./site/later";
-import { type Lang, TEXT } from "./text";
+import { type CountedPart, type Lang, TEXT } from "./text";
 
 type Tab = "notation" | "json";
 
@@ -47,6 +47,22 @@ interface Problem {
 const KIND_WAITING = "waiting";
 
 type Outcome = { ok: true; diagram: Diagram } | { ok: false; problem: Problem | typeof KIND_WAITING };
+
+/** 状態の欄で数える、図の種類の主な部品とその数。呼び名は部品の頁に揃える (#3261) */
+function mainParts(diagram: Diagram): [CountedPart, number] {
+  switch (diagram.kind) {
+    case "git":
+      return ["branch", diagram.git?.branches.length ?? 0];
+    case "time":
+      return ["row", diagram.time?.rows.length ?? 0];
+    case "tree":
+      return ["box", diagram.steps.flatMap((step) => step.events).filter((event) => event.type === "leaf" || event.type === "node").length];
+    case "lineup":
+      return ["lane", diagram.boxes.length];
+    default:
+      return ["box", diagram.boxes.length];
+  }
+}
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -486,7 +502,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
           ) : (
             <>
               <p className="pg-ok">
-                <span aria-hidden="true">✓</span> {drawn ? t.readable(drawn.boxes.length, drawn.steps.length) : ""}
+                <span aria-hidden="true">✓</span> {drawn ? t.readable(...mainParts(drawn), drawn.steps.length) : ""}
               </p>
               {overlaps.length > 0 && (
                 <div className="pg-overlaps" data-playground="overlaps">
