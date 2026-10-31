@@ -8,12 +8,12 @@ import { execFile } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { tmpdir } from "node:os";
+import { cpus, freemem, loadavg, tmpdir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
-import { expect } from "vitest";
+import { expect, TestRunner } from "vitest";
 
 const run = promisify(execFile);
 
@@ -145,11 +145,80 @@ export async function waitForCoarse(page: Page, timeout = 5_000): Promise<void> 
   }
 }
 
+/** 頁 1 つの様子。落ちた検査で頁が描き替えを止めていたかを後から調べる (#3278) */
+export interface PageProbe {
+  /** 頁の path。hash は記法を持って長いので外す */
+  path: string;
+  width: number;
+  /** 待つ間に頁が応えたか。主の処理が塞がっていると false */
+  responds: boolean;
+  /** 次の描き替えまでの ms。待つ間に描き替えが無いか、頁が応えない時は null */
+  frameMs: number | null;
+  /** `document.visibilityState`。頁が応えない時は null */
+  visibility: string | null;
+}
+
+/**
+ * 開いている頁ごとに、描き替えの周期が動いているか、頁が応えるか、見えている扱いかを調べる (#3278)。
+ *
+ * 釦を押す前に Playwright は位置が止まっているかを描き替え 2 回分で確かめるので、描き替えが止まると押す所で待ち続ける。
+ * 頁が応えない時も `wait` の少し後に返す = 落ちた検査の後始末を止めない
+ */
+export async function probePages(pages: Page[], wait = 3_000): Promise<PageProbe[]> {
+  return Promise.all(
+    pages.map(async (page) => {
+      const seen = page
+        .evaluate(
+          (wait) =>
+            new Promise<{ frameMs: number | null; visibility: string }>((done) => {
+              const start = performance.now();
+              const timer = setTimeout(() => done({ frameMs: null, visibility: document.visibilityState }), wait);
+              requestAnimationFrame(() => {
+                clearTimeout(timer);
+                done({ frameMs: Math.round(performance.now() - start), visibility: document.visibilityState });
+              });
+            }),
+          wait,
+        )
+        .catch(() => null);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const late = new Promise<null>((done) => {
+        timer = setTimeout(() => done(null), wait + 500);
+      });
+      const got = await Promise.race([seen, late]);
+      clearTimeout(timer);
+      return {
+        path: new URL(page.url()).pathname,
+        width: page.viewportSize()?.width ?? 0,
+        responds: got !== null,
+        frameMs: got?.frameMs ?? null,
+        visibility: got?.visibility ?? null,
+      };
+    }),
+  );
+}
+
+/**
+ * context を閉じる。検査が落ちていた時は、閉じる前に頁ごとの様子と機械の負荷と空きの記憶を 1 行で `log` に書く (#3278)。
+ *
+ * 頁が描き替えを止めて落ちた時、何も残らないと止まった訳を調べられない。
+ * 通った検査では何も書かない = 一式の出力を落ちた検査の分だけにする
+ */
+export async function closeContextsAfter(contexts: BrowserContext[], failed: boolean, log: (line: string) => void = console.error): Promise<void> {
+  if (failed) {
+    const pages = await probePages(contexts.flatMap((c) => c.pages()));
+    const [load = 0] = loadavg();
+    log(`検査が落ちた時の頁と機械の様子 (#3278): ${JSON.stringify({ pages, load: Number(load.toFixed(1)), cores: cpus().length, freeMb: Math.round(freemem() / 2 ** 20) })}`);
+  }
+  await Promise.all(contexts.map((c) => c.close()));
+}
+
 export interface Site {
   origin: string;
   built: Built;
   /** 新しい context で頁を開く。開いた context は `closeContexts` で閉じる */
   open: (o?: OpenOptions) => Promise<Opened>;
+  /** 開いた context を全て閉じる。`afterEach` から呼ぶと、落ちた検査では閉じる前に頁の様子を残す (#3278) */
   closeContexts: () => Promise<void>;
   close: () => Promise<void>;
 }
@@ -202,7 +271,8 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
     built,
     open,
     closeContexts: async () => {
-      await Promise.all(contexts.splice(0).map((c) => c.close()));
+      // `afterEach` の間も vitest は今の検査を持ち、落ちた検査は既に `fail` になっている
+      await closeContextsAfter(contexts.splice(0), TestRunner.getCurrentTest()?.result?.state === "fail");
     },
     close: async () => {
       await browser.close();
