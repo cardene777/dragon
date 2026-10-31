@@ -48,6 +48,8 @@ const EDITOR = `${BASE}editor`;
 
 const OAUTH = example("oauth.dragon") ?? "";
 const CCIP = example("ccip.dragon") ?? "";
+/** 値の表を持たず、携帯の幅でも横長の全体図を窓の下に出す見本 (#3274) */
+const WALLET = example("wallet.dragon") ?? "";
 
 /** 記法の題。読めない記法なら `undefined` */
 const titleOf = (text: string): string | undefined => {
@@ -1058,10 +1060,11 @@ describe("公開する頁 (#2995)", () => {
     "editor-overview-beside-window-and-in-frame",
     async () => {
       // 寄って追う図になる幅で開く。携帯の幅と、記法と並べて図の枠が 560px になる幅 (#3042)。
-      // 縦長の全体図を持つ oauth は、携帯の幅では全体図を出さない (#3055) ので 860px だけで見る
+      // 縦長の全体図を持つ oauth (#3055) と値の表を持つ ccip (#3274) は、携帯の幅では全体図を出さないので 860px だけで見る。
+      // 携帯の幅は、表を持たず横長の全体図を出す wallet で見る
       const cases = [
         [860, "oauth", OAUTH],
-        [390, "ccip", CCIP],
+        [390, "wallet", WALLET],
         [860, "ccip", CCIP],
       ] as const;
       for (const [width, key, text] of cases) {

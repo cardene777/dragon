@@ -1106,8 +1106,12 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "catalog-follow-figure-whole-in-frame",
     async () => {
-      // 構成図の見本は、この 2 つの幅で寄って追う図になり、横長の全体図を窓の下に出す (#3042、#3044)
-      for (const width of [390, 860]) {
+      // 構成図の見本は、この 2 つの幅で寄って追う図になる。860px では横長の全体図を窓の下に出し (#3042、#3044)、
+      // 390px では値の表を持つので全体図を出さない (#3274)。全体図が無い時は `overview` が `null` になる
+      for (const [width, overview] of [
+        [390, null],
+        [860, true],
+      ] as const) {
         const { page } = await site.open({ path: `${BASE}catalog/architecture`, viewport: { width, height: 900 } });
         await onScreen(page, "category", `${width}px で構成図の分類の頁が出ない`);
         await expect.poll(async () => (await stageFigureOf(page))?.view, { ...WAIT, message: `${width}px で構成図の見本が寄って追う図にならない` }).toBe("follow");
@@ -1115,8 +1119,8 @@ describe("サイトの帯と経路 (#3030)", () => {
           .poll(async () => {
             const seen = await stageFigureOf(page);
             return { window: seen?.window, overview: seen?.overview };
-          }, { ...WAIT, message: `${width}px で寄って追う図の窓か全体図が図の枠からはみ出す` })
-          .toEqual({ window: true, overview: true });
+          }, { ...WAIT, message: `${width}px で寄って追う図の窓か全体図が図の枠からはみ出すか、全体図の有無が違う` })
+          .toEqual({ window: true, overview });
       }
     },
     SLOW,

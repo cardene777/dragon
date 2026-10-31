@@ -8,7 +8,7 @@
  * 置き場所は描いた `svg` の属性で読む。jsdom は配置を測れないが、窓と全体図の地は座標を属性に持つ。
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { exampleJson, type Json } from "./diagram-support";
+import { exampleJson, exampleSource, type Json } from "./diagram-support";
 import { draw, gap, type Player, type Rect } from "./render-support";
 
 type Diagramish = { [key: string]: Json };
@@ -21,12 +21,12 @@ const SAMPLES = [
 /**
  * 全体図を出す見本と枠の幅。時系列図 (oauth) は縦長の全体図を、構成図 (ccip) は横長の全体図を持つ。
  * 縦長の全体図は枠の幅が 440px より狭いと出さない (#3055) ので、oauth は境目の 440px と、記法と並べた編集画面の図の枠の幅 560px で見る。
- * 横長の全体図はどの幅でも出すので、ccip は携帯の幅 390px と 560px で見る
+ * 横長の全体図は表を持たない図ならどの幅でも出す。表を持つ図は狭い枠で全体図を出さない (#3274) ので、ccip は表を外して携帯の幅 390px で、表を持ったまま 560px で見る
  */
 const CASES = [
   ["oauth", "oauth.json", 440],
   ["oauth", "oauth.json", 560],
-  ["ccip", "ccip.json", 390],
+  ["ccip", "ccip.json#bare", 390],
   ["ccip", "ccip.json", 560],
 ] as const;
 /** 幅 1440px の画面の重ね窓の図の枠の幅。oauth の原寸の幅と全体図の列を並べても余る */
@@ -50,7 +50,7 @@ function mountSource(name: string, source: Json, width: number): SVGSVGElement {
   return svg as SVGSVGElement;
 }
 
-const mount = (file: string, width: number): SVGSVGElement => mountSource(file, exampleJson(file), width);
+const mount = (file: string, width: number): SVGSVGElement => mountSource(file, exampleSource(file), width);
 
 /** 2 本の生存線の間を 20 段行き来する時系列図。高さが幅の 4 倍を超え、全体図の大きさを窓の高さが決める */
 function tallSequence(): Json {
@@ -115,11 +115,11 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
         expect(overview.x + overview.w, `${name} / ${width}px の横長の全体図が窓の右へはみ出す`).toBeLessThanOrEqual(right + 1);
       }
       // 窓と全体図の間は 12px。縦長は窓の上端に、横長は窓の右端から 12px 内に揃え、図の幅は窓と全体図をちょうど包む (#3099)。
-      // 図の高さは窓と全体図の下の値の表までを包む (#3270)。図の幅と高さは端数を切り上げて書く。表の四角は 0.5px 内側に書かれる
+      // 図の高さは窓と全体図の下の値の表までを包み (#3270)、表を持たない図は横長の全体図の下端までを包む。図の幅と高さは端数を切り上げて書く。表の四角は 0.5px 内側に書かれる
       const view = rectOf(svg, ".dg-vp-bg") as Rect;
       const size = { w: Number(svg.getAttribute("width")), h: Number(svg.getAttribute("height")) };
-      const table = rectOf(svg, ".dg-strip") as Rect;
-      const tableEnd = Math.ceil(table.y + table.h + 0.5);
+      const table = rectOf(svg, ".dg-strip");
+      const tableEnd = table ? Math.ceil(table.y + table.h + 0.5) : Math.ceil(overview.y + overview.h);
       const place = tall
         ? { gap: overview.x - (view.x + view.w), edge: overview.y - view.y, w: size.w - Math.ceil(overview.x + overview.w), h: size.h - tableEnd }
         : { gap: overview.y - (view.y + view.h), edge: view.x + view.w - (overview.x + overview.w), w: size.w - Math.ceil(view.x + view.w), h: size.h - tableEnd };

@@ -563,7 +563,7 @@ function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
  * 縦長の全体図は窓の右に列を取り、横長の全体図は窓の下に置く。失う窓の幅か図の高さの小さい側を選ぶ。
  * 枠の中で見える高さを渡された時は、窓と全体図がその高さに入るまで窓を低くする (#3047)。
  * 枠が余る時は窓を広げ、図の原寸の幅と、見える高さか図の高さまで使う。全体図は今の大きさのまま置く (#3053)。
- * 枠の幅が `LOOK.follow.narrow` より狭い時は、縦長の全体図を出さずに窓へ枠の幅の全部を渡す (#3055)。
+ * 枠の幅が `LOOK.follow.narrow` より狭い時は、縦長の全体図を出さずに窓へ枠の幅の全部を渡す (#3055)。値の表を持つ図は、狭い枠では横長の全体図も出さない (#3274)。
  * 段で動く物を全部囲んだ所の真ん中に寄せると今の段の番号の丸が窓から外れる段では、丸に近い動く物から窓に収まるだけ囲んだ所へ寄せる (#3046)。
  * 時系列図は頭の箱 `heads` を窓の上端の頭の列に貼り、窓が横に動く時だけ一緒に動かす。頭の箱は図の上端に在り、線を追う窓からは外れるため。
  * 窓は頭の列の下の残りの高さで動く物を真ん中に見せる (#3118)。
@@ -592,11 +592,12 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
   };
   const natural = sized(Math.min(worldH, Math.max(F.minH, full * F.aspect)));
   // 携帯の幅では縦長の全体図の列が枠の幅の 3 割を取り、窓が図の横の 3 割ほどしか見せない。その時は全体図を出さない。
-  // 横長の全体図は窓の下に出して幅を取らないので、狭い枠でも出す
-  const bare = natural.beside && frameWidth < F.narrow;
+  // 横長の全体図は窓の下に出して幅を取らないので、狭い枠でも出す。
+  // ただし値の表を持つ図は、窓の下に全体図と表が重なって段を送る釦を最初の画面の外へ押し出すので、狭い枠では全体図を出さない (#3274)
+  const bare = frameWidth < F.narrow && (natural.beside || layout.strip !== undefined);
   const tableH = layout.strip ? rewrapStrip(layout.strip, 0, 0, full).h + M.inset : 0;
   // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図と表は窓の高さに足される
-  const room = follow.height === undefined ? Number.POSITIVE_INFINITY : (natural.beside ? follow.height : follow.height - natural.bgH - M.inset) - tableH;
+  const room = follow.height === undefined ? Number.POSITIVE_INFINITY : (natural.beside || bare ? follow.height : follow.height - natural.bgH - M.inset) - tableH;
   // 見える高さが窓より低ければ窓と全体図を縮め、高ければ全体図はそのままに窓を図の高さまで伸ばす。
   // 全体図も伸ばすと、狭い枠では右の全体図の列が太って窓が狭くなる
   const { vh, mw, k, mh, bw, bgW, bgH, beside } =
@@ -685,7 +686,8 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
     `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g>${head}</g>` +
     `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>${mini.body}`;
   const w = beside && !bare ? vw + M.inset + bgW : full;
-  const bottom = beside ? vh : bgY + bgH;
+  // 全体図を出さない時は、窓のすぐ下に表を置く
+  const bottom = beside || bare ? vh : bgY + bgH;
   if (!layout.strip) return { body, w, h: bottom };
   const table = rewrapStrip(layout.strip, 0, bottom + M.inset, full);
   return { body: body + drawTable(table, layout.strip), w, h: table.y + table.h };
