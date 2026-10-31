@@ -33,8 +33,8 @@ const CASES = [
 ] as const;
 /** 縦長の全体図を出さない、携帯の幅の枠 (#3055) */
 const NARROW = [360, 390, 430] as const;
-/** 枠の中で見える高さ。どちらも今の寄って追う図より低い */
-const HEIGHTS = [300, 400] as const;
+/** 見本ごとの、枠の中で見える高さ。どちらも今の寄って追う図より低く、窓の下限 (160px) と全体図と窓の下の値の表が入る (#3270) */
+const HEIGHTS = { oauth: [340, 400], ccip: [560, 640] } as const;
 /** 今の寄って追う図の窓より高い、枠の中で見える高さ。ccip は 700px で全体図の下までが枠いっぱいになり、900px で図の高さで止まる */
 const TALL = [700, 900] as const;
 /** 窓と、窓の下に置いた全体図の間 */
@@ -87,7 +87,7 @@ const viewOf = (svg: SVGSVGElement): string | null => svg.getAttribute("data-vie
 describe("寄って追う図を枠の中で見える高さに収める (#3047)", () => {
   it("follow-figure-fits-frame-height", () => {
     for (const [name, file, width] of CASES) {
-      for (const height of HEIGHTS) {
+      for (const height of HEIGHTS[name]) {
         const svg = mount(file, { width, height }, { fitHeight: true, view: "follow" });
         const label = `${name} / 枠 ${width} × ${height}px`;
         expect(viewOf(svg), `${label} が寄って追う図にならない`).toBe("follow");
@@ -102,7 +102,8 @@ describe("寄って追う図を枠の中で見える高さに収める (#3047)",
   it("follow-window-grows-to-frame-height", () => {
     // 窓の高さは枠が低い時に縮むだけで、枠が高い時は幅から決めた高さで止まり、枠の下が空いていた (#3053)
     for (const [name, file, width] of CASES) {
-      const figureHeight = draw("renderDiagram")(exampleJson(file)).layout.height;
+      // 窓が見るのは、値の表を除いた図の高さ (#3270)
+      const worldHeight = (draw("renderDiagram")(exampleJson(file)).layout as unknown as { strip: { y: number } }).strip.y;
       for (const height of TALL) {
         const label = `${name} / 枠 ${width} × ${height}px`;
         // 高さを頼まない時の窓と全体図が、今の寸法
@@ -110,10 +111,11 @@ describe("寄って追う図を枠の中で見える高さに収める (#3047)",
         const before = attr(natural, ".dg-vp-frame", "height") + 1;
         const mini = { w: attr(natural, ".dg-mm-bg", "width"), h: attr(natural, ".dg-mm-bg", "height") };
         const beside = attr(natural, ".dg-mm-bg", "y") === 0;
+        const table = attr(natural, ".dg-strip", "height") + 1 + INSET;
         reset();
         const svg = mount(file, { width, height }, { fitHeight: true, view: "follow" });
-        // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図はその分だけ窓の高さを減らす
-        const expected = Math.min(figureHeight, beside ? height : height - mini.h - INSET);
+        // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図と値の表はその分だけ窓の高さを減らす
+        const expected = Math.min(worldHeight, (beside ? height : height - mini.h - INSET) - table);
         expect(expected, `${label} の枠が今の窓より高くない`).toBeGreaterThan(before);
         expect(attr(svg, ".dg-vp-frame", "height") + 1, `${label} の窓の高さ`).toBeCloseTo(expected, 5);
         expect(attr(svg, ".dg-mm-bg", "width"), `${label} の全体図の幅が今と違う`).toBeCloseTo(mini.w, 5);

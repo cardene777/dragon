@@ -36,6 +36,8 @@ const NO_STRIP: Record<string, Record<number, [number, number, number, number]>>
 
 interface LaidStrip extends Rect {
   fields: { name: string; x: number; y: number; w: number }[];
+  /** 状態遷移図の通った状態の欄。名前は欄の名前と同じ形で描かれる */
+  trail?: { title: string; w: number };
 }
 
 const players: Player[] = [];
@@ -99,7 +101,8 @@ describe("寄って追う図の値の表を窓の外に置く (#3270)", () => {
         const figureWidth = Number(placed.figure.getAttribute("width"));
         const table = rectOf(placed.figure, ".dg-strip");
         if (table.x < 0 || table.x + table.w > figureWidth) out.push(`${label} の表が図の幅 ${figureWidth}px から外れる (${table.x} から ${table.x + table.w})`);
-        const laid = stripOf(placed.layout).fields;
+        const strip = stripOf(placed.layout);
+        const laid = [...strip.fields, ...(strip.trail ? [{ name: strip.trail.title, w: strip.trail.w }] : [])];
         const drawn = fieldNames(placed.figure);
         expect(drawn.length, `${label} の欄の数が配置と違う`).toBe(laid.length);
         for (const field of drawn) {
@@ -176,7 +179,8 @@ describe("寄って追う図の値の表を窓の外に置く (#3270)", () => {
     const table = rectOf(narrow, ".dg-strip");
     const narrowTitle = narrow.querySelector(".dg-sh");
     expect(new Set(stacked.map((f) => f.y)).size, "狭い枠で欄が折り返さない").toBeGreaterThan(1);
-    expect(stacked[0]?.x, "狭い枠で欄が左端から始まらない").toBeCloseTo(table.x + PAD, 0);
+    // 表の四角は 0.5px 内側に書かれる
+    expect(stacked[0]?.x, "狭い枠で欄が左端から始まらない").toBeCloseTo(table.x - 0.5 + PAD, 1);
     expect(stacked[0]?.y, "狭い枠で欄が題の下に並ばない").toBeGreaterThan(Number(narrowTitle?.getAttribute("y")));
   });
 
@@ -189,6 +193,7 @@ describe("寄って追う図の値の表を窓の外に置く (#3270)", () => {
     const last = placed.steps - 1;
     const dot = placed.badgeAt(last);
     const table = rectOf(placed.figure, ".dg-strip");
+    expect(dot.x - dot.r, "番号の丸の左が図の端で切れる").toBeGreaterThanOrEqual(0);
     expect(dot.x, "番号の丸が表の横から外れる").toBeGreaterThanOrEqual(table.x);
     expect(dot.x, "番号の丸が表の横から外れる").toBeLessThanOrEqual(table.x + table.w);
     expect(dot.y, "番号の丸が表の縦から外れる").toBeGreaterThanOrEqual(table.y);

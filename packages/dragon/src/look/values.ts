@@ -344,7 +344,7 @@ export const LOOK = {
   /**
    * `trail` は状態遷移図の帯の最後の、通った状態の点 (#3171)。`r` は点の半径、`step` は点の中心どうしの間、`now` は変わった値の欄の名前の横の点の半径と、名前からの離れ
    */
-  strip: { h: 72, line: 44, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43, trail: { r: 5.4, step: 16 }, now: { r: 3, gap: 7 } },
+  strip: { h: 72, line: 44, titleRow: 40, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43, trail: { r: 5.4, step: 16 }, now: { r: 3, gap: 7 } },
   /** `time` から始まる値は時間軸の図 (#3165) の、目盛りの印の枠、拡大の枠、時刻の線、範囲の括弧と囲み、節目へ下ろす点線、節目の丸、針、物差しの線の印 */
   stroke: {
     git: 2.25,

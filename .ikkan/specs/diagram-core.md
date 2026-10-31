@@ -109,9 +109,9 @@
 | 画面の大きさ 1024 × 768、1280 × 720、1440 × 900 で時系列図のカタログの頁の oauth の見本を拡大の重ね窓で開いた時、寄って追う図の窓が図の原寸の横幅の全部を見せる | `pnpm test`の検査`overlay-follow-window-shows-whole-width`が通る | #3053 |
 | 画面の大きさ 390 × 844 と 1440 × 900 で oauth の見本を拡大の重ね窓で開いた時、窓の高さと図の枠の中で見える高さの差が 1px 以下で、窓と全体図が図の枠の中に収まる | `pnpm test`の検査`overlay-follow-window-fills-frame-height`が通る | #3053 |
 | 枠の幅が図の原寸の幅と全体図の列を足した幅より広い時 (oauth、枠の幅 1200px)、寄って追う図の窓の幅が図の原寸の幅と同じで、全体図が窓の右に重ならずに出る | `pnpm test`の検査`follow-window-takes-figure-width`が通る | #3053 |
-| 高さに収めると頼んだ時 (`fitHeight`)、枠の中で見える高さが今の窓より高ければ、窓の高さが見える高さ (全体図を下に置く時はその分を除く) と図の高さの小さい方になり、全体図の大きさは今と同じ (oauth と ccip) | `pnpm test`の検査`follow-window-grows-to-frame-height`が通る | #3053 |
+| 高さに収めると頼んだ時 (`fitHeight`)、枠の中で見える高さが今の窓より高ければ、窓の高さが見える高さ (全体図と値の表を下に置く分を除く) と値の表を除いた図の高さの小さい方になり、全体図の大きさは今と同じ (oauth と ccip) | `pnpm test`の検査`follow-window-grows-to-frame-height`が通る | #3053 |
 | 高さに収めると頼まない時、窓の高さは今と同じく枠の幅から決まる | `pnpm test`の検査`follow-window-height-from-width`が通る | #3053 |
-| 枠の中で見える高さが今の窓より低い時、窓と全体図がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3053 |
+| 枠の中で見える高さが今の窓より低く、窓の下限 160px と全体図と値の表が入る時、窓と全体図と値の表がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3053 |
 | 寄って追う図の全体図が窓に重ならずに窓の外に出る | `pnpm test`の検査`overview-outside-window`が通る | #3053 |
 | 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3053 |
 | 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3053 |
@@ -122,7 +122,7 @@
 | 全体図を出す時、全体図が窓に重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3055 |
 | 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3055 |
 | 全体図を出す時、全体図が今見ている所の枠と札を持つ | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3055 |
-| 枠の中で見える高さが今の窓より低い時、窓と全体図がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3055 |
+| 枠の中で見える高さが今の窓より低く、窓の下限 160px と全体図と値の表が入る時、窓と全体図と値の表がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3055 |
 | 枠の中で見える高さが今の窓より高い時、窓が伸び、全体図の大きさは変わらない | `pnpm test`の検査`follow-window-grows-to-frame-height`が通る | #3055 |
 | `--lang` なしで書き出した HTML を幅 440px で開いた時、再生の釦と全体図の札が日本語で出る | `pnpm test`の検査`export-without-lang-is-japanese`が通る | #3055、#3137 |
 | 書き出しの命令に言葉を渡した時、再生の釦と全体図の札がその言葉で出る | `pnpm test`の検査`export-lang-flag`が通る | #3055 |
@@ -152,20 +152,20 @@
 | 指で触る端末を模して画面の大きさ 1366 × 1024 の oauth の編集画面で、次の釦で段が 1 つ進み、前の釦で 1 つ戻り、再生の釦で動き出して止めるの釦に替わり、段を 1 つずつ最後まで送ってもどの段でも帯の高さが 1 段目と同じ | `pnpm test`の検査`coarse-player-buttons-work`が通る | #3076 |
 | 指で触る端末を模して画面の大きさ 1024 × 1366 と 1366 × 1024 で oauth と ccip を拡大の重ね窓と編集画面で開いた時、帯は横 1 列のまま (釦と番号と題が同じ段に並び、本文が題の下で題と同じ左端から始まる) | `pnpm test`の検査`coarse-caption-stays-one-row`が通る | #3076 |
 | oauth と ccip を寄って追う図にして枠の幅 390px と 560px (編集画面の幅 390px と 860px の図の枠) に置き、段 1 から最後の段まで送った時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3046 |
-| 構成図 (ccip) を同じ 2 つの枠の幅に置いた時、今の形で丸が窓に全部見えている段は、窓の位置が `ba9784a2` の時と同じ。時系列図の窓の位置は、頭の列の下へ寄せる位置に変えた (#3118) | `pnpm test`の検査`follow-window-keeps-fitting-steps`が通る | #3046 |
+| 構成図 (ccip) を同じ 2 つの枠の幅に置いた時、今の形で丸が窓に全部見えている段は、窓の位置が `ba9784a2` の時と同じで、窓が値の表を除いた図の下端で止まる段だけが #3270 の位置に在る。時系列図の窓の位置は、頭の列の下へ寄せる位置に変えた (#3118) | `pnpm test`の検査`follow-window-keeps-fitting-steps`が通る | #3046 |
 | 動く物を全部囲んだ範囲が窓に収まらず丸が外れていた段で、丸に近い動く物を窓に入れる。ccip の段 13 では、丸の隣の OffRamp の箱が窓に全部入り、oauth の段 9、11、12 では、今の段の線の両端が窓に入る | `pnpm test`の検査`follow-window-holds-badge-neighbors`が通る | #3046 |
 | oauth を寄って追う図にして枠の幅 390px と 560px (編集画面の幅 390px と 860px の図の枠) に置き、段 9、11、12 の止め絵の時刻にした時、書き換わった字 (トークンを持つ、データを返した、ログイン済み) が、窓の上端に貼った頭の列の中で窓の枠の内側に見える | `pnpm test`の検査`follow-heads-show-swapped-text`が通る | #3118 |
 | 同じ 2 つの置き方で、どの段の止め絵でも、頭の列が窓の上端に在り、頭の列の横の位置が窓の中身の横の位置と同じ (頭の箱が自分の生存線の真上に在る) | `pnpm test`の検査`follow-heads-track-window-x`が通る | #3118 |
 | 同じ 2 つの置き方で、どの段でも今の段の番号の丸が、頭の列より下の窓に全部入る | `pnpm test`の検査`follow-badge-below-heads`が通る | #3118 |
 | 同じ 2 つの置き方で、頭の字が書き換わらない段 (段 1 から 8 と段 10) は、窓が頭の列の下の残りの高さで線を真ん中に見せる位置に止まる。止まる位置の値は、頭の列を 2 段にした #3120 の行が持つ | `pnpm test`の検査`follow-sequence-window-under-heads`が通る | #3118 |
-| 構成図 (ccip) を枠の幅 390px と 560px に寄って追う図で置いた時、頭の列を持たず、丸が見えていた段の窓の位置が `8e2b0c09` の時と同じ | `pnpm test`の検査`follow-window-keeps-fitting-steps`が通る | #3118 |
+| 構成図 (ccip) を枠の幅 390px と 560px に寄って追う図で置いた時、頭の列を持たず、丸が見えていた段の窓の位置が `8e2b0c09` の時と同じで、窓が値の表を除いた図の下端で止まる段だけが #3270 の位置に在る | `pnpm test`の検査`follow-window-keeps-fitting-steps`が通る | #3118 |
 | oauth と ccip を同じ 4 つの置き方にした時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる (#3046) | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3118 |
 | ccip の段 13 で丸の隣の OffRamp の箱が窓に全部入り、oauth の段 9、11、12 で今の段の線の両端が窓に入る (#3046) | `pnpm test`の検査`follow-window-holds-badge-neighbors`が通る | #3118 |
 | 止めて見せる図 (`renderDiagram` が返す SVG) は、時系列図でも頭の列を持たない | `pnpm test`の検査`fixed-view-has-no-heads-strip`が通る | #3118 |
 | oauth を寄って追う図にして枠の幅 390px と 560px (編集画面の幅 390px と 860px の図の枠) に置いた時、窓の上の頭の列の頭の箱はアイコンを持たず、名前と下の字の 2 段で、箱の高さが 40px、頭の列の高さが 56px | `pnpm test`の検査`follow-heads-two-rows`が通る | #3120 |
 | 同じ 2 つの置き方で、頭の列の頭の箱ごとに、名前が下の字より上に在り、どちらも箱の中に在る | `pnpm test`の検査`follow-heads-two-rows`が通る | #3120 |
 | 同じ 2 つの置き方で、頭の列の下の線を見せる高さが、枠の幅 390px で 264px、560px で 364px | `pnpm test`の検査`follow-heads-leave-line-room`が通る | #3120 |
-| 同じ 2 つの置き方で、頭の字が書き換わらない段 (段 1 から 8 と段 10) の窓が、線を図の頭の箱の下から見せ始める位置に止まる。#3118 の位置より中ほどの段で 20px、図の上端の段 (段 1 と 2) で 40px 下に在る | `pnpm test`の検査`follow-sequence-window-under-heads`が通る | #3120 |
+| 同じ 2 つの置き方で、頭の字が書き換わらない段 (段 1 から 8 と段 10) の窓が、線を図の頭の箱の下から見せ始める位置に止まる。#3118 の位置より中ほどの段で 20px、図の上端の段 (段 1 と 2) で 40px 下に在り、枠の幅 560px の段 10 は値の表を除いた図の下端で止まる (#3270) | `pnpm test`の検査`follow-sequence-window-under-heads`が通る | #3120 |
 | 同じ 2 つの置き方で、どの段の止め絵でも、図の頭の箱が頭の列の下か窓の上に隠れ、頭の列より下の窓に見えない | `pnpm test`の検査`follow-heads-cover-figure-heads`が通る | #3120 |
 | 同じ 2 つの置き方で、段 9、11、12 の止め絵の時刻に、書き換わった字が窓の上端の頭の列の中に見える (#3118) | `pnpm test`の検査`follow-heads-show-swapped-text`が通る | #3120 |
 | 同じ 2 つの置き方で、どの段でも今の段の番号の丸が頭の列より下の窓に全部入る (#3118) | `pnpm test`の検査`follow-badge-below-heads`が通る | #3120 |
@@ -289,3 +289,14 @@
 | HTML に書き出した時、形のある字が入る字の file は図で使った字だけを含み、図で描く字はどれかの字の file に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #3213 |
 | 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #3213 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3213 |
+| 表を持つ9種の見本を枠の幅 321px と 565px と 778px に寄って追う図で置いた時、表 (`.dg-strip`) の左端と右端が図の幅の中に在り、全ての欄の名前と値が表の内側に在る | `pnpm test`の検査`follow-strip-whole-in-figure`が通る | #3270 |
+| oauth と ccip を枠の幅 390px と 560px に寄って追う図で置いた時、表は窓の中身の動く組の外に描かれ、窓の枠と全体図の地の下に重ならずに在る | `pnpm test`の検査`follow-strip-below-window`が通る | #3270 |
+| 表を持つ見本の寄って追う図で、窓の下端が表の無い図の下端を超えず、全体図も表を除いた図を映す | `pnpm test`の検査`follow-window-stops-above-strip`が通る | #3270 |
+| 枠の高さを渡した寄って追う図 (oauth と ccip) で、窓と全体図と表を合わせた高さが渡した高さを超えない | `pnpm test`の検査`follow-strip-fits-height`が通る | #3270 |
+| 寄って追う図の表は、欄が1行に収まる幅では題の右に欄を並べ、収まらない幅では題に1行を取って欄を左端から並べる | `pnpm test`の検査`follow-strip-wraps-by-width`が通る | #3270 |
+| 表の値だけが変わる段の番号の丸は、寄って追う図では窓の中ではなく表の上に出て、窓はその段で動かない | `pnpm test`の検査`follow-strip-step-badge-on-strip`が通る | #3270 |
+| 画面の大きさ 1280 × 800 で時系列図の OAuth の見本を開き最後の段まで送った時、表の全ての欄が図の枠 (`.dg-frame`) の内側に在る | `pnpm test`の検査`catalog-follow-strip-whole`が通る | #3270 |
+| 止めて見せる図の表は、図の中の今の位置と幅のまま描かれる | `pnpm test`の検査`fixed-figure-keeps-strip-in-figure`が通る | #3270 |
+| 表を持たない見本の寄って追う図は、窓の幅と高さが今と同じ | `pnpm test`の検査`follow-no-strip-window-kept`が通る | #3270 |
+| oauth と ccip を寄って追う図にして枠の幅 390px と 560px に置いた時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3270 |
+| 画面の大きさ 1280 × 800 で、カタログの全部の見本の図の枠の中身の高さが枠の高さを超えない | `pnpm test`の検査`catalog-tall-figure-not-clipped`が通る | #3270 |

@@ -114,13 +114,15 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
         expect(overview.y, `${name} / ${width}px の横長の全体図が窓の下に無い`).toBeGreaterThanOrEqual(bottom);
         expect(overview.x + overview.w, `${name} / ${width}px の横長の全体図が窓の右へはみ出す`).toBeLessThanOrEqual(right + 1);
       }
-      // 窓と全体図の間は 12px。縦長は窓の上端に、横長は窓の右端から 12px 内に揃え、図は窓と全体図をちょうど包む (#3099)。
-      // 図の幅と高さは端数を切り上げて書く
+      // 窓と全体図の間は 12px。縦長は窓の上端に、横長は窓の右端から 12px 内に揃え、図の幅は窓と全体図をちょうど包む (#3099)。
+      // 図の高さは窓と全体図の下の値の表までを包む (#3270)。図の幅と高さは端数を切り上げて書く。表の四角は 0.5px 内側に書かれる
       const view = rectOf(svg, ".dg-vp-bg") as Rect;
       const size = { w: Number(svg.getAttribute("width")), h: Number(svg.getAttribute("height")) };
+      const table = rectOf(svg, ".dg-strip") as Rect;
+      const tableEnd = Math.ceil(table.y + table.h + 0.5);
       const place = tall
-        ? { gap: overview.x - (view.x + view.w), edge: overview.y - view.y, w: size.w - Math.ceil(overview.x + overview.w), h: size.h - Math.ceil(view.y + view.h) }
-        : { gap: overview.y - (view.y + view.h), edge: view.x + view.w - (overview.x + overview.w), w: size.w - Math.ceil(view.x + view.w), h: size.h - Math.ceil(overview.y + overview.h) };
+        ? { gap: overview.x - (view.x + view.w), edge: overview.y - view.y, w: size.w - Math.ceil(overview.x + overview.w), h: size.h - tableEnd }
+        : { gap: overview.y - (view.y + view.h), edge: view.x + view.w - (overview.x + overview.w), w: size.w - Math.ceil(view.x + view.w), h: size.h - tableEnd };
       for (const [key, value] of Object.entries({ gap: 12, edge: tall ? 0 : 12, w: 0, h: 0 })) {
         expect(place[key as keyof typeof place], `${name} / ${width}px の全体図の ${key} が ${value}px でない`).toBeCloseTo(value, 5);
       }
