@@ -15,7 +15,7 @@ import introEn from "../../../packages/dragon/examples/intro.en.dragon?raw";
 import oauthJa from "../../../packages/dragon/examples/oauth.dragon?raw";
 import oauthEn from "../../../packages/dragon/examples/oauth.en.dragon?raw";
 
-import { type Diagram, parseNotation } from "@cardenelabs/dragon";
+import { type Diagram, parseNotation } from "@cardenelabs/dragon/light";
 
 import { laterChunk } from "./site/later";
 import type { Lang } from "./text";

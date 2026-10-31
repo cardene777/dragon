@@ -127,7 +127,6 @@ export interface GitLayout extends Layout {
   moves: GitMove[];
 }
 
-export const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "git";
 
 /** 札が留まる所。commit と、その commit の上の札の段 (0 から数える) */
 interface Slot {

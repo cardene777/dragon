@@ -7,7 +7,7 @@
  * 用例の札は概要に並べる見本 (`HOME_USES`) の 3 つから作り、題と図の種類と説明は見本の file から読む (`exampleInfo`)。
  * 見た目は前の `styles/home.css` を `home.css` に写した。
  */
-import { parseNotation, type Theme } from "@cardenelabs/dragon";
+import { parseNotation, type Theme } from "@cardenelabs/dragon/light";
 import { type ReactElement, useMemo, useState } from "react";
 
 import { exampleInfo, firstScreenText, HOME_USES, TEMPLATE } from "../examples";

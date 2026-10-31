@@ -7,10 +7,12 @@
  * 寄って追う見せ方は小さな枠では動く所だけが大きく映り、何の図かが分からないため。
  * `json` を渡すと、記法ではなく原本の JSON の字として読む (#3034、使い方の JSON の節)。
  */
-import { type Diagram, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon";
+import { type Diagram, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
 import { type ReactElement, useEffect, useMemo, useRef } from "react";
 
 import type { Lang } from "../text";
+import { useKind } from "./kinds";
+import { KindState } from "./KindState";
 
 interface Props {
   notation: string;
@@ -52,6 +54,7 @@ export function LiveFigure({ notation, lang, theme, palette, whole = false, json
     if (!read) return null;
     return whole ? { ...read, view: "fixed" } : read;
   }, [notation, whole, json]);
+  const ready = useKind(diagram?.kind).status === "ready";
   // 段の知らせ先は描くたびに替わりうるので、置き直さずに最新の物を呼ぶ
   const stepTo = useRef(onStep);
   useEffect(() => {
@@ -60,10 +63,14 @@ export function LiveFigure({ notation, lang, theme, palette, whole = false, json
 
   useEffect(() => {
     const el = host.current;
-    if (!el || !diagram) return;
+    if (!el || !diagram || !ready) return;
     const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: (step) => stepTo.current?.(step) });
     return () => player.destroy();
-  }, [diagram, palette, theme, lang]);
+  }, [diagram, ready, palette, theme, lang]);
 
-  return <div ref={host} className={className} />;
+  return (
+    <div ref={host} className={className}>
+      <KindState kind={diagram?.kind} lang={lang} />
+    </div>
+  );
 }

@@ -6,7 +6,7 @@
  * 差し色は色味ごとに決めた色相の字の色 (`t-*`) で、釦の上の字は図の色味の表が持つ差し色の上の字 (`on-c`)。
  * `main.tsx` がこの値を html に置き、部品は `--d-*` の変数だけを読む。
  */
-import { DEFAULT_PALETTE, PALETTES, resolvePalette, type Theme } from "@cardenelabs/dragon";
+import { DEFAULT_PALETTE, PALETTES, resolvePalette, type Theme } from "@cardenelabs/dragon/light";
 
 /** 色味ごとの差し色の色相。紙と墨は朱、澄んだ色と夜の計器は青 */
 const ACCENT_HUE: Readonly<Record<string, string>> = { paper: "rose", clear: "blue", night: "blue" };

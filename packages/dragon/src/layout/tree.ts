@@ -92,7 +92,6 @@ export interface TreeLayout extends Layout {
   runs: TreeRun[];
 }
 
-export const isTreeLayout = (layout: Layout): layout is TreeLayout => layout.kind === "tree";
 
 /** 書いた順の木の箱。子は書いた後の、まだ親を持たない木の箱だけを残す */
 interface Grown {

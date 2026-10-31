@@ -12,7 +12,7 @@
  * 2 面の下には、この図の種類で使える部品の札を部品の表の並びで置き、部品の頁へ飛べるようにする (#3166)。
  * 経路の `#` の後ろに分類の見本の名前がある時 (`/catalog/sequence#payment`) は、その見本を選んだ状態で開く (#3167)。
  */
-import { type Diagram, PALETTES, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon";
+import { type Diagram, PALETTES, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
 import { type CSSProperties, type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "../editor/fit";
@@ -20,6 +20,7 @@ import { useFittedFigure } from "../editor/useFittedFigure";
 import { type ExampleKey, exampleInfo, exampleText, LATER_EXAMPLES } from "../examples";
 import { toHash } from "../share";
 import { useLater } from "../site/later";
+import { KindState } from "../site/KindState";
 import { follow, PATHS } from "../site/routes";
 import { usePhone } from "../site/usePhone";
 import { useRoom } from "../site/useRoom";
@@ -407,6 +408,7 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
             {t.stage.phase(step + 1, count, now.title)}
           </p>
         )}
+        <KindState kind={diagram?.kind} lang={lang} />
         <div className="pg-player" ref={host} />
       </div>
       {view === "figure" && (phased || now?.body) && (
@@ -548,6 +550,7 @@ function Overlay({ sample, lang, theme, palette, onClose }: OverlayProps): React
           className="catalog-overlay-stage pg-figure"
           style={fit ? ({ "--fig-w": `${fit.width * fit.scale}px` } as CSSProperties) : undefined}
         >
+          <KindState kind={diagram?.kind} lang={lang} />
           <div className="pg-player" ref={host} />
         </div>
       </div>

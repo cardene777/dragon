@@ -79,7 +79,6 @@ export interface LineupLayout extends Layout {
   picks: LineupPick[];
 }
 
-export const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
 
 /** 列の右上に出る字と、その字の形。段の中の `note` は太い字で描く */
 function notesOf(diagram: Diagram, id: string, sub: string | undefined): number[] {

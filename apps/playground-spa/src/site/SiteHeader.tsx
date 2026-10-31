@@ -6,7 +6,7 @@
  * 色味の切替はサイトの色と全部の図の色味を替える (#3033)。色味は図の色味の表 (`PALETTES`) の順に並べる。
  * 幅 720 以下 (指で触る時は 900 以下、#3075) では行き先と色味の切替を畳み、開く釦から出す面に置く。
  */
-import { type Palette, PALETTES, type Theme } from "@cardenelabs/dragon";
+import { type Palette, PALETTES, type Theme } from "@cardenelabs/dragon/light";
 import { type CSSProperties, type ReactElement, useEffect, useState } from "react";
 
 import { type Lang, TEXT } from "../text";

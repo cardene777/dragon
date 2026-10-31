@@ -10,7 +10,7 @@
  */
 import type { TimeBox, TimeLayout } from "../layout/time";
 import { hasWide } from "../layout/measure";
-import { EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
+import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { Diagram } from "../schema";
 import type { Span, Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
@@ -20,9 +20,6 @@ const r1 = (v: number): number => Math.round(v * 100) / 100;
 
 /** 和文を含む字に、同じ大きさと太さの和文の字の class を足す */
 const ja = (cls: string, text: string): string => (hasWide(text) ? `${cls} ${cls}j` : cls);
-
-/** 和文を含む字の、和文の字で描く時の字の形 */
-export const sansOf = (t: TextStyle): TextStyle => ({ ...t, family: "sans" });
 
 /** 真っ直ぐ進む動きの並びから、向きの変わらない間の点を除く。keyframes の数を減らすため */
 export function simplify(keys: [number, number][]): [number, number][] {

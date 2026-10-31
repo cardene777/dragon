@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
-import { api, exampleJson, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
+import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
 import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, readGif, runCli } from "./export-support";
 import { draw } from "./render-support";
 
@@ -318,6 +318,35 @@ describe("書き出し (#2986)", () => {
       const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
       const html = readFileSync(result.files.html as string, "utf8");
       expect(await playerButtons(html, 1024, true), "指で触る幅 1024px で、段を送る釦が 44x44 でない").toEqual(["44x44", "44x44", "44x44"]);
+    },
+    SLOW,
+  );
+
+  it(
+    "html-export-draws-every-kind",
+    async () => {
+      // 書き出した HTML に埋める script は全ての種類を持ち、部品を後から読まない (#3248)。頁の外を読めない形で全ての段を送る
+      const exportDiagram = await exporter();
+      const parse = api("parseNotation");
+      const kinds: Record<string, string> = {
+        architecture: "ccip.dragon",
+        git: "rebase.dragon",
+        lineup: "auction.dragon",
+        sequence: "api.dragon",
+        state: "order.dragon",
+        time: "finality.dragon",
+        tree: "merkle.dragon",
+      };
+      for (const [kind, file] of Object.entries(kinds)) {
+        const parsed = parse(exampleText(file));
+        expect(parsed.ok, `見本 ${file} の記法を読めない`).toBe(true);
+        if (!parsed.ok) continue;
+        const diagram = parsed.diagram as { kind?: string; steps: unknown[] };
+        expect(diagram.kind ?? "architecture", `見本 ${file} の種類`).toBe(kind);
+        const result = await exportDiagram(parsed.diagram, { outDir: scratch(), formats: ["html"] });
+        const html = readFileSync(result.files.html as string, "utf8");
+        expect(await captionSteps(html, 1280), `${kind} の書き出した HTML で送れた段の数`).toHaveLength(diagram.steps.length);
+      }
     },
     SLOW,
   );

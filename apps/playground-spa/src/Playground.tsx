@@ -16,13 +16,14 @@
 import {
   type Diagram,
   describeOverlap,
+  kindLoaded,
   parseNotation,
   printNotation,
   readDiagram,
   renderDiagram,
   type Theme,
-} from "@cardenelabs/dragon";
-import { type ReactElement, useLayoutEffect, useMemo, useRef, useState } from "react";
+} from "@cardenelabs/dragon/light";
+import { type ReactElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { fieldNotices, jsonErrorLine, lineNotices, type Notice } from "./editor/notices";
 import { insertLines, type PartId, partLines } from "./editor/shelf-items";
@@ -30,6 +31,7 @@ import { Shelf } from "./editor/Shelf";
 import { Stage } from "./editor/Stage";
 import { type ExampleKey, exampleText, FIRST_EXAMPLE, firstScreenText, LATER_EXAMPLES, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
 import { fromHash, toHash } from "./share";
+import { kindFailed, onKindSettled } from "./site/kinds";
 import { useLater } from "./site/later";
 import { type Lang, TEXT } from "./text";
 
@@ -41,7 +43,8 @@ interface Problem {
   notices: Notice[];
 }
 
-type Outcome = { ok: true; diagram: Diagram } | { ok: false; problem: Problem };
+/** 図の種類の部品を待つ間は誤りを持たない失敗で返し、前の図を残す (#3248) */
+type Outcome = { ok: true; diagram: Diagram } | { ok: false; problem: Problem | null };
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -52,6 +55,9 @@ const messageOf = (error: unknown): string => (error instanceof Error ? error.me
 function check(input: unknown, lang: Lang, json?: string): Outcome {
   const read = readDiagram(input, { lang });
   if (!read.ok) return { ok: false, problem: { lang, notices: fieldNotices(read.errors, json) } };
+  if (!kindLoaded(read.diagram.kind)) {
+    return { ok: false, problem: kindFailed(read.diagram.kind) ? { lang, notices: [{ text: TEXT[lang].site.catalog.loadFailed }] } : null };
+  }
   try {
     renderDiagram(read.diagram);
   } catch (error) {
@@ -328,6 +334,17 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     }
   };
 
+  // 図の種類の塊が届いたら、書いてある中身を読み直す。待っていた種類の図に替わり、読めなかった種類は誤りを出す (#3248)
+  const reread = useRef<() => void>(() => undefined);
+  useLayoutEffect(() => {
+    reread.current = () => {
+      const outcome = tab === "json" ? fromJson(json, lang) : fromNotation(text, lang);
+      if (outcome.ok) accept(outcome.diagram);
+      else setProblem(outcome.problem);
+    };
+  });
+  useEffect(() => onKindSettled(() => reread.current()), []);
+
   // 描くたびに今の書く欄の中身を読む処理を渡し直す。編集画面を離れたら外す
   useLayoutEffect(() => {
     onBeforeLang(switchLang);
@@ -507,6 +524,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
         overlaps={overlaps}
         jump={jump}
         fileName={asFileName(fileName)}
+        waiting={drawn === null && problem === null && tab === "notation"}
       />
     </div>
   );

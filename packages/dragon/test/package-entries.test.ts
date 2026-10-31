@@ -7,7 +7,7 @@
  * ここでは package の中から自分の名前で引き (Node の self-reference)、使う人と同じ解き方で確かめる。
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { builtinModules, createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -77,6 +77,27 @@ describe("package の入口 (#3021)", () => {
     expect({ require: typeof required.migrateFile, import: typeof imported.migrateFile }, "Node の入口から原本の file を移す部品を引く").toEqual({
       require: "function",
       import: "function",
+    });
+  });
+
+  it("light-entry-browser-safe", () => {
+    // 軽い入口と種類の部品の塊を頁を束ねる道具が読む (#3248)。既定の入口と同じく Node の組み込みの module を読まない
+    const light = manifest().exports["./light"];
+    expect(light, "exports に ./light が在る").toBeDefined();
+    if (light === undefined) return;
+    const files = targets(light).filter((path) => !/\.d\.c?ts$/.test(path));
+    expect(files, "軽い入口の file").toEqual(["./dist/light/index.js", "./dist/light/index.cjs"]);
+    const chunks = readdirSync(join(ROOT, "dist/light")).filter((file) => /\.c?js$/.test(file));
+    expect(chunks.length, "軽い入口と種類の部品の塊の file の数").toBeGreaterThan(files.length);
+    const read = chunks.flatMap((file) => nodeBuiltinsRead(join(ROOT, "dist/light", file)));
+    expect(read, "軽い入口と種類の部品の塊が読む Node の組み込みの module").toEqual([]);
+
+    const require = createRequire(MANIFEST);
+    const loaded = require(`${manifest().name}/light`) as { loadKind?: unknown; renderDiagram?: unknown; readDiagram?: unknown };
+    expect({ loadKind: typeof loaded.loadKind, renderDiagram: typeof loaded.renderDiagram, readDiagram: typeof loaded.readDiagram }, "軽い入口が出す部品").toEqual({
+      loadKind: "function",
+      renderDiagram: "function",
+      readDiagram: "function",
     });
   });
 

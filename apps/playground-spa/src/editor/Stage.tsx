@@ -10,9 +10,10 @@
  * 段を 2 つ以上持つ図は、左上に今の段の札を、下端に段の数で区切った進み具合の帯を出す。
  * 字の重なりがある時は、今の段で重なる字を再生の部品に点線で囲ませ、知らせの欄の段の札で頼まれた段へ移って止める (#3178)。
  */
-import { type Diagram, type Overlap, PALETTES, type Player, type Theme } from "@cardenelabs/dragon";
+import { type Diagram, type Overlap, PALETTES, type Player, type Theme } from "@cardenelabs/dragon/light";
 import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
 
+import { FigureWaiting } from "../site/KindState";
 import { usePhone } from "../site/usePhone";
 import { type Lang, TEXT } from "../text";
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "./fit";
@@ -33,6 +34,8 @@ interface Props {
   overlaps: Overlap[];
   /** 知らせの欄の段の札で頼まれた移り先。`count` が増えるたびに移る */
   jump: { step: number; count: number } | null;
+  /** 最初に開いた図の種類の部品を待っている (#3248)。前の図があれば前の図を残すので立てない */
+  waiting: boolean;
 }
 
 /** 語りの字の倍率の段と範囲 */
@@ -60,7 +63,7 @@ function Tool({ name, icon, label, onClick, pressed, disabled }: ToolProps): Rea
   );
 }
 
-export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName, overlaps, jump }: Props): ReactElement {
+export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName, overlaps, jump, waiting }: Props): ReactElement {
   const t = TEXT[lang];
   const stage = useRef<HTMLElement>(null);
   const host = useRef<HTMLDivElement>(null);
@@ -181,6 +184,7 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
           </p>
         )}
         {kept && <p className="pg-kept">↺ {t.kept}</p>}
+        {waiting && <FigureWaiting lang={lang} />}
         <div className="pg-player" ref={host} />
       </div>
 

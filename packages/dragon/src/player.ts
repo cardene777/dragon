@@ -18,7 +18,7 @@
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
-import { drawSvg, paletteOf, type RenderOptions, renderDiagram } from "./render/svg";
+import { drawSvg, paletteOf, type RenderOptions, renderDiagram } from "./render/draw";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
 

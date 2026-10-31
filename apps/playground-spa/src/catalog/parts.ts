@@ -16,7 +16,7 @@
  *
  * 部品の頁は、その部品の語を 1 つでも使う見本を並べる (#3167)。見本が語を使うかは、見本の記法から作った原本の JSON の形で決める。
  */
-import { type Diagram, type DiagramEvent, parseNotation } from "@cardenelabs/dragon";
+import { type Diagram, type DiagramEvent, parseNotation } from "@cardenelabs/dragon/light";
 
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, LATER_EXAMPLES } from "../examples";
 import { laterChunk } from "../site/later";

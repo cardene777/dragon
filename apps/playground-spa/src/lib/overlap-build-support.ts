@@ -14,7 +14,7 @@ import base from "../../vite.config";
 const at = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 
 /** package の元の code の入口と、重なりを探す所と、その代わりに読ませる file */
-const ENTRY = at("../../../../packages/dragon/src/index.ts");
+const ENTRY = at("../../../../packages/dragon/src/light.ts");
 const INK = at("../../../../packages/dragon/src/render/ink.ts");
 const PAIRED = at("./overlap-ink-support.ts");
 
@@ -32,6 +32,6 @@ const pairedInk = (): Plugin => ({
 export default defineConfig((env) =>
   mergeConfig(base(env), {
     plugins: [pairedInk()],
-    resolve: { alias: [{ find: /^@cardenelabs\/dragon$/u, replacement: ENTRY }] },
+    resolve: { alias: [{ find: /^@cardenelabs\/dragon\/light$/u, replacement: ENTRY }] },
   }),
 );

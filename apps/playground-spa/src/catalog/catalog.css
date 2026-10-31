@@ -780,6 +780,18 @@
   height: clamp(360px, 58vh, 620px);
 }
 
+/* 図の種類の部品が届くまで図の場所に出す枠 (#3248)。図の高さは部品を読むまで分からないので決まった高さにする */
+.figure-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  height: 100%;
+  margin: 0;
+  font-size: 14px;
+  color: var(--d-text-secondary);
+}
+
 /* 後から読む塊を読めなかった時の一言と読み直す釦 (#3246)。図の枠の真ん中に置く */
 .catalog-later-failed {
   display: flex;

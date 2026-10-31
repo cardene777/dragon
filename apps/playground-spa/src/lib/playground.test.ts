@@ -1212,6 +1212,8 @@ describe("公開する頁 (#2995)", () => {
     expect(first.filter((name) => sizes[name] === undefined), "最初に読む file が build の assets に無い").toEqual([]);
     const report = `最初に読む script と CSS が gzip で ${kb(loaded)} (${JSON.stringify(Object.fromEntries(first.map((name) => [name, sizes[name]])))})、全部の塊の合計が ${kb(all)}`;
     expect(loaded, report).toBeLessThanOrEqual(290 * 1024);
+    // 種類の描く部品を後から読む形にした分を確かめる (#3248)。分ける前の実測は 246.8KB で、後から読む 5 種類の部品で約 10KB 減る
+    expect(loaded, report).toBeLessThanOrEqual(237 * 1024);
     // 分ける前は最初に読む量が全部の合計と同じだった (0.44.0 の後の main で 277.59KB)。見本と部品の図の記法は gzip で 20KB を超えるので、
     // 外せば全部の合計より 20KB 以上小さくなる
     expect(all - loaded, report).toBeGreaterThanOrEqual(20 * 1024);
@@ -1223,10 +1225,13 @@ describe("公開する頁 (#2995)", () => {
     for (const [path, text] of sources) {
       // 図を描くのは package の部品だけ。頁の側で SVG を組まない
       expect(text, `${path} が SVG を組んでいる`).not.toMatch(/createElementNS|<svg\b/u);
-      // package の中の file を直に読まず、公開している入口から読む。字の入口は使い方の頁の本文が `` ` `` で囲んで名指す (#3155)
-      expect(text, `${path} が package の中の file を直に読んでいる`).not.toMatch(/@cardenelabs\/dragon\/(?!fonts["'`])|packages\/dragon\/src/u);
+      // package の中の file を直に読まず、公開している入口から読む。字の入口は使い方の頁の本文が `` ` `` で囲んで名指す (#3155)。図の部品は軽い入口から読む (#3248)
+      expect(text, `${path} が package の中の file を直に読んでいる`).not.toMatch(/@cardenelabs\/dragon\/(?!(?:fonts|light)["'`])|packages\/dragon\/src/u);
+      // 既定の入口を 1 か所でも読むと、全ての種類の部品が頁に入る (型だけの読み込みは消えるので数えない)
+      expect(text, `${path} が既定の入口から部品を読んでいる`).not.toMatch(/^import (?!type )[^;]*from\s+["']@cardenelabs\/dragon["']/mu);
       if (/\b(mountDiagram|renderDiagram)\b/u.test(text)) {
-        expect(text, `${path} が描く部品を @cardenelabs/dragon から読んでいない`).toMatch(/from\s+["']@cardenelabs\/dragon["']/u);
+        // 使い方の頁の本文は、読者に既定の入口の書き方を見せる。実際に読む形は上の検査が既定の入口を止める
+        expect(text, `${path} が描く部品を @cardenelabs/dragon から読んでいない`).toMatch(/from\s+["']@cardenelabs\/dragon(?:\/light)?["']/u);
       }
     }
   });

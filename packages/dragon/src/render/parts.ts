@@ -99,6 +99,9 @@ export interface Ctx {
   traces: Trace[];
 }
 
+/** 和文を含む字の、和文の字で描く時の字の形 */
+export const sansOf = (t: TextStyle): TextStyle => ({ ...t, family: "sans" });
+
 /**
  * 字を 1 つ描き、字の四角と見えている間を `ink` に記録する (#3175)。`ink` を渡さない字 (寄って追う窓の頭の列) は記録しない。
  * `anchor` を渡さない字は左端を `x` に置き、`text-anchor` を書かない

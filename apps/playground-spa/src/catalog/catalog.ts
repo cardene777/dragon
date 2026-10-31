@@ -4,7 +4,7 @@
  * 分類は図の種類で、並びは図の種類の名前の表 (`TEXT.ja.shelf.kinds`) の順。
  * 見本は `examples.ts` の見本を、記法を読んだ図の種類で束ねる。件数は束ねた数で、手で書かない。
  */
-import type { Diagram } from "@cardenelabs/dragon";
+import type { Diagram } from "@cardenelabs/dragon/light";
 
 import { EXAMPLE_KEYS, type ExampleKey, exampleInfo } from "../examples";
 import { TEXT } from "../text";

@@ -22,11 +22,14 @@
 | `packages/dragon/src/timeline.ts` | 段ごとの時刻の表 | 動きを持つ種類は、段の長さをここで決める |
 | `packages/dragon/src/layout/<種類>.ts` | 置き方 | 字の幅は英語の見本でも確かめる |
 | `packages/dragon/src/render/<種類>.ts` | 描き方 | 色と字の大きさを直に書かない。`renderers-read-values-from-one-table` が落ちる |
-| `packages/dragon/src/render/svg.ts` | 種類ごとの描き分けの入口 | 新しい種類の分かれ道を足す |
+| `packages/dragon/src/render/draw.ts` | 種類ごとの描き分けの本体 | 新しい種類の分かれ道を足す。種類の部品は `kindParts` で登録簿から引き、直に読まない |
+| `packages/dragon/src/kinds/<種類>.ts` | その種類の描く部品をまとめて出す | 種類ごとに 1 つ置く |
+| `packages/dragon/src/kinds/registry.ts` と `packages/dragon/src/kinds/all.ts` と `packages/dragon/src/light.ts` | 種類の登録簿と全部入りの登録と後から読む入口 | 3 つとも新しい種類を足す。足さないと軽い入口で読めない |
 | `packages/dragon/src/render/parts.ts` | 種類をまたいで使う描き方の部品 | 使い回す時だけ触る |
 | `packages/dragon/src/render/icons.ts` | 図の中の印 | 印を持つ種類だけ触る |
 | `packages/dragon/src/look/values.ts` | 色と寸法の値の表 | 描き方が使う値はここにだけ置く |
-| `packages/dragon/src/index.ts` | package の公開の入口 | 外から使う型と関数を出す |
+| `packages/dragon/src/api.ts` | 既定の入口と軽い入口が共に出す部品 | 外から使う型と関数を出す |
+| `packages/dragon/src/index.ts` | 既定の入口 | 触らない。`api.ts` が出す物を全部出し、全ての種類を登録する |
 | `packages/dragon/test/<名前>.test.ts` | 足した種類の検査と、既存の検査の一覧 | 新しい語をほかの種類では名札として読む検査を置く。書き方の文書を名指す検査は `notation.test.ts` と `notation-language.test.ts` と `release-records.test.ts` が持つ |
 | `packages/dragon/examples/` | 見本の記法と書き出した絵、手引き | 日本語と英語の見本をそろえる。見本の file の最初の注釈の行に作業の番号を書かない |
 | `packages/dragon/README.md` | package の README の記法の節 | 行の頭の語と、その種類の小節の例を足す |
@@ -61,9 +64,10 @@
 | `packages/dragon/src/field-messages.ts` | 原本の欄の誤りの文 | 日本語と英語の両方に足す |
 | `packages/dragon/src/player.ts` | 再生の部品 | 押すと動く部品 (飛び先など) だけ触る |
 | `packages/dragon/src/render/parts.ts` | 種類をまたいで使う描き方の部品 | 2つ以上の種類で描く部品はここに置く |
-| `packages/dragon/src/render/svg.ts` | 描き分けの入口 | 部品を描く分かれ道を足す |
+| `packages/dragon/src/render/draw.ts` | 描き分けの本体 | 部品を描く分かれ道を足す |
 | `packages/dragon/src/render/<種類>.ts` | その種類だけの描き方 | 色と字の大きさを直に書かない。`renderers-read-values-from-one-table` が落ちる |
-| `packages/dragon/src/index.ts` | package の公開の入口 | 外から使う型を出す |
+| `packages/dragon/src/api.ts` | 既定の入口と軽い入口が共に出す部品 | 外から使う型を出す |
+| `packages/dragon/src/index.ts` | 既定の入口 | 触らない。`api.ts` が出す物を全部出す |
 | `packages/dragon/test/<名前>.test.ts` | 部品の検査 | 読んで書き戻す検査と、名札として読む検査を置く |
 | `packages/dragon/examples/` | 手引き | 日本語と英語の手引きの両方に部品の書き方を足す |
 | `packages/dragon/README.md` | package の README の記法の節 | 部品の語と例を足す |
