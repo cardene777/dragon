@@ -46,6 +46,31 @@ function 下限を満たす(値: unknown): boolean {
   return typeof 値 === "number" && Number.isFinite(値) && 値 >= 下限;
 }
 
+/**
+ * 同時に動かす数の上限 (#3268)。 既定の数より 4 のほうが一式が短かった。
+ * 待ち時間と逆向きに上限で見るのは、減らす向きの変更を止めないため
+ */
+const 同時の上限 = 4;
+
+/** 同時に動かす数として受け付ける値か */
+function 同時の上限を満たす(値: unknown): boolean {
+  return typeof 値 === "number" && Number.isInteger(値) && 値 >= 1 && 値 <= 同時の上限;
+}
+
+describe("一式を同時に動かす数を留める (#3268)", () => {
+  it("max-workers-within-limit", () => {
+    const 値 = 待ち時間を読む(設定の字, "maxWorkers");
+    expect(同時の上限を満たす(値), `同時に動かす数が ${同時の上限} を超えるか書かれていない (実際: ${String(値)})`).toBe(true);
+  });
+
+  it("max-workers-check-rejects-unset-and-larger", () => {
+    // 何でも通す判定だと、設定から消えても通ってしまう
+    expect(同時の上限を満たす(待ち時間を読む("globals: false,", "maxWorkers")), "書かれていない状態を通している").toBe(false);
+    expect(同時の上限を満たす(待ち時間を読む("maxWorkers: 11,", "maxWorkers")), "上限を超える数を通している").toBe(false);
+    expect(同時の上限を満たす(待ち時間を読む("maxWorkers: 2,", "maxWorkers")), "減らす向きの値を落としている").toBe(true);
+  });
+});
+
 describe("一式の待ち時間が既定より長い (#2087)", () => {
   it("設定を読めている", () => {
     // 読めていなければ、以下の検査は通って当然になる
