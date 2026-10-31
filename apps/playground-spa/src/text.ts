@@ -5,6 +5,9 @@
  */
 export type Lang = "ja" | "en";
 
+/** 状態の欄で数える図の部品 (#3261) */
+export type CountedPart = "box" | "branch" | "row" | "lane";
+
 export const TEXT = {
   ja: {
     title: "dragon — 文章で書くと、動く図になる",
@@ -210,7 +213,8 @@ export const TEXT = {
     editor: "図の記法を書く欄",
     fold: "畳む",
     unfold: "開く",
-    readable: (boxes: number, steps: number) => `読めています — 箱 ${boxes} つ、段 ${steps}`,
+    readable: (part: CountedPart, count: number, steps: number) =>
+      `読めています — ${{ box: `箱 ${count} つ`, branch: `枝 ${count} 本`, row: `印の列 ${count} 本`, lane: `列 ${count} 本` }[part]}、段 ${steps}`,
     notJson: (message: string) => `JSON として読めない — ${message}`,
     cannotDraw: (message: string) => `描けない — ${message}`,
     kept: "誤りがあるあいだは、最後に描けた図を出しています",
@@ -525,8 +529,8 @@ export const TEXT = {
     editor: "Diagram notation",
     fold: "Hide",
     unfold: "Show",
-    readable: (boxes: number, steps: number) =>
-      `Reads fine — ${boxes} ${boxes === 1 ? "box" : "boxes"}, ${steps} ${steps === 1 ? "step" : "steps"}`,
+    readable: (part: CountedPart, count: number, steps: number) =>
+      `Reads fine — ${count} ${count === 1 ? part : { box: "boxes", branch: "branches", row: "rows", lane: "lanes" }[part]}, ${steps} ${steps === 1 ? "step" : "steps"}`,
     notJson: (message: string) => `Not valid JSON — ${message}`,
     cannotDraw: (message: string) => `Cannot draw — ${message}`,
     kept: "Showing the last diagram that drew",

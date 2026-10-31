@@ -253,7 +253,7 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       expect(waiting, "塊を待つ間に前の図の数が残る").not.toContain(shown);
       gate?.release();
       await expect.poll(() => status(page).getAttribute("data-state"), { ...WAIT, message: "塊が届いても待つ間の状態のまま" }).toBe("ok");
-      expect(await status(page).innerText(), "塊が届いた後に新しい図の数が出ない").toContain("箱 0 つ、段 1");
+      expect(await status(page).innerText(), "塊が届いた後に新しい図の数が出ない").toContain("枝 1 本、段 1");
 
       // 待つ種類の記法を載せた URL で開いた時。別の種類の塊が届くと読み直して待つ状態に入るので、開いた時の状態だけを見るよう全ての塊を止める
       const held: ReturnType<typeof holdChunk>[] = [];
