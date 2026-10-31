@@ -255,17 +255,18 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       await expect.poll(() => status(page).getAttribute("data-state"), { ...WAIT, message: "塊が届いても待つ間の状態のまま" }).toBe("ok");
       expect(await status(page).innerText(), "塊が届いた後に新しい図の数が出ない").toContain("箱 0 つ、段 1");
 
-      // 待つ種類の記法を載せた URL で開いた時
-      let held: ReturnType<typeof holdChunk> | undefined;
+      // 待つ種類の記法を載せた URL で開いた時。別の種類の塊が届くと読み直して待つ状態に入るので、開いた時の状態だけを見るよう全ての塊を止める
+      const held: ReturnType<typeof holdChunk>[] = [];
       const shared = await site.open({
         path: `${BASE}editor${toHash(git)}`,
         prepare: (p) => {
-          held = holdChunk(p, name);
+          for (const kind of Object.keys(LATER_KINDS)) held.push(holdChunk(p, chunkNamed(kind)));
         },
       });
-      await expect.poll(() => status(shared.page).getAttribute("data-state"), { ...WAIT, message: "URL で開いた時に待つ間の状態にならない" }).toBe("waiting");
+      await expect.poll(() => screenOf(shared.page), { ...WAIT, message: "編集画面が出ない" }).toBe("editor");
+      expect(await status(shared.page).getAttribute("data-state"), "URL で開いた時に待つ間の状態にならない").toBe("waiting");
       expect(await status(shared.page).innerText(), "URL で開いた時に読み込み中と出ない").toContain("読み込み中");
-      held?.release();
+      for (const gate of held) gate.release();
     },
     SLOW,
   );
