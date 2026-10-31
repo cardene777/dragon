@@ -14,10 +14,17 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Lang } from "../text";
 import { fitScale } from "./fit";
 
-/** 止めて見せる図の原寸の幅と、枠に合わせた倍率 */
+/** 測った図と、止めて見せる図の原寸の幅と、枠に合わせた倍率と、その倍率の図を送らずに見せる枠の高さ */
 export interface Fit {
+  /** 測った図。図を替えた直後は前の図を測った値が残るので、見比べて捨てる時に使う */
+  diagram: Diagram;
   width: number;
   scale: number;
+  /**
+   * 枠に合わせた倍率 (拡大と縮小を掛ける前) の図を、上下の余白ごと収める枠の高さ (px)。
+   * 字の下限で止まった図は今の枠より高くなる。枠を図に合わせて伸ばす置き場が使う (カタログの見本、#3250)
+   */
+  frame: number;
 }
 
 interface Options {
@@ -75,7 +82,11 @@ export function useFittedFigure(
       // 高さに収める時は、再生の部品が止めて見せる図を選ぶ字の大きさを下限にする。
       // 下限が違うと、部品が止めて見せる図を選んだのに、ここで縮めるのを止めて送りが残る (#3047)
       const readable = fitHeight ? VIEW_READABLE_PX : undefined;
-      setFit({ width: view.width, scale: fitScale(inner, { width: view.width, height: view.height }, namePx, readable) });
+      const scale = fitScale(inner, { width: view.width, height: view.height }, namePx, readable);
+      // 切り上げで、伸ばした枠の中で測り直しても倍率が下がらない (図の高さが枠の中の高さを超えない)。
+      // 割り算の誤差で 1px 伸び続けないよう、0.01px 未満の端数は切り上げない
+      const frameHeight = Math.ceil(view.height * scale - 0.01) + px(style.paddingTop) + px(style.paddingBottom);
+      setFit({ diagram, width: view.width, scale, frame: frameHeight });
     };
     // 再生の部品も同じ枠を見て見せ方を選び直すので、その後に測る (先に見始めた方が先に呼ばれる)
     const observer = new ResizeObserver(measure);
