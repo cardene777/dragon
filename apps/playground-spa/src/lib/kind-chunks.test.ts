@@ -202,6 +202,53 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
   );
 
   it(
+    "stage-waiting-in-first-view",
+    async () => {
+      const name = chunkNamed("lineup");
+      const stage = '[data-catalog="stage"]';
+      /** 枠は図の高さを取って画面より伸びるので、枠ではなく字そのものの下端を測る */
+      const textBottom = (page: Page): Promise<number> =>
+        page.locator(`${stage} [data-figure="waiting"]`).evaluate((el) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          return range.getBoundingClientRect().bottom;
+        });
+      const waitingOn = async (viewport: { width: number; height: number }): Promise<Page> => {
+        const { page } = await site.open({
+          path: `${BASE}catalog/lineup`,
+          viewport,
+          reducedMotion: "reduce",
+          prepare: (p) => {
+            holdChunk(p, name);
+          },
+        });
+        await expect.poll(() => page.locator(`${stage} [data-figure="waiting"]`).count(), { ...WAIT, message: "待つ枠が出ない" }).toBe(1);
+        return page;
+      };
+
+      const pc = await waitingOn({ width: 1366, height: 720 });
+      expect(await textBottom(pc), "読み込み中の字が最初の画面の外に出る").toBeLessThanOrEqual(720);
+
+      const phone = await waitingOn({ width: 390, height: 844 });
+      const stageTop = await phone.locator(stage).evaluate((el) => el.getBoundingClientRect().top);
+      expect((await textBottom(phone)) - stageTop, "幅 390 で読み込み中の字が枠の上端から遠い").toBeLessThanOrEqual(120);
+
+      const failed = await site.open({
+        path: `${BASE}catalog/lineup`,
+        viewport: { width: 1366, height: 720 },
+        reducedMotion: "reduce",
+        prepare: async (p) => {
+          await p.route(`**/assets/${name}`, (route) => route.abort());
+        },
+      });
+      const reload = failed.page.locator(`${stage} button[data-catalog="reload"]`);
+      await expect.poll(() => reload.count(), { ...WAIT, message: "読み直す button が出ない" }).toBe(1);
+      expect(await reload.evaluate((el) => el.getBoundingClientRect().bottom), "読み直す button が最初の画面の外に出る").toBeLessThanOrEqual(720);
+    },
+    SLOW,
+  );
+
+  it(
     "editor-keeps-figure-while-kind-loads",
     async () => {
       const name = chunkNamed("git");

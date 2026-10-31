@@ -811,6 +811,17 @@
   color: var(--d-text-secondary);
 }
 
+/* 種類の頁の枠は画面より下へ伸びるので、字と釦を真ん中ではなく上寄りに置き、開いた画面で見えるようにする (#3264) */
+[data-catalog="stage"] > .figure-waiting {
+  align-items: flex-start;
+  padding-top: 40px;
+}
+
+[data-catalog="stage"] > .catalog-later-failed {
+  justify-content: flex-start;
+  padding-top: 40px;
+}
+
 .catalog-later-reload {
   min-height: 36px;
   padding: 0 16px;
