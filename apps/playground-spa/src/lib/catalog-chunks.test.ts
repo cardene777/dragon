@@ -214,8 +214,11 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
       const gate = new Promise<void>((resolve) => {
         release = resolve;
       });
+      // 木の図の最初の見本 (Merkle 木) は決めた高さの枠に収まらず、図を測った後に枠を伸ばす (#3250)。
+      // 枠を伸ばすのは図の高さが分かってからなので、記法が届く前に保てるのは収まる図の高さだけ。
+      // 最初の見本が収まり、かつ後から読む塊に入る列の図の頁で見る
       const { page } = await site.open({
-        path: `${BASE}catalog/tree`,
+        path: `${BASE}catalog/lineup`,
         viewport: { width: 1440, height: 900 },
         reducedMotion: "reduce",
         prepare: async (p) => {
@@ -226,7 +229,7 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
           });
         },
       });
-      await onScreen(page, "category", "木の図の頁が出ない");
+      await onScreen(page, "category", "列の図の頁が出ない");
       await expect.poll(() => held, { ...WAIT, message: "見本の塊を読みに行かない" }).toBe(true);
       const stage = page.locator('[data-catalog="stage"]');
       await expect.poll(() => stage.count(), { ...WAIT, message: "見本の塊が届く前に図の枠が無い" }).toBe(1);
