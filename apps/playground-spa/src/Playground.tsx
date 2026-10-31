@@ -43,8 +43,10 @@ interface Problem {
   notices: Notice[];
 }
 
-/** 図の種類の部品を待つ間は誤りを持たない失敗で返し、前の図を残す (#3248) */
-type Outcome = { ok: true; diagram: Diagram } | { ok: false; problem: Problem | null };
+/** 図の種類の部品を待っている印。誤りとは別に持ち、図の側は前の図を残し、状態の欄は読み込み中を出す (#3248, #3259) */
+const KIND_WAITING = "waiting";
+
+type Outcome = { ok: true; diagram: Diagram } | { ok: false; problem: Problem | typeof KIND_WAITING };
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -56,7 +58,7 @@ function check(input: unknown, lang: Lang, json?: string): Outcome {
   const read = readDiagram(input, { lang });
   if (!read.ok) return { ok: false, problem: { lang, notices: fieldNotices(read.errors, json) } };
   if (!kindLoaded(read.diagram.kind)) {
-    return { ok: false, problem: kindFailed(read.diagram.kind) ? { lang, notices: [{ text: TEXT[lang].site.catalog.loadFailed }] } : null };
+    return { ok: false, problem: kindFailed(read.diagram.kind) ? { lang, notices: [{ text: TEXT[lang].site.catalog.loadFailed }] } : KIND_WAITING };
   }
   try {
     renderDiagram(read.diagram);
@@ -154,7 +156,9 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   const [json, setJson] = useState("");
   const [example, setExample] = useState<ExampleKey | null>(first.example);
   const [drawn, setDrawn] = useState<Diagram | null>(first.outcome.ok ? first.outcome.diagram : null);
-  const [problem, setProblem] = useState<Problem | null>(first.outcome.ok ? null : first.outcome.problem);
+  const [blocked, setBlocked] = useState<Problem | typeof KIND_WAITING | null>(first.outcome.ok ? null : first.outcome.problem);
+  const waitingKind = blocked === KIND_WAITING;
+  const problem = waitingKind ? null : blocked;
   /*
    * 図の側で選んだ色味を、選んだ時の帯の色味と組で持つ。
    * 帯の色味が替わると組が食い違うので、戻す処理を別に書かずに帯の色味へ戻る。
@@ -204,7 +208,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   /** 描けた図を受け取る。中身が同じなら置き直さず、動きを最初から数え直さない */
   const accept = (diagram: Diagram): void => {
     setDrawn((before) => (before && JSON.stringify(before) === JSON.stringify(diagram) ? before : diagram));
-    setProblem(null);
+    setBlocked(null);
   };
 
   const writeNotation = (next: string): void => {
@@ -213,14 +217,14 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     share(next);
     const outcome = fromNotation(next, lang);
     if (outcome.ok) accept(outcome.diagram);
-    else setProblem(outcome.problem);
+    else setBlocked(outcome.problem);
   };
 
   const writeJson = (next: string): void => {
     setJson(next);
     const outcome = fromJson(next, lang);
     if (!outcome.ok) {
-      setProblem(outcome.problem);
+      setBlocked(outcome.problem);
       return;
     }
     accept(outcome.diagram);
@@ -243,7 +247,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     if (outcome.ok) {
       accept(outcome.diagram);
       setJson(asJson(outcome.diagram));
-    } else setProblem(outcome.problem);
+    } else setBlocked(outcome.problem);
   };
 
   /** 見本を開く。棚はまだ届いていない見本を出さないので、届いていない見本は開かない */
@@ -302,11 +306,11 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     if (next === "json") {
       // JSON の側には最後に描けた図を出す。記法の誤りはこの側の誤りではない
       setJson(asJson(drawn));
-      setProblem(null);
+      setBlocked(null);
       return;
     }
     const outcome = fromNotation(text, lang);
-    setProblem(outcome.ok ? null : outcome.problem);
+    setBlocked(outcome.ok ? null : outcome.problem);
   };
 
   /** 帯が言葉を `next` に替える前に呼ぶ。言葉そのものは帯が替える */
@@ -314,7 +318,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     // JSON の側に誤りが出ている間は、書いた JSON を見本に替えずに残し、誤りを替えた頁の言葉で出し直す
     if (tab === "json" && problem) {
       const outcome = fromJson(json, next);
-      if (!outcome.ok) setProblem(outcome.problem);
+      if (!outcome.ok) setBlocked(outcome.problem);
       return;
     }
     // 見本か新規作成の雛形をそのまま開いている時だけ、それも替えた言葉の版に替える。書き換えた中身は替えない
@@ -330,7 +334,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     // 記法の誤りは頁の言葉で出すので、替えた頁の言葉で出し直す
     if (tab === "notation" && problem) {
       const outcome = fromNotation(text, next);
-      if (!outcome.ok) setProblem(outcome.problem);
+      if (!outcome.ok) setBlocked(outcome.problem);
     }
   };
 
@@ -340,7 +344,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     reread.current = () => {
       const outcome = tab === "json" ? fromJson(json, lang) : fromNotation(text, lang);
       if (outcome.ok) accept(outcome.diagram);
-      else setProblem(outcome.problem);
+      else setBlocked(outcome.problem);
     };
   });
   useEffect(() => onKindSettled(() => reread.current()), []);
@@ -452,7 +456,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
             }}
           />
         </div>
-        <div className="pg-notices" data-playground="status" data-state={problem ? "error" : "ok"} role="status">
+        <div className="pg-notices" data-playground="status" data-state={problem ? "error" : waitingKind ? "waiting" : "ok"} role="status">
           {problem && said ? (
             <>
               <p className="pg-notices-head">
@@ -477,6 +481,8 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
                 ))}
               </ul>
             </>
+          ) : waitingKind ? (
+            <p className="pg-waiting">{t.site.catalog.loading}</p>
           ) : (
             <>
               <p className="pg-ok">
@@ -524,7 +530,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
         overlaps={overlaps}
         jump={jump}
         fileName={asFileName(fileName)}
-        waiting={drawn === null && problem === null && tab === "notation"}
+        waiting={drawn === null && waitingKind}
       />
     </div>
   );
