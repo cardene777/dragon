@@ -34,6 +34,33 @@ const NO_STRIP: Record<string, Record<number, [number, number, number, number]>>
   wallet: { 390: [390, 320, 390, 464], 560: [560, 387, 560, 539] },
 };
 
+/** 電話の幅の枠。全体図を出す枠の幅の下限 (`LOOK.follow.narrow`、440px) より狭い */
+const PHONE_FRAMES = [360, 390, 430] as const;
+/** 窓と表の間 (`LOOK.mini.inset`) */
+const INSET = 12;
+
+/**
+ * 表を持つ見本を電話の幅の枠に置いた時の、窓の幅と高さ。`5e84321b` の時の値で、全体図を出さなくしても変えない (#3274)
+ */
+const PHONE_WINDOW: Record<string, Record<number, [number, number]>> = {
+  oauth: { 360: [360, 320], 390: [390, 320], 430: [430, 322.5] },
+  payment: { 360: [360, 320], 390: [390, 320], 430: [404, 320] },
+  ccip: { 360: [360, 320], 390: [390, 320], 430: [430, 322.5] },
+  finality: { 360: [360, 320], 390: [390, 320], 430: [430, 322.5] },
+  withdraw: { 360: [360, 197.1], 390: [390, 197.1], 430: [430, 197.1] },
+  merkle: { 360: [360, 320], 390: [390, 320], 430: [430, 322.5] },
+  order: { 360: [360, 320], 390: [390, 320], 430: [430, 322.5] },
+  rebase: { 360: [360, 320], 390: [390, 320], 430: [430, 322.5] },
+  merge: { 360: [360, 320], 390: [390, 320], 430: [430, 322.5] },
+};
+
+/** 表を持つ見本を全体図を出す幅の枠に置いた時の、図の幅と高さ。`5e84321b` の時の値 */
+const WIDE_FIGURE: Record<string, Record<number, [number, number]>> = {
+  ccip: { 560: [560, 664], 778: [778, 689] },
+  finality: { 560: [560, 730], 778: [728, 816] },
+  order: { 560: [560, 683], 778: [778, 732] },
+};
+
 interface LaidStrip extends Rect {
   fields: { name: string; x: number; y: number; w: number }[];
   /** 状態遷移図の通った状態の欄。名前は欄の名前と同じ形で描かれる */
@@ -223,6 +250,47 @@ describe("寄って追う図の値の表を窓の外に置く (#3270)", () => {
         const win = rectOf(figure, 'clipPath[id^="dg-vp-"] rect');
         const size = [win.w, win.h, Number(figure.getAttribute("width")), Number(figure.getAttribute("height"))];
         expect(size, `${name} / 枠の幅 ${width}px の窓か図の大きさが変わった`).toEqual(sizes[width]);
+      }
+    }
+  });
+});
+
+describe("電話の幅では、表を持つ寄って追う図に全体図を出さない (#3274)", () => {
+  it("follow-strip-narrow-drops-overview", () => {
+    const out: string[] = [];
+    for (const name of WITH_STRIP) {
+      for (const width of PHONE_FRAMES) {
+        const { figure } = place(name, `${name}.json`, width);
+        const label = `${name} / 枠の幅 ${width}px`;
+        if (figure.querySelector(".dg-mm-bg, .dg-mm-world, .dg-mm-vp, .dg-mm-t")) out.push(`${label} に全体図が在る`);
+        // 表の四角は 0.5px 内側に書かれる。図の高さは端数を切り上げて書く
+        const win = rectOf(figure, 'clipPath[id^="dg-vp-"] rect');
+        const table = rectOf(figure, ".dg-strip");
+        if (Math.abs(table.y - 0.5 - (win.h + INSET)) > 0.01) out.push(`${label} の表が窓の 12px 下に無い (${table.y - 0.5})`);
+        const height = Number(figure.getAttribute("height"));
+        if (height !== Math.ceil(table.y - 0.5 + table.h + 1)) out.push(`${label} の図の高さ ${height} が窓と表の高さでない`);
+      }
+    }
+    expect(out, "電話の幅で全体図が場所を取る").toEqual([]);
+  });
+
+  it("follow-strip-narrow-keeps-window", () => {
+    for (const [name, sizes] of Object.entries(PHONE_WINDOW)) {
+      for (const width of PHONE_FRAMES) {
+        const { figure } = place(name, `${name}.json`, width);
+        const win = rectOf(figure, 'clipPath[id^="dg-vp-"] rect');
+        expect([win.w, win.h], `${name} / 枠の幅 ${width}px の窓の大きさが変わった`).toEqual(sizes[width]);
+      }
+    }
+  });
+
+  it("follow-strip-wide-keeps-overview", () => {
+    for (const [name, sizes] of Object.entries(WIDE_FIGURE)) {
+      for (const width of [560, 778]) {
+        const { figure } = place(name, `${name}.json`, width);
+        expect(figure.querySelector(".dg-mm-bg"), `${name} / 枠の幅 ${width}px に全体図が無い`).not.toBeNull();
+        const size = [Number(figure.getAttribute("width")), Number(figure.getAttribute("height"))];
+        expect(size, `${name} / 枠の幅 ${width}px の図の大きさが変わった`).toEqual(sizes[width]);
       }
     }
   });

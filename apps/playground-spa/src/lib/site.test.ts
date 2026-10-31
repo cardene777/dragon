@@ -2130,6 +2130,29 @@ describe("サイトの帯と経路 (#3030)", () => {
   );
 
   it(
+    "narrow-editor-step-buttons-on-first-screen",
+    async () => {
+      // 表を窓の下へ移して図が高くなり、幅 360px では段を送る釦が最初の画面の外に出た (#3274)
+      for (const viewport of PHONES.slice(0, 2)) {
+        for (const key of EXAMPLE_KEYS) {
+          const page = await openEditor(viewport, key, true);
+          await expect
+            .poll(
+              () =>
+                page.evaluate(() => {
+                  const next = document.querySelector('[data-playground="stage"] [data-dragon="next"]')?.getBoundingClientRect();
+                  return next ? next.bottom <= innerHeight && scrollY === 0 : null;
+                }),
+              { ...WAIT, message: `${viewport.width} × ${viewport.height} の編集画面の ${key} で、段を送る釦が最初の画面の外に在る` },
+            )
+            .toBe(true);
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
     "narrow-editor-figure-starts-higher",
     async () => {
       // 札を出さない分だけ図の枠の上の余白が詰まり、記法の欄が最初の画面に多く見える (#3061)。
