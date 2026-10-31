@@ -19,3 +19,18 @@
 # reason = """
 # 何が弱いか。版を動かせない理由と、届かない理由。期限に見るもの。
 # """
+
+# minimatch の glob の前処理が、渡された型で項目を増やし、組ごとの比べで CPU と記憶を使い切る (#3251)。
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2027-01-31
+reason = """
+弱い処理は minimatch の `firstPhasePreProcess` で、`optimizationLevel` を 2 以上にした時だけ通る。
+直った版は 11.0.1 だけで、ESLint の部品が受け付ける範囲の外にある。
+`minimatch@3.1.5` は `@eslint/config-array@0.21.2` と `@eslint/eslintrc@3.3.5` と `eslint-plugin-import@2.32.0` が
+`^3` で読み、11 系は既定の書き出しを持たないので差し替えると読めなくなる。 3.1.5 は弱い処理そのものを持たない。
+`minimatch@10.2.5` は `@typescript-eslint/typescript-estree@8.62.0` が `^10.2.2` で読み、`optimizationLevel` を渡さないので
+既定の 1 のまま動き、弱い処理に届かない。
+どれも lint の開発用の依存で公開する package には入らず、渡す型は repo の ESLint の設定に書いた物だけ。
+期限には eslint と typescript-eslint と eslint-plugin-import の新しい版が minimatch 11 系を読むようになったかを見る。
+"""
