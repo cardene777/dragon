@@ -13,4 +13,5 @@
 | 5種類の塊が届かない間、その種類の図の場所に決まった高さの枠と「読み込み中」を出し、届いたら図に替わる | `pnpm exec vitest run apps/playground-spa/src/lib/kind-chunks.test.ts`の検査`figure-waits-for-later-kind`が通る | #3248 |
 | 種類の塊の読み込みが落ちると、図の場所に「読み直す」の釦を出す | `pnpm exec vitest run apps/playground-spa/src/lib/kind-chunks.test.ts`の検査`figure-offers-reload-when-kind-fails`が通る | #3248 |
 | 編集画面で書き替えた記法の種類の塊を待つ間は前の図を残し、届いたら新しい図に替わる | `pnpm exec vitest run apps/playground-spa/src/lib/kind-chunks.test.ts`の検査`editor-keeps-figure-while-kind-loads`が通る | #3248 |
+| 編集画面で塊を待つ間は状態の欄が前の図の数の代わりに「読み込み中」を出し、届いたら新しい図の数に替わる。待つ種類の記法を載せた URL で開いた時も「読み込み中」を出す | `pnpm exec vitest run apps/playground-spa/src/lib/kind-chunks.test.ts`の検査`editor-status-waits-for-kind`が通る | #3259 |
 | 5種類の塊を止めたままでも、概要の頁の図は描ける | `pnpm exec vitest run apps/playground-spa/src/lib/kind-chunks.test.ts`の検査`home-draws-without-later-kinds`が通る | #3248 |
