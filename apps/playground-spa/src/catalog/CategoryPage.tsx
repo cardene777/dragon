@@ -22,6 +22,7 @@ import { toHash } from "../share";
 import { useLater } from "../site/later";
 import { follow, PATHS } from "../site/routes";
 import { usePhone } from "../site/usePhone";
+import { useRoom } from "../site/useRoom";
 import { type Lang, TEXT } from "../text";
 import { type Kind, samplesOf } from "./catalog";
 import { PartCard } from "./CatalogIndex";
@@ -274,7 +275,26 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
   const [factor, setFactor] = useState(1);
   const [copied, setCopied] = useState(false);
   const phone = usePhone();
-  const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: setStep });
+  const stage = useRef<HTMLDivElement>(null);
+  const room = useRoom();
+  // 決めた高さの枠に収まらなかった図の扱いと、決めた時の図と画面の高さ (#3250)。
+  // 図か画面の高さが替わったら決めた高さの枠に戻し、測り直して決め直す
+  const [tall, setTall] = useState<{ diagram: Diagram | null; room: number; shape: "grow" | "follow" } | null>(null);
+  const shape = tall !== null && tall.diagram === diagram && tall.room === room ? tall.shape : null;
+  const fit = useFittedFigure(host, diagram, { palette, theme, lang, onStep: setStep, fitHeight: shape === "follow" });
+
+  // 決めた高さの枠で測った倍率の図が枠に収まらない時、伸ばした枠が上の帯を除いた画面に収まるなら
+  // 枠を図の高さまで伸ばし、収まらないなら決めた高さの枠で寄って追う図にする。
+  // 伸ばした枠では高さが図で決まり、寄って追う図では倍率が無いので、決めるのは決めた高さの枠で測った時の 1 度だけにする
+  useEffect(() => {
+    const el = stage.current;
+    const frame = el?.querySelector<HTMLElement>(".dg-frame");
+    if (shape !== null || !fit || fit.diagram !== diagram || !el || !frame || frame.offsetHeight === 0) return;
+    if (fit.frame <= frame.offsetHeight) return;
+    // 枠の外 (再生の釦の帯と上の罫) の高さは見せ方で変わらない
+    const needed = fit.frame + el.offsetHeight - frame.offsetHeight;
+    setTall({ diagram, room, shape: needed <= room ? "grow" : "follow" });
+  }, [fit, shape, diagram, room]);
 
   useEffect(() => {
     if (!copied) return;
@@ -373,11 +393,13 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
       </div>
 
       <div
+        ref={stage}
         className="catalog-preview-stage pg-figure"
         data-catalog="stage"
         data-phased={phased ? "on" : undefined}
+        data-tall={shape ?? undefined}
         hidden={view !== "figure"}
-        style={fit && scale !== null ? ({ "--fig-w": `${fit.width * scale}px` } as CSSProperties) : undefined}
+        style={fit && scale !== null ? ({ "--fig-w": `${fit.width * scale}px`, "--frame-h": `${fit.frame}px` } as CSSProperties) : undefined}
       >
         {phased && (
           <p className="pg-phase" data-catalog="phase-badge">

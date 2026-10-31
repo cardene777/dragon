@@ -178,4 +178,11 @@
 | `CHANGELOG.md` に木の図の書き方を載せたこの課題 (#3235) の項がある | `pnpm test`の検査`changelog-records-tree-docs`が通る | #3235 |
 | 使い方の頁の枝分かれの図の次に時間軸の図の節が出て、その節の本文と例と出口は今どおり | `pnpm test`の検査`docs-time-section-follows-git`が通る | #3235 |
 | 2つのREADMEのdragon記法の節に決まりが4つ並び、dragonの囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3235 |
-| 型の検査、build、lintと、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3235 |
+| 型の検査、build、lintと、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3235 #3250 |
+| 画面の大きさ 1280 × 800 で、カタログの7分類の頁の全部の見本を日本語と英語で開き最後の段まで送った時、どの見本でも図の枠 (`.dg-frame`) の中身の高さが枠の高さを超えず、枠の中を送らずに見える | `pnpm test`の検査`catalog-tall-figure-not-clipped`が通る | #3250 |
+| 画面の大きさ 1280 × 800 で木の図の Merkle 木の見本を開いた時、図は全体を止めて見せる図のままで、見本の枠 (`[data-catalog="stage"]`) が `clamp(360px, 58vh, 620px)` の値より高く伸び、図の全体が図の枠の中に入る | `pnpm test`の検査`catalog-tall-figure-grows-frame`が通る | #3250 |
+| 画面の大きさ 1280 × 800 で時系列図の OAuth の見本を開いた時、図は寄って追う図になり、見本の枠の高さが画面の高さから上の帯の高さを引いた値を超えない | `pnpm test`の検査`catalog-figure-taller-than-screen-follows`が通る | #3250 |
+| 画面の大きさ 1280 × 800 で、カタログの全部の見本の全体を止めて見せる図の箱の名前の字が、画面の上で11px以上ある | `pnpm test`の検査`catalog-figure-names-readable`が通る | #3250 |
+| 時系列図のカタログの頁を幅 390px と 860px と 1440px (高さ 900px) で開いた時、最初の見本の枠の高さが 522px (`clamp(360px, 58vh, 620px)` の値) のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3250 |
+| カタログの構成図の頁を幅 390px と 860px で開いた時、寄って追う図の窓の枠と全体図の地が図の枠の中に全部収まる | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3250 |
+| 拡大の重ね窓で、どの段でも図の枠を送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3250 |
