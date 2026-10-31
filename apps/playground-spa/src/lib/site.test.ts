@@ -1203,6 +1203,35 @@ describe("サイトの帯と経路 (#3030)", () => {
   };
 
   it(
+    "catalog-follow-strip-whole",
+    async () => {
+      // OAuth の見本は時系列図の 6 つ目で、幅 1280px では寄って追う図になる。窓は切り抜くので、窓の中身の欄は枠の内側でも見えない (#3270)
+      const { page } = await site.open({ path: `${BASE}catalog/sequence`, viewport: LAPTOP, reducedMotion: "reduce" });
+      await onScreen(page, "category", "時系列図の分類の頁が出ない");
+      await lastStepOf(page, 5);
+      await expect.poll(async () => (await stageFigureOf(page))?.view, { ...WAIT, message: "OAuth の見本が寄って追う図にならない" }).toBe("follow");
+      await expect
+        .poll(
+          () =>
+            page.evaluate((stage) => {
+              const root = document.querySelector(stage);
+              const frame = root?.querySelector(".dg-frame")?.getBoundingClientRect();
+              const names = [...(root?.querySelectorAll(".dg-fl") ?? [])];
+              const hidden = names.filter((el) => {
+                const r = el.getBoundingClientRect();
+                const outside = !frame || r.left < frame.left - 0.5 || r.right > frame.right + 0.5 || r.top < frame.top - 0.5 || r.bottom > frame.bottom + 0.5;
+                return outside || el.closest('g[clip-path^="url(#dg-vp-"]') !== null;
+              });
+              return { fields: names.length, hidden: hidden.map((el) => el.textContent) };
+            }, catalogSel("stage")),
+          { ...WAIT, message: "OAuth の見本の表の欄が図の枠の中に見えない" },
+        )
+        .toEqual({ fields: 5, hidden: [] });
+    },
+    SLOW,
+  );
+
+  it(
     "catalog-tall-figure-not-clipped",
     async () => {
       // 枠を図の高さまで伸ばすか寄って追う図にして、どの見本も図の枠の中を送らずに見える (#3250)
