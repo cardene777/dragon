@@ -143,7 +143,7 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       const asked = new Set<string>();
       const { page } = await site.open({
         path: BASE,
-        prepare: async (p) => {
+        prepare: (p) => {
           p.on("request", (request) => asked.add(fileOf(request.url())));
         },
       });
@@ -162,7 +162,7 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
         path: `${BASE}catalog/lineup`,
         viewport: { width: 1440, height: 900 },
         reducedMotion: "reduce",
-        prepare: async (p) => {
+        prepare: (p) => {
           gate = holdChunk(p, name);
         },
       });
@@ -207,7 +207,7 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       let gate: ReturnType<typeof holdChunk> | undefined;
       const { page } = await site.open({
         path: `${BASE}editor`,
-        prepare: async (p) => {
+        prepare: (p) => {
           gate = holdChunk(p, name);
         },
       });

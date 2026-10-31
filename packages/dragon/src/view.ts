@@ -7,7 +7,7 @@
  * 書き手が原本の `view` で決めた時は、字の大きさに関わらずそれに従う。
  */
 import { READABLE_PX, TYPE } from "./look/values";
-import type { Rendered } from "./render/svg";
+import type { Rendered } from "./render/draw";
 import type { ViewMode } from "./schema";
 
 export function chooseView(rendered: Pick<Rendered, "layout" | "view">, frameWidth: number, frameHeight?: number): { mode: ViewMode; textPx: number } {

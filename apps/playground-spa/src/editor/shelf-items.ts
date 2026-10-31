@@ -6,7 +6,7 @@
  * 差の行のうち、最初の `step` の行より前の行は宣言、`step` の行から後の行は段の中の行として扱う。
  * 差は行の並びを保って取る。`group … end` のように同じ行 (`end`) が何度も出る塊も、足した塊のまま取り出せる。
  */
-import { type Diagram, type DiagramEvent, FORMAT_VERSION, type NotationLang, parseNotation, printNotation, type Step } from "@cardenelabs/dragon";
+import { type Diagram, type DiagramEvent, FORMAT_VERSION, type NotationLang, parseNotation, printNotation, type Step } from "@cardenelabs/dragon/light";
 
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, FIRST_SCREEN_EXAMPLES } from "../examples";
 

@@ -8,7 +8,7 @@
  * 図の下には、その部品の語を使う見本の札を並べ、押すと図の頁でその見本を選んだ状態で開く (#3167)。
  * 部品「絵」の頁だけは、図の下に使える絵柄を全て形と名前で並べる。一覧は package の絵柄の表 (`ICONS`) から作り、形は package の `iconSvg` が描く (#3172)。
  */
-import { ICONS, iconSvg, type Theme } from "@cardenelabs/dragon";
+import { ICONS, iconSvg, type Theme } from "@cardenelabs/dragon/light";
 import type { ReactElement } from "react";
 
 import { exampleInfo, LATER_EXAMPLES } from "../examples";

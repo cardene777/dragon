@@ -6,7 +6,7 @@
  * 部品と記法の行は dragon記法で出し、部品が足す名前と早見の穴は頁の言葉で書く (`shelf-items.ts`)。
  * 幅が狭い時は引き出しに畳み、書く欄の上の釦で開く。
  */
-import type { Diagram } from "@cardenelabs/dragon";
+import type { Diagram } from "@cardenelabs/dragon/light";
 import { type ReactElement, useMemo, useState } from "react";
 
 import { LaterFailed } from "../catalog/LaterFailed";

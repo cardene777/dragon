@@ -68,6 +68,27 @@ mountDiagram(host, parsed.diagram, {
 
 色味に無い名前と、`;`、`"`、`<` などを含む色として読めない値を渡すと、その名前を挙げて描かずに断る。
 
+## 図の種類の部品を後から読む
+
+頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
+既定の入口と同じ部品を出すが、`git`、`lineup`、`state`、`time`、`tree` の描く部品を持たず、`loadKind` を待った時に読む。
+読んだ後は既定の入口と同じ関数で、待たずに同じ図を描く。
+
+```ts
+import { loadKind, mountDiagram, parseNotation } from "@cardenelabs/dragon/light";
+
+const parsed = parseNotation(text);
+if (parsed.ok) {
+  await loadKind(parsed.diagram.kind);
+  mountDiagram(host, parsed.diagram);
+}
+```
+
+読んでいない種類を描くと、その種類の名前を含む誤りで止まる。
+読み込みが落ちると `loadKind` が拒否され、次に呼ぶと読み直す。
+`sequence` と `architecture` は初めから持つので、`loadKind` を呼ばなくても描ける。
+1 つの頁で既定の入口と混ぜると、全ての種類の部品が頁に入る。
+
 ## dragon記法
 
 どの行も次の決まり 4 つに従う。

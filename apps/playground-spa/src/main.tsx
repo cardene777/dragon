@@ -1,5 +1,5 @@
 import "@cardenelabs/dragon/fonts";
-import { FONTS, type Theme } from "@cardenelabs/dragon";
+import { FONTS, type Theme } from "@cardenelabs/dragon/light";
 import { type ReactElement, StrictMode, useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -14,6 +14,7 @@ import { Home } from "./home/Home";
 import { NotFound } from "./not-found/NotFound";
 import { Playground } from "./Playground";
 import { ReleaseNotes } from "./release-notes/ReleaseNotes";
+import { KIND_CHUNKS } from "./site/kinds";
 import { startWhenIdle } from "./site/later";
 import { redirectSharedLink, type Route, routeOf, usePath } from "./site/routes";
 import { paintSite, storedPalette, storePalette } from "./site/site-colors";
@@ -154,4 +155,4 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 // 見本と部品の図の記法は最初の画面を描いた後に裏で読み始め、見本帳を開く頃には届いているようにする (#3246)
-startWhenIdle([LATER_EXAMPLES, LATER_SNIPPETS]);
+startWhenIdle([LATER_EXAMPLES, LATER_SNIPPETS, ...KIND_CHUNKS]);

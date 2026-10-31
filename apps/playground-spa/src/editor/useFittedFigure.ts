@@ -8,9 +8,10 @@
  * 高さに収めると字が読めない図は寄って追う図にする (拡大の重ね窓、#3047)。
  * その時の字の下限は、再生の部品が見せ方を選ぶ字の大きさ (`@cardenelabs/dragon` の `READABLE_PX`) にそろえる。
  */
-import { type Diagram, mountDiagram, type Player, READABLE_PX as VIEW_READABLE_PX, type Theme } from "@cardenelabs/dragon";
+import { type Diagram, mountDiagram, type Player, READABLE_PX as VIEW_READABLE_PX, type Theme } from "@cardenelabs/dragon/light";
 import { type RefObject, useEffect, useRef, useState } from "react";
 
+import { useKind } from "../site/kinds";
 import type { Lang } from "../text";
 import { fitScale } from "./fit";
 
@@ -47,6 +48,8 @@ export function useFittedFigure(
   { palette, theme, lang, onStep, fitHeight = false, onPlayer }: Options,
 ): Fit | null {
   const [fit, setFit] = useState<Fit | null>(null);
+  // 図の種類の部品が届くまでは置かない (#3248)
+  const ready = useKind(diagram?.kind).status === "ready";
   // 段の知らせ先は描くたびに替わりうるので、置き直さずに最新の物を呼ぶ
   const stepTo = useRef(onStep);
   const playerTo = useRef(onPlayer);
@@ -58,7 +61,7 @@ export function useFittedFigure(
   // 再生の釦の読み上げと全体図の札は頁の言葉で出し、言葉を切り替えたら置き直す (#3001)
   useEffect(() => {
     const el = host.current;
-    if (!el || !diagram) return;
+    if (!el || !diagram || !ready) return;
     const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: (step) => stepTo.current(step), fitHeight });
     playerTo.current?.(player);
     const frame = el.querySelector<HTMLElement>(".dg-frame");
@@ -96,7 +99,7 @@ export function useFittedFigure(
       player.destroy();
       playerTo.current?.(null);
     };
-  }, [host, diagram, palette, theme, lang, fitHeight]);
+  }, [host, diagram, ready, palette, theme, lang, fitHeight]);
 
   return fit;
 }

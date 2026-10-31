@@ -39,6 +39,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./light": {
+      "import": {
+        "types": "./dist/light/index.d.ts",
+        "default": "./dist/light/index.js"
+      },
+      "require": {
+        "types": "./dist/light/index.d.cts",
+        "default": "./dist/light/index.cjs"
+      }
+    },
     "./fonts": {
       "import": "./dist/fonts.js",
       "require": "./dist/fonts.cjs"
@@ -77,7 +87,9 @@
   },
   "sideEffects": [
     "./dist/fonts.js",
-    "./dist/fonts.cjs"
+    "./dist/fonts.cjs",
+    "./src/kinds/all.ts",
+    "./src/render/svg.ts"
   ],
   "scripts": {
     "build": "tsup",

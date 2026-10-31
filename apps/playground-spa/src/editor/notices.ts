@@ -5,7 +5,7 @@
  * schema の誤りの場所 (JSON Pointer) は、JSON の字を走査して、その欄の鍵か値が始まる行へ写す。
  * 記法から読んだ図の schema の誤りと描けない誤りは、記法の行と結べないので行を持たない。
  */
-import type { FieldError, LineError } from "@cardenelabs/dragon";
+import type { FieldError, LineError } from "@cardenelabs/dragon/light";
 
 export interface Notice {
   /** 誤りの行 (1 から)。行と結べない誤りは持たない */

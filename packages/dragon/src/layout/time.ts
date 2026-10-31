@@ -159,7 +159,6 @@ export interface TimeLayout extends Layout {
   needle: { y1: number; y2: number };
 }
 
-export const isTimeLayout = (layout: Layout): layout is TimeLayout => layout.kind === "time";
 
 const SECONDS = { d: 86400, h: 3600, min: 60, s: 1, ms: 0.001 } as const;
 type TimeUnit = keyof typeof SECONDS;

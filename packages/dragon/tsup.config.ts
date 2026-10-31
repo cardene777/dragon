@@ -14,12 +14,25 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     // 2 つの設定は同時に走るので、もう一方が書いた頁の script (player.global.js) を消さない
-    clean: ["!player.global.js"],
+    clean: ["!player.global.js", "!light/**"],
     shims: true,
     treeshake: true,
     // 字の package は束ねず、頁を束ねる道具に CSS と字の file を運ばせる
     external: ["@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono"],
     outDir: "dist",
+    target: "es2022",
+  },
+  {
+    // 軽い入口 (#3248)。種類の部品を種類ごとの塊に分ける。塊と入口が同じ登録簿を読むよう、共有の部品も塊にする。
+    // 塊の名前は版ごとに替わるので、前の build の塊が残らないよう自分の置き場だけを消す
+    entry: { index: "src/light.ts" },
+    format: ["esm", "cjs"],
+    dts: { resolve: true, compilerOptions: { composite: false } },
+    splitting: true,
+    sourcemap: true,
+    clean: true,
+    shims: true,
+    outDir: "dist/light",
     target: "es2022",
   },
   {

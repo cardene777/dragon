@@ -18,7 +18,7 @@
 | 幅 390px で開いた時、図が書く欄の上に来て、書く欄を畳める | `pnpm test`の検査`narrow-width-stacks-diagram-above-editor`が通る | #2995 |
 | 頁に書き出しの命令 (`dragon export`) の案内があり、「作り直しの最中」の案内の文が無い | `pnpm test`の検査`page-shows-export-command-not-rebuilding-notice`が通る | #2995 |
 | build した頁の script と CSS の合計が、gzip で 270KB 以下に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #2995 #3199 |
-| 頁の図を描く code が `@cardenelabs/dragon` の部品を呼び、`apps/playground-spa` の中に SVG を組む code が無い | `pnpm test`の検査`page-draws-with-package-parts`が通る | #2995 |
+| 頁の図を描く code が `@cardenelabs/dragon/light` の部品を呼び、`apps/playground-spa` の中に SVG を組む code が無い | `pnpm test`の検査`page-draws-with-package-parts`が通る | #2995 |
 | 配る頁の CSP が、script を自分の置き場だけにし、inline と eval を許さない | `pnpm test`の検査`csp-script-self-only`が通る | #2995 |
 | 重なりの一覧の各件が、重なる字の四角を持つ (2 つの字の重なりは 2 つ、線が字を横切る所は横切られる字の 1 つ) | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-carry-rects`が通る | #3178 |
 | 重なりを知らせる文は、重なる 2 つの字を日本語と英語で書き、段の番号を「段の番号 N」(英語は `step number N`) と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-message-in-both-languages`が通る | #3178 |
@@ -37,7 +37,6 @@
 | 見本帳の build で、最初に読む script に、概要の頁と編集画面の最初の見本 (`intro`、`oauth`、`ccip`) を除く見本の記法と、部品の図の記法の字の並びが含まれない | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-carries-no-catalog-notation`が通る | #3246 |
 | 見本帳の build で、後から読む塊のうち見本の記法を持つ塊と部品の図の記法を持つ塊がそれぞれ1つだけで、除いた全ての見本と全ての部品の図の記法を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-notation-in-two-chunks`が通る | #3246 |
 | 見本帳の build で、最初に読む script が概要の頁と編集画面の最初の見本 (`intro`、`oauth`、`ccip`) の日本語と英語の記法を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-keeps-home-examples`が通る | #3246 |
-| 見本帳の build で、最初に読む script と CSS の合計が gzip で290KB以下で、全部の塊の合計より20KB以上小さく、落ちた時の文に両方の合計を出す | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts -t page-bundle-within-budget`の検査`page-bundle-within-budget`が通る | #3246 |
 | 概要の頁を開いて最初の画面を描いた後、見本帳の頁を開く前に、2つの塊を読み始める | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`site-prefetches-catalog-notation`が通る | #3246 |
 | 見本帳の分類の頁と部品の頁を移り歩いても、2つの塊はそれぞれ1度だけ読む | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-notation-read-once`が通る | #3246 |
 | 塊が届く前に見本帳の分類の頁を開いた時、図の枠は届いた後と同じ高さを取り、届くと図を描く | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-holds-figure-size-until-notation-arrives`が通る | #3246 |

@@ -9,7 +9,7 @@
  * 命令は図を描かない囲みに出す。特長の札は同じ頁の節へ移り、札の名前は行き先の節の見出しを使う。
  * 見た目は前の `styles/docs-site.css` を `docs.css` に写した。
  */
-import { DEFAULT_PALETTE, PALETTES, type Theme } from "@cardenelabs/dragon";
+import { DEFAULT_PALETTE, PALETTES, type Theme } from "@cardenelabs/dragon/light";
 import { Fragment, type ReactElement, type ReactNode, useEffect } from "react";
 
 import { LiveFigure } from "../site/LiveFigure";

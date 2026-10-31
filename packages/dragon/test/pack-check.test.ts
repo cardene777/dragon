@@ -53,6 +53,8 @@ describe("確かめる入口 (#3023)", () => {
       [
         "import @cardenelabs/dragon",
         "require @cardenelabs/dragon",
+        "import @cardenelabs/dragon/light",
+        "require @cardenelabs/dragon/light",
         "import @cardenelabs/dragon/fonts",
         "require @cardenelabs/dragon/fonts",
         "import @cardenelabs/dragon/export",
@@ -72,7 +74,7 @@ describe("確かめる入口 (#3023)", () => {
   });
 
   it("typed-entries", () => {
-    expect(型を持つ入口(current()).sort()).toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export", "@cardenelabs/dragon/node"]);
+    expect(型を持つ入口(current()).sort()).toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export", "@cardenelabs/dragon/light", "@cardenelabs/dragon/node"]);
     expect(型を持つ入口(released0350).sort(), "条件のどれかに型があれば型を持つ入口").toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export"]);
   });
 
