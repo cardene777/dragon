@@ -31,11 +31,11 @@
 | 書いた中身が URL の `#` の後ろに入り、その URL を新しく開くと同じ記法と図が出る | `pnpm test`の検査`url-hash-restores-notation`が通る | #3030、#3031 |
 | 頁の図を描く code が `@cardenelabs/dragon` の部品を呼び、`apps/playground-spa` の中に SVG を組む code が無い | `pnpm test`の検査`page-draws-with-package-parts`が通る | #3030、#3031 |
 | 配る頁の CSP が、script を自分の置き場だけにし、inline と eval を許さない | `pnpm test`の検査`csp-script-self-only`が通る | #3030 |
-| カタログの構成図の頁 (`/dragon/catalog/architecture`) を幅 390px と 860px で開いた時、寄って追う図の窓の枠 (`.dg-vp-frame`) と全体図の地 (`.dg-mm-bg`) が、図の枠 (`.dg-frame`) の中に全部収まる | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3044 |
+| カタログの構成図の頁 (`/dragon/catalog/architecture`) を幅 390px と 860px で開いた時、寄って追う図の窓の枠 (`.dg-vp-frame`) が図の枠 (`.dg-frame`) の中に全部収まる。全体図の地 (`.dg-mm-bg`) は 860px では図の枠の中に全部収まり、値の表を持つ見本 (ccip) なので 390px では無い | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3044、#3274 |
 | 時系列図のカタログの頁 (`/dragon/catalog/sequence`) を幅 390px と 860px と 1440px (高さ 900px) で開いた時、全体を止めて見せる図の枠 (`[data-catalog="stage"]`) の高さが 522px (`clamp(360px, 58vh, 620px)` の値) のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3044 |
-| 編集画面を幅 390px と 860px で開き、oauth と ccip の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3044 |
+| 編集画面を開き、幅 860px の oauth と ccip、幅 390px の wallet の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3044、#3274 |
 | 画面の大きさ 390 × 844、860 × 900、1024 × 768、1440 × 900、1280 × 720 で、構成図と時系列図のカタログの頁の全部の見本について拡大の重ね窓を開き、段を 1 つずつ送った時、どの段でも図の枠 (`.dg-frame`) を送らずに図の全体が見える。寄って追う図では窓の枠 (`.dg-vp-frame`) と全体図の地 (`.dg-mm-bg`) が図の枠の中に全部収まる | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3047 |
-| 再生の部品に枠の中で見える高さに収めるよう頼んだ時 (`fitHeight`)、幅 390px と 560px の枠で oauth と ccip を寄って追う図にすると、窓の下限 160px と全体図と値の表が入る高さの枠では、図の高さが枠の中で見える高さを超えない | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3047 |
+| 再生の部品に枠の中で見える高さに収めるよう頼んだ時 (`fitHeight`)、oauth (幅 560px の枠) と ccip (値の表を外して幅 390px の枠、表を持ったまま 560px の枠) を寄って追う図にすると、窓の下限 160px と全体図と値の表が入る高さの枠では、図の高さが枠の中で見える高さを超えない | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3047、#3274 |
 | 再生の部品に `fitHeight` を頼んだ時、枠の高さに全体を収めると箱の名前の字が読める下限を割る図 (幅 1200px と高さ 675px の枠の oauth) は寄って追う図になり、収めても読める図 (同じ枠の ccip) と、書き手が見せ方を決めた図は今の見せ方のまま | `pnpm test`の検査`fit-height-turns-tall-figure-follow`が通る | #3047 |
 | 再生の部品に `fitHeight` を頼まない時は、枠の高さが低くても見せ方を枠の幅だけで選ぶ (幅 1200px と高さ 300px の枠の oauth は全体を止めて見せる図) | `pnpm test`の検査`view-by-width-without-fit-height`が通る | #3047 |
 | 再生の部品に高さを頼まない時、幅 390px と 560px の枠で oauth と ccip を寄って追う図にすると、窓の高さは今と同じく枠の幅の 0.75 倍 (320px 以上、図の高さ以下) | `pnpm test`の検査`follow-window-height-from-width`が通る | #3047 |

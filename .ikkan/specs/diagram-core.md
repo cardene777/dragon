@@ -90,9 +90,9 @@
 | 言葉を選ばずに JSON の原本で同じ 2 つの場から PNG を書き出した時、断りの文は今と同じ `書き出しには playwright-core が要る。<入れ方>` と `Chromium を起動できない。<入れ方> (<Playwright の文>)` になる | `pnpm test`の検査`cli-export-refusal-default-japanese-unchanged`が通る | #3003 |
 | 記法の行の誤りの文は、英語の字の file でも日本語の字の file でも `--lang` の言葉で出て、`--lang` なしなら日本語で出る。一覧に無い行の頭の語を書くと、`--lang en` なら `<path>:<行> A line cannot start with <語>.`、それ以外は `<path>:<行> <語> は行の頭に書けない。` で始まる | `pnpm test`の検査`cli-notation-errors-follow-lang`が通る | #3003、#3137 |
 | `--lang` に `ja` と `en` 以外を渡した時、何も書き出さずに終了 2 で終わり、日本語の使い方を出す | `pnpm test`の検査`export-rejects-unknown-lang`が通る | #3003 |
-| 再生の部品 (`mountDiagram`) で枠の幅 390px と 560px に寄って追う図 (`view` が `follow`) を置いた時、時系列図 (oauth) と構成図 (ccip) のどちらでも、全体図の地 (`.dg-mm-bg`) が窓の枠 (`.dg-vp-frame`) と重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3042 |
+| 再生の部品 (`mountDiagram`) で寄って追う図 (`view` が `follow`) を置いた時、時系列図 (oauth、枠の幅 440px と 560px) と構成図 (ccip、値の表を外して枠の幅 390px、表を持ったまま 560px) のどちらでも、全体図の地 (`.dg-mm-bg`) が窓の枠 (`.dg-vp-frame`) と重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3042、#3274 |
 | 寄って追う図で、全体図の高さが幅より大きい時 (oauth) は全体図が窓の右に、幅が高さ以上の時 (ccip) は窓の下に出る | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3042 |
-| 公開する頁の編集画面を幅 390px と 860px で開き、oauth と ccip の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠 (`.dg-frame`) の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3042 |
+| 公開する頁の編集画面を開き、幅 860px の oauth と ccip、幅 390px の wallet の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠 (`.dg-frame`) の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3042、#3274 |
 | 寄って追う図の幅 (`svg` の `width`) は、全体図を右に出す時も下に出す時も、渡した枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3042 |
 | 寄って追う図の全体図に、今見ている所の枠 (`.dg-mm-vp`) と、全体図の札 (`全体図`) が出る | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3042 |
 | 全体を止めて見せる図 (`data-view="fixed"`) は全体図を持たず、図の幅と高さが配置の幅と高さのまま | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3042 |
@@ -118,7 +118,7 @@
 | 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3053 |
 | 枠の幅が 440px より狭く全体図が縦に長い時 (oauth、枠の幅 360、390、430px、高さに収める時と収めない時)、全体図を描かず、窓の幅が枠の幅と同じ | `pnpm test`の検査`narrow-tall-figure-drops-overview`が通る | #3055 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth をカタログの頁の見本の枠、拡大の重ね窓、編集画面で開いた時、全体図が無く、窓の幅と図の枠の中の幅の差が 1px 以下で、図が枠の中に送らずに収まる | `pnpm test`の検査`narrow-follow-window-fills-frame-width`が通る | #3055 |
-| 縦に長い全体図は枠の幅 440px 以上で窓の右に、横に長い全体図は枠の幅に関わらず窓の下に出る (oauth は 440 と 560px、ccip は 390 と 560px) | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3055 |
+| 縦に長い全体図は枠の幅 440px 以上で窓の右に、横に長い全体図は値の表を持たない図なら枠の幅に関わらず窓の下に出る (oauth は 440 と 560px、ccip は値の表を外して 390px、表を持ったまま 560px) | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3055、#3274 |
 | 全体図を出す時、全体図が窓に重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3055 |
 | 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3055 |
 | 全体図を出す時、全体図が今見ている所の枠と札を持つ | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3055 |
@@ -127,7 +127,7 @@
 | `--lang` なしで書き出した HTML を幅 440px で開いた時、再生の釦と全体図の札が日本語で出る | `pnpm test`の検査`export-without-lang-is-japanese`が通る | #3055、#3137 |
 | 書き出しの命令に言葉を渡した時、再生の釦と全体図の札がその言葉で出る | `pnpm test`の検査`export-lang-flag`が通る | #3055 |
 | 縦に長い図の書き出した HTML を幅 440px で開いた時、全体図の札が全体図の地からはみ出さない | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3055 |
-| 編集画面で、全体図を出す見本 (860px の oauth と ccip、390px の ccip) の全体図が窓に重ならず図の枠の中にある | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3055 |
+| 編集画面で、全体図を出す見本 (860px の oauth と ccip、390px の wallet) の全体図が窓に重ならず図の枠の中にある | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3055、#3274 |
 | 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3055 |
 | 1024 × 768 から 1440 × 900 の重ね窓で、oauth の窓が図の横幅の全部を見せる | `pnpm test`の検査`overlay-follow-window-shows-whole-width`が通る | #3055 |
 | 帯の中身の幅が 440px より狭い時 (oauth の書き出した HTML を幅 360、390、430px で開く)、戻る・再生・進むの釦と段の番号が同じ段に並び、題がその下の段で、題と本文が釦の左端から帯の中身の右端までの幅を使う | `pnpm test`の検査`html-export-narrow-caption-stacks-body`が通る | #3057、#3069 |
@@ -300,3 +300,9 @@
 | 表を持たない見本の寄って追う図は、窓の幅と高さが今と同じ | `pnpm test`の検査`follow-no-strip-window-kept`が通る | #3270 |
 | oauth と ccip を寄って追う図にして枠の幅 390px と 560px に置いた時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3270 |
 | 画面の大きさ 1280 × 800 で、カタログの全部の見本の図の枠の中身の高さが枠の高さを超えない | `pnpm test`の検査`catalog-tall-figure-not-clipped`が通る | #3270 |
+| 値の表を持つ9種の見本を枠の幅 360px と 390px と 430px に寄って追う図で置いた時、全体図 (`.dg-mm-bg`) が無く、図の高さが窓と表と間の12pxを足した高さになる | `pnpm test`の検査`follow-strip-narrow-drops-overview`が通る | #3274 |
+| 値の表を持つ9種の見本を枠の幅 360px と 390px と 430px に寄って追う図で置いた時、窓の幅と高さが `5e84321b` の時と同じ | `pnpm test`の検査`follow-strip-narrow-keeps-window`が通る | #3274 |
+| 値の表を持つ見本 (ccip と finality と order) を枠の幅 560px と 778px に寄って追う図で置いた時、全体図が在り、図の幅と高さが `5e84321b` の時と同じ | `pnpm test`の検査`follow-strip-wide-keeps-overview`が通る | #3274 |
+| 値の表を持たない見本の寄って追う図は、窓の幅と高さと図の幅と高さが今と同じ | `pnpm test`の検査`follow-no-strip-window-kept`が通る | #3274 |
+| 編集画面を幅360px、高さ780pxと幅390px、高さ844pxで開き、14種の見本のどれでも段を送る釦の下端が画面の下端より上に在る | `pnpm test`の検査`narrow-editor-step-buttons-on-first-screen`が通る | #3274 |
+| oauth と ccip を寄って追う図にして枠の幅 390px と 560px に置いた時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3274 |

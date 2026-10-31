@@ -9,7 +9,7 @@
  * jsdom は配置を測れないため、枠の幅は置き場の幅を、枠の高さは枠の `clientHeight` を差し替える。
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { exampleJson, type Json } from "./diagram-support";
+import { exampleJson, exampleSource, type Json } from "./diagram-support";
 import { draw, type Player } from "./render-support";
 
 type Diagramish = { [key: string]: Json };
@@ -23,12 +23,12 @@ const SAMPLES = [
 /** 携帯の幅と、記法と並べた編集画面の図の枠の幅 */
 const WIDTHS = [390, 560] as const;
 /**
- * 全体図を出す見本と枠の幅。縦長の全体図は枠の幅が 440px より狭いと出さない (#3055) ので、oauth は 560px だけで、
- * 横長の全体図はどの幅でも出すので、ccip は 390px と 560px で見る
+ * 全体図を出す見本と枠の幅。縦長の全体図は枠の幅が 440px より狭いと出さない (#3055) ので、oauth は 560px だけで見る。
+ * 横長の全体図は表を持たない図ならどの幅でも出す。表を持つ図は狭い枠で全体図を出さない (#3274) ので、ccip は表を外して 390px で、表を持ったまま 560px で見る
  */
 const CASES = [
   ["oauth", "oauth.json", 560],
-  ["ccip", "ccip.json", 390],
+  ["ccip", "ccip.json#bare", 390],
   ["ccip", "ccip.json", 560],
 ] as const;
 /** 縦長の全体図を出さない、携帯の幅の枠 (#3055) */
@@ -73,7 +73,7 @@ function mount(file: string, frame: { width: number; height: number }, options: 
   const host = document.createElement("div");
   Object.defineProperty(host, "clientWidth", { value: frame.width });
   document.body.appendChild(host);
-  const source = structuredClone(exampleJson(file)) as Diagramish;
+  const source = structuredClone(exampleSource(file)) as Diagramish;
   const diagram = options.view ? { ...source, view: options.view } : source;
   players.push(draw("mountDiagram")(host, diagram, options.fitHeight === undefined ? {} : { fitHeight: options.fitHeight }));
   const svg = host.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
@@ -103,7 +103,8 @@ describe("寄って追う図を枠の中で見える高さに収める (#3047)",
     // 窓の高さは枠が低い時に縮むだけで、枠が高い時は幅から決めた高さで止まり、枠の下が空いていた (#3053)
     for (const [name, file, width] of CASES) {
       // 窓が見るのは、値の表を除いた図の高さ (#3270)
-      const worldHeight = (draw("renderDiagram")(exampleJson(file)).layout as unknown as { strip: { y: number } }).strip.y;
+      const { layout } = draw("renderDiagram")(exampleSource(file));
+      const worldHeight = (layout as unknown as { strip?: { y: number } }).strip?.y ?? layout.height;
       for (const height of TALL) {
         const label = `${name} / 枠 ${width} × ${height}px`;
         // 高さを頼まない時の窓と全体図が、今の寸法
@@ -111,7 +112,7 @@ describe("寄って追う図を枠の中で見える高さに収める (#3047)",
         const before = attr(natural, ".dg-vp-frame", "height") + 1;
         const mini = { w: attr(natural, ".dg-mm-bg", "width"), h: attr(natural, ".dg-mm-bg", "height") };
         const beside = attr(natural, ".dg-mm-bg", "y") === 0;
-        const table = attr(natural, ".dg-strip", "height") + 1 + INSET;
+        const table = natural.querySelector(".dg-strip") ? attr(natural, ".dg-strip", "height") + 1 + INSET : 0;
         reset();
         const svg = mount(file, { width, height }, { fitHeight: true, view: "follow" });
         // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図と値の表はその分だけ窓の高さを減らす

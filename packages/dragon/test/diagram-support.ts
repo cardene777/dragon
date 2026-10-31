@@ -62,6 +62,21 @@ export function exampleJson(file: string): Json {
   return JSON.parse(exampleText(file)) as Json;
 }
 
+/** 見本の名前の末尾に付けると、値の表と表を変える事を外した原本になる印 */
+export const BARE = "#bare";
+
+/**
+ * 見本の原本。名前の末尾が `BARE` の時は、値の表 (`strip`) と、段の中の表を変える事を外す。
+ * 表を持つ図は狭い枠で全体図を出さない (#3274) ので、表を持たない形を同じ見本で測る検査が使う
+ */
+export function exampleSource(file: string): Json {
+  if (!file.endsWith(BARE)) return exampleJson(file);
+  const source = structuredClone(exampleJson(file.slice(0, -BARE.length))) as { strip?: Json; steps: { events: { type: string }[] }[] };
+  delete source.strip;
+  for (const step of source.steps) step.events = step.events.filter((event) => event.type !== "strip");
+  return source;
+}
+
 /** 検査が返した誤りの場所の一覧。通った時は空。 */
 export function pointers(result: Checked | Read): string[] {
   return result.ok ? [] : result.errors.map((error) => error.pointer);
