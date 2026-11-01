@@ -114,6 +114,15 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-45-6-releases-page-chunk-reload", () => {
+    // 通信が切れて頁の塊を読めなかった時に 1 度だけ読み直す直し (#3288) は 0.45.6 で見本帳に出す (#3290)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 45 || (minor === 45 && patch >= 6), `package の版 ${version()} が 0.45.6 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.45\.6\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.45.6"), "0.45.6");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.45.6] の節が無い").not.toBe("");
+    expect(released, "CHANGELOG.md の 0.45.6 の節に #3288 の項が無い").toContain("(#3288)");
+  });
+
   it("changelog-0-45-5-releases-time-window-fix", () => {
     // 時間軸の図で針が止まる段の出来事へ窓を寄せる直し (#3284) は 0.45.5 で npm と見本帳に出す (#3286)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
