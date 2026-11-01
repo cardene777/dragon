@@ -76,16 +76,28 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
   it(
     "first-visit-reads-font-css-after-first-screen",
     async () => {
-      const drawn: boolean[] = [];
-      await site.open({
-        prepare: (page) =>
-          onFontCss(page, async (route) => {
-            drawn.push((await countOf(page, HEADER)) > 0);
-            await route.continue();
-          }),
+      // 読み込みを受けてから画面を聞くと、その間に画面が出て順番を見分けられない。`link` を差し込んだ瞬間の頁を頁の中で読む
+      const { page } = await site.open({
+        prepare: async (p) => {
+          await p.addInitScript(
+            ([names, header]) => {
+              const w = window as unknown as { __fontLinks: boolean[] };
+              w.__fontLinks = [];
+              new MutationObserver((records) => {
+                for (const record of records) {
+                  for (const node of record.addedNodes) {
+                    if (node instanceof HTMLLinkElement && names.some((name) => node.href.endsWith(name))) w.__fontLinks.push(document.querySelector(header) !== null);
+                  }
+                }
+              }).observe(document, { childList: true, subtree: true });
+            },
+            [fontCss(), HEADER] as const,
+          );
+        },
       });
-      await expect.poll(() => drawn.length, { ...WAIT, message: "字の CSS を読まない" }).toBeGreaterThan(0);
-      expect(drawn, "最初の画面を描く前に字の CSS を読み始めた").not.toContain(false);
+      const fontLinks = (): Promise<boolean[]> => page.evaluate(() => (window as unknown as { __fontLinks: boolean[] }).__fontLinks);
+      await expect.poll(async () => (await fontLinks()).length, { ...WAIT, message: "字の CSS を読まない" }).toBeGreaterThan(0);
+      expect(await fontLinks(), "最初の画面を描く前に字の CSS を読み始めた").not.toContain(false);
     },
     SLOW,
   );
