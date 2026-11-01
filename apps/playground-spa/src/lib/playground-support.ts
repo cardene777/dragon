@@ -145,8 +145,23 @@ export async function waitForCoarse(page: Page, timeout = 5_000): Promise<void> 
   }
 }
 
-/** 頁の通信が切れたら記録する (#3288) */
-export function watchCutRequests(_page: Page): void {}
+/** 頁ごとに記録に残す、切れた通信の数の上限。字の file が多く、同じ瞬間に数十件切れるので 1 行に収める */
+const CUT_KEPT = 20;
+const cutRequests = new WeakMap<Page, string[]>();
+
+/**
+ * 頁の通信が切れたら file の名前と訳を覚える (#3288)。
+ * 機械のネットワークが変わると Chromium は読み込み中の通信をまとめて切り、頁は応えたまま塊を読めずに止まる。
+ * 頁を移る時と閉じる時に切れる `net::ERR_ABORTED` は落ちた訳にならないので数えない
+ */
+export function watchCutRequests(page: Page): void {
+  const cut: string[] = [];
+  cutRequests.set(page, cut);
+  page.on("requestfailed", (request) => {
+    const reason = request.failure()?.errorText ?? "";
+    if (reason !== "net::ERR_ABORTED" && cut.length < CUT_KEPT) cut.push(`${new URL(request.url()).pathname.split("/").pop()} ${reason}`);
+  });
+}
 
 /** 頁 1 つの様子。落ちた検査で頁が描き替えを止めていたかを後から調べる (#3278) */
 export interface PageProbe {
@@ -159,6 +174,10 @@ export interface PageProbe {
   frameMs: number | null;
   /** `document.visibilityState`。頁が応えない時は null */
   visibility: string | null;
+  /** 頁の塊 (`site/pages.tsx`) を待っているか読めなかったか。どちらでもない時と頁が応えない時は null (#3288) */
+  later: "waiting" | "failed" | null;
+  /** 切れた通信の file と訳 (#3288) */
+  cut: string[];
 }
 
 /**
@@ -173,12 +192,14 @@ export async function probePages(pages: Page[], wait = 3_000): Promise<PageProbe
       const seen = page
         .evaluate(
           (wait) =>
-            new Promise<{ frameMs: number | null; visibility: string }>((done) => {
+            new Promise<{ frameMs: number | null; visibility: string; later: "waiting" | "failed" | null }>((done) => {
               const start = performance.now();
-              const timer = setTimeout(() => done({ frameMs: null, visibility: document.visibilityState }), wait);
+              const screen = document.querySelector("[data-site-screen]");
+              const later = screen?.querySelector(':scope > [data-figure="waiting"]') ? "waiting" : screen?.querySelector(':scope > [data-catalog="later-failed"]') ? "failed" : null;
+              const timer = setTimeout(() => done({ frameMs: null, visibility: document.visibilityState, later }), wait);
               requestAnimationFrame(() => {
                 clearTimeout(timer);
-                done({ frameMs: Math.round(performance.now() - start), visibility: document.visibilityState });
+                done({ frameMs: Math.round(performance.now() - start), visibility: document.visibilityState, later });
               });
             }),
           wait,
@@ -196,6 +217,8 @@ export async function probePages(pages: Page[], wait = 3_000): Promise<PageProbe
         responds: got !== null,
         frameMs: got?.frameMs ?? null,
         visibility: got?.visibility ?? null,
+        later: got?.later ?? null,
+        cut: cutRequests.get(page) ?? [],
       };
     }),
   );
@@ -256,6 +279,7 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    watchCutRequests(page);
     await o.prepare?.(page);
     await page.goto(o.url ?? `${server.origin}${o.path ?? BASE}`);
     if (o.touch) await waitForCoarse(page);

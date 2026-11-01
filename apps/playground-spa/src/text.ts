@@ -184,6 +184,7 @@ export const TEXT = {
         copied: "写しました",
         loading: "読み込み中",
         loadFailed: "図を読み込めませんでした",
+        pageLoadFailed: "頁を読み込めませんでした",
         reload: "読み直す",
       },
       screens: {
@@ -501,6 +502,7 @@ export const TEXT = {
         copied: "Copied",
         loading: "Loading",
         loadFailed: "Could not load the diagram",
+        pageLoadFailed: "Could not load the page",
         reload: "Reload",
       },
       screens: {

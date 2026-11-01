@@ -189,6 +189,35 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
   );
 
   it(
+    "pages-work-without-session-storage",
+    async () => {
+      // 印の置き場を使えない端末でも、読めた頁は描け、読めない時は読み直しを繰り返さず釦を出す
+      const noStorage = async (page: Page): Promise<void> => {
+        await page.addInitScript(() => {
+          Object.defineProperty(window, "sessionStorage", {
+            get: () => {
+              throw new Error("使えない置き場");
+            },
+          });
+        });
+      };
+      const fine = await site.open({ path: `${BASE}docs`, prepare: noStorage });
+      await shows(fine.page, '[data-docs="hero"]', "印の置き場を使えない端末で本文が出ない");
+      const { loads, prepare } = countLoads(() => true);
+      const blocked = await site.open({
+        path: `${BASE}docs`,
+        prepare: async (p) => {
+          await noStorage(p);
+          await prepare(p);
+        },
+      });
+      await shows(blocked.page, '[data-site-screen="docs"] > [data-catalog="later-failed"]', "印の置き場を使えない端末で読み直す釦が出ない");
+      expect(loads(), "印の置き場を使えない端末で頁を読み直した").toBe(1);
+    },
+    SLOW,
+  );
+
+  it(
     "page-chunk-failure-names-the-page",
     async () => {
       for (const { locale, text } of [
