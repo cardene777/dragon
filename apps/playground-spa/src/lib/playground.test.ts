@@ -1217,6 +1217,8 @@ describe("公開する頁 (#2995)", () => {
     expect(loaded, report).toBeLessThanOrEqual(290 * 1024);
     // 種類の描く部品を後から読む形にした分を確かめる (#3248)。分ける前の実測は 246.8KB で、後から読む 5 種類の部品で約 10KB 減る
     expect(loaded, report).toBeLessThanOrEqual(237 * 1024);
+    // 使い方とカタログの頁を後から読む形にした分を確かめる (#3280)
+    expect(loaded, report).toBeLessThanOrEqual(215 * 1024);
     // 分ける前は最初に読む量が全部の合計と同じだった (0.44.0 の後の main で 277.59KB)。見本と部品の図の記法は gzip で 20KB を超えるので、
     // 外せば全部の合計より 20KB 以上小さくなる
     expect(all - loaded, report).toBeGreaterThanOrEqual(20 * 1024);
