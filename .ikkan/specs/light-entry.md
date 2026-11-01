@@ -16,3 +16,12 @@
 | 編集画面で書き替えた記法の種類の塊を待つ間は前の図を残し、届いたら新しい図に替わる | `pnpm exec vitest run apps/playground-spa/src/lib/kind-chunks.test.ts`の検査`editor-keeps-figure-while-kind-loads`が通る | #3248 |
 | 編集画面で塊を待つ間は状態の欄が前の図の数の代わりに「読み込み中」を出し、届いたら新しい図の数に替わる。待つ種類の記法を載せた URL で開いた時も「読み込み中」を出す | `pnpm exec vitest run apps/playground-spa/src/lib/kind-chunks.test.ts`の検査`editor-status-waits-for-kind`が通る | #3259 |
 | 5種類の塊を止めたままでも、概要の頁の図は描ける | `pnpm exec vitest run apps/playground-spa/src/lib/kind-chunks.test.ts`の検査`home-draws-without-later-kinds`が通る | #3248 |
+| 見本帳を組み立てた時、最初に読むscriptに使い方の頁の本文が入らず、後から読む塊に在る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`first-load-carries-no-docs-page`が通る | #3280 |
+| 見本帳を組み立てた時、最初に読むscriptに部品の一覧と分類と部品の頁の部品が入らず、後から読む塊に在る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`first-load-carries-no-catalog-pages`が通る | #3280 |
+| 見本帳を組み立てた時、最初に読むscriptとCSSの合計が今の237KBより小さい新しい上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3280 |
+| 編集画面を開いて最初の画面を描いた後、頁を開かなくても頁の塊を裏で読み始める | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunks-start-after-first-screen`が通る | #3280 |
+| 頁の塊が読めなかった時、その頁に読み直しの釦が出て、上の帯は残る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunk-failure-offers-reload`が通る | #3280 |
+| 使い方と部品の一覧と分類と部品の頁のURLを直接開いた時、それぞれの本文が出る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`pages-open-directly`が通る | #3280 |
+| 使い方の頁を見出しの`#`付きのURLで直接開いた時、その見出しまで移る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`docs-hash-opens-the-section`が通る | #3280 |
+| 編集画面から使い方の頁へ移ると本文が出て、編集画面へ戻ると図が出る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`editor-to-docs-and-back`が通る | #3280 |
+| 知らない分類と部品のURLを開いた時、見つからない頁が出る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`unknown-catalog-routes-are-not-found`が通る | #3280 |
