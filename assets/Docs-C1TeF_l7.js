@@ -1,4 +1,4 @@
-import{Z as g,_ as e,$ as v,a0 as k,a1 as d,a2 as p,a3 as _,a4 as C,a5 as T}from"./index-jrcmfsgw.js";const S=`sequence 注文を受ける
+import{Z as g,_ as e,$ as v,a0 as k,a1 as d,a2 as p,a3 as _,a4 as C,a5 as T}from"./index-BrN2dKYV.js";const S=`sequence 注文を受ける
 
 box 客 [note: 注文する人, color: slate, icon: user]
 box 店 as 店のアプリ [note: 注文を受ける, color: blue, icon: app]
