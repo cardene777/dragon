@@ -23,7 +23,6 @@
 | 引き出しの図を原本の JSON から描いた時、日の目盛りの軸の上で、7 日の挑戦の期間を囲みで示し、針が 7 日を進んだ段の後に引き出しの節目が出る | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`withdraw-renders-day-axis`が通る | #3165 |
 | ブロックの確定と引き出しの図を 0.25 秒ごとに止めて数えた時、線の名前が同時に見える数は 2 個以下で、段の番号はその段が始まるまで出ない | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`time-keeps-motion-rules`が通る | #3165 |
 | 見せ方を書かない時間軸の図を幅 728 の枠で開いた時、全体を止めて中だけを動かす見せ方 (`fixed`) になる | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`time-opens-fixed`が通る | #3165 |
-| 全体を枠に収めた字が 10.5px を下回る狭い枠で時間軸の図を開いた時、寄って見せる見せ方 (`follow`) になり、どの段の終わりでも針が見ている窓の中にある | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`time-follows-needle-when-narrow`が通る | #3165 |
 | 時系列図、構成図、状態遷移図、枝分かれの図の描き方は今どおりで、OAuth は 12 段、CCIP は 13 段、rebase は 11 段が順に動き、箱どうしと線の名前と箱が 10px 以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`rebase-renders-11-steps`と`layout-keeps-10px-gap`が通る | #3165 |
 | 時間軸の図の描画も、色、字、余白、動きの値を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3165 |
 | `dragon export` にブロックの確定の図の JSON を渡した時、mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`export-writes-time-diagram`が通る | #3165 |
@@ -40,3 +39,6 @@
 | 使い方の頁と `CHANGELOG.md` の前の形との対応表の頭の語が、読む部品の語と一致する。時間軸の図の語は、対応表の後に足した語として表に行を持たない | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3165 |
 | 概要の頁の使いどころは今の 3 つのまま | `pnpm test`の検査`home-uses-stay-three`が通る | #3165 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3165 |
+| 幅 360px で `finality` の、針を動かさない段を開いた時、その段で札が変わる節目のうち番号の丸に近い節目が窓の中に在る | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`time-follows-events-when-needle-stops`が通る | #3284 |
+| 全体を枠に収めた字が 10.5px を下回る狭い枠で時間軸の図を開いた時、寄って見せる見せ方 (`follow`) になり、針を動かす段の終わりでは針が見ている窓の中にあり、どの段の終わりでも印の列が窓の中にある | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`time-follows-needle-when-narrow`が通る | #3165、#3284 |
+| 時間軸の図でない図の寄って追う窓は今のまま | `pnpm exec vitest run packages/dragon/test/follow-badge.test.ts`の検査`follow-window-shows-step-badge`が通る | #3284 |
