@@ -4,11 +4,7 @@ import { type ReactElement, StrictMode, useCallback, useLayoutEffect, useRef, us
 import { createRoot } from "react-dom/client";
 
 import { isKind } from "./catalog/catalog";
-import { CatalogIndex } from "./catalog/CatalogIndex";
-import { CategoryPage } from "./catalog/CategoryPage";
-import { PartPage } from "./catalog/PartPage";
 import { LATER_SNIPPETS, partOf } from "./catalog/parts";
-import { Docs } from "./docs/Docs";
 import { LATER_EXAMPLES } from "./examples";
 import { Home } from "./home/Home";
 import { NotFound } from "./not-found/NotFound";
@@ -16,6 +12,7 @@ import { Playground } from "./Playground";
 import { ReleaseNotes } from "./release-notes/ReleaseNotes";
 import { KIND_CHUNKS } from "./site/kinds";
 import { startWhenIdle } from "./site/later";
+import { LATER_CATALOG, LATER_DOCS, LaterPage } from "./site/pages";
 import { redirectSharedLink, type Route, routeOf, usePath } from "./site/routes";
 import { paintSite, storedPalette, storePalette } from "./site/site-colors";
 import { SiteHeader } from "./site/SiteHeader";
@@ -69,6 +66,7 @@ function Site(): ReactElement {
   const path = usePath();
   const route = screenRoute(path);
   const part = partOf(route.part);
+  const category = isKind(route.category) ? route.category : undefined;
   const [lang, setLang] = useState<Lang>(() => deviceLang(navigator.languages.length > 0 ? navigator.languages : [navigator.language]));
   const [choice, setChoice] = useState<Theme | null>(null);
   const [palette, setPalette] = useState(storedPalette);
@@ -126,15 +124,23 @@ function Site(): ReactElement {
         ) : route.screen === "editor" ? (
           <Playground lang={lang} theme={theme} palette={palette} onBeforeLang={onBeforeLang} />
         ) : route.screen === "catalog" ? (
-          <CatalogIndex lang={lang} />
-        ) : route.screen === "category" && isKind(route.category) ? (
-          // 分類を移ると検索と選んだ見本を持ち越さないよう、分類ごとに置き直す
-          <CategoryPage key={route.category} kind={route.category} lang={lang} theme={theme} palette={palette} />
+          <LaterPage chunk={LATER_CATALOG} lang={lang}>
+            {({ CatalogIndex }) => <CatalogIndex lang={lang} />}
+          </LaterPage>
+        ) : route.screen === "category" && category ? (
+          <LaterPage chunk={LATER_CATALOG} lang={lang}>
+            {/* 分類を移ると検索と選んだ見本を持ち越さないよう、分類ごとに置き直す */}
+            {({ CategoryPage }) => <CategoryPage key={category} kind={category} lang={lang} theme={theme} palette={palette} />}
+          </LaterPage>
         ) : route.screen === "part" && part ? (
-          // 部品を移ると段を持ち越さないよう、部品ごとに置き直す
-          <PartPage key={part.id} part={part} lang={lang} theme={theme} palette={palette} />
+          <LaterPage chunk={LATER_CATALOG} lang={lang}>
+            {/* 部品を移ると段を持ち越さないよう、部品ごとに置き直す */}
+            {({ PartPage }) => <PartPage key={part.id} part={part} lang={lang} theme={theme} palette={palette} />}
+          </LaterPage>
         ) : route.screen === "docs" ? (
-          <Docs lang={lang} theme={theme} palette={palette} />
+          <LaterPage chunk={LATER_DOCS} lang={lang}>
+            {({ Docs }) => <Docs lang={lang} theme={theme} palette={palette} />}
+          </LaterPage>
         ) : route.screen === "release-notes" ? (
           <ReleaseNotes lang={lang} />
         ) : (
@@ -154,5 +160,6 @@ createRoot(document.getElementById("root")!).render(
     <Site />
   </StrictMode>,
 );
-// 見本と部品の図の記法は最初の画面を描いた後に裏で読み始め、見本帳を開く頃には届いているようにする (#3246)
-startWhenIdle([LATER_EXAMPLES, LATER_SNIPPETS, ...KIND_CHUNKS]);
+// 見本と部品の図の記法は最初の画面を描いた後に裏で読み始め、見本帳を開く頃には届いているようにする (#3246)。
+// 使い方の頁とカタログの頁も同じで、初めて頁を開く時に待たせない (#3280)
+startWhenIdle([LATER_EXAMPLES, LATER_SNIPPETS, ...KIND_CHUNKS, LATER_DOCS, LATER_CATALOG]);

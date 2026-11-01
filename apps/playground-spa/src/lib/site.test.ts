@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EXAMPLE_KEYS, type ExampleKey, HOME_USES, TEMPLATE } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, captionClearance, example, expectSteadyAcrossSteps, pressUntilDisabled, rgb, root, type Site, settledStepShape, startSite } from "./playground-support";
+import { app, BASE, captionClearance, example, expectSteadyAcrossSteps, pressUntilDisabled, rgb, root, screenOf, type Site, settledStepShape, startSite } from "./playground-support";
 
 /**
  * 見本の記法。見本の正の file (`packages/dragon/examples`) から読む。
@@ -587,9 +587,6 @@ const missingTools = (page: Page): Promise<string[]> =>
   page.evaluate((names) => names.filter((n) => document.querySelector(`[data-catalog="preview"] [data-catalog="${n}"]`) === null), [...PREVIEW_TOOLS] as string[]);
 
 let site: Site;
-
-const screenOf =(page: Page): Promise<string | null> =>
-  page.evaluate(() => document.querySelector("[data-site-screen]")?.getAttribute("data-site-screen") ?? null);
 
 async function onScreen(page: Page, screen: Screen, message: string): Promise<void> {
   await expect.poll(() => screenOf(page), { ...WAIT, message }).toBe(screen);

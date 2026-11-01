@@ -281,6 +281,10 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
   };
 }
 
+/** 開いている画面の名前。頁の塊を待つ間 (`site/pages.tsx` の待ちの一言が画面の直下に在る間) は、画面がまだ出ていないとして null を返す (#3280) */
+export const screenOf = (page: Page): Promise<string | null> =>
+  page.evaluate(() => document.querySelector('[data-site-screen]:not(:has(> [data-figure="waiting"]))')?.getAttribute("data-site-screen") ?? null);
+
 /** build した script と CSS の file ごとの gzip の大きさ (byte) */
 export function bundleSizes(dir: string): Record<string, number> {
   const assets = join(dir, "assets");

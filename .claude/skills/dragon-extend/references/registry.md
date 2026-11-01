@@ -48,7 +48,7 @@
 | `apps/playground-spa/src/lib/<種類>-catalog.test.ts` | 見本帳での描け方の検査 | 既存の種類の検査が図の分類を全部並べて照らしていると、新しい種類で落ちる。先頭から既存の種類の順で始まるかを見る形にする |
 | `apps/playground-spa/src/lib/site.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
 | `apps/playground-spa/src/lib/catalog-parts.test.ts` | 部品の頁の検査 | 部品の分類は `isCommon` と同じ規則で数える |
-| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限290KBは頁が最初に読む script と CSS に当てる。見本と部品の図の記法は後から読む塊に入るので増えないが、描く部品と検査の関数は種類ごとに約6.5KB増える (#3248)。超える時は上限を上げず本人に聞く |
+| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限213KBは頁が最初に読む script と CSS に当てる (#3280)。見本と部品の図の記法は後から読む塊に入るので増えないが、描く部品と検査の関数は種類ごとに約6.5KB増える (#3248)。超える時は上限を上げず本人に聞く |
 
 ## 部品を足す時
 
@@ -82,4 +82,4 @@
 | `apps/playground-spa/src/lib/<種類>-catalog.test.ts` | 部品を描く種類ごとの見本帳の検査 | 部品の数を数える検査は、足した数に直す |
 | `apps/playground-spa/src/lib/site.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
 | `apps/playground-spa/src/lib/catalog-parts.test.ts` | 部品の頁の検査 | 部品の分類は `isCommon` と同じ規則で数える |
-| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 部品の図の記法は後から読む塊に入るので、最初に読む量は描く部品の分だけ増える。上限は290KBで、超える時は本人に聞く |
+| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 部品の図の記法は後から読む塊に入るので、最初に読む量は描く部品の分だけ増える。上限は213KBで、超える時は本人に聞く |

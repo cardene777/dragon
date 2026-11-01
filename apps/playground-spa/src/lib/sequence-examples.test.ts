@@ -10,7 +10,7 @@ import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { type Lang, TEXT } from "../text";
-import { BASE, example, type Site, startSite } from "./playground-support";
+import { BASE, example, screenOf, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -40,9 +40,6 @@ const titleOf = (key: string, lang: Lang = "ja"): string => {
 };
 
 let site: Site;
-
-const screenOf = (page: Page): Promise<string | null> =>
-  page.evaluate(() => document.querySelector("[data-site-screen]")?.getAttribute("data-site-screen") ?? null);
 
 async function onScreen(page: Page, screen: string, message: string): Promise<void> {
   await expect.poll(() => screenOf(page), { ...WAIT, message }).toBe(screen);

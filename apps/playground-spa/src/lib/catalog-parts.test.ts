@@ -29,7 +29,7 @@ import * as WORDS from "../../../../packages/dragon/src/words";
 import { KINDS, type Kind } from "../catalog/catalog";
 import { fromHash, toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, root, type Site, startSite, stepLabel } from "./playground-support";
+import { app, BASE, root, screenOf, type Site, startSite, stepLabel } from "./playground-support";
 
 const { ATTRS, HEADS, KINDS: WORD_KINDS } = WORDS;
 
@@ -176,9 +176,6 @@ const examplesOnDisk = (): { name: string; text: string; kind: string; title: st
     });
 
 let site: Site;
-
-const screenOf = (page: Page): Promise<string | null> =>
-  page.evaluate(() => document.querySelector("[data-site-screen]")?.getAttribute("data-site-screen") ?? null);
 
 async function onScreen(page: Page, screen: string, message: string): Promise<void> {
   await expect.poll(() => screenOf(page), { ...WAIT, message }).toBe(screen);
