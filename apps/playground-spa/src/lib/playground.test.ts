@@ -1216,8 +1216,8 @@ describe("公開する頁 (#2995)", () => {
     const report = `最初に読む script と CSS が gzip で ${kb(loaded)} (${JSON.stringify(Object.fromEntries(first.map((name) => [name, sizes[name]])))})、全部の塊の合計が ${kb(all)}`;
     expect(loaded, report).toBeLessThanOrEqual(290 * 1024);
     // 種類の描く部品を後から読む形 (#3248) と、使い方とカタログの頁を後から読む形 (#3280) にした分を確かめる。
-    // #3280 の前の実測は 226.8KB で後の実測は 203.0KB。#3248 の時と同じく余裕を約 10KB 残す
-    expect(loaded, report).toBeLessThanOrEqual(213 * 1024);
+    // #3280 の前の実測は 226.8KB で後の実測は 203.0KB。#3292 で字の `@font-face` を外して 168.5KB にした。#3248 の時と同じく余裕を約 10KB 残す
+    expect(loaded, report).toBeLessThanOrEqual(179 * 1024);
     // 分ける前は最初に読む量が全部の合計と同じだった (0.44.0 の後の main で 277.59KB)。見本と部品の図の記法は gzip で 20KB を超えるので、
     // 外せば全部の合計より 20KB 以上小さくなる
     expect(all - loaded, report).toBeGreaterThanOrEqual(20 * 1024);
