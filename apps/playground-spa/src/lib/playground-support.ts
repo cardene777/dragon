@@ -145,6 +145,9 @@ export async function waitForCoarse(page: Page, timeout = 5_000): Promise<void> 
   }
 }
 
+/** 頁の通信が切れたら記録する (#3288) */
+export function watchCutRequests(_page: Page): void {}
+
 /** 頁 1 つの様子。落ちた検査で頁が描き替えを止めていたかを後から調べる (#3278) */
 export interface PageProbe {
   /** 頁の path。hash は記法を持って長いので外す */

@@ -7,7 +7,7 @@
 import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { closeContextsAfter, probePages } from "./playground-support";
+import { closeContextsAfter, probePages, watchCutRequests } from "./playground-support";
 
 /** Chromium を起こして閉じるまでに許す時間 */
 const SETUP = 60_000;
@@ -74,6 +74,28 @@ describe("落ちた検査の頁の様子 (#3278)", () => {
     expect(record.cores, "core の数が無い").toBeGreaterThan(0);
     expect(record.freeMb, "空きの記憶が無い").toBeGreaterThan(0);
     expect(contexts.flatMap((c) => c.pages()), "落ちた検査の後に頁が閉じていない").toHaveLength(0);
+  });
+
+  it("stall-record-names-cut-requests", async () => {
+    // 通信が切れた頁は切れた file と訳を、頁の塊を待つ頁と読めなかった頁はその状態を記録に書く (#3288)
+    const context = await browser.newContext();
+    const openWith = async (inside: string): Promise<void> => {
+      const page = await context.newPage();
+      watchCutRequests(page);
+      await page.route("http://dragon.test/page", (route) =>
+        route.fulfill({ contentType: "text/html", body: `<main data-site-screen="docs">${inside}</main><script src="/cut.js"></script>` }),
+      );
+      await page.route("http://dragon.test/cut.js", (route) => route.abort("connectionreset"));
+      await page.goto("http://dragon.test/page");
+    };
+    await openWith('<p data-figure="waiting">読み込み中</p>');
+    await openWith('<div data-catalog="later-failed">読めなかった</div>');
+    await openWith("<p>本文</p>");
+    const lines: string[] = [];
+    await closeContextsAfter([context], true, (line) => lines.push(line));
+    const record = JSON.parse(lines[0]?.slice(lines[0].indexOf("{")) ?? "{}") as { pages: { cut?: string[]; later?: string | null }[] };
+    expect(record.pages.map((p) => p.cut), "切れた通信が記録に無い").toEqual(Array.from({ length: 3 }, () => ["cut.js net::ERR_CONNECTION_RESET"]));
+    expect(record.pages.map((p) => p.later), "頁の塊の状態が記録に無い").toEqual(["waiting", "failed", null]);
   });
 
   it("stall-record-silent-on-passed-test", async () => {
