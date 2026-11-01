@@ -147,14 +147,15 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
     "no-storage-still-draws-first-screen",
     async () => {
       const { page } = await site.open({
-        prepare: (p) =>
-          p.addInitScript(() => {
+        prepare: async (p) => {
+          await p.addInitScript(() => {
             Object.defineProperty(window, "localStorage", {
               get() {
                 throw new Error("保存を止めた browser");
               },
             });
-          }),
+          });
+        },
       });
       await shows(page, HERO, "localStorage を使えない時に最初の画面が出ない");
       await expect.poll(() => loadedFamilies(page), { ...WAIT, message: "localStorage を使えない時に字を読み終えない" }).toContain(SANS);

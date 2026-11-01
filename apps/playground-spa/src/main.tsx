@@ -1,6 +1,5 @@
-import "@cardenelabs/dragon/fonts";
 import { FONTS, type Theme } from "@cardenelabs/dragon/light";
-import { type ReactElement, StrictMode, useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactElement, StrictMode, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 
 import { isKind } from "./catalog/catalog";
@@ -10,6 +9,7 @@ import { Home } from "./home/Home";
 import { NotFound } from "./not-found/NotFound";
 import { Playground } from "./Playground";
 import { ReleaseNotes } from "./release-notes/ReleaseNotes";
+import { fontsSeen, loadFonts } from "./site/fonts";
 import { KIND_CHUNKS } from "./site/kinds";
 import { startWhenIdle } from "./site/later";
 import { LATER_CATALOG, LATER_DOCS, LaterPage } from "./site/pages";
@@ -90,6 +90,11 @@ function Site(): ReactElement {
     paintSite(palette, theme);
   }, [palette, theme]);
 
+  // 初めて開く端末は最初の画面を描いた後に字の CSS を読む (#3292)
+  useEffect(() => {
+    void loadFonts();
+  }, []);
+
   const name = screenName(route, lang);
   useLayoutEffect(() => {
     document.title = name === null ? TEXT[lang].title : `${name} — dragon`;
@@ -154,6 +159,8 @@ function Site(): ReactElement {
 redirectSharedLink();
 // React が最初に描く前に色を置き、最初の 1 回だけ色の無い地が出るのを避ける
 paintSite(storedPalette(), deviceTheme());
+// 2 度目からは字の CSS を読み終えてから描く。字の file が cache に在れば端末の字を挟まない (#3292)
+if (fontsSeen()) await loadFonts();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
