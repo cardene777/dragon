@@ -266,17 +266,24 @@ export function meterField(field: { x: number; y: number; meter: { line: number;
   );
 }
 
-/** 時間軸の図で、寄って追う窓が段の終わりに見せる所。針と印の列を必ず入れ、段の番号と段で動く物を窓に収まる間だけ足す */
+/**
+ * 時間軸の図で、寄って追う窓が段の終わりに見せる所。印の列を必ず入れ、段の番号と段で動く物を窓に収まる間だけ足す。
+ * 針を動かす段は針も必ず入れる。針を動かさない段は段の番号の丸を起点にする。針の所に窓が残ると、離れた節目で起きたことが読めないため (#3284)
+ */
 export function timeFocus(layout: TimeLayout, timeline: Timeline, step: number, parts: { x: number; y: number; w: number; h: number }[], vw: number, vh: number): { x: number; y: number; w: number; h: number } {
   const span = timeline.steps[step] as Span;
   const position = valueAt(timeline.needle ?? [], span.end - MOTION.still);
-  const nx = layout.axis.x + position * layout.axis.unit;
+  const badge = layout.badges.find((b) => b.step === step);
+  // 値の表の中の丸は窓の外に出すので、起点にしない
+  const anchored = badge && valueAt(timeline.needle ?? [], span.start) === position && !(layout.strip && badge.y >= layout.strip.y);
+  const ax = anchored ? badge.x : layout.axis.x + position * layout.axis.unit;
   const top = Math.min(...layout.rows.map((r) => r.y));
   const bottom = Math.max(...layout.rows.map((r) => r.y + r.h));
-  let held = { x: nx - 1, y: top, w: 2, h: bottom - top };
-  const badge = layout.badges.find((b) => b.step === step);
-  const near = (p: { x: number; y: number; w: number; h: number }): number => Math.hypot(Math.max(0, p.x - nx, nx - p.x - p.w), Math.max(0, p.y - top, top - p.y - p.h));
-  const extra = [...(badge ? [{ x: badge.x - LOOK.badge.r, y: badge.y - LOOK.badge.r, w: LOOK.badge.r * 2, h: LOOK.badge.r * 2 }] : []), ...[...parts].sort((a, b) => near(a) - near(b))];
+  let held = { x: ax - 1, y: top, w: 2, h: bottom - top };
+  const near = (p: { x: number; y: number; w: number; h: number }): number => Math.hypot(Math.max(0, p.x - ax, ax - p.x - p.w), Math.max(0, p.y - top, top - p.y - p.h));
+  // 札が変わる節目も段で動く物に数える。節目は頭の箱でないので、図全体の動く物の一覧に入っていない
+  const changed = layout.points.filter((point) => point.changes.some((change) => change.step === step)).map((point) => ({ x: point.cx - point.r, y: point.cy - point.r, w: point.text.x + point.text.w - point.cx + point.r, h: point.r * 2 }));
+  const extra = [...(badge ? [{ x: badge.x - LOOK.badge.r, y: badge.y - LOOK.badge.r, w: LOOK.badge.r * 2, h: LOOK.badge.r * 2 }] : []), ...[...parts, ...changed].sort((a, b) => near(a) - near(b))];
   for (const p of extra) {
     const x = Math.min(held.x, p.x);
     const y = Math.min(held.y, p.y);

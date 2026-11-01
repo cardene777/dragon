@@ -805,9 +805,25 @@ describe("時間軸の図の描き方 (#3165)", () => {
     for (let s = 0; s < placed.steps; s++) {
       const win = placed.windowAt(s);
       const x = layout.axis.x + valueAt(timeline.needle, placed.stillAt(s)) * layout.axis.unit;
-      expect(x >= win.x && x <= win.x + win.w, `段 ${s + 1} の終わりに針 (x ${x}) が窓 (${win.x} から ${win.x + win.w}) の中に無い`).toBe(true);
+      const moved = valueAt(timeline.needle, timeline.steps[s]?.start ?? 0) !== valueAt(timeline.needle, placed.stillAt(s));
+      if (moved) expect(x >= win.x && x <= win.x + win.w, `段 ${s + 1} の終わりに針 (x ${x}) が窓 (${win.x} から ${win.x + win.w}) の中に無い`).toBe(true);
       expect(top < win.y + win.h && bottom > win.y, `段 ${s + 1} の終わりに印の列が窓の中に無い`).toBe(true);
     }
+  });
+
+  // 針を止めたまま離れた節目の札を変える段で、窓が針の所に残ると、その段で起きたことが読めない (#3284)
+  it("time-follows-events-when-needle-stops", () => {
+    const placed = place("finality", "finality.json", 360);
+    const layout = placed.layout as unknown as TimeLayout;
+    const { diagram } = render(exampleJson("finality.json")) as unknown as { diagram: { steps: { title: string }[] } };
+    const finalized = diagram.steps.findIndex((step) => step.title === "前の checkpoint が確定する");
+    expect(finalized, "前の checkpoint が確定する段が無い").toBeGreaterThanOrEqual(0);
+    const { points } = layout as unknown as { points: { id: string; cx: number }[] };
+    const c100 = points.find((point) => point.id === "C100");
+    expect(c100, "節目 C100 が無い").toBeDefined();
+    if (!c100) return;
+    const win = placed.windowAt(finalized);
+    expect(c100.cx >= win.x && c100.cx <= win.x + win.w, `C100 (x ${c100.cx}) が窓 (${win.x} から ${win.x + win.w}) の中に無い`).toBe(true);
   });
 });
 
