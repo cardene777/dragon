@@ -128,6 +128,137 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
     SLOW,
   );
 
+  /** 頁を読み込んだ回数を数える。`blocked` が真の回は後から読む塊を読ませない */
+  const countLoads = (blocked: (load: number) => boolean): { loads: () => number; prepare: (page: Page) => Promise<void> } => {
+    let load = 0;
+    return {
+      loads: () => load,
+      prepare: async (page) => {
+        const first = new Set(firstLoadFiles(site.built.dir));
+        page.on("request", (request) => {
+          if (request.isNavigationRequest() && request.frame() === page.mainFrame()) load += 1;
+        });
+        await page.route("**/assets/*.js", (route: Route) => (first.has(fileOf(route.request().url())) || !blocked(load) ? route.continue() : route.abort()));
+      },
+    };
+  };
+
+  it(
+    "page-chunk-failure-reloads-once",
+    async () => {
+      for (const { path, body } of [
+        { path: `${BASE}docs`, body: '[data-docs="hero"]' },
+        { path: `${BASE}catalog`, body: '[data-catalog="index"]' },
+      ]) {
+        const { loads, prepare } = countLoads((load) => load === 1);
+        const { page } = await site.open({ path, prepare });
+        await shows(page, body, `${path} の塊が 1 度だけ読めなかった時に、読み直しても本文が出ない`);
+        expect(loads(), `${path} を読み込んだ回数`).toBe(2);
+        expect(await countOf(page, '[data-site-screen] > [data-catalog="later-failed"]'), `${path} の本文が出たのに読み直す釦が残った`).toBe(0);
+        await site.closeContexts();
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "page-chunk-reload-stops-after-one",
+    async () => {
+      const { loads, prepare } = countLoads(() => true);
+      const { page } = await site.open({ path: `${BASE}docs`, prepare });
+      await shows(page, '[data-site-screen="docs"] > [data-catalog="later-failed"]', "読み直しても読めない時に読み直す釦が出ない");
+      await page.waitForTimeout(1_000);
+      expect(loads(), "読み直しても読めない時に頁を読み込んだ回数").toBe(2);
+      expect(await countOf(page, '[data-site="header"]'), "読み直しても読めない時に上の帯が消えた").toBe(1);
+    },
+    SLOW,
+  );
+
+  it(
+    "page-chunk-reload-allowed-again",
+    async () => {
+      const { loads, prepare } = countLoads((load) => load === 1 || load === 3);
+      const { page } = await site.open({ path: `${BASE}docs`, prepare });
+      await shows(page, '[data-docs="hero"]', "1 度目の読み直しで本文が出ない");
+      expect(loads(), "1 度目の読み直しの後に頁を読み込んだ回数").toBe(2);
+      await page.reload();
+      await shows(page, '[data-docs="hero"]', "本文が出た後にまた読めなくなった時に、読み直しても本文が出ない");
+      expect(loads(), "2 度目の読み直しの後に頁を読み込んだ回数").toBe(4);
+    },
+    SLOW,
+  );
+
+  it(
+    "pages-work-without-session-storage",
+    async () => {
+      // 印の置き場を使えない端末でも、読めた頁は描け、読めない時は読み直しを繰り返さず釦を出す
+      const noStorage = async (page: Page): Promise<void> => {
+        await page.addInitScript(() => {
+          Object.defineProperty(window, "sessionStorage", {
+            get: () => {
+              throw new Error("使えない置き場");
+            },
+          });
+        });
+      };
+      const fine = await site.open({ path: `${BASE}docs`, prepare: noStorage });
+      await shows(fine.page, '[data-docs="hero"]', "印の置き場を使えない端末で本文が出ない");
+      const { loads, prepare } = countLoads(() => true);
+      const blocked = await site.open({
+        path: `${BASE}docs`,
+        prepare: async (p) => {
+          await noStorage(p);
+          await prepare(p);
+        },
+      });
+      await shows(blocked.page, '[data-site-screen="docs"] > [data-catalog="later-failed"]', "印の置き場を使えない端末で読み直す釦が出ない");
+      expect(loads(), "印の置き場を使えない端末で頁を読み直した").toBe(1);
+    },
+    SLOW,
+  );
+
+  it(
+    "page-chunk-failure-names-the-page",
+    async () => {
+      for (const { locale, text } of [
+        { locale: "ja-JP", text: "頁を読み込めませんでした" },
+        { locale: "en-US", text: "Could not load the page" },
+      ]) {
+        const { prepare } = countLoads(() => true);
+        const { page } = await site.open({ path: `${BASE}docs`, locale, prepare });
+        const failed = '[data-site-screen="docs"] > [data-catalog="later-failed"]';
+        await shows(page, failed, `${locale} で読み直す釦が出ない`);
+        expect(await page.locator(failed).innerText(), `${locale} の釦の文が頁を読み込めなかったと言わない`).toContain(text);
+      }
+    },
+    SLOW,
+  );
+
+  it(
+    "editor-keeps-text-when-page-chunks-fail",
+    async () => {
+      const { loads, prepare } = countLoads(() => true);
+      const written = "sequence\nA -> B: 残す記法";
+      const failedChunks: string[] = [];
+      const { page } = await site.open({
+        path: `${BASE}editor`,
+        prepare: async (p) => {
+          p.on("requestfailed", (request) => failedChunks.push(fileOf(request.url())));
+          await prepare(p);
+        },
+      });
+      await onScreen(page, "editor", "編集画面が出ない");
+      await page.locator('[data-playground="editor"]').fill(written);
+      const chunks = laterScripts().filter((name) => name.startsWith("Docs-") || name.startsWith("pages-"));
+      expect(chunks.length, "頁の塊が見つからない").toBeGreaterThan(0);
+      await expect.poll(() => chunks.filter((name) => !failedChunks.includes(name)), { ...WAIT, message: "裏で読む頁の塊を読みに行かない" }).toEqual([]);
+      await page.waitForTimeout(1_000);
+      expect(loads(), "編集画面で頁の塊が読めなかった時に頁を読み直した").toBe(1);
+      expect(await page.locator('[data-playground="editor"]').inputValue(), "書いた記法が消えた").toBe(written);
+    },
+    SLOW,
+  );
+
   it(
     "pages-open-directly",
     async () => {

@@ -25,3 +25,9 @@
 | 使い方の頁を見出しの`#`付きのURLで直接開いた時、その見出しまで移る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`docs-hash-opens-the-section`が通る | #3280 |
 | 編集画面から使い方の頁へ移ると本文が出て、編集画面へ戻ると図が出る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`editor-to-docs-and-back`が通る | #3280 |
 | 知らない分類と部品のURLを開いた時、見つからない頁が出る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`unknown-catalog-routes-are-not-found`が通る | #3280 |
+| 頁の塊が1度だけ読めなかった時、頁を1度読み直して本文が出て、読み直しの釦は残らない | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunk-failure-reloads-once`が通る | #3288 |
+| 頁の塊が読み直しても読めない時、読み直しは1度で止まり、読み直しの釦が出て上の帯は残る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunk-reload-stops-after-one`が通る | #3288 |
+| 読み直して本文が出た後に、同じタブでまた読めなくなった時も、もう1度だけ自動で読み直す | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunk-reload-allowed-again`が通る | #3288 |
+| 頁の塊が読めなかった時の釦の文が、図ではなく頁を読み込めなかったと日本語と英語で出す | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunk-failure-names-the-page`が通る | #3288 |
+| 編集画面を開いている間に裏で読む頁の塊が読めなくても、頁を読み直さず書いた記法が残る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`editor-keeps-text-when-page-chunks-fail`が通る | #3288 |
+| 検査が落ちた時の記録に、切れた通信と頁の塊を待っているか読めなかったかが出る | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-names-cut-requests`が通る | #3288 |

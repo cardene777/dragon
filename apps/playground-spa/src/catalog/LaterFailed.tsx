@@ -8,11 +8,11 @@ import type { ReactElement } from "react";
 
 import { type Lang, TEXT } from "../text";
 
-export function LaterFailed({ lang }: { lang: Lang }): ReactElement {
+export function LaterFailed({ lang, message }: { lang: Lang; message?: string }): ReactElement {
   const c = TEXT[lang].site.catalog;
   return (
     <div className="catalog-later-failed" data-catalog="later-failed" role="alert">
-      <p className="catalog-later-failed-text">{c.loadFailed}</p>
+      <p className="catalog-later-failed-text">{message ?? c.loadFailed}</p>
       <button type="button" className="catalog-later-reload" data-catalog="reload" onClick={() => location.reload()}>
         {c.reload}
       </button>
