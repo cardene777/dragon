@@ -13,7 +13,7 @@ import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { isCommon, PARTS } from "../catalog/parts";
-import { app, BASE, example, type Site, startSite, stepLabel } from "./playground-support";
+import { app, BASE, example, screenOf, type Site, startSite, stepLabel } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -66,9 +66,6 @@ const snippetOf = (id: string, lang: "ja" | "en"): string | undefined => {
 };
 
 let site: Site;
-
-const screenOf = (page: Page): Promise<string | null> =>
-  page.evaluate(() => document.querySelector("[data-site-screen]")?.getAttribute("data-site-screen") ?? null);
 
 async function onScreen(page: Page, screen: string, message: string): Promise<void> {
   await expect.poll(() => screenOf(page), { ...WAIT, message }).toBe(screen);

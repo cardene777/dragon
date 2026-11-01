@@ -11,7 +11,7 @@ import type { Page, Route } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { toHash } from "../share";
-import { BASE, firstLoadFiles, root, type Site, startSite } from "./playground-support";
+import { BASE, firstLoadFiles, root, screenOf, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -68,9 +68,6 @@ let site: Site;
 
 const assets = (): string => join(site.built.dir, "assets");
 const fileOf = (url: string): string => new URL(url).pathname.split("/").pop() ?? "";
-const screenOf = (page: Page): Promise<string | null> =>
-  page.evaluate(() => document.querySelector("[data-site-screen]")?.getAttribute("data-site-screen") ?? null);
-
 /** その種類の塊の file の名前。無ければ `undefined` */
 const chunkOf = (kind: string): string | undefined => {
   const first = new Set(firstLoadFiles(site.built.dir));

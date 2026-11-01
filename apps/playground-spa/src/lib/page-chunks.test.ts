@@ -10,7 +10,7 @@ import type { Page, Route } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { SECTIONS } from "../docs/content";
-import { BASE, firstLoadFiles, type Site, startSite } from "./playground-support";
+import { BASE, firstLoadFiles, screenOf, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -47,9 +47,6 @@ const missingFrom = (names: string[], marks: readonly string[]): string[] => {
 const laterHolding = (marks: readonly string[]): string[] => laterScripts().filter((name) => marks.some((mark) => read(name).includes(mark)));
 
 const fileOf = (url: string): string => new URL(url).pathname.split("/").pop() ?? "";
-
-const screenOf = (page: Page): Promise<string | null> =>
-  page.evaluate(() => document.querySelector("[data-site-screen]")?.getAttribute("data-site-screen") ?? null);
 
 async function onScreen(page: Page, screen: string, message: string): Promise<void> {
   await expect.poll(() => screenOf(page), { ...WAIT, message }).toBe(screen);
