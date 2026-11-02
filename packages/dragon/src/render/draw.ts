@@ -27,7 +27,7 @@ import {
   action,
   badge,
   band,
-  boxNameY,
+  boxTextY,
   card,
   carrier,
   type Ctx,
@@ -372,7 +372,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const vars = paletteVars(palette, theme);
   const id = nameOf(`${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
-  const ctx: Ctx = { m, t: timeline, id, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink, traces, nameY: boxNameY(layout.boxes) };
+  const ctx: Ctx = { m, t: timeline, id, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink, traces, boxText: boxTextY(layout.boxes) };
   const on = involved(diagram);
   // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
   const subs = subChanges(diagram, timeline, layout.kind !== "sequence");
