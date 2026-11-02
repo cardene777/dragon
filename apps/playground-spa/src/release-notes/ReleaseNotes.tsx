@@ -1,7 +1,7 @@
 /**
  * 更新履歴の頁 (#3035)。0.35.0 より前のサイトの更新履歴 (`pages/ReleaseNotesPage.tsx`) と同じ並びにする。
  *
- * 道筋、前置きの札 (版が最新)、見出し、説明、変更の記録 (`CHANGELOG.md`) を GitHub で見る釦 1 つを縦に積む。
+ * 道筋、前置きの札 (版が最新)、見出し、説明、変更の記録を GitHub で見る釦 1 つを縦に積む。釦は日本語の頁では `CHANGELOG.ja.md` を、英語の頁では `CHANGELOG.md` を開く (#3321)。
  * 版は `site/version.ts` が `packages/dragon/package.json` の版から作る。版ごとの要約の札は置かない。
  * 釦は前の実物と同じ 1 つにした (本人の答え、2026-10-23)。repo の GitHub リリースは 0 件で、一覧の釦は空の頁へ行くため。
  * 見た目は前の `styles/compare.css` を `release-notes.css` に写した。
@@ -13,8 +13,8 @@ import { VERSION } from "../site/version";
 import { type Lang, TEXT } from "../text";
 import "./release-notes.css";
 
-/** 変更の記録。repo の root の `CHANGELOG.md` */
-const CHANGELOG = `${REPO}/blob/main/CHANGELOG.md`;
+/** 変更の記録。repo の root の、日本語は `CHANGELOG.ja.md`、英語は `CHANGELOG.md` (#3321) */
+const CHANGELOG: Record<Lang, string> = { ja: `${REPO}/blob/main/CHANGELOG.ja.md`, en: `${REPO}/blob/main/CHANGELOG.md` };
 
 export function ReleaseNotes({ lang }: { lang: Lang }): ReactElement {
   const t = TEXT[lang].site;
@@ -42,7 +42,7 @@ export function ReleaseNotes({ lang }: { lang: Lang }): ReactElement {
         {r.lead}
       </p>
       <div className="release-actions" data-release="actions">
-        <a className="release-btn" href={CHANGELOG} target="_blank" rel="noopener noreferrer">
+        <a className="release-btn" href={CHANGELOG[lang]} target="_blank" rel="noopener noreferrer">
           <span>{r.changelog}</span>
           <span className="release-btn-arrow" aria-hidden="true">
             ↗

@@ -426,10 +426,10 @@ const readmeRules = (lang: "ja" | "en"): string[] => {
   return [...section.matchAll(/^\d+\. (.+)$/gmu)].map((m) => (m[1] ?? "").replaceAll("`", ""));
 };
 
-/** `CHANGELOG.md` の、見出しが `| 前の形 | 新しい形 |` の表の行。各欄は囲みの印を外した字 (#3138) */
-const changelogMigration = (): string[][] => {
-  const lines = readFileSync(join(root, "CHANGELOG.md"), "utf8").split("\n");
-  const head = lines.findIndex((line) => line.trim() === "| 前の形 | 新しい形 |");
+/** 変更履歴の、前の形と新しい形の対応表の行。日本語は `CHANGELOG.ja.md` の `| 前の形 | 新しい形 |`、英語は `CHANGELOG.md` の `| Old form | New form |` の表 (#3138、#3321)。各欄は囲みの印を外した字 */
+const changelogMigration = (lang: Lang): string[][] => {
+  const lines = readFileSync(join(root, lang === "ja" ? "CHANGELOG.ja.md" : "CHANGELOG.md"), "utf8").split("\n");
+  const head = lines.findIndex((line) => line.trim() === (lang === "ja" ? "| 前の形 | 新しい形 |" : "| Old form | New form |"));
   if (head < 0) return [];
   const rows: string[][] = [];
   for (const line of lines.slice(head + 2)) {
@@ -470,7 +470,7 @@ const EDGE_FORM = /^\S+\s*->/u;
 
 /**
  * 前の形と新しい形の対応表 (#3138) を作った後に足した記法の語。前の形が無いので対応表に行を持たない。
- * 対応表は出した版 (0.36.0) の `CHANGELOG.md` の表と同じで、後から行を足さない
+ * 対応表は出した版 (0.36.0) の変更履歴の表と同じで、後から行を足さない
  */
 const ADDED_AFTER_MIGRATION = ["state", "git", "branch", "commit", "time", "scale", "period", "row", "point", "zoom", "mark", "span", "source", "tree", "leaf", "node", "lineup", "item", "line", "seal", "open", "pick", "stamp"];
 
@@ -4723,7 +4723,7 @@ describe("サイトの帯と経路 (#3030)", () => {
     "notation-old-to-new-table-matches-the-parser",
     async () => {
       // 前の形で書いていた人が書き直すための対応表 (#3138)。新しい形の欄の行の頭の語は、読む部品が読む語とちょうど一致し、
-      // 属性の鍵はその行で読む部品が受け付ける鍵だけを使う。`CHANGELOG.md` は日本語の頁と同じ表を持つ
+      // 属性の鍵はその行で読む部品が受け付ける鍵だけを使う。`CHANGELOG.ja.md` は日本語の頁と、`CHANGELOG.md` は英語の頁と同じ表を持つ (#3321)
       const words = parserWords();
       expect(words.kinds.length > 0 && words.heads.length > 0, "読む部品の誤りの文から図の種類と行の頭の語を引けない").toBe(true);
       // 後から足した語として外す語は、読む部品が今も読む語に限る
@@ -4748,16 +4748,17 @@ describe("サイトの帯と経路 (#3030)", () => {
           expect(unknown, `${lang} の対応表の ${form} に、読む部品がその行で受け付けない属性の鍵がある`).toEqual([]);
         }
       };
-      await expectTable("ja");
-      expect(changelogMigration(), "CHANGELOG.md の対応表が、使い方の頁の日本語の対応表と違う").toEqual(
-        await page.evaluate(() =>
+      const pageTable = (): Promise<string[][]> =>
+        page.evaluate(() =>
           [...document.querySelectorAll('#migrate [data-docs="migration"] tbody tr')].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent?.trim() ?? "")),
-        ),
-      );
+        );
+      await expectTable("ja");
+      expect(changelogMigration("ja"), "CHANGELOG.ja.md の対応表が、使い方の頁の日本語の対応表と違う").toEqual(await pageTable());
 
       await page.locator(siteSel("lang-en")).click();
       await expect.poll(async () => (await docsOf(page)).title, { ...WAIT, message: "英語に替えても使い方の見出しが英語にならない" }).toBe(TEXT.en.site.screens.docs.title);
       await expectTable("en");
+      expect(changelogMigration("en"), "CHANGELOG.md の対応表が、使い方の頁の英語の対応表と違う").toEqual(await pageTable());
     },
     SLOW,
   );
@@ -4789,9 +4790,11 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "release-notes-shows-version-and-changelog-link",
     async () => {
-      const changelog = `${REPO}/blob/main/CHANGELOG.md`;
-      expect(existsSync(join(root, "CHANGELOG.md")), "釦が指す CHANGELOG.md が repo に無い").toBe(true);
+      // 釦は日本語の頁では日本語の変更履歴を、英語の頁では英語の変更履歴を開く (#3321)
+      const files = { ja: "CHANGELOG.ja.md", en: "CHANGELOG.md" } as const;
+      for (const file of Object.values(files)) expect(existsSync(join(root, file)), `釦が指す ${file} が repo に無い`).toBe(true);
       for (const lang of ["ja", "en"] as const) {
+        const changelog = `${REPO}/blob/main/${files[lang]}`;
         const { page } = await site.open({ path: `${BASE}release-notes`, locale: lang === "ja" ? "ja-JP" : "en-US" });
         await onScreen(page, "release-notes", "更新履歴の頁が出ない");
         await expect.poll(async () => (await releaseOf(page)).title, { ...WAIT, message: `${lang} の更新履歴の見出しが出ない` }).toBe(TEXT[lang].site.screens["release-notes"].title);

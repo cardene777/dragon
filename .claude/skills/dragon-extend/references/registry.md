@@ -34,7 +34,7 @@
 | `packages/dragon/examples/` | 見本の記法と書き出した絵、手引き | 日本語と英語の見本をそろえる。見本の file の最初の注釈の行に作業の番号を書かない |
 | `packages/dragon/README.md` | package の README の記法の節 | 行の頭の語と、その種類の小節の例を足す |
 | `README.md` | repo の README の描ける図の欄と行の頭の表 | 記法と同じ PR で直す |
-| `CHANGELOG.md` | Unreleased の Added | 足した種類と語を書く |
+| `CHANGELOG.md` | Unreleased の Added | 足した種類と語を英語で書き、`CHANGELOG.ja.md` の同じ節にも日本語で書く |
 | `.ikkan/premises/product.md` | 描ける図の種類の数と一覧 | 前提の文が古い数のまま残らないようにする |
 | `.ikkan/specs/<機能>.md` | 課題の受入条件を写す先 | 書き方の文書の条件は `.ikkan/specs/site.md` に写す |
 | `apps/playground-spa/src/catalog/parts.ts` | 見本帳の部品の一覧 | 図の種類を2つ以上持つ部品がどの図でも使える部品になる (`isCommon`)。新しい種類を既存の部品に足すと分類が変わる |
@@ -72,7 +72,7 @@
 | `packages/dragon/examples/` | 手引き | 日本語と英語の手引きの両方に部品の書き方を足す |
 | `packages/dragon/README.md` | package の README の記法の節 | 部品の語と例を足す |
 | `README.md` | repo の README の行の頭の表 | 記法と同じ PR で直す |
-| `CHANGELOG.md` | Unreleased の Added | 足した部品と語を書く |
+| `CHANGELOG.md` | Unreleased の Added | 足した部品と語を英語で書き、`CHANGELOG.ja.md` の同じ節にも日本語で書く |
 | `.ikkan/specs/<機能>.md` | 課題の受入条件を写す先 | 描き方の条件は `.ikkan/specs/diagram-core.md`、見本帳の条件は `.ikkan/specs/playground.md` に写す |
 | `apps/playground-spa/src/catalog/parts.ts` | 見本帳の部品の一覧 | 描ける種類が2つ以上なら、どの図でも使える部品として並ぶ (`isCommon`) |
 | `apps/playground-spa/src/catalog/parts/` | 部品の図の記法 (`<名札>.<種類>.dragon` と `.en.dragon`) | 部品を描ける全ての種類と2つの言葉の file を置く |

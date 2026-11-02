@@ -81,7 +81,7 @@ interface DocsText {
   rules: readonly [string, string, string, string];
   /**
    * 前の形から書き直す節の対応表。左が前の形、右が新しい形で、右の欄の `` ` `` で囲んだ字はどれも 1 行の形。
-   * 日本語の表は `CHANGELOG.md` と同じ物を、英語の表は前の英語の語の形を左に置く
+   * 日本語の表は `CHANGELOG.ja.md` と、英語の表は `CHANGELOG.md` と同じ物で、英語の表は前の英語の語の形を左に置く (検査が突き合わせる)
    */
   migration: { head: readonly [string, string]; rows: readonly (readonly [string, string])[] };
 }

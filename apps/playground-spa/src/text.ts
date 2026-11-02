@@ -199,7 +199,7 @@ export const TEXT = {
         eyebrow: (version: string) => `公開の記録 · ${version} が最新`,
         /** 見出しの終わりの差し色の語 */
         accent: "履歴",
-        lead: "dragon の今の版を示す。版ごとの詳しい変更は GitHub 上の CHANGELOG.md で読める。",
+        lead: "dragon の今の版を示す。版ごとの詳しい変更は GitHub 上の CHANGELOG.ja.md で読める。",
         changelog: "変更の記録を GitHub で見る",
       },
       notFound: {
