@@ -307,157 +307,171 @@ describe("記法から JSON へ", () => {
     expect(extract("```dragon\nsequence 閉じていない")).toEqual([{ source: "sequence 閉じていない", line: 2 }]);
   });
 
+  /** 図の種類ごとに、README の小節と描ける図の欄に出る呼び方。日本語と英語で持つ (#3317) */
+  type Kind = "state" | "git" | "time" | "tree";
+  const KIND_NAMES: Record<"ja" | "en", Record<Kind, string>> = {
+    ja: { state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図" },
+    en: { state: "State diagram", git: "Git graph", time: "Time diagram", tree: "Tree diagram" },
+  };
+  /** package の README 2 つ。記法の節の見出しと、行の頭の語を並べる文を言葉ごとに持つ (#3317) */
+  const PACKAGE_READMES = [
+    { path: "packages/dragon/README.ja.md", lang: "ja", notation: "dragon記法", words: /^行の頭の語は (.+) で/mu },
+    { path: "packages/dragon/README.md", lang: "en", notation: "Notation", words: /^The words that start a line are (.+), and/mu },
+  ] as const;
+  const readRepo = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
+  const sectionOf = (text: string, heading: string): string => text.split(new RegExp(`^## ${heading}$`, "mu"))[1]?.split(/^## /mu)[0] ?? "";
+
+  /** package の README ごとに、行の頭の語の文と、図の種類の小節から読めたその種類の最初の例を返す */
+  const packageExamples = <T extends { kind?: string }>(kind: Kind): { path: string; words: string; example: T | undefined }[] =>
+    PACKAGE_READMES.map(({ path, lang, notation, words }) => {
+      const section = sectionOf(readRepo(path), notation);
+      const part = section.split(new RegExp(`^### ${KIND_NAMES[lang][kind]}$`, "mu"))[1]?.split(/^#{2,3} /mu)[0] ?? "";
+      expect(part, `${path} の記法の節に ### ${KIND_NAMES[lang][kind]} の小節が無い`).not.toBe("");
+      const parse = api("parseNotation");
+      const examples = api("extractDiagrams")(part).flatMap((fence) => {
+        const parsed = parse(fence.source);
+        return parsed.ok ? [parsed.diagram as T] : [];
+      });
+      return { path, words: words.exec(section)?.[1] ?? "", example: examples.find((d) => d.kind === kind) };
+    });
+
+  /** repo の README 2 つの描ける図の欄が、その種類を挙げているかを確かめる */
+  const expectRootListsKind = (kind: Kind): void => {
+    const ja = /^\| 描ける図 \| (.+) \|$/mu.exec(readRepo("README.ja.md"))?.[1] ?? "";
+    expect(ja, `README.ja.md の描ける図の欄に${KIND_NAMES.ja[kind]}が無い`).toContain(KIND_NAMES.ja[kind]);
+    const en = /^\| Diagram kinds \| (.+) \|$/mu.exec(readRepo("README.md"))?.[1] ?? "";
+    expect(en.toLowerCase(), `README.md の Diagram kinds の欄に ${KIND_NAMES.en[kind]} が無い`).toContain(KIND_NAMES.en[kind].toLowerCase());
+  };
+
+  /** 日本語の repo の README の、記法の節の行の頭の表の 1 列目 */
+  const rootHeads = (): string[] => [...sectionOf(readRepo("README.ja.md"), "dragon記法").matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
+
   it("readme-notation-examples-parse", () => {
-    // 2 つの README は `## dragon記法` の節に決まり 4 つを同じ文で並べ、dragon の囲みの例はどれも新しい形で読める (#3138)
+    // 4 つの README は記法の節に決まり 4 つを並べ、同じ言葉の README どうしは同じ文で、dragon の囲みの例はどれも新しい形で読める (#3138、#3317)
     const extract = api("extractDiagrams");
     const parse = api("parseNotation");
-    const rulesOf = (text: string): string[] => {
-      const section = text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
-      return [...section.matchAll(/^\d+\. (.+)$/gmu)].map((m) => m[1] ?? "");
-    };
-    const readmes = ["README.md", "packages/dragon/README.md"].map((path) => ({ path, text: readFileSync(join(process.cwd(), path), "utf8") }));
-    for (const { path, text } of readmes) {
-      expect(rulesOf(text), `${path} の dragon記法の節に決まりが 4 つ並ばない`).toHaveLength(4);
-      const fences = extract(text);
-      expect(fences.length, `${path} に dragon の囲みが無い`).toBeGreaterThan(0);
-      const failed = fences.flatMap((fence) => {
-        const parsed = parse(fence.source);
-        return parsed.ok ? [] : [`${path}:${fence.line + (parsed.errors[0]?.line ?? 1) - 1} ${parsed.errors[0]?.message}`];
+    const rulesOf = (text: string, heading: string): string[] => [...sectionOf(text, heading).matchAll(/^\d+\. (.+)$/gmu)].map((m) => m[1] ?? "");
+    const pairs = [
+      { heading: "dragon記法", paths: ["README.ja.md", "packages/dragon/README.ja.md"] },
+      { heading: "Notation", paths: ["README.md", "packages/dragon/README.md"] },
+    ];
+    for (const { heading, paths } of pairs) {
+      const rules = paths.map((path) => {
+        const text = readRepo(path);
+        expect(rulesOf(text, heading), `${path} の ${heading} の節に決まりが 4 つ並ばない`).toHaveLength(4);
+        const fences = extract(text);
+        expect(fences.length, `${path} に dragon の囲みが無い`).toBeGreaterThan(0);
+        const failed = fences.flatMap((fence) => {
+          const parsed = parse(fence.source);
+          return parsed.ok ? [] : [`${path}:${fence.line + (parsed.errors[0]?.line ?? 1) - 1} ${parsed.errors[0]?.message}`];
+        });
+        expect(failed, `${path} の読めない囲み`).toEqual([]);
+        return rulesOf(text, heading);
       });
-      expect(failed, `${path} の読めない囲み`).toEqual([]);
+      expect(rules[1], `${paths.join(" と ")} で決まりの文が違う`).toEqual(rules[0]);
     }
-    const [root, dragon] = readmes;
-    expect(rulesOf(dragon?.text ?? ""), "2 つの README で決まりの文が違う").toEqual(rulesOf(root?.text ?? ""));
+    // 英語の README の決まりは、英語の書き方の手引きの決まりと同じ文
+    expect(rulesOf(readRepo("README.md"), "Notation"), "README.md の決まりが英語の手引きと違う").toEqual(rulesOf(readRepo("packages/dragon/examples/quick-start.en.md"), "Rules"));
   });
 
   it("readme-notation-covers-state", () => {
-    // 2 つの README が状態遷移図 (#3163) の書き方を載せる (#3172)
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    const read = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
-    const notationOf = (text: string): string => text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
-
-    // repo の README は、描ける図の欄に状態遷移図を、行の頭の表に `state` の行と `start` と `finish` の線の行を持つ
-    const root = read("README.md");
-    expect(/^\| 描ける図 \| (.+) \|$/mu.exec(root)?.[1] ?? "", "README.md の描ける図の欄に状態遷移図が無い").toContain("状態遷移図");
-    const heads = [...notationOf(root).matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
-    expect(heads.some((head) => head.includes("`state`")), "README.md の行の頭の表に state の行が無い").toBe(true);
-    expect(heads.some((head) => head.includes("`start`")) && heads.some((head) => head.includes("`finish`")), "README.md の行の頭の表に start と finish の線の行が無い").toBe(true);
+    // 4 つの README が状態遷移図 (#3163) の書き方を載せる (#3172、#3317)
+    expectRootListsKind("state");
+    // 日本語の repo の README は、行の頭の表に `state` の行と `start` と `finish` の線の行を持つ
+    const heads = rootHeads();
+    expect(heads.some((head) => head.includes("`state`")), "README.ja.md の行の頭の表に state の行が無い").toBe(true);
+    expect(heads.some((head) => head.includes("`start`")) && heads.some((head) => head.includes("`finish`")), "README.ja.md の行の頭の表に start と finish の線の行が無い").toBe(true);
 
     // package の README は、行の頭の語に `state` を並べ、状態遷移図の小節に始まりと終わりと通らない道を使う例を置く
-    const notation = notationOf(read("packages/dragon/README.md"));
-    expect(/^行の頭の語は (.+) で/mu.exec(notation)?.[1] ?? "", "package の README の行の頭の語に state が無い").toContain("`state`");
-    const part = notation.split(/^### 状態遷移図$/mu)[1]?.split(/^#{2,3} /mu)[0] ?? "";
-    expect(part, "package の README の dragon記法の節に ### 状態遷移図 の小節が無い").not.toBe("");
-    const states = extract(part).flatMap((fence) => {
-      const parsed = parse(fence.source);
-      return parsed.ok ? [parsed.diagram as { kind?: string; state?: { paths?: unknown[] }; steps?: { events?: { from?: string; to?: string }[] }[] }] : [];
-    });
-    const example = states.find((d) => d.kind === "state");
-    expect(example, "package の README の状態遷移図の小節に読める state の例が無い").toBeDefined();
-    const edges = (example?.steps ?? []).flatMap((s) => s.events ?? []);
-    expect(edges.some((e) => e.from === "start"), "README の状態遷移図の例に start から出る線が無い").toBe(true);
-    expect(edges.some((e) => e.to === "finish"), "README の状態遷移図の例に finish へ入る線が無い").toBe(true);
-    expect(example?.state?.paths?.length ?? 0, "README の状態遷移図の例に通らない道が無い").toBeGreaterThan(0);
+    type StateDiagram = { kind?: string; state?: { paths?: unknown[] }; steps?: { events?: { from?: string; to?: string }[] }[] };
+    for (const { path, words, example } of packageExamples<StateDiagram>("state")) {
+      expect(words, `${path} の行の頭の語に state が無い`).toContain("`state`");
+      expect(example, `${path} の状態遷移図の小節に読める state の例が無い`).toBeDefined();
+      const edges = (example?.steps ?? []).flatMap((s) => s.events ?? []);
+      expect(edges.some((e) => e.from === "start"), `${path} の状態遷移図の例に start から出る線が無い`).toBe(true);
+      expect(edges.some((e) => e.to === "finish"), `${path} の状態遷移図の例に finish へ入る線が無い`).toBe(true);
+      expect(example?.state?.paths?.length ?? 0, `${path} の状態遷移図の例に通らない道が無い`).toBeGreaterThan(0);
+    }
   });
 
   it("readme-notation-covers-git", () => {
-    // 2 つの README が枝分かれの図 (#3164) の書き方を載せる (#3202)
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    const read = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
-    const notationOf = (text: string): string => text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
-
-    // repo の README は、描ける図の欄に枝分かれの図を、行の頭の表に `git` と `branch` と `commit` の行と、枝を切る行と札を動かす行を持つ
-    const root = read("README.md");
-    expect(/^\| 描ける図 \| (.+) \|$/mu.exec(root)?.[1] ?? "", "README.md の描ける図の欄に枝分かれの図が無い").toContain("枝分かれの図");
-    const heads = [...notationOf(root).matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
-    for (const word of ["git", "branch", "commit"]) expect(heads.some((head) => head.includes(`\`${word}\``)), `README.md の行の頭の表に ${word} の行が無い`).toBe(true);
-    expect(heads.some((head) => head.includes("`from`")), "README.md の行の頭の表に枝を切る from の行が無い").toBe(true);
-    expect(heads.some((head) => head.includes("`HEAD`") && head.includes("`->`")), "README.md の行の頭の表に札を動かす線の行が無い").toBe(true);
+    // 4 つの README が枝分かれの図 (#3164) の書き方を載せる (#3202、#3317)
+    expectRootListsKind("git");
+    // 日本語の repo の README は、行の頭の表に `git` と `branch` と `commit` の行と、枝を切る行と札を動かす行を持つ
+    const heads = rootHeads();
+    for (const word of ["git", "branch", "commit"]) expect(heads.some((head) => head.includes(`\`${word}\``)), `README.ja.md の行の頭の表に ${word} の行が無い`).toBe(true);
+    expect(heads.some((head) => head.includes("`from`")), "README.ja.md の行の頭の表に枝を切る from の行が無い").toBe(true);
+    expect(heads.some((head) => head.includes("`HEAD`") && head.includes("`->`")), "README.ja.md の行の頭の表に札を動かす線の行が無い").toBe(true);
 
     // package の README は、行の頭の語に `git` と `branch` と `commit` を並べ、枝分かれの図の小節に枝を切り、当て直し、merge commit を作り、札を動かす例を置く
-    const notation = notationOf(read("packages/dragon/README.md"));
-    const words = /^行の頭の語は (.+) で/mu.exec(notation)?.[1] ?? "";
-    for (const word of ["git", "branch", "commit"]) expect(words, `package の README の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
-    const part = notation.split(/^### 枝分かれの図$/mu)[1]?.split(/^#{2,3} /mu)[0] ?? "";
-    expect(part, "package の README の dragon記法の節に ### 枝分かれの図 の小節が無い").not.toBe("");
-    type GitEvent = { type?: string; copy?: string; merge?: string };
-    const graphs = extract(part).flatMap((fence) => {
-      const parsed = parse(fence.source);
-      return parsed.ok ? [parsed.diagram as { kind?: string; steps?: { events?: GitEvent[] }[] }] : [];
-    });
-    const example = graphs.find((d) => d.kind === "git");
-    expect(example, "package の README の枝分かれの図の小節に読める git の例が無い").toBeDefined();
-    const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
-    expect(events.some((e) => e.type === "branch"), "README の枝分かれの図の例に枝を切る行が無い").toBe(true);
-    expect(events.some((e) => e.type === "commit" && e.copy !== undefined), "README の枝分かれの図の例に当て直しの commit が無い").toBe(true);
-    expect(events.some((e) => e.type === "commit" && e.merge !== undefined), "README の枝分かれの図の例に merge commit が無い").toBe(true);
-    expect(events.some((e) => e.type === "edge"), "README の枝分かれの図の例に札を動かす線が無い").toBe(true);
+    type GitDiagram = { kind?: string; steps?: { events?: { type?: string; copy?: string; merge?: string }[] }[] };
+    for (const { path, words, example } of packageExamples<GitDiagram>("git")) {
+      for (const word of ["git", "branch", "commit"]) expect(words, `${path} の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
+      expect(example, `${path} の枝分かれの図の小節に読める git の例が無い`).toBeDefined();
+      const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
+      expect(events.some((e) => e.type === "branch"), `${path} の枝分かれの図の例に枝を切る行が無い`).toBe(true);
+      expect(events.some((e) => e.type === "commit" && e.copy !== undefined), `${path} の枝分かれの図の例に当て直しの commit が無い`).toBe(true);
+      expect(events.some((e) => e.type === "commit" && e.merge !== undefined), `${path} の枝分かれの図の例に merge commit が無い`).toBe(true);
+      expect(events.some((e) => e.type === "edge"), `${path} の枝分かれの図の例に札を動かす線が無い`).toBe(true);
+    }
   });
 
   it("readme-notation-covers-time", () => {
-    // 2 つの README が時間軸の図 (#3165) の書き方を載せる (#3221)
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    const read = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
-    const notationOf = (text: string): string => text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+    // 4 つの README が時間軸の図 (#3165) の書き方を載せる (#3221、#3317)
     const heads = ["time", "scale", "period", "row", "point", "zoom", "mark", "span"];
-
-    // repo の README は、描ける図の欄に時間軸の図を、行の頭の表に時間軸の図の 8 つの行と、針を進める `now ->` の行を持つ
-    const root = read("README.md");
-    expect(/^\| 描ける図 \| (.+) \|$/mu.exec(root)?.[1] ?? "", "README.md の描ける図の欄に時間軸の図が無い").toContain("時間軸の図");
-    const rows = [...notationOf(root).matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
-    for (const word of heads) expect(rows.some((head) => head.includes(`\`${word}`)), `README.md の行の頭の表に ${word} の行が無い`).toBe(true);
-    expect(rows.some((head) => head.includes("`now ->")), "README.md の行の頭の表に針を進める now -> の行が無い").toBe(true);
+    expectRootListsKind("time");
+    // 日本語の repo の README は、行の頭の表に時間軸の図の 8 つの行と、針を進める `now ->` の行を持つ
+    const rows = rootHeads();
+    for (const word of heads) expect(rows.some((head) => head.includes(`\`${word}`)), `README.ja.md の行の頭の表に ${word} の行が無い`).toBe(true);
+    expect(rows.some((head) => head.includes("`now ->")), "README.ja.md の行の頭の表に針を進める now -> の行が無い").toBe(true);
 
     // package の README は、行の頭の語に時間軸の図の 8 つの語を並べ、時間軸の図の小節に針を進め、印の色を変え、範囲を出し、物差しを満たす例を置く
-    const notation = notationOf(read("packages/dragon/README.md"));
-    const words = /^行の頭の語は (.+) で/mu.exec(notation)?.[1] ?? "";
-    for (const word of heads) expect(words, `package の README の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
-    const part = notation.split(/^### 時間軸の図$/mu)[1]?.split(/^#{2,3} /mu)[0] ?? "";
-    expect(part, "package の README の dragon記法の節に ### 時間軸の図 の小節が無い").not.toBe("");
     type TimeDiagram = { kind?: string; strip?: { meters?: unknown[] }; steps?: { events?: { type?: string }[] }[] };
-    const examples = extract(part).flatMap((fence) => {
-      const parsed = parse(fence.source);
-      return parsed.ok ? [parsed.diagram as TimeDiagram] : [];
-    });
-    const example = examples.find((d) => d.kind === "time");
-    expect(example, "package の README の時間軸の図の小節に読める time の例が無い").toBeDefined();
-    const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
-    for (const type of ["now", "mark", "span"]) expect(events.some((e) => e.type === type), `README の時間軸の図の例に ${type} の行が無い`).toBe(true);
-    expect(example?.strip?.meters?.length ?? 0, "README の時間軸の図の例に物差しの欄が無い").toBeGreaterThan(0);
+    for (const { path, words, example } of packageExamples<TimeDiagram>("time")) {
+      for (const word of heads) expect(words, `${path} の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
+      expect(example, `${path} の時間軸の図の小節に読める time の例が無い`).toBeDefined();
+      const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
+      for (const type of ["now", "mark", "span"]) expect(events.some((e) => e.type === type), `${path} の時間軸の図の例に ${type} の行が無い`).toBe(true);
+      expect(example?.strip?.meters?.length ?? 0, `${path} の時間軸の図の例に物差しの欄が無い`).toBeGreaterThan(0);
+    }
   });
 
   it("readme-notation-covers-tree", () => {
-    // 2 つの README が木の図 (#3233) の書き方を載せる (#3235)
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    const read = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
-    const notationOf = (text: string): string => text.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+    // 4 つの README が木の図 (#3233) の書き方を載せる (#3235、#3317)
     const heads = ["tree", "leaf", "node"];
-
-    // repo の README は、描ける図の欄に木の図を、行の頭の表に木の図の 3 つの行を持つ
-    const root = read("README.md");
-    expect(/^\| 描ける図 \| (.+) \|$/mu.exec(root)?.[1] ?? "", "README.md の描ける図の欄に木の図が無い").toContain("木の図");
-    const rows = [...notationOf(root).matchAll(/^\| (.+?) \| .+ \|$/gmu)].map((m) => m[1] ?? "");
-    for (const word of heads) expect(rows.some((head) => head.includes(`\`${word}`)), `README.md の行の頭の表に ${word} の行が無い`).toBe(true);
+    expectRootListsKind("tree");
+    // 日本語の repo の README は、行の頭の表に木の図の 3 つの行を持つ
+    const rows = rootHeads();
+    for (const word of heads) expect(rows.some((head) => head.includes(`\`${word}`)), `README.ja.md の行の頭の表に ${word} の行が無い`).toBe(true);
 
     // package の README は、行の頭の語に木の図の 3 つの語を並べ、木の図の小節に値を持つ葉と親の例を置く
-    const notation = notationOf(read("packages/dragon/README.md"));
-    const words = /^行の頭の語は (.+) で/mu.exec(notation)?.[1] ?? "";
-    for (const word of heads) expect(words, `package の README の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
-    const part = notation.split(/^### 木の図$/mu)[1]?.split(/^#{2,3} /mu)[0] ?? "";
-    expect(part, "package の README の dragon記法の節に ### 木の図 の小節が無い").not.toBe("");
     type TreeDiagram = { kind?: string; steps?: { events?: { type?: string; hash?: string }[] }[] };
-    const examples = extract(part).flatMap((fence) => {
-      const parsed = parse(fence.source);
-      return parsed.ok ? [parsed.diagram as TreeDiagram] : [];
-    });
-    const example = examples.find((d) => d.kind === "tree");
-    expect(example, "package の README の木の図の小節に読める tree の例が無い").toBeDefined();
-    const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
-    for (const type of ["leaf", "node"]) expect(events.some((e) => e.type === type && e.hash !== undefined), `README の木の図の例に値を持つ ${type} の行が無い`).toBe(true);
+    for (const { path, words, example } of packageExamples<TreeDiagram>("tree")) {
+      for (const word of heads) expect(words, `${path} の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
+      expect(example, `${path} の木の図の小節に読める tree の例が無い`).toBeDefined();
+      const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
+      for (const type of ["leaf", "node"]) expect(events.some((e) => e.type === type && e.hash !== undefined), `${path} の木の図の例に値を持つ ${type} の行が無い`).toBe(true);
+    }
+  });
+
+  it("readme-opens-with-catalog-install-and-first-diagram", () => {
+    // 4 つの README は、何をする道具かの後に見本帳の場所、入れ方、最初の図の順に並び、もう 1 つの言葉の README へ link する (#3317)
+    const CATALOG = "https://cardene777.github.io/dragon/";
+    const readmes = [
+      { path: "README.md", install: "## Install", first: "## A first diagram", other: "[日本語](README.ja.md)" },
+      { path: "packages/dragon/README.md", install: "## Install", first: "## A first diagram", other: "[日本語](https://github.com/cardene777/dragon/blob/main/packages/dragon/README.ja.md)" },
+      { path: "README.ja.md", install: "## 入れ方", first: "## 最初の図", other: "[English](README.md)" },
+      { path: "packages/dragon/README.ja.md", install: "## 入れ方", first: "## 最初の図", other: "[English](README.md)" },
+    ];
+    for (const { path, install, first, other } of readmes) {
+      const text = readRepo(path);
+      const at = [text.indexOf(other), text.indexOf(CATALOG), text.indexOf(`${install}\n`), text.indexOf(`${first}\n`)];
+      expect(at.every((i) => i > 0), `${path} に言葉の link、見本帳、入れ方、最初の図のどれかが無い`).toBe(true);
+      expect([...at].sort((a, b) => a - b), `${path} の冒頭の並びが違う`).toEqual(at);
+      // 最初の図は読める dragon の囲みを持つ
+      const fence = api("extractDiagrams")(text.slice(at[3] ?? 0))[0];
+      expect(fence !== undefined && api("parseNotation")(fence.source).ok, `${path} の最初の図が読めない`).toBe(true);
+    }
   });
 });
 
