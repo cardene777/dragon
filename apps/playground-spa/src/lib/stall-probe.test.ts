@@ -171,7 +171,7 @@ describe("落ちた検査の頁の様子 (#3278)", () => {
     expect(processes.length, "process の欄が無い").toBeGreaterThan(0);
     for (const p of processes) {
       expect(p.main, `${p.type} (${p.pid}) の主の thread の段が 5 つでない`).toHaveLength(5);
-      for (const frame of p.main) expect(frame, `${p.type} (${p.pid}) の段が「名前 (置き場)」の形でない`).toMatch(/^\S.* \(\S+\)$/u);
+      for (const frame of p.main) expect(frame, `${p.type} (${p.pid}) の段が「名前 (置き場)」の形でない`).toMatch(/^\S.* \([^()]+\)$/u);
     }
     const gpu = processes.find((p) => p.type === "GPU");
     expect(gpu?.main[0], "GPU の process の主の thread の末端が機械の待ちでない").toMatch(/\(libsystem_kernel\.dylib\)$/u);
