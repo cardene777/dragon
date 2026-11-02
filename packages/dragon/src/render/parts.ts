@@ -98,20 +98,27 @@ export interface Ctx {
   ink: Ink[];
   /** 描いた線の記録 (#3175)。札を持たない字を横切る線を数える */
   traces: Trace[];
-  /** 箱の名前の基準線を、箱の真ん中からどれだけ下げるか (`boxNameY`) */
-  nameY: number;
+  /** 箱の名前と下の字の基準線を、箱の真ん中からどれだけ下げるか (`boxTextY`) */
+  boxText: BoxTextY;
+}
+
+/** 箱の名前 (`name`) と下の字 (`sub`) の基準線の、箱の真ん中からの下がり */
+export interface BoxTextY {
+  name: number;
+  sub: number;
 }
 
 /** 絵柄を描ける名前か。`ICONS` の継いだ鍵 (`constructor` など) は描けない名前に数える */
 export const drawsIcon = (name: string | undefined): boolean => name !== undefined && Object.hasOwn(ICONS, name);
 
 /**
- * 図の箱の名前の基準線を、箱の真ん中からどれだけ下げるか (#3307)。
+ * 図の箱の名前と下の字の基準線を、箱の真ん中からどれだけ下げるか (#3307)。
  * 名前の上の段 (アイコンか置き場の枠) を使う箱が 1 つでもある図は、その段の下に名前を置く高さで全ての箱の名前を揃える。
- * 1 つも無い図は名前を箱の真ん中に置く。置き場の枠はアイコンの無い箱にも同じ段に出るので、真ん中に寄せると名前が枠に重なる
+ * 1 つも無い図は名前を箱の真ん中に置く。置き場の枠はアイコンの無い箱にも同じ段に出るので、真ん中に寄せると名前が枠に重なる。
+ * 下の字は名前から同じ間を空けて置き、名前を真ん中に上げた図で下の字だけが下の縁に残らないようにする (#3309)
  */
-export const boxNameY = (boxes: readonly { icon?: string; slot?: Rect }[]): number =>
-  boxes.some((b) => drawsIcon(b.icon) || b.slot !== undefined) ? LOOK.box.nameY : LOOK.box.nameMid;
+export const boxTextY = (boxes: readonly { icon?: string; slot?: Rect }[]): BoxTextY =>
+  boxes.some((b) => drawsIcon(b.icon) || b.slot !== undefined) ? { name: LOOK.box.nameY, sub: LOOK.box.subY } : { name: LOOK.box.nameMid, sub: LOOK.box.subMid };
 
 /** 和文を含む字の、和文の字で描く時の字の形 */
 export const sansOf = (t: TextStyle): TextStyle => ({ ...t, family: "sans" });
@@ -187,8 +194,8 @@ function cardFrame(box: SceneBox, ctx: Ctx, act: string | undefined, y: number, 
  * `lit` を渡すと、動く段ではなくその間だけ光らせる (状態遷移図の、運ぶ物が乗っている状態)。
  */
 export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[], lit?: Span[]): string {
-  const { icon, iconRadius, iconScale, iconY, subY } = LOOK.box;
-  const subs = subLines(box, ctx.m, changes, box.cy + subY, ctx.ink);
+  const { icon, iconRadius, iconScale, iconY } = LOOK.box;
+  const subs = subLines(box, ctx.m, changes, box.cy + ctx.boxText.sub, ctx.ink);
   const act = lit ? (lit.length > 0 ? rangeKf(ctx.m, lit.map((s) => [s.start, s.end])) : undefined) : on.length > 0 ? activeKf(ctx, on) : undefined;
   // 置き場を持つ箱は絵柄を左へ寄せ、右に点線の枠を初めから見せる (#3176)
   const ix = box.iconX ?? box.cx;
@@ -201,7 +208,7 @@ export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[]
   }
   return (
     `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
-    `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + ctx.nameY, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`
+    `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + ctx.boxText.name, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`
   );
 }
 
