@@ -30,4 +30,12 @@
 | 部品の頁で、どの図でも使える部品を図の種類ごとに描き、段を 1 つずつ送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-part-shows-both-kinds`が通る | #3231 |
 | 枝分かれの図の部品の頁で、図を 1 段目から 1 段ずつ送れる | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`catalog-has-four-git-parts`が通る | #3231 |
 | 指で触る幅の時系列図の分類の頁で、検索に字を入れた時とコードの側と重ね窓の部品が 44px に届く | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`coarse-catalog-touch-targets-after-action`が通る | #3231 |
-| 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3231 |
+| 一式が通る | `pnpm typecheck`と`pnpm build`と`pnpm lint`と`pnpm exec vitest run`が終わり方0を返す | #3231 #3300 |
+| 主の処理が塞がった頁を残して落ちた検査を閉じた時、記録の1行が、そのブラウザーの描画のprocessとGPUのprocessごとにpidと`sample`の全文を書いたfileのpathを持ち、そのfileが在る | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-samples-processes`が通る | #3300 |
+| 同じ時、記録の1行が、processごとに主のthreadが一番長く居た所を呼び出しの末端から5段持つ | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-names-main-thread`が通る | #3300 |
+| 塞がりが待つ間に解けた頁は、また描き替えるまでの時間 (ms) を記録に持つ | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-times-recovery`が通る | #3300 |
+| 待つ間に塞がりが解けなかった頁は、また描き替えるまでの時間が`null`になる | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-recovery-null-when-stuck`が通る | #3300 |
+| `sample`を起こせない時は、processごとに起こせなかった訳が記録に出て、記録の1行は書かれる | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-sample-failure-named`が通る | #3300 |
+| 既定では固まった頁を60秒待ち、一式の後始末の上限 (`hookTimeout`) は、待つ長さに記録を取る他の手間 (15秒) を足した時間より長い | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-fits-hook-timeout`が通る | #3300 |
+| 全ての頁が描き替えている落ち方では`sample`を取らず、記録はprocessの欄を持たない | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-skips-sample-when-live`が通る | #3300 |
+| 頁が塞がったままでも、落ちた検査を閉じる処理は、待つ長さに15秒を足した時間の中で終わる | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-stuck-page-ends-in-time`が通る | #3300 |
