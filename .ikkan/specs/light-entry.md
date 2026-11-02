@@ -31,3 +31,11 @@
 | 頁の塊が読めなかった時の釦の文が、図ではなく頁を読み込めなかったと日本語と英語で出す | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunk-failure-names-the-page`が通る | #3288 |
 | 編集画面を開いている間に裏で読む頁の塊が読めなくても、頁を読み直さず書いた記法が残る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`editor-keeps-text-when-page-chunks-fail`が通る | #3288 |
 | 検査が落ちた時の記録に、切れた通信と頁の塊を待っているか読めなかったかが出る | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-names-cut-requests`が通る | #3288 |
+| 見本帳を組み立てた時、`index.html`が名指すCSSに`@font-face`が無く、後から読むCSSに在る | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`first-load-css-carries-no-font-face`が通る | #3292 |
+| 見本帳を組み立てた時、最初に読むscriptとCSSの合計が今の上限213KBより小さい新しい上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3292 |
+| 初めて開く端末で、字のCSSの読み込みが最初の画面を描いた後に始まる | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`first-visit-reads-font-css-after-first-screen`が通る | #3292 |
+| 2度目に開く端末で、字のCSSを読み終えるまで最初の画面を描かない | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`second-visit-reads-font-css-before-first-screen`が通る | #3292 |
+| 字のCSSを読めない時、初めての端末でも2度目の端末でも、頁のCSSが効いた最初の画面が出る | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`font-css-failure-still-draws-first-screen`が通る | #3292 |
+| 開いた後、`document.fonts`に字が載り、字の`file`を読む | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`font-faces-reach-the-page`が通る | #3292 |
+| `localStorage`を使えないbrowserで開いた時、最初の画面が出て、`document.fonts`に字が載る | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`no-storage-still-draws-first-screen`が通る | #3292 |
+| 字のCSSを読む時に、CSPの違反が出ない | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`font-css-respects-csp`が通る | #3292 |

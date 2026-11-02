@@ -277,12 +277,12 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
       w.__startMedia = { reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, coarse: matchMedia("(pointer: coarse)").matches };
       // 字の CSS は最初の画面を描いた後に読むので (#3292)、届く前の `document.fonts.ready` は字を待たずに解ける。
       // 字の組みを測る検査が端末の字を測らないよう、字が載ってから本物を返す。字の CSS を止めた頁でも止まらないよう 5 秒で打ち切る
-      const ready = Object.getOwnPropertyDescriptor(FontFaceSet.prototype, "ready")?.get;
+      const fontSet = Object.getPrototypeOf(document.fonts) as object;
       Object.defineProperty(document.fonts, "ready", {
-        get: async () => {
+        get: async (): Promise<unknown> => {
           const limit = performance.now() + 5_000;
           while (document.fonts.size === 0 && performance.now() < limit) await new Promise((done) => setTimeout(done, 20));
-          return ready?.call(document.fonts);
+          return Reflect.get(fontSet, "ready", document.fonts);
         },
       });
     });
