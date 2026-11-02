@@ -178,6 +178,48 @@ export interface PageProbe {
   later: "waiting" | "failed" | null;
   /** 切れた通信の file と訳 (#3288) */
   cut: string[];
+  /**
+   * 初めに調べた時に描き替えなかった頁で、待ち始めてからまた描き替えるまでの ms。待つ間に描き替えなければ null (#3300)。
+   * 描き替えていた頁は持たない
+   */
+  backMs?: number | null;
+}
+
+/**
+ * 固まった頁がまた描き替えるのを待つ長さの既定 (#3300)。
+ * 釦を押して 30 秒で検査が落ちた後に 60 秒待つので、押してから約 95 秒までに頁が戻るかが分かる
+ */
+export const STALL_BACK_WAIT = 60_000;
+/** 待つ長さの他に、落ちた時の記録が掛ける手間の上限。頁を初めに調べる 3.5 秒、`sample` の書き出しの上限 10 秒、頁を閉じる分 (#3300) */
+export const STALL_RECORD_EXTRA = 15_000;
+/** `sample` が呼び出しの並びを取る秒数 */
+const SAMPLE_SECONDS = 2;
+/** `sample` が file を書き終えるまでの上限。混んだ機械では名前の解決に時間が掛かる */
+const SAMPLE_LIMIT = 10_000;
+/** 主の thread の一番長く居た所として残す、呼び出しの末端からの段の数 */
+const MAIN_FRAMES = 5;
+
+/** 落ちた時に `sample` で覗いた process 1 つ (#3300) */
+export interface ProcessSample {
+  /** `SystemInfo.getProcessInfo` の種類。描画の process は `renderer`、GPU の process は `GPU` */
+  type: string;
+  pid: number;
+  /** `sample` の全文を書いた file。取れなかった時は null */
+  file: string | null;
+  /**
+   * 主の thread が一番長く居た呼び出しの並びの、末端から 5 段。各段は `名前+位置 (置き場)` の形。
+   * Playwright の Chromium は関数名を落としてあるので、Chromium の段の名前は近くの別名で、同じ版の中で位置を比べるのに使う
+   */
+  main: string[];
+  /** 取れなかった訳 */
+  error?: string;
+}
+
+export interface StallRecordOptions {
+  /** 固まった頁がまた描き替えるのを待つ長さ (ms)。既定は `STALL_BACK_WAIT` */
+  backWait?: number;
+  /** 呼び出しの並びを取る命令。既定は macOS の `sample` */
+  sampler?: string;
 }
 
 /**
@@ -225,16 +267,116 @@ export async function probePages(pages: Page[], wait = 3_000): Promise<PageProbe
 }
 
 /**
+ * 頁ごとに、また描き替えるまで `limit` ms の間調べ直し、待ち始めてから描き替えるまでの ms を返す。描き替えなければ null (#3300)。
+ * 閉じた頁と壊れた頁はすぐ応えない扱いで返るので、1 回ごとに 1 秒は間を空ける
+ */
+async function waitForFrames(pages: Page[], limit: number): Promise<(number | null)[]> {
+  return Promise.all(
+    pages.map(async (page) => {
+      const start = Date.now();
+      while (Date.now() - start < limit) {
+        const tried = Date.now();
+        const [seen] = await probePages([page], Math.min(1_000, limit - (tried - start)));
+        if (seen?.responds && seen.frameMs !== null) return Date.now() - start;
+        await new Promise((done) => setTimeout(done, Math.max(0, 1_000 - (Date.now() - tried))));
+      }
+      return null;
+    }),
+  );
+}
+
+/** `sample` の全文から、主の thread が一番長く居た呼び出しの並びを末端から `MAIN_FRAMES` 段返す。主の thread が無ければ空 */
+function mainFramesOf(text: string): string[] {
+  const lines = text.split("\n");
+  const graph = lines.findIndex((l) => l.startsWith("Call graph:"));
+  const head = lines.findIndex((l, i) => i > graph && l.includes("com.apple.main-thread"));
+  if (graph < 0 || head < 0) return [];
+  // 子は数の多い順に並ぶので、深さが 1 段ずつ増える間の行が一番長く居た並びになる
+  const depthOf = (line: string): number => line.search(/\d/u);
+  const path: string[] = [];
+  for (let i = head + 1; i < lines.length && depthOf(lines[i] ?? "") > depthOf(lines[i - 1] ?? ""); i++) path.push(lines[i] ?? "");
+  return path
+    .slice(-MAIN_FRAMES)
+    .reverse()
+    .map((line) => {
+      const frame = /^\d+\s+(.+?)\s+\(in ([^)]+)\)(?:\s+\+\s+(\d+))?/u.exec(line.slice(depthOf(line)));
+      return frame ? `${frame[1]}${frame[3] ? `+${frame[3]}` : ""} (${frame[2]})` : line.slice(depthOf(line)).trim();
+    });
+}
+
+/**
+ * ブラウザーごとに描画の process と GPU の process を `sampler` で `SAMPLE_SECONDS` 秒覗き、全文を一時の file に書く (#3300)。
+ * 取れなかった process は訳を持たせて返し、記録の 1 行は止めない
+ */
+async function sampleProcesses(browsers: Browser[], sampler: string): Promise<ProcessSample[]> {
+  const dir = mkdtempSync(join(tmpdir(), "dragon-stall-"));
+  const found = await Promise.all(
+    browsers.map(async (browser): Promise<ProcessSample[]> => {
+      try {
+        const cdp = await browser.newBrowserCDPSession();
+        const { processInfo } = (await cdp.send("SystemInfo.getProcessInfo")) as { processInfo: { type: string; id: number }[] };
+        await cdp.detach();
+        return processInfo.filter((p) => p.type === "renderer" || p.type === "GPU").map((p) => ({ type: p.type, pid: p.id, file: null, main: [] }));
+      } catch (error) {
+        return [{ type: "unknown", pid: 0, file: null, main: [], error: `process の一覧を引けない: ${String(error).split("\n")[0]}` }];
+      }
+    }),
+  );
+  return Promise.all(
+    found.flat().map(async (p): Promise<ProcessSample> => {
+      if (p.error) return p;
+      const file = join(dir, `${p.type}-${p.pid}.txt`);
+      try {
+        await run(sampler, [String(p.pid), String(SAMPLE_SECONDS), "-file", file], { timeout: SAMPLE_LIMIT });
+        return { ...p, file, main: mainFramesOf(readFileSync(file, "utf8")) };
+      } catch (error) {
+        const e = error as { code?: string | number; killed?: boolean; stderr?: string; message?: string };
+        const why = e.killed ? `${SAMPLE_LIMIT}ms で終わらない` : e.code === "ENOENT" ? "命令が無い (ENOENT)" : (e.stderr || e.message || String(error)).trim().split("\n")[0];
+        return { ...p, error: `${sampler} を起こせない: ${why}` };
+      }
+    }),
+  );
+}
+
+/**
  * context を閉じる。検査が落ちていた時は、閉じる前に頁ごとの様子と機械の負荷と空きの記憶を 1 行で `log` に書く (#3278)。
  *
  * 頁が描き替えを止めて落ちた時、何も残らないと止まった訳を調べられない。
- * 通った検査では何も書かない = 一式の出力を落ちた検査の分だけにする
+ * 通った検査では何も書かない = 一式の出力を落ちた検査の分だけにする。
+ *
+ * 描き替えない頁が 1 つでもある時は、描画の process と GPU の process の呼び出しの並びを `sample` で取り、
+ * 同時にその頁がまた描き替えるのを `backWait` の間待つ (#3300)。
+ * どの thread がどこで待っているかと、待てば頁が戻るのかが、次に止まった時の記録で分かる。
+ * 負荷と空きの記憶は待つ前の値を残す = 止まった時の機械の様子を書く
  */
-export async function closeContextsAfter(contexts: BrowserContext[], failed: boolean, log: (line: string) => void = console.error): Promise<void> {
+export async function closeContextsAfter(
+  contexts: BrowserContext[],
+  failed: boolean,
+  log: (line: string) => void = console.error,
+  o: StallRecordOptions = {},
+): Promise<void> {
   if (failed) {
-    const pages = await probePages(contexts.flatMap((c) => c.pages()));
+    const all = contexts.flatMap((c) => c.pages());
+    const pages = await probePages(all);
     const [load = 0] = loadavg();
-    log(`検査が落ちた時の頁と機械の様子 (#3278): ${JSON.stringify({ pages, load: Number(load.toFixed(1)), cores: cpus().length, freeMb: Math.round(freemem() / 2 ** 20) })}`);
+    const machine = { load: Number(load.toFixed(1)), cores: cpus().length, freeMb: Math.round(freemem() / 2 ** 20) };
+    const stuck = pages.flatMap((p, i) => (p.responds && p.frameMs !== null ? [] : [i]));
+    let processes: ProcessSample[] | undefined;
+    if (stuck.length > 0) {
+      const browsers = [...new Set(contexts.map((c) => c.browser()).filter((b): b is Browser => b !== null))];
+      const [sampled, back] = await Promise.all([
+        sampleProcesses(browsers, o.sampler ?? "sample"),
+        waitForFrames(
+          stuck.map((i) => all[i] as Page),
+          o.backWait ?? STALL_BACK_WAIT,
+        ),
+      ]);
+      processes = sampled;
+      stuck.forEach((i, k) => {
+        (pages[i] as PageProbe).backMs = back[k] ?? null;
+      });
+    }
+    log(`検査が落ちた時の頁と機械の様子 (#3278): ${JSON.stringify({ pages, ...(processes ? { processes } : {}), ...machine })}`);
   }
   await Promise.all(contexts.map((c) => c.close()));
 }
