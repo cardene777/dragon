@@ -5,11 +5,11 @@
  * GitHub Pages は頁を `/dragon/` の下で配り、無い path には `404.html` を返す。ここの配り手も同じ動きをする。
  */
 import { execFile } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { cpus, freemem, loadavg, tmpdir } from "node:os";
-import { extname, join, resolve, sep } from "node:path";
+import { dirname, extname, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
@@ -220,6 +220,26 @@ export interface StallRecordOptions {
   backWait?: number;
   /** 呼び出しの並びを取る命令。既定は macOS の `sample` */
   sampler?: string;
+  /**
+   * 固まった頁を残して落ちた時に、1 回の止まりにつき 1 つの dir を作り、`record.json` と `sample` の全文の file を残す置き場 (#3303)。
+   * 無い時は `sample` の file を一時の場所に書くだけで、後から拾える物を残さない
+   */
+  store?: string;
+  /** 落ちた検査の名前と file。置き場に残す `record.json` に書く */
+  test?: { name: string; file: string };
+}
+
+/**
+ * 一式が固まって落ちた時の記録を残す置き場。worktree で回しても本体の checkout の `.context/stall-records/` を返す (#3303)。
+ * 毎朝の定期実行がここから新しい記録を拾い、#3302 に貼る。git で本体を引けない時は undefined
+ */
+export async function stallStoreOf(dir: string): Promise<string | undefined> {
+  try {
+    const { stdout } = await run("git", ["-C", dir, "rev-parse", "--path-format=absolute", "--git-common-dir"]);
+    return join(dirname(stdout.trim()), ".context", "stall-records");
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -308,8 +328,7 @@ function mainFramesOf(text: string): string[] {
  * ブラウザーごとに描画の process と GPU の process を `sampler` で `SAMPLE_SECONDS` 秒覗き、全文を一時の file に書く (#3300)。
  * 取れなかった process は訳を持たせて返し、記録の 1 行は止めない
  */
-async function sampleProcesses(browsers: Browser[], sampler: string): Promise<ProcessSample[]> {
-  const dir = mkdtempSync(join(tmpdir(), "dragon-stall-"));
+async function sampleProcesses(browsers: Browser[], sampler: string, dir: string): Promise<ProcessSample[]> {
   const found = await Promise.all(
     browsers.map(async (browser): Promise<ProcessSample[]> => {
       try {
@@ -347,7 +366,10 @@ async function sampleProcesses(browsers: Browser[], sampler: string): Promise<Pr
  * 描き替えない頁が 1 つでもある時は、描画の process と GPU の process の呼び出しの並びを `sample` で取り、
  * 同時にその頁がまた描き替えるのを `backWait` の間待つ (#3300)。
  * どの thread がどこで待っているかと、待てば頁が戻るのかが、次に止まった時の記録で分かる。
- * 負荷と空きの記憶は待つ前の値を残す = 止まった時の機械の様子を書く
+ * 負荷と空きの記憶は待つ前の値を残す = 止まった時の機械の様子を書く。
+ *
+ * `store` を渡した時は、固まった頁があった回だけ、置き場に `record.json` と `sample` の file を残す (#3303)。
+ * log の 1 行は誰も見なければ流れるので、毎朝の定期実行が置き場から拾う
  */
 export async function closeContextsAfter(
   contexts: BrowserContext[],
@@ -358,14 +380,18 @@ export async function closeContextsAfter(
   if (failed) {
     const all = contexts.flatMap((c) => c.pages());
     const pages = await probePages(all);
+    const at = new Date().toISOString();
     const [load = 0] = loadavg();
     const machine = { load: Number(load.toFixed(1)), cores: cpus().length, freeMb: Math.round(freemem() / 2 ** 20) };
     const stuck = pages.flatMap((p, i) => (p.responds && p.frameMs !== null ? [] : [i]));
     let processes: ProcessSample[] | undefined;
     if (stuck.length > 0) {
+      if (o.store) mkdirSync(o.store, { recursive: true });
+      // 同じ時刻に別の worker が止まっても重ならないよう、時刻を頭に付けた一意の dir を作る
+      const dir = mkdtempSync(o.store ? join(o.store, `${at.replace(/[:.]/gu, "-")}-`) : join(tmpdir(), "dragon-stall-"));
       const browsers = [...new Set(contexts.map((c) => c.browser()).filter((b): b is Browser => b !== null))];
       const [sampled, back] = await Promise.all([
-        sampleProcesses(browsers, o.sampler ?? "sample"),
+        sampleProcesses(browsers, o.sampler ?? "sample", dir),
         waitForFrames(
           stuck.map((i) => all[i] as Page),
           o.backWait ?? STALL_BACK_WAIT,
@@ -375,6 +401,13 @@ export async function closeContextsAfter(
       stuck.forEach((i, k) => {
         (pages[i] as PageProbe).backMs = back[k] ?? null;
       });
+      if (o.store) {
+        const commit = await run("git", ["-C", root, "rev-parse", "HEAD"]).then(
+          ({ stdout }) => stdout.trim(),
+          () => null,
+        );
+        writeFileSync(join(dir, "record.json"), `${JSON.stringify({ test: o.test ?? null, at, commit, pages, processes, ...machine }, null, 2)}\n`);
+      }
     }
     log(`検査が落ちた時の頁と機械の様子 (#3278): ${JSON.stringify({ pages, ...(processes ? { processes } : {}), ...machine })}`);
   }
@@ -402,6 +435,7 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
   const server = await servePage(built.dir);
   const browser: Browser = await chromium.launch();
   const contexts: BrowserContext[] = [];
+  const store = await stallStoreOf(root);
 
   const open = async (o: OpenOptions = {}): Promise<Opened> => {
     const context = await browser.newContext({
@@ -459,7 +493,11 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
     open,
     closeContexts: async () => {
       // `afterEach` の間も vitest は今の検査を持ち、落ちた検査は既に `fail` になっている
-      await closeContextsAfter(contexts.splice(0), TestRunner.getCurrentTest()?.result?.state === "fail");
+      const test = TestRunner.getCurrentTest();
+      await closeContextsAfter(contexts.splice(0), test?.result?.state === "fail", console.error, {
+        ...(store ? { store } : {}),
+        ...(test ? { test: { name: test.name, file: test.file.name } } : {}),
+      });
     },
     close: async () => {
       await browser.close();

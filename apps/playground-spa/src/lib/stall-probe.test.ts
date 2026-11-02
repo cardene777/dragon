@@ -4,12 +4,15 @@
  * 一式で釦を押す所が 30 秒待って落ち、同じ検査を単独や負荷 40 以上で回すと通った。
  * 落ちた時の様子が残らないと、頁の描き替えが止まった訳を調べられない。
  */
-import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import config from "../../../../vitest.config";
-import { closeContextsAfter, probePages, STALL_BACK_WAIT, STALL_RECORD_EXTRA, watchCutRequests } from "./playground-support";
+import { closeContextsAfter, probePages, root, STALL_BACK_WAIT, STALL_RECORD_EXTRA, stallStoreOf, watchCutRequests } from "./playground-support";
 
 /** Chromium を起こして閉じるまでに許す時間 */
 const SETUP = 60_000;
@@ -246,5 +249,62 @@ describe("落ちた検査の頁の様子 (#3278)", () => {
     const took = Date.now() - start;
     expect(took, `塞がった頁を残して閉じるのに ${took}ms 掛かる`).toBeLessThan(wait + 15_000);
     expect(context.pages(), "塞がった頁が閉じていない").toHaveLength(0);
+  });
+
+  it("stall-store-keeps-record", async () => {
+    // 固まった頁を残して落ちると、置き場に 1 つの dir を作り、record.json と sample の file を残す (#3303)
+    const store = mkdtempSync(join(tmpdir(), "stall-store-test-"));
+    const context = await browser.newContext();
+    await blockedPage(context, 8_000);
+    const lines: string[] = [];
+    await closeContextsAfter([context], true, (line) => lines.push(line), { backWait: 500, store, test: { name: "固まる検査", file: "apps/x.test.ts" } });
+    const dirs = readdirSync(store);
+    expect(dirs, "置き場に止まり 1 回分の dir が 1 つできない").toHaveLength(1);
+    const dir = join(store, dirs[0] ?? "");
+    const record = JSON.parse(readFileSync(join(dir, "record.json"), "utf8")) as StallRecord & { test: unknown; at: string; commit: string | null };
+    expect(record.test, "record.json に落ちた検査の名前と file が無い").toEqual({ name: "固まる検査", file: "apps/x.test.ts" });
+    expect(record.commit ?? "", "record.json に回した版の commit が無い").toMatch(/^[0-9a-f]{40}$/u);
+    expect(Number.isNaN(Date.parse(record.at)), `record.json の止まった時刻が読めない: ${record.at}`).toBe(false);
+    expect(record.pages, "record.json の頁の様子が記録の 1 行と違う").toEqual(recordOf(lines[0]).pages);
+    expect(record.processes, "record.json の process の欄が記録の 1 行と違う").toEqual(recordOf(lines[0]).processes);
+    for (const p of record.processes ?? []) {
+      if (p.error) continue;
+      expect(p.file !== null && dirname(p.file) === dir && existsSync(p.file), `${p.type} (${p.pid}) の sample の file が置き場の dir に無い: ${p.file}`).toBe(true);
+    }
+  });
+
+  it("stall-store-skips-live-pages", async () => {
+    // 全ての頁が描き替えている落ち方では、置き場に何も作らない
+    const store = mkdtempSync(join(tmpdir(), "stall-store-test-"));
+    const context = await browser.newContext();
+    await (await context.newPage()).setContent("<p>動いている頁</p>");
+    await closeContextsAfter([context], true, () => undefined, { backWait: 500, store });
+    expect(readdirSync(store), "動いている頁しか無いのに置き場に何かを作った").toEqual([]);
+  });
+
+  it("stall-store-under-main-checkout", async () => {
+    // worktree で回した時も、置き場は本体の checkout の `.context/stall-records/` になる
+    const base = realpathSync(mkdtempSync(join(tmpdir(), "stall-store-git-")));
+    const main = join(base, "main");
+    mkdirSync(main);
+    const git = (...args: string[]): void => {
+      execFileSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "user.name=stall", "-c", "user.email=stall@example.invalid", ...args], { stdio: "ignore" });
+    };
+    git("init", "-q", main);
+    git("-C", main, "commit", "-q", "--allow-empty", "-m", "init");
+    git("-C", main, "worktree", "add", "-q", join(base, "wt"));
+    const want = join(main, ".context", "stall-records");
+    expect(await stallStoreOf(join(base, "wt")), "worktree の置き場が本体の checkout の下でない").toBe(want);
+    expect(await stallStoreOf(main), "本体の checkout の置き場が違う").toBe(want);
+  });
+
+  it("stall-probe-leaves-store-clean", async () => {
+    // 置き場を渡さずに固まった頁を残して閉じても、本物の置き場には何も作らない = この file の検査は本物の置き場を汚さない
+    const real = (await stallStoreOf(root)) ?? "";
+    const before = existsSync(real) ? readdirSync(real) : [];
+    const context = await browser.newContext();
+    await blockedPage(context, 6_000);
+    await closeContextsAfter([context], true, () => undefined, { backWait: 500, sampler: "/nonexistent/sample" });
+    expect(existsSync(real) ? readdirSync(real) : [], "置き場を渡さない呼び出しが本物の置き場に何かを作った").toEqual(before);
   });
 });
