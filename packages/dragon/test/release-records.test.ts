@@ -141,6 +141,17 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-46-2-releases-changelog-per-language", () => {
+    // 変更履歴を英語と日本語に分けた変更 (#3321) は 0.46.2 で見本帳だけに出す (#3323)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 46 || (minor === 46 && patch >= 2), `package の版 ${version()} が 0.46.2 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.46\.2\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.46.2"), "0.46.2");
+      expect(released, `${file} に日付付きの ## [0.46.2] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.46.2 の節に #3321 の項が無い`).toContain("(#3321)");
+    }
+  });
+
   it("changelog-0-46-1-releases-english-readme-and-near-icon", () => {
     // 近いアイコン名を示す直し (#3315) と英語の README (#3317) は 0.46.1 で npm と見本帳に出す (#3319)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
