@@ -276,12 +276,13 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
       document.addEventListener("securitypolicyviolation", (e) => w.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
       w.__startMedia = { reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, coarse: matchMedia("(pointer: coarse)").matches };
       // 字の CSS は最初の画面を描いた後に読むので (#3292)、届く前の `document.fonts.ready` は字を待たずに解ける。
-      // 字の組みを測る検査が端末の字を測らないよう、字が載ってから本物を返す。字の CSS を止めた頁でも止まらないよう 5 秒で打ち切る
+      // 字の組みを測る検査が端末の字を測らないよう、字が載り、次の描画で読み込みが始まってから本物を返す。字の CSS を止めた頁でも止まらないよう 5 秒で打ち切る
       const fontSet = Object.getPrototypeOf(document.fonts) as object;
       Object.defineProperty(document.fonts, "ready", {
         get: async (): Promise<unknown> => {
           const limit = performance.now() + 5_000;
           while (document.fonts.size === 0 && performance.now() < limit) await new Promise((done) => setTimeout(done, 20));
+          for (let frame = 0; frame < 2; frame += 1) await new Promise((done) => requestAnimationFrame(done));
           return Reflect.get(fontSet, "ready", document.fonts);
         },
       });
@@ -292,6 +293,13 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
     watchCutRequests(page);
     await o.prepare?.(page);
     await page.goto(o.url ?? `${server.origin}${o.path ?? BASE}`);
+    // 字は `load` の後に届くことがあり、字が替わると段の題と本文の高さが 2px から 3px 変わる (#3294)。
+    // 開いた直後に字の組みを測る検査のために、字を待ってから頁を渡す。頁が読み直しで入れ替わった時は待たない
+    await page
+      .evaluate(async () => {
+        await document.fonts.ready;
+      })
+      .catch(() => undefined);
     if (o.touch) await waitForCoarse(page);
     return {
       page,
