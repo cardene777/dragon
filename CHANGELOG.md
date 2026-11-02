@@ -6,6 +6,17 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.46.2] - 2026-11-03
+
+This version changes only the catalog; the code in `packages/dragon/` is the same as 0.46.1, so it was not published to npm.
+
+### Changed
+
+- **The changelog is now in English, and the Japanese changelog moved to `CHANGELOG.ja.md`** (#3321)
+
+  `CHANGELOG.md` covers every version from 0.35.0 on in English, and `CHANGELOG.ja.md` keeps the full Japanese record, including the versions before 0.35.0.
+  The button on the catalog's release notes page opens `CHANGELOG.ja.md` on the Japanese page and `CHANGELOG.md` on the English page.
+
 ## [0.46.1] - 2026-11-03
 
 This version only has changes that do not change what input is accepted, so the third number went up.
