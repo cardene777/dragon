@@ -55,8 +55,6 @@ const STALE_PATHS = [
 const OLD_ENTRY = /textDslToDiagram|CdlDiagramView|@cardenelabs\/cdl/;
 // 作り直しの経緯として前の名前を書いてよい file
 const HISTORY = new Set([
-  "README.md",
-  "packages/dragon/README.md",
   "CHANGELOG.md",
   ".ikkan/premises/tech.md",
   "packages/dragon/scripts/lib/dep-integrity.mjs",

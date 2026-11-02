@@ -266,10 +266,16 @@ describe("入口から届く型 (#3149)", () => {
   });
 });
 
-/** package の README の `## 頁に置く` の節の、`ts` の囲みの中身。節か囲みが無ければ空 */
-function mountExample(): string {
-  const readme = readFileSync(join(ROOT, "README.md"), "utf8");
-  const start = readme.indexOf("\n## 頁に置く\n");
+/** package の README 2 つと、それぞれの頁に置く節の見出し。英語の README は日本語と同じ例を置く (#3317) */
+const PLACE_SECTIONS = [
+  { file: "README.ja.md", heading: "## 頁に置く" },
+  { file: "README.md", heading: "## Put it on a page" },
+] as const;
+
+/** package の README の頁に置く節の、`ts` の囲みの中身。節か囲みが無ければ空 */
+function mountExample(file: string, heading: string): string {
+  const readme = readFileSync(join(ROOT, file), "utf8");
+  const start = readme.indexOf(`\n${heading}\n`);
   if (start < 0) return "";
   const end = readme.indexOf("\n## ", start + 1);
   const section = readme.slice(start, end < 0 ? undefined : end);
@@ -279,18 +285,29 @@ function mountExample(): string {
 describe("README の頁に置く節 (#3153)", () => {
   it("readme-mount-imports-fonts", () => {
     // 図は同梱の字で測った幅で組むので、頁で字の入口を読み込まないと端末の字で描かれて札から字がはみ出す
-    const lines = mountExample().split("\n");
-    expect(lines, "README の頁に置く節の例が字の入口を import しない").toContain('import "@cardenelabs/dragon/fonts";');
-    expect(lines.some((line) => line.includes("mountDiagram(")), "README の頁に置く節の例が mountDiagram を呼ばない").toBe(true);
+    for (const { file, heading } of PLACE_SECTIONS) {
+      const lines = mountExample(file, heading).split("\n");
+      expect(lines, `${file} の頁に置く節の例が字の入口を import しない`).toContain('import "@cardenelabs/dragon/fonts";');
+      expect(lines.some((line) => line.includes("mountDiagram(")), `${file} の頁に置く節の例が mountDiagram を呼ばない`).toBe(true);
+    }
   });
 
   it("readme-mount-example-type-checks", () => {
     // 使う人が写して使うので、公開する型の file に対して型の誤りが無いかを確かめる。入口の名前は build した file の path に替える
-    const example = mountExample();
-    expect(example, "README に頁に置く節の ts の例が在る").not.toBe("");
-    const code = example
+    const examples = PLACE_SECTIONS.map(({ file, heading }) => mountExample(file, heading));
+    for (const [i, example] of examples.entries()) expect(example, `${PLACE_SECTIONS[i]?.file} に頁に置く節の ts の例が在る`).not.toBe("");
+    // 英語の README は日本語の README と同じ例を置く。同じなので型を確かめるのは 1 つで足りる (#3317)
+    expect(examples[1], "英語と日本語の README で頁に置く節の例が違う").toBe(examples[0]);
+    const code = (examples[0] ?? "")
       .replaceAll('"@cardenelabs/dragon/fonts"', JSON.stringify(join(ROOT, "dist/fonts.js")))
       .replaceAll('"@cardenelabs/dragon"', JSON.stringify(join(ROOT, "dist/index.js")));
     expect(typeErrors({ "example.mts": code }), "README の頁に置く節の例の型の誤り").toEqual([]);
+  });
+
+  it("readme-light-example-matches", () => {
+    // 図の種類の部品を後から読む節の例も、英語と日本語の README で同じ物を置く (#3317)
+    const en = mountExample("README.md", "## Load diagram kinds on demand");
+    expect(en, "英語の README に後から読む節の例が無い").not.toBe("");
+    expect(en, "英語と日本語の README で後から読む節の例が違う").toBe(mountExample("README.ja.md", "## 図の種類の部品を後から読む"));
   });
 });

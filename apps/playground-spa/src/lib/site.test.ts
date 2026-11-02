@@ -397,9 +397,9 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
   json: (d) => d.version >= 1 && d.steps.length >= 1,
 };
 
-/** package の README の `## 頁に置く` の節の `ts` の囲みの中身。頁に置く節はこれと同じ code を出す (#3155) */
+/** package の日本語の README の `## 頁に置く` の節の `ts` の囲みの中身。頁に置く節はこれと同じ code を出す (#3155)。英語の README の例が同じ物かは package の検査が見る */
 const readmePlaceExample = (): string => {
-  const readme = readFileSync(join(root, "packages/dragon/README.md"), "utf8");
+  const readme = readFileSync(join(root, "packages/dragon/README.ja.md"), "utf8");
   const start = readme.indexOf("\n## 頁に置く\n");
   const end = readme.indexOf("\n## ", start + 1);
   const section = start < 0 ? "" : readme.slice(start, end < 0 ? undefined : end);
@@ -408,7 +408,7 @@ const readmePlaceExample = (): string => {
 
 /** package の README の `sh` の囲みの行。書き出しの節の命令はこれと同じ物を出す */
 const readmeCommands = (): string[] => {
-  const readme = readFileSync(join(root, "packages/dragon/README.md"), "utf8");
+  const readme = readFileSync(join(root, "packages/dragon/README.ja.md"), "utf8");
   return [...readme.matchAll(/```sh\n([\s\S]*?)```/gu)].flatMap((m) => (m[1] ?? "").split("\n").filter((line) => line.trim() !== ""));
 };
 
@@ -419,10 +419,10 @@ const cliOptions = (): string[] => {
   return [...usage.matchAll(/["`] {2}(--[a-z][a-z-]*) /gu)].map((m) => m[1] ?? "");
 };
 
-/** repo の README の `## dragon記法` の節の決まり。番号の後ろの字を、囲みの印を外して返す (#3138) */
-const readmeRules = (): string[] => {
-  const readme = readFileSync(join(root, "README.md"), "utf8");
-  const section = readme.split(/^## dragon記法$/mu)[1]?.split(/^## /mu)[0] ?? "";
+/** repo の README の記法の節の決まり。日本語は `README.ja.md` の `## dragon記法`、英語は `README.md` の `## Notation` の節。番号の後ろの字を、囲みの印を外して返す (#3138、#3317) */
+const readmeRules = (lang: "ja" | "en"): string[] => {
+  const readme = readFileSync(join(root, lang === "ja" ? "README.ja.md" : "README.md"), "utf8");
+  const section = readme.split(lang === "ja" ? /^## dragon記法$/mu : /^## Notation$/mu)[1]?.split(/^## /mu)[0] ?? "";
   return [...section.matchAll(/^\d+\. (.+)$/gmu)].map((m) => (m[1] ?? "").replaceAll("`", ""));
 };
 
@@ -4656,10 +4656,10 @@ describe("サイトの帯と経路 (#3030)", () => {
           })
           .toEqual(want);
         const { sections, cards } = await docsOf(page);
-        // 決まりの節は決まり 4 つを番号付きで並べ、日本語の頁の決まりは repo の README の決まりと同じ文 (#3138)
+        // 決まりの節は決まり 4 つを番号付きで並べ、同じ言葉の repo の README の決まりと同じ文 (#3138、#3317)
         const rules = sections.find((s) => s.id === "rules")?.rules ?? [];
         expect(rules, `${lang} の決まりの節に決まりが 4 つ並ばない`).toHaveLength(4);
-        if (lang === "ja") expect(rules, "使い方の頁の決まりが README.md の決まりと違う").toEqual(readmeRules());
+        expect(rules, `${lang} の使い方の頁の決まりが同じ言葉の README の決まりと違う`).toEqual(readmeRules(lang));
         const prose = sections.map((s) => s.prose).join("\n");
         const unexplained = LINE_KINDS.filter((kind) => !new RegExp(`(^|[^A-Za-z-])${kind}($|[^A-Za-z-])`, "u").test(prose));
         expect(unexplained, `${lang} の節の本文が語で説明しない行の種類`).toEqual([]);
