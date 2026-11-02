@@ -10,7 +10,7 @@
 - 見本帳の公開の build は、読み込んでよい場所を CSP の meta で絞る (`apps/playground-spa/vite-csp.ts`)。
 - 見本帳は、概要の頁と編集画面の最初の見本のほかの見本の記法と、部品の図の記法を、それぞれ1つの後から読む塊に分け、最初の画面を描いた後に裏で読む (`apps/playground-spa/src/site/later.ts`、#3246)。
 - 見本帳の使い方の頁とカタログの頁も後から読む塊に分け、同じ仕組みで読む (`apps/playground-spa/src/site/pages.tsx`、#3280)。頁の塊が読めなかった時だけ、頁を1度自動で読み直す (#3288)。
-- 字は Noto Sans JP と JetBrains Mono を同梱し、`@cardenelabs/dragon/fonts` の入口から読む (`packages/dragon/src/load-fonts.ts`)。
+- 字は Noto Sans JP と JetBrains Mono を同梱し、`@cardenelabs/dragon/fonts` の入口から読む (`packages/dragon/src/load-fonts.ts`)。見本帳は字の CSS を最初の CSS に入れず、初めて開く端末は最初の画面を描いた後に読み、前に読んだ端末は描く前に読む (`apps/playground-spa/src/site/fonts.ts`、#3292)。
 - 既定の入口 `@cardenelabs/dragon` は全ての図の種類の部品を持ち、軽い入口 `@cardenelabs/dragon/light` は `git`、`lineup`、`state`、`time`、`tree` の部品を `loadKind` を待った時に読む。見本帳は軽い入口だけを読む (`packages/dragon/src/kinds/registry.ts`、#3248)。
 - 頁で描く入口 `@cardenelabs/dragon` は Node の組み込みの module を読まず、原本の file を移す `migrateFile` は Node でだけ動く入口 `@cardenelabs/dragon/node` に置く (`packages/dragon/src/node.ts`、#3206)。
 
