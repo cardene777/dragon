@@ -56,6 +56,7 @@ const OLD_ENTRY = /textDslToDiagram|CdlDiagramView|@cardenelabs\/cdl/;
 // 作り直しの経緯として前の名前を書いてよい file
 const HISTORY = new Set([
   "CHANGELOG.md",
+  "CHANGELOG.ja.md",
   ".ikkan/premises/tech.md",
   "packages/dragon/scripts/lib/dep-integrity.mjs",
   "packages/dragon/test/dep-integrity.test.ts",

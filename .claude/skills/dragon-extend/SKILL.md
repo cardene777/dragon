@@ -100,7 +100,7 @@ step の進め方と関門は ikkan が持ち、ここには写さない。
 ### 語を替える時
 
 1.0までは語を替えてよい。
-替えた時は、前の語で書いた原本を `readDiagram` (`packages/dragon/src/version.ts`) が読み替える形を同じ PR で足し、`CHANGELOG.md` に替えた語と読み替えを書く。
+替えた時は、前の語で書いた原本を `readDiagram` (`packages/dragon/src/version.ts`) が読み替える形を同じ PR で足し、`CHANGELOG.md` (英語) と `CHANGELOG.ja.md` (日本語) の両方に替えた語と読み替えを書く。
 次の版は minor の番号を上げる。
 1.0を出した後に語を替えるかは、ここでは決めない。
 
@@ -141,7 +141,7 @@ npm と見本帳へ出すことは本人が言い出した時だけ行い、こ�
 - 見本帳の図の頁と部品の頁に、日本語と英語の見本で載る
 - 編集画面の棚から書き始められる
 - 使い方の頁とREADMEと手引きに書き方が載る
-- `CHANGELOG.md` の Unreleased に足した物が載る
+- `CHANGELOG.md` (英語) と `CHANGELOG.ja.md` (日本語) の Unreleased に足した物が載る
 
 ## 統合先 skill
 

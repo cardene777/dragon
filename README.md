@@ -62,7 +62,7 @@ Every line form is in the [notation guide](packages/dragon/examples/quick-start.
 |---|---|
 | [`packages/dragon/README.md`](packages/dragon/README.md) | Putting a diagram on a page, loading diagram kinds on demand, the notation for each kind, and exporting |
 | [Notation guide](packages/dragon/examples/quick-start.en.md) | Every line form and attribute |
-| [`CHANGELOG.md`](CHANGELOG.md) | What changed in each version, and how to rewrite diagrams written for older versions (in Japanese) |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed in each version, and how to rewrite diagrams written for older versions |
 
 ## Contributing
 

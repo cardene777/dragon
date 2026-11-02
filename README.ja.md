@@ -108,7 +108,7 @@ step 送る
 
 書き方の全部は [`packages/dragon/examples/quick-start.md`](packages/dragon/examples/quick-start.md) (英語は [`quick-start.en.md`](packages/dragon/examples/quick-start.en.md)) にある。
 前の形の記法 (`時系列図` か `構成図` で始まる形) は読めない。
-書き直す時は、[`CHANGELOG.md`](CHANGELOG.md) と見本帳の使い方の頁にある前の形と新しい形の対応表を使う。
+書き直す時は、[`CHANGELOG.ja.md`](CHANGELOG.ja.md) と見本帳の使い方の頁にある前の形と新しい形の対応表を使う。
 
 ## 詳しい書き方
 
@@ -116,7 +116,7 @@ step 送る
 |---|---|
 | [`packages/dragon/README.ja.md`](packages/dragon/README.ja.md) | 頁に置く書き方、図の種類の部品を後から読む書き方、図の種類ごとの記法、書き出し |
 | [書き方の手引き](packages/dragon/examples/quick-start.md) | 全ての行の形と属性 |
-| [`CHANGELOG.md`](CHANGELOG.md) | 版ごとの変更と、前の形の記法を書き直す対応表 |
+| [`CHANGELOG.ja.md`](CHANGELOG.ja.md) | 版ごとの変更と、前の形の記法を書き直す対応表 |
 
 ## 手伝う
 

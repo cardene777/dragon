@@ -22,7 +22,7 @@ npm install @cardenelabs/dragon
 | 描く部品 | 原本を頁に描き、段ごとに動かす部品。時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図を描く |
 | 書き出し | 同じ原本から mp4、GIF、HTML、PNG を書き出す命令 `dragon export` |
 
-前の版から上げる時に書き直す所は [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md) にある。
+前の版から上げる時に書き直す所は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
 
 ## 最初の図
 
@@ -138,7 +138,7 @@ step 出荷に回す
 `parseNotation` は記法を原本の JSON に、`printNotation` は原本の JSON を記法に直す。
 誤りの文の言葉は `parseNotation(text, { lang: "en" })` のように渡した言葉で決まり、渡さなければ日本語になる。
 前の形の記法 (`時系列図` か `構成図` で始まる形) は読まず、その行の新しい形を示す誤りで止まる。
-前の形と新しい形の対応表は [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md) にある。
+前の形と新しい形の対応表は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
 
 ### 状態遷移図
 

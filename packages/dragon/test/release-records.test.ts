@@ -43,6 +43,33 @@ describe("版の記録 (#3151)", () => {
     expect(heading.test(changelog), `CHANGELOG.md に ## [${version()}] の見出しが無い`).toBe(true);
   });
 
+  it("changelog-languages-carry-the-same-versions", () => {
+    // 英語の CHANGELOG.md と日本語の CHANGELOG.ja.md は、0.35.0 以降の版を同じ見出しで持ち、版ごとに同じ課題番号を挙げる (#3321)。
+    // 版を出す時に片方へ書き忘れると落ちる。0.34.0 以前は作り直す前の記録なので日本語の file だけが持つ
+    const read = (file: string): string => readFileSync(join(ROOT, file), "utf8");
+    const headings = (text: string): string[] => text.split("\n").filter((line) => /^## \[\d+\.\d+\.\d+\] - \d{4}-\d{2}-\d{2}$/u.test(line));
+    const since = (heading: string): boolean => {
+      const [major = 0, minor = 0] = (/\[(\d+)\.(\d+)\./u.exec(heading) ?? []).slice(1).map(Number);
+      return major > 0 || minor >= 35;
+    };
+    const issues = (text: string, heading: string): string[] => [...new Set([...section(text, heading.slice(3)).matchAll(/#(\d+)/gu)].map((m) => m[1] ?? ""))].sort();
+    const en = read("CHANGELOG.md");
+    const ja = read("CHANGELOG.ja.md");
+    expect(headings(en), "CHANGELOG.md の版の見出しが CHANGELOG.ja.md の 0.35.0 以降と違う").toEqual(headings(ja).filter(since));
+    expect(headings(en).length, "CHANGELOG.md に版の見出しが無い").toBeGreaterThan(0);
+    for (const heading of headings(en)) expect(issues(en, heading), `${heading} の節が 2 つの file で違う課題番号を挙げる`).toEqual(issues(ja, heading));
+  });
+
+  it("changelog-english-has-no-japanese-prose", () => {
+    // 英語の CHANGELOG.md の地の文に日本語を残さない (#3321)。囲みの印の中の字 (前の記法の例など) は書いたままの字なので見ない
+    const prose = readFileSync(join(ROOT, "CHANGELOG.md"), "utf8")
+      .replace(/```[\s\S]*?```/gu, "")
+      .split("\n")
+      .map((line, i) => ({ line: i + 1, text: line.replace(/`[^`]*`/gu, "") }));
+    const japanese = prose.filter(({ text }) => /[぀-ヿ㐀-鿿]/u.test(text)).map(({ line, text }) => `${line}: ${text.trim()}`);
+    expect(japanese, "CHANGELOG.md の地の文に日本語が残る行").toEqual([]);
+  });
+
   it("version-match-needs-whole-version", () => {
     expect(mentions("0.36.3 として出した", "0.36.3")).toBe(true);
     expect(mentions("0.36.30 として出した", "0.36.3")).toBe(false);
