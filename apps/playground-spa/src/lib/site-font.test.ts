@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { codesOf } from "../../scripts/unicode-ranges.mjs";
 import { app, BASE, root, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
@@ -44,19 +45,8 @@ const unicode = JSON.parse(
   readFileSync(join(dirname(fontsource.resolve("@fontsource-variable/noto-sans-jp/package.json")), "unicode.json"), "utf8"),
 ) as Record<string, string>;
 
-/** `U+30-39,U+3000-303F,U+30??` の形の範囲の字の番号 */
-function codesOf(list: string): Set<number> {
-  const codes = new Set<number>();
-  for (const part of list.split(",")) {
-    const [from = "", to = from] = part.trim().replace(/^U\+/iu, "").split("-");
-    const last = Number.parseInt(to.replaceAll("?", "F"), 16);
-    for (let code = Number.parseInt(from.replaceAll("?", "0"), 16); code <= last; code += 1) codes.add(code);
-  }
-  return codes;
-}
-
-const latin = codesOf(unicode.latin ?? "");
-const noto = codesOf(Object.values(unicode).join(","));
+const latin = new Set(codesOf(unicode.latin ?? ""));
+const noto = new Set(codesOf(Object.values(unicode).join(",")));
 
 let site: Site;
 
@@ -71,12 +61,11 @@ const faces = (): string[] =>
 
 const siteFaces = (): string[] => faces().filter((face) => SITE_FILE.test(face));
 
+/** 面の範囲の字の番号 */
+const rangeCodes = (face: string): number[] => codesOf(/unicode-range:\s*([^;}]+)/u.exec(face)?.[1] ?? "");
+
 /** 切り出した字が持つ字の番号。切り出した字の面が無い時は空 */
-function coveredCodes(): Set<number> {
-  const face = siteFaces()[0];
-  const range = face === undefined ? undefined : /unicode-range:\s*([^;}]+)/u.exec(face)?.[1];
-  return range === undefined ? new Set() : codesOf(range);
-}
+const coveredCodes = (): Set<number> => new Set(siteFaces().flatMap(rangeCodes));
 
 /** 頁が読んだ字の file の名前 */
 const fontFiles = (page: Page): Promise<string[]> =>
@@ -132,16 +121,21 @@ describe("見本帳で使う字だけを 1 つの file から読む (#3296)", ()
     await site?.close();
   }, TEARDOWN);
 
-  it("site-font-face-comes-last", () => {
-    const list = faces();
+  it("site-font-has-one-face", () => {
     const found = siteFaces();
     expect(found, "切り出した字の @font-face が 1 件ではない").toHaveLength(1);
     const face = found[0] ?? "";
     expect(face, "切り出した字の面の字の名前が元の字と違う").toContain(SANS);
     expect(face, "切り出した字の面の太さの範囲が元の字の面と違い、別の組になる").toMatch(/font-weight:\s*100 900/u);
-    const position = list.indexOf(face);
-    const lastOriginal = list.map((other) => other.includes(SANS) && other !== face).lastIndexOf(true);
-    expect(position, "切り出した字の面が元の字の面より前に在り、元の字の file が先に読まれる").toBeGreaterThan(lastOriginal);
+  });
+
+  it("site-font-trims-original-faces", () => {
+    const covered = coveredCodes();
+    expect(covered.size, "切り出した字の面が unicode-range を持たない").toBeGreaterThan(0);
+    const numbered = faces().filter((face) => NUMBERED_FILE.test(face));
+    expect(numbered.length, "分割された字の面が無い").toBeGreaterThan(0);
+    const overlap = new Set(numbered.flatMap(rangeCodes).filter((code) => covered.has(code) || latin.has(code)));
+    expect(String.fromCodePoint(...[...overlap].sort((a, b) => a - b)), "分割された字の面に重なった字が残り、Firefox が分割された字の file も読む").toBe("");
   });
 
   it(
@@ -213,7 +207,7 @@ describe("見本帳で使う字だけを 1 つの file から読む (#3296)", ()
     "unlisted-char-reads-original-file",
     async () => {
       expect(coveredCodes().has(UNLISTED.codePointAt(0) ?? 0), `${UNLISTED} が切り出した字に入ったので、別の字で確かめる`).toBe(false);
-      const key = Object.keys(unicode).find((name) => codesOf(unicode[name] ?? "").has(UNLISTED.codePointAt(0) ?? 0));
+      const key = Object.keys(unicode).find((name) => codesOf(unicode[name] ?? "").includes(UNLISTED.codePointAt(0) ?? 0));
       const number = key?.replace(/\D/gu, "");
       expect(number, `${UNLISTED} を持つ分割された字が無い`).toMatch(/^\d+$/u);
       const { page } = await site.open({ path: `${BASE}editor` });

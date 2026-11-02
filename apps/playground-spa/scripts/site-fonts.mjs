@@ -17,7 +17,9 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const APP = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { codesOf, rangeOf } from "./unicode-ranges.mjs";
+
+const APP =join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = join(APP, "dist");
 const OUT = join(APP, "src/site/font");
 const FONT = "noto-sans-jp-site.woff2";
@@ -41,16 +43,6 @@ const dragon = createRequire(join(APP, "../../packages/dragon/package.json"));
 const subsetFont = dragon("subset-font");
 const unicode = JSON.parse(readFileSync(join(dirname(dragon.resolve("@fontsource-variable/noto-sans-jp/package.json")), "unicode.json"), "utf8"));
 
-/** `U+30-39,U+3000-303F` の形の範囲の字の番号 */
-function codesOf(list) {
-  const codes = new Set();
-  for (const part of list.split(",")) {
-    const [from, to = from] = part.trim().replace(/^U\+/iu, "").split("-");
-    for (let code = Number.parseInt(from, 16); code <= Number.parseInt(to, 16); code += 1) codes.add(code);
-  }
-  return codes;
-}
-
 /** 組み立て結果の script と CSS と HTML の本文 */
 function builtText() {
   const inAssets = readdirSync(join(DIST, "assets"))
@@ -62,24 +54,10 @@ function builtText() {
   return [...inAssets, ...pages].map((path) => readFileSync(path, "utf8")).join("");
 }
 
-/** 連なった字の番号を `U+3001-3002,U+3005` の形にする */
-function rangeOf(codes) {
-  const spans = [];
-  for (const code of codes) {
-    const last = spans.at(-1);
-    if (last !== undefined && last[1] === code - 1) last[1] = code;
-    else spans.push([code, code]);
-  }
-  return spans.map(([from, to]) => (from === to ? `U+${from.toString(16)}` : `U+${from.toString(16)}-${to.toString(16)}`)).join(",");
-}
-
 // `latin` の字の file は ASCII のために必ず読むので、その範囲の字は切り出さない
-const latin = codesOf(unicode.latin);
-const noto = codesOf(Object.values(unicode).join(","));
-const codes = [...new Set(builtText())]
-  .map((char) => char.codePointAt(0))
-  .filter((code) => noto.has(code) && !latin.has(code))
-  .sort((a, b) => a - b);
+const latin = new Set(codesOf(unicode.latin));
+const noto = new Set(codesOf(Object.values(unicode).join(",")));
+const codes = [...new Set(builtText())].map((char) => char.codePointAt(0)).filter((code) => noto.has(code) && !latin.has(code));
 if (codes.length === 0) fail(`${DIST} に字が無い。先に組み立てる`);
 
 // 字形の置き換えの先まで広げると 257KB まで増える。頁は置き換えを使わないので広げない
@@ -87,7 +65,7 @@ const font = await subsetFont(sourceBytes, String.fromCodePoint(...codes), { tar
 writeFileSync(join(OUT, FONT), font);
 writeFileSync(
   join(OUT, "noto-sans-jp-site.css"),
-  `/* 作る物。\`apps/playground-spa/scripts/site-fonts.mjs\` が書くので手で直さない。元の字の面より後に読むと、ここに在る字は分割された字の file を読まない */
+  `/* 作る物。\`apps/playground-spa/scripts/site-fonts.mjs\` が書くので手で直さない。\`apps/playground-spa/vite-site-font.ts\` がこの範囲の字を分割された字の面から外す */
 @font-face {
   font-family: "Noto Sans JP Variable";
   font-style: normal;

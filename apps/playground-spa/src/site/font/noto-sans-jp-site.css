@@ -1,4 +1,4 @@
-/* 作る物。`apps/playground-spa/scripts/site-fonts.mjs` が書くので手で直さない。元の字の面より後に読むと、ここに在る字は分割された字の file を読まない */
+/* 作る物。`apps/playground-spa/scripts/site-fonts.mjs` が書くので手で直さない。`apps/playground-spa/vite-site-font.ts` がこの範囲の字を分割された字の面から外す */
 @font-face {
   font-family: "Noto Sans JP Variable";
   font-style: normal;

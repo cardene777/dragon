@@ -8,6 +8,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { DEV_PORT, PREVIEW_PORT } from "./ports";
 import { createCspMetaPlugin } from "./vite-csp";
 import { createDevDistFreshnessPlugin } from "./vite-dev-dist-freshness";
+import { createSiteFontPlugin } from "./vite-site-font";
 
 /**
  * 記法の版。 画面の札に出す (#1320)。
@@ -43,6 +44,7 @@ export default defineConfig(({ command, mode }) => ({
   plugins: [
     // Vitest は repo root の `vitest.config.ts` を読み、この Vite 設定と起動時 plugin は読まない。
     createDevDistFreshnessPlugin(),
+    createSiteFontPlugin(),
     react(),
     tailwindcss(),
     // 公開 site が読み込んでよい場所を絞る (#2956)。 build の時だけ当たる

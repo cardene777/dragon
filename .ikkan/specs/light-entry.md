@@ -39,3 +39,13 @@
 | 開いた後、`document.fonts`に字が載り、字の`file`を読む | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`font-faces-reach-the-page`が通る | #3292 |
 | `localStorage`を使えないbrowserで開いた時、最初の画面が出て、`document.fonts`に字が載る | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`no-storage-still-draws-first-screen`が通る | #3292 |
 | 字のCSSを読む時に、CSPの違反が出ない | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`font-css-respects-csp`が通る | #3292 |
+| 見本帳を組み立てた時、元のNotoの番号付きの面の`unicode-range`に、切り出した字と`latin`の面の字が1字も無い | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-trims-original-faces`が通る | #3296 |
+| 見本帳を組み立てた時、字のCSSが切り出した字の`file`を名指す`@font-face`を1件持ち、`font-weight`が`100 900` | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-has-one-face`が通る | #3296 |
+| 幅1440pxと幅390pxで、概要の頁と編集画面と使い方の頁を開いた時に読む字の`file`がどれも3件 | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-reads-three-files`が通る | #3296 |
+| 組み立て結果のscriptとCSSに在るNotoの字が全て切り出した字に入り、抜けた時は抜けた字を名指して落ちる | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-covers-every-word`が通る | #3296 |
+| 字を作る命令に版の違う字を渡すと、字の`file`を書き換えず終わり方1で止まる | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-refuses-other-source`が通る | #3296 |
+| 切り出した字の`file`の隣に字の利用許諾`OFL`の全文が在る | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-carries-license`が通る | #3296 |
+| 切り出した字に無い字を頁に足すと、元の字の`file`を読み、端末の字ではなく頁の字で描かれる | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`unlisted-char-reads-original-file`が通る | #3296 |
+| 「文章で書くと、動く図になる」の幅が、字の間隔の情報の分だけ字数より狭い | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-keeps-kerning`が通る | #3296 |
+| 開いた後、`document.fonts`に字が載り、字の`file`を読む | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`font-faces-reach-the-page`が通る | #3296 |
+| 字のCSSを読む時に、CSPの違反が出ない | `pnpm exec vitest run apps/playground-spa/src/lib/font-chunks.test.ts`の検査`font-css-respects-csp`が通る | #3296 |
