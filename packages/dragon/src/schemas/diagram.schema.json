@@ -220,6 +220,7 @@
     },
     "id": { "type": "string", "pattern": "^[^\\s\\[\\]「」=:]+$" },
     "color": { "enum": ["blue", "amber", "green", "violet", "rose", "slate", "coin"] },
+    "icon": { "description": "箱と区画のアイコン名。描く部品のアイコンの表 (ICONS) に在る名前だけ", "enum": ["app", "router", "on", "off", "pool", "db", "exe", "idx", "sign", "env", "lock", "check", "flag", "x", "chain", "net", "user", "server", "key", "shield", "globe", "bolt", "doc", "box", "truck", "card", "cart", "clock", "branch", "cloud", "refresh", "undo", "yen", "layers", "code", "paint", "tree", "block"] },
     "region": {
       "type": "object",
       "additionalProperties": false,
@@ -229,7 +230,7 @@
         "name": { "$ref": "#/definitions/text" },
         "note": { "$ref": "#/definitions/text" },
         "color": { "$ref": "#/definitions/color" },
-        "icon": { "$ref": "#/definitions/text" }
+        "icon": { "$ref": "#/definitions/icon" }
       }
     },
     "box": {
@@ -241,7 +242,7 @@
         "name": { "$ref": "#/definitions/text" },
         "sub": { "$ref": "#/definitions/text" },
         "color": { "$ref": "#/definitions/color" },
-        "icon": { "$ref": "#/definitions/text" },
+        "icon": { "$ref": "#/definitions/icon" },
         "region": { "$ref": "#/definitions/id" },
         "link": { "description": "飛び先。描いた図ではこの箱がここへの link になる", "$ref": "#/definitions/url" }
       }

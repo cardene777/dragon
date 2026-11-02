@@ -11,12 +11,18 @@
  */
 import type { ErrorObject } from "ajv";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
+import { ICONS } from "./render/icons";
 import validate from "./schemas/validate-diagram.js";
 import { type NotationLang, STATE_ENDS } from "./words";
 
 export type Color = "blue" | "amber" | "green" | "violet" | "rose" | "slate" | "coin";
 /** 色の役の一覧。記法の `color:` に書ける値と、誤りの文に並べる値 */
 export const COLORS: readonly Color[] = ["blue", "amber", "green", "violet", "rose", "slate", "coin"];
+/**
+ * アイコン名の一覧。記法の `icon:` に書ける値と、誤りの文に並べる値 (#3311)。
+ * 描く部品のアイコンの表から引く。書き間違えた名前は何も描かれず、名前の高さ (#3307) まで変わるため、読む所で断る
+ */
+export const ICON_NAMES: readonly string[] = Object.keys(ICONS);
 
 export interface Region {
   id: string;

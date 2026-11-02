@@ -92,13 +92,4 @@ describe("箱の名前と下の字の高さ (#3307、#3309)", () => {
     expect(drops.get("入口")?.subs.length, "箱「入口」に下の字が無い").toBeGreaterThan(0);
     expectDrops(drops, UNDER_ICON);
   });
-
-  it("知らないアイコンの名前は、アイコンを持つ箱として数えない", () => {
-    // 描かれないアイコンで名前の高さを揃えると、真ん中に寄せる図で名前だけが下に寄る
-    const diagram = smallSequence() as Boxes;
-    Object.assign(diagram.boxes[0] as object, { icon: "constructor" });
-    const rendered = draw("renderDiagram")(diagram);
-    expect(rendered.svg, "知らないアイコンの名前で絵柄を描かない").not.toContain('class="dg-ic"');
-    expectDrops(textDrops(rendered), CENTERED);
-  });
 });
