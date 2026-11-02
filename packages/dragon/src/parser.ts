@@ -73,6 +73,7 @@ import {
   type DiagramEvent,
   type GitBranch,
   type GitCommit,
+  ICON_NAMES,
   type LabelSide,
   type LineupItem,
   type Region,
@@ -324,12 +325,13 @@ function readDeclared(source: SourceLine, word: string, allowed: readonly string
 function lookOf(source: SourceLine, attrs: Map<string, Attr>, m: Messages): { note?: string; color?: Color; icon?: string } {
   const color = attrs.get("color");
   if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
+  const icon = attrs.get("icon");
+  if (icon && !ICON_NAMES.includes(icon.value)) throw fail(source, icon.at, m.badIcon);
   const note = attrs.get("note")?.value;
-  const icon = attrs.get("icon")?.value;
   return {
     ...(note !== undefined ? { note } : {}),
     ...(color ? { color: color.value as Color } : {}),
-    ...(icon !== undefined ? { icon } : {}),
+    ...(icon ? { icon: icon.value } : {}),
   };
 }
 

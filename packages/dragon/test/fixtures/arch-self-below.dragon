@@ -4,7 +4,7 @@ box 画面 [icon: app]
 box API [icon: card]
 box 認証 [icon: lock]
 box 台帳 [icon: db]
-box 通知 [icon: bell]
+box 通知 [icon: bolt]
 
 step 確かめる
   say 画面が自分で入力を確かめる。

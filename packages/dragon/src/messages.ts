@@ -4,7 +4,7 @@
  * 記法の語は英語だけで file から言葉が決まらないため、誤りの文は呼ぶ側が渡した言葉
  * (渡さなければ日本語) で出す。文の中の記法の語は語の表から引き、表と文で語が食い違わないようにする。
  */
-import { COLORS } from "./schema";
+import { COLORS, ICON_NAMES } from "./schema";
 import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SIDES, SPAN_SHAPES, VIEWS } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
@@ -57,6 +57,7 @@ export interface Messages {
   attrTwice: (key: string) => string;
   badAttr: (key: string, allowed: readonly string[]) => string;
   badColor: string;
+  badIcon: string;
   badView: string;
   badCarry: string;
   badSide: string;
@@ -223,6 +224,7 @@ const ja = (): Messages => {
     attrTwice: (key) => `${key} は 1 つの行に 1 つまで`,
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
     badColor: `color は ${list(COLORS)} のどれか`,
+    badIcon: `icon は ${list(ICON_NAMES)} のどれか`,
     badView: `view は ${list(VIEWS)} のどれか`,
     badCarry: `carry は ${list(CARRIES)} のどれか。札は tag: <値> で書く`,
     badSide: `side は ${list(SIDES)} のどれか`,
@@ -362,6 +364,7 @@ const en = (): Messages => {
     attrTwice: (key) => `Write ${key} only once on a line`,
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
     badColor: `color is one of ${list(COLORS)}`,
+    badIcon: `icon is one of ${list(ICON_NAMES)}`,
     badView: `view is one of ${list(VIEWS)}`,
     badCarry: `carry is one of ${list(CARRIES)}. Write a tag as tag: <value>`,
     badSide: `side is one of ${list(SIDES)}`,
