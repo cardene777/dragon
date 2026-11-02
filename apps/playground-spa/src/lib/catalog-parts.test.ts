@@ -400,6 +400,43 @@ describe("カタログの部品の頁 (#3166)", () => {
   );
 
   it(
+    "catalog-part-figures-keep-drawn-size",
+    async () => {
+      // 部品の図は元の大きさより大きく描かず、枠が狭い時だけ枠の幅に縮める (#3305)。
+      // 描画の package が図に `width:100%` を当てるので、幅を戻さないと箱 2 つの図が枠いっぱいに拡大される
+      for (const width of [1440, 390]) {
+        for (const id of ["edge-label", "box"]) {
+          const { page } = await site.open({ path: partPath(id), viewport: { width, height: 900 } });
+          await onScreen(page, "part", `${partPath(id)} で部品の頁が出ない`);
+          const sizes = (): Promise<{ kind: string; drawn: number; natural: number; frame: number }[]> =>
+            page.evaluate(() =>
+              [...document.querySelectorAll<HTMLElement>('[data-catalog="part-figure"]')].flatMap((section) => {
+                const svg = section.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
+                const frame = section.querySelector<HTMLElement>(".catalog-part-stage");
+                return svg && frame
+                  ? [{ kind: section.dataset.kind ?? "", drawn: svg.getBoundingClientRect().width, natural: svg.viewBox.baseVal.width, frame: frame.clientWidth }]
+                  : [];
+              }),
+            );
+          const sections = await page.locator('[data-catalog="part-figure"]').count();
+          await expect.poll(async () => (await sizes()).length, { ...WAIT, message: `${id} の頁の図が描かれない` }).toBe(sections);
+          const seen = await sizes();
+          expect(
+            seen.filter((s) => s.drawn > s.natural + 0.5).map((s) => `${s.kind} ${Math.round(s.drawn)}px > ${s.natural}px`),
+            `幅 ${width} の ${id} の頁で、元の大きさより大きく描いた図がある`,
+          ).toEqual([]);
+          expect(
+            seen.filter((s) => s.drawn > s.frame + 0.5).map((s) => `${s.kind} ${Math.round(s.drawn)}px > 枠 ${s.frame}px`),
+            `幅 ${width} の ${id} の頁で、枠からはみ出す図がある`,
+          ).toEqual([]);
+          await site.closeContexts();
+        }
+      }
+    },
+    SLOW,
+  );
+
+  it(
     "catalog-kind-page-links-parts",
     async () => {
       const usedOf = (page: Page): Promise<string[]> =>
