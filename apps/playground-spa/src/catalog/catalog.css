@@ -392,9 +392,13 @@
   max-width: 560px;
 }
 
-/* 部品の図は箱が 2 つの物もあり、枠の幅に広げると箱と字が大きくなりすぎるので、描いた大きさのまま枠の幅で止める */
+/*
+ * 部品の図は箱が 2 つの物もあり、枠の幅に広げると箱と字が大きくなりすぎるので、描いた大きさのまま枠の幅で止める。
+ * 描画の package は図に `width:100%` を当てるので、`width: auto` で `svg` の `width` 属性 (描いた幅) に戻す (#3305)
+ */
 .catalog-part-stage svg[data-dragon="figure"] {
   display: block;
+  width: auto;
   max-width: 100%;
   height: auto;
   margin: 0 auto;
