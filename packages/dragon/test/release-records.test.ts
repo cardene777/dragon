@@ -114,6 +114,15 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-45-8-releases-site-font", () => {
+    // 見本帳で使う字を 1 つの file にまとめる直し (#3296) は 0.45.8 で見本帳に出す (#3298)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 45 || (minor === 45 && patch >= 8), `package の版 ${version()} が 0.45.8 より前`).toBe(true);
+    const released = section(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8").replace(/^## \[0\.45\.8\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.45.8"), "0.45.8");
+    expect(released, "CHANGELOG.md に日付付きの ## [0.45.8] の節が無い").not.toBe("");
+    expect(released, "CHANGELOG.md の 0.45.8 の節に #3296 の項が無い").toContain("(#3296)");
+  });
+
   it("changelog-0-45-7-releases-font-css-later", () => {
     // 字の `@font-face` を最初の CSS から外す直し (#3292) は 0.45.7 で見本帳に出す (#3294)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
