@@ -943,7 +943,8 @@ describe("公開する頁 (#2995)", () => {
     "narrow-editor-caption-font-scales",
     async () => {
       // 携帯の幅で帯の並べ方を替えても、字の大きさの釦が段の題と本文の字に効く (#3057)
-      const { page } = await open({ viewport: { width: 360, height: 780 } });
+      // 段を自動で送ると本文の長さが変わり、字の大きさの差を別の段どうしで比べてしまうので、動きを止めて同じ段で比べる (#3294)
+      const { page } = await open({ viewport: { width: 360, height: 780 }, reducedMotion: "reduce" });
       await drawn(page);
       const sizes = (): Promise<{ title: number; body: number }> =>
         page.evaluate((s) => {
