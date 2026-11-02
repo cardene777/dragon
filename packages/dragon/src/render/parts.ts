@@ -11,6 +11,7 @@ import {
   markText,
   type Point,
   pathLength,
+  type Rect,
   type SceneAction,
   type SceneBadge,
   type SceneBox,
@@ -38,7 +39,7 @@ const r1 =(v: number): number => Math.round(v * 100) / 100;
 export const cs = (k: ColorKey): string => (k === "coin" ? "--c:var(--coin);--ct:var(--coint)" : `--c:var(--c-${k});--ct:var(--t-${k})`);
 
 export function glyph(name: string | undefined, x: number, y: number, scale: number, cls = "dg-gl"): string {
-  const d = name === undefined ? undefined : ICONS[name];
+  const d = name !== undefined && drawsIcon(name) ? ICONS[name] : undefined;
   return d ? `<path class="${cls}" transform="translate(${r1(x)} ${r1(y)}) scale(${scale})" d="${d}"/>` : "";
 }
 
@@ -97,7 +98,20 @@ export interface Ctx {
   ink: Ink[];
   /** 描いた線の記録 (#3175)。札を持たない字を横切る線を数える */
   traces: Trace[];
+  /** 箱の名前の基準線を、箱の真ん中からどれだけ下げるか (`boxNameY`) */
+  nameY: number;
 }
+
+/** 絵柄を描ける名前か。`ICONS` の継いだ鍵 (`constructor` など) は描けない名前に数える */
+export const drawsIcon = (name: string | undefined): boolean => name !== undefined && Object.hasOwn(ICONS, name);
+
+/**
+ * 図の箱の名前の基準線を、箱の真ん中からどれだけ下げるか (#3307)。
+ * 名前の上の段 (アイコンか置き場の枠) を使う箱が 1 つでもある図は、その段の下に名前を置く高さで全ての箱の名前を揃える。
+ * 1 つも無い図は名前を箱の真ん中に置く。置き場の枠はアイコンの無い箱にも同じ段に出るので、真ん中に寄せると名前が枠に重なる
+ */
+export const boxNameY = (boxes: readonly { icon?: string; slot?: Rect }[]): number =>
+  boxes.some((b) => drawsIcon(b.icon) || b.slot !== undefined) ? LOOK.box.nameY : LOOK.box.nameMid;
 
 /** 和文を含む字の、和文の字で描く時の字の形 */
 export const sansOf = (t: TextStyle): TextStyle => ({ ...t, family: "sans" });
@@ -136,7 +150,7 @@ export function band(region: SceneRegion, ink: Ink[]): string {
   const { x, y } = region.header;
   const lines = region.lines.map((t, k) => write(ink, "dg-bz", x, region.y + nameY + k * line, t, TYPE.regionName)).join("");
   const note = region.note ? write(ink, "dg-bx", x, region.y + nameY + region.lines.length * line + 1, region.note, TYPE.regionNote) : "";
-  const mark = region.icon && ICONS[region.icon] ? `<rect class="dg-bi" x="${r1(x)}" y="${r1(y)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(region.icon, x + icon / 2, y + icon / 2, iconScale)}` : "";
+  const mark = drawsIcon(region.icon) ? `<rect class="dg-bi" x="${r1(x)}" y="${r1(y)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(region.icon, x + icon / 2, y + icon / 2, iconScale)}` : "";
   return `<g style="${cs(region.color)}"><rect class="dg-band" x="${r1(region.x + 0.5)}" y="${r1(region.y + 0.5)}" width="${r1(region.w - 1)}" height="${r1(region.h - 1)}" rx="${radius}"/>${mark}${lines}${note}</g>`;
 }
 
@@ -173,21 +187,21 @@ function cardFrame(box: SceneBox, ctx: Ctx, act: string | undefined, y: number, 
  * `lit` を渡すと、動く段ではなくその間だけ光らせる (状態遷移図の、運ぶ物が乗っている状態)。
  */
 export function card(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[], lit?: Span[]): string {
-  const { icon, iconRadius, iconScale, iconY, nameY, subY } = LOOK.box;
+  const { icon, iconRadius, iconScale, iconY, subY } = LOOK.box;
   const subs = subLines(box, ctx.m, changes, box.cy + subY, ctx.ink);
   const act = lit ? (lit.length > 0 ? rangeKf(ctx.m, lit.map((s) => [s.start, s.end])) : undefined) : on.length > 0 ? activeKf(ctx, on) : undefined;
   // 置き場を持つ箱は絵柄を左へ寄せ、右に点線の枠を初めから見せる (#3176)
   const ix = box.iconX ?? box.cx;
   const slot = box.slot ? `<rect class="dg-slot" x="${r1(box.slot.x)}" y="${r1(box.slot.y)}" width="${r1(box.slot.w)}" height="${r1(box.slot.h)}" rx="${LOOK.slot.radius}"/>` : "";
   let mark = "";
-  if (box.icon && ICONS[box.icon]) {
+  if (drawsIcon(box.icon)) {
     const rect = { x: ix - icon / 2, y: box.cy + iconY - icon / 2, w: icon, h: icon };
     ctx.ink.push({ text: `${box.name} の絵柄`, rect, shown: ALWAYS, boxed: true, part: { kind: "icon", box: box.name } });
     mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, ix, box.cy + iconY, iconScale)}`;
   }
   return (
     `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
-    `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + nameY, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`
+    `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + ctx.nameY, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`
   );
 }
 
@@ -208,7 +222,7 @@ export function ghostCard(box: SceneBox, ink: Ink[]): string {
   const G = LOOK.state.ghost;
   const ix = box.x + G.pad + icon / 2;
   const tx = box.x + G.pad + icon + G.gap;
-  const mark = box.icon && ICONS[box.icon] ? `<rect class="dg-ic" x="${r1(ix - icon / 2)}" y="${r1(box.cy - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, ix, box.cy, iconScale)}` : "";
+  const mark = drawsIcon(box.icon) ? `<rect class="dg-ic" x="${r1(ix - icon / 2)}" y="${r1(box.cy - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, ix, box.cy, iconScale)}` : "";
   const nameY = box.sub ? G.nameY : LOOK.baseline.mark;
   const sub = box.sub ? write(ink, "dg-ss", tx, box.cy + G.subY, box.sub, TYPE.boxSub, ALWAYS, "start") : "";
   return (

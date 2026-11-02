@@ -149,7 +149,11 @@ export const LOOK = {
   gap: 10,
   /** 図の外周の余白 */
   margin: 14,
-  box: { h: 72, minW: 92, padX: 12, radius: 12, icon: 24, iconRadius: 7, iconY: -16, iconScale: 0.74, nameY: 12, subY: 27 },
+  /**
+   * 箱。`iconY` と `nameY` と `subY` は箱の真ん中から絵柄の真ん中と名前と下の字の基準線まで。
+   * `nameMid` はアイコンを持つ箱が 1 つも無い図の名前の基準線で、名前を箱の真ん中に置く (#3307)
+   */
+  box: { h: 72, minW: 92, padX: 12, radius: 12, icon: 24, iconRadius: 7, iconY: -16, iconScale: 0.74, nameY: 12, nameMid: 5, subY: 27 },
   region: { pad: 18, gap: 10, radius: 14, inset: 14, icon: 24, iconRadius: 7, iconScale: 0.68, nameY: 58, line: 16, minH: 108 },
   architecture: { columns: 4, columnGap: 56, maxColumnGap: 160, rowGap: 44, labelRoom: 16 },
   /**
