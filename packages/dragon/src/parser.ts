@@ -326,7 +326,7 @@ function lookOf(source: SourceLine, attrs: Map<string, Attr>, m: Messages): { no
   const color = attrs.get("color");
   if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
   const icon = attrs.get("icon");
-  if (icon && !ICON_NAMES.includes(icon.value)) throw fail(source, icon.at, m.badIcon);
+  if (icon && !ICON_NAMES.includes(icon.value)) throw fail(source, icon.at, m.badIcon(icon.value));
   const note = attrs.get("note")?.value;
   return {
     ...(note !== undefined ? { note } : {}),

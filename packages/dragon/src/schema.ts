@@ -11,6 +11,7 @@
  */
 import type { ErrorObject } from "ajv";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
+import { nearest } from "./nearest";
 import { ICONS } from "./render/icons";
 import validate from "./schemas/validate-diagram.js";
 import { type NotationLang, STATE_ENDS } from "./words";
@@ -295,8 +296,21 @@ const RATIO = /%\)\$$/u;
 
 const escape = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
 
+/** JSON Pointer `pointer` が指す `input` の中の値。辿れない時は `undefined` */
+function valueAt(input: unknown, pointer: string): unknown {
+  let value = input;
+  for (const raw of pointer.split("/").slice(1)) {
+    if (typeof value !== "object" || value === null) return undefined;
+    value = (value as Record<string, unknown>)[raw.replaceAll("~1", "/").replaceAll("~0", "~")];
+  }
+  return value;
+}
+
 /** 箱の飛び先と段の出典の URL の決まりの場所 (#3199) */
 const URL_RULE = "#/definitions/url/pattern";
+
+/** 箱と区画のアイコン名の決まりの場所 (#3311)。近い名前が在れば一覧の代わりにそれを示す (#3315) */
+const ICON_RULE = "#/definitions/icon/enum";
 
 /** commit の hash の決まり (`^[0-9a-f]{<最小>,<最大>}$`)。字の数の幅を読む */
 const HEX = /^\^\[0-9a-f\]\{(\d+),(\d+)\}\$$/u;
@@ -318,7 +332,7 @@ const branchesOf = (anyOf: ErrorObject, errors: readonly ErrorObject[]): ErrorOb
       (error.instancePath === anyOf.instancePath || error.instancePath.startsWith(`${anyOf.instancePath}/`)),
   );
 
-function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: FieldMessages): FieldError {
+function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: FieldMessages, input: unknown): FieldError {
   const params = error.params as Record<string, unknown>;
   const at = error.instancePath;
   switch (error.keyword) {
@@ -351,8 +365,12 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       const tag = String(params.tag);
       return { pointer: `${at}/${escape(tag)}`, message: m.discriminator(tag, EVENT_TYPES) };
     }
-    case "enum":
+    case "enum": {
+      const written = error.schemaPath === ICON_RULE ? valueAt(input, at) : undefined;
+      const near = typeof written === "string" ? nearest(written, ICON_NAMES) : undefined;
+      if (typeof written === "string" && near !== undefined) return { pointer: at, message: m.unknownIcon(written, near) };
       return { pointer: at, message: m.enum((params.allowedValues as unknown[]).map(String)) };
+    }
     case "type":
       return { pointer: at, message: m.type(String(params.type)) };
     case "minLength":
@@ -391,6 +409,6 @@ export function validateDiagram(input: unknown, options: CheckOptions = {}): Che
   const inBranch = new Set(all.filter((error) => error.keyword === "anyOf").flatMap((anyOf) => branchesOf(anyOf, all)));
   const m = FIELD_MESSAGES[options.lang ?? "ja"];
   // 条件付きの決まり (if / then) は中で落ちた決まりの誤りを別に出すので、包む側の if の誤りは出さない
-  const errors = all.filter((error) => error.keyword !== "if" && !inBranch.has(error)).map((error) => toFieldError(error, all, m));
+  const errors = all.filter((error) => error.keyword !== "if" && !inBranch.has(error)).map((error) => toFieldError(error, all, m, input));
   return { ok: false, errors };
 }

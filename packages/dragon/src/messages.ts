@@ -4,6 +4,7 @@
  * 記法の語は英語だけで file から言葉が決まらないため、誤りの文は呼ぶ側が渡した言葉
  * (渡さなければ日本語) で出す。文の中の記法の語は語の表から引き、表と文で語が食い違わないようにする。
  */
+import { nearest } from "./nearest";
 import { COLORS, ICON_NAMES } from "./schema";
 import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SIDES, SPAN_SHAPES, VIEWS } from "./words";
 
@@ -57,7 +58,8 @@ export interface Messages {
   attrTwice: (key: string) => string;
   badAttr: (key: string, allowed: readonly string[]) => string;
   badColor: string;
-  badIcon: string;
+  /** 知らないアイコン名 `value`。近い名前が在ればそれだけを、無ければ使える名前を全て挙げる (#3315) */
+  badIcon: (value: string) => string;
   badView: string;
   badCarry: string;
   badSide: string;
@@ -163,6 +165,11 @@ export interface Messages {
 }
 
 const list = (words: readonly string[]): string => words.join(" / ");
+/** 書いたアイコン名に近い名前が在れば `near` の文、無ければ `none` の文 (#3315) */
+const withNear = (value: string, near: (name: string) => string, none: string): string => {
+  const name = nearest(value, ICON_NAMES);
+  return name === undefined ? none : near(name);
+};
 
 const ja = (): Messages => {
   const shapes: Record<Shape, string> = {
@@ -224,7 +231,7 @@ const ja = (): Messages => {
     attrTwice: (key) => `${key} は 1 つの行に 1 つまで`,
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
     badColor: `color は ${list(COLORS)} のどれか`,
-    badIcon: `icon は ${list(ICON_NAMES)} のどれか`,
+    badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`),
     badView: `view は ${list(VIEWS)} のどれか`,
     badCarry: `carry は ${list(CARRIES)} のどれか。札は tag: <値> で書く`,
     badSide: `side は ${list(SIDES)} のどれか`,
@@ -364,7 +371,7 @@ const en = (): Messages => {
     attrTwice: (key) => `Write ${key} only once on a line`,
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
     badColor: `color is one of ${list(COLORS)}`,
-    badIcon: `icon is one of ${list(ICON_NAMES)}`,
+    badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`),
     badView: `view is one of ${list(VIEWS)}`,
     badCarry: `carry is one of ${list(CARRIES)}. Write a tag as tag: <value>`,
     badSide: `side is one of ${list(SIDES)}`,
