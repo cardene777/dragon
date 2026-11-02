@@ -23,6 +23,8 @@ export interface FieldMessages {
   additionalProperties: (key: string) => string;
   required: (key: string) => string;
   enum: (values: readonly string[]) => string;
+  /** 知らないアイコン名 `value` と、それに一番近い名前 `near` (#3315) */
+  unknownIcon: (value: string, near: string) => string;
   type: (type: string) => string;
   minLength: (limit: number) => string;
   maxLength: (limit: number) => string;
@@ -80,6 +82,7 @@ const ja: FieldMessages = {
   additionalProperties: (key) => `${key} という欄は書けない`,
   required: (key) => `${key} の欄が要る`,
   enum: (values) => `${values.join(" / ")} のどれかにする`,
+  unknownIcon: (value, near) => `${value} という icon は無い。近い名前は ${near}`,
   type: (type) => TYPES_JA[type] ?? `${type} にする`,
   minLength: (limit) => `${limit} 字以上書く`,
   maxLength: (limit) => `${limit} 字までにする`,
@@ -107,6 +110,7 @@ const en: FieldMessages = {
   additionalProperties: (key) => `The ${key} field is not allowed`,
   required: (key) => `The ${key} field is required`,
   enum: (values) => `Use one of ${values.join(" / ")}`,
+  unknownIcon: (value, near) => `There is no icon named ${value}. The closest is ${near}`,
   type: (type) => TYPES_EN[type] ?? `Use ${type}`,
   minLength: (limit) => `Write at least ${plural(limit, "character")}`,
   maxLength: (limit) => `Write at most ${plural(limit, "character")}`,

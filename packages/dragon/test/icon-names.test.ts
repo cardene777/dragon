@@ -30,7 +30,16 @@ describe("アイコン名 (#3311)", () => {
     expect(error, "誤りが 1 つも無い").toBeDefined();
     // 色の名前の誤りと同じく、属性の頭 (icon の語) を指す
     expect({ line: error?.line, column: error?.column }, "誤りが指す所").toEqual({ line: 3, column: (text.split("\n")[2] ?? "").indexOf("icon") + 1 });
-    for (const name of ["user", "db", "key"]) expect(error?.message, `誤りの文が使えるアイコン名 ${name} を挙げる`).toContain(name);
+    // 近い名前がある時は一覧を並べず近い名前だけを挙げる (#3315)。一覧を並べる形は近い名前の無い名前で確かめる
+    expect(error?.message, "誤りの文が近いアイコン名 user を挙げる").toContain("user");
+  });
+
+  it("記法で近い名前の無いアイコン名 zzzzzz を読むと、誤りの文が使えるアイコン名を挙げる", () => {
+    const text = ["sequence 印", "", "box 甲 [icon: zzzzzz]", "box 乙", "", "step 送る", "  say 甲が乙へ送る。", "  甲 -> 乙: 送る"].join("\n");
+    const result = api("parseNotation")(text);
+    expect(result.ok, "知らないアイコン名を通さない").toBe(false);
+    const message = (result as { ok: false; errors: { message: string }[] }).errors[0]?.message;
+    for (const name of ["user", "db", "key"]) expect(message, `誤りの文が使えるアイコン名 ${name} を挙げる`).toContain(name);
   });
 
   it("記法で使えるアイコン名を書いた箱と区画は、そのまま読める", () => {
