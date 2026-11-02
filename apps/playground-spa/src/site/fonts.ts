@@ -28,7 +28,7 @@ function rememberFonts(): void {
 /** 字の CSS を読む。2 度目からは何もしない */
 export async function loadFonts(): Promise<void> {
   try {
-    await import("@cardenelabs/dragon/fonts");
+    await import("./font-sheets");
     rememberFonts();
   } catch {
     // 読めなかった時は端末の字で頁を使う
