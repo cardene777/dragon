@@ -310,3 +310,16 @@
 | 飛び先を持つ図で次の段へ送った後と止めた後も、置き直した SVG が `aria-hidden` を持たず、`role` が `group` で、図の題を `aria-label` に持つ | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`player-linked-figure-readable-after-replace`が通る | #3329 |
 | 飛び先を持たない図を `mountDiagram` で流すと、置いた SVG が `aria-hidden="true"` を持ち、`role` と `aria-label` を持たない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`player-plain-figure-hidden-from-reader`が通る | #3329 |
 | package の版が 0.46.4 以上で、英語と日本語の変更履歴に日付付きの 0.46.4 の節が在り、この課題の番号の項を持つ | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`changelog-0-46-4-releases-readable-linked-figures`が通る | #3329 |
+| 色味の一覧に`arcade`が在り、暗い頁の地と字と線と5つの色と灰が決めたことの値 (図の地`#04100a`、緑`#3cff78`、琥珀`#ff9a45`など) と一致する | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`arcade-palette-matches-bitsumi`が通る | #3341 |
+| `arcade`の明るい頁の値は、暗い頁の値と全て同じである | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`arcade-light-equals-dark`が通る | #3341 |
+| `arcade`は影を付けない | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`arcade-casts-no-shadow`が通る | #3341 |
+| `arcade`を含む4つの色味の5つの色が、明るい頁と暗い頁の両方で、普通の見え方で15以上、色覚の3つの型で6以上離れる | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`palettes-keep-cvd-separation`が通る | #3341 |
+| 見本の全ての図を`arcade`で描くと、どれも描けて、SVGに`arcade`の地の色と緑が入り、ほかの3つの色味の地の色が入らない | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`arcade-renders-every-example`が通る | #3341 |
+| 命令の`--palette arcade`で図を描ける | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`cli-draws-with-arcade-palette`が通る | #3341 |
+| 見本帳と編集画面の色味の切り替えに「アーケードの画面」(英語の頁では`Arcade screen`) が出て、押すと図が`arcade`で描かれ、サイトの差し色が緑になる | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`site-palette-switch-draws-arcade`が通る | #3341 |
+| 色味の切り替えの4つの釦が、幅390pxでも縦横44px以上の大きさで1行に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`site-palette-switch-fits-four-at-390`が通る | #3341 |
+| 英語と日本語のREADMEの`--palette`の行と、`docs/design/base/README.md`の色味の行が`arcade`を含む全ての色味を挙げる | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`docs-list-every-palette`が通る | #3341 |
+| `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに`arcade`の色味が載る | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`changelog-lists-arcade-palette`が通る | #3341 |
+| 今の3つの色味 (`clear`、`paper`、`night`) の値が変わらず、既定は`paper`のままである | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts packages/dragon/test/look.test.ts`の検査`existing-palettes-keep-their-values`と`palette-defaults-to-paper`が通る | #3341 |
+| `docs/design/base/palettes.json`と`packages/dragon/src/look/palettes.json`が同じ中身である | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`palette-copies-match`が通る | #3341 |
+| 今の図の文字の重なり、値の表、頁の大きさの検査が通る | `pnpm exec vitest run packages/dragon/test/look.test.ts apps/playground-spa/src/lib/text-overlaps.test.ts apps/playground-spa/src/lib/playground.test.ts`の検査`renderers-read-values-from-one-table`と`overlaps-none-in-every-example`と`page-bundle-within-budget`が通る | #3341 |
