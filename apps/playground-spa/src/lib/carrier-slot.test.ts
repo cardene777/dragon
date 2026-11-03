@@ -7,16 +7,15 @@
  * 落ちる時は、見本の名前と段と、何を隠したかを 1 件 1 行で出す。
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { parseNotation, type Rendered, renderDiagram } from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 
 import { badgeRect, cardOf, carried, carrierRect, overlap, waiting } from "../../../../packages/dragon/test/carrier-support";
 import { motionFrom } from "../../../../packages/dragon/test/motion-support";
 import type { Rect } from "../../../../packages/dragon/test/render-support";
-import { app, root } from "./playground-support";
+import { app, partFigure, partFigureNames, root } from "./playground-support";
 
-const PARTS = join(app, "src/catalog/parts");
 const DOCS = join(app, "src/docs/examples");
 const PACKAGE = join(root, "packages/dragon/examples");
 
@@ -33,16 +32,20 @@ function draw(dir: string, file: string): Rendered {
 
 function examples(): { name: string; rendered: Rendered }[] {
   const dirs: [string, string, RegExp][] = [
-    ["catalog/parts", PARTS, /\.dragon$/],
     ["docs/examples", DOCS, /\.(dragon|json)$/],
     ["examples", PACKAGE, /\.(dragon|json)$/],
   ];
-  return dirs.flatMap(([label, dir, pattern]) =>
-    readdirSync(dir)
-      .filter((f) => pattern.test(f))
-      .sort()
-      .map((file) => ({ name: `${label}/${file}`, rendered: draw(dir, file) })),
-  );
+  // 部品の図はブロックの置き場へ移した分も、今の置き場と同じ名前で数える (#3345)
+  const parts = partFigureNames().map((file) => ({ name: `catalog/parts/${file}`, rendered: draw(dirname(partFigure(file)), file) }));
+  return [
+    ...parts,
+    ...dirs.flatMap(([label, dir, pattern]) =>
+      readdirSync(dir)
+        .filter((f) => pattern.test(f))
+        .sort()
+        .map((file) => ({ name: `${label}/${file}`, rendered: draw(dir, file) })),
+    ),
+  ];
 }
 
 /** 見本 1 つで、運ぶ物が隠した物を 1 件 1 行で返す */
@@ -91,8 +94,8 @@ describe("見本の運ぶ物が隠さない (#3176)", () => {
   });
 
   it("icon-state-example-describes-slot", () => {
-    const ja = readFileSync(join(PARTS, "icon.state.dragon"), "utf8");
-    const en = readFileSync(join(PARTS, "icon.state.en.dragon"), "utf8");
+    const ja = readFileSync(partFigure("icon.state.dragon"), "utf8");
+    const en = readFileSync(partFigure("icon.state.en.dragon"), "utf8");
     expect(ja, "日本語の見本が、運ぶ物は絵柄の横の置き場に留まると書いていない").toContain("絵柄の横の置き場に留まる");
     expect(ja, "日本語の見本が、まだ絵の上に留まると書いている").not.toContain("絵の上に留まる");
     expect(en, "英語の見本が、運ぶ物は絵柄の横の置き場に留まると書いていない").toContain("slot beside the icon");

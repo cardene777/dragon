@@ -2,7 +2,10 @@
  * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030、#3032、#3033)。
  *
  * 記法の語 (`時系列図` や `帯`) は見本の file が持ち、ここには持たない。
+ * ブロックの置き場へ移した部品の名前と説明はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks.gen.ts`) から引く (#3345)。
  */
+import { BLOCK_TEXT } from "./catalog/blocks.gen";
+
 export type Lang = "ja" | "en";
 
 /** 状態の欄で数える図の部品 (#3261) */
@@ -71,7 +74,7 @@ export const TEXT = {
           act: { name: "箱の中の処理", desc: "線を引かずに、箱の中で起きる処理を札で見せる。" },
           strip: { name: "中身の帯と欄", desc: "図の下に置く中身の帯。段ごとに欄の値を入れ替え、運ばれる物の中身を追う。" },
           step: { name: "段", desc: "図を区切る段。段ごとに本文と打つ命令を書き、1 段ずつ送って見る。view で、枠が段を追うか全体を止めて見せるかを選ぶ。" },
-          source: { name: "出典", desc: "段に書く出典。名前と URL の組を 1 つの段に何行でも書け、読み上げの段の一覧に名前の link で出る。図と見える語りには出さない。" },
+          source: BLOCK_TEXT.source.ja,
           lifeline: { name: "生存線", desc: "時系列図だけの部品。箱の下に縦の線が伸び、上から下へ時が進む。" },
           group: { name: "区画", desc: "構成図だけの部品。group から end までの箱を 1 つの区画に囲み、仕組みの境目を見せる。" },
           "start-finish": {
@@ -385,10 +388,7 @@ export const TEXT = {
           act: { name: "Action", desc: "Shows work done inside a box as a badge, with no edge." },
           strip: { name: "Strip", desc: "A strip of fields under the diagram. Each step can rewrite a field to follow what is carried." },
           step: { name: "Step", desc: "A step of the diagram, with its own text and command, played one at a time. view picks whether the frame follows the step or holds the whole diagram." },
-          source: {
-            name: "Source",
-            desc: "A source for a step: a name and a URL, as many lines as the step needs. Sources appear as links in the step list that screen readers read, not in the diagram or the shown text.",
-          },
+          source: BLOCK_TEXT.source.en,
           lifeline: { name: "Lifeline", desc: "Sequence diagrams only. A line runs down from each box, and time moves down the page." },
           group: { name: "Group", desc: "Architecture diagrams only. The boxes between group and end sit inside one region that marks a boundary in the system." },
           "start-finish": {

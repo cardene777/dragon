@@ -3,7 +3,10 @@
  *
  * 記法の語は英語だけで file から言葉が決まらないため、誤りの文は呼ぶ側が渡した言葉
  * (渡さなければ英語) で出す。文の中の記法の語は語の表から引き、表と文で語が食い違わないようにする。
+ * ブロックの置き場へ移した行の誤りの文はブロックが日英で持ち (`blocks/<名前>/block.ts` の `messages`)、ここで 1 つの表に束ねる (#3345)。
  */
+import { ranked } from "./blocks/block";
+import { BLOCKS } from "./blocks/index";
 import { nearest } from "./nearest";
 import { COLORS, ICON_NAMES } from "./schema";
 import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SIDES, SPAN_SHAPES, VIEWS } from "./words";
@@ -11,7 +14,18 @@ import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SIDES, SPAN_S
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
 export type Shape = "sequence" | "architecture" | "group" | "box" | "strip" | "view" | "step" | "say" | "code" | "act" | "note" | "set";
 
-export interface Messages {
+type Blocks = typeof BLOCKS;
+/** 日英の誤りの文の、日本語の表の型。持たない (`none`) ブロックは何も足さない */
+type JaOf<X> = X extends { ja: infer M } ? M : never;
+type Intersect<U> = (U extends unknown ? (u: U) => void : never) extends (i: infer I) => void ? I : never;
+/** ブロックが持つ誤りの文の表。鍵はブロックの間で重ならない (`blocks.test.ts` の `block-message-keys-unique` が見る) */
+export type BlockMessages = Intersect<JaOf<Blocks[keyof Blocks]["messages"]>>;
+
+/** 誤りの文の表。ブロックの置き場へ移していない行の文と、ブロックが持つ文 */
+export type Messages = CoreMessages & BlockMessages;
+
+/** ブロックの置き場へ移していない行の誤りの文 */
+export interface CoreMessages {
   noHead: string;
   badHead: string;
   /** 前の形の `word` を書いた行。`shape` の行の書き方を示す */
@@ -30,8 +44,6 @@ export interface Messages {
   sayTwice: string;
   codeTwice: string;
   emptyCode: string;
-  /** 段の出典の行の形 (#3199) */
-  sourceShape: string;
   declarationInStep: string;
   stepLineBeforeStep: string;
   nestedGroup: string;
@@ -171,6 +183,10 @@ const withNear = (value: string, near: (name: string) => string, none: string): 
   return name === undefined ? none : near(name);
 };
 
+/** ブロックが持つ `lang` の誤りの文を 1 つの表に束ねる */
+const fromBlocks = (lang: NotationLang): BlockMessages =>
+  Object.assign({}, ...ranked(BLOCKS).map((block) => ("none" in block.messages ? {} : block.messages[lang]))) as BlockMessages;
+
 const ja = (): Messages => {
   const shapes: Record<Shape, string> = {
     sequence: "sequence <題>",
@@ -187,6 +203,7 @@ const ja = (): Messages => {
     set: "set <欄>: <値> [tag: <札>]",
   };
   return {
+    ...fromBlocks("ja"),
     noHead: `最初の行に図の種類 (${list(KINDS)}) と題を書く`,
     badHead: `最初の行は ${KINDS.join(" か ")} で始め、続けて題を書く`,
     oldForm: (word, shape) => `${word} は前の形の書き方。新しい形では ${shapes[shape]} と書く`,
@@ -204,7 +221,6 @@ const ja = (): Messages => {
     sayTwice: "1 つの段に say は 1 つまで。長い本文は say の下に字下げして続ける",
     codeTwice: "1 つの段に code は 1 行まで",
     emptyCode: "code の後ろに命令を書く",
-    sourceShape: "source は source <名前> [url: <URL>] の形で書く",
     declarationInStep: "group と box と strip と branch と、scale と period と row と point と zoom は最初の step より前に書く",
     stepLineBeforeStep: "線と say と code と source と act と note と set と commit と枝を切る行と、now と mark と span と、leaf と node の行は step の下に書く",
     nestedGroup: "group の中に group は書けない。先に end で閉じる",
@@ -327,6 +343,7 @@ const en = (): Messages => {
     set: "set <field>: <value> [tag: <tag>]",
   };
   return {
+    ...fromBlocks("en"),
     noHead: `Write the diagram kind (${list(KINDS)}) and a title on the first line`,
     badHead: `Start the first line with ${KINDS.join(" or ")}, followed by the title`,
     oldForm: (word, shape) => `${word} is the old notation. Write ${shapes[shape]} instead`,
@@ -344,7 +361,6 @@ const en = (): Messages => {
     sayTwice: "A step takes one say. Continue a long body on indented lines below it",
     codeTwice: "A step takes at most one code line",
     emptyCode: "Write the command after code",
-    sourceShape: "Write a source as source <name> [url: <URL>]",
     declarationInStep: "Write group, box, strip, branch, scale, period, row, point and zoom before the first step",
     stepLineBeforeStep: "Write lines, say, code, source, act, note, set, commit, branch cuts, now, mark, span, leaf and node under a step",
     nestedGroup: "A group cannot hold another group. Close it with end first",

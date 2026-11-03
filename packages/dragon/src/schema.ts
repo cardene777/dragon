@@ -1,7 +1,7 @@
 /**
  * 図の原本の形と、原本を JSON Schema で検査する命令。
  *
- * 形の正は `schemas/diagram.schema.json` の 1 本で、下の型はその写し。
+ * 形の正は `schemas/diagram.schema.json` の 1 本で、下の型はその写し。ブロックの置き場へ移した欄の型はブロックが持ち、ここから出し直す (#3345)。
  * 誤りは JSON Pointer で場所を示す。欄が足りない時と知らない欄がある時は、その欄の場所まで示す。
  * 誤りの文は呼ぶ側が渡した言葉 (渡さなければ英語) で出す。文の表は `field-messages.ts` が持つ (#2999)。
  *
@@ -10,6 +10,7 @@
  * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false }` で行う。
  */
 import type { ErrorObject } from "ajv";
+import type { StepSource } from "./blocks/source/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { nearest } from "./nearest";
 import { ICONS } from "./render/icons";
@@ -196,11 +197,8 @@ export interface StatePath {
   label?: string;
 }
 
-/** 段の出典。読み上げの段の一覧に、名前を URL への link にして出す。URL の形は箱の飛び先と同じ (#3199) */
-export interface StepSource {
-  name: string;
-  url: string;
-}
+/** 段の出典の型は出典のブロックが持つ (#3345) */
+export type { StepSource };
 
 export interface Step {
   title: string;

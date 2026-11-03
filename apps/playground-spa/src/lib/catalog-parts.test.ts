@@ -29,7 +29,7 @@ import * as WORDS from "../../../../packages/dragon/src/words";
 import { KINDS, type Kind } from "../catalog/catalog";
 import { fromHash, toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { app, BASE, root, screenOf, type Site, startSite, stepLabel } from "./playground-support";
+import { BASE, partFigure, partFigureNames, root, screenOf, type Site, startSite, stepLabel } from "./playground-support";
 
 const { ATTRS, HEADS, KINDS: WORD_KINDS } = WORDS;
 
@@ -78,15 +78,12 @@ async function partsTable(): Promise<readonly PartRow[]> {
 /** どの図でも使える部品か。図の種類を 2 つ以上持つ。列の図は線を持たないので、線の部品は列の図を除いた図の種類を持つ (#3239) */
 const isCommon = (part: PartRow): boolean => part.kinds.length > 1;
 
-/** 部品の図の記法の file の置き場 */
-const PARTS_DIR = join(app, "src/catalog/parts");
-
 /** 部品の図の記法の file の名前 */
 const snippetName = (id: string, kind: Kind, lang: Lang): string => `${id}.${kind}${lang === "en" ? ".en" : ""}.dragon`;
 
-/** 部品の図の記法。file が無ければ `undefined` */
+/** 部品の図の記法。今の置き場とブロックの置き場の見本帳の分から探し、file が無ければ `undefined` (#3345) */
 const snippetOf = (id: string, kind: Kind, lang: Lang): string | undefined => {
-  const path = join(PARTS_DIR, snippetName(id, kind, lang));
+  const path = partFigure(snippetName(id, kind, lang));
   return existsSync(path) ? readFileSync(path, "utf8").trimEnd() : undefined;
 };
 
@@ -253,7 +250,7 @@ describe("部品の表と記法の file (#3166)", () => {
   it("catalog-part-snippets-use-their-words", async () => {
     const parts = await partsTable();
     const want = parts.flatMap((part) => part.kinds.flatMap((kind) => (["ja", "en"] as const).map((lang) => ({ part, kind, lang, name: snippetName(part.id, kind, lang) }))));
-    const present = existsSync(PARTS_DIR) ? readdirSync(PARTS_DIR).filter((name) => name.endsWith(".dragon")) : [];
+    const present = partFigureNames();
     expect(
       want.map((w) => w.name).filter((name) => !present.includes(name)),
       "部品の表の部品と図の種類と言葉に当たる記法の file が無い",

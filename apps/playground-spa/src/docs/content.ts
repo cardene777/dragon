@@ -5,7 +5,9 @@
  * 本文の中の `` ` `` で囲んだ語は `<code>` で出す。
  * 節の記法の例は `examples/` の file が持ち、頁と検査 (`lib/site.test.ts`) が同じ file を読む。
  * 書き出しの節の命令は package の README と同じ物を、設定は命令の使い方の表示と同じ物を出す (検査が突き合わせる)。
+ * ブロックの置き場へ移した部品の段落はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks.gen.ts`) から節の中の同じ場所に置く (#3345)。
  */
+import { BLOCK_DOCS } from "../catalog/blocks.gen";
 import type { Lang } from "../text";
 
 /**
@@ -181,7 +183,7 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           "段は `step <見出し>` の行で区切り、図はこの単位で 1 段ずつ進む。段の中の行は字下げして書き、その段で起きることを語る `say` の行を必ず書く。本文を 2 行以上に分ける時は、`say` だけの行の下に、さらに深く字下げして続ける。",
           "例の `code pay(1200)` の行のように、`code` の行はその段で打つ命令になる。1 つの段に 1 行まで書ける。",
-          "`source <名前> [url: <URL>]` の行は、その段の出典になる。1 つの段に何行でも書け、図と見える語りには出さず、読み上げの段の一覧に名前の link で出る。URL の形は箱の飛び先と同じ。",
+          ...BLOCK_DOCS.source.ja,
           "`note <名札>: <字>` は、その段から箱の下の字を書き換える。残高や状態のように、段を追って替わる値を箱の上で見せる。",
           "見せ方は最初の行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ。`fixed` は全体を止めて中だけを動かし、`follow` は今動いている所へ寄って動かす。書かなければ、全体を枠に収めた時の字の大きさで決まる。",
         ],
@@ -390,7 +392,7 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           "Steps are separated by `step <heading>` lines, and the diagram moves on one step at a time. Indent the lines inside a step, and every step needs a `say` line that tells what happens in it. To split the body over two or more lines, write `say` alone and continue on lines indented further below it.",
           "A `code` line, like the `code pay(1200)` line in the example, is the command for that step. A step can have at most one.",
-          "A `source <name> [url: <URL>]` line is a source for that step. A step can have any number of them. They stay out of the diagram and the shown text, and appear as links named by the source in the step list that screen readers read. The URL takes the same forms as a box link.",
+          ...BLOCK_DOCS.source.en,
           "`note <id>: <text>` rewrites the caption under a box from that step on. Use it to show a value that changes step by step, such as a balance or a state, right on the box.",
           "Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the first line. `fixed` keeps the whole diagram still and moves only what is inside, and `follow` moves to where things are happening. Without it, the view is chosen by the text size when the whole diagram fits the frame.",
         ],

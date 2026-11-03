@@ -13,7 +13,7 @@
  * 読む処理が出す鍵の順が変わると、SVG より先にここで判る。
  */
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -27,6 +27,24 @@ export const OUT = join(FIXTURES, "examples-svg.json");
  * ブロックの置き場へ移しても同じ鍵で引けるよう、鍵は `parts/<file の名前>` にする
  */
 export const PART_FIGURES = join(here, "../../../apps/playground-spa/src/catalog/parts");
+/** ブロックの置き場。置き場へ移した部品の図は `<名前>/gallery/` に在り、今の置き場の部品の図と同じ鍵で引く */
+export const BLOCK_FOLDERS = join(here, "../src/blocks");
+
+/** 部品の図の鍵 (`parts/<file の名前>`) と path。今の置き場とブロックの見本帳の分から集め、鍵の順に並べる */
+function partFigures() {
+  const galleries = existsSync(BLOCK_FOLDERS)
+    ? readdirSync(BLOCK_FOLDERS)
+        .map((name) => join(BLOCK_FOLDERS, name, "gallery"))
+        .filter((dir) => existsSync(dir))
+    : [];
+  return [PART_FIGURES, ...galleries]
+    .flatMap((dir) =>
+      readdirSync(dir)
+        .filter((file) => file.endsWith(".dragon"))
+        .map((file) => ({ file: `parts/${file}`, path: join(dir, file) })),
+    )
+    .sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
+}
 
 /** 描き方の組。既定、暗い地と止め絵と日本語、別の色味 */
 export const VARIANTS = {
@@ -48,11 +66,7 @@ export function sources(api) {
       .filter((file) => file.endsWith(".dragon"))
       .map((file) => join("test/fixtures", file)),
   ].sort();
-  const figures = readdirSync(PART_FIGURES)
-    .filter((file) => file.endsWith(".dragon"))
-    .sort()
-    .map((file) => ({ file: `parts/${file}`, path: join(PART_FIGURES, file) }));
-  return [...files.map((file) => ({ file, path: join(here, "..", file) })), ...figures].map(({ file, path }) => {
+  return [...files.map((file) => ({ file, path: join(here, "..", file) })), ...partFigures()].map(({ file, path }) => {
       const text = readFileSync(path, "utf8");
       if (file.endsWith(".json")) return { file, diagram: JSON.parse(text) };
       const parsed = api.parseNotation(text, { lang: file.endsWith(".en.dragon") ? "en" : "ja" });

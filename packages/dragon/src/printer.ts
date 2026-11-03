@@ -15,11 +15,19 @@
  * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
  * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で書く。
  * 列の図 (#3239) のチップは箱の後ろに `item` の行で書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
- * 段の出典 (#3199) は `say` と `code` の後ろ、段の中で起きることより前に、JSON の並びのまま 1 つずつ `source` の行に書く。
+ * 段の中でブロックが受け持つ行は、`say` と `code` の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
+ * 段の出典 (#3199) は出典のブロックが、JSON の並びのまま 1 つずつ `source` の行に書く。
  */
+import { ranked } from "./blocks/block";
+import { BLOCKS } from "./blocks/index";
 import { attrs, name, quote, shown } from "./print-kit";
-import type { Box, Diagram, DiagramEvent, LineupItem, Region, TimeSpec } from "./schema";
+import type { Box, Diagram, DiagramEvent, LineupItem, Region, Step, TimeSpec } from "./schema";
 import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
+
+/** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
+const STEP_PRINTERS: readonly ((step: Step) => string[])[] = ranked(BLOCKS).flatMap((block) =>
+  "none" in block.print || block.print.step === undefined ? [] : [block.print.step],
+);
 
 /** `:` の前に置く字 (帯の題と、`set` の欄) */
 const key = (text: string): string => (text.includes(":") || text.includes("[") || text.startsWith('"') ? quote(text) : text);
@@ -186,7 +194,7 @@ export function printNotation(diagram: Diagram): string {
         `step ${step.title}`,
         ...say,
         ...(step.code === undefined ? [] : [`  code ${step.code}`]),
-        ...(step.sources ?? []).map((s) => `  source ${name(s.name)}${attrs([["url", s.url]])}`),
+        ...STEP_PRINTERS.flatMap((print) => print(step)).map((line) => `  ${line}`),
         ...step.events.map((e) => `  ${event(e, diagram.kind)}`),
       ].join("\n"),
     );

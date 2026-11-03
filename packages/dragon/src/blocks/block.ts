@@ -33,6 +33,9 @@ export interface None {
 /** 持たない欄の値。理由は空にしない (`blocks.test.ts` の `block-check-flags-missing-messages` が見る) */
 export const none = (reason: string): None => ({ none: reason });
 
+/** 一覧のブロックを、ブロックの並び (`rank`) の順に返す。同じ並びのブロックは一覧の順 (置き場の dir の名前の順) */
+export const ranked = (blocks: Readonly<Record<string, Block>>): Block[] => Object.values(blocks).sort((a, b) => a.rank - b.rank);
+
 /** 読んでいる段。`body` は `say` を読むまで無い */
 export interface StepDraft {
   source: SourceLine;

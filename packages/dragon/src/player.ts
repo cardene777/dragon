@@ -15,6 +15,7 @@
  * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、段を送る釦を指で押せる大きさにして段の番号と上の段に並べ、
  * 題と本文をその下の段の全幅に置く (#3057、#3069)。
  */
+import { drawSources } from "./blocks/source/draw";
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
@@ -214,18 +215,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
       p.textContent = line;
       item.append(p);
     }
-    if (step.sources) {
-      const sources = doc.createElement("ul");
-      for (const source of step.sources) {
-        const link = doc.createElement("a");
-        link.href = source.url;
-        link.textContent = source.name;
-        const entry = doc.createElement("li");
-        entry.append(link);
-        sources.append(entry);
-      }
-      item.append(sources);
-    }
+    drawSources(doc, item, step.sources);
     list.append(item);
   }
 

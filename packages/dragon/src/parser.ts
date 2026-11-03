@@ -63,6 +63,8 @@
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
+import { type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
+import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readList, readName, readQuoted, skipSpaces, urlOf } from "./read-kit";
 import {
@@ -80,7 +82,6 @@ import {
   type Region,
   type StatePath,
   type Step,
-  type StepSource,
   type StripMeter,
   type TimePeriod,
   type TimePoint,
@@ -201,15 +202,11 @@ function oldForm(text: string, inStep: boolean): { word: string; shape: Shape } 
   return undefined;
 }
 
-/** 読んでいる段。`body` は `say` を読むまで無い */
-interface Building {
-  source: SourceLine;
-  title: string;
-  body?: string[];
-  code?: string;
-  sources: StepSource[];
-  events: DiagramEvent[];
-}
+/**
+ * ブロックが受け持つ行の頭の語と、その読む処理 (#3345)。
+ * 行の頭の語の誤り (図の種類だけの語と、知らない語) を確かめた後に、ここに在る語はブロックの読む処理で読む
+ */
+const HEAD_READERS: ReadonlyMap<string, HeadReader> = new Map(ranked(BLOCKS).flatMap((block) => ("none" in block.read ? [] : Object.entries(block.read))));
 
 function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
@@ -262,7 +259,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const ids = new Set<string>();
   let strip: { title: string; fields: string[] } | undefined;
   const steps: Step[] = [];
-  let building: Building | undefined;
+  let building: StepDraft | undefined;
   /** 開いている `group` */
   let group: { source: SourceLine; id: string } | undefined;
 
@@ -308,10 +305,12 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (isTime && id === NOW) throw fail(source, at, m.nowReserved(id));
   };
   /** 段の中に書く行の、書き先の段。最初の `step` より前なら誤り */
-  const inStep = (source: SourceLine): Building => {
+  const inStep = (source: SourceLine): StepDraft => {
     if (!building) throw fail(source, 0, m.stepLineBeforeStep);
     return building;
   };
+  /** ブロックの読む処理が受ける、読んでいる記法の状態 */
+  const state: ParseState = { m, kind, inStep };
   /** 宣言の行。最初の `step` より後なら誤り */
   const beforeSteps = (source: SourceLine): void => {
     if (building) throw fail(source, 0, m.declarationInStep);
@@ -362,6 +361,11 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
     }
+    const reader = HEAD_READERS.get(word);
+    if (reader) {
+      reader(source, state);
+      continue;
+    }
     switch (word) {
       case "group":
         readGroup(source);
@@ -397,9 +401,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         step.code = command;
         break;
       }
-      case "source":
-        inStep(source).sources.push(readSource(source));
-        break;
       case "act": {
         if (isLineup) throw fail(source, 0, m.lineupNoAct);
         const step = inStep(source);
@@ -742,14 +743,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       ...(group ? { region: group.id } : {}),
       ...(link ? { link: urlOf(source, "link", link, m) } : {}),
     });
-  }
-
-  /** `source <名前> [url: <URL>]` の行 */
-  function readSource(source: SourceLine): StepSource {
-    const named = readName(source, "source".length, m);
-    const url = named.rest < source.text.length ? readAttrs(source, named.rest, ATTRS.source, m).get("url") : undefined;
-    if (named.value === "" || !url) throw fail(source, 0, m.sourceShape);
-    return { name: named.value, url: urlOf(source, "url", url, m) };
   }
 
   /** 枝分かれの図の `branch <名札> [note: <添え書き>]` の行。枝は宣言した順に上から帯に並ぶ */
