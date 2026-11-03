@@ -17,8 +17,9 @@
  * 列の図 (#3239) のチップは箱の後ろに `item` の行で書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
  * 段の中でブロックが受け持つ行は、`say` と `code` の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
  * 段の出典 (#3199) は出典のブロックが、JSON の並びのまま 1 つずつ `source` の行に書く。
+ * 段の中で起きることのうちブロックが持つ種類は、そのブロックの書き戻す処理 (`print.events`) が起きた順に 1 行ずつ書く (#3345)。
  */
-import { ranked } from "./blocks/block";
+import { type EventPrinter, ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
 import { attrs, name, quote, shown } from "./print-kit";
 import type { Box, Diagram, DiagramEvent, LineupItem, Region, Step, TimeSpec } from "./schema";
@@ -27,6 +28,14 @@ import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 /** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
 const STEP_PRINTERS: readonly ((step: Step) => string[])[] = ranked(BLOCKS).flatMap((block) =>
   "none" in block.print || block.print.step === undefined ? [] : [block.print.step],
+);
+
+/**
+ * 段の中で起きることの種類ごとの、ブロックが持つ書き戻す処理 (#3345)。
+ * ブロックは自分の出来事の種類の処理だけを持つので、種類で引いた処理には同じ種類の出来事だけを渡す
+ */
+const EVENT_PRINTERS: ReadonlyMap<string, EventPrinter> = new Map(
+  ranked(BLOCKS).flatMap((block) => ("none" in block.print ? [] : (Object.entries(block.print.events ?? {}) as [string, EventPrinter][]))),
 );
 
 /** `:` の前に置く字 (帯の題と、`set` の欄) */
@@ -64,8 +73,6 @@ function event(e: DiagramEvent, kind: Diagram["kind"]): string {
       const carry: [string, string][] = plain ? [] : e.carry.kind === "tag" ? [["tag", e.carry.text]] : [["carry", e.carry.kind]];
       return `${line(e.from, e.to, e.label)}${attrs([...carry, ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`;
     }
-    case "action":
-      return `act ${e.box}: ${e.label}`;
     case "swap":
       return kind === "time" ? `note ${e.box}: ${name(e.text)}${attrs([["color", e.color]])}` : `note ${e.box}: ${e.text}`;
     case "now":
@@ -98,6 +105,11 @@ function event(e: DiagramEvent, kind: Diagram["kind"]): string {
       return `${e.type} ${e.box}`;
     case "stamp":
       return `stamp ${e.box}: ${name(e.text)}`;
+    default: {
+      const print = EVENT_PRINTERS.get(e.type);
+      if (!print) throw new Error(`${e.type} を書き戻す処理が無い`);
+      return print(e, kind);
+    }
   }
 }
 

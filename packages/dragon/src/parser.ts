@@ -66,7 +66,7 @@
 import { type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readList, readName, readQuoted, skipSpaces, urlOf } from "./read-kit";
+import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readList, readName, readOnBox, readQuoted, skipSpaces, urlOf } from "./read-kit";
 import {
   type Box,
   type Carry,
@@ -310,7 +310,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     return building;
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
-  const state: ParseState = { m, kind, inStep };
+  const state: ParseState = { m, kind, inStep, boxAt };
   /** 宣言の行。最初の `step` より後なら誤り */
   const beforeSteps = (source: SourceLine): void => {
     if (building) throw fail(source, 0, m.declarationInStep);
@@ -401,20 +401,13 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         step.code = command;
         break;
       }
-      case "act": {
-        if (isLineup) throw fail(source, 0, m.lineupNoAct);
-        const step = inStep(source);
-        const on = readOnBox(source, word, m.actShape);
-        step.events.push({ type: "action", box: on.box, label: on.text });
-        break;
-      }
       case "note": {
         const step = inStep(source);
         if (isTime) {
           step.events.push(readTimeNote(source));
           break;
         }
-        const on = readOnBox(source, word, m.noteShape);
+        const on = readOnBox(source, word, m.noteShape, boxAt);
         step.events.push({ type: "swap", box: on.box, text: on.text });
         break;
       }
@@ -1040,14 +1033,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (body.length === 0) throw fail(source, 0, m.emptySay);
     step.body = body;
     return last;
-  }
-
-  /** `act <名札>: <字>` と `note <名札>: <字>` の行の、箱と字 */
-  function readOnBox(source: SourceLine, word: "act" | "note", shape: string): { box: string; text: string } {
-    const found = new RegExp(`^${word}\\s+([^\\s:]+)\\s*:\\s*(.*)$`, "du").exec(source.text);
-    const idAt = found?.indices?.[1]?.[0];
-    if (!found || idAt === undefined || (found[2] ?? "") === "") throw fail(source, 0, shape);
-    return { box: boxAt(source, found[1] ?? "", idAt), text: found[2] ?? "" };
   }
 
   /** 線の行の両端と、`:` の後ろの線の名前。`at` は名前の後ろの位置 */

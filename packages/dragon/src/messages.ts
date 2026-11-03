@@ -58,7 +58,6 @@ export interface CoreMessages {
   stripUndeclared: string;
   noSuchField: (field: string) => string;
   stripNeedsValue: string;
-  actShape: string;
   noteShape: string;
   edgeShape: string;
   emptyLabel: string;
@@ -121,7 +120,6 @@ export interface CoreMessages {
   lineupOnly: (word: string) => string;
   lineupNoGroup: string;
   lineupNoEdge: string;
-  lineupNoAct: string;
   noItems: string;
   itemShape: string;
   lineShape: string;
@@ -235,7 +233,6 @@ const ja = (): Messages => {
     stripUndeclared: "set を書く前に、strip <題>: <欄>, <欄> で帯を宣言する",
     noSuchField: (field) => `${field} という欄は strip に無い`,
     stripNeedsValue: "set は set <欄>: <値> か set <欄> [tag: <札>] の形で書く",
-    actShape: "act は act <名札>: <処理の名前> の形で書く",
     noteShape: "note は note <名札>: <下の小さな字> の形で書く",
     edgeShape: "線は <名札> -> <名札>: <線の名前> [<属性>] の形で書く",
     emptyLabel: "線の : の後ろに線の名前を書く。名前を書かない時は : も書かない",
@@ -283,7 +280,6 @@ const ja = (): Messages => {
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
     lineupNoGroup: "lineup (列の図) には group を書けない。列は box の行で宣言する",
     lineupNoEdge: "lineup (列の図) には線の行を書けない。チップは line の行で列の並びを書くと動く",
-    lineupNoAct: "lineup (列の図) には act の行を書けない。列の右上の字は note の行で書き換える",
     noItems: "item の行でチップを 1 つ以上宣言する",
     itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>] の形で書く",
     lineShape: "line は line <列>: <チップ>, <チップ> の形で書く",
@@ -375,7 +371,6 @@ const en = (): Messages => {
     stripUndeclared: "Declare the strip as strip <title>: <field>, <field> before writing set",
     noSuchField: (field) => `The strip has no field named ${field}`,
     stripNeedsValue: "Write set as set <field>: <value> or set <field> [tag: <tag>]",
-    actShape: "Write act as act <id>: <action>",
     noteShape: "Write note as note <id>: <caption>",
     edgeShape: "Write a line as <id> -> <id>: <label> [<attributes>]",
     emptyLabel: "Write the label after the : of a line, or leave out the : as well",
@@ -423,7 +418,6 @@ const en = (): Messages => {
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
     lineupNoGroup: "A lineup diagram takes no group. Declare the lanes with box lines",
     lineupNoEdge: "A lineup diagram takes no edge lines. Chips move when a line line rewrites a lane",
-    lineupNoAct: "A lineup diagram takes no act lines. Rewrite the text at the top right of a lane with a note line",
     noItems: "Declare at least one chip with an item line",
     itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>]",
     lineShape: "Write a line as line <lane>: <chip>, <chip>",

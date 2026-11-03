@@ -27,8 +27,14 @@ export interface PartText {
 /** `gallery/text.ts` が出す `text` */
 export type BlockText = Readonly<Record<GalleryLang, PartText>>;
 
-/** `gallery/shelf.ts` が出す `shelf`。編集画面の棚に置く部品の名前 */
-export type BlockShelf = Readonly<Record<GalleryLang, string>> | None;
+/** 編集画面の棚に置く部品 1 つの名前 */
+export type ShelfName = Readonly<Record<GalleryLang, string>>;
+
+/**
+ * `gallery/shelf.ts` が出す `shelf`。ブロックが編集画面の棚に置く部品の名前。
+ * 鍵は棚の部品の id (`apps/playground-spa/src/editor/shelf-items.ts` の `PART_IDS`) で、1 つのブロックが棚に 2 つ以上の部品を置ける
+ */
+export type BlockShelf = Readonly<Record<string, ShelfName>> | None;
 
 /**
  * `gallery/docs.ts` が出す `docs`。使い方の頁の `section` の節に置く段落。
@@ -36,8 +42,15 @@ export type BlockShelf = Readonly<Record<GalleryLang, string>> | None;
  */
 export type BlockDocs = { readonly section: string } & Readonly<Record<GalleryLang, readonly string[]>>;
 
-/** `gallery/rule.ts` が出す `rule`。`GRAMMAR.md` の部品と使い方の表の 1 行 */
-export type BlockRule = { readonly part: string; readonly rule: string; readonly name: string } | None;
+/** `GRAMMAR.md` の部品と使い方の表の 1 行。表の 3 つの欄 (部品、決まり、部品の名前) の字をそのまま持つ */
+export interface RuleRow {
+  readonly part: string;
+  readonly rule: string;
+  readonly name: string;
+}
+
+/** `gallery/rule.ts` が出す `rule`。ブロックが受け持つ表の行を、表の順に並べる */
+export type BlockRule = readonly RuleRow[] | None;
 
 /** ブロック 1 つの見本帳の分 */
 export interface BlockGallery {

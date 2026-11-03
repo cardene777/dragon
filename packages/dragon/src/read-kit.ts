@@ -173,3 +173,14 @@ export function urlOf(source: SourceLine, key: string, attr: Attr, m: Messages):
   if (!URL_FORM.test(attr.value)) throw fail(source, attr.at, m.badUrl(key));
   return attr.value;
 }
+
+/**
+ * `act <名札>: <字>` と `note <名札>: <字>` の行の、箱と字。形に合わない行は `shape` の文で断る。
+ * `boxAt` は宣言した箱の名札かを確かめる (読んでいる記法の状態の `boxAt`)
+ */
+export function readOnBox(source: SourceLine, word: string, shape: string, boxAt: (source: SourceLine, id: string, at: number) => string): { box: string; text: string } {
+  const found = new RegExp(`^${word}\\s+([^\\s:]+)\\s*:\\s*(.*)$`, "du").exec(source.text);
+  const idAt = found?.indices?.[1]?.[0];
+  if (!found || idAt === undefined || (found[2] ?? "") === "") throw fail(source, 0, shape);
+  return { box: boxAt(source, found[1] ?? "", idAt), text: found[2] ?? "" };
+}

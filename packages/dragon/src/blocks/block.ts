@@ -53,16 +53,34 @@ export interface ParseState {
   /** 図の種類 */
   readonly kind: KindName;
   /** 段の中に書く行の書き先の段。最初の `step` より前に書いた行は誤りで止める */
-  inStep(source: SourceLine): StepDraft;
+  readonly inStep: (source: SourceLine) => StepDraft;
+  /** 宣言した箱の名札 `id` をそのまま返す。宣言していない名札は、名札の列 `at` を示して誤りで止める */
+  readonly boxAt: (source: SourceLine, id: string, at: number) => string;
 }
 
 /** 行の頭の語の読む処理。読んだ結果は `state` が渡す書き先へ足し、誤りは行と列を添えて投げる (`read-kit.ts` の `fail`) */
 export type HeadReader = (source: SourceLine, state: ParseState) => void;
 
+/** 段の中で起きることの種類 */
+export type EventType = DiagramEvent["type"];
+
+/** 種類 `T` の出来事を、段の中の 1 行に書き戻す処理。`kind` は図の種類 */
+export type EventPrinter<T extends EventType = EventType> = (event: Extract<DiagramEvent, { type: T }>, kind: KindName) => string;
+
 /** 書き戻す処理 */
 export interface BlockPrint {
   /** 段の中でブロックが受け持つ行。字下げを除いた行を、段の中で起きることより前に書く */
   step?: (step: Step) => string[];
+  /** 段の中で起きることの書き戻し。鍵は出来事の種類で、段の中で起きた順に出来事ごとに呼ぶ */
+  events?: { readonly [T in EventType]?: EventPrinter<T> };
+}
+
+/** 原本の形の欠片。鍵と値は `schemas/diagram.schema.json` と同じ */
+export interface BlockShape {
+  /** `definitions` の欠片。鍵は `definitions` の鍵 */
+  definitions?: Readonly<Record<string, unknown>>;
+  /** 段の中で起きること (`definitions.event` の `oneOf`) の枝。鍵は出来事の種類 (`type`) */
+  events?: Readonly<Record<string, unknown>>;
 }
 
 /** ブロックが受け持つ記法の語 */
@@ -85,8 +103,8 @@ export interface Block<M extends object = object> {
   /** 付け方。`only` を書いたブロックは、その図の種類だけで使う個別ブロック */
   attach: { how: AttachHow; only?: KindName };
   words: BlockWords;
-  /** 原本の形の欠片。鍵と値は `schemas/diagram.schema.json` の `definitions` と同じ */
-  shape: { definitions: Readonly<Record<string, unknown>> };
+  /** 原本の形の欠片。形がほかのブロックの欄の一部で、自分の欠片を持たないブロックは `none` を置く */
+  shape: BlockShape | None;
   /** 行の頭の語ごとの読む処理 */
   read: Readonly<Record<string, HeadReader>> | None;
   print: BlockPrint | None;

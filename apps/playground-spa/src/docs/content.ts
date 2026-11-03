@@ -127,7 +127,7 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "線",
         text: [
           "線は `<名札> -> <名札>: <線の名前>` で書き、段の中に書いた順に走る。名前は省ける。",
-          "`act <名札>: <処理の名前>` は、線を引かずに箱の中で行う処理を表す。受け取った物を確かめる、数を数える、のような箱の中だけで済む動きに使う。",
+          ...BLOCK_DOCS.act.ja,
           "線の名前の置き場所は自動で決まる。崩れた時だけ、線の行の終わりに `[side: above]` か `below`、`left`、`right` を足して置く側を指す。",
         ],
         exit: "続き → 区画",
@@ -336,7 +336,7 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "Lines",
         text: [
           "Write a line as `<id> -> <id>: <label>`. Lines run in the order they are written in the step, and the label can be left out.",
-          "`act <id>: <action>` is something a box does inside itself, without drawing a line. Use it for work that stays inside the box, such as checking what arrived or counting.",
+          ...BLOCK_DOCS.act.en,
           "The label is placed automatically. Only when the placement breaks, add `[side: above]`, `below`, `left` or `right` at the end of the line to say which side it goes.",
         ],
         exit: "Next → Regions",

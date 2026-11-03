@@ -76,7 +76,6 @@ const LATER_HEADS = [
   [20, ["box"]],
   [30, ["strip"]],
   [40, ["step", "say", "code"]],
-  [60, ["act"]],
   [70, ["note"]],
   [80, ["set"]],
   [90, ["branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS]],

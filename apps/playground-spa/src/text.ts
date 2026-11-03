@@ -2,9 +2,10 @@
  * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030、#3032、#3033)。
  *
  * 記法の語 (`時系列図` や `帯`) は見本の file が持ち、ここには持たない。
- * ブロックの置き場へ移した部品の名前と説明はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks.gen.ts`) から引く (#3345)。
+ * ブロックの置き場へ移した部品の名前と説明と、編集画面の棚の部品の名前はブロックの見本帳の分が持ち、
+ * 書き出した一覧 (`catalog/blocks.gen.ts`) から引く (#3345)。
  */
-import { BLOCK_TEXT } from "./catalog/blocks.gen";
+import { BLOCK_SHELF, BLOCK_TEXT } from "./catalog/blocks.gen";
 
 export type Lang = "ja" | "en";
 
@@ -71,7 +72,7 @@ export const TEXT = {
           icon: { name: "絵", desc: "箱と区画の名前に添える絵。user や db などの名前で選ぶ。" },
           link: { name: "飛び先", desc: "箱に書く飛び先。描いた図ではその箱が link になり、押すと中の仕組みを描いた頁などへ移る。/ で始まる path か、http:// か https:// で始まる URL で書く。" },
           note: { name: "小さな字", desc: "箱と区画の名前の下に添える小さな字。段の中で箱の小さな字を書き換えられる。" },
-          act: { name: "箱の中の処理", desc: "線を引かずに、箱の中で起きる処理を札で見せる。" },
+          act: BLOCK_TEXT.act.ja,
           strip: { name: "中身の帯と欄", desc: "図の下に置く中身の帯。段ごとに欄の値を入れ替え、運ばれる物の中身を追う。" },
           step: { name: "段", desc: "図を区切る段。段ごとに本文と打つ命令を書き、1 段ずつ送って見る。view で、枠が段を追うか全体を止めて見せるかを選ぶ。" },
           source: BLOCK_TEXT.source.ja,
@@ -245,7 +246,7 @@ export const TEXT = {
         "edge-coin": "硬貨を運ぶ線",
         "edge-none": "何も運ばない線",
         "edge-below": "名前を下に置く線",
-        action: "箱の中の処理",
+        action: BLOCK_SHELF.act.action.ja,
         swap: "箱の下の字の書き換え",
         strip: "帯の値",
       },
@@ -385,7 +386,7 @@ export const TEXT = {
             desc: "Where a box leads. The box becomes a link in the drawn diagram, for example to the page that draws what is inside it. Write a path that starts with / or a URL that starts with http:// or https://.",
           },
           note: { name: "Note", desc: "Small text under the name of a box or a group. A step can rewrite the small text of a box." },
-          act: { name: "Action", desc: "Shows work done inside a box as a badge, with no edge." },
+          act: BLOCK_TEXT.act.en,
           strip: { name: "Strip", desc: "A strip of fields under the diagram. Each step can rewrite a field to follow what is carried." },
           step: { name: "Step", desc: "A step of the diagram, with its own text and command, played one at a time. view picks whether the frame follows the step or holds the whole diagram." },
           source: BLOCK_TEXT.source.en,
@@ -559,7 +560,7 @@ export const TEXT = {
         "edge-coin": "Edge carrying a coin",
         "edge-none": "Edge carrying nothing",
         "edge-below": "Edge with its label below",
-        action: "Action inside a box",
+        action: BLOCK_SHELF.act.action.en,
         swap: "Rewrite the text under a box",
         strip: "Strip value",
       },

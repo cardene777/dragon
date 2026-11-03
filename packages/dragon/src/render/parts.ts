@@ -3,6 +3,7 @@
  *
  * どの部品も、置き場所は場面 (`layout/scene.ts`) から、いつ見えるかは時刻の表 (`timeline.ts`) から読む。
  * 色は色の役の変数 (`--c` と `--ct`) だけを渡し、値は色味の表が持つ。
+ * ブロックの置き場へ移した部品の描き方は `blocks/<名前>/draw.ts` が持ち、この file の下請け (`esc`、`cs`、`r1`、`write` など) を読む (#3345)。
  */
 import { hasWide, textBox, textWidth } from "../layout/measure";
 import {
@@ -12,7 +13,6 @@ import {
   type Point,
   pathLength,
   type Rect,
-  type SceneAction,
   type SceneBadge,
   type SceneBox,
   type SceneEdge,
@@ -33,7 +33,8 @@ import type { Frame, Motion } from "./motion";
 export const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 /** 箱の飛び先 (#3199)。飛び先を持つ箱の札を、その飛び先への link で包む */
 export const linkTo = (link: string | undefined, markup: string): string => (link === undefined ? markup : `<a href="${esc(link)}">${markup}</a>`);
-const r1 =(v: number): number => Math.round(v * 100) / 100;
+/** 座標を小数 2 桁に丸める。ブロックの描き方 (`blocks/<名前>/draw.ts`) も同じ丸めで書く */
+export const r1 = (v: number): number => Math.round(v * 100) / 100;
 
 /** 色の役を部品へ渡す変数。 */
 export const cs = (k: ColorKey): string => (k === "coin" ? "--c:var(--coin);--ct:var(--coint)" : `--c:var(--c-${k});--ct:var(--t-${k})`);
@@ -353,18 +354,6 @@ export function label(l: SceneLabel, time: LabelTime, ctx: Ctx): string {
   const past = time.after ? `<g class="dg-cap-past${l.family === "sans" ? " dg-cap-pastj" : ""} dg-a" style="${ctx.m.vis(time.after.start, time.after.end)}"><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>` : "";
   const caps = shown.map(([a, b]) => `<g class="dg-cap${ja} dg-a" style="${cs(l.color)};${ctx.m.rise(a, b, true)}"><rect x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${radius}"/><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`);
   return `${past}${caps.join("")}`;
-}
-
-/** 時系列図の箱の中の処理の札。その段の間だけ生存線の上に出す。`again` を渡すと (止め絵を選んだ図、#3200)、その間に同じ札をもう 1 つ出す。 */
-export function action(a: SceneAction, at: number, until: number, ctx: Ctx, again?: Span): string {
-  const shown: Shown[] = again ? [[at, until], [again.start, again.end]] : [[at, until]];
-  ctx.ink.push({ text: a.text, rect: a, shown, boxed: true });
-  return shown
-    .map(
-      ([from, to]) =>
-        `<g class="dg-act dg-a" style="${cs(a.color)};${ctx.m.rise(from, to, true)}"><rect x="${r1(a.x)}" y="${r1(a.y)}" width="${r1(a.w)}" height="${a.h}" rx="${LOOK.action.radius}"/><text x="${r1(a.x + a.w / 2)}" y="${r1(a.y + a.h / 2 + LOOK.baseline.action)}" text-anchor="middle">${esc(a.text)}</text></g>`,
-    )
-    .join("");
 }
 
 function carrierShape(e: SceneEdge, sh: string): string {
