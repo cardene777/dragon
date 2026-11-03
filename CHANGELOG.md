@@ -8,15 +8,15 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [0.46.3] - 2026-11-03
 
-This version only has a change that does not change what input is accepted, so the third number went up.
+This version only changes the package description on npm, so the third number went up.
+It also carries the 0.46.2 change to the Japanese README, which was not published to npm.
 
-### Fixed
+### Changed
 
-- **Playing a diagram whose boxes have links no longer hides those links from screen readers** (#3329)
+- **The package description on npm is now in English** (#3327)
 
-  The player hid every SVG it placed from screen readers (`aria-hidden="true"`) and had the step list read instead.
-  Since boxes can carry links (#3199), a playing diagram kept those links reachable with Tab while hiding them, which axe reports as `aria-hidden-focus`.
-  An SVG that contains a link is now placed as a group (`role="group"`) that keeps the diagram title as its `aria-label`, and an SVG without links is hidden as before.
+  The description was in Japanese and named only sequence and architecture diagrams.
+  It now starts with the first sentence of the README and names no diagram kinds, so adding a kind does not leave it out of date.
 
 ## [0.46.2] - 2026-11-03
 

@@ -85,6 +85,16 @@ describe("版の記録 (#3151)", () => {
     expect(readFileSync(join(ROOT, "SECURITY.ja.md"), "utf8"), "SECURITY.ja.md が英語版へ link しない").toContain("](SECURITY.md)");
   });
 
+  it("package-description-is-english-readme-lead", () => {
+    // npm の頁に出る説明文は、README の 1 行目の文から始まる英文にする (#3327)。
+    // 日本語で図の種類を 2 つだけ挙げた説明文が、図の種類を足した後も npm に出ていた
+    const description = (JSON.parse(readFileSync(join(ROOT, "packages/dragon/package.json"), "utf8")) as { description: string }).description;
+    const lead = readFileSync(join(ROOT, "packages/dragon/README.md"), "utf8").split("\n").find((line) => line !== "" && !line.startsWith("#")) ?? "";
+    expect(lead, "packages/dragon/README.md に見出しの次の文が無い").not.toBe("");
+    expect(description.startsWith(lead), "package.json の description が README の 1 行目の文で始まらない").toBe(true);
+    expect(description, "package.json の description に日本語の字が在る").not.toMatch(/[぀-ヿ㐀-鿿]/u);
+  });
+
   it("version-match-needs-whole-version", () => {
     expect(mentions("0.36.3 として出した", "0.36.3")).toBe(true);
     expect(mentions("0.36.30 として出した", "0.36.3")).toBe(false);
@@ -156,14 +166,25 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
-  it("changelog-0-46-3-releases-readable-linked-figures", () => {
-    // 飛び先を持つ図を流す時に SVG を読み上げから隠さない直し (#3329) は 0.46.3 で npm と見本帳に出す (#3329)
+  it("changelog-0-46-4-releases-readable-linked-figures", () => {
+    // 飛び先を持つ図を流す時に SVG を読み上げから隠さない直し (#3329) は 0.46.4 で npm と見本帳に出す (#3329)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 46 || (minor === 46 && patch >= 4), `package の版 ${version()} が 0.46.4 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.46\.4\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.46.4"), "0.46.4");
+      expect(released, `${file} に日付付きの ## [0.46.4] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.46.4 の節に #3329 の項が無い`).toContain("(#3329)");
+    }
+  });
+
+  it("changelog-0-46-3-releases-english-npm-description", () => {
+    // npm の頁の説明文を英語に直した変更は 0.46.3 で npm にだけ出す (#3327)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
     expect(major > 0 || minor > 46 || (minor === 46 && patch >= 3), `package の版 ${version()} が 0.46.3 より前`).toBe(true);
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
       const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.46\.3\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.46.3"), "0.46.3");
       expect(released, `${file} に日付付きの ## [0.46.3] の節が無い`).not.toBe("");
-      expect(released, `${file} の 0.46.3 の節に #3329 の項が無い`).toContain("(#3329)");
+      expect(released, `${file} の 0.46.3 の節に #3327 の項が無い`).toContain("(#3327)");
     }
   });
 
