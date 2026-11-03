@@ -11,11 +11,11 @@
  * 始まりの印を囲みと同じ高さに置く。最初の段より前に書いた線のうち、どの段にも出ない線は通らない道として点線で引き、
  * 脇道の状態から出る線と終わりの印も囲みの中に置く。脇道へ入る線は、1 段目の上端と囲みの間を横に通り、点線の札の下端へ並べて入る。
  */
-import { FIGURE_TEXT } from "../figure-text";
-import { LOOK, TYPE } from "../look/values";
-import type { DiagramModel, LabelSide, StatePath } from "../schema";
-import { type NotationLang, STATE_ENDS } from "../words";
-import { textBox, textWidth } from "./measure";
+import { FIGURE_TEXT } from "../../figure-text";
+import { LOOK, TYPE } from "../../look/values";
+import type { DiagramModel, LabelSide, StatePath } from "../../schema";
+import { type NotationLang, STATE_ENDS } from "../../words";
+import { textBox, textWidth } from "../../layout/measure";
 import {
   badgeOnPath,
   badgeRect,
@@ -51,7 +51,7 @@ import {
   slotBoxWidth,
   slotRooms,
   stripNeed,
-} from "./scene";
+} from "../../layout/scene";
 
 const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).includes(id);
 

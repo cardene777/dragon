@@ -21,7 +21,7 @@ import { linkTo } from "../blocks/link/draw";
 import { subChanges } from "../blocks/note/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
-import type { GitLayout } from "../layout/git";
+import type { GitLayout } from "../kinds/git/layout";
 import type { LineupLayout } from "../layout/lineup";
 import { textWidth } from "../layout/measure";
 import { type Layout, type Rect, rewrapStrip, type SceneField, type SceneStrip } from "../layout/scene";
@@ -635,9 +635,10 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
   if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)
   const diagram = toModel(read.diagram);
-  // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。置き場の無い図の種類は登録簿から並べ方を引き、知らない種類は構成図の並べ方で並べる
+  // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。後から読む図の種類 (#3347) と置き場の無い図の種類は登録簿から並べ方を引き、
+  // 知らない種類は構成図の並べ方で並べる
   const folder = FOLDERS[diagram.kind];
-  const layout = folder
+  const layout = folder?.layout
     ? folder.layout(diagram, lang)
     : diagram.kind === "state"
       ? kindParts("state", lang).layoutState(diagram, lang)

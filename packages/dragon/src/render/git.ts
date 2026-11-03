@@ -9,7 +9,7 @@
  */
 import { carrier } from "../blocks/carry/draw";
 import { cs } from "../blocks/color/draw";
-import type { GitLayout, GitMove } from "../layout/git";
+import type { GitLayout, GitMove } from "../kinds/git/layout";
 import type { DiagramModel } from "../schema";
 import { hasWide, textWidth } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
