@@ -9,7 +9,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BLOCK_RULE, BLOCK_SHELF } from "../catalog/blocks.gen";
+import { BLOCK_RULE } from "../catalog/blocks-docs.gen";
+import { BLOCK_SHELF } from "../catalog/blocks.gen";
 import { PART_IDS } from "../editor/shelf-items";
 
 type Rule = { none: string } | readonly { part: string; rule: string; name: string }[];

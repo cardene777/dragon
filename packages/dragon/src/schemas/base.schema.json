@@ -50,13 +50,6 @@
             "$ref": "#/definitions/path"
           }
         },
-        "branch": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/definitions/branch"
-          }
-        },
         "scale": {
           "$ref": "#/definitions/scale"
         },
@@ -804,60 +797,6 @@
       },
       "oneOf": [
         {
-          "description": "commit を積む。枝分かれの図だけが書ける。積んだ枝の札と、その枝を指す HEAD が進む。当て直し (copy) は枝の札を動かさず、merge commit (merge) は取り込む枝の先端も親に持つ",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "id",
-            "branch"
-          ],
-          "properties": {
-            "type": {
-              "const": "commit"
-            },
-            "id": {
-              "$ref": "#/definitions/id"
-            },
-            "branch": {
-              "$ref": "#/definitions/id"
-            },
-            "copy": {
-              "$ref": "#/definitions/id"
-            },
-            "merge": {
-              "$ref": "#/definitions/id"
-            },
-            "hash": {
-              "$ref": "#/definitions/hash"
-            },
-            "note": {
-              "$ref": "#/definitions/text"
-            }
-          }
-        },
-        {
-          "description": "枝を切る。枝分かれの図だけが書ける。枝の札を from の commit へ置き、HEAD をその枝へ移す",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "branch",
-            "from"
-          ],
-          "properties": {
-            "type": {
-              "const": "branch"
-            },
-            "branch": {
-              "$ref": "#/definitions/id"
-            },
-            "from": {
-              "$ref": "#/definitions/id"
-            }
-          }
-        },
-        {
           "description": "時間軸の図の今の時刻の針を、to の目盛りの終わりまで進める",
           "type": "object",
           "additionalProperties": false,
@@ -1101,22 +1040,6 @@
         }
       ]
     },
-    "branch": {
-      "description": "枝。帯の左に名札と添え書きを置く",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id"
-      ],
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/id"
-        },
-        "note": {
-          "$ref": "#/definitions/text"
-        }
-      }
-    },
     "hash": {
       "description": "commit と木の箱の hash。16 進の字で 4 から 40 字",
       "type": "string",
@@ -1280,26 +1203,6 @@
         },
         "to": {
           "$ref": "#/definitions/unit"
-        }
-      }
-    },
-    "path": {
-      "description": "移れる道。送る側に始まりの印 start、受ける側に終わりの印 finish を書ける。どの段にも出ない道は点線で描き、運ぶ物を走らせない",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "from",
-        "to"
-      ],
-      "properties": {
-        "from": {
-          "$ref": "#/definitions/id"
-        },
-        "to": {
-          "$ref": "#/definitions/id"
-        },
-        "label": {
-          "$ref": "#/definitions/text"
         }
       }
     }

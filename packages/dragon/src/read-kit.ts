@@ -26,6 +26,9 @@ export const fail = (source: SourceLine, index: number, message: string): Notati
 /** 名札に使える字。原本の JSON の名札の形と同じ */
 export const ID = /^[^\s[\]「」=:]+$/u;
 
+/** commit と木の箱の hash。原本の JSON の hash の形と同じ。commit のブロックと木の図の読む処理が使う */
+export const HASH = /^[0-9a-f]{4,40}$/u;
+
 /** 箱と区画の名札の後ろに、見せる名前を続ける語 (`box <名札> as <名前>`) */
 export const AS = "as";
 

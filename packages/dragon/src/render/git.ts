@@ -1,22 +1,26 @@
 /**
  * 枝分かれの図 (#3164) を描く部品。見本帳の試作 `docs/design/base/scenes/git.js` の commit と札を写す。
  *
- * commit の丸は、親から引く線を引き終えた時に弾んで出て、hash と一言を丸の外に添える。
- * 親から引く線は引いた後も残し、当て直しの線は点線で出す。どの札からも辿れなくなった commit は、その時に点線の丸を重ねる。
+ * commit の丸と、commit どうしを結ぶ線 (親から子、枝を切る、取り込み、当て直し) は、commit と枝と merge commit と当て直しのブロックが描く (#3347)。
+ * 線は並べ方が 1 つの並びに出すので、ここで並びを順に読み、線の種類ごとの描き方をブロックから引く。動きの名前は呼んだ順に番号が付くので、描く順は変えない。
  * 札は枝ごとと HEAD に 1 つずつ置き、出来事のたびに次の置き場へ走らせる。札を動かす線は、その段の間だけ引いて消す。
  * 札はその後も動くので、線を残すと札の去った所を指したまま残る。
  * 札の見た目は運ぶ物の札と同じで、どの札も主役ではないので、時刻の表の運ぶ物とは別に動かす。
  */
+import { forkLine } from "../blocks/branch/draw";
 import { carrier } from "../blocks/carry/draw";
 import { cs } from "../blocks/color/draw";
-import type { GitLayout, GitMove } from "../kinds/git/layout";
+import { commitDot, type LinkLine, parentLine } from "../blocks/commit/draw";
+import { copyLine } from "../blocks/copy/draw";
+import { mergeLine } from "../blocks/merge/draw";
+import type { GitLayout, GitLink, GitMove, GitPlaced } from "../kinds/git/layout";
 import type { DiagramModel } from "../schema";
 import { hasWide, textWidth } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { EdgeTime, Span, Timeline } from "../timeline";
 import type { Frame } from "./motion";
-import { type Ctx, esc, pathOf, write } from "./parts";
+import { type Ctx, esc, pathOf } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 const center = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
@@ -29,9 +33,21 @@ function tagShape(text: string, sh: string): string {
   return `<rect class="dg-car" x="${r1(-w / 2)}" y="${-C.tagH / 2}" width="${r1(w)}" height="${C.tagH}" rx="${C.tagH / 2}" ${sh}/><text class="dg-car-t${ja ? " dg-car-tj" : ""}" y="${LOOK.baseline.carrier}" text-anchor="middle">${esc(text)}</text>`;
 }
 
+/** 線の種類ごとの描き方。親から子は commit、枝を切るのは枝、当て直しは当て直しのブロックが持つ */
+const LINK_LINES: Readonly<Record<GitLink["kind"], LinkLine>> = { parent: parentLine, branch: forkLine, copy: copyLine };
+
+/**
+ * 線の描き方。親から子への線のうち、merge commit が取り込む枝の先端から引く線は merge commit のブロックが描く。
+ * 並べ方は親を取り込む先の先端、取り込む枝の先端の順に並べるので、merge commit の親の並びの最後から引く線が取り込みの線
+ */
+function lineOf(l: GitLink, diagram: DiagramModel, commits: readonly GitPlaced[]): LinkLine {
+  const e = diagram.steps[l.step]?.events[l.event];
+  if (l.kind === "parent" && e?.type === "commit" && e.merge !== undefined && commits.find((c) => c.id === l.to)?.parents.at(-1) === l.from) return mergeLine;
+  return LINK_LINES[l.kind];
+}
+
 export function drawGit(layout: GitLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx): { links: string; lines: string; commits: string; tags: string } {
   const { m } = ctx;
-  const G = LOOK.git;
   const timeOf = (step: number, event: number): EdgeTime | undefined => timeline.edges.find((t) => t.step === step && t.event === event);
 
   const links = layout.links
@@ -39,43 +55,11 @@ export function drawGit(layout: GitLayout, diagram: DiagramModel, timeline: Time
       const time = timeOf(l.step, l.event);
       if (!time) return "";
       ctx.traces.push({ from: l.from, to: l.to, points: l.points, shown: [[time.start, Number.POSITIVE_INFINITY]] });
-      const d = pathOf(l.points);
-      if (l.kind === "copy") return `<g style="${cs(l.color)}"><path class="dg-git-cp dg-a" d="${d}" style="${m.vis(time.start, m.last)}"/></g>`;
-      const kf = m.kf([
-        [0, { opacity: 0, "stroke-dashoffset": 1 }],
-        [time.start, { opacity: 0, "stroke-dashoffset": 1 }, EASE.inOut],
-        [time.start + 0.05, { opacity: 1 }],
-        [time.drawn, { "stroke-dashoffset": 0 }],
-        [m.last, { opacity: 1, "stroke-dashoffset": 0 }, EASE.inOut],
-        [m.total, { opacity: 0, "stroke-dashoffset": 0 }],
-      ]);
-      return `<g style="${cs(l.color)}"><path class="dg-git-l dg-a" pathLength="1" d="${d}" style="${kf}"/></g>`;
+      return lineOf(l, diagram, layout.commits)(l, time, ctx);
     })
     .join("");
 
-  const commits = layout.commits
-    .map((c) => {
-      const at = timeOf(c.step, c.event)?.drawn ?? 0;
-      const ring = { x: c.cx - c.r, y: c.cy - c.r, w: c.r * 2, h: c.r * 2 };
-      ctx.ink.push({ text: c.id, rect: ring, shown: [[at, Number.POSITIVE_INFINITY]], boxed: true });
-      const lines = (c.text?.lines ?? [])
-        .map((line, k) => {
-          const hash = k === 0 && c.hash !== undefined;
-          const baseline = c.text?.baselines[k] ?? c.cy;
-          return write(ctx.ink, hash ? "dg-git-h" : "dg-git-n", c.cx, baseline, line, hash ? TYPE.gitHash : TYPE.gitNote, [[at, Number.POSITIVE_INFINITY]], "middle");
-        })
-        .join("");
-      const id = `<text class="dg-git-id" x="${r1(c.cx)}" y="${r1(c.cy + LOOK.baseline.badge)}" text-anchor="middle">${esc(c.id)}</text>`;
-      const node = `<g class="dg-popc dg-a" style="${m.pop(at)}"><circle class="dg-git-c" cx="${r1(c.cx)}" cy="${r1(c.cy)}" r="${c.r}" ${ctx.sh}/>${id}</g>`;
-      const text = lines === "" ? "" : `<g class="dg-a" style="${m.vis(at)}">${lines}</g>`;
-      const orphanAt = c.orphan === undefined ? undefined : timeOf(c.orphan, c.orphanEvent ?? 0)?.drawn;
-      const orphan =
-        orphanAt === undefined
-          ? ""
-          : `<g class="dg-a" data-orphan="${esc(c.id)}" style="${m.vis(orphanAt, m.last, { f: 0.5 })}"><circle class="dg-git-old" cx="${r1(c.cx)}" cy="${r1(c.cy)}" r="${G.orphan}"/><text class="dg-git-oldl" x="${r1(c.cx)}" y="${r1(c.cy + LOOK.baseline.badge)}" text-anchor="middle">${esc(c.id)}</text></g>`;
-      return `<g data-commit="${esc(c.id)}" style="${cs(c.color)}">${node}${text}${orphan}</g>`;
-    })
-    .join("");
+  const commits = layout.commits.map((c) => commitDot(c, timeOf, ctx)).join("");
 
   const lines = layout.moves
     .flatMap((mv) => {

@@ -17,7 +17,7 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Box, DiagramModel, DiagramEvent, Region, Step, StripMeter } from "../schema";
+import type { Box, DiagramModel, DiagramEvent, GitBranch, Region, StatePath, Step, StripMeter } from "../schema";
 import type { SourceLine } from "../tokenize";
 
 /** 付け方。置く、つなぐ、線に乗る、箱に付く、図に付く */
@@ -61,6 +61,15 @@ export interface FigureDraft {
   strip?: { title: string; fields: string[] };
   /** 時間軸の図の物差しの欄。中身の帯のブロックが `strip` の行の欄の `[meter: <割合>]` で組む */
   meters: StripMeter[];
+  /** 状態遷移図の、最初の段より前に書いた移れる道。parser が段より前の線を見分けて、脇道のブロックの `readPath` で読む (#3347) */
+  paths: StatePath[];
+  /** 枝分かれの図の枝。枝のブロックが `branch` の行で足す (#3347) */
+  branches: GitBranch[];
+  /**
+   * 枝分かれの図で積んだ commit と、枝の札が今指す commit (まだ何も指さない枝は `null`)。
+   * commit のブロックが積み、枝のブロックが枝を切る行で札を置き、parser が札を動かす線で札を動かす (#3347)
+   */
+  git: { commits: Set<string>; tips: Map<string, string | null> };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */
@@ -123,7 +132,7 @@ export interface BlockPrint {
   /** 段の中で起きることの書き戻し。鍵は出来事の種類で、段の中で起きた順に出来事ごとに呼ぶ */
   events?: { readonly [T in EventType]?: EventPrinter<T> };
   /**
-   * 最初の `step` より前に、図の種類の宣言 (枝分かれの図の枝、時間軸の図の目盛りなど) の直ぐ後ろに書く宣言の塊 (区画と箱)。
+   * 最初の `step` より前に、図の種類の宣言 (時間軸の図の目盛りなど) の直ぐ後ろに書く宣言の塊 (枝分かれの図の枝と、区画と箱)。
    * 列の図のチップと `figure` の塊より前に、ブロックの並びの順に書く
    */
   declare?: (diagram: DiagramModel) => string[];

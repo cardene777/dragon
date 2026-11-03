@@ -55,7 +55,7 @@
 
 | 登録先 | 足す物 | 落とし穴 |
 |---|---|---|
-| `packages/dragon/src/blocks/<名前>/` | ブロックの置き場。語と原本の形の欠片と読む処理と書き戻す処理と日英の誤りの文 (`block.ts`)、描き方 (`draw.ts`)、見本帳の分と部品の図 (`gallery/`) | 部品はここに 1 つの置き場として足し、下の file には置き場に収まらない分だけを足す。持たない欄は `none(<理由>)` を置く。置き場を足したら `node packages/dragon/scripts/build-blocks.mjs` で一覧 (`packages/dragon/src/blocks/index.ts` と `apps/playground-spa/src/catalog/blocks.gen.ts`) を書き出し直す。食い違うと `blocks.test.ts` が落ちる |
+| `packages/dragon/src/blocks/<名前>/` | ブロックの置き場。語と原本の形の欠片と読む処理と書き戻す処理と日英の誤りの文 (`block.ts`)、描き方 (`draw.ts`)、見本帳の分と部品の図 (`gallery/`) | 部品はここに 1 つの置き場として足し、下の file には置き場に収まらない分だけを足す。持たない欄は `none(<理由>)` を置く。置き場を足したら `node packages/dragon/scripts/build-blocks.mjs` で一覧 (`packages/dragon/src/blocks/index.ts` と `apps/playground-spa/src/catalog/blocks.gen.ts` と `apps/playground-spa/src/catalog/blocks-docs.gen.ts`) を書き出し直す。食い違うと `blocks.test.ts` が落ちる |
 | `packages/dragon/src/words.ts` | 部品の語 | 今の語で言えない時だけ足す。ほかの種類では名札として読む |
 | `packages/dragon/src/schema.ts` | 原本の型 | 型と原本の形を同じ取り込みで直す |
 | `packages/dragon/src/schemas/diagram.schema.json` | 原本の形 | 直したら `node packages/dragon/scripts/build-validator.mjs` で検査の関数を書き出し直す |

@@ -9,7 +9,8 @@
  * 見本帳の分の file は package の処理を読まない。読めるのは `import type` と同じ置き場の file だけ
  * (`blocks.test.ts` の `gallery-imports-no-package-runtime` が見る)。そのため持たない欄は `none()` を呼ばず、
  * `{ none: <理由> }` を直に書く。
- * 一覧は `scripts/build-blocks.mjs` が置き場の dir から書き出す (`apps/playground-spa/src/catalog/blocks.gen.ts`)。
+ * 一覧は `scripts/build-blocks.mjs` が置き場の dir から書き出す。一覧の名前と説明と棚の名前は見本帳を開いた時に読む `apps/playground-spa/src/catalog/blocks.gen.ts`、
+ * 使い方の頁の段落と表の行は使い方の頁だけが読む `apps/playground-spa/src/catalog/blocks-docs.gen.ts` に書き出す (#3347)。
  */
 import type { None } from "./block";
 

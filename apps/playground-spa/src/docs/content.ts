@@ -5,9 +5,10 @@
  * 本文の中の `` ` `` で囲んだ語は `<code>` で出す。
  * 節の記法の例は `examples/` の file が持ち、頁と検査 (`lib/site.test.ts`) が同じ file を読む。
  * 書き出しの節の命令は package の README と同じ物を、設定は命令の使い方の表示と同じ物を出す (検査が突き合わせる)。
- * ブロックの置き場へ移した部品の段落はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks.gen.ts`) から節の中の同じ場所に置く (#3345)。
+ * ブロックの置き場へ移した部品の段落はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks-docs.gen.ts`) から節の中の同じ場所に置く (#3345)。
+ * 段落の一覧は見本帳を開いた時に読む一覧と分けてあり、この頁と一緒に後から読む (#3347)。
  */
-import { BLOCK_DOCS } from "../catalog/blocks.gen";
+import { BLOCK_DOCS } from "../catalog/blocks-docs.gen";
 import type { Lang } from "../text";
 
 /**
@@ -140,8 +141,8 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "状態遷移図",
         text: [
           "1 つの物が状態を移る様子を段ごとに追う時は、最初の行を `state <題>` にする。箱が状態になり、線は状態から状態への移り変わりになる。札が乗っている状態は光り、札が出た状態には済んだ印が残る。",
-          "線の送る側に `start` を書くと始まりの印から出る線に、受ける側に `finish` を書くと終わりの印へ入る線になる。`start` と `finish` は箱の名札に使えない。",
-          "最初の `step` の行より前に書いた線は、移れるが今回は通らない道として点線で引き、運ぶ物を走らせない。どの段も辿り着かない状態 (例のキャンセル) は、図の右上の脇道の囲みに入る。",
+          ...BLOCK_DOCS["start-finish"].ja,
+          ...BLOCK_DOCS["side-path"].ja,
         ],
         exit: "状態遷移図の見本を見る →",
       },
@@ -149,8 +150,8 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "枝分かれの図",
         text: [
           "git の枝に commit を積み、取り込むまでを段ごとに追う時は、最初の行を `git <題>` にする。枝は `branch <枝> [note: <添え書き>]` の行で上から順に宣言し、枝ごとに帯が並ぶ。箱は無くてもよい。",
-          "段の中では `commit <名札> on <枝>` で枝の先に commit を積み、`[hash: <hash>, note: <一言>]` で丸の外に hash と一言を添える。`copy <元>` を付けると元の commit を写した当て直しの commit に、`merge <枝>` を付けるとその枝の先端も親に持つ merge commit になる。",
-          "`<枝> from <commit>` でその commit から枝を切る。`<札> -> <commit>` は commit を作らずに枝の札か `HEAD` を動かし、`HEAD` を動かすと枝から離れる。どの札からも辿れなくなった commit (例の C) は点線の丸に変わる。",
+          ...BLOCK_DOCS.commit.ja,
+          ...BLOCK_DOCS.branch.ja,
         ],
         exit: "枝分かれの図の見本を見る →",
       },
@@ -334,8 +335,8 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "State diagrams",
         text: [
           "To follow one thing as it moves between states step by step, start the first line with `state <title>`. Each box is a state, and each line is a move from one state to another. The state the tag sits on lights up, and a state the tag has left keeps a done mark.",
-          "Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark. `start` and `finish` cannot be used as box ids.",
-          "Lines written before the first `step` line are paths the diagram could take but does not take this time. They are drawn dotted, and nothing travels on them. A state that no step reaches (Cancelled in the example) goes in the side-path box at the top right.",
+          ...BLOCK_DOCS["start-finish"].en,
+          ...BLOCK_DOCS["side-path"].en,
         ],
         exit: "See the state diagram samples →",
       },
@@ -343,8 +344,8 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "Git graphs",
         text: [
           "To follow commits on git branches step by step until they are merged, start the first line with `git <title>`. Declare branches from top to bottom with `branch <branch> [note: <note>]` lines, and each branch gets its own band. Boxes are optional.",
-          "Inside a step, `commit <id> on <branch>` adds a commit at the tip of the branch, and `[hash: <hash>, note: <note>]` puts a hash and a short note beside the circle. Add `copy <source>` for a replayed copy of another commit, or `merge <branch>` for a merge commit whose parents include the tip of that branch.",
-          "`<branch> from <commit>` cuts a branch at that commit. `<ref> -> <commit>` moves a branch ref or `HEAD` without making a commit, and moving `HEAD` detaches it from its branch. A commit that no ref can reach any more (C in the example) turns into a dotted circle.",
+          ...BLOCK_DOCS.commit.en,
+          ...BLOCK_DOCS.branch.en,
         ],
         exit: "See the git graph samples →",
       },

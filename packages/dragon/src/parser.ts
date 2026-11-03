@@ -35,6 +35,8 @@
  * 当て直しは `on <枝>` の後ろに `copy <commit>` を、merge commit は `merge <枝>` を続ける。
  * 線の行は札を動かす行になり、送る側に枝の名札か `HEAD`、受ける側に積んだ commit を書く。運ぶ物は書かなければ送る側の名前の札。
  * 枝分かれの図では `HEAD` を名札に使えず、区画 (`group`) は書けない。`branch` と `commit` の行は枝分かれの図でだけ書ける。
+ * 状態遷移図の道と、枝分かれの図の枝と commit と枝を切る行は、脇道と枝と commit のブロックが読む (#3347)。
+ * 道の行と枝を切る行は行の頭の語を持たないので、ここで見分けてブロックの読む処理を呼ぶ。
  *
  * 時間軸の図 (`time`、#3165) は、最初の `step` より前に目盛りと区切りと印の列と節目と拡大の範囲を宣言する。
  *
@@ -66,22 +68,22 @@
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
-import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
+import { isCut, readCut } from "./blocks/branch/block";
+import { commitAt } from "./blocks/commit/block";
+import { EDGE, readEdgeLine } from "./blocks/edge/block";
 import { BLOCKS } from "./blocks/index";
+import { readPath } from "./blocks/side-path/block";
 import { stepOf, viewOf } from "./blocks/step/block";
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
+import { type Attr, fail, HASH, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
 import {
   type Color,
   COLORS,
   type Diagram,
   type DiagramModel,
   type DiagramEvent,
-  type GitBranch,
-  type GitCommit,
   type LineupItem,
   type LineupRole,
-  type StatePath,
   type Step,
   type TimePeriod,
   type TimePoint,
@@ -93,21 +95,17 @@ import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import {
   AT,
   ATTRS,
-  COPY,
   DEFAULT_LANG,
-  FROM,
   HEAD,
   HEADS,
   KINDS,
   LABEL_MOST,
   LANE_MOST,
   LINEUP_HEADS,
-  MERGE,
   type NotationLang,
   NOW,
   OF,
   OLD_HEADS,
-  ON,
   SPAN_SHAPES,
   STATE_ENDS,
   TIME_EDGE_ATTRS,
@@ -128,10 +126,6 @@ export interface ParseOptions {
   lang?: NotationLang;
 }
 
-/** 枝分かれの図の `commit` の行。名札と、`on` の枝と、`copy` の当て直しの元と、`merge` の取り込む枝 */
-const COMMIT = new RegExp(`^commit\\s+([^\\s[]+)(?:\\s+${ON}\\s+([^\\s[]+))?(?:\\s+${COPY}\\s+([^\\s[]+))?(?:\\s+${MERGE}\\s+([^\\s[]+))?`, "du");
-/** 枝分かれの図の、枝を切る行。枝と `from` と切る commit */
-const CUT = new RegExp(`^([^\\s[]+)\\s+${FROM}(?:\\s+([^\\s[]+))?\\s*$`, "du");
 /** 木の図の `leaf` の行の名札と、`node` の行の名札と `of` */
 const LEAF = /^leaf\s+([^\s[]+)/du;
 const NODE = new RegExp(`^node\\s+([^\\s[]+)\\s+${OF}\\s+`, "du");
@@ -141,8 +135,6 @@ const STAMP = /^stamp\s+([^\s:[]+)\s*:/du;
 const ON_LANE = /^(?:seal|open|pick)\s+(\S+)\s*$/du;
 /** 段の中の `role <名札>` の行 (#3351) */
 const ACT_ROLE = /^role\s+(\S+)\s*$/du;
-/** commit の hash。原本の JSON の hash の形と同じ */
-const HASH = /^[0-9a-f]{4,40}$/u;
 /** 時間軸の図の宣言の行。`scale <単位> <長さ> <数>`、`period <名前> <数>`、`point <名札> at <目盛り>`、`zoom <範囲>` */
 const SCALE = /^scale\s+(\S+)\s+(\S+)\s+([^\s[]+)/du;
 const PERIOD = /^period\s+(\S+)\s+([^\s[]+)/du;
@@ -183,6 +175,8 @@ function oldForm(text: string, inStep: boolean): { word: string; shape: Shape } 
  * 行の頭の語の誤り (図の種類だけの語と、知らない語) を確かめた後に、ここに在る語はブロックの読む処理で読む
  */
 const HEAD_READERS: ReadonlyMap<string, HeadReader> = new Map(ranked(BLOCKS).flatMap((block) => ("none" in block.read ? [] : Object.entries(block.read))));
+/** 枝分かれの図だけが書ける行の頭の語 (`branch` と `commit`)。枝分かれの図の個別ブロックが持つ (#3164、#3347) */
+const GIT_HEADS: readonly string[] = ranked(BLOCKS).flatMap((block) => (block.attach.only === "git" ? (block.words.heads ?? []) : []));
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
@@ -222,15 +216,11 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   let settled = false;
   /** 針が今いる目盛りの境 (0 から数える) */
   let needle = 0;
-  const branches: GitBranch[] = [];
-  /** 枝分かれの図で積んだ commit と、枝の札が今指す commit (まだ何も指さない枝は `null`) */
-  const commits = new Set<string>();
-  const tips = new Map<string, string | null>();
-  const paths: StatePath[] = [];
   const ids = new Set<string>();
-  /** 宣言の行でブロックが組む欄 (区画と箱と、中身の帯と、時間軸の図の物差しの欄) */
-  const figure: FigureDraft = { regions: [], boxes: [], meters: [] };
-  const { regions, boxes } = figure;
+  /** 宣言の行でブロックが組む欄 (区画と箱と、中身の帯と、時間軸の図の物差しの欄と、状態遷移図の道と、枝分かれの図の枝と札) */
+  const figure: FigureDraft = { regions: [], boxes: [], meters: [], paths: [], branches: [], git: { commits: new Set(), tips: new Map() } };
+  const { regions, boxes, paths, branches } = figure;
+  const { tips } = figure.git;
   const steps: Step[] = [];
   let building: StepDraft | undefined;
 
@@ -242,21 +232,13 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     if (!boxes.some((box) => box.id === id)) throw fail(source, at, m.undeclaredBox(id));
     return id;
   };
-  const branchAt = (source: SourceLine, id: string, at: number): string => {
-    if (!tips.has(id)) throw fail(source, at, m.undeclaredBranch(id));
-    return id;
-  };
-  const commitAt = (source: SourceLine, id: string, at: number): string => {
-    if (!commits.has(id)) throw fail(source, at, m.noCommit(id));
-    return id;
-  };
   /**
    * 線の端。状態遷移図では送る側に `start`、受ける側に `finish` を書ける。
    * 枝分かれの図では送る側が枝の名札か `HEAD`、受ける側が積んだ commit
    */
   const endAt = (source: SourceLine, id: string, at: number, side: "from" | "to"): string => {
     if (isGit) {
-      if (side === "to") return commitAt(source, id, at);
+      if (side === "to") return commitAt(state, source, id, at);
       if (id !== HEAD && !tips.has(id)) throw fail(source, at, m.undeclaredRef(id));
       return id;
     }
@@ -315,7 +297,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     const edge = EDGE.exec(text);
     if (edge) {
       // 状態遷移図の最初の step より前の線は、移れる道の地図
-      if (isState && !building) paths.push(readPath(source, edge));
+      if (isState && !building) paths.push(readPath(source, edge, state));
       else {
         const read = readEdgeLine(source, edge, state);
         // 枝分かれの図の線は、送る側の枝の札を受ける側の commit へ動かす
@@ -325,12 +307,11 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     }
     const [word = "", second] = text.split(/\s+/u);
     // 枝分かれの図で、宣言した枝の名札の次に `from` が来る行は、枝を切る行
-    if (isGit && tips.has(word) && second === FROM) {
-      const step = inStep(source);
-      step.events.push(readCut(source));
+    if (isCut(state, word, second)) {
+      readCut(source, state);
       continue;
     }
-    if (!isGit && (word === "branch" || word === "commit")) throw fail(source, 0, m.gitOnly(word));
+    if (!isGit && GIT_HEADS.includes(word)) throw fail(source, 0, m.gitOnly(word));
     if (!isTime && isOneOf(TIME_HEADS, word)) throw fail(source, 0, m.timeOnly(word));
     if (!isTree && isOneOf(TREE_HEADS, word)) throw fail(source, 0, m.treeOnly(word));
     if (!isLineup && isOneOf(LINEUP_HEADS, word)) throw fail(source, 0, m.lineupOnly(word));
@@ -351,14 +332,6 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       continue;
     }
     switch (word) {
-      case "branch":
-        readBranch(source);
-        break;
-      case "commit": {
-        const step = inStep(source);
-        step.events.push(readCommit(source));
-        break;
-      }
       case "scale":
         readScale(source);
         break;
@@ -638,73 +611,6 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     return { type: "swap", box: id, text: named.value, ...(color ? { color: color.value as Color } : {}) };
   }
 
-  /** 枝分かれの図の `branch <名札> [note: <添え書き>]` の行。枝は宣言した順に上から帯に並ぶ */
-  function readBranch(source: SourceLine): void {
-    beforeSteps(source);
-    const declared = readDeclared(source, "branch", ATTRS.branch, m);
-    if (declared.name !== undefined) throw fail(source, 0, m.branchShape);
-    notReserved(source, declared.id, declared.idAt);
-    declare(source, declared.id, declared.idAt);
-    const note = declared.attrs.get("note")?.value;
-    branches.push({ id: declared.id, ...(note !== undefined ? { note } : {}) });
-    tips.set(declared.id, null);
-  }
-
-  /**
-   * 枝分かれの図の `commit <名札> on <枝> [copy <commit>] [merge <枝>] [hash: <hash>, note: <一言>]` の行。
-   * 積んだ枝の札は新しい commit へ進む。当て直しは枝の札を動かさない
-   */
-  function readCommit(source: SourceLine): GitCommit {
-    const text = source.text;
-    const found = COMMIT.exec(text);
-    const at = (k: number): number => found?.indices?.[k]?.[0] ?? 0;
-    const id = found?.[1];
-    const on = found?.[2];
-    if (!found || id === undefined || on === undefined) throw fail(source, 0, m.commitShape);
-    const rest = skipSpaces(text, found[0].length);
-    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.commitShape);
-    if (!ID.test(id)) throw fail(source, at(1), m.badId(id));
-    notReserved(source, id, at(1));
-    declare(source, id, at(1));
-    const branch = branchAt(source, on, at(2));
-    const copy = found[3] === undefined ? undefined : commitAt(source, found[3], at(3));
-    const merge = found[4] === undefined ? undefined : mergedAt(source, found[4], at(4), branch);
-    const attrs = rest < text.length ? readAttrs(source, rest, ATTRS.commit, m) : new Map<string, Attr>();
-    const hash = attrs.get("hash");
-    if (hash && !HASH.test(hash.value)) throw fail(source, hash.at, m.badHash);
-    const note = attrs.get("note")?.value;
-    commits.add(id);
-    if (copy === undefined) tips.set(branch, id);
-    return {
-      type: "commit",
-      id,
-      branch,
-      ...(copy !== undefined ? { copy } : {}),
-      ...(merge !== undefined ? { merge } : {}),
-      ...(hash ? { hash: hash.value } : {}),
-      ...(note !== undefined ? { note } : {}),
-    };
-  }
-
-  /** merge commit が取り込む枝。積む枝と別の、もう commit を指している枝 */
-  function mergedAt(source: SourceLine, id: string, at: number, into: string): string {
-    branchAt(source, id, at);
-    if (id === into) throw fail(source, at, m.mergeSelf(id));
-    if (tips.get(id) === null) throw fail(source, at, m.emptyBranch(id));
-    return id;
-  }
-
-  /** 枝分かれの図の `<枝> from <commit>` の行。枝の札を commit へ置く */
-  function readCut(source: SourceLine): DiagramEvent {
-    const found = CUT.exec(source.text);
-    const branch = found?.[1];
-    const from = found?.[2];
-    if (!found || branch === undefined || from === undefined) throw fail(source, 0, m.fromShape);
-    commitAt(source, from, found.indices?.[2]?.[0] ?? 0);
-    tips.set(branch, from);
-    return { type: "branch", branch, from };
-  }
-
   /** 木の図の `leaf <名札> [hash: <hash>]` の行 */
   function readLeaf(source: SourceLine): DiagramEvent {
     const text = source.text;
@@ -859,13 +765,6 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     const named = readName(source, found[0].length, m);
     if (named.value === "" || named.rest < source.text.length) throw fail(source, 0, m.stampShape);
     return { type: "stamp", box, text: named.value };
-  }
-
-  /** 状態遷移図の最初の `step` より前の `<名札> -> <名札>: <線の名前>` の行。属性は書けない */
-  function readPath(source: SourceLine, edge: RegExpExecArray): StatePath {
-    const { from, to, label, at } = readLine(source, edge, state);
-    if (at < source.text.length) throw fail(source, at, source.text[at] === "[" ? m.pathNoAttrs : m.edgeShape);
-    return { from, to, ...(label !== undefined ? { label } : {}) };
   }
 
   /**

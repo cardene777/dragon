@@ -22,11 +22,14 @@ const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
-/** 後から読む種類と、その種類だけの描く部品の file */
+/**
+ * 後から読む種類と、その種類だけの描く部品の file。状態遷移図と枝分かれの図の並べ方は図の種類の置き場に、
+ * 枝分かれの図の commit と線の描き方は個別ブロックの置き場に在る (#3347)
+ */
 const LATER_KINDS: Readonly<Record<string, readonly string[]>> = {
-  git: ["layout/git.ts", "render/git.ts"],
+  git: ["kinds/git/layout.ts", "render/git.ts", "blocks/branch/draw.ts", "blocks/commit/draw.ts", "blocks/copy/draw.ts", "blocks/merge/draw.ts"],
   lineup: ["layout/lineup.ts", "render/lineup.ts"],
-  state: ["layout/state.ts"],
+  state: ["kinds/state/layout.ts"],
   time: ["layout/time.ts", "render/time.ts"],
   tree: ["layout/tree.ts", "render/tree.ts"],
 };
