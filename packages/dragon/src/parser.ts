@@ -95,6 +95,7 @@ import {
   ATTRS,
   CARRIES,
   COPY,
+  DEFAULT_LANG,
   FROM,
   HEAD,
   HEADS,
@@ -127,7 +128,7 @@ export interface LineError {
 export type Parsed = { ok: true; diagram: Diagram } | { ok: false; errors: LineError[] };
 
 export interface ParseOptions {
-  /** 誤りの文の言葉。既定は日本語 */
+  /** 誤りの文の言葉。既定は英語 (#3338) */
   lang?: NotationLang;
 }
 
@@ -1334,7 +1335,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
 
 export function parseNotation(notation: string, options: ParseOptions = {}): Parsed {
   try {
-    return { ok: true, diagram: parseLines(tokenize(notation), messagesFor(options.lang ?? "ja")) };
+    return { ok: true, diagram: parseLines(tokenize(notation), messagesFor(options.lang ?? DEFAULT_LANG)) };
   } catch (error) {
     if (!(error instanceof NotationError)) throw error;
     return { ok: false, errors: [{ line: error.line, column: error.column, message: error.message }] };

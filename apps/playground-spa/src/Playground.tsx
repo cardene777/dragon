@@ -77,7 +77,8 @@ function check(input: unknown, lang: Lang, json?: string): Outcome {
     return { ok: false, problem: kindFailed(read.diagram.kind) ? { lang, notices: [{ text: TEXT[lang].site.catalog.loadFailed }] } : KIND_WAITING };
   }
   try {
-    renderDiagram(read.diagram);
+    // 描けない時の断りの文を頁に出すので、頁の言葉を渡す (既定は英語、#3338)
+    renderDiagram(read.diagram, { lang });
   } catch (error) {
     return { ok: false, problem: { lang, notices: [{ text: TEXT[lang].cannotDraw(messageOf(error)) }] } };
   }

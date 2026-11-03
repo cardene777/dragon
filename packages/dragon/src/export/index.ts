@@ -14,7 +14,7 @@ import type { Overlap } from "../render/ink";
 import { drawSvg, type Rendered, renderDiagram } from "../render/svg";
 import type { ViewMode } from "../schema";
 import { chooseView } from "../view";
-import type { NotationLang } from "../words";
+import { DEFAULT_LANG, type NotationLang } from "../words";
 import { film, launch, sizeOf, stage, still } from "./capture";
 import { charsOf, fontFaces } from "./fonts";
 import { pageHtml } from "./html";
@@ -36,7 +36,7 @@ export interface ExportOptions {
   fps?: number;
   /** GIF の 1 秒のコマの数 */
   gifFps?: number;
-  /** 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) の言葉。書かなければ日本語 (#3001) */
+  /** 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) の言葉。書かなければ英語 (#3001、#3338) */
   lang?: NotationLang;
 }
 
@@ -72,7 +72,7 @@ function drawnTexts(rendered: Rendered, followSvg: string | undefined): string[]
 
 export async function exportDiagram(input: unknown, options: ExportOptions): Promise<ExportResult> {
   const formats = options.formats ?? FORMATS;
-  const lang = options.lang ?? "ja";
+  const lang = options.lang ?? DEFAULT_LANG;
   const rendered = renderDiagram(input, {
     ...(options.palette ? { palette: options.palette } : {}),
     ...(options.theme ? { theme: options.theme } : {}),

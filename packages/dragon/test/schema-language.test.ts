@@ -2,7 +2,7 @@
  * 原本の JSON の誤りの文を、渡した言葉 (日本語か英語) で出す (#2999)。
  *
  * JSON は語を持たず file から言葉を決められないので、呼ぶ側 (頁なら頁の言葉) が言葉を渡す。
- * 渡さなければ今の日本語で出す。今は ajv の英語の文がそのまま出ていた決まりも、日本語と英語の文に書き起こす。
+ * 渡さなければ英語で出す (#3338)。ajv の英語の文がそのまま出ていた決まりも、日本語と英語の文に書き起こす。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -81,28 +81,49 @@ describe("原本の JSON の誤りの文の言葉", () => {
     }
   });
 
-  it("json-errors-default-japanese-unchanged", () => {
-    const expected: [string, string, string][] = [
-      ["書けない欄", "/boxes/0/colour", "colour という欄は書けない"],
-      ["要る欄", "/boxes/0/name", "name の欄が要る"],
-      ["決まった値", "/boxes/0/color", "blue / amber / green / violet / rose / slate / coin のどれかにする"],
-      ["道具より新しい版", "/version", "版 9 の図は、この道具 (版 1) より新しいので読めない。道具を新しくする"],
+  it("json-errors-default-english", () => {
+    // 言葉を渡さない時は英語の文で出す (#3338)。ja を渡した時は今の日本語の文のまま
+    const expected: [string, string, Record<NotationLang, string>][] = [
+      ["書けない欄", "/boxes/0/colour", { en: "The colour field is not allowed", ja: "colour という欄は書けない" }],
+      ["要る欄", "/boxes/0/name", { en: "The name field is required", ja: "name の欄が要る" }],
+      [
+        "決まった値",
+        "/boxes/0/color",
+        { en: "Use one of blue / amber / green / violet / rose / slate / coin", ja: "blue / amber / green / violet / rose / slate / coin のどれかにする" },
+      ],
+      [
+        "道具より新しい版",
+        "/version",
+        { en: "Version 9 diagrams are newer than this tool (version 1) and cannot be read. Update the tool", ja: "版 9 の図は、この道具 (版 1) より新しいので読めない。道具を新しくする" },
+      ],
     ];
-    for (const [label, pointer, message] of expected) {
+    for (const [label, pointer, messages] of expected) {
       const make = CASES[label] as () => Diagramish;
-      expect(errorsOf(make()), label).toEqual([{ pointer, message }]);
-      if (label !== "道具より新しい版") expect(api("validateDiagram")(make()), label).toEqual({ ok: false, errors: [{ pointer, message }] });
+      for (const [lang, message] of [
+        [undefined, messages.en],
+        ["ja", messages.ja],
+      ] as const) {
+        const said = `${label} (${lang ?? "言葉なし"})`;
+        expect(errorsOf(make(), lang), said).toEqual([{ pointer, message }]);
+        if (label !== "道具より新しい版") {
+          expect(api("validateDiagram")(make(), lang === undefined ? undefined : { lang }), said).toEqual({ ok: false, errors: [{ pointer, message }] });
+        }
+      }
     }
   });
 
   it("json-errors-in-japanese-for-ajv-rules", () => {
     for (const label of AJV_RULES) {
-      for (const lang of [undefined, "ja"] as const) {
-        const errors = errorsOf((CASES[label] as () => Diagramish)(), lang);
-        for (const error of errors) {
-          expect(error.message, `${label} の誤りの文が日本語でない (${error.pointer})`).toMatch(KANA_KANJI);
-          expect(error.message, `${label} の誤りの文に ajv の英語の文が残る (${error.pointer})`).not.toMatch(AJV_ENGLISH);
-        }
+      const make = CASES[label] as () => Diagramish;
+      for (const error of errorsOf(make(), "ja")) {
+        expect(error.message, `${label} の誤りの文が日本語でない (${error.pointer})`).toMatch(KANA_KANJI);
+        expect(error.message, `${label} の誤りの文に ajv の英語の文が残る (${error.pointer})`).not.toMatch(AJV_ENGLISH);
+      }
+      // 言葉を渡さない時は既定の英語で出し、en を渡した時と同じ文になる。ajv の文はそのまま出さない (#3338)
+      const fallback = errorsOf(make());
+      expect(fallback, `${label} に言葉を渡さない時の誤りが、en を渡した時と違う`).toEqual(errorsOf(make(), "en"));
+      for (const error of fallback) {
+        expect(error.message, `${label} に言葉を渡さない時の誤りの文に ajv の英語の文が残る (${error.pointer})`).not.toMatch(AJV_ENGLISH);
       }
     }
   });

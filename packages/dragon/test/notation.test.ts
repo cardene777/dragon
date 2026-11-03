@@ -231,7 +231,9 @@ describe("記法から JSON へ", () => {
   });
 
   it("notation-rejects-the-old-form", () => {
-    const parse = api("parseNotation");
+    // 既定は英語なので、前の形と呼ぶ日本語の文は ja を渡して確かめる (#3338)
+    const parseNotation = api("parseNotation");
+    const parse = (text: string): Parsed => parseNotation(text, { lang: "ja" });
 
     // 日本語の語で始まる前の形の file は、新しい形の図の種類の語で書いた行の形を示す。
     // 語の一覧を並べるだけの誤りと見分けるため、語の後ろに穴 (`<題>` など) を続けた形を探す

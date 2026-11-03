@@ -244,7 +244,7 @@ Lines starting with `//` and empty lines are not read.
 ## Errors
 
 A line that cannot be read stops with an error that shows its line and column.
-The caller chooses the language of the error (`parseNotation(text, { lang: "en" })` or `dragon export --lang en`), and Japanese is the default.
+The caller chooses the language of the error (`parseNotation(text, { lang: "ja" })` or `dragon export --lang ja`), and English is the default.
 A line in the old form (such as one starting with `#` or `region`) stops with an error that shows the new form of that line.
 A table from the old form to the new one is in the English version of the guide page in the sample site.
 

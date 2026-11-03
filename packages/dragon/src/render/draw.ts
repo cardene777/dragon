@@ -22,7 +22,7 @@ import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue,
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
 import { buildTimeline, type LabelTime, type Span, type Timeline } from "../timeline";
-import type { NotationLang } from "../words";
+import { DEFAULT_LANG, type NotationLang } from "../words";
 import {
   action,
   badge,
@@ -65,7 +65,7 @@ export interface RenderOptions {
    */
   colors?: Colors;
   theme?: Theme;
-  /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ日本語 (#3001) */
+  /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ英語 (#3001、#3338) */
   lang?: NotationLang;
   /**
    * 最後の段の止め絵に、全ての段の線の名前と箱の中の処理を最後の段と同じ濃さで出す (#3200)。途中の段の止め絵は今の段の名前だけを出す。
@@ -701,7 +701,7 @@ function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Mot
 export function paletteOf(options: RenderOptions, theme: Theme): Palette {
   const palette = resolvePalette(options.palette);
   if (!options.colors) return palette;
-  const words = FIGURE_TEXT[options.lang ?? "ja"];
+  const words = FIGURE_TEXT[options.lang ?? DEFAULT_LANG];
   const errors = Object.entries(options.colors).flatMap(([name, value]) => (!isColorName(name) ? [words.unknownColor(name)] : isColorValue(value) ? [] : [words.unreadableColor(name)]));
   if (errors.length > 0) throw new Error(words.cannotDraw(errors.join(" / ")));
   return { ...palette, [theme]: { ...palette[theme], ...options.colors } };
@@ -709,7 +709,7 @@ export function paletteOf(options: RenderOptions, theme: Theme): Palette {
 
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */
 export function renderDiagram(input: unknown, options: RenderOptions = {}): Rendered {
-  const lang = options.lang ?? "ja";
+  const lang = options.lang ?? DEFAULT_LANG;
   const read = readDiagram(input, { lang });
   if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
   const diagram = read.diagram;

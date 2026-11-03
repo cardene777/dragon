@@ -6,7 +6,7 @@
  * 時系列図と構成図の部品は登録せず、描く所が直に読む。
  */
 import { FIGURE_TEXT } from "../figure-text";
-import type { NotationLang } from "../words";
+import { DEFAULT_LANG, type NotationLang } from "../words";
 import type * as git from "./git";
 import type * as lineup from "./lineup";
 import type * as state from "./state";
@@ -39,7 +39,7 @@ export function kindLoaded(kind: string | undefined): boolean {
 }
 
 /** 種類の部品。読んでいない時は、種類の名前を含む誤りで止まる */
-export function kindParts<K extends LaterKind>(kind: K, lang: NotationLang = "ja"): LaterKinds[K] {
+export function kindParts<K extends LaterKind>(kind: K, lang: NotationLang = DEFAULT_LANG): LaterKinds[K] {
   const parts = registered[kind];
   if (parts === undefined) throw new Error(FIGURE_TEXT[lang].kindNotLoaded(kind));
   return parts;

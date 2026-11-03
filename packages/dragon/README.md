@@ -58,6 +58,8 @@ The font entry only loads the CSS for the two bundled fonts (Noto Sans JP and Je
 Diagrams are laid out with character widths measured from the bundled fonts, so without it they are drawn in the device's fonts and text can overflow its labels.
 A bundler (such as Vite) carries the CSS and font files to the page.
 The entry does not read Node's built-in modules, so it also works with bundlers such as Next.js Turbopack.
+The text the player shows, such as the names read aloud for its buttons and the overview label, is in English.
+For Japanese, pass `{ lang: "ja" }` to `mountDiagram` as the third argument, and to `parseNotation` for its error messages.
 `migrateFile`, which moves a source file to the current format version, comes from the Node-only entry `@cardenelabs/dragon/node`.
 
 Use the `player` returned by `mountDiagram` to move through the steps (`next`, `prev`, `play`, `pause`, `destroy`).
@@ -134,7 +136,7 @@ step Pass to shipping
 ```
 
 `parseNotation` turns the notation into the source JSON, and `printNotation` turns the source JSON back into the notation.
-Error messages are in the language you pass, as in `parseNotation(text, { lang: "en" })`, and are in Japanese when you pass none.
+Error messages are in the language you pass, as in `parseNotation(text, { lang: "ja" })`, and are in English when you pass none.
 The old form of the notation (starting with `時系列図` or `構成図`) is not read, and stops with an error that shows the new form of that line.
 The table from the old form to the new one is in [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).
 
@@ -314,7 +316,7 @@ dragon export ccip.json --out out
 | `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow` |
 | `--palette <name>` | Colors (`clear` / `paper` / `night`, default `paper`) |
 | `--theme <mode>` | `light` or `dark` |
-| `--lang <lang>` | Language of the text in the diagram (overview labels, the names read in HTML, and the message when it cannot draw) and of the command's usage and error messages (`ja` or `en`). Defaults to `ja` for both notation files and source JSON |
+| `--lang <lang>` | Language of the text in the diagram (overview labels, the names read in HTML, and the message when it cannot draw) and of the command's usage and error messages (`ja` or `en`). Defaults to `en` for both notation files and source JSON |
 | `--fps <n>` | Frames per second of the MP4 (default 30) |
 | `--gif-fps <n>` | Frames per second of the GIF (default 10) |
 | `--format <formats>` | The formats to write, separated by `,` (default `mp4,gif,html,png`) |

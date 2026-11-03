@@ -244,7 +244,7 @@ step 取引3から根まで上る
 ## 誤りの文
 
 読めない行は、行と列を示した誤りで止まる。
-誤りの文の言葉は呼ぶ側が渡し (`parseNotation(text, { lang: "en" })` や `dragon export --lang en`)、渡さなければ日本語で出す。
+誤りの文の言葉は呼ぶ側が渡し (`parseNotation(text, { lang: "ja" })` や `dragon export --lang ja`)、渡さなければ英語で出す。
 前の形の行 (`時系列図` や `#` で始まる行) は、その行の新しい形を示す誤りで止まる。
 前の形と新しい形の対応表は repo の `CHANGELOG.ja.md` にある。
 

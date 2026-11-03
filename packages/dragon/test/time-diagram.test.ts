@@ -752,7 +752,8 @@ describe("時間軸の図の描き方 (#3165)", () => {
 
   it("withdraw-renders-day-axis", () => {
     const source = exampleJson("withdraw.json") as unknown as Source;
-    const { layout, timeline } = render(source as unknown as Json);
+    // 既定は英語なので、日本語の日の単位は ja を渡して確かめる (#3338)
+    const { layout, timeline } = render(source as unknown as Json, "ja");
     expect(layout.zoom, "引き出しの図に拡大の帯がある").toBeUndefined();
     for (const t of layout.ticks) expect(t.text, "引き出しの時刻の字が日の単位でない").toMatch(/ 日$/u);
     // 7 日の挑戦の期間を囲みで示す

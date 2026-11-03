@@ -2,9 +2,9 @@
  * dragon記法の誤りの文の言葉と、使い方の文書の英語版 (#2997、#3137)。
  *
  * 記法の語は英語だけで、file から言葉は決まらない。
- * 誤りの文は呼ぶ側が渡した言葉で出し、渡さなければ日本語で出す。
+ * 誤りの文は呼ぶ側が渡した言葉で出し、渡さなければ英語で出す (#3338)。
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, exampleText, type LineError, type Parsed } from "./diagram-support";
@@ -43,15 +43,16 @@ describe("誤りの文の言葉", () => {
   it("errors-follow-given-language", () => {
     const parse = api("parseNotation");
     for (const [label, text] of Object.entries(cases)) {
-      const ja = firstError(parse(text));
-      const given = firstError(parse(text, { lang: "ja" }));
+      const fallback = firstError(parse(text));
+      const ja = firstError(parse(text, { lang: "ja" }));
       const en = firstError(parse(text, { lang: "en" }));
       expect(ja, `${label} が誤りにならない`).toBeDefined();
       expect(ja?.line, label).toBeGreaterThan(0);
       expect(ja?.column, label).toBeGreaterThan(0);
-      // 渡さない時は日本語で出し、ja を渡した時と同じ文になる
+      // ja を渡した時は日本語で出す
       expect(ja?.message, `${label} の誤りの文が日本語でない`).toMatch(KANA_KANJI);
-      expect(given, `${label} に ja を渡した時の誤りが、渡さない時と違う`).toEqual(ja);
+      // 渡さない時は既定の英語で出し、en を渡した時と同じ文になる (#3338)
+      expect(fallback, `${label} に言葉を渡さない時の誤りが、en を渡した時と違う`).toEqual(en);
       // en を渡した時は、同じ場所を英語の文で示す
       expect(en, `${label} に en を渡した時の誤りが無い`).toMatchObject({ line: ja?.line, column: ja?.column });
       expect(en?.message, `${label} に en を渡した時の誤りの文が空`).not.toBe("");
@@ -169,5 +170,26 @@ describe("使い方の文書", () => {
         expect(parsed.ok, `${file} の ${fence.line} 行目の tree の例が読めない ${JSON.stringify(firstError(parsed))}`).toBe(true);
       }
     }
+  });
+});
+
+describe("既定の言葉 (#3338)", () => {
+  it("default-lang-lives-in-one-place", () => {
+    // 既定の言葉は words.ts の DEFAULT_LANG だけが持つ。各所に "ja" か "en" を書くと、変える時に直し漏れる
+    const src = join(__dirname, "../src");
+    const files = readdirSync(src, { recursive: true, encoding: "utf8" }).filter((file) => /\.tsx?$/u.test(file));
+    expect(files.length, "packages/dragon/src に .ts が無い").toBeGreaterThan(0);
+    // 既定に倒す 3 つの書き方 (`?? "ja"`、引数の既定 `lang: NotationLang = "ja"`、`? lang : "ja"]`)。DEFAULT_LANG の宣言そのものは除く
+    const literal = /\?\? "(?:ja|en)"|\w+: NotationLang = "(?:ja|en)"|\? \w+ : "(?:ja|en)"\]/u;
+    const declaration = 'export const DEFAULT_LANG: NotationLang = "en";';
+    const found = files.flatMap((file) =>
+      readFileSync(join(src, file), "utf8")
+        .split("\n")
+        .map((line, i) => ({ where: `${file}:${i + 1}`, line }))
+        .filter(({ line }) => literal.test(line) && line.trim() !== declaration)
+        .map(({ where, line }) => `${where} ${line.trim()}`),
+    );
+    expect(found, "言葉の既定を DEFAULT_LANG を通さずに書いた行").toEqual([]);
+    expect(readFileSync(join(src, "words.ts"), "utf8"), "words.ts の既定が英語でない").toContain(declaration);
   });
 });

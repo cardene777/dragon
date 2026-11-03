@@ -5,7 +5,7 @@
  * 図に字の重なりがある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出し、終わり方は 0 のままにする (#3178)。
  * 重なりは描けない誤りではなく、止めると避けられない重なりを持つ図を書き出せなくなるため。
  *
- * 使い方の文と誤りの文は、図の中の字と同じ言葉で出す (#3003)。`--lang` を渡せばその言葉、無ければ日本語。
+ * 使い方の文と誤りの文は、図の中の字と同じ言葉で出す (#3003)。`--lang` を渡せばその言葉、無ければ英語 (#3338)。
  * dragon記法の語は英語だけで file から言葉が決まらないため、記法の file も JSON の原本と同じに扱う (#3137)。
  */
 import { readFileSync } from "node:fs";
@@ -15,7 +15,7 @@ import { type ExportFormat, exportDiagram, FORMATS } from "./export/index";
 import { PALETTES, type Theme } from "./look/values";
 import { parseNotation } from "./parser";
 import { describeOverlap } from "./render/ink";
-import type { NotationLang } from "./words";
+import { DEFAULT_LANG, type NotationLang } from "./words";
 
 const OPTIONS = {
   out: { type: "string" },
@@ -59,7 +59,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --width <px>       枠の幅。見せ方を選び、寄って見せる窓の幅になる",
       `  --palette <名前>   色味 (${PALETTE_NAMES})`,
       "  --theme <明暗>     light か dark",
-      "  --lang <言葉>      図の中の字と命令の文の言葉 (ja か en)。既定は ja",
+      "  --lang <言葉>      図の中の字と命令の文の言葉 (ja か en)。既定は en",
       "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
       "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
       "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
@@ -82,7 +82,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --width <px>       Frame width. Picks the view and sets the window width when following",
       `  --palette <name>   Colors (${PALETTE_NAMES})`,
       "  --theme <mode>     light or dark",
-      "  --lang <lang>      Language of the diagram text and command messages (ja or en). Defaults to ja",
+      "  --lang <lang>      Language of the diagram text and command messages (ja or en). Defaults to en",
       "  --fps <n>          Frames per second of the mp4 (default 30)",
       "  --gif-fps <n>      Frames per second of the GIF (default 10)",
       "  --format <list>    Formats to write, separated by , (default mp4,gif,html,png)",
@@ -178,8 +178,8 @@ function read(file: string, text: CliText, lang: NotationLang): unknown {
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const chosen = langOf(argv);
-  // file を読む前の文は、渡した言葉か日本語で出す。知らない言葉は日本語の使い方で断る
-  const early = CLI_TEXT[isLang(chosen) ? chosen : "ja"];
+  // file を読む前の文は、渡した言葉か既定の英語で出す。知らない言葉は英語の使い方で断る
+  const early = CLI_TEXT[isLang(chosen) ? chosen : DEFAULT_LANG];
   if (command !== "export") {
     console.error(early.usage);
     return 2;
@@ -208,9 +208,9 @@ async function main(argv: string[]): Promise<number> {
   const width = number(values.width);
   const fps = number(values.fps);
   const gifFps = number(values["gif-fps"]);
-  // 言葉は渡した物だけで決める。渡さなければ、書き出しの既定 (日本語) になる
+  // 言葉は渡した物だけで決める。渡さなければ、書き出しの既定 (英語) になる
   const lang = isLang(chosen) ? chosen : undefined;
-  const diagram = read(file, early, lang ?? "ja");
+  const diagram = read(file, early, lang ?? DEFAULT_LANG);
   let result: Awaited<ReturnType<typeof exportDiagram>>;
   try {
     result = await exportDiagram(diagram, {
@@ -227,11 +227,11 @@ async function main(argv: string[]): Promise<number> {
   } catch (error) {
     // 書き出し先に書けない時だけ命令の言葉で書き直す。描けない時と道具が無い時の断りは、書き出しが言葉に合わせて出す (#3009)
     const path = failedPath(error);
-    if (path !== undefined) throw new Error(CLI_TEXT[lang ?? "ja"].cannotWrite(path, detail(error)));
+    if (path !== undefined) throw new Error(CLI_TEXT[lang ?? DEFAULT_LANG].cannotWrite(path, detail(error)));
     throw error instanceof Error ? error : new Error(String(error));
   }
   for (const path of Object.values(result.files)) console.log(path);
-  const said = lang ?? "ja";
+  const said = lang ?? DEFAULT_LANG;
   for (const overlap of result.overlaps) console.error(CLI_TEXT[said].overlap(overlap.step + 1, describeOverlap(overlap, said)));
   return 0;
 }

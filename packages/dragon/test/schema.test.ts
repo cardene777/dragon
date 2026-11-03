@@ -19,8 +19,8 @@ describe("原本の JSON の検査", () => {
   });
 
   it("schema-reports-enum-choices", () => {
-    // 決まった値の欄は、使える値を並べて示す
-    const checked = api("validateDiagram")(patched(smallSequence(), ["boxes", 0, "color"], "purple"));
+    // 決まった値の欄は、使える値を並べて示す。既定は英語なので、日本語の文は ja を渡して確かめる (#3338)
+    const checked = api("validateDiagram")(patched(smallSequence(), ["boxes", 0, "color"], "purple"), { lang: "ja" });
     expect(checked.ok).toBe(false);
     const error = checked.ok ? undefined : checked.errors.find((e) => e.pointer === "/boxes/0/color");
     expect(error?.message).toBe("blue / amber / green / violet / rose / slate / coin のどれかにする");
