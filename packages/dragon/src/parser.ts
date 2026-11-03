@@ -64,6 +64,7 @@
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
 import { type Messages, messagesFor, type Shape } from "./messages";
+import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readList, readName, readQuoted, skipSpaces, urlOf } from "./read-kit";
 import {
   type Box,
   type Carry,
@@ -87,10 +88,9 @@ import {
   type TimeScale,
   type ViewMode,
 } from "./schema";
-import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
+import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION } from "./version";
 import {
-  AS,
   AT,
   ATTRS,
   CARRIES,
@@ -132,21 +132,6 @@ export interface ParseOptions {
   lang?: NotationLang;
 }
 
-class NotationError extends Error {
-  constructor(
-    readonly line: number,
-    readonly column: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-const fail = (source: SourceLine, index: number, message: string): NotationError =>
-  new NotationError(source.line, columnOf(source, index), message);
-
-/** 名札に使える字。原本の JSON の名札の形と同じ */
-const ID = /^[^\s[\]「」=:]+$/u;
 /** 線の行。名札、`->`、名札 */
 const EDGE = /^([^\s:[\]]+?)\s*->\s*([^\s:[\]]+)/du;
 /** 枝分かれの図の `commit` の行。名札と、`on` の枝と、`copy` の当て直しの元と、`merge` の取り込む枝 */
@@ -162,8 +147,6 @@ const STAMP = /^stamp\s+([^\s:[]+)\s*:/du;
 const ON_LANE = /^(?:seal|open|pick)\s+(\S+)\s*$/du;
 /** commit の hash。原本の JSON の hash の形と同じ */
 const HASH = /^[0-9a-f]{4,40}$/u;
-/** 箱の飛び先と段の出典の URL。原本の JSON の URL の形と同じ */
-const URL_FORM = /^(\/|https?:\/\/)/u;
 /** 時間軸の図の宣言の行。`scale <単位> <長さ> <数>`、`period <名前> <数>`、`point <名札> at <目盛り>`、`zoom <範囲>` */
 const SCALE = /^scale\s+(\S+)\s+(\S+)\s+([^\s[]+)/du;
 const PERIOD = /^period\s+(\S+)\s+([^\s[]+)/du;
@@ -184,145 +167,10 @@ const NUMBER = /^(0|[1-9][0-9]*)$/u;
 /** 目盛りの範囲。`0-31` か `0` */
 const RANGE = /^(0|[1-9][0-9]*)(?:-(0|[1-9][0-9]*))?$/u;
 
-const isOneOf = <T extends string>(list: readonly T[], word: string): word is T => (list as readonly string[]).includes(word);
-
-/** `at` から空白を飛ばした位置 */
-function skipSpaces(text: string, at: number): number {
-  let i = at;
-  while (i < text.length && /\s/u.test(text[i] ?? "")) i++;
-  return i;
-}
-
-/** `[<鍵>: <値>]` の 1 つ。`at` は鍵の位置 */
-interface Attr {
-  value: string;
-  at: number;
-}
-
-/** `at` の `"` から閉じる `"` までを読む。`end` は閉じた `"` の次 */
-function readQuoted(source: SourceLine, at: number, m: Messages): { value: string; end: number } {
-  const text = source.text;
-  let value = "";
-  for (let i = at + 1; i < text.length; i++) {
-    const c = text[i] ?? "";
-    const next = text[i + 1] ?? "";
-    if (c === "\\" && (next === '"' || next === "\\")) {
-      value += next;
-      i++;
-    } else if (c === '"') {
-      return { value, end: i + 1 };
-    } else {
-      value += c;
-    }
-  }
-  throw fail(source, at, m.quoteUnclosed);
-}
-
 /**
- * `at` から名前か文を読む。`"` で始まれば囲みの中、そうでなければ `[` の前か行の終わりまで。
- * `rest` は名前の後ろの位置で、行の終わりか属性の `[` を指す。
+ * 区画と箱の属性 (`note` と `color` と `icon`)。
+ * 色の役とアイコン名の一覧は原本の形の検査 (`schema.ts`) が持ち、読む下請け (`read-kit.ts`) は `schema.ts` を読まないので、ここに置く
  */
-function readName(source: SourceLine, at: number, m: Messages): { value: string; rest: number } {
-  const text = source.text;
-  const start = skipSpaces(text, at);
-  if (text[start] === '"') {
-    const quoted = readQuoted(source, start, m);
-    const rest = skipSpaces(text, quoted.end);
-    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.afterQuote);
-    return { value: quoted.value, rest };
-  }
-  const open = text.indexOf("[", start);
-  const rest = open < 0 ? text.length : open;
-  return { value: text.slice(start, rest).trim(), rest };
-}
-
-/** `at` の `[` から行の終わりの `]` までの属性を読む。`allowed` に無い鍵は誤り */
-function readAttrs(source: SourceLine, at: number, allowed: readonly string[], m: Messages): Map<string, Attr> {
-  const text = source.text;
-  if (!text.endsWith("]")) throw fail(source, at, m.attrUnclosed);
-  const close = text.length - 1;
-  const attrs = new Map<string, Attr>();
-  for (let i = at + 1; ; ) {
-    const start = skipSpaces(text, i);
-    let colon = start;
-    while (colon < close && text[colon] !== ":" && text[colon] !== ",") colon++;
-    if (colon >= close || text[colon] !== ":") throw fail(source, start, m.attrNoColon(text.slice(start, colon).trim()));
-    const key = text.slice(start, colon).trim();
-    if (!allowed.includes(key)) throw fail(source, start, m.badAttr(key, allowed));
-    if (attrs.has(key)) throw fail(source, start, m.attrTwice(key));
-    let end = skipSpaces(text, colon + 1);
-    let value: string;
-    if (text[end] === '"') {
-      const quoted = readQuoted(source, end, m);
-      value = quoted.value;
-      end = skipSpaces(text, quoted.end);
-      if (end < close && text[end] !== ",") throw fail(source, end, m.afterQuote);
-    } else {
-      const comma = text.indexOf(",", end);
-      const stop = comma < 0 || comma > close ? close : comma;
-      value = text.slice(end, stop).trim();
-      end = stop;
-    }
-    if (value === "") throw fail(source, start, m.attrNoValue(key));
-    attrs.set(key, { value, at: start });
-    if (end >= close) return attrs;
-    i = end + 1;
-  }
-}
-
-/** `at` から `,` で区切った字の並びを行の終わりまで読む */
-function readList(source: SourceLine, at: number, m: Messages): string[] {
-  const text = source.text;
-  const items: string[] = [];
-  for (let i = at; ; ) {
-    const start = skipSpaces(text, i);
-    let value: string;
-    let end: number;
-    if (text[start] === '"') {
-      const quoted = readQuoted(source, start, m);
-      value = quoted.value;
-      end = skipSpaces(text, quoted.end);
-      if (end < text.length && text[end] !== ",") throw fail(source, end, m.afterQuote);
-    } else {
-      const comma = text.indexOf(",", start);
-      end = comma < 0 ? text.length : comma;
-      value = text.slice(start, end).trim();
-    }
-    if (value === "") throw fail(source, start, m.emptyStripField);
-    items.push(value);
-    if (end >= text.length) return items;
-    i = end + 1;
-  }
-}
-
-/** `group` と `box` の行の、名札と `as` の後ろの名前と属性 */
-interface Declared {
-  id: string;
-  idAt: number;
-  name?: string;
-  attrs: Map<string, Attr>;
-}
-
-function readDeclared(source: SourceLine, word: string, allowed: readonly string[], m: Messages): Declared {
-  const text = source.text;
-  const start = skipSpaces(text, word.length);
-  const id = /^[^\s[]+/u.exec(text.slice(start))?.[0];
-  if (id === undefined) throw fail(source, 0, m.needsId(word));
-  if (!ID.test(id)) throw fail(source, start, m.badId(id));
-  let rest = skipSpaces(text, start + id.length);
-  let name: string | undefined;
-  if (text.startsWith(AS, rest) && /^(\s|$)/u.test(text.slice(rest + AS.length, rest + AS.length + 1))) {
-    const named = readName(source, rest + AS.length, m);
-    if (named.value === "") throw fail(source, rest, m.emptyName(id));
-    name = named.value;
-    rest = named.rest;
-  }
-  if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.afterId);
-  const attrs = rest < text.length ? readAttrs(source, rest, allowed, m) : new Map<string, Attr>();
-  return { id, idAt: start, ...(name !== undefined ? { name } : {}), attrs };
-}
-
-/** 区画と箱の属性 (`note` と `color` と `icon`) */
 function lookOf(source: SourceLine, attrs: Map<string, Attr>, m: Messages): { note?: string; color?: Color; icon?: string } {
   const color = attrs.get("color");
   if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
@@ -892,7 +740,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       ...(note !== undefined ? { sub: note } : {}),
       ...look,
       ...(group ? { region: group.id } : {}),
-      ...(link ? { link: urlOf(source, "link", link) } : {}),
+      ...(link ? { link: urlOf(source, "link", link, m) } : {}),
     });
   }
 
@@ -901,13 +749,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     const named = readName(source, "source".length, m);
     const url = named.rest < source.text.length ? readAttrs(source, named.rest, ATTRS.source, m).get("url") : undefined;
     if (named.value === "" || !url) throw fail(source, 0, m.sourceShape);
-    return { name: named.value, url: urlOf(source, "url", url) };
-  }
-
-  /** 頁を移る形の URL。ほかの形 (`javascript:` など) は、その属性の位置を示して断る */
-  function urlOf(source: SourceLine, key: string, attr: Attr): string {
-    if (!URL_FORM.test(attr.value)) throw fail(source, attr.at, m.badUrl(key));
-    return attr.value;
+    return { name: named.value, url: urlOf(source, "url", url, m) };
   }
 
   /** 枝分かれの図の `branch <名札> [note: <添え書き>]` の行。枝は宣言した順に上から帯に並ぶ */

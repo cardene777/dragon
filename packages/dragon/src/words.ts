@@ -66,9 +66,6 @@ export const LANE_ATTRS = ["note", "color"] as const;
 export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "source", "act", "note", "set", "branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS] as const;
 type Head = (typeof HEADS)[number];
 
-/** 箱と区画の名札の後ろに、見せる名前を続ける語 (`box <名札> as <名前>`) */
-export const AS = "as";
-
 /** 枝分かれの図 (#3164) の `commit` の行で、積む枝、当て直しの元、取り込む枝を続ける語 (`commit <名札> on <枝> copy <commit>`) */
 export const ON = "on";
 export const COPY = "copy";

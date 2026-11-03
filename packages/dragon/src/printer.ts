@@ -17,27 +17,14 @@
  * 列の図 (#3239) のチップは箱の後ろに `item` の行で書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
  * 段の出典 (#3199) は `say` と `code` の後ろ、段の中で起きることより前に、JSON の並びのまま 1 つずつ `source` の行に書く。
  */
+import { attrs, name, quote, shown } from "./print-kit";
 import type { Box, Diagram, DiagramEvent, LineupItem, Region, TimeSpec } from "./schema";
 import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 
-const quote = (text: string): string => `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-/** 行の終わりか `[` の前に置く名前と文 */
-const name = (text: string): string => (text.includes("[") || text.startsWith('"') ? quote(text) : text);
 /** `:` の前に置く字 (帯の題と、`set` の欄) */
 const key = (text: string): string => (text.includes(":") || text.includes("[") || text.startsWith('"') ? quote(text) : text);
 /** `strip` の行に `,` で並べる欄。時間軸の図の欄は後ろに物差しの属性を書けるので、`[` を含む名前も囲む */
 const field = (text: string, time: boolean): string => (text.includes(",") || text.startsWith('"') || (time && text.includes("[")) ? quote(text) : text);
-/** 属性の値 */
-const value = (text: string): string => (text.includes(",") || text.includes("]") || text.startsWith('"') ? quote(text) : text);
-
-/** 属性の並び。値の無い鍵は書かず、1 つも無ければ何も付けない */
-const attrs = (pairs: [string, string | undefined][]): string => {
-  const written = pairs.filter((pair): pair is [string, string] => pair[1] !== undefined);
-  return written.length === 0 ? "" : ` [${written.map(([k, v]) => `${k}: ${value(v)}`).join(", ")}]`;
-};
-
-/** 名札と違う名前だけを `as` の後ろに書く */
-const shown = (id: string, text: string): string => (text === id ? "" : ` as ${name(text)}`);
 
 const declareRegion = (r: Region): string =>
   `group ${r.id}${shown(r.id, r.name)}${attrs([
