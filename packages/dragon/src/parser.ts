@@ -63,10 +63,10 @@
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
-import { type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
+import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readList, readName, readQuoted, skipSpaces, urlOf } from "./read-kit";
+import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces, urlOf } from "./read-kit";
 import {
   type Box,
   type Carry,
@@ -82,7 +82,6 @@ import {
   type Region,
   type StatePath,
   type Step,
-  type StripMeter,
   type TimePeriod,
   type TimePoint,
   type TimeRow,
@@ -160,8 +159,6 @@ const MARK = /^mark\s+([^\s[]+)\s+([^\s[]+)/du;
 const SPAN = /^span\s+([^\s:[]+)\s*:/du;
 /** 目盛りの長さ。原本の JSON の長さの形と同じ */
 const LENGTH = /^[0-9]+(\.[0-9]+)?(ms|s|min|h|d)$/u;
-/** 割合。原本の JSON の割合の形と同じ */
-const RATIO = /^([0-9]+\/[0-9]+|[0-9]+(\.[0-9]+)?%)$/u;
 /** 1 以上の整数と、0 以上の整数 */
 const COUNT = /^[1-9][0-9]*$/u;
 const NUMBER = /^(0|[1-9][0-9]*)$/u;
@@ -241,7 +238,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const rows: TimeRow[] = [];
   const points: TimePoint[] = [];
   let zoom: { from: number; to: number } | undefined;
-  const meters: StripMeter[] = [];
   /** 目盛りの数が決まってから確かめる、宣言の行の目盛り。最初の step で確かめる */
   const pending: (() => void)[] = [];
   let settled = false;
@@ -257,7 +253,8 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const boxes: Box[] = [];
   const paths: StatePath[] = [];
   const ids = new Set<string>();
-  let strip: { title: string; fields: string[] } | undefined;
+  /** 宣言の行でブロックが組む欄 (中身の帯と、時間軸の図の物差しの欄) */
+  const figure: FigureDraft = { meters: [] };
   const steps: Step[] = [];
   let building: StepDraft | undefined;
   /** 開いている `group` */
@@ -309,12 +306,12 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (!building) throw fail(source, 0, m.stepLineBeforeStep);
     return building;
   };
-  /** ブロックの読む処理が受ける、読んでいる記法の状態 */
-  const state: ParseState = { m, kind, inStep, boxAt };
   /** 宣言の行。最初の `step` より後なら誤り */
   const beforeSteps = (source: SourceLine): void => {
     if (building) throw fail(source, 0, m.declarationInStep);
   };
+  /** ブロックの読む処理が受ける、読んでいる記法の状態 */
+  const state: ParseState = { m, kind, inStep, beforeSteps, boxAt, figure };
   const finish = (): void => {
     if (!building) return;
     if (building.body === undefined) throw fail(building.source, 0, m.noBody(building.title));
@@ -383,9 +380,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       case "box":
         readBox(source);
         break;
-      case "strip":
-        readStrip(source);
-        break;
       case "step": {
         if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
         settle();
@@ -406,9 +400,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         step.code = command;
         break;
       }
-      case "set":
-        inStep(source).events.push(readSet(source));
-        break;
       case "branch":
         readBranch(source);
         break;
@@ -492,7 +483,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     ...(view ? { view } : {}),
     ...(regions.length > 0 ? { regions } : {}),
     boxes,
-    ...(strip ? { strip: meters.length > 0 ? { ...strip, meters } : strip } : {}),
+    ...(figure.strip ? { strip: figure.meters.length > 0 ? { ...figure.strip, meters: figure.meters } : figure.strip } : {}),
     steps,
     ...(kind === "sequence" ? { sequence: { lifelines: boxes.map((box) => box.id) } } : {}),
     ...(paths.length > 0 ? { state: { paths } } : {}),
@@ -934,74 +925,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     return { type: "stamp", box, text: named.value };
   }
 
-  /** `strip <題>: <欄>, <欄>` の行 */
-  function readStrip(source: SourceLine): void {
-    beforeSteps(source);
-    if (strip) throw fail(source, 0, m.stripTwice);
-    const text = source.text;
-    const start = skipSpaces(text, "strip".length);
-    let stripTitle: string;
-    let colon: number;
-    if (text[start] === '"') {
-      const quoted = readQuoted(source, start, m);
-      stripTitle = quoted.value;
-      colon = skipSpaces(text, quoted.end);
-    } else {
-      colon = text.indexOf(":", start);
-      stripTitle = colon < 0 ? "" : text.slice(start, colon).trim();
-    }
-    if (stripTitle === "" || text[colon] !== ":") throw fail(source, 0, m.stripShape);
-    if (isTime) {
-      strip = { title: stripTitle, fields: readFields(source, colon + 1) };
-      return;
-    }
-    const fields = readList(source, colon + 1, m);
-    // 物差しは時間軸の図だけが書ける。ほかの図では欄の名前の一部として読んでいた形なので、欄が属性の形で終わる時だけ断る
-    const metered = /\[\s*meter\s*:/u.exec(text);
-    if (metered && fields.some((f) => /\[\s*meter\s*:[^\]]*\]$/u.test(f))) throw fail(source, metered.index + 1, m.timeOnly("meter"));
-    strip = { title: stripTitle, fields };
-  }
-
-  /**
-   * 時間軸の図の `strip` の行の欄。`,` で区切り、欄の名前の後ろに `[meter: <割合>]` を書いた欄は物差しにする。
-   * `[` を含む名前は `"` で囲む
-   */
-  function readFields(source: SourceLine, at: number): string[] {
-    const text = source.text;
-    const items: string[] = [];
-    for (let i = at; ; ) {
-      const start = skipSpaces(text, i);
-      let value: string;
-      let end: number;
-      if (text[start] === '"') {
-        const quoted = readQuoted(source, start, m);
-        value = quoted.value;
-        end = skipSpaces(text, quoted.end);
-      } else {
-        end = start;
-        while (end < text.length && text[end] !== "," && text[end] !== "[") end++;
-        value = text.slice(start, end).trim();
-      }
-      if (value === "") throw fail(source, start, m.emptyStripField);
-      if (text[end] === "[") {
-        const close = text.indexOf("]", end);
-        if (close < 0) throw fail(source, end, m.attrUnclosed);
-        const inside = text.slice(end + 1, close);
-        const inner = /^\s*([a-z]*)\s*:\s*(.*?)\s*$/u.exec(inside);
-        if (!inner) throw fail(source, end + 1, m.attrNoColon(inside.trim()));
-        const key = inner[1] ?? "";
-        if (!(ATTRS.strip as readonly string[]).includes(key)) throw fail(source, end + 1, m.badAttr(key, ATTRS.strip));
-        if (!RATIO.test(inner[2] ?? "")) throw fail(source, end + 1, m.badRatio);
-        meters.push({ field: value, line: inner[2] ?? "" });
-        end = skipSpaces(text, close + 1);
-      }
-      if (end < text.length && text[end] !== ",") throw fail(source, end, m.afterQuote);
-      items.push(value);
-      if (end >= text.length) return items;
-      i = end + 1;
-    }
-  }
-
   /**
    * `say` の行と、その下に `say` より深く字下げして続けた行を段の本文にする。
    * 続きの行の間の空行は本文の空の行になる。返すのは読み終えた最後の行の番号。
@@ -1108,43 +1031,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (at === undefined) throw fail(source, end, m.boxLineNeedsAt);
     const into = column(attrs.get("into"));
     return { at, ...(into !== undefined ? { into } : {}) };
-  }
-
-  /** `set <欄>: <値> [tag: <札>]` か `set <欄> [tag: <札>]` の行 */
-  function readSet(source: SourceLine): DiagramEvent {
-    const declared = strip;
-    if (!declared) throw fail(source, 0, m.stripUndeclared);
-    const text = source.text;
-    const start = skipSpaces(text, "set".length);
-    let field: string;
-    let at: number;
-    if (text[start] === '"') {
-      const quoted = readQuoted(source, start, m);
-      field = quoted.value;
-      at = skipSpaces(text, quoted.end);
-    } else {
-      at = start;
-      while (at < text.length && text[at] !== ":" && text[at] !== "[") at++;
-      field = text.slice(start, at).trim();
-    }
-    if (!declared.fields.includes(field)) throw fail(source, start, m.noSuchField(field));
-    let value: string | undefined;
-    if (text[at] === ":") {
-      const named = readName(source, at + 1, m);
-      if (named.value === "") throw fail(source, at, m.stripNeedsValue);
-      value = named.value;
-      at = named.rest;
-    }
-    if (at < text.length && text[at] !== "[") throw fail(source, at, m.stripNeedsValue);
-    const tag = at < text.length ? readAttrs(source, at, ATTRS.set, m).get("tag")?.value : undefined;
-    if (value === undefined && tag === undefined) throw fail(source, 0, m.stripNeedsValue);
-    if (value !== undefined && meters.some((meter) => meter.field === field) && !RATIO.test(value)) throw fail(source, start, m.meterValue(field));
-    return {
-      type: "strip",
-      field,
-      ...(value !== undefined ? { value } : {}),
-      ...(tag !== undefined ? { tag } : {}),
-    };
   }
 }
 

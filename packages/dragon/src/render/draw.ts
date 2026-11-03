@@ -11,6 +11,7 @@
  */
 import { action } from "../blocks/act/draw";
 import { subChanges } from "../blocks/note/draw";
+import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
 import type { GitLayout } from "../layout/git";
 import type { LineupLayout } from "../layout/lineup";
@@ -39,7 +40,6 @@ import {
   edge,
   endMark,
   esc,
-  type FieldChange,
   ghostCard,
   headCard,
   label,
@@ -48,7 +48,6 @@ import {
   path,
   sansOf,
   side,
-  strip,
 } from "./parts";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
@@ -283,20 +282,6 @@ function involved(diagram: Diagram): Map<string, number[]> {
     }
   });
   return new Map([...on].map(([id, steps]) => [id, [...steps].sort((a, b) => a - b)]));
-}
-
-function fieldChanges(diagram: Diagram, timeline: Timeline, layout: Layout): Map<string, FieldChange[]> {
-  const out = new Map<string, FieldChange[]>();
-  for (const time of timeline.events) {
-    const event = diagram.steps[time.step]?.events[time.event];
-    if (event?.type !== "strip") continue;
-    const color: ColorKey = layout.badges[time.step]?.color ?? "slate";
-    const list = out.get(event.field) ?? [];
-    const until = (timeline.steps[time.step] as Span).end;
-    list.push({ at: time.at, color, step: time.step, until, ...(event.value !== undefined ? { value: event.value } : {}), ...(event.tag !== undefined ? { tag: event.tag } : {}) });
-    out.set(event.field, list);
-  }
-  return out;
 }
 
 export interface FollowFrame {

@@ -16,7 +16,7 @@
  * 今は中身の無い欄は、作らずに「持たない」値 (`none(<理由>)`) を置く。
  */
 import type { Messages } from "../messages";
-import type { Diagram, DiagramEvent, Step } from "../schema";
+import type { Diagram, DiagramEvent, Step, StripMeter } from "../schema";
 import type { SourceLine } from "../tokenize";
 
 /** 付け方。置く、つなぐ、線に乗る、箱に付く、図に付く */
@@ -46,6 +46,14 @@ export interface StepDraft {
   events: DiagramEvent[];
 }
 
+/** 宣言の行でブロックが組む、図の原本の欄。parser が図の原本の決まった位置に置く */
+export interface FigureDraft {
+  /** 中身の帯。中身の帯のブロックが `strip` の行で組む */
+  strip?: { title: string; fields: string[] };
+  /** 時間軸の図の物差しの欄。中身の帯のブロックが `strip` の行の欄の `[meter: <割合>]` で組む */
+  meters: StripMeter[];
+}
+
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */
 export interface ParseState {
   /** 誤りの文。呼ぶ側が渡した言葉で出す */
@@ -54,8 +62,12 @@ export interface ParseState {
   readonly kind: KindName;
   /** 段の中に書く行の書き先の段。最初の `step` より前に書いた行は誤りで止める */
   readonly inStep: (source: SourceLine) => StepDraft;
+  /** 宣言の行を確かめる。最初の `step` より後に書いた宣言の行は誤りで止める */
+  readonly beforeSteps: (source: SourceLine) => void;
   /** 宣言した箱の名札 `id` をそのまま返す。宣言していない名札は、名札の列 `at` を示して誤りで止める */
   readonly boxAt: (source: SourceLine, id: string, at: number) => string;
+  /** 宣言の行でブロックが組む、図の原本の欄 */
+  readonly figure: FigureDraft;
 }
 
 /** 行の頭の語の読む処理。読んだ結果は `state` が渡す書き先へ足し、誤りは行と列を添えて投げる (`read-kit.ts` の `fail`) */
@@ -73,6 +85,8 @@ export interface BlockPrint {
   step?: (step: Step) => string[];
   /** 段の中で起きることの書き戻し。鍵は出来事の種類で、段の中で起きた順に出来事ごとに呼ぶ */
   events?: { readonly [T in EventType]?: EventPrinter<T> };
+  /** 最初の `step` より前に書く宣言の塊。区画と箱の宣言の後ろ、状態遷移図の道より前に、ブロックの並びの順に書く */
+  figure?: (diagram: Diagram) => string[];
 }
 
 /** 原本の形の欠片。鍵と値は `schemas/diagram.schema.json` と同じ */
@@ -87,6 +101,11 @@ export interface BlockShape {
 export interface BlockWords {
   /** 行の頭の語 */
   heads?: readonly string[];
+  /**
+   * 行の頭の語のうち、ブロックの並び (`rank`) と別の番号で語の表に並べる語と、その番号。
+   * 1 つのブロックの行の頭の語が、語の表の離れた所に並ぶ時に書く (中身の帯の `strip` と `set`)
+   */
+  headRanks?: Readonly<Record<string, number>>;
   /** 行ごとに書ける属性の鍵。鍵は行の頭の語 */
   attrs?: Readonly<Record<string, readonly string[]>>;
 }
@@ -98,7 +117,7 @@ export interface BlockWords {
 export interface Block<M extends object = object> {
   /** 置き場の dir の名前 */
   name: string;
-  /** ブロックの並び。語の表 (`words.ts`) はこの順にブロックの語を並べる */
+  /** ブロックの並び。語の表 (`words.ts`) はこの順にブロックの語を並べる (行の頭の語は `words.headRanks` で別の番号にできる) */
   rank: number;
   /** 付け方。`only` を書いたブロックは、その図の種類だけで使う個別ブロック */
   attach: { how: AttachHow; only?: KindName };

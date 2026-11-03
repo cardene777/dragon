@@ -18,10 +18,11 @@
  * 段の中でブロックが受け持つ行は、`say` と `code` の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
  * 段の出典 (#3199) は出典のブロックが、JSON の並びのまま 1 つずつ `source` の行に書く。
  * 段の中で起きることのうちブロックが持つ種類は、そのブロックの書き戻す処理 (`print.events`) が起きた順に 1 行ずつ書く (#3345)。
+ * ブロックが持つ宣言の塊 (中身の帯の `strip` の行) は、区画と箱とチップの宣言の後ろに、ブロックの書き戻す処理 (`print.figure`) が書く。
  */
 import { type EventPrinter, ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
-import { attrs, name, quote, shown } from "./print-kit";
+import { attrs, name, shown } from "./print-kit";
 import type { Box, Diagram, DiagramEvent, LineupItem, Region, Step, TimeSpec } from "./schema";
 import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 
@@ -38,10 +39,10 @@ const EVENT_PRINTERS: ReadonlyMap<string, EventPrinter> = new Map(
   ranked(BLOCKS).flatMap((block) => ("none" in block.print ? [] : (Object.entries(block.print.events ?? {}) as [string, EventPrinter][]))),
 );
 
-/** `:` の前に置く字 (帯の題と、`set` の欄) */
-const key = (text: string): string => (text.includes(":") || text.includes("[") || text.startsWith('"') ? quote(text) : text);
-/** `strip` の行に `,` で並べる欄。時間軸の図の欄は後ろに物差しの属性を書けるので、`[` を含む名前も囲む */
-const field = (text: string, time: boolean): string => (text.includes(",") || text.startsWith('"') || (time && text.includes("[")) ? quote(text) : text);
+/** 最初の `step` より前に書く、ブロックが持つ宣言の塊を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
+const FIGURE_PRINTERS: readonly ((diagram: Diagram) => string[])[] = ranked(BLOCKS).flatMap((block) =>
+  "none" in block.print || block.print.figure === undefined ? [] : [block.print.figure],
+);
 
 const declareRegion = (r: Region): string =>
   `group ${r.id}${shown(r.id, r.name)}${attrs([
@@ -82,8 +83,6 @@ function event(e: DiagramEvent, kind: Diagram["kind"]): string {
         ["shape", e.shape],
         ["color", e.color],
       ])}`;
-    case "strip":
-      return `set ${key(e.field)}${e.value === undefined ? "" : `: ${name(e.value)}`}${attrs([["tag", e.tag]])}`;
     case "commit":
       return `commit ${e.id} ${ON} ${e.branch}${e.copy === undefined ? "" : ` ${COPY} ${e.copy}`}${e.merge === undefined ? "" : ` ${MERGE} ${e.merge}`}${attrs([
         ["hash", e.hash],
@@ -182,19 +181,14 @@ function declarations(diagram: Diagram): string[] {
 
 export function printNotation(diagram: Diagram): string {
   const branches = (diagram.git?.branches ?? []).map((b) => `branch ${b.id}${attrs([["note", b.note]])}`);
-  const time = diagram.kind === "time";
   const blocks = [
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
     ...(branches.length > 0 ? [branches.join("\n")] : []),
     ...(diagram.time ? timeBlocks(diagram.time) : []),
     ...declarations(diagram),
     ...(diagram.lineup && diagram.lineup.items.length > 0 ? [itemLines(diagram.lineup.items)] : []),
+    ...FIGURE_PRINTERS.flatMap((print) => print(diagram)),
   ];
-  if (diagram.strip) {
-    const meters = new Map((diagram.strip.meters ?? []).map((m) => [m.field, m.line]));
-    const fields = diagram.strip.fields.map((f) => `${field(f, time)}${attrs([["meter", meters.get(f)]])}`);
-    blocks.push(`strip ${key(diagram.strip.title)}: ${fields.join(", ")}`);
-  }
   if (diagram.state) blocks.push(diagram.state.paths.map((p) => line(p.from, p.to, p.label)).join("\n"));
   for (const step of diagram.steps) {
     const body = step.body.split("\n");

@@ -52,12 +52,6 @@ export interface CoreMessages {
   unclosedGroup: (id: string) => string;
   regionReopened: (id: string) => string;
   emptyName: (id: string) => string;
-  stripTwice: string;
-  stripShape: string;
-  emptyStripField: string;
-  stripUndeclared: string;
-  noSuchField: (field: string) => string;
-  stripNeedsValue: string;
   edgeShape: string;
   emptyLabel: string;
   quoteUnclosed: string;
@@ -168,9 +162,6 @@ export interface CoreMessages {
   nowReserved: (name: string) => string;
   noteColorPointOnly: string;
   badShape: string;
-  badRatio: string;
-  /** 物差しの欄 `field` の値が割合でない */
-  meterValue: (field: string) => string;
 }
 
 const list = (words: readonly string[]): string => words.join(" / ");
@@ -226,12 +217,6 @@ const ja = (): Messages => {
     unclosedGroup: (id) => `group ${id} を end で閉じていない`,
     regionReopened: (id) => `group ${id} は宣言済み。もう一度開く時は group ${id} だけを書き、名前と属性は最初の宣言に書く`,
     emptyName: (id) => `${id} の名前が空`,
-    stripTwice: "strip は 1 つだけ宣言する",
-    stripShape: "strip は strip <題>: <欄>, <欄> の形で書く",
-    emptyStripField: "strip の欄の名前が空",
-    stripUndeclared: "set を書く前に、strip <題>: <欄>, <欄> で帯を宣言する",
-    noSuchField: (field) => `${field} という欄は strip に無い`,
-    stripNeedsValue: "set は set <欄>: <値> か set <欄> [tag: <札>] の形で書く",
     edgeShape: "線は <名札> -> <名札>: <線の名前> [<属性>] の形で書く",
     emptyLabel: "線の : の後ろに線の名前を書く。名前を書かない時は : も書かない",
     quoteUnclosed: '" で始めた字を " で閉じていない',
@@ -316,8 +301,6 @@ const ja = (): Messages => {
     nowReserved: (name) => `${name} は時間軸の図で針を進める行の語で、名札に使えない`,
     noteColorPointOnly: "note の color は節目の丸の色で、節目の note にだけ書ける",
     badShape: `shape は ${list(SPAN_SHAPES)} だけ書ける。括弧は shape を書かない`,
-    badRatio: "物差しの線は分数 (2/3) か百分率 (97%) で書く",
-    meterValue: (field) => `${field} は物差しの欄なので、値を分数 (2/3) か百分率 (97%) で書く`,
   };
 };
 
@@ -363,12 +346,6 @@ const en = (): Messages => {
     unclosedGroup: (id) => `group ${id} is not closed with end`,
     regionReopened: (id) => `group ${id} is already declared. To open it again, write only group ${id}; put the name and attributes on the first one`,
     emptyName: (id) => `${id} has an empty name`,
-    stripTwice: "Declare only one strip",
-    stripShape: "Write a strip as strip <title>: <field>, <field>",
-    emptyStripField: "A strip field name is empty",
-    stripUndeclared: "Declare the strip as strip <title>: <field>, <field> before writing set",
-    noSuchField: (field) => `The strip has no field named ${field}`,
-    stripNeedsValue: "Write set as set <field>: <value> or set <field> [tag: <tag>]",
     edgeShape: "Write a line as <id> -> <id>: <label> [<attributes>]",
     emptyLabel: "Write the label after the : of a line, or leave out the : as well",
     quoteUnclosed: 'A value that starts with " is not closed with "',
@@ -453,8 +430,6 @@ const en = (): Messages => {
     nowReserved: (name) => `${name} starts the needle line of a time diagram and cannot be an id`,
     noteColorPointOnly: "The color of a note colors the circle of a point, so write it only on the note of a point",
     badShape: `shape takes only ${list(SPAN_SHAPES)}. A bracket takes no shape`,
-    badRatio: "Write the meter line as a fraction (2/3) or a percentage (97%)",
-    meterValue: (field) => `${field} is a meter, so write its value as a fraction (2/3) or a percentage (97%)`,
   };
 };
 

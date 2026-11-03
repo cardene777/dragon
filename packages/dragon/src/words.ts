@@ -74,18 +74,20 @@ const RANKED = ranked(BLOCKS);
 const LATER_HEADS = [
   [10, ["group", "end"]],
   [20, ["box"]],
-  [30, ["strip"]],
   [40, ["step", "say", "code"]],
-  [80, ["set"]],
   [90, ["branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS]],
 ] as const;
 type Head = (typeof LATER_HEADS)[number][1][number];
 
 /**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
- * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)。段の出典の `source` は出典のブロックが持つ (#3199、#3345)
+ * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)。段の出典の `source` は出典のブロックが持つ (#3199、#3345)。
+ * ブロックの語は、`words.headRanks` に番号を書いた語はその番号で、ほかはブロックの並びの番号で並べる
  */
-export const HEADS: readonly string[] = [...LATER_HEADS, ...RANKED.map((block) => [block.rank, block.words.heads ?? []] as const)]
+export const HEADS: readonly string[] = [
+  ...LATER_HEADS,
+  ...RANKED.flatMap((block) => (block.words.heads ?? []).map((head) => [block.words.headRanks?.[head] ?? block.rank, [head]] as const)),
+]
   .sort(([a], [b]) => a - b)
   .flatMap(([, heads]) => heads);
 
@@ -113,8 +115,6 @@ const LATER_ATTRS = {
   box: ["note", "color", "icon", "link"],
   edge: ["carry", "tag", "side", "at", "into"],
   note: ["color"],
-  set: ["tag"],
-  strip: ["meter"],
   branch: ["note"],
   commit: ["hash", "note"],
   leaf: ["hash"],
