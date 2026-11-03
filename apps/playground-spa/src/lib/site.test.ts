@@ -2737,7 +2737,7 @@ describe("サイトの帯と経路 (#3030)", () => {
             "zoom-in 44x44",
           ]);
         }
-        // 色味の丸は道具の帯が 720px 以上の時だけ出る (#3077)
+        // 色味の丸は道具の帯が 730px 以上の時だけ出る (#3077、#3341)
         if (viewport === TOUCH_EDITOR_SIZES[2]) {
           await expectSizes(() => targetsOf(page), `${where}の 2 つの帯`, [
             "tab-notation 44x44",
@@ -2784,13 +2784,14 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "coarse-editor-tools-drop-when-narrow",
     async () => {
-      // 指で触る時は道具の帯の部品を 44px にするので、帯の幅が 720px より狭い時は携帯の幅と同じく実況表示の札と色味の丸を外す。
-      // 外すかは画面の幅でなく帯の幅で決める。1180 × 820 は棚を横に並べて帯が狭くなる (#3077)
+      // 指で触る時は道具の帯の部品を 44px にするので、帯の幅が 730px より狭い時は携帯の幅と同じく実況表示の札と色味の丸を外す。
+      // 外すかは画面の幅でなく帯の幅で決める。1180 × 820 は棚を横に並べて帯が狭くなる (#3077)。
+      // 色味の丸が 4 つになると英語で 726px 要り、帯が 724px の 1024 × 1366 でも外す。色味は見出しの帯の切替で替える (#3341)
       const all = ["live", ...PALETTE_IDS.map((id) => `palette-${id}`), ...STAGE_TOOLS];
       for (const [viewport, shown] of [
         [{ width: 768, height: 1024 }, [...STAGE_TOOLS]],
         [{ width: 1180, height: 820 }, [...STAGE_TOOLS]],
-        [{ width: 1024, height: 1366 }, all],
+        [{ width: 1024, height: 1366 }, [...STAGE_TOOLS]],
         [{ width: 1366, height: 1024 }, all],
       ] as const) {
         const page = await openEditor(viewport, "intro", true, true);
