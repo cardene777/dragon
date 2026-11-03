@@ -76,7 +76,7 @@ export const TEXT = {
           strip: BLOCK_TEXT.strip.ja,
           step: { name: "段", desc: "図を区切る段。段ごとに本文と打つ命令を書き、1 段ずつ送って見る。view で、枠が段を追うか全体を止めて見せるかを選ぶ。" },
           source: BLOCK_TEXT.source.ja,
-          lifeline: { name: "生存線", desc: "時系列図だけの部品。箱の下に縦の線が伸び、上から下へ時が進む。" },
+          lifeline: BLOCK_TEXT.lifeline.ja,
           group: BLOCK_TEXT.group.ja,
           "start-finish": {
             name: "始まりと終わり",
@@ -387,7 +387,7 @@ export const TEXT = {
           strip: BLOCK_TEXT.strip.en,
           step: { name: "Step", desc: "A step of the diagram, with its own text and command, played one at a time. view picks whether the frame follows the step or holds the whole diagram." },
           source: BLOCK_TEXT.source.en,
-          lifeline: { name: "Lifeline", desc: "Sequence diagrams only. A line runs down from each box, and time moves down the page." },
+          lifeline: BLOCK_TEXT.lifeline.en,
           group: BLOCK_TEXT.group.en,
           "start-finish": {
             name: "Start and end",

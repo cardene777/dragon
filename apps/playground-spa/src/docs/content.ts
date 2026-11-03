@@ -118,7 +118,7 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           ...BLOCK_DOCS.box.ja,
           ...BLOCK_DOCS.link.ja,
-          "箱は宣言した順に並ぶ。時系列図では箱ごとに縦の線が左から右へ立ち、線はその間を走る。",
+          ...BLOCK_DOCS.lifeline.ja,
         ],
         exit: "続き → 線",
       },
@@ -314,7 +314,7 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           ...BLOCK_DOCS.box.en,
           ...BLOCK_DOCS.link.en,
-          "Boxes line up in the order you declare them. In a sequence diagram each box gets a vertical line from left to right, and lines run between them.",
+          ...BLOCK_DOCS.lifeline.en,
         ],
         exit: "Next → Lines",
       },

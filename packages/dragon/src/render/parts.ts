@@ -165,10 +165,6 @@ export function endMark(e: SceneEnd, color: ColorKey, ink: Ink[]): string {
   return `<g data-end="finish"><circle class="dg-end" cx="${x}" cy="${y}" r="${e.r}"/><circle class="dg-end-in" cx="${x}" cy="${y}" r="${end.inner}"/>${text}</g>`;
 }
 
-export function lifeline(x: number, y1: number, y2: number): string {
-  return `<line class="dg-ll" x1="${r1(x)}" y1="${r1(y1)}" x2="${r1(x)}" y2="${r1(y2)}"/>`;
-}
-
 /**
  * 段の番号。まだ来ていない段は出さず、今の段は塗り、済んだ段は縁取りに変えて番号を読めるまま残す。
  * `grey` を立てると (状態遷移図、#3171)、済んだ段の縁取りを線と同じ灰にする。

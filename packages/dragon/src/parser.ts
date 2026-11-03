@@ -65,6 +65,7 @@
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
+import { lifelinesOf } from "./blocks/lifeline/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
@@ -451,7 +452,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     boxes,
     ...(figure.strip ? { strip: figure.meters.length > 0 ? { ...figure.strip, meters: figure.meters } : figure.strip } : {}),
     steps,
-    ...(kind === "sequence" ? { sequence: { lifelines: boxes.map((box) => box.id) } } : {}),
+    ...(kind === "sequence" ? { sequence: lifelinesOf(boxes) } : {}),
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items } } : {}),

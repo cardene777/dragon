@@ -31,6 +31,10 @@ import { text as iconText } from "../../../../packages/dragon/src/blocks/icon/ga
 import { shelf as iconShelf } from "../../../../packages/dragon/src/blocks/icon/gallery/shelf";
 import { docs as iconDocs } from "../../../../packages/dragon/src/blocks/icon/gallery/docs";
 import { rule as iconRule } from "../../../../packages/dragon/src/blocks/icon/gallery/rule";
+import { text as lifelineText } from "../../../../packages/dragon/src/blocks/lifeline/gallery/text";
+import { shelf as lifelineShelf } from "../../../../packages/dragon/src/blocks/lifeline/gallery/shelf";
+import { docs as lifelineDocs } from "../../../../packages/dragon/src/blocks/lifeline/gallery/docs";
+import { rule as lifelineRule } from "../../../../packages/dragon/src/blocks/lifeline/gallery/rule";
 import { text as linkText } from "../../../../packages/dragon/src/blocks/link/gallery/text";
 import { shelf as linkShelf } from "../../../../packages/dragon/src/blocks/link/gallery/shelf";
 import { docs as linkDocs } from "../../../../packages/dragon/src/blocks/link/gallery/docs";
@@ -58,6 +62,7 @@ export const BLOCK_TEXT = {
   "edge-label": edgeLabelText,
   "group": groupText,
   "icon": iconText,
+  "lifeline": lifelineText,
   "link": linkText,
   "note": noteText,
   "source": sourceText,
@@ -74,6 +79,7 @@ export const BLOCK_SHELF = {
   "edge-label": edgeLabelShelf,
   "group": groupShelf,
   "icon": iconShelf,
+  "lifeline": lifelineShelf,
   "link": linkShelf,
   "note": noteShelf,
   "source": sourceShelf,
@@ -90,6 +96,7 @@ export const BLOCK_DOCS = {
   "edge-label": edgeLabelDocs,
   "group": groupDocs,
   "icon": iconDocs,
+  "lifeline": lifelineDocs,
   "link": linkDocs,
   "note": noteDocs,
   "source": sourceDocs,
@@ -106,6 +113,7 @@ export const BLOCK_RULE = {
   "edge-label": edgeLabelRule,
   "group": groupRule,
   "icon": iconRule,
+  "lifeline": lifelineRule,
   "link": linkRule,
   "note": noteRule,
   "source": sourceRule,
