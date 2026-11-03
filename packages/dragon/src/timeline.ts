@@ -150,6 +150,8 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle): Planned {
       return;
     }
     if (event.type === "now" || (needle && pulled(event))) return;
+    // 列の図の役が動く出来事 (#3351) は、段の始まりから終わりまで役の札を光らせるだけで、段の中の時刻を取らない
+    if (event.type === "role") return;
     if (event.type === "line" || event.type === "seal" || event.type === "open" || event.type === "pick" || event.type === "stamp") {
       const a = cursor;
       const b = a + LINEUP_LENGTH[event.type];

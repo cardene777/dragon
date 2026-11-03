@@ -1,0 +1,10 @@
+lineup 凡例
+
+box 窓口
+
+item 申請, 照会 [note: 届いた書類]
+item 至急 [color: amber, note: 急ぎの書類]
+
+step 並べる
+  say item の説明は図の下の凡例に、説明ごとに 1 行で出る。
+  line 窓口: 至急, 申請, 照会

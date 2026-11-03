@@ -50,6 +50,19 @@ export interface FigureText {
   range: (from: string, to: string) => string;
   headJoin: string;
   empty: string;
+  /**
+   * 列の図の卓の形 (#3351)。札と置き場の名前の下の字、選んだ札の印、封の字、「この先」の帯の字、空の置き場の字。
+   * 札の下の一言は、色付きのチップの席の番号、置き場に無かったチップを足したこと、置き場に在った色付きのチップが無いことを言う
+   */
+  lineupInOrder: string;
+  lineupNoOrder: string;
+  lineupPicked: string;
+  lineupSealed: string;
+  lineupAhead: string;
+  lineupEmpty: string;
+  lineupAt: (name: string, n: number) => string;
+  lineupAdded: (names: string[]) => string;
+  lineupMissing: (name: string) => string;
 }
 
 /** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
@@ -87,6 +100,15 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     range: (from, to) => `${from}〜${to}`,
     headJoin: " ・ ",
     empty: "空き",
+    lineupInOrder: "上から実行",
+    lineupNoOrder: "順番なし",
+    lineupPicked: "選ばれる",
+    lineupSealed: "封",
+    lineupAhead: "この先",
+    lineupEmpty: "まだ空",
+    lineupAt: (name, n) => `${name}は${n}番目`,
+    lineupAdded: (names) => `${names.join("、")}を足した`,
+    lineupMissing: (name) => `${name}が無い`,
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
@@ -117,5 +139,14 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     range: (from, to) => `${from}–${to}`,
     headJoin: " · ",
     empty: "Empty",
+    lineupInOrder: "Top first",
+    lineupNoOrder: "No order",
+    lineupPicked: "Picked",
+    lineupSealed: "Sealed",
+    lineupAhead: "Next",
+    lineupEmpty: "Empty",
+    lineupAt: (name, n) => `${name} is #${n}`,
+    lineupAdded: (names) => `Added ${names.join(", ")}`,
+    lineupMissing: (name) => `${name} is missing`,
   },
 };

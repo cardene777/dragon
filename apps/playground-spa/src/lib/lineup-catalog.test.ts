@@ -3,6 +3,7 @@
  *
  * 見本の正は `packages/dragon/examples/auction.dragon` で、題と図の形はその file を読んで取る。頁の側の見本の表は読まない。
  * 列の図だけの部品は、チップ (`item`)、列の並び (`line`)、封 (`seal`)、選ぶ (`pick`)、札 (`stamp`) の 5 つで、
+ * 卓の形 (#3351) で置き場 (`order`)、役 (`role`)、凡例の説明 (`legend`) の 3 つを足す。
  * 部品の図は `catalog/parts/<名札>.lineup.dragon` と英語の `.en.dragon` の記法の file。
  * 列の図の分類と部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
@@ -24,6 +25,16 @@ const SWEEP = 300_000;
 const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
+
+/**
+ * 卓の形 (#3351) で足した部品と、その部品の頁の図が描く物の印。
+ * 置き場は順番の無い箱の枠、役は役の札、凡例の説明は図の下の凡例
+ */
+const TABLE_PARTS = {
+  order: '[data-lineup-pool]',
+  role: '[data-lineup-role]',
+  legend: '[data-lineup-legend]',
+} as const;
 
 /** 見本帳の図の分類の名前の並び */
 const KIND_NAMES = ["時系列図", "構成図", "状態遷移図", "枝分かれの図", "時間軸の図", "木の図", "列の図"] as const;
@@ -170,6 +181,40 @@ describe("見本帳と編集画面の列の図 (#3239)", () => {
     },
     SWEEP,
   );
+
+  /** 卓の形で足した部品 `id` が、列の図だけの部品として日本語と英語の記法で並び、その頁の図が `TABLE_PARTS[id]` を描くかを確かめる */
+  async function expectTablePart(id: keyof typeof TABLE_PARTS): Promise<void> {
+    const { page } = await site.open({ path: `${BASE}catalog`, viewport: { width: 1440, height: 900 } });
+    await onScreen(page, "catalog", "見本帳の一覧が出ない");
+    const kindParts = (): Promise<string[]> =>
+      page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-catalog="section"][data-section="kind-parts"] a[data-catalog="part-card"]')].map((a) => a.dataset.part ?? ""));
+    await expect.poll(kindParts, { ...WAIT, message: `図の種類だけの部品に ${id} が無い` }).toContain(id);
+    expect(PARTS.find((p) => p.id === id)?.kinds, `${id} が列の図だけの部品でない`).toEqual(["lineup"]);
+    for (const lang of ["ja", "en"] as const) {
+      const text = snippetOf(id, lang);
+      expect(text, `${id}.lineup${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
+      const parsed = parseNotation(text ?? "", { lang });
+      expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が列の図として読めない`).toBe("lineup");
+    }
+    const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+    await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
+    await expect
+      .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が列の図の図を 1 つ、部品の記法で描かない` })
+      .toEqual([{ kind: "lineup", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
+    const drawn = (): Promise<number> =>
+      opened.page.evaluate((sel) => document.querySelectorAll(`[data-catalog="part"] [data-catalog="part-figure"] svg[data-dragon="figure"] ${sel}`).length, TABLE_PARTS[id]);
+    await expect.poll(drawn, { ...WAIT, message: `${id} の頁の図が ${TABLE_PARTS[id]} を描かない` }).toBeGreaterThan(0);
+    await opened.page.locator(siteSel("lang-en")).click();
+    await expect
+      .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
+      .toEqual([snippetOf(id, "en") ?? ""]);
+  }
+
+  it("catalog-has-lineup-pool-part", () => expectTablePart("order"), SLOW);
+
+  it("catalog-has-lineup-role-part", () => expectTablePart("role"), SLOW);
+
+  it("catalog-has-lineup-legend-part", () => expectTablePart("legend"), SLOW);
 
   it(
     "lineup-part-pages-link-examples",

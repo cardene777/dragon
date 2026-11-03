@@ -30,6 +30,7 @@ export const HOMES = [
   ["point", "time.points"],
   ["zoom", "time.zoom"],
   ["item", "lineup.items"],
+  ["role", "lineup.roles"],
 ] as const satisfies readonly (readonly [keyof DiagramBlocks, string])[];
 
 type Obj = Record<string, unknown>;
@@ -81,7 +82,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(diagram.kind === "sequence" ? { sequence: lifelinesOf(boxes) } : {}),
     ...(b.path !== undefined ? { state: { paths: b.path } } : {}),
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),
-    ...(b.item !== undefined ? { lineup: { items: b.item } } : {}),
+    ...(b.item !== undefined ? { lineup: { items: b.item, ...(b.role !== undefined ? { roles: b.role } : {}) } } : {}),
     ...(b.scale !== undefined || b.row !== undefined
       ? {
           time: {

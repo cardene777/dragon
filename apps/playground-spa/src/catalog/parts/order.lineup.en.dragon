@@ -1,0 +1,14 @@
+lineup Pool
+
+box Inbox [order: none]
+box Desk
+
+item apply, query, change
+
+step Drop
+  say A box with order: none is a pool with no order, and its chips are scattered.
+  line Inbox: apply, query, change
+
+step Stack
+  say A card stacks its chips from the top in the order written.
+  line Desk: query, apply, change

@@ -75,6 +75,10 @@ export const PARTS: readonly Part[] = [
   { id: "seal", kinds: ["lineup"], words: ["head:seal", "head:open"] },
   { id: "pick", kinds: ["lineup"], words: ["head:pick"] },
   { id: "stamp", kinds: ["lineup"], words: ["head:stamp"] },
+  // 列の図の卓の形 (#3351)。順番の無い置き場、役の札、チップの説明の凡例
+  { id: "order", kinds: ["lineup"], words: ["attr:box.order"] },
+  { id: "role", kinds: ["lineup"], words: ["head:role", "attr:role.note"] },
+  { id: "legend", kinds: ["lineup"], words: ["attr:item.note"] },
 ];
 
 /** どの図でも使える部品か。図の種類を 2 つ以上持つ */
@@ -181,6 +185,10 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "head:open": (d) => events(d).some((e) => e.type === "open"),
   "head:pick": (d) => events(d).some((e) => e.type === "pick"),
   "head:stamp": (d) => events(d).some((e) => e.type === "stamp"),
+  "attr:box.order": (d) => (d.blocks.box ?? []).some((b) => b.order !== undefined),
+  "head:role": (d) => (d.blocks.role ?? []).length > 0,
+  "attr:role.note": (d) => (d.blocks.role ?? []).some((r) => r.note !== undefined),
+  "attr:item.note": (d) => (d.blocks.item ?? []).some((i) => i.note !== undefined),
 };
 
 /** 後から読む見本が届いた後に作った、見本の名前と日本語の記法から作った図 */
