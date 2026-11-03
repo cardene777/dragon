@@ -8,7 +8,8 @@ import type { SceneEdge } from "../../layout/scene";
 import { EASE } from "../../look/values";
 import { ALWAYS } from "../../render/ink";
 import type { Frame } from "../../render/motion";
-import { arrowHead, type Ctx, cs, pathOf } from "../../render/parts";
+import { arrowHead, type Ctx, pathOf } from "../../render/parts";
+import { cs } from "../color/draw";
 import type { EdgeTime } from "../../timeline";
 
 /**

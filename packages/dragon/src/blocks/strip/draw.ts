@@ -8,7 +8,8 @@
 import { hasWide, textBox, textWidth } from "../../layout/measure";
 import type { Layout, SceneField, SceneStrip } from "../../layout/scene";
 import { type ColorKey, LOOK, MOTION, TYPE } from "../../look/values";
-import { type Ctx, cs, esc, r1, write } from "../../render/parts";
+import { type Ctx, esc, r1, write } from "../../render/parts";
+import { cs } from "../color/draw";
 import { glyph } from "../icon/draw";
 import type { Diagram } from "../../schema";
 import type { Span, Timeline } from "../../timeline";

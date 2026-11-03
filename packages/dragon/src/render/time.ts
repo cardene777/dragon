@@ -8,6 +8,7 @@
  * 範囲の括弧は次の括弧が来る段まで、範囲の囲みは最後まで出す。拡大の枠と点線は、拡大した範囲を囲む範囲の囲みが出る時に消す。
  * 針は時刻の表の針の動きを辿り、繰り返す前に左端へ戻る。
  */
+import { cs } from "../blocks/color/draw";
 import { glyph } from "../blocks/icon/draw";
 import type { TimeBox, TimeLayout } from "../layout/time";
 import { hasWide } from "../layout/measure";
@@ -15,7 +16,7 @@ import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { Diagram } from "../schema";
 import type { Span, Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
-import { arrowHead, card, type Ctx, cs, esc, linkTo, pathOf, type SubChange, write } from "./parts";
+import { arrowHead, card, type Ctx, esc, linkTo, pathOf, type SubChange, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 

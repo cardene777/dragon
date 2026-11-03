@@ -7,6 +7,10 @@ import { text as carryText } from "../../../../packages/dragon/src/blocks/carry/
 import { shelf as carryShelf } from "../../../../packages/dragon/src/blocks/carry/gallery/shelf";
 import { docs as carryDocs } from "../../../../packages/dragon/src/blocks/carry/gallery/docs";
 import { rule as carryRule } from "../../../../packages/dragon/src/blocks/carry/gallery/rule";
+import { text as colorText } from "../../../../packages/dragon/src/blocks/color/gallery/text";
+import { shelf as colorShelf } from "../../../../packages/dragon/src/blocks/color/gallery/shelf";
+import { docs as colorDocs } from "../../../../packages/dragon/src/blocks/color/gallery/docs";
+import { rule as colorRule } from "../../../../packages/dragon/src/blocks/color/gallery/rule";
 import { text as edgeText } from "../../../../packages/dragon/src/blocks/edge/gallery/text";
 import { shelf as edgeShelf } from "../../../../packages/dragon/src/blocks/edge/gallery/shelf";
 import { docs as edgeDocs } from "../../../../packages/dragon/src/blocks/edge/gallery/docs";
@@ -36,6 +40,7 @@ import { rule as stripRule } from "../../../../packages/dragon/src/blocks/strip/
 export const BLOCK_TEXT = {
   "act": actText,
   "carry": carryText,
+  "color": colorText,
   "edge": edgeText,
   "edge-label": edgeLabelText,
   "icon": iconText,
@@ -48,6 +53,7 @@ export const BLOCK_TEXT = {
 export const BLOCK_SHELF = {
   "act": actShelf,
   "carry": carryShelf,
+  "color": colorShelf,
   "edge": edgeShelf,
   "edge-label": edgeLabelShelf,
   "icon": iconShelf,
@@ -60,6 +66,7 @@ export const BLOCK_SHELF = {
 export const BLOCK_DOCS = {
   "act": actDocs,
   "carry": carryDocs,
+  "color": colorDocs,
   "edge": edgeDocs,
   "edge-label": edgeLabelDocs,
   "icon": iconDocs,
@@ -72,6 +79,7 @@ export const BLOCK_DOCS = {
 export const BLOCK_RULE = {
   "act": actRule,
   "carry": carryRule,
+  "color": colorRule,
   "edge": edgeRule,
   "edge-label": edgeLabelRule,
   "icon": iconRule,

@@ -68,7 +68,7 @@ export const TEXT = {
           edge: BLOCK_TEXT.edge.ja,
           "edge-label": BLOCK_TEXT["edge-label"].ja,
           carry: BLOCK_TEXT.carry.ja,
-          color: { name: "色の役", desc: "箱と区画に付ける色の役。7 つの役から選び、色そのものは色味が決める。" },
+          color: BLOCK_TEXT.color.ja,
           icon: BLOCK_TEXT.icon.ja,
           link: { name: "飛び先", desc: "箱に書く飛び先。描いた図ではその箱が link になり、押すと中の仕組みを描いた頁などへ移る。/ で始まる path か、http:// か https:// で始まる URL で書く。" },
           note: BLOCK_TEXT.note.ja,
@@ -379,7 +379,7 @@ export const TEXT = {
           edge: BLOCK_TEXT.edge.en,
           "edge-label": BLOCK_TEXT["edge-label"].en,
           carry: BLOCK_TEXT.carry.en,
-          color: { name: "Color", desc: "The color role of a box or a group. Pick one of seven roles; the palette decides the actual color." },
+          color: BLOCK_TEXT.color.en,
           icon: BLOCK_TEXT.icon.en,
           link: {
             name: "Link",

@@ -11,6 +11,7 @@
  */
 import { action } from "../blocks/act/draw";
 import { carrier } from "../blocks/carry/draw";
+import { cs } from "../blocks/color/draw";
 import { edge } from "../blocks/edge/draw";
 import { fadeBefore, label } from "../blocks/edge-label/draw";
 import { subChanges } from "../blocks/note/draw";
@@ -37,7 +38,6 @@ import {
   boxTextY,
   card,
   type Ctx,
-  cs,
   doneMark,
   endMark,
   esc,

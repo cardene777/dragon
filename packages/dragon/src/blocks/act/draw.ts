@@ -7,7 +7,8 @@
 import type { SceneAction } from "../../layout/scene";
 import { LOOK } from "../../look/values";
 import type { Shown } from "../../render/ink";
-import { type Ctx, cs, esc, r1 } from "../../render/parts";
+import { type Ctx, esc, r1 } from "../../render/parts";
+import { cs } from "../color/draw";
 import type { Span } from "../../timeline";
 
 /** 時系列図の箱の中の処理の札。その段の間だけ生存線の上に出す。`again` を渡すと (止め絵を選んだ図、#3200)、その間に同じ札をもう 1 つ出す。 */

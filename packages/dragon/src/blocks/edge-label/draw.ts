@@ -8,7 +8,8 @@ import { textBox } from "../../layout/measure";
 import type { SceneLabel } from "../../layout/scene";
 import { LOOK, TYPE } from "../../look/values";
 import type { Shown } from "../../render/ink";
-import { type Ctx, cs, esc, r1 } from "../../render/parts";
+import { type Ctx, esc, r1 } from "../../render/parts";
+import { cs } from "../color/draw";
 import type { LabelTime, Span } from "../../timeline";
 
 /**

@@ -4,8 +4,9 @@
  * どの部品も、置き場所は場面 (`layout/scene.ts`) から、いつ見えるかは時刻の表 (`timeline.ts`) から読む。
  * 色は色の役の変数 (`--c` と `--ct`) だけを渡し、値は色味の表が持つ。
  * ブロックの置き場へ移した部品の描き方は `blocks/<名前>/draw.ts` が持ち、この file の下請け (`esc`、`cs`、`r1`、`write` など) を読む (#3345)。
- * 箱と区画の絵柄だけは逆向きで、この file が絵のブロックの描き方 (`blocks/icon/draw.ts`) を読む。
+ * 色の役の変数と箱と区画の絵柄は逆向きで、この file が色の役と絵のブロックの描き方 (`blocks/color/draw.ts`、`blocks/icon/draw.ts`) を読む。
  */
+import { cs } from "../blocks/color/draw";
 import { drawsIcon, glyph } from "../blocks/icon/draw";
 import { textBox, textWidth } from "../layout/measure";
 import {
@@ -29,9 +30,6 @@ export const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g,
 export const linkTo = (link: string | undefined, markup: string): string => (link === undefined ? markup : `<a href="${esc(link)}">${markup}</a>`);
 /** 座標を小数 2 桁に丸める。ブロックの描き方 (`blocks/<名前>/draw.ts`) も同じ丸めで書く */
 export const r1 = (v: number): number => Math.round(v * 100) / 100;
-
-/** 色の役を部品へ渡す変数。 */
-export const cs = (k: ColorKey): string => (k === "coin" ? "--c:var(--coin);--ct:var(--coint)" : `--c:var(--c-${k});--ct:var(--t-${k})`);
 
 /** 点を辿る線。曲がる所は共通の値の表の半径 (`LOOK.edge.bend`) で丸め、直角の角を作らない (#3171)。 */
 export function pathOf(points: Point[]): string {

@@ -64,8 +64,8 @@
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
+import { readLook } from "./blocks/color/block";
 import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
-import { readIcon } from "./blocks/icon/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces, urlOf } from "./read-kit";
@@ -159,22 +159,6 @@ const COUNT = /^[1-9][0-9]*$/u;
 const NUMBER = /^(0|[1-9][0-9]*)$/u;
 /** 目盛りの範囲。`0-31` か `0` */
 const RANGE = /^(0|[1-9][0-9]*)(?:-(0|[1-9][0-9]*))?$/u;
-
-/**
- * 区画と箱の属性 (`note` と `color` と `icon`)。絵の名前は絵のブロックの下請け (`readIcon`) が読む。
- * 色の役の一覧は原本の形の検査 (`schema.ts`) が持ち、読む下請け (`read-kit.ts`) とブロックは `schema.ts` を読まないので、ここに置く
- */
-function lookOf(source: SourceLine, attrs: Map<string, Attr>, m: Messages): { note?: string; color?: Color; icon?: string } {
-  const color = attrs.get("color");
-  if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-  const icon = readIcon(source, attrs, m);
-  const note = attrs.get("note")?.value;
-  return {
-    ...(note !== undefined ? { note } : {}),
-    ...(color ? { color: color.value as Color } : {}),
-    ...(icon ? { icon: icon.value } : {}),
-  };
-}
 
 /**
  * 前の形 (#2997 まで) の行なら、その印と、新しい形で書く行の形。`inStep` は段の中の行か。
@@ -697,7 +681,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     } else {
       notReserved(source, declared.id, declared.idAt);
       declare(source, declared.id, declared.idAt);
-      regions.push({ id: declared.id, name: declared.name ?? declared.id, ...lookOf(source, declared.attrs, m) });
+      regions.push({ id: declared.id, name: declared.name ?? declared.id, ...readLook(source, declared.attrs, m) });
     }
     group = { source, id: declared.id };
   }
@@ -709,7 +693,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     notReserved(source, declared.id, declared.idAt);
     declare(source, declared.id, declared.idAt);
     firstBox ??= source;
-    const { note, ...look } = lookOf(source, declared.attrs, m);
+    const { note, ...look } = readLook(source, declared.attrs, m);
     const link = declared.attrs.get("link");
     boxes.push({
       id: declared.id,

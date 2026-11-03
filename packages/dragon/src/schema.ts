@@ -11,6 +11,7 @@
  */
 import type { ErrorObject } from "ajv";
 import type { Carry } from "./blocks/carry/block";
+import { type Color, COLORS } from "./blocks/color/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
 import type { StepSource } from "./blocks/source/block";
@@ -19,11 +20,8 @@ import { nearest } from "./nearest";
 import validate from "./schemas/validate-diagram.js";
 import { DEFAULT_LANG, type NotationLang, STATE_ENDS } from "./words";
 
-export type Color = "blue" | "amber" | "green" | "violet" | "rose" | "slate" | "coin";
-/** 色の役の一覧。記法の `color:` に書ける値と、誤りの文に並べる値 */
-export const COLORS: readonly Color[] = ["blue", "amber", "green", "violet", "rose", "slate", "coin"];
-/** アイコン名の一覧は絵のブロックが持つ (#3311、#3345) */
-export { ICON_NAMES };
+/** 色の役の型と一覧は色の役のブロック、アイコン名の一覧は絵のブロックが持つ (#3311、#3345) */
+export { type Color, COLORS, ICON_NAMES };
 
 export interface Region {
   id: string;
