@@ -7,6 +7,13 @@
 - 古い記法と描画は #2983 で消し、作り直した記法の読み書き (`parser.ts`、`printer.ts`)、描画 (`render/`)、再生 (`player.ts`)、書き出し (`export/`) を `packages/dragon/src` に持つ (#2982)。
 - 描ける図の種類は時系列図 (`sequence`) と構成図 (`architecture`) と状態遷移図 (`state`、#3163) と枝分かれの図 (`git`、#3164) と時間軸の図 (`time`、#3165) と木の図 (`tree`、#3233) と列の図 (`lineup`、#3239) の 7 つ (`packages/dragon/src/schema.ts`)。
 
+## 部品の考え方
+
+- 部品は、どの図の種類でも使える共通の部品と、特定の図の種類だけで使う部品の 2 段に分かれ、図はこれを組み立てて描く (#3166)。共通の部品の描き方は `packages/dragon/src/render/parts.ts` が持ち、図の種類ごとの読み方と並べ方は `packages/dragon/src/kinds/` と `packages/dragon/src/render/` の図の種類ごとの file が持つ。見本帳のカタログもこの 2 段と図の 3 段に並び、部品の表は `apps/playground-spa/src/catalog/parts.ts` が持つ。
+- 見た目は全ての図で 1 つに揃える。並べ方と色の役の決まりは `docs/design/base/GRAMMAR.md` が持ち、図ごとに部品を作り足す前に共通の部品で描けないかを確かめる。色と字の大きさの値は `packages/dragon/src/look/values.ts` と `packages/dragon/src/look/palettes.json` の 1 か所が持つ。
+- 部品と図の種類は足して広げられる。足す手順と登録先は `.claude/skills/dragon-extend/SKILL.md` と `.claude/skills/dragon-extend/references/registry.md` が持つ。この repo へは PR で足し、取り込むかは管理者が決める。fork した人は、その中で自由に足してよい (MIT、`LICENSE`)。
+- ぶれは、決まりの文書と検査の 2 つで防ぐ。検査が縛るのは、記法の語をどれかの部品が受け持つこと (`apps/playground-spa/src/lib/catalog-parts.test.ts`)、足した時に触る登録先が一覧から漏れないこと (`packages/dragon/test/extend-skill.test.ts`)、描く file が色と字の大きさを値の表からだけ読み、色味が色の見分けを保つこと (`packages/dragon/test/look.test.ts`) の 3 つ。並べ方と色の役の決まり (`docs/design/base/GRAMMAR.md`) は文書だけで、検査は無い。色味の案の見分けを確かめる `docs/design/base/check-palettes.mjs` は手で回す。
+
 ## 利用者
 
 - 人は dragon記法で書く。行の頭の英語の語 (`sequence` や `box` や `step`) が行の役目を決め、段の中の行は字下げして書く。記法の語は英語だけで、名前と本文の字は何語でもよく、誤りの文の言葉は呼ぶ側が渡す (既定は日本語) (`packages/dragon/src/parser.ts`、#3137)。

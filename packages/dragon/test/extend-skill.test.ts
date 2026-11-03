@@ -152,3 +152,18 @@ describe("記法と部品を足す skill (#3245)", () => {
     expect(wide, "浅い dir を名指して漏れを隠す行").toEqual([]);
   });
 });
+
+describe("部品の考え方 (#3339)", () => {
+  it("parts-concept-names-real-paths", () => {
+    // 前提の節は部品を共通と図の種類だけの 2 段に分ける考え方を書き、根拠の置き場を backtick で名指す。
+    // 名指した file を動かすと節が黙って古くなるので、backtick の中の字を全て repo の path として読み、在るかを確かめる
+    const lines = read(join(ROOT, ".ikkan/premises/product.md")).split("\n");
+    const start = lines.indexOf("## 部品の考え方");
+    expect(start, "前提に部品の考え方の節が無い").toBeGreaterThanOrEqual(0);
+    const end = lines.findIndex((line, i) => i > start && line.startsWith("## "));
+    const body = lines.slice(start + 1, end < 0 ? undefined : end).join("\n");
+    const paths = [...body.matchAll(/`([^`]+)`/gu)].map((match) => match[1] ?? "");
+    expect(paths.length, "節が根拠の置き場を 1 つも名指さない").toBeGreaterThan(0);
+    expect(paths.filter((path) => !existsSync(join(ROOT, path))), "節が名指す path のうち repo に無い物").toEqual([]);
+  });
+});
