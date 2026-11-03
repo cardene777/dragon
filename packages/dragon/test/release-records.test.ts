@@ -166,6 +166,17 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-46-4-releases-readable-linked-figures", () => {
+    // 飛び先を持つ図を流す時に SVG を読み上げから隠さない直し (#3329) は 0.46.4 で npm と見本帳に出す (#3329)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 46 || (minor === 46 && patch >= 4), `package の版 ${version()} が 0.46.4 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.46\.4\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.46.4"), "0.46.4");
+      expect(released, `${file} に日付付きの ## [0.46.4] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.46.4 の節に #3329 の項が無い`).toContain("(#3329)");
+    }
+  });
+
   it("changelog-0-46-3-releases-english-npm-description", () => {
     // npm の頁の説明文を英語に直した変更は 0.46.3 で npm にだけ出す (#3327)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
