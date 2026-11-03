@@ -6,6 +6,24 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-11-03
+
+言葉を渡さない時に出す文を変えたので、2 つ目の数を上げた。
+
+### Changed
+
+- **`lang` を渡さない時に出す文を英語にした** (#3338)
+
+  `lang` を渡さないと、記法の誤りの文、原本の欄の誤りの文、再生の部品が読み上げる名前、全体図の札、書き出しの命令の使い方と文が日本語で出ていた。
+  英語の README の例は `lang` を渡していないので、例のまま置いた頁に日本語の文が出ていた。
+  既定を英語にし、既定の言葉は1か所 (`packages/dragon/src/words.ts` の `DEFAULT_LANG`) で持つ。
+
+  日本語の文を保つには、言葉を明示で渡す。
+
+  - `parseNotation(text, { lang: "ja" })`、`validateDiagram(input, { lang: "ja" })`、`readDiagram(input, { lang: "ja" })`
+  - `mountDiagram(host, diagram, { lang: "ja" })` と `renderDiagram(input, { lang: "ja" })`
+  - `exportDiagram(input, { ..., lang: "ja" })` と `dragon export <file> --lang ja`
+
 ## [0.46.4] - 2026-11-03
 
 受け付ける入力を変えない変更だけなので、3 つ目の数を上げた。

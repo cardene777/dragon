@@ -6,6 +6,24 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-11-03
+
+This version changes the text shown when no language is passed, so the second number went up.
+
+### Changed
+
+- **Text shown when `lang` is not passed is now in English** (#3338)
+
+  Without `lang`, notation error messages, field error messages, the names the player reads aloud, the overview labels, and the export command's usage and messages were in Japanese.
+  The English README examples do not pass `lang`, so a page that used them as written showed Japanese text.
+  The default is now English, and it is set in one place (`DEFAULT_LANG` in `packages/dragon/src/words.ts`).
+
+  To keep the Japanese text, pass the language explicitly.
+
+  - `parseNotation(text, { lang: "ja" })`, `validateDiagram(input, { lang: "ja" })`, and `readDiagram(input, { lang: "ja" })`
+  - `mountDiagram(host, diagram, { lang: "ja" })` and `renderDiagram(input, { lang: "ja" })`
+  - `exportDiagram(input, { ..., lang: "ja" })` and `dragon export <file> --lang ja`
+
 ## [0.46.4] - 2026-11-03
 
 This version only has a change that does not change what input is accepted, so the third number went up.
