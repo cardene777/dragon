@@ -21,9 +21,9 @@
  * ブロックが持つ宣言の塊 (中身の帯の `strip` の行) は、区画と箱とチップの宣言の後ろに、ブロックの書き戻す処理 (`print.figure`) が書く。
  */
 import { type EventPrinter, ranked } from "./blocks/block";
-import { carryAttrs } from "./blocks/carry/block";
+import { line } from "./blocks/edge/block";
 import { BLOCKS } from "./blocks/index";
-import { attrs, name, shown } from "./print-kit";
+import { attrs, name, num, shown } from "./print-kit";
 import type { Box, Diagram, DiagramEvent, LineupItem, Region, Step, TimeSpec } from "./schema";
 import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 
@@ -59,19 +59,12 @@ const declareBox = (b: Box): string =>
     ["link", b.link],
   ])}`;
 
-/** 線の行の両端と名前 */
-const line = (from: string, to: string, label: string | undefined): string => `${from} -> ${to}${label === undefined ? "" : `: ${name(label)}`}`;
-
 /** 目盛りの範囲。1 つの目盛りは番号だけを書く */
 const range = (from: number, to: number): string => (from === to ? `${from}` : `${from}-${to}`);
-/** 数の属性の値 */
-const num = (n: number | undefined): string | undefined => (n === undefined ? undefined : `${n}`);
 
-/** 段の中の 1 行。`kind` は図の種類。枝分かれの図の線は、送る側の名前の札を書かない時の運ぶ物にする */
+/** 段の中の 1 行。`kind` は図の種類 */
 function event(e: DiagramEvent, kind: Diagram["kind"]): string {
   switch (e.type) {
-    case "edge":
-      return `${line(e.from, e.to, e.label)}${attrs([...carryAttrs(e, kind), ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`;
     case "now":
       return `${NOW} -> ${e.to}`;
     case "mark":

@@ -64,8 +64,7 @@
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
-import { readCarry } from "./blocks/carry/block";
-import { readLabel, readSide } from "./blocks/edge-label/block";
+import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces, urlOf } from "./read-kit";
@@ -130,8 +129,6 @@ export interface ParseOptions {
   lang?: NotationLang;
 }
 
-/** 線の行。名札、`->`、名札 */
-const EDGE = /^([^\s:[\]]+?)\s*->\s*([^\s:[\]]+)/du;
 /** 枝分かれの図の `commit` の行。名札と、`on` の枝と、`copy` の当て直しの元と、`merge` の取り込む枝 */
 const COMMIT = new RegExp(`^commit\\s+([^\\s[]+)(?:\\s+${ON}\\s+([^\\s[]+))?(?:\\s+${COPY}\\s+([^\\s[]+))?(?:\\s+${MERGE}\\s+([^\\s[]+))?`, "du");
 /** 枝分かれの図の、枝を切る行。枝と `from` と切る commit */
@@ -309,7 +306,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (building) throw fail(source, 0, m.declarationInStep);
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
-  const state: ParseState = { m, kind, inStep, beforeSteps, boxAt, figure };
+  const state: ParseState = { m, kind, attrs: ATTRS, inStep, beforeSteps, boxAt, endAt, columns: readColumns, figure };
   const finish = (): void => {
     if (!building) return;
     if (building.body === undefined) throw fail(building.source, 0, m.noBody(building.title));
@@ -335,10 +332,13 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
     const edge = EDGE.exec(text);
     if (edge) {
-      if (isLineup) throw fail(source, 0, m.lineupNoEdge);
       // 状態遷移図の最初の step より前の線は、移れる道の地図
       if (isState && !building) paths.push(readPath(source, edge));
-      else inStep(source).events.push(readEdge(source, edge));
+      else {
+        const read = readEdgeLine(source, edge, state);
+        // 枝分かれの図の線は、送る側の枝の札を受ける側の commit へ動かす
+        if (isGit && read.from !== HEAD) tips.set(read.from, read.to);
+      }
       continue;
     }
     const [word = "", second] = text.split(/\s+/u);
@@ -951,39 +951,11 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     return last;
   }
 
-  /** 線の行の両端と、`:` の後ろの線の名前。`at` は名前の後ろの位置 */
-  function readLine(source: SourceLine, edge: RegExpExecArray): { from: string; to: string; label?: string; at: number } {
-    const from = endAt(source, edge[1] ?? "", edge.indices?.[1]?.[0] ?? 0, "from");
-    const to = endAt(source, edge[2] ?? "", edge.indices?.[2]?.[0] ?? 0, "to");
-    return { from, to, ...readLabel(source, skipSpaces(source.text, edge[0].length), m) };
-  }
-
   /** 状態遷移図の最初の `step` より前の `<名札> -> <名札>: <線の名前>` の行。属性は書けない */
   function readPath(source: SourceLine, edge: RegExpExecArray): StatePath {
-    const { from, to, label, at } = readLine(source, edge);
+    const { from, to, label, at } = readLine(source, edge, state);
     if (at < source.text.length) throw fail(source, at, source.text[at] === "[" ? m.pathNoAttrs : m.edgeShape);
     return { from, to, ...(label !== undefined ? { label } : {}) };
-  }
-
-  /** `<名札> -> <名札>: <線の名前> [<属性>]` の行 */
-  function readEdge(source: SourceLine, edge: RegExpExecArray): DiagramEvent {
-    const text = source.text;
-    const { from, to, label, at } = readLine(source, edge);
-    if (at < text.length && text[at] !== "[") throw fail(source, at, m.edgeShape);
-    const attrs = at < text.length ? readAttrs(source, at, ATTRS.edge, m) : new Map<string, Attr>();
-    const carry = readCarry(source, attrs, from, state.kind, m);
-    const side = readSide(source, attrs, m);
-    const columns = readColumns(source, from, to, attrs, at);
-    if (isGit && from !== HEAD) tips.set(from, to);
-    return {
-      type: "edge",
-      from,
-      to,
-      ...(label !== undefined ? { label } : {}),
-      carry,
-      ...(side ? { labelSide: side } : {}),
-      ...columns,
-    };
   }
 
   /**

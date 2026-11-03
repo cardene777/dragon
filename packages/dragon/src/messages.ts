@@ -53,7 +53,6 @@ export interface CoreMessages {
   unclosedGroup: (id: string) => string;
   regionReopened: (id: string) => string;
   emptyName: (id: string) => string;
-  edgeShape: string;
   quoteUnclosed: string;
   afterQuote: string;
   attrUnclosed: string;
@@ -109,7 +108,6 @@ export interface CoreMessages {
   /** 列の図だけの行 (`item`、`line`、`seal`、`open`、`pick`、`stamp`) を、別の種類の図に書いた (#3239) */
   lineupOnly: (word: string) => string;
   lineupNoGroup: string;
-  lineupNoEdge: string;
   noItems: string;
   itemShape: string;
   lineShape: string;
@@ -213,7 +211,6 @@ const ja = (): Messages => {
     unclosedGroup: (id) => `group ${id} を end で閉じていない`,
     regionReopened: (id) => `group ${id} は宣言済み。もう一度開く時は group ${id} だけを書き、名前と属性は最初の宣言に書く`,
     emptyName: (id) => `${id} の名前が空`,
-    edgeShape: "線は <名札> -> <名札>: <線の名前> [<属性>] の形で書く",
     quoteUnclosed: '" で始めた字を " で閉じていない',
     afterQuote: '" で閉じた字の後ろには、属性か次の , だけを書く',
     attrUnclosed: "属性は [ で始めて ] で閉じ、行の終わりに置く",
@@ -254,7 +251,6 @@ const ja = (): Messages => {
     manyRoots: (id, root) => `${id} が親を持たないまま残る。木の根は 1 つだけで、${id} も ${root} も最後に 1 つの根へ組む`,
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
     lineupNoGroup: "lineup (列の図) には group を書けない。列は box の行で宣言する",
-    lineupNoEdge: "lineup (列の図) には線の行を書けない。チップは line の行で列の並びを書くと動く",
     noItems: "item の行でチップを 1 つ以上宣言する",
     itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>] の形で書く",
     lineShape: "line は line <列>: <チップ>, <チップ> の形で書く",
@@ -338,7 +334,6 @@ const en = (): Messages => {
     unclosedGroup: (id) => `group ${id} is not closed with end`,
     regionReopened: (id) => `group ${id} is already declared. To open it again, write only group ${id}; put the name and attributes on the first one`,
     emptyName: (id) => `${id} has an empty name`,
-    edgeShape: "Write a line as <id> -> <id>: <label> [<attributes>]",
     quoteUnclosed: 'A value that starts with " is not closed with "',
     afterQuote: 'After a value closed with ", write only attributes or the next ,',
     attrUnclosed: "Start attributes with [, close them with ], and put them at the end of the line",
@@ -379,7 +374,6 @@ const en = (): Messages => {
     manyRoots: (id, root) => `${id} is left without a parent. A tree has one root, so join ${id} and ${root} under one root by the end`,
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
     lineupNoGroup: "A lineup diagram takes no group. Declare the lanes with box lines",
-    lineupNoEdge: "A lineup diagram takes no edge lines. Chips move when a line line rewrites a lane",
     noItems: "Declare at least one chip with an item line",
     itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>]",
     lineShape: "Write a line as line <lane>: <chip>, <chip>",

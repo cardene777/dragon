@@ -16,6 +16,7 @@
  * 今は中身の無い欄は、作らずに「持たない」値 (`none(<理由>)`) を置く。
  */
 import type { Messages } from "../messages";
+import type { Attr } from "../read-kit";
 import type { Diagram, DiagramEvent, Step, StripMeter } from "../schema";
 import type { SourceLine } from "../tokenize";
 
@@ -60,12 +61,24 @@ export interface ParseState {
   readonly m: Messages;
   /** 図の種類 */
   readonly kind: KindName;
+  /** 行ごとに書ける属性の鍵 (語の表の `ATTRS`)。鍵は行の頭の語で、線の行は `edge` */
+  readonly attrs: Readonly<Record<string, readonly string[]>>;
   /** 段の中に書く行の書き先の段。最初の `step` より前に書いた行は誤りで止める */
   readonly inStep: (source: SourceLine) => StepDraft;
   /** 宣言の行を確かめる。最初の `step` より後に書いた宣言の行は誤りで止める */
   readonly beforeSteps: (source: SourceLine) => void;
   /** 宣言した箱の名札 `id` をそのまま返す。宣言していない名札は、名札の列 `at` を示して誤りで止める */
   readonly boxAt: (source: SourceLine, id: string, at: number) => string;
+  /**
+   * 線の端の名札 `id` をそのまま返す。`side` は送る側 (`from`) か受ける側 (`to`)。
+   * 書ける名札は図の種類で違い (状態遷移図の始まりと終わりの印、枝分かれの図の枝と commit、時間軸の図の節目、木の図の木の箱)、書けない名札は誤りで止める
+   */
+  readonly endAt: (source: SourceLine, id: string, at: number, side: "from" | "to") => string;
+  /**
+   * 線の列 (`at` と `into`)。時間軸の図の箱どうしの線だけが持ち、ほかの図の種類で書いた列は誤りで止める。
+   * `end` は線の名前の後ろの位置で、書くべき列が無い時に誤りの位置として示す
+   */
+  readonly columns: (source: SourceLine, from: string, to: string, attrs: Map<string, Attr>, end: number) => { at?: number; into?: number };
   /** 宣言の行でブロックが組む、図の原本の欄 */
   readonly figure: FigureDraft;
 }

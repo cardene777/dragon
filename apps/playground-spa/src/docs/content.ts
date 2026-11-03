@@ -126,7 +126,7 @@ export const DOCS: Record<Lang, DocsText> = {
       edges: {
         title: "線",
         text: [
-          "線は `<名札> -> <名札>: <線の名前>` で書き、段の中に書いた順に走る。名前は省ける。",
+          ...BLOCK_DOCS.edge.ja,
           ...BLOCK_DOCS.act.ja,
           ...BLOCK_DOCS["edge-label"].ja,
         ],
@@ -327,7 +327,7 @@ export const DOCS: Record<Lang, DocsText> = {
       edges: {
         title: "Lines",
         text: [
-          "Write a line as `<id> -> <id>: <label>`. Lines run in the order they are written in the step, and the label can be left out.",
+          ...BLOCK_DOCS.edge.en,
           ...BLOCK_DOCS.act.en,
           ...BLOCK_DOCS["edge-label"].en,
         ],

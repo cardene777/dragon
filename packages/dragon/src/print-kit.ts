@@ -18,5 +18,8 @@ export const attrs = (pairs: [string, string | undefined][]): string => {
   return written.length === 0 ? "" : ` [${written.map(([k, v]) => `${k}: ${value(v)}`).join(", ")}]`;
 };
 
+/** 数の属性の値 */
+export const num = (n: number | undefined): string | undefined => (n === undefined ? undefined : `${n}`);
+
 /** 名札と違う名前だけを `as` の後ろに書く */
 export const shown = (id: string, text: string): string => (text === id ? "" : ` as ${name(text)}`);
