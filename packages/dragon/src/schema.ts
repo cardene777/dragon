@@ -10,6 +10,7 @@
  * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false }` で行う。
  */
 import type { ErrorObject } from "ajv";
+import type { LabelSide } from "./blocks/edge-label/block";
 import type { StepSource } from "./blocks/source/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { nearest } from "./nearest";
@@ -46,8 +47,6 @@ export interface Box {
 }
 
 export type Carry = { kind: "envelope" } | { kind: "tag"; text: string } | { kind: "coin" } | { kind: "none" };
-
-export type LabelSide = "above" | "below" | "left" | "right";
 
 /** 見せ方。`fixed` は全体を止めて中だけ動かし、`follow` は寄って動かし全体図で今どこかを示す。 */
 export type ViewMode = "fixed" | "follow";
@@ -199,6 +198,8 @@ export interface StatePath {
 
 /** 段の出典の型は出典のブロックが持つ (#3345) */
 export type { StepSource };
+/** 線の名前を置く側の型は線の名前のブロックが持つ (#3345) */
+export type { LabelSide };
 
 export interface Step {
   title: string;

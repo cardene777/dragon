@@ -32,6 +32,9 @@ export const AS = "as";
 
 export const isOneOf = <T extends string>(list: readonly T[], word: string): word is T => (list as readonly string[]).includes(word);
 
+/** 誤りの文に、書ける語を ` / ` で区切って並べる */
+export const list = (words: readonly string[]): string => words.join(" / ");
+
 /** `at` から空白を飛ばした位置 */
 export function skipSpaces(text: string, at: number): number {
   let i = at;

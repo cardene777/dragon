@@ -1,5 +1,5 @@
 /**
- * 区画、箱、線、線の名前、運ぶ物、段の番号、中身の帯を SVG に描く部品。見本帳の `engine.js` の部品を写す。
+ * 区画、箱、線、運ぶ物、段の番号を SVG に描く部品。見本帳の `engine.js` の部品を写す。
  *
  * どの部品も、置き場所は場面 (`layout/scene.ts`) から、いつ見えるかは時刻の表 (`timeline.ts`) から読む。
  * 色は色の役の変数 (`--c` と `--ct`) だけを渡し、値は色味の表が持つ。
@@ -17,13 +17,12 @@ import {
   type SceneBox,
   type SceneEdge,
   type SceneEnd,
-  type SceneLabel,
   type ScenePath,
   type SceneRegion,
   type SceneSide,
 } from "../layout/scene";
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
-import type { CarrierTime, EdgeTime, LabelTime, Span, Timeline } from "../timeline";
+import type { CarrierTime, EdgeTime, Span, Timeline } from "../timeline";
 import { ICONS } from "./icons";
 import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
@@ -334,24 +333,6 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false, since
     base: `${since > 0 ? `<g class="dg-a" style="${m.vis(since)}">${path}</g>` : path}${past ? `<path class="dg-e-past dg-a" d="${d}" style="${grey}"/><path class="dg-eh-past dg-a" d="${head}" style="${grey}"/>` : ""}`,
     lit: `<g style="${cs(e.color)}"><path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}"/><path class="dg-eh-on dg-a" d="${head}" style="${hk}"/><path class="dg-flow dg-a" d="${d}" style="${flow}"/></g>`,
   };
-}
-
-/**
- * 線の名前の札。その段の間だけ出し、段の終わりまでに消え終わる。時刻の表が `after` を持つ時は、その間だけ札を外した灰の字で薄く残す (#3171)。
- * `again` を持つ時は (止め絵を選んだ図、#3200)、その間に同じ札をもう 1 つ出す。
- */
-export function label(l: SceneLabel, time: LabelTime, ctx: Ctx): string {
-  const ja = l.family === "sans" ? " dg-capj" : "";
-  const { radius } = LOOK.label;
-  const shown: Shown[] = time.again ? [[time.start, time.end], [time.again.start, time.again.end]] : [[time.start, time.end]];
-  // 札の間は札の四角を、薄く残す間は札を外した字の四角を記録する
-  ctx.ink.push({ text: l.text, rect: l, shown, boxed: true });
-  if (time.after) ctx.ink.push({ text: l.text, rect: textBox(l.text, l.x + l.w / 2, l.y + l.h / 2 + LOOK.baseline.label, l.family === "sans" ? TYPE.labelJa : TYPE.label, "middle"), shown: [[time.after.start, time.after.end]] });
-  const x = r1(l.x + l.w / 2);
-  const y = r1(l.y + l.h / 2 + LOOK.baseline.label);
-  const past = time.after ? `<g class="dg-cap-past${l.family === "sans" ? " dg-cap-pastj" : ""} dg-a" style="${ctx.m.vis(time.after.start, time.after.end)}"><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>` : "";
-  const caps = shown.map(([a, b]) => `<g class="dg-cap${ja} dg-a" style="${cs(l.color)};${ctx.m.rise(a, b, true)}"><rect x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${radius}"/><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`);
-  return `${past}${caps.join("")}`;
 }
 
 function carrierShape(e: SceneEdge, sh: string): string {

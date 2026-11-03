@@ -3,6 +3,10 @@ import { text as actText } from "../../../../packages/dragon/src/blocks/act/gall
 import { shelf as actShelf } from "../../../../packages/dragon/src/blocks/act/gallery/shelf";
 import { docs as actDocs } from "../../../../packages/dragon/src/blocks/act/gallery/docs";
 import { rule as actRule } from "../../../../packages/dragon/src/blocks/act/gallery/rule";
+import { text as edgeLabelText } from "../../../../packages/dragon/src/blocks/edge-label/gallery/text";
+import { shelf as edgeLabelShelf } from "../../../../packages/dragon/src/blocks/edge-label/gallery/shelf";
+import { docs as edgeLabelDocs } from "../../../../packages/dragon/src/blocks/edge-label/gallery/docs";
+import { rule as edgeLabelRule } from "../../../../packages/dragon/src/blocks/edge-label/gallery/rule";
 import { text as noteText } from "../../../../packages/dragon/src/blocks/note/gallery/text";
 import { shelf as noteShelf } from "../../../../packages/dragon/src/blocks/note/gallery/shelf";
 import { docs as noteDocs } from "../../../../packages/dragon/src/blocks/note/gallery/docs";
@@ -19,6 +23,7 @@ import { rule as stripRule } from "../../../../packages/dragon/src/blocks/strip/
 /** 見本帳の一覧の名前と説明。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_TEXT = {
   "act": actText,
+  "edge-label": edgeLabelText,
   "note": noteText,
   "source": sourceText,
   "strip": stripText,
@@ -27,6 +32,7 @@ export const BLOCK_TEXT = {
 /** 編集画面の棚に置く部品の名前。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_SHELF = {
   "act": actShelf,
+  "edge-label": edgeLabelShelf,
   "note": noteShelf,
   "source": sourceShelf,
   "strip": stripShelf,
@@ -35,6 +41,7 @@ export const BLOCK_SHELF = {
 /** 使い方の頁の段落。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_DOCS = {
   "act": actDocs,
+  "edge-label": edgeLabelDocs,
   "note": noteDocs,
   "source": sourceDocs,
   "strip": stripDocs,
@@ -43,6 +50,7 @@ export const BLOCK_DOCS = {
 /** `GRAMMAR.md` の部品と使い方の表の行。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_RULE = {
   "act": actRule,
+  "edge-label": edgeLabelRule,
   "note": noteRule,
   "source": sourceRule,
   "strip": stripRule,

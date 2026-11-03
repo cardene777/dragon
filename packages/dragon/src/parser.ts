@@ -64,6 +64,7 @@
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
+import { readLabel, readSide } from "./blocks/edge-label/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces, urlOf } from "./read-kit";
@@ -77,7 +78,6 @@ import {
   type GitBranch,
   type GitCommit,
   ICON_NAMES,
-  type LabelSide,
   type LineupItem,
   type Region,
   type StatePath,
@@ -110,7 +110,6 @@ import {
   OF,
   OLD_HEADS,
   ON,
-  SIDES,
   SPAN_SHAPES,
   STATE_ENDS,
   TIME_EDGE_ATTRS,
@@ -955,14 +954,9 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
 
   /** 線の行の両端と、`:` の後ろの線の名前。`at` は名前の後ろの位置 */
   function readLine(source: SourceLine, edge: RegExpExecArray): { from: string; to: string; label?: string; at: number } {
-    const text = source.text;
     const from = endAt(source, edge[1] ?? "", edge.indices?.[1]?.[0] ?? 0, "from");
     const to = endAt(source, edge[2] ?? "", edge.indices?.[2]?.[0] ?? 0, "to");
-    const at = skipSpaces(text, edge[0].length);
-    if (text[at] !== ":") return { from, to, at };
-    const named = readName(source, at + 1, m);
-    if (named.value === "") throw fail(source, at, m.emptyLabel);
-    return { from, to, label: named.value, at: named.rest };
+    return { from, to, ...readLabel(source, skipSpaces(source.text, edge[0].length), m) };
   }
 
   /** 状態遷移図の最初の `step` より前の `<名札> -> <名札>: <線の名前>` の行。属性は書けない */
@@ -982,8 +976,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     const carried = attrs.get("carry");
     if (tag && carried) throw fail(source, Math.max(tag.at, carried.at), m.carryTwice);
     if (carried && !isOneOf(CARRIES, carried.value)) throw fail(source, carried.at, m.badCarry);
-    const side = attrs.get("side");
-    if (side && !isOneOf(SIDES, side.value)) throw fail(source, side.at, m.badSide);
+    const side = readSide(source, attrs, m);
     const columns = readColumns(source, from, to, attrs, at);
     // 枝分かれの図の線は札を動かす線で、書かなければ送る側の名前の札を運ぶ
     let carry: Carry = isGit ? { kind: "tag", text: from } : { kind: "envelope" };
@@ -996,7 +989,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       to,
       ...(label !== undefined ? { label } : {}),
       carry,
-      ...(side ? { labelSide: side.value as LabelSide } : {}),
+      ...(side ? { labelSide: side } : {}),
       ...columns,
     };
   }

@@ -8,8 +8,9 @@
 import { ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
 import { nearest } from "./nearest";
+import { list } from "./read-kit";
 import { COLORS, ICON_NAMES } from "./schema";
-import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SIDES, SPAN_SHAPES, VIEWS } from "./words";
+import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SPAN_SHAPES, VIEWS } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
 export type Shape = "sequence" | "architecture" | "group" | "box" | "strip" | "view" | "step" | "say" | "code" | "act" | "note" | "set";
@@ -53,7 +54,6 @@ export interface CoreMessages {
   regionReopened: (id: string) => string;
   emptyName: (id: string) => string;
   edgeShape: string;
-  emptyLabel: string;
   quoteUnclosed: string;
   afterQuote: string;
   attrUnclosed: string;
@@ -66,7 +66,6 @@ export interface CoreMessages {
   badIcon: (value: string) => string;
   badView: string;
   badCarry: string;
-  badSide: string;
   /** 箱の飛び先 (`link`) か段の出典 (`url`) に、頁を移る形でない URL を書いた (#3199) */
   badUrl: (key: string) => string;
   carryTwice: string;
@@ -164,7 +163,6 @@ export interface CoreMessages {
   badShape: string;
 }
 
-const list = (words: readonly string[]): string => words.join(" / ");
 /** 書いたアイコン名に近い名前が在れば `near` の文、無ければ `none` の文 (#3315) */
 const withNear = (value: string, near: (name: string) => string, none: string): string => {
   const name = nearest(value, ICON_NAMES);
@@ -218,7 +216,6 @@ const ja = (): Messages => {
     regionReopened: (id) => `group ${id} は宣言済み。もう一度開く時は group ${id} だけを書き、名前と属性は最初の宣言に書く`,
     emptyName: (id) => `${id} の名前が空`,
     edgeShape: "線は <名札> -> <名札>: <線の名前> [<属性>] の形で書く",
-    emptyLabel: "線の : の後ろに線の名前を書く。名前を書かない時は : も書かない",
     quoteUnclosed: '" で始めた字を " で閉じていない',
     afterQuote: '" で閉じた字の後ろには、属性か次の , だけを書く',
     attrUnclosed: "属性は [ で始めて ] で閉じ、行の終わりに置く",
@@ -230,7 +227,6 @@ const ja = (): Messages => {
     badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`),
     badView: `view は ${list(VIEWS)} のどれか`,
     badCarry: `carry は ${list(CARRIES)} のどれか。札は tag: <値> で書く`,
-    badSide: `side は ${list(SIDES)} のどれか`,
     badUrl: (key) => `${key} には / で始まる path か、http:// か https:// で始まる URL を書く`,
     carryTwice: "運ぶ物は 1 本の線に 1 つまで。carry と tag は一緒に書かない",
     reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
@@ -347,7 +343,6 @@ const en = (): Messages => {
     regionReopened: (id) => `group ${id} is already declared. To open it again, write only group ${id}; put the name and attributes on the first one`,
     emptyName: (id) => `${id} has an empty name`,
     edgeShape: "Write a line as <id> -> <id>: <label> [<attributes>]",
-    emptyLabel: "Write the label after the : of a line, or leave out the : as well",
     quoteUnclosed: 'A value that starts with " is not closed with "',
     afterQuote: 'After a value closed with ", write only attributes or the next ,',
     attrUnclosed: "Start attributes with [, close them with ], and put them at the end of the line",
@@ -359,7 +354,6 @@ const en = (): Messages => {
     badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`),
     badView: `view is one of ${list(VIEWS)}`,
     badCarry: `carry is one of ${list(CARRIES)}. Write a tag as tag: <value>`,
-    badSide: `side is one of ${list(SIDES)}`,
     badUrl: (key) => `Write a path that starts with / or a URL that starts with http:// or https:// for ${key}`,
     carryTwice: "A line carries one thing. Do not write carry and tag together",
     reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,

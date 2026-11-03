@@ -13,8 +13,9 @@
  * 行の頭の語と属性の一覧の並びは誤りの文に出るので、混ぜても今の並びを変えない (`blocks.test.ts` の `notation-words-order-unchanged` が見る)。
  */
 import { ranked } from "./blocks/block";
+import { SIDES } from "./blocks/edge-label/block";
 import { BLOCKS } from "./blocks/index";
-import type { Carry, Diagram, LabelSide, ViewMode } from "./schema";
+import type { Carry, Diagram, ViewMode } from "./schema";
 
 export type NotationLang = "ja" | "en";
 
@@ -108,37 +109,53 @@ export const AT = "at";
 /** 木の図の `node` の行で、親の名札の後ろに子を続ける語 (`node <名札> of <子>, <子>`)。必ず書くので部品の語に数えない */
 export const OF = "of";
 
-/** ブロックの置き場へ移していない行の属性の鍵 */
-const LATER_ATTRS = {
-  diagram: ["view"],
-  group: ["note", "color", "icon"],
-  box: ["note", "color", "icon", "link"],
-  edge: ["carry", "tag", "side", "at", "into"],
-  note: ["color"],
-  branch: ["note"],
-  commit: ["hash", "note"],
-  leaf: ["hash"],
-  node: ["hash"],
-  item: ["color", "label"],
-  scale: ["from"],
-  period: ["from"],
-  row: ["color", "empty"],
-  mark: ["color"],
-  span: ["shape", "color"],
-} as const;
+/**
+ * ブロックの置き場へ移していない行の属性の鍵と、その並びの番号。番号は行の頭の語と同じ物差しで、
+ * 1 つの行の鍵は、この鍵とブロックの鍵 (ブロックの並びの番号) を番号の小さい順に並べる (同じ番号の中は書いた順)。
+ * 同じ行にブロックの鍵が混ざる行は、鍵ごとにその鍵を読む行のブロックの番号を置き、混ぜても鍵の並びを変えない
+ */
+const LATER_ATTRS = [
+  [10, { group: ["note"] }],
+  [20, { box: ["note"] }],
+  [40, { diagram: ["view"] }],
+  [84, { edge: ["carry", "tag"] }],
+  [87, { group: ["color"], box: ["color"] }],
+  [88, { group: ["icon"], box: ["icon"] }],
+  [89, { box: ["link"] }],
+  [
+    90,
+    {
+      edge: ["at", "into"],
+      note: ["color"],
+      branch: ["note"],
+      commit: ["hash", "note"],
+      leaf: ["hash"],
+      node: ["hash"],
+      item: ["color", "label"],
+      scale: ["from"],
+      period: ["from"],
+      row: ["color", "empty"],
+      mark: ["color"],
+      span: ["shape", "color"],
+    },
+  ],
+] as const;
 
-/** 属性の鍵の表の型。ブロックの属性の鍵の行は、行の名前で引く */
-type Attrs = typeof LATER_ATTRS & Readonly<Record<string, readonly string[]>>;
+/** 移していない行の名前 */
+type LaterLine = (typeof LATER_ATTRS)[number][1] extends infer L ? (L extends unknown ? keyof L : never) : never;
+/** 属性の鍵の表の型。ブロックだけが持つ行は、行の名前の字で引く */
+type Attrs = Readonly<Record<LaterLine, readonly string[]>> & Readonly<Record<string, readonly string[]>>;
 
 /**
  * 行ごとに書ける属性の鍵。線の `at` と `into`、`note` の `color`、中身の帯の欄の `meter` は時間軸の図だけが書ける (#3165)。
  * `meter` は `strip` の行の欄ごとに、欄の名前の後ろに書く (`strip <題>: <欄> [meter: <割合>]`)
  * 箱の `link` は飛び先、段の出典の `url` は出典の在り処 (#3199)。
- * ブロックが持つ鍵は、同じ行の移していない鍵の後ろに、ブロックの並び (`rank`) の順に足す (#3345)
+ * ブロックが持つ鍵と移していない鍵は、並びの番号の小さい順に並べる (#3345)
  */
 export const ATTRS: Attrs = (() => {
-  const all: Record<string, readonly string[]> = { ...LATER_ATTRS };
-  for (const block of RANKED) for (const [line, keys] of Object.entries(block.words.attrs ?? {})) all[line] = [...(all[line] ?? []), ...keys];
+  const entries: (readonly [number, Readonly<Record<string, readonly string[]>>])[] = [...LATER_ATTRS, ...RANKED.map((block) => [block.rank, block.words.attrs ?? {}] as const)];
+  const all: Record<string, readonly string[]> = {};
+  for (const [, lines] of entries.sort(([a], [b]) => a - b)) for (const [line, keys] of Object.entries(lines)) all[line] = [...(all[line] ?? []), ...keys];
   return all as Attrs;
 })();
 
@@ -152,7 +169,8 @@ export const DURATION_UNITS = ["ms", "s", "min", "h", "d"] as const;
 /** `carry` に書ける運ぶ物。封筒は書かない時、札は `tag` で書く */
 export const CARRIES = keys<Exclude<Carry["kind"], "envelope" | "tag">>({ coin: true, none: true });
 export const VIEWS = keys<ViewMode>({ fixed: true, follow: true });
-export const SIDES = keys<LabelSide>({ above: true, below: true, left: true, right: true });
+/** `side` に書ける側は線の名前のブロックが持つ (#3345) */
+export { SIDES };
 
 /**
  * 前の形の行 (#2997 まで) が、新しい形のどの行に当たるか。誤りの文で新しい行の形を示すために引く。

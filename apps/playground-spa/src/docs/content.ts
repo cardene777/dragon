@@ -128,7 +128,7 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           "線は `<名札> -> <名札>: <線の名前>` で書き、段の中に書いた順に走る。名前は省ける。",
           ...BLOCK_DOCS.act.ja,
-          "線の名前の置き場所は自動で決まる。崩れた時だけ、線の行の終わりに `[side: above]` か `below`、`left`、`right` を足して置く側を指す。",
+          ...BLOCK_DOCS["edge-label"].ja,
         ],
         exit: "続き → 区画",
       },
@@ -333,7 +333,7 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           "Write a line as `<id> -> <id>: <label>`. Lines run in the order they are written in the step, and the label can be left out.",
           ...BLOCK_DOCS.act.en,
-          "The label is placed automatically. Only when the placement breaks, add `[side: above]`, `below`, `left` or `right` at the end of the line to say which side it goes.",
+          ...BLOCK_DOCS["edge-label"].en,
         ],
         exit: "Next → Regions",
       },

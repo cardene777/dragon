@@ -10,13 +10,14 @@
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
 import { action } from "../blocks/act/draw";
+import { fadeBefore, label } from "../blocks/edge-label/draw";
 import { subChanges } from "../blocks/note/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
 import type { GitLayout } from "../layout/git";
 import type { LineupLayout } from "../layout/lineup";
 import { textWidth } from "../layout/measure";
-import { type Layout, type Rect, rewrapStrip, type SceneField, type SceneLabel, type SceneStrip } from "../layout/scene";
+import { type Layout, type Rect, rewrapStrip, type SceneField, type SceneStrip } from "../layout/scene";
 import type { TimeLayout } from "../layout/time";
 import type { TreeLayout } from "../layout/tree";
 import { KIND_FOLDERS } from "../kinds/index";
@@ -26,7 +27,7 @@ import { FONTS } from "../look/fonts";
 import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
-import { buildTimeline, type LabelTime, type Span, type Timeline } from "../timeline";
+import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import {
   badge,
@@ -42,7 +43,6 @@ import {
   esc,
   ghostCard,
   headCard,
-  label,
   lifeline,
   linkTo,
   path,
@@ -291,18 +291,6 @@ export interface FollowFrame {
   height?: number;
   /** 隅の全体図の札の言葉。渡し忘れを型の検査で止めるため、省けない欄にする */
   lang: NotationLang;
-}
-
-/**
- * 同じ線の同じ名前を後の段が置く時は、薄く残した名前をその段が始まるまでで消す (#3184)。
- * 止め絵で全ての段の名前を出し直す間は、同じ所に出る後の段の名前に任せる (#3200)
- */
-function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): LabelTime {
-  if (l.until === undefined) return time;
-  const { after, again: _again, ...rest } = time;
-  if (!after) return rest;
-  const cut = (steps[l.until] as Span).start;
-  return cut > after.start ? { ...rest, after: { start: after.start, end: Math.min(after.end, cut) } } : rest;
 }
 
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
