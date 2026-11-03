@@ -1,37 +1,39 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "Pay by card and get notified later",
-  "boxes": [
-    {
-      "id": "customer",
-      "name": "Customer",
-      "sub": "pays",
-      "color": "slate",
-      "icon": "user"
-    },
-    {
-      "id": "shop",
-      "name": "Shop app",
-      "sub": "takes orders",
-      "color": "blue",
-      "icon": "cart"
-    },
-    {
-      "id": "pay",
-      "name": "Payment service",
-      "sub": "processes cards",
-      "color": "violet",
-      "icon": "card"
+  "blocks": {
+    "box": [
+      {
+        "id": "customer",
+        "name": "Customer",
+        "sub": "pays",
+        "color": "slate",
+        "icon": "user"
+      },
+      {
+        "id": "shop",
+        "name": "Shop app",
+        "sub": "takes orders",
+        "color": "blue",
+        "icon": "cart"
+      },
+      {
+        "id": "pay",
+        "name": "Payment service",
+        "sub": "processes cards",
+        "color": "violet",
+        "icon": "card"
+      }
+    ],
+    "strip": {
+      "title": "Order",
+      "fields": [
+        "number",
+        "amount",
+        "state"
+      ]
     }
-  ],
-  "strip": {
-    "title": "Order",
-    "fields": [
-      "number",
-      "amount",
-      "state"
-    ]
   },
   "steps": [
     {
@@ -138,12 +140,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "customer",
-      "shop",
-      "pay"
-    ]
-  }
+  ]
 }

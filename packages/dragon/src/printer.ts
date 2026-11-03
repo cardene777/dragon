@@ -22,7 +22,8 @@ import { type EventPrinter, ranked } from "./blocks/block";
 import { line } from "./blocks/edge/block";
 import { BLOCKS } from "./blocks/index";
 import { attrs, name, num, shown } from "./print-kit";
-import type { Diagram, DiagramEvent, LineupItem, LineupRole, Step, TimeSpec } from "./schema";
+import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
+import type { Diagram, DiagramEvent, DiagramModel, LineupItem, LineupRole, Step, TimeSpec } from "./schema";
 import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 
 /** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
@@ -39,12 +40,12 @@ const EVENT_PRINTERS: ReadonlyMap<string, EventPrinter> = new Map(
 );
 
 /** 図の種類の宣言の直ぐ後ろに書く、ブロックが持つ宣言の塊 (区画と箱) を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
-const DECLARE_PRINTERS: readonly ((diagram: Diagram) => string[])[] = ranked(BLOCKS).flatMap((block) =>
+const DECLARE_PRINTERS: readonly ((diagram: DiagramModel) => string[])[] = ranked(BLOCKS).flatMap((block) =>
   "none" in block.print || block.print.declare === undefined ? [] : [block.print.declare],
 );
 
 /** 最初の `step` より前に書く、ブロックが持つ宣言の塊を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
-const FIGURE_PRINTERS: readonly ((diagram: Diagram) => string[])[] = ranked(BLOCKS).flatMap((block) =>
+const FIGURE_PRINTERS: readonly ((diagram: DiagramModel) => string[])[] = ranked(BLOCKS).flatMap((block) =>
   "none" in block.print || block.print.figure === undefined ? [] : [block.print.figure],
 );
 
@@ -52,7 +53,7 @@ const FIGURE_PRINTERS: readonly ((diagram: Diagram) => string[])[] = ranked(BLOC
 const range = (from: number, to: number): string => (from === to ? `${from}` : `${from}-${to}`);
 
 /** 段の中の 1 行。`kind` は図の種類 */
-function event(e: DiagramEvent, kind: Diagram["kind"]): string {
+function event(e: DiagramEvent, kind: DiagramModel["kind"]): string {
   switch (e.type) {
     case "now":
       return `${NOW} -> ${e.to}`;
@@ -132,7 +133,12 @@ function timeBlocks(time: TimeSpec): string[] {
   return [head.join("\n"), rows.join("\n"), ...(points.length > 0 ? [points.join("\n")] : []), ...(time.zoom ? [`zoom ${range(time.zoom.from, time.zoom.to)}`] : [])];
 }
 
-export function printNotation(diagram: Diagram): string {
+/**
+ * 原本を記法に書き戻す。描く処理の形 (版1と同じ欄) に組み直して書く (#3346)。
+ * 版1の原本も、読む時と同じく版2の形へ移してから書く
+ */
+export function printNotation(source: Diagram): string {
+  const diagram = toModel(isVersion1(source) ? (upgrade(source, FORMAT_VERSION) as unknown as Diagram) : source);
   const branches = (diagram.git?.branches ?? []).map((b) => `branch ${b.id}${attrs([["note", b.note]])}`);
   const blocks = [
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,

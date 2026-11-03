@@ -174,24 +174,24 @@ type Content = (typeof CONTENT)[NotationLang];
 
 /** 箱と区画の名札と重ならない `prefix` + 番号 */
 function freshId(d: Diagram, prefix: string): string {
-  const used = new Set([...d.boxes.map((b) => b.id), ...(d.regions ?? []).map((r) => r.id)]);
+  const used = new Set([...(d.blocks.box ?? []).map((b) => b.id), ...(d.blocks.group ?? []).map((r) => r.id)]);
   let n = 1;
   while (used.has(`${prefix}${n}`)) n++;
   return `${prefix}${n}`;
 }
 
-/** 箱を 1 つ足す。構成図では最後の箱と同じ区画に入れ、時系列図では生存線にも足す */
+/** 箱を 1 つ足す。構成図では最後の箱と同じ区画に入れる。時系列図の生存線は箱の並びから組むので足さない (#3346) */
 function withBox(d: Diagram, c: Content, region?: string): { diagram: Diagram; id: string } {
   const id = freshId(d, c.box);
-  const inside = region ?? (d.kind === "architecture" ? d.boxes.at(-1)?.region : undefined);
+  const boxes = d.blocks.box ?? [];
+  const inside = region ?? (d.kind === "architecture" ? boxes.at(-1)?.region : undefined);
   const box = { id, name: c.newBox, ...(inside ? { region: inside } : {}) };
-  const sequence = d.sequence ? { sequence: { lifelines: [...d.sequence.lifelines, id] } } : {};
-  return { id, diagram: { ...d, boxes: [...d.boxes, box], ...sequence } };
+  return { id, diagram: { ...d, blocks: { ...d.blocks, box: [...boxes, box] } } };
 }
 
 /** 線の両端。箱が 1 つしかない時は相手の箱を足す */
 function pair(d: Diagram, c: Content): { diagram: Diagram; from: string; to: string } {
-  const [a, b] = d.boxes;
+  const [a, b] = d.blocks.box ?? [];
   if (a && b) return { diagram: d, from: a.id, to: b.id };
   const added = withBox(d, c);
   return { diagram: added.diagram, from: a?.id ?? added.id, to: added.id };
@@ -215,7 +215,7 @@ const BUILD: Record<PartId, (d: Diagram, c: Content) => Diagram> = {
   box: (d, c) => withBox(d, c).diagram,
   region: (d, c) => {
     const id = freshId(d, c.region);
-    return withBox({ ...d, regions: [...(d.regions ?? []), { id, name: c.newRegion }] }, c, id).diagram;
+    return withBox({ ...d, blocks: { ...d.blocks, group: [...(d.blocks.group ?? []), { id, name: c.newRegion }] } }, c, id).diagram;
   },
   step: (d, c) => {
     const p = pair(d, c);
@@ -227,11 +227,11 @@ const BUILD: Record<PartId, (d: Diagram, c: Content) => Diagram> = {
   "edge-coin": edge({ kind: "coin" }, "pay"),
   "edge-none": edge({ kind: "none" }, "notify"),
   "edge-below": edge({ kind: "envelope" }, "call", "below"),
-  action: (d, c) => withEvent(d, { type: "action", box: d.boxes[0]?.id ?? "", label: c.process }),
-  swap: (d, c) => withEvent(d, { type: "swap", box: d.boxes[0]?.id ?? "", text: c.rewritten }),
+  action: (d, c) => withEvent(d, { type: "action", box: d.blocks.box?.[0]?.id ?? "", label: c.process }),
+  swap: (d, c) => withEvent(d, { type: "swap", box: d.blocks.box?.[0]?.id ?? "", text: c.rewritten }),
   strip: (d, c) => {
-    const strip = d.strip ?? { title: c.stripTitle, fields: [c.stripField] };
-    return withEvent({ ...d, strip }, { type: "strip", field: strip.fields[0] ?? c.stripField, value: c.stripValue });
+    const strip = d.blocks.strip ?? { title: c.stripTitle, fields: [c.stripField] };
+    return withEvent({ ...d, blocks: { ...d.blocks, strip } }, { type: "strip", field: strip.fields[0] ?? c.stripField, value: c.stripValue });
   },
 };
 
@@ -354,11 +354,13 @@ const HOLE = {
 export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[] }[] {
   const h = Object.fromEntries(Object.entries(HOLE[lang]).map(([k, v]) => [k, `<${v}>`])) as Record<keyof (typeof HOLE)["ja"], string>;
   const draw = (shape: object): Diagram => shape as Diagram;
-  const empty = (kind: Diagram["kind"]): Diagram => draw({ version: FORMAT_VERSION, kind, title: h.title, boxes: [], steps: [] });
+  /** 図のブロックの欄 (`blocks`) に欄を足した形 */
+  const add = (d: Diagram, blocks: object): Diagram => draw({ ...d, blocks: { ...d.blocks, ...blocks } });
+  const empty = (kind: Diagram["kind"]): Diagram => draw({ version: FORMAT_VERSION, kind, title: h.title, blocks: {}, steps: [] });
   const base = empty("sequence");
   const step = { title: h.stepTitle, body: h.stepBody, events: [] as DiagramEvent[] };
   const withStep = draw({ ...base, steps: [step] });
-  const inStep = (events: object[], extra: object = {}): Diagram => draw({ ...base, ...extra, steps: [{ ...step, events }] });
+  const inStep = (events: object[], blocks: object = {}): Diagram => draw({ ...add(base, blocks), steps: [{ ...step, events }] });
   const edgeOf = (carry: object, labelSide?: string): object => ({ type: "edge", from: h.id, to: h.id, label: h.label, carry, ...(labelSide ? { labelSide } : {}) });
   const diff = (pairs: [Diagram, Diagram][]): string[] =>
     pairs.flatMap(([before, after]) => {
@@ -371,20 +373,20 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const stateStep = draw({ ...empty("state"), steps: [step] });
   const stateEdge = (from: string, to: string): object => ({ type: "edge", from, to, label: h.label, carry: { kind: "envelope" } });
   // 枝と commit と当て直しと merge commit と札の動きは枝分かれの図だけが書ける (#3164)
-  const gitBase = draw({ ...empty("git"), git: { branches: [{ id: h.branch }] }, steps: [step] });
+  const gitBase = draw({ ...add(empty("git"), { branch: [{ id: h.branch }] }), steps: [step] });
   const inGit = (events: object[]): Diagram => draw({ ...gitBase, steps: [{ ...step, events }] });
   const commitOf = (extra: object): object => ({ type: "commit", id: h.id, branch: h.branch, ...extra });
   // 目盛りと区切りと印の列と節目と拡大の帯と、針と印の色と範囲は時間軸の図だけが書ける (#3165)
   const scale = { unit: h.unit, length: h.length, count: h.count };
-  const timeOf = (extra: object = {}): Diagram => draw({ ...empty("time"), time: { scale, rows: [], ...extra }, steps: [step] });
+  const timeOf = (extra: object = {}): Diagram => draw({ ...add(empty("time"), { scale, row: [], ...extra }), steps: [step] });
   const timeBase = timeOf();
   const inTime = (events: object[], base: Diagram = timeBase): Diagram => draw({ ...base, steps: [{ ...step, events }] });
-  const zoomBase = draw({ ...timeOf({ zoom: { from: h.first, to: h.last } }), boxes: [{ id: h.id, name: h.id }] });
+  const zoomBase = add(timeOf({ zoom: { from: h.first, to: h.last } }), { box: [{ id: h.id, name: h.id }] });
   // 葉と親は木の図だけが書ける (#3233)
   const treeBase = draw({ ...empty("tree"), steps: [step] });
   const inTree = (events: object[]): Diagram => draw({ ...treeBase, steps: [{ ...step, events }] });
   // チップと列の並びと封と選ぶと札は列の図だけが書ける (#3239)
-  const lineupBase = draw({ ...empty("lineup"), lineup: { items: [] }, steps: [step] });
+  const lineupBase = draw({ ...add(empty("lineup"), { item: [] }), steps: [step] });
   const inLineup = (events: object[]): Diagram => draw({ ...lineupBase, steps: [{ ...step, events }] });
   return [
     {
@@ -395,12 +397,12 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     {
       id: "region",
       lines: diff([
-        [base, draw({ ...base, regions: [{ id: h.id, name: h.name, note: h.note, color: h.color, icon: h.icon }], boxes: [{ id: h.id, name: h.name, region: h.id }] })],
+        [base, add(base, { group: [{ id: h.id, name: h.name, note: h.note, color: h.color, icon: h.icon }], box: [{ id: h.id, name: h.name, region: h.id }] })],
       ]),
     },
     // 区画に置く書き方は region の早見の group … end が見せる
-    { id: "box", lines: diff([[base, draw({ ...base, boxes: [{ id: h.id, name: h.name, sub: h.note, color: h.color, icon: h.icon, link: h.link }] })]]) },
-    { id: "strip", lines: diff([[base, draw({ ...base, strip: { title: h.title, fields: [h.field, h.field] } })]]) },
+    { id: "box", lines: diff([[base, add(base, { box: [{ id: h.id, name: h.name, sub: h.note, color: h.color, icon: h.icon, link: h.link }] })]]) },
+    { id: "strip", lines: diff([[base, add(base, { strip: { title: h.title, fields: [h.field, h.field] } })]]) },
     { id: "step", lines: diff([[base, withStep]]) },
     { id: "code", lines: diff([[withStep, draw({ ...base, steps: [{ ...step, code: h.command }] })]]) },
     { id: "source", lines: diff([[withStep, draw({ ...base, steps: [{ ...step, sources: [{ name: h.source, url: h.url }] }] })]]) },
@@ -408,11 +410,11 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "carry", lines: diff([{ kind: "tag", text: h.value }, { kind: "coin" }, { kind: "none" }].map((carry) => [withStep, inStep([edgeOf(carry)])])) },
     { id: "side", lines: diff(["above", "below", "left", "right"].map((side) => [withStep, inStep([edgeOf({ kind: "envelope" }, side)])])) },
     { id: "start-finish", lines: diff([[stateStep, draw({ ...stateStep, steps: [{ ...step, events: [stateEdge("start", h.id), stateEdge(h.id, "finish")] }] })]]) },
-    { id: "path", lines: diff([[stateStep, draw({ ...stateStep, state: { paths: [{ from: h.id, to: h.id, label: h.label }] } })]]) },
+    { id: "path", lines: diff([[stateStep, add(stateStep, { path: [{ from: h.id, to: h.id, label: h.label }] })]]) },
     {
       id: "branch",
       lines: diff([
-        [draw({ ...empty("git"), steps: [step] }), draw({ ...gitBase, git: { branches: [{ id: h.branch, note: h.note }] } })],
+        [draw({ ...empty("git"), steps: [step] }), add(gitBase, { branch: [{ id: h.branch, note: h.note }] })],
         [gitBase, inGit([{ type: "branch", branch: h.branch, from: h.id }])],
       ]),
     },
@@ -422,8 +424,8 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "ref", lines: diff([[gitBase, inGit([{ type: "edge", from: h.branch, to: h.id, label: h.label, carry: { kind: "tag", text: h.branch } }])]]) },
     { id: "scale", lines: diff([[draw({ ...empty("time"), steps: [step] }), timeOf({ scale: { ...scale, from: h.number } })]]) },
     { id: "period", lines: diff([[timeBase, timeOf({ period: { name: h.name, length: h.count, from: h.number } })]]) },
-    { id: "row", lines: diff([[timeBase, timeOf({ rows: [{ id: h.id, name: h.name, color: h.color, empty: [h.tick] }] })]]) },
-    { id: "point", lines: diff([[timeBase, timeOf({ points: [{ id: h.id, at: h.tick }] })]]) },
+    { id: "row", lines: diff([[timeBase, timeOf({ row: [{ id: h.id, name: h.name, color: h.color, empty: [h.tick] }] })]]) },
+    { id: "point", lines: diff([[timeBase, timeOf({ point: [{ id: h.id, at: h.tick }] })]]) },
     {
       id: "zoom",
       lines: diff([
@@ -442,7 +444,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     },
     { id: "leaf", lines: diff([[treeBase, inTree([{ type: "leaf", id: h.id, hash: h.hash }])]]) },
     { id: "node", lines: diff([[treeBase, inTree([{ type: "node", id: h.id, children: [h.child, h.child], hash: h.hash }])]]) },
-    { id: "item", lines: diff([[lineupBase, draw({ ...lineupBase, lineup: { items: [{ id: h.id, color: h.color, label: h.text }] } })]]) },
+    { id: "item", lines: diff([[lineupBase, add(lineupBase, { item: [{ id: h.id, color: h.color, label: h.text }] })]]) },
     { id: "line", lines: diff([[lineupBase, inLineup([{ type: "line", box: h.lane, items: [h.chip, h.chip] }])]]) },
     { id: "seal", lines: diff([[lineupBase, inLineup([{ type: "seal", box: h.lane }])]]) },
     { id: "open", lines: diff([[lineupBase, inLineup([{ type: "open", box: h.lane }])]]) },
@@ -450,7 +452,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "stamp", lines: diff([[lineupBase, inLineup([{ type: "stamp", box: h.lane, text: h.text }])]]) },
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
-    { id: "strip-value", lines: diff([[draw({ ...withStep, strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },
+    { id: "strip-value", lines: diff([[add(withStep, { strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },
     { id: "comment", lines: [`// ${h.memo}`] },
   ];
 }

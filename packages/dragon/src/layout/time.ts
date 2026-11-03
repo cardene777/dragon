@@ -10,7 +10,7 @@
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
-import type { Diagram, DiagramEvent } from "../schema";
+import type { DiagramModel, DiagramEvent } from "../schema";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { textBox, textWidth } from "./measure";
 import {
@@ -210,7 +210,7 @@ function minorTicks(count: number, step: number, unitPx: number, majors: number[
 }
 
 /** 段ごとの、段の始まりと終わりに針がいる境 */
-function needleSteps(diagram: Diagram): [number, number][] {
+function needleSteps(diagram: DiagramModel): [number, number][] {
   let at = 0;
   return diagram.steps.map((step) => {
     const from = at;
@@ -219,7 +219,7 @@ function needleSteps(diagram: Diagram): [number, number][] {
   });
 }
 
-export function layoutTime(diagram: Diagram, lang: NotationLang = DEFAULT_LANG): TimeLayout {
+export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_LANG): TimeLayout {
   const T = LOOK.time;
   const { margin, gap } = LOOK;
   const R = LOOK.region;
@@ -585,7 +585,7 @@ function seat(edge: SceneEdge, from: TimeBox, to: TimeBox, rooms: ReturnType<typ
  * 節目の状態を変える段なら節目の丸の左に、印の色を変える段なら印の列の上に、中身の帯だけを書き換える段なら帯の左上に置く。
  * 何も起きない段は前の段の番号と同じ所に置いて数字を入れ替える
  */
-function badgesOf(diagram: Diagram, layout: TimeLayout, needle: [number, number][]): SceneBadge[] {
+function badgesOf(diagram: DiagramModel, layout: TimeLayout, needle: [number, number][]): SceneBadge[] {
   const { r, inset } = LOOK.badge;
   const { axis } = layout;
   const taken: Point[] = [];
@@ -658,7 +658,7 @@ function spotOf(event: DiagramEvent, step: number, layout: TimeLayout): { at: Po
  * 線の名前。節目どうしの線は線の下に、拡大の帯の線は線の右に置き、節目の丸と拡大の帯の箱を離し、
  * 節目の字と列の上の字と同じ段の線の名前と、同じ時刻に見えている段の番号を避ける
  */
-function labelsOf(diagram: Diagram, layout: TimeLayout): SceneLabel[] {
+function labelsOf(diagram: DiagramModel, layout: TimeLayout): SceneLabel[] {
   const labels: SceneLabel[] = [];
   const circles: Rect[] = layout.points.map((p) => ({ x: p.cx - p.r, y: p.cy - p.r, w: p.r * 2, h: p.r * 2 }));
   const texts: Rect[] = layout.points.map((p) => p.text);

@@ -1,127 +1,129 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "architecture",
   "title": "Chainlink CCIP でトークンを別のチェーンへ送る",
-  "regions": [
-    {
-      "id": "送信元",
-      "name": "送信元チェーン",
-      "note": "例 Ethereum",
-      "color": "blue",
-      "icon": "chain"
-    },
-    {
-      "id": "網",
-      "name": "Chainlink ネットワーク",
-      "note": "DON",
-      "color": "amber",
-      "icon": "net"
-    },
-    {
-      "id": "送信先",
-      "name": "送信先チェーン",
-      "note": "例 Arbitrum",
-      "color": "green",
-      "icon": "chain"
+  "blocks": {
+    "group": [
+      {
+        "id": "送信元",
+        "name": "送信元チェーン",
+        "note": "例 Ethereum",
+        "color": "blue",
+        "icon": "chain"
+      },
+      {
+        "id": "網",
+        "name": "Chainlink ネットワーク",
+        "note": "DON",
+        "color": "amber",
+        "icon": "net"
+      },
+      {
+        "id": "送信先",
+        "name": "送信先チェーン",
+        "note": "例 Arbitrum",
+        "color": "green",
+        "icon": "chain"
+      }
+    ],
+    "box": [
+      {
+        "id": "送るアプリ",
+        "name": "送る側のアプリ",
+        "sub": "メッセージを作る",
+        "icon": "app",
+        "region": "送信元"
+      },
+      {
+        "id": "送信元Router",
+        "name": "Router",
+        "sub": "ただ 1 つの入口",
+        "icon": "router",
+        "region": "送信元"
+      },
+      {
+        "id": "OnRamp",
+        "name": "OnRamp",
+        "sub": "確かめて送り出す",
+        "icon": "on",
+        "region": "送信元"
+      },
+      {
+        "id": "送信元Pool",
+        "name": "Token Pool",
+        "sub": "預かるか焼く",
+        "icon": "pool",
+        "region": "送信元"
+      },
+      {
+        "id": "ブロック",
+        "name": "ブロック",
+        "sub": "送信元チェーンの記録",
+        "icon": "block",
+        "region": "送信元"
+      },
+      {
+        "id": "Verifier",
+        "name": "Committee Verifier",
+        "sub": "署名を集めて証明を作る",
+        "icon": "sign",
+        "region": "網"
+      },
+      {
+        "id": "Indexer",
+        "name": "Indexer",
+        "sub": "証明を置く",
+        "icon": "idx",
+        "region": "網"
+      },
+      {
+        "id": "Executor",
+        "name": "Executor",
+        "sub": "実行を頼む",
+        "icon": "exe",
+        "region": "網"
+      },
+      {
+        "id": "OffRamp",
+        "name": "OffRamp",
+        "sub": "確かめて実行する",
+        "icon": "off",
+        "region": "送信先"
+      },
+      {
+        "id": "送信先Router",
+        "name": "Router",
+        "sub": "ただ 1 つの入口",
+        "icon": "router",
+        "region": "送信先"
+      },
+      {
+        "id": "送信先Pool",
+        "name": "Token Pool",
+        "sub": "解放するか発行",
+        "icon": "pool",
+        "region": "送信先"
+      },
+      {
+        "id": "受けるアプリ",
+        "name": "受け取る側のアプリ",
+        "sub": "受け取って処理する",
+        "icon": "app",
+        "region": "送信先"
+      }
+    ],
+    "strip": {
+      "title": "メッセージ",
+      "fields": [
+        "ID",
+        "宛先",
+        "受け取る側",
+        "データ",
+        "トークン",
+        "署名",
+        "状態"
+      ]
     }
-  ],
-  "boxes": [
-    {
-      "id": "送るアプリ",
-      "name": "送る側のアプリ",
-      "sub": "メッセージを作る",
-      "icon": "app",
-      "region": "送信元"
-    },
-    {
-      "id": "送信元Router",
-      "name": "Router",
-      "sub": "ただ 1 つの入口",
-      "icon": "router",
-      "region": "送信元"
-    },
-    {
-      "id": "OnRamp",
-      "name": "OnRamp",
-      "sub": "確かめて送り出す",
-      "icon": "on",
-      "region": "送信元"
-    },
-    {
-      "id": "送信元Pool",
-      "name": "Token Pool",
-      "sub": "預かるか焼く",
-      "icon": "pool",
-      "region": "送信元"
-    },
-    {
-      "id": "ブロック",
-      "name": "ブロック",
-      "sub": "送信元チェーンの記録",
-      "icon": "block",
-      "region": "送信元"
-    },
-    {
-      "id": "Verifier",
-      "name": "Committee Verifier",
-      "sub": "署名を集めて証明を作る",
-      "icon": "sign",
-      "region": "網"
-    },
-    {
-      "id": "Indexer",
-      "name": "Indexer",
-      "sub": "証明を置く",
-      "icon": "idx",
-      "region": "網"
-    },
-    {
-      "id": "Executor",
-      "name": "Executor",
-      "sub": "実行を頼む",
-      "icon": "exe",
-      "region": "網"
-    },
-    {
-      "id": "OffRamp",
-      "name": "OffRamp",
-      "sub": "確かめて実行する",
-      "icon": "off",
-      "region": "送信先"
-    },
-    {
-      "id": "送信先Router",
-      "name": "Router",
-      "sub": "ただ 1 つの入口",
-      "icon": "router",
-      "region": "送信先"
-    },
-    {
-      "id": "送信先Pool",
-      "name": "Token Pool",
-      "sub": "解放するか発行",
-      "icon": "pool",
-      "region": "送信先"
-    },
-    {
-      "id": "受けるアプリ",
-      "name": "受け取る側のアプリ",
-      "sub": "受け取って処理する",
-      "icon": "app",
-      "region": "送信先"
-    }
-  ],
-  "strip": {
-    "title": "メッセージ",
-    "fields": [
-      "ID",
-      "宛先",
-      "受け取る側",
-      "データ",
-      "トークン",
-      "署名",
-      "状態"
-    ]
   },
   "steps": [
     {

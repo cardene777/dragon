@@ -10,7 +10,7 @@
  */
 import { attrs, shown } from "../../print-kit";
 import { fail, isOneOf, readDeclared } from "../../read-kit";
-import type { Box, Diagram } from "../../schema";
+import type { Box, DiagramModel } from "../../schema";
 import type { Block } from "../block";
 import { readLook } from "../color/block";
 import { declareRegion } from "../group/block";
@@ -44,7 +44,7 @@ const declareBox = (b: Box): string =>
  * 箱は JSON の並びのまま書き、同じ区画の箱が続く所を 1 つの `group … end` にする。区画の箱が飛び飛びの時は同じ `group` を開き直す。
  * 区画の並びが箱の現れる順と違う時と、箱の無い区画がある時は、先に全ての区画を中の無い `group … end` で宣言してから開き直す
  */
-function declarations(diagram: Diagram): string[] {
+function declarations(diagram: DiagramModel): string[] {
   const regions = diagram.regions ?? [];
   const runs: { region?: string; boxes: Box[] }[] = [];
   for (const b of diagram.boxes) {
@@ -82,6 +82,7 @@ export const block: Block<BoxMessages> = {
   attach: { how: "place" },
   words: { heads: ["box"], attrs: { box: ["note"] } },
   shape: {
+    field: { type: "array", items: { $ref: "#/definitions/box" } },
     definitions: {
       box: {
         type: "object",

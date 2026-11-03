@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "kind": "tree",
+  "title": "Merkle 木で取引を証明する",
+  "boxes": [
+    {
+      "id": "ブロックの頭",
+      "name": "ブロックの頭",
+      "sub": "根 e71c",
+      "color": "green",
+      "icon": "box"
+    }
+  ],
+  "strip": {
+    "title": "証明",
+    "fields": [
+      "確かめる取引",
+      "使った値",
+      "出した根",
+      "結果"
+    ]
+  },
+  "steps": [
+    {
+      "title": "取引ごとに値を出す",
+      "body": "8件の取引それぞれから値を出す。この値が木の葉になる。",
+      "events": [
+        {
+          "type": "leaf",
+          "id": "取引1",
+          "hash": "3fa0"
+        },
+        {
+          "type": "leaf",
+          "id": "取引2",
+          "hash": "8b04"
+        },
+        {
+          "type": "leaf",
+          "id": "取引3",
+          "hash": "c41d"
+        },
+        {
+          "type": "leaf",
+          "id": "取引4",
+          "hash": "e5f8"
+        },
+        {
+          "type": "leaf",
+          "id": "取引5",
+          "hash": "a90c"
+        },
+        {
+          "type": "leaf",
+          "id": "取引6",
+          "hash": "d72b"
+        },
+        {
+          "type": "leaf",
+          "id": "取引7",
+          "hash": "f1e7"
+        },
+        {
+          "type": "leaf",
+          "id": "取引8",
+          "hash": "5c3e"
+        }
+      ]
+    },
+    {
+      "title": "2つずつ組む",
+      "body": "隣どうしの値を2つずつつないで、もう1度値を出す。親が4つできる。",
+      "events": [
+        {
+          "type": "node",
+          "id": "1から2",
+          "children": [
+            "取引1",
+            "取引2"
+          ],
+          "hash": "7a21"
+        },
+        {
+          "type": "node",
+          "id": "3から4",
+          "children": [
+            "取引3",
+            "取引4"
+          ],
+          "hash": "b9e4"
+        },
+        {
+          "type": "node",
+          "id": "5から6",
+          "children": [
+            "取引5",
+            "取引6"
+          ],
+          "hash": "4d0f"
+        },
+        {
+          "type": "node",
+          "id": "7から8",
+          "children": [
+            "取引7",
+            "取引8"
+          ],
+          "hash": "92c6"
+        }
+      ]
+    },
+    {
+      "title": "さらに2つを組む",
+      "body": "親の値も同じように2つずつ組む。親が2つになる。",
+      "events": [
+        {
+          "type": "node",
+          "id": "1から4",
+          "children": [
+            "1から2",
+            "3から4"
+          ],
+          "hash": "1e8b"
+        },
+        {
+          "type": "node",
+          "id": "5から8",
+          "children": [
+            "5から6",
+            "7から8"
+          ],
+          "hash": "6f53"
+        }
+      ]
+    },
+    {
+      "title": "根ができる",
+      "body": "残った2つを組むと、全ての取引の値をまとめた根が1つできる。ブロックの頭にはこの根だけを記録する。",
+      "events": [
+        {
+          "type": "node",
+          "id": "根",
+          "children": [
+            "1から4",
+            "5から8"
+          ],
+          "hash": "e71c"
+        }
+      ]
+    },
+    {
+      "title": "取引3の値を出す",
+      "body": "取引3が含まれることを確かめる。まず取引3そのものから値 c41d を出す。",
+      "events": [
+        {
+          "type": "strip",
+          "field": "確かめる取引",
+          "value": "取引3",
+          "tag": "c41d"
+        }
+      ]
+    },
+    {
+      "title": "e5f8と組む",
+      "body": "隣の値 e5f8 を受け取って c41d と組み、親の値 b9e4 を出す。ほかの取引は読まなくてよい。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "取引3",
+          "to": "3から4",
+          "carry": {
+            "kind": "tag",
+            "text": "c41d"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "取引4",
+          "to": "3から4",
+          "carry": {
+            "kind": "tag",
+            "text": "e5f8"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "使った値",
+          "value": "e5f8"
+        }
+      ]
+    },
+    {
+      "title": "7a21と組む",
+      "body": "隣の値 7a21 を受け取って b9e4 と組み、さらに上の親の値 1e8b を出す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "3から4",
+          "to": "1から4",
+          "carry": {
+            "kind": "tag",
+            "text": "b9e4"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "1から2",
+          "to": "1から4",
+          "carry": {
+            "kind": "tag",
+            "text": "7a21"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "使った値",
+          "value": "e5f8, 7a21"
+        }
+      ]
+    },
+    {
+      "title": "6f53と組んで根と照らす",
+      "body": "隣の値 6f53 と組むと根の値が出る。ブロックの頭に記録した e71c と一致するので、取引3は確かに含まれている。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "1から4",
+          "to": "根",
+          "carry": {
+            "kind": "tag",
+            "text": "1e8b"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "5から8",
+          "to": "根",
+          "carry": {
+            "kind": "tag",
+            "text": "6f53"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "ブロックの頭",
+          "to": "根",
+          "label": "照らす",
+          "carry": {
+            "kind": "tag",
+            "text": "e71c"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "使った値",
+          "value": "e5f8, 7a21, 6f53"
+        },
+        {
+          "type": "strip",
+          "field": "出した根",
+          "value": "e71c"
+        },
+        {
+          "type": "strip",
+          "field": "結果",
+          "value": "一致"
+        }
+      ]
+    }
+  ]
+}

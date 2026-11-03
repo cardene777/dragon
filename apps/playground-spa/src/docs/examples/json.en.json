@@ -1,19 +1,21 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "Ask to sign in",
-  "boxes": [
-    {
-      "id": "browser",
-      "name": "User's browser",
-      "sub": "operated by the user"
-    },
-    {
-      "id": "app",
-      "name": "App",
-      "sub": "asks for sign-in"
-    }
-  ],
+  "blocks": {
+    "box": [
+      {
+        "id": "browser",
+        "name": "User's browser",
+        "sub": "operated by the user"
+      },
+      {
+        "id": "app",
+        "name": "App",
+        "sub": "asks for sign-in"
+      }
+    ]
+  },
   "steps": [
     {
       "title": "Press sign in",
@@ -30,11 +32,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "browser",
-      "app"
-    ]
-  }
+  ]
 }

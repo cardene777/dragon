@@ -7,7 +7,7 @@
  */
 import type { AttachHow, KindName } from "../blocks/block";
 import type { Layout } from "../layout/scene";
-import type { Diagram } from "../schema";
+import type { DiagramModel } from "../schema";
 import type { NotationLang } from "../words";
 
 export interface Kind {
@@ -16,5 +16,5 @@ export interface Kind {
   /** 受け付ける付け方 */
   accepts: readonly AttachHow[];
   /** 並べ方。`lang` は並べ方が出す字 (断りの文など) の言葉 */
-  layout: (diagram: Diagram, lang: NotationLang) => Layout;
+  layout: (diagram: DiagramModel, lang: NotationLang) => Layout;
 }

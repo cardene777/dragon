@@ -1,37 +1,39 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "ウォレットで署名して送る",
-  "boxes": [
-    {
-      "id": "dApp",
-      "name": "取引所の dApp",
-      "sub": "取引を組む",
-      "color": "blue",
-      "icon": "app"
-    },
-    {
-      "id": "ウォレット",
-      "name": "ウォレット",
-      "sub": "鍵を持つ",
-      "color": "amber",
-      "icon": "key"
-    },
-    {
-      "id": "ノード",
-      "name": "RPC ノード",
-      "sub": "取引を受け付ける",
-      "color": "slate",
-      "icon": "server"
-    },
-    {
-      "id": "チェーン",
-      "name": "ブロックチェーン",
-      "sub": "取引を記録する",
-      "color": "green",
-      "icon": "chain"
-    }
-  ],
+  "blocks": {
+    "box": [
+      {
+        "id": "dApp",
+        "name": "取引所の dApp",
+        "sub": "取引を組む",
+        "color": "blue",
+        "icon": "app"
+      },
+      {
+        "id": "ウォレット",
+        "name": "ウォレット",
+        "sub": "鍵を持つ",
+        "color": "amber",
+        "icon": "key"
+      },
+      {
+        "id": "ノード",
+        "name": "RPC ノード",
+        "sub": "取引を受け付ける",
+        "color": "slate",
+        "icon": "server"
+      },
+      {
+        "id": "チェーン",
+        "name": "ブロックチェーン",
+        "sub": "取引を記録する",
+        "color": "green",
+        "icon": "chain"
+      }
+    ]
+  },
   "steps": [
     {
       "title": "署名を頼む",
@@ -118,13 +120,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "dApp",
-      "ウォレット",
-      "ノード",
-      "チェーン"
-    ]
-  }
+  ]
 }

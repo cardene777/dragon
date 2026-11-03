@@ -11,7 +11,7 @@ import { type ColorKey, LOOK, MOTION, TYPE } from "../../look/values";
 import { type Ctx, esc, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
 import { glyph } from "../icon/draw";
-import type { Diagram } from "../../schema";
+import type { DiagramModel } from "../../schema";
 import type { Span, Timeline } from "../../timeline";
 
 /** 中身の帯の 1 欄の移り変わり。値と札は、次の値か札が来るまで出る。 */
@@ -26,7 +26,7 @@ export interface FieldChange {
 }
 
 /** 段で書いた値と札 (`strip` の出来事) を、欄ごとの移り変わりにする。色はその段の番号の色 */
-export function fieldChanges(diagram: Diagram, timeline: Timeline, layout: Layout): Map<string, FieldChange[]> {
+export function fieldChanges(diagram: DiagramModel, timeline: Timeline, layout: Layout): Map<string, FieldChange[]> {
   const out = new Map<string, FieldChange[]>();
   for (const time of timeline.events) {
     const event = diagram.steps[time.step]?.events[time.event];

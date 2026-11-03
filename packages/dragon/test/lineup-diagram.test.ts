@@ -3,7 +3,7 @@
  * 列の図 (#3239)。
  *
  * 1 枚の盤の上でチップの列が動き、並びが変わり、隠れ、現れる様子を段で追う図。原本の JSON の `kind` は `lineup` で、
- * `boxes` が列、`lineup.items` がチップの宣言で、段の中の `line` が列の並びを書き換える。
+ * 箱 (`blocks.box`) が列、チップ (`blocks.item`) がチップの宣言で、段の中の `line` が列の並びを書き換える。
  * 書き手は並びだけを書き、dragon が前の段との差分を動きに変える。チップは前に居た列から滑り、どの列にも居なかったチップは弾んで現れ、
  * 列から外れたチップは消える。元の列を書き換えない時は元の列にも残る。
  * `seal` は列を左から覆って中身を隠し、`open` は封を消し、`pick` は列の縁に色を付けてほかの列を薄くし、`stamp` は札を押す。
@@ -125,8 +125,11 @@ interface Source {
   kind: string;
   title: string;
   view?: string;
-  boxes: { id: string; name: string; order?: string }[];
-  lineup: { items: { id: string; color?: string; label?: string; note?: string }[]; roles?: { id: string; note?: string }[] };
+  blocks: {
+    box?: { id: string; name: string; order?: string }[];
+    item?: { id: string; color?: string; label?: string; note?: string }[];
+    role?: { id: string; note?: string }[];
+  };
   steps: { title: string; body?: string; events: SourceEvent[] }[];
 }
 
@@ -380,8 +383,8 @@ function chipTextH(layout: LineupLayout): number {
 /** 原本の JSON の、列とチップと段と段ごとの出来事の数 */
 const shape = (d: Source): Record<string, unknown> => ({
   kind: d.kind,
-  lanes: d.boxes.length,
-  items: d.lineup.items.length,
+  lanes: (d.blocks.box ?? []).length,
+  items: (d.blocks.item ?? []).length,
   steps: d.steps.length,
   events: d.steps.map((step) => step.events.length),
 });
@@ -441,7 +444,7 @@ describe("列の図の記法 (#3239)", () => {
     }
     // 1 行に名札を並べた item は、並べた名札ごとに同じ色と字のチップになる
     const many = parse(["lineup 宣言", "box top", "item a, b [color: amber, label: 7]", "item c", "step 並べる", "  say 並べる。", "  line top: c, a, b"].join("\n"));
-    expect(many.ok ? (many.diagram as unknown as Source).lineup.items : many.errors, "item の行が宣言するチップ").toEqual([{ id: "a", color: "amber", label: "7" }, { id: "b", color: "amber", label: "7" }, { id: "c" }]);
+    expect(many.ok ? (many.diagram as unknown as Source).blocks.item : many.errors, "item の行が宣言するチップ").toEqual([{ id: "a", color: "amber", label: "7" }, { id: "b", color: "amber", label: "7" }, { id: "c" }]);
   });
 
   it("notation-rejects-misused-lineup-lines", () => {
@@ -509,8 +512,8 @@ describe("列の図の記法 (#3239)", () => {
       const text = [`${kind} 列の語の名札`, "box item as 品物", "box line as 回線", "box db", "step 送る", "  say 送る。", "  line -> db: 送る", "  item -> line: 戻す"].join("\n");
       const parsed = parse(text);
       expect(parsed.ok, `${kind} で item と line を名札にした箱が読めない: ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
-      const diagram = (parsed.ok ? parsed.diagram : {}) as unknown as { boxes?: { id: string }[]; steps?: { events: { type: string; from?: string; to?: string }[] }[] };
-      expect(diagram.boxes?.map((b) => b.id), `${kind} の箱の名札`).toEqual(["item", "line", "db"]);
+      const diagram = (parsed.ok ? parsed.diagram : {}) as unknown as { blocks?: { box?: { id: string }[] }; steps?: { events: { type: string; from?: string; to?: string }[] }[] };
+      expect(diagram.blocks?.box?.map((b) => b.id), `${kind} の箱の名札`).toEqual(["item", "line", "db"]);
       expect(diagram.steps?.[0]?.events.map((e) => ({ type: e.type, from: e.from, to: e.to })), `${kind} の line と item から出る線`).toEqual([
         { type: "edge", from: "line", to: "db" },
         { type: "edge", from: "item", to: "line" },
@@ -532,10 +535,12 @@ describe("列の図の記法 (#3239)", () => {
       expect(second.ok, `${name} を書き戻した記法が読めない: ${second.ok ? "" : JSON.stringify(second.errors)}\n${printed}`).toBe(true);
       expect(second.ok ? second.diagram : undefined, `${name} を往復した JSON が最初と違う`).toEqual(first.diagram);
     }
-    // 字を持つチップと持たないチップが混ざっても往復する
-    const printed = print(smallLineup());
+    // 字を持つチップと持たないチップが混ざっても往復する。版1で書いた小さな図は、読んで版2の形にしてから往復させる
+    const read = api("readDiagram")(smallLineup());
+    const source = read.ok ? read.diagram : read.errors;
+    const printed = print(source);
     const again = parse(printed);
-    expect(again.ok ? again.diagram : again.errors, `小さな列の図を往復した JSON が最初と違う\n${printed}`).toEqual(smallLineup());
+    expect(again.ok ? again.diagram : again.errors, `小さな列の図を往復した JSON が最初と違う\n${printed}`).toEqual(source);
   });
 });
 
@@ -735,7 +740,7 @@ describe("列の図の記法に足す語 (#3351)", () => {
     expect(parsed.ok, `[order: none] の箱を持つ列の図が読めない: ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
     if (!parsed.ok) return;
     const source = parsed.diagram as unknown as Source;
-    expect(source.boxes.map((b) => b.order), "箱の order").toEqual(["none", undefined]);
+    expect((source.blocks.box ?? []).map((b) => b.order), "箱の order").toEqual(["none", undefined]);
     const checked = validate(parsed.diagram);
     expect(checked.ok, `[order: none] の箱を持つ JSON が検査で落ちる: ${JSON.stringify(checked.ok ? [] : checked.errors)}`).toBe(true);
     const again = parse(print(parsed.diagram));
@@ -776,7 +781,7 @@ describe("列の図の記法に足す語 (#3351)", () => {
     expect(parsed.ok, `role を持つ列の図が読めない: ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
     if (!parsed.ok) return;
     const source = parsed.diagram as unknown as Source;
-    expect(source.lineup.roles, "最上位の role の行が宣言する役").toEqual([{ id: "relay", note: "封をする" }, { id: "proposer" }]);
+    expect(source.blocks.role, "最上位の role の行が宣言する役").toEqual([{ id: "relay", note: "封をする" }, { id: "proposer" }]);
     expect(source.steps[0]?.events, "段の中の role の行が名指す動く役").toEqual([
       { type: "role", role: "relay" },
       { type: "line", box: "card", items: ["a"] },
@@ -814,7 +819,7 @@ describe("列の図の記法に足す語 (#3351)", () => {
     const parsed = parse(text);
     expect(parsed.ok, `item の note を持つ列の図が読めない: ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
     if (!parsed.ok) return;
-    expect((parsed.diagram as unknown as Source).lineup.items, "item の行が宣言するチップの説明").toEqual([
+    expect((parsed.diagram as unknown as Source).blocks.item, "item の行が宣言するチップの説明").toEqual([
       { id: "自分", color: "amber", note: "自分の取引" },
       { id: "送金", note: "取引" },
       { id: "交換", note: "取引" },
@@ -1290,7 +1295,7 @@ describe("入札の図を卓の形で描く (#3351)", () => {
       ["auction.en.json", "Mempool"],
     ] as const) {
       const source = exampleJson(name) as unknown as Source;
-      expect(source.boxes.find((b) => b.id === pool)?.order, `${name} の ${pool} の order`).toBe("none");
+      expect((source.blocks.box ?? []).find((b) => b.id === pool)?.order, `${name} の ${pool} の order`).toBe("none");
       const placed = source.steps.flatMap((s) => s.events.flatMap((e) => (e.type === "line" && e.box === pool ? (e.items ?? []) : [])));
       expect(placed.length, `${name} の ${pool} に置くチップ`).toBeGreaterThan(0);
       expect(placed.filter((id) => /\d/u.test(id)), `${name} の ${pool} に置くチップの名前の数字`).toEqual([]);
@@ -1300,17 +1305,17 @@ describe("入札の図を卓の形で描く (#3351)", () => {
   it("auction-declares-roles-and-legend", () => {
     for (const name of ["auction.json", "auction.en.json"]) {
       const source = exampleJson(name) as unknown as Source;
-      const roles = (source.lineup.roles ?? []).map((r) => r.id);
+      const roles = (source.blocks.role ?? []).map((r) => r.id);
       expect(roles.length, `${name} の役の数`).toBe(2);
       const [relay, proposer] = roles as [string, string];
       expect(
         source.steps.map((s) => s.events.filter((e) => e.type === "role").map((e) => e.role)),
         `${name} の段ごとに動く役 (封をする段と公開する段でリレー、金額だけを見せる段と署名する段で提案者)`,
       ).toEqual([[], [], [relay], [proposer], [proposer], [relay], []]);
-      for (const role of source.lineup.roles ?? []) expect(role.note, `${name} の役 ${role.id} の一言`).toBeDefined();
-      const pool = source.boxes[0]?.id;
+      for (const role of source.blocks.role ?? []) expect(role.note, `${name} の役 ${role.id} の一言`).toBeDefined();
+      const pool = source.blocks.box?.[0]?.id;
       const pooled = new Set(source.steps[0]?.events.flatMap((e) => (e.type === "line" && e.box === pool ? (e.items ?? []) : [])) ?? []);
-      for (const item of source.lineup.items) {
+      for (const item of source.blocks.item ?? []) {
         if (pooled.has(item.id) || item.color !== undefined) expect(item.note, `${name} のチップ ${item.id} に凡例の説明が無い`).toBeDefined();
       }
     }

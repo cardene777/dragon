@@ -19,13 +19,11 @@ const TEARDOWN = 90_000;
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
 interface Example {
-  boxes: unknown[];
+  blocks: { box?: unknown[]; branch?: unknown[]; row?: unknown[] };
   steps: { events: { type: string }[] }[];
-  git?: { branches: unknown[] };
-  time?: { rows: unknown[] };
 }
 
-const boxes = (d: Example): number => d.boxes.length;
+const boxes = (d: Example): number => (d.blocks.box ?? []).length;
 const JA_BOXES = (n: number): string => `箱 ${n} つ`;
 const EN_BOXES = (n: number): string => `${n} boxes`;
 
@@ -34,8 +32,8 @@ const CASES: { name: string; count: (d: Example) => number; ja: (n: number) => s
   { name: "oauth", count: boxes, ja: JA_BOXES, en: EN_BOXES },
   { name: "ccip", count: boxes, ja: JA_BOXES, en: EN_BOXES },
   { name: "order", count: boxes, ja: JA_BOXES, en: EN_BOXES },
-  { name: "merge", count: (d) => d.git?.branches.length ?? -1, ja: (n) => `枝 ${n} 本`, en: (n) => `${n} branches` },
-  { name: "finality", count: (d) => d.time?.rows.length ?? -1, ja: (n) => `印の列 ${n} 本`, en: (n) => `${n} rows` },
+  { name: "merge", count: (d) => d.blocks.branch?.length ?? -1, ja: (n) => `枝 ${n} 本`, en: (n) => `${n} branches` },
+  { name: "finality", count: (d) => d.blocks.row?.length ?? -1, ja: (n) => `印の列 ${n} 本`, en: (n) => `${n} rows` },
   {
     name: "merkle",
     count: (d) => d.steps.flatMap((s) => s.events).filter((e) => e.type === "leaf" || e.type === "node").length,
@@ -93,7 +91,7 @@ describe("編集画面の状態の欄の数 (#3261)", () => {
       }
       for (const { notation, said } of SINGULAR) await shown(await opened(notation, "en-US"), `Reads fine — ${said}`);
       const withdraw = JSON.parse(read("withdraw.en.json")) as Example;
-      expect(withdraw.time?.rows.length, "単数形を確かめる見本の印の列が 1 本でない").toBe(1);
+      expect(withdraw.blocks.row?.length, "単数形を確かめる見本の印の列が 1 本でない").toBe(1);
       await shown(await opened(read("withdraw.en.dragon"), "en-US"), `Reads fine — 1 row, ${withdraw.steps.length} steps`);
     },
     SLOW,

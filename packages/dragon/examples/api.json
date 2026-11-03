@@ -1,30 +1,32 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "注文の一覧を取る",
-  "boxes": [
-    {
-      "id": "ブラウザ",
-      "name": "利用者のブラウザ",
-      "sub": "一覧の画面を開く",
-      "color": "slate",
-      "icon": "globe"
-    },
-    {
-      "id": "API",
-      "name": "API サーバー",
-      "sub": "注文の一覧を返す",
-      "color": "blue",
-      "icon": "server"
-    },
-    {
-      "id": "DB",
-      "name": "注文の DB",
-      "sub": "注文を持つ",
-      "color": "violet",
-      "icon": "db"
-    }
-  ],
+  "blocks": {
+    "box": [
+      {
+        "id": "ブラウザ",
+        "name": "利用者のブラウザ",
+        "sub": "一覧の画面を開く",
+        "color": "slate",
+        "icon": "globe"
+      },
+      {
+        "id": "API",
+        "name": "API サーバー",
+        "sub": "注文の一覧を返す",
+        "color": "blue",
+        "icon": "server"
+      },
+      {
+        "id": "DB",
+        "name": "注文の DB",
+        "sub": "注文を持つ",
+        "color": "violet",
+        "icon": "db"
+      }
+    ]
+  },
   "steps": [
     {
       "title": "一覧を頼む",
@@ -88,12 +90,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "ブラウザ",
-      "API",
-      "DB"
-    ]
-  }
+  ]
 }

@@ -1,24 +1,26 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "tree",
   "title": "Proving a transaction with a Merkle tree",
-  "boxes": [
-    {
-      "id": "header",
-      "name": "Block header",
-      "sub": "root e71c",
-      "color": "green",
-      "icon": "box"
+  "blocks": {
+    "box": [
+      {
+        "id": "header",
+        "name": "Block header",
+        "sub": "root e71c",
+        "color": "green",
+        "icon": "box"
+      }
+    ],
+    "strip": {
+      "title": "Proof",
+      "fields": [
+        "Transaction",
+        "Values used",
+        "Computed root",
+        "Result"
+      ]
     }
-  ],
-  "strip": {
-    "title": "Proof",
-    "fields": [
-      "Transaction",
-      "Values used",
-      "Computed root",
-      "Result"
-    ]
   },
   "steps": [
     {

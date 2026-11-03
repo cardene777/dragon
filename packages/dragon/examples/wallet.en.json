@@ -1,37 +1,39 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "Sign in the wallet and send",
-  "boxes": [
-    {
-      "id": "dapp",
-      "name": "Exchange dApp",
-      "sub": "builds the transaction",
-      "color": "blue",
-      "icon": "app"
-    },
-    {
-      "id": "wallet",
-      "name": "Wallet",
-      "sub": "holds the key",
-      "color": "amber",
-      "icon": "key"
-    },
-    {
-      "id": "node",
-      "name": "RPC node",
-      "sub": "accepts transactions",
-      "color": "slate",
-      "icon": "server"
-    },
-    {
-      "id": "chain",
-      "name": "Blockchain",
-      "sub": "records transactions",
-      "color": "green",
-      "icon": "chain"
-    }
-  ],
+  "blocks": {
+    "box": [
+      {
+        "id": "dapp",
+        "name": "Exchange dApp",
+        "sub": "builds the transaction",
+        "color": "blue",
+        "icon": "app"
+      },
+      {
+        "id": "wallet",
+        "name": "Wallet",
+        "sub": "holds the key",
+        "color": "amber",
+        "icon": "key"
+      },
+      {
+        "id": "node",
+        "name": "RPC node",
+        "sub": "accepts transactions",
+        "color": "slate",
+        "icon": "server"
+      },
+      {
+        "id": "chain",
+        "name": "Blockchain",
+        "sub": "records transactions",
+        "color": "green",
+        "icon": "chain"
+      }
+    ]
+  },
   "steps": [
     {
       "title": "Ask to sign",
@@ -118,13 +120,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "dapp",
-      "wallet",
-      "node",
-      "chain"
-    ]
-  }
+  ]
 }

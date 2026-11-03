@@ -41,9 +41,8 @@ const sel = (name: string): string => `[data-playground="${name}"]`;
 interface Source {
   kind: string;
   title: string;
-  boxes: { id: string }[];
+  blocks: { box?: { id: string }[]; zoom?: { from: number; to: number } };
   steps: { events: { type: string; at?: number }[] }[];
-  time?: { zoom?: { from: number; to: number } };
 }
 
 /** 見本の記法。無ければ `undefined` */
@@ -204,7 +203,7 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
     async () => {
       const finality = sample("finality");
       const withdraw = sample("withdraw");
-      const zoomed = (d: Source) => d.time?.zoom !== undefined;
+      const zoomed = (d: Source) => d.blocks.zoom !== undefined;
       expect(zoomed(finality), "ブロックの確定の見本が拡大の帯を持たない").toBe(true);
       expect(zoomed(withdraw), "引き出しの見本が拡大の帯を持つ").toBe(false);
       // 部品の名札と、その頁の札が向かう見本

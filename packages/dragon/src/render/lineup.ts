@@ -15,7 +15,7 @@ import { type LineupAt, type LineupLane, type LineupLayout, type LineupPick, typ
 import type { Point } from "../layout/scene";
 import { EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
 import { LINEUP_LOOK } from "../look/lineup";
-import type { Diagram } from "../schema";
+import type { DiagramModel } from "../schema";
 import type { Span, Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
@@ -111,7 +111,7 @@ function lines(ctx: Ctx, cls: string, t: LineupText, style: TextStyle, shown: Sh
   return t.lines.map((l) => write(ctx.ink, wide !== "" && style.family === "mono" && hasWide(l.text) ? `${cls} ${wide}` : cls, l.x, l.baseline, l.text, style, shown)).join("");
 }
 
-export function drawLineup(layout: LineupLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { lanes: string; chips: string; css: string } {
+export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { lanes: string; chips: string; css: string } {
   const { m } = ctx;
   const N = LINEUP_LOOK;
   const cut = MOTION.lineup.cut;

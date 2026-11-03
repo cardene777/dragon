@@ -7,7 +7,7 @@
  * 線は縦と横の折れ線で、間にある箱を避ける。名前が箱に掛かる時は帯を広げて名前の場所を空ける。
  */
 import { LOOK, TYPE } from "../../look/values";
-import type { Diagram, LabelSide, Region } from "../../schema";
+import type { DiagramModel, LabelSide, Region } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
   badgeOnPath,
@@ -58,7 +58,7 @@ interface Room {
   bottom: number;
 }
 
-export function layoutArchitecture(diagram: Diagram): Layout {
+export function layoutArchitecture(diagram: DiagramModel): Layout {
   const groups = groupsOf(diagram);
   const slots = placeBoxes(diagram, groups);
   const rooms = groups.map(() => ({ top: 0, bottom: 0 }));
@@ -68,7 +68,7 @@ export function layoutArchitecture(diagram: Diagram): Layout {
   return layout;
 }
 
-function groupsOf(diagram: Diagram): Group[] {
+function groupsOf(diagram: DiagramModel): Group[] {
   const regions = diagram.regions ?? [];
   const known = new Set(regions.map((r) => r.id));
   const groups: Group[] = regions.map((region) => ({ region, members: diagram.boxes.filter((b) => b.region === region.id).map((b) => b.id) }));
@@ -80,7 +80,7 @@ function groupsOf(diagram: Diagram): Group[] {
 const vertical = (side: LabelSide | undefined): boolean => side === "left" || side === "right";
 
 /** 箱を列と行へ置く。列は全ての区画で共通。 */
-function placeBoxes(diagram: Diagram, groups: Group[]): Map<string, Slot> {
+function placeBoxes(diagram: DiagramModel, groups: Group[]): Map<string, Slot> {
   const columns = LOOK.architecture.columns;
   const edges = edgesOf(diagram).map((e) => e.edge);
   const slots = new Map<string, Slot>();
@@ -159,7 +159,7 @@ function headerSize(region: Region): { w: number; h: number; lines: string[] } {
   return { w, h, lines };
 }
 
-function arrange(diagram: Diagram, groups: Group[], slots: Map<string, Slot>, rooms: Room[]): Layout {
+function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot>, rooms: Room[]): Layout {
   const { box: B, region: R, architecture: A, margin, gap } = LOOK;
   const colors = boxColors(diagram);
   const regionColor = regionColors(diagram);

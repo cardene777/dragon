@@ -13,7 +13,7 @@
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { LOOK, TYPE } from "../look/values";
-import type { Diagram, LabelSide, StatePath } from "../schema";
+import type { DiagramModel, LabelSide, StatePath } from "../schema";
 import { type NotationLang, STATE_ENDS } from "../words";
 import { textBox, textWidth } from "./measure";
 import {
@@ -56,7 +56,7 @@ import {
 const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).includes(id);
 
 /** 段で初めて辿り着く状態の順。線の送る側と受ける側を、段の順に見て初めて出た順に並べる */
-export function visitOrder(diagram: Diagram): string[] {
+export function visitOrder(diagram: DiagramModel): string[] {
   const order: string[] = [];
   const add = (id: string): void => {
     if (!isEnd(id) && !order.includes(id)) order.push(id);
@@ -71,7 +71,7 @@ export function visitOrder(diagram: Diagram): string[] {
 /** 線の両端が同じ 2 つの線か */
 const same = (a: { from: string; to: string }, b: { from: string; to: string }): boolean => a.from === b.from && a.to === b.to;
 
-export function layoutState(diagram: Diagram, lang: NotationLang): Layout {
+export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   const { box: B, state: T, margin, gap } = LOOK;
   const inset = LOOK.edge.inset;
   const words = FIGURE_TEXT[lang];

@@ -17,7 +17,7 @@ npm install @cardenelabs/dragon
 
 | 持つ物 | 形 |
 |---|---|
-| 原本 | 共通の骨格と図の種類ごとの欄を持つ JSON。版を持ち、古い版は読む時に変換する |
+| 原本 | 図の種類と題と段の骨組みに、ブロックの名前ごとの欄 (`blocks`) を持つ JSON (下の節)。版を持ち、古い版は読む時に変換する |
 | 記法 | 行の頭の英語の語で行の種類が決まる dragon記法 (下の節)。JSON と行き来でき、名前と文は日本語でも書ける ([書き方](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md)、[英語の書き方](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
 | 描く部品 | 原本を頁に描き、段ごとに動かす部品。時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図を描く |
 | 書き出し | 同じ原本から mp4、GIF、HTML、PNG を書き出す命令 `dragon export` |
@@ -294,6 +294,40 @@ step 取引3から根まで上る
   3と4 -> 根 [tag: b9e4]
   1と2 -> 根 [tag: 7a21]
 ```
+
+## 原本の JSON
+
+原本の JSON は、版 (`version`)、図の種類 (`kind`)、題 (`title`)、段 (`steps`) の骨組みを持ち、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。
+箱は `blocks.box`、区画は `blocks.group`、中身の帯は `blocks.strip` に書く。
+枝分かれの図の枝は `blocks.branch`、状態遷移図の通らない道は `blocks.path`、列の図のチップは `blocks.item`、役は `blocks.role` に書く。
+時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲は、`blocks.scale`、`blocks.period`、`blocks.row`、`blocks.point`、`blocks.zoom` に書く。
+段の中で起きること (線や箱の中の処理) は、段ごとの `events` に書く。
+
+```json
+{
+  "version": 2,
+  "kind": "sequence",
+  "title": "送って受ける",
+  "blocks": {
+    "box": [
+      { "id": "a", "name": "送る側" },
+      { "id": "b", "name": "受ける側" }
+    ]
+  },
+  "steps": [
+    {
+      "title": "送る",
+      "body": "送る側が受ける側へ送る。",
+      "events": [{ "type": "edge", "from": "a", "to": "b", "carry": { "kind": "envelope" } }]
+    }
+  ]
+}
+```
+
+版1の原本 (`boxes` や `regions` を根に持つ形) も読める。
+`readDiagram` は版1の原本を版2の形に移して返し、移したことを `warnings` に書く。
+原本の file そのものを書き換えるには、`@cardenelabs/dragon/node` の `migrateFile` を使う。
+版1と版2の欄の対応は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
 
 ## 書き出し
 

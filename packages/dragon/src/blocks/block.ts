@@ -17,14 +17,14 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Box, Diagram, DiagramEvent, Region, Step, StripMeter } from "../schema";
+import type { Box, DiagramModel, DiagramEvent, Region, Step, StripMeter } from "../schema";
 import type { SourceLine } from "../tokenize";
 
 /** 付け方。置く、つなぐ、線に乗る、箱に付く、図に付く */
 export type AttachHow = "place" | "connect" | "ride-on-line" | "attach-to-box" | "attach-to-figure";
 
 /** 図の種類の名前。最初の行の頭の語 */
-export type KindName = Diagram["kind"];
+export type KindName = DiagramModel["kind"];
 
 /** 持たない欄。今は中身が無い理由を持つ */
 export interface None {
@@ -126,13 +126,18 @@ export interface BlockPrint {
    * 最初の `step` より前に、図の種類の宣言 (枝分かれの図の枝、時間軸の図の目盛りなど) の直ぐ後ろに書く宣言の塊 (区画と箱)。
    * 列の図のチップと `figure` の塊より前に、ブロックの並びの順に書く
    */
-  declare?: (diagram: Diagram) => string[];
+  declare?: (diagram: DiagramModel) => string[];
   /** 最初の `step` より前に書く宣言の塊。区画と箱の宣言の後ろ、状態遷移図の道より前に、ブロックの並びの順に書く */
-  figure?: (diagram: Diagram) => string[];
+  figure?: (diagram: DiagramModel) => string[];
 }
 
-/** 原本の形の欠片。鍵と値は `schemas/diagram.schema.json` と同じ */
+/**
+ * 原本の形の欠片。鍵と値は `schemas/diagram.schema.json` と同じ。
+ * build の時に `scripts/build-validator.mjs` が骨組み (`schemas/base.schema.json`) とブロックの欠片を束ねて形を書き出す (#3346)
+ */
 export interface BlockShape {
+  /** 原本の `blocks` の中に、ブロックの名前で持つ欄の形。欄を持たないブロックは書かない */
+  field?: unknown;
   /** `definitions` の欠片。鍵は `definitions` の鍵 */
   definitions?: Readonly<Record<string, unknown>>;
   /** 段の中で起きること (`definitions.event` の `oneOf`) の枝。鍵は出来事の種類 (`type`) */

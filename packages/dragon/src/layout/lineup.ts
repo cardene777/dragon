@@ -24,7 +24,7 @@
 import { type FigureText, FIGURE_TEXT } from "../figure-text";
 import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../look/values";
 import { LINEUP_LOOK } from "../look/lineup";
-import type { Diagram, DiagramEvent } from "../schema";
+import type { DiagramModel, DiagramEvent } from "../schema";
 import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../words";
 import { hasWide, textWidth } from "./measure";
 import { boxColors, type Layout, layoutStrip, type Point, type Rect, replaceSameSpot, type SceneBadge, type SceneBox, stripNeed } from "./scene";
@@ -260,14 +260,14 @@ interface Line extends LineupAt {
   items: string[];
 }
 
-function linesOf(diagram: Diagram, known: Set<string>, lanes: Set<string>): Line[] {
+function linesOf(diagram: DiagramModel, known: Set<string>, lanes: Set<string>): Line[] {
   return diagram.steps.flatMap((step, s) =>
     step.events.flatMap((e, k): Line[] => (e.type === "line" && lanes.has(e.box) ? [{ step: s, event: k, lane: e.box, items: [...new Set(e.items)].filter((id) => known.has(id)).slice(0, LANE_MOST) }] : [])),
   );
 }
 
 /** 札の下の端に出る字。`sub` と段の中の `note` */
-function notesOf(diagram: Diagram, id: string, sub: string | undefined): string[] {
+function notesOf(diagram: DiagramModel, id: string, sub: string | undefined): string[] {
   const written = diagram.steps.flatMap((step) => step.events.flatMap((e) => (e.type === "swap" && e.box === id ? [e.text] : [])));
   return sub === undefined ? written : [sub, ...written];
 }
@@ -303,7 +303,7 @@ interface RemarkSpec extends LineupAt {
  * 置き場に無かったチップは色ごとに 1 つの一言にまとめ、置き場に在った色付きのチップは席の番号か、無いことを言う。
  * 一言は札の中の最初の席の順に並べ、無いことを言う一言は最後に置く。段の始まりに置き場にチップが無い段は一言を出さない
  */
-function remarksOf(diagram: Diagram, lines: Line[], pools: Set<string>, words: FigureText): RemarkSpec[] {
+function remarksOf(diagram: DiagramModel, lines: Line[], pools: Set<string>, words: FigureText): RemarkSpec[] {
   const items = new Map((diagram.lineup?.items ?? []).map((item) => [item.id, item]));
   const nameOf = (id: string): string => items.get(id)?.label ?? id;
   const held = new Map<string, string[]>();
@@ -348,7 +348,7 @@ interface Sized {
   w: number;
 }
 
-export function layoutLineup(diagram: Diagram, options: LineupOptions = {}): LineupLayout {
+export function layoutLineup(diagram: DiagramModel, options: LineupOptions = {}): LineupLayout {
   const words = FIGURE_TEXT[options.lang ?? DEFAULT_LANG];
   const row = arrange(diagram, words, "row");
   const { width } = options;
@@ -356,7 +356,7 @@ export function layoutLineup(diagram: Diagram, options: LineupOptions = {}): Lin
   return arrange(diagram, words, "stack");
 }
 
-function arrange(diagram: Diagram, words: FigureText, arrangement: "row" | "stack"): LineupLayout {
+function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | "stack"): LineupLayout {
   const stacked = arrangement === "stack";
   const margin = stacked ? L.stack.margin : L.margin;
   const pad = L.padX;

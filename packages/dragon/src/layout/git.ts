@@ -19,7 +19,7 @@
  * 宣言していない枝に積んだ原本の JSON は、その枝の帯を下に足して描く。辿れない名札を指す出来事は描かない。
  */
 import { type ColorKey, LOOK, type TextStyle, TYPE } from "../look/values";
-import type { Diagram, DiagramEvent } from "../schema";
+import type { DiagramModel, DiagramEvent } from "../schema";
 import { HEAD } from "../words";
 import { hasWide, textBox, textWidth } from "./measure";
 import {
@@ -160,7 +160,7 @@ interface Walked {
 }
 
 /** 段の中の出来事を順に辿り、commit と親と、札が指す commit と、札の動きを決める */
-function walk(diagram: Diagram): Walked {
+function walk(diagram: DiagramModel): Walked {
   const branches = (diagram.git?.branches ?? []).map((b) => b.id);
   const lane = (id: string): void => {
     if (!branches.includes(id)) branches.push(id);
@@ -371,7 +371,7 @@ function copyLine(p: Circle, c: Circle): Point[] {
   return [p0, ...cubic(p0, [p0[0], p0[1] + mid], [p3[0], p3[1] - mid], p3)];
 }
 
-export function layoutGit(diagram: Diagram): GitLayout {
+export function layoutGit(diagram: DiagramModel): GitLayout {
   const { margin, gap, box: B, region: R, git: G, carrier: C } = LOOK;
   const walked = walk(diagram);
   const notes = new Map((diagram.git?.branches ?? []).map((b) => [b.id, b.note]));
@@ -643,7 +643,7 @@ function clearOnPath(points: Point[], taken: Point[], avoid: Rect[]): Point | un
  * 札を動かす段は、札が着いた commit の丸の脇に置く。線の無い段は、箱か帯を書き換える段なら箱か帯の左上の角に、
  * 何も起きない段は一番上の枝の先端の commit の脇に置き、脇が埋まっていれば前の段の番号と同じ所に置いて数字を入れ替える
  */
-function badgesOf(diagram: Diagram, layout: GitLayout): SceneBadge[] {
+function badgesOf(diagram: DiagramModel, layout: GitLayout): SceneBadge[] {
   const { inset } = LOOK.badge;
   const taken: Point[] = [];
   const all = [...layout.links.map((l) => l.points), ...layout.moves.flatMap((m) => (m.line ? [m.line] : []))];
@@ -691,7 +691,7 @@ function badgesOf(diagram: Diagram, layout: GitLayout): SceneBadge[] {
  * 札を動かす線の名前。一番上の帯の commit へ動かす線は札の段のさらに上に、ほかの帯の commit へ動かす線は丸の下の字のさらに下に置き、
  * 丸と字と、その段の終わりに留まる札と、同じ時刻に見える段の番号を避ける
  */
-function labelsOf(diagram: Diagram, layout: GitLayout): SceneLabel[] {
+function labelsOf(diagram: DiagramModel, layout: GitLayout): SceneLabel[] {
   const G = LOOK.git;
   const labels: SceneLabel[] = [];
   const circles: Rect[] = layout.commits.map((c) => ({ x: c.cx - c.r, y: c.cy - c.r, w: c.r * 2, h: c.r * 2 }));

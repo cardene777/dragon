@@ -1,42 +1,91 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "time",
   "title": "How an Ethereum block becomes final",
-  "boxes": [
-    {
-      "id": "proposer",
-      "name": "proposer",
-      "color": "blue",
-      "icon": "user"
-    },
-    {
-      "id": "block",
-      "name": "block",
-      "color": "blue",
-      "icon": "box"
-    },
-    {
-      "id": "committee",
-      "name": "committee",
-      "sub": "1/32 of all",
-      "color": "amber"
-    }
-  ],
-  "strip": {
-    "title": "Finality",
-    "fields": [
-      "Elapsed",
-      "C100",
-      "C101",
-      "C102",
-      "Votes this epoch"
-    ],
-    "meters": [
+  "blocks": {
+    "box": [
       {
-        "field": "Votes this epoch",
-        "line": "2/3"
+        "id": "proposer",
+        "name": "proposer",
+        "color": "blue",
+        "icon": "user"
+      },
+      {
+        "id": "block",
+        "name": "block",
+        "color": "blue",
+        "icon": "box"
+      },
+      {
+        "id": "committee",
+        "name": "committee",
+        "sub": "1/32 of all",
+        "color": "amber"
       }
-    ]
+    ],
+    "strip": {
+      "title": "Finality",
+      "fields": [
+        "Elapsed",
+        "C100",
+        "C101",
+        "C102",
+        "Votes this epoch"
+      ],
+      "meters": [
+        {
+          "field": "Votes this epoch",
+          "line": "2/3"
+        }
+      ]
+    },
+    "scale": {
+      "unit": "slot",
+      "length": "12s",
+      "count": 96,
+      "from": 3200
+    },
+    "period": {
+      "name": "epoch",
+      "length": 32,
+      "from": 100
+    },
+    "row": [
+      {
+        "id": "block",
+        "name": "block",
+        "color": "blue",
+        "empty": [
+          3,
+          13,
+          45,
+          79
+        ]
+      },
+      {
+        "id": "vote",
+        "name": "vote",
+        "color": "amber"
+      }
+    ],
+    "point": [
+      {
+        "id": "C100",
+        "at": 0
+      },
+      {
+        "id": "C101",
+        "at": 32
+      },
+      {
+        "id": "C102",
+        "at": 64
+      }
+    ],
+    "zoom": {
+      "from": 0,
+      "to": 3
+    }
   },
   "steps": [
     {
@@ -381,54 +430,5 @@
         }
       ]
     }
-  ],
-  "time": {
-    "scale": {
-      "unit": "slot",
-      "length": "12s",
-      "count": 96,
-      "from": 3200
-    },
-    "period": {
-      "name": "epoch",
-      "length": 32,
-      "from": 100
-    },
-    "rows": [
-      {
-        "id": "block",
-        "name": "block",
-        "color": "blue",
-        "empty": [
-          3,
-          13,
-          45,
-          79
-        ]
-      },
-      {
-        "id": "vote",
-        "name": "vote",
-        "color": "amber"
-      }
-    ],
-    "points": [
-      {
-        "id": "C100",
-        "at": 0
-      },
-      {
-        "id": "C101",
-        "at": 32
-      },
-      {
-        "id": "C102",
-        "at": 64
-      }
-    ],
-    "zoom": {
-      "from": 0,
-      "to": 3
-    }
-  }
+  ]
 }

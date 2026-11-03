@@ -1,23 +1,25 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "ログインを頼む",
-  "boxes": [
-    {
-      "id": "ブラウザ",
-      "name": "利用者のブラウザ",
-      "sub": "利用者が操作する",
-      "color": "slate",
-      "icon": "globe"
-    },
-    {
-      "id": "アプリ",
-      "name": "アプリ",
-      "sub": "ログインを頼む側",
-      "color": "blue",
-      "icon": "app"
-    }
-  ],
+  "blocks": {
+    "box": [
+      {
+        "id": "ブラウザ",
+        "name": "利用者のブラウザ",
+        "sub": "利用者が操作する",
+        "color": "slate",
+        "icon": "globe"
+      },
+      {
+        "id": "アプリ",
+        "name": "アプリ",
+        "sub": "ログインを頼む側",
+        "color": "blue",
+        "icon": "app"
+      }
+    ]
+  },
   "steps": [
     {
       "title": "ログインを押す",
@@ -34,11 +36,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "ブラウザ",
-      "アプリ"
-    ]
-  }
+  ]
 }

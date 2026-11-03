@@ -5,7 +5,7 @@
  * 生存線の間は、箱の幅と、その間を走る線の名前が収まる幅を取る。中身の帯は一番下に置く。
  */
 import { LOOK, TYPE } from "../../look/values";
-import type { Diagram } from "../../schema";
+import type { DiagramModel } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
   carrierHalf,
@@ -30,7 +30,7 @@ import {
   stripNeed,
 } from "../../layout/scene";
 
-export function layoutSequence(diagram: Diagram): Layout {
+export function layoutSequence(diagram: DiagramModel): Layout {
   const { box: B, sequence: Q, label: L, margin, gap } = LOOK;
   const colors = boxColors(diagram);
   const listed = diagram.sequence?.lifelines ?? [];
@@ -192,7 +192,7 @@ export function layoutSequence(diagram: Diagram): Layout {
  * 段の番号。その段の最初の線の始まりに置き、線が無ければ処理する箱の生存線の上、無ければ書き換わる箱の角。
  * 処理の札はその段の終わりに消えるので、札に付けると止め絵で丸だけが浮く (#3017)。
  */
-function badges(diagram: Diagram, layout: Layout): SceneBadge[] {
+function badges(diagram: DiagramModel, layout: Layout): SceneBadge[] {
   const lines = lineBadges(layout.edges, diagram.steps.length);
   const placed = diagram.steps.map((step, s): SceneBadge => {
     const line = lines.get(s);

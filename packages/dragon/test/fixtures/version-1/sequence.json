@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "kind": "sequence",
+  "title": "注文の一覧を取る",
+  "boxes": [
+    {
+      "id": "ブラウザ",
+      "name": "利用者のブラウザ",
+      "sub": "一覧の画面を開く",
+      "color": "slate",
+      "icon": "globe"
+    },
+    {
+      "id": "API",
+      "name": "API サーバー",
+      "sub": "注文の一覧を返す",
+      "color": "blue",
+      "icon": "server"
+    },
+    {
+      "id": "DB",
+      "name": "注文の DB",
+      "sub": "注文を持つ",
+      "color": "violet",
+      "icon": "db"
+    }
+  ],
+  "steps": [
+    {
+      "title": "一覧を頼む",
+      "body": "利用者が注文の画面を開くと、ブラウザが API サーバーに注文の一覧を頼む。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "ブラウザ",
+          "to": "API",
+          "label": "GET /orders",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "注文を読む",
+      "body": "API サーバーが、その利用者の注文を DB から読む。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "API",
+          "to": "DB",
+          "label": "SELECT orders",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "行が返る",
+      "body": "DB が当てはまる行を返す。戻りの線の名前は線の下に置き、行きの線の名前と見分ける。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "DB",
+          "to": "API",
+          "label": "12 行",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    },
+    {
+      "title": "一覧を返す",
+      "body": "API サーバーが行を JSON にして、ブラウザに 200 OK で返す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "API",
+          "to": "ブラウザ",
+          "label": "200 OK",
+          "carry": {
+            "kind": "envelope"
+          },
+          "labelSide": "below"
+        }
+      ]
+    }
+  ],
+  "sequence": {
+    "lifelines": [
+      "ブラウザ",
+      "API",
+      "DB"
+    ]
+  }
+}

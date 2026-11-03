@@ -1,14 +1,29 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "git",
   "title": "Merge two branches into main with merge commits",
-  "boxes": [],
-  "strip": {
-    "title": "Refs",
-    "fields": [
-      "main",
-      "fix",
-      "feature"
+  "blocks": {
+    "strip": {
+      "title": "Refs",
+      "fields": [
+        "main",
+        "fix",
+        "feature"
+      ]
+    },
+    "branch": [
+      {
+        "id": "main",
+        "note": "Merge target"
+      },
+      {
+        "id": "fix",
+        "note": "Fix branch"
+      },
+      {
+        "id": "feature",
+        "note": "Work branch"
+      }
     ]
   },
   "steps": [
@@ -154,21 +169,5 @@
       "code": "git log --graph --oneline",
       "events": []
     }
-  ],
-  "git": {
-    "branches": [
-      {
-        "id": "main",
-        "note": "Merge target"
-      },
-      {
-        "id": "fix",
-        "note": "Fix branch"
-      },
-      {
-        "id": "feature",
-        "note": "Work branch"
-      }
-    ]
-  }
+  ]
 }

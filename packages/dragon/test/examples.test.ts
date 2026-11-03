@@ -15,8 +15,8 @@ const examples = join(process.cwd(), "packages/dragon/examples");
 /** 図の形を数で表す。線は段ごとに数える */
 const shape = (d: Diagram): Record<string, unknown> => ({
   kind: d.kind,
-  regions: (d.regions ?? []).length,
-  boxes: d.boxes.length,
+  regions: (d.blocks.group ?? []).length,
+  boxes: (d.blocks.box ?? []).length,
   steps: d.steps.length,
   lines: d.steps.map((step) => step.events.filter((event) => event.type === "edge").length),
 });

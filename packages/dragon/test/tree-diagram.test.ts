@@ -109,7 +109,7 @@ interface Source {
   kind: string;
   title: string;
   view?: string;
-  boxes: { id: string; name: string }[];
+  blocks: { box?: { id: string; name: string }[] };
   steps: { title: string; events: SourceEvent[] }[];
 }
 
@@ -321,7 +321,7 @@ describe("木の図の記法 (#3233)", () => {
       const parsed = parse(text);
       expect(parsed.ok, `${kind} で leaf と node を名札にした箱が読めない: ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
       const diagram = (parsed.ok ? parsed.diagram : {}) as unknown as Source;
-      expect(diagram.boxes?.map((b) => b.id), `${kind} の箱の名札`).toEqual(["leaf", "node"]);
+      expect(diagram.blocks?.box?.map((b) => b.id), `${kind} の箱の名札`).toEqual(["leaf", "node"]);
       const line = diagram.steps?.[0]?.events?.[0];
       expect(line && { type: line.type, from: line.from, to: line.to }, `${kind} の node から leaf への線`).toEqual({ type: "edge", from: "node", to: "leaf" });
     }

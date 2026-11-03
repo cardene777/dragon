@@ -9,6 +9,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paletteVars, resolvePalette, type Theme } from "../look/values";
+import { FORMAT_VERSION, fromModel } from "../model";
 import { BUTTON_TEXT, stepNo } from "../player";
 import type { Overlap } from "../render/ink";
 import { drawSvg, type Rendered, renderDiagram } from "../render/svg";
@@ -91,7 +92,8 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   // 撮る物を全て撮り終えてから書く。撮る所で失敗した時に、書き出し先の dir と途中の file を残さないため (#3013)
   const outputs: [ExportFormat, string | Buffer][] = [];
 
-  if (formats.includes("html")) outputs.push(["html", pageHtml(diagram, { palette: palette.id, theme, vars, lang }, fontCss)]);
+  // 頁は埋めた原本を読み直して描くので、今の版の原本 (版2) に戻して埋める (#3346)
+  if (formats.includes("html")) outputs.push(["html", pageHtml(fromModel(diagram, FORMAT_VERSION), { palette: palette.id, theme, vars, lang }, fontCss)]);
 
   let frames = 0;
   const mp4 = formats.includes("mp4");
