@@ -57,10 +57,10 @@ const dirs = (path: string): string[] =>
 
 const files = (path: string): string[] => (existsSync(path) ? readdirSync(path, { recursive: true, encoding: "utf8" }).sort() : []);
 
-/** 書き出した一覧 (`src/blocks/index.ts` と `src/kinds/index.ts`) を読む。まだ無い時は空 */
+/** 書き出した一覧 (`src/blocks/index.ts` と `src/kinds/index.ts`) を読む。まだ無い時は空。決まりの関数は欄の在り無しを見るので、ブロックごとの型を広い形で受ける */
 async function registries(): Promise<{ blocks: Record<string, Block>; kinds: Record<string, Kind> }> {
-  const blocks = await import("../src/blocks/index").then((m) => m.BLOCKS as Record<string, Block>).catch(() => ({}));
-  const kinds = await import("../src/kinds/index").then((m) => m.KIND_FOLDERS as Record<string, Kind>).catch(() => ({}));
+  const blocks = await import("../src/blocks/index").then((m) => m.BLOCKS as unknown as Record<string, Block>).catch(() => ({}));
+  const kinds = await import("../src/kinds/index").then((m) => m.KIND_FOLDERS as unknown as Record<string, Kind>).catch(() => ({}));
   return { blocks, kinds };
 }
 

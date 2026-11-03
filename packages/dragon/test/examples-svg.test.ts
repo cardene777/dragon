@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import { fingerprints, OUT } from "../scripts/snapshot-examples.mjs";
 
 const before = JSON.parse(readFileSync(OUT, "utf8")) as Record<string, string>;
-const now = fingerprints(dragon) as Record<string, string>;
+const now = fingerprints(dragon);
 
 /** 鍵の末尾が `kinds` の物だけを比べ、食い違った鍵を返す */
 function changed(kinds: string[]): string[] {
