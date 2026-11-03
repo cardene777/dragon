@@ -92,3 +92,82 @@ describe("外の人が開く file (#3331)", () => {
     expect(text, "報告の窓口の欄が埋まっていない").not.toContain("[INSERT CONTACT METHOD]");
   });
 });
+
+/** 囲みの印の中の `pnpm <命令>` の命令の名前 (`run` は外す) */
+function pnpmCommands(text: string): string[] {
+  const fenced = [...text.matchAll(/```[\s\S]*?```/gu)].map((m) => m[0]);
+  const names = fenced.flatMap((block) => [...block.matchAll(/^\s*pnpm (?:run )?([\w:-]+)/gmu)].map((m) => m[1] ?? ""));
+  return [...new Set(names)].sort();
+}
+
+describe("直しを送る手順 (#3333)", () => {
+  // 英語の CONTRIBUTING.md と日本語の CONTRIBUTING.ja.md は同じ中身を持ち、
+  // 管理者だけが使う決まりは docs/maintaining.md に置く
+  const en = (): string => read("CONTRIBUTING.md");
+  const ja = (): string => read("CONTRIBUTING.ja.md");
+
+  it("contributing-english-has-no-japanese-prose", () => {
+    // 囲みの印と backtick の中の字は書いたままの字なので見ない。日本語版への link の名前は日本語で書く
+    const japanese = en()
+      .replace(/```[\s\S]*?```/gu, "")
+      .replace("[日本語](CONTRIBUTING.ja.md)", "")
+      .split("\n")
+      .map((line, i) => ({ line: i + 1, text: line.replace(/`[^`]*`/gu, "") }))
+      .filter(({ text }) => /[぀-ヿ㐀-鿿]/u.test(text))
+      .map(({ line, text }) => `${line}: ${text.trim()}`);
+    expect(japanese, "CONTRIBUTING.md の地の文に日本語が残る行").toEqual([]);
+  });
+
+  it("contributing-languages-link-each-other", () => {
+    expect(en(), "CONTRIBUTING.md が日本語版へ link しない").toContain("](CONTRIBUTING.ja.md)");
+    expect(en(), "CONTRIBUTING.md が行動規範へ link しない").toContain("](CODE_OF_CONDUCT.md)");
+    expect(ja(), "CONTRIBUTING.ja.md が英語版へ link しない").toContain("](CONTRIBUTING.md)");
+  });
+
+  it("contributing-languages-carry-the-same-sections", () => {
+    const sections = (text: string): number => text.split("\n").filter((line) => line.startsWith("## ")).length;
+    expect(sections(en()), "CONTRIBUTING.md に節が無い").toBeGreaterThan(0);
+    expect(sections(ja()), "CONTRIBUTING.ja.md の節の数が CONTRIBUTING.md と違う").toBe(sections(en()));
+    expect(pnpmCommands(ja()), "2 つの file の囲みの印が挙げる pnpm の命令が違う").toEqual(pnpmCommands(en()));
+  });
+
+  it("contributing-commands-exist", () => {
+    const scripts = Object.keys((JSON.parse(read("package.json")) as { scripts: Record<string, string> }).scripts);
+    for (const [file, text] of [["CONTRIBUTING.md", en()], ["CONTRIBUTING.ja.md", ja()]] as const) {
+      const named = pnpmCommands(text).filter((name) => name !== "install" && name !== "exec");
+      expect(named.length, `${file} が pnpm の命令を挙げない`).toBeGreaterThan(0);
+      expect(
+        named.filter((name) => !scripts.includes(name)),
+        `${file} が root の package.json に無い命令を挙げる`,
+      ).toEqual([]);
+    }
+  });
+
+  it("maintainer-rules-live-apart", () => {
+    const lines = read("docs/maintaining.md").split("\n");
+    expect(lines, "docs/maintaining.md に残作業の数え方の節が無い").toContain("## 残作業の数え方");
+    expect(lines, "docs/maintaining.md に依存の脆弱性の節が無い").toContain("### 依存の脆弱性を確かめる");
+    expect(en(), "CONTRIBUTING.md に管理者向けの残作業の数え方が残る").not.toContain("gh issue list");
+    expect(ja(), "CONTRIBUTING.ja.md に管理者向けの残作業の数え方が残る").not.toContain("gh issue list");
+  });
+
+  it("dependency-notes-point-at-real-heading", () => {
+    // 依存の検査の注釈は「file の『見出し』を見る」の形で手順の置き場を名指す。移した後も指す先が在るか
+    for (const file of ["osv-scanner.toml", "scripts/check-dependency-vulnerabilities.sh"]) {
+      const pointers = [...read(file).matchAll(/`([\w./-]+\.md)` の「([^」]+)」/gu)];
+      expect(pointers.length, `${file} の注釈が手順の置き場を名指さない`).toBeGreaterThan(0);
+      for (const [, target = "", heading = ""] of pointers) {
+        const headings = read(target)
+          .split("\n")
+          .filter((line) => /^#+ /u.test(line))
+          .map((line) => line.replace(/^#+ /u, ""));
+        expect(headings, `${file} が名指す ${target} に見出し「${heading}」が無い`).toContain(heading);
+      }
+    }
+  });
+
+  it("readme-points-at-contributing-per-language", () => {
+    expect(read("README.md"), "README.md が CONTRIBUTING.md を日本語だと断る").not.toContain("mostly in Japanese");
+    expect(read("README.ja.md"), "README.ja.md が CONTRIBUTING.ja.md へ link しない").toContain("](CONTRIBUTING.ja.md)");
+  });
+});

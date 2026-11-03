@@ -5,7 +5,7 @@
 # 取り込みがあり、その間に新しい 2 package が入った)。 依存を上げたらこれを走らせる。
 #
 # 版を動かせない脆弱性は `osv-scanner.toml` に理由と期限つきで記録する。
-# 記録した分は検出から外れるので、この command は 0 で終わる。 書き方は `CONTRIBUTING.md` の「版を動かせない時は受容記録に残す」 を見る。
+# 記録した分は検出から外れるので、この command は 0 で終わる。 書き方は `docs/maintaining.md` の「版を動かせない時は受容記録に残す」 を見る。
 #
 # 使い方
 #   bash scripts/check-dependency-vulnerabilities.sh            # repo 全体を見る
