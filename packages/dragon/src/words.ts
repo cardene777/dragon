@@ -15,6 +15,7 @@
 import { ranked } from "./blocks/block";
 import { CARRIES } from "./blocks/carry/block";
 import { SIDES } from "./blocks/edge-label/block";
+import type { GROUP_HEADS } from "./blocks/group/block";
 import { BLOCKS } from "./blocks/index";
 import type { Diagram, ViewMode } from "./schema";
 
@@ -72,11 +73,11 @@ const RANKED = ranked(BLOCKS);
  * 行の頭の語の一覧は、この語とブロックの語を番号の小さい順に並べる (同じ番号の中は書いた順)
  */
 const LATER_HEADS = [
-  [10, ["group", "end"]],
   [40, ["step", "say", "code"]],
   [90, ["branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS]],
 ] as const;
-type Head = (typeof LATER_HEADS)[number][1][number];
+/** 行の頭の語のうち、型で名指せる語 (移していない語と区画の語) */
+type Head = (typeof LATER_HEADS)[number][1][number] | (typeof GROUP_HEADS)[number];
 
 /**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
@@ -113,7 +114,6 @@ export const OF = "of";
  * 同じ行にブロックの鍵が混ざる行は、鍵ごとにその鍵を読む行のブロックの番号を置き、混ぜても鍵の並びを変えない
  */
 const LATER_ATTRS = [
-  [10, { group: ["note"] }],
   [40, { diagram: ["view"] }],
   [
     90,

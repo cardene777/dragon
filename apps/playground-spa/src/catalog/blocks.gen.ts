@@ -23,6 +23,10 @@ import { text as edgeLabelText } from "../../../../packages/dragon/src/blocks/ed
 import { shelf as edgeLabelShelf } from "../../../../packages/dragon/src/blocks/edge-label/gallery/shelf";
 import { docs as edgeLabelDocs } from "../../../../packages/dragon/src/blocks/edge-label/gallery/docs";
 import { rule as edgeLabelRule } from "../../../../packages/dragon/src/blocks/edge-label/gallery/rule";
+import { text as groupText } from "../../../../packages/dragon/src/blocks/group/gallery/text";
+import { shelf as groupShelf } from "../../../../packages/dragon/src/blocks/group/gallery/shelf";
+import { docs as groupDocs } from "../../../../packages/dragon/src/blocks/group/gallery/docs";
+import { rule as groupRule } from "../../../../packages/dragon/src/blocks/group/gallery/rule";
 import { text as iconText } from "../../../../packages/dragon/src/blocks/icon/gallery/text";
 import { shelf as iconShelf } from "../../../../packages/dragon/src/blocks/icon/gallery/shelf";
 import { docs as iconDocs } from "../../../../packages/dragon/src/blocks/icon/gallery/docs";
@@ -52,6 +56,7 @@ export const BLOCK_TEXT = {
   "color": colorText,
   "edge": edgeText,
   "edge-label": edgeLabelText,
+  "group": groupText,
   "icon": iconText,
   "link": linkText,
   "note": noteText,
@@ -67,6 +72,7 @@ export const BLOCK_SHELF = {
   "color": colorShelf,
   "edge": edgeShelf,
   "edge-label": edgeLabelShelf,
+  "group": groupShelf,
   "icon": iconShelf,
   "link": linkShelf,
   "note": noteShelf,
@@ -82,6 +88,7 @@ export const BLOCK_DOCS = {
   "color": colorDocs,
   "edge": edgeDocs,
   "edge-label": edgeLabelDocs,
+  "group": groupDocs,
   "icon": iconDocs,
   "link": linkDocs,
   "note": noteDocs,
@@ -97,6 +104,7 @@ export const BLOCK_RULE = {
   "color": colorRule,
   "edge": edgeRule,
   "edge-label": edgeLabelRule,
+  "group": groupRule,
   "icon": iconRule,
   "link": linkRule,
   "note": noteRule,

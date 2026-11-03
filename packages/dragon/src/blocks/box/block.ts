@@ -5,13 +5,14 @@
  * 名札は線や処理で箱を指す時の呼び名で、図には名前と下の字が出る。`as <名前>` を省くと、名札がそのまま名前になる。
  * 見た目の属性 (色の役と絵) は色の役のブロックの `readLook`、飛び先は飛び先のブロックの `urlOf` で読む。
  * 開いている区画 (`group` から `end` まで) の中の箱はその区画に置く。列の図の `box` の行は列を宣言し、書ける属性は `LANE_ATTRS` だけ。
- * 区画と箱の宣言は書き戻す時に 1 つの塊に混ざるので、宣言の塊はこのブロックが区画の行も含めて書く。
+ * 区画と箱の宣言は書き戻す時に 1 つの塊に混ざるので、宣言の塊はこのブロックが区画のブロックの `declareRegion` で区画の行も含めて書く。
  */
 import { attrs, shown } from "../../print-kit";
 import { readDeclared } from "../../read-kit";
-import type { Box, Diagram, Region } from "../../schema";
+import type { Box, Diagram } from "../../schema";
 import type { Block } from "../block";
 import { readLook } from "../color/block";
+import { declareRegion } from "../group/block";
 import { urlOf } from "../link/block";
 
 /** 列の図 (#3239) の `box` の行に書ける属性の鍵。列は絵柄と飛び先を持たない */
@@ -22,12 +23,6 @@ export interface BoxMessages {
   noBoxes: string;
 }
 
-const declareRegion = (r: Region): string =>
-  `group ${r.id}${shown(r.id, r.name)}${attrs([
-    ["note", r.note],
-    ["color", r.color],
-    ["icon", r.icon],
-  ])}`;
 const declareBox = (b: Box): string =>
   `box ${b.id}${shown(b.id, b.name)}${attrs([
     ["note", b.sub],

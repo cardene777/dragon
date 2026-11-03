@@ -77,7 +77,7 @@ export const TEXT = {
           step: { name: "段", desc: "図を区切る段。段ごとに本文と打つ命令を書き、1 段ずつ送って見る。view で、枠が段を追うか全体を止めて見せるかを選ぶ。" },
           source: BLOCK_TEXT.source.ja,
           lifeline: { name: "生存線", desc: "時系列図だけの部品。箱の下に縦の線が伸び、上から下へ時が進む。" },
-          group: { name: "区画", desc: "構成図だけの部品。group から end までの箱を 1 つの区画に囲み、仕組みの境目を見せる。" },
+          group: BLOCK_TEXT.group.ja,
           "start-finish": {
             name: "始まりと終わり",
             desc: "状態遷移図だけの部品。線の送る側に start、受ける側に finish を書くと、始まりの印から出る線と、終わりの印へ入る線になる。",
@@ -239,7 +239,7 @@ export const TEXT = {
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: {
         box: BLOCK_SHELF.box.box.ja,
-        region: "区画と箱",
+        region: BLOCK_SHELF.group.region.ja,
         step: "段",
         edge: BLOCK_SHELF.edge.edge.ja,
         "edge-tag": BLOCK_SHELF.carry["edge-tag"].ja,
@@ -388,7 +388,7 @@ export const TEXT = {
           step: { name: "Step", desc: "A step of the diagram, with its own text and command, played one at a time. view picks whether the frame follows the step or holds the whole diagram." },
           source: BLOCK_TEXT.source.en,
           lifeline: { name: "Lifeline", desc: "Sequence diagrams only. A line runs down from each box, and time moves down the page." },
-          group: { name: "Group", desc: "Architecture diagrams only. The boxes between group and end sit inside one region that marks a boundary in the system." },
+          group: BLOCK_TEXT.group.en,
           "start-finish": {
             name: "Start and end",
             desc: "State diagrams only. Write start as the sender of a line and finish as its receiver, and the line leaves the start mark or goes into the end mark.",
@@ -550,7 +550,7 @@ export const TEXT = {
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: {
         box: BLOCK_SHELF.box.box.en,
-        region: "Region with a box",
+        region: BLOCK_SHELF.group.region.en,
         step: "Step",
         edge: BLOCK_SHELF.edge.edge.en,
         "edge-tag": BLOCK_SHELF.carry["edge-tag"].en,

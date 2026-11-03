@@ -64,7 +64,6 @@
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
-import { readLook } from "./blocks/color/block";
 import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
@@ -347,14 +346,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       continue;
     }
     switch (word) {
-      case "group":
-        readGroup(source);
-        break;
-      case "end":
-        if (text !== word) throw fail(source, word.length, m.endTakesNothing);
-        if (!figure.group) throw fail(source, 0, m.strayEnd);
-        figure.group = undefined;
-        break;
       case "step": {
         if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
         settle();
@@ -660,23 +651,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (color && !isPoint) throw fail(source, color.at, m.noteColorPointOnly);
     if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
     return { type: "swap", box: id, text: named.value, ...(color ? { color: color.value as Color } : {}) };
-  }
-
-  /** `group` の行。同じ名札をもう一度開いた時は、名前も属性も書かない */
-  function readGroup(source: SourceLine): void {
-    beforeSteps(source);
-    if (isGit) throw fail(source, 0, m.gitNoGroup);
-    if (isTree) throw fail(source, 0, m.treeNoGroup);
-    if (isLineup) throw fail(source, 0, m.lineupNoGroup);
-    if (figure.group) throw fail(source, 0, m.nestedGroup);
-    const declared = readDeclared(source, "group", ATTRS.group, m);
-    if (regions.some((region) => region.id === declared.id)) {
-      if (declared.name !== undefined || declared.attrs.size > 0) throw fail(source, 0, m.regionReopened(declared.id));
-    } else {
-      claim(source, declared.id, declared.idAt);
-      regions.push({ id: declared.id, name: declared.name ?? declared.id, ...readLook(source, declared.attrs, m) });
-    }
-    figure.group = { source, id: declared.id };
   }
 
   /** 枝分かれの図の `branch <名札> [note: <添え書き>]` の行。枝は宣言した順に上から帯に並ぶ */

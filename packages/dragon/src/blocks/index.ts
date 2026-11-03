@@ -5,6 +5,7 @@ import { block as carryBlock } from "./carry/block";
 import { block as colorBlock } from "./color/block";
 import { block as edgeBlock } from "./edge/block";
 import { block as edgeLabelBlock } from "./edge-label/block";
+import { block as groupBlock } from "./group/block";
 import { block as iconBlock } from "./icon/block";
 import { block as linkBlock } from "./link/block";
 import { block as noteBlock } from "./note/block";
@@ -19,6 +20,7 @@ export const BLOCKS = {
   "color": colorBlock,
   "edge": edgeBlock,
   "edge-label": edgeLabelBlock,
+  "group": groupBlock,
   "icon": iconBlock,
   "link": linkBlock,
   "note": noteBlock,
@@ -27,4 +29,4 @@ export const BLOCKS = {
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "box", "carry", "color", "edge", "edge-label", "icon", "link", "note", "source", "strip"] as const;
+export const BLOCK_NAMES = ["act", "box", "carry", "color", "edge", "edge-label", "group", "icon", "link", "note", "source", "strip"] as const;

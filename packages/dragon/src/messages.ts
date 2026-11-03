@@ -43,11 +43,6 @@ export interface CoreMessages {
   emptyCode: string;
   declarationInStep: string;
   stepLineBeforeStep: string;
-  nestedGroup: string;
-  strayEnd: string;
-  endTakesNothing: string;
-  unclosedGroup: (id: string) => string;
-  regionReopened: (id: string) => string;
   emptyName: (id: string) => string;
   quoteUnclosed: string;
   afterQuote: string;
@@ -65,7 +60,6 @@ export interface CoreMessages {
   pathNoAttrs: string;
   /** 枝分かれの図だけの行 (`branch` と `commit`) を、別の種類の図に書いた (#3164) */
   gitOnly: (word: string) => string;
-  gitNoGroup: string;
   noBranches: string;
   branchShape: string;
   commitShape: string;
@@ -84,7 +78,6 @@ export interface CoreMessages {
   timeOnly: (word: string) => string;
   /** 木の図だけの行 (`leaf` と `node`) を、別の種類の図に書いた (#3233) */
   treeOnly: (word: string) => string;
-  treeNoGroup: string;
   noLeaves: string;
   leafShape: string;
   nodeShape: string;
@@ -98,7 +91,6 @@ export interface CoreMessages {
   manyRoots: (id: string, root: string) => string;
   /** 列の図だけの行 (`item`、`line`、`seal`、`open`、`pick`、`stamp`) を、別の種類の図に書いた (#3239) */
   lineupOnly: (word: string) => string;
-  lineupNoGroup: string;
   noItems: string;
   itemShape: string;
   lineShape: string;
@@ -188,11 +180,6 @@ const ja = (): Messages => {
     emptyCode: "code の後ろに命令を書く",
     declarationInStep: "group と box と strip と branch と、scale と period と row と point と zoom は最初の step より前に書く",
     stepLineBeforeStep: "線と say と code と source と act と note と set と commit と枝を切る行と、now と mark と span と、leaf と node の行は step の下に書く",
-    nestedGroup: "group の中に group は書けない。先に end で閉じる",
-    strayEnd: "end の前に、閉じる group が無い",
-    endTakesNothing: "end の後ろには何も書かない",
-    unclosedGroup: (id) => `group ${id} を end で閉じていない`,
-    regionReopened: (id) => `group ${id} は宣言済み。もう一度開く時は group ${id} だけを書き、名前と属性は最初の宣言に書く`,
     emptyName: (id) => `${id} の名前が空`,
     quoteUnclosed: '" で始めた字を " で閉じていない',
     afterQuote: '" で閉じた字の後ろには、属性か次の , だけを書く',
@@ -207,7 +194,6 @@ const ja = (): Messages => {
     outOfFinish: "finish から出る線は書けない。finish は終わりの印で、線は finish へ入る",
     pathNoAttrs: "最初の step より前の線は今回は通らない道なので、属性 (carry と tag と side) を書けない",
     gitOnly: (word) => `${word} の行は git (枝分かれの図) でだけ書ける`,
-    gitNoGroup: "git (枝分かれの図) には group を書けない。枝は branch の行で宣言する",
     noBranches: "branch の行で枝を 1 つ以上宣言する",
     branchShape: "branch は branch <名札> [note: <添え書き>] の形で書く",
     commitShape: "commit は commit <名札> on <枝> [hash: <hash>, note: <一言>] の形で書く。当て直しは copy <commit> を、取り込みは merge <枝> を on <枝> の後ろに書く",
@@ -221,7 +207,6 @@ const ja = (): Messages => {
     badHash: "hash は 0 から 9 と a から f の字で 4 から 40 字にする",
     timeOnly: (word) => `${word} は time (時間軸の図) でだけ書ける`,
     treeOnly: (word) => `${word} の行は tree (木の図) でだけ書ける`,
-    treeNoGroup: "tree (木の図) には group を書けない。木の箱は leaf と node の行で書く",
     noLeaves: "leaf の行で葉を 1 つ以上書く",
     leafShape: "leaf は leaf <名札> [hash: <hash>] の形で書く",
     nodeShape: "node は node <名札> of <子>, <子> [hash: <hash>] の形で書く",
@@ -230,7 +215,6 @@ const ja = (): Messages => {
     twoParents: (id) => `${id} はもう別の親の子になっている。木の箱の親は 1 つだけ`,
     manyRoots: (id, root) => `${id} が親を持たないまま残る。木の根は 1 つだけで、${id} も ${root} も最後に 1 つの根へ組む`,
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
-    lineupNoGroup: "lineup (列の図) には group を書けない。列は box の行で宣言する",
     noItems: "item の行でチップを 1 つ以上宣言する",
     itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>] の形で書く",
     lineShape: "line は line <列>: <チップ>, <チップ> の形で書く",
@@ -306,11 +290,6 @@ const en = (): Messages => {
     emptyCode: "Write the command after code",
     declarationInStep: "Write group, box, strip, branch, scale, period, row, point and zoom before the first step",
     stepLineBeforeStep: "Write lines, say, code, source, act, note, set, commit, branch cuts, now, mark, span, leaf and node under a step",
-    nestedGroup: "A group cannot hold another group. Close it with end first",
-    strayEnd: "There is no group for this end to close",
-    endTakesNothing: "Write nothing after end",
-    unclosedGroup: (id) => `group ${id} is not closed with end`,
-    regionReopened: (id) => `group ${id} is already declared. To open it again, write only group ${id}; put the name and attributes on the first one`,
     emptyName: (id) => `${id} has an empty name`,
     quoteUnclosed: 'A value that starts with " is not closed with "',
     afterQuote: 'After a value closed with ", write only attributes or the next ,',
@@ -325,7 +304,6 @@ const en = (): Messages => {
     outOfFinish: "A line cannot leave finish. finish is the end mark, and lines go into it",
     pathNoAttrs: "A line before the first step is a path not taken, so it takes no attributes (carry, tag, side)",
     gitOnly: (word) => `${word} lines can be written only in git diagrams`,
-    gitNoGroup: "A git diagram takes no group. Declare branches with branch lines",
     noBranches: "Declare at least one branch with a branch line",
     branchShape: "Write a branch as branch <id> [note: <note>]",
     commitShape: "Write a commit as commit <id> on <branch> [hash: <hash>, note: <note>]. For a replayed commit add copy <commit>, and for a merge commit add merge <branch>, after on <branch>",
@@ -339,7 +317,6 @@ const en = (): Messages => {
     badHash: "Write a hash as 4 to 40 characters of 0-9 and a-f",
     timeOnly: (word) => `${word} can be written only in time diagrams`,
     treeOnly: (word) => `${word} lines can be written only in tree diagrams`,
-    treeNoGroup: "A tree diagram takes no group. Write the tree boxes with leaf and node lines",
     noLeaves: "Write at least one leaf with a leaf line",
     leafShape: "Write a leaf as leaf <id> [hash: <hash>]",
     nodeShape: "Write a node as node <id> of <child>, <child> [hash: <hash>]",
@@ -348,7 +325,6 @@ const en = (): Messages => {
     twoParents: (id) => `${id} is already a child of another node. A tree box has only one parent`,
     manyRoots: (id, root) => `${id} is left without a parent. A tree has one root, so join ${id} and ${root} under one root by the end`,
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
-    lineupNoGroup: "A lineup diagram takes no group. Declare the lanes with box lines",
     noItems: "Declare at least one chip with an item line",
     itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>]",
     lineShape: "Write a line as line <lane>: <chip>, <chip>",

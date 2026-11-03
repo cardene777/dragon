@@ -15,6 +15,7 @@ import { carrier } from "../blocks/carry/draw";
 import { cs } from "../blocks/color/draw";
 import { edge } from "../blocks/edge/draw";
 import { fadeBefore, label } from "../blocks/edge-label/draw";
+import { band } from "../blocks/group/draw";
 import { linkTo } from "../blocks/link/draw";
 import { subChanges } from "../blocks/note/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
@@ -36,7 +37,6 @@ import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import {
   badge,
-  band,
   type Ctx,
   doneMark,
   endMark,

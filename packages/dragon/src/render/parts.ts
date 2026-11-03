@@ -1,5 +1,5 @@
 /**
- * 区画、段の番号、状態遷移図の札と道と印と、線の道の形を SVG に描く部品。見本帳の `engine.js` の部品を写す。
+ * 段の番号、状態遷移図の札と道と印と、線の道の形を SVG に描く部品。見本帳の `engine.js` の部品を写す。
  *
  * どの部品も、置き場所は場面 (`layout/scene.ts`) から、いつ見えるかは時刻の表 (`timeline.ts`) から読む。
  * 色は色の役の変数 (`--c` と `--ct`) だけを渡し、値は色味の表が持つ。
@@ -17,7 +17,6 @@ import {
   type SceneBox,
   type SceneEnd,
   type ScenePath,
-  type SceneRegion,
   type SceneSide,
 } from "../layout/scene";
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
@@ -108,15 +107,6 @@ export function activeKf(ctx: Ctx, on: number[]): string {
     k = e + 1;
   }
   return rangeKf(ctx.m, ranges);
-}
-
-export function band(region: SceneRegion, ink: Ink[]): string {
-  const { radius, icon, iconRadius, iconScale, nameY, line } = LOOK.region;
-  const { x, y } = region.header;
-  const lines = region.lines.map((t, k) => write(ink, "dg-bz", x, region.y + nameY + k * line, t, TYPE.regionName)).join("");
-  const note = region.note ? write(ink, "dg-bx", x, region.y + nameY + region.lines.length * line + 1, region.note, TYPE.regionNote) : "";
-  const mark = drawsIcon(region.icon) ? `<rect class="dg-bi" x="${r1(x)}" y="${r1(y)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(region.icon, x + icon / 2, y + icon / 2, iconScale)}` : "";
-  return `<g style="${cs(region.color)}"><rect class="dg-band" x="${r1(region.x + 0.5)}" y="${r1(region.y + 0.5)}" width="${r1(region.w - 1)}" height="${r1(region.h - 1)}" rx="${radius}"/>${mark}${lines}${note}</g>`;
 }
 
 /** 状態遷移図の、どの段も辿り着かない状態。点線の縁の札で、絵柄を左に、名前と下の字を右に並べる (#3171)。光らず、字も書き換わらない */
