@@ -1,42 +1,43 @@
 name: Question
-description: 使い方 / 仕様の質問
+description: Ask how to use dragon or how it behaves
 title: "[q] "
 labels: ["question"]
 body:
   - type: markdown
     attributes:
       value: |
-        質問歓迎です。
-        README と例 (`packages/dragon/examples/`) で見当たらない動作仕様は遠慮なくどうぞ。
+        Questions are welcome.
+        Ask about anything the README and the examples (`packages/dragon/examples/`) do not answer.
+        You can write in English or Japanese.
 
   - type: textarea
     id: question
     attributes:
-      label: 質問内容
-      description: 何を知りたいか
-      placeholder: "--width を渡さない時、全体を止める見せ方と寄って追う見せ方のどちらになる？"
+      label: Question
+      description: What you want to know
+      placeholder: "When I leave out --width, does the export show the whole diagram or follow the current part?"
     validations:
       required: true
 
   - type: textarea
     id: context
     attributes:
-      label: 試したこと / context
-      description: 既に試した code / 読んだ docs / 想定 use case
+      label: What you tried
+      description: Code you tried, docs you read, and what you want to use it for
       render: tsx
 
   - type: input
     id: version
     attributes:
       label: dragon version
-      placeholder: "0.29.0"
+      description: Paste the output of `npm ls @cardenelabs/dragon`, if you have it installed
 
   - type: checkboxes
     id: checks
     attributes:
-      label: 確認
+      label: Checks
       options:
-        - label: README / docs / 例で探した
+        - label: I looked in the README, the docs, and the examples
           required: true
-        - label: 既存 issue を検索した
+        - label: I searched the existing issues
           required: true
