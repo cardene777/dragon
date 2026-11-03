@@ -64,7 +64,7 @@ export const TEXT = {
           kinds: { title: "図", lead: "部品を組み合わせた図。図ごとに、使う部品の一覧と見本を載せる。" },
         },
         parts: {
-          box: { name: "箱", desc: "box の行で、図に登場する物を 1 つ置く。名札と見せる名前を書き、線はこの名札で引く。" },
+          box: BLOCK_TEXT.box.ja,
           edge: BLOCK_TEXT.edge.ja,
           "edge-label": BLOCK_TEXT["edge-label"].ja,
           carry: BLOCK_TEXT.carry.ja,
@@ -238,7 +238,7 @@ export const TEXT = {
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: {
-        box: "箱",
+        box: BLOCK_SHELF.box.box.ja,
         region: "区画と箱",
         step: "段",
         edge: BLOCK_SHELF.edge.edge.ja,
@@ -375,7 +375,7 @@ export const TEXT = {
           kinds: { title: "Diagrams", lead: "Diagrams built from the parts. Each lists the parts it uses and its examples." },
         },
         parts: {
-          box: { name: "Box", desc: "A box line places one thing in the diagram. Write a tag and the name to show; edges use the tag." },
+          box: BLOCK_TEXT.box.en,
           edge: BLOCK_TEXT.edge.en,
           "edge-label": BLOCK_TEXT["edge-label"].en,
           carry: BLOCK_TEXT.carry.en,
@@ -549,7 +549,7 @@ export const TEXT = {
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: {
-        box: "Box",
+        box: BLOCK_SHELF.box.box.en,
         region: "Region with a box",
         step: "Step",
         edge: BLOCK_SHELF.edge.edge.en,

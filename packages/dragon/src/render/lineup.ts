@@ -14,7 +14,8 @@ import type { Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
 import { cs } from "../blocks/color/draw";
-import { type Ctx, esc, type SubChange, subLines, write } from "./parts";
+import { type SubChange, subLines } from "../blocks/box/draw";
+import { type Ctx, esc, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 

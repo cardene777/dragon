@@ -34,10 +34,8 @@ export interface CoreMessages {
   needsId: (word: string) => string;
   badId: (id: string) => string;
   afterId: string;
-  undeclaredBox: (id: string) => string;
   noBody: (title: string) => string;
   emptyStepTitle: string;
-  noBoxes: string;
   noSteps: string;
   emptySay: string;
   sayTwice: string;
@@ -181,10 +179,8 @@ const ja = (): Messages => {
     needsId: (word) => `${word} の後ろに名札を書く`,
     badId: (id) => `${id} は名札に使えない。名札には空白と [ ] 「 」 = : を含めない`,
     afterId: "名札の後ろには as <名前> か属性を書く",
-    undeclaredBox: (id) => `${id} という箱は宣言していない`,
     noBody: (title) => `段「${title}」に本文 (say の行) が要る`,
     emptyStepTitle: "step の後ろに段の題を書く",
-    noBoxes: "箱を 1 つ以上宣言する",
     noSteps: "段 (step の行) を 1 つ以上書く",
     emptySay: "say の後ろか、その下に字下げした行に段の本文を書く",
     sayTwice: "1 つの段に say は 1 つまで。長い本文は say の下に字下げして続ける",
@@ -301,10 +297,8 @@ const en = (): Messages => {
     needsId: (word) => `Write an id after ${word}`,
     badId: (id) => `${id} cannot be an id. An id has no spaces and none of [ ] 「 」 = :`,
     afterId: "Write as <name> or attributes after the id",
-    undeclaredBox: (id) => `No box named ${id} is declared`,
     noBody: (title) => `Step "${title}" needs a body (a say line)`,
     emptyStepTitle: "Write a title after step",
-    noBoxes: "Declare at least one box",
     noSteps: "Write at least one step (a step line)",
     emptySay: "Write the step body after say, or on indented lines below it",
     sayTwice: "A step takes one say. Continue a long body on indented lines below it",

@@ -1,5 +1,6 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { block as actBlock } from "./act/block";
+import { block as boxBlock } from "./box/block";
 import { block as carryBlock } from "./carry/block";
 import { block as colorBlock } from "./color/block";
 import { block as edgeBlock } from "./edge/block";
@@ -13,6 +14,7 @@ import { block as stripBlock } from "./strip/block";
 /** ブロックの一覧。鍵は置き場の dir の名前 */
 export const BLOCKS = {
   "act": actBlock,
+  "box": boxBlock,
   "carry": carryBlock,
   "color": colorBlock,
   "edge": edgeBlock,
@@ -25,4 +27,4 @@ export const BLOCKS = {
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "carry", "color", "edge", "edge-label", "icon", "link", "note", "source", "strip"] as const;
+export const BLOCK_NAMES = ["act", "box", "carry", "color", "edge", "edge-label", "icon", "link", "note", "source", "strip"] as const;

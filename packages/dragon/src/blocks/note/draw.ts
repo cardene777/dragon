@@ -6,7 +6,7 @@
  * 箱ごとの下の字の移り変わりを組む。
  */
 import { MOTION } from "../../look/values";
-import type { SubChange } from "../../render/parts";
+import type { SubChange } from "../box/draw";
 import type { Diagram } from "../../schema";
 import type { Span, Timeline } from "../../timeline";
 

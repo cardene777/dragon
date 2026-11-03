@@ -66,12 +66,10 @@
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { readLook } from "./blocks/color/block";
 import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
-import { urlOf } from "./blocks/link/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
 import {
-  type Box,
   type Color,
   COLORS,
   type Diagram,
@@ -79,7 +77,6 @@ import {
   type GitBranch,
   type GitCommit,
   type LineupItem,
-  type Region,
   type StatePath,
   type Step,
   type TimePeriod,
@@ -100,7 +97,6 @@ import {
   HEADS,
   KINDS,
   LABEL_MOST,
-  LANE_ATTRS,
   LANE_MOST,
   LINEUP_HEADS,
   MERGE,
@@ -220,24 +216,19 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   /** 目盛りの数が決まってから確かめる、宣言の行の目盛り。最初の step で確かめる */
   const pending: (() => void)[] = [];
   let settled = false;
-  /** 最初に宣言した箱の行。時間軸の図で拡大の範囲が無い時に名指す */
-  let firstBox: SourceLine | undefined;
   /** 針が今いる目盛りの境 (0 から数える) */
   let needle = 0;
   const branches: GitBranch[] = [];
   /** 枝分かれの図で積んだ commit と、枝の札が今指す commit (まだ何も指さない枝は `null`) */
   const commits = new Set<string>();
   const tips = new Map<string, string | null>();
-  const regions: Region[] = [];
-  const boxes: Box[] = [];
   const paths: StatePath[] = [];
   const ids = new Set<string>();
-  /** 宣言の行でブロックが組む欄 (中身の帯と、時間軸の図の物差しの欄) */
-  const figure: FigureDraft = { meters: [] };
+  /** 宣言の行でブロックが組む欄 (区画と箱と、中身の帯と、時間軸の図の物差しの欄) */
+  const figure: FigureDraft = { regions: [], boxes: [], meters: [] };
+  const { regions, boxes } = figure;
   const steps: Step[] = [];
   let building: StepDraft | undefined;
-  /** 開いている `group` */
-  let group: { source: SourceLine; id: string } | undefined;
 
   const declare = (source: SourceLine, id: string, at: number): void => {
     if (ids.has(id)) throw fail(source, at, m.duplicate(id));
@@ -280,6 +271,11 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (isGit && id === HEAD) throw fail(source, at, m.headReserved(id));
     if (isTime && id === NOW) throw fail(source, at, m.nowReserved(id));
   };
+  /** 宣言の行の名札を、使えない名前でも宣言済みでもない名札として取る */
+  const claim = (source: SourceLine, id: string, at: number): void => {
+    notReserved(source, id, at);
+    declare(source, id, at);
+  };
   /** 段の中に書く行の、書き先の段。最初の `step` より前なら誤り */
   const inStep = (source: SourceLine): StepDraft => {
     if (!building) throw fail(source, 0, m.stepLineBeforeStep);
@@ -290,7 +286,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (building) throw fail(source, 0, m.declarationInStep);
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
-  const state: ParseState = { m, kind, attrs: ATTRS, inStep, beforeSteps, boxAt, endAt, columns: readColumns, figure };
+  const state: ParseState = { m, kind, attrs: ATTRS, inStep, beforeSteps, boxAt, claim, endAt, columns: readColumns, figure };
   const finish = (): void => {
     if (!building) return;
     if (building.body === undefined) throw fail(building.source, 0, m.noBody(building.title));
@@ -356,14 +352,11 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         break;
       case "end":
         if (text !== word) throw fail(source, word.length, m.endTakesNothing);
-        if (!group) throw fail(source, 0, m.strayEnd);
-        group = undefined;
-        break;
-      case "box":
-        readBox(source);
+        if (!figure.group) throw fail(source, 0, m.strayEnd);
+        figure.group = undefined;
         break;
       case "step": {
-        if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
+        if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
         settle();
         finish();
         const stepTitle = text.slice(word.length).trim();
@@ -443,7 +436,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       }
     }
   }
-  if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
+  if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
   settle();
   finish();
 
@@ -494,7 +487,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (!scale) throw fail(head as SourceLine, 0, m.noScale);
     if (rows.length === 0) throw fail(head as SourceLine, 0, m.noRows);
     for (const check of pending) check();
-    if (firstBox && !zoom) throw fail(firstBox, 0, m.boxNeedsZoom);
+    if (figure.firstBox && !zoom) throw fail(figure.firstBox, 0, m.boxNeedsZoom);
   }
 
   /** 目盛りの数。目盛りを宣言する前は 0 */
@@ -675,35 +668,15 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (isGit) throw fail(source, 0, m.gitNoGroup);
     if (isTree) throw fail(source, 0, m.treeNoGroup);
     if (isLineup) throw fail(source, 0, m.lineupNoGroup);
-    if (group) throw fail(source, 0, m.nestedGroup);
+    if (figure.group) throw fail(source, 0, m.nestedGroup);
     const declared = readDeclared(source, "group", ATTRS.group, m);
     if (regions.some((region) => region.id === declared.id)) {
       if (declared.name !== undefined || declared.attrs.size > 0) throw fail(source, 0, m.regionReopened(declared.id));
     } else {
-      notReserved(source, declared.id, declared.idAt);
-      declare(source, declared.id, declared.idAt);
+      claim(source, declared.id, declared.idAt);
       regions.push({ id: declared.id, name: declared.name ?? declared.id, ...readLook(source, declared.attrs, m) });
     }
-    group = { source, id: declared.id };
-  }
-
-  /** `box` の行。開いている `group` の中なら、その区画に置く */
-  function readBox(source: SourceLine): void {
-    beforeSteps(source);
-    const declared = readDeclared(source, "box", isLineup ? LANE_ATTRS : ATTRS.box, m);
-    notReserved(source, declared.id, declared.idAt);
-    declare(source, declared.id, declared.idAt);
-    firstBox ??= source;
-    const { note, ...look } = readLook(source, declared.attrs, m);
-    const link = declared.attrs.get("link");
-    boxes.push({
-      id: declared.id,
-      name: declared.name ?? declared.id,
-      ...(note !== undefined ? { sub: note } : {}),
-      ...look,
-      ...(group ? { region: group.id } : {}),
-      ...(link ? { link: urlOf(source, "link", link, m) } : {}),
-    });
+    figure.group = { source, id: declared.id };
   }
 
   /** 枝分かれの図の `branch <名札> [note: <添え書き>]` の行。枝は宣言した順に上から帯に並ぶ */

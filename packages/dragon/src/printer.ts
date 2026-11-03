@@ -7,9 +7,7 @@
  * 状態遷移図の移れる道 (`state.paths`) は、帯の宣言の後、最初の `step` より前に JSON の並びのまま書く (#3163)。
  *
  * `"` で囲むのは要る時だけにする。`[` を含む名前と、`,` か `]` を含む属性の値と、`"` で始まる字を囲む。
- * 箱は JSON の並びのまま書き、同じ区画の箱が続く所を 1 つの `group … end` にする。
- * 区画の箱が飛び飛びの時は同じ `group` を開き直す。区画の並びが箱の現れる順と違う時と、
- * 箱の無い区画がある時は、先に全ての区画を中の無い `group … end` で宣言してから開き直す。
+ * 区画と箱の宣言の塊は箱のブロックの書き戻す処理 (`print.declare`) が書く (#3345)。
  * 枝分かれの図 (#3164) は、枝の `branch` の行を箱より前に書き、札を動かす線の運ぶ物が送る側の名前の札なら書かない。
  * 時間軸の図 (#3165) は、目盛りと区切りと印の列と節目と拡大の範囲の行を箱より前に書き、物差しの欄の後ろに `[meter: <割合>]` を書く。
  * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
@@ -24,7 +22,7 @@ import { type EventPrinter, ranked } from "./blocks/block";
 import { line } from "./blocks/edge/block";
 import { BLOCKS } from "./blocks/index";
 import { attrs, name, num, shown } from "./print-kit";
-import type { Box, Diagram, DiagramEvent, LineupItem, Region, Step, TimeSpec } from "./schema";
+import type { Diagram, DiagramEvent, LineupItem, Step, TimeSpec } from "./schema";
 import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 
 /** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
@@ -40,24 +38,15 @@ const EVENT_PRINTERS: ReadonlyMap<string, EventPrinter> = new Map(
   ranked(BLOCKS).flatMap((block) => ("none" in block.print ? [] : (Object.entries(block.print.events ?? {}) as [string, EventPrinter][]))),
 );
 
+/** 図の種類の宣言の直ぐ後ろに書く、ブロックが持つ宣言の塊 (区画と箱) を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
+const DECLARE_PRINTERS: readonly ((diagram: Diagram) => string[])[] = ranked(BLOCKS).flatMap((block) =>
+  "none" in block.print || block.print.declare === undefined ? [] : [block.print.declare],
+);
+
 /** 最初の `step` より前に書く、ブロックが持つ宣言の塊を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
 const FIGURE_PRINTERS: readonly ((diagram: Diagram) => string[])[] = ranked(BLOCKS).flatMap((block) =>
   "none" in block.print || block.print.figure === undefined ? [] : [block.print.figure],
 );
-
-const declareRegion = (r: Region): string =>
-  `group ${r.id}${shown(r.id, r.name)}${attrs([
-    ["note", r.note],
-    ["color", r.color],
-    ["icon", r.icon],
-  ])}`;
-const declareBox = (b: Box): string =>
-  `box ${b.id}${shown(b.id, b.name)}${attrs([
-    ["note", b.sub],
-    ["color", b.color],
-    ["icon", b.icon],
-    ["link", b.link],
-  ])}`;
 
 /** 目盛りの範囲。1 つの目盛りは番号だけを書く */
 const range = (from: number, to: number): string => (from === to ? `${from}` : `${from}-${to}`);
@@ -137,46 +126,13 @@ function timeBlocks(time: TimeSpec): string[] {
   return [head.join("\n"), rows.join("\n"), ...(points.length > 0 ? [points.join("\n")] : []), ...(time.zoom ? [`zoom ${range(time.zoom.from, time.zoom.to)}`] : [])];
 }
 
-/** 区画と箱の宣言の塊。塊どうしは空行で区切る */
-function declarations(diagram: Diagram): string[] {
-  const regions = diagram.regions ?? [];
-  const runs: { region?: string; boxes: Box[] }[] = [];
-  for (const b of diagram.boxes) {
-    const last = runs.at(-1);
-    if (last && last.region === b.region) last.boxes.push(b);
-    else runs.push({ ...(b.region !== undefined ? { region: b.region } : {}), boxes: [b] });
-  }
-  const opened = [...new Set(runs.flatMap((run) => (run.region === undefined ? [] : [run.region])))];
-  const inOrder = opened.length === regions.length && opened.every((id, i) => regions[i]?.id === id);
-  const declared = new Set<string>();
-  const blocks: string[] = [];
-  if (!inOrder) {
-    for (const r of regions) {
-      blocks.push(`${declareRegion(r)}\nend`);
-      declared.add(r.id);
-    }
-  }
-  for (const run of runs) {
-    const lines = run.boxes.map(declareBox);
-    if (run.region === undefined) {
-      blocks.push(lines.join("\n"));
-      continue;
-    }
-    const region = regions.find((r) => r.id === run.region);
-    const open = declared.has(run.region) || !region ? `group ${run.region}` : declareRegion(region);
-    declared.add(run.region);
-    blocks.push([open, ...lines.map((line) => `  ${line}`), "end"].join("\n"));
-  }
-  return blocks;
-}
-
 export function printNotation(diagram: Diagram): string {
   const branches = (diagram.git?.branches ?? []).map((b) => `branch ${b.id}${attrs([["note", b.note]])}`);
   const blocks = [
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
     ...(branches.length > 0 ? [branches.join("\n")] : []),
     ...(diagram.time ? timeBlocks(diagram.time) : []),
-    ...declarations(diagram),
+    ...DECLARE_PRINTERS.flatMap((print) => print(diagram)),
     ...(diagram.lineup && diagram.lineup.items.length > 0 ? [itemLines(diagram.lineup.items)] : []),
     ...FIGURE_PRINTERS.flatMap((print) => print(diagram)),
   ];

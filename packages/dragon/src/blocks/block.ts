@@ -17,7 +17,7 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Diagram, DiagramEvent, Step, StripMeter } from "../schema";
+import type { Box, Diagram, DiagramEvent, Region, Step, StripMeter } from "../schema";
 import type { SourceLine } from "../tokenize";
 
 /** 付け方。置く、つなぐ、線に乗る、箱に付く、図に付く */
@@ -49,6 +49,14 @@ export interface StepDraft {
 
 /** 宣言の行でブロックが組む、図の原本の欄。parser が図の原本の決まった位置に置く */
 export interface FigureDraft {
+  /** 宣言した区画。区画のブロックが `group` の行で足す */
+  regions: Region[];
+  /** 宣言した箱。箱のブロックが `box` の行で足す */
+  boxes: Box[];
+  /** 開いている区画 (`group` の行から `end` の行まで)。箱は開いている区画に置く */
+  group?: { source: SourceLine; id: string };
+  /** 最初に宣言した箱の行。時間軸の図で拡大の範囲が無い時に名指す */
+  firstBox?: SourceLine;
   /** 中身の帯。中身の帯のブロックが `strip` の行で組む */
   strip?: { title: string; fields: string[] };
   /** 時間軸の図の物差しの欄。中身の帯のブロックが `strip` の行の欄の `[meter: <割合>]` で組む */
@@ -69,6 +77,11 @@ export interface ParseState {
   readonly beforeSteps: (source: SourceLine) => void;
   /** 宣言した箱の名札 `id` をそのまま返す。宣言していない名札は、名札の列 `at` を示して誤りで止める */
   readonly boxAt: (source: SourceLine, id: string, at: number) => string;
+  /**
+   * 宣言の行の名札 `id` を、ほかの宣言と重ならない名札として取る。
+   * 図の種類が名札に使えない名前 (状態遷移図の始まりと終わりの印、枝分かれの図の `HEAD`、時間軸の図の `now`) と、宣言済みの名札は誤りで止める
+   */
+  readonly claim: (source: SourceLine, id: string, at: number) => void;
   /**
    * 線の端の名札 `id` をそのまま返す。`side` は送る側 (`from`) か受ける側 (`to`)。
    * 書ける名札は図の種類で違い (状態遷移図の始まりと終わりの印、枝分かれの図の枝と commit、時間軸の図の節目、木の図の木の箱)、書けない名札は誤りで止める
@@ -98,6 +111,11 @@ export interface BlockPrint {
   step?: (step: Step) => string[];
   /** 段の中で起きることの書き戻し。鍵は出来事の種類で、段の中で起きた順に出来事ごとに呼ぶ */
   events?: { readonly [T in EventType]?: EventPrinter<T> };
+  /**
+   * 最初の `step` より前に、図の種類の宣言 (枝分かれの図の枝、時間軸の図の目盛りなど) の直ぐ後ろに書く宣言の塊 (区画と箱)。
+   * 列の図のチップと `figure` の塊より前に、ブロックの並びの順に書く
+   */
+  declare?: (diagram: Diagram) => string[];
   /** 最初の `step` より前に書く宣言の塊。区画と箱の宣言の後ろ、状態遷移図の道より前に、ブロックの並びの順に書く */
   figure?: (diagram: Diagram) => string[];
 }

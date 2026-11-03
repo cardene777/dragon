@@ -3,6 +3,10 @@ import { text as actText } from "../../../../packages/dragon/src/blocks/act/gall
 import { shelf as actShelf } from "../../../../packages/dragon/src/blocks/act/gallery/shelf";
 import { docs as actDocs } from "../../../../packages/dragon/src/blocks/act/gallery/docs";
 import { rule as actRule } from "../../../../packages/dragon/src/blocks/act/gallery/rule";
+import { text as boxText } from "../../../../packages/dragon/src/blocks/box/gallery/text";
+import { shelf as boxShelf } from "../../../../packages/dragon/src/blocks/box/gallery/shelf";
+import { docs as boxDocs } from "../../../../packages/dragon/src/blocks/box/gallery/docs";
+import { rule as boxRule } from "../../../../packages/dragon/src/blocks/box/gallery/rule";
 import { text as carryText } from "../../../../packages/dragon/src/blocks/carry/gallery/text";
 import { shelf as carryShelf } from "../../../../packages/dragon/src/blocks/carry/gallery/shelf";
 import { docs as carryDocs } from "../../../../packages/dragon/src/blocks/carry/gallery/docs";
@@ -43,6 +47,7 @@ import { rule as stripRule } from "../../../../packages/dragon/src/blocks/strip/
 /** 見本帳の一覧の名前と説明。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_TEXT = {
   "act": actText,
+  "box": boxText,
   "carry": carryText,
   "color": colorText,
   "edge": edgeText,
@@ -57,6 +62,7 @@ export const BLOCK_TEXT = {
 /** 編集画面の棚に置く部品の名前。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_SHELF = {
   "act": actShelf,
+  "box": boxShelf,
   "carry": carryShelf,
   "color": colorShelf,
   "edge": edgeShelf,
@@ -71,6 +77,7 @@ export const BLOCK_SHELF = {
 /** 使い方の頁の段落。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_DOCS = {
   "act": actDocs,
+  "box": boxDocs,
   "carry": carryDocs,
   "color": colorDocs,
   "edge": edgeDocs,
@@ -85,6 +92,7 @@ export const BLOCK_DOCS = {
 /** `GRAMMAR.md` の部品と使い方の表の行。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_RULE = {
   "act": actRule,
+  "box": boxRule,
   "carry": carryRule,
   "color": colorRule,
   "edge": edgeRule,

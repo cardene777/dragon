@@ -63,8 +63,6 @@ export const LINEUP_HEADS = ["item", "line", "seal", "open", "pick", "stamp"] as
 export const LANE_MOST = 12;
 /** チップの字の上限 */
 export const LABEL_MOST = 4;
-/** 列の図の `box` の行に書ける属性の鍵。列は絵柄と飛び先を持たない */
-export const LANE_ATTRS = ["note", "color"] as const;
 
 /** ブロックの並び (`rank`) の順のブロック */
 const RANKED = ranked(BLOCKS);
@@ -75,7 +73,6 @@ const RANKED = ranked(BLOCKS);
  */
 const LATER_HEADS = [
   [10, ["group", "end"]],
-  [20, ["box"]],
   [40, ["step", "say", "code"]],
   [90, ["branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS]],
 ] as const;
@@ -117,7 +114,6 @@ export const OF = "of";
  */
 const LATER_ATTRS = [
   [10, { group: ["note"] }],
-  [20, { box: ["note"] }],
   [40, { diagram: ["view"] }],
   [
     90,
