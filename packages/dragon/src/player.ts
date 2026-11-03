@@ -287,16 +287,9 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
       next = svg ? (svg.cloneNode(true) as SVGSVGElement) : null;
     }
     if (!next) return;
-    // 箱の飛び先 (#3199) の link を持つ図を隠すと、Tab で押せる link が読み上げから消える。
-    // その図は名前を残した group として読ませ、link の無い図は段の一覧に読ませて図を隠す (#3329)
-    if (next.querySelector("a[href]")) {
-      next.removeAttribute("aria-hidden");
-      next.setAttribute("role", "group");
-    } else {
-      next.setAttribute("aria-hidden", "true");
-      next.removeAttribute("role");
-      next.removeAttribute("aria-label");
-    }
+    next.setAttribute("aria-hidden", "true");
+    next.removeAttribute("role");
+    next.removeAttribute("aria-label");
     next.style.setProperty("--at", String(at));
     next.style.setProperty("--play", playing ? "running" : "paused");
     next.dataset.motion = playing ? "play" : "still";
