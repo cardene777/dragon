@@ -70,6 +70,21 @@ describe("版の記録 (#3151)", () => {
     expect(japanese, "CHANGELOG.md の地の文に日本語が残る行").toEqual([]);
   });
 
+  it("security-policy-names-no-version", () => {
+    // 脆弱性の報告の決まりは、対象の版を番号で書かず「npm の最新の minor」と書く (#3325)。
+    // 番号で書いた表は版を出すたびに手で直す形で、0.34.x のまま 12 の版が過ぎた
+    for (const file of ["SECURITY.md", "SECURITY.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      expect(text, `${file} が無いか空`).not.toBe("");
+      // 1.0 の前の版 (`0.34.x` や `0.46`) を数える。「1.0 の前なので」の 1.0 は対象の版ではないので数えない
+      const versions = [...text.matchAll(/(?<![\w.])0\.\d+(?:\.(?:\d+|x))?(?![\w.])/gu)].map((m) => m[0]);
+      expect(versions, `${file} が対象の版を番号で書いている`).toEqual([]);
+      expect(text, `${file} が Security Advisory の報告の入口を挙げない`).toContain("https://github.com/cardene777/dragon/security/advisories/new");
+    }
+    expect(readFileSync(join(ROOT, "SECURITY.md"), "utf8"), "SECURITY.md が日本語版へ link しない").toContain("](SECURITY.ja.md)");
+    expect(readFileSync(join(ROOT, "SECURITY.ja.md"), "utf8"), "SECURITY.ja.md が英語版へ link しない").toContain("](SECURITY.md)");
+  });
+
   it("version-match-needs-whole-version", () => {
     expect(mentions("0.36.3 として出した", "0.36.3")).toBe(true);
     expect(mentions("0.36.30 として出した", "0.36.3")).toBe(false);

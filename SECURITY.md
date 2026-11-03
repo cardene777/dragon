@@ -1,40 +1,37 @@
 # Security Policy
 
-## Supported Versions
+[日本語](SECURITY.ja.md)
 
-最新 minor のみセキュリティ修正対象。
-0.x 系は major bump 前の不安定 phase のため、 古い minor へは原則 backport しない。
+## Supported versions
 
-| Version | Supported |
-| --- | --- |
-| 0.34.x | Yes |
-| < 0.34 | No |
+Only the latest minor version of `@cardenelabs/dragon` on npm receives security fixes.
+dragon is still before 1.0, so fixes are not backported to older minor versions.
 
-## 報告経路
+## Reporting a vulnerability
 
-dragon (`@cardenelabs/dragon`) の依存か動作に脆弱性を見つけた場合は、 **public issue を起票せず** 次のいずれかで連絡してください。
+If you find a vulnerability in dragon or in one of its dependencies, do not open a public issue.
+Report it privately through a GitHub security advisory instead.
 
-1. **GitHub Security Advisory** (推奨)
-   - https://github.com/cardene777/dragon/security/advisories/new
-   - non-public な channel で著者と直接やり取りできる
-2. GitHub の private contact form 経由
+<https://github.com/cardene777/dragon/security/advisories/new>
 
-可能であれば次の情報を含めてください。
+Only you and the maintainer can see the advisory, and you can discuss the problem there.
 
-- 影響範囲 (affected package / version)
-- 再現手順 (PoC code / コマンド)
-- 想定される影響 (DoS / arbitrary code execution / data leak 等)
-- 推奨される修正方針 (任意)
+If you can, include the following.
 
-## 対応方針
+- The affected package and version
+- Steps to reproduce (code or commands)
+- The expected impact, such as denial of service, code execution, or data leaks
+- A suggested fix (optional)
 
-- 受領から 7 日以内に内容を確認、 影響度を triaging
-- Critical / High は patch release を最優先で準備
-- 公開タイミングは reporter と協議 (default は patch release 同日)
+## What happens next
 
-dragon は小さな OSS なので、 対応に時間がかかる可能性があります。
-緊急性が高い問題は advisory 内で明示してください。
+- The report is read and its severity assessed within 7 days.
+- Critical and high severity problems get a patch release first.
+- The disclosure date is agreed with the reporter, and by default it is the day the patch is released.
 
-## 公開済み advisory
+dragon is maintained by one person, so a fix can take time.
+If the problem is urgent, say so in the advisory.
 
-GitHub Security Advisory の active list は [security advisories](https://github.com/cardene777/dragon/security/advisories) を参照。
+## Published advisories
+
+See the [security advisories](https://github.com/cardene777/dragon/security/advisories) of this repository.
