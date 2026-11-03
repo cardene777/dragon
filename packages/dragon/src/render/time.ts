@@ -10,13 +10,14 @@
  */
 import { cs } from "../blocks/color/draw";
 import { glyph } from "../blocks/icon/draw";
+import { linkTo } from "../blocks/link/draw";
 import type { TimeBox, TimeLayout } from "../layout/time";
 import { hasWide } from "../layout/measure";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { Diagram } from "../schema";
 import type { Span, Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
-import { arrowHead, card, type Ctx, esc, linkTo, pathOf, type SubChange, write } from "./parts";
+import { arrowHead, card, type Ctx, esc, pathOf, type SubChange, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 

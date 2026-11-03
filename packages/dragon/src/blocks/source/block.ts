@@ -9,9 +9,10 @@
  */
 import type { Messages } from "../../messages";
 import { attrs, name } from "../../print-kit";
-import { fail, readAttrs, readName, urlOf } from "../../read-kit";
+import { fail, readAttrs, readName } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { Block } from "../block";
+import { urlOf } from "../link/block";
 
 /** 段の出典。読み上げの段の一覧に、名前を URL への link にして出す。URL の形は箱の飛び先と同じ (#3199) */
 export interface StepSource {

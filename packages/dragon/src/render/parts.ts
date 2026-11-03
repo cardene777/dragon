@@ -26,8 +26,6 @@ import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
 export const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-/** 箱の飛び先 (#3199)。飛び先を持つ箱の札を、その飛び先への link で包む */
-export const linkTo = (link: string | undefined, markup: string): string => (link === undefined ? markup : `<a href="${esc(link)}">${markup}</a>`);
 /** 座標を小数 2 桁に丸める。ブロックの描き方 (`blocks/<名前>/draw.ts`) も同じ丸めで書く */
 export const r1 = (v: number): number => Math.round(v * 100) / 100;
 

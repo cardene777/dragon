@@ -14,6 +14,7 @@ import { carrier } from "../blocks/carry/draw";
 import { cs } from "../blocks/color/draw";
 import { edge } from "../blocks/edge/draw";
 import { fadeBefore, label } from "../blocks/edge-label/draw";
+import { linkTo } from "../blocks/link/draw";
 import { subChanges } from "../blocks/note/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
@@ -44,7 +45,6 @@ import {
   ghostCard,
   headCard,
   lifeline,
-  linkTo,
   path,
   sansOf,
   side,

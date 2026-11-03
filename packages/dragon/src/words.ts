@@ -119,7 +119,6 @@ const LATER_ATTRS = [
   [10, { group: ["note"] }],
   [20, { box: ["note"] }],
   [40, { diagram: ["view"] }],
-  [89, { box: ["link"] }],
   [
     90,
     {

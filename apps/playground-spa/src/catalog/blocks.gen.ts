@@ -23,6 +23,10 @@ import { text as iconText } from "../../../../packages/dragon/src/blocks/icon/ga
 import { shelf as iconShelf } from "../../../../packages/dragon/src/blocks/icon/gallery/shelf";
 import { docs as iconDocs } from "../../../../packages/dragon/src/blocks/icon/gallery/docs";
 import { rule as iconRule } from "../../../../packages/dragon/src/blocks/icon/gallery/rule";
+import { text as linkText } from "../../../../packages/dragon/src/blocks/link/gallery/text";
+import { shelf as linkShelf } from "../../../../packages/dragon/src/blocks/link/gallery/shelf";
+import { docs as linkDocs } from "../../../../packages/dragon/src/blocks/link/gallery/docs";
+import { rule as linkRule } from "../../../../packages/dragon/src/blocks/link/gallery/rule";
 import { text as noteText } from "../../../../packages/dragon/src/blocks/note/gallery/text";
 import { shelf as noteShelf } from "../../../../packages/dragon/src/blocks/note/gallery/shelf";
 import { docs as noteDocs } from "../../../../packages/dragon/src/blocks/note/gallery/docs";
@@ -44,6 +48,7 @@ export const BLOCK_TEXT = {
   "edge": edgeText,
   "edge-label": edgeLabelText,
   "icon": iconText,
+  "link": linkText,
   "note": noteText,
   "source": sourceText,
   "strip": stripText,
@@ -57,6 +62,7 @@ export const BLOCK_SHELF = {
   "edge": edgeShelf,
   "edge-label": edgeLabelShelf,
   "icon": iconShelf,
+  "link": linkShelf,
   "note": noteShelf,
   "source": sourceShelf,
   "strip": stripShelf,
@@ -70,6 +76,7 @@ export const BLOCK_DOCS = {
   "edge": edgeDocs,
   "edge-label": edgeLabelDocs,
   "icon": iconDocs,
+  "link": linkDocs,
   "note": noteDocs,
   "source": sourceDocs,
   "strip": stripDocs,
@@ -83,6 +90,7 @@ export const BLOCK_RULE = {
   "edge": edgeRule,
   "edge-label": edgeLabelRule,
   "icon": iconRule,
+  "link": linkRule,
   "note": noteRule,
   "source": sourceRule,
   "strip": stripRule,

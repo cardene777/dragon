@@ -66,9 +66,10 @@
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { readLook } from "./blocks/color/block";
 import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
+import { urlOf } from "./blocks/link/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces, urlOf } from "./read-kit";
+import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
 import {
   type Box,
   type Color,

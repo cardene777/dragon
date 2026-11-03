@@ -127,7 +127,7 @@ export interface BlockWords {
  * ブロックの定義。`M` はブロックが持つ誤りの文の表の型で、日英で同じ鍵を持つ。
  * 誤りの文の鍵はブロックの間で重ならない (`blocks.test.ts` の `block-message-keys-unique` が見る)
  */
-export interface Block<M extends object = object> {
+export interface Block<M extends object = object, F extends object = object> {
   /** 置き場の dir の名前 */
   name: string;
   /** ブロックの並び。語の表 (`words.ts`) はこの順にブロックの語を並べる (行の頭の語は `words.headRanks` で別の番号にできる) */
@@ -141,4 +141,9 @@ export interface Block<M extends object = object> {
   read: Readonly<Record<string, HeadReader>> | None;
   print: BlockPrint | None;
   messages: { ja: M; en: M } | None;
+  /**
+   * 原本の JSON の誤りの文 (`field-messages.ts`) のうち、ブロックの形の決まりに当てる文。`F` はその表の型で、日英で同じ鍵を持つ。
+   * 原本の誤りの文を持たないブロックは書かない
+   */
+  fieldMessages?: { ja: F; en: F };
 }

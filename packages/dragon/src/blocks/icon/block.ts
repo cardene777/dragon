@@ -24,6 +24,11 @@ export interface IconMessages {
   badIcon: (value: string) => string;
 }
 
+export interface IconFieldMessages {
+  /** 原本の JSON に書いた知らないアイコン名 `value` と、それに一番近い名前 `near` (#3315) */
+  unknownIcon: (value: string, near: string) => string;
+}
+
 /** 箱と区画の行の属性の、絵の名前。知らない名前は誤りで止める */
 export function readIcon(source: SourceLine, attrs: Map<string, Attr>, m: Messages): Attr | undefined {
   const icon = attrs.get("icon");
@@ -37,7 +42,7 @@ const withNear = (value: string, near: (name: string) => string, none: string): 
   return name === undefined ? none : near(name);
 };
 
-export const block: Block<IconMessages> = {
+export const block: Block<IconMessages, IconFieldMessages> = {
   name: "icon",
   rank: 88,
   attach: { how: "attach-to-box" },
@@ -52,5 +57,9 @@ export const block: Block<IconMessages> = {
   messages: {
     ja: { badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`) },
     en: { badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`) },
+  },
+  fieldMessages: {
+    ja: { unknownIcon: (value, near) => `${value} という icon は無い。近い名前は ${near}` },
+    en: { unknownIcon: (value, near) => `There is no icon named ${value}. The closest is ${near}` },
   },
 };

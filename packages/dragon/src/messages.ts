@@ -59,8 +59,6 @@ export interface CoreMessages {
   attrTwice: (key: string) => string;
   badAttr: (key: string, allowed: readonly string[]) => string;
   badView: string;
-  /** 箱の飛び先 (`link`) か段の出典 (`url`) に、頁を移る形でない URL を書いた (#3199) */
-  badUrl: (key: string) => string;
   /** 状態遷移図の箱の名札に、始まりか終わりの印の名前を書いた */
   reservedId: (id: string) => string;
   intoStart: string;
@@ -208,7 +206,6 @@ const ja = (): Messages => {
     attrTwice: (key) => `${key} は 1 つの行に 1 つまで`,
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
     badView: `view は ${list(VIEWS)} のどれか`,
-    badUrl: (key) => `${key} には / で始まる path か、http:// か https:// で始まる URL を書く`,
     reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
     intoStart: "start へ入る線は書けない。start は始まりの印で、線は start から出る",
     outOfFinish: "finish から出る線は書けない。finish は終わりの印で、線は finish へ入る",
@@ -329,7 +326,6 @@ const en = (): Messages => {
     attrTwice: (key) => `Write ${key} only once on a line`,
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
     badView: `view is one of ${list(VIEWS)}`,
-    badUrl: (key) => `Write a path that starts with / or a URL that starts with http:// or https:// for ${key}`,
     reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,
     intoStart: "A line cannot go into start. start is the start mark, and lines leave it",
     outOfFinish: "A line cannot leave finish. finish is the end mark, and lines go into it",

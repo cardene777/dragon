@@ -24,8 +24,6 @@ export const fail = (source: SourceLine, index: number, message: string): Notati
 
 /** 名札に使える字。原本の JSON の名札の形と同じ */
 export const ID = /^[^\s[\]「」=:]+$/u;
-/** 箱の飛び先と段の出典の URL。原本の JSON の URL の形と同じ */
-export const URL_FORM = /^(\/|https?:\/\/)/u;
 
 /** 箱と区画の名札の後ろに、見せる名前を続ける語 (`box <名札> as <名前>`) */
 export const AS = "as";
@@ -169,12 +167,6 @@ export function readDeclared(source: SourceLine, word: string, allowed: readonly
   if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.afterId);
   const attrs = rest < text.length ? readAttrs(source, rest, allowed, m) : new Map<string, Attr>();
   return { id, idAt: start, ...(name !== undefined ? { name } : {}), attrs };
-}
-
-/** 頁を移る形の URL。ほかの形 (`javascript:` など) は、その属性の位置を示して断る */
-export function urlOf(source: SourceLine, key: string, attr: Attr, m: Messages): string {
-  if (!URL_FORM.test(attr.value)) throw fail(source, attr.at, m.badUrl(key));
-  return attr.value;
 }
 
 /**
