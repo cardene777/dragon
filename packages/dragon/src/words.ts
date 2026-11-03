@@ -8,8 +8,17 @@
  * 語が英語だけなので、記法の file から言葉は決めず、呼ぶ側が渡す。
  *
  * 型が欠けを止める。原本の JSON の値 (図の種類、運ぶ物、見せ方、名前の側) に語が無い時は、型の検査が落ちる。
+ *
+ * ブロックの置き場へ移した行の語はブロックが持ち (`blocks/<名前>/block.ts` の `words`)、ここでブロックの並び (`rank`) の順に混ぜる (#3345)。
+ * 行の頭の語と属性の一覧の並びは誤りの文に出るので、混ぜても今の並びを変えない (`blocks.test.ts` の `notation-words-order-unchanged` が見る)。
  */
-import type { Carry, Diagram, LabelSide, ViewMode } from "./schema";
+import { ranked } from "./blocks/block";
+import { CARRIES } from "./blocks/carry/block";
+import { SIDES } from "./blocks/edge-label/block";
+import type { GROUP_HEADS } from "./blocks/group/block";
+import { BLOCKS } from "./blocks/index";
+import { VIEWS } from "./blocks/step/block";
+import type { Diagram } from "./schema";
 
 export type NotationLang = "ja" | "en";
 
@@ -56,18 +65,31 @@ export const LINEUP_HEADS = ["item", "line", "seal", "open", "pick", "stamp"] as
 export const LANE_MOST = 12;
 /** チップの字の上限 */
 export const LABEL_MOST = 4;
-/** 列の図の `box` の行に書ける属性の鍵。列は絵柄と飛び先を持たない */
-export const LANE_ATTRS = ["note", "color"] as const;
+
+/** ブロックの並び (`rank`) の順のブロック */
+const RANKED = ranked(BLOCKS);
+
+/**
+ * ブロックの置き場へ移していない行の頭の語と、その並びの番号。番号はブロックの並び (`rank`) と同じ物差しで、
+ * 行の頭の語の一覧は、この語とブロックの語を番号の小さい順に並べる (同じ番号の中は書いた順)
+ */
+const LATER_HEADS = [
+  [90, ["branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS]],
+] as const;
+/** 行の頭の語のうち、型で名指せる語 (移していない語と区画の語) */
+type Head = (typeof LATER_HEADS)[number][1][number] | (typeof GROUP_HEADS)[number];
 
 /**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
- * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)。`source` は段の出典 (#3199)
+ * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)。段の出典の `source` は出典のブロックが持つ (#3199、#3345)。
+ * ブロックの語は、`words.headRanks` に番号を書いた語はその番号で、ほかはブロックの並びの番号で並べる
  */
-export const HEADS = ["group", "end", "box", "strip", "step", "say", "code", "source", "act", "note", "set", "branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS] as const;
-type Head = (typeof HEADS)[number];
-
-/** 箱と区画の名札の後ろに、見せる名前を続ける語 (`box <名札> as <名前>`) */
-export const AS = "as";
+export const HEADS: readonly string[] = [
+  ...LATER_HEADS,
+  ...RANKED.flatMap((block) => (block.words.heads ?? []).map((head) => [block.words.headRanks?.[head] ?? block.rank, [head]] as const)),
+]
+  .sort(([a], [b]) => a - b)
+  .flatMap(([, heads]) => heads);
 
 /** 枝分かれの図 (#3164) の `commit` の行で、積む枝、当て直しの元、取り込む枝を続ける語 (`commit <名札> on <枝> copy <commit>`) */
 export const ON = "on";
@@ -87,30 +109,47 @@ export const AT = "at";
 export const OF = "of";
 
 /**
+ * ブロックの置き場へ移していない行の属性の鍵と、その並びの番号。番号は行の頭の語と同じ物差しで、
+ * 1 つの行の鍵は、この鍵とブロックの鍵 (ブロックの並びの番号) を番号の小さい順に並べる (同じ番号の中は書いた順)。
+ * 同じ行にブロックの鍵が混ざる行は、鍵ごとにその鍵を読む行のブロックの番号を置き、混ぜても鍵の並びを変えない
+ */
+const LATER_ATTRS = [
+  [
+    90,
+    {
+      edge: ["at", "into"],
+      note: ["color"],
+      branch: ["note"],
+      commit: ["hash", "note"],
+      leaf: ["hash"],
+      node: ["hash"],
+      item: ["color", "label"],
+      scale: ["from"],
+      period: ["from"],
+      row: ["color", "empty"],
+      mark: ["color"],
+      span: ["shape", "color"],
+    },
+  ],
+] as const;
+
+/** 移していない行の名前 */
+type LaterLine = (typeof LATER_ATTRS)[number][1] extends infer L ? (L extends unknown ? keyof L : never) : never;
+/** 属性の鍵の表の型。ブロックだけが持つ行は、行の名前の字で引く */
+type Attrs = Readonly<Record<LaterLine, readonly string[]>> & Readonly<Record<string, readonly string[]>>;
+
+/**
  * 行ごとに書ける属性の鍵。線の `at` と `into`、`note` の `color`、中身の帯の欄の `meter` は時間軸の図だけが書ける (#3165)。
  * `meter` は `strip` の行の欄ごとに、欄の名前の後ろに書く (`strip <題>: <欄> [meter: <割合>]`)
- * 箱の `link` は飛び先、段の出典の `url` は出典の在り処 (#3199)
+ * 箱の `link` は飛び先、段の出典の `url` は出典の在り処 (#3199)。
+ * ブロックが持つ鍵と移していない鍵は、並びの番号の小さい順に並べる (#3345)
  */
-export const ATTRS = {
-  diagram: ["view"],
-  group: ["note", "color", "icon"],
-  box: ["note", "color", "icon", "link"],
-  source: ["url"],
-  edge: ["carry", "tag", "side", "at", "into"],
-  note: ["color"],
-  set: ["tag"],
-  strip: ["meter"],
-  branch: ["note"],
-  commit: ["hash", "note"],
-  leaf: ["hash"],
-  node: ["hash"],
-  item: ["color", "label"],
-  scale: ["from"],
-  period: ["from"],
-  row: ["color", "empty"],
-  mark: ["color"],
-  span: ["shape", "color"],
-} as const;
+export const ATTRS: Attrs = (() => {
+  const entries: (readonly [number, Readonly<Record<string, readonly string[]>>])[] = [...LATER_ATTRS, ...RANKED.map((block) => [block.rank, block.words.attrs ?? {}] as const)];
+  const all: Record<string, readonly string[]> = {};
+  for (const [, lines] of entries.sort(([a], [b]) => a - b)) for (const [line, keys] of Object.entries(lines)) all[line] = [...(all[line] ?? []), ...keys];
+  return all as Attrs;
+})();
 
 /** 線の属性のうち、時間軸の図だけが書ける鍵 */
 export const TIME_EDGE_ATTRS = ["at", "into"] as const;
@@ -119,10 +158,8 @@ export const SPAN_SHAPES = ["box"] as const;
 /** 時間軸の図の目盛りの長さに書ける単位 */
 export const DURATION_UNITS = ["ms", "s", "min", "h", "d"] as const;
 
-/** `carry` に書ける運ぶ物。封筒は書かない時、札は `tag` で書く */
-export const CARRIES = keys<Exclude<Carry["kind"], "envelope" | "tag">>({ coin: true, none: true });
-export const VIEWS = keys<ViewMode>({ fixed: true, follow: true });
-export const SIDES = keys<LabelSide>({ above: true, below: true, left: true, right: true });
+/** `carry` に書ける運ぶ物は運ぶ物のブロック、`side` に書ける側は線の名前のブロック、`view` に書ける見せ方は段のブロックが持つ (#3345) */
+export { CARRIES, SIDES, VIEWS };
 
 /**
  * 前の形の行 (#2997 まで) が、新しい形のどの行に当たるか。誤りの文で新しい行の形を示すために引く。

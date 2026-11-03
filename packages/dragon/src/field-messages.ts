@@ -4,8 +4,21 @@
  * JSON は語を持たず file から言葉を決められないので、呼ぶ側 (頁なら頁の言葉) が言葉を渡す。
  * 文は schema が使う決まり (JSON Schema の keyword) ごとに持ち、ajv の英語の文はそのまま出さない。
  * schema に決まりを足して文が無い時は、`every-schema-keyword-has-messages` の検査が落ちる。
+ * ブロックの形の決まりに当てる文はブロックが日英で持ち (`blocks/<名前>/block.ts` の `fieldMessages`)、ここで 1 つの表に束ねる (#3345)。
  */
+import { ranked } from "./blocks/block";
+import { BLOCKS } from "./blocks/index";
 import type { NotationLang } from "./words";
+
+type Blocks = typeof BLOCKS;
+/** 日英の誤りの文の、日本語の表の型。原本の誤りの文を持たないブロックは何も足さない */
+type JaOf<X> = X extends { ja: infer M } ? M : never;
+type Intersect<U> = (U extends unknown ? (u: U) => void : never) extends (i: infer I) => void ? I : never;
+/** ブロックが持つ原本の誤りの文の表 */
+export type BlockFieldMessages = Intersect<JaOf<Blocks[keyof Blocks]["fieldMessages"]>>;
+
+/** 原本の誤りの文の表。決まりごとの文と、ブロックが持つ文 */
+export type FieldMessages = CoreFieldMessages & BlockFieldMessages;
 
 /** `^[^…]+$` の形の決まりが書けないとする字。`space` は空白 (`\s`) */
 export interface Forbidden {
@@ -19,12 +32,11 @@ export interface Allowed {
   kind: string;
 }
 
-export interface FieldMessages {
+/** schema が使う決まりごとの、ブロックが持たない誤りの文 */
+export interface CoreFieldMessages {
   additionalProperties: (key: string) => string;
   required: (key: string) => string;
   enum: (values: readonly string[]) => string;
-  /** 知らないアイコン名 `value` と、それに一番近い名前 `near` (#3315) */
-  unknownIcon: (value: string, near: string) => string;
   type: (type: string) => string;
   minLength: (limit: number) => string;
   maxLength: (limit: number) => string;
@@ -46,8 +58,6 @@ export interface FieldMessages {
   duration: (units: readonly string[]) => string;
   /** 分数か百分率で書く決まり (物差しの線、#3165) */
   ratio: string;
-  /** 頁を移る形だけを書ける決まり (箱の飛び先と段の出典の URL、#3199) */
-  url: string;
   /** 選べる決まりがどれも欄が足りない時の、足りない欄。それ以外の時は空 */
   anyOf: (fields: readonly string[]) => string;
   oneOf: string;
@@ -78,11 +88,10 @@ const TYPES_EN: Record<string, string> = {
 
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
 
-const ja: FieldMessages = {
+const ja: CoreFieldMessages = {
   additionalProperties: (key) => `${key} という欄は書けない`,
   required: (key) => `${key} の欄が要る`,
   enum: (values) => `${values.join(" / ")} のどれかにする`,
-  unknownIcon: (value, near) => `${value} という icon は無い。近い名前は ${near}`,
   type: (type) => TYPES_JA[type] ?? `${type} にする`,
   minLength: (limit) => `${limit} 字以上書く`,
   maxLength: (limit) => `${limit} 字までにする`,
@@ -98,7 +107,6 @@ const ja: FieldMessages = {
   hex: (min, max) => `0 から 9 と a から f の字で ${min} から ${max} 字にする`,
   duration: (units) => `数と単位 (${units.join(" / ")}) の組で書く (12s など)`,
   ratio: "分数 (2/3) か百分率 (97%) で書く",
-  url: "/ で始まる path か、http:// か https:// で始まる URL にする",
   anyOf: (fields) =>
     fields.length > 0 ? `${fields.join(" か ")} の${fields.length === 2 ? "どちらか" : "どれか"}の欄が要る` : "書ける形のどれにも合わない",
   oneOf: "書ける形のどれか 1 つだけに合わせる",
@@ -106,11 +114,10 @@ const ja: FieldMessages = {
   newer: (version, tool) => `版 ${version} の図は、この道具 (版 ${tool}) より新しいので読めない。道具を新しくする`,
 };
 
-const en: FieldMessages = {
+const en: CoreFieldMessages = {
   additionalProperties: (key) => `The ${key} field is not allowed`,
   required: (key) => `The ${key} field is required`,
   enum: (values) => `Use one of ${values.join(" / ")}`,
-  unknownIcon: (value, near) => `There is no icon named ${value}. The closest is ${near}`,
   type: (type) => TYPES_EN[type] ?? `Use ${type}`,
   minLength: (limit) => `Write at least ${plural(limit, "character")}`,
   maxLength: (limit) => `Write at most ${plural(limit, "character")}`,
@@ -128,11 +135,13 @@ const en: FieldMessages = {
   hex: (min, max) => `Use ${min} to ${max} characters of 0-9 and a-f`,
   duration: (units) => `Write a number and a unit (${units.join(" / ")}), such as 12s`,
   ratio: "Write a fraction (2/3) or a percentage (97%)",
-  url: "Use a path that starts with / or a URL that starts with http:// or https://",
   anyOf: (fields) => (fields.length > 0 ? `Write one of the ${fields.join(" or ")} fields` : "Does not match any of the allowed shapes"),
   oneOf: "Match exactly one of the allowed shapes",
   discriminator: (tag, values) => `${tag} is one of ${values.join(" / ")}`,
   newer: (version, tool) => `Version ${version} diagrams are newer than this tool (version ${tool}) and cannot be read. Update the tool`,
 };
 
-export const FIELD_MESSAGES: Record<NotationLang, FieldMessages> = { ja, en };
+/** ブロックが持つ `lang` の原本の誤りの文を 1 つの表に束ねる */
+const fromBlocks = (lang: NotationLang): BlockFieldMessages => Object.assign({}, ...ranked(BLOCKS).map((block) => block.fieldMessages?.[lang] ?? {})) as BlockFieldMessages;
+
+export const FIELD_MESSAGES: Record<NotationLang, FieldMessages> = { ja: { ...ja, ...fromBlocks("ja") }, en: { ...en, ...fromBlocks("en") } };

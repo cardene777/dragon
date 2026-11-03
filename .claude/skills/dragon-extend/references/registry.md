@@ -24,9 +24,10 @@
 | `packages/dragon/src/render/<種類>.ts` | 描き方 | 色と字の大きさを直に書かない。`renderers-read-values-from-one-table` が落ちる |
 | `packages/dragon/src/render/draw.ts` | 種類ごとの描き分けの本体 | 新しい種類の分かれ道を足す。種類の部品は `kindParts` で登録簿から引き、直に読まない |
 | `packages/dragon/src/kinds/<種類>.ts` | その種類の描く部品をまとめて出す | 種類ごとに 1 つ置く |
+| `packages/dragon/src/kinds/<種類>/` | 図の種類の置き場。並べ方 (`layout.ts`) と受け付ける付け方 (`kind.ts`) | この 2 つの file だけを置き、並べ方は描き方を読まない。置き場を足したら `node packages/dragon/scripts/build-blocks.mjs` で一覧 (`packages/dragon/src/kinds/index.ts`) を書き出し直す。食い違うと `blocks.test.ts` が落ちる |
 | `packages/dragon/src/kinds/registry.ts` と `packages/dragon/src/kinds/all.ts` と `packages/dragon/src/light.ts` | 種類の登録簿と全部入りの登録と後から読む入口 | 3 つとも新しい種類を足す。足さないと軽い入口で読めない |
 | `packages/dragon/src/render/parts.ts` | 種類をまたいで使う描き方の部品 | 使い回す時だけ触る |
-| `packages/dragon/src/render/icons.ts` | 図の中の印 | 印を持つ種類だけ触る |
+| `packages/dragon/src/blocks/icon/icons.ts` | 図の中の印の形 | 印を持つ種類だけ触る |
 | `packages/dragon/src/look/values.ts` | 色と寸法の値の表 | 描き方が使う値はここにだけ置く |
 | `packages/dragon/src/api.ts` | 既定の入口と軽い入口が共に出す部品 | 外から使う型と関数を出す |
 | `packages/dragon/src/index.ts` | 既定の入口 | 触らない。`api.ts` が出す物を全部出し、全ての種類を登録する |
@@ -54,15 +55,16 @@
 
 | 登録先 | 足す物 | 落とし穴 |
 |---|---|---|
+| `packages/dragon/src/blocks/<名前>/` | ブロックの置き場。語と原本の形の欠片と読む処理と書き戻す処理と日英の誤りの文 (`block.ts`)、描き方 (`draw.ts`)、見本帳の分と部品の図 (`gallery/`) | 部品はここに 1 つの置き場として足し、下の file には置き場に収まらない分だけを足す。持たない欄は `none(<理由>)` を置く。置き場を足したら `node packages/dragon/scripts/build-blocks.mjs` で一覧 (`packages/dragon/src/blocks/index.ts` と `apps/playground-spa/src/catalog/blocks.gen.ts`) を書き出し直す。食い違うと `blocks.test.ts` が落ちる |
 | `packages/dragon/src/words.ts` | 部品の語 | 今の語で言えない時だけ足す。ほかの種類では名札として読む |
 | `packages/dragon/src/schema.ts` | 原本の型 | 型と原本の形を同じ取り込みで直す |
 | `packages/dragon/src/schemas/diagram.schema.json` | 原本の形 | 直したら `node packages/dragon/scripts/build-validator.mjs` で検査の関数を書き出し直す |
 | `packages/dragon/src/schemas/validate-diagram.js` | 書き出した検査の関数 | 手で直さない。`packages/dragon/scripts/build-validator.mjs` が書く |
-| `packages/dragon/src/parser.ts` | 記法を原本にする読む部品 | 部品を持てる種類の分かれ道に足す |
-| `packages/dragon/src/printer.ts` | 原本を記法に戻す書き戻す部品 | 読んで書き戻すと同じ記法に戻る形を検査で確かめる |
-| `packages/dragon/src/messages.ts` | 記法の誤りの文 | 日本語と英語の両方に足す |
-| `packages/dragon/src/field-messages.ts` | 原本の欄の誤りの文 | 日本語と英語の両方に足す |
-| `packages/dragon/src/player.ts` | 再生の部品 | 押すと動く部品 (飛び先など) だけ触る |
+| `packages/dragon/src/parser.ts` | 記法を原本にする読む部品 | 部品の行はブロックの `read` が読む。ここには読む処理の状態 (`ParseState`) に足す物だけを足す |
+| `packages/dragon/src/printer.ts` | 原本を記法に戻す書き戻す部品 | 部品の行はブロックの `print` が書く。読んで書き戻すと同じ記法に戻る形を検査で確かめる |
+| `packages/dragon/src/messages.ts` | 記法の誤りの文 | 部品の誤りの文はブロックの `messages` に日本語と英語の両方で足す |
+| `packages/dragon/src/field-messages.ts` | 原本の欄の誤りの文 | 部品の欄の誤りの文はブロックの `fieldMessages` に日本語と英語の両方で足す |
+| `packages/dragon/src/player.ts` | 再生の部品 | 押すと動く部品 (飛び先など) だけ触る。描く処理はブロックの `draw.ts` に置き、ここから呼ぶ |
 | `packages/dragon/src/render/parts.ts` | 種類をまたいで使う描き方の部品 | 2つ以上の種類で描く部品はここに置く |
 | `packages/dragon/src/render/draw.ts` | 描き分けの本体 | 部品を描く分かれ道を足す |
 | `packages/dragon/src/render/<種類>.ts` | その種類だけの描き方 | 色と字の大きさを直に書かない。`renderers-read-values-from-one-table` が落ちる |
@@ -75,7 +77,7 @@
 | `CHANGELOG.md` | Unreleased の Added | 足した部品と語を英語で書き、`CHANGELOG.ja.md` の同じ節にも日本語で書く |
 | `.ikkan/specs/<機能>.md` | 課題の受入条件を写す先 | 描き方の条件は `.ikkan/specs/diagram-core.md`、見本帳の条件は `.ikkan/specs/playground.md` に写す |
 | `apps/playground-spa/src/catalog/parts.ts` | 見本帳の部品の一覧 | 描ける種類が2つ以上なら、どの図でも使える部品として並ぶ (`isCommon`) |
-| `apps/playground-spa/src/catalog/parts/` | 部品の図の記法 (`<名札>.<種類>.dragon` と `.en.dragon`) | 部品を描ける全ての種類と2つの言葉の file を置く |
+| `apps/playground-spa/src/catalog/parts/` | 部品の図の記法 (`<名札>.<種類>.dragon` と `.en.dragon`) | 部品を描ける全ての種類と2つの言葉の file を置く。ブロックの置き場を持つ部品の図は、置き場の `gallery/` に置く |
 | `apps/playground-spa/src/editor/shelf-items.ts` | 編集画面の棚 | 部品の書き始めの形を足す |
 | `apps/playground-spa/src/text.ts` | 見本帳と編集画面の言葉 | 日本語と英語の両方に部品の名前と説明を足す |
 | `apps/playground-spa/src/docs/content.ts` | 使い方の頁の本文 | 記法と同じ PR で部品の書き方を足す |

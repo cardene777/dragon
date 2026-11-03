@@ -1,55 +1,57 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
  * git、lineup、state、time、tree の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
+ * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
  * 動きは全て SVG の中の CSS の keyframes が回す。1 周の長さは `--T`、止める時刻は `--at`、
  * 止めるか流すかは `--play` の変数で外から変えられる (頁に置く `player.ts` がこれを使う)。
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
+import { action } from "../blocks/act/draw";
+import { boxTextY, card, headCard } from "../blocks/box/draw";
+import { carrier } from "../blocks/carry/draw";
+import { cs } from "../blocks/color/draw";
+import { edge } from "../blocks/edge/draw";
+import { fadeBefore, label } from "../blocks/edge-label/draw";
+import { band } from "../blocks/group/draw";
+import { lifeline } from "../blocks/lifeline/draw";
+import { linkTo } from "../blocks/link/draw";
+import { subChanges } from "../blocks/note/draw";
+import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
-import { layoutArchitecture } from "../layout/architecture";
 import type { GitLayout } from "../layout/git";
 import type { LineupLayout } from "../layout/lineup";
 import { textWidth } from "../layout/measure";
-import { type Layout, type Rect, rewrapStrip, type SceneField, type SceneLabel, type SceneStrip } from "../layout/scene";
-import { layoutSequence } from "../layout/sequence";
+import { type Layout, type Rect, rewrapStrip, type SceneField, type SceneStrip } from "../layout/scene";
 import type { TimeLayout } from "../layout/time";
 import type { TreeLayout } from "../layout/tree";
+import { KIND_FOLDERS } from "../kinds/index";
+import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
 import { FONTS } from "../look/fonts";
 import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
-import { buildTimeline, type LabelTime, type Span, type Timeline } from "../timeline";
+import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import {
-  action,
   badge,
-  band,
-  boxTextY,
-  card,
-  carrier,
   type Ctx,
-  cs,
   doneMark,
-  edge,
   endMark,
   esc,
-  type FieldChange,
   ghostCard,
-  headCard,
-  label,
-  lifeline,
-  linkTo,
   path,
   sansOf,
   side,
-  strip,
-  type SubChange,
 } from "./parts";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
+
+/** 置き場を持つ図の種類を、図の種類の名前で引く表 */
+const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 
 const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "git";
 const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
@@ -280,70 +282,6 @@ function involved(diagram: Diagram): Map<string, number[]> {
   return new Map([...on].map(([id, steps]) => [id, [...steps].sort((a, b) => a - b)]));
 }
 
-/**
- * 箱の下の字の移り変わり。書き換えはそのまま残し、構成図の処理はその段の間だけ出して元へ戻す。
- * 止め絵を選んだ図は、その箱で最後に起きたのが処理なら、最後の段で起きることが済んだ時にその処理を出し直して繰り返す前まで残す (#3200)
- */
-function subChanges(diagram: Diagram, timeline: Timeline, actionsInBox: boolean): Map<string, SubChange[]> {
-  type Raw = { t: number; order: number; box: string; set?: string; act?: string | null };
-  const raw: Raw[] = [];
-  const { whole } = timeline;
-  let order = 0;
-  for (const time of timeline.events) {
-    const event = diagram.steps[time.step]?.events[time.event];
-    if (event?.type === "swap") raw.push({ t: time.at, order: order++, box: event.box, set: event.text });
-    if (actionsInBox && event?.type === "action") {
-      raw.push({ t: time.at, order: order++, box: event.box, act: event.label });
-      const end = (timeline.steps[time.step] as Span).end;
-      if (!whole || end <= whole.start) raw.push({ t: end, order: order++, box: event.box, act: null });
-    }
-  }
-  raw.sort((a, b) => a.t - b.t || a.order - b.order);
-  const out = new Map<string, SubChange[]>();
-  for (const box of diagram.boxes) {
-    let base: [string, string] = [box.sub ?? "", "dg-ss"];
-    let acting: string | undefined;
-    let shown = base.join("|");
-    const list: SubChange[] = [];
-    const changes = raw.filter((r) => r.box === box.id);
-    const latest = [...changes].reverse().find((r) => r.set !== undefined || typeof r.act === "string");
-    if (whole && typeof latest?.act === "string") changes.push({ t: whole.start, order: order++, box: box.id, act: latest.act });
-    for (const change of changes) {
-      // 書き換えは、出ている処理の字も置き換える
-      if (change.set !== undefined) {
-        base = [change.set, "dg-ss-ok"];
-        acting = undefined;
-      }
-      if (change.act !== undefined) acting = change.act ?? undefined;
-      const now: [string, string] = acting !== undefined ? [acting, "dg-ss-act"] : base;
-      if (now.join("|") === shown) continue;
-      shown = now.join("|");
-      list.push([change.t, now[0], now[1]]);
-    }
-    // すぐ次の字に替わる字は読めないので出さない
-    const kept = list.filter((change, k) => {
-      const next = list[k + 1];
-      return next === undefined || next[0] - change[0] >= MOTION.minShow;
-    });
-    out.set(box.id, kept);
-  }
-  return out;
-}
-
-function fieldChanges(diagram: Diagram, timeline: Timeline, layout: Layout): Map<string, FieldChange[]> {
-  const out = new Map<string, FieldChange[]>();
-  for (const time of timeline.events) {
-    const event = diagram.steps[time.step]?.events[time.event];
-    if (event?.type !== "strip") continue;
-    const color: ColorKey = layout.badges[time.step]?.color ?? "slate";
-    const list = out.get(event.field) ?? [];
-    const until = (timeline.steps[time.step] as Span).end;
-    list.push({ at: time.at, color, step: time.step, until, ...(event.value !== undefined ? { value: event.value } : {}), ...(event.tag !== undefined ? { tag: event.tag } : {}) });
-    out.set(event.field, list);
-  }
-  return out;
-}
-
 export interface FollowFrame {
   /** 枠の幅 (px)。寄って追う窓はこの幅で、字を原寸で見せる */
   width: number;
@@ -351,18 +289,6 @@ export interface FollowFrame {
   height?: number;
   /** 隅の全体図の札の言葉。渡し忘れを型の検査で止めるため、省けない欄にする */
   lang: NotationLang;
-}
-
-/**
- * 同じ線の同じ名前を後の段が置く時は、薄く残した名前をその段が始まるまでで消す (#3184)。
- * 止め絵で全ての段の名前を出し直す間は、同じ所に出る後の段の名前に任せる (#3200)
- */
-function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): LabelTime {
-  if (l.until === undefined) return time;
-  const { after, again: _again, ...rest } = time;
-  if (!after) return rest;
-  const cut = (steps[l.until] as Span).start;
-  return cut > after.start ? { ...rest, after: { start: after.start, end: Math.min(after.end, cut) } } : rest;
 }
 
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
@@ -713,20 +639,21 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
   const read = readDiagram(input, { lang });
   if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
   const diagram = read.diagram;
-  const layout =
-    diagram.kind === "sequence"
-      ? layoutSequence(diagram)
-      : diagram.kind === "state"
-        ? kindParts("state", lang).layoutState(diagram, lang)
-        : diagram.kind === "git"
-          ? kindParts("git", lang).layoutGit(diagram)
-          : diagram.kind === "time"
-            ? kindParts("time", lang).layoutTime(diagram, lang)
-            : diagram.kind === "tree"
-              ? kindParts("tree", lang).layoutTree(diagram)
-              : diagram.kind === "lineup"
-                ? kindParts("lineup", lang).layoutLineup(diagram)
-                : layoutArchitecture(diagram);
+  // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。置き場の無い図の種類は登録簿から並べ方を引き、知らない種類は構成図の並べ方で並べる
+  const folder = FOLDERS[diagram.kind];
+  const layout = folder
+    ? folder.layout(diagram, lang)
+    : diagram.kind === "state"
+      ? kindParts("state", lang).layoutState(diagram, lang)
+      : diagram.kind === "git"
+        ? kindParts("git", lang).layoutGit(diagram)
+        : diagram.kind === "time"
+          ? kindParts("time", lang).layoutTime(diagram, lang)
+          : diagram.kind === "tree"
+            ? kindParts("tree", lang).layoutTree(diagram)
+            : diagram.kind === "lineup"
+              ? kindParts("lineup", lang).layoutLineup(diagram)
+              : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 

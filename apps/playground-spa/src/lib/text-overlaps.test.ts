@@ -7,12 +7,12 @@
  * 部品「運ぶ物」は同じ線を 2 つの段で通り、後の段の番号は前の段の番号と同じ所に置いて数字を入れ替える (#3184)。
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { parseNotation, type Rendered, renderDiagram } from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 
 import { renderLayout } from "../../../../packages/dragon/src/render/svg";
-import { app, root } from "./playground-support";
+import { app, partFigure, partFigureNames, root } from "./playground-support";
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Point = [number, number];
@@ -22,7 +22,6 @@ interface Example {
   rendered: Rendered;
 }
 
-const PARTS = join(app, "src/catalog/parts");
 const DOCS = join(app, "src/docs/examples");
 const PACKAGE = join(root, "packages/dragon/examples");
 
@@ -37,10 +36,13 @@ function draw(dir: string, file: string): Rendered {
   return renderDiagram(parsed.diagram, { lang });
 }
 
+/** 部品の図を描く。ブロックの置き場へ移した部品の図も、今の置き場と同じ名前で引く (#3345) */
+const drawPart = (file: string): Rendered => draw(dirname(partFigure(file)), file);
+
 function examples(): Example[] {
   const out: Example[] = [];
+  for (const file of partFigureNames()) out.push({ name: `catalog/parts/${file}`, rendered: drawPart(file) });
   const dirs: [string, string, RegExp][] = [
-    ["catalog/parts", PARTS, /\.dragon$/],
     ["docs/examples", DOCS, /\.(dragon|json)$/],
     ["examples", PACKAGE, /\.(dragon|json)$/],
   ];
@@ -120,7 +122,7 @@ describe("見本の字が重ならない (#3175)", () => {
 
   it("repeated-line-badges-share-one-spot", () => {
     for (const file of ["carry.architecture.dragon", "carry.architecture.en.dragon", "carry.state.dragon", "carry.state.en.dragon"]) {
-      const { layout } = draw(PARTS, file);
+      const { layout } = drawPart(file);
       const lineOf = (step: number) => layout.edges.find((e) => e.step === step);
       let compared = 0;
       for (const a of layout.badges) {
@@ -140,7 +142,7 @@ describe("見本の字が重ならない (#3175)", () => {
 
   it("state-past-labels-on-one-line-clear", () => {
     for (const file of ["carry.state.dragon", "carry.state.en.dragon"]) {
-      const { layout } = draw(PARTS, file);
+      const { layout } = drawPart(file);
       layout.labels.forEach((a, i) => {
         for (const b of layout.labels.slice(i + 1)) expect(gap(a, b), `${file} の「${a.text}」と「${b.text}」が重なる`).toBeGreaterThan(0);
       });

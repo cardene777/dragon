@@ -3,15 +3,28 @@
  *
  * 記法の語は英語だけで file から言葉が決まらないため、誤りの文は呼ぶ側が渡した言葉
  * (渡さなければ英語) で出す。文の中の記法の語は語の表から引き、表と文で語が食い違わないようにする。
+ * ブロックの置き場へ移した行の誤りの文はブロックが日英で持ち (`blocks/<名前>/block.ts` の `messages`)、ここで 1 つの表に束ねる (#3345)。
  */
-import { nearest } from "./nearest";
-import { COLORS, ICON_NAMES } from "./schema";
-import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SIDES, SPAN_SHAPES, VIEWS } from "./words";
+import { ranked } from "./blocks/block";
+import { BLOCKS } from "./blocks/index";
+import { list } from "./read-kit";
+import { DURATION_UNITS, HEADS, KINDS, type NotationLang, SPAN_SHAPES } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
 export type Shape = "sequence" | "architecture" | "group" | "box" | "strip" | "view" | "step" | "say" | "code" | "act" | "note" | "set";
 
-export interface Messages {
+type Blocks = typeof BLOCKS;
+/** 日英の誤りの文の、日本語の表の型。持たない (`none`) ブロックは何も足さない */
+type JaOf<X> = X extends { ja: infer M } ? M : never;
+type Intersect<U> = (U extends unknown ? (u: U) => void : never) extends (i: infer I) => void ? I : never;
+/** ブロックが持つ誤りの文の表。鍵はブロックの間で重ならない (`blocks.test.ts` の `block-message-keys-unique` が見る) */
+export type BlockMessages = Intersect<JaOf<Blocks[keyof Blocks]["messages"]>>;
+
+/** 誤りの文の表。ブロックの置き場へ移していない行の文と、ブロックが持つ文 */
+export type Messages = CoreMessages & BlockMessages;
+
+/** ブロックの置き場へ移していない行の誤りの文 */
+export interface CoreMessages {
   noHead: string;
   badHead: string;
   /** 前の形の `word` を書いた行。`shape` の行の書き方を示す */
@@ -21,35 +34,9 @@ export interface Messages {
   needsId: (word: string) => string;
   badId: (id: string) => string;
   afterId: string;
-  undeclaredBox: (id: string) => string;
-  noBody: (title: string) => string;
-  emptyStepTitle: string;
-  noBoxes: string;
-  noSteps: string;
-  emptySay: string;
-  sayTwice: string;
-  codeTwice: string;
-  emptyCode: string;
-  /** 段の出典の行の形 (#3199) */
-  sourceShape: string;
   declarationInStep: string;
   stepLineBeforeStep: string;
-  nestedGroup: string;
-  strayEnd: string;
-  endTakesNothing: string;
-  unclosedGroup: (id: string) => string;
-  regionReopened: (id: string) => string;
   emptyName: (id: string) => string;
-  stripTwice: string;
-  stripShape: string;
-  emptyStripField: string;
-  stripUndeclared: string;
-  noSuchField: (field: string) => string;
-  stripNeedsValue: string;
-  actShape: string;
-  noteShape: string;
-  edgeShape: string;
-  emptyLabel: string;
   quoteUnclosed: string;
   afterQuote: string;
   attrUnclosed: string;
@@ -57,15 +44,6 @@ export interface Messages {
   attrNoValue: (key: string) => string;
   attrTwice: (key: string) => string;
   badAttr: (key: string, allowed: readonly string[]) => string;
-  badColor: string;
-  /** 知らないアイコン名 `value`。近い名前が在ればそれだけを、無ければ使える名前を全て挙げる (#3315) */
-  badIcon: (value: string) => string;
-  badView: string;
-  badCarry: string;
-  badSide: string;
-  /** 箱の飛び先 (`link`) か段の出典 (`url`) に、頁を移る形でない URL を書いた (#3199) */
-  badUrl: (key: string) => string;
-  carryTwice: string;
   /** 状態遷移図の箱の名札に、始まりか終わりの印の名前を書いた */
   reservedId: (id: string) => string;
   intoStart: string;
@@ -74,7 +52,6 @@ export interface Messages {
   pathNoAttrs: string;
   /** 枝分かれの図だけの行 (`branch` と `commit`) を、別の種類の図に書いた (#3164) */
   gitOnly: (word: string) => string;
-  gitNoGroup: string;
   noBranches: string;
   branchShape: string;
   commitShape: string;
@@ -93,7 +70,6 @@ export interface Messages {
   timeOnly: (word: string) => string;
   /** 木の図だけの行 (`leaf` と `node`) を、別の種類の図に書いた (#3233) */
   treeOnly: (word: string) => string;
-  treeNoGroup: string;
   noLeaves: string;
   leafShape: string;
   nodeShape: string;
@@ -107,9 +83,6 @@ export interface Messages {
   manyRoots: (id: string, root: string) => string;
   /** 列の図だけの行 (`item`、`line`、`seal`、`open`、`pick`、`stamp`) を、別の種類の図に書いた (#3239) */
   lineupOnly: (word: string) => string;
-  lineupNoGroup: string;
-  lineupNoEdge: string;
-  lineupNoAct: string;
   noItems: string;
   itemShape: string;
   lineShape: string;
@@ -159,17 +132,11 @@ export interface Messages {
   nowReserved: (name: string) => string;
   noteColorPointOnly: string;
   badShape: string;
-  badRatio: string;
-  /** 物差しの欄 `field` の値が割合でない */
-  meterValue: (field: string) => string;
 }
 
-const list = (words: readonly string[]): string => words.join(" / ");
-/** 書いたアイコン名に近い名前が在れば `near` の文、無ければ `none` の文 (#3315) */
-const withNear = (value: string, near: (name: string) => string, none: string): string => {
-  const name = nearest(value, ICON_NAMES);
-  return name === undefined ? none : near(name);
-};
+/** ブロックが持つ `lang` の誤りの文を 1 つの表に束ねる */
+const fromBlocks = (lang: NotationLang): BlockMessages =>
+  Object.assign({}, ...ranked(BLOCKS).map((block) => ("none" in block.messages ? {} : block.messages[lang]))) as BlockMessages;
 
 const ja = (): Messages => {
   const shapes: Record<Shape, string> = {
@@ -187,6 +154,7 @@ const ja = (): Messages => {
     set: "set <欄>: <値> [tag: <札>]",
   };
   return {
+    ...fromBlocks("ja"),
     noHead: `最初の行に図の種類 (${list(KINDS)}) と題を書く`,
     badHead: `最初の行は ${KINDS.join(" か ")} で始め、続けて題を書く`,
     oldForm: (word, shape) => `${word} は前の形の書き方。新しい形では ${shapes[shape]} と書く`,
@@ -195,34 +163,9 @@ const ja = (): Messages => {
     needsId: (word) => `${word} の後ろに名札を書く`,
     badId: (id) => `${id} は名札に使えない。名札には空白と [ ] 「 」 = : を含めない`,
     afterId: "名札の後ろには as <名前> か属性を書く",
-    undeclaredBox: (id) => `${id} という箱は宣言していない`,
-    noBody: (title) => `段「${title}」に本文 (say の行) が要る`,
-    emptyStepTitle: "step の後ろに段の題を書く",
-    noBoxes: "箱を 1 つ以上宣言する",
-    noSteps: "段 (step の行) を 1 つ以上書く",
-    emptySay: "say の後ろか、その下に字下げした行に段の本文を書く",
-    sayTwice: "1 つの段に say は 1 つまで。長い本文は say の下に字下げして続ける",
-    codeTwice: "1 つの段に code は 1 行まで",
-    emptyCode: "code の後ろに命令を書く",
-    sourceShape: "source は source <名前> [url: <URL>] の形で書く",
     declarationInStep: "group と box と strip と branch と、scale と period と row と point と zoom は最初の step より前に書く",
     stepLineBeforeStep: "線と say と code と source と act と note と set と commit と枝を切る行と、now と mark と span と、leaf と node の行は step の下に書く",
-    nestedGroup: "group の中に group は書けない。先に end で閉じる",
-    strayEnd: "end の前に、閉じる group が無い",
-    endTakesNothing: "end の後ろには何も書かない",
-    unclosedGroup: (id) => `group ${id} を end で閉じていない`,
-    regionReopened: (id) => `group ${id} は宣言済み。もう一度開く時は group ${id} だけを書き、名前と属性は最初の宣言に書く`,
     emptyName: (id) => `${id} の名前が空`,
-    stripTwice: "strip は 1 つだけ宣言する",
-    stripShape: "strip は strip <題>: <欄>, <欄> の形で書く",
-    emptyStripField: "strip の欄の名前が空",
-    stripUndeclared: "set を書く前に、strip <題>: <欄>, <欄> で帯を宣言する",
-    noSuchField: (field) => `${field} という欄は strip に無い`,
-    stripNeedsValue: "set は set <欄>: <値> か set <欄> [tag: <札>] の形で書く",
-    actShape: "act は act <名札>: <処理の名前> の形で書く",
-    noteShape: "note は note <名札>: <下の小さな字> の形で書く",
-    edgeShape: "線は <名札> -> <名札>: <線の名前> [<属性>] の形で書く",
-    emptyLabel: "線の : の後ろに線の名前を書く。名前を書かない時は : も書かない",
     quoteUnclosed: '" で始めた字を " で閉じていない',
     afterQuote: '" で閉じた字の後ろには、属性か次の , だけを書く',
     attrUnclosed: "属性は [ で始めて ] で閉じ、行の終わりに置く",
@@ -230,19 +173,11 @@ const ja = (): Messages => {
     attrNoValue: (key) => `${key}: の後ろに値を書く`,
     attrTwice: (key) => `${key} は 1 つの行に 1 つまで`,
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
-    badColor: `color は ${list(COLORS)} のどれか`,
-    badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`),
-    badView: `view は ${list(VIEWS)} のどれか`,
-    badCarry: `carry は ${list(CARRIES)} のどれか。札は tag: <値> で書く`,
-    badSide: `side は ${list(SIDES)} のどれか`,
-    badUrl: (key) => `${key} には / で始まる path か、http:// か https:// で始まる URL を書く`,
-    carryTwice: "運ぶ物は 1 本の線に 1 つまで。carry と tag は一緒に書かない",
     reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
     intoStart: "start へ入る線は書けない。start は始まりの印で、線は start から出る",
     outOfFinish: "finish から出る線は書けない。finish は終わりの印で、線は finish へ入る",
     pathNoAttrs: "最初の step より前の線は今回は通らない道なので、属性 (carry と tag と side) を書けない",
     gitOnly: (word) => `${word} の行は git (枝分かれの図) でだけ書ける`,
-    gitNoGroup: "git (枝分かれの図) には group を書けない。枝は branch の行で宣言する",
     noBranches: "branch の行で枝を 1 つ以上宣言する",
     branchShape: "branch は branch <名札> [note: <添え書き>] の形で書く",
     commitShape: "commit は commit <名札> on <枝> [hash: <hash>, note: <一言>] の形で書く。当て直しは copy <commit> を、取り込みは merge <枝> を on <枝> の後ろに書く",
@@ -256,7 +191,6 @@ const ja = (): Messages => {
     badHash: "hash は 0 から 9 と a から f の字で 4 から 40 字にする",
     timeOnly: (word) => `${word} は time (時間軸の図) でだけ書ける`,
     treeOnly: (word) => `${word} の行は tree (木の図) でだけ書ける`,
-    treeNoGroup: "tree (木の図) には group を書けない。木の箱は leaf と node の行で書く",
     noLeaves: "leaf の行で葉を 1 つ以上書く",
     leafShape: "leaf は leaf <名札> [hash: <hash>] の形で書く",
     nodeShape: "node は node <名札> of <子>, <子> [hash: <hash>] の形で書く",
@@ -265,9 +199,6 @@ const ja = (): Messages => {
     twoParents: (id) => `${id} はもう別の親の子になっている。木の箱の親は 1 つだけ`,
     manyRoots: (id, root) => `${id} が親を持たないまま残る。木の根は 1 つだけで、${id} も ${root} も最後に 1 つの根へ組む`,
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
-    lineupNoGroup: "lineup (列の図) には group を書けない。列は box の行で宣言する",
-    lineupNoEdge: "lineup (列の図) には線の行を書けない。チップは line の行で列の並びを書くと動く",
-    lineupNoAct: "lineup (列の図) には act の行を書けない。列の右上の字は note の行で書き換える",
     noItems: "item の行でチップを 1 つ以上宣言する",
     itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>] の形で書く",
     lineShape: "line は line <列>: <チップ>, <チップ> の形で書く",
@@ -306,8 +237,6 @@ const ja = (): Messages => {
     nowReserved: (name) => `${name} は時間軸の図で針を進める行の語で、名札に使えない`,
     noteColorPointOnly: "note の color は節目の丸の色で、節目の note にだけ書ける",
     badShape: `shape は ${list(SPAN_SHAPES)} だけ書ける。括弧は shape を書かない`,
-    badRatio: "物差しの線は分数 (2/3) か百分率 (97%) で書く",
-    meterValue: (field) => `${field} は物差しの欄なので、値を分数 (2/3) か百分率 (97%) で書く`,
   };
 };
 
@@ -327,6 +256,7 @@ const en = (): Messages => {
     set: "set <field>: <value> [tag: <tag>]",
   };
   return {
+    ...fromBlocks("en"),
     noHead: `Write the diagram kind (${list(KINDS)}) and a title on the first line`,
     badHead: `Start the first line with ${KINDS.join(" or ")}, followed by the title`,
     oldForm: (word, shape) => `${word} is the old notation. Write ${shapes[shape]} instead`,
@@ -335,34 +265,9 @@ const en = (): Messages => {
     needsId: (word) => `Write an id after ${word}`,
     badId: (id) => `${id} cannot be an id. An id has no spaces and none of [ ] 「 」 = :`,
     afterId: "Write as <name> or attributes after the id",
-    undeclaredBox: (id) => `No box named ${id} is declared`,
-    noBody: (title) => `Step "${title}" needs a body (a say line)`,
-    emptyStepTitle: "Write a title after step",
-    noBoxes: "Declare at least one box",
-    noSteps: "Write at least one step (a step line)",
-    emptySay: "Write the step body after say, or on indented lines below it",
-    sayTwice: "A step takes one say. Continue a long body on indented lines below it",
-    codeTwice: "A step takes at most one code line",
-    emptyCode: "Write the command after code",
-    sourceShape: "Write a source as source <name> [url: <URL>]",
     declarationInStep: "Write group, box, strip, branch, scale, period, row, point and zoom before the first step",
     stepLineBeforeStep: "Write lines, say, code, source, act, note, set, commit, branch cuts, now, mark, span, leaf and node under a step",
-    nestedGroup: "A group cannot hold another group. Close it with end first",
-    strayEnd: "There is no group for this end to close",
-    endTakesNothing: "Write nothing after end",
-    unclosedGroup: (id) => `group ${id} is not closed with end`,
-    regionReopened: (id) => `group ${id} is already declared. To open it again, write only group ${id}; put the name and attributes on the first one`,
     emptyName: (id) => `${id} has an empty name`,
-    stripTwice: "Declare only one strip",
-    stripShape: "Write a strip as strip <title>: <field>, <field>",
-    emptyStripField: "A strip field name is empty",
-    stripUndeclared: "Declare the strip as strip <title>: <field>, <field> before writing set",
-    noSuchField: (field) => `The strip has no field named ${field}`,
-    stripNeedsValue: "Write set as set <field>: <value> or set <field> [tag: <tag>]",
-    actShape: "Write act as act <id>: <action>",
-    noteShape: "Write note as note <id>: <caption>",
-    edgeShape: "Write a line as <id> -> <id>: <label> [<attributes>]",
-    emptyLabel: "Write the label after the : of a line, or leave out the : as well",
     quoteUnclosed: 'A value that starts with " is not closed with "',
     afterQuote: 'After a value closed with ", write only attributes or the next ,',
     attrUnclosed: "Start attributes with [, close them with ], and put them at the end of the line",
@@ -370,19 +275,11 @@ const en = (): Messages => {
     attrNoValue: (key) => `Write a value after ${key}:`,
     attrTwice: (key) => `Write ${key} only once on a line`,
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
-    badColor: `color is one of ${list(COLORS)}`,
-    badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`),
-    badView: `view is one of ${list(VIEWS)}`,
-    badCarry: `carry is one of ${list(CARRIES)}. Write a tag as tag: <value>`,
-    badSide: `side is one of ${list(SIDES)}`,
-    badUrl: (key) => `Write a path that starts with / or a URL that starts with http:// or https:// for ${key}`,
-    carryTwice: "A line carries one thing. Do not write carry and tag together",
     reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,
     intoStart: "A line cannot go into start. start is the start mark, and lines leave it",
     outOfFinish: "A line cannot leave finish. finish is the end mark, and lines go into it",
     pathNoAttrs: "A line before the first step is a path not taken, so it takes no attributes (carry, tag, side)",
     gitOnly: (word) => `${word} lines can be written only in git diagrams`,
-    gitNoGroup: "A git diagram takes no group. Declare branches with branch lines",
     noBranches: "Declare at least one branch with a branch line",
     branchShape: "Write a branch as branch <id> [note: <note>]",
     commitShape: "Write a commit as commit <id> on <branch> [hash: <hash>, note: <note>]. For a replayed commit add copy <commit>, and for a merge commit add merge <branch>, after on <branch>",
@@ -396,7 +293,6 @@ const en = (): Messages => {
     badHash: "Write a hash as 4 to 40 characters of 0-9 and a-f",
     timeOnly: (word) => `${word} can be written only in time diagrams`,
     treeOnly: (word) => `${word} lines can be written only in tree diagrams`,
-    treeNoGroup: "A tree diagram takes no group. Write the tree boxes with leaf and node lines",
     noLeaves: "Write at least one leaf with a leaf line",
     leafShape: "Write a leaf as leaf <id> [hash: <hash>]",
     nodeShape: "Write a node as node <id> of <child>, <child> [hash: <hash>]",
@@ -405,9 +301,6 @@ const en = (): Messages => {
     twoParents: (id) => `${id} is already a child of another node. A tree box has only one parent`,
     manyRoots: (id, root) => `${id} is left without a parent. A tree has one root, so join ${id} and ${root} under one root by the end`,
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
-    lineupNoGroup: "A lineup diagram takes no group. Declare the lanes with box lines",
-    lineupNoEdge: "A lineup diagram takes no edge lines. Chips move when a line line rewrites a lane",
-    lineupNoAct: "A lineup diagram takes no act lines. Rewrite the text at the top right of a lane with a note line",
     noItems: "Declare at least one chip with an item line",
     itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>]",
     lineShape: "Write a line as line <lane>: <chip>, <chip>",
@@ -446,8 +339,6 @@ const en = (): Messages => {
     nowReserved: (name) => `${name} starts the needle line of a time diagram and cannot be an id`,
     noteColorPointOnly: "The color of a note colors the circle of a point, so write it only on the note of a point",
     badShape: `shape takes only ${list(SPAN_SHAPES)}. A bracket takes no shape`,
-    badRatio: "Write the meter line as a fraction (2/3) or a percentage (97%)",
-    meterValue: (field) => `${field} is a meter, so write its value as a fraction (2/3) or a percentage (97%)`,
   };
 };
 

@@ -19,6 +19,38 @@ const run = promisify(execFile);
 
 export const root = resolve(__dirname, "../../../..");
 export const app = join(root, "apps/playground-spa");
+
+/** 見本帳の部品の図の今の置き場。ブロックの置き場へ移していない部品の図を置く */
+export const PART_FIGURES = join(app, "src/catalog/parts");
+/** ブロックの置き場。移した部品の図は `<名前>/gallery/` に在る (#3345) */
+const BLOCK_FOLDERS = join(root, "packages/dragon/src/blocks");
+
+/** 部品の図を置く dir。今の置き場と、ブロックの置き場の見本帳の分 (`gallery/`) */
+export function partFigureDirs(): string[] {
+  const galleries = existsSync(BLOCK_FOLDERS)
+    ? readdirSync(BLOCK_FOLDERS)
+        .sort()
+        .map((name) => join(BLOCK_FOLDERS, name, "gallery"))
+        .filter((dir) => existsSync(dir))
+    : [];
+  return [PART_FIGURES, ...galleries];
+}
+
+/** 部品の図の file の名前 (`<名札>.<図の種類>.dragon` と英語の `.en.dragon`)。置き場を問わず名前の順 */
+export function partFigureNames(): string[] {
+  return partFigureDirs()
+    .flatMap((dir) => readdirSync(dir).filter((name) => name.endsWith(".dragon")))
+    .sort();
+}
+
+/** 部品の図の file の path。今の置き場とブロックの見本帳の分のうち、file の在る方を返す。どちらにも無ければ今の置き場の path */
+export function partFigure(name: string): string {
+  return (
+    partFigureDirs()
+      .map((dir) => join(dir, name))
+      .find((path) => existsSync(path)) ?? join(PART_FIGURES, name)
+  );
+}
 /** 頁を配る場所。`vite.config.ts` が build の時に使う前置きと同じ */
 export const BASE = "/dragon/";
 

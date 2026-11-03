@@ -115,7 +115,7 @@ describe("色の値 (#3198)", () => {
   });
 });
 
-/** 描く file の一覧。置き場所と描画と動きと見せ方の file。 */
+/** 描く file の一覧。置き場所と描画と動きと見せ方の file と、図の種類の置き場の並べ方とブロックの置き場の描き方 (#3345)。 */
 function drawingFiles(): string[] {
   const src = join(PACKAGE, "src");
   const files: string[] = [];
@@ -123,6 +123,17 @@ function drawingFiles(): string[] {
     const path = join(src, dir);
     expect(statSync(path, { throwIfNoEntry: false })?.isDirectory(), `src/${dir} が無い`).toBe(true);
     for (const name of readdirSync(path)) if (name.endsWith(".ts")) files.push(join(path, name));
+  }
+  for (const [dir, name] of [
+    ["kinds", "layout.ts"],
+    ["blocks", "draw.ts"],
+  ] as const) {
+    const path = join(src, dir);
+    if (!statSync(path, { throwIfNoEntry: false })?.isDirectory()) continue;
+    for (const entry of readdirSync(path, { withFileTypes: true })) {
+      const file = join(path, entry.name, name);
+      if (entry.isDirectory() && statSync(file, { throwIfNoEntry: false })?.isFile()) files.push(file);
+    }
   }
   for (const name of ["timeline.ts", "view.ts", "player.ts"]) {
     const path = join(src, name);
@@ -146,7 +157,7 @@ describe("値の表", () => {
       expect(code.match(/\b\d+(?:\.\d+)?px\b/g), `${where} に字の大きさ`).toBeNull();
     }
     // 描く file のうち少なくとも置き場所と描画は、値の表から読む
-    const readers = files.filter((file) => /from "\.\.\/look\/values"/.test(readFileSync(file, "utf8")));
+    const readers = files.filter((file) => /from "(?:\.\.\/)+look\/values"/.test(readFileSync(file, "utf8")));
     expect(readers.length, "値の表を読む描く file が無い").toBeGreaterThanOrEqual(2);
   });
 });

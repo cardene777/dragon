@@ -63,37 +63,33 @@
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
+import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
+import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
+import { lifelinesOf } from "./blocks/lifeline/block";
+import { BLOCKS } from "./blocks/index";
+import { stepOf, viewOf } from "./blocks/step/block";
 import { type Messages, messagesFor, type Shape } from "./messages";
+import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
 import {
-  type Box,
-  type Carry,
   type Color,
   COLORS,
   type Diagram,
   type DiagramEvent,
   type GitBranch,
   type GitCommit,
-  ICON_NAMES,
-  type LabelSide,
   type LineupItem,
-  type Region,
   type StatePath,
   type Step,
-  type StepSource,
-  type StripMeter,
   type TimePeriod,
   type TimePoint,
   type TimeRow,
   type TimeScale,
-  type ViewMode,
 } from "./schema";
-import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
+import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION } from "./version";
 import {
-  AS,
   AT,
   ATTRS,
-  CARRIES,
   COPY,
   DEFAULT_LANG,
   FROM,
@@ -101,7 +97,6 @@ import {
   HEADS,
   KINDS,
   LABEL_MOST,
-  LANE_ATTRS,
   LANE_MOST,
   LINEUP_HEADS,
   MERGE,
@@ -110,13 +105,11 @@ import {
   OF,
   OLD_HEADS,
   ON,
-  SIDES,
   SPAN_SHAPES,
   STATE_ENDS,
   TIME_EDGE_ATTRS,
   TIME_HEADS,
   TREE_HEADS,
-  VIEWS,
 } from "./words";
 
 export interface LineError {
@@ -132,23 +125,6 @@ export interface ParseOptions {
   lang?: NotationLang;
 }
 
-class NotationError extends Error {
-  constructor(
-    readonly line: number,
-    readonly column: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-const fail = (source: SourceLine, index: number, message: string): NotationError =>
-  new NotationError(source.line, columnOf(source, index), message);
-
-/** 名札に使える字。原本の JSON の名札の形と同じ */
-const ID = /^[^\s[\]「」=:]+$/u;
-/** 線の行。名札、`->`、名札 */
-const EDGE = /^([^\s:[\]]+?)\s*->\s*([^\s:[\]]+)/du;
 /** 枝分かれの図の `commit` の行。名札と、`on` の枝と、`copy` の当て直しの元と、`merge` の取り込む枝 */
 const COMMIT = new RegExp(`^commit\\s+([^\\s[]+)(?:\\s+${ON}\\s+([^\\s[]+))?(?:\\s+${COPY}\\s+([^\\s[]+))?(?:\\s+${MERGE}\\s+([^\\s[]+))?`, "du");
 /** 枝分かれの図の、枝を切る行。枝と `from` と切る commit */
@@ -162,8 +138,6 @@ const STAMP = /^stamp\s+([^\s:[]+)\s*:/du;
 const ON_LANE = /^(?:seal|open|pick)\s+(\S+)\s*$/du;
 /** commit の hash。原本の JSON の hash の形と同じ */
 const HASH = /^[0-9a-f]{4,40}$/u;
-/** 箱の飛び先と段の出典の URL。原本の JSON の URL の形と同じ */
-const URL_FORM = /^(\/|https?:\/\/)/u;
 /** 時間軸の図の宣言の行。`scale <単位> <長さ> <数>`、`period <名前> <数>`、`point <名札> at <目盛り>`、`zoom <範囲>` */
 const SCALE = /^scale\s+(\S+)\s+(\S+)\s+([^\s[]+)/du;
 const PERIOD = /^period\s+(\S+)\s+([^\s[]+)/du;
@@ -176,165 +150,11 @@ const MARK = /^mark\s+([^\s[]+)\s+([^\s[]+)/du;
 const SPAN = /^span\s+([^\s:[]+)\s*:/du;
 /** 目盛りの長さ。原本の JSON の長さの形と同じ */
 const LENGTH = /^[0-9]+(\.[0-9]+)?(ms|s|min|h|d)$/u;
-/** 割合。原本の JSON の割合の形と同じ */
-const RATIO = /^([0-9]+\/[0-9]+|[0-9]+(\.[0-9]+)?%)$/u;
 /** 1 以上の整数と、0 以上の整数 */
 const COUNT = /^[1-9][0-9]*$/u;
 const NUMBER = /^(0|[1-9][0-9]*)$/u;
 /** 目盛りの範囲。`0-31` か `0` */
 const RANGE = /^(0|[1-9][0-9]*)(?:-(0|[1-9][0-9]*))?$/u;
-
-const isOneOf = <T extends string>(list: readonly T[], word: string): word is T => (list as readonly string[]).includes(word);
-
-/** `at` から空白を飛ばした位置 */
-function skipSpaces(text: string, at: number): number {
-  let i = at;
-  while (i < text.length && /\s/u.test(text[i] ?? "")) i++;
-  return i;
-}
-
-/** `[<鍵>: <値>]` の 1 つ。`at` は鍵の位置 */
-interface Attr {
-  value: string;
-  at: number;
-}
-
-/** `at` の `"` から閉じる `"` までを読む。`end` は閉じた `"` の次 */
-function readQuoted(source: SourceLine, at: number, m: Messages): { value: string; end: number } {
-  const text = source.text;
-  let value = "";
-  for (let i = at + 1; i < text.length; i++) {
-    const c = text[i] ?? "";
-    const next = text[i + 1] ?? "";
-    if (c === "\\" && (next === '"' || next === "\\")) {
-      value += next;
-      i++;
-    } else if (c === '"') {
-      return { value, end: i + 1 };
-    } else {
-      value += c;
-    }
-  }
-  throw fail(source, at, m.quoteUnclosed);
-}
-
-/**
- * `at` から名前か文を読む。`"` で始まれば囲みの中、そうでなければ `[` の前か行の終わりまで。
- * `rest` は名前の後ろの位置で、行の終わりか属性の `[` を指す。
- */
-function readName(source: SourceLine, at: number, m: Messages): { value: string; rest: number } {
-  const text = source.text;
-  const start = skipSpaces(text, at);
-  if (text[start] === '"') {
-    const quoted = readQuoted(source, start, m);
-    const rest = skipSpaces(text, quoted.end);
-    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.afterQuote);
-    return { value: quoted.value, rest };
-  }
-  const open = text.indexOf("[", start);
-  const rest = open < 0 ? text.length : open;
-  return { value: text.slice(start, rest).trim(), rest };
-}
-
-/** `at` の `[` から行の終わりの `]` までの属性を読む。`allowed` に無い鍵は誤り */
-function readAttrs(source: SourceLine, at: number, allowed: readonly string[], m: Messages): Map<string, Attr> {
-  const text = source.text;
-  if (!text.endsWith("]")) throw fail(source, at, m.attrUnclosed);
-  const close = text.length - 1;
-  const attrs = new Map<string, Attr>();
-  for (let i = at + 1; ; ) {
-    const start = skipSpaces(text, i);
-    let colon = start;
-    while (colon < close && text[colon] !== ":" && text[colon] !== ",") colon++;
-    if (colon >= close || text[colon] !== ":") throw fail(source, start, m.attrNoColon(text.slice(start, colon).trim()));
-    const key = text.slice(start, colon).trim();
-    if (!allowed.includes(key)) throw fail(source, start, m.badAttr(key, allowed));
-    if (attrs.has(key)) throw fail(source, start, m.attrTwice(key));
-    let end = skipSpaces(text, colon + 1);
-    let value: string;
-    if (text[end] === '"') {
-      const quoted = readQuoted(source, end, m);
-      value = quoted.value;
-      end = skipSpaces(text, quoted.end);
-      if (end < close && text[end] !== ",") throw fail(source, end, m.afterQuote);
-    } else {
-      const comma = text.indexOf(",", end);
-      const stop = comma < 0 || comma > close ? close : comma;
-      value = text.slice(end, stop).trim();
-      end = stop;
-    }
-    if (value === "") throw fail(source, start, m.attrNoValue(key));
-    attrs.set(key, { value, at: start });
-    if (end >= close) return attrs;
-    i = end + 1;
-  }
-}
-
-/** `at` から `,` で区切った字の並びを行の終わりまで読む */
-function readList(source: SourceLine, at: number, m: Messages): string[] {
-  const text = source.text;
-  const items: string[] = [];
-  for (let i = at; ; ) {
-    const start = skipSpaces(text, i);
-    let value: string;
-    let end: number;
-    if (text[start] === '"') {
-      const quoted = readQuoted(source, start, m);
-      value = quoted.value;
-      end = skipSpaces(text, quoted.end);
-      if (end < text.length && text[end] !== ",") throw fail(source, end, m.afterQuote);
-    } else {
-      const comma = text.indexOf(",", start);
-      end = comma < 0 ? text.length : comma;
-      value = text.slice(start, end).trim();
-    }
-    if (value === "") throw fail(source, start, m.emptyStripField);
-    items.push(value);
-    if (end >= text.length) return items;
-    i = end + 1;
-  }
-}
-
-/** `group` と `box` の行の、名札と `as` の後ろの名前と属性 */
-interface Declared {
-  id: string;
-  idAt: number;
-  name?: string;
-  attrs: Map<string, Attr>;
-}
-
-function readDeclared(source: SourceLine, word: string, allowed: readonly string[], m: Messages): Declared {
-  const text = source.text;
-  const start = skipSpaces(text, word.length);
-  const id = /^[^\s[]+/u.exec(text.slice(start))?.[0];
-  if (id === undefined) throw fail(source, 0, m.needsId(word));
-  if (!ID.test(id)) throw fail(source, start, m.badId(id));
-  let rest = skipSpaces(text, start + id.length);
-  let name: string | undefined;
-  if (text.startsWith(AS, rest) && /^(\s|$)/u.test(text.slice(rest + AS.length, rest + AS.length + 1))) {
-    const named = readName(source, rest + AS.length, m);
-    if (named.value === "") throw fail(source, rest, m.emptyName(id));
-    name = named.value;
-    rest = named.rest;
-  }
-  if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.afterId);
-  const attrs = rest < text.length ? readAttrs(source, rest, allowed, m) : new Map<string, Attr>();
-  return { id, idAt: start, ...(name !== undefined ? { name } : {}), attrs };
-}
-
-/** 区画と箱の属性 (`note` と `color` と `icon`) */
-function lookOf(source: SourceLine, attrs: Map<string, Attr>, m: Messages): { note?: string; color?: Color; icon?: string } {
-  const color = attrs.get("color");
-  if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-  const icon = attrs.get("icon");
-  if (icon && !ICON_NAMES.includes(icon.value)) throw fail(source, icon.at, m.badIcon(icon.value));
-  const note = attrs.get("note")?.value;
-  return {
-    ...(note !== undefined ? { note } : {}),
-    ...(color ? { color: color.value as Color } : {}),
-    ...(icon ? { icon: icon.value } : {}),
-  };
-}
 
 /**
  * 前の形 (#2997 まで) の行なら、その印と、新しい形で書く行の形。`inStep` は段の中の行か。
@@ -353,15 +173,11 @@ function oldForm(text: string, inStep: boolean): { word: string; shape: Shape } 
   return undefined;
 }
 
-/** 読んでいる段。`body` は `say` を読むまで無い */
-interface Building {
-  source: SourceLine;
-  title: string;
-  body?: string[];
-  code?: string;
-  sources: StepSource[];
-  events: DiagramEvent[];
-}
+/**
+ * ブロックが受け持つ行の頭の語と、その読む処理 (#3345)。
+ * 行の頭の語の誤り (図の種類だけの語と、知らない語) を確かめた後に、ここに在る語はブロックの読む処理で読む
+ */
+const HEAD_READERS: ReadonlyMap<string, HeadReader> = new Map(ranked(BLOCKS).flatMap((block) => ("none" in block.read ? [] : Object.entries(block.read))));
 
 function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
@@ -375,9 +191,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const titled = readName(head, kind.length, m);
   if (titled.value === "") throw fail(head, 0, m.badHead);
   const title = titled.value;
-  const shown = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram, m).get("view") : undefined;
-  if (shown && !isOneOf(VIEWS, shown.value)) throw fail(head, shown.at, m.badView);
-  const view = shown?.value as ViewMode | undefined;
+  const view = viewOf(head, titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m).get("view") : undefined, m);
 
   const isState = kind === "state";
   const isGit = kind === "git";
@@ -396,27 +210,22 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const rows: TimeRow[] = [];
   const points: TimePoint[] = [];
   let zoom: { from: number; to: number } | undefined;
-  const meters: StripMeter[] = [];
   /** 目盛りの数が決まってから確かめる、宣言の行の目盛り。最初の step で確かめる */
   const pending: (() => void)[] = [];
   let settled = false;
-  /** 最初に宣言した箱の行。時間軸の図で拡大の範囲が無い時に名指す */
-  let firstBox: SourceLine | undefined;
   /** 針が今いる目盛りの境 (0 から数える) */
   let needle = 0;
   const branches: GitBranch[] = [];
   /** 枝分かれの図で積んだ commit と、枝の札が今指す commit (まだ何も指さない枝は `null`) */
   const commits = new Set<string>();
   const tips = new Map<string, string | null>();
-  const regions: Region[] = [];
-  const boxes: Box[] = [];
   const paths: StatePath[] = [];
   const ids = new Set<string>();
-  let strip: { title: string; fields: string[] } | undefined;
+  /** 宣言の行でブロックが組む欄 (区画と箱と、中身の帯と、時間軸の図の物差しの欄) */
+  const figure: FigureDraft = { regions: [], boxes: [], meters: [] };
+  const { regions, boxes } = figure;
   const steps: Step[] = [];
-  let building: Building | undefined;
-  /** 開いている `group` */
-  let group: { source: SourceLine; id: string } | undefined;
+  let building: StepDraft | undefined;
 
   const declare = (source: SourceLine, id: string, at: number): void => {
     if (ids.has(id)) throw fail(source, at, m.duplicate(id));
@@ -459,8 +268,13 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (isGit && id === HEAD) throw fail(source, at, m.headReserved(id));
     if (isTime && id === NOW) throw fail(source, at, m.nowReserved(id));
   };
+  /** 宣言の行の名札を、使えない名前でも宣言済みでもない名札として取る */
+  const claim = (source: SourceLine, id: string, at: number): void => {
+    notReserved(source, id, at);
+    declare(source, id, at);
+  };
   /** 段の中に書く行の、書き先の段。最初の `step` より前なら誤り */
-  const inStep = (source: SourceLine): Building => {
+  const inStep = (source: SourceLine): StepDraft => {
     if (!building) throw fail(source, 0, m.stepLineBeforeStep);
     return building;
   };
@@ -468,17 +282,17 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const beforeSteps = (source: SourceLine): void => {
     if (building) throw fail(source, 0, m.declarationInStep);
   };
-  const finish = (): void => {
-    if (!building) return;
-    if (building.body === undefined) throw fail(building.source, 0, m.noBody(building.title));
-    steps.push({
-      title: building.title,
-      body: building.body.join("\n"),
-      ...(building.code !== undefined ? { code: building.code } : {}),
-      ...(building.sources.length > 0 ? { sources: building.sources } : {}),
-      events: building.events,
-    });
+  /** 書いている段を閉じる。開いたままの区画と時間軸の図の宣言を確かめてから、段を段の並びへ足す */
+  const closeStep = (): void => {
+    if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
+    settle();
+    if (building) steps.push(stepOf(building, m));
   };
+  const openStep = (draft: StepDraft): void => {
+    building = draft;
+  };
+  /** ブロックの読む処理が受ける、読んでいる記法の状態 */
+  const state: ParseState = { m, kind, attrs: ATTRS, inStep, closeStep, openStep, beforeSteps, boxAt, claim, endAt, columns: readColumns, figure };
 
   const rest = lines.slice(headAt + 1);
   for (let i = 0; i < rest.length; i++) {
@@ -493,10 +307,13 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
     const edge = EDGE.exec(text);
     if (edge) {
-      if (isLineup) throw fail(source, 0, m.lineupNoEdge);
       // 状態遷移図の最初の step より前の線は、移れる道の地図
       if (isState && !building) paths.push(readPath(source, edge));
-      else inStep(source).events.push(readEdge(source, edge));
+      else {
+        const read = readEdgeLine(source, edge, state);
+        // 枝分かれの図の線は、送る側の枝の札を受ける側の commit へ動かす
+        if (isGit && read.from !== HEAD) tips.set(read.from, read.to);
+      }
       continue;
     }
     const [word = "", second] = text.split(/\s+/u);
@@ -514,64 +331,19 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
     }
+    // 時間軸の図の `note` の行は節目にも書けて丸の色を持つので、下の字のブロックでなく時間軸の図の読み方で読む
+    if (isTime && word === "note") {
+      inStep(source).events.push(readTimeNote(source));
+      continue;
+    }
+    const reader = HEAD_READERS.get(word);
+    if (reader) {
+      // 下の行まで続けて読んだ処理は、読み終えた続きの行の数を返す
+      const read = reader(source, state, (offset) => rest[i + offset]);
+      if (typeof read === "number") i += read;
+      continue;
+    }
     switch (word) {
-      case "group":
-        readGroup(source);
-        break;
-      case "end":
-        if (text !== word) throw fail(source, word.length, m.endTakesNothing);
-        if (!group) throw fail(source, 0, m.strayEnd);
-        group = undefined;
-        break;
-      case "box":
-        readBox(source);
-        break;
-      case "strip":
-        readStrip(source);
-        break;
-      case "step": {
-        if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
-        settle();
-        finish();
-        const stepTitle = text.slice(word.length).trim();
-        if (stepTitle === "") throw fail(source, 0, m.emptyStepTitle);
-        building = { source, title: stepTitle, sources: [], events: [] };
-        break;
-      }
-      case "say":
-        i = readSay(source, i);
-        break;
-      case "code": {
-        const step = inStep(source);
-        if (step.code !== undefined) throw fail(source, 0, m.codeTwice);
-        const command = text.slice(word.length).trim();
-        if (command === "") throw fail(source, 0, m.emptyCode);
-        step.code = command;
-        break;
-      }
-      case "source":
-        inStep(source).sources.push(readSource(source));
-        break;
-      case "act": {
-        if (isLineup) throw fail(source, 0, m.lineupNoAct);
-        const step = inStep(source);
-        const on = readOnBox(source, word, m.actShape);
-        step.events.push({ type: "action", box: on.box, label: on.text });
-        break;
-      }
-      case "note": {
-        const step = inStep(source);
-        if (isTime) {
-          step.events.push(readTimeNote(source));
-          break;
-        }
-        const on = readOnBox(source, word, m.noteShape);
-        step.events.push({ type: "swap", box: on.box, text: on.text });
-        break;
-      }
-      case "set":
-        inStep(source).events.push(readSet(source));
-        break;
       case "branch":
         readBranch(source);
         break;
@@ -633,9 +405,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       }
     }
   }
-  if (group) throw fail(group.source, 0, m.unclosedGroup(group.id));
-  settle();
-  finish();
+  closeStep();
 
   if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
   if (isTree && trees.size === 0) throw fail(head, 0, m.noLeaves);
@@ -655,9 +425,9 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     ...(view ? { view } : {}),
     ...(regions.length > 0 ? { regions } : {}),
     boxes,
-    ...(strip ? { strip: meters.length > 0 ? { ...strip, meters } : strip } : {}),
+    ...(figure.strip ? { strip: figure.meters.length > 0 ? { ...figure.strip, meters: figure.meters } : figure.strip } : {}),
     steps,
-    ...(kind === "sequence" ? { sequence: { lifelines: boxes.map((box) => box.id) } } : {}),
+    ...(kind === "sequence" ? { sequence: lifelinesOf(boxes) } : {}),
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items } } : {}),
@@ -684,7 +454,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (!scale) throw fail(head as SourceLine, 0, m.noScale);
     if (rows.length === 0) throw fail(head as SourceLine, 0, m.noRows);
     for (const check of pending) check();
-    if (firstBox && !zoom) throw fail(firstBox, 0, m.boxNeedsZoom);
+    if (figure.firstBox && !zoom) throw fail(figure.firstBox, 0, m.boxNeedsZoom);
   }
 
   /** 目盛りの数。目盛りを宣言する前は 0 */
@@ -857,57 +627,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (color && !isPoint) throw fail(source, color.at, m.noteColorPointOnly);
     if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
     return { type: "swap", box: id, text: named.value, ...(color ? { color: color.value as Color } : {}) };
-  }
-
-  /** `group` の行。同じ名札をもう一度開いた時は、名前も属性も書かない */
-  function readGroup(source: SourceLine): void {
-    beforeSteps(source);
-    if (isGit) throw fail(source, 0, m.gitNoGroup);
-    if (isTree) throw fail(source, 0, m.treeNoGroup);
-    if (isLineup) throw fail(source, 0, m.lineupNoGroup);
-    if (group) throw fail(source, 0, m.nestedGroup);
-    const declared = readDeclared(source, "group", ATTRS.group, m);
-    if (regions.some((region) => region.id === declared.id)) {
-      if (declared.name !== undefined || declared.attrs.size > 0) throw fail(source, 0, m.regionReopened(declared.id));
-    } else {
-      notReserved(source, declared.id, declared.idAt);
-      declare(source, declared.id, declared.idAt);
-      regions.push({ id: declared.id, name: declared.name ?? declared.id, ...lookOf(source, declared.attrs, m) });
-    }
-    group = { source, id: declared.id };
-  }
-
-  /** `box` の行。開いている `group` の中なら、その区画に置く */
-  function readBox(source: SourceLine): void {
-    beforeSteps(source);
-    const declared = readDeclared(source, "box", isLineup ? LANE_ATTRS : ATTRS.box, m);
-    notReserved(source, declared.id, declared.idAt);
-    declare(source, declared.id, declared.idAt);
-    firstBox ??= source;
-    const { note, ...look } = lookOf(source, declared.attrs, m);
-    const link = declared.attrs.get("link");
-    boxes.push({
-      id: declared.id,
-      name: declared.name ?? declared.id,
-      ...(note !== undefined ? { sub: note } : {}),
-      ...look,
-      ...(group ? { region: group.id } : {}),
-      ...(link ? { link: urlOf(source, "link", link) } : {}),
-    });
-  }
-
-  /** `source <名前> [url: <URL>]` の行 */
-  function readSource(source: SourceLine): StepSource {
-    const named = readName(source, "source".length, m);
-    const url = named.rest < source.text.length ? readAttrs(source, named.rest, ATTRS.source, m).get("url") : undefined;
-    if (named.value === "" || !url) throw fail(source, 0, m.sourceShape);
-    return { name: named.value, url: urlOf(source, "url", url) };
-  }
-
-  /** 頁を移る形の URL。ほかの形 (`javascript:` など) は、その属性の位置を示して断る */
-  function urlOf(source: SourceLine, key: string, attr: Attr): string {
-    if (!URL_FORM.test(attr.value)) throw fail(source, attr.at, m.badUrl(key));
-    return attr.value;
   }
 
   /** 枝分かれの図の `branch <名札> [note: <添え書き>]` の行。枝は宣言した順に上から帯に並ぶ */
@@ -1111,156 +830,11 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     return { type: "stamp", box, text: named.value };
   }
 
-  /** `strip <題>: <欄>, <欄>` の行 */
-  function readStrip(source: SourceLine): void {
-    beforeSteps(source);
-    if (strip) throw fail(source, 0, m.stripTwice);
-    const text = source.text;
-    const start = skipSpaces(text, "strip".length);
-    let stripTitle: string;
-    let colon: number;
-    if (text[start] === '"') {
-      const quoted = readQuoted(source, start, m);
-      stripTitle = quoted.value;
-      colon = skipSpaces(text, quoted.end);
-    } else {
-      colon = text.indexOf(":", start);
-      stripTitle = colon < 0 ? "" : text.slice(start, colon).trim();
-    }
-    if (stripTitle === "" || text[colon] !== ":") throw fail(source, 0, m.stripShape);
-    if (isTime) {
-      strip = { title: stripTitle, fields: readFields(source, colon + 1) };
-      return;
-    }
-    const fields = readList(source, colon + 1, m);
-    // 物差しは時間軸の図だけが書ける。ほかの図では欄の名前の一部として読んでいた形なので、欄が属性の形で終わる時だけ断る
-    const metered = /\[\s*meter\s*:/u.exec(text);
-    if (metered && fields.some((f) => /\[\s*meter\s*:[^\]]*\]$/u.test(f))) throw fail(source, metered.index + 1, m.timeOnly("meter"));
-    strip = { title: stripTitle, fields };
-  }
-
-  /**
-   * 時間軸の図の `strip` の行の欄。`,` で区切り、欄の名前の後ろに `[meter: <割合>]` を書いた欄は物差しにする。
-   * `[` を含む名前は `"` で囲む
-   */
-  function readFields(source: SourceLine, at: number): string[] {
-    const text = source.text;
-    const items: string[] = [];
-    for (let i = at; ; ) {
-      const start = skipSpaces(text, i);
-      let value: string;
-      let end: number;
-      if (text[start] === '"') {
-        const quoted = readQuoted(source, start, m);
-        value = quoted.value;
-        end = skipSpaces(text, quoted.end);
-      } else {
-        end = start;
-        while (end < text.length && text[end] !== "," && text[end] !== "[") end++;
-        value = text.slice(start, end).trim();
-      }
-      if (value === "") throw fail(source, start, m.emptyStripField);
-      if (text[end] === "[") {
-        const close = text.indexOf("]", end);
-        if (close < 0) throw fail(source, end, m.attrUnclosed);
-        const inside = text.slice(end + 1, close);
-        const inner = /^\s*([a-z]*)\s*:\s*(.*?)\s*$/u.exec(inside);
-        if (!inner) throw fail(source, end + 1, m.attrNoColon(inside.trim()));
-        const key = inner[1] ?? "";
-        if (!(ATTRS.strip as readonly string[]).includes(key)) throw fail(source, end + 1, m.badAttr(key, ATTRS.strip));
-        if (!RATIO.test(inner[2] ?? "")) throw fail(source, end + 1, m.badRatio);
-        meters.push({ field: value, line: inner[2] ?? "" });
-        end = skipSpaces(text, close + 1);
-      }
-      if (end < text.length && text[end] !== ",") throw fail(source, end, m.afterQuote);
-      items.push(value);
-      if (end >= text.length) return items;
-      i = end + 1;
-    }
-  }
-
-  /**
-   * `say` の行と、その下に `say` より深く字下げして続けた行を段の本文にする。
-   * 続きの行の間の空行は本文の空の行になる。返すのは読み終えた最後の行の番号。
-   */
-  function readSay(source: SourceLine, index: number): number {
-    const step = inStep(source);
-    if (step.body !== undefined) throw fail(source, 0, m.sayTwice);
-    const inline = source.text.slice("say".length).trim();
-    const body = inline === "" ? [] : [inline];
-    let blanks = 0;
-    let last = index;
-    for (let j = index + 1; j < rest.length; j++) {
-      const next = rest[j];
-      if (!next) break;
-      if (next.text === "") {
-        blanks++;
-        continue;
-      }
-      if (next.indent <= source.indent) break;
-      body.push(...Array.from({ length: blanks }, () => ""), next.text);
-      blanks = 0;
-      last = j;
-    }
-    if (body.length === 0) throw fail(source, 0, m.emptySay);
-    step.body = body;
-    return last;
-  }
-
-  /** `act <名札>: <字>` と `note <名札>: <字>` の行の、箱と字 */
-  function readOnBox(source: SourceLine, word: "act" | "note", shape: string): { box: string; text: string } {
-    const found = new RegExp(`^${word}\\s+([^\\s:]+)\\s*:\\s*(.*)$`, "du").exec(source.text);
-    const idAt = found?.indices?.[1]?.[0];
-    if (!found || idAt === undefined || (found[2] ?? "") === "") throw fail(source, 0, shape);
-    return { box: boxAt(source, found[1] ?? "", idAt), text: found[2] ?? "" };
-  }
-
-  /** 線の行の両端と、`:` の後ろの線の名前。`at` は名前の後ろの位置 */
-  function readLine(source: SourceLine, edge: RegExpExecArray): { from: string; to: string; label?: string; at: number } {
-    const text = source.text;
-    const from = endAt(source, edge[1] ?? "", edge.indices?.[1]?.[0] ?? 0, "from");
-    const to = endAt(source, edge[2] ?? "", edge.indices?.[2]?.[0] ?? 0, "to");
-    const at = skipSpaces(text, edge[0].length);
-    if (text[at] !== ":") return { from, to, at };
-    const named = readName(source, at + 1, m);
-    if (named.value === "") throw fail(source, at, m.emptyLabel);
-    return { from, to, label: named.value, at: named.rest };
-  }
-
   /** 状態遷移図の最初の `step` より前の `<名札> -> <名札>: <線の名前>` の行。属性は書けない */
   function readPath(source: SourceLine, edge: RegExpExecArray): StatePath {
-    const { from, to, label, at } = readLine(source, edge);
+    const { from, to, label, at } = readLine(source, edge, state);
     if (at < source.text.length) throw fail(source, at, source.text[at] === "[" ? m.pathNoAttrs : m.edgeShape);
     return { from, to, ...(label !== undefined ? { label } : {}) };
-  }
-
-  /** `<名札> -> <名札>: <線の名前> [<属性>]` の行 */
-  function readEdge(source: SourceLine, edge: RegExpExecArray): DiagramEvent {
-    const text = source.text;
-    const { from, to, label, at } = readLine(source, edge);
-    if (at < text.length && text[at] !== "[") throw fail(source, at, m.edgeShape);
-    const attrs = at < text.length ? readAttrs(source, at, ATTRS.edge, m) : new Map<string, Attr>();
-    const tag = attrs.get("tag");
-    const carried = attrs.get("carry");
-    if (tag && carried) throw fail(source, Math.max(tag.at, carried.at), m.carryTwice);
-    if (carried && !isOneOf(CARRIES, carried.value)) throw fail(source, carried.at, m.badCarry);
-    const side = attrs.get("side");
-    if (side && !isOneOf(SIDES, side.value)) throw fail(source, side.at, m.badSide);
-    const columns = readColumns(source, from, to, attrs, at);
-    // 枝分かれの図の線は札を動かす線で、書かなければ送る側の名前の札を運ぶ
-    let carry: Carry = isGit ? { kind: "tag", text: from } : { kind: "envelope" };
-    if (tag) carry = { kind: "tag", text: tag.value };
-    else if (carried) carry = carried.value === "coin" ? { kind: "coin" } : { kind: "none" };
-    if (isGit && from !== HEAD) tips.set(from, to);
-    return {
-      type: "edge",
-      from,
-      to,
-      ...(label !== undefined ? { label } : {}),
-      carry,
-      ...(side ? { labelSide: side.value as LabelSide } : {}),
-      ...columns,
-    };
   }
 
   /**
@@ -1293,43 +867,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (at === undefined) throw fail(source, end, m.boxLineNeedsAt);
     const into = column(attrs.get("into"));
     return { at, ...(into !== undefined ? { into } : {}) };
-  }
-
-  /** `set <欄>: <値> [tag: <札>]` か `set <欄> [tag: <札>]` の行 */
-  function readSet(source: SourceLine): DiagramEvent {
-    const declared = strip;
-    if (!declared) throw fail(source, 0, m.stripUndeclared);
-    const text = source.text;
-    const start = skipSpaces(text, "set".length);
-    let field: string;
-    let at: number;
-    if (text[start] === '"') {
-      const quoted = readQuoted(source, start, m);
-      field = quoted.value;
-      at = skipSpaces(text, quoted.end);
-    } else {
-      at = start;
-      while (at < text.length && text[at] !== ":" && text[at] !== "[") at++;
-      field = text.slice(start, at).trim();
-    }
-    if (!declared.fields.includes(field)) throw fail(source, start, m.noSuchField(field));
-    let value: string | undefined;
-    if (text[at] === ":") {
-      const named = readName(source, at + 1, m);
-      if (named.value === "") throw fail(source, at, m.stripNeedsValue);
-      value = named.value;
-      at = named.rest;
-    }
-    if (at < text.length && text[at] !== "[") throw fail(source, at, m.stripNeedsValue);
-    const tag = at < text.length ? readAttrs(source, at, ATTRS.set, m).get("tag")?.value : undefined;
-    if (value === undefined && tag === undefined) throw fail(source, 0, m.stripNeedsValue);
-    if (value !== undefined && meters.some((meter) => meter.field === field) && !RATIO.test(value)) throw fail(source, start, m.meterValue(field));
-    return {
-      type: "strip",
-      field,
-      ...(value !== undefined ? { value } : {}),
-      ...(tag !== undefined ? { tag } : {}),
-    };
   }
 }
 

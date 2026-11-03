@@ -4,7 +4,7 @@
 
 - pnpm の workspace で、`apps/*` と `packages/*` を持つ (`pnpm-workspace.yaml`)。
 - TypeScript の ESM で書く (`package.json` の `"type": "module"`、`tsconfig.json`)。
-- package は tsup で build する。依存は字 (`@fontsource-variable/noto-sans-jp`、`@fontsource-variable/jetbrains-mono`) と書き出しの部品 (`gifenc`、`mediabunny`、`subset-font`) だけ (`packages/dragon/package.json`)。
+- package は tsup で build する。build は最初にブロックと図の種類の置き場の dir から一覧を書き出す (`packages/dragon/scripts/build-blocks.mjs`、#3345)。依存は字 (`@fontsource-variable/noto-sans-jp`、`@fontsource-variable/jetbrains-mono`) と書き出しの部品 (`gifenc`、`mediabunny`、`subset-font`) だけ (`packages/dragon/package.json`)。
 - 描画は `packages/dragon` の中に持つ。`@cardenelabs/cdl` への依存は #2983 で外した (#2982)。
 - 見本帳は Vite と React 19 で作り、経路は依存を足さずに `history` で持つ (`apps/playground-spa/src/site/routes.ts`)。Tailwind 4 の plugin は Vite の設定に残るが、今の頁は使っていない (`apps/playground-spa/package.json`、`apps/playground-spa/vite.config.ts`)。
 - 見本帳の公開の build は、読み込んでよい場所を CSP の meta で絞る (`apps/playground-spa/vite-csp.ts`)。

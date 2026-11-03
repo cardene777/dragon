@@ -1,7 +1,7 @@
 /**
  * 図の原本の形と、原本を JSON Schema で検査する命令。
  *
- * 形の正は `schemas/diagram.schema.json` の 1 本で、下の型はその写し。
+ * 形の正は `schemas/diagram.schema.json` の 1 本で、下の型はその写し。ブロックの置き場へ移した欄の型はブロックが持ち、ここから出し直す (#3345)。
  * 誤りは JSON Pointer で場所を示す。欄が足りない時と知らない欄がある時は、その欄の場所まで示す。
  * 誤りの文は呼ぶ側が渡した言葉 (渡さなければ英語) で出す。文の表は `field-messages.ts` が持つ (#2999)。
  *
@@ -10,20 +10,18 @@
  * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false }` で行う。
  */
 import type { ErrorObject } from "ajv";
+import type { Carry } from "./blocks/carry/block";
+import { type Color, COLORS } from "./blocks/color/block";
+import type { LabelSide } from "./blocks/edge-label/block";
+import { ICON_NAMES } from "./blocks/icon/block";
+import type { StepSource } from "./blocks/source/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { nearest } from "./nearest";
-import { ICONS } from "./render/icons";
 import validate from "./schemas/validate-diagram.js";
 import { DEFAULT_LANG, type NotationLang, STATE_ENDS } from "./words";
 
-export type Color = "blue" | "amber" | "green" | "violet" | "rose" | "slate" | "coin";
-/** 色の役の一覧。記法の `color:` に書ける値と、誤りの文に並べる値 */
-export const COLORS: readonly Color[] = ["blue", "amber", "green", "violet", "rose", "slate", "coin"];
-/**
- * アイコン名の一覧。記法の `icon:` に書ける値と、誤りの文に並べる値 (#3311)。
- * 描く部品のアイコンの表から引く。書き間違えた名前は何も描かれず、名前の高さ (#3307) まで変わるため、読む所で断る
- */
-export const ICON_NAMES: readonly string[] = Object.keys(ICONS);
+/** 色の役の型と一覧は色の役のブロック、アイコン名の一覧は絵のブロックが持つ (#3311、#3345) */
+export { type Color, COLORS, ICON_NAMES };
 
 export interface Region {
   id: string;
@@ -43,10 +41,6 @@ export interface Box {
   /** 飛び先。描いた図ではこの箱がここへの link になる。`/` で始まる path か、http:// か https:// で始まる URL (#3199) */
   link?: string;
 }
-
-export type Carry = { kind: "envelope" } | { kind: "tag"; text: string } | { kind: "coin" } | { kind: "none" };
-
-export type LabelSide = "above" | "below" | "left" | "right";
 
 /** 見せ方。`fixed` は全体を止めて中だけ動かし、`follow` は寄って動かし全体図で今どこかを示す。 */
 export type ViewMode = "fixed" | "follow";
@@ -196,11 +190,12 @@ export interface StatePath {
   label?: string;
 }
 
-/** 段の出典。読み上げの段の一覧に、名前を URL への link にして出す。URL の形は箱の飛び先と同じ (#3199) */
-export interface StepSource {
-  name: string;
-  url: string;
-}
+/** 段の出典の型は出典のブロックが持つ (#3345) */
+export type { StepSource };
+/** 線の名前を置く側の型は線の名前のブロックが持つ (#3345) */
+export type { LabelSide };
+/** 線の上を走る物の型は運ぶ物のブロックが持つ (#3345) */
+export type { Carry };
 
 export interface Step {
   title: string;

@@ -2,8 +2,7 @@
  * 段ごとの始まりと長さと、線、運ぶ物、線の名前、段の番号が見える時刻の表。SVG の動きはこの表から組む。
  *
  * 段の長さは本文の字数で決め、段で起きることが全部済んでから少し留まる長さを下限にする。
- * 運ぶ物は主役 (封筒と札は 1 つ、硬貨は別の 1 つ) ごとに途切れず見え続ける。着いた後は
- * 次の同じ主役が出発するまで着いた先に留まり、次が無ければ終わりまで留まる。
+ * 運ぶ物が見えている間は、運ぶ物のブロック (`blocks/carry/timing.ts`) が線を引く時刻から出す (#3345)。
  * 線の名前はその段の間だけ出し、同じ段に何本あっても同時に見えるのは 2 つまでにする。
  * 状態遷移図では、段が終わった後も線の名前を最後の段まで薄く残す (#3171)。薄い名前は 2 つまでの数に入れない。
  * 止め絵を選んだ図では、最後の段で起きることが済んでから繰り返す前まで (`whole`)、全ての段の線の名前を最後の段と同じ濃さで出す (#3200)。
@@ -18,10 +17,13 @@
  * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
  * 枝分かれの図を描く部品が札ごとに動かす。線に書いた運ぶ物 (`tag` と `carry`) だけを表に載せる。
  */
+import { type CarrierTime, carrierTimes, type Departure } from "./blocks/carry/timing";
 import { ratioOf } from "./layout/scene";
 import { MOTION } from "./look/values";
 import type { Diagram } from "./schema";
 import { STATE_ENDS } from "./words";
+
+export type { CarrierTime };
 
 /** 秒で表した、見えている間。`end` の時刻は含まない。 */
 export interface Span {
@@ -34,15 +36,6 @@ export interface EdgeTime extends Span {
   step: number;
   event: number;
   drawn: number;
-}
-
-/** 運ぶ物が見えている間。`depart` に出発し `arrive` に着く。出発を待つ間と、着いた先で留まる間も含む。 */
-export interface CarrierTime extends Span {
-  step: number;
-  event: number;
-  who: "main" | "coin";
-  depart: number;
-  arrive: number;
 }
 
 export interface LabelTime extends Span {
@@ -229,7 +222,7 @@ export function buildTimeline(diagram: Diagram, still = false): Timeline {
   const edges: EdgeTime[] = [];
   const labels: LabelTime[] = [];
   const events: EventTime[] = [];
-  const departures: { step: number; event: number; who: "main" | "coin"; a: number; b: number }[] = [];
+  const departures: Departure[] = [];
   plans.forEach((p, s) => {
     const span = steps[s] as Span;
     const named: LabelTime[] = [];
@@ -259,26 +252,7 @@ export function buildTimeline(diagram: Diagram, still = false): Timeline {
   });
 
   const first = steps[0]?.start ?? 0;
-  const hasMain = departures.some((d) => d.who === "main");
-  const carriers: CarrierTime[] = [];
-  for (const who of ["main", "coin"] as const) {
-    const list = departures.filter((d) => d.who === who);
-    list.forEach((d, k) => {
-      const next = list[k + 1];
-      // 主役の最初の運ぶ物は、最初の段の始まりから出発点で待つ (何も見えない時間を作らないため)
-      const waits = k === 0 && (who === "main" || !hasMain);
-      carriers.push({
-        step: d.step,
-        event: d.event,
-        who,
-        depart: d.a,
-        arrive: d.b,
-        start: waits ? Math.min(first, d.a) : d.a,
-        end: next ? Math.max(next.a, d.b) : last,
-      });
-    });
-  }
-  carriers.sort((x, y) => x.depart - y.depart);
+  const carriers = carrierTimes(departures, first, last);
   const states = diagram.kind === "state" ? stateTimes(diagram, edges, last) : undefined;
   const needle: [number, number][] = [[0, 0]];
   const units: { unit: number; passed: number }[] = [];
