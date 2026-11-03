@@ -136,6 +136,8 @@ export interface RenderOptions {
   lang?: Lang;
   /** 最後の段の止め絵に、全ての段の線の名前と箱の中の処理を出す (#3200) */
   still?: boolean;
+  /** 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351) */
+  width?: number;
 }
 
 export interface PlayerOptions extends RenderOptions {
