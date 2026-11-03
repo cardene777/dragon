@@ -2748,6 +2748,7 @@ describe("サイトの帯と経路 (#3030)", () => {
             "palette-clear 44x44",
             "palette-paper 44x44",
             "palette-night 44x44",
+            "palette-arcade 44x44",
             "font-down 44x44",
             "font-up 44x44",
             "grid 44x44",
@@ -3057,7 +3058,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           await expectSizes(() => catalogTargetsOf(page, catalogSel("preview")), `${where} の見本の枠`, [
             "tab-figure 44x44",
             "tab-code 67x44",
-            "palette 109x44",
+            "palette 133x44",
             "zoom-out 44x44",
             "zoom-level 52x44",
             "zoom-in 44x44",
@@ -3262,7 +3263,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           await expectSizes(() => catalogTargetsOf(page, catalogSel("preview")), `${where} の見本の枠`, [
             "tab-figure 44x44",
             "tab-code 67x44",
-            "palette 109x44",
+            "palette 133x44",
             "zoom-out 44x44",
             "zoom-in 44x44",
             "fit 44x44",
@@ -4007,14 +4008,14 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "narrow-header-sheet-touch-targets",
     async () => {
-      // 一覧の中の色味の札は高さ 32px、編集画面を開く釦は 42px だった (#3071)。行き先 6 つ、色味の札 3 つ、編集画面を開く釦の 10 個
+      // 一覧の中の色味の札は高さ 32px、編集画面を開く釦は 42px だった (#3071)。行き先 6 つ、色味の札 4 つ (#3341)、編集画面を開く釦の 11 個
       for (const viewport of PHONES) {
         const { page } = await site.open({ path: BASE, viewport });
         await onScreen(page, "home", "概要の頁が出ない");
         await page.locator(siteSel("menu")).click();
         await expect
-          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の開いた一覧で、部品が 10 個無いか、44px に届かない部品がある` })
-          .toEqual({ count: 10, small: [] });
+          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の開いた一覧で、部品が 11 個無いか、44px に届かない部品がある` })
+          .toEqual({ count: 11, small: [] });
         if (viewport === PHONES[1]) {
           await expectSizes(() => headerTargetsOf(page, ".site-sheet"), `${viewport.width} × ${viewport.height} の開いた一覧`, [
             "概要 374x44",
@@ -4023,9 +4024,10 @@ describe("サイトの帯と経路 (#3030)", () => {
             "使い方 374x44",
             "更新履歴 374x44",
             "GitHub ↗ 374x44",
-            "palette-clear 95x44",
-            "palette-paper 83x44",
-            "palette-night 95x44",
+            "palette-clear 82x66",
+            "palette-paper 82x66",
+            "palette-night 82x66",
+            "palette-arcade 82x66",
             "編集画面を開く → 374x44",
           ]);
         }
@@ -4092,6 +4094,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           "palette-clear 23x21",
           "palette-paper 23x21",
           "palette-night 23x21",
+          "palette-arcade 23x21",
           "theme 29x27",
           "open-editor 131x31",
         ],
@@ -4145,17 +4148,18 @@ describe("サイトの帯と経路 (#3030)", () => {
         if (viewport === TOUCH_SIZES[2]) {
           await expectSizes(() => headerTargetsOf(page, siteSel("header")), `指で触る ${viewport.width} × ${viewport.height} の見出しの帯`, [
             "dragon 85x44",
-            "概要 48x44",
-            "カタログ 74x44",
-            "編集画面 74x44",
-            "使い方 61x44",
-            "更新履歴 74x44",
-            "GitHub ↗ 81x44",
+            "概要 44x44",
+            "カタログ 70x44",
+            "編集画面 70x44",
+            "使い方 57x44",
+            "更新履歴 70x44",
+            "GitHub ↗ 77x44",
             "lang-ja 44x44",
             "lang-en 44x44",
             "palette-clear 44x44",
             "palette-paper 44x44",
             "palette-night 44x44",
+            "palette-arcade 44x44",
             "theme 44x44",
             "open-editor 131x44",
           ]);
@@ -4184,11 +4188,14 @@ describe("サイトの帯と経路 (#3030)", () => {
     "coarse-header-folds-below-900",
     async () => {
       // 指で触る時、900px 以下では行き先と色味の切替を一覧に畳み、携帯の幅と同じ形にする (#3075)。
-      // 901 から 1000px では 44px の部品が 1 行に収まらず行き先が縮むので、外側の編集画面を開く釦から隠す
+      // 901 から 1016px では 44px の部品が 1 行に収まらず行き先が縮むので、外側の編集画面を開く釦から隠す。
+      // 色味が 4 つになって境が 1000px から 1016px に上がった (#3341)
       for (const [viewport, expected] of [
         [{ width: 768, height: 1024 }, { nav: false, palette: false, menu: true, cta: false, squeezed: [] }],
         [{ width: 901, height: 1200 }, { nav: true, palette: true, menu: false, cta: false, squeezed: [] }],
         [{ width: 1000, height: 1200 }, { nav: true, palette: true, menu: false, cta: false, squeezed: [] }],
+        [{ width: 1016, height: 1200 }, { nav: true, palette: true, menu: false, cta: false, squeezed: [] }],
+        [{ width: 1017, height: 1200 }, { nav: true, palette: true, menu: false, cta: true, squeezed: [] }],
         [{ width: 1024, height: 1366 }, { nav: true, palette: true, menu: false, cta: true, squeezed: [] }],
       ] as const) {
         const { page } = await site.open({ path: BASE, viewport, touch: true });
@@ -4207,7 +4214,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "coarse-header-sheet-touch-targets",
     async () => {
-      // 指で触る時の一覧の部品も 44 × 44px にする (#3075)。行き先 6 つ、色味の札 3 つ、編集画面を開く釦の 10 個
+      // 指で触る時の一覧の部品も 44 × 44px にする (#3075)。行き先 6 つ、色味の札 4 つ (#3341)、編集画面を開く釦の 11 個
       for (const viewport of [
         { width: 600, height: 960 },
         { width: 768, height: 1024 },
@@ -4217,8 +4224,8 @@ describe("サイトの帯と経路 (#3030)", () => {
         await onScreen(page, "home", "概要の頁が出ない");
         await page.locator(siteSel("menu")).click();
         await expect
-          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${where}で、部品が 10 個無いか、44px に届かない部品がある` })
-          .toEqual({ count: 10, small: [] });
+          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${where}で、部品が 11 個無いか、44px に届かない部品がある` })
+          .toEqual({ count: 11, small: [] });
         if (viewport.width === 768) {
           await expectSizes(() => headerTargetsOf(page, ".site-sheet"), where, [
             "概要 752x44",
@@ -4227,9 +4234,10 @@ describe("サイトの帯と経路 (#3030)", () => {
             "使い方 752x44",
             "更新履歴 752x44",
             "GitHub ↗ 752x44",
-            "palette-clear 95x44",
-            "palette-paper 83x44",
-            "palette-night 95x44",
+            "palette-clear 177x49",
+            "palette-paper 177x49",
+            "palette-night 177x49",
+            "palette-arcade 177x49",
             "編集画面を開く → 752x44",
           ]);
         }
@@ -4345,6 +4353,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           "palette-clear 23x21",
           "palette-paper 23x21",
           "palette-night 23x21",
+          "palette-arcade 23x21",
           "theme 29x27",
         ]);
     },

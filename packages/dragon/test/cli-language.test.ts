@@ -22,12 +22,12 @@ const JSON_FILE = join(EXAMPLES, "oauth.json");
 const ENGLISH_NOTATION = join(EXAMPLES, "oauth.en.dragon");
 const JAPANESE_NOTATION = join(EXAMPLES, "oauth.dragon");
 
-/** 今の日本語の使い方の文 (#3001 の時点の `USAGE`) */
+/** 今の日本語の使い方の文 (#3001 の時点の `USAGE`)。色味の並びは色味の表の順で、#3341 で `arcade` が加わった */
 const JA_USAGE = [
   "使い方: dragon export <図の file (.json か .dragon)> [設定]",
   "  --out <dir>        書き出す先 (既定は今の dir)",
   "  --width <px>       枠の幅。見せ方を選び、寄って見せる窓の幅になる",
-  "  --palette <名前>   色味 (clear / paper / night)",
+  "  --palette <名前>   色味 (clear / paper / night / arcade)",
   "  --theme <明暗>     light か dark",
   "  --lang <言葉>      図の中の字の言葉 (ja か en)。既定は記法の file の言葉で、JSON は ja",
   "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",

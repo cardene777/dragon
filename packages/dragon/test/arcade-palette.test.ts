@@ -100,12 +100,13 @@ describe("arcade で描く (#3341)", () => {
   });
 
   it("cli-draws-with-arcade-palette", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "dragon-arcade-"));
-    const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", join(dir, "out"), "--format", "html", "--palette", "arcade"]);
+    const out = join(mkdtempSync(join(tmpdir(), "dragon-arcade-")), "out");
+    const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--palette", "arcade"]);
     expect(ran.code, `--palette arcade で書き出せない: ${ran.stderr}`).toBe(0);
-    const written = readdirSync(dir).filter((file) => file.endsWith(".html"));
+    // `--out` は書き出す dir で、図の file の名前の HTML を置く
+    const written = readdirSync(out).filter((file) => file.endsWith(".html"));
     expect(written, "--palette arcade で HTML を書き出さない").toHaveLength(1);
-    const html = readFileSync(join(dir, written[0] ?? ""), "utf8").toLowerCase();
+    const html = readFileSync(join(out, written[0] ?? ""), "utf8").toLowerCase();
     expect(html, "書き出した HTML に arcade の地が入らない").toContain(BITSUMI.bg);
     expect(html, "書き出した HTML に arcade の緑が入らない").toContain(BITSUMI["c-green"]);
   });
