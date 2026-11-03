@@ -1,5 +1,5 @@
 /**
- * ブロックと図の種類の置き場 (#3342、#3345)。
+ * ブロックと図の種類の置き場 (#3342、#3345、#3347)。
  *
  * 図を組み立てる1つひとつをブロックと呼び、ブロックごとに `src/blocks/<名前>/` の置き場を1つ持つ。
  * 置き場は、語、原本の形、読む処理、書き戻す処理、日英の誤りの文、描き方、付け方、使い方の決まり、見本帳の分を全て持つ。
@@ -8,21 +8,29 @@
  * ブロックと図の種類の一覧は、置き場の dir から `scripts/build-blocks.mjs` が書き出し、手で書いた一覧を持たない。
  *
  * 置き場の決まりを見る関数はこの file が持ち、正しい置き場に当てて通ることと、崩した置き場に当てて名指すことの両方を確かめる。
+ * 見本帳を開いた時に読まない図の種類 (状態遷移図と枝分かれの図、#3248) は、置き場の `kind.ts` が並べ方を読まずに `later: true` を名乗る (#3347)。
  */
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import * as WORDS from "../src/words";
+import { api } from "./diagram-support";
+import { draw } from "./render-support";
 
 const SRC = join(__dirname, "../src");
 const BLOCKS_DIR = join(SRC, "blocks");
 const KINDS_DIR = join(SRC, "kinds");
 const GENERATOR = "../scripts/build-blocks.mjs";
 
-/** この課題 (#3345) で置き場へ移すブロックと図の種類 */
-const MOVED_BLOCKS = ["act", "box", "carry", "color", "edge", "edge-label", "group", "icon", "lifeline", "link", "note", "source", "step", "strip"];
-const MOVED_KINDS = ["architecture", "sequence"];
+/** 置き場へ移したブロックと図の種類。状態遷移図と枝分かれの図とその個別ブロックは #3347 で移す */
+const MOVED_BLOCKS = [
+  ...["act", "box", "carry", "color", "edge", "edge-label", "group", "icon", "lifeline", "link", "note", "source", "step", "strip"],
+  ...["branch", "commit", "copy", "merge", "side-path", "start-finish"],
+];
+const MOVED_KINDS = ["architecture", "git", "sequence", "state"];
+/** 見本帳を開いた時に読まず、描く時に後から読む図の種類 (#3248) */
+const LATER_KINDS = ["git", "state"];
 /** 付け方の5つ。置く、つなぐ、線に乗る、箱に付く、図に付く */
 const ATTACH = ["place", "connect", "ride-on-line", "attach-to-box", "attach-to-figure"];
 /** ブロックの定義が持つ欄。中身が無い欄も `none` を置いて持つ */
@@ -44,7 +52,10 @@ interface Block {
 interface Kind {
   name: string;
   accepts: string[];
-  layout: unknown;
+  /** 並べ方。後から読む図の種類は持たない */
+  layout?: unknown;
+  /** 後から読む図の種類か */
+  later?: boolean;
 }
 
 const dirs = (path: string): string[] =>
@@ -125,6 +136,23 @@ export function kindFolderProblems(root: string): string[] {
     return [...extra, ...missing, ...draws];
   });
 }
+
+/**
+ * 後から読む図の種類 (`later: true` を名乗る `kind.ts`) のうち、並べ方 (`layout.ts`) を読む物を `<種類>/kind.ts` で返す。
+ * 図の種類の一覧は描く所が最初に読むので、`kind.ts` が並べ方を読むと見本帳を開いた時に読む塊へ並べ方が入る
+ */
+export function laterKindProblems(root: string): string[] {
+  return dirs(root).flatMap((name) => {
+    const path = join(root, name, "kind.ts");
+    const text = existsSync(path) ? readFileSync(path, "utf8") : "";
+    const later = /\blater:\s*true\b/u.test(text);
+    return later && /from "\.\/layout"/u.test(text) ? [`${name}/kind.ts: 後から読む図の種類が並べ方を読む`] : [];
+  });
+}
+
+/** ブロックの置き場の部品の図のうち、図の種類 `kind` の物。英語の対は除く */
+const figuresOf = (block: string, kind: string): string[] =>
+  files(join(BLOCKS_DIR, block, "gallery")).filter((file) => file.endsWith(`.${kind}.dragon`));
 
 /** 見本帳の分が package の処理を読む行。型だけを読む `import type` と、同じ置き場の中の file だけを許す */
 export function galleryRuntimeImports(root: string): string[] {
@@ -249,7 +277,8 @@ describe("図の種類の置き場 (#3345)", () => {
     expect(dirs(KINDS_DIR), "置き場の無い図の種類").toEqual(expect.arrayContaining(MOVED_KINDS));
     expect(kindFolderProblems(KINDS_DIR), "図の種類の置き場の決まり").toEqual([]);
     expect(Object.keys(kinds).sort(), "定義を読めない図の種類").toEqual(dirs(KINDS_DIR));
-    expect(Object.entries(kinds).filter(([folder, kind]) => kind.name !== folder || typeof kind.layout !== "function" || kind.accepts.length === 0).map(([folder]) => folder), "名前か並べ方か付け方を持たない図の種類").toEqual([]);
+    const laidOut = (kind: Kind): boolean => (kind.later === true ? kind.layout === undefined : typeof kind.layout === "function");
+    expect(Object.entries(kinds).filter(([folder, kind]) => kind.name !== folder || !laidOut(kind) || kind.accepts.length === 0).map(([folder]) => folder), "名前か並べ方か付け方を持たない図の種類").toEqual([]);
   });
 
   it("kind-check-flags-drawing-file", () => {
@@ -260,6 +289,66 @@ describe("図の種類の置き場 (#3345)", () => {
       writeFileSync(join(root, "k", "layout.ts"), 'import { card } from "../../render/parts";\n');
       writeFileSync(join(root, "k", "draw.ts"), "");
       expect(kindFolderProblems(root)).toEqual(["k/draw.ts: 決まった file 以外", "k/layout.ts: 描き方を読むか持つ"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("付け方が合う組 (#3347)", () => {
+  it("every-block-draws-on-every-matching-kind", async () => {
+    // 置き場の在る図の種類と、その種類が受け付ける付け方を名乗るブロックの組の全てで、部品の図を日英の記法で読んで描ける
+    const { blocks, kinds } = await registries();
+    expect(Object.keys(kinds), "置き場の無い図の種類").toEqual(expect.arrayContaining(MOVED_KINDS));
+    expect(Object.keys(blocks), "置き場の無いブロック").toEqual(expect.arrayContaining(MOVED_BLOCKS));
+    const parse = api("parseNotation");
+    const render = draw("renderDiagram");
+    const pairs = Object.values(kinds).flatMap((kind) =>
+      Object.values(blocks)
+        .filter((block) => kind.accepts.includes(block.attach.how) && (block.attach.only === undefined || block.attach.only === kind.name))
+        .map((block) => ({ block: block.name, kind: kind.name })),
+    );
+    expect(pairs.length, "付け方が合う組が無い").toBeGreaterThan(0);
+    const missing = pairs.filter(({ block, kind }) => figuresOf(block, kind).length === 0).map(({ block, kind }) => `${block} × ${kind}`);
+    expect(missing, "部品の図が無い組").toEqual([]);
+    const refused: string[] = [];
+    for (const { block, kind } of pairs) {
+      for (const figure of figuresOf(block, kind)) {
+        for (const [file, lang] of [
+          [figure, "ja"],
+          [figure.replace(/\.dragon$/u, ".en.dragon"), "en"],
+        ] as const) {
+          const text = readFileSync(join(BLOCKS_DIR, block, "gallery", file), "utf8");
+          const parsed = parse(text, { lang });
+          if (!parsed.ok) {
+            refused.push(`${block}/${file}: ${parsed.errors.map((e) => `${e.line}: ${e.message}`).join(" / ")}`);
+            continue;
+          }
+          try {
+            const { svg } = render(parsed.diagram, { lang });
+            if (!svg.startsWith("<svg")) refused.push(`${block}/${file}: SVG でない`);
+          } catch (error) {
+            refused.push(`${block}/${file}: ${(error as Error).message}`);
+          }
+        }
+      }
+    }
+    expect(refused, "読めないか描けない部品の図").toEqual([]);
+  });
+
+  it("later-kind-folder-keeps-layout-out-of-first-load", async () => {
+    // 後から読む図の種類の置き場は、kind.ts で後から読むと名乗り、並べ方を読まない
+    const { kinds } = await registries();
+    expect(
+      LATER_KINDS.filter((name) => kinds[name]?.later !== true),
+      "後から読むと名乗らない図の種類",
+    ).toEqual([]);
+    expect(laterKindProblems(KINDS_DIR), "並べ方を読む後から読む図の種類").toEqual([]);
+    const root = mkdtempSync(join(tmpdir(), "dragon-later-"));
+    try {
+      mkdirSync(join(root, "k"), { recursive: true });
+      writeFileSync(join(root, "k", "kind.ts"), 'import { layoutK } from "./layout";\nexport const kind = { name: "k", accepts: ["place"], later: true, layout: layoutK };\n');
+      expect(laterKindProblems(root)).toEqual(["k/kind.ts: 後から読む図の種類が並べ方を読む"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
