@@ -6,6 +6,16 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **Added the palette `arcade` (Arcade screen), drawn in the same colors as the bitsumi pages** (#3341)
+
+  The ground, text, and lines use the bitsumi values (the figure ground is `#04100a`), green is the bitsumi accent green `#3cff78`, and amber is the bitsumi orange shifted slightly toward red (`#ff9a45`) so it stays apart from green for deuteranopia.
+  Blue, violet, and rose were chosen again to sit on the green ground, and the five colors keep the separation the other palettes keep (15 or more for normal vision, 6 or more for the three color vision types).
+  The light and dark themes use the same values, and the palette draws no shadows.
+  Pass it as `palette: "arcade"` or `dragon export <file> --palette arcade`. The palette switches in the catalog and the editor show it as "Arcade screen", and choosing it makes the site accent green.
+  The values of `clear`, `paper`, and `night` do not change, and the default is still `paper`.
+
 ### Changed
 
 - **The source JSON is now version 2, which lists the blocks placed on a diagram under a field for each block name (`blocks`)** (#3346)

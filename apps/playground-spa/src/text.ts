@@ -18,7 +18,7 @@ export const TEXT = {
     tagline: "文章で書くと、動く図になる",
     language: "言葉",
     palette: "色味",
-    paletteNames: { clear: "澄んだ色", paper: "紙と墨", night: "夜の計器" } as Record<string, string>,
+    paletteNames: { clear: "澄んだ色", paper: "紙と墨", night: "夜の計器", arcade: "アーケードの画面" } as Record<string, string>,
     site: {
       nav: { home: "概要", catalog: "カタログ", editor: "編集画面", docs: "使い方", "release-notes": "更新履歴" },
       navLabel: "行き先",
@@ -336,7 +336,7 @@ export const TEXT = {
     tagline: "Write it as text, get a moving diagram",
     language: "Language",
     palette: "Palette",
-    paletteNames: { clear: "Clear", paper: "Paper and ink", night: "Night gauges" } as Record<string, string>,
+    paletteNames: { clear: "Clear", paper: "Paper and ink", night: "Night gauges", arcade: "Arcade screen" } as Record<string, string>,
     site: {
       nav: { home: "Home", catalog: "Catalog", editor: "Editor", docs: "Docs", "release-notes": "Release notes" },
       navLabel: "Main navigation",
