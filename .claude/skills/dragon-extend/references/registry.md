@@ -26,7 +26,7 @@
 | `packages/dragon/src/kinds/<種類>.ts` | その種類の描く部品をまとめて出す | 種類ごとに 1 つ置く |
 | `packages/dragon/src/kinds/registry.ts` と `packages/dragon/src/kinds/all.ts` と `packages/dragon/src/light.ts` | 種類の登録簿と全部入りの登録と後から読む入口 | 3 つとも新しい種類を足す。足さないと軽い入口で読めない |
 | `packages/dragon/src/render/parts.ts` | 種類をまたいで使う描き方の部品 | 使い回す時だけ触る |
-| `packages/dragon/src/render/icons.ts` | 図の中の印 | 印を持つ種類だけ触る |
+| `packages/dragon/src/blocks/icon/icons.ts` | 図の中の印の形 | 印を持つ種類だけ触る |
 | `packages/dragon/src/look/values.ts` | 色と寸法の値の表 | 描き方が使う値はここにだけ置く |
 | `packages/dragon/src/api.ts` | 既定の入口と軽い入口が共に出す部品 | 外から使う型と関数を出す |
 | `packages/dragon/src/index.ts` | 既定の入口 | 触らない。`api.ts` が出す物を全部出し、全ての種類を登録する |

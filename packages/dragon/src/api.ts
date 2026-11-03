@@ -63,7 +63,7 @@ export type { LaneText, LineupAt, LineupLane, LineupLayout, LineupPick, LineupSe
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
-export { ICONS } from "./render/icons";
+export { ICONS } from "./blocks/icon/icons";
 export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from "./render/ink";
 export { iconSvg } from "./blocks/icon/draw";
 export { type Rendered, type RenderOptions, renderDiagram } from "./render/draw";

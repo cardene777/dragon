@@ -1,12 +1,12 @@
 /**
  * 絵の描き方 (#3345)。
  *
- * 絵柄は絵柄の表 (`render/icons.ts` の `ICONS`) の形を、置く所へ動かして縮めた 1 本の path で描く。
+ * 絵柄は絵柄の表 (`icons.ts` の `ICONS`) の形を、置く所へ動かして縮めた 1 本の path で描く。
  * 箱、区画、中身の帯、時間軸の図の節目、木の図の根の箱など、絵柄を置く部品はどれもこの file から引く。
  * 描く下請け (`render/parts.ts`) も箱と区画の絵柄をここから引くので、この file は下請けを読まない。
  */
 import { LOOK } from "../../look/values";
-import { ICONS } from "../../render/icons";
+import { ICONS } from "./icons";
 
 /** 座標を小数 2 桁に丸める。描く下請けの `r1` と同じ丸めで、下請けを読むと輪になるのでここに置く */
 const r1 = (v: number): number => Math.round(v * 100) / 100;

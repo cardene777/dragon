@@ -1,17 +1,17 @@
 /**
  * 絵のブロック (#3345)。
  *
- * 箱と区画の名前に添える絵。`box` と `group` の行の `[icon: <名前>]` で、絵柄の表 (`render/icons.ts` の `ICONS`) に在る名前を選ぶ。
+ * 箱と区画の名前に添える絵。`box` と `group` の行の `[icon: <名前>]` で、絵柄の表 (`icons.ts` の `ICONS`) に在る名前を選ぶ。
  * 書き間違えた名前は何も描かれず、名前の高さ (#3307) まで変わるため、読む所で断り、近い名前が在ればそれを示す (#3315)。
  * 絵は箱と区画の行の属性で行の頭の語を持たないので、箱と区画の行を読む処理が `readIcon` を呼び、箱と区画の宣言を書き戻す処理が `icon` の鍵を書く。
- * 絵柄の形の表は描く部品の側 (`render/icons.ts`) に置いたまま、この定義は名前の一覧だけを持つ。形の表は package の入口からも出す。
+ * 絵柄の形の表は同じ置き場の `icons.ts` が持ち、この定義は表から名前の一覧を引く。形の表は package の入口からも出す。
  */
 import { nearest } from "../../nearest";
 import type { Messages } from "../../messages";
 import { type Attr, fail, list } from "../../read-kit";
-import { ICONS } from "../../render/icons";
 import type { SourceLine } from "../../tokenize";
 import { type Block, none } from "../block";
+import { ICONS } from "./icons";
 
 /**
  * アイコン名の一覧。記法の `icon:` に書ける値と、誤りの文に並べる値 (#3311)。
