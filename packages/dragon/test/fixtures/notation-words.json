@@ -1,0 +1,130 @@
+{
+  "KINDS": [
+    "sequence",
+    "architecture",
+    "state",
+    "git",
+    "time",
+    "tree",
+    "lineup"
+  ],
+  "HEADS": [
+    "group",
+    "end",
+    "box",
+    "strip",
+    "step",
+    "say",
+    "code",
+    "source",
+    "act",
+    "note",
+    "set",
+    "branch",
+    "commit",
+    "scale",
+    "period",
+    "row",
+    "point",
+    "zoom",
+    "mark",
+    "span",
+    "leaf",
+    "node",
+    "item",
+    "line",
+    "seal",
+    "open",
+    "pick",
+    "stamp",
+    "role"
+  ],
+  "ATTRS": {
+    "diagram": [
+      "view"
+    ],
+    "group": [
+      "note",
+      "color",
+      "icon"
+    ],
+    "box": [
+      "note",
+      "color",
+      "icon",
+      "link",
+      "order"
+    ],
+    "source": [
+      "url"
+    ],
+    "edge": [
+      "carry",
+      "tag",
+      "side",
+      "at",
+      "into"
+    ],
+    "note": [
+      "color"
+    ],
+    "set": [
+      "tag"
+    ],
+    "strip": [
+      "meter"
+    ],
+    "branch": [
+      "note"
+    ],
+    "commit": [
+      "hash",
+      "note"
+    ],
+    "leaf": [
+      "hash"
+    ],
+    "node": [
+      "hash"
+    ],
+    "item": [
+      "color",
+      "label",
+      "note"
+    ],
+    "role": [
+      "note"
+    ],
+    "scale": [
+      "from"
+    ],
+    "period": [
+      "from"
+    ],
+    "row": [
+      "color",
+      "empty"
+    ],
+    "mark": [
+      "color"
+    ],
+    "span": [
+      "shape",
+      "color"
+    ]
+  },
+  "CARRIES": [
+    "coin",
+    "none"
+  ],
+  "VIEWS": [
+    "fixed",
+    "follow"
+  ],
+  "SIDES": [
+    "above",
+    "below",
+    "left",
+    "right"
+  ]
+}

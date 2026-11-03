@@ -5,7 +5,9 @@
  * 本文の中の `` ` `` で囲んだ語は `<code>` で出す。
  * 節の記法の例は `examples/` の file が持ち、頁と検査 (`lib/site.test.ts`) が同じ file を読む。
  * 書き出しの節の命令は package の README と同じ物を、設定は命令の使い方の表示と同じ物を出す (検査が突き合わせる)。
+ * ブロックの置き場へ移した部品の段落はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks.gen.ts`) から節の中の同じ場所に置く (#3345)。
  */
+import { BLOCK_DOCS } from "../catalog/blocks.gen";
 import type { Lang } from "../text";
 
 /**
@@ -114,29 +116,24 @@ export const DOCS: Record<Lang, DocsText> = {
       boxes: {
         title: "箱",
         text: [
-          "箱は `box <名札> as <名前> [note: <下の字>]` で宣言する。名札は線や処理で箱を指す時の呼び名で、図には名前と下の字が出る。`as <名前>` を省くと、名札がそのまま名前になる。",
-          "`[ ]` の中に `color: <色>` を足すと箱の色の役が、`icon: <印>` を足すと名前の横の印が付き、2 つ以上は `,` で区切る。色は `blue` や `green` のような色の役の名前で、印は `user` や `db` のような名前で選ぶ。名前に `[` を、値に `,` か `]` を含める時は `\"` で囲む。",
-          "`link: <飛び先>` を足すと、描いた図でその箱が飛び先への link になり、箱の中の仕組みを描いた別の図の頁などへ移れる。飛び先は `/` で始まる path か、`http://` か `https://` で始まる URL で書く。",
-          "箱は宣言した順に並ぶ。時系列図では箱ごとに縦の線が左から右へ立ち、線はその間を走る。",
+          ...BLOCK_DOCS.box.ja,
+          ...BLOCK_DOCS.link.ja,
+          ...BLOCK_DOCS.lifeline.ja,
         ],
         exit: "続き → 線",
       },
       edges: {
         title: "線",
         text: [
-          "線は `<名札> -> <名札>: <線の名前>` で書き、段の中に書いた順に走る。名前は省ける。",
-          "`act <名札>: <処理の名前>` は、線を引かずに箱の中で行う処理を表す。受け取った物を確かめる、数を数える、のような箱の中だけで済む動きに使う。",
-          "線の名前の置き場所は自動で決まる。崩れた時だけ、線の行の終わりに `[side: above]` か `below`、`left`、`right` を足して置く側を指す。",
+          ...BLOCK_DOCS.edge.ja,
+          ...BLOCK_DOCS.act.ja,
+          ...BLOCK_DOCS["edge-label"].ja,
         ],
         exit: "続き → 区画",
       },
       regions: {
         title: "区画",
-        text: [
-          "構成図では、箱を区画に分けて置ける。区画は `group <名札> as <名前> [note: <添え書き>]` の行で開いて `end` の行で閉じ、その間に書いた `box` の行の箱が区画の中に置かれる。",
-          "区画も `color:` と `icon:` を持てる。仕組みの持ち主や置き場所の境目 (チェーンと網、店と倉庫) を見せる時に使う。",
-          "同じ区画の箱が離れて並ぶ時は、同じ `group <名札>` をもう一度開いて続きの箱を書く。2 度目は名札だけを書き、名前と札は最初の 1 度だけ書く。",
-        ],
+        text: [...BLOCK_DOCS.group.ja],
         exit: "構成図の見本を見る →",
       },
       state: {
@@ -179,30 +176,20 @@ export const DOCS: Record<Lang, DocsText> = {
       steps: {
         title: "段",
         text: [
-          "段は `step <見出し>` の行で区切り、図はこの単位で 1 段ずつ進む。段の中の行は字下げして書き、その段で起きることを語る `say` の行を必ず書く。本文を 2 行以上に分ける時は、`say` だけの行の下に、さらに深く字下げして続ける。",
-          "例の `code pay(1200)` の行のように、`code` の行はその段で打つ命令になる。1 つの段に 1 行まで書ける。",
-          "`source <名前> [url: <URL>]` の行は、その段の出典になる。1 つの段に何行でも書け、図と見える語りには出さず、読み上げの段の一覧に名前の link で出る。URL の形は箱の飛び先と同じ。",
-          "`note <名札>: <字>` は、その段から箱の下の字を書き換える。残高や状態のように、段を追って替わる値を箱の上で見せる。",
-          "見せ方は最初の行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ。`fixed` は全体を止めて中だけを動かし、`follow` は今動いている所へ寄って動かす。書かなければ、全体を枠に収めた時の字の大きさで決まる。",
+          ...BLOCK_DOCS.step.ja,
+          ...BLOCK_DOCS.source.ja,
+          ...BLOCK_DOCS.note.ja,
         ],
         exit: "続き → 帯",
       },
       strip: {
         title: "帯",
-        text: [
-          "帯は図に添える中身の表で、段を追って替わる値を見せる。`strip <題>: <欄>, <欄>` で欄を宣言する。",
-          "段の中で `set <欄>: <値>` と書くとその欄に値が入り、`set <欄> [tag: <札>]` と書くとその欄に札が付く。",
-          "認可コードや注文の状態のように、やり取りの間に持ち物が替わる様子を、線とは別に追える。",
-        ],
+        text: [...BLOCK_DOCS.strip.ja],
         exit: "時系列図の見本を見る →",
       },
       carry: {
         title: "運ぶ物",
-        text: [
-          "線の上には、何が運ばれたかを示す物が走る。何も書かなければ封筒が走る。",
-          "線の行の終わりに `[tag: <値>]` を足すと字を書いた札を、`[carry: coin]` を足すと硬貨を走らせる。番号や証明のような値が動く線には札を、代金やトークンのように価値が動く線には硬貨を使う。",
-          "`[carry: none]` は何も走らせない。知らせるだけで物が動かない線に使う。",
-        ],
+        text: [...BLOCK_DOCS.carry.ja],
         exit: "続き → JSON",
       },
       json: {
@@ -323,29 +310,24 @@ export const DOCS: Record<Lang, DocsText> = {
       boxes: {
         title: "Boxes",
         text: [
-          "Declare a box with `box <id> as <name> [note: <caption>]`. The id is how lines and actions point at the box, and the name and caption are what the diagram shows. Without `as <name>`, the id is the name.",
-          'Inside the `[ ]`, add `color: <color>` to give the box a colour role and `icon: <icon>` to put an icon next to its name, separating two or more with `,`. Colours are role names such as `blue` or `green`, and icons are names such as `user` or `db`. Wrap a name in `"` when it contains `[`, and a value when it contains `,` or `]`.',
-          "Add `link: <target>` and the box becomes a link to that target in the drawn diagram, for example to the page of another diagram that draws what is inside the box. Write the target as a path that starts with `/` or a URL that starts with `http://` or `https://`.",
-          "Boxes line up in the order you declare them. In a sequence diagram each box gets a vertical line from left to right, and lines run between them.",
+          ...BLOCK_DOCS.box.en,
+          ...BLOCK_DOCS.link.en,
+          ...BLOCK_DOCS.lifeline.en,
         ],
         exit: "Next → Lines",
       },
       edges: {
         title: "Lines",
         text: [
-          "Write a line as `<id> -> <id>: <label>`. Lines run in the order they are written in the step, and the label can be left out.",
-          "`act <id>: <action>` is something a box does inside itself, without drawing a line. Use it for work that stays inside the box, such as checking what arrived or counting.",
-          "The label is placed automatically. Only when the placement breaks, add `[side: above]`, `below`, `left` or `right` at the end of the line to say which side it goes.",
+          ...BLOCK_DOCS.edge.en,
+          ...BLOCK_DOCS.act.en,
+          ...BLOCK_DOCS["edge-label"].en,
         ],
         exit: "Next → Regions",
       },
       regions: {
         title: "Regions",
-        text: [
-          "In an architecture diagram, boxes can be placed in regions. Open a region with a `group <id> as <name> [note: <note>]` line and close it with an `end` line, and the boxes on the `box` lines in between go inside it.",
-          "Regions can also take `color:` and `icon:`. Use them to show where ownership or placement changes, such as between chains and a network, or a shop and a warehouse.",
-          "When boxes of the same region are not next to each other, open the same `group <id>` again and write the rest of its boxes. The second time, write only the id, and give the name and attributes only the first time.",
-        ],
+        text: [...BLOCK_DOCS.group.en],
         exit: "See the architecture samples →",
       },
       state: {
@@ -388,30 +370,20 @@ export const DOCS: Record<Lang, DocsText> = {
       steps: {
         title: "Steps",
         text: [
-          "Steps are separated by `step <heading>` lines, and the diagram moves on one step at a time. Indent the lines inside a step, and every step needs a `say` line that tells what happens in it. To split the body over two or more lines, write `say` alone and continue on lines indented further below it.",
-          "A `code` line, like the `code pay(1200)` line in the example, is the command for that step. A step can have at most one.",
-          "A `source <name> [url: <URL>]` line is a source for that step. A step can have any number of them. They stay out of the diagram and the shown text, and appear as links named by the source in the step list that screen readers read. The URL takes the same forms as a box link.",
-          "`note <id>: <text>` rewrites the caption under a box from that step on. Use it to show a value that changes step by step, such as a balance or a state, right on the box.",
-          "Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the first line. `fixed` keeps the whole diagram still and moves only what is inside, and `follow` moves to where things are happening. Without it, the view is chosen by the text size when the whole diagram fits the frame.",
+          ...BLOCK_DOCS.step.en,
+          ...BLOCK_DOCS.source.en,
+          ...BLOCK_DOCS.note.en,
         ],
         exit: "Next → The strip",
       },
       strip: {
         title: "The strip",
-        text: [
-          "The strip is a table that goes with the diagram and shows values that change step by step. Declare its fields with `strip <title>: <field>, <field>`.",
-          "Inside a step, `set <field>: <value>` puts a value in a field, and `set <field> [tag: <tag>]` puts a tag on it.",
-          "It lets you follow what is held while messages go back and forth, such as an authorization code or the state of an order, apart from the lines.",
-        ],
+        text: [...BLOCK_DOCS.strip.en],
         exit: "See the sequence samples →",
       },
       carry: {
         title: "What travels",
-        text: [
-          "Something runs along each line to show what was carried. Without any option, an envelope travels.",
-          "Adding `[tag: <value>]` at the end of the line sends a tag with text on it, and `[carry: coin]` sends a coin. Use a tag for lines that move a value such as a number or a proof, and a coin for lines that move worth such as money or tokens.",
-          "`[carry: none]` sends nothing. Use it for lines that only tell, with nothing changing hands.",
-        ],
+        text: [...BLOCK_DOCS.carry.en],
         exit: "Next → JSON",
       },
       json: {

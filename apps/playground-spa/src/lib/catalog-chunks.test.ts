@@ -12,7 +12,7 @@ import type { Page, Route } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { toHash } from "../share";
-import { app, BASE, firstLoadFiles, root, screenOf, type Site, startSite } from "./playground-support";
+import { BASE, firstLoadFiles, partFigureDirs, root, screenOf, type Site, startSite } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -27,7 +27,6 @@ const WAIT = { timeout: 8_000, interval: 100 } as const;
 const FIRST_SCREEN_EXAMPLES = ["intro", "oauth", "ccip"] as const;
 
 const EXAMPLES = join(root, "packages/dragon/examples");
-const PARTS = join(app, "src/catalog/parts");
 
 interface Notation {
   /** repo の root からの path */
@@ -46,8 +45,8 @@ const isFirstScreen = (name: string): boolean => FIRST_SCREEN_EXAMPLES.some((key
 const laterExamples = (): Notation[] => notationsIn(EXAMPLES, (name) => !isFirstScreen(name));
 /** 最初に読む見本の記法 */
 const firstExamples = (): Notation[] => notationsIn(EXAMPLES, isFirstScreen);
-/** 部品の図の記法 */
-const partNotations = (): Notation[] => notationsIn(PARTS, () => true);
+/** 部品の図の記法。ブロックの置き場へ移した部品の図も見る (#3345) */
+const partNotations = (): Notation[] => partFigureDirs().flatMap((dir) => notationsIn(dir, () => true));
 
 /** 記法が script の中で取りうる字の並び。build は字の並びを `` ` `` の囲みか `"` の囲みで書く */
 function literalForms(text: string): string[] {

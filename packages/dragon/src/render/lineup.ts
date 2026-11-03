@@ -18,7 +18,9 @@ import type { Diagram } from "../schema";
 import type { Span, Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
-import { type Ctx, cs, esc, type SubChange, write } from "./parts";
+import { cs } from "../blocks/color/draw";
+import type { SubChange } from "../blocks/box/draw";
+import { type Ctx, esc, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 

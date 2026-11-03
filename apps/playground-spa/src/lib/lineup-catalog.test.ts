@@ -8,13 +8,12 @@
  * 列の図の分類と部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { PARTS } from "../catalog/parts";
-import { app, BASE, example, screenOf, type Site, startSite, stepLabel } from "./playground-support";
+import { BASE, example, partFigure, screenOf, type Site, startSite, stepLabel } from "./playground-support";
 
 /** 頁を build して Chromium を起こすまでに許す時間 */
 const SETUP = 300_000;
@@ -68,7 +67,7 @@ function sample(key: string): Source {
 
 /** 部品の図の記法。file が無ければ `undefined` */
 const snippetOf = (id: string, lang: "ja" | "en"): string | undefined => {
-  const path = join(app, "src/catalog/parts", `${id}.lineup${lang === "en" ? ".en" : ""}.dragon`);
+  const path = partFigure(`${id}.lineup${lang === "en" ? ".en" : ""}.dragon`);
   return existsSync(path) ? readFileSync(path, "utf8").trimEnd() : undefined;
 };
 

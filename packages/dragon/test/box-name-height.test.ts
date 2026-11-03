@@ -19,7 +19,7 @@ const CENTERED = { name: 5, sub: 20 };
 /** アイコンか置き場の枠を持つ箱が在る図の、名前と下の字の基準線の箱の真ん中からの下がり (アイコンの下に名前を置く高さ) */
 const UNDER_ICON = { name: 12, sub: 27 };
 
-const CATALOG_SEQUENCE = join(process.cwd(), "apps/playground-spa/src/catalog/parts/edge-label.sequence.dragon");
+const CATALOG_SEQUENCE = join(process.cwd(), "packages/dragon/src/blocks/edge-label/gallery/edge-label.sequence.dragon");
 const DOCS_START = join(process.cwd(), "apps/playground-spa/src/docs/examples/start.dragon");
 
 interface Drops {

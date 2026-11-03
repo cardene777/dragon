@@ -8,13 +8,15 @@
  * 線の両端になった木の箱は、その段の間だけ縁に色を付ける。
  * 木の箱が現れる時刻 (`appear`) を返し、木の線を走らない線の点線はその時刻から出す (#3240)。
  */
+import { cs } from "../blocks/color/draw";
+import { glyph } from "../blocks/icon/draw";
 import type { TreeLayout } from "../layout/tree";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { Diagram } from "../schema";
 import type { EdgeTime, Timeline } from "../timeline";
 import type { Frame } from "./motion";
 import { ALWAYS } from "./ink";
-import { activeKf, arrowHead, type Ctx, cs, esc, glyph, pathOf, write } from "./parts";
+import { activeKf, arrowHead, type Ctx, esc, pathOf, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 
