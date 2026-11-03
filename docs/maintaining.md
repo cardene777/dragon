@@ -288,3 +288,18 @@ npx prettier --list-different . | sed -E 's/.*\.([A-Za-z0-9]+)$/\1/' | sort | un
 
 代わりに **触った `.ts` / `.tsx` だけを整形する**。 触るたびに 1 file ずつ準拠していくため、
 実際に読まれる file から順に揃う。 整形だけの commit は作らない。
+
+## 版を出す時に GitHub Release を作る
+
+版の印 (`v<版>`) を GitHub に送ったら、同じ版の Release を作る。
+本文は `scripts/release-notes.mjs` が `CHANGELOG.md` の版の節から作り、最後に変更履歴の全体への link を足す。
+
+```sh
+node scripts/release-notes.mjs v0.46.4 > .context/scratch/release-notes.md
+gh release create v0.46.4 --repo cardene777/dragon --title v0.46.4 --notes-file .context/scratch/release-notes.md --verify-tag
+```
+
+`--verify-tag` は、印がまだ GitHub に無い時に Release を作らずに止める。
+付けずに作ると、GitHub が既定の枝の先頭に同じ名前の印を新しく付けるため、取り込みの commit と印がずれる。
+
+`v0.8.0` から `v0.34.0` は作り直す前の版で、変更履歴も `CHANGELOG.ja.md` にしか無いので、Release を作っていない (#3335)。
