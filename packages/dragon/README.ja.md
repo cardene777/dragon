@@ -60,6 +60,8 @@ const player = mountDiagram(host, parsed.diagram);
 図は同梱の字で測った字の幅で組むため、読み込まないと端末の字で描かれ、札から字がはみ出すことがある。
 CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。
 この入口は Node の組み込みの module を読まないため、Next.js の Turbopack のように頁を束ねる道具でもそのまま読める。
+再生の部品が出す字 (釦の読み上げの名前、全体図の札) は英語で出る。
+日本語で出すには、`mountDiagram` の 3 つ目の引数に `{ lang: "ja" }` を渡し、誤りの文を日本語にするには `parseNotation` にも渡す。
 原本の file を今の版へ移す `migrateFile` は、Node でだけ動く入口 `@cardenelabs/dragon/node` から引く。
 
 `mountDiagram` が返す `player` で段を動かす (`next`、`prev`、`play`、`pause`、`destroy`)。
@@ -136,7 +138,7 @@ step 出荷に回す
 ```
 
 `parseNotation` は記法を原本の JSON に、`printNotation` は原本の JSON を記法に直す。
-誤りの文の言葉は `parseNotation(text, { lang: "en" })` のように渡した言葉で決まり、渡さなければ日本語になる。
+誤りの文の言葉は `parseNotation(text, { lang: "ja" })` のように渡した言葉で決まり、渡さなければ英語になる。
 前の形の記法 (`時系列図` か `構成図` で始まる形) は読まず、その行の新しい形を示す誤りで止まる。
 前の形と新しい形の対応表は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
 
@@ -316,7 +318,7 @@ dragon export ccip.json --out out
 | `--width <px>` | 枠の幅。見せ方 (全体を止める / 寄って追う) を選び、寄って追う窓の幅になる |
 | `--palette <名前>` | 色味 (`clear` / `paper` / `night`、既定は `paper`) |
 | `--theme <明暗>` | `light` か `dark` |
-| `--lang <言葉>` | 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) と、命令が出す使い方の文と誤りの文の言葉 (`ja` か `en`)。記法の file でも JSON の原本でも、既定は `ja` |
+| `--lang <言葉>` | 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) と、命令が出す使い方の文と誤りの文の言葉 (`ja` か `en`)。記法の file でも JSON の原本でも、既定は `en` |
 | `--fps <数>` | mp4 の 1 秒のコマの数 (既定 30) |
 | `--gif-fps <数>` | GIF の 1 秒のコマの数 (既定 10) |
 | `--format <形>` | 書き出す形を `,` で区切る (既定 `mp4,gif,html,png`) |

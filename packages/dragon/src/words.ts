@@ -13,6 +13,12 @@ import type { Carry, Diagram, LabelSide, ViewMode } from "./schema";
 
 export type NotationLang = "ja" | "en";
 
+/**
+ * `lang` を渡さない時の言葉 (#3338)。外の人が例のまま使っても読める文が出るように英語にする。
+ * 日本語の文が要る時は `lang: "ja"` (命令は `--lang ja`) を渡す
+ */
+export const DEFAULT_LANG: NotationLang = "en";
+
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */

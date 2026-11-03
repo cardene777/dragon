@@ -85,10 +85,11 @@ describe("色の値 (#3198)", () => {
   });
 
   it("render-colors-reject-unknown-or-unsafe", () => {
-    expect(colorsRefusal({ glow: "#39ff14" }), "色味に無い名前").toMatch(/^図を描けない: .*glow/u);
+    // 既定は英語なので、日本語の断りの文は ja を渡して確かめる (#3338)
+    expect(colorsRefusal({ glow: "#39ff14" }, "ja"), "色味に無い名前").toMatch(/^図を描けない: .*glow/u);
     // 宣言を抜ける `;` と `}`、属性を抜ける `"`、要素を抜ける `<`、後ろの宣言を呑む閉じない括弧、外の file を読む `url(`、空と字でない値
     for (const value of ["#000;--ink:red", '#000" onload="x', "</style><script>", "red}", "rgb(0 0 0", "url(a.svg#b)", "", 12]) {
-      expect(colorsRefusal({ "c-green": value }), `${JSON.stringify(value)} を描いた`).toMatch(/^図を描けない: .*c-green/u);
+      expect(colorsRefusal({ "c-green": value }, "ja"), `${JSON.stringify(value)} を描いた`).toMatch(/^図を描けない: .*c-green/u);
     }
     // 断りの文は渡した言葉で出し、誤った名前を全て挙げる
     const english = colorsRefusal({ glow: "#39ff14", bg: "red;" }, "en");

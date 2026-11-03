@@ -14,7 +14,7 @@
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { crossesRect, type Point, type Rect } from "../layout/scene";
-import type { NotationLang } from "../words";
+import { DEFAULT_LANG, type NotationLang } from "../words";
 
 /** 見えている間。`[出る時刻, 消える時刻)` */
 export type Shown = [number, number];
@@ -95,7 +95,7 @@ export function findOverlaps(inks: Ink[], stills: number[], traces: Trace[] = []
  * 重なりを知らせる文 (#3178)。段の番号は「段の番号 N」と呼び、図の部品は言葉ごとの呼び方で呼び (#3184)、ほかの字は鉤括弧か引用符で囲む。
  * 段の番号は文に含めない
  */
-export function describeOverlap(overlap: Overlap, lang: NotationLang = "ja"): string {
+export function describeOverlap(overlap: Overlap, lang: NotationLang = DEFAULT_LANG): string {
   const t = FIGURE_TEXT[lang];
   const partName = (part: InkPart): string => (part.kind === "icon" ? t.iconOf(part.box) : part.kind === "coin" ? t.coin : t.envelope);
   const name = (spot: OverlapSpot): string => (spot.badge ? t.badgeName(spot.text) : spot.part ? partName(spot.part) : t.quoted(spot.text));

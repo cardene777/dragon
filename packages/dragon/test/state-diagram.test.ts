@@ -347,7 +347,8 @@ describe("状態遷移図の並べ方 (#3163)", () => {
 describe("状態遷移図の描き方 (#3163)", () => {
   it("state-renders-side-path", () => {
     const source = orderJson() as unknown as Source;
-    const { layout, svg } = render(source as unknown as Json);
+    // 既定は英語なので、日本語の囲みの字は ja を渡して確かめる (#3338)
+    const { layout, svg } = render(source as unknown as Json, "ja");
     const reached = new Set(visitOrder(source));
     const ghosts = layout.boxes.filter((b) => b.ghost);
     expect(ghosts.map((b) => b.name), "どの段も辿り着かない状態だけを点線の箱にしない").toEqual(source.boxes.filter((b) => !reached.has(b.id)).map((b) => b.name));
@@ -398,7 +399,8 @@ describe("状態遷移図の描き方 (#3163)", () => {
 
   it("state-renders-start-and-finish", () => {
     const source = orderJson() as unknown as Source;
-    const { layout, svg } = render(source as unknown as Json);
+    // 既定は英語なので、日本語の始まりと終わりの字は ja を渡して確かめる (#3338)
+    const { layout, svg } = render(source as unknown as Json, "ja");
     const box = (id: string): StateBox | undefined => layout.boxes.find((b) => b.id === id);
     const starts = layout.ends.filter((e) => e.kind === "start" && !e.ghost);
     expect(starts.length, "始まりの印が 1 つでない").toBe(1);
@@ -704,7 +706,8 @@ describe("状態遷移図の見た目 (#3171)", () => {
   });
 
   it("state-renders-side-path-top-right", () => {
-    const { layout, svg } = render(orderJson());
+    // 既定は英語なので、日本語の添え書きは ja を渡して確かめる (#3338)
+    const { layout, svg } = render(orderJson(), "ja");
     const side = layout.side;
     expect(side, "脇道の囲みが無い").toBeDefined();
     if (!side) return;
@@ -759,7 +762,8 @@ describe("状態遷移図の見た目 (#3171)", () => {
 
   it("state-strip-shows-passed-states", () => {
     const source = orderJson() as unknown as Source;
-    const { layout, svg } = render(source as unknown as Json);
+    // 既定は英語なので、日本語の欄の名前は ja を渡して確かめる (#3338)
+    const { layout, svg } = render(source as unknown as Json, "ja");
     const { strip } = layout;
     expect(strip, "注文の図に帯が無い").toBeDefined();
     expect(strip?.fields.map((f) => f.name), "注文の見本の帯に状態の欄が残る").not.toContain("状態");

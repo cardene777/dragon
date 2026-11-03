@@ -11,7 +11,7 @@
 import { FIGURE_TEXT } from "../figure-text";
 import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
 import type { Diagram, DiagramEvent } from "../schema";
-import type { NotationLang } from "../words";
+import { DEFAULT_LANG, type NotationLang } from "../words";
 import { textBox, textWidth } from "./measure";
 import {
   badgeOnPath,
@@ -219,7 +219,7 @@ function needleSteps(diagram: Diagram): [number, number][] {
   });
 }
 
-export function layoutTime(diagram: Diagram, lang: NotationLang = "ja"): TimeLayout {
+export function layoutTime(diagram: Diagram, lang: NotationLang = DEFAULT_LANG): TimeLayout {
   const T = LOOK.time;
   const { margin, gap } = LOOK;
   const R = LOOK.region;

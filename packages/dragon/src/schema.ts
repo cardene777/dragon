@@ -3,7 +3,7 @@
  *
  * 形の正は `schemas/diagram.schema.json` の 1 本で、下の型はその写し。
  * 誤りは JSON Pointer で場所を示す。欄が足りない時と知らない欄がある時は、その欄の場所まで示す。
- * 誤りの文は呼ぶ側が渡した言葉 (渡さなければ日本語) で出す。文の表は `field-messages.ts` が持つ (#2999)。
+ * 誤りの文は呼ぶ側が渡した言葉 (渡さなければ英語) で出す。文の表は `field-messages.ts` が持つ (#2999)。
  *
  * 検査の関数は schema から前もって書き出した物 (`schemas/validate-diagram.js`) を使う。
  * ajv に schema をその場で組み立てさせると `new Function` を使い、`eval` を許さない頁の CSP で止まる。
@@ -14,7 +14,7 @@ import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from
 import { nearest } from "./nearest";
 import { ICONS } from "./render/icons";
 import validate from "./schemas/validate-diagram.js";
-import { type NotationLang, STATE_ENDS } from "./words";
+import { DEFAULT_LANG, type NotationLang, STATE_ENDS } from "./words";
 
 export type Color = "blue" | "amber" | "green" | "violet" | "rose" | "slate" | "coin";
 /** 色の役の一覧。記法の `color:` に書ける値と、誤りの文に並べる値 */
@@ -236,7 +236,7 @@ export interface FieldError {
 export type Checked = { ok: true } | { ok: false; errors: FieldError[] };
 
 export interface CheckOptions {
-  /** 誤りの文の言葉。渡さなければ日本語 */
+  /** 誤りの文の言葉。渡さなければ英語 (#3338) */
   lang?: NotationLang;
 }
 
@@ -407,7 +407,7 @@ export function validateDiagram(input: unknown, options: CheckOptions = {}): Che
   if (validate(input)) return { ok: true };
   const all = validate.errors ?? [];
   const inBranch = new Set(all.filter((error) => error.keyword === "anyOf").flatMap((anyOf) => branchesOf(anyOf, all)));
-  const m = FIELD_MESSAGES[options.lang ?? "ja"];
+  const m = FIELD_MESSAGES[options.lang ?? DEFAULT_LANG];
   // 条件付きの決まり (if / then) は中で落ちた決まりの誤りを別に出すので、包む側の if の誤りは出さない
   const errors = all.filter((error) => error.keyword !== "if" && !inBranch.has(error)).map((error) => toFieldError(error, all, m, input));
   return { ok: false, errors };

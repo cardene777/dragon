@@ -280,7 +280,8 @@ describe("公開する頁 (#2995)", () => {
       const head = lines.indexOf("step 認可サーバーへ回す");
       expect(head, "OAuth の見本に段「認可サーバーへ回す」が無い").toBeGreaterThan(0);
       const broken = lines.filter((_, i) => i !== head + 1).join("\n");
-      const parsed = parseNotation(broken);
+      // 開く頁は日本語なので、頁が出す誤りの文と比べる文も ja で作る (既定は英語、#3338)
+      const parsed = parseNotation(broken, { lang: "ja" });
       expect(parsed.ok, "検査に使う記法が誤りにならない").toBe(false);
       const error = parsed.ok ? undefined : parsed.errors[0];
 

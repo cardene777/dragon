@@ -73,7 +73,8 @@ describe("書き出しの命令が字の重なりを知らせる (#3197)", () =>
     "export-warns-overlaps",
     async () => {
       const out = mkdtempSync(join(tmpdir(), "dragon-overlap-cli-"));
-      const ja = await runInProcess(["export", OVERLAPPING, "--format", "png", "--out", out]);
+      // 既定は英語なので、日本語の重なりの文は --lang ja を渡して確かめる (#3338)
+      const ja = await runInProcess(["export", OVERLAPPING, "--format", "png", "--out", out, "--lang", "ja"]);
       expect(ja.code, ja.stderr.join("\n")).toBe(0);
       expect(readdirSync(out), "重なる図を書き出さなかった").toContain("corner-note.png");
       expect(statSync(join(out, "corner-note.png")).size, "書き出した file が空").toBeGreaterThan(0);

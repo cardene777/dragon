@@ -5,7 +5,8 @@
  * 2 つ目以降を黙って捨てて思った所と違う所へ書き出さないため。
  * 設定に誤った値を渡すと断る (#3011)。`--format xyz` は何も書き出さないのに成功として終わり、
  * `--theme blue` などは既定の値で黙って書き出していたため。
- * 断りの文は #3003 と同じく、`--lang` を渡せばその言葉、無ければ日本語で出す。
+ * 断りの文は #3003 と同じく、`--lang` を渡せばその言葉、無ければ英語で出す (#3338)。
+ * 日本語の断りの文は `--lang ja` を渡して確かめる。
  */
 import { mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,8 +30,10 @@ async function exportWith(options: string[]): Promise<{ code: number; first?: st
 
 describe("図の file の数 (#3007)", () => {
   it("cli-rejects-extra-files", async () => {
+    // 言葉なしは既定の英語で断る (#3338)。日本語の文は ja を渡して確かめる
     for (const [extra, head, usage] of [
-      [[], "図の file は 1 つだけ渡す。余分な引数: b.json", /^使い方: dragon export /u],
+      [["--lang", "ja"], "図の file は 1 つだけ渡す。余分な引数: b.json", /^使い方: dragon export /u],
+      [[], "Pass only one diagram file. Extra arguments: b.json", /^Usage: dragon export /u],
       [["--lang", "en"], "Pass only one diagram file. Extra arguments: b.json", /^Usage: dragon export /u],
     ] as const) {
       const dir = mkdtempSync(join(tmpdir(), "dragon-cli-args-"));
@@ -45,7 +48,7 @@ describe("図の file の数 (#3007)", () => {
 
   it("cli-lists-every-extra-file", async () => {
     const dir = mkdtempSync(join(tmpdir(), "dragon-cli-args-"));
-    const ran = await runCli(["export", JSON_FILE, "out", "more.json", "--out", join(dir, "out"), "--format", "html"]);
+    const ran = await runCli(["export", JSON_FILE, "out", "more.json", "--out", join(dir, "out"), "--format", "html", "--lang", "ja"]);
     expect(ran.code).toBe(2);
     expect(lines(ran.stderr)[0]).toBe("図の file は 1 つだけ渡す。余分な引数: out more.json");
     expect(readdirSync(dir)).toEqual([]);
@@ -65,8 +68,8 @@ describe("設定の値 (#3011)", () => {
   const EN_USAGE = /^Usage: dragon export /u;
 
   it("cli-rejects-bad-format", async () => {
-    await expectRejected(["--format", "xyz"], "使えない値: --format xyz (mp4 / gif / html / png を , で区切る)", JA_USAGE);
-    await expectRejected(["--format", "html,xyz"], "使えない値: --format html,xyz (mp4 / gif / html / png を , で区切る)", JA_USAGE);
+    await expectRejected(["--format", "xyz", "--lang", "ja"], "使えない値: --format xyz (mp4 / gif / html / png を , で区切る)", JA_USAGE);
+    await expectRejected(["--format", "html,xyz", "--lang", "ja"], "使えない値: --format html,xyz (mp4 / gif / html / png を , で区切る)", JA_USAGE);
   });
 
   it("cli-rejects-bad-values", async () => {
@@ -79,12 +82,13 @@ describe("設定の値 (#3011)", () => {
       [["--fps", "abc"], "使えない値: --fps abc (0 より大きい数)"],
       [["--gif-fps", "0"], "使えない値: --gif-fps 0 (0 より大きい数)"],
     ] as const) {
-      await expectRejected([...options], first, JA_USAGE);
+      await expectRejected([...options, "--lang", "ja"], first, JA_USAGE);
     }
   });
 
   it("cli-rejects-unknown-lang-names-value", async () => {
-    await expectRejected(["--lang", "fr"], "使えない値: --lang fr (ja か en)", JA_USAGE);
+    // 知らない言葉では言葉が決まらないので、既定の英語で断る (#3338)
+    await expectRejected(["--lang", "fr"], "Invalid value: --lang fr (ja or en)", EN_USAGE);
   });
 
   it("cli-bad-value-in-english", async () => {

@@ -1,7 +1,7 @@
 /**
  * 書き出しの部品と `dragon export` の命令が、図の中の字を選んだ言葉で書き出す (#3001)。
  *
- * 命令は `--lang` で言葉を選ぶ。渡さなければ、記法の file も JSON の原本も日本語で書き出す (#3137)。
+ * 命令は `--lang` で言葉を選ぶ。渡さなければ、記法の file も JSON の原本も英語で書き出す (#3137、#3338)。
  * 図の中の字は、全体図の札、書き出した HTML の読み上げの名前と `lang` 属性、描けない時の断りの文。
  * 書き出しの時間を抑えるため、HTML だけを書き出して Chromium で開いて読む。
  */
@@ -90,13 +90,13 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
   );
 
   it(
-    "export-without-lang-is-japanese",
+    "export-without-lang-is-english",
     async () => {
-      // dragon記法の語は英語だけで file から言葉が決まらないため、英語の見本も `--lang` が無ければ日本語の字で書き出す
+      // dragon記法の語は英語だけで file から言葉が決まらないため、日本語の字の見本も `--lang` が無ければ既定の英語で書き出す (#3338)
       const en = await exported(join(EXAMPLES, "oauth.en.dragon"));
-      expect(en).toEqual({ ...expected("ja", titleOf("oauth.en.json")), overviewFits: true });
+      expect(en).toEqual({ ...expected("en", titleOf("oauth.en.json")), overviewFits: true });
       const ja = await exported(join(EXAMPLES, "oauth.dragon"));
-      expect(ja).toEqual({ ...expected("ja", titleOf("oauth.json")), overviewFits: true });
+      expect(ja).toEqual({ ...expected("en", titleOf("oauth.json")), overviewFits: true });
     },
     SLOW,
   );
@@ -107,7 +107,9 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       const json = join(EXAMPLES, "oauth.en.json");
       const title = titleOf("oauth.en.json");
       expect(await exported(json, ["--lang", "en"]), "JSON に --lang en を渡した時").toEqual({ ...expected("en", title), overviewFits: true });
-      expect(await exported(json), "JSON に --lang を渡さない時").toEqual({ ...expected("ja", title), overviewFits: true });
+      // --lang を渡さない時は既定の英語 (#3338)
+      expect(await exported(json), "JSON に --lang を渡さない時").toEqual({ ...expected("en", title), overviewFits: true });
+      expect(await exported(json, ["--lang", "ja"]), "JSON に --lang ja を渡した時").toEqual({ ...expected("ja", title), overviewFits: true });
       expect(await exported(join(EXAMPLES, "oauth.en.dragon"), ["--lang", "ja"]), "英語の記法に --lang ja を渡した時").toEqual({
         ...expected("ja", title),
         overviewFits: true,
@@ -144,7 +146,8 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--lang", "fr"]);
       expect(ran.code, "知らない言葉で終了 2 にならない").toBe(2);
       expect(readdirSync(dir), "知らない言葉で何かを書き出した").toEqual([]);
-      expect(ran.stderr, "使い方を出さない").toContain("使い方: dragon export");
+      // 知らない言葉では言葉が決まらないので、既定の英語の使い方を出す (#3338)
+      expect(ran.stderr, "使い方を出さない").toContain("Usage: dragon export");
       expect(ran.stderr, "使い方に --lang の行が無い").toMatch(/^\s+--lang\s/mu);
     },
     SLOW,

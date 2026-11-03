@@ -9,7 +9,7 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { exampleJson, exampleSource, type Json } from "./diagram-support";
-import { draw, gap, type Player, type Rect } from "./render-support";
+import { draw, gap, type Lang, type Player, type Rect } from "./render-support";
 
 type Diagramish = { [key: string]: Json };
 
@@ -38,19 +38,22 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** 寄って追う見せ方で、枠の幅を `width` にして原本 `source` を置く。jsdom は幅を持たないため、置き場の幅を差し替える */
-function mountSource(name: string, source: Json, width: number): SVGSVGElement {
+/**
+ * 寄って追う見せ方で、枠の幅を `width` にして原本 `source` を置く。jsdom は幅を持たないため、置き場の幅を差し替える。
+ * `lang` が `undefined` の時は言葉を渡さない
+ */
+function mountSource(name: string, source: Json, width: number, lang?: Lang): SVGSVGElement {
   const host = document.createElement("div");
   Object.defineProperty(host, "clientWidth", { value: width });
   document.body.appendChild(host);
   const diagram = { ...(structuredClone(source) as Diagramish), view: "follow" };
-  players.push(draw("mountDiagram")(host, diagram));
+  players.push(draw("mountDiagram")(host, diagram, lang === undefined ? undefined : { lang }));
   const svg = host.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
   expect(svg?.getAttribute("data-view"), `${name} を寄って追う見せ方で描けない`).toBe("follow");
   return svg as SVGSVGElement;
 }
 
-const mount = (file: string, width: number): SVGSVGElement => mountSource(file, exampleSource(file), width);
+const mount = (file: string, width: number, lang?: Lang): SVGSVGElement => mountSource(file, exampleSource(file), width, lang);
 
 /** 2 本の生存線の間を 20 段行き来する時系列図。高さが幅の 4 倍を超え、全体図の大きさを窓の高さが決める */
 function tallSequence(): Json {
@@ -81,8 +84,8 @@ function rectOf(svg: SVGSVGElement, selector: string): Rect | undefined {
 }
 
 /** 窓の枠と全体図の地 */
-function parts(file: string, width: number): { svg: SVGSVGElement; window: Rect; overview: Rect } {
-  const svg = mount(file, width);
+function parts(file: string, width: number, lang?: Lang): { svg: SVGSVGElement; window: Rect; overview: Rect } {
+  const svg = mount(file, width, lang);
   const window = rectOf(svg, ".dg-vp-frame");
   const overview = rectOf(svg, ".dg-mm-bg");
   expect(window, `${file} / ${width}px に窓の枠が無い`).toBeDefined();
@@ -164,7 +167,8 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
 
   it("overview-shows-viewport-box", () => {
     for (const [name, file, width] of CASES) {
-      const { svg } = parts(file, width);
+      // 既定は英語なので、日本語の札は ja を渡して確かめる (#3338)
+      const { svg } = parts(file, width, "ja");
       expect(svg.querySelectorAll(".dg-mm-vp").length, `${name} / ${width}px の全体図に今見ている所の枠が無い`).toBe(1);
       expect(svg.querySelector(".dg-mm-t")?.textContent, `${name} / ${width}px の全体図の札`).toBe("全体図");
     }

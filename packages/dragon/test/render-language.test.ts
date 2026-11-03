@@ -2,7 +2,7 @@
 /**
  * 描く部品が出す字を、渡した言葉 (日本語か英語) で出す (#3001)。
  *
- * 図の原本は語を持たないので、呼ぶ側が言葉を渡す。渡さなければ今の日本語で出す。
+ * 図の原本は語を持たないので、呼ぶ側が言葉を渡す。渡さなければ英語で出す (#3338)。
  * 字は 3 か所にある。描けない時の断りの文、寄って動かす見せ方の全体図の札、再生の釦と段の一覧の読み上げの名前。
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -96,12 +96,28 @@ describe("描く部品が出す字の言葉", () => {
     expect(buttons?.getAttribute("lang"), "釦を並べた要素の言葉").toBe("en");
   });
 
-  it("render-text-default-japanese-unchanged", () => {
-    for (const lang of [undefined, "ja"] as const) {
-      expect(refusal(lang), `${lang ?? "言葉なし"} の断りの文`).toBe("図を描けない: /boxes/0/colour colour という欄は書けない");
+  it("render-text-default-english", () => {
+    // 言葉を渡さない時は英語の字で出す (#3338)。ja を渡した時は今の日本語の字のまま
+    const texts = {
+      en: {
+        refusal: "Cannot draw the diagram: /boxes/0/colour The colour field is not allowed",
+        overview: "Overview",
+        labels: { prev: "Previous step", pause: "Pause", play: "Play", next: "Next step", steps: `Steps of ${title()}` },
+      },
+      ja: {
+        refusal: "図を描けない: /boxes/0/colour colour という欄は書けない",
+        overview: "全体図",
+        labels: { prev: "前の段", pause: "止める", play: "動かす", next: "次の段", steps: `${title()} の段` },
+      },
+    };
+    for (const [lang, want] of [
+      [undefined, texts.en],
+      ["ja", texts.ja],
+    ] as const) {
+      expect(refusal(lang), `${lang ?? "言葉なし"} の断りの文`).toBe(want.refusal);
       const host = mount(lang);
-      expect(overview(host), `${lang ?? "言葉なし"} の全体図の札`).toBe("全体図");
-      expect(labels(host), `${lang ?? "言葉なし"} の読み上げの名前`).toEqual({ prev: "前の段", pause: "止める", play: "動かす", next: "次の段", steps: `${title()} の段` });
+      expect(overview(host), `${lang ?? "言葉なし"} の全体図の札`).toBe(want.overview);
+      expect(labels(host), `${lang ?? "言葉なし"} の読み上げの名前`).toEqual(want.labels);
       for (const player of players.splice(0)) player.destroy();
       document.body.innerHTML = "";
     }
