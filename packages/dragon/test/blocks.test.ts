@@ -55,7 +55,7 @@ const dirs = (path: string): string[] =>
         .sort()
     : [];
 
-const files = (path: string): string[] => (existsSync(path) ? (readdirSync(path, { recursive: true, encoding: "utf8" }) as string[]).sort() : []);
+const files = (path: string): string[] => (existsSync(path) ? readdirSync(path, { recursive: true, encoding: "utf8" }).sort() : []);
 
 /** 書き出した一覧 (`src/blocks/index.ts` と `src/kinds/index.ts`) を読む。まだ無い時は空 */
 async function registries(): Promise<{ blocks: Record<string, Block>; kinds: Record<string, Kind> }> {
