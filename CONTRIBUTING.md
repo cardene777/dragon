@@ -1,409 +1,133 @@
 # Contributing to dragon
 
-Thanks for considering a contribution. dragon は小さな OSS プロジェクトで、 idea / bug 報告 / pull request どれも歓迎。
+[日本語](CONTRIBUTING.ja.md)
+
+Thanks for considering a contribution.
+Ideas, bug reports, and pull requests are all welcome, and you can write in English or Japanese.
+Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Notes for the maintainer, such as how open work is counted and how dependency exceptions are recorded, are in [`docs/maintaining.md`](docs/maintaining.md) (in Japanese).
+You do not need them to send a change.
 
 ## Quick start
 
 ```bash
-git clone git@github.com:cardene777/dragon.git
+git clone https://github.com/cardene777/dragon.git
 cd dragon
 pnpm install
-pnpm build:packages  # 検査が読む描画の package の dist を作る
-pnpm test            # vitest 全 pass を確認
-pnpm dev             # http://localhost:4323 で公開する頁を起動
+pnpm build:packages  # build the renderer package that the tests read
+pnpm test            # run every test with vitest
+pnpm dev             # start the catalog site at http://localhost:4323
 ```
 
-`pnpm test` で全件 pass する状態が baseline。 ローカル開発開始前に必ず緑を確認。
+Make sure every test passes before you change anything.
 
-## monorepo の構成
+## Repository layout
 
-| path | 役割 |
+| Path | What it holds |
 | --- | --- |
-| `packages/dragon/` | 原本の JSON、行ごとの記法、描画、書き出しの命令 (`@cardenelabs/dragon`) |
-| `apps/playground-spa/` | GitHub Pages に配る見本帳 (Vite + React 19)。上の帯と画面を持つサイトで、編集画面で記法を書くと動く図になる |
-| `test-support/` | vitest の前処理 (dist が src より古くないかを見る) |
+| `packages/dragon/` | The source JSON, the line-by-line notation, the renderer, and the export command (`@cardenelabs/dragon`) |
+| `apps/playground-spa/` | The catalog site published on GitHub Pages (Vite and React 19). Its editor plays the notation you type |
+| `test-support/` | Setup for vitest. It checks that no package's `dist` is older than its `src` |
 
-描く部品は `packages/dragon` の中に持ち、 別の描画の package には頼らない。
+The renderer draws everything inside `packages/dragon` and does not depend on another drawing package.
 
-## 開発フロー
+## Sending a change
 
-1. issue を起票
-2. `feature/{N}-{slug}` で branch 切り
-3. test 先行 (TDD 推奨、 動作証明のないコードは merge 対象外)
-4. 提出の関門を 1 本通す
+1. Open an issue that describes the problem or the idea.
+2. Fork the repository and create a branch for the change.
+3. Write a test first. Code without a test that shows it works is not merged.
+4. Run the full check.
 
    ```bash
    pnpm verify
    ```
 
-5. pull request を起票
+5. Open a pull request.
 
-`pnpm verify` は型と build と字と検査の 4 つを、短い側から順に回す。
-
-### 絞り込んだ結果を提出の根拠にしない
-
-**変更した file と、その file を読む検査は一致しない**。
-`packages/dragon/examples/` の例を 1 つ直しただけでも、例の実物を読む検査
-(記法の往復、描画、書き出し) が影響を受ける。
-
-絞り込んで回して緑を見て提出し、取り込んだ後に赤が残ったことを 3 度続けた (`#2602`)。
-4 file / 6 件が積み上がり、次の作業で一式を回すまで 1 度も表に出なかった。
-
-一式の所要時間は、検査の数が変わるたびに変わるので自分で測る。
-節約できる時間より、積み上がった赤を切り分ける時間のほうが長い。
-
-`build` が 2 番目に居るのは、検査が dist の新しさを見るため。
-古い dist が残っていると検査は「dist が src より古い package がある」 で止まる。
-
-個別の cmd は消していない。 落ちた所を切り分ける時に使う (`Tests` 節)。
-
-## 残作業の数え方
-
-この repo の残作業は **GitHub の Issue と PR** で数える。 片方だけ見ると残作業が見えない。
-取り込まれていない PR は、対応する Issue を閉じていても終わっていない作業にあたる。
-
-「残りゼロ」 と判断する前に、両方を実測する。
-
-```bash
-gh issue list -R cardene777/dragon --state open --limit 200; echo "終了コード $?"
-gh pr list -R cardene777/dragon --state open --limit 200; echo "終了コード $?"
-```
-
-`--limit` を省くと **30 件で黙って打ち切られる**。 返ってきた件数が `--limit` と同じなら
-まだ先があるので、上限を上げて数え直す。
-
-### 数えられなかった時
-
-**出力が空でも 0 件とは限らない。** 開いているものが 0 件の時も、`gh` が失敗した時も、
-標準出力は空になる。 見分けられるのは終了コードだけで、0 なら数えられている。
-
-0 以外の終了コードは、実測で次の形で出た。
-
-| 終了コード | 理由 | 標準エラーに出る文 |
-|---|---|---|
-| 4 | 未認証 | `To get started with GitHub CLI, please run:  gh auth login` |
-| 1 | token が無効 | `HTTP 401: Bad credentials` |
-| 1 | repo が見えない (招待されていない / 名前の誤り) | `Could not resolve to a Repository` |
-
-network に届かない時や呼出の上限に達した時など、表に無い理由でも 0 以外になる。
-**0 以外なら理由を問わず、報告に「GitHub は数えていない」 と書く。** 数えていない source を 0 件として書かない。
-
-出力を `wc -l` などの別の command に渡すと、終了コードは後ろの command のものに置き換わる。
-未認証のまま `gh issue list ... | wc -l` とすると `0` が返り、失敗が 0 件に化ける。
-
-### なぜこの手順があるか
-
-2026-08-06 の棚卸しで、GitHub が 0 件になった時点で Linear の tool が出ておらず、
-MCP の設定 file を見ないまま「非該当」 と判断した。 実際は未認証だっただけで、認証したら
-Backlog 7 件 / In Progress 4 件が残っていた。 そのまま報告していれば 11 件を見落として
-「残作業 0」 と書くところだった。
-
-当時は Linear と GitHub の 2 箇所を数える手順だった。 2026-08-25 に共通設定から Linear を外し
-([agent-configs #1299](https://github.com/cardene777/agent-configs/issues/1299))、この repo の起票も
-GitHub だけになった (2026-08-24 以降の commit は Linear の番号 `CAR-` を持たない)。
-だから数える先は GitHub だけにしてある。 コードの注釈に残る `CAR-` の番号は当時の記録で、残作業ではない。
-
-**数える先が 1 つになっても、同じ誤り方は残る。** `gh` が失敗した時の空の出力は、
-Linear の tool が出なかった時と同じく「0 件」 に見える。 だから終了コードで分ける手順を置いている。
-
-経緯は `#1055` / `#1056` / `#2056` に残っている。
+`pnpm verify` runs the type check, the build, lint, and every test, shortest first.
+Run all of it, not only the tests near your change.
+A test can read the file you changed without being next to it.
+For example, editing one example in `packages/dragon/examples/` affects the tests that convert it, draw it, and export it.
+The build runs second because the tests read the built package (see the next section).
 
 ## Tests
 
-提出の関門は `pnpm verify` 1 本 (開発フローの 4 番目)。
-下の個別の cmd は **落ちた所を切り分ける時に使う**。
+`pnpm verify` is the check to pass before you send a change.
+Use the other commands to find where a failure comes from.
 
 ```bash
-pnpm verify                                      # 関門。 型 → build → 字 → 検査を順に回す
-pnpm test                                        # vitest 全件 (unit + integration)
-pnpm test:watch                                  # vitest watch mode
-pnpm lint                                        # eslint
-pnpm typecheck                                   # tsc -b 全 workspace
-pnpm build                                       # 描画の package と頁
+pnpm verify      # type check, build, lint, and tests, in that order
+pnpm test        # every vitest test (unit and integration)
+pnpm test:watch  # vitest in watch mode
+pnpm lint        # eslint
+pnpm typecheck   # tsc -b for every workspace
+pnpm build       # the renderer package and the site
 ```
 
-新機能を追加する PR は test を必ず添える。 test の置き場所は `packages/dragon/test/` または `apps/playground-spa/src/lib/` のいずれか。
+A pull request that adds a feature must add tests, in `packages/dragon/test/` or `apps/playground-spa/src/lib/`.
 
-### 検査は build 済みの package を読む
+The tests read `@cardenelabs/dragon` as a package, which means they read its `dist`.
+`pnpm test` does not build, so run `pnpm build:packages` after you change `src`.
+If an old `dist` is left, the tests stop before they start with the message `dist が src より古い package がある` (`test-support/global-setup.ts`).
 
-検査は `@cardenelabs/dragon` を package として読む (= `dist` を読む)。
-`pnpm test` は build を含まないため、`src` を直したら `pnpm build:packages` を回してから検査を回す。
-古い `dist` が残っていると、検査は始まる前に「dist が src より古い package がある」 で止まる
-(`test-support/global-setup.ts`)。
-
-### 書き出しの検査は Chromium を使う
-
-`packages/dragon/test/export.test.ts` は画面なしの Chromium で mp4、GIF、HTML、PNG を書き出して確かめる。
-Chromium を入れていない機械では、先に 1 度だけ入れる。
+`packages/dragon/test/export.test.ts` exports MP4, GIF, HTML, and PNG with a headless Chromium.
+On a machine without Chromium, install it once.
 
 ```bash
 pnpm exec playwright install chromium
 ```
 
-### 対象を決める規則を変える前に実データで数える
+## Changing dependencies
 
-検査が「どの入力を対象とみなすか」 を決める規則 (述語) を書き換える時は、**変更の前後で
-実データの母集団を数えてから決める**。 手で書いた反例は述語を確かめる材料であって、決める
-材料にしない。
-
-数えるのは 3 つ。
-
-| # | 数えるもの |
-|---|---|
-| 1 | いまの述語が「対象」 とみなす件数 |
-| 2 | 新しい述語が「対象」 とみなす件数 |
-| 3 | 1 と 2 で判定が変わる件数と、その具体例 |
-
-3 が 0 件なら、その変更は実データに対して何もしていない。 変える理由を書き直す。
-0 件でないなら、変わった件が意図した向きかを 1 件ずつ見る。
-
-手で書いた反例で確かめられるのは「この形は通る / 通らない」 までで、**その形が実データに
-何件あるか** は分からない。 そこを飛ばすと、理論上ありうる形を根拠に述語を厳しくして、
-実在する多数派を巻き込む。
-
-`#1279` で実際に踏んだ。 CHANGELOG が commit を漏れなく載せているかを見る検査 (今は無い) の
-「commit の本文のどの行を元件名とみなすか」 という述語 1 つを、review 4 round にわたって往復させている。
-
-| round | 述語 | 外れ方 |
-|---|---|---|
-| 3 | `* ` + commit 件名の形 | 厳しすぎ。 `(#N Round 1)` のような注記付き 109 行を落とす |
-| 4 | 列 0 の `* ` を全て、`some` | 緩すぎ。 説明の箇条書きが未記載の元件名を隠す |
-| 5 | 列 0 の `* ` を全て、`every` | 厳しすぎ。 番号を持たない行を「未記載の元件名」 と数える |
-| 6 | 番号を名乗った元件名だけ `every` | 収束 |
-
-round 3 と round 5 の外れは、どちらも **実履歴を数えて初めて分かった**。 数えていれば
-その場で出た数字なので、往復の 2 回は避けられた。 とくに round 5 は、実在しない形
-(説明の箇条書き、実測 0 件) を防ぐために、実在する 82 commit (実測時) を壊している。
-
-数え方は短い script で足りる。 全履歴を走査しても 1 秒かからない。 件数は履歴が伸びれば
-変わるので、**本文の数値を信じずに自分で走らせる**。
+When you add or upgrade a dependency, check the lockfile for known vulnerabilities.
 
 ```bash
-# 新旧 2 つの述語で列 0 の `* ` 行を分類し、判定が変わる件数を出す
-git log --format=%B%x00 --all | python3 -c '
-import sys, re
-msgs = [m.strip() for m in sys.stdin.read().split("\0") if m.strip()]
-# round 3 の述語 (実物をそのまま写した)
-旧 = re.compile(r"^\* (?:\S+ )?[a-z]+(?:\([^)]+\))?!?: .+ \(#\d+\)$")
-# commit 件名らしい形 (これに当たらない = 説明の箇条書きの候補)
-件名形 = re.compile(r"^\* (?:\S+ )?[A-Za-z]+(?:\([^)]+\))?!?: |^\* Revert \"")
-全, 旧が拾う, 番号なし, 該当commit, 説明候補 = 0, 0, 0, 0, 0
-for m in msgs:
-    行 = [l for l in m.split("\n")[1:] if l.startswith("* ")]
-    if 行 and any(not re.search(r"#\d+", l) for l in 行): 該当commit += 1
-    for l in 行:
-        全 += 1
-        if not re.search(r"#\d+", l): 番号なし += 1; continue
-        if 旧.match(l): 旧が拾う += 1
-        if not 件名形.match(l): 説明候補 += 1
-番号あり = 全 - 番号なし
-print(f"commit {len(msgs)} / 列 0 の * 行 {全}")
-print(f"  番号を持つ行 {番号あり} (旧述語が拾う {旧が拾う} / 落とす {番号あり - 旧が拾う})")
-print(f"  番号なしの行 {番号なし} (それを含む commit {該当commit})")
-print(f"  番号を持つが commit 件名の形でない行 {説明候補}")'
-```
-
-出力の対応はこう読む。 **本節の数値は全てこの出力から取っている**。
-
-| 出力 | 本節のどの数値か |
-|---|---|
-| 落とす | round 3 の取りこぼし (109) |
-| 番号なしの行を含む commit | round 5 の巻き込み (82) |
-| 番号を持つが commit 件名の形でない行 | 説明の箇条書きの実測 (0) |
-
-適用するのは **入力を分類する述語** に限る。 出力の書式や、分類を伴わない実装変更には
-課さない。 全変更に課すと、形だけ数えた記録が増えて記録そのものが信用されなくなる。
-
-## 開発の決まり
-
-型の出力先が 2 つある。
-束ねた 1 file (`dist/index.d.ts`、 `tsup` が出す) が package の公開型で、型検査 (`tsc -b`) の出力は `dist-types/` に分ける。
-同じ場所に出すと交互に上書きし、 `package.json` の `types` が指す中身が「最後に走った側」 で決まる。
-
-```sh
-pnpm install
-
-# 見本帳の開発 server を起動する (localhost:4323)
-pnpm dev
-
-# build
-pnpm build
-
-# 検証
-pnpm verify   # typecheck + build + lint + vitest
-```
-
-### 依存の脆弱性を確かめる
-
-`osv-scanner` が `pnpm-lock.yaml` を読んで、既知の脆弱性を持つ版が残っていないかを見る。
-
-```sh
 bash scripts/check-dependency-vulnerabilities.sh
 ```
 
-**依存を上げたら毎回走らせる**。 週に 1 度の監査だけでは追いつかない = 実測で 1 週間に
-112 の取り込みがあり、その間に入った新しい 2 package が次の監査まで検出されなかった (`#1642`)。
+The script reads `pnpm-lock.yaml` with `osv-scanner`.
+It exits with 0 when nothing is found, 1 when something is found, and 2 when it cannot run (for example, `osv-scanner` is not installed).
+Expect 0.
+If something is found, reinstall with `pnpm install` first, which clears most findings.
+If a finding remains, say so in the pull request, and the maintainer decides how to handle it.
 
-終了状態で分かれる。
+After an upgrade, start `pnpm dev` as well as running the build and the tests.
+The build and the development server bundle the code separately, so the server can fail even when the build passes.
 
-| 状態 | 意味 |
-|---|---|
-| `0` | 検出なし (受容記録に載せた分は外れている) |
-| `1` | 検出あり。 一覧が出力に出る |
-| `2` | 走らせられない (`osv-scanner` が無い / 見る場所が無い) |
+## Pull requests
 
-**`1` と `2` を分けている**。 道具が入っていないだけの時に「脆弱性が見つかった」 と
-読まれると、直す先が違う方へ向かう。
+- Keep one concern per pull request. Do not mix a feature, a fix, and a refactor.
+- Start the title with the type: `feat`, `fix`, `docs`, `refactor`, `test`, or `chore`.
+- In the description, write why you made the change, what it affects, and how you tested it. The pull request template has the same headings.
 
-**期待は 0 件**。 1 件でも出たら、まず `pnpm install` で lockfile を入れ直す。
+## Commit messages
 
-**大半はそれで直る**。 検出は「いま脆弱」 を言うだけで、「固定が要る」 とは言っていない。
-`#1528` では 41 件のうち 9 package が、入れ直すだけで安全な版に解決された。
+Start with an emoji and the type, then a short summary in English or Japanese.
 
-入れ直しても残る package だけを `package.json` の `pnpm.overrides` に書く。
-
-書いた後は **1 つずつ外して測る**。 外しても 0 件のままなら、その `overrides` は効いていない。
-
-```sh
-# その override を消して入れ直し、再走査して件数を見る
-pnpm install && osv-scanner scan source -r . | grep -c '^| https'
-```
-
-効いていない `overrides` を残さないのは、`overrides` が下限であると同時に **上限** でもあるため。
-上流が新しい patch を出しても、書いた版に固定され続ける。
-
-`overrides` で上げるのは推移依存だけで、直接依存の major は上げない。
-major を上げると API が変わり、上げた理由 (脆弱性) と別の理由で壊れる。
-
-同じ package が major 違いで 2 つ入っている時は `package@major` の形で分けて書く。
-まとめて 1 行にすると、片方の major に存在しない版へ倒そうとして解決が落ちる。
-
-上げた後は `pnpm build` と `pnpm test` に加えて **`pnpm dev` も起動する**。
-build が通っても開発 server だけが落ちることがある = build は rollup が束ね、開発 server は
-esbuild が別に束ね直すので、変換先も別に決まる (`#1528` / `#1535` で踏んだ)。
-
-壊れた package があれば、package 名と失敗したコマンドと理由を Issue に書いて別 Issue に
-切り出す。 その package の `overrides` は書かず、残った脆弱性の CVSS を記録する。
-
-#### 版を動かせない時は受容記録に残す
-
-上流が版を固定していて上げられないものだけを [osv-scanner.toml](osv-scanner.toml) に書く。
-記録が無いと「見落とした」 と「更新できないと決めた」 が区別できず、次の監査で同じ検出を
-理由なしに繰り返すことになる。
-
-書く 3 つ。
-
-| 項目 | 中身 |
-|---|---|
-| `id` | 脆弱性の識別子 (`GHSA-...`) |
-| `ignoreUntil` | 再確認の期限。 過ぎると osv-scanner が記録を無視して再び検出する |
-| `reason` | 版を動かせない相手を **名指しで** 書く。 加えて、届かない経路があればそれも書く |
-
-`reason` に名指しが要るのは、「更新できない」 という主張を読み手が裏取りできるようにするため。
-`packages/dragon/test/dependency-vulnerability-check.test.ts` が、名指しした package と版が
-実際に `pnpm-lock.yaml` に居ることまで見る。
-
-期限が来たら、上流が動いたかを見る。 動いていれば更新して記録ごと消す。
-
-### 出力する構文の範囲
-
-`es2022` で揃えている。 指定は 2 箇所あり、**どちらも書かないと片方が既定に落ちる**。
-
-| 経路 | 指定 | 効く先 |
-|---|---|---|
-| 本番 build | `build.target` | 配信する成果物 |
-| 開発 server の依存 | `optimizeDeps.esbuildOptions.target` | 手元の開発 server だけ |
-
-2 つ目を書かないと vite の既定 (`chrome87` / `edge88` / `es2020` / `firefox78` / `safari14`) が
-効く。 esbuild 0.28 以降はその範囲へ分割代入を変換できず、開発 server が落ちる (`#1535`)。
-
-**配信する成果物の範囲は `build.target` だけが決める**。 2 つ目は手元にしか出ないので、
-揃えても利用者に届く範囲は変わらない。 揃えるのは、開発で通った構文が本番で落ちる形を
-作らないため。
-
-`es2022` が動く最小の版。
-
-| ブラウザ | 版 |
-|---|---|
-| Chrome / Edge | 94 |
-| Firefox | 93 |
-| Safari | 15.4 |
-
-## Pull request
-
-- 1 PR = 1 concern (機能 / 修正 / refactor を混ぜない)
-- title prefix ... `feat` / `fix` / `docs` / `refactor` / `test` / `chore`
-- description ... 変更理由 + 影響範囲 + test 方針を明記
-
-## commit message
-
-絵文字 prefix + 日本語簡潔。
-
-| 絵文字 | 用途 |
+| Emoji | Use |
 | --- | --- |
-| `✨` | 新機能 |
-| `🐛` | bug fix |
-| `📝` | docs |
-| `♻️` | refactor |
-| `✅` | test |
-| `🎨` | style / format |
-| `⚡` | performance |
-| `🔧` | tooling / config |
+| `✨` | New feature |
+| `🐛` | Bug fix |
+| `📝` | Docs |
+| `♻️` | Refactor |
+| `✅` | Test |
+| `🎨` | Style or format |
+| `⚡` | Performance |
+| `🔧` | Tooling or config |
 
-例 ... `✨ feat(dragon): sequence preset を追加`
+Example: `✨ feat(dragon): add a sequence preset`
 
-## code style
+## Code style
 
-- TypeScript ... strict mode 全面 ON、 `any` 禁止
-- lint ... `pnpm lint` (eslint、 自動修正はしない)
-- 整形 ... 設定は `.prettierrc` (`semi: true` / `singleQuote: false` / `printWidth: 100`)。 **触った `.ts` /
-  `.tsx` だけ** `npx prettier --write <path>` で整形する
-- import 順 ... 標準 lib → 外部 → 自 package → 相対 path
-- 1 file 1 責務、 巨大ファイル禁止
-
-### markdown には prettier をかけない
-
-prettier は表の桁を揃える時、**文字数で数えて表示幅で数えない**。 日本語は全角 1 文字が
-2 文字分の幅を占めるため、揃えたはずの `|` が実際にはずれる。
-
-```
-prettier をかける前 (見た目が揃う)     かけた後 (見た目がずれる)
-| 理由 | 確かめ方 |                      | 理由                     | 確かめ方           |
-|---|---|                                | ------------------------ | ------------------ |
-| 未認証 | 下記の command で認証する |   | 未認証                   | 下記の command で認証する |
-```
-
-この repo の文書は日本語の表を多く持つため、markdown は手で書いた形のまま残す。
-
-### repo 全体を整形する script は置かない (決定済)
-
-一括整形する案は `#1285` で検討し、**採らないと決めた**。
-
-対象の件数は自分で数える。 **触った file から順に準拠していくため、この数は減っていく**
-(実際 `#1286` で 1 file 減った)。
-
-```bash
-npx prettier --list-different . | sed -E 's/.*\.([A-Za-z0-9]+)$/\1/' | sort | uniq -c | sort -rn
-```
-
-`#1285` で数えた時点では 397 file で、拡張子別は `.ts` 233 / `.mjs` 99 / `.tsx` 21 /
-`.md` 17 / `.html` 14 / `.json` 5 / `.css` 5 / `.yaml` 2 / `.prettierrc` 1 だった
-(合計 397)。 変更の中身は
-**引用符の統一と折り返し** が大半で、演算子や識別子は動かない。
-
-採らない理由は 3 つある。
-
-1. **維持する仕組みが無い**。 この repo は CI を持たず、`pre-commit` 等の local hook も
-   置かない。 一度整形しても新しい file は準拠しないまま
-   増えるため、全体準拠は保てない
-2. **markdown が壊れる**。 17 file が対象に入るが、prettier は表の桁を文字数で揃えるため
-   日本語の表がずれる (上記)
-3. **`git blame` が失われる**。 397 file を 1 commit で塗り替えると、整形で動く多くの行が
-   整形 commit を指すようになる
-
-代わりに **触った `.ts` / `.tsx` だけを整形する**。 触るたびに 1 file ずつ準拠していくため、
-実際に読まれる file から順に揃う。 整形だけの commit は作らない。
+- TypeScript runs in strict mode everywhere, and `any` is not allowed.
+- Run `pnpm lint` (eslint). It reports problems and does not fix them.
+- Format only the `.ts` and `.tsx` files you touched, with `npx prettier --write <path>`. The settings are in `.prettierrc`. The repository is not formatted as a whole.
+- Do not run prettier on Markdown. It aligns table columns by character count, so tables with Japanese text end up misaligned.
+- Order imports as the standard library, external packages, this package, then relative paths.
+- Keep one responsibility per file, and split a file before it grows very large.
 
 ## License
 
-dragon は [MIT License](LICENSE) で配布。 contribution は同 license で受領される前提。
+dragon is released under the [MIT License](LICENSE).
+By contributing, you agree that your contribution is released under the same license.

@@ -67,7 +67,7 @@ Every line form is in the [notation guide](packages/dragon/examples/quick-start.
 ## Contributing
 
 Issues and pull requests are welcome.
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) (mostly in Japanese) for how to build and test.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to build, test, and send a change.
 
 ## License
 

@@ -121,7 +121,7 @@ step 送る
 ## 手伝う
 
 Issue と pull request を歓迎する。
-build と検査の回し方は [`CONTRIBUTING.md`](CONTRIBUTING.md) にある。
+build と検査の回し方と、直しの送り方は [`CONTRIBUTING.ja.md`](CONTRIBUTING.ja.md) にある。
 
 ## license
 
