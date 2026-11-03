@@ -14,7 +14,7 @@
  * 原本の JSON が書く前の名札を子に持つ時や、もう親を持つ箱を子にする時は、その子を除いて描く。箱と同じ名札の木の箱は描かない。
  */
 import { type ColorKey, LOOK, type TextStyle, TYPE } from "../look/values";
-import type { Diagram } from "../schema";
+import type { DiagramModel } from "../schema";
 import { textWidth } from "./measure";
 import {
   along,
@@ -103,7 +103,7 @@ interface Grown {
   hash?: string;
 }
 
-function grow(diagram: Diagram): { grown: Grown[]; parents: Map<string, string> } {
+function grow(diagram: DiagramModel): { grown: Grown[]; parents: Map<string, string> } {
   const boxes = new Set(diagram.boxes.map((b) => b.id));
   const byId = new Set<string>();
   const parents = new Map<string, string>();
@@ -175,7 +175,7 @@ function route(a: Rect, b: Rect): Point[] {
   ];
 }
 
-export function layoutTree(diagram: Diagram): TreeLayout {
+export function layoutTree(diagram: DiagramModel): TreeLayout {
   const { margin, gap, box: B, tree: T, badge: BD } = LOOK;
   const { grown, parents } = grow(diagram);
   const tops = grown.filter((g) => !parents.has(g.id));
@@ -359,7 +359,7 @@ export function layoutTree(diagram: Diagram): TreeLayout {
  * 運ぶ物が出発を待つ所と着いた所を空ける。同じ 2 つの箱を結ぶ線を前の段が通っていれば、前の段の番号と同じ所に置く (#3184)。
  * どちらも無い段は、書き換える箱か帯の左上の角に置き、それも無ければ前の段の番号と入れ替える
  */
-function badgesOf(diagram: Diagram, layout: TreeLayout): SceneBadge[] {
+function badgesOf(diagram: DiagramModel, layout: TreeLayout): SceneBadge[] {
   const { r, inset } = LOOK.badge;
   const apart = r * 2 + inset;
   const taken: Point[] = [];
@@ -439,7 +439,7 @@ function midway(e: SceneEdge, free: (p: Point) => boolean): Point | undefined {
 }
 
 /** 線の名前。箱と木の箱から離し、葉の下の札と同じ段の名前に重ねず、同じ時刻に見える段の番号に食い込ませない */
-function labelsOf(diagram: Diagram, layout: TreeLayout): SceneLabel[] {
+function labelsOf(diagram: DiagramModel, layout: TreeLayout): SceneLabel[] {
   const labels: SceneLabel[] = [];
   const cards = layout.nodes.flatMap((n) => (n.card ? [n.card] : []));
   for (const e of layout.edges) {

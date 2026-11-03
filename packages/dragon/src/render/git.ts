@@ -10,7 +10,7 @@
 import { carrier } from "../blocks/carry/draw";
 import { cs } from "../blocks/color/draw";
 import type { GitLayout, GitMove } from "../layout/git";
-import type { Diagram } from "../schema";
+import type { DiagramModel } from "../schema";
 import { hasWide, textWidth } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
@@ -29,7 +29,7 @@ function tagShape(text: string, sh: string): string {
   return `<rect class="dg-car" x="${r1(-w / 2)}" y="${-C.tagH / 2}" width="${r1(w)}" height="${C.tagH}" rx="${C.tagH / 2}" ${sh}/><text class="dg-car-t${ja ? " dg-car-tj" : ""}" y="${LOOK.baseline.carrier}" text-anchor="middle">${esc(text)}</text>`;
 }
 
-export function drawGit(layout: GitLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx): { links: string; lines: string; commits: string; tags: string } {
+export function drawGit(layout: GitLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx): { links: string; lines: string; commits: string; tags: string } {
   const { m } = ctx;
   const G = LOOK.git;
   const timeOf = (step: number, event: number): EdgeTime | undefined => timeline.edges.find((t) => t.step === step && t.event === event);

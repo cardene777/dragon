@@ -64,6 +64,8 @@ export interface CoreFieldMessages {
   discriminator: (tag: string, values: readonly string[]) => string;
   /** 道具より新しい版の図 */
   newer: (version: number, tool: number) => string;
+  /** 古い版の図を今の版の形に移して読んだ時の警告 (#3346) */
+  upgraded: (version: number, tool: number) => string;
 }
 
 const TYPES_JA: Record<string, string> = {
@@ -112,6 +114,7 @@ const ja: CoreFieldMessages = {
   oneOf: "書ける形のどれか 1 つだけに合わせる",
   discriminator: (tag, values) => `${tag} は ${values.join(" / ")} のどれかにする`,
   newer: (version, tool) => `版 ${version} の図は、この道具 (版 ${tool}) より新しいので読めない。道具を新しくする`,
+  upgraded: (version, tool) => `版 ${version} の図を版 ${tool} の形に移して読んだ。file を書き換えるには migrateFile を使う`,
 };
 
 const en: CoreFieldMessages = {
@@ -139,6 +142,7 @@ const en: CoreFieldMessages = {
   oneOf: "Match exactly one of the allowed shapes",
   discriminator: (tag, values) => `${tag} is one of ${values.join(" / ")}`,
   newer: (version, tool) => `Version ${version} diagrams are newer than this tool (version ${tool}) and cannot be read. Update the tool`,
+  upgraded: (version, tool) => `Read a version ${version} diagram by moving it to the version ${tool} shape. Use migrateFile to rewrite the file`,
 };
 
 /** ブロックが持つ `lang` の原本の誤りの文を 1 つの表に束ねる */

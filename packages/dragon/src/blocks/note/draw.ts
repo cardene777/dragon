@@ -7,14 +7,14 @@
  */
 import { MOTION } from "../../look/values";
 import type { SubChange } from "../box/draw";
-import type { Diagram } from "../../schema";
+import type { DiagramModel } from "../../schema";
 import type { Span, Timeline } from "../../timeline";
 
 /**
  * 箱の下の字の移り変わり。書き換えはそのまま残し、構成図の処理はその段の間だけ出して元へ戻す。
  * 止め絵を選んだ図は、その箱で最後に起きたのが処理なら、最後の段で起きることが済んだ時にその処理を出し直して繰り返す前まで残す (#3200)
  */
-export function subChanges(diagram: Diagram, timeline: Timeline, actionsInBox: boolean): Map<string, SubChange[]> {
+export function subChanges(diagram: DiagramModel, timeline: Timeline, actionsInBox: boolean): Map<string, SubChange[]> {
   type Raw = { t: number; order: number; box: string; set?: string; act?: string | null };
   const raw: Raw[] = [];
   const { whole } = timeline;

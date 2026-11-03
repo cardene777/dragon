@@ -9,13 +9,14 @@
 import type { Messages } from "./messages";
 import { columnOf, type SourceLine } from "./tokenize";
 
+/** 行と列を添えた記法の誤り。欄は型を外すだけで読める書き方で持つ (build の時に Node が型を外してこの file を読むため、#3346) */
 export class NotationError extends Error {
-  constructor(
-    readonly line: number,
-    readonly column: number,
-    message: string,
-  ) {
+  readonly line: number;
+  readonly column: number;
+  constructor(line: number, column: number, message: string) {
     super(message);
+    this.line = line;
+    this.column = column;
   }
 }
 

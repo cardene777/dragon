@@ -6,6 +6,33 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Changed
+
+- **原本の JSON を版2にし、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる形にした** (#3346)
+
+  版1は区画と箱と帯を根の欄に持ち、枝と通らない道と時間軸の図の欄を図の種類ごとの欄に持っていた。
+  版2はブロックごとに欄を持つので、ブロックを足しても根の欄と図の種類の欄は増えない。
+  時系列図の生存線の欄 (`sequence.lifelines`) は箱の並びから組み直せるので、版2では書かない。
+  原本の形の検査の関数は、骨組みの形とブロックごとの形を束ねて書き出す。
+
+  版1の原本はそのまま読める。
+  `readDiagram` と `renderDiagram` と `printNotation` は版1の原本を版2の形に移してから扱い、`readDiagram` は移したことを `warnings` に書く。
+  版1の原本の誤りは、版1の欄の場所で返す。
+  `parseNotation` が返す原本は版2の形になる。
+  原本の file を版2へ書き換えるには、`@cardenelabs/dragon/node` の `migrateFile` を使う。
+
+  | 版1の欄 | 版2の欄 |
+  |---|---|
+  | `regions` | `blocks.group` |
+  | `boxes` | `blocks.box` |
+  | `strip` | `blocks.strip` |
+  | `sequence.lifelines` | 無し (箱の並びから組む) |
+  | `state.paths` | `blocks.path` |
+  | `git.branches` | `blocks.branch` |
+  | `time.scale`、`time.period`、`time.rows`、`time.points`、`time.zoom` | `blocks.scale`、`blocks.period`、`blocks.row`、`blocks.point`、`blocks.zoom` |
+  | `lineup.items` | `blocks.item` |
+  | `lineup.roles` | `blocks.role` |
+
 ## [0.47.0] - 2026-11-03
 
 言葉を渡さない時に出す文を変えたので、2 つ目の数を上げた。

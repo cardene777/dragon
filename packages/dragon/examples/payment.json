@@ -1,37 +1,39 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "カードで払い、後から知らせを受ける",
-  "boxes": [
-    {
-      "id": "客",
-      "name": "客",
-      "sub": "払う人",
-      "color": "slate",
-      "icon": "user"
-    },
-    {
-      "id": "店",
-      "name": "店のアプリ",
-      "sub": "注文を受ける",
-      "color": "blue",
-      "icon": "cart"
-    },
-    {
-      "id": "決済",
-      "name": "決済サービス",
-      "sub": "カードを処理する",
-      "color": "violet",
-      "icon": "card"
+  "blocks": {
+    "box": [
+      {
+        "id": "客",
+        "name": "客",
+        "sub": "払う人",
+        "color": "slate",
+        "icon": "user"
+      },
+      {
+        "id": "店",
+        "name": "店のアプリ",
+        "sub": "注文を受ける",
+        "color": "blue",
+        "icon": "cart"
+      },
+      {
+        "id": "決済",
+        "name": "決済サービス",
+        "sub": "カードを処理する",
+        "color": "violet",
+        "icon": "card"
+      }
+    ],
+    "strip": {
+      "title": "注文",
+      "fields": [
+        "番号",
+        "金額",
+        "状態"
+      ]
     }
-  ],
-  "strip": {
-    "title": "注文",
-    "fields": [
-      "番号",
-      "金額",
-      "状態"
-    ]
   },
   "steps": [
     {
@@ -138,12 +140,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "客",
-      "店",
-      "決済"
-    ]
-  }
+  ]
 }

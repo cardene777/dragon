@@ -1,127 +1,129 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "architecture",
   "title": "Send tokens to another chain with Chainlink CCIP",
-  "regions": [
-    {
-      "id": "src",
-      "name": "Source chain",
-      "note": "e.g. Ethereum",
-      "color": "blue",
-      "icon": "chain"
-    },
-    {
-      "id": "net",
-      "name": "Chainlink network",
-      "note": "DON",
-      "color": "amber",
-      "icon": "net"
-    },
-    {
-      "id": "dst",
-      "name": "Destination chain",
-      "note": "e.g. Arbitrum",
-      "color": "green",
-      "icon": "chain"
+  "blocks": {
+    "group": [
+      {
+        "id": "src",
+        "name": "Source chain",
+        "note": "e.g. Ethereum",
+        "color": "blue",
+        "icon": "chain"
+      },
+      {
+        "id": "net",
+        "name": "Chainlink network",
+        "note": "DON",
+        "color": "amber",
+        "icon": "net"
+      },
+      {
+        "id": "dst",
+        "name": "Destination chain",
+        "note": "e.g. Arbitrum",
+        "color": "green",
+        "icon": "chain"
+      }
+    ],
+    "box": [
+      {
+        "id": "senderApp",
+        "name": "Sending app",
+        "sub": "builds the message",
+        "icon": "app",
+        "region": "src"
+      },
+      {
+        "id": "srcRouter",
+        "name": "Router",
+        "sub": "the single entry",
+        "icon": "router",
+        "region": "src"
+      },
+      {
+        "id": "OnRamp",
+        "name": "OnRamp",
+        "sub": "checks and sends out",
+        "icon": "on",
+        "region": "src"
+      },
+      {
+        "id": "srcPool",
+        "name": "Token Pool",
+        "sub": "locks or burns",
+        "icon": "pool",
+        "region": "src"
+      },
+      {
+        "id": "block",
+        "name": "Block",
+        "sub": "source chain record",
+        "icon": "block",
+        "region": "src"
+      },
+      {
+        "id": "Verifier",
+        "name": "Committee Verifier",
+        "sub": "signs and builds a proof",
+        "icon": "sign",
+        "region": "net"
+      },
+      {
+        "id": "Indexer",
+        "name": "Indexer",
+        "sub": "stores proofs",
+        "icon": "idx",
+        "region": "net"
+      },
+      {
+        "id": "Executor",
+        "name": "Executor",
+        "sub": "requests execution",
+        "icon": "exe",
+        "region": "net"
+      },
+      {
+        "id": "OffRamp",
+        "name": "OffRamp",
+        "sub": "checks and executes",
+        "icon": "off",
+        "region": "dst"
+      },
+      {
+        "id": "dstRouter",
+        "name": "Router",
+        "sub": "the single entry",
+        "icon": "router",
+        "region": "dst"
+      },
+      {
+        "id": "dstPool",
+        "name": "Token Pool",
+        "sub": "releases or mints",
+        "icon": "pool",
+        "region": "dst"
+      },
+      {
+        "id": "receiverApp",
+        "name": "Receiving app",
+        "sub": "receives and handles",
+        "icon": "app",
+        "region": "dst"
+      }
+    ],
+    "strip": {
+      "title": "Message",
+      "fields": [
+        "ID",
+        "destination",
+        "receiver",
+        "data",
+        "tokens",
+        "signatures",
+        "status"
+      ]
     }
-  ],
-  "boxes": [
-    {
-      "id": "senderApp",
-      "name": "Sending app",
-      "sub": "builds the message",
-      "icon": "app",
-      "region": "src"
-    },
-    {
-      "id": "srcRouter",
-      "name": "Router",
-      "sub": "the single entry",
-      "icon": "router",
-      "region": "src"
-    },
-    {
-      "id": "OnRamp",
-      "name": "OnRamp",
-      "sub": "checks and sends out",
-      "icon": "on",
-      "region": "src"
-    },
-    {
-      "id": "srcPool",
-      "name": "Token Pool",
-      "sub": "locks or burns",
-      "icon": "pool",
-      "region": "src"
-    },
-    {
-      "id": "block",
-      "name": "Block",
-      "sub": "source chain record",
-      "icon": "block",
-      "region": "src"
-    },
-    {
-      "id": "Verifier",
-      "name": "Committee Verifier",
-      "sub": "signs and builds a proof",
-      "icon": "sign",
-      "region": "net"
-    },
-    {
-      "id": "Indexer",
-      "name": "Indexer",
-      "sub": "stores proofs",
-      "icon": "idx",
-      "region": "net"
-    },
-    {
-      "id": "Executor",
-      "name": "Executor",
-      "sub": "requests execution",
-      "icon": "exe",
-      "region": "net"
-    },
-    {
-      "id": "OffRamp",
-      "name": "OffRamp",
-      "sub": "checks and executes",
-      "icon": "off",
-      "region": "dst"
-    },
-    {
-      "id": "dstRouter",
-      "name": "Router",
-      "sub": "the single entry",
-      "icon": "router",
-      "region": "dst"
-    },
-    {
-      "id": "dstPool",
-      "name": "Token Pool",
-      "sub": "releases or mints",
-      "icon": "pool",
-      "region": "dst"
-    },
-    {
-      "id": "receiverApp",
-      "name": "Receiving app",
-      "sub": "receives and handles",
-      "icon": "app",
-      "region": "dst"
-    }
-  ],
-  "strip": {
-    "title": "Message",
-    "fields": [
-      "ID",
-      "destination",
-      "receiver",
-      "data",
-      "tokens",
-      "signatures",
-      "status"
-    ]
   },
   "steps": [
     {

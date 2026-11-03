@@ -52,15 +52,15 @@ type Outcome = { ok: true; diagram: Diagram } | { ok: false; problem: Problem | 
 function mainParts(diagram: Diagram): [CountedPart, number] {
   switch (diagram.kind) {
     case "git":
-      return ["branch", diagram.git?.branches.length ?? 0];
+      return ["branch", diagram.blocks.branch?.length ?? 0];
     case "time":
-      return ["row", diagram.time?.rows.length ?? 0];
+      return ["row", diagram.blocks.row?.length ?? 0];
     case "tree":
       return ["box", diagram.steps.flatMap((step) => step.events).filter((event) => event.type === "leaf" || event.type === "node").length];
     case "lineup":
-      return ["lane", diagram.boxes.length];
+      return ["lane", diagram.blocks.box?.length ?? 0];
     default:
-      return ["box", diagram.boxes.length];
+      return ["box", diagram.blocks.box?.length ?? 0];
   }
 }
 

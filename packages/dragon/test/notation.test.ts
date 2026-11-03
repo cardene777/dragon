@@ -41,15 +41,16 @@ describe("記法から JSON へ", () => {
     expect(parse(small)).toEqual({
       ok: true,
       diagram: {
-        version: 1,
+        version: 2,
         kind: "sequence",
         title: "小さな図",
-        boxes: [
-          { id: "送る側", name: "送る 側 の アプリ", sub: "メッセージを作る" },
-          { id: "受ける側", name: "受ける側", sub: "受け取る" },
-        ],
+        blocks: {
+          box: [
+            { id: "送る側", name: "送る 側 の アプリ", sub: "メッセージを作る" },
+            { id: "受ける側", name: "受ける側", sub: "受け取る" },
+          ],
+        },
         steps: [{ title: "送る", body: "送る側が受ける側へ送る。", events: [edge("送る側", "受ける側", { label: "最初の 1 通" })] }],
-        sequence: { lifelines: ["送る側", "受ける側"] },
       },
     });
   });
@@ -100,19 +101,21 @@ describe("記法から JSON へ", () => {
     expect(parse(text)).toEqual({
       ok: true,
       diagram: {
-        version: 1,
+        version: 2,
         kind: "architecture",
         title: "全部の行",
         view: "follow",
-        regions: [{ id: "店", name: "店側", note: "受ける側", color: "blue", icon: "cart" }],
-        boxes: [
-          { id: "レジ", name: "レジ", sub: "払う所", region: "店" },
-          { id: "客", name: "客" },
-          { id: "倉庫", name: "品物の倉庫", region: "店" },
-          { id: "end", name: "end" },
-          { id: "step", name: "step" },
-        ],
-        strip: { title: "注文", fields: ["番号", "状態"] },
+        blocks: {
+          group: [{ id: "店", name: "店側", note: "受ける側", color: "blue", icon: "cart" }],
+          box: [
+            { id: "レジ", name: "レジ", sub: "払う所", region: "店" },
+            { id: "客", name: "客" },
+            { id: "倉庫", name: "品物の倉庫", region: "店" },
+            { id: "end", name: "end" },
+            { id: "step", name: "step" },
+          ],
+          strip: { title: "注文", fields: ["番号", "状態"] },
+        },
         steps: [
           {
             title: "頼む",
@@ -159,15 +162,17 @@ describe("記法から JSON へ", () => {
     expect(parse(text)).toEqual({
       ok: true,
       diagram: {
-        version: 1,
+        version: 2,
         kind: "sequence",
         title: "題 [下書き]",
-        boxes: [
-          { id: "a", name: "送る 側 の アプリ", sub: "東京, 大阪", icon: "app" },
-          { id: "b", name: "b[0] の箱", sub: "閉じ ] を含む" },
-          { id: "c", name: '引用 "の" 字', sub: '"引用" と \\ を含む' },
-        ],
-        strip: { title: "表: 一", fields: ["欄, 1", "欄2"] },
+        blocks: {
+          box: [
+            { id: "a", name: "送る 側 の アプリ", sub: "東京, 大阪", icon: "app" },
+            { id: "b", name: "b[0] の箱", sub: "閉じ ] を含む" },
+            { id: "c", name: '引用 "の" 字', sub: '"引用" と \\ を含む' },
+          ],
+          strip: { title: "表: 一", fields: ["欄, 1", "欄2"] },
+        },
         steps: [
           {
             title: "送る",
@@ -179,7 +184,6 @@ describe("記法から JSON へ", () => {
             ],
           },
         ],
-        sequence: { lifelines: ["a", "b", "c"] },
       },
     });
   });
@@ -385,14 +389,14 @@ describe("記法から JSON へ", () => {
     expect(heads.some((head) => head.includes("`start`")) && heads.some((head) => head.includes("`finish`")), "README.ja.md の行の頭の表に start と finish の線の行が無い").toBe(true);
 
     // package の README は、行の頭の語に `state` を並べ、状態遷移図の小節に始まりと終わりと通らない道を使う例を置く
-    type StateDiagram = { kind?: string; state?: { paths?: unknown[] }; steps?: { events?: { from?: string; to?: string }[] }[] };
+    type StateDiagram = { kind?: string; blocks?: { path?: unknown[] }; steps?: { events?: { from?: string; to?: string }[] }[] };
     for (const { path, words, example } of packageExamples<StateDiagram>("state")) {
       expect(words, `${path} の行の頭の語に state が無い`).toContain("`state`");
       expect(example, `${path} の状態遷移図の小節に読める state の例が無い`).toBeDefined();
       const edges = (example?.steps ?? []).flatMap((s) => s.events ?? []);
       expect(edges.some((e) => e.from === "start"), `${path} の状態遷移図の例に start から出る線が無い`).toBe(true);
       expect(edges.some((e) => e.to === "finish"), `${path} の状態遷移図の例に finish へ入る線が無い`).toBe(true);
-      expect(example?.state?.paths?.length ?? 0, `${path} の状態遷移図の例に通らない道が無い`).toBeGreaterThan(0);
+      expect(example?.blocks?.path?.length ?? 0, `${path} の状態遷移図の例に通らない道が無い`).toBeGreaterThan(0);
     }
   });
 
@@ -428,13 +432,13 @@ describe("記法から JSON へ", () => {
     expect(rows.some((head) => head.includes("`now ->")), "README.ja.md の行の頭の表に針を進める now -> の行が無い").toBe(true);
 
     // package の README は、行の頭の語に時間軸の図の 8 つの語を並べ、時間軸の図の小節に針を進め、印の色を変え、範囲を出し、物差しを満たす例を置く
-    type TimeDiagram = { kind?: string; strip?: { meters?: unknown[] }; steps?: { events?: { type?: string }[] }[] };
+    type TimeDiagram = { kind?: string; blocks?: { strip?: { meters?: unknown[] } }; steps?: { events?: { type?: string }[] }[] };
     for (const { path, words, example } of packageExamples<TimeDiagram>("time")) {
       for (const word of heads) expect(words, `${path} の行の頭の語に ${word} が無い`).toContain(`\`${word}\``);
       expect(example, `${path} の時間軸の図の小節に読める time の例が無い`).toBeDefined();
       const events = (example?.steps ?? []).flatMap((s) => s.events ?? []);
       for (const type of ["now", "mark", "span"]) expect(events.some((e) => e.type === type), `${path} の時間軸の図の例に ${type} の行が無い`).toBe(true);
-      expect(example?.strip?.meters?.length ?? 0, `${path} の時間軸の図の例に物差しの欄が無い`).toBeGreaterThan(0);
+      expect(example?.blocks?.strip?.meters?.length ?? 0, `${path} の時間軸の図の例に物差しの欄が無い`).toBeGreaterThan(0);
     }
   });
 
@@ -478,13 +482,12 @@ describe("記法から JSON へ", () => {
 });
 
 describe("JSON から記法へ", () => {
-  /** 区画を持つ構成図。`boxes` と `regions` だけを差し替えて使う */
-  const architecture = (regions: Json[], boxes: Json[]): Json => ({
-    version: 1,
+  /** 区画を持つ構成図。区画 (`group`) と箱 (`box`) だけを差し替えて使う */
+  const architecture = (group: Json[], box: Json[]): Json => ({
+    version: 2,
     kind: "architecture",
     title: "区画の並び",
-    regions,
-    boxes,
+    blocks: { group, box },
     steps: [{ title: "流す", body: "流す。", events: [edge("a", "b")] }],
   });
 
@@ -525,15 +528,16 @@ describe("JSON から記法へ", () => {
         ],
       ),
       本文の途中の空の行: {
-        version: 1,
+        version: 2,
         kind: "sequence",
         title: "長い本文",
-        boxes: [
-          { id: "a", name: "a" },
-          { id: "b", name: "b" },
-        ],
+        blocks: {
+          box: [
+            { id: "a", name: "a" },
+            { id: "b", name: "b" },
+          ],
+        },
         steps: [{ title: "送る", body: "1 行目。\n\n3 行目。\n4 行目。", events: [edge("a", "b")] }],
-        sequence: { lifelines: ["a", "b"] },
       },
     };
     for (const [label, json] of Object.entries(shapes)) {
@@ -553,15 +557,17 @@ describe("JSON から記法へ", () => {
     const parse = api("parseNotation");
     const print = api("printNotation");
     const json: Json = {
-      version: 1,
+      version: 2,
       kind: "sequence",
       title: "引用符の要る所",
-      boxes: [
-        { id: "a", name: "a[0]", sub: "東京, 大阪" },
-        { id: "b", name: "閉じ ] だけ", sub: "閉じ ] を含む", icon: "app" },
-        { id: "c", name: '"引用" で始まる', sub: 'say "hi"' },
-        { id: "d", name: "そのまま", sub: "空白 を 含む 字" },
-      ],
+      blocks: {
+        box: [
+          { id: "a", name: "a[0]", sub: "東京, 大阪" },
+          { id: "b", name: "閉じ ] だけ", sub: "閉じ ] を含む", icon: "app" },
+          { id: "c", name: '"引用" で始まる', sub: 'say "hi"' },
+          { id: "d", name: "そのまま", sub: "空白 を 含む 字" },
+        ],
+      },
       steps: [
         {
           title: "送る",
@@ -569,7 +575,6 @@ describe("JSON から記法へ", () => {
           events: [edge("a", "b", { label: "f[1]", carry: { kind: "tag", text: "x, y" } }), edge("b", "c", { label: "普通の名前", carry: { kind: "tag", text: "1 通" } })],
         },
       ],
-      sequence: { lifelines: ["a", "b", "c", "d"] },
     };
     const lines = print(json).split("\n");
     expect(lines).toEqual(
@@ -627,7 +632,7 @@ describe("箱の飛び先と段の出典 (#3199)", () => {
     const parsed = api("parseNotation")(linked);
     expect(parsed.ok, JSON.stringify(firstError(parsed))).toBe(true);
     if (!parsed.ok) return;
-    expect((parsed.diagram as { boxes: Json[] }).boxes).toEqual([
+    expect((parsed.diagram as { blocks: { box: Json[] } }).blocks.box).toEqual([
       { id: "入口", name: "入口", sub: "受け付ける", link: "/diagrams/entry" },
       { id: "外", name: "外の仕組み", link: REPO },
       { id: "出口", name: "出口" },
@@ -670,13 +675,15 @@ describe("箱の飛び先と段の出典 (#3199)", () => {
 
     // `,` か `]` を含む URL と、`[` を含む出典の名前は `"` で囲んで書き戻す
     const json: Json = {
-      version: 1,
+      version: 2,
       kind: "sequence",
       title: "囲む飛び先と出典",
-      boxes: [
-        { id: "a", name: "a", link: "/diagrams/a?tab=1,2" },
-        { id: "b", name: "b", link: `${REPO}/issues?q=[x]` },
-      ],
+      blocks: {
+        box: [
+          { id: "a", name: "a", link: "/diagrams/a?tab=1,2" },
+          { id: "b", name: "b", link: `${REPO}/issues?q=[x]` },
+        ],
+      },
       steps: [
         {
           title: "送る",
@@ -688,7 +695,6 @@ describe("箱の飛び先と段の出典 (#3199)", () => {
           events: [edge("a", "b")],
         },
       ],
-      sequence: { lifelines: ["a", "b"] },
     };
     expect(parse(print(json))).toEqual({ ok: true, diagram: json });
   });
@@ -728,8 +734,8 @@ describe("箱の飛び先と段の出典 (#3199)", () => {
       if (!parsed.ok) continue;
       // 飛び先と出典を書かない図は、原本にも欄を足さず、link を持たない SVG を描く
       expect(parsed.diagram, name).toEqual(exampleJson(`${name}.json`));
-      const { boxes, steps } = parsed.diagram as { boxes: Json[]; steps: Json[] };
-      expect(boxes.filter((box) => Object.hasOwn(box as object, "link")), `${name} の箱`).toEqual([]);
+      const { blocks, steps } = parsed.diagram as { blocks: { box?: Json[] }; steps: Json[] };
+      expect((blocks.box ?? []).filter((box) => Object.hasOwn(box as object, "link")), `${name} の箱`).toEqual([]);
       expect(steps.filter((step) => Object.hasOwn(step as object, "sources")), `${name} の段`).toEqual([]);
       expect(render(parsed.diagram).svg, name).not.toMatch(/<a[\s>]/u);
     }

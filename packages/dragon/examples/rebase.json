@@ -1,23 +1,35 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "git",
   "title": "作業の枝を rebase して main へ取り込む",
-  "boxes": [
-    {
-      "id": "作業ツリー",
-      "name": "作業ツリー",
-      "sub": "手元のファイル",
-      "color": "violet",
-      "icon": "doc"
-    }
-  ],
-  "strip": {
-    "title": "参照",
-    "fields": [
-      "main",
-      "feature",
-      "HEAD",
-      "履歴の形"
+  "blocks": {
+    "box": [
+      {
+        "id": "作業ツリー",
+        "name": "作業ツリー",
+        "sub": "手元のファイル",
+        "color": "violet",
+        "icon": "doc"
+      }
+    ],
+    "strip": {
+      "title": "参照",
+      "fields": [
+        "main",
+        "feature",
+        "HEAD",
+        "履歴の形"
+      ]
+    },
+    "branch": [
+      {
+        "id": "main",
+        "note": "取り込む先"
+      },
+      {
+        "id": "feature",
+        "note": "作業の枝"
+      }
     ]
   },
   "steps": [
@@ -292,17 +304,5 @@
       "code": "git log --oneline",
       "events": []
     }
-  ],
-  "git": {
-    "branches": [
-      {
-        "id": "main",
-        "note": "取り込む先"
-      },
-      {
-        "id": "feature",
-        "note": "作業の枝"
-      }
-    ]
-  }
+  ]
 }

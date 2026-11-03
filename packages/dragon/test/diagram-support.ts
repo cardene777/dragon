@@ -71,8 +71,8 @@ export const BARE = "#bare";
  */
 export function exampleSource(file: string): Json {
   if (!file.endsWith(BARE)) return exampleJson(file);
-  const source = structuredClone(exampleJson(file.slice(0, -BARE.length))) as { strip?: Json; steps: { events: { type: string }[] }[] };
-  delete source.strip;
+  const source = structuredClone(exampleJson(file.slice(0, -BARE.length))) as { blocks: { strip?: Json }; steps: { events: { type: string }[] }[] };
+  delete source.blocks.strip;
   for (const step of source.steps) step.events = step.events.filter((event) => event.type !== "strip");
   return source;
 }

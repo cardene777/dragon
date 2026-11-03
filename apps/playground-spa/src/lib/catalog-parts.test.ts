@@ -216,7 +216,7 @@ const figuresOf = (page: Page): Promise<{ kind: string; svgs: number; names: str
 /** 記法の箱の名前 */
 const namesOf = (text: string): string[] => {
   const parsed = parseNotation(text);
-  return parsed.ok ? [...new Set(parsed.diagram.boxes.map((b) => b.name))].sort() : [];
+  return parsed.ok ? [...new Set((parsed.diagram.blocks.box ?? []).map((b) => b.name))].sort() : [];
 };
 
 /**

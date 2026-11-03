@@ -33,7 +33,8 @@ import { kindParts } from "../kinds/registry";
 import { FONTS } from "../look/fonts";
 import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
-import type { Diagram, ViewMode } from "../schema";
+import { toModel } from "../model";
+import type { DiagramModel, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import {
@@ -89,7 +90,8 @@ export interface Rendered {
   fonts: { sans: string; mono: string };
   layout: Layout;
   timeline: Timeline;
-  diagram: Diagram;
+  /** 描いた図の形。版1と同じ欄と並びで、図の id はこの形の字から作る (#3346) */
+  diagram: DiagramModel;
   /** 段ごとの止め絵で、同時に見えている字どうしの重なりと、線が札を持たない字を横切る所 (#3175)。重なりが無ければ空 */
   overlaps: Overlap[];
 }
@@ -258,7 +260,7 @@ function nameOf(text: string): string {
 }
 
 /** 各箱が動く段。線の両端、処理、字の書き換えの箱。 */
-function involved(diagram: Diagram): Map<string, number[]> {
+function involved(diagram: DiagramModel): Map<string, number[]> {
   const on = new Map<string, Set<number>>();
   const add = (id: string, s: number): void => {
     on.set(id, (on.get(id) ?? new Set()).add(s));
@@ -284,7 +286,7 @@ export interface FollowFrame {
 }
 
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
-export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = [], traces: Trace[] = []): string {
+export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = [], traces: Trace[] = []): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける。
   // 色は色味の名前でなく色の値から名前を作り、色の値を重ねた図 (#3198) と同じ色味の名前の図の変数の規則を分ける
   const vars = paletteVars(palette, theme);
@@ -421,7 +423,7 @@ function onStrip(layout: Layout, badge: { y: number }): boolean {
 }
 
 /** 段で動く物が占める所。 */
-function focusOf(layout: Layout, diagram: Diagram, step: number): Rect | undefined {
+function focusOf(layout: Layout, diagram: DiagramModel, step: number): Rect | undefined {
   const rects = focusParts(layout, diagram, step);
   return rects.length === 0 ? undefined : union(rects);
 }
@@ -443,7 +445,7 @@ function badgeFocus(badge: { x: number; y: number }, parts: Rect[], vw: number, 
 }
 
 /** 段で動く物を 1 つずつ。 */
-function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
+function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[] {
   const rects: Rect[] = [];
   for (const e of layout.edges.filter((x) => x.step === step)) {
     const xs = e.points.map((p) => p[0]);
@@ -491,7 +493,7 @@ function focusParts(layout: Layout, diagram: Diagram, step: number): Rect[] {
  * 値の表は図の一番下に在り、窓が近づくまで映らず、窓より広い表は右側が切れる。全体図と同じ理由で窓の外に出し、
  * 窓と全体図の下に図の枠の幅で組み直す (#3270)。窓と全体図は表を除いた図の高さ `worldH` の中だけを見る。
  */
-function followView(layout: Layout, timeline: Timeline, diagram: Diagram, m: Motion, id: string, content: string, follow: FollowFrame, heads: string, drawTable: (s: SceneStrip, from: SceneStrip) => string): { body: string; w: number; h: number } {
+function followView(layout: Layout, timeline: Timeline, diagram: DiagramModel, m: Motion, id: string, content: string, follow: FollowFrame, heads: string, drawTable: (s: SceneStrip, from: SceneStrip) => string): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
   const frameWidth = Math.max(1, follow.width);
@@ -631,7 +633,8 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
   const lang = options.lang ?? DEFAULT_LANG;
   const read = readDiagram(input, { lang });
   if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
-  const diagram = read.diagram;
+  // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)
+  const diagram = toModel(read.diagram);
   // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。置き場の無い図の種類は登録簿から並べ方を引き、知らない種類は構成図の並べ方で並べる
   const folder = FOLDERS[diagram.kind];
   const layout = folder
@@ -654,7 +657,7 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
  * 置き場所を決めた図を描き、描いた字の重なりを数える (#3175)。`renderDiagram` が原本を読んで置き場所を決めた後に呼ぶ。
  * 重なりは、字を描く部品が記録した字だけから数えるので、描く所が位置を決める字 (箱の名前) も対象に入る
  */
-export function renderLayout(diagram: Diagram, layout: Layout, timeline: Timeline, options: RenderOptions = {}): Rendered {
+export function renderLayout(diagram: DiagramModel, layout: Layout, timeline: Timeline, options: RenderOptions = {}): Rendered {
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
   const palette = paletteOf(options, theme);
   const ink: Ink[] = [];

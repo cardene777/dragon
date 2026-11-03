@@ -319,7 +319,7 @@ describe("公開する頁 (#2995)", () => {
 
       const changed = structuredClone(diagram);
       changed.title = "JSON で書き換えた図";
-      (changed.boxes[0] as Diagram["boxes"][number]).name = "JSON で書いた箱";
+      (changed.blocks.box?.[0] as NonNullable<Diagram["blocks"]["box"]>[number]).name = "JSON で書いた箱";
       await setEditor(page, JSON.stringify(changed, null, 2));
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "JSON の書き換えが図に反映しない" }).toContain("JSON で書き換えた図");
 
@@ -340,17 +340,17 @@ describe("公開する頁 (#2995)", () => {
       const parsed = parseNotation(OAUTH);
       expect(parsed.ok).toBe(true);
       const diagram = structuredClone(parsed.ok ? parsed.diagram : ({} as Diagram));
-      const index = diagram.boxes.findIndex((box) => box.color === "violet");
+      const index = (diagram.blocks.box ?? []).findIndex((box) => box.color === "violet");
       expect(index, "OAuth の見本に violet の箱が無い").toBeGreaterThanOrEqual(0);
-      (diagram.boxes[index] as unknown as { color: string }).color = "purple";
+      (diagram.blocks.box?.[index] as unknown as { color: string }).color = "purple";
 
       const { page, violations } = await open();
       await drawn(page);
       await click(page, "tab-json");
       await setEditor(page, JSON.stringify(diagram, null, 2));
-      await expect.poll(() => statusText(page), { ...WAIT, message: "誤った欄の場所が欄の下に出ない" }).toContain(`/boxes/${index}/color`);
+      await expect.poll(() => statusText(page), { ...WAIT, message: "誤った欄の場所が欄の下に出ない" }).toContain(`/blocks/box/${index}/color`);
       const status = await statusText(page);
-      expect(status.replace(`/boxes/${index}/color`, "").trim().length, "誤りの理由が出ない").toBeGreaterThan(3);
+      expect(status.replace(`/blocks/box/${index}/color`, "").trim().length, "誤りの理由が出ない").toBeGreaterThan(3);
       expect(await stepsLabel(page), "最後に描けた図が残っていない").toContain(titleOf(OAUTH));
       expect(await violations(), "CSP に止められた読み込みか実行がある").toEqual([]);
     },
@@ -617,7 +617,7 @@ describe("公開する頁 (#2995)", () => {
       const en = await open({ locale: "en-US" });
       await drawn(en.page);
       const english = await jsonSide(en.page);
-      (english.boxes[0] as unknown as Record<string, unknown>).colour = "blue";
+      (english.blocks.box?.[0] as unknown as Record<string, unknown>).colour = "blue";
       await setEditor(en.page, JSON.stringify(english, null, 2));
       await expect.poll(() => statusText(en.page), { ...WAIT, message: "英語の頁で JSON の誤りが欄の下に出ない" }).toContain("colour");
       expect(await statusText(en.page), "英語の頁の JSON の誤りの文が英語でない").not.toMatch(KANA_KANJI);
@@ -641,7 +641,7 @@ describe("公開する頁 (#2995)", () => {
       const { page } = await open({ locale: "ja-JP" });
       await drawn(page);
       const edited = await jsonSide(page);
-      (edited.boxes[0] as unknown as Record<string, unknown>).colour = "blue";
+      (edited.blocks.box?.[0] as unknown as Record<string, unknown>).colour = "blue";
       const written = JSON.stringify(edited, null, 2);
       await setEditor(page, written);
       await expect.poll(() => statusText(page), { ...WAIT, message: "JSON の誤りが欄の下に出ない" }).toContain("colour");
@@ -740,7 +740,7 @@ describe("公開する頁 (#2995)", () => {
       expect(before, "見本の記法が読めない").toBeDefined();
       const lastEvents = (d: Diagram | undefined): number => d?.steps.at(-1)?.events.length ?? -1;
       await click(page, "part-box");
-      await expect.poll(async () => (await editorDiagram(page))?.boxes.length, { ...WAIT, message: "箱の部品で箱の行が足されない" }).toBe((before?.boxes.length ?? 0) + 1);
+      await expect.poll(async () => (await editorDiagram(page))?.blocks.box?.length, { ...WAIT, message: "箱の部品で箱の行が足されない" }).toBe((before?.blocks.box?.length ?? 0) + 1);
       await click(page, "part-edge");
       await expect.poll(async () => lastEvents(await editorDiagram(page)), { ...WAIT, message: "線の部品で最後の段に線の行が足されない" }).toBe(lastEvents(before) + 1);
       await click(page, "part-step");
@@ -764,7 +764,7 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "箱が 1 つの図が描かれない" }).toContain("一人の図");
       await click(page, "part-edge");
       await expect
-        .poll(async () => { const d = await editorDiagram(page); return [d?.boxes.length, d?.steps.at(-1)?.events.at(-1)?.type]; }, { ...WAIT, message: "箱が 1 つの図に線の部品を足すと読めない" })
+        .poll(async () => { const d = await editorDiagram(page); return [d?.blocks.box?.length, d?.steps.at(-1)?.events.at(-1)?.type]; }, { ...WAIT, message: "箱が 1 つの図に線の部品を足すと読めない" })
         .toEqual([2, "edge"]);
 
       // 英語の字の図にも、dragon記法の語で部品の行を足す (#3137)
@@ -1176,9 +1176,9 @@ describe("公開する頁 (#2995)", () => {
       // schema の誤りが 2 つ (型の誤りと書けない欄) ある JSON。どちらも行番号付きで出し、2 つ目を押すとその行を選ぶ
       await setEditor(page, OAUTH);
       const diagram = await jsonSide(page);
-      const wrong = structuredClone(diagram) as unknown as { title: unknown; boxes: Record<string, unknown>[] };
+      const wrong = structuredClone(diagram) as unknown as { title: unknown; blocks: { box: Record<string, unknown>[] } };
       wrong.title = 3;
-      (wrong.boxes[1] as Record<string, unknown>).colour = "blue";
+      (wrong.blocks.box[1] as Record<string, unknown>).colour = "blue";
       const json = JSON.stringify(wrong, null, 2);
       const jsonLines = json.split("\n");
       const titleLine = jsonLines.findIndex((l) => l.trim() === '"title": 3,') + 1;
@@ -1218,8 +1218,10 @@ describe("公開する頁 (#2995)", () => {
     const report = `最初に読む script と CSS が gzip で ${kb(loaded)} (${JSON.stringify(Object.fromEntries(first.map((name) => [name, sizes[name]])))})、全部の塊の合計が ${kb(all)}`;
     expect(loaded, report).toBeLessThanOrEqual(290 * 1024);
     // 種類の描く部品を後から読む形 (#3248) と、使い方とカタログの頁を後から読む形 (#3280) にした分を確かめる。
-    // #3280 の前の実測は 226.8KB で後の実測は 203.0KB。#3292 で字の `@font-face` を外して 168.5KB にした。#3248 の時と同じく余裕を約 10KB 残す
-    expect(loaded, report).toBeLessThanOrEqual(179 * 1024);
+    // #3280 の前の実測は 226.8KB で後の実測は 203.0KB。#3292 で字の `@font-face` を外して 168.5KB にした。#3248 の時と同じく余裕を約 10KB 残す。
+    // 列の図の見直し (#3354) で 178.8KB になり、原本の版2 (#3346) の組み直しと版1の移しがどの頁でも最初に要るので 180.3KB になった。
+    // 版1を読む処理はその場で答えを返すため後から読めず、上限を 181KB に上げた。図が使うブロックだけを読む軽い入口 (#3349) で下げる
+    expect(loaded, report).toBeLessThanOrEqual(181 * 1024);
     // 分ける前は最初に読む量が全部の合計と同じだった (0.44.0 の後の main で 277.59KB)。見本と部品の図の記法は gzip で 20KB を超えるので、
     // 外せば全部の合計より 20KB 以上小さくなる
     expect(all - loaded, report).toBeGreaterThanOrEqual(20 * 1024);

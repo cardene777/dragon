@@ -175,9 +175,8 @@ interface Source {
   kind: string;
   title: string;
   view?: string;
-  boxes: { id: string; name: string }[];
+  blocks: { box?: { id: string; name: string }[]; row?: { id: string }[]; point?: { id: string; at: number }[]; zoom?: { from: number; to: number } };
   steps: { title: string; events: SourceEvent[] }[];
-  time?: { rows: { id: string }[]; points?: { id: string; at: number }[]; zoom?: { from: number; to: number } };
 }
 
 /** 見本の file の中身。無ければ `undefined` */
@@ -245,8 +244,8 @@ const pointOf = (layout: TimeLayout, id: string): TimePoint => {
 /** 原本の JSON の、列と節目と段と段ごとの出来事の数 */
 const shape = (d: Source): Record<string, unknown> => ({
   kind: d.kind,
-  rows: (d.time?.rows ?? []).length,
-  points: (d.time?.points ?? []).length,
+  rows: (d.blocks.row ?? []).length,
+  points: (d.blocks.point ?? []).length,
   steps: d.steps.length,
   events: d.steps.map((step) => step.events.length),
 });
@@ -522,7 +521,7 @@ describe("時間軸の図の並べ方 (#3165)", () => {
   it("time-needle-sweeps-at-fixed-speed", () => {
     const { timeline } = render(exampleJson("finality.json"));
     const source = exampleJson("finality.json") as unknown as Source;
-    const zoom = source.time?.zoom ?? { from: 0, to: -1 };
+    const zoom = source.blocks.zoom ?? { from: 0, to: -1 };
     const zoomed = (u: number): boolean => u >= zoom.from && u <= zoom.to;
     expect(timeline.needle?.length, "針の動きが無い").toBeGreaterThan(1);
     const passed = new Map(timeline.units.map((u) => [u.unit, u.passed]));
@@ -567,7 +566,7 @@ describe("時間軸の図の並べ方 (#3165)", () => {
       expect(zoom, `拡大の帯が無い (${lang})`).toBeDefined();
       if (!zoom) continue;
       expect(zoom.columns.map((c) => c.unit), `拡大の帯の列 (${lang})`).toEqual([0, 1, 2, 3]);
-      const ids = source.boxes.map((b) => b.id);
+      const ids = (source.blocks.box ?? []).map((b) => b.id);
       const seconds = lang === "en" ? ["0 s", "12 s", "24 s", "36 s"] : ["0 秒", "12 秒", "24 秒", "36 秒"];
       zoom.columns.forEach((column, k) => {
         expect(column.boxes.map((b) => b.id), `列 ${k} の箱が宣言した並びでない (${lang})`).toEqual(ids);
@@ -580,7 +579,7 @@ describe("時間軸の図の並べ方 (#3165)", () => {
         });
       });
       // 印の列と同じ名札の箱は、その列が空きにした目盛りの列で空きの枠になる
-      const row = (source.time?.rows ?? [])[0]?.id ?? "";
+      const row = (source.blocks.row ?? [])[0]?.id ?? "";
       expect(
         zoom.columns.map((c) => c.boxes.find((b) => b.id === row)?.empty === true),
         `空きにした目盛りの列だけが空きの枠でない (${lang})`,

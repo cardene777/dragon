@@ -20,7 +20,7 @@
 import { type CarrierTime, carrierTimes, type Departure } from "./blocks/carry/timing";
 import { ratioOf } from "./layout/scene";
 import { MOTION } from "./look/values";
-import type { Diagram } from "./schema";
+import type { DiagramModel } from "./schema";
 import { STATE_ENDS } from "./words";
 
 export type { CarrierTime };
@@ -94,7 +94,7 @@ interface Planned {
   sweep?: { keys: [number, number][]; passed: { unit: number; at: number }[] };
 }
 
-type EdgeEvent = Extract<Diagram["steps"][number]["events"][number], { type: "edge" }>;
+type EdgeEvent = Extract<DiagramModel["steps"][number]["events"][number], { type: "edge" }>;
 
 /** 列の図の出来事の長さ */
 const LINEUP_LENGTH = { line: MOTION.lineup.slide, seal: MOTION.lineup.seal, open: MOTION.fade, pick: MOTION.fade, stamp: MOTION.popFade } as const;
@@ -109,7 +109,7 @@ interface Needle {
  * 段の中で起きることの時刻 (段の始まりから)。線は少しずつずらして引き、書き換えは直前の線が着いてから起こす。
  * 時間軸の図では `needle` を渡し、針を進める出来事の所で針を目盛り 1 つずつ進める。針が進む目盛りの列の線はその目盛りに入った時に引く
  */
-function plan(step: Diagram["steps"][number], needle?: Needle): Planned {
+function plan(step: DiagramModel["steps"][number], needle?: Needle): Planned {
   const out: Planned = { edges: [], events: [], busy: 0 };
   let cursor = MOTION.edgeAt;
   let arrived: number | undefined;
@@ -125,7 +125,7 @@ function plan(step: Diagram["steps"][number], needle?: Needle): Planned {
   const nows = needle ? step.events.flatMap((event, e) => (event.type === "now" ? [{ e, to: event.to }] : [])) : [];
   const p0 = needle?.from ?? 0;
   const p1 = Math.max(p0, ...nows.map((n) => n.to + 1));
-  const pulled = (event: Diagram["steps"][number]["events"][number]): event is EdgeEvent => event.type === "edge" && event.at !== undefined && event.at >= p0 && event.at < p1;
+  const pulled = (event: DiagramModel["steps"][number]["events"][number]): event is EdgeEvent => event.type === "edge" && event.at !== undefined && event.at >= p0 && event.at < p1;
   step.events.forEach((event, e) => {
     if (needle && e === nows[0]?.e) {
       // 針は、前に書いた書き換えが起きてから動き出す
@@ -194,7 +194,7 @@ function plan(step: Diagram["steps"][number], needle?: Needle): Planned {
 }
 
 /** 時刻の表を作る。`still` を立てると、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出す間 (`whole`) を持つ (#3200) */
-export function buildTimeline(diagram: Diagram, still = false): Timeline {
+export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
   const time = diagram.kind === "time" ? diagram.time : undefined;
   const T = MOTION.time;
   const speed = time ? Math.min(T.unitMax, Math.max(T.unitMin, T.axis / Math.max(1, time.scale.count))) : 0;
@@ -285,7 +285,7 @@ export function buildTimeline(diagram: Diagram, still = false): Timeline {
  * 時間軸の図の物差しの欄の満ち具合 (#3165)。段で最後に書いた値へ向かって変わる。
  * 針が進む段では針の進みに比例して満ち、区切りの境から進む時はその境で 0 に戻ってから満ち直す。針が進まない段では値を書いた時に変わる
  */
-function meterTimes(diagram: Diagram, plans: Planned[], steps: Span[]): { field: string; keys: [number, number][] }[] {
+function meterTimes(diagram: DiagramModel, plans: Planned[], steps: Span[]): { field: string; keys: [number, number][] }[] {
   const length = diagram.time?.period?.length;
   return (diagram.strip?.meters ?? []).map(({ field }) => {
     const keys: [number, number][] = [[0, 0]];
@@ -331,7 +331,7 @@ const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).include
  * 出た少し後に済んだ印を出す。同じ状態へ戻る線では光ったまま、最後に着いた状態は終わりまで光る。
  * 物が状態を移るのは線を辿った時なので、運ぶ物の種類 (硬貨や、運ばない線) を問わず全ての線で数える。
  */
-function stateTimes(diagram: Diagram, edges: EdgeTime[], last: number): StateTime[] {
+function stateTimes(diagram: DiagramModel, edges: EdgeTime[], last: number): StateTime[] {
   const times = new Map<string, StateTime>();
   const of = (box: string): StateTime => {
     const found = times.get(box) ?? { box, lit: [] };

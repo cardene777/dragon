@@ -6,7 +6,7 @@
  */
 import type { Family } from "../look/fonts";
 import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
-import type { Carry, Diagram, DiagramEvent, LabelSide } from "../schema";
+import type { Carry, DiagramModel, DiagramEvent, LabelSide } from "../schema";
 import { hasWide, textWidth } from "./measure";
 
 export type Point = [number, number];
@@ -148,7 +148,7 @@ export interface SceneStrip extends Rect {
 }
 
 export interface Layout {
-  kind: Diagram["kind"];
+  kind: DiagramModel["kind"];
   width: number;
   height: number;
   regions: SceneRegion[];
@@ -170,14 +170,14 @@ export interface Layout {
 export type EdgeEvent = Extract<DiagramEvent, { type: "edge" }>;
 
 /** 段と線の位置を添えた線の並び。段の順、段の中は起きる順。 */
-export function edgesOf(diagram: Diagram): { step: number; event: number; edge: EdgeEvent }[] {
+export function edgesOf(diagram: DiagramModel): { step: number; event: number; edge: EdgeEvent }[] {
   return diagram.steps.flatMap((step, s) =>
     step.events.flatMap((event, e) => (event.type === "edge" ? [{ step: s, event: e, edge: event }] : [])),
   );
 }
 
 /** 箱の色。書いていなければ区画の色、区画も無ければ並んだ順に分類の色を配る。 */
-export function boxColors(diagram: Diagram): Map<string, ColorKey> {
+export function boxColors(diagram: DiagramModel): Map<string, ColorKey> {
   const regions = regionColors(diagram);
   const colors = new Map<string, ColorKey>();
   diagram.boxes.forEach((box, i) => {
@@ -187,7 +187,7 @@ export function boxColors(diagram: Diagram): Map<string, ColorKey> {
   return colors;
 }
 
-export function regionColors(diagram: Diagram): Map<string, ColorKey> {
+export function regionColors(diagram: DiagramModel): Map<string, ColorKey> {
   const colors = new Map<string, ColorKey>();
   (diagram.regions ?? []).forEach((region, i) => colors.set(region.id, region.color ?? (COLOR_ORDER[i % COLOR_ORDER.length] as ColorKey)));
   return colors;
@@ -198,7 +198,7 @@ export const edgeColor = (edge: EdgeEvent, colors: Map<string, ColorKey>): Color
   edge.carry.kind === "coin" ? "coin" : (colors.get(edge.from) ?? "slate");
 
 /** 箱の幅。名前、下の小さな字、書き換わる字、中で出す処理のどれもが収まる幅。 */
-export function boxWidth(diagram: Diagram, id: string, withActions: boolean): number {
+export function boxWidth(diagram: DiagramModel, id: string, withActions: boolean): number {
   const box = diagram.boxes.find((b) => b.id === id);
   if (!box) return LOOK.box.minW;
   const lines = [textWidth(box.name, TYPE.boxName), textWidth(box.sub ?? "", TYPE.boxSub)];
@@ -231,7 +231,7 @@ export interface SlotRoom {
 const roomWidth = (room: SlotRoom): number => room.main + room.coin + (room.main > 0 && room.coin > 0 ? LOOK.slot.spread : 0);
 
 /** 運ぶ物を出し入れする箱ごとの置き場の中身の幅。何も運ばない線だけの箱は持たない */
-export function slotRooms(diagram: Diagram): Map<string, SlotRoom> {
+export function slotRooms(diagram: DiagramModel): Map<string, SlotRoom> {
   const rooms = new Map<string, SlotRoom>();
   const ids = new Set(diagram.boxes.map((b) => b.id));
   for (const step of diagram.steps) {
@@ -592,10 +592,10 @@ export function ratioOf(text: string): number | undefined {
 }
 
 /** 欄に付けた物差し (#3165)。時間軸の図だけが持つ */
-const meterOf = (diagram: Diagram, name: string) => diagram.strip?.meters?.find((m) => m.field === name);
+const meterOf = (diagram: DiagramModel, name: string) => diagram.strip?.meters?.find((m) => m.field === name);
 
 /** 中身の帯の欄の幅。欄の名前と、入る値と札を並べた最も長い形が収まる幅。物差しの欄は物差しの幅 */
-function fieldWidth(diagram: Diagram, name: string): number {
+function fieldWidth(diagram: DiagramModel, name: string): number {
   if (meterOf(diagram, name)) return Math.max(textWidth(name, TYPE.fieldName), LOOK.time.meter.w);
   let value = 0;
   let tag = 0;
@@ -616,7 +616,7 @@ export type TrailSource = Pick<SceneTrail, "title" | "states">;
 const trailWidth = (trail: TrailSource): number => Math.max(textWidth(trail.title, TYPE.fieldName), trail.states.length * LOOK.strip.trail.step);
 
 /** 1 行に並べた時に帯が要る幅。 */
-export function stripNeed(diagram: Diagram, trail?: TrailSource): number {
+export function stripNeed(diagram: DiagramModel, trail?: TrailSource): number {
   if (!diagram.strip) return 0;
   return rowNeed(diagram.strip.title, [...diagram.strip.fields.map((name) => fieldWidth(diagram, name)), ...(trail ? [trailWidth(trail)] : [])]);
 }
@@ -652,7 +652,7 @@ function fieldPlacer(start: number, width: number): { place: (w: number) => { x:
 }
 
 /** 中身の帯。欄は左から並べ、幅に収まらない欄は次の行へ送る。通った状態の欄を渡すと、最後の欄の後に同じ決まりで置く。 */
-export function layoutStrip(diagram: Diagram, x: number, y: number, width: number, trail?: TrailSource): SceneStrip | undefined {
+export function layoutStrip(diagram: DiagramModel, x: number, y: number, width: number, trail?: TrailSource): SceneStrip | undefined {
   if (!diagram.strip) return undefined;
   const { line, h } = LOOK.strip;
   const fields: SceneField[] = [];

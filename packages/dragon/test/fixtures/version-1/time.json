@@ -1,0 +1,434 @@
+{
+  "version": 1,
+  "kind": "time",
+  "title": "Ethereum のブロックが確定して戻せなくなるまで",
+  "boxes": [
+    {
+      "id": "提案者",
+      "name": "提案者",
+      "color": "blue",
+      "icon": "user"
+    },
+    {
+      "id": "ブロック",
+      "name": "ブロック",
+      "color": "blue",
+      "icon": "box"
+    },
+    {
+      "id": "委員会",
+      "name": "委員会",
+      "sub": "全体の 1/32",
+      "color": "amber"
+    }
+  ],
+  "strip": {
+    "title": "確定の進み",
+    "fields": [
+      "経過",
+      "C100",
+      "C101",
+      "C102",
+      "今の epoch の票"
+    ],
+    "meters": [
+      {
+        "field": "今の epoch の票",
+        "line": "2/3"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "ブロックを出す",
+      "body": "時間は 12 秒ごとの slot に区切られる。slot ごとに validator から 1 人が提案者に選ばれ、ブロックを 1 つ出す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "提案者",
+          "to": "ブロック",
+          "carry": {
+            "kind": "envelope"
+          },
+          "at": 0
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "0 秒"
+        }
+      ]
+    },
+    {
+      "title": "委員会が投票する",
+      "body": "各 validator は 1 epoch に 1 回、割り当てられた slot で投票 (attestation) する。票は先頭のブロックと checkpoint を指す。",
+      "code": "attestation = { head, source, target }",
+      "events": [
+        {
+          "type": "edge",
+          "from": "委員会",
+          "to": "ブロック",
+          "carry": {
+            "kind": "tag",
+            "text": "票"
+          },
+          "at": 0
+        },
+        {
+          "type": "now",
+          "to": 0
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "12 秒"
+        },
+        {
+          "type": "strip",
+          "field": "今の epoch の票",
+          "value": "3%"
+        }
+      ]
+    },
+    {
+      "title": "空く slot もある",
+      "body": "提案者が応答しないと、その slot はブロックの無いまま過ぎる。チェーンは止まらず、その slot の票は 1 つ前のブロックを指す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "提案者",
+          "to": "ブロック",
+          "carry": {
+            "kind": "envelope"
+          },
+          "at": 1
+        },
+        {
+          "type": "edge",
+          "from": "委員会",
+          "to": "ブロック",
+          "carry": {
+            "kind": "tag",
+            "text": "票"
+          },
+          "at": 1
+        },
+        {
+          "type": "edge",
+          "from": "提案者",
+          "to": "ブロック",
+          "carry": {
+            "kind": "envelope"
+          },
+          "at": 2
+        },
+        {
+          "type": "edge",
+          "from": "委員会",
+          "to": "ブロック",
+          "carry": {
+            "kind": "tag",
+            "text": "票"
+          },
+          "at": 2
+        },
+        {
+          "type": "edge",
+          "from": "委員会",
+          "to": "ブロック",
+          "carry": {
+            "kind": "tag",
+            "text": "票"
+          },
+          "at": 3,
+          "into": 2
+        },
+        {
+          "type": "now",
+          "to": 3
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "48 秒"
+        },
+        {
+          "type": "strip",
+          "field": "今の epoch の票",
+          "value": "12%"
+        }
+      ]
+    },
+    {
+      "title": "checkpoint を決める",
+      "body": "32 slot (6.4 分) で 1 epoch。epoch の最初の slot のブロックが、その epoch の checkpoint になる。ここでは C100 と呼ぶ。",
+      "events": [
+        {
+          "type": "swap",
+          "box": "C100",
+          "text": "提案済み",
+          "color": "blue"
+        },
+        {
+          "type": "span",
+          "from": 0,
+          "to": 31,
+          "text": "32 slot = 6.4 分",
+          "color": "slate"
+        },
+        {
+          "type": "strip",
+          "field": "C100",
+          "value": "提案済み"
+        }
+      ]
+    },
+    {
+      "title": "票が積み上がる",
+      "body": "epoch の間に全 validator が 1 回ずつ投票するので、C100 への票は slot ごとに積み上がる。票の重さは持っている stake で量る。",
+      "events": [
+        {
+          "type": "now",
+          "to": 31
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "6 分 24 秒"
+        },
+        {
+          "type": "strip",
+          "field": "今の epoch の票",
+          "value": "97%"
+        }
+      ]
+    },
+    {
+      "title": "正当化する",
+      "body": "epoch の終わりの集計で、C100 への票が全体の stake の 2/3 を超えていれば、C100 は正当化 (justified) される。",
+      "events": [
+        {
+          "type": "swap",
+          "box": "C100",
+          "text": "正当化",
+          "color": "violet"
+        },
+        {
+          "type": "strip",
+          "field": "C100",
+          "value": "正当化"
+        }
+      ]
+    },
+    {
+      "title": "次の epoch も同じ",
+      "body": "次の epoch では C101 へ票が集まる。票は直前に正当化された C100 を起点 (source)、C101 を目標 (target) として数える。",
+      "code": "source C100 → target C101",
+      "events": [
+        {
+          "type": "swap",
+          "box": "C101",
+          "text": "提案済み",
+          "color": "blue"
+        },
+        {
+          "type": "now",
+          "to": 63
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "12 分 48 秒"
+        },
+        {
+          "type": "strip",
+          "field": "今の epoch の票",
+          "value": "97%"
+        },
+        {
+          "type": "strip",
+          "field": "C101",
+          "value": "提案済み"
+        }
+      ]
+    },
+    {
+      "title": "前の checkpoint が確定する",
+      "body": "C101 も正当化されると、続けて正当化された 2 つのうち前の C100 が確定 (finalized) する。C100 の提案から約 2 epoch、12.8 分。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "C100",
+          "to": "C101",
+          "label": "2/3 を超えた",
+          "carry": {
+            "kind": "none"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "C101",
+          "text": "正当化",
+          "color": "violet"
+        },
+        {
+          "type": "swap",
+          "box": "C100",
+          "text": "確定",
+          "color": "green"
+        },
+        {
+          "type": "mark",
+          "row": "ブロック",
+          "from": 0,
+          "to": 0,
+          "color": "green"
+        },
+        {
+          "type": "span",
+          "from": 0,
+          "to": 63,
+          "text": "C100 の提案から確定まで 約 12.8 分",
+          "color": "green"
+        },
+        {
+          "type": "strip",
+          "field": "C101",
+          "value": "正当化"
+        },
+        {
+          "type": "strip",
+          "field": "C100",
+          "value": "確定"
+        }
+      ]
+    },
+    {
+      "title": "確定が 1 epoch ずつ進む",
+      "body": "以後は epoch ごとに同じことが起き、C102 の正当化で C101 までのブロックが確定する。確定した範囲は 1 epoch ずつ伸びる。",
+      "events": [
+        {
+          "type": "swap",
+          "box": "C102",
+          "text": "提案済み",
+          "color": "blue"
+        },
+        {
+          "type": "now",
+          "to": 95
+        },
+        {
+          "type": "edge",
+          "from": "C101",
+          "to": "C102",
+          "label": "2/3 を超えた",
+          "carry": {
+            "kind": "none"
+          }
+        },
+        {
+          "type": "swap",
+          "box": "C102",
+          "text": "正当化",
+          "color": "violet"
+        },
+        {
+          "type": "swap",
+          "box": "C101",
+          "text": "確定",
+          "color": "green"
+        },
+        {
+          "type": "mark",
+          "row": "ブロック",
+          "from": 1,
+          "to": 32,
+          "color": "green"
+        },
+        {
+          "type": "strip",
+          "field": "経過",
+          "value": "19 分 12 秒"
+        },
+        {
+          "type": "strip",
+          "field": "今の epoch の票",
+          "value": "97%"
+        },
+        {
+          "type": "strip",
+          "field": "C101",
+          "value": "確定"
+        },
+        {
+          "type": "strip",
+          "field": "C102",
+          "value": "正当化"
+        }
+      ]
+    },
+    {
+      "title": "確定したら戻せない",
+      "body": "確定したブロックを戻すには、全体の stake の 1/3 以上を持つ validator が矛盾した票を出し、罰 (slashing) を受けなければならない。",
+      "events": [
+        {
+          "type": "span",
+          "from": 0,
+          "to": 32,
+          "text": "確定して戻せない",
+          "shape": "box",
+          "color": "rose"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "scale": {
+      "unit": "slot",
+      "length": "12s",
+      "count": 96,
+      "from": 3200
+    },
+    "period": {
+      "name": "epoch",
+      "length": 32,
+      "from": 100
+    },
+    "rows": [
+      {
+        "id": "ブロック",
+        "name": "ブロック",
+        "color": "blue",
+        "empty": [
+          3,
+          13,
+          45,
+          79
+        ]
+      },
+      {
+        "id": "票",
+        "name": "票",
+        "color": "amber"
+      }
+    ],
+    "points": [
+      {
+        "id": "C100",
+        "at": 0
+      },
+      {
+        "id": "C101",
+        "at": 32
+      },
+      {
+        "id": "C102",
+        "at": 64
+      }
+    ],
+    "zoom": {
+      "from": 0,
+      "to": 3
+    }
+  }
+}

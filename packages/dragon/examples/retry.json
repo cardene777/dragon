@@ -1,23 +1,25 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "決済を頼み直す",
-  "boxes": [
-    {
-      "id": "アプリ",
-      "name": "店のアプリ",
-      "sub": "1 回目",
-      "color": "blue",
-      "icon": "app"
-    },
-    {
-      "id": "決済",
-      "name": "決済 API",
-      "sub": "混んでいる",
-      "color": "violet",
-      "icon": "card"
-    }
-  ],
+  "blocks": {
+    "box": [
+      {
+        "id": "アプリ",
+        "name": "店のアプリ",
+        "sub": "1 回目",
+        "color": "blue",
+        "icon": "app"
+      },
+      {
+        "id": "決済",
+        "name": "決済 API",
+        "sub": "混んでいる",
+        "color": "violet",
+        "icon": "card"
+      }
+    ]
+  },
   "steps": [
     {
       "title": "頼む",
@@ -102,11 +104,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "アプリ",
-      "決済"
-    ]
-  }
+  ]
 }

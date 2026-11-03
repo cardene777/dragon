@@ -1,14 +1,37 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "time",
   "title": "The 7-day wait to withdraw from L2 to L1",
-  "boxes": [],
-  "strip": {
-    "title": "Withdrawal",
-    "fields": [
-      "Elapsed",
-      "Dispute days left",
-      "Withdrawal"
+  "blocks": {
+    "strip": {
+      "title": "Withdrawal",
+      "fields": [
+        "Elapsed",
+        "Dispute days left",
+        "Withdrawal"
+      ]
+    },
+    "scale": {
+      "unit": "day",
+      "length": "1d",
+      "count": 10
+    },
+    "row": [
+      {
+        "id": "batch",
+        "name": "Posted to L1",
+        "color": "blue"
+      }
+    ],
+    "point": [
+      {
+        "id": "request",
+        "at": 0
+      },
+      {
+        "id": "receive",
+        "at": 8
+      }
     ]
   },
   "steps": [
@@ -123,29 +146,5 @@
         }
       ]
     }
-  ],
-  "time": {
-    "scale": {
-      "unit": "day",
-      "length": "1d",
-      "count": 10
-    },
-    "rows": [
-      {
-        "id": "batch",
-        "name": "Posted to L1",
-        "color": "blue"
-      }
-    ],
-    "points": [
-      {
-        "id": "request",
-        "at": 0
-      },
-      {
-        "id": "receive",
-        "at": 8
-      }
-    ]
-  }
+  ]
 }

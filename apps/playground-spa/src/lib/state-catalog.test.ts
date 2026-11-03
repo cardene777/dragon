@@ -39,8 +39,8 @@ const sel = (name: string): string => `[data-playground="${name}"]`;
 interface Source {
   kind: string;
   title: string;
+  blocks: { path?: unknown[] };
   steps: { events: { type: string; from?: string; to?: string }[] }[];
-  state?: { paths: unknown[] };
 }
 
 /** 注文の見本の記法。無ければ `undefined` */
@@ -197,7 +197,7 @@ describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
       const d = order();
       const edges = d.steps.flatMap((s) => s.events.filter((e) => e.type === "edge"));
       expect(edges.some((e) => e.from === "start" || e.to === "finish"), "注文の見本が start か finish の線を持たない").toBe(true);
-      expect((d.state?.paths ?? []).length, "注文の見本が最初の段より前に線を書かない").toBeGreaterThan(0);
+      expect((d.blocks.path ?? []).length, "注文の見本が最初の段より前に線を書かない").toBeGreaterThan(0);
       for (const id of STATE_PARTS) {
         const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 } });
         await onScreen(page, "part", `${id} の部品の頁が出ない`);

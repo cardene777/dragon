@@ -15,7 +15,7 @@ import { linkTo } from "../blocks/link/draw";
 import type { TimeBox, TimeLayout } from "../layout/time";
 import { hasWide } from "../layout/measure";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
-import type { Diagram } from "../schema";
+import type { DiagramModel } from "../schema";
 import type { Span, Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
 import { arrowHead, type Ctx, esc, pathOf, write } from "./parts";
@@ -54,7 +54,7 @@ export function valueAt(keys: [number, number][], t: number): number {
   return (keys[keys.length - 1] as [number, number])[1];
 }
 
-export function drawTime(layout: TimeLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { base: string; lit: string; node: string; top: string } {
+export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { base: string; lit: string; node: string; top: string } {
   const { m, ink } = ctx;
   const T = LOOK.time;
   const { axis } = layout;

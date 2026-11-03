@@ -1,46 +1,48 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "Sign in with OAuth 2.0 and call an API (authorization code and PKCE)",
-  "boxes": [
-    {
-      "id": "browser",
-      "name": "User's browser",
-      "sub": "operated by the user",
-      "color": "slate",
-      "icon": "globe"
-    },
-    {
-      "id": "app",
-      "name": "App",
-      "sub": "asks for sign-in",
-      "color": "blue",
-      "icon": "app"
-    },
-    {
-      "id": "auth",
-      "name": "Authorization server",
-      "sub": "checks who you are",
-      "color": "violet",
-      "icon": "shield"
-    },
-    {
-      "id": "API",
-      "name": "API",
-      "sub": "the user's data",
-      "color": "green",
-      "icon": "server"
+  "blocks": {
+    "box": [
+      {
+        "id": "browser",
+        "name": "User's browser",
+        "sub": "operated by the user",
+        "color": "slate",
+        "icon": "globe"
+      },
+      {
+        "id": "app",
+        "name": "App",
+        "sub": "asks for sign-in",
+        "color": "blue",
+        "icon": "app"
+      },
+      {
+        "id": "auth",
+        "name": "Authorization server",
+        "sub": "checks who you are",
+        "color": "violet",
+        "icon": "shield"
+      },
+      {
+        "id": "API",
+        "name": "API",
+        "sub": "the user's data",
+        "color": "green",
+        "icon": "server"
+      }
+    ],
+    "strip": {
+      "title": "Values the app holds",
+      "fields": [
+        "state",
+        "code_verifier",
+        "authorization code",
+        "access token",
+        "refresh token"
+      ]
     }
-  ],
-  "strip": {
-    "title": "Values the app holds",
-    "fields": [
-      "state",
-      "code_verifier",
-      "authorization code",
-      "access token",
-      "refresh token"
-    ]
   },
   "steps": [
     {
@@ -319,13 +321,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "browser",
-      "app",
-      "auth",
-      "API"
-    ]
-  }
+  ]
 }
