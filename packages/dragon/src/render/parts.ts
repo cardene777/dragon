@@ -4,7 +4,9 @@
  * どの部品も、置き場所は場面 (`layout/scene.ts`) から、いつ見えるかは時刻の表 (`timeline.ts`) から読む。
  * 色は色の役の変数 (`--c` と `--ct`) だけを渡し、値は色味の表が持つ。
  * ブロックの置き場へ移した部品の描き方は `blocks/<名前>/draw.ts` が持ち、この file の下請け (`esc`、`cs`、`r1`、`write` など) を読む (#3345)。
+ * 箱と区画の絵柄だけは逆向きで、この file が絵のブロックの描き方 (`blocks/icon/draw.ts`) を読む。
  */
+import { drawsIcon, glyph } from "../blocks/icon/draw";
 import { textBox, textWidth } from "../layout/measure";
 import {
   markText,
@@ -19,7 +21,6 @@ import {
 } from "../layout/scene";
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
 import type { Span, Timeline } from "../timeline";
-import { ICONS } from "./icons";
 import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
@@ -31,21 +32,6 @@ export const r1 = (v: number): number => Math.round(v * 100) / 100;
 
 /** 色の役を部品へ渡す変数。 */
 export const cs = (k: ColorKey): string => (k === "coin" ? "--c:var(--coin);--ct:var(--coint)" : `--c:var(--c-${k});--ct:var(--t-${k})`);
-
-export function glyph(name: string | undefined, x: number, y: number, scale: number, cls = "dg-gl"): string {
-  const d = name !== undefined && drawsIcon(name) ? ICONS[name] : undefined;
-  return d ? `<path class="${cls}" transform="translate(${r1(x)} ${r1(y)}) scale(${scale})" d="${d}"/>` : "";
-}
-
-/**
- * 絵柄を 1 つだけ描いた SVG (#3172)。見本帳の部品「絵」の頁が、使える絵柄を並べる時に使う。
- * 線の太さは箱の印と同じ割合 (印の線の太さ × 印の縮み) で、色は置いた所の字の色 (`currentColor`) を使う。知らない名前は `undefined`
- */
-export function iconSvg(name: string): string | undefined {
-  if (!Object.hasOwn(ICONS, name)) return undefined;
-  const width = LOOK.stroke.glyph * LOOK.box.iconScale;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-12 -12 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"/></svg>`;
-}
 
 /** 点を辿る線。曲がる所は共通の値の表の半径 (`LOOK.edge.bend`) で丸め、直角の角を作らない (#3171)。 */
 export function pathOf(points: Point[]): string {
@@ -101,9 +87,6 @@ export interface BoxTextY {
   name: number;
   sub: number;
 }
-
-/** 絵柄を描ける名前か。`ICONS` の継いだ鍵 (`constructor` など) は描けない名前に数える */
-export const drawsIcon = (name: string | undefined): boolean => name !== undefined && Object.hasOwn(ICONS, name);
 
 /**
  * 図の箱の名前と下の字の基準線を、箱の真ん中からどれだけ下げるか (#3307)。

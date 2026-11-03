@@ -7,9 +7,8 @@
  */
 import { ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
-import { nearest } from "./nearest";
 import { list } from "./read-kit";
-import { COLORS, ICON_NAMES } from "./schema";
+import { COLORS } from "./schema";
 import { DURATION_UNITS, HEADS, KINDS, type NotationLang, SPAN_SHAPES, VIEWS } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
@@ -61,8 +60,6 @@ export interface CoreMessages {
   attrTwice: (key: string) => string;
   badAttr: (key: string, allowed: readonly string[]) => string;
   badColor: string;
-  /** 知らないアイコン名 `value`。近い名前が在ればそれだけを、無ければ使える名前を全て挙げる (#3315) */
-  badIcon: (value: string) => string;
   badView: string;
   /** 箱の飛び先 (`link`) か段の出典 (`url`) に、頁を移る形でない URL を書いた (#3199) */
   badUrl: (key: string) => string;
@@ -159,12 +156,6 @@ export interface CoreMessages {
   badShape: string;
 }
 
-/** 書いたアイコン名に近い名前が在れば `near` の文、無ければ `none` の文 (#3315) */
-const withNear = (value: string, near: (name: string) => string, none: string): string => {
-  const name = nearest(value, ICON_NAMES);
-  return name === undefined ? none : near(name);
-};
-
 /** ブロックが持つ `lang` の誤りの文を 1 つの表に束ねる */
 const fromBlocks = (lang: NotationLang): BlockMessages =>
   Object.assign({}, ...ranked(BLOCKS).map((block) => ("none" in block.messages ? {} : block.messages[lang]))) as BlockMessages;
@@ -219,7 +210,6 @@ const ja = (): Messages => {
     attrTwice: (key) => `${key} は 1 つの行に 1 つまで`,
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
     badColor: `color は ${list(COLORS)} のどれか`,
-    badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`),
     badView: `view は ${list(VIEWS)} のどれか`,
     badUrl: (key) => `${key} には / で始まる path か、http:// か https:// で始まる URL を書く`,
     reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
@@ -342,7 +332,6 @@ const en = (): Messages => {
     attrTwice: (key) => `Write ${key} only once on a line`,
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
     badColor: `color is one of ${list(COLORS)}`,
-    badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`),
     badView: `view is one of ${list(VIEWS)}`,
     badUrl: (key) => `Write a path that starts with / or a URL that starts with http:// or https:// for ${key}`,
     reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,

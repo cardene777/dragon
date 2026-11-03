@@ -69,7 +69,7 @@ export const TEXT = {
           "edge-label": BLOCK_TEXT["edge-label"].ja,
           carry: BLOCK_TEXT.carry.ja,
           color: { name: "色の役", desc: "箱と区画に付ける色の役。7 つの役から選び、色そのものは色味が決める。" },
-          icon: { name: "絵", desc: "箱と区画の名前に添える絵。user や db などの名前で選ぶ。" },
+          icon: BLOCK_TEXT.icon.ja,
           link: { name: "飛び先", desc: "箱に書く飛び先。描いた図ではその箱が link になり、押すと中の仕組みを描いた頁などへ移る。/ で始まる path か、http:// か https:// で始まる URL で書く。" },
           note: BLOCK_TEXT.note.ja,
           act: BLOCK_TEXT.act.ja,
@@ -380,7 +380,7 @@ export const TEXT = {
           "edge-label": BLOCK_TEXT["edge-label"].en,
           carry: BLOCK_TEXT.carry.en,
           color: { name: "Color", desc: "The color role of a box or a group. Pick one of seven roles; the palette decides the actual color." },
-          icon: { name: "Icon", desc: "A picture beside the name of a box or a group, chosen by a name such as user or db." },
+          icon: BLOCK_TEXT.icon.en,
           link: {
             name: "Link",
             desc: "Where a box leads. The box becomes a link in the drawn diagram, for example to the page that draws what is inside it. Write a path that starts with / or a URL that starts with http:// or https://.",

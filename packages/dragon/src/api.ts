@@ -65,7 +65,7 @@ export { type ColorKey, type ColorName, type Colors, DEFAULT_PALETTE, type Palet
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
 export { ICONS } from "./render/icons";
 export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from "./render/ink";
-export { iconSvg } from "./render/parts";
+export { iconSvg } from "./blocks/icon/draw";
 export { type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
 export type { CarrierTime, EdgeTime, EventTime, LabelTime, Span, StateTime, Timeline } from "./timeline";
 export { chooseView } from "./view";

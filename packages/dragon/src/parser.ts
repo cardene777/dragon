@@ -65,6 +65,7 @@
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
+import { readIcon } from "./blocks/icon/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces, urlOf } from "./read-kit";
@@ -76,7 +77,6 @@ import {
   type DiagramEvent,
   type GitBranch,
   type GitCommit,
-  ICON_NAMES,
   type LineupItem,
   type Region,
   type StatePath,
@@ -161,14 +161,13 @@ const NUMBER = /^(0|[1-9][0-9]*)$/u;
 const RANGE = /^(0|[1-9][0-9]*)(?:-(0|[1-9][0-9]*))?$/u;
 
 /**
- * 区画と箱の属性 (`note` と `color` と `icon`)。
- * 色の役とアイコン名の一覧は原本の形の検査 (`schema.ts`) が持ち、読む下請け (`read-kit.ts`) は `schema.ts` を読まないので、ここに置く
+ * 区画と箱の属性 (`note` と `color` と `icon`)。絵の名前は絵のブロックの下請け (`readIcon`) が読む。
+ * 色の役の一覧は原本の形の検査 (`schema.ts`) が持ち、読む下請け (`read-kit.ts`) とブロックは `schema.ts` を読まないので、ここに置く
  */
 function lookOf(source: SourceLine, attrs: Map<string, Attr>, m: Messages): { note?: string; color?: Color; icon?: string } {
   const color = attrs.get("color");
   if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-  const icon = attrs.get("icon");
-  if (icon && !ICON_NAMES.includes(icon.value)) throw fail(source, icon.at, m.badIcon(icon.value));
+  const icon = readIcon(source, attrs, m);
   const note = attrs.get("note")?.value;
   return {
     ...(note !== undefined ? { note } : {}),
