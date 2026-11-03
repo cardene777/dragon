@@ -4,7 +4,9 @@
  * 版を上げるたびに、`package.json` の版を前提の配り方の節と更新履歴の見出しへ手で書き足す。
  * 書き足し忘れても build も他の検査も通るので、ここで版が 2 か所に載っているかを確かめる。
  */
-import { readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -350,5 +352,71 @@ describe("版の記録 (#3151)", () => {
       items.some((line) => line.includes("(#3221)")),
       "CHANGELOG.md に時間軸の図の書き方を載せた変更 (#3221) の項が無い",
     ).toBe(true);
+  });
+});
+
+describe("Release の本文 (#3335)", () => {
+  // GitHub Release の本文は scripts/release-notes.mjs が CHANGELOG.md の版の節から作る
+  const SCRIPT = join(ROOT, "scripts/release-notes.mjs");
+  const notes = (version: string, file?: string): string =>
+    execFileSync("node", [SCRIPT, version, ...(file ? [file] : [])], { encoding: "utf8" });
+  const LINK = "Every version is listed in [CHANGELOG.md](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).";
+
+  it("release-notes-for-every-section", () => {
+    const changelog = readFileSync(join(ROOT, "CHANGELOG.md"), "utf8");
+    const versions = [...changelog.matchAll(/^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/gmu)].map((m) => m[1] ?? "");
+    expect(versions.length, "CHANGELOG.md に版の節が無い").toBeGreaterThan(0);
+    for (const version of versions) {
+      const text = notes(`v${version}`);
+      const body = section(changelog.replace(new RegExp(`^## \\[${escaped(version)}\\] - .*$`, "mu"), `## ${version}`), version).trim();
+      expect(text.startsWith(body), `${version} の本文が CHANGELOG.md の節で始まらない`).toBe(true);
+      expect(body, `${version} の節が空`).not.toBe("");
+      expect(text, `${version} の本文が次の版の見出しまで含む`).not.toMatch(/^## /mu);
+      expect(text.trimEnd().endsWith(LINK), `${version} の本文が変更履歴の全体へ link しない`).toBe(true);
+    }
+  });
+
+  it("maintainer-notes-name-release-step", () => {
+    // 版を出す手順に Release を作る段が無いと、作った Release が次の版から欠ける
+    const text = readFileSync(join(ROOT, "docs/maintaining.md"), "utf8");
+    expect(text, "docs/maintaining.md が本文を script で作る命令を書かない").toContain("node scripts/release-notes.mjs");
+    expect(text, "docs/maintaining.md が印の在る時だけ Release を作る命令を書かない").toMatch(/gh release create .*--verify-tag/u);
+  });
+
+  it("release-notes-missing-version-fails", () => {
+    const run = spawnSync("node", [SCRIPT, "9.9.9"], { encoding: "utf8" });
+    expect(run.status, "節の無い版で 1 以外を返した").toBe(1);
+    expect(run.stdout, "節の無い版で本文を出した").toBe("");
+  });
+
+  it("release-notes-absolute-links", () => {
+    // 節の中の相対 link は Release の頁では切れるので、repo の main を指す link に直す
+    const dir = mkdtempSync(join(tmpdir(), "release-notes-"));
+    try {
+      const file = join(dir, "CHANGELOG.md");
+      writeFileSync(
+        file,
+        [
+          "# Changelog",
+          "",
+          "## [1.2.3] - 2026-11-03",
+          "",
+          "- See [the guide](docs/guide.md), [the readme](./README.md), [the site](https://example.invalid/x), and [below](#notes).",
+          "",
+          "## [1.2.2] - 2026-11-02",
+          "",
+          "- Older",
+          "",
+        ].join("\n"),
+      );
+      const text = notes("1.2.3", file);
+      expect(text).toContain("[the guide](https://github.com/cardene777/dragon/blob/main/docs/guide.md)");
+      expect(text).toContain("[the readme](https://github.com/cardene777/dragon/blob/main/README.md)");
+      expect(text, "絶対 URL を書き換えた").toContain("[the site](https://example.invalid/x)");
+      expect(text, "頁の中の link を書き換えた").toContain("[below](#notes)");
+      expect(text, "次の版の節まで出した").not.toContain("Older");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
