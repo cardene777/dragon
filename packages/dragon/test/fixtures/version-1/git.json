@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "kind": "git",
+  "title": "2 本の枝を merge commit で main へ取り込む",
+  "boxes": [],
+  "strip": {
+    "title": "参照",
+    "fields": [
+      "main",
+      "fix",
+      "feature"
+    ]
+  },
+  "steps": [
+    {
+      "title": "main にある",
+      "body": "main に commit A と B がある。main は B を指し、HEAD は main を指している。",
+      "events": [
+        {
+          "type": "commit",
+          "id": "A",
+          "branch": "main",
+          "hash": "3fa0c19",
+          "note": "最初の形"
+        },
+        {
+          "type": "commit",
+          "id": "B",
+          "branch": "main",
+          "hash": "8b04f71",
+          "note": "一覧を足す"
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "B 8b04f71"
+        }
+      ]
+    },
+    {
+      "title": "枝を 2 本切る",
+      "body": "B から直しの枝 fix と作業の枝 feature を切る。どちらも B を指し、HEAD は後から切った feature を指す。",
+      "code": "git branch fix → git switch -c feature",
+      "events": [
+        {
+          "type": "branch",
+          "branch": "fix",
+          "from": "B"
+        },
+        {
+          "type": "branch",
+          "branch": "feature",
+          "from": "B"
+        },
+        {
+          "type": "strip",
+          "field": "fix",
+          "value": "B 8b04f71"
+        },
+        {
+          "type": "strip",
+          "field": "feature",
+          "value": "B 8b04f71"
+        }
+      ]
+    },
+    {
+      "title": "直しを積む",
+      "body": "fix に誤字の直し F を積む。fix は F へ進み、feature と main は B のまま。",
+      "events": [
+        {
+          "type": "commit",
+          "id": "F",
+          "branch": "fix",
+          "hash": "5b2e7a1",
+          "note": "誤字を直す"
+        },
+        {
+          "type": "strip",
+          "field": "fix",
+          "value": "F 5b2e7a1"
+        }
+      ]
+    },
+    {
+      "title": "作業を積む",
+      "body": "feature に C と D を積む。commit のたびに feature が新しい commit へ進む。",
+      "code": "git commit",
+      "events": [
+        {
+          "type": "commit",
+          "id": "C",
+          "branch": "feature",
+          "hash": "c41d0e5",
+          "note": "価格を丸める"
+        },
+        {
+          "type": "commit",
+          "id": "D",
+          "branch": "feature",
+          "hash": "d72b9a3",
+          "note": "送料を足す"
+        },
+        {
+          "type": "strip",
+          "field": "feature",
+          "value": "D d72b9a3"
+        }
+      ]
+    },
+    {
+      "title": "直しを取り込む",
+      "body": "main で fix を取り込むと、merge commit の M1 ができる。M1 の親は main の先端の B と fix の先端の F の 2 つで、main だけが M1 へ進む。",
+      "code": "git switch main → git merge fix",
+      "events": [
+        {
+          "type": "commit",
+          "id": "M1",
+          "branch": "main",
+          "merge": "fix",
+          "hash": "9a1c3e4",
+          "note": "fix を取り込む"
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "M1 9a1c3e4"
+        }
+      ]
+    },
+    {
+      "title": "作業を取り込む",
+      "body": "続けて feature を取り込むと、M1 と D を親に持つ M2 ができる。fix と feature の札は元の commit に残る。",
+      "code": "git merge feature",
+      "events": [
+        {
+          "type": "commit",
+          "id": "M2",
+          "branch": "main",
+          "merge": "feature",
+          "hash": "4e8f0b2",
+          "note": "feature を取り込む"
+        },
+        {
+          "type": "strip",
+          "field": "main",
+          "value": "M2 4e8f0b2"
+        }
+      ]
+    },
+    {
+      "title": "枝の形が残る",
+      "body": "merge commit は枝の commit を作り直さないので、hash は変わらず、枝分かれの形も履歴に残る。rebase で 1 本にする時との違いはここにある。",
+      "code": "git log --graph --oneline",
+      "events": []
+    }
+  ],
+  "git": {
+    "branches": [
+      {
+        "id": "main",
+        "note": "取り込む先"
+      },
+      {
+        "id": "fix",
+        "note": "直しの枝"
+      },
+      {
+        "id": "feature",
+        "note": "作業の枝"
+      }
+    ]
+  }
+}
