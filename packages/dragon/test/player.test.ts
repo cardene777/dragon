@@ -121,6 +121,65 @@ describe("読み上げ", () => {
   });
 });
 
+describe("飛び先を持つ図の読み上げ (#3329)", () => {
+  /** 箱の 1 つが飛び先を持つ図。描いた SVG ではその箱が `<a href>` になる */
+  const linked = (): Json => {
+    const text = [
+      "sequence 飛び先のある図",
+      "box 入口 [link: /diagrams/entry]",
+      "box 受ける側",
+      "step 送る",
+      "  say 入口が受ける側へ送る。",
+      "  入口 -> 受ける側",
+      "step 返す",
+      "  say 受ける側が入口へ返す。",
+      "  受ける側 -> 入口",
+    ].join("\n");
+    const parsed = api("parseNotation")(text);
+    expect(parsed.ok, JSON.stringify(parsed.ok ? undefined : parsed.errors[0])).toBe(true);
+    return parsed.ok ? parsed.diagram : {};
+  };
+
+  // 隠した要素の中に押せる link が残ると、Tab で移った先を読み上げの道具が読めない
+  const expectReadable = (host: HTMLElement): void => {
+    const svg = host.querySelector("svg");
+    expect(svg?.querySelector("a[href]"), "箱の link が描かれていない").not.toBeNull();
+    expect(svg?.hasAttribute("aria-hidden"), "link を持つ図を読み上げから隠した").toBe(false);
+    expect(svg?.getAttribute("role")).toBe("group");
+    expect(svg?.getAttribute("aria-label")).toBe("飛び先のある図");
+  };
+
+  it("player-linked-figure-stays-readable", () => {
+    prefersReducedMotion(false);
+    const { host, player } = mount(linked());
+    expect(player.playing).toBe(true);
+    expectReadable(host);
+  });
+
+  it("player-linked-figure-readable-after-replace", () => {
+    prefersReducedMotion(false);
+    const { host, player } = mount(linked());
+    // 段を送ると、部品は図を置き直す
+    click(host, "next");
+    expect(player.step).toBe(1);
+    expectReadable(host);
+    player.pause();
+    expect(player.playing).toBe(false);
+    expectReadable(host);
+  });
+
+  it("player-plain-figure-hidden-from-reader", () => {
+    prefersReducedMotion(false);
+    const { host } = mount(exampleJson("oauth.json"));
+    const svg = host.querySelector("svg");
+    expect(svg?.querySelector("a[href]"), "oauth の見本が箱の link を持つ").toBeNull();
+    // link の無い図は段の一覧に読ませ、図は隠して同じ中身を 2 度読ませない
+    expect(svg?.getAttribute("aria-hidden")).toBe("true");
+    expect(svg?.hasAttribute("role")).toBe(false);
+    expect(svg?.hasAttribute("aria-label")).toBe(false);
+  });
+});
+
 describe("段の出典 (#3199)", () => {
   it("notation-step-sources", () => {
     prefersReducedMotion(true);
