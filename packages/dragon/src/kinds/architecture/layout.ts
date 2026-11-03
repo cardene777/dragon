@@ -6,9 +6,9 @@
  * その箱の列に置き、そこから線で繋がる箱を隣の列へ (寄せの指示が左か右なら下の行へ) 置いていく。
  * 線は縦と横の折れ線で、間にある箱を避ける。名前が箱に掛かる時は帯を広げて名前の場所を空ける。
  */
-import { LOOK, TYPE } from "../look/values";
-import type { Diagram, LabelSide, Region } from "../schema";
-import { textWidth } from "./measure";
+import { LOOK, TYPE } from "../../look/values";
+import type { Diagram, LabelSide, Region } from "../../schema";
+import { textWidth } from "../../layout/measure";
 import {
   badgeOnPath,
   badgeRect,
@@ -40,7 +40,7 @@ import {
   slotBoxWidth,
   slotRooms,
   stripNeed,
-} from "./scene";
+} from "../../layout/scene";
 
 interface Group {
   region?: Region;

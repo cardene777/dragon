@@ -4,9 +4,9 @@
  * 生存線の頭の箱を上に横 1 列に並べ、段で起きる線と処理を起きる順に 1 行ずつ下へ積む。
  * 生存線の間は、箱の幅と、その間を走る線の名前が収まる幅を取る。中身の帯は一番下に置く。
  */
-import { LOOK, TYPE } from "../look/values";
-import type { Diagram } from "../schema";
-import { textWidth } from "./measure";
+import { LOOK, TYPE } from "../../look/values";
+import type { Diagram } from "../../schema";
+import { textWidth } from "../../layout/measure";
 import {
   carrierHalf,
   badgeRect,
@@ -28,7 +28,7 @@ import {
   type SceneLabel,
   shiftContent,
   stripNeed,
-} from "./scene";
+} from "../../layout/scene";
 
 export function layoutSequence(diagram: Diagram): Layout {
   const { box: B, sequence: Q, label: L, margin, gap } = LOOK;

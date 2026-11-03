@@ -1,6 +1,7 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
  * git、lineup、state、time、tree の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  *
  * 動きは全て SVG の中の CSS の keyframes が回す。1 周の長さは `--T`、止める時刻は `--at`、
  * 止めるか流すかは `--play` の変数で外から変えられる (頁に置く `player.ts` がこれを使う)。
@@ -8,14 +9,14 @@
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
 import { FIGURE_TEXT } from "../figure-text";
-import { layoutArchitecture } from "../layout/architecture";
 import type { GitLayout } from "../layout/git";
 import type { LineupLayout } from "../layout/lineup";
 import { textWidth } from "../layout/measure";
 import { type Layout, type Rect, rewrapStrip, type SceneField, type SceneLabel, type SceneStrip } from "../layout/scene";
-import { layoutSequence } from "../layout/sequence";
 import type { TimeLayout } from "../layout/time";
 import type { TreeLayout } from "../layout/tree";
+import { KIND_FOLDERS } from "../kinds/index";
+import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
 import { FONTS } from "../look/fonts";
 import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
@@ -50,6 +51,9 @@ import {
 } from "./parts";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
+
+/** 置き場を持つ図の種類を、図の種類の名前で引く表 */
+const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 
 const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "git";
 const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
@@ -713,20 +717,21 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
   const read = readDiagram(input, { lang });
   if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
   const diagram = read.diagram;
-  const layout =
-    diagram.kind === "sequence"
-      ? layoutSequence(diagram)
-      : diagram.kind === "state"
-        ? kindParts("state", lang).layoutState(diagram, lang)
-        : diagram.kind === "git"
-          ? kindParts("git", lang).layoutGit(diagram)
-          : diagram.kind === "time"
-            ? kindParts("time", lang).layoutTime(diagram, lang)
-            : diagram.kind === "tree"
-              ? kindParts("tree", lang).layoutTree(diagram)
-              : diagram.kind === "lineup"
-                ? kindParts("lineup", lang).layoutLineup(diagram)
-                : layoutArchitecture(diagram);
+  // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。置き場の無い図の種類は登録簿から並べ方を引き、知らない種類は構成図の並べ方で並べる
+  const folder = FOLDERS[diagram.kind];
+  const layout = folder
+    ? folder.layout(diagram, lang)
+    : diagram.kind === "state"
+      ? kindParts("state", lang).layoutState(diagram, lang)
+      : diagram.kind === "git"
+        ? kindParts("git", lang).layoutGit(diagram)
+        : diagram.kind === "time"
+          ? kindParts("time", lang).layoutTime(diagram, lang)
+          : diagram.kind === "tree"
+            ? kindParts("tree", lang).layoutTree(diagram)
+            : diagram.kind === "lineup"
+              ? kindParts("lineup", lang).layoutLineup(diagram)
+              : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 
