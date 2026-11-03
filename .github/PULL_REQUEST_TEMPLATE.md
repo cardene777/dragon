@@ -1,29 +1,24 @@
 # Description
 
-何を / なぜ変更したかを 2-4 文で説明。
+What you changed and why, in two to four sentences.
+You can write in English or Japanese.
 
 ## Type
 
-- [ ] feat (新機能)
-- [ ] fix (bug 修正)
+- [ ] feat (new feature)
+- [ ] fix (bug fix)
 - [ ] docs
-- [ ] refactor (動作不変)
+- [ ] refactor (no change in behavior)
 - [ ] test
-- [ ] chore (tooling / config)
+- [ ] chore (tooling or config)
 
 ## Test plan
 
-- [ ] `pnpm test` 全 pass
-- [ ] `pnpm typecheck` pass
-- [ ] `pnpm build` pass
-- [ ] (該当時) `pnpm run test:sweep` pass (図の見た目の一括確認)
-- [ ] (該当時) `pnpm --filter dragon-playground-spa run test:e2e` pass
-- [ ] 新機能には test を追加した (test なしの新機能は merge 不可)
+- [ ] `pnpm verify` passes (type check, build, lint, and every test)
+- [ ] A new feature comes with a test (a new feature without one is not merged)
 
-動作確認手順 / 結果を簡潔に書く (screenshot / GIF があれば貼る)。
+Write how you checked the change and what you saw. Attach a screenshot or GIF if the change is visible.
 
 ## Refs
 
 Closes #
-Fixes #
-Refs #
