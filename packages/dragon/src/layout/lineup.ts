@@ -105,7 +105,7 @@ export interface LineupMark extends Rect, LineupAt {
 }
 
 /** 役の札。`steps` は役が動く段 */
-export interface LineupRole extends Rect {
+export interface LineupRoleCard extends Rect {
   id: string;
   title: LineupText;
   note?: LineupText;
@@ -167,7 +167,7 @@ export interface LineupLayout extends Layout {
   stamps: LineupStamp[];
   picks: LineupPick[];
   marks: LineupMark[];
-  roles: LineupRole[];
+  roles: LineupRoleCard[];
   /** 図の題 */
   heading: LineupText;
   headlines: LineupHeadline[];
@@ -421,12 +421,12 @@ function arrange(diagram: Diagram, words: FigureText, arrangement: "row" | "stac
   // 役の札。横に並べた形は札の列の上の真ん中に、縦に組んだ形は図の幅を割って並べる
   const roleTop = headBottom + H.below;
   const steps = diagram.steps.map((step) => step.events.flatMap((e) => (e.type === "role" ? [e.role] : [])));
-  const roleOf = (decl: { id: string; note?: string }, x: number, y: number, w: number, h: number): LineupRole => {
+  const roleOf = (decl: { id: string; note?: string }, x: number, y: number, w: number, h: number): LineupRoleCard => {
     const title = single(decl.id, x + L.role.padX, y + L.role.titleY, TYPE.roleName);
     const note = decl.note === undefined ? undefined : wrapped(decl.note, x + L.role.padX, y + L.role.noteY, TYPE.roleNote, w - L.role.padX * 2, H.sayLine);
     return { id: decl.id, x, y, w, h: Math.max(h, note ? bottomOf(note) - y + L.role.padX : 0), title, ...(note ? { note } : {}), steps: steps.flatMap((ids, s) => (ids.includes(decl.id) ? [s] : [])) };
   };
-  let roles: LineupRole[];
+  let roles: LineupRoleCard[];
   if (stacked) {
     let per = Math.max(1, roleDecl.length);
     while (per > 1 && (inner - L.gap * (per - 1)) / per < roleNeed) per--;
@@ -479,7 +479,7 @@ function arrange(diagram: Diagram, words: FigureText, arrangement: "row" | "stac
     const cardRects = sized.filter((b) => !b.pool).map((b) => placed.get(b.id) as Rect);
     const span = cardRects.length > 0 ? cardRects : [...placed.values()];
     const mid = (Math.min(...span.map((r) => r.x)) + Math.max(...span.map((r) => r.x + r.w))) / 2;
-    const total = roles.length > 0 ? (roles.at(-1) as LineupRole).x + (roles.at(-1) as LineupRole).w : 0;
+    const total = roles.length > 0 ? (roles.at(-1) as LineupRoleCard).x + (roles.at(-1) as LineupRoleCard).w : 0;
     const left = Math.max(margin, Math.min(mid - total / 2, width - margin - total));
     roles = roles.map((r) => ({ ...r, x: r.x + left, title: moved(r.title, left, 0), ...(r.note ? { note: moved(r.note, left, 0) } : {}) }));
   }
