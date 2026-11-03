@@ -128,6 +128,27 @@ export const TYPE = {
   chip: text(10.5, 700, "mono"),
   stamp: text(11, 700),
   /**
+   * 列の図の卓の形 (#3351)。見本は `docs/design/lineup/auction.pen`。
+   * 図の題、段の題と文、役の札の名前と一言、箱の名前の下の字、札の下の端の数と単位、選んだ札の印、封の字、
+   * 札の下の一言、「この先」の字と札の番号と題、凡例の説明、空の置き場の字
+   */
+  lineupTitle: text(11, 600),
+  lineupHead: text(20, 700),
+  lineupSay: text(12.5, 500),
+  roleName: text(13, 700),
+  roleNote: text(11, 500),
+  laneHint: text(10.5, 500),
+  laneNote: text(20, 700, "mono"),
+  laneUnit: text(11, 600, "mono"),
+  laneMark: text(10.5, 700),
+  sealWord: text(11, 700),
+  remark: text(11, 600),
+  aheadLabel: text(11, 600),
+  aheadNo: text(10.5, 700, "mono"),
+  aheadText: text(11.5, 600),
+  legend: text(11, 500),
+  laneEmpty: text(11, 500),
+  /**
    * 時間軸の図 (#3165)。拡大の帯の列の上の字、印の列の名前、時刻の字、区切りの名前と目盛りの番号の範囲、
    * 節目の名札と状態、範囲の括弧の字、空きの枠の字、物差しの線の字。和文を含む字は同じ大きさと太さの和文の字で描く
    */
@@ -255,26 +276,7 @@ export const LOOK = {
     color: "violet",
     rootColor: "green",
   },
-  /**
-   * 列の図 (#3239)。step 2 で本人が選んだ見本の「列の図」の形で、1 列 12 枚の図の幅が携帯の幅で全体を見せられる 400 に収まる寸法にする。
-   * 列は左右の余白 `padX`、高さ `h`、角の丸み `radius`。列の名前と右上の字の基準線は列の上端から `textY`、チップの上端は列の上端から `trackY`、
-   * 名前と右上の字の間の下限は `textGap`、選ばなかった列の濃さは `faint`。
-   * `chip` はチップの幅の下限 `w`、高さ `h`、隣のチップとの間 `gap`、角の丸み `radius`、字の左右の余白 `padX`。字が幅を超える図は全てのチップの幅を広げる。
-   * `seal` は封で、チップの並びの外へ `over` 広げ、角の丸み `radius`、縞の幅 `stripe`。
-   * `stamp` は札で、高さ `h`、字の左右の余白 `padX`、角の丸み `radius`、傾き `tilt`、色 `color`
-   */
-  lineup: {
-    padX: 12,
-    h: 61,
-    radius: 10,
-    textY: 20,
-    trackY: 33,
-    textGap: 10,
-    faint: 0.35,
-    chip: { w: 25, h: 18, gap: 4, radius: 4, padX: 3 },
-    seal: { over: 3, radius: 5, stripe: 7 },
-    stamp: { h: 22, padX: 8, radius: 5, tilt: -4, color: "green" },
-  },
+  // 列の図 (#3239) の値は `look/lineup.ts` の `LINEUP_LOOK` が持つ。列の図を描く部品だけが読むので、頁が最初に読む script に入れない (#3351)
   /**
    * 時間軸の図 (#3165)。見本帳の試作 (`scenes/finality.js`) の寸法を写す。
    * 図の幅は `width` で、時間軸は左の `axisX` から右の余白 `right` の手前まで。印の列の名前が長い時は、名前の右に `gutterGap` を空けて軸を右へ寄せる。
@@ -398,7 +400,7 @@ export const LOOK = {
   follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8, headRoom: 10, head: { pad: 8, h: 40, nameY: 17, subY: 31 } },
   /** 色を混ぜる割合 (%) */
   /** `time` から始まる値は時間軸の図 (#3165) の、区切りの地、範囲の囲みの地、空きの枠の地、拡大の点線の濃さ。`chip` と `seal` から始まる値は列の図 (#3239) の、色を持たないチップの地と封の縞の濃さ */
-  mix: { slot: 45, icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72, timeShade: 3.5, timeSpan: 6, timeEmpty: 8, timeGuide: 50, chipPlain: 34, sealDark: 60, sealLight: 34 },
+  mix: { slot: 45, icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72, timeShade: 3.5, timeSpan: 6, timeEmpty: 8, timeGuide: 50, chipTint: 14, poolFill: 50, sealDark: 60, sealLight: 34 },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */
   baseline: { label: 3.8, badge: 3.5, carrier: 3.7, stripTitle: 4.5, tag: 3.6, action: 3.8, mark: 4 },
   /** 浮いて出る物が下から上がる長さと、弾んで出る物の始まりの大きさ */

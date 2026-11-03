@@ -31,13 +31,15 @@ import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
 import { FONTS } from "../look/fonts";
-import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
+import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import {
   badge,
+  cssFont as font,
+  cssMix as mix,
   type Ctx,
   doneMark,
   endMark,
@@ -69,6 +71,8 @@ export interface RenderOptions {
   theme?: Theme;
   /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ英語 (#3001、#3338) */
   lang?: NotationLang;
+  /** 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351)。書かなければ横に並べる */
+  width?: number;
   /**
    * 最後の段の止め絵に、全ての段の線の名前と箱の中の処理を最後の段と同じ濃さで出す (#3200)。途中の段の止め絵は今の段の名前だけを出す。
    * 箱の下の 1 行に出す処理は、その箱で最後に起きた処理か書き換えの字を出す。違う段の名前が重なっても置き直さず、最後の段の重なり (`overlaps`) に出す
@@ -90,8 +94,6 @@ export interface Rendered {
   overlaps: Overlap[];
 }
 
-const font = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
-const mix = (pct: number, base = "var(--surf)"): string => `color-mix(in srgb,var(--c) ${pct}%,${base})`;
 const S = LOOK.stroke;
 const X = LOOK.mix;
 /** 状態遷移図で段が終わった線と番号の灰 (#3171) */
@@ -195,16 +197,6 @@ const PART_CSS = [
   `.dg-tree-one{${font(TYPE.boxName)};fill:var(--ink)}`,
   `.dg-tree-rh{${font(TYPE.rootHash)};fill:var(--ink)}`,
   `.dg-tree-rn{${font(TYPE.rootName)};fill:var(--mute)}`,
-  // 列の図 (#3239)。封は列の左端から右へ伸びる
-  ".dg-ln-chip{fill:var(--c)}",
-  `.dg-ln-plain{fill:color-mix(in srgb,var(--mute) ${X.chipPlain}%,var(--surf))}`,
-  `.dg-ln-t{${font(TYPE.chip)};fill:var(--on-c)}`,
-  `.dg-ln-tp{${font(TYPE.chip)};fill:var(--ink)}`,
-  ".dg-ln-seal{transform-box:fill-box;transform-origin:0 50%}",
-  `.dg-ln-sd{fill:color-mix(in srgb,var(--mute) ${X.sealDark}%,var(--surf))}`,
-  `.dg-ln-sl{fill:color-mix(in srgb,var(--mute) ${X.sealLight}%,var(--surf))}`,
-  `.dg-ln-stamp{fill:var(--surf);stroke:var(--c);stroke-width:${S.stamp}}`,
-  `.dg-ln-st{${font(TYPE.stamp)};fill:var(--ct)}`,
   // 時間軸の図 (#3165)。和文を含む字は、末尾に j を付けた class で同じ大きさと太さの和文の字にする
   `.dg-tm-ep{fill:color-mix(in srgb,var(--ink) ${X.timeShade}%,transparent)}`,
   `.dg-tm-sep{stroke:var(--hair);stroke-width:${S.hair};stroke-dasharray:2 4}`,
@@ -338,10 +330,11 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.node.push(tree.nodes);
   }
   const runs = new Set((treeLayout?.runs ?? []).map((r) => `${r.step}/${r.event}`));
-  // 列の図の列とチップと封と札は、列の図を描く部品が描く (#3239)
+  // 列の図の列とチップと封と札は、列の図を描く部品が描く (#3239)。
+  // 列の図の見た目の規則も列の図を描く部品が持ち、列の図の SVG にだけ書く。ほかの図の SVG と最初に読む script に入れない (#3351)
   const lineupLayout = isLineupLayout(layout) ? layout : undefined;
-  if (lineupLayout) {
-    const lineup = kindParts("lineup").drawLineup(lineupLayout, diagram, timeline, ctx, subs);
+  const lineup = lineupLayout ? kindParts("lineup").drawLineup(lineupLayout, diagram, timeline, ctx, subs) : undefined;
+  if (lineup) {
     L.base.push(lineup.lanes);
     L.node.push(lineup.chips);
   }
@@ -408,9 +401,9 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const drawTable = (s: SceneStrip, from: SceneStrip): string =>
     drawStrip(s) + layout.badges.filter((b) => onStrip(layout, b)).map((b) => badge({ ...b, x: b.x - from.x + s.x + LOOK.badge.r, y: b.y - from.y + s.y }, ctx, isState)).join("");
   const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${m.frames.join("")}`;
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
   );
 }
@@ -652,7 +645,7 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
           : diagram.kind === "tree"
             ? kindParts("tree", lang).layoutTree(diagram)
             : diagram.kind === "lineup"
-              ? kindParts("lineup", lang).layoutLineup(diagram)
+              ? kindParts("lineup", lang).layoutLineup(diagram, { lang, ...(options.width === undefined ? {} : { width: options.width }) })
               : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }

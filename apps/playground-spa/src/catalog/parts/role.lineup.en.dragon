@@ -1,0 +1,18 @@
+lineup Roles
+
+role Clerk [note: Takes the papers]
+role Reviewer [note: Checks the contents]
+
+box Desk
+
+item paper1, paper2
+
+step Take
+  say Declared roles sit above the boxes, and the role named in a step lights up.
+  role Clerk
+  line Desk: paper1, paper2
+
+step Check
+  say The reviewer checks the contents and stamps the card.
+  role Reviewer
+  stamp Desk: Checked

@@ -36,7 +36,8 @@
     "seal",
     "open",
     "pick",
-    "stamp"
+    "stamp",
+    "role"
   ],
   "ATTRS": {
     "diagram": [
@@ -51,7 +52,8 @@
       "note",
       "color",
       "icon",
-      "link"
+      "link",
+      "order"
     ],
     "source": [
       "url"
@@ -87,7 +89,11 @@
     ],
     "item": [
       "color",
-      "label"
+      "label",
+      "note"
+    ],
+    "role": [
+      "note"
     ],
     "scale": [
       "from"

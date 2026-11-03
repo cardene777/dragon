@@ -83,6 +83,10 @@ export interface CoreMessages {
   manyRoots: (id: string, root: string) => string;
   /** 列の図だけの行 (`item`、`line`、`seal`、`open`、`pick`、`stamp`) を、別の種類の図に書いた (#3239) */
   lineupOnly: (word: string) => string;
+  /** `role` の行の形 */
+  roleShape: string;
+  /** 段の中の `role` の行に、宣言していない役を書いた */
+  unknownRole: (id: string) => string;
   noItems: string;
   itemShape: string;
   lineShape: string;
@@ -199,8 +203,10 @@ const ja = (): Messages => {
     twoParents: (id) => `${id} はもう別の親の子になっている。木の箱の親は 1 つだけ`,
     manyRoots: (id, root) => `${id} が親を持たないまま残る。木の根は 1 つだけで、${id} も ${root} も最後に 1 つの根へ組む`,
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
+    roleShape: "role は、最初の step より前なら role <名札> [note: <一言>]、step の中なら role <名札> の形で書く",
+    unknownRole: (id) => `${id} という役は宣言していない。最初の step より前に role ${id} と書く`,
     noItems: "item の行でチップを 1 つ以上宣言する",
-    itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>] の形で書く",
+    itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>, note: <説明>] の形で書く",
     lineShape: "line は line <列>: <チップ>, <チップ> の形で書く",
     laneShape: (word) => `${word} は ${word} <列> の形で書く`,
     stampShape: "stamp は stamp <列>: <字> の形で書く",
@@ -301,8 +307,10 @@ const en = (): Messages => {
     twoParents: (id) => `${id} is already a child of another node. A tree box has only one parent`,
     manyRoots: (id, root) => `${id} is left without a parent. A tree has one root, so join ${id} and ${root} under one root by the end`,
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
+    roleShape: "Write a role as role <id> [note: <text>] before the first step, or as role <id> inside a step",
+    unknownRole: (id) => `The role ${id} is not declared. Write role ${id} before the first step`,
     noItems: "Declare at least one chip with an item line",
-    itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>]",
+    itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>, note: <text>]",
     lineShape: "Write a line as line <lane>: <chip>, <chip>",
     laneShape: (word) => `Write ${word} as ${word} <lane>`,
     stampShape: "Write a stamp as stamp <lane>: <text>",

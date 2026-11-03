@@ -1,0 +1,10 @@
+lineup Legend
+
+box Desk
+
+item apply, query [note: A paper that arrived]
+item rush [color: amber, note: An urgent paper]
+
+step Line up
+  say Item notes appear in the legend under the diagram, one row per note.
+  line Desk: rush, apply, query
