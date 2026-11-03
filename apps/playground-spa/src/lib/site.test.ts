@@ -60,8 +60,8 @@ const DESTINATIONS = [
   { ja: "GitHub", en: "GitHub", href: REPO },
 ] as const;
 
-/** 色味ごとにサイトの差し色にする字の色の欄 (#3033)。紙と墨は朱、澄んだ色と夜の計器は青 */
-const ACCENT: Record<string, string> = { paper: "t-rose", clear: "t-blue", night: "t-blue" };
+/** 色味ごとにサイトの差し色にする字の色の欄 (#3033)。紙と墨は朱、澄んだ色と夜の計器は青、アーケードの画面は緑 (#3341) */
+const ACCENT: Record<string, string> = { paper: "t-rose", clear: "t-blue", night: "t-blue", arcade: "t-green" };
 
 /** 帯の色味の切替に並ぶ色味。図の色味の表の順 */
 const PALETTE_IDS = Object.keys(PALETTES);
@@ -4602,6 +4602,75 @@ describe("サイトの帯と経路 (#3030)", () => {
       await narrow.page.locator(siteSel("menu")).click();
       await narrow.page.locator(`${siteSel("sheet-palette")} ${siteSel("palette-night")}`).click();
       await expect.poll(() => colorsOf(narrow.page), { ...WAIT, message: "畳んだ面の色味の切替でサイトの色が替わらない" }).toEqual(rgbOf(siteLook("night", "light")));
+    },
+    SLOW,
+  );
+
+  it(
+    "site-palette-switch-draws-arcade",
+    async () => {
+      // bitsumi の頁と同じ色の色味 (#3341)。帯と編集画面と見本帳の切替に出て、選ぶとその色味で描き、サイトの差し色が緑になる
+      expect(PALETTE_IDS, "色味の表に arcade が無い").toContain("arcade");
+      const green = PALETTES.arcade?.light["t-green"] ?? "";
+      const { page } = await site.open({ path: BASE, viewport: { width: 1440, height: 900 }, colorScheme: "light" });
+      await onScreen(page, "home", "概要の頁が出ない");
+      const button = page.locator(`${siteSel("header")} ${siteSel("palette")} ${siteSel("palette-arcade")}`);
+      await expect.poll(() => button.count(), { ...WAIT, message: "帯の色味の切替にアーケードの画面が無い" }).toBe(1);
+      expect(await button.getAttribute("aria-label"), "帯のアーケードの画面の釦の名前").toBe("アーケードの画面");
+      await button.click();
+      await expect.poll(() => colorsOf(page), { ...WAIT, message: "アーケードの画面を選んでもサイトの色が替わらない" }).toEqual(rgbOf(siteLook("arcade", "light")));
+      expect((await colorsOf(page)).accent, "アーケードの画面のサイトの差し色が緑でない").toBe(rgb(green));
+      await expect
+        .poll(() => figureLooks(page), { ...WAIT, message: "アーケードの画面を選んでも概要の図が替わらない" })
+        .toEqual(Array(1 + HOME_USES.length).fill(figureLook("arcade", "light")));
+      await page.locator(siteSel("lang-en")).click();
+      await expect.poll(() => button.getAttribute("aria-label"), { ...WAIT, message: "英語の頁のアーケードの画面の釦の名前" }).toBe("Arcade screen");
+
+      // 編集画面の色味の丸
+      const editor = await site.open({ path: `${BASE}editor`, viewport: { width: 1440, height: 900 }, colorScheme: "light" });
+      await onScreen(editor.page, "editor", "編集画面が出ない");
+      const stage = '[data-playground="stage"]';
+      await expect.poll(() => figureLooks(editor.page, stage), { ...WAIT, message: "編集画面の図が出ない" }).toHaveLength(1);
+      await editor.page.locator(`.pg-stage-bar [data-playground="palette-arcade"]`).click();
+      await expect.poll(() => figureLooks(editor.page, stage), { ...WAIT, message: "編集画面の色味の丸でアーケードの画面にならない" }).toEqual([figureLook("arcade", "light")]);
+
+      // 見本帳の見本の色味の切替
+      const catalog = await site.open({ path: `${BASE}catalog/sequence`, viewport: { width: 1440, height: 900 }, colorScheme: "light" });
+      await onScreen(catalog.page, "category", "時系列図の分類の頁が出ない");
+      await expect
+        .poll(() => catalog.page.evaluate(() => [...document.querySelectorAll<HTMLOptionElement>('[data-catalog="palette"] option')].map((o) => o.value)), {
+          ...WAIT,
+          message: "見本の色味の切替にアーケードの画面が無い",
+        })
+        .toContain("arcade");
+      await catalog.page.locator(catalogSel("palette")).selectOption("arcade");
+      await expect
+        .poll(() => figureLooks(catalog.page, catalogSel("stage")), { ...WAIT, message: "見本の色味をアーケードの画面にしても図が替わらない" })
+        .toEqual([figureLook("arcade", "light")]);
+    },
+    SLOW,
+  );
+
+  it(
+    "site-palette-switch-fits-four-at-390",
+    async () => {
+      // 色味を 4 つにしても、幅 390 の畳んだ行き先の面の色味の札は 1 行に収まり、指で押せる大きさを保つ (#3341)
+      const { page } = await site.open({ path: BASE, viewport: { width: 390, height: 844 }, colorScheme: "light" });
+      await onScreen(page, "home", "幅 390 で概要の頁が出ない");
+      await page.locator(siteSel("menu")).click();
+      const swatches = (): Promise<{ id: string; top: number; width: number; height: number; right: number }[]> =>
+        page.evaluate((s) => {
+          return [...document.querySelectorAll<HTMLElement>(`${s} [data-site^="palette-"]`)].map((b) => {
+            const r = b.getBoundingClientRect();
+            return { id: b.dataset.site ?? "", top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height), right: Math.round(r.right) };
+          });
+        }, siteSel("sheet-palette"));
+      await expect.poll(async () => (await swatches()).length, { ...WAIT, message: "幅 390 の畳んだ面の色味の札が 4 つでない" }).toBe(4);
+      const found = await swatches();
+      expect(found.map((s) => s.id), "幅 390 の畳んだ面にアーケードの画面の札が無い").toContain("palette-arcade");
+      expect(found.filter((s) => s.width < 44 || s.height < 44).map((s) => `${s.id} ${s.width}x${s.height}`), "幅 390 で 44px に届かない色味の札").toEqual([]);
+      expect(new Set(found.map((s) => s.top)).size, `幅 390 で色味の札が 1 行に収まらない: ${found.map((s) => `${s.id} 上 ${s.top}`).join(", ")}`).toBe(1);
+      expect(Math.max(...found.map((s) => s.right)), "幅 390 で色味の札が頁の右へはみ出す").toBeLessThanOrEqual(390);
     },
     SLOW,
   );
