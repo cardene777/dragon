@@ -10,6 +10,7 @@
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
 import { action } from "../blocks/act/draw";
+import { subChanges } from "../blocks/note/draw";
 import { FIGURE_TEXT } from "../figure-text";
 import type { GitLayout } from "../layout/git";
 import type { LineupLayout } from "../layout/lineup";
@@ -48,7 +49,6 @@ import {
   sansOf,
   side,
   strip,
-  type SubChange,
 } from "./parts";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
@@ -283,56 +283,6 @@ function involved(diagram: Diagram): Map<string, number[]> {
     }
   });
   return new Map([...on].map(([id, steps]) => [id, [...steps].sort((a, b) => a - b)]));
-}
-
-/**
- * 箱の下の字の移り変わり。書き換えはそのまま残し、構成図の処理はその段の間だけ出して元へ戻す。
- * 止め絵を選んだ図は、その箱で最後に起きたのが処理なら、最後の段で起きることが済んだ時にその処理を出し直して繰り返す前まで残す (#3200)
- */
-function subChanges(diagram: Diagram, timeline: Timeline, actionsInBox: boolean): Map<string, SubChange[]> {
-  type Raw = { t: number; order: number; box: string; set?: string; act?: string | null };
-  const raw: Raw[] = [];
-  const { whole } = timeline;
-  let order = 0;
-  for (const time of timeline.events) {
-    const event = diagram.steps[time.step]?.events[time.event];
-    if (event?.type === "swap") raw.push({ t: time.at, order: order++, box: event.box, set: event.text });
-    if (actionsInBox && event?.type === "action") {
-      raw.push({ t: time.at, order: order++, box: event.box, act: event.label });
-      const end = (timeline.steps[time.step] as Span).end;
-      if (!whole || end <= whole.start) raw.push({ t: end, order: order++, box: event.box, act: null });
-    }
-  }
-  raw.sort((a, b) => a.t - b.t || a.order - b.order);
-  const out = new Map<string, SubChange[]>();
-  for (const box of diagram.boxes) {
-    let base: [string, string] = [box.sub ?? "", "dg-ss"];
-    let acting: string | undefined;
-    let shown = base.join("|");
-    const list: SubChange[] = [];
-    const changes = raw.filter((r) => r.box === box.id);
-    const latest = [...changes].reverse().find((r) => r.set !== undefined || typeof r.act === "string");
-    if (whole && typeof latest?.act === "string") changes.push({ t: whole.start, order: order++, box: box.id, act: latest.act });
-    for (const change of changes) {
-      // 書き換えは、出ている処理の字も置き換える
-      if (change.set !== undefined) {
-        base = [change.set, "dg-ss-ok"];
-        acting = undefined;
-      }
-      if (change.act !== undefined) acting = change.act ?? undefined;
-      const now: [string, string] = acting !== undefined ? [acting, "dg-ss-act"] : base;
-      if (now.join("|") === shown) continue;
-      shown = now.join("|");
-      list.push([change.t, now[0], now[1]]);
-    }
-    // すぐ次の字に替わる字は読めないので出さない
-    const kept = list.filter((change, k) => {
-      const next = list[k + 1];
-      return next === undefined || next[0] - change[0] >= MOTION.minShow;
-    });
-    out.set(box.id, kept);
-  }
-  return out;
 }
 
 function fieldChanges(diagram: Diagram, timeline: Timeline, layout: Layout): Map<string, FieldChange[]> {

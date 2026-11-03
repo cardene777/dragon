@@ -2,7 +2,7 @@
  * 箱の中の処理の描き方 (#3345)。
  *
  * 時系列図の処理は、その段の間だけ生存線の上の札に出す。ほかの図の種類の処理は箱の下の字に出し、
- * 箱の下の字の移り変わり (`render/draw.ts` の `subChanges`) が処理の字も組む。
+ * 箱の下の字の移り変わり (`blocks/note/draw.ts` の `subChanges`) が処理の字も組む。
  */
 import type { SceneAction } from "../../layout/scene";
 import { LOOK } from "../../look/values";

@@ -66,7 +66,7 @@
 import { type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readList, readName, readOnBox, readQuoted, skipSpaces, urlOf } from "./read-kit";
+import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readList, readName, readQuoted, skipSpaces, urlOf } from "./read-kit";
 import {
   type Box,
   type Carry,
@@ -361,6 +361,11 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
     }
+    // 時間軸の図の `note` の行は節目にも書けて丸の色を持つので、下の字のブロックでなく時間軸の図の読み方で読む
+    if (isTime && word === "note") {
+      inStep(source).events.push(readTimeNote(source));
+      continue;
+    }
     const reader = HEAD_READERS.get(word);
     if (reader) {
       reader(source, state);
@@ -399,16 +404,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
         const command = text.slice(word.length).trim();
         if (command === "") throw fail(source, 0, m.emptyCode);
         step.code = command;
-        break;
-      }
-      case "note": {
-        const step = inStep(source);
-        if (isTime) {
-          step.events.push(readTimeNote(source));
-          break;
-        }
-        const on = readOnBox(source, word, m.noteShape, boxAt);
-        step.events.push({ type: "swap", box: on.box, text: on.text });
         break;
       }
       case "set":

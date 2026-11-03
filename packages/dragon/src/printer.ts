@@ -73,8 +73,6 @@ function event(e: DiagramEvent, kind: Diagram["kind"]): string {
       const carry: [string, string][] = plain ? [] : e.carry.kind === "tag" ? [["tag", e.carry.text]] : [["carry", e.carry.kind]];
       return `${line(e.from, e.to, e.label)}${attrs([...carry, ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`;
     }
-    case "swap":
-      return kind === "time" ? `note ${e.box}: ${name(e.text)}${attrs([["color", e.color]])}` : `note ${e.box}: ${e.text}`;
     case "now":
       return `${NOW} -> ${e.to}`;
     case "mark":

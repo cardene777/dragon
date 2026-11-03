@@ -58,7 +58,6 @@ export interface CoreMessages {
   stripUndeclared: string;
   noSuchField: (field: string) => string;
   stripNeedsValue: string;
-  noteShape: string;
   edgeShape: string;
   emptyLabel: string;
   quoteUnclosed: string;
@@ -233,7 +232,6 @@ const ja = (): Messages => {
     stripUndeclared: "set を書く前に、strip <題>: <欄>, <欄> で帯を宣言する",
     noSuchField: (field) => `${field} という欄は strip に無い`,
     stripNeedsValue: "set は set <欄>: <値> か set <欄> [tag: <札>] の形で書く",
-    noteShape: "note は note <名札>: <下の小さな字> の形で書く",
     edgeShape: "線は <名札> -> <名札>: <線の名前> [<属性>] の形で書く",
     emptyLabel: "線の : の後ろに線の名前を書く。名前を書かない時は : も書かない",
     quoteUnclosed: '" で始めた字を " で閉じていない',
@@ -371,7 +369,6 @@ const en = (): Messages => {
     stripUndeclared: "Declare the strip as strip <title>: <field>, <field> before writing set",
     noSuchField: (field) => `The strip has no field named ${field}`,
     stripNeedsValue: "Write set as set <field>: <value> or set <field> [tag: <tag>]",
-    noteShape: "Write note as note <id>: <caption>",
     edgeShape: "Write a line as <id> -> <id>: <label> [<attributes>]",
     emptyLabel: "Write the label after the : of a line, or leave out the : as well",
     quoteUnclosed: 'A value that starts with " is not closed with "',
