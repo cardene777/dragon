@@ -13,9 +13,10 @@
  * 行の頭の語と属性の一覧の並びは誤りの文に出るので、混ぜても今の並びを変えない (`blocks.test.ts` の `notation-words-order-unchanged` が見る)。
  */
 import { ranked } from "./blocks/block";
+import { CARRIES } from "./blocks/carry/block";
 import { SIDES } from "./blocks/edge-label/block";
 import { BLOCKS } from "./blocks/index";
-import type { Carry, Diagram, ViewMode } from "./schema";
+import type { Diagram, ViewMode } from "./schema";
 
 export type NotationLang = "ja" | "en";
 
@@ -118,7 +119,6 @@ const LATER_ATTRS = [
   [10, { group: ["note"] }],
   [20, { box: ["note"] }],
   [40, { diagram: ["view"] }],
-  [84, { edge: ["carry", "tag"] }],
   [87, { group: ["color"], box: ["color"] }],
   [88, { group: ["icon"], box: ["icon"] }],
   [89, { box: ["link"] }],
@@ -166,11 +166,9 @@ export const SPAN_SHAPES = ["box"] as const;
 /** 時間軸の図の目盛りの長さに書ける単位 */
 export const DURATION_UNITS = ["ms", "s", "min", "h", "d"] as const;
 
-/** `carry` に書ける運ぶ物。封筒は書かない時、札は `tag` で書く */
-export const CARRIES = keys<Exclude<Carry["kind"], "envelope" | "tag">>({ coin: true, none: true });
 export const VIEWS = keys<ViewMode>({ fixed: true, follow: true });
-/** `side` に書ける側は線の名前のブロックが持つ (#3345) */
-export { SIDES };
+/** `carry` に書ける運ぶ物は運ぶ物のブロック、`side` に書ける側は線の名前のブロックが持つ (#3345) */
+export { CARRIES, SIDES };
 
 /**
  * 前の形の行 (#2997 まで) が、新しい形のどの行に当たるか。誤りの文で新しい行の形を示すために引く。

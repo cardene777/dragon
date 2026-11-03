@@ -10,7 +10,7 @@ import { BLOCKS } from "./blocks/index";
 import { nearest } from "./nearest";
 import { list } from "./read-kit";
 import { COLORS, ICON_NAMES } from "./schema";
-import { CARRIES, DURATION_UNITS, HEADS, KINDS, type NotationLang, SPAN_SHAPES, VIEWS } from "./words";
+import { DURATION_UNITS, HEADS, KINDS, type NotationLang, SPAN_SHAPES, VIEWS } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
 export type Shape = "sequence" | "architecture" | "group" | "box" | "strip" | "view" | "step" | "say" | "code" | "act" | "note" | "set";
@@ -65,10 +65,8 @@ export interface CoreMessages {
   /** 知らないアイコン名 `value`。近い名前が在ればそれだけを、無ければ使える名前を全て挙げる (#3315) */
   badIcon: (value: string) => string;
   badView: string;
-  badCarry: string;
   /** 箱の飛び先 (`link`) か段の出典 (`url`) に、頁を移る形でない URL を書いた (#3199) */
   badUrl: (key: string) => string;
-  carryTwice: string;
   /** 状態遷移図の箱の名札に、始まりか終わりの印の名前を書いた */
   reservedId: (id: string) => string;
   intoStart: string;
@@ -226,9 +224,7 @@ const ja = (): Messages => {
     badColor: `color は ${list(COLORS)} のどれか`,
     badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`),
     badView: `view は ${list(VIEWS)} のどれか`,
-    badCarry: `carry は ${list(CARRIES)} のどれか。札は tag: <値> で書く`,
     badUrl: (key) => `${key} には / で始まる path か、http:// か https:// で始まる URL を書く`,
-    carryTwice: "運ぶ物は 1 本の線に 1 つまで。carry と tag は一緒に書かない",
     reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
     intoStart: "start へ入る線は書けない。start は始まりの印で、線は start から出る",
     outOfFinish: "finish から出る線は書けない。finish は終わりの印で、線は finish へ入る",
@@ -353,9 +349,7 @@ const en = (): Messages => {
     badColor: `color is one of ${list(COLORS)}`,
     badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`),
     badView: `view is one of ${list(VIEWS)}`,
-    badCarry: `carry is one of ${list(CARRIES)}. Write a tag as tag: <value>`,
     badUrl: (key) => `Write a path that starts with / or a URL that starts with http:// or https:// for ${key}`,
-    carryTwice: "A line carries one thing. Do not write carry and tag together",
     reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,
     intoStart: "A line cannot go into start. start is the start mark, and lines leave it",
     outOfFinish: "A line cannot leave finish. finish is the end mark, and lines go into it",

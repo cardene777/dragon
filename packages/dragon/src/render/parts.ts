@@ -1,17 +1,14 @@
 /**
- * 区画、箱、線、運ぶ物、段の番号を SVG に描く部品。見本帳の `engine.js` の部品を写す。
+ * 区画、箱、線、段の番号を SVG に描く部品。見本帳の `engine.js` の部品を写す。
  *
  * どの部品も、置き場所は場面 (`layout/scene.ts`) から、いつ見えるかは時刻の表 (`timeline.ts`) から読む。
  * 色は色の役の変数 (`--c` と `--ct`) だけを渡し、値は色味の表が持つ。
  * ブロックの置き場へ移した部品の描き方は `blocks/<名前>/draw.ts` が持ち、この file の下請け (`esc`、`cs`、`r1`、`write` など) を読む (#3345)。
  */
-import { hasWide, textBox, textWidth } from "../layout/measure";
+import { textBox, textWidth } from "../layout/measure";
 import {
-  along,
-  carrierHalf,
   markText,
   type Point,
-  pathLength,
   type Rect,
   type SceneBadge,
   type SceneBox,
@@ -22,7 +19,7 @@ import {
   type SceneSide,
 } from "../layout/scene";
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
-import type { CarrierTime, EdgeTime, Span, Timeline } from "../timeline";
+import type { EdgeTime, Span, Timeline } from "../timeline";
 import { ICONS } from "./icons";
 import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
@@ -333,54 +330,6 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false, since
     base: `${since > 0 ? `<g class="dg-a" style="${m.vis(since)}">${path}</g>` : path}${past ? `<path class="dg-e-past dg-a" d="${d}" style="${grey}"/><path class="dg-eh-past dg-a" d="${head}" style="${grey}"/>` : ""}`,
     lit: `<g style="${cs(e.color)}"><path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}"/><path class="dg-eh-on dg-a" d="${head}" style="${hk}"/><path class="dg-flow dg-a" d="${d}" style="${flow}"/></g>`,
   };
-}
-
-function carrierShape(e: SceneEdge, sh: string): string {
-  const C = LOOK.carrier;
-  if (e.carry.kind === "coin") return `<circle class="dg-coin" r="${C.coinR}"/><circle class="dg-coin-in" r="${C.coinIn}"/>`;
-  if (e.carry.kind === "tag") {
-    const text = e.carry.text;
-    const ja = hasWide(text);
-    const w = textWidth(text, ja ? TYPE.carrierJa : TYPE.carrier) + C.tagPadX * 2;
-    return `<rect class="dg-car" x="${r1(-w / 2)}" y="${-C.tagH / 2}" width="${r1(w)}" height="${C.tagH}" rx="${C.tagH / 2}" ${sh}/><text class="dg-car-t${ja ? " dg-car-tj" : ""}" y="${LOOK.baseline.carrier}" text-anchor="middle">${esc(text)}</text>`;
-  }
-  return `<rect class="dg-env" x="${-C.envW / 2}" y="${-C.envH / 2}" width="${C.envW}" height="${C.envH}" rx="3" ${sh}/><path class="dg-env-in" d="M -8 -4.5 L 0 1.5 L 8 -4.5"/>`;
-}
-
-const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-
-/**
- * 運ぶ物。走り出す前は待つ点 (`wait`) に居て、そこから線の始まりへ出て線の上を走り、
- * 着いた先 (`settle`) へ寄って、次の同じ主役が出発するまで留まる。
- */
-export function carrier(e: SceneEdge, time: CarrierTime, ctx: Ctx): string {
-  const { m } = ctx;
-  const n = LOOK.carrier.samples;
-  const route = e.wait ? [e.wait, ...e.points] : e.points;
-  const length = pathLength(route);
-  const { depart: a, arrive: b, start: from, end: gone } = time;
-  const path: [number, number, number][] = [];
-  for (let k = 0; k <= n; k++) {
-    const [x, y] = along(route, easeInOut(k / n) * length);
-    path.push([a + ((b - a) * k) / n, x, y]);
-  }
-  const first = path[0] as [number, number, number];
-  const lastPoint = path[path.length - 1] as [number, number, number];
-  const rest: Point = e.settle ?? [lastPoint[1], lastPoint[2]];
-  const pts: [number, number, number][] = [[0, first[1], first[2]], ...path];
-  if (e.settle) pts.push([Math.min(b + 0.3, Math.max(gone, b + 0.01)), rest[0], rest[1]]);
-  pts.push([gone, rest[0], rest[1]], [m.total, rest[0], rest[1]]);
-  // 運ぶ物は、走り出しを待つ間と着いて留まる間を記録する。走っている途中は数えない (#3175, #3176)
-  const [hx, hy] = carrierHalf(e.carry);
-  const name = e.carry.kind === "tag" ? e.carry.text : e.carry.kind === "coin" ? "硬貨" : "封筒";
-  // 札は書き手の字なので部品の種類を持たず、硬貨と封筒は知らせる文の言葉で呼ぶ (#3184)
-  const part: Pick<Ink, "part"> = e.carry.kind === "tag" ? {} : { part: { kind: e.carry.kind === "coin" ? "coin" : "envelope" } };
-  const box = (p: Point) => ({ x: p[0] - hx, y: p[1] - hy, w: hx * 2, h: hy * 2 });
-  if (a > from) ctx.ink.push({ text: name, rect: box([first[1], first[2]]), shown: [[from, a]], boxed: true, ...part });
-  ctx.ink.push({ text: name, rect: box(rest), shown: [[b, gone]], boxed: true, ...part });
-  // 次の運ぶ物と入れ替わる時は、重なって 2 つに見えないよう素早く消す
-  const fade = gone < m.last ? 0.05 : 0.18;
-  return `<g class="dg-a" style="${m.move(pts, m.blink(from + 0.02, gone, fade))}">${carrierShape(e, ctx.sh)}</g>`;
 }
 
 /**

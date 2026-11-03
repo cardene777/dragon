@@ -10,6 +10,7 @@
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
 import { action } from "../blocks/act/draw";
+import { carrier } from "../blocks/carry/draw";
 import { fadeBefore, label } from "../blocks/edge-label/draw";
 import { subChanges } from "../blocks/note/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
@@ -34,7 +35,6 @@ import {
   band,
   boxTextY,
   card,
-  carrier,
   type Ctx,
   cs,
   doneMark,

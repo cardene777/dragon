@@ -64,13 +64,13 @@
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
+import { readCarry } from "./blocks/carry/block";
 import { readLabel, readSide } from "./blocks/edge-label/block";
 import { BLOCKS } from "./blocks/index";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces, urlOf } from "./read-kit";
 import {
   type Box,
-  type Carry,
   type Color,
   COLORS,
   type Diagram,
@@ -93,7 +93,6 @@ import { FORMAT_VERSION } from "./version";
 import {
   AT,
   ATTRS,
-  CARRIES,
   COPY,
   DEFAULT_LANG,
   FROM,
@@ -972,16 +971,9 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     const { from, to, label, at } = readLine(source, edge);
     if (at < text.length && text[at] !== "[") throw fail(source, at, m.edgeShape);
     const attrs = at < text.length ? readAttrs(source, at, ATTRS.edge, m) : new Map<string, Attr>();
-    const tag = attrs.get("tag");
-    const carried = attrs.get("carry");
-    if (tag && carried) throw fail(source, Math.max(tag.at, carried.at), m.carryTwice);
-    if (carried && !isOneOf(CARRIES, carried.value)) throw fail(source, carried.at, m.badCarry);
+    const carry = readCarry(source, attrs, from, state.kind, m);
     const side = readSide(source, attrs, m);
     const columns = readColumns(source, from, to, attrs, at);
-    // 枝分かれの図の線は札を動かす線で、書かなければ送る側の名前の札を運ぶ
-    let carry: Carry = isGit ? { kind: "tag", text: from } : { kind: "envelope" };
-    if (tag) carry = { kind: "tag", text: tag.value };
-    else if (carried) carry = carried.value === "coin" ? { kind: "coin" } : { kind: "none" };
     if (isGit && from !== HEAD) tips.set(from, to);
     return {
       type: "edge",

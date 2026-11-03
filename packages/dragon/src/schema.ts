@@ -10,6 +10,7 @@
  * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false }` で行う。
  */
 import type { ErrorObject } from "ajv";
+import type { Carry } from "./blocks/carry/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import type { StepSource } from "./blocks/source/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
@@ -45,8 +46,6 @@ export interface Box {
   /** 飛び先。描いた図ではこの箱がここへの link になる。`/` で始まる path か、http:// か https:// で始まる URL (#3199) */
   link?: string;
 }
-
-export type Carry = { kind: "envelope" } | { kind: "tag"; text: string } | { kind: "coin" } | { kind: "none" };
 
 /** 見せ方。`fixed` は全体を止めて中だけ動かし、`follow` は寄って動かし全体図で今どこかを示す。 */
 export type ViewMode = "fixed" | "follow";
@@ -200,6 +199,8 @@ export interface StatePath {
 export type { StepSource };
 /** 線の名前を置く側の型は線の名前のブロックが持つ (#3345) */
 export type { LabelSide };
+/** 線の上を走る物の型は運ぶ物のブロックが持つ (#3345) */
+export type { Carry };
 
 export interface Step {
   title: string;

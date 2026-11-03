@@ -21,6 +21,7 @@
  * ブロックが持つ宣言の塊 (中身の帯の `strip` の行) は、区画と箱とチップの宣言の後ろに、ブロックの書き戻す処理 (`print.figure`) が書く。
  */
 import { type EventPrinter, ranked } from "./blocks/block";
+import { carryAttrs } from "./blocks/carry/block";
 import { BLOCKS } from "./blocks/index";
 import { attrs, name, shown } from "./print-kit";
 import type { Box, Diagram, DiagramEvent, LineupItem, Region, Step, TimeSpec } from "./schema";
@@ -69,11 +70,8 @@ const num = (n: number | undefined): string | undefined => (n === undefined ? un
 /** 段の中の 1 行。`kind` は図の種類。枝分かれの図の線は、送る側の名前の札を書かない時の運ぶ物にする */
 function event(e: DiagramEvent, kind: Diagram["kind"]): string {
   switch (e.type) {
-    case "edge": {
-      const plain = kind === "git" ? e.carry.kind === "tag" && e.carry.text === e.from : e.carry.kind === "envelope";
-      const carry: [string, string][] = plain ? [] : e.carry.kind === "tag" ? [["tag", e.carry.text]] : [["carry", e.carry.kind]];
-      return `${line(e.from, e.to, e.label)}${attrs([...carry, ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`;
-    }
+    case "edge":
+      return `${line(e.from, e.to, e.label)}${attrs([...carryAttrs(e, kind), ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`;
     case "now":
       return `${NOW} -> ${e.to}`;
     case "mark":

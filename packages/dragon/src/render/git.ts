@@ -7,6 +7,7 @@
  * 札はその後も動くので、線を残すと札の去った所を指したまま残る。
  * 札の見た目は運ぶ物の札と同じで、どの札も主役ではないので、時刻の表の運ぶ物とは別に動かす。
  */
+import { carrier } from "../blocks/carry/draw";
 import type { GitLayout, GitMove } from "../layout/git";
 import type { Diagram } from "../schema";
 import { hasWide, textWidth } from "../layout/measure";
@@ -14,7 +15,7 @@ import type { Point, Rect } from "../layout/scene";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { EdgeTime, Span, Timeline } from "../timeline";
 import type { Frame } from "./motion";
-import { type Ctx, carrier, cs, esc, pathOf, write } from "./parts";
+import { type Ctx, cs, esc, pathOf, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 const center = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
