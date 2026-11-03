@@ -163,7 +163,9 @@ describe("飛び先を持つ図の読み上げ (#3329)", () => {
     click(host, "next");
     expect(player.step).toBe(1);
     expectReadable(host);
-    player.pause();
+    // 流している図の止める釦を押しても、部品は図を置き直す
+    expect(player.playing).toBe(true);
+    click(host, "toggle");
     expect(player.playing).toBe(false);
     expectReadable(host);
   });
