@@ -67,6 +67,7 @@ import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDr
 import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
 import { lifelinesOf } from "./blocks/lifeline/block";
 import { BLOCKS } from "./blocks/index";
+import { stepOf, viewOf } from "./blocks/step/block";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
 import {
@@ -83,7 +84,6 @@ import {
   type TimePoint,
   type TimeRow,
   type TimeScale,
-  type ViewMode,
 } from "./schema";
 import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION } from "./version";
@@ -110,7 +110,6 @@ import {
   TIME_EDGE_ATTRS,
   TIME_HEADS,
   TREE_HEADS,
-  VIEWS,
 } from "./words";
 
 export interface LineError {
@@ -192,9 +191,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const titled = readName(head, kind.length, m);
   if (titled.value === "") throw fail(head, 0, m.badHead);
   const title = titled.value;
-  const shown = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram, m).get("view") : undefined;
-  if (shown && !isOneOf(VIEWS, shown.value)) throw fail(head, shown.at, m.badView);
-  const view = shown?.value as ViewMode | undefined;
+  const view = viewOf(head, titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m).get("view") : undefined, m);
 
   const isState = kind === "state";
   const isGit = kind === "git";
@@ -285,19 +282,17 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const beforeSteps = (source: SourceLine): void => {
     if (building) throw fail(source, 0, m.declarationInStep);
   };
-  /** ブロックの読む処理が受ける、読んでいる記法の状態 */
-  const state: ParseState = { m, kind, attrs: ATTRS, inStep, beforeSteps, boxAt, claim, endAt, columns: readColumns, figure };
-  const finish = (): void => {
-    if (!building) return;
-    if (building.body === undefined) throw fail(building.source, 0, m.noBody(building.title));
-    steps.push({
-      title: building.title,
-      body: building.body.join("\n"),
-      ...(building.code !== undefined ? { code: building.code } : {}),
-      ...(building.sources.length > 0 ? { sources: building.sources } : {}),
-      events: building.events,
-    });
+  /** 書いている段を閉じる。開いたままの区画と時間軸の図の宣言を確かめてから、段を段の並びへ足す */
+  const closeStep = (): void => {
+    if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
+    settle();
+    if (building) steps.push(stepOf(building, m));
   };
+  const openStep = (draft: StepDraft): void => {
+    building = draft;
+  };
+  /** ブロックの読む処理が受ける、読んでいる記法の状態 */
+  const state: ParseState = { m, kind, attrs: ATTRS, inStep, closeStep, openStep, beforeSteps, boxAt, claim, endAt, columns: readColumns, figure };
 
   const rest = lines.slice(headAt + 1);
   for (let i = 0; i < rest.length; i++) {
@@ -343,30 +338,12 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     }
     const reader = HEAD_READERS.get(word);
     if (reader) {
-      reader(source, state);
+      // 下の行まで続けて読んだ処理は、読み終えた続きの行の数を返す
+      const read = reader(source, state, (offset) => rest[i + offset]);
+      if (typeof read === "number") i += read;
       continue;
     }
     switch (word) {
-      case "step": {
-        if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
-        settle();
-        finish();
-        const stepTitle = text.slice(word.length).trim();
-        if (stepTitle === "") throw fail(source, 0, m.emptyStepTitle);
-        building = { source, title: stepTitle, sources: [], events: [] };
-        break;
-      }
-      case "say":
-        i = readSay(source, i);
-        break;
-      case "code": {
-        const step = inStep(source);
-        if (step.code !== undefined) throw fail(source, 0, m.codeTwice);
-        const command = text.slice(word.length).trim();
-        if (command === "") throw fail(source, 0, m.emptyCode);
-        step.code = command;
-        break;
-      }
       case "branch":
         readBranch(source);
         break;
@@ -428,9 +405,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       }
     }
   }
-  if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
-  settle();
-  finish();
+  closeStep();
 
   if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
   if (isTree && trees.size === 0) throw fail(head, 0, m.noLeaves);
@@ -853,34 +828,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     const named = readName(source, found[0].length, m);
     if (named.value === "" || named.rest < source.text.length) throw fail(source, 0, m.stampShape);
     return { type: "stamp", box, text: named.value };
-  }
-
-  /**
-   * `say` の行と、その下に `say` より深く字下げして続けた行を段の本文にする。
-   * 続きの行の間の空行は本文の空の行になる。返すのは読み終えた最後の行の番号。
-   */
-  function readSay(source: SourceLine, index: number): number {
-    const step = inStep(source);
-    if (step.body !== undefined) throw fail(source, 0, m.sayTwice);
-    const inline = source.text.slice("say".length).trim();
-    const body = inline === "" ? [] : [inline];
-    let blanks = 0;
-    let last = index;
-    for (let j = index + 1; j < rest.length; j++) {
-      const next = rest[j];
-      if (!next) break;
-      if (next.text === "") {
-        blanks++;
-        continue;
-      }
-      if (next.indent <= source.indent) break;
-      body.push(...Array.from({ length: blanks }, () => ""), next.text);
-      blanks = 0;
-      last = j;
-    }
-    if (body.length === 0) throw fail(source, 0, m.emptySay);
-    step.body = body;
-    return last;
   }
 
   /** 状態遷移図の最初の `step` より前の `<名札> -> <名札>: <線の名前>` の行。属性は書けない */

@@ -8,7 +8,7 @@
 import { ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
 import { list } from "./read-kit";
-import { DURATION_UNITS, HEADS, KINDS, type NotationLang, SPAN_SHAPES, VIEWS } from "./words";
+import { DURATION_UNITS, HEADS, KINDS, type NotationLang, SPAN_SHAPES } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
 export type Shape = "sequence" | "architecture" | "group" | "box" | "strip" | "view" | "step" | "say" | "code" | "act" | "note" | "set";
@@ -34,13 +34,6 @@ export interface CoreMessages {
   needsId: (word: string) => string;
   badId: (id: string) => string;
   afterId: string;
-  noBody: (title: string) => string;
-  emptyStepTitle: string;
-  noSteps: string;
-  emptySay: string;
-  sayTwice: string;
-  codeTwice: string;
-  emptyCode: string;
   declarationInStep: string;
   stepLineBeforeStep: string;
   emptyName: (id: string) => string;
@@ -51,7 +44,6 @@ export interface CoreMessages {
   attrNoValue: (key: string) => string;
   attrTwice: (key: string) => string;
   badAttr: (key: string, allowed: readonly string[]) => string;
-  badView: string;
   /** 状態遷移図の箱の名札に、始まりか終わりの印の名前を書いた */
   reservedId: (id: string) => string;
   intoStart: string;
@@ -171,13 +163,6 @@ const ja = (): Messages => {
     needsId: (word) => `${word} の後ろに名札を書く`,
     badId: (id) => `${id} は名札に使えない。名札には空白と [ ] 「 」 = : を含めない`,
     afterId: "名札の後ろには as <名前> か属性を書く",
-    noBody: (title) => `段「${title}」に本文 (say の行) が要る`,
-    emptyStepTitle: "step の後ろに段の題を書く",
-    noSteps: "段 (step の行) を 1 つ以上書く",
-    emptySay: "say の後ろか、その下に字下げした行に段の本文を書く",
-    sayTwice: "1 つの段に say は 1 つまで。長い本文は say の下に字下げして続ける",
-    codeTwice: "1 つの段に code は 1 行まで",
-    emptyCode: "code の後ろに命令を書く",
     declarationInStep: "group と box と strip と branch と、scale と period と row と point と zoom は最初の step より前に書く",
     stepLineBeforeStep: "線と say と code と source と act と note と set と commit と枝を切る行と、now と mark と span と、leaf と node の行は step の下に書く",
     emptyName: (id) => `${id} の名前が空`,
@@ -188,7 +173,6 @@ const ja = (): Messages => {
     attrNoValue: (key) => `${key}: の後ろに値を書く`,
     attrTwice: (key) => `${key} は 1 つの行に 1 つまで`,
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
-    badView: `view は ${list(VIEWS)} のどれか`,
     reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
     intoStart: "start へ入る線は書けない。start は始まりの印で、線は start から出る",
     outOfFinish: "finish から出る線は書けない。finish は終わりの印で、線は finish へ入る",
@@ -281,13 +265,6 @@ const en = (): Messages => {
     needsId: (word) => `Write an id after ${word}`,
     badId: (id) => `${id} cannot be an id. An id has no spaces and none of [ ] 「 」 = :`,
     afterId: "Write as <name> or attributes after the id",
-    noBody: (title) => `Step "${title}" needs a body (a say line)`,
-    emptyStepTitle: "Write a title after step",
-    noSteps: "Write at least one step (a step line)",
-    emptySay: "Write the step body after say, or on indented lines below it",
-    sayTwice: "A step takes one say. Continue a long body on indented lines below it",
-    codeTwice: "A step takes at most one code line",
-    emptyCode: "Write the command after code",
     declarationInStep: "Write group, box, strip, branch, scale, period, row, point and zoom before the first step",
     stepLineBeforeStep: "Write lines, say, code, source, act, note, set, commit, branch cuts, now, mark, span, leaf and node under a step",
     emptyName: (id) => `${id} has an empty name`,
@@ -298,7 +275,6 @@ const en = (): Messages => {
     attrNoValue: (key) => `Write a value after ${key}:`,
     attrTwice: (key) => `Write ${key} only once on a line`,
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
-    badView: `view is one of ${list(VIEWS)}`,
     reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,
     intoStart: "A line cannot go into start. start is the start mark, and lines leave it",
     outOfFinish: "A line cannot leave finish. finish is the end mark, and lines go into it",

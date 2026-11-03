@@ -47,6 +47,10 @@ import { text as sourceText } from "../../../../packages/dragon/src/blocks/sourc
 import { shelf as sourceShelf } from "../../../../packages/dragon/src/blocks/source/gallery/shelf";
 import { docs as sourceDocs } from "../../../../packages/dragon/src/blocks/source/gallery/docs";
 import { rule as sourceRule } from "../../../../packages/dragon/src/blocks/source/gallery/rule";
+import { text as stepText } from "../../../../packages/dragon/src/blocks/step/gallery/text";
+import { shelf as stepShelf } from "../../../../packages/dragon/src/blocks/step/gallery/shelf";
+import { docs as stepDocs } from "../../../../packages/dragon/src/blocks/step/gallery/docs";
+import { rule as stepRule } from "../../../../packages/dragon/src/blocks/step/gallery/rule";
 import { text as stripText } from "../../../../packages/dragon/src/blocks/strip/gallery/text";
 import { shelf as stripShelf } from "../../../../packages/dragon/src/blocks/strip/gallery/shelf";
 import { docs as stripDocs } from "../../../../packages/dragon/src/blocks/strip/gallery/docs";
@@ -66,6 +70,7 @@ export const BLOCK_TEXT = {
   "link": linkText,
   "note": noteText,
   "source": sourceText,
+  "step": stepText,
   "strip": stripText,
 } as const;
 
@@ -83,6 +88,7 @@ export const BLOCK_SHELF = {
   "link": linkShelf,
   "note": noteShelf,
   "source": sourceShelf,
+  "step": stepShelf,
   "strip": stripShelf,
 } as const;
 
@@ -100,6 +106,7 @@ export const BLOCK_DOCS = {
   "link": linkDocs,
   "note": noteDocs,
   "source": sourceDocs,
+  "step": stepDocs,
   "strip": stripDocs,
 } as const;
 
@@ -117,5 +124,6 @@ export const BLOCK_RULE = {
   "link": linkRule,
   "note": noteRule,
   "source": sourceRule,
+  "step": stepRule,
   "strip": stripRule,
 } as const;

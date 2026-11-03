@@ -73,6 +73,13 @@ export interface ParseState {
   readonly attrs: Readonly<Record<string, readonly string[]>>;
   /** 段の中に書く行の書き先の段。最初の `step` より前に書いた行は誤りで止める */
   readonly inStep: (source: SourceLine) => StepDraft;
+  /**
+   * 書いている段を閉じて、原本の段の並びへ足す。段の無い時は何もしない。
+   * 開いたままの区画と、時間軸の図の宣言の目盛りを先に確かめ、誤りで止める
+   */
+  readonly closeStep: () => void;
+  /** 次の段を書き始める。段の中に書く行は、この段へ足す */
+  readonly openStep: (draft: StepDraft) => void;
   /** 宣言の行を確かめる。最初の `step` より後に書いた宣言の行は誤りで止める */
   readonly beforeSteps: (source: SourceLine) => void;
   /** 宣言した箱の名札 `id` をそのまま返す。宣言していない名札は、名札の列 `at` を示して誤りで止める */
@@ -96,8 +103,12 @@ export interface ParseState {
   readonly figure: FigureDraft;
 }
 
-/** 行の頭の語の読む処理。読んだ結果は `state` が渡す書き先へ足し、誤りは行と列を添えて投げる (`read-kit.ts` の `fail`) */
-export type HeadReader = (source: SourceLine, state: ParseState) => void;
+/**
+ * 行の頭の語の読む処理。読んだ結果は `state` が渡す書き先へ足し、誤りは行と列を添えて投げる (`read-kit.ts` の `fail`)。
+ * `after(n)` は読んでいる行の n 行後ろの行 (無ければ `undefined`)。下の行まで続けて読む処理 (段の本文の `say`) は、
+ * 読み終えた続きの行の数を返し、parser はその行を飛ばす
+ */
+export type HeadReader = (source: SourceLine, state: ParseState, after: (offset: number) => SourceLine | undefined) => number | void;
 
 /** 段の中で起きることの種類 */
 export type EventType = DiagramEvent["type"];
@@ -107,7 +118,7 @@ export type EventPrinter<T extends EventType = EventType> = (event: Extract<Diag
 
 /** 書き戻す処理 */
 export interface BlockPrint {
-  /** 段の中でブロックが受け持つ行。字下げを除いた行を、段の中で起きることより前に書く */
+  /** 段の中でブロックが受け持つ行。字下げを除いた行を、段の中で起きることより前に書く。空の行は字下げせずに書く */
   step?: (step: Step) => string[];
   /** 段の中で起きることの書き戻し。鍵は出来事の種類で、段の中で起きた順に出来事ごとに呼ぶ */
   events?: { readonly [T in EventType]?: EventPrinter<T> };

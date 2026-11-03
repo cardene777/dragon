@@ -16,6 +16,7 @@
  * 題と本文をその下の段の全幅に置く (#3057、#3069)。
  */
 import { drawSources } from "./blocks/source/draw";
+import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
@@ -173,21 +174,8 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   const live = doc.createElement("div");
   live.append(title, body);
   text.append(live);
-  // 全部の段の題と本文の写しを今の段と同じ升に重ね、見た目からは隠して場所だけを取る。
-  // 帯の高さが本文の最も長い段で決まり、段を送っても図の枠が伸び縮みしない (#3049)
-  for (const step of steps) {
-    const room = doc.createElement("div");
-    room.className = "dg-room";
-    room.dataset.dragon = "caption-room";
-    const roomTitle = doc.createElement("p");
-    roomTitle.className = "dg-tt";
-    roomTitle.textContent = step.title;
-    const roomBody = doc.createElement("p");
-    roomBody.className = "dg-tb";
-    roomBody.textContent = step.body;
-    room.append(roomTitle, roomBody);
-    text.append(room);
-  }
+  // 全部の段の題と本文の写しを今の段と同じ升に重ね、段を送っても図の枠が伸び縮みしない (#3049)
+  drawRooms(doc, text, steps);
   say.append(no, text);
   // 狭い帯では語りの箱を外して番号と題と本文を釦と同じ升の並びに置く (#3057)。
   // 箱を外した要素の読み上げからの隠し方に頼らず、見える語りの 1 つずつも読み上げから隠す
@@ -206,15 +194,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   list.dataset.dragon = "steps";
   list.setAttribute("aria-label", words.steps(rendered.diagram.title));
   for (const step of steps) {
-    const item = doc.createElement("li");
-    const head = doc.createElement("strong");
-    head.textContent = step.title;
-    item.append(head);
-    for (const line of step.body.split("\n")) {
-      const p = doc.createElement("p");
-      p.textContent = line;
-      item.append(p);
-    }
+    const item = drawStepItem(doc, step);
     drawSources(doc, item, step.sources);
     list.append(item);
   }

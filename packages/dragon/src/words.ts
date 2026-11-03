@@ -17,7 +17,8 @@ import { CARRIES } from "./blocks/carry/block";
 import { SIDES } from "./blocks/edge-label/block";
 import type { GROUP_HEADS } from "./blocks/group/block";
 import { BLOCKS } from "./blocks/index";
-import type { Diagram, ViewMode } from "./schema";
+import { VIEWS } from "./blocks/step/block";
+import type { Diagram } from "./schema";
 
 export type NotationLang = "ja" | "en";
 
@@ -73,7 +74,6 @@ const RANKED = ranked(BLOCKS);
  * 行の頭の語の一覧は、この語とブロックの語を番号の小さい順に並べる (同じ番号の中は書いた順)
  */
 const LATER_HEADS = [
-  [40, ["step", "say", "code"]],
   [90, ["branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS]],
 ] as const;
 /** 行の頭の語のうち、型で名指せる語 (移していない語と区画の語) */
@@ -114,7 +114,6 @@ export const OF = "of";
  * 同じ行にブロックの鍵が混ざる行は、鍵ごとにその鍵を読む行のブロックの番号を置き、混ぜても鍵の並びを変えない
  */
 const LATER_ATTRS = [
-  [40, { diagram: ["view"] }],
   [
     90,
     {
@@ -159,9 +158,8 @@ export const SPAN_SHAPES = ["box"] as const;
 /** 時間軸の図の目盛りの長さに書ける単位 */
 export const DURATION_UNITS = ["ms", "s", "min", "h", "d"] as const;
 
-export const VIEWS = keys<ViewMode>({ fixed: true, follow: true });
-/** `carry` に書ける運ぶ物は運ぶ物のブロック、`side` に書ける側は線の名前のブロックが持つ (#3345) */
-export { CARRIES, SIDES };
+/** `carry` に書ける運ぶ物は運ぶ物のブロック、`side` に書ける側は線の名前のブロック、`view` に書ける見せ方は段のブロックが持つ (#3345) */
+export { CARRIES, SIDES, VIEWS };
 
 /**
  * 前の形の行 (#2997 まで) が、新しい形のどの行に当たるか。誤りの文で新しい行の形を示すために引く。

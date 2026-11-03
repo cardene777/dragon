@@ -13,8 +13,8 @@
  * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
  * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で書く。
  * 列の図 (#3239) のチップは箱の後ろに `item` の行で書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
- * 段の中でブロックが受け持つ行は、`say` と `code` の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
- * 段の出典 (#3199) は出典のブロックが、JSON の並びのまま 1 つずつ `source` の行に書く。
+ * 段の中でブロックが受け持つ行は、段の区切りの `step` の行の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
+ * 段の本文の `say` と命令の `code` の行は段のブロックが、段の出典 (#3199) は出典のブロックが書く。
  * 段の中で起きることのうちブロックが持つ種類は、そのブロックの書き戻す処理 (`print.events`) が起きた順に 1 行ずつ書く (#3345)。
  * ブロックが持つ宣言の塊 (中身の帯の `strip` の行) は、区画と箱とチップの宣言の後ろに、ブロックの書き戻す処理 (`print.figure`) が書く。
  */
@@ -137,15 +137,12 @@ export function printNotation(diagram: Diagram): string {
     ...FIGURE_PRINTERS.flatMap((print) => print(diagram)),
   ];
   if (diagram.state) blocks.push(diagram.state.paths.map((p) => line(p.from, p.to, p.label)).join("\n"));
+  // 段の区切りの `step` の行の下に、段の中でブロックが受け持つ行を字下げして書く。空の行 (本文の空の行) は字下げしない
   for (const step of diagram.steps) {
-    const body = step.body.split("\n");
-    const say = body.length === 1 ? [`  say ${step.body}`] : ["  say", ...body.map((line) => (line === "" ? "" : `    ${line}`))];
     blocks.push(
       [
         `step ${step.title}`,
-        ...say,
-        ...(step.code === undefined ? [] : [`  code ${step.code}`]),
-        ...STEP_PRINTERS.flatMap((print) => print(step)).map((line) => `  ${line}`),
+        ...STEP_PRINTERS.flatMap((print) => print(step)).map((line) => (line === "" ? "" : `  ${line}`)),
         ...step.events.map((e) => `  ${event(e, diagram.kind)}`),
       ].join("\n"),
     );
