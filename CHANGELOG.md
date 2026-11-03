@@ -31,6 +31,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   | `git.branches` | `blocks.branch` |
   | `time.scale`, `time.period`, `time.rows`, `time.points`, `time.zoom` | `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.point`, `blocks.zoom` |
   | `lineup.items` | `blocks.item` |
+  | `lineup.roles` | `blocks.role` |
 
 ## [0.47.0] - 2026-11-03
 

@@ -299,7 +299,7 @@ step 取引3から根まで上る
 
 原本の JSON は、版 (`version`)、図の種類 (`kind`)、題 (`title`)、段 (`steps`) の骨組みを持ち、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。
 箱は `blocks.box`、区画は `blocks.group`、中身の帯は `blocks.strip` に書く。
-枝分かれの図の枝は `blocks.branch`、状態遷移図の通らない道は `blocks.path`、列の図のチップは `blocks.item` に書く。
+枝分かれの図の枝は `blocks.branch`、状態遷移図の通らない道は `blocks.path`、列の図のチップは `blocks.item`、役は `blocks.role` に書く。
 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲は、`blocks.scale`、`blocks.period`、`blocks.row`、`blocks.point`、`blocks.zoom` に書く。
 段の中で起きること (線や箱の中の処理) は、段ごとの `events` に書く。
 
