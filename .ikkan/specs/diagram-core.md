@@ -306,3 +306,7 @@
 | 値の表を持たない見本の寄って追う図は、窓の幅と高さと図の幅と高さが今と同じ | `pnpm test`の検査`follow-no-strip-window-kept`が通る | #3274 |
 | 編集画面を幅360px、高さ780pxと幅390px、高さ844pxで開き、14種の見本のどれでも段を送る釦の下端が画面の下端より上に在る | `pnpm test`の検査`narrow-editor-step-buttons-on-first-screen`が通る | #3274 |
 | oauth と ccip を寄って追う図にして枠の幅 390px と 560px に置いた時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3274 |
+| 飛び先を持つ図を `mountDiagram` で流すと、置いた SVG が `aria-hidden` を持たず、`role` が `group` で、図の題を `aria-label` に持つ | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`player-linked-figure-stays-readable`が通る | #3329 |
+| 飛び先を持つ図で次の段へ送った後と止めた後も、置き直した SVG が `aria-hidden` を持たず、`role` が `group` で、図の題を `aria-label` に持つ | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`player-linked-figure-readable-after-replace`が通る | #3329 |
+| 飛び先を持たない図を `mountDiagram` で流すと、置いた SVG が `aria-hidden="true"` を持ち、`role` と `aria-label` を持たない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`player-plain-figure-hidden-from-reader`が通る | #3329 |
+| package の版が 0.46.3 以上で、英語と日本語の変更履歴に日付付きの 0.46.3 の節が在り、この課題の番号の項を持つ | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`changelog-0-46-3-releases-readable-linked-figures`が通る | #3329 |
