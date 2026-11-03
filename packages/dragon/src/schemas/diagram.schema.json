@@ -19,6 +19,12 @@
     "time": { "$ref": "#/definitions/time" },
     "lineup": { "$ref": "#/definitions/lineup" }
   },
+  "allOf": [
+    {
+      "if": { "required": ["kind"], "properties": { "kind": { "const": "lineup" } } },
+      "else": { "properties": { "boxes": { "items": { "properties": { "order": { "$ref": "#/definitions/absent" } } } } } }
+    }
+  ],
   "if": { "required": ["kind"], "properties": { "kind": { "const": "sequence" } } },
   "then": {
     "required": ["sequence"],
@@ -120,7 +126,7 @@
     "text": { "type": "string", "minLength": 1 },
     "absent": { "description": "この図の種類では書けない欄", "not": {} },
     "plainSteps": {
-      "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp) を書けない",
+      "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) を書けない",
       "items": {
         "properties": {
           "events": {
@@ -139,7 +145,7 @@
       }
     },
     "gitSteps": {
-      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp) を書けない",
+      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) を書けない",
       "items": {
         "properties": {
           "events": {
@@ -153,7 +159,7 @@
       }
     },
     "timeSteps": {
-      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp) を書けない",
+      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) を書けない",
       "items": {
         "properties": {
           "events": { "items": { "allOf": [{ "not": { "$ref": "#/definitions/treeEvent" } }, { "$ref": "#/definitions/notLineupEvent" }], "properties": { "type": { "not": { "enum": ["commit", "branch"] } } } } }
@@ -161,7 +167,7 @@
       }
     },
     "treeSteps": {
-      "description": "木の図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、列の図だけの出来事 (line と seal と open と pick と stamp) を書けない",
+      "description": "木の図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) を書けない",
       "items": {
         "properties": {
           "events": {
@@ -203,7 +209,7 @@
     },
     "notLineupEvent": {
       "description": "列の図だけが書ける出来事を書けない",
-      "not": { "required": ["type"], "properties": { "type": { "enum": ["line", "seal", "open", "pick", "stamp"] } } }
+      "not": { "required": ["type"], "properties": { "type": { "enum": ["line", "seal", "open", "pick", "stamp", "role"] } } }
     },
     "notWiredEvent": {
       "description": "箱と線の図の出来事を書けない",
@@ -244,7 +250,8 @@
         "color": { "$ref": "#/definitions/color" },
         "icon": { "$ref": "#/definitions/icon" },
         "region": { "$ref": "#/definitions/id" },
-        "link": { "description": "飛び先。描いた図ではこの箱がここへの link になる", "$ref": "#/definitions/url" }
+        "link": { "description": "飛び先。描いた図ではこの箱がここへの link になる", "$ref": "#/definitions/url" },
+        "order": { "description": "列の図の箱の並べ方。none は順番の無い置き場で、チップを散らして置く。書かない箱は上から実行する札で、チップを line に書いた順に積む", "enum": ["none"] }
       }
     },
     "strip": {
@@ -463,6 +470,16 @@
           }
         },
         {
+          "description": "この段で役 role が動く。列の図だけが書ける。役の札の縁が光る",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "role"],
+          "properties": {
+            "type": { "const": "role" },
+            "role": { "$ref": "#/definitions/id" }
+          }
+        },
+        {
           "description": "列 box の右に text の札を押す。列の図だけが書ける",
           "type": "object",
           "additionalProperties": false,
@@ -540,23 +557,35 @@
     },
     "hash": { "description": "commit と木の箱の hash。16 進の字で 4 から 40 字", "type": "string", "pattern": "^[0-9a-f]{4,40}$" },
     "lineup": {
-      "description": "列の図の種類の欄。列に並べるチップ",
+      "description": "列の図の種類の欄。列に並べるチップと、チップを持たずに動く役",
       "type": "object",
       "additionalProperties": false,
       "required": ["items"],
       "properties": {
-        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/item" } }
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/item" } },
+        "roles": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/role" } }
+      }
+    },
+    "role": {
+      "description": "役。チップを持たずに動く者で、箱の上に札として並び、段の中の role の出来事で光る",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "note": { "description": "役の札の名前の下の一言", "$ref": "#/definitions/text" }
       }
     },
     "item": {
-      "description": "チップ。color を書かないチップは薄い色で、label を書かないチップは色だけで出す",
+      "description": "チップ。color を書かないチップは薄い色で、label を書かないチップは名前を出す。note を書いたチップは図の下の凡例にその説明を出す",
       "type": "object",
       "additionalProperties": false,
       "required": ["id"],
       "properties": {
         "id": { "$ref": "#/definitions/id" },
         "color": { "$ref": "#/definitions/color" },
-        "label": { "description": "チップに載せる字", "type": "string", "minLength": 1, "maxLength": 4 }
+        "label": { "description": "チップに載せる字", "type": "string", "minLength": 1, "maxLength": 4 },
+        "note": { "description": "図の下の凡例に出す、チップの説明", "$ref": "#/definitions/text" }
       }
     },
     "time": {

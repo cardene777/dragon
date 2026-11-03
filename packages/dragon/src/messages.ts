@@ -110,6 +110,14 @@ export interface Messages {
   lineupNoGroup: string;
   lineupNoEdge: string;
   lineupNoAct: string;
+  /** 列の図の箱だけの属性 (`order`) を、別の種類の図の箱に書いた (#3351) */
+  lineupOnlyAttr: (key: string) => string;
+  /** 箱の `order` に `none` 以外を書いた */
+  orderNone: string;
+  /** `role` の行の形 */
+  roleShape: string;
+  /** 段の中の `role` の行に、宣言していない役を書いた */
+  unknownRole: (id: string) => string;
   noItems: string;
   itemShape: string;
   lineShape: string;
@@ -268,8 +276,12 @@ const ja = (): Messages => {
     lineupNoGroup: "lineup (列の図) には group を書けない。列は box の行で宣言する",
     lineupNoEdge: "lineup (列の図) には線の行を書けない。チップは line の行で列の並びを書くと動く",
     lineupNoAct: "lineup (列の図) には act の行を書けない。列の右上の字は note の行で書き換える",
+    lineupOnlyAttr: (key) => `${key} は lineup (列の図) の box にだけ書ける`,
+    orderNone: "order には none だけを書ける。順番の無い置き場にする箱に書く",
+    roleShape: "role は、最初の step より前なら role <名札> [note: <一言>]、step の中なら role <名札> の形で書く",
+    unknownRole: (id) => `${id} という役は宣言していない。最初の step より前に role ${id} と書く`,
     noItems: "item の行でチップを 1 つ以上宣言する",
-    itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>] の形で書く",
+    itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>, note: <説明>] の形で書く",
     lineShape: "line は line <列>: <チップ>, <チップ> の形で書く",
     laneShape: (word) => `${word} は ${word} <列> の形で書く`,
     stampShape: "stamp は stamp <列>: <字> の形で書く",
@@ -408,8 +420,12 @@ const en = (): Messages => {
     lineupNoGroup: "A lineup diagram takes no group. Declare the lanes with box lines",
     lineupNoEdge: "A lineup diagram takes no edge lines. Chips move when a line line rewrites a lane",
     lineupNoAct: "A lineup diagram takes no act lines. Rewrite the text at the top right of a lane with a note line",
+    lineupOnlyAttr: (key) => `${key} can be written only on box lines of lineup diagrams`,
+    orderNone: "order takes only none. Write it on a box that holds chips in no order",
+    roleShape: "Write a role as role <id> [note: <text>] before the first step, or as role <id> inside a step",
+    unknownRole: (id) => `The role ${id} is not declared. Write role ${id} before the first step`,
     noItems: "Declare at least one chip with an item line",
-    itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>]",
+    itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>, note: <text>]",
     lineShape: "Write a line as line <lane>: <chip>, <chip>",
     laneShape: (word) => `Write ${word} as ${word} <lane>`,
     stampShape: "Write a stamp as stamp <lane>: <text>",

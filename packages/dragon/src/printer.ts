@@ -17,7 +17,7 @@
  * 列の図 (#3239) のチップは箱の後ろに `item` の行で書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
  * 段の出典 (#3199) は `say` と `code` の後ろ、段の中で起きることより前に、JSON の並びのまま 1 つずつ `source` の行に書く。
  */
-import type { Box, Diagram, DiagramEvent, LineupItem, Region, TimeSpec } from "./schema";
+import type { Box, Diagram, DiagramEvent, LineupItem, LineupRole, Region, TimeSpec } from "./schema";
 import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
 
 const quote = (text: string): string => `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -51,6 +51,7 @@ const declareBox = (b: Box): string =>
     ["color", b.color],
     ["icon", b.icon],
     ["link", b.link],
+    ["order", b.order],
   ])}`;
 
 /** 線の行の両端と名前 */
@@ -103,15 +104,17 @@ function event(e: DiagramEvent, kind: Diagram["kind"]): string {
       return `${e.type} ${e.box}`;
     case "stamp":
       return `stamp ${e.box}: ${name(e.text)}`;
+    case "role":
+      return `role ${e.role}`;
   }
 }
 
-/** 列の図のチップの宣言の行。色が同じで字を持たないチップが続く所は 1 行に並べる */
+/** 列の図のチップの宣言の行。色と説明が同じで字を持たないチップが続く所は 1 行に並べる */
 function itemLines(items: LineupItem[]): string {
   const rows: LineupItem[][] = [];
   for (const item of items) {
     const row = rows.at(-1);
-    if (row && item.label === undefined && row[0]?.label === undefined && row[0]?.color === item.color) row.push(item);
+    if (row && item.label === undefined && row[0]?.label === undefined && row[0]?.color === item.color && row[0]?.note === item.note) row.push(item);
     else rows.push([item]);
   }
   return rows
@@ -120,10 +123,14 @@ function itemLines(items: LineupItem[]): string {
         `item ${row.map((item) => item.id).join(", ")}${attrs([
           ["color", row[0]?.color],
           ["label", row[0]?.label],
+          ["note", row[0]?.note],
         ])}`,
     )
     .join("\n");
 }
+
+/** 列の図の役の宣言の行 (#3351) */
+const roleLines = (roles: LineupRole[]): string => roles.map((r) => `role ${r.id}${attrs([["note", r.note]])}`).join("\n");
 
 /** 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲の宣言の塊 */
 function timeBlocks(time: TimeSpec): string[] {
@@ -182,6 +189,7 @@ export function printNotation(diagram: Diagram): string {
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
     ...(branches.length > 0 ? [branches.join("\n")] : []),
     ...(diagram.time ? timeBlocks(diagram.time) : []),
+    ...(diagram.lineup?.roles && diagram.lineup.roles.length > 0 ? [roleLines(diagram.lineup.roles)] : []),
     ...declarations(diagram),
     ...(diagram.lineup && diagram.lineup.items.length > 0 ? [itemLines(diagram.lineup.items)] : []),
   ];

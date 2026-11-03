@@ -42,6 +42,8 @@ export interface Box {
   region?: string;
   /** 飛び先。描いた図ではこの箱がここへの link になる。`/` で始まる path か、http:// か https:// で始まる URL (#3199) */
   link?: string;
+  /** 列の図の箱の並べ方 (#3351)。`none` は順番の無い置き場で、書かない箱は上から実行する札 */
+  order?: "none";
 }
 
 export type Carry = { kind: "envelope" } | { kind: "tag"; text: string } | { kind: "coin" } | { kind: "none" };
@@ -65,7 +67,8 @@ export type DiagramEvent =
   | TreeNode
   | LineupOrder
   | { type: "seal" | "open" | "pick"; box: string }
-  | LineupStamp;
+  | LineupStamp
+  | LineupAct;
 
 /** 時間軸の図 (#3165) の、印の列 `row` の `from` から `to` の目盛りの印の色を変える出来事 */
 export interface TimeMarkEvent {
@@ -176,11 +179,24 @@ export interface LineupStamp {
   text: string;
 }
 
-/** 列の図のチップ。`color` を書かないチップは薄い色で、`label` を書かないチップは色だけで出す */
+/** 列の図の、段 `role` の役が動く出来事 (#3351)。役の札の縁が光る */
+export interface LineupAct {
+  type: "role";
+  role: string;
+}
+
+/** 列の図のチップ。`color` を書かないチップは薄い色で、`label` を書かないチップは名前を出す。`note` は凡例に出す説明 (#3351) */
 export interface LineupItem {
   id: string;
   color?: Color;
   label?: string;
+  note?: string;
+}
+
+/** 列の図の役 (#3351)。チップを持たずに動く者で、箱の上に札として並ぶ。`note` は名前の下の一言 */
+export interface LineupRole {
+  id: string;
+  note?: string;
 }
 
 /** 枝分かれの図の枝。上から宣言した順に帯を並べる */
@@ -224,7 +240,7 @@ export interface Diagram {
   state?: { paths: StatePath[] };
   git?: { branches: GitBranch[] };
   time?: TimeSpec;
-  lineup?: { items: LineupItem[] };
+  lineup?: { items: LineupItem[]; roles?: LineupRole[] };
 }
 
 export interface FieldError {
@@ -284,7 +300,7 @@ const TREE_EVENTS = ["leaf", "node"] as const satisfies readonly DiagramEvent["t
 /** 列の図でない図に、列の図だけの出来事を書いた時の決まりの場所 (#3239) */
 const LINEUP_EVENT = "#/definitions/notLineupEvent/not";
 /** 列の図だけが書ける出来事 */
-const LINEUP_EVENTS = ["line", "seal", "open", "pick", "stamp"] as const satisfies readonly DiagramEvent["type"][];
+const LINEUP_EVENTS = ["line", "seal", "open", "pick", "stamp", "role"] as const satisfies readonly DiagramEvent["type"][];
 /** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
 const WIRED_EVENT = "#/definitions/notWiredEvent/not";
 /** 列の図が書けない、箱と線の図の出来事 */

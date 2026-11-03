@@ -142,6 +142,18 @@ export const TEXT = {
             name: "札",
             desc: "列の図だけの部品。段の中に stamp <列>: <字> と書くと、列の右に傾いた札が押される。署名や承認のように、列の中身に触れずに起きたことを見せる。",
           },
+          order: {
+            name: "置き場",
+            desc: "列の図だけの部品。box <名札> [order: none] と書くと、その箱は順番の無い置き場になる。チップを散らして置き、点線の枠で描く。ほかの箱は札になり、チップを書いた順に上から積む。",
+          },
+          role: {
+            name: "役",
+            desc: "列の図だけの部品。最初の step より前に role <名札> [note: <一言>] と書くと、役の札が箱の上に並ぶ。段の中に role <名札> と書くと、その段に役の札が光る。",
+          },
+          legend: {
+            name: "凡例",
+            desc: "列の図だけの部品。item の行に [note: <説明>] と書くと、図の下の凡例にチップの説明が出る。同じ説明は最初のチップの色で 1 行にまとまる。",
+          },
         },
         kindOnly: (kind: string) => `${kind}だけ`,
         partKinds: "使える図",
@@ -458,6 +470,18 @@ export const TEXT = {
           stamp: {
             name: "Stamp",
             desc: "Lineup diagrams only. Write stamp <lane>: <text> in a step and a tilted stamp lands on the right of the lane. Use it for something that happens without touching the contents, such as a signature or an approval.",
+          },
+          order: {
+            name: "Pool",
+            desc: "Lineup diagrams only. Write box <id> [order: none] and the box becomes a pool with no order. Its chips are scattered inside a dashed frame. Other boxes become cards that stack their chips from the top in the order written.",
+          },
+          role: {
+            name: "Role",
+            desc: "Lineup diagrams only. Write role <id> [note: <text>] before the first step and a role card sits above the boxes. Write role <id> in a step and the card lights up in that step.",
+          },
+          legend: {
+            name: "Legend",
+            desc: "Lineup diagrams only. Add [note: <text>] to an item line and the legend under the diagram explains the chip. Chips with the same note share one row in the color of the first chip.",
           },
         },
         kindOnly: (kind: string) => `${kind} only`,

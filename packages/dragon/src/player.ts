@@ -120,7 +120,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   const win = doc.defaultView;
   // 描く前に読む。描いた後に読むと、動きを嫌う人にも一瞬だけ流れてしまう
   const reduce = Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
-  const rendered = renderDiagram(diagram, options);
+  let rendered = renderDiagram(diagram, options);
   const lang = options.lang ?? DEFAULT_LANG;
   const words = FIGURE_TEXT[lang];
   const palette = paletteOf(options, rendered.theme);
@@ -233,6 +233,20 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   host.append(root);
 
   const frameWidth = (): number => frame.clientWidth || host.clientWidth || rendered.layout.width;
+  /**
+   * 列の図は枠の幅で箱の並べ方を変える (#3351)。横に並べると箱の名前が読めない幅では縦に組んだ図を描き直す。
+   * 並べ方が変わった時だけ真を返す。段と時刻の表は原本だけで決まるので、描き直しても変わらない
+   */
+  const arrange = (w: number): boolean => {
+    if (rendered.diagram.kind !== "lineup") return false;
+    const next = renderDiagram(diagram, { ...options, width: w });
+    const before = (rendered.layout as { arrangement?: string }).arrangement;
+    const after = (next.layout as { arrangement?: string }).arrangement;
+    if (before === after) return false;
+    rendered = next;
+    return true;
+  };
+  arrange(frameWidth());
   /** 高さに収めると頼まれた時だけ、図の枠の中で見える高さ (上下の余白を除く)。測れない時は `undefined` で、幅だけで決める */
   const frameHeight = (): number | undefined => {
     if (!options.fitHeight || !win) return undefined;
@@ -384,8 +398,9 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
     ? new Observer(() => {
         const w = frameWidth();
         const h = frameHeight();
+        const rearranged = arrange(w);
         const chosen = chooseView(rendered, w, h).mode;
-        if (chosen === mode && (mode === "fixed" || (w === width && h === height))) return;
+        if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height))) return;
         const t = now();
         mode = chosen;
         width = w;

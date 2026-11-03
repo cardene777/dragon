@@ -58,7 +58,9 @@
  * 列の図 (`lineup`、#3239) は、`box` の行が列になり、最初の `step` より前に `item <名札>, <名札> [color: <色>, label: <字>]` でチップを宣言する。
  * 段の中で `line <列>: <チップ>, <チップ>` と書くと列の並びが替わり、`seal <列>` で封をし、`open <列>` で開け、`pick <列>` で列を選び、
  * `stamp <列>: <字>` で札を押す。列の図に区画 (`group`) と線と `act` の行は書けない。封をした列の並びは、開けるまで書けない。
- * `item`、`line`、`seal`、`open`、`pick`、`stamp` の行は列の図でだけ書ける。
+ * `item`、`line`、`seal`、`open`、`pick`、`stamp`、`role` の行は列の図でだけ書ける。
+ * 卓の形 (#3351) で、`box` の行の `[order: none]` は箱を順番の無い置き場にし、`item` の行の `[note: <説明>]` は凡例の説明を持たせる。
+ * 最初の `step` より前の `role <名札> [note: <一言>]` は役を宣言し、段の中の `role <名札>` はその段で動く役を名指す。
  *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
@@ -76,6 +78,7 @@ import {
   ICON_NAMES,
   type LabelSide,
   type LineupItem,
+  type LineupRole,
   type Region,
   type StatePath,
   type Step,
@@ -105,6 +108,7 @@ import {
   LANE_MOST,
   LINEUP_HEADS,
   MERGE,
+  ORDERS,
   type NotationLang,
   NOW,
   OF,
@@ -160,6 +164,8 @@ const NODE = new RegExp(`^node\\s+([^\\s[]+)\\s+${OF}\\s+`, "du");
 const ORDER = /^line\s+([^\s:[]+)\s*:/du;
 const STAMP = /^stamp\s+([^\s:[]+)\s*:/du;
 const ON_LANE = /^(?:seal|open|pick)\s+(\S+)\s*$/du;
+/** 段の中の `role <名札>` の行 (#3351) */
+const ACT_ROLE = /^role\s+(\S+)\s*$/du;
 /** commit の hash。原本の JSON の hash の形と同じ */
 const HASH = /^[0-9a-f]{4,40}$/u;
 /** 箱の飛び先と段の出典の URL。原本の JSON の URL の形と同じ */
@@ -386,6 +392,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   const isLineup = kind === "lineup";
   /** 列の図で宣言したチップと、今封をしている列 (#3239) */
   const items: LineupItem[] = [];
+  const roles: LineupRole[] = [];
   const sealed = new Set<string>();
   /** 木の図で書いた木の箱と、書いた行と名札の位置。子の箱から親の名札 */
   const trees = new Map<string, { source: SourceLine; at: number }>();
@@ -614,6 +621,9 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       case "item":
         readItem(source);
         break;
+      case "role":
+        readRole(source);
+        break;
       case "line": {
         const step = inStep(source);
         step.events.push(readOrder(source));
@@ -660,7 +670,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     ...(kind === "sequence" ? { sequence: { lifelines: boxes.map((box) => box.id) } } : {}),
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
-    ...(isLineup ? { lineup: { items } } : {}),
+    ...(isLineup ? { lineup: { items, ...(roles.length > 0 ? { roles } : {}) } } : {}),
     ...(isTime && scale
       ? {
           time: {
@@ -886,6 +896,9 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     firstBox ??= source;
     const { note, ...look } = lookOf(source, declared.attrs, m);
     const link = declared.attrs.get("link");
+    const order = declared.attrs.get("order");
+    if (order && !isLineup) throw fail(source, order.at, m.lineupOnlyAttr("order"));
+    if (order && !isOneOf(ORDERS, order.value)) throw fail(source, source.text.indexOf(order.value, order.at + "order".length), m.orderNone);
     boxes.push({
       id: declared.id,
       name: declared.name ?? declared.id,
@@ -893,6 +906,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
       ...look,
       ...(group ? { region: group.id } : {}),
       ...(link ? { link: urlOf(source, "link", link) } : {}),
+      ...(order ? { order: order.value as (typeof ORDERS)[number] } : {}),
     });
   }
 
@@ -1060,10 +1074,32 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
     const label = attrs.get("label");
     if (label && [...label.value].length > LABEL_MOST) throw fail(source, label.at, m.labelTooLong(LABEL_MOST));
+    const note = attrs.get("note")?.value;
     for (const { value, at } of namesAt(source, "item".length, end, m.itemShape)) {
       declare(source, value, at);
-      items.push({ id: value, ...(color ? { color: color.value as Color } : {}), ...(label ? { label: label.value } : {}) });
+      items.push({ id: value, ...(color ? { color: color.value as Color } : {}), ...(label ? { label: label.value } : {}), ...(note !== undefined ? { note } : {}) });
     }
+  }
+
+  /**
+   * 列の図の `role` の行 (#3351)。最初の `step` より前なら `role <名札> [note: <一言>]` で役を宣言し、
+   * 段の中なら `role <名札>` でその段で動く役を名指す。段の中で名指す役は宣言した役だけ
+   */
+  function readRole(source: SourceLine): void {
+    if (!building) {
+      const declared = readDeclared(source, "role", ATTRS.role, m);
+      if (declared.name !== undefined) throw fail(source, 0, m.roleShape);
+      declare(source, declared.id, declared.idAt);
+      const note = declared.attrs.get("note")?.value;
+      roles.push({ id: declared.id, ...(note !== undefined ? { note } : {}) });
+      return;
+    }
+    const found = ACT_ROLE.exec(source.text);
+    const id = found?.[1];
+    if (!found || id === undefined) throw fail(source, 0, m.roleShape);
+    const at = found.indices?.[1]?.[0] ?? 0;
+    if (!roles.some((role) => role.id === id)) throw fail(source, at, m.unknownRole(id));
+    building.events.push({ type: "role", role: id });
   }
 
   /** 列の図の `line <列>: <チップ>, <チップ>` の行。チップは宣言したチップで、列に 1 枚ずつ、上限まで。封をした列には書けない */

@@ -5,7 +5,8 @@
   "boxes": [
     {
       "id": "Mempool",
-      "name": "Mempool"
+      "name": "Mempool",
+      "order": "none"
     },
     {
       "id": "BuilderA",
@@ -14,7 +15,7 @@
     {
       "id": "BuilderB",
       "name": "Builder B",
-      "color": "amber"
+      "color": "violet"
     },
     {
       "id": "BuilderC",
@@ -23,7 +24,8 @@
     {
       "id": "Validators",
       "name": "Validators",
-      "color": "green"
+      "color": "green",
+      "order": "none"
     }
   ],
   "steps": [
@@ -35,14 +37,14 @@
           "type": "line",
           "box": "Mempool",
           "items": [
-            "t1",
-            "t2",
+            "send",
             "mine",
-            "t3",
-            "t4",
-            "t5",
-            "t6",
-            "t7"
+            "swap",
+            "mint",
+            "stake",
+            "repay",
+            "settle",
+            "redeem"
           ]
         }
       ]
@@ -55,14 +57,14 @@
           "type": "line",
           "box": "BuilderA",
           "items": [
-            "t1",
-            "t2",
+            "send",
+            "swap",
             "mine",
-            "t3",
-            "t4",
-            "t5",
-            "t6",
-            "t7"
+            "mint",
+            "stake",
+            "repay",
+            "settle",
+            "redeem"
           ]
         },
         {
@@ -71,25 +73,25 @@
           "items": [
             "private1",
             "private2",
-            "t3",
+            "mint",
             "mine",
-            "t1",
-            "t2",
-            "t4",
-            "t5"
+            "send",
+            "swap",
+            "stake",
+            "repay"
           ]
         },
         {
           "type": "line",
           "box": "BuilderC",
           "items": [
-            "t1",
-            "t2",
-            "t3",
-            "t4",
-            "t5",
-            "t6",
-            "t7"
+            "send",
+            "swap",
+            "mint",
+            "stake",
+            "repay",
+            "settle",
+            "redeem"
           ]
         },
         {
@@ -114,6 +116,10 @@
       "body": "The relay holds the contents and hides them, so the proposer cannot steal them.",
       "events": [
         {
+          "type": "role",
+          "role": "Relay"
+        },
+        {
           "type": "seal",
           "box": "BuilderA"
         },
@@ -132,6 +138,10 @@
       "body": "Only the price reaches the proposer, who picks the highest bid, Builder B.",
       "events": [
         {
+          "type": "role",
+          "role": "Proposer"
+        },
+        {
           "type": "pick",
           "box": "BuilderB"
         }
@@ -142,6 +152,10 @@
       "body": "The proposer signs the block header without seeing the contents.",
       "events": [
         {
+          "type": "role",
+          "role": "Proposer"
+        },
+        {
           "type": "stamp",
           "box": "BuilderB",
           "text": "Signed"
@@ -150,8 +164,12 @@
     },
     {
       "title": "The seal opens and the block is published",
-      "body": "With the signature in hand, the relay publishes the full block. The losing lanes stay hidden.",
+      "body": "With the signature in hand, the relay publishes the full block. The losing blocks stay hidden.",
       "events": [
+        {
+          "type": "role",
+          "role": "Relay"
+        },
         {
           "type": "open",
           "box": "BuilderB"
@@ -160,7 +178,7 @@
     },
     {
       "title": "Validators vote",
-      "body": "Validators re-execute the block and vote for it if it is correct.",
+      "body": "Validators re-execute the block and vote for it if it is correct. Your transaction is confirmed as #4 in Builder B's block.",
       "events": [
         {
           "type": "line",
@@ -186,97 +204,129 @@
   "lineup": {
     "items": [
       {
+        "id": "send",
+        "note": "Transaction (named for what it does)"
+      },
+      {
+        "id": "swap",
+        "note": "Transaction (named for what it does)"
+      },
+      {
+        "id": "mint",
+        "note": "Transaction (named for what it does)"
+      },
+      {
+        "id": "stake",
+        "note": "Transaction (named for what it does)"
+      },
+      {
+        "id": "repay",
+        "note": "Transaction (named for what it does)"
+      },
+      {
+        "id": "settle",
+        "note": "Transaction (named for what it does)"
+      },
+      {
+        "id": "redeem",
+        "note": "Transaction (named for what it does)"
+      },
+      {
         "id": "mine",
-        "color": "amber"
-      },
-      {
-        "id": "t1"
-      },
-      {
-        "id": "t2"
-      },
-      {
-        "id": "t3"
-      },
-      {
-        "id": "t4"
-      },
-      {
-        "id": "t5"
-      },
-      {
-        "id": "t6"
-      },
-      {
-        "id": "t7"
+        "color": "amber",
+        "note": "Your transaction"
       },
       {
         "id": "private1",
-        "color": "blue"
+        "color": "blue",
+        "note": "Private (sent straight to a builder without the mempool)"
       },
       {
         "id": "private2",
-        "color": "blue"
+        "color": "blue",
+        "note": "Private (sent straight to a builder without the mempool)"
       },
       {
         "id": "v1",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v2",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v3",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v4",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v5",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v6",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v7",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v8",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v9",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v10",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v11",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
       },
       {
         "id": "v12",
         "color": "green",
-        "label": "✓"
+        "label": "✓",
+        "note": "Vote"
+      }
+    ],
+    "roles": [
+      {
+        "id": "Relay",
+        "note": "Seals the contents"
+      },
+      {
+        "id": "Proposer",
+        "note": "Sees only the price"
       }
     ]
   }

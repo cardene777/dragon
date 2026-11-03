@@ -49,15 +49,18 @@ export const TREE_HEADS = ["leaf", "node"] as const;
 
 /**
  * 列の図 (`lineup`、#3239) だけが書ける行の頭の語。最初の段より前にチップを宣言し (`item`)、
- * 段の中で列の並びを書き (`line`)、封をして開け (`seal` と `open`)、列を選び (`pick`)、札を押す (`stamp`)
+ * 段の中で列の並びを書き (`line`)、封をして開け (`seal` と `open`)、列を選び (`pick`)、札を押す (`stamp`)。
+ * `role` は最初の段より前に書けば役を宣言し、段の中に書けばその段で動く役を名指す (#3351)
  */
-export const LINEUP_HEADS = ["item", "line", "seal", "open", "pick", "stamp"] as const;
+export const LINEUP_HEADS = ["item", "line", "seal", "open", "pick", "stamp", "role"] as const;
 /** 1 列に並べられるチップの上限。図の幅はこの枚数の列の幅で決まる */
 export const LANE_MOST = 12;
 /** チップの字の上限 */
 export const LABEL_MOST = 4;
-/** 列の図の `box` の行に書ける属性の鍵。列は絵柄と飛び先を持たない */
-export const LANE_ATTRS = ["note", "color"] as const;
+/** 列の図の `box` の行に書ける属性の鍵。列は絵柄と飛び先を持たない。`order` は列の図の箱だけが書く (#3351) */
+export const LANE_ATTRS = ["note", "color", "order"] as const;
+/** 列の図の箱の `order` に書ける並べ方。`none` は順番の無い置き場 (#3351) */
+export const ORDERS = ["none"] as const;
 
 /**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
@@ -94,7 +97,7 @@ export const OF = "of";
 export const ATTRS = {
   diagram: ["view"],
   group: ["note", "color", "icon"],
-  box: ["note", "color", "icon", "link"],
+  box: ["note", "color", "icon", "link", "order"],
   source: ["url"],
   edge: ["carry", "tag", "side", "at", "into"],
   note: ["color"],
@@ -104,7 +107,8 @@ export const ATTRS = {
   commit: ["hash", "note"],
   leaf: ["hash"],
   node: ["hash"],
-  item: ["color", "label"],
+  item: ["color", "label", "note"],
+  role: ["note"],
   scale: ["from"],
   period: ["from"],
   row: ["color", "empty"],

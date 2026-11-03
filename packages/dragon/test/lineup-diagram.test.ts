@@ -1174,7 +1174,8 @@ describe("列の図を卓の形で並べる (#3351)", () => {
       ],
       ビルダーC: [["自分が無い", "amber"]],
     };
-    const rendered = render(exampleJson("auction.json"));
+    // 一言は図の言葉で書くので、日本語の見本は日本語で描く
+    const rendered = render(exampleJson("auction.json"), "ja");
     const motion = motionFrom(rendered);
     const { layout, timeline } = rendered;
     const at = (s: number): number => timeline.stills[s] ?? 0;

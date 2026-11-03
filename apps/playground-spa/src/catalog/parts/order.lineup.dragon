@@ -1,0 +1,14 @@
+lineup 置き場
+
+box 受付 [order: none]
+box 窓口
+
+item 申請, 照会, 変更
+
+step 置く
+  say order: none の箱は順番の無い置き場になり、チップを散らして置く。
+  line 受付: 申請, 照会, 変更
+
+step 並べる
+  say 札の箱には、チップを書いた順に上から積む。
+  line 窓口: 照会, 申請, 変更
