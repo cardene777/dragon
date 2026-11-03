@@ -6,6 +6,18 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.46.3] - 2026-11-03
+
+This version only changes the package description on npm, so the third number went up.
+It also carries the 0.46.2 change to the Japanese README, which was not published to npm.
+
+### Changed
+
+- **The package description on npm is now in English** (#3327)
+
+  The description was in Japanese and named only sequence and architecture diagrams.
+  It now starts with the first sentence of the README and names no diagram kinds, so adding a kind does not leave it out of date.
+
 ## [0.46.2] - 2026-11-03
 
 This version changes only the catalog; the code in `packages/dragon/` is the same as 0.46.1, so it was not published to npm.
