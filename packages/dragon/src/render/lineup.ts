@@ -14,15 +14,74 @@ import { hasWide, textWidth } from "../layout/measure";
 import { type LineupAt, type LineupLane, type LineupLayout, type LineupPick, type LineupSeal, type LineupSeat, type LineupText, splitNote } from "../layout/lineup";
 import type { Point } from "../layout/scene";
 import { EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
+import { LINEUP_LOOK } from "../look/lineup";
 import type { Diagram } from "../schema";
 import type { Span, Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
 import { cs } from "../blocks/color/draw";
 import type { SubChange } from "../blocks/box/draw";
-import { type Ctx, esc, write } from "./parts";
+import { type Ctx, cssFont as font, cssMix as mix, esc, sansOf, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
+
+const S = LOOK.stroke;
+const X = LOOK.mix;
+
+/**
+ * 列の図の部品の見た目 (#3239)。卓の形 (#3351) の箱と役の札と段の題と札の下の一言と「この先」の帯と凡例。封は箱の左端から右へ伸びる。
+ * どの値も値の表から読む。列の図の SVG にだけ書き、ほかの図の SVG と頁が最初に読む script に入れない (#3351)
+ */
+const LINEUP_CSS = [
+  `.dg-ln-card{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
+  `.dg-ln-pool{fill:color-mix(in srgb,var(--surf) ${X.poolFill}%,transparent);stroke:var(--mute);stroke-width:${S.hair}}`,
+  `.dg-ln-slot{fill:none;stroke:var(--hair);stroke-width:${S.hair}}`,
+  `.dg-ln-sep{stroke:var(--hair);stroke-width:${S.hair}}`,
+  `.dg-ln-hint{${font(TYPE.laneHint)};fill:var(--mute)}`,
+  `.dg-ln-ha{fill:none;stroke:var(--mute);stroke-width:${S.hair};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-ln-empty{${font(TYPE.laneEmpty)};fill:var(--mute)}`,
+  `.dg-ln-note{${font(TYPE.laneNote)};fill:var(--ct)}`,
+  `.dg-ln-unit{${font(TYPE.laneUnit)};fill:var(--ct)}`,
+  `.dg-ln-cf{fill:var(--surf);stroke:var(--line);stroke-width:${S.hair}}`,
+  `.dg-ln-cc{fill:${mix(X.chipTint)};stroke:var(--c);stroke-width:${S.on}}`,
+  `.dg-ln-cg{fill:none;stroke:var(--c);stroke-width:${LINEUP_LOOK.chip.glow};stroke-opacity:.18}`,
+  `.dg-ln-t{${font(TYPE.chip)};fill:var(--ink)}`,
+  ".dg-ln-tf{fill:var(--mute)}",
+  `.dg-ln-tj{${font(sansOf(TYPE.chip))}}`,
+  `.dg-ln-notej{${font(sansOf(TYPE.laneNote))}}`,
+  `.dg-ln-unitj{${font(sansOf(TYPE.laneUnit))}}`,
+  ".dg-ln-seal{transform-box:fill-box;transform-origin:0 50%}",
+  `.dg-ln-sd{fill:color-mix(in srgb,var(--mute) ${X.sealDark}%,var(--surf))}`,
+  `.dg-ln-sl{fill:color-mix(in srgb,var(--mute) ${X.sealLight}%,var(--surf))}`,
+  `.dg-ln-sealbg{stroke:var(--hair);stroke-width:${S.hair}}`,
+  `.dg-ln-lockbox{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
+  `.dg-ln-lock{fill:none;stroke:var(--mute);stroke-width:${S.slot};stroke-linecap:round}`,
+  `.dg-ln-sw-t{${font(TYPE.sealWord)};fill:var(--mute)}`,
+  `.dg-ln-stamp{fill:var(--surf);stroke:var(--c);stroke-width:${S.stamp}}`,
+  `.dg-ln-st{${font(TYPE.stamp)};fill:var(--ct)}`,
+  ".dg-ln-mark{fill:var(--c)}",
+  `.dg-ln-mt{${font(TYPE.laneMark)};fill:var(--on-c)}`,
+  `.dg-ln-role{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
+  `.dg-ln-lit{fill:${mix(X.chipTint)};stroke:var(--c);stroke-width:${S.on}}`,
+  `.dg-ln-rn{${font(TYPE.roleName)};fill:var(--ink)}`,
+  `.dg-ln-rt{${font(TYPE.roleNote)};fill:var(--mute)}`,
+  `.dg-ln-ft{${font(TYPE.lineupTitle)};fill:var(--mute)}`,
+  `.dg-ln-hd{${font(TYPE.lineupHead)};fill:var(--ink)}`,
+  `.dg-ln-say{${font(TYPE.lineupSay)};fill:var(--mute)}`,
+  `.dg-ln-arrow{fill:none;stroke:var(--c);stroke-width:${S.edge};stroke-linecap:round;stroke-linejoin:round}`,
+  ".dg-ln-bar{fill:var(--c)}",
+  ".dg-ln-bar0{fill:var(--mute)}",
+  `.dg-ln-rk{${font(TYPE.remark)};fill:var(--ink)}`,
+  `.dg-ln-al{${font(TYPE.aheadLabel)};fill:var(--mute)}`,
+  `.dg-ln-tag{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
+  `.dg-ln-no{fill:none;stroke:var(--c);stroke-width:${S.hair}}`,
+  `.dg-ln-nt{${font(TYPE.aheadNo)};fill:var(--ct)}`,
+  `.dg-ln-at{${font(TYPE.aheadText)};fill:var(--ink)}`,
+  `.dg-ln-aa{fill:none;stroke:var(--mute);stroke-width:${S.hair};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-ln-sw{fill:none;stroke:var(--c);stroke-width:${S.slot}}`,
+  `.dg-ln-sw0{fill:none;stroke:var(--mute);stroke-width:${S.slot}}`,
+  `.dg-ln-lg{${font(TYPE.legend)};fill:var(--mute)}`,
+].join("");
 
 /** 席から `(dx, dy)` ずらして大きさを `scale` 倍にした時の `transform` */
 const place = (dx: number, dy: number, scale = 1): string => `translate(${r1(dx)}px,${r1(dy)}px) scale(${scale})`;
@@ -52,9 +111,9 @@ function lines(ctx: Ctx, cls: string, t: LineupText, style: TextStyle, shown: Sh
   return t.lines.map((l) => write(ctx.ink, wide !== "" && style.family === "mono" && hasWide(l.text) ? `${cls} ${wide}` : cls, l.x, l.baseline, l.text, style, shown)).join("");
 }
 
-export function drawLineup(layout: LineupLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { lanes: string; chips: string } {
+export function drawLineup(layout: LineupLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { lanes: string; chips: string; css: string } {
   const { m } = ctx;
-  const N = LOOK.lineup;
+  const N = LINEUP_LOOK;
   const cut = MOTION.lineup.cut;
   const timeOf = (at: LineupAt): { start: number; drawn: number } => timeline.edges.find((t) => t.step === at.step && t.event === at.event) ?? { start: 0, drawn: 0 };
   const spanOf = (s: number): Span => timeline.steps[s] as Span;
@@ -378,5 +437,5 @@ export function drawLineup(layout: LineupLayout, diagram: Diagram, timeline: Tim
     })
     .join("");
 
-  return { lanes: `${heading}${headlines}${roles}${arrows}${lanes}${remarks}${aheads}${legend}`, chips: `${pattern}${chips}` };
+  return { lanes: `${heading}${headlines}${roles}${arrows}${lanes}${remarks}${aheads}${legend}`, chips: `${pattern}${chips}`, css: LINEUP_CSS };
 }

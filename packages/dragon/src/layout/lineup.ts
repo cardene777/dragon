@@ -23,12 +23,13 @@
  */
 import { type FigureText, FIGURE_TEXT } from "../figure-text";
 import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../look/values";
+import { LINEUP_LOOK } from "../look/lineup";
 import type { Diagram, DiagramEvent } from "../schema";
 import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../words";
 import { hasWide, textWidth } from "./measure";
 import { boxColors, type Layout, layoutStrip, type Point, type Rect, replaceSameSpot, type SceneBadge, type SceneBox, stripNeed } from "./scene";
 
-const L = LOOK.lineup;
+const L = LINEUP_LOOK;
 const C = L.chip;
 /** 置き場のチップを散らして上下へずらす最も大きな量。チップを置く所の上下にこの分を空ける */
 const LIFT = Math.max(...L.pool.jitter.map(([, dy]) => Math.abs(dy)));

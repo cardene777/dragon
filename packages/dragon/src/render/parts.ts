@@ -80,6 +80,11 @@ export interface Ctx {
 /** 和文を含む字の、和文の字で描く時の字の形 */
 export const sansOf = (t: TextStyle): TextStyle => ({ ...t, family: "sans" });
 
+/** 字の形を CSS の `font` の値にする。字の族は CSS の変数で引く */
+export const cssFont = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
+/** 色の役の色 (`--c`) を `pct` の割合で `base` に混ぜた CSS の色 */
+export const cssMix = (pct: number, base = "var(--surf)"): string => `color-mix(in srgb,var(--c) ${pct}%,${base})`;
+
 /**
  * 字を 1 つ描き、字の四角と見えている間を `ink` に記録する (#3175)。`ink` を渡さない字 (寄って追う窓の頭の列) は記録しない。
  * `anchor` を渡さない字は左端を `x` に置き、`text-anchor` を書かない

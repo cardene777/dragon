@@ -31,13 +31,15 @@ import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
 import { FONTS } from "../look/fonts";
-import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type TextStyle, type Theme, TYPE } from "../look/values";
+import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type Theme, TYPE } from "../look/values";
 import { readDiagram } from "../version";
 import type { Diagram, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import {
   badge,
+  cssFont as font,
+  cssMix as mix,
   type Ctx,
   doneMark,
   endMark,
@@ -92,8 +94,6 @@ export interface Rendered {
   overlaps: Overlap[];
 }
 
-const font = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
-const mix = (pct: number, base = "var(--surf)"): string => `color-mix(in srgb,var(--c) ${pct}%,${base})`;
 const S = LOOK.stroke;
 const X = LOOK.mix;
 /** 状態遷移図で段が終わった線と番号の灰 (#3171) */
@@ -197,55 +197,6 @@ const PART_CSS = [
   `.dg-tree-one{${font(TYPE.boxName)};fill:var(--ink)}`,
   `.dg-tree-rh{${font(TYPE.rootHash)};fill:var(--ink)}`,
   `.dg-tree-rn{${font(TYPE.rootName)};fill:var(--mute)}`,
-  // 列の図 (#3239)。卓の形 (#3351) の箱と役の札と段の題と札の下の一言と「この先」の帯と凡例。封は箱の左端から右へ伸びる
-  `.dg-ln-card{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
-  `.dg-ln-pool{fill:color-mix(in srgb,var(--surf) ${X.poolFill}%,transparent);stroke:var(--mute);stroke-width:${S.hair}}`,
-  `.dg-ln-slot{fill:none;stroke:var(--hair);stroke-width:${S.hair}}`,
-  `.dg-ln-sep{stroke:var(--hair);stroke-width:${S.hair}}`,
-  `.dg-ln-hint{${font(TYPE.laneHint)};fill:var(--mute)}`,
-  `.dg-ln-ha{fill:none;stroke:var(--mute);stroke-width:${S.hair};stroke-linecap:round;stroke-linejoin:round}`,
-  `.dg-ln-empty{${font(TYPE.laneEmpty)};fill:var(--mute)}`,
-  `.dg-ln-note{${font(TYPE.laneNote)};fill:var(--ct)}`,
-  `.dg-ln-unit{${font(TYPE.laneUnit)};fill:var(--ct)}`,
-  `.dg-ln-cf{fill:var(--surf);stroke:var(--line);stroke-width:${S.hair}}`,
-  `.dg-ln-cc{fill:${mix(X.chipTint)};stroke:var(--c);stroke-width:${S.on}}`,
-  `.dg-ln-cg{fill:none;stroke:var(--c);stroke-width:${LOOK.lineup.chip.glow};stroke-opacity:.18}`,
-  `.dg-ln-t{${font(TYPE.chip)};fill:var(--ink)}`,
-  ".dg-ln-tf{fill:var(--mute)}",
-  `.dg-ln-tj{${font(sansOf(TYPE.chip))}}`,
-  `.dg-ln-notej{${font(sansOf(TYPE.laneNote))}}`,
-  `.dg-ln-unitj{${font(sansOf(TYPE.laneUnit))}}`,
-  ".dg-ln-seal{transform-box:fill-box;transform-origin:0 50%}",
-  `.dg-ln-sd{fill:color-mix(in srgb,var(--mute) ${X.sealDark}%,var(--surf))}`,
-  `.dg-ln-sl{fill:color-mix(in srgb,var(--mute) ${X.sealLight}%,var(--surf))}`,
-  `.dg-ln-sealbg{stroke:var(--hair);stroke-width:${S.hair}}`,
-  `.dg-ln-lockbox{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
-  `.dg-ln-lock{fill:none;stroke:var(--mute);stroke-width:${S.slot};stroke-linecap:round}`,
-  `.dg-ln-sw-t{${font(TYPE.sealWord)};fill:var(--mute)}`,
-  `.dg-ln-stamp{fill:var(--surf);stroke:var(--c);stroke-width:${S.stamp}}`,
-  `.dg-ln-st{${font(TYPE.stamp)};fill:var(--ct)}`,
-  ".dg-ln-mark{fill:var(--c)}",
-  `.dg-ln-mt{${font(TYPE.laneMark)};fill:var(--on-c)}`,
-  `.dg-ln-role{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
-  `.dg-ln-lit{fill:${mix(X.chipTint)};stroke:var(--c);stroke-width:${S.on}}`,
-  `.dg-ln-rn{${font(TYPE.roleName)};fill:var(--ink)}`,
-  `.dg-ln-rt{${font(TYPE.roleNote)};fill:var(--mute)}`,
-  `.dg-ln-ft{${font(TYPE.lineupTitle)};fill:var(--mute)}`,
-  `.dg-ln-hd{${font(TYPE.lineupHead)};fill:var(--ink)}`,
-  `.dg-ln-say{${font(TYPE.lineupSay)};fill:var(--mute)}`,
-  `.dg-ln-arrow{fill:none;stroke:var(--c);stroke-width:${S.edge};stroke-linecap:round;stroke-linejoin:round}`,
-  ".dg-ln-bar{fill:var(--c)}",
-  ".dg-ln-bar0{fill:var(--mute)}",
-  `.dg-ln-rk{${font(TYPE.remark)};fill:var(--ink)}`,
-  `.dg-ln-al{${font(TYPE.aheadLabel)};fill:var(--mute)}`,
-  `.dg-ln-tag{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair}}`,
-  `.dg-ln-no{fill:none;stroke:var(--c);stroke-width:${S.hair}}`,
-  `.dg-ln-nt{${font(TYPE.aheadNo)};fill:var(--ct)}`,
-  `.dg-ln-at{${font(TYPE.aheadText)};fill:var(--ink)}`,
-  `.dg-ln-aa{fill:none;stroke:var(--mute);stroke-width:${S.hair};stroke-linecap:round;stroke-linejoin:round}`,
-  `.dg-ln-sw{fill:none;stroke:var(--c);stroke-width:${S.slot}}`,
-  `.dg-ln-sw0{fill:none;stroke:var(--mute);stroke-width:${S.slot}}`,
-  `.dg-ln-lg{${font(TYPE.legend)};fill:var(--mute)}`,
   // 時間軸の図 (#3165)。和文を含む字は、末尾に j を付けた class で同じ大きさと太さの和文の字にする
   `.dg-tm-ep{fill:color-mix(in srgb,var(--ink) ${X.timeShade}%,transparent)}`,
   `.dg-tm-sep{stroke:var(--hair);stroke-width:${S.hair};stroke-dasharray:2 4}`,
@@ -379,10 +330,11 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
     L.node.push(tree.nodes);
   }
   const runs = new Set((treeLayout?.runs ?? []).map((r) => `${r.step}/${r.event}`));
-  // 列の図の列とチップと封と札は、列の図を描く部品が描く (#3239)
+  // 列の図の列とチップと封と札は、列の図を描く部品が描く (#3239)。
+  // 列の図の見た目の規則も列の図を描く部品が持ち、列の図の SVG にだけ書く。ほかの図の SVG と最初に読む script に入れない (#3351)
   const lineupLayout = isLineupLayout(layout) ? layout : undefined;
-  if (lineupLayout) {
-    const lineup = kindParts("lineup").drawLineup(lineupLayout, diagram, timeline, ctx, subs);
+  const lineup = lineupLayout ? kindParts("lineup").drawLineup(lineupLayout, diagram, timeline, ctx, subs) : undefined;
+  if (lineup) {
     L.base.push(lineup.lanes);
     L.node.push(lineup.chips);
   }
@@ -449,7 +401,7 @@ export function drawSvg(diagram: Diagram, layout: Layout, timeline: Timeline, pa
   const drawTable = (s: SceneStrip, from: SceneStrip): string =>
     drawStrip(s) + layout.badges.filter((b) => onStrip(layout, b)).map((b) => badge({ ...b, x: b.x - from.x + s.x + LOOK.badge.r, y: b.y - from.y + s.y }, ctx, isState)).join("");
   const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
