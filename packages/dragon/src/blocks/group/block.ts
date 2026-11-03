@@ -81,7 +81,7 @@ export const block: Block<GroupMessages> = {
       state.figure.group = undefined;
     },
   },
-  print: none("区画の行は書き戻すと箱の行と 1 つの塊に混ざるので、箱のブロックの宣言の塊が declareRegion で書く"),
+  print: none("区画の行は書き戻すと箱の行と同じ並びに入るので、箱のブロックの宣言を書く処理が declareRegion で書く"),
   messages: {
     ja: {
       nestedGroup: "group の中に group は書けない。先に end で閉じる",
