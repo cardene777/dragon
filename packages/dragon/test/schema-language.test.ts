@@ -16,7 +16,8 @@ const AJV_ENGLISH = /\bmust\b/u;
 
 type Diagramish = { [key: string]: Json };
 const oauth = (): Diagramish => structuredClone(exampleJson("oauth.json")) as Diagramish;
-const boxes = (d: Diagramish): Diagramish[] => d.boxes as Diagramish[];
+const blocks = (d: Diagramish): Diagramish => d.blocks as Diagramish;
+const boxes = (d: Diagramish): Diagramish[] => blocks(d).box as Diagramish[];
 const firstEvent = (d: Diagramish): Diagramish => ((d.steps as Diagramish[])[0]?.events as Diagramish[])[0] as Diagramish;
 
 /** 誤りの種類ごとに、その誤りだけを持つ原本を作る */
@@ -51,14 +52,18 @@ const CASES: Record<string, () => Diagramish> = {
     firstEvent(d).type = "arrow";
     return d;
   },
-  書けない組み合わせ: () => ({ ...oauth(), kind: "architecture" }),
+  書けない組み合わせ: () => {
+    const d = oauth();
+    blocks(d).branch = [{ id: "main" }];
+    return d;
+  },
   どちらかが要る欄: () => withStripValue({ type: "strip", field: "f" }),
 };
 
 /** 帯を宣言し、最初の段の終わりに帯の値の行を足した原本 */
 function withStripValue(event: Diagramish): Diagramish {
   const d = oauth();
-  d.strip = { title: "S", fields: ["f"] };
+  blocks(d).strip = { title: "S", fields: ["f"] };
   ((d.steps as Diagramish[])[0]?.events as Json[]).push(event);
   return d;
 }
@@ -84,17 +89,17 @@ describe("原本の JSON の誤りの文の言葉", () => {
   it("json-errors-default-english", () => {
     // 言葉を渡さない時は英語の文で出す (#3338)。ja を渡した時は今の日本語の文のまま
     const expected: [string, string, Record<NotationLang, string>][] = [
-      ["書けない欄", "/boxes/0/colour", { en: "The colour field is not allowed", ja: "colour という欄は書けない" }],
-      ["要る欄", "/boxes/0/name", { en: "The name field is required", ja: "name の欄が要る" }],
+      ["書けない欄", "/blocks/box/0/colour", { en: "The colour field is not allowed", ja: "colour という欄は書けない" }],
+      ["要る欄", "/blocks/box/0/name", { en: "The name field is required", ja: "name の欄が要る" }],
       [
         "決まった値",
-        "/boxes/0/color",
+        "/blocks/box/0/color",
         { en: "Use one of blue / amber / green / violet / rose / slate / coin", ja: "blue / amber / green / violet / rose / slate / coin のどれかにする" },
       ],
       [
         "道具より新しい版",
         "/version",
-        { en: "Version 9 diagrams are newer than this tool (version 1) and cannot be read. Update the tool", ja: "版 9 の図は、この道具 (版 1) より新しいので読めない。道具を新しくする" },
+        { en: "Version 9 diagrams are newer than this tool (version 2) and cannot be read. Update the tool", ja: "版 9 の図は、この道具 (版 2) より新しいので読めない。道具を新しくする" },
       ],
     ];
     for (const [label, pointer, messages] of expected) {
@@ -130,20 +135,21 @@ describe("原本の JSON の誤りの文の言葉", () => {
 
   it("pattern-error-lists-forbidden-characters", () => {
     for (const lang of ["ja", "en"] as const) {
-      const error = errorsOf((CASES.名札の形 as () => Diagramish)(), lang).find((e) => e.pointer === "/boxes/0/id");
-      expect(error, `${lang} で名札の形の誤りが /boxes/0/id に出ない`).toBeDefined();
+      const error = errorsOf((CASES.名札の形 as () => Diagramish)(), lang).find((e) => e.pointer === "/blocks/box/0/id");
+      expect(error, `${lang} で名札の形の誤りが /blocks/box/0/id に出ない`).toBeDefined();
       expect(error?.message, `${lang} の名札の形の誤りが正規表現を出す`).not.toMatch(/\^|\\s|\$|\]\+/u);
       for (const char of ["[", "]", "「", "」", "=", ":"]) expect(error?.message, `${lang} の名札の形の誤りが ${char} を示さない`).toContain(char);
     }
   });
 
   it("not-error-names-the-field", () => {
-    const withoutKind = oauth();
+    const misplaced = CASES.書けない組み合わせ as () => Diagramish;
+    const withoutKind = misplaced();
     delete withoutKind.kind;
     const cases: { label: string; input: Diagramish; pointer: string; words: string[] }[] = [
-      { label: "構成図に sequence の欄", input: (CASES.書けない組み合わせ as () => Diagramish)(), pointer: "/sequence", words: ["sequence", "kind"] },
-      { label: "kind が無い図の sequence の欄", input: withoutKind, pointer: "/sequence", words: ["sequence", "kind"] },
-      { label: "kind の綴りを誤った図の sequence の欄", input: { ...oauth(), kind: "sequense" }, pointer: "/sequence", words: ["sequence", "kind"] },
+      { label: "時系列図に branch の欄", input: misplaced(), pointer: "/blocks/branch", words: ["branch", "kind"] },
+      { label: "kind が無い図の branch の欄", input: withoutKind, pointer: "/blocks/branch", words: ["branch", "kind"] },
+      { label: "kind の綴りを誤った図の branch の欄", input: { ...misplaced(), kind: "sequense" }, pointer: "/blocks/branch", words: ["branch", "kind"] },
     ];
     const coinWithText = oauth();
     firstEvent(coinWithText).carry = { kind: "coin", text: "x" };
@@ -155,7 +161,7 @@ describe("原本の JSON の誤りの文の言葉", () => {
         expect(errors.map((e) => e.pointer), `${lang} ${c.label} の誤りが根か運ぶ物の欄に残る`).not.toContain(c.pointer.replace(/\/[^/]+$/u, ""));
         const message = errors.find((e) => e.pointer === c.pointer)?.message ?? "";
         for (const word of c.words) expect(message, `${lang} ${c.label} の誤りが ${word} を示さない`).toContain(word);
-        if (c.pointer === "/sequence") expect(message, `${lang} ${c.label} の誤りが図の種類を言い切る`).not.toMatch(/構成図|architecture/u);
+        if (c.pointer === "/blocks/branch") expect(message, `${lang} ${c.label} の誤りが図の種類を言い切る`).not.toMatch(/時系列図|sequence/u);
       }
     }
   });

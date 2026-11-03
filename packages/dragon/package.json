@@ -93,7 +93,7 @@
     "./src/render/svg.ts"
   ],
   "scripts": {
-    "build": "node scripts/build-blocks.mjs && tsup",
+    "build": "node scripts/build-blocks.mjs && node --import ./scripts/ts-resolve.mjs scripts/build-validator.mjs && tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",

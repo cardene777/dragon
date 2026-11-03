@@ -12,7 +12,7 @@ import { cs } from "../blocks/color/draw";
 import { glyph } from "../blocks/icon/draw";
 import type { TreeLayout } from "../layout/tree";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
-import type { Diagram } from "../schema";
+import type { DiagramModel } from "../schema";
 import type { EdgeTime, Timeline } from "../timeline";
 import type { Frame } from "./motion";
 import { ALWAYS } from "./ink";
@@ -20,7 +20,7 @@ import { activeKf, arrowHead, type Ctx, esc, pathOf, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 
-export function drawTree(layout: TreeLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx): { links: string; trails: string; nodes: string; appear: Map<string, number> } {
+export function drawTree(layout: TreeLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx): { links: string; trails: string; nodes: string; appear: Map<string, number> } {
   const { m } = ctx;
   const T = LOOK.tree;
   const B = LOOK.box;

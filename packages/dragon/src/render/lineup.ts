@@ -9,7 +9,7 @@
  */
 import type { LineupAt, LineupLayout, LineupPick, LineupSeal, LineupSeat } from "../layout/lineup";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
-import type { Diagram } from "../schema";
+import type { DiagramModel } from "../schema";
 import type { Timeline } from "../timeline";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
@@ -26,7 +26,7 @@ const place = (dx: number, dy: number, scale = 1): string => `translate(${r1(dx)
 const without = (span: Shown, holes: Shown[]): Shown[] =>
   holes.reduce<Shown[]>((rest, [x, y]) => rest.flatMap(([a, b]): Shown[] => (y <= a || x >= b ? [[a, b]] : [...(a < x ? ([[a, x]] as Shown[]) : []), ...(y < b ? ([[y, b]] as Shown[]) : [])])), [span]);
 
-export function drawLineup(layout: LineupLayout, diagram: Diagram, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { lanes: string; chips: string } {
+export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { lanes: string; chips: string } {
   const { m } = ctx;
   const N = LOOK.lineup;
   const cut = MOTION.lineup.cut;

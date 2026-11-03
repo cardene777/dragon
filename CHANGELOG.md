@@ -6,6 +6,32 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The source JSON is now version 2, which lists the blocks placed on a diagram under a field for each block name (`blocks`)** (#3346)
+
+  Version 1 kept groups, boxes and the strip at the top, and branches, untaken paths and time diagram fields under a field for each diagram kind.
+  Version 2 has a field for each block, so adding a block adds no top-level or diagram-kind field.
+  The sequence lifeline field (`sequence.lifelines`) can be rebuilt from the order of the boxes, so version 2 does not write it.
+  The source check function is built from the skeleton shape and the shape of each block.
+
+  Version 1 sources can still be read as they are.
+  `readDiagram`, `renderDiagram` and `printNotation` move a version 1 source to the version 2 shape first, and `readDiagram` notes the move in `warnings`.
+  Errors in a version 1 source point at the version 1 field.
+  The source returned by `parseNotation` has the version 2 shape.
+  To rewrite a source file to version 2, use `migrateFile` from `@cardenelabs/dragon/node`.
+
+  | Version 1 field | Version 2 field |
+  |---|---|
+  | `regions` | `blocks.group` |
+  | `boxes` | `blocks.box` |
+  | `strip` | `blocks.strip` |
+  | `sequence.lifelines` | None (built from the order of the boxes) |
+  | `state.paths` | `blocks.path` |
+  | `git.branches` | `blocks.branch` |
+  | `time.scale`, `time.period`, `time.rows`, `time.points`, `time.zoom` | `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.point`, `blocks.zoom` |
+  | `lineup.items` | `blocks.item` |
+
 ## [0.47.0] - 2026-11-03
 
 This version changes the text shown when no language is passed, so the second number went up.

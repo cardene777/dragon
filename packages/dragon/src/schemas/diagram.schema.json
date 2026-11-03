@@ -1,114 +1,488 @@
 {
-  "title": "dragon の図の原本",
-  "description": "区画、箱、線、運ぶ物、段、中身の帯の 6 部品を共通の骨組みに置き、図の種類だけの物は種類の欄に置く。座標は持たない。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよい。列の図の箱は列になる。",
+  "title": "dragon の図の原本 (版2)",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよい。列の図の箱は列になる。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "kind", "title", "boxes", "steps"],
+  "required": [
+    "version",
+    "kind",
+    "title",
+    "blocks",
+    "steps"
+  ],
   "properties": {
-    "version": { "description": "形式の版", "type": "integer", "minimum": 1 },
-    "kind": { "description": "図の種類", "enum": ["sequence", "architecture", "state", "git", "time", "tree", "lineup"] },
-    "title": { "$ref": "#/definitions/text" },
-    "view": { "description": "見せ方。書かなければ字の大きさで選ぶ。fixed は全体を止めて中だけ動かし、follow は寄って動かし全体図で今どこかを示す", "enum": ["fixed", "follow"] },
-    "regions": { "type": "array", "items": { "$ref": "#/definitions/region" } },
-    "boxes": { "type": "array", "items": { "$ref": "#/definitions/box" } },
-    "strip": { "$ref": "#/definitions/strip" },
-    "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/step" } },
-    "sequence": { "$ref": "#/definitions/sequence" },
-    "state": { "$ref": "#/definitions/state" },
-    "git": { "$ref": "#/definitions/git" },
-    "time": { "$ref": "#/definitions/time" },
-    "lineup": { "$ref": "#/definitions/lineup" }
+    "version": {
+      "description": "形式の版",
+      "type": "integer",
+      "minimum": 1
+    },
+    "kind": {
+      "description": "図の種類",
+      "enum": [
+        "sequence",
+        "architecture",
+        "state",
+        "git",
+        "time",
+        "tree",
+        "lineup"
+      ]
+    },
+    "title": {
+      "$ref": "#/definitions/text"
+    },
+    "view": {
+      "description": "見せ方。書かなければ字の大きさで選ぶ。fixed は全体を止めて中だけ動かし、follow は寄って動かし全体図で今どこかを示す",
+      "enum": [
+        "fixed",
+        "follow"
+      ]
+    },
+    "blocks": {
+      "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "group": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/region"
+          }
+        },
+        "box": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/box"
+          }
+        },
+        "strip": {
+          "$ref": "#/definitions/strip"
+        },
+        "path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/path"
+          }
+        },
+        "branch": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/branch"
+          }
+        },
+        "scale": {
+          "$ref": "#/definitions/scale"
+        },
+        "period": {
+          "$ref": "#/definitions/period"
+        },
+        "row": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/row"
+          }
+        },
+        "point": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/point"
+          }
+        },
+        "zoom": {
+          "$ref": "#/definitions/zoom"
+        },
+        "item": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/item"
+          }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/step"
+      }
+    }
   },
-  "if": { "required": ["kind"], "properties": { "kind": { "const": "sequence" } } },
-  "then": {
-    "required": ["sequence"],
+  "if": {
+    "required": [
+      "kind"
+    ],
     "properties": {
-      "boxes": { "minItems": 1 },
-      "steps": { "$ref": "#/definitions/plainSteps" },
-      "strip": { "$ref": "#/definitions/plainStrip" },
-      "state": { "$ref": "#/definitions/absent" },
-      "git": { "$ref": "#/definitions/absent" },
-      "time": { "$ref": "#/definitions/absent" },
-      "lineup": { "$ref": "#/definitions/absent" }
+      "kind": {
+        "const": "sequence"
+      }
+    }
+  },
+  "then": {
+    "properties": {
+      "blocks": {
+        "required": [
+          "box"
+        ],
+        "properties": {
+          "box": {
+            "minItems": 1
+          },
+          "strip": {
+            "$ref": "#/definitions/plainStrip"
+          },
+          "path": {
+            "$ref": "#/definitions/absent"
+          },
+          "branch": {
+            "$ref": "#/definitions/absent"
+          },
+          "scale": {
+            "$ref": "#/definitions/absent"
+          },
+          "period": {
+            "$ref": "#/definitions/absent"
+          },
+          "row": {
+            "$ref": "#/definitions/absent"
+          },
+          "point": {
+            "$ref": "#/definitions/absent"
+          },
+          "zoom": {
+            "$ref": "#/definitions/absent"
+          },
+          "item": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      },
+      "steps": {
+        "$ref": "#/definitions/plainSteps"
+      }
     }
   },
   "else": {
-    "properties": { "sequence": { "$ref": "#/definitions/absent" } },
-    "if": { "required": ["kind"], "properties": { "kind": { "const": "state" } } },
+    "if": {
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "const": "state"
+        }
+      }
+    },
     "then": {
       "properties": {
-        "boxes": { "minItems": 1, "items": { "properties": { "id": { "description": "始まりと終わりの印の名前は箱の名札に使えない", "not": { "enum": ["start", "finish"] } } } } },
-        "steps": { "$ref": "#/definitions/plainSteps" },
-        "strip": { "$ref": "#/definitions/plainStrip" },
-        "git": { "$ref": "#/definitions/absent" },
-        "time": { "$ref": "#/definitions/absent" },
-        "lineup": { "$ref": "#/definitions/absent" }
+        "blocks": {
+          "required": [
+            "box"
+          ],
+          "properties": {
+            "box": {
+              "minItems": 1,
+              "items": {
+                "properties": {
+                  "id": {
+                    "description": "始まりと終わりの印の名前は箱の名札に使えない",
+                    "not": {
+                      "enum": [
+                        "start",
+                        "finish"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "strip": {
+              "$ref": "#/definitions/plainStrip"
+            },
+            "branch": {
+              "$ref": "#/definitions/absent"
+            },
+            "scale": {
+              "$ref": "#/definitions/absent"
+            },
+            "period": {
+              "$ref": "#/definitions/absent"
+            },
+            "row": {
+              "$ref": "#/definitions/absent"
+            },
+            "point": {
+              "$ref": "#/definitions/absent"
+            },
+            "zoom": {
+              "$ref": "#/definitions/absent"
+            },
+            "item": {
+              "$ref": "#/definitions/absent"
+            }
+          }
+        },
+        "steps": {
+          "$ref": "#/definitions/plainSteps"
+        }
       }
     },
     "else": {
-      "if": { "required": ["kind"], "properties": { "kind": { "const": "git" } } },
-      "then": {
-        "required": ["git"],
+      "if": {
+        "required": [
+          "kind"
+        ],
         "properties": {
-          "steps": { "$ref": "#/definitions/gitSteps" },
-          "strip": { "$ref": "#/definitions/plainStrip" },
-          "state": { "$ref": "#/definitions/absent" },
-          "regions": { "$ref": "#/definitions/absent" },
-          "time": { "$ref": "#/definitions/absent" },
-          "lineup": { "$ref": "#/definitions/absent" }
+          "kind": {
+            "const": "git"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blocks": {
+            "required": [
+              "branch"
+            ],
+            "properties": {
+              "strip": {
+                "$ref": "#/definitions/plainStrip"
+              },
+              "path": {
+                "$ref": "#/definitions/absent"
+              },
+              "group": {
+                "$ref": "#/definitions/absent"
+              },
+              "scale": {
+                "$ref": "#/definitions/absent"
+              },
+              "period": {
+                "$ref": "#/definitions/absent"
+              },
+              "row": {
+                "$ref": "#/definitions/absent"
+              },
+              "point": {
+                "$ref": "#/definitions/absent"
+              },
+              "zoom": {
+                "$ref": "#/definitions/absent"
+              },
+              "item": {
+                "$ref": "#/definitions/absent"
+              }
+            }
+          },
+          "steps": {
+            "$ref": "#/definitions/gitSteps"
+          }
         }
       },
       "else": {
-        "if": { "required": ["kind"], "properties": { "kind": { "const": "time" } } },
-        "then": {
-          "required": ["time"],
+        "if": {
+          "required": [
+            "kind"
+          ],
           "properties": {
-            "steps": { "$ref": "#/definitions/timeSteps" },
-            "state": { "$ref": "#/definitions/absent" },
-            "git": { "$ref": "#/definitions/absent" },
-            "regions": { "$ref": "#/definitions/absent" },
-            "lineup": { "$ref": "#/definitions/absent" }
+            "kind": {
+              "const": "time"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "blocks": {
+              "required": [
+                "scale",
+                "row"
+              ],
+              "properties": {
+                "path": {
+                  "$ref": "#/definitions/absent"
+                },
+                "branch": {
+                  "$ref": "#/definitions/absent"
+                },
+                "group": {
+                  "$ref": "#/definitions/absent"
+                },
+                "item": {
+                  "$ref": "#/definitions/absent"
+                }
+              }
+            },
+            "steps": {
+              "$ref": "#/definitions/timeSteps"
+            }
           }
         },
         "else": {
-          "if": { "required": ["kind"], "properties": { "kind": { "const": "tree" } } },
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "tree"
+              }
+            }
+          },
           "then": {
             "properties": {
-              "steps": { "$ref": "#/definitions/treeSteps" },
-              "strip": { "$ref": "#/definitions/plainStrip" },
-              "state": { "$ref": "#/definitions/absent" },
-              "git": { "$ref": "#/definitions/absent" },
-              "time": { "$ref": "#/definitions/absent" },
-              "regions": { "$ref": "#/definitions/absent" },
-              "lineup": { "$ref": "#/definitions/absent" }
+              "blocks": {
+                "properties": {
+                  "strip": {
+                    "$ref": "#/definitions/plainStrip"
+                  },
+                  "path": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "branch": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "scale": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "period": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "row": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "point": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "zoom": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "group": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "item": {
+                    "$ref": "#/definitions/absent"
+                  }
+                }
+              },
+              "steps": {
+                "$ref": "#/definitions/treeSteps"
+              }
             }
           },
           "else": {
-            "if": { "required": ["kind"], "properties": { "kind": { "const": "lineup" } } },
-            "then": {
-              "required": ["lineup"],
+            "if": {
+              "required": [
+                "kind"
+              ],
               "properties": {
-                "boxes": {
-                  "minItems": 1,
-                  "items": { "properties": { "icon": { "$ref": "#/definitions/absent" }, "link": { "$ref": "#/definitions/absent" }, "region": { "$ref": "#/definitions/absent" } } }
+                "kind": {
+                  "const": "lineup"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "blocks": {
+                  "required": [
+                    "box",
+                    "item"
+                  ],
+                  "properties": {
+                    "box": {
+                      "minItems": 1,
+                      "items": {
+                        "properties": {
+                          "icon": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "link": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "region": {
+                            "$ref": "#/definitions/absent"
+                          }
+                        }
+                      }
+                    },
+                    "strip": {
+                      "$ref": "#/definitions/plainStrip"
+                    },
+                    "path": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "branch": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "scale": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "period": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "row": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "point": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "zoom": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "group": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
                 },
-                "steps": { "$ref": "#/definitions/lineupSteps" },
-                "strip": { "$ref": "#/definitions/plainStrip" },
-                "state": { "$ref": "#/definitions/absent" },
-                "git": { "$ref": "#/definitions/absent" },
-                "time": { "$ref": "#/definitions/absent" },
-                "regions": { "$ref": "#/definitions/absent" }
+                "steps": {
+                  "$ref": "#/definitions/lineupSteps"
+                }
               }
             },
             "else": {
               "properties": {
-                "boxes": { "minItems": 1 },
-                "steps": { "$ref": "#/definitions/plainSteps" },
-                "strip": { "$ref": "#/definitions/plainStrip" },
-                "state": { "$ref": "#/definitions/absent" },
-                "git": { "$ref": "#/definitions/absent" },
-                "time": { "$ref": "#/definitions/absent" },
-                "lineup": { "$ref": "#/definitions/absent" }
+                "blocks": {
+                  "required": [
+                    "box"
+                  ],
+                  "properties": {
+                    "box": {
+                      "minItems": 1
+                    },
+                    "strip": {
+                      "$ref": "#/definitions/plainStrip"
+                    },
+                    "path": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "branch": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "scale": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "period": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "row": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "point": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "zoom": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "item": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
+                },
+                "steps": {
+                  "$ref": "#/definitions/plainSteps"
+                }
               }
             }
           }
@@ -117,21 +491,51 @@
     }
   },
   "definitions": {
-    "text": { "type": "string", "minLength": 1 },
-    "absent": { "description": "この図の種類では書けない欄", "not": {} },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "absent": {
+      "description": "この図の種類では書けない欄",
+      "not": {}
+    },
     "plainSteps": {
       "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp) を書けない",
       "items": {
         "properties": {
           "events": {
             "items": {
-              "not": { "$ref": "#/definitions/timeEvent" },
-              "allOf": [{ "not": { "$ref": "#/definitions/treeEvent" } }, { "$ref": "#/definitions/notLineupEvent" }],
+              "not": {
+                "$ref": "#/definitions/timeEvent"
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "$ref": "#/definitions/treeEvent"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/notLineupEvent"
+                }
+              ],
               "properties": {
-                "type": { "not": { "enum": ["commit", "branch"] } },
-                "at": { "$ref": "#/definitions/absent" },
-                "into": { "$ref": "#/definitions/absent" },
-                "color": { "$ref": "#/definitions/absent" }
+                "type": {
+                  "not": {
+                    "enum": [
+                      "commit",
+                      "branch"
+                    ]
+                  }
+                },
+                "at": {
+                  "$ref": "#/definitions/absent"
+                },
+                "into": {
+                  "$ref": "#/definitions/absent"
+                },
+                "color": {
+                  "$ref": "#/definitions/absent"
+                }
               }
             }
           }
@@ -144,9 +548,30 @@
         "properties": {
           "events": {
             "items": {
-              "not": { "$ref": "#/definitions/timeEvent" },
-              "allOf": [{ "not": { "$ref": "#/definitions/treeEvent" } }, { "$ref": "#/definitions/notLineupEvent" }],
-              "properties": { "at": { "$ref": "#/definitions/absent" }, "into": { "$ref": "#/definitions/absent" }, "color": { "$ref": "#/definitions/absent" } }
+              "not": {
+                "$ref": "#/definitions/timeEvent"
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "$ref": "#/definitions/treeEvent"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/notLineupEvent"
+                }
+              ],
+              "properties": {
+                "at": {
+                  "$ref": "#/definitions/absent"
+                },
+                "into": {
+                  "$ref": "#/definitions/absent"
+                },
+                "color": {
+                  "$ref": "#/definitions/absent"
+                }
+              }
             }
           }
         }
@@ -156,7 +581,30 @@
       "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp) を書けない",
       "items": {
         "properties": {
-          "events": { "items": { "allOf": [{ "not": { "$ref": "#/definitions/treeEvent" } }, { "$ref": "#/definitions/notLineupEvent" }], "properties": { "type": { "not": { "enum": ["commit", "branch"] } } } } }
+          "events": {
+            "items": {
+              "allOf": [
+                {
+                  "not": {
+                    "$ref": "#/definitions/treeEvent"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/notLineupEvent"
+                }
+              ],
+              "properties": {
+                "type": {
+                  "not": {
+                    "enum": [
+                      "commit",
+                      "branch"
+                    ]
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -166,13 +614,32 @@
         "properties": {
           "events": {
             "items": {
-              "not": { "$ref": "#/definitions/timeEvent" },
-              "allOf": [{ "$ref": "#/definitions/notLineupEvent" }],
+              "not": {
+                "$ref": "#/definitions/timeEvent"
+              },
+              "allOf": [
+                {
+                  "$ref": "#/definitions/notLineupEvent"
+                }
+              ],
               "properties": {
-                "type": { "not": { "enum": ["commit", "branch"] } },
-                "at": { "$ref": "#/definitions/absent" },
-                "into": { "$ref": "#/definitions/absent" },
-                "color": { "$ref": "#/definitions/absent" }
+                "type": {
+                  "not": {
+                    "enum": [
+                      "commit",
+                      "branch"
+                    ]
+                  }
+                },
+                "at": {
+                  "$ref": "#/definitions/absent"
+                },
+                "into": {
+                  "$ref": "#/definitions/absent"
+                },
+                "color": {
+                  "$ref": "#/definitions/absent"
+                }
               }
             }
           }
@@ -185,11 +652,31 @@
         "properties": {
           "events": {
             "items": {
-              "not": { "$ref": "#/definitions/timeEvent" },
-              "allOf": [{ "not": { "$ref": "#/definitions/treeEvent" } }, { "$ref": "#/definitions/notWiredEvent" }],
+              "not": {
+                "$ref": "#/definitions/timeEvent"
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "$ref": "#/definitions/treeEvent"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/notWiredEvent"
+                }
+              ],
               "properties": {
-                "type": { "not": { "enum": ["commit", "branch"] } },
-                "color": { "$ref": "#/definitions/absent" }
+                "type": {
+                  "not": {
+                    "enum": [
+                      "commit",
+                      "branch"
+                    ]
+                  }
+                },
+                "color": {
+                  "$ref": "#/definitions/absent"
+                }
               }
             }
           }
@@ -198,447 +685,936 @@
     },
     "treeEvent": {
       "description": "木の図だけが書ける出来事",
-      "required": ["type"],
-      "properties": { "type": { "enum": ["leaf", "node"] } }
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "leaf",
+            "node"
+          ]
+        }
+      }
     },
     "notLineupEvent": {
       "description": "列の図だけが書ける出来事を書けない",
-      "not": { "required": ["type"], "properties": { "type": { "enum": ["line", "seal", "open", "pick", "stamp"] } } }
+      "not": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "line",
+              "seal",
+              "open",
+              "pick",
+              "stamp"
+            ]
+          }
+        }
+      }
     },
     "notWiredEvent": {
       "description": "箱と線の図の出来事を書けない",
-      "not": { "required": ["type"], "properties": { "type": { "enum": ["edge", "action"] } } }
+      "not": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "edge",
+              "action"
+            ]
+          }
+        }
+      }
     },
     "timeEvent": {
       "description": "時間軸の図だけが書ける出来事",
-      "required": ["type"],
-      "properties": { "type": { "enum": ["now", "mark", "span"] } }
-    },
-    "plainStrip": {
-      "description": "時間軸の図でない図の中身の帯。物差しを書けない",
-      "properties": { "meters": { "$ref": "#/definitions/absent" } }
-    },
-    "id": { "type": "string", "pattern": "^[^\\s\\[\\]「」=:]+$" },
-    "color": { "enum": ["blue", "amber", "green", "violet", "rose", "slate", "coin"] },
-    "icon": { "description": "箱と区画のアイコン名。描く部品のアイコンの表 (ICONS) に在る名前だけ", "enum": ["app", "router", "on", "off", "pool", "db", "exe", "idx", "sign", "env", "lock", "check", "flag", "x", "chain", "net", "user", "server", "key", "shield", "globe", "bolt", "doc", "box", "truck", "card", "cart", "clock", "branch", "cloud", "refresh", "undo", "yen", "layers", "code", "paint", "tree", "block"] },
-    "region": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "name"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "id": { "$ref": "#/definitions/id" },
-        "name": { "$ref": "#/definitions/text" },
-        "note": { "$ref": "#/definitions/text" },
-        "color": { "$ref": "#/definitions/color" },
-        "icon": { "$ref": "#/definitions/icon" }
+        "type": {
+          "enum": [
+            "now",
+            "mark",
+            "span"
+          ]
+        }
       }
     },
-    "box": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "name"],
-      "properties": {
-        "id": { "$ref": "#/definitions/id" },
-        "name": { "$ref": "#/definitions/text" },
-        "sub": { "$ref": "#/definitions/text" },
-        "color": { "$ref": "#/definitions/color" },
-        "icon": { "$ref": "#/definitions/icon" },
-        "region": { "$ref": "#/definitions/id" },
-        "link": { "description": "飛び先。描いた図ではこの箱がここへの link になる", "$ref": "#/definitions/url" }
-      }
+    "id": {
+      "type": "string",
+      "pattern": "^[^\\s\\[\\]「」=:]+$"
     },
-    "strip": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["title", "fields"],
-      "properties": {
-        "title": { "$ref": "#/definitions/text" },
-        "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/text" } },
-        "meters": { "description": "物差しにする欄。時間軸の図だけが書ける", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/meter" } }
-      }
-    },
-    "meter": {
-      "description": "物差しの欄。line の割合の所に線を引き、set の値まで針と一緒に満ちる",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["field", "line"],
-      "properties": {
-        "field": { "$ref": "#/definitions/text" },
-        "line": { "$ref": "#/definitions/ratio" }
-      }
-    },
-    "ratio": { "description": "割合。分数 (2/3) か百分率 (97%)", "type": "string", "pattern": "^([0-9]+/[0-9]+|[0-9]+(\\.[0-9]+)?%)$" },
-    "step": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["title", "body", "events"],
-      "properties": {
-        "title": { "$ref": "#/definitions/text" },
-        "body": { "$ref": "#/definitions/text" },
-        "code": { "$ref": "#/definitions/text" },
-        "sources": { "description": "段の出典。読み上げの段の一覧に、名前を URL への link にして書いた順に出す", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/source" } },
-        "events": { "type": "array", "items": { "$ref": "#/definitions/event" } }
-      }
-    },
-    "source": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "url"],
-      "properties": {
-        "name": { "$ref": "#/definitions/text" },
-        "url": { "$ref": "#/definitions/url" }
-      }
-    },
-    "url": { "description": "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL", "type": "string", "pattern": "^(/|https?://)" },
     "event": {
       "description": "段の中で起きること。起きる順に並べる",
       "type": "object",
-      "required": ["type"],
-      "discriminator": { "propertyName": "type" },
+      "required": [
+        "type"
+      ],
+      "discriminator": {
+        "propertyName": "type"
+      },
       "oneOf": [
         {
-          "description": "線。運ぶ物を載せて送る側から受ける側へ走る",
+          "description": "中身の帯の欄の値と札",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "from", "to", "carry"],
+          "required": [
+            "type",
+            "field"
+          ],
+          "anyOf": [
+            {
+              "required": [
+                "value"
+              ]
+            },
+            {
+              "required": [
+                "tag"
+              ]
+            }
+          ],
           "properties": {
-            "type": { "const": "edge" },
-            "from": { "$ref": "#/definitions/id" },
-            "to": { "$ref": "#/definitions/id" },
-            "label": { "$ref": "#/definitions/text" },
-            "carry": { "$ref": "#/definitions/carry" },
-            "labelSide": { "description": "線の名前を置く側 (寄せの指示)", "enum": ["above", "below", "left", "right"] },
-            "at": { "description": "時間軸の図の拡大の帯で、線を引く列の目盛り", "$ref": "#/definitions/unit" },
-            "into": { "description": "時間軸の図の拡大の帯で、受ける箱を選ぶ列の目盛り。書かなければ at の列", "$ref": "#/definitions/unit" }
+            "type": {
+              "const": "strip"
+            },
+            "field": {
+              "$ref": "#/definitions/text"
+            },
+            "value": {
+              "$ref": "#/definitions/text"
+            },
+            "tag": {
+              "$ref": "#/definitions/text"
+            }
           }
         },
         {
           "description": "箱の中の処理",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "box", "label"],
+          "required": [
+            "type",
+            "box",
+            "label"
+          ],
           "properties": {
-            "type": { "const": "action" },
-            "box": { "$ref": "#/definitions/id" },
-            "label": { "$ref": "#/definitions/text" }
+            "type": {
+              "const": "action"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "label": {
+              "$ref": "#/definitions/text"
+            }
           }
         },
         {
           "description": "箱の下の小さな字の書き換え",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "box", "text"],
+          "required": [
+            "type",
+            "box",
+            "text"
+          ],
           "properties": {
-            "type": { "const": "swap" },
-            "box": { "$ref": "#/definitions/id" },
-            "text": { "$ref": "#/definitions/text" },
-            "color": { "description": "時間軸の図の節目の丸の色", "$ref": "#/definitions/color" }
+            "type": {
+              "const": "swap"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "text": {
+              "$ref": "#/definitions/text"
+            },
+            "color": {
+              "description": "時間軸の図の節目の丸の色",
+              "$ref": "#/definitions/color"
+            }
+          }
+        },
+        {
+          "description": "線。運ぶ物を載せて送る側から受ける側へ走る",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "from",
+            "to",
+            "carry"
+          ],
+          "properties": {
+            "type": {
+              "const": "edge"
+            },
+            "from": {
+              "$ref": "#/definitions/id"
+            },
+            "to": {
+              "$ref": "#/definitions/id"
+            },
+            "label": {
+              "$ref": "#/definitions/text"
+            },
+            "carry": {
+              "$ref": "#/definitions/carry"
+            },
+            "labelSide": {
+              "description": "線の名前を置く側 (寄せの指示)",
+              "enum": [
+                "above",
+                "below",
+                "left",
+                "right"
+              ]
+            },
+            "at": {
+              "description": "時間軸の図の拡大の帯で、線を引く列の目盛り",
+              "$ref": "#/definitions/unit"
+            },
+            "into": {
+              "description": "時間軸の図の拡大の帯で、受ける箱を選ぶ列の目盛り。書かなければ at の列",
+              "$ref": "#/definitions/unit"
+            }
           }
         },
         {
           "description": "commit を積む。枝分かれの図だけが書ける。積んだ枝の札と、その枝を指す HEAD が進む。当て直し (copy) は枝の札を動かさず、merge commit (merge) は取り込む枝の先端も親に持つ",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "id", "branch"],
+          "required": [
+            "type",
+            "id",
+            "branch"
+          ],
           "properties": {
-            "type": { "const": "commit" },
-            "id": { "$ref": "#/definitions/id" },
-            "branch": { "$ref": "#/definitions/id" },
-            "copy": { "$ref": "#/definitions/id" },
-            "merge": { "$ref": "#/definitions/id" },
-            "hash": { "$ref": "#/definitions/hash" },
-            "note": { "$ref": "#/definitions/text" }
+            "type": {
+              "const": "commit"
+            },
+            "id": {
+              "$ref": "#/definitions/id"
+            },
+            "branch": {
+              "$ref": "#/definitions/id"
+            },
+            "copy": {
+              "$ref": "#/definitions/id"
+            },
+            "merge": {
+              "$ref": "#/definitions/id"
+            },
+            "hash": {
+              "$ref": "#/definitions/hash"
+            },
+            "note": {
+              "$ref": "#/definitions/text"
+            }
           }
         },
         {
           "description": "枝を切る。枝分かれの図だけが書ける。枝の札を from の commit へ置き、HEAD をその枝へ移す",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "branch", "from"],
+          "required": [
+            "type",
+            "branch",
+            "from"
+          ],
           "properties": {
-            "type": { "const": "branch" },
-            "branch": { "$ref": "#/definitions/id" },
-            "from": { "$ref": "#/definitions/id" }
+            "type": {
+              "const": "branch"
+            },
+            "branch": {
+              "$ref": "#/definitions/id"
+            },
+            "from": {
+              "$ref": "#/definitions/id"
+            }
           }
         },
         {
           "description": "時間軸の図の今の時刻の針を、to の目盛りの終わりまで進める",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "to"],
+          "required": [
+            "type",
+            "to"
+          ],
           "properties": {
-            "type": { "const": "now" },
-            "to": { "$ref": "#/definitions/unit" }
+            "type": {
+              "const": "now"
+            },
+            "to": {
+              "$ref": "#/definitions/unit"
+            }
           }
         },
         {
           "description": "時間軸の図の印の列 row の、from から to の目盛りの印の色を変える",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "row", "from", "to", "color"],
+          "required": [
+            "type",
+            "row",
+            "from",
+            "to",
+            "color"
+          ],
           "properties": {
-            "type": { "const": "mark" },
-            "row": { "$ref": "#/definitions/id" },
-            "from": { "$ref": "#/definitions/unit" },
-            "to": { "$ref": "#/definitions/unit" },
-            "color": { "$ref": "#/definitions/color" }
+            "type": {
+              "const": "mark"
+            },
+            "row": {
+              "$ref": "#/definitions/id"
+            },
+            "from": {
+              "$ref": "#/definitions/unit"
+            },
+            "to": {
+              "$ref": "#/definitions/unit"
+            },
+            "color": {
+              "$ref": "#/definitions/color"
+            }
           }
         },
         {
           "description": "時間軸の図の from から to の目盛りに、括弧と字を出す。shape が box なら印の列を囲み、字を縁の札にする",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "from", "to", "text"],
+          "required": [
+            "type",
+            "from",
+            "to",
+            "text"
+          ],
           "properties": {
-            "type": { "const": "span" },
-            "from": { "$ref": "#/definitions/unit" },
-            "to": { "$ref": "#/definitions/unit" },
-            "text": { "$ref": "#/definitions/text" },
-            "shape": { "enum": ["box"] },
-            "color": { "$ref": "#/definitions/color" }
+            "type": {
+              "const": "span"
+            },
+            "from": {
+              "$ref": "#/definitions/unit"
+            },
+            "to": {
+              "$ref": "#/definitions/unit"
+            },
+            "text": {
+              "$ref": "#/definitions/text"
+            },
+            "shape": {
+              "enum": [
+                "box"
+              ]
+            },
+            "color": {
+              "$ref": "#/definitions/color"
+            }
           }
         },
         {
           "description": "葉を出す。木の図だけが書ける。書いた段で葉の箱が現れる。hash を書くと箱に値を出し、名札を葉の下の札に出す",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "id"],
+          "required": [
+            "type",
+            "id"
+          ],
           "properties": {
-            "type": { "const": "leaf" },
-            "id": { "$ref": "#/definitions/id" },
-            "hash": { "$ref": "#/definitions/hash" }
+            "type": {
+              "const": "leaf"
+            },
+            "id": {
+              "$ref": "#/definitions/id"
+            },
+            "hash": {
+              "$ref": "#/definitions/hash"
+            }
           }
         },
         {
           "description": "1 つ以上の子から親を組む。木の図だけが書ける。書いた段で親の箱と、子から親への木の線が現れる",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "id", "children"],
+          "required": [
+            "type",
+            "id",
+            "children"
+          ],
           "properties": {
-            "type": { "const": "node" },
-            "id": { "$ref": "#/definitions/id" },
-            "children": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/id" } },
-            "hash": { "$ref": "#/definitions/hash" }
+            "type": {
+              "const": "node"
+            },
+            "id": {
+              "$ref": "#/definitions/id"
+            },
+            "children": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/id"
+              }
+            },
+            "hash": {
+              "$ref": "#/definitions/hash"
+            }
           }
         },
         {
           "description": "列の box の並びを items に書き換える。列の図だけが書ける。チップは前に居た列から滑り、どの列にも居なかったチップは弾んで現れ、列から外れたチップは消える",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "box", "items"],
+          "required": [
+            "type",
+            "box",
+            "items"
+          ],
           "properties": {
-            "type": { "const": "line" },
-            "box": { "$ref": "#/definitions/id" },
-            "items": { "type": "array", "minItems": 1, "maxItems": 12, "items": { "$ref": "#/definitions/id" } }
+            "type": {
+              "const": "line"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": {
+                "$ref": "#/definitions/id"
+              }
+            }
           }
         },
         {
           "description": "列 box に封をして、チップを隠す。列の図だけが書ける",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "box"],
+          "required": [
+            "type",
+            "box"
+          ],
           "properties": {
-            "type": { "const": "seal" },
-            "box": { "$ref": "#/definitions/id" }
+            "type": {
+              "const": "seal"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            }
           }
         },
         {
           "description": "列 box の封を開ける。列の図だけが書ける",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "box"],
+          "required": [
+            "type",
+            "box"
+          ],
           "properties": {
-            "type": { "const": "open" },
-            "box": { "$ref": "#/definitions/id" }
+            "type": {
+              "const": "open"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            }
           }
         },
         {
           "description": "列 box を選ぶ。列の図だけが書ける。列の縁に色が付き、ほかの列が薄くなる",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "box"],
+          "required": [
+            "type",
+            "box"
+          ],
           "properties": {
-            "type": { "const": "pick" },
-            "box": { "$ref": "#/definitions/id" }
+            "type": {
+              "const": "pick"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            }
           }
         },
         {
           "description": "列 box の右に text の札を押す。列の図だけが書ける",
           "type": "object",
           "additionalProperties": false,
-          "required": ["type", "box", "text"],
+          "required": [
+            "type",
+            "box",
+            "text"
+          ],
           "properties": {
-            "type": { "const": "stamp" },
-            "box": { "$ref": "#/definitions/id" },
-            "text": { "$ref": "#/definitions/text" }
-          }
-        },
-        {
-          "description": "中身の帯の欄の値と札",
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["type", "field"],
-          "anyOf": [{ "required": ["value"] }, { "required": ["tag"] }],
-          "properties": {
-            "type": { "const": "strip" },
-            "field": { "$ref": "#/definitions/text" },
-            "value": { "$ref": "#/definitions/text" },
-            "tag": { "$ref": "#/definitions/text" }
+            "type": {
+              "const": "stamp"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "text": {
+              "$ref": "#/definitions/text"
+            }
           }
         }
       ]
-    },
-    "carry": {
-      "description": "線の上を走る物。封筒 (メッセージや要求)、札 (名前のある値)、硬貨 (価値)、無し",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["kind"],
-      "properties": {
-        "kind": { "enum": ["envelope", "tag", "coin", "none"] },
-        "text": { "$ref": "#/definitions/text" }
-      },
-      "if": { "required": ["kind"], "properties": { "kind": { "const": "tag" } } },
-      "then": { "required": ["text"] },
-      "else": { "not": { "required": ["text"] } }
-    },
-    "sequence": {
-      "description": "時系列図の種類の欄。生存線を左から並べる順",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["lifelines"],
-      "properties": {
-        "lifelines": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/id" } }
-      }
-    },
-    "state": {
-      "description": "状態遷移図の種類の欄。最初の段より前に書いた、移れるが段で通るとは限らない線",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["paths"],
-      "properties": {
-        "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/path" } }
-      }
-    },
-    "git": {
-      "description": "枝分かれの図の種類の欄。枝を上から帯に並べる順",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["branches"],
-      "properties": {
-        "branches": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/branch" } }
-      }
     },
     "branch": {
       "description": "枝。帯の左に名札と添え書きを置く",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id"],
+      "required": [
+        "id"
+      ],
       "properties": {
-        "id": { "$ref": "#/definitions/id" },
-        "note": { "$ref": "#/definitions/text" }
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "note": {
+          "$ref": "#/definitions/text"
+        }
       }
     },
-    "hash": { "description": "commit と木の箱の hash。16 進の字で 4 から 40 字", "type": "string", "pattern": "^[0-9a-f]{4,40}$" },
-    "lineup": {
-      "description": "列の図の種類の欄。列に並べるチップ",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["items"],
-      "properties": {
-        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/item" } }
-      }
+    "hash": {
+      "description": "commit と木の箱の hash。16 進の字で 4 から 40 字",
+      "type": "string",
+      "pattern": "^[0-9a-f]{4,40}$"
     },
     "item": {
       "description": "チップ。color を書かないチップは薄い色で、label を書かないチップは色だけで出す",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id"],
+      "required": [
+        "id"
+      ],
       "properties": {
-        "id": { "$ref": "#/definitions/id" },
-        "color": { "$ref": "#/definitions/color" },
-        "label": { "description": "チップに載せる字", "type": "string", "minLength": 1, "maxLength": 4 }
-      }
-    },
-    "time": {
-      "description": "時間軸の図の種類の欄。目盛り、区切り、印の列、節目、拡大の範囲",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["scale", "rows"],
-      "properties": {
-        "scale": { "$ref": "#/definitions/scale" },
-        "period": { "$ref": "#/definitions/period" },
-        "rows": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/row" } },
-        "points": { "type": "array", "items": { "$ref": "#/definitions/point" } },
-        "zoom": { "$ref": "#/definitions/zoom" }
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "label": {
+          "description": "チップに載せる字",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4
+        }
       }
     },
     "scale": {
       "description": "目盛り。unit の名前の目盛りを length の長さで count 個並べ、最初の目盛りの番号を from にする",
       "type": "object",
       "additionalProperties": false,
-      "required": ["unit", "length", "count"],
+      "required": [
+        "unit",
+        "length",
+        "count"
+      ],
       "properties": {
-        "unit": { "$ref": "#/definitions/text" },
-        "length": { "$ref": "#/definitions/duration" },
-        "count": { "type": "integer", "minimum": 1 },
-        "from": { "type": "integer", "minimum": 0 }
+        "unit": {
+          "$ref": "#/definitions/text"
+        },
+        "length": {
+          "$ref": "#/definitions/duration"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "from": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
-    "duration": { "description": "長さ。数と単位 (ms、s、min、h、d) の組", "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$" },
-    "unit": { "description": "目盛りの位置。0 から数える", "type": "integer", "minimum": 0 },
+    "duration": {
+      "description": "長さ。数と単位 (ms、s、min、h、d) の組",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$"
+    },
+    "unit": {
+      "description": "目盛りの位置。0 から数える",
+      "type": "integer",
+      "minimum": 0
+    },
     "period": {
       "description": "区切り。目盛り length 個ごとに name の区切りを置き、最初の区切りの番号を from にする",
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "length"],
+      "required": [
+        "name",
+        "length"
+      ],
       "properties": {
-        "name": { "$ref": "#/definitions/text" },
-        "length": { "type": "integer", "minimum": 1 },
-        "from": { "type": "integer", "minimum": 0 }
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "from": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "row": {
       "description": "印の列。目盛りごとに印を 1 つ置き、empty の目盛りは空きの印にする",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name"],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
-        "id": { "$ref": "#/definitions/id" },
-        "name": { "$ref": "#/definitions/text" },
-        "color": { "$ref": "#/definitions/color" },
-        "empty": { "type": "array", "items": { "$ref": "#/definitions/unit" } }
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "empty": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/unit"
+          }
+        }
       }
     },
     "point": {
       "description": "節目。at の目盛りの印の下に旗の丸と名札を置く",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "at"],
+      "required": [
+        "id",
+        "at"
+      ],
       "properties": {
-        "id": { "$ref": "#/definitions/id" },
-        "at": { "$ref": "#/definitions/unit" }
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "at": {
+          "$ref": "#/definitions/unit"
+        }
       }
     },
     "zoom": {
       "description": "拡大の範囲。from から to の目盛りごとに拡大の帯に列を作る",
       "type": "object",
       "additionalProperties": false,
-      "required": ["from", "to"],
+      "required": [
+        "from",
+        "to"
+      ],
       "properties": {
-        "from": { "$ref": "#/definitions/unit" },
-        "to": { "$ref": "#/definitions/unit" }
+        "from": {
+          "$ref": "#/definitions/unit"
+        },
+        "to": {
+          "$ref": "#/definitions/unit"
+        }
       }
     },
     "path": {
       "description": "移れる道。送る側に始まりの印 start、受ける側に終わりの印 finish を書ける。どの段にも出ない道は点線で描き、運ぶ物を走らせない",
       "type": "object",
       "additionalProperties": false,
-      "required": ["from", "to"],
+      "required": [
+        "from",
+        "to"
+      ],
       "properties": {
-        "from": { "$ref": "#/definitions/id" },
-        "to": { "$ref": "#/definitions/id" },
-        "label": { "$ref": "#/definitions/text" }
+        "from": {
+          "$ref": "#/definitions/id"
+        },
+        "to": {
+          "$ref": "#/definitions/id"
+        },
+        "label": {
+          "$ref": "#/definitions/text"
+        }
       }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "note": {
+          "$ref": "#/definitions/text"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "icon": {
+          "$ref": "#/definitions/icon"
+        }
+      }
+    },
+    "box": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "sub": {
+          "$ref": "#/definitions/text"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "icon": {
+          "$ref": "#/definitions/icon"
+        },
+        "region": {
+          "$ref": "#/definitions/id"
+        },
+        "link": {
+          "description": "飛び先。描いた図ではこの箱がここへの link になる",
+          "$ref": "#/definitions/url"
+        }
+      }
+    },
+    "plainStrip": {
+      "description": "時間軸の図でない図の中身の帯。物差しを書けない",
+      "properties": {
+        "meters": {
+          "$ref": "#/definitions/absent"
+        }
+      }
+    },
+    "strip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "fields"
+      ],
+      "properties": {
+        "title": {
+          "$ref": "#/definitions/text"
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/text"
+          }
+        },
+        "meters": {
+          "description": "物差しにする欄。時間軸の図だけが書ける",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/meter"
+          }
+        }
+      }
+    },
+    "meter": {
+      "description": "物差しの欄。line の割合の所に線を引き、set の値まで針と一緒に満ちる",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field",
+        "line"
+      ],
+      "properties": {
+        "field": {
+          "$ref": "#/definitions/text"
+        },
+        "line": {
+          "$ref": "#/definitions/ratio"
+        }
+      }
+    },
+    "ratio": {
+      "description": "割合。分数 (2/3) か百分率 (97%)",
+      "type": "string",
+      "pattern": "^([0-9]+/[0-9]+|[0-9]+(\\.[0-9]+)?%)$"
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "body",
+        "events"
+      ],
+      "properties": {
+        "title": {
+          "$ref": "#/definitions/text"
+        },
+        "body": {
+          "$ref": "#/definitions/text"
+        },
+        "code": {
+          "$ref": "#/definitions/text"
+        },
+        "sources": {
+          "description": "段の出典。読み上げの段の一覧に、名前を URL への link にして書いた順に出す",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/source"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/event"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "url"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "url": {
+          "$ref": "#/definitions/url"
+        }
+      }
+    },
+    "carry": {
+      "description": "線の上を走る物。封筒 (メッセージや要求)、札 (名前のある値)、硬貨 (価値)、無し",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "envelope",
+            "tag",
+            "coin",
+            "none"
+          ]
+        },
+        "text": {
+          "$ref": "#/definitions/text"
+        }
+      },
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "tag"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "text"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "text"
+          ]
+        }
+      }
+    },
+    "color": {
+      "enum": [
+        "blue",
+        "amber",
+        "green",
+        "violet",
+        "rose",
+        "slate",
+        "coin"
+      ]
+    },
+    "icon": {
+      "description": "箱と区画のアイコン名。描く部品のアイコンの表 (ICONS) に在る名前だけ",
+      "enum": [
+        "app",
+        "router",
+        "on",
+        "off",
+        "pool",
+        "db",
+        "exe",
+        "idx",
+        "sign",
+        "env",
+        "lock",
+        "check",
+        "flag",
+        "x",
+        "chain",
+        "net",
+        "user",
+        "server",
+        "key",
+        "shield",
+        "globe",
+        "bolt",
+        "doc",
+        "box",
+        "truck",
+        "card",
+        "cart",
+        "clock",
+        "branch",
+        "cloud",
+        "refresh",
+        "undo",
+        "yen",
+        "layers",
+        "code",
+        "paint",
+        "tree",
+        "block"
+      ]
+    },
+    "url": {
+      "description": "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL",
+      "type": "string",
+      "pattern": "^(/|https?://)"
     }
   }
 }

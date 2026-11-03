@@ -150,6 +150,7 @@ export const block: Block<StripMessages> = {
   attach: { how: "attach-to-figure" },
   words: { heads: ["strip", "set"], headRanks: { set: 80 }, attrs: { strip: STRIP_ATTRS, set: SET_ATTRS } },
   shape: {
+    field: { $ref: "#/definitions/strip" },
     definitions: {
       plainStrip: { description: "時間軸の図でない図の中身の帯。物差しを書けない", properties: { meters: { $ref: "#/definitions/absent" } } },
       strip: {

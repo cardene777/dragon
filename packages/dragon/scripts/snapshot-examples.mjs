@@ -75,13 +75,16 @@ export function sources(api) {
     });
 }
 
-/** 見本ごと、描き方ごとの指紋。鍵は `<file>|<描き方>|<svg か layout か timeline か json>` */
+/**
+ * 見本ごと、描き方ごとの指紋。鍵は `<file>|<描き方>|<svg か layout か timeline か json>`。
+ * 記法の見本の `json` は、読んだ原本から組み直した描く処理の形 (`rendered.diagram`) の字の並び。図の id はこの形の字から作る (#3346)
+ */
 export function fingerprints(api) {
   const out = {};
   for (const { file, diagram } of sources(api)) {
-    if (file.endsWith(".dragon")) out[`${file}|parsed|json`] = sha(JSON.stringify(diagram));
     for (const [name, options] of Object.entries(VARIANTS)) {
       const rendered = api.renderDiagram(diagram, options);
+      if (file.endsWith(".dragon") && name === "default") out[`${file}|parsed|json`] = sha(JSON.stringify(rendered.diagram));
       out[`${file}|${name}|svg`] = sha(rendered.svg);
       out[`${file}|${name}|layout`] = sha(JSON.stringify(rendered.layout));
       out[`${file}|${name}|timeline`] = sha(JSON.stringify(rendered.timeline));

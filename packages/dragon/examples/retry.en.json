@@ -1,23 +1,25 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "Retry the payment",
-  "boxes": [
-    {
-      "id": "app",
-      "name": "Shop app",
-      "sub": "attempt 1",
-      "color": "blue",
-      "icon": "app"
-    },
-    {
-      "id": "pay",
-      "name": "Payment API",
-      "sub": "busy",
-      "color": "violet",
-      "icon": "card"
-    }
-  ],
+  "blocks": {
+    "box": [
+      {
+        "id": "app",
+        "name": "Shop app",
+        "sub": "attempt 1",
+        "color": "blue",
+        "icon": "app"
+      },
+      {
+        "id": "pay",
+        "name": "Payment API",
+        "sub": "busy",
+        "color": "violet",
+        "icon": "card"
+      }
+    ]
+  },
   "steps": [
     {
       "title": "Ask",
@@ -102,11 +104,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "app",
-      "pay"
-    ]
-  }
+  ]
 }

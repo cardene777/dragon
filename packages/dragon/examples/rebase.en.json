@@ -1,23 +1,35 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "git",
   "title": "Rebase a work branch and bring it into main",
-  "boxes": [
-    {
-      "id": "worktree",
-      "name": "Worktree",
-      "sub": "Local files",
-      "color": "violet",
-      "icon": "doc"
-    }
-  ],
-  "strip": {
-    "title": "Refs",
-    "fields": [
-      "main",
-      "feature",
-      "HEAD",
-      "History"
+  "blocks": {
+    "box": [
+      {
+        "id": "worktree",
+        "name": "Worktree",
+        "sub": "Local files",
+        "color": "violet",
+        "icon": "doc"
+      }
+    ],
+    "strip": {
+      "title": "Refs",
+      "fields": [
+        "main",
+        "feature",
+        "HEAD",
+        "History"
+      ]
+    },
+    "branch": [
+      {
+        "id": "main",
+        "note": "Merge target"
+      },
+      {
+        "id": "feature",
+        "note": "Work branch"
+      }
     ]
   },
   "steps": [
@@ -292,17 +304,5 @@
       "code": "git log --oneline",
       "events": []
     }
-  ],
-  "git": {
-    "branches": [
-      {
-        "id": "main",
-        "note": "Merge target"
-      },
-      {
-        "id": "feature",
-        "note": "Work branch"
-      }
-    ]
-  }
+  ]
 }

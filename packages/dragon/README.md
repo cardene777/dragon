@@ -17,7 +17,7 @@ The package has four parts.
 
 | Part | What it is |
 |---|---|
-| Source | JSON with a shared skeleton and fields for each kind of diagram. It carries a format version, and older versions are converted when read |
+| Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`) (see below). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind (the section below). It converts to and from JSON, and names and text can be in any language ([notation guide](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
 | Renderer | Draws the source on a page and plays it one step at a time. It draws sequence, architecture, state, git, time, and tree diagrams |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
@@ -292,6 +292,40 @@ step Climb from tx3 to the root
   3to4 -> root [tag: b9e4]
   1to2 -> root [tag: 7a21]
 ```
+
+## Source JSON
+
+The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
+Boxes go in `blocks.box`, groups in `blocks.group`, and the strip in `blocks.strip`.
+Git graph branches go in `blocks.branch`, the paths a state diagram does not take in `blocks.path`, and lineup chips in `blocks.item`.
+A time diagram's scale, period, rows, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.point` and `blocks.zoom`.
+What happens in a step (lines and actions inside a box) goes in each step's `events`.
+
+```json
+{
+  "version": 2,
+  "kind": "sequence",
+  "title": "Send and receive",
+  "blocks": {
+    "box": [
+      { "id": "a", "name": "Sender" },
+      { "id": "b", "name": "Receiver" }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Send",
+      "body": "The sender sends to the receiver.",
+      "events": [{ "type": "edge", "from": "a", "to": "b", "carry": { "kind": "envelope" } }]
+    }
+  ]
+}
+```
+
+Version 1 sources (with `boxes` or `regions` at the top) can still be read.
+`readDiagram` moves a version 1 source to the version 2 shape, returns it, and notes the move in `warnings`.
+To rewrite the source file itself, use `migrateFile` from `@cardenelabs/dragon/node`.
+The mapping between version 1 and version 2 fields is in [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).
 
 ## Export
 

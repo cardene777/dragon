@@ -1,14 +1,29 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "git",
   "title": "2 本の枝を merge commit で main へ取り込む",
-  "boxes": [],
-  "strip": {
-    "title": "参照",
-    "fields": [
-      "main",
-      "fix",
-      "feature"
+  "blocks": {
+    "strip": {
+      "title": "参照",
+      "fields": [
+        "main",
+        "fix",
+        "feature"
+      ]
+    },
+    "branch": [
+      {
+        "id": "main",
+        "note": "取り込む先"
+      },
+      {
+        "id": "fix",
+        "note": "直しの枝"
+      },
+      {
+        "id": "feature",
+        "note": "作業の枝"
+      }
     ]
   },
   "steps": [
@@ -154,21 +169,5 @@
       "code": "git log --graph --oneline",
       "events": []
     }
-  ],
-  "git": {
-    "branches": [
-      {
-        "id": "main",
-        "note": "取り込む先"
-      },
-      {
-        "id": "fix",
-        "note": "直しの枝"
-      },
-      {
-        "id": "feature",
-        "note": "作業の枝"
-      }
-    ]
-  }
+  ]
 }

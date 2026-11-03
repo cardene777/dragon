@@ -108,9 +108,8 @@ interface Source {
   kind: string;
   title: string;
   view?: string;
-  boxes: { id: string; name: string; icon?: string }[];
+  blocks: { box?: { id: string; name: string; icon?: string }[]; path?: { from: string; to: string; label?: string }[] };
   steps: { title: string; events: SourceEdge[] }[];
-  state?: { paths: { from: string; to: string; label?: string }[] };
 }
 
 /** 見本の file の中身。無ければ `undefined` */
@@ -151,7 +150,7 @@ function visitOrder(d: Source): string[] {
   return order;
 }
 
-const nameOf = (d: Source, id: string): string => d.boxes.find((b) => b.id === id)?.name ?? id;
+const nameOf = (d: Source, id: string): string => (d.blocks.box ?? []).find((b) => b.id === id)?.name ?? id;
 
 /** 点から四角までの距離。中なら 0 */
 function distanceToRect([x, y]: Point, r: Rect): number {
@@ -178,10 +177,10 @@ const rectInside = (a: Rect, r: Rect): boolean => inside([a.x, a.y], r) && insid
 /** 原本の JSON の、段の線と通らない道の数 */
 const shape = (d: Source): Record<string, unknown> => ({
   kind: d.kind,
-  boxes: d.boxes.length,
+  boxes: (d.blocks.box ?? []).length,
   steps: d.steps.length,
   lines: d.steps.map((step) => step.events.filter((event) => event.type === "edge").length),
-  paths: (d.state?.paths ?? []).length,
+  paths: (d.blocks.path ?? []).length,
 });
 
 const edge = (from: string, to: string, label?: string): Json => ({ type: "edge", from, to, ...(label ? { label } : {}), carry: { kind: "tag", text: "#1" } });
@@ -274,7 +273,7 @@ describe("状態遷移図の記法 (#3163)", () => {
     const plain = parse(["sequence 名札の図", "box start as 始め", "box finish as 終え", "step 送る", "  say 送る。", "  start -> finish: 送る"].join("\n"));
     expect(plain.ok, `時系列図で start と finish を名札にした箱が読めない: ${plain.ok ? "" : JSON.stringify(plain.errors)}`).toBe(true);
     const diagram = (plain.ok ? plain.diagram : {}) as unknown as Source;
-    expect(diagram.boxes?.map((b) => b.id), "時系列図の箱の名札").toEqual(["start", "finish"]);
+    expect(diagram.blocks?.box?.map((b) => b.id), "時系列図の箱の名札").toEqual(["start", "finish"]);
 
     // 時系列図と構成図では、最初の step より前の線の行と、宣言していない start は誤り
     const cases: [string, string[], number][] = [
@@ -305,7 +304,7 @@ describe("状態遷移図の記法 (#3163)", () => {
     const lines = printed.split("\n");
     const firstStep = lines.findIndex((line) => line.startsWith("step "));
     const before = lines.slice(0, Math.max(firstStep, 0)).filter((line) => line.includes("->")).length;
-    const paths = ((first.diagram as unknown as Source).state?.paths ?? []).length;
+    const paths = ((first.diagram as unknown as Source).blocks.path ?? []).length;
     expect(paths, "注文の図に通らない道が無い").toBeGreaterThan(0);
     expect(before, "書き戻した記法が、通らない道を最初の step より前に書かない").toBe(paths);
   });
@@ -351,7 +350,7 @@ describe("状態遷移図の描き方 (#3163)", () => {
     const { layout, svg } = render(source as unknown as Json, "ja");
     const reached = new Set(visitOrder(source));
     const ghosts = layout.boxes.filter((b) => b.ghost);
-    expect(ghosts.map((b) => b.name), "どの段も辿り着かない状態だけを点線の箱にしない").toEqual(source.boxes.filter((b) => !reached.has(b.id)).map((b) => b.name));
+    expect(ghosts.map((b) => b.name), "どの段も辿り着かない状態だけを点線の箱にしない").toEqual((source.blocks.box ?? []).filter((b) => !reached.has(b.id)).map((b) => b.name));
     expect(ghosts.length, "注文の図に点線の箱が無い").toBeGreaterThan(0);
     const side = layout.side;
     expect(side, "脇道の囲みが無い").toBeDefined();
@@ -380,7 +379,7 @@ describe("状態遷移図の描き方 (#3163)", () => {
     const source = orderJson() as unknown as Source;
     const { layout, timeline, svg } = render(source as unknown as Json);
     const walked = new Set(edgesOf(source).map((e) => `${e.from}->${e.to}`));
-    const notTaken = (source.state?.paths ?? []).filter((p) => !walked.has(`${p.from}->${p.to}`)).map((p) => `${p.from}->${p.to}`);
+    const notTaken = (source.blocks.path ?? []).filter((p) => !walked.has(`${p.from}->${p.to}`)).map((p) => `${p.from}->${p.to}`);
     expect(notTaken.length, "注文の図に通らない道が無い").toBeGreaterThan(0);
     expect(layout.paths.map((p) => `${p.from}->${p.to}`).sort(), "点線で描く線が、段より前に書いてどの段にも出ない線と違う").toEqual([...notTaken].sort());
     expect((svg.match(/data-path="/gu) ?? []).length, "点線の線の印 (data-path) の数").toBe(layout.paths.length);
@@ -578,7 +577,7 @@ function chainState(n: number): Json {
 
 /** 脇道の状態を 2 つ持つ状態遷移図 */
 function twoGhosts(): Json {
-  const base = smallState() as unknown as Source;
+  const base = smallState() as unknown as { boxes: Json[]; state?: { paths: Json[] } };
   return {
     ...(base as unknown as Record<string, unknown>),
     boxes: [...base.boxes, { id: "y", name: "保留" }],
@@ -752,11 +751,11 @@ describe("状態遷移図の見た目 (#3171)", () => {
     for (const name of ["order.json", "order.en.json"]) {
       const source = orderJson(name) as unknown as Source;
       const order = visitOrder(source);
-      const iconOf = (id: string | undefined): string | undefined => source.boxes.find((b) => b.id === id)?.icon;
+      const iconOf = (id: string | undefined): string | undefined => (source.blocks.box ?? []).find((b) => b.id === id)?.icon;
       expect(iconOf(order[6]), `${name} の返品の受付の絵柄`).toBe("undo");
       expect(iconOf(order[7]), `${name} の返金済みの絵柄`).toBe("yen");
       const { svg } = render(source as unknown as Json, name.includes(".en.") ? "en" : "ja");
-      expect((svg.match(/class="dg-ic"/gu) ?? []).length, `${name} で絵柄を描けない状態がある`).toBe(source.boxes.filter((b) => b.icon !== undefined).length);
+      expect((svg.match(/class="dg-ic"/gu) ?? []).length, `${name} で絵柄を描けない状態がある`).toBe((source.blocks.box ?? []).filter((b) => b.icon !== undefined).length);
     }
   });
 

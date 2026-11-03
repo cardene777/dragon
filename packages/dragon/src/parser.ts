@@ -65,7 +65,6 @@
  */
 import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { EDGE, readEdgeLine, readLine } from "./blocks/edge/block";
-import { lifelinesOf } from "./blocks/lifeline/block";
 import { BLOCKS } from "./blocks/index";
 import { stepOf, viewOf } from "./blocks/step/block";
 import { type Messages, messagesFor, type Shape } from "./messages";
@@ -74,6 +73,7 @@ import {
   type Color,
   COLORS,
   type Diagram,
+  type DiagramModel,
   type DiagramEvent,
   type GitBranch,
   type GitCommit,
@@ -86,7 +86,7 @@ import {
   type TimeScale,
 } from "./schema";
 import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
-import { FORMAT_VERSION } from "./version";
+import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import {
   AT,
   ATTRS,
@@ -179,7 +179,8 @@ function oldForm(text: string, inStep: boolean): { word: string; shape: Shape } 
  */
 const HEAD_READERS: ReadonlyMap<string, HeadReader> = new Map(ranked(BLOCKS).flatMap((block) => ("none" in block.read ? [] : Object.entries(block.read))));
 
-function parseLines(lines: SourceLine[], m: Messages): Diagram {
+/** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
+function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
   const head = lines[headAt];
   if (!head) throw new NotationError(1, 1, m.noHead);
@@ -419,7 +420,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
   if (root !== undefined && stray !== undefined && strayAt) throw fail(strayAt.source, strayAt.at, m.manyRoots(stray, root));
 
   return {
-    version: FORMAT_VERSION,
+    version: MODEL_VERSION,
     kind,
     title,
     ...(view ? { view } : {}),
@@ -427,7 +428,6 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
     boxes,
     ...(figure.strip ? { strip: figure.meters.length > 0 ? { ...figure.strip, meters: figure.meters } : figure.strip } : {}),
     steps,
-    ...(kind === "sequence" ? { sequence: lifelinesOf(boxes) } : {}),
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items } } : {}),
@@ -872,7 +872,7 @@ function parseLines(lines: SourceLine[], m: Messages): Diagram {
 
 export function parseNotation(notation: string, options: ParseOptions = {}): Parsed {
   try {
-    return { ok: true, diagram: parseLines(tokenize(notation), messagesFor(options.lang ?? DEFAULT_LANG)) };
+    return { ok: true, diagram: fromModel(parseLines(tokenize(notation), messagesFor(options.lang ?? DEFAULT_LANG)), FORMAT_VERSION) };
   } catch (error) {
     if (!(error instanceof NotationError)) throw error;
     return { ok: false, errors: [{ line: error.line, column: error.column, message: error.message }] };

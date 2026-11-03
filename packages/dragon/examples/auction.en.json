@@ -1,31 +1,128 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "lineup",
   "title": "How an auction decides what goes in a block",
-  "boxes": [
-    {
-      "id": "Mempool",
-      "name": "Mempool"
-    },
-    {
-      "id": "BuilderA",
-      "name": "Builder A"
-    },
-    {
-      "id": "BuilderB",
-      "name": "Builder B",
-      "color": "amber"
-    },
-    {
-      "id": "BuilderC",
-      "name": "Builder C"
-    },
-    {
-      "id": "Validators",
-      "name": "Validators",
-      "color": "green"
-    }
-  ],
+  "blocks": {
+    "box": [
+      {
+        "id": "Mempool",
+        "name": "Mempool"
+      },
+      {
+        "id": "BuilderA",
+        "name": "Builder A"
+      },
+      {
+        "id": "BuilderB",
+        "name": "Builder B",
+        "color": "amber"
+      },
+      {
+        "id": "BuilderC",
+        "name": "Builder C"
+      },
+      {
+        "id": "Validators",
+        "name": "Validators",
+        "color": "green"
+      }
+    ],
+    "item": [
+      {
+        "id": "mine",
+        "color": "amber"
+      },
+      {
+        "id": "t1"
+      },
+      {
+        "id": "t2"
+      },
+      {
+        "id": "t3"
+      },
+      {
+        "id": "t4"
+      },
+      {
+        "id": "t5"
+      },
+      {
+        "id": "t6"
+      },
+      {
+        "id": "t7"
+      },
+      {
+        "id": "private1",
+        "color": "blue"
+      },
+      {
+        "id": "private2",
+        "color": "blue"
+      },
+      {
+        "id": "v1",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v2",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v3",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v4",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v5",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v6",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v7",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v8",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v9",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v10",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v11",
+        "color": "green",
+        "label": "✓"
+      },
+      {
+        "id": "v12",
+        "color": "green",
+        "label": "✓"
+      }
+    ]
+  },
   "steps": [
     {
       "title": "Transactions line up",
@@ -182,102 +279,5 @@
         }
       ]
     }
-  ],
-  "lineup": {
-    "items": [
-      {
-        "id": "mine",
-        "color": "amber"
-      },
-      {
-        "id": "t1"
-      },
-      {
-        "id": "t2"
-      },
-      {
-        "id": "t3"
-      },
-      {
-        "id": "t4"
-      },
-      {
-        "id": "t5"
-      },
-      {
-        "id": "t6"
-      },
-      {
-        "id": "t7"
-      },
-      {
-        "id": "private1",
-        "color": "blue"
-      },
-      {
-        "id": "private2",
-        "color": "blue"
-      },
-      {
-        "id": "v1",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v2",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v3",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v4",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v5",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v6",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v7",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v8",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v9",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v10",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v11",
-        "color": "green",
-        "label": "✓"
-      },
-      {
-        "id": "v12",
-        "color": "green",
-        "label": "✓"
-      }
-    ]
-  }
+  ]
 }

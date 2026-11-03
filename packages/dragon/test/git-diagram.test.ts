@@ -130,9 +130,8 @@ interface Source {
   kind: string;
   title: string;
   view?: string;
-  boxes: { id: string; name: string }[];
+  blocks: { box?: { id: string; name: string }[]; branch?: { id: string; note?: string }[] };
   steps: { title: string; events: SourceEvent[] }[];
-  git?: { branches: { id: string; note?: string }[] };
 }
 
 /** 見本の file の中身。無ければ `undefined` */
@@ -179,7 +178,7 @@ const refOf = (layout: GitLayout, name: string): GitRef => {
 /** 原本の JSON の、枝と commit と段と段ごとの出来事の数 */
 const shape = (d: Source): Record<string, unknown> => ({
   kind: d.kind,
-  branches: (d.git?.branches ?? []).length,
+  branches: (d.blocks.branch ?? []).length,
   commits: commitsOf(d).length,
   steps: d.steps.length,
   events: d.steps.map((step) => step.events.length),
@@ -302,7 +301,7 @@ describe("枝分かれの図の記法 (#3164)", () => {
       const parsed = parse(text);
       expect(parsed.ok, `${kind} で main と HEAD を名札にした箱が読めない: ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
       const diagram = (parsed.ok ? parsed.diagram : {}) as unknown as Source & { steps: { events: (SourceEvent & { carry?: { kind: string } })[] }[] };
-      expect(diagram.boxes?.map((b) => b.id), `${kind} の箱の名札`).toEqual(["main", "HEAD"]);
+      expect(diagram.blocks?.box?.map((b) => b.id), `${kind} の箱の名札`).toEqual(["main", "HEAD"]);
       const line = diagram.steps?.[0]?.events?.[0];
       expect(line && { type: line.type, from: line.from, to: line.to, carry: line.carry?.kind }, `${kind} の main から HEAD への線`).toEqual({ type: "edge", from: "main", to: "HEAD", carry: "envelope" });
     }
@@ -351,7 +350,7 @@ describe("枝分かれの図の並べ方 (#3164)", () => {
     for (const name of ["rebase.json", "merge.json"]) {
       const source = exampleJson(name) as unknown as Source;
       const { layout } = render(source as unknown as Json);
-      const branches = (source.git?.branches ?? []).map((b) => b.id);
+      const branches = (source.blocks.branch ?? []).map((b) => b.id);
       expect(layout.lanes.map((l) => l.id), `${name} の帯が枝を宣言した順でない`).toEqual(branches);
       layout.lanes.slice(1).forEach((lane, i) => expect(lane.line, `${name} の ${lane.id} の帯が上の帯より下に無い`).toBeGreaterThan((layout.lanes[i] as GitLane).line));
       for (const c of layout.commits) {

@@ -1,79 +1,100 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "state",
   "title": "States of an online order from delivery to refund",
-  "boxes": [
-    {
-      "id": "received",
-      "name": "Received",
-      "sub": "Gets a number",
-      "color": "blue",
-      "icon": "doc"
+  "blocks": {
+    "box": [
+      {
+        "id": "received",
+        "name": "Received",
+        "sub": "Gets a number",
+        "color": "blue",
+        "icon": "doc"
+      },
+      {
+        "id": "awaiting",
+        "name": "Awaiting payment",
+        "sub": "Waits for funds",
+        "color": "amber",
+        "icon": "clock"
+      },
+      {
+        "id": "paid",
+        "name": "Paid",
+        "sub": "Payment cleared",
+        "color": "amber",
+        "icon": "card"
+      },
+      {
+        "id": "packing",
+        "name": "Packing",
+        "sub": "Off the shelf",
+        "color": "blue",
+        "icon": "box"
+      },
+      {
+        "id": "shipped",
+        "name": "Shipped",
+        "sub": "With the carrier",
+        "color": "violet",
+        "icon": "truck"
+      },
+      {
+        "id": "delivered",
+        "name": "Delivered",
+        "sub": "Handed over",
+        "color": "green",
+        "icon": "check"
+      },
+      {
+        "id": "returning",
+        "name": "Return requested",
+        "sub": "Awaiting the check",
+        "color": "rose",
+        "icon": "undo"
+      },
+      {
+        "id": "refunded",
+        "name": "Refunded",
+        "sub": "Money goes back",
+        "color": "rose",
+        "icon": "yen"
+      },
+      {
+        "id": "cancelled",
+        "name": "Cancelled",
+        "sub": "Payment returned",
+        "color": "rose",
+        "icon": "x"
+      }
+    ],
+    "strip": {
+      "title": "Order #1042",
+      "fields": [
+        "Payment",
+        "Stock",
+        "Tracking no.",
+        "Elapsed"
+      ]
     },
-    {
-      "id": "awaiting",
-      "name": "Awaiting payment",
-      "sub": "Waits for funds",
-      "color": "amber",
-      "icon": "clock"
-    },
-    {
-      "id": "paid",
-      "name": "Paid",
-      "sub": "Payment cleared",
-      "color": "amber",
-      "icon": "card"
-    },
-    {
-      "id": "packing",
-      "name": "Packing",
-      "sub": "Off the shelf",
-      "color": "blue",
-      "icon": "box"
-    },
-    {
-      "id": "shipped",
-      "name": "Shipped",
-      "sub": "With the carrier",
-      "color": "violet",
-      "icon": "truck"
-    },
-    {
-      "id": "delivered",
-      "name": "Delivered",
-      "sub": "Handed over",
-      "color": "green",
-      "icon": "check"
-    },
-    {
-      "id": "returning",
-      "name": "Return requested",
-      "sub": "Awaiting the check",
-      "color": "rose",
-      "icon": "undo"
-    },
-    {
-      "id": "refunded",
-      "name": "Refunded",
-      "sub": "Money goes back",
-      "color": "rose",
-      "icon": "yen"
-    },
-    {
-      "id": "cancelled",
-      "name": "Cancelled",
-      "sub": "Payment returned",
-      "color": "rose",
-      "icon": "x"
-    }
-  ],
-  "strip": {
-    "title": "Order #1042",
-    "fields": [
-      "Payment",
-      "Stock",
-      "Tracking no.",
-      "Elapsed"
+    "path": [
+      {
+        "from": "awaiting",
+        "to": "cancelled"
+      },
+      {
+        "from": "paid",
+        "to": "cancelled",
+        "label": "Cancel"
+      },
+      {
+        "from": "packing",
+        "to": "cancelled"
+      },
+      {
+        "from": "cancelled",
+        "to": "finish"
+      }
     ]
   },
   "steps": [
@@ -332,26 +353,5 @@
         }
       ]
     }
-  ],
-  "state": {
-    "paths": [
-      {
-        "from": "awaiting",
-        "to": "cancelled"
-      },
-      {
-        "from": "paid",
-        "to": "cancelled",
-        "label": "Cancel"
-      },
-      {
-        "from": "packing",
-        "to": "cancelled"
-      },
-      {
-        "from": "cancelled",
-        "to": "finish"
-      }
-    ]
-  }
+  ]
 }

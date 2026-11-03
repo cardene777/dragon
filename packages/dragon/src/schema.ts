@@ -2,6 +2,8 @@
  * 図の原本の形と、原本を JSON Schema で検査する命令。
  *
  * 形の正は `schemas/diagram.schema.json` の 1 本で、下の型はその写し。ブロックの置き場へ移した欄の型はブロックが持ち、ここから出し直す (#3345)。
+ * `schemas/diagram.schema.json` は、骨組み (`schemas/base.schema.json`) とブロックの形の欠片を build の時に束ねて書き出した物 (#3346)。
+ * 版1の原本は検査の前に版2の形へ移して検査し、誤りの場所は版1の欄の場所へ戻して返す。検査の関数を 1 つにして、見本帳が読む量を増やさない。
  * 誤りは JSON Pointer で場所を示す。欄が足りない時と知らない欄がある時は、その欄の場所まで示す。
  * 誤りの文は呼ぶ側が渡した言葉 (渡さなければ英語) で出す。文の表は `field-messages.ts` が持つ (#2999)。
  *
@@ -16,6 +18,7 @@ import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
 import type { StepSource } from "./blocks/source/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
+import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
 import { nearest } from "./nearest";
 import validate from "./schemas/validate-diagram.js";
 import { DEFAULT_LANG, type NotationLang, STATE_ENDS } from "./words";
@@ -206,14 +209,61 @@ export interface Step {
   events: DiagramEvent[];
 }
 
+/** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup";
+
+/** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
+export interface Strip {
+  title: string;
+  fields: string[];
+  meters?: StripMeter[];
+}
+
+/**
+ * 原本の図の宣言 (#3346)。ブロックの名前ごとの欄に、そのブロックの宣言を持つ。空の並びは書かない。
+ * 区画 (`group`)、箱 (`box`)、中身の帯 (`strip`) と、図の種類だけの宣言 (状態遷移図の移れる道 `path`、枝分かれの図の枝 `branch`、
+ * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と節目 `point` と拡大の範囲 `zoom`、列の図のチップ `item`)
+ */
+export interface DiagramBlocks {
+  group?: Region[];
+  box?: Box[];
+  strip?: Strip;
+  path?: StatePath[];
+  branch?: GitBranch[];
+  scale?: TimeScale;
+  period?: TimePeriod;
+  row?: TimeRow[];
+  point?: TimePoint[];
+  zoom?: { from: number; to: number };
+  item?: LineupItem[];
+}
+
+/**
+ * 図の原本 (版2、#3346)。図の宣言を `blocks` のブロックの名前ごとの欄に持ち、段 (`steps`) に段ごとに起きることを持つ。
+ * 版1の原本は読む時に版2へ移す (`readDiagram`)
+ */
 export interface Diagram {
   version: number;
-  kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup";
+  kind: DiagramKind;
+  title: string;
+  view?: ViewMode;
+  blocks: DiagramBlocks;
+  steps: Step[];
+}
+
+/**
+ * 描く処理が読む図の形 (#3346)。版1の原本と同じ欄と並びを持ち、版の欄も版1の `1` を持つ。
+ * 図の id はこの形の字から作るので、版2の原本を足す前と同じ図からは同じ id の SVG を描く。
+ * 原本からは `model.ts` の `toModel` が組み直す
+ */
+export interface DiagramModel {
+  version: 1;
+  kind: DiagramKind;
   title: string;
   view?: ViewMode;
   regions?: Region[];
   boxes: Box[];
-  strip?: { title: string; fields: string[]; meters?: StripMeter[] };
+  strip?: Strip;
   steps: Step[];
   sequence?: { lifelines: string[] };
   state?: { paths: StatePath[] };
@@ -249,6 +299,15 @@ const ABSENT = "#/definitions/absent/not";
  */
 const ABSENT_KINDS: Record<string, string> = {
   regions: "sequence / architecture / state",
+  group: "sequence / architecture / state",
+  path: "state",
+  branch: "git",
+  scale: "time",
+  period: "time",
+  row: "time",
+  point: "time",
+  zoom: "time",
+  item: "lineup",
   at: "time",
   into: "time",
   color: "time",
@@ -263,7 +322,7 @@ const NOT_ALLOWED: Record<string, Allowed> = {
 };
 
 /** 状態遷移図の箱の名札に予約の名前を書いた時の決まりの場所 */
-const RESERVED_ID = /\/boxes\/items\/properties\/id\/not$/u;
+const RESERVED_ID = /\/box\/items\/properties\/id\/not$/u;
 /** 枝分かれの図でない図に、枝分かれの図だけの出来事を書いた時の決まりの場所 (#3164) */
 const GIT_EVENT = /\/events\/items\/properties\/type\/not$/u;
 /** 枝分かれの図だけが書ける出来事 */
@@ -397,13 +456,33 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
   }
 }
 
-/** 原本の JSON を検査する。版が道具より新しいかは見ない (`readDiagram` が見る)。 */
+const unescape = (key: string): string => key.replaceAll("~1", "/").replaceAll("~0", "~");
+
+/**
+ * 版2へ移した版1の原本の誤りを、版1の欄の場所の誤りにする。図の種類が書けない欄は、版1の図の種類の欄 (`/git` など) の場所にする。
+ * 欄が足りない時と知らない欄がある時は、欄の名前も版1の名前にする
+ */
+function toVersion1Error(error: ErrorObject): ErrorObject {
+  const section = error.schemaPath === ABSENT ? version1SectionOf(error.instancePath) : undefined;
+  if (section !== undefined) return { ...error, instancePath: section };
+  const param = error.keyword === "required" ? "missingProperty" : error.keyword === "additionalProperties" ? "additionalProperty" : undefined;
+  if (param === undefined) return { ...error, instancePath: toVersion1Pointer(error.instancePath) };
+  const full = toVersion1Pointer(`${error.instancePath}/${escape(String(error.params[param as keyof typeof error.params]))}`);
+  const cut = full.lastIndexOf("/");
+  return { ...error, instancePath: full.slice(0, cut), params: { ...error.params, [param]: unescape(full.slice(cut + 1)) } };
+}
+
+/**
+ * 原本の JSON を検査する。版が道具より新しいかは見ない (`readDiagram` が見る)。
+ * 版1の原本は版2の形へ移して検査し、誤りは版1の欄の場所で返す。同じ場所の同じ文の誤りは 1 つにまとめる
+ */
 export function validateDiagram(input: unknown, options: CheckOptions = {}): Checked {
-  if (validate(input)) return { ok: true };
-  const all = validate.errors ?? [];
+  const version1 = isVersion1(input);
+  if (validate(version1 ? upgrade(input, FORMAT_VERSION) : input)) return { ok: true };
+  const all = (validate.errors ?? []).map((error) => (version1 ? toVersion1Error(error) : error));
   const inBranch = new Set(all.filter((error) => error.keyword === "anyOf").flatMap((anyOf) => branchesOf(anyOf, all)));
   const m = FIELD_MESSAGES[options.lang ?? DEFAULT_LANG];
   // 条件付きの決まり (if / then) は中で落ちた決まりの誤りを別に出すので、包む側の if の誤りは出さない
   const errors = all.filter((error) => error.keyword !== "if" && !inBranch.has(error)).map((error) => toFieldError(error, all, m, input));
-  return { ok: false, errors };
+  return { ok: false, errors: errors.filter((error, i) => errors.findIndex((other) => other.pointer === error.pointer && other.message === error.message) === i) };
 }

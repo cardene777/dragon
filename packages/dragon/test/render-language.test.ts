@@ -19,7 +19,7 @@ const title = (): string => (exampleJson("oauth.json") as { title: string }).tit
 /** 書けない欄を足した、描けない原本 */
 function broken(): Diagramish {
   const d = oauth();
-  ((d.boxes as Diagramish[])[0] as Diagramish).colour = "blue";
+  (((d.blocks as Diagramish).box as Diagramish[])[0] as Diagramish).colour = "blue";
   return d;
 }
 
@@ -81,7 +81,7 @@ describe("描く部品が出す字の言葉", () => {
   it("render-refusal-in-english", () => {
     const message = refusal("en");
     expect(message, "英語の断りの文の頭").toMatch(/^Cannot draw the diagram: /u);
-    expect(message, "断りの文に誤りの場所が無い").toContain("/boxes/0/colour");
+    expect(message, "断りの文に誤りの場所が無い").toContain("/blocks/box/0/colour");
     expect(message, "英語の断りの文に仮名か漢字がある").not.toMatch(KANA_KANJI);
   });
 
@@ -100,12 +100,12 @@ describe("描く部品が出す字の言葉", () => {
     // 言葉を渡さない時は英語の字で出す (#3338)。ja を渡した時は今の日本語の字のまま
     const texts = {
       en: {
-        refusal: "Cannot draw the diagram: /boxes/0/colour The colour field is not allowed",
+        refusal: "Cannot draw the diagram: /blocks/box/0/colour The colour field is not allowed",
         overview: "Overview",
         labels: { prev: "Previous step", pause: "Pause", play: "Play", next: "Next step", steps: `Steps of ${title()}` },
       },
       ja: {
-        refusal: "図を描けない: /boxes/0/colour colour という欄は書けない",
+        refusal: "図を描けない: /blocks/box/0/colour colour という欄は書けない",
         overview: "全体図",
         labels: { prev: "前の段", pause: "止める", play: "動かす", next: "次の段", steps: `${title()} の段` },
       },

@@ -1,46 +1,48 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "title": "OAuth 2.0 でログインして API を呼ぶ (認可コードと PKCE)",
-  "boxes": [
-    {
-      "id": "ブラウザ",
-      "name": "利用者のブラウザ",
-      "sub": "利用者が操作する",
-      "color": "slate",
-      "icon": "globe"
-    },
-    {
-      "id": "アプリ",
-      "name": "アプリ",
-      "sub": "ログインを頼む側",
-      "color": "blue",
-      "icon": "app"
-    },
-    {
-      "id": "認可",
-      "name": "認可サーバー",
-      "sub": "本人を確かめる",
-      "color": "violet",
-      "icon": "shield"
-    },
-    {
-      "id": "API",
-      "name": "API",
-      "sub": "利用者のデータ",
-      "color": "green",
-      "icon": "server"
+  "blocks": {
+    "box": [
+      {
+        "id": "ブラウザ",
+        "name": "利用者のブラウザ",
+        "sub": "利用者が操作する",
+        "color": "slate",
+        "icon": "globe"
+      },
+      {
+        "id": "アプリ",
+        "name": "アプリ",
+        "sub": "ログインを頼む側",
+        "color": "blue",
+        "icon": "app"
+      },
+      {
+        "id": "認可",
+        "name": "認可サーバー",
+        "sub": "本人を確かめる",
+        "color": "violet",
+        "icon": "shield"
+      },
+      {
+        "id": "API",
+        "name": "API",
+        "sub": "利用者のデータ",
+        "color": "green",
+        "icon": "server"
+      }
+    ],
+    "strip": {
+      "title": "アプリが持つ値",
+      "fields": [
+        "state",
+        "code_verifier",
+        "認可コード",
+        "アクセストークン",
+        "リフレッシュトークン"
+      ]
     }
-  ],
-  "strip": {
-    "title": "アプリが持つ値",
-    "fields": [
-      "state",
-      "code_verifier",
-      "認可コード",
-      "アクセストークン",
-      "リフレッシュトークン"
-    ]
   },
   "steps": [
     {
@@ -319,13 +321,5 @@
         }
       ]
     }
-  ],
-  "sequence": {
-    "lifelines": [
-      "ブラウザ",
-      "アプリ",
-      "認可",
-      "API"
-    ]
-  }
+  ]
 }

@@ -1,24 +1,26 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "tree",
   "title": "Merkle 木で取引を証明する",
-  "boxes": [
-    {
-      "id": "ブロックの頭",
-      "name": "ブロックの頭",
-      "sub": "根 e71c",
-      "color": "green",
-      "icon": "box"
+  "blocks": {
+    "box": [
+      {
+        "id": "ブロックの頭",
+        "name": "ブロックの頭",
+        "sub": "根 e71c",
+        "color": "green",
+        "icon": "box"
+      }
+    ],
+    "strip": {
+      "title": "証明",
+      "fields": [
+        "確かめる取引",
+        "使った値",
+        "出した根",
+        "結果"
+      ]
     }
-  ],
-  "strip": {
-    "title": "証明",
-    "fields": [
-      "確かめる取引",
-      "使った値",
-      "出した根",
-      "結果"
-    ]
   },
   "steps": [
     {

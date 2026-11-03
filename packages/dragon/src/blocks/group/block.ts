@@ -42,6 +42,7 @@ export const block: Block<GroupMessages> = {
   attach: { how: "place", only: "architecture" },
   words: { heads: GROUP_HEADS, attrs: { group: ["note"] } },
   shape: {
+    field: { type: "array", items: { $ref: "#/definitions/region" } },
     definitions: {
       region: {
         type: "object",

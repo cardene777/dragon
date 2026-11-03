@@ -91,8 +91,7 @@ interface Source {
   kind: string;
   title: string;
   view?: string;
-  boxes: { id: string; name: string }[];
-  lineup: { items: { id: string }[] };
+  blocks: { box?: { id: string; name: string }[]; item?: { id: string }[] };
   steps: { title: string; events: SourceEvent[] }[];
 }
 
@@ -272,8 +271,8 @@ function rowOf(count: number): Json {
 /** 原本の JSON の、列とチップと段と段ごとの出来事の数 */
 const shape = (d: Source): Record<string, unknown> => ({
   kind: d.kind,
-  lanes: d.boxes.length,
-  items: d.lineup.items.length,
+  lanes: (d.blocks.box ?? []).length,
+  items: (d.blocks.item ?? []).length,
   steps: d.steps.length,
   events: d.steps.map((step) => step.events.length),
 });
@@ -333,7 +332,7 @@ describe("列の図の記法 (#3239)", () => {
     }
     // 1 行に名札を並べた item は、並べた名札ごとに同じ色と字のチップになる
     const many = parse(["lineup 宣言", "box top", "item a, b [color: amber, label: 7]", "item c", "step 並べる", "  say 並べる。", "  line top: c, a, b"].join("\n"));
-    expect(many.ok ? (many.diagram as unknown as Source).lineup.items : many.errors, "item の行が宣言するチップ").toEqual([{ id: "a", color: "amber", label: "7" }, { id: "b", color: "amber", label: "7" }, { id: "c" }]);
+    expect(many.ok ? (many.diagram as unknown as Source).blocks.item : many.errors, "item の行が宣言するチップ").toEqual([{ id: "a", color: "amber", label: "7" }, { id: "b", color: "amber", label: "7" }, { id: "c" }]);
   });
 
   it("notation-rejects-misused-lineup-lines", () => {
@@ -401,8 +400,8 @@ describe("列の図の記法 (#3239)", () => {
       const text = [`${kind} 列の語の名札`, "box item as 品物", "box line as 回線", "box db", "step 送る", "  say 送る。", "  line -> db: 送る", "  item -> line: 戻す"].join("\n");
       const parsed = parse(text);
       expect(parsed.ok, `${kind} で item と line を名札にした箱が読めない: ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
-      const diagram = (parsed.ok ? parsed.diagram : {}) as unknown as { boxes?: { id: string }[]; steps?: { events: { type: string; from?: string; to?: string }[] }[] };
-      expect(diagram.boxes?.map((b) => b.id), `${kind} の箱の名札`).toEqual(["item", "line", "db"]);
+      const diagram = (parsed.ok ? parsed.diagram : {}) as unknown as { blocks?: { box?: { id: string }[] }; steps?: { events: { type: string; from?: string; to?: string }[] }[] };
+      expect(diagram.blocks?.box?.map((b) => b.id), `${kind} の箱の名札`).toEqual(["item", "line", "db"]);
       expect(diagram.steps?.[0]?.events.map((e) => ({ type: e.type, from: e.from, to: e.to })), `${kind} の line と item から出る線`).toEqual([
         { type: "edge", from: "line", to: "db" },
         { type: "edge", from: "item", to: "line" },
@@ -424,10 +423,12 @@ describe("列の図の記法 (#3239)", () => {
       expect(second.ok, `${name} を書き戻した記法が読めない: ${second.ok ? "" : JSON.stringify(second.errors)}\n${printed}`).toBe(true);
       expect(second.ok ? second.diagram : undefined, `${name} を往復した JSON が最初と違う`).toEqual(first.diagram);
     }
-    // 字を持つチップと持たないチップが混ざっても往復する
-    const printed = print(smallLineup());
+    // 字を持つチップと持たないチップが混ざっても往復する。版1で書いた小さな図は、読んで版2の形にしてから往復させる
+    const read = api("readDiagram")(smallLineup());
+    const source = read.ok ? read.diagram : read.errors;
+    const printed = print(source);
     const again = parse(printed);
-    expect(again.ok ? again.diagram : again.errors, `小さな列の図を往復した JSON が最初と違う\n${printed}`).toEqual(smallLineup());
+    expect(again.ok ? again.diagram : again.errors, `小さな列の図を往復した JSON が最初と違う\n${printed}`).toEqual(source);
   });
 });
 

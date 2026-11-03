@@ -16,7 +16,7 @@
  * 段の番号は、その段で最初に変わる列の左の縁に、チップの並びの高さで置く。列の変わらない段は帯の左上に置き、それも無ければ前の段の番号と入れ替える。
  */
 import { type ColorKey, LOOK, TYPE } from "../look/values";
-import type { Diagram } from "../schema";
+import type { DiagramModel } from "../schema";
 import { LANE_MOST } from "../words";
 import { textBox, textWidth } from "./measure";
 import { boxColors, type Layout, layoutStrip, type Point, type Rect, replaceSameSpot, type SceneBadge, type SceneBox, stripNeed } from "./scene";
@@ -81,12 +81,12 @@ export interface LineupLayout extends Layout {
 
 
 /** 列の右上に出る字と、その字の形。段の中の `note` は太い字で描く */
-function notesOf(diagram: Diagram, id: string, sub: string | undefined): number[] {
+function notesOf(diagram: DiagramModel, id: string, sub: string | undefined): number[] {
   const written = diagram.steps.flatMap((step) => step.events.flatMap((e) => (e.type === "swap" && e.box === id ? [textWidth(e.text, TYPE.boxSubStrong)] : [])));
   return sub === undefined ? written : [textWidth(sub, TYPE.boxSub), ...written];
 }
 
-export function layoutLineup(diagram: Diagram): LineupLayout {
+export function layoutLineup(diagram: DiagramModel): LineupLayout {
   const { margin, gap, lineup: N } = LOOK;
   const items = diagram.lineup?.items ?? [];
   const known = new Set(items.map((item) => item.id));
@@ -197,7 +197,7 @@ export function layoutLineup(diagram: Diagram): LineupLayout {
   return layout;
 }
 
-function badgesOf(diagram: Diagram, layout: LineupLayout): SceneBadge[] {
+function badgesOf(diagram: DiagramModel, layout: LineupLayout): SceneBadge[] {
   const { inset } = LOOK.badge;
   const out: SceneBadge[] = [];
   const put = (step: number, x: number, y: number, color: ColorKey): void => {

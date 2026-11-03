@@ -122,8 +122,8 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
     "export-refusal-follows-language",
     async () => {
       const dir = scratch();
-      const bad = exampleJson("oauth.json") as { boxes: { [key: string]: Json }[] };
-      (bad.boxes[0] as { [key: string]: Json }).colour = "blue";
+      const bad = exampleJson("oauth.json") as { blocks: { box: { [key: string]: Json }[] } };
+      (bad.blocks.box[0] as { [key: string]: Json }).colour = "blue";
       const input = join(dir, "bad.json");
       writeFileSync(input, JSON.stringify(bad));
       const out = join(dir, "out");
@@ -132,7 +132,7 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       expect(readdirSync(dir), "描けない原本で何かを書き出した").toEqual(["bad.json"]);
       const message = ran.stderr.trim();
       expect(message, "断りの文の頭").toMatch(/^Cannot draw the diagram: /u);
-      expect(message, "断りの文に誤りの場所が無い").toContain("/boxes/0/colour");
+      expect(message, "断りの文に誤りの場所が無い").toContain("/blocks/box/0/colour");
       expect(message, "英語の断りの文に仮名か漢字がある").not.toMatch(KANA_KANJI);
     },
     SLOW,

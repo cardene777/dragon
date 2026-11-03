@@ -5,17 +5,14 @@
  * 形式の版は必須にする。
  */
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 
-const require_ = createRequire(import.meta.url);
-
 describe("原本の JSON の検査", () => {
-  it("validator-matches-schema", () => {
-    // 頁の CSP の下で動くように前もって書き出した検査の関数が、今の schema から書き出した物と同じ (#2995)
-    const { generate, OUT } = require_("../scripts/build-validator.mjs") as { generate: () => string; OUT: string };
-    expect(readFileSync(OUT, "utf8") === generate(), "schema を直した後に build-validator.mjs を回していない").toBe(true);
+  it("validator-matches-schema", async () => {
+    // 頁の CSP の下で動くように前もって書き出した検査の関数が、今の骨組みとブロックの形から書き出した物と同じ (#2995、#3346)
+    const { generate, OUT } = await import("../scripts/build-validator.mjs");
+    expect(readFileSync(OUT, "utf8") === generate().validator, "原本の形を直した後に build-validator.mjs を回していない").toBe(true);
   });
 
   it("schema-reports-enum-choices", () => {

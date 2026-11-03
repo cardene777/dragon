@@ -198,8 +198,8 @@ const homeLooks = (page: Page): Promise<string[]> =>
 const sampleOf = (text: string): { title: string; kind: Kind; names: string[] } | undefined => {
   const parsed = parseNotation(text);
   if (!parsed.ok) return undefined;
-  const { title, kind, boxes } = parsed.diagram;
-  return { title, kind, names: [...new Set(boxes.map((b) => b.name))].sort() };
+  const { title, kind, blocks } = parsed.diagram;
+  return { title, kind, names: [...new Set((blocks.box ?? []).map((b) => b.name))].sort() };
 };
 
 /** カタログの部品 (#3033) */
@@ -348,31 +348,33 @@ const docsDiagram = (id: string, text: string): Diagram | undefined => {
 };
 
 const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.flatMap((s) => s.events);
+/** 図の箱。版2の原本は箱の無い図で箱の欄を持たない */
+const boxesOf = (d: Diagram): NonNullable<Diagram["blocks"]["box"]> => d.blocks.box ?? [];
 
 /** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
 const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "tree", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "leaf", "node", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
-  start: (d) => d.boxes.length >= 2 && d.steps.length >= 1,
+  start: (d) => boxesOf(d).length >= 2 && d.steps.length >= 1,
   // 決まり 4 つを全部使う。区画の入れ子、引用符で囲んだ `,` を含む値、字下げして続けた本文
   rules: (d) =>
-    (d.regions?.length ?? 0) >= 1 &&
+    (d.blocks.group?.length ?? 0) >= 1 &&
     d.steps.some((s) => s.body.includes("\n")) &&
     eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === "tag" && e.carry.text.includes(",")),
-  boxes: (d) => d.boxes.length >= 3 && d.boxes.every((b) => b.color !== undefined) && d.boxes.some((b) => b.icon !== undefined && b.sub !== undefined),
+  boxes: (d) => boxesOf(d).length >= 3 && boxesOf(d).every((b) => b.color !== undefined) && boxesOf(d).some((b) => b.icon !== undefined && b.sub !== undefined),
   edges: (d) => eventsOf(d).filter((e) => e.type === "edge" && e.label !== undefined).length >= 2 && eventsOf(d).some((e) => e.type === "action"),
-  regions: (d) => d.kind === "architecture" && (d.regions?.length ?? 0) >= 2 && d.boxes.some((b) => b.region !== undefined),
+  regions: (d) => d.kind === "architecture" && (d.blocks.group?.length ?? 0) >= 2 && boxesOf(d).some((b) => b.region !== undefined),
   // 始まりと終わりの線と、最初の段より前に書く通らない道 (#3172)
   state: (d) =>
     d.kind === "state" &&
-    (d.state?.paths.length ?? 0) >= 1 &&
+    (d.blocks.path?.length ?? 0) >= 1 &&
     eventsOf(d).some((e) => e.type === "edge" && e.from === "start") &&
     eventsOf(d).some((e) => e.type === "edge" && e.to === "finish"),
   // 枝を 3 本宣言し、枝を切り、merge commit と当て直しを作り、札を動かす (#3202)
   git: (d) =>
     d.kind === "git" &&
-    (d.git?.branches.length ?? 0) >= 3 &&
+    (d.blocks.branch?.length ?? 0) >= 3 &&
     eventsOf(d).some((e) => e.type === "branch") &&
     eventsOf(d).some((e) => e.type === "commit" && e.copy !== undefined) &&
     eventsOf(d).some((e) => e.type === "commit" && e.merge !== undefined) &&
@@ -380,11 +382,11 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
   // 区切りと印の列と 2 つの節目と拡大の範囲を宣言し、針を進め、印の色を変え、範囲を出し、物差しを満たす (#3221)
   time: (d) =>
     d.kind === "time" &&
-    d.time?.period !== undefined &&
-    (d.time?.points?.length ?? 0) >= 2 &&
-    d.time?.zoom !== undefined &&
+    d.blocks.period !== undefined &&
+    (d.blocks.point?.length ?? 0) >= 2 &&
+    d.blocks.zoom !== undefined &&
     ["now", "mark", "span"].every((type) => eventsOf(d).some((e) => e.type === type)) &&
-    (d.strip?.meters?.length ?? 0) >= 1,
+    (d.blocks.strip?.meters?.length ?? 0) >= 1,
   // 値を持つ葉と親を書き、運ぶ物の線を通す (#3235)
   tree: (d) =>
     d.kind === "tree" &&
@@ -392,7 +394,7 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
     eventsOf(d).some((e) => e.type === "node" && e.hash !== undefined) &&
     eventsOf(d).some((e) => e.type === "edge" && e.carry.kind !== "none"),
   steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
-  strip: (d) => d.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
+  strip: (d) => d.blocks.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
   json: (d) => d.version >= 1 && d.steps.length >= 1,
 };
@@ -4640,7 +4642,7 @@ describe("サイトの帯と経路 (#3030)", () => {
             const first = text.split("\n").find((line) => line.trim() !== "" && !line.startsWith("//")) ?? "";
             expect(words, `${lang} の ${id} の節の例が頁の言葉の語で書かれない`).toContain(first.split(" ")[0]);
           }
-          return { id, no: String(i + 1).padStart(2, "0"), code: text ?? null, names: diagram ? [...new Set(diagram.boxes.map((b) => b.name))].sort() : [] };
+          return { id, no: String(i + 1).padStart(2, "0"), code: text ?? null, names: diagram ? [...new Set(boxesOf(diagram).map((b) => b.name))].sort() : [] };
         });
 
         // 記法の全ての行の種類を、節の例のどれかが使い、節の本文のどれかが語で説明する
@@ -4846,7 +4848,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       const edges = diagram ? eventsOf(diagram).flatMap((e) => (e.type === "edge" ? [e] : [])) : [];
       expect(edges.some((e) => e.from === "start"), `${lang} の状態遷移図の節の例に start から出る線が無い`).toBe(true);
       expect(edges.some((e) => e.to === "finish"), `${lang} の状態遷移図の節の例に finish へ入る線が無い`).toBe(true);
-      expect(diagram?.state?.paths.length ?? 0, `${lang} の状態遷移図の節の例に通らない道が無い`).toBeGreaterThan(0);
+      expect(diagram?.blocks.path?.length ?? 0, `${lang} の状態遷移図の節の例に通らない道が無い`).toBeGreaterThan(0);
     }
   });
 
@@ -4892,7 +4894,7 @@ describe("サイトの帯と経路 (#3030)", () => {
       expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), `${lang} の枝分かれの図の節の例が読めない`).toEqual([]);
       const diagram = docsDiagram("git", text);
       expect(diagram?.kind, `${lang} の枝分かれの図の節の例が検査を通らないか、枝分かれの図でない`).toBe("git");
-      expect(diagram?.git?.branches.length ?? 0, `${lang} の枝分かれの図の節の例が枝を 3 本宣言しない`).toBeGreaterThanOrEqual(3);
+      expect(diagram?.blocks.branch?.length ?? 0, `${lang} の枝分かれの図の節の例が枝を 3 本宣言しない`).toBeGreaterThanOrEqual(3);
       const events = diagram ? eventsOf(diagram) : [];
       expect(events.some((e) => e.type === "branch"), `${lang} の枝分かれの図の節の例に枝を切る行が無い`).toBe(true);
       expect(events.some((e) => e.type === "commit" && e.copy !== undefined), `${lang} の枝分かれの図の節の例に当て直しの commit が無い`).toBe(true);
@@ -4946,16 +4948,16 @@ describe("サイトの帯と経路 (#3030)", () => {
       const diagram = docsDiagram("time", text);
       expect(diagram?.kind, `${lang} の時間軸の図の節の例が検査を通らないか、時間軸の図でない`).toBe("time");
       expect(diagram?.steps.length, `${lang} の時間軸の図の節の例が 4 段でない`).toBe(4);
-      const time = diagram?.time;
+      const time = diagram?.blocks;
       expect(time?.period, `${lang} の時間軸の図の節の例が区切りを宣言しない`).toBeDefined();
-      expect(time?.rows.length ?? 0, `${lang} の時間軸の図の節の例が印の列を宣言しない`).toBeGreaterThanOrEqual(1);
-      expect(time?.points?.length ?? 0, `${lang} の時間軸の図の節の例が節目を 2 つ宣言しない`).toBeGreaterThanOrEqual(2);
+      expect(time?.row?.length ?? 0, `${lang} の時間軸の図の節の例が印の列を宣言しない`).toBeGreaterThanOrEqual(1);
+      expect(time?.point?.length ?? 0, `${lang} の時間軸の図の節の例が節目を 2 つ宣言しない`).toBeGreaterThanOrEqual(2);
       expect(time?.zoom, `${lang} の時間軸の図の節の例が拡大の範囲を宣言しない`).toBeDefined();
       const events = diagram === undefined ? [] : eventsOf(diagram);
       expect(events.some((e) => e.type === "now"), `${lang} の時間軸の図の節の例に針を進める行が無い`).toBe(true);
       expect(events.some((e) => e.type === "mark"), `${lang} の時間軸の図の節の例に印の色を変える行が無い`).toBe(true);
       expect(events.some((e) => e.type === "span"), `${lang} の時間軸の図の節の例に範囲の行が無い`).toBe(true);
-      expect(diagram?.strip?.meters?.length ?? 0, `${lang} の時間軸の図の節の例に物差しの欄が無い`).toBeGreaterThan(0);
+      expect(diagram?.blocks.strip?.meters?.length ?? 0, `${lang} の時間軸の図の節の例に物差しの欄が無い`).toBeGreaterThan(0);
     }
   });
 

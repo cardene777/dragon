@@ -54,7 +54,7 @@ const PARTS: Record<Added, (d: Diagram) => Record<string, boolean>> = {
   },
   payment: (d) => ({
     "硬貨を運ぶ線 (carry: coin)": edges(d).some((e) => e.carry.kind === "coin"),
-    "中身の帯 (strip)": (d.strip?.fields.length ?? 0) > 0,
+    "中身の帯 (strip)": (d.blocks.strip?.fields.length ?? 0) > 0,
     "欄の値 (set)": d.steps.some((step) => step.events.some((e) => e.type === "strip")),
   }),
   wallet: (d) => ({
@@ -66,10 +66,10 @@ const PARTS: Record<Added, (d: Diagram) => Record<string, boolean>> = {
 /** 図の形。箱と段の数と、段ごとの出来事の種類の並び */
 const shape = (d: Diagram): Record<string, unknown> => ({
   kind: d.kind,
-  boxes: d.boxes.length,
+  boxes: (d.blocks.box ?? []).length,
   steps: d.steps.length,
   events: d.steps.map((step) => step.events.map((e) => (e.type === "edge" ? `edge:${e.carry.kind}` : e.type))),
-  strip: d.strip?.fields.length ?? 0,
+  strip: d.blocks.strip?.fields.length ?? 0,
   code: d.steps.map((step) => step.code !== undefined),
 });
 
