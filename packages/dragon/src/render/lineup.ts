@@ -11,12 +11,22 @@
  * 役の札は役が動く段にだけ光る。段の題と文、札の下の一言、「この先」の帯は、その段にだけ出る。
  */
 import { hasWide, textWidth } from "../layout/measure";
-import { type LineupAt, type LineupLane, type LineupLayout, type LineupPick, type LineupSeal, type LineupSeat, type LineupText, splitNote } from "../layout/lineup";
+import {
+  type LineupAt,
+  type LineupLane,
+  type LineupLayout,
+  type LineupPick,
+  type LineupSeal,
+  type LineupSeat,
+  type LineupText,
+  splitNote,
+} from "../layout/lineup";
 import type { Point } from "../layout/scene";
-import { EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
+import { type Corner, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
 import { LINEUP_LOOK } from "../look/lineup";
 import type { DiagramModel } from "../schema";
 import type { Span, Timeline } from "../timeline";
+import { frameShape, partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
 import { cs } from "../blocks/color/draw";
@@ -84,16 +94,40 @@ const LINEUP_CSS = [
 ].join("");
 
 /** 席から `(dx, dy)` ずらして大きさを `scale` 倍にした時の `transform` */
-const place = (dx: number, dy: number, scale = 1): string => `translate(${r1(dx)}px,${r1(dy)}px) scale(${scale})`;
+const place = (dx: number, dy: number, scale = 1): string =>
+  `translate(${r1(dx)}px,${r1(dy)}px) scale(${scale})`;
 
 /** `span` から `holes` の間を抜いた間 */
 const without = (span: Shown, holes: Shown[]): Shown[] =>
-  holes.reduce<Shown[]>((rest, [x, y]) => rest.flatMap(([a, b]): Shown[] => (y <= a || x >= b ? [[a, b]] : [...(a < x ? ([[a, x]] as Shown[]) : []), ...(y < b ? ([[y, b]] as Shown[]) : [])])), [span]);
+  holes.reduce<Shown[]>(
+    (rest, [x, y]) =>
+      rest.flatMap(([a, b]): Shown[] =>
+        y <= a || x >= b
+          ? [[a, b]]
+          : [...(a < x ? ([[a, x]] as Shown[]) : []), ...(y < b ? ([[y, b]] as Shown[]) : [])],
+      ),
+    [span],
+  );
 
-const rect = (cls: string, r: { x: number; y: number; w: number; h: number }, rx: number, extra = ""): string =>
+const rect = (
+  cls: string,
+  r: { x: number; y: number; w: number; h: number },
+  rx: number,
+  extra = "",
+): string =>
   `<rect class="${cls}" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}" rx="${rx}"${extra}/>`;
 
-const pathOf = (points: Point[]): string => points.map(([x, y], k) => `${k === 0 ? "M" : "L"}${r1(x)} ${r1(y)}`).join("");
+/** 卓の札と置き場と役の箱とその光。角を落とす色味では右上と左下を落とす (#3344) */
+const lineupFrame = (
+  corner: Corner,
+  cls: string,
+  r: { x: number; y: number; w: number; h: number },
+  rx: number,
+  extra = "",
+): string => frameShape(corner, ` class="${cls}"${extra}`, r, rect(cls, r, rx, extra));
+
+const pathOf = (points: Point[]): string =>
+  points.map(([x, y], k) => `${k === 0 ? "M" : "L"}${r1(x)} ${r1(y)}`).join("");
 
 /** 矢じりの付いた線。終わりの点で、線の向きに `head` の長さの矢じりを付ける */
 function arrowPath(points: Point[], head: number): string {
@@ -102,20 +136,52 @@ function arrowPath(points: Point[], head: number): string {
   const len = Math.hypot(end[0] - before[0], end[1] - before[1]) || 1;
   const ux = (end[0] - before[0]) / len;
   const uy = (end[1] - before[1]) / len;
-  const wing = (side: number): Point => [end[0] - ux * head - uy * head * side, end[1] - uy * head + ux * head * side];
+  const wing = (side: number): Point => [
+    end[0] - ux * head - uy * head * side,
+    end[1] - uy * head + ux * head * side,
+  ];
   return `${pathOf(points)}${pathOf([wing(1), end, wing(-1)])}`;
 }
 
 /** 折った字を 1 行ずつ描く。等幅の字で和文を含む行は、和文の字の class `wide` を足す */
-function lines(ctx: Ctx, cls: string, t: LineupText, style: TextStyle, shown: Shown[] = ALWAYS, wide = ""): string {
-  return t.lines.map((l) => write(ctx.ink, wide !== "" && style.family === "mono" && hasWide(l.text) ? `${cls} ${wide}` : cls, l.x, l.baseline, l.text, style, shown)).join("");
+function lines(
+  ctx: Ctx,
+  cls: string,
+  t: LineupText,
+  style: TextStyle,
+  shown: Shown[] = ALWAYS,
+  wide = "",
+): string {
+  return t.lines
+    .map((l) =>
+      write(
+        ctx.ink,
+        wide !== "" && style.family === "mono" && hasWide(l.text) ? `${cls} ${wide}` : cls,
+        l.x,
+        l.baseline,
+        l.text,
+        style,
+        shown,
+      ),
+    )
+    .join("");
 }
 
-export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { lanes: string; chips: string; css: string } {
+export function drawLineup(
+  layout: LineupLayout,
+  diagram: DiagramModel,
+  timeline: Timeline,
+  ctx: Ctx,
+  subs: Map<string, SubChange[]>,
+): { lanes: string; chips: string; css: string } {
   const { m } = ctx;
   const N = LINEUP_LOOK;
   const cut = MOTION.lineup.cut;
-  const timeOf = (at: LineupAt): { start: number; drawn: number } => timeline.edges.find((t) => t.step === at.step && t.event === at.event) ?? { start: 0, drawn: 0 };
+  const timeOf = (at: LineupAt): { start: number; drawn: number } =>
+    timeline.edges.find((t) => t.step === at.step && t.event === at.event) ?? {
+      start: 0,
+      drawn: 0,
+    };
   const spanOf = (s: number): Span => timeline.steps[s] as Span;
   const items = new Map((diagram.lineup?.items ?? []).map((item) => [item.id, item]));
   const pools = new Set(layout.lanes.filter((lane) => lane.pool).map((lane) => lane.id));
@@ -132,7 +198,8 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
   for (const time of [...timeline.edges].sort((a, b) => a.start - b.start)) {
     const e = diagram.steps[time.step]?.events[time.event];
     if (e?.type === "line") turn(e.box, time.start, false);
-    if (e?.type === "pick") for (const lane of layout.lanes) if (!lane.pool) turn(lane.id, time.start, lane.id !== e.box);
+    if (e?.type === "pick")
+      for (const lane of layout.lanes) if (!lane.pool) turn(lane.id, time.start, lane.id !== e.box);
   }
   /** 箱の濃さの動き。薄くならない箱は `undefined` */
   const fadeOf = (id: string): string | undefined => {
@@ -153,7 +220,13 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
   /** 時刻の範囲 `[[a, b], ...]` の間だけ見える動き */
   const during = (ranges: Shown[]): string => {
     const frames: Frame[] = [[0, { opacity: 0 }]];
-    for (const [a, b] of ranges) frames.push([a, { opacity: 0 }, EASE.out], [a + MOTION.fade, { opacity: 1 }], [b, { opacity: 1 }, EASE.inOut], [Math.min(b + MOTION.fade, m.total), { opacity: 0 }]);
+    for (const [a, b] of ranges)
+      frames.push(
+        [a, { opacity: 0 }, EASE.out],
+        [a + MOTION.fade, { opacity: 1 }],
+        [b, { opacity: 1 }, EASE.inOut],
+        [Math.min(b + MOTION.fade, m.total), { opacity: 0 }],
+      );
     frames.push([m.total, { opacity: 0 }]);
     return m.kf(frames);
   };
@@ -170,7 +243,10 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
   };
 
   /** 封が箱を隠す間。覆い終えてから開けるまで */
-  const closedOf = (seal: LineupSeal): Shown => [timeOf(seal).drawn, seal.until ? timeOf(seal.until).start : Number.POSITIVE_INFINITY];
+  const closedOf = (seal: LineupSeal): Shown => [
+    timeOf(seal).drawn,
+    seal.until ? timeOf(seal.until).start : Number.POSITIVE_INFINITY,
+  ];
 
   /** 箱のチップを隠す動き。封の無い箱は `undefined` */
   const hideOf = (seals: LineupSeal[]): string | undefined => {
@@ -181,7 +257,10 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
       frames.push([a, { opacity: 1 }], [a + cut, { opacity: 0 }]);
       if (seal.until) frames.push([b, { opacity: 0 }], [b + cut, { opacity: 1 }]);
     }
-    frames.push([m.total - cut, { opacity: seals.at(-1)?.until ? 1 : 0 }], [m.total, { opacity: 1 }]);
+    frames.push(
+      [m.total - cut, { opacity: seals.at(-1)?.until ? 1 : 0 }],
+      [m.total, { opacity: 1 }],
+    );
     return m.kf(frames);
   };
 
@@ -198,7 +277,13 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
           [m.last, { opacity: 1 }, EASE.inOut],
           [m.total, { opacity: 0 }],
         ];
-    return m.kf([[0, none], [start - cut, none], [start, { opacity: 1, transform: "scaleX(0)" }, EASE.inOut], [drawn, { transform: "scaleX(1)" }], ...end]);
+    return m.kf([
+      [0, none],
+      [start - cut, none],
+      [start, { opacity: 1, transform: "scaleX(0)" }, EASE.inOut],
+      [drawn, { transform: "scaleX(1)" }],
+      ...end,
+    ]);
   };
 
   /**
@@ -208,8 +293,17 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
   const leaving = (c: LineupSeat): { at: number; moved: boolean } | undefined => {
     if (!c.until) return undefined;
     const until = c.until;
-    const next = layout.chips.find((n) => n !== c && n.id === c.id && n.step === until.step && n.from?.[0] === c.x && n.from?.[1] === c.y);
-    return next ? { at: timeOf(next).start, moved: true } : { at: timeOf(until).start, moved: false };
+    const next = layout.chips.find(
+      (n) =>
+        n !== c &&
+        n.id === c.id &&
+        n.step === until.step &&
+        n.from?.[0] === c.x &&
+        n.from?.[1] === c.y,
+    );
+    return next
+      ? { at: timeOf(next).start, moved: true }
+      : { at: timeOf(until).start, moved: false };
   };
 
   const chipKf = (c: LineupSeat): string => {
@@ -218,14 +312,27 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
     const frames: Frame[] = [];
     if (c.from) {
       const off = place(c.from[0] - c.x, c.from[1] - c.y);
-      frames.push([0, { opacity: 0, transform: off }], [a - cut, { opacity: 0, transform: off }], [a, { opacity: 1, transform: off }, EASE.inOut], [a + MOTION.lineup.slide, { transform: rest }]);
+      frames.push(
+        [0, { opacity: 0, transform: off }],
+        [a - cut, { opacity: 0, transform: off }],
+        [a, { opacity: 1, transform: off }, EASE.inOut],
+        [a + MOTION.lineup.slide, { transform: rest }],
+      );
     } else {
       const off = place(0, 0, LOOK.popFrom);
-      frames.push([0, { opacity: 0, transform: off }], [a, { opacity: 0, transform: off }, EASE.pop], [a + MOTION.popFade, { opacity: 1, transform: rest }]);
+      frames.push(
+        [0, { opacity: 0, transform: off }],
+        [a, { opacity: 0, transform: off }, EASE.pop],
+        [a + MOTION.popFade, { opacity: 1, transform: rest }],
+      );
     }
     const leaves = leaving(c);
     if (leaves) {
-      frames.push([leaves.at, { opacity: 1 }, EASE.inOut], [leaves.at + (leaves.moved ? cut : MOTION.fade), { opacity: 0 }], [m.total, { opacity: 0 }]);
+      frames.push(
+        [leaves.at, { opacity: 1 }, EASE.inOut],
+        [leaves.at + (leaves.moved ? cut : MOTION.fade), { opacity: 0 }],
+        [m.total, { opacity: 0 }],
+      );
     } else {
       frames.push([m.last, { opacity: 1 }, EASE.inOut], [m.total, { opacity: 0 }]);
     }
@@ -235,11 +342,26 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
   const chip = (c: LineupSeat, closed: Shown[]): string => {
     const color = items.get(c.id)?.color;
     const dim = !color && !pools.has(c.lane);
-    const frame = rect(color ? "dg-ln-cc" : "dg-ln-cf", c, N.chip.radius, " data-lineup-chip-frame=\"\"");
-    const glow = color ? rect("dg-ln-cg", c, N.chip.radius) : "";
-    const shown = without([timeOf(c).start + MOTION.lineup.slide, leaving(c)?.at ?? Number.POSITIVE_INFINITY], closed);
-    const text = lines(ctx, dim ? "dg-ln-t dg-ln-tf" : "dg-ln-t", c.label, TYPE.chip, shown, "dg-ln-tj");
-    const flags = `${color ? " data-lineup-glow=\"\"" : ""}${dim ? " data-lineup-faint=\"\"" : ""}`;
+    const frame = rect(
+      color ? "dg-ln-cc" : "dg-ln-cf",
+      c,
+      partRadius(ctx.corner, N.chip.radius),
+      ' data-lineup-chip-frame=""',
+    );
+    const glow = color ? rect("dg-ln-cg", c, partRadius(ctx.corner, N.chip.radius)) : "";
+    const shown = without(
+      [timeOf(c).start + MOTION.lineup.slide, leaving(c)?.at ?? Number.POSITIVE_INFINITY],
+      closed,
+    );
+    const text = lines(
+      ctx,
+      dim ? "dg-ln-t dg-ln-tf" : "dg-ln-t",
+      c.label,
+      TYPE.chip,
+      shown,
+      "dg-ln-tj",
+    );
+    const flags = `${color ? ' data-lineup-glow=""' : ""}${dim ? ' data-lineup-faint=""' : ""}`;
     return `<g class="dg-popc dg-a" data-lineup-chip="${esc(c.id)}" data-lineup-on="${esc(c.lane)}" data-lineup-seat="${c.index}"${flags} style="${color ? `${cs(color)};` : ""}${chipKf(c)}">${frame}${glow}${text}</g>`;
   };
 
@@ -257,17 +379,50 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
     const parts = seq.map(([t, text], k) => {
       if (text === "") return "";
       const next = seq[k + 1]?.[0];
-      const anim = k === 0 ? (next === undefined ? "" : m.until(next - MOTION.untilFade)) : next === undefined ? m.rise(t) : m.rise(t, next - MOTION.untilFade);
-      const shown: Shown[] = [[k === 0 ? 0 : t, next === undefined ? Number.POSITIVE_INFINITY : next - MOTION.untilFade]];
+      const anim =
+        k === 0
+          ? next === undefined
+            ? ""
+            : m.until(next - MOTION.untilFade)
+          : next === undefined
+            ? m.rise(t)
+            : m.rise(t, next - MOTION.untilFade);
+      const shown: Shown[] = [
+        [k === 0 ? 0 : t, next === undefined ? Number.POSITIVE_INFINITY : next - MOTION.untilFade],
+      ];
       const { number, unit } = splitNote(text);
-      const numberStyle = hasWide(number) ? { ...TYPE.laneNote, family: "sans" as const } : TYPE.laneNote;
-      const unitStyle = unit !== undefined && hasWide(unit) ? { ...TYPE.laneUnit, family: "sans" as const } : TYPE.laneUnit;
+      const numberStyle = hasWide(number)
+        ? { ...TYPE.laneNote, family: "sans" as const }
+        : TYPE.laneNote;
+      const unitStyle =
+        unit !== undefined && hasWide(unit)
+          ? { ...TYPE.laneUnit, family: "sans" as const }
+          : TYPE.laneUnit;
       const numberW = textWidth(number, numberStyle);
-      const total = numberW + (unit === undefined ? 0 : N.card.unitGap + textWidth(unit, unitStyle));
+      const total =
+        numberW + (unit === undefined ? 0 : N.card.unitGap + textWidth(unit, unitStyle));
       const left = lane.cx - total / 2;
       const drawn =
-        write(ctx.ink, hasWide(number) ? "dg-ln-note dg-ln-notej" : "dg-ln-note", left, y, number, numberStyle, shown) +
-        (unit === undefined ? "" : write(ctx.ink, hasWide(unit) ? "dg-ln-unit dg-ln-unitj" : "dg-ln-unit", left + numberW + N.card.unitGap, y, unit, unitStyle, shown));
+        write(
+          ctx.ink,
+          hasWide(number) ? "dg-ln-note dg-ln-notej" : "dg-ln-note",
+          left,
+          y,
+          number,
+          numberStyle,
+          shown,
+        ) +
+        (unit === undefined
+          ? ""
+          : write(
+              ctx.ink,
+              hasWide(unit) ? "dg-ln-unit dg-ln-unitj" : "dg-ln-unit",
+              left + numberW + N.card.unitGap,
+              y,
+              unit,
+              unitStyle,
+              shown,
+            ));
       return `<g${anim ? ` class="dg-a" style="${anim}"` : ""}>${drawn}</g>`;
     });
     return `<g data-lineup-note="${esc(lane.id)}" style="${cs(N.noteColor)}">${parts.join("")}</g>`;
@@ -296,21 +451,40 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
   const lanes = layout.lanes
     .map((lane) => {
       const dash = lane.pool ? ` stroke-dasharray="${N.dash.join(" ")}"` : "";
-      const frame = rect(lane.pool ? "dg-ln-pool" : "dg-ln-card", lane, N.radius, ` data-lineup-frame=""${dash}${lane.pool ? "" : ` ${ctx.sh}`}`);
+      const frame = lineupFrame(
+        ctx.corner,
+        lane.pool ? "dg-ln-pool" : "dg-ln-card",
+        lane,
+        N.radius,
+        ` data-lineup-frame=""${dash}${lane.pool ? "" : ` ${ctx.sh}`}`,
+      );
       const rings = layout.picks
         .filter((pick) => pick.lane === lane.id)
-        .map((pick) => `<g class="dg-a" data-lineup-ring="${esc(lane.id)}" style="${m.vis(...pickSpan(pick))}">${rect("dg-halo", lane, N.radius)}${rect("dg-on", lane, N.radius)}</g>`)
+        .map(
+          (pick) =>
+            `<g class="dg-a" data-lineup-ring="${esc(lane.id)}" style="${m.vis(...pickSpan(pick))}">${lineupFrame(ctx.corner, "dg-halo", lane, N.radius)}${lineupFrame(ctx.corner, "dg-on", lane, N.radius)}</g>`,
+        )
         .join("");
       // 空の席の枠は封の下で透けないよう、封をしている間はチップと一緒に隠す
       const sealed = hideOf(layout.seals.filter((s) => s.lane === lane.id));
-      const slotRects = lane.slots.map((s) => rect("dg-ln-slot", s, N.chip.radius)).join("");
-      const slots = slotRects === "" ? "" : `<g${sealed ? ` class="dg-a" style="${sealed}"` : ""}>${slotRects}</g>`;
-      const sep = lane.foot === undefined ? "" : `<line class="dg-ln-sep" x1="${r1(lane.x)}" y1="${r1(lane.foot)}" x2="${r1(lane.x + lane.w)}" y2="${r1(lane.foot)}"/>`;
+      const slotRects = lane.slots
+        .map((s) => rect("dg-ln-slot", s, partRadius(ctx.corner, N.chip.radius)))
+        .join("");
+      const slots =
+        slotRects === ""
+          ? ""
+          : `<g${sealed ? ` class="dg-a" style="${sealed}"` : ""}>${slotRects}</g>`;
+      const sep =
+        lane.foot === undefined
+          ? ""
+          : `<line class="dg-ln-sep" x1="${r1(lane.x)}" y1="${r1(lane.foot)}" x2="${r1(lane.x + lane.w)}" y2="${r1(lane.foot)}"/>`;
       const first = firstSeat(lane.id);
-      const empty = lane.empty ? `<g${first === undefined ? "" : ` class="dg-a" style="${m.until(first)}"`}>${lines(ctx, "dg-ln-empty", lane.empty, TYPE.laneEmpty, first === undefined ? ALWAYS : [[0, first]])}</g>` : "";
+      const empty = lane.empty
+        ? `<g${first === undefined ? "" : ` class="dg-a" style="${m.until(first)}"`}>${lines(ctx, "dg-ln-empty", lane.empty, TYPE.laneEmpty, first === undefined ? ALWAYS : [[0, first]])}</g>`
+        : "";
       const fade = faded.get(lane.id);
       return (
-        `<g${fade ? ' class="dg-a"' : ""} data-lineup-lane="${esc(lane.id)}"${lane.pool ? " data-lineup-pool=\"\"" : ""} style="${cs(lane.color)}${fade ? `;${fade}` : ""}">` +
+        `<g${fade ? ' class="dg-a"' : ""} data-lineup-lane="${esc(lane.id)}"${lane.pool ? ' data-lineup-pool=""' : ""} style="${cs(lane.color)}${fade ? `;${fade}` : ""}">` +
         `${frame}${rings}${slots}${sep}${lines(ctx, "dg-sn", lane.title, TYPE.boxName)}${hintArrow(lane)}${lines(ctx, "dg-ln-hint", lane.hint, TYPE.laneHint)}${empty}${noteOf(lane)}</g>`
       );
     })
@@ -319,9 +493,12 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
   // 役の札。役が動く段にだけ縁と地に色を付ける
   const roles = layout.roles
     .map((role) => {
-      const lit = role.steps.length === 0 ? "" : `<g class="dg-a" data-lineup-role-ring="${esc(role.id)}" style="${during(rangesOf(role.steps))}">${rect("dg-halo", role, N.radius)}${rect("dg-ln-lit", role, N.radius)}</g>`;
+      const lit =
+        role.steps.length === 0
+          ? ""
+          : `<g class="dg-a" data-lineup-role-ring="${esc(role.id)}" style="${during(rangesOf(role.steps))}">${lineupFrame(ctx.corner, "dg-halo", role, N.radius)}${lineupFrame(ctx.corner, "dg-ln-lit", role, N.radius)}</g>`;
       return (
-        `<g data-lineup-role="${esc(role.id)}" style="${cs(N.role.color)}">${rect("dg-ln-role", role, N.radius, ` ${ctx.sh}`)}${lit}` +
+        `<g data-lineup-role="${esc(role.id)}" style="${cs(N.role.color)}">${lineupFrame(ctx.corner, "dg-ln-role", role, N.radius, ` ${ctx.sh}`)}${lit}` +
         `${lines(ctx, "dg-ln-rn", role.title, TYPE.roleName)}${role.note ? lines(ctx, "dg-ln-rt", role.note, TYPE.roleNote) : ""}</g>`
       );
     })
@@ -338,7 +515,12 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
     .join("");
 
   // 置き場と札の間の矢印
-  const arrows = layout.arrows.map((a) => `<path class="dg-ln-arrow" data-lineup-arrow="" d="${arrowPath(a.points, N.arrow.head)}" style="${cs(N.role.color)}"/>`).join("");
+  const arrows = layout.arrows
+    .map(
+      (a) =>
+        `<path class="dg-ln-arrow" data-lineup-arrow="" d="${arrowPath(a.points, N.arrow.head)}" style="${cs(N.role.color)}"/>`,
+    )
+    .join("");
 
   // 札の下の一言。札と段ごとに 1 つの部品にまとめ、line を書いた段にだけ見せる
   const remarkGroups = new Map<string, typeof layout.remarks>();
@@ -352,7 +534,12 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
       const span = spanOf(first.step);
       const from = Math.max(...group.map((r) => timeOf(r).drawn));
       const shown: Shown[] = [[from, span.end]];
-      const body = group.map((r) => `<g${r.color ? ` style="${cs(r.color)}"` : ""}>${rect(r.color ? "dg-ln-bar" : "dg-ln-bar0", r.bar, 0)}${lines(ctx, "dg-ln-rk", r.text, TYPE.remark, shown)}</g>`).join("");
+      const body = group
+        .map(
+          (r) =>
+            `<g${r.color ? ` style="${cs(r.color)}"` : ""}>${rect(r.color ? "dg-ln-bar" : "dg-ln-bar0", r.bar, 0)}${lines(ctx, "dg-ln-rk", r.text, TYPE.remark, shown)}</g>`,
+        )
+        .join("");
       return `<g class="dg-a" data-lineup-remark="${esc(first.lane)}" style="${m.vis(from, span.end)}">${body}</g>`;
     })
     .join("");
@@ -365,11 +552,16 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
       const tags = a.tags
         .map(
           (tag) =>
-            `<g data-lineup-ahead-tag="${tag.step}">${rect("dg-ln-tag", tag, N.chip.radius)}<g style="${cs(N.role.color)}">${rect("dg-ln-no", tag.no, N.chip.radius)}${lines(ctx, "dg-ln-nt", tag.number, TYPE.aheadNo, shown)}</g>` +
+            `<g data-lineup-ahead-tag="${tag.step}">${rect("dg-ln-tag", tag, partRadius(ctx.corner, N.chip.radius))}<g style="${cs(N.role.color)}">${rect("dg-ln-no", tag.no, partRadius(ctx.corner, N.chip.radius))}${lines(ctx, "dg-ln-nt", tag.number, TYPE.aheadNo, shown)}</g>` +
             `${lines(ctx, "dg-ln-at", tag.text, TYPE.aheadText, shown)}</g>`,
         )
         .join("");
-      const links = a.arrows.map((points) => `<path class="dg-ln-aa" data-lineup-ahead-arrow="" d="${arrowPath(points, N.arrow.head)}"/>`).join("");
+      const links = a.arrows
+        .map(
+          (points) =>
+            `<path class="dg-ln-aa" data-lineup-ahead-arrow="" d="${arrowPath(points, N.arrow.head)}"/>`,
+        )
+        .join("");
       return `<g class="dg-a" data-lineup-ahead="${a.step}" style="${m.vis(span.start, span.end)}"><g data-lineup-ahead-label="">${lines(ctx, "dg-ln-al", a.label, TYPE.aheadLabel, shown)}</g>${tags}${links}</g>`;
     })
     .join("");
@@ -379,7 +571,10 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
     layout.legend.length === 0
       ? ""
       : `<g data-lineup-legend="">${layout.legend
-          .map((row) => `<g data-lineup-legend-row=""${row.color ? ` style="${cs(row.color)}"` : ""}>${rect(row.color ? "dg-ln-sw" : "dg-ln-sw0", row.swatch, N.chip.radius / 2)}${lines(ctx, "dg-ln-lg", row.text, TYPE.legend)}</g>`)
+          .map(
+            (row) =>
+              `<g data-lineup-legend-row=""${row.color ? ` style="${cs(row.color)}"` : ""}>${rect(row.color ? "dg-ln-sw" : "dg-ln-sw0", row.swatch, partRadius(ctx.corner, N.chip.radius) / 2)}${lines(ctx, "dg-ln-lg", row.text, TYPE.legend)}</g>`,
+          )
           .join("")}</g>`;
 
   const stripes = N.seal.stripe;
@@ -393,10 +588,19 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
     const { w, h, r, rise } = N.lock;
     const top = cy + N.seal.lockY - h / 2;
     const shackle = `M${r1(cx - r)} ${r1(top)}v${-rise}a${r} ${r} 0 0 1 ${r * 2} 0v${rise}`;
-    const word = write(ctx.ink, "dg-ln-sw-t", cx, cy + N.seal.wordY, layout.sealWord, TYPE.sealWord, [closedOf(s)], "middle");
+    const word = write(
+      ctx.ink,
+      "dg-ln-sw-t",
+      cx,
+      cy + N.seal.wordY,
+      layout.sealWord,
+      TYPE.sealWord,
+      [closedOf(s)],
+      "middle",
+    );
     return (
-      `<g data-lineup-lock="">${rect("dg-ln-lockbox", { x: cx - size / 2, y: cy - size / 2, w: size, h: size }, N.chip.radius)}` +
-      `<path class="dg-ln-lock" d="${shackle}"/>${rect("dg-ln-lock", { x: cx - w / 2, y: top, w, h }, N.chip.radius / 2)}</g>${word}`
+      `<g data-lineup-lock="">${rect("dg-ln-lockbox", { x: cx - size / 2, y: cy - size / 2, w: size, h: size }, partRadius(ctx.corner, N.chip.radius))}` +
+      `<path class="dg-ln-lock" d="${shackle}"/>${rect("dg-ln-lock", { x: cx - w / 2, y: top, w, h }, partRadius(ctx.corner, N.chip.radius) / 2)}</g>${word}`
     );
   };
 
@@ -411,7 +615,10 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
       const hide = hideOf(seals);
       const track = `<g${hide ? ' class="dg-a"' : ""} data-lineup-track="${esc(lane.id)}"${hide ? ` style="${hide}"` : ""}>${seats}</g>`;
       const covers = seals
-        .map((s) => `<g class="dg-ln-seal dg-a" data-lineup-seal="${esc(lane.id)}" style="${sealKf(s)}">${rect("dg-ln-sealbg", s, N.seal.radius, ` fill="url(#dg-seal-${ctx.id})"`)}${lockOf(s)}</g>`)
+        .map(
+          (s) =>
+            `<g class="dg-ln-seal dg-a" data-lineup-seal="${esc(lane.id)}" style="${sealKf(s)}">${rect("dg-ln-sealbg", s, partRadius(ctx.corner, N.seal.radius), ` fill="url(#dg-seal-${ctx.id})"`)}${lockOf(s)}</g>`,
+        )
         .join("");
       const stamps = layout.stamps
         .filter((s) => s.lane === lane.id)
@@ -419,17 +626,37 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
           const at = timeOf(s).start;
           const cx = s.x + s.w / 2;
           const cy = s.y + s.h / 2;
-          const text = write(ctx.ink, "dg-ln-st", cx, cy + LOOK.baseline.tag, s.text, TYPE.stamp, [[at, Number.POSITIVE_INFINITY]], "middle");
-          return `<g class="dg-popc dg-a" data-lineup-stamp="${esc(lane.id)}" style="${cs(N.stamp.color)};${m.pop(at)}"><g transform="rotate(${N.stamp.tilt} ${r1(cx)} ${r1(cy)})">${rect("dg-ln-stamp", s, N.stamp.radius)}${text}</g></g>`;
+          const text = write(
+            ctx.ink,
+            "dg-ln-st",
+            cx,
+            cy + LOOK.baseline.tag,
+            s.text,
+            TYPE.stamp,
+            [[at, Number.POSITIVE_INFINITY]],
+            "middle",
+          );
+          return `<g class="dg-popc dg-a" data-lineup-stamp="${esc(lane.id)}" style="${cs(N.stamp.color)};${m.pop(at)}"><g transform="rotate(${N.stamp.tilt} ${r1(cx)} ${r1(cy)})">${rect("dg-ln-stamp", s, partRadius(ctx.corner, N.stamp.radius))}${text}</g></g>`;
         })
         .join("");
       const marks = layout.marks
         .filter((mark) => mark.lane === lane.id)
         .map((mark) => {
-          const pick = layout.picks.find((p) => p.step === mark.step && p.event === mark.event) as LineupPick;
+          const pick = layout.picks.find(
+            (p) => p.step === mark.step && p.event === mark.event,
+          ) as LineupPick;
           const [a, b] = pickSpan(pick);
-          const text = write(ctx.ink, "dg-ln-mt", mark.x + mark.w / 2, mark.y + mark.h / 2 + LOOK.baseline.tag, mark.text, TYPE.laneMark, [[a, b]], "middle");
-          return `<g class="dg-a" data-lineup-mark="${esc(lane.id)}" style="${cs(N.mark.color)};${m.vis(a, b)}">${rect("dg-ln-mark", mark, N.chip.radius)}${text}</g>`;
+          const text = write(
+            ctx.ink,
+            "dg-ln-mt",
+            mark.x + mark.w / 2,
+            mark.y + mark.h / 2 + LOOK.baseline.tag,
+            mark.text,
+            TYPE.laneMark,
+            [[a, b]],
+            "middle",
+          );
+          return `<g class="dg-a" data-lineup-mark="${esc(lane.id)}" style="${cs(N.mark.color)};${m.vis(a, b)}">${rect("dg-ln-mark", mark, partRadius(ctx.corner, N.chip.radius))}${text}</g>`;
         })
         .join("");
       const fade = faded.get(lane.id);
@@ -437,5 +664,9 @@ export function drawLineup(layout: LineupLayout, diagram: DiagramModel, timeline
     })
     .join("");
 
-  return { lanes: `${heading}${headlines}${roles}${arrows}${lanes}${remarks}${aheads}${legend}`, chips: `${pattern}${chips}`, css: LINEUP_CSS };
+  return {
+    lanes: `${heading}${headlines}${roles}${arrows}${lanes}${remarks}${aheads}${legend}`,
+    chips: `${pattern}${chips}`,
+    css: LINEUP_CSS,
+  };
 }

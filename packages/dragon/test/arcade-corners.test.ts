@@ -259,9 +259,9 @@ describe("arcade の再生の枠 (#3344)", () => {
       dispatchEvent: () => false,
     });
     const host = document.createElement("div");
-    Object.defineProperty(host, "clientWidth", { value: 390 });
+    Object.defineProperty(host, "clientWidth", { value: 720 });
     document.body.appendChild(host);
-    // 狭い枠に寄って追う図で置き、窓の枠と全体図の地と窓を切り抜く形も確かめる
+    // 寄って追う図で置き、窓の枠と全体図の地と、窓と全体図を切り抜く形も確かめる。幅 720 の枠は全体図を窓の下に出す
     const player = draw("mountDiagram")(
       host,
       { ...diagramOf("ccip.json"), view: "follow" },
@@ -269,7 +269,7 @@ describe("arcade の再生の枠 (#3344)", () => {
     ) as Player & { mark(rects: readonly Rect[]): void };
     placed.push(player);
     const figure = host.querySelector('svg[data-dragon="figure"]');
-    expect(figure?.getAttribute("data-view"), "幅 390 の枠で寄って追う図にならない").toBe("follow");
+    expect(figure?.getAttribute("data-view"), "幅 720 の枠で寄って追う図にならない").toBe("follow");
 
     player.mark([{ x: 10, y: 10, w: 40, h: 20 }]);
     expect(host.querySelector(".dg-spot"), "見どころの印を描いていない").not.toBeNull();
@@ -280,7 +280,10 @@ describe("arcade の再生の枠 (#3344)", () => {
         ["dg-vp-frame", "dg-mm-bg"].some((c) => el.classList.contains(c)) ||
         el.parentElement?.localName === "clipPath",
     );
-    expect(frames.length, "窓の枠と全体図の地と窓を切り抜く形が無い").toBeGreaterThanOrEqual(3);
+    expect(
+      frames.map((el) => el.getAttribute("class") ?? "(切り抜く形)").sort(),
+      "窓の枠と全体図の地と、窓と全体図を切り抜く形",
+    ).toEqual(["(切り抜く形)", "(切り抜く形)", "dg-mm-bg", "dg-vp-frame"]);
     for (const el of frames)
       expect(
         el.localName === "path" && ring(el.getAttribute("d") ?? "")?.length === 6,

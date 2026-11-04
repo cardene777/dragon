@@ -16,6 +16,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   Pass it as `palette: "arcade"` or `dragon export <file> --palette arcade`. The palette switches in the catalog and the editor show it as "Arcade screen", and choosing it makes the site accent green.
   The values of `clear`, `paper`, and `night` do not change, and the default is still `paper`.
 
+- **Figures drawn with `arcade` cut the top-right and bottom-left corners of their boxes, the same shape as the bitsumi pages** (#3344)
+
+  Boxes, regions, and the figure frame lose 8 at the top-right and bottom-left corners, or a quarter of the shape's width or height when that is smaller. This is the same cut as the boxes of the bitsumi article figures.
+  Small parts (icon tiles, chips, tags, and marks) are drawn with square corners, so no rounded corner remains.
+  An exported HTML player clips its frame to the same shape and draws its buttons and highlight marks with square corners.
+  Each palette in the palette table (`palettes.json`) now has a corner shape (`corner`, either `round` or `cut`), and only `arcade` has `cut`. Figures drawn with `clear`, `paper`, and `night` do not change.
+
 ### Changed
 
 - **The source JSON is now version 2, which lists the blocks placed on a diagram under a field for each block name (`blocks`)** (#3346)

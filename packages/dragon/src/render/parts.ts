@@ -19,18 +19,32 @@ import {
   type ScenePath,
   type SceneSide,
 } from "../layout/scene";
-import { type ColorKey, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
+import {
+  type ColorKey,
+  type Corner,
+  EASE,
+  LOOK,
+  MOTION,
+  type TextStyle,
+  TYPE,
+} from "../look/values";
 import type { Span, Timeline } from "../timeline";
+import { frameShape, partRadius } from "./corner";
+import { r1 } from "./round";
 import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
-export const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-/** 座標を小数 2 桁に丸める。ブロックの描き方 (`blocks/<名前>/draw.ts`) も同じ丸めで書く */
-export const r1 = (v: number): number => Math.round(v * 100) / 100;
+export const esc = (s: string): string =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/** 座標を小数 2 桁に丸める。角の形 (`corner.ts`) も読むため、置き場は `round.ts` が持つ */
+export { r1 };
 
 /** 点を辿る線。曲がる所は共通の値の表の半径 (`LOOK.edge.bend`) で丸め、直角の角を作らない (#3171)。 */
 export function pathOf(points: Point[]): string {
-  const pts = points.filter((p, i) => i === 0 || p[0] !== (points[i - 1] as Point)[0] || p[1] !== (points[i - 1] as Point)[1]);
+  const pts = points.filter(
+    (p, i) =>
+      i === 0 || p[0] !== (points[i - 1] as Point)[0] || p[1] !== (points[i - 1] as Point)[1],
+  );
   const [x0, y0] = pts[0] as Point;
   let d = `M ${r1(x0)} ${r1(y0)}`;
   for (let i = 1; i < pts.length - 1; i++) {
@@ -75,6 +89,8 @@ export interface Ctx {
   traces: Trace[];
   /** 箱の名前と下の字の基準線を、箱の真ん中からどれだけ下げるか (`boxTextY`) */
   boxText: BoxTextY;
+  /** 色味の角の形。角を落とす色味は図の箱と囲みと図の枠の右上と左下を落とし、小さな部品の角を丸めない (#3344) */
+  corner: Corner;
 }
 
 /** 和文を含む字の、和文の字で描く時の字の形 */
@@ -83,13 +99,23 @@ export const sansOf = (t: TextStyle): TextStyle => ({ ...t, family: "sans" });
 /** 字の形を CSS の `font` の値にする。字の族は CSS の変数で引く */
 export const cssFont = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
 /** 色の役の色 (`--c`) を `pct` の割合で `base` に混ぜた CSS の色 */
-export const cssMix = (pct: number, base = "var(--surf)"): string => `color-mix(in srgb,var(--c) ${pct}%,${base})`;
+export const cssMix = (pct: number, base = "var(--surf)"): string =>
+  `color-mix(in srgb,var(--c) ${pct}%,${base})`;
 
 /**
  * 字を 1 つ描き、字の四角と見えている間を `ink` に記録する (#3175)。`ink` を渡さない字 (寄って追う窓の頭の列) は記録しない。
  * `anchor` を渡さない字は左端を `x` に置き、`text-anchor` を書かない
  */
-export function write(ink: Ink[] | undefined, cls: string, x: number, y: number, text: string, style: TextStyle, shown: Shown[] = ALWAYS, anchor?: "start" | "middle"): string {
+export function write(
+  ink: Ink[] | undefined,
+  cls: string,
+  x: number,
+  y: number,
+  text: string,
+  style: TextStyle,
+  shown: Shown[] = ALWAYS,
+  anchor?: "start" | "middle",
+): string {
   ink?.push({ text, rect: textBox(text, x, y, style, anchor), shown });
   return `<text class="${cls}" x="${r1(x)}" y="${r1(y)}"${anchor ? ` text-anchor="${anchor}"` : ""}>${esc(text)}</text>`;
 }
@@ -97,7 +123,13 @@ export function write(ink: Ink[] | undefined, cls: string, x: number, y: number,
 /** 時刻の範囲 `[[a, b], ...]` の間だけ出る。 */
 export function rangeKf(m: Motion, ranges: [number, number][]): string {
   const pts: Frame[] = [[0, { opacity: 0 }]];
-  for (const [a, b] of ranges) pts.push([a, { opacity: 0 }, EASE.out], [a + MOTION.fade, { opacity: 1 }], [b - 0.1, { opacity: 1 }, EASE.inOut], [b + 0.25, { opacity: 0 }]);
+  for (const [a, b] of ranges)
+    pts.push(
+      [a, { opacity: 0 }, EASE.out],
+      [a + MOTION.fade, { opacity: 1 }],
+      [b - 0.1, { opacity: 1 }, EASE.inOut],
+      [b + 0.25, { opacity: 0 }],
+    );
   pts.push([m.total, { opacity: 0 }]);
   return m.kf(pts);
 }
@@ -105,26 +137,34 @@ export function rangeKf(m: Motion, ranges: [number, number][]): string {
 /** 箱が動く段の並びを、続いた段は 1 つの範囲にまとめて出す。 */
 export function activeKf(ctx: Ctx, on: number[]): string {
   const ranges: [number, number][] = [];
-  for (let k = 0; k < on.length; ) {
+  for (let k = 0; k < on.length;) {
     let e = k;
     while (e + 1 < on.length && on[e + 1] === (on[e] as number) + 1) e++;
-    ranges.push([(ctx.t.steps[on[k] as number] as Span).start, (ctx.t.steps[on[e] as number] as Span).end]);
+    ranges.push([
+      (ctx.t.steps[on[k] as number] as Span).start,
+      (ctx.t.steps[on[e] as number] as Span).end,
+    ]);
     k = e + 1;
   }
   return rangeKf(ctx.m, ranges);
 }
 
 /** 状態遷移図の、どの段も辿り着かない状態。点線の縁の札で、絵柄を左に、名前と下の字を右に並べる (#3171)。光らず、字も書き換わらない */
-export function ghostCard(box: SceneBox, ink: Ink[]): string {
+export function ghostCard(box: SceneBox, ink: Ink[], corner: Corner): string {
   const { icon, iconRadius, iconScale, radius } = LOOK.box;
   const G = LOOK.state.ghost;
   const ix = box.x + G.pad + icon / 2;
   const tx = box.x + G.pad + icon + G.gap;
-  const mark = drawsIcon(box.icon) ? `<rect class="dg-ic" x="${r1(ix - icon / 2)}" y="${r1(box.cy - icon / 2)}" width="${icon}" height="${icon}" rx="${iconRadius}"/>${glyph(box.icon, ix, box.cy, iconScale)}` : "";
+  const mark = drawsIcon(box.icon)
+    ? `<rect class="dg-ic" x="${r1(ix - icon / 2)}" y="${r1(box.cy - icon / 2)}" width="${icon}" height="${icon}" rx="${partRadius(corner, iconRadius)}"/>${glyph(box.icon, ix, box.cy, iconScale)}`
+    : "";
   const nameY = box.sub ? G.nameY : LOOK.baseline.mark;
-  const sub = box.sub ? write(ink, "dg-ss", tx, box.cy + G.subY, box.sub, TYPE.boxSub, ALWAYS, "start") : "";
+  const frame = { x: box.x, y: box.y, w: box.w, h: box.h };
+  const sub = box.sub
+    ? write(ink, "dg-ss", tx, box.cy + G.subY, box.sub, TYPE.boxSub, ALWAYS, "start")
+    : "";
   return (
-    `<g data-ghost="${esc(box.id)}" style="${cs(box.color)}"><rect class="dg-ghost" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${radius}"/>` +
+    `<g data-ghost="${esc(box.id)}" style="${cs(box.color)}">${frameShape(corner, ' class="dg-ghost"', frame, `<rect class="dg-ghost" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${radius}"/>`)}` +
     `${mark}${write(ink, "dg-sn", tx, box.cy + nameY, box.name, TYPE.boxName, ALWAYS, "start")}${sub}</g>`
   );
 }
@@ -142,18 +182,29 @@ export function path(p: ScenePath, color: ColorKey, ink: Ink[], traces: Trace[])
   traces.push({ from: p.from, to: p.to, points: p.points, shown: ALWAYS });
   const sans = p.label?.family === "sans";
   const label = p.label
-    ? write(ink, `dg-path-t${sans ? " dg-path-tj" : ""}`, p.label.x + LOOK.label.padX, p.label.y + p.label.h / 2 + LOOK.baseline.label, p.label.text, sans ? TYPE.labelJa : TYPE.label)
+    ? write(
+        ink,
+        `dg-path-t${sans ? " dg-path-tj" : ""}`,
+        p.label.x + LOOK.label.padX,
+        p.label.y + p.label.h / 2 + LOOK.baseline.label,
+        p.label.text,
+        sans ? TYPE.labelJa : TYPE.label,
+      )
     : "";
   return `<g data-path="${esc(`${p.from}->${p.to}`)}" style="${cs(color)}"><path class="dg-path" d="${pathOf(p.points)}"/><path class="dg-path-h" d="${arrowHead(p.points)}"/>${label}</g>`;
 }
 
 /** 状態遷移図の脇道の囲み。左上に囲みの名前を、その下に添え書きを 1 行ずつ置く */
-export function side(s: SceneSide, color: ColorKey, ink: Ink[]): string {
+export function side(s: SceneSide, color: ColorKey, ink: Ink[], corner: Corner): string {
   const { pad } = LOOK.state.side;
   const title = s.y + pad + TYPE.regionName.size;
-  const notes = s.notes.map((note, k) => write(ink, "dg-side-n", s.x + pad, title + LOOK.region.line * (k + 1), note, TYPE.regionNote)).join("");
+  const notes = s.notes
+    .map((note, k) =>
+      write(ink, "dg-side-n", s.x + pad, title + LOOK.region.line * (k + 1), note, TYPE.regionNote),
+    )
+    .join("");
   return (
-    `<g style="${cs(color)}"><rect class="dg-side" x="${r1(s.x + 0.5)}" y="${r1(s.y + 0.5)}" width="${r1(s.w - 1)}" height="${r1(s.h - 1)}" rx="${LOOK.region.radius}"/>` +
+    `<g style="${cs(color)}">${frameShape(corner, ' class="dg-side"', { x: s.x + 0.5, y: s.y + 0.5, w: s.w - 1, h: s.h - 1 }, `<rect class="dg-side" x="${r1(s.x + 0.5)}" y="${r1(s.y + 0.5)}" width="${r1(s.w - 1)}" height="${r1(s.h - 1)}" rx="${LOOK.region.radius}"/>`)}` +
     `${write(ink, "dg-side-t", s.x + pad, title, s.title, TYPE.regionName)}${notes}</g>`
   );
 }
@@ -165,8 +216,10 @@ export function endMark(e: SceneEnd, color: ColorKey, ink: Ink[]): string {
   const text = e.text === "" ? "" : write(ink, "dg-mark", at[0], at[1], e.text, TYPE.regionNote);
   const x = r1(e.x);
   const y = r1(e.y);
-  if (e.kind === "start") return `<g data-end="start"><circle class="dg-start" cx="${x}" cy="${y}" r="${e.r}"/>${text}</g>`;
-  if (e.ghost) return `<g data-end="finish" style="${cs(color)}"><circle class="dg-end-x" cx="${x}" cy="${y}" r="${e.r}"/><circle class="dg-end-xi" cx="${x}" cy="${y}" r="${end.inner}"/>${text}</g>`;
+  if (e.kind === "start")
+    return `<g data-end="start"><circle class="dg-start" cx="${x}" cy="${y}" r="${e.r}"/>${text}</g>`;
+  if (e.ghost)
+    return `<g data-end="finish" style="${cs(color)}"><circle class="dg-end-x" cx="${x}" cy="${y}" r="${e.r}"/><circle class="dg-end-xi" cx="${x}" cy="${y}" r="${end.inner}"/>${text}</g>`;
   return `<g data-end="finish"><circle class="dg-end" cx="${x}" cy="${y}" r="${e.r}"/><circle class="dg-end-in" cx="${x}" cy="${y}" r="${end.inner}"/>${text}</g>`;
 }
 
@@ -206,7 +259,9 @@ export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
         [e, { opacity: 0, ...hidden }, EASE.inOut],
         [e + 0.4, { opacity: 1, ...shown }],
         [pastEnd, { opacity: 1, ...shown }, EASE.inOut],
-        ...(swap === undefined ? [] : [[swap + MOTION.untilFade, { opacity: 0, ...hidden }] as Frame]),
+        ...(swap === undefined
+          ? []
+          : [[swap + MOTION.untilFade, { opacity: 0, ...hidden }] as Frame]),
         [m.total, { opacity: 0, ...hidden }],
       ]);
   const ring = m.kf([
@@ -220,7 +275,13 @@ export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const y = r1(b.y);
   const ty = r1(b.y + LOOK.baseline.badge);
   const no = b.step + 1;
-  ctx.ink.push({ text: String(no), rect: { x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 }, shown: [[a, pastEnd]], boxed: true, badge: true });
+  ctx.ink.push({
+    text: String(no),
+    rect: { x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 },
+    shown: [[a, pastEnd]],
+    boxed: true,
+    badge: true,
+  });
   return (
     `<g class="dg-bd" data-step="${b.step}" style="${cs(b.color)}"><circle class="dg-bdr dg-popc dg-a" cx="${x}" cy="${y}" r="${rr}" style="${ring}"/>` +
     `<g class="dg-a" style="${past}"><circle class="${grey ? "dg-bdp-g" : "dg-bdp"}" cx="${x}" cy="${y}" r="${rr}"/><text class="${grey ? "dg-bdpt-g" : "dg-bdpt"}" x="${x}" y="${ty}" text-anchor="middle">${no}</text></g>` +
