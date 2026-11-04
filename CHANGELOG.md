@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-11-04
+
 ### Added
 
 - **One script line and a `<pre class="dragon">` block now put a playing diagram on any HTML page** (#3343)
