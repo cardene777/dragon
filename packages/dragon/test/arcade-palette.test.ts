@@ -9,6 +9,7 @@ import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { changelogEntry } from "./changelog-support";
 import { runCli } from "./export-support";
 import { draw, figureVars, type Palette } from "./render-support";
 
@@ -116,8 +117,6 @@ describe("arcade で描く (#3341)", () => {
 const lineOf = (text: string, head: string): string => text.split("\n").find((line) => line.startsWith(head)) ?? "";
 
 /** CHANGELOG の Unreleased の節 */
-const unreleasedOf = (file: string): string => readFileSync(join(ROOT, file), "utf8").split(/^## \[Unreleased\]$/mu)[1]?.split(/^## \[/mu)[0] ?? "";
-
 describe("色味を挙げる文書 (#3341)", () => {
   it("docs-list-every-palette", () => {
     const ids = Object.keys(draw("PALETTES"));
@@ -135,7 +134,7 @@ describe("色味を挙げる文書 (#3341)", () => {
   });
 
   it("changelog-lists-arcade-palette", () => {
-    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) expect(unreleasedOf(file), `${file} の Unreleased に arcade が無い`).toContain("`arcade`");
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) expect(changelogEntry(join(ROOT, file), 3341), `${file} の #3341 の項を持つ節に arcade が無い`).toContain("`arcade`");
   });
 });
 
