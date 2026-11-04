@@ -48,8 +48,6 @@ export interface CoreFieldMessages {
   const: (value: string) => string;
   /** どの欄の組み合わせか判らない場所では `undefined` */
   not: (allowed: Allowed | undefined) => string;
-  /** 状態遷移図の箱の名札に、始まりと終わりの印の名前 (`names`) を書いた */
-  reserved: (names: readonly string[]) => string;
   /** `kind` の図だけが書ける出来事の種類 (`types`) を、別の種類の図に書いた (#3164) */
   kindOnly: (types: readonly string[], kind: string) => string;
   /** 16 進の字を `min` から `max` 字で書く決まり (commit の hash、#3164) */
@@ -104,7 +102,6 @@ const ja: CoreFieldMessages = {
   minimum: (limit) => `${limit} 以上にする`,
   const: (value) => `${value} にする`,
   not: (allowed) => (allowed ? `${allowed.field} の欄は kind が ${allowed.kind} の時だけ書ける` : "この欄の組み合わせは書けない"),
-  reserved: (names) => `${names.join(" と ")} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
   kindOnly: (types, kind) => `${types.join(" と ")} の出来事は kind が ${kind} の時だけ書ける`,
   hex: (min, max) => `0 から 9 と a から f の字で ${min} から ${max} 字にする`,
   duration: (units) => `数と単位 (${units.join(" / ")}) の組で書く (12s など)`,
@@ -133,7 +130,6 @@ const en: CoreFieldMessages = {
   minimum: (limit) => `Use ${limit} or greater`,
   const: (value) => `Use ${value}`,
   not: (allowed) => (allowed ? `The ${allowed.field} field is allowed only when kind is ${allowed.kind}` : "This combination of fields is not allowed"),
-  reserved: (names) => `${names.join(" and ")} name the start and end marks of a state diagram and cannot be box ids`,
   kindOnly: (types, kind) => `${types.join(" and ")} events are allowed only when kind is ${kind}`,
   hex: (min, max) => `Use ${min} to ${max} characters of 0-9 and a-f`,
   duration: (units) => `Write a number and a unit (${units.join(" / ")}), such as 12s`,
