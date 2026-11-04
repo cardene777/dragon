@@ -4,11 +4,12 @@
  * 並べ方は決まった形に整える。JSON の欄の並び順は見ず、欄の名前で読むので、
  * 同じ内容の JSON からは毎回同じ文字列になる。書き手の行の並べ方とコメントは保たない。
  * 段の中で起きることは JSON の並び順 (起きる順) のまま書く。
- * 状態遷移図の移れる道 (`state.paths`) は、帯の宣言の後、最初の `step` より前に JSON の並びのまま書く (#3163)。
+ * 状態遷移図の移れる道 (`state.paths`) は、帯の宣言の後、最初の `step` より前に JSON の並びのまま、脇道のブロックの書き戻す処理 (`print.figure`) が書く (#3163、#3347)。
  *
  * `"` で囲むのは要る時だけにする。`[` を含む名前と、`,` か `]` を含む属性の値と、`"` で始まる字を囲む。
  * 区画と箱の宣言の塊は箱のブロックの書き戻す処理 (`print.declare`) が書く (#3345)。
- * 枝分かれの図 (#3164) は、枝の `branch` の行を箱より前に書き、札を動かす線の運ぶ物が送る側の名前の札なら書かない。
+ * 枝分かれの図 (#3164) は、枝の `branch` の行を箱より前に枝のブロックの書き戻す処理 (`print.declare`) が書き、札を動かす線の運ぶ物が送る側の名前の札なら書かない。
+ * commit の行と枝を切る行は、commit と枝のブロックの書き戻す処理 (`print.events`) が書く (#3347)。
  * 時間軸の図 (#3165) は、目盛りと区切りと印の列と節目と拡大の範囲の行を箱より前に書き、物差しの欄の後ろに `[meter: <割合>]` を書く。
  * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
  * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で書く。
@@ -21,13 +22,12 @@
  * ブロックが持つ宣言の塊 (中身の帯の `strip` の行) は、区画と箱とチップの宣言の後ろに、ブロックの書き戻す処理 (`print.figure`) が書く。
  */
 import { type EventPrinter, ranked } from "./blocks/block";
-import { line } from "./blocks/edge/block";
 import { BLOCKS } from "./blocks/index";
 import { attrs, name, num, quote, shown } from "./print-kit";
 import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
 import type { Diagram, DiagramEvent, DiagramModel, LineupItem, LineupRole, Step, TimeSpec, TryItem, TryPart } from "./schema";
 import { askFields } from "./try-state";
-import { AT, COPY, FROM, MERGE, NOW, OF, ON } from "./words";
+import { AT, NOW, OF } from "./words";
 
 /** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
 const STEP_PRINTERS: readonly ((step: Step) => string[])[] = ranked(BLOCKS).flatMap((block) =>
@@ -42,7 +42,7 @@ const EVENT_PRINTERS: ReadonlyMap<string, EventPrinter> = new Map(
   ranked(BLOCKS).flatMap((block) => ("none" in block.print ? [] : (Object.entries(block.print.events ?? {}) as [string, EventPrinter][]))),
 );
 
-/** 図の種類の宣言の直ぐ後ろに書く、ブロックが持つ宣言の塊 (区画と箱) を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
+/** 図の種類の宣言の直ぐ後ろに書く、ブロックが持つ宣言の塊 (枝分かれの図の枝と、区画と箱) を書き戻す処理。ブロックの並び (`rank`) の順 (#3345、#3347) */
 const DECLARE_PRINTERS: readonly ((diagram: DiagramModel) => string[])[] = ranked(BLOCKS).flatMap((block) =>
   "none" in block.print || block.print.declare === undefined ? [] : [block.print.declare],
 );
@@ -110,13 +110,6 @@ function event(e: DiagramEvent, kind: DiagramModel["kind"], fields: readonly str
         ["shape", e.shape],
         ["color", e.color],
       ])}`;
-    case "commit":
-      return `commit ${e.id} ${ON} ${e.branch}${e.copy === undefined ? "" : ` ${COPY} ${e.copy}`}${e.merge === undefined ? "" : ` ${MERGE} ${e.merge}`}${attrs([
-        ["hash", e.hash],
-        ["note", e.note],
-      ])}`;
-    case "branch":
-      return `${e.branch} ${FROM} ${e.from}`;
     case "leaf":
       return `leaf ${e.id}${attrs([["hash", e.hash]])}`;
     case "node":
@@ -191,18 +184,15 @@ function timeBlocks(time: TimeSpec): string[] {
  */
 export function printNotation(source: Diagram): string {
   const diagram = toModel(isVersion1(source) ? (upgrade(source, FORMAT_VERSION) as unknown as Diagram) : source);
-  const branches = (diagram.git?.branches ?? []).map((b) => `branch ${b.id}${attrs([["note", b.note]])}`);
   const blocks = [
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
     ...(diagram.try ? tryBlocks(diagram.try) : []),
-    ...(branches.length > 0 ? [branches.join("\n")] : []),
     ...(diagram.time ? timeBlocks(diagram.time) : []),
     ...(diagram.lineup?.roles && diagram.lineup.roles.length > 0 ? [roleLines(diagram.lineup.roles)] : []),
     ...DECLARE_PRINTERS.flatMap((print) => print(diagram)),
     ...(diagram.lineup && diagram.lineup.items.length > 0 ? [itemLines(diagram.lineup.items)] : []),
     ...FIGURE_PRINTERS.flatMap((print) => print(diagram)),
   ];
-  if (diagram.state) blocks.push(diagram.state.paths.map((p) => line(p.from, p.to, p.label)).join("\n"));
   const fields = askFields(diagram.try?.parts ?? []);
   // 段の区切りの `step` の行の下に、段の中でブロックが受け持つ行を字下げして書く。空の行 (本文の空の行) は字下げしない
   for (const step of diagram.steps) {

@@ -12,10 +12,13 @@
  * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false }` で行う。
  */
 import type { ErrorObject } from "ajv";
+import type { GitBranch } from "./blocks/branch/block";
 import type { Carry } from "./blocks/carry/block";
 import { type Color, COLORS } from "./blocks/color/block";
+import type { GitCommit } from "./blocks/commit/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
+import type { StatePath } from "./blocks/side-path/block";
 import type { StepSource } from "./blocks/source/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
@@ -135,19 +138,8 @@ export interface StripMeter {
   line: string;
 }
 
-/**
- * 枝分かれの図 (#3164) の commit を積む出来事。積んだ枝の札と、その枝を指す HEAD が新しい commit へ進む。
- * 当て直し (`copy`) は枝の札を動かさず、merge commit (`merge`) は取り込む枝の先端も親に持つ
- */
-export interface GitCommit {
-  type: "commit";
-  id: string;
-  branch: string;
-  copy?: string;
-  merge?: string;
-  hash?: string;
-  note?: string;
-}
+/** 枝分かれの図 (#3164) の commit を積む出来事の型は commit のブロックが持つ (#3347) */
+export type { GitCommit };
 
 /**
  * 木の図 (#3233) の葉を出す出来事。書いた段で葉の箱が現れる。`hash` を書くと箱に値を出し、名札を葉の下の札に出す
@@ -245,18 +237,8 @@ export interface LineupRole {
   note?: string;
 }
 
-/** 枝分かれの図の枝。上から宣言した順に帯を並べる */
-export interface GitBranch {
-  id: string;
-  note?: string;
-}
-
-/** 状態遷移図の、最初の段より前に書いた移れる道。`from` に `start`、`to` に `finish` を書ける */
-export interface StatePath {
-  from: string;
-  to: string;
-  label?: string;
-}
+/** 枝分かれの図の枝の型は枝のブロック、状態遷移図の移れる道の型は脇道のブロックが持つ (#3347) */
+export type { GitBranch, StatePath };
 
 /** 段の出典の型は出典のブロックが持つ (#3345) */
 export type { StepSource };

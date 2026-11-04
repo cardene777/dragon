@@ -44,27 +44,6 @@ export interface CoreMessages {
   attrNoValue: (key: string) => string;
   attrTwice: (key: string) => string;
   badAttr: (key: string, allowed: readonly string[]) => string;
-  /** 状態遷移図の箱の名札に、始まりか終わりの印の名前を書いた */
-  reservedId: (id: string) => string;
-  intoStart: string;
-  outOfFinish: string;
-  /** 状態遷移図の最初の step より前の線に、属性を書いた */
-  pathNoAttrs: string;
-  /** 枝分かれの図だけの行 (`branch` と `commit`) を、別の種類の図に書いた (#3164) */
-  gitOnly: (word: string) => string;
-  noBranches: string;
-  branchShape: string;
-  commitShape: string;
-  fromShape: string;
-  undeclaredBranch: (id: string) => string;
-  /** 札を動かす線の送る側が、枝の名札でも HEAD でもない */
-  undeclaredRef: (id: string) => string;
-  noCommit: (id: string) => string;
-  /** 取り込む枝が、まだどの commit も指していない */
-  emptyBranch: (id: string) => string;
-  mergeSelf: (id: string) => string;
-  /** 枝分かれの図で、今いる場所の札の名前 (`name`) を名札にした */
-  headReserved: (name: string) => string;
   badHash: string;
   /** 時間軸の図だけの行か属性 (`word`) を、別の種類の図に書いた (#3165) */
   timeOnly: (word: string) => string;
@@ -224,21 +203,6 @@ const ja = (): Messages => {
     attrNoValue: (key) => `${key}: の後ろに値を書く`,
     attrTwice: (key) => `${key} は 1 つの行に 1 つまで`,
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
-    reservedId: (id) => `${id} は状態遷移図の始まりと終わりの印の名前で、箱の名札に使えない`,
-    intoStart: "start へ入る線は書けない。start は始まりの印で、線は start から出る",
-    outOfFinish: "finish から出る線は書けない。finish は終わりの印で、線は finish へ入る",
-    pathNoAttrs: "最初の step より前の線は今回は通らない道なので、属性 (carry と tag と side) を書けない",
-    gitOnly: (word) => `${word} の行は git (枝分かれの図) でだけ書ける`,
-    noBranches: "branch の行で枝を 1 つ以上宣言する",
-    branchShape: "branch は branch <名札> [note: <添え書き>] の形で書く",
-    commitShape: "commit は commit <名札> on <枝> [hash: <hash>, note: <一言>] の形で書く。当て直しは copy <commit> を、取り込みは merge <枝> を on <枝> の後ろに書く",
-    fromShape: "枝を切る行は <枝> from <commit> の形で書く",
-    undeclaredBranch: (id) => `${id} という枝は宣言していない`,
-    undeclaredRef: (id) => `${id} という枝は宣言していない。札を動かす線は枝の名札か HEAD から引く`,
-    noCommit: (id) => `${id} という commit はまだ積んでいない`,
-    emptyBranch: (id) => `${id} の枝はまだどの commit も指していないので取り込めない`,
-    mergeSelf: (id) => `${id} は積む枝なので、取り込む枝にできない`,
-    headReserved: (name) => `${name} は枝分かれの図で今いる場所の札の名前で、名札に使えない`,
     badHash: "hash は 0 から 9 と a から f の字で 4 から 40 字にする",
     timeOnly: (word) => `${word} は time (時間軸の図) でだけ書ける`,
     treeOnly: (word) => `${word} の行は tree (木の図) でだけ書ける`,
@@ -358,21 +322,6 @@ const en = (): Messages => {
     attrNoValue: (key) => `Write a value after ${key}:`,
     attrTwice: (key) => `Write ${key} only once on a line`,
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
-    reservedId: (id) => `${id} names the start or end mark of a state diagram and cannot be a box id`,
-    intoStart: "A line cannot go into start. start is the start mark, and lines leave it",
-    outOfFinish: "A line cannot leave finish. finish is the end mark, and lines go into it",
-    pathNoAttrs: "A line before the first step is a path not taken, so it takes no attributes (carry, tag, side)",
-    gitOnly: (word) => `${word} lines can be written only in git diagrams`,
-    noBranches: "Declare at least one branch with a branch line",
-    branchShape: "Write a branch as branch <id> [note: <note>]",
-    commitShape: "Write a commit as commit <id> on <branch> [hash: <hash>, note: <note>]. For a replayed commit add copy <commit>, and for a merge commit add merge <branch>, after on <branch>",
-    fromShape: "Write a branch cut as <branch> from <commit>",
-    undeclaredBranch: (id) => `No branch named ${id} is declared`,
-    undeclaredRef: (id) => `No branch named ${id} is declared. A line that moves a ref starts from a branch id or HEAD`,
-    noCommit: (id) => `No commit named ${id} has been made yet`,
-    emptyBranch: (id) => `Branch ${id} does not point at any commit yet, so it cannot be merged`,
-    mergeSelf: (id) => `${id} is the branch being committed to, so it cannot be the branch merged in`,
-    headReserved: (name) => `${name} names where you are in a git diagram and cannot be an id`,
     badHash: "Write a hash as 4 to 40 characters of 0-9 and a-f",
     timeOnly: (word) => `${word} can be written only in time diagrams`,
     treeOnly: (word) => `${word} lines can be written only in tree diagrams`,

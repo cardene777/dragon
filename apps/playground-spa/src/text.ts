@@ -78,30 +78,12 @@ export const TEXT = {
           source: BLOCK_TEXT.source.ja,
           lifeline: BLOCK_TEXT.lifeline.ja,
           group: BLOCK_TEXT.group.ja,
-          "start-finish": {
-            name: "始まりと終わり",
-            desc: "状態遷移図だけの部品。線の送る側に start、受ける側に finish を書くと、始まりの印から出る線と、終わりの印へ入る線になる。",
-          },
-          "side-path": {
-            name: "通らない道",
-            desc: "状態遷移図だけの部品。最初の step より前に書いた線は、移れるが今回は通らない道として点線で引く。どの段も辿り着かない状態は点線の箱にして、脇道の囲みに入れる。",
-          },
-          branch: {
-            name: "枝",
-            desc: "枝分かれの図だけの部品。branch の行で枝を上から順に宣言すると、枝ごとに横長の帯が並ぶ。段の中で <枝> from <commit> と書くと、その commit から枝を切る。",
-          },
-          commit: {
-            name: "commit",
-            desc: "枝分かれの図だけの部品。commit <名札> on <枝> で枝に commit を積み、hash と一言を丸の外に添える。積んだ枝の札と、その枝を指す HEAD が新しい commit へ進む。",
-          },
-          copy: {
-            name: "当て直し",
-            desc: "枝分かれの図だけの部品。on <枝> の後ろに copy <commit> を書くと、元の commit と同じ変更を当て直した commit になり、元から点線で結ぶ。rebase で作り直す commit に使い、枝の札は動かさない。",
-          },
-          merge: {
-            name: "merge commit",
-            desc: "枝分かれの図だけの部品。on <枝> の後ろに merge <枝> を書くと、取り込む先の先端と取り込む枝の先端の 2 つを親に持つ commit になる。取り込む先の札だけが進む。",
-          },
+          "start-finish": BLOCK_TEXT["start-finish"].ja,
+          "side-path": BLOCK_TEXT["side-path"].ja,
+          branch: BLOCK_TEXT.branch.ja,
+          commit: BLOCK_TEXT.commit.ja,
+          copy: BLOCK_TEXT.copy.ja,
+          merge: BLOCK_TEXT.merge.ja,
           scale: {
             name: "目盛りと針",
             desc: "時間軸の図だけの部品。scale の行で目盛りの名前と 1 つの長さと数を書くと、時間軸に目盛りが並ぶ。段の中で now -> <目盛り> と書くと、針が決まった速さでその目盛りの終わりまで進む。period で区切りを、span で範囲の括弧か囲みを出す。",
@@ -427,30 +409,12 @@ export const TEXT = {
           source: BLOCK_TEXT.source.en,
           lifeline: BLOCK_TEXT.lifeline.en,
           group: BLOCK_TEXT.group.en,
-          "start-finish": {
-            name: "Start and end",
-            desc: "State diagrams only. Write start as the sender of a line and finish as its receiver, and the line leaves the start mark or goes into the end mark.",
-          },
-          "side-path": {
-            name: "Path not taken",
-            desc: "State diagrams only. A line written before the first step is a path the object could take but does not this time, drawn dotted. A state that no step reaches becomes a dotted box inside the side path area.",
-          },
-          branch: {
-            name: "Branch",
-            desc: "Git graphs only. Declare branches top to bottom with branch lines, and each gets its own lane. Inside a step, <branch> from <commit> cuts the branch at that commit.",
-          },
-          commit: {
-            name: "Commit",
-            desc: "Git graphs only. commit <id> on <branch> adds a commit to the branch, with its hash and a short note beside the circle. The branch's ref, and HEAD when it points at that branch, move to the new commit.",
-          },
-          copy: {
-            name: "Replay",
-            desc: "Git graphs only. Add copy <commit> after on <branch> to replay the same change as that commit, joined to it by a dotted line. Use it for commits a rebase rewrites; branch refs do not move.",
-          },
-          merge: {
-            name: "Merge commit",
-            desc: "Git graphs only. Add merge <branch> after on <branch> to make a commit with two parents: the tip of the target and the tip of the merged branch. Only the target's ref moves.",
-          },
+          "start-finish": BLOCK_TEXT["start-finish"].en,
+          "side-path": BLOCK_TEXT["side-path"].en,
+          branch: BLOCK_TEXT.branch.en,
+          commit: BLOCK_TEXT.commit.en,
+          copy: BLOCK_TEXT.copy.en,
+          merge: BLOCK_TEXT.merge.en,
           scale: {
             name: "Scale and needle",
             desc: "Time diagrams only. A scale line gives the unit name, the length of one unit and the count, and lays the units out along the axis. Inside a step, now -> <unit> moves the needle at a fixed speed to the end of that unit. period adds named periods, and span adds a bracket or a box over a range.",

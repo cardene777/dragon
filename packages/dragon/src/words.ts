@@ -13,10 +13,15 @@
  * 行の頭の語と属性の一覧の並びは誤りの文に出るので、混ぜても今の並びを変えない (`blocks.test.ts` の `notation-words-order-unchanged` が見る)。
  */
 import { ranked } from "./blocks/block";
+import { FROM } from "./blocks/branch/block";
 import { CARRIES } from "./blocks/carry/block";
+import { HEAD, ON } from "./blocks/commit/block";
+import { COPY } from "./blocks/copy/block";
 import { SIDES } from "./blocks/edge-label/block";
 import type { GROUP_HEADS } from "./blocks/group/block";
 import { BLOCKS } from "./blocks/index";
+import { MERGE } from "./blocks/merge/block";
+import { STATE_ENDS, type StateEnd } from "./blocks/start-finish/block";
 import { VIEWS } from "./blocks/step/block";
 import type { Diagram } from "./schema";
 
@@ -35,10 +40,9 @@ export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true,
 
 /**
  * 状態遷移図の始まりと終わりの印の名前 (#3163)。線の送る側に `start`、受ける側に `finish` を書き、
- * 状態遷移図では箱の名札に使えない。時系列図と構成図では、宣言して使う普通の名札
+ * 状態遷移図では箱の名札に使えない。時系列図と構成図では、宣言して使う普通の名札。始まりと終わりのブロックが持つ (#3347)
  */
-export const STATE_ENDS = ["start", "finish"] as const;
-export type StateEnd = (typeof STATE_ENDS)[number];
+export { STATE_ENDS, type StateEnd };
 
 /**
  * 時間軸の図 (`time`、#3165) だけが書ける行の頭の語。目盛り、区切り、印の列、節目、拡大の範囲を最初の段より前に宣言し、
@@ -84,14 +88,14 @@ const RANKED = ranked(BLOCKS);
  * 行の頭の語の一覧は、この語とブロックの語を番号の小さい順に並べる (同じ番号の中は書いた順)
  */
 const LATER_HEADS = [
-  [90, ["branch", "commit", ...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS, ...TRY_HEADS]],
+  [90, [...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS, ...TRY_HEADS]],
 ] as const;
 /** 行の頭の語のうち、型で名指せる語 (移していない語と区画の語) */
 type Head = (typeof LATER_HEADS)[number][1][number] | (typeof GROUP_HEADS)[number];
 
 /**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
- * `branch` と `commit` は枝分かれの図 (`git`) だけが書ける (#3164)。段の出典の `source` は出典のブロックが持つ (#3199、#3345)。
+ * `branch` と `commit` は枝分かれの図 (`git`) だけが書け (#3164)、枝と commit のブロックが持つ (#3347)。段の出典の `source` は出典のブロックが持つ (#3199、#3345)。
  * ブロックの語は、`words.headRanks` に番号を書いた語はその番号で、ほかはブロックの並びの番号で並べる
  */
 export const HEADS: readonly string[] = [
@@ -101,14 +105,11 @@ export const HEADS: readonly string[] = [
   .sort(([a], [b]) => a - b)
   .flatMap(([, heads]) => heads);
 
-/** 枝分かれの図 (#3164) の `commit` の行で、積む枝、当て直しの元、取り込む枝を続ける語 (`commit <名札> on <枝> copy <commit>`) */
-export const ON = "on";
-export const COPY = "copy";
-export const MERGE = "merge";
-/** 枝分かれの図で枝を切る行の、枝の後ろに切る commit を続ける語 (`<枝> from <commit>`) */
-export const FROM = "from";
-/** 枝分かれの図で今いる場所を指す札の名前。枝と commit と箱の名札に使えない */
-export const HEAD = "HEAD";
+/**
+ * 枝分かれの図 (#3164) の `commit` の行で、積む枝、当て直しの元、取り込む枝を続ける語 (`commit <名札> on <枝> copy <commit>`)、
+ * 枝を切る行の `from` と、今いる場所を指す札の名前 `HEAD`。commit と当て直しと merge commit と枝のブロックが持つ (#3347)
+ */
+export { COPY, FROM, HEAD, MERGE, ON };
 /** 枝分かれの図の行の中の語のうち、行の頭の語でも属性でもない語。見本帳の部品が受け持つ語に数える (`on` は commit の行に必ず書くので数えない) */
 export const GIT_WORDS = [FROM, COPY, MERGE] as const;
 
@@ -130,8 +131,6 @@ const LATER_ATTRS = [
       box: ["order"],
       edge: ["at", "into"],
       note: ["color"],
-      branch: ["note"],
-      commit: ["hash", "note"],
       leaf: ["hash"],
       node: ["hash"],
       item: ["color", "label", "note"],

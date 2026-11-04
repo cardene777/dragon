@@ -19,9 +19,11 @@ import { band } from "../blocks/group/draw";
 import { lifeline } from "../blocks/lifeline/draw";
 import { linkTo } from "../blocks/link/draw";
 import { subChanges } from "../blocks/note/draw";
+import { ghostCard, path, side } from "../blocks/side-path/draw";
+import { endMark } from "../blocks/start-finish/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
-import type { GitLayout } from "../layout/git";
+import type { GitLayout } from "../kinds/git/layout";
 import type { LineupLayout } from "../layout/lineup";
 import { textWidth } from "../layout/measure";
 import {
@@ -59,19 +61,7 @@ import { toModel } from "../model";
 import type { DiagramModel, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
-import {
-  badge,
-  cssFont as font,
-  cssMix as mix,
-  type Ctx,
-  doneMark,
-  endMark,
-  esc,
-  ghostCard,
-  path,
-  sansOf,
-  side,
-} from "./parts";
+import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
 import { frameShape, partRadius } from "./corner";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
@@ -888,9 +878,10 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
     );
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)
   const diagram = toModel(read.diagram);
-  // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。置き場の無い図の種類は登録簿から並べ方を引き、知らない種類は構成図の並べ方で並べる
+  // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。後から読む図の種類 (#3347) と置き場の無い図の種類は登録簿から並べ方を引き、
+  // 知らない種類は構成図の並べ方で並べる
   const folder = FOLDERS[diagram.kind];
-  const layout = folder
+  const layout = folder?.layout
     ? folder.layout(diagram, lang)
     : diagram.kind === "state"
       ? kindParts("state", lang).layoutState(diagram, lang)

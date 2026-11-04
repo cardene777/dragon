@@ -18,10 +18,10 @@
  * 箱は commit の並びの右に縦に並べ、中身の帯は図の下に置く。
  * 宣言していない枝に積んだ原本の JSON は、その枝の帯を下に足して描く。辿れない名札を指す出来事は描かない。
  */
-import { type ColorKey, LOOK, type TextStyle, TYPE } from "../look/values";
-import type { DiagramModel, DiagramEvent } from "../schema";
-import { HEAD } from "../words";
-import { hasWide, textBox, textWidth } from "./measure";
+import { type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
+import type { DiagramModel, DiagramEvent } from "../../schema";
+import { HEAD } from "../../words";
+import { hasWide, textBox, textWidth } from "../../layout/measure";
 import {
   along,
   badgeOnPath,
@@ -41,7 +41,7 @@ import {
   type SceneLabel,
   type SceneRegion,
   stripNeed,
-} from "./scene";
+} from "../../layout/scene";
 
 /** 枝の帯。`line` は commit の丸を並べる高さ */
 export interface GitLane extends Rect {

@@ -10,6 +10,7 @@
  * (`blocks.test.ts` の `gallery-imports-no-package-runtime` が見る)。そのため持たない欄は `none()` を呼ばず、
  * `{ none: <理由> }` を直に書く。
  * 一覧は `scripts/build-blocks.mjs` が置き場の dir から書き出す (`apps/playground-spa/src/catalog/blocks.gen.ts`)。
+ * 使い方の頁の段落だけは、使い方の頁だけが読む `apps/playground-spa/src/catalog/blocks-docs.gen.ts` に書き出す (#3341)。
  */
 import type { None } from "./block";
 
