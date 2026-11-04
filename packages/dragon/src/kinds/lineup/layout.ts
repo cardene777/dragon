@@ -21,13 +21,13 @@
  *
  * 段の番号は図の右上の同じ所に置き、次の段の番号と入れ替える。
  */
-import { type FigureText, FIGURE_TEXT } from "../figure-text";
-import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../look/values";
-import { LINEUP_LOOK } from "../look/lineup";
-import type { DiagramModel, DiagramEvent } from "../schema";
-import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../words";
-import { hasWide, textWidth } from "./measure";
-import { boxColors, type Layout, layoutStrip, type Point, type Rect, replaceSameSpot, type SceneBadge, type SceneBox, stripNeed } from "./scene";
+import { type FigureText, FIGURE_TEXT } from "../../figure-text";
+import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../../look/values";
+import { LINEUP_LOOK } from "../../look/lineup";
+import type { DiagramModel, DiagramEvent } from "../../schema";
+import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../../words";
+import { hasWide, textWidth } from "../../layout/measure";
+import { boxColors, type Layout, layoutStrip, type Point, type Rect, replaceSameSpot, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 
 const L = LINEUP_LOOK;
 const C = L.chip;

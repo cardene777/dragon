@@ -126,9 +126,6 @@ export interface ParseOptions {
   lang?: NotationLang;
 }
 
-/** 木の図の `leaf` の行の名札と、`node` の行の名札と `of` */
-const LEAF = /^leaf\s+([^\s[]+)/du;
-const NODE = new RegExp(`^node\\s+([^\\s[]+)\\s+${OF}\\s+`, "du");
 /** 列の図の、`line <列>:` と `stamp <列>:` の行の列と、`seal`、`open`、`pick` の行の列 */
 const ORDER = /^line\s+([^\s:[]+)\s*:/du;
 const STAMP = /^stamp\s+([^\s:[]+)\s*:/du;
@@ -202,9 +199,6 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const items: LineupItem[] = [];
   const roles: LineupRole[] = [];
   const sealed = new Set<string>();
-  /** 木の図で書いた木の箱と、書いた行と名札の位置。子の箱から親の名札 */
-  const trees = new Map<string, { source: SourceLine; at: number }>();
-  const parents = new Map<string, string>();
   /** 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲 (#3165) */
   let scale: TimeScale | undefined;
   let period: TimePeriod | undefined;
@@ -218,7 +212,17 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   let needle = 0;
   const ids = new Set<string>();
   /** 宣言の行でブロックが組む欄 (区画と箱と、中身の帯と、時間軸の図の物差しの欄と、状態遷移図の道と、枝分かれの図の枝と札) */
-  const figure: FigureDraft = { regions: [], boxes: [], meters: [], paths: [], branches: [], git: { commits: new Set(), tips: new Map() } };
+  const figure: FigureDraft = {
+    regions: [],
+    boxes: [],
+    meters: [],
+    paths: [],
+    branches: [],
+    git: { commits: new Set(), tips: new Map() },
+    time: { rows: [], points: [], pending: [], settled: false, needle: 0 },
+    tree: { boxes: new Map(), parents: new Map() },
+    lineup: { items: [], roles: [], sealed: new Set() },
+  };
   const { regions, boxes, paths, branches } = figure;
   const { tips } = figure.git;
   const steps: Step[] = [];
@@ -246,7 +250,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       if (!boxes.some((box) => box.id === id) && !points.some((point) => point.id === id)) throw fail(source, at, m.undeclaredNote(id));
       return id;
     }
-    if (isTree && trees.has(id)) return id;
+    if (isTree && figure.tree.boxes.has(id)) return id;
     if (!isState || !isOneOf(STATE_ENDS, id)) return boxAt(source, id, at);
     if ((id === "start") !== (side === "from")) throw fail(source, at, id === "start" ? m.intoStart : m.outOfFinish);
     return id;
@@ -281,7 +285,8 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     building = draft;
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
-  const state: ParseState = { m, kind, attrs: ATTRS, inStep, closeStep, openStep, beforeSteps, boxAt, claim, endAt, columns: readColumns, figure };
+  const declared = (id: string): boolean => ids.has(id);
+  const state: ParseState = { m, kind, attrs: ATTRS, inStep, closeStep, openStep, beforeSteps, boxAt, declare, declared, claim, endAt, columns: readColumns, figure };
 
   const rest = lines.slice(headAt + 1);
   for (let i = 0; i < rest.length; i++) {
@@ -353,16 +358,6 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       case "span":
         inStep(source).events.push(readSpan(source));
         break;
-      case "leaf": {
-        const step = inStep(source);
-        step.events.push(readLeaf(source));
-        break;
-      }
-      case "node": {
-        const step = inStep(source);
-        step.events.push(readNode(source));
-        break;
-      }
       case "item":
         readItem(source);
         break;
@@ -391,14 +386,14 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   closeStep();
 
   if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
-  if (isTree && trees.size === 0) throw fail(head, 0, m.noLeaves);
+  if (isTree && figure.tree.boxes.size === 0) throw fail(head, 0, m.noLeaves);
   if (isLineup && items.length === 0) throw fail(head, 0, m.noItems);
   if (boxes.length === 0 && !isGit && !isTime && !isTree) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
   // 木の形は全ての行を読んでから確かめる。親を持たない木の箱が 2 つ以上なら、書いた順で 2 つ目を示す
-  const roots = [...trees.keys()].filter((id) => !parents.has(id));
+  const roots = [...figure.tree.boxes.keys()].filter((id) => !figure.tree.parents.has(id));
   const [root, stray] = roots;
-  const strayAt = stray === undefined ? undefined : trees.get(stray);
+  const strayAt = stray === undefined ? undefined : figure.tree.boxes.get(stray);
   if (root !== undefined && stray !== undefined && strayAt) throw fail(strayAt.source, strayAt.at, m.manyRoots(stray, root));
 
   return {
@@ -609,62 +604,6 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     if (color && !isPoint) throw fail(source, color.at, m.noteColorPointOnly);
     if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
     return { type: "swap", box: id, text: named.value, ...(color ? { color: color.value as Color } : {}) };
-  }
-
-  /** 木の図の `leaf <名札> [hash: <hash>]` の行 */
-  function readLeaf(source: SourceLine): DiagramEvent {
-    const text = source.text;
-    const found = LEAF.exec(text);
-    const id = found?.[1];
-    if (!found || id === undefined) throw fail(source, 0, m.leafShape);
-    const idAt = found.indices?.[1]?.[0] ?? 0;
-    if (!ID.test(id)) throw fail(source, idAt, m.badId(id));
-    declare(source, id, idAt);
-    trees.set(id, { source, at: idAt });
-    const rest = skipSpaces(text, found[0].length);
-    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.leafShape);
-    const hash = treeHash(source, rest, ATTRS.leaf);
-    return { type: "leaf", id, ...(hash !== undefined ? { hash } : {}) };
-  }
-
-  /**
-   * 木の図の `node <名札> of <子>, <子> [hash: <hash>]` の行。子は前に書いた葉か親で、まだ親を持たない箱に限る。
-   * 子は `,` で区切り、`[` か行の終わりで終わる
-   */
-  function readNode(source: SourceLine): DiagramEvent {
-    const text = source.text;
-    const found = NODE.exec(text);
-    const id = found?.[1];
-    if (!found || id === undefined) throw fail(source, 0, m.nodeShape);
-    const idAt = found.indices?.[1]?.[0] ?? 0;
-    if (!ID.test(id)) throw fail(source, idAt, m.badId(id));
-    declare(source, id, idAt);
-    const children: string[] = [];
-    let end = found[0].length;
-    for (;;) {
-      const start = skipSpaces(text, end);
-      end = start;
-      while (end < text.length && text[end] !== "," && text[end] !== "[") end++;
-      const child = text.slice(start, end).trim();
-      if (child === "" || !ID.test(child)) throw fail(source, start, m.nodeShape);
-      if (!trees.has(child)) throw fail(source, start, ids.has(child) && child !== id ? m.notTreeBox(child) : m.noTreeChild(child));
-      if (parents.has(child)) throw fail(source, start, m.twoParents(child));
-      parents.set(child, id);
-      children.push(child);
-      if (text[end] !== ",") break;
-      end++;
-    }
-    const hash = treeHash(source, end, ATTRS.node);
-    trees.set(id, { source, at: idAt });
-    return { type: "node", id, children, ...(hash !== undefined ? { hash } : {}) };
-  }
-
-  /** 葉と親の行の名札の後ろの `[hash: <hash>]`。`at` は `[` か行の終わり */
-  function treeHash(source: SourceLine, at: number, keys: readonly string[]): string | undefined {
-    if (at >= source.text.length) return undefined;
-    const hash = readAttrs(source, at, keys, m).get("hash");
-    if (hash && !HASH.test(hash.value)) throw fail(source, hash.at, m.badHash);
-    return hash?.value;
   }
 
   /** `from` から `to` の前までの、`,` で区切った名札と、それぞれの位置 */

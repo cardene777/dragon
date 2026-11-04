@@ -999,6 +999,54 @@
           }
         },
         {
+          "description": "葉を出す。木の図だけが書ける。書いた段で葉の箱が現れる。hash を書くと箱に値を出し、名札を葉の下の札に出す",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "id"
+          ],
+          "properties": {
+            "type": {
+              "const": "leaf"
+            },
+            "id": {
+              "$ref": "#/definitions/id"
+            },
+            "hash": {
+              "$ref": "#/definitions/hash"
+            }
+          }
+        },
+        {
+          "description": "1 つ以上の子から親を組む。木の図だけが書ける。書いた段で親の箱と、子から親への木の線が現れる",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "id",
+            "children"
+          ],
+          "properties": {
+            "type": {
+              "const": "node"
+            },
+            "id": {
+              "$ref": "#/definitions/id"
+            },
+            "children": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/id"
+              }
+            },
+            "hash": {
+              "$ref": "#/definitions/hash"
+            }
+          }
+        },
+        {
           "description": "時間軸の図の今の時刻の針を、to の目盛りの終わりまで進める",
           "type": "object",
           "additionalProperties": false,
@@ -1074,54 +1122,6 @@
             },
             "color": {
               "$ref": "#/definitions/color"
-            }
-          }
-        },
-        {
-          "description": "葉を出す。木の図だけが書ける。書いた段で葉の箱が現れる。hash を書くと箱に値を出し、名札を葉の下の札に出す",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "id"
-          ],
-          "properties": {
-            "type": {
-              "const": "leaf"
-            },
-            "id": {
-              "$ref": "#/definitions/id"
-            },
-            "hash": {
-              "$ref": "#/definitions/hash"
-            }
-          }
-        },
-        {
-          "description": "1 つ以上の子から親を組む。木の図だけが書ける。書いた段で親の箱と、子から親への木の線が現れる",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "id",
-            "children"
-          ],
-          "properties": {
-            "type": {
-              "const": "node"
-            },
-            "id": {
-              "$ref": "#/definitions/id"
-            },
-            "children": {
-              "type": "array",
-              "minItems": 1,
-              "items": {
-                "$ref": "#/definitions/id"
-              }
-            },
-            "hash": {
-              "$ref": "#/definitions/hash"
             }
           }
         },

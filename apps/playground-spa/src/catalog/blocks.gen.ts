@@ -32,6 +32,9 @@ import { rule as groupRule } from "../../../../packages/dragon/src/blocks/group/
 import { text as iconText } from "../../../../packages/dragon/src/blocks/icon/gallery/text";
 import { shelf as iconShelf } from "../../../../packages/dragon/src/blocks/icon/gallery/shelf";
 import { rule as iconRule } from "../../../../packages/dragon/src/blocks/icon/gallery/rule";
+import { text as leafText } from "../../../../packages/dragon/src/blocks/leaf/gallery/text";
+import { shelf as leafShelf } from "../../../../packages/dragon/src/blocks/leaf/gallery/shelf";
+import { rule as leafRule } from "../../../../packages/dragon/src/blocks/leaf/gallery/rule";
 import { text as lifelineText } from "../../../../packages/dragon/src/blocks/lifeline/gallery/text";
 import { shelf as lifelineShelf } from "../../../../packages/dragon/src/blocks/lifeline/gallery/shelf";
 import { rule as lifelineRule } from "../../../../packages/dragon/src/blocks/lifeline/gallery/rule";
@@ -41,6 +44,9 @@ import { rule as linkRule } from "../../../../packages/dragon/src/blocks/link/ga
 import { text as mergeText } from "../../../../packages/dragon/src/blocks/merge/gallery/text";
 import { shelf as mergeShelf } from "../../../../packages/dragon/src/blocks/merge/gallery/shelf";
 import { rule as mergeRule } from "../../../../packages/dragon/src/blocks/merge/gallery/rule";
+import { text as nodeText } from "../../../../packages/dragon/src/blocks/node/gallery/text";
+import { shelf as nodeShelf } from "../../../../packages/dragon/src/blocks/node/gallery/shelf";
+import { rule as nodeRule } from "../../../../packages/dragon/src/blocks/node/gallery/rule";
 import { text as noteText } from "../../../../packages/dragon/src/blocks/note/gallery/text";
 import { shelf as noteShelf } from "../../../../packages/dragon/src/blocks/note/gallery/shelf";
 import { rule as noteRule } from "../../../../packages/dragon/src/blocks/note/gallery/rule";
@@ -73,9 +79,11 @@ export const BLOCK_TEXT = {
   "edge-label": edgeLabelText,
   "group": groupText,
   "icon": iconText,
+  "leaf": leafText,
   "lifeline": lifelineText,
   "link": linkText,
   "merge": mergeText,
+  "node": nodeText,
   "note": noteText,
   "side-path": sidePathText,
   "source": sourceText,
@@ -97,9 +105,11 @@ export const BLOCK_SHELF = {
   "edge-label": edgeLabelShelf,
   "group": groupShelf,
   "icon": iconShelf,
+  "leaf": leafShelf,
   "lifeline": lifelineShelf,
   "link": linkShelf,
   "merge": mergeShelf,
+  "node": nodeShelf,
   "note": noteShelf,
   "side-path": sidePathShelf,
   "source": sourceShelf,
@@ -121,9 +131,11 @@ export const BLOCK_RULE = {
   "edge-label": edgeLabelRule,
   "group": groupRule,
   "icon": iconRule,
+  "leaf": leafRule,
   "lifeline": lifelineRule,
   "link": linkRule,
   "merge": mergeRule,
+  "node": nodeRule,
   "note": noteRule,
   "side-path": sidePathRule,
   "source": sourceRule,

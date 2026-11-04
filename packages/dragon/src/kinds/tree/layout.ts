@@ -13,9 +13,9 @@
  *
  * 原本の JSON が書く前の名札を子に持つ時や、もう親を持つ箱を子にする時は、その子を除いて描く。箱と同じ名札の木の箱は描かない。
  */
-import { type ColorKey, LOOK, type TextStyle, TYPE } from "../look/values";
-import type { DiagramModel } from "../schema";
-import { textWidth } from "./measure";
+import { type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
+import type { DiagramModel } from "../../schema";
+import { textWidth } from "../../layout/measure";
 import {
   along,
   badgeOnPath,
@@ -44,7 +44,7 @@ import {
   slotBoxWidth,
   slotRooms,
   stripNeed,
-} from "./scene";
+} from "../../layout/scene";
 
 /** 木の箱。`lines` は箱の中の字を上から並べた行で、`baselines` と `styles` は行ごとの基準線の高さと字の形 */
 export interface TreePlaced extends Rect {

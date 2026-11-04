@@ -21,6 +21,7 @@ import { SIDES } from "./blocks/edge-label/block";
 import type { GROUP_HEADS } from "./blocks/group/block";
 import { BLOCKS } from "./blocks/index";
 import { MERGE } from "./blocks/merge/block";
+import { OF } from "./blocks/node/block";
 import { STATE_ENDS, type StateEnd } from "./blocks/start-finish/block";
 import { VIEWS } from "./blocks/step/block";
 import type { Diagram } from "./schema";
@@ -79,7 +80,7 @@ const RANKED = ranked(BLOCKS);
  * 行の頭の語の一覧は、この語とブロックの語を番号の小さい順に並べる (同じ番号の中は書いた順)
  */
 const LATER_HEADS = [
-  [90, [...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS]],
+  [90, [...TIME_HEADS, ...LINEUP_HEADS]],
 ] as const;
 /** 行の頭の語のうち、型で名指せる語 (移していない語と区画の語) */
 type Head = (typeof LATER_HEADS)[number][1][number] | (typeof GROUP_HEADS)[number];
@@ -107,8 +108,8 @@ export const GIT_WORDS = [FROM, COPY, MERGE] as const;
 /** 時間軸の図の節目の行で、節目を置く目盛りを続ける語 (`point <名札> at <目盛り>`)。必ず書くので部品の語に数えない */
 export const AT = "at";
 
-/** 木の図の `node` の行で、親の名札の後ろに子を続ける語 (`node <名札> of <子>, <子>`)。必ず書くので部品の語に数えない */
-export const OF = "of";
+/** 木の図の `node` の行で、親の名札の後ろに子を続ける語 (`node <名札> of <子>, <子>`)。組んだ親のブロックが持つ (#3348) */
+export { OF };
 
 /**
  * ブロックの置き場へ移していない行の属性の鍵と、その並びの番号。番号は行の頭の語と同じ物差しで、
@@ -122,8 +123,6 @@ const LATER_ATTRS = [
       box: ["order"],
       edge: ["at", "into"],
       note: ["color"],
-      leaf: ["hash"],
-      node: ["hash"],
       item: ["color", "label", "note"],
       role: ["note"],
       scale: ["from"],

@@ -4,8 +4,11 @@
  * package の描く部品 (`render/parts.ts`) は図の種類の間で共通で、図の種類ごとに違うのは並べ方だけなので、
  * カタログは「どの図でも使える部品」「図の種類だけの部品」「図 (部品を組み合わせた物と見本)」の 3 段に並べる。
  *
- * 1 行は部品の名札と、その部品を描ける図の種類と、その部品が受け持つ記法の語を持つ。図の種類を 2 つ以上持つ部品が、どの図でも使える部品。
- * 列の図 (#3239) は線と箱の中の処理を持たないので、線と線の名前と運ぶ物と絵と飛び先と箱の中の処理の部品は、列の図を除いた図の種類を持つ。
+ * 1 行は部品の名札と、その部品が受け持つ記法の語を持つ。部品の名札はブロックの名前と同じ。
+ * その部品を描ける図の種類は手で書かず、ブロックの付け方と図の種類が受け付ける付け方から導く (`blockKinds`、#3348)。
+ * 図の種類を 2 つ以上持つ部品が、どの図でも使える部品 (コアブロック)。
+ * 列の図 (#3239) は線を持たないので、線と線の名前と運ぶ物の部品 (つなぐと線に乗るの付け方) を受け付けず、
+ * 絵と飛び先と箱の中の処理のブロックは、付け方に列の図を使わない図の種類 (`except`) として書く。
  * 語は `kind:<図の種類>`、`head:<行の頭の語>`、`attr:<行>.<鍵>`、線の行の `edge:->`、枝分かれの図の行の中の語の `git:<語>` の形で書き、
  * package の記法の語の表 (`words.ts`) の語を、どれかの部品が必ず受け持つ (`catalog-parts.test.ts` が数える)。
  * 区画は時系列図に描かれないので、区画の属性 (`attr:group.*`) は区画の部品が受け持つ。
@@ -16,7 +19,7 @@
  *
  * 部品の頁は、その部品の語を 1 つでも使う見本を並べる (#3167)。見本が語を使うかは、見本の記法から作った原本の JSON の形で決める。
  */
-import { type Diagram, type DiagramEvent, parseNotation } from "@cardenelabs/dragon/light";
+import { blockKinds, type Diagram, type DiagramEvent, parseNotation } from "@cardenelabs/dragon/light";
 
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, LATER_EXAMPLES } from "../examples";
 import { laterChunk } from "../site/later";
@@ -32,54 +35,61 @@ export interface Part {
   readonly words: readonly string[];
 }
 
-/** 線を引ける図の種類。列の図は線と箱の中の処理を持たない */
-const LINED = KINDS.filter((kind) => kind !== "lineup");
+/** 部品の表の行の手で書く分。図の種類は書かない */
+type PartRow = Omit<Part, "kinds">;
+
+/** 部品の名札のブロックを使える図の種類を、見本帳の図の種類の並びで足す */
+const withKinds = (row: PartRow): Part => {
+  const usable: readonly string[] = blockKinds(row.id);
+  return { ...row, kinds: KINDS.filter((kind) => usable.includes(kind)) };
+};
 
 /** 部品の表。並びは一覧の札と図の頁の使う部品の並び */
-export const PARTS: readonly Part[] = [
-  { id: "box", kinds: KINDS, words: ["head:box"] },
-  { id: "edge", kinds: LINED, words: ["edge:->"] },
-  { id: "edge-label", kinds: LINED, words: ["attr:edge.side"] },
-  { id: "carry", kinds: LINED, words: ["attr:edge.carry", "attr:edge.tag"] },
-  { id: "color", kinds: KINDS, words: ["attr:box.color"] },
-  { id: "icon", kinds: LINED, words: ["attr:box.icon"] },
-  { id: "link", kinds: LINED, words: ["attr:box.link"] },
-  { id: "note", kinds: KINDS, words: ["attr:box.note", "head:note"] },
-  { id: "act", kinds: LINED, words: ["head:act"] },
-  { id: "strip", kinds: KINDS, words: ["head:strip", "head:set", "attr:set.tag"] },
-  { id: "step", kinds: KINDS, words: ["head:step", "head:say", "head:code", "attr:diagram.view"] },
-  { id: "source", kinds: KINDS, words: ["head:source", "attr:source.url"] },
-  { id: "lifeline", kinds: ["sequence"], words: ["kind:sequence"] },
-  { id: "group", kinds: ["architecture"], words: ["kind:architecture", "head:group", "head:end", "attr:group.note", "attr:group.color", "attr:group.icon"] },
-  { id: "start-finish", kinds: ["state"], words: ["kind:state", "edge:start", "edge:finish"] },
-  { id: "side-path", kinds: ["state"], words: ["edge:before-step"] },
-  { id: "branch", kinds: ["git"], words: ["kind:git", "head:branch", "attr:branch.note", "git:from"] },
-  { id: "commit", kinds: ["git"], words: ["head:commit", "attr:commit.hash", "attr:commit.note"] },
-  { id: "copy", kinds: ["git"], words: ["git:copy"] },
-  { id: "merge", kinds: ["git"], words: ["git:merge"] },
+export const PARTS: readonly Part[] = (
+  [
+  { id: "box", words: ["head:box"] },
+  { id: "edge", words: ["edge:->"] },
+  { id: "edge-label", words: ["attr:edge.side"] },
+  { id: "carry", words: ["attr:edge.carry", "attr:edge.tag"] },
+  { id: "color", words: ["attr:box.color"] },
+  { id: "icon", words: ["attr:box.icon"] },
+  { id: "link", words: ["attr:box.link"] },
+  { id: "note", words: ["attr:box.note", "head:note"] },
+  { id: "act", words: ["head:act"] },
+  { id: "strip", words: ["head:strip", "head:set", "attr:set.tag"] },
+  { id: "step", words: ["head:step", "head:say", "head:code", "attr:diagram.view"] },
+  { id: "source", words: ["head:source", "attr:source.url"] },
+  { id: "lifeline", words: ["kind:sequence"] },
+  { id: "group", words: ["kind:architecture", "head:group", "head:end", "attr:group.note", "attr:group.color", "attr:group.icon"] },
+  { id: "start-finish", words: ["kind:state", "edge:start", "edge:finish"] },
+  { id: "side-path", words: ["edge:before-step"] },
+  { id: "branch", words: ["kind:git", "head:branch", "attr:branch.note", "git:from"] },
+  { id: "commit", words: ["head:commit", "attr:commit.hash", "attr:commit.note"] },
+  { id: "copy", words: ["git:copy"] },
+  { id: "merge", words: ["git:merge"] },
   // 時間軸の図 (#3165)。中身の帯の物差し (`attr:strip.meter`) は時間軸の図でしか書けないので、目盛りと針の部品が受け持つ
   {
     id: "scale",
-    kinds: ["time"],
     words: ["kind:time", "head:scale", "attr:scale.from", "head:period", "attr:period.from", "head:span", "attr:span.shape", "attr:span.color", "attr:strip.meter"],
   },
-  { id: "row", kinds: ["time"], words: ["head:row", "attr:row.color", "attr:row.empty", "head:mark", "attr:mark.color"] },
-  { id: "point", kinds: ["time"], words: ["head:point", "attr:note.color"] },
-  { id: "zoom", kinds: ["time"], words: ["head:zoom", "attr:edge.at", "attr:edge.into"] },
+  { id: "row", words: ["head:row", "attr:row.color", "attr:row.empty", "head:mark", "attr:mark.color"] },
+  { id: "point", words: ["head:point", "attr:note.color"] },
+  { id: "zoom", words: ["head:zoom", "attr:edge.at", "attr:edge.into"] },
   // 木の図 (#3233)
-  { id: "leaf", kinds: ["tree"], words: ["kind:tree", "head:leaf", "attr:leaf.hash"] },
-  { id: "node", kinds: ["tree"], words: ["head:node", "attr:node.hash"] },
+  { id: "leaf", words: ["kind:tree", "head:leaf", "attr:leaf.hash"] },
+  { id: "node", words: ["head:node", "attr:node.hash"] },
   // 列の図 (#3239)
-  { id: "item", kinds: ["lineup"], words: ["kind:lineup", "head:item", "attr:item.color", "attr:item.label"] },
-  { id: "line", kinds: ["lineup"], words: ["head:line"] },
-  { id: "seal", kinds: ["lineup"], words: ["head:seal", "head:open"] },
-  { id: "pick", kinds: ["lineup"], words: ["head:pick"] },
-  { id: "stamp", kinds: ["lineup"], words: ["head:stamp"] },
+  { id: "item", words: ["kind:lineup", "head:item", "attr:item.color", "attr:item.label"] },
+  { id: "line", words: ["head:line"] },
+  { id: "seal", words: ["head:seal", "head:open"] },
+  { id: "pick", words: ["head:pick"] },
+  { id: "stamp", words: ["head:stamp"] },
   // 列の図の卓の形 (#3351)。順番の無い置き場、役の札、チップの説明の凡例
-  { id: "order", kinds: ["lineup"], words: ["attr:box.order"] },
-  { id: "role", kinds: ["lineup"], words: ["head:role", "attr:role.note"] },
-  { id: "legend", kinds: ["lineup"], words: ["attr:item.note"] },
-];
+  { id: "order", words: ["attr:box.order"] },
+  { id: "role", words: ["head:role", "attr:role.note"] },
+  { id: "legend", words: ["attr:item.note"] },
+  ] satisfies readonly PartRow[]
+).map(withKinds);
 
 /** どの図でも使える部品か。図の種類を 2 つ以上持つ */
 export const isCommon = (part: Part): boolean => part.kinds.length > 1;

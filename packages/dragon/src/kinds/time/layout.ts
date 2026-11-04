@@ -8,11 +8,11 @@
  * 印の列と同じ名札の箱は、その列が空きにした目盛りの列で空きの枠になる。時間軸の上の拡大した範囲を枠で囲み、枠の上の角から上の帯へ点線でつなぐ。
  * 中身の帯は図の下に置く。
  */
-import { FIGURE_TEXT } from "../figure-text";
-import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
-import type { DiagramModel, DiagramEvent } from "../schema";
-import { DEFAULT_LANG, type NotationLang } from "../words";
-import { textBox, textWidth } from "./measure";
+import { FIGURE_TEXT } from "../../figure-text";
+import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../../look/values";
+import type { DiagramModel, DiagramEvent } from "../../schema";
+import { DEFAULT_LANG, type NotationLang } from "../../words";
+import { textBox, textWidth } from "../../layout/measure";
 import {
   badgeOnPath,
   badgeRect,
@@ -36,7 +36,7 @@ import {
   slotBoxWidth,
   slotRooms,
   stripNeed,
-} from "./scene";
+} from "../../layout/scene";
 
 /** 時間軸。`x` から目盛り 1 つの幅 `unit` で `count` 個並べ、`line` の高さに時刻の目盛りの線を引く */
 export interface TimeAxis {

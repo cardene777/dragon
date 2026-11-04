@@ -20,7 +20,7 @@ import {
   type LineupSeat,
   type LineupText,
   splitNote,
-} from "../layout/lineup";
+} from "../kinds/lineup/layout";
 import type { Point } from "../layout/scene";
 import { type Corner, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
 import { LINEUP_LOOK } from "../look/lineup";

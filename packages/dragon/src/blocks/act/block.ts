@@ -16,7 +16,7 @@ export interface ActMessages {
 export const block: Block<ActMessages> = {
   name: "act",
   rank: 60,
-  attach: { how: "attach-to-box" },
+  attach: { how: "attach-to-box", except: ["lineup"] },
   words: { heads: ["act"] },
   shape: {
     events: {

@@ -18,6 +18,8 @@ import { type Color, COLORS } from "./blocks/color/block";
 import type { GitCommit } from "./blocks/commit/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
+import type { TreeLeaf } from "./blocks/leaf/block";
+import type { TreeNode } from "./blocks/node/block";
 import type { StatePath } from "./blocks/side-path/block";
 import type { StepSource } from "./blocks/source/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
@@ -137,22 +139,8 @@ export interface StripMeter {
 /** 枝分かれの図 (#3164) の commit を積む出来事の型は commit のブロックが持つ (#3347) */
 export type { GitCommit };
 
-/**
- * 木の図 (#3233) の葉を出す出来事。書いた段で葉の箱が現れる。`hash` を書くと箱に値を出し、名札を葉の下の札に出す
- */
-export interface TreeLeaf {
-  type: "leaf";
-  id: string;
-  hash?: string;
-}
-
-/** 木の図の、1 つ以上の子から親を組む出来事。書いた段で親の箱と、子から親への木の線が現れる */
-export interface TreeNode {
-  type: "node";
-  id: string;
-  children: string[];
-  hash?: string;
-}
+/** 木の図 (#3233) の葉を出す出来事と親を組む出来事の型は、葉と組んだ親のブロックが持つ (#3348) */
+export type { TreeLeaf, TreeNode };
 
 /** 列の図 (#3239) の、列 `box` の並びを `items` に書き換える出来事。前の段との差分を描く部品が滑る動きに変える */
 export interface LineupOrder {

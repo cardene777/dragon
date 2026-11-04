@@ -47,19 +47,6 @@ export interface CoreMessages {
   badHash: string;
   /** 時間軸の図だけの行か属性 (`word`) を、別の種類の図に書いた (#3165) */
   timeOnly: (word: string) => string;
-  /** 木の図だけの行 (`leaf` と `node`) を、別の種類の図に書いた (#3233) */
-  treeOnly: (word: string) => string;
-  noLeaves: string;
-  leafShape: string;
-  nodeShape: string;
-  /** 親の子に、まだ書いていない名札を書いた */
-  noTreeChild: (id: string) => string;
-  /** 親の子に、木の箱でない箱 (`box`) を書いた */
-  notTreeBox: (id: string) => string;
-  /** もう親を持つ箱を、別の親の子にした */
-  twoParents: (id: string) => string;
-  /** 最後の段を終えて、親を持たない箱が根の外に残った */
-  manyRoots: (id: string, root: string) => string;
   /** 列の図だけの行 (`item`、`line`、`seal`、`open`、`pick`、`stamp`) を、別の種類の図に書いた (#3239) */
   lineupOnly: (word: string) => string;
   /** `role` の行の形 */
@@ -158,14 +145,6 @@ const ja = (): Messages => {
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
     badHash: "hash は 0 から 9 と a から f の字で 4 から 40 字にする",
     timeOnly: (word) => `${word} は time (時間軸の図) でだけ書ける`,
-    treeOnly: (word) => `${word} の行は tree (木の図) でだけ書ける`,
-    noLeaves: "leaf の行で葉を 1 つ以上書く",
-    leafShape: "leaf は leaf <名札> [hash: <hash>] の形で書く",
-    nodeShape: "node は node <名札> of <子>, <子> [hash: <hash>] の形で書く",
-    noTreeChild: (id) => `${id} という葉か親はまだ書いていない。子は前に leaf か node で書いた名札にする`,
-    notTreeBox: (id) => `${id} は box の行で置いた箱で、木の箱でない。子は leaf か node で書いた名札にする`,
-    twoParents: (id) => `${id} はもう別の親の子になっている。木の箱の親は 1 つだけ`,
-    manyRoots: (id, root) => `${id} が親を持たないまま残る。木の根は 1 つだけで、${id} も ${root} も最後に 1 つの根へ組む`,
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
     roleShape: "role は、最初の step より前なら role <名札> [note: <一言>]、step の中なら role <名札> の形で書く",
     unknownRole: (id) => `${id} という役は宣言していない。最初の step より前に role ${id} と書く`,
@@ -247,14 +226,6 @@ const en = (): Messages => {
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
     badHash: "Write a hash as 4 to 40 characters of 0-9 and a-f",
     timeOnly: (word) => `${word} can be written only in time diagrams`,
-    treeOnly: (word) => `${word} lines can be written only in tree diagrams`,
-    noLeaves: "Write at least one leaf with a leaf line",
-    leafShape: "Write a leaf as leaf <id> [hash: <hash>]",
-    nodeShape: "Write a node as node <id> of <child>, <child> [hash: <hash>]",
-    noTreeChild: (id) => `No leaf or node named ${id} has been written yet. A child must be an id written earlier with leaf or node`,
-    notTreeBox: (id) => `${id} is a box from a box line, not a tree box. A child must be an id written with leaf or node`,
-    twoParents: (id) => `${id} is already a child of another node. A tree box has only one parent`,
-    manyRoots: (id, root) => `${id} is left without a parent. A tree has one root, so join ${id} and ${root} under one root by the end`,
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
     roleShape: "Write a role as role <id> [note: <text>] before the first step, or as role <id> inside a step",
     unknownRole: (id) => `The role ${id} is not declared. Write role ${id} before the first step`,

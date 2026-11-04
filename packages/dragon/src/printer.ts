@@ -24,7 +24,7 @@ import { BLOCKS } from "./blocks/index";
 import { attrs, name, num, shown } from "./print-kit";
 import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
 import type { Diagram, DiagramEvent, DiagramModel, LineupItem, LineupRole, Step, TimeSpec } from "./schema";
-import { AT, NOW, OF } from "./words";
+import { AT, NOW } from "./words";
 
 /** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
 const STEP_PRINTERS: readonly ((step: Step) => string[])[] = ranked(BLOCKS).flatMap((block) =>
@@ -64,10 +64,6 @@ function event(e: DiagramEvent, kind: DiagramModel["kind"]): string {
         ["shape", e.shape],
         ["color", e.color],
       ])}`;
-    case "leaf":
-      return `leaf ${e.id}${attrs([["hash", e.hash]])}`;
-    case "node":
-      return `node ${e.id} ${OF} ${e.children.join(", ")}${attrs([["hash", e.hash]])}`;
     case "line":
       return `line ${e.box}: ${e.items.join(", ")}`;
     case "seal":

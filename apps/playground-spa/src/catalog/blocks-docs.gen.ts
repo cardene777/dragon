@@ -10,9 +10,11 @@ import { docs as edgeDocs } from "../../../../packages/dragon/src/blocks/edge/ga
 import { docs as edgeLabelDocs } from "../../../../packages/dragon/src/blocks/edge-label/gallery/docs";
 import { docs as groupDocs } from "../../../../packages/dragon/src/blocks/group/gallery/docs";
 import { docs as iconDocs } from "../../../../packages/dragon/src/blocks/icon/gallery/docs";
+import { docs as leafDocs } from "../../../../packages/dragon/src/blocks/leaf/gallery/docs";
 import { docs as lifelineDocs } from "../../../../packages/dragon/src/blocks/lifeline/gallery/docs";
 import { docs as linkDocs } from "../../../../packages/dragon/src/blocks/link/gallery/docs";
 import { docs as mergeDocs } from "../../../../packages/dragon/src/blocks/merge/gallery/docs";
+import { docs as nodeDocs } from "../../../../packages/dragon/src/blocks/node/gallery/docs";
 import { docs as noteDocs } from "../../../../packages/dragon/src/blocks/note/gallery/docs";
 import { docs as sidePathDocs } from "../../../../packages/dragon/src/blocks/side-path/gallery/docs";
 import { docs as sourceDocs } from "../../../../packages/dragon/src/blocks/source/gallery/docs";
@@ -33,9 +35,11 @@ export const BLOCK_DOCS = {
   "edge-label": edgeLabelDocs,
   "group": groupDocs,
   "icon": iconDocs,
+  "leaf": leafDocs,
   "lifeline": lifelineDocs,
   "link": linkDocs,
   "merge": mergeDocs,
+  "node": nodeDocs,
   "note": noteDocs,
   "side-path": sidePathDocs,
   "source": sourceDocs,

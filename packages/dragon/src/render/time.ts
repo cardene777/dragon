@@ -12,7 +12,7 @@ import { card, type SubChange } from "../blocks/box/draw";
 import { cs } from "../blocks/color/draw";
 import { glyph } from "../blocks/icon/draw";
 import { linkTo } from "../blocks/link/draw";
-import type { TimeBox, TimeLayout } from "../layout/time";
+import type { TimeBox, TimeLayout } from "../kinds/time/layout";
 import { hasWide } from "../layout/measure";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { DiagramModel } from "../schema";

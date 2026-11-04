@@ -17,7 +17,7 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Box, DiagramModel, DiagramEvent, GitBranch, Region, StatePath, Step, StripMeter } from "../schema";
+import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale } from "../schema";
 import type { SourceLine } from "../tokenize";
 
 /** 付け方。置く、つなぐ、線に乗る、箱に付く、図に付く */
@@ -70,6 +70,16 @@ export interface FigureDraft {
    * commit のブロックが積み、枝のブロックが枝を切る行で札を置き、parser が札を動かす線で札を動かす (#3347)
    */
   git: { commits: Set<string>; tips: Map<string, string | null> };
+  /**
+   * 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲。目盛りと針と、印の列と、節目と、拡大の帯のブロックが宣言の行で組む (#3348)。
+   * 目盛りの数が決まってから確かめる宣言の行の目盛りは `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる (`settled`)。
+   * `needle` は針が今いる目盛りの境 (0 から数える)
+   */
+  time: { scale?: TimeScale; period?: TimePeriod; rows: TimeRow[]; points: TimePoint[]; zoom?: { from: number; to: number }; pending: (() => void)[]; settled: boolean; needle: number };
+  /** 木の図で書いた木の箱と、書いた行と名札の位置 (`boxes`) と、子の箱から親の名札 (`parents`)。葉と組んだ親のブロックが組む (#3348) */
+  tree: { boxes: Map<string, { source: SourceLine; at: number }>; parents: Map<string, string> };
+  /** 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348) */
+  lineup: { items: LineupItem[]; roles: LineupRole[]; sealed: Set<string> };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */
@@ -93,6 +103,10 @@ export interface ParseState {
   readonly beforeSteps: (source: SourceLine) => void;
   /** 宣言した箱の名札 `id` をそのまま返す。宣言していない名札は、名札の列 `at` を示して誤りで止める */
   readonly boxAt: (source: SourceLine, id: string, at: number) => string;
+  /** 名札 `id` を、ほかの宣言と重ならない名札として取る。図の種類が名札に使えない名前は確かめない (#3348) */
+  readonly declare: (source: SourceLine, id: string, at: number) => void;
+  /** 名札 `id` を既に宣言したか (#3348) */
+  readonly declared: (id: string) => boolean;
   /**
    * 宣言の行の名札 `id` を、ほかの宣言と重ならない名札として取る。
    * 図の種類が名札に使えない名前 (状態遷移図の始まりと終わりの印、枝分かれの図の `HEAD`、時間軸の図の `now`) と、宣言済みの名札は誤りで止める
@@ -132,7 +146,12 @@ export interface BlockPrint {
   /** 段の中で起きることの書き戻し。鍵は出来事の種類で、段の中で起きた順に出来事ごとに呼ぶ */
   events?: { readonly [T in EventType]?: EventPrinter<T> };
   /**
-   * 最初の `step` より前に、図の種類の宣言 (時間軸の図の目盛りなど) の直ぐ後ろに書く宣言の塊 (枝分かれの図の枝と、区画と箱)。
+   * 図の種類の行の直ぐ後ろ、宣言の塊 (`declare`) より前に書く、図の種類の宣言の塊 (時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲、列の図の役)。
+   * ブロックの並びの順に書く (#3348)
+   */
+  lead?: (diagram: DiagramModel) => string[];
+  /**
+   * 最初の `step` より前に、図の種類の宣言 (`lead`) の直ぐ後ろに書く宣言の塊 (枝分かれの図の枝と、区画と箱と、列の図のチップ)。
    * 列の図のチップと `figure` の塊より前に、ブロックの並びの順に書く
    */
   declare?: (diagram: DiagramModel) => string[];
@@ -175,8 +194,12 @@ export interface Block<M extends object = object, F extends object = object> {
   name: string;
   /** ブロックの並び。語の表 (`words.ts`) はこの順にブロックの語を並べる (行の頭の語は `words.headRanks` で別の番号にできる) */
   rank: number;
-  /** 付け方。`only` を書いたブロックは、その図の種類だけで使う個別ブロック */
-  attach: { how: AttachHow; only?: KindName };
+  /**
+   * 付け方。`only` を書いたブロックは、その図の種類だけで使う個別ブロック。
+   * `except` は付け方を受け付ける図の種類のうち、このブロックを描かない図の種類 (列の図は箱の中の処理と絵と飛び先を描かない)。
+   * ブロックを使える図の種類は、この欄と図の種類の `accepts` から導く (`blocks/usable.ts`、#3348)
+   */
+  attach: { how: AttachHow; only?: KindName; except?: readonly KindName[] };
   words: BlockWords;
   /** 原本の形の欠片。形がほかのブロックの欄の一部で、自分の欠片を持たないブロックは `none` を置く */
   shape: BlockShape | None;

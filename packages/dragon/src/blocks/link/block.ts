@@ -33,7 +33,7 @@ export function urlOf(source: SourceLine, key: string, attr: Attr, m: Messages):
 export const block: Block<LinkMessages, LinkFieldMessages> = {
   name: "link",
   rank: 89,
-  attach: { how: "attach-to-box" },
+  attach: { how: "attach-to-box", except: ["lineup"] },
   words: { attrs: { box: ["link"] } },
   shape: {
     definitions: {

@@ -45,7 +45,7 @@ const withNear = (value: string, near: (name: string) => string, none: string): 
 export const block: Block<IconMessages, IconFieldMessages> = {
   name: "icon",
   rank: 88,
-  attach: { how: "attach-to-box" },
+  attach: { how: "attach-to-box", except: ["lineup"] },
   words: { attrs: { group: ["icon"], box: ["icon"] } },
   shape: {
     definitions: {

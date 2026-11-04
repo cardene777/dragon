@@ -24,7 +24,7 @@ import { endMark } from "../blocks/start-finish/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
 import type { GitLayout } from "../kinds/git/layout";
-import type { LineupLayout } from "../layout/lineup";
+import type { LineupLayout } from "../kinds/lineup/layout";
 import { textWidth } from "../layout/measure";
 import {
   type Layout,
@@ -33,8 +33,8 @@ import {
   type SceneField,
   type SceneStrip,
 } from "../layout/scene";
-import type { TimeLayout } from "../layout/time";
-import type { TreeLayout } from "../layout/tree";
+import type { TimeLayout } from "../kinds/time/layout";
+import type { TreeLayout } from "../kinds/tree/layout";
 import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
