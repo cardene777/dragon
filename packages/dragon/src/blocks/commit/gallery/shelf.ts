@@ -4,4 +4,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf: BlockShelf = { none: "棚の部品の一覧に commit の部品は無く、枝分かれの図の commit は記法の行で書く" };
+export const shelf = { none: "棚の部品の一覧に commit の部品は無く、枝分かれの図の commit は記法の行で書く" } satisfies BlockShelf;

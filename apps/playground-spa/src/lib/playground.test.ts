@@ -1236,8 +1236,9 @@ describe("公開する頁 (#2995)", () => {
       // 図を描くのは package の部品だけ。頁の側で SVG を組まない
       expect(text, `${path} が SVG を組んでいる`).not.toMatch(/createElementNS|<svg\b/u);
       // package の中の file を直に読まず、公開している入口から読む。字の入口は使い方の頁の本文が `` ` `` で囲んで名指す (#3155)。図の部品は軽い入口から読む (#3248)
-      // ブロックの置き場の見本帳の分 (`packages/dragon/src/blocks/<名前>/gallery/`) だけは、見本帳が直に読む。package の入口はこの分を持たないため (#3345)
-      expect(text, `${path} が package の中の file を直に読んでいる`).not.toMatch(/@cardenelabs\/dragon\/(?!(?:fonts|light)["'`])|packages\/dragon\/src(?!\/blocks\/[^/"'`\s]+\/gallery\/)/u);
+      // ブロックの置き場の見本帳の分 (`packages/dragon/src/blocks/<名前>/gallery/`) と、その型 (`packages/dragon/src/blocks/gallery.ts`) だけは、見本帳が直に読む。
+      // package の入口はこの分を持たないため (#3345)。型の file は型だけを持ち、棚の部品と見本を探す関数に見本帳が渡す道具の形を決める (#3350)
+      expect(text, `${path} が package の中の file を直に読んでいる`).not.toMatch(/@cardenelabs\/dragon\/(?!(?:fonts|light)["'`])|packages\/dragon\/src(?!\/blocks\/(?:[^/"'`\s]+\/gallery\/|gallery["'`]))/u);
       // 既定の入口を 1 か所でも読むと、全ての種類の部品が頁に入る (型だけの読み込みは消えるので数えない)
       expect(text, `${path} が既定の入口から部品を読んでいる`).not.toMatch(/^import (?!type )[^;]*from\s+["']@cardenelabs\/dragon["']/mu);
       if (/\b(mountDiagram|renderDiagram)\b/u.test(text)) {

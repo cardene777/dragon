@@ -1,21 +1,46 @@
 /**
  * ブロックの見本帳の分のうち、頁の外の文書と棚に照らす分 (#3345)。
  *
- * `docs/design/base/GRAMMAR.md` の部品と使い方の表は人が読む文書で、ブロックの置き場の `gallery/rule.ts` が同じ行を写して持つ。
+ * `docs/design/base/GRAMMAR.md` の部品と使い方の表は人が読む文書で、ブロックの置き場の `gallery/rule.ts` の行を、ブロックの並びの順に
+ * `packages/dragon/scripts/build-blocks.mjs` が書き出す (#3350)。見本帳の一覧と棚と使い方の頁も、置き場の分をブロックの並びの順に並べて作る。
  * 編集画面の棚の部品の名前は `gallery/shelf.ts` が棚の部品の id ごとに持つ。
  * 写した行が表の行と食い違った時と、棚に無い部品の id を名乗った時に落とす。
  * 見る関数はこの file が持ち、正しい分に当てて通ることと、崩した分に当てて名指すことの両方を確かめる。
  */
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BLOCK_RULE, BLOCK_SHELF } from "../catalog/blocks.gen";
+import { BLOCK_DOCS } from "../catalog/blocks-docs.gen";
+import { BLOCK_RULE, BLOCK_SHELF, BLOCK_TEXT } from "../catalog/blocks.gen";
+import { isCommon, PARTS } from "../catalog/parts";
+import { DOCS, SECTIONS } from "../docs/content";
 import { PART_IDS } from "../editor/shelf-items";
+import { TEXT } from "../text";
 
 type Rule = { none: string } | readonly { part: string; rule: string; name: string }[];
 type Shelf = { none: string } | Readonly<Record<string, unknown>>;
 
 const GRAMMAR = join(__dirname, "../../../../docs/design/base/GRAMMAR.md");
+const ROOT = join(__dirname, "../../../..");
+
+interface RankedBlock {
+  name: string;
+  rank: number;
+  attach: { only?: string };
+}
+
+/** ブロックの一覧をブロックの並び (`rank`) の順に */
+async function rankedBlocks(): Promise<RankedBlock[]> {
+  const { BLOCKS } = (await import("../../../../packages/dragon/src/blocks/index")) as unknown as { BLOCKS: Record<string, RankedBlock> };
+  return Object.values(BLOCKS).sort((a, b) => a.rank - b.rank);
+}
+
+/** `none` を持たない見本帳の分。持たないブロックは `undefined` */
+const own = <T extends object>(table: Readonly<Record<string, unknown>>, name: string): Exclude<T, { none: string }> | undefined => {
+  const value = table[name] as T | undefined;
+  return value === undefined || "none" in value ? undefined : (value as Exclude<T, { none: string }>);
+};
 const TABLE = "## 部品と使い方";
 
 /** GRAMMAR.md の部品と使い方の節の、表の行 */
@@ -56,5 +81,58 @@ describe("ブロックの見本帳の分 (#3345)", () => {
     expect(Object.values(shelves).filter((shelf) => !("none" in shelf)).length, "棚の部品を持つブロックが無い").toBeGreaterThan(0);
     expect(shelfProblems(shelves, PART_IDS), "棚の部品の id").toEqual([]);
     expect(shelfProblems({ a: { box: {} }, b: { box: {}, gone: {} } }, ["box"])).toEqual(["box: a, b", "gone: 棚に無い"]);
+  });
+});
+
+describe("見本帳と決まりをブロックの置き場から作る (#3350)", () => {
+  it("catalog-built-from-block-folders", async () => {
+    const ranked = await rankedBlocks();
+    expect(ranked.length, "ブロックが無い (走査の空振り)").toBeGreaterThan(0);
+    const texts = BLOCK_TEXT as Readonly<Record<string, unknown>>;
+    const listed = ranked.filter((block) => own<object>(texts, block.name) !== undefined);
+    // 見本帳の部品の一覧は、見本帳の名前と説明を持つブロックをブロックの並びで並べた物
+    expect(PARTS.map((part) => part.id), "見本帳の部品の一覧").toEqual(listed.map((block) => block.name));
+    // 一覧の段は付け方で分け、段の名前をコアブロックと個別ブロックにする
+    expect(PARTS.filter(isCommon).map((part) => part.id), "コアブロックの段の部品").toEqual(listed.filter((block) => block.attach.only === undefined).map((block) => block.name));
+    expect([TEXT.ja.site.catalog.sections.parts.title, TEXT.ja.site.catalog.sections["kind-parts"].title], "一覧の段の名前").toEqual(["コアブロック", "個別ブロック"]);
+    expect([TEXT.en.site.catalog.sections.parts.title, TEXT.en.site.catalog.sections["kind-parts"].title], "英語の一覧の段の名前").toEqual(["Core blocks", "Kind blocks"]);
+    // 棚の部品は、棚の部品を持つブロックをブロックの並びで並べた物
+    const shelves = BLOCK_SHELF as Readonly<Record<string, unknown>>;
+    expect([...PART_IDS], "棚の部品").toEqual(ranked.flatMap((block) => Object.keys(own<object>(shelves, block.name) ?? {})));
+    // 使い方の頁の段落は、段落を持つブロックの節に、ブロックの並びで入る
+    const docs = BLOCK_DOCS as Readonly<Record<string, unknown>>;
+    // 節の名前を書き違えた段落は、どの節にも入らずに黙って消えるので、段落の節が頁の節に在ることを確かめる
+    const unplaced = ranked.filter((block) => {
+      const found = own<{ section: string }>(docs, block.name);
+      return found !== undefined && !(SECTIONS as readonly string[]).includes(found.section);
+    });
+    expect(unplaced.map((block) => block.name), "使い方の頁に無い節を名乗るブロックの段落").toEqual([]);
+    for (const lang of ["ja", "en"] as const) {
+      const paragraphs = new Set(ranked.flatMap((block) => own<Record<string, readonly string[]>>(docs, block.name)?.[lang] ?? []));
+      for (const section of SECTIONS) {
+        const expected = ranked.flatMap((block) => {
+          const found = own<{ section: string } & Record<string, readonly string[]>>(docs, block.name);
+          return found?.section === section ? (found[lang] ?? []) : [];
+        });
+        expect(DOCS[lang].sections[section].text.filter((text) => paragraphs.has(text)), `${lang} の使い方の頁の ${section} の節のブロックの段落`).toEqual(expected);
+      }
+    }
+    // 見本帳の頁の code は、見本帳の分をブロックの名前で 1 つずつ手で引かない
+    const pages = execFileSync("git", ["ls-files", "apps/playground-spa/src"], { cwd: ROOT, encoding: "utf8" })
+      .split("\n")
+      .filter((file) => /\.(?:ts|tsx)$/u.test(file) && !file.endsWith(".test.ts") && !file.endsWith(".gen.ts"));
+    expect(pages.length, "見本帳の頁の code が無い (走査の空振り)").toBeGreaterThan(0);
+    const hand = pages.filter((file) => /\bBLOCK_(?:TEXT|DOCS|SHELF|RULE)(?:\.[a-z]|\[")/u.test(readFileSync(join(ROOT, file), "utf8")));
+    expect(hand, "見本帳の分をブロックの名前で手で引く file").toEqual([]);
+  });
+
+  it("grammar-parts-table-from-blocks", async () => {
+    // GRAMMAR.md の部品と使い方の表は、決まりの行を持つブロックの行をブロックの並びで並べた物と同じ
+    const ranked = await rankedBlocks();
+    const rules = BLOCK_RULE as Readonly<Record<string, unknown>>;
+    const expected = ranked.flatMap((block) => (own<readonly { part: string; rule: string; name: string }[]>(rules, block.name) ?? []).map((row) => `| ${row.part} | ${row.rule} | ${row.name} |`));
+    expect(expected.length, "決まりの行を持つブロックが無い").toBeGreaterThan(0);
+    const rows = tableRows().slice(1);
+    expect(rows, "GRAMMAR.md の部品と使い方の表の行 (見出しの後)").toEqual(expected);
   });
 });

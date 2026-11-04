@@ -5,4 +5,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf: BlockShelf = { none: "棚の部品の一覧に飛び先は無く、棚の箱の部品が link の鍵を持って置かれる" };
+export const shelf = { none: "棚の部品の一覧に飛び先は無く、棚の箱の部品が link の鍵を持って置かれる" } satisfies BlockShelf;

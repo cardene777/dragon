@@ -16,6 +16,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- **The gallery is now built from the block folders, and its sections are named Core blocks and Kind blocks** (#3350)
+
+  The gallery list, each part page, the editor shelf, the block paragraphs on the docs page, and the parts table in `docs/design/base/GRAMMAR.md` are now built from the `gallery/` files of each block folder, in block order (`rank` in `block.ts`). No block name is listed by hand in the site.
+  Each block's `gallery/` now also holds `uses.ts` (how a part page finds the examples that use the block's words), and `shelf.ts` builds the shelf parts as well as naming them.
+  The two gallery sections are now named Core blocks (blocks that several diagram kinds use) and Kind blocks (blocks for one diagram kind). Parts, shelf items, and docs paragraphs now appear in block order, and the action paragraph moved from the Edges section to the Steps section.
+  The `dragon-extend` skill now lists six places to touch outside the block folder when adding a block.
+
 - **The light entry now loads a block's reading only when the written diagram uses it** (#3349)
 
   Each block folder now splits into `block.ts` (name, order, attach type, words, and the lines it reads) and `read.ts` (reading, printing, and messages).

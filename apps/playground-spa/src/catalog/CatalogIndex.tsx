@@ -1,7 +1,7 @@
 /**
  * カタログの一覧 (#3033、#3166)。
  *
- * 道筋、見出し、説明の下に、どの図でも使える部品、図の種類だけの部品、図の 3 段を並べる。
+ * 道筋、見出し、説明の下に、コアブロック、個別ブロック、図の 3 段を並べる (#3350)。
  * 部品の段の札は部品の表 (`parts.ts`) の並びで、部品の名前と受け持つ記法の語を出し、部品の頁へ向かう。
  * 図の段は 0.35.0 より前のサイトの一覧 (`pages/CatalogIndexPage.tsx`) と同じ分類の札 (番号、件数、見出し、説明、`開く →`) を並べる。
  * 説明の部品の数と分類の数と見本の数、札の件数は、表と分類に束ねた見本を数えて出す。
@@ -100,7 +100,7 @@ export function CatalogIndex({ lang }: { lang: Lang }): ReactElement {
   );
 }
 
-/** 部品の札。名前と、図の種類だけの部品はその図の種類と、受け持つ記法の語を出し、部品の頁へ向かう */
+/** 部品の札。名前と、個別ブロックはその図の種類と、受け持つ記法の語を出し、部品の頁へ向かう */
 export function PartCard({ part, lang, name = "part-card" }: { part: Part; lang: Lang; name?: string }): ReactElement {
   const t = TEXT[lang];
   const c = t.site.catalog;

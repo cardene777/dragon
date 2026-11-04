@@ -5,4 +5,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf: BlockShelf = { none: "棚の部品の一覧に生存線は無く、時系列図に棚の箱の部品を置けば箱の下に立つ" };
+export const shelf = { none: "棚の部品の一覧に生存線は無く、時系列図に棚の箱の部品を置けば箱の下に立つ" } satisfies BlockShelf;

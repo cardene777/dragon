@@ -5,7 +5,7 @@
  * 時系列図と構成図は概要の頁が待たずに描くので、最初に読む script に残す。
  * 塊が届かない間は図の場所に決まった高さの枠と「読み込み中」を出し、読めなかった時は読み直す釦を出す。編集画面は前の図を残す。
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Page, Route } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -22,42 +22,42 @@ const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
+const SRC = join(root, "packages/dragon/src");
+
+/** 置き場の定義の file の字。無ければ空 */
+const defOf = (path: string): string => (existsSync(path) ? readFileSync(path, "utf8") : "");
+
+/** 図の種類の置き場と個別ブロックの置き場の外で、後から読む種類だけが読む file。試す図の再生の部品 */
+const KIND_EXTRA: Readonly<Record<string, readonly string[]>> = { try: ["try-player.ts"] };
+
 /**
- * 後から読む種類と、その種類だけの描く部品の file。並べ方は図の種類の置き場に、
- * その種類だけのブロックの描き方は個別ブロックの置き場に在る (#3347、#3348)
+ * 後から読む種類と、その種類だけの描く部品の file。手で並べず、置き場から導く (#3350)。
+ * 後から読む種類は図の種類の置き場の `kind.ts` が `later: true` を名乗る種類で、並べ方は図の種類の置き場に、
+ * その種類の描き方は `render/<種類>.ts` に、その種類だけのブロックの描き方は個別ブロックの置き場 (`only` がその種類) に在る (#3347、#3348)。
+ * 共通の描き方 (`render/draw.ts`) が読む個別ブロックの描き方は、最初に読む script に入るので数えない
  */
-const LATER_KINDS: Readonly<Record<string, readonly string[]>> = {
-  git: ["kinds/git/layout.ts", "render/git.ts", "blocks/branch/draw.ts", "blocks/commit/draw.ts", "blocks/copy/draw.ts", "blocks/merge/draw.ts"],
-  lineup: [
-    "kinds/lineup/layout.ts",
-    "render/lineup.ts",
-    "blocks/item/draw.ts",
-    "blocks/line/draw.ts",
-    "blocks/seal/draw.ts",
-    "blocks/pick/draw.ts",
-    "blocks/stamp/draw.ts",
-    "blocks/role/draw.ts",
-    "blocks/order/draw.ts",
-    "blocks/legend/draw.ts",
-  ],
-  state: ["kinds/state/layout.ts"],
-  time: ["kinds/time/layout.ts", "render/time.ts", "blocks/scale/draw.ts", "blocks/row/draw.ts", "blocks/point/draw.ts", "blocks/zoom/draw.ts"],
-  tree: ["kinds/tree/layout.ts", "render/tree.ts", "blocks/leaf/draw.ts", "blocks/node/draw.ts"],
-  try: [
-    "kinds/try/layout.ts",
-    "render/try.ts",
-    "try-player.ts",
-    "blocks/route/draw.ts",
-    "blocks/queue/draw.ts",
-    "blocks/chain/draw.ts",
-    "blocks/ask/draw.ts",
-    "blocks/press/draw.ts",
-  ],
-};
+function laterKinds(): Readonly<Record<string, readonly string[]>> {
+  const common = defOf(join(SRC, "render/draw.ts"));
+  const blocks = readdirSync(join(SRC, "blocks")).filter((name) => statSync(join(SRC, "blocks", name)).isDirectory());
+  const kinds = readdirSync(join(SRC, "kinds")).filter((kind) => /\blater:\s*true\b/u.test(defOf(join(SRC, "kinds", kind, "kind.ts"))));
+  return Object.fromEntries(
+    kinds.map((kind) => [
+      kind,
+      [
+        `kinds/${kind}/layout.ts`,
+        ...(existsSync(join(SRC, "render", `${kind}.ts`)) ? [`render/${kind}.ts`] : []),
+        ...blocks
+          .filter((name) => /only:\s*"([a-z]+)"/u.exec(defOf(join(SRC, "blocks", name, "block.ts")))?.[1] === kind)
+          .filter((name) => existsSync(join(SRC, "blocks", name, "draw.ts")) && !common.includes(`"../blocks/${name}/draw"`))
+          .map((name) => `blocks/${name}/draw.ts`),
+        ...(KIND_EXTRA[kind] ?? []),
+      ],
+    ]),
+  );
+}
+const LATER_KINDS = laterKinds();
 /** 後から読む塊の小さすぎる字数。部品が最初に読む側へ漏れると、塊は入口だけの大きさになる */
 const CHUNK_AT_LEAST = 2_000;
-
-const SRC = join(root, "packages/dragon/src");
 
 function sourcesUnder(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
