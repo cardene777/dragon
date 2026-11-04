@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-11-04
+
 ### Added
 
 - **A narrow frame now draws an interactive diagram stacked at full size instead of shrinking it** (#3366)
