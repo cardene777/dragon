@@ -5,4 +5,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf: BlockShelf = { none: "棚の部品の一覧に出典は無く、行の形は棚の記法の早見が見せる" };
+export const shelf = { none: "棚の部品の一覧に出典は無く、行の形は棚の記法の早見が見せる" } satisfies BlockShelf;

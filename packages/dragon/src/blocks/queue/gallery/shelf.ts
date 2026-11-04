@@ -4,4 +4,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf: BlockShelf = { none: "棚の部品の一覧に待ち行列の部品は無く、試す図の待ち行列は queue の行で書く" };
+export const shelf = { none: "棚の部品の一覧に待ち行列の部品は無く、試す図の待ち行列は queue の行で書く" } satisfies BlockShelf;

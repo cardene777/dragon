@@ -52,9 +52,9 @@ const BLOCK_FIELDS = ["name", "rank", "attach", "words", "read", "print", "messa
 const READING_FIELDS = ["read", "print", "messages"];
 /**
  * ブロックの置き場が持つ file。原本の形の欠片 (`shape.ts`) は定義 (`block.ts`) と分けて持つ (#3348)。
- * 読む処理と書き戻す処理と誤りの文 (`read.ts`) も定義と分けて持つ (#3349)
+ * 読む処理と書き戻す処理と誤りの文 (`read.ts`) も定義と分けて持つ (#3349)。見本帳の部品の頁が見本を探す関数 (`gallery/uses.ts`) も持つ (#3350)
  */
-const BLOCK_FILES = ["block.ts", "read.ts", "shape.ts", "draw.ts", "gallery/text.ts", "gallery/shelf.ts", "gallery/docs.ts", "gallery/rule.ts"];
+const BLOCK_FILES = ["block.ts", "read.ts", "shape.ts", "draw.ts", "gallery/text.ts", "gallery/shelf.ts", "gallery/docs.ts", "gallery/rule.ts", "gallery/uses.ts"];
 /** 図の種類の置き場が持つ file。これ以外を置かない */
 const KIND_FILES = ["kind.ts", "layout.ts"];
 
@@ -266,7 +266,7 @@ describe("ブロックの置き場 (#3345)", () => {
     try {
       mkdirSync(join(root, "y", "gallery"), { recursive: true });
       writeFileSync(join(root, "y", "block.ts"), "");
-      expect(missingBlockFiles(root)).toEqual(["y/read.ts", "y/shape.ts", "y/draw.ts", "y/gallery/text.ts", "y/gallery/shelf.ts", "y/gallery/docs.ts", "y/gallery/rule.ts"]);
+      expect(missingBlockFiles(root)).toEqual(["y/read.ts", "y/shape.ts", "y/draw.ts", "y/gallery/text.ts", "y/gallery/shelf.ts", "y/gallery/docs.ts", "y/gallery/rule.ts", "y/gallery/uses.ts"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

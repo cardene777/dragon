@@ -42,7 +42,8 @@ bitsumi の図解を書く `diagram-writer` は、今の記法で描けない説
 部品で描けるかを先に確かめる。
 図の種類を足すと、見本帳の分類、編集画面の棚、全ての部品の図、書き方の文書まで増え、覚える語も頁の重さも増えるため。
 
-今の記法と部品は `packages/dragon/README.md` の記法の節と `apps/playground-spa/src/catalog/parts.ts` の一覧で読む。
+今の記法と部品は `packages/dragon/README.md` の記法の節と、ブロックの置き場 (`packages/dragon/src/blocks/`) の一覧で読む。
+部品はブロックとして置き場に 1 つずつ在り、見本帳の部品の一覧は置き場から作る。
 今の記法で書いてみて、描けない所を「どの動きが、なぜ今の語で言えないか」の1文で残す。
 
 記法の語は、今の語で言えない時だけ足す。
@@ -90,12 +91,16 @@ step の進め方と関門は ikkan が持ち、ここには写さない。
 ### 登録先を触る
 
 `references/registry.md` の表の行を上から順に触る。
-図の種類を足す時は「図の種類を足す時」の表を、部品を足す時は「部品を足す時」の表を使う。
-表の行は過去の取り込みで実際に変えた file から作ってあり、触らない行がある時はなぜ要らないかを PR の本文に書く。
+図の種類を足す時は「図の種類を足す時」の表を、部品を足す時は「ブロックを足す時」の表を使う。
+図の種類の表の行は過去の取り込みで実際に変えた file から作ってあり、触らない行がある時はなぜ要らないかを PR の本文に書く。
+ブロックの表は、置き場 (`packages/dragon/src/blocks/<名前>/`) の外で触る所だけを持つ。
+見本帳の一覧と編集画面の棚と使い方の頁の段落と `docs/design/base/GRAMMAR.md` の表は、置き場の `gallery/` に書けば、ブロックの並びの順に並べて作られる。
 
 書き方の文書は使い方の頁とREADMEと手引きの3つを、記法と同じPRで直す。
-使い方の頁は `apps/playground-spa/src/docs/content.ts`、READMEは `README.md` と `packages/dragon/README.md`、手引きは `packages/dragon/examples/quick-start.md` と英語の `packages/dragon/examples/quick-start.en.md` である。
+使い方の頁は、ブロックの段落なら置き場の `gallery/docs.ts` に、図の種類の節なら `apps/playground-spa/src/docs/content.ts` に書く。
+READMEは `README.md` と `packages/dragon/README.md`、手引きは `packages/dragon/examples/quick-start.md` と英語の `packages/dragon/examples/quick-start.en.md` である。
 後の課題に回すと、描けるのに書き方が載っていない版が出る。
+足した物と語は `CHANGELOG.md` の Unreleased の Added に英語で、`CHANGELOG.ja.md` の同じ節に日本語で書き、課題の受入条件は `.ikkan/specs/` の機能ごとの file に写す。
 
 ### 語を替える時
 

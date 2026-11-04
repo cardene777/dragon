@@ -6,13 +6,15 @@
 - 書いた図は、段ごとに線が光り、点が進む動きを持つ (`README.md`、#2982)。
 - 古い記法と描画は #2983 で消し、作り直した記法の読み書き (`parser.ts`、`printer.ts`)、描画 (`render/`)、再生 (`player.ts`)、書き出し (`export/`) を `packages/dragon/src` に持つ (#2982)。
 - 描ける図の種類は時系列図 (`sequence`) と構成図 (`architecture`) と状態遷移図 (`state`、#3163) と枝分かれの図 (`git`、#3164) と時間軸の図 (`time`、#3165) と木の図 (`tree`、#3233) と列の図 (`lineup`、#3239) と試す図 (`try`、#3337) の 8 つ (`packages/dragon/src/schema.ts`)。試す図は読み手が値を打ち込み、釦を押して動かす。
+- mermaid と同じ手軽さで書けて表示まで出ることも理念に置く (#3342)。書く字が短いこと、script 1 行で表示できること、AI が速く書けること、軽くて速く出ることの 4 つを指す。script の 1 行と記法の塊を置くだけで図が出る入口は #3343 で足す。
 
 ## 部品の考え方
 
-- 部品は、どの図の種類でも使える共通の部品と、特定の図の種類だけで使う部品の 2 段に分かれ、図はこれを組み立てて描く (#3166)。部品はブロックごとに `packages/dragon/src/blocks/` の下に名前の dir の置き場を 1 つ持ち (箱なら `packages/dragon/src/blocks/box/`)、語、原本の形、読む処理、書き戻す処理、誤りの文、描き方、見本帳の分をそこに置く。描き方は置き場の draw.ts が、部品をまたいで使う描く下請け (`packages/dragon/src/render/parts.ts`) を使って持つ。図の種類ごとの読み方と並べ方は `packages/dragon/src/kinds/` と `packages/dragon/src/render/` の図の種類ごとの file が持ち、置き場を移した図の種類は種類の名前の dir に並べ方を置く (時系列図なら `packages/dragon/src/kinds/sequence/`、#3345)。見本帳のカタログもこの 2 段と図の 3 段に並び、部品の表は `apps/playground-spa/src/catalog/parts.ts` が持つ。
-- 見た目は全ての図で 1 つに揃える。並べ方と色の役の決まりは `docs/design/base/GRAMMAR.md` が持ち、図ごとに部品を作り足す前に共通の部品で描けないかを確かめる。色と字の大きさの値は `packages/dragon/src/look/values.ts` と `packages/dragon/src/look/palettes.json` の 1 か所が持つ。
-- 部品と図の種類は足して広げられる。足す手順と登録先は `.claude/skills/dragon-extend/SKILL.md` と `.claude/skills/dragon-extend/references/registry.md` が持つ。この repo へは PR で足し、取り込むかは管理者が決める。fork した人は、その中で自由に足してよい (MIT、`LICENSE`)。
-- ぶれは、決まりの文書と検査の 2 つで防ぐ。検査が縛るのは、記法の語をどれかの部品が受け持つこと (`apps/playground-spa/src/lib/catalog-parts.test.ts`)、足した時に触る登録先が一覧から漏れないこと (`packages/dragon/test/extend-skill.test.ts`)、描く file が色と字の大きさを値の表からだけ読み、色味が色の見分けを保つこと (`packages/dragon/test/look.test.ts`)、ブロックと図の種類の置き場が決まった file と定義の欄を持ち、一覧が置き場の dir から書き出されていること (`packages/dragon/test/blocks.test.ts`) の 4 つ。並べ方と色の役の決まり (`docs/design/base/GRAMMAR.md`) は文書だけで、検査は無い。色味の案の見分けを確かめる `docs/design/base/check-palettes.mjs` は手で回す。
+- 図はブロックを組み立てて描く (#3166、#3342)。図を組み立てる 1 つひとつがブロックで、どの図の種類にも使えるブロックをコアブロック、特定の図の種類だけで使うブロックを個別ブロック、2 つのブロックを結ぶブロック (線、通らない道、当て直し、merge commit、組んだ親) を接続ブロックと呼ぶ。ブロックが図のどこに付くか (置く、つなぐ、線に乗る、箱に付く、図に付く) を付け方と呼び、図の種類は並べ方と受け付ける付け方を決める。ブロックを使える図の種類は、ブロックの付け方と図の種類が受け付ける付け方から導き、コアブロックと個別ブロックの分け方も同じ所から導く。
+- ブロックは `packages/dragon/src/blocks/` の下に名前の dir の置き場を 1 つ持ち (箱なら `packages/dragon/src/blocks/box/`)、語、原本の形、読む処理、書き戻す処理、誤りの文、描き方、付け方、見本帳の分をそこに置く。描き方は置き場の draw.ts が、ブロックをまたいで使う描く下請け (`packages/dragon/src/render/parts.ts`) を使って持つ。図の種類は `packages/dragon/src/kinds/` の下に種類の名前の dir の置き場を持ち (時系列図なら `packages/dragon/src/kinds/sequence/`)、並べ方と受け付ける付け方だけを置く (#3345)。種類ごとの描き方は `packages/dragon/src/render/` の種類の名前の file が持つ。見本帳の一覧と編集画面の棚と使い方の頁のブロックの段落と `docs/design/base/GRAMMAR.md` の部品と使い方の表は、置き場の見本帳の分 (箱なら `packages/dragon/src/blocks/box/gallery/`) をブロックの並びの順に並べて作り、ブロックの名前を手で並べない (#3350)。見本帳の一覧は、コアブロックと個別ブロックと図の 3 段に並ぶ。
+- 見た目は全ての図で 1 つに揃える。並べ方と色の役の決まりは `docs/design/base/GRAMMAR.md` が持ち、図ごとにブロックを作り足す前にコアブロックで描けないかを確かめる。色と字の大きさの値は `packages/dragon/src/look/values.ts` と `packages/dragon/src/look/palettes.json` の 1 か所が持つ。
+- ブロックと図の種類は足して広げられる。足す手順と登録先は `.claude/skills/dragon-extend/SKILL.md` と `.claude/skills/dragon-extend/references/registry.md` が持つ。この repo へは PR で足し、取り込むかは管理者が決める。fork した人は、その中で自由に足してよい (MIT、`LICENSE`)。
+- ぶれは、決まりの文書と検査の 2 つで防ぐ。検査が縛るのは、記法の語をどれかのブロックが受け持つこと (`apps/playground-spa/src/lib/catalog-parts.test.ts`)、足した時に置き場の外で触る登録先が一覧から漏れないこと (`packages/dragon/test/extend-skill.test.ts`)、見本帳と部品と使い方の表が置き場から作られること (`apps/playground-spa/src/lib/block-gallery.test.ts`)、描く file が色と字の大きさを値の表からだけ読み、色味が色の見分けを保つこと (`packages/dragon/test/look.test.ts`)、ブロックと図の種類の置き場が決まった file と定義の欄を持ち、一覧が置き場の dir から書き出されていること (`packages/dragon/test/blocks.test.ts`) の 5 つ。部品と使い方の表のほかの、並べ方と色の役の決まり (`docs/design/base/GRAMMAR.md`) は文書だけで、検査は無い。色味の案の見分けを確かめる `docs/design/base/check-palettes.mjs` は手で回す。
 
 ## 利用者
 

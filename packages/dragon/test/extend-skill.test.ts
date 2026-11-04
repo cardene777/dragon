@@ -1,8 +1,8 @@
 /**
  * 説明に合う図が無い時に、新しい図の種類と部品を足す skill (`dragon-extend`、#3245)。
  *
- * skill の文と登録先の一覧は人が読む文書だが、名指す path と、過去に図の種類と部品を足した取り込みで変えた file を照らし、
- * 一覧が実装からずれた時と、足す時に触る所が一覧から漏れた時に落とす。
+ * skill の文と登録先の一覧は人が読む文書だが、名指す path と、過去に図の種類を足した取り込みで変えた file と、
+ * ブロックの置き場の外で個別ブロックを並べて持つ file を照らし、一覧が実装からずれた時と、足す時に触る所が一覧から漏れた時に落とす。
  * 一覧の行は path を持ち、足す種類や部品ごとに名前が変わる所は `<種類>` のように山括弧で書く。末尾が `/` の行は dir の下を全て当てる。
  */
 import { execFileSync } from "node:child_process";
@@ -19,11 +19,11 @@ const REGISTRY = join(REFERENCES, "registry.md");
 
 /** 図の種類を足した取り込み。木の図 (#3233)、木の図の書き方 (#3235)、列の図 (#3239) */
 const KIND_COMMITS = ["dcf419d1", "33b853a0", "2e18ba4b"];
-/** 部品を足した取り込み。箱の飛び先と段の出典 (#3199) */
-const PART_COMMITS = ["b357ad1a"];
 /** 登録先の一覧の表の見出し */
 const KIND_TABLE = "図の種類を足す時";
-const PART_TABLE = "部品を足す時";
+/** ブロックを足す時の表の見出しと、表の行の数の上限 (#3350) */
+const BLOCK_TABLE = "ブロックを足す時";
+const BLOCK_ROWS_MOST = 6;
 /** repo の path として読む、backtick の中の字の頭 */
 const PATH_HEAD = /^(?:packages|apps|\.claude|\.ikkan|docs|scripts)\/\S+$|^(?:README|CHANGELOG|CONTRIBUTING)\.md$/u;
 
@@ -71,9 +71,6 @@ function uncovered(commits: string[], rows: string[]): string[] {
   );
 }
 
-/** ブロックを足す時の表の見出しと、表の行の数の上限 (#3350) */
-const BLOCK_TABLE = "ブロックを足す時";
-const BLOCK_ROWS_MOST = 6;
 /** 書き出した一覧の冒頭の注釈。書き出した script を名指し、手で直さないと書く */
 const GENERATED = /^\/\/ packages\/dragon\/scripts\/build-[a-z-]+\.mjs が.*手で直さない/u;
 
@@ -112,7 +109,7 @@ function skillTexts(): [string, string][] {
 /** 空白を除いた字。決まりの言い回しは、空白の置き方の違いで落とさない */
 const squash = (text: string): string => text.replace(/\s+/gu, "");
 
-describe("記法と部品を足す skill (#3245)", () => {
+describe("記法と図の種類とブロックを足す skill (#3245)", () => {
   it("extend-skill-has-frontmatter", () => {
     const text = read(SKILL_MD);
     expect(text, ".claude/skills/dragon-extend/SKILL.md が無い").not.toBe("");
@@ -179,14 +176,8 @@ describe("記法と部品を足す skill (#3245)", () => {
     expect(uncovered(KIND_COMMITS, rows), "図の種類を足した取り込みで変えたが、図の種類の表に無い file").toEqual([]);
   });
 
-  it("extend-registry-covers-part-addition", () => {
-    const rows = rowsOf(PART_TABLE);
-    expect(rows.length, `登録先の一覧に「${PART_TABLE}」の表の行が無い`).toBeGreaterThan(0);
-    expect(uncovered(PART_COMMITS, rows), "部品を足した取り込みで変えたが、部品の表に無い file").toEqual([]);
-  });
-
   it("extend-registry-rows-stay-narrow", () => {
-    const rows = [...rowsOf(KIND_TABLE), ...rowsOf(PART_TABLE)];
+    const rows = [...rowsOf(KIND_TABLE), ...rowsOf(BLOCK_TABLE)];
     expect(rows.length, "登録先の一覧の表の行の数").toBeGreaterThan(0);
     // 名前の変わる所より前の、決まった dir の段の数。dir の行は 3 段、名前の変わる所を持つ行は 2 段より浅くしない
     const fixedDepth = (path: string): number => path.split(/<[^>]+>/u)[0]?.split("/").slice(0, -1).filter(Boolean).length ?? 0;

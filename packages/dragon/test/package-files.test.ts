@@ -12,6 +12,8 @@ import { describe, expect, it } from "vitest";
 
 const PACKAGE = join(__dirname, "..");
 const BLOCKS = join(PACKAGE, "src/blocks");
+/** `npm pack --dry-run` を待つ長さ。ほかの検査と並べて回すと、file の一覧を出すまでに 30 秒を超えた (#3350) */
+const PACK = 180_000;
 
 /** `npm pack --dry-run` が npm に出すと答えた file の path (package の dir から見た相対 path) */
 function packedFiles(): string[] {
@@ -60,5 +62,5 @@ describe("npm に出す package の file (#3350)", () => {
       return phrases.filter((phrase) => text.includes(phrase)).map((phrase) => `${path}: ${phrase.slice(0, 24)}`);
     });
     expect(leaked, "npm に出す file に入った見本帳の名前と説明と段落の字").toEqual([]);
-  });
+  }, PACK);
 });

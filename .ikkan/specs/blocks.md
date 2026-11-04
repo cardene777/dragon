@@ -13,3 +13,9 @@
 | `migrateFile` が版1の原本の file を版2の形に書き換える | `pnpm exec vitest run`の検査`migrate-file-writes-version-2`が通る | #3346 |
 | 付け方が合う全てのブロックと図の種類の組で、記法を読んで描ける | `pnpm exec vitest run`の検査`every-block-draws-on-every-matching-kind`が通る | #3347 |
 | 軽い入口はコアブロックと図の種類を入口に持ち、個別ブロックは書いた図が使う物だけを読む | `pnpm exec vitest run`の検査`light-entry-loads-only-used-blocks`が通る | #3349 |
+| 見本帳の分が npm に出す file に入らない | `pnpm exec vitest run`の検査`package-excludes-catalog-material`が通る | #3350 |
+| 見本帳の部品の一覧と部品の頁と編集画面の棚と使い方の頁の部品の節は、ブロックの置き場から作られ、一覧の段の名前をコアブロックと個別ブロックにする | `pnpm exec vitest run`の検査`catalog-built-from-block-folders`が通る | #3350 |
+| `docs/design/base/GRAMMAR.md` の部品と使い方の表の行が、ブロックの決まりの行をブロックの並びの順に並べた物と同じ | `pnpm exec vitest run`の検査`grammar-parts-table-from-blocks`が通る | #3350 |
+| ブロックを足す時の登録先の表が 6 行以下で、置き場の外で個別ブロックを 2 つ以上並べて持つ file が全て表の行に当たる | `pnpm exec vitest run`の検査`extend-registry-block-rows-shrink`が通る | #3350 |
+| 前提の部品の考え方の節が、ブロック、コアブロック、個別ブロック、接続ブロック、付け方、図、図の種類の言葉で書かれ、ブロックと図の種類の置き場の dir を名指す | `pnpm exec vitest run`の検査`parts-concept-names-block-and-kind-folders`が通る | #3350 |
+| 前提の目的の節が、mermaid と同じ手軽さで書けて表示まで出る理念を書き、script の 1 行の入口の課題 #3343 を名指す | `pnpm exec vitest run`の検査`premise-purpose-names-script-entry`が通る | #3350 |

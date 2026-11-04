@@ -2,12 +2,16 @@
  * 左の棚の中身 (#3031)。見本の一覧、部品、記法の早見。
  *
  * 部品の行と早見の行は、図に 1 つ足した図を `printNotation` で書き、足す前の図を書いた行との差から作る。
+ * 部品はブロックの置き場の `gallery/shelf.ts` が名前と組み立てを持ち、棚はブロックの並びの順に並べる (#3350)。
  * dragon記法の語 (`group` や `[tag: …]`) は `@cardenelabs/dragon` だけが持ち、ここには写さない。
  * 差の行のうち、最初の `step` の行より前の行は宣言、`step` の行から後の行は段の中の行として扱う。
  * 差は行の並びを保って取る。`group … end` のように同じ行 (`end`) が何度も出る塊も、足した塊のまま取り出せる。
  */
-import { type Diagram, type DiagramEvent, FORMAT_VERSION, type NotationLang, parseNotation, printNotation, type Step } from "@cardenelabs/dragon/light";
+import { type Diagram, type DiagramEvent, FORMAT_VERSION, type NotationLang, parseNotation, printNotation } from "@cardenelabs/dragon/light";
 
+// 見本帳の分の型は npm に出す入口から出さず、ブロックの置き場の型の file から読む
+import type { ShelfEdge, ShelfKit, ShelfPart } from "../../../../packages/dragon/src/blocks/gallery";
+import { BLOCK_ORDER, BLOCK_SHELF } from "../catalog/blocks.gen";
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, FIRST_SCREEN_EXAMPLES } from "../examples";
 
 export interface Sample {
@@ -127,116 +131,68 @@ export function insertLines(text: string, added: Added): { text: string; line: n
   return { text: lines.join("\n"), line: first + 1 };
 }
 
-export const PART_IDS = ["box", "region", "step", "edge", "edge-tag", "edge-coin", "edge-none", "edge-below", "action", "swap", "strip"] as const;
-export type PartId = (typeof PART_IDS)[number];
+type Shelves = typeof BLOCK_SHELF;
+/** 棚の部品の id。ブロックが置き場の `gallery/shelf.ts` に書いた鍵 */
+export type PartId = { [K in keyof Shelves]: Shelves[K] extends { none: string } ? never : keyof Shelves[K] & string }[keyof Shelves];
 
-/** 部品で足す中身の仮の名前。記法の語ではなく、書き手が書き換える前提の字で、記法の言葉ごとに持つ */
-const CONTENT = {
-  ja: {
-    box: "箱",
-    newBox: "新しい箱",
-    region: "区画",
-    newRegion: "新しい区画",
-    newStep: "新しい段",
-    stepBody: "この段で起きることを書く。",
-    call: "呼ぶ",
-    handOver: "渡す",
-    key: "鍵",
-    pay: "払う",
-    notify: "知らせる",
-    process: "処理する",
-    rewritten: "書き換えた字",
-    stripTitle: "状態",
-    stripField: "値",
-    stripValue: "1",
-  },
-  en: {
-    box: "box",
-    newBox: "New box",
-    region: "zone",
-    newRegion: "New region",
-    newStep: "New step",
-    stepBody: "Write what happens in this step.",
-    call: "call",
-    handOver: "hand over",
-    key: "key",
-    pay: "pay",
-    notify: "notify",
-    process: "process",
-    rewritten: "Rewritten",
-    stripTitle: "State",
-    stripField: "value",
-    stripValue: "1",
-  },
+/** 棚の部品と id。ブロックの並び (`rank`) の順に、ブロックの中は `shelf.ts` に書いた順に並べる (#3350) */
+const SHELF: readonly (readonly [PartId, ShelfPart])[] = BLOCK_ORDER.flatMap((name) => {
+  const shelf: Readonly<Record<string, ShelfPart>> | { none: string } = BLOCK_SHELF[name];
+  return "none" in shelf ? [] : (Object.entries(shelf) as [PartId, ShelfPart][]);
+});
+
+/** 棚の部品の id。棚はこの順に部品を並べる */
+export const PART_IDS: readonly PartId[] = SHELF.map(([id]) => id);
+
+/**
+ * 箱を足す時の仮の名札の頭と名前。記法の語ではなく、書き手が書き換える前提の字で、記法の言葉ごとに持つ。
+ * 線の部品が相手の箱を足す時にも使うので、部品ごとではなく棚の道具が持つ。部品ごとの仮の名前は部品の `shelf.ts` が持つ
+ */
+const BOX_WORDS = {
+  ja: { box: "箱", newBox: "新しい箱" },
+  en: { box: "box", newBox: "New box" },
 } as const satisfies Record<NotationLang, Record<string, string>>;
 
-type Content = (typeof CONTENT)[NotationLang];
-
-/** 箱と区画の名札と重ならない `prefix` + 番号 */
-function freshId(d: Diagram, prefix: string): string {
-  const used = new Set([...(d.blocks.box ?? []).map((b) => b.id), ...(d.blocks.group ?? []).map((r) => r.id)]);
-  let n = 1;
-  while (used.has(`${prefix}${n}`)) n++;
-  return `${prefix}${n}`;
-}
-
-/** 箱を 1 つ足す。構成図では最後の箱と同じ区画に入れる。時系列図の生存線は箱の並びから組むので足さない (#3346) */
-function withBox(d: Diagram, c: Content, region?: string): { diagram: Diagram; id: string } {
-  const id = freshId(d, c.box);
-  const boxes = d.blocks.box ?? [];
-  const inside = region ?? (d.kind === "architecture" ? boxes.at(-1)?.region : undefined);
-  const box = { id, name: c.newBox, ...(inside ? { region: inside } : {}) };
-  return { id, diagram: { ...d, blocks: { ...d.blocks, box: [...boxes, box] } } };
-}
-
-/** 線の両端。箱が 1 つしかない時は相手の箱を足す */
-function pair(d: Diagram, c: Content): { diagram: Diagram; from: string; to: string } {
-  const [a, b] = d.blocks.box ?? [];
-  if (a && b) return { diagram: d, from: a.id, to: b.id };
-  const added = withBox(d, c);
-  return { diagram: added.diagram, from: a?.id ?? added.id, to: added.id };
-}
-
-/** 最後の段の終わりに起きることを 1 つ足す */
-function withEvent(d: Diagram, event: DiagramEvent): Diagram {
-  const last = d.steps.at(-1);
-  if (!last) return d;
-  return { ...d, steps: [...d.steps.slice(0, -1), { ...last, events: [...last.events, event] }] };
-}
-
-const edge =
-  (carry: Extract<DiagramEvent, { type: "edge" }>["carry"], label: keyof Content, labelSide?: "below") =>
-  (d: Diagram, c: Content): Diagram => {
-    const p = pair(d, c);
-    return withEvent(p.diagram, { type: "edge", from: p.from, to: p.to, label: c[label], carry, ...(labelSide ? { labelSide } : {}) });
+/** 記法の言葉ごとの、棚の部品を組み立てる道具 */
+function kitOf(lang: NotationLang): ShelfKit {
+  const words = BOX_WORDS[lang];
+  const freshId = (d: Diagram, prefix: string): string => {
+    const used = new Set([...(d.blocks.box ?? []).map((b) => b.id), ...(d.blocks.group ?? []).map((r) => r.id)]);
+    let n = 1;
+    while (used.has(`${prefix}${n}`)) n++;
+    return `${prefix}${n}`;
   };
+  // 構成図では最後の箱と同じ区画に入れる。時系列図の生存線は箱の並びから組むので足さない (#3346)
+  const withBox = (d: Diagram, region?: string): { diagram: Diagram; id: string } => {
+    const id = freshId(d, words.box);
+    const boxes = d.blocks.box ?? [];
+    const inside = region ?? (d.kind === "architecture" ? boxes.at(-1)?.region : undefined);
+    const box = { id, name: words.newBox, ...(inside ? { region: inside } : {}) };
+    return { id, diagram: { ...d, blocks: { ...d.blocks, box: [...boxes, box] } } };
+  };
+  const pair = (d: Diagram): { diagram: Diagram; from: string; to: string } => {
+    const [a, b] = d.blocks.box ?? [];
+    if (a && b) return { diagram: d, from: a.id, to: b.id };
+    const added = withBox(d);
+    return { diagram: added.diagram, from: a?.id ?? added.id, to: added.id };
+  };
+  const withEvent = (d: Diagram, event: DiagramEvent): Diagram => {
+    const last = d.steps.at(-1);
+    if (!last) return d;
+    return { ...d, steps: [...d.steps.slice(0, -1), { ...last, events: [...last.events, event] }] };
+  };
+  const withEdge = (d: Diagram, edge: ShelfEdge): Diagram => {
+    const p = pair(d);
+    return withEvent(p.diagram, { type: "edge", from: p.from, to: p.to, label: edge.label, carry: edge.carry, ...(edge.labelSide ? { labelSide: edge.labelSide } : {}) });
+  };
+  return { lang, freshId, withBox, pair, withEvent, withEdge };
+}
 
-const BUILD: Record<PartId, (d: Diagram, c: Content) => Diagram> = {
-  box: (d, c) => withBox(d, c).diagram,
-  region: (d, c) => {
-    const id = freshId(d, c.region);
-    return withBox({ ...d, blocks: { ...d.blocks, group: [...(d.blocks.group ?? []), { id, name: c.newRegion }] } }, c, id).diagram;
-  },
-  step: (d, c) => {
-    const p = pair(d, c);
-    const step: Step = { title: c.newStep, body: c.stepBody, events: [{ type: "edge", from: p.from, to: p.to, label: c.call, carry: { kind: "envelope" } }] };
-    return { ...p.diagram, steps: [...p.diagram.steps, step] };
-  },
-  edge: edge({ kind: "envelope" }, "call"),
-  "edge-tag": (d, c) => edge({ kind: "tag", text: c.key }, "handOver")(d, c),
-  "edge-coin": edge({ kind: "coin" }, "pay"),
-  "edge-none": edge({ kind: "none" }, "notify"),
-  "edge-below": edge({ kind: "envelope" }, "call", "below"),
-  action: (d, c) => withEvent(d, { type: "action", box: d.blocks.box?.[0]?.id ?? "", label: c.process }),
-  swap: (d, c) => withEvent(d, { type: "swap", box: d.blocks.box?.[0]?.id ?? "", text: c.rewritten }),
-  strip: (d, c) => {
-    const strip = d.blocks.strip ?? { title: c.stripTitle, fields: [c.stripField] };
-    return withEvent({ ...d, blocks: { ...d.blocks, strip } }, { type: "strip", field: strip.fields[0] ?? c.stripField, value: c.stripValue });
-  },
-};
+const KITS: Readonly<Record<NotationLang, ShelfKit>> = { ja: kitOf("ja"), en: kitOf("en") };
+const BUILD = new Map(SHELF.map(([id, part]) => [id, part.build]));
 
-/** 部品を `base` の図に足した時に足される行。`lang` は部品が足す名前の言葉 */
-export const partLines = (id: PartId, base: Diagram, lang: NotationLang): Added => addedLines(base, BUILD[id](base, CONTENT[lang]));
+/** 部品を `base` の図に足した時に足される行。`lang` は部品が足す名前の言葉。棚に無い id は何も足さない */
+export const partLines = (id: PartId, base: Diagram, lang: NotationLang): Added => addedLines(base, BUILD.get(id)?.(base, KITS[lang]) ?? base);
 
 export type SyntaxId =
   | "kind"

@@ -160,7 +160,7 @@ export const BLOCK_TEXT = {
   "zoom": zoomText,
 } as const;
 
-/** 編集画面の棚に置く部品の名前。鍵はブロックの置き場の dir の名前 */
+/** 編集画面の棚に置く部品。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_SHELF = {
   "act": actShelf,
   "ask": askShelf,
@@ -245,3 +245,6 @@ export const BLOCK_RULE = {
   "strip": stripRule,
   "zoom": zoomRule,
 } as const;
+
+/** ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に。見本帳の一覧と棚と使い方の頁は、この順にブロックの見本帳の分を並べる */
+export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "ask", "press"] as const;

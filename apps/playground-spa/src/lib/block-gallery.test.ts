@@ -1,7 +1,8 @@
 /**
  * ブロックの見本帳の分のうち、頁の外の文書と棚に照らす分 (#3345)。
  *
- * `docs/design/base/GRAMMAR.md` の部品と使い方の表は人が読む文書で、ブロックの置き場の `gallery/rule.ts` が同じ行を写して持つ。
+ * `docs/design/base/GRAMMAR.md` の部品と使い方の表は人が読む文書で、ブロックの置き場の `gallery/rule.ts` の行を、ブロックの並びの順に
+ * `packages/dragon/scripts/build-blocks.mjs` が書き出す (#3350)。見本帳の一覧と棚と使い方の頁も、置き場の分をブロックの並びの順に並べて作る。
  * 編集画面の棚の部品の名前は `gallery/shelf.ts` が棚の部品の id ごとに持つ。
  * 写した行が表の行と食い違った時と、棚に無い部品の id を名乗った時に落とす。
  * 見る関数はこの file が持ち、正しい分に当てて通ることと、崩した分に当てて名指すことの両方を確かめる。
@@ -100,6 +101,12 @@ describe("見本帳と決まりをブロックの置き場から作る (#3350)",
     expect([...PART_IDS], "棚の部品").toEqual(ranked.flatMap((block) => Object.keys(own<object>(shelves, block.name) ?? {})));
     // 使い方の頁の段落は、段落を持つブロックの節に、ブロックの並びで入る
     const docs = BLOCK_DOCS as Readonly<Record<string, unknown>>;
+    // 節の名前を書き違えた段落は、どの節にも入らずに黙って消えるので、段落の節が頁の節に在ることを確かめる
+    const unplaced = ranked.filter((block) => {
+      const found = own<{ section: string }>(docs, block.name);
+      return found !== undefined && !(SECTIONS as readonly string[]).includes(found.section);
+    });
+    expect(unplaced.map((block) => block.name), "使い方の頁に無い節を名乗るブロックの段落").toEqual([]);
     for (const lang of ["ja", "en"] as const) {
       const paragraphs = new Set(ranked.flatMap((block) => own<Record<string, readonly string[]>>(docs, block.name)?.[lang] ?? []));
       for (const section of SECTIONS) {
