@@ -14,6 +14,7 @@ import { BUTTON_TEXT, stepNo } from "../player";
 import type { Overlap } from "../render/ink";
 import { drawSvg, type Rendered, renderDiagram } from "../render/svg";
 import type { ViewMode } from "../schema";
+import { tryTexts } from "../try-player";
 import { chooseView } from "../view";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { film, launch, sizeOf, stage, still } from "./capture";
@@ -63,12 +64,20 @@ const unescape = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g,
 /** SVG の中で描かれる字 (`<text>` の中身) */
 const svgTexts = (svg: string): string[] => [...svg.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/g)].map((m) => unescape((m[1] ?? "").replace(/<[^>]+>/g, "")));
 
-/** 頁と書き出しで描かれうる字。寄って見せる時の全体図の題 (`followSvg` の中) と、釦と段の番号の字も含む */
-function drawnTexts(rendered: Rendered, followSvg: string | undefined): string[] {
+/**
+ * 頁と書き出しで描かれうる字。寄って見せる時の全体図の題 (`followSvg` の中) と、釦と段の番号の字も含む。
+ * 試す図は、頁の入力の帯の欄の名前と釦の字と、押せない訳と読み手が足す段の題と本文の字も含む (#3337)
+ */
+function drawnTexts(rendered: Rendered, followSvg: string | undefined, lang: NotationLang): string[] {
   const { diagram } = rendered;
   const svgs = followSvg === undefined ? [rendered.svg] : [rendered.svg, followSvg];
   const count = diagram.steps.length;
-  return [...svgs.flatMap(svgTexts), ...diagram.steps.flatMap((step, s) => [step.title, step.body, stepNo(s, count)]), ...Object.values(BUTTON_TEXT)];
+  return [
+    ...svgs.flatMap(svgTexts),
+    ...diagram.steps.flatMap((step, s) => [step.title, step.body, stepNo(s, count)]),
+    ...Object.values(BUTTON_TEXT),
+    ...(diagram.kind === "try" ? tryTexts(diagram, lang) : []),
+  ];
 }
 
 export async function exportDiagram(input: unknown, options: ExportOptions): Promise<ExportResult> {
@@ -87,7 +96,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   // 寄って見せる図は動画と字の file の両方に使うので 1 度だけ描き、2 つの全体図の札の言葉を揃える
   const followSvg = rendered.view === "fixed" ? undefined : drawSvg(diagram, layout, timeline, palette, theme, { width, lang });
   const videoSvg = view === "follow" && followSvg ? followSvg : rendered.svg;
-  const fontCss = await fontFaces(charsOf(drawnTexts(rendered, followSvg)));
+  const fontCss = await fontFaces(charsOf(drawnTexts(rendered, followSvg, lang)));
 
   // 撮る物を全て撮り終えてから書く。撮る所で失敗した時に、書き出し先の dir と途中の file を残さないため (#3013)
   const outputs: [ExportFormat, string | Buffer][] = [];

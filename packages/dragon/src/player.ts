@@ -14,15 +14,27 @@
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
  * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、段を送る釦を指で押せる大きさにして段の番号と上の段に並べ、
  * 題と本文をその下の段の全幅に置く (#3057、#3069)。
+ * 試す図 (`try`) は書き手の最初の段だけを持つ原本 (今の原本) で描き、流さずに最初の段の止め絵で置く。図の下に入力の帯を置き、
+ * 読み手が送るか釦を押すかチップを書き換えるたびに、その出来事の段を今の原本の最後に足して描き直し、足した段を 1 度だけ流す。
+ * 動きを嫌う設定では流さずに足した段の止め絵で止める。今の原本は `player.diagram` で読め、置き直すと最初の段に戻る (#3337)。
  */
 import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
+import type { TryLayout } from "./layout/try";
 import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
 import { partRadius } from "./render/corner";
-import { drawSvg, paletteOf, type RenderOptions, renderDiagram } from "./render/draw";
+import {
+  drawSvg,
+  paletteOf,
+  type RenderOptions,
+  type Rendered,
+  renderDiagram,
+} from "./render/draw";
+import type { Step } from "./schema";
 import type { Span } from "./timeline";
+import { isTrySource, mountTryControls, startSession, tryCss } from "./try-player";
 import { chooseView } from "./view";
 import { DEFAULT_LANG } from "./words";
 
@@ -53,6 +65,8 @@ export interface Player {
   goTo(step: number): void;
   /** 図の上に点線の四角を描く。四角は図の座標で渡し、空を渡すと消す。図を置き直しても残る (#3178) */
   mark(rects: readonly Rect[]): void;
+  /** 今の原本。試す図では読み手が足した段を含む写しを返し、ほかの種類の図では渡した原本を返す (#3337) */
+  readonly diagram: unknown;
   destroy(): void;
 }
 
@@ -101,6 +115,7 @@ function playerCss(): string {
     // 広い帯は本文が 2 行あれば帯の高さが変わらず、本文の無い帯だけが釦の分だけ高くなる
     `@media (pointer: coarse){.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}}`,
     `.dg-spot{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
+    tryCss(),
   ].join("");
 }
 
@@ -131,13 +146,17 @@ export function mountDiagram(
   const win = doc.defaultView;
   // 描く前に読む。描いた後に読むと、動きを嫌う人にも一瞬だけ流れてしまう
   const reduce = Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
-  let rendered = renderDiagram(diagram, options);
+  // 試す図は書き手の最初の段だけを持つ今の原本で描き、読み手が押すたびに段を足す (#3337)
+  let session = isTrySource(diagram) ? startSession(diagram) : undefined;
+  /** 描く原本。試す図では今の原本 */
+  let source: unknown = session ?? diagram;
+  let rendered = renderDiagram(source, options);
   const lang = options.lang ?? DEFAULT_LANG;
   const words = FIGURE_TEXT[lang];
   const palette = paletteOf(options, rendered.theme);
-  const { timeline } = rendered;
-  const steps = rendered.diagram.steps;
-  const count = steps.length;
+  let { timeline } = rendered;
+  let steps = rendered.diagram.steps;
+  let count = steps.length;
 
   ensureCss(doc);
   const root = doc.createElement("div");
@@ -145,6 +164,7 @@ export function mountDiagram(
   root.dataset.dragon = "player";
   root.setAttribute("style", `${FONT_VARS};${paletteVars(palette, rendered.theme)}`);
   if (palette.corner === "cut") root.dataset.corner = "cut";
+  if (session) root.dataset.try = "";
 
   const frame = doc.createElement("div");
   frame.className = "dg-frame";
@@ -203,13 +223,23 @@ export function mountDiagram(
   list.className = "dg-sr";
   list.dataset.dragon = "steps";
   list.setAttribute("aria-label", words.steps(rendered.diagram.title));
-  for (const step of steps) {
-    const item = drawStepItem(doc, step);
-    drawSources(doc, item, step.sources);
-    list.append(item);
-  }
+  const fillList = (): void => {
+    list.replaceChildren();
+    for (const step of steps) {
+      const item = drawStepItem(doc, step);
+      drawSources(doc, item, step.sources);
+      list.append(item);
+    }
+  };
+  fillList();
 
-  root.append(frame, bar, list);
+  // 試す図の入力の帯は図と語りの帯の間に置く。足した段は `add` が今の原本に足して描き直す
+  const controls = session
+    ? mountTryControls(doc, rendered.diagram, rendered.layout as TryLayout, lang, (added) =>
+        add(added),
+      )
+    : undefined;
+  root.append(frame, ...(controls ? [controls.tools] : []), bar, list);
   host.append(root);
 
   const frameWidth = (): number => frame.clientWidth || host.clientWidth || rendered.layout.width;
@@ -219,7 +249,7 @@ export function mountDiagram(
    */
   const arrange = (w: number): boolean => {
     if (rendered.diagram.kind !== "lineup") return false;
-    const next = renderDiagram(diagram, { ...options, width: w });
+    const next = renderDiagram(source, { ...options, width: w });
     const before = (rendered.layout as { arrangement?: string }).arrangement;
     const after = (next.layout as { arrangement?: string }).arrangement;
     if (before === after) return false;
@@ -241,13 +271,15 @@ export function mountDiagram(
   let width = frameWidth();
   let height = frameHeight();
   let svg: SVGSVGElement | null = null;
-  // 止めて置く段を渡された図は、動きを嫌う人と同じく止め絵で置く
+  // 止めて置く段を渡された図は、動きを嫌う人と同じく止め絵で置く。試す図は読み手が押すまで流さない
   let step =
     options.pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, options.pausedAt));
-  let playing = !reduce && options.pausedAt === undefined;
+  let playing = !reduce && options.pausedAt === undefined && !session;
   let at = playing ? 0 : (timeline.stills[step] ?? 0);
+  /** 1 度だけ流すか。試す図は足した段を流した後に最初の段へ戻らない */
+  const once = options.playOnce === true || session !== undefined;
   /** 1 度だけ流す図が止まる時刻 (最後の段の止め絵) */
-  const lastStill = timeline.stills[count - 1] ?? 0;
+  let lastStill = timeline.stills[count - 1] ?? 0;
   let born = Date.now();
   let marked: readonly Rect[] = [];
 
@@ -304,6 +336,8 @@ export function mountDiagram(
     svg = next;
     born = Date.now();
     drawMarks();
+    controls?.fit(frame, next);
+    controls?.mark(next, step);
   };
   const markup = (): string =>
     mode === "follow"
@@ -329,6 +363,7 @@ export function mountDiagram(
     body.textContent = current?.body ?? "";
     toggleButton.setAttribute("aria-label", playing ? words.pause : words.play);
     toggleButton.textContent = playing ? BUTTON_TEXT.pause : BUTTON_TEXT.play;
+    if (svg) controls?.mark(svg, step);
     options.onStep?.(step);
   };
   const restart = (t: number, play: boolean): void => {
@@ -345,20 +380,61 @@ export function mountDiagram(
 
   /** 流し始める。1 度だけ流す図が最後の段の止め絵まで来ていれば、最初の段から流し直す */
   const resume = (): void => {
-    if (options.playOnce && at >= lastStill) {
+    if (once && at >= lastStill) {
       step = 0;
       at = 0;
     }
     restart(at, true);
   };
 
+  /**
+   * 試す図の今の原本の最後に段 `added` を足して描き直し、足した段へ移る。
+   * 動きを嫌う設定では足した段の止め絵で止め、そうでなければ足した段を流して、その段の止め絵で止める。
+   * 描けない原本になる時は段を足さずに訳を出し、偽を返す
+   */
+  const add = (added: Step): boolean => {
+    if (!session || !controls) return false;
+    const next = { ...session, steps: [...session.steps, added] };
+    let drawn: Rendered;
+    try {
+      drawn = renderDiagram(next, options);
+    } catch (error) {
+      controls.refuse(error instanceof Error ? error.message : String(error));
+      return false;
+    }
+    session = next;
+    source = next;
+    rendered = drawn;
+    timeline = drawn.timeline;
+    steps = drawn.diagram.steps;
+    count = steps.length;
+    lastStill = timeline.stills[count - 1] ?? 0;
+    for (const room of text.querySelectorAll(".dg-room")) room.remove();
+    drawRooms(doc, text, steps);
+    fillList();
+    width = frameWidth();
+    height = frameHeight();
+    mode = chooseView(rendered, width, height).mode;
+    controls.update(drawn.layout as TryLayout);
+    controls.arrange(mode, width);
+    step = count - 1;
+    const span = timeline.steps[step] as Span;
+    playing = !reduce;
+    at = playing ? span.start : (timeline.stills[step] ?? span.start);
+    place(markup());
+    show();
+    return true;
+  };
+
+  controls?.arrange(mode, width);
   place(markup());
   show();
+  if (controls) frame.append(controls.layer);
 
   const timer = win?.setInterval(() => {
     if (!playing) return;
     // 1 度だけ流す図は、1 周の中の時刻に直す前の経った時間で最後の段の止め絵まで来たかを見る
-    if (options.playOnce && at + (Date.now() - born) / 1000 >= lastStill) {
+    if (once && at + (Date.now() - born) / 1000 >= lastStill) {
       step = count - 1;
       restart(lastStill, false);
       return;
@@ -372,8 +448,13 @@ export function mountDiagram(
   const onPrev = (): void => go(step - 1);
   const onNext = (): void => go(step + 1);
   const onToggle = (): void => (playing ? restart(now(), false) : resume());
-  // 段の番号を押すとその段へ移る
+  // 段の番号を押すとその段へ移る。試す図のブロックの中のチップを押すと、書き換える欄を出す
   const onFigure = (event: Event): void => {
+    const chip = controls ? (event.target as Element | null)?.closest?.("[data-chip]") : null;
+    if (chip) {
+      controls?.pick(chip.getAttribute("data-chip") ?? "", step);
+      return;
+    }
     const target = (event.target as Element | null)?.closest?.("[data-step]");
     const s = target ? Number(target.getAttribute("data-step")) : Number.NaN;
     if (Number.isInteger(s)) go(s);
@@ -392,8 +473,11 @@ export function mountDiagram(
         const h = frameHeight();
         const rearranged = arrange(w);
         const chosen = chooseView(rendered, w, h).mode;
-        if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height)))
+        controls?.arrange(chosen, w);
+        if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height))) {
+          if (svg) controls?.fit(frame, svg);
           return;
+        }
         const t = now();
         mode = chosen;
         width = w;
@@ -427,9 +511,14 @@ export function mountDiagram(
       marked = rects;
       drawMarks();
     },
+    get diagram() {
+      // 読み手が足した段を含む今の原本は写しを返し、頁の側が書き換えても再生の部品の原本を変えない
+      return session ? (JSON.parse(JSON.stringify(session)) as unknown) : diagram;
+    },
     destroy: () => {
       if (timer !== undefined) win?.clearInterval(timer);
       observer?.disconnect();
+      controls?.destroy();
       prevButton.removeEventListener("click", onPrev);
       nextButton.removeEventListener("click", onNext);
       toggleButton.removeEventListener("click", onToggle);

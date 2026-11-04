@@ -123,6 +123,13 @@ export interface TryLayout extends Layout {
   names: Record<string, string>;
 }
 
+/** 全体図に描く試す図の部品の四角。`band` は待ち行列の枠のような地、そうでなければ節やブロックのような札 */
+export interface TryOverviewShape {
+  rect: Rect;
+  band: boolean;
+  color: (typeof TRY_LOOK.color)[keyof typeof TRY_LOOK.color];
+}
+
 const bottomOf = (r: Rect): number => r.y + r.h;
 
 /** チップの名前を図に出す字数までに切る */
@@ -489,4 +496,92 @@ export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LA
     ...(valueField !== undefined ? { valueField } : {}),
     names,
   };
+}
+
+/**
+ * 寄って追う窓が段 `step` で見る所 (#3337)。その段の出来事が触る部品の四角を、出来事が着く所から順に並べる。
+ * 窓は最初の四角を外さずに全部を囲んだ所へ寄るので、最初の四角は読み手が結果を見る所にする。
+ * 送った段は送った先の待ち行列と網、釦を押した段は作ったブロックと取り出した待ち行列、
+ * 書き換えた段は書き換えたチップのブロックと次のブロックとのつながり、`line` は書いた待ち行列とブロック (待ち行列を先) を見る。
+ * ブロックはその段の終わりの位置で見て、畳んだブロックは見ない
+ */
+export function tryFocusParts(layout: TryLayout, diagram: DiagramModel, step: number): Rect[] {
+  const moments = layout.moments.filter((mo) => mo.step === step);
+  const end = moments[moments.length - 1];
+  if (!end) return [];
+  const parts = diagram.try?.parts ?? [];
+  const partRect = (id: string | undefined): Rect | undefined =>
+    layout.parts.find((p) => p.id === id)?.rect;
+  const blockRect = (chain: string, number: number): Rect | undefined => {
+    const c = layout.chains.find((x) => x.id === chain);
+    const at = end.blocks[blockKey(chain, number)];
+    return c && at ? { x: at[0], y: at[1], w: c.w, h: c.h } : undefined;
+  };
+  /** 窓から外さない所の候補、`line` がブロックに書いた所、続けて見る所 */
+  const lead: Rect[] = [];
+  const lines: Rect[] = [];
+  const rest: Rect[] = [];
+  const push = (list: Rect[], rect: Rect | undefined): void => {
+    if (rect) list.push(rect);
+  };
+  (diagram.steps[step]?.events ?? []).forEach((event, k) => {
+    const mo = moments.find((x) => x.event === k);
+    const built = mo?.built ? blockRect(mo.built.chain, mo.built.number) : undefined;
+    if (event.type === "line" && "part" in event) {
+      if (built) lines.push(built);
+      else push(lead, partRect(event.part));
+    } else if (event.type === "ask") {
+      const ask = parts.find((p): p is Extract<TryPart, { type: "ask" }> => p.type === "ask");
+      push(lead, partRect(ask?.into));
+      if (mo?.trip) push(rest, partRect(mo.trip.route));
+    } else if (event.type === "press") {
+      const press = parts.find(
+        (p): p is Extract<TryPart, { type: "press" }> => p.type === "press" && p.id === event.press,
+      );
+      push(lead, built);
+      push(rest, partRect(press?.from));
+    } else if (event.type === "item") {
+      const [chain, block] =
+        Object.entries(end.state.chains).flatMap(([id, list]) =>
+          list.filter((b) => b.items.includes(event.item)).map((b) => [id, b] as const),
+        )[0] ?? [];
+      const here = chain !== undefined && block ? blockRect(chain, block.number) : undefined;
+      if (chain !== undefined && block && here) {
+        lead.push(here);
+        const next = blockRect(chain, block.number + 1);
+        // つながりの印は、このブロックの右端と次のブロックの左端の間に在る
+        if (next)
+          rest.push({ x: here.x + here.w, y: here.y, w: next.x - here.x - here.w, h: here.h });
+      } else {
+        const queue = Object.entries(end.state.queues).find(([, list]) =>
+          list.includes(event.item),
+        )?.[0];
+        push(lead, partRect(queue));
+      }
+    }
+  });
+  return [...lead, ...lines, ...rest];
+}
+
+/** 全体図に描く試す図の部品 (#3337)。網の節と待ち行列の枠と、最後の時点に出ているブロック */
+export function tryOverview(layout: TryLayout): TryOverviewShape[] {
+  const color = T.color.part;
+  const last = layout.moments[layout.moments.length - 1];
+  const r = T.route.r;
+  return [
+    ...layout.queues.map((q) => ({ rect: q.box, band: true, color })),
+    ...layout.routes.flatMap((route) =>
+      route.nodes.map((n) => ({
+        rect: { x: n.x - r, y: n.y - r, w: r * 2, h: r * 2 },
+        band: false,
+        color,
+      })),
+    ),
+    ...layout.chains.flatMap((c) =>
+      (last?.state.chains[c.id] ?? []).flatMap((b) => {
+        const at = last?.blocks[blockKey(c.id, b.number)];
+        return at ? [{ rect: { x: at[0], y: at[1], w: c.w, h: c.h }, band: false, color }] : [];
+      }),
+    ),
+  ];
 }

@@ -178,6 +178,7 @@ export const TEXT = {
           time: "決まった間隔で刻む時間の上で、何がいつ起きたかを段ごとに追う図。ブロックの確定や引き出しの待ちのように、時間が長さとして効く仕組みを、進む針と塗られる印で見せる。",
           tree: "親子で枝分かれする箱を葉から根まで組み上げ、根と葉の間を段ごとに辿る図。Merkle 木のように少しの値で全体を確かめる仕組みを、木の線の上を走る札で見せる。",
           lineup: "横長の列にチップを並べ、段ごとに並びが替わる様子を追う図。入札でブロックの中身が決まる流れのように、順番と隠す中身が効く仕組みを、列の間を滑るチップと封で見せる。",
+          try: "読み手が値を打ち込み、釦を押して動かす図。送ったトランザクションが網を伝わり、手数料の順にブロックへ入り、hash で鎖につながる様子を、読み手が自分で試して確かめる。",
         },
         total: (n: number) => `全 ${n} 件`,
         showing: (n: number) => `${n} 件 表示中`,
@@ -246,7 +247,7 @@ export const TEXT = {
       filter: "絞り込む…",
       filterLabel: "一覧を絞り込む",
       nothing: "当てはまる物が無い",
-      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図" },
+      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: {
@@ -502,6 +503,7 @@ export const TEXT = {
           tree: "Build boxes that branch into parents and children from the leaves up to the root, then follow the path between root and leaf step by step. For mechanisms like a Merkle tree, where a few values prove the whole, tags running along the tree lines show it.",
           lineup:
             "Line chips up in long lanes and follow how their order changes, step by step. For mechanisms where order and hidden contents matter, like an auction that decides what goes in a block, chips sliding between lanes and seals show it.",
+          try: "A figure readers move by typing values and pressing buttons. Readers try for themselves how a transaction crosses the network, enters a block in fee order, and joins the chain by its hash.",
         },
         total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         showing: (n: number) => `showing ${n}`,
@@ -569,7 +571,7 @@ export const TEXT = {
       filter: "Filter…",
       filterLabel: "Filter the list",
       nothing: "Nothing matches",
-      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup" },
+      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: {

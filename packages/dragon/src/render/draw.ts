@@ -583,6 +583,23 @@ function badgeFocus(badge: { x: number; y: number }, parts: Rect[], vw: number, 
   return held;
 }
 
+/**
+ * 動く物を全部囲んだ所の真ん中 (#3337)。囲んだ所が窓 (`vw` × `vh`) より大きい時は、最初の物が窓から外れない所までに留める。
+ * 動く物が無ければ `undefined`
+ */
+function anchoredCenter(parts: Rect[], vw: number, vh: number): [number, number] | undefined {
+  const first = parts[0];
+  if (!first) return undefined;
+  const all = union(parts);
+  // 窓の幅 `size` で `[lo, lo + len]` を外さない真ん中の範囲に、全部を囲んだ所の真ん中 `c` を収める。窓より大きい物は真ん中に置く
+  const keep = (c: number, lo: number, len: number, size: number): number =>
+    len > size ? lo + len / 2 : Math.min(lo + size / 2, Math.max(lo + len - size / 2, c));
+  return [
+    keep(all.x + all.w / 2, first.x, first.w, vw),
+    keep(all.y + all.h / 2, first.y, first.h, vh),
+  ];
+}
+
 /** 段で動く物を 1 つずつ。 */
 function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[] {
   const rects: Rect[] = [];
@@ -624,6 +641,8 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
     );
     rects.push(...layout.lanes.filter((lane) => changed.has(lane.id)));
   }
+  // 試す図は、その段の出来事が触る部品を、出来事が着く所から順に見る (#3337)
+  if (isTryLayout(layout)) rects.push(...kindParts("try").tryFocusParts(layout, diagram, step));
   for (const event of diagram.steps[step]?.events ?? []) {
     const ids =
       event.type === "edge"
@@ -737,6 +756,12 @@ function followView(
       prev = [f.x + f.w / 2, f.y + f.h / 2];
       return [clampX(prev[0]), clampY(prev[1])] as [number, number];
     }
+    // 試す図は、出来事が着く所 (送った先の待ち行列、作ったブロック、書き換えたブロック) を窓から外さずに寄せる (#3337)。
+    // 網は図の幅いっぱいに広がるので、全部を囲んだ所の真ん中へ寄せると、狭い窓では送った先の待ち行列が窓から外れる
+    if (isTryLayout(layout)) {
+      prev = anchoredCenter(focusParts(layout, diagram, s), vw, below) ?? prev;
+      return [clampX(prev[0]), clampY(prev[1])] as [number, number];
+    }
     const f = focusOf(layout, diagram, s);
     prev = f ? [f.x + f.w / 2, f.y + f.h / 2] : prev;
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
@@ -783,15 +808,20 @@ function followView(
     const shapes = [
       ...layout.regions.map(
         (r) =>
-          `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="${partRadius(corner, 3)}"/>`,
+          `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="${partRadius(corner, M.band)}"/>`,
       ),
       ...layout.boxes.map(
         (b) =>
-          `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="${partRadius(corner, 1.5)}"/>`,
+          `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="${partRadius(corner, M.card)}"/>`,
       ),
       ...(isTreeLayout(layout) ? layout.nodes : []).map(
         (n) =>
-          `<rect class="dg-mm-card" style="${cs(n.color)}" x="${mx + n.x * k}" y="${my + n.y * k}" width="${n.w * k}" height="${n.h * k}" rx="${partRadius(corner, 1.5)}"/>`,
+          `<rect class="dg-mm-card" style="${cs(n.color)}" x="${mx + n.x * k}" y="${my + n.y * k}" width="${n.w * k}" height="${n.h * k}" rx="${partRadius(corner, M.card)}"/>`,
+      ),
+      // 試す図は、待ち行列の枠を地に、網の節と出ているブロックを札に描く (#3337)
+      ...(isTryLayout(layout) ? kindParts("try").tryOverview(layout) : []).map(
+        ({ rect: t, band, color }) =>
+          `<rect class="${band ? "dg-mm-band" : "dg-mm-card"}" style="${cs(color)}" x="${mx + t.x * k}" y="${my + t.y * k}" width="${t.w * k}" height="${t.h * k}" rx="${partRadius(corner, band ? M.band : M.card)}"/>`,
       ),
     ].join("");
     const vp = m.move(

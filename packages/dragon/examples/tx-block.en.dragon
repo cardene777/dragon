@@ -1,0 +1,39 @@
+// How a transaction you send crosses the network to the builder, enters a block in fee order, and joins the chain by holding the previous block's hash.
+// The reader types a sender, recipient, amount and fee and sends it, presses the button that builds a block, and taps a chip in a block to change its amount.
+// Each chip is one transaction and shows only its name and fee.
+try How a transaction gets into a block
+
+route Network: You - node-1 - node-4 - Builder, You - node-2 - node-5 - Builder, node-1 - node-3 - Builder, node-2 - node-4 [from: You, to: Builder]
+queue Mempool [order: Fee]
+chain Chain [edit: Amount]
+ask Sender, To, Amount, Fee [into: Mempool, via: Network]
+press Build [from: Mempool, into: Chain, take: 3]
+
+item tx1 [To: Carol, Amount: 3, Fee: 7]
+item tx2 [To: Dave, Amount: 5, Fee: 5]
+item tx3 [To: Erin, Amount: 2, Fee: 4]
+item tx4 [To: Bob, Amount: 8, Fee: 9]
+item tx5 [To: Carol, Amount: 1, Fee: 6]
+item tx6 [To: Erin, Amount: 4, Fee: 8]
+item tx7 [To: Dave, Amount: 6, Fee: 6]
+item tx8 [To: Bob, Amount: 2, Fee: 3]
+item tx9 [To: Carol, Amount: 7, Fee: 4]
+item tx10 [To: Erin, Amount: 3, Fee: 2]
+
+step Transactions wait in line
+  say Transactions in the mempool line up from the highest fee and wait for the builder to put them in a block.
+  line Chain: tx4, tx5, tx8
+  line Chain: tx1, tx2, tx3
+  line Mempool: tx6, tx7, tx9, tx10
+
+step You send one
+  say Your transaction crosses the network to the builder and lines up in the mempool by its fee.
+  ask You, Bob, 5, 12
+
+step The builder makes a block
+  say The builder puts the three highest fees into block 3 and gives it block 2's hash as prev.
+  press Build
+
+step Someone changes a block
+  say Changing the amount of tx2 in block 2 changes its hash, so it no longer matches the prev that block 3 holds.
+  item tx2 [Amount: 50]
