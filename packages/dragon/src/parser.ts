@@ -80,26 +80,32 @@
  *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
+ *
+ * 行はブロックの読み方 (`blocks/<名前>/read.ts`) が読み、ここは行をブロックへ振り分ける (#3345、#3349)。
+ * どの行をどのブロックが読むかはブロックの定義 (`block.ts`) の語と `lines` の宣言から引き (`blocks/used.ts`)、読み方は登録簿 (`blocks/reading.ts`) から引く。
+ * 軽い入口で読み方をまだ読んでいないブロックの行は、黙って別の行と読まず、ブロックの名前を名指す誤りで止める。
+ * 図の種類の決まり (名札に使えない名前、線の端、読み終えた時の確かめ) は、その種類の図が必ず使うブロック (定義の `always`) の読み方の手続きが持つ。
  */
-import { type FigureDraft, type HeadReader, type KindName, type ParseState, ranked, type StepDraft } from "./blocks/block";
-import { isCut, readCut } from "./blocks/branch/block";
-import { commitAt } from "./blocks/commit/block";
-import { EDGE, readEdgeLine } from "./blocks/edge/block";
+import type { BlockReading, FigureDraft, HeadReader, KindName, LineView, ParseState, StepDraft } from "./blocks/block";
+import { EDGE } from "./blocks/edge/block";
+import { readEdgeLine } from "./blocks/edge/read";
 import { BLOCKS } from "./blocks/index";
-import { readTimeNote } from "./blocks/point/block";
-import { isNeedle, readNow } from "./blocks/scale/block";
-import { readPath } from "./blocks/side-path/block";
-import { stepOf, viewOf } from "./blocks/step/block";
-import { readTryChip } from "./blocks/ask/block";
-import { readTryLine } from "./blocks/queue/block";
-import { readColumns } from "./blocks/zoom/block";
+import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
+import { stepOf, viewOf } from "./blocks/step/read";
+import { fits } from "./blocks/usable";
+import { kindNeeds, lineNeeds, lineView, matches } from "./blocks/used";
+import { TIME_EDGE_ATTRS } from "./blocks/zoom/block";
+import { KIND_FOLDERS } from "./kinds/index";
+import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
 import type { Diagram, DiagramModel, Step } from "./schema";
 import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
-import { settleTry } from "./try-read";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
-import { ATTRS, DEFAULT_LANG, HEAD, HEADS, KINDS, type NotationLang, NOW, OLD_HEADS, STATE_ENDS } from "./words";
+import { ATTRS, DEFAULT_LANG, HEADS, KINDS, type NotationLang, OLD_HEADS } from "./words";
+
+/** 読み方の手続きの名前 */
+type Hook = "take" | "checkHead" | "settle" | "beginStep" | "endAt" | "reserved" | "columns" | "afterEdge" | "finish" | "verify";
 
 export interface LineError {
   line: number;
@@ -132,38 +138,26 @@ function oldForm(text: string, inStep: boolean): { word: string; shape: Shape } 
 }
 
 /**
- * ブロックが受け持つ行の頭の語と、その読む処理 (#3345)。
+ * 持っている読み方の、行の頭の語ごとの読む処理 (#3345、#3349)。
  * 行の頭の語の誤り (図の種類だけの語と、知らない語) を確かめた後に、ここに在る語はブロックの読む処理で読む
  */
-const HEAD_READERS: ReadonlyMap<string, HeadReader> = new Map(ranked(BLOCKS).flatMap((block) => ("none" in block.read ? [] : Object.entries(block.read))));
+const headReaders = cachedByReadings(
+  (): ReadonlyMap<string, HeadReader> => new Map(loadedReadings().flatMap(({ reading }) => ("none" in reading.read ? [] : Object.entries(reading.read)))),
+);
 /**
  * 図の種類だけのブロック (`attach.only`) が持つ行の頭の語と、その図の種類 (#3164、#3347、#3348)。
- * ほかの種類の図に書いた行は、その図の種類だけの語の誤りで止める
+ * ほかの種類の図に書いた行は、その図の種類だけの語の誤りで止める。読み方を読まずに断れるよう、ブロックの定義から引く
  */
 const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
-  ranked(BLOCKS).flatMap((block) => {
+  Object.values(BLOCKS).flatMap((block) => {
     const only = block.attach.only;
     return only === undefined ? [] : (block.words.heads ?? []).map((head) => [head, only] as const);
   }),
 );
-
-/**
- * 列の図のチップと並びの語のうち、試す図でも書ける語と、試す図での読む処理 (#3337、#3348)。
- * 試す図の `item` はチップの欄の値を、`line` は待ち行列か機械の列の中身を書くので、列の図のブロックでなく試す図の部品のブロックが読む
- */
-const TRY_SHARED_READERS: ReadonlyMap<string, (source: SourceLine, state: ParseState) => void> = new Map([
-  ["item", readTryChip],
-  ["line", readTryLine],
-]);
-/** 試す図に書ける行の頭の語。試す図だけのブロック (`attach.only` が try) の語と、チップと並びの行と、段の行 (#3337) */
-const TRY_LINES: readonly string[] = [
-  ...ranked(BLOCKS).flatMap((block) => (block.attach.only === "try" ? (block.words.heads ?? []) : [])),
-  ...TRY_SHARED_READERS.keys(),
-  "step",
-  "say",
-  "code",
-  "source",
-];
+/** 列の図と試す図の両方に書ける行の頭の語 (#3337)。ほかの種類の図に書いた行は、2 つの図の種類だけの語の誤りで止める */
+const LINEUP_OR_TRY = ["item", "line"];
+/** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める */
+const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
@@ -180,10 +174,17 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const title = titled.value;
   const view = viewOf(head, titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m).get("view") : undefined, m);
 
-  const isState = kind === "state";
+  // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
+  const always = kindNeeds(kind).find((name) => !readingLoaded(name));
+  if (always !== undefined) throw fail(head, 0, m.blockNotLoaded(always));
+  const kindFolder = (KIND_FOLDERS as unknown as Readonly<Record<string, Kind>>)[kind] as Kind;
+  /** この図の種類で使える、持っている読み方。ブロックの並び (`rank`) の順 */
+  const own = loadedReadings().filter(({ block }) => fits(block, kindFolder));
+  /** この図の種類で使える読み方が持つ、名前 `key` の手続き。ブロックの並びの順 */
+  const hooks = <K extends Hook>(key: K): NonNullable<BlockReading[K]>[] =>
+    own.flatMap(({ reading }) => (reading[key] === undefined ? [] : [reading[key] as NonNullable<BlockReading[K]>]));
   const isGit = kind === "git";
   const isTime = kind === "time";
-  const isTree = kind === "tree";
   const isLineup = kind === "lineup";
   const isTry = kind === "try";
   const ids = new Set<string>();
@@ -201,9 +202,10 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     try: { parts: [], items: [], pending: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
-  const { tips } = figure.git;
   const steps: Step[] = [];
   let building: StepDraft | undefined;
+  /** 全ての宣言を読んでから確かめる宣言を、もう確かめたか */
+  let settled = false;
 
   const declare = (source: SourceLine, id: string, at: number): void => {
     if (ids.has(id)) throw fail(source, at, m.duplicate(id));
@@ -214,29 +216,19 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     return id;
   };
   /**
-   * 線の端。状態遷移図では送る側に `start`、受ける側に `finish` を書ける。
-   * 枝分かれの図では送る側が枝の名札か `HEAD`、受ける側が積んだ commit
+   * 線の端。図の種類が箱のほかに書ける名札 (状態遷移図の始まりと終わりの印、枝分かれの図の枝と commit、時間軸の図の節目、木の図の木の箱) は、
+   * その決まりを持つブロックが確かめる
    */
   const endAt = (source: SourceLine, id: string, at: number, side: "from" | "to"): string => {
-    if (isGit) {
-      if (side === "to") return commitAt(state, source, id, at);
-      if (id !== HEAD && !tips.has(id)) throw fail(source, at, m.undeclaredRef(id));
-      return id;
+    for (const end of hooks("endAt")) {
+      const found = end(source, id, at, side, state);
+      if (found !== undefined) return found;
     }
-    if (isTime) {
-      if (!boxes.some((box) => box.id === id) && !time.points.some((point) => point.id === id)) throw fail(source, at, m.undeclaredNote(id));
-      return id;
-    }
-    if (isTree && figure.tree.boxes.has(id)) return id;
-    if (!isState || !isOneOf(STATE_ENDS, id)) return boxAt(source, id, at);
-    if ((id === "start") !== (side === "from")) throw fail(source, at, id === "start" ? m.intoStart : m.outOfFinish);
-    return id;
+    return boxAt(source, id, at);
   };
-  /** 状態遷移図の箱と区画の名札に、始まりと終わりの印の名前は使えない。枝分かれの図の名札に、今いる場所の札の名前は使えない */
+  /** 図の種類が名札に使えない名前 (状態遷移図の始まりと終わりの印、枝分かれの図の `HEAD`、時間軸の図の `now`) は、その決まりを持つブロックが止める */
   const notReserved = (source: SourceLine, id: string, at: number): void => {
-    if (isState && isOneOf(STATE_ENDS, id)) throw fail(source, at, m.reservedId(id));
-    if (isGit && id === HEAD) throw fail(source, at, m.headReserved(id));
-    if (isTime && id === NOW) throw fail(source, at, m.nowReserved(id));
+    for (const reserved of hooks("reserved")) reserved(source, id, at, state);
   };
   /** 宣言の行の名札を、使えない名前でも宣言済みでもない名札として取る */
   const claim = (source: SourceLine, id: string, at: number): void => {
@@ -252,16 +244,21 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const beforeSteps = (source: SourceLine): void => {
     if (building) throw fail(source, 0, m.declarationInStep);
   };
-  /** 書いている段を閉じる。開いたままの区画と時間軸の図の宣言を確かめてから、段を段の並びへ足す */
+  /** 全ての宣言を読んでから確かめる宣言を、最初の段を始める時か記法の終わりに 1 度だけ確かめる */
+  const settle = (): void => {
+    if (settled) return;
+    settled = true;
+    for (const check of hooks("settle")) check(state, head);
+  };
+  /** 書いている段を閉じる。開いたままの区画と、全ての宣言を読んでから確かめる宣言を確かめてから、段を段の並びへ足す */
   const closeStep = (): void => {
     if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
     settle();
-    settleTry(state);
     if (building) steps.push(stepOf(building, m));
   };
   const openStep = (draft: StepDraft): void => {
     building = draft;
-    figure.try.run?.beginStep();
+    for (const begin of hooks("beginStep")) begin(state);
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
   const declared = (id: string): boolean => ids.has(id);
@@ -271,45 +268,46 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
    * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
    */
   const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly };
-  const columns: ParseState["columns"] = (source, from, to, attrs, end) => readColumns(source, from, to, attrs, end, state);
+  /** 線の列。持つ図の種類 (時間軸の図) のブロックが読み、ほかの種類の図に書いた列は誤りで止める */
+  const columns: ParseState["columns"] = (source, from, to, attrs, end) => {
+    const [read] = hooks("columns");
+    if (read) return read(source, from, to, attrs, end, state);
+    const given = TIME_EDGE_ATTRS.flatMap((name) => {
+      const attr = attrs.get(name);
+      return attr ? [{ name, attr }] : [];
+    })[0];
+    if (given) throw fail(source, given.attr.at, m.timeOnly(given.name));
+    return {};
+  };
   const state: ParseState = { m, kind, attrs: ATTRS, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure };
+  /** 行が使うブロックの読み方を持っているか確かめる。持っていなければ、ブロックの名前を名指して止める */
+  const needed = (source: SourceLine, line: LineView): void => {
+    const missing = lineNeeds(line, kind).find((name) => !readingLoaded(name));
+    if (missing !== undefined) throw fail(source, 0, m.blockNotLoaded(missing));
+  };
+  /** 行の形で読む行を、定義の `lines` が当たるブロックの読み方で読む。読んだら true */
+  const taken = (source: SourceLine, line: LineView): boolean =>
+    own.some(({ block, reading }) => reading.take !== undefined && (block.lines ?? []).some((match) => matches(match, line)) && reading.take(source, state, line));
 
   const rest = lines.slice(headAt + 1);
   for (let i = 0; i < rest.length; i++) {
     const source = rest[i];
     if (!source || isBlankOrComment(source)) continue;
     const text = source.text;
-    // 時間軸の図の `now -> <目盛り>` は針を進める行で、線と同じ形でも箱どうしの線と読まない
-    if (isTime && isNeedle(text)) {
-      inStep(source).events.push(readNow(source, state));
-      continue;
-    }
+    const line = lineView(text, building !== undefined);
+    needed(source, line);
+    // 行の頭の語でなく行の形で読む行 (時間軸の図の針、状態遷移図の道、枝を切る行、試す図のチップと中身と線) は、その行を読むブロックが先に読む
+    if (taken(source, line)) continue;
     // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
     const edge = EDGE.exec(text);
     if (edge) {
-      if (isTry) throw fail(source, 0, m.tryNoEdge);
-      // 状態遷移図の最初の step より前の線は、移れる道の地図
-      if (isState && !building) paths.push(readPath(source, edge, state));
-      else {
-        const read = readEdgeLine(source, edge, state);
-        // 枝分かれの図の線は、送る側の枝の札を受ける側の commit へ動かす
-        if (isGit && read.from !== HEAD) tips.set(read.from, read.to);
-      }
+      const read = readEdgeLine(source, edge, state);
+      for (const after of hooks("afterEdge")) after(read, state);
       continue;
     }
-    const [word = "", second] = text.split(/\s+/u);
-    // 枝分かれの図で、宣言した枝の名札の次に `from` が来る行は、枝を切る行
-    if (isCut(state, word, second)) {
-      readCut(source, state);
-      continue;
-    }
-    // 列の図のチップと並びの語は試す図でも書け、試す図ではチップの欄の値と部品の中身を書くので、試す図の部品のブロックの読み方で読む (#3337)
-    const shared = TRY_SHARED_READERS.get(word);
-    if (shared && !isLineup) {
-      if (!isTry) throw fail(source, 0, m.lineupOrTryOnly(word));
-      shared(source, state);
-      continue;
-    }
+    const { word } = line;
+    // 列の図のチップと並びの語は試す図でも書け、ほかの種類の図に書いた行は 2 つの図の種類だけの語の誤りで止める (#3337)
+    if (LINEUP_OR_TRY.includes(word) && !isLineup && !isTry) throw fail(source, 0, m.lineupOrTryOnly(word));
     const only = ONLY_HEADS.get(word);
     const refuse = only === undefined || only === kind ? undefined : onlyIn[only];
     if (refuse) throw fail(source, 0, refuse(word));
@@ -317,14 +315,8 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
     }
-    // 試す図は部品の行と段の行だけを書ける
-    if (isTry && !TRY_LINES.includes(word)) throw fail(source, 0, m.tryNoLine(word));
-    // 時間軸の図の `note` の行は節目にも書けて丸の色を持つので、下の字のブロックでなく節目のブロックの読み方で読む
-    if (isTime && word === "note") {
-      inStep(source).events.push(readTimeNote(source, state));
-      continue;
-    }
-    const reader = HEAD_READERS.get(word);
+    for (const check of hooks("checkHead")) check(source, word, state);
+    const reader = headReaders().get(word);
     if (reader) {
       // 下の行まで続けて読んだ処理は、読み終えた続きの行の数を返す
       const read = reader(source, state, (offset) => rest[i + offset]);
@@ -334,17 +326,10 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   }
   closeStep();
 
-  if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
-  if (isTree && figure.tree.boxes.size === 0) throw fail(head, 0, m.noLeaves);
-  if (isLineup && figure.lineup.items.length === 0) throw fail(head, 0, m.noItems);
-  if (isTry && figure.try.parts.length === 0) throw fail(head, 0, m.noParts);
-  if (boxes.length === 0 && !isGit && !isTime && !isTree && !isTry) throw fail(head, 0, m.noBoxes);
+  for (const finish of hooks("finish")) finish(state, head);
+  if (boxes.length === 0 && !BOXLESS.includes(kind)) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
-  // 木の形は全ての行を読んでから確かめる。親を持たない木の箱が 2 つ以上なら、書いた順で 2 つ目を示す
-  const roots = [...figure.tree.boxes.keys()].filter((id) => !figure.tree.parents.has(id));
-  const [root, stray] = roots;
-  const strayAt = stray === undefined ? undefined : figure.tree.boxes.get(stray);
-  if (root !== undefined && stray !== undefined && strayAt) throw fail(strayAt.source, strayAt.at, m.manyRoots(stray, root));
+  for (const verify of hooks("verify")) verify(state, head);
 
   return {
     version: MODEL_VERSION,
@@ -371,19 +356,6 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
         }
       : {}),
   };
-
-  /**
-   * 時間軸の図の宣言を、目盛りの数が決まってから確かめる。最初の step と記法の終わりで 1 度だけ呼ぶ。
-   * 目盛りと印の列が無い図と、拡大の範囲の無い図の箱は誤り
-   */
-  function settle(): void {
-    if (!isTime || time.settled) return;
-    time.settled = true;
-    if (!time.scale) throw fail(head as SourceLine, 0, m.noScale);
-    if (time.rows.length === 0) throw fail(head as SourceLine, 0, m.noRows);
-    for (const check of time.pending) check();
-    if (figure.firstBox && !time.zoom) throw fail(figure.firstBox, 0, m.boxNeedsZoom);
-  }
 }
 
 export function parseNotation(notation: string, options: ParseOptions = {}): Parsed {

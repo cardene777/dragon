@@ -5,12 +5,14 @@
  * 見本は図の種類ごとに束ね、部品は押すと書く欄に行を足し、記法は行の形の早見を出す。
  * 部品と記法の行は dragon記法で出し、部品が足す名前と早見の穴は頁の言葉で書く (`shelf-items.ts`)。
  * 幅が狭い時は引き出しに畳み、書く欄の上の釦で開く。
+ * 部品と記法の行は全ての種類の図を書き戻して作るので、全ての種類の塊が届いてから並べる (#3349)。届くまでは読み込み中を出す。
  */
 import type { Diagram } from "@cardenelabs/dragon/light";
 import { type ReactElement, useMemo, useState } from "react";
 
 import { LaterFailed } from "../catalog/LaterFailed";
 import { type ExampleKey, LATER_EXAMPLES } from "../examples";
+import { useAllKinds } from "../site/kinds";
 import { useLater } from "../site/later";
 import { type Lang, TEXT } from "../text";
 import { PART_IDS, type PartId, partLines, sampleGroups, syntaxLines } from "./shelf-items";
@@ -42,17 +44,18 @@ export function Shelf({ lang, base, active, open, onClose, onNew, onSample, onPa
   const later = useLater(LATER_EXAMPLES);
   const arrived = later.status === "ready";
   const groups = useMemo(() => sampleGroups(lang, arrived), [lang, arrived]);
+  const kinds = useAllKinds().status;
   const parts = useMemo(
     () =>
-      base
+      base && kinds === "ready"
         ? PART_IDS.map((id) => {
             const added = partLines(id, base, lang);
             return { id, lines: [...added.declarations, ...added.steps] };
           })
         : [],
-    [base, lang],
+    [base, lang, kinds],
   );
-  const syntax = useMemo(() => syntaxLines(lang), [lang]);
+  const syntax = useMemo(() => (kinds === "ready" ? syntaxLines(lang) : []), [lang, kinds]);
 
   const q = query.trim().toLowerCase();
   const matches = (...texts: string[]): boolean => q === "" || texts.some((text) => text.toLowerCase().includes(q));
@@ -60,7 +63,9 @@ export function Shelf({ lang, base, active, open, onClose, onNew, onSample, onPa
   const shownGroups = groups.map((g) => ({ ...g, samples: g.samples.filter((s) => matches(s.title, s.key)) })).filter((g) => g.samples.length > 0);
   const shownParts = parts.filter((p) => matches(t.parts[p.id], ...p.lines));
   const shownSyntax = syntax.filter((s) => matches(t.syntax[s.id], ...s.lines));
-  const empty = { samples: shownGroups.length, parts: shownParts.length, notation: shownSyntax.length }[tab] === 0;
+  // 部品と記法の行は全ての種類の塊を待つ。待つ間と読めなかった時は、空の知らせの代わりに読み込み中か読み直す釦を出す
+  const waiting = tab !== "samples" && kinds !== "ready";
+  const empty = !waiting && { samples: shownGroups.length, parts: shownParts.length, notation: shownSyntax.length }[tab] === 0;
 
   return (
     <aside
@@ -144,6 +149,7 @@ export function Shelf({ lang, base, active, open, onClose, onNew, onSample, onPa
           </>
         )}
 
+        {waiting && (kinds === "failed" ? <LaterFailed lang={lang} /> : <p className="pg-shelf-empty">{TEXT[lang].site.catalog.loading}</p>)}
         {empty && <p className="pg-shelf-empty">{t.nothing}</p>}
       </div>
     </aside>

@@ -1,0 +1,83 @@
+// packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
+import { reading as actReading } from "./act/read";
+import { reading as askReading } from "./ask/read";
+import { reading as boxReading } from "./box/read";
+import { reading as branchReading } from "./branch/read";
+import { reading as carryReading } from "./carry/read";
+import { reading as chainReading } from "./chain/read";
+import { reading as colorReading } from "./color/read";
+import { reading as commitReading } from "./commit/read";
+import { reading as copyReading } from "./copy/read";
+import { reading as edgeReading } from "./edge/read";
+import { reading as edgeLabelReading } from "./edge-label/read";
+import { reading as groupReading } from "./group/read";
+import { reading as iconReading } from "./icon/read";
+import { reading as itemReading } from "./item/read";
+import { reading as leafReading } from "./leaf/read";
+import { reading as legendReading } from "./legend/read";
+import { reading as lifelineReading } from "./lifeline/read";
+import { reading as lineReading } from "./line/read";
+import { reading as linkReading } from "./link/read";
+import { reading as mergeReading } from "./merge/read";
+import { reading as nodeReading } from "./node/read";
+import { reading as noteReading } from "./note/read";
+import { reading as orderReading } from "./order/read";
+import { reading as pickReading } from "./pick/read";
+import { reading as pointReading } from "./point/read";
+import { reading as pressReading } from "./press/read";
+import { reading as queueReading } from "./queue/read";
+import { reading as roleReading } from "./role/read";
+import { reading as routeReading } from "./route/read";
+import { reading as rowReading } from "./row/read";
+import { reading as scaleReading } from "./scale/read";
+import { reading as sealReading } from "./seal/read";
+import { reading as sidePathReading } from "./side-path/read";
+import { reading as sourceReading } from "./source/read";
+import { reading as stampReading } from "./stamp/read";
+import { reading as startFinishReading } from "./start-finish/read";
+import { reading as stepReading } from "./step/read";
+import { reading as stripReading } from "./strip/read";
+import { reading as zoomReading } from "./zoom/read";
+
+/** 全てのブロックの読み方。鍵は置き場の dir の名前。全部入りの入口と検査が読み、軽い入口は読まない (#3349) */
+export const READINGS = {
+  "act": actReading,
+  "ask": askReading,
+  "box": boxReading,
+  "branch": branchReading,
+  "carry": carryReading,
+  "chain": chainReading,
+  "color": colorReading,
+  "commit": commitReading,
+  "copy": copyReading,
+  "edge": edgeReading,
+  "edge-label": edgeLabelReading,
+  "group": groupReading,
+  "icon": iconReading,
+  "item": itemReading,
+  "leaf": leafReading,
+  "legend": legendReading,
+  "lifeline": lifelineReading,
+  "line": lineReading,
+  "link": linkReading,
+  "merge": mergeReading,
+  "node": nodeReading,
+  "note": noteReading,
+  "order": orderReading,
+  "pick": pickReading,
+  "point": pointReading,
+  "press": pressReading,
+  "queue": queueReading,
+  "role": roleReading,
+  "route": routeReading,
+  "row": rowReading,
+  "scale": scaleReading,
+  "seal": sealReading,
+  "side-path": sidePathReading,
+  "source": sourceReading,
+  "stamp": stampReading,
+  "start-finish": startFinishReading,
+  "step": stepReading,
+  "strip": stripReading,
+  "zoom": zoomReading,
+} as const;

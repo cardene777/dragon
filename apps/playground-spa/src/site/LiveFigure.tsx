@@ -6,8 +6,9 @@
  * `whole` を渡すと、枠の幅に関わらず全体を止めて見せる (`fixed`)。縮小版と小さな図に使う。
  * 寄って追う見せ方は小さな枠では動く所だけが大きく映り、何の図かが分からないため。
  * `json` を渡すと、記法ではなく原本の JSON の字として読む (#3034、使い方の JSON の節)。
+ * 後から読む種類の図は、種類の塊 (描く部品と、その種類の個別ブロックの読み方、#3349) が届いてから読む。塊が届くまでは枠に読み込み中を出す。
  */
-import { type Diagram, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
+import { type Diagram, diagramKind, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
 import { type ReactElement, useEffect, useMemo, useRef } from "react";
 
 import type { Lang } from "../text";
@@ -41,6 +42,17 @@ function readJson(text: string): Diagram | null {
   return read.ok ? read.diagram : null;
 }
 
+/** 記法か原本の JSON の字の図の種類。読む前に、どの種類の塊を待つかを決める。JSON として読めない時は `undefined` */
+function kindOfText(text: string, json: boolean): string | undefined {
+  if (!json) return diagramKind(text);
+  try {
+    const input: unknown = JSON.parse(text);
+    return typeof input === "object" && input !== null ? diagramKind(input) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** 記法の字を読む。読めない時は `null` */
 function readNotation(text: string): Diagram | null {
   const parsed = parseNotation(text);
@@ -49,12 +61,14 @@ function readNotation(text: string): Diagram | null {
 
 export function LiveFigure({ notation, lang, theme, palette, whole = false, json = false, onStep, className }: Props): ReactElement {
   const host = useRef<HTMLDivElement>(null);
+  const kind = useMemo(() => kindOfText(notation, json), [notation, json]);
+  const ready = useKind(kind).status === "ready";
   const diagram = useMemo((): Diagram | null => {
+    if (!ready) return null;
     const read = json ? readJson(notation) : readNotation(notation);
     if (!read) return null;
     return whole ? { ...read, view: "fixed" } : read;
-  }, [notation, whole, json]);
-  const ready = useKind(diagram?.kind).status === "ready";
+  }, [notation, whole, json, ready]);
   // 段の知らせ先は描くたびに替わりうるので、置き直さずに最新の物を呼ぶ
   const stepTo = useRef(onStep);
   useEffect(() => {
@@ -70,7 +84,7 @@ export function LiveFigure({ notation, lang, theme, palette, whole = false, json
 
   return (
     <div ref={host} className={className}>
-      <KindState kind={diagram?.kind} lang={lang} />
+      <KindState kind={kind} lang={lang} />
     </div>
   );
 }

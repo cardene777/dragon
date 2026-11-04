@@ -8,7 +8,7 @@
  * 描く処理の形は版1と同じ欄と同じ並びで組み、版の欄も `1` を持つ。図の id はこの形の字から作るので、
  * 版2の原本を足す前と同じ図からは同じ id の SVG を描く。
  */
-import { lifelinesOf } from "./blocks/lifeline/block";
+import { lifelinesOf } from "./blocks/lifeline/read";
 import type { Diagram, DiagramBlocks, DiagramModel, TryItem } from "./schema";
 
 /** この道具が読める原本の版。版1の原本は読む時にこの版へ移す (#3346) */

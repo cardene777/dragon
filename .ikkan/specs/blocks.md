@@ -12,3 +12,4 @@
 | 原本の JSON はブロックを並べる版2の形になり、版1の JSON を読むと版2へ移して警告を返す | `pnpm exec vitest run`の検査`read-version-1-upgrades-to-blocks`が通る | #3346 |
 | `migrateFile` が版1の原本の file を版2の形に書き換える | `pnpm exec vitest run`の検査`migrate-file-writes-version-2`が通る | #3346 |
 | 付け方が合う全てのブロックと図の種類の組で、記法を読んで描ける | `pnpm exec vitest run`の検査`every-block-draws-on-every-matching-kind`が通る | #3347 |
+| 軽い入口はコアブロックと図の種類を入口に持ち、個別ブロックは書いた図が使う物だけを読む | `pnpm exec vitest run`の検査`light-entry-loads-only-used-blocks`が通る | #3349 |

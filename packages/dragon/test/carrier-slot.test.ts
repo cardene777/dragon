@@ -7,6 +7,8 @@
  * 運ぶ物の位置は描いた動きを時刻で読み、絵柄と枠は SVG の四角で読む。
  */
 import { describe, expect, it } from "vitest";
+// 状態遷移図と枝分かれの図の記法を読むので、全部入りの入口と同じく全てのブロックの読み方を登録する (#3349)
+import "../src/kinds/all";
 import { parseNotation } from "../src/parser";
 import { badgeRect, cardOf, carried, carrierRect, doneRect, overlap, waiting } from "./carrier-support";
 import { type Motion, motionOf } from "./motion-support";

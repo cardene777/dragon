@@ -3,22 +3,24 @@
  *
  * 記法の語は英語だけで file から言葉が決まらないため、誤りの文は呼ぶ側が渡した言葉
  * (渡さなければ英語) で出す。文の中の記法の語は語の表から引き、表と文で語が食い違わないようにする。
- * ブロックの置き場へ移した行の誤りの文はブロックが日英で持ち (`blocks/<名前>/block.ts` の `messages`)、ここで 1 つの表に束ねる (#3345)。
+ * ブロックの置き場へ移した行の誤りの文はブロックが日英で持ち (`blocks/<名前>/read.ts` の `messages`)、ここで 1 つの表に束ねる (#3345)。
+ * 軽い入口は個別ブロックの読み方を後から読むので、表は登録簿 (`blocks/reading.ts`) が持つ読み方から引く時に束ね、登録が変わった時に束ね直す (#3349)。
+ * 読んでいないブロックの誤りの文は表に無いが、読む処理はそのブロックの行を読む前に、読んでいないブロックを名指す誤りで止める (`notLoaded`)。
  */
-import { ranked } from "./blocks/block";
-import { BLOCKS } from "./blocks/index";
+import { cachedByReadings, loadedReadings } from "./blocks/reading";
+import type { READINGS } from "./blocks/readings";
 import { list } from "./read-kit";
 import { HEADS, KINDS, type NotationLang } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
 export type Shape = "sequence" | "architecture" | "group" | "box" | "strip" | "view" | "step" | "say" | "code" | "act" | "note" | "set";
 
-type Blocks = typeof BLOCKS;
+type Readings = typeof READINGS;
 /** 日英の誤りの文の、日本語の表の型。持たない (`none`) ブロックは何も足さない */
 type JaOf<X> = X extends { ja: infer M } ? M : never;
 type Intersect<U> = (U extends unknown ? (u: U) => void : never) extends (i: infer I) => void ? I : never;
 /** ブロックが持つ誤りの文の表。鍵はブロックの間で重ならない (`blocks.test.ts` の `block-message-keys-unique` が見る) */
-export type BlockMessages = Intersect<JaOf<Blocks[keyof Blocks]["messages"]>>;
+export type BlockMessages = Intersect<JaOf<Readings[keyof Readings]["messages"]>>;
 
 /** 誤りの文の表。どのブロックにも属さない行の文と、ブロックが持つ文 */
 export type Messages = CoreMessages & BlockMessages;
@@ -47,11 +49,23 @@ export interface CoreMessages {
   badHash: string;
   /** 時間軸の図だけの行か属性 (`word`) を、別の種類の図に書いた (#3165) */
   timeOnly: (word: string) => string;
+  /** 枝分かれの図だけの行 (`word`) を、別の種類の図に書いた。後から読む個別ブロックの読み方を読まずに断るので、ここに持つ (#3349) */
+  gitOnly: (word: string) => string;
+  /** 木の図だけの行を、別の種類の図に書いた (#3349) */
+  treeOnly: (word: string) => string;
+  /** 列の図だけの行を、別の種類の図に書いた (#3349) */
+  lineupOnly: (word: string) => string;
+  /** 列の図と試す図だけの行 (`item` と `line`) を、別の種類の図に書いた (#3349) */
+  lineupOrTryOnly: (word: string) => string;
+  /** 試す図だけの行を、別の種類の図に書いた (#3349) */
+  tryOnly: (word: string) => string;
+  /** 軽い入口で、まだ読んでいないブロック `block` の行か原本を読んだ。`loadFor` を待てば読める (#3349) */
+  blockNotLoaded: (block: string) => string;
 }
 
-/** ブロックが持つ `lang` の誤りの文を 1 つの表に束ねる */
+/** 持っている読み方が持つ `lang` の誤りの文を 1 つの表に束ねる */
 const fromBlocks = (lang: NotationLang): BlockMessages =>
-  Object.assign({}, ...ranked(BLOCKS).map((block) => ("none" in block.messages ? {} : block.messages[lang]))) as BlockMessages;
+  Object.assign({}, ...loadedReadings().map(({ reading }) => ("none" in reading.messages ? {} : reading.messages[lang]))) as BlockMessages;
 
 const ja = (): Messages => {
   const shapes: Record<Shape, string> = {
@@ -90,6 +104,12 @@ const ja = (): Messages => {
     badAttr: (key, allowed) => `${key} はこの行に書けない属性。書けるのは ${list(allowed)}`,
     badHash: "hash は 0 から 9 と a から f の字で 4 から 40 字にする",
     timeOnly: (word) => `${word} は time (時間軸の図) でだけ書ける`,
+    gitOnly: (word) => `${word} の行は git (枝分かれの図) でだけ書ける`,
+    treeOnly: (word) => `${word} の行は tree (木の図) でだけ書ける`,
+    lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
+    lineupOrTryOnly: (word) => `${word} の行は lineup (列の図) と try (試す図) でだけ書ける`,
+    tryOnly: (word) => `${word} の行は try (試す図) でだけ書ける`,
+    blockNotLoaded: (block) => `${block} のブロックの読み方を読んでいない。読む前に loadFor を待つ`,
   };
 };
 
@@ -130,9 +150,16 @@ const en = (): Messages => {
     badAttr: (key, allowed) => `${key} cannot be written on this line. Write ${list(allowed)}`,
     badHash: "Write a hash as 4 to 40 characters of 0-9 and a-f",
     timeOnly: (word) => `${word} can be written only in time diagrams`,
+    gitOnly: (word) => `${word} lines can be written only in git diagrams`,
+    treeOnly: (word) => `${word} lines can be written only in tree diagrams`,
+    lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
+    lineupOrTryOnly: (word) => `${word} lines can be written only in lineup and try diagrams`,
+    tryOnly: (word) => `${word} lines can be written only in try diagrams`,
+    blockNotLoaded: (block) => `The ${block} block is not loaded. Await loadFor before reading`,
   };
 };
 
-const MESSAGES: Record<NotationLang, Messages> = { ja: ja(), en: en() };
+/** 誤りの文の表。読み方の登録が変わった時に束ね直す */
+const MESSAGES = cachedByReadings((): Record<NotationLang, Messages> => ({ ja: ja(), en: en() }));
 
-export const messagesFor = (lang: NotationLang): Messages => MESSAGES[lang];
+export const messagesFor = (lang: NotationLang): Messages => MESSAGES()[lang];

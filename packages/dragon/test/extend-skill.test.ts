@@ -56,9 +56,19 @@ function rowsOf(title: string): string[] {
 }
 
 /** 取り込みで変えた file のうち、一覧のどの行にも当てはまらない物 */
+/**
+ * 過去の取り込みが変えた file のうち、登録先の一覧のどの行にも当たらない物。
+ * 今の repo に無い file は数えない。後の取り込みが置き場を移した file (見本帳の部品の図はブロックの置き場の `gallery/` へ移った、#3348) は、
+ * 足す時に触る登録先ではなくなっている。一覧は今在る path だけを名指す (`extend-skill-names-existing-paths`)
+ */
 function uncovered(commits: string[], rows: string[]): string[] {
   const patterns = rows.map(patternOf);
-  return commits.flatMap((commit) => git("show", "--name-only", "--format=", commit).filter((file) => !patterns.some((p) => p.test(file))).map((file) => `${commit} ${file}`));
+  const tracked = new Set(git("ls-files"));
+  return commits.flatMap((commit) =>
+    git("show", "--name-only", "--format=", commit)
+      .filter((file) => tracked.has(file) && !patterns.some((p) => p.test(file)))
+      .map((file) => `${commit} ${file}`),
+  );
 }
 
 /** skill の文と `references/` の file */

@@ -6,6 +6,16 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Changed
+
+- **軽い入口が、書いた図が使う時だけブロックの読み方を読むようにした** (#3349)
+
+  ブロックの置き場は `block.ts` (名前、並び、付け方、語、読む行の宣言) と `read.ts` (読む処理、書き戻す処理、誤りの文) に分かれた。
+  軽い入口 `@cardenelabs/dragon/light` はコアブロックと、`sequence` と `architecture` のブロックを持つ。これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
+  `loadKind` はその種類の全てのブロックの読み方も読む。`loadReadings` は描く部品を読まずにブロックの読み方だけを読み、`diagramKind` は読む前の記法か JSON の図の種類を返す。
+  軽い入口の使い方が変わる。`git`、`lineup`、`state`、`time`、`tree`、`try` の記法を読む前に `loadFor` か `loadKind` を待つ。読んでいないブロックの行を読むと、ブロックの名前を含む誤りで止まる。
+  既定の入口 `@cardenelabs/dragon` は今までどおり全てのブロックを持ち、待たずに全ての図を読む。
+
 ## [0.48.0] - 2026-11-04
 
 ### Added
