@@ -119,7 +119,7 @@ export function drawLineup(
   timeline: Timeline,
   ctx: Ctx,
   subs: Map<string, SubChange[]>,
-): { lanes: string; chips: string; css: string } {
+): { heading: string; lanes: string; chips: string; css: string } {
   const { m } = ctx;
   const N = LINEUP_LOOK;
   const cut = MOTION.lineup.cut;
@@ -493,7 +493,8 @@ export function drawLineup(
     .join("");
 
   return {
-    lanes: `${heading}${headlines}${roles}${arrows}${lanes}${remarks}${aheads}${legend}`,
+    heading: `${heading}${headlines}`,
+    lanes: `${roles}${arrows}${lanes}${remarks}${aheads}${legend}`,
     chips: `${pattern}${chips}`,
     css: LINEUP_CSS,
   };
