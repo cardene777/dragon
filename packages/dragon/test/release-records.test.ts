@@ -168,6 +168,17 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-48-0-releases-try-and-arcade", () => {
+    // 試す図 (#3337)、色味 arcade (#3341) と角の形 (#3344)、原本の版 2 (#3346) は 0.48.0 で npm に出す (#3362)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 48, `package の版 ${version()} が 0.48.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.48\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.48.0"), "0.48.0");
+      expect(released, `${file} に日付付きの ## [0.48.0] の節が無い`).not.toBe("");
+      for (const issue of ["#3337", "#3341", "#3344", "#3346"]) expect(released, `${file} の 0.48.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+    }
+  });
+
   it("changelog-0-47-0-releases-english-default", () => {
     // lang を渡さない時の文を英語にした変更 (#3338) は 0.47.0 で出し、日本語を保つ書き方を変更履歴に載せる
     const [major = 0, minor = 0] = version().split(".").map(Number);

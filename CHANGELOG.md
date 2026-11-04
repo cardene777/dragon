@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-11-04
+
 ### Added
 
 - **Added the try diagram (`try`), a figure readers can type values into and move themselves** (#3337)
