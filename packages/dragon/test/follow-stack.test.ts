@@ -72,6 +72,16 @@ const union = (rects: Rect[]): Rect => {
 const inside = (x: number, y: number, win: Rect): boolean =>
   x >= win.x && x <= win.x + win.w && y >= win.y && y <= win.y + win.h;
 
+/**
+ * 四角 `rect` を窓 `win` が映し切れない長さ。向きごとに、窓より短い四角は全部が窓に入り、窓より長い四角は窓が四角の中に収まれば 0。
+ * 縦に組んだ形の置き場の帯は窓より広いため、帯の幅を窓が全部使って映していれば入ったと数える
+ */
+function unshown(rect: Rect, win: Rect): number {
+  const axis = (lo: number, len: number, wlo: number, wlen: number): number =>
+    len <= wlen ? Math.max(0, wlo - lo, lo + len - (wlo + wlen)) : Math.max(0, lo - wlo, wlo + wlen - (lo + len));
+  return Math.max(axis(rect.x, rect.w, win.x, win.w), axis(rect.y, rect.h, win.y, win.h));
+}
+
 /** 枠の幅 `width` に、見せ方を書かずに置いた図の SVG */
 function mounted(diagram: Diagramish, width: number): SVGSVGElement {
   const host = document.createElement("div");
@@ -103,13 +113,11 @@ describe("縦に組んだ列の図を寄って追う窓 (#3365)", () => {
           inside(lane.x + lane.w / 2, lane.y + lane.h / 2, win),
           `段 ${step + 1} の窓 (${Math.round(win.x)}, ${Math.round(win.y)}) に ${lane.id} の真ん中が入らない`,
         ).toBe(true);
-      // 変わる列を全部囲んだ所が窓に収まる大きさなら、全部が窓に入る
-      const all = union(lanes);
-      if (all.w <= win.w && all.h <= win.h)
-        expect(
-          Math.round(overflow(all, win)),
-          `段 ${step + 1} で変わる列 (${lanes.map((l) => l.id).join("、")}) が窓からはみ出す長さ`,
-        ).toBe(0);
+      // 変わる列を全部囲んだ所を、窓が映せるだけ映す
+      expect(
+        Math.round(unshown(union(lanes), win)),
+        `段 ${step + 1} で変わる列 (${lanes.map((l) => l.id).join("、")}) を窓が映し切れない長さ`,
+      ).toBe(0);
     }
     // 最初の段の窓に、メモリプールの列と自分のチップが入る
     const first = placed.windowAt(0);
@@ -117,7 +125,7 @@ describe("縦に組んだ列の図を寄って追う窓 (#3365)", () => {
     const mine = layout.chips.find((c) => c.id === "自分" && c.step === 0);
     expect(pool, "メモリプールの列が無い").toBeDefined();
     expect(mine, "段 1 に自分のチップが無い").toBeDefined();
-    expect(Math.round(overflow(pool as Rect, first)), "段 1 の窓からメモリプールの列がはみ出す長さ").toBe(0);
+    expect(Math.round(unshown(pool as Rect, first)), "段 1 の窓がメモリプールの列を映し切れない長さ").toBe(0);
     expect(Math.round(overflow(mine as Rect, first)), "段 1 の窓から自分のチップがはみ出す長さ").toBe(0);
   });
 
