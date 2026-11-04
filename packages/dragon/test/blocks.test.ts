@@ -45,8 +45,16 @@ const LATER_KINDS = ["git", "lineup", "state", "time", "tree", "try"];
 const ATTACH = ["place", "connect", "ride-on-line", "attach-to-box", "attach-to-figure"];
 /** ブロックの定義が持つ欄。中身が無い欄も `none` を置いて持つ */
 const BLOCK_FIELDS = ["name", "rank", "attach", "words", "read", "print", "messages"];
-/** ブロックの置き場が持つ file。原本の形の欠片 (`shape.ts`) は定義 (`block.ts`) と分けて持つ (#3348) */
-const BLOCK_FILES = ["block.ts", "shape.ts", "draw.ts", "gallery/text.ts", "gallery/shelf.ts", "gallery/docs.ts", "gallery/rule.ts"];
+/**
+ * 定義の欄のうち、読み方 (`read.ts` の `reading`) が持つ欄。軽い入口は個別ブロックの読み方を書いた図が使う時に読むので、
+ * 入口に置く定義 (`block.ts` の `block`) と分ける (#3349)
+ */
+const READING_FIELDS = ["read", "print", "messages"];
+/**
+ * ブロックの置き場が持つ file。原本の形の欠片 (`shape.ts`) は定義 (`block.ts`) と分けて持つ (#3348)。
+ * 読む処理と書き戻す処理と誤りの文 (`read.ts`) も定義と分けて持つ (#3349)
+ */
+const BLOCK_FILES = ["block.ts", "read.ts", "shape.ts", "draw.ts", "gallery/text.ts", "gallery/shelf.ts", "gallery/docs.ts", "gallery/rule.ts"];
 /** 図の種類の置き場が持つ file。これ以外を置かない */
 const KIND_FILES = ["kind.ts", "layout.ts"];
 
@@ -84,11 +92,16 @@ type Shape = { none: string } | { field?: unknown; definitions?: Record<string, 
  * 書き出した一覧 (`src/blocks/index.ts` と `src/blocks/shapes.ts` と `src/kinds/index.ts`) を読む。まだ無い時は空。
  * 決まりの関数は欄の在り無しを見るので、ブロックごとの型を広い形で受ける
  */
-async function registries(): Promise<{ blocks: Record<string, Block>; shapes: Record<string, Shape>; kinds: Record<string, Kind> }> {
-  const blocks = await import("../src/blocks/index").then((m) => m.BLOCKS as unknown as Record<string, Block>).catch(() => ({}));
+async function registries(): Promise<{ blocks: Record<string, Block>; definitions: Record<string, Block>; shapes: Record<string, Shape>; kinds: Record<string, Kind> }> {
+  const definitions = await import("../src/blocks/index").then((m) => m.BLOCKS as unknown as Record<string, Block>).catch(() => ({}));
+  const readings = await import("../src/blocks/readings")
+    .then((m) => (m as { READINGS: Record<string, Record<string, unknown>> }).READINGS)
+    .catch(() => ({}) as Record<string, Record<string, unknown>>);
+  // 定義と読み方を合わせたブロック。読み方を持たないブロックは定義の欄だけになり、決まりの関数が欠けた欄を名指す
+  const blocks = Object.fromEntries(Object.entries(definitions).map(([name, block]) => [name, { ...block, ...readings[name] } as Block]));
   const shapes = await import("../src/blocks/shapes").then((m) => m.SHAPES as unknown as Record<string, Shape>).catch(() => ({}));
   const kinds = await import("../src/kinds/index").then((m) => m.KIND_FOLDERS as unknown as Record<string, Kind>).catch(() => ({}));
-  return { blocks, shapes, kinds };
+  return { blocks, definitions, shapes, kinds };
 }
 
 /** ブロックの置き場のうち、持つべき file を持たない物を `<名前>/<file>` で返す */
@@ -229,6 +242,16 @@ describe("ブロックの置き場 (#3345)", () => {
     expect(messageProblems(blocks), "誤りの文の欄").toEqual([]);
   });
 
+  it("block-definition-keeps-reading-out", async () => {
+    // 入口に置く定義 (`block.ts`) は読む処理と書き戻す処理と誤りの文を持たず、読み方 (`read.ts`) が持つ (#3349)
+    const { definitions } = await registries();
+    expect(Object.keys(definitions).length, "定義を読めたブロックの数").toBeGreaterThan(0);
+    expect(
+      Object.entries(definitions).flatMap(([name, block]) => READING_FIELDS.filter((field) => block[field] !== undefined).map((field) => `${name}.${field}`)),
+      "読み方の欄を定義に持つブロック",
+    ).toEqual([]);
+  });
+
   it("block-check-flags-missing-messages", () => {
     // 誤りの文が無いか日英の片方しか無いブロックを、置き場の決まりの関数が名指す
     const base = { name: "x", rank: 0, attach: { how: "place" }, words: {} };
@@ -245,7 +268,7 @@ describe("ブロックの置き場 (#3345)", () => {
     try {
       mkdirSync(join(root, "y", "gallery"), { recursive: true });
       writeFileSync(join(root, "y", "block.ts"), "");
-      expect(missingBlockFiles(root)).toEqual(["y/shape.ts", "y/draw.ts", "y/gallery/text.ts", "y/gallery/shelf.ts", "y/gallery/docs.ts", "y/gallery/rule.ts"]);
+      expect(missingBlockFiles(root)).toEqual(["y/read.ts", "y/shape.ts", "y/draw.ts", "y/gallery/text.ts", "y/gallery/shelf.ts", "y/gallery/docs.ts", "y/gallery/rule.ts"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

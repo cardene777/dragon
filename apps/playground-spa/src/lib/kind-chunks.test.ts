@@ -88,6 +88,31 @@ function markersOf(kind: string): string[] {
   return [...new Set(found)].filter((text) => text.trim().length > 0 && !others.includes(text));
 }
 
+/**
+ * 後から読む種類の個別ブロックの読み方 (`blocks/<名前>/read.ts`) だけが持つ誤りの文の字の並び (#3349)。
+ * 読み方は書いた図が使う時に読むので、最初に読む script に在ってはいけない。誤りの文は minify しても残るので、字の並びで見る。
+ * どのブロックが後から読む種類の個別ブロックかは、置き場の定義 (`block.ts`) の付け方の `only` から導く
+ */
+function readingMarkers(): { block: string; markers: string[] }[] {
+  const blocksDir = join(SRC, "blocks");
+  const later = readdirSync(blocksDir).filter((name) => {
+    const path = join(blocksDir, name, "block.ts");
+    const only = /only:\s*"([a-z]+)"/u.exec(statSync(join(blocksDir, name)).isDirectory() ? readFileSync(path, "utf8") : "")?.[1];
+    return only !== undefined && Object.hasOwn(LATER_KINDS, only);
+  });
+  return later.map((block) => {
+    const own = join(blocksDir, block, "read.ts");
+    const code = readFileSync(own, { encoding: "utf8", flag: "r" });
+    const others = sourcesUnder(SRC)
+      .filter((path) => path !== own)
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
+    // 字の並びは、誤りの文の引用の中の、`${` で切れるまでの 8 字以上の日本語を含む部分
+    const found = [...code.matchAll(/[`"]([^`"$\\\n]*[\u3040-\u30ff\u4e00-\u9fff][^`"$\\\n]*)/gu)].map((m) => (m[1] ?? "").trim());
+    return { block, markers: [...new Set(found)].filter((text) => text.length >= 8 && !others.includes(text)) };
+  });
+}
+
 let site: Site;
 
 const assets = (): string => join(site.built.dir, "assets");
@@ -154,6 +179,30 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       expect(
         markers.filter((text) => chunk.includes(text)).length,
         `${kind} の塊に在る ${kind} の部品の字の並びの数`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("first-load-leaves-later-blocks-out", () => {
+    const first = firstLoadFiles(site.built.dir)
+      .filter((name) => name.endsWith(".js"))
+      .map((name) => readFileSync(join(assets(), name), "utf8"))
+      .join("\n");
+    const later = readdirSync(assets())
+      .filter((name) => name.endsWith(".js") && !firstLoadFiles(site.built.dir).includes(name))
+      .map((name) => readFileSync(join(assets(), name), "utf8"))
+      .join("\n");
+    const blocks = readingMarkers();
+    expect(blocks.length, "後から読む種類の個別ブロックが無い (走査の空振り)").toBeGreaterThan(0);
+    for (const { block, markers } of blocks) {
+      expect(markers.length, `${block} の読み方だけが持つ字の並びを導けない (走査の空振り)`).toBeGreaterThan(0);
+      expect(
+        markers.filter((text) => first.includes(text)),
+        `最初に読む script に在る ${block} の読み方の字の並び`,
+      ).toEqual([]);
+      expect(
+        markers.filter((text) => later.includes(text)).length,
+        `後から読む塊に在る ${block} の読み方の字の並びの数`,
       ).toBeGreaterThan(0);
     }
   });
