@@ -2,15 +2,17 @@
 /**
  * `dragon export <図の file>` の命令。原本の JSON (`.json`) か記法 (`.dragon`) を読み、mp4、GIF、HTML、PNG を書き出す。
  * 書き出した file の path を 1 行ずつ出す。
+ * `dragon embed <HTML の file>` の命令は、頁の script の1行の入口を束ねた script の中身に置き換え、外へ通信しない1 file を書く (#3343)。
  * 図に字の重なりがある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出し、終わり方は 0 のままにする (#3178)。
  * 重なりは描けない誤りではなく、止めると避けられない重なりを持つ図を書き出せなくなるため。
  *
  * 使い方の文と誤りの文は、図の中の字と同じ言葉で出す (#3003)。`--lang` を渡せばその言葉、無ければ英語 (#3338)。
  * dragon記法の語は英語だけで file から言葉が決まらないため、記法の file も JSON の原本と同じに扱う (#3137)。
  */
-import { readFileSync } from "node:fs";
-import { basename, extname, resolve } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { embedPage } from "./export/embed";
 import { type ExportFormat, exportDiagram, FORMATS } from "./export/index";
 import { PALETTES, type Theme } from "./look/values";
 import { parseNotation } from "./parser";
@@ -28,6 +30,9 @@ const OPTIONS = {
   format: { type: "string" },
 } as const;
 
+/** `dragon embed` の設定 */
+const EMBED_OPTIONS = { out: { type: "string" }, lang: { type: "string" } } as const;
+
 type Values = Partial<Record<keyof typeof OPTIONS, string>>;
 
 const THEMES: readonly Theme[] = ["light", "dark"];
@@ -36,6 +41,10 @@ const PALETTE_NAMES = Object.keys(PALETTES).join(" / ");
 
 interface CliText {
   usage: string;
+  /** `dragon embed` の使い方 */
+  embedUsage: string;
+  /** `dragon embed` の誤りの文 */
+  embed: { extraFiles: (extra: string[]) => string; noFile: (path: string) => string; unreadable: (path: string, detail: string) => string; noEntry: (path: string) => string };
   unknownOption: (name: string) => string;
   missingValue: (name: string) => string;
   extraFiles: (extra: string[]) => string;
@@ -64,6 +73,17 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
       "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
     ].join("\n"),
+    embedUsage: [
+      "使い方: dragon embed <HTML の file> [設定]",
+      "  --out <file>       書き出す file (既定は元の file の隣の <名前>.offline.html)",
+      "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
+    ].join("\n"),
+    embed: {
+      extraFiles: (extra) => `HTML の file は 1 つだけ渡す。余分な引数: ${extra.join(" ")}`,
+      noFile: (path) => `HTML の file が無い: ${path}`,
+      unreadable: (path, detail) => `HTML の file を読めない: ${path} (${detail})`,
+      noEntry: (path) => `入口の1行 (src が dist/cdn/dragon.js で終わる script) が無い: ${path}`,
+    },
     unknownOption: (name) => `知らない設定: ${name}`,
     missingValue: (name) => `設定に値が無い: ${name}`,
     extraFiles: (extra) => `図の file は 1 つだけ渡す。余分な引数: ${extra.join(" ")}`,
@@ -87,6 +107,17 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --gif-fps <n>      Frames per second of the GIF (default 10)",
       "  --format <list>    Formats to write, separated by , (default mp4,gif,html,png)",
     ].join("\n"),
+    embedUsage: [
+      "Usage: dragon embed <HTML file> [options]",
+      "  --out <file>       Where to write (default: <name>.offline.html next to the file)",
+      "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
+    ].join("\n"),
+    embed: {
+      extraFiles: (extra) => `Pass only one HTML file. Extra arguments: ${extra.join(" ")}`,
+      noFile: (path) => `No such HTML file: ${path}`,
+      unreadable: (path, detail) => `Cannot read the HTML file: ${path} (${detail})`,
+      noEntry: (path) => `No entry line (a script whose src ends with dist/cdn/dragon.js): ${path}`,
+    },
     unknownOption: (name) => `Unknown option: ${name}`,
     missingValue: (name) => `Option needs a value: ${name}`,
     extraFiles: (extra) => `Pass only one diagram file. Extra arguments: ${extra.join(" ")}`,
@@ -119,11 +150,11 @@ function langOf(args: string[]): string | undefined {
  * 設定の誤りを、Node の文ではなく命令の言葉で返す。誤りが無ければ `undefined`。
  * 値の要る設定の後ろに `-` で始まる語が続く時は、その語を値と取り違えずに値が無いとみなす (Node も同じ形を断る)。
  */
-function optionProblem(args: string[], text: CliText): string | undefined {
-  const { tokens } = parseArgs({ args, options: OPTIONS, allowPositionals: true, strict: false, tokens: true });
+function optionProblem(args: string[], text: CliText, options: typeof OPTIONS | typeof EMBED_OPTIONS = OPTIONS): string | undefined {
+  const { tokens } = parseArgs({ args, options, allowPositionals: true, strict: false, tokens: true });
   for (const token of tokens) {
     if (token.kind !== "option") continue;
-    if (!Object.hasOwn(OPTIONS, token.name)) return text.unknownOption(token.rawName);
+    if (!Object.hasOwn(options, token.name)) return text.unknownOption(token.rawName);
     if (token.value === undefined || (!token.inlineValue && token.value.startsWith("-"))) return text.missingValue(token.rawName);
   }
   return undefined;
@@ -175,13 +206,54 @@ function read(file: string, text: CliText, lang: NotationLang): unknown {
   return parsed.diagram;
 }
 
+/** `dragon embed <HTML の file>`。埋めた1 file を書き、その path を出す (#3343) */
+function embed(args: string[], text: CliText): number {
+  const problem = optionProblem(args, text, EMBED_OPTIONS);
+  if (problem !== undefined) {
+    console.error(`${problem}\n${text.embedUsage}`);
+    return 2;
+  }
+  const { values, positionals } = parseArgs({ args, options: EMBED_OPTIONS, allowPositionals: true });
+  if (values.lang !== undefined && !isLang(values.lang)) {
+    console.error(`${text.badValue("--lang", values.lang, text.allowed.lang)}\n${text.embedUsage}`);
+    return 2;
+  }
+  const [file, ...extra] = positionals;
+  if (!file) {
+    console.error(text.embedUsage);
+    return 2;
+  }
+  if (extra.length > 0) {
+    console.error(`${text.embed.extraFiles(extra)}\n${text.embedUsage}`);
+    return 2;
+  }
+  let html: string;
+  try {
+    html = readFileSync(file, "utf8");
+  } catch (error) {
+    const missing = error instanceof Error && "code" in error && error.code === "ENOENT";
+    throw new Error(missing ? text.embed.noFile(file) : text.embed.unreadable(file, detail(error)));
+  }
+  const page = embedPage(html);
+  if (page === undefined) throw new Error(text.embed.noEntry(file));
+  const out = resolve(values.out ?? join(dirname(file), `${basename(file, extname(file))}.offline.html`));
+  try {
+    writeFileSync(out, page);
+  } catch (error) {
+    throw new Error(text.cannotWrite(out, detail(error)));
+  }
+  console.log(out);
+  return 0;
+}
+
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const chosen = langOf(argv);
   // file を読む前の文は、渡した言葉か既定の英語で出す。知らない言葉は英語の使い方で断る
   const early = CLI_TEXT[isLang(chosen) ? chosen : DEFAULT_LANG];
+  if (command === "embed") return embed(rest, early);
   if (command !== "export") {
-    console.error(early.usage);
+    console.error(`${early.usage}\n\n${early.embedUsage}`);
     return 2;
   }
   const problem = optionProblem(rest, early);
