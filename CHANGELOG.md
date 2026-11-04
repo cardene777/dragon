@@ -16,6 +16,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   This changes how the light entry is used: reading `git`, `lineup`, `state`, `time`, `tree`, or `try` notation now needs `loadFor` or `loadKind` first, and reading a line of a block that has not been loaded stops with an error that names the block.
   The default entry `@cardenelabs/dragon` still holds every block and reads every diagram without waiting.
 
+### Fixed
+
+- **Following a stacked lineup now keeps the current step's lanes in the window** (#3365)
+
+  A lineup draws its step number beside the heading at the top, in the same place on every step. The window moved back toward that number, so in a narrow frame it stayed at the top of the figure and the step's lanes fell outside it.
+  The follow window no longer draws the heading text (the figure title, the step title, and its explanation), starts below it, and moves to the lanes the step changes. The player's bar shows the step title and explanation.
+  The fixed view still draws the heading.
+
 ## [0.48.0] - 2026-11-04
 
 ### Added
