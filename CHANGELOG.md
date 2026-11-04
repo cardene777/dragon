@@ -6,8 +6,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
-## [0.49.0] - 2026-11-04
-
 ### Added
 
 - **One script line and a `<pre class="dragon">` block now put a playing diagram on any HTML page** (#3343)
@@ -15,6 +13,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   Load `https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@<major.minor>/dist/cdn/dragon.js` with `<script type="module">`, and every `<pre class="dragon">` block on the page turns into a diagram. A block with a notation error shows its error lines in its place instead.
   The script loads only the renderers of the kinds the page uses, adds the font CSS from jsDelivr to the page once, and uses Japanese when the page's `lang` starts with `ja`.
   The new `dragon embed <HTML file>` command replaces that line with a bundled script holding every kind and writes a single file that fetches nothing from outside. It draws in the device's fonts.
+
+## [0.49.0] - 2026-11-04
+
+### Added
 
 - **A narrow frame now draws an interactive diagram stacked at full size instead of shrinking it** (#3366)
 

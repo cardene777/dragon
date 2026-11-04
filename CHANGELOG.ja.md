@@ -6,8 +6,6 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
-## [0.49.0] - 2026-11-04
-
 ### Added
 
 - **scriptの1行と`<pre class="dragon">`の塊を置くだけで、HTMLの頁に動く図が出るようにした** (#3343)
@@ -15,6 +13,10 @@ dragon DSL の主要変更履歴。
   `https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@<版の真ん中の数まで>/dist/cdn/dragon.js`を`<script type="module">`で読むと、頁の`<pre class="dragon">`の塊が全て図に置き換わる。記法に誤りのある塊は、図の代わりに誤りの文を塊の場所に出す。
   scriptは頁が使う図の種類の描く部品だけを読み、字のCSSをjsDelivrから読む`<link>`を頁に1度だけ足し、頁の`lang`が`ja`で始まれば日本語で出す。
   命令`dragon embed <HTMLのfile>`を足した。1行を全ての種類を束ねたscriptに置き換え、外から何も読まない1 fileを書く。字は端末の字で描く。
+
+## [0.49.0] - 2026-11-04
+
+### Added
 
 - **狭い枠では試す図を縮めずに縦に組んで描くようにした** (#3366)
 
