@@ -8,7 +8,9 @@
  * ブロックと図の種類の一覧は、置き場の dir から `scripts/build-blocks.mjs` が書き出し、手で書いた一覧を持たない。
  *
  * 置き場の決まりを見る関数はこの file が持ち、正しい置き場に当てて通ることと、崩した置き場に当てて名指すことの両方を確かめる。
- * 見本帳を開いた時に読まない図の種類 (状態遷移図と枝分かれの図、#3248) は、置き場の `kind.ts` が並べ方を読まずに `later: true` を名乗る (#3347)。
+ * 見本帳を開いた時に読まない図の種類 (状態遷移図と枝分かれの図と時間軸の図と木の図と列の図、#3248) は、
+ * 置き場の `kind.ts` が並べ方を読まずに `later: true` を名乗る (#3347、#3348)。
+ * ブロックを使える図の種類は、図の種類が受け付ける付け方とブロックの付け方から導き、見本帳の部品の表に手で書かない (#3348)。
  */
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,15 +24,23 @@ const SRC = join(__dirname, "../src");
 const BLOCKS_DIR = join(SRC, "blocks");
 const KINDS_DIR = join(SRC, "kinds");
 const GENERATOR = "../scripts/build-blocks.mjs";
+/** 見本帳の部品の表 */
+const PARTS_TABLE = join(__dirname, "../../../apps/playground-spa/src/catalog/parts.ts");
 
-/** 置き場へ移したブロックと図の種類。状態遷移図と枝分かれの図とその個別ブロックは #3347 で移す */
+/**
+ * 置き場へ移したブロックと図の種類。状態遷移図と枝分かれの図とその個別ブロックは #3347 で、
+ * 時間軸の図と木の図と列の図とその個別ブロックは #3348 で移す
+ */
 const MOVED_BLOCKS = [
   ...["act", "box", "carry", "color", "edge", "edge-label", "group", "icon", "lifeline", "link", "note", "source", "step", "strip"],
   ...["branch", "commit", "copy", "merge", "side-path", "start-finish"],
+  ...["scale", "row", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "order", "role", "legend"],
 ];
-const MOVED_KINDS = ["architecture", "git", "sequence", "state"];
+/** 全ての図の種類。記法の最初の行の頭の語 */
+const ALL_KINDS = [...WORDS.KINDS].sort();
+const MOVED_KINDS = ALL_KINDS;
 /** 見本帳を開いた時に読まず、描く時に後から読む図の種類 (#3248) */
-const LATER_KINDS = ["git", "state"];
+const LATER_KINDS = ["git", "lineup", "state", "time", "tree"];
 /** 付け方の5つ。置く、つなぐ、線に乗る、箱に付く、図に付く */
 const ATTACH = ["place", "connect", "ride-on-line", "attach-to-box", "attach-to-figure"];
 /** ブロックの定義が持つ欄。中身が無い欄も `none` を置いて持つ */
@@ -43,7 +53,7 @@ const KIND_FILES = ["kind.ts", "layout.ts"];
 interface Block {
   name: string;
   rank: number;
-  attach: { how: string; only?: string };
+  attach: { how: string; only?: string; except?: string[] };
   words: { heads?: string[] };
   shape: { definitions?: Record<string, unknown> };
   messages: { none: string } | { ja: Record<string, unknown>; en: Record<string, unknown> };
@@ -150,6 +160,29 @@ export function laterKindProblems(root: string): string[] {
   });
 }
 
+/**
+ * ブロックの付け方が図の種類に合うか。図の種類がブロックの付け方を受け付け、ブロックの `only` が無いかその図の種類で、
+ * ブロックの `except` にその図の種類が無い
+ */
+const fits = (block: Block, kind: Kind): boolean =>
+  kind.accepts.includes(block.attach.how) && (block.attach.only === undefined || block.attach.only === kind.name) && !(block.attach.except ?? []).includes(kind.name);
+
+/**
+ * 見本帳の部品の表 (`catalog/parts.ts` の `PARTS`) の行のうち、図の種類の一覧 (`kinds`) を手で書いた行の名札。
+ * 行は `{ id: "<名札>"` から次の `}` までの字で、行の中に `kinds:` が在れば手で書いた行に数える
+ */
+export function handWrittenKinds(text: string): string[] {
+  const at = text.indexOf("export const PARTS");
+  if (at < 0) return [];
+  return text
+    .slice(at)
+    .split(/(?=\{\s*id:\s*")/u)
+    .slice(1)
+    .map((row) => row.slice(0, row.indexOf("}") + 1))
+    .filter((row) => /\bkinds\s*:/u.test(row))
+    .map((row) => /id:\s*"([^"]+)"/u.exec(row)?.[1] ?? row);
+}
+
 /** ブロックの置き場の部品の図のうち、図の種類 `kind` の物。英語の対は除く */
 const figuresOf = (block: string, kind: string): string[] =>
   files(join(BLOCKS_DIR, block, "gallery")).filter((file) => file.endsWith(`.${kind}.dragon`));
@@ -251,7 +284,7 @@ describe("ブロックの置き場 (#3345)", () => {
       const kind = file.split(".")[1] ?? "";
       const block = blocks[name];
       if (!kinds[kind] || !block) return false;
-      return !kinds[kind].accepts.includes(block.attach.how) || (block.attach.only !== undefined && block.attach.only !== kind);
+      return !fits(block, kinds[kind]);
     });
     expect(misplaced.map(({ name, file }) => `${name}/${file}`), "付け方の合わない図の種類の部品の図").toEqual([]);
   });
@@ -305,7 +338,7 @@ describe("付け方が合う組 (#3347)", () => {
     const render = draw("renderDiagram");
     const pairs = Object.values(kinds).flatMap((kind) =>
       Object.values(blocks)
-        .filter((block) => kind.accepts.includes(block.attach.how) && (block.attach.only === undefined || block.attach.only === kind.name))
+        .filter((block) => fits(block, kind))
         .map((block) => ({ block: block.name, kind: kind.name })),
     );
     expect(pairs.length, "付け方が合う組が無い").toBeGreaterThan(0);
@@ -352,6 +385,48 @@ describe("付け方が合う組 (#3347)", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("付け方から導く図の種類 (#3348)", () => {
+  it("block-kinds-derived-from-attach-types", async () => {
+    // ブロックを使える図の種類は、図の種類が受け付ける付け方とブロックの付け方 (`only` と `except`) から導く。
+    // どの図でも使えるブロック (コアブロック) と 1 つの図の種類だけのブロック (個別ブロック) の分け方も、導いた図の種類から決まる。
+    // 見本帳の部品の表は図の種類を手で書かず、導いた図の種類を引く
+    const { blocks, kinds } = await registries();
+    expect(Object.keys(kinds).sort(), "置き場の無い図の種類").toEqual(ALL_KINDS);
+    expect(Object.keys(blocks), "置き場の無いブロック").toEqual(expect.arrayContaining(MOVED_BLOCKS));
+    const blockKinds = api("blockKinds");
+    const names = Object.keys(blocks).sort();
+    const derived = Object.fromEntries(
+      names.map((name) => [
+        name,
+        Object.values(kinds)
+          .filter((kind) => blocks[name] !== undefined && fits(blocks[name], kind))
+          .map((kind) => kind.name)
+          .sort(),
+      ]),
+    );
+    expect(Object.fromEntries(names.map((name) => [name, [...blockKinds(name)].sort()])), "付け方から導いた図の種類と違う").toEqual(derived);
+    const drawn = Object.fromEntries(
+      names.map((name) => [
+        name,
+        [
+          ...new Set(
+            files(join(BLOCKS_DIR, name, "gallery"))
+              .filter((file) => file.endsWith(".dragon") && !file.endsWith(".en.dragon"))
+              .map((file) => file.split(".")[1] ?? ""),
+          ),
+        ].sort(),
+      ]),
+    );
+    expect(drawn, "部品の図の図の種類が、付け方から導いた図の種類と違う").toEqual(derived);
+    expect(
+      names.filter((name) => (blockKinds(name).length > 1) !== (blocks[name]?.attach.only === undefined)),
+      "どの図でも使えるかが付け方の only と食い違うブロック",
+    ).toEqual([]);
+    expect(handWrittenKinds(readFileSync(PARTS_TABLE, "utf8")), "図の種類を手で書いた部品の表の行").toEqual([]);
+    expect(handWrittenKinds('export const PARTS = [\n  { id: "a", words: ["head:a"] },\n  { id: "b", kinds: ["time"], words: [] },\n];\n')).toEqual(["b"]);
   });
 });
 

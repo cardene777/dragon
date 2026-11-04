@@ -42,6 +42,8 @@ interface DragonApi {
   parseNotation(text: string, options?: { lang?: NotationLang }): Parsed;
   printNotation(diagram: unknown): string;
   extractDiagrams(markdown: string): Fence[];
+  /** ブロックを使える図の種類。付け方から導く (#3348) */
+  blockKinds(name: string): readonly string[];
 }
 
 export function api<K extends keyof DragonApi>(name: K): DragonApi[K] {
