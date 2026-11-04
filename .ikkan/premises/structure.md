@@ -5,7 +5,7 @@
 | 置き場 | 持つ物 | 根拠 |
 |---|---|---|
 | `packages/dragon/src` | 記法の読み書き、原本の検査、描画、再生、書き出し、命令 (`cli.ts`) と、それらを公開する入口 | `packages/dragon/src/index.ts`、`packages/dragon/package.json` の `exports` |
-| `packages/dragon/src/blocks/<名前>` | ブロックの置き場。名前と並びと付け方と語と読む行の宣言 (`block.ts`、軽い入口が初めから持つ)、読む処理と書き戻す処理と誤りの文 (`read.ts`、軽い入口は書いた図が使う時に読む、#3349)、原本の形の欠片 (`shape.ts`、build の時の script と検査だけが一覧 `blocks/shapes.ts` から読む、#3348)、描き方 (`draw.ts`)、見本帳の分と部品の図 (`gallery/`) | `packages/dragon/src/blocks/block.ts`、`packages/dragon/test/blocks.test.ts` の `block-folder-holds-whole-definition` |
+| `packages/dragon/src/blocks/<名前>` | ブロックの置き場。名前と並びと付け方と語と読む行の宣言 (`block.ts`、軽い入口が初めから持つ)、読む処理と書き戻す処理と誤りの文 (`read.ts`、軽い入口は書いた図が使う時に読む、#3349)、原本の形の欠片 (`shape.ts`、build の時の script と検査だけが一覧 `blocks/shapes.ts` から読む、#3348)、描き方 (`draw.ts`)、見本帳の分と部品の図 (`gallery/`。見本帳の一覧と棚と使い方の頁のブロックの段落と `docs/design/base/GRAMMAR.md` の部品と使い方の表は、この分をブロックの並びの順に並べて作る、#3350) | `packages/dragon/src/blocks/block.ts`、`packages/dragon/test/blocks.test.ts` の `block-folder-holds-whole-definition` |
 | `packages/dragon/src/kinds/<種類>` | 図の種類の置き場。受け付ける付け方 (`kind.ts`) と並べ方 (`layout.ts`)。後から読む図の種類 (状態遷移図、枝分かれの図、時間軸の図、木の図、列の図、試す図) の `kind.ts` は並べ方を読まず、後から読む入口 (`kinds/state.ts`、`kinds/git.ts`、`kinds/time.ts`、`kinds/tree.ts`、`kinds/lineup.ts`、`kinds/try.ts`) が並べ方を出す。置き場はブロックの一覧を持たず、どのブロックを使えるかはブロックの付け方 (`attach`) と受け付ける付け方 (`accepts`) から導く (#3348) | `packages/dragon/src/kinds/kind.ts`、`packages/dragon/test/blocks.test.ts` の `later-kind-folder-keeps-layout-out-of-first-load` |
 | `packages/dragon/test` | package と repo の仕組みの検査 | `vitest.config.ts` の `include` |
 | `packages/dragon/scripts` | 入れた依存が公開物と一致するかを確かめる script | `package.json` の `verify:deps` |

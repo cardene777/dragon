@@ -1,35 +1,42 @@
 /**
- * カタログの部品の表 (#3166)。
+ * カタログの部品の表 (#3166、#3350)。
  *
- * package の描く部品 (`render/parts.ts`) は図の種類の間で共通で、図の種類ごとに違うのは並べ方だけなので、
- * カタログは「どの図でも使える部品」「図の種類だけの部品」「図 (部品を組み合わせた物と見本)」の 3 段に並べる。
+ * package の描く部品は図の種類の間で共通で、図の種類ごとに違うのは並べ方だけなので、
+ * カタログは「コアブロック」「個別ブロック」「図 (ブロックを組み合わせた物と見本)」の 3 段に並べる。
  *
- * 1 行は部品の名札と、その部品が受け持つ記法の語を持つ。部品の名札はブロックの名前と同じ。
- * その部品を描ける図の種類は手で書かず、ブロックの付け方と図の種類が受け付ける付け方から導く (`blockKinds`、#3348)。
- * 図の種類を 2 つ以上持つ部品が、どの図でも使える部品 (コアブロック)。
+ * 部品はブロックで、表はブロックの置き場の見本帳の分 (`packages/dragon/src/blocks/<名前>/gallery/`) から作り、ブロックの名前を手で並べない。
+ * どのブロックも見本帳の名前と説明 (`gallery/text.ts`) を持ち、ブロックの並び (`block.ts` の `rank`) の順に並べる (`BLOCK_ORDER`)。
+ * 部品の語は、見本を探す関数 (`gallery/uses.ts`) の鍵を、書いた順に並べた物。
+ * その部品を描ける図の種類は、ブロックの付け方と図の種類が受け付ける付け方から導く (`blockKinds`、#3348)。
+ * 図の種類を 2 つ以上持つ部品がコアブロックで、付け方に `only` を書いた個別ブロックは図の種類を 1 つだけ持つ。
  * 列の図 (#3239) は線を持たないので、線と線の名前と運ぶ物の部品 (つなぐと線に乗るの付け方) を受け付けず、
  * 絵と飛び先と箱の中の処理のブロックは、付け方に列の図を使わない図の種類 (`except`) として書く。
  * 試す図 (#3337) は箱と線を持たないので、置くと図に付くの付け方だけを受け付け、箱と段と出典と中身の帯のブロックは試す図を `except` に書く。
  * 段と出典は書けるが、読み手が段を足していく図で、置いた時は書き手の最初の段だけを描いて待つので、段を送って見せる部品に数えない。
- * 語は `kind:<図の種類>`、`head:<行の頭の語>`、`attr:<行>.<鍵>`、線の行の `edge:->`、枝分かれの図の行の中の語の `git:<語>` の形で書き、
  * package の記法の語の表 (`words.ts`) の語を、どれかの部品が必ず受け持つ (`catalog-parts.test.ts` が数える)。
  * 区画は時系列図に描かれないので、区画の属性 (`attr:group.*`) は区画の部品が受け持つ。
  * 色の役と絵と小さな字の部品は、構成図の図で同じ属性を区画にも付けて見せる。
  *
- * 部品の図は `parts/<名札>.<図の種類>.dragon` と英語の `.en.dragon` の記法の file で、file の名前から引く。
+ * 部品の図は `gallery/<名前>.<図の種類>.dragon` と英語の `.en.dragon` の記法の file で、file の名前から引く。
  * 部品の図の記法は最初に読む script に入れず、1 つの塊にして後から読む (#3246)。
  *
- * 部品の頁は、その部品の語を 1 つでも使う見本を並べる (#3167)。見本が語を使うかは、見本の記法から作った原本の JSON の形で決める。
+ * 部品の頁は、その部品の語を 1 つでも使う見本を並べる (#3167)。見本が語を使うかは、見本の記法から作った原本の JSON を
+ * 見本帳が引いた値 (`SampleView`) にして、ブロックの見本を探す関数に渡して決める。
  */
 import { blockKinds, type Diagram, type DiagramEvent, type LineupItem, parseNotation, type TryItem, type TryPart } from "@cardenelabs/dragon/light";
 
+// 見本帳の分の型は npm に出す入口から出さず、ブロックの置き場の型の file から読む
+import type { BlockUses, SampleView } from "../../../../packages/dragon/src/blocks/gallery";
+
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, LATER_EXAMPLES } from "../examples";
 import { laterChunk } from "../site/later";
-import { type Lang, TEXT } from "../text";
+import type { Lang } from "../text";
+import { BLOCK_ORDER, BLOCK_TEXT } from "./blocks.gen";
+import { BLOCK_USES } from "./blocks-uses.gen";
 import { KINDS, type Kind } from "./catalog";
 
-/** 部品の名札。名前と説明は `TEXT.<言葉>.site.catalog.parts` が持つ */
-export type PartId = keyof typeof TEXT.ja.site.catalog.parts;
+/** 部品の名札。ブロックの置き場の dir の名前で、名前と説明は `TEXT.<言葉>.site.catalog.parts` が持つ */
+export type PartId = keyof typeof BLOCK_TEXT;
 
 export interface Part {
   readonly id: PartId;
@@ -37,69 +44,19 @@ export interface Part {
   readonly words: readonly string[];
 }
 
-/** 部品の表の行の手で書く分。図の種類は書かない */
-type PartRow = Omit<Part, "kinds">;
+/** 見本を探す関数の表。鍵はブロックの名前 */
+const USES: Readonly<Record<string, BlockUses>> = BLOCK_USES;
 
-/** 部品の名札のブロックを使える図の種類を、見本帳の図の種類の並びで足す */
-const withKinds = (row: PartRow): Part => {
-  const usable: readonly string[] = blockKinds(row.id);
-  return { ...row, kinds: KINDS.filter((kind) => usable.includes(kind)) };
+/** ブロックを部品の表の行にする。図の種類は見本帳の図の種類の並びで足す */
+const partOfBlock = (id: PartId): Part => {
+  const usable: readonly string[] = blockKinds(id);
+  return { id, kinds: KINDS.filter((kind) => usable.includes(kind)), words: Object.keys(USES[id] ?? {}) };
 };
 
-/** 部品の表。並びは一覧の札と図の頁の使う部品の並び */
-export const PARTS: readonly Part[] = (
-  [
-  { id: "box", words: ["head:box"] },
-  { id: "edge", words: ["edge:->"] },
-  { id: "edge-label", words: ["attr:edge.side"] },
-  { id: "carry", words: ["attr:edge.carry", "attr:edge.tag"] },
-  { id: "color", words: ["attr:box.color"] },
-  { id: "icon", words: ["attr:box.icon"] },
-  { id: "link", words: ["attr:box.link"] },
-  { id: "note", words: ["attr:box.note", "head:note"] },
-  { id: "act", words: ["head:act"] },
-  { id: "strip", words: ["head:strip", "head:set", "attr:set.tag"] },
-  { id: "step", words: ["head:step", "head:say", "head:code", "attr:diagram.view"] },
-  { id: "source", words: ["head:source", "attr:source.url"] },
-  { id: "lifeline", words: ["kind:sequence"] },
-  { id: "group", words: ["kind:architecture", "head:group", "head:end", "attr:group.note", "attr:group.color", "attr:group.icon"] },
-  { id: "start-finish", words: ["kind:state", "edge:start", "edge:finish"] },
-  { id: "side-path", words: ["edge:before-step"] },
-  { id: "branch", words: ["kind:git", "head:branch", "attr:branch.note", "git:from"] },
-  { id: "commit", words: ["head:commit", "attr:commit.hash", "attr:commit.note"] },
-  { id: "copy", words: ["git:copy"] },
-  { id: "merge", words: ["git:merge"] },
-  // 時間軸の図 (#3165)。中身の帯の物差し (`attr:strip.meter`) は時間軸の図でしか書けないので、目盛りと針の部品が受け持つ
-  {
-    id: "scale",
-    words: ["kind:time", "head:scale", "attr:scale.from", "head:period", "attr:period.from", "head:span", "attr:span.shape", "attr:span.color", "attr:strip.meter"],
-  },
-  { id: "row", words: ["head:row", "attr:row.color", "attr:row.empty", "head:mark", "attr:mark.color"] },
-  { id: "point", words: ["head:point", "attr:note.color"] },
-  { id: "zoom", words: ["head:zoom", "attr:edge.at", "attr:edge.into"] },
-  // 木の図 (#3233)
-  { id: "leaf", words: ["kind:tree", "head:leaf", "attr:leaf.hash"] },
-  { id: "node", words: ["head:node", "attr:node.hash"] },
-  // 列の図 (#3239)
-  { id: "item", words: ["kind:lineup", "head:item", "attr:item.color", "attr:item.label"] },
-  { id: "line", words: ["head:line"] },
-  { id: "seal", words: ["head:seal", "head:open"] },
-  { id: "pick", words: ["head:pick"] },
-  { id: "stamp", words: ["head:stamp"] },
-  // 列の図の卓の形 (#3351)。順番の無い置き場、役の札、チップの説明の凡例
-  { id: "order", words: ["attr:box.order"] },
-  { id: "role", words: ["head:role", "attr:role.note"] },
-  { id: "legend", words: ["attr:item.note"] },
-  // 試す図 (#3337)。網、待ち行列、機械の列、入力の帯、釦。チップ (`item`) と並び (`line`) の語は列の図の部品が受け持つ
-  { id: "route", words: ["kind:try", "head:route", "attr:route.from", "attr:route.to"] },
-  { id: "queue", words: ["head:queue", "attr:queue.order"] },
-  { id: "chain", words: ["head:chain", "attr:chain.edit"] },
-  { id: "ask", words: ["head:ask", "attr:ask.into", "attr:ask.via"] },
-  { id: "press", words: ["head:press", "attr:press.from", "attr:press.into", "attr:press.take", "attr:press.at"] },
-  ] satisfies readonly PartRow[]
-).map(withKinds);
+/** 部品の表。ブロックの並びの順で、一覧の札と図の頁の使う部品の並び */
+export const PARTS: readonly Part[] = BLOCK_ORDER.map(partOfBlock);
 
-/** どの図でも使える部品か。図の種類を 2 つ以上持つ */
+/** コアブロックか。図の種類を 2 つ以上持つ。個別ブロックは付け方の `only` で図の種類を 1 つだけ持つ */
 export const isCommon = (part: Part): boolean => part.kinds.length > 1;
 
 /** 名札の部品。表に無ければ `undefined` */
@@ -124,126 +81,32 @@ function lineupItems(d: Diagram): LineupItem[] {
   const items: readonly (LineupItem | TryItem)[] = d.blocks.item ?? [];
   return items.flatMap((i) => ("values" in i ? [] : [i]));
 }
-/** 試す図の部品のうち、種類が `type` の部品 */
-const tryParts = <T extends TryPart["type"]>(d: Diagram, type: T): Extract<TryPart, { type: T }>[] =>
-  (d.blocks.part ?? []).filter((p): p is Extract<TryPart, { type: T }> => p.type === type);
-const edges = (d: Diagram) => events(d).flatMap((e) => (e.type === "edge" ? [e] : []));
-const commits = (d: Diagram) => events(d).flatMap((e) => (e.type === "commit" ? [e] : []));
-const spans = (d: Diagram) => events(d).flatMap((e) => (e.type === "span" ? [e] : []));
-/** 札を運ぶ線のうち、札を書いた線。枝分かれの図の線は書かなければ送る側の名前の札を運ぶので、その札は書いた札に数えない */
-const writtenTag = (d: Diagram, e: ReturnType<typeof edges>[number]): boolean => e.carry.kind === "tag" && !(d.kind === "git" && e.carry.text === e.from);
 
-/**
- * 記法の語ごとの、図がその語を使ったか。原本の JSON のどこに現れるかで決める。
- * 区画の行を閉じる `end` は区画があれば必ず書くので、区画があるかで決める。
- * 試す図の網の `from` と `to`、入力の帯の `into`、釦の `from` と `into` と `take` も必ず書くので、その部品があるかで決める
- */
-const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
-  "kind:sequence": (d) => d.kind === "sequence",
-  "kind:architecture": (d) => d.kind === "architecture",
-  "kind:state": (d) => d.kind === "state",
-  "kind:git": (d) => d.kind === "git",
-  "head:group": (d) => (d.blocks.group ?? []).length > 0,
-  "head:end": (d) => (d.blocks.group ?? []).length > 0,
-  "head:box": (d) => (d.blocks.box ?? []).length > 0,
-  "head:strip": (d) => d.blocks.strip !== undefined,
-  "head:step": (d) => d.steps.length > 0,
-  "head:say": (d) => d.steps.some((step) => step.body !== ""),
-  "head:code": (d) => d.steps.some((step) => step.code !== undefined),
-  "head:source": (d) => d.steps.some((step) => step.sources !== undefined),
-  "head:act": (d) => events(d).some((e) => e.type === "action"),
-  "head:note": (d) => events(d).some((e) => e.type === "swap"),
-  "head:set": (d) => events(d).some((e) => e.type === "strip"),
-  "attr:diagram.view": (d) => d.view !== undefined,
-  "attr:group.note": (d) => (d.blocks.group ?? []).some((r) => r.note !== undefined),
-  "attr:group.color": (d) => (d.blocks.group ?? []).some((r) => r.color !== undefined),
-  "attr:group.icon": (d) => (d.blocks.group ?? []).some((r) => r.icon !== undefined),
-  "attr:box.note": (d) => (d.blocks.box ?? []).some((b) => b.sub !== undefined),
-  "attr:box.color": (d) => (d.blocks.box ?? []).some((b) => b.color !== undefined),
-  "attr:box.icon": (d) => (d.blocks.box ?? []).some((b) => b.icon !== undefined),
-  "attr:box.link": (d) => (d.blocks.box ?? []).some((b) => b.link !== undefined),
-  "attr:source.url": (d) => d.steps.some((step) => step.sources !== undefined),
-  "attr:edge.carry": (d) => edges(d).some((e) => e.carry.kind === "coin" || e.carry.kind === "none"),
-  "attr:edge.tag": (d) => edges(d).some((e) => writtenTag(d, e)),
-  "attr:edge.side": (d) => edges(d).some((e) => e.labelSide !== undefined),
-  "attr:set.tag": (d) => events(d).some((e) => e.type === "strip" && e.tag !== undefined),
-  "edge:->": (d) => edges(d).length > 0,
-  "edge:start": (d) => edges(d).some((e) => e.from === "start"),
-  "edge:finish": (d) => edges(d).some((e) => e.to === "finish"),
-  "edge:before-step": (d) => (d.blocks.path ?? []).length > 0,
-  "head:branch": (d) => (d.blocks.branch ?? []).length > 0,
-  "head:commit": (d) => commits(d).length > 0,
-  "attr:branch.note": (d) => (d.blocks.branch ?? []).some((b) => b.note !== undefined),
-  "attr:commit.hash": (d) => commits(d).some((c) => c.hash !== undefined),
-  "attr:commit.note": (d) => commits(d).some((c) => c.note !== undefined),
-  "git:from": (d) => events(d).some((e) => e.type === "branch"),
-  "git:copy": (d) => commits(d).some((c) => c.copy !== undefined),
-  "git:merge": (d) => commits(d).some((c) => c.merge !== undefined),
-  "kind:time": (d) => d.kind === "time",
-  "head:scale": (d) => d.blocks.scale !== undefined,
-  "attr:scale.from": (d) => d.blocks.scale?.from !== undefined,
-  "head:period": (d) => d.blocks.period !== undefined,
-  "attr:period.from": (d) => d.blocks.period?.from !== undefined,
-  "head:span": (d) => spans(d).length > 0,
-  "attr:span.shape": (d) => spans(d).some((e) => e.shape !== undefined),
-  "attr:span.color": (d) => spans(d).some((e) => e.color !== undefined),
-  "attr:strip.meter": (d) => (d.blocks.strip?.meters ?? []).length > 0,
-  "head:row": (d) => (d.blocks.row ?? []).length > 0,
-  "attr:row.color": (d) => (d.blocks.row ?? []).some((r) => r.color !== undefined),
-  "attr:row.empty": (d) => (d.blocks.row ?? []).some((r) => r.empty !== undefined),
-  "head:mark": (d) => events(d).some((e) => e.type === "mark"),
-  "attr:mark.color": (d) => events(d).some((e) => e.type === "mark"),
-  "head:point": (d) => (d.blocks.point ?? []).length > 0,
-  "attr:note.color": (d) => events(d).some((e) => e.type === "swap" && e.color !== undefined),
-  "head:zoom": (d) => d.blocks.zoom !== undefined,
-  "attr:edge.at": (d) => edges(d).some((e) => e.at !== undefined),
-  "attr:edge.into": (d) => edges(d).some((e) => e.into !== undefined),
-  "kind:tree": (d) => d.kind === "tree",
-  "head:leaf": (d) => events(d).some((e) => e.type === "leaf"),
-  "attr:leaf.hash": (d) => events(d).some((e) => e.type === "leaf" && e.hash !== undefined),
-  "head:node": (d) => events(d).some((e) => e.type === "node"),
-  "attr:node.hash": (d) => events(d).some((e) => e.type === "node" && e.hash !== undefined),
-  "kind:lineup": (d) => d.kind === "lineup",
-  "head:item": (d) => (d.blocks.item ?? []).length > 0,
-  "attr:item.color": (d) => lineupItems(d).some((i) => i.color !== undefined),
-  "attr:item.label": (d) => lineupItems(d).some((i) => i.label !== undefined),
-  "head:line": (d) => events(d).some((e) => e.type === "line"),
-  "head:seal": (d) => events(d).some((e) => e.type === "seal"),
-  "head:open": (d) => events(d).some((e) => e.type === "open"),
-  "head:pick": (d) => events(d).some((e) => e.type === "pick"),
-  "head:stamp": (d) => events(d).some((e) => e.type === "stamp"),
-  "attr:box.order": (d) => (d.blocks.box ?? []).some((b) => b.order !== undefined),
-  "head:role": (d) => (d.blocks.role ?? []).length > 0,
-  "attr:role.note": (d) => (d.blocks.role ?? []).some((r) => r.note !== undefined),
-  "attr:item.note": (d) => lineupItems(d).some((i) => i.note !== undefined),
-  "kind:try": (d) => d.kind === "try",
-  "head:route": (d) => tryParts(d, "route").length > 0,
-  "attr:route.from": (d) => tryParts(d, "route").length > 0,
-  "attr:route.to": (d) => tryParts(d, "route").length > 0,
-  "head:queue": (d) => tryParts(d, "queue").length > 0,
-  "attr:queue.order": (d) => tryParts(d, "queue").some((p) => p.order !== undefined),
-  "head:chain": (d) => tryParts(d, "chain").length > 0,
-  "attr:chain.edit": (d) => tryParts(d, "chain").some((p) => p.edit !== undefined),
-  "head:ask": (d) => tryParts(d, "ask").length > 0 || events(d).some((e) => e.type === "ask"),
-  "attr:ask.into": (d) => tryParts(d, "ask").length > 0,
-  "attr:ask.via": (d) => tryParts(d, "ask").some((p) => p.via !== undefined),
-  "head:press": (d) => tryParts(d, "press").length > 0 || events(d).some((e) => e.type === "press"),
-  "attr:press.from": (d) => tryParts(d, "press").length > 0,
-  "attr:press.into": (d) => tryParts(d, "press").length > 0,
-  "attr:press.take": (d) => tryParts(d, "press").length > 0,
-  "attr:press.at": (d) => tryParts(d, "press").some((p) => p.at !== undefined),
-};
+/** 見本の図から、ブロックの見本を探す関数に渡す値を引く */
+function viewOf(diagram: Diagram): SampleView {
+  const all = events(diagram);
+  const parts: readonly TryPart[] = diagram.blocks.part ?? [];
+  return {
+    diagram,
+    events: all,
+    edges: all.flatMap((e) => (e.type === "edge" ? [e] : [])),
+    commits: all.flatMap((e) => (e.type === "commit" ? [e] : [])),
+    spans: all.flatMap((e) => (e.type === "span" ? [e] : [])),
+    lineupItems: lineupItems(diagram),
+    tryParts: <T extends TryPart["type"]>(type: T) => parts.filter((p): p is Extract<TryPart, { type: T }> => p.type === type),
+  };
+}
 
-/** 後から読む見本が届いた後に作った、見本の名前と日本語の記法から作った図 */
-let samples: { key: ExampleKey; diagram: Diagram }[] | undefined;
+/** 後から読む見本が届いた後に作った、見本の名前と日本語の記法から作った図から引いた値 */
+let samples: { key: ExampleKey; view: SampleView }[] | undefined;
 
-/** 見本の名前と、日本語の記法から作った図。読めない見本は外す。後から読む見本が届くまでは `undefined` */
-function allSamples(): { key: ExampleKey; diagram: Diagram }[] | undefined {
+/** 見本の名前と、日本語の記法から作った図から引いた値。読めない見本は外す。後から読む見本が届くまでは `undefined` */
+function allSamples(): { key: ExampleKey; view: SampleView }[] | undefined {
   if (samples !== undefined) return samples;
   if (LATER_EXAMPLES.state().status !== "ready") return undefined;
   samples = EXAMPLE_KEYS.flatMap((key) => {
     const parsed = parseNotation(exampleText(key, "ja") ?? "");
-    return parsed.ok ? [{ key, diagram: parsed.diagram }] : [];
+    return parsed.ok ? [{ key, view: viewOf(parsed.diagram) }] : [];
   });
   return samples;
 }
@@ -254,8 +117,8 @@ function allSamples(): { key: ExampleKey; diagram: Diagram }[] | undefined {
  */
 export const samplesUsing = (part: Part): { key: ExampleKey; kind: Kind }[] | undefined =>
   allSamples()
-    ?.filter(({ diagram }) => part.kinds.includes(diagram.kind) && part.words.some((word) => USES[word]?.(diagram) === true))
-    .map(({ key, diagram }) => ({ key, kind: diagram.kind }));
+    ?.filter(({ view }) => part.kinds.includes(view.diagram.kind) && part.words.some((word) => USES[part.id]?.[word]?.(view) === true))
+    .map(({ key, view }) => ({ key, kind: view.diagram.kind }));
 
 /**
  * 部品が受け持つ語を、記法に書く形にする (`head:box` は `box`、`attr:edge.side` は `[side: …]`)。

@@ -1,8 +1,8 @@
 /**
  * 説明に合う図が無い時に、新しい図の種類と部品を足す skill (`dragon-extend`、#3245)。
  *
- * skill の文と登録先の一覧は人が読む文書だが、名指す path と、過去に図の種類と部品を足した取り込みで変えた file を照らし、
- * 一覧が実装からずれた時と、足す時に触る所が一覧から漏れた時に落とす。
+ * skill の文と登録先の一覧は人が読む文書だが、名指す path と、過去に図の種類を足した取り込みで変えた file と、
+ * ブロックの置き場の外で個別ブロックを並べて持つ file を照らし、一覧が実装からずれた時と、足す時に触る所が一覧から漏れた時に落とす。
  * 一覧の行は path を持ち、足す種類や部品ごとに名前が変わる所は `<種類>` のように山括弧で書く。末尾が `/` の行は dir の下を全て当てる。
  */
 import { execFileSync } from "node:child_process";
@@ -19,11 +19,11 @@ const REGISTRY = join(REFERENCES, "registry.md");
 
 /** 図の種類を足した取り込み。木の図 (#3233)、木の図の書き方 (#3235)、列の図 (#3239) */
 const KIND_COMMITS = ["dcf419d1", "33b853a0", "2e18ba4b"];
-/** 部品を足した取り込み。箱の飛び先と段の出典 (#3199) */
-const PART_COMMITS = ["b357ad1a"];
 /** 登録先の一覧の表の見出し */
 const KIND_TABLE = "図の種類を足す時";
-const PART_TABLE = "部品を足す時";
+/** ブロックを足す時の表の見出しと、表の行の数の上限 (#3350) */
+const BLOCK_TABLE = "ブロックを足す時";
+const BLOCK_ROWS_MOST = 6;
 /** repo の path として読む、backtick の中の字の頭 */
 const PATH_HEAD = /^(?:packages|apps|\.claude|\.ikkan|docs|scripts)\/\S+$|^(?:README|CHANGELOG|CONTRIBUTING)\.md$/u;
 
@@ -71,6 +71,35 @@ function uncovered(commits: string[], rows: string[]): string[] {
   );
 }
 
+/** 書き出した一覧の冒頭の注釈。書き出した script を名指し、手で直さないと書く */
+const GENERATED = /^\/\/ packages\/dragon\/scripts\/build-[a-z-]+\.mjs が.*手で直さない/u;
+
+/** 前提 (`product.md`) の節の本文。見出しから次の `## ` の見出しの前まで */
+function premiseSection(title: string): string {
+  const lines = read(join(ROOT, ".ikkan/premises/product.md")).split("\n");
+  const start = lines.indexOf(`## ${title}`);
+  if (start < 0) return "";
+  const end = lines.findIndex((line, i) => i > start && line.startsWith("## "));
+  return lines.slice(start + 1, end < 0 ? undefined : end).join("\n");
+}
+
+/**
+ * ブロックの置き場の外で、個別ブロックの置き場を 2 つ以上名指す file (#3350)。
+ * 個別ブロックを並べて持つ file は、個別ブロックを足すと並びに足すので、ブロックを足す時に触る。
+ * 1 つだけを名指す file はそのブロックを使う所で、ほかのブロックを足しても触らない。書き出した一覧は数えない
+ */
+async function handLists(): Promise<string[]> {
+  const { BLOCKS } = (await import("../src/blocks/index")) as unknown as { BLOCKS: Record<string, { name: string; attach: { only?: string } }> };
+  const individual = Object.values(BLOCKS).filter((block) => block.attach.only !== undefined).map((block) => block.name);
+  return git("ls-files", "packages/dragon/src", "packages/dragon/scripts", "packages/dragon/test", "apps/playground-spa/src")
+    .filter((file) => /\.(?:ts|tsx|mjs)$/u.test(file) && !file.startsWith("packages/dragon/src/blocks/"))
+    .filter((file) => {
+      const text = read(join(ROOT, file));
+      if (GENERATED.test(text.split("\n")[0] ?? "")) return false;
+      return individual.filter((name) => text.includes(`blocks/${name}/`)).length >= 2;
+    });
+}
+
 /** skill の文と `references/` の file */
 function skillTexts(): [string, string][] {
   const refs = existsSync(REFERENCES) ? readdirSync(REFERENCES).filter((name) => name.endsWith(".md")).map((name) => join(REFERENCES, name)) : [];
@@ -80,7 +109,7 @@ function skillTexts(): [string, string][] {
 /** 空白を除いた字。決まりの言い回しは、空白の置き方の違いで落とさない */
 const squash = (text: string): string => text.replace(/\s+/gu, "");
 
-describe("記法と部品を足す skill (#3245)", () => {
+describe("記法と図の種類とブロックを足す skill (#3245)", () => {
   it("extend-skill-has-frontmatter", () => {
     const text = read(SKILL_MD);
     expect(text, ".claude/skills/dragon-extend/SKILL.md が無い").not.toBe("");
@@ -147,19 +176,29 @@ describe("記法と部品を足す skill (#3245)", () => {
     expect(uncovered(KIND_COMMITS, rows), "図の種類を足した取り込みで変えたが、図の種類の表に無い file").toEqual([]);
   });
 
-  it("extend-registry-covers-part-addition", () => {
-    const rows = rowsOf(PART_TABLE);
-    expect(rows.length, `登録先の一覧に「${PART_TABLE}」の表の行が無い`).toBeGreaterThan(0);
-    expect(uncovered(PART_COMMITS, rows), "部品を足した取り込みで変えたが、部品の表に無い file").toEqual([]);
-  });
-
   it("extend-registry-rows-stay-narrow", () => {
-    const rows = [...rowsOf(KIND_TABLE), ...rowsOf(PART_TABLE)];
+    const rows = [...rowsOf(KIND_TABLE), ...rowsOf(BLOCK_TABLE)];
     expect(rows.length, "登録先の一覧の表の行の数").toBeGreaterThan(0);
     // 名前の変わる所より前の、決まった dir の段の数。dir の行は 3 段、名前の変わる所を持つ行は 2 段より浅くしない
     const fixedDepth = (path: string): number => path.split(/<[^>]+>/u)[0]?.split("/").slice(0, -1).filter(Boolean).length ?? 0;
     const wide = rows.filter((path) => (path.endsWith("/") ? path.split("/").filter(Boolean).length < 3 : /<[^>]+>/u.test(path) && fixedDepth(path) < 2));
     expect(wide, "浅い dir を名指して漏れを隠す行").toEqual([]);
+  });
+});
+
+describe("ブロックを足す時の登録先 (#3350)", () => {
+  it("extend-registry-block-rows-shrink", async () => {
+    const rows = rowsOf(BLOCK_TABLE);
+    expect(rows.length, `登録先の一覧に「${BLOCK_TABLE}」の表の行が無い`).toBeGreaterThan(0);
+    expect(rows.length, "ブロックを足す時の表の行の数").toBeLessThanOrEqual(BLOCK_ROWS_MOST);
+    const tracked = git("ls-files");
+    const absent = rows.filter((path) => (/<[^>]+>/u.test(path) ? !tracked.some((file) => patternOf(path).test(file)) : !existsSync(join(ROOT, path))));
+    expect(absent, "ブロックを足す時の表が名指すが repo に無い path").toEqual([]);
+    // 個別ブロックを並べて持つ file は、ブロックを足す時に触るので、表のどれかの行に当たる
+    const lists = await handLists();
+    expect(lists.length, "個別ブロックを並べて持つ file が無い (走査の空振り)").toBeGreaterThan(0);
+    const patterns = rows.map(patternOf);
+    expect(lists.filter((file) => !patterns.some((p) => p.test(file))), "個別ブロックを並べて持つが、表のどの行にも当たらない file").toEqual([]);
   });
 });
 
@@ -175,5 +214,26 @@ describe("部品の考え方 (#3339)", () => {
     const paths = [...body.matchAll(/`([^`]+)`/gu)].map((match) => match[1] ?? "");
     expect(paths.length, "節が根拠の置き場を 1 つも名指さない").toBeGreaterThan(0);
     expect(paths.filter((path) => !existsSync(join(ROOT, path))), "節が名指す path のうち repo に無い物").toEqual([]);
+  });
+
+  it("parts-concept-names-block-and-kind-folders", () => {
+    // 部品の考え方は、ブロックを組み立てて図を描く作りの言葉で書き、ブロックと図の種類の置き場の dir を名指す (#3350)
+    const body = premiseSection("部品の考え方");
+    expect(body, "前提に部品の考え方の節が無い").not.toBe("");
+    const words = ["ブロック", "コアブロック", "個別ブロック", "接続ブロック", "付け方", "図の種類"];
+    expect(words.filter((word) => !body.includes(word)), "部品の考え方の節に無い言葉").toEqual([]);
+    expect(/図(?!の種類)/u.test(body), "部品の考え方の節に図の言葉が無い").toBe(true);
+    expect(["台", "つなぎ口"].filter((word) => body.includes(word)), "使わないと決めた言葉").toEqual([]);
+    const paths = [...body.matchAll(/`([^`]+)`/gu)].map((match) => match[1] ?? "");
+    expect(["packages/dragon/src/blocks/", "packages/dragon/src/kinds/"].filter((dir) => !paths.includes(dir)), "部品の考え方の節が名指さない置き場の dir").toEqual([]);
+    expect(paths.filter((path) => !existsSync(join(ROOT, path))), "節が名指す path のうち repo に無い物").toEqual([]);
+  });
+
+  it("premise-purpose-names-script-entry", () => {
+    // 目的の節は、mermaid と同じ手軽さで書けて表示まで出る理念を書き、script の 1 行の入口の課題を名指す (#3350)
+    const body = premiseSection("目的");
+    expect(body, "前提に目的の節が無い").not.toBe("");
+    expect(body.includes("mermaid"), "目的の節が mermaid と比べた手軽さを書かない").toBe(true);
+    expect(body.includes("#3343"), "目的の節が script の 1 行の入口の課題 (#3343) を名指さない").toBe(true);
   });
 });

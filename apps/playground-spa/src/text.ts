@@ -2,12 +2,28 @@
  * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030、#3032、#3033)。
  *
  * 記法の語 (`時系列図` や `帯`) は見本の file が持ち、ここには持たない。
- * ブロックの置き場へ移した部品の名前と説明と、編集画面の棚の部品の名前はブロックの見本帳の分が持ち、
- * 書き出した一覧 (`catalog/blocks.gen.ts`) から引く (#3345)。
+ * 部品の名前と説明と、編集画面の棚の部品の名前はブロックの見本帳の分が持ち、
+ * 書き出した一覧 (`catalog/blocks.gen.ts`) から全てのブロックの分を引く。ブロックの名前を手で並べない (#3345、#3350)。
  */
-import { BLOCK_SHELF, BLOCK_TEXT } from "./catalog/blocks.gen";
+import { BLOCK_ORDER, BLOCK_SHELF, BLOCK_TEXT } from "./catalog/blocks.gen";
+import type { PartId as ShelfPartId } from "./editor/shelf-items";
 
 export type Lang = "ja" | "en";
+
+/** 見本帳の一覧の部品の名前と説明。鍵はブロックの名前 */
+type PartTexts = { readonly [K in keyof typeof BLOCK_TEXT]: (typeof BLOCK_TEXT)[K][Lang] };
+
+/** 全てのブロックの、見本帳の一覧の名前と説明 */
+const partTexts = (lang: Lang): PartTexts => Object.fromEntries(Object.entries(BLOCK_TEXT).map(([name, text]) => [name, text[lang]])) as PartTexts;
+
+/** 全てのブロックが棚に置く部品の名前。鍵は棚の部品の id */
+const shelfTexts = (lang: Lang): Readonly<Record<ShelfPartId, string>> =>
+  Object.fromEntries(
+    BLOCK_ORDER.flatMap((name) => {
+      const shelf: Readonly<Record<string, Readonly<Record<Lang, string>>>> | { none: string } = BLOCK_SHELF[name];
+      return "none" in shelf ? [] : Object.entries(shelf).map(([id, part]) => [id, part[lang]]);
+    }),
+  ) as Record<ShelfPartId, string>;
 
 /** 状態の欄で数える図の部品 (#3261) */
 export type CountedPart = "box" | "branch" | "row" | "lane" | "part";
@@ -59,51 +75,11 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `今の記法の部品 ${parts} 個と、部品を組み合わせた ${kinds} 種類の図を並べる。部品の頁で書き方と見え方を確かめ、図の頁で見本を検索して動かし、編集画面で開ける。合計 ${samples} 件の見本。`,
         sections: {
-          parts: { title: "部品", lead: "いくつもの図で使う部品。部品ごとに、使える図の種類それぞれで描いた見え方を並べる。列の図は線を引かないので、線と箱の中の処理の部品は列の図に無い。試す図は箱と線を持たず、読み手が段を足していく図なので、ここの部品は試す図に無い。" },
-          "kind-parts": { title: "図の種類だけの部品", lead: "1 つの図の種類でだけ使う部品。" },
-          kinds: { title: "図", lead: "部品を組み合わせた図。図ごとに、使う部品の一覧と見本を載せる。" },
+          parts: { title: "コアブロック", lead: "いくつもの図の種類で使うブロック。ブロックごとに、使える図の種類それぞれで描いた見え方を並べる。列の図は線を引かないので、線と箱の中の処理のブロックは列の図に無い。試す図は箱と線を持たず、読み手が段を足していく図なので、ここのブロックは試す図に無い。" },
+          "kind-parts": { title: "個別ブロック", lead: "1 つの図の種類でだけ使うブロック。" },
+          kinds: { title: "図", lead: "ブロックを組み合わせた図。図ごとに、使うブロックの一覧と見本を載せる。" },
         },
-        parts: {
-          box: BLOCK_TEXT.box.ja,
-          edge: BLOCK_TEXT.edge.ja,
-          "edge-label": BLOCK_TEXT["edge-label"].ja,
-          carry: BLOCK_TEXT.carry.ja,
-          color: BLOCK_TEXT.color.ja,
-          icon: BLOCK_TEXT.icon.ja,
-          link: BLOCK_TEXT.link.ja,
-          note: BLOCK_TEXT.note.ja,
-          act: BLOCK_TEXT.act.ja,
-          strip: BLOCK_TEXT.strip.ja,
-          step: BLOCK_TEXT.step.ja,
-          source: BLOCK_TEXT.source.ja,
-          lifeline: BLOCK_TEXT.lifeline.ja,
-          group: BLOCK_TEXT.group.ja,
-          "start-finish": BLOCK_TEXT["start-finish"].ja,
-          "side-path": BLOCK_TEXT["side-path"].ja,
-          branch: BLOCK_TEXT.branch.ja,
-          commit: BLOCK_TEXT.commit.ja,
-          copy: BLOCK_TEXT.copy.ja,
-          merge: BLOCK_TEXT.merge.ja,
-          scale: BLOCK_TEXT.scale.ja,
-          row: BLOCK_TEXT.row.ja,
-          point: BLOCK_TEXT.point.ja,
-          zoom: BLOCK_TEXT.zoom.ja,
-          leaf: BLOCK_TEXT.leaf.ja,
-          node: BLOCK_TEXT.node.ja,
-          item: BLOCK_TEXT.item.ja,
-          line: BLOCK_TEXT.line.ja,
-          seal: BLOCK_TEXT.seal.ja,
-          pick: BLOCK_TEXT.pick.ja,
-          stamp: BLOCK_TEXT.stamp.ja,
-          order: BLOCK_TEXT.order.ja,
-          role: BLOCK_TEXT.role.ja,
-          legend: BLOCK_TEXT.legend.ja,
-          route: BLOCK_TEXT.route.ja,
-          queue: BLOCK_TEXT.queue.ja,
-          chain: BLOCK_TEXT.chain.ja,
-          ask: BLOCK_TEXT.ask.ja,
-          press: BLOCK_TEXT.press.ja,
-        },
+        parts: partTexts("ja"),
         kindOnly: (kind: string) => `${kind}だけ`,
         partKinds: "使える図",
         words: "記法の語",
@@ -195,19 +171,7 @@ export const TEXT = {
       kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
-      parts: {
-        box: BLOCK_SHELF.box.box.ja,
-        region: BLOCK_SHELF.group.region.ja,
-        step: BLOCK_SHELF.step.step.ja,
-        edge: BLOCK_SHELF.edge.edge.ja,
-        "edge-tag": BLOCK_SHELF.carry["edge-tag"].ja,
-        "edge-coin": BLOCK_SHELF.carry["edge-coin"].ja,
-        "edge-none": BLOCK_SHELF.carry["edge-none"].ja,
-        "edge-below": BLOCK_SHELF["edge-label"]["edge-below"].ja,
-        action: BLOCK_SHELF.act.action.ja,
-        swap: BLOCK_SHELF.note.swap.ja,
-        strip: BLOCK_SHELF.strip.strip.ja,
-      },
+      parts: shelfTexts("ja"),
       syntax: {
         kind: "図の種類と題。最初の行に書く",
         view: "見せ方。書かなければ字の大きさで選ぶ",
@@ -331,53 +295,13 @@ export const TEXT = {
           `The ${parts} parts of the current notation, and the ${kinds} diagram kinds built from them. A part page shows how to write the part and how it looks; a diagram page lets you search its examples, watch them move, and open them in the editor. ${samples} examples in total.`,
         sections: {
           parts: {
-            title: "Parts",
-            lead: "Parts that many diagrams use. Each part page shows the part in every diagram kind that can use it. Lineup diagrams draw no edges, so the edge and action parts are not part of them. Try diagrams have no boxes or edges and grow the steps as the reader acts, so none of these parts are part of them.",
+            title: "Core blocks",
+            lead: "Blocks that many diagram kinds use. Each block page shows the block in every diagram kind that can use it. Lineup diagrams draw no edges, so the edge and action blocks are not part of them. Try diagrams have no boxes or edges and grow the steps as the reader acts, so none of these blocks are part of them.",
           },
-          "kind-parts": { title: "Parts for one kind", lead: "Parts that only one diagram kind uses." },
-          kinds: { title: "Diagrams", lead: "Diagrams built from the parts. Each lists the parts it uses and its examples." },
+          "kind-parts": { title: "Kind blocks", lead: "Blocks that only one diagram kind uses." },
+          kinds: { title: "Diagrams", lead: "Diagrams built from the blocks. Each lists the blocks it uses and its examples." },
         },
-        parts: {
-          box: BLOCK_TEXT.box.en,
-          edge: BLOCK_TEXT.edge.en,
-          "edge-label": BLOCK_TEXT["edge-label"].en,
-          carry: BLOCK_TEXT.carry.en,
-          color: BLOCK_TEXT.color.en,
-          icon: BLOCK_TEXT.icon.en,
-          link: BLOCK_TEXT.link.en,
-          note: BLOCK_TEXT.note.en,
-          act: BLOCK_TEXT.act.en,
-          strip: BLOCK_TEXT.strip.en,
-          step: BLOCK_TEXT.step.en,
-          source: BLOCK_TEXT.source.en,
-          lifeline: BLOCK_TEXT.lifeline.en,
-          group: BLOCK_TEXT.group.en,
-          "start-finish": BLOCK_TEXT["start-finish"].en,
-          "side-path": BLOCK_TEXT["side-path"].en,
-          branch: BLOCK_TEXT.branch.en,
-          commit: BLOCK_TEXT.commit.en,
-          copy: BLOCK_TEXT.copy.en,
-          merge: BLOCK_TEXT.merge.en,
-          scale: BLOCK_TEXT.scale.en,
-          row: BLOCK_TEXT.row.en,
-          point: BLOCK_TEXT.point.en,
-          zoom: BLOCK_TEXT.zoom.en,
-          leaf: BLOCK_TEXT.leaf.en,
-          node: BLOCK_TEXT.node.en,
-          item: BLOCK_TEXT.item.en,
-          line: BLOCK_TEXT.line.en,
-          seal: BLOCK_TEXT.seal.en,
-          pick: BLOCK_TEXT.pick.en,
-          stamp: BLOCK_TEXT.stamp.en,
-          order: BLOCK_TEXT.order.en,
-          role: BLOCK_TEXT.role.en,
-          legend: BLOCK_TEXT.legend.en,
-          route: BLOCK_TEXT.route.en,
-          queue: BLOCK_TEXT.queue.en,
-          chain: BLOCK_TEXT.chain.en,
-          ask: BLOCK_TEXT.ask.en,
-          press: BLOCK_TEXT.press.en,
-        },
+        parts: partTexts("en"),
         kindOnly: (kind: string) => `${kind} only`,
         partKinds: "Used in",
         words: "Notation",
@@ -469,19 +393,7 @@ export const TEXT = {
       kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
-      parts: {
-        box: BLOCK_SHELF.box.box.en,
-        region: BLOCK_SHELF.group.region.en,
-        step: BLOCK_SHELF.step.step.en,
-        edge: BLOCK_SHELF.edge.edge.en,
-        "edge-tag": BLOCK_SHELF.carry["edge-tag"].en,
-        "edge-coin": BLOCK_SHELF.carry["edge-coin"].en,
-        "edge-none": BLOCK_SHELF.carry["edge-none"].en,
-        "edge-below": BLOCK_SHELF["edge-label"]["edge-below"].en,
-        action: BLOCK_SHELF.act.action.en,
-        swap: BLOCK_SHELF.note.swap.en,
-        strip: BLOCK_SHELF.strip.strip.en,
-      },
+      parts: shelfTexts("en"),
       syntax: {
         kind: "Diagram kind and title, on the first line",
         view: "View. Chosen by text size when left out",

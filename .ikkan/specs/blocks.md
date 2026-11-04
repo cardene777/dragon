@@ -13,3 +13,9 @@
 | `migrateFile` が版1の原本の file を版2の形に書き換える | `pnpm exec vitest run`の検査`migrate-file-writes-version-2`が通る | #3346 |
 | 付け方が合う全てのブロックと図の種類の組で、記法を読んで描ける | `pnpm exec vitest run`の検査`every-block-draws-on-every-matching-kind`が通る | #3347 |
 | 軽い入口はコアブロックと図の種類を入口に持ち、個別ブロックは書いた図が使う物だけを読む | `pnpm exec vitest run`の検査`light-entry-loads-only-used-blocks`が通る | #3349 |
+| `.claude/skills/dragon-extend/references/registry.md` のブロックを足す時の表が6行以下で、表の path が全て在る | `pnpm exec vitest run`の検査`extend-registry-block-rows-shrink`が通る | #3350 |
+| 見本帳の名前と説明と部品の図と使い方の頁の本文は、npm に出す package の file に入らない | `pnpm exec vitest run`の検査`package-excludes-catalog-material`が通る | #3350 |
+| 見本帳の部品の一覧と部品の頁と編集画面の棚と使い方の頁の部品の節は、ブロックの置き場から作られ、一覧の段の名前をコアブロックと個別ブロックにする | `pnpm exec vitest run`の検査`catalog-built-from-block-folders`が通る | #3350 |
+| `docs/design/base/GRAMMAR.md` の部品の表はブロックの使い方の決まりから作られ、食い違うと落ちる | `pnpm exec vitest run`の検査`grammar-parts-table-from-blocks`が通る | #3350 |
+| 前提の `## 部品の考え方` の節が、ブロック、コアブロック、個別ブロック、接続ブロック、付け方、図、図の種類の言葉で書かれ、ブロックと図の種類の置き場の dir を名指し、名指す path が全て在る | `pnpm exec vitest run`の検査`parts-concept-names-block-and-kind-folders`が通る | #3350 |
+| 前提の `## 目的` の節が、mermaid と同じ手軽さで書けて表示まで出ることを理念として書き、script の1行の入口の課題 #3343 を名指す | `pnpm exec vitest run`の検査`premise-purpose-names-script-entry`が通る | #3350 |

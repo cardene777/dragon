@@ -4,4 +4,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf: BlockShelf = { none: "棚の部品の一覧に凡例の部品は無く、列の図の凡例は item の行の note の鍵で書く" };
+export const shelf = { none: "棚の部品の一覧に凡例の部品は無く、列の図の凡例は item の行の note の鍵で書く" } satisfies BlockShelf;

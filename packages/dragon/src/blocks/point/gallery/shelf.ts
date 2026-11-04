@@ -4,4 +4,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf: BlockShelf = { none: "棚の部品の一覧に節目の部品は無く、時間軸の図の節目は point の行で書く" };
+export const shelf = { none: "棚の部品の一覧に節目の部品は無く、時間軸の図の節目は point の行で書く" } satisfies BlockShelf;

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * ブロックと図の種類の置き場の dir から、一覧の file を書き出す (#3345、#3348)。
+ * ブロックと図の種類の置き場の dir から、一覧の file を書き出す (#3345、#3348、#3350)。
  *
  * ブロックは `src/blocks/<名前>/`、図の種類は `src/kinds/<種類>/` に置き場を1つずつ持つ。
- * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 8 つを書き出す。
+ * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 10 を書き出す。
  *
  * - `src/blocks/index.ts` ... 各置き場の `block.ts` が出す定義を、dir の名前を鍵にした `BLOCKS` と、名前の並び `BLOCK_NAMES`
  * - `src/blocks/shapes.ts` ... 各置き場の `shape.ts` が出す原本の形の欠片を、dir の名前を鍵にした `SHAPES`
@@ -11,18 +11,26 @@
  * - `src/blocks/entry-readings.ts` ... 入口が初めから持つ読み方 (`ENTRY_READINGS`)。コアブロックと、後から読まない図の種類の個別ブロック
  * - `src/blocks/later-readings.ts` ... 後から読む図の種類の個別ブロックの読み方を読む関数 (`LATER_READINGS`)。軽い入口が書いた図が使う時に呼ぶ
  * - `src/kinds/index.ts` ... 各置き場の `kind.ts` が出す定義を、dir の名前を鍵にした `KIND_FOLDERS`
- * - `apps/playground-spa/src/catalog/blocks.gen.ts` ... 各置き場の `gallery/` の見本帳の分を、種類ごとに dir の名前を鍵にした表
+ * - `apps/playground-spa/src/catalog/blocks.gen.ts` ... 各置き場の `gallery/` の見本帳の分を、種類ごとに dir の名前を鍵にした表と、
+ *   ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に並べた `BLOCK_ORDER`
  * - `apps/playground-spa/src/catalog/blocks-docs.gen.ts` ... 見本帳の分のうち、使い方の頁だけが読む段落 (`BLOCK_DOCS`) の表
+ * - `apps/playground-spa/src/catalog/blocks-uses.gen.ts` ... 見本帳の分のうち、部品の頁が見本を探す関数 (`BLOCK_USES`) の表
+ * - `docs/design/base/GRAMMAR.md` の部品と使い方の表 ... 各置き場の `gallery/rule.ts` の行を、ブロックの並びの順に並べた表の行
  *
  * 形の欠片の一覧を `src/blocks/index.ts` と分けるのは、形の欠片を使うのが build の時に原本の検査を書き出す script と検査だけで、
  * 描く時に読む塊に入れないため (#3348)。package の入口は `src/blocks/shapes.ts` を読まない。
  * 使い方の頁の段落を別の file に分けるのは、上の表と同じ module に置くと、最初に読む塊へ全てのブロックの段落が入るため (#3341)。
  * 塊は module ごとに分かれ、最初の画面が読む `BLOCK_TEXT` と同じ module の値は、後から読む頁だけが使う値も最初の塊に入る。
+ * 見本を探す関数も同じ理由で別の file に分ける。
+ * `GRAMMAR.md` は人が読む文書なので、部品と使い方の表の行だけを書き換え、見出しと表の頭の行とほかの節は触らない。
+ * `rule.ts` は TypeScript なので読み込まず、行の 3 つの欄の字 (`part`、`rule`、`name`) を JSON の字として読む。
+ * 読み違えると見本帳の検査 (`block-gallery.test.ts` の `grammar-parts-table-from-blocks`) が、読み込んだ行と表の行の食い違いで落ちる。
  *
  * 見本帳の分は package の入口から読まないので、package の一覧 (`src/blocks/index.ts`) には入れず、見本帳の側に書き出す。
  * 読み方を 3 つの一覧に分けるのは、軽い入口が後から読む個別ブロックの読み方を最初に読む塊に入れないため (#3349)。
  * どのブロックが後から読む図の種類の個別ブロックかは、置き場の `block.ts` の付け方の `only` と、図の種類の置き場の `kind.ts` の `later: true` の字から引く。
- * 書き出す字の並びは dir の名前の並びと、上の 2 つの字だけで決まり、同じ置き場からは毎回同じ字の並びになる。
+ * ブロックの並びは `block.ts` の `rank` の字から引き、同じ並びのブロックは dir の名前の順に置く (`blocks/block.ts` の `ranked` と同じ順)。
+ * 書き出す字の並びは dir の名前の並びと、上の 3 つの字と `rule.ts` の字だけで決まり、同じ置き場からは毎回同じ字の並びになる。
  *
  * 置き場を足したか消したら `node packages/dragon/scripts/build-blocks.mjs` で書き出し直す。package の build も最初にこれを回す。
  * 書き出した file が dir と食い違うと `test/blocks.test.ts` の `block-registry-derived-from-folders` が落ちる。
@@ -37,12 +45,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const SRC = join(here, "../src");
 /** 見本帳の分の一覧を書き出す先 */
 export const CATALOG = join(here, "../../../apps/playground-spa/src/catalog/blocks.gen.ts");
+/** 部品と使い方の表を書き換える文書 */
+export const GRAMMAR = join(here, "../../../docs/design/base/GRAMMAR.md");
 /** 見本帳の分の file。file ごとに file の名前と同じ名前の値を出す (`gallery/text.ts` は `text`) */
-export const GALLERY_FILES = ["text", "shelf", "docs", "rule"];
-/** 使い方の頁だけが読む見本帳の分。`catalog` の隣の別の file に書き出す */
-const DOCS_FILES = ["docs"];
-/** 使い方の頁だけが読む分の一覧を書き出す先。`catalog` と同じ dir に置く */
-const docsCatalogOf = (catalog) => join(dirname(catalog), "blocks-docs.gen.ts");
+export const GALLERY_FILES = ["text", "shelf", "docs", "rule", "uses"];
+/** 見本帳の分のうち、`catalog` の隣の別の file に書き出す分と、その file の名前。使い方の頁と部品の頁だけが読む */
+const APART_FILES = { docs: "blocks-docs.gen.ts", uses: "blocks-uses.gen.ts" };
+/** 部品と使い方の表の見出し */
+const GRAMMAR_TABLE = "## 部品と使い方";
 
 const HEADER = "// packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない";
 
@@ -98,6 +108,20 @@ const onlyOf = (root, name) => {
   return existsSync(path) ? /\bonly:\s*"([a-z-]+)"/u.exec(readFileSync(path, "utf8"))?.[1] : undefined;
 };
 
+/** 置き場の `block.ts` のブロックの並び (`rank`) の字。無ければ `undefined` */
+const rankOf = (root, name) => {
+  const path = join(root, "blocks", name, "block.ts");
+  const found = existsSync(path) ? /\brank:\s*(\d+)/u.exec(readFileSync(path, "utf8"))?.[1] : undefined;
+  return found === undefined ? undefined : Number(found);
+};
+
+/** ブロックの名前をブロックの並びの順に。並びを書かない置き場は最後に、同じ並びは dir の名前の順に置く */
+const rankedNames = (root, names) =>
+  names
+    .map((name, at) => ({ name, at, rank: rankOf(root, name) ?? Number.POSITIVE_INFINITY }))
+    .sort((a, b) => a.rank - b.rank || a.at - b.at)
+    .map(({ name }) => name);
+
 /** 後から読む図の種類。置き場の `kind.ts` が `later: true` を名乗る */
 const laterKinds = (root, kinds) =>
   kinds.filter((kind) => {
@@ -150,32 +174,70 @@ function kindsIndex(names) {
   ].join("\n");
 }
 
-function catalogIndex(root, catalog, names, files) {
-  const exportName = { text: "BLOCK_TEXT", shelf: "BLOCK_SHELF", docs: "BLOCK_DOCS", rule: "BLOCK_RULE" };
+function catalogIndex(root, catalog, names, files, order) {
+  const exportName = { text: "BLOCK_TEXT", shelf: "BLOCK_SHELF", docs: "BLOCK_DOCS", rule: "BLOCK_RULE", uses: "BLOCK_USES" };
   const what = {
     text: "見本帳の一覧の名前と説明",
-    shelf: "編集画面の棚に置く部品の名前",
+    shelf: "編集画面の棚に置く部品",
     docs: "使い方の頁の段落",
     rule: "`GRAMMAR.md` の部品と使い方の表の行",
+    uses: "部品の頁が、見本がブロックの語を使ったかを決める関数",
   };
   const local = (name, file) => `${ident(name)}${file[0].toUpperCase()}${file.slice(1)}`;
   return [
     HEADER,
     ...names.flatMap((name) => files.map((file) => `import { ${file} as ${local(name, file)} } from "${importPath(catalog, join(root, "blocks", name, "gallery", file))}";`)),
     ...files.flatMap((file) => ["", `/** ${what[file]}。鍵はブロックの置き場の dir の名前 */`, `export const ${exportName[file]} = ${table(names, (name) => local(name, file))} as const;`]),
+    ...(order === undefined
+      ? []
+      : [
+          "",
+          "/** ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に。見本帳の一覧と棚と使い方の頁は、この順にブロックの見本帳の分を並べる */",
+          `export const BLOCK_ORDER = [${order.map((name) => JSON.stringify(name)).join(", ")}] as const;`,
+        ]),
     "",
   ].join("\n");
+}
+
+/** JSON の字として読める、`"` で囲んだ字 */
+const QUOTED = String.raw`"(?:[^"\\]|\\.)*"`;
+/** `rule.ts` の 1 行の 3 つの欄 */
+const RULE_ROW = new RegExp(String.raw`part:\s*(${QUOTED}),\s*rule:\s*(${QUOTED}),\s*name:\s*(${QUOTED})`, "gu");
+
+/** 置き場の `gallery/rule.ts` の表の行を、書いた順に `| 部品 | 決まり | 部品の名前 |` の字で。持たない置き場は空 */
+const ruleRows = (root, name) => {
+  const path = join(root, "blocks", name, "gallery", "rule.ts");
+  if (!existsSync(path)) return [];
+  return [...readFileSync(path, "utf8").matchAll(RULE_ROW)].map((m) => `| ${JSON.parse(m[1])} | ${JSON.parse(m[2])} | ${JSON.parse(m[3])} |`);
+};
+
+/**
+ * `GRAMMAR.md` の字のうち、部品と使い方の表の行を、ブロックの並びの順のブロックの行に替えた字。
+ * 表の頭の行 (見出しの後の最初の `|` の行と区切りの行) とほかの字は変えない。節か表が無ければ `undefined`
+ */
+function grammarText(root, grammar, order) {
+  const text = readFileSync(grammar, "utf8");
+  const lines = text.split("\n");
+  const heading = lines.indexOf(GRAMMAR_TABLE);
+  const head = heading < 0 ? -1 : lines.findIndex((line, i) => i > heading && line.startsWith("|"));
+  if (head < 0 || !/^\|\s*-/u.test(lines[head + 1] ?? "")) return undefined;
+  let end = head + 2;
+  while (end < lines.length && lines[end].startsWith("|")) end++;
+  return [...lines.slice(0, head + 2), ...order.flatMap((name) => ruleRows(root, name)), ...lines.slice(end)].join("\n");
 }
 
 /**
  * 書き出す file の path と中身。`root` は package の src に当たる dir、`catalog` は見本帳の分の一覧を書き出す先。
  * 読み方の一覧は、置き場の `block.ts` の付け方の `only` と図の種類の `kind.ts` の `later: true` の字で分ける
  */
-export function generate(root = SRC, catalog = CATALOG) {
+export function generate(root = SRC, catalog = CATALOG, grammar = GRAMMAR) {
   const blocks = dirs(join(root, "blocks"));
   const kinds = dirs(join(root, "kinds"));
   const later = new Set(laterKinds(root, kinds));
   const laterBlocks = blocks.filter((name) => later.has(onlyOf(root, name) ?? ""));
+  const order = rankedNames(root, blocks);
+  const apart = Object.keys(APART_FILES);
+  const grammarRewritten = existsSync(grammar) ? grammarText(root, grammar, order) : undefined;
   return {
     [join(root, "blocks", "index.ts")]: blocksIndex(blocks),
     [join(root, "blocks", "shapes.ts")]: shapesIndex(blocks),
@@ -183,15 +245,16 @@ export function generate(root = SRC, catalog = CATALOG) {
     [join(root, "blocks", "entry-readings.ts")]: entryReadingsIndex(blocks.filter((name) => !laterBlocks.includes(name))),
     [join(root, "blocks", "later-readings.ts")]: laterReadingsIndex(laterBlocks),
     [join(root, "kinds", "index.ts")]: kindsIndex(kinds),
-    [catalog]: catalogIndex(root, catalog, blocks, GALLERY_FILES.filter((file) => !DOCS_FILES.includes(file))),
-    [docsCatalogOf(catalog)]: catalogIndex(root, docsCatalogOf(catalog), blocks, DOCS_FILES),
+    [catalog]: catalogIndex(root, catalog, blocks, GALLERY_FILES.filter((file) => !apart.includes(file)), order),
+    ...Object.fromEntries(Object.entries(APART_FILES).map(([file, name]) => [join(dirname(catalog), name), catalogIndex(root, join(dirname(catalog), name), blocks, [file])])),
+    ...(grammarRewritten === undefined ? {} : { [grammar]: grammarRewritten }),
   };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const written = [];
   for (const [path, text] of Object.entries(generate())) {
-    // 見本帳の無い所 (package だけを取り出した所) では、見本帳の分の一覧を書かない
+    // 見本帳と文書の無い所 (package だけを取り出した所) では、見本帳の分の一覧と表を書かない
     if (!existsSync(dirname(path))) continue;
     if (existsSync(path) && readFileSync(path, "utf8") === text) continue;
     writeFileSync(path, text);

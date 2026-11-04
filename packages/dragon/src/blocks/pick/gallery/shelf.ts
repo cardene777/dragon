@@ -4,4 +4,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf: BlockShelf = { none: "棚の部品の一覧に選ぶ部品は無く、列の図で列を選ぶ時は pick の行で書く" };
+export const shelf = { none: "棚の部品の一覧に選ぶ部品は無く、列の図で列を選ぶ時は pick の行で書く" } satisfies BlockShelf;

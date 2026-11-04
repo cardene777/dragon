@@ -5,8 +5,10 @@
  * 本文の中の `` ` `` で囲んだ語は `<code>` で出す。
  * 節の記法の例は `examples/` の file が持ち、頁と検査 (`lib/site.test.ts`) が同じ file を読む。
  * 書き出しの節の命令は package の README と同じ物を、設定は命令の使い方の表示と同じ物を出す (検査が突き合わせる)。
- * ブロックの置き場へ移した部品の段落はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks-docs.gen.ts`) から節の中の同じ場所に置く (#3345、#3341)。
+ * ブロックの段落はブロックの見本帳の分 (`gallery/docs.ts`) が持ち、書き出した一覧 (`catalog/blocks-docs.gen.ts`) から、
+ * 段落の `section` の節の中に、ブロックの並び (`rank`) の順に置く。ブロックの名前を手で並べない (#3345、#3341、#3350)。
  */
+import { BLOCK_ORDER } from "../catalog/blocks.gen";
 import { BLOCK_DOCS } from "../catalog/blocks-docs.gen";
 import type { Lang } from "../text";
 
@@ -16,6 +18,14 @@ import type { Lang } from "../text";
  */
 export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
+
+/** その節に置くブロックの段落。段落の `section` がその節のブロックを、ブロックの並びの順に */
+function blockParagraphs(section: SectionId, lang: Lang): string[] {
+  return BLOCK_ORDER.flatMap((name) => {
+    const docs: ({ readonly section: string } & Readonly<Record<Lang, readonly string[]>>) | { readonly none: string } = BLOCK_DOCS[name];
+    return "none" in docs || docs.section !== section ? [] : [...docs[lang]];
+  });
+}
 
 /** 特長の札が指す節。札はこの並びで並ぶ */
 export const CARDS = ["start", "boxes", "regions", "steps", "json", "export"] as const satisfies readonly SectionId[];
@@ -117,32 +127,27 @@ export const DOCS: Record<Lang, DocsText> = {
       boxes: {
         title: "箱",
         text: [
-          ...BLOCK_DOCS.box.ja,
-          ...BLOCK_DOCS.link.ja,
-          ...BLOCK_DOCS.lifeline.ja,
+          ...blockParagraphs("boxes", "ja"),
         ],
         exit: "続き → 線",
       },
       edges: {
         title: "線",
         text: [
-          ...BLOCK_DOCS.edge.ja,
-          ...BLOCK_DOCS.act.ja,
-          ...BLOCK_DOCS["edge-label"].ja,
+          ...blockParagraphs("edges", "ja"),
         ],
         exit: "続き → 区画",
       },
       regions: {
         title: "区画",
-        text: [...BLOCK_DOCS.group.ja],
+        text: [...blockParagraphs("regions", "ja")],
         exit: "構成図の見本を見る →",
       },
       state: {
         title: "状態遷移図",
         text: [
           "1 つの物が状態を移る様子を段ごとに追う時は、最初の行を `state <題>` にする。箱が状態になり、線は状態から状態への移り変わりになる。札が乗っている状態は光り、札が出た状態には済んだ印が残る。",
-          ...BLOCK_DOCS["start-finish"].ja,
-          ...BLOCK_DOCS["side-path"].ja,
+          ...blockParagraphs("state", "ja"),
         ],
         exit: "状態遷移図の見本を見る →",
       },
@@ -150,16 +155,14 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "枝分かれの図",
         text: [
           "git の枝に commit を積み、取り込むまでを段ごとに追う時は、最初の行を `git <題>` にする。枝は `branch <枝> [note: <添え書き>]` の行で上から順に宣言し、枝ごとに帯が並ぶ。箱は無くてもよい。",
-          ...BLOCK_DOCS.commit.ja,
-          ...BLOCK_DOCS.branch.ja,
+          ...blockParagraphs("git", "ja"),
         ],
         exit: "枝分かれの図の見本を見る →",
       },
       time: {
         title: "時間軸の図",
         text: [
-          ...BLOCK_DOCS.scale.ja,
-          ...BLOCK_DOCS.zoom.ja,
+          ...blockParagraphs("time", "ja"),
           "段の中では `now -> <目盛り>` で針を進める。針は目盛り 1 つを決まった速さで進み、過ぎた目盛りの印がその時に出るので、秒数は書かない。`mark <列> <範囲> [color: <色>]` は印の色を変え、`span <範囲>: <字>` は軸の下に範囲の括弧を出し、`[shape: box]` を付けると印の列を囲む枠になる。節目の状態は `note` で書き換え、節目どうしにも線を引ける。",
           "中身の帯の欄の名前の後ろに `[meter: <割合>]` を付けると物差しになり、その割合の所に線を引く。`set <欄>: <割合>` を書いた段で、針と一緒に値まで満ちる。",
         ],
@@ -168,8 +171,7 @@ export const DOCS: Record<Lang, DocsText> = {
       tree: {
         title: "木の図",
         text: [
-          ...BLOCK_DOCS.leaf.ja,
-          ...BLOCK_DOCS.node.ja,
+          ...blockParagraphs("tree", "ja"),
           "親子の箱どうしに `<子> -> <親> [tag: <値>]` の線を書くと、運ぶ物は木の線の上を走り、通った木の線はその色で残る。木の線を運ぶ物が通った段から後は、運ぶ物を送るか受けた箱だけを濃く出す。木の図では `group` を書けず、`box` で宣言した箱は木の右に並ぶ。",
         ],
         exit: "木の図の見本を見る →",
@@ -186,20 +188,18 @@ export const DOCS: Record<Lang, DocsText> = {
       steps: {
         title: "段",
         text: [
-          ...BLOCK_DOCS.step.ja,
-          ...BLOCK_DOCS.source.ja,
-          ...BLOCK_DOCS.note.ja,
+          ...blockParagraphs("steps", "ja"),
         ],
         exit: "続き → 帯",
       },
       strip: {
         title: "帯",
-        text: [...BLOCK_DOCS.strip.ja],
+        text: [...blockParagraphs("strip", "ja")],
         exit: "時系列図の見本を見る →",
       },
       carry: {
         title: "運ぶ物",
-        text: [...BLOCK_DOCS.carry.ja],
+        text: [...blockParagraphs("carry", "ja")],
         exit: "続き → JSON",
       },
       json: {
@@ -320,32 +320,27 @@ export const DOCS: Record<Lang, DocsText> = {
       boxes: {
         title: "Boxes",
         text: [
-          ...BLOCK_DOCS.box.en,
-          ...BLOCK_DOCS.link.en,
-          ...BLOCK_DOCS.lifeline.en,
+          ...blockParagraphs("boxes", "en"),
         ],
         exit: "Next → Lines",
       },
       edges: {
         title: "Lines",
         text: [
-          ...BLOCK_DOCS.edge.en,
-          ...BLOCK_DOCS.act.en,
-          ...BLOCK_DOCS["edge-label"].en,
+          ...blockParagraphs("edges", "en"),
         ],
         exit: "Next → Regions",
       },
       regions: {
         title: "Regions",
-        text: [...BLOCK_DOCS.group.en],
+        text: [...blockParagraphs("regions", "en")],
         exit: "See the architecture samples →",
       },
       state: {
         title: "State diagrams",
         text: [
           "To follow one thing as it moves between states step by step, start the first line with `state <title>`. Each box is a state, and each line is a move from one state to another. The state the tag sits on lights up, and a state the tag has left keeps a done mark.",
-          ...BLOCK_DOCS["start-finish"].en,
-          ...BLOCK_DOCS["side-path"].en,
+          ...blockParagraphs("state", "en"),
         ],
         exit: "See the state diagram samples →",
       },
@@ -353,16 +348,14 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "Git graphs",
         text: [
           "To follow commits on git branches step by step until they are merged, start the first line with `git <title>`. Declare branches from top to bottom with `branch <branch> [note: <note>]` lines, and each branch gets its own band. Boxes are optional.",
-          ...BLOCK_DOCS.commit.en,
-          ...BLOCK_DOCS.branch.en,
+          ...blockParagraphs("git", "en"),
         ],
         exit: "See the git graph samples →",
       },
       time: {
         title: "Time diagrams",
         text: [
-          ...BLOCK_DOCS.scale.en,
-          ...BLOCK_DOCS.zoom.en,
+          ...blockParagraphs("time", "en"),
           "Inside a step, `now -> <tick>` moves the needle. The needle moves one tick at a fixed speed and the marks it passes appear as it goes, so no seconds are written. `mark <row> <range> [color: <color>]` recolors marks, `span <range>: <text>` puts a bracket under the axis, and `[shape: box]` turns it into a frame around the rows. `note` rewrites the state of a point, and lines can join points too.",
           "Add `[meter: <ratio>]` after the name of a strip field to make it a meter with a line at that ratio. In a step with `set <field>: <ratio>`, it fills up to the value along with the needle.",
         ],
@@ -371,8 +364,7 @@ export const DOCS: Record<Lang, DocsText> = {
       tree: {
         title: "Tree diagrams",
         text: [
-          ...BLOCK_DOCS.leaf.en,
-          ...BLOCK_DOCS.node.en,
+          ...blockParagraphs("tree", "en"),
           "A line `<child> -> <parent> [tag: <value>]` between a parent and a child sends its carrier along the tree line, and the tree line keeps that color once passed. From the step where a carrier first runs a tree line, only the boxes that have sent or received a carrier stay strong. A tree diagram takes no `group`, and boxes declared with `box` sit to the right of the tree.",
         ],
         exit: "See the tree diagram samples →",
@@ -389,20 +381,18 @@ export const DOCS: Record<Lang, DocsText> = {
       steps: {
         title: "Steps",
         text: [
-          ...BLOCK_DOCS.step.en,
-          ...BLOCK_DOCS.source.en,
-          ...BLOCK_DOCS.note.en,
+          ...blockParagraphs("steps", "en"),
         ],
         exit: "Next → The strip",
       },
       strip: {
         title: "The strip",
-        text: [...BLOCK_DOCS.strip.en],
+        text: [...blockParagraphs("strip", "en")],
         exit: "See the sequence samples →",
       },
       carry: {
         title: "What travels",
-        text: [...BLOCK_DOCS.carry.en],
+        text: [...blockParagraphs("carry", "en")],
         exit: "Next → JSON",
       },
       json: {
