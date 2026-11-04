@@ -6,6 +6,8 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-11-05
+
 ### Added
 
 - **scriptの1行と`<pre class="dragon">`の塊を置くだけで、HTMLの頁に動く図が出るようにした** (#3343)
