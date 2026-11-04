@@ -10,10 +10,17 @@ import { FONTS, type Family } from "./fonts";
 
 export type Theme = "light" | "dark";
 
+/**
+ * 図の箱の角の形 (#3344)。`round` は今どおり丸め、`cut` は図の箱と囲みと図の枠の右上と左下を落として小さな部品の角を丸めない。
+ * bitsumi の頁と同じ色の色味 (`arcade`) だけが `cut` を持つ
+ */
+export type Corner = "round" | "cut";
+
 export interface Palette {
   id: string;
   name: string;
   note: string;
+  corner: Corner;
   light: Record<string, string>;
   dark: Record<string, string>;
 }
@@ -22,7 +29,10 @@ export interface Palette {
 export const DEFAULT_PALETTE = "paper";
 
 export const PALETTES: Readonly<Record<string, Palette>> = Object.fromEntries(
-  Object.entries(palettes as Record<string, Omit<Palette, "id">>).map(([id, p]) => [id, { id, ...p }]),
+  Object.entries(palettes as Record<string, Omit<Palette, "id">>).map(([id, p]) => [
+    id,
+    { id, ...p },
+  ]),
 );
 
 /** 名前から色味を引く。指定が無いか、知らない名前 (外した墨と朱の `ink` を含む) なら紙と墨。 */
@@ -36,7 +46,39 @@ export function resolvePalette(id?: string): Palette {
  * 外へ出す型を `palettes.json` から作ると、束ねた型の file に JSON の中身が初期値付きで写り、型の検査を通らなくなるため、名前を並べて作る。
  * 並びが `palettes.json` の明るい背景の名前と食い違うと、下の 2 つの `_` で始まる型が、余る名前か足りない名前を挙げて型の検査で落ちる
  */
-const COLOR_NAMES = ["page", "bg", "surf", "sunk", "ink", "ink2", "mute", "hair", "line", "sh", "on-c", "c-blue", "t-blue", "c-amber", "t-amber", "c-green", "t-green", "c-violet", "t-violet", "c-rose", "t-rose", "c-slate", "t-slate", "coin", "coint", "coinin", "tint", "edge", "shA", "shB", "carry"] as const;
+const COLOR_NAMES = [
+  "page",
+  "bg",
+  "surf",
+  "sunk",
+  "ink",
+  "ink2",
+  "mute",
+  "hair",
+  "line",
+  "sh",
+  "on-c",
+  "c-blue",
+  "t-blue",
+  "c-amber",
+  "t-amber",
+  "c-green",
+  "t-green",
+  "c-violet",
+  "t-violet",
+  "c-rose",
+  "t-rose",
+  "c-slate",
+  "t-slate",
+  "coin",
+  "coint",
+  "coinin",
+  "tint",
+  "edge",
+  "shA",
+  "shB",
+  "carry",
+] as const;
 export type ColorName = (typeof COLOR_NAMES)[number];
 type Never<T extends never> = T;
 type PaletteColor = keyof (typeof palettes)[typeof DEFAULT_PALETTE]["light"];
@@ -57,7 +99,8 @@ export const isColorName = (name: string): name is ColorName => COLOR_NAME_SET.h
  * 括弧が閉じていて (閉じない括弧は後ろの宣言を呑む)、外の file を読む `url(` を持たない値だけを通す
  */
 export function isColorValue(value: unknown): value is string {
-  if (typeof value !== "string" || !/^[\w\s#%.,()/+-]+$/u.test(value) || /url\(/iu.test(value)) return false;
+  if (typeof value !== "string" || !/^[\w\s#%.,()/+-]+$/u.test(value) || /url\(/iu.test(value))
+    return false;
   let depth = 0;
   for (const char of value) {
     depth += char === "(" ? 1 : char === ")" ? -1 : 0;
@@ -86,7 +129,11 @@ export interface TextStyle {
   family: Family;
 }
 
-const text = (size: number, weight: number, family: Family = "sans"): TextStyle => ({ size, weight, family });
+const text = (size: number, weight: number, family: Family = "sans"): TextStyle => ({
+  size,
+  weight,
+  family,
+});
 
 /** 字の大きさと太さ。どれも 10.5 以上にする。 */
 export const TYPE = {
@@ -174,14 +221,54 @@ export const LOOK = {
    * 箱。`iconY` と `nameY` と `subY` は箱の真ん中から絵柄の真ん中と名前と下の字の基準線まで。
    * `nameMid` と `subMid` はアイコンも置き場の枠も持つ箱が無い図の名前と下の字の基準線で、名前を箱の真ん中に置き、下の字を名前から `subY - nameY` と同じ間で置く (#3307、#3309)
    */
-  box: { h: 72, minW: 92, padX: 12, radius: 12, icon: 24, iconRadius: 7, iconY: -16, iconScale: 0.74, nameY: 12, nameMid: 5, subY: 27, subMid: 20 },
-  region: { pad: 18, gap: 10, radius: 14, inset: 14, icon: 24, iconRadius: 7, iconScale: 0.68, nameY: 58, line: 16, minH: 108 },
+  box: {
+    h: 72,
+    minW: 92,
+    padX: 12,
+    radius: 12,
+    icon: 24,
+    iconRadius: 7,
+    iconY: -16,
+    iconScale: 0.74,
+    nameY: 12,
+    nameMid: 5,
+    subY: 27,
+    subMid: 20,
+  },
+  region: {
+    pad: 18,
+    gap: 10,
+    radius: 14,
+    inset: 14,
+    icon: 24,
+    iconRadius: 7,
+    iconScale: 0.68,
+    nameY: 58,
+    line: 16,
+    minH: 108,
+  },
+  /**
+   * 角を落とす色味 (`Corner` の `cut`) で、図の箱と囲みと図の枠の右上と左下を落とす幅 (#3344)。bitsumi の記事の図の箱と囲みと同じ幅で、
+   * 形の幅か高さの 4 分の 1 を超える時はそこまで縮める
+   */
+  corner: { cut: 8 },
   architecture: { columns: 4, columnGap: 56, maxColumnGap: 160, rowGap: 44, labelRoom: 16 },
   /**
    * 時系列図。線の名前の札は、構成図と状態遷移図より線に寄せる (`labelOffset` は線から札の真ん中まで)。
    * 札と線の離れが図の他の空きと同じ 6 になり、行を詰めても札がどの線の名前かが分かる (#3177)。
    */
-  sequence: { columnGap: 40, labelRoom: 16, labelOffset: 16, firstRow: 10, rowGap: 6, stepGap: 6, minPitch: 32, tail: 10, selfW: 34, selfH: 18 },
+  sequence: {
+    columnGap: 40,
+    labelRoom: 16,
+    labelOffset: 16,
+    firstRow: 10,
+    rowGap: 6,
+    stepGap: 6,
+    minPitch: 32,
+    tail: 10,
+    selfW: 34,
+    selfH: 18,
+  },
   /**
    * 状態遷移図 (#3163)。状態は `columns` つずつ並べて次の段へ折り返し、段の間 (`rowGap`) の真ん中を、段をまたぐ線が通る。
    * `start` と `end` は始まりと終わりの印の半径と、印の中の丸の半径。`drop` は最初の状態の上端から始まりの印の中心まで、
@@ -316,7 +403,18 @@ export const LOOK = {
     shade: 8,
     frame: 2.5,
     emptyR: 1.7,
-    point: { drop: 40, r: 9, text: 15, nameY: -2, stateY: 12, link: 10, end: 6, room: 30, plain: 12, glyph: 0.62 },
+    point: {
+      drop: 40,
+      r: 9,
+      text: 15,
+      nameY: -2,
+      stateY: 12,
+      link: 10,
+      end: 6,
+      room: 30,
+      plain: 12,
+      glyph: 0.62,
+    },
     bracket: { gap: 12, tick: 6, text: 16, lane: 34 },
     box: { pad: 6, tagX: 12, tagH: 16, tagPadX: 7 },
     axisGap: 18,
@@ -334,7 +432,17 @@ export const LOOK = {
   /** `bend` は線の曲がりを丸める半径 (#3171) */
   edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9, bend: 12 },
   /** `touch` は線の名前と、同じ時刻に見えている段の番号の丸の間に空ける最小の隙間 (#3175) */
-  label: { h: 20, padX: 9, radius: 10, offset: 22, side: 14, search: 4, searchMax: 400, soft: 6, touch: 2 },
+  label: {
+    h: 20,
+    padX: 9,
+    radius: 10,
+    offset: 22,
+    side: 14,
+    search: 4,
+    searchMax: 400,
+    soft: 6,
+    touch: 2,
+  },
   action: { h: 22, padX: 10, radius: 11 },
   badge: { r: 9.5, ring: 9, inset: 4, along: 14, short: 44 },
   carrier: { envW: 24, envH: 17, coinR: 6.5, coinIn: 3.8, tagH: 18, tagPadX: 8, samples: 16 },
@@ -350,7 +458,23 @@ export const LOOK = {
   /**
    * `trail` は状態遷移図の帯の最後の、通った状態の点 (#3171)。`r` は点の半径、`step` は点の中心どうしの間、`now` は変わった値の欄の名前の横の点の半径と、名前からの離れ
    */
-  strip: { h: 72, line: 44, titleRow: 40, pad: 12, icon: 24, titleX: 44, fieldGap: 22, sepInset: 14, tagGap: 6, tagH: 15, tagPadX: 7, nameY: 22, valueY: 43, trail: { r: 5.4, step: 16 }, now: { r: 3, gap: 7 } },
+  strip: {
+    h: 72,
+    line: 44,
+    titleRow: 40,
+    pad: 12,
+    icon: 24,
+    titleX: 44,
+    fieldGap: 22,
+    sepInset: 14,
+    tagGap: 6,
+    tagH: 15,
+    tagPadX: 7,
+    nameY: 22,
+    valueY: 43,
+    trail: { r: 5.4, step: 16 },
+    now: { r: 3, gap: 7 },
+  },
   /** `time` から始まる値は時間軸の図 (#3165) の、目盛りの印の枠、拡大の枠、時刻の線、範囲の括弧と囲み、節目へ下ろす点線、節目の丸、針、物差しの線の印 */
   stroke: {
     git: 2.25,
@@ -397,12 +521,55 @@ export const LOOK = {
    * `head` は時系列図の窓の上端に貼る頭の列の頭の箱で、アイコンを外した名前と下の字の 2 段 (#3120)。
    * `pad` は頭の列の上下の余白、`h` は箱の高さ、`nameY` と `subY` は箱の上端から名前と下の字の基準線まで
    */
-  follow: { aspect: 0.75, minH: 320, fitMinH: 160, ease: 0.6, narrow: 440, badgeRoom: 8, headRoom: 10, head: { pad: 8, h: 40, nameY: 17, subY: 31 } },
+  follow: {
+    aspect: 0.75,
+    minH: 320,
+    fitMinH: 160,
+    ease: 0.6,
+    narrow: 440,
+    badgeRoom: 8,
+    headRoom: 10,
+    head: { pad: 8, h: 40, nameY: 17, subY: 31 },
+  },
   /** 色を混ぜる割合 (%) */
   /** `time` から始まる値は時間軸の図 (#3165) の、区切りの地、範囲の囲みの地、空きの枠の地、拡大の点線の濃さ。`chip` と `seal` から始まる値は列の図 (#3239) の、色を持たないチップの地と封の縞の濃さ */
-  mix: { slot: 45, icon: 14, regionIcon: 16, regionIconEdge: 34, cap: 12, capEdge: 42, badgePast: 14, badgePastEdge: 70, mini: 62, miniBand: 16, miniBandEdge: 36, view: 6, side: 4, sideEdge: 36, ghostEdge: 60, path: 55, past: 72, timeShade: 3.5, timeSpan: 6, timeEmpty: 8, timeGuide: 50, chipTint: 14, poolFill: 50, sealDark: 60, sealLight: 34 },
+  mix: {
+    slot: 45,
+    icon: 14,
+    regionIcon: 16,
+    regionIconEdge: 34,
+    cap: 12,
+    capEdge: 42,
+    badgePast: 14,
+    badgePastEdge: 70,
+    mini: 62,
+    miniBand: 16,
+    miniBandEdge: 36,
+    view: 6,
+    side: 4,
+    sideEdge: 36,
+    ghostEdge: 60,
+    path: 55,
+    past: 72,
+    timeShade: 3.5,
+    timeSpan: 6,
+    timeEmpty: 8,
+    timeGuide: 50,
+    chipTint: 14,
+    poolFill: 50,
+    sealDark: 60,
+    sealLight: 34,
+  },
   /** 字の並びの基準線を、置きたい高さの真ん中からどれだけ下げるか */
-  baseline: { label: 3.8, badge: 3.5, carrier: 3.7, stripTitle: 4.5, tag: 3.6, action: 3.8, mark: 4 },
+  baseline: {
+    label: 3.8,
+    badge: 3.5,
+    carrier: 3.7,
+    stripTitle: 4.5,
+    tag: 3.6,
+    action: 3.8,
+    mark: 4,
+  },
   /** 浮いて出る物が下から上がる長さと、弾んで出る物の始まりの大きさ */
   rise: 5,
   popFrom: 0.4,

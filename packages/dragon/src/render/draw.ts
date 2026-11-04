@@ -24,14 +24,35 @@ import { FIGURE_TEXT } from "../figure-text";
 import type { GitLayout } from "../layout/git";
 import type { LineupLayout } from "../layout/lineup";
 import { textWidth } from "../layout/measure";
-import { type Layout, type Rect, rewrapStrip, type SceneField, type SceneStrip } from "../layout/scene";
+import {
+  type Layout,
+  type Rect,
+  rewrapStrip,
+  type SceneField,
+  type SceneStrip,
+} from "../layout/scene";
 import type { TimeLayout } from "../layout/time";
 import type { TreeLayout } from "../layout/tree";
 import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
 import { FONTS } from "../look/fonts";
-import { type ColorKey, type Colors, EASE, FONT_VARS, isColorName, isColorValue, LOOK, MOTION, type Palette, paletteVars, resolvePalette, type Theme, TYPE } from "../look/values";
+import {
+  type ColorKey,
+  type Colors,
+  type Corner,
+  EASE,
+  FONT_VARS,
+  isColorName,
+  isColorValue,
+  LOOK,
+  MOTION,
+  type Palette,
+  paletteVars,
+  resolvePalette,
+  type Theme,
+  TYPE,
+} from "../look/values";
 import { readDiagram } from "../version";
 import { toModel } from "../model";
 import type { DiagramModel, ViewMode } from "../schema";
@@ -50,6 +71,7 @@ import {
   sansOf,
   side,
 } from "./parts";
+import { frameShape, partRadius } from "./corner";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
@@ -286,32 +308,74 @@ export interface FollowFrame {
 }
 
 /** 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。 */
-export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timeline, palette: Palette, theme: Theme, follow?: FollowFrame, ink: Ink[] = [], traces: Trace[] = []): string {
+export function drawSvg(
+  diagram: DiagramModel,
+  layout: Layout,
+  timeline: Timeline,
+  palette: Palette,
+  theme: Theme,
+  follow?: FollowFrame,
+  ink: Ink[] = [],
+  traces: Trace[] = [],
+): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける。
   // 色は色味の名前でなく色の値から名前を作り、色の値を重ねた図 (#3198) と同じ色味の名前の図の変数の規則を分ける
   const vars = paletteVars(palette, theme);
-  const id = nameOf(`${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`);
+  const id = nameOf(
+    `${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`,
+  );
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
-  const ctx: Ctx = { m, t: timeline, id, sh: `filter="url(#dg-sh-${id})"`, end: (timeline.steps[timeline.steps.length - 1] as Span).end, ink, traces, boxText: boxTextY(layout.boxes) };
+  const ctx: Ctx = {
+    m,
+    t: timeline,
+    id,
+    sh: `filter="url(#dg-sh-${id})"`,
+    end: (timeline.steps[timeline.steps.length - 1] as Span).end,
+    ink,
+    traces,
+    boxText: boxTextY(layout.boxes),
+    corner: palette.corner,
+  };
   const on = involved(diagram);
   // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
   const subs = subChanges(diagram, timeline, layout.kind !== "sequence");
 
-  const L = { band: [] as string[], base: [] as string[], lit: [] as string[], node: [] as string[], badge: [] as string[], top: [] as string[] };
-  for (const region of layout.regions) L.band.push(band(region, ink));
+  const L = {
+    band: [] as string[],
+    base: [] as string[],
+    lit: [] as string[],
+    node: [] as string[],
+    badge: [] as string[],
+    top: [] as string[],
+  };
+  for (const region of layout.regions) L.band.push(band(region, ink, ctx.corner));
   const ghostColor = layout.boxes.find((b) => b.ghost)?.color ?? "slate";
-  if (layout.side) L.band.push(side(layout.side, ghostColor, ink));
+  if (layout.side) L.band.push(side(layout.side, ghostColor, ink, ctx.corner));
   // 脇道へ入る道は脇道の状態の色、それ以外の道は送る側の色で描く
-  const boxColor = (id: string, ghost?: boolean): ColorKey | undefined => layout.boxes.find((b) => b.id === id && (ghost === undefined || b.ghost === ghost))?.color;
-  for (const p of layout.paths) L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor, ink, traces));
+  const boxColor = (id: string, ghost?: boolean): ColorKey | undefined =>
+    layout.boxes.find((b) => b.id === id && (ghost === undefined || b.ghost === ghost))?.color;
+  for (const p of layout.paths)
+    L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor, ink, traces));
   for (const e of layout.ends) L.node.push(endMark(e, ghostColor, ink));
   // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
   const isState = layout.kind === "state";
-  const arrivals = new Map((timeline.states ?? []).flatMap((s) => (s.lit[0] ? [[s.box, s.lit[0].start] as [string, number]] : [])));
+  const arrivals = new Map(
+    (timeline.states ?? []).flatMap((s) =>
+      s.lit[0] ? [[s.box, s.lit[0].start] as [string, number]] : [],
+    ),
+  );
   // 時間軸の図の物差しの欄は、満ち具合の動きで棒を伸ばす (#3165)
   const meters = new Map((timeline.meters ?? []).map((meter) => [meter.field, meter.keys]));
-  const gauge = (field: SceneField): string | undefined => (field.meter ? kindParts("time").meterField({ ...field, meter: field.meter }, meters.get(field.name) ?? [[0, 0]], ctx) : undefined);
-  const drawStrip = (s: SceneStrip): string => strip(s, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals, gauge);
+  const gauge = (field: SceneField): string | undefined =>
+    field.meter
+      ? kindParts("time").meterField(
+          { ...field, meter: field.meter },
+          meters.get(field.name) ?? [[0, 0]],
+          ctx,
+        )
+      : undefined;
+  const drawStrip = (s: SceneStrip): string =>
+    strip(s, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals, gauge);
   // 寄って追う図の表は窓の下に置くので、窓の中身には描かない (#3270)
   if (layout.strip && !follow) L.band.push(drawStrip(layout.strip));
   for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
@@ -325,7 +389,9 @@ export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timelin
   }
   // 木の図の木の線と通った跡と木の箱と札は、木の図を描く部品が描く (#3233)。木の線を走る線は通った跡が見せるので、ほかの線と同じ線で描かない
   const treeLayout = isTreeLayout(layout) ? layout : undefined;
-  const tree = treeLayout ? kindParts("tree").drawTree(treeLayout, diagram, timeline, ctx) : undefined;
+  const tree = treeLayout
+    ? kindParts("tree").drawTree(treeLayout, diagram, timeline, ctx)
+    : undefined;
   if (tree) {
     L.base.push(tree.links);
     L.lit.push(tree.trails);
@@ -335,7 +401,9 @@ export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timelin
   // 列の図の列とチップと封と札は、列の図を描く部品が描く (#3239)。
   // 列の図の見た目の規則も列の図を描く部品が持ち、列の図の SVG にだけ書く。ほかの図の SVG と最初に読む script に入れない (#3351)
   const lineupLayout = isLineupLayout(layout) ? layout : undefined;
-  const lineup = lineupLayout ? kindParts("lineup").drawLineup(lineupLayout, diagram, timeline, ctx, subs) : undefined;
+  const lineup = lineupLayout
+    ? kindParts("lineup").drawLineup(lineupLayout, diagram, timeline, ctx, subs)
+    : undefined;
   if (lineup) {
     L.base.push(lineup.lanes);
     L.node.push(lineup.chips);
@@ -352,7 +420,12 @@ export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timelin
   const wired = new Set((timeLayout?.wires ?? []).map((w) => `${w.step}/${w.event}`));
   for (const e of layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
-    if (!time || (timeLayout && !wired.has(`${e.step}/${e.event}`)) || runs.has(`${e.step}/${e.event}`)) continue;
+    if (
+      !time ||
+      (timeLayout && !wired.has(`${e.step}/${e.event}`)) ||
+      runs.has(`${e.step}/${e.event}`)
+    )
+      continue;
     // 木の図の箱は段ごとに現れるので、木の線を走らない線の点線は、両端の木の箱が現れてから出す (#3240)
     const since = Math.max(tree?.appear.get(e.from) ?? 0, tree?.appear.get(e.to) ?? 0);
     const drawn = edge(e, time, ctx, isState, since);
@@ -361,18 +434,34 @@ export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timelin
   }
   const states = new Map((timeline.states ?? []).map((s) => [s.box, s]));
   // 飛び先を持つ箱は、箱の札をその飛び先への link で包む (#3199)。時間軸の図の箱は時間軸の図を描く部品が包む
-  const links = new Map(diagram.boxes.flatMap((b) => (b.link === undefined ? [] : [[b.id, b.link] as [string, string]])));
+  const links = new Map(
+    diagram.boxes.flatMap((b) =>
+      b.link === undefined ? [] : [[b.id, b.link] as [string, string]],
+    ),
+  );
   const linked = (id: string, markup: string): string => linkTo(links.get(id), markup);
   for (const box of timeLayout || lineupLayout ? [] : layout.boxes) {
     if (box.ghost) {
-      L.node.push(linked(box.id, ghostCard(box, ink)));
+      L.node.push(linked(box.id, ghostCard(box, ink, ctx.corner)));
       continue;
     }
     const state = states.get(box.id);
-    L.node.push(linked(box.id, card(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [], isState ? (state?.lit ?? []) : undefined)));
+    L.node.push(
+      linked(
+        box.id,
+        card(
+          box,
+          ctx,
+          on.get(box.id) ?? [],
+          subs.get(box.id) ?? [],
+          isState ? (state?.lit ?? []) : undefined,
+        ),
+      ),
+    );
     if (state?.done !== undefined) L.node.push(doneMark(box, state.done, ctx));
   }
-  for (const b of layout.badges) if (!(follow && onStrip(layout, b))) L.badge.push(badge(b, ctx, isState));
+  for (const b of layout.badges)
+    if (!(follow && onStrip(layout, b))) L.badge.push(badge(b, ctx, isState));
   for (const l of layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
     if (time) L.top.push(label(l, fadeBefore(l, time, timeline.steps), ctx));
@@ -383,12 +472,23 @@ export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timelin
     const time = timeline.events.find((t) => t.step === a.step && t.event === a.event);
     if (!time) continue;
     const until = (timeline.steps[a.step] as Span).end;
-    L.top.push(whole && until > whole.start ? action(a, time.at, whole.end, ctx) : action(a, time.at, until, ctx, whole));
+    L.top.push(
+      whole && until > whole.start
+        ? action(a, time.at, whole.end, ctx)
+        : action(a, time.at, until, ctx, whole),
+    );
   }
   // 木の図の運ぶ物は着いた所で消える。通った跡が行き先を残し、兄弟の箱から同じ親へ着いた運ぶ物が重ならないため
   for (const time of timeline.carriers) {
     const e = layout.edges.find((x) => x.step === time.step && x.event === time.event);
-    if (e) L.top.push(carrier(e, treeLayout ? { ...time, start: time.depart, end: time.arrive + MOTION.fade } : time, ctx));
+    if (e)
+      L.top.push(
+        carrier(
+          e,
+          treeLayout ? { ...time, start: time.depart, end: time.arrive + MOTION.fade } : time,
+          ctx,
+        ),
+      );
   }
   const content = Object.values(L)
     .map((parts) => parts.join(""))
@@ -397,12 +497,33 @@ export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timelin
   const { near, far, nearY, farY } = LOOK.shadow;
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
   // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。頭の列の箱はアイコンを外した 2 段 (#3120)。止めて見せる図では描かない
-  const heads = follow && layout.kind === "sequence" ? layout.boxes.map((box) => linked(box.id, headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? []))).join("") : "";
+  const heads =
+    follow && layout.kind === "sequence"
+      ? layout.boxes
+          .map((box) =>
+            linked(box.id, headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [])),
+          )
+          .join("")
+      : "";
   // 表の値だけが変わる段の番号の丸は表の隅に在るので、表と一緒に窓の下へ移す (#3270)。
   // 窓の下の表は図の左端から始まるので、丸の半径だけ内へ寄せる。寄せないと丸の左が図の端で切れる
   const drawTable = (s: SceneStrip, from: SceneStrip): string =>
-    drawStrip(s) + layout.badges.filter((b) => onStrip(layout, b)).map((b) => badge({ ...b, x: b.x - from.x + s.x + LOOK.badge.r, y: b.y - from.y + s.y }, ctx, isState)).join("");
-  const view = follow ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable) : { body: `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>${content}`, w: layout.width, h: layout.height };
+    drawStrip(s) +
+    layout.badges
+      .filter((b) => onStrip(layout, b))
+      .map((b) =>
+        badge({ ...b, x: b.x - from.x + s.x + LOOK.badge.r, y: b.y - from.y + s.y }, ctx, isState),
+      )
+      .join("");
+  const bg = frameShape(
+    ctx.corner,
+    ' class="dg-bg"',
+    { x: 0, y: 0, w: layout.width, h: layout.height },
+    `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>`,
+  );
+  const view = follow
+    ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
+    : { body: `${bg}${content}`, w: layout.width, h: layout.height };
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
@@ -414,7 +535,12 @@ export function drawSvg(diagram: DiagramModel, layout: Layout, timeline: Timelin
 function union(rects: Rect[]): Rect {
   const x = Math.min(...rects.map((r) => r.x));
   const y = Math.min(...rects.map((r) => r.y));
-  return { x, y, w: Math.max(...rects.map((r) => r.x + r.w)) - x, h: Math.max(...rects.map((r) => r.y + r.h)) - y };
+  return {
+    x,
+    y,
+    w: Math.max(...rects.map((r) => r.x + r.w)) - x,
+    h: Math.max(...rects.map((r) => r.y + r.h)) - y,
+  };
 }
 
 /** 番号の丸が値の表の上に在るか。表の値だけが変わる段の丸は表の隅に置かれる */
@@ -435,7 +561,8 @@ function focusOf(layout: Layout, diagram: DiagramModel, step: number): Rect | un
 function badgeFocus(badge: { x: number; y: number }, parts: Rect[], vw: number, vh: number): Rect {
   const room = LOOK.badge.r + LOOK.follow.badgeRoom;
   const { x: bx, y: by } = badge;
-  const away = (p: Rect): number => Math.hypot(Math.max(0, p.x - bx, bx - p.x - p.w), Math.max(0, p.y - by, by - p.y - p.h));
+  const away = (p: Rect): number =>
+    Math.hypot(Math.max(0, p.x - bx, bx - p.x - p.w), Math.max(0, p.y - by, by - p.y - p.h));
   let held: Rect = { x: bx - room, y: by - room, w: room * 2, h: room * 2 };
   for (const p of [...parts].sort((a, b) => away(a) - away(b))) {
     const next = union([held, p]);
@@ -450,26 +577,48 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
   for (const e of layout.edges.filter((x) => x.step === step)) {
     const xs = e.points.map((p) => p[0]);
     const ys = e.points.map((p) => p[1]);
-    rects.push({ x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) });
+    rects.push({
+      x: Math.min(...xs),
+      y: Math.min(...ys),
+      w: Math.max(...xs) - Math.min(...xs),
+      h: Math.max(...ys) - Math.min(...ys),
+    });
   }
-  rects.push(...layout.labels.filter((l) => l.step === step), ...layout.actions.filter((a) => a.step === step));
+  rects.push(
+    ...layout.labels.filter((l) => l.step === step),
+    ...layout.actions.filter((a) => a.step === step),
+  );
   // 木の図は、その段で現れる木の箱と木の線と、線の両端の木の箱を見る (#3233)
   if (isTreeLayout(layout)) {
-    const ends = new Set((diagram.steps[step]?.events ?? []).flatMap((e) => (e.type === "edge" ? [e.from, e.to] : [])));
+    const ends = new Set(
+      (diagram.steps[step]?.events ?? []).flatMap((e) => (e.type === "edge" ? [e.from, e.to] : [])),
+    );
     rects.push(...layout.nodes.filter((n) => n.step === step || ends.has(n.id)));
     for (const l of layout.links.filter((x) => x.step === step)) {
       const xs = l.points.map((p) => p[0]);
       const ys = l.points.map((p) => p[1]);
-      rects.push({ x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) });
+      rects.push({
+        x: Math.min(...xs),
+        y: Math.min(...ys),
+        w: Math.max(...xs) - Math.min(...xs),
+        h: Math.max(...ys) - Math.min(...ys),
+      });
     }
   }
   // 列の図は、その段で変わる列を見る (#3239)
   if (isLineupLayout(layout)) {
-    const changed = new Set((diagram.steps[step]?.events ?? []).flatMap((e) => ("box" in e ? [e.box] : [])));
+    const changed = new Set(
+      (diagram.steps[step]?.events ?? []).flatMap((e) => ("box" in e ? [e.box] : [])),
+    );
     rects.push(...layout.lanes.filter((lane) => changed.has(lane.id)));
   }
   for (const event of diagram.steps[step]?.events ?? []) {
-    const ids = event.type === "edge" ? [event.from, event.to] : event.type === "action" || event.type === "swap" ? [event.box] : [];
+    const ids =
+      event.type === "edge"
+        ? [event.from, event.to]
+        : event.type === "action" || event.type === "swap"
+          ? [event.box]
+          : [];
     for (const id of ids) {
       const box = layout.boxes.find((b) => b.id === id);
       // 時系列図の頭の箱は遠いので、線の行だけを見る
@@ -493,7 +642,18 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
  * 値の表は図の一番下に在り、窓が近づくまで映らず、窓より広い表は右側が切れる。全体図と同じ理由で窓の外に出し、
  * 窓と全体図の下に図の枠の幅で組み直す (#3270)。窓と全体図は表を除いた図の高さ `worldH` の中だけを見る。
  */
-function followView(layout: Layout, timeline: Timeline, diagram: DiagramModel, m: Motion, id: string, content: string, follow: FollowFrame, heads: string, drawTable: (s: SceneStrip, from: SceneStrip) => string): { body: string; w: number; h: number } {
+function followView(
+  layout: Layout,
+  timeline: Timeline,
+  diagram: DiagramModel,
+  m: Motion,
+  id: string,
+  content: string,
+  follow: FollowFrame,
+  heads: string,
+  drawTable: (s: SceneStrip, from: SceneStrip) => string,
+  corner: Corner,
+): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
   const frameWidth = Math.max(1, follow.width);
@@ -510,7 +670,16 @@ function followView(layout: Layout, timeline: Timeline, diagram: DiagramModel, m
     // 地の幅は図の縦横の比で決まるので、縦に長い図では札より狭くなる。その時は地を札の幅まで広げ、図は広げた地の真ん中に置く
     const bw = Math.max(mw, Math.ceil(textWidth(title, TYPE.miniTitle)));
     // 縦横の比は窓の高さに依らないので、低くしても全体図の置き場所は変わらない
-    return { vh, mw, k, mh, bw, bgW: bw + M.pad * 2, bgH: mh + M.pad * 2 + M.title, beside: mh > mw };
+    return {
+      vh,
+      mw,
+      k,
+      mh,
+      bw,
+      bgW: bw + M.pad * 2,
+      bgH: mh + M.pad * 2 + M.title,
+      beside: mh > mw,
+    };
   };
   const natural = sized(Math.min(worldH, Math.max(F.minH, full * F.aspect)));
   // 携帯の幅では縦長の全体図の列が枠の幅の 3 割を取り、窓が図の横の 3 割ほどしか見せない。その時は全体図を出さない。
@@ -519,11 +688,16 @@ function followView(layout: Layout, timeline: Timeline, diagram: DiagramModel, m
   const bare = frameWidth < F.narrow && (natural.beside || layout.strip !== undefined);
   const tableH = layout.strip ? rewrapStrip(layout.strip, 0, 0, full).h + M.inset : 0;
   // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図と表は窓の高さに足される
-  const room = follow.height === undefined ? Number.POSITIVE_INFINITY : (natural.beside || bare ? follow.height : follow.height - natural.bgH - M.inset) - tableH;
+  const room =
+    follow.height === undefined
+      ? Number.POSITIVE_INFINITY
+      : (natural.beside || bare ? follow.height : follow.height - natural.bgH - M.inset) - tableH;
   // 見える高さが窓より低ければ窓と全体図を縮め、高ければ全体図はそのままに窓を図の高さまで伸ばす。
   // 全体図も伸ばすと、狭い枠では右の全体図の列が太って窓が狭くなる
   const { vh, mw, k, mh, bw, bgW, bgH, beside } =
-    room < natural.vh ? sized(Math.max(F.fitMinH, room)) : { ...natural, vh: Number.isFinite(room) ? Math.min(worldH, room) : natural.vh };
+    room < natural.vh
+      ? sized(Math.max(F.fitMinH, room))
+      : { ...natural, vh: Number.isFinite(room) ? Math.min(worldH, room) : natural.vh };
   // 右の全体図の列は枠の余りに置き、窓は図の原寸の幅まで広げる。枠が図より狭い時は今までどおり枠の幅から列を引く
   const vw = beside && !bare ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
@@ -540,7 +714,14 @@ function followView(layout: Layout, timeline: Timeline, diagram: DiagramModel, m
   const middles = timeline.steps.map((_, s) => {
     // 時間軸の図は、針と印の列を必ず窓に入れる (#3165)。番号の丸へ寄せ直すと、針が窓から外れるため
     if (isTimeLayout(layout)) {
-      const f = kindParts("time").timeFocus(layout, timeline, s, focusParts(layout, diagram, s), vw, below);
+      const f = kindParts("time").timeFocus(
+        layout,
+        timeline,
+        s,
+        focusParts(layout, diagram, s),
+        vw,
+        below,
+      );
       prev = [f.x + f.w / 2, f.y + f.h / 2];
       return [clampX(prev[0]), clampY(prev[1])] as [number, number];
     }
@@ -549,7 +730,12 @@ function followView(layout: Layout, timeline: Timeline, diagram: DiagramModel, m
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
     // 動く物を全部囲んだ所が窓より大きいと、その端に在る番号の丸が窓から外れる。その段だけ丸の近くへ寄せ直す (#3046)
     const b = layout.badges.find((x) => x.step === s);
-    if (!b || onStrip(layout, b) || (Math.abs(b.x - at[0]) <= vw / 2 - r && Math.abs(b.y - at[1]) <= below / 2 - r)) return at;
+    if (
+      !b ||
+      onStrip(layout, b) ||
+      (Math.abs(b.x - at[0]) <= vw / 2 - r && Math.abs(b.y - at[1]) <= below / 2 - r)
+    )
+      return at;
     const near = badgeFocus(b, focusParts(layout, diagram, s), vw, below);
     // 動く物の無い次の段は、寄せ直した窓のまま止める
     prev = [near.x + near.w / 2, near.y + near.h / 2];
@@ -583,17 +769,33 @@ function followView(layout: Layout, timeline: Timeline, diagram: DiagramModel, m
    */
   const overview = (): { clip: string; body: string } => {
     const shapes = [
-      ...layout.regions.map((r) => `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="3"/>`),
-      ...layout.boxes.map((b) => `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="1.5"/>`),
-      ...(isTreeLayout(layout) ? layout.nodes : []).map((n) => `<rect class="dg-mm-card" style="${cs(n.color)}" x="${mx + n.x * k}" y="${my + n.y * k}" width="${n.w * k}" height="${n.h * k}" rx="1.5"/>`),
+      ...layout.regions.map(
+        (r) =>
+          `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="${partRadius(corner, 3)}"/>`,
+      ),
+      ...layout.boxes.map(
+        (b) =>
+          `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="${partRadius(corner, 1.5)}"/>`,
+      ),
+      ...(isTreeLayout(layout) ? layout.nodes : []).map(
+        (n) =>
+          `<rect class="dg-mm-card" style="${cs(n.color)}" x="${mx + n.x * k}" y="${my + n.y * k}" width="${n.w * k}" height="${n.h * k}" rx="${partRadius(corner, 1.5)}"/>`,
+      ),
     ].join("");
-    const vp = m.move(cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]));
+    const vp = m.move(
+      cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]),
+    );
     return {
-      clip: `<clipPath id="dg-mm-${id}"><rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="4"/></clipPath>`,
+      clip: `<clipPath id="dg-mm-${id}">${frameShape(corner, "", { x: mx, y: my, w: mw, h: mh }, `<rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="4"/>`)}</clipPath>`,
       body:
-        `<rect class="dg-mm-bg" x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" rx="${M.radius}"/>` +
+        frameShape(
+          corner,
+          ' class="dg-mm-bg"',
+          { x: bgX, y: bgY, w: bgW, h: bgH },
+          `<rect class="dg-mm-bg" x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" rx="${M.radius}"/>`,
+        ) +
         `<text class="dg-mm-t" x="${bx}" y="${my - M.pad + 2}">${title}</text>` +
-        `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a"${strip === 0 ? "" : ` y="${strip * k}"`} width="${vw * k}" height="${(vh - strip) * k}" rx="2" style="${vp}"/></g>`,
+        `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a"${strip === 0 ? "" : ` y="${strip * k}"`} width="${vw * k}" height="${(vh - strip) * k}" rx="${partRadius(corner, 2)}" style="${vp}"/></g>`,
     };
   };
   const mini = bare ? { clip: "", body: "" } : overview();
@@ -604,9 +806,9 @@ function followView(layout: Layout, timeline: Timeline, diagram: DiagramModel, m
       : `<g class="dg-hd"><rect class="dg-hd-bg" width="${vw}" height="${strip}"/><line class="dg-sep" x1="0" y1="${strip}" x2="${vw}" y2="${strip}"/>` +
         `<g class="dg-a" style="${m.move(cam.map(([t, cx, , s, e]) => [t, vw / 2 - cx, 0, s, e]))}">${heads}</g></g>`;
   const body =
-    `<defs><clipPath id="dg-vp-${id}"><rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/></clipPath>${mini.clip}</defs>` +
+    `<defs><clipPath id="dg-vp-${id}">${frameShape(corner, "", { x: 0, y: 0, w: vw, h: vh }, `<rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/>`)}</clipPath>${mini.clip}</defs>` +
     `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g>${head}</g>` +
-    `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>${mini.body}`;
+    `${frameShape(corner, ' class="dg-vp-frame"', { x: 0.5, y: 0.5, w: vw - 1, h: vh - 1 }, `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>`)}${mini.body}`;
   const w = beside && !bare ? vw + M.inset + bgW : full;
   // 全体図を出さない時は、窓のすぐ下に表を置く
   const bottom = beside || bare ? vh : bgY + bgH;
@@ -623,7 +825,13 @@ export function paletteOf(options: RenderOptions, theme: Theme): Palette {
   const palette = resolvePalette(options.palette);
   if (!options.colors) return palette;
   const words = FIGURE_TEXT[options.lang ?? DEFAULT_LANG];
-  const errors = Object.entries(options.colors).flatMap(([name, value]) => (!isColorName(name) ? [words.unknownColor(name)] : isColorValue(value) ? [] : [words.unreadableColor(name)]));
+  const errors = Object.entries(options.colors).flatMap(([name, value]) =>
+    !isColorName(name)
+      ? [words.unknownColor(name)]
+      : isColorValue(value)
+        ? []
+        : [words.unreadableColor(name)],
+  );
   if (errors.length > 0) throw new Error(words.cannotDraw(errors.join(" / ")));
   return { ...palette, [theme]: { ...palette[theme], ...options.colors } };
 }
@@ -632,7 +840,10 @@ export function paletteOf(options: RenderOptions, theme: Theme): Palette {
 export function renderDiagram(input: unknown, options: RenderOptions = {}): Rendered {
   const lang = options.lang ?? DEFAULT_LANG;
   const read = readDiagram(input, { lang });
-  if (!read.ok) throw new Error(FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")));
+  if (!read.ok)
+    throw new Error(
+      FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")),
+    );
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)
   const diagram = toModel(read.diagram);
   // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。置き場の無い図の種類は登録簿から並べ方を引き、知らない種類は構成図の並べ方で並べる
@@ -648,7 +859,10 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
           : diagram.kind === "tree"
             ? kindParts("tree", lang).layoutTree(diagram)
             : diagram.kind === "lineup"
-              ? kindParts("lineup", lang).layoutLineup(diagram, { lang, ...(options.width === undefined ? {} : { width: options.width }) })
+              ? kindParts("lineup", lang).layoutLineup(diagram, {
+                  lang,
+                  ...(options.width === undefined ? {} : { width: options.width }),
+                })
               : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
@@ -657,7 +871,12 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
  * 置き場所を決めた図を描き、描いた字の重なりを数える (#3175)。`renderDiagram` が原本を読んで置き場所を決めた後に呼ぶ。
  * 重なりは、字を描く部品が記録した字だけから数えるので、描く所が位置を決める字 (箱の名前) も対象に入る
  */
-export function renderLayout(diagram: DiagramModel, layout: Layout, timeline: Timeline, options: RenderOptions = {}): Rendered {
+export function renderLayout(
+  diagram: DiagramModel,
+  layout: Layout,
+  timeline: Timeline,
+  options: RenderOptions = {},
+): Rendered {
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
   const palette = paletteOf(options, theme);
   const ink: Ink[] = [];

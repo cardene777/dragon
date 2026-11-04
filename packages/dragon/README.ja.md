@@ -350,7 +350,7 @@ dragon export ccip.json --out out
 |---|---|
 | `--out <dir>` | 書き出す先。無ければ作る (既定は今の dir) |
 | `--width <px>` | 枠の幅。見せ方 (全体を止める / 寄って追う) を選び、寄って追う窓の幅になる |
-| `--palette <名前>` | 色味 (`clear` / `paper` / `night` / `arcade`、既定は `paper`) |
+| `--palette <名前>` | 色味 (`clear` / `paper` / `night` / `arcade`、既定は `paper`)。`arcade` は図の箱の右上と左下を落として描く |
 | `--theme <明暗>` | `light` か `dark` |
 | `--lang <言葉>` | 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) と、命令が出す使い方の文と誤りの文の言葉 (`ja` か `en`)。記法の file でも JSON の原本でも、既定は `en` |
 | `--fps <数>` | mp4 の 1 秒のコマの数 (既定 30) |

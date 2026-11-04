@@ -348,7 +348,7 @@ dragon export ccip.json --out out
 |---|---|
 | `--out <dir>` | Where to write. Created if missing (default: the current dir) |
 | `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow` |
-| `--palette <name>` | Colors (`clear` / `paper` / `night` / `arcade`, default `paper`) |
+| `--palette <name>` | Colors (`clear` / `paper` / `night` / `arcade`, default `paper`). `arcade` also cuts the top-right and bottom-left corners of boxes |
 | `--theme <mode>` | `light` or `dark` |
 | `--lang <lang>` | Language of the text in the diagram (overview labels, the names read in HTML, and the message when it cannot draw) and of the command's usage and error messages (`ja` or `en`). Defaults to `en` for both notation files and source JSON |
 | `--fps <n>` | Frames per second of the MP4 (default 30) |
