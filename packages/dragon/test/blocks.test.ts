@@ -40,7 +40,7 @@ const MOVED_BLOCKS = [
 const ALL_KINDS = [...WORDS.KINDS].sort();
 const MOVED_KINDS = ALL_KINDS;
 /** 見本帳を開いた時に読まず、描く時に後から読む図の種類 (#3248) */
-const LATER_KINDS = ["git", "lineup", "state", "time", "tree"];
+const LATER_KINDS = ["git", "lineup", "state", "time", "tree", "try"];
 /** 付け方の5つ。置く、つなぐ、線に乗る、箱に付く、図に付く */
 const ATTACH = ["place", "connect", "ride-on-line", "attach-to-box", "attach-to-figure"];
 /** ブロックの定義が持つ欄。中身が無い欄も `none` を置いて持つ */

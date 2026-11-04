@@ -6,6 +6,7 @@ import { kind as sequenceKind } from "./sequence/kind";
 import { kind as stateKind } from "./state/kind";
 import { kind as timeKind } from "./time/kind";
 import { kind as treeKind } from "./tree/kind";
+import { kind as tryKind } from "./try/kind";
 
 /** 置き場を持つ図の種類の一覧。鍵は置き場の dir の名前 */
 export const KIND_FOLDERS = {
@@ -16,4 +17,5 @@ export const KIND_FOLDERS = {
   "state": stateKind,
   "time": timeKind,
   "tree": treeKind,
+  "try": tryKind,
 } as const;

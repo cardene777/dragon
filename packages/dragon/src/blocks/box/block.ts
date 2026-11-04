@@ -79,7 +79,8 @@ function declarations(diagram: DiagramModel): string[] {
 export const block: Block<BoxMessages> = {
   name: "box",
   rank: 20,
-  attach: { how: "place" },
+  // 試す図は箱を持たない (#3337)
+  attach: { how: "place", except: ["try"] },
   words: { heads: ["box"], attrs: { box: ["note"] } },
   read: {
     // `box` の行。開いている `group` の中なら、その区画に置く

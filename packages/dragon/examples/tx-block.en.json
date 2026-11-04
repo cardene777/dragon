@@ -1,0 +1,223 @@
+{
+  "version": 2,
+  "kind": "try",
+  "title": "How a transaction gets into a block",
+  "blocks": {
+    "part": [
+      {
+        "type": "route",
+        "id": "Network",
+        "paths": [
+          [
+            "You",
+            "node-1",
+            "node-4",
+            "Builder"
+          ],
+          [
+            "You",
+            "node-2",
+            "node-5",
+            "Builder"
+          ],
+          [
+            "node-1",
+            "node-3",
+            "Builder"
+          ],
+          [
+            "node-2",
+            "node-4"
+          ]
+        ],
+        "from": "You",
+        "to": "Builder"
+      },
+      {
+        "type": "queue",
+        "id": "Mempool",
+        "order": "Fee"
+      },
+      {
+        "type": "chain",
+        "id": "Chain",
+        "edit": "Amount"
+      },
+      {
+        "type": "ask",
+        "id": "ask",
+        "fields": [
+          "Sender",
+          "To",
+          "Amount",
+          "Fee"
+        ],
+        "into": "Mempool",
+        "via": "Network"
+      },
+      {
+        "type": "press",
+        "id": "Build",
+        "from": "Mempool",
+        "into": "Chain",
+        "take": 3
+      }
+    ],
+    "item": [
+      {
+        "id": "tx1",
+        "values": {
+          "To": "Carol",
+          "Amount": "3",
+          "Fee": "7"
+        }
+      },
+      {
+        "id": "tx2",
+        "values": {
+          "To": "Dave",
+          "Amount": "5",
+          "Fee": "5"
+        }
+      },
+      {
+        "id": "tx3",
+        "values": {
+          "To": "Erin",
+          "Amount": "2",
+          "Fee": "4"
+        }
+      },
+      {
+        "id": "tx4",
+        "values": {
+          "To": "Bob",
+          "Amount": "8",
+          "Fee": "9"
+        }
+      },
+      {
+        "id": "tx5",
+        "values": {
+          "To": "Carol",
+          "Amount": "1",
+          "Fee": "6"
+        }
+      },
+      {
+        "id": "tx6",
+        "values": {
+          "To": "Erin",
+          "Amount": "4",
+          "Fee": "8"
+        }
+      },
+      {
+        "id": "tx7",
+        "values": {
+          "To": "Dave",
+          "Amount": "6",
+          "Fee": "6"
+        }
+      },
+      {
+        "id": "tx8",
+        "values": {
+          "To": "Bob",
+          "Amount": "2",
+          "Fee": "3"
+        }
+      },
+      {
+        "id": "tx9",
+        "values": {
+          "To": "Carol",
+          "Amount": "7",
+          "Fee": "4"
+        }
+      },
+      {
+        "id": "tx10",
+        "values": {
+          "To": "Erin",
+          "Amount": "3",
+          "Fee": "2"
+        }
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Transactions wait in line",
+      "body": "Transactions in the mempool line up from the highest fee and wait for the builder to put them in a block.",
+      "events": [
+        {
+          "type": "line",
+          "part": "Chain",
+          "items": [
+            "tx4",
+            "tx5",
+            "tx8"
+          ]
+        },
+        {
+          "type": "line",
+          "part": "Chain",
+          "items": [
+            "tx1",
+            "tx2",
+            "tx3"
+          ]
+        },
+        {
+          "type": "line",
+          "part": "Mempool",
+          "items": [
+            "tx6",
+            "tx7",
+            "tx9",
+            "tx10"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "You send one",
+      "body": "Your transaction crosses the network to the builder and lines up in the mempool by its fee.",
+      "events": [
+        {
+          "type": "ask",
+          "values": [
+            "You",
+            "Bob",
+            "5",
+            "12"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "The builder makes a block",
+      "body": "The builder puts the three highest fees into block 3 and gives it block 2's hash as prev.",
+      "events": [
+        {
+          "type": "press",
+          "press": "Build"
+        }
+      ]
+    },
+    {
+      "title": "Someone changes a block",
+      "body": "Changing the amount of tx2 in block 2 changes its hash, so it no longer matches the prev that block 3 holds.",
+      "events": [
+        {
+          "type": "item",
+          "item": "tx2",
+          "values": {
+            "Amount": "50"
+          }
+        }
+      ]
+    }
+  ]
+}

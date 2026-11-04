@@ -147,7 +147,8 @@ function readSet(source: SourceLine, state: ParseState): DiagramEvent {
 export const block: Block<StripMessages> = {
   name: "strip",
   rank: 30,
-  attach: { how: "attach-to-figure" },
+  // 試す図は中身の帯を持たない (#3337)
+  attach: { how: "attach-to-figure", except: ["try"] },
   words: { heads: ["strip", "set"], headRanks: { set: 80 }, attrs: { strip: STRIP_ATTRS, set: SET_ATTRS } },
   read: {
     strip: (source, state) => {

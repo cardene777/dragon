@@ -43,6 +43,16 @@ const LATER_KINDS: Readonly<Record<string, readonly string[]>> = {
   state: ["kinds/state/layout.ts"],
   time: ["kinds/time/layout.ts", "render/time.ts", "blocks/scale/draw.ts", "blocks/row/draw.ts", "blocks/point/draw.ts", "blocks/zoom/draw.ts"],
   tree: ["kinds/tree/layout.ts", "render/tree.ts", "blocks/leaf/draw.ts", "blocks/node/draw.ts"],
+  try: [
+    "kinds/try/layout.ts",
+    "render/try.ts",
+    "try-player.ts",
+    "blocks/route/draw.ts",
+    "blocks/queue/draw.ts",
+    "blocks/chain/draw.ts",
+    "blocks/ask/draw.ts",
+    "blocks/press/draw.ts",
+  ],
 };
 /** 後から読む塊の小さすぎる字数。部品が最初に読む側へ漏れると、塊は入口だけの大きさになる */
 const CHUNK_AT_LEAST = 2_000;

@@ -1,0 +1,9 @@
+try Network
+
+route Net: You - n1 - Maker, You - n2 - n3 - Maker [from: You, to: Maker]
+queue Pool
+ask Name, Value [into: Pool, via: Net]
+
+step Cross the network
+  say A route line joins nodes with -. A sent chip takes the path with the fewest nodes from from to to.
+  ask Me, 1

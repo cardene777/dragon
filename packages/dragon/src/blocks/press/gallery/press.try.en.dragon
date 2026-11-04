@@ -1,0 +1,18 @@
+try Button
+
+queue Pool [order: Fee]
+chain Blocks
+ask Name, Fee [into: Pool]
+press Build [from: Pool, into: Blocks, take: 2, at: Blocks]
+
+item a [Fee: 3]
+item b [Fee: 8]
+item c [Fee: 5]
+
+step Waiting
+  say A press line places a button. It sits on the part written in at.
+  line Pool: a, b, c
+
+step Press it
+  say Pressing it moves the top take chips of the queue into a new block of the chain.
+  press Build

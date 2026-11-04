@@ -5,6 +5,7 @@
  * 並べた名札ごとに同じ色と字のチップを宣言する。色を付けたチップは色で塗り、`label` の字は 4 字まで載る。
  * `item` の行の `note` の鍵は凡例のブロックの語で、同じ行に書くのでこのブロックが一緒に読み書きする (#3351)。
  * 列の図にチップが 1 つも無い誤りは、全ての行を読んだ後に parser が確かめ、その文をこのブロックが持つ。
+ * 試す図の `item` の行は入力の帯の欄の値を持つチップなので、入力の帯のブロックが読む (#3337)。列の図でも試す図でもない図に書いた `item` と `line` の行の誤りの文 (`lineupOrTryOnly`) はこのブロックが持つ。
  */
 import { attrs } from "../../print-kit";
 import { type Attr, fail, ID, isOneOf, readAttrs, skipSpaces } from "../../read-kit";
@@ -26,6 +27,8 @@ export interface LineupItem {
 export interface ItemMessages {
   /** 列の図だけの行 (`item`、`line`、`seal`、`open`、`pick`、`stamp`、`role`) を、別の種類の図に書いた (#3239) */
   lineupOnly: (word: string) => string;
+  /** 列の図と試す図だけの行 (`item` と `line`) を、どちらでもない図に書いた (#3337) */
+  lineupOrTryOnly: (word: string) => string;
   noItems: string;
   itemShape: string;
   /** チップの字が上限の字数を超えた */
@@ -100,12 +103,14 @@ export const block: Block<ItemMessages> = {
   messages: {
     ja: {
       lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
+      lineupOrTryOnly: (word) => `${word} の行は lineup (列の図) と try (試す図) でだけ書ける`,
       noItems: "item の行でチップを 1 つ以上宣言する",
       itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>, note: <説明>] の形で書く",
       labelTooLong: (limit) => `label は ${limit} 字までにする`,
     },
     en: {
       lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
+      lineupOrTryOnly: (word) => `${word} lines can be written only in lineup and try diagrams`,
       noItems: "Declare at least one chip with an item line",
       itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>, note: <text>]",
       labelTooLong: (limit) => `A label is at most ${limit} characters`,

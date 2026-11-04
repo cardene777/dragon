@@ -8,6 +8,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **Added the try diagram (`try`), a figure readers can type values into and move themselves** (#3337)
+
+  Start the first line with `try` and stack part lines from top to bottom: `route` (a network that carries chips along the shortest path), `queue` (a waiting line sorted by one field), `chain` (blocks linked by `prev` and a SHA-256 `hash`), `ask` (the input strip whose fields make a chip), and `press` (a button that moves the top chips of a queue into a new block).
+  Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line`, `ask`, `press`, and `item` write the author's example steps (send, build, change).
+  In the player, the figure waits at the first step. Each time the reader sends, presses a button, or taps a chip in a block to change a value, the player adds one step to the end and plays it. Changing a block breaks its link to the next block (`≠`), and changing it back heals the link.
+  Nothing the reader types is stored, and the page makes no requests. Images, videos, and print draw the steps the author wrote.
+  The example "How a transaction gets into a block" is `packages/dragon/examples/tx-block.dragon`.
+
 - **Added the palette `arcade` (Arcade screen), drawn in the same colors as the bitsumi pages** (#3341)
 
   The ground, text, and lines use the bitsumi values (the figure ground is `#04100a`), green is the bitsumi accent green `#3cff78`, and amber is the bitsumi orange shifted slightly toward red (`#ff9a45`) so it stays apart from green for deuteranopia.

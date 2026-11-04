@@ -64,6 +64,20 @@
  * 卓の形 (#3351) で、`box` の行の `[order: none]` は箱を順番の無い置き場にし、`item` の行の `[note: <説明>]` は凡例の説明を持たせる。
  * 最初の `step` より前の `role <名札> [note: <一言>]` は役を宣言し、段の中の `role <名札>` はその段で動く役を名指す。
  *
+ * 試す図 (`try`、#3337) は、最初の `step` より前に部品の行を上から積む順に書く。
+ *
+ *   route <名札>: <節> - <節>, <節> - <節> [from: <節>, to: <節>]     網。from から to へ最短の道でチップを運ぶ
+ *   queue <名札> [order: <欄>]                                        待ち行列。order の欄の値の高い順に並べる
+ *   chain <名札> [edit: <欄>]                                         機械の列。edit の欄を読み手が書き換えられる
+ *   ask <欄>, <欄> [into: <待ち行列>, via: <網>]                       入力の帯。図に 1 つまで。最初の欄の値がチップの名前
+ *   press <名札> [from: <待ち行列>, into: <機械の列>, take: <数>, at: <部品>]   釦
+ *   item <名札> [<欄>: <値>]                                          チップ。鍵は ask の欄 (最初の欄を除く)
+ *
+ * 段の中では `line <待ち行列か機械の列>: <チップ>, <チップ>` で中身を書き、`ask <値>, <値>` で送り、`press <釦>` で押し、
+ * `item <チップ> [<欄>: <値>]` で書き換える。部品を名指す属性は全ての宣言を読んでから確かめ、誤りは名指した行に出す。
+ * 段の中の出来事は段ごとの状態の手順 (`try-state.ts`) に 1 つずつ当て、空の待ち行列からの press と満杯の待ち行列への ask を断る。
+ * 部品の行は試す図でだけ書け、試す図に箱と区画と線の行は書けない。
+ *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
@@ -76,11 +90,14 @@ import { readTimeNote } from "./blocks/point/block";
 import { isNeedle, readNow } from "./blocks/scale/block";
 import { readPath } from "./blocks/side-path/block";
 import { stepOf, viewOf } from "./blocks/step/block";
+import { readTryChip } from "./blocks/ask/block";
+import { readTryLine } from "./blocks/queue/block";
 import { readColumns } from "./blocks/zoom/block";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
 import type { Diagram, DiagramModel, Step } from "./schema";
 import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
+import { settleTry } from "./try-read";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { ATTRS, DEFAULT_LANG, HEAD, HEADS, KINDS, type NotationLang, NOW, OLD_HEADS, STATE_ENDS } from "./words";
 
@@ -130,6 +147,24 @@ const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
   }),
 );
 
+/**
+ * 列の図のチップと並びの語のうち、試す図でも書ける語と、試す図での読む処理 (#3337、#3348)。
+ * 試す図の `item` はチップの欄の値を、`line` は待ち行列か機械の列の中身を書くので、列の図のブロックでなく試す図の部品のブロックが読む
+ */
+const TRY_SHARED_READERS: ReadonlyMap<string, (source: SourceLine, state: ParseState) => void> = new Map([
+  ["item", readTryChip],
+  ["line", readTryLine],
+]);
+/** 試す図に書ける行の頭の語。試す図だけのブロック (`attach.only` が try) の語と、チップと並びの行と、段の行 (#3337) */
+const TRY_LINES: readonly string[] = [
+  ...ranked(BLOCKS).flatMap((block) => (block.attach.only === "try" ? (block.words.heads ?? []) : [])),
+  ...TRY_SHARED_READERS.keys(),
+  "step",
+  "say",
+  "code",
+  "source",
+];
+
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
@@ -150,6 +185,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const isTime = kind === "time";
   const isTree = kind === "tree";
   const isLineup = kind === "lineup";
+  const isTry = kind === "try";
   const ids = new Set<string>();
   /** 宣言の行でブロックが組む欄 (区画と箱と、中身の帯と、時間軸の図の物差しの欄と、状態遷移図の道と、枝分かれの図の枝と札) */
   const figure: FigureDraft = {
@@ -162,6 +198,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     time: { rows: [], points: [], pending: [], settled: false, needle: 0 },
     tree: { boxes: new Map(), parents: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },
+    try: { parts: [], items: [], pending: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
   const { tips } = figure.git;
@@ -219,10 +256,12 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const closeStep = (): void => {
     if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
     settle();
+    settleTry(state);
     if (building) steps.push(stepOf(building, m));
   };
   const openStep = (draft: StepDraft): void => {
     building = draft;
+    figure.try.run?.beginStep();
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
   const declared = (id: string): boolean => ids.has(id);
@@ -231,7 +270,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
    * 図の種類だけの行の頭の語を、ほかの種類の図に書いた時の誤りの文。
    * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
    */
-  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly };
+  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly };
   const columns: ParseState["columns"] = (source, from, to, attrs, end) => readColumns(source, from, to, attrs, end, state);
   const state: ParseState = { m, kind, attrs: ATTRS, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure };
 
@@ -248,6 +287,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
     const edge = EDGE.exec(text);
     if (edge) {
+      if (isTry) throw fail(source, 0, m.tryNoEdge);
       // 状態遷移図の最初の step より前の線は、移れる道の地図
       if (isState && !building) paths.push(readPath(source, edge, state));
       else {
@@ -263,6 +303,13 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       readCut(source, state);
       continue;
     }
+    // 列の図のチップと並びの語は試す図でも書け、試す図ではチップの欄の値と部品の中身を書くので、試す図の部品のブロックの読み方で読む (#3337)
+    const shared = TRY_SHARED_READERS.get(word);
+    if (shared && !isLineup) {
+      if (!isTry) throw fail(source, 0, m.lineupOrTryOnly(word));
+      shared(source, state);
+      continue;
+    }
     const only = ONLY_HEADS.get(word);
     const refuse = only === undefined || only === kind ? undefined : onlyIn[only];
     if (refuse) throw fail(source, 0, refuse(word));
@@ -270,6 +317,8 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
     }
+    // 試す図は部品の行と段の行だけを書ける
+    if (isTry && !TRY_LINES.includes(word)) throw fail(source, 0, m.tryNoLine(word));
     // 時間軸の図の `note` の行は節目にも書けて丸の色を持つので、下の字のブロックでなく節目のブロックの読み方で読む
     if (isTime && word === "note") {
       inStep(source).events.push(readTimeNote(source, state));
@@ -288,7 +337,8 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
   if (isTree && figure.tree.boxes.size === 0) throw fail(head, 0, m.noLeaves);
   if (isLineup && figure.lineup.items.length === 0) throw fail(head, 0, m.noItems);
-  if (boxes.length === 0 && !isGit && !isTime && !isTree) throw fail(head, 0, m.noBoxes);
+  if (isTry && figure.try.parts.length === 0) throw fail(head, 0, m.noParts);
+  if (boxes.length === 0 && !isGit && !isTime && !isTree && !isTry) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
   // 木の形は全ての行を読んでから確かめる。親を持たない木の箱が 2 つ以上なら、書いた順で 2 つ目を示す
   const roots = [...figure.tree.boxes.keys()].filter((id) => !figure.tree.parents.has(id));
@@ -308,6 +358,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items: figure.lineup.items, ...(figure.lineup.roles.length > 0 ? { roles: figure.lineup.roles } : {}) } } : {}),
+    ...(isTry ? { try: { parts: figure.try.parts, items: figure.try.items } } : {}),
     ...(isTime && time.scale
       ? {
           time: {

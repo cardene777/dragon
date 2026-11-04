@@ -59,6 +59,8 @@ function mainParts(diagram: Diagram): [CountedPart, number] {
       return ["box", diagram.steps.flatMap((step) => step.events).filter((event) => event.type === "leaf" || event.type === "node").length];
     case "lineup":
       return ["lane", diagram.blocks.box?.length ?? 0];
+    case "try":
+      return ["part", diagram.blocks.part?.length ?? 0];
     default:
       return ["box", diagram.blocks.box?.length ?? 0];
   }

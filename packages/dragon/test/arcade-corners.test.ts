@@ -33,6 +33,8 @@ const FRAMES = [
   "dg-ln-pool",
   "dg-ln-role",
   "dg-ln-lit",
+  "dg-try-blk",
+  "dg-try-q",
   "dg-band",
   "dg-strip",
   "dg-side",

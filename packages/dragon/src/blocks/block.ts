@@ -18,7 +18,8 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale } from "../schema";
+import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TryItem, TryPart } from "../schema";
+import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
 
 /** 付け方。置く、つなぐ、線に乗る、箱に付く、図に付く */
@@ -81,6 +82,12 @@ export interface FigureDraft {
   tree: { boxes: Map<string, { source: SourceLine; at: number }>; parents: Map<string, string> };
   /** 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348) */
   lineup: { items: LineupItem[]; roles: LineupRole[]; sealed: Set<string> };
+  /**
+   * 試す図の部品とチップ。部品のブロックと入力の帯のブロックが宣言の行で組む (#3337、#3348)。
+   * 部品を名指す属性と欄を名指す鍵は全ての宣言を読んでから確かめるので `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる。
+   * 確かめた後に、段の中の出来事を当てる状態 (`run`) を作る
+   */
+  try: { parts: TryPart[]; items: TryItem[]; pending: (() => void)[]; run?: TryRun };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */
@@ -142,7 +149,7 @@ export type HeadReader = (source: SourceLine, state: ParseState, after: (offset:
 export type EventType = DiagramEvent["type"];
 
 /** 種類 `T` の出来事を、段の中の 1 行に書き戻す処理。`kind` は図の種類 */
-export type EventPrinter<T extends EventType = EventType> = (event: Extract<DiagramEvent, { type: T }>, kind: KindName) => string;
+export type EventPrinter<T extends EventType = EventType> = (event: Extract<DiagramEvent, { type: T }>, kind: KindName, diagram: DiagramModel) => string;
 
 /** 書き戻す処理 */
 export interface BlockPrint {
@@ -162,6 +169,11 @@ export interface BlockPrint {
   declare?: (diagram: DiagramModel) => string[];
   /** 最初の `step` より前に書く宣言の塊。区画と箱の宣言の後ろ、状態遷移図の道より前に、ブロックの並びの順に書く */
   figure?: (diagram: DiagramModel) => string[];
+  /**
+   * 試す図 (#3337) の部品の 1 行。部品の種類 (`type`) と同じ名前のブロックが持ち、渡す部品はその種類の部品だけ。
+   * 部品の行は図の種類の行の直ぐ後ろに、原本の並びのまま 1 つの塊に書く (#3348)
+   */
+  part?: (part: TryPart) => string;
 }
 
 /**
@@ -202,7 +214,7 @@ export interface Block<M extends object = object, F extends object = object> {
   rank: number;
   /**
    * 付け方。`only` を書いたブロックは、その図の種類だけで使う個別ブロック。
-   * `except` は付け方を受け付ける図の種類のうち、このブロックを描かない図の種類 (列の図は箱の中の処理と絵と飛び先を描かない)。
+   * `except` は付け方を受け付ける図の種類のうち、このブロックを描かない図の種類 (列の図は箱の中の処理と絵と飛び先を、試す図は箱と段と出典と中身の帯を描かない)。
    * ブロックを使える図の種類は、この欄と図の種類の `accepts` から導く (`blocks/usable.ts`、#3348)
    */
   attach: { how: AttachHow; only?: KindName; except?: readonly KindName[] };

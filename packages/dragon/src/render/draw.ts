@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * git、lineup、state、time、tree の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * git、lineup、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -35,6 +35,7 @@ import {
 } from "../layout/scene";
 import type { TimeLayout } from "../kinds/time/layout";
 import type { TreeLayout } from "../kinds/tree/layout";
+import type { TryLayout } from "../kinds/try/layout";
 import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
@@ -72,6 +73,7 @@ const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "gi
 const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
 const isTimeLayout = (layout: Layout): layout is TimeLayout => layout.kind === "time";
 const isTreeLayout = (layout: Layout): layout is TreeLayout => layout.kind === "tree";
+const isTryLayout = (layout: Layout): layout is TryLayout => layout.kind === "try";
 
 export interface RenderOptions {
   /** 色味の名前。書かないか知らない名前なら紙と墨 */
@@ -398,6 +400,16 @@ export function drawSvg(
     L.base.push(lineup.lanes);
     L.node.push(lineup.chips);
   }
+  // 試す図の網と待ち行列と機械の列とチップは、試す図を描く部品が描く (#3337)。見た目の規則も試す図の SVG にだけ書く
+  const tryDrawn = isTryLayout(layout)
+    ? kindParts("try").drawTry(layout, diagram, timeline, ctx)
+    : undefined;
+  if (tryDrawn) {
+    L.base.push(tryDrawn.base);
+    L.lit.push(tryDrawn.lit);
+    L.node.push(tryDrawn.node);
+    L.top.push(tryDrawn.top);
+  }
   // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く
   const timeLayout = isTimeLayout(layout) ? layout : undefined;
   if (timeLayout) {
@@ -514,7 +526,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -561,6 +573,23 @@ function badgeFocus(badge: { x: number; y: number }, parts: Rect[], vw: number, 
   return held;
 }
 
+/**
+ * 動く物を全部囲んだ所の真ん中 (#3337)。囲んだ所が窓 (`vw` × `vh`) より大きい時は、最初の物が窓から外れない所までに留める。
+ * 動く物が無ければ `undefined`
+ */
+function anchoredCenter(parts: Rect[], vw: number, vh: number): [number, number] | undefined {
+  const first = parts[0];
+  if (!first) return undefined;
+  const all = union(parts);
+  // 窓の幅 `size` で `[lo, lo + len]` を外さない真ん中の範囲に、全部を囲んだ所の真ん中 `c` を収める。窓より大きい物は真ん中に置く
+  const keep = (c: number, lo: number, len: number, size: number): number =>
+    len > size ? lo + len / 2 : Math.min(lo + size / 2, Math.max(lo + len - size / 2, c));
+  return [
+    keep(all.x + all.w / 2, first.x, first.w, vw),
+    keep(all.y + all.h / 2, first.y, first.h, vh),
+  ];
+}
+
 /** 段で動く物を 1 つずつ。 */
 function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[] {
   const rects: Rect[] = [];
@@ -602,6 +631,8 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
     );
     rects.push(...layout.lanes.filter((lane) => changed.has(lane.id)));
   }
+  // 試す図は、その段の出来事が触る部品を、出来事が着く所から順に見る (#3337)
+  if (isTryLayout(layout)) rects.push(...kindParts("try").tryFocusParts(layout, diagram, step));
   for (const event of diagram.steps[step]?.events ?? []) {
     const ids =
       event.type === "edge"
@@ -715,6 +746,12 @@ function followView(
       prev = [f.x + f.w / 2, f.y + f.h / 2];
       return [clampX(prev[0]), clampY(prev[1])] as [number, number];
     }
+    // 試す図は、出来事が着く所 (送った先の待ち行列、作ったブロック、書き換えたブロック) を窓から外さずに寄せる (#3337)。
+    // 網は図の幅いっぱいに広がるので、全部を囲んだ所の真ん中へ寄せると、狭い窓では送った先の待ち行列が窓から外れる
+    if (isTryLayout(layout)) {
+      prev = anchoredCenter(focusParts(layout, diagram, s), vw, below) ?? prev;
+      return [clampX(prev[0]), clampY(prev[1])] as [number, number];
+    }
     const f = focusOf(layout, diagram, s);
     prev = f ? [f.x + f.w / 2, f.y + f.h / 2] : prev;
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
@@ -761,15 +798,20 @@ function followView(
     const shapes = [
       ...layout.regions.map(
         (r) =>
-          `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="${partRadius(corner, 3)}"/>`,
+          `<rect class="dg-mm-band" style="${cs(r.color)}" x="${mx + r.x * k}" y="${my + r.y * k}" width="${r.w * k}" height="${r.h * k}" rx="${partRadius(corner, M.band)}"/>`,
       ),
       ...layout.boxes.map(
         (b) =>
-          `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="${partRadius(corner, 1.5)}"/>`,
+          `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="${partRadius(corner, M.card)}"/>`,
       ),
       ...(isTreeLayout(layout) ? layout.nodes : []).map(
         (n) =>
-          `<rect class="dg-mm-card" style="${cs(n.color)}" x="${mx + n.x * k}" y="${my + n.y * k}" width="${n.w * k}" height="${n.h * k}" rx="${partRadius(corner, 1.5)}"/>`,
+          `<rect class="dg-mm-card" style="${cs(n.color)}" x="${mx + n.x * k}" y="${my + n.y * k}" width="${n.w * k}" height="${n.h * k}" rx="${partRadius(corner, M.card)}"/>`,
+      ),
+      // 試す図は、待ち行列の枠を地に、網の節と出ているブロックを札に描く (#3337)
+      ...(isTryLayout(layout) ? kindParts("try").tryOverview(layout) : []).map(
+        ({ rect: t, band, color }) =>
+          `<rect class="${band ? "dg-mm-band" : "dg-mm-card"}" style="${cs(color)}" x="${mx + t.x * k}" y="${my + t.y * k}" width="${t.w * k}" height="${t.h * k}" rx="${partRadius(corner, band ? M.band : M.card)}"/>`,
       ),
     ].join("");
     const vp = m.move(
@@ -854,7 +896,9 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
                   lang,
                   ...(options.width === undefined ? {} : { width: options.width }),
                 })
-              : KIND_FOLDERS.architecture.layout(diagram, lang);
+              : diagram.kind === "try"
+                ? kindParts("try", lang).layoutTry(diagram, lang)
+                : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 

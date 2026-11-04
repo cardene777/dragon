@@ -4,6 +4,7 @@
  * 列の図の部品 (`only: lineup`)。段の中の `line <列>: <チップ>, <チップ>` の行で、列 (箱) のチップを書いた順に並べ直す。
  * ほかの列に居たチップはその席から滑って来て、どこにも居なかったチップは弾んで現れ、列から外したチップは消える。
  * 列は箱なので、付け方は箱に付く。1 列に並べられるチップは 12 枚までで、封をした列の並びは開けるまで書けない。
+ * 試す図の段の中の `line <部品>: <チップ>` の行は部品の中身を書くので、待ち行列のブロックが読む (#3337)。出来事の形と書き戻しは列の図と同じ `line` なので、このブロックが持つ。
  */
 import { fail } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
@@ -68,7 +69,8 @@ export const block: Block<LineMessages> = {
   },
   print: {
     events: {
-      line: (e) => `line ${e.box}: ${e.items.join(", ")}`,
+      // 試す図の line は列 (box) でなく部品 (part) を名指す (#3337)
+      line: (e) => `line ${"part" in e ? e.part : e.box}: ${e.items.join(", ")}`,
     },
   },
   messages: {

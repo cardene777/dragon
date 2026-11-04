@@ -143,7 +143,7 @@ export function drawLineup(
   };
   for (const time of [...timeline.edges].sort((a, b) => a.start - b.start)) {
     const e = diagram.steps[time.step]?.events[time.event];
-    if (e?.type === "line") turn(e.box, time.start, false);
+    if (e?.type === "line" && "box" in e) turn(e.box, time.start, false);
     if (e?.type === "pick")
       for (const lane of layout.lanes) if (!lane.pool) turn(lane.id, time.start, lane.id !== e.box);
   }

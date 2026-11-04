@@ -22,6 +22,8 @@ import rebaseJa from "../../../packages/dragon/examples/rebase.dragon?raw";
 import rebaseEn from "../../../packages/dragon/examples/rebase.en.dragon?raw";
 import retryJa from "../../../packages/dragon/examples/retry.dragon?raw";
 import retryEn from "../../../packages/dragon/examples/retry.en.dragon?raw";
+import txBlockJa from "../../../packages/dragon/examples/tx-block.dragon?raw";
+import txBlockEn from "../../../packages/dragon/examples/tx-block.en.dragon?raw";
 import walletJa from "../../../packages/dragon/examples/wallet.dragon?raw";
 import walletEn from "../../../packages/dragon/examples/wallet.en.dragon?raw";
 import withdrawJa from "../../../packages/dragon/examples/withdraw.dragon?raw";
@@ -42,4 +44,5 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   withdraw: { ja: withdrawJa, en: withdrawEn },
   merkle: { ja: merkleJa, en: merkleEn },
   auction: { ja: auctionJa, en: auctionEn },
+  "tx-block": { ja: txBlockJa, en: txBlockEn },
 };

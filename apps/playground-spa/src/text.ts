@@ -10,7 +10,7 @@ import { BLOCK_SHELF, BLOCK_TEXT } from "./catalog/blocks.gen";
 export type Lang = "ja" | "en";
 
 /** 状態の欄で数える図の部品 (#3261) */
-export type CountedPart = "box" | "branch" | "row" | "lane";
+export type CountedPart = "box" | "branch" | "row" | "lane" | "part";
 
 export const TEXT = {
   ja: {
@@ -59,7 +59,7 @@ export const TEXT = {
         lead: (parts: number, kinds: number, samples: number) =>
           `今の記法の部品 ${parts} 個と、部品を組み合わせた ${kinds} 種類の図を並べる。部品の頁で書き方と見え方を確かめ、図の頁で見本を検索して動かし、編集画面で開ける。合計 ${samples} 件の見本。`,
         sections: {
-          parts: { title: "部品", lead: "いくつもの図で使う部品。部品ごとに、使える図の種類それぞれで描いた見え方を並べる。列の図は線を引かないので、線と箱の中の処理の部品は列の図に無い。" },
+          parts: { title: "部品", lead: "いくつもの図で使う部品。部品ごとに、使える図の種類それぞれで描いた見え方を並べる。列の図は線を引かないので、線と箱の中の処理の部品は列の図に無い。試す図は箱と線を持たず、読み手が段を足していく図なので、ここの部品は試す図に無い。" },
           "kind-parts": { title: "図の種類だけの部品", lead: "1 つの図の種類でだけ使う部品。" },
           kinds: { title: "図", lead: "部品を組み合わせた図。図ごとに、使う部品の一覧と見本を載せる。" },
         },
@@ -98,6 +98,11 @@ export const TEXT = {
           order: BLOCK_TEXT.order.ja,
           role: BLOCK_TEXT.role.ja,
           legend: BLOCK_TEXT.legend.ja,
+          route: BLOCK_TEXT.route.ja,
+          queue: BLOCK_TEXT.queue.ja,
+          chain: BLOCK_TEXT.chain.ja,
+          ask: BLOCK_TEXT.ask.ja,
+          press: BLOCK_TEXT.press.ja,
         },
         kindOnly: (kind: string) => `${kind}だけ`,
         partKinds: "使える図",
@@ -118,6 +123,7 @@ export const TEXT = {
           time: "決まった間隔で刻む時間の上で、何がいつ起きたかを段ごとに追う図。ブロックの確定や引き出しの待ちのように、時間が長さとして効く仕組みを、進む針と塗られる印で見せる。",
           tree: "親子で枝分かれする箱を葉から根まで組み上げ、根と葉の間を段ごとに辿る図。Merkle 木のように少しの値で全体を確かめる仕組みを、木の線の上を走る札で見せる。",
           lineup: "横長の列にチップを並べ、段ごとに並びが替わる様子を追う図。入札でブロックの中身が決まる流れのように、順番と隠す中身が効く仕組みを、列の間を滑るチップと封で見せる。",
+          try: "読み手が値を打ち込み、釦を押して動かす図。送ったトランザクションが網を伝わり、手数料の順にブロックへ入り、hash で鎖につながる様子を、読み手が自分で試して確かめる。",
         },
         total: (n: number) => `全 ${n} 件`,
         showing: (n: number) => `${n} 件 表示中`,
@@ -171,7 +177,7 @@ export const TEXT = {
     fold: "畳む",
     unfold: "開く",
     readable: (part: CountedPart, count: number, steps: number) =>
-      `読めています — ${{ box: `箱 ${count} つ`, branch: `枝 ${count} 本`, row: `印の列 ${count} 本`, lane: `列 ${count} 本` }[part]}、段 ${steps}`,
+      `読めています — ${{ box: `箱 ${count} つ`, branch: `枝 ${count} 本`, row: `印の列 ${count} 本`, lane: `列 ${count} 本`, part: `部品 ${count} つ` }[part]}、段 ${steps}`,
     notJson: (message: string) => `JSON として読めない — ${message}`,
     cannotDraw: (message: string) => `描けない — ${message}`,
     kept: "誤りがあるあいだは、最後に描けた図を出しています",
@@ -186,7 +192,7 @@ export const TEXT = {
       filter: "絞り込む…",
       filterLabel: "一覧を絞り込む",
       nothing: "当てはまる物が無い",
-      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図" },
+      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: {
@@ -231,12 +237,17 @@ export const TEXT = {
         span: "範囲の括弧。shape: box で印の列を囲む",
         leaf: "葉を出す。hash に値を書くと箱に値を、下の札に名札を出す",
         node: "親を組む。of の後ろに子を書く。親を持たない箱は最後に根の 1 つだけ",
-        item: "チップ。列の図で最初の step より前に宣言する。label は 4 字まで",
+        item: "チップ。列の図と試す図で最初の step より前に宣言する。列の図の label は 4 字まで、試す図は入力の帯の欄の値を書く",
         line: "列の並びを書く。段の中で、列のチップを書いた順に並べ直す",
         seal: "封をする。段の中で、列の中身を隠す",
         open: "封を開ける。段の中で、隠した中身を戻す",
         pick: "列を選ぶ。選んだ列の縁に色が付き、ほかの列が薄くなる",
         stamp: "札を押す。段の中で、列の右に字の札を置く",
+        route: "網。試す図で節を - でつなぎ、送ったチップを from から to まで運ぶ",
+        queue: "待ち行列。order の欄の値の高い順に並べる",
+        chain: "機械の列。ブロックが前の hash を持ち、edit の欄を読み手が書き換える",
+        ask: "入力の帯。読み手が値を打ち込んで送る。段の中では書き手の例として送る",
+        press: "釦。待ち行列の上から take 件を新しいブロックへ移す。段の中では書き手の例として押す",
         action: "箱の中の処理",
         swap: "箱の下の小さな字の書き換え",
         "strip-value": "帯の値",
@@ -321,7 +332,7 @@ export const TEXT = {
         sections: {
           parts: {
             title: "Parts",
-            lead: "Parts that many diagrams use. Each part page shows the part in every diagram kind that can use it. Lineup diagrams draw no edges, so the edge and action parts are not part of them.",
+            lead: "Parts that many diagrams use. Each part page shows the part in every diagram kind that can use it. Lineup diagrams draw no edges, so the edge and action parts are not part of them. Try diagrams have no boxes or edges and grow the steps as the reader acts, so none of these parts are part of them.",
           },
           "kind-parts": { title: "Parts for one kind", lead: "Parts that only one diagram kind uses." },
           kinds: { title: "Diagrams", lead: "Diagrams built from the parts. Each lists the parts it uses and its examples." },
@@ -361,6 +372,11 @@ export const TEXT = {
           order: BLOCK_TEXT.order.en,
           role: BLOCK_TEXT.role.en,
           legend: BLOCK_TEXT.legend.en,
+          route: BLOCK_TEXT.route.en,
+          queue: BLOCK_TEXT.queue.en,
+          chain: BLOCK_TEXT.chain.en,
+          ask: BLOCK_TEXT.ask.en,
+          press: BLOCK_TEXT.press.en,
         },
         kindOnly: (kind: string) => `${kind} only`,
         partKinds: "Used in",
@@ -382,6 +398,7 @@ export const TEXT = {
           tree: "Build boxes that branch into parents and children from the leaves up to the root, then follow the path between root and leaf step by step. For mechanisms like a Merkle tree, where a few values prove the whole, tags running along the tree lines show it.",
           lineup:
             "Line chips up in long lanes and follow how their order changes, step by step. For mechanisms where order and hidden contents matter, like an auction that decides what goes in a block, chips sliding between lanes and seals show it.",
+          try: "A figure readers move by typing values and pressing buttons. Readers try for themselves how a transaction crosses the network, enters a block in fee order, and joins the chain by its hash.",
         },
         total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         showing: (n: number) => `showing ${n}`,
@@ -434,7 +451,7 @@ export const TEXT = {
     fold: "Hide",
     unfold: "Show",
     readable: (part: CountedPart, count: number, steps: number) =>
-      `Reads fine — ${count} ${count === 1 ? part : { box: "boxes", branch: "branches", row: "rows", lane: "lanes" }[part]}, ${steps} ${steps === 1 ? "step" : "steps"}`,
+      `Reads fine — ${count} ${count === 1 ? part : { box: "boxes", branch: "branches", row: "rows", lane: "lanes", part: "parts" }[part]}, ${steps} ${steps === 1 ? "step" : "steps"}`,
     notJson: (message: string) => `Not valid JSON — ${message}`,
     cannotDraw: (message: string) => `Cannot draw — ${message}`,
     kept: "Showing the last diagram that drew",
@@ -449,7 +466,7 @@ export const TEXT = {
       filter: "Filter…",
       filterLabel: "Filter the list",
       nothing: "Nothing matches",
-      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup" },
+      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: {
@@ -494,12 +511,17 @@ export const TEXT = {
         span: "Range bracket. shape: box draws a box around the rows",
         leaf: "Add a leaf. With a hash, the box shows the value and a card below shows the id",
         node: "Build a parent. List its children after of. Only the root is left without a parent at the end",
-        item: "Chip. In a lineup diagram, declare it before the first step. A label is up to 4 characters",
+        item: "Chip. In lineup and try diagrams, declare it before the first step. A lineup label is up to 4 characters; a try chip holds values for the input strip fields",
         line: "Write a lane's order. Inside a step, the chips line up in the order written",
         seal: "Seal a lane. Inside a step, hide its contents",
         open: "Open a seal. Inside a step, bring the hidden contents back",
         pick: "Pick a lane. Its edge lights up and the other lanes fade",
         stamp: "Stamp a lane. Inside a step, put a text stamp on the right of the lane",
+        route: "Network. In a try diagram, join nodes with - and carry a sent chip from from to to",
+        queue: "Queue. Chips sort from the highest value of the order field",
+        chain: "Chain. Each block holds the previous hash; readers change the edit field",
+        ask: "Input strip. Readers type values and send; inside a step, the author's example",
+        press: "Button. Moves the top take chips of a queue into a new block; inside a step, the author's example",
         action: "Action inside a box",
         swap: "Rewrite the small text under a box",
         "strip-value": "Strip value",

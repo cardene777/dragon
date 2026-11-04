@@ -196,6 +196,24 @@ export const TYPE = {
   legend: text(11, 500),
   laneEmpty: text(11, 500),
   /**
+   * 試す図 (#3337)。部品の題、網の節の名札、チップの名前と値、ブロックの番号、prev と hash の札と値、SHA-256 の字、
+   * つながりの印 (= と ≠)、待ち行列の取り出し方と畳んだブロックの字。和文を含む字は同じ大きさと太さの和文の字で描く
+   */
+  tryTitle: text(11.5, 700, "mono"),
+  tryNode: text(10.5, 600, "mono"),
+  tryChip: text(11.5, 650, "mono"),
+  tryChipValue: text(11.5, 700, "mono"),
+  tryBlockNo: text(11, 700, "mono"),
+  tryRowKey: text(10.5, 600, "mono"),
+  tryRowValue: text(13, 700, "mono"),
+  tryCaption: text(10.5, 600, "mono"),
+  tryLink: text(13, 700, "mono"),
+  tryHint: text(11, 600),
+  /** 試す図の再生の部品 (#3337) の、入力の帯の欄の名前と入力の字、押せない訳の字 */
+  askLabel: text(12, 600),
+  askInput: text(14, 600),
+  askReason: text(12.5, 600),
+  /**
    * 時間軸の図 (#3165)。拡大の帯の列の上の字、印の列の名前、時刻の字、区切りの名前と目盛りの番号の範囲、
    * 節目の名札と状態、範囲の括弧の字、空きの枠の字、物差しの線の字。和文を含む字は同じ大きさと太さの和文の字で描く
    */
@@ -364,6 +382,7 @@ export const LOOK = {
     rootColor: "green",
   },
   // 列の図 (#3239) の値は `look/lineup.ts` の `LINEUP_LOOK` が持つ。列の図を描く部品だけが読むので、頁が最初に読む script に入れない (#3351)
+  // 試す図 (#3337) の値も同じ理由で `look/try.ts` の `TRY_LOOK` が持つ
   /**
    * 時間軸の図 (#3165)。見本帳の試作 (`scenes/finality.js`) の寸法を写す。
    * 図の幅は `width` で、時間軸は左の `axisX` から右の余白 `right` の手前まで。印の列の名前が長い時は、名前の右に `gutterGap` を空けて軸を右へ寄せる。
@@ -511,7 +530,8 @@ export const LOOK = {
     stamp: 2,
   },
   shadow: { near: 0.8, far: 4, nearY: 1, farY: 3 },
-  mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10 },
+  /** 寄って追う見せ方の全体図。`band` は区画と待ち行列の枠の地の角の丸み、`card` は箱と節とブロックの札の角の丸み */
+  mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10, band: 3, card: 1.5 },
   /**
    * 寄って追う見せ方の窓の高さの、幅に対する割合と下限。
    * `fitMinH` は見える高さに収める時 (#3047) の窓の高さの下限で、これより低い枠では収めずに枠の中で送る。
@@ -576,9 +596,32 @@ export const LOOK = {
   /**
    * 動きを嫌わない人の頁の部品。
    * `narrow` は段の本文の帯を横 1 列に並べる帯の中身の幅の下限で、これより狭い帯 (携帯の幅) では題と本文を釦と番号の段の下に置く (#3057、#3069)。
-   * `touch` はその狭い帯で段を送る釦の縦横で、指で押せる大きさにする (#3069)
+   * `touch` はその狭い帯で段を送る釦の縦横で、指で押せる大きさにする (#3069)。
+   * `ask` は試す図 (#3337) の入力の帯と書き換える欄で、内側の余白 `pad`、欄の名前と入力の間 `label`、広い帯で 1 つの欄が縮む幅の下限 `field`、
+   * 入力の字の左右の余白 `inset`、釦の字の左右の余白 `side`、入力と釦の角の丸み `radius`、図の上に置く釦と部品の題の間 `at`、
+   * 部品の題の基準線から字の真ん中までの字の大きさに対する割合 `mid`、押せない釦の濃さ `dim`。
+   * 入力と帯の中の釦の高さは `touch` にし、図の上に置く釦は段を送る釦と同じく `button` (指で触る時は `touch`) にする
    */
-  player: { gap: 10, radius: 12, button: 36, touch: 44, hidden: 1, focus: 2, narrow: 440 },
+  player: {
+    gap: 10,
+    radius: 12,
+    button: 36,
+    touch: 44,
+    hidden: 1,
+    focus: 2,
+    narrow: 440,
+    ask: {
+      pad: 14,
+      label: 6,
+      field: 110,
+      inset: 12,
+      side: 16,
+      radius: 8,
+      at: 10,
+      mid: 0.35,
+      dim: 0.45,
+    },
+  },
 } as const;
 
 /** 動きの長さ (秒)。 */
@@ -626,6 +669,11 @@ export const MOTION = {
    * `cut` はチップと封が一瞬で入れ替わる長さ
    */
   lineup: { slide: 0.7, seal: 0.6, stagger: 0.2, cut: 0.01 },
+  /**
+   * 試す図 (#3337)。`trip` はチップが網の送る側から作る人まで運ばれる長さ、`settle` は待ち行列の席へ入る長さ、
+   * `build` はチップがブロックへ移る長さ、`edit` は書き換えた値と hash が変わる長さ
+   */
+  try: { trip: 1.6, settle: 0.6, build: 0.9, edit: 0.5 },
 } as const;
 
 /** 見せ方を決める字の大きさ。全体を枠に収めた時の箱の名前がこれを下回ると寄って追う。 */

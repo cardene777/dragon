@@ -1,0 +1,9 @@
+try 網
+
+route 網: あなた - 甲 - 作る人, あなた - 乙 - 丙 - 作る人 [from: あなた, to: 作る人]
+queue 待ち
+ask 名前, 値 [into: 待ち, via: 網]
+
+step 網を伝わる
+  say route の行で節を - でつなぐ。送ったチップは from から to まで、節の数が最も少ない道を通る。
+  ask 私, 1

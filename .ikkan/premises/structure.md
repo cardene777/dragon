@@ -6,7 +6,7 @@
 |---|---|---|
 | `packages/dragon/src` | 記法の読み書き、原本の検査、描画、再生、書き出し、命令 (`cli.ts`) と、それらを公開する入口 | `packages/dragon/src/index.ts`、`packages/dragon/package.json` の `exports` |
 | `packages/dragon/src/blocks/<名前>` | ブロックの置き場。語と読む処理と書き戻す処理と誤りの文 (`block.ts`)、原本の形の欠片 (`shape.ts`、build の時の script と検査だけが一覧 `blocks/shapes.ts` から読む、#3348)、描き方 (`draw.ts`)、見本帳の分と部品の図 (`gallery/`) | `packages/dragon/src/blocks/block.ts`、`packages/dragon/test/blocks.test.ts` の `block-folder-holds-whole-definition` |
-| `packages/dragon/src/kinds/<種類>` | 図の種類の置き場。受け付ける付け方 (`kind.ts`) と並べ方 (`layout.ts`)。後から読む図の種類 (状態遷移図、枝分かれの図、時間軸の図、木の図、列の図) の `kind.ts` は並べ方を読まず、後から読む入口 (`kinds/state.ts`、`kinds/git.ts`、`kinds/time.ts`、`kinds/tree.ts`、`kinds/lineup.ts`) が並べ方を出す。置き場はブロックの一覧を持たず、どのブロックを使えるかはブロックの付け方 (`attach`) と受け付ける付け方 (`accepts`) から導く (#3348) | `packages/dragon/src/kinds/kind.ts`、`packages/dragon/test/blocks.test.ts` の `later-kind-folder-keeps-layout-out-of-first-load` |
+| `packages/dragon/src/kinds/<種類>` | 図の種類の置き場。受け付ける付け方 (`kind.ts`) と並べ方 (`layout.ts`)。後から読む図の種類 (状態遷移図、枝分かれの図、時間軸の図、木の図、列の図、試す図) の `kind.ts` は並べ方を読まず、後から読む入口 (`kinds/state.ts`、`kinds/git.ts`、`kinds/time.ts`、`kinds/tree.ts`、`kinds/lineup.ts`、`kinds/try.ts`) が並べ方を出す。置き場はブロックの一覧を持たず、どのブロックを使えるかはブロックの付け方 (`attach`) と受け付ける付け方 (`accepts`) から導く (#3348) | `packages/dragon/src/kinds/kind.ts`、`packages/dragon/test/blocks.test.ts` の `later-kind-folder-keeps-layout-out-of-first-load` |
 | `packages/dragon/test` | package と repo の仕組みの検査 | `vitest.config.ts` の `include` |
 | `packages/dragon/scripts` | 入れた依存が公開物と一致するかを確かめる script | `package.json` の `verify:deps` |
 | `apps/playground-spa/src` | 見本帳。経路と上の帯と編集画面のほかの画面を `src/site` に、編集画面を `Playground.tsx` に、頁と配信の仕組みの検査を `src/lib` に置く | `apps/playground-spa/src/main.tsx` |

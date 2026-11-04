@@ -1,0 +1,18 @@
+try Chain
+
+queue Pool
+chain Blocks [edit: Amount]
+ask Name, Amount [into: Pool]
+press Build [from: Pool, into: Blocks, take: 1]
+
+item a [Amount: 3]
+item b [Amount: 5]
+
+step Link blocks
+  say A chain line places a chain. Each block holds the previous block's hash as prev.
+  line Blocks: a
+  line Blocks: b
+
+step Change a value
+  say Changing the edit field changes the hash, and it no longer matches the next block's prev.
+  item a [Amount: 30]

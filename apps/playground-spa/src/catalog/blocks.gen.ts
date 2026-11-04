@@ -2,6 +2,9 @@
 import { text as actText } from "../../../../packages/dragon/src/blocks/act/gallery/text";
 import { shelf as actShelf } from "../../../../packages/dragon/src/blocks/act/gallery/shelf";
 import { rule as actRule } from "../../../../packages/dragon/src/blocks/act/gallery/rule";
+import { text as askText } from "../../../../packages/dragon/src/blocks/ask/gallery/text";
+import { shelf as askShelf } from "../../../../packages/dragon/src/blocks/ask/gallery/shelf";
+import { rule as askRule } from "../../../../packages/dragon/src/blocks/ask/gallery/rule";
 import { text as boxText } from "../../../../packages/dragon/src/blocks/box/gallery/text";
 import { shelf as boxShelf } from "../../../../packages/dragon/src/blocks/box/gallery/shelf";
 import { rule as boxRule } from "../../../../packages/dragon/src/blocks/box/gallery/rule";
@@ -11,6 +14,9 @@ import { rule as branchRule } from "../../../../packages/dragon/src/blocks/branc
 import { text as carryText } from "../../../../packages/dragon/src/blocks/carry/gallery/text";
 import { shelf as carryShelf } from "../../../../packages/dragon/src/blocks/carry/gallery/shelf";
 import { rule as carryRule } from "../../../../packages/dragon/src/blocks/carry/gallery/rule";
+import { text as chainText } from "../../../../packages/dragon/src/blocks/chain/gallery/text";
+import { shelf as chainShelf } from "../../../../packages/dragon/src/blocks/chain/gallery/shelf";
+import { rule as chainRule } from "../../../../packages/dragon/src/blocks/chain/gallery/rule";
 import { text as colorText } from "../../../../packages/dragon/src/blocks/color/gallery/text";
 import { shelf as colorShelf } from "../../../../packages/dragon/src/blocks/color/gallery/shelf";
 import { rule as colorRule } from "../../../../packages/dragon/src/blocks/color/gallery/rule";
@@ -68,9 +74,18 @@ import { rule as pickRule } from "../../../../packages/dragon/src/blocks/pick/ga
 import { text as pointText } from "../../../../packages/dragon/src/blocks/point/gallery/text";
 import { shelf as pointShelf } from "../../../../packages/dragon/src/blocks/point/gallery/shelf";
 import { rule as pointRule } from "../../../../packages/dragon/src/blocks/point/gallery/rule";
+import { text as pressText } from "../../../../packages/dragon/src/blocks/press/gallery/text";
+import { shelf as pressShelf } from "../../../../packages/dragon/src/blocks/press/gallery/shelf";
+import { rule as pressRule } from "../../../../packages/dragon/src/blocks/press/gallery/rule";
+import { text as queueText } from "../../../../packages/dragon/src/blocks/queue/gallery/text";
+import { shelf as queueShelf } from "../../../../packages/dragon/src/blocks/queue/gallery/shelf";
+import { rule as queueRule } from "../../../../packages/dragon/src/blocks/queue/gallery/rule";
 import { text as roleText } from "../../../../packages/dragon/src/blocks/role/gallery/text";
 import { shelf as roleShelf } from "../../../../packages/dragon/src/blocks/role/gallery/shelf";
 import { rule as roleRule } from "../../../../packages/dragon/src/blocks/role/gallery/rule";
+import { text as routeText } from "../../../../packages/dragon/src/blocks/route/gallery/text";
+import { shelf as routeShelf } from "../../../../packages/dragon/src/blocks/route/gallery/shelf";
+import { rule as routeRule } from "../../../../packages/dragon/src/blocks/route/gallery/rule";
 import { text as rowText } from "../../../../packages/dragon/src/blocks/row/gallery/text";
 import { shelf as rowShelf } from "../../../../packages/dragon/src/blocks/row/gallery/shelf";
 import { rule as rowRule } from "../../../../packages/dragon/src/blocks/row/gallery/rule";
@@ -105,9 +120,11 @@ import { rule as zoomRule } from "../../../../packages/dragon/src/blocks/zoom/ga
 /** 見本帳の一覧の名前と説明。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_TEXT = {
   "act": actText,
+  "ask": askText,
   "box": boxText,
   "branch": branchText,
   "carry": carryText,
+  "chain": chainText,
   "color": colorText,
   "commit": commitText,
   "copy": copyText,
@@ -127,7 +144,10 @@ export const BLOCK_TEXT = {
   "order": orderText,
   "pick": pickText,
   "point": pointText,
+  "press": pressText,
+  "queue": queueText,
   "role": roleText,
+  "route": routeText,
   "row": rowText,
   "scale": scaleText,
   "seal": sealText,
@@ -143,9 +163,11 @@ export const BLOCK_TEXT = {
 /** 編集画面の棚に置く部品の名前。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_SHELF = {
   "act": actShelf,
+  "ask": askShelf,
   "box": boxShelf,
   "branch": branchShelf,
   "carry": carryShelf,
+  "chain": chainShelf,
   "color": colorShelf,
   "commit": commitShelf,
   "copy": copyShelf,
@@ -165,7 +187,10 @@ export const BLOCK_SHELF = {
   "order": orderShelf,
   "pick": pickShelf,
   "point": pointShelf,
+  "press": pressShelf,
+  "queue": queueShelf,
   "role": roleShelf,
+  "route": routeShelf,
   "row": rowShelf,
   "scale": scaleShelf,
   "seal": sealShelf,
@@ -181,9 +206,11 @@ export const BLOCK_SHELF = {
 /** `GRAMMAR.md` の部品と使い方の表の行。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_RULE = {
   "act": actRule,
+  "ask": askRule,
   "box": boxRule,
   "branch": branchRule,
   "carry": carryRule,
+  "chain": chainRule,
   "color": colorRule,
   "commit": commitRule,
   "copy": copyRule,
@@ -203,7 +230,10 @@ export const BLOCK_RULE = {
   "order": orderRule,
   "pick": pickRule,
   "point": pointRule,
+  "press": pressRule,
+  "queue": queueRule,
   "role": roleRule,
+  "route": routeRule,
   "row": rowRule,
   "scale": scaleRule,
   "seal": sealRule,

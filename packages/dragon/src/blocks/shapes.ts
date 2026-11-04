@@ -1,8 +1,10 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { shape as actShape } from "./act/shape";
+import { shape as askShape } from "./ask/shape";
 import { shape as boxShape } from "./box/shape";
 import { shape as branchShape } from "./branch/shape";
 import { shape as carryShape } from "./carry/shape";
+import { shape as chainShape } from "./chain/shape";
 import { shape as colorShape } from "./color/shape";
 import { shape as commitShape } from "./commit/shape";
 import { shape as copyShape } from "./copy/shape";
@@ -22,7 +24,10 @@ import { shape as noteShape } from "./note/shape";
 import { shape as orderShape } from "./order/shape";
 import { shape as pickShape } from "./pick/shape";
 import { shape as pointShape } from "./point/shape";
+import { shape as pressShape } from "./press/shape";
+import { shape as queueShape } from "./queue/shape";
 import { shape as roleShape } from "./role/shape";
+import { shape as routeShape } from "./route/shape";
 import { shape as rowShape } from "./row/shape";
 import { shape as scaleShape } from "./scale/shape";
 import { shape as sealShape } from "./seal/shape";
@@ -37,9 +42,11 @@ import { shape as zoomShape } from "./zoom/shape";
 /** ブロックの原本の形の欠片の一覧。鍵は置き場の dir の名前。build の時の script と検査だけが読む */
 export const SHAPES = {
   "act": actShape,
+  "ask": askShape,
   "box": boxShape,
   "branch": branchShape,
   "carry": carryShape,
+  "chain": chainShape,
   "color": colorShape,
   "commit": commitShape,
   "copy": copyShape,
@@ -59,7 +66,10 @@ export const SHAPES = {
   "order": orderShape,
   "pick": pickShape,
   "point": pointShape,
+  "press": pressShape,
+  "queue": queueShape,
   "role": roleShape,
+  "route": routeShape,
   "row": rowShape,
   "scale": scaleShape,
   "seal": sealShape,

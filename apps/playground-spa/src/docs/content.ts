@@ -14,14 +14,14 @@ import type { Lang } from "../text";
  * 節の並び。記法の決まりの後に記法の要素を書く順に並べ、図を外で使う 2 つの形 (頁に置く、書き出す) を続け、
  * 前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** 特長の札が指す節。札はこの並びで並ぶ */
 export const CARDS = ["start", "boxes", "regions", "steps", "json", "export"] as const satisfies readonly SectionId[];
 
 /** 節の出口。同じ頁の節か、サイトの画面か、カタログの分類 */
-export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" };
+export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "try" };
 
 export const EXITS: Record<SectionId, Exit> = {
   start: { screen: "editor" },
@@ -33,6 +33,7 @@ export const EXITS: Record<SectionId, Exit> = {
   git: { kind: "git" },
   time: { kind: "time" },
   tree: { kind: "tree" },
+  try: { kind: "try" },
   steps: { section: "strip" },
   strip: { kind: "sequence" },
   carry: { section: "json" },
@@ -91,7 +92,7 @@ interface DocsText {
 export const DOCS: Record<Lang, DocsText> = {
   ja: {
     eyebrow: (version) => `使い方の案内 · ${version}`,
-    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
+    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、試す図、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
     start: "5 分で始める →",
     browse: "カタログで図を見る",
     iconLink: "使える絵柄を部品「絵」の頁で全て見る →",
@@ -172,6 +173,15 @@ export const DOCS: Record<Lang, DocsText> = {
           "親子の箱どうしに `<子> -> <親> [tag: <値>]` の線を書くと、運ぶ物は木の線の上を走り、通った木の線はその色で残る。木の線を運ぶ物が通った段から後は、運ぶ物を送るか受けた箱だけを濃く出す。木の図では `group` を書けず、`box` で宣言した箱は木の右に並ぶ。",
         ],
         exit: "木の図の見本を見る →",
+      },
+      try: {
+        title: "試す図",
+        text: [
+          "読み手が値を打ち込み、釦を押して動かせる図にする時は、最初の行を `try <題>` にする。最初の段より前に部品の行を上から並べると、その順に上から積んで描く。`route <名札>: <節> - <節>, ... [from: <節>, to: <節>]` は網で、送ったチップを `from` から `to` まで最短の道で運ぶ。`queue <名札> [order: <欄>]` は待ち行列で、`order` の欄の値の高い順に上から並べる。",
+          "`chain <名札> [edit: <欄>]` は機械の列で、ブロックは 1 つ前のブロックの `hash` を `prev` に持つ。`edit` を書くと、読み手はブロックの中のチップを押してその欄を書き換えられ、書き換えたブロックと次のブロックの間に食い違いの印 `≠` が出る。`ask <欄>, <欄>, ... [into: <待ち行列>, via: <網>]` は入力の帯で、最初の欄の値がチップの名前になる。`press <名札> [from: <待ち行列>, into: <機械の列>, take: <件数>]` は釦で、`at: <部品>` を書くとその部品の所に置く。",
+          "チップは `item <名札> [<欄>: <値>]` で書く。段の中の `line` で待ち行列の並びとブロックを書き、`ask <値>, ...` と `press <名札>` と `item <名札> [<欄>: <値>]` で書き手の例 (送る、作る、書き換える) を書く。再生の部品は最初の段で止まって読み手を待ち、送るか押すか書き換えるたびに段を 1 つ足して流す。打ち込んだ値は保存しない。画像と動画と印刷には書き手の例の段を描く。",
+        ],
+        exit: "試す図の見本を見る →",
       },
       steps: {
         title: "段",
@@ -285,7 +295,7 @@ export const DOCS: Record<Lang, DocsText> = {
   en: {
     // 英語の側の区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
     eyebrow: (version) => `guide • ${version}`,
-    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, steps, the strip and what travels. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
+    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, try diagrams, steps, the strip and what travels. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
     start: "Start in five minutes →",
     browse: "Browse the catalog",
     iconLink: "See every icon on the Icon part page →",
@@ -366,6 +376,15 @@ export const DOCS: Record<Lang, DocsText> = {
           "A line `<child> -> <parent> [tag: <value>]` between a parent and a child sends its carrier along the tree line, and the tree line keeps that color once passed. From the step where a carrier first runs a tree line, only the boxes that have sent or received a carrier stay strong. A tree diagram takes no `group`, and boxes declared with `box` sit to the right of the tree.",
         ],
         exit: "See the tree diagram samples →",
+      },
+      try: {
+        title: "Try diagrams",
+        text: [
+          "To make a figure readers move themselves by typing values and pressing buttons, start the first line with `try <title>`. Write the part lines before the first step, from top to bottom, and they are stacked in that order. `route <name>: <node> - <node>, ... [from: <node>, to: <node>]` is a network that carries a sent chip from `from` to `to` along the shortest path. `queue <name> [order: <field>]` is a waiting line that sorts chips from the highest value of the `order` field.",
+          "`chain <name> [edit: <field>]` is a chain of blocks, and each block holds the previous block's `hash` as `prev`. With `edit`, the reader taps a chip inside a block to change that field, and the mismatch mark `≠` appears between the changed block and the next one. `ask <field>, <field>, ... [into: <queue>, via: <route>]` is the input strip, and the first field's value becomes the chip's name. `press <name> [from: <queue>, into: <chain>, take: <count>]` is a button, and `at: <part>` places it on that part.",
+          "Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line` writes a queue's contents or a block, and `ask <value>, ...`, `press <name>`, and `item <name> [<field>: <value>]` write the author's example (send, build, change). The player stops at the first step and waits for the reader, and adds one step and plays it each time the reader sends, presses, or changes a value. Nothing the reader types is stored. Images, videos, and print draw the author's example steps.",
+        ],
+        exit: "See the try diagram samples →",
       },
       steps: {
         title: "Steps",

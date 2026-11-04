@@ -273,6 +273,11 @@ export type SyntaxId =
   | "open"
   | "pick"
   | "stamp"
+  | "route"
+  | "queue"
+  | "chain"
+  | "ask"
+  | "press"
   | "action"
   | "swap"
   | "strip-value"
@@ -313,6 +318,11 @@ const HOLE = {
     child: "子",
     lane: "列",
     chip: "チップ",
+    node: "節",
+    route: "網",
+    queue: "待ち行列",
+    chain: "機械の列",
+    part: "部品",
   },
   en: {
     title: "title",
@@ -347,6 +357,11 @@ const HOLE = {
     child: "child",
     lane: "lane",
     chip: "chip",
+    node: "node",
+    route: "network",
+    queue: "queue",
+    chain: "chain",
+    part: "part",
   },
 } as const satisfies Record<NotationLang, Record<string, string>>;
 
@@ -388,10 +403,17 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   // チップと列の並びと封と選ぶと札は列の図だけが書ける (#3239)
   const lineupBase = draw({ ...add(empty("lineup"), { item: [] }), steps: [step] });
   const inLineup = (events: object[]): Diagram => draw({ ...lineupBase, steps: [{ ...step, events }] });
+  // 網と待ち行列と機械の列と入力の帯と釦は試す図だけが書ける (#3337)。入力の帯と釦は段の中にも書け、書き手の例として送って押す。
+  // 入力の帯の最初の欄はチップの名前になるので、チップの欄の値はその後ろの欄に書く
+  const tryBase = draw({ ...add(empty("try"), { part: [] }), steps: [step] });
+  const tryWith = (part: object): Diagram => add(tryBase, { part: [part] });
+  const inTry = (base: Diagram, events: object[]): Diagram => draw({ ...base, steps: [{ ...step, events }] });
+  const askBase = tryWith({ type: "ask", id: "ask", fields: [h.name, h.field], into: h.queue, via: h.route });
+  const pressBase = tryWith({ type: "press", id: h.id, from: h.queue, into: h.chain, take: h.count, at: h.part });
   return [
     {
       id: "kind",
-      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup"))],
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try"))],
     },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
@@ -444,12 +466,23 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     },
     { id: "leaf", lines: diff([[treeBase, inTree([{ type: "leaf", id: h.id, hash: h.hash }])]]) },
     { id: "node", lines: diff([[treeBase, inTree([{ type: "node", id: h.id, children: [h.child, h.child], hash: h.hash }])]]) },
-    { id: "item", lines: diff([[lineupBase, add(lineupBase, { item: [{ id: h.id, color: h.color, label: h.text }] })]]) },
+    {
+      id: "item",
+      lines: diff([
+        [lineupBase, add(lineupBase, { item: [{ id: h.id, color: h.color, label: h.text }] })],
+        [askBase, add(askBase, { item: [{ id: h.id, values: { [h.field]: h.value } }] })],
+      ]),
+    },
     { id: "line", lines: diff([[lineupBase, inLineup([{ type: "line", box: h.lane, items: [h.chip, h.chip] }])]]) },
     { id: "seal", lines: diff([[lineupBase, inLineup([{ type: "seal", box: h.lane }])]]) },
     { id: "open", lines: diff([[lineupBase, inLineup([{ type: "open", box: h.lane }])]]) },
     { id: "pick", lines: diff([[lineupBase, inLineup([{ type: "pick", box: h.lane }])]]) },
     { id: "stamp", lines: diff([[lineupBase, inLineup([{ type: "stamp", box: h.lane, text: h.text }])]]) },
+    { id: "route", lines: diff([[tryBase, tryWith({ type: "route", id: h.id, paths: [[h.node, h.node, h.node], [h.node, h.node]], from: h.node, to: h.node })]]) },
+    { id: "queue", lines: diff([[tryBase, tryWith({ type: "queue", id: h.id, order: h.field })]]) },
+    { id: "chain", lines: diff([[tryBase, tryWith({ type: "chain", id: h.id, edit: h.field })]]) },
+    { id: "ask", lines: diff([[tryBase, askBase], [askBase, inTry(askBase, [{ type: "ask", values: [h.value, h.value] }])]]) },
+    { id: "press", lines: diff([[tryBase, pressBase], [pressBase, inTry(pressBase, [{ type: "press", press: h.id }])]]) },
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
     { id: "strip-value", lines: diff([[add(withStep, { strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },

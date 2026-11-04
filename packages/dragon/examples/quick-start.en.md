@@ -222,6 +222,31 @@ step Climb from tx3 to the root
   1to2 -> root [tag: 7a21]
 ```
 
+In a try diagram (`try <title>`), stack part lines before the first step so readers can type values and press buttons.
+`route` is a network, `queue` a waiting line, `chain` a chain of blocks, `ask` the input strip, and `press` a button, and chips are written as `item <name> [<field>: <value>]`.
+Inside a step, `line` writes the contents, and `ask`, `press`, and `item` write the author's example steps. The player stops at the first step and adds one step each time the reader presses.
+
+```dragon
+try Into a block
+
+route Net: You - node-1 - Builder [from: You, to: Builder]
+queue Mempool [order: Fee]
+chain Chain [edit: Amount]
+ask Sender, Amount, Fee [into: Mempool, via: Net]
+press Build [from: Mempool, into: Chain, take: 2]
+
+item tx1 [Amount: 3, Fee: 7]
+item tx2 [Amount: 5, Fee: 5]
+
+step Waiting in line
+  say Transactions line up in the mempool from the highest fee.
+  line Mempool: tx1, tx2
+
+step Build a block
+  say The two highest fees go into block 1.
+  press Build
+```
+
 ## Attributes
 
 Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by `,` to set how it looks and what it carries.

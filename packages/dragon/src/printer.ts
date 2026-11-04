@@ -16,6 +16,8 @@
  * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で、葉と組んだ親のブロックが書く (#3348)。
  * 列の図 (#3239) のチップは箱の後ろに `item` の行でチップのブロックが書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
  * 列の図の役は、図の種類の行の直ぐ後ろに役のブロックが書く (#3348)。
+ * 試す図 (#3337) の部品の行は、部品の種類と同じ名前のブロックの書き戻す処理 (`print.part`) が書き、原本の並びのまま 1 つの塊にする (#3348)。
+ * その後ろのチップの `item` の行は入力の帯のブロックが書き、欄の値と段の中の書き換えの鍵を入力の帯の欄の順に書く。
  * 段の中でブロックが受け持つ行は、段の区切りの `step` の行の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
  * 段の本文の `say` と命令の `code` の行は段のブロックが、段の出典 (#3199) は出典のブロックが書く。
  * 段の中で起きることのうちブロックが持つ種類は、そのブロックの書き戻す処理 (`print.events`) が起きた順に 1 行ずつ書く (#3345)。
@@ -25,7 +27,7 @@ import { type EventPrinter, ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
 import { attrs, name } from "./print-kit";
 import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
-import type { Diagram, DiagramEvent, DiagramModel, Step } from "./schema";
+import type { Diagram, DiagramEvent, DiagramModel, Step, TryPart } from "./schema";
 
 /** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
 const STEP_PRINTERS: readonly ((step: Step) => string[])[] = ranked(BLOCKS).flatMap((block) =>
@@ -58,11 +60,27 @@ const FIGURE_PRINTERS: readonly ((diagram: DiagramModel) => string[])[] = ranked
   "none" in block.print || block.print.figure === undefined ? [] : [block.print.figure],
 );
 
-/** 段の中の 1 行。出来事の種類を持つブロックの書き戻す処理が書く。`kind` は図の種類 */
-function event(e: DiagramEvent, kind: DiagramModel["kind"]): string {
+/** 試す図の部品の種類ごとの、部品の種類と同じ名前のブロックが持つ書き戻す処理 (#3337、#3348) */
+const PART_PRINTERS: ReadonlyMap<string, (part: TryPart) => string> = new Map(
+  ranked(BLOCKS).flatMap((block) => ("none" in block.print || block.print.part === undefined ? [] : [[block.name, block.print.part] as const])),
+);
+
+/** 試す図の部品の塊。部品の行を原本の並びのまま 1 つの塊に書く */
+function tryParts(parts: readonly TryPart[]): string {
+  return parts
+    .map((part) => {
+      const print = PART_PRINTERS.get(part.type);
+      if (!print) throw new Error(`${part.type} の部品を書き戻す処理が無い`);
+      return print(part);
+    })
+    .join("\n");
+}
+
+/** 段の中の 1 行。出来事の種類を持つブロックの書き戻す処理が書く。`kind` は図の種類、`diagram` は書き戻す図 */
+function event(e: DiagramEvent, kind: DiagramModel["kind"], diagram: DiagramModel): string {
   const print = EVENT_PRINTERS.get(e.type);
   if (!print) throw new Error(`${e.type} を書き戻す処理が無い`);
-  return print(e, kind);
+  return print(e, kind, diagram);
 }
 
 /**
@@ -73,6 +91,7 @@ export function printNotation(source: Diagram): string {
   const diagram = toModel(isVersion1(source) ? (upgrade(source, FORMAT_VERSION) as unknown as Diagram) : source);
   const blocks = [
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
+    ...(diagram.try ? [tryParts(diagram.try.parts)] : []),
     ...LEAD_PRINTERS.flatMap((print) => print(diagram)),
     ...DECLARE_PRINTERS.flatMap((print) => print(diagram)),
     ...FIGURE_PRINTERS.flatMap((print) => print(diagram)),
@@ -83,7 +102,7 @@ export function printNotation(source: Diagram): string {
       [
         `step ${step.title}`,
         ...STEP_PRINTERS.flatMap((print) => print(step)).map((line) => (line === "" ? "" : `  ${line}`)),
-        ...step.events.map((e) => `  ${event(e, diagram.kind)}`),
+        ...step.events.map((e) => `  ${event(e, diagram.kind, diagram)}`),
       ].join("\n"),
     );
   }

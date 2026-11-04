@@ -40,7 +40,8 @@ function readSource(source: SourceLine, m: Messages): StepSource {
 export const block: Block<SourceMessages> = {
   name: "source",
   rank: 50,
-  attach: { how: "attach-to-figure" },
+  // 試す図は置いた時に書き手の最初の段だけを描いて待つので、段の出典を描く部品に数えない (#3337)
+  attach: { how: "attach-to-figure", except: ["try"] },
   words: { heads: ["source"], attrs: { source: ATTRS } },
   read: {
     source: (source, state) => {

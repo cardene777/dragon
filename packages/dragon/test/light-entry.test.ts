@@ -14,8 +14,8 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EXAMPLES = join(ROOT, "examples");
 
-const ALL_KINDS = ["architecture", "git", "lineup", "sequence", "state", "time", "tree"];
-const LATER_KINDS = ["git", "lineup", "state", "time", "tree"];
+const ALL_KINDS = ["architecture", "git", "lineup", "sequence", "state", "time", "tree", "try"];
+const LATER_KINDS = ["git", "lineup", "state", "time", "tree", "try"];
 
 interface Rendered {
   svg: string;
@@ -78,7 +78,7 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
       out = inFreshNode(`
         const fs = await import("node:fs");
         const read = (file) => light.parseNotation(fs.readFileSync(new URL("./examples/" + file, "file://${ROOT}/"), "utf8")).diagram;
-        const later = { git: "rebase.dragon", lineup: "auction.dragon", state: "order.dragon", time: "finality.dragon", tree: "merkle.dragon" };
+        const later = { git: "rebase.dragon", lineup: "auction.dragon", state: "order.dragon", time: "finality.dragon", tree: "merkle.dragon", try: "tx-block.dragon" };
         const kept = { sequence: "api.dragon", architecture: "ccip.dragon" };
         const host = { ownerDocument: { defaultView: null } };
         const message = (run) => { try { run(); return "描けた"; } catch (e) { return e.message; } };
