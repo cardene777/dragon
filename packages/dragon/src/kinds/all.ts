@@ -8,9 +8,11 @@ import { registerKind } from "./registry";
 import * as state from "./state";
 import * as time from "./time";
 import * as tree from "./tree";
+import * as tryKind from "./try";
 
 registerKind("git", git);
 registerKind("lineup", lineup);
 registerKind("state", state);
 registerKind("time", time);
 registerKind("tree", tree);
+registerKind("try", tryKind);

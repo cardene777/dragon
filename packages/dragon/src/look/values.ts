@@ -196,6 +196,20 @@ export const TYPE = {
   legend: text(11, 500),
   laneEmpty: text(11, 500),
   /**
+   * 試す図 (#3337)。部品の題、網の節の名札、チップの名前と値、ブロックの番号、prev と hash の札と値、SHA-256 の字、
+   * つながりの印 (= と ≠)、待ち行列の取り出し方と畳んだブロックの字。和文を含む字は同じ大きさと太さの和文の字で描く
+   */
+  tryTitle: text(11.5, 700, "mono"),
+  tryNode: text(10.5, 600, "mono"),
+  tryChip: text(11.5, 650, "mono"),
+  tryChipValue: text(11.5, 700, "mono"),
+  tryBlockNo: text(11, 700, "mono"),
+  tryRowKey: text(10.5, 600, "mono"),
+  tryRowValue: text(13, 700, "mono"),
+  tryCaption: text(10.5, 600, "mono"),
+  tryLink: text(13, 700, "mono"),
+  tryHint: text(11, 600),
+  /**
    * 時間軸の図 (#3165)。拡大の帯の列の上の字、印の列の名前、時刻の字、区切りの名前と目盛りの番号の範囲、
    * 節目の名札と状態、範囲の括弧の字、空きの枠の字、物差しの線の字。和文を含む字は同じ大きさと太さの和文の字で描く
    */
@@ -364,6 +378,7 @@ export const LOOK = {
     rootColor: "green",
   },
   // 列の図 (#3239) の値は `look/lineup.ts` の `LINEUP_LOOK` が持つ。列の図を描く部品だけが読むので、頁が最初に読む script に入れない (#3351)
+  // 試す図 (#3337) の値も同じ理由で `look/try.ts` の `TRY_LOOK` が持つ
   /**
    * 時間軸の図 (#3165)。見本帳の試作 (`scenes/finality.js`) の寸法を写す。
    * 図の幅は `width` で、時間軸は左の `axisX` から右の余白 `right` の手前まで。印の列の名前が長い時は、名前の右に `gutterGap` を空けて軸を右へ寄せる。
@@ -626,6 +641,11 @@ export const MOTION = {
    * `cut` はチップと封が一瞬で入れ替わる長さ
    */
   lineup: { slide: 0.7, seal: 0.6, stagger: 0.2, cut: 0.01 },
+  /**
+   * 試す図 (#3337)。`trip` はチップが網の送る側から作る人まで運ばれる長さ、`settle` は待ち行列の席へ入る長さ、
+   * `build` はチップがブロックへ移る長さ、`edit` は書き換えた値と hash が変わる長さ
+   */
+  try: { trip: 1.6, settle: 0.6, build: 0.9, edit: 0.5 },
 } as const;
 
 /** 見せ方を決める字の大きさ。全体を枠に収めた時の箱の名前がこれを下回ると寄って追う。 */

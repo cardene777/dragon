@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * git、lineup、state、time、tree の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * git、lineup、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -33,6 +33,7 @@ import {
 } from "../layout/scene";
 import type { TimeLayout } from "../layout/time";
 import type { TreeLayout } from "../layout/tree";
+import type { TryLayout } from "../layout/try";
 import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
@@ -82,6 +83,7 @@ const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "gi
 const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
 const isTimeLayout = (layout: Layout): layout is TimeLayout => layout.kind === "time";
 const isTreeLayout = (layout: Layout): layout is TreeLayout => layout.kind === "tree";
+const isTryLayout = (layout: Layout): layout is TryLayout => layout.kind === "try";
 
 export interface RenderOptions {
   /** 色味の名前。書かないか知らない名前なら紙と墨 */
@@ -408,6 +410,16 @@ export function drawSvg(
     L.base.push(lineup.lanes);
     L.node.push(lineup.chips);
   }
+  // 試す図の網と待ち行列と機械の列とチップは、試す図を描く部品が描く (#3337)。見た目の規則も試す図の SVG にだけ書く
+  const tryDrawn = isTryLayout(layout)
+    ? kindParts("try").drawTry(layout, diagram, timeline, ctx)
+    : undefined;
+  if (tryDrawn) {
+    L.base.push(tryDrawn.base);
+    L.lit.push(tryDrawn.lit);
+    L.node.push(tryDrawn.node);
+    L.top.push(tryDrawn.top);
+  }
   // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く
   const timeLayout = isTimeLayout(layout) ? layout : undefined;
   if (timeLayout) {
@@ -524,7 +536,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -863,7 +875,9 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
                   lang,
                   ...(options.width === undefined ? {} : { width: options.width }),
                 })
-              : KIND_FOLDERS.architecture.layout(diagram, lang);
+              : diagram.kind === "try"
+                ? kindParts("try", lang).layoutTry(diagram, lang)
+                : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 

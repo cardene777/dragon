@@ -14,6 +14,8 @@
  * 針を進める出来事より後に書いた出来事は、針が止まってから起こす。物差しの欄は、針が進む段では針の進みに比例して満ち、
  * 区切りの境から進む時は 0 から満ち直す。針が進まない段では値を書いた時に変わる。
  * 列の図 (#3239) の列の並びを書く出来事と、封と札の出来事も線と同じ表に載せ、並びは滑り終えるまで、封は覆い終えるまでを引く間にする。
+ * 試す図 (#3337) の送る、押す、書き換える出来事も線と同じ表に載せ、送るは網を運ばれて待ち行列へ入り終えるまで、
+ * 押すはチップがブロックへ移り終えるまで、書き換えるは値が変わり終えるまでを引く間にする。同じ段の出来事は前の出来事が済んでから起こす。
  * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
  * 枝分かれの図を描く部品が札ごとに動かす。線に書いた運ぶ物 (`tag` と `carry`) だけを表に載せる。
  */
@@ -99,6 +101,12 @@ type EdgeEvent = Extract<DiagramModel["steps"][number]["events"][number], { type
 /** 列の図の出来事の長さ */
 const LINEUP_LENGTH = { line: MOTION.lineup.slide, seal: MOTION.lineup.seal, open: MOTION.fade, pick: MOTION.fade, stamp: MOTION.popFade } as const;
 
+/** 試す図の出来事の長さ。送る出来事は網を通る時に網を運ばれる長さを足す (`tryTrip`) */
+export function tryLength(type: "ask" | "press" | "item", trip: boolean): number {
+  const T = MOTION.try;
+  return type === "ask" ? (trip ? T.trip : 0) + T.settle : type === "press" ? T.build : T.edit;
+}
+
 /** 時間軸の図の段を組む時に渡す、段の始まりの針の位置と、目盛り 1 つを進む秒数 */
 interface Needle {
   from: number;
@@ -109,9 +117,9 @@ interface Needle {
  * 段の中で起きることの時刻 (段の始まりから)。線は少しずつずらして引き、書き換えは直前の線が着いてから起こす。
  * 時間軸の図では `needle` を渡し、針を進める出来事の所で針を目盛り 1 つずつ進める。針が進む目盛りの列の線はその目盛りに入った時に引く
  */
-function plan(step: DiagramModel["steps"][number], needle?: Needle): Planned {
+function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false): Planned {
   const out: Planned = { edges: [], events: [], busy: 0 };
-  let cursor = MOTION.edgeAt;
+  let cursor: number = MOTION.edgeAt;
   let arrived: number | undefined;
   let changes = 0;
   let settled = Number.NEGATIVE_INFINITY;
@@ -152,6 +160,17 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle): Planned {
     if (event.type === "now" || (needle && pulled(event))) return;
     // 列の図の役が動く出来事 (#3351) は、段の始まりから終わりまで役の札を光らせるだけで、段の中の時刻を取らない
     if (event.type === "role") return;
+    // 試す図の出来事 (#3337) は、前の出来事が済んでから起こす
+    if (event.type === "ask" || event.type === "press" || event.type === "item") {
+      const a = cursor;
+      const b = a + tryLength(event.type, trip);
+      out.edges.push({ event: e, a, b, carries: false, coin: false, named: false });
+      cursor = b;
+      arrived = b;
+      changes = 0;
+      out.busy = Math.max(out.busy, b);
+      return;
+    }
     if (event.type === "line" || event.type === "seal" || event.type === "open" || event.type === "pick" || event.type === "stamp") {
       const a = cursor;
       const b = a + LINEUP_LENGTH[event.type];
@@ -199,8 +218,10 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
   const T = MOTION.time;
   const speed = time ? Math.min(T.unitMax, Math.max(T.unitMin, T.axis / Math.max(1, time.scale.count))) : 0;
   let at = 0;
+  // 試す図の入力の帯が網を通るなら、送る出来事は網を運ばれる長さを持つ
+  const trip = diagram.try?.parts.some((p) => p.type === "ask" && p.via !== undefined) ?? false;
   const plans = diagram.steps.map((step) => {
-    if (!time) return plan(step);
+    if (!time) return plan(step, undefined, trip);
     const p = plan(step, { from: at, speed });
     at = p.sweep?.keys[p.sweep.keys.length - 1]?.[1] ?? at;
     return p;

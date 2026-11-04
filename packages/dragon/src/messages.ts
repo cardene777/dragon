@@ -83,6 +83,53 @@ export interface CoreMessages {
   manyRoots: (id: string, root: string) => string;
   /** 列の図だけの行 (`item`、`line`、`seal`、`open`、`pick`、`stamp`) を、別の種類の図に書いた (#3239) */
   lineupOnly: (word: string) => string;
+  /** 列の図と試す図だけの行 (`item` と `line`) を、どちらでもない図に書いた (#3337) */
+  lineupOrTryOnly: (word: string) => string;
+  /** 試す図だけの部品の行 (`route`、`queue`、`chain`、`ask`、`press`) を、別の種類の図に書いた (#3337) */
+  tryOnly: (word: string) => string;
+  /** 宣言だけの部品の行 (`route`、`queue`、`chain`) を段の中に書いた */
+  tryPartInStep: (word: string) => string;
+  /** 試す図に書けない行 (箱や区画や線など) を書いた */
+  tryNoLine: (word: string) => string;
+  tryNoEdge: string;
+  /** 部品の行が 1 つも無い試す図 */
+  noParts: string;
+  routeShape: string;
+  queueShape: string;
+  chainShape: string;
+  askShape: string;
+  pressShape: string;
+  tryItemShape: string;
+  tryLineShape: string;
+  askTwice: string;
+  /** 部品の行に要る属性 `key` が無い */
+  needsAttr: (word: string, key: string) => string;
+  fewFields: string;
+  fieldTwice: (field: string) => string;
+  undeclaredPart: (id: string) => string;
+  /** 部品 `id` が、名指した所に要る種類 `want` (`route` など) の部品でない */
+  wrongPart: (id: string, want: readonly string[]) => string;
+  /** 釦の置き場所 `at` に釦を名指した */
+  pressAt: (id: string) => string;
+  badTake: string;
+  /** `field` が入力の帯の欄 (最初の欄を除く) に無い。`fields` は書ける欄 */
+  notAskField: (field: string, fields: readonly string[]) => string;
+  /** 欄か値を書いたのに、入力の帯 (`ask`) の宣言が無い */
+  noAsk: string;
+  /** 網の `from` か `to` が網の節に無い */
+  notInRoute: (node: string, route: string) => string;
+  /** 網の `from` から `to` へ道が無い */
+  noPath: (from: string, to: string) => string;
+  /** 段の中の `ask` の値の数が、欄の数 `count` と違う */
+  askCount: (count: number) => string;
+  /** チップ `id` が、もう部品 `part` に在る */
+  chipElsewhere: (id: string, part: string) => string;
+  /** 待ち行列 `part` が満杯 (`most` 枚) */
+  queueFull: (part: string, most: number) => string;
+  /** 機械の列 `part` のブロックに入れられるチップの上限 `most` を超えた */
+  blockFull: (part: string, most: number) => string;
+  /** 空の待ち行列 `part` から取り出す釦 `press` を押した */
+  queueEmpty: (part: string, press: string) => string;
   /** `role` の行の形 */
   roleShape: string;
   /** 段の中の `role` の行に、宣言していない役を書いた */
@@ -203,6 +250,36 @@ const ja = (): Messages => {
     twoParents: (id) => `${id} はもう別の親の子になっている。木の箱の親は 1 つだけ`,
     manyRoots: (id, root) => `${id} が親を持たないまま残る。木の根は 1 つだけで、${id} も ${root} も最後に 1 つの根へ組む`,
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
+    lineupOrTryOnly: (word) => `${word} の行は lineup (列の図) と try (試す図) でだけ書ける`,
+    tryOnly: (word) => `${word} の行は try (試す図) でだけ書ける`,
+    tryPartInStep: (word) => `${word} の行は部品の宣言なので、最初の step より前に書く`,
+    tryNoLine: (word) => `try (試す図) には ${word} の行を書けない。部品は route と queue と chain と ask と press の行で書く`,
+    tryNoEdge: "try (試す図) には線の行を書けない。チップは line と ask と press の行で動かす",
+    noParts: "route と queue と chain と ask と press の行で部品を 1 つ以上書く",
+    routeShape: "route は route <名札>: <節> - <節>, <節> - <節> [from: <節>, to: <節>] の形で書く",
+    queueShape: "queue は queue <名札> [order: <欄>] の形で書く",
+    chainShape: "chain は chain <名札> [edit: <欄>] の形で書く",
+    askShape: "ask は最初の step より前なら ask <欄>, <欄> [into: <待ち行列>, via: <網>]、step の中なら ask <値>, <値> の形で書く",
+    pressShape: "press は最初の step より前なら press <名札> [from: <待ち行列>, into: <機械の列>, take: <数>]、step の中なら press <名札> の形で書く",
+    tryItemShape: "item は最初の step より前なら item <名札> [<欄>: <値>]、step の中なら item <チップ> [<欄>: <値>] の形で書く",
+    tryLineShape: "line は line <待ち行列か機械の列>: <チップ>, <チップ> の形で書く",
+    askTwice: "ask の行は図に 1 つまで",
+    needsAttr: (word, key) => `${word} の行には [${key}: <値>] を書く`,
+    fewFields: "ask の欄は , で区切って 2 つ以上書く",
+    fieldTwice: (field) => `${field} の欄はもう書いた`,
+    undeclaredPart: (id) => `${id} という部品は宣言していない`,
+    wrongPart: (id, want) => `${id} は ${want.join(" か ")} の行で書いた部品でない`,
+    pressAt: (id) => `${id} は釦なので、釦の置き場所にできない`,
+    badTake: "take は 1 以上の整数にする",
+    notAskField: (field, fields) => `${field} は ask の欄 (最初の欄を除く) に無い。書けるのは ${list(fields)}`,
+    noAsk: "ask <欄>, <欄> [into: <待ち行列>] の行で入力の帯を宣言してから、欄と値を書く",
+    notInRoute: (node, route) => `${node} は ${route} の網の節でない`,
+    noPath: (from, to) => `${from} から ${to} へ網の道が無い`,
+    askCount: (count) => `ask の値は欄と同じ ${count} つを , で区切って書く`,
+    chipElsewhere: (id, part) => `${id} はもう ${part} に在る。チップは 1 か所にだけ置ける`,
+    queueFull: (part, most) => `${part} は満杯で、チップは ${most} 枚までしか入らない`,
+    blockFull: (part, most) => `${part} の 1 つのブロックに入れられるチップは ${most} 枚まで`,
+    queueEmpty: (part, press) => `${part} が空なので、${press} を押しても取り出すチップが無い`,
     roleShape: "role は、最初の step より前なら role <名札> [note: <一言>]、step の中なら role <名札> の形で書く",
     unknownRole: (id) => `${id} という役は宣言していない。最初の step より前に role ${id} と書く`,
     noItems: "item の行でチップを 1 つ以上宣言する",
@@ -307,6 +384,36 @@ const en = (): Messages => {
     twoParents: (id) => `${id} is already a child of another node. A tree box has only one parent`,
     manyRoots: (id, root) => `${id} is left without a parent. A tree has one root, so join ${id} and ${root} under one root by the end`,
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
+    lineupOrTryOnly: (word) => `${word} lines can be written only in lineup and try diagrams`,
+    tryOnly: (word) => `${word} lines can be written only in try diagrams`,
+    tryPartInStep: (word) => `A ${word} line declares a part, so write it before the first step`,
+    tryNoLine: (word) => `A try diagram takes no ${word} lines. Write its parts with route, queue, chain, ask and press lines`,
+    tryNoEdge: "A try diagram takes no edge lines. Chips move with line, ask and press lines",
+    noParts: "Write at least one part with a route, queue, chain, ask or press line",
+    routeShape: "Write a route as route <id>: <node> - <node>, <node> - <node> [from: <node>, to: <node>]",
+    queueShape: "Write a queue as queue <id> [order: <field>]",
+    chainShape: "Write a chain as chain <id> [edit: <field>]",
+    askShape: "Write ask as ask <field>, <field> [into: <queue>, via: <route>] before the first step, or as ask <value>, <value> inside a step",
+    pressShape: "Write press as press <id> [from: <queue>, into: <chain>, take: <count>] before the first step, or as press <id> inside a step",
+    tryItemShape: "Write item as item <id> [<field>: <value>] before the first step, or as item <chip> [<field>: <value>] inside a step",
+    tryLineShape: "Write a line as line <queue or chain>: <chip>, <chip>",
+    askTwice: "A diagram takes at most one ask line",
+    needsAttr: (word, key) => `A ${word} line needs [${key}: <value>]`,
+    fewFields: "Write at least two ask fields, separated by ,",
+    fieldTwice: (field) => `The field ${field} is already written`,
+    undeclaredPart: (id) => `No part named ${id} is declared`,
+    wrongPart: (id, want) => `${id} is not a part written with a ${want.join(" or ")} line`,
+    pressAt: (id) => `${id} is a button, so a button cannot be placed at it`,
+    badTake: "take is a whole number of 1 or more",
+    notAskField: (field, fields) => `${field} is not an ask field other than the first. Write ${list(fields)}`,
+    noAsk: "Declare the input strip with ask <field>, <field> [into: <queue>] before writing fields and values",
+    notInRoute: (node, route) => `${node} is not a node of the route ${route}`,
+    noPath: (from, to) => `The route has no path from ${from} to ${to}`,
+    askCount: (count) => `Write ${count} ask values separated by ,, one for each field`,
+    chipElsewhere: (id, part) => `${id} is already in ${part}. A chip sits in one place only`,
+    queueFull: (part, most) => `${part} is full. It holds at most ${most} chips`,
+    blockFull: (part, most) => `A block of ${part} holds at most ${most} chips`,
+    queueEmpty: (part, press) => `${part} is empty, so pressing ${press} takes no chips`,
     roleShape: "Write a role as role <id> [note: <text>] before the first step, or as role <id> inside a step",
     unknownRole: (id) => `The role ${id} is not declared. Write role ${id} before the first step`,
     noItems: "Declare at least one chip with an item line",

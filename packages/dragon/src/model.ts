@@ -9,7 +9,7 @@
  * 版2の原本を足す前と同じ図からは同じ id の SVG を描く。
  */
 import { lifelinesOf } from "./blocks/lifeline/block";
-import type { Diagram, DiagramBlocks, DiagramModel } from "./schema";
+import type { Diagram, DiagramBlocks, DiagramModel, TryItem } from "./schema";
 
 /** この道具が読める原本の版。版1の原本は読む時にこの版へ移す (#3346) */
 export const FORMAT_VERSION = 2;
@@ -39,14 +39,22 @@ const isObject = (value: unknown): value is Obj => typeof value === "object" && 
 /** 書かない値。無いか、空の並び */
 const blank = (value: unknown): boolean => value === undefined || (Array.isArray(value) && value.length === 0);
 
-/** 描く処理の形を版2の原本にする。空の並びは書かず、`blocks` の欄は `HOMES` の順に並べる */
+/**
+ * 描く処理の形を版2の原本にする。空の並びは書かず、`blocks` の欄は `HOMES` の順に並べる。
+ * 試す図 (#3337) は版1に無かった種類なので `HOMES` を通さず、部品 (`part`) とチップ (`item`) をこの順に置く
+ */
 export function fromModel(model: DiagramModel, version: number): Diagram {
   const source = model as unknown as Obj;
   const blocks: Obj = {};
-  for (const [field, home] of HOMES) {
-    const [section, inner] = home.split(".");
-    const value = inner === undefined ? source[section ?? ""] : (source[section ?? ""] as Obj | undefined)?.[inner];
-    if (!blank(value)) blocks[field] = value;
+  if (model.kind === "try") {
+    blocks.part = model.try?.parts ?? [];
+    if (!blank(model.try?.items)) blocks.item = model.try?.items;
+  } else {
+    for (const [field, home] of HOMES) {
+      const [section, inner] = home.split(".");
+      const value = inner === undefined ? source[section ?? ""] : (source[section ?? ""] as Obj | undefined)?.[inner];
+      if (!blank(value)) blocks[field] = value;
+    }
   }
   return {
     version,
@@ -65,11 +73,21 @@ export const isVersion1 = (input: unknown): input is Obj =>
 /**
  * 版2の原本を描く処理の形にする。欄と並びは版1の原本を読んでいた時と同じにする
  * (版、種類、題、見せ方、区画、箱、帯、段、生存線、移れる道、枝、チップ、時間軸の図の欄)。
- * 時系列図の生存線は、箱の並びのまま左から組む
+ * 時系列図の生存線は、箱の並びのまま左から組む。試す図 (#3337) は部品とチップを試す図の欄 (`try`) に持つ
  */
 export function toModel(diagram: Diagram): DiagramModel {
   const b = diagram.blocks;
   const boxes = b.box ?? [];
+  if (diagram.kind === "try")
+    return {
+      version: MODEL_VERSION,
+      kind: diagram.kind,
+      title: diagram.title,
+      ...(diagram.view !== undefined ? { view: diagram.view } : {}),
+      boxes,
+      steps: diagram.steps,
+      try: { parts: b.part ?? [], items: (b.item ?? []) as TryItem[] },
+    };
   return {
     version: MODEL_VERSION,
     kind: diagram.kind,

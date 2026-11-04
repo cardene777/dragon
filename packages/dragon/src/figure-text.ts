@@ -63,6 +63,13 @@ export interface FigureText {
   lineupAt: (name: string, n: number) => string;
   lineupAdded: (names: string[]) => string;
   lineupMissing: (name: string) => string;
+  /**
+   * 試す図 (#3337)。ブロックの番号の字、待ち行列の取り出し方 (釦が上から何件を取り出すか)、畳んだ古いブロックの数。
+   * prev と hash と SHA-256 は語の名前のまま、どちらの言葉でも書き換えない
+   */
+  tryBlock: (n: number) => string;
+  tryTakes: (n: number) => string;
+  tryFolded: (n: number) => string;
 }
 
 /** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
@@ -109,6 +116,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupAt: (name, n) => `${name}は${n}番目`,
     lineupAdded: (names) => `${names.join("、")}を足した`,
     lineupMissing: (name) => `${name}が無い`,
+    tryBlock: (n) => `ブロック ${n}`,
+    tryTakes: (n) => `次は上から ${n} 件`,
+    tryFolded: (n) => `古いブロック ${n} つ`,
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
@@ -148,5 +158,8 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupAt: (name, n) => `${name} is #${n}`,
     lineupAdded: (names) => `Added ${names.join(", ")}`,
     lineupMissing: (name) => `${name} is missing`,
+    tryBlock: (n) => `Block ${n}`,
+    tryTakes: (n) => `Top ${n} go next`,
+    tryFolded: (n) => `${n} older ${n === 1 ? "block" : "blocks"}`,
   },
 };

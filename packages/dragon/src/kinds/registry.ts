@@ -1,7 +1,7 @@
 /**
  * 図の種類ごとの描く部品の登録簿 (#3248)。
  *
- * 描く所 (`render/draw.ts`) は git、lineup、state、time、tree の部品をここから引く。
+ * 描く所 (`render/draw.ts`) は git、lineup、state、time、tree、try の部品をここから引く。
  * 全部入りの入口は読み込みの時に全ての種類を登録し (`all.ts`)、軽い入口は `loadKind` が種類を読んだ時に登録する (`light.ts`)。
  * 時系列図と構成図は図の種類の置き場 (`kinds/<種類>/`) に並べ方を持ち、登録せずに描く所が置き場の一覧 (`kinds/index.ts`) から引く (#3345)。
  */
@@ -12,9 +12,10 @@ import type * as lineup from "./lineup";
 import type * as state from "./state";
 import type * as time from "./time";
 import type * as tree from "./tree";
+import type * as tryKind from "./try";
 
 /** 後から読む種類の名前。部品の型から導くと、部品の型が軽い入口の型の file へ漏れるので字で書く */
-export type LaterKind = "git" | "lineup" | "state" | "time" | "tree";
+export type LaterKind = "git" | "lineup" | "state" | "time" | "tree" | "try";
 
 export interface LaterKinds {
   git: typeof git;
@@ -22,10 +23,11 @@ export interface LaterKinds {
   state: typeof state;
   time: typeof time;
   tree: typeof tree;
+  try: typeof tryKind;
 }
 
 /** 後から読む種類 */
-export const LATER_KINDS: readonly LaterKind[] = ["git", "lineup", "state", "time", "tree"];
+export const LATER_KINDS: readonly LaterKind[] = ["git", "lineup", "state", "time", "tree", "try"];
 
 const registered: Partial<LaterKinds> = {};
 

@@ -262,7 +262,7 @@ interface Line extends LineupAt {
 
 function linesOf(diagram: DiagramModel, known: Set<string>, lanes: Set<string>): Line[] {
   return diagram.steps.flatMap((step, s) =>
-    step.events.flatMap((e, k): Line[] => (e.type === "line" && lanes.has(e.box) ? [{ step: s, event: k, lane: e.box, items: [...new Set(e.items)].filter((id) => known.has(id)).slice(0, LANE_MOST) }] : [])),
+    step.events.flatMap((e, k): Line[] => (e.type === "line" && "box" in e && lanes.has(e.box) ? [{ step: s, event: k, lane: e.box, items: [...new Set(e.items)].filter((id) => known.has(id)).slice(0, LANE_MOST) }] : [])),
   );
 }
 
@@ -555,7 +555,7 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
     // 同じ段の `line` どうしは、段の始まりの居場所から滑る
     const before = [...seated.values()].flat();
     step.events.forEach((e: DiagramEvent, k) => {
-      if (e.type !== "line" && e.type !== "seal" && e.type !== "open" && e.type !== "pick" && e.type !== "stamp") return;
+      if ((e.type !== "line" && e.type !== "seal" && e.type !== "open" && e.type !== "pick" && e.type !== "stamp") || !("box" in e)) return;
       const lane = laneOf.get(e.box);
       if (!lane) return;
       const at: LineupAt = { step: s, event: k };

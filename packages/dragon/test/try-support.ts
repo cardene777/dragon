@@ -173,7 +173,7 @@ export function blockHash(number: number, prev: string, rows: string[][]): strin
 }
 
 /** 読み手が押せる再生の部品。押した後の原本を持つ */
-export type TryPlayer = Player & { readonly diagram?: unknown };
+export type TryPlayer = Player & { play(): void; readonly diagram?: unknown };
 
 const players: TryPlayer[] = [];
 

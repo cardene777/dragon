@@ -65,7 +65,11 @@ export type DiagramEvent =
   | LineupOrder
   | { type: "seal" | "open" | "pick"; box: string }
   | LineupStamp
-  | LineupAct;
+  | LineupAct
+  | TryLine
+  | TryAsk
+  | TryPress
+  | TryEdit;
 
 /** 時間軸の図 (#3165) の、印の列 `row` の `from` から `to` の目盛りの印の色を変える出来事 */
 export interface TimeMarkEvent {
@@ -169,6 +173,51 @@ export interface LineupOrder {
   items: string[];
 }
 
+/** 試す図 (#3337) の、待ち行列 `part` の中身を `items` の並びにするか、機械の列 `part` に `items` を入れた新しいブロックを足す出来事 */
+export interface TryLine {
+  type: "line";
+  part: string;
+  items: string[];
+}
+
+/** 試す図の、入力の帯の欄の値 `values` (欄の順) でチップを作って送る出来事。書き手の例として読み手の送る操作を書く */
+export interface TryAsk {
+  type: "ask";
+  values: string[];
+}
+
+/** 試す図の、釦 `press` を押す出来事。釦の待ち行列の上からチップを取り出し、機械の列の新しいブロックへ移す */
+export interface TryPress {
+  type: "press";
+  press: string;
+}
+
+/** 試す図の、チップ `item` の欄の値を `values` (鍵は欄) に書き換える出来事。読み手の書き換えと同じ */
+export interface TryEdit {
+  type: "item";
+  item: string;
+  values: Record<string, string>;
+}
+
+/**
+ * 試す図の部品。書いた順に図の上から積む。網 (`route`) は `-` でつないだ節の並び (`paths`) を持ち、`from` から `to` へチップを運ぶ。
+ * 待ち行列 (`queue`) は `order` の欄の値の高い順にチップを並べ、機械の列 (`chain`) は `edit` の欄を読み手に書き換えさせる。
+ * 入力の帯 (`ask`) は図に 1 つまでで、`id` は常に `ask`。最初の欄の値がチップの名前になる。
+ * 釦 (`press`) は `from` の待ち行列の上から `take` 件を `into` の機械の列の新しいブロックへ移し、`at` の部品の所に置く
+ */
+export type TryPart =
+  | { type: "route"; id: string; paths: string[][]; from: string; to: string }
+  | { type: "queue"; id: string; order?: string }
+  | { type: "chain"; id: string; edit?: string }
+  | { type: "ask"; id: "ask"; fields: string[]; into: string; via?: string }
+  | { type: "press"; id: string; from: string; into: string; take: number; at?: string };
+
+/** 試す図のチップ。`values` の鍵は入力の帯の欄 (最初の欄を除く) で、名札がチップの名前 (最初の欄の値) になる */
+export interface TryItem {
+  id: string;
+  values: Record<string, string>;
+}
+
 /** 列の図の、列 `box` の右に `text` の札を押す出来事 */
 export interface LineupStamp {
   type: "stamp";
@@ -226,7 +275,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -238,7 +287,7 @@ export interface Strip {
 /**
  * 原本の図の宣言 (#3346)。ブロックの名前ごとの欄に、そのブロックの宣言を持つ。空の並びは書かない。
  * 区画 (`group`)、箱 (`box`)、中身の帯 (`strip`) と、図の種類だけの宣言 (状態遷移図の移れる道 `path`、枝分かれの図の枝 `branch`、
- * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と節目 `point` と拡大の範囲 `zoom`、列の図のチップ `item`)
+ * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と節目 `point` と拡大の範囲 `zoom`、列の図と試す図のチップ `item`、試す図の部品 `part`)
  */
 export interface DiagramBlocks {
   group?: Region[];
@@ -251,8 +300,9 @@ export interface DiagramBlocks {
   row?: TimeRow[];
   point?: TimePoint[];
   zoom?: { from: number; to: number };
-  item?: LineupItem[];
+  item?: LineupItem[] | TryItem[];
   role?: LineupRole[];
+  part?: TryPart[];
 }
 
 /**
@@ -287,6 +337,8 @@ export interface DiagramModel {
   git?: { branches: GitBranch[] };
   time?: TimeSpec;
   lineup?: { items: LineupItem[]; roles?: LineupRole[] };
+  /** 試す図 (#3337) の部品とチップ。版1の原本に無かった種類なので、版2の原本の `part` と `item` をそのまま持つ */
+  try?: { parts: TryPart[]; items: TryItem[] };
 }
 
 export interface FieldError {
@@ -303,7 +355,9 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item"] as const satisfies readonly DiagramEvent["type"][];
+/** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
+const PART_TYPES = ["route", "queue", "chain", "ask", "press"] as const satisfies readonly TryPart["type"][];
 
 /**
  * その種類の図に書けない根の欄を書いた時の決まりの場所 (#3164)。根の欄に `not: {}` を置く決まり (`absent`) を指し、
@@ -324,8 +378,11 @@ const ABSENT_KINDS: Record<string, string> = {
   row: "time",
   point: "time",
   zoom: "time",
-  item: "lineup",
+  item: "lineup / try",
   role: "lineup",
+  part: "try",
+  values: "try",
+  box: "sequence / architecture / state / git / time / tree / lineup",
   order: "lineup",
   at: "time",
   into: "time",
@@ -358,6 +415,12 @@ const TREE_EVENTS = ["leaf", "node"] as const satisfies readonly DiagramEvent["t
 const LINEUP_EVENT = "#/definitions/notLineupEvent/not";
 /** 列の図だけが書ける出来事 */
 const LINEUP_EVENTS = ["line", "seal", "open", "pick", "stamp", "role"] as const satisfies readonly DiagramEvent["type"][];
+/** 試す図でない図に、試す図だけの出来事を書いた時の決まりの場所 (#3337) */
+const TRY_EVENT = "#/definitions/notTryEvent/not";
+/** 試す図だけが書ける出来事 */
+const TRY_EVENTS = ["ask", "press", "item"] as const satisfies readonly DiagramEvent["type"][];
+/** 試す図の部品の種類の決まりの場所 (#3337) */
+const PART_TAG = "#/definitions/part/discriminator";
 /** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
 const WIRED_EVENT = "#/definitions/notWiredEvent/not";
 /** 列の図が書けない、箱と線の図の出来事 */
@@ -423,6 +486,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       if (TIME_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TIME_EVENTS, "time") };
       if (TREE_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TREE_EVENTS, "tree") };
       if (error.schemaPath === LINEUP_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(LINEUP_EVENTS, "lineup") };
+      if (error.schemaPath === TRY_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(TRY_EVENTS, "try") };
       if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };
@@ -436,7 +500,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
     }
     case "discriminator": {
       const tag = String(params.tag);
-      return { pointer: `${at}/${escape(tag)}`, message: m.discriminator(tag, EVENT_TYPES) };
+      return { pointer: `${at}/${escape(tag)}`, message: m.discriminator(tag, error.schemaPath === PART_TAG ? PART_TYPES : EVENT_TYPES) };
     }
     case "enum": {
       const written = error.schemaPath === ICON_RULE ? valueAt(input, at) : undefined;
