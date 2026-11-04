@@ -7,6 +7,7 @@
 import { textBox } from "../../layout/measure";
 import type { SceneLabel } from "../../layout/scene";
 import { LOOK, TYPE } from "../../look/values";
+import { partRadius } from "../../render/corner";
 import type { Shown } from "../../render/ink";
 import { type Ctx, esc, r1 } from "../../render/parts";
 import { cs } from "../color/draw";
@@ -21,7 +22,9 @@ export function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): Label
   const { after, again: _again, ...rest } = time;
   if (!after) return rest;
   const cut = (steps[l.until] as Span).start;
-  return cut > after.start ? { ...rest, after: { start: after.start, end: Math.min(after.end, cut) } } : rest;
+  return cut > after.start
+    ? { ...rest, after: { start: after.start, end: Math.min(after.end, cut) } }
+    : rest;
 }
 
 /**
@@ -31,13 +34,34 @@ export function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): Label
 export function label(l: SceneLabel, time: LabelTime, ctx: Ctx): string {
   const ja = l.family === "sans" ? " dg-capj" : "";
   const { radius } = LOOK.label;
-  const shown: Shown[] = time.again ? [[time.start, time.end], [time.again.start, time.again.end]] : [[time.start, time.end]];
+  const shown: Shown[] = time.again
+    ? [
+        [time.start, time.end],
+        [time.again.start, time.again.end],
+      ]
+    : [[time.start, time.end]];
   // 札の間は札の四角を、薄く残す間は札を外した字の四角を記録する
   ctx.ink.push({ text: l.text, rect: l, shown, boxed: true });
-  if (time.after) ctx.ink.push({ text: l.text, rect: textBox(l.text, l.x + l.w / 2, l.y + l.h / 2 + LOOK.baseline.label, l.family === "sans" ? TYPE.labelJa : TYPE.label, "middle"), shown: [[time.after.start, time.after.end]] });
+  if (time.after)
+    ctx.ink.push({
+      text: l.text,
+      rect: textBox(
+        l.text,
+        l.x + l.w / 2,
+        l.y + l.h / 2 + LOOK.baseline.label,
+        l.family === "sans" ? TYPE.labelJa : TYPE.label,
+        "middle",
+      ),
+      shown: [[time.after.start, time.after.end]],
+    });
   const x = r1(l.x + l.w / 2);
   const y = r1(l.y + l.h / 2 + LOOK.baseline.label);
-  const past = time.after ? `<g class="dg-cap-past${l.family === "sans" ? " dg-cap-pastj" : ""} dg-a" style="${ctx.m.vis(time.after.start, time.after.end)}"><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>` : "";
-  const caps = shown.map(([a, b]) => `<g class="dg-cap${ja} dg-a" style="${cs(l.color)};${ctx.m.rise(a, b, true)}"><rect x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${radius}"/><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`);
+  const past = time.after
+    ? `<g class="dg-cap-past${l.family === "sans" ? " dg-cap-pastj" : ""} dg-a" style="${ctx.m.vis(time.after.start, time.after.end)}"><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`
+    : "";
+  const caps = shown.map(
+    ([a, b]) =>
+      `<g class="dg-cap${ja} dg-a" style="${cs(l.color)};${ctx.m.rise(a, b, true)}"><rect x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${partRadius(ctx.corner, radius)}"/><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`,
+  );
   return `${past}${caps.join("")}`;
 }

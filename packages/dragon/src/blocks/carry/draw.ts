@@ -6,21 +6,23 @@
  */
 import { hasWide, textWidth } from "../../layout/measure";
 import { along, carrierHalf, type Point, pathLength, type SceneEdge } from "../../layout/scene";
-import { LOOK, TYPE } from "../../look/values";
+import { type Corner, LOOK, TYPE } from "../../look/values";
+import { partRadius } from "../../render/corner";
 import type { Ink } from "../../render/ink";
 import { type Ctx, esc, r1 } from "../../render/parts";
 import type { CarrierTime } from "./timing";
 
-function carrierShape(e: SceneEdge, sh: string): string {
+function carrierShape(e: SceneEdge, sh: string, corner: Corner): string {
   const C = LOOK.carrier;
-  if (e.carry.kind === "coin") return `<circle class="dg-coin" r="${C.coinR}"/><circle class="dg-coin-in" r="${C.coinIn}"/>`;
+  if (e.carry.kind === "coin")
+    return `<circle class="dg-coin" r="${C.coinR}"/><circle class="dg-coin-in" r="${C.coinIn}"/>`;
   if (e.carry.kind === "tag") {
     const text = e.carry.text;
     const ja = hasWide(text);
     const w = textWidth(text, ja ? TYPE.carrierJa : TYPE.carrier) + C.tagPadX * 2;
-    return `<rect class="dg-car" x="${r1(-w / 2)}" y="${-C.tagH / 2}" width="${r1(w)}" height="${C.tagH}" rx="${C.tagH / 2}" ${sh}/><text class="dg-car-t${ja ? " dg-car-tj" : ""}" y="${LOOK.baseline.carrier}" text-anchor="middle">${esc(text)}</text>`;
+    return `<rect class="dg-car" x="${r1(-w / 2)}" y="${-C.tagH / 2}" width="${r1(w)}" height="${C.tagH}" rx="${partRadius(corner, C.tagH / 2)}" ${sh}/><text class="dg-car-t${ja ? " dg-car-tj" : ""}" y="${LOOK.baseline.carrier}" text-anchor="middle">${esc(text)}</text>`;
   }
-  return `<rect class="dg-env" x="${-C.envW / 2}" y="${-C.envH / 2}" width="${C.envW}" height="${C.envH}" rx="3" ${sh}/><path class="dg-env-in" d="M -8 -4.5 L 0 1.5 L 8 -4.5"/>`;
+  return `<rect class="dg-env" x="${-C.envW / 2}" y="${-C.envH / 2}" width="${C.envW}" height="${C.envH}" rx="${partRadius(corner, 3)}" ${sh}/><path class="dg-env-in" d="M -8 -4.5 L 0 1.5 L 8 -4.5"/>`;
 }
 
 const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
@@ -50,11 +52,19 @@ export function carrier(e: SceneEdge, time: CarrierTime, ctx: Ctx): string {
   const [hx, hy] = carrierHalf(e.carry);
   const name = e.carry.kind === "tag" ? e.carry.text : e.carry.kind === "coin" ? "硬貨" : "封筒";
   // 札は書き手の字なので部品の種類を持たず、硬貨と封筒は知らせる文の言葉で呼ぶ (#3184)
-  const part: Pick<Ink, "part"> = e.carry.kind === "tag" ? {} : { part: { kind: e.carry.kind === "coin" ? "coin" : "envelope" } };
+  const part: Pick<Ink, "part"> =
+    e.carry.kind === "tag" ? {} : { part: { kind: e.carry.kind === "coin" ? "coin" : "envelope" } };
   const box = (p: Point) => ({ x: p[0] - hx, y: p[1] - hy, w: hx * 2, h: hy * 2 });
-  if (a > from) ctx.ink.push({ text: name, rect: box([first[1], first[2]]), shown: [[from, a]], boxed: true, ...part });
+  if (a > from)
+    ctx.ink.push({
+      text: name,
+      rect: box([first[1], first[2]]),
+      shown: [[from, a]],
+      boxed: true,
+      ...part,
+    });
   ctx.ink.push({ text: name, rect: box(rest), shown: [[b, gone]], boxed: true, ...part });
   // 次の運ぶ物と入れ替わる時は、重なって 2 つに見えないよう素早く消す
   const fade = gone < m.last ? 0.05 : 0.18;
-  return `<g class="dg-a" style="${m.move(pts, m.blink(from + 0.02, gone, fade))}">${carrierShape(e, ctx.sh)}</g>`;
+  return `<g class="dg-a" style="${m.move(pts, m.blink(from + 0.02, gone, fade))}">${carrierShape(e, ctx.sh, ctx.corner)}</g>`;
 }

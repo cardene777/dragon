@@ -17,6 +17,7 @@ import { hasWide } from "../layout/measure";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { DiagramModel } from "../schema";
 import type { Span, Timeline } from "../timeline";
+import { frameShape, partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import { arrowHead, type Ctx, esc, pathOf, write } from "./parts";
 
@@ -34,7 +35,8 @@ export function simplify(keys: [number, number][]): [number, number][] {
     if (a && b) {
       const s1 = b[0] === a[0] ? Number.NaN : (b[1] - a[1]) / (b[0] - a[0]);
       const s2 = key[0] === b[0] ? Number.NaN : (key[1] - b[1]) / (key[0] - b[0]);
-      if (Number.isFinite(s1) && Number.isFinite(s2) && Math.abs(s1 - s2) < 1e-9) out[out.length - 1] = key;
+      if (Number.isFinite(s1) && Number.isFinite(s2) && Math.abs(s1 - s2) < 1e-9)
+        out[out.length - 1] = key;
       else out.push(key);
     } else out.push(key);
   }
@@ -54,13 +56,21 @@ export function valueAt(keys: [number, number][], t: number): number {
   return (keys[keys.length - 1] as [number, number])[1];
 }
 
-export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx, subs: Map<string, SubChange[]>): { base: string; lit: string; node: string; top: string } {
+export function drawTime(
+  layout: TimeLayout,
+  diagram: DiagramModel,
+  timeline: Timeline,
+  ctx: Ctx,
+  subs: Map<string, SubChange[]>,
+): { base: string; lit: string; node: string; top: string } {
   const { m, ink } = ctx;
   const T = LOOK.time;
   const { axis } = layout;
   const passed = new Map((timeline.units ?? []).map((u) => [u.unit, u.passed]));
-  const at = (step: number, event: number): number | undefined => timeline.events.find((t) => t.step === step && t.event === event)?.at;
-  const drawnOf = (step: number, event: number): number | undefined => timeline.edges.find((t) => t.step === step && t.event === event)?.drawn;
+  const at = (step: number, event: number): number | undefined =>
+    timeline.events.find((t) => t.step === step && t.event === event)?.at;
+  const drawnOf = (step: number, event: number): number | undefined =>
+    timeline.edges.find((t) => t.step === step && t.event === event)?.drawn;
   const base: string[] = [];
   const lit: string[] = [];
   const node: string[] = [];
@@ -72,38 +82,73 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
   const arrivals = new Map<TimeBox, number>();
   for (const w of layout.wires) {
     const drawn = drawnOf(w.step, w.event);
-    if (drawn !== undefined) arrivals.set(w.to, Math.min(arrivals.get(w.to) ?? Number.POSITIVE_INFINITY, drawn));
+    if (drawn !== undefined)
+      arrivals.set(w.to, Math.min(arrivals.get(w.to) ?? Number.POSITIVE_INFINITY, drawn));
   }
   /** 印の列 `row` の目盛り `u` の印を塗る時刻。同じ名札の箱へ線が届くか、針が目盛りを過ぎるか、早い方 */
   const filled = (row: string, u: number): number | undefined => {
     const box = layout.zoom?.columns.find((c) => c.unit === u)?.boxes.find((b) => b.id === row);
-    const times = [passed.get(u), box ? arrivals.get(box) : undefined].filter((t): t is number => t !== undefined);
+    const times = [passed.get(u), box ? arrivals.get(box) : undefined].filter(
+      (t): t is number => t !== undefined,
+    );
     return times.length > 0 ? Math.min(...times) : undefined;
   };
 
   // 区切りの地。1 つおきに薄く塗る
-  for (const p of layout.periods) if (p.index % 2 === 1) base.push(`<rect class="dg-tm-ep" x="${r1(p.x)}" y="${r1(rowsTop - T.shade)}" width="${r1(p.w)}" height="${r1(rowsBottom - rowsTop + T.shade * 2)}" rx="4"/>`);
+  for (const p of layout.periods)
+    if (p.index % 2 === 1)
+      base.push(
+        `<rect class="dg-tm-ep" x="${r1(p.x)}" y="${r1(rowsTop - T.shade)}" width="${r1(p.w)}" height="${r1(rowsBottom - rowsTop + T.shade * 2)}" rx="${partRadius(ctx.corner, 4)}"/>`,
+      );
 
   // 拡大の帯の列の区切りと上の字と箱
   if (layout.zoom) {
     const z = layout.zoom;
     z.columns.forEach((c, k) => {
-      if (k > 0) base.push(`<line class="dg-tm-sep" x1="${r1(c.x)}" y1="${r1(c.y + T.sep)}" x2="${r1(c.x)}" y2="${r1(c.y + c.h - T.sep)}"/>`);
-      base.push(write(ink, ja("dg-tm-hd", c.head), c.x + c.w / 2, z.headY, c.head, TYPE.timeHead, ALWAYS, "middle"));
+      if (k > 0)
+        base.push(
+          `<line class="dg-tm-sep" x1="${r1(c.x)}" y1="${r1(c.y + T.sep)}" x2="${r1(c.x)}" y2="${r1(c.y + c.h - T.sep)}"/>`,
+        );
+      base.push(
+        write(
+          ink,
+          ja("dg-tm-hd", c.head),
+          c.x + c.w / 2,
+          z.headY,
+          c.head,
+          TYPE.timeHead,
+          ALWAYS,
+          "middle",
+        ),
+      );
       for (const box of c.boxes) node.push(columnBox(box, c.unit));
     });
   }
 
   function columnBox(box: TimeBox, unit: number): string {
-    const on = [...new Set(layout.wires.filter((w) => w.from === box || w.to === box).map((w) => w.step))].sort((a, b) => a - b);
-    const frame = (cls: string): string => `<rect class="${cls}" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${LOOK.box.radius}"/>`;
+    const on = [
+      ...new Set(layout.wires.filter((w) => w.from === box || w.to === box).map((w) => w.step)),
+    ].sort((a, b) => a - b);
+    const frame = (cls: string): string =>
+      frameShape(
+        ctx.corner,
+        ` class="${cls}"`,
+        box,
+        `<rect class="${cls}" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${LOOK.box.radius}"/>`,
+      );
     if (box.empty) {
       const shown = passed.get(unit);
       const word = layout.zoom?.empty ?? "";
-      const mark = shown === undefined ? "" : `<g class="dg-a" style="${m.vis(shown)}">${frame("dg-tm-ex")}${write(ink, "dg-tm-ext", box.cx, box.cy + LOOK.baseline.mark, word, TYPE.emptyText, [[shown, Number.POSITIVE_INFINITY]], "middle")}</g>`;
+      const mark =
+        shown === undefined
+          ? ""
+          : `<g class="dg-a" style="${m.vis(shown)}">${frame("dg-tm-ex")}${write(ink, "dg-tm-ext", box.cx, box.cy + LOOK.baseline.mark, word, TYPE.emptyText, [[shown, Number.POSITIVE_INFINITY]], "middle")}</g>`;
       return `<g data-empty="${esc(box.id)}">${frame("dg-tm-ph")}${mark}</g>`;
     }
-    const drawn = linkTo(diagram.boxes.find((b) => b.id === box.id)?.link, card(box, ctx, on, subs.get(box.id) ?? []));
+    const drawn = linkTo(
+      diagram.boxes.find((b) => b.id === box.id)?.link,
+      card(box, ctx, on, subs.get(box.id) ?? []),
+    );
     if (!box.row) return drawn;
     // 印の列と同じ名札の箱は、線が届くまで点線の枠で待つ
     const shown = filled(box.row, unit);
@@ -115,25 +160,41 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
   for (const row of layout.rows) {
     const parts: string[] = [];
     for (const mark of layout.marks.filter((x) => x.row === row.id)) {
-      const rect = (cls: string, extra = ""): string => `<rect class="${cls}" x="${r1(mark.x)}" y="${r1(mark.y)}" width="${r1(mark.w)}" height="${r1(mark.h)}" rx="${T.markRadius}"${extra}/>`;
+      const rect = (cls: string, extra = ""): string =>
+        `<rect class="${cls}" x="${r1(mark.x)}" y="${r1(mark.y)}" width="${r1(mark.w)}" height="${r1(mark.h)}" rx="${partRadius(ctx.corner, T.markRadius)}"${extra}/>`;
       parts.push(rect("dg-tm-slot"));
       if (mark.empty) {
         const shown = passed.get(mark.unit);
-        if (shown !== undefined) parts.push(`<circle class="dg-tm-x dg-a" cx="${r1(mark.x + mark.w / 2)}" cy="${r1(mark.y + mark.h / 2)}" r="${T.emptyR}" style="${m.vis(shown, m.last, { f: 0.2 })}"/>`);
+        if (shown !== undefined)
+          parts.push(
+            `<circle class="dg-tm-x dg-a" cx="${r1(mark.x + mark.w / 2)}" cy="${r1(mark.y + mark.h / 2)}" r="${T.emptyR}" style="${m.vis(shown, m.last, { f: 0.2 })}"/>`,
+          );
         continue;
       }
       const shown = filled(row.id, mark.unit);
-      if (shown !== undefined) parts.push(rect("dg-tm-m dg-a", ` style="${m.vis(shown, m.last, { f: 0.2 })}"`));
+      if (shown !== undefined)
+        parts.push(rect("dg-tm-m dg-a", ` style="${m.vis(shown, m.last, { f: 0.2 })}"`));
       mark.colors.forEach((c, k) => {
         const t = at(c.step, c.event);
         if (t === undefined) return;
         const next = mark.colors[k + 1];
         const until = next ? at(next.step, next.event) : undefined;
-        parts.push(`<g style="${cs(c.color)}">${rect("dg-tm-m dg-a", ` style="${m.vis(t, until ?? m.last, { f: 0.35 })}"`)}</g>`);
+        parts.push(
+          `<g style="${cs(c.color)}">${rect("dg-tm-m dg-a", ` style="${m.vis(t, until ?? m.last, { f: 0.35 })}"`)}</g>`,
+        );
       });
     }
     base.push(`<g data-row="${esc(row.id)}" style="${cs(row.color)}">${parts.join("")}</g>`);
-    base.push(write(ink, "dg-tm-rn", LOOK.margin + LOOK.region.inset, row.y + row.h / 2 + LOOK.baseline.mark, row.name, TYPE.timeRow));
+    base.push(
+      write(
+        ink,
+        "dg-tm-rn",
+        LOOK.margin + LOOK.region.inset,
+        row.y + row.h / 2 + LOOK.baseline.mark,
+        row.name,
+        TYPE.timeRow,
+      ),
+    );
   }
 
   // 拡大した範囲の枠と点線。拡大した範囲に掛かる範囲の囲みが出る時に消す
@@ -145,19 +206,48 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
       .filter((t): t is number => t !== undefined)
       .sort((a, b) => a - b)[0];
     const guides = z.guides.map((g) => `<path class="dg-tm-gd" d="${pathOf(g)}"/>`).join("");
-    const lens = `<rect class="dg-tm-fr" x="${r1(z.frame.x)}" y="${r1(z.frame.y)}" width="${r1(z.frame.w)}" height="${r1(z.frame.h)}" rx="4"/>${guides}`;
+    const lens = `<rect class="dg-tm-fr" x="${r1(z.frame.x)}" y="${r1(z.frame.y)}" width="${r1(z.frame.w)}" height="${r1(z.frame.h)}" rx="${partRadius(ctx.corner, 4)}"/>${guides}`;
     base.push(hide === undefined ? lens : `<g class="dg-a" style="${m.until(hide)}">${lens}</g>`);
   }
 
   // 時刻の目盛りの線と字と区切り
   const x = (u: number): number => r1(axis.x + u * axis.unit);
-  const majors = layout.ticks.map((t) => `M ${x(t.at)} ${r1(axis.line - T.major / 2)} V ${r1(axis.line + T.major / 2)}`);
-  const minors = layout.minor.map((u) => `M ${x(u)} ${r1(axis.line - T.minor / 2)} V ${r1(axis.line + T.minor / 2)}`);
-  base.push(`<path class="dg-tm-ax" d="M ${x(0)} ${r1(axis.line)} H ${x(axis.count)} ${[...majors, ...minors].join(" ")}"/>`);
-  for (const t of layout.ticks) base.push(write(ink, ja("dg-tm-tk", t.text), t.left, t.y, t.text, TYPE.timeTick));
+  const majors = layout.ticks.map(
+    (t) => `M ${x(t.at)} ${r1(axis.line - T.major / 2)} V ${r1(axis.line + T.major / 2)}`,
+  );
+  const minors = layout.minor.map(
+    (u) => `M ${x(u)} ${r1(axis.line - T.minor / 2)} V ${r1(axis.line + T.minor / 2)}`,
+  );
+  base.push(
+    `<path class="dg-tm-ax" d="M ${x(0)} ${r1(axis.line)} H ${x(axis.count)} ${[...majors, ...minors].join(" ")}"/>`,
+  );
+  for (const t of layout.ticks)
+    base.push(write(ink, ja("dg-tm-tk", t.text), t.left, t.y, t.text, TYPE.timeTick));
   for (const p of layout.periods) {
-    base.push(write(ink, ja("dg-tm-en", p.name), p.x + p.w / 2, p.nameY, p.name, TYPE.timePeriod, ALWAYS, "middle"));
-    base.push(write(ink, ja("dg-tm-er", p.range), p.x + p.w / 2, p.rangeY, p.range, TYPE.timeRange, ALWAYS, "middle"));
+    base.push(
+      write(
+        ink,
+        ja("dg-tm-en", p.name),
+        p.x + p.w / 2,
+        p.nameY,
+        p.name,
+        TYPE.timePeriod,
+        ALWAYS,
+        "middle",
+      ),
+    );
+    base.push(
+      write(
+        ink,
+        ja("dg-tm-er", p.range),
+        p.x + p.w / 2,
+        p.rangeY,
+        p.range,
+        TYPE.timeRange,
+        ALWAYS,
+        "middle",
+      ),
+    );
   }
 
   // 範囲の括弧と囲み
@@ -168,16 +258,34 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
     const shown: Shown[] = [[a, until ?? Number.POSITIVE_INFINITY]];
     const vis = until === undefined ? m.vis(a) : m.vis(a, until, { within: true });
     if (span.kind === "bracket") {
-      const [x0, x1, y0, y1] = [r1(span.x + 1), r1(span.x + span.w - 1), r1(span.y), r1(span.y + span.h)];
-      const words = write(ink, ja("dg-tm-bt", span.text), span.textRect.x + span.textRect.w / 2, span.textY, span.text, TYPE.spanText, shown, "middle");
-      base.push(`<g class="dg-a" data-span="${span.step}" style="${cs(span.color)};${vis}"><path class="dg-tm-br" d="M ${x0} ${y0} L ${x0} ${y1} L ${x1} ${y1} L ${x1} ${y0}"/>${words}</g>`);
+      const [x0, x1, y0, y1] = [
+        r1(span.x + 1),
+        r1(span.x + span.w - 1),
+        r1(span.y),
+        r1(span.y + span.h),
+      ];
+      const words = write(
+        ink,
+        ja("dg-tm-bt", span.text),
+        span.textRect.x + span.textRect.w / 2,
+        span.textY,
+        span.text,
+        TYPE.spanText,
+        shown,
+        "middle",
+      );
+      base.push(
+        `<g class="dg-a" data-span="${span.step}" style="${cs(span.color)};${vis}"><path class="dg-tm-br" d="M ${x0} ${y0} L ${x0} ${y1} L ${x1} ${y1} L ${x1} ${y0}"/>${words}</g>`,
+      );
       continue;
     }
-    base.push(`<g class="dg-a" data-span="${span.step}" style="${cs(span.color)};${vis}"><rect class="dg-tm-bx" x="${r1(span.x)}" y="${r1(span.y)}" width="${r1(span.w)}" height="${r1(span.h)}" rx="6"/></g>`);
+    base.push(
+      `<g class="dg-a" data-span="${span.step}" style="${cs(span.color)};${vis}"><rect class="dg-tm-bx" x="${r1(span.x)}" y="${r1(span.y)}" width="${r1(span.w)}" height="${r1(span.h)}" rx="${partRadius(ctx.corner, 6)}"/></g>`,
+    );
     const tag = span.textRect;
     ink.push({ text: span.text, rect: tag, shown, boxed: true });
     top.push(
-      `<g class="dg-tg dg-popc dg-a" style="${cs(span.color)};${until === undefined ? m.pop(a) : m.pop(a, until)}"><rect x="${r1(tag.x)}" y="${r1(tag.y)}" width="${r1(tag.w)}" height="${tag.h}" rx="${tag.h / 2}"/><text x="${r1(tag.x + tag.w / 2)}" y="${r1(span.textY)}" text-anchor="middle">${esc(span.text)}</text></g>`,
+      `<g class="dg-tg dg-popc dg-a" style="${cs(span.color)};${until === undefined ? m.pop(a) : m.pop(a, until)}"><rect x="${r1(tag.x)}" y="${r1(tag.y)}" width="${r1(tag.w)}" height="${tag.h}" rx="${partRadius(ctx.corner, tag.h / 2)}"/><text x="${r1(tag.x + tag.w / 2)}" y="${r1(span.textY)}" text-anchor="middle">${esc(span.text)}</text></g>`,
     );
   }
 
@@ -187,18 +295,32 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
     const { cx, cy, r } = point;
     const times = point.changes.map((c) => at(c.step, c.event) ?? Number.POSITIVE_INFINITY);
     const first = times[0];
-    base.push(`<path class="dg-tm-con" d="M ${r1(cx)} ${r1(rowsBottom + 3)} L ${r1(cx)} ${r1(cy - r - 2)}"/>`);
+    base.push(
+      `<path class="dg-tm-con" d="M ${r1(cx)} ${r1(rowsBottom + 3)} L ${r1(cx)} ${r1(cy - r - 2)}"/>`,
+    );
     const tx = point.text.x;
     const name = write(ink, ja("dg-tm-pn", point.id), tx, cy + P.nameY, point.id, TYPE.pointName);
     const grey = name.replace(/class="([^"]*)"/u, 'class="$1 dg-tm-pn-g"');
-    const label = first === undefined || !Number.isFinite(first) ? grey : `<g class="dg-a" style="${m.until(first)}">${grey}</g><g class="dg-a" style="${m.vis(first)}">${name}</g>`;
+    const label =
+      first === undefined || !Number.isFinite(first)
+        ? grey
+        : `<g class="dg-a" style="${m.until(first)}">${grey}</g><g class="dg-a" style="${m.vis(first)}">${name}</g>`;
     const states = point.changes
       .map((c, k) => {
         const t = times[k] as number;
         if (!Number.isFinite(t)) return "";
         const next = times[k + 1];
-        const end = next !== undefined && Number.isFinite(next) ? next - MOTION.untilFade : undefined;
-        const words = write(ink, ja("dg-tm-ps", c.text), tx, cy + P.stateY, c.text, TYPE.pointState, [[t, end ?? Number.POSITIVE_INFINITY]]);
+        const end =
+          next !== undefined && Number.isFinite(next) ? next - MOTION.untilFade : undefined;
+        const words = write(
+          ink,
+          ja("dg-tm-ps", c.text),
+          tx,
+          cy + P.stateY,
+          c.text,
+          TYPE.pointState,
+          [[t, end ?? Number.POSITIVE_INFINITY]],
+        );
         return `<g class="dg-a" style="${cs(c.color ?? "slate")};${end === undefined ? m.rise(t) : m.rise(t, end)}">${words}</g>`;
       })
       .join("");
@@ -209,7 +331,9 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
         return `<g class="dg-popc dg-a" style="${cs(c.color)};${m.pop(t)}"><circle class="dg-tm-pc" cx="${r1(cx)}" cy="${r1(cy)}" r="${r + 0.5}"/>${glyph("flag", cx, cy, P.glyph, "dg-tm-pcg")}</g>`;
       })
       .join("");
-    node.push(`<g data-point="${esc(point.id)}"><circle class="dg-tm-pg" cx="${r1(cx)}" cy="${r1(cy)}" r="${r}"/>${glyph("flag", cx, cy, P.glyph, "dg-tm-pgl")}${rings}${label}${states}</g>`);
+    node.push(
+      `<g data-point="${esc(point.id)}"><circle class="dg-tm-pg" cx="${r1(cx)}" cy="${r1(cy)}" r="${r}"/>${glyph("flag", cx, cy, P.glyph, "dg-tm-pgl")}${rings}${label}${states}</g>`,
+    );
   }
 
   // 節目どうしの線。引いた後も残す
@@ -218,7 +342,12 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
     if (wired.has(`${e.step}/${e.event}`)) continue;
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
     if (!time) continue;
-    ctx.traces.push({ from: e.from, to: e.to, points: e.points, shown: [[time.start, Number.POSITIVE_INFINITY]] });
+    ctx.traces.push({
+      from: e.from,
+      to: e.to,
+      points: e.points,
+      shown: [[time.start, Number.POSITIVE_INFINITY]],
+    });
     const kf = m.kf([
       [0, { opacity: 0, "stroke-dashoffset": 1 }],
       [time.start, { opacity: 0, "stroke-dashoffset": 1 }, EASE.inOut],
@@ -234,14 +363,20 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
       [m.last, { opacity: 1 }, EASE.inOut],
       [m.total, { opacity: 0 }],
     ]);
-    lit.push(`<g data-link="${esc(`${e.from}->${e.to}`)}" style="${cs(e.color)}"><path class="dg-tm-ln dg-a" pathLength="1" d="${pathOf(e.points)}" style="${kf}"/><path class="dg-eh-on dg-a" d="${arrowHead(e.points)}" style="${head}"/></g>`);
+    lit.push(
+      `<g data-link="${esc(`${e.from}->${e.to}`)}" style="${cs(e.color)}"><path class="dg-tm-ln dg-a" pathLength="1" d="${pathOf(e.points)}" style="${kf}"/><path class="dg-eh-on dg-a" d="${arrowHead(e.points)}" style="${head}"/></g>`,
+    );
   }
 
   // 針。時刻の表の針の動きを辿り、繰り返す前に左端へ戻る
   const keys = timeline.needle ?? [];
   const moved = simplify(keys.filter(([t]) => t < m.total));
   const end = moved[moved.length - 1]?.[1] ?? 0;
-  const path: [number, number, number][] = [...moved.map(([t, u]): [number, number, number] => [t, axis.x + u * axis.unit, 0]), [m.last, axis.x + end * axis.unit, 0], [m.total, axis.x, 0]];
+  const path: [number, number, number][] = [
+    ...moved.map(([t, u]): [number, number, number] => [t, axis.x + u * axis.unit, 0]),
+    [m.last, axis.x + end * axis.unit, 0],
+    [m.total, axis.x, 0],
+  ];
   const { y1, y2 } = layout.needle;
   const N = T.needle;
   top.push(
@@ -251,20 +386,27 @@ export function drawTime(layout: TimeLayout, diagram: DiagramModel, timeline: Ti
 }
 
 /** 中身の帯の物差しの欄 (#3165)。棒を満ち具合の動きで伸ばし、`line` の割合の所に線の印と字を置く */
-export function meterField(field: { x: number; y: number; meter: { line: number; text: string; x: number; w: number } }, keys: [number, number][], ctx: Ctx): string {
+export function meterField(
+  field: { x: number; y: number; meter: { line: number; text: string; x: number; w: number } },
+  keys: [number, number][],
+  ctx: Ctx,
+): string {
   const { m } = ctx;
   const M = LOOK.time.meter;
   const { x, w, line, text } = field.meter;
   const y = field.y + M.y;
   const kf = m.kf([
-    ...simplify(keys).map(([t, v]): [number, Record<string, string>] => [t, { transform: `scaleX(${r1(v * 1000) / 1000})` }]),
+    ...simplify(keys).map(([t, v]): [number, Record<string, string>] => [
+      t,
+      { transform: `scaleX(${r1(v * 1000) / 1000})` },
+    ]),
     [m.last, { transform: `scaleX(${r1(valueAt(keys, m.last) * 1000) / 1000})` }, EASE.inOut],
     [m.total, { transform: "scaleX(0)" }],
   ]);
   const lx = x + w * line;
   return (
-    `<rect class="dg-tm-mt" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${M.h}" rx="${M.h / 2}"/>` +
-    `<rect class="dg-tm-mf dg-a" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${M.h}" rx="${M.h / 2}" style="${cs(M.color)};${kf}"/>` +
+    `<rect class="dg-tm-mt" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${M.h}" rx="${partRadius(ctx.corner, M.h / 2)}"/>` +
+    `<rect class="dg-tm-mf dg-a" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${M.h}" rx="${partRadius(ctx.corner, M.h / 2)}" style="${cs(M.color)};${kf}"/>` +
     `<line class="dg-tm-mk" x1="${r1(lx)}" y1="${r1(y - M.mark)}" x2="${r1(lx)}" y2="${r1(y + M.h + M.mark)}"/>` +
     write(ctx.ink, "dg-tm-ml", lx, field.y + M.textY, text, TYPE.meterLine, ALWAYS, "middle")
   );
@@ -274,26 +416,60 @@ export function meterField(field: { x: number; y: number; meter: { line: number;
  * 時間軸の図で、寄って追う窓が段の終わりに見せる所。印の列を必ず入れ、段の番号と段で動く物を窓に収まる間だけ足す。
  * 針を動かす段は針も必ず入れる。針を動かさない段は段の番号の丸を起点にする。針の所に窓が残ると、離れた節目で起きたことが読めないため (#3284)
  */
-export function timeFocus(layout: TimeLayout, timeline: Timeline, step: number, parts: { x: number; y: number; w: number; h: number }[], vw: number, vh: number): { x: number; y: number; w: number; h: number } {
+export function timeFocus(
+  layout: TimeLayout,
+  timeline: Timeline,
+  step: number,
+  parts: { x: number; y: number; w: number; h: number }[],
+  vw: number,
+  vh: number,
+): { x: number; y: number; w: number; h: number } {
   const span = timeline.steps[step] as Span;
   const position = valueAt(timeline.needle ?? [], span.end - MOTION.still);
   const badge = layout.badges.find((b) => b.step === step);
   // 値の表の中の丸は窓の外に出すので、起点にしない
-  const anchored = badge && valueAt(timeline.needle ?? [], span.start) === position && !(layout.strip && badge.y >= layout.strip.y);
+  const anchored =
+    badge &&
+    valueAt(timeline.needle ?? [], span.start) === position &&
+    !(layout.strip && badge.y >= layout.strip.y);
   const ax = anchored ? badge.x : layout.axis.x + position * layout.axis.unit;
   const top = Math.min(...layout.rows.map((r) => r.y));
   const bottom = Math.max(...layout.rows.map((r) => r.y + r.h));
   let held = { x: ax - 1, y: top, w: 2, h: bottom - top };
-  const near = (p: { x: number; y: number; w: number; h: number }): number => Math.hypot(Math.max(0, p.x - ax, ax - p.x - p.w), Math.max(0, p.y - top, top - p.y - p.h));
+  const near = (p: { x: number; y: number; w: number; h: number }): number =>
+    Math.hypot(Math.max(0, p.x - ax, ax - p.x - p.w), Math.max(0, p.y - top, top - p.y - p.h));
   // 札が変わる節目も段で動く物に数える。節目は頭の箱でないので、図全体の動く物の一覧に入っていない
-  const changed = layout.points.filter((point) => point.changes.some((change) => change.step === step)).map((point) => ({ x: point.cx - point.r, y: point.cy - point.r, w: point.text.x + point.text.w - point.cx + point.r, h: point.r * 2 }));
-  const extra = [...(badge ? [{ x: badge.x - LOOK.badge.r, y: badge.y - LOOK.badge.r, w: LOOK.badge.r * 2, h: LOOK.badge.r * 2 }] : []), ...[...parts, ...changed].sort((a, b) => near(a) - near(b))];
+  const changed = layout.points
+    .filter((point) => point.changes.some((change) => change.step === step))
+    .map((point) => ({
+      x: point.cx - point.r,
+      y: point.cy - point.r,
+      w: point.text.x + point.text.w - point.cx + point.r,
+      h: point.r * 2,
+    }));
+  const extra = [
+    ...(badge
+      ? [
+          {
+            x: badge.x - LOOK.badge.r,
+            y: badge.y - LOOK.badge.r,
+            w: LOOK.badge.r * 2,
+            h: LOOK.badge.r * 2,
+          },
+        ]
+      : []),
+    ...[...parts, ...changed].sort((a, b) => near(a) - near(b)),
+  ];
   for (const p of extra) {
     const x = Math.min(held.x, p.x);
     const y = Math.min(held.y, p.y);
-    const next = { x, y, w: Math.max(held.x + held.w, p.x + p.w) - x, h: Math.max(held.y + held.h, p.y + p.h) - y };
+    const next = {
+      x,
+      y,
+      w: Math.max(held.x + held.w, p.x + p.w) - x,
+      h: Math.max(held.y + held.h, p.y + p.h) - y,
+    };
     if (next.w <= vw && next.h <= vh) held = next;
   }
   return held;
 }
-

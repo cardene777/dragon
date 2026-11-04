@@ -109,6 +109,8 @@ export interface Rendered {
 export interface Palette {
   id: string;
   name: string;
+  /** 図の箱の角の形 (#3344) */
+  corner: "round" | "cut";
   light: Record<string, string>;
   dark: Record<string, string>;
 }
@@ -211,7 +213,8 @@ export function figureVars(svg: string): Record<string, string> {
 }
 
 /** 描いた SVG の図の名前の class。同じ頁に置いた図どうしは、この名前で変数と動きを分ける */
-export const figureClass = (svg: string): string | undefined => /class="dg (dg-[0-9a-z]+)"/u.exec(svg)?.[1];
+export const figureClass = (svg: string): string | undefined =>
+  /class="dg (dg-[0-9a-z]+)"/u.exec(svg)?.[1];
 
 /** 2 つの四角の隙間。重なる時は負になる。縦か横のどちらかで離れていれば、その離れ方の大きい方。 */
 export function gap(a: Rect, b: Rect): number {
@@ -232,7 +235,11 @@ export function sampleTimes(timeline: Timeline, every = 0.25): number[] {
 export const covers = (span: Span, t: number): boolean => span.start <= t && t < span.end;
 
 /** 折れ線のうち一番長い区間。向き (縦か横) と、その区間の座標を返す。 */
-export function longestSegment(points: [number, number][]): { vertical: boolean; a: [number, number]; b: [number, number] } {
+export function longestSegment(points: [number, number][]): {
+  vertical: boolean;
+  a: [number, number];
+  b: [number, number];
+} {
   const [start = [0, 0], next = start] = points;
   let best = { length: -1, a: start, b: next };
   points.forEach((b, i) => {
@@ -241,5 +248,9 @@ export function longestSegment(points: [number, number][]): { vertical: boolean;
     const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
     if (length > best.length) best = { length, a, b };
   });
-  return { vertical: Math.abs(best.b[0] - best.a[0]) < Math.abs(best.b[1] - best.a[1]), a: best.a, b: best.b };
+  return {
+    vertical: Math.abs(best.b[0] - best.a[0]) < Math.abs(best.b[1] - best.a[1]),
+    a: best.a,
+    b: best.b,
+  };
 }

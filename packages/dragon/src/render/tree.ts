@@ -15,16 +15,23 @@ import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { DiagramModel } from "../schema";
 import type { EdgeTime, Timeline } from "../timeline";
 import type { Frame } from "./motion";
+import { frameShape, partRadius } from "./corner";
 import { ALWAYS } from "./ink";
 import { activeKf, arrowHead, type Ctx, esc, pathOf, write } from "./parts";
 
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 
-export function drawTree(layout: TreeLayout, diagram: DiagramModel, timeline: Timeline, ctx: Ctx): { links: string; trails: string; nodes: string; appear: Map<string, number> } {
+export function drawTree(
+  layout: TreeLayout,
+  diagram: DiagramModel,
+  timeline: Timeline,
+  ctx: Ctx,
+): { links: string; trails: string; nodes: string; appear: Map<string, number> } {
   const { m } = ctx;
   const T = LOOK.tree;
   const B = LOOK.box;
-  const timeOf = (step: number, event: number): EdgeTime | undefined => timeline.edges.find((t) => t.step === step && t.event === event);
+  const timeOf = (step: number, event: number): EdgeTime | undefined =>
+    timeline.edges.find((t) => t.step === step && t.event === event);
 
   // 木の箱ごとの、線の両端になる段と、運ぶ物を初めて送るか受けた段
   const active = new Map<string, Set<number>>();
@@ -42,7 +49,12 @@ export function drawTree(layout: TreeLayout, diagram: DiagramModel, timeline: Ti
     const e = diagram.steps[step]?.events[event];
     return e?.type === "edge" && e.carry.kind !== "none";
   };
-  const fadeStep = layout.runs.filter((run) => carries(run.step, run.event)).reduce<number | undefined>((s, run) => (s === undefined ? run.step : Math.min(s, run.step)), undefined);
+  const fadeStep = layout.runs
+    .filter((run) => carries(run.step, run.event))
+    .reduce<number | undefined>(
+      (s, run) => (s === undefined ? run.step : Math.min(s, run.step)),
+      undefined,
+    );
   const fadeAt = fadeStep === undefined ? undefined : timeline.steps[fadeStep]?.start;
 
   /** 木の箱 `id` の薄くなる動き。薄くしない箱は `undefined` */
@@ -56,13 +68,21 @@ export function drawTree(layout: TreeLayout, diagram: DiagramModel, timeline: Ti
       [fadeAt, { opacity: 1 }, EASE.inOut],
       [fadeAt + MOTION.fade, { opacity: T.faint }],
     ];
-    if (back !== undefined) frames.push([back, { opacity: T.faint }, EASE.inOut], [back + MOTION.fade, { opacity: 1 }]);
-    frames.push([m.last, { opacity: back === undefined ? T.faint : 1 }, EASE.inOut], [m.total, { opacity: 1 }]);
+    if (back !== undefined)
+      frames.push([back, { opacity: T.faint }, EASE.inOut], [back + MOTION.fade, { opacity: 1 }]);
+    frames.push(
+      [m.last, { opacity: back === undefined ? T.faint : 1 }, EASE.inOut],
+      [m.total, { opacity: 1 }],
+    );
     return m.kf(frames);
   };
   const faded = (id: string, markup: string, attrs = ""): string => {
     const fade = fadeOf(id);
-    return fade ? `<g class="dg-a"${attrs} style="${fade}">${markup}</g>` : attrs === "" ? markup : `<g${attrs}>${markup}</g>`;
+    return fade
+      ? `<g class="dg-a"${attrs} style="${fade}">${markup}</g>`
+      : attrs === ""
+        ? markup
+        : `<g${attrs}>${markup}</g>`;
   };
 
   const drawnAt = new Map(layout.nodes.map((n) => [n.id, timeOf(n.step, n.event)?.drawn ?? 0]));
@@ -72,7 +92,12 @@ export function drawTree(layout: TreeLayout, diagram: DiagramModel, timeline: Ti
     .map((l) => {
       const time = timeOf(l.step, l.event);
       if (!time) return "";
-      ctx.traces.push({ from: l.from, to: l.to, points: l.points, shown: [[time.start, Number.POSITIVE_INFINITY]] });
+      ctx.traces.push({
+        from: l.from,
+        to: l.to,
+        points: l.points,
+        shown: [[time.start, Number.POSITIVE_INFINITY]],
+      });
       const kf = m.kf([
         [0, { opacity: 0, "stroke-dashoffset": 1 }],
         [time.start, { opacity: 0, "stroke-dashoffset": 1 }, EASE.inOut],
@@ -81,7 +106,10 @@ export function drawTree(layout: TreeLayout, diagram: DiagramModel, timeline: Ti
         [m.last, { opacity: 1, "stroke-dashoffset": 0 }, EASE.inOut],
         [m.total, { opacity: 0, "stroke-dashoffset": 0 }],
       ]);
-      return faded(l.from, `<path class="dg-tree-l dg-a" data-tree-link="${esc(l.from)}" pathLength="1" d="${pathOf(l.points)}" style="${kf}"/>`);
+      return faded(
+        l.from,
+        `<path class="dg-tree-l dg-a" data-tree-link="${esc(l.from)}" pathLength="1" d="${pathOf(l.points)}" style="${kf}"/>`,
+      );
     })
     .join("");
   const ties = layout.nodes
@@ -127,11 +155,19 @@ export function drawTree(layout: TreeLayout, diagram: DiagramModel, timeline: Ti
       if (!c) return [];
       const gx = c.x + T.card.padX + T.card.icon / 2;
       const cy = c.y + c.h / 2;
-      const text = write(ctx.ink, "dg-tree-ct", c.x + T.card.padX + T.card.icon + T.card.gap, cy + LOOK.baseline.label, c.text, TYPE.treeCard, ALWAYS);
+      const text = write(
+        ctx.ink,
+        "dg-tree-ct",
+        c.x + T.card.padX + T.card.icon + T.card.gap,
+        cy + LOOK.baseline.label,
+        c.text,
+        TYPE.treeCard,
+        ALWAYS,
+      );
       return [
         faded(
           n.id,
-          `<rect class="dg-tree-card" x="${r1(c.x)}" y="${r1(c.y)}" width="${r1(c.w)}" height="${c.h}" rx="${T.card.radius}"/>${glyph("doc", gx, cy, T.card.glyph, "dg-tree-cg")}${text}`,
+          `<rect class="dg-tree-card" x="${r1(c.x)}" y="${r1(c.y)}" width="${r1(c.w)}" height="${c.h}" rx="${partRadius(ctx.corner, T.card.radius)}"/>${glyph("doc", gx, cy, T.card.glyph, "dg-tree-cg")}${text}`,
           ` data-tree-card="${esc(n.id)}"`,
         ),
       ];
@@ -145,20 +181,43 @@ export function drawTree(layout: TreeLayout, diagram: DiagramModel, timeline: Ti
       const on = [...(active.get(n.id) ?? [])].sort((x, y) => x - y);
       const act = on.length > 0 ? activeKf(ctx, on) : undefined;
       const radius = n.root ? T.root.radius : T.radius;
-      const rect = (cls: string, extra = ""): string => `<rect class="${cls}" x="${r1(n.x)}" y="${r1(n.y)}" width="${r1(n.w)}" height="${n.h}" rx="${radius}"${extra}/>`;
+      const rect = (cls: string, extra = ""): string =>
+        frameShape(
+          ctx.corner,
+          ` class="${cls}"${extra}`,
+          n,
+          `<rect class="${cls}" x="${r1(n.x)}" y="${r1(n.y)}" width="${r1(n.w)}" height="${n.h}" rx="${radius}"${extra}/>`,
+        );
       const frame = `${act ? `<g class="dg-a" style="${act}">${rect("dg-halo")}</g>` : ""}${rect("dg-st", ` ${ctx.sh}`)}${act ? `<g class="dg-a" style="${act}">${rect("dg-on")}</g>` : ""}`;
       const ix = n.x + T.root.iconX + B.icon / 2;
-      const mark = n.root ? `<rect class="dg-ic" x="${r1(ix - B.icon / 2)}" y="${r1(n.cy - B.icon / 2)}" width="${B.icon}" height="${B.icon}" rx="${B.iconRadius}"/>${glyph("tree", ix, n.cy, B.iconScale)}` : "";
+      const mark = n.root
+        ? `<rect class="dg-ic" x="${r1(ix - B.icon / 2)}" y="${r1(n.cy - B.icon / 2)}" width="${B.icon}" height="${B.icon}" rx="${partRadius(ctx.corner, B.iconRadius)}"/>${glyph("tree", ix, n.cy, B.iconScale)}`
+        : "";
       const shown: [number, number][] = [[at, Number.POSITIVE_INFINITY]];
       const texts = n.lines
         .map((line, k) => {
           const style = n.styles[k] ?? TYPE.boxName;
-          const cls = style === TYPE.treeHash ? "dg-tree-hash" : style === TYPE.treeName ? "dg-tree-name" : style === TYPE.rootHash ? "dg-tree-rh" : style === TYPE.rootName ? "dg-tree-rn" : "dg-tree-one";
+          const cls =
+            style === TYPE.treeHash
+              ? "dg-tree-hash"
+              : style === TYPE.treeName
+                ? "dg-tree-name"
+                : style === TYPE.rootHash
+                  ? "dg-tree-rh"
+                  : style === TYPE.rootName
+                    ? "dg-tree-rn"
+                    : "dg-tree-one";
           const baseline = n.baselines[k] ?? n.cy;
-          return n.root ? write(ctx.ink, cls, n.x + T.root.textX, baseline, line, style, shown) : write(ctx.ink, cls, n.cx, baseline, line, style, shown, "middle");
+          return n.root
+            ? write(ctx.ink, cls, n.x + T.root.textX, baseline, line, style, shown)
+            : write(ctx.ink, cls, n.cx, baseline, line, style, shown, "middle");
         })
         .join("");
-      const inner = faded(n.id, `${frame}${mark}${texts}`, ` data-tree-node="${esc(n.id)}"${n.root ? ` data-tree-root="${esc(n.id)}"` : ""}`);
+      const inner = faded(
+        n.id,
+        `${frame}${mark}${texts}`,
+        ` data-tree-node="${esc(n.id)}"${n.root ? ` data-tree-root="${esc(n.id)}"` : ""}`,
+      );
       return `<g class="dg-popc dg-a" style="${cs(n.color)};${m.pop(at)}">${inner}</g>`;
     })
     .join("");

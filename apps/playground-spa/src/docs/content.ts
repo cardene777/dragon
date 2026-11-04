@@ -5,8 +5,7 @@
  * 本文の中の `` ` `` で囲んだ語は `<code>` で出す。
  * 節の記法の例は `examples/` の file が持ち、頁と検査 (`lib/site.test.ts`) が同じ file を読む。
  * 書き出しの節の命令は package の README と同じ物を、設定は命令の使い方の表示と同じ物を出す (検査が突き合わせる)。
- * ブロックの置き場へ移した部品の段落はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks-docs.gen.ts`) から節の中の同じ場所に置く (#3345)。
- * 段落の一覧は見本帳を開いた時に読む一覧と分けてあり、この頁と一緒に後から読む (#3347)。
+ * ブロックの置き場へ移した部品の段落はブロックの見本帳の分が持ち、書き出した一覧 (`catalog/blocks-docs.gen.ts`) から節の中の同じ場所に置く (#3345、#3341)。
  */
 import { BLOCK_DOCS } from "../catalog/blocks-docs.gen";
 import type { Lang } from "../text";

@@ -365,11 +365,14 @@ textarea:focus-visible {
   box-shadow: inset 3px 0 0 var(--d-accent);
 }
 
-/* 畳んだ面の色味の切替。帯から外した切替を、名前を添えてここに並べる */
+/*
+ * 畳んだ面の色味の切替。帯から外した切替を、名前を添えてここに並べる。
+ * 札は 1 行に等しい幅で並べ、名前が長い時は札の中で折り返す。色味が 4 つになると、幅 390 で札を字の幅のまま並べると 2 行に割れたため (#3341)
+ */
 .site-sheet-palette {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
   margin-top: 4px;
   padding: 10px 14px 4px;
@@ -377,16 +380,21 @@ textarea:focus-visible {
 }
 
 .site-sheet-label {
-  margin-right: 4px;
+  flex-basis: 100%;
   font-size: 12px;
   color: var(--d-text-muted);
 }
 
 .site-sheet-swatch {
   display: inline-flex;
+  flex: 1 1 0;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 7px 11px;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 7px 6px;
+  text-align: center;
   border: 1px solid var(--d-border);
   border-radius: var(--d-r-1);
   background: transparent;
@@ -452,7 +460,8 @@ textarea:focus-visible {
 
 /*
  * 指で触る時は、幅に関わらず帯と一覧の押せる部品の枠を 44 × 44px にする (#3075)。マウスで使う時は上のまま。
- * 行き先は下線を下に寄せたまま高さを足し、色味の切替は枠の内側の隙間を詰めて 3 つを 44px にする
+ * 行き先は下線を下に寄せたまま高さを足し、色味の切替は枠の内側の隙間を詰めて 4 つを 44px にする。
+ * 行き先の左右の余白は 9px にする。色味が 4 つになると 11px のままでは幅 1024 で行き先が字の幅より縮んだ (#3341)
  */
 @media (pointer: coarse) {
   .site-brand {
@@ -462,6 +471,8 @@ textarea:focus-visible {
     justify-content: flex-end;
     min-width: 44px;
     min-height: 44px;
+    padding-right: 9px;
+    padding-left: 9px;
     box-sizing: border-box;
   }
   .site-lang button {
@@ -504,10 +515,10 @@ textarea:focus-visible {
 }
 
 /*
- * 指で触る時は 44px の部品が 1 行に収まるのが約 994px からなので、マウスで使う時と同じく外側の編集画面を開く釦から隠す (#3075)。
- * 編集画面へは行き先の「編集画面」から移れる
+ * 指で触る時は 44px の部品が 1 行に収まるのが約 1015px からなので、マウスで使う時と同じく外側の編集画面を開く釦から隠す (#3075)。
+ * 色味が 4 つになって収まる幅が約 994px から上がった (#3341)。編集画面へは行き先の「編集画面」から移れる
  */
-@media (pointer: coarse) and (max-width: 1000px) {
+@media (pointer: coarse) and (max-width: 1016px) {
   .site-cta {
     display: none;
   }

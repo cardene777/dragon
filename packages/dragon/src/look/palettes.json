@@ -2,6 +2,7 @@
   "clear": {
     "name": "澄んだ色",
     "note": "白い地に、中くらいの明るさの鮮やかな 6 色。今の見本帳の色",
+    "corner": "round",
     "light": {
       "page": "#f3f4f7",
       "bg": "#ffffff",
@@ -71,6 +72,7 @@
   "paper": {
     "name": "紙と墨",
     "note": "生成りの紙の地に、藍 / 黄土 / 苔 / 葡萄 / 朱 / 鈍のくすんだ 6 色",
+    "corner": "round",
     "light": {
       "page": "#ece7dd",
       "bg": "#f9f6f0",
@@ -140,6 +142,7 @@
   "night": {
     "name": "夜の計器",
     "note": "青みの黒の地に、光る水色 / 琥珀 / 若緑 / 菫 / 桃 の 6 色。明るい側は青灰の地",
+    "corner": "round",
     "light": {
       "page": "#e9eef5",
       "bg": "#f6f9fc",
@@ -204,6 +207,75 @@
       "edge": "19%",
       "shA": ".5",
       "shB": ".4"
+    }
+  },
+  "arcade": {
+    "name": "アーケードの画面",
+    "note": "bitsumi の頁の色。明暗で同じ値を使い、影は付けない",
+    "corner": "cut",
+    "light": {
+      "page": "#030805",
+      "bg": "#04100a",
+      "surf": "#071a10",
+      "sunk": "#020604",
+      "ink": "#e3f7e8",
+      "ink2": "#b4d4bd",
+      "mute": "#86a991",
+      "hair": "#b4d4bd1c",
+      "line": "#2f6b45",
+      "sh": "#000000",
+      "on-c": "#02140a",
+      "c-blue": "#2ea7c4",
+      "t-blue": "#6fd3ea",
+      "c-amber": "#ff9a45",
+      "t-amber": "#ffbe85",
+      "c-green": "#3cff78",
+      "t-green": "#8fffb0",
+      "c-violet": "#8b63d9",
+      "t-violet": "#bba0fb",
+      "c-rose": "#d0457f",
+      "t-rose": "#ff86b6",
+      "c-slate": "#5a8a6b",
+      "t-slate": "#86a991",
+      "coin": "#facc15",
+      "coint": "#facc15",
+      "coinin": "#a16207",
+      "tint": "6%",
+      "edge": "19%",
+      "shA": "0",
+      "shB": "0"
+    },
+    "dark": {
+      "page": "#030805",
+      "bg": "#04100a",
+      "surf": "#071a10",
+      "sunk": "#020604",
+      "ink": "#e3f7e8",
+      "ink2": "#b4d4bd",
+      "mute": "#86a991",
+      "hair": "#b4d4bd1c",
+      "line": "#2f6b45",
+      "sh": "#000000",
+      "on-c": "#02140a",
+      "c-blue": "#2ea7c4",
+      "t-blue": "#6fd3ea",
+      "c-amber": "#ff9a45",
+      "t-amber": "#ffbe85",
+      "c-green": "#3cff78",
+      "t-green": "#8fffb0",
+      "c-violet": "#8b63d9",
+      "t-violet": "#bba0fb",
+      "c-rose": "#d0457f",
+      "t-rose": "#ff86b6",
+      "c-slate": "#5a8a6b",
+      "t-slate": "#86a991",
+      "coin": "#facc15",
+      "coint": "#facc15",
+      "coinin": "#a16207",
+      "tint": "6%",
+      "edge": "19%",
+      "shA": "0",
+      "shB": "0"
     }
   }
 }

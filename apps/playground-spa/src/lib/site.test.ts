@@ -60,8 +60,8 @@ const DESTINATIONS = [
   { ja: "GitHub", en: "GitHub", href: REPO },
 ] as const;
 
-/** 色味ごとにサイトの差し色にする字の色の欄 (#3033)。紙と墨は朱、澄んだ色と夜の計器は青 */
-const ACCENT: Record<string, string> = { paper: "t-rose", clear: "t-blue", night: "t-blue" };
+/** 色味ごとにサイトの差し色にする字の色の欄 (#3033)。紙と墨は朱、澄んだ色と夜の計器は青、アーケードの画面は緑 (#3341) */
+const ACCENT: Record<string, string> = { paper: "t-rose", clear: "t-blue", night: "t-blue", arcade: "t-green" };
 
 /** 帯の色味の切替に並ぶ色味。図の色味の表の順 */
 const PALETTE_IDS = Object.keys(PALETTES);
@@ -2739,7 +2739,7 @@ describe("サイトの帯と経路 (#3030)", () => {
             "zoom-in 44x44",
           ]);
         }
-        // 色味の丸は道具の帯が 720px 以上の時だけ出る (#3077)
+        // 色味の丸は道具の帯が 730px 以上の時だけ出る (#3077、#3341)
         if (viewport === TOUCH_EDITOR_SIZES[2]) {
           await expectSizes(() => targetsOf(page), `${where}の 2 つの帯`, [
             "tab-notation 44x44",
@@ -2750,6 +2750,7 @@ describe("サイトの帯と経路 (#3030)", () => {
             "palette-clear 44x44",
             "palette-paper 44x44",
             "palette-night 44x44",
+            "palette-arcade 44x44",
             "font-down 44x44",
             "font-up 44x44",
             "grid 44x44",
@@ -2785,13 +2786,14 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "coarse-editor-tools-drop-when-narrow",
     async () => {
-      // 指で触る時は道具の帯の部品を 44px にするので、帯の幅が 720px より狭い時は携帯の幅と同じく実況表示の札と色味の丸を外す。
-      // 外すかは画面の幅でなく帯の幅で決める。1180 × 820 は棚を横に並べて帯が狭くなる (#3077)
+      // 指で触る時は道具の帯の部品を 44px にするので、帯の幅が 730px より狭い時は携帯の幅と同じく実況表示の札と色味の丸を外す。
+      // 外すかは画面の幅でなく帯の幅で決める。1180 × 820 は棚を横に並べて帯が狭くなる (#3077)。
+      // 色味の丸が 4 つになると英語で 726px 要り、帯が 724px の 1024 × 1366 でも外す。色味は見出しの帯の切替で替える (#3341)
       const all = ["live", ...PALETTE_IDS.map((id) => `palette-${id}`), ...STAGE_TOOLS];
       for (const [viewport, shown] of [
         [{ width: 768, height: 1024 }, [...STAGE_TOOLS]],
         [{ width: 1180, height: 820 }, [...STAGE_TOOLS]],
-        [{ width: 1024, height: 1366 }, all],
+        [{ width: 1024, height: 1366 }, [...STAGE_TOOLS]],
         [{ width: 1366, height: 1024 }, all],
       ] as const) {
         const page = await openEditor(viewport, "intro", true, true);
@@ -3059,7 +3061,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           await expectSizes(() => catalogTargetsOf(page, catalogSel("preview")), `${where} の見本の枠`, [
             "tab-figure 44x44",
             "tab-code 67x44",
-            "palette 109x44",
+            "palette 133x44",
             "zoom-out 44x44",
             "zoom-level 52x44",
             "zoom-in 44x44",
@@ -3264,7 +3266,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           await expectSizes(() => catalogTargetsOf(page, catalogSel("preview")), `${where} の見本の枠`, [
             "tab-figure 44x44",
             "tab-code 67x44",
-            "palette 109x44",
+            "palette 133x44",
             "zoom-out 44x44",
             "zoom-in 44x44",
             "fit 44x44",
@@ -4009,14 +4011,14 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "narrow-header-sheet-touch-targets",
     async () => {
-      // 一覧の中の色味の札は高さ 32px、編集画面を開く釦は 42px だった (#3071)。行き先 6 つ、色味の札 3 つ、編集画面を開く釦の 10 個
+      // 一覧の中の色味の札は高さ 32px、編集画面を開く釦は 42px だった (#3071)。行き先 6 つ、色味の札 4 つ (#3341)、編集画面を開く釦の 11 個
       for (const viewport of PHONES) {
         const { page } = await site.open({ path: BASE, viewport });
         await onScreen(page, "home", "概要の頁が出ない");
         await page.locator(siteSel("menu")).click();
         await expect
-          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の開いた一覧で、部品が 10 個無いか、44px に届かない部品がある` })
-          .toEqual({ count: 10, small: [] });
+          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の開いた一覧で、部品が 11 個無いか、44px に届かない部品がある` })
+          .toEqual({ count: 11, small: [] });
         if (viewport === PHONES[1]) {
           await expectSizes(() => headerTargetsOf(page, ".site-sheet"), `${viewport.width} × ${viewport.height} の開いた一覧`, [
             "概要 374x44",
@@ -4025,9 +4027,10 @@ describe("サイトの帯と経路 (#3030)", () => {
             "使い方 374x44",
             "更新履歴 374x44",
             "GitHub ↗ 374x44",
-            "palette-clear 95x44",
-            "palette-paper 83x44",
-            "palette-night 95x44",
+            "palette-clear 82x66",
+            "palette-paper 82x66",
+            "palette-night 82x66",
+            "palette-arcade 82x66",
             "編集画面を開く → 374x44",
           ]);
         }
@@ -4094,6 +4097,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           "palette-clear 23x21",
           "palette-paper 23x21",
           "palette-night 23x21",
+          "palette-arcade 23x21",
           "theme 29x27",
           "open-editor 131x31",
         ],
@@ -4147,17 +4151,18 @@ describe("サイトの帯と経路 (#3030)", () => {
         if (viewport === TOUCH_SIZES[2]) {
           await expectSizes(() => headerTargetsOf(page, siteSel("header")), `指で触る ${viewport.width} × ${viewport.height} の見出しの帯`, [
             "dragon 85x44",
-            "概要 48x44",
-            "カタログ 74x44",
-            "編集画面 74x44",
-            "使い方 61x44",
-            "更新履歴 74x44",
-            "GitHub ↗ 81x44",
+            "概要 44x44",
+            "カタログ 70x44",
+            "編集画面 70x44",
+            "使い方 57x44",
+            "更新履歴 70x44",
+            "GitHub ↗ 77x44",
             "lang-ja 44x44",
             "lang-en 44x44",
             "palette-clear 44x44",
             "palette-paper 44x44",
             "palette-night 44x44",
+            "palette-arcade 44x44",
             "theme 44x44",
             "open-editor 131x44",
           ]);
@@ -4186,11 +4191,14 @@ describe("サイトの帯と経路 (#3030)", () => {
     "coarse-header-folds-below-900",
     async () => {
       // 指で触る時、900px 以下では行き先と色味の切替を一覧に畳み、携帯の幅と同じ形にする (#3075)。
-      // 901 から 1000px では 44px の部品が 1 行に収まらず行き先が縮むので、外側の編集画面を開く釦から隠す
+      // 901 から 1016px では 44px の部品が 1 行に収まらず行き先が縮むので、外側の編集画面を開く釦から隠す。
+      // 色味が 4 つになって境が 1000px から 1016px に上がった (#3341)
       for (const [viewport, expected] of [
         [{ width: 768, height: 1024 }, { nav: false, palette: false, menu: true, cta: false, squeezed: [] }],
         [{ width: 901, height: 1200 }, { nav: true, palette: true, menu: false, cta: false, squeezed: [] }],
         [{ width: 1000, height: 1200 }, { nav: true, palette: true, menu: false, cta: false, squeezed: [] }],
+        [{ width: 1016, height: 1200 }, { nav: true, palette: true, menu: false, cta: false, squeezed: [] }],
+        [{ width: 1017, height: 1200 }, { nav: true, palette: true, menu: false, cta: true, squeezed: [] }],
         [{ width: 1024, height: 1366 }, { nav: true, palette: true, menu: false, cta: true, squeezed: [] }],
       ] as const) {
         const { page } = await site.open({ path: BASE, viewport, touch: true });
@@ -4209,7 +4217,7 @@ describe("サイトの帯と経路 (#3030)", () => {
   it(
     "coarse-header-sheet-touch-targets",
     async () => {
-      // 指で触る時の一覧の部品も 44 × 44px にする (#3075)。行き先 6 つ、色味の札 3 つ、編集画面を開く釦の 10 個
+      // 指で触る時の一覧の部品も 44 × 44px にする (#3075)。行き先 6 つ、色味の札 4 つ (#3341)、編集画面を開く釦の 11 個
       for (const viewport of [
         { width: 600, height: 960 },
         { width: 768, height: 1024 },
@@ -4219,8 +4227,8 @@ describe("サイトの帯と経路 (#3030)", () => {
         await onScreen(page, "home", "概要の頁が出ない");
         await page.locator(siteSel("menu")).click();
         await expect
-          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${where}で、部品が 10 個無いか、44px に届かない部品がある` })
-          .toEqual({ count: 10, small: [] });
+          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${where}で、部品が 11 個無いか、44px に届かない部品がある` })
+          .toEqual({ count: 11, small: [] });
         if (viewport.width === 768) {
           await expectSizes(() => headerTargetsOf(page, ".site-sheet"), where, [
             "概要 752x44",
@@ -4229,9 +4237,10 @@ describe("サイトの帯と経路 (#3030)", () => {
             "使い方 752x44",
             "更新履歴 752x44",
             "GitHub ↗ 752x44",
-            "palette-clear 95x44",
-            "palette-paper 83x44",
-            "palette-night 95x44",
+            "palette-clear 177x49",
+            "palette-paper 177x49",
+            "palette-night 177x49",
+            "palette-arcade 177x49",
             "編集画面を開く → 752x44",
           ]);
         }
@@ -4347,6 +4356,7 @@ describe("サイトの帯と経路 (#3030)", () => {
           "palette-clear 23x21",
           "palette-paper 23x21",
           "palette-night 23x21",
+          "palette-arcade 23x21",
           "theme 29x27",
         ]);
     },
@@ -4604,6 +4614,75 @@ describe("サイトの帯と経路 (#3030)", () => {
       await narrow.page.locator(siteSel("menu")).click();
       await narrow.page.locator(`${siteSel("sheet-palette")} ${siteSel("palette-night")}`).click();
       await expect.poll(() => colorsOf(narrow.page), { ...WAIT, message: "畳んだ面の色味の切替でサイトの色が替わらない" }).toEqual(rgbOf(siteLook("night", "light")));
+    },
+    SLOW,
+  );
+
+  it(
+    "site-palette-switch-draws-arcade",
+    async () => {
+      // bitsumi の頁と同じ色の色味 (#3341)。帯と編集画面と見本帳の切替に出て、選ぶとその色味で描き、サイトの差し色が緑になる
+      expect(PALETTE_IDS, "色味の表に arcade が無い").toContain("arcade");
+      const green = PALETTES.arcade?.light["t-green"] ?? "";
+      const { page } = await site.open({ path: BASE, viewport: { width: 1440, height: 900 }, colorScheme: "light" });
+      await onScreen(page, "home", "概要の頁が出ない");
+      const button = page.locator(`${siteSel("header")} ${siteSel("palette")} ${siteSel("palette-arcade")}`);
+      await expect.poll(() => button.count(), { ...WAIT, message: "帯の色味の切替にアーケードの画面が無い" }).toBe(1);
+      expect(await button.getAttribute("aria-label"), "帯のアーケードの画面の釦の名前").toBe("アーケードの画面");
+      await button.click();
+      await expect.poll(() => colorsOf(page), { ...WAIT, message: "アーケードの画面を選んでもサイトの色が替わらない" }).toEqual(rgbOf(siteLook("arcade", "light")));
+      expect((await colorsOf(page)).accent, "アーケードの画面のサイトの差し色が緑でない").toBe(rgb(green));
+      await expect
+        .poll(() => figureLooks(page), { ...WAIT, message: "アーケードの画面を選んでも概要の図が替わらない" })
+        .toEqual(Array(1 + HOME_USES.length).fill(figureLook("arcade", "light")));
+      await page.locator(siteSel("lang-en")).click();
+      await expect.poll(() => button.getAttribute("aria-label"), { ...WAIT, message: "英語の頁のアーケードの画面の釦の名前" }).toBe("Arcade screen");
+
+      // 編集画面の色味の丸
+      const editor = await site.open({ path: `${BASE}editor`, viewport: { width: 1440, height: 900 }, colorScheme: "light" });
+      await onScreen(editor.page, "editor", "編集画面が出ない");
+      const stage = '[data-playground="stage"]';
+      await expect.poll(() => figureLooks(editor.page, stage), { ...WAIT, message: "編集画面の図が出ない" }).toHaveLength(1);
+      await editor.page.locator(`.pg-stage-bar [data-playground="palette-arcade"]`).click();
+      await expect.poll(() => figureLooks(editor.page, stage), { ...WAIT, message: "編集画面の色味の丸でアーケードの画面にならない" }).toEqual([figureLook("arcade", "light")]);
+
+      // 見本帳の見本の色味の切替
+      const catalog = await site.open({ path: `${BASE}catalog/sequence`, viewport: { width: 1440, height: 900 }, colorScheme: "light" });
+      await onScreen(catalog.page, "category", "時系列図の分類の頁が出ない");
+      await expect
+        .poll(() => catalog.page.evaluate(() => [...document.querySelectorAll<HTMLOptionElement>('[data-catalog="palette"] option')].map((o) => o.value)), {
+          ...WAIT,
+          message: "見本の色味の切替にアーケードの画面が無い",
+        })
+        .toContain("arcade");
+      await catalog.page.locator(catalogSel("palette")).selectOption("arcade");
+      await expect
+        .poll(() => figureLooks(catalog.page, catalogSel("stage")), { ...WAIT, message: "見本の色味をアーケードの画面にしても図が替わらない" })
+        .toEqual([figureLook("arcade", "light")]);
+    },
+    SLOW,
+  );
+
+  it(
+    "site-palette-switch-fits-four-at-390",
+    async () => {
+      // 色味を 4 つにしても、幅 390 の畳んだ行き先の面の色味の札は 1 行に収まり、指で押せる大きさを保つ (#3341)
+      const { page } = await site.open({ path: BASE, viewport: { width: 390, height: 844 }, colorScheme: "light" });
+      await onScreen(page, "home", "幅 390 で概要の頁が出ない");
+      await page.locator(siteSel("menu")).click();
+      const swatches = (): Promise<{ id: string; top: number; width: number; height: number; right: number }[]> =>
+        page.evaluate((s) => {
+          return [...document.querySelectorAll<HTMLElement>(`${s} [data-site^="palette-"]`)].map((b) => {
+            const r = b.getBoundingClientRect();
+            return { id: b.dataset.site ?? "", top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height), right: Math.round(r.right) };
+          });
+        }, siteSel("sheet-palette"));
+      await expect.poll(async () => (await swatches()).length, { ...WAIT, message: "幅 390 の畳んだ面の色味の札が 4 つでない" }).toBe(4);
+      const found = await swatches();
+      expect(found.map((s) => s.id), "幅 390 の畳んだ面にアーケードの画面の札が無い").toContain("palette-arcade");
+      expect(found.filter((s) => s.width < 44 || s.height < 44).map((s) => `${s.id} ${s.width}x${s.height}`), "幅 390 で 44px に届かない色味の札").toEqual([]);
+      expect(new Set(found.map((s) => s.top)).size, `幅 390 で色味の札が 1 行に収まらない: ${found.map((s) => `${s.id} 上 ${s.top}`).join(", ")}`).toBe(1);
+      expect(Math.max(...found.map((s) => s.right)), "幅 390 で色味の札が頁の右へはみ出す").toBeLessThanOrEqual(390);
     },
     SLOW,
   );

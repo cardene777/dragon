@@ -67,7 +67,7 @@ export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPla
 export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./layout/tree";
 export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupText, TextLine } from "./layout/lineup";
 export { type Family, FONTS } from "./look/fonts";
-export { type ColorKey, type ColorName, type Colors, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";
+export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
 export { ICONS } from "./blocks/icon/icons";
 export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from "./render/ink";

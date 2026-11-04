@@ -20,6 +20,7 @@ import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
+import { partRadius } from "./render/corner";
 import { drawSvg, paletteOf, type RenderOptions, renderDiagram } from "./render/draw";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
@@ -60,10 +61,14 @@ const px = (v: number): string => `${v}px`;
 
 function playerCss(): string {
   const P = LOOK.player;
+  const C = LOOK.corner.cut;
   const hidden = px(P.hidden);
   return [
     `.dg-player{display:flex;flex-direction:column;gap:${px(P.gap)};color:var(--ink)}`,
     `.dg-player .dg-frame{border-radius:${px(P.radius)};overflow:hidden}`,
+    // 角を落とす色味の再生の枠は、図の枠と同じく右上と左下を落として切り抜き、釦の角を丸めない (#3344)
+    `.dg-player[data-corner="cut"] .dg-frame{border-radius:0;clip-path:polygon(0 0,calc(100% - ${px(C)}) 0,100% ${px(C)},100% 100%,${px(C)} 100%,0 calc(100% - ${px(C)}))}`,
+    `.dg-player[data-corner="cut"] .dg-btn{border-radius:0}`,
     // 並べ方は帯の中身の幅で選ぶ。帯の中の 1 段 (`.dg-row`) が並べ替わり、帯の左右の余白は置いた頁が帯に付ける
     `.dg-bar{container:dg-bar/inline-size}`,
     `.dg-row{display:flex;align-items:flex-start;gap:${px(P.gap)}}`,
@@ -117,7 +122,11 @@ const pad = (n: number): string => String(n).padStart(2, "0");
 /** 段の番号の札 (`01/12`)。`step` は 0 から数える。 */
 export const stepNo = (step: number, count: number): string => `${pad(step + 1)}/${pad(count)}`;
 
-export function mountDiagram(host: HTMLElement, diagram: unknown, options: PlayerOptions = {}): Player {
+export function mountDiagram(
+  host: HTMLElement,
+  diagram: unknown,
+  options: PlayerOptions = {},
+): Player {
   const doc = host.ownerDocument;
   const win = doc.defaultView;
   // 描く前に読む。描いた後に読むと、動きを嫌う人にも一瞬だけ流れてしまう
@@ -135,6 +144,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   root.className = "dg-player";
   root.dataset.dragon = "player";
   root.setAttribute("style", `${FONT_VARS};${paletteVars(palette, rendered.theme)}`);
+  if (palette.corner === "cut") root.dataset.corner = "cut";
 
   const frame = doc.createElement("div");
   frame.className = "dg-frame";
@@ -221,7 +231,10 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   const frameHeight = (): number | undefined => {
     if (!options.fitHeight || !win) return undefined;
     const style = win.getComputedStyle(frame);
-    const inner = frame.clientHeight - (Number.parseFloat(style.paddingTop) || 0) - (Number.parseFloat(style.paddingBottom) || 0);
+    const inner =
+      frame.clientHeight -
+      (Number.parseFloat(style.paddingTop) || 0) -
+      (Number.parseFloat(style.paddingBottom) || 0);
     return inner > 0 ? inner : undefined;
   };
   let mode = chooseView(rendered, frameWidth(), frameHeight()).mode;
@@ -229,7 +242,8 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   let height = frameHeight();
   let svg: SVGSVGElement | null = null;
   // 止めて置く段を渡された図は、動きを嫌う人と同じく止め絵で置く
-  let step = options.pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, options.pausedAt));
+  let step =
+    options.pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, options.pausedAt));
   let playing = !reduce && options.pausedAt === undefined;
   let at = playing ? 0 : (timeline.stills[step] ?? 0);
   /** 1 度だけ流す図が止まる時刻 (最後の段の止め絵) */
@@ -255,7 +269,7 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
       rect.setAttribute("y", String(r.y - M.pad));
       rect.setAttribute("width", String(r.w + M.pad * 2));
       rect.setAttribute("height", String(r.h + M.pad * 2));
-      rect.setAttribute("rx", String(M.radius));
+      rect.setAttribute("rx", String(partRadius(palette.corner, M.radius)));
       group.append(rect);
     }
     (svg.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-a') ?? svg).append(group);
@@ -291,7 +305,14 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
     born = Date.now();
     drawMarks();
   };
-  const markup = (): string => (mode === "follow" ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, { width, ...(height === undefined ? {} : { height }), lang }) : rendered.svg);
+  const markup = (): string =>
+    mode === "follow"
+      ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, {
+          width,
+          ...(height === undefined ? {} : { height }),
+          lang,
+        })
+      : rendered.svg;
 
   const now = (): number => (playing ? (at + (Date.now() - born) / 1000) % timeline.total : at);
   const stepAt = (t: number): number => {
@@ -363,14 +384,16 @@ export function mountDiagram(host: HTMLElement, diagram: unknown, options: Playe
   frame.addEventListener("click", onFigure);
 
   // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも) で決まるので、変われば描き直す
-  const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)?.ResizeObserver;
+  const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)
+    ?.ResizeObserver;
   const observer = Observer
     ? new Observer(() => {
         const w = frameWidth();
         const h = frameHeight();
         const rearranged = arrange(w);
         const chosen = chooseView(rendered, w, h).mode;
-        if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height))) return;
+        if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height)))
+          return;
         const t = now();
         mode = chosen;
         width = w;
