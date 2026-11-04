@@ -7,7 +7,8 @@
  * ブロックが図のどこに付くかを付け方と呼び、5つ (置く、つなぐ、線に乗る、箱に付く、図に付く) から1つを名乗る。
  * 図の種類 (`kinds/<種類>/`) は並べ方と受け付ける付け方だけを持ち、付け方の合うブロックを並べる。
  *
- * 置き場の `block.ts` は、語、読む処理、書き戻す処理、日英の誤りの文を1つの定義に持つ。
+ * 置き場の `block.ts` は、名前と並びと付け方と語と、読む前に書いた図が使うブロックを引くための宣言を持つ。
+ * 読む処理と書き戻す処理と日英の誤りの文は同じ置き場の `read.ts` が持ち、軽い入口は後から読む図の種類の個別ブロックの `read.ts` を書いた図が使う時に読む (#3349)。
  * 原本の形の欠片は同じ置き場の `shape.ts`、描き方は `draw.ts`、見本帳の分は `gallery/` が持つ。
  * 原本の形の欠片は build の時に原本の検査を書き出す script と検査だけが読み、描く時に読む塊に入れないので定義と分ける (#3348)。
  * 定義は描き方を読まない。描き方は描く下請け (`render/parts.ts`) を読み、下請けは語の表 (`words.ts`) を読む。
@@ -204,10 +205,43 @@ export interface BlockWords {
 }
 
 /**
- * ブロックの定義。`M` はブロックが持つ誤りの文の表の型で、日英で同じ鍵を持つ。
- * 誤りの文の鍵はブロックの間で重ならない (`blocks.test.ts` の `block-message-keys-unique` が見る)
+ * 読む前に見る行の形 (#3349)。読む前に書いた図が使うブロックを引く処理 (`blocks/used.ts`) と読む処理 (`parser.ts`) が同じ関数 (`lineView`) で作る。
+ * 行の頭の語と 2 つ目の語と、線の行か、最初の `step` より後の行かだけを持ち、行を読まずに作れる
  */
-export interface Block<M extends object = object, F extends object = object> {
+export interface LineView {
+  /** 行の頭の語 */
+  word: string;
+  /** 行の 2 つ目の語 */
+  second?: string;
+  /** 線の行 (`<名札> -> <名札>`) なら、送る側の名札 */
+  edgeFrom?: string;
+  /** 最初の `step` より後の行か */
+  inSteps: boolean;
+}
+
+/**
+ * ブロックが読むか、読む時に確かめる行の形 (#3349)。ブロックの図の種類 (`attach.only`) の図の行だけに当てる。
+ * 書いた欄が全て合う行に当たる
+ */
+export interface LineMatch {
+  /** 行の頭の語がこのどれか */
+  heads?: readonly string[];
+  /** 線の行。`before-steps` は最初の `step` より前の線だけ */
+  edges?: "any" | "before-steps";
+  /** 線の送る側の名札がこれ */
+  from?: string;
+  /** 線の送る側の名札がこれでない */
+  exceptFrom?: string;
+  /** 行の 2 つ目の語がこれ */
+  second?: string;
+}
+
+/**
+ * 入口に置くブロックの定義 (#3342、#3345、#3349)。`F` は原本の JSON の誤りの文の表の型で、日英で同じ鍵を持つ。
+ * 読む処理と書き戻す処理と誤りの文は同じ置き場の読み方 (`read.ts` の `reading`) が持ち、軽い入口は後から読む図の種類の個別ブロックの読み方を、書いた図が使う時に読む。
+ * 定義は、読む前に書いた図が使うブロックを引くための宣言 (語と `lines` と `always`) を持つ
+ */
+export interface Block<F extends object = object> {
   /** 置き場の dir の名前 */
   name: string;
   /** ブロックの並び。語の表 (`words.ts`) はこの順にブロックの語を並べる (行の頭の語は `words.headRanks` で別の番号にできる) */
@@ -219,13 +253,54 @@ export interface Block<M extends object = object, F extends object = object> {
    */
   attach: { how: AttachHow; only?: KindName; except?: readonly KindName[] };
   words: BlockWords;
-  /** 行の頭の語ごとの読む処理 */
-  read: Readonly<Record<string, HeadReader>> | None;
-  print: BlockPrint | None;
-  messages: { ja: M; en: M } | None;
+  /**
+   * 行の頭の語のほかに、このブロックが読むか、読む時に確かめる行の形 (#3349)。
+   * 行の形で読む行 (時間軸の図の針を進める行、状態遷移図の最初の段より前の線) は、読み方の `take` が読む
+   */
+  lines?: readonly LineMatch[];
+  /** 図の種類の図なら、行が無くても使う。図の種類の決まり (名札に使えない名前、読み終えた時の確かめ) を読み方が持つ (#3349) */
+  always?: true;
+  /**
+   * 原本の `blocks` の中で、ブロックの名前と違う鍵で持つ欄 (骨組みが持つ `path` と `period`、#3349)。
+   * 原本から書いた図が使うブロックを引く時 (`blocks/used.ts`) に、欄の鍵からこのブロックを引く
+   */
+  fields?: readonly string[];
   /**
    * 原本の JSON の誤りの文 (`field-messages.ts`) のうち、ブロックの形の決まりに当てる文。`F` はその表の型で、日英で同じ鍵を持つ。
    * 原本の誤りの文を持たないブロックは書かない
    */
   fieldMessages?: { ja: F; en: F };
+}
+
+/**
+ * ブロックの読み方 (置き場の `read.ts` の `reading`、#3349)。`M` はブロックが持つ誤りの文の表の型で、日英で同じ鍵を持つ。
+ * 誤りの文の鍵はブロックの間で重ならない (`blocks.test.ts` の `block-message-keys-unique` が見る)。
+ * 図の種類の決まりを持つブロックは、読む処理 (`parser.ts`) が決まった所で呼ぶ手続き (`take` から `verify` まで) を持つ。
+ * 手続きは、図の種類が読み方を使える図 (`blocks/usable.ts` の `fits`) を読む時だけ呼ぶ
+ */
+export interface BlockReading<M extends object = object> {
+  /** 行の頭の語ごとの読む処理 */
+  read: Readonly<Record<string, HeadReader>> | None;
+  print: BlockPrint | None;
+  messages: { ja: M; en: M } | None;
+  /** 定義の `lines` に当たる行を、行の頭の語より先に読む。読んだら true、読まない行なら false を返し、parser は続けて行の頭の語で読む */
+  take?: (source: SourceLine, state: ParseState, view: LineView) => boolean;
+  /** 行の頭の語の誤り (図の種類だけの語と、知らない語) を確かめた後に、行の頭の語を確かめる (試す図に書けない行) */
+  checkHead?: (source: SourceLine, word: string, state: ParseState) => void;
+  /** 最初の段を始める時か、記法の終わりに 1 度だけ呼ぶ。全ての宣言を読んでから確かめる宣言を確かめる */
+  settle?: (state: ParseState, head: SourceLine) => void;
+  /** 段を書き始める度に呼ぶ */
+  beginStep?: (state: ParseState) => void;
+  /** 線の端の名札。図の種類が箱のほかに書ける名札なら、その名札を返す。書けない名札は誤りで止め、箱の名札なら `undefined` */
+  endAt?: (source: SourceLine, id: string, at: number, side: "from" | "to", state: ParseState) => string | undefined;
+  /** 図の種類が名札に使えない名前を誤りで止める */
+  reserved?: (source: SourceLine, id: string, at: number, state: ParseState) => void;
+  /** 線の列 (`at` と `into`)。持つ図の種類だけが持つ */
+  columns?: (source: SourceLine, from: string, to: string, attrs: Map<string, Attr>, end: number, state: ParseState) => { at?: number; into?: number };
+  /** 線を読んだ後に呼ぶ (枝分かれの図は、送る側の枝の札を受ける側の commit へ動かす) */
+  afterEdge?: (edge: { from: string; to: string }, state: ParseState) => void;
+  /** 記法を読み終えた時の確かめ。箱と段の確かめより前に呼ぶ */
+  finish?: (state: ParseState, head: SourceLine) => void;
+  /** 記法を読み終えた時の確かめ。箱と段の確かめより後に呼ぶ */
+  verify?: (state: ParseState, head: SourceLine) => void;
 }

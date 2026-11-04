@@ -50,10 +50,14 @@ export function eventOwnerProblems(blocks: Record<string, Block>): string[] {
 
 describe("ブロックが持つ段の中で起きること (#3345)", () => {
   it("block-event-shape-matches-schema", async () => {
-    const { BLOCKS: definitions } = (await import("../src/blocks/index")) as unknown as { BLOCKS: Record<string, Pick<Block, "print">> };
+    const { BLOCKS: definitions } = (await import("../src/blocks/index")) as unknown as { BLOCKS: Record<string, unknown> };
     const { SHAPES } = (await import("../src/blocks/shapes")) as unknown as { SHAPES: Record<string, Block["shape"]> };
-    // 形の欠片は定義と別の file (`shape.ts`) に在るので、名前で組にして見る
-    const BLOCKS: Record<string, Block> = Object.fromEntries(Object.entries(definitions).map(([name, block]) => [name, { shape: SHAPES[name] ?? { none: "-" }, print: block.print }]));
+    const { READINGS } = (await import("../src/blocks/readings")) as unknown as { READINGS: Record<string, Pick<Block, "print">> };
+    // 形の欠片 (`shape.ts`) と書き戻す処理 (`read.ts`、#3349) は定義と別の file に在るので、名前で組にして見る
+    const BLOCKS: Record<string, Block> = Object.fromEntries(
+      Object.keys(definitions).map((name) => [name, { shape: SHAPES[name] ?? { none: "-" }, print: READINGS[name]?.print ?? { none: "-" } }]),
+    );
+    expect(Object.keys(READINGS).sort(), "読み方の一覧とブロックの一覧の名前").toEqual(Object.keys(definitions).sort());
     expect(Object.keys(SHAPES).sort(), "形の欠片の一覧とブロックの一覧の名前").toEqual(Object.keys(definitions).sort());
     const events = schemaEvents();
     const owned = Object.values(BLOCKS).flatMap((block) => Object.keys(eventShapes(block)));

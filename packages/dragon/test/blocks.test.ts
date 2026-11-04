@@ -94,11 +94,9 @@ type Shape = { none: string } | { field?: unknown; definitions?: Record<string, 
  */
 async function registries(): Promise<{ blocks: Record<string, Block>; definitions: Record<string, Block>; shapes: Record<string, Shape>; kinds: Record<string, Kind> }> {
   const definitions = await import("../src/blocks/index").then((m) => m.BLOCKS as unknown as Record<string, Block>).catch(() => ({}));
-  const readings = await import("../src/blocks/readings")
-    .then((m) => (m as { READINGS: Record<string, Record<string, unknown>> }).READINGS)
-    .catch(() => ({}) as Record<string, Record<string, unknown>>);
+  const readings: Record<string, object> = await import("../src/blocks/readings").then((m) => m.READINGS).catch(() => ({}));
   // 定義と読み方を合わせたブロック。読み方を持たないブロックは定義の欄だけになり、決まりの関数が欠けた欄を名指す
-  const blocks = Object.fromEntries(Object.entries(definitions).map(([name, block]) => [name, { ...block, ...readings[name] } as Block]));
+  const blocks = Object.fromEntries(Object.entries(definitions).map(([name, block]) => [name, { ...block, ...readings[name] }]));
   const shapes = await import("../src/blocks/shapes").then((m) => m.SHAPES as unknown as Record<string, Shape>).catch(() => ({}));
   const kinds = await import("../src/kinds/index").then((m) => m.KIND_FOLDERS as unknown as Record<string, Kind>).catch(() => ({}));
   return { blocks, definitions, shapes, kinds };

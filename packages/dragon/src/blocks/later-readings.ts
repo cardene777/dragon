@@ -1,0 +1,31 @@
+// packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
+import type { BlockReading } from "./block";
+
+/** 後から読む図の種類の個別ブロックの読み方を読む関数。鍵は置き場の dir の名前。軽い入口が書いた図が使う時に呼ぶ (#3349) */
+export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>>> = {
+  "ask": () => import("./ask/read").then((m): BlockReading => m.reading),
+  "branch": () => import("./branch/read").then((m): BlockReading => m.reading),
+  "chain": () => import("./chain/read").then((m): BlockReading => m.reading),
+  "commit": () => import("./commit/read").then((m): BlockReading => m.reading),
+  "copy": () => import("./copy/read").then((m): BlockReading => m.reading),
+  "item": () => import("./item/read").then((m): BlockReading => m.reading),
+  "leaf": () => import("./leaf/read").then((m): BlockReading => m.reading),
+  "legend": () => import("./legend/read").then((m): BlockReading => m.reading),
+  "line": () => import("./line/read").then((m): BlockReading => m.reading),
+  "merge": () => import("./merge/read").then((m): BlockReading => m.reading),
+  "node": () => import("./node/read").then((m): BlockReading => m.reading),
+  "order": () => import("./order/read").then((m): BlockReading => m.reading),
+  "pick": () => import("./pick/read").then((m): BlockReading => m.reading),
+  "point": () => import("./point/read").then((m): BlockReading => m.reading),
+  "press": () => import("./press/read").then((m): BlockReading => m.reading),
+  "queue": () => import("./queue/read").then((m): BlockReading => m.reading),
+  "role": () => import("./role/read").then((m): BlockReading => m.reading),
+  "route": () => import("./route/read").then((m): BlockReading => m.reading),
+  "row": () => import("./row/read").then((m): BlockReading => m.reading),
+  "scale": () => import("./scale/read").then((m): BlockReading => m.reading),
+  "seal": () => import("./seal/read").then((m): BlockReading => m.reading),
+  "side-path": () => import("./side-path/read").then((m): BlockReading => m.reading),
+  "stamp": () => import("./stamp/read").then((m): BlockReading => m.reading),
+  "start-finish": () => import("./start-finish/read").then((m): BlockReading => m.reading),
+  "zoom": () => import("./zoom/read").then((m): BlockReading => m.reading),
+};

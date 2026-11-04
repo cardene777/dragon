@@ -6,6 +6,16 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The light entry now loads a block's reading only when the written diagram uses it** (#3349)
+
+  Each block folder now splits into `block.ts` (name, order, attach type, words, and the lines it reads) and `read.ts` (reading, printing, and messages).
+  The light entry `@cardenelabs/dragon/light` holds the core blocks and the blocks of `sequence` and `architecture`. Await `loadFor` with the notation or JSON you are about to read, and it loads that kind's renderer and only the blocks that diagram uses.
+  `loadKind` now also loads every block of the kind. `loadReadings` loads only the blocks, without the renderer, and `diagramKind` returns the kind of a notation or JSON before you read it.
+  This changes how the light entry is used: reading `git`, `lineup`, `state`, `time`, `tree`, or `try` notation now needs `loadFor` or `loadKind` first, and reading a line of a block that has not been loaded stops with an error that names the block.
+  The default entry `@cardenelabs/dragon` still holds every block and reads every diagram without waiting.
+
 ## [0.48.0] - 2026-11-04
 
 ### Added

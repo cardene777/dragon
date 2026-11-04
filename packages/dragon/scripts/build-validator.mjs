@@ -14,6 +14,9 @@
  * ブロックの定義は TypeScript なので、script は Node の型を外す読み込みで読む。
  * 拡張子の無い import は `scripts/ts-resolve.mjs` の hook が解くので、`node --import ./scripts/ts-resolve.mjs scripts/build-validator.mjs` で回す。
  * package の build は最初にこれを回す。書き出した file が骨組みとブロックの形と食い違うと `format-v2.test.ts` の検査が落ちる。
+ *
+ * 段の中で起きることの種類ごとに、その形の枝を持つブロックの名前の表 (`src/blocks/event-owners.ts` の `EVENT_OWNERS`) も書き出す (#3349)。
+ * 軽い入口は原本から書いた図が使うブロックを引く時にこの表を読み、出来事を書き戻すブロックの読み方を読む。形の欠片は入口に入れないので、表だけを書き出す。
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -25,6 +28,8 @@ import { SHAPES } from "../src/blocks/shapes.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const schemas = join(here, "../src/schemas");
+/** 出来事の種類ごとの持ち主のブロックの表を書き出す先 */
+const EVENT_OWNERS_FILE = join(here, "../src/blocks/event-owners.ts");
 /** 骨組みの形 */
 export const BASE = join(schemas, "base.schema.json");
 /** 束ねて書き出す原本の形 */
@@ -81,6 +86,26 @@ export function compose(shapes = SHAPES) {
   };
 }
 
+/** 出来事の種類ごとの、その形の枝を持つブロックの名前の表の file の中身。同じ種類の枝を 2 つのブロックが持つ時は止める */
+export function eventOwners(shapes = SHAPES) {
+  const owners = new Map();
+  for (const [name, shape] of Object.entries(shapes)) {
+    if ("none" in shape) continue;
+    for (const type of Object.keys(shape.events ?? {})) {
+      if (owners.has(type)) throw new Error(`出来事 ${type} の形の枝を ${owners.get(type)} と ${name} の 2 つのブロックが持つ`);
+      owners.set(type, name);
+    }
+  }
+  const rows = [...owners].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([type, name]) => `  ${JSON.stringify(type)}: ${JSON.stringify(name)},`);
+  return [
+    "// packages/dragon/scripts/build-validator.mjs がブロックの形の欠片から書き出した。手で直さない",
+    "",
+    "/** 段の中で起きることの種類ごとの、その形の枝を持つブロックの名前 (#3349)。軽い入口が原本から書いた図が使うブロックを引く時に読む */",
+    `export const EVENT_OWNERS: Readonly<Record<string, string>> = {\n${rows.join("\n")}\n};`,
+    "",
+  ].join("\n");
+}
+
 /** 書き出す 2 つの file の中身。骨組みとブロックの形と ajv の版が同じなら毎回同じ字の並びになる */
 export function generate(shapes = SHAPES) {
   const schema = compose(shapes);
@@ -107,6 +132,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   for (const [path, text] of [
     [SCHEMA, written.schema],
     [OUT, written.validator],
+    [EVENT_OWNERS_FILE, eventOwners()],
   ]) {
     let before = "";
     try {
@@ -116,5 +142,5 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     }
     if (before !== text) writeFileSync(path, text);
   }
-  console.log(`[build-validator] ${SCHEMA} と ${OUT} を書き出した`);
+  console.log(`[build-validator] ${SCHEMA} と ${OUT} と ${EVENT_OWNERS_FILE} を書き出した`);
 }

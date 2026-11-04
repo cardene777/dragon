@@ -11,7 +11,7 @@
 - 見本帳は、概要の頁と編集画面の最初の見本のほかの見本の記法と、部品の図の記法を、それぞれ1つの後から読む塊に分け、最初の画面を描いた後に裏で読む (`apps/playground-spa/src/site/later.ts`、#3246)。
 - 見本帳の使い方の頁とカタログの頁も後から読む塊に分け、同じ仕組みで読む (`apps/playground-spa/src/site/pages.tsx`、#3280)。頁の塊が読めなかった時だけ、頁を1度自動で読み直す (#3288)。
 - 字は Noto Sans JP と JetBrains Mono を同梱し、`@cardenelabs/dragon/fonts` の入口から読む (`packages/dragon/src/load-fonts.ts`)。見本帳は組み立て結果の字だけを切り出した 1 つの字の `file` を読み、組み立ての時に分割された字の面の範囲からその字を外す。切り出した字に無い字は分割された字の `file` から読む (`apps/playground-spa/src/site/font-sheets.ts`、`apps/playground-spa/vite-site-font.ts`、`apps/playground-spa/scripts/site-fonts.mjs`、#3296)。見本帳は字の CSS を最初の CSS に入れず、初めて開く端末は最初の画面を描いた後に読み、前に読んだ端末は描く前に読む (`apps/playground-spa/src/site/fonts.ts`、#3292)。
-- 既定の入口 `@cardenelabs/dragon` は全ての図の種類の部品を持ち、軽い入口 `@cardenelabs/dragon/light` は `git`、`lineup`、`state`、`time`、`tree` の部品を `loadKind` を待った時に読む。見本帳は軽い入口だけを読む (`packages/dragon/src/kinds/registry.ts`、#3248)。
+- 既定の入口 `@cardenelabs/dragon` は全ての図の種類の部品と全てのブロックの読み方を持つ。軽い入口 `@cardenelabs/dragon/light` はコアブロックと、時系列図と構成図の個別ブロックの読み方を持ち、`git`、`lineup`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけの個別ブロックの読み方を後から読む。`loadFor` は書いた図の種類の描く部品と書いた図が使うブロックだけを、`loadKind` は種類の描く部品とその種類の全てのブロックを読む。見本帳は軽い入口だけを読み、図を描く所と書く所は種類の塊 (`loadKind`) を待ち、見本の塊は見本が使う物を `loadFor` で読む (`packages/dragon/src/light.ts`、`packages/dragon/src/blocks/used.ts`、#3248、#3349)。
 - 頁で描く入口 `@cardenelabs/dragon` は Node の組み込みの module を読まず、原本の file を移す `migrateFile` は Node でだけ動く入口 `@cardenelabs/dragon/node` に置く (`packages/dragon/src/node.ts`、#3206)。
 
 ## 検査

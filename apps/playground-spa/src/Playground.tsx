@@ -16,7 +16,8 @@
 import {
   type Diagram,
   describeOverlap,
-  kindLoaded,
+  diagramKind,
+  loadFor,
   parseNotation,
   printNotation,
   readDiagram,
@@ -31,7 +32,7 @@ import { Shelf } from "./editor/Shelf";
 import { Stage } from "./editor/Stage";
 import { type ExampleKey, exampleText, FIRST_EXAMPLE, firstScreenText, LATER_EXAMPLES, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
 import { fromHash, toHash } from "./share";
-import { kindFailed, onKindSettled } from "./site/kinds";
+import { kindFailed, kindReady, onKindSettled } from "./site/kinds";
 import { useLater } from "./site/later";
 import { type CountedPart, type Lang, TEXT } from "./text";
 
@@ -69,15 +70,23 @@ function mainParts(diagram: Diagram): [CountedPart, number] {
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 /**
+ * 図の種類の塊 (描く部品と、その種類の個別ブロックの読み方、#3349) が届くまで、読まずに待つ。
+ * 届いていれば `undefined`、届いていなければ待つ印、読めなかった時は誤り
+ */
+function waitKind(kind: string | undefined, lang: Lang): Outcome | undefined {
+  if (kindReady(kind)) return undefined;
+  return { ok: false, problem: kindFailed(kind) ? { lang, notices: [{ text: TEXT[lang].site.catalog.loadFailed }] } : KIND_WAITING };
+}
+
+/**
  * 原本の形を検査し、描けるかまで確かめる。描けない図を受け取ると、最後に描けた図を失う。
  * `lang` は誤りを出す言葉。`json` を渡した時は、形の誤りの場所を JSON の字の行へ写す。
  */
 function check(input: unknown, lang: Lang, json?: string): Outcome {
   const read = readDiagram(input, { lang });
   if (!read.ok) return { ok: false, problem: { lang, notices: fieldNotices(read.errors, json) } };
-  if (!kindLoaded(read.diagram.kind)) {
-    return { ok: false, problem: kindFailed(read.diagram.kind) ? { lang, notices: [{ text: TEXT[lang].site.catalog.loadFailed }] } : KIND_WAITING };
-  }
+  const waiting = waitKind(read.diagram.kind, lang);
+  if (waiting) return waiting;
   try {
     // 描けない時の断りの文を頁に出すので、頁の言葉を渡す (既定は英語、#3338)
     renderDiagram(read.diagram, { lang });
@@ -87,8 +96,10 @@ function check(input: unknown, lang: Lang, json?: string): Outcome {
   return { ok: true, diagram: read.diagram };
 }
 
-/** 記法を読む。誤りは頁の言葉で出す */
+/** 記法を読む。誤りは頁の言葉で出す。後から読む種類の記法は、種類の塊が届いてから読む */
 function fromNotation(text: string, pageLang: Lang): Outcome {
+  const waiting = waitKind(diagramKind(text), pageLang);
+  if (waiting) return waiting;
   const parsed = parseNotation(text, { lang: pageLang });
   if (!parsed.ok) return { ok: false, problem: { lang: pageLang, notices: lineNotices(parsed.errors) } };
   return check(parsed.diagram, pageLang);
@@ -284,9 +295,13 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     if (/^\s*\{/u.test(content)) {
       try {
         const read = readDiagram(JSON.parse(content), { lang });
-        if (read.ok) next = printNotation(read.diagram);
+        // 記法に書き戻す前に、原本が使うブロックの読み方を読む (#3349)
+        if (read.ok) {
+          await loadFor(read.diagram);
+          next = printNotation(read.diagram);
+        }
       } catch {
-        // JSON として読めない時は、記法として入れて誤りを知らせの欄に出す
+        // JSON として読めない時と、使うブロックを読めなかった時は、記法として入れて誤りを知らせの欄に出す
       }
     }
     setTab("notation");

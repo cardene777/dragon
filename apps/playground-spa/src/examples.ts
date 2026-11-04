@@ -15,7 +15,7 @@ import introEn from "../../../packages/dragon/examples/intro.en.dragon?raw";
 import oauthJa from "../../../packages/dragon/examples/oauth.dragon?raw";
 import oauthEn from "../../../packages/dragon/examples/oauth.en.dragon?raw";
 
-import { type Diagram, parseNotation } from "@cardenelabs/dragon/light";
+import { type Diagram, loadReadings, parseNotation } from "@cardenelabs/dragon/light";
 
 import { laterChunk } from "./site/later";
 import type { Lang } from "./text";
@@ -41,8 +41,16 @@ const FIRST: Record<FirstScreenKey, Record<Lang, string>> = {
   ccip: { ja: ccipJa, en: ccipEn },
 };
 
-/** 後から読む見本の塊 */
-export const LATER_EXAMPLES = laterChunk(() => import("./examples-later").then((m) => m.LATER_EXAMPLES));
+/**
+ * 後から読む見本の塊。見本の題と種類を引く所 (見本帳、棚、部品の頁) は届いた見本の記法を待たずに読むので、
+ * 見本が使うブロックの読み方を読んでから届いたことにする (#3349)。描く部品は読まず、図を描く所が種類の塊を待つ
+ */
+export const LATER_EXAMPLES = laterChunk(() =>
+  import("./examples-later").then(async (m) => {
+    await Promise.all(Object.values(m.LATER_EXAMPLES).flatMap((texts) => Object.values(texts).map((text) => loadReadings(text))));
+    return m.LATER_EXAMPLES;
+  }),
+);
 
 const isFirstScreen = (key: ExampleKey): key is FirstScreenKey => (FIRST_SCREEN_EXAMPLES as readonly ExampleKey[]).includes(key);
 

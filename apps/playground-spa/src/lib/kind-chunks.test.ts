@@ -102,13 +102,14 @@ function readingMarkers(): { block: string; markers: string[] }[] {
   });
   return later.map((block) => {
     const own = join(blocksDir, block, "read.ts");
-    const code = readFileSync(own, { encoding: "utf8", flag: "r" });
+    // 束ねた script は注釈を残さないので、注釈を外した字から探す
+    const code = readFileSync(own, { encoding: "utf8", flag: "r" }).replace(/\/\*[\s\S]*?\*\//gu, "").replace(/^\s*\/\/.*$/gmu, "");
     const others = sourcesUnder(SRC)
       .filter((path) => path !== own)
       .map((path) => readFileSync(path, "utf8"))
       .join("\n");
-    // 字の並びは、誤りの文の引用の中の、`${` で切れるまでの 8 字以上の日本語を含む部分
-    const found = [...code.matchAll(/[`"]([^`"$\\\n]*[\u3040-\u30ff\u4e00-\u9fff][^`"$\\\n]*)/gu)].map((m) => (m[1] ?? "").trim());
+    // 字の並びは、誤りの文の引用の中の、引用の始まりか `${...}` の後ろから、次の `${` か引用の終わりまでの 8 字以上の日本語を含む部分
+    const found = [...code.matchAll(/[`"}]([^`"$\\\n]*[\u3040-\u30ff\u4e00-\u9fff][^`"$\\\n]*)/gu)].map((m) => (m[1] ?? "").trim());
     return { block, markers: [...new Set(found)].filter((text) => text.length >= 8 && !others.includes(text)) };
   });
 }

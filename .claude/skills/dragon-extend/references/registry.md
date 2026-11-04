@@ -39,7 +39,7 @@
 | `.ikkan/premises/product.md` | 描ける図の種類の数と一覧 | 前提の文が古い数のまま残らないようにする |
 | `.ikkan/specs/<機能>.md` | 課題の受入条件を写す先 | 書き方の文書の条件は `.ikkan/specs/site.md` に写す |
 | `apps/playground-spa/src/catalog/parts.ts` | 見本帳の部品の一覧 | 図の種類を2つ以上持つ部品がどの図でも使える部品になる (`isCommon`)。新しい種類を既存の部品に足すと分類が変わる |
-| `apps/playground-spa/src/catalog/parts/` | 部品ごとの図の記法 (`<名札>.<種類>.dragon` と `.en.dragon`) | 記法の語ごとに、描ける全ての種類と2つの言葉の file を置く |
+| `packages/dragon/src/blocks/<名前>/gallery/` | 部品ごとの図の記法 (`<名札>.<種類>.dragon` と `.en.dragon`) | 新しい種類で描ける部品の置き場ごとに、新しい種類の2つの言葉の file を置く |
 | `apps/playground-spa/src/editor/shelf-items.ts` | 編集画面の棚 | 新しい種類の書き始めの形を足す |
 | `apps/playground-spa/src/examples.ts` | 見本の並び (`EXAMPLE_KEYS`) | 新しい見本の名前を並びに足す。最初に読む見本 (`FIRST_SCREEN_EXAMPLES`) のほかは、ここで記法を読まない |
 | `apps/playground-spa/src/examples-later.ts` | 後から読む見本の記法 | 見本の file を読む行を足す。最初に読む script に入れると `first-load-carries-no-catalog-notation` が落ちる |
@@ -49,13 +49,13 @@
 | `apps/playground-spa/src/lib/<種類>-catalog.test.ts` | 見本帳での描け方の検査 | 既存の種類の検査が図の分類を全部並べて照らしていると、新しい種類で落ちる。先頭から既存の種類の順で始まるかを見る形にする |
 | `apps/playground-spa/src/lib/site.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
 | `apps/playground-spa/src/lib/catalog-parts.test.ts` | 部品の頁の検査 | 部品の分類は `isCommon` と同じ規則で数える |
-| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限213KBは頁が最初に読む script と CSS に当てる (#3280)。見本と部品の図の記法は後から読む塊に入るので増えないが、描く部品と検査の関数は種類ごとに約6.5KB増える (#3248)。超える時は上限を上げず本人に聞く |
+| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限は頁が最初に読む script と CSS に当て (#3280)、値は検査が持つ。見本と部品の図の記法と、後から読む種類の描く部品と個別ブロックの読み方は後から読む塊に入るので増えないが、記法を読む処理と検査の関数は種類ごとに増える (#3248、#3349)。超える時は上限を上げず本人に聞く |
 
 ## 部品を足す時
 
 | 登録先 | 足す物 | 落とし穴 |
 |---|---|---|
-| `packages/dragon/src/blocks/<名前>/` | ブロックの置き場。語と原本の形の欠片と読む処理と書き戻す処理と日英の誤りの文 (`block.ts`)、描き方 (`draw.ts`)、見本帳の分と部品の図 (`gallery/`) | 部品はここに 1 つの置き場として足し、下の file には置き場に収まらない分だけを足す。持たない欄は `none(<理由>)` を置く。置き場を足したら `node packages/dragon/scripts/build-blocks.mjs` で一覧 (`packages/dragon/src/blocks/index.ts` と `apps/playground-spa/src/catalog/blocks.gen.ts` と、使い方の頁の段落の `apps/playground-spa/src/catalog/blocks-docs.gen.ts`) を書き出し直す。食い違うと `blocks.test.ts` が落ちる |
+| `packages/dragon/src/blocks/<名前>/` | ブロックの置き場。名前と語と使う行の宣言 (`block.ts`)、原本の形の欠片 (`shape.ts`)、読む処理と書き戻す処理と日英の誤りの文 (`read.ts`)、描き方 (`draw.ts`)、見本帳の分と部品の図 (`gallery/`) | 部品はここに 1 つの置き場として足し、下の file には置き場に収まらない分だけを足す。持たない欄は `none(<理由>)` を置く。置き場を足したら `node packages/dragon/scripts/build-blocks.mjs` で一覧 (`packages/dragon/src/blocks/index.ts` と `apps/playground-spa/src/catalog/blocks.gen.ts` と、使い方の頁の段落の `apps/playground-spa/src/catalog/blocks-docs.gen.ts`、読み方の一覧の `packages/dragon/src/blocks/readings.ts`) を書き出し直す。食い違うと `blocks.test.ts` が落ちる。行の頭の語で読まない行 (線の行の形で読む行) を読むブロックは `block.ts` の `lines` に行の形を、図の種類の決まりを持つブロックは `always` を書く。書かないと軽い入口の `loadFor` がそのブロックの読み方を読まず、`light-load-for-reads-every-later-example` が落ちる |
 | `packages/dragon/src/words.ts` | 部品の語 | 今の語で言えない時だけ足す。ほかの種類では名札として読む |
 | `packages/dragon/src/schema.ts` | 原本の型 | 型と原本の形を同じ取り込みで直す |
 | `packages/dragon/src/schemas/diagram.schema.json` | 原本の形 | 直したら `node packages/dragon/scripts/build-validator.mjs` で検査の関数を書き出し直す |
@@ -77,11 +77,10 @@
 | `CHANGELOG.md` | Unreleased の Added | 足した部品と語を英語で書き、`CHANGELOG.ja.md` の同じ節にも日本語で書く |
 | `.ikkan/specs/<機能>.md` | 課題の受入条件を写す先 | 描き方の条件は `.ikkan/specs/diagram-core.md`、見本帳の条件は `.ikkan/specs/playground.md` に写す |
 | `apps/playground-spa/src/catalog/parts.ts` | 見本帳の部品の一覧 | 描ける種類が2つ以上なら、どの図でも使える部品として並ぶ (`isCommon`) |
-| `apps/playground-spa/src/catalog/parts/` | 部品の図の記法 (`<名札>.<種類>.dragon` と `.en.dragon`) | 部品を描ける全ての種類と2つの言葉の file を置く。ブロックの置き場を持つ部品の図は、置き場の `gallery/` に置く |
 | `apps/playground-spa/src/editor/shelf-items.ts` | 編集画面の棚 | 部品の書き始めの形を足す |
 | `apps/playground-spa/src/text.ts` | 見本帳と編集画面の言葉 | 日本語と英語の両方に部品の名前と説明を足す |
 | `apps/playground-spa/src/docs/content.ts` | 使い方の頁の本文 | 記法と同じ PR で部品の書き方を足す |
 | `apps/playground-spa/src/lib/<種類>-catalog.test.ts` | 部品を描く種類ごとの見本帳の検査 | 部品の数を数える検査は、足した数に直す |
 | `apps/playground-spa/src/lib/site.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
 | `apps/playground-spa/src/lib/catalog-parts.test.ts` | 部品の頁の検査 | 部品の分類は `isCommon` と同じ規則で数える |
-| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 部品の図の記法は後から読む塊に入るので、最初に読む量は描く部品の分だけ増える。上限は213KBで、超える時は本人に聞く |
+| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 部品の図の記法は後から読む塊に入るので、最初に読む量は描く部品の分だけ増える。後から読む種類の部品のブロックの読み方は最初に読む量に入らない (#3349)。上限の値は検査が持ち、超える時は本人に聞く |

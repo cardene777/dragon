@@ -87,22 +87,25 @@ mountDiagram(host, parsed.diagram, {
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`git`、`lineup`、`state`、`time`、`tree` の描く部品を持たず、`loadKind` を待った時に読む。
-読んだ後は既定の入口と同じ関数で、待たずに同じ図を描く。
+既定の入口と同じ部品を出すが、`git`、`lineup`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
+読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
 
 ```ts
-import { loadKind, mountDiagram, parseNotation } from "@cardenelabs/dragon/light";
+import { loadFor, mountDiagram, parseNotation } from "@cardenelabs/dragon/light";
 
+await loadFor(text);
 const parsed = parseNotation(text);
-if (parsed.ok) {
-  await loadKind(parsed.diagram.kind);
-  mountDiagram(host, parsed.diagram);
-}
+if (parsed.ok) mountDiagram(host, parsed.diagram);
 ```
 
-読んでいない種類を描くと、その種類の名前を含む誤りで止まる。
-読み込みが落ちると `loadKind` が拒否され、次に呼ぶと読み直す。
-`sequence` と `architecture` は初めから持つので、`loadKind` を呼ばなくても描ける。
+種類を先に読んでおく時は、種類の名前を渡して `loadKind` を待つ。
+その種類の描く部品と、その種類の全てのブロックの読み方を読む。
+描かずに図の題と種類だけを引く時は `loadReadings` を待つ。ブロックの読み方だけを読み、描く部品は読まない。
+`diagramKind` は、読む前の記法か JSON の図の種類を返す。
+読んでいない種類を描くと種類の名前を含む誤りで、読んでいないブロックの行を読むとブロックの名前を含む誤りで止まる。
+読み込みが落ちると `loadFor` と `loadKind` が拒否され、次に呼ぶと読み直す。
+`sequence` と `architecture` は描く部品とブロックの読み方を初めから持つので、何も待たずに読んで描ける。
 1 つの頁で既定の入口と混ぜると、全ての種類の部品が頁に入る。
 
 ## dragon記法

@@ -85,22 +85,25 @@ A name the palette does not have, or a value that cannot be read as a color (one
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `git`, `lineup`, `state`, `time`, and `tree` and loads them when you await `loadKind`.
-After that, the same functions as the default entry draw the same diagram without waiting.
+It exports the same functions as the default entry, but leaves out the renderers for `git`, `lineup`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
+After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
 
 ```ts
-import { loadKind, mountDiagram, parseNotation } from "@cardenelabs/dragon/light";
+import { loadFor, mountDiagram, parseNotation } from "@cardenelabs/dragon/light";
 
+await loadFor(text);
 const parsed = parseNotation(text);
-if (parsed.ok) {
-  await loadKind(parsed.diagram.kind);
-  mountDiagram(host, parsed.diagram);
-}
+if (parsed.ok) mountDiagram(host, parsed.diagram);
 ```
 
-Drawing a kind that has not been loaded stops with an error that names the kind.
-If loading fails, `loadKind` rejects, and the next call loads it again.
-`sequence` and `architecture` are there from the start, so they draw without calling `loadKind`.
+To load a kind ahead of time, await `loadKind` with the kind's name.
+It loads the kind's renderer and every block of that kind.
+To read a diagram's title and kind without drawing it, await `loadReadings`, which loads only the blocks and leaves the renderer out.
+`diagramKind` returns the kind of a notation or JSON before you read it.
+Drawing a kind that has not been loaded stops with an error that names the kind, and reading a line of a block that has not been loaded stops with an error that names the block.
+If loading fails, `loadFor` and `loadKind` reject, and the next call loads it again.
+`sequence` and `architecture` and their blocks are there from the start, so they read and draw without loading anything.
 Mixing it with the default entry on one page puts every kind's renderer on the page.
 
 ## Notation

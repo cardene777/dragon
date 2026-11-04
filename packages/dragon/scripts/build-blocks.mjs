@@ -3,10 +3,13 @@
  * ブロックと図の種類の置き場の dir から、一覧の file を書き出す (#3345、#3348)。
  *
  * ブロックは `src/blocks/<名前>/`、図の種類は `src/kinds/<種類>/` に置き場を1つずつ持つ。
- * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 5 つを書き出す。
+ * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 8 つを書き出す。
  *
  * - `src/blocks/index.ts` ... 各置き場の `block.ts` が出す定義を、dir の名前を鍵にした `BLOCKS` と、名前の並び `BLOCK_NAMES`
  * - `src/blocks/shapes.ts` ... 各置き場の `shape.ts` が出す原本の形の欠片を、dir の名前を鍵にした `SHAPES`
+ * - `src/blocks/readings.ts` ... 各置き場の `read.ts` が出す読み方を、dir の名前を鍵にした `READINGS` (全部入りの入口と検査が読む、#3349)
+ * - `src/blocks/entry-readings.ts` ... 入口が初めから持つ読み方 (`ENTRY_READINGS`)。コアブロックと、後から読まない図の種類の個別ブロック
+ * - `src/blocks/later-readings.ts` ... 後から読む図の種類の個別ブロックの読み方を読む関数 (`LATER_READINGS`)。軽い入口が書いた図が使う時に呼ぶ
  * - `src/kinds/index.ts` ... 各置き場の `kind.ts` が出す定義を、dir の名前を鍵にした `KIND_FOLDERS`
  * - `apps/playground-spa/src/catalog/blocks.gen.ts` ... 各置き場の `gallery/` の見本帳の分を、種類ごとに dir の名前を鍵にした表
  * - `apps/playground-spa/src/catalog/blocks-docs.gen.ts` ... 見本帳の分のうち、使い方の頁だけが読む段落 (`BLOCK_DOCS`) の表
@@ -17,7 +20,9 @@
  * 塊は module ごとに分かれ、最初の画面が読む `BLOCK_TEXT` と同じ module の値は、後から読む頁だけが使う値も最初の塊に入る。
  *
  * 見本帳の分は package の入口から読まないので、package の一覧 (`src/blocks/index.ts`) には入れず、見本帳の側に書き出す。
- * 書き出す字の並びは dir の名前の並びだけで決まり、同じ dir からは毎回同じ字の並びになる。
+ * 読み方を 3 つの一覧に分けるのは、軽い入口が後から読む個別ブロックの読み方を最初に読む塊に入れないため (#3349)。
+ * どのブロックが後から読む図の種類の個別ブロックかは、置き場の `block.ts` の付け方の `only` と、図の種類の置き場の `kind.ts` の `later: true` の字から引く。
+ * 書き出す字の並びは dir の名前の並びと、上の 2 つの字だけで決まり、同じ置き場からは毎回同じ字の並びになる。
  *
  * 置き場を足したか消したら `node packages/dragon/scripts/build-blocks.mjs` で書き出し直す。package の build も最初にこれを回す。
  * 書き出した file が dir と食い違うと `test/blocks.test.ts` の `block-registry-derived-from-folders` が落ちる。
@@ -87,6 +92,53 @@ function shapesIndex(names) {
   ].join("\n");
 }
 
+/** 置き場の `block.ts` の付け方の `only` の字。無ければ `undefined` */
+const onlyOf = (root, name) => {
+  const path = join(root, "blocks", name, "block.ts");
+  return existsSync(path) ? /\bonly:\s*"([a-z-]+)"/u.exec(readFileSync(path, "utf8"))?.[1] : undefined;
+};
+
+/** 後から読む図の種類。置き場の `kind.ts` が `later: true` を名乗る */
+const laterKinds = (root, kinds) =>
+  kinds.filter((kind) => {
+    const path = join(root, "kinds", kind, "kind.ts");
+    return existsSync(path) && /\blater:\s*true\b/u.test(readFileSync(path, "utf8"));
+  });
+
+function readingsIndex(names) {
+  return [
+    HEADER,
+    ...names.map((name) => `import { reading as ${ident(name)}Reading } from "./${name}/read";`),
+    "",
+    "/** 全てのブロックの読み方。鍵は置き場の dir の名前。全部入りの入口と検査が読み、軽い入口は読まない (#3349) */",
+    `export const READINGS = ${table(names, (name) => `${ident(name)}Reading`)} as const;`,
+    "",
+  ].join("\n");
+}
+
+function entryReadingsIndex(names) {
+  return [
+    HEADER,
+    'import type { BlockReading } from "./block";',
+    ...names.map((name) => `import { reading as ${ident(name)}Reading } from "./${name}/read";`),
+    "",
+    "/** 入口が初めから持つ読み方。コアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349) */",
+    `export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = ${table(names, (name) => `${ident(name)}Reading`)};`,
+    "",
+  ].join("\n");
+}
+
+function laterReadingsIndex(names) {
+  return [
+    HEADER,
+    'import type { BlockReading } from "./block";',
+    "",
+    "/** 後から読む図の種類の個別ブロックの読み方を読む関数。鍵は置き場の dir の名前。軽い入口が書いた図が使う時に呼ぶ (#3349) */",
+    `export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>>> = ${table(names, (name) => `() => import("./${name}/read").then((m): BlockReading => m.reading)`)};`,
+    "",
+  ].join("\n");
+}
+
 function kindsIndex(names) {
   return [
     HEADER,
@@ -117,14 +169,19 @@ function catalogIndex(root, catalog, names, files) {
 
 /**
  * 書き出す file の path と中身。`root` は package の src に当たる dir、`catalog` は見本帳の分の一覧を書き出す先。
- * 置き場の dir の中身は読まず、dir の名前だけから作る
+ * 読み方の一覧は、置き場の `block.ts` の付け方の `only` と図の種類の `kind.ts` の `later: true` の字で分ける
  */
 export function generate(root = SRC, catalog = CATALOG) {
   const blocks = dirs(join(root, "blocks"));
   const kinds = dirs(join(root, "kinds"));
+  const later = new Set(laterKinds(root, kinds));
+  const laterBlocks = blocks.filter((name) => later.has(onlyOf(root, name) ?? ""));
   return {
     [join(root, "blocks", "index.ts")]: blocksIndex(blocks),
     [join(root, "blocks", "shapes.ts")]: shapesIndex(blocks),
+    [join(root, "blocks", "readings.ts")]: readingsIndex(blocks),
+    [join(root, "blocks", "entry-readings.ts")]: entryReadingsIndex(blocks.filter((name) => !laterBlocks.includes(name))),
+    [join(root, "blocks", "later-readings.ts")]: laterReadingsIndex(laterBlocks),
     [join(root, "kinds", "index.ts")]: kindsIndex(kinds),
     [catalog]: catalogIndex(root, catalog, blocks, GALLERY_FILES.filter((file) => !DOCS_FILES.includes(file))),
     [docsCatalogOf(catalog)]: catalogIndex(root, docsCatalogOf(catalog), blocks, DOCS_FILES),
