@@ -10,6 +10,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { changelogEntry } from "./changelog-support";
 import { draw, type Player, type Rect, type Theme } from "./render-support";
 
 const ROOT = process.cwd();
@@ -342,18 +343,9 @@ describe("今の色味の角 (#3344)", () => {
   });
 });
 
-/** CHANGELOG の Unreleased の節 */
-const unreleasedOf = (file: string): string =>
-  readFileSync(join(ROOT, file), "utf8")
-    .split(/^## \[Unreleased\]$/mu)[1]
-    ?.split(/^## \[/mu)[0] ?? "";
-
 describe("変更の一覧 (#3344)", () => {
   it("changelog-lists-arcade-corners", () => {
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"])
-      expect(
-        unreleasedOf(file),
-        `${file} の Unreleased に arcade の角の項 (#3344) が無い`,
-      ).toContain("#3344");
+      expect(changelogEntry(join(ROOT, file), 3344), `${file} に arcade の角の項 (#3344) が無い`).not.toBe("");
   });
 });

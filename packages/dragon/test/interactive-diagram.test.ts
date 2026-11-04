@@ -12,6 +12,7 @@ import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { changelogEntry } from "./changelog-support";
 import { api, exampleJson, type Json, type LineError } from "./diagram-support";
 import { formatOf, runCli } from "./export-support";
 import { draw } from "./render-support";
@@ -471,14 +472,10 @@ describe("試す図の書き方の文書 (#3337)", () => {
 
   it("changelog-lists-interactive-kind", () => {
     for (const path of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
-      const unreleased =
-        readRepo(path)
-          .split(/^## /mu)
-          .find((part) => part.startsWith("[Unreleased]") || part.startsWith("Unreleased")) ?? "";
-      expect(unreleased, `${path} に Unreleased の節が無い`).not.toBe("");
-      expect(unreleased, `${path} の Unreleased にこの課題 (#3337) の行が無い`).toContain("#3337");
+      const entry = changelogEntry(join(process.cwd(), path), 3337);
+      expect(entry, `${path} にこの課題 (#3337) の項が無い`).not.toBe("");
       for (const word of ["try", ...PART_WORDS])
-        expect(unreleased, `${path} の Unreleased に ${word} が無い`).toContain(`\`${word}\``);
+        expect(entry, `${path} の #3337 の項を持つ節に ${word} が無い`).toContain(`\`${word}\``);
     }
   });
 });
