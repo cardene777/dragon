@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **A narrow frame now draws an interactive diagram stacked at full size instead of shrinking it** (#3366)
+
+  When the `width` you pass is too narrow to read the wide arrangement, the interactive diagram is laid out at the frame's width: the route's nodes pack into the width, the queue fills it, the blocks stack from oldest at the top, and each link runs around the right of the blocks.
+  The player re-arranges by the frame's width and redraws at the same width after the reader sends values and builds a block. A 324px frame keeps the fixed view and full-size text.
+  The interactive layout now carries its `arrangement`, and a chain's `slots` are the top-left points of its blocks.
+
 ### Changed
 
 - **The gallery is now built from the block folders, and its sections are named Core blocks and Kind blocks** (#3350)
@@ -22,6 +30,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   `loadKind` now also loads every block of the kind. `loadReadings` loads only the blocks, without the renderer, and `diagramKind` returns the kind of a notation or JSON before you read it.
   This changes how the light entry is used: reading `git`, `lineup`, `state`, `time`, `tree`, or `try` notation now needs `loadFor` or `loadKind` first, and reading a line of a block that has not been loaded stops with an error that names the block.
   The default entry `@cardenelabs/dragon` still holds every block and reads every diagram without waiting.
+
+### Fixed
+
+- **Following a stacked lineup now keeps the current step's lanes in the window** (#3365)
+
+  A lineup draws its step number beside the heading at the top, in the same place on every step. The window moved back toward that number, so in a narrow frame it stayed at the top of the figure and the step's lanes fell outside it.
+  The follow window no longer draws the heading text (the figure title, the step title, and its explanation), starts below it, and moves to the lanes the step changes. The player's bar shows the step title and explanation.
+  The fixed view still draws the heading.
 
 ## [0.48.0] - 2026-11-04
 

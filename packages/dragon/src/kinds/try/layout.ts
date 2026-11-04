@@ -4,13 +4,15 @@
  * 部品は書いた順に上から積む。網 (`route`) は節を列に並べ、送る側 (`from`) を左端、作る人 (`to`) を右端に置き、
  * ほかの節は書いた道の中の何番目かの最も大きい番号の列に置く。待ち行列 (`queue`) はチップを縦に積み、縦に収まる数 (`most`) を持つ。
  * 機械の列 (`chain`) は新しい方から `TRY_LOOK.shown` 個のブロックを左から古い順に並べ、それより古いブロックは畳んだ印にまとめる。
+ * 枠の幅 (`width`) を渡し、横に並べると字が `READABLE_PX` に届かない時は、枠の幅で縦に組む (#3366)。網の節は枠の幅に詰め、
+ * 待ち行列は枠の幅いっぱいに置き、ブロックは上から古い順に積む。見た目の元は `docs/design/interactive/tx-block-narrow.pen` の案A。
  * 入力の帯 (`ask`) と釦 (`press`) は頁の部品 (再生の部品) が描くので、図の上に置き場所を持たない。
  *
  * 段ごとの状態 (`states`) と出来事ごとの状態 (`moments`) は、記法を読む所と同じ手順 (`try-state.ts`) で作る。
  * 出来事ごとの状態には、その時のチップとブロックの左上の位置と、網を運ばれたチップが通る点を添え、描く部品がこれを辿って動かす。
  */
 import { TRY_LOOK } from "../../look/try";
-import { LOOK, TYPE } from "../../look/values";
+import { LOOK, READABLE_PX, TYPE } from "../../look/values";
 import type { DiagramModel, TryPart } from "../../schema";
 import { askFields, type TryState, TryRun } from "../../try-state";
 import { TRY_TEXT } from "../../try-text";
@@ -69,7 +71,7 @@ export interface TryQueuePlaced {
 }
 
 /**
- * 機械の列。ブロックは同じ高さで、`slots` は左から順のブロックの左端。`top` はブロックの上端で、
+ * 機械の列。ブロックは同じ大きさで、`slots` は古い順のブロックの左上 (横に並べた形は左から、縦に組んだ形は上から)。`top` は最初のブロックの上端で、
  * `noBaseline` は番号の字の基準線、`prevY` と `hashY` は prev と hash の行の上端、`chipTop` は最初のチップの上端、`captionBaseline` は SHA-256 の字の基準線。
  * `fold` は畳んだ印の右端と上端。`labels` はブロックの番号ごとの字、`folds` は畳んだ数ごとの字
  */
@@ -79,7 +81,7 @@ export interface TryChainPlaced {
   top: number;
   h: number;
   w: number;
-  slots: number[];
+  slots: Point[];
   noBaseline: number;
   prevY: number;
   chipTop: number;
@@ -107,6 +109,8 @@ export interface TryMoment {
 
 export interface TryLayout extends Layout {
   kind: "try";
+  /** 部品を広い枠の形で並べたか (`row`)、狭い枠の形で縦に組んだか (`stack`) (#3366) */
+  arrangement: "row" | "stack";
   /** 図の上に置き場所を持つ部品 (網、待ち行列、機械の列) の四角。書いた順に上から積む */
   parts: TryPartPlaced[];
   /** 段ごとの、その段の出来事を全て当てた後の状態 */
@@ -195,7 +199,16 @@ function lanesOf(
   return lane;
 }
 
-export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LANG): TryLayout {
+/** 試す図を並べる時の設定。`width` は描く枠の幅で、渡すと横に並べた形の字が読めない幅で縦に組む (#3366) */
+export interface TryOptions {
+  width?: number;
+}
+
+export function layoutTry(
+  diagram: DiagramModel,
+  lang: NotationLang = DEFAULT_LANG,
+  options: TryOptions = {},
+): TryLayout {
   const words = TRY_TEXT[lang];
   const spec = diagram.try ?? { parts: [], items: [] };
   const fields = askFields(spec.parts);
@@ -257,11 +270,21 @@ export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LA
   const titles = spec.parts
     .filter((p) => p.type === "route" || p.type === "queue" || p.type === "chain")
     .map((p) => textWidth(p.id, TYPE.tryTitle));
-  const width = Math.max(
+  const wide = Math.max(
     T.width,
     T.margin * 2 + T.shown * blockW + (T.shown - 1) * B.gap,
     T.margin * 2 + Math.max(0, ...titles),
   );
+  const frame = options.width;
+  const stacked = frame !== undefined && (frame / wide) * TYPE.boxName.size < READABLE_PX;
+  // 縦に組んだ形は枠の幅で描く。ブロックと右に回すつながりの印と部品の題が入る幅より狭い枠では、その幅で描く
+  const width = stacked
+    ? Math.max(
+        frame,
+        T.margin * 2 + blockW + B.side + T.link.badge / 2,
+        T.margin * 2 + Math.max(0, ...titles),
+      )
+    : wide;
   const inner = width - T.margin * 2;
 
   const parts: TryPartPlaced[] = [];
@@ -345,7 +368,7 @@ export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LA
       const box = {
         x: T.margin,
         y: body,
-        w: Math.min(inner, Q.padX * 2 + chipW + hintW),
+        w: stacked ? inner : Math.min(inner, Q.padX * 2 + chipW + hintW),
         h: Q.padY * 2 + track,
       };
       const slots = Array.from({ length: most }, (_, k) => ({
@@ -400,7 +423,9 @@ export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LA
         top: body,
         h,
         w: blockW,
-        slots: Array.from({ length: T.shown }, (_, k) => T.margin + k * (blockW + B.gap)),
+        slots: Array.from({ length: T.shown }, (_, k): Point =>
+          stacked ? [T.margin, body + k * (h + B.gap)] : [T.margin + k * (blockW + B.gap), body],
+        ),
         noBaseline,
         prevY,
         chipTop,
@@ -416,12 +441,14 @@ export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LA
           [...folded].filter((n) => n > 0).map((n) => [n, words.tryFolded(n)]),
         ),
       });
+      // 縦に組んだ形は出すブロックの数だけ席を積み、ブロックが足りない間も高さを変えない
+      const bottom = stacked ? body + T.shown * h + (T.shown - 1) * B.gap : body + h;
       parts.push({
         id: part.id,
         type: "chain",
-        rect: { x: T.margin, y: top, w: inner, h: body + h - top },
+        rect: { x: T.margin, y: top, w: inner, h: bottom - top },
       });
-      y = body + h;
+      y = bottom;
     }
   }
 
@@ -444,11 +471,11 @@ export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LA
       const c = chainOf.get(id);
       const first = list.length - list.filter((b) => b.shown).length;
       list.forEach((block, i) => {
-        const x = block.shown && c ? c.slots[i - first] : undefined;
-        blocks[blockKey(id, block.number)] = x === undefined || !c ? null : [x, c.top];
-        if (x === undefined || !c) return;
+        const slot = block.shown && c ? c.slots[i - first] : undefined;
+        blocks[blockKey(id, block.number)] = slot === undefined || !c ? null : [slot[0], slot[1]];
+        if (slot === undefined || !c) return;
         block.items.forEach((item, k) => {
-          chips[item] = [x + B.padX, c.chipTop + k * pitch];
+          chips[item] = [slot[0] + B.padX, slot[1] + (c.chipTop - c.top) + k * pitch];
         });
       });
     }
@@ -474,6 +501,7 @@ export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LA
 
   return {
     kind: "try",
+    arrangement: stacked ? "stack" : "row",
     width,
     height: y + T.margin,
     regions: [],
@@ -549,9 +577,14 @@ export function tryFocusParts(layout: TryLayout, diagram: DiagramModel, step: nu
       if (chain !== undefined && block && here) {
         lead.push(here);
         const next = blockRect(chain, block.number + 1);
-        // つながりの印は、このブロックの右端と次のブロックの左端の間に在る
+        // つながりの印は、横に並べた形ではこのブロックの右端と次のブロックの左端の間に在り、
+        // 縦に組んだ形ではこのブロックの下の端と次のブロックの上の端の間の、ブロックの右に在る
         if (next)
-          rest.push({ x: here.x + here.w, y: here.y, w: next.x - here.x - here.w, h: here.h });
+          rest.push(
+            layout.arrangement === "stack"
+              ? { x: here.x + here.w, y: here.y + here.h, w: B.side + T.link.badge / 2, h: next.y - here.y - here.h }
+              : { x: here.x + here.w, y: here.y, w: next.x - here.x - here.w, h: here.h },
+          );
       } else {
         const queue = Object.entries(end.state.queues).find(([, list]) =>
           list.includes(event.item),

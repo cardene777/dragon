@@ -397,6 +397,8 @@ export function drawSvg(
     ? kindParts("lineup").drawLineup(lineupLayout, diagram, timeline, ctx, subs)
     : undefined;
   if (lineup) {
+    // 寄って追う窓は見出しの文 (図の題、段の題、説明) を描かない。図の幅で組んだ文は窓で切れ、段の題と説明は部品の帯が出すため (#3365)
+    if (!follow) L.base.push(lineup.heading);
     L.base.push(lineup.lanes);
     L.node.push(lineup.chips);
   }
@@ -548,6 +550,12 @@ function union(rects: Rect[]): Rect {
 /** 番号の丸が値の表の上に在るか。表の値だけが変わる段の丸は表の隅に置かれる */
 function onStrip(layout: Layout, badge: { y: number }): boolean {
   return layout.strip !== undefined && badge.y >= layout.strip.y;
+}
+
+/** 列の図の見出しの文 (図の題と、段ごとの題と説明) の下の端 */
+function lineupHeadingBottom(layout: LineupLayout): number {
+  const texts = [layout.heading, ...layout.headlines.flatMap((h) => (h.say ? [h.title, h.say] : [h.title]))];
+  return Math.max(...texts.map((t) => t.y + t.h));
 }
 
 /** 段で動く物が占める所。 */
@@ -724,7 +732,13 @@ function followView(
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));
   // 時系列図は窓の上端に頭の列を貼るので、動く物は頭の列の下の残りの高さ `below` に見せる (#3118)。
   // 線は図の頭の箱の下 `top` から見せ始め、図の頭の箱は頭の列の下か窓の上に隠す (#3120)
-  const top = heads === "" ? 0 : Math.max(...layout.boxes.map((b) => b.y + b.h)) + F.headRoom;
+  // 列の図は描かない見出しの文の下 `top` から見せ始める (#3365)
+  const top =
+    heads !== ""
+      ? Math.max(...layout.boxes.map((b) => b.y + b.h)) + F.headRoom
+      : isLineupLayout(layout)
+        ? lineupHeadingBottom(layout)
+        : 0;
   const strip = heads === "" ? 0 : F.head.pad * 2 + F.head.h;
   const below = vh - strip;
   /** 頭の列の下の残りの窓の真ん中の高さを、図の頭の箱の下と図の下端で止める */
@@ -755,11 +769,13 @@ function followView(
     const f = focusOf(layout, diagram, s);
     prev = f ? [f.x + f.w / 2, f.y + f.h / 2] : prev;
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
-    // 動く物を全部囲んだ所が窓より大きいと、その端に在る番号の丸が窓から外れる。その段だけ丸の近くへ寄せ直す (#3046)
+    // 動く物を全部囲んだ所が窓より大きいと、その端に在る番号の丸が窓から外れる。その段だけ丸の近くへ寄せ直す (#3046)。
+    // 窓が見せ始める所 `top` より上の丸 (列の図の見出しの横の丸) へは窓が届かないので寄せ直さない (#3365)
     const b = layout.badges.find((x) => x.step === s);
     if (
       !b ||
       onStrip(layout, b) ||
+      b.y < top ||
       (Math.abs(b.x - at[0]) <= vw / 2 - r && Math.abs(b.y - at[1]) <= below / 2 - r)
     )
       return at;
@@ -897,7 +913,9 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
                   ...(options.width === undefined ? {} : { width: options.width }),
                 })
               : diagram.kind === "try"
-                ? kindParts("try", lang).layoutTry(diagram, lang)
+                ? kindParts("try", lang).layoutTry(diagram, lang, {
+                    ...(options.width === undefined ? {} : { width: options.width }),
+                  })
                 : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }

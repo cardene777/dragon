@@ -263,15 +263,18 @@ export function mountDiagram(
   const frameWidth = (): number => frame.clientWidth || host.clientWidth || rendered.layout.width;
   /**
    * 列の図は枠の幅で箱の並べ方を変える (#3351)。横に並べると箱の名前が読めない幅では縦に組んだ図を描き直す。
-   * 並べ方が変わった時だけ真を返す。段と時刻の表は原本だけで決まるので、描き直しても変わらない
+   * 試す図も同じ幅で縦に組み、縦に組んだ形は枠の幅で描くので、幅が変わった時も描き直す (#3366)。
+   * 描き直した時だけ真を返す。段と時刻の表は原本だけで決まるので、描き直しても変わらない
    */
   const arrange = (w: number): boolean => {
-    if (rendered.diagram.kind !== "lineup") return false;
+    const kind = rendered.diagram.kind;
+    if (kind !== "lineup" && kind !== "try") return false;
     const next = renderDiagram(source, { ...options, width: w });
-    const before = (rendered.layout as { arrangement?: string }).arrangement;
-    const after = (next.layout as { arrangement?: string }).arrangement;
-    if (before === after) return false;
+    const before = rendered.layout as { arrangement?: string; width: number };
+    const after = next.layout as { arrangement?: string; width: number };
+    if (before.arrangement === after.arrangement && (kind === "lineup" || before.width === after.width)) return false;
     rendered = next;
+    controls?.update(next.layout as TryLayout);
     return true;
   };
   arrange(frameWidth());
@@ -415,7 +418,8 @@ export function mountDiagram(
     const next = { ...session, steps: [...session.steps, added] };
     let drawn: Rendered;
     try {
-      drawn = renderDiagram(next, options);
+      // 足した後も今の枠の幅で並べる。狭い枠で縦に組んだ形のまま描き直す (#3366)
+      drawn = renderDiagram(next, { ...options, width: frameWidth() });
     } catch (error) {
       controls.refuse(error instanceof Error ? error.message : String(error));
       return false;

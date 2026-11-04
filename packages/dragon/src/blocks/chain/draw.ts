@@ -2,6 +2,7 @@
  * 機械の列の描き方 (#3337、#3348)。
  *
  * ブロックは新しい方から 3 つを左から古い順に並べ、ブロックが足されると左へ滑り、古いブロックは消えて畳んだ印に数える。
+ * 狭い枠で縦に組んだ形 (#3366) は上から古い順に積み、ブロックが足されると上へ滑る。つながりはブロックの右を回して引く。
  * ブロックの中の字は番号と prev と hash の頭の 4 字で、hash は書き換えた段から新しい値に替わる。
  * ブロックの間のつながりは prev が前のブロックの今の hash と同じ間は `=`、違う間は橙の `≠` を出す。
  * この file は試す図を描く部品 (`render/try.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
@@ -99,18 +100,31 @@ function drawChain(k: TryKit, chain: TryChainPlaced): string {
     return `<g class="dg-a" data-block="${n}" data-chain="${esc(chain.id)}" style="${moved.style}">${frame}${ring}${no}${row(chain.prevY - chain.top, "prev", prevs, false, moved.rests)}${caption}${row(chain.hashY - chain.top, "hash", hashes, true, moved.rests)}</g>`;
   });
 
-  // つながり。後ろのブロックの左上を原点に、前のブロックの hash の行の右端から後ろのブロックの prev の行の左端まで引く
+  // つながり。後ろのブロックの左上を原点に、前のブロックの hash の行の右端から後ろのブロックの prev の行まで引く。
+  // 横に並べた形は 2 つのブロックの間を通って prev の行の左端へ、縦に組んだ形はブロックの右を回って prev の行の右端へ引く
   const hashMid = chain.hashY - chain.top + B.row / 2;
   const prevMid = chain.prevY - chain.top + B.row / 2;
-  const midX = -B.gap / 2;
-  const elbow = pathOf([
-    [-B.gap - B.padX, hashMid],
-    [midX, hashMid],
-    [midX, prevMid],
-    [B.padX, prevMid],
-  ]);
+  const stacked = k.layout.arrangement === "stack";
+  const rowEnd = chain.w - B.padX;
+  const above = hashMid - chain.h - B.gap;
+  const midX = stacked ? chain.w + B.side : -B.gap / 2;
+  const elbow = pathOf(
+    stacked
+      ? [
+          [rowEnd, above],
+          [midX, above],
+          [midX, prevMid],
+          [rowEnd, prevMid],
+        ]
+      : [
+          [-B.gap - B.padX, hashMid],
+          [midX, hashMid],
+          [midX, prevMid],
+          [B.padX, prevMid],
+        ],
+  );
   const badge = T.link.badge;
-  const badgeY = (hashMid + prevMid) / 2;
+  const badgeY = stacked ? (above + prevMid) / 2 : (hashMid + prevMid) / 2;
   const links = numbers
     .filter((n) => n > 1)
     .map((n) => {

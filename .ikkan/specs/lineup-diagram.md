@@ -56,3 +56,8 @@
 | 入札の図を記法、JSON、記法、JSONの順に往復した時、最初と最後のJSONが一致する | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-roundtrip-keeps-json-identical`が通る | #3351 |
 | repoの全ての`.dragon`のfileを誤り無く読み、見本帳の全ての見本でどの段でも字が重ならず、描画のfileが値を共通の値の表からだけ読み、記法の全ての語をどれかの部品が受け持つ | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`と`renderers-read-values-from-one-table`と`catalog-parts-cover-every-word`が通る | #3351 |
 | ほかの図の描き方は今どおりで、OAuthは12段、CCIPは13段が順に動き、箱どうしと線の名前と箱が10px以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`layout-keeps-10px-gap`が通る | #3351 |
+| 背景の記法 (縦に組む列の図) を枠324pxの寄って追うで描く時、どの段でも窓がその段で変わる列を含み、最初の段の窓にメモリプールの列と自分のチップが入る | `pnpm exec vitest run --reporter=verbose`の検査`follow-stack-window-shows-changed-lane`が通る | #3365 |
+| 列の図を寄って追うで描く時、窓は見出しの文 (図の題、段の題、説明) を描かない | `pnpm exec vitest run --reporter=verbose`の検査`follow-lineup-hides-heading`が通る | #3365 |
+| 背景の記法を枠324pxの寄って追うで描く時、箱の名前を縮めずに描いた大きさで出す | `pnpm exec vitest run --reporter=verbose`の検査`follow-stack-keeps-size`が通る | #3365 |
+| 背景の記法を枠880pxで描く時、列を横に並べる形 (`row`) の全体の見せ方になる | `pnpm exec vitest run --reporter=verbose`の検査`follow-stack-wide-stays-row`が通る | #3365 |
+| 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3365 |
