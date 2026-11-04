@@ -39,6 +39,44 @@ step ログインを押す
 
 見本帳の編集画面に貼るとその場で動き、次の節の書き方で自分の頁にも置ける。
 
+## script の 1 行で頁に出す
+
+HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` の塊を置くと、塊が動く図に置き換わる。
+入れる作業も束ねる作業も要らない。
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.48/dist/cdn/dragon.js"></script>
+
+<pre class="dragon">
+sequence ログインを頼む
+
+box ブラウザ as 利用者のブラウザ
+box アプリ
+
+step ログインを押す
+  say 利用者がアプリのログインを押す。
+  ブラウザ -> アプリ: GET /login
+</pre>
+```
+
+script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.48`) で読む。
+後の直しの版は頁を直さずに届き、記法を変える版は届かない。
+最初に読むのは `sequence` と `architecture` の描く部品で、ほかの種類の部品は、頁の塊がその種類を使う時だけ読む。
+同梱の 2 つの字の CSS を jsDelivr から読む `<link>` を、頁に 1 度だけ足す。
+頁を読み終えた時に在る塊を全て描き、後から足した塊は描かない。
+塊の全ての行に共通の字下げは外して読む。
+記法の中の `<` は `&lt;` と書く。
+記法に誤りのある塊は図にせず、塊の場所に誤りの文を行ごとに出す (`<pre class="dragon-error">`)。
+図の中の字と誤りの文は、頁の `lang` が `ja` で始まれば日本語、ほかは英語で出る。
+
+通信の無い所で開ける 1 file にするには、頁を `dragon embed` に渡す。
+script の 1 行を、全ての図の種類を持つ束ねた script に置き換え、頁の隣に `page.offline.html` を書く (`--out <file>` で書く file を選ぶ)。
+この file は外から何も読まず、同梱の字を埋めないので端末の字で描く。
+
+```sh
+dragon embed page.html
+```
+
 ## 頁に置く
 
 頁で 1 度だけ字の入口 `@cardenelabs/dragon/fonts` を import し、記法を読んだ原本を `mountDiagram` に渡す。

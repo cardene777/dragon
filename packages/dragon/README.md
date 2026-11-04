@@ -37,6 +37,42 @@ step Press sign in
 
 Paste it into the editor on the catalog to watch it play, or put it on your own page as the next section shows.
 
+## Show it with one script line
+
+On any HTML page, put one script line and the notation in a `<pre class="dragon">` block, and the block turns into a diagram that plays.
+Nothing needs to be installed or built.
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.48/dist/cdn/dragon.js"></script>
+
+<pre class="dragon">
+sequence Ask to sign in
+
+box browser as User's browser
+box app as App
+
+step Press sign in
+  say The user presses the app's sign-in button.
+  browser -> app: GET /login
+</pre>
+```
+
+The script loads from jsDelivr with the version pinned up to the middle number (`@0.48`), so fixes in later patch versions reach the page and a version that changes the notation does not.
+It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
+It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
+It draws every block on the page when the page has loaded, and does not watch for blocks added later.
+Indentation that every line of a block shares is removed before reading, and `<` in the notation is written as `&lt;`.
+A block with an error in its notation is not drawn, and its error lines are shown in its place (`<pre class="dragon-error">`).
+The text in the diagram and the error lines are in Japanese when the page's `lang` starts with `ja`, and in English otherwise.
+
+To make a file that opens without the network, pass the page to `dragon embed`.
+It replaces the script line with the bundled script, which holds every diagram kind, and writes `page.offline.html` next to the page (`--out <file>` picks the file).
+The file fetches nothing from outside, and draws in the device's fonts because the bundled fonts are not embedded.
+
+```sh
+dragon embed page.html
+```
+
 ## Put it on a page
 
 Import the font entry `@cardenelabs/dragon/fonts` once on the page, and pass the source read from the notation to `mountDiagram`.

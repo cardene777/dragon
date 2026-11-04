@@ -132,7 +132,10 @@ async function laterKinds(): Promise<readonly string[]> {
   return light.LATER_KINDS;
 }
 
-/** 塊の file から、その塊が持つ後から読む種類への表。塊の source map が名指す `src/kinds/<種類>/` で決める */
+/**
+ * 塊の file から、その塊が持つ後から読む種類への表。塊の source map が名指す、種類の並べ方 (`src/kinds/<種類>/layout.ts`) で決める。
+ * 種類の名前と並びだけを持つ `kind.ts` は入口が初めから持つので数えない (見本帳の `kind-chunks.test.ts` と同じ見分け方)
+ */
 async function kindChunks(): Promise<Map<string, string[]>> {
   const later = await laterKinds();
   const chunks = new Map<string, string[]>();
@@ -140,7 +143,7 @@ async function kindChunks(): Promise<Map<string, string[]>> {
     const mapPath = join(CDN, `${file}.map`);
     if (!existsSync(mapPath)) continue;
     const { sources } = JSON.parse(readFileSync(mapPath, "utf8")) as { sources: string[] };
-    const kinds = later.filter((kind) => sources.some((source) => source.includes(`src/kinds/${kind}/`)));
+    const kinds = later.filter((kind) => sources.some((source) => source.endsWith(`src/kinds/${kind}/layout.ts`)));
     if (kinds.length > 0) chunks.set(file, kinds);
   }
   return chunks;

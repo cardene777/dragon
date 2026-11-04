@@ -1,4 +1,10 @@
+import { readFileSync } from "node:fs";
 import { defineConfig } from "tsup";
+
+/** 字の package の入れた版。script の1行の入口が jsDelivr から同じ版の字の CSS を読む (#3343) */
+const fontVersion = (name: string): string =>
+  (JSON.parse(readFileSync(new URL(`./node_modules/@fontsource-variable/${name}/package.json`, import.meta.url), "utf8")) as { version: string }).version;
+const FONT_VERSIONS = { "noto-sans-jp": fontVersion("noto-sans-jp"), "jetbrains-mono": fontVersion("jetbrains-mono") };
 
 export default defineConfig([
   {
@@ -13,8 +19,8 @@ export default defineConfig([
     },
     splitting: false,
     sourcemap: true,
-    // 2 つの設定は同時に走るので、もう一方が書いた頁の script (player.global.js) を消さない
-    clean: ["!player.global.js", "!light/**"],
+    // 設定は同時に走るので、ほかの設定が書いた物 (頁の script、軽い入口、script の1行の入口、埋める script) を消さない
+    clean: ["!player.global.js", "!light/**", "!cdn/**", "!offline.global.js"],
     shims: true,
     treeshake: true,
     // 字の package は束ねず、頁を束ねる道具に CSS と字の file を運ばせる
@@ -40,6 +46,35 @@ export default defineConfig([
     entry: { player: "src/player-global.ts" },
     format: ["iife"],
     globalName: "DragonPlayer",
+    platform: "browser",
+    noExternal: [/.*/],
+    minify: true,
+    sourcemap: false,
+    clean: false,
+    dts: false,
+    outDir: "dist",
+    target: "es2022",
+  },
+  {
+    // script の1行の入口 (#3343)。頁が jsDelivr から ES module として読む。依存ごと束ね、種類の部品は軽い入口と同じく塊に分けて後から読む。
+    // 塊の名前は版ごとに替わるので、自分の置き場だけを消す。source map は塊がどの種類の部品を持つかを検査が読むのに使う
+    entry: { dragon: "src/script.ts" },
+    format: ["esm"],
+    platform: "browser",
+    splitting: true,
+    noExternal: [/.*/],
+    minify: true,
+    sourcemap: true,
+    clean: true,
+    dts: false,
+    define: { __DRAGON_FONT_VERSIONS__: JSON.stringify(FONT_VERSIONS) },
+    outDir: "dist/cdn",
+    target: "es2022",
+  },
+  {
+    // `dragon embed` が頁に埋める script (#3343)。外を読めない頁で動くよう、全ての種類の部品を 1 file に束ねる
+    entry: { offline: "src/script-offline.ts" },
+    format: ["iife"],
     platform: "browser",
     noExternal: [/.*/],
     minify: true,
