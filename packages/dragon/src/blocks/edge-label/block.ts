@@ -42,7 +42,6 @@ export const block: Block<EdgeLabelMessages> = {
   rank: 86,
   attach: { how: "ride-on-line" },
   words: { attrs: { edge: ["side"] } },
-  shape: none("線の名前と置く側は線の出来事 (edge) の欄 (label と labelSide) で、線の出来事の形の一部"),
   read: none("線の名前と置く側は線の行の一部で、行の頭の語を持たない。線の行を読む処理が readLabel と readSide を呼ぶ"),
   print: none("線の名前と置く側は線の行の一部で、線の行を書き戻す処理が : <線の名前> と side の属性を書く"),
   messages: {

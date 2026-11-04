@@ -62,36 +62,8 @@ export const block: Block<BranchMessages> = {
   name: "branch",
   rank: 5,
   attach: { how: "place", only: "git" },
-  // 行の頭の語の一覧では、移していない時間軸の図の語の前に並ぶ
+  // 行の頭の語の一覧では、時間軸の図のブロックの語 (順 90 から) の前に並ぶ
   words: { heads: ["branch"], headRanks: { branch: 89 }, attrs: { branch: ["note"] } },
-  shape: {
-    field: { type: "array", minItems: 1, items: { $ref: "#/definitions/branch" } },
-    definitions: {
-      branch: {
-        description: "枝。帯の左に名札と添え書きを置く",
-        type: "object",
-        additionalProperties: false,
-        required: ["id"],
-        properties: {
-          id: { $ref: "#/definitions/id" },
-          note: { $ref: "#/definitions/text" },
-        },
-      },
-    },
-    events: {
-      branch: {
-        description: "枝を切る。枝分かれの図だけが書ける。枝の札を from の commit へ置き、HEAD をその枝へ移す",
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "branch", "from"],
-        properties: {
-          type: { const: "branch" },
-          branch: { $ref: "#/definitions/id" },
-          from: { $ref: "#/definitions/id" },
-        },
-      },
-    },
-  },
   read: {
     // 枝は宣言した順に上から帯に並ぶ。宣言した枝はまだどの commit も指さない
     branch: (source, state) => {

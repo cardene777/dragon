@@ -23,15 +23,36 @@ const TEARDOWN = 90_000;
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
 /**
- * 後から読む種類と、その種類だけの描く部品の file。状態遷移図と枝分かれの図の並べ方は図の種類の置き場に、
- * 枝分かれの図の commit と線の描き方は個別ブロックの置き場に在る (#3347)
+ * 後から読む種類と、その種類だけの描く部品の file。並べ方は図の種類の置き場に、
+ * その種類だけのブロックの描き方は個別ブロックの置き場に在る (#3347、#3348)
  */
 const LATER_KINDS: Readonly<Record<string, readonly string[]>> = {
   git: ["kinds/git/layout.ts", "render/git.ts", "blocks/branch/draw.ts", "blocks/commit/draw.ts", "blocks/copy/draw.ts", "blocks/merge/draw.ts"],
-  lineup: ["layout/lineup.ts", "render/lineup.ts"],
+  lineup: [
+    "kinds/lineup/layout.ts",
+    "render/lineup.ts",
+    "blocks/item/draw.ts",
+    "blocks/line/draw.ts",
+    "blocks/seal/draw.ts",
+    "blocks/pick/draw.ts",
+    "blocks/stamp/draw.ts",
+    "blocks/role/draw.ts",
+    "blocks/order/draw.ts",
+    "blocks/legend/draw.ts",
+  ],
   state: ["kinds/state/layout.ts"],
-  time: ["layout/time.ts", "render/time.ts"],
-  tree: ["layout/tree.ts", "render/tree.ts"],
+  time: ["kinds/time/layout.ts", "render/time.ts", "blocks/scale/draw.ts", "blocks/row/draw.ts", "blocks/point/draw.ts", "blocks/zoom/draw.ts"],
+  tree: ["kinds/tree/layout.ts", "render/tree.ts", "blocks/leaf/draw.ts", "blocks/node/draw.ts"],
+  try: [
+    "kinds/try/layout.ts",
+    "render/try.ts",
+    "try-player.ts",
+    "blocks/route/draw.ts",
+    "blocks/queue/draw.ts",
+    "blocks/chain/draw.ts",
+    "blocks/ask/draw.ts",
+    "blocks/press/draw.ts",
+  ],
 };
 /** 後から読む塊の小さすぎる字数。部品が最初に読む側へ漏れると、塊は入口だけの大きさになる */
 const CHUNK_AT_LEAST = 2_000;

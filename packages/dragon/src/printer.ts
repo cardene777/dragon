@@ -10,12 +10,14 @@
  * 区画と箱の宣言の塊は箱のブロックの書き戻す処理 (`print.declare`) が書く (#3345)。
  * 枝分かれの図 (#3164) は、枝の `branch` の行を箱より前に枝のブロックの書き戻す処理 (`print.declare`) が書き、札を動かす線の運ぶ物が送る側の名前の札なら書かない。
  * commit の行と枝を切る行は、commit と枝のブロックの書き戻す処理 (`print.events`) が書く (#3347)。
- * 時間軸の図 (#3165) は、目盛りと区切りと印の列と節目と拡大の範囲の行を箱より前に書き、物差しの欄の後ろに `[meter: <割合>]` を書く。
+ * 時間軸の図 (#3165) は、目盛りと区切りと印の列と節目と拡大の範囲の行を、各ブロックの書き戻す処理 (`print.lead`) が箱より前に書く (#3348)。
+ * 中身の帯の物差しの欄の後ろには `[meter: <割合>]` を書く。
  * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
- * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で書く。
- * 列の図 (#3239) のチップは箱の後ろに `item` の行で書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
- * 試す図 (#3337) は部品の行を原本の並びのまま 1 つの塊に書き、その後ろにチップの `item` の行を書く。
- * チップの欄の値と段の中の書き換えの鍵は入力の帯の欄の順に書き、前後に空白を持つ値も `"` で囲んで、読み直した時に同じ値へ戻す。
+ * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で、葉と組んだ親のブロックが書く (#3348)。
+ * 列の図 (#3239) のチップは箱の後ろに `item` の行でチップのブロックが書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
+ * 列の図の役は、図の種類の行の直ぐ後ろに役のブロックが書く (#3348)。
+ * 試す図 (#3337) の部品の行は、部品の種類と同じ名前のブロックの書き戻す処理 (`print.part`) が書き、原本の並びのまま 1 つの塊にする (#3348)。
+ * その後ろのチップの `item` の行は入力の帯のブロックが書き、欄の値と段の中の書き換えの鍵を入力の帯の欄の順に書く。
  * 段の中でブロックが受け持つ行は、段の区切りの `step` の行の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
  * 段の本文の `say` と命令の `code` の行は段のブロックが、段の出典 (#3199) は出典のブロックが書く。
  * 段の中で起きることのうちブロックが持つ種類は、そのブロックの書き戻す処理 (`print.events`) が起きた順に 1 行ずつ書く (#3345)。
@@ -23,11 +25,9 @@
  */
 import { type EventPrinter, ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
-import { attrs, name, num, quote, shown } from "./print-kit";
+import { attrs, name } from "./print-kit";
 import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
-import type { Diagram, DiagramEvent, DiagramModel, LineupItem, LineupRole, Step, TimeSpec, TryItem, TryPart } from "./schema";
-import { askFields } from "./try-state";
-import { AT, NOW, OF } from "./words";
+import type { Diagram, DiagramEvent, DiagramModel, Step, TryPart } from "./schema";
 
 /** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
 const STEP_PRINTERS: readonly ((step: Step) => string[])[] = ranked(BLOCKS).flatMap((block) =>
@@ -42,6 +42,14 @@ const EVENT_PRINTERS: ReadonlyMap<string, EventPrinter> = new Map(
   ranked(BLOCKS).flatMap((block) => ("none" in block.print ? [] : (Object.entries(block.print.events ?? {}) as [string, EventPrinter][]))),
 );
 
+/**
+ * 図の種類の行の直ぐ後ろに書く、ブロックが持つ図の種類の宣言の塊 (時間軸の図の目盛りなど、列の図の役) を書き戻す処理。
+ * ブロックの並び (`rank`) の順 (#3348)
+ */
+const LEAD_PRINTERS: readonly ((diagram: DiagramModel) => string[])[] = ranked(BLOCKS).flatMap((block) =>
+  "none" in block.print || block.print.lead === undefined ? [] : [block.print.lead],
+);
+
 /** 図の種類の宣言の直ぐ後ろに書く、ブロックが持つ宣言の塊 (枝分かれの図の枝と、区画と箱) を書き戻す処理。ブロックの並び (`rank`) の順 (#3345、#3347) */
 const DECLARE_PRINTERS: readonly ((diagram: DiagramModel) => string[])[] = ranked(BLOCKS).flatMap((block) =>
   "none" in block.print || block.print.declare === undefined ? [] : [block.print.declare],
@@ -52,130 +60,27 @@ const FIGURE_PRINTERS: readonly ((diagram: DiagramModel) => string[])[] = ranked
   "none" in block.print || block.print.figure === undefined ? [] : [block.print.figure],
 );
 
-/** 目盛りの範囲。1 つの目盛りは番号だけを書く */
-const range = (from: number, to: number): string => (from === to ? `${from}` : `${from}-${to}`);
+/** 試す図の部品の種類ごとの、部品の種類と同じ名前のブロックが持つ書き戻す処理 (#3337、#3348) */
+const PART_PRINTERS: ReadonlyMap<string, (part: TryPart) => string> = new Map(
+  ranked(BLOCKS).flatMap((block) => ("none" in block.print || block.print.part === undefined ? [] : [[block.name, block.print.part] as const])),
+);
 
-/** 試す図の値。`,` で区切る並びと属性の中で読み直せるよう、`,` か `]` を含む値と、`"` で始まる値と、前後に空白を持つ値を囲む */
-const tryValue = (text: string): string =>
-  text.includes(",") || text.includes("]") || text.startsWith('"') || text !== text.trim() ? quote(text) : text;
-
-/** 試す図のチップの欄の値の属性。入力の帯の欄の順に書き、欄に無い鍵はその後ろに原本の並びで書く */
-function tryAttrs(values: Readonly<Record<string, string>>, fields: readonly string[]): string {
-  const keys = [...fields.filter((f) => Object.hasOwn(values, f)), ...Object.keys(values).filter((k) => !fields.includes(k))];
-  return keys.length === 0 ? "" : ` [${keys.map((k) => `${k}: ${tryValue(values[k] ?? "")}`).join(", ")}]`;
-}
-
-/** 試す図の部品の行 */
-function partLine(part: TryPart): string {
-  switch (part.type) {
-    case "route":
-      return `route ${part.id}: ${part.paths.map((path) => path.join(" - ")).join(", ")}${attrs([
-        ["from", part.from],
-        ["to", part.to],
-      ])}`;
-    case "queue":
-      return `queue ${part.id}${attrs([["order", part.order]])}`;
-    case "chain":
-      return `chain ${part.id}${attrs([["edit", part.edit]])}`;
-    case "ask":
-      return `ask ${part.fields.join(", ")}${attrs([
-        ["into", part.into],
-        ["via", part.via],
-      ])}`;
-    case "press":
-      return `press ${part.id}${attrs([
-        ["from", part.from],
-        ["into", part.into],
-        ["take", num(part.take)],
-        ["at", part.at],
-      ])}`;
-  }
-}
-
-/** 試す図の部品の塊と、チップの塊 */
-function tryBlocks(spec: { parts: TryPart[]; items: TryItem[] }): string[] {
-  const fields = askFields(spec.parts);
-  return [spec.parts.map(partLine).join("\n"), ...(spec.items.length > 0 ? [spec.items.map((item) => `item ${item.id}${tryAttrs(item.values, fields)}`).join("\n")] : [])];
-}
-
-/** 段の中の 1 行。`kind` は図の種類、`fields` は試す図の入力の帯の欄 */
-function event(e: DiagramEvent, kind: DiagramModel["kind"], fields: readonly string[] = []): string {
-  switch (e.type) {
-    case "now":
-      return `${NOW} -> ${e.to}`;
-    case "mark":
-      return `mark ${e.row} ${range(e.from, e.to)}${attrs([["color", e.color]])}`;
-    case "span":
-      return `span ${range(e.from, e.to)}: ${name(e.text)}${attrs([
-        ["shape", e.shape],
-        ["color", e.color],
-      ])}`;
-    case "leaf":
-      return `leaf ${e.id}${attrs([["hash", e.hash]])}`;
-    case "node":
-      return `node ${e.id} ${OF} ${e.children.join(", ")}${attrs([["hash", e.hash]])}`;
-    case "line":
-      return `line ${"part" in e ? e.part : e.box}: ${e.items.join(", ")}`;
-    case "ask":
-      return `ask ${e.values.map(tryValue).join(", ")}`;
-    case "press":
-      return `press ${e.press}`;
-    case "item":
-      return `item ${e.item}${tryAttrs(e.values, fields)}`;
-    case "seal":
-    case "open":
-    case "pick":
-      return `${e.type} ${e.box}`;
-    case "stamp":
-      return `stamp ${e.box}: ${name(e.text)}`;
-    case "role":
-      return `role ${e.role}`;
-    default: {
-      const print = EVENT_PRINTERS.get(e.type);
-      if (!print) throw new Error(`${e.type} を書き戻す処理が無い`);
-      return print(e, kind);
-    }
-  }
-}
-
-/** 列の図のチップの宣言の行。色と説明が同じで字を持たないチップが続く所は 1 行に並べる */
-function itemLines(items: LineupItem[]): string {
-  const rows: LineupItem[][] = [];
-  for (const item of items) {
-    const row = rows.at(-1);
-    if (row && item.label === undefined && row[0]?.label === undefined && row[0]?.color === item.color && row[0]?.note === item.note) row.push(item);
-    else rows.push([item]);
-  }
-  return rows
-    .map(
-      (row) =>
-        `item ${row.map((item) => item.id).join(", ")}${attrs([
-          ["color", row[0]?.color],
-          ["label", row[0]?.label],
-          ["note", row[0]?.note],
-        ])}`,
-    )
+/** 試す図の部品の塊。部品の行を原本の並びのまま 1 つの塊に書く */
+function tryParts(parts: readonly TryPart[]): string {
+  return parts
+    .map((part) => {
+      const print = PART_PRINTERS.get(part.type);
+      if (!print) throw new Error(`${part.type} の部品を書き戻す処理が無い`);
+      return print(part);
+    })
     .join("\n");
 }
 
-/** 列の図の役の宣言の行 (#3351) */
-const roleLines = (roles: LineupRole[]): string => roles.map((r) => `role ${r.id}${attrs([["note", r.note]])}`).join("\n");
-
-/** 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲の宣言の塊 */
-function timeBlocks(time: TimeSpec): string[] {
-  const head = [
-    `scale ${time.scale.unit} ${time.scale.length} ${time.scale.count}${attrs([["from", num(time.scale.from)]])}`,
-    ...(time.period ? [`period ${time.period.name} ${time.period.length}${attrs([["from", num(time.period.from)]])}`] : []),
-  ];
-  const rows = time.rows.map(
-    (r) =>
-      `row ${r.id}${shown(r.id, r.name)}${attrs([
-        ["color", r.color],
-        ["empty", r.empty && r.empty.length > 0 ? r.empty.join(" ") : undefined],
-      ])}`,
-  );
-  const points = (time.points ?? []).map((p) => `point ${p.id} ${AT} ${p.at}`);
-  return [head.join("\n"), rows.join("\n"), ...(points.length > 0 ? [points.join("\n")] : []), ...(time.zoom ? [`zoom ${range(time.zoom.from, time.zoom.to)}`] : [])];
+/** 段の中の 1 行。出来事の種類を持つブロックの書き戻す処理が書く。`kind` は図の種類、`diagram` は書き戻す図 */
+function event(e: DiagramEvent, kind: DiagramModel["kind"], diagram: DiagramModel): string {
+  const print = EVENT_PRINTERS.get(e.type);
+  if (!print) throw new Error(`${e.type} を書き戻す処理が無い`);
+  return print(e, kind, diagram);
 }
 
 /**
@@ -186,21 +91,18 @@ export function printNotation(source: Diagram): string {
   const diagram = toModel(isVersion1(source) ? (upgrade(source, FORMAT_VERSION) as unknown as Diagram) : source);
   const blocks = [
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
-    ...(diagram.try ? tryBlocks(diagram.try) : []),
-    ...(diagram.time ? timeBlocks(diagram.time) : []),
-    ...(diagram.lineup?.roles && diagram.lineup.roles.length > 0 ? [roleLines(diagram.lineup.roles)] : []),
+    ...(diagram.try ? [tryParts(diagram.try.parts)] : []),
+    ...LEAD_PRINTERS.flatMap((print) => print(diagram)),
     ...DECLARE_PRINTERS.flatMap((print) => print(diagram)),
-    ...(diagram.lineup && diagram.lineup.items.length > 0 ? [itemLines(diagram.lineup.items)] : []),
     ...FIGURE_PRINTERS.flatMap((print) => print(diagram)),
   ];
-  const fields = askFields(diagram.try?.parts ?? []);
   // 段の区切りの `step` の行の下に、段の中でブロックが受け持つ行を字下げして書く。空の行 (本文の空の行) は字下げしない
   for (const step of diagram.steps) {
     blocks.push(
       [
         `step ${step.title}`,
         ...STEP_PRINTERS.flatMap((print) => print(step)).map((line) => (line === "" ? "" : `  ${line}`)),
-        ...step.events.map((e) => `  ${event(e, diagram.kind, fields)}`),
+        ...step.events.map((e) => `  ${event(e, diagram.kind, diagram)}`),
       ].join("\n"),
     );
   }

@@ -9,7 +9,7 @@
  * その部品が受け持つ記法の語を持つ。図の種類を全部持つ部品が、どの図でも使える部品になる。
  * 語は `kind:<図の種類>`、`head:<行の頭の語>`、`attr:<行>.<鍵>`、線の行の `edge:->` の形で書き、
  * 記法の語の表 (`packages/dragon/src/words.ts`) の語を、どれかの部品が必ず受け持つ。
- * 部品の図は `catalog/parts/<名札>.<図の種類>.dragon` と英語の `.en.dragon` の記法の file で、部品の頁はそれを描く。
+ * 部品の図は `packages/dragon/src/blocks/<名札>/gallery/<名札>.<図の種類>.dragon` と英語の `.en.dragon` の記法の file で、部品の頁はそれを描く。
  *
  * 頁の部品は `data-catalog` の札で探す。一覧の 3 段は `section` の札と `data-section`、部品の札は `part-card`、
  * 部品の頁は `part` の画面で、図ごとの塊は `part-figure` の札と `data-kind` を持つ。
@@ -81,7 +81,7 @@ const isCommon = (part: PartRow): boolean => part.kinds.length > 1;
 /** 部品の図の記法の file の名前 */
 const snippetName = (id: string, kind: Kind, lang: Lang): string => `${id}.${kind}${lang === "en" ? ".en" : ""}.dragon`;
 
-/** 部品の図の記法。今の置き場とブロックの置き場の見本帳の分から探し、file が無ければ `undefined` (#3345) */
+/** 部品の図の記法。ブロックの置き場の見本帳の分から探し、file が無ければ `undefined` (#3345、#3348) */
 const snippetOf = (id: string, kind: Kind, lang: Lang): string | undefined => {
   const path = partFigure(snippetName(id, kind, lang));
   return existsSync(path) ? readFileSync(path, "utf8").trimEnd() : undefined;

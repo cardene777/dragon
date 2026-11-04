@@ -9,17 +9,14 @@
  * 木の箱が現れる時刻 (`appear`) を返し、木の線を走らない線の点線はその時刻から出す (#3240)。
  */
 import { cs } from "../blocks/color/draw";
-import { glyph } from "../blocks/icon/draw";
-import type { TreeLayout } from "../layout/tree";
-import { EASE, LOOK, MOTION, TYPE } from "../look/values";
+import { leafCard, leafTie } from "../blocks/leaf/draw";
+import { treeBox, treeLink } from "../blocks/node/draw";
+import type { TreeLayout } from "../kinds/tree/layout";
+import { EASE, LOOK, MOTION } from "../look/values";
 import type { DiagramModel } from "../schema";
 import type { EdgeTime, Timeline } from "../timeline";
 import type { Frame } from "./motion";
-import { frameShape, partRadius } from "./corner";
-import { ALWAYS } from "./ink";
-import { activeKf, arrowHead, type Ctx, esc, pathOf, write } from "./parts";
-
-const r1 = (v: number): number => Math.round(v * 100) / 100;
+import { activeKf, arrowHead, type Ctx, esc, pathOf } from "./parts";
 
 export function drawTree(
   layout: TreeLayout,
@@ -29,7 +26,6 @@ export function drawTree(
 ): { links: string; trails: string; nodes: string; appear: Map<string, number> } {
   const { m } = ctx;
   const T = LOOK.tree;
-  const B = LOOK.box;
   const timeOf = (step: number, event: number): EdgeTime | undefined =>
     timeline.edges.find((t) => t.step === step && t.event === event);
 
@@ -87,39 +83,14 @@ export function drawTree(
 
   const drawnAt = new Map(layout.nodes.map((n) => [n.id, timeOf(n.step, n.event)?.drawn ?? 0]));
 
-  // 木の線と、葉と札を結ぶ点線。木の線は親を書いた段で引き始め、引き終えた後も残す
+  // 木の線と、葉と札を結ぶ点線。木の線は組んだ親のブロックが、点線は葉のブロックが描く (#3348)
   const links = layout.links
     .map((l) => {
       const time = timeOf(l.step, l.event);
-      if (!time) return "";
-      ctx.traces.push({
-        from: l.from,
-        to: l.to,
-        points: l.points,
-        shown: [[time.start, Number.POSITIVE_INFINITY]],
-      });
-      const kf = m.kf([
-        [0, { opacity: 0, "stroke-dashoffset": 1 }],
-        [time.start, { opacity: 0, "stroke-dashoffset": 1 }, EASE.inOut],
-        [time.start + 0.05, { opacity: 1 }],
-        [time.drawn, { "stroke-dashoffset": 0 }],
-        [m.last, { opacity: 1, "stroke-dashoffset": 0 }, EASE.inOut],
-        [m.total, { opacity: 0, "stroke-dashoffset": 0 }],
-      ]);
-      return faded(
-        l.from,
-        `<path class="dg-tree-l dg-a" data-tree-link="${esc(l.from)}" pathLength="1" d="${pathOf(l.points)}" style="${kf}"/>`,
-      );
+      return time ? faded(l.from, treeLink(l, time, ctx)) : "";
     })
     .join("");
-  const ties = layout.nodes
-    .flatMap((n) => {
-      if (!n.card) return [];
-      const at = drawnAt.get(n.id) ?? 0;
-      const d = `M ${r1(n.cx)} ${r1(n.y + n.h + LOOK.edge.inset)} V ${r1(n.card.y - LOOK.edge.inset)}`;
-      return [faded(n.id, `<path class="dg-tree-con dg-a" d="${d}" style="${m.vis(at)}"/>`)];
-    })
-    .join("");
+  const ties = layout.nodes.flatMap((n) => (n.card ? [faded(n.id, leafTie(n, n.card, drawnAt.get(n.id) ?? 0, ctx))] : [])).join("");
 
   // 木の線を運ぶ物が通った跡。運ぶ物が走るのに合わせて引き、最後まで残す。同じ木の線は最初に通った段の跡だけを描く
   const traced = new Set<string>();
@@ -148,76 +119,16 @@ export function drawTree(
     })
     .join("");
 
-  // 葉の下の名札の札。最初の段から出しておく
-  const cards = layout.nodes
-    .flatMap((n) => {
-      const c = n.card;
-      if (!c) return [];
-      const gx = c.x + T.card.padX + T.card.icon / 2;
-      const cy = c.y + c.h / 2;
-      const text = write(
-        ctx.ink,
-        "dg-tree-ct",
-        c.x + T.card.padX + T.card.icon + T.card.gap,
-        cy + LOOK.baseline.label,
-        c.text,
-        TYPE.treeCard,
-        ALWAYS,
-      );
-      return [
-        faded(
-          n.id,
-          `<rect class="dg-tree-card" x="${r1(c.x)}" y="${r1(c.y)}" width="${r1(c.w)}" height="${c.h}" rx="${partRadius(ctx.corner, T.card.radius)}"/>${glyph("doc", gx, cy, T.card.glyph, "dg-tree-cg")}${text}`,
-          ` data-tree-card="${esc(n.id)}"`,
-        ),
-      ];
-    })
-    .join("");
+  // 葉の下の名札の札。最初の段から出しておく。札は葉のブロックが描く (#3348)
+  const cards = layout.nodes.flatMap((n) => (n.card ? [faded(n.id, leafCard(n.card, ctx), ` data-tree-card="${esc(n.id)}"`)] : [])).join("");
 
-  // 木の箱。親から子への線を引き終えた時に弾んで出る。根は左に枝の絵柄を持ち、字を絵柄の右に左揃えで並べる
+  // 木の箱。親から子への線を引き終えた時に弾んで出る。箱は組んだ親のブロックが描く (#3348)
   const nodes = layout.nodes
     .map((n) => {
       const at = drawnAt.get(n.id) ?? 0;
       const on = [...(active.get(n.id) ?? [])].sort((x, y) => x - y);
       const act = on.length > 0 ? activeKf(ctx, on) : undefined;
-      const radius = n.root ? T.root.radius : T.radius;
-      const rect = (cls: string, extra = ""): string =>
-        frameShape(
-          ctx.corner,
-          ` class="${cls}"${extra}`,
-          n,
-          `<rect class="${cls}" x="${r1(n.x)}" y="${r1(n.y)}" width="${r1(n.w)}" height="${n.h}" rx="${radius}"${extra}/>`,
-        );
-      const frame = `${act ? `<g class="dg-a" style="${act}">${rect("dg-halo")}</g>` : ""}${rect("dg-st", ` ${ctx.sh}`)}${act ? `<g class="dg-a" style="${act}">${rect("dg-on")}</g>` : ""}`;
-      const ix = n.x + T.root.iconX + B.icon / 2;
-      const mark = n.root
-        ? `<rect class="dg-ic" x="${r1(ix - B.icon / 2)}" y="${r1(n.cy - B.icon / 2)}" width="${B.icon}" height="${B.icon}" rx="${partRadius(ctx.corner, B.iconRadius)}"/>${glyph("tree", ix, n.cy, B.iconScale)}`
-        : "";
-      const shown: [number, number][] = [[at, Number.POSITIVE_INFINITY]];
-      const texts = n.lines
-        .map((line, k) => {
-          const style = n.styles[k] ?? TYPE.boxName;
-          const cls =
-            style === TYPE.treeHash
-              ? "dg-tree-hash"
-              : style === TYPE.treeName
-                ? "dg-tree-name"
-                : style === TYPE.rootHash
-                  ? "dg-tree-rh"
-                  : style === TYPE.rootName
-                    ? "dg-tree-rn"
-                    : "dg-tree-one";
-          const baseline = n.baselines[k] ?? n.cy;
-          return n.root
-            ? write(ctx.ink, cls, n.x + T.root.textX, baseline, line, style, shown)
-            : write(ctx.ink, cls, n.cx, baseline, line, style, shown, "middle");
-        })
-        .join("");
-      const inner = faded(
-        n.id,
-        `${frame}${mark}${texts}`,
-        ` data-tree-node="${esc(n.id)}"${n.root ? ` data-tree-root="${esc(n.id)}"` : ""}`,
-      );
+      const inner = faded(n.id, treeBox(n, act, at, ctx), ` data-tree-node="${esc(n.id)}"${n.root ? ` data-tree-root="${esc(n.id)}"` : ""}`);
       return `<g class="dg-popc dg-a" style="${cs(n.color)};${m.pop(at)}">${inner}</g>`;
     })
     .join("");

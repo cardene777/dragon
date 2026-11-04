@@ -3,7 +3,7 @@
  *
  * 見本の正は `packages/dragon/examples/finality.dragon` と `withdraw.dragon` で、題と図の形はその file を読んで取る。頁の側の見本の表は読まない。
  * 時間軸の図だけの部品は、目盛りと針 (`scale`)、印の列 (`row`)、節目 (`point`)、拡大の帯 (`zoom`) の 4 つで、
- * 部品の図は `catalog/parts/<名札>.time.dragon` と英語の `.en.dragon` の記法の file。物差しは中身の帯の部品の頁の時間軸の図で見せる。
+ * 部品の図は `packages/dragon/src/blocks/<名札>/gallery/<名札>.time.dragon` と英語の `.en.dragon` の記法の file。物差しは中身の帯の部品の頁の時間軸の図で見せる。
  * 時間軸の図の分類と部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
 import { existsSync, readFileSync } from "node:fs";

@@ -3,7 +3,7 @@
  *
  * 見本の正は `packages/dragon/examples/tx-block.dragon` で、題はその file を読んで取る。頁の側の見本の表は読まない。
  * 試す図だけの部品は、網 (`route`)、待ち行列 (`queue`)、機械の列 (`chain`)、入力の帯 (`ask`)、釦 (`press`) の 5 つで、
- * 部品の図は `catalog/parts/<名札>.try.dragon` と英語の `.en.dragon` の記法の file。
+ * 部品の図は、部品と同じ名前のブロックの見本の置き場の `blocks/<名札>/gallery/<名札>.try.dragon` と英語の `.en.dragon` の記法の file (#3348)。
  * 試す図の部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
 import { existsSync, readFileSync } from "node:fs";

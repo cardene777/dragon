@@ -7,8 +7,9 @@
  * ブロックが図のどこに付くかを付け方と呼び、5つ (置く、つなぐ、線に乗る、箱に付く、図に付く) から1つを名乗る。
  * 図の種類 (`kinds/<種類>/`) は並べ方と受け付ける付け方だけを持ち、付け方の合うブロックを並べる。
  *
- * 置き場の `block.ts` は、語、原本の形、読む処理、書き戻す処理、日英の誤りの文を1つの定義に持つ。
- * 描き方は同じ置き場の `draw.ts` が持ち、見本帳の分は `gallery/` が持つ。
+ * 置き場の `block.ts` は、語、読む処理、書き戻す処理、日英の誤りの文を1つの定義に持つ。
+ * 原本の形の欠片は同じ置き場の `shape.ts`、描き方は `draw.ts`、見本帳の分は `gallery/` が持つ。
+ * 原本の形の欠片は build の時に原本の検査を書き出す script と検査だけが読み、描く時に読む塊に入れないので定義と分ける (#3348)。
  * 定義は描き方を読まない。描き方は描く下請け (`render/parts.ts`) を読み、下請けは語の表 (`words.ts`) を読む。
  * 語の表はブロックの一覧から語を集めるので、定義が描き方を読むと輪になる。
  * 同じ理由で、定義は語の表と原本の形の検査 (`schema.ts`) と誤りの文の表 (`messages.ts`) を型でだけ読む。
@@ -17,7 +18,8 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Box, DiagramModel, DiagramEvent, GitBranch, Region, StatePath, Step, StripMeter } from "../schema";
+import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TryItem, TryPart } from "../schema";
+import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
 
 /** 付け方。置く、つなぐ、線に乗る、箱に付く、図に付く */
@@ -70,6 +72,22 @@ export interface FigureDraft {
    * commit のブロックが積み、枝のブロックが枝を切る行で札を置き、parser が札を動かす線で札を動かす (#3347)
    */
   git: { commits: Set<string>; tips: Map<string, string | null> };
+  /**
+   * 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲。目盛りと針と、印の列と、節目と、拡大の帯のブロックが宣言の行で組む (#3348)。
+   * 目盛りの数が決まってから確かめる宣言の行の目盛りは `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる (`settled`)。
+   * `needle` は針が今いる目盛りの境 (0 から数える)
+   */
+  time: { scale?: TimeScale; period?: TimePeriod; rows: TimeRow[]; points: TimePoint[]; zoom?: { from: number; to: number }; pending: (() => void)[]; settled: boolean; needle: number };
+  /** 木の図で書いた木の箱と、書いた行と名札の位置 (`boxes`) と、子の箱から親の名札 (`parents`)。葉と組んだ親のブロックが組む (#3348) */
+  tree: { boxes: Map<string, { source: SourceLine; at: number }>; parents: Map<string, string> };
+  /** 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348) */
+  lineup: { items: LineupItem[]; roles: LineupRole[]; sealed: Set<string> };
+  /**
+   * 試す図の部品とチップ。部品のブロックと入力の帯のブロックが宣言の行で組む (#3337、#3348)。
+   * 部品を名指す属性と欄を名指す鍵は全ての宣言を読んでから確かめるので `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる。
+   * 確かめた後に、段の中の出来事を当てる状態 (`run`) を作る
+   */
+  try: { parts: TryPart[]; items: TryItem[]; pending: (() => void)[]; run?: TryRun };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */
@@ -82,6 +100,8 @@ export interface ParseState {
   readonly attrs: Readonly<Record<string, readonly string[]>>;
   /** 段の中に書く行の書き先の段。最初の `step` より前に書いた行は誤りで止める */
   readonly inStep: (source: SourceLine) => StepDraft;
+  /** 書いている段。最初の `step` より前は `undefined` (#3348) */
+  readonly current: () => StepDraft | undefined;
   /**
    * 書いている段を閉じて、原本の段の並びへ足す。段の無い時は何もしない。
    * 開いたままの区画と、時間軸の図の宣言の目盛りを先に確かめ、誤りで止める
@@ -93,6 +113,12 @@ export interface ParseState {
   readonly beforeSteps: (source: SourceLine) => void;
   /** 宣言した箱の名札 `id` をそのまま返す。宣言していない名札は、名札の列 `at` を示して誤りで止める */
   readonly boxAt: (source: SourceLine, id: string, at: number) => string;
+  /** 名札 `id` を、ほかの宣言と重ならない名札として取る。図の種類が名札に使えない名前は確かめない (#3348) */
+  readonly declare: (source: SourceLine, id: string, at: number) => void;
+  /** 名札 `id` を既に宣言したか (#3348) */
+  readonly declared: (id: string) => boolean;
+  /** 図の種類が名札に使えない名前 (状態遷移図の始まりと終わりの印、枝分かれの図の `HEAD`、時間軸の図の `now`) を誤りで止める (#3348) */
+  readonly notReserved: (source: SourceLine, id: string, at: number) => void;
   /**
    * 宣言の行の名札 `id` を、ほかの宣言と重ならない名札として取る。
    * 図の種類が名札に使えない名前 (状態遷移図の始まりと終わりの印、枝分かれの図の `HEAD`、時間軸の図の `now`) と、宣言済みの名札は誤りで止める
@@ -123,7 +149,7 @@ export type HeadReader = (source: SourceLine, state: ParseState, after: (offset:
 export type EventType = DiagramEvent["type"];
 
 /** 種類 `T` の出来事を、段の中の 1 行に書き戻す処理。`kind` は図の種類 */
-export type EventPrinter<T extends EventType = EventType> = (event: Extract<DiagramEvent, { type: T }>, kind: KindName) => string;
+export type EventPrinter<T extends EventType = EventType> = (event: Extract<DiagramEvent, { type: T }>, kind: KindName, diagram: DiagramModel) => string;
 
 /** 書き戻す処理 */
 export interface BlockPrint {
@@ -132,17 +158,28 @@ export interface BlockPrint {
   /** 段の中で起きることの書き戻し。鍵は出来事の種類で、段の中で起きた順に出来事ごとに呼ぶ */
   events?: { readonly [T in EventType]?: EventPrinter<T> };
   /**
-   * 最初の `step` より前に、図の種類の宣言 (時間軸の図の目盛りなど) の直ぐ後ろに書く宣言の塊 (枝分かれの図の枝と、区画と箱)。
+   * 図の種類の行の直ぐ後ろ、宣言の塊 (`declare`) より前に書く、図の種類の宣言の塊 (時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲、列の図の役)。
+   * ブロックの並びの順に書く (#3348)
+   */
+  lead?: (diagram: DiagramModel) => string[];
+  /**
+   * 最初の `step` より前に、図の種類の宣言 (`lead`) の直ぐ後ろに書く宣言の塊 (枝分かれの図の枝と、区画と箱と、列の図のチップ)。
    * 列の図のチップと `figure` の塊より前に、ブロックの並びの順に書く
    */
   declare?: (diagram: DiagramModel) => string[];
   /** 最初の `step` より前に書く宣言の塊。区画と箱の宣言の後ろ、状態遷移図の道より前に、ブロックの並びの順に書く */
   figure?: (diagram: DiagramModel) => string[];
+  /**
+   * 試す図 (#3337) の部品の 1 行。部品の種類 (`type`) と同じ名前のブロックが持ち、渡す部品はその種類の部品だけ。
+   * 部品の行は図の種類の行の直ぐ後ろに、原本の並びのまま 1 つの塊に書く (#3348)
+   */
+  part?: (part: TryPart) => string;
 }
 
 /**
- * 原本の形の欠片。鍵と値は `schemas/diagram.schema.json` と同じ。
- * build の時に `scripts/build-validator.mjs` が骨組み (`schemas/base.schema.json`) とブロックの欠片を束ねて形を書き出す (#3346)
+ * 原本の形の欠片 (置き場の `shape.ts` の `shape`)。鍵と値は `schemas/diagram.schema.json` と同じ。
+ * build の時に `scripts/build-validator.mjs` が骨組み (`schemas/base.schema.json`) とブロックの欠片を束ねて形を書き出す (#3346)。
+ * 形がほかのブロックの欄の一部で、自分の欠片を持たないブロックは `none` を置く
  */
 export interface BlockShape {
   /** 原本の `blocks` の中に、ブロックの名前で持つ欄の形。欄を持たないブロックは書かない */
@@ -175,11 +212,13 @@ export interface Block<M extends object = object, F extends object = object> {
   name: string;
   /** ブロックの並び。語の表 (`words.ts`) はこの順にブロックの語を並べる (行の頭の語は `words.headRanks` で別の番号にできる) */
   rank: number;
-  /** 付け方。`only` を書いたブロックは、その図の種類だけで使う個別ブロック */
-  attach: { how: AttachHow; only?: KindName };
+  /**
+   * 付け方。`only` を書いたブロックは、その図の種類だけで使う個別ブロック。
+   * `except` は付け方を受け付ける図の種類のうち、このブロックを描かない図の種類 (列の図は箱の中の処理と絵と飛び先を、試す図は箱と段と出典と中身の帯を描かない)。
+   * ブロックを使える図の種類は、この欄と図の種類の `accepts` から導く (`blocks/usable.ts`、#3348)
+   */
+  attach: { how: AttachHow; only?: KindName; except?: readonly KindName[] };
   words: BlockWords;
-  /** 原本の形の欠片。形がほかのブロックの欄の一部で、自分の欠片を持たないブロックは `none` を置く */
-  shape: BlockShape | None;
   /** 行の頭の語ごとの読む処理 */
   read: Readonly<Record<string, HeadReader>> | None;
   print: BlockPrint | None;

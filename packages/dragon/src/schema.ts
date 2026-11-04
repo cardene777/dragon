@@ -18,8 +18,17 @@ import { type Color, COLORS } from "./blocks/color/block";
 import type { GitCommit } from "./blocks/commit/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
+import type { LineupItem } from "./blocks/item/block";
+import type { TreeLeaf } from "./blocks/leaf/block";
+import type { LineupOrder } from "./blocks/line/block";
+import type { TreeNode } from "./blocks/node/block";
+import type { LineupAct, LineupRole } from "./blocks/role/block";
+import type { TimePoint } from "./blocks/point/block";
+import type { TimeMarkEvent, TimeRow } from "./blocks/row/block";
+import type { TimePeriod, TimeScale, TimeSpanEvent } from "./blocks/scale/block";
 import type { StatePath } from "./blocks/side-path/block";
 import type { StepSource } from "./blocks/source/block";
+import type { LineupStamp } from "./blocks/stamp/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
 import { nearest } from "./nearest";
@@ -66,7 +75,9 @@ export type DiagramEvent =
   | TreeLeaf
   | TreeNode
   | LineupOrder
-  | { type: "seal" | "open" | "pick"; box: string }
+  | { type: "seal"; box: string }
+  | { type: "open"; box: string }
+  | { type: "pick"; box: string }
   | LineupStamp
   | LineupAct
   | TryLine
@@ -74,53 +85,11 @@ export type DiagramEvent =
   | TryPress
   | TryEdit;
 
-/** 時間軸の図 (#3165) の、印の列 `row` の `from` から `to` の目盛りの印の色を変える出来事 */
-export interface TimeMarkEvent {
-  type: "mark";
-  row: string;
-  from: number;
-  to: number;
-  color: Color;
-}
-
-/** 時間軸の図の、`from` から `to` の目盛りの括弧と字。`shape` が `box` なら印の列を囲み、字を縁の札にする */
-export interface TimeSpanEvent {
-  type: "span";
-  from: number;
-  to: number;
-  text: string;
-  shape?: "box";
-  color?: Color;
-}
-
-/** 時間軸の図の目盛り。`unit` の名前の目盛りを `length` の長さ (`12s` など) で `count` 個並べ、最初の目盛りの番号を `from` にする */
-export interface TimeScale {
-  unit: string;
-  length: string;
-  count: number;
-  from?: number;
-}
-
-/** 時間軸の図の区切り。目盛り `length` 個ごとに `name` の区切りを置き、最初の区切りの番号を `from` にする */
-export interface TimePeriod {
-  name: string;
-  length: number;
-  from?: number;
-}
-
-/** 時間軸の図の印の列。目盛りごとに印を 1 つ置き、`empty` の目盛りは空きの印にする */
-export interface TimeRow {
-  id: string;
-  name: string;
-  color?: Color;
-  empty?: number[];
-}
-
-/** 時間軸の図の節目。`at` の目盛りの印の下に旗の丸と名札を置く */
-export interface TimePoint {
-  id: string;
-  at: number;
-}
+/**
+ * 時間軸の図 (#3165) の印の色を変える出来事と範囲の括弧の出来事と、目盛りと区切りと印の列と節目の型は、
+ * 印の列と目盛りと針と節目のブロックが持つ (#3348)
+ */
+export type { TimeMarkEvent, TimePeriod, TimePoint, TimeRow, TimeScale, TimeSpanEvent };
 
 /** 時間軸の図の種類の欄 */
 export interface TimeSpec {
@@ -141,29 +110,14 @@ export interface StripMeter {
 /** 枝分かれの図 (#3164) の commit を積む出来事の型は commit のブロックが持つ (#3347) */
 export type { GitCommit };
 
+/** 木の図 (#3233) の葉を出す出来事と親を組む出来事の型は、葉と組んだ親のブロックが持つ (#3348) */
+export type { TreeLeaf, TreeNode };
+
 /**
- * 木の図 (#3233) の葉を出す出来事。書いた段で葉の箱が現れる。`hash` を書くと箱に値を出し、名札を葉の下の札に出す
+ * 列の図 (#3239) の、列の並びを書き換える出来事と札を押す出来事と役が動く出来事と、チップと役の型は、
+ * 列の並びと札と役とチップのブロックが持つ (#3348)
  */
-export interface TreeLeaf {
-  type: "leaf";
-  id: string;
-  hash?: string;
-}
-
-/** 木の図の、1 つ以上の子から親を組む出来事。書いた段で親の箱と、子から親への木の線が現れる */
-export interface TreeNode {
-  type: "node";
-  id: string;
-  children: string[];
-  hash?: string;
-}
-
-/** 列の図 (#3239) の、列 `box` の並びを `items` に書き換える出来事。前の段との差分を描く部品が滑る動きに変える */
-export interface LineupOrder {
-  type: "line";
-  box: string;
-  items: string[];
-}
+export type { LineupAct, LineupItem, LineupOrder, LineupRole, LineupStamp };
 
 /** 試す図 (#3337) の、待ち行列 `part` の中身を `items` の並びにするか、機械の列 `part` に `items` を入れた新しいブロックを足す出来事 */
 export interface TryLine {
@@ -208,33 +162,6 @@ export type TryPart =
 export interface TryItem {
   id: string;
   values: Record<string, string>;
-}
-
-/** 列の図の、列 `box` の右に `text` の札を押す出来事 */
-export interface LineupStamp {
-  type: "stamp";
-  box: string;
-  text: string;
-}
-
-/** 列の図の、段 `role` の役が動く出来事 (#3351)。役の札の縁が光る */
-export interface LineupAct {
-  type: "role";
-  role: string;
-}
-
-/** 列の図のチップ。`color` を書かないチップは薄い色で、`label` を書かないチップは名前を出す。`note` は凡例に出す説明 (#3351) */
-export interface LineupItem {
-  id: string;
-  color?: Color;
-  label?: string;
-  note?: string;
-}
-
-/** 列の図の役 (#3351)。チップを持たずに動く者で、箱の上に札として並ぶ。`note` は名前の下の一言 */
-export interface LineupRole {
-  id: string;
-  note?: string;
 }
 
 /** 枝分かれの図の枝の型は枝のブロック、状態遷移図の移れる道の型は脇道のブロックが持つ (#3347) */

@@ -2,7 +2,7 @@
  * ブロックが持つ段の中で起きること (#3345)。
  *
  * 段の中で起きることの形は 1 つの schema (`src/schemas/diagram.schema.json`) の `definitions.event` の `oneOf` が持ち、
- * ブロックは自分の出来事の種類の枝を写して持つ (`block.ts` の `shape.events`)。
+ * ブロックは自分の出来事の種類の枝を写して持つ (`shape.ts` の `shape.events`、#3348)。
  * 写しが schema の枝と食い違った時と、1 つの種類を 2 つのブロックが持つ時と、形を持つ種類を書き戻す処理が無い時に落とす。
  * 見る関数はこの file が持ち、正しい一覧に当てて通ることと、崩した一覧に当てて名指すことの両方を確かめる。
  */
@@ -50,7 +50,11 @@ export function eventOwnerProblems(blocks: Record<string, Block>): string[] {
 
 describe("ブロックが持つ段の中で起きること (#3345)", () => {
   it("block-event-shape-matches-schema", async () => {
-    const { BLOCKS } = (await import("../src/blocks/index")) as unknown as { BLOCKS: Record<string, Block> };
+    const { BLOCKS: definitions } = (await import("../src/blocks/index")) as unknown as { BLOCKS: Record<string, Pick<Block, "print">> };
+    const { SHAPES } = (await import("../src/blocks/shapes")) as unknown as { SHAPES: Record<string, Block["shape"]> };
+    // 形の欠片は定義と別の file (`shape.ts`) に在るので、名前で組にして見る
+    const BLOCKS: Record<string, Block> = Object.fromEntries(Object.entries(definitions).map(([name, block]) => [name, { shape: SHAPES[name] ?? { none: "-" }, print: block.print }]));
+    expect(Object.keys(SHAPES).sort(), "形の欠片の一覧とブロックの一覧の名前").toEqual(Object.keys(definitions).sort());
     const events = schemaEvents();
     const owned = Object.values(BLOCKS).flatMap((block) => Object.keys(eventShapes(block)));
     expect(owned.length, "段の中で起きることの形を持つブロックが無い").toBeGreaterThan(0);

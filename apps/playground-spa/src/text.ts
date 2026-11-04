@@ -84,82 +84,25 @@ export const TEXT = {
           commit: BLOCK_TEXT.commit.ja,
           copy: BLOCK_TEXT.copy.ja,
           merge: BLOCK_TEXT.merge.ja,
-          scale: {
-            name: "目盛りと針",
-            desc: "時間軸の図だけの部品。scale の行で目盛りの名前と 1 つの長さと数を書くと、時間軸に目盛りが並ぶ。段の中で now -> <目盛り> と書くと、針が決まった速さでその目盛りの終わりまで進む。period で区切りを、span で範囲の括弧か囲みを出す。",
-          },
-          row: {
-            name: "印の列",
-            desc: "時間軸の図だけの部品。row の行で印の列を上から順に宣言すると、目盛りごとに細い印が並び、針が過ぎた所から塗られる。empty に書いた目盛りは空きの印になり、段の中の mark で印の色を変える。",
-          },
-          point: {
-            name: "節目",
-            desc: "時間軸の図だけの部品。point <名札> at <目盛り> で、その目盛りの印の下に旗の丸を置く。段の中の note で状態の字と丸の色を変え、節目どうしを線で結ぶ。",
-          },
-          zoom: {
-            name: "拡大の帯",
-            desc: "時間軸の図だけの部品。zoom の行で目盛りの範囲を書くと、上の帯にその目盛りを列にして並べ、宣言した箱を列ごとに繰り返す。線は [at: <目盛り>] の列の箱どうしを結び、受ける箱を別の列から選ぶ時は into を書く。",
-          },
-          leaf: {
-            name: "葉と札",
-            desc: "木の図だけの部品。段の中に leaf <名札> [hash: <値>] と書くと、その段で葉の箱が現れる。値を持つ葉は箱に値を、葉の下の札に名札を出す。札は最初の段から見える。",
-          },
-          node: {
-            name: "組んだ親",
-            desc: "木の図だけの部品。段の中に node <名札> of <子>, <子> [hash: <値>] と書くと、前に書いた葉か親を子にして親の箱が現れ、子と親を木の線で結ぶ。親子の箱どうしの線は木の線の上を走る。親を持たない箱は最後に根の 1 つだけ残す。",
-          },
-          item: {
-            name: "チップ",
-            desc: "列の図だけの部品。最初の step より前に item <名札>, <名札> [color: <色>, label: <字>] と書くと、列に並べるチップを宣言する。色を付けたチップは色で塗り、label の字は 4 字まで載る。",
-          },
-          line: {
-            name: "列の並び",
-            desc: "列の図だけの部品。段の中に line <列>: <チップ>, <チップ> と書くと、その列のチップが書いた順に並び直す。ほかの列に居たチップはその席から滑って来て、どこにも居なかったチップは弾んで現れる。1 列は 12 枚まで。",
-          },
-          seal: {
-            name: "封",
-            desc: "列の図だけの部品。段の中に seal <列> と書くと、縞の封が列の左から伸びて中身を隠し、open <列> と書くと封が消えて中身が戻る。封をした列の並びは開けるまで書けない。",
-          },
-          pick: {
-            name: "選ぶ",
-            desc: "列の図だけの部品。段の中に pick <列> と書くと、その列の縁に色が付き、ほかの列が薄くなる。薄くなった列は、後の段で並びを書き換えるか選ぶと濃く戻る。",
-          },
-          stamp: {
-            name: "札",
-            desc: "列の図だけの部品。段の中に stamp <列>: <字> と書くと、列の右に傾いた札が押される。署名や承認のように、列の中身に触れずに起きたことを見せる。",
-          },
-          order: {
-            name: "置き場",
-            desc: "列の図だけの部品。box <名札> [order: none] と書くと、その箱は順番の無い置き場になる。チップを散らして置き、点線の枠で描く。ほかの箱は札になり、チップを書いた順に上から積む。",
-          },
-          role: {
-            name: "役",
-            desc: "列の図だけの部品。最初の step より前に role <名札> [note: <一言>] と書くと、役の札が箱の上に並ぶ。段の中に role <名札> と書くと、その段に役の札が光る。",
-          },
-          legend: {
-            name: "凡例",
-            desc: "列の図だけの部品。item の行に [note: <説明>] と書くと、図の下の凡例にチップの説明が出る。同じ説明は最初のチップの色で 1 行にまとまる。",
-          },
-          route: {
-            name: "網",
-            desc: "試す図だけの部品。最初の step より前に route <名札>: <節> - <節>, <節> - <節> [from: <節>, to: <節>] と書くと、節と線の網を描く。入力の帯の via にこの網を書くと、送ったチップが from から to まで節の数が最も少ない道を辿り、通った線が強まる。",
-          },
-          queue: {
-            name: "待ち行列",
-            desc: "試す図だけの部品。最初の step より前に queue <名札> [order: <欄>] と書くと、チップが待つ行列を描く。order を書くとその欄の値の高い順に上から並べ、書かなければ入った順に並べる。段の中の line <待ち行列>: <チップ>, <チップ> で中身を書く。",
-          },
-          chain: {
-            name: "機械の列",
-            desc: "試す図だけの部品。最初の step より前に chain <名札> [edit: <欄>] と書くと、ブロックの鎖を描く。ブロックは 1 つ前のブロックの hash を prev に持ち、中身が変わると hash が変わってつながりが切れる。edit を書くと、読み手がブロックの中のチップのその欄を書き換えられる。",
-          },
-          ask: {
-            name: "入力の帯",
-            desc: "試す図だけの部品。最初の step より前に ask <欄>, <欄> [into: <待ち行列>, via: <網>] と書くと、欄ごとの入力と送る釦を持つ帯が出る。読み手が値を打ち込んで送ると、最初の欄の値を名前にしたチップが into の待ち行列へ入る。段の中の ask <値>, <値> は書き手の例として送る。",
-          },
-          press: {
-            name: "釦",
-            desc: "試す図だけの部品。最初の step より前に press <名札> [from: <待ち行列>, into: <機械の列>, take: <件数>] と書くと、押せる釦が出る。押すと待ち行列の上から take 件を機械の列の新しいブロックへ移す。at に部品を書くとその部品の所に置き、書かなければ入力の帯に置く。段の中の press <名札> は書き手の例として押す。",
-          },
+          scale: BLOCK_TEXT.scale.ja,
+          row: BLOCK_TEXT.row.ja,
+          point: BLOCK_TEXT.point.ja,
+          zoom: BLOCK_TEXT.zoom.ja,
+          leaf: BLOCK_TEXT.leaf.ja,
+          node: BLOCK_TEXT.node.ja,
+          item: BLOCK_TEXT.item.ja,
+          line: BLOCK_TEXT.line.ja,
+          seal: BLOCK_TEXT.seal.ja,
+          pick: BLOCK_TEXT.pick.ja,
+          stamp: BLOCK_TEXT.stamp.ja,
+          order: BLOCK_TEXT.order.ja,
+          role: BLOCK_TEXT.role.ja,
+          legend: BLOCK_TEXT.legend.ja,
+          route: BLOCK_TEXT.route.ja,
+          queue: BLOCK_TEXT.queue.ja,
+          chain: BLOCK_TEXT.chain.ja,
+          ask: BLOCK_TEXT.ask.ja,
+          press: BLOCK_TEXT.press.ja,
         },
         kindOnly: (kind: string) => `${kind}だけ`,
         partKinds: "使える図",
@@ -415,82 +358,25 @@ export const TEXT = {
           commit: BLOCK_TEXT.commit.en,
           copy: BLOCK_TEXT.copy.en,
           merge: BLOCK_TEXT.merge.en,
-          scale: {
-            name: "Scale and needle",
-            desc: "Time diagrams only. A scale line gives the unit name, the length of one unit and the count, and lays the units out along the axis. Inside a step, now -> <unit> moves the needle at a fixed speed to the end of that unit. period adds named periods, and span adds a bracket or a box over a range.",
-          },
-          row: {
-            name: "Row of marks",
-            desc: "Time diagrams only. Declare rows from top to bottom with row lines; each unit gets a thin mark, filled once the needle passes it. Units listed in empty get an empty mark, and mark inside a step recolors marks.",
-          },
-          point: {
-            name: "Point",
-            desc: "Time diagrams only. point <id> at <unit> puts a flag circle under the marks of that unit. note inside a step changes its state and the color of the circle, and lines can join two points.",
-          },
-          zoom: {
-            name: "Zoom band",
-            desc: "Time diagrams only. A zoom line gives a range of units, laid out as columns in the band above, with the declared boxes repeated in every column. A line joins the boxes of the column in [at: <unit>]; write into to take the receiving box from another column.",
-          },
-          leaf: {
-            name: "Leaf and card",
-            desc: "Tree diagrams only. Write leaf <id> [hash: <value>] in a step and a leaf box appears in that step. A leaf with a value shows the value in the box and its id on a card below. The card is there from the first step.",
-          },
-          node: {
-            name: "Parent node",
-            desc: "Tree diagrams only. Write node <id> of <child>, <child> [hash: <value>] in a step and a parent box appears over the leaves or parents written earlier, joined to them by tree lines. A line between a parent and its child runs along the tree line. Only the root is left without a parent at the end.",
-          },
-          item: {
-            name: "Chip",
-            desc: "Lineup diagrams only. Write item <id>, <id> [color: <color>, label: <text>] before the first step to declare the chips the lanes hold. A chip with a color is filled with it, and a label of up to 4 characters sits on the chip.",
-          },
-          line: {
-            name: "Lane order",
-            desc: "Lineup diagrams only. Write line <lane>: <chip>, <chip> in a step and the chips of that lane line up in the order written. A chip that was in another lane slides over from its seat, and a chip that was nowhere pops in. A lane holds up to 12 chips.",
-          },
-          seal: {
-            name: "Seal",
-            desc: "Lineup diagrams only. Write seal <lane> in a step and a striped seal grows from the left of the lane and hides its contents. open <lane> removes the seal and brings the contents back. The order of a sealed lane cannot be written until it is opened.",
-          },
-          pick: {
-            name: "Pick",
-            desc: "Lineup diagrams only. Write pick <lane> in a step and the edge of that lane lights up while the other lanes fade. A faded lane comes back when a later step rewrites its order or picks it.",
-          },
-          stamp: {
-            name: "Stamp",
-            desc: "Lineup diagrams only. Write stamp <lane>: <text> in a step and a tilted stamp lands on the right of the lane. Use it for something that happens without touching the contents, such as a signature or an approval.",
-          },
-          order: {
-            name: "Pool",
-            desc: "Lineup diagrams only. Write box <id> [order: none] and the box becomes a pool with no order. Its chips are scattered inside a dashed frame. Other boxes become cards that stack their chips from the top in the order written.",
-          },
-          role: {
-            name: "Role",
-            desc: "Lineup diagrams only. Write role <id> [note: <text>] before the first step and a role card sits above the boxes. Write role <id> in a step and the card lights up in that step.",
-          },
-          legend: {
-            name: "Legend",
-            desc: "Lineup diagrams only. Add [note: <text>] to an item line and the legend under the diagram explains the chip. Chips with the same note share one row in the color of the first chip.",
-          },
-          route: {
-            name: "Network",
-            desc: "Try diagrams only. Write route <id>: <node> - <node>, <node> - <node> [from: <node>, to: <node>] before the first step to draw a network of nodes and lines. Name it in via of the input strip and a sent chip follows the path with the fewest nodes from from to to, and the lines it passes light up.",
-          },
-          queue: {
-            name: "Queue",
-            desc: "Try diagrams only. Write queue <id> [order: <field>] before the first step to draw a line where chips wait. With order, chips sort from the highest value of that field at the top; without it, they keep the order they came in. line <queue>: <chip>, <chip> in a step writes its contents.",
-          },
-          chain: {
-            name: "Chain",
-            desc: "Try diagrams only. Write chain <id> [edit: <field>] before the first step to draw a chain of blocks. Each block holds the previous block's hash as prev, so changing what is inside changes the hash and breaks the link. With edit, the reader can change that field of a chip inside a block.",
-          },
-          ask: {
-            name: "Input strip",
-            desc: "Try diagrams only. Write ask <field>, <field> [into: <queue>, via: <network>] before the first step and a strip with an input per field and a send button appears. When the reader types values and sends, a chip named by the first field's value enters the queue in into. ask <value>, <value> in a step sends one as the author's example.",
-          },
-          press: {
-            name: "Button",
-            desc: "Try diagrams only. Write press <id> [from: <queue>, into: <chain>, take: <count>] before the first step and a button appears. Pressing it moves the top take chips of the queue into a new block of the chain. With at it sits on that part, and without it in the input strip. press <id> in a step presses it as the author's example.",
-          },
+          scale: BLOCK_TEXT.scale.en,
+          row: BLOCK_TEXT.row.en,
+          point: BLOCK_TEXT.point.en,
+          zoom: BLOCK_TEXT.zoom.en,
+          leaf: BLOCK_TEXT.leaf.en,
+          node: BLOCK_TEXT.node.en,
+          item: BLOCK_TEXT.item.en,
+          line: BLOCK_TEXT.line.en,
+          seal: BLOCK_TEXT.seal.en,
+          pick: BLOCK_TEXT.pick.en,
+          stamp: BLOCK_TEXT.stamp.en,
+          order: BLOCK_TEXT.order.en,
+          role: BLOCK_TEXT.role.en,
+          legend: BLOCK_TEXT.legend.en,
+          route: BLOCK_TEXT.route.en,
+          queue: BLOCK_TEXT.queue.en,
+          chain: BLOCK_TEXT.chain.en,
+          ask: BLOCK_TEXT.ask.en,
+          press: BLOCK_TEXT.press.en,
         },
         kindOnly: (kind: string) => `${kind} only`,
         partKinds: "Used in",

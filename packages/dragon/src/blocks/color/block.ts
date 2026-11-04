@@ -38,7 +38,6 @@ export const block: Block<ColorMessages> = {
   rank: 87,
   attach: { how: "attach-to-box" },
   words: { attrs: { group: ["color"], box: ["color"] } },
-  shape: { definitions: { color: { enum: COLORS } } },
   read: none("色は箱と区画の行の属性で、行の頭の語を持たない。箱と区画の行を読む処理が readLook を呼ぶ"),
   print: none("色は箱と区画の行の属性で、箱と区画の宣言を書き戻す処理が color の鍵を書く"),
   messages: {

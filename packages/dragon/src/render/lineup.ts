@@ -18,22 +18,26 @@ import {
   type LineupPick,
   type LineupSeal,
   type LineupSeat,
-  type LineupText,
   splitNote,
-} from "../layout/lineup";
-import type { Point } from "../layout/scene";
-import { type Corner, EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
+} from "../kinds/lineup/layout";
+import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import { LINEUP_LOOK } from "../look/lineup";
 import type { DiagramModel } from "../schema";
 import type { Span, Timeline } from "../timeline";
-import { frameShape, partRadius } from "./corner";
+import { partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
 import { cs } from "../blocks/color/draw";
 import type { SubChange } from "../blocks/box/draw";
-import { type Ctx, cssFont as font, cssMix as mix, esc, sansOf, write } from "./parts";
-
-const r1 = (v: number): number => Math.round(v * 100) / 100;
+import { arrowPath, chip as chipOf, lines, rect } from "../blocks/item/draw";
+import { legend as legendOf } from "../blocks/legend/draw";
+import { remark, slots as slotsOf } from "../blocks/line/draw";
+import { laneFrame, poolArrow } from "../blocks/order/draw";
+import { pickMark, pickRing } from "../blocks/pick/draw";
+import { roleCard } from "../blocks/role/draw";
+import { sealCover, sealPattern } from "../blocks/seal/draw";
+import { stamp as stampOf } from "../blocks/stamp/draw";
+import { type Ctx, cssFont as font, cssMix as mix, esc, r1, sansOf, write } from "./parts";
 
 const S = LOOK.stroke;
 const X = LOOK.mix;
@@ -108,64 +112,6 @@ const without = (span: Shown, holes: Shown[]): Shown[] =>
       ),
     [span],
   );
-
-const rect = (
-  cls: string,
-  r: { x: number; y: number; w: number; h: number },
-  rx: number,
-  extra = "",
-): string =>
-  `<rect class="${cls}" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}" rx="${rx}"${extra}/>`;
-
-/** 卓の札と置き場と役の箱とその光。角を落とす色味では右上と左下を落とす (#3344) */
-const lineupFrame = (
-  corner: Corner,
-  cls: string,
-  r: { x: number; y: number; w: number; h: number },
-  rx: number,
-  extra = "",
-): string => frameShape(corner, ` class="${cls}"${extra}`, r, rect(cls, r, rx, extra));
-
-const pathOf = (points: Point[]): string =>
-  points.map(([x, y], k) => `${k === 0 ? "M" : "L"}${r1(x)} ${r1(y)}`).join("");
-
-/** 矢じりの付いた線。終わりの点で、線の向きに `head` の長さの矢じりを付ける */
-function arrowPath(points: Point[], head: number): string {
-  const end = points.at(-1) as Point;
-  const before = points.at(-2) as Point;
-  const len = Math.hypot(end[0] - before[0], end[1] - before[1]) || 1;
-  const ux = (end[0] - before[0]) / len;
-  const uy = (end[1] - before[1]) / len;
-  const wing = (side: number): Point => [
-    end[0] - ux * head - uy * head * side,
-    end[1] - uy * head + ux * head * side,
-  ];
-  return `${pathOf(points)}${pathOf([wing(1), end, wing(-1)])}`;
-}
-
-/** 折った字を 1 行ずつ描く。等幅の字で和文を含む行は、和文の字の class `wide` を足す */
-function lines(
-  ctx: Ctx,
-  cls: string,
-  t: LineupText,
-  style: TextStyle,
-  shown: Shown[] = ALWAYS,
-  wide = "",
-): string {
-  return t.lines
-    .map((l) =>
-      write(
-        ctx.ink,
-        wide !== "" && style.family === "mono" && hasWide(l.text) ? `${cls} ${wide}` : cls,
-        l.x,
-        l.baseline,
-        l.text,
-        style,
-        shown,
-      ),
-    )
-    .join("");
-}
 
 export function drawLineup(
   layout: LineupLayout,
@@ -339,30 +285,12 @@ export function drawLineup(
     return m.kf(frames);
   };
 
+  /** 席 `c` のチップ。字は封が箱を隠す間 `closed` を除いて書く。チップはチップのブロックが描く (#3348) */
   const chip = (c: LineupSeat, closed: Shown[]): string => {
     const color = items.get(c.id)?.color;
     const dim = !color && !pools.has(c.lane);
-    const frame = rect(
-      color ? "dg-ln-cc" : "dg-ln-cf",
-      c,
-      partRadius(ctx.corner, N.chip.radius),
-      ' data-lineup-chip-frame=""',
-    );
-    const glow = color ? rect("dg-ln-cg", c, partRadius(ctx.corner, N.chip.radius)) : "";
-    const shown = without(
-      [timeOf(c).start + MOTION.lineup.slide, leaving(c)?.at ?? Number.POSITIVE_INFINITY],
-      closed,
-    );
-    const text = lines(
-      ctx,
-      dim ? "dg-ln-t dg-ln-tf" : "dg-ln-t",
-      c.label,
-      TYPE.chip,
-      shown,
-      "dg-ln-tj",
-    );
-    const flags = `${color ? ' data-lineup-glow=""' : ""}${dim ? ' data-lineup-faint=""' : ""}`;
-    return `<g class="dg-popc dg-a" data-lineup-chip="${esc(c.id)}" data-lineup-on="${esc(c.lane)}" data-lineup-seat="${c.index}"${flags} style="${color ? `${cs(color)};` : ""}${chipKf(c)}">${frame}${glow}${text}</g>`;
+    const shown = without([timeOf(c).start + MOTION.lineup.slide, leaving(c)?.at ?? Number.POSITIVE_INFINITY], closed);
+    return chipOf(c, color, dim, shown, () => chipKf(c), ctx);
   };
 
   /** 選んだ箱の縁の色が見える間。次に別の箱を選ぶまで */
@@ -450,30 +378,15 @@ export function drawLineup(
 
   const lanes = layout.lanes
     .map((lane) => {
-      const dash = lane.pool ? ` stroke-dasharray="${N.dash.join(" ")}"` : "";
-      const frame = lineupFrame(
-        ctx.corner,
-        lane.pool ? "dg-ln-pool" : "dg-ln-card",
-        lane,
-        N.radius,
-        ` data-lineup-frame=""${dash}${lane.pool ? "" : ` ${ctx.sh}`}`,
-      );
+      // 枠は置き場のブロックが、縁の光は選ぶブロックが、空の席は列の並びのブロックが描く (#3348)
+      const frame = laneFrame(lane, ctx);
       const rings = layout.picks
         .filter((pick) => pick.lane === lane.id)
-        .map(
-          (pick) =>
-            `<g class="dg-a" data-lineup-ring="${esc(lane.id)}" style="${m.vis(...pickSpan(pick))}">${lineupFrame(ctx.corner, "dg-halo", lane, N.radius)}${lineupFrame(ctx.corner, "dg-on", lane, N.radius)}</g>`,
-        )
+        .map((pick) => pickRing(lane, m.vis(...pickSpan(pick)), ctx))
         .join("");
       // 空の席の枠は封の下で透けないよう、封をしている間はチップと一緒に隠す
       const sealed = hideOf(layout.seals.filter((s) => s.lane === lane.id));
-      const slotRects = lane.slots
-        .map((s) => rect("dg-ln-slot", s, partRadius(ctx.corner, N.chip.radius)))
-        .join("");
-      const slots =
-        slotRects === ""
-          ? ""
-          : `<g${sealed ? ` class="dg-a" style="${sealed}"` : ""}>${slotRects}</g>`;
+      const slots = slotsOf(lane, sealed, ctx);
       const sep =
         lane.foot === undefined
           ? ""
@@ -490,19 +403,8 @@ export function drawLineup(
     })
     .join("");
 
-  // 役の札。役が動く段にだけ縁と地に色を付ける
-  const roles = layout.roles
-    .map((role) => {
-      const lit =
-        role.steps.length === 0
-          ? ""
-          : `<g class="dg-a" data-lineup-role-ring="${esc(role.id)}" style="${during(rangesOf(role.steps))}">${lineupFrame(ctx.corner, "dg-halo", role, N.radius)}${lineupFrame(ctx.corner, "dg-ln-lit", role, N.radius)}</g>`;
-      return (
-        `<g data-lineup-role="${esc(role.id)}" style="${cs(N.role.color)}">${lineupFrame(ctx.corner, "dg-ln-role", role, N.radius, ` ${ctx.sh}`)}${lit}` +
-        `${lines(ctx, "dg-ln-rn", role.title, TYPE.roleName)}${role.note ? lines(ctx, "dg-ln-rt", role.note, TYPE.roleNote) : ""}</g>`
-      );
-    })
-    .join("");
+  // 役の札。役が動く段にだけ縁と地に色を付ける。札は役のブロックが描く (#3348)
+  const roles = layout.roles.map((role) => roleCard(role, role.steps.length === 0 ? undefined : during(rangesOf(role.steps)), ctx)).join("");
 
   // 図の題と、段ごとの題と文
   const heading = lines(ctx, "dg-ln-ft", layout.heading, TYPE.lineupTitle);
@@ -514,13 +416,8 @@ export function drawLineup(
     })
     .join("");
 
-  // 置き場と札の間の矢印
-  const arrows = layout.arrows
-    .map(
-      (a) =>
-        `<path class="dg-ln-arrow" data-lineup-arrow="" d="${arrowPath(a.points, N.arrow.head)}" style="${cs(N.role.color)}"/>`,
-    )
-    .join("");
+  // 置き場と札の間の矢印。置き場のブロックが描く (#3348)
+  const arrows = layout.arrows.map(poolArrow).join("");
 
   // 札の下の一言。札と段ごとに 1 つの部品にまとめ、line を書いた段にだけ見せる
   const remarkGroups = new Map<string, typeof layout.remarks>();
@@ -534,12 +431,7 @@ export function drawLineup(
       const span = spanOf(first.step);
       const from = Math.max(...group.map((r) => timeOf(r).drawn));
       const shown: Shown[] = [[from, span.end]];
-      const body = group
-        .map(
-          (r) =>
-            `<g${r.color ? ` style="${cs(r.color)}"` : ""}>${rect(r.color ? "dg-ln-bar" : "dg-ln-bar0", r.bar, 0)}${lines(ctx, "dg-ln-rk", r.text, TYPE.remark, shown)}</g>`,
-        )
-        .join("");
+      const body = group.map((r) => remark(r, shown, ctx)).join("");
       return `<g class="dg-a" data-lineup-remark="${esc(first.lane)}" style="${m.vis(from, span.end)}">${body}</g>`;
     })
     .join("");
@@ -566,43 +458,10 @@ export function drawLineup(
     })
     .join("");
 
-  // 凡例。説明ごとに色の枠の見本を左に置く
-  const legend =
-    layout.legend.length === 0
-      ? ""
-      : `<g data-lineup-legend="">${layout.legend
-          .map(
-            (row) =>
-              `<g data-lineup-legend-row=""${row.color ? ` style="${cs(row.color)}"` : ""}>${rect(row.color ? "dg-ln-sw" : "dg-ln-sw0", row.swatch, partRadius(ctx.corner, N.chip.radius) / 2)}${lines(ctx, "dg-ln-lg", row.text, TYPE.legend)}</g>`,
-          )
-          .join("")}</g>`;
+  // 凡例。説明ごとに色の枠の見本を左に置く。凡例のブロックが描く (#3348)
+  const legend = legendOf(layout.legend, ctx);
 
-  const stripes = N.seal.stripe;
-  const pattern = `<defs><pattern id="dg-seal-${ctx.id}" patternUnits="userSpaceOnUse" width="${stripes * 2}" height="${stripes * 2}" patternTransform="rotate(45)"><rect class="dg-ln-sl" width="${stripes * 2}" height="${stripes * 2}"/><rect class="dg-ln-sd" width="${stripes}" height="${stripes * 2}"/></pattern></defs>`;
-
-  /** 封の真ん中の錠の箱と錠と字 */
-  const lockOf = (s: LineupSeal): string => {
-    const size = Math.min(N.seal.lock, s.h - N.seal.over * 2, s.w - N.seal.over * 2);
-    const cx = s.x + s.w / 2;
-    const cy = s.y + s.h / 2;
-    const { w, h, r, rise } = N.lock;
-    const top = cy + N.seal.lockY - h / 2;
-    const shackle = `M${r1(cx - r)} ${r1(top)}v${-rise}a${r} ${r} 0 0 1 ${r * 2} 0v${rise}`;
-    const word = write(
-      ctx.ink,
-      "dg-ln-sw-t",
-      cx,
-      cy + N.seal.wordY,
-      layout.sealWord,
-      TYPE.sealWord,
-      [closedOf(s)],
-      "middle",
-    );
-    return (
-      `<g data-lineup-lock="">${rect("dg-ln-lockbox", { x: cx - size / 2, y: cy - size / 2, w: size, h: size }, partRadius(ctx.corner, N.chip.radius))}` +
-      `<path class="dg-ln-lock" d="${shackle}"/>${rect("dg-ln-lock", { x: cx - w / 2, y: top, w, h }, partRadius(ctx.corner, N.chip.radius) / 2)}</g>${word}`
-    );
-  };
+  const pattern = sealPattern(ctx);
 
   const chips = layout.lanes
     .map((lane) => {
@@ -614,49 +473,18 @@ export function drawLineup(
         .join("");
       const hide = hideOf(seals);
       const track = `<g${hide ? ' class="dg-a"' : ""} data-lineup-track="${esc(lane.id)}"${hide ? ` style="${hide}"` : ""}>${seats}</g>`;
-      const covers = seals
-        .map(
-          (s) =>
-            `<g class="dg-ln-seal dg-a" data-lineup-seal="${esc(lane.id)}" style="${sealKf(s)}">${rect("dg-ln-sealbg", s, partRadius(ctx.corner, N.seal.radius), ` fill="url(#dg-seal-${ctx.id})"`)}${lockOf(s)}</g>`,
-        )
-        .join("");
+      // 封は封のブロックが、札は札のブロックが、頭の印は選ぶブロックが描く (#3348)
+      const covers = seals.map((s) => sealCover(s, lane.id, sealKf(s), layout.sealWord, closedOf(s), ctx)).join("");
       const stamps = layout.stamps
         .filter((s) => s.lane === lane.id)
-        .map((s) => {
-          const at = timeOf(s).start;
-          const cx = s.x + s.w / 2;
-          const cy = s.y + s.h / 2;
-          const text = write(
-            ctx.ink,
-            "dg-ln-st",
-            cx,
-            cy + LOOK.baseline.tag,
-            s.text,
-            TYPE.stamp,
-            [[at, Number.POSITIVE_INFINITY]],
-            "middle",
-          );
-          return `<g class="dg-popc dg-a" data-lineup-stamp="${esc(lane.id)}" style="${cs(N.stamp.color)};${m.pop(at)}"><g transform="rotate(${N.stamp.tilt} ${r1(cx)} ${r1(cy)})">${rect("dg-ln-stamp", s, partRadius(ctx.corner, N.stamp.radius))}${text}</g></g>`;
-        })
+        .map((s) => stampOf(s, lane.id, timeOf(s).start, ctx))
         .join("");
       const marks = layout.marks
         .filter((mark) => mark.lane === lane.id)
         .map((mark) => {
-          const pick = layout.picks.find(
-            (p) => p.step === mark.step && p.event === mark.event,
-          ) as LineupPick;
+          const pick = layout.picks.find((p) => p.step === mark.step && p.event === mark.event) as LineupPick;
           const [a, b] = pickSpan(pick);
-          const text = write(
-            ctx.ink,
-            "dg-ln-mt",
-            mark.x + mark.w / 2,
-            mark.y + mark.h / 2 + LOOK.baseline.tag,
-            mark.text,
-            TYPE.laneMark,
-            [[a, b]],
-            "middle",
-          );
-          return `<g class="dg-a" data-lineup-mark="${esc(lane.id)}" style="${cs(N.mark.color)};${m.vis(a, b)}">${rect("dg-ln-mark", mark, partRadius(ctx.corner, N.chip.radius))}${text}</g>`;
+          return pickMark(mark, lane.id, a, b, ctx);
         })
         .join("");
       const fade = faded.get(lane.id);

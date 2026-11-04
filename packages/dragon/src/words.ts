@@ -20,9 +20,15 @@ import { COPY } from "./blocks/copy/block";
 import { SIDES } from "./blocks/edge-label/block";
 import type { GROUP_HEADS } from "./blocks/group/block";
 import { BLOCKS } from "./blocks/index";
+import { LABEL_MOST } from "./blocks/item/block";
+import { LANE_MOST } from "./blocks/line/block";
+import { AT } from "./blocks/point/block";
+import { DURATION_UNITS, NOW, SPAN_SHAPES } from "./blocks/scale/block";
 import { MERGE } from "./blocks/merge/block";
+import { OF } from "./blocks/node/block";
 import { STATE_ENDS, type StateEnd } from "./blocks/start-finish/block";
 import { VIEWS } from "./blocks/step/block";
+import { TIME_EDGE_ATTRS } from "./blocks/zoom/block";
 import type { Diagram } from "./schema";
 
 export type NotationLang = "ja" | "en";
@@ -45,65 +51,25 @@ export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true,
 export { STATE_ENDS, type StateEnd };
 
 /**
- * 時間軸の図 (`time`、#3165) だけが書ける行の頭の語。目盛り、区切り、印の列、節目、拡大の範囲を最初の段より前に宣言し、
- * 段の中で印の色を変え (`mark`)、範囲に括弧か囲みを出す (`span`)
+ * 時間軸の図 (`time`、#3165) で針を進める行 (`now -> <目盛り>`) の送る側の名前。線の行と同じ形なので行の頭の語に入れない。
+ * 時間軸の図では名札に使えず、ほかの図では普通の名札のまま。目盛りと針のブロックが持つ (#3348)
  */
-export const TIME_HEADS = ["scale", "period", "row", "point", "zoom", "mark", "span"] as const;
-/**
- * 時間軸の図で針を進める行 (`now -> <目盛り>`) の送る側の名前。線の行と同じ形なので行の頭の語に入れない。
- * 時間軸の図では名札に使えず、ほかの図では普通の名札のまま
- */
-export const NOW = "now";
+export { NOW };
 
-/**
- * 木の図 (`tree`、#3233) だけが書ける行の頭の語。段の中で葉を出し (`leaf`)、1 つ以上の子から親を組む (`node`)
- */
-export const TREE_HEADS = ["leaf", "node"] as const;
-
-/**
- * 列の図 (`lineup`、#3239) だけが書ける行の頭の語。最初の段より前にチップを宣言し (`item`)、
- * 段の中で列の並びを書き (`line`)、封をして開け (`seal` と `open`)、列を選び (`pick`)、札を押す (`stamp`)。
- * `role` は最初の段より前に書けば役を宣言し、段の中に書けばその段で動く役を名指す (#3351)
- */
-export const LINEUP_HEADS = ["item", "line", "seal", "open", "pick", "stamp", "role"] as const;
-/**
- * 試す図 (`try`、#3337) だけが書ける行の頭の語。最初の段より前に部品を上から積む順に書く。
- * 網 (`route`)、待ち行列 (`queue`)、機械の列 (`chain`) は宣言だけの行で、入力の帯 (`ask`) と釦 (`press`) は段の中に書くと書き手の例として送って押す。
- * チップの `item` と並びの `line` は列の図と同じ語で、試す図ではチップの欄の値と部品の中身を書く
- */
-export const TRY_HEADS = ["route", "queue", "chain", "ask", "press"] as const;
-/** 試す図でも書ける列の図の語。試す図と列の図のどちらでもない図では、列の図の語と同じく断る */
-export const TRY_SHARED_HEADS = ["item", "line"] as const;
-
-/** 1 列に並べられるチップの上限。図の幅はこの枚数の列の幅で決まる */
-export const LANE_MOST = 12;
-/** チップの字の上限 */
-export const LABEL_MOST = 4;
+/** 1 列に並べられるチップの上限は列の並びのブロックが、チップの字の上限はチップのブロックが持つ (#3239、#3348) */
+export { LABEL_MOST, LANE_MOST };
 
 /** ブロックの並び (`rank`) の順のブロック */
 const RANKED = ranked(BLOCKS);
-
-/**
- * ブロックの置き場へ移していない行の頭の語と、その並びの番号。番号はブロックの並び (`rank`) と同じ物差しで、
- * 行の頭の語の一覧は、この語とブロックの語を番号の小さい順に並べる (同じ番号の中は書いた順)
- */
-const LATER_HEADS = [
-  [90, [...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS, ...TRY_HEADS]],
-] as const;
-/** 行の頭の語のうち、型で名指せる語 (移していない語と区画の語) */
-type Head = (typeof LATER_HEADS)[number][1][number] | (typeof GROUP_HEADS)[number];
 
 /**
  * 最初の行より後の行の頭の語。線の行だけは箱の名札から始まる。
  * `branch` と `commit` は枝分かれの図 (`git`) だけが書け (#3164)、枝と commit のブロックが持つ (#3347)。段の出典の `source` は出典のブロックが持つ (#3199、#3345)。
  * ブロックの語は、`words.headRanks` に番号を書いた語はその番号で、ほかはブロックの並びの番号で並べる
  */
-export const HEADS: readonly string[] = [
-  ...LATER_HEADS,
-  ...RANKED.flatMap((block) => (block.words.heads ?? []).map((head) => [block.words.headRanks?.[head] ?? block.rank, [head]] as const)),
-]
+export const HEADS: readonly string[] = RANKED.flatMap((block) => (block.words.heads ?? []).map((head) => [block.words.headRanks?.[head] ?? block.rank, head] as const))
   .sort(([a], [b]) => a - b)
-  .flatMap(([, heads]) => heads);
+  .map(([, head]) => head);
 
 /**
  * 枝分かれの図 (#3164) の `commit` の行で、積む枝、当て直しの元、取り込む枝を続ける語 (`commit <名札> on <枝> copy <commit>`)、
@@ -113,66 +79,32 @@ export { COPY, FROM, HEAD, MERGE, ON };
 /** 枝分かれの図の行の中の語のうち、行の頭の語でも属性でもない語。見本帳の部品が受け持つ語に数える (`on` は commit の行に必ず書くので数えない) */
 export const GIT_WORDS = [FROM, COPY, MERGE] as const;
 
-/** 時間軸の図の節目の行で、節目を置く目盛りを続ける語 (`point <名札> at <目盛り>`)。必ず書くので部品の語に数えない */
-export const AT = "at";
+/** 時間軸の図の節目の行で、節目を置く目盛りを続ける語 (`point <名札> at <目盛り>`)。節目のブロックが持つ (#3348) */
+export { AT };
 
-/** 木の図の `node` の行で、親の名札の後ろに子を続ける語 (`node <名札> of <子>, <子>`)。必ず書くので部品の語に数えない */
-export const OF = "of";
+/** 木の図の `node` の行で、親の名札の後ろに子を続ける語 (`node <名札> of <子>, <子>`)。組んだ親のブロックが持つ (#3348) */
+export { OF };
 
-/**
- * ブロックの置き場へ移していない行の属性の鍵と、その並びの番号。番号は行の頭の語と同じ物差しで、
- * 1 つの行の鍵は、この鍵とブロックの鍵 (ブロックの並びの番号) を番号の小さい順に並べる (同じ番号の中は書いた順)。
- * 同じ行にブロックの鍵が混ざる行は、鍵ごとにその鍵を読む行のブロックの番号を置き、混ぜても鍵の並びを変えない
- */
-const LATER_ATTRS = [
-  [
-    90,
-    {
-      box: ["order"],
-      edge: ["at", "into"],
-      note: ["color"],
-      leaf: ["hash"],
-      node: ["hash"],
-      item: ["color", "label", "note"],
-      role: ["note"],
-      scale: ["from"],
-      period: ["from"],
-      row: ["color", "empty"],
-      mark: ["color"],
-      span: ["shape", "color"],
-      route: ["from", "to"],
-      queue: ["order"],
-      chain: ["edit"],
-      ask: ["into", "via"],
-      press: ["from", "into", "take", "at"],
-    },
-  ],
-] as const;
-
-/** 移していない行の名前 */
-type LaterLine = (typeof LATER_ATTRS)[number][1] extends infer L ? (L extends unknown ? keyof L : never) : never;
-/** 属性の鍵の表の型。ブロックだけが持つ行は、行の名前の字で引く */
-type Attrs = Readonly<Record<LaterLine, readonly string[]>> & Readonly<Record<string, readonly string[]>>;
+/** 属性の鍵の表の型。鍵は行の頭の語で、線の行は `edge` */
+type Attrs = Readonly<Record<string, readonly string[]>>;
 
 /**
  * 行ごとに書ける属性の鍵。線の `at` と `into`、`note` の `color`、中身の帯の欄の `meter` は時間軸の図だけが書ける (#3165)。
  * `meter` は `strip` の行の欄ごとに、欄の名前の後ろに書く (`strip <題>: <欄> [meter: <割合>]`)
  * 箱の `link` は飛び先、段の出典の `url` は出典の在り処 (#3199)。
- * ブロックが持つ鍵と移していない鍵は、並びの番号の小さい順に並べる (#3345)
+ * 鍵は全てブロックが持ち、並びの番号の小さい順に並べる (#3345、#3348)
  */
 export const ATTRS: Attrs = (() => {
-  const entries: (readonly [number, Readonly<Record<string, readonly string[]>>])[] = [...LATER_ATTRS, ...RANKED.map((block) => [block.rank, block.words.attrs ?? {}] as const)];
   const all: Record<string, readonly string[]> = {};
-  for (const [, lines] of entries.sort(([a], [b]) => a - b)) for (const [line, keys] of Object.entries(lines)) all[line] = [...(all[line] ?? []), ...keys];
-  return all as Attrs;
+  for (const block of RANKED) for (const [line, keys] of Object.entries(block.words.attrs ?? {})) all[line] = [...(all[line] ?? []), ...keys];
+  return all;
 })();
 
-/** 線の属性のうち、時間軸の図だけが書ける鍵 */
-export const TIME_EDGE_ATTRS = ["at", "into"] as const;
-/** `span` の行の `shape` に書ける形。書かなければ括弧 */
-export const SPAN_SHAPES = ["box"] as const;
-/** 時間軸の図の目盛りの長さに書ける単位 */
-export const DURATION_UNITS = ["ms", "s", "min", "h", "d"] as const;
+/**
+ * 線の属性のうち時間軸の図だけが書ける鍵は拡大の帯のブロックが、`span` の行の `shape` に書ける形と目盛りの長さに書ける単位は
+ * 目盛りと針のブロックが持つ (#3348)
+ */
+export { DURATION_UNITS, SPAN_SHAPES, TIME_EDGE_ATTRS };
 
 /** `carry` に書ける運ぶ物は運ぶ物のブロック、`side` に書ける側は線の名前のブロック、`view` に書ける見せ方は段のブロックが持つ (#3345) */
 export { CARRIES, SIDES, VIEWS };
@@ -188,4 +120,4 @@ export const OLD_HEADS = {
   見せ方: "view",
   region: "group",
   view: "view",
-} as const satisfies Record<string, Diagram["kind"] | Head | "view">;
+} as const satisfies Record<string, Diagram["kind"] | (typeof GROUP_HEADS)[number] | "view">;

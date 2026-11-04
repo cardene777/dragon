@@ -16,16 +16,15 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * カタログの部品の名札と図の種類。部品の図の記法の file (`src/catalog/parts/<名札>.<図の種類>.dragon`) の名前から引く。
+ * カタログの部品の名札と図の種類。部品の図の記法の file (`packages/dragon/src/blocks/<名前>/gallery/<名札>.<図の種類>.dragon`) の名前から引く。
  * file は部品の表 (`src/catalog/parts.ts` の `PARTS`) の部品と、その部品を描ける図の種類ごとにあり、過不足を頁の検査が数える (#3166)。
  * どの図でも使う部品は全ての図の種類の file を持つので、file の名前の図の種類はカタログの分類を全て含む (#3163)。
- * ブロックの置き場へ移した部品の図 (`packages/dragon/src/blocks/<名前>/gallery/`) も同じ名前の形で数える (#3345)
+ * 部品の図は全てブロックの置き場に在る (#3345、#3348)
  */
 const BLOCKS = resolve(__dirname, "../../../packages/dragon/src/blocks");
-const FIGURE_DIRS = [
-  resolve(__dirname, "..", "src/catalog/parts"),
-  ...(existsSync(BLOCKS) ? readdirSync(BLOCKS).map((name) => resolve(BLOCKS, name, "gallery")) : []).filter((dir) => existsSync(dir)),
-];
+const FIGURE_DIRS = readdirSync(BLOCKS)
+  .map((name) => resolve(BLOCKS, name, "gallery"))
+  .filter((dir) => existsSync(dir));
 const SNIPPETS = FIGURE_DIRS.flatMap((dir) => readdirSync(dir).filter((name) => name.endsWith(".dragon"))).sort();
 const PART_IDS = [...new Set(SNIPPETS.map((name) => name.split(".")[0]))];
 const KINDS = [...new Set(SNIPPETS.map((name) => name.split(".")[1]))];

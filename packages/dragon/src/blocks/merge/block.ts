@@ -33,7 +33,6 @@ export const block: Block<MergeMessages> = {
   rank: 8,
   attach: { how: "connect", only: "git" },
   words: {},
-  shape: none("取り込む枝は commit の出来事の merge の欄で、commit のブロックの形が持つ"),
   read: none("merge の語は commit の行の中に書くので、commit のブロックが commit の行と一緒に読み、取り込む枝を mergedAt で確かめる"),
   print: none("merge の語は commit の行の中に書くので、commit のブロックが commit の行と一緒に書く"),
   messages: {

@@ -23,7 +23,7 @@ import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
-import type { TryLayout } from "./layout/try";
+import type { TryLayout } from "./kinds/try/layout";
 import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
 import { partRadius } from "./render/corner";
 import {

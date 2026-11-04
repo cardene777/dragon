@@ -3,7 +3,7 @@
  *
  * 見本の正は `packages/dragon/examples/order.dragon` で、題と図の形はその file を読んで取る。頁の側の見本の表は読まない。
  * 状態遷移図だけの部品は「始まりと終わり」(`start-finish`) と「通らない道」(`side-path`) の 2 つで、
- * 部品の図は `catalog/parts/<名札>.state.dragon` と英語の `.en.dragon` の記法の file。
+ * 部品の図は `packages/dragon/src/blocks/<名札>/gallery/<名札>.state.dragon` と英語の `.en.dragon` の記法の file。
  * 状態遷移図の分類と部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
 import { existsSync, readFileSync } from "node:fs";

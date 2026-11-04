@@ -23,21 +23,16 @@ export const EXAMPLES = join(here, "../examples");
 export const FIXTURES = join(here, "../test/fixtures");
 export const OUT = join(FIXTURES, "examples-svg.json");
 /**
- * 見本帳の部品の図。全ての部品を、その部品を描ける全ての図の種類で描くので、作り直しの範囲を最も広く覆う。
- * ブロックの置き場へ移しても同じ鍵で引けるよう、鍵は `parts/<file の名前>` にする
+ * 見本帳の部品の図の置き場 (ブロックの置き場)。全ての部品を、その部品を描ける全ての図の種類で描くので、作り直しの範囲を最も広く覆う。
+ * 部品の図は全て `<名前>/gallery/` に在り (#3345、#3348)、鍵は前の置き場と同じ `parts/<file の名前>` にする
  */
-export const PART_FIGURES = join(here, "../../../apps/playground-spa/src/catalog/parts");
-/** ブロックの置き場。置き場へ移した部品の図は `<名前>/gallery/` に在り、今の置き場の部品の図と同じ鍵で引く */
 export const BLOCK_FOLDERS = join(here, "../src/blocks");
 
-/** 部品の図の鍵 (`parts/<file の名前>`) と path。今の置き場とブロックの見本帳の分から集め、鍵の順に並べる */
+/** 部品の図の鍵 (`parts/<file の名前>`) と path。ブロックの見本帳の分から集め、鍵の順に並べる */
 function partFigures() {
-  const galleries = existsSync(BLOCK_FOLDERS)
-    ? readdirSync(BLOCK_FOLDERS)
-        .map((name) => join(BLOCK_FOLDERS, name, "gallery"))
-        .filter((dir) => existsSync(dir))
-    : [];
-  return [PART_FIGURES, ...galleries]
+  return readdirSync(BLOCK_FOLDERS)
+    .map((name) => join(BLOCK_FOLDERS, name, "gallery"))
+    .filter((dir) => existsSync(dir))
     .flatMap((dir) =>
       readdirSync(dir)
         .filter((file) => file.endsWith(".dragon"))

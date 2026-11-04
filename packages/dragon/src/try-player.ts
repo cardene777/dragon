@@ -12,8 +12,8 @@
  * この file は試す図の描く部品と同じ塊 (`kinds/try.ts`) に入り、軽い入口では試す図を読んだ時に届く。
  * 再生の部品は試す図を描けた後にだけ操作を置くので、操作を置く時には塊が届いている。見た目は操作を置く時に頁へ 1 度だけ入れる。
  */
-import { textWidth } from "./layout/measure";
-import type { TryLayout } from "./layout/try";
+import { pressSpot } from "./blocks/press/draw";
+import type { TryLayout } from "./kinds/try/layout";
 import { TRY_LOOK } from "./look/try";
 import { LOOK, TYPE } from "./look/values";
 import { cssFont as font } from "./render/parts";
@@ -223,20 +223,9 @@ export function mountTryControls(
     say();
   };
 
-  /** 部品の題の右の、図の上の釦を置く所 (図の座標)。題を持たない部品は `undefined` */
-  const spotOf = (part: string): { x: number; y: number } | undefined => {
-    const title = [...current.routes, ...current.queues, ...current.chains].find(
-      (p) => p.id === part,
-    )?.title;
-    if (!title) return undefined;
-    return {
-      x: title.x + textWidth(title.text, TYPE.tryTitle),
-      y: title.baseline - TYPE.tryTitle.size * LOOK.player.ask.mid,
-    };
-  };
   /** 釦を置く図の上の所。図の上に置かない釦 (置き場を書かない釦、題を持たない部品に置く釦、帯へ移した釦) は `undefined` */
   const spotFor = (p: Part<"press">): { x: number; y: number } | undefined =>
-    over && p.at !== undefined ? spotOf(p.at) : undefined;
+    over && p.at !== undefined ? pressSpot(current, p.at) : undefined;
   /** 図の上の釦を、置き場の部品の題の右に置く。置き場所は描き直すと変わりうるので、描き直すたびに決め直す */
   const position = (): void => {
     for (const p of presses) {

@@ -3,7 +3,7 @@
  *
  * 見本の正は `packages/dragon/examples/rebase.dragon` と `merge.dragon` で、題と図の形はその file を読んで取る。頁の側の見本の表は読まない。
  * 枝分かれの図だけの部品は、枝 (`branch`)、commit (`commit`)、当て直し (`copy`)、merge commit (`merge`) の 4 つで、
- * 部品の図は `catalog/parts/<名札>.git.dragon` と英語の `.en.dragon` の記法の file。札の動きは共通の線の部品が受け持つ。
+ * 部品の図は `packages/dragon/src/blocks/<名札>/gallery/<名札>.git.dragon` と英語の `.en.dragon` の記法の file。札の動きは共通の線の部品が受け持つ。
  * 枝分かれの図の分類と部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
 import { existsSync, readFileSync } from "node:fs";

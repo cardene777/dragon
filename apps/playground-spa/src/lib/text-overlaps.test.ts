@@ -38,7 +38,7 @@ function draw(dir: string, file: string, palette?: string): Rendered {
   return renderDiagram(parsed.diagram, options);
 }
 
-/** 部品の図を描く。ブロックの置き場へ移した部品の図も、今の置き場と同じ名前で引く (#3345) */
+/** 部品の図を描く。部品の図はブロックの置き場の見本帳の分に在り、file の名前で引く (#3345、#3348) */
 const drawPart = (file: string, palette?: string): Rendered =>
   draw(dirname(partFigure(file)), file, palette);
 

@@ -70,26 +70,6 @@ export const block: Block<EdgeMessages> = {
   rank: 82,
   attach: { how: "connect" },
   words: {},
-  shape: {
-    events: {
-      edge: {
-        description: "線。運ぶ物を載せて送る側から受ける側へ走る",
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "from", "to", "carry"],
-        properties: {
-          type: { const: "edge" },
-          from: { $ref: "#/definitions/id" },
-          to: { $ref: "#/definitions/id" },
-          label: { $ref: "#/definitions/text" },
-          carry: { $ref: "#/definitions/carry" },
-          labelSide: { description: "線の名前を置く側 (寄せの指示)", enum: ["above", "below", "left", "right"] },
-          at: { description: "時間軸の図の拡大の帯で、線を引く列の目盛り", $ref: "#/definitions/unit" },
-          into: { description: "時間軸の図の拡大の帯で、受ける箱を選ぶ列の目盛り。書かなければ at の列", $ref: "#/definitions/unit" },
-        },
-      },
-    },
-  },
   read: none("線の行は行の頭の語を持たない。名札の次に -> が来る行を parser が見分けて readEdgeLine を呼ぶ"),
   print: {
     events: {

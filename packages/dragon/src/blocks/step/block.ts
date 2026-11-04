@@ -79,29 +79,9 @@ function readSay(source: SourceLine, state: ParseState, after: (offset: number) 
 export const block: Block<StepMessages> = {
   name: "step",
   rank: 40,
-  attach: { how: "attach-to-figure" },
+  // 試す図は置いた時に書き手の最初の段だけを描いて待つので、段を送って見せる部品に数えない (#3337)
+  attach: { how: "attach-to-figure", except: ["try"] },
   words: { heads: ["step", "say", "code"], attrs: { diagram: ["view"] } },
-  shape: {
-    definitions: {
-      step: {
-        type: "object",
-        additionalProperties: false,
-        required: ["title", "body", "events"],
-        properties: {
-          title: { $ref: "#/definitions/text" },
-          body: { $ref: "#/definitions/text" },
-          code: { $ref: "#/definitions/text" },
-          sources: {
-            description: "段の出典。読み上げの段の一覧に、名前を URL への link にして書いた順に出す",
-            type: "array",
-            minItems: 1,
-            items: { $ref: "#/definitions/source" },
-          },
-          events: { type: "array", items: { $ref: "#/definitions/event" } },
-        },
-      },
-    },
-  },
   read: {
     // 前の段を閉じてから、題を確かめて次の段を書き始める
     step: (source, state) => {
