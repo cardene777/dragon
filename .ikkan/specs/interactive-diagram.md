@@ -28,3 +28,9 @@
 | 使い方の頁、2つのREADME、日本語と英語の手引きに新しい種類の書き方が載る | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`docs-describe-interactive-kind`が通る | #3337 |
 | `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに新しい種類と語が載る | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`changelog-lists-interactive-kind`が通る | #3337 |
 | 今の図の描き方、見本、部品の頁、文字の重なり、値の表、頁の大きさの検査が通る | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/look.test.ts apps/playground-spa/src/lib/catalog-parts.test.ts apps/playground-spa/src/lib/text-overlaps.test.ts apps/playground-spa/src/lib/playground.test.ts`の検査`auction-renders-7-steps`と`every-dragon-file-parses`と`renderers-read-values-from-one-table`と`catalog-parts-cover-every-word`と`overlaps-none-in-every-example`と`page-bundle-within-budget`が通る | #3337 |
+| `packages/dragon/examples/tx-block.dragon` を枠324pxで描く時、全体の見せ方 (`fixed`) になり、箱の名前の字が 10.5px 以上 | `pnpm exec vitest run --reporter=verbose`の検査`try-narrow-fixed-readable`が通る | #3366 |
+| 同じ枠で描く時、ブロックの鎖のブロック 2 がブロック 1 の下に置かれる | `pnpm exec vitest run --reporter=verbose`の検査`try-narrow-stacks-blocks`が通る | #3366 |
+| 同じ枠で描く時、ノードの網の全てのノードと名前が枠の中に入る | `pnpm exec vitest run --reporter=verbose`の検査`try-narrow-route-fits`が通る | #3366 |
+| 同じ枠で値を送ってブロックを作った後も、全体の見せ方のまま、作ったブロックが枠の中に入る | `pnpm exec vitest run --reporter=verbose`の検査`try-narrow-new-block-fits`が通る | #3366 |
+| 枠880pxで描く時、今と同じく網と待ち行列とブロックの鎖を横に広げる並べ方になる | `pnpm exec vitest run --reporter=verbose`の検査`try-wide-keeps-layout`が通る | #3366 |
+| 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3366 |
