@@ -27,38 +27,53 @@ const PACKAGE = join(root, "packages/dragon/examples");
 
 const langOf = (file: string): "ja" | "en" => (/\.en\.(dragon|json)$/.test(file) ? "en" : "ja");
 
-function draw(dir: string, file: string): Rendered {
+/** 見本を描く。`palette` を渡さなければ既定の色味で描く */
+function draw(dir: string, file: string, palette?: string): Rendered {
   const text = readFileSync(join(dir, file), "utf8");
-  const lang = langOf(file);
-  if (file.endsWith(".json")) return renderDiagram(JSON.parse(text), { lang });
-  const parsed = parseNotation(text, { lang });
-  if (!parsed.ok) throw new Error(`${file} を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
-  return renderDiagram(parsed.diagram, { lang });
+  const options = { lang: langOf(file), ...(palette ? { palette } : {}) };
+  if (file.endsWith(".json")) return renderDiagram(JSON.parse(text), options);
+  const parsed = parseNotation(text, { lang: options.lang });
+  if (!parsed.ok)
+    throw new Error(`${file} を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
+  return renderDiagram(parsed.diagram, options);
 }
 
 /** 部品の図を描く。ブロックの置き場へ移した部品の図も、今の置き場と同じ名前で引く (#3345) */
-const drawPart = (file: string): Rendered => draw(dirname(partFigure(file)), file);
+const drawPart = (file: string, palette?: string): Rendered =>
+  draw(dirname(partFigure(file)), file, palette);
 
-function examples(): Example[] {
+function examples(palette?: string): Example[] {
   const out: Example[] = [];
-  for (const file of partFigureNames()) out.push({ name: `catalog/parts/${file}`, rendered: drawPart(file) });
+  for (const file of partFigureNames())
+    out.push({ name: `catalog/parts/${file}`, rendered: drawPart(file, palette) });
   const dirs: [string, string, RegExp][] = [
     ["docs/examples", DOCS, /\.(dragon|json)$/],
     ["examples", PACKAGE, /\.(dragon|json)$/],
   ];
   for (const [label, dir, pattern] of dirs) {
-    for (const file of readdirSync(dir).filter((f) => pattern.test(f)).sort()) out.push({ name: `${label}/${file}`, rendered: draw(dir, file) });
+    for (const file of readdirSync(dir)
+      .filter((f) => pattern.test(f))
+      .sort())
+      out.push({ name: `${label}/${file}`, rendered: draw(dir, file, palette) });
   }
   return out;
 }
 
-type Found = { kind?: string; step: number; texts?: [string, string]; text?: string; line?: { from: string; to: string } };
+type Found = {
+  kind?: string;
+  step: number;
+  texts?: [string, string];
+  text?: string;
+  line?: { from: string; to: string };
+};
 
 /** 見本ごとの重なりを 1 件 1 行にする。線が字を横切る所は、線の両端の名前で書く。 */
 function overlapReport(list: Example[]): string[] {
   return list.flatMap(({ name, rendered }) =>
     (rendered.overlaps as Found[]).map((o) =>
-      o.kind === "line" && o.line ? `${name} 段 ${o.step + 1}: ${o.text ?? ""} × 線 ${o.line.from} → ${o.line.to}` : `${name} 段 ${o.step + 1}: ${o.texts?.[0] ?? ""} × ${o.texts?.[1] ?? ""}`,
+      o.kind === "line" && o.line
+        ? `${name} 段 ${o.step + 1}: ${o.text ?? ""} × 線 ${o.line.from} → ${o.line.to}`
+        : `${name} 段 ${o.step + 1}: ${o.texts?.[0] ?? ""} × ${o.texts?.[1] ?? ""}`,
     ),
   );
 }
@@ -72,7 +87,8 @@ function crosses(rect: Rect, points: Point[]): boolean {
     for (let k = 0; k <= n; k++) {
       const x = ax + ((bx - ax) * k) / n;
       const y = ay + ((by - ay) * k) / n;
-      if (x > rect.x + 1 && x < rect.x + rect.w - 1 && y > rect.y + 1 && y < rect.y + rect.h - 1) return true;
+      if (x > rect.x + 1 && x < rect.x + rect.w - 1 && y > rect.y + 1 && y < rect.y + rect.h - 1)
+        return true;
     }
   }
   return false;
@@ -92,7 +108,10 @@ function distanceToLine(p: Point, points: Point[]): number {
     const [ax, ay] = points[i - 1] as Point;
     const [bx, by] = points[i] as Point;
     const len2 = (bx - ax) ** 2 + (by - ay) ** 2;
-    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - ax) * (bx - ax) + (p[1] - ay) * (by - ay)) / len2));
+    const t =
+      len2 === 0
+        ? 0
+        : Math.max(0, Math.min(1, ((p[0] - ax) * (bx - ax) + (p[1] - ay) * (by - ay)) / len2));
     best = Math.min(best, Math.hypot(p[0] - (ax + t * (bx - ax)), p[1] - (ay + t * (by - ay))));
   }
   return best;
@@ -102,10 +121,16 @@ describe("見本の字が重ならない (#3175)", () => {
   it("state-side-label-clear-of-step-labels", () => {
     for (const file of ["state.dragon", "state.en.dragon"]) {
       const { layout } = draw(DOCS, file);
-      const cancel = layout.paths.flatMap((p) => (p.label ? [p.label] : [])).find((l) => l.text === "取り消す" || l.text === "Cancel");
+      const cancel = layout.paths
+        .flatMap((p) => (p.label ? [p.label] : []))
+        .find((l) => l.text === "取り消す" || l.text === "Cancel");
       expect(cancel, `${file} に通らない道の名前が無い`).toBeDefined();
       if (!cancel) continue;
-      for (const label of layout.labels) expect(gap(cancel, label), `${file} の「${cancel.text}」が「${label.text}」に重なる`).toBeGreaterThan(0);
+      for (const label of layout.labels)
+        expect(
+          gap(cancel, label),
+          `${file} の「${cancel.text}」が「${label.text}」に重なる`,
+        ).toBeGreaterThan(0);
     }
   });
 
@@ -113,15 +138,25 @@ describe("見本の字が重ならない (#3175)", () => {
     for (const file of ["state.dragon", "state.en.dragon"]) {
       const { layout } = draw(DOCS, file);
       const start = layout.labels.find((l) => l.text === "注文を確定" || l.text === "Place order");
-      const side = layout.paths.find((p) => p.label?.text === "取り消す" || p.label?.text === "Cancel");
+      const side = layout.paths.find(
+        (p) => p.label?.text === "取り消す" || p.label?.text === "Cancel",
+      );
       expect(start && side, `${file} に始まりの線の名前か通らない道が無い`).toBeTruthy();
       if (!start || !side) continue;
-      expect(crosses(start, side.points), `${file} の「${start.text}」を通らない道の点線が横切る`).toBe(false);
+      expect(
+        crosses(start, side.points),
+        `${file} の「${start.text}」を通らない道の点線が横切る`,
+      ).toBe(false);
     }
   });
 
   it("repeated-line-badges-share-one-spot", () => {
-    for (const file of ["carry.architecture.dragon", "carry.architecture.en.dragon", "carry.state.dragon", "carry.state.en.dragon"]) {
+    for (const file of [
+      "carry.architecture.dragon",
+      "carry.architecture.en.dragon",
+      "carry.state.dragon",
+      "carry.state.en.dragon",
+    ]) {
       const { layout } = drawPart(file);
       const lineOf = (step: number) => layout.edges.find((e) => e.step === step);
       let compared = 0;
@@ -132,8 +167,14 @@ describe("見本の字が重ならない (#3175)", () => {
           const eb = lineOf(b.step);
           if (!ea || !eb || ea.from !== eb.from || ea.to !== eb.to) continue;
           compared++;
-          expect(Math.hypot(b.x - a.x, b.y - a.y), `${file} の段の番号 ${b.step + 1} が、同じ線を通る段の番号 ${a.step + 1} と別の所に在る`).toBeLessThanOrEqual(0.5);
-          expect(distanceToLine([b.x, b.y], eb.points), `${file} の段の番号 ${b.step + 1} が線の上に無い`).toBeLessThanOrEqual(0.5);
+          expect(
+            Math.hypot(b.x - a.x, b.y - a.y),
+            `${file} の段の番号 ${b.step + 1} が、同じ線を通る段の番号 ${a.step + 1} と別の所に在る`,
+          ).toBeLessThanOrEqual(0.5);
+          expect(
+            distanceToLine([b.x, b.y], eb.points),
+            `${file} の段の番号 ${b.step + 1} が線の上に無い`,
+          ).toBeLessThanOrEqual(0.5);
         }
       }
       expect(compared, `${file} に同じ線を 2 つの段で通る組が無い`).toBeGreaterThan(0);
@@ -144,7 +185,8 @@ describe("見本の字が重ならない (#3175)", () => {
     for (const file of ["carry.state.dragon", "carry.state.en.dragon"]) {
       const { layout } = drawPart(file);
       layout.labels.forEach((a, i) => {
-        for (const b of layout.labels.slice(i + 1)) expect(gap(a, b), `${file} の「${a.text}」と「${b.text}」が重なる`).toBeGreaterThan(0);
+        for (const b of layout.labels.slice(i + 1))
+          expect(gap(a, b), `${file} の「${a.text}」と「${b.text}」が重なる`).toBeGreaterThan(0);
       });
     }
   });
@@ -155,17 +197,38 @@ describe("見本の字が重ならない (#3175)", () => {
     expect(overlapReport(list)).toEqual([]);
   });
 
+  // arcade は角を落とすだけで置き場所を変えないため、同じ見本を arcade で描いても字が重ならない (#3344)
+  it("overlaps-none-with-arcade-palette", () => {
+    const list = examples("arcade");
+    expect(list.length, "見本を 1 件も読めていない").toBeGreaterThan(100);
+    expect(
+      list.filter(({ rendered }) => rendered.palette !== "arcade").map(({ name }) => name),
+      "arcade で描けていない見本",
+    ).toEqual([]);
+    expect(overlapReport(list)).toEqual([]);
+  });
+
   it("overlaps-check-names-example-step-and-texts", () => {
     // 使い方の状態遷移図の例で、通らない道の名前を始まりの線の名前に重ねた見本を混ぜる
     const rendered = draw(DOCS, "state.dragon");
     const layout = structuredClone(rendered.layout);
     const start = layout.labels.find((l) => l.text === "注文を確定");
-    const cancel = layout.paths.flatMap((p) => (p.label ? [p.label] : [])).find((l) => l.text === "取り消す");
+    const cancel = layout.paths
+      .flatMap((p) => (p.label ? [p.label] : []))
+      .find((l) => l.text === "取り消す");
     expect(start && cancel, "重ねる 2 つの名前が見つからない").toBeTruthy();
     if (!start || !cancel) return;
     Object.assign(cancel, { x: start.x, y: start.y });
     const crossed = renderLayout(rendered.diagram, layout, rendered.timeline);
     const report = overlapReport([{ name: "docs/examples/state.dragon", rendered: crossed }]);
-    expect(report.some((line) => line.includes("docs/examples/state.dragon 段 1:") && line.includes("取り消す") && line.includes("注文を確定")), report.join("\n")).toBe(true);
+    expect(
+      report.some(
+        (line) =>
+          line.includes("docs/examples/state.dragon 段 1:") &&
+          line.includes("取り消す") &&
+          line.includes("注文を確定"),
+      ),
+      report.join("\n"),
+    ).toBe(true);
   });
 });
