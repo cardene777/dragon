@@ -1,0 +1,2409 @@
+{
+  "version": "2.21",
+  "children": [
+    {
+      "type": "frame",
+      "id": "R8zG3",
+      "x": 0,
+      "y": 0,
+      "name": "今 幅740 の形",
+      "fill": "#f4f4f0",
+      "cornerRadius": 12,
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 24,
+      "children": [
+        {
+          "type": "text",
+          "id": "B2aVi",
+          "name": "題",
+          "fill": "#1b1f1b",
+          "content": "今 幅740 の形 (比べる元)",
+          "fontFamily": "Noto Sans JP",
+          "fontSize": 18,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "J3Utty",
+          "name": "説明",
+          "fill": "#4a524a",
+          "textGrowth": "fixed-width",
+          "width": 324,
+          "content": "最後の段の止め絵。ブロックの鎖は 3 つを横に並べる。幅324の枠に縮めると字が 5.7px になる。",
+          "fontFamily": "Noto Sans JP",
+          "fontSize": 13,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "rectangle",
+          "cornerRadius": 8,
+          "id": "gzt4y",
+          "name": "今の図",
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/now-740.png",
+            "mode": "contain"
+          },
+          "width": 740,
+          "height": 853
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "L4Bk5",
+      "x": 840,
+      "y": 0,
+      "name": "案A 全てのブロックを縦に積む",
+      "fill": "#f4f4f0",
+      "cornerRadius": 12,
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 24,
+      "children": [
+        {
+          "type": "text",
+          "id": "dHA2Q",
+          "name": "題",
+          "fill": "#1b1f1b",
+          "content": "案A 全てのブロックを縦に積む",
+          "fontFamily": "Noto Sans JP",
+          "fontSize": 18,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "d6tMa",
+          "name": "説明",
+          "fill": "#4a524a",
+          "textGrowth": "fixed-width",
+          "width": 324,
+          "content": "網の 4 列を枠の幅に詰め、メモリプールを枠の幅いっぱいに置き、ブロック 3 つを上から順に積む。図の高さは 1421px で、携帯の画面およそ 2 枚分。",
+          "fontFamily": "Noto Sans JP",
+          "fontSize": 13,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "emOgw",
+          "name": "幅324の枠",
+          "clip": true,
+          "width": 324,
+          "height": 1421,
+          "fill": "#0a0f0a",
+          "cornerRadius": 8,
+          "layout": "none",
+          "children": [
+            {
+              "type": "text",
+              "id": "xduq6",
+              "x": 24,
+              "y": 24,
+              "name": "網の題",
+              "fill": "#39ff14",
+              "content": "ノードの網",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "path",
+              "id": "Fbnly",
+              "x": 0,
+              "y": 0,
+              "name": "網の線",
+              "geometry": "M70 142l61-62m0 0l62 31m0 0l61 31m-184 0l61 0m0 0l62 31m0 0l61-31m-123-62l0 124m0 0l123-62m-123 0l62-31",
+              "viewBox": [
+                0,
+                0,
+                324,
+                1421
+              ],
+              "width": 324,
+              "height": 1421,
+              "stroke": "#39ff1466",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "ellipse",
+              "id": "ydZsh",
+              "x": 53,
+              "y": 125,
+              "name": "節 あなた",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#39ff14",
+              "strokeWidth": 2
+            },
+            {
+              "type": "icon",
+              "id": "lcNqj",
+              "x": 62,
+              "y": 134,
+              "name": "絵柄 あなた",
+              "width": 16,
+              "height": 16,
+              "icon": "user",
+              "library": "lucide",
+              "fill": "#39ff14"
+            },
+            {
+              "type": "text",
+              "id": "S6eOxH",
+              "x": 35,
+              "y": 163,
+              "name": "名札 あなた",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "あなた",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "M3wRh",
+              "x": 114,
+              "y": 63,
+              "name": "節 node-1",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "l0OC8",
+              "x": 123,
+              "y": 72,
+              "name": "絵柄 node-1",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "yCHYL",
+              "x": 96,
+              "y": 101,
+              "name": "名札 node-1",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-1",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "r23crf",
+              "x": 114,
+              "y": 125,
+              "name": "節 node-2",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "qFqvL",
+              "x": 123,
+              "y": 134,
+              "name": "絵柄 node-2",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "Ju8rr",
+              "x": 96,
+              "y": 163,
+              "name": "名札 node-2",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-2",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "vaxfA",
+              "x": 114,
+              "y": 187,
+              "name": "節 node-3",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "p0y1s2",
+              "x": 123,
+              "y": 196,
+              "name": "絵柄 node-3",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "U832w4",
+              "x": 96,
+              "y": 225,
+              "name": "名札 node-3",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-3",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "dNiGP",
+              "x": 176,
+              "y": 94,
+              "name": "節 node-4",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "YfHJc",
+              "x": 185,
+              "y": 103,
+              "name": "絵柄 node-4",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "ciOks",
+              "x": 158,
+              "y": 132,
+              "name": "名札 node-4",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-4",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "g0scx",
+              "x": 176,
+              "y": 156,
+              "name": "節 node-5",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "hYUg2",
+              "x": 185,
+              "y": 165,
+              "name": "絵柄 node-5",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "E247Kc",
+              "x": 158,
+              "y": 194,
+              "name": "名札 node-5",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-5",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "IhhbC",
+              "x": 237,
+              "y": 125,
+              "name": "節 作る人",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#39ff14",
+              "strokeWidth": 2
+            },
+            {
+              "type": "icon",
+              "id": "wKDXz",
+              "x": 246,
+              "y": 134,
+              "name": "絵柄 作る人",
+              "width": 16,
+              "height": 16,
+              "icon": "package",
+              "library": "lucide",
+              "fill": "#39ff14"
+            },
+            {
+              "type": "text",
+              "id": "RTi80",
+              "x": 219,
+              "y": 163,
+              "name": "名札 作る人",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "作る人",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "QUMux",
+              "x": 24,
+              "y": 271,
+              "name": "待ち行列の題",
+              "fill": "#39ff14",
+              "content": "メモリプール",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "rectangle",
+              "cornerRadius": 8,
+              "id": "DYIsI",
+              "x": 24,
+              "y": 295,
+              "name": "メモリプールの箱",
+              "fill": "#0c130c",
+              "width": 276,
+              "height": 224,
+              "stroke": "#39ff1426",
+              "strokeWidth": 1
+            },
+            {
+              "type": "frame",
+              "id": "o9egu",
+              "x": 38,
+              "y": 309,
+              "name": "チップ 他9",
+              "width": 78,
+              "height": 26,
+              "fill": "#0a0f0a",
+              "cornerRadius": 4,
+              "stroke": "#2bd40f",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                10
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "c1Cpvz",
+                  "name": "名前",
+                  "fill": "#39ff14",
+                  "content": "他9",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "mRvds",
+                  "name": "手数料",
+                  "fill": "#39ff14",
+                  "content": "4",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "alQdN",
+              "x": 38,
+              "y": 343,
+              "name": "チップ 他10",
+              "width": 78,
+              "height": 26,
+              "fill": "#0a0f0a",
+              "cornerRadius": 4,
+              "stroke": "#2bd40f",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                10
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NGzk6",
+                  "name": "名前",
+                  "fill": "#39ff14",
+                  "content": "他10",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "BSVoL",
+                  "name": "手数料",
+                  "fill": "#39ff14",
+                  "content": "2",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "eFLYm",
+              "x": 138,
+              "y": 314,
+              "name": "取る数",
+              "fill": "#cfe9d6",
+              "content": "次は上から 3 件",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 11,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "D4xdWY",
+              "x": 24,
+              "y": 549,
+              "name": "鎖の題",
+              "fill": "#39ff14",
+              "content": "機械の列",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "iVtS7",
+              "x": 24,
+              "y": 573,
+              "name": "ブロック 1",
+              "width": 196,
+              "height": 240,
+              "fill": "#0c130c",
+              "cornerRadius": 8,
+              "stroke": "#39ff1426",
+              "strokeWidth": 1,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xQwsM",
+                  "x": 14,
+                  "y": 12,
+                  "name": "番号",
+                  "fill": "#1f9a0b",
+                  "content": "ブロック 1",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "WvrYz",
+                  "x": 14,
+                  "y": 38,
+                  "name": "prev の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1426",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sl6Eb",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "prev",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Tu0gL",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "0000",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "R0bV8",
+                  "x": 14,
+                  "y": 76,
+                  "name": "チップ 他4",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "wUeGd",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他4",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "CTXtG",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "9",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "sry6A",
+                  "x": 14,
+                  "y": 110,
+                  "name": "チップ 他5",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hIDeo",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他5",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "k2q30",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "6",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "VBvV2",
+                  "x": 14,
+                  "y": 144,
+                  "name": "チップ 他8",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "o2DQ6",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他8",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "OC84x",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "3",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "p4RK9y",
+                  "x": 14,
+                  "y": 180,
+                  "name": "字の名前",
+                  "fill": "#1f9a0b",
+                  "content": "SHA-256",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "x7ln59",
+                  "x": 14,
+                  "y": 198,
+                  "name": "hash の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#39ff1418",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1440",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JeRxz",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "hash",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lHGbb",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "d351",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "path",
+              "id": "i7Hy8v",
+              "x": 0,
+              "y": 0,
+              "name": "つながり 1",
+              "geometry": "M206 785h46q10 0 10 10v112q0 10-10 10h-46",
+              "viewBox": [
+                0,
+                0,
+                324,
+                1421
+              ],
+              "width": 324,
+              "height": 1421,
+              "stroke": "#2bd40f",
+              "strokeWidth": 2
+            },
+            {
+              "type": "frame",
+              "id": "eQ12U",
+              "x": 252,
+              "y": 841,
+              "name": "つながりの印 1",
+              "width": 20,
+              "height": 20,
+              "fill": "#0a0f0a",
+              "cornerRadius": 4,
+              "stroke": "#2bd40f",
+              "strokeWidth": 1.5,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "SDRXr",
+                  "name": "字",
+                  "fill": "#2bd40f",
+                  "content": "=",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "x3HDTB",
+              "x": 24,
+              "y": 865,
+              "name": "ブロック 2",
+              "width": 196,
+              "height": 240,
+              "fill": "#0c130c",
+              "cornerRadius": 8,
+              "stroke": "#39ff1426",
+              "strokeWidth": 1,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "E5WzGs",
+                  "x": 14,
+                  "y": 12,
+                  "name": "番号",
+                  "fill": "#1f9a0b",
+                  "content": "ブロック 2",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "yVcoE",
+                  "x": 14,
+                  "y": 38,
+                  "name": "prev の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1426",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "oOT0w",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "prev",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hCRNk",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "d351",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "eK9x7",
+                  "x": 14,
+                  "y": 76,
+                  "name": "チップ 他1",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YU2Qs",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他1",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "oYcL9",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "7",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JhS5d",
+                  "x": 14,
+                  "y": 110,
+                  "name": "チップ 他2",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YJGos",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他2",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DsFul",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "5",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DJLCR",
+                  "x": 14,
+                  "y": 144,
+                  "name": "チップ 他3",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "O1VVic",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他3",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "X5t1py",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "4",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "VAtxg",
+                  "x": 14,
+                  "y": 180,
+                  "name": "字の名前",
+                  "fill": "#1f9a0b",
+                  "content": "SHA-256",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "eTxy3",
+                  "x": 14,
+                  "y": 198,
+                  "name": "hash の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#39ff1418",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1440",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "TiUny",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "hash",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "MDhaz",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "9880",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "path",
+              "id": "qQVTN",
+              "x": 0,
+              "y": 0,
+              "name": "つながり 2",
+              "geometry": "M206 1077h46q10 0 10 10v112q0 10-10 10h-46",
+              "viewBox": [
+                0,
+                0,
+                324,
+                1421
+              ],
+              "width": 324,
+              "height": 1421,
+              "stroke": "#facc15",
+              "strokeWidth": 2
+            },
+            {
+              "type": "frame",
+              "id": "ZIjPX",
+              "x": 252,
+              "y": 1133,
+              "name": "つながりの印 2",
+              "width": 20,
+              "height": 20,
+              "fill": "#0a0f0a",
+              "cornerRadius": 4,
+              "stroke": "#facc15",
+              "strokeWidth": 1.5,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gS9Lv",
+                  "name": "字",
+                  "fill": "#facc15",
+                  "content": "≠",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "vu9rc",
+              "x": 24,
+              "y": 1157,
+              "name": "ブロック 3",
+              "width": 196,
+              "height": 240,
+              "fill": "#0c130c",
+              "cornerRadius": 8,
+              "stroke": "#39ff1426",
+              "strokeWidth": 1,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "J7rkfB",
+                  "x": 14,
+                  "y": 12,
+                  "name": "番号",
+                  "fill": "#1f9a0b",
+                  "content": "ブロック 3",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "IWQAs",
+                  "x": 14,
+                  "y": 38,
+                  "name": "prev の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1426",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gz2hF",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "prev",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "j0RZU8",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "5ccb",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Q1vsLR",
+                  "x": 14,
+                  "y": 76,
+                  "name": "チップ あなた",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#39ff1414",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff14",
+                  "strokeWidth": 2,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uLsVA",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "あなた",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "B9tD8",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "12",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LDdAs",
+                  "x": 14,
+                  "y": 110,
+                  "name": "チップ 他6",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "TjoOw",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他6",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "R8DJ9s",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "8",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wyOUg",
+                  "x": 14,
+                  "y": 144,
+                  "name": "チップ 他7",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "J7llw",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他7",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AjidO",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "6",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "X3fPVJ",
+                  "x": 14,
+                  "y": 180,
+                  "name": "字の名前",
+                  "fill": "#1f9a0b",
+                  "content": "SHA-256",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "g3zp4q",
+                  "x": 14,
+                  "y": 198,
+                  "name": "hash の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#39ff1418",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1440",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "x31h5",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "hash",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "J41Ssx",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "d461",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "HIXJt",
+      "x": 1240,
+      "y": 0,
+      "name": "案B 新しい 2 つだけ縦に積む",
+      "fill": "#f4f4f0",
+      "cornerRadius": 12,
+      "layout": "vertical",
+      "gap": 10,
+      "padding": 24,
+      "children": [
+        {
+          "type": "text",
+          "id": "wTmkT",
+          "name": "題",
+          "fill": "#1b1f1b",
+          "content": "案B 新しい 2 つだけ縦に積む",
+          "fontFamily": "Noto Sans JP",
+          "fontSize": 18,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "tjKGV",
+          "name": "説明",
+          "fill": "#4a524a",
+          "textGrowth": "fixed-width",
+          "width": 324,
+          "content": "網とメモリプールは案A と同じ。ブロックは新しい 2 つを積み、古い分は機械の列の題の右に畳んだ数を出す。図の高さは 1129px。",
+          "fontFamily": "Noto Sans JP",
+          "fontSize": 13,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "E6z69O",
+          "name": "幅324の枠",
+          "clip": true,
+          "width": 324,
+          "height": 1129,
+          "fill": "#0a0f0a",
+          "cornerRadius": 8,
+          "layout": "none",
+          "children": [
+            {
+              "type": "text",
+              "id": "TdYiM",
+              "x": 24,
+              "y": 24,
+              "name": "網の題",
+              "fill": "#39ff14",
+              "content": "ノードの網",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "path",
+              "id": "G61c49",
+              "x": 0,
+              "y": 0,
+              "name": "網の線",
+              "geometry": "M70 142l61-62m0 0l62 31m0 0l61 31m-184 0l61 0m0 0l62 31m0 0l61-31m-123-62l0 124m0 0l123-62m-123 0l62-31",
+              "viewBox": [
+                0,
+                0,
+                324,
+                1129
+              ],
+              "width": 324,
+              "height": 1129,
+              "stroke": "#39ff1466",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "ellipse",
+              "id": "k4vI7D",
+              "x": 53,
+              "y": 125,
+              "name": "節 あなた",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#39ff14",
+              "strokeWidth": 2
+            },
+            {
+              "type": "icon",
+              "id": "wgmIc",
+              "x": 62,
+              "y": 134,
+              "name": "絵柄 あなた",
+              "width": 16,
+              "height": 16,
+              "icon": "user",
+              "library": "lucide",
+              "fill": "#39ff14"
+            },
+            {
+              "type": "text",
+              "id": "ibqbp",
+              "x": 35,
+              "y": 163,
+              "name": "名札 あなた",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "あなた",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "C34aQ",
+              "x": 114,
+              "y": 63,
+              "name": "節 node-1",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "QRhnK",
+              "x": 123,
+              "y": 72,
+              "name": "絵柄 node-1",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "KEWUH",
+              "x": 96,
+              "y": 101,
+              "name": "名札 node-1",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-1",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "q2C0SW",
+              "x": 114,
+              "y": 125,
+              "name": "節 node-2",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "Nx5fR",
+              "x": 123,
+              "y": 134,
+              "name": "絵柄 node-2",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "u06T0j",
+              "x": 96,
+              "y": 163,
+              "name": "名札 node-2",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-2",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "HIwW5",
+              "x": 114,
+              "y": 187,
+              "name": "節 node-3",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "wryDp",
+              "x": 123,
+              "y": 196,
+              "name": "絵柄 node-3",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "D2u5p",
+              "x": 96,
+              "y": 225,
+              "name": "名札 node-3",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-3",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "V5rAv",
+              "x": 176,
+              "y": 94,
+              "name": "節 node-4",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "sYxPC",
+              "x": 185,
+              "y": 103,
+              "name": "絵柄 node-4",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "B8ZwhN",
+              "x": 158,
+              "y": 132,
+              "name": "名札 node-4",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-4",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "xDJk9",
+              "x": 176,
+              "y": 156,
+              "name": "節 node-5",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1.5
+            },
+            {
+              "type": "icon",
+              "id": "D4V9Q",
+              "x": 185,
+              "y": 165,
+              "name": "絵柄 node-5",
+              "width": 16,
+              "height": 16,
+              "icon": "server",
+              "library": "lucide",
+              "fill": "#2bd40f"
+            },
+            {
+              "type": "text",
+              "id": "C1kKNn",
+              "x": 158,
+              "y": 194,
+              "name": "名札 node-5",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "node-5",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "ellipse",
+              "id": "ZUI3G",
+              "x": 237,
+              "y": 125,
+              "name": "節 作る人",
+              "fill": "#0c130c",
+              "width": 34,
+              "height": 34,
+              "stroke": "#39ff14",
+              "strokeWidth": 2
+            },
+            {
+              "type": "icon",
+              "id": "GT6nu",
+              "x": 246,
+              "y": 134,
+              "name": "絵柄 作る人",
+              "width": 16,
+              "height": 16,
+              "icon": "package",
+              "library": "lucide",
+              "fill": "#39ff14"
+            },
+            {
+              "type": "text",
+              "id": "GYtl2",
+              "x": 219,
+              "y": 163,
+              "name": "名札 作る人",
+              "fill": "#2bd40f",
+              "textGrowth": "fixed-width",
+              "width": 70,
+              "content": "作る人",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 10,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "mvVJW",
+              "x": 24,
+              "y": 271,
+              "name": "待ち行列の題",
+              "fill": "#39ff14",
+              "content": "メモリプール",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "rectangle",
+              "cornerRadius": 8,
+              "id": "etbDV",
+              "x": 24,
+              "y": 295,
+              "name": "メモリプールの箱",
+              "fill": "#0c130c",
+              "width": 276,
+              "height": 224,
+              "stroke": "#39ff1426",
+              "strokeWidth": 1
+            },
+            {
+              "type": "frame",
+              "id": "gCsWQ",
+              "x": 38,
+              "y": 309,
+              "name": "チップ 他9",
+              "width": 78,
+              "height": 26,
+              "fill": "#0a0f0a",
+              "cornerRadius": 4,
+              "stroke": "#2bd40f",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                10
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nmy11",
+                  "name": "名前",
+                  "fill": "#39ff14",
+                  "content": "他9",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "q3UXG",
+                  "name": "手数料",
+                  "fill": "#39ff14",
+                  "content": "4",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "yiA6L",
+              "x": 38,
+              "y": 343,
+              "name": "チップ 他10",
+              "width": 78,
+              "height": 26,
+              "fill": "#0a0f0a",
+              "cornerRadius": 4,
+              "stroke": "#2bd40f",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                10
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NnBur",
+                  "name": "名前",
+                  "fill": "#39ff14",
+                  "content": "他10",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "vc7yd",
+                  "name": "手数料",
+                  "fill": "#39ff14",
+                  "content": "2",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "V1LqWG",
+              "x": 138,
+              "y": 314,
+              "name": "取る数",
+              "fill": "#cfe9d6",
+              "content": "次は上から 3 件",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 11,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "eYTCZ",
+              "x": 24,
+              "y": 549,
+              "name": "鎖の題",
+              "fill": "#39ff14",
+              "content": "機械の列",
+              "fontFamily": "Noto Sans JP",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "UgCm8",
+              "x": 196,
+              "y": 545,
+              "name": "畳んだ印",
+              "width": 104,
+              "height": 22,
+              "fill": "#0a0f0a",
+              "cornerRadius": 4,
+              "stroke": "#1f9a0b",
+              "strokeWidth": 1,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "U8J8OJ",
+                  "name": "字",
+                  "fill": "#2bd40f",
+                  "content": "古いブロック 1 つ",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 10,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gIQeU",
+              "x": 24,
+              "y": 573,
+              "name": "ブロック 2",
+              "width": 196,
+              "height": 240,
+              "fill": "#0c130c",
+              "cornerRadius": 8,
+              "stroke": "#39ff1426",
+              "strokeWidth": 1,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pW6wj",
+                  "x": 14,
+                  "y": 12,
+                  "name": "番号",
+                  "fill": "#1f9a0b",
+                  "content": "ブロック 2",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "T0oix",
+                  "x": 14,
+                  "y": 38,
+                  "name": "prev の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1426",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "L67ID",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "prev",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HtGG6",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "d351",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "eKsyk",
+                  "x": 14,
+                  "y": 76,
+                  "name": "チップ 他1",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "wECie",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他1",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "XgRgZ",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "7",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "H8Uek",
+                  "x": 14,
+                  "y": 110,
+                  "name": "チップ 他2",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lN5ny",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他2",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "V2UzeQ",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "5",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Gq1BK",
+                  "x": 14,
+                  "y": 144,
+                  "name": "チップ 他3",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HrgFj",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他3",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lTmDg",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "4",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "nGGHw",
+                  "x": 14,
+                  "y": 180,
+                  "name": "字の名前",
+                  "fill": "#1f9a0b",
+                  "content": "SHA-256",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Ph1UD",
+                  "x": 14,
+                  "y": 198,
+                  "name": "hash の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#39ff1418",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1440",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "U7M4HV",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "hash",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "E42oJ6",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "9880",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "path",
+              "id": "J0Sqt",
+              "x": 0,
+              "y": 0,
+              "name": "つながり 2",
+              "geometry": "M206 785h46q10 0 10 10v112q0 10-10 10h-46",
+              "viewBox": [
+                0,
+                0,
+                324,
+                1129
+              ],
+              "width": 324,
+              "height": 1129,
+              "stroke": "#facc15",
+              "strokeWidth": 2
+            },
+            {
+              "type": "frame",
+              "id": "X6yqhv",
+              "x": 252,
+              "y": 841,
+              "name": "つながりの印 2",
+              "width": 20,
+              "height": 20,
+              "fill": "#0a0f0a",
+              "cornerRadius": 4,
+              "stroke": "#facc15",
+              "strokeWidth": 1.5,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "k4NoO",
+                  "name": "字",
+                  "fill": "#facc15",
+                  "content": "≠",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Nm1bp",
+              "x": 24,
+              "y": 865,
+              "name": "ブロック 3",
+              "width": 196,
+              "height": 240,
+              "fill": "#0c130c",
+              "cornerRadius": 8,
+              "stroke": "#39ff1426",
+              "strokeWidth": 1,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mS6F9",
+                  "x": 14,
+                  "y": 12,
+                  "name": "番号",
+                  "fill": "#1f9a0b",
+                  "content": "ブロック 3",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "uvUPA",
+                  "x": 14,
+                  "y": 38,
+                  "name": "prev の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1426",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ab62x",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "prev",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Dtac6",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "5ccb",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "F4NDA2",
+                  "x": 14,
+                  "y": 76,
+                  "name": "チップ あなた",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#39ff1414",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff14",
+                  "strokeWidth": 2,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "C4mHxT",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "あなた",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Cr4kk",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "12",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "b2wsAJ",
+                  "x": 14,
+                  "y": 110,
+                  "name": "チップ 他6",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ke0Ku",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他6",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "TntLS",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "8",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "TXwoQ",
+                  "x": 14,
+                  "y": 144,
+                  "name": "チップ 他7",
+                  "width": 78,
+                  "height": 26,
+                  "fill": "#0a0f0a",
+                  "cornerRadius": 4,
+                  "stroke": "#2bd40f",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Ta88s",
+                      "name": "名前",
+                      "fill": "#39ff14",
+                      "content": "他7",
+                      "fontFamily": "Noto Sans JP",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lv2LR",
+                      "name": "手数料",
+                      "fill": "#39ff14",
+                      "content": "6",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "q5LS8c",
+                  "x": 14,
+                  "y": 180,
+                  "name": "字の名前",
+                  "fill": "#1f9a0b",
+                  "content": "SHA-256",
+                  "fontFamily": "Noto Sans JP",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "LXoaQ",
+                  "x": 14,
+                  "y": 198,
+                  "name": "hash の行",
+                  "width": 168,
+                  "height": 28,
+                  "fill": "#39ff1418",
+                  "cornerRadius": 4,
+                  "stroke": "#39ff1440",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    0,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "emCht",
+                      "name": "札",
+                      "fill": "#1f9a0b",
+                      "content": "hash",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "n4ojwm",
+                      "name": "値",
+                      "fill": "#39ff14",
+                      "content": "d461",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "fileToken": "b1791b96-757e-41c3-9e6b-e85ec1aafd12"
+}

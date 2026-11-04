@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **A narrow frame now draws an interactive diagram stacked at full size instead of shrinking it** (#3366)
+
+  When the `width` you pass is too narrow to read the wide arrangement, the interactive diagram is laid out at the frame's width: the route's nodes pack into the width, the queue fills it, the blocks stack from oldest at the top, and each link runs around the right of the blocks.
+  The player re-arranges by the frame's width and redraws at the same width after the reader sends values and builds a block. A 324px frame keeps the fixed view and full-size text.
+  The interactive layout now carries its `arrangement`, and a chain's `slots` are the top-left points of its blocks.
+
 ### Changed
 
 - **The light entry now loads a block's reading only when the written diagram uses it** (#3349)

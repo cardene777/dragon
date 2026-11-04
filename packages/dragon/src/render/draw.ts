@@ -913,7 +913,9 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
                   ...(options.width === undefined ? {} : { width: options.width }),
                 })
               : diagram.kind === "try"
-                ? kindParts("try", lang).layoutTry(diagram, lang)
+                ? kindParts("try", lang).layoutTry(diagram, lang, {
+                    ...(options.width === undefined ? {} : { width: options.width }),
+                  })
                 : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
