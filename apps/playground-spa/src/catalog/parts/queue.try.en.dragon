@@ -1,0 +1,15 @@
+try Queue
+
+queue Pool [order: Fee]
+ask Name, Fee [into: Pool]
+
+item a [Fee: 3]
+item b [Fee: 8]
+
+step Highest first
+  say A queue line places a queue. Chips line up from the highest value of the field in order.
+  line Pool: a, b
+
+step Cut in
+  say A sent chip also takes its place by the value of that field.
+  ask c, 5

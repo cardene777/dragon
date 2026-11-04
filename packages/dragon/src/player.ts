@@ -17,6 +17,7 @@
  * 試す図 (`try`) は書き手の最初の段だけを持つ原本 (今の原本) で描き、流さずに最初の段の止め絵で置く。図の下に入力の帯を置き、
  * 読み手が送るか釦を押すかチップを書き換えるたびに、その出来事の段を今の原本の最後に足して描き直し、足した段を 1 度だけ流す。
  * 動きを嫌う設定では流さずに足した段の止め絵で止める。今の原本は `player.diagram` で読め、置き直すと最初の段に戻る (#3337)。
+ * 入力の帯などの操作は試す図の描く部品と同じ塊が持ち、試す図を描けた後に登録簿 (`kinds/registry.ts`) から引いて置く。
  */
 import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
@@ -32,9 +33,9 @@ import {
   type Rendered,
   renderDiagram,
 } from "./render/draw";
-import type { Step } from "./schema";
+import { kindParts } from "./kinds/registry";
+import type { Diagram, Step } from "./schema";
 import type { Span } from "./timeline";
-import { isTrySource, mountTryControls, startSession, tryCss } from "./try-player";
 import { chooseView } from "./view";
 import { DEFAULT_LANG } from "./words";
 
@@ -115,8 +116,20 @@ function playerCss(): string {
     // 広い帯は本文が 2 行あれば帯の高さが変わらず、本文の無い帯だけが釦の分だけ高くなる
     `@media (pointer: coarse){.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}}`,
     `.dg-spot{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
-    tryCss(),
   ].join("");
+}
+
+/** 試す図の原本か */
+function isTrySource(input: unknown): input is Diagram {
+  if (typeof input !== "object" || input === null) return false;
+  const source = input as { kind?: unknown; steps?: unknown };
+  return source.kind === "try" && Array.isArray(source.steps);
+}
+
+/** 書き手の最初の段だけを持つ今の原本。渡した原本は書き換えない */
+function startSession(input: Diagram): Diagram {
+  const copy = JSON.parse(JSON.stringify(input)) as Diagram;
+  return { ...copy, steps: copy.steps.slice(0, 1) };
 }
 
 function ensureCss(doc: Document): void {
@@ -233,10 +246,15 @@ export function mountDiagram(
   };
   fillList();
 
-  // 試す図の入力の帯は図と語りの帯の間に置く。足した段は `add` が今の原本に足して描き直す
+  // 試す図の入力の帯は図と語りの帯の間に置く。足した段は `add` が今の原本に足して描き直す。
+  // 試す図を描けたので、試す図の塊は届いている
   const controls = session
-    ? mountTryControls(doc, rendered.diagram, rendered.layout as TryLayout, lang, (added) =>
-        add(added),
+    ? kindParts("try", lang).mountTryControls(
+        doc,
+        rendered.diagram,
+        rendered.layout as TryLayout,
+        lang,
+        (added) => add(added),
       )
     : undefined;
   root.append(frame, ...(controls ? [controls.tools] : []), bar, list);

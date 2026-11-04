@@ -9,15 +9,17 @@
  * 送る、押す、書き換えるたびに、記法と同じ出来事を 1 つ持つ段を渡した言葉の題と本文で作り、再生の部品へ渡す。
  * 押せるかと訳は今の原本の最後の段の状態 (`layout.states`) から読む。読み手の値はどこにも保存しない。
  * 操作の要素は描き直しても作り直さず、押した物は帯と図の上の層の 2 か所で受けるので、釦を移しても受け方は変わらない。
+ * この file は試す図の描く部品と同じ塊 (`kinds/try.ts`) に入り、軽い入口では試す図を読んだ時に届く。
+ * 再生の部品は試す図を描けた後にだけ操作を置くので、操作を置く時には塊が届いている。見た目は操作を置く時に頁へ 1 度だけ入れる。
  */
-import { FIGURE_TEXT } from "./figure-text";
 import { textWidth } from "./layout/measure";
 import type { TryLayout } from "./layout/try";
 import { TRY_LOOK } from "./look/try";
 import { LOOK, TYPE } from "./look/values";
 import { cssFont as font } from "./render/parts";
-import type { Diagram, DiagramModel, Step, TryPart } from "./schema";
+import type { DiagramModel, Step, TryPart } from "./schema";
 import { askFields, type TryState } from "./try-state";
+import { TRY_TEXT } from "./try-text";
 import type { NotationLang } from "./words";
 
 type Part<T extends TryPart["type"]> = Extract<TryPart, { type: T }>;
@@ -28,21 +30,8 @@ const percent = (v: number): string => `${v * 100}%`;
 /** チップの名前に使える字。原本はチップを名札で名指すので、名札に使えない字 (空白、`[`、`]`、`「`、`」`、`=`、`:`) を断る */
 const NAME = /^[^\s[\]「」=:]+$/u;
 
-/** 試す図の原本か */
-export function isTrySource(input: unknown): input is Diagram {
-  if (typeof input !== "object" || input === null) return false;
-  const source = input as { kind?: unknown; steps?: unknown };
-  return source.kind === "try" && Array.isArray(source.steps);
-}
-
-/** 書き手の最初の段だけを持つ今の原本。渡した原本は書き換えない */
-export function startSession(input: Diagram): Diagram {
-  const copy = JSON.parse(JSON.stringify(input)) as Diagram;
-  return { ...copy, steps: copy.steps.slice(0, 1) };
-}
-
-/** 入力の帯と書き換える欄と、図の上の釦の見た目。再生の部品の見た目と一緒に頁へ 1 度だけ入れる */
-export function tryCss(): string {
+/** 入力の帯と書き換える欄と、図の上の釦の見た目。操作を置く時に頁へ 1 度だけ入れる */
+function tryCss(): string {
   const P = LOOK.player;
   const A = P.ask;
   const hair = px(LOOK.stroke.hair);
@@ -76,9 +65,18 @@ export function tryCss(): string {
   ].join("");
 }
 
+/** 見た目を頁に入れる。再生の部品の見た目 (`dragon-player-css`) の後ろに置く */
+function ensureTryCss(doc: Document): void {
+  if (doc.getElementById("dragon-try-css")) return;
+  const style = doc.createElement("style");
+  style.id = "dragon-try-css";
+  style.textContent = tryCss();
+  doc.head.appendChild(style);
+}
+
 /** 書き出した頁で試す図の操作が出しうる字。字の file に残す */
 export function tryTexts(model: DiagramModel, lang: NotationLang): string[] {
-  const w = FIGURE_TEXT[lang];
+  const w = TRY_TEXT[lang];
   const parts = model.try?.parts ?? [];
   return [
     ...parts.map((p) => p.id),
@@ -135,7 +133,8 @@ export function mountTryControls(
   lang: NotationLang,
   add: (step: Step) => boolean,
 ): TryControls {
-  const words = FIGURE_TEXT[lang];
+  ensureTryCss(doc);
+  const words = TRY_TEXT[lang];
   const parts = model.try?.parts ?? [];
   const ask = parts.find((p): p is Part<"ask"> => p.type === "ask");
   const presses = parts.filter((p): p is Part<"press"> => p.type === "press");
@@ -382,6 +381,28 @@ export function mountTryControls(
   move();
   update(layout);
 
+  /** 釦の層を図 (SVG) と同じ所と大きさにする */
+  const fitLayer = (frame: HTMLElement, svg: SVGSVGElement): void => {
+    const f = frame.getBoundingClientRect();
+    const s = svg.getBoundingClientRect();
+    layer.style.left = px(s.left - f.left - frame.clientLeft + frame.scrollLeft);
+    layer.style.top = px(s.top - f.top - frame.clientTop + frame.scrollTop);
+    layer.style.width = px(s.width);
+    layer.style.height = px(s.height);
+  };
+  /**
+   * 合わせた図。頁が図の幅だけを替えて縮める時 (見本帳の枠に合わせた倍率など) は枠の大きさが変わらず、
+   * 再生の部品は合わせ直さない。図の大きさが替わるたびに層を合わせ直し、元の大きさの層が枠からはみ出さないようにする
+   */
+  let fitted: { frame: HTMLElement; svg: SVGSVGElement } | undefined;
+  const Observer = (doc.defaultView as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)
+    ?.ResizeObserver;
+  const resized = Observer
+    ? new Observer(() => {
+        if (fitted) fitLayer(fitted.frame, fitted.svg);
+      })
+    : undefined;
+
   return {
     tools,
     layer,
@@ -394,12 +415,12 @@ export function mountTryControls(
       move();
     },
     fit: (frame, svg) => {
-      const f = frame.getBoundingClientRect();
-      const s = svg.getBoundingClientRect();
-      layer.style.left = px(s.left - f.left - frame.clientLeft + frame.scrollLeft);
-      layer.style.top = px(s.top - f.top - frame.clientTop + frame.scrollTop);
-      layer.style.width = px(s.width);
-      layer.style.height = px(s.height);
+      if (fitted?.svg !== svg) {
+        if (fitted) resized?.unobserve(fitted.svg);
+        resized?.observe(svg);
+      }
+      fitted = { frame, svg };
+      fitLayer(frame, svg);
     },
     mark: (svg, step) => {
       if (edits.size === 0) return;
@@ -422,6 +443,7 @@ export function mountTryControls(
     },
     refuse,
     destroy: () => {
+      resized?.disconnect();
       tools.removeEventListener("click", onClick);
       tools.removeEventListener("submit", onSubmit);
       tools.removeEventListener("input", onInput);

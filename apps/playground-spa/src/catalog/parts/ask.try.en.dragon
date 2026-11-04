@@ -1,0 +1,12 @@
+try Input strip
+
+route Net: You - Relay - Maker [from: You, to: Maker]
+queue Pool [order: Fee]
+ask Sender, Fee [into: Pool, via: Net]
+
+item a [Fee: 4]
+
+step Send
+  say An ask line places the input strip. The first field names the chip, which crosses the network in via into the queue in into.
+  line Pool: a
+  ask You, 6

@@ -9,11 +9,11 @@
  * 段ごとの状態 (`states`) と出来事ごとの状態 (`moments`) は、記法を読む所と同じ手順 (`try-state.ts`) で作る。
  * 出来事ごとの状態には、その時のチップとブロックの左上の位置と、網を運ばれたチップが通る点を添え、描く部品がこれを辿って動かす。
  */
-import { FIGURE_TEXT } from "../figure-text";
 import { TRY_LOOK } from "../look/try";
 import { LOOK, TYPE } from "../look/values";
 import type { DiagramModel, TryPart } from "../schema";
 import { askFields, type TryState, TryRun } from "../try-state";
+import { TRY_TEXT } from "../try-text";
 import { DEFAULT_LANG, LABEL_MOST, type NotationLang } from "../words";
 import { textWidth } from "./measure";
 import type { Layout, Point, Rect } from "./scene";
@@ -196,7 +196,7 @@ function lanesOf(
 }
 
 export function layoutTry(diagram: DiagramModel, lang: NotationLang = DEFAULT_LANG): TryLayout {
-  const words = FIGURE_TEXT[lang];
+  const words = TRY_TEXT[lang];
   const spec = diagram.try ?? { parts: [], items: [] };
   const fields = askFields(spec.parts);
   const run = new TryRun(spec);

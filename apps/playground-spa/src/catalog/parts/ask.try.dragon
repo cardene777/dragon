@@ -1,0 +1,12 @@
+try 入力の帯
+
+route 網: あなた - 中継 - 作る人 [from: あなた, to: 作る人]
+queue 待ち [order: 手数料]
+ask 送り手, 手数料 [into: 待ち, via: 網]
+
+item 甲 [手数料: 4]
+
+step 送る
+  say ask の行で入力の帯を置く。最初の欄の値がチップの名前になり、via の網を通って into の待ち行列に入る。
+  line 待ち: 甲
+  ask あなた, 6

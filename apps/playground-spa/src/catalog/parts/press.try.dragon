@@ -1,0 +1,18 @@
+try 釦
+
+queue 待ち [order: 手数料]
+chain 鎖
+ask 名前, 手数料 [into: 待ち]
+press 作る [from: 待ち, into: 鎖, take: 2, at: 鎖]
+
+item 甲 [手数料: 3]
+item 乙 [手数料: 8]
+item 丙 [手数料: 5]
+
+step 待っている
+  say press の行で釦を置く。at に書いた部品の所に出る。
+  line 待ち: 甲, 乙, 丙
+
+step 釦を押す
+  say 押すと、待ち行列の上から take 件を機械の列の新しいブロックへ移す。
+  press 作る

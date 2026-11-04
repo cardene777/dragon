@@ -6,7 +6,8 @@
     "git",
     "time",
     "tree",
-    "lineup"
+    "lineup",
+    "try"
   ],
   "HEADS": [
     "group",
@@ -37,7 +38,12 @@
     "open",
     "pick",
     "stamp",
-    "role"
+    "role",
+    "route",
+    "queue",
+    "chain",
+    "ask",
+    "press"
   ],
   "ATTRS": {
     "diagram": [
@@ -111,6 +117,26 @@
     "span": [
       "shape",
       "color"
+    ],
+    "route": [
+      "from",
+      "to"
+    ],
+    "queue": [
+      "order"
+    ],
+    "chain": [
+      "edit"
+    ],
+    "ask": [
+      "into",
+      "via"
+    ],
+    "press": [
+      "from",
+      "into",
+      "take",
+      "at"
     ]
   },
   "CARRIES": [

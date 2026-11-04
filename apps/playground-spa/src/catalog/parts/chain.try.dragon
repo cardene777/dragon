@@ -1,0 +1,18 @@
+try 機械の列
+
+queue 待ち
+chain 鎖 [edit: 量]
+ask 名前, 量 [into: 待ち]
+press 作る [from: 待ち, into: 鎖, take: 1]
+
+item 甲 [量: 3]
+item 乙 [量: 5]
+
+step ブロックをつなぐ
+  say chain の行で機械の列を置く。ブロックは 1 つ前のブロックの hash を prev に持つ。
+  line 鎖: 甲
+  line 鎖: 乙
+
+step 中身を書き換える
+  say edit の欄を書き換えると hash が変わり、次のブロックの prev と食い違う。
+  item 甲 [量: 30]

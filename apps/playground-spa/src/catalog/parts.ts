@@ -6,6 +6,8 @@
  *
  * 1 行は部品の名札と、その部品を描ける図の種類と、その部品が受け持つ記法の語を持つ。図の種類を 2 つ以上持つ部品が、どの図でも使える部品。
  * 列の図 (#3239) は線と箱の中の処理を持たないので、線と線の名前と運ぶ物と絵と飛び先と箱の中の処理の部品は、列の図を除いた図の種類を持つ。
+ * 試す図 (#3337) は部品の行とチップと段だけを書き、箱と線と帯を持たない。段と出典は書けるが、読み手が段を足していく図で、
+ * 置いた時は書き手の最初の段だけを描いて待つので、段を送って見せるどの図でも使える部品は、試す図を除いた図の種類を持つ。
  * 語は `kind:<図の種類>`、`head:<行の頭の語>`、`attr:<行>.<鍵>`、線の行の `edge:->`、枝分かれの図の行の中の語の `git:<語>` の形で書き、
  * package の記法の語の表 (`words.ts`) の語を、どれかの部品が必ず受け持つ (`catalog-parts.test.ts` が数える)。
  * 区画は時系列図に描かれないので、区画の属性 (`attr:group.*`) は区画の部品が受け持つ。
@@ -16,7 +18,7 @@
  *
  * 部品の頁は、その部品の語を 1 つでも使う見本を並べる (#3167)。見本が語を使うかは、見本の記法から作った原本の JSON の形で決める。
  */
-import { type Diagram, type DiagramEvent, parseNotation } from "@cardenelabs/dragon/light";
+import { type Diagram, type DiagramEvent, type LineupItem, parseNotation, type TryItem, type TryPart } from "@cardenelabs/dragon/light";
 
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, LATER_EXAMPLES } from "../examples";
 import { laterChunk } from "../site/later";
@@ -32,23 +34,25 @@ export interface Part {
   readonly words: readonly string[];
 }
 
+/** 箱と段を描ける図の種類。試す図は箱を持たず、置いた時は最初の段だけを描く */
+const BOXED = KINDS.filter((kind) => kind !== "try");
 /** 線を引ける図の種類。列の図は線と箱の中の処理を持たない */
-const LINED = KINDS.filter((kind) => kind !== "lineup");
+const LINED = BOXED.filter((kind) => kind !== "lineup");
 
 /** 部品の表。並びは一覧の札と図の頁の使う部品の並び */
 export const PARTS: readonly Part[] = [
-  { id: "box", kinds: KINDS, words: ["head:box"] },
+  { id: "box", kinds: BOXED, words: ["head:box"] },
   { id: "edge", kinds: LINED, words: ["edge:->"] },
   { id: "edge-label", kinds: LINED, words: ["attr:edge.side"] },
   { id: "carry", kinds: LINED, words: ["attr:edge.carry", "attr:edge.tag"] },
-  { id: "color", kinds: KINDS, words: ["attr:box.color"] },
+  { id: "color", kinds: BOXED, words: ["attr:box.color"] },
   { id: "icon", kinds: LINED, words: ["attr:box.icon"] },
   { id: "link", kinds: LINED, words: ["attr:box.link"] },
-  { id: "note", kinds: KINDS, words: ["attr:box.note", "head:note"] },
+  { id: "note", kinds: BOXED, words: ["attr:box.note", "head:note"] },
   { id: "act", kinds: LINED, words: ["head:act"] },
-  { id: "strip", kinds: KINDS, words: ["head:strip", "head:set", "attr:set.tag"] },
-  { id: "step", kinds: KINDS, words: ["head:step", "head:say", "head:code", "attr:diagram.view"] },
-  { id: "source", kinds: KINDS, words: ["head:source", "attr:source.url"] },
+  { id: "strip", kinds: BOXED, words: ["head:strip", "head:set", "attr:set.tag"] },
+  { id: "step", kinds: BOXED, words: ["head:step", "head:say", "head:code", "attr:diagram.view"] },
+  { id: "source", kinds: BOXED, words: ["head:source", "attr:source.url"] },
   { id: "lifeline", kinds: ["sequence"], words: ["kind:sequence"] },
   { id: "group", kinds: ["architecture"], words: ["kind:architecture", "head:group", "head:end", "attr:group.note", "attr:group.color", "attr:group.icon"] },
   { id: "start-finish", kinds: ["state"], words: ["kind:state", "edge:start", "edge:finish"] },
@@ -79,6 +83,12 @@ export const PARTS: readonly Part[] = [
   { id: "order", kinds: ["lineup"], words: ["attr:box.order"] },
   { id: "role", kinds: ["lineup"], words: ["head:role", "attr:role.note"] },
   { id: "legend", kinds: ["lineup"], words: ["attr:item.note"] },
+  // 試す図 (#3337)。網、待ち行列、機械の列、入力の帯、釦。チップ (`item`) と並び (`line`) の語は列の図の部品が受け持つ
+  { id: "route", kinds: ["try"], words: ["kind:try", "head:route", "attr:route.from", "attr:route.to"] },
+  { id: "queue", kinds: ["try"], words: ["head:queue", "attr:queue.order"] },
+  { id: "chain", kinds: ["try"], words: ["head:chain", "attr:chain.edit"] },
+  { id: "ask", kinds: ["try"], words: ["head:ask", "attr:ask.into", "attr:ask.via"] },
+  { id: "press", kinds: ["try"], words: ["head:press", "attr:press.from", "attr:press.into", "attr:press.take", "attr:press.at"] },
 ];
 
 /** どの図でも使える部品か。図の種類を 2 つ以上持つ */
@@ -101,6 +111,14 @@ export function snippetOf(id: PartId, kind: Kind, lang: Lang): string | undefine
 }
 
 const events = (d: Diagram): DiagramEvent[] => d.steps.flatMap((step) => step.events);
+/** 列の図のチップ。チップの欄は列の図と試す図が使い、試す図のチップは欄の値 (`values`) を持つ */
+function lineupItems(d: Diagram): LineupItem[] {
+  const items: readonly (LineupItem | TryItem)[] = d.blocks.item ?? [];
+  return items.flatMap((i) => ("values" in i ? [] : [i]));
+}
+/** 試す図の部品のうち、種類が `type` の部品 */
+const tryParts = <T extends TryPart["type"]>(d: Diagram, type: T): Extract<TryPart, { type: T }>[] =>
+  (d.blocks.part ?? []).filter((p): p is Extract<TryPart, { type: T }> => p.type === type);
 const edges = (d: Diagram) => events(d).flatMap((e) => (e.type === "edge" ? [e] : []));
 const commits = (d: Diagram) => events(d).flatMap((e) => (e.type === "commit" ? [e] : []));
 const spans = (d: Diagram) => events(d).flatMap((e) => (e.type === "span" ? [e] : []));
@@ -109,7 +127,8 @@ const writtenTag = (d: Diagram, e: ReturnType<typeof edges>[number]): boolean =>
 
 /**
  * 記法の語ごとの、図がその語を使ったか。原本の JSON のどこに現れるかで決める。
- * 区画の行を閉じる `end` は区画があれば必ず書くので、区画があるかで決める
+ * 区画の行を閉じる `end` は区画があれば必ず書くので、区画があるかで決める。
+ * 試す図の網の `from` と `to`、入力の帯の `into`、釦の `from` と `into` と `take` も必ず書くので、その部品があるかで決める
  */
 const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "kind:sequence": (d) => d.kind === "sequence",
@@ -178,8 +197,8 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "attr:node.hash": (d) => events(d).some((e) => e.type === "node" && e.hash !== undefined),
   "kind:lineup": (d) => d.kind === "lineup",
   "head:item": (d) => (d.blocks.item ?? []).length > 0,
-  "attr:item.color": (d) => (d.blocks.item ?? []).some((i) => i.color !== undefined),
-  "attr:item.label": (d) => (d.blocks.item ?? []).some((i) => i.label !== undefined),
+  "attr:item.color": (d) => lineupItems(d).some((i) => i.color !== undefined),
+  "attr:item.label": (d) => lineupItems(d).some((i) => i.label !== undefined),
   "head:line": (d) => events(d).some((e) => e.type === "line"),
   "head:seal": (d) => events(d).some((e) => e.type === "seal"),
   "head:open": (d) => events(d).some((e) => e.type === "open"),
@@ -188,7 +207,23 @@ const USES: Readonly<Record<string, (d: Diagram) => boolean>> = {
   "attr:box.order": (d) => (d.blocks.box ?? []).some((b) => b.order !== undefined),
   "head:role": (d) => (d.blocks.role ?? []).length > 0,
   "attr:role.note": (d) => (d.blocks.role ?? []).some((r) => r.note !== undefined),
-  "attr:item.note": (d) => (d.blocks.item ?? []).some((i) => i.note !== undefined),
+  "attr:item.note": (d) => lineupItems(d).some((i) => i.note !== undefined),
+  "kind:try": (d) => d.kind === "try",
+  "head:route": (d) => tryParts(d, "route").length > 0,
+  "attr:route.from": (d) => tryParts(d, "route").length > 0,
+  "attr:route.to": (d) => tryParts(d, "route").length > 0,
+  "head:queue": (d) => tryParts(d, "queue").length > 0,
+  "attr:queue.order": (d) => tryParts(d, "queue").some((p) => p.order !== undefined),
+  "head:chain": (d) => tryParts(d, "chain").length > 0,
+  "attr:chain.edit": (d) => tryParts(d, "chain").some((p) => p.edit !== undefined),
+  "head:ask": (d) => tryParts(d, "ask").length > 0 || events(d).some((e) => e.type === "ask"),
+  "attr:ask.into": (d) => tryParts(d, "ask").length > 0,
+  "attr:ask.via": (d) => tryParts(d, "ask").some((p) => p.via !== undefined),
+  "head:press": (d) => tryParts(d, "press").length > 0 || events(d).some((e) => e.type === "press"),
+  "attr:press.from": (d) => tryParts(d, "press").length > 0,
+  "attr:press.into": (d) => tryParts(d, "press").length > 0,
+  "attr:press.take": (d) => tryParts(d, "press").length > 0,
+  "attr:press.at": (d) => tryParts(d, "press").some((p) => p.at !== undefined),
 };
 
 /** 後から読む見本が届いた後に作った、見本の名前と日本語の記法から作った図 */
