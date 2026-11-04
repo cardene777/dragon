@@ -57,21 +57,6 @@ export const block: Block<LeafMessages> = {
   rank: 97,
   attach: { how: "place", only: "tree" },
   words: { heads: ["leaf"], attrs: { leaf: ["hash"] } },
-  shape: {
-    events: {
-      leaf: {
-        description: "葉を出す。木の図だけが書ける。書いた段で葉の箱が現れる。hash を書くと箱に値を出し、名札を葉の下の札に出す",
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "id"],
-        properties: {
-          type: { const: "leaf" },
-          id: { $ref: "#/definitions/id" },
-          hash: { $ref: "#/definitions/hash" },
-        },
-      },
-    },
-  },
   read: {
     leaf: (source, state) => {
       const step = state.inStep(source);

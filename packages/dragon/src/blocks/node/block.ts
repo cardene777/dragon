@@ -77,22 +77,6 @@ export const block: Block<NodeMessages> = {
   rank: 98,
   attach: { how: "connect", only: "tree" },
   words: { heads: ["node"], attrs: { node: ["hash"] } },
-  shape: {
-    events: {
-      node: {
-        description: "1 つ以上の子から親を組む。木の図だけが書ける。書いた段で親の箱と、子から親への木の線が現れる",
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "id", "children"],
-        properties: {
-          type: { const: "node" },
-          id: { $ref: "#/definitions/id" },
-          children: { type: "array", minItems: 1, items: { $ref: "#/definitions/id" } },
-          hash: { $ref: "#/definitions/hash" },
-        },
-      },
-    },
-  },
   read: {
     node: (source, state) => {
       const step = state.inStep(source);

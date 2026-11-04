@@ -48,20 +48,6 @@ export const block: Block<CarryMessages> = {
   rank: 84,
   attach: { how: "ride-on-line" },
   words: { attrs: { edge: ["carry", "tag"] } },
-  shape: {
-    definitions: {
-      carry: {
-        description: "線の上を走る物。封筒 (メッセージや要求)、札 (名前のある値)、硬貨 (価値)、無し",
-        type: "object",
-        additionalProperties: false,
-        required: ["kind"],
-        properties: { kind: { enum: ["envelope", "tag", "coin", "none"] }, text: { $ref: "#/definitions/text" } },
-        if: { required: ["kind"], properties: { kind: { const: "tag" } } },
-        then: { required: ["text"] },
-        else: { not: { required: ["text"] } },
-      },
-    },
-  },
   read: none("運ぶ物は線の行の属性で、行の頭の語を持たない。線の行を読む処理が readCarry を呼ぶ"),
   print: none("運ぶ物は線の行の属性で、線の行を書き戻す処理が carryAttrs を呼んで書く"),
   messages: {

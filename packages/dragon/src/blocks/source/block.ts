@@ -42,16 +42,6 @@ export const block: Block<SourceMessages> = {
   rank: 50,
   attach: { how: "attach-to-figure" },
   words: { heads: ["source"], attrs: { source: ATTRS } },
-  shape: {
-    definitions: {
-      source: {
-        type: "object",
-        additionalProperties: false,
-        required: ["name", "url"],
-        properties: { name: { $ref: "#/definitions/text" }, url: { $ref: "#/definitions/url" } },
-      },
-    },
-  },
   read: {
     source: (source, state) => {
       state.inStep(source).sources.push(readSource(source, state.m));

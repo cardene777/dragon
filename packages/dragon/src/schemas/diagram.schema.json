@@ -65,18 +65,8 @@
         "strip": {
           "$ref": "#/definitions/strip"
         },
-        "path": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/definitions/path"
-          }
-        },
         "scale": {
           "$ref": "#/definitions/scale"
-        },
-        "period": {
-          "$ref": "#/definitions/period"
         },
         "row": {
           "type": "array",
@@ -107,6 +97,16 @@
           "items": {
             "$ref": "#/definitions/role"
           }
+        },
+        "path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/path"
+          }
+        },
+        "period": {
+          "$ref": "#/definitions/period"
         }
       }
     },
@@ -999,6 +999,85 @@
           }
         },
         {
+          "description": "時間軸の図の今の時刻の針を、to の目盛りの終わりまで進める",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "to"
+          ],
+          "properties": {
+            "type": {
+              "const": "now"
+            },
+            "to": {
+              "$ref": "#/definitions/unit"
+            }
+          }
+        },
+        {
+          "description": "時間軸の図の from から to の目盛りに、括弧と字を出す。shape が box なら印の列を囲み、字を縁の札にする",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "from",
+            "to",
+            "text"
+          ],
+          "properties": {
+            "type": {
+              "const": "span"
+            },
+            "from": {
+              "$ref": "#/definitions/unit"
+            },
+            "to": {
+              "$ref": "#/definitions/unit"
+            },
+            "text": {
+              "$ref": "#/definitions/text"
+            },
+            "shape": {
+              "enum": [
+                "box"
+              ]
+            },
+            "color": {
+              "$ref": "#/definitions/color"
+            }
+          }
+        },
+        {
+          "description": "時間軸の図の印の列 row の、from から to の目盛りの印の色を変える",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "row",
+            "from",
+            "to",
+            "color"
+          ],
+          "properties": {
+            "type": {
+              "const": "mark"
+            },
+            "row": {
+              "$ref": "#/definitions/id"
+            },
+            "from": {
+              "$ref": "#/definitions/unit"
+            },
+            "to": {
+              "$ref": "#/definitions/unit"
+            },
+            "color": {
+              "$ref": "#/definitions/color"
+            }
+          }
+        },
+        {
           "description": "葉を出す。木の図だけが書ける。書いた段で葉の箱が現れる。hash を書くと箱に値を出し、名札を葉の下の札に出す",
           "type": "object",
           "additionalProperties": false,
@@ -1043,85 +1122,6 @@
             },
             "hash": {
               "$ref": "#/definitions/hash"
-            }
-          }
-        },
-        {
-          "description": "時間軸の図の今の時刻の針を、to の目盛りの終わりまで進める",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "to"
-          ],
-          "properties": {
-            "type": {
-              "const": "now"
-            },
-            "to": {
-              "$ref": "#/definitions/unit"
-            }
-          }
-        },
-        {
-          "description": "時間軸の図の印の列 row の、from から to の目盛りの印の色を変える",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "row",
-            "from",
-            "to",
-            "color"
-          ],
-          "properties": {
-            "type": {
-              "const": "mark"
-            },
-            "row": {
-              "$ref": "#/definitions/id"
-            },
-            "from": {
-              "$ref": "#/definitions/unit"
-            },
-            "to": {
-              "$ref": "#/definitions/unit"
-            },
-            "color": {
-              "$ref": "#/definitions/color"
-            }
-          }
-        },
-        {
-          "description": "時間軸の図の from から to の目盛りに、括弧と字を出す。shape が box なら印の列を囲み、字を縁の札にする",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "from",
-            "to",
-            "text"
-          ],
-          "properties": {
-            "type": {
-              "const": "span"
-            },
-            "from": {
-              "$ref": "#/definitions/unit"
-            },
-            "to": {
-              "$ref": "#/definitions/unit"
-            },
-            "text": {
-              "$ref": "#/definitions/text"
-            },
-            "shape": {
-              "enum": [
-                "box"
-              ]
-            },
-            "color": {
-              "$ref": "#/definitions/color"
             }
           }
         },
@@ -1203,23 +1203,6 @@
           }
         },
         {
-          "description": "この段で役 role が動く。列の図だけが書ける。役の札の縁が光る",
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "role"
-          ],
-          "properties": {
-            "type": {
-              "const": "role"
-            },
-            "role": {
-              "$ref": "#/definitions/id"
-            }
-          }
-        },
-        {
           "description": "列 box の右に text の札を押す。列の図だけが書ける",
           "type": "object",
           "additionalProperties": false,
@@ -1239,6 +1222,23 @@
               "$ref": "#/definitions/text"
             }
           }
+        },
+        {
+          "description": "この段で役 role が動く。列の図だけが書ける。役の札の縁が光る",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "role"
+          ],
+          "properties": {
+            "type": {
+              "const": "role"
+            },
+            "role": {
+              "$ref": "#/definitions/id"
+            }
+          }
         }
       ]
     },
@@ -1247,166 +1247,10 @@
       "type": "string",
       "pattern": "^[0-9a-f]{4,40}$"
     },
-    "item": {
-      "description": "チップ。color を書かないチップは薄い色で、label を書かないチップは名前を出す。note を書いたチップは図の下の凡例にその説明を出す",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id"
-      ],
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/id"
-        },
-        "color": {
-          "$ref": "#/definitions/color"
-        },
-        "label": {
-          "description": "チップに載せる字",
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 4
-        },
-        "note": {
-          "description": "図の下の凡例に出す、チップの説明",
-          "$ref": "#/definitions/text"
-        }
-      }
-    },
-    "role": {
-      "description": "役。チップを持たずに動く者で、箱の上に札として並び、段の中の role の出来事で光る",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id"
-      ],
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/id"
-        },
-        "note": {
-          "description": "役の札の名前の下の一言",
-          "$ref": "#/definitions/text"
-        }
-      }
-    },
-    "scale": {
-      "description": "目盛り。unit の名前の目盛りを length の長さで count 個並べ、最初の目盛りの番号を from にする",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "unit",
-        "length",
-        "count"
-      ],
-      "properties": {
-        "unit": {
-          "$ref": "#/definitions/text"
-        },
-        "length": {
-          "$ref": "#/definitions/duration"
-        },
-        "count": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "from": {
-          "type": "integer",
-          "minimum": 0
-        }
-      }
-    },
-    "duration": {
-      "description": "長さ。数と単位 (ms、s、min、h、d) の組",
-      "type": "string",
-      "pattern": "^[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$"
-    },
     "unit": {
       "description": "目盛りの位置。0 から数える",
       "type": "integer",
       "minimum": 0
-    },
-    "period": {
-      "description": "区切り。目盛り length 個ごとに name の区切りを置き、最初の区切りの番号を from にする",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "length"
-      ],
-      "properties": {
-        "name": {
-          "$ref": "#/definitions/text"
-        },
-        "length": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "from": {
-          "type": "integer",
-          "minimum": 0
-        }
-      }
-    },
-    "row": {
-      "description": "印の列。目盛りごとに印を 1 つ置き、empty の目盛りは空きの印にする",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "name"
-      ],
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/id"
-        },
-        "name": {
-          "$ref": "#/definitions/text"
-        },
-        "color": {
-          "$ref": "#/definitions/color"
-        },
-        "empty": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/unit"
-          }
-        }
-      }
-    },
-    "point": {
-      "description": "節目。at の目盛りの印の下に旗の丸と名札を置く",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "at"
-      ],
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/id"
-        },
-        "at": {
-          "$ref": "#/definitions/unit"
-        }
-      }
-    },
-    "zoom": {
-      "description": "拡大の範囲。from から to の目盛りごとに拡大の帯に列を作る",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "from",
-        "to"
-      ],
-      "properties": {
-        "from": {
-          "$ref": "#/definitions/unit"
-        },
-        "to": {
-          "$ref": "#/definitions/unit"
-        }
-      }
     },
     "branch": {
       "description": "枝。帯の左に名札と添え書きを置く",
@@ -1716,6 +1560,162 @@
       "description": "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL",
       "type": "string",
       "pattern": "^(/|https?://)"
+    },
+    "scale": {
+      "description": "目盛り。unit の名前の目盛りを length の長さで count 個並べ、最初の目盛りの番号を from にする",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "length",
+        "count"
+      ],
+      "properties": {
+        "unit": {
+          "$ref": "#/definitions/text"
+        },
+        "length": {
+          "$ref": "#/definitions/duration"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "from": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "duration": {
+      "description": "長さ。数と単位 (ms、s、min、h、d) の組",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$"
+    },
+    "period": {
+      "description": "区切り。目盛り length 個ごとに name の区切りを置き、最初の区切りの番号を from にする",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "length"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "from": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "row": {
+      "description": "印の列。目盛りごとに印を 1 つ置き、empty の目盛りは空きの印にする",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "empty": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/unit"
+          }
+        }
+      }
+    },
+    "point": {
+      "description": "節目。at の目盛りの印の下に旗の丸と名札を置く",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "at": {
+          "$ref": "#/definitions/unit"
+        }
+      }
+    },
+    "zoom": {
+      "description": "拡大の範囲。from から to の目盛りごとに拡大の帯に列を作る",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/definitions/unit"
+        },
+        "to": {
+          "$ref": "#/definitions/unit"
+        }
+      }
+    },
+    "item": {
+      "description": "チップ。color を書かないチップは薄い色で、label を書かないチップは名前を出す。note を書いたチップは図の下の凡例にその説明を出す",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "label": {
+          "description": "チップに載せる字",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4
+        },
+        "note": {
+          "description": "図の下の凡例に出す、チップの説明",
+          "$ref": "#/definitions/text"
+        }
+      }
+    },
+    "role": {
+      "description": "役。チップを持たずに動く者で、箱の上に札として並び、段の中の role の出来事で光る",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "note": {
+          "description": "役の札の名前の下の一言",
+          "$ref": "#/definitions/text"
+        }
+      }
     }
   }
 }

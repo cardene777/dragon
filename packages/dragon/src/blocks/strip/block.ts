@@ -149,40 +149,6 @@ export const block: Block<StripMessages> = {
   rank: 30,
   attach: { how: "attach-to-figure" },
   words: { heads: ["strip", "set"], headRanks: { set: 80 }, attrs: { strip: STRIP_ATTRS, set: SET_ATTRS } },
-  shape: {
-    field: { $ref: "#/definitions/strip" },
-    definitions: {
-      plainStrip: { description: "時間軸の図でない図の中身の帯。物差しを書けない", properties: { meters: { $ref: "#/definitions/absent" } } },
-      strip: {
-        type: "object",
-        additionalProperties: false,
-        required: ["title", "fields"],
-        properties: {
-          title: { $ref: "#/definitions/text" },
-          fields: { type: "array", minItems: 1, items: { $ref: "#/definitions/text" } },
-          meters: { description: "物差しにする欄。時間軸の図だけが書ける", type: "array", minItems: 1, items: { $ref: "#/definitions/meter" } },
-        },
-      },
-      meter: {
-        description: "物差しの欄。line の割合の所に線を引き、set の値まで針と一緒に満ちる",
-        type: "object",
-        additionalProperties: false,
-        required: ["field", "line"],
-        properties: { field: { $ref: "#/definitions/text" }, line: { $ref: "#/definitions/ratio" } },
-      },
-      ratio: { description: "割合。分数 (2/3) か百分率 (97%)", type: "string", pattern: "^([0-9]+/[0-9]+|[0-9]+(\\.[0-9]+)?%)$" },
-    },
-    events: {
-      strip: {
-        description: "中身の帯の欄の値と札",
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "field"],
-        anyOf: [{ required: ["value"] }, { required: ["tag"] }],
-        properties: { type: { const: "strip" }, field: { $ref: "#/definitions/text" }, value: { $ref: "#/definitions/text" }, tag: { $ref: "#/definitions/text" } },
-      },
-    },
-  },
   read: {
     strip: (source, state) => {
       readStrip(source, state);

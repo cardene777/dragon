@@ -18,17 +18,6 @@ export const block: Block<ActMessages> = {
   rank: 60,
   attach: { how: "attach-to-box", except: ["lineup"] },
   words: { heads: ["act"] },
-  shape: {
-    events: {
-      action: {
-        description: "箱の中の処理",
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "box", "label"],
-        properties: { type: { const: "action" }, box: { $ref: "#/definitions/id" }, label: { $ref: "#/definitions/text" } },
-      },
-    },
-  },
   read: {
     act: (source, state) => {
       if (state.kind === "lineup") throw fail(source, 0, state.m.lineupNoAct);

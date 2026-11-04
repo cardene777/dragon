@@ -81,27 +81,6 @@ export const block: Block<StepMessages> = {
   rank: 40,
   attach: { how: "attach-to-figure" },
   words: { heads: ["step", "say", "code"], attrs: { diagram: ["view"] } },
-  shape: {
-    definitions: {
-      step: {
-        type: "object",
-        additionalProperties: false,
-        required: ["title", "body", "events"],
-        properties: {
-          title: { $ref: "#/definitions/text" },
-          body: { $ref: "#/definitions/text" },
-          code: { $ref: "#/definitions/text" },
-          sources: {
-            description: "段の出典。読み上げの段の一覧に、名前を URL への link にして書いた順に出す",
-            type: "array",
-            minItems: 1,
-            items: { $ref: "#/definitions/source" },
-          },
-          events: { type: "array", items: { $ref: "#/definitions/event" } },
-        },
-      },
-    },
-  },
   read: {
     // 前の段を閉じてから、題を確かめて次の段を書き始める
     step: (source, state) => {

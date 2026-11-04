@@ -32,12 +32,21 @@ import { rule as groupRule } from "../../../../packages/dragon/src/blocks/group/
 import { text as iconText } from "../../../../packages/dragon/src/blocks/icon/gallery/text";
 import { shelf as iconShelf } from "../../../../packages/dragon/src/blocks/icon/gallery/shelf";
 import { rule as iconRule } from "../../../../packages/dragon/src/blocks/icon/gallery/rule";
+import { text as itemText } from "../../../../packages/dragon/src/blocks/item/gallery/text";
+import { shelf as itemShelf } from "../../../../packages/dragon/src/blocks/item/gallery/shelf";
+import { rule as itemRule } from "../../../../packages/dragon/src/blocks/item/gallery/rule";
 import { text as leafText } from "../../../../packages/dragon/src/blocks/leaf/gallery/text";
 import { shelf as leafShelf } from "../../../../packages/dragon/src/blocks/leaf/gallery/shelf";
 import { rule as leafRule } from "../../../../packages/dragon/src/blocks/leaf/gallery/rule";
+import { text as legendText } from "../../../../packages/dragon/src/blocks/legend/gallery/text";
+import { shelf as legendShelf } from "../../../../packages/dragon/src/blocks/legend/gallery/shelf";
+import { rule as legendRule } from "../../../../packages/dragon/src/blocks/legend/gallery/rule";
 import { text as lifelineText } from "../../../../packages/dragon/src/blocks/lifeline/gallery/text";
 import { shelf as lifelineShelf } from "../../../../packages/dragon/src/blocks/lifeline/gallery/shelf";
 import { rule as lifelineRule } from "../../../../packages/dragon/src/blocks/lifeline/gallery/rule";
+import { text as lineText } from "../../../../packages/dragon/src/blocks/line/gallery/text";
+import { shelf as lineShelf } from "../../../../packages/dragon/src/blocks/line/gallery/shelf";
+import { rule as lineRule } from "../../../../packages/dragon/src/blocks/line/gallery/rule";
 import { text as linkText } from "../../../../packages/dragon/src/blocks/link/gallery/text";
 import { shelf as linkShelf } from "../../../../packages/dragon/src/blocks/link/gallery/shelf";
 import { rule as linkRule } from "../../../../packages/dragon/src/blocks/link/gallery/rule";
@@ -50,12 +59,36 @@ import { rule as nodeRule } from "../../../../packages/dragon/src/blocks/node/ga
 import { text as noteText } from "../../../../packages/dragon/src/blocks/note/gallery/text";
 import { shelf as noteShelf } from "../../../../packages/dragon/src/blocks/note/gallery/shelf";
 import { rule as noteRule } from "../../../../packages/dragon/src/blocks/note/gallery/rule";
+import { text as orderText } from "../../../../packages/dragon/src/blocks/order/gallery/text";
+import { shelf as orderShelf } from "../../../../packages/dragon/src/blocks/order/gallery/shelf";
+import { rule as orderRule } from "../../../../packages/dragon/src/blocks/order/gallery/rule";
+import { text as pickText } from "../../../../packages/dragon/src/blocks/pick/gallery/text";
+import { shelf as pickShelf } from "../../../../packages/dragon/src/blocks/pick/gallery/shelf";
+import { rule as pickRule } from "../../../../packages/dragon/src/blocks/pick/gallery/rule";
+import { text as pointText } from "../../../../packages/dragon/src/blocks/point/gallery/text";
+import { shelf as pointShelf } from "../../../../packages/dragon/src/blocks/point/gallery/shelf";
+import { rule as pointRule } from "../../../../packages/dragon/src/blocks/point/gallery/rule";
+import { text as roleText } from "../../../../packages/dragon/src/blocks/role/gallery/text";
+import { shelf as roleShelf } from "../../../../packages/dragon/src/blocks/role/gallery/shelf";
+import { rule as roleRule } from "../../../../packages/dragon/src/blocks/role/gallery/rule";
+import { text as rowText } from "../../../../packages/dragon/src/blocks/row/gallery/text";
+import { shelf as rowShelf } from "../../../../packages/dragon/src/blocks/row/gallery/shelf";
+import { rule as rowRule } from "../../../../packages/dragon/src/blocks/row/gallery/rule";
+import { text as scaleText } from "../../../../packages/dragon/src/blocks/scale/gallery/text";
+import { shelf as scaleShelf } from "../../../../packages/dragon/src/blocks/scale/gallery/shelf";
+import { rule as scaleRule } from "../../../../packages/dragon/src/blocks/scale/gallery/rule";
+import { text as sealText } from "../../../../packages/dragon/src/blocks/seal/gallery/text";
+import { shelf as sealShelf } from "../../../../packages/dragon/src/blocks/seal/gallery/shelf";
+import { rule as sealRule } from "../../../../packages/dragon/src/blocks/seal/gallery/rule";
 import { text as sidePathText } from "../../../../packages/dragon/src/blocks/side-path/gallery/text";
 import { shelf as sidePathShelf } from "../../../../packages/dragon/src/blocks/side-path/gallery/shelf";
 import { rule as sidePathRule } from "../../../../packages/dragon/src/blocks/side-path/gallery/rule";
 import { text as sourceText } from "../../../../packages/dragon/src/blocks/source/gallery/text";
 import { shelf as sourceShelf } from "../../../../packages/dragon/src/blocks/source/gallery/shelf";
 import { rule as sourceRule } from "../../../../packages/dragon/src/blocks/source/gallery/rule";
+import { text as stampText } from "../../../../packages/dragon/src/blocks/stamp/gallery/text";
+import { shelf as stampShelf } from "../../../../packages/dragon/src/blocks/stamp/gallery/shelf";
+import { rule as stampRule } from "../../../../packages/dragon/src/blocks/stamp/gallery/rule";
 import { text as startFinishText } from "../../../../packages/dragon/src/blocks/start-finish/gallery/text";
 import { shelf as startFinishShelf } from "../../../../packages/dragon/src/blocks/start-finish/gallery/shelf";
 import { rule as startFinishRule } from "../../../../packages/dragon/src/blocks/start-finish/gallery/rule";
@@ -65,6 +98,9 @@ import { rule as stepRule } from "../../../../packages/dragon/src/blocks/step/ga
 import { text as stripText } from "../../../../packages/dragon/src/blocks/strip/gallery/text";
 import { shelf as stripShelf } from "../../../../packages/dragon/src/blocks/strip/gallery/shelf";
 import { rule as stripRule } from "../../../../packages/dragon/src/blocks/strip/gallery/rule";
+import { text as zoomText } from "../../../../packages/dragon/src/blocks/zoom/gallery/text";
+import { shelf as zoomShelf } from "../../../../packages/dragon/src/blocks/zoom/gallery/shelf";
+import { rule as zoomRule } from "../../../../packages/dragon/src/blocks/zoom/gallery/rule";
 
 /** 見本帳の一覧の名前と説明。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_TEXT = {
@@ -79,17 +115,29 @@ export const BLOCK_TEXT = {
   "edge-label": edgeLabelText,
   "group": groupText,
   "icon": iconText,
+  "item": itemText,
   "leaf": leafText,
+  "legend": legendText,
   "lifeline": lifelineText,
+  "line": lineText,
   "link": linkText,
   "merge": mergeText,
   "node": nodeText,
   "note": noteText,
+  "order": orderText,
+  "pick": pickText,
+  "point": pointText,
+  "role": roleText,
+  "row": rowText,
+  "scale": scaleText,
+  "seal": sealText,
   "side-path": sidePathText,
   "source": sourceText,
+  "stamp": stampText,
   "start-finish": startFinishText,
   "step": stepText,
   "strip": stripText,
+  "zoom": zoomText,
 } as const;
 
 /** 編集画面の棚に置く部品の名前。鍵はブロックの置き場の dir の名前 */
@@ -105,17 +153,29 @@ export const BLOCK_SHELF = {
   "edge-label": edgeLabelShelf,
   "group": groupShelf,
   "icon": iconShelf,
+  "item": itemShelf,
   "leaf": leafShelf,
+  "legend": legendShelf,
   "lifeline": lifelineShelf,
+  "line": lineShelf,
   "link": linkShelf,
   "merge": mergeShelf,
   "node": nodeShelf,
   "note": noteShelf,
+  "order": orderShelf,
+  "pick": pickShelf,
+  "point": pointShelf,
+  "role": roleShelf,
+  "row": rowShelf,
+  "scale": scaleShelf,
+  "seal": sealShelf,
   "side-path": sidePathShelf,
   "source": sourceShelf,
+  "stamp": stampShelf,
   "start-finish": startFinishShelf,
   "step": stepShelf,
   "strip": stripShelf,
+  "zoom": zoomShelf,
 } as const;
 
 /** `GRAMMAR.md` の部品と使い方の表の行。鍵はブロックの置き場の dir の名前 */
@@ -131,15 +191,27 @@ export const BLOCK_RULE = {
   "edge-label": edgeLabelRule,
   "group": groupRule,
   "icon": iconRule,
+  "item": itemRule,
   "leaf": leafRule,
+  "legend": legendRule,
   "lifeline": lifelineRule,
+  "line": lineRule,
   "link": linkRule,
   "merge": mergeRule,
   "node": nodeRule,
   "note": noteRule,
+  "order": orderRule,
+  "pick": pickRule,
+  "point": pointRule,
+  "role": roleRule,
+  "row": rowRule,
+  "scale": scaleRule,
+  "seal": sealRule,
   "side-path": sidePathRule,
   "source": sourceRule,
+  "stamp": stampRule,
   "start-finish": startFinishRule,
   "step": stepRule,
   "strip": stripRule,
+  "zoom": zoomRule,
 } as const;

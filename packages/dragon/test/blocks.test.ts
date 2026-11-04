@@ -44,9 +44,9 @@ const LATER_KINDS = ["git", "lineup", "state", "time", "tree"];
 /** 付け方の5つ。置く、つなぐ、線に乗る、箱に付く、図に付く */
 const ATTACH = ["place", "connect", "ride-on-line", "attach-to-box", "attach-to-figure"];
 /** ブロックの定義が持つ欄。中身が無い欄も `none` を置いて持つ */
-const BLOCK_FIELDS = ["name", "rank", "attach", "words", "shape", "read", "print", "messages"];
-/** ブロックの置き場が持つ file */
-const BLOCK_FILES = ["block.ts", "draw.ts", "gallery/text.ts", "gallery/shelf.ts", "gallery/docs.ts", "gallery/rule.ts"];
+const BLOCK_FIELDS = ["name", "rank", "attach", "words", "read", "print", "messages"];
+/** ブロックの置き場が持つ file。原本の形の欠片 (`shape.ts`) は定義 (`block.ts`) と分けて持つ (#3348) */
+const BLOCK_FILES = ["block.ts", "shape.ts", "draw.ts", "gallery/text.ts", "gallery/shelf.ts", "gallery/docs.ts", "gallery/rule.ts"];
 /** 図の種類の置き場が持つ file。これ以外を置かない */
 const KIND_FILES = ["kind.ts", "layout.ts"];
 
@@ -55,7 +55,6 @@ interface Block {
   rank: number;
   attach: { how: string; only?: string; except?: string[] };
   words: { heads?: string[] };
-  shape: { definitions?: Record<string, unknown> };
   messages: { none: string } | { ja: Record<string, unknown>; en: Record<string, unknown> };
   [field: string]: unknown;
 }
@@ -78,11 +77,18 @@ const dirs = (path: string): string[] =>
 
 const files = (path: string): string[] => (existsSync(path) ? readdirSync(path, { recursive: true, encoding: "utf8" }).sort() : []);
 
-/** 書き出した一覧 (`src/blocks/index.ts` と `src/kinds/index.ts`) を読む。まだ無い時は空。決まりの関数は欄の在り無しを見るので、ブロックごとの型を広い形で受ける */
-async function registries(): Promise<{ blocks: Record<string, Block>; kinds: Record<string, Kind> }> {
+/** ブロックの原本の形の欠片 (`shape.ts` の `shape`) */
+type Shape = { none: string } | { field?: unknown; definitions?: Record<string, unknown>; events?: Record<string, unknown> };
+
+/**
+ * 書き出した一覧 (`src/blocks/index.ts` と `src/blocks/shapes.ts` と `src/kinds/index.ts`) を読む。まだ無い時は空。
+ * 決まりの関数は欄の在り無しを見るので、ブロックごとの型を広い形で受ける
+ */
+async function registries(): Promise<{ blocks: Record<string, Block>; shapes: Record<string, Shape>; kinds: Record<string, Kind> }> {
   const blocks = await import("../src/blocks/index").then((m) => m.BLOCKS as unknown as Record<string, Block>).catch(() => ({}));
+  const shapes = await import("../src/blocks/shapes").then((m) => m.SHAPES as unknown as Record<string, Shape>).catch(() => ({}));
   const kinds = await import("../src/kinds/index").then((m) => m.KIND_FOLDERS as unknown as Record<string, Kind>).catch(() => ({}));
-  return { blocks, kinds };
+  return { blocks, shapes, kinds };
 }
 
 /** ブロックの置き場のうち、持つべき file を持たない物を `<名前>/<file>` で返す */
@@ -201,6 +207,17 @@ export function galleryRuntimeImports(root: string): string[] {
   );
 }
 
+/** 形の欠片の一覧 (`blocks/shapes.ts`) と各置き場の `shape.ts` のほかで、形の欠片を読む行。`root` は package の src に当たる dir */
+export function shapeImports(root: string): string[] {
+  const all = files(root).filter((file) => file.endsWith(".ts") && file !== "blocks/shapes.ts" && !/^blocks\/[^/]+\/shape\.ts$/u.test(file));
+  return all.flatMap((file) =>
+    readFileSync(join(root, file), "utf8")
+      .split("\n")
+      .filter((line) => /^import\s/u.test(line) && !/^import type\s/u.test(line) && /from "[^"]*\/(shape|shapes)"/u.test(line))
+      .map((line) => `${file}: ${line}`),
+  );
+}
+
 describe("ブロックの置き場 (#3345)", () => {
   it("block-folder-holds-whole-definition", async () => {
     // 移したブロックの全てが置き場を持ち、置き場は決まった file と定義の全ての欄を持つ
@@ -214,7 +231,7 @@ describe("ブロックの置き場 (#3345)", () => {
 
   it("block-check-flags-missing-messages", () => {
     // 誤りの文が無いか日英の片方しか無いブロックを、置き場の決まりの関数が名指す
-    const base = { name: "x", rank: 0, attach: { how: "place" }, words: {}, shape: {} };
+    const base = { name: "x", rank: 0, attach: { how: "place" }, words: {} };
     expect(
       messageProblems({
         a: { ...base, messages: { ja: { k: 1 }, en: {} } },
@@ -228,7 +245,7 @@ describe("ブロックの置き場 (#3345)", () => {
     try {
       mkdirSync(join(root, "y", "gallery"), { recursive: true });
       writeFileSync(join(root, "y", "block.ts"), "");
-      expect(missingBlockFiles(root)).toEqual(["y/draw.ts", "y/gallery/text.ts", "y/gallery/shelf.ts", "y/gallery/docs.ts", "y/gallery/rule.ts"]);
+      expect(missingBlockFiles(root)).toEqual(["y/shape.ts", "y/draw.ts", "y/gallery/text.ts", "y/gallery/shelf.ts", "y/gallery/docs.ts", "y/gallery/rule.ts"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -244,7 +261,7 @@ describe("ブロックの置き場 (#3345)", () => {
     const { blocks } = await registries();
     expect(Object.keys(blocks).length, "定義を読めるブロックが無い").toBeGreaterThan(0);
     expect(sharedMessageKeys(blocks), "2つのブロックが持つ誤りの文の鍵").toEqual([]);
-    const one = { name: "a", rank: 0, attach: { how: "place" }, words: {}, shape: {}, messages: { ja: { k: 1 }, en: { k: 1 } } };
+    const one = { name: "a", rank: 0, attach: { how: "place" }, words: {}, messages: { ja: { k: 1 }, en: { k: 1 } } };
     expect(sharedMessageKeys({ a: one, b: { ...one, name: "b" } })).toEqual(["k: a, b"]);
   });
 
@@ -252,7 +269,7 @@ describe("ブロックの置き場 (#3345)", () => {
     const { blocks } = await registries();
     expect(Object.keys(blocks).length, "定義を読めるブロックが無い").toBeGreaterThan(0);
     expect(sharedHeads(blocks), "2つのブロックが持つ行の頭の語").toEqual([]);
-    const one = { name: "a", rank: 0, attach: { how: "place" }, words: { heads: ["box"] }, shape: {}, messages: { none: "-" } };
+    const one = { name: "a", rank: 0, attach: { how: "place" }, words: { heads: ["box"] }, messages: { none: "-" } };
     expect(sharedHeads({ a: one, b: { ...one, name: "b" } })).toEqual(["box: a, b"]);
   });
 
@@ -260,17 +277,38 @@ describe("ブロックの置き場 (#3345)", () => {
     const { blocks, kinds } = await registries();
     expect(Object.keys(blocks).length, "定義を読めるブロックが無い").toBeGreaterThan(0);
     expect(unknownAttach(blocks, kinds), "5つ以外の付け方").toEqual([]);
-    const one = { name: "a", rank: 0, attach: { how: "float" }, words: {}, shape: {}, messages: { none: "-" } };
+    const one = { name: "a", rank: 0, attach: { how: "float" }, words: {}, messages: { none: "-" } };
     expect(unknownAttach({ a: one }, { k: { name: "k", accepts: ["place", "hover"], layout: null } })).toEqual(["a: float", "k: hover"]);
   });
 
   it("block-shape-matches-schema", async () => {
-    // 原本の形はまだ1つの schema (`src/schemas/diagram.schema.json`) が持つので、ブロックの形の欠片は schema と同じ
-    const { blocks } = await registries();
+    // 書き出した原本の形 (`src/schemas/diagram.schema.json`) は形の欠片を束ねた物なので、ブロックの形の欠片は schema と同じ
+    const { blocks, shapes } = await registries();
+    expect(Object.keys(shapes).sort(), "形の欠片の一覧とブロックの一覧の名前").toEqual(Object.keys(blocks).sort());
     const schema = JSON.parse(readFileSync(join(SRC, "schemas/diagram.schema.json"), "utf8")) as { definitions: Record<string, unknown> };
-    const pieces = Object.entries(blocks).flatMap(([name, block]) => Object.entries(block.shape?.definitions ?? {}).map(([key, value]) => ({ name, key, value })));
+    const pieces = Object.entries(shapes).flatMap(([name, shape]) => ("none" in shape ? [] : Object.entries(shape.definitions ?? {}).map(([key, value]) => ({ name, key, value }))));
     expect(pieces.length, "形の欠片を持つブロックが無い").toBeGreaterThan(0);
     expect(pieces.filter(({ key, value }) => JSON.stringify(schema.definitions[key]) !== JSON.stringify(value)).map(({ name, key }) => `${name}.${key}`), "schema と違う形の欠片").toEqual([]);
+  });
+
+  it("block-shapes-stay-out-of-runtime", async () => {
+    // 原本の形の欠片は build の時の script と検査だけが読み、描く時に読む塊に入れない (#3348)。
+    // 定義は形の欠片を持たず、package の src は形の欠片の一覧 (`blocks/shapes.ts`) と各置き場の `shape.ts` を読まない
+    const { blocks } = await registries();
+    expect(Object.keys(blocks).length, "定義を読めるブロックが無い").toBeGreaterThan(0);
+    expect(Object.keys(blocks).filter((name) => blocks[name]?.shape !== undefined), "形の欠片を持つ定義").toEqual([]);
+    expect(shapeImports(SRC), "形の欠片を読む package の行").toEqual([]);
+    const root = mkdtempSync(join(tmpdir(), "dragon-shapes-"));
+    try {
+      mkdirSync(join(root, "blocks", "w"), { recursive: true });
+      writeFileSync(join(root, "blocks", "shapes.ts"), 'import { shape as wShape } from "./w/shape";\n');
+      writeFileSync(join(root, "blocks", "w", "shape.ts"), 'import { none } from "../block";\n');
+      writeFileSync(join(root, "blocks", "w", "block.ts"), 'import type { BlockShape } from "../shape";\nimport { shape } from "./shape";\n');
+      writeFileSync(join(root, "parser.ts"), 'import { SHAPES } from "./blocks/shapes";\n');
+      expect(shapeImports(root)).toEqual(['blocks/w/block.ts: import { shape } from "./shape";', 'parser.ts: import { SHAPES } from "./blocks/shapes";']);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("block-gallery-figures-match-kinds", async () => {

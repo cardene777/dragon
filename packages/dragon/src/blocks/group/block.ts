@@ -41,23 +41,6 @@ export const block: Block<GroupMessages> = {
   rank: 10,
   attach: { how: "place", only: "architecture" },
   words: { heads: GROUP_HEADS, attrs: { group: ["note"] } },
-  shape: {
-    field: { type: "array", items: { $ref: "#/definitions/region" } },
-    definitions: {
-      region: {
-        type: "object",
-        additionalProperties: false,
-        required: ["id", "name"],
-        properties: {
-          id: { $ref: "#/definitions/id" },
-          name: { $ref: "#/definitions/text" },
-          note: { $ref: "#/definitions/text" },
-          color: { $ref: "#/definitions/color" },
-          icon: { $ref: "#/definitions/icon" },
-        },
-      },
-    },
-  },
   read: {
     // `group` の行。同じ名札をもう一度開いた時は、名前も属性も書かない
     group: (source, state) => {

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * 原本の形を、骨組みとブロックの形の欠片から束ねて書き出し、検査の関数を JS の file に前もって書き出す (#2995、#3346)。
+ * 原本の形を、骨組みとブロックの形の欠片から束ねて書き出し、検査の関数を JS の file に前もって書き出す (#2995、#3346、#3348)。
  *
- * 骨組み (`src/schemas/base.schema.json`) は、根の欄 (版、種類、題、見せ方、`blocks`、段) と、ブロックの置き場へまだ移していない形と、
- * 図の種類ごとの決まりを持つ。ブロックは置き場の `block.ts` の `shape` に、原本の `blocks` の中の自分の欄の形 (`field`)、
+ * 骨組み (`src/schemas/base.schema.json`) は、根の欄 (版、種類、題、見せ方、`blocks`、段) と、どのブロックにも属さない共通の形と、
+ * 図の種類ごとの決まりを持つ。ブロックは置き場の `shape.ts` の `shape` に、原本の `blocks` の中の自分の欄の形 (`field`)、
  * `definitions` の欠片、段の中で起きることの枝 (`events`) を持つ。ここで両方を束ねて `src/schemas/diagram.schema.json` を書き出す。
  * ブロックの欄と欠片はブロックの並び (`rank`) の順に、骨組みの同じ所の前に置く。同じ鍵を 2 か所が持つ時は止める。
  *
@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import Ajv from "ajv";
 import standaloneCode from "ajv/dist/standalone/index.js";
 import { BLOCKS } from "../src/blocks/index.ts";
+import { SHAPES } from "../src/blocks/shapes.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const schemas = join(here, "../src/schemas");
@@ -48,12 +49,16 @@ function put(table, key, value, owner) {
   table[key] = value;
 }
 
-/** 骨組みとブロックの形の欠片を束ねた原本の形。ブロックの欄と欠片は、ブロックの並び (`rank`) の順に骨組みの前に置く */
-export function compose(blocks = BLOCKS) {
+/**
+ * 骨組みとブロックの形の欠片を束ねた原本の形。`shapes` は形の欠片の一覧 (鍵はブロックの名前)。
+ * ブロックの欄と欠片は、ブロックの並び (`rank`) の順に骨組みの前に置く
+ */
+export function compose(shapes = SHAPES) {
   const base = JSON.parse(readFileSync(BASE, "utf8"));
-  const shaped = Object.values(blocks)
+  const shaped = Object.entries(shapes)
+    .map(([name, shape]) => ({ name, shape, rank: BLOCKS[name]?.rank ?? Number.POSITIVE_INFINITY }))
     .sort((a, b) => a.rank - b.rank)
-    .filter((block) => !("none" in block.shape));
+    .filter(({ shape }) => !("none" in shape));
   const fields = {};
   const definitions = {};
   const events = [];
@@ -77,8 +82,8 @@ export function compose(blocks = BLOCKS) {
 }
 
 /** 書き出す 2 つの file の中身。骨組みとブロックの形と ajv の版が同じなら毎回同じ字の並びになる */
-export function generate(blocks = BLOCKS) {
-  const schema = compose(blocks);
+export function generate(shapes = SHAPES) {
+  const schema = compose(shapes);
   // 設定は検査の結果を変えるため、src/schema.ts の説明と同じにする
   const ajv = new Ajv({ allErrors: true, discriminator: true, strictTypes: false, code: { source: true, esm: true } });
   const code = standaloneCode(ajv, ajv.compile(schema));

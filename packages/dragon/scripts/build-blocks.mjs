@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
- * ブロックと図の種類の置き場の dir から、一覧の file を書き出す (#3345)。
+ * ブロックと図の種類の置き場の dir から、一覧の file を書き出す (#3345、#3348)。
  *
  * ブロックは `src/blocks/<名前>/`、図の種類は `src/kinds/<種類>/` に置き場を1つずつ持つ。
- * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 4 つを書き出す。
+ * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 5 つを書き出す。
  *
  * - `src/blocks/index.ts` ... 各置き場の `block.ts` が出す定義を、dir の名前を鍵にした `BLOCKS` と、名前の並び `BLOCK_NAMES`
+ * - `src/blocks/shapes.ts` ... 各置き場の `shape.ts` が出す原本の形の欠片を、dir の名前を鍵にした `SHAPES`
  * - `src/kinds/index.ts` ... 各置き場の `kind.ts` が出す定義を、dir の名前を鍵にした `KIND_FOLDERS`
  * - `apps/playground-spa/src/catalog/blocks.gen.ts` ... 各置き場の `gallery/` の見本帳の分を、種類ごとに dir の名前を鍵にした表
  * - `apps/playground-spa/src/catalog/blocks-docs.gen.ts` ... 見本帳の分のうち、使い方の頁だけが読む段落 (`BLOCK_DOCS`) の表
  *
+ * 形の欠片の一覧を `src/blocks/index.ts` と分けるのは、形の欠片を使うのが build の時に原本の検査を書き出す script と検査だけで、
+ * 描く時に読む塊に入れないため (#3348)。package の入口は `src/blocks/shapes.ts` を読まない。
  * 使い方の頁の段落を別の file に分けるのは、上の表と同じ module に置くと、最初に読む塊へ全てのブロックの段落が入るため (#3341)。
  * 塊は module ごとに分かれ、最初の画面が読む `BLOCK_TEXT` と同じ module の値は、後から読む頁だけが使う値も最初の塊に入る。
  *
@@ -73,6 +76,17 @@ function blocksIndex(names) {
   ].join("\n");
 }
 
+function shapesIndex(names) {
+  return [
+    HEADER,
+    ...names.map((name) => `import { shape as ${ident(name)}Shape } from "./${name}/shape";`),
+    "",
+    "/** ブロックの原本の形の欠片の一覧。鍵は置き場の dir の名前。build の時の script と検査だけが読む */",
+    `export const SHAPES = ${table(names, (name) => `${ident(name)}Shape`)} as const;`,
+    "",
+  ].join("\n");
+}
+
 function kindsIndex(names) {
   return [
     HEADER,
@@ -110,6 +124,7 @@ export function generate(root = SRC, catalog = CATALOG) {
   const kinds = dirs(join(root, "kinds"));
   return {
     [join(root, "blocks", "index.ts")]: blocksIndex(blocks),
+    [join(root, "blocks", "shapes.ts")]: shapesIndex(blocks),
     [join(root, "kinds", "index.ts")]: kindsIndex(kinds),
     [catalog]: catalogIndex(root, catalog, blocks, GALLERY_FILES.filter((file) => !DOCS_FILES.includes(file))),
     [docsCatalogOf(catalog)]: catalogIndex(root, docsCatalogOf(catalog), blocks, DOCS_FILES),

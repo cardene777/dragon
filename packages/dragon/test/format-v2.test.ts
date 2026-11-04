@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { migrateFile } from "@cardenelabs/dragon/node";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
-import { BLOCKS } from "../src/blocks/index";
+import { SHAPES } from "../src/blocks/shapes";
 import { api } from "./diagram-support";
 
 type Obj = Record<string, unknown>;
@@ -159,7 +159,7 @@ describe("形の検査を束ねて書き出す (#3346)", () => {
   it("validator-built-from-block-shapes", async () => {
     // 書き出した形と検査の関数は、骨組みとブロックの形の欠片を束ねた物で、ブロックの形を変えると書き出す形も変わる
     const builder = (await import("../scripts/build-validator.mjs")) as unknown as {
-      generate: (blocks?: unknown) => { schema?: string; validator?: string };
+      generate: (shapes?: unknown) => { schema?: string; validator?: string };
       SCHEMA?: string;
       OUT: string;
     };
@@ -170,15 +170,16 @@ describe("形の検査を束ねて書き出す (#3346)", () => {
     expect(written.validator === readFileSync(builder.OUT, "utf8"), "書き出した検査の関数を書き出し直していない").toBe(true);
 
     const schema = JSON.parse(written.schema ?? "{}") as { definitions: Obj; properties: { blocks: { properties: Obj } } };
-    const blocks = BLOCKS as unknown as Record<string, { shape: { definitions?: Obj; field?: unknown } | { none: string } }>;
-    for (const [name, block] of Object.entries(blocks)) {
-      if ("none" in block.shape) continue;
-      for (const [key, value] of Object.entries(block.shape.definitions ?? {})) expect(schema.definitions[key], `${name} の形の欠片 ${key}`).toEqual(value);
-      if (block.shape.field !== undefined) expect(schema.properties.blocks.properties[name], `${name} の blocks の欄`).toEqual(block.shape.field);
+    // 形の欠片はブロックの置き場の `shape.ts` が持ち、一覧 (`blocks/shapes.ts`) から読む (#3348)
+    const shapes = SHAPES as unknown as Record<string, { definitions?: Obj; field?: unknown } | { none: string }>;
+    for (const [name, shape] of Object.entries(shapes)) {
+      if ("none" in shape) continue;
+      for (const [key, value] of Object.entries(shape.definitions ?? {})) expect(schema.definitions[key], `${name} の形の欠片 ${key}`).toEqual(value);
+      if (shape.field !== undefined) expect(schema.properties.blocks.properties[name], `${name} の blocks の欄`).toEqual(shape.field);
     }
 
-    const box = blocks.box?.shape as { definitions: { box: Obj } };
-    const changed = { ...blocks, box: { ...blocks.box, shape: { ...box, definitions: { ...box.definitions, box: { ...box.definitions.box, required: ["id"] } } } } };
+    const box = shapes.box as { definitions: { box: Obj } };
+    const changed = { ...shapes, box: { ...box, definitions: { ...box.definitions, box: { ...box.definitions.box, required: ["id"] } } } };
     const other = JSON.parse(builder.generate(changed).schema ?? "{}") as { definitions: { box: { required: unknown } } };
     expect(other.definitions.box.required, "ブロックの形を変えても書き出す形が変わらない").toEqual(["id"]);
   });

@@ -81,29 +81,6 @@ export const block: Block<BoxMessages> = {
   rank: 20,
   attach: { how: "place" },
   words: { heads: ["box"], attrs: { box: ["note"] } },
-  shape: {
-    field: { type: "array", items: { $ref: "#/definitions/box" } },
-    definitions: {
-      box: {
-        type: "object",
-        additionalProperties: false,
-        required: ["id", "name"],
-        properties: {
-          id: { $ref: "#/definitions/id" },
-          name: { $ref: "#/definitions/text" },
-          sub: { $ref: "#/definitions/text" },
-          color: { $ref: "#/definitions/color" },
-          icon: { $ref: "#/definitions/icon" },
-          region: { $ref: "#/definitions/id" },
-          link: { description: "飛び先。描いた図ではこの箱がここへの link になる", $ref: "#/definitions/url" },
-          order: {
-            description: "列の図の箱の並べ方。none は順番の無い置き場で、チップを散らして置く。書かない箱は上から実行する札で、チップを line に書いた順に積む",
-            enum: ["none"],
-          },
-        },
-      },
-    },
-  },
   read: {
     // `box` の行。開いている `group` の中なら、その区画に置く
     box: (source, state) => {

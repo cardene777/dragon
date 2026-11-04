@@ -19,22 +19,6 @@ export const block: Block<NoteMessages> = {
   rank: 70,
   attach: { how: "attach-to-box" },
   words: { heads: ["note"] },
-  shape: {
-    events: {
-      swap: {
-        description: "箱の下の小さな字の書き換え",
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "box", "text"],
-        properties: {
-          type: { const: "swap" },
-          box: { $ref: "#/definitions/id" },
-          text: { $ref: "#/definitions/text" },
-          color: { description: "時間軸の図の節目の丸の色", $ref: "#/definitions/color" },
-        },
-      },
-    },
-  },
   read: {
     note: (source, state) => {
       const step = state.inStep(source);

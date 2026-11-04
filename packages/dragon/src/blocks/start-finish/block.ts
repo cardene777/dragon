@@ -29,7 +29,6 @@ export const block: Block<StartFinishMessages, StartFinishFieldMessages> = {
   rank: 3,
   attach: { how: "place", only: "state" },
   words: {},
-  shape: none("印は線の端の名札で書き、原本に印の欄は無い。箱の名札の決まりは図の種類ごとの決まりと一緒に base.schema.json が持つ"),
   read: none("印の行は無い。線の端の名札を、図の種類ごとの端の決まりを知る parser が確かめる"),
   print: none("印は線の端の名札なので、線のブロックが線の行と一緒に書く"),
   messages: {

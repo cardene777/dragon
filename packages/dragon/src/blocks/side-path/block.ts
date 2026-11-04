@@ -35,21 +35,6 @@ export const block: Block<SidePathMessages> = {
   rank: 35,
   attach: { how: "connect", only: "state" },
   words: {},
-  shape: {
-    definitions: {
-      path: {
-        description: "移れる道。送る側に始まりの印 start、受ける側に終わりの印 finish を書ける。どの段にも出ない道は点線で描き、運ぶ物を走らせない",
-        type: "object",
-        additionalProperties: false,
-        required: ["from", "to"],
-        properties: {
-          from: { $ref: "#/definitions/id" },
-          to: { $ref: "#/definitions/id" },
-          label: { $ref: "#/definitions/text" },
-        },
-      },
-    },
-  },
   read: none("道の行は線の行と同じ形で行の頭の語を持たない。parser が最初の step より前の線の行を見分けて readPath を呼ぶ"),
   print: {
     // 道は中身の帯の宣言の後ろ、最初の `step` より前に、原本の並びのまま書く

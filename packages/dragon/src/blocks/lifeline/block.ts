@@ -16,7 +16,6 @@ export const block: Block = {
   rank: 25,
   attach: { how: "attach-to-box", only: "sequence" },
   words: {},
-  shape: none("版2の原本は生存線の欄を持たない。描く処理の形へ組み直す時に、箱の並びから組む (model.ts の toModel)"),
   read: none("生存線の行は無い。描く処理の形へ組み直す時に、toModel が lifelinesOf で箱の並びから組む"),
   print: none("生存線の並びは箱の並びと同じなので書かない。読み直す時に箱の宣言から組み直す"),
   messages: none("生存線は記法に行を持たないので、誤りの文を持たない"),

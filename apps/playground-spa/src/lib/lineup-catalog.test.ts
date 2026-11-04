@@ -4,7 +4,7 @@
  * 見本の正は `packages/dragon/examples/auction.dragon` で、題と図の形はその file を読んで取る。頁の側の見本の表は読まない。
  * 列の図だけの部品は、チップ (`item`)、列の並び (`line`)、封 (`seal`)、選ぶ (`pick`)、札 (`stamp`) の 5 つで、
  * 卓の形 (#3351) で置き場 (`order`)、役 (`role`)、凡例の説明 (`legend`) の 3 つを足す。
- * 部品の図は `catalog/parts/<名札>.lineup.dragon` と英語の `.en.dragon` の記法の file。
+ * 部品の図は `packages/dragon/src/blocks/<名札>/gallery/<名札>.lineup.dragon` と英語の `.en.dragon` の記法の file。
  * 列の図の分類と部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
 import { existsSync, readFileSync } from "node:fs";

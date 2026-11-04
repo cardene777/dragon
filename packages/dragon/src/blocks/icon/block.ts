@@ -47,11 +47,6 @@ export const block: Block<IconMessages, IconFieldMessages> = {
   rank: 88,
   attach: { how: "attach-to-box", except: ["lineup"] },
   words: { attrs: { group: ["icon"], box: ["icon"] } },
-  shape: {
-    definitions: {
-      icon: { description: "箱と区画のアイコン名。描く部品のアイコンの表 (ICONS) に在る名前だけ", enum: ICON_NAMES },
-    },
-  },
   read: none("絵は箱と区画の行の属性で、行の頭の語を持たない。箱と区画の行を読む処理が readIcon を呼ぶ"),
   print: none("絵は箱と区画の行の属性で、箱と区画の宣言を書き戻す処理が icon の鍵を書く"),
   messages: {

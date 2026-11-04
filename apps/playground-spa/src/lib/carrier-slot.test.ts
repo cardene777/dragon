@@ -35,7 +35,7 @@ function examples(): { name: string; rendered: Rendered }[] {
     ["docs/examples", DOCS, /\.(dragon|json)$/],
     ["examples", PACKAGE, /\.(dragon|json)$/],
   ];
-  // 部品の図はブロックの置き場へ移した分も、今の置き場と同じ名前で数える (#3345)
+  // 部品の図はブロックの置き場の見本帳の分に在り、前の置き場と同じ名前で数える (#3345、#3348)
   const parts = partFigureNames().map((file) => ({ name: `catalog/parts/${file}`, rendered: draw(dirname(partFigure(file)), file) }));
   return [
     ...parts,

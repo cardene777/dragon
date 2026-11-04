@@ -92,27 +92,8 @@ export const block: Block<CommitMessages> = {
   name: "commit",
   rank: 6,
   attach: { how: "place", only: "git" },
-  // 行の頭の語の一覧では、枝の語の後ろ、移していない時間軸の図の語の前に並ぶ
+  // 行の頭の語の一覧では、枝の語の後ろ、時間軸の図のブロックの語 (順 90 から) の前に並ぶ
   words: { heads: ["commit"], headRanks: { commit: 89 }, attrs: { commit: ["hash", "note"] } },
-  shape: {
-    events: {
-      commit: {
-        description: "commit を積む。枝分かれの図だけが書ける。積んだ枝の札と、その枝を指す HEAD が進む。当て直し (copy) は枝の札を動かさず、merge commit (merge) は取り込む枝の先端も親に持つ",
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "id", "branch"],
-        properties: {
-          type: { const: "commit" },
-          id: { $ref: "#/definitions/id" },
-          branch: { $ref: "#/definitions/id" },
-          copy: { $ref: "#/definitions/id" },
-          merge: { $ref: "#/definitions/id" },
-          hash: { $ref: "#/definitions/hash" },
-          note: { $ref: "#/definitions/text" },
-        },
-      },
-    },
-  },
   read: {
     commit: (source, state) => {
       const step = state.inStep(source);

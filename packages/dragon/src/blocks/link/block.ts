@@ -35,11 +35,6 @@ export const block: Block<LinkMessages, LinkFieldMessages> = {
   rank: 89,
   attach: { how: "attach-to-box", except: ["lineup"] },
   words: { attrs: { box: ["link"] } },
-  shape: {
-    definitions: {
-      url: { description: "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL", type: "string", pattern: "^(/|https?://)" },
-    },
-  },
   read: none("飛び先は箱の行の属性で、行の頭の語を持たない。箱の行を読む処理が urlOf を呼ぶ"),
   print: none("飛び先は箱の行の属性で、箱の宣言を書き戻す処理が link の鍵を書く"),
   messages: {

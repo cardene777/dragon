@@ -15,7 +15,6 @@ export const block: Block = {
   rank: 7,
   attach: { how: "connect", only: "git" },
   words: {},
-  shape: none("当て直しの元は commit の出来事の copy の欄で、commit のブロックの形が持つ"),
   read: none("copy の語は commit の行の中に書くので、commit のブロックが commit の行と一緒に読む"),
   print: none("copy の語は commit の行の中に書くので、commit のブロックが commit の行と一緒に書く"),
   messages: none("当て直しの元を確かめる誤りの文 (まだ積んでいない commit) は、commit のブロックが持つ"),

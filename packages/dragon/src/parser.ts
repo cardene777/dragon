@@ -67,51 +67,22 @@
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
-import { type FigureDraft, type HeadReader, type ParseState, ranked, type StepDraft } from "./blocks/block";
+import { type FigureDraft, type HeadReader, type KindName, type ParseState, ranked, type StepDraft } from "./blocks/block";
 import { isCut, readCut } from "./blocks/branch/block";
 import { commitAt } from "./blocks/commit/block";
 import { EDGE, readEdgeLine } from "./blocks/edge/block";
 import { BLOCKS } from "./blocks/index";
+import { readTimeNote } from "./blocks/point/block";
+import { isNeedle, readNow } from "./blocks/scale/block";
 import { readPath } from "./blocks/side-path/block";
 import { stepOf, viewOf } from "./blocks/step/block";
+import { readColumns } from "./blocks/zoom/block";
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { type Attr, fail, HASH, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
-import {
-  type Color,
-  COLORS,
-  type Diagram,
-  type DiagramModel,
-  type DiagramEvent,
-  type LineupItem,
-  type LineupRole,
-  type Step,
-  type TimePeriod,
-  type TimePoint,
-  type TimeRow,
-  type TimeScale,
-} from "./schema";
+import { fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
+import type { Diagram, DiagramModel, Step } from "./schema";
 import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
-import {
-  AT,
-  ATTRS,
-  DEFAULT_LANG,
-  HEAD,
-  HEADS,
-  KINDS,
-  LABEL_MOST,
-  LANE_MOST,
-  LINEUP_HEADS,
-  type NotationLang,
-  NOW,
-  OF,
-  OLD_HEADS,
-  SPAN_SHAPES,
-  STATE_ENDS,
-  TIME_EDGE_ATTRS,
-  TIME_HEADS,
-  TREE_HEADS,
-} from "./words";
+import { ATTRS, DEFAULT_LANG, HEAD, HEADS, KINDS, type NotationLang, NOW, OLD_HEADS, STATE_ENDS } from "./words";
 
 export interface LineError {
   line: number;
@@ -125,30 +96,6 @@ export interface ParseOptions {
   /** 誤りの文の言葉。既定は英語 (#3338) */
   lang?: NotationLang;
 }
-
-/** 列の図の、`line <列>:` と `stamp <列>:` の行の列と、`seal`、`open`、`pick` の行の列 */
-const ORDER = /^line\s+([^\s:[]+)\s*:/du;
-const STAMP = /^stamp\s+([^\s:[]+)\s*:/du;
-const ON_LANE = /^(?:seal|open|pick)\s+(\S+)\s*$/du;
-/** 段の中の `role <名札>` の行 (#3351) */
-const ACT_ROLE = /^role\s+(\S+)\s*$/du;
-/** 時間軸の図の宣言の行。`scale <単位> <長さ> <数>`、`period <名前> <数>`、`point <名札> at <目盛り>`、`zoom <範囲>` */
-const SCALE = /^scale\s+(\S+)\s+(\S+)\s+([^\s[]+)/du;
-const PERIOD = /^period\s+(\S+)\s+([^\s[]+)/du;
-const POINT = new RegExp(`^point\\s+(\\S+)\\s+${AT}\\s+(\\S+)\\s*$`, "du");
-const ZOOM = /^zoom\s+(\S+)\s*$/du;
-/** 時間軸の図の段の中の行。`now -> <目盛り>`、`mark <列> <範囲>`、`span <範囲>:` */
-const NEEDLE = new RegExp(`^${NOW}\\s*->`, "u");
-const NOW_LINE = new RegExp(`^${NOW}\\s*->\\s*(\\S+)\\s*$`, "du");
-const MARK = /^mark\s+([^\s[]+)\s+([^\s[]+)/du;
-const SPAN = /^span\s+([^\s:[]+)\s*:/du;
-/** 目盛りの長さ。原本の JSON の長さの形と同じ */
-const LENGTH = /^[0-9]+(\.[0-9]+)?(ms|s|min|h|d)$/u;
-/** 1 以上の整数と、0 以上の整数 */
-const COUNT = /^[1-9][0-9]*$/u;
-const NUMBER = /^(0|[1-9][0-9]*)$/u;
-/** 目盛りの範囲。`0-31` か `0` */
-const RANGE = /^(0|[1-9][0-9]*)(?:-(0|[1-9][0-9]*))?$/u;
 
 /**
  * 前の形 (#2997 まで) の行なら、その印と、新しい形で書く行の形。`inStep` は段の中の行か。
@@ -172,8 +119,16 @@ function oldForm(text: string, inStep: boolean): { word: string; shape: Shape } 
  * 行の頭の語の誤り (図の種類だけの語と、知らない語) を確かめた後に、ここに在る語はブロックの読む処理で読む
  */
 const HEAD_READERS: ReadonlyMap<string, HeadReader> = new Map(ranked(BLOCKS).flatMap((block) => ("none" in block.read ? [] : Object.entries(block.read))));
-/** 枝分かれの図だけが書ける行の頭の語 (`branch` と `commit`)。枝分かれの図の個別ブロックが持つ (#3164、#3347) */
-const GIT_HEADS: readonly string[] = ranked(BLOCKS).flatMap((block) => (block.attach.only === "git" ? (block.words.heads ?? []) : []));
+/**
+ * 図の種類だけのブロック (`attach.only`) が持つ行の頭の語と、その図の種類 (#3164、#3347、#3348)。
+ * ほかの種類の図に書いた行は、その図の種類だけの語の誤りで止める
+ */
+const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
+  ranked(BLOCKS).flatMap((block) => {
+    const only = block.attach.only;
+    return only === undefined ? [] : (block.words.heads ?? []).map((head) => [head, only] as const);
+  }),
+);
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
@@ -195,21 +150,6 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const isTime = kind === "time";
   const isTree = kind === "tree";
   const isLineup = kind === "lineup";
-  /** 列の図で宣言したチップと、今封をしている列 (#3239) */
-  const items: LineupItem[] = [];
-  const roles: LineupRole[] = [];
-  const sealed = new Set<string>();
-  /** 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲 (#3165) */
-  let scale: TimeScale | undefined;
-  let period: TimePeriod | undefined;
-  const rows: TimeRow[] = [];
-  const points: TimePoint[] = [];
-  let zoom: { from: number; to: number } | undefined;
-  /** 目盛りの数が決まってから確かめる、宣言の行の目盛り。最初の step で確かめる */
-  const pending: (() => void)[] = [];
-  let settled = false;
-  /** 針が今いる目盛りの境 (0 から数える) */
-  let needle = 0;
   const ids = new Set<string>();
   /** 宣言の行でブロックが組む欄 (区画と箱と、中身の帯と、時間軸の図の物差しの欄と、状態遷移図の道と、枝分かれの図の枝と札) */
   const figure: FigureDraft = {
@@ -223,7 +163,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     tree: { boxes: new Map(), parents: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },
   };
-  const { regions, boxes, paths, branches } = figure;
+  const { regions, boxes, paths, branches, time } = figure;
   const { tips } = figure.git;
   const steps: Step[] = [];
   let building: StepDraft | undefined;
@@ -247,7 +187,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       return id;
     }
     if (isTime) {
-      if (!boxes.some((box) => box.id === id) && !points.some((point) => point.id === id)) throw fail(source, at, m.undeclaredNote(id));
+      if (!boxes.some((box) => box.id === id) && !time.points.some((point) => point.id === id)) throw fail(source, at, m.undeclaredNote(id));
       return id;
     }
     if (isTree && figure.tree.boxes.has(id)) return id;
@@ -286,7 +226,14 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
   const declared = (id: string): boolean => ids.has(id);
-  const state: ParseState = { m, kind, attrs: ATTRS, inStep, closeStep, openStep, beforeSteps, boxAt, declare, declared, claim, endAt, columns: readColumns, figure };
+  const current = (): StepDraft | undefined => building;
+  /**
+   * 図の種類だけの行の頭の語を、ほかの種類の図に書いた時の誤りの文。
+   * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
+   */
+  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly };
+  const columns: ParseState["columns"] = (source, from, to, attrs, end) => readColumns(source, from, to, attrs, end, state);
+  const state: ParseState = { m, kind, attrs: ATTRS, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure };
 
   const rest = lines.slice(headAt + 1);
   for (let i = 0; i < rest.length; i++) {
@@ -294,8 +241,8 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     if (!source || isBlankOrComment(source)) continue;
     const text = source.text;
     // 時間軸の図の `now -> <目盛り>` は針を進める行で、線と同じ形でも箱どうしの線と読まない
-    if (isTime && NEEDLE.test(text)) {
-      inStep(source).events.push(readNow(source));
+    if (isTime && isNeedle(text)) {
+      inStep(source).events.push(readNow(source, state));
       continue;
     }
     // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
@@ -316,17 +263,16 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       readCut(source, state);
       continue;
     }
-    if (!isGit && GIT_HEADS.includes(word)) throw fail(source, 0, m.gitOnly(word));
-    if (!isTime && isOneOf(TIME_HEADS, word)) throw fail(source, 0, m.timeOnly(word));
-    if (!isTree && isOneOf(TREE_HEADS, word)) throw fail(source, 0, m.treeOnly(word));
-    if (!isLineup && isOneOf(LINEUP_HEADS, word)) throw fail(source, 0, m.lineupOnly(word));
+    const only = ONLY_HEADS.get(word);
+    const refuse = only === undefined || only === kind ? undefined : onlyIn[only];
+    if (refuse) throw fail(source, 0, refuse(word));
     if (!isOneOf(HEADS, word)) {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
     }
-    // 時間軸の図の `note` の行は節目にも書けて丸の色を持つので、下の字のブロックでなく時間軸の図の読み方で読む
+    // 時間軸の図の `note` の行は節目にも書けて丸の色を持つので、下の字のブロックでなく節目のブロックの読み方で読む
     if (isTime && word === "note") {
-      inStep(source).events.push(readTimeNote(source));
+      inStep(source).events.push(readTimeNote(source, state));
       continue;
     }
     const reader = HEAD_READERS.get(word);
@@ -336,58 +282,12 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
       if (typeof read === "number") i += read;
       continue;
     }
-    switch (word) {
-      case "scale":
-        readScale(source);
-        break;
-      case "period":
-        readPeriod(source);
-        break;
-      case "row":
-        readRow(source);
-        break;
-      case "point":
-        readPoint(source);
-        break;
-      case "zoom":
-        readZoom(source);
-        break;
-      case "mark":
-        inStep(source).events.push(readMark(source));
-        break;
-      case "span":
-        inStep(source).events.push(readSpan(source));
-        break;
-      case "item":
-        readItem(source);
-        break;
-      case "role":
-        readRole(source);
-        break;
-      case "line": {
-        const step = inStep(source);
-        step.events.push(readOrder(source));
-        break;
-      }
-      case "seal":
-      case "open":
-      case "pick": {
-        const step = inStep(source);
-        step.events.push(readOnLane(source, word));
-        break;
-      }
-      case "stamp": {
-        const step = inStep(source);
-        step.events.push(readStamp(source));
-        break;
-      }
-    }
   }
   closeStep();
 
   if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
   if (isTree && figure.tree.boxes.size === 0) throw fail(head, 0, m.noLeaves);
-  if (isLineup && items.length === 0) throw fail(head, 0, m.noItems);
+  if (isLineup && figure.lineup.items.length === 0) throw fail(head, 0, m.noItems);
   if (boxes.length === 0 && !isGit && !isTime && !isTree) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
   // 木の形は全ての行を読んでから確かめる。親を持たない木の箱が 2 つ以上なら、書いた順で 2 つ目を示す
@@ -407,15 +307,15 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     steps,
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
-    ...(isLineup ? { lineup: { items, ...(roles.length > 0 ? { roles } : {}) } } : {}),
-    ...(isTime && scale
+    ...(isLineup ? { lineup: { items: figure.lineup.items, ...(figure.lineup.roles.length > 0 ? { roles: figure.lineup.roles } : {}) } } : {}),
+    ...(isTime && time.scale
       ? {
           time: {
-            scale,
-            ...(period ? { period } : {}),
-            rows,
-            ...(points.length > 0 ? { points } : {}),
-            ...(zoom ? { zoom } : {}),
+            scale: time.scale,
+            ...(time.period ? { period: time.period } : {}),
+            rows: time.rows,
+            ...(time.points.length > 0 ? { points: time.points } : {}),
+            ...(time.zoom ? { zoom: time.zoom } : {}),
           },
         }
       : {}),
@@ -426,316 +326,12 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
    * 目盛りと印の列が無い図と、拡大の範囲の無い図の箱は誤り
    */
   function settle(): void {
-    if (!isTime || settled) return;
-    settled = true;
-    if (!scale) throw fail(head as SourceLine, 0, m.noScale);
-    if (rows.length === 0) throw fail(head as SourceLine, 0, m.noRows);
-    for (const check of pending) check();
-    if (figure.firstBox && !zoom) throw fail(figure.firstBox, 0, m.boxNeedsZoom);
-  }
-
-  /** 目盛りの数。目盛りを宣言する前は 0 */
-  function countOf(): number {
-    return scale?.count ?? 0;
-  }
-
-  /** `text` を目盛りの位置として読む。0 から目盛りの数より 1 小さい数まで */
-  function unitAt(source: SourceLine, at: number, text: string): number {
-    if (!NUMBER.test(text) || Number(text) >= countOf()) throw fail(source, at, m.badUnit(text, countOf()));
-    return Number(text);
-  }
-
-  /** `text` を目盛りの範囲として読む。`0-31` か `0` */
-  function rangeAt(source: SourceLine, at: number, text: string): { from: number; to: number } {
-    const found = RANGE.exec(text);
-    const from = Number(found?.[1]);
-    const to = Number(found?.[2] ?? found?.[1]);
-    if (!found || from > to || to >= countOf()) throw fail(source, at, m.badUnit(text, countOf()));
-    return { from, to };
-  }
-
-  /** `scale <単位> <長さ> <数> [from: <最初の番号>]` の行 */
-  function readScale(source: SourceLine): void {
-    beforeSteps(source);
-    if (scale) throw fail(source, 0, m.timeTwice("scale"));
-    const text = source.text;
-    const found = SCALE.exec(text);
-    const at = (k: number): number => found?.indices?.[k]?.[0] ?? 0;
-    if (!found) throw fail(source, 0, m.scaleShape);
-    const rest = skipSpaces(text, found[0].length);
-    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.scaleShape);
-    const length = found[2] ?? "";
-    if (!LENGTH.test(length)) throw fail(source, at(2), m.badLength);
-    const count = found[3] ?? "";
-    if (!COUNT.test(count)) throw fail(source, at(3), m.badCount("scale"));
-    const first = rest < text.length ? readAttrs(source, rest, ATTRS.scale, m).get("from") : undefined;
-    if (first && !NUMBER.test(first.value)) throw fail(source, first.at, m.scaleShape);
-    scale = { unit: found[1] ?? "", length, count: Number(count), ...(first ? { from: Number(first.value) } : {}) };
-  }
-
-  /** `period <名前> <目盛りの数> [from: <最初の番号>]` の行 */
-  function readPeriod(source: SourceLine): void {
-    beforeSteps(source);
-    if (period) throw fail(source, 0, m.timeTwice("period"));
-    const text = source.text;
-    const found = PERIOD.exec(text);
-    if (!found) throw fail(source, 0, m.periodShape);
-    const rest = skipSpaces(text, found[0].length);
-    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.periodShape);
-    const length = found[2] ?? "";
-    if (!COUNT.test(length)) throw fail(source, found.indices?.[2]?.[0] ?? 0, m.badCount("period"));
-    const first = rest < text.length ? readAttrs(source, rest, ATTRS.period, m).get("from") : undefined;
-    if (first && !NUMBER.test(first.value)) throw fail(source, first.at, m.periodShape);
-    period = { name: found[1] ?? "", length: Number(length), ...(first ? { from: Number(first.value) } : {}) };
-  }
-
-  /** `row <名札> as <名前> [color: <色>, empty: <目盛り> <目盛り>]` の行。箱と同じ名札を持てる */
-  function readRow(source: SourceLine): void {
-    beforeSteps(source);
-    const declared = readDeclared(source, "row", ATTRS.row, m);
-    notReserved(source, declared.id, declared.idAt);
-    if (rows.some((row) => row.id === declared.id) || points.some((point) => point.id === declared.id)) throw fail(source, declared.idAt, m.duplicate(declared.id));
-    const color = declared.attrs.get("color");
-    if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-    const empty = declared.attrs.get("empty");
-    const row: TimeRow = { id: declared.id, name: declared.name ?? declared.id, ...(color ? { color: color.value as Color } : {}) };
-    rows.push(row);
-    if (empty) {
-      const words = empty.value.split(/\s+/u);
-      // 目盛りの数が決まってから確かめる。欄の並びを宣言の形で残すため、先に空の並びを置く
-      row.empty = [];
-      pending.push(() => {
-        row.empty = words.map((word) => unitAt(source, empty.at, word));
-      });
-    }
-  }
-
-  /** `point <名札> at <目盛り>` の行。箱と印の列と同じ名札は持てない */
-  function readPoint(source: SourceLine): void {
-    beforeSteps(source);
-    const found = POINT.exec(source.text);
-    const id = found?.[1];
-    const unit = found?.[2];
-    if (!found || id === undefined || unit === undefined) throw fail(source, 0, m.pointShape);
-    const idAt = found.indices?.[1]?.[0] ?? 0;
-    const unitStart = found.indices?.[2]?.[0] ?? 0;
-    if (!ID.test(id)) throw fail(source, idAt, m.badId(id));
-    notReserved(source, id, idAt);
-    if (rows.some((row) => row.id === id)) throw fail(source, idAt, m.duplicate(id));
-    declare(source, id, idAt);
-    const point: TimePoint = { id, at: 0 };
-    points.push(point);
-    pending.push(() => {
-      point.at = unitAt(source, unitStart, unit);
-    });
-  }
-
-  /** `zoom <目盛り>-<目盛り>` の行 */
-  function readZoom(source: SourceLine): void {
-    beforeSteps(source);
-    if (zoom) throw fail(source, 0, m.timeTwice("zoom"));
-    const found = ZOOM.exec(source.text);
-    const range = found?.[1];
-    if (!found || range === undefined) throw fail(source, 0, m.zoomShape);
-    const rangeStart = found.indices?.[1]?.[0] ?? 0;
-    const placed = { from: 0, to: 0 };
-    zoom = placed;
-    pending.push(() => {
-      Object.assign(placed, rangeAt(source, rangeStart, range));
-    });
-  }
-
-  /** `now -> <目盛り>` の行。針をその目盛りの終わりまで進める。前の針より後の目盛りに限る */
-  function readNow(source: SourceLine): DiagramEvent {
-    const found = NOW_LINE.exec(source.text);
-    const unit = found?.[1];
-    if (!found || unit === undefined) throw fail(source, 0, m.nowShape);
-    const at = found.indices?.[1]?.[0] ?? 0;
-    const to = unitAt(source, at, unit);
-    if (to + 1 <= needle) throw fail(source, at, m.nowBack(unit, needle - 1));
-    needle = to + 1;
-    return { type: "now", to };
-  }
-
-  /** `mark <列> <範囲> [color: <色>]` の行 */
-  function readMark(source: SourceLine): DiagramEvent {
-    const text = source.text;
-    const found = MARK.exec(text);
-    const row = found?.[1];
-    const range = found?.[2];
-    if (!found || row === undefined || range === undefined) throw fail(source, 0, m.markShape);
-    if (!rows.some((r) => r.id === row)) throw fail(source, found.indices?.[1]?.[0] ?? 0, m.undeclaredRow(row));
-    const { from, to } = rangeAt(source, found.indices?.[2]?.[0] ?? 0, range);
-    const rest = skipSpaces(text, found[0].length);
-    if (rest >= text.length || text[rest] !== "[") throw fail(source, rest, m.markShape);
-    const color = readAttrs(source, rest, ATTRS.mark, m).get("color");
-    if (!color) throw fail(source, rest, m.markShape);
-    if (!isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-    return { type: "mark", row, from, to, color: color.value };
-  }
-
-  /** `span <範囲>: <字> [shape: box, color: <色>]` の行 */
-  function readSpan(source: SourceLine): DiagramEvent {
-    const found = SPAN.exec(source.text);
-    const range = found?.[1];
-    if (!found || range === undefined) throw fail(source, 0, m.spanShape);
-    const { from, to } = rangeAt(source, found.indices?.[1]?.[0] ?? 0, range);
-    const named = readName(source, found[0].length, m);
-    if (named.value === "") throw fail(source, 0, m.spanShape);
-    const attrs = named.rest < source.text.length ? readAttrs(source, named.rest, ATTRS.span, m) : new Map<string, Attr>();
-    const shape = attrs.get("shape");
-    if (shape && !isOneOf(SPAN_SHAPES, shape.value)) throw fail(source, shape.at, m.badShape);
-    const color = attrs.get("color");
-    if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-    return { type: "span", from, to, text: named.value, ...(shape ? { shape: "box" as const } : {}), ...(color ? { color: color.value as Color } : {}) };
-  }
-
-  /** 時間軸の図の `note <箱か節目>: <字> [color: <色>]` の行。色は節目の丸の色 */
-  function readTimeNote(source: SourceLine): DiagramEvent {
-    const found = /^note\s+([^\s:]+)\s*:/du.exec(source.text);
-    const id = found?.[1];
-    if (!found || id === undefined) throw fail(source, 0, m.noteShape);
-    const idAt = found.indices?.[1]?.[0] ?? 0;
-    const isPoint = points.some((point) => point.id === id);
-    if (!isPoint && !boxes.some((box) => box.id === id)) throw fail(source, idAt, m.undeclaredNote(id));
-    const named = readName(source, found[0].length, m);
-    if (named.value === "") throw fail(source, 0, m.noteShape);
-    const color = named.rest < source.text.length ? readAttrs(source, named.rest, ATTRS.note, m).get("color") : undefined;
-    if (color && !isPoint) throw fail(source, color.at, m.noteColorPointOnly);
-    if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-    return { type: "swap", box: id, text: named.value, ...(color ? { color: color.value as Color } : {}) };
-  }
-
-  /** `from` から `to` の前までの、`,` で区切った名札と、それぞれの位置 */
-  function namesAt(source: SourceLine, from: number, to: number, shape: string): { value: string; at: number }[] {
-    const text = source.text;
-    const names: { value: string; at: number }[] = [];
-    for (let i = from; ; ) {
-      const start = skipSpaces(text, i);
-      const comma = text.indexOf(",", start);
-      const end = comma < 0 || comma > to ? to : comma;
-      const value = text.slice(start, end).trim();
-      if (value === "") throw fail(source, start, shape);
-      if (!ID.test(value)) throw fail(source, start, m.badId(value));
-      names.push({ value, at: start });
-      if (end >= to) return names;
-      i = end + 1;
-    }
-  }
-
-  /** 列の図の `item <名札>, <名札> [color: <色>, label: <字>]` の行。並べた名札ごとに、同じ色と字のチップを宣言する */
-  function readItem(source: SourceLine): void {
-    beforeSteps(source);
-    const open = source.text.indexOf("[");
-    const end = open < 0 ? source.text.length : open;
-    const attrs = open < 0 ? new Map<string, Attr>() : readAttrs(source, open, ATTRS.item, m);
-    const color = attrs.get("color");
-    if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
-    const label = attrs.get("label");
-    if (label && [...label.value].length > LABEL_MOST) throw fail(source, label.at, m.labelTooLong(LABEL_MOST));
-    const note = attrs.get("note")?.value;
-    for (const { value, at } of namesAt(source, "item".length, end, m.itemShape)) {
-      declare(source, value, at);
-      items.push({ id: value, ...(color ? { color: color.value as Color } : {}), ...(label ? { label: label.value } : {}), ...(note !== undefined ? { note } : {}) });
-    }
-  }
-
-  /**
-   * 列の図の `role` の行 (#3351)。最初の `step` より前なら `role <名札> [note: <一言>]` で役を宣言し、
-   * 段の中なら `role <名札>` でその段で動く役を名指す。段の中で名指す役は宣言した役だけ
-   */
-  function readRole(source: SourceLine): void {
-    if (!building) {
-      const declared = readDeclared(source, "role", ATTRS.role, m);
-      if (declared.name !== undefined) throw fail(source, 0, m.roleShape);
-      declare(source, declared.id, declared.idAt);
-      const note = declared.attrs.get("note")?.value;
-      roles.push({ id: declared.id, ...(note !== undefined ? { note } : {}) });
-      return;
-    }
-    const found = ACT_ROLE.exec(source.text);
-    const id = found?.[1];
-    if (!found || id === undefined) throw fail(source, 0, m.roleShape);
-    const at = found.indices?.[1]?.[0] ?? 0;
-    if (!roles.some((role) => role.id === id)) throw fail(source, at, m.unknownRole(id));
-    building.events.push({ type: "role", role: id });
-  }
-
-  /** 列の図の `line <列>: <チップ>, <チップ>` の行。チップは宣言したチップで、列に 1 枚ずつ、上限まで。封をした列には書けない */
-  function readOrder(source: SourceLine): DiagramEvent {
-    const found = ORDER.exec(source.text);
-    const lane = found?.[1];
-    if (!found || lane === undefined) throw fail(source, 0, m.lineShape);
-    const at = found.indices?.[1]?.[0] ?? 0;
-    const box = boxAt(source, lane, at);
-    if (sealed.has(box)) throw fail(source, at, m.lineOnSealed(box));
-    const chips = namesAt(source, found[0].length, source.text.length, m.lineShape);
-    const seen = new Set<string>();
-    chips.forEach(({ value, at: chipAt }, k) => {
-      if (!items.some((item) => item.id === value)) throw fail(source, chipAt, m.noSuchItem(value));
-      if (seen.has(value)) throw fail(source, chipAt, m.itemTwice(value));
-      if (k >= LANE_MOST) throw fail(source, chipAt, m.laneFull(box, LANE_MOST));
-      seen.add(value);
-    });
-    return { type: "line", box, items: chips.map((chip) => chip.value) };
-  }
-
-  /** 列の図の `seal <列>`、`open <列>`、`pick <列>` の行。封は 1 列に 1 つで、封をした列だけを開けられる */
-  function readOnLane(source: SourceLine, word: "seal" | "open" | "pick"): DiagramEvent {
-    const found = ON_LANE.exec(source.text);
-    const lane = found?.[1];
-    if (!found || lane === undefined) throw fail(source, 0, m.laneShape(word));
-    const at = found.indices?.[1]?.[0] ?? 0;
-    const box = boxAt(source, lane, at);
-    if (word === "seal") {
-      if (sealed.has(box)) throw fail(source, at, m.sealTwice(box));
-      sealed.add(box);
-    }
-    if (word === "open" && !sealed.delete(box)) throw fail(source, at, m.openUnsealed(box));
-    return { type: word, box };
-  }
-
-  /** 列の図の `stamp <列>: <字>` の行 */
-  function readStamp(source: SourceLine): DiagramEvent {
-    const found = STAMP.exec(source.text);
-    const lane = found?.[1];
-    if (!found || lane === undefined) throw fail(source, 0, m.stampShape);
-    const box = boxAt(source, lane, found.indices?.[1]?.[0] ?? 0);
-    const named = readName(source, found[0].length, m);
-    if (named.value === "" || named.rest < source.text.length) throw fail(source, 0, m.stampShape);
-    return { type: "stamp", box, text: named.value };
-  }
-
-  /**
-   * 線の列 (`at` と `into`)。時間軸の図の箱どうしの線は `at` で拡大の帯の列を選び、節目どうしの線は列を持たない。
-   * ほかの図の種類には書けない
-   */
-  function readColumns(source: SourceLine, from: string, to: string, attrs: Map<string, Attr>, end: number): { at?: number; into?: number } {
-    const given = TIME_EDGE_ATTRS.flatMap((key) => {
-      const attr = attrs.get(key);
-      return attr ? [{ key, attr }] : [];
-    });
-    const first = given[0];
-    if (!isTime) {
-      if (first) throw fail(source, first.attr.at, m.timeOnly(first.key));
-      return {};
-    }
-    const isBox = (id: string): boolean => boxes.some((box) => box.id === id);
-    if (isBox(from) !== isBox(to)) throw fail(source, 0, m.mixedLine);
-    if (!isBox(from)) {
-      if (first) throw fail(source, first.attr.at, zoom ? m.pointLineNoAt : m.noZoom);
-      return {};
-    }
-    const column = (attr: Attr | undefined): number | undefined => {
-      if (!attr) return undefined;
-      const unit = unitAt(source, attr.at, attr.value);
-      if (!zoom || unit < zoom.from || unit > zoom.to) throw fail(source, attr.at, zoom ? m.outOfZoom(zoom.from, zoom.to) : m.noZoom);
-      return unit;
-    };
-    const at = column(attrs.get("at"));
-    if (at === undefined) throw fail(source, end, m.boxLineNeedsAt);
-    const into = column(attrs.get("into"));
-    return { at, ...(into !== undefined ? { into } : {}) };
+    if (!isTime || time.settled) return;
+    time.settled = true;
+    if (!time.scale) throw fail(head as SourceLine, 0, m.noScale);
+    if (time.rows.length === 0) throw fail(head as SourceLine, 0, m.noRows);
+    for (const check of time.pending) check();
+    if (figure.firstBox && !time.zoom) throw fail(figure.firstBox, 0, m.boxNeedsZoom);
   }
 }
 

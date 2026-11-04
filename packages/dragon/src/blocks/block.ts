@@ -7,8 +7,9 @@
  * ブロックが図のどこに付くかを付け方と呼び、5つ (置く、つなぐ、線に乗る、箱に付く、図に付く) から1つを名乗る。
  * 図の種類 (`kinds/<種類>/`) は並べ方と受け付ける付け方だけを持ち、付け方の合うブロックを並べる。
  *
- * 置き場の `block.ts` は、語、原本の形、読む処理、書き戻す処理、日英の誤りの文を1つの定義に持つ。
- * 描き方は同じ置き場の `draw.ts` が持ち、見本帳の分は `gallery/` が持つ。
+ * 置き場の `block.ts` は、語、読む処理、書き戻す処理、日英の誤りの文を1つの定義に持つ。
+ * 原本の形の欠片は同じ置き場の `shape.ts`、描き方は `draw.ts`、見本帳の分は `gallery/` が持つ。
+ * 原本の形の欠片は build の時に原本の検査を書き出す script と検査だけが読み、描く時に読む塊に入れないので定義と分ける (#3348)。
  * 定義は描き方を読まない。描き方は描く下請け (`render/parts.ts`) を読み、下請けは語の表 (`words.ts`) を読む。
  * 語の表はブロックの一覧から語を集めるので、定義が描き方を読むと輪になる。
  * 同じ理由で、定義は語の表と原本の形の検査 (`schema.ts`) と誤りの文の表 (`messages.ts`) を型でだけ読む。
@@ -92,6 +93,8 @@ export interface ParseState {
   readonly attrs: Readonly<Record<string, readonly string[]>>;
   /** 段の中に書く行の書き先の段。最初の `step` より前に書いた行は誤りで止める */
   readonly inStep: (source: SourceLine) => StepDraft;
+  /** 書いている段。最初の `step` より前は `undefined` (#3348) */
+  readonly current: () => StepDraft | undefined;
   /**
    * 書いている段を閉じて、原本の段の並びへ足す。段の無い時は何もしない。
    * 開いたままの区画と、時間軸の図の宣言の目盛りを先に確かめ、誤りで止める
@@ -107,6 +110,8 @@ export interface ParseState {
   readonly declare: (source: SourceLine, id: string, at: number) => void;
   /** 名札 `id` を既に宣言したか (#3348) */
   readonly declared: (id: string) => boolean;
+  /** 図の種類が名札に使えない名前 (状態遷移図の始まりと終わりの印、枝分かれの図の `HEAD`、時間軸の図の `now`) を誤りで止める (#3348) */
+  readonly notReserved: (source: SourceLine, id: string, at: number) => void;
   /**
    * 宣言の行の名札 `id` を、ほかの宣言と重ならない名札として取る。
    * 図の種類が名札に使えない名前 (状態遷移図の始まりと終わりの印、枝分かれの図の `HEAD`、時間軸の図の `now`) と、宣言済みの名札は誤りで止める
@@ -160,8 +165,9 @@ export interface BlockPrint {
 }
 
 /**
- * 原本の形の欠片。鍵と値は `schemas/diagram.schema.json` と同じ。
- * build の時に `scripts/build-validator.mjs` が骨組み (`schemas/base.schema.json`) とブロックの欠片を束ねて形を書き出す (#3346)
+ * 原本の形の欠片 (置き場の `shape.ts` の `shape`)。鍵と値は `schemas/diagram.schema.json` と同じ。
+ * build の時に `scripts/build-validator.mjs` が骨組み (`schemas/base.schema.json`) とブロックの欠片を束ねて形を書き出す (#3346)。
+ * 形がほかのブロックの欄の一部で、自分の欠片を持たないブロックは `none` を置く
  */
 export interface BlockShape {
   /** 原本の `blocks` の中に、ブロックの名前で持つ欄の形。欄を持たないブロックは書かない */
@@ -201,8 +207,6 @@ export interface Block<M extends object = object, F extends object = object> {
    */
   attach: { how: AttachHow; only?: KindName; except?: readonly KindName[] };
   words: BlockWords;
-  /** 原本の形の欠片。形がほかのブロックの欄の一部で、自分の欠片を持たないブロックは `none` を置く */
-  shape: BlockShape | None;
   /** 行の頭の語ごとの読む処理 */
   read: Readonly<Record<string, HeadReader>> | None;
   print: BlockPrint | None;
