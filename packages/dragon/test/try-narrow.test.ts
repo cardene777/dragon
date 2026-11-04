@@ -103,6 +103,8 @@ describe("狭い枠の試す図 (#3366)", () => {
   it("try-narrow-new-block-fits", () => {
     const { host, player } = mountTry(example(), PHONE);
     send(host, { 送り手: "Dan", 宛先: "Bob", 量: "4", 手数料: "11" });
+    // 読み手の操作は書いた例の段を除いた所から始まるので、作るブロックの番号は送った後の最新の番号から数える
+    const latest = Math.max(...shownBlocks(layoutOf(rendered(sessionOf(player), PHONE))).map((b) => b.n));
     press(host, "ブロックを作る");
     const svg = figureOf(host);
     expect(svg?.getAttribute("data-view"), "作った後の部品の見せ方").toBe("fixed");
@@ -111,7 +113,7 @@ describe("狭い枠の試す図 (#3366)", () => {
     const chain = layout.chains.find((c) => c.id === CHAIN);
     const blocks = shownBlocks(layout);
     const made = blocks.at(-1);
-    expect(made?.n, "作ったブロックの番号").toBe(4);
+    expect(made?.n, "作ったブロックの番号").toBe(latest + 1);
     if (!made || !chain) return;
     expect(made.x, "作ったブロックの左の端").toBeGreaterThanOrEqual(0);
     expect(made.x + chain.w, "作ったブロックの右の端").toBeLessThanOrEqual(PHONE);
