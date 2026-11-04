@@ -41,6 +41,12 @@ export {
   type TimeSpec,
   type TreeLeaf,
   type TreeNode,
+  type TryAsk,
+  type TryEdit,
+  type TryItem,
+  type TryLine,
+  type TryPart,
+  type TryPress,
   validateDiagram,
   type ViewMode,
 } from "./schema";
@@ -65,6 +71,8 @@ export type {
 } from "./layout/scene";
 export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTick, TimeWire, TimeZoom } from "./layout/time";
 export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./layout/tree";
+export type { TryChainPlaced, TryLayout, TryMoment, TryNetLink, TryNodePlaced, TryPartPlaced, TryQueuePlaced, TryRoutePlaced, TryTitle } from "./layout/try";
+export type { TryBlock, TryState, TryTrip } from "./try-state";
 export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupText, TextLine } from "./layout/lineup";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";

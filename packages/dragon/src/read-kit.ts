@@ -87,8 +87,11 @@ export function readName(source: SourceLine, at: number, m: Messages): { value: 
   return { value: text.slice(start, rest).trim(), rest };
 }
 
-/** `at` の `[` から行の終わりの `]` までの属性を読む。`allowed` に無い鍵は誤り */
-export function readAttrs(source: SourceLine, at: number, allowed: readonly string[], m: Messages): Map<string, Attr> {
+/**
+ * `at` の `[` から行の終わりの `]` までの属性を読む。`allowed` に無い鍵は誤り。
+ * `allowed` を渡さない時はどの鍵も読み、鍵を確かめるのは呼ぶ側に任せる (試す図のチップの欄は、後の行の入力の帯で決まる、#3337)
+ */
+export function readAttrs(source: SourceLine, at: number, allowed: readonly string[] | undefined, m: Messages): Map<string, Attr> {
   const text = source.text;
   if (!text.endsWith("]")) throw fail(source, at, m.attrUnclosed);
   const close = text.length - 1;
@@ -99,7 +102,7 @@ export function readAttrs(source: SourceLine, at: number, allowed: readonly stri
     while (colon < close && text[colon] !== ":" && text[colon] !== ",") colon++;
     if (colon >= close || text[colon] !== ":") throw fail(source, start, m.attrNoColon(text.slice(start, colon).trim()));
     const key = text.slice(start, colon).trim();
-    if (!allowed.includes(key)) throw fail(source, start, m.badAttr(key, allowed));
+    if (allowed && !allowed.includes(key)) throw fail(source, start, m.badAttr(key, allowed));
     if (attrs.has(key)) throw fail(source, start, m.attrTwice(key));
     let end = skipSpaces(text, colon + 1);
     let value: string;

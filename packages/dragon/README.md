@@ -293,6 +293,46 @@ step Climb from tx3 to the root
   1to2 -> root [tag: 7a21]
 ```
 
+### Try diagram
+
+Start with `try` to draw a try diagram, which readers move themselves by typing values and pressing buttons. Write the part lines before the first step, from top to bottom, and the parts are stacked in that order.
+
+- `route <name>: <node> - <node> - ..., ... [from: <node>, to: <node>]` is a network. It carries a sent chip from `from` to `to` along the shortest path
+- `queue <name> [order: <field>]` is a waiting line. It sorts chips from the highest value of the `order` field
+- `chain <name> [edit: <field>]` is a chain of blocks. Each block holds the previous block's `hash` as `prev`, and with `edit` the reader can change that field of a chip inside a block
+- `ask <field>, <field>, ... [into: <queue>, via: <route>]` is the input strip. The first field's value becomes the chip's name
+- `press <name> [from: <queue>, into: <chain>, take: <count>, at: <part>]` is a button. It moves the top `take` chips of the queue into a new block. With `at` it sits on that part, and without it in the input strip
+
+Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line` writes a queue's contents or a block, and `ask <value>, ...`, `press <name>`, and `item <name> [<field>: <value>]` write the author's example (send, build, change).
+The player stops at the first step and waits for the reader, and adds one step and plays it each time the reader sends, presses, or changes a value. Images, videos, and print draw the author's example steps.
+
+```dragon
+try How a transaction gets into a block
+
+route Network: You - node-1 - Builder, You - node-2 - node-3 - Builder [from: You, to: Builder]
+queue Mempool [order: Fee]
+chain Chain [edit: Amount]
+ask Sender, To, Amount, Fee [into: Mempool, via: Network]
+press Build [from: Mempool, into: Chain, take: 2]
+
+item tx1 [To: Carol, Amount: 3, Fee: 7]
+item tx2 [To: Dave, Amount: 5, Fee: 5]
+item tx3 [To: Erin, Amount: 2, Fee: 4]
+
+step Transactions wait in line
+  say Transactions in the mempool line up from the highest fee.
+  line Chain: tx1
+  line Mempool: tx2, tx3
+
+step You send one
+  say Your transaction crosses the network to the builder.
+  ask You, Bob, 5, 12
+
+step The builder makes a block
+  say The two highest fees go into block 2, which holds block 1's hash as prev.
+  press Build
+```
+
 ## Source JSON
 
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).

@@ -36,7 +36,7 @@ export const DEFAULT_LANG: NotationLang = "en";
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */
-export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true, time: true, tree: true, lineup: true });
+export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true, time: true, tree: true, lineup: true, try: true });
 
 /**
  * 状態遷移図の始まりと終わりの印の名前 (#3163)。線の送る側に `start`、受ける側に `finish` を書き、
@@ -66,6 +66,15 @@ export const TREE_HEADS = ["leaf", "node"] as const;
  * `role` は最初の段より前に書けば役を宣言し、段の中に書けばその段で動く役を名指す (#3351)
  */
 export const LINEUP_HEADS = ["item", "line", "seal", "open", "pick", "stamp", "role"] as const;
+/**
+ * 試す図 (`try`、#3337) だけが書ける行の頭の語。最初の段より前に部品を上から積む順に書く。
+ * 網 (`route`)、待ち行列 (`queue`)、機械の列 (`chain`) は宣言だけの行で、入力の帯 (`ask`) と釦 (`press`) は段の中に書くと書き手の例として送って押す。
+ * チップの `item` と並びの `line` は列の図と同じ語で、試す図ではチップの欄の値と部品の中身を書く
+ */
+export const TRY_HEADS = ["route", "queue", "chain", "ask", "press"] as const;
+/** 試す図でも書ける列の図の語。試す図と列の図のどちらでもない図では、列の図の語と同じく断る */
+export const TRY_SHARED_HEADS = ["item", "line"] as const;
+
 /** 1 列に並べられるチップの上限。図の幅はこの枚数の列の幅で決まる */
 export const LANE_MOST = 12;
 /** チップの字の上限 */
@@ -79,7 +88,7 @@ const RANKED = ranked(BLOCKS);
  * 行の頭の語の一覧は、この語とブロックの語を番号の小さい順に並べる (同じ番号の中は書いた順)
  */
 const LATER_HEADS = [
-  [90, [...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS]],
+  [90, [...TIME_HEADS, ...TREE_HEADS, ...LINEUP_HEADS, ...TRY_HEADS]],
 ] as const;
 /** 行の頭の語のうち、型で名指せる語 (移していない語と区画の語) */
 type Head = (typeof LATER_HEADS)[number][1][number] | (typeof GROUP_HEADS)[number];
@@ -131,6 +140,11 @@ const LATER_ATTRS = [
       row: ["color", "empty"],
       mark: ["color"],
       span: ["shape", "color"],
+      route: ["from", "to"],
+      queue: ["order"],
+      chain: ["edit"],
+      ask: ["into", "via"],
+      press: ["from", "into", "take", "at"],
     },
   ],
 ] as const;

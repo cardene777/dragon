@@ -14,6 +14,8 @@
  * 時間軸の図の `note` は属性を持てるので、`[` を含む字を `"` で囲む。
  * 木の図 (#3233) の葉と親は、段の中に `leaf` と `node … of …` の行で書く。
  * 列の図 (#3239) のチップは箱の後ろに `item` の行で書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
+ * 試す図 (#3337) は部品の行を原本の並びのまま 1 つの塊に書き、その後ろにチップの `item` の行を書く。
+ * チップの欄の値と段の中の書き換えの鍵は入力の帯の欄の順に書き、前後に空白を持つ値も `"` で囲んで、読み直した時に同じ値へ戻す。
  * 段の中でブロックが受け持つ行は、段の区切りの `step` の行の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
  * 段の本文の `say` と命令の `code` の行は段のブロックが、段の出典 (#3199) は出典のブロックが書く。
  * 段の中で起きることのうちブロックが持つ種類は、そのブロックの書き戻す処理 (`print.events`) が起きた順に 1 行ずつ書く (#3345)。
@@ -21,9 +23,10 @@
  */
 import { type EventPrinter, ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
-import { attrs, name, num, shown } from "./print-kit";
+import { attrs, name, num, quote, shown } from "./print-kit";
 import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
-import type { Diagram, DiagramEvent, DiagramModel, LineupItem, LineupRole, Step, TimeSpec } from "./schema";
+import type { Diagram, DiagramEvent, DiagramModel, LineupItem, LineupRole, Step, TimeSpec, TryItem, TryPart } from "./schema";
+import { askFields } from "./try-state";
 import { AT, NOW, OF } from "./words";
 
 /** 段の中でブロックが受け持つ行を書き戻す処理。ブロックの並び (`rank`) の順 (#3345) */
@@ -52,8 +55,51 @@ const FIGURE_PRINTERS: readonly ((diagram: DiagramModel) => string[])[] = ranked
 /** 目盛りの範囲。1 つの目盛りは番号だけを書く */
 const range = (from: number, to: number): string => (from === to ? `${from}` : `${from}-${to}`);
 
-/** 段の中の 1 行。`kind` は図の種類 */
-function event(e: DiagramEvent, kind: DiagramModel["kind"]): string {
+/** 試す図の値。`,` で区切る並びと属性の中で読み直せるよう、`,` か `]` を含む値と、`"` で始まる値と、前後に空白を持つ値を囲む */
+const tryValue = (text: string): string =>
+  text.includes(",") || text.includes("]") || text.startsWith('"') || text !== text.trim() ? quote(text) : text;
+
+/** 試す図のチップの欄の値の属性。入力の帯の欄の順に書き、欄に無い鍵はその後ろに原本の並びで書く */
+function tryAttrs(values: Readonly<Record<string, string>>, fields: readonly string[]): string {
+  const keys = [...fields.filter((f) => Object.hasOwn(values, f)), ...Object.keys(values).filter((k) => !fields.includes(k))];
+  return keys.length === 0 ? "" : ` [${keys.map((k) => `${k}: ${tryValue(values[k] ?? "")}`).join(", ")}]`;
+}
+
+/** 試す図の部品の行 */
+function partLine(part: TryPart): string {
+  switch (part.type) {
+    case "route":
+      return `route ${part.id}: ${part.paths.map((path) => path.join(" - ")).join(", ")}${attrs([
+        ["from", part.from],
+        ["to", part.to],
+      ])}`;
+    case "queue":
+      return `queue ${part.id}${attrs([["order", part.order]])}`;
+    case "chain":
+      return `chain ${part.id}${attrs([["edit", part.edit]])}`;
+    case "ask":
+      return `ask ${part.fields.join(", ")}${attrs([
+        ["into", part.into],
+        ["via", part.via],
+      ])}`;
+    case "press":
+      return `press ${part.id}${attrs([
+        ["from", part.from],
+        ["into", part.into],
+        ["take", num(part.take)],
+        ["at", part.at],
+      ])}`;
+  }
+}
+
+/** 試す図の部品の塊と、チップの塊 */
+function tryBlocks(spec: { parts: TryPart[]; items: TryItem[] }): string[] {
+  const fields = askFields(spec.parts);
+  return [spec.parts.map(partLine).join("\n"), ...(spec.items.length > 0 ? [spec.items.map((item) => `item ${item.id}${tryAttrs(item.values, fields)}`).join("\n")] : [])];
+}
+
+/** 段の中の 1 行。`kind` は図の種類、`fields` は試す図の入力の帯の欄 */
+function event(e: DiagramEvent, kind: DiagramModel["kind"], fields: readonly string[] = []): string {
   switch (e.type) {
     case "now":
       return `${NOW} -> ${e.to}`;
@@ -69,7 +115,13 @@ function event(e: DiagramEvent, kind: DiagramModel["kind"]): string {
     case "node":
       return `node ${e.id} ${OF} ${e.children.join(", ")}${attrs([["hash", e.hash]])}`;
     case "line":
-      return `line ${e.box}: ${e.items.join(", ")}`;
+      return `line ${"part" in e ? e.part : e.box}: ${e.items.join(", ")}`;
+    case "ask":
+      return `ask ${e.values.map(tryValue).join(", ")}`;
+    case "press":
+      return `press ${e.press}`;
+    case "item":
+      return `item ${e.item}${tryAttrs(e.values, fields)}`;
     case "seal":
     case "open":
     case "pick":
@@ -134,19 +186,21 @@ export function printNotation(source: Diagram): string {
   const diagram = toModel(isVersion1(source) ? (upgrade(source, FORMAT_VERSION) as unknown as Diagram) : source);
   const blocks = [
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
+    ...(diagram.try ? tryBlocks(diagram.try) : []),
     ...(diagram.time ? timeBlocks(diagram.time) : []),
     ...(diagram.lineup?.roles && diagram.lineup.roles.length > 0 ? [roleLines(diagram.lineup.roles)] : []),
     ...DECLARE_PRINTERS.flatMap((print) => print(diagram)),
     ...(diagram.lineup && diagram.lineup.items.length > 0 ? [itemLines(diagram.lineup.items)] : []),
     ...FIGURE_PRINTERS.flatMap((print) => print(diagram)),
   ];
+  const fields = askFields(diagram.try?.parts ?? []);
   // 段の区切りの `step` の行の下に、段の中でブロックが受け持つ行を字下げして書く。空の行 (本文の空の行) は字下げしない
   for (const step of diagram.steps) {
     blocks.push(
       [
         `step ${step.title}`,
         ...STEP_PRINTERS.flatMap((print) => print(step)).map((line) => (line === "" ? "" : `  ${line}`)),
-        ...step.events.map((e) => `  ${event(e, diagram.kind)}`),
+        ...step.events.map((e) => `  ${event(e, diagram.kind, fields)}`),
       ].join("\n"),
     );
   }

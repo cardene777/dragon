@@ -64,6 +64,20 @@
  * 卓の形 (#3351) で、`box` の行の `[order: none]` は箱を順番の無い置き場にし、`item` の行の `[note: <説明>]` は凡例の説明を持たせる。
  * 最初の `step` より前の `role <名札> [note: <一言>]` は役を宣言し、段の中の `role <名札>` はその段で動く役を名指す。
  *
+ * 試す図 (`try`、#3337) は、最初の `step` より前に部品の行を上から積む順に書く。
+ *
+ *   route <名札>: <節> - <節>, <節> - <節> [from: <節>, to: <節>]     網。from から to へ最短の道でチップを運ぶ
+ *   queue <名札> [order: <欄>]                                        待ち行列。order の欄の値の高い順に並べる
+ *   chain <名札> [edit: <欄>]                                         機械の列。edit の欄を読み手が書き換えられる
+ *   ask <欄>, <欄> [into: <待ち行列>, via: <網>]                       入力の帯。図に 1 つまで。最初の欄の値がチップの名前
+ *   press <名札> [from: <待ち行列>, into: <機械の列>, take: <数>, at: <部品>]   釦
+ *   item <名札> [<欄>: <値>]                                          チップ。鍵は ask の欄 (最初の欄を除く)
+ *
+ * 段の中では `line <待ち行列か機械の列>: <チップ>, <チップ>` で中身を書き、`ask <値>, <値>` で送り、`press <釦>` で押し、
+ * `item <チップ> [<欄>: <値>]` で書き換える。部品を名指す属性は全ての宣言を読んでから確かめ、誤りは名指した行に出す。
+ * 段の中の出来事は段ごとの状態の手順 (`try-state.ts`) に 1 つずつ当て、空の待ち行列からの press と満杯の待ち行列への ask を断る。
+ * 部品の行は試す図でだけ書け、試す図に箱と区画と線の行は書けない。
+ *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  */
@@ -75,7 +89,7 @@ import { BLOCKS } from "./blocks/index";
 import { readPath } from "./blocks/side-path/block";
 import { stepOf, viewOf } from "./blocks/step/block";
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { type Attr, fail, HASH, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, skipSpaces } from "./read-kit";
+import { type Attr, fail, HASH, ID, isOneOf, NotationError, readAttrs, readDeclared, readName, readQuoted, skipSpaces } from "./read-kit";
 import {
   type Color,
   COLORS,
@@ -89,9 +103,12 @@ import {
   type TimePoint,
   type TimeRow,
   type TimeScale,
+  type TryItem,
+  type TryPart,
 } from "./schema";
 import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
+import { askFields, shortestPath, type TryFault, TryRun } from "./try-state";
 import {
   AT,
   ATTRS,
@@ -111,6 +128,8 @@ import {
   TIME_EDGE_ATTRS,
   TIME_HEADS,
   TREE_HEADS,
+  TRY_HEADS,
+  TRY_SHARED_HEADS,
 } from "./words";
 
 export interface LineError {
@@ -133,6 +152,13 @@ const NODE = new RegExp(`^node\\s+([^\\s[]+)\\s+${OF}\\s+`, "du");
 const ORDER = /^line\s+([^\s:[]+)\s*:/du;
 const STAMP = /^stamp\s+([^\s:[]+)\s*:/du;
 const ON_LANE = /^(?:seal|open|pick)\s+(\S+)\s*$/du;
+/** 試す図 (#3337) の `route <名札>:` の行と、段の中の `press <釦>` の行 */
+const ROUTE = /^route\s+([^\s:[]+)\s*:/du;
+const PUSH = /^press\s+(\S+)\s*$/du;
+/** 試す図の `item <名札>` の行の名札 */
+const TRY_ITEM = /^item\s+([^\s[]+)/du;
+/** 試す図に書ける行の頭の語。部品の行とチップと並びの行と、段の行 */
+const TRY_LINES: readonly string[] = [...TRY_HEADS, ...TRY_SHARED_HEADS, "step", "say", "code", "source"];
 /** 段の中の `role <名札>` の行 (#3351) */
 const ACT_ROLE = /^role\s+(\S+)\s*$/du;
 /** 時間軸の図の宣言の行。`scale <単位> <長さ> <数>`、`period <名前> <数>`、`point <名札> at <目盛り>`、`zoom <範囲>` */
@@ -198,6 +224,13 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const isTime = kind === "time";
   const isTree = kind === "tree";
   const isLineup = kind === "lineup";
+  const isTry = kind === "try";
+  /** 試す図 (#3337) の部品とチップ。部品を名指す属性と欄を名指す鍵は、全ての宣言を読んでから確かめる */
+  const tryParts: TryPart[] = [];
+  const tryItems: TryItem[] = [];
+  const tryPending: (() => void)[] = [];
+  /** 試す図の段の中の出来事を当てる状態。最初の step で作る */
+  let run: TryRun | undefined;
   /** 列の図で宣言したチップと、今封をしている列 (#3239) */
   const items: LineupItem[] = [];
   const roles: LineupRole[] = [];
@@ -275,10 +308,12 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const closeStep = (): void => {
     if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
     settle();
+    settleTry();
     if (building) steps.push(stepOf(building, m));
   };
   const openStep = (draft: StepDraft): void => {
     building = draft;
+    run?.beginStep();
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
   const state: ParseState = { m, kind, attrs: ATTRS, inStep, closeStep, openStep, beforeSteps, boxAt, claim, endAt, columns: readColumns, figure };
@@ -296,6 +331,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     // 名札の次に `->` が来る行は、名札が行の頭の語と同じ綴りでも線と読む
     const edge = EDGE.exec(text);
     if (edge) {
+      if (isTry) throw fail(source, 0, m.tryNoEdge);
       // 状態遷移図の最初の step より前の線は、移れる道の地図
       if (isState && !building) paths.push(readPath(source, edge, state));
       else {
@@ -314,10 +350,18 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     if (!isGit && GIT_HEADS.includes(word)) throw fail(source, 0, m.gitOnly(word));
     if (!isTime && isOneOf(TIME_HEADS, word)) throw fail(source, 0, m.timeOnly(word));
     if (!isTree && isOneOf(TREE_HEADS, word)) throw fail(source, 0, m.treeOnly(word));
-    if (!isLineup && isOneOf(LINEUP_HEADS, word)) throw fail(source, 0, m.lineupOnly(word));
+    if (!isTry && isOneOf(TRY_HEADS, word)) throw fail(source, 0, m.tryOnly(word));
+    if (!isLineup && isOneOf(LINEUP_HEADS, word) && !(isTry && isOneOf(TRY_SHARED_HEADS, word)))
+      throw fail(source, 0, isOneOf(TRY_SHARED_HEADS, word) ? m.lineupOrTryOnly(word) : m.lineupOnly(word));
     if (!isOneOf(HEADS, word)) {
       const old = oldForm(text, building !== undefined);
       throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
+    }
+    // 試す図は部品とチップと並びの行と段の行だけを書ける。部品とチップと並びの行は試す図の読み方で読む
+    if (isTry && !TRY_LINES.includes(word)) throw fail(source, 0, m.tryNoLine(word));
+    if (isTry && (isOneOf(TRY_HEADS, word) || isOneOf(TRY_SHARED_HEADS, word))) {
+      readTry(source, word);
+      continue;
     }
     // 時間軸の図の `note` の行は節目にも書けて丸の色を持つので、下の字のブロックでなく時間軸の図の読み方で読む
     if (isTime && word === "note") {
@@ -393,7 +437,8 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   if (isGit && branches.length === 0) throw fail(head, 0, m.noBranches);
   if (isTree && trees.size === 0) throw fail(head, 0, m.noLeaves);
   if (isLineup && items.length === 0) throw fail(head, 0, m.noItems);
-  if (boxes.length === 0 && !isGit && !isTime && !isTree) throw fail(head, 0, m.noBoxes);
+  if (isTry && tryParts.length === 0) throw fail(head, 0, m.noParts);
+  if (boxes.length === 0 && !isGit && !isTime && !isTree && !isTry) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
   // 木の形は全ての行を読んでから確かめる。親を持たない木の箱が 2 つ以上なら、書いた順で 2 つ目を示す
   const roots = [...trees.keys()].filter((id) => !parents.has(id));
@@ -413,6 +458,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items, ...(roles.length > 0 ? { roles } : {}) } } : {}),
+    ...(isTry ? { try: { parts: tryParts, items: tryItems } } : {}),
     ...(isTime && scale
       ? {
           time: {
@@ -765,6 +811,281 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     const named = readName(source, found[0].length, m);
     if (named.value === "" || named.rest < source.text.length) throw fail(source, 0, m.stampShape);
     return { type: "stamp", box, text: named.value };
+  }
+
+  /** 試す図の宣言を、全ての宣言を読んでから確かめる。最初の step と記法の終わりで 1 度だけ呼び、段の中の出来事を当てる状態を作る */
+  function settleTry(): void {
+    if (!isTry || run) return;
+    for (const check of tryPending) check();
+    run = new TryRun({ parts: tryParts, items: tryItems });
+  }
+
+  /** 試す図の部品とチップと並びの行。部品の行は最初の step より前にだけ書け、ask と press と item は段の中では出来事になる */
+  function readTry(source: SourceLine, word: string): void {
+    const inside = building !== undefined;
+    if (inside && (word === "route" || word === "queue" || word === "chain")) throw fail(source, 0, m.tryPartInStep(word));
+    switch (word) {
+      case "route":
+        return readRoute(source);
+      case "queue":
+      case "chain":
+        return readStore(source, word);
+      case "ask":
+        return inside ? readSend(source) : readAsk(source);
+      case "press":
+        return inside ? readPush(source) : readPress(source);
+      case "item":
+        return inside ? readEdit(source) : readTryItem(source);
+      case "line":
+        return readTryLine(source);
+    }
+  }
+
+  /** 属性 `attr` の値の位置。値が見つからなければ鍵の位置 */
+  function valueAt(source: SourceLine, attr: Attr): number {
+    const at = source.text.indexOf(attr.value, attr.at);
+    return at < 0 ? attr.at : at;
+  }
+
+  /** 属性 `attr` が名指す部品が、種類 `want` のどれかの部品か。全ての宣言を読んでから確かめる */
+  function refer(source: SourceLine, attr: Attr, want: readonly TryPart["type"][]): void {
+    tryPending.push(() => {
+      const part = tryParts.find((p) => p.id === attr.value);
+      if (!part) throw fail(source, valueAt(source, attr), m.undeclaredPart(attr.value));
+      if (!want.includes(part.type)) throw fail(source, valueAt(source, attr), m.wrongPart(attr.value, want));
+    });
+  }
+
+  /** `field` が入力の帯の欄 (最初の欄を除く) か。`at` は誤りを出す位置 */
+  function fieldAt(source: SourceLine, field: string, at: number): void {
+    const fields = askFields(tryParts).slice(1);
+    if (fields.length === 0) throw fail(source, at, m.noAsk);
+    if (!fields.includes(field)) throw fail(source, at, m.notAskField(field, fields));
+  }
+
+  /** 部品の行に要る属性。無ければ行の終わりか属性の `[` を示して断る */
+  function needed(source: SourceLine, attrs: Map<string, Attr>, word: string, key: string, at: number): Attr {
+    const attr = attrs.get(key);
+    if (!attr) throw fail(source, at, m.needsAttr(word, key));
+    return attr;
+  }
+
+  /** `route <名札>: <節> - <節>, <節> - <節> [from: <節>, to: <節>]` の行。from と to は網の節で、from から to へ道が要る */
+  function readRoute(source: SourceLine): void {
+    const text = source.text;
+    const found = ROUTE.exec(text);
+    const id = found?.[1];
+    if (!found || id === undefined) throw fail(source, 0, m.routeShape);
+    const idAt = found.indices?.[1]?.[0] ?? 0;
+    if (!ID.test(id)) throw fail(source, idAt, m.badId(id));
+    declare(source, id, idAt);
+    const open = text.indexOf("[", found[0].length);
+    const end = open < 0 ? text.length : open;
+    const paths: string[][] = [];
+    for (let i = found[0].length; i <= end; ) {
+      const comma = text.indexOf(",", i);
+      const stop = comma < 0 || comma > end ? end : comma;
+      const start = skipSpaces(text, i);
+      const nodes = text.slice(start, stop).trim().split(/\s+-\s+/u);
+      if (nodes.length < 2 || nodes.some((node) => node === "")) throw fail(source, start, m.routeShape);
+      for (const node of nodes) if (!ID.test(node)) throw fail(source, start, m.badId(node));
+      paths.push(nodes);
+      i = stop + 1;
+    }
+    if (open < 0) throw fail(source, text.length, m.needsAttr("route", "from"));
+    const attrs = readAttrs(source, open, ATTRS.route, m);
+    const from = needed(source, attrs, "route", "from", open);
+    const to = needed(source, attrs, "route", "to", open);
+    const known = new Set(paths.flat());
+    for (const side of [from, to]) if (!known.has(side.value)) throw fail(source, valueAt(source, side), m.notInRoute(side.value, id));
+    const route: TryPart = { type: "route", id, paths, from: from.value, to: to.value };
+    if (shortestPath(route).length < 2) throw fail(source, valueAt(source, to), m.noPath(from.value, to.value));
+    tryParts.push(route);
+  }
+
+  /** `queue <名札> [order: <欄>]` と `chain <名札> [edit: <欄>]` の行。欄は入力の帯の欄 (最初の欄を除く) */
+  function readStore(source: SourceLine, word: "queue" | "chain"): void {
+    const declared = readDeclared(source, word, ATTRS[word], m);
+    if (declared.name !== undefined) throw fail(source, 0, word === "queue" ? m.queueShape : m.chainShape);
+    declare(source, declared.id, declared.idAt);
+    const key = word === "queue" ? "order" : "edit";
+    const field = declared.attrs.get(key);
+    if (field) tryPending.push(() => fieldAt(source, field.value, valueAt(source, field)));
+    if (word === "queue") tryParts.push({ type: "queue", id: declared.id, ...(field ? { order: field.value } : {}) });
+    else tryParts.push({ type: "chain", id: declared.id, ...(field ? { edit: field.value } : {}) });
+  }
+
+  /** 最初の step より前の `ask <欄>, <欄> [into: <待ち行列>, via: <網>]` の行。図に 1 つまでで、欄は 2 つ以上 */
+  function readAsk(source: SourceLine): void {
+    if (tryParts.some((p) => p.type === "ask")) throw fail(source, 0, m.askTwice);
+    const text = source.text;
+    const open = text.indexOf("[");
+    const fields = namesAt(source, "ask".length, open < 0 ? text.length : open, m.askShape);
+    if (fields.length < 2) throw fail(source, fields[0]?.at ?? 0, m.fewFields);
+    fields.forEach(({ value, at }, k) => {
+      if (fields.findIndex((f) => f.value === value) < k) throw fail(source, at, m.fieldTwice(value));
+    });
+    declare(source, "ask", 0);
+    if (open < 0) throw fail(source, text.length, m.needsAttr("ask", "into"));
+    const attrs = readAttrs(source, open, ATTRS.ask, m);
+    const into = needed(source, attrs, "ask", "into", open);
+    refer(source, into, ["queue"]);
+    const via = attrs.get("via");
+    if (via) refer(source, via, ["route"]);
+    tryParts.push({ type: "ask", id: "ask", fields: fields.map((f) => f.value), into: into.value, ...(via ? { via: via.value } : {}) });
+  }
+
+  /** 最初の step より前の `press <名札> [from: <待ち行列>, into: <機械の列>, take: <数>, at: <部品>]` の行 */
+  function readPress(source: SourceLine): void {
+    const declared = readDeclared(source, "press", ATTRS.press, m);
+    if (declared.name !== undefined) throw fail(source, 0, m.pressShape);
+    declare(source, declared.id, declared.idAt);
+    const { attrs } = declared;
+    const rest = source.text.indexOf("[");
+    const at = rest < 0 ? source.text.length : rest;
+    const from = needed(source, attrs, "press", "from", at);
+    const into = needed(source, attrs, "press", "into", at);
+    const take = needed(source, attrs, "press", "take", at);
+    if (!COUNT.test(take.value)) throw fail(source, valueAt(source, take), m.badTake);
+    refer(source, from, ["queue"]);
+    refer(source, into, ["chain"]);
+    const place = attrs.get("at");
+    if (place) {
+      refer(source, place, ["route", "queue", "chain", "ask"]);
+      if (place.value === declared.id) throw fail(source, valueAt(source, place), m.pressAt(place.value));
+    }
+    tryParts.push({ type: "press", id: declared.id, from: from.value, into: into.value, take: Number(take.value), ...(place ? { at: place.value } : {}) });
+  }
+
+  /** 最初の step より前の `item <名札> [<欄>: <値>]` の行。鍵は入力の帯の欄 (最初の欄を除く) で、全ての宣言を読んでから確かめる */
+  function readTryItem(source: SourceLine): void {
+    const { id, idAt, attrs } = chipLine(source, false);
+    declare(source, id, idAt);
+    const values: Record<string, string> = {};
+    for (const [key, attr] of attrs) {
+      values[key] = attr.value;
+      tryPending.push(() => fieldAt(source, key, attr.at));
+    }
+    tryItems.push({ id, values });
+  }
+
+  /** `item` の行のチップの名札と属性。段の中の行は属性を 1 つ以上持つ */
+  function chipLine(source: SourceLine, inside: boolean): { id: string; idAt: number; attrs: Map<string, Attr> } {
+    const text = source.text;
+    const found = TRY_ITEM.exec(text);
+    const id = found?.[1];
+    if (!found || id === undefined || id.includes(",")) throw fail(source, 0, m.tryItemShape);
+    const idAt = found.indices?.[1]?.[0] ?? 0;
+    if (!ID.test(id)) throw fail(source, idAt, m.badId(id));
+    const rest = skipSpaces(text, found[0].length);
+    if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.tryItemShape);
+    if (inside && rest >= text.length) throw fail(source, text.length, m.tryItemShape);
+    return { id, idAt, attrs: rest < text.length ? readAttrs(source, rest, undefined, m) : new Map<string, Attr>() };
+  }
+
+  /** 段の中の出来事を当てられなかった訳を、行の誤りにする。`chips` は `line` の行のチップの位置 */
+  function faultOf(source: SourceLine, fault: TryFault, chips: { at: number }[] = [], press = ""): NotationError {
+    switch (fault.kind) {
+      case "noChip":
+        return fail(source, chips[fault.index]?.at ?? 0, m.noSuchItem(fault.item));
+      case "twice":
+        return fail(source, chips[fault.index]?.at ?? 0, m.itemTwice(fault.item));
+      case "elsewhere":
+        return fail(source, chips[fault.index]?.at ?? 0, m.chipElsewhere(fault.item, fault.part));
+      case "full":
+        return fail(source, 0, m.queueFull(fault.part, fault.most));
+      case "blockFull":
+        return fail(source, 0, m.blockFull(fault.part, fault.most));
+      case "empty":
+        return fail(source, 0, m.queueEmpty(fault.part, press));
+      case "count":
+        return fail(source, 0, m.askCount(fault.want));
+      case "part":
+        return fail(source, 0, m.undeclaredPart(fault.part));
+    }
+  }
+
+  /** 段の中の `line <待ち行列か機械の列>: <チップ>, <チップ>` の行 */
+  function readTryLine(source: SourceLine): void {
+    const step = inStep(source);
+    const found = ORDER.exec(source.text);
+    const part = found?.[1];
+    if (!found || part === undefined) throw fail(source, 0, m.tryLineShape);
+    const partAt = found.indices?.[1]?.[0] ?? 0;
+    const declared = tryParts.find((p) => p.id === part);
+    if (!declared) throw fail(source, partAt, m.undeclaredPart(part));
+    if (declared.type !== "queue" && declared.type !== "chain") throw fail(source, partAt, m.wrongPart(part, ["queue", "chain"]));
+    const chips = namesAt(source, found[0].length, source.text.length, m.tryLineShape);
+    const items = chips.map((chip) => chip.value);
+    const fault = run?.line(part, items).fault;
+    if (fault) throw faultOf(source, fault, chips);
+    step.events.push({ type: "line", part, items });
+  }
+
+  /** 段の中の `ask <値>, <値>` の行。値の数は入力の帯の欄の数と同じで、満杯の待ち行列へは送れない */
+  function readSend(source: SourceLine): void {
+    const step = inStep(source);
+    const ask = tryParts.find((p) => p.type === "ask");
+    if (!ask) throw fail(source, 0, m.noAsk);
+    const values = valuesOf(source, "ask".length);
+    if (values.length !== ask.fields.length) throw fail(source, 0, m.askCount(ask.fields.length));
+    const fault = run?.ask(values).fault;
+    if (fault) throw faultOf(source, fault);
+    step.events.push({ type: "ask", values });
+  }
+
+  /** 段の中の `press <釦>` の行。空の待ち行列から取り出す釦は押せない */
+  function readPush(source: SourceLine): void {
+    const step = inStep(source);
+    const found = PUSH.exec(source.text);
+    const id = found?.[1];
+    if (!found || id === undefined) throw fail(source, 0, m.pressShape);
+    const at = found.indices?.[1]?.[0] ?? 0;
+    const declared = tryParts.find((p) => p.id === id);
+    if (!declared) throw fail(source, at, m.undeclaredPart(id));
+    if (declared.type !== "press") throw fail(source, at, m.wrongPart(id, ["press"]));
+    const fault = run?.press(id).fault;
+    if (fault) throw faultOf(source, fault, [], id);
+    step.events.push({ type: "press", press: id });
+  }
+
+  /** 段の中の `item <チップ> [<欄>: <値>]` の行。チップの欄の値を書き換える */
+  function readEdit(source: SourceLine): void {
+    const step = inStep(source);
+    const { id, idAt, attrs } = chipLine(source, true);
+    const values: Record<string, string> = {};
+    for (const [key, attr] of attrs) {
+      fieldAt(source, key, attr.at);
+      values[key] = attr.value;
+    }
+    if (!run?.has(id)) throw fail(source, idAt, m.noSuchItem(id));
+    run.edit(id, values);
+    step.events.push({ type: "item", item: id, values });
+  }
+
+  /** `from` から行の終わりまでの、`,` で区切った値。値は `"` で囲める */
+  function valuesOf(source: SourceLine, from: number): string[] {
+    const text = source.text;
+    const values: string[] = [];
+    for (let i = from; ; ) {
+      const start = skipSpaces(text, i);
+      let value: string;
+      let end: number;
+      if (text[start] === '"') {
+        const quoted = readQuoted(source, start, m);
+        value = quoted.value;
+        end = skipSpaces(text, quoted.end);
+        if (end < text.length && text[end] !== ",") throw fail(source, end, m.afterQuote);
+      } else {
+        const comma = text.indexOf(",", start);
+        end = comma < 0 ? text.length : comma;
+        value = text.slice(start, end).trim();
+      }
+      if (value === "") throw fail(source, start, m.askShape);
+      values.push(value);
+      if (end >= text.length) return values;
+      i = end + 1;
+    }
   }
 
   /**

@@ -337,6 +337,30 @@
     "dg-on rx=12": 2,
     "dg-st rx=12": 2
   },
+  "tx-block.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-halo rx=8": 3,
+    "dg-on rx=8": 3,
+    "dg-try-blk rx=8": 3,
+    "dg-try-chip rx=4": 10,
+    "dg-try-hrow rx=4": 3,
+    "dg-try-lb rx=4": 3,
+    "dg-try-q rx=8": 1,
+    "dg-try-row rx=4": 3,
+    "dg-try-sent rx=4": 1
+  },
+  "tx-block.json": {
+    "dg-bg rx=14": 1,
+    "dg-halo rx=8": 3,
+    "dg-on rx=8": 3,
+    "dg-try-blk rx=8": 3,
+    "dg-try-chip rx=4": 10,
+    "dg-try-hrow rx=4": 3,
+    "dg-try-lb rx=4": 3,
+    "dg-try-q rx=8": 1,
+    "dg-try-row rx=4": 3,
+    "dg-try-sent rx=4": 1
+  },
   "wallet.en.json": {
     "(none) rx=10": 5,
     "(none) rx=11": 1,
