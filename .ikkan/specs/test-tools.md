@@ -59,10 +59,12 @@
 | 頁を開く検査の file では、file を読む前の準備の段 (`setupFiles`) が Chromium を起こし始め、`startSite()`は自分で Chromium を起こさずにそれを使う | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`chromium-preloaded-before-file`が通る | #3388 |
 | 頁を開かない検査の file では、準備の段は Chromium を起こさない | `pnpm exec vitest run apps/playground-spa/src/lib/chromium-preload.test.ts`の検査`chromium-not-preloaded-without-pages`が通る | #3388 |
 | 検査の file の前後処理は Chromium を閉じず、file の process が終わると、Chromium の process と作業用の folder が残らない | `pnpm exec vitest run apps/playground-spa/src/lib/chromium-preload.test.ts`の検査`chromium-cleaned-on-process-exit`が通る | #3388 |
+| 続きを回す命令が止める段に渡す書き先 (`DRAGON_UNFINISHED_OUT`) を、検査の file の process は受け継がず、検査が起こした vitest はそこへ書かない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`unfinished-out-not-inherited-by-tests`が通る | #3388 |
 | 頁を開く検査の file を含まない回は、準備の段が見本帳を build しない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-setup-skips-without-pages`が通る | #3384 #3388 |
 | 見本帳の頁は1回の実行で1度だけ build され、頁を開く検査が今どおり通る | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-built-once-per-run`と`site-palette-switch-draws-arcade`が通る | #3384 #3388 |
 | 編集画面で書き出した`.dragon`の file の名前と中身を、検査が今どおり確かめる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`editor-imports-and-exports-notation`が通る | #3384 #3388 |
-| 1件の検査とその前後処理の上限10秒と、1回の実行の上限5分は変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`が通る | #3384 #3386 #3388 |
+| 1件の検査とその前後処理の上限10秒と、1回の実行の上限5分は変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`が通る | #3384 #3386 |
+| 1件の検査とその前後処理の上限10秒と、1回の実行の上限5分は変わらず、上限で止めた時は書き先に終わっていない file を書く | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`と`run-limit-writes-unfinished-files`が通る | #3388 |
 | 1回の実行の上限で止めた時、止める段は環境変数`DRAGON_UNFINISHED_OUT`が名指す file に、終わっていない検査の file と、終わった file で落ちた検査の名前を書く | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-writes-unfinished-files`が通る | #3386 |
 | `pnpm test:related`は、実行が上限で止まった時に終わっていない file だけを次の実行で回し、全部が回って落ちた検査が無ければ終わり方0で終わる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-continues-unfinished-files`が通る | #3386 |
 | 続きの実行で終わっていない file が前の実行より減らなかった時は、そこで止まり、残った file の名前を出して終わり方1で終わる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-stops-without-progress`が通る | #3386 |

@@ -12,6 +12,8 @@
  * `unfinished` は終わっていない検査を持つ file、`failed` は終わった file で落ちた検査の名前で、関係する検査を回す命令 (`scripts/test-related.mjs`) が読んで続きを回す。
  * 終わっていない file で落ちた検査は書かない。続きでその file を丸ごと回し直すので、そちらの結果を使う。
  * vitest の状態はまだ始まっていない file を持たないので、この実行の file は準備の段で先に読み、終わった file を引いて残りを出す。
+ * 書き先は準備の段で読んで環境変数から外す (#3388)。vitest は検査の file の process に自分の環境変数を写すので、外さないと検査が起こす vitest まで同じ書き先を受け継ぐ。
+ * 受け継いだ vitest (上限の検査が起こす、上限を超える見本の実行など) が上限で止まると、親の実行の終わっていない file の一覧を自分の物で上書きし、続きの実行が親の残りと落ちた検査を見失った。
  */
 import { writeFileSync } from "node:fs";
 import { relative } from "node:path";
@@ -83,6 +85,9 @@ function leftover(project: TestProject, all: string[]): { unfinished: string[]; 
 
 export default async function setup(project: TestProject): Promise<() => void> {
   const limit = runLimitMs();
+  // 検査の file の process を起こす前に外す。vitest はそれを起こす時に、この process の環境変数を写す
+  const out = process.env.DRAGON_UNFINISHED_OUT;
+  delete process.env.DRAGON_UNFINISHED_OUT;
   project.provide("dragonRunLimitMs", limit);
   // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
   const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
@@ -90,7 +95,6 @@ export default async function setup(project: TestProject): Promise<() => void> {
   const timer = setTimeout(() => {
     const names = unfinished(project, all);
     process.stderr.write(`\n1回の実行の上限 ${limit / 1000} 秒を超えたので、残りの検査を回さずに止める (#3381)。終わっていない検査 ${names.length} 件:\n${names.map((name) => `  ${name}\n`).join("")}`);
-    const out = process.env.DRAGON_UNFINISHED_OUT;
     if (out) writeFileSync(out, JSON.stringify(leftover(project, all)));
     void project.vitest.cancelCurrentRun("test-failure");
     setTimeout(() => process.exit(1), 1_000);
