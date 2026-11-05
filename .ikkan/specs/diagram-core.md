@@ -328,6 +328,13 @@
 | `arcade`で落とす幅は8で、形の幅か高さの4分の1が8より小さい時は、その4分の1に縮める | `pnpm exec vitest run packages/dragon/test/arcade-corners.test.ts`の検査`arcade-cut-is-8-or-a-quarter`が通る | #3344 |
 | 書き手が`dragon export <file> --palette arcade`で HTML を書き出すと、再生の枠は右上と左下を8落とした形で切り抜かれ、再生の釦と見どころの印は角の無い四角で描かれる | `pnpm exec vitest run packages/dragon/test/arcade-corners.test.ts`の検査`arcade-player-has-no-rounded-corner`が通る | #3344 |
 | 書き手が`clear`、`paper`、`night`で全ての見本を明るい頁と暗い頁で描くと、角を落とした形が1つも無く、丸い角の形の数と半径が角の形を足す前と同じである | `pnpm exec vitest run packages/dragon/test/arcade-corners.test.ts`の検査`other-palettes-keep-rounded-corners`が通る | #3344 |
-| 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples`の見本を`arcade`で描いても、字の重なりの一覧が全ての段で0件である | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-with-arcade-palette`が通る | #3344 |
+| 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples`の見本を`arcade`で描いても、字の重なりの一覧が全ての段で0件である | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-with-arcade-palette`が通る | #3344 #3358 |
 | 色味の表 (`packages/dragon/src/look/palettes.json`) と見本帳の写し (`docs/design/base/palettes.json`) の中身が一致する | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`palette-copies-match`が通る | #3344 |
 | 変更の一覧 (`CHANGELOG.md`、`CHANGELOG.ja.md`) の Unreleased に、`arcade`で箱の角を落とす項が在る | `pnpm exec vitest run packages/dragon/test/arcade-corners.test.ts`の検査`changelog-lists-arcade-corners`が通る | #3344 |
+| 書き手が`arcade`で`packages/dragon/examples`の全ての見本を明るい頁と暗い頁で描くと、45度以上曲がる線の折れ目に曲がりの命令 (`Q`) が無く、前後の2つの区間が折れ目の点で直に交わる | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`arcade-draws-square-line-bends`が通る | #3358 |
+| 書き手が`arcade`で全ての見本を描くと、45度より緩い曲がり (gitの枝の線、同じ箱へ戻る輪) は、今と同じ半径12 (`LOOK.edge.bend`) の丸めのまま描かれる | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`arcade-keeps-curves-smooth`が通る | #3358 |
+| 書き手が`arcade`で全ての見本を描くと、線と矢じりの形の継ぎ目が尖り (`stroke-linejoin`が`round`でない)、絵柄 (アイコン) の線だけが丸い継ぎのまま残る | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`arcade-sharpens-line-and-arrow-joins`が通る | #3358 |
+| 書き手が`arcade`で全ての見本を描くと、線の端は今と同じ丸い端 (`stroke-linecap: round`) のままで、点線は点のまま描かれる | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`arcade-keeps-round-line-ends`が通る | #3358 |
+| 書き手が`clear`、`paper`、`night`で全ての見本を明るい頁と暗い頁で描くと、線の道筋と継ぎ目が線の形を変える前と同じで、折れ目も曲線も半径12で丸く曲がる | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`other-palettes-keep-round-bends`が通る | #3358 |
+| 色味の表 (`packages/dragon/src/look/palettes.json`) と見本帳の写し (`docs/design/base/palettes.json`) の中身が一致し、どちらにも線の曲がりの欄が足されていない | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`palette-copies-match`が通る | #3358 |
+| 変更の一覧 (`CHANGELOG.md`、`CHANGELOG.ja.md`) の Unreleased に、`arcade`で線の折れ目を直角にする項が在る | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`changelog-lists-arcade-bends`が通る | #3358 |
