@@ -7,6 +7,36 @@ Animated diagrams that people write in a plain notation and AI writes as JSON.
 dragon draws a diagram that plays step by step from a short text file.
 The catalog, with every kind of diagram and an editor that plays what you type, is at <https://cardene777.github.io/dragon/>.
 
+## The idea
+
+dragon builds diagrams out of blocks.
+Like Lego, it puts together blocks of set shapes, so every kind of diagram is assembled with the same look.
+
+| Block | What it is | Examples |
+|---|---|---|
+| Core blocks | Blocks that two or more diagram kinds share | box (`box`), step (`step`), color, icon |
+| Kind blocks | Blocks that only one diagram kind uses | the lifeline of a sequence diagram, the group of an architecture diagram (`group`) |
+| Connector blocks | Blocks that join two blocks | the edge (`->`), the merge of a git graph |
+
+A diagram is blocks put together.
+A diagram kind decides only how its blocks are laid out and which ways of attaching it accepts.
+Which blocks a diagram can use follows from how each block attaches.
+Colors, text sizes, and spacing live in one table, and every block reads from it, so every diagram has the same look.
+
+Blocks and diagram kinds can be added to grow dragon.
+For now, add them with a pull request to this repository or in a fork.
+There is no way yet for users to add their own blocks in their own projects, and it opens once the shape of blocks settles.
+
+The other axis is to be as easy as mermaid to write, and to show the diagram right away.
+
+- Short to write. One `box` line makes a box, and one `A -> B: name` line makes an edge
+- One script line. Put one script line and the notation on a page, and it becomes a diagram that plays
+- Fast for AI to write. People write the notation, AI writes the same diagram as JSON, and both draw the same diagram
+- Light and fast. A page loads only the blocks its diagrams use
+
+The notation takes mermaid as its model but is its own form, and it is not compatible with mermaid.
+It leaves out hard-to-read forms such as `-->|text|`, and lets the first English word of a line tell what the line is.
+
 ## Install
 
 ```sh
@@ -19,7 +49,7 @@ The package has four parts.
 |---|---|
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`) (see below). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind (the section below). It converts to and from JSON, and names and text can be in any language ([notation guide](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
-| Renderer | Draws the source on a page and plays it one step at a time. It draws sequence, architecture, state, git, time, and tree diagrams |
+| Renderer | Draws the source on a page and plays it one step at a time. It draws sequence, architecture, state, git, time, tree, lineup, and try diagrams |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## A first diagram
