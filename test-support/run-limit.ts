@@ -11,6 +11,7 @@
  * 環境変数 `DRAGON_UNFINISHED_OUT` が file を名指す時は、止める前にそこへ JSON を書く (#3386)。
  * `unfinished` は終わっていない検査を持つ file、`failed` は終わった file で落ちた検査の名前で、関係する検査を回す命令 (`scripts/test-related.mjs`) が読んで続きを回す。
  * 終わっていない file で落ちた検査は書かない。続きでその file を丸ごと回し直すので、そちらの結果を使う。
+ * vitest の状態はまだ始まっていない file を持たないので、この実行の file は準備の段で先に読み、終わった file を引いて残りを出す。
  */
 import { writeFileSync } from "node:fs";
 import { relative } from "node:path";
@@ -50,10 +51,12 @@ function eachTest(path: string, file: Task, visit: (name: string, test: Task) =>
   walk(file, []);
 }
 
-/** 終わっていない検査の名前 */
-function unfinished(project: TestProject): string[] {
+/** 終わっていない検査の名前。まだ始まっていない file (`all` に在って vitest の状態に無い file) は file の名前だけを出す */
+function unfinished(project: TestProject, all: string[]): string[] {
   const names: string[] = [];
+  const seen = new Set<string>();
   eachFile(project, (path, file) => {
+    seen.add(path);
     if (DONE.has(file.result?.state ?? "")) return;
     const before = names.length;
     eachTest(path, file, (name, test) => {
@@ -61,33 +64,34 @@ function unfinished(project: TestProject): string[] {
     });
     if (names.length === before) names.push(path);
   });
-  return names;
+  return [...names, ...all.filter((path) => !seen.has(path))];
 }
 
 /** 続きを回す命令へ渡す、終わっていない file と、終わった file で落ちた検査の名前 */
-function leftover(project: TestProject): { unfinished: string[]; failed: string[] } {
-  const files: string[] = [];
+function leftover(project: TestProject, all: string[]): { unfinished: string[]; failed: string[] } {
+  const done = new Set<string>();
   const failed: string[] = [];
   eachFile(project, (path, file) => {
-    if (!DONE.has(file.result?.state ?? "")) {
-      files.push(path);
-      return;
-    }
+    if (!DONE.has(file.result?.state ?? "")) return;
+    done.add(path);
     eachTest(path, file, (name, test) => {
       if (test.result?.state === "fail") failed.push(name);
     });
   });
-  return { unfinished: files, failed };
+  return { unfinished: all.filter((path) => !done.has(path)), failed };
 }
 
-export default function setup(project: TestProject): () => void {
+export default async function setup(project: TestProject): Promise<() => void> {
   const limit = runLimitMs();
   project.provide("dragonRunLimitMs", limit);
+  // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
+  const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
+  const all = (await vitest.getRelevantTestSpecifications(vitest.filenamePattern)).map((spec) => relative(project.config.root, spec.moduleId));
   const timer = setTimeout(() => {
-    const names = unfinished(project);
+    const names = unfinished(project, all);
     process.stderr.write(`\n1回の実行の上限 ${limit / 1000} 秒を超えたので、残りの検査を回さずに止める (#3381)。終わっていない検査 ${names.length} 件:\n${names.map((name) => `  ${name}\n`).join("")}`);
     const out = process.env.DRAGON_UNFINISHED_OUT;
-    if (out) writeFileSync(out, JSON.stringify(leftover(project)));
+    if (out) writeFileSync(out, JSON.stringify(leftover(project, all)));
     void project.vitest.cancelCurrentRun("test-failure");
     setTimeout(() => process.exit(1), 1_000);
   }, limit);
