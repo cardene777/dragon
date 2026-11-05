@@ -779,7 +779,9 @@ describe("公開する頁 (#2995)", () => {
       // 書き出すと、今の記法が書類名の `.dragon` の file として保存される
       const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
       expect(download.suggestedFilename(), "書き出す file の名前が書類名でない").toBe("edited.dragon");
-      expect(readFileSync(await download.path(), "utf8").trimEnd(), "書き出した file の中身が今の記法でない").toBe(EDITED);
+      // 準備の段の Chromium につないだ線では保存先の path を読めないので、中身を流れで受ける (#3384)
+      const exported = Buffer.concat((await (await download.createReadStream()).toArray()) as Buffer[]).toString("utf8");
+      expect(exported.trimEnd(), "書き出した file の中身が今の記法でない").toBe(EDITED);
 
       // 拡張子の無い書類名でも `.dragon` を付けて書き出す
       await page.locator(sel("file-name")).fill("memo");
@@ -1298,35 +1300,76 @@ describe("公開する頁 (#2995)", () => {
     }
   });
 
-  /** 準備の段が起こした Chromium のつなぐ先。型に出す前も読めるよう、名前で引く */
-  const sharedEndpoint = (): unknown => (inject as (key: string) => unknown)("dragonBrowser");
+  /** 準備の段が作業者ごとに起こした Chromium のつなぐ先。型に出す前も読めるよう、名前で引く */
+  const providedBrowsers = (): unknown => (inject as (key: string) => unknown)("dragonBrowsers");
+  /** この作業者の Chromium のつなぐ先。作業者の番号 (`VITEST_POOL_ID`、1 から) で選ぶ */
+  const myBrowser = (): unknown => {
+    const browsers = providedBrowsers();
+    if (!Array.isArray(browsers) || browsers.length === 0) return undefined;
+    return browsers[(Number(process.env.VITEST_POOL_ID ?? "1") - 1) % browsers.length];
+  };
   const endpointOf = (s: Site): unknown => (s as Site & { endpoint?: unknown }).endpoint;
+  type ChromiumServer = { endpoint: string; pid: number; close: () => Promise<void> };
+  /** 準備の段の Chromium を 1 つ起こす関数。まだ無い時もこの file の他の検査を走らせるため、置き場を変数で渡し、読めない時は undefined を返す */
+  const chromiumLauncher = async (): Promise<(() => Promise<ChromiumServer>) | undefined> => {
+    const modulePath = "./site-setup";
+    return ((await import(/* @vite-ignore */ modulePath)) as { launchChromiumServer?: () => Promise<ChromiumServer> }).launchChromiumServer;
+  };
+  const alive = (pid: number): boolean => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-  it("chromium-launched-once-per-run", async () => {
-    // 頁を開く検査の file は、準備の段が 1 回の実行で 1 つだけ起こした Chromium につなぎ、自分では起こさない (#3384)
-    const endpoint = sharedEndpoint();
-    expect(typeof endpoint === "string" && endpoint.startsWith("ws://"), `準備の段が起こした Chromium のつなぐ先が無い (${String(endpoint)})`).toBe(true);
-    expect(endpointOf(site), "この file の見本帳が、準備の段の Chromium につないでいない").toBe(endpoint);
+  it("chromium-launched-per-worker", async () => {
+    // 頁を開く検査の file は、準備の段が作業者ごとに 1 つずつ起こした Chromium のうち自分の作業者の物につなぎ、自分では起こさない (#3384)
+    const browsers = providedBrowsers();
+    const workers = Number(/maxWorkers:\s*(\d+)/u.exec(readFileSync(join(process.cwd(), "vitest.config.ts"), "utf8"))?.[1]);
+    expect(Array.isArray(browsers) && browsers.length >= 1 && browsers.length <= workers, `準備の段が作業者ごとに Chromium を起こしていない (${JSON.stringify(browsers)})`).toBe(true);
+    const list = browsers as string[];
+    expect(list.every((b) => b.startsWith("ws://")), "Chromium のつなぐ先でない値が在る").toBe(true);
+    expect(new Set(list).size, "2 つの作業者に同じ Chromium を渡した").toBe(list.length);
+    const mine = myBrowser();
+    expect(endpointOf(site), "この file の見本帳が、自分の作業者の Chromium につないでいない").toBe(mine);
     const launch = vi.spyOn(chromium, "launch");
     const again = await startSite();
     try {
       expect(launch, "2 度目に起こした見本帳が Chromium を起こした").not.toHaveBeenCalled();
-      expect(endpointOf(again), "2 度目に起こした見本帳が、準備の段の Chromium につないでいない").toBe(endpoint);
+      expect(endpointOf(again), "2 度目に起こした見本帳が、自分の作業者の Chromium につないでいない").toBe(mine);
     } finally {
       launch.mockRestore();
       await again.close();
     }
   });
 
+  it("chromium-server-runs-in-own-process", async () => {
+    // 準備の段は Chromium を vitest の process の外で、Chromium ごとに別の node の process で起こす (#3384)
+    const launchChromiumServer = await chromiumLauncher();
+    expect(launchChromiumServer, "Chromium を起こす関数 (site-setup.ts の launchChromiumServer) が無い").toBeTypeOf("function");
+    const server = await (launchChromiumServer as () => Promise<ChromiumServer>)();
+    try {
+      expect(server.pid, "Chromium を vitest の process の中で起こした").not.toBe(process.pid);
+      expect(alive(server.pid), "Chromium を起こした process が居ない").toBe(true);
+      const browser = await chromium.connect(server.endpoint, { timeout: 5_000 });
+      expect(browser.isConnected(), "別の process で起こした Chromium へつなげない").toBe(true);
+      await browser.close();
+    } finally {
+      await server.close();
+    }
+  });
+
   it("site-close-keeps-shared-chromium", async () => {
-    // file の後始末は Chromium を閉じずに線を切るだけで、同じ実行の別の file は同じ Chromium で頁を開き続けられる (#3384)
-    const endpoint = sharedEndpoint();
-    expect(typeof endpoint === "string" && endpoint.startsWith("ws://"), `準備の段が起こした Chromium のつなぐ先が無い (${String(endpoint)})`).toBe(true);
+    // file の後始末は Chromium を閉じずに線を切るだけで、同じ作業者の次の file は同じ Chromium で頁を開ける (#3384)
+    const mine = myBrowser();
+    expect(typeof mine === "string" && mine.startsWith("ws://"), `自分の作業者の Chromium のつなぐ先が無い (${String(mine)})`).toBe(true);
     const other = await startSite();
     await other.close();
-    const probe = await chromium.connect(endpoint as string, { timeout: 5_000 });
+    const probe = await chromium.connect(mine as string, { timeout: 5_000 });
     try {
-      expect(probe.isConnected(), "別の見本帳を閉じた後に、準備の段の Chromium へつなげない").toBe(true);
+      expect(probe.isConnected(), "別の見本帳を閉じた後に、自分の作業者の Chromium へつなげない").toBe(true);
     } finally {
       await probe.close();
     }
@@ -1335,19 +1378,15 @@ describe("公開する頁 (#2995)", () => {
   });
 
   it("shared-chromium-closes-at-teardown", async () => {
-    // 準備の段の片付けが Chromium を閉じ、閉じた後はつなぐ先へつなげない (#3384)
-    // 関数がまだ無い時もこの file の他の検査を走らせるため、置き場を変数で渡して読めない時は無いと判定する
-    const modulePath = "./site-setup";
-    const setupModule = (await import(/* @vite-ignore */ modulePath)) as {
-      launchSharedChromium?: () => Promise<{ endpoint: string; close: () => Promise<void> }>;
-    };
-    expect(setupModule.launchSharedChromium, "Chromium を 1 つ起こす関数 (site-setup.ts の launchSharedChromium) が無い").toBeTypeOf("function");
-    const shared = await (setupModule.launchSharedChromium as () => Promise<{ endpoint: string; close: () => Promise<void> }>)();
-    expect(shared.endpoint, "起こした Chromium のつなぐ先").toMatch(/^ws:\/\//u);
-    const browser = await chromium.connect(shared.endpoint, { timeout: 5_000 });
+    // 準備の段の片付けが Chromium を閉じ、閉じた後はつなぐ先へつなげず、Chromium を起こした process も残らない (#3384)
+    const launchChromiumServer = await chromiumLauncher();
+    expect(launchChromiumServer, "Chromium を起こす関数 (site-setup.ts の launchChromiumServer) が無い").toBeTypeOf("function");
+    const server = await (launchChromiumServer as () => Promise<ChromiumServer>)();
+    const browser = await chromium.connect(server.endpoint, { timeout: 5_000 });
     await browser.close();
-    await shared.close();
-    await expect(chromium.connect(shared.endpoint, { timeout: 2_000 }), "片付けの後も Chromium へつなげる").rejects.toThrow();
+    await server.close();
+    await expect(chromium.connect(server.endpoint, { timeout: 2_000 }), "片付けの後も Chromium へつなげる").rejects.toThrow();
+    expect(alive(server.pid), "片付けの後も Chromium を起こした process が残る").toBe(false);
   });
 
   it("site-setup-skips-without-pages", async () => {
@@ -1357,7 +1396,7 @@ describe("公開する頁 (#2995)", () => {
     const project = {
       vitest: {
         filenamePattern: [],
-        getRelevantTestSpecifications: async () => [{ moduleId: join(process.cwd(), "packages/dragon/test/test-limits.test.ts") }],
+        getRelevantTestSpecifications: () => Promise.resolve([{ moduleId: join(process.cwd(), "packages/dragon/test/test-limits.test.ts") }]),
       },
       provide: (key: string, value: unknown) => {
         provided[key] = value;
@@ -1366,7 +1405,7 @@ describe("公開する頁 (#2995)", () => {
     const teardown = await setup(project as unknown as Parameters<typeof setup>[0]);
     try {
       expect(provided.dragonSites, "頁を開かない回に build した").toEqual({});
-      expect(provided.dragonBrowser ?? "", "頁を開かない回に Chromium を起こした").toBe("");
+      expect(provided.dragonBrowsers ?? [], "頁を開かない回に Chromium を起こした").toEqual([]);
     } finally {
       await teardown();
     }
