@@ -153,7 +153,7 @@ export async function waitForCoarse(page: Page, timeout = 5_000): Promise<void> 
 export interface Site {
   origin: string;
   built: Built;
-  /** つないだ Chromium のつなぐ先。準備の段 (`site-setup.ts`) が 1 回の実行で 1 つだけ起こした物 (#3384) */
+  /** つないだ Chromium のつなぐ先。準備の段 (`site-setup.ts`) が作業者ごとに起こした物のうち、この作業者の物 (#3384) */
   endpoint: string;
   /** 新しい context で頁を開く。開いた context は `closeContexts` で閉じる */
   open: (o?: OpenOptions) => Promise<Opened>;
@@ -167,14 +167,16 @@ export interface Site {
  *
  * 編集画面の検査とサイトの帯と経路の検査が同じ形で頁を開けるよう、開く手順をここに 1 つだけ持つ。
  * 頁は 1 回の実行の準備の段 (`site-setup.ts`) が 1 度だけ build した物を使い、ここでは build しない (#3381)。
- * Chromium も準備の段が 1 つだけ起こした物につなぎ、ここでは起こさない。`close` はつないだ線を切るだけで Chromium は閉じない (#3384)。
+ * Chromium も準備の段が作業者ごとに起こした物のうち、この作業者の物につなぎ、ここでは起こさない。`close` はつないだ線を切るだけで Chromium は閉じない (#3384)。
  * `config` は build の設定の path で、準備の段は同じ設定の build を別に 1 度だけ行う
  */
 export async function startSite(o: { config?: string } = {}): Promise<Site> {
   const key = o.config === undefined ? DEFAULT_SITE : relative(app, o.config);
   const built = inject("dragonSites")[key];
   if (built === undefined) throw new Error(`見本帳の build (${key}) が準備の段に無い。検査の file が \`startSite()\` か \`startSite({ config: join(app, "…") })\` の形で呼んでいるかを確かめる (#3381)`);
-  const endpoint = inject("dragonBrowser");
+  // 作業者の番号 (`VITEST_POOL_ID`) は 1 から数える。頁を開く file が作業者より少ない回は Chromium も少ないので、余りで選ぶ
+  const browsers = inject("dragonBrowsers");
+  const endpoint = browsers[(Number(process.env.VITEST_POOL_ID ?? "1") - 1) % browsers.length] as string;
   const server = await servePage(built.dir);
   // つないだ Chromium の `close` は、この線で開いた context を閉じて線を切るだけ
   const browser: Browser = await chromium.connect(endpoint);

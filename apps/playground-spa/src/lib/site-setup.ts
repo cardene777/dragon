@@ -8,12 +8,14 @@
  * build の設定を名指す検査 (`startSite({ config: join(app, "…") })`) には、その設定の build を別に 1 度だけ行う。
  * 検査の前後処理は 1 件の上限 (10 秒) に収める決まりで、build はその中に収まらないので、前後処理ではなくこの段で行う。
  *
- * 頁を開く Chromium も、build する回にこの段で 1 つだけ起こし、つなぐ先を渡す (#3384)。検査の file はそれにつなぐだけで、閉じるのはこの段の片付け。
+ * 頁を開く Chromium も、build する回にこの段で作業者ごとに 1 つずつ起こし、つなぐ先を渡す (#3384)。検査の file は自分の作業者の Chromium につなぐだけで、閉じるのはこの段の片付け。
  * 混んだ機械では Chromium を閉じるのに 10 秒を超えた回があり、検査が全部通った回を落ちた扱いにしたので、起こすのも閉じるのも前後処理の外に置く。
+ * Chromium は 1 つずつ別の node の process で起こす (`chromium-server.mjs`)。この段の process で起こすと、全ての作業者の Playwright の通信が vitest の本体の process に集まり、検査が約 2 倍遅くなった。
+ * 頁を開く file が作業者の数より少ない回は、その file の数だけ起こす。
  */
+import { spawn } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import type { TestProject } from "vitest/node";
 import { app, type Built, buildPage } from "./site-build";
 
@@ -21,15 +23,27 @@ declare module "vitest" {
   export interface ProvidedContext {
     /** build した見本帳の頁。鍵は build の設定の `apps/playground-spa` からの path で、名指さない build は `default` */
     dragonSites: Record<string, Built>;
-    /** この段が起こした Chromium のつなぐ先。頁を開かない回は空 */
-    dragonBrowser: string;
+    /** この段が作業者ごとに起こした Chromium のつなぐ先。頁を開かない回は空 */
+    dragonBrowsers: string[];
   }
 }
 
-/** 頁を開く検査の file が共につなぐ、画面なしの Chromium を 1 つ起こす */
-export async function launchSharedChromium(): Promise<{ endpoint: string; close: () => Promise<void> }> {
-  const server = await chromium.launchServer();
-  return { endpoint: server.wsEndpoint(), close: () => server.close() };
+/** 画面なしの Chromium を 1 つ、この process の外の node の process で起こす。`close` は Chromium を閉じ、その process が終わるまで待つ */
+export async function launchChromiumServer(): Promise<{ endpoint: string; pid: number; close: () => Promise<void> }> {
+  const child = spawn(process.execPath, [join(app, "src/lib/chromium-server.mjs")], { stdio: ["ignore", "ignore", "inherit", "ipc"] });
+  const endpoint = await new Promise<string>((resolve, reject) => {
+    child.once("message", (m) => resolve((m as { endpoint: string }).endpoint));
+    child.once("exit", (code) => reject(new Error(`Chromium を起こす process が、つなぐ先を渡す前に終わった (終わり方 ${String(code)})`)));
+  });
+  const exited = new Promise<void>((done) => child.once("exit", () => done()));
+  return {
+    endpoint,
+    pid: child.pid as number,
+    close: async () => {
+      if (child.connected) child.send("close");
+      await exited;
+    },
+  };
 }
 
 /** 名指さない build の鍵 */
@@ -51,22 +65,25 @@ export default async function setup(project: TestProject): Promise<() => Promise
   // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
   const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
   const specs = await vitest.getRelevantTestSpecifications(vitest.filenamePattern);
-  const keys = sitesNeeded(specs.map((spec) => readFileSync(spec.moduleId, "utf8")));
+  const sources = specs.map((spec) => readFileSync(spec.moduleId, "utf8"));
+  const keys = sitesNeeded(sources);
+  const pageFiles = sources.filter((text) => sitesNeeded([text]).length > 0).length;
+  const browserCount = pageFiles === 0 ? 0 : Math.min(project.vitest.config.maxWorkers, pageFiles);
   // build と Chromium の起動は互いを待たないので、同時に始める
-  const [built, browser] = await Promise.all([
+  const [built, browsers] = await Promise.all([
     Promise.all(
       keys.map(
         async (key) =>
           [key, await buildPage(key === DEFAULT_SITE ? undefined : join(app, key))] as const,
       ),
     ),
-    keys.length > 0 ? launchSharedChromium() : undefined,
+    Promise.all(Array.from({ length: browserCount }, () => launchChromiumServer())),
   ]);
   const sites = Object.fromEntries(built);
   project.provide("dragonSites", sites);
-  project.provide("dragonBrowser", browser?.endpoint ?? "");
+  project.provide("dragonBrowsers", browsers.map((browser) => browser.endpoint));
   return async () => {
-    await browser?.close();
+    await Promise.all(browsers.map((browser) => browser.close()));
     for (const site of Object.values(sites)) rmSync(site.dir, { recursive: true, force: true });
   };
 }
