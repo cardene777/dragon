@@ -782,7 +782,8 @@ describe("公開する頁 (#2995)", () => {
       // 書き出すと、今の記法が書類名の `.dragon` の file として保存される
       const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
       expect(download.suggestedFilename(), "書き出す file の名前が書類名でない").toBe("edited.dragon");
-      expect(readFileSync(await download.path(), "utf8").trimEnd(), "書き出した file の中身が今の記法でない").toBe(EDITED);
+      const exported = Buffer.concat((await (await download.createReadStream()).toArray()) as Buffer[]).toString("utf8");
+      expect(exported.trimEnd(), "書き出した file の中身が今の記法でない").toBe(EDITED);
 
       // 拡張子の無い書類名でも `.dragon` を付けて書き出す
       await page.locator(sel("file-name")).fill("memo");
