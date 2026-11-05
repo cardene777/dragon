@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { PATHS } from "../site/routes";
-import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, firstLoadFiles, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, type Site, startSite, waitForCoarse } from "./playground-support";
+import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, firstLoadFiles, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, screenOf, type Site, startSite, waitForCoarse } from "./playground-support";
 
 /** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、カタログの分類から導く (#3157) */
 const screenRoutes = (): string[] => {
@@ -1307,6 +1307,27 @@ describe("公開する頁 (#2995)", () => {
     const statuses = await Promise.all([...routes, ...missing].map(async (route) => [route, (await fetch(`${site.origin}${BASE}${route}`)).status] as const));
     const want = [...routes.map((route) => [route, 200] as const), ...missing.map((route) => [route, 404] as const)];
     expect(Object.fromEntries(statuses), "画面の経路が 200 で、無い path が 404 で答えない").toEqual(Object.fromEntries(want));
+  });
+
+  it("site-pages-skip-the-local-server", async () => {
+    // 機械のネットワークが変わると、Chromium は 127.0.0.1 への読み込み中の通信も net::ERR_NETWORK_CHANGED で切る。
+    // 検査の頁は手元の server を通らずに build した file から読む (#3379)。server を通った応答だけが相手の場所 (serverAddr) を持つ
+    const seen: string[] = [];
+    const reached: Promise<string | null>[] = [];
+    const watch = (page: Page): void => {
+      page.on("response", (response) => {
+        if (!response.url().startsWith(site.origin)) return;
+        const path = new URL(response.url()).pathname;
+        seen.push(path);
+        reached.push(response.serverAddr().then((address) => (address === null ? null : path)));
+      });
+    };
+    for (const path of ["", "editor", "catalog"]) {
+      const { page } = await site.open({ path: `${BASE}${path}`, prepare: watch });
+      await expect.poll(() => screenOf(page), { message: `${BASE}${path} の画面が出ない`, timeout: 30_000 }).not.toBeNull();
+    }
+    expect(seen.length, "頁が読んだ file").toBeGreaterThan(3);
+    expect((await Promise.all(reached)).filter((path) => path !== null), "手元の server を通って届いた file").toEqual([]);
   });
 
   it("csp-script-self-only", () => {
