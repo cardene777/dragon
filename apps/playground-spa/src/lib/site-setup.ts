@@ -7,7 +7,13 @@
  * build するのは、この回に回す検査の file が `startSite()` か、それを包むサイトの検査の道具 `useSite()` (`site-support.ts`) を呼ぶ時だけ。頁を開かない回は build しない。
  * build の設定を名指す検査 (`startSite({ config: join(app, "…") })`) には、その設定の build を別に 1 度だけ行う。
  * 検査の前後処理は 1 件の上限 (10 秒) に収める決まりで、build はその中に収まらないので、前後処理ではなくこの段で行う。
+ *
+ * 頁を開く Chromium も、build する回にこの段で作業者ごとに 1 つずつ起こし、つなぐ先を渡す (#3384)。検査の file は自分の作業者の Chromium につなぐだけで、閉じるのはこの段の片付け。
+ * 混んだ機械では Chromium を閉じるのに 10 秒を超えた回があり、検査が全部通った回を落ちた扱いにしたので、起こすのも閉じるのも前後処理の外に置く。
+ * Chromium は 1 つずつ別の node の process で起こす (`chromium-server.mjs`)。この段の process で起こすと、全ての作業者の Playwright の通信が vitest の本体の process に集まり、検査が約 2 倍遅くなった。
+ * 頁を開く file が作業者の数より少ない回は、その file の数だけ起こす。
  */
+import { spawn } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { TestProject } from "vitest/node";
@@ -17,7 +23,33 @@ declare module "vitest" {
   export interface ProvidedContext {
     /** build した見本帳の頁。鍵は build の設定の `apps/playground-spa` からの path で、名指さない build は `default` */
     dragonSites: Record<string, Built>;
+    /** この段が作業者ごとに起こした Chromium のつなぐ先と、それを起こした process の番号。頁を開かない回は空 */
+    dragonBrowsers: { endpoint: string; pid: number }[];
   }
+}
+
+/** Chromium を起こす node の script。つなぐ先を IPC で渡し、`close` を受けるか親が居なくなると閉じて終わる */
+export const CHROMIUM_SERVER = join(app, "src/lib/chromium-server.mjs");
+
+/**
+ * 画面なしの Chromium を 1 つ、この process の外の node の process で起こす。`close` は閉じよと送り、その process が終わるまで待つ。
+ * `script` は同じ約束で動く別の script を渡す口で、閉じ方の検査が Chromium を起こさずに確かめるのに使う
+ */
+export async function launchChromiumServer(script = CHROMIUM_SERVER): Promise<{ endpoint: string; pid: number; close: () => Promise<void> }> {
+  const child = spawn(process.execPath, [script], { stdio: ["ignore", "ignore", "inherit", "ipc"] });
+  const endpoint = await new Promise<string>((resolve, reject) => {
+    child.once("message", (m) => resolve((m as { endpoint: string }).endpoint));
+    child.once("exit", (code) => reject(new Error(`Chromium を起こす process が、つなぐ先を渡す前に終わった (終わり方 ${String(code)})`)));
+  });
+  const exited = new Promise<void>((done) => child.once("exit", () => done()));
+  return {
+    endpoint,
+    pid: child.pid as number,
+    close: async () => {
+      if (child.connected) child.send("close");
+      await exited;
+    },
+  };
 }
 
 /** 名指さない build の鍵 */
@@ -35,20 +67,29 @@ export function sitesNeeded(sources: string[]): string[] {
   return [...keys].sort();
 }
 
-export default async function setup(project: TestProject): Promise<() => void> {
+export default async function setup(project: TestProject): Promise<() => Promise<void>> {
   // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
   const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
   const specs = await vitest.getRelevantTestSpecifications(vitest.filenamePattern);
-  const keys = sitesNeeded(specs.map((spec) => readFileSync(spec.moduleId, "utf8")));
-  const built = await Promise.all(
-    keys.map(
-      async (key) =>
-        [key, await buildPage(key === DEFAULT_SITE ? undefined : join(app, key))] as const,
+  const sources = specs.map((spec) => readFileSync(spec.moduleId, "utf8"));
+  const keys = sitesNeeded(sources);
+  const pageFiles = sources.filter((text) => sitesNeeded([text]).length > 0).length;
+  const browserCount = pageFiles === 0 ? 0 : Math.min(project.vitest.config.maxWorkers, pageFiles);
+  // build と Chromium の起動は互いを待たないので、同時に始める
+  const [built, browsers] = await Promise.all([
+    Promise.all(
+      keys.map(
+        async (key) =>
+          [key, await buildPage(key === DEFAULT_SITE ? undefined : join(app, key))] as const,
+      ),
     ),
-  );
+    Promise.all(Array.from({ length: browserCount }, () => launchChromiumServer())),
+  ]);
   const sites = Object.fromEntries(built);
   project.provide("dragonSites", sites);
-  return () => {
+  project.provide("dragonBrowsers", browsers.map(({ endpoint, pid }) => ({ endpoint, pid })));
+  return async () => {
+    await Promise.all(browsers.map((browser) => browser.close()));
     for (const site of Object.values(sites)) rmSync(site.dir, { recursive: true, force: true });
   };
 }

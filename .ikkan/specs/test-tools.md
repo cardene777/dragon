@@ -56,3 +56,11 @@
 | `dist`が`src`より古い時は、検査を回す前に止まる | `pnpm exec vitest run packages/dragon/test/dist-freshness.test.ts`の検査`"dist が古ければ stale"`が通る | #3381 |
 | 書き出しの4つの形と、同じ原本から2度書き出した結果の一致を確かめる検査が残る | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-writes-four-formats`と`export-is-deterministic`が通る | #3381 |
 | 一式が通り、検査の実行は5分の上限に止められない | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終わり方0で終わる | #3381 |
+| 頁を開く検査の file が`startSite()`を呼ぶと、準備の段が作業者ごとに1つずつ起こした Chromium のうち自分の作業者の Chromium につなぎ、自分では Chromium を起こさない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`chromium-launched-per-worker`が通る | #3384 |
+| 準備の段は Chromium を vitest の process の外で、Chromium ごとに別の node の process で起こす | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`chromium-server-runs-in-own-process`が通る | #3384 |
+| 検査の file の後始末 (`site.close()`) は Chromium を閉じずにつないだ線を切るだけで、同じ作業者の次の file は同じ Chromium で頁を開ける | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-close-keeps-shared-chromium`が通る | #3384 |
+| 準備の段の片付けが起こした Chromium を閉じ、閉じた後はつなぐ先へつなげず、Chromium を起こした process も残らない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`shared-chromium-closes-at-teardown`が通る | #3384 |
+| 頁を開く検査の file を含まない回は、準備の段が見本帳の build も Chromium の起動もしない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-setup-skips-without-pages`が通る | #3384 |
+| 見本帳の頁は1回の実行で1度だけ build され、頁を開く検査が今どおり通る | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-built-once-per-run`と`site-palette-switch-draws-arcade`が通る | #3384 |
+| 編集画面で書き出した`.dragon`の file の名前と中身を、検査が今どおり確かめる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`editor-imports-and-exports-notation`が通る | #3384 |
+| 1件の検査とその前後処理の上限10秒と、1回の実行の上限5分は変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`が通る | #3384 |
