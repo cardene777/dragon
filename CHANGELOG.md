@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **Figures drawn with `arcade` draw the bends of their lines as square corners, the same as the bitsumi article figures** (#3358)
+
+  A bend that turns 45 degrees or more is no longer rounded, so the two segments meet at the bend point. Lines drawn as curves through many points, such as git branch lines and a loop back to the same box, keep their rounding of radius 12 because each of their turns is gentle.
+  The joins of lines and arrowheads are sharp. Icon strokes keep round joins, and line ends stay round so dotted lines stay dotted.
+  The rule applies to palettes with the `cut` corner shape, which is only `arcade`. Figures drawn with `clear`, `paper`, and `night` do not change.
+
 ## [0.51.0] - 2026-11-05
 
 ### Fixed

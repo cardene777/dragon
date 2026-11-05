@@ -112,7 +112,7 @@ export function drawTree(
         [m.last, { opacity: 1, "stroke-dashoffset": 0 }, EASE.inOut],
         [m.total, { opacity: 0, "stroke-dashoffset": 0 }],
       ]);
-      const d = pathOf(e.points);
+      const d = pathOf(e.points, ctx.corner);
       return [
         `<g style="${cs(e.color)}"><path class="dg-tree-tr dg-a" data-tree-trail="${esc(run.link)}" pathLength="1" d="${d}" style="${kf}"/><path class="dg-tree-h dg-a" d="${arrowHead(e.points)}" style="${m.vis(b)}"/></g>`,
       ];

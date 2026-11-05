@@ -23,7 +23,7 @@ export function routeNet(k: TryKit): void {
   const { m } = ctx;
   for (const route of layout.routes) {
     const links = route.links
-      .map((l) => `<path class="dg-try-net" d="${pathOf(l.points)}"/>`)
+      .map((l) => `<path class="dg-try-net" d="${pathOf(l.points, ctx.corner)}"/>`)
       .join("");
     const nodes = route.nodes
       .map((n) => {
@@ -57,7 +57,7 @@ export function routeNet(k: TryKit): void {
       if (points.length < 2) return;
       const w = windows[k] as TryWindow;
       lit.push(
-        `<path class="dg-try-trip dg-a" data-trip="${esc(mo.trip.item)}" d="${pathOf(points)}" style="${cs(T.color.part)};${m.vis(w.a, spanOf(mo.step).end)}"/>`,
+        `<path class="dg-try-trip dg-a" data-trip="${esc(mo.trip.item)}" d="${pathOf(points, ctx.corner)}" style="${cs(T.color.part)};${m.vis(w.a, spanOf(mo.step).end)}"/>`,
       );
     });
   }

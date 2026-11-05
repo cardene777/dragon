@@ -11,5 +11,5 @@ import type { LinkLine } from "../commit/draw";
 /** 元の commit から写しへの点線 */
 export const copyLine: LinkLine = (l, time, ctx) => {
   const { m } = ctx;
-  return `<g style="${cs(l.color)}"><path class="dg-git-cp dg-a" d="${pathOf(l.points)}" style="${m.vis(time.start, m.last)}"/></g>`;
+  return `<g style="${cs(l.color)}"><path class="dg-git-cp dg-a" d="${pathOf(l.points, ctx.corner)}" style="${m.vis(time.start, m.last)}"/></g>`;
 };

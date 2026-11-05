@@ -448,8 +448,11 @@ export const LOOK = {
     needle: { over: 8, head: 6, dot: 3.5 },
     meter: { w: 150, h: 6, y: 36, mark: 5, textY: 59, color: "amber" },
   },
-  /** `bend` は線の曲がりを丸める半径 (#3171) */
-  edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9, bend: 12 },
+  /**
+   * `bend` は線の曲がりを丸める半径 (#3171)。`square` は角を落とす色味で丸めずに直角にする曲がりの角度の下限 (度、#3358)。
+   * 見本の線の折れ目は 90 度曲がり、点で区切って描いた曲線の 1 つの曲がりは 28 度以下なので、間の 45 で分ける
+   */
+  edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9, bend: 12, square: 45 },
   /** `touch` は線の名前と、同じ時刻に見えている段の番号の丸の間に空ける最小の隙間 (#3175) */
   label: {
     h: 20,

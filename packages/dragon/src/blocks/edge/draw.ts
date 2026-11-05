@@ -22,7 +22,7 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false, since
   const { m } = ctx;
   // 点線の道は `since` から最後まで見えている。`since` が 0 なら初めから見えている
   ctx.traces.push({ from: e.from, to: e.to, points: e.points, shown: since > 0 ? [[since, Number.POSITIVE_INFINITY]] : ALWAYS });
-  const d = pathOf(e.points);
+  const d = pathOf(e.points, ctx.corner);
   const head = arrowHead(e.points);
   const { start: a, drawn: b, end } = time;
   const tail: Frame[] = past

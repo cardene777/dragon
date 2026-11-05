@@ -83,7 +83,7 @@ export function drawGit(layout: GitLayout, diagram: DiagramModel, timeline: Time
         [m.total, { opacity: 0, "stroke-dashoffset": 0 }],
       ]);
       return [
-        `<g style="${cs(mv.color)}"><path class="dg-e-on dg-a" pathLength="1" d="${pathOf(mv.line)}" style="${kf}"/></g>`,
+        `<g style="${cs(mv.color)}"><path class="dg-e-on dg-a" pathLength="1" d="${pathOf(mv.line, ctx.corner)}" style="${kf}"/></g>`,
       ];
     })
     .join("");

@@ -122,6 +122,7 @@ function drawChain(k: TryKit, chain: TryChainPlaced): string {
           [midX, prevMid],
           [B.padX, prevMid],
         ],
+    ctx.corner,
   );
   const badge = T.link.badge;
   const badgeY = stacked ? (above + prevMid) / 2 : (hashMid + prevMid) / 2;

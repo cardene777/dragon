@@ -21,7 +21,7 @@ export type LinkLine = (link: GitLink, time: EdgeTime, ctx: Ctx) => string;
 /** 親から子へ引く線。引き始めてから引き終えるまでに伸ばし、繰り返す前まで残す */
 export const parentLine: LinkLine = (l, time, ctx) => {
   const { m } = ctx;
-  const d = pathOf(l.points);
+  const d = pathOf(l.points, ctx.corner);
   const kf = m.kf([
     [0, { opacity: 0, "stroke-dashoffset": 1 }],
     [time.start, { opacity: 0, "stroke-dashoffset": 1 }, EASE.inOut],

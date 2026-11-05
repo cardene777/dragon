@@ -35,7 +35,7 @@
 | 状態遷移図で段が終わった後、その段の線と段の番号を共通の値の表の灰で描き、今の段の線と番号だけを移った先の状態の色で描く | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-greys-past-lines`が通る | #3171 |
 | 状態遷移図では、通った線と今の段の線を実線で描き、まだ通っていない線の灰の点線と模様で見分けられる | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-draws-taken-lines-solid`が通る | #3171 |
 | 状態の箱の済んだ印を、状態の色でなく墨の 1 色で描く | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-marks-done-in-ink`が通る | #3171 |
-| 時系列図、構成図、状態遷移図のどれでも、3 点以上を通る線は曲がりを共通の値の表の半径で丸め、直角の角を持たない | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`lines-round-their-bends`が通る | #3171 |
+| 時系列図、構成図、状態遷移図のどれでも、角を丸める色味 (既定の`paper`、`clear`、`night`) では、3 点以上を通る線は曲がりを共通の値の表の半径で丸め、直角の角を持たない (角を落とす`arcade`の折れ目は #3358 の条件が持つ) | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`lines-round-their-bends`が通る | #3171 |
 | 同じ状態へ戻る線 (検品する) を箱の下の弧で描き、線は直線の区間を持たず、箱の幅からはみ出さない | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-draws-self-loop-as-arc`が通る | #3171 |
 | 状態遷移図で段が終わった後も、その段の線の名前を今の段の名前より薄い濃さで残す。どの時刻でも、普通の濃さで見える線の名前は 2 個以下 | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-keeps-past-line-names-faint`が通る | #3171 |
 | 脇道の囲みは、脇道へ入る線を持つ状態のうち最も左の状態の列から図の右端までを占め、始まりの印とその添え書きに重ならない。添え書きは日本語で `今回は通らない` と `3 つの状態から入れる`、英語で `Not taken this time` と `Enterable from 3 states` の 2 行 | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-renders-side-path-top-right`が通る | #3171 |

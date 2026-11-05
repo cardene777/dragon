@@ -73,7 +73,7 @@ export function pointLines(k: TimeKit): void {
       [m.total, { opacity: 0 }],
     ]);
     k.lit.push(
-      `<g data-link="${esc(`${e.from}->${e.to}`)}" style="${cs(e.color)}"><path class="dg-tm-ln dg-a" pathLength="1" d="${pathOf(e.points)}" style="${kf}"/><path class="dg-eh-on dg-a" d="${arrowHead(e.points)}" style="${head}"/></g>`,
+      `<g data-link="${esc(`${e.from}->${e.to}`)}" style="${cs(e.color)}"><path class="dg-tm-ln dg-a" pathLength="1" d="${pathOf(e.points, ctx.corner)}" style="${kf}"/><path class="dg-eh-on dg-a" d="${arrowHead(e.points)}" style="${head}"/></g>`,
     );
   }
 }

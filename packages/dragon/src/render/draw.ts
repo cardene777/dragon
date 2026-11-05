@@ -62,7 +62,7 @@ import type { DiagramModel, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
-import { frameShape, partRadius } from "./corner";
+import { frameShape, partRadius, sharpJoins } from "./corner";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
@@ -347,7 +347,7 @@ export function drawSvg(
   const boxColor = (id: string, ghost?: boolean): ColorKey | undefined =>
     layout.boxes.find((b) => b.id === id && (ghost === undefined || b.ghost === ghost))?.color;
   for (const p of layout.paths)
-    L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor, ink, traces));
+    L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor, ink, traces, ctx.corner));
   for (const e of layout.ends) L.node.push(endMark(e, ghostColor, ink));
   // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
   const isState = layout.kind === "state";
@@ -528,7 +528,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
