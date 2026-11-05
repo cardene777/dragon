@@ -173,3 +173,63 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     expect(readFileSync(join(ROOT, "package.json"), "utf8"), "関係する検査を回す命令が package.json に無い").toContain('"test:related": "node scripts/test-related.mjs"');
   });
 });
+
+/** 1 回の実行を回す関数。`out` は止める段が終わっていない file を書く先で、終わり方を返す */
+type Run = (files: string[], out: string) => number | null;
+type Until = (files: string[], run: Run, say: (text: string) => void) => number;
+
+/** 止まった所から続きを回す関数。まだ無い時もこの file の他の検査を走らせるため、読めない時は undefined を返す */
+const loadUntil = async (): Promise<Until | undefined> => ((await import(RUNNER)) as { runUntilFinished?: Until }).runUntilFinished;
+
+/** 渡した結果を順に返す偽の 1 回の実行。止まった回は、止める段 (`test-support/run-limit.ts`) と同じ形で `out` に書く */
+function fakeRuns(results: { status: number; unfinished?: string[]; failed?: string[] }[]): { calls: string[][]; run: Run } {
+  const calls: string[][] = [];
+  const run: Run = (files, out) => {
+    const result = results[calls.length] ?? { status: 0 };
+    calls.push(files);
+    if (result.unfinished) writeFileSync(out, JSON.stringify({ unfinished: result.unfinished, failed: result.failed ?? [] }));
+    return result.status;
+  };
+  return { calls, run };
+}
+
+describe("上限で止まった実行の続き (#3386)", () => {
+  it("related-continues-unfinished-files", async () => {
+    // 実行が上限で止まった時に終わっていない file だけを次の実行で回し、全部が回って落ちた検査が無ければ終わり方 0 で終わる
+    const until = await loadUntil();
+    expect(until, "止まった所から続きを回す関数 (scripts/test-related.mjs の runUntilFinished) が無い").toBeTypeOf("function");
+    const said: string[] = [];
+    const { calls, run } = fakeRuns([{ status: 1, unfinished: ["b.test.ts", "c.test.ts"] }, { status: 1, unfinished: ["c.test.ts"] }, { status: 0 }]);
+    const status = (until as Until)(["a.test.ts", "b.test.ts", "c.test.ts"], run, (text) => said.push(text));
+    expect(calls, "止まった実行で終わっていない file だけを次の実行で回していない").toEqual([["a.test.ts", "b.test.ts", "c.test.ts"], ["b.test.ts", "c.test.ts"], ["c.test.ts"]]);
+    expect(status, `全部が回って落ちた検査が無いのに終わり方 0 でない:\n${said.join("")}`).toBe(0);
+    // 上限で止まらずに落ちただけの実行は、続きを回さずにその終わり方で終わる
+    const failed = fakeRuns([{ status: 1 }]);
+    expect((until as Until)(["a.test.ts"], failed.run, () => undefined), "落ちただけの実行で終わり方 1 を返していない").toBe(1);
+    expect(failed.calls, "上限で止まっていない実行の後に、続きを回した").toHaveLength(1);
+  });
+
+  it("related-stops-without-progress", async () => {
+    // 続きの実行で終わっていない file が前の実行より減らなかった時は、そこで止まり、残った file の名前を出して終わり方 1 で終わる
+    const until = await loadUntil();
+    expect(until, "止まった所から続きを回す関数 (scripts/test-related.mjs の runUntilFinished) が無い").toBeTypeOf("function");
+    const said: string[] = [];
+    const { calls, run } = fakeRuns([{ status: 1, unfinished: ["b.test.ts", "c.test.ts"] }, { status: 1, unfinished: ["b.test.ts", "c.test.ts"] }, { status: 0 }]);
+    const status = (until as Until)(["a.test.ts", "b.test.ts", "c.test.ts"], run, (text) => said.push(text));
+    expect(calls, "前に進まなかった実行の後も続きを回した").toHaveLength(2);
+    expect(status, "前に進まずに止まったのに終わり方 1 でない").toBe(1);
+    expect(said.join(""), "前に進まずに残った file の名前を出していない").toMatch(/b\.test\.ts[\s\S]*c\.test\.ts/u);
+  });
+
+  it("related-keeps-failures-across-runs", async () => {
+    // 上限で止まった実行の中で終わった file に落ちた検査が在った時は、続きが全部通っても終わり方 1 で終わり、落ちた検査の名前を出す
+    const until = await loadUntil();
+    expect(until, "止まった所から続きを回す関数 (scripts/test-related.mjs の runUntilFinished) が無い").toBeTypeOf("function");
+    const said: string[] = [];
+    const { calls, run } = fakeRuns([{ status: 1, unfinished: ["c.test.ts"], failed: ["a.test.ts > 組 > 落ちた検査"] }, { status: 0 }]);
+    const status = (until as Until)(["a.test.ts", "b.test.ts", "c.test.ts"], run, (text) => said.push(text));
+    expect(calls, "止まった実行の後に続きを回していない").toHaveLength(2);
+    expect(status, "前の実行で落ちた検査が在るのに終わり方 1 でない").toBe(1);
+    expect(said.join(""), "前の実行で落ちた検査の名前を出していない").toContain("a.test.ts > 組 > 落ちた検査");
+  });
+});

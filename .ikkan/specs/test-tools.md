@@ -63,4 +63,10 @@
 | 頁を開く検査の file を含まない回は、準備の段が見本帳の build も Chromium の起動もしない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-setup-skips-without-pages`が通る | #3384 |
 | 見本帳の頁は1回の実行で1度だけ build され、頁を開く検査が今どおり通る | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-built-once-per-run`と`site-palette-switch-draws-arcade`が通る | #3384 |
 | 編集画面で書き出した`.dragon`の file の名前と中身を、検査が今どおり確かめる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`editor-imports-and-exports-notation`が通る | #3384 |
-| 1件の検査とその前後処理の上限10秒と、1回の実行の上限5分は変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`が通る | #3384 |
+| 1件の検査とその前後処理の上限10秒と、1回の実行の上限5分は変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`が通る | #3384 #3386 |
+| 1回の実行の上限で止めた時、止める段は環境変数`DRAGON_UNFINISHED_OUT`が名指す file に、終わっていない検査の file と、終わった file で落ちた検査の名前を書く | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-writes-unfinished-files`が通る | #3386 |
+| `pnpm test:related`は、実行が上限で止まった時に終わっていない file だけを次の実行で回し、全部が回って落ちた検査が無ければ終わり方0で終わる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-continues-unfinished-files`が通る | #3386 |
+| 続きの実行で終わっていない file が前の実行より減らなかった時は、そこで止まり、残った file の名前を出して終わり方1で終わる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-stops-without-progress`が通る | #3386 |
+| 上限で止まった実行の中で終わった file に落ちた検査が在った時は、続きが全部通っても終わり方1で終わり、落ちた検査の名前を出す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-keeps-failures-across-runs`が通る | #3386 |
+| 1回の実行の上限を超えると、終わっていない検査の名前を出し、残りを回さずに終わり方1で止まる | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-stops-whole-run`が通る | #3386 |
+| `pnpm test:related`が変えた file から選ぶ検査の file と、選んだ file の一覧の出し方は変わらない | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-runs-changed-test-file`と`related-picks-importers`と`related-prints-chosen-files`が通る | #3386 |
