@@ -45,7 +45,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.50/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.51/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -59,7 +59,7 @@ step ログインを押す
 </pre>
 ```
 
-script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.50`) で読む。
+script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.51`) で読む。
 後の直しの版は頁を直さずに届き、記法を変える版は届かない。
 最初に読むのは `sequence` と `architecture` の描く部品で、ほかの種類の部品は、頁の塊がその種類を使う時だけ読む。
 同梱の 2 つの字の CSS を jsDelivr から読む `<link>` を、頁に 1 度だけ足す。
