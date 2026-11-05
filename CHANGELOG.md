@@ -16,7 +16,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   Tank levels are drawn to scale for each token. Changes stay hatched as provisional until the outermost call returns and then turn green as final, and rolled-back changes are marked red. In a narrow frame, the columns of parties a step does not touch fold into thin strips.
   The examples are `swap`, `swap-revert`, `swap-two-hops`, `swap-retry`, `vault-proxy`, and `aggregator` in `packages/dragon/examples/`.
 
+## [0.52.0] - 2026-11-06
+
 ### Changed
+
+- **The READMEs now open with the idea behind dragon** (#3391)
+
+  The repo and package READMEs, in English and Japanese, have a section before Install on how dragon builds diagrams out of core blocks, kind blocks, and connector blocks with one look, how blocks and diagram kinds are added today (a pull request or a fork), and how it aims to be as easy as mermaid to write and show.
+  The repo READMEs also show the one-line script entry in the first diagram, and list all eight diagram kinds.
 
 - **Figures drawn with `arcade` draw the bends of their lines as square corners, the same as the bitsumi article figures** (#3358)
 

@@ -7,6 +7,36 @@
 dragon は、短い文の file から段ごとに動く図を描く。
 見本帳 (全ての種類の図と、書くとその場で動く編集画面) は <https://cardene777.github.io/dragon/> にある。
 
+## 考え方
+
+dragon は、ブロックを組み立てて図を作る道具である。
+レゴのように、決まった形のブロックを組み合わせて、どの種類の図も同じ見た目で組み立てる。
+
+| ブロック | 何か | 例 |
+|---|---|---|
+| コアブロック | 2 つ以上の種類の図で使い回すブロック | 箱 (`box`)、段 (`step`)、色、絵柄 |
+| 個別ブロック | 1 つの種類の図だけで使うブロック | 時系列図の生存線、構成図の区画 (`group`) |
+| 接続ブロック | 2 つのブロックを結ぶブロック | 線 (`->`)、枝分かれの図の merge |
+
+図は、ブロックを組み立てたものである。
+図の種類は、ブロックの並べ方と、受け付ける付け方だけを決める。
+どの図でどのブロックを使えるかは、ブロックの付け方から決まる。
+色と字の大きさと余白は 1 つの表が持ち、全てのブロックがそこから読むので、どの図も同じ見た目に揃う。
+
+ブロックと図の種類は、足して広げられる。
+今は、この repo への pull request か fork で足す。
+使う人が自分の手元でブロックを足す口はまだ無く、ブロックの形が固まってから開く。
+
+もう 1 つの軸は、mermaid と同じ手軽さで書けて、そのまま表示まで出ることである。
+
+- 書く字が短い。`box` の 1 行で箱、`A -> B: 名前` の 1 行で線になる
+- script の 1 行で出る。頁に script の 1 行と記法の塊を置くだけで、動く図になる
+- AI が速く書ける。人は記法で、AI は同じ図を JSON で書き、どちらも同じ図になる
+- 軽くて速い。頁は、書いた図が使うブロックだけを読む
+
+記法は mermaid を手本にした独自の形で、mermaid とは互換にしない。
+`-->|文|` のような読みにくい形を持たず、行の頭の英語の語だけで何の行かが分かる形を選んだ。
+
 ## 入れ方
 
 ```sh
@@ -19,7 +49,7 @@ npm install @cardenelabs/dragon
 |---|---|
 | 原本 | 図の種類と題と段の骨組みに、ブロックの名前ごとの欄 (`blocks`) を持つ JSON (下の節)。版を持ち、古い版は読む時に変換する |
 | 記法 | 行の頭の英語の語で行の種類が決まる dragon記法 (下の節)。JSON と行き来でき、名前と文は日本語でも書ける ([書き方](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md)、[英語の書き方](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
-| 描く部品 | 原本を頁に描き、段ごとに動かす部品。時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図を描く |
+| 描く部品 | 原本を頁に描き、段ごとに動かす部品。時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、列の図、試す図を描く |
 | 書き出し | 同じ原本から mp4、GIF、HTML、PNG を書き出す命令 `dragon export` |
 
 前の版から上げる時に書き直す所は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
@@ -45,7 +75,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.51/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.52/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -59,7 +89,7 @@ step ログインを押す
 </pre>
 ```
 
-script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.51`) で読む。
+script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.52`) で読む。
 後の直しの版は頁を直さずに届き、記法を変える版は届かない。
 最初に読むのは `sequence` と `architecture` の描く部品で、ほかの種類の部品は、頁の塊がその種類を使う時だけ読む。
 同梱の 2 つの字の CSS を jsDelivr から読む `<link>` を、頁に 1 度だけ足す。

@@ -16,7 +16,14 @@ dragon DSL の主要変更履歴。
   槽の水位はトークンごとに量に比例して描く。変更は一番外の呼び出しが戻るまで斜線の暫定で描き、戻ると確定の緑に替わり、戻した変更には赤の印が付く。狭い枠では、その段で関わらない関係者の列を細い帯に畳む。
   見本は `packages/dragon/examples/` の `swap`、`swap-revert`、`swap-two-hops`、`swap-retry`、`vault-proxy`、`aggregator`。
 
+## [0.52.0] - 2026-11-06
+
 ### Changed
+
+- **README の冒頭近くに、dragon の考え方を書いた** (#3391)
+
+  repo と package の日英の README の入れ方の前に、コアブロックと個別ブロックと接続ブロックを組み立てて同じ見た目の図を作ること、今のブロックと図の種類の足し方 (pull request か fork)、mermaid と同じ手軽さで書けて表示まで出ることを目指すことを書いた節を置いた。
+  repo の README の最初の図に script の 1 行の入口を示し、描ける図に 8 つの種類を全て挙げた。
 
 - **`arcade` で描いた図の線の折れ目を、bitsumi の記事の図と同じ直角にした** (#3358)
 
