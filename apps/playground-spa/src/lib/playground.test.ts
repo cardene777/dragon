@@ -9,7 +9,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_PALETTE, type Diagram, FONTS, PALETTES, parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from "vitest";
 
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
@@ -1328,6 +1328,20 @@ describe("公開する頁 (#2995)", () => {
     }
     expect(seen.length, "頁が読んだ file").toBeGreaterThan(3);
     expect((await Promise.all(reached)).filter((path) => path !== null), "手元の server を通って届いた file").toEqual([]);
+  });
+
+  it("site-built-once-per-run", async () => {
+    // 見本帳の頁は 1 回の実行の準備の段で 1 度だけ build し、頁を開く検査の file は全てその build を使う (#3381)
+    const prepared = (inject as (key: string) => unknown)("dragonSites") as Record<string, { dir: string }> | undefined;
+    const dir = prepared?.default?.dir;
+    expect(dir, "準備の段が build した見本帳の頁が無い").toBeTypeOf("string");
+    expect(site.built.dir, "この file の見本帳が、準備の段の build を使っていない").toBe(dir);
+    const again = await startSite();
+    try {
+      expect(again.built.dir, "2 度目に起こした見本帳が build し直した").toBe(dir);
+    } finally {
+      await again.close();
+    }
   });
 
   it("csp-script-self-only", () => {
