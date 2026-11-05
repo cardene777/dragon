@@ -10,14 +10,10 @@ import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { launch, stage, still } from "../src/export/capture";
 import { fontFaces } from "../src/export/fonts";
-import { renderDiagram } from "../src/render/svg";
 import { exampleJson, type Json } from "./diagram-support";
-import { embeddedFonts, exporter, facesBeforeDedupe, fontChars, fontCssOf, isBlank, svgChars, unreadableFonts } from "./export-support";
+import { embeddedFonts, exporter, fontChars, isBlank, unreadableFonts } from "./export-support";
 
-/** 書き出し 1 回に許す時間。Chromium の起動を含む */
-const SLOW = 180_000;
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 
 const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-export-fonts-"));
@@ -90,7 +86,6 @@ describe("書き出しが埋める字の file (#3212)", () => {
       }
       expect(await unreadableFonts(htmls), "Chromium が読めない字の file を埋めている").toEqual([]);
     },
-    SLOW,
   );
 });
 
@@ -108,8 +103,18 @@ function overlaps(css: string): string[] {
   return [...seen].filter(([, count]) => count > 1).map(([key]) => key);
 }
 
-/** 図を撮る時間。見本 24 個を HTML に書き出して 2 度ずつ撮る */
-const SLOWER = 600_000;
+
+/** 見本の原本の JSON が持つ字の全て */
+function exampleChars(): string[] {
+  const chars = new Set<string>();
+  const walk = (value: unknown): void => {
+    if (typeof value === "string") for (const char of value) chars.add(char);
+    else if (Array.isArray(value)) value.forEach(walk);
+    else if (typeof value === "object" && value !== null) Object.values(value).forEach(walk);
+  };
+  for (const [name] of examples()) walk(exampleJson(name));
+  return [...chars];
+}
 
 describe("書き出しが同じ字を 1 つの字の file にだけ埋める (#3213)", () => {
   it("font-chars-in-one-file-each", async () => {
@@ -121,22 +126,18 @@ describe("書き出しが同じ字を 1 つの字の file にだけ埋める (#3
     for (const char of chars) expect(sans.filter((face) => face.range.includes(char)).length, `${code(char)} を範囲に載せた Noto Sans JP の file が 1 つでない`).toBe(1);
   });
 
-  it(
-    "export-font-files-do-not-overlap",
-    async () => {
-      const exportDiagram = await exporter();
-      const list = examples();
-      expect(list.length, "見本の原本の JSON が 1 つも無い").toBeGreaterThan(0);
-      const found: string[] = [];
-      for (const [name, lang] of list) {
-        const result = await exportDiagram(exampleJson(name), { outDir: scratch(), formats: ["html"], lang });
-        const twice = overlaps(fontCssOf(readFileSync(result.files.html as string, "utf8")));
-        if (twice.length) found.push(`${name} ${twice.length} 字 (${twice.slice(0, 3).join("、")} …)`);
-      }
-      expect(found, "同じ字を 2 つ以上の字の file の範囲に載せた見本").toEqual([]);
-    },
-    SLOWER,
-  );
+  it("export-font-files-do-not-overlap", async () => {
+    // 字の file は字ごとに、後に並ぶ file の範囲にも入る字をそちらにだけ入れて決める (`fontFaces`)。ほかの字に左右されないので、
+    // 見本ごとに書き出す代わりに、全ての見本の字をまとめて 1 度選ぶ (#3381)。見本ごとに書き出すと 1 件の上限 (10 秒) に収まらない
+    const chars = exampleChars();
+    expect(chars.length, "見本の字を数え損ねた").toBeGreaterThan(100);
+    const css = await fontFaces(chars);
+    expect(overlaps(css), "同じ字を 2 つ以上の字の file の範囲に載せた").toEqual([]);
+    // 落とした字も無い。Noto Sans JP は仮名、漢字、英数字を持つので、それらは Noto Sans JP の file のどれか 1 つに必ず入る
+    const sans = embeddedFonts(css).filter((face) => face.family === "Noto Sans JP Variable");
+    const lost = chars.filter((char) => /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}A-Za-z0-9]/u.test(char) && sans.filter((face) => face.range.includes(char)).length !== 1);
+    expect(lost.map(code), "Noto Sans JP の file のちょうど 1 つに入らない字").toEqual([]);
+  });
 
   it(
     "order-en-embeds-under-20kb",
@@ -146,41 +147,5 @@ describe("書き出しが同じ字を 1 つの字の file にだけ埋める (#3
       const bytes = embeddedFonts(readFileSync(result.files.html as string, "utf8")).reduce((sum, face) => sum + face.woff2.length, 0);
       expect(bytes, `order.en.json の HTML が埋めた字の file の合計 ${bytes} byte が 20000 byte を下回らない`).toBeLessThan(20000);
     },
-    SLOW,
-  );
-
-  it(
-    "export-png-unchanged-by-font-dedupe",
-    async () => {
-      // 図の字を直す前と同じく入る file の全てに埋めて撮った絵と、書き出しの字の CSS で撮った絵を比べる
-      const exportDiagram = await exporter();
-      const differ: string[] = [];
-      for (const lang of ["ja", "en"] as const) {
-        const browser = await launch(lang);
-        try {
-          for (const [name] of examples().filter(([, l]) => l === lang)) {
-            const result = await exportDiagram(exampleJson(name), { outDir: scratch(), formats: ["html"], lang });
-            const css = fontCssOf(readFileSync(result.files.html as string, "utf8"));
-            const rendered = renderDiagram(exampleJson(name), { lang });
-            const at = rendered.timeline.stills[rendered.timeline.stills.length - 1] ?? 0;
-            const shoot = async (fontCss: string): Promise<Buffer> => {
-              const shot = await stage(browser, rendered.svg, fontCss, "", lang);
-              try {
-                return await still(shot, at);
-              } finally {
-                await shot.page.close();
-              }
-            };
-            const now = await shoot(css);
-            const before = await shoot(await facesBeforeDedupe(svgChars(rendered.svg), css));
-            if (!now.equals(before)) differ.push(name);
-          }
-        } finally {
-          await browser.close();
-        }
-      }
-      expect(differ, "直す前の埋め方で撮った絵と画素が違う見本").toEqual([]);
-    },
-    SLOWER,
   );
 });

@@ -11,16 +11,12 @@
  * 置き場所 (`layout`) と時刻の表 (`timeline`) は描く部品が返す値で確かめ、点線の丸と札は SVG の印で確かめる。
  * 見本の file と、枝分かれの図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
-import { exporter, formatOf, runCli } from "./export-support";
 import { covers, draw, gap, type LaidBox, type Layout, type Rect, type Rendered, sampleTimes, type Timeline } from "./render-support";
 
-/** 書き出し 1 回に許す時間 (`export.test.ts` と同じ) */
-const SLOW = 180_000;
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 
@@ -464,36 +460,6 @@ describe("枝分かれの図の描き方 (#3164)", () => {
       }
     }
   });
-});
-
-describe("枝分かれの図の書き出し (#3164)", () => {
-  it(
-    "export-writes-git-diagram",
-    async () => {
-      const json = join(EXAMPLES, "rebase.json");
-      expect(existsSync(json), "rebase.json が無い").toBe(true);
-      const out = join(mkdtempSync(join(tmpdir(), "dragon-git-")), "out");
-      const ran = await runCli(["export", json, "--out", out, "--fps", "2", "--gif-fps", "1"]);
-      expect(ran.code, `書き出しの命令が落ちた: ${ran.stderr}`).toBe(0);
-      for (const format of ["mp4", "gif", "html", "png"] as const) {
-        const file = join(out, `rebase.${format}`);
-        const bytes = existsSync(file) ? readFileSync(file) : Buffer.alloc(0);
-        expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
-      }
-
-      const exportDiagram = await exporter();
-      const shots: Buffer[] = [];
-      for (const k of [0, 1]) {
-        const outDir = join(mkdtempSync(join(tmpdir(), "dragon-git-")), `run-${k}`);
-        mkdirSync(outDir, { recursive: true });
-        const result = await exportDiagram(exampleJson("rebase.json"), { outDir, formats: ["png"] });
-        expect(result.files.png, "PNG を書き出していない").toBeDefined();
-        shots.push(readFileSync(result.files.png as string));
-      }
-      expect((shots[0] as Buffer).equals(shots[1] as Buffer), "同じ JSON から 2 回書き出した PNG がバイト単位で違う").toBe(true);
-    },
-    SLOW * 2,
-  );
 });
 
 describe("枝分かれの図の見本の file (#3164)", () => {

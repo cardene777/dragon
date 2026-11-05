@@ -13,8 +13,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { type RunPlace, runCli, withoutPlaywright } from "./export-support";
 
-/** 道具が無い時の断りを待つ時間。Chromium を探す時間を含む */
-const SLOW = 60_000;
 
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
@@ -188,11 +186,14 @@ describe("命令の使い方の文と誤りの文の言葉 (#3003)", () => {
   it(
     "cli-missing-playwright-in-english",
     async () => {
-      for (const args of [
+      const cases = [
         [JSON_FILE, "--lang", "en"],
         [ENGLISH_NOTATION, "--lang", "en"],
-      ]) {
-        const ran = await runCli(["export", ...args, "--out", scratch(), "--format", "png"], withoutPlaywright());
+      ];
+      // 命令は 1 回ずつ別の process で起こすので、並べて起こす (#3381)
+      const runs = await Promise.all(cases.map((args) => runCli(["export", ...args, "--out", scratch(), "--format", "png"], withoutPlaywright())));
+      for (const [i, args] of cases.entries()) {
+        const ran = runs[i] as Awaited<ReturnType<typeof runCli>>;
         expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
         const message = ran.stderr.trim();
         expect(message, `${args.join(" ")} の断りの文の頭`).toMatch(/^Exporting needs playwright-core\. /u);
@@ -201,17 +202,19 @@ describe("命令の使い方の文と誤りの文の言葉 (#3003)", () => {
         expect(message, `${args.join(" ")} の英語の断りの文に仮名か漢字がある`).not.toMatch(KANA_KANJI);
       }
     },
-    SLOW,
   );
 
   it(
     "cli-chromium-refusal-in-english",
     async () => {
-      for (const args of [
+      const cases = [
         [JSON_FILE, "--lang", "en"],
         [ENGLISH_NOTATION, "--lang", "en"],
-      ]) {
-        const ran = await runCli(["export", ...args, "--out", scratch(), "--format", "png"], withoutChromium());
+      ];
+      // 命令は 1 回ずつ別の process で起こすので、並べて起こす (#3381)
+      const runs = await Promise.all(cases.map((args) => runCli(["export", ...args, "--out", scratch(), "--format", "png"], withoutChromium())));
+      for (const [i, args] of cases.entries()) {
+        const ran = runs[i] as Awaited<ReturnType<typeof runCli>>;
         expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
         const message = ran.stderr.trim();
         expect(message, `${args.join(" ")} の断りの文の頭`).toMatch(/^Cannot launch Chromium\. /u);
@@ -220,33 +223,34 @@ describe("命令の使い方の文と誤りの文の言葉 (#3003)", () => {
         expect(message, `${args.join(" ")} の英語の断りの文に仮名か漢字がある`).not.toMatch(KANA_KANJI);
       }
     },
-    SLOW,
   );
 
   it(
     "cli-export-refusal-default-english",
     async () => {
       // 言葉を選ばない時は英語で断る (#3338)
-      const missing = await runCli(["export", JSON_FILE, "--out", scratch(), "--format", "png"], withoutPlaywright());
+      // 命令は 1 回ずつ別の process で起こすので、並べて起こす (#3381)
+      const [missing, chromium, missingJa, chromiumJa] = await Promise.all([
+        runCli(["export", JSON_FILE, "--out", scratch(), "--format", "png"], withoutPlaywright()),
+        runCli(["export", JSON_FILE, "--out", scratch(), "--format", "png"], withoutChromium()),
+        runCli(["export", JSON_FILE, "--out", scratch(), "--format", "png", "--lang", "ja"], withoutPlaywright()),
+        runCli(["export", JSON_FILE, "--out", scratch(), "--format", "png", "--lang", "ja"], withoutChromium()),
+      ]);
       expect(missing.code).toBe(1);
       expect(missing.stderr.trim()).toBe(`Exporting needs playwright-core. ${EN_INSTALL}`);
-      const chromium = await runCli(["export", JSON_FILE, "--out", scratch(), "--format", "png"], withoutChromium());
       expect(chromium.code).toBe(1);
       const message = chromium.stderr.trim();
       expect(message.startsWith(`Cannot launch Chromium. ${EN_INSTALL} (`), `言葉を選ばない時の Chromium の断りの文が英語でない: ${message}`).toBe(true);
       expect(message.endsWith(")"), `Chromium の断りの文が Playwright の文を括弧で閉じない: ${message}`).toBe(true);
 
       // 日本語の断りの文は、ja を渡せば今の文のまま
-      const missingJa = await runCli(["export", JSON_FILE, "--out", scratch(), "--format", "png", "--lang", "ja"], withoutPlaywright());
       expect(missingJa.code).toBe(1);
       expect(missingJa.stderr.trim()).toBe(`書き出しには playwright-core が要る。${JA_INSTALL}`);
-      const chromiumJa = await runCli(["export", JSON_FILE, "--out", scratch(), "--format", "png", "--lang", "ja"], withoutChromium());
       expect(chromiumJa.code).toBe(1);
       const messageJa = chromiumJa.stderr.trim();
       expect(messageJa.startsWith(`Chromium を起動できない。${JA_INSTALL} (`), `Chromium の断りの文が今と違う: ${messageJa}`).toBe(true);
       expect(messageJa.endsWith(")"), `Chromium の断りの文が Playwright の文を括弧で閉じない: ${messageJa}`).toBe(true);
     },
-    SLOW,
   );
 
   it("cli-notation-errors-follow-lang", async () => {
@@ -280,7 +284,7 @@ describe("書き出し先に書けない時の文の言葉 (#3009)", () => {
   it("cli-cannot-create-out-dir-follows-language", async () => {
     const out = join(scratch(), "not-a-dir");
     writeFileSync(out, "");
-    for (const [args, head] of [
+    const cases = [
       [[JSON_FILE, "--lang", "ja"], `書き出せない: ${out} (`],
       // 言葉なしは既定の英語で出す (#3338)
       [[JSON_FILE], `Cannot write: ${out} (`],
@@ -288,28 +292,36 @@ describe("書き出し先に書けない時の文の言葉 (#3009)", () => {
       // 日本語の字の記法の file でも、`--lang` が無ければ既定の英語 (#3137、#3338)
       [[JAPANESE_NOTATION], `Cannot write: ${out} (`],
       [[ENGLISH_NOTATION, "--lang", "en"], `Cannot write: ${out} (`],
-    ] as const) {
-      const ran = await runCli(["export", ...args, "--out", out, "--format", "html"]);
-      expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
-      expectCannotWrite(ran.stderr.trim(), head, "EEXIST");
-    }
+    ] as const;
+    // 命令は 1 回ずつ別の process で起こすので、並べて起こす (#3381)
+    await Promise.all(
+      cases.map(async ([args, head]) => {
+        const ran = await runCli(["export", ...args, "--out", out, "--format", "html"]);
+        expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
+        expectCannotWrite(ran.stderr.trim(), head, "EEXIST");
+      }),
+    );
   });
 
   it("cli-cannot-write-file-follows-language", async () => {
     const out = scratch();
     // 言葉なしは既定の英語で出す (#3338)
-    for (const [args, name, head] of [
+    // 命令は 1 回ずつ別の process で起こすので、並べて起こす (#3381)
+    const cases = [
       [[JSON_FILE, "--lang", "ja"], "oauth", "書き出せない: "],
       [[JSON_FILE], "oauth", "Cannot write: "],
       [[JSON_FILE, "--lang", "en"], "oauth", "Cannot write: "],
       [[ENGLISH_NOTATION, "--lang", "en"], "oauth.en", "Cannot write: "],
-    ] as const) {
-      // 書き出す file と同じ名前の dir を置いて、file を書けなくする
-      const blocked = join(out, `${name}.html`);
-      mkdirSync(blocked, { recursive: true });
-      const ran = await runCli(["export", ...args, "--out", out, "--format", "html"]);
-      expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
-      expectCannotWrite(ran.stderr.trim(), `${head}${blocked} (`, "EISDIR");
-    }
+    ] as const;
+    await Promise.all(
+      cases.map(async ([args, name, head]) => {
+        // 書き出す file と同じ名前の dir を置いて、file を書けなくする
+        const blocked = join(out, `${name}.html`);
+        mkdirSync(blocked, { recursive: true });
+        const ran = await runCli(["export", ...args, "--out", out, "--format", "html"]);
+        expect(ran.code, `${args.join(" ")} で終了 1 にならない`).toBe(1);
+        expectCannotWrite(ran.stderr.trim(), `${head}${blocked} (`, "EISDIR");
+      }),
+    );
   });
 });

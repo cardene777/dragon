@@ -19,7 +19,7 @@
 | 入札の図を0.25秒ごとに止めて数えた時、段の番号はその段が始まるまで出ない | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-keeps-motion-rules`が通る | #3239 |
 | 今の6種類の描き方は今どおりで、OAuth は12段、CCIP は13段、rebase は11段、ブロックの確定は10段、注文は10段、Merkle は8段が順に動き、箱どうしと線の名前と箱が10px以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`rebase-renders-11-steps`と`finality-renders-10-steps`と`order-renders-10-steps`と`merkle-renders-8-steps`と`layout-keeps-10px-gap`が通る | #3239 |
 | 列の図の描画も、色、字、余白、動きの値を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3239 |
-| `dragon export` に入札の図の JSON を渡した時、mp4、GIF、HTML、PNG の4つを書き出し、同じ JSON を2回書き出した PNG がバイト単位で一致する | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`export-writes-lineup-diagram`が通る | #3239 |
+| `dragon export` は図の種類に関わらず同じ処理で mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する。入札の図は書き出した HTML で全ての段を送れる | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-writes-four-formats`と`export-is-deterministic`と`html-export-draws-every-kind`が通る | #3239 |
 | `packages/dragon/examples` に入札の図の日本語と英語の記法と JSON の4つの file があり、英語版の列とチップと段と段ごとの出来事の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-example-files-match`が通る | #3239 |
 | repo の全ての `.dragon` の file を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3239 |
 | 見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`overlaps-none-in-every-example`が通る | #3239 |

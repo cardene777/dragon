@@ -28,8 +28,6 @@ import { runCli } from "./export-support";
 
 type Rect = { x: number; y: number; w: number; h: number };
 
-/** 書き出しの命令を待つ時間 */
-const SLOW = 60_000;
 const FIXTURE = join(process.cwd(), "packages/dragon/test/fixtures/repeat-line.dragon");
 const CORNER_NOTE = join(process.cwd(), "packages/dragon/test/fixtures/corner-note.dragon");
 const OAUTH = join(process.cwd(), "packages/dragon/examples/oauth.json");
@@ -176,6 +174,5 @@ describe("字の重なりを知らせる (#3178)", () => {
       expect(readdirSync(out)).toContain("oauth.html");
       expect(ran.stderr, "重ならない図で標準エラーに何か出た").toBe("");
     },
-    SLOW,
   );
 });

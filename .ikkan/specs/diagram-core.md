@@ -54,7 +54,7 @@
 | 使い方の文書の英語版 `packages/dragon/examples/quick-start.en.md` が在り、その中の dragon の囲みがすべて新しい形で読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #2997、#3137 |
 | 公開する頁で言葉を EN にした時、編集画面の左の棚の 3 つの見本のどれを選んでも、書く欄の記法に日本語の語 (`時系列図` や `帯`) が 1 つも無い | `pnpm test`の検査`english-page-examples-use-english-words`が通る | #2997、#3031 |
 | 編集画面で JSON を直した後に書き戻す記法が、新しい形になる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`json-edit-prints-dragon-notation`が通る | #2997、#3137 |
-| 使い方の頁の節が記法の全ての行の種類を扱い、頁に載せた例は全て新しい形で読める | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3137 |
+| 使い方の頁の節が記法の全ての行の種類を扱い、頁に載せた例は全て新しい形で読める | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3137 |
 | 頁の書く欄の記法に誤りがある時、欄の下の誤りの文と行の番号を頁の言葉で出す。図の字の言葉には従わない | `pnpm test`の検査`page-errors-follow-page-language`が通る | #2997、#3137 |
 | 原本の JSON の検査に英語を渡した時、書けない欄、要る欄、決まった値、道具より新しい版、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文に仮名と漢字が 1 つも無い | `pnpm test`の検査`json-errors-in-english`が通る | #2999 |
 | 言葉を渡さずに原本の JSON を検査した時、書けない欄、要る欄、決まった値、道具より新しい版の誤りの文が英語で出て、日本語を渡した時は前と同じ日本語の文字列になる | `pnpm test`の検査`json-errors-default-english`が通る | #2999、#3338 |
@@ -177,7 +177,7 @@
 | ccip を寄って追う図にして枠の幅 560px と 1000px に置いた時、頭の列を持たない構成図の全体図の四角は、どの段でも窓の全体を全体図の倍率で囲む | `pnpm test`の検査`overview-architecture-frames-window`が通る | #3122 |
 | 枠の幅が 440px より狭い寄って追う oauth は全体図を持たない | `pnpm test`の検査`narrow-tall-figure-drops-overview`が通る | #3122 |
 | 止めて見せる図は全体図と窓を持たない | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3122 |
-| 使い方の頁と `CHANGELOG.md` に、今の形と新しい形の対応表が在り、表の新しい形の行の頭の語が記法を読む部品の語と一致する | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3138 |
+| 使い方の頁と `CHANGELOG.md` に、今の形と新しい形の対応表が在り、表の新しい形の行の頭の語が記法を読む部品の語と一致する | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3138 |
 | `README.md` と `packages/dragon/README.md` が決まり 4 つを載せ、2 つの README の記法の例が新しい形で読める | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`readme-notation-examples-parse`が通る | #3138 |
 | 字が重なる図を描いた時、`renderDiagram` の結果の `overlaps` が、重なる 2 つの字とその段の番号を 1 件ずつ持つ | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-lists-texts-and-step`が通る | #3175 |
 | 別々の段の間だけ見える 2 つの字が同じ所に在る時、`overlaps` に数えない | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-ignore-texts-not-shown-together`が通る | #3175 |
@@ -283,7 +283,7 @@
 | `fontFaces` に、`Noto Sans JP` の file の範囲が重なる字 (英字、空白、改行しない空白、`ä`) と重ならない字 (`あ`、全角空白) を渡した時、どの字も同じ字の名前の `@font-face` のうち 1 つの `unicode-range` にだけ載る | `pnpm test`の検査`font-chars-in-one-file-each`が通る | #3213 |
 | `packages/dragon/examples` の英語と日本語の見本 (`.json` の 24 個) をそれぞれ HTML に書き出した時、同じ字の名前の字の file どうしで、同じ字が 2 つ以上の `unicode-range` に載らない | `pnpm test`の検査`export-font-files-do-not-overlap`が通る | #3213 |
 | `order.en.json` を `--lang en` で HTML に書き出した時、埋めた字の file (woff2) の大きさの合計が 20000 byte を下回る。直す前は 28164 byte | `pnpm test`の検査`order-en-embeds-under-20kb`が通る | #3213 |
-| 英語と日本語の見本 (`.json` の 24 個) を PNG に撮った絵が、範囲の重なる字を前に並ぶ字の file にも足して撮った絵と画素で一致する | `pnpm test`の検査`export-png-unchanged-by-font-dedupe`が通る | #3213 |
+| 英語と日本語の見本の字が、範囲の重なる字の file のうち 1 つにだけ入り、全ての字の file を読める。字の振り分けは 1 字ずつ決まるので、撮る絵は重なりを外す前と変わらない | `pnpm test`の検査`export-font-files-do-not-overlap`と`font-chars-in-one-file-each`と`export-font-faces-all-load`が通る | #3213 |
 | 空白の類だけが入る字の file は、描く空白の類の字のほかに同じ file の形のある字を 1 つだけ足して含み、`unicode-range` には描く空白の類の字だけを載せる | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`と`font-subset-range-lists-drawn-chars`が通る | #3213 |
 | 英語の見本 10 個と、全角空白だけを `[117]` の file で描く図で、書き出した HTML が埋める字の file を Chromium が全て読める | `pnpm test`の検査`export-font-faces-all-load`が通る | #3213 |
 | HTML に書き出した時、形のある字が入る字の file は図で使った字だけを含み、図で描く字はどれかの字の file に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #3213 |
@@ -316,8 +316,8 @@
 | `arcade`を含む4つの色味の5つの色が、明るい頁と暗い頁の両方で、普通の見え方で15以上、色覚の3つの型で6以上離れる | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`palettes-keep-cvd-separation`が通る | #3341 |
 | 見本の全ての図を`arcade`で描くと、どれも描けて、SVGに`arcade`の地の色と緑が入り、ほかの3つの色味の地の色が入らない | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`arcade-renders-every-example`が通る | #3341 |
 | 命令の`--palette arcade`で図を描ける | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`cli-draws-with-arcade-palette`が通る | #3341 |
-| 見本帳と編集画面の色味の切り替えに「アーケードの画面」(英語の頁では`Arcade screen`) が出て、押すと図が`arcade`で描かれ、サイトの差し色が緑になる | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`site-palette-switch-draws-arcade`が通る | #3341 |
-| 色味の切り替えの4つの釦が、幅390pxでも縦横44px以上の大きさで1行に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`site-palette-switch-fits-four-at-390`が通る | #3341 |
+| 見本帳と編集画面の色味の切り替えに「アーケードの画面」(英語の頁では`Arcade screen`) が出て、押すと図が`arcade`で描かれ、サイトの差し色が緑になる | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-palette-switch-draws-arcade`が通る | #3341 |
+| 色味の切り替えの4つの釦が、幅390pxでも縦横44px以上の大きさで1行に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-palette-switch-fits-four-at-390`が通る | #3341 |
 | 英語と日本語のREADMEの`--palette`の行と、`docs/design/base/README.md`の色味の行が`arcade`を含む全ての色味を挙げる | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`docs-list-every-palette`が通る | #3341 |
 | `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに`arcade`の色味が載る | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`changelog-lists-arcade-palette`が通る | #3341 |
 | 今の3つの色味 (`clear`、`paper`、`night`) の値が変わらず、既定は`paper`のままである | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts packages/dragon/test/look.test.ts`の検査`existing-palettes-keep-their-values`と`palette-defaults-to-paper`が通る | #3341 |

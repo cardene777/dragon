@@ -25,11 +25,6 @@ vi.mock("../src/render/ink", async (importOriginal) => {
  */
 const OVERLAPPING = join(process.cwd(), "packages/dragon/test/fixtures/corner-note.dragon");
 
-/**
- * PNG は Chromium を起こして撮るので、既定の 30 秒では足りないことがある。
- * HTML は組み上がった再生の script (`dist/player.global.js`) を埋めるため、元の code から走らせるこの検査では PNG で書き出す
- */
-const SLOW = 90_000;
 
 interface Ran {
   code: number;
@@ -85,6 +80,5 @@ describe("書き出しの命令が字の重なりを知らせる (#3197)", () =>
       expect(en.code, en.stderr.join("\n")).toBe(0);
       expect(en.stderr, "英語の標準エラーに重なりが 1 件 1 行で出ない").toEqual(['Step 2: "Not taken this time" and "Side path" overlap']);
     },
-    SLOW,
   );
 });

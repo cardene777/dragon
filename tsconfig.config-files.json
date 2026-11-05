@@ -6,7 +6,7 @@
   // その間に、今の vitest が受け付けない指定 (`environmentMatchGlobs`) が黙って残っていた。
   //
   // `tsconfig.eslint.json` も この file を `include` に持つが、eslint は TypeScript の型の誤りを
-  // 報告しないため見つからない (`typecheck-ratchet.test.ts` が書いているのと同じ穴)。
+  // 報告しないため見つからない (検査の code の型を `pnpm typecheck` が `tsconfig.test.json` で見るのと同じ穴)。
   //
   // 誤り 0 件であることは `packages/dragon/test/vitest-env-declared-per-file.test.ts` が見る。
   "compilerOptions": {
@@ -21,5 +21,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["vitest.config.ts"]
+  "include": ["vitest.config.ts", "test-support/fixtures/limits/vitest.config.ts"]
 }

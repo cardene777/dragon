@@ -20,12 +20,12 @@
 | 見せ方を書かない注文の図を開いた時、字の大きさから全体を止めて中だけを動かす見せ方 (`fixed`) になる | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`order-opens-fixed`が通る | #3163 |
 | OAuth は 12 段、CCIP は 13 段が順に動き、箱どうしと線の名前と箱が 10px 以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`layout-keeps-10px-gap`が通る | #3163 #3171 |
 | 描画は色、字、余白、線の曲がりの半径を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3163 #3171 |
-| `dragon export` に注文の図の JSON を渡した時、mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`export-writes-state-diagram`が通る | #3163 #3171 |
+| `dragon export` は図の種類に関わらず同じ処理で mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する。注文の図は書き出した HTML で全ての段を送れる | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-writes-four-formats`と`export-is-deterministic`と`html-export-draws-every-kind`が通る | #3163 #3171 |
 | `packages/dragon/examples` に `order.dragon`、`order.en.dragon`、`order.json`、`order.en.json` があり、英語版の状態と段と段ごとの線の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`order-example-files-match`が通る | #3163 |
 | repo の全ての `.dragon` の file を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3163 |
 | 見本帳の一覧の図の分類が時系列図、構成図、状態遷移図の順で始まり、状態遷移図の頁に注文の見本が載り、選ぶと 10 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`catalog-lists-state-with-order`が通る | #3163 #3164 |
 | 見本帳の図の種類だけの部品に「始まりと終わり」と「通らない道」の 2 つが状態遷移図の部品として並び、頁ごとに日本語と英語の記法と、状態遷移図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`catalog-has-two-state-parts`が通る | #3163 |
-| どの図でも使う 10 個の部品の頁に、状態遷移図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`common-parts-draw-state`が通る | #3163 |
+| どの図でも使う 10 個の部品の頁に、状態遷移図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-parts-listed`と`catalog-common-part-shows-both-kinds`が通る | #3163 |
 | 「始まりと終わり」の頁は `start` か `finish` の線を持つ見本の札を、「通らない道」の頁は最初の段より前に線を書いた見本の札を並べ、札は状態遷移図の頁のその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`state-part-pages-link-order`が通る | #3163 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3163 #3171 |
 | 編集画面の棚の見本に状態遷移図の束があって注文が載り、選ぶと書く欄に注文の記法が入って図が描ける。記法の早見の図の種類の行に `state` の頭の行があり、`start` と `finish` の線の行と、最初の段より前に書く通らない道の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/state-catalog.test.ts`の検査`editor-shelf-has-state`が通る | #3163 |

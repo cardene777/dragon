@@ -12,12 +12,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { type Lang, TEXT } from "../text";
 import { BASE, example, screenOf, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -63,7 +57,7 @@ const editorValue = (page: Page): Promise<string | null> =>
 describe("時系列図の見本 4 つを見本帳に載せる (#3167)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -71,7 +65,7 @@ describe("時系列図の見本 4 つを見本帳に載せる (#3167)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it(
     "catalog-sequence-lists-added-examples",
@@ -88,7 +82,6 @@ describe("時系列図の見本 4 つを見本帳に載せる (#3167)", () => {
         await expect.poll(async () => (await categoryOf(page)).title, { ...WAIT, message: `「${title}」を選んでも右に出ない` }).toBe(title);
       }
     },
-    SLOW,
   );
 
   it(
@@ -112,7 +105,6 @@ describe("時系列図の見本 4 つを見本帳に載せる (#3167)", () => {
         await site.closeContexts();
       }
     },
-    SLOW,
   );
 
   it(
@@ -126,7 +118,6 @@ describe("時系列図の見本 4 つを見本帳に載せる (#3167)", () => {
         .poll(uses, { ...WAIT, message: "概要の頁の使いどころが、入門、OAuth、CCIP の 3 つの札でない" })
         .toEqual(HOME_USES.map((key) => titleOf(key)));
     },
-    SLOW,
   );
 
   it(
@@ -149,6 +140,5 @@ describe("時系列図の見本 4 つを見本帳に載せる (#3167)", () => {
         await expect.poll(() => editorValue(page), { ...WAIT, message: `棚の ${key} を押しても、その記法が記法の欄に入らない` }).toBe(notationOf(key, "ja"));
       }
     },
-    SLOW,
   );
 });

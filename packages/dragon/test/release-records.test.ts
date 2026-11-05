@@ -4,11 +4,12 @@
  * 版を上げるたびに、`package.json` の版を前提の配り方の節と更新履歴の見出しへ手で書き足す。
  * 書き足し忘れても build も他の検査も通るので、ここで版が 2 か所に載っているかを確かめる。
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -417,14 +418,29 @@ describe("Release の本文 (#3335)", () => {
   const SCRIPT = join(ROOT, "scripts/release-notes.mjs");
   const notes = (version: string, file?: string): string =>
     execFileSync("node", [SCRIPT, version, ...(file ? [file] : [])], { encoding: "utf8" });
+  /**
+   * 全ての版の本文。版ごとに命令を起こすので、順に起こすと版が増えるほど遅くなり、1 件の上限 (10 秒) に近づいていた (#3381)。
+   * 一度に起こすのは 8 つまでにする
+   */
+  const allNotes = async (versions: string[]): Promise<Map<string, string>> => {
+    const run = promisify(execFile);
+    const out = new Map<string, string>();
+    for (let i = 0; i < versions.length; i += 8) {
+      const batch = versions.slice(i, i + 8);
+      const texts = await Promise.all(batch.map(async (version) => (await run("node", [SCRIPT, `v${version}`], { encoding: "utf8" })).stdout));
+      batch.forEach((version, k) => out.set(version, texts[k] ?? ""));
+    }
+    return out;
+  };
   const LINK = "Every version is listed in [CHANGELOG.md](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).";
 
-  it("release-notes-for-every-section", () => {
+  it("release-notes-for-every-section", async () => {
     const changelog = readFileSync(join(ROOT, "CHANGELOG.md"), "utf8");
     const versions = [...changelog.matchAll(/^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/gmu)].map((m) => m[1] ?? "");
     expect(versions.length, "CHANGELOG.md に版の節が無い").toBeGreaterThan(0);
+    const all = await allNotes(versions);
     for (const version of versions) {
-      const text = notes(`v${version}`);
+      const text = all.get(version) ?? "";
       const body = section(changelog.replace(new RegExp(`^## \\[${escaped(version)}\\] - .*$`, "mu"), `## ${version}`), version).trim();
       expect(text.startsWith(body), `${version} の本文が CHANGELOG.md の節で始まらない`).toBe(true);
       expect(body, `${version} の節が空`).not.toBe("");

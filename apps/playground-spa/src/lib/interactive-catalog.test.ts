@@ -13,14 +13,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { PARTS } from "../catalog/parts";
 import { BASE, example, partFigure, screenOf, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** 部品の頁を全部開くのに許す時間 */
-const SWEEP = 300_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -89,7 +81,7 @@ const editorValue = (page: Page): Promise<string | null> =>
 describe("見本帳と編集画面の試す図 (#3337)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -97,7 +89,7 @@ describe("見本帳と編集画面の試す図 (#3337)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it(
     "catalog-lists-interactive-parts",
@@ -158,7 +150,6 @@ describe("見本帳と編集画面の試す図 (#3337)", () => {
         await site.closeContexts();
       }
     },
-    SWEEP,
   );
 
   it(
@@ -227,6 +218,5 @@ describe("見本帳と編集画面の試す図 (#3337)", () => {
           .toBe(true);
       }
     },
-    SLOW,
   );
 });

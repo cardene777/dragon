@@ -1,0 +1,102 @@
+{
+  "about": "関係する検査を選ぶ命令 (scripts/test-related.mjs、#3381) が、import と字でたどれない物を検査の file へ結ぶ表。packages は package の名前の import を src の入口へ、runtime は字の形に当たる file を build した物の元の src へ、materials は検査の file が字で書かない材料を検査の file へ結ぶ。materials の tests は検査の file か、それを import する検査の file を選ぶ file。\"all\" は全ての検査の file。[] は検査が読まない材料で、why にその訳を書く",
+  "packages": [
+    {
+      "name": "@cardenelabs/dragon",
+      "dir": "packages/dragon",
+      "why": "検査は package を名前で読み、名前は build した dist を指す。dist の元は src の入口 (tsup.config.ts の entry)",
+      "entries": {
+        ".": "src/index.ts",
+        "./light": "src/light.ts",
+        "./fonts": "src/load-fonts.ts",
+        "./export": "src/export/index.ts",
+        "./node": "src/node.ts"
+      }
+    }
+  ],
+  "runtime": [
+    {
+      "pattern": "[\"'/]dist[\"'/]",
+      "why": "dist の file を読むか、build した命令 (dist/cli.js) を起こす検査は、tsup.config.ts の全ての entry の src を確かめる",
+      "to": [
+        "packages/dragon/src/index.ts",
+        "packages/dragon/src/load-fonts.ts",
+        "packages/dragon/src/export/index.ts",
+        "packages/dragon/src/node.ts",
+        "packages/dragon/src/cli.ts",
+        "packages/dragon/src/light.ts",
+        "packages/dragon/src/player-global.ts",
+        "packages/dragon/src/script.ts",
+        "packages/dragon/src/script-loader.ts",
+        "packages/dragon/src/script-offline.ts"
+      ]
+    },
+    {
+      "pattern": "dragonSites",
+      "why": "見本帳の頁を開く検査は、準備の段が build した頁を使う。頁の build は頁の入口と、頁の html と、build の設定を読む",
+      "to": ["apps/playground-spa/src/main.tsx", "apps/playground-spa/index.html", "apps/playground-spa/vite.config.ts"]
+    }
+  ],
+  "materials": [
+    {
+      "files": [
+        "package.json",
+        "packages/*/package.json",
+        "apps/*/package.json",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        ".npmrc",
+        "**/tsconfig*.json",
+        "vitest.config.ts",
+        "packages/dragon/tsup.config.ts",
+        "test-support/*.ts"
+      ],
+      "tests": "all",
+      "why": "依存と型と検査と build の設定で、全ての検査の動き方を変える"
+    },
+    {
+      "files": ["test-support/fixtures/limits/**"],
+      "tests": ["packages/dragon/test/test-limits.test.ts"],
+      "why": "時間の上限の検査が起こす、上限を超える見本の検査とその設定"
+    },
+    {
+      "files": ["eslint.config.mjs", ".prettierrc"],
+      "tests": ["packages/dragon/test/eslint-context-ignore.test.ts"],
+      "why": "lint の設定。検査で確かめるのは lint が読み飛ばす場所だけで、lint 自体は pnpm lint が回す"
+    },
+    {
+      "files": ["apps/playground-spa/public/**"],
+      "tests": ["apps/playground-spa/src/lib/playground-support.ts"],
+      "why": "頁の build がそのまま写す file。見本帳の頁を開く検査が確かめる"
+    },
+    {
+      "files": ["docs/design/**", "docs/pr-assets/**"],
+      "tests": [],
+      "why": "見た目の元の .pen と、PR に貼る絵。検査は読まない (字で名前を書く検査は、命令が字から選ぶ)"
+    },
+    {
+      "files": [".claude/**", ".agents/**", ".github/**"],
+      "tests": [],
+      "why": "AI の技と、Issue と PR の型。検査は読まない (字で名前を書く検査は、命令が字から選ぶ)"
+    },
+    {
+      "files": [".ikkan/**"],
+      "tests": [],
+      "why": "課題の進め方の記録。読む検査は字で path を書くので、命令が字から選ぶ"
+    },
+    {
+      "files": [
+        "LICENSE",
+        "packages/*/LICENSE",
+        ".gitignore",
+        "CODE_OF_CONDUCT.md",
+        "SECURITY.md",
+        "SECURITY.ja.md",
+        "osv-scanner.toml",
+        "vercel.json"
+      ],
+      "tests": [],
+      "why": "repo の取り決めと、外の道具の設定。読む検査は字で名前を書くので、命令が字から選ぶ"
+    }
+  ]
+}

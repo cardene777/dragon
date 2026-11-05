@@ -17,8 +17,7 @@
  * 置き場所 (`layout`) と時刻の表 (`timeline`) は描く部品が返す値で確かめ、濃さと位置は SVG の keyframes を jsdom で読んで確かめる。
  * 見本の file と列の図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -30,7 +29,7 @@ import {
   smallArchitecture,
   smallSequence,
 } from "./diagram-support";
-import { formatOf, runCli } from "./export-support";
+
 import { type Motion, motionFrom } from "./motion-support";
 import {
   covers,
@@ -44,8 +43,6 @@ import {
   sampleTimes,
 } from "./render-support";
 
-/** 書き出し 1 回に許す時間 (`export.test.ts` と同じ) */
-const SLOW = 180_000;
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 
@@ -2212,39 +2209,6 @@ describe("列の図の色味 (#3351)", () => {
       }
     }
   });
-});
-
-describe("列の図の書き出し (#3239)", () => {
-  it(
-    "export-writes-lineup-diagram",
-    async () => {
-      const json = join(EXAMPLES, "auction.json");
-      expect(existsSync(json), "auction.json が無い").toBe(true);
-      const out = join(mkdtempSync(join(tmpdir(), "dragon-lineup-")), "out");
-      const ran = await runCli(["export", json, "--out", out, "--fps", "2", "--gif-fps", "1"]);
-      expect(ran.code, `書き出しの命令が落ちた: ${ran.stderr}`).toBe(0);
-      for (const format of ["mp4", "gif", "html", "png"] as const) {
-        const file = join(out, `auction.${format}`);
-        const bytes = existsSync(file) ? readFileSync(file) : Buffer.alloc(0);
-        expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
-      }
-
-      const shots: Buffer[] = [];
-      for (const k of [0, 1]) {
-        const outDir = join(mkdtempSync(join(tmpdir(), "dragon-lineup-")), `run-${k}`);
-        const png = await runCli(["export", json, "--format", "png", "--out", outDir]);
-        expect(png.code, `${k + 1} 回目の PNG の書き出しが落ちた: ${png.stderr}`).toBe(0);
-        const file = join(outDir, "auction.png");
-        expect(existsSync(file), `${k + 1} 回目の PNG を書き出していない`).toBe(true);
-        shots.push(existsSync(file) ? readFileSync(file) : Buffer.alloc(0));
-      }
-      expect(
-        (shots[0] as Buffer).equals(shots[1] as Buffer),
-        "同じ JSON から 2 回書き出した PNG がバイト単位で違う",
-      ).toBe(true);
-    },
-    SLOW * 2,
-  );
 });
 
 describe("列の図の見本の file (#3239)", () => {

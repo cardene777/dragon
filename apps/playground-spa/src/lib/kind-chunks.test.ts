@@ -13,12 +13,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { toHash } from "../share";
 import { BASE, firstLoadFiles, root, screenOf, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -151,7 +145,7 @@ function holdChunk(page: Page, name: string): { release: () => void; held: () =>
 describe("図の種類の描く部品を後から読む (#3248)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -159,7 +153,7 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it("first-load-leaves-later-kinds-out", () => {
     const first = firstLoadFiles(site.built.dir)
@@ -222,7 +216,6 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       await expect.poll(() => screenOf(page), { ...WAIT, message: "概要の頁が出ない" }).toBe("home");
       await expect.poll(() => names.filter((name) => !asked.has(name)), { ...WAIT, message: "裏で読みに行かない種類の塊" }).toEqual([]);
     },
-    SLOW,
   );
 
   it(
@@ -249,7 +242,6 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       await expect.poll(() => figures(page, '[data-catalog="stage"]'), { ...WAIT, message: "塊が届いても図を描かない" }).toBeGreaterThan(0);
       expect(await waiting.count(), "図を描いた後に待つ枠が残る").toBe(0);
     },
-    SLOW,
   );
 
   it(
@@ -269,7 +261,6 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       await expect.poll(() => reload.count(), { ...WAIT, message: "塊を読めない時に図の場所に読み直す button が出ない" }).toBe(1);
       expect((await reload.textContent())?.trim(), "読み直す button の字").toBe("読み直す");
     },
-    SLOW,
   );
 
   it(
@@ -316,7 +307,6 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       await expect.poll(() => reload.count(), { ...WAIT, message: "読み直す button が出ない" }).toBe(1);
       expect(await reload.evaluate((el) => el.getBoundingClientRect().bottom), "読み直す button が最初の画面の外に出る").toBeLessThanOrEqual(720);
     },
-    SLOW,
   );
 
   it(
@@ -344,7 +334,6 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
         .poll(async () => (await page.locator(`${scope} svg[data-dragon="figure"]`).first().innerHTML()) !== before, { ...WAIT, message: "塊が届いても新しい図に替わらない" })
         .toBe(true);
     },
-    SLOW,
   );
 
   it(
@@ -386,7 +375,6 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       expect(await status(shared.page).innerText(), "URL で開いた時に読み込み中と出ない").toContain("読み込み中");
       for (const gate of held) gate.release();
     },
-    SLOW,
   );
 
   it(
@@ -404,6 +392,5 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       await expect.poll(() => screenOf(page), { ...WAIT, message: "種類の塊を止めると概要の頁が出ない" }).toBe("home");
       await expect.poll(() => figures(page, '[data-home="use"]'), { ...WAIT, message: "種類の塊を止めると概要の頁の用例の図が 3 つ描かれない" }).toBe(3);
     },
-    SLOW,
   );
 });

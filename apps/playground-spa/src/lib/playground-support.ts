@@ -4,21 +4,17 @@
  * 頁の CSP と字の読み込みと幅による並びは jsdom では確かめられないため、build した頁を画面なしの Chromium で開く。
  * GitHub Pages は頁を `/dragon/` の下で配り、無い path には `404.html` を返す。ここの配り手も同じ動きをする。
  */
-import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { cpus, freemem, loadavg, tmpdir } from "node:os";
-import { dirname, extname, join, resolve, sep } from "node:path";
-import { promisify } from "node:util";
+import { extname, join, relative, resolve, sep } from "node:path";
 import { gzipSync } from "node:zlib";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
-import { expect, TestRunner } from "vitest";
+import { expect, inject } from "vitest";
+import { app, type Built, root } from "./site-build";
+import { DEFAULT_SITE } from "./site-setup";
 
-const run = promisify(execFile);
-
-export const root = resolve(__dirname, "../../../..");
-export const app = join(root, "apps/playground-spa");
+export { app, type Built, root };
 
 /** ブロックの置き場。部品の図は全て `<名前>/gallery/` に在る (#3345、#3348) */
 const BLOCK_FOLDERS = join(root, "packages/dragon/src/blocks");
@@ -48,31 +44,6 @@ export function partFigure(name: string): string {
 }
 /** 頁を配る場所。`vite.config.ts` が build の時に使う前置きと同じ */
 export const BASE = "/dragon/";
-
-export interface Built {
-  dir: string;
-  /** 配る前に `404.html` を作る script の結果 */
-  notFound: { ok: boolean; stderr: string };
-}
-
-/**
- * 頁を一時の場所へ build し、配る時と同じ script で `404.html` を作る。
- * 検査の道具は `NODE_ENV` を `test` にして起きるので、そのまま build に渡すと React の開発用の版が入り、配る頁と中身も大きさも違う。
- * 配る時の build (`NODE_ENV` を持たない `vite build`) と同じ `production` で build する (#3163)。
- * `config` を渡すと、`vite.config.ts` の代わりにその設定で build する (字の重なりを 1 件持つ図を描く検査だけの build、#3197)
- */
-export async function buildPage(config?: string): Promise<Built> {
-  const dir = mkdtempSync(join(tmpdir(), "dragon-page-"));
-  const vite = join(app, "node_modules/vite/bin/vite.js");
-  const chosen = config === undefined ? [] : ["--config", config];
-  await run(process.execPath, [vite, "build", ...chosen, "--outDir", dir, "--emptyOutDir", "--logLevel", "error"], { cwd: app, env: { ...process.env, NODE_ENV: "production" } });
-  try {
-    await run(process.execPath, [join(app, "scripts/copy-404.mjs"), dir], { cwd: app });
-    return { dir, notFound: { ok: true, stderr: "" } };
-  } catch (error) {
-    return { dir, notFound: { ok: false, stderr: String((error as { stderr?: unknown }).stderr ?? error) } };
-  }
-}
 
 const HTML_TYPE = "text/html; charset=utf-8";
 
@@ -179,297 +150,30 @@ export async function waitForCoarse(page: Page, timeout = 5_000): Promise<void> 
   }
 }
 
-/** 頁ごとに記録に残す、切れた通信の数の上限。字の file が多く、同じ瞬間に数十件切れるので 1 行に収める */
-const CUT_KEPT = 20;
-const cutRequests = new WeakMap<Page, string[]>();
-
-/**
- * 頁の通信が切れたら file の名前と訳を覚える (#3288)。
- * 機械のネットワークが変わると Chromium は読み込み中の通信をまとめて切り、頁は応えたまま塊を読めずに止まる。
- * 頁を移る時と閉じる時に切れる `net::ERR_ABORTED` は落ちた訳にならないので数えない
- */
-export function watchCutRequests(page: Page): void {
-  const cut: string[] = [];
-  cutRequests.set(page, cut);
-  page.on("requestfailed", (request) => {
-    const reason = request.failure()?.errorText ?? "";
-    if (reason !== "net::ERR_ABORTED" && cut.length < CUT_KEPT) cut.push(`${new URL(request.url()).pathname.split("/").pop()} ${reason}`);
-  });
-}
-
-/** 頁 1 つの様子。落ちた検査で頁が描き替えを止めていたかを後から調べる (#3278) */
-export interface PageProbe {
-  /** 頁の path。hash は記法を持って長いので外す */
-  path: string;
-  width: number;
-  /** 待つ間に頁が応えたか。主の処理が塞がっていると false */
-  responds: boolean;
-  /** 次の描き替えまでの ms。待つ間に描き替えが無いか、頁が応えない時は null */
-  frameMs: number | null;
-  /** `document.visibilityState`。頁が応えない時は null */
-  visibility: string | null;
-  /** 頁の塊 (`site/pages.tsx`) を待っているか読めなかったか。どちらでもない時と頁が応えない時は null (#3288) */
-  later: "waiting" | "failed" | null;
-  /** 切れた通信の file と訳 (#3288) */
-  cut: string[];
-  /**
-   * 初めに調べた時に描き替えなかった頁で、待ち始めてからまた描き替えるまでの ms。待つ間に描き替えなければ null (#3300)。
-   * 描き替えていた頁は持たない
-   */
-  backMs?: number | null;
-}
-
-/**
- * 固まった頁がまた描き替えるのを待つ長さの既定 (#3300)。
- * 釦を押して 30 秒で検査が落ちた後に 60 秒待つので、押してから約 95 秒までに頁が戻るかが分かる
- */
-export const STALL_BACK_WAIT = 60_000;
-/** 待つ長さの他に、落ちた時の記録が掛ける手間の上限。頁を初めに調べる 3.5 秒、`sample` の書き出しの上限 10 秒、頁を閉じる分 (#3300) */
-export const STALL_RECORD_EXTRA = 15_000;
-/** `sample` が呼び出しの並びを取る秒数 */
-const SAMPLE_SECONDS = 2;
-/** `sample` が file を書き終えるまでの上限。混んだ機械では名前の解決に時間が掛かる */
-const SAMPLE_LIMIT = 10_000;
-/** 主の thread の一番長く居た所として残す、呼び出しの末端からの段の数 */
-const MAIN_FRAMES = 5;
-
-/** 落ちた時に `sample` で覗いた process 1 つ (#3300) */
-export interface ProcessSample {
-  /** `SystemInfo.getProcessInfo` の種類。描画の process は `renderer`、GPU の process は `GPU` */
-  type: string;
-  pid: number;
-  /** `sample` の全文を書いた file。取れなかった時は null */
-  file: string | null;
-  /**
-   * 主の thread が一番長く居た呼び出しの並びの、末端から 5 段。各段は `名前+位置 (置き場)` の形。
-   * Playwright の Chromium は関数名を落としてあるので、Chromium の段の名前は近くの別名で、同じ版の中で位置を比べるのに使う
-   */
-  main: string[];
-  /** 取れなかった訳 */
-  error?: string;
-}
-
-export interface StallRecordOptions {
-  /** 固まった頁がまた描き替えるのを待つ長さ (ms)。既定は `STALL_BACK_WAIT` */
-  backWait?: number;
-  /** 呼び出しの並びを取る命令。既定は macOS の `sample` */
-  sampler?: string;
-  /**
-   * 固まった頁を残して落ちた時に、1 回の止まりにつき 1 つの dir を作り、`record.json` と `sample` の全文の file を残す置き場 (#3303)。
-   * 無い時は `sample` の file を一時の場所に書くだけで、後から拾える物を残さない
-   */
-  store?: string;
-  /** 落ちた検査の名前と file。置き場に残す `record.json` に書く */
-  test?: { name: string; file: string };
-}
-
-/**
- * 一式が固まって落ちた時の記録を残す置き場。worktree で回しても本体の checkout の `.context/stall-records/` を返す (#3303)。
- * 毎朝の定期実行がここから新しい記録を拾い、#3302 に貼る。git で本体を引けない時は undefined
- */
-export async function stallStoreOf(dir: string): Promise<string | undefined> {
-  try {
-    const { stdout } = await run("git", ["-C", dir, "rev-parse", "--path-format=absolute", "--git-common-dir"]);
-    return join(dirname(stdout.trim()), ".context", "stall-records");
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * 開いている頁ごとに、描き替えの周期が動いているか、頁が応えるか、見えている扱いかを調べる (#3278)。
- *
- * 釦を押す前に Playwright は位置が止まっているかを描き替え 2 回分で確かめるので、描き替えが止まると押す所で待ち続ける。
- * 頁が応えない時も `wait` の少し後に返す = 落ちた検査の後始末を止めない
- */
-export async function probePages(pages: Page[], wait = 3_000): Promise<PageProbe[]> {
-  return Promise.all(
-    pages.map(async (page) => {
-      const seen = page
-        .evaluate(
-          (wait) =>
-            new Promise<{ frameMs: number | null; visibility: string; later: "waiting" | "failed" | null }>((done) => {
-              const start = performance.now();
-              const screen = document.querySelector("[data-site-screen]");
-              const later = screen?.querySelector(':scope > [data-figure="waiting"]') ? "waiting" : screen?.querySelector(':scope > [data-catalog="later-failed"]') ? "failed" : null;
-              const timer = setTimeout(() => done({ frameMs: null, visibility: document.visibilityState, later }), wait);
-              requestAnimationFrame(() => {
-                clearTimeout(timer);
-                done({ frameMs: Math.round(performance.now() - start), visibility: document.visibilityState, later });
-              });
-            }),
-          wait,
-        )
-        .catch(() => null);
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const late = new Promise<null>((done) => {
-        timer = setTimeout(() => done(null), wait + 500);
-      });
-      const got = await Promise.race([seen, late]);
-      clearTimeout(timer);
-      return {
-        path: new URL(page.url()).pathname,
-        width: page.viewportSize()?.width ?? 0,
-        responds: got !== null,
-        frameMs: got?.frameMs ?? null,
-        visibility: got?.visibility ?? null,
-        later: got?.later ?? null,
-        cut: cutRequests.get(page) ?? [],
-      };
-    }),
-  );
-}
-
-/**
- * 頁ごとに、また描き替えるまで `limit` ms の間調べ直し、待ち始めてから描き替えるまでの ms を返す。描き替えなければ null (#3300)。
- * 閉じた頁と壊れた頁はすぐ応えない扱いで返るので、1 回ごとに 1 秒は間を空ける
- */
-async function waitForFrames(pages: Page[], limit: number): Promise<(number | null)[]> {
-  return Promise.all(
-    pages.map(async (page) => {
-      const start = Date.now();
-      while (Date.now() - start < limit) {
-        const tried = Date.now();
-        const [seen] = await probePages([page], Math.min(1_000, limit - (tried - start)));
-        if (seen?.responds && seen.frameMs !== null) return Date.now() - start;
-        await new Promise((done) => setTimeout(done, Math.max(0, 1_000 - (Date.now() - tried))));
-      }
-      return null;
-    }),
-  );
-}
-
-/** `sample` の全文から、主の thread が一番長く居た呼び出しの並びを末端から `MAIN_FRAMES` 段返す。主の thread が無ければ空 */
-function mainFramesOf(text: string): string[] {
-  const lines = text.split("\n");
-  const graph = lines.findIndex((l) => l.startsWith("Call graph:"));
-  const head = lines.findIndex((l, i) => i > graph && l.includes("com.apple.main-thread"));
-  if (graph < 0 || head < 0) return [];
-  // 子は数の多い順に並ぶので、深さが 1 段ずつ増える間の行が一番長く居た並びになる
-  const depthOf = (line: string): number => line.search(/\d/u);
-  const path: string[] = [];
-  for (let i = head + 1; i < lines.length && depthOf(lines[i] ?? "") > depthOf(lines[i - 1] ?? ""); i++) path.push(lines[i] ?? "");
-  return path
-    .slice(-MAIN_FRAMES)
-    .reverse()
-    .map((line) => {
-      const frame = /^\d+\s+(.+?)\s+\(in ([^)]+)\)(?:\s+\+\s+(\d+))?/u.exec(line.slice(depthOf(line)));
-      return frame ? `${frame[1]}${frame[3] ? `+${frame[3]}` : ""} (${frame[2]})` : line.slice(depthOf(line)).trim();
-    });
-}
-
-/**
- * ブラウザーごとに描画の process と GPU の process を `sampler` で `SAMPLE_SECONDS` 秒覗き、全文を一時の file に書く (#3300)。
- * 取れなかった process は訳を持たせて返し、記録の 1 行は止めない
- */
-async function sampleProcesses(browsers: Browser[], sampler: string, dir: string): Promise<ProcessSample[]> {
-  const found = await Promise.all(
-    browsers.map(async (browser): Promise<ProcessSample[]> => {
-      try {
-        const cdp = await browser.newBrowserCDPSession();
-        const { processInfo } = (await cdp.send("SystemInfo.getProcessInfo")) as { processInfo: { type: string; id: number }[] };
-        await cdp.detach();
-        return processInfo.filter((p) => p.type === "renderer" || p.type === "GPU").map((p) => ({ type: p.type, pid: p.id, file: null, main: [] }));
-      } catch (error) {
-        return [{ type: "unknown", pid: 0, file: null, main: [], error: `process の一覧を引けない: ${String(error).split("\n")[0]}` }];
-      }
-    }),
-  );
-  return Promise.all(
-    found.flat().map(async (p): Promise<ProcessSample> => {
-      if (p.error) return p;
-      const file = join(dir, `${p.type}-${p.pid}.txt`);
-      try {
-        await run(sampler, [String(p.pid), String(SAMPLE_SECONDS), "-file", file], { timeout: SAMPLE_LIMIT });
-        return { ...p, file, main: mainFramesOf(readFileSync(file, "utf8")) };
-      } catch (error) {
-        const e = error as { code?: string | number; killed?: boolean; stderr?: string; message?: string };
-        const why = e.killed ? `${SAMPLE_LIMIT}ms で終わらない` : e.code === "ENOENT" ? "命令が無い (ENOENT)" : (e.stderr || e.message || String(error)).trim().split("\n")[0];
-        return { ...p, error: `${sampler} を起こせない: ${why}` };
-      }
-    }),
-  );
-}
-
-/**
- * context を閉じる。検査が落ちていた時は、閉じる前に頁ごとの様子と機械の負荷と空きの記憶を 1 行で `log` に書く (#3278)。
- *
- * 頁が描き替えを止めて落ちた時、何も残らないと止まった訳を調べられない。
- * 通った検査では何も書かない = 一式の出力を落ちた検査の分だけにする。
- *
- * 描き替えない頁が 1 つでもある時は、描画の process と GPU の process の呼び出しの並びを `sample` で取り、
- * 同時にその頁がまた描き替えるのを `backWait` の間待つ (#3300)。
- * どの thread がどこで待っているかと、待てば頁が戻るのかが、次に止まった時の記録で分かる。
- * 負荷と空きの記憶は待つ前の値を残す = 止まった時の機械の様子を書く。
- *
- * `store` を渡した時は、固まった頁があった回だけ、置き場に `record.json` と `sample` の file を残す (#3303)。
- * log の 1 行は誰も見なければ流れるので、毎朝の定期実行が置き場から拾う
- */
-export async function closeContextsAfter(
-  contexts: BrowserContext[],
-  failed: boolean,
-  log: (line: string) => void = console.error,
-  o: StallRecordOptions = {},
-): Promise<void> {
-  if (failed) {
-    const all = contexts.flatMap((c) => c.pages());
-    const pages = await probePages(all);
-    const at = new Date().toISOString();
-    const [load = 0] = loadavg();
-    const machine = { load: Number(load.toFixed(1)), cores: cpus().length, freeMb: Math.round(freemem() / 2 ** 20) };
-    const stuck = pages.flatMap((p, i) => (p.responds && p.frameMs !== null ? [] : [i]));
-    let processes: ProcessSample[] | undefined;
-    if (stuck.length > 0) {
-      if (o.store) mkdirSync(o.store, { recursive: true });
-      // 同じ時刻に別の worker が止まっても重ならないよう、時刻を頭に付けた一意の dir を作る
-      const dir = mkdtempSync(o.store ? join(o.store, `${at.replace(/[:.]/gu, "-")}-`) : join(tmpdir(), "dragon-stall-"));
-      const browsers = [...new Set(contexts.map((c) => c.browser()).filter((b): b is Browser => b !== null))];
-      const [sampled, back] = await Promise.all([
-        sampleProcesses(browsers, o.sampler ?? "sample", dir),
-        waitForFrames(
-          stuck.map((i) => all[i] as Page),
-          o.backWait ?? STALL_BACK_WAIT,
-        ),
-      ]);
-      processes = sampled;
-      stuck.forEach((i, k) => {
-        (pages[i] as PageProbe).backMs = back[k] ?? null;
-      });
-      if (o.store) {
-        const commit = await run("git", ["-C", root, "rev-parse", "HEAD"]).then(
-          ({ stdout }) => stdout.trim(),
-          () => null,
-        );
-        writeFileSync(join(dir, "record.json"), `${JSON.stringify({ test: o.test ?? null, at, commit, pages, processes, ...machine }, null, 2)}\n`);
-      }
-    }
-    log(`検査が落ちた時の頁と機械の様子 (#3278): ${JSON.stringify({ pages, ...(processes ? { processes } : {}), ...machine })}`);
-  }
-  await Promise.all(contexts.map((c) => c.close()));
-}
-
 export interface Site {
   origin: string;
   built: Built;
   /** 新しい context で頁を開く。開いた context は `closeContexts` で閉じる */
   open: (o?: OpenOptions) => Promise<Opened>;
-  /** 開いた context を全て閉じる。`afterEach` から呼ぶと、落ちた検査では閉じる前に頁の様子を残す (#3278) */
+  /** 開いた context を全て閉じる。`afterEach` から呼ぶ */
   closeContexts: () => Promise<void>;
   close: () => Promise<void>;
 }
 
 /**
- * 頁を build して配り、画面なしの Chromium を起こす (#3030)。
+ * build した頁を配り、画面なしの Chromium を起こす (#3030)。
  *
  * 編集画面の検査とサイトの帯と経路の検査が同じ形で頁を開けるよう、開く手順をここに 1 つだけ持つ。
- * `config` は `buildPage` に渡す build の設定
+ * 頁は 1 回の実行の準備の段 (`site-setup.ts`) が 1 度だけ build した物を使い、ここでは build しない (#3381)。
+ * `config` は build の設定の path で、準備の段は同じ設定の build を別に 1 度だけ行う
  */
 export async function startSite(o: { config?: string } = {}): Promise<Site> {
-  const built = await buildPage(o.config);
+  const key = o.config === undefined ? DEFAULT_SITE : relative(app, o.config);
+  const built = inject("dragonSites")[key];
+  if (built === undefined) throw new Error(`見本帳の build (${key}) が準備の段に無い。検査の file が \`startSite()\` か \`startSite({ config: join(app, "…") })\` の形で呼んでいるかを確かめる (#3381)`);
   const server = await servePage(built.dir);
   const browser: Browser = await chromium.launch();
   const contexts: BrowserContext[] = [];
-  const store = await stallStoreOf(root);
 
   const open = async (o: OpenOptions = {}): Promise<Opened> => {
     const context = await browser.newContext({
@@ -493,12 +197,21 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
       document.addEventListener("securitypolicyviolation", (e) => w.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
       w.__startMedia = { reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, coarse: matchMedia("(pointer: coarse)").matches };
       // 字の CSS は最初の画面を描いた後に読むので (#3292)、届く前の `document.fonts.ready` は字を待たずに解ける。
-      // 字の組みを測る検査が端末の字を測らないよう、字が載り、次の描画で読み込みが始まってから本物を返す。字の CSS を止めた頁でも止まらないよう 5 秒で打ち切る
+      // 字の組みを測る検査が端末の字を測らないよう、字が載り、次の描画で読み込みが始まってから本物を返す。字の CSS を止めた頁でも止まらないよう 5 秒で打ち切る。
+      // 字の CSS の読み込みが落ちた頁には字が来ないので、落ちた時点で待つのをやめる。待つと頁を開くたびに 5 秒かかり、1 件の上限 (10 秒) に当たる (#3381)
+      let sheetFailed = false;
+      document.addEventListener(
+        "error",
+        (e) => {
+          if (e.target instanceof HTMLLinkElement && e.target.rel === "stylesheet") sheetFailed = true;
+        },
+        true,
+      );
       const fontSet = Object.getPrototypeOf(document.fonts) as object;
       Object.defineProperty(document.fonts, "ready", {
         get: async (): Promise<unknown> => {
           const limit = performance.now() + 5_000;
-          while (document.fonts.size === 0 && performance.now() < limit) await new Promise((done) => setTimeout(done, 20));
+          while (document.fonts.size === 0 && !sheetFailed && performance.now() < limit) await new Promise((done) => setTimeout(done, 20));
           for (let frame = 0; frame < 2; frame += 1) await new Promise((done) => requestAnimationFrame(done));
           return Reflect.get(fontSet, "ready", document.fonts);
         },
@@ -507,7 +220,6 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    watchCutRequests(page);
     await o.prepare?.(page);
     await page.goto(o.url ?? `${server.origin}${o.path ?? BASE}`);
     // 字は `load` の後に届くことがあり、字が替わると段の題と本文の高さが 2px から 3px 変わる (#3294)。
@@ -533,12 +245,7 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
     built,
     open,
     closeContexts: async () => {
-      // `afterEach` の間も vitest は今の検査を持ち、落ちた検査は既に `fail` になっている
-      const test = TestRunner.getCurrentTest();
-      await closeContextsAfter(contexts.splice(0), test?.result?.state === "fail", console.error, {
-        ...(store ? { store } : {}),
-        ...(test ? { test: { name: test.name, file: test.file.name } } : {}),
-      });
+      await Promise.all(contexts.splice(0).map((context) => context.close()));
     },
     close: async () => {
       await browser.close();

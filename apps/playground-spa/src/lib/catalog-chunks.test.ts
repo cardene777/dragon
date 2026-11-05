@@ -14,12 +14,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { toHash } from "../share";
 import { BASE, firstLoadFiles, partFigureDirs, root, screenOf, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -105,7 +99,7 @@ const blockLater = async (page: Page): Promise<void> => {
 describe("見本と部品の図の記法を後から読む (#3246)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -113,7 +107,7 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it("first-load-carries-no-catalog-notation", () => {
     const code = scriptsOf(firstScripts());
@@ -160,7 +154,6 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
         .toEqual([]);
       expect(await screenOf(page), "塊を読む間に概要の頁から移った").toBe("home");
     },
-    SLOW,
   );
 
   it(
@@ -198,7 +191,6 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
         [chunks.parts, 1],
       ]);
     },
-    SLOW,
   );
 
   it(
@@ -237,7 +229,6 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
       const after = await stage.evaluate((el) => el.getBoundingClientRect().height);
       expect(after, "見本の塊が届く前と後で図の枠の高さが変わる").toBeCloseTo(before, 0);
     },
-    SLOW,
   );
 
   it(
@@ -264,7 +255,6 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
       await Promise.all([page.waitForEvent("load"), reload.click()]);
       expect(await page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept === true), "button を押しても頁を読み直さない").toBe(false);
     },
-    SLOW,
   );
 
   it(
@@ -287,6 +277,5 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
         "共有の link で開いた書く欄の中身",
       ).toBe(shared);
     },
-    SLOW,
   );
 });

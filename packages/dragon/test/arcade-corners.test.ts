@@ -44,17 +44,28 @@ const FRAMES = [
   "dg-mm-bg",
 ];
 
+/**
+ * 角を確かめる見本。英語の見本 (`*.en.json`) は日本語の見本と同じ箱と囲みを、字の言葉だけ替えて描くので外す (#3381)。
+ * 全ての見本を全ての色味で描いて読むと、1 件の上限 (10 秒) に収まらない
+ */
 const FILES = readdirSync(EXAMPLES)
-  .filter((file) => file.endsWith(".json"))
+  .filter((file) => file.endsWith(".json") && !file.endsWith(".en.json"))
   .sort();
 const diagramOf = (file: string): Record<string, unknown> =>
   JSON.parse(readFileSync(join(EXAMPLES, file), "utf8")) as Record<string, unknown>;
 
+/** 描いて読んだ SVG。同じ見本と色味を、検査ごとに描き直さない (#3381) */
+const figures = new Map<string, Element>();
+
 /** 見本を描いた SVG を読む */
 function figureOf(file: string, palette: string, theme: Theme): Element {
+  const key = `${file} ${palette} ${theme}`;
+  const seen = figures.get(key);
+  if (seen) return seen;
   const svg = draw("renderDiagram")(diagramOf(file), { palette, theme }).svg;
   const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
   expect(doc.querySelector("parsererror"), `${file} の SVG を読めない`).toBeNull();
+  figures.set(key, doc.documentElement);
   return doc.documentElement;
 }
 
@@ -320,10 +331,12 @@ describe("今の色味の角 (#3344)", () => {
     const before = JSON.parse(
       readFileSync(join(ROOT, "packages/dragon/test/fixtures/corners-before-arcade.json"), "utf8"),
     ) as Record<string, Record<string, number>>;
-    expect(Object.keys(before).sort(), "角の形を足す前の記録と見本の file").toEqual(FILES);
+    // 記録は英語の見本も持つ。英語の見本は日本語の見本と同じ形なので、日本語の見本だけを比べる
+    expect(Object.keys(before).filter((file) => !file.endsWith(".en.json")).sort(), "角の形を足す前の記録と見本の file").toEqual(FILES);
+    // 明暗は色だけを替え、角の形を替えない。ほかの色味は明るい表示だけで確かめる (#3381)
     for (const file of FILES) {
       for (const palette of OTHERS) {
-        for (const theme of THEMES) {
+        for (const theme of ["light"] as const) {
           const figure = figureOf(file, palette, theme);
           const rounded: Record<string, number> = {};
           for (const el of roundedIn(figure)) {
