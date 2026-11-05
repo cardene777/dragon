@@ -26,8 +26,7 @@ export default defineConfig({
      */
     testTimeout: testLimitMs(),
     hookTimeout: testLimitMs(),
-    // 頁を開く検査の file では、file を読む前に Chromium を起こし始める (`chromium-preload.ts`、#3388)
-    setupFiles: ["./apps/playground-spa/src/lib/chromium-preload.ts", "./test-support/test-limit-guard.ts"],
+    setupFiles: ["./test-support/test-limit-guard.ts"],
     /*
      * 同時に動かす数は 4 に留める (#3268)。
      *

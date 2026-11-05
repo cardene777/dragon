@@ -60,11 +60,6 @@
       "why": "時間の上限の検査が起こす、上限を超える見本の検査とその設定"
     },
     {
-      "files": ["test-support/fixtures/chromium/**"],
-      "tests": ["apps/playground-spa/src/lib/chromium-preload.test.ts"],
-      "why": "頁を開く検査の Chromium の準備の段の検査が起こす、Chromium を起こす見本の検査とその設定"
-    },
-    {
       "files": ["eslint.config.mjs", ".prettierrc"],
       "tests": ["packages/dragon/test/eslint-context-ignore.test.ts"],
       "why": "lint の設定。検査で確かめるのは lint が読み飛ばす場所だけで、lint 自体は pnpm lint が回す"
