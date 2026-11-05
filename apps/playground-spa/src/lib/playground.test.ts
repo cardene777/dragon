@@ -8,8 +8,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_PALETTE, type Diagram, FONTS, PALETTES, parseNotation } from "@cardenelabs/dragon";
-import type { Page } from "playwright";
-import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from "vitest";
+import { chromium, type Page } from "playwright";
+import { afterAll, afterEach, beforeAll, describe, expect, inject, it, vi } from "vitest";
 
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
@@ -1295,6 +1295,80 @@ describe("公開する頁 (#2995)", () => {
       expect(again.built.dir, "2 度目に起こした見本帳が build し直した").toBe(dir);
     } finally {
       await again.close();
+    }
+  });
+
+  /** 準備の段が起こした Chromium のつなぐ先。型に出す前も読めるよう、名前で引く */
+  const sharedEndpoint = (): unknown => (inject as (key: string) => unknown)("dragonBrowser");
+  const endpointOf = (s: Site): unknown => (s as Site & { endpoint?: unknown }).endpoint;
+
+  it("chromium-launched-once-per-run", async () => {
+    // 頁を開く検査の file は、準備の段が 1 回の実行で 1 つだけ起こした Chromium につなぎ、自分では起こさない (#3384)
+    const endpoint = sharedEndpoint();
+    expect(typeof endpoint === "string" && endpoint.startsWith("ws://"), `準備の段が起こした Chromium のつなぐ先が無い (${String(endpoint)})`).toBe(true);
+    expect(endpointOf(site), "この file の見本帳が、準備の段の Chromium につないでいない").toBe(endpoint);
+    const launch = vi.spyOn(chromium, "launch");
+    const again = await startSite();
+    try {
+      expect(launch, "2 度目に起こした見本帳が Chromium を起こした").not.toHaveBeenCalled();
+      expect(endpointOf(again), "2 度目に起こした見本帳が、準備の段の Chromium につないでいない").toBe(endpoint);
+    } finally {
+      launch.mockRestore();
+      await again.close();
+    }
+  });
+
+  it("site-close-keeps-shared-chromium", async () => {
+    // file の後始末は Chromium を閉じずに線を切るだけで、同じ実行の別の file は同じ Chromium で頁を開き続けられる (#3384)
+    const endpoint = sharedEndpoint();
+    expect(typeof endpoint === "string" && endpoint.startsWith("ws://"), `準備の段が起こした Chromium のつなぐ先が無い (${String(endpoint)})`).toBe(true);
+    const other = await startSite();
+    await other.close();
+    const probe = await chromium.connect(endpoint as string, { timeout: 5_000 });
+    try {
+      expect(probe.isConnected(), "別の見本帳を閉じた後に、準備の段の Chromium へつなげない").toBe(true);
+    } finally {
+      await probe.close();
+    }
+    const { page } = await site.open({ path: BASE });
+    await expect.poll(() => screenOf(page), { message: "別の見本帳を閉じた後に、この file の見本帳が頁を開けない", timeout: 8_000 }).not.toBeNull();
+  });
+
+  it("shared-chromium-closes-at-teardown", async () => {
+    // 準備の段の片付けが Chromium を閉じ、閉じた後はつなぐ先へつなげない (#3384)
+    // 関数がまだ無い時もこの file の他の検査を走らせるため、置き場を変数で渡して読めない時は無いと判定する
+    const modulePath = "./site-setup";
+    const setupModule = (await import(/* @vite-ignore */ modulePath)) as {
+      launchSharedChromium?: () => Promise<{ endpoint: string; close: () => Promise<void> }>;
+    };
+    expect(setupModule.launchSharedChromium, "Chromium を 1 つ起こす関数 (site-setup.ts の launchSharedChromium) が無い").toBeTypeOf("function");
+    const shared = await (setupModule.launchSharedChromium as () => Promise<{ endpoint: string; close: () => Promise<void> }>)();
+    expect(shared.endpoint, "起こした Chromium のつなぐ先").toMatch(/^ws:\/\//u);
+    const browser = await chromium.connect(shared.endpoint, { timeout: 5_000 });
+    await browser.close();
+    await shared.close();
+    await expect(chromium.connect(shared.endpoint, { timeout: 2_000 }), "片付けの後も Chromium へつなげる").rejects.toThrow();
+  });
+
+  it("site-setup-skips-without-pages", async () => {
+    // 頁を開く検査の file を含まない回は、準備の段が見本帳の build も Chromium の起動もしない (#3381、#3384)
+    const { default: setup } = await import("./site-setup");
+    const provided: Record<string, unknown> = {};
+    const project = {
+      vitest: {
+        filenamePattern: [],
+        getRelevantTestSpecifications: async () => [{ moduleId: join(process.cwd(), "packages/dragon/test/test-limits.test.ts") }],
+      },
+      provide: (key: string, value: unknown) => {
+        provided[key] = value;
+      },
+    };
+    const teardown = await setup(project as unknown as Parameters<typeof setup>[0]);
+    try {
+      expect(provided.dragonSites, "頁を開かない回に build した").toEqual({});
+      expect(provided.dragonBrowser ?? "", "頁を開かない回に Chromium を起こした").toBe("");
+    } finally {
+      await teardown();
     }
   });
 
