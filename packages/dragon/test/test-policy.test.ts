@@ -95,6 +95,22 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(pkg.scripts.typecheck, "型検査の命令が検査の code の設定を見ていない").toContain("tsc -p packages/dragon/tsconfig.test.json --noEmit");
   });
 
+  it("fixture-configs-typechecked-at-root", () => {
+    // 見本の設定は repo の根の設定を読むので `test-support` の外を読む。`tsc -b` の `test-support` から外し、
+    // repo の根の設定と同じ所で型を見る。登録が漏れると `pnpm typecheck` が TS6059 で落ちる (#3395)
+    const configs = readdirSync(join(ROOT, "test-support/fixtures"), { recursive: true, encoding: "utf8" })
+      .filter((path) => path.endsWith("vitest.config.ts"))
+      .map((path) => `fixtures/${path}`);
+    expect(configs.length, "見本の設定を 1 つも見つけられない").toBeGreaterThan(0);
+    const text = (file: string) => readFileSync(join(ROOT, file), "utf8");
+    for (const path of configs) {
+      for (const file of ["tsconfig.config-files.json", "tsconfig.eslint.json"]) {
+        expect(text(file), `${file} の include に test-support/${path} が無い`).toContain(`"test-support/${path}"`);
+      }
+      expect(text("test-support/tsconfig.json"), `test-support/tsconfig.json の exclude に ${path} が無い`).toContain(`"${path}"`);
+    }
+  });
+
   it("checks-declare-light-suite", () => {
     const rows = tableRows(readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8"));
     const weight = rows.find((cells) => cells[0] === "一式の重さ");
