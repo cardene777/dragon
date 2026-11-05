@@ -16,6 +16,7 @@
  * 列の図 (#3239) の列の並びを書く出来事と、封と札の出来事も線と同じ表に載せ、並びは滑り終えるまで、封は覆い終えるまでを引く間にする。
  * 試す図 (#3337) の送る、押す、書き換える出来事も線と同じ表に載せ、送るは網を運ばれて待ち行列へ入り終えるまで、
  * 押すはチップがブロックへ移り終えるまで、書き換えるは値が変わり終えるまでを引く間にする。同じ段の出来事は前の出来事が済んでから起こす。
+ * 配管の図 (#3389) の出来事は、段の中で書いた順に決まった間 (`MOTION.pipe`) ずつずらして起こし、描く部品がその時刻に部品を替える。
  * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
  * 枝分かれの図を描く部品が札ごとに動かす。線に書いた運ぶ物 (`tag` と `carry`) だけを表に載せる。
  */
@@ -101,6 +102,9 @@ type EdgeEvent = Extract<DiagramModel["steps"][number]["events"][number], { type
 /** 列の図の出来事の長さ */
 const LINEUP_LENGTH = { line: MOTION.lineup.slide, seal: MOTION.lineup.seal, open: MOTION.fade, pick: MOTION.fade, stamp: MOTION.popFade } as const;
 
+/** 配管の図の出来事の種類 (#3389)。段の中で書いた順に 1 つずつ起こす */
+const PIPE_EVENTS: ReadonlySet<string> = new Set(["call", "return", "revert", "move", "write", "check", "emit", "calc"]);
+
 /** 試す図の出来事の長さ。送る出来事は網を通る時に網を運ばれる長さを足す (`tryTrip`) */
 export function tryLength(type: "ask" | "press" | "item", trip: boolean): number {
   const T = MOTION.try;
@@ -134,6 +138,8 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false
   const p0 = needle?.from ?? 0;
   const p1 = Math.max(p0, ...nows.map((n) => n.to + 1));
   const pulled = (event: DiagramModel["steps"][number]["events"][number]): event is EdgeEvent => event.type === "edge" && event.at !== undefined && event.at >= p0 && event.at < p1;
+  const pipes = step.events.filter((event) => PIPE_EVENTS.has(event.type)).length;
+  const beat = Math.min(MOTION.pipe.beat, MOTION.pipe.most / Math.max(1, pipes));
   step.events.forEach((event, e) => {
     if (needle && e === nows[0]?.e) {
       // 針は、前に書いた書き換えが起きてから動き出す
@@ -160,6 +166,13 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false
     if (event.type === "now" || (needle && pulled(event))) return;
     // 列の図の役が動く出来事 (#3351) は、段の始まりから終わりまで役の札を光らせるだけで、段の中の時刻を取らない
     if (event.type === "role") return;
+    // 配管の図の出来事 (#3389) は、前の出来事から決まった間を置いて起こす
+    if (PIPE_EVENTS.has(event.type)) {
+      out.events.push({ event: e, at: cursor });
+      out.busy = Math.max(out.busy, cursor + beat);
+      cursor += beat;
+      return;
+    }
     // 試す図の出来事 (#3337) は、前の出来事が済んでから起こす
     if (event.type === "ask" || event.type === "press" || event.type === "item") {
       const a = cursor;

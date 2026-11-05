@@ -1,0 +1,28 @@
+pipe Folds
+
+box alice as Alice
+box agg as Aggregator
+box pool as Pool
+box weth as WETH
+
+hold pool: 10 WETH
+hold alice: 0 WETH
+
+step Alice hands it to the aggregator
+  say Alice calls the aggregator. The steps inside fold into one box.
+  alice -> agg: swap all [fold]
+
+step Call the pool
+  say The aggregator calls the pool.
+  agg -> pool: swap
+
+step Send WETH
+  say The pool has WETH send 1.
+  pool -> weth: send
+  move weth: 1 pool -> alice
+  return weth: true
+  return pool: 1 WETH
+
+step Return
+  say The aggregator returns, and the changes become final.
+  return agg: 1 WETH

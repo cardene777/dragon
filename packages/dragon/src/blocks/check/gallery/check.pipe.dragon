@@ -1,0 +1,14 @@
+pipe 確認
+
+box alice as Alice
+box pool as Pool
+
+step 量を確かめる
+  say Poolが、払う量が最低額以上かを確かめる。
+  alice -> pool: 交換
+  check pool: 0.05 WETH >= 0.04 WETH
+
+step 持ち主を確かめる
+  say 数でない確認は、fail の印を書いた時だけ落ちる。
+  check pool: owner == alice [fail]
+  revert pool: 持ち主でない

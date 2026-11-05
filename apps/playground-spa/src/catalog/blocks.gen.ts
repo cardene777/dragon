@@ -11,12 +11,21 @@ import { rule as boxRule } from "../../../../packages/dragon/src/blocks/box/gall
 import { text as branchText } from "../../../../packages/dragon/src/blocks/branch/gallery/text";
 import { shelf as branchShelf } from "../../../../packages/dragon/src/blocks/branch/gallery/shelf";
 import { rule as branchRule } from "../../../../packages/dragon/src/blocks/branch/gallery/rule";
+import { text as calcText } from "../../../../packages/dragon/src/blocks/calc/gallery/text";
+import { shelf as calcShelf } from "../../../../packages/dragon/src/blocks/calc/gallery/shelf";
+import { rule as calcRule } from "../../../../packages/dragon/src/blocks/calc/gallery/rule";
+import { text as callText } from "../../../../packages/dragon/src/blocks/call/gallery/text";
+import { shelf as callShelf } from "../../../../packages/dragon/src/blocks/call/gallery/shelf";
+import { rule as callRule } from "../../../../packages/dragon/src/blocks/call/gallery/rule";
 import { text as carryText } from "../../../../packages/dragon/src/blocks/carry/gallery/text";
 import { shelf as carryShelf } from "../../../../packages/dragon/src/blocks/carry/gallery/shelf";
 import { rule as carryRule } from "../../../../packages/dragon/src/blocks/carry/gallery/rule";
 import { text as chainText } from "../../../../packages/dragon/src/blocks/chain/gallery/text";
 import { shelf as chainShelf } from "../../../../packages/dragon/src/blocks/chain/gallery/shelf";
 import { rule as chainRule } from "../../../../packages/dragon/src/blocks/chain/gallery/rule";
+import { text as checkText } from "../../../../packages/dragon/src/blocks/check/gallery/text";
+import { shelf as checkShelf } from "../../../../packages/dragon/src/blocks/check/gallery/shelf";
+import { rule as checkRule } from "../../../../packages/dragon/src/blocks/check/gallery/rule";
 import { text as colorText } from "../../../../packages/dragon/src/blocks/color/gallery/text";
 import { shelf as colorShelf } from "../../../../packages/dragon/src/blocks/color/gallery/shelf";
 import { rule as colorRule } from "../../../../packages/dragon/src/blocks/color/gallery/rule";
@@ -32,9 +41,18 @@ import { rule as edgeRule } from "../../../../packages/dragon/src/blocks/edge/ga
 import { text as edgeLabelText } from "../../../../packages/dragon/src/blocks/edge-label/gallery/text";
 import { shelf as edgeLabelShelf } from "../../../../packages/dragon/src/blocks/edge-label/gallery/shelf";
 import { rule as edgeLabelRule } from "../../../../packages/dragon/src/blocks/edge-label/gallery/rule";
+import { text as emitText } from "../../../../packages/dragon/src/blocks/emit/gallery/text";
+import { shelf as emitShelf } from "../../../../packages/dragon/src/blocks/emit/gallery/shelf";
+import { rule as emitRule } from "../../../../packages/dragon/src/blocks/emit/gallery/rule";
+import { text as foldText } from "../../../../packages/dragon/src/blocks/fold/gallery/text";
+import { shelf as foldShelf } from "../../../../packages/dragon/src/blocks/fold/gallery/shelf";
+import { rule as foldRule } from "../../../../packages/dragon/src/blocks/fold/gallery/rule";
 import { text as groupText } from "../../../../packages/dragon/src/blocks/group/gallery/text";
 import { shelf as groupShelf } from "../../../../packages/dragon/src/blocks/group/gallery/shelf";
 import { rule as groupRule } from "../../../../packages/dragon/src/blocks/group/gallery/rule";
+import { text as holdText } from "../../../../packages/dragon/src/blocks/hold/gallery/text";
+import { shelf as holdShelf } from "../../../../packages/dragon/src/blocks/hold/gallery/shelf";
+import { rule as holdRule } from "../../../../packages/dragon/src/blocks/hold/gallery/rule";
 import { text as iconText } from "../../../../packages/dragon/src/blocks/icon/gallery/text";
 import { shelf as iconShelf } from "../../../../packages/dragon/src/blocks/icon/gallery/shelf";
 import { rule as iconRule } from "../../../../packages/dragon/src/blocks/icon/gallery/rule";
@@ -80,6 +98,12 @@ import { rule as pressRule } from "../../../../packages/dragon/src/blocks/press/
 import { text as queueText } from "../../../../packages/dragon/src/blocks/queue/gallery/text";
 import { shelf as queueShelf } from "../../../../packages/dragon/src/blocks/queue/gallery/shelf";
 import { rule as queueRule } from "../../../../packages/dragon/src/blocks/queue/gallery/rule";
+import { text as returnText } from "../../../../packages/dragon/src/blocks/return/gallery/text";
+import { shelf as returnShelf } from "../../../../packages/dragon/src/blocks/return/gallery/shelf";
+import { rule as returnRule } from "../../../../packages/dragon/src/blocks/return/gallery/rule";
+import { text as revertText } from "../../../../packages/dragon/src/blocks/revert/gallery/text";
+import { shelf as revertShelf } from "../../../../packages/dragon/src/blocks/revert/gallery/shelf";
+import { rule as revertRule } from "../../../../packages/dragon/src/blocks/revert/gallery/rule";
 import { text as roleText } from "../../../../packages/dragon/src/blocks/role/gallery/text";
 import { shelf as roleShelf } from "../../../../packages/dragon/src/blocks/role/gallery/shelf";
 import { rule as roleRule } from "../../../../packages/dragon/src/blocks/role/gallery/rule";
@@ -113,6 +137,12 @@ import { rule as stepRule } from "../../../../packages/dragon/src/blocks/step/ga
 import { text as stripText } from "../../../../packages/dragon/src/blocks/strip/gallery/text";
 import { shelf as stripShelf } from "../../../../packages/dragon/src/blocks/strip/gallery/shelf";
 import { rule as stripRule } from "../../../../packages/dragon/src/blocks/strip/gallery/rule";
+import { text as valueText } from "../../../../packages/dragon/src/blocks/value/gallery/text";
+import { shelf as valueShelf } from "../../../../packages/dragon/src/blocks/value/gallery/shelf";
+import { rule as valueRule } from "../../../../packages/dragon/src/blocks/value/gallery/rule";
+import { text as writeText } from "../../../../packages/dragon/src/blocks/write/gallery/text";
+import { shelf as writeShelf } from "../../../../packages/dragon/src/blocks/write/gallery/shelf";
+import { rule as writeRule } from "../../../../packages/dragon/src/blocks/write/gallery/rule";
 import { text as zoomText } from "../../../../packages/dragon/src/blocks/zoom/gallery/text";
 import { shelf as zoomShelf } from "../../../../packages/dragon/src/blocks/zoom/gallery/shelf";
 import { rule as zoomRule } from "../../../../packages/dragon/src/blocks/zoom/gallery/rule";
@@ -123,14 +153,20 @@ export const BLOCK_TEXT = {
   "ask": askText,
   "box": boxText,
   "branch": branchText,
+  "calc": calcText,
+  "call": callText,
   "carry": carryText,
   "chain": chainText,
+  "check": checkText,
   "color": colorText,
   "commit": commitText,
   "copy": copyText,
   "edge": edgeText,
   "edge-label": edgeLabelText,
+  "emit": emitText,
+  "fold": foldText,
   "group": groupText,
+  "hold": holdText,
   "icon": iconText,
   "item": itemText,
   "leaf": leafText,
@@ -146,6 +182,8 @@ export const BLOCK_TEXT = {
   "point": pointText,
   "press": pressText,
   "queue": queueText,
+  "return": returnText,
+  "revert": revertText,
   "role": roleText,
   "route": routeText,
   "row": rowText,
@@ -157,6 +195,8 @@ export const BLOCK_TEXT = {
   "start-finish": startFinishText,
   "step": stepText,
   "strip": stripText,
+  "value": valueText,
+  "write": writeText,
   "zoom": zoomText,
 } as const;
 
@@ -166,14 +206,20 @@ export const BLOCK_SHELF = {
   "ask": askShelf,
   "box": boxShelf,
   "branch": branchShelf,
+  "calc": calcShelf,
+  "call": callShelf,
   "carry": carryShelf,
   "chain": chainShelf,
+  "check": checkShelf,
   "color": colorShelf,
   "commit": commitShelf,
   "copy": copyShelf,
   "edge": edgeShelf,
   "edge-label": edgeLabelShelf,
+  "emit": emitShelf,
+  "fold": foldShelf,
   "group": groupShelf,
+  "hold": holdShelf,
   "icon": iconShelf,
   "item": itemShelf,
   "leaf": leafShelf,
@@ -189,6 +235,8 @@ export const BLOCK_SHELF = {
   "point": pointShelf,
   "press": pressShelf,
   "queue": queueShelf,
+  "return": returnShelf,
+  "revert": revertShelf,
   "role": roleShelf,
   "route": routeShelf,
   "row": rowShelf,
@@ -200,6 +248,8 @@ export const BLOCK_SHELF = {
   "start-finish": startFinishShelf,
   "step": stepShelf,
   "strip": stripShelf,
+  "value": valueShelf,
+  "write": writeShelf,
   "zoom": zoomShelf,
 } as const;
 
@@ -209,14 +259,20 @@ export const BLOCK_RULE = {
   "ask": askRule,
   "box": boxRule,
   "branch": branchRule,
+  "calc": calcRule,
+  "call": callRule,
   "carry": carryRule,
   "chain": chainRule,
+  "check": checkRule,
   "color": colorRule,
   "commit": commitRule,
   "copy": copyRule,
   "edge": edgeRule,
   "edge-label": edgeLabelRule,
+  "emit": emitRule,
+  "fold": foldRule,
   "group": groupRule,
+  "hold": holdRule,
   "icon": iconRule,
   "item": itemRule,
   "leaf": leafRule,
@@ -232,6 +288,8 @@ export const BLOCK_RULE = {
   "point": pointRule,
   "press": pressRule,
   "queue": queueRule,
+  "return": returnRule,
+  "revert": revertRule,
   "role": roleRule,
   "route": routeRule,
   "row": rowRule,
@@ -243,8 +301,10 @@ export const BLOCK_RULE = {
   "start-finish": startFinishRule,
   "step": stepRule,
   "strip": stripRule,
+  "value": valueRule,
+  "write": writeRule,
   "zoom": zoomRule,
 } as const;
 
 /** ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に。見本帳の一覧と棚と使い方の頁は、この順にブロックの見本帳の分を並べる */
-export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "ask", "press"] as const;
+export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "ask", "press", "hold", "write", "return", "call", "value", "check", "emit", "calc", "revert", "fold"] as const;

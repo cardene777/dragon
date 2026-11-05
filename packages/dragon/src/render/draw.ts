@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * git、lineup、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * git、lineup、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -25,6 +25,7 @@ import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
 import type { GitLayout } from "../kinds/git/layout";
 import type { LineupLayout } from "../kinds/lineup/layout";
+import type { PipeLayout } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import {
   type Layout,
@@ -71,6 +72,7 @@ const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 
 const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "git";
 const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
+const isPipeLayout = (layout: Layout): layout is PipeLayout => layout.kind === "pipe";
 const isTimeLayout = (layout: Layout): layout is TimeLayout => layout.kind === "time";
 const isTreeLayout = (layout: Layout): layout is TreeLayout => layout.kind === "tree";
 const isTryLayout = (layout: Layout): layout is TryLayout => layout.kind === "try";
@@ -86,8 +88,13 @@ export interface RenderOptions {
   theme?: Theme;
   /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ英語 (#3001、#3338) */
   lang?: NotationLang;
-  /** 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351)。書かなければ横に並べる */
+  /**
+   * 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351)。
+   * 配管の図は、関係者を横に並べると名前が読めない幅で、段ごとに関わらない関係者の列を細い帯に畳む (#3389)。書かなければ横に並べる
+   */
   width?: number;
+  /** 配管の図 (#3389) で開いて描く `[fold]` の呼び出しの番号 (出てきた順、0 から)。書かない呼び出しは内側の段を 1 つの箱に畳む */
+  open?: readonly number[];
   /**
    * 最後の段の止め絵に、全ての段の線の名前と箱の中の処理を最後の段と同じ濃さで出す (#3200)。途中の段の止め絵は今の段の名前だけを出す。
    * 箱の下の 1 行に出す処理は、その箱で最後に起きた処理か書き換えの字を出す。違う段の名前が重なっても置き直さず、最後の段の重なり (`overlaps`) に出す
@@ -412,6 +419,9 @@ export function drawSvg(
     L.node.push(tryDrawn.node);
     L.top.push(tryDrawn.top);
   }
+  // 配管の図は段ごとに図の全てを 1 枚の絵に描くので、描く部品が全ての層を持つ (#3389)。見た目の規則も配管の図の SVG にだけ書く
+  const pipeDrawn = isPipeLayout(layout) ? kindParts("pipe").drawPipe(layout, timeline, ctx) : undefined;
+  if (pipeDrawn) L.base.push(pipeDrawn.base);
   // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く
   const timeLayout = isTimeLayout(layout) ? layout : undefined;
   if (timeLayout) {
@@ -528,7 +538,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -641,6 +651,8 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
   }
   // 試す図は、その段の出来事が触る部品を、出来事が着く所から順に見る (#3337)
   if (isTryLayout(layout)) rects.push(...kindParts("try").tryFocusParts(layout, diagram, step));
+  // 配管の図は、その段に関わる関係者の列を見る (#3389)
+  if (isPipeLayout(layout)) rects.push(...layout.focus.filter((f) => f.step === step));
   for (const event of diagram.steps[step]?.events ?? []) {
     const ids =
       event.type === "edge"
@@ -892,8 +904,10 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
     throw new Error(
       FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")),
     );
-  // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)
-  const diagram = toModel(read.diagram);
+  // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)。
+  // 配管の図は `[fold]` の呼び出しの内側の段を、開くと頼まれていなければ 1 つの段にまとめてから並べる (#3389)
+  const model = toModel(read.diagram);
+  const diagram = model.kind === "pipe" ? kindParts("pipe", lang).foldPipe(model, options.open ?? [], lang) : model;
   // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。後から読む図の種類 (#3347) と置き場の無い図の種類は登録簿から並べ方を引き、
   // 知らない種類は構成図の並べ方で並べる
   const folder = FOLDERS[diagram.kind];
@@ -916,7 +930,12 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
                 ? kindParts("try", lang).layoutTry(diagram, lang, {
                     ...(options.width === undefined ? {} : { width: options.width }),
                   })
-                : KIND_FOLDERS.architecture.layout(diagram, lang);
+                : diagram.kind === "pipe"
+                  ? kindParts("pipe", lang).layoutPipe(diagram, {
+                      lang,
+                      ...(options.width === undefined ? {} : { width: options.width }),
+                    })
+                  : KIND_FOLDERS.architecture.layout(diagram, lang);
   return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
 }
 

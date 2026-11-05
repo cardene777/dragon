@@ -1,0 +1,15 @@
+pipe 関係者
+
+box alice as Alice
+box router as Router
+box usdc as USDC
+
+hold alice: 10 USDC
+
+step AliceがRouterを呼ぶ
+  say 関係者は出てきた順に左から並び、種類は行から決まる。
+  alice -> router: 交換
+
+step Routerが戻る
+  say 呼ばれた側が戻ると、呼び出しの管が閉じる。
+  return router: ok

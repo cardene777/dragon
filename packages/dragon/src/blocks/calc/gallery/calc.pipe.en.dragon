@@ -1,0 +1,14 @@
+pipe Conversions
+
+box alice as Alice
+box pool as Pool
+
+step Convert
+  say The pool converts 100 USDC to WETH at the current rate.
+  alice -> pool: quote
+  calc pool: 100 USDC -> 0.05 WETH
+
+step Check
+  say It checks that the converted amount is at least the minimum.
+  check pool: 0.05 WETH >= 0.04 WETH
+  return pool: 0.05 WETH

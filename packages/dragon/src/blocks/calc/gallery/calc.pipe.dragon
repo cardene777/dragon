@@ -1,0 +1,14 @@
+pipe 換算
+
+box alice as Alice
+box pool as Pool
+
+step 換算する
+  say Poolが100 USDCを今の比率でWETHに換算する。
+  alice -> pool: 見積もり
+  calc pool: 100 USDC -> 0.05 WETH
+
+step 確かめる
+  say 換算した量が最低額以上かを確かめる。
+  check pool: 0.05 WETH >= 0.04 WETH
+  return pool: 0.05 WETH

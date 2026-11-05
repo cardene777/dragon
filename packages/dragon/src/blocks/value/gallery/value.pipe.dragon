@@ -1,0 +1,15 @@
+pipe ETHの送金
+
+box alice as Alice
+box vault as Vault
+
+hold alice: 2 ETH
+hold vault: 0 ETH
+
+step AliceがETHを添えて呼ぶ
+  say Aliceが1 ETHを添えてVaultを呼ぶ。
+  alice -> vault: 預ける [value: 1 ETH]
+
+step 呼び出しが戻る
+  say 一番外の呼び出しが戻り、送ったETHが確定する。
+  return vault: ok

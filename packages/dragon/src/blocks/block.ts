@@ -19,7 +19,8 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TryItem, TryPart } from "../schema";
+import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, PipeHold, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TryItem, TryPart } from "../schema";
+import type { PipeRun } from "../pipe-run";
 import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
 
@@ -89,6 +90,11 @@ export interface FigureDraft {
    * 確かめた後に、段の中の出来事を当てる状態 (`run`) を作る
    */
   try: { parts: TryPart[]; items: TryItem[]; pending: (() => void)[]; run?: TryRun };
+  /**
+   * 配管の図の始めの値と、段の中の出来事を当てる手順と、開いている呼び出しを書いた行 (#3389)。槽のブロックが `hold` の行で始めの値を足し、
+   * 呼び出しの管のブロックが最初の段を始める時に手順 (`run`) を作る。開いている呼び出しを書いた行は手順の呼び出しと同じ順に積み、閉じない呼び出しの誤りで名指す
+   */
+  pipe: { holds: PipeHold[]; run?: PipeRun; opened: SourceLine[] };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */

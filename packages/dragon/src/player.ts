@@ -163,6 +163,8 @@ export function mountDiagram(
   let session = isTrySource(diagram) ? startSession(diagram) : undefined;
   /** 描く原本。試す図では今の原本 */
   let source: unknown = session ?? diagram;
+  /** 配管の図で、読み手が押して開いた `[fold]` の呼び出しの番号 (#3389)。描き直す時に渡す */
+  let open: number[] = [...(options.open ?? [])];
   let rendered = renderDiagram(source, options);
   const lang = options.lang ?? DEFAULT_LANG;
   const words = FIGURE_TEXT[lang];
@@ -264,15 +266,16 @@ export function mountDiagram(
   /**
    * 列の図は枠の幅で箱の並べ方を変える (#3351)。横に並べると箱の名前が読めない幅では縦に組んだ図を描き直す。
    * 試す図も同じ幅で縦に組み、縦に組んだ形は枠の幅で描くので、幅が変わった時も描き直す (#3366)。
+   * 配管の図は関係者を横に並べると名前が読めない幅で、段ごとに関わらない列を畳んだ図を描き直す (#3389)。
    * 描き直した時だけ真を返す。段と時刻の表は原本だけで決まるので、描き直しても変わらない
    */
   const arrange = (w: number): boolean => {
     const kind = rendered.diagram.kind;
-    if (kind !== "lineup" && kind !== "try") return false;
-    const next = renderDiagram(source, { ...options, width: w });
+    if (kind !== "lineup" && kind !== "try" && kind !== "pipe") return false;
+    const next = renderDiagram(source, { ...options, open, width: w });
     const before = rendered.layout as { arrangement?: string; width: number };
     const after = next.layout as { arrangement?: string; width: number };
-    if (before.arrangement === after.arrangement && (kind === "lineup" || before.width === after.width)) return false;
+    if (before.arrangement === after.arrangement && (kind !== "try" || before.width === after.width)) return false;
     rendered = next;
     controls?.update(next.layout as TryLayout);
     return true;
@@ -448,6 +451,32 @@ export function mountDiagram(
     return true;
   };
 
+  /**
+   * 配管の図の畳んだ箱を押した時に、その `[fold]` の呼び出し `call` の内側の段を開いて描き直す (#3389)。
+   * 段が増えるので段の一覧と語りを作り直し、開いた最初の内側の段の止め絵で止める
+   */
+  const unfold = (call: number): void => {
+    if (!Number.isInteger(call) || open.includes(call)) return;
+    const folded = (rendered.diagram.pipe?.folds ?? []).find((f) => f.call === call);
+    open = [...open, call];
+    rendered = renderDiagram(source, { ...options, open, width: frameWidth() });
+    timeline = rendered.timeline;
+    steps = rendered.diagram.steps;
+    count = steps.length;
+    lastStill = timeline.stills[count - 1] ?? 0;
+    for (const room of text.querySelectorAll(".dg-room")) room.remove();
+    drawRooms(doc, text, steps);
+    fillList();
+    width = frameWidth();
+    height = frameHeight();
+    mode = chooseView(rendered, width, height).mode;
+    step = Math.min(count - 1, folded?.step ?? step);
+    playing = false;
+    at = timeline.stills[step] ?? 0;
+    place(markup());
+    show();
+  };
+
   controls?.arrange(mode, width);
   place(markup());
   show();
@@ -475,6 +504,11 @@ export function mountDiagram(
     const chip = controls ? (event.target as Element | null)?.closest?.("[data-chip]") : null;
     if (chip) {
       controls?.pick(chip.getAttribute("data-chip") ?? "", step);
+      return;
+    }
+    const fold = (event.target as Element | null)?.closest?.("[data-pipe-fold]");
+    if (fold) {
+      unfold(Number(fold.getAttribute("data-pipe-fold")));
       return;
     }
     const target = (event.target as Element | null)?.closest?.("[data-step]");

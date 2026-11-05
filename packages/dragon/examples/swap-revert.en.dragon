@@ -1,0 +1,58 @@
+// The swap pays out less than the minimum, and the whole transaction is undone.
+// What moved, the value that was written, and the event that was emitted all go back at the step where the outermost call fails.
+pipe The swap pays too little and is undone
+
+box alice as Alice
+box router as SwapRouter
+box usdc as USDC
+box pool as LiquidityPool
+box weth as WETH
+box bob as Bob
+
+hold alice: 1000 USDC
+hold pool: 2000 USDC, 10 WETH
+hold bob: 0 WETH
+hold usdc: "allowance[alice][router]" 100
+
+step Alice asks the router to swap
+  say Alice asks the router to turn 100 USDC into WETH and send it to Bob. She wants at least 0.06 WETH.
+  alice -> router: swap 100 USDC
+
+step The router checks the path
+  say The router checks how many tokens are on the swap path.
+  check router: 2 == 2
+
+step The router has USDC move the funds
+  say The router asks USDC to move Alice's 100 USDC to the pool.
+  router -> usdc: move 100 USDC
+
+step USDC checks the allowance
+  say USDC checks that what Alice allowed the router covers the amount.
+  check usdc: 100 >= 100
+
+step 100 USDC moves from Alice to the pool
+  say USDC takes 100 from Alice, adds it to the pool, and lowers the allowance by what was used.
+  move usdc: 100 alice -> pool
+  write usdc: "allowance[alice][router]" 0
+  emit usdc: Transfer(alice, pool, 100)
+
+step USDC reports that it is done
+  say USDC tells the router it has moved the funds. The changes are still provisional.
+  return usdc: true
+
+step The router asks the pool to swap
+  say The router asks the pool to turn the USDC into WETH and send it to Bob.
+  router -> pool: swap 100 USDC
+
+step The pool prices the swap
+  say At its current rate, the pool works out how much WETH 100 USDC is worth.
+  calc pool: 100 USDC -> 0.05 WETH
+
+step 0.05 WETH misses the minimum
+  say The 0.05 WETH the pool can pay is less than the 0.06 WETH Alice asked for.
+  check pool: 0.05 WETH >= 0.06 WETH
+
+step The whole swap is undone
+  say The pool fails, nobody catches it, and the router fails too. What moved, the written value, and the events all go back.
+  revert pool: INSUFFICIENT_OUTPUT_AMOUNT
+  revert router: INSUFFICIENT_OUTPUT_AMOUNT

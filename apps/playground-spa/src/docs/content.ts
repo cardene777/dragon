@@ -16,7 +16,7 @@ import type { Lang } from "../text";
  * 節の並び。記法の決まりの後に記法の要素を書く順に並べ、図を外で使う 2 つの形 (頁に置く、書き出す) を続け、
  * 前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** その節に置くブロックの段落。段落の `section` がその節のブロックを、ブロックの並びの順に */
@@ -31,7 +31,7 @@ function blockParagraphs(section: SectionId, lang: Lang): string[] {
 export const CARDS = ["start", "boxes", "regions", "steps", "json", "export"] as const satisfies readonly SectionId[];
 
 /** 節の出口。同じ頁の節か、サイトの画面か、カタログの分類 */
-export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "try" };
+export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "try" | "pipe" };
 
 export const EXITS: Record<SectionId, Exit> = {
   start: { screen: "editor" },
@@ -44,6 +44,7 @@ export const EXITS: Record<SectionId, Exit> = {
   time: { kind: "time" },
   tree: { kind: "tree" },
   try: { kind: "try" },
+  pipe: { kind: "pipe" },
   steps: { section: "strip" },
   strip: { kind: "sequence" },
   carry: { section: "json" },
@@ -102,7 +103,7 @@ interface DocsText {
 export const DOCS: Record<Lang, DocsText> = {
   ja: {
     eyebrow: (version) => `使い方の案内 · ${version}`,
-    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、試す図、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
+    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、試す図、配管の図、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
     start: "5 分で始める →",
     browse: "カタログで図を見る",
     iconLink: "使える絵柄を部品「絵」の頁で全て見る →",
@@ -184,6 +185,11 @@ export const DOCS: Record<Lang, DocsText> = {
           "チップは `item <名札> [<欄>: <値>]` で書く。段の中の `line` で待ち行列の並びとブロックを書き、`ask <値>, ...` と `press <名札>` と `item <名札> [<欄>: <値>]` で書き手の例 (送る、作る、書き換える) を書く。再生の部品は最初の段で止まって読み手を待ち、送るか押すか書き換えるたびに段を 1 つ足して流す。打ち込んだ値は保存しない。画像と動画と印刷には書き手の例の段を描く。",
         ],
         exit: "試す図の見本を見る →",
+      },
+      pipe: {
+        title: "配管の図",
+        text: [...blockParagraphs("pipe", "ja")],
+        exit: "配管の図の見本を見る →",
       },
       steps: {
         title: "段",
@@ -295,7 +301,7 @@ export const DOCS: Record<Lang, DocsText> = {
   en: {
     // 英語の側の区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
     eyebrow: (version) => `guide • ${version}`,
-    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, try diagrams, steps, the strip and what travels. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
+    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, try diagrams, pipe diagrams, steps, the strip and what travels. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
     start: "Start in five minutes →",
     browse: "Browse the catalog",
     iconLink: "See every icon on the Icon part page →",
@@ -377,6 +383,11 @@ export const DOCS: Record<Lang, DocsText> = {
           "Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line` writes a queue's contents or a block, and `ask <value>, ...`, `press <name>`, and `item <name> [<field>: <value>]` write the author's example (send, build, change). The player stops at the first step and waits for the reader, and adds one step and plays it each time the reader sends, presses, or changes a value. Nothing the reader types is stored. Images, videos, and print draw the author's example steps.",
         ],
         exit: "See the try diagram samples →",
+      },
+      pipe: {
+        title: "Pipe diagrams",
+        text: [...blockParagraphs("pipe", "en")],
+        exit: "See the pipe diagram samples →",
       },
       steps: {
         title: "Steps",

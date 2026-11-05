@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になる。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になる。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -26,7 +26,8 @@
         "time",
         "tree",
         "lineup",
-        "try"
+        "try",
+        "pipe"
       ]
     },
     "title": {
@@ -95,6 +96,14 @@
           "minItems": 1,
           "items": {
             "$ref": "#/definitions/role"
+          }
+        },
+        "hold": {
+          "description": "配管の図の始めの値。残高と、残高でない値を宣言した順に並べる",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/hold"
           }
         },
         "path": {
@@ -208,6 +217,9 @@
           },
           "part": {
             "$ref": "#/definitions/absent"
+          },
+          "hold": {
+            "$ref": "#/definitions/absent"
           }
         }
       },
@@ -279,6 +291,9 @@
             },
             "part": {
               "$ref": "#/definitions/absent"
+            },
+            "hold": {
+              "$ref": "#/definitions/absent"
             }
           }
         },
@@ -337,6 +352,9 @@
               },
               "part": {
                 "$ref": "#/definitions/absent"
+              },
+              "hold": {
+                "$ref": "#/definitions/absent"
               }
             }
           },
@@ -380,6 +398,9 @@
                   "$ref": "#/definitions/absent"
                 },
                 "part": {
+                  "$ref": "#/definitions/absent"
+                },
+                "hold": {
                   "$ref": "#/definitions/absent"
                 }
               }
@@ -438,6 +459,9 @@
                     "$ref": "#/definitions/absent"
                   },
                   "part": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "hold": {
                     "$ref": "#/definitions/absent"
                   }
                 }
@@ -516,6 +540,9 @@
                       "items": {
                         "$ref": "#/definitions/item"
                       }
+                    },
+                    "hold": {
+                      "$ref": "#/definitions/absent"
                     }
                   }
                 },
@@ -579,6 +606,9 @@
                       },
                       "role": {
                         "$ref": "#/definitions/absent"
+                      },
+                      "hold": {
+                        "$ref": "#/definitions/absent"
                       }
                     }
                   },
@@ -588,52 +618,136 @@
                 }
               },
               "else": {
-                "properties": {
-                  "blocks": {
-                    "required": [
-                      "box"
-                    ],
-                    "properties": {
-                      "box": {
-                        "minItems": 1
-                      },
-                      "strip": {
-                        "$ref": "#/definitions/plainStrip"
-                      },
-                      "path": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "branch": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "scale": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "period": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "row": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "point": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "zoom": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "item": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "role": {
-                        "$ref": "#/definitions/absent"
-                      },
-                      "part": {
-                        "$ref": "#/definitions/absent"
-                      }
+                "if": {
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "pipe"
                     }
-                  },
-                  "steps": {
-                    "$ref": "#/definitions/plainSteps"
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "blocks": {
+                      "required": [
+                        "box"
+                      ],
+                      "properties": {
+                        "box": {
+                          "minItems": 1,
+                          "items": {
+                            "properties": {
+                              "sub": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "color": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "link": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "region": {
+                                "$ref": "#/definitions/absent"
+                              }
+                            }
+                          }
+                        },
+                        "strip": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "path": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "branch": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "scale": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "period": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "row": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "point": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "zoom": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "group": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "item": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "role": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "part": {
+                          "$ref": "#/definitions/absent"
+                        }
+                      }
+                    },
+                    "steps": {
+                      "$ref": "#/definitions/pipeSteps"
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "blocks": {
+                      "required": [
+                        "box"
+                      ],
+                      "properties": {
+                        "box": {
+                          "minItems": 1
+                        },
+                        "strip": {
+                          "$ref": "#/definitions/plainStrip"
+                        },
+                        "path": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "branch": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "scale": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "period": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "row": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "point": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "zoom": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "item": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "role": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "part": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "hold": {
+                          "$ref": "#/definitions/absent"
+                        }
+                      }
+                    },
+                    "steps": {
+                      "$ref": "#/definitions/plainSteps"
+                    }
                   }
                 }
               }
@@ -653,7 +767,7 @@
       "not": {}
     },
     "plainSteps": {
-      "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) を書けない",
+      "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
       "items": {
         "properties": {
           "events": {
@@ -672,6 +786,9 @@
                 },
                 {
                   "$ref": "#/definitions/notTryEvent"
+                },
+                {
+                  "$ref": "#/definitions/notPipeEvent"
                 }
               ],
               "properties": {
@@ -699,7 +816,7 @@
       }
     },
     "gitSteps": {
-      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) を書けない",
+      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
       "items": {
         "properties": {
           "events": {
@@ -718,6 +835,9 @@
                 },
                 {
                   "$ref": "#/definitions/notTryEvent"
+                },
+                {
+                  "$ref": "#/definitions/notPipeEvent"
                 }
               ],
               "properties": {
@@ -737,7 +857,7 @@
       }
     },
     "timeSteps": {
-      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) を書けない",
+      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
       "items": {
         "properties": {
           "events": {
@@ -753,6 +873,9 @@
                 },
                 {
                   "$ref": "#/definitions/notTryEvent"
+                },
+                {
+                  "$ref": "#/definitions/notPipeEvent"
                 }
               ],
               "properties": {
@@ -771,7 +894,7 @@
       }
     },
     "treeSteps": {
-      "description": "木の図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) を書けない",
+      "description": "木の図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
       "items": {
         "properties": {
           "events": {
@@ -785,6 +908,9 @@
                 },
                 {
                   "$ref": "#/definitions/notTryEvent"
+                },
+                {
+                  "$ref": "#/definitions/notPipeEvent"
                 }
               ],
               "properties": {
@@ -812,7 +938,7 @@
       }
     },
     "lineupSteps": {
-      "description": "列の図の段。線と処理と、枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (color) と、木の図だけの出来事 (leaf と node) と、試す図だけの出来事 (ask と press と item) を書けない",
+      "description": "列の図の段。線と処理と、枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (color) と、木の図だけの出来事 (leaf と node) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
       "items": {
         "properties": {
           "events": {
@@ -831,6 +957,9 @@
                 },
                 {
                   "$ref": "#/definitions/notTryEvent"
+                },
+                {
+                  "$ref": "#/definitions/notPipeEvent"
                 }
               ],
               "properties": {
@@ -1430,6 +1559,229 @@
               "$ref": "#/definitions/id"
             }
           }
+        },
+        {
+          "description": "トークンの Contract box が、送り手 from の残高から受け手 to へ量 amount を移す。配管の図だけが書ける",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "box",
+            "amount",
+            "from",
+            "to"
+          ],
+          "properties": {
+            "type": {
+              "const": "move"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "amount": {
+              "$ref": "#/definitions/amount"
+            },
+            "from": {
+              "$ref": "#/definitions/id"
+            },
+            "to": {
+              "$ref": "#/definitions/id"
+            }
+          }
+        },
+        {
+          "description": "box が値 name を value に書き替える。書き替わる札の持ち主は開いている呼び出しから決まる。配管の図だけが書ける",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "box",
+            "name",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "write"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "name": {
+              "$ref": "#/definitions/text"
+            },
+            "value": {
+              "$ref": "#/definitions/text"
+            }
+          }
+        },
+        {
+          "description": "from が to を呼ぶ。value は添えて送る ETH の量、call は呼び出しの種類 (delegate は処理を借り、static は書き込めない)、fold は内側の段を 1 つの箱に畳む印。配管の図だけが書ける",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "from",
+            "to"
+          ],
+          "properties": {
+            "type": {
+              "const": "call"
+            },
+            "from": {
+              "$ref": "#/definitions/id"
+            },
+            "to": {
+              "$ref": "#/definitions/id"
+            },
+            "label": {
+              "$ref": "#/definitions/text"
+            },
+            "value": {
+              "$ref": "#/definitions/amount"
+            },
+            "call": {
+              "enum": [
+                "delegate",
+                "static"
+              ]
+            },
+            "fold": {
+              "const": true
+            }
+          }
+        },
+        {
+          "description": "いちばん内側で開いている呼び出しの呼ばれた者 box が value を返して戻る。一番外の呼び出しが戻ると暫定の変更が全て確定する。配管の図だけが書ける",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "box"
+          ],
+          "properties": {
+            "type": {
+              "const": "return"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "value": {
+              "$ref": "#/definitions/text"
+            }
+          }
+        },
+        {
+          "description": "box が left と right を op で比べる。両側が数なら dragon が比べ、数でない確認は fail を書いた時だけ落ちる。配管の図だけが書ける",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "box",
+            "left",
+            "op",
+            "right"
+          ],
+          "properties": {
+            "type": {
+              "const": "check"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "left": {
+              "$ref": "#/definitions/text"
+            },
+            "op": {
+              "enum": [
+                ">=",
+                "<=",
+                "==",
+                "!=",
+                ">",
+                "<"
+              ]
+            },
+            "right": {
+              "$ref": "#/definitions/text"
+            },
+            "fail": {
+              "const": true
+            }
+          }
+        },
+        {
+          "description": "box がイベント name を出す。args は出した段だけ札に出す引数。配管の図だけが書ける",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "box",
+            "name"
+          ],
+          "properties": {
+            "type": {
+              "const": "emit"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[^\\s(),]+$"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/text"
+              }
+            }
+          }
+        },
+        {
+          "description": "box が入る値 in を出る値 out に換算する。両側は数と単位で書き、比率は out を in で割った数。配管の図だけが書ける",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "box",
+            "in",
+            "out"
+          ],
+          "properties": {
+            "type": {
+              "const": "calc"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "in": {
+              "$ref": "#/definitions/quantity"
+            },
+            "out": {
+              "$ref": "#/definitions/quantity"
+            }
+          }
+        },
+        {
+          "description": "いちばん内側で開いている呼び出しの呼ばれた者 box が reason で落ち、その呼び出しの内側の変更が元へ戻る。配管の図だけが書ける",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "box"
+          ],
+          "properties": {
+            "type": {
+              "const": "revert"
+            },
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "reason": {
+              "$ref": "#/definitions/text"
+            }
+          }
         }
       ]
     },
@@ -1675,6 +2027,53 @@
       "type": "object",
       "additionalProperties": {
         "$ref": "#/definitions/text"
+      }
+    },
+    "notPipeEvent": {
+      "description": "配管の図だけが書ける出来事を書けない",
+      "not": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "call",
+              "return",
+              "revert",
+              "move",
+              "write",
+              "check",
+              "emit",
+              "calc"
+            ]
+          }
+        }
+      }
+    },
+    "pipeSteps": {
+      "description": "配管の図の段。呼び出し (call) と、return と revert と move と write と check と emit と calc だけを書ける",
+      "items": {
+        "properties": {
+          "events": {
+            "items": {
+              "properties": {
+                "type": {
+                  "enum": [
+                    "call",
+                    "return",
+                    "revert",
+                    "move",
+                    "write",
+                    "check",
+                    "emit",
+                    "calc"
+                  ]
+                }
+              }
+            }
+          }
+        }
       }
     },
     "branch": {
@@ -2141,6 +2540,63 @@
           "$ref": "#/definitions/text"
         }
       }
+    },
+    "amount": {
+      "description": "量。0 以上の十進の数を書いた字のまま持つ",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    },
+    "hold": {
+      "description": "始めの値。残高は持ち主 box とトークン token と量 amount、残高でない値は持つ Contract box と名前 name と値 value",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "box",
+            "amount",
+            "token"
+          ],
+          "properties": {
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "amount": {
+              "$ref": "#/definitions/amount"
+            },
+            "token": {
+              "description": "トークンの名前。トークンの Contract の名前か、宣言しない決まった名前の ETH",
+              "type": "string",
+              "pattern": "^[^\\s,]+$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "box",
+            "name",
+            "value"
+          ],
+          "properties": {
+            "box": {
+              "$ref": "#/definitions/id"
+            },
+            "name": {
+              "$ref": "#/definitions/text"
+            },
+            "value": {
+              "$ref": "#/definitions/text"
+            }
+          }
+        }
+      ]
+    },
+    "quantity": {
+      "description": "数と、省ける単位 (0.05 WETH)",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?( +[^\\s]+)?$"
     }
   }
 }

@@ -1,0 +1,12 @@
+pipe Icons
+
+box alice as Alice
+box vault as Vault [icon: shield]
+
+step Alice calls the vault
+  say A party with an icon is drawn with that shape.
+  alice -> vault: deposit
+
+step The vault returns
+  say When the callee returns, the call pipe closes.
+  return vault: ok

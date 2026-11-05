@@ -8,6 +8,7 @@ import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
 import { carryAttrs, readCarry } from "../carry/read";
 import { readLabel, readSide } from "../edge-label/read";
+import { CALL_ATTRS } from "../return/block";
 import type { EdgeEvent } from "./block";
 
 export interface EdgeMessages {
@@ -29,6 +30,11 @@ function readEdge(source: SourceLine, edge: RegExpExecArray, state: ParseState):
   const { from, to, label, at } = readLine(source, edge, state);
   if (at < text.length && text[at] !== "[") throw fail(source, at, m.edgeShape);
   const attrs = at < text.length ? readAttrs(source, at, state.attrs.edge ?? [], m) : new Map<string, Attr>();
+  // 配管の図の呼び出しの印 (#3389) は配管の図の呼び出しの管のブロックが読むので、ほかの種類の図の線に書いた印は断る
+  for (const key of CALL_ATTRS) {
+    const mark = attrs.get(key);
+    if (mark) throw fail(source, mark.at, m.pipeOnlyAttr(key));
+  }
   const carry = readCarry(source, attrs, from, state.kind, m);
   const side = readSide(source, attrs, m);
   const columns = state.columns(source, from, to, attrs, at);

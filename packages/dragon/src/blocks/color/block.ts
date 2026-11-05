@@ -16,6 +16,6 @@ export const COLORS: readonly Color[] = ["blue", "amber", "green", "violet", "ro
 export const block: Block = {
   name: "color",
   rank: 87,
-  attach: { how: "attach-to-box" },
+  attach: { how: "attach-to-box", except: ["pipe"] },
   words: { attrs: { group: ["color"], box: ["color"] } },
 };

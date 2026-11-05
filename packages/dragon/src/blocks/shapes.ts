@@ -3,14 +3,20 @@ import { shape as actShape } from "./act/shape";
 import { shape as askShape } from "./ask/shape";
 import { shape as boxShape } from "./box/shape";
 import { shape as branchShape } from "./branch/shape";
+import { shape as calcShape } from "./calc/shape";
+import { shape as callShape } from "./call/shape";
 import { shape as carryShape } from "./carry/shape";
 import { shape as chainShape } from "./chain/shape";
+import { shape as checkShape } from "./check/shape";
 import { shape as colorShape } from "./color/shape";
 import { shape as commitShape } from "./commit/shape";
 import { shape as copyShape } from "./copy/shape";
 import { shape as edgeShape } from "./edge/shape";
 import { shape as edgeLabelShape } from "./edge-label/shape";
+import { shape as emitShape } from "./emit/shape";
+import { shape as foldShape } from "./fold/shape";
 import { shape as groupShape } from "./group/shape";
+import { shape as holdShape } from "./hold/shape";
 import { shape as iconShape } from "./icon/shape";
 import { shape as itemShape } from "./item/shape";
 import { shape as leafShape } from "./leaf/shape";
@@ -26,6 +32,8 @@ import { shape as pickShape } from "./pick/shape";
 import { shape as pointShape } from "./point/shape";
 import { shape as pressShape } from "./press/shape";
 import { shape as queueShape } from "./queue/shape";
+import { shape as returnShape } from "./return/shape";
+import { shape as revertShape } from "./revert/shape";
 import { shape as roleShape } from "./role/shape";
 import { shape as routeShape } from "./route/shape";
 import { shape as rowShape } from "./row/shape";
@@ -37,6 +45,8 @@ import { shape as stampShape } from "./stamp/shape";
 import { shape as startFinishShape } from "./start-finish/shape";
 import { shape as stepShape } from "./step/shape";
 import { shape as stripShape } from "./strip/shape";
+import { shape as valueShape } from "./value/shape";
+import { shape as writeShape } from "./write/shape";
 import { shape as zoomShape } from "./zoom/shape";
 
 /** ブロックの原本の形の欠片の一覧。鍵は置き場の dir の名前。build の時の script と検査だけが読む */
@@ -45,14 +55,20 @@ export const SHAPES = {
   "ask": askShape,
   "box": boxShape,
   "branch": branchShape,
+  "calc": calcShape,
+  "call": callShape,
   "carry": carryShape,
   "chain": chainShape,
+  "check": checkShape,
   "color": colorShape,
   "commit": commitShape,
   "copy": copyShape,
   "edge": edgeShape,
   "edge-label": edgeLabelShape,
+  "emit": emitShape,
+  "fold": foldShape,
   "group": groupShape,
+  "hold": holdShape,
   "icon": iconShape,
   "item": itemShape,
   "leaf": leafShape,
@@ -68,6 +84,8 @@ export const SHAPES = {
   "point": pointShape,
   "press": pressShape,
   "queue": queueShape,
+  "return": returnShape,
+  "revert": revertShape,
   "role": roleShape,
   "route": routeShape,
   "row": rowShape,
@@ -79,5 +97,7 @@ export const SHAPES = {
   "start-finish": startFinishShape,
   "step": stepShape,
   "strip": stripShape,
+  "value": valueShape,
+  "write": writeShape,
   "zoom": zoomShape,
 } as const;

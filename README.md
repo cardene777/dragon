@@ -73,7 +73,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -86,6 +86,21 @@ Every line follows these four rules.
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
 Every line form is in the [notation guide](packages/dragon/examples/quick-start.en.md), and a full example of each kind of diagram is in [`packages/dragon/examples`](packages/dragon/examples).
+
+A pipe diagram (`pipe <title>`) follows one transaction step by step: the calls between contracts, the balances in tanks, and the stored values.
+Changes stay provisional until the outermost call returns, and then they all become final.
+
+| Line | What it writes |
+|---|---|
+| `hold <owner>: <amount> <token>, ...` | Balances, before the first step. `hold <contract>: <name> <value>` declares a stored value |
+| `<caller> -> <callee>: <text>` | A call. `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` and `[call: static]` set its kind, and `[fold]` folds its inner steps into one box |
+| `move <token>: <amount> <from> -> <to>` | Moves a balance through the token's pipe |
+| `write <party>: <name> <value>` | Rewrites a stored value |
+| `check <party>: <left> <op> <right>` | A check. dragon compares numbers itself, and a check on other values fails only with `[fail]` |
+| `return <party>: <value>` | Closes the innermost open call |
+| `revert <party>: <reason>` | Fails the innermost open call and rolls back the changes inside it |
+| `emit <party>: <name>(<arg>, ...)` | An event |
+| `calc <party>: <in> -> <out>` | A conversion |
 
 ## Documentation
 

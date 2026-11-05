@@ -1,0 +1,292 @@
+{
+  "version": 2,
+  "kind": "pipe",
+  "title": "USDCをWETH経由でDAIに替える",
+  "blocks": {
+    "box": [
+      {
+        "id": "alice",
+        "name": "Alice"
+      },
+      {
+        "id": "router",
+        "name": "SwapRouter"
+      },
+      {
+        "id": "usdc",
+        "name": "USDC"
+      },
+      {
+        "id": "pool1",
+        "name": "Pool1"
+      },
+      {
+        "id": "weth",
+        "name": "WETH"
+      },
+      {
+        "id": "pool2",
+        "name": "Pool2"
+      },
+      {
+        "id": "dai",
+        "name": "DAI"
+      }
+    ],
+    "hold": [
+      {
+        "box": "alice",
+        "amount": "1000",
+        "token": "USDC"
+      },
+      {
+        "box": "alice",
+        "amount": "0",
+        "token": "DAI"
+      },
+      {
+        "box": "pool1",
+        "amount": "2000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool1",
+        "amount": "10",
+        "token": "WETH"
+      },
+      {
+        "box": "pool2",
+        "amount": "5",
+        "token": "WETH"
+      },
+      {
+        "box": "pool2",
+        "amount": "20000",
+        "token": "DAI"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "AliceがRouterに交換を頼む",
+      "body": "AliceがRouterに、100 USDCをDAIに替えるよう頼む。受け取る量は最低150 DAIにする。",
+      "events": [
+        {
+          "type": "call",
+          "from": "alice",
+          "to": "router",
+          "label": "100 USDCをDAIに交換"
+        }
+      ]
+    },
+    {
+      "title": "Routerが道筋を確かめる",
+      "body": "Routerが、道筋にあるトークンの数を確かめる。USDCとWETHとDAIの3つ。",
+      "events": [
+        {
+          "type": "check",
+          "box": "router",
+          "left": "3",
+          "op": "==",
+          "right": "3"
+        }
+      ]
+    },
+    {
+      "title": "100 USDCがAliceからPool1へ移る",
+      "body": "RouterがUSDCに頼み、Aliceの100 USDCをPool1へ移させる。",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "usdc",
+          "label": "100 USDCを移す"
+        },
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "100",
+          "from": "alice",
+          "to": "pool1"
+        },
+        {
+          "type": "emit",
+          "box": "usdc",
+          "name": "Transfer",
+          "args": [
+            "alice",
+            "pool1",
+            "100"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "RouterがPool1に交換を頼む",
+      "body": "RouterがPool1に、USDCをWETHに替えてPool2へ送るよう頼む。",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "pool1",
+          "label": "100 USDCを交換"
+        }
+      ]
+    },
+    {
+      "title": "Pool1がWETHの量を計算する",
+      "body": "Pool1が今の比率で、100 USDCがWETHでいくらになるかを計算する。",
+      "events": [
+        {
+          "type": "calc",
+          "box": "pool1",
+          "in": "100 USDC",
+          "out": "0.05 WETH"
+        }
+      ]
+    },
+    {
+      "title": "0.05 WETHがPool1からPool2へ移る",
+      "body": "Pool1がWETHに頼み、0.05 WETHをPool2へ送らせる。",
+      "events": [
+        {
+          "type": "call",
+          "from": "pool1",
+          "to": "weth",
+          "label": "0.05 WETHを送る"
+        },
+        {
+          "type": "move",
+          "box": "weth",
+          "amount": "0.05",
+          "from": "pool1",
+          "to": "pool2"
+        },
+        {
+          "type": "emit",
+          "box": "weth",
+          "name": "Transfer",
+          "args": [
+            "pool1",
+            "pool2",
+            "0.05"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "weth",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "Pool1が払った量を返す",
+      "body": "Pool1がRouterに、0.05 WETHを払ったと返す。",
+      "events": [
+        {
+          "type": "return",
+          "box": "pool1",
+          "value": "0.05 WETH"
+        }
+      ]
+    },
+    {
+      "title": "RouterがPool2に交換を頼む",
+      "body": "RouterがPool2に、届いたWETHをDAIに替えてAliceへ送るよう頼む。",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "pool2",
+          "label": "0.05 WETHを交換"
+        }
+      ]
+    },
+    {
+      "title": "Pool2がDAIの量を計算する",
+      "body": "Pool2が今の比率で、0.05 WETHがDAIでいくらになるかを計算する。",
+      "events": [
+        {
+          "type": "calc",
+          "box": "pool2",
+          "in": "0.05 WETH",
+          "out": "160 DAI"
+        }
+      ]
+    },
+    {
+      "title": "160 DAIはAliceの最低額を満たす",
+      "body": "払う160 DAIが、Aliceの決めた最低150 DAI以上かを確かめる。",
+      "events": [
+        {
+          "type": "check",
+          "box": "pool2",
+          "left": "160 DAI",
+          "op": ">=",
+          "right": "150 DAI"
+        }
+      ]
+    },
+    {
+      "title": "160 DAIがPool2からAliceへ移る",
+      "body": "Pool2がDAIに頼み、160 DAIをAliceへ送らせる。",
+      "events": [
+        {
+          "type": "call",
+          "from": "pool2",
+          "to": "dai",
+          "label": "160 DAIを送る"
+        },
+        {
+          "type": "move",
+          "box": "dai",
+          "amount": "160",
+          "from": "pool2",
+          "to": "alice"
+        },
+        {
+          "type": "emit",
+          "box": "dai",
+          "name": "Transfer",
+          "args": [
+            "pool2",
+            "alice",
+            "160"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "dai",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "Pool2が払った量を返す",
+      "body": "Pool2がRouterに、160 DAIを払ったと返す。",
+      "events": [
+        {
+          "type": "return",
+          "box": "pool2",
+          "value": "160 DAI"
+        }
+      ]
+    },
+    {
+      "title": "交換が終わる",
+      "body": "一番外の呼び出しが戻り、2回の交換の変更が全て確定する。",
+      "events": [
+        {
+          "type": "return",
+          "box": "router",
+          "value": "160 DAI"
+        }
+      ]
+    }
+  ]
+}

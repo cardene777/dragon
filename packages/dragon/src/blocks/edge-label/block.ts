@@ -16,6 +16,6 @@ export const SIDES = Object.keys({ above: true, below: true, left: true, right: 
 export const block: Block = {
   name: "edge-label",
   rank: 86,
-  attach: { how: "ride-on-line" },
+  attach: { how: "ride-on-line", except: ["pipe"] },
   words: { attrs: { edge: ["side"] } },
 };

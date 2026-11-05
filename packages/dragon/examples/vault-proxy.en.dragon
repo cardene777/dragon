@@ -1,0 +1,50 @@
+// Alice deposits 1 ETH in a vault through a proxy.
+// The ETH rides along with the call, the proxy borrows code that writes to its own values, and the price is read with a call that cannot write.
+pipe Deposit 1 ETH in a vault through a proxy
+
+box alice as Alice
+box proxy as VaultProxy
+box logic as VaultLogic
+box oracle as PriceOracle
+
+hold alice: 5 ETH
+hold proxy: 0 ETH
+hold proxy: owner alice
+hold proxy: "deposits[alice]" 0
+hold proxy: paused false
+
+step Alice calls the proxy with 1 ETH
+  say Alice calls deposit on the proxy and sends 1 ETH along with the call.
+  alice -> proxy: deposit [value: 1 ETH]
+
+step The proxy borrows the vault logic
+  say The proxy has no code of its own, so it runs the code of VaultLogic on its own values.
+  proxy -> logic: deposit [call: delegate]
+
+step The vault checks it is not paused
+  say The borrowed code checks that the vault has not been paused.
+  check logic: paused == false
+
+step A call that only reads the price
+  say The borrowed code asks PriceOracle for the price. Nothing can be written inside this call.
+  logic -> oracle: price [call: static]
+
+step PriceOracle returns the price
+  say PriceOracle returns the current price of ETH.
+  return oracle: 3200
+
+step The deposit is written to the proxy
+  say The borrowed code writes to the values of the proxy, not of VaultLogic.
+  write logic: "deposits[alice]" 1
+
+step The borrowed code ends
+  say The code of VaultLogic finishes and control goes back to the proxy.
+  return logic: true
+
+step The proxy records the deposit
+  say The proxy emits an event saying who deposited how much.
+  emit proxy: Deposited(alice, 1)
+
+step The deposit ends
+  say The outermost call returns, and the ETH sent and the value written both become final.
+  return proxy: true

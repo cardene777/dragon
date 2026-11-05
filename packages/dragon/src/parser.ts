@@ -78,6 +78,11 @@
  * 段の中の出来事は段ごとの状態の手順 (`try-state.ts`) に 1 つずつ当て、空の待ち行列からの press と満杯の待ち行列への ask を断る。
  * 部品の行は試す図でだけ書け、試す図に箱と区画と線の行は書けない。
  *
+ * 配管の図 (`pipe`、#3389) は、`box` の行が関係者になり、最初の `step` より前に `hold <持ち主>: <量> <トークン>, ...` で残高を、
+ * `hold <持つ Contract>: <名前> <値>` で残高でない値を宣言する。線の行は呼び出しになり、属性の `value` と `call` と `fold` を持つ。
+ * 段の中では `move`、`write`、`check`、`return`、`revert`、`emit`、`calc` を書き、呼び出しの開け閉めと残高は
+ * 段ごとの状態の手順 (`pipe-run.ts`) に 1 つずつ当てる。これらの行は配管の図でだけ書け、配管の図に区画のような配管の図の持たない行は書けない。
+ *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  *
@@ -200,6 +205,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     tree: { boxes: new Map(), parents: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },
     try: { parts: [], items: [], pending: [] },
+    pipe: { holds: [], opened: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
   const steps: Step[] = [];
@@ -267,7 +273,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
    * 図の種類だけの行の頭の語を、ほかの種類の図に書いた時の誤りの文。
    * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
    */
-  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly };
+  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly };
   /** 線の列。持つ図の種類 (時間軸の図) のブロックが読み、ほかの種類の図に書いた列は誤りで止める */
   const columns: ParseState["columns"] = (source, from, to, attrs, end) => {
     const [read] = hooks("columns");
@@ -344,6 +350,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items: figure.lineup.items, ...(figure.lineup.roles.length > 0 ? { roles: figure.lineup.roles } : {}) } } : {}),
     ...(isTry ? { try: { parts: figure.try.parts, items: figure.try.items } } : {}),
+    ...(figure.pipe.holds.length > 0 ? { pipe: { holds: figure.pipe.holds } } : {}),
     ...(isTime && time.scale
       ? {
           time: {

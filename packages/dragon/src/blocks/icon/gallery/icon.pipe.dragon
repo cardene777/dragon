@@ -1,0 +1,12 @@
+pipe 絵
+
+box alice as Alice
+box vault as Vault [icon: shield]
+
+step AliceがVaultを呼ぶ
+  say 形を書いた関係者は、その形で描く。
+  alice -> vault: 預ける
+
+step Vaultが戻る
+  say 呼ばれた側が戻ると、呼び出しの管が閉じる。
+  return vault: ok

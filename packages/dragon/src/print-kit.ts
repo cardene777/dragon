@@ -12,10 +12,10 @@ export const name = (text: string): string => (text.includes("[") || text.starts
 /** 属性の値 */
 export const value = (text: string): string => (text.includes(",") || text.includes("]") || text.startsWith('"') ? quote(text) : text);
 
-/** 属性の並び。値の無い鍵は書かず、1 つも無ければ何も付けない */
-export const attrs = (pairs: [string, string | undefined][]): string => {
-  const written = pairs.filter((pair): pair is [string, string] => pair[1] !== undefined);
-  return written.length === 0 ? "" : ` [${written.map(([k, v]) => `${k}: ${value(v)}`).join(", ")}]`;
+/** 属性の並び。値の無い鍵は書かず、1 つも無ければ何も付けない。`flags` は値を持たない印で、鍵だけを後ろに並べる (配管の図の `[fold]`、#3389) */
+export const attrs = (pairs: [string, string | undefined][], flags: readonly string[] = []): string => {
+  const written = [...pairs.filter((pair): pair is [string, string] => pair[1] !== undefined).map(([k, v]) => `${k}: ${value(v)}`), ...flags];
+  return written.length === 0 ? "" : ` [${written.join(", ")}]`;
 };
 
 /** 数の属性の値 */

@@ -1,0 +1,312 @@
+{
+  "version": 2,
+  "kind": "pipe",
+  "title": "Retry a failed swap through another pool",
+  "blocks": {
+    "box": [
+      {
+        "id": "alice",
+        "name": "Alice"
+      },
+      {
+        "id": "router",
+        "name": "SwapRouter"
+      },
+      {
+        "id": "usdc",
+        "name": "USDC"
+      },
+      {
+        "id": "pool1",
+        "name": "Pool1"
+      },
+      {
+        "id": "weth",
+        "name": "WETH"
+      },
+      {
+        "id": "pool2",
+        "name": "Pool2"
+      }
+    ],
+    "hold": [
+      {
+        "box": "alice",
+        "amount": "1000",
+        "token": "USDC"
+      },
+      {
+        "box": "alice",
+        "amount": "0",
+        "token": "WETH"
+      },
+      {
+        "box": "router",
+        "amount": "0",
+        "token": "USDC"
+      },
+      {
+        "box": "router",
+        "name": "tries",
+        "value": "0"
+      },
+      {
+        "box": "pool1",
+        "amount": "2000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool1",
+        "amount": "0.01",
+        "token": "WETH"
+      },
+      {
+        "box": "pool2",
+        "amount": "2000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool2",
+        "amount": "10",
+        "token": "WETH"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Alice asks the router to swap",
+      "body": "Alice asks the router to turn 100 USDC into WETH.",
+      "events": [
+        {
+          "type": "call",
+          "from": "alice",
+          "to": "router",
+          "label": "swap 100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "The router takes Alice's USDC",
+      "body": "The router asks USDC to move Alice's 100 USDC to the router, and counts one try.",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "usdc",
+          "label": "take 100 USDC"
+        },
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "100",
+          "from": "alice",
+          "to": "router"
+        },
+        {
+          "type": "emit",
+          "box": "usdc",
+          "name": "Transfer",
+          "args": [
+            "alice",
+            "router",
+            "100"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        },
+        {
+          "type": "write",
+          "box": "router",
+          "name": "tries",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "title": "The router asks pool 1 to swap",
+      "body": "The router asks pool 1 to turn the USDC into WETH and send it to Alice.",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "pool1",
+          "label": "swap 100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "Pool 1 takes the USDC",
+      "body": "Pool 1 asks USDC to move the router's 100 USDC to pool 1.",
+      "events": [
+        {
+          "type": "call",
+          "from": "pool1",
+          "to": "usdc",
+          "label": "take 100 USDC"
+        },
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "100",
+          "from": "router",
+          "to": "pool1"
+        },
+        {
+          "type": "emit",
+          "box": "usdc",
+          "name": "Transfer",
+          "args": [
+            "router",
+            "pool1",
+            "100"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "Pool 1 has WETH pay Alice",
+      "body": "Pool 1 asks WETH to send 0.05 WETH to Alice.",
+      "events": [
+        {
+          "type": "call",
+          "from": "pool1",
+          "to": "weth",
+          "label": "send 0.05 WETH"
+        }
+      ]
+    },
+    {
+      "title": "The WETH transfer fails for lack of funds",
+      "body": "Pool 1 holds only 0.01 WETH. WETH fails, and pool 1 fails with it.",
+      "events": [
+        {
+          "type": "check",
+          "box": "weth",
+          "left": "0.01 WETH",
+          "op": ">=",
+          "right": "0.05 WETH"
+        },
+        {
+          "type": "revert",
+          "box": "weth",
+          "reason": "insufficient balance"
+        },
+        {
+          "type": "revert",
+          "box": "pool1",
+          "reason": "transfer failed"
+        }
+      ]
+    },
+    {
+      "title": "The router tries pool 2",
+      "body": "The router catches the failure of pool 1 and asks pool 2 for the same swap. Only the changes inside pool 1 went back.",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "pool2",
+          "label": "swap 100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "Pool 2 takes the USDC",
+      "body": "Pool 2 asks USDC to move the router's 100 USDC to pool 2.",
+      "events": [
+        {
+          "type": "call",
+          "from": "pool2",
+          "to": "usdc",
+          "label": "take 100 USDC"
+        },
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "100",
+          "from": "router",
+          "to": "pool2"
+        },
+        {
+          "type": "emit",
+          "box": "usdc",
+          "name": "Transfer",
+          "args": [
+            "router",
+            "pool2",
+            "100"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "0.05 WETH moves from pool 2 to Alice",
+      "body": "Pool 2 asks WETH to send 0.05 WETH to Alice.",
+      "events": [
+        {
+          "type": "call",
+          "from": "pool2",
+          "to": "weth",
+          "label": "send 0.05 WETH"
+        },
+        {
+          "type": "move",
+          "box": "weth",
+          "amount": "0.05",
+          "from": "pool2",
+          "to": "alice"
+        },
+        {
+          "type": "emit",
+          "box": "weth",
+          "name": "Transfer",
+          "args": [
+            "pool2",
+            "alice",
+            "0.05"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "weth",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "Pool 2 reports what it paid",
+      "body": "Pool 2 tells the router it paid 0.05 WETH.",
+      "events": [
+        {
+          "type": "return",
+          "box": "pool2",
+          "value": "0.05 WETH"
+        }
+      ]
+    },
+    {
+      "title": "The swap ends",
+      "body": "The outermost call returns, and every change that is left becomes final.",
+      "events": [
+        {
+          "type": "return",
+          "box": "router",
+          "value": "0.05 WETH"
+        }
+      ]
+    }
+  ]
+}

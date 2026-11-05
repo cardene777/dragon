@@ -1,0 +1,18 @@
+pipe Events
+
+box alice as Alice
+box usdc as USDC
+box bob as Bob
+
+hold alice: 100 USDC
+hold bob: 0 USDC
+
+step USDC emits an event
+  say USDC moves 10 from Alice to Bob and emits a Transfer event.
+  alice -> usdc: send
+  move usdc: 10 alice -> bob
+  emit usdc: Transfer(alice, bob, 10)
+
+step The call returns
+  say The outermost call returns, and the event becomes final.
+  return usdc: true

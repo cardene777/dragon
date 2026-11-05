@@ -17,6 +17,6 @@ export const EDGE = /^([^\s:[\]]+?)\s*->\s*([^\s:[\]]+)/du;
 export const block: Block = {
   name: "edge",
   rank: 82,
-  attach: { how: "connect" },
+  attach: { how: "connect", except: ["pipe"] },
   words: {},
 };

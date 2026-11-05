@@ -6,6 +6,16 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **Added the pipe diagram (`pipe`), which follows the calls, balances, and stored values inside one transaction step by step** (#3389)
+
+  Start the first line with `pipe` and declare the parties with `box`. Whether each party is a sender, a contract, a token contract, or an account comes from the lines.
+  Before the first step, `hold <owner>: <amount> <token>, ...` declares balances and `hold <contract>: <name> <value>` declares a stored value. Inside a step, `move` moves a balance through a token's pipe, `write` rewrites a value plate, `check` shows a gauge, `emit` stacks an event chip, and `calc` shows a converter card.
+  A line `<caller> -> <callee>: <text>` opens a call lane. `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` and `[call: static]` set its kind, and `[fold]` folds its inner steps into one box that the reader opens by pressing it. `return` closes the innermost open call, and `revert` fails it and rolls back only the changes inside it. A check on values that are not numbers fails only with `[fail]`.
+  Tank levels are drawn to scale for each token. Changes stay hatched as provisional until the outermost call returns and then turn green as final, and rolled-back changes are marked red. In a narrow frame, the columns of parties a step does not touch fold into thin strips.
+  The examples are `swap`, `swap-revert`, `swap-two-hops`, `swap-retry`, `vault-proxy`, and `aggregator` in `packages/dragon/examples/`.
+
 ## [0.52.0] - 2026-11-06
 
 ### Changed

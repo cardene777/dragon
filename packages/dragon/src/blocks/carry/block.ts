@@ -17,6 +17,6 @@ export const CARRIES = Object.keys({ coin: true, none: true } satisfies Record<E
 export const block: Block = {
   name: "carry",
   rank: 84,
-  attach: { how: "ride-on-line" },
+  attach: { how: "ride-on-line", except: ["pipe"] },
   words: { attrs: { edge: ["carry", "tag"] } },
 };

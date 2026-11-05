@@ -1,0 +1,166 @@
+{
+  "version": 2,
+  "kind": "pipe",
+  "title": "Deposit 1 ETH in a vault through a proxy",
+  "blocks": {
+    "box": [
+      {
+        "id": "alice",
+        "name": "Alice"
+      },
+      {
+        "id": "proxy",
+        "name": "VaultProxy"
+      },
+      {
+        "id": "logic",
+        "name": "VaultLogic"
+      },
+      {
+        "id": "oracle",
+        "name": "PriceOracle"
+      }
+    ],
+    "hold": [
+      {
+        "box": "alice",
+        "amount": "5",
+        "token": "ETH"
+      },
+      {
+        "box": "proxy",
+        "amount": "0",
+        "token": "ETH"
+      },
+      {
+        "box": "proxy",
+        "name": "owner",
+        "value": "alice"
+      },
+      {
+        "box": "proxy",
+        "name": "deposits[alice]",
+        "value": "0"
+      },
+      {
+        "box": "proxy",
+        "name": "paused",
+        "value": "false"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Alice calls the proxy with 1 ETH",
+      "body": "Alice calls deposit on the proxy and sends 1 ETH along with the call.",
+      "events": [
+        {
+          "type": "call",
+          "from": "alice",
+          "to": "proxy",
+          "label": "deposit",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "title": "The proxy borrows the vault logic",
+      "body": "The proxy has no code of its own, so it runs the code of VaultLogic on its own values.",
+      "events": [
+        {
+          "type": "call",
+          "from": "proxy",
+          "to": "logic",
+          "label": "deposit",
+          "call": "delegate"
+        }
+      ]
+    },
+    {
+      "title": "The vault checks it is not paused",
+      "body": "The borrowed code checks that the vault has not been paused.",
+      "events": [
+        {
+          "type": "check",
+          "box": "logic",
+          "left": "paused",
+          "op": "==",
+          "right": "false"
+        }
+      ]
+    },
+    {
+      "title": "A call that only reads the price",
+      "body": "The borrowed code asks PriceOracle for the price. Nothing can be written inside this call.",
+      "events": [
+        {
+          "type": "call",
+          "from": "logic",
+          "to": "oracle",
+          "label": "price",
+          "call": "static"
+        }
+      ]
+    },
+    {
+      "title": "PriceOracle returns the price",
+      "body": "PriceOracle returns the current price of ETH.",
+      "events": [
+        {
+          "type": "return",
+          "box": "oracle",
+          "value": "3200"
+        }
+      ]
+    },
+    {
+      "title": "The deposit is written to the proxy",
+      "body": "The borrowed code writes to the values of the proxy, not of VaultLogic.",
+      "events": [
+        {
+          "type": "write",
+          "box": "logic",
+          "name": "deposits[alice]",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "title": "The borrowed code ends",
+      "body": "The code of VaultLogic finishes and control goes back to the proxy.",
+      "events": [
+        {
+          "type": "return",
+          "box": "logic",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "The proxy records the deposit",
+      "body": "The proxy emits an event saying who deposited how much.",
+      "events": [
+        {
+          "type": "emit",
+          "box": "proxy",
+          "name": "Deposited",
+          "args": [
+            "alice",
+            "1"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "The deposit ends",
+      "body": "The outermost call returns, and the ETH sent and the value written both become final.",
+      "events": [
+        {
+          "type": "return",
+          "box": "proxy",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}

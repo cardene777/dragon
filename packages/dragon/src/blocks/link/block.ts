@@ -16,7 +16,7 @@ export interface LinkFieldMessages {
 export const block: Block<LinkFieldMessages> = {
   name: "link",
   rank: 89,
-  attach: { how: "attach-to-box", except: ["lineup"] },
+  attach: { how: "attach-to-box", except: ["lineup", "pipe"] },
   words: { attrs: { box: ["link"] } },
   fieldMessages: {
     ja: { url: "/ で始まる path か、http:// か https:// で始まる URL にする" },

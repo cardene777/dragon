@@ -3,14 +3,20 @@ import { docs as actDocs } from "../../../../packages/dragon/src/blocks/act/gall
 import { docs as askDocs } from "../../../../packages/dragon/src/blocks/ask/gallery/docs";
 import { docs as boxDocs } from "../../../../packages/dragon/src/blocks/box/gallery/docs";
 import { docs as branchDocs } from "../../../../packages/dragon/src/blocks/branch/gallery/docs";
+import { docs as calcDocs } from "../../../../packages/dragon/src/blocks/calc/gallery/docs";
+import { docs as callDocs } from "../../../../packages/dragon/src/blocks/call/gallery/docs";
 import { docs as carryDocs } from "../../../../packages/dragon/src/blocks/carry/gallery/docs";
 import { docs as chainDocs } from "../../../../packages/dragon/src/blocks/chain/gallery/docs";
+import { docs as checkDocs } from "../../../../packages/dragon/src/blocks/check/gallery/docs";
 import { docs as colorDocs } from "../../../../packages/dragon/src/blocks/color/gallery/docs";
 import { docs as commitDocs } from "../../../../packages/dragon/src/blocks/commit/gallery/docs";
 import { docs as copyDocs } from "../../../../packages/dragon/src/blocks/copy/gallery/docs";
 import { docs as edgeDocs } from "../../../../packages/dragon/src/blocks/edge/gallery/docs";
 import { docs as edgeLabelDocs } from "../../../../packages/dragon/src/blocks/edge-label/gallery/docs";
+import { docs as emitDocs } from "../../../../packages/dragon/src/blocks/emit/gallery/docs";
+import { docs as foldDocs } from "../../../../packages/dragon/src/blocks/fold/gallery/docs";
 import { docs as groupDocs } from "../../../../packages/dragon/src/blocks/group/gallery/docs";
+import { docs as holdDocs } from "../../../../packages/dragon/src/blocks/hold/gallery/docs";
 import { docs as iconDocs } from "../../../../packages/dragon/src/blocks/icon/gallery/docs";
 import { docs as itemDocs } from "../../../../packages/dragon/src/blocks/item/gallery/docs";
 import { docs as leafDocs } from "../../../../packages/dragon/src/blocks/leaf/gallery/docs";
@@ -26,6 +32,8 @@ import { docs as pickDocs } from "../../../../packages/dragon/src/blocks/pick/ga
 import { docs as pointDocs } from "../../../../packages/dragon/src/blocks/point/gallery/docs";
 import { docs as pressDocs } from "../../../../packages/dragon/src/blocks/press/gallery/docs";
 import { docs as queueDocs } from "../../../../packages/dragon/src/blocks/queue/gallery/docs";
+import { docs as returnDocs } from "../../../../packages/dragon/src/blocks/return/gallery/docs";
+import { docs as revertDocs } from "../../../../packages/dragon/src/blocks/revert/gallery/docs";
 import { docs as roleDocs } from "../../../../packages/dragon/src/blocks/role/gallery/docs";
 import { docs as routeDocs } from "../../../../packages/dragon/src/blocks/route/gallery/docs";
 import { docs as rowDocs } from "../../../../packages/dragon/src/blocks/row/gallery/docs";
@@ -37,6 +45,8 @@ import { docs as stampDocs } from "../../../../packages/dragon/src/blocks/stamp/
 import { docs as startFinishDocs } from "../../../../packages/dragon/src/blocks/start-finish/gallery/docs";
 import { docs as stepDocs } from "../../../../packages/dragon/src/blocks/step/gallery/docs";
 import { docs as stripDocs } from "../../../../packages/dragon/src/blocks/strip/gallery/docs";
+import { docs as valueDocs } from "../../../../packages/dragon/src/blocks/value/gallery/docs";
+import { docs as writeDocs } from "../../../../packages/dragon/src/blocks/write/gallery/docs";
 import { docs as zoomDocs } from "../../../../packages/dragon/src/blocks/zoom/gallery/docs";
 
 /** 使い方の頁の段落。鍵はブロックの置き場の dir の名前 */
@@ -45,14 +55,20 @@ export const BLOCK_DOCS = {
   "ask": askDocs,
   "box": boxDocs,
   "branch": branchDocs,
+  "calc": calcDocs,
+  "call": callDocs,
   "carry": carryDocs,
   "chain": chainDocs,
+  "check": checkDocs,
   "color": colorDocs,
   "commit": commitDocs,
   "copy": copyDocs,
   "edge": edgeDocs,
   "edge-label": edgeLabelDocs,
+  "emit": emitDocs,
+  "fold": foldDocs,
   "group": groupDocs,
+  "hold": holdDocs,
   "icon": iconDocs,
   "item": itemDocs,
   "leaf": leafDocs,
@@ -68,6 +84,8 @@ export const BLOCK_DOCS = {
   "point": pointDocs,
   "press": pressDocs,
   "queue": queueDocs,
+  "return": returnDocs,
+  "revert": revertDocs,
   "role": roleDocs,
   "route": routeDocs,
   "row": rowDocs,
@@ -79,5 +97,7 @@ export const BLOCK_DOCS = {
   "start-finish": startFinishDocs,
   "step": stepDocs,
   "strip": stripDocs,
+  "value": valueDocs,
+  "write": writeDocs,
   "zoom": zoomDocs,
 } as const;

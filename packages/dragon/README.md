@@ -151,7 +151,7 @@ A name the palette does not have, or a value that cannot be read as a color (one
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `git`, `lineup`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
 
@@ -400,6 +400,75 @@ step You send one
 step The builder makes a block
   say The two highest fees go into block 2, which holds block 1's hash as prev.
   press Build
+```
+
+### Pipe diagram
+
+Start with `pipe` to draw a pipe diagram, which follows one transaction step by step: the calls between contracts, the balances, and the stored values.
+Declare the parties with `box`. Whether each party is a sender, a contract, a token contract, or an account comes from the lines, so it is not written.
+
+- `hold <owner>: <amount> <token>, <amount> <token>` declares balances before the first step, and `hold <contract>: <name> <value>` declares a stored value. Name a token by its declared party, as in `box usdc as USDC`. `ETH` needs no declaration. Wrap names that read as amounts and names that contain `[` in `"`
+- `<caller> -> <callee>: <text>` is a call. `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` borrows the callee's code and writes to the caller's values, `[call: static]` cannot write, and `[fold]` folds the call's inner steps into one box that opens when pressed
+- `return <party>: <value>` closes the innermost open call, and `revert <party>: <reason>` fails it and rolls back only the changes inside it
+- `move <token>: <amount> <from> -> <to>` moves a balance through the token's pipe, and `write <party>: <name> <value>` rewrites a value plate
+- `check <party>: <left> <op> <right>` is a check with `>=`, `<=`, `==`, `!=`, `>`, or `<`. dragon compares numbers itself, and a check on other values fails only with `[fail]`
+- `emit <party>: <name>(<arg>, ...)` is an event, and `calc <party>: <in> -> <out>` is a conversion
+
+Tank levels are drawn to scale for each token. Changes stay provisional (hatched) until the outermost call returns, and then they all turn final (green). Changes that a `revert` rolls back are marked in red.
+
+```dragon
+pipe Swap 1 ETH for USDC
+
+box alice as Alice
+box ex as Exchange
+box old as OldPool
+box pool as Pool
+box usdc as USDC
+
+hold alice: 1 ETH, 0 USDC
+hold ex: 0 ETH
+hold pool: 5000 USDC
+hold ex: "swaps[alice]" 0
+
+step Alice asks Exchange with 1 ETH attached
+  say ETH attached to a call moves into the callee's tank as the call is made.
+  alice -> ex: swap [value: 1 ETH]
+
+step The old pool is closed
+  say The check fails, and every change up to it rolls back.
+  ex -> old: swap
+  check old: open == true [fail]
+  revert old: closed
+
+step Read the pool price
+  say A call that cannot write reads only the price.
+  ex -> pool: price [call: static]
+  return pool: 3200
+
+step Hand the swap to the pool
+  say The inner steps fold into one box, which opens when pressed.
+  ex -> pool: swap [fold]
+
+step Work out the amount to pay
+  say Work out how much USDC 1 ETH is worth at the current price.
+  calc pool: 1 ETH -> 3200 USDC
+
+step USDC moves to Alice
+  say USDC takes the amount from the pool's balance and adds it to Alice's.
+  pool -> usdc: transfer
+  move usdc: 3200 pool -> alice
+  emit usdc: Transfer(pool, alice, 3200)
+  return usdc: true
+
+step The pool returns the amount it paid
+  say Even after the inner call returns, the changes stay provisional.
+  return pool: 3200 USDC
+
+step The swap ends
+  say Exchange writes its record and returns, and every change becomes final here.
+  write ex: "swaps[alice]" 1
+  emit ex: Swapped(alice, 3200)
+  return ex: 3200 USDC
 ```
 
 ## Source JSON

@@ -1,0 +1,52 @@
+pipe 1 ETHをUSDCに替える
+
+box alice as Alice
+box ex as Exchange
+box old as OldPool
+box pool as Pool
+box usdc as USDC
+
+hold alice: 1 ETH, 0 USDC
+hold ex: 0 ETH
+hold pool: 5000 USDC
+hold ex: "swaps[alice]" 0
+
+step AliceがExchangeに1 ETHを添えて頼む
+  say 呼び出しに添えたETHは、呼んだ所で相手の槽へ移る。
+  alice -> ex: swap [value: 1 ETH]
+
+step 古いPoolは閉じている
+  say 確かめた所で落ち、そこまでの変更が元へ戻る。
+  ex -> old: swap
+  check old: open == true [fail]
+  revert old: 閉じている
+
+step Poolの価格を読む
+  say 書き込めない呼び出しで価格だけを読む。
+  ex -> pool: price [call: static]
+  return pool: 3200
+
+step Poolに交換を任せる
+  say 内側の段は1つの箱に畳まれ、押すと開く。
+  ex -> pool: swap [fold]
+
+step 払う量を計算する
+  say 1 ETHが今の価格でいくらのUSDCになるかを計算する。
+  calc pool: 1 ETH -> 3200 USDC
+
+step USDCがAliceへ移る
+  say USDCがPoolの残高を減らしてAliceに足す。
+  pool -> usdc: transfer
+  move usdc: 3200 pool -> alice
+  emit usdc: Transfer(pool, alice, 3200)
+  return usdc: true
+
+step Poolが払った量を返す
+  say 内側の呼び出しが戻っても、変更は暫定のまま。
+  return pool: 3200 USDC
+
+step 交換が終わる
+  say Exchangeが記録を書いて戻り、ここで全ての変更が確定する。
+  write ex: "swaps[alice]" 1
+  emit ex: Swapped(alice, 3200)
+  return ex: 3200 USDC

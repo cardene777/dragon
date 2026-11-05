@@ -1,0 +1,132 @@
+// An aggregator splits Alice's USDC across three pools into WETH, takes a fee, and the router sends the rest to Bob.
+// There are 15 parties. The inside of the aggregator folds into one box, and the 9 parties that appear only inside are not drawn until the box opens.
+pipe An aggregator swaps across three pools
+
+box alice as Alice
+box router as Router
+box agg as Aggregator
+box usdc as USDC
+box oracle as Oracle
+box lib as Lib
+box pool1 as Pool1
+box pool2 as Pool2
+box pool3 as Pool3
+box weth as WETH
+box pool4 as Pool4
+box dai as DAI
+box fee as Fee
+box vault as Vault
+box bob as Bob
+
+hold alice: 1000 USDC
+hold router: 0 WETH
+hold agg: 0 USDC, 0 WETH
+hold pool1: 2000 USDC, 10 WETH
+hold pool2: 1500 USDC, 8 WETH
+hold pool3: 1000 USDC, 6 WETH
+hold pool4: 30 WETH, 100000 DAI
+hold fee: 0 DAI
+hold bob: 0 WETH
+hold vault: volume 0
+
+step Alice asks the router to swap
+  say Alice asks the router to turn 100 USDC into WETH and send it to Bob. She wants at least 0.049 WETH.
+  alice -> router: swap 100 USDC into WETH
+
+step 100 USDC moves from Alice to the aggregator
+  say The router asks USDC to move Alice's 100 USDC to the aggregator.
+  router -> usdc: move 100 USDC
+  move usdc: 100 alice -> agg
+  emit usdc: Transfer(alice, agg, 100)
+  return usdc: true
+
+step The router hands the swap to the aggregator
+  say The router leaves the swap to the aggregator. The steps inside fold into one box that opens when pressed.
+  router -> agg: swap 100 USDC into WETH [fold]
+
+step The aggregator reads the price and the split
+  say The aggregator reads the price from Oracle and how to split across three pools from Lib.
+  agg -> oracle: price [call: static]
+  return oracle: 3200
+  agg -> lib: split [call: static]
+  return lib: 40/35/25
+
+step Pool 1 swaps 40 USDC
+  say The aggregator sends 40 USDC to pool 1, and pool 1 pays back 0.02 WETH.
+  agg -> usdc: send 40 USDC
+  move usdc: 40 agg -> pool1
+  return usdc: true
+  agg -> pool1: swap 40 USDC
+  calc pool1: 40 USDC -> 0.02 WETH
+  pool1 -> weth: send 0.02 WETH
+  move weth: 0.02 pool1 -> agg
+  return weth: true
+  return pool1: 0.02 WETH
+
+step Pool 2 swaps 35 USDC
+  say The aggregator sends 35 USDC to pool 2, and pool 2 pays back 0.0175 WETH.
+  agg -> usdc: send 35 USDC
+  move usdc: 35 agg -> pool2
+  return usdc: true
+  agg -> pool2: swap 35 USDC
+  calc pool2: 35 USDC -> 0.0175 WETH
+  pool2 -> weth: send 0.0175 WETH
+  move weth: 0.0175 pool2 -> agg
+  return weth: true
+  return pool2: 0.0175 WETH
+
+step Pool 3 swaps 25 USDC
+  say The aggregator sends 25 USDC to pool 3, and pool 3 pays back 0.0125 WETH.
+  agg -> usdc: send 25 USDC
+  move usdc: 25 agg -> pool3
+  return usdc: true
+  agg -> pool3: swap 25 USDC
+  calc pool3: 25 USDC -> 0.0125 WETH
+  pool3 -> weth: send 0.0125 WETH
+  move weth: 0.0125 pool3 -> agg
+  return weth: true
+  return pool3: 0.0125 WETH
+
+step Pool 4 turns the fee into DAI for Fee
+  say The aggregator sends 0.0005 WETH to pool 4, and pool 4 sends 1.6 DAI to Fee as the fee.
+  agg -> weth: send 0.0005 WETH
+  move weth: 0.0005 agg -> pool4
+  return weth: true
+  agg -> pool4: swap the fee into DAI
+  calc pool4: 0.0005 WETH -> 1.6 DAI
+  pool4 -> dai: send 1.6 DAI to Fee
+  move dai: 1.6 pool4 -> fee
+  return dai: true
+  return pool4: 1.6 DAI
+
+step The rest of the WETH goes to the router
+  say The aggregator sends the remaining 0.0495 WETH to the router.
+  agg -> weth: send 0.0495 WETH
+  move weth: 0.0495 agg -> router
+  emit weth: Transfer(agg, router, 0.0495)
+  return weth: true
+
+step The swapped amount is recorded
+  say The aggregator asks the vault to record how much was swapped.
+  agg -> vault: record the amount
+  write vault: volume 100
+  return vault: true
+
+step The aggregator returns
+  say The aggregator tells the router it sent 0.0495 WETH.
+  return agg: 0.0495 WETH
+
+step 0.0495 WETH meets the minimum
+  say The router checks that the 0.0495 WETH it received is at least 0.049 WETH.
+  check router: 0.0495 WETH >= 0.049 WETH
+
+step The router sends the WETH to Bob
+  say The router asks WETH to send 0.0495 WETH to Bob.
+  router -> weth: send 0.0495 WETH to Bob
+  move weth: 0.0495 router -> bob
+  emit weth: Transfer(router, bob, 0.0495)
+  return weth: true
+
+step The swap ends
+  say The outermost call returns, and every change across the 15 parties becomes final.
+  return router: 0.0495 WETH

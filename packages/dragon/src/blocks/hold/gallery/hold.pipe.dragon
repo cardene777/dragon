@@ -1,0 +1,17 @@
+pipe 槽
+
+box alice as Alice
+box usdc as USDC
+box bob as Bob
+
+hold alice: 100 USDC
+hold bob: 0 USDC
+
+step USDCが残高を移す
+  say USDCがAliceの10をBobへ移す。移した分は暫定。
+  alice -> usdc: 送る
+  move usdc: 10 alice -> bob
+
+step 呼び出しが戻る
+  say 一番外の呼び出しが戻り、移した分が確定する。
+  return usdc: true

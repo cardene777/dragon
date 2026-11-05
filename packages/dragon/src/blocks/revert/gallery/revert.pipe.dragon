@@ -1,0 +1,17 @@
+pipe 取り消し
+
+box alice as Alice
+box usdc as USDC
+box pool as Pool
+
+hold alice: 100 USDC
+hold pool: 0 USDC
+
+step 移す
+  say USDCがAliceの100をPoolへ移す。変更はまだ暫定。
+  alice -> usdc: 送る
+  move usdc: 100 alice -> pool
+
+step 落ちる
+  say USDCが落ち、内側の変更が全て元へ戻る。
+  revert usdc: 失敗

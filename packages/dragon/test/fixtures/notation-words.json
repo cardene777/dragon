@@ -7,7 +7,8 @@
     "time",
     "tree",
     "lineup",
-    "try"
+    "try",
+    "pipe"
   ],
   "HEADS": [
     "group",
@@ -43,7 +44,15 @@
     "queue",
     "chain",
     "ask",
-    "press"
+    "press",
+    "hold",
+    "move",
+    "write",
+    "return",
+    "check",
+    "emit",
+    "calc",
+    "revert"
   ],
   "ATTRS": {
     "diagram": [
@@ -69,7 +78,10 @@
       "tag",
       "side",
       "at",
-      "into"
+      "into",
+      "call",
+      "value",
+      "fold"
     ],
     "note": [
       "color"
@@ -137,6 +149,9 @@
       "into",
       "take",
       "at"
+    ],
+    "check": [
+      "fail"
     ]
   },
   "CARRIES": [

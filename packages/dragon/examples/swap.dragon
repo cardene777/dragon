@@ -1,0 +1,74 @@
+// AliceがRouterに頼み、100 USDCをWETHに替えてBobへ送るまで。
+// 移した分は最後まで暫定で、一番外の呼び出しが戻った段で全てが確定する。
+pipe 100 USDCをWETHに替えてBobへ送る
+
+box alice as Alice
+box router as SwapRouter
+box usdc as USDC
+box pool as LiquidityPool
+box weth as WETH
+box bob as Bob
+
+hold alice: 1000 USDC
+hold pool: 2000 USDC, 10 WETH
+hold bob: 0 WETH
+hold usdc: "allowance[alice][router]" 100
+
+step AliceがRouterに交換を頼む
+  say AliceがRouterに、100 USDCをWETHに替えてBobへ送るよう頼む。受け取る量は最低0.04 WETHにする。
+  alice -> router: 100 USDCを交換
+
+step Routerが道筋を確かめる
+  say Routerが、交換の道筋にあるトークンの数を確かめる。
+  check router: 2 == 2
+
+step RouterがUSDCに移させる
+  say RouterがUSDCに、Aliceの100 USDCをPoolへ移させる。
+  router -> usdc: 100 USDCを移す
+
+step USDCが許可額を確かめる
+  say USDCが、AliceがRouterに許した額で足りるかを確かめる。
+  check usdc: 100 >= 100
+
+step 100 USDCがAliceからPoolへ移る
+  say USDCがAliceの残高を減らしてPoolに足し、使った分だけ許可額を減らす。
+  move usdc: 100 alice -> pool
+  write usdc: "allowance[alice][router]" 0
+  emit usdc: Transfer(alice, pool, 100)
+
+step USDCが移し終えたと返す
+  say USDCがRouterに、移し終えたと返す。変更はまだ暫定のまま。
+  return usdc: true
+
+step RouterがPoolに交換を頼む
+  say RouterがPoolに、受け取ったUSDCをWETHに替えてBobへ送るよう頼む。
+  router -> pool: 100 USDCを交換
+
+step Poolが払うWETHを計算する
+  say Poolが今の比率で、100 USDCがWETHでいくらになるかを計算する。
+  calc pool: 100 USDC -> 0.05 WETH
+
+step 0.05 WETHはAliceの最低額を満たす
+  say 払う0.05 WETHが、Aliceの決めた最低0.04 WETH以上かを確かめる。
+  check pool: 0.05 WETH >= 0.04 WETH
+
+step PoolがWETHに払わせる
+  say PoolがWETHに、0.05 WETHをBobへ送らせる。
+  pool -> weth: 0.05 WETHを送る
+
+step 0.05 WETHがPoolからBobへ移る
+  say WETHがPoolの残高を減らしてBobに足す。
+  move weth: 0.05 pool -> bob
+  emit weth: Transfer(pool, bob, 0.05)
+
+step WETHが送り終えたと返す
+  say WETHがPoolに、送り終えたと返す。
+  return weth: true
+
+step Poolが払った量を返す
+  say PoolがRouterに、0.05 WETHを払ったと返す。内側の呼び出しが戻っても、変更は暫定のまま。
+  return pool: 0.05 WETH
+
+step 交換が終わる
+  say 一番外の呼び出しが戻り、ここで全ての変更が確定する。
+  return router: 0.05 WETH
