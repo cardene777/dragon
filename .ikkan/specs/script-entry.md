@@ -11,4 +11,10 @@
 | 命令 `dragon embed <HTML の file>` が、入口の1行を束ねた script の中身に置き換えた1 file を書き、外への通信を止めて開くと塊が図に置き換わり、字の `<link>` を足さない | `pnpm exec vitest run`の検査`embed-writes-offline-file`が通る | #3343 |
 | `packages/dragon/README.md` と `packages/dragon/README.ja.md` に、package の今の版の真ん中の数まで固定した jsDelivr の URL の1行で図を出す書き方と、`dragon embed` で1 file に埋める書き方がある | `pnpm exec vitest run`の検査`readme-shows-script-entry`が通る | #3343 |
 | 軽い入口の `loadFor` を待ってから `mountDiagram` で描く今の使い方は、後から読む種類の見本を既定の入口と同じ SVG で描く | `pnpm exec vitest run`の検査`light-load-for-reads-every-later-example`が通る | #3343 |
-| 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3343 |
+| 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3343 #3375 |
+| 頁が jsDelivr の`@cardenelabs/dragon@<版の真ん中の数まで>/dist/cdn/dragon.js`で入口を読む時、入口の後に読む file を全て`@cardenelabs/dragon@<package の今の版>/`の場所から読み、範囲の場所に入口のほかの file が無くても、時系列図と枝分かれの図の塊が図に置き換わる | `pnpm exec vitest run`の検査`script-entry-pins-own-version-on-cdn`が通る | #3375 |
+| 版を含まない場所 (`http://localhost/cdn/`) から入口を読む頁で、記法の塊が図に置き換わる | `pnpm exec vitest run`の検査`script-entry-replaces-block-with-figure`が通る | #3375 |
+| 版を含まない場所から読む頁で、書いた図の種類の塊だけを後から読む | `pnpm exec vitest run`の検査`script-entry-loads-only-used-kinds`が通る | #3375 |
+| 入口の script が最初に読む量 (圧縮後) が上限 90,000 byte に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3375 |
+| `dragon embed`で書いた1 file を外への通信を止めて開くと、塊が図に置き換わる | `pnpm exec vitest run`の検査`embed-writes-offline-file`が通る | #3375 |
+| README の1行は package の今の版の真ん中の数までを指す jsDelivr の URL のまま変わらない | `pnpm exec vitest run`の検査`readme-shows-script-entry`が通る | #3375 |
