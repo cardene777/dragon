@@ -6,7 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-11-06
+
 ### Changed
+
+- **The READMEs now open with the idea behind dragon** (#3391)
+
+  The repo and package READMEs, in English and Japanese, have a section before Install on how dragon builds diagrams out of core blocks, kind blocks, and connector blocks with one look, how blocks and diagram kinds are added today (a pull request or a fork), and how it aims to be as easy as mermaid to write and show.
+  The repo READMEs also show the one-line script entry in the first diagram, and list all eight diagram kinds.
 
 - **Figures drawn with `arcade` draw the bends of their lines as square corners, the same as the bitsumi article figures** (#3358)
 

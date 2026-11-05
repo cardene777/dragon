@@ -73,7 +73,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.51/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.52/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -87,7 +87,7 @@ step Press sign in
 </pre>
 ```
 
-The script loads from jsDelivr with the version pinned up to the middle number (`@0.51`), so fixes in later patch versions reach the page and a version that changes the notation does not.
+The script loads from jsDelivr with the version pinned up to the middle number (`@0.52`), so fixes in later patch versions reach the page and a version that changes the notation does not.
 It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
