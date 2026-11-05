@@ -7,13 +7,9 @@
  * build するのは、この回に回す検査の file が `startSite()` か、それを包むサイトの検査の道具 `useSite()` (`site-support.ts`) を呼ぶ時だけ。頁を開かない回は build しない。
  * build の設定を名指す検査 (`startSite({ config: join(app, "…") })`) には、その設定の build を別に 1 度だけ行う。
  * 検査の前後処理は 1 件の上限 (10 秒) に収める決まりで、build はその中に収まらないので、前後処理ではなくこの段で行う。
- *
- * 頁を開く Chromium も、build する回にこの段で 1 つだけ起こし、つなぐ先を渡す (#3384)。検査の file はそれにつなぐだけで、閉じるのはこの段の片付け。
- * 混んだ機械では Chromium を閉じるのに 10 秒を超えた回があり、検査が全部通った回を落ちた扱いにしたので、起こすのも閉じるのも前後処理の外に置く。
  */
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import type { TestProject } from "vitest/node";
 import { app, type Built, buildPage } from "./site-build";
 
@@ -21,15 +17,7 @@ declare module "vitest" {
   export interface ProvidedContext {
     /** build した見本帳の頁。鍵は build の設定の `apps/playground-spa` からの path で、名指さない build は `default` */
     dragonSites: Record<string, Built>;
-    /** この段が起こした Chromium のつなぐ先。頁を開かない回は空 */
-    dragonBrowser: string;
   }
-}
-
-/** 頁を開く検査の file が共につなぐ、画面なしの Chromium を 1 つ起こす */
-export async function launchSharedChromium(): Promise<{ endpoint: string; close: () => Promise<void> }> {
-  const server = await chromium.launchServer();
-  return { endpoint: server.wsEndpoint(), close: () => server.close() };
 }
 
 /** 名指さない build の鍵 */
@@ -47,26 +35,20 @@ export function sitesNeeded(sources: string[]): string[] {
   return [...keys].sort();
 }
 
-export default async function setup(project: TestProject): Promise<() => Promise<void>> {
+export default async function setup(project: TestProject): Promise<() => void> {
   // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
   const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
   const specs = await vitest.getRelevantTestSpecifications(vitest.filenamePattern);
   const keys = sitesNeeded(specs.map((spec) => readFileSync(spec.moduleId, "utf8")));
-  // build と Chromium の起動は互いを待たないので、同時に始める
-  const [built, browser] = await Promise.all([
-    Promise.all(
-      keys.map(
-        async (key) =>
-          [key, await buildPage(key === DEFAULT_SITE ? undefined : join(app, key))] as const,
-      ),
+  const built = await Promise.all(
+    keys.map(
+      async (key) =>
+        [key, await buildPage(key === DEFAULT_SITE ? undefined : join(app, key))] as const,
     ),
-    keys.length > 0 ? launchSharedChromium() : undefined,
-  ]);
+  );
   const sites = Object.fromEntries(built);
   project.provide("dragonSites", sites);
-  project.provide("dragonBrowser", browser?.endpoint ?? "");
-  return async () => {
-    await browser?.close();
+  return () => {
     for (const site of Object.values(sites)) rmSync(site.dir, { recursive: true, force: true });
   };
 }
