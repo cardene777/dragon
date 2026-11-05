@@ -3,7 +3,7 @@
  *
  * サイトの検査は 1 つの file に 111 件を順に並べており、1 つの作業者が順に回すので一式の上限 (5 分) を超えた。
  * 話題ごとの file に分けて別の作業者が同時に回す。1 つの file だけが使う道具はその file に置く。
- * 頁の配り手と、準備の段が起こした Chromium へつないだ線 (`site`) は、検査の file が `useSite()` で用意する。読む側は import した名前のまま使える
+ * 頁の配り手と、準備の段が起こした Chromium で頁を開く口 (`site`) は、検査の file が `useSite()` で用意する。読む側は import した名前のまま使える
  */
 
 import { type Diagram, PALETTES, parseNotation } from "@cardenelabs/dragon";
@@ -14,7 +14,7 @@ import { type Lang, TEXT } from "../text";
 import { BASE, example, screenOf, type Site, startSite } from "./playground-support";
 import { afterAll, afterEach, beforeAll, expect } from "vitest";
 
-/** 検査の file が開く頁の配り手と Chromium へつないだ線。`useSite()` が file の最初に起こし、最後に閉じる。Chromium そのものは閉じない (#3384) */
+/** 検査の file が開く頁の配り手と、頁を開く口。`useSite()` が file の最初に起こし、最後に配り手を閉じる。Chromium は file の process が終わる時に止まる (#3388) */
 export let site: Site;
 
 /** file の検査の前後処理を置く。検査ごとに開いた context を閉じる */

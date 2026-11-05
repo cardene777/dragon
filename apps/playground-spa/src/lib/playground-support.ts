@@ -9,10 +9,11 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { gzipSync } from "node:zlib";
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import type { Browser, BrowserContext, Page } from "playwright";
 import { expect, inject } from "vitest";
+import { PRELOADED_CHROMIUM } from "./chromium-preload";
 import { app, type Built, root } from "./site-build";
-import { DEFAULT_SITE } from "./site-setup";
+import { DEFAULT_SITE } from "./site-needs";
 
 export { app, type Built, root };
 
@@ -153,33 +154,30 @@ export async function waitForCoarse(page: Page, timeout = 5_000): Promise<void> 
 export interface Site {
   origin: string;
   built: Built;
-  /** つないだ Chromium のつなぐ先。準備の段 (`site-setup.ts`) が作業者ごとに起こした物のうち、この作業者の物 (#3384) */
-  endpoint: string;
   /** 新しい context で頁を開く。開いた context は `closeContexts` で閉じる */
   open: (o?: OpenOptions) => Promise<Opened>;
   /** 開いた context を全て閉じる。`afterEach` から呼ぶ */
   closeContexts: () => Promise<void>;
+  /** 頁の配り手を閉じる。Chromium は閉じない */
   close: () => Promise<void>;
 }
 
 /**
- * build した頁を配り、画面なしの Chromium につなぐ (#3030)。
+ * build した頁を配り、画面なしの Chromium で開けるようにする (#3030)。
  *
  * 編集画面の検査とサイトの帯と経路の検査が同じ形で頁を開けるよう、開く手順をここに 1 つだけ持つ。
  * 頁は 1 回の実行の準備の段 (`site-setup.ts`) が 1 度だけ build した物を使い、ここでは build しない (#3381)。
- * Chromium も準備の段が作業者ごとに起こした物のうち、この作業者の物につなぎ、ここでは起こさない。`close` はつないだ線を切るだけで Chromium は閉じない (#3384)。
+ * Chromium も検査の file の準備の段 (`chromium-preload.ts`) が file を読む前に起こし始めた物を使い、ここでは起こさない。
+ * `close` は頁の配り手を閉じるだけで、Chromium は検査の file の process が終わる時に止まる (#3388)。
  * `config` は build の設定の path で、準備の段は同じ設定の build を別に 1 度だけ行う
  */
 export async function startSite(o: { config?: string } = {}): Promise<Site> {
   const key = o.config === undefined ? DEFAULT_SITE : relative(app, o.config);
   const built = inject("dragonSites")[key];
   if (built === undefined) throw new Error(`見本帳の build (${key}) が準備の段に無い。検査の file が \`startSite()\` か \`startSite({ config: join(app, "…") })\` の形で呼んでいるかを確かめる (#3381)`);
-  // 作業者の番号 (`VITEST_POOL_ID`) は 1 から数える。頁を開く file が作業者より少ない回は Chromium も少ないので、余りで選ぶ
-  const browsers = inject("dragonBrowsers");
-  const { endpoint } = browsers[(Number(process.env.VITEST_POOL_ID ?? "1") - 1) % browsers.length] as { endpoint: string };
-  const server = await servePage(built.dir);
-  // つないだ Chromium の `close` は、この線で開いた context を閉じて線を切るだけ
-  const browser: Browser = await chromium.connect(endpoint);
+  const launching = (globalThis as Record<symbol, unknown>)[PRELOADED_CHROMIUM] as Promise<Browser> | undefined;
+  if (launching === undefined) throw new Error("頁を開く Chromium を準備の段 (`chromium-preload.ts`) が起こしていない。検査の file が `startSite()` か `useSite()` か `startSite({ config: join(app, \"…\") })` の形で呼んでいるかを確かめる (#3388)");
+  const [server, browser] = await Promise.all([servePage(built.dir), launching]);
   const contexts: BrowserContext[] = [];
 
   const open = async (o: OpenOptions = {}): Promise<Opened> => {
@@ -250,13 +248,11 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
   return {
     origin: server.origin,
     built,
-    endpoint,
     open,
     closeContexts: async () => {
       await Promise.all(contexts.splice(0).map((context) => context.close()));
     },
     close: async () => {
-      await browser.close();
       await server.close();
     },
   };

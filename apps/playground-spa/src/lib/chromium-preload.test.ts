@@ -43,7 +43,7 @@ describe("頁を開く検査の Chromium を file の前に起こす準備の段
     expect((globalThis as Record<symbol, unknown>)[KEY], "頁を開かない検査の file で、準備の段が Chromium を起こした").toBeUndefined();
   });
 
-  it("chromium-cleaned-on-process-exit", () => {
+  it("chromium-cleaned-on-process-exit", async () => {
     // 検査の file の前後処理は Chromium を閉じず、file の process が終わると、Chromium の process と作業用の folder が残らない
     const dir = mkdtempSync(join(tmpdir(), "dragon-preload-"));
     const out = join(dir, "browser.json");
@@ -61,8 +61,9 @@ describe("頁を開く検査の Chromium を file の前に起こす準備の段
       expect(ran.status, `頁を開く見本の検査が通らなかった:\n${brief}`).toBe(0);
       expect(existsSync(out), `見本の検査が Chromium の process を書いていない:\n${brief}`).toBe(true);
       const { pid, profile } = JSON.parse(readFileSync(out, "utf8")) as { pid: number; profile: string };
-      expect(alive(pid), `file の process が終わった後も Chromium の process (${pid}) が残る`).toBe(false);
       expect(profile, "Chromium の作業用の folder を読めていない").toMatch(/playwright_chromiumdev_profile-/u);
+      // Playwright は process の終わりに Chromium へ止まれ (SIGKILL) と送る。止まった process が消えるのは OS が引き取った後で、混んだ機械では少し遅れるので、消えるまで待つ
+      await expect.poll(() => alive(pid), { timeout: 4_000, interval: 100, message: `file の process が終わった後も Chromium の process (${pid}) が残る` }).toBe(false);
       expect(existsSync(profile), `file の process が終わった後も作業用の folder が残る (${profile})`).toBe(false);
     } finally {
       rmSync(dir, { recursive: true, force: true });

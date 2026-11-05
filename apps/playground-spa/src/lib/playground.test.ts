@@ -782,9 +782,7 @@ describe("公開する頁 (#2995)", () => {
       // 書き出すと、今の記法が書類名の `.dragon` の file として保存される
       const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
       expect(download.suggestedFilename(), "書き出す file の名前が書類名でない").toBe("edited.dragon");
-      // 準備の段の Chromium につないだ線では保存先の path を読めないので、中身を流れで受ける (#3384)
-      const exported = Buffer.concat((await (await download.createReadStream()).toArray()) as Buffer[]).toString("utf8");
-      expect(exported.trimEnd(), "書き出した file の中身が今の記法でない").toBe(EDITED);
+      expect(readFileSync(await download.path(), "utf8").trimEnd(), "書き出した file の中身が今の記法でない").toBe(EDITED);
 
       // 拡張子の無い書類名でも `.dragon` を付けて書き出す
       await page.locator(sel("file-name")).fill("memo");
@@ -1338,7 +1336,7 @@ describe("公開する頁 (#2995)", () => {
     try {
       expect(provided.dragonSites, "頁を開かない回に build した").toEqual({});
     } finally {
-      await teardown();
+      teardown();
     }
   });
 
