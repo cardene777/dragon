@@ -19,6 +19,10 @@
  * 黙って回さずに通すと、確かめていない変更を確かめたと読めてしまう。
  * 検査が要らない file は、表の `materials` に `"tests": []` と理由を書いて名指す。
  *
+ * 1 回の実行が上限 (5 分、`test-support/run-limit.ts`) で止まった時は、終わっていない file だけを次の実行で回し、全部が回るまで続ける (#3386)。
+ * 機械が混むと、頁を開く検査の file を多く選んだ回が上限で止まり、残った file を人が回し直すことになったため。
+ * 続きの実行で終わっていない file が減らなかった時は、そこで止める。止まらない検査を回し続けないため。
+ *
  * 使い方
  *   node scripts/test-related.mjs [file ...]        file を渡さない時は、既定の枝から分かれた後の変更 (commit していない変更と、まだ追っていない file を含む)
  *   --list                                          選んだ検査の file を出すだけで、回さない
@@ -28,7 +32,8 @@
  *   -- <vitest の引数>                               検査の命令に渡す
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, posix, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -267,6 +272,43 @@ export function branchChanges(root, base) {
   return [...new Set([...changed, ...untracked].filter(Boolean))];
 }
 
+/**
+ * 検査の file を回し、1 回の実行が上限で止まった時は、終わっていない file だけを次の実行で回して全部が回るまで続ける。
+ * `run(files, out)` は 1 回の実行を回して終わり方を返す。止める段は `out` に、終わっていない file (`unfinished`) と、終わった file で落ちた検査 (`failed`) を JSON で書く。
+ * 止まった実行で落ちた検査は、続きが全部通っても終わり方 1 にして最後に名前を出す。`say` は人に見せる文を受ける
+ */
+export function runUntilFinished(files, run, say) {
+  const failed = [];
+  const finish = (status) => {
+    if (failed.length === 0) return status;
+    say(`上限で止まった実行の中で落ちた検査 ${failed.length} 件:\n${failed.map((name) => `  ${name}\n`).join("")}`);
+    return 1;
+  };
+  let left = files;
+  for (;;) {
+    const dir = mkdtempSync(join(tmpdir(), "dragon-unfinished-"));
+    const out = join(dir, "unfinished.json");
+    let status;
+    let leftover;
+    try {
+      status = run(left, out) ?? 1;
+      leftover = existsSync(out) ? JSON.parse(readFileSync(out, "utf8")) : undefined;
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    // 止める段が書かなかった実行は、上限で止まらずに終わった
+    if (leftover === undefined) return finish(status);
+    failed.push(...leftover.failed);
+    if (leftover.unfinished.length === 0) return finish(0);
+    if (leftover.unfinished.length >= left.length) {
+      say(`続きの実行でも終わっていない file が減らなかったので止める (#3386)。終わっていない file ${leftover.unfinished.length} 件:\n${leftover.unfinished.map((path) => `  ${path}\n`).join("")}`);
+      return finish(1);
+    }
+    say(`1回の実行の上限で止まったので、終わっていない ${leftover.unfinished.length} file を次の実行で回す (#3386)\n${leftover.unfinished.map((path) => `  ${path}\n`).join("")}`);
+    left = leftover.unfinished;
+  }
+}
+
 function main() {
   const o = parseArgs(process.argv.slice(2));
   const root = o.root;
@@ -288,8 +330,12 @@ function main() {
   }
   process.stdout.write(`関係する検査 ${chosen.length} file\n${chosen.map((p) => `  ${p}\n`).join("")}`);
   if (o.list || chosen.length === 0) process.exit(0);
-  const ran = spawnSync("pnpm", ["exec", "vitest", "run", ...o.pass, ...chosen], { cwd: root, stdio: "inherit" });
-  process.exit(ran.status ?? 1);
+  const status = runUntilFinished(
+    chosen,
+    (files, out) => spawnSync("pnpm", ["exec", "vitest", "run", ...o.pass, ...files], { cwd: root, stdio: "inherit", env: { ...process.env, DRAGON_UNFINISHED_OUT: out } }).status,
+    (text) => process.stderr.write(text),
+  );
+  process.exit(status);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
