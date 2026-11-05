@@ -1,5 +1,6 @@
 /**
- * script の1行の入口 (#3343)。build で `dist/cdn/dragon.js` になり、頁は jsDelivr から ES module として読む。
+ * script の1行の入口の本体 (#3343)。build で `dist/cdn/dragon-main.js` になり、頁は jsDelivr から ES module として読む。
+ * 頁が読む `dist/cdn/dragon.js` は案内役 (`script-loader.ts`) で、自分と同じ版の場所からこの本体を読む (#3375)。
  *
  * ```html
  * <script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@<版>/dist/cdn/dragon.js"></script>

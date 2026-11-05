@@ -6,6 +6,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A page that loads the one-line script by version range no longer breaks for up to 7 days after a patch release** (#3375)
+
+  jsDelivr resolves a range URL such as `@0.50` per file and lets the browser keep it for 7 days, so an entry kept from an older patch fetched its chunks from the newer patch, where renamed chunks are missing.
+  `dist/cdn/dragon.js` is now a small loader that reads the main script `dist/cdn/dragon-main.js` from its own exact version, so the main script and every chunk come from the same version. From a location without a version in the URL, it reads the main script next to it.
+
 ## [0.50.0] - 2026-11-05
 
 ### Added

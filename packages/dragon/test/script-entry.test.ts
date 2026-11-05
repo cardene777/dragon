@@ -25,7 +25,9 @@ const ENTRY = "dragon.js";
 const EXAMPLES = join(ROOT, "examples");
 
 const PAGE = "http://localhost/";
-const LOCAL_ENTRY = `http://localhost/cdn/${ENTRY}`;
+const LOCAL_ROOT = "http://localhost/cdn/";
+/** jsDelivr の package の置き場。版の範囲 (`@0.50`) か版を全て書いた形 (`@0.50.0`) を後ろに付ける */
+const CDN_PACKAGE = "https://cdn.jsdelivr.net/npm/@cardenelabs/dragon";
 /** 図の字の CSS。jsDelivr の fontsource の版ごとの `index.css` */
 const FONT_CSS = /^https:\/\/cdn\.jsdelivr\.net\/npm\/@fontsource-variable\/(noto-sans-jp|jetbrains-mono)@[^/]+\/index\.css$/u;
 
@@ -50,10 +52,45 @@ const BROKEN = "sequence 誤り\n\nbox a\nboxx b\n\nstep 一\n  say あ。\n";
 /** HTML の字として書けるよう、`<` と `&` を逃がす */
 const escape = (text: string): string => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;");
 
+/** 入口と塊を渡す置き場 */
+interface Place {
+  /** 頁が `<script>` で読む入口の URL */
+  entry: string;
+  /** 置き場の URL なら `dist/cdn` の file の名前を、置き場に file が無い URL なら null を、置き場の外なら undefined を返す */
+  name(url: string): string | null | undefined;
+}
+
+/** 版を含まない自分の置き場。入口の隣の file を全て渡す */
+const LOCAL: Place = {
+  entry: `${LOCAL_ROOT}${ENTRY}`,
+  name: (url) => (url.startsWith(LOCAL_ROOT) ? url.slice(LOCAL_ROOT.length) : undefined),
+};
+
+/**
+ * 修正版を出した直後の jsDelivr。版の範囲の URL (`@<真ん中の数まで>`) は入口だけを今の build で返し、ほかの file は 404 にする。
+ * 範囲は file ごとに新しい版へ解かれ、名前の変わった塊はそこに無いため。版を全て書いた URL は今の build の file を返す
+ */
+function movedCdn(): Place {
+  const [major, minor] = version().split(".");
+  const range = `${CDN_PACKAGE}@${major}.${minor}/`;
+  const exact = `${CDN_PACKAGE}@${version()}/dist/cdn/`;
+  const entry = `${range}dist/cdn/${ENTRY}`;
+  return {
+    entry,
+    name: (url) => {
+      if (url === entry) return ENTRY;
+      if (url.startsWith(exact)) return url.slice(exact.length);
+      return url.startsWith(`${CDN_PACKAGE}@`) ? null : undefined;
+    },
+  };
+}
+
 /** 頁の中で何を取りに行ったか */
 interface Requests {
   /** 置き場から読んだ入口と塊の file の名前 */
   scripts: string[];
+  /** 置き場に取りに行った URL。置き場に無かった物も入る */
+  urls: string[];
   /** 字の CSS の URL */
   fonts: string[];
   /** 止めた外への通信の URL */
@@ -70,16 +107,18 @@ afterAll(async () => {
   await browser?.close();
 });
 
-/** 入口の1行と `body` を置いた頁を開いて `run` を回す */
-async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja"): Promise<T> {
+/** 入口の1行と `body` を置いた頁を開いて `run` を回す。入口と塊は `place` から渡す */
+async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja", place: Place = LOCAL): Promise<T> {
   const context = await (browser as Browser).newContext({ viewport: { width: 960, height: 720 } });
-  const requests: Requests = { scripts: [], fonts: [], outside: [] };
-  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><script type="module" src="${LOCAL_ENTRY}"></script></head><body>${body}</body></html>`;
+  const requests: Requests = { scripts: [], urls: [], fonts: [], outside: [] };
+  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><script type="module" src="${place.entry}"></script></head><body>${body}</body></html>`;
   await context.route("**/*", async (route) => {
     const url = route.request().url();
     if (url === PAGE) return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
-    if (url.startsWith("http://localhost/cdn/")) {
-      const file = url.slice("http://localhost/cdn/".length);
+    const file = place.name(url);
+    if (file !== undefined) {
+      requests.urls.push(url);
+      if (file === null) return route.fulfill({ status: 404, body: "" });
       requests.scripts.push(file);
       const path = join(CDN, file);
       if (!existsSync(path)) return route.fulfill({ status: 404, body: "" });
@@ -212,6 +251,29 @@ describe("script の1行の入口 (#3343)", () => {
       expect((await counts(page)).drawn, "枝分かれの図を描く").toBe(1);
       expect(kindsRead(requests.scripts), "枝分かれの図の頁で読んだ、後から読む種類の塊").toEqual(["git"]);
     });
+  });
+
+  it("script-entry-pins-own-version-on-cdn", async () => {
+    // jsDelivr は版の範囲の URL を file ごとに解き、browser に7日残す。残った入口が新しい版へ解かれた塊を取りに行くと 404 になる (#3375)
+    if (!entryBuilt()) return;
+    const chunks = await kindChunks();
+    const place = movedCdn();
+    const exact = `${CDN_PACKAGE}@${version()}/dist/cdn/`;
+    const git = readFileSync(join(EXAMPLES, "rebase.dragon"), "utf8");
+    await withPage(
+      `<pre class="dragon">${escape(SEQUENCE)}</pre><pre class="dragon">${escape(git)}</pre>`,
+      async (page, requests) => {
+        await settle(page, 2);
+        expect(await counts(page), "範囲の場所に入口しか無くても、時系列図と枝分かれの図を描く").toEqual({ players: 2, drawn: 2, blocks: 0 });
+        const afterEntry = requests.urls.filter((url) => url !== place.entry);
+        expect(afterEntry.length, "入口の後に読んだ file").toBeGreaterThan(0);
+        expect(afterEntry.filter((url) => !url.startsWith(exact)), `入口の後に ${exact} の外から読んだ file`).toEqual([]);
+        const kinds = [...new Set(requests.scripts.flatMap((file) => chunks.get(file) ?? []))];
+        expect(kinds, "枝分かれの図の塊も版を全て書いた場所から読む").toEqual(["git"]);
+      },
+      "ja",
+      place,
+    );
   });
 
   it("script-entry-within-budget", async () => {
