@@ -191,6 +191,8 @@ export type { LabelSide };
 export type { Carry };
 /** 配管の図 (#3389) の始めの値と、段の中の出来事 */
 export type { CheckOp, PipeCalc, PipeCall, PipeCallKind, PipeCheck, PipeEmit, PipeHold, PipeMove, PipeReturn, PipeRevert, PipeWrite };
+/** 配管の図で`box`の宣言なしに使える決まったトークンの名前。型と同じく置き場の外へはここから出す */
+export { ETH } from "./blocks/return/block";
 
 export interface Step {
   title: string;

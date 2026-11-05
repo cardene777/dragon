@@ -19,14 +19,12 @@
  * 同じトークンの管を同じ段に流れる分は、横に重なるものを管の下へ 1 本ずつずらし、槽の口も流れごとに分ける。
  * 並べ方は描き方を読まない。描く部品は `render/pipe.ts` が持つ。
  */
-import type { CheckOp, PipeCheck } from "../../blocks/check/block";
-import { ETH, type PipeCallKind } from "../../blocks/return/block";
 import { textWidth } from "../../layout/measure";
 import type { Layout, Point, Rect } from "../../layout/scene";
 import { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
 import { READABLE_PX, type TextStyle } from "../../look/values";
 import { checkPasses, isFault, keyOf, PipeRun, rateOf } from "../../pipe-run";
-import type { DiagramModel, PipeFold, Step } from "../../schema";
+import { type CheckOp, type DiagramModel, ETH, type PipeCallKind, type PipeCheck, type PipeFold, type Step } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
 
 const P = PIPE_LOOK;

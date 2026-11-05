@@ -8,10 +8,7 @@
  * 量は書いた字のまま持ち、足し引きと比べは十進の数で行う。`0.02 + 0.0175 + 0.0125` は `0.05` になり、2 進の数の端数を出さない。
  * 処理を借りる呼び出し (`[call: delegate]`) の内側は呼んだ側の値の上で動き、書き込めない呼び出し (`[call: static]`) の内側は何も変えられない。
  */
-import type { PipeCheck } from "./blocks/check/block";
-import type { PipeHold, PipeMove } from "./blocks/hold/block";
-import { ETH, type PipeCall, type PipeCallKind } from "./blocks/return/block";
-import type { PipeWrite } from "./blocks/write/block";
+import { ETH, type PipeCall, type PipeCallKind, type PipeCheck, type PipeHold, type PipeMove, type PipeWrite } from "./schema";
 
 /** 量の字。0 以上の十進の数 */
 const AMOUNT = /^\d+(?:\.\d+)?$/u;
