@@ -44,7 +44,7 @@ async function shows(page: Page, selector: string, message: string): Promise<voi
 /** 字の CSS の読み込みを `handle` に渡す。ほかの CSS はそのまま読ませる */
 const onFontCss = async (page: Page, handle: (route: Route) => Promise<void>): Promise<void> => {
   const names = new Set(fontCss());
-  await page.route("**/assets/*.css", (route) => (names.has(fileOf(route.request().url())) ? handle(route) : route.continue()));
+  await page.route("**/assets/*.css", (route) => (names.has(fileOf(route.request().url())) ? handle(route) : route.fallback()));
 };
 
 const seenMark = (page: Page): Promise<string | null> => page.evaluate((key) => localStorage.getItem(key), SEEN);
@@ -116,7 +116,7 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
       await onFontCss(page, async (route) => {
         reached = true;
         await gate;
-        await route.continue();
+        await route.fallback();
       });
       await page.reload({ waitUntil: "commit" });
       await expect.poll(() => reached, { ...WAIT, message: "2 度目に開いた時に字の CSS を読まない" }).toBe(true);

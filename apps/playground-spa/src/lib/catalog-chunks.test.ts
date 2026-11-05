@@ -99,7 +99,7 @@ const figures = (page: Page, scope: string): Promise<number> => page.locator(`${
 /** 最初に読む script でない script の読み込みを全て止める */
 const blockLater = async (page: Page): Promise<void> => {
   const first = new Set(firstLoadFiles(site.built.dir));
-  await page.route("**/assets/*.js", (route: Route) => (first.has(fileOf(route.request().url())) ? route.continue() : route.abort()));
+  await page.route("**/assets/*.js", (route: Route) => (first.has(fileOf(route.request().url())) ? route.fallback() : route.abort()));
 };
 
 describe("見本と部品の図の記法を後から読む (#3246)", () => {
@@ -221,7 +221,7 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
           await p.route(`**/assets/${chunks.examples}`, async (route) => {
             held = true;
             await gate;
-            await route.continue();
+            await route.fallback();
           });
         },
       });
