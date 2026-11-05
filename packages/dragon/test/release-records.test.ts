@@ -168,6 +168,17 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-51-0-releases-pinned-chunks", () => {
+    // 入口が自分の版の場所から本体と塊を読む直し (#3375) は 0.51.0 で npm に出す。0.50.1 にすると 0.50.0 の入口を残した browser が壊れる (#3377)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 51, `package の版 ${version()} が 0.51.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.51\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.51.0"), "0.51.0");
+      expect(released, `${file} に日付付きの ## [0.51.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.51.0 の節に #3375 の項が無い`).toContain("(#3375)");
+    }
+  });
+
   it("changelog-0-50-0-releases-script-entry", () => {
     // script の 1 行の入口と dragon embed の命令 (#3343) は 0.50.0 で npm に出す (#3373)
     const [major = 0, minor = 0] = version().split(".").map(Number);
