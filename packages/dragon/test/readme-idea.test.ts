@@ -99,6 +99,36 @@ describe("README の思想の節 (#3391)", () => {
   });
 });
 
+/** 使う人がブロックを足す節の見出しと、その節へのリンクの行き先の頭 (#3399) */
+const EXTEND = {
+  ja: { heading: "ブロックを足す", anchor: "#ブロックを足す", old: "手元でブロックを足す口はまだ無く" },
+  en: { heading: "Add your own blocks", anchor: "#add-your-own-blocks", old: "There is no way yet for users to add their own blocks" },
+} as const;
+
+describe("使う人がブロックを足す節 (#3399)", () => {
+  it("readme-idea-links-block-extension", () => {
+    // 足す口を開いたので、4 つの考え方の節は「まだ無い」 と書かず、package の README の足し方の節を指す
+    for (const { lang, path, section } of ideaSections()) {
+      expect(section, `${path} の考え方の節が無い`).not.toBe("");
+      expect(section, `${path} の考え方の節が、足す口はまだ無いと書いている`).not.toContain(EXTEND[lang].old);
+      const targets = [...section.matchAll(/\]\(([^)]+)\)/gu)].map((m) => m[1] ?? "");
+      expect(
+        targets.some((t) => t.endsWith(EXTEND[lang].anchor)),
+        `${path} の考え方の節が、足し方の節 (${EXTEND[lang].anchor}) へのリンクを持たない`,
+      ).toBe(true);
+    }
+    for (const lang of Object.keys(LANGS) as (keyof typeof LANGS)[]) {
+      const path = LANGS[lang].npm;
+      const section = sectionOf(read(path), EXTEND[lang].heading);
+      expect(section, `${path} に足し方の節 (## ${EXTEND[lang].heading}) が無い`).not.toBe("");
+      for (const word of ["blocks 1", "block +", "base box", "end", 'rel="dragon-blocks"', "readBlocks"]) {
+        expect(section, `${path} の足し方の節が \`${word}\` を書いていない`).toContain(word);
+      }
+      expect(/^\+[a-z][a-z0-9-]* \S+/mu.test(section), `${path} の足し方の節に、\`+\` で始まる行の例が無い`).toBe(true);
+    }
+  });
+});
+
 describe("repo の README の最初の図と、できることの表 (#3391)", () => {
   it("readme-first-diagram-points-to-script-entry", () => {
     // 最初の図の節は、script の 1 行と記法の塊で頁に図を出す書き方を示し、package の README のその節へ link する
