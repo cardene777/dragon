@@ -74,8 +74,10 @@ export async function buildPage(config?: string): Promise<Built> {
   }
 }
 
+const HTML_TYPE = "text/html; charset=utf-8";
+
 const TYPES: Readonly<Record<string, string>> = {
-  ".html": "text/html; charset=utf-8",
+  ".html": HTML_TYPE,
   ".js": "text/javascript",
   ".css": "text/css",
   ".woff2": "font/woff2",
@@ -87,33 +89,38 @@ const TYPES: Readonly<Record<string, string>> = {
 
 const isFile = (path: string): boolean => existsSync(path) && statSync(path).isFile();
 
-/** build した頁を `/dragon/` の下で配る。拡張子の無い経路には同じ名前の `.html` を、無い path には在れば `404.html` を 404 で返す */
+/** 配る頁の 1 つの応答 */
+interface Answer {
+  status: number;
+  type: string;
+  body: Buffer | string;
+}
+
+/**
+ * build した頁を `/dragon/` の下で配る規則で、URL の path に返す応答を決める。
+ * 拡張子の無い経路には同じ名前の `.html` を、無い path には在れば `404.html` を 404 で返す。
+ * 手元の server と、検査の頁の通信を受ける route が同じ規則で返す (#3379)
+ */
+export function answerPath(dir: string, pathname: string): Answer {
+  const path = decodeURIComponent(pathname);
+  const inBase = path.startsWith(BASE) || `${path}/` === BASE;
+  const wanted = inBase ? resolve(dir, `.${path.slice(BASE.length - 1)}`) : "";
+  const inside = wanted === dir || wanted.startsWith(`${dir}${sep}`);
+  const file = inside && existsSync(wanted) && statSync(wanted).isDirectory() ? join(wanted, "index.html") : wanted;
+  if (inside && isFile(file)) return { status: 200, type: TYPES[extname(file)] ?? "application/octet-stream", body: readFileSync(file) };
+  // Pages と同じく、拡張子の無い経路には同じ名前の `.html` を返す (#3157)
+  if (inside && extname(wanted) === "" && isFile(`${wanted}.html`)) return { status: 200, type: HTML_TYPE, body: readFileSync(`${wanted}.html`) };
+  const notFound = join(dir, "404.html");
+  if (isFile(notFound)) return { status: 404, type: HTML_TYPE, body: readFileSync(notFound) };
+  return { status: 404, type: "text/plain", body: "Not Found" };
+}
+
+/** build した頁を `/dragon/` の下で配る手元の server。返し方は `answerPath` が決める。node から経路の状態を問う検査が使う */
 export async function servePage(dir: string): Promise<{ origin: string; close: () => Promise<void> }> {
   const server = createServer((req, res) => {
-    const path = decodeURIComponent(new URL(req.url ?? "/", "http://localhost").pathname);
-    const inBase = path.startsWith(BASE) || `${path}/` === BASE;
-    const wanted = inBase ? resolve(dir, `.${path.slice(BASE.length - 1)}`) : "";
-    const inside = wanted === dir || wanted.startsWith(`${dir}${sep}`);
-    const file = inside && existsSync(wanted) && statSync(wanted).isDirectory() ? join(wanted, "index.html") : wanted;
-    if (inside && isFile(file)) {
-      res.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" });
-      res.end(readFileSync(file));
-      return;
-    }
-    // Pages と同じく、拡張子の無い経路には同じ名前の `.html` を返す (#3157)
-    if (inside && extname(wanted) === "" && isFile(`${wanted}.html`)) {
-      res.writeHead(200, { "content-type": TYPES[".html"] });
-      res.end(readFileSync(`${wanted}.html`));
-      return;
-    }
-    const notFound = join(dir, "404.html");
-    if (isFile(notFound)) {
-      res.writeHead(404, { "content-type": TYPES[".html"] });
-      res.end(readFileSync(notFound));
-      return;
-    }
-    res.writeHead(404, { "content-type": "text/plain" });
-    res.end("Not Found");
+    const answer = answerPath(dir, new URL(req.url ?? "/", "http://localhost").pathname);
+    res.writeHead(answer.status, { "content-type": answer.type });
+    res.end(answer.body);
   });
   await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
   const { port } = server.address() as AddressInfo;
@@ -473,6 +480,13 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
       reducedMotion: o.reducedMotion ?? "no-preference",
     });
     contexts.push(context);
+    // 機械のネットワークが変わると、Chromium は 127.0.0.1 への読み込み中の通信も net::ERR_NETWORK_CHANGED で切る。
+    // 頁の通信は手元の server を通さず、server と同じ規則で build した file から返す (#3379)。
+    // 頁ごとに読み込みを止める検査は `page.route` を先に通り、`route.fallback()` でここへ渡す
+    await context.route(`${server.origin}/**`, (route) => {
+      const answer = answerPath(built.dir, new URL(route.request().url()).pathname);
+      return route.fulfill({ status: answer.status, contentType: answer.type, body: answer.body });
+    });
     await context.addInitScript(() => {
       const w = window as unknown as { __csp: string[]; __startMedia: StartMedia };
       w.__csp = [];

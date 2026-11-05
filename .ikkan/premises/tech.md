@@ -20,7 +20,7 @@
 - `pnpm test` は repo の根で vitest を回す (`package.json`、`vitest.config.ts`)。
 - vitest は回す前に、`packages/dragon` の `dist` が `src` より古くないかを見る (`test-support/global-setup.ts`)。
 - `pnpm run verify` は型、build、lint、`pnpm test` の順に回す (`package.json`)。
-- 見本帳の検査は、頁を build して GitHub Pages と同じ形で配り、Playwright で画面なしの Chromium に開いて確かめる (`apps/playground-spa/src/lib/playground-support.ts`)。
+- 見本帳の検査は、頁を build して GitHub Pages と同じ形で配り、Playwright で画面なしの Chromium に開いて確かめる (`apps/playground-spa/src/lib/playground-support.ts`)。Chromium の通信は手元の server を通さず、server と同じ規則 (`answerPath`) で build した file を route から返す。機械のネットワークが変わると Chromium は 127.0.0.1 への通信も切るため。頁ごとに読み込みを止める検査は `route.fallback()` でその route へ渡し、server は node から経路の状態を問う検査だけが使う (#3379)。
 - 見本帳の検査は、動きを嫌う設定を頁を開く時に渡し (`site.open` の `reducedMotion`)、開いた後に `emulateMedia` で当てない。指で触る頁は `(pointer: coarse)` が当たるまで待ってから返す (#3231)。
 - script の 1 行の入口の検査は、build した `dist/cdn` を `http://localhost/` に置いた Chromium で開き、外への通信を止めて、読んだ塊と足した `<link>` を数える。どの塊がどの種類の描く部品を持つかは、塊の source map が名指す `kinds/<種類>/layout.ts` で見分ける (`packages/dragon/test/script-entry.test.ts`、#3343)。修正版を出した直後の jsDelivr は、版の範囲の場所に入口だけを置き、ほかの file を 404 にした置き場で真似る (#3375)。
 - 字の重なる図を作れないため、重なりを知らせる流れは、重なりを探す所 (`findOverlaps`) を包んで重なりを 1 件足して確かめる。書き出しの命令は `vi.mock` で包み、見本帳は検査だけの build の設定で包む (`packages/dragon/test/paired-overlap.ts`、`apps/playground-spa/src/lib/overlap-build-support.ts`、#3197)。

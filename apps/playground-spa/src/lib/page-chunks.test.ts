@@ -61,7 +61,7 @@ async function shows(page: Page, selector: string, message: string): Promise<voi
 /** 最初に読む script でない script の読み込みを全て止める */
 const blockLater = async (page: Page): Promise<void> => {
   const first = new Set(firstLoadFiles(site.built.dir));
-  await page.route("**/assets/*.js", (route: Route) => (first.has(fileOf(route.request().url())) ? route.continue() : route.abort()));
+  await page.route("**/assets/*.js", (route: Route) => (first.has(fileOf(route.request().url())) ? route.fallback() : route.abort()));
 };
 
 describe("使い方の頁とカタログの頁を後から読む (#3280)", () => {
@@ -138,7 +138,7 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
         page.on("request", (request) => {
           if (request.isNavigationRequest() && request.frame() === page.mainFrame()) load += 1;
         });
-        await page.route("**/assets/*.js", (route: Route) => (first.has(fileOf(route.request().url())) || !blocked(load) ? route.continue() : route.abort()));
+        await page.route("**/assets/*.js", (route: Route) => (first.has(fileOf(route.request().url())) || !blocked(load) ? route.fallback() : route.abort()));
       },
     };
   };

@@ -143,7 +143,7 @@ function holdChunk(page: Page, name: string): { release: () => void; held: () =>
   void page.route(`**/assets/${name}`, async (route: Route) => {
     held = true;
     await gate;
-    await route.continue();
+    await route.fallback();
   });
   return { release: () => release(), held: () => held };
 }
