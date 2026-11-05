@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-11-05
+
 ### Fixed
 
 - **A page that loads the one-line script by version range no longer breaks for up to 7 days after a patch release** (#3375)
