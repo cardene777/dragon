@@ -3,7 +3,7 @@
  *
  * 節の並びは `SECTIONS` が持ち、節の番号と札の行き先はこの並びから作るので、数を書き写さない。
  * 本文の中の `` ` `` で囲んだ語は `<code>` で出す。
- * 節の記法の例は `examples/` の file が持ち、頁と検査 (`lib/site.test.ts`) が同じ file を読む。
+ * 節の記法の例は `examples/` の file が持ち、頁と検査 (`lib/site-pages.test.ts`) が同じ file を読む。
  * 書き出しの節の命令は package の README と同じ物を、設定は命令の使い方の表示と同じ物を出す (検査が突き合わせる)。
  * ブロックの段落はブロックの見本帳の分 (`gallery/docs.ts`) が持ち、書き出した一覧 (`catalog/blocks-docs.gen.ts`) から、
  * 段落の `section` の節の中に、ブロックの並び (`rank`) の順に置く。ブロックの名前を手で並べない (#3345、#3341、#3350)。

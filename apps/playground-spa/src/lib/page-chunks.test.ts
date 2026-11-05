@@ -12,12 +12,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { SECTIONS } from "../docs/content";
 import { BASE, firstLoadFiles, screenOf, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -67,7 +61,7 @@ const blockLater = async (page: Page): Promise<void> => {
 describe("使い方の頁とカタログの頁を後から読む (#3280)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -75,7 +69,7 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it("first-load-carries-no-docs-page", () => {
     const first = firstScripts();
@@ -107,7 +101,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
       await expect.poll(() => chunks.filter((name) => !requested.includes(name)), { ...WAIT, message: "編集画面を描いた後に読み始めない塊" }).toEqual([]);
       expect(await screenOf(page), "塊を読む間に編集画面から移った").toBe("editor");
     },
-    SLOW,
   );
 
   it(
@@ -125,7 +118,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
         expect(await countOf(page, '[data-site="header"]'), `${path} の塊を読めない時に上の帯が消えた`).toBe(1);
       }
     },
-    SLOW,
   );
 
   /** 頁を読み込んだ回数を数える。`blocked` が真の回は後から読む塊を読ませない */
@@ -158,7 +150,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
         await site.closeContexts();
       }
     },
-    SLOW,
   );
 
   it(
@@ -171,7 +162,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
       expect(loads(), "読み直しても読めない時に頁を読み込んだ回数").toBe(2);
       expect(await countOf(page, '[data-site="header"]'), "読み直しても読めない時に上の帯が消えた").toBe(1);
     },
-    SLOW,
   );
 
   it(
@@ -185,7 +175,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
       await shows(page, '[data-docs="hero"]', "本文が出た後にまた読めなくなった時に、読み直しても本文が出ない");
       expect(loads(), "2 度目の読み直しの後に頁を読み込んだ回数").toBe(4);
     },
-    SLOW,
   );
 
   it(
@@ -214,7 +203,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
       await shows(blocked.page, '[data-site-screen="docs"] > [data-catalog="later-failed"]', "印の置き場を使えない端末で読み直す釦が出ない");
       expect(loads(), "印の置き場を使えない端末で頁を読み直した").toBe(1);
     },
-    SLOW,
   );
 
   it(
@@ -231,7 +219,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
         expect(await page.locator(failed).innerText(), `${locale} の釦の文が頁を読み込めなかったと言わない`).toContain(text);
       }
     },
-    SLOW,
   );
 
   it(
@@ -256,7 +243,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
       expect(loads(), "編集画面で頁の塊が読めなかった時に頁を読み直した").toBe(1);
       expect(await page.locator('[data-playground="editor"]').inputValue(), "書いた記法が消えた").toBe(written);
     },
-    SLOW,
   );
 
   it(
@@ -273,7 +259,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
       const part = await site.open({ path: href ?? "" });
       await shows(part.page, '[data-catalog="part-figure"]', "部品の頁を直接開いても図の枠が出ない");
     },
-    SLOW,
   );
 
   it(
@@ -289,7 +274,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
         })
         .toBe(true);
     },
-    SLOW,
   );
 
   it(
@@ -304,7 +288,6 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
       await onScreen(page, "editor", "戻っても編集画面が出ない");
       await shows(page, '[data-site-screen="editor"] svg[data-dragon="figure"]', "編集画面へ戻っても図が出ない");
     },
-    SLOW,
   );
 
   it(
@@ -315,6 +298,5 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
         await onScreen(page, "not-found", `${path} で見つからない頁が出ない`);
       }
     },
-    SLOW,
   );
 });

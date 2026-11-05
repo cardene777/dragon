@@ -63,9 +63,13 @@ const git = (root: string, ...args: string[]): string => execFileSync("git", ["-
 
 describe("関係する検査を選ぶ命令 (#3381)", () => {
   it("related-runs-changed-test-file", () => {
-    const listed = list(["packages/dragon/test/release-records.test.ts"]);
+    const changed = "packages/dragon/test/release-records.test.ts";
+    const listed = list([changed]);
     expect(listed.code, listed.stderr).toBe(0);
-    expect(listed.files, "変えた検査の file だけを選んでいない").toEqual(["packages/dragon/test/release-records.test.ts"]);
+    expect(listed.files, "変えた検査の file を選んでいない").toContain(changed);
+    // ほかに選ぶのは、変えた検査の file の名前を字で書く検査の file だけ (名前が変わると落ちる)
+    const others = listed.files.filter((file) => file !== changed && !readFileSync(join(ROOT, file), "utf8").includes(changed));
+    expect(others, "変えた検査の file の名前を書かない検査の file を選んだ").toEqual([]);
   });
 
   it("related-picks-importers", () => {
@@ -97,15 +101,15 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     // build した頁を開く検査は、頁の入口の src をたどる
     const fromPage = list(["apps/playground-spa/src/main.tsx"]);
     expect(fromPage.code, fromPage.stderr).toBe(0);
-    expect(fromPage.files, "build した頁を開く検査 (site.test.ts) を選んでいない").toContain("apps/playground-spa/src/lib/site.test.ts");
+    expect(fromPage.files, "build した頁を開く検査 (site-pages.test.ts) を選んでいない").toContain("apps/playground-spa/src/lib/site-pages.test.ts");
   });
 
   it("related-maps-materials-by-table", () => {
     const fromChangelog = list(["CHANGELOG.md"]);
     expect(fromChangelog.code, fromChangelog.stderr).toBe(0);
     expect(fromChangelog.files, "変更履歴を読む検査を選んでいない").toContain("packages/dragon/test/release-records.test.ts");
-    // 見本帳の検査 (site.test.ts) は変更履歴の対応表を頁と突き合わせるので選ばれ、dist の鮮度の検査は読まないので選ばれない
-    expect(fromChangelog.files, "変更履歴を読む見本帳の検査 (site.test.ts) を選んでいない").toContain("apps/playground-spa/src/lib/site.test.ts");
+    // 見本帳の頁の検査 (site-pages.test.ts) は変更履歴の対応表を頁と突き合わせるので選ばれ、dist の鮮度の検査は読まないので選ばれない
+    expect(fromChangelog.files, "変更履歴を読む見本帳の検査 (site-pages.test.ts) を選んでいない").toContain("apps/playground-spa/src/lib/site-pages.test.ts");
     expect(fromChangelog.files, "変更履歴を読まない検査 (dist-freshness.test.ts) を選んだ").not.toContain("packages/dragon/test/dist-freshness.test.ts");
     const fromExample = list(["packages/dragon/examples/auction.dragon"]);
     expect(fromExample.code, fromExample.stderr).toBe(0);

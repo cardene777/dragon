@@ -11,17 +11,9 @@ import { parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { isCommon, PARTS } from "../catalog/parts";
+
 import { BASE, example, partFigure, screenOf, type Site, startSite, stepLabel } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** 部品の頁を全部開くのに許す時間 */
-const SWEEP = 300_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -106,7 +98,7 @@ const editorValue = (page: Page): Promise<string | null> =>
 describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -114,7 +106,7 @@ describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it(
     "catalog-lists-state-with-order",
@@ -138,7 +130,6 @@ describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
         .toBe(title);
       await expectSteps(opened.page, catalogSel("preview"), ORDER_STEPS, "状態遷移図の頁の注文の見本");
     },
-    SLOW,
   );
 
   it(
@@ -149,47 +140,31 @@ describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
       const kindParts = (): Promise<string[]> =>
         page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-catalog="section"][data-section="kind-parts"] a[data-catalog="part-card"]')].map((a) => a.dataset.part ?? ""));
       await expect.poll(kindParts, { ...WAIT, message: "図の種類だけの部品に、始まりと終わりと通らない道が無い" }).toEqual(expect.arrayContaining([...STATE_PARTS]));
-
-      for (const id of STATE_PARTS) {
-        for (const lang of ["ja", "en"] as const) {
-          const text = snippetOf(id, lang);
-          expect(text, `${id}.state${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
-          const parsed = parseNotation(text ?? "");
-          expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が状態遷移図として読めない`).toBe("state");
-        }
-        const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-        await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
-        await expect
-          .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が状態遷移図の図を 1 つ、部品の記法で描かない` })
-          .toEqual([{ kind: "state", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
-        await expectSteps(opened.page, `${catalogSel("part")} ${catalogSel("part-figure")}`, undefined, `${id} の状態遷移図`);
-        await opened.page.locator(siteSel("lang-en")).click();
-        await expect
-          .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
-          .toEqual([snippetOf(id, "en") ?? ""]);
-        await site.closeContexts();
-      }
     },
-    SWEEP,
   );
 
-  it(
-    "common-parts-draw-state",
-    async () => {
-      const common = PARTS.filter(isCommon).map((p) => p.id);
-      expect(common.length, "どの図でも使う部品が無い (コアブロックの並びは block-gallery.test.ts が付け方と照らす)").toBeGreaterThan(0);
-      for (const id of common) {
-        const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-        await onScreen(page, "part", `${id} の部品の頁が出ない`);
-        await expect
-          .poll(async () => (await figuresOf(page)).filter((f) => f.kind === "state"), { ...WAIT, message: `${id} の頁に状態遷移図で描いた図が無い` })
-          .toEqual([{ kind: "state", svgs: 1, source: snippetOf(id, "ja") ?? `(${id}.state.dragon が無い)` }]);
-        await expectSteps(page, `${catalogSel("part")} ${catalogSel("part-figure")}[data-kind="state"]`, undefined, `${id} の状態遷移図`);
-        await site.closeContexts();
+  describe.for(STATE_PARTS)("%s", (id) => {
+    it("catalog-has-two-state-parts", async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const text = snippetOf(id, lang);
+        expect(text, `${id}.state${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
+        const parsed = parseNotation(text ?? "");
+        expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が状態遷移図として読めない`).toBe("state");
       }
-    },
-    SWEEP,
-  );
+      const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+      await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
+      await expect
+        .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が状態遷移図の図を 1 つ、部品の記法で描かない` })
+        .toEqual([{ kind: "state", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
+      await expectSteps(opened.page, `${catalogSel("part")} ${catalogSel("part-figure")}`, undefined, `${id} の状態遷移図`);
+      await opened.page.locator(siteSel("lang-en")).click();
+      await expect
+        .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
+        .toEqual([snippetOf(id, "en") ?? ""]);
+    });
+  });
+
+
 
   it(
     "state-part-pages-link-order",
@@ -210,7 +185,6 @@ describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
         await site.closeContexts();
       }
     },
-    SLOW,
   );
 
   it(
@@ -246,6 +220,5 @@ describe("見本帳と編集画面の状態遷移図 (#3163)", () => {
         .poll(async () => ((await lines("path")) ?? []).some((l) => l.includes("->") && !/^\s/u.test(l)), { ...WAIT, message: "記法の早見に、最初の段より前に字下げせず書く通らない道の行が無い" })
         .toBe(true);
     },
-    SLOW,
   );
 });

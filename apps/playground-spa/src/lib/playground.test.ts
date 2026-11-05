@@ -26,16 +26,6 @@ const screenRoutes = (): string[] => {
   ].sort();
 };
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 頁の振る舞いを 1 つ確かめるのに許す時間 */
-const SLOW = 90_000;
-/**
- * Chromium を閉じて配る場所を止めるまでに許す時間。
- * 機械が混んだ時 (load average 120 から 144) に、閉じるだけで既定の 30 秒を 3 回中 2 回超え、
- * 検査が全て通っても組ごと落ちた (#3019)。起こす側 (`SETUP`) と同じく、混み具合で結果が決まらない長さにする。
- */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -236,7 +226,7 @@ const lookOf = (palette: string, theme: "light" | "dark"): { diagram: string; di
 describe("公開する頁 (#2995)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -244,7 +234,7 @@ describe("公開する頁 (#2995)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it(
     "playground-opens-with-oauth",
@@ -256,7 +246,6 @@ describe("公開する頁 (#2995)", () => {
       const first = await stepNo(page);
       await expect.poll(() => stepNo(page), { timeout: 15_000, interval: 200, message: "図の段が進まない" }).not.toBe(first);
     },
-    SLOW,
   );
 
   it(
@@ -269,7 +258,6 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "書き換えた記法で図が描き直されない" }).toContain("書き換えた図");
       expect(await drawnText(page)).toContain("甲のサービス");
     },
-    SLOW,
   );
 
   it(
@@ -294,7 +282,6 @@ describe("公開する頁 (#2995)", () => {
       await drawn(page, "誤りの間に図が消えた");
       expect(await stepsLabel(page), "最後に描けた図が残っていない").toContain(titleOf(OAUTH));
     },
-    SLOW,
   );
 
   it(
@@ -331,7 +318,6 @@ describe("公開する頁 (#2995)", () => {
         }, { ...WAIT, message: "JSON の書き換えが記法の側に反映しない" })
         .toEqual({ ok: true, diagram: changed });
     },
-    SLOW,
   );
 
   it(
@@ -354,7 +340,6 @@ describe("公開する頁 (#2995)", () => {
       expect(await stepsLabel(page), "最後に描けた図が残っていない").toContain(titleOf(OAUTH));
       expect(await violations(), "CSP に止められた読み込みか実行がある").toEqual([]);
     },
-    SLOW,
   );
 
   it(
@@ -372,7 +357,6 @@ describe("公開する頁 (#2995)", () => {
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${value} を選んでも図が替わらない` }).toContain(titleOf(text));
       }
     },
-    SLOW,
   );
 
   it(
@@ -391,7 +375,6 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => editorValue(again.page), { ...WAIT, message: "URL を開いても書いた記法が戻らない" }).toBe(EDITED);
       await expect.poll(() => stepsLabel(again.page), { ...WAIT, message: "URL を開いても書いた図が戻らない" }).toContain("書き換えた図");
     },
-    SLOW,
   );
 
   it(
@@ -414,7 +397,6 @@ describe("公開する頁 (#2995)", () => {
       expect(await english.page.evaluate(() => document.documentElement.lang), "端末の言語が英語なのに英語で開かない").toBe("en");
       expect(await editorValue(english.page)).toBe(oauthEn);
     },
-    SLOW,
   );
 
   it(
@@ -429,7 +411,6 @@ describe("公開する頁 (#2995)", () => {
         await expect.poll(() => look(page), { ...WAIT, message: `${palette} と ${theme} の値にならない` }).toEqual(lookOf(palette, theme));
       }
     },
-    SLOW,
   );
 
   it(
@@ -446,7 +427,6 @@ describe("公開する頁 (#2995)", () => {
       await page.emulateMedia({ colorScheme: "dark" });
       await expect.poll(() => look(page), { ...WAIT, message: "端末の明暗の替わりに従わない" }).toEqual(lookOf("paper", "dark"));
     },
-    SLOW,
   );
 
   it(
@@ -471,7 +451,6 @@ describe("公開する頁 (#2995)", () => {
       expect(fonts.files.length, "字の file を読んでいない").toBeGreaterThan(0);
       for (const file of fonts.files) expect(file.startsWith(`${site.origin}${BASE}`), `頁の外から字を読んでいる: ${file}`).toBe(true);
     },
-    SLOW,
   );
 
   it(
@@ -494,7 +473,6 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => page.locator(sel("editor")).isVisible(), { ...WAIT, message: "書く欄を畳めない" }).toBe(false);
       expect(await page.locator(sel("stage")).isVisible(), "畳んだら図まで消えた").toBe(true);
     },
-    SLOW,
   );
 
   it(
@@ -504,7 +482,6 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => page.evaluate(() => document.body.innerText), { ...WAIT, message: "書き出しの命令の案内が無い" }).toContain("dragon export");
       expect(await page.evaluate(() => document.body.innerText)).not.toContain("作り直しの最中");
     },
-    SLOW,
   );
 
   it(
@@ -522,7 +499,6 @@ describe("公開する頁 (#2995)", () => {
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${key} の英語版の図が描かれない` }).toContain(titleOf(text));
       }
     },
-    SLOW,
   );
 
   it(
@@ -579,7 +555,6 @@ describe("公開する頁 (#2995)", () => {
         expectDragonNotation(await retitle(page, "Back from JSON"), "Back from JSON", `${locale} の頁の読めない記法から`);
       }
     },
-    SLOW,
   );
 
   it(
@@ -607,7 +582,6 @@ describe("公開する頁 (#2995)", () => {
       await setEditor(ja.page, "not a diagram");
       await expect.poll(() => statusText(ja.page), { ...WAIT, message: "最初の行が読めない時に頁の言葉 (日本語) で出ない" }).toMatch(KANA_KANJI);
     },
-    SLOW,
   );
 
   it(
@@ -631,7 +605,6 @@ describe("公開する頁 (#2995)", () => {
       expect(await statusText(ja.page), "日本語の頁の JSON の誤りの文が日本語でない").toMatch(KANA_KANJI);
       expect(await statusText(ja.page), "日本語の頁の JSON の誤りの文に ajv の英語の文が残る").not.toMatch(/\bmust\b/u);
     },
-    SLOW,
   );
 
   it(
@@ -659,7 +632,6 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => statusText(page), { ...WAIT, message: "日本語に戻しても JSON の誤りが日本語で出し直されない" }).toMatch(KANA_KANJI);
       expect(await editorValue(page)).toBe(written.trimEnd());
     },
-    SLOW,
   );
 
   it(
@@ -687,7 +659,6 @@ describe("公開する頁 (#2995)", () => {
         .toMatchObject({ prev: "前の段", next: "次の段", steps: "書き換えた図 の段", overview: "全体図" });
       expect((await playerNames(page)).toggle).toMatch(/^(止める|動かす)$/u);
     },
-    SLOW,
   );
 
   it(
@@ -704,7 +675,6 @@ describe("公開する頁 (#2995)", () => {
         .toMatchObject({ prev: "前の段", next: "次の段", steps: "Edited diagram の段", overview: "全体図" });
       expect((await playerNames(page)).toggle).toMatch(/^(止める|動かす)$/u);
     },
-    SLOW,
   );
 
   it(
@@ -787,7 +757,6 @@ describe("公開する頁 (#2995)", () => {
       const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
       expect(download.suggestedFilename(), "新規作成した書類を書き出す file の名前が new.dragon でない").toBe("new.dragon");
     },
-    SLOW,
   );
 
   it(
@@ -824,7 +793,6 @@ describe("公開する頁 (#2995)", () => {
       await page.locator(sel("import-file")).setInputFiles({ name: "ccip.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(ccip), "utf8") });
       await expect.poll(() => editorDiagram(page), { ...WAIT, message: "取り込んだ JSON の図が記法で入らない" }).toEqual(ccip);
     },
-    SLOW,
   );
 
   it(
@@ -837,7 +805,6 @@ describe("公開する頁 (#2995)", () => {
       const [download] = await Promise.all([page.waitForEvent("download"), page.locator(sel("export")).click()]);
       expect(download.suggestedFilename(), "書類名が空の時に書き出す file の名前が new.dragon でない").toBe("new.dragon");
     },
-    SLOW,
   );
 
   it(
@@ -888,7 +855,6 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(titleHeight, { ...WAIT, message: "字を小さくしても段の題が小さくならない" }).toBeLessThan(plain);
       await expect.poll(say, { ...WAIT, message: "続けて字を 2 回小さくしても段の題の字が 1 / 1.15 倍にならない" }).toBe(0.87);
     },
-    SLOW,
   );
 
   it(
@@ -904,7 +870,6 @@ describe("公開する頁 (#2995)", () => {
       await pressUntilDisabled(page, sel("zoom-out"));
       await expect.poll(() => end("zoom-out"), { ...WAIT, message: "縮小を押し続けても 25% で止まらないか、縮小の釦が押せるまま残る" }).toEqual({ level: "25%", disabled: true });
     },
-    SLOW,
   );
 
   it(
@@ -918,7 +883,6 @@ describe("公開する頁 (#2995)", () => {
       for (let i = 0; i < 8; i++) await click(page, "font-down");
       await expect.poll(() => titleZoom(page), { ...WAIT, message: "字を小さくし続けても段の題の字が 0.7 倍で止まらない" }).toBe(0.7);
     },
-    SLOW,
   );
 
   it(
@@ -937,7 +901,6 @@ describe("公開する頁 (#2995)", () => {
       });
       await expect.poll(shown, { ...WAIT, message: "小さな図を枠に合わせた倍率が 150% で止まらない" }).toEqual({ level: "150%", scale: 1.5 });
     },
-    SLOW,
   );
 
   it(
@@ -970,7 +933,6 @@ describe("公開する頁 (#2995)", () => {
         }, { ...WAIT, message: "字を小さくしても段の題か本文が小さくならない" })
         .toBe(true);
     },
-    SLOW,
   );
 
   it(
@@ -1019,23 +981,21 @@ describe("公開する頁 (#2995)", () => {
         expect(seen?.covered, `見本 ${key} の段の札が箱に重なる`).toBe(0);
       }
     },
-    SLOW,
   );
 
-  it(
-    "editor-figure-steady-across-steps",
-    async () => {
-      // 段の本文の行の数で帯の高さが替わり、1440 × 900 の ccip で図が上下に動いていた (#3049)
-      for (const [key, text] of [["oauth", OAUTH], ["ccip", CCIP]] as const) {
-        const { page } = await open({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-        await drawn(page);
-        await click(page, `sample-${key}`);
-        await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));
-        await expectSteadyAcrossSteps(page, sel("stage"), `編集画面の見本 ${key}`);
-      }
-    },
-    SLOW,
-  );
+  // 段の本文の行の数で帯の高さが替わり、1440 × 900 の ccip で図が上下に動いていた (#3049)
+  describe.for([
+    ["oauth", OAUTH],
+    ["ccip", CCIP],
+  ] as const)("%s", ([key, text]) => {
+    it("editor-figure-steady-across-steps", async () => {
+      const { page } = await open({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+      await drawn(page);
+      await click(page, `sample-${key}`);
+      await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));
+      await expectSteadyAcrossSteps(page, sel("stage"), `編集画面の見本 ${key}`);
+    });
+  });
 
   it(
     "editor-caption-clear-of-bottom-edge",
@@ -1055,7 +1015,6 @@ describe("公開する頁 (#2995)", () => {
           .toBe(10);
       }
     },
-    SLOW,
   );
 
   it(
@@ -1106,7 +1065,6 @@ describe("公開する頁 (#2995)", () => {
         }
       }
     },
-    SLOW,
   );
 
   it(
@@ -1151,7 +1109,6 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "入門の図が描かれない" }).toContain(titleOf(example("intro.dragon") ?? ""));
       await expect.poll(async () => { const p = await phase(page); return [p.badge, p.segments]; }, { ...WAIT, message: "段が 1 つの図に札か帯が出る" }).toEqual([null, 0]);
     },
-    SLOW,
   );
 
   it(
@@ -1198,7 +1155,6 @@ describe("公開する頁 (#2995)", () => {
       await setEditor(page, unreadable);
       await expect.poll(() => noticeLines(page), { ...WAIT, message: "JSON の読めない誤りが行番号付きで出ない" }).toEqual([`${badLine} 行目`]);
     },
-    SLOW,
   );
 
   // 上限は 250KB で始め、#3199 で 270KB にした。図の種類が 5 つになり、記法の語ごとに全ての図の種類と 2 つの言葉の
@@ -1258,7 +1214,6 @@ describe("公開する頁 (#2995)", () => {
       const moving = await open();
       expect((await moving.startMedia()).reduce, "動きを嫌う設定を渡さずに開いた頁で、設定が当たっている").toBe(false);
     },
-    SLOW,
   );
 
   it("page-tests-set-motion-at-open", () => {
@@ -1284,7 +1239,6 @@ describe("公開する頁 (#2995)", () => {
       const mouse = await open();
       await expect(waitForCoarse(mouse.page, 500), "指で触る設定が当たらない頁で、待つ所が名指して落ちない").rejects.toThrow("指で触る設定 (pointer: coarse) が当たらない: /dragon/editor");
     },
-    SLOW,
   );
 
   it("page-routes-have-html-copies", () => {

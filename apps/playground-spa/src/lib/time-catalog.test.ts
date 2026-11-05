@@ -10,18 +10,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-
-import { isCommon, PARTS } from "../catalog/parts";
+import { PARTS } from "../catalog/parts";
 import { BASE, example, partFigure, screenOf, type Site, startSite, stepLabel } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** 部品の頁を全部開くのに許す時間 */
-const SWEEP = 300_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -108,7 +99,7 @@ const editorValue = (page: Page): Promise<string | null> =>
 describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -116,7 +107,7 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it(
     "catalog-lists-time-with-examples",
@@ -141,7 +132,6 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
         .toBe(finality);
       await expectSteps(opened.page, catalogSel("preview"), FINALITY_STEPS, "時間軸の図の頁のブロックの確定の見本");
     },
-    SLOW,
   );
 
   it(
@@ -153,50 +143,35 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
         page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-catalog="section"][data-section="kind-parts"] a[data-catalog="part-card"]')].map((a) => a.dataset.part ?? ""));
       await expect.poll(kindParts, { ...WAIT, message: "図の種類だけの部品に、目盛りと針と印の列と節目と拡大の帯が無い" }).toEqual(expect.arrayContaining([...TIME_PARTS]));
       for (const id of TIME_PARTS) expect(PARTS.find((p) => p.id === id)?.kinds, `${id} が時間軸の図だけの部品でない`).toEqual(["time"]);
-
-      for (const id of TIME_PARTS) {
-        for (const lang of ["ja", "en"] as const) {
-          const text = snippetOf(id, lang);
-          expect(text, `${id}.time${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
-          const parsed = parseNotation(text ?? "", { lang });
-          expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が時間軸の図として読めない`).toBe("time");
-        }
-        const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-        await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
-        await expect
-          .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が時間軸の図の図を 1 つ、部品の記法で描かない` })
-          .toEqual([{ kind: "time", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
-        await expectSteps(opened.page, `${catalogSel("part")} ${catalogSel("part-figure")}`, undefined, `${id} の時間軸の図`);
-        await opened.page.locator(siteSel("lang-en")).click();
-        await expect
-          .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
-          .toEqual([snippetOf(id, "en") ?? ""]);
-        await site.closeContexts();
-      }
     },
-    SWEEP,
   );
 
-  it(
-    "common-parts-draw-time",
-    async () => {
-      const common = PARTS.filter(isCommon).map((p) => p.id);
-      expect(common.length, "どの図でも使う部品が無い (コアブロックの並びは block-gallery.test.ts が付け方と照らす)").toBeGreaterThan(0);
-      // 中身の帯の頁の時間軸の図は物差しを使う
-      expect(snippetOf("strip", "ja") ?? "", "中身の帯の部品の時間軸の図が物差しを使わない").toContain("[meter:");
-      expect(snippetOf("strip", "en") ?? "", "中身の帯の部品の英語の時間軸の図が物差しを使わない").toContain("[meter:");
-      for (const id of common) {
-        const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-        await onScreen(page, "part", `${id} の部品の頁が出ない`);
-        await expect
-          .poll(async () => (await figuresOf(page)).filter((f) => f.kind === "time"), { ...WAIT, message: `${id} の頁に時間軸の図で描いた図が無い` })
-          .toEqual([{ kind: "time", svgs: 1, source: snippetOf(id, "ja") ?? `(${id}.time.dragon が無い)` }]);
-        await expectSteps(page, `${catalogSel("part")} ${catalogSel("part-figure")}[data-kind="time"]`, undefined, `${id} の時間軸の図`);
-        await site.closeContexts();
+  describe.for(TIME_PARTS)("%s", (id) => {
+    it("catalog-has-four-time-parts", async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const text = snippetOf(id, lang);
+        expect(text, `${id}.time${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
+        const parsed = parseNotation(text ?? "", { lang });
+        expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が時間軸の図として読めない`).toBe("time");
       }
-    },
-    SWEEP,
-  );
+      const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+      await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
+      await expect
+        .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が時間軸の図の図を 1 つ、部品の記法で描かない` })
+        .toEqual([{ kind: "time", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
+      await expectSteps(opened.page, `${catalogSel("part")} ${catalogSel("part-figure")}`, undefined, `${id} の時間軸の図`);
+      await opened.page.locator(siteSel("lang-en")).click();
+      await expect
+        .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
+        .toEqual([snippetOf(id, "en") ?? ""]);
+    });
+  });
+
+  it("strip-time-figure-uses-meter", () => {
+    // 中身の帯の頁の時間軸の図は物差しを使う (#3165)
+    expect(snippetOf("strip", "ja") ?? "", "中身の帯の部品の時間軸の図が物差しを使わない").toContain("[meter:");
+    expect(snippetOf("strip", "en") ?? "", "中身の帯の部品の英語の時間軸の図が物差しを使わない").toContain("[meter:");
+  });
 
   it(
     "time-part-pages-link-examples",
@@ -225,7 +200,6 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
         await site.closeContexts();
       }
     },
-    SLOW,
   );
 
   it(
@@ -266,6 +240,5 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
         await expect.poll(async () => (await lines(id)).some(want), { ...WAIT, message: `記法の早見に${name}が無い` }).toBe(true);
       }
     },
-    SLOW,
   );
 });

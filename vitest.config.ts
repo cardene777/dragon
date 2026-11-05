@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+import { testLimitMs } from "./test-support/limits";
 
 export default defineConfig({
   // playground-spa の `@/` を vite / tsconfig と同じ場所に向ける。
@@ -13,29 +14,19 @@ export default defineConfig({
     // test は `@cardenelabs/dragon` を package として import する = `dist` を読む。
     // `pnpm test` に build は含まれていないため、 古い `dist` が残っていると
     // src を壊しても通ってしまう。 走らせる前に検知する (#979)。
-    globalSetup: ["./test-support/global-setup.ts"],
+    // 1 回の実行は 5 分で止める (`run-limit.ts`、#3381)。見本帳の頁は 1 回の実行で 1 度だけ build する (`site-setup.ts`、#3381)
+    globalSetup: ["./test-support/global-setup.ts", "./test-support/run-limit.ts", "./apps/playground-spa/src/lib/site-setup.ts"],
     /*
-     * 待ち時間は既定より長くする (#2087)。
+     * 1 件の検査とその前後処理は 10 秒で止める (#3381)。上限の値と、下げる環境変数は `test-support/limits.ts` が持つ。
      *
-     * 既定は検査 5 秒 / 前後処理 10 秒。 実測 = 6 秒待つだけの検査は 5.01 秒で切られた。
-     * この一式は 400 file 超を並列で回すので、機械が混むと重い検査 (`tsc` / `eslint` の起動、
-     * 図の組み立て、描画) がその範囲に収まらない。 同じ commit で 3 回回した実測では、
-     * 落ちた検査が 8 件 → 5 件 → 0 件と変わり、落ちた組も毎回違い、どれも単独では通った。
-     *
-     * **中身ではなく機械の混み具合で結果が決まる状態をやめる**。 30 秒は、落ちなかった回の
-     * 最も遅い検査 (8.7 秒) の 3 倍強で、止まったまま返らない検査はこの時間で止まる。
-     * 待つ長さではなく切る位置なので、全件の所要時間は延びない。
+     * 長く待つ形 (検査 30 秒、前後処理 90 秒、#2087、#3300) は、機械が混んだ時に重い検査が落ちないためだった。
+     * 長く待つと、遅い検査も止まった検査も待つ人が気付かないまま残り、一式が課題ごとに数十分かかった。
+     * 遅い検査は外すか速くし、止まった検査は 10 秒で名前と共に見せる。
+     * 検査が自分で書いた上限もこれより長くは待たない (`test-support/test-limit-guard.ts`)。
      */
-    testTimeout: 30_000,
-    /*
-     * 前後処理だけは 90 秒にする (#3300)。
-     *
-     * 画面を開く検査が頁が固まって落ちた時、閉じる前の記録 (`closeContextsAfter`) が、固まった頁がまた
-     * 描き替えるのを 60 秒待つ (`STALL_BACK_WAIT`)。頁を調べる手間と合わせて 75 秒に収まる
-     * (`STALL_RECORD_EXTRA`) ので、その後始末が途中で切られない長さにする。
-     * 待つのは頁が固まって落ちた回だけで、通った検査の後始末は延びない。
-     */
-    hookTimeout: 90_000,
+    testTimeout: testLimitMs(),
+    hookTimeout: testLimitMs(),
+    setupFiles: ["./test-support/test-limit-guard.ts"],
     /*
      * 同時に動かす数は 4 に留める (#3268)。
      *

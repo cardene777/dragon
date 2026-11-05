@@ -12,8 +12,6 @@ import { describe, expect, it } from "vitest";
 
 const PACKAGE = join(__dirname, "..");
 const BLOCKS = join(PACKAGE, "src/blocks");
-/** `npm pack --dry-run` を待つ長さ。ほかの検査と並べて回すと、file の一覧を出すまでに 30 秒を超えた (#3350) */
-const PACK = 180_000;
 
 /** `npm pack --dry-run` が npm に出すと答えた file の path (package の dir から見た相対 path) */
 function packedFiles(): string[] {
@@ -47,6 +45,16 @@ function stringsOf(value: unknown): string[] {
   return [];
 }
 
+/**
+ * 字で探す file。地図 (`.map`) は束ねた file の元の source の写しで、束に入った字は束ねた file にも在るので読まない (#3381)。
+ * 地図は npm に出す file の大きさの 6 割を占め、読まないと探す手間が半分より小さくなる
+ */
+const TEXT = /\.(?:[cm]?js|[cm]?ts|json|md)$/u;
+
+/** 束ねた JS は日本語の字を `\uXXXX` の形で書く (esbuild の既定の `charset`)。字で探せるように戻す (#3381) */
+const unescaped = (text: string): string =>
+  text.replace(/\\u\{([0-9a-fA-F]+)\}|\\u([0-9a-fA-F]{4})/gu, (_, wide: string | undefined, hex: string | undefined) => String.fromCodePoint(parseInt(wide ?? hex ?? "0", 16)));
+
 describe("npm に出す package の file (#3350)", () => {
   it("package-excludes-catalog-material", async () => {
     const files = packedFiles();
@@ -57,10 +65,10 @@ describe("npm に出す package の file (#3350)", () => {
     ).toEqual([]);
     const phrases = await catalogPhrases();
     expect(phrases.length, "見本帳の名前と説明と段落の字が無い (走査の空振り)").toBeGreaterThan(0);
-    const leaked = files.flatMap((path) => {
-      const text = readFileSync(join(PACKAGE, path), "utf8");
+    const leaked = files.filter((path) => TEXT.test(path)).flatMap((path) => {
+      const text = unescaped(readFileSync(join(PACKAGE, path), "utf8"));
       return phrases.filter((phrase) => text.includes(phrase)).map((phrase) => `${path}: ${phrase.slice(0, 24)}`);
     });
     expect(leaked, "npm に出す file に入った見本帳の名前と説明と段落の字").toEqual([]);
-  }, PACK);
+  });
 });

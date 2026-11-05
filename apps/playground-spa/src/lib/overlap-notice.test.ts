@@ -18,12 +18,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { app, BASE, root, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 頁の振る舞いを 1 つ確かめるのに許す時間 */
-const SLOW = 90_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -125,7 +119,7 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
   beforeAll(async () => {
     site = await startSite();
     paired = await startSite({ config: join(app, "src/lib/overlap-build-support.ts") });
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -135,7 +129,7 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
   afterAll(async () => {
     await site?.close();
     await paired?.close();
-  }, TEARDOWN);
+  });
 
   it(
     "editor-lists-overlaps",
@@ -151,7 +145,6 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
       expect(await en.locator(sel("overlaps-count")).innerText()).toBe("1 text overlap");
       expect(await listed(en)).toEqual([["Step 2", '"Not taken this time" and "Side path" overlap']]);
     },
-    SLOW,
   );
 
   it(
@@ -168,7 +161,6 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
       const fills = await page.evaluate((f) => [...document.querySelectorAll(`${f} rect.dg-spot`)].map((m) => getComputedStyle(m).fill), sel("figure"));
       expect(fills, "囲みが塗られて中の字を隠す").toEqual(fills.map(() => "none"));
     },
-    SLOW,
   );
 
   it(
@@ -181,7 +173,6 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
       await expect.poll(() => phase(page), { ...WAIT, message: "段の札を押しても 2 段目へ移らない" }).toContain("段 2 / 2");
       await expect.poll(() => marks(page).then((m) => m.length), { ...WAIT, message: "移った段で図の上に四角が出ない" }).toBe(2);
     },
-    SLOW,
   );
 
   it(
@@ -192,6 +183,5 @@ describe("編集画面で字の重なりを知らせる (#3178)", () => {
       expect(await page.locator(sel("overlaps")).count(), "重ならない見本で重なりの欄が出た").toBe(0);
       expect(await marks(page), "重ならない見本で図の上に四角が出た").toEqual([]);
     },
-    SLOW,
   );
 });

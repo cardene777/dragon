@@ -14,8 +14,6 @@ import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, s
 import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, readGif, runCli } from "./export-support";
 import { draw } from "./render-support";
 
-/** 書き出し 1 回に許す時間。Chromium の起動とコマを撮る時間を含む */
-const SLOW = 180_000;
 
 const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-export-"));
 
@@ -61,25 +59,35 @@ function twoSteps(): Json {
 }
 
 /** 2 段の構成図を、コマの数を指定せずに mp4、GIF、PNG に書き出した物。3 つの検査が同じ書き出しを読む */
+/**
+ * 2 段の図を 1 秒 2 コマの mp4 と 1 秒 1 コマの GIF と PNG に書き出す。同じ file の検査で 1 度だけ撮る。
+ * 既定のコマの数 (1 秒 30 コマ) で撮ると 20 秒を超え、1 件の上限 (10 秒、#3381) に収まらない。既定の数は `export-defaults.test.ts` が確かめる
+ */
+const RATES = { fps: 2, gifFps: 1 } as const;
 let twoStepsShot: Promise<Exported> | undefined;
 const shootTwoSteps = (): Promise<Exported> => {
-  twoStepsShot ??= exporter().then((exportDiagram) => exportDiagram(twoSteps(), { outDir: scratch(), formats: ["mp4", "gif", "png"] }));
+  twoStepsShot ??= exporter().then((exportDiagram) => exportDiagram(twoSteps(), { outDir: scratch(), formats: ["mp4", "gif", "png"], ...RATES }));
   return twoStepsShot;
+};
+
+/** CCIP の最初の 3 段。全ての段を撮ると 45 秒の図になり、1 件の上限 (10 秒、#3381) の中で撮れない */
+const ccipHead = (): Json => {
+  const ccip = exampleJson("ccip.json") as { steps: Json[] };
+  return { ...ccip, steps: ccip.steps.slice(0, 3) };
 };
 
 describe("書き出しのコマと形 (#3115)", () => {
   it(
-    "export-default-frame-rates",
+    "export-frame-counts-follow-rates",
     async () => {
-      // 使い方の文の既定のとおり、mp4 は 1 秒 30 コマ、GIF は 1 秒 10 コマで、GIF の 1 コマは 0.1 秒
+      // 渡したコマの数のとおりに撮る。mp4 は 1 秒 2 コマ、GIF は 1 秒 1 コマで、GIF の 1 コマは 1 秒。既定の数は export-defaults.test.ts が確かめる (#3381)
       const result = await shootTwoSteps();
       const { total } = draw("renderDiagram")(twoSteps()).timeline;
-      expect(result.frames, `1 周 ${total} 秒の mp4 のコマの数`).toBe(Math.round(total * 30));
+      expect(result.frames, `1 周 ${total} 秒の mp4 のコマの数`).toBe(Math.round(total * RATES.fps));
       const gif = readGif(readFileSync(result.files.gif as string));
-      expect(gif.frames.length, `1 周 ${total} 秒の GIF のコマの数`).toBe(Math.round(total * 10));
-      expect([...new Set(gif.frames.map((frame) => frame.delay))], "GIF の 1 コマの長さ (1/100 秒)").toEqual([10]);
+      expect(gif.frames.length, `1 周 ${total} 秒の GIF のコマの数`).toBe(Math.round(total * RATES.gifFps));
+      expect([...new Set(gif.frames.map((frame) => frame.delay))], "GIF の 1 コマの長さ (1/100 秒)").toEqual([100 / RATES.gifFps]);
     },
-    SLOW,
   );
 
   it(
@@ -92,7 +100,6 @@ describe("書き出しのコマと形 (#3115)", () => {
         expect(frame.dispose, `GIF の ${i + 2} コマ目の後始末`).toBe(1);
       });
     },
-    SLOW,
   );
 
   it(
@@ -100,7 +107,7 @@ describe("書き出しのコマと形 (#3115)", () => {
     async () => {
       // GIF の色の表は 256 色まで。CCIP は表の上限まで色を使う
       const exportDiagram = await exporter();
-      const result = await exportDiagram(exampleJson("ccip.json"), { outDir: scratch(), formats: ["gif"], gifFps: 1 });
+      const result = await exportDiagram(ccipHead(), { outDir: scratch(), formats: ["gif"], gifFps: 1 });
       const gif = readGif(readFileSync(result.files.gif as string));
       expect(gif.frames.length, "CCIP の GIF にコマが無い").toBeGreaterThan(0);
       gif.frames.forEach((frame, i) => {
@@ -108,7 +115,6 @@ describe("書き出しのコマと形 (#3115)", () => {
         if (frame.transparent !== undefined) expect(frame.transparent, `CCIP の GIF の ${i + 1} コマ目の透明の色の番号`).toBeLessThan(frame.table);
       });
     },
-    SLOW,
   );
 
   it(
@@ -138,7 +144,6 @@ describe("書き出しのコマと形 (#3115)", () => {
       }
       expect(painted / inside, `PNG の最後の段の番号の丸の中で、地の色 (${ground.join(", ")}) と違う画素の割合`).toBeGreaterThan(0.6);
     },
-    SLOW,
   );
 });
 
@@ -152,26 +157,28 @@ describe("書き出し (#2986)", () => {
       const notation = join(dir, "small-notation.dragon");
       writeFileSync(notation, api("printNotation")(smallSequence()));
 
-      // 書き出す先の dir はまだ無い
-      for (const [input, out, name] of [
+      // 書き出す先の dir はまだ無い。2 つの命令は互いに独立しているので、並べて起こす (#3381)
+      const cases = [
         [json, join(dir, "new", "from-json"), "small"],
         [notation, join(dir, "new", "from-notation"), "small-notation"],
-      ] as const) {
-        const ran = await runCli(["export", input, "--out", out, "--fps", "2", "--gif-fps", "1"]);
-        expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
-        for (const format of ["mp4", "gif", "html", "png"] as const) {
-          const file = join(out, `${name}.${format}`);
-          let bytes = Buffer.alloc(0);
-          try {
-            bytes = readFileSync(file);
-          } catch {
-            // 無い時は下の判定で落とす
+      ] as const;
+      await Promise.all(
+        cases.map(async ([input, out, name]) => {
+          const ran = await runCli(["export", input, "--out", out, "--fps", "2", "--gif-fps", "1"]);
+          expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
+          for (const format of ["mp4", "gif", "html", "png"] as const) {
+            const file = join(out, `${name}.${format}`);
+            let bytes = Buffer.alloc(0);
+            try {
+              bytes = readFileSync(file);
+            } catch {
+              // 無い時は下の判定で落とす
+            }
+            expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
           }
-          expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
-        }
-      }
+        }),
+      );
     },
-    SLOW,
   );
 
   it(
@@ -191,7 +198,6 @@ describe("書き出し (#2986)", () => {
       expect(png.width).toBeGreaterThan(0);
       expect(first.equals(second), "同じ JSON から 2 回書き出した PNG がバイト単位で違う").toBe(true);
     },
-    SLOW,
   );
 
   it(
@@ -199,7 +205,9 @@ describe("書き出し (#2986)", () => {
     async () => {
       const exportDiagram = await exporter();
       // 書き手が寄って見せると決めた図。幅は指定しない
-      const ccip = patched(exampleJson("ccip.json"), ["view"], "follow");
+      // 全ての段を撮ると 45 秒の図になるので、見る範囲の離れた最初の段と最後の段だけを撮る (#3381)
+      const full = exampleJson("ccip.json") as { steps: Json[] };
+      const ccip = patched({ ...full, steps: [full.steps[0], full.steps.at(-1)].filter((step): step is Json => step !== undefined) }, ["view"], "follow");
       const result = await exportDiagram(ccip, { outDir: scratch(), formats: ["mp4", "html"], fps: 2 });
       expect(result.view).toBe("follow");
       expect(result.files.mp4, "mp4 を書き出していない").toBeDefined();
@@ -214,7 +222,6 @@ describe("書き出し (#2986)", () => {
       expect(b.count, "途中のコマの全体図に今見ている所の枠が無い").toBeGreaterThan(0);
       expect(Math.hypot(a.x - b.x, a.y - b.y), "最初のコマと途中のコマで見ている範囲が同じ").toBeGreaterThan(2 * scale);
     },
-    SLOW,
   );
 
   it(
@@ -237,7 +244,6 @@ describe("書き出し (#2986)", () => {
       const missing = [...drawn].filter((char) => char.trim() !== "" && bundledCovers(char) && !embedded.has(char));
       expect(missing, "図で描く字が埋めた字の file に無い").toEqual([]);
     },
-    SLOW,
   );
 
   it(
@@ -253,7 +259,6 @@ describe("書き出し (#2986)", () => {
         expect({ bar: step.bar, top: step.top }, `${step.step} の帯の高さか図の上端の位置が 1 段目と違う`).toEqual({ bar: first?.bar, top: first?.top });
       }
     },
-    SLOW,
   );
 
   it(
@@ -288,7 +293,6 @@ describe("書き出し (#2986)", () => {
         });
       }
     },
-    SLOW,
   );
 
   it(
@@ -307,7 +311,6 @@ describe("書き出し (#2986)", () => {
         expect(await playerButtons(html, width), `幅 ${width}px で、段を送る釦が ${size} でない`).toEqual([size, size, size]);
       }
     },
-    SLOW,
   );
 
   it(
@@ -319,7 +322,6 @@ describe("書き出し (#2986)", () => {
       const html = readFileSync(result.files.html as string, "utf8");
       expect(await playerButtons(html, 1024, true), "指で触る幅 1024px で、段を送る釦が 44x44 でない").toEqual(["44x44", "44x44", "44x44"]);
     },
-    SLOW,
   );
 
   it(
@@ -337,17 +339,19 @@ describe("書き出し (#2986)", () => {
         time: "finality.dragon",
         tree: "merkle.dragon",
       };
-      for (const [kind, file] of Object.entries(kinds)) {
-        const parsed = parse(exampleText(file));
-        expect(parsed.ok, `見本 ${file} の記法を読めない`).toBe(true);
-        if (!parsed.ok) continue;
-        const diagram = parsed.diagram as { kind?: string; steps: unknown[] };
-        expect(diagram.kind ?? "architecture", `見本 ${file} の種類`).toBe(kind);
-        const result = await exportDiagram(parsed.diagram, { outDir: scratch(), formats: ["html"] });
-        const html = readFileSync(result.files.html as string, "utf8");
-        expect(await captionSteps(html, 1280), `${kind} の書き出した HTML で送れた段の数`).toHaveLength(diagram.steps.length);
-      }
+      // 種類ごとの書き出しは互いに独立しているので、並べて回す (#3381)
+      await Promise.all(
+        Object.entries(kinds).map(async ([kind, file]) => {
+          const parsed = parse(exampleText(file));
+          expect(parsed.ok, `見本 ${file} の記法を読めない`).toBe(true);
+          if (!parsed.ok) return;
+          const diagram = parsed.diagram as { kind?: string; steps: unknown[] };
+          expect(diagram.kind ?? "architecture", `見本 ${file} の種類`).toBe(kind);
+          const result = await exportDiagram(parsed.diagram, { outDir: scratch(), formats: ["html"] });
+          const html = readFileSync(result.files.html as string, "utf8");
+          expect(await captionSteps(html, 1280), `${kind} の書き出した HTML で送れた段の数`).toHaveLength(diagram.steps.length);
+        }),
+      );
     },
-    SLOW,
   );
 });

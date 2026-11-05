@@ -15,14 +15,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { PARTS } from "../catalog/parts";
 import { BASE, example, partFigure, screenOf, type Site, startSite, stepLabel } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** 部品の頁を全部開くのに許す時間 */
-const SWEEP = 300_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -116,7 +108,7 @@ const editorValue = (page: Page): Promise<string | null> =>
 describe("見本帳と編集画面の列の図 (#3239)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -124,7 +116,7 @@ describe("見本帳と編集画面の列の図 (#3239)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it(
     "catalog-lists-lineup-with-examples",
@@ -146,7 +138,6 @@ describe("見本帳と編集画面の列の図 (#3239)", () => {
         .toBe(auction);
       await expectSteps(opened.page, catalogSel("preview"), AUCTION_STEPS, "列の図の頁の入札の見本");
     },
-    SLOW,
   );
 
   it(
@@ -158,29 +149,29 @@ describe("見本帳と編集画面の列の図 (#3239)", () => {
         page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-catalog="section"][data-section="kind-parts"] a[data-catalog="part-card"]')].map((a) => a.dataset.part ?? ""));
       await expect.poll(kindParts, { ...WAIT, message: "図の種類だけの部品に、チップ、列の並び、封、選ぶ、札が無い" }).toEqual(expect.arrayContaining([...LINEUP_PARTS]));
       for (const id of LINEUP_PARTS) expect(PARTS.find((p) => p.id === id)?.kinds, `${id} が列の図だけの部品でない`).toEqual(["lineup"]);
-
-      for (const id of LINEUP_PARTS) {
-        for (const lang of ["ja", "en"] as const) {
-          const text = snippetOf(id, lang);
-          expect(text, `${id}.lineup${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
-          const parsed = parseNotation(text ?? "", { lang });
-          expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が列の図として読めない`).toBe("lineup");
-        }
-        const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-        await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
-        await expect
-          .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が列の図の図を 1 つ、部品の記法で描かない` })
-          .toEqual([{ kind: "lineup", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
-        await expectSteps(opened.page, `${catalogSel("part")} ${catalogSel("part-figure")}`, undefined, `${id} の列の図`);
-        await opened.page.locator(siteSel("lang-en")).click();
-        await expect
-          .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
-          .toEqual([snippetOf(id, "en") ?? ""]);
-        await site.closeContexts();
-      }
     },
-    SWEEP,
   );
+
+  describe.for(LINEUP_PARTS)("%s", (id) => {
+    it("catalog-has-lineup-parts", async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const text = snippetOf(id, lang);
+        expect(text, `${id}.lineup${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
+        const parsed = parseNotation(text ?? "", { lang });
+        expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が列の図として読めない`).toBe("lineup");
+      }
+      const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+      await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
+      await expect
+        .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が列の図の図を 1 つ、部品の記法で描かない` })
+        .toEqual([{ kind: "lineup", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
+      await expectSteps(opened.page, `${catalogSel("part")} ${catalogSel("part-figure")}`, undefined, `${id} の列の図`);
+      await opened.page.locator(siteSel("lang-en")).click();
+      await expect
+        .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
+        .toEqual([snippetOf(id, "en") ?? ""]);
+    });
+  });
 
   /** 卓の形で足した部品 `id` が、列の図だけの部品として日本語と英語の記法で並び、その頁の図が `TABLE_PARTS[id]` を描くかを確かめる */
   async function expectTablePart(id: keyof typeof TABLE_PARTS): Promise<void> {
@@ -210,30 +201,25 @@ describe("見本帳と編集画面の列の図 (#3239)", () => {
       .toEqual([snippetOf(id, "en") ?? ""]);
   }
 
-  it("catalog-has-lineup-pool-part", () => expectTablePart("order"), SLOW);
+  it("catalog-has-lineup-pool-part", () => expectTablePart("order"));
 
-  it("catalog-has-lineup-role-part", () => expectTablePart("role"), SLOW);
+  it("catalog-has-lineup-role-part", () => expectTablePart("role"));
 
-  it("catalog-has-lineup-legend-part", () => expectTablePart("legend"), SLOW);
+  it("catalog-has-lineup-legend-part", () => expectTablePart("legend"));
 
-  it(
-    "lineup-part-pages-link-examples",
-    async () => {
+  describe.for(LINEUP_PARTS)("%s", (id) => {
+    it("lineup-part-pages-link-examples", async () => {
       const auction = sample("auction");
-      for (const id of LINEUP_PARTS) {
-        const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 } });
-        await onScreen(page, "part", `${id} の部品の頁が出ない`);
-        await expect.poll(() => partSamplesOf(page), { ...WAIT, message: `${id} の頁の見本の札が、列の図の頁の auction へ向かわない` }).toEqual([`${BASE}catalog/lineup#auction`]);
-        await page.locator(`${catalogSel("part-sample")}[data-sample="auction"]`).click();
-        await onScreen(page, "category", `${id} の頁の auction の札を押しても図の頁が出ない`);
-        await expect
-          .poll(() => page.evaluate(() => document.querySelector('[data-catalog="preview"] h2')?.textContent?.trim() ?? ""), { ...WAIT, message: `${id} の頁の札で移った図の頁に入札の見本が出ない` })
-          .toBe(auction.title);
-        await site.closeContexts();
-      }
-    },
-    SLOW,
-  );
+      const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "part", `${id} の部品の頁が出ない`);
+      await expect.poll(() => partSamplesOf(page), { ...WAIT, message: `${id} の頁の見本の札が、列の図の頁の auction へ向かわない` }).toEqual([`${BASE}catalog/lineup#auction`]);
+      await page.locator(`${catalogSel("part-sample")}[data-sample="auction"]`).click();
+      await onScreen(page, "category", `${id} の頁の auction の札を押しても図の頁が出ない`);
+      await expect
+        .poll(() => page.evaluate(() => document.querySelector('[data-catalog="preview"] h2')?.textContent?.trim() ?? ""), { ...WAIT, message: `${id} の頁の札で移った図の頁に入札の見本が出ない` })
+        .toBe(auction.title);
+    });
+  });
 
   it(
     "editor-shelf-has-lineup",
@@ -270,6 +256,5 @@ describe("見本帳と編集画面の列の図 (#3239)", () => {
         await expect.poll(async () => (await lines(id)).some(want), { ...WAIT, message: `記法の早見に${name}が無い` }).toBe(true);
       }
     },
-    SLOW,
   );
 });

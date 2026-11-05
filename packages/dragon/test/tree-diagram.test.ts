@@ -11,18 +11,14 @@
  * 置き場所 (`layout`) と時刻の表 (`timeline`) は描く部品が返す値で確かめ、濃さは SVG の keyframes を jsdom で読んで確かめる。
  * 見本の file と、木の図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
-import { formatOf, runCli } from "./export-support";
 import { place, releasePlaced } from "./follow-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { covers, draw, gap, type LaidBox, type Layout, type Rect, type Rendered, sampleTimes } from "./render-support";
 
-/** 書き出し 1 回に許す時間 (`export.test.ts` と同じ) */
-const SLOW = 180_000;
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 
@@ -590,36 +586,6 @@ describe("後から現れる木の箱への線 (#3240)", () => {
       }
     });
   });
-});
-
-describe("木の図の書き出し (#3233)", () => {
-  it(
-    "export-writes-tree-diagram",
-    async () => {
-      const json = join(EXAMPLES, "merkle.json");
-      expect(existsSync(json), "merkle.json が無い").toBe(true);
-      const out = join(mkdtempSync(join(tmpdir(), "dragon-tree-")), "out");
-      const ran = await runCli(["export", json, "--out", out, "--fps", "2", "--gif-fps", "1"]);
-      expect(ran.code, `書き出しの命令が落ちた: ${ran.stderr}`).toBe(0);
-      for (const format of ["mp4", "gif", "html", "png"] as const) {
-        const file = join(out, `merkle.${format}`);
-        const bytes = existsSync(file) ? readFileSync(file) : Buffer.alloc(0);
-        expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
-      }
-
-      const shots: Buffer[] = [];
-      for (const k of [0, 1]) {
-        const outDir = join(mkdtempSync(join(tmpdir(), "dragon-tree-")), `run-${k}`);
-        const png = await runCli(["export", json, "--format", "png", "--out", outDir]);
-        expect(png.code, `${k + 1} 回目の PNG の書き出しが落ちた: ${png.stderr}`).toBe(0);
-        const file = join(outDir, "merkle.png");
-        expect(existsSync(file), `${k + 1} 回目の PNG を書き出していない`).toBe(true);
-        shots.push(existsSync(file) ? readFileSync(file) : Buffer.alloc(0));
-      }
-      expect((shots[0] as Buffer).equals(shots[1] as Buffer), "同じ JSON から 2 回書き出した PNG がバイト単位で違う").toBe(true);
-    },
-    SLOW * 2,
-  );
 });
 
 describe("木の図の見本の file (#3233)", () => {

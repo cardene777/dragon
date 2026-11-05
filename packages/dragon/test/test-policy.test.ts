@@ -88,6 +88,13 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(missing, "`.ikkan/specs/` の行が名指すのに、検査の file に無い検査").toEqual([]);
   });
 
+  it("typecheck-covers-test-code", () => {
+    // 検査の code の型は `pnpm typecheck` が `tsconfig.test.json` で見る (#1413)。`tsc -b` はこの設定を読まない。
+    // 型検査の命令に入れる前は、検査の 1 件 (16 秒) が同じ型検査を回していた (#3381)
+    const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { scripts: Record<string, string> };
+    expect(pkg.scripts.typecheck, "型検査の命令が検査の code の設定を見ていない").toContain("tsc -p packages/dragon/tsconfig.test.json --noEmit");
+  });
+
   it("checks-declare-light-suite", () => {
     const rows = tableRows(readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8"));
     const weight = rows.find((cells) => cells[0] === "一式の重さ");

@@ -10,18 +10,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-
-import { isCommon, PARTS } from "../catalog/parts";
+import { PARTS } from "../catalog/parts";
 import { BASE, example, partFigure, screenOf, type Site, startSite, stepLabel } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** 部品の頁を全部開くのに許す時間 */
-const SWEEP = 300_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -107,7 +98,7 @@ const editorValue = (page: Page): Promise<string | null> =>
 describe("見本帳と編集画面の木の図 (#3233)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -115,7 +106,7 @@ describe("見本帳と編集画面の木の図 (#3233)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it(
     "catalog-lists-tree-with-examples",
@@ -140,7 +131,6 @@ describe("見本帳と編集画面の木の図 (#3233)", () => {
         .toBe(merkle);
       await expectSteps(opened.page, catalogSel("preview"), MERKLE_STEPS, "木の図の頁の Merkle の見本");
     },
-    SLOW,
   );
 
   it(
@@ -152,47 +142,31 @@ describe("見本帳と編集画面の木の図 (#3233)", () => {
         page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-catalog="section"][data-section="kind-parts"] a[data-catalog="part-card"]')].map((a) => a.dataset.part ?? ""));
       await expect.poll(kindParts, { ...WAIT, message: "図の種類だけの部品に、葉と札と組んだ親が無い" }).toEqual(expect.arrayContaining([...TREE_PARTS]));
       for (const id of TREE_PARTS) expect(PARTS.find((p) => p.id === id)?.kinds, `${id} が木の図だけの部品でない`).toEqual(["tree"]);
-
-      for (const id of TREE_PARTS) {
-        for (const lang of ["ja", "en"] as const) {
-          const text = snippetOf(id, lang);
-          expect(text, `${id}.tree${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
-          const parsed = parseNotation(text ?? "", { lang });
-          expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が木の図として読めない`).toBe("tree");
-        }
-        const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-        await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
-        await expect
-          .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が木の図の図を 1 つ、部品の記法で描かない` })
-          .toEqual([{ kind: "tree", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
-        await expectSteps(opened.page, `${catalogSel("part")} ${catalogSel("part-figure")}`, undefined, `${id} の木の図`);
-        await opened.page.locator(siteSel("lang-en")).click();
-        await expect
-          .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
-          .toEqual([snippetOf(id, "en") ?? ""]);
-        await site.closeContexts();
-      }
     },
-    SWEEP,
   );
 
-  it(
-    "common-parts-draw-tree",
-    async () => {
-      const common = PARTS.filter(isCommon).map((p) => p.id);
-      expect(common.length, "どの図でも使う部品が無い").toBeGreaterThan(0);
-      for (const id of common) {
-        const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-        await onScreen(page, "part", `${id} の部品の頁が出ない`);
-        await expect
-          .poll(async () => (await figuresOf(page)).filter((f) => f.kind === "tree"), { ...WAIT, message: `${id} の頁に木の図で描いた図が無い` })
-          .toEqual([{ kind: "tree", svgs: 1, source: snippetOf(id, "ja") ?? `(${id}.tree.dragon が無い)` }]);
-        await expectSteps(page, `${catalogSel("part")} ${catalogSel("part-figure")}[data-kind="tree"]`, undefined, `${id} の木の図`);
-        await site.closeContexts();
+  describe.for(TREE_PARTS)("%s", (id) => {
+    it("catalog-has-two-tree-parts", async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const text = snippetOf(id, lang);
+        expect(text, `${id}.tree${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
+        const parsed = parseNotation(text ?? "", { lang });
+        expect(parsed.ok && parsed.diagram.kind, `${id} の ${lang} の記法が木の図として読めない`).toBe("tree");
       }
-    },
-    SWEEP,
-  );
+      const opened = await site.open({ path: `${BASE}catalog/part/${id}`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+      await onScreen(opened.page, "part", `${id} の部品の頁が出ない`);
+      await expect
+        .poll(() => figuresOf(opened.page), { ...WAIT, message: `${id} の頁が木の図の図を 1 つ、部品の記法で描かない` })
+        .toEqual([{ kind: "tree", svgs: 1, source: snippetOf(id, "ja") ?? "" }]);
+      await expectSteps(opened.page, `${catalogSel("part")} ${catalogSel("part-figure")}`, undefined, `${id} の木の図`);
+      await opened.page.locator(siteSel("lang-en")).click();
+      await expect
+        .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: `${id} の頁を EN に替えても英語の記法にならない` })
+        .toEqual([snippetOf(id, "en") ?? ""]);
+    });
+  });
+
+
 
   it(
     "tree-part-pages-link-examples",
@@ -210,7 +184,6 @@ describe("見本帳と編集画面の木の図 (#3233)", () => {
         await site.closeContexts();
       }
     },
-    SLOW,
   );
 
   it(
@@ -245,6 +218,5 @@ describe("見本帳と編集画面の木の図 (#3233)", () => {
         await expect.poll(async () => (await lines(id)).some(want), { ...WAIT, message: `記法の早見に${name}が無い` }).toBe(true);
       }
     },
-    SLOW,
   );
 });

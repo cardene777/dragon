@@ -29,8 +29,6 @@ import {
   txBlock,
 } from "./try-support";
 
-/** 書き出し 1 回に許す時間 (`export.test.ts` と同じ) */
-const SLOW = 180_000;
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 
@@ -380,7 +378,6 @@ describe("試す図の書き出し (#3337)", () => {
         `${file} が png として書かれていない`,
       ).toBe("png");
     },
-    SLOW,
   );
 });
 

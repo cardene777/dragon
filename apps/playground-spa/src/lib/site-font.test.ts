@@ -16,12 +16,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { codesOf } from "../../scripts/unicode-ranges.mjs";
 import { app, BASE, root, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 180_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 15_000, interval: 100 } as const;
 /** 字が読み終わった後に、遅れて始まる読み込みが無いことを確かめる長さ */
@@ -111,7 +105,7 @@ async function platformFonts(page: Page, selector: string): Promise<{ custom: bo
 describe("見本帳で使う字だけを 1 つの file から読む (#3296)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -119,7 +113,7 @@ describe("見本帳で使う字だけを 1 つの file から読む (#3296)", ()
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it("site-font-has-one-face", () => {
     const found = siteFaces();
@@ -138,31 +132,27 @@ describe("見本帳で使う字だけを 1 つの file から読む (#3296)", ()
     expect(String.fromCodePoint(...[...overlap].sort((a, b) => a - b)), "分割された字の面に重なった字が残り、Firefox が分割された字の file も読む").toBe("");
   });
 
-  it(
-    "site-font-reads-three-files",
-    async () => {
-      for (const viewport of [
-        { width: 1440, height: 900 },
-        { width: 390, height: 844 },
-      ]) {
-        for (const [name, path] of [
-          ["概要の頁", BASE],
-          ["編集画面", `${BASE}editor`],
-          ["使い方の頁", `${BASE}docs`],
-        ] as const) {
-          const { page } = await site.open({ path, viewport });
-          await fontsSettled(page);
-          const files = await fontFiles(page);
-          const label = `幅${String(viewport.width)}の${name}: ${files.join(" ")}`;
-          expect(files.filter((file) => SITE_FILE.test(file)), `切り出した字を読まない ${label}`).toHaveLength(1);
-          expect(files.filter((file) => NUMBERED_FILE.test(file)), `分割された字を読んだ ${label}`).toEqual([]);
-          expect(files, `字の file が 3 件ではない ${label}`).toHaveLength(3);
-          await site.closeContexts();
-        }
+  describe.for([
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ])("$width × $height", (viewport) => {
+    it("site-font-reads-three-files", async () => {
+      for (const [name, path] of [
+        ["概要の頁", BASE],
+        ["編集画面", `${BASE}editor`],
+        ["使い方の頁", `${BASE}docs`],
+      ] as const) {
+        const { page } = await site.open({ path, viewport });
+        await fontsSettled(page);
+        const files = await fontFiles(page);
+        const label = `幅${String(viewport.width)}の${name}: ${files.join(" ")}`;
+        expect(files.filter((file) => SITE_FILE.test(file)), `切り出した字を読まない ${label}`).toHaveLength(1);
+        expect(files.filter((file) => NUMBERED_FILE.test(file)), `分割された字を読んだ ${label}`).toEqual([]);
+        expect(files, `字の file が 3 件ではない ${label}`).toHaveLength(3);
+        await site.closeContexts();
       }
-    },
-    SLOW,
-  );
+    });
+  });
 
   it("site-font-covers-every-word", () => {
     const covered = coveredCodes();
@@ -216,7 +206,6 @@ describe("見本帳で使う字だけを 1 つの file から読む (#3296)", ()
       const fonts = await platformFonts(page, "#probe");
       expect(fonts, `${UNLISTED} が端末の字で描かれた`).toEqual([{ custom: true, glyphs: 1 }]);
     },
-    SLOW,
   );
 
   it(
@@ -228,6 +217,5 @@ describe("見本帳で使う字だけを 1 つの file から読む (#3296)", ()
       expect(box?.width ?? 0, "字の間隔の情報が効いていない").toBeCloseTo(KERNED.width, 0);
       expect(await platformFonts(page, "#kerned"), "端末の字で描かれた").toEqual([{ custom: true, glyphs: KERNED.text.length }]);
     },
-    SLOW,
   );
 });

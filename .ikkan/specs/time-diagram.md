@@ -25,14 +25,14 @@
 | 見せ方を書かない時間軸の図を幅 728 の枠で開いた時、全体を止めて中だけを動かす見せ方 (`fixed`) になる | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`time-opens-fixed`が通る | #3165 |
 | 時系列図、構成図、状態遷移図、枝分かれの図の描き方は今どおりで、OAuth は 12 段、CCIP は 13 段、rebase は 11 段が順に動き、箱どうしと線の名前と箱が 10px 以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`rebase-renders-11-steps`と`layout-keeps-10px-gap`が通る | #3165 |
 | 時間軸の図の描画も、色、字、余白、動きの値を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3165 |
-| `dragon export` にブロックの確定の図の JSON を渡した時、mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`export-writes-time-diagram`が通る | #3165 |
+| `dragon export` は図の種類に関わらず同じ処理で mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する。ブロックの確定の図は書き出した HTML で全ての段を送れる | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-writes-four-formats`と`export-is-deterministic`と`html-export-draws-every-kind`が通る | #3165 |
 | `packages/dragon/examples` にブロックの確定と引き出しの日本語と英語の記法と JSON の 8 つの file があり、英語版の列と節目と段と段ごとの出来事の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`time-example-files-match`が通る | #3165 |
 | repo の全ての `.dragon` の file を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3165 |
 | 見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならず、運ぶ物が箱と字に掛からない | `pnpm test`の検査`overlaps-none-in-every-example`と`carriers-clear-in-every-example`が通る | #3165 |
 | 見本帳の一覧に図の分類が 5 つ (時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図) 並び、時間軸の図の頁にブロックの確定と引き出しの見本が載り、ブロックの確定を選ぶと 10 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`catalog-lists-time-with-examples`が通る | #3165 |
 | 見本帳の一覧の図の分類が時系列図、構成図、状態遷移図、枝分かれの図の順で始まり、枝分かれの図の頁に rebase と merge の見本が載り、rebase を選ぶと 11 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`catalog-lists-git-with-examples`が通る | #3165 |
 | 見本帳の図の種類だけの部品に、目盛りと針、印の列、節目、拡大の帯の 4 つが時間軸の図の部品として並び、頁ごとに日本語と英語の記法と、時間軸の図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`catalog-has-four-time-parts`が通る | #3165 |
-| どの図でも使う 10 個の部品の頁に、時間軸の図で描いた図が並び、段を送れる。中身の帯の頁の時間軸の図は物差しを使う | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`common-parts-draw-time`が通る | #3165 |
+| どの図でも使う 10 個の部品の頁に、時間軸の図で描いた図が並び、段を送れる。中身の帯の頁の時間軸の図は物差しを使う | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts apps/playground-spa/src/lib/time-catalog.test.ts`の検査`catalog-common-parts-listed`と`catalog-common-part-shows-both-kinds`と`strip-time-figure-uses-meter`が通る | #3165 |
 | 時間軸の図の部品の頁は、その部品を使う見本の札を並べ、札は時間軸の図の頁のその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`time-part-pages-link-examples`が通る | #3165 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3165 |
 | 編集画面の棚の見本に時間軸の図の束があってブロックの確定と引き出しが載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に `time` の頭の行があり、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` と針を進める線の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`editor-shelf-has-time`が通る | #3165 |

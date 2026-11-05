@@ -14,8 +14,6 @@ import { describe, expect, it } from "vitest";
 import { exporter } from "./export-support";
 import { parsedTry, SMALL_PARTS, smallTry } from "./try-support";
 
-/** Chromium を起こして書き出し、触り終えるまでに許す時間 */
-const SLOW = 180_000;
 
 const PAGE = "http://localhost/";
 
@@ -169,7 +167,6 @@ describe("試す図を Chromium で触る (#3337)", () => {
         ).toBeGreaterThanOrEqual(44);
       }
     },
-    SLOW,
   );
 
   it(
@@ -202,6 +199,5 @@ describe("試す図を Chromium で触る (#3337)", () => {
       expect(result.session, "sessionStorage に値が残る").toBe(0);
       expect(outside, "頁の外へ通信した").toEqual([]);
     },
-    SLOW,
   );
 });

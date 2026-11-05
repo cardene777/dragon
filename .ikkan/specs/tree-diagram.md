@@ -21,14 +21,14 @@
 | 全体を枠に収めた字が 10.5px を下回る幅 390 の枠で Merkle の図を開いた時、寄って見せる見せ方 (`follow`) になり、どの段の終わりでも、その段の番号の丸と、その段で運ぶ物が最後に着いた箱か、運ぶ物の無い段では最初に現れた木の箱が、見ている窓の中にある。表の値だけが変わる段の丸は窓の下の表の隅に在る (#3270) | `pnpm exec vitest run packages/dragon/test/tree-diagram.test.ts`の検査`tree-follows-when-narrow`が通る | #3233 |
 | 今の 5 種類の描き方は今どおりで、OAuth は 12 段、CCIP は 13 段、rebase は 11 段、ブロックの確定は 10 段、注文は 10 段が順に動き、箱どうしと線の名前と箱が 10px 以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`rebase-renders-11-steps`と`finality-renders-10-steps`と`order-renders-10-steps`と`layout-keeps-10px-gap`が通る | #3233 |
 | 木の図の描画も、色、字、余白、動きの値を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3233 |
-| `dragon export` に Merkle の図の JSON を渡した時、mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する | `pnpm exec vitest run packages/dragon/test/tree-diagram.test.ts`の検査`export-writes-tree-diagram`が通る | #3233 |
+| `dragon export` は図の種類に関わらず同じ処理で mp4、GIF、HTML、PNG の 4 つを書き出し、同じ JSON を 2 回書き出した PNG がバイト単位で一致する。Merkleの図は書き出した HTML で全ての段を送れる | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-writes-four-formats`と`export-is-deterministic`と`html-export-draws-every-kind`が通る | #3233 |
 | `packages/dragon/examples` に Merkle の日本語と英語の記法と JSON の 4 つの file があり、英語版の葉と親と段と段ごとの出来事の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/tree-diagram.test.ts`の検査`tree-example-files-match`が通る | #3233 |
 | repo の全ての `.dragon` の file を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3233 |
 | 見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならず、運ぶ物が箱と字に掛からない | `pnpm test`の検査`overlaps-none-in-every-example`と`carriers-clear-in-every-example`が通る | #3233 |
 | 見本帳の一覧に図の分類が 6 つ (時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図) 並び、木の図の頁に Merkle の見本が載り、選ぶと 8 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`catalog-lists-tree-with-examples`が通る | #3233 |
 | 見本帳の一覧の図の分類が時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図の順で始まり、時間軸の図の頁にブロックの確定と引き出しの見本が載り、ブロックの確定を選ぶと 10 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`catalog-lists-time-with-examples`が通る | #3233 |
 | 見本帳の図の種類だけの部品に、葉と札、組んだ親の 2 つが木の図の部品として並び、頁ごとに日本語と英語の記法と、木の図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`catalog-has-two-tree-parts`が通る | #3233 |
-| どの図でも使う部品の全ての頁に、木の図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`common-parts-draw-tree`が通る | #3233 |
+| どの図でも使う部品の全ての頁に、木の図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-parts-listed`と`catalog-common-part-shows-both-kinds`が通る | #3233 |
 | 木の図の部品の頁は、その部品を使う見本の札を並べ、札は木の図の頁のその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`tree-part-pages-link-examples`が通る | #3233 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3233 |
 | 編集画面の棚の見本に木の図の束があって Merkle が載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に `tree` の頭の行があり、`leaf` と `node` の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`editor-shelf-has-tree`が通る | #3233 |

@@ -29,16 +29,8 @@
 | 指で触る頁を開く時、支えは `(pointer: coarse)` が当たるまで待つ。当たらない頁では、決めた時間で「指で触る設定 (pointer: coarse) が当たらない」と頁の path を名指して落ちる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`touch-open-waits-for-coarse`が通る | #3231 |
 | 部品の頁で、どの図でも使える部品を図の種類ごとに描き、段を 1 つずつ送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-part-shows-both-kinds`が通る | #3231 |
 | 枝分かれの図の部品の頁で、図を 1 段目から 1 段ずつ送れる | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`catalog-has-four-git-parts`が通る | #3231 |
-| 指で触る幅の時系列図の分類の頁で、検索に字を入れた時とコードの側と重ね窓の部品が 44px に届く | `pnpm exec vitest run apps/playground-spa/src/lib/site.test.ts`の検査`coarse-catalog-touch-targets-after-action`が通る | #3231 |
+| 指で触る幅の時系列図の分類の頁で、検索に字を入れた時とコードの側と重ね窓の部品が 44px に届く | `pnpm exec vitest run apps/playground-spa/src/lib/site-catalog-touch.test.ts`の検査`coarse-catalog-touch-targets-after-action`が通る | #3231 |
 | 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3231 #3300 #3379 |
-| 主の処理が塞がった頁を残して落ちた検査を閉じた時、記録の1行が、そのブラウザーの描画のprocessとGPUのprocessごとにpidと`sample`の全文を書いたfileのpathを持ち、そのfileが在る | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-samples-processes`が通る | #3300 |
-| 同じ時、記録の1行が、processごとに主のthreadが一番長く居た所を呼び出しの末端から5段持つ | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-names-main-thread`が通る | #3300 |
-| 塞がりが待つ間に解けた頁は、また描き替えるまでの時間 (ms) を記録に持つ | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-times-recovery`が通る | #3300 |
-| 待つ間に塞がりが解けなかった頁は、また描き替えるまでの時間が`null`になる | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-recovery-null-when-stuck`が通る | #3300 |
-| `sample`を起こせない時は、processごとに起こせなかった訳が記録に出て、記録の1行は書かれる | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-sample-failure-named`が通る | #3300 |
-| 既定では固まった頁を60秒待ち、一式の後始末の上限 (`hookTimeout`) は、待つ長さに記録を取る他の手間 (15秒) を足した時間より長い | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-fits-hook-timeout`が通る | #3300 |
-| 全ての頁が描き替えている落ち方では`sample`を取らず、記録はprocessの欄を持たない | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-skips-sample-when-live`が通る | #3300 |
-| 頁が塞がったままでも、落ちた検査を閉じる処理は、待つ長さに15秒を足した時間の中で終わる | `pnpm exec vitest run apps/playground-spa/src/lib/stall-probe.test.ts`の検査`stall-record-stuck-page-ends-in-time`が通る | #3300 |
 | `startSite`で開いた頁 (概要、編集画面、カタログの一覧) が描けるまでに、手元の HTTP の server が browser から受けた要求が0件 | `pnpm exec vitest run`の検査`site-pages-skip-the-local-server`が通る | #3379 |
 | 拡張子の無い経路には同じ名前の`.html`を、無い path には`404.html`を 404 で返す規則が、browser で開いた頁でも node からの問いでも同じに働く | `pnpm exec vitest run`の検査`page-routes-answer-200`と`pages-open-directly`と`unknown-catalog-routes-are-not-found`が通る | #3379 |
 | 頁の塊の読み込みを止めた頁で、読み直しを促し、頁を1度だけ読み直す | `pnpm exec vitest run`の検査`page-chunk-failure-offers-reload`と`page-chunk-failure-reloads-once`が通る | #3379 |
@@ -46,3 +38,21 @@
 | 後から読む図の種類の塊を待つ間、図はその塊を待つ | `pnpm exec vitest run`の検査`figure-waits-for-later-kind`が通る | #3379 |
 | 2度目に開いた頁は、字の CSS を最初の画面より前に読む | `pnpm exec vitest run`の検査`second-visit-reads-font-css-before-first-screen`が通る | #3379 |
 | カタログの部品の経路が build され、node からの問いに 200 で答える | `pnpm exec vitest run`の検査`catalog-part-routes-built`が通る | #3379 |
+| 変えた検査の file を関係する検査を回す命令に渡した時、命令はその file を選ぶ | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-runs-changed-test-file`が通る | #3381 |
+| 変えた src の file を渡した時、命令はその file へ import でたどれる検査の file を選び、たどれない検査の file を選ばない | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-picks-importers`と`related-skips-non-importers`が通る | #3381 |
+| package の名前 (`@cardenelabs/dragon`) で読む検査と、build した命令や頁を起こす検査は、その元の src の file を変えた時に選ばれる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-follows-package-and-built-entries`が通る | #3381 |
+| import でたどれない材料 (見本の file、README、変更履歴、build の設定) を変えた時、命令は表がその材料に結ぶ検査の file を選ぶ | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-maps-materials-by-table`が通る | #3381 |
+| 表に載った材料の名前を書く検査の file は、全て表がその材料に結んでいる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-table-covers-material-readers`が通る | #3381 |
+| 表にも import にも当たらない file を変えた時、命令は検査を回さず、その file の名前を出して終わり方1で止まる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-names-unmapped-material`が通る | #3381 |
+| file を渡さない時、命令は既定の枝から分かれた後の変更を、commit していない変更も含めて対象にする | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-defaults-to-branch-changes`が通る | #3381 |
+| 命令は回す前に、選んだ検査の file の名前と数を出す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-prints-chosen-files`が通る | #3381 |
+| 1件の検査とその前後処理の上限が10秒で、超えた検査は止まって落ち、名前が出る | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`test-over-limit-is-stopped-and-named`が通る | #3381 |
+| 1回の実行の上限が5分で、超えた時は実行全体が止まり、終わっていない検査の名前を出して終わり方1で終わる | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-is-five-minutes`と`run-limit-stops-whole-run`が通る | #3381 |
+| 見本帳の頁は1回の実行で1度だけ build され、頁を開く検査の file は全てその build を使う | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-built-once-per-run`が通る | #3381 |
+| 外した検査はどの検査の file にも無く、外した検査ごとに理由と、同じ守りを担う残りの検査の名前が`docs/removed-tests.md`に在り、その残りの検査は在る | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`removed-tests-are-gone-and-covered`が通る | #3381 |
+| `.ikkan/specs/`の行が名指す検査は、全て検査の file に在る | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`spec-rows-name-existing-tests`が通る | #3381 |
+| `.ikkan/checks.md`が一式を軽いと宣言する | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`checks-declare-light-suite`が通る | #3381 |
+| `docs/maintaining.md`が、課題ごとには関係する検査を命令で回し、一式は版を出す前の1回だけ回すと書く | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`maintainer-notes-name-related-runner`が通る | #3381 |
+| `dist`が`src`より古い時は、検査を回す前に止まる | `pnpm exec vitest run packages/dragon/test/dist-freshness.test.ts`の検査`"dist が古ければ stale"`が通る | #3381 |
+| 書き出しの4つの形と、同じ原本から2度書き出した結果の一致を確かめる検査が残る | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-writes-four-formats`と`export-is-deterministic`が通る | #3381 |
+| 一式が通り、検査の実行は5分の上限に止められない | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終わり方0で終わる | #3381 |

@@ -13,8 +13,6 @@ import { launch, stage } from "../src/export/capture";
 import { exampleJson, type Json } from "./diagram-support";
 import { drawnText, embeddedFonts, exporter, fontChars, formatOf, isBlank, type PlayerWords, playerWords, runCli } from "./export-support";
 
-/** 書き出し 1 回に許す時間。Chromium の起動を含む */
-const SLOW = 180_000;
 /** 寄って見せる見せ方になり、縦長の全体図を出す枠の幅。440px より狭い枠は縦長の全体図を出さない (#3055) */
 const NARROW = 440;
 
@@ -86,7 +84,6 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
         expect(words.overviewFits, `${lang} の全体図の札 (${words.overview}) が縦に長い図の全体図の地からはみ出す`).toBe(true);
       }
     },
-    SLOW,
   );
 
   it(
@@ -98,7 +95,6 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       const ja = await exported(join(EXAMPLES, "oauth.dragon"));
       expect(ja).toEqual({ ...expected("en", titleOf("oauth.json")), overviewFits: true });
     },
-    SLOW,
   );
 
   it(
@@ -115,7 +111,6 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
         overviewFits: true,
       });
     },
-    SLOW,
   );
 
   it(
@@ -135,7 +130,6 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       expect(message, "断りの文に誤りの場所が無い").toContain("/blocks/box/0/colour");
       expect(message, "英語の断りの文に仮名か漢字がある").not.toMatch(KANA_KANJI);
     },
-    SLOW,
   );
 
   it(
@@ -150,7 +144,6 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       expect(ran.stderr, "使い方を出さない").toContain("Usage: dragon export");
       expect(ran.stderr, "使い方に --lang の行が無い").toMatch(/^\s+--lang\s/mu);
     },
-    SLOW,
   );
 
   it(
@@ -175,7 +168,6 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       const extra = [...shaped].filter((char) => !drawn.has(char));
       expect(extra, "形のある字が入る字の file に図で描かない字を埋めた").toEqual([]);
     },
-    SLOW,
   );
 
   it(
@@ -187,7 +179,6 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       expect(readdirSync(out)).toEqual(["order.en.png"]);
       expect(formatOf(readFileSync(join(out, "order.en.png")))).toBe("png");
     },
-    SLOW,
   );
 
   it(
@@ -213,6 +204,5 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
         }
       }
     },
-    SLOW,
   );
 });

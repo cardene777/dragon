@@ -11,12 +11,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { firstLoadFiles, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 /** 字の CSS を止めている間に、最初の画面が出てこないことを確かめる長さ */
@@ -56,7 +50,7 @@ const loadedFamilies = (page: Page): Promise<string[]> =>
 describe("字の CSS を最初の画面の後に読む (#3292)", () => {
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -64,7 +58,7 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   it("first-load-css-carries-no-font-face", () => {
     const first = firstLoadFiles(site.built.dir).filter((name) => name.endsWith(".css"));
@@ -99,7 +93,6 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
       await expect.poll(async () => (await fontLinks()).length, { ...WAIT, message: "字の CSS を読まない" }).toBeGreaterThan(0);
       expect(await fontLinks(), "最初の画面を描く前に字の CSS を読み始めた").not.toContain(false);
     },
-    SLOW,
   );
 
   it(
@@ -125,26 +118,21 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
       release();
       await shows(page, HEADER, "字の CSS が届いた後に最初の画面が出ない");
     },
-    SLOW,
   );
 
-  it(
-    "font-css-failure-still-draws-first-screen",
-    async () => {
-      for (const seen of [false, true]) {
-        const { page } = await site.open({
-          prepare: async (p) => {
-            if (seen) await p.addInitScript((key) => localStorage.setItem(key, "1"), SEEN);
-            await onFontCss(p, (route) => route.abort());
-          },
-        });
-        await shows(page, HERO, `字の CSS を読めない時に最初の画面が出ない (2 度目の端末=${seen})`);
-        const display = await page.locator(".site").evaluate((element) => getComputedStyle(element).display);
-        expect(display, `字の CSS を読めない時に頁の CSS が効いていない (2 度目の端末=${seen})`).toBe("flex");
-      }
-    },
-    SLOW,
-  );
+  describe.for([false, true])("2 度目の端末 %s", (seen) => {
+    it("font-css-failure-still-draws-first-screen", async () => {
+      const { page } = await site.open({
+        prepare: async (p) => {
+          if (seen) await p.addInitScript((key) => localStorage.setItem(key, "1"), SEEN);
+          await onFontCss(p, (route) => route.abort());
+        },
+      });
+      await shows(page, HERO, `字の CSS を読めない時に最初の画面が出ない (2 度目の端末=${seen})`);
+      const display = await page.locator(".site").evaluate((element) => getComputedStyle(element).display);
+      expect(display, `字の CSS を読めない時に頁の CSS が効いていない (2 度目の端末=${seen})`).toBe("flex");
+    });
+  });
 
   it(
     "font-faces-reach-the-page",
@@ -152,7 +140,6 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
       const { page } = await site.open();
       await expect.poll(() => loadedFamilies(page), { ...WAIT, message: "字を読み終えない" }).toContain(SANS);
     },
-    SLOW,
   );
 
   it(
@@ -172,7 +159,6 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
       await shows(page, HERO, "localStorage を使えない時に最初の画面が出ない");
       await expect.poll(() => loadedFamilies(page), { ...WAIT, message: "localStorage を使えない時に字を読み終えない" }).toContain(SANS);
     },
-    SLOW,
   );
 
   it(
@@ -182,6 +168,5 @@ describe("字の CSS を最初の画面の後に読む (#3292)", () => {
       await expect.poll(() => loadedFamilies(page), { ...WAIT, message: "字を読み終えない" }).toContain(SANS);
       expect(await violations(), "字の CSS を読む時に CSP の違反が出た").toEqual([]);
     },
-    SLOW,
   );
 });

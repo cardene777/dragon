@@ -9,12 +9,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { toHash } from "../share";
 import { BASE, example, type Site, startSite } from "./playground-support";
 
-/** 頁を build して Chromium を起こすまでに許す時間 */
-const SETUP = 300_000;
-/** 画面を開いて確かめるのに許す時間 */
-const SLOW = 120_000;
-/** Chromium を閉じて配る場所を止めるまでに許す時間 (`playground.test.ts` と同じ理由) */
-const TEARDOWN = 90_000;
 /** 頁が書き換わるのを待つ長さ */
 const WAIT = { timeout: 8_000, interval: 100 } as const;
 
@@ -61,7 +55,7 @@ describe("編集画面の状態の欄の数 (#3261)", () => {
 
   beforeAll(async () => {
     site = await startSite();
-  }, SETUP);
+  });
 
   afterEach(async () => {
     await site?.closeContexts();
@@ -69,7 +63,7 @@ describe("編集画面の状態の欄の数 (#3261)", () => {
 
   afterAll(async () => {
     await site?.close();
-  }, TEARDOWN);
+  });
 
   const opened = async (notation: string, locale: string): Promise<Page> => {
     if (!site) throw new Error("頁が起きていない");
@@ -80,20 +74,21 @@ describe("編集画面の状態の欄の数 (#3261)", () => {
     await expect.poll(() => page.locator(".pg-ok").textContent(), { ...WAIT, message: `状態の欄に「${said}」が出ない` }).toContain(said);
   };
 
-  it(
-    "editor-status-counts-by-kind",
-    async () => {
-      for (const { name, count, ja, en } of CASES) {
-        const jaDiagram = JSON.parse(read(`${name}.json`)) as Example;
-        await shown(await opened(read(`${name}.dragon`), "ja-JP"), `読めています — ${ja(count(jaDiagram))}、段 ${jaDiagram.steps.length}`);
-        const enDiagram = JSON.parse(read(`${name}.en.json`)) as Example;
-        await shown(await opened(read(`${name}.en.dragon`), "en-US"), `Reads fine — ${en(count(enDiagram))}, ${enDiagram.steps.length} steps`);
-      }
+  describe.for(CASES)("$name", ({ name, count, ja, en }) => {
+    it("editor-status-counts-by-kind", async () => {
+      const jaDiagram = JSON.parse(read(`${name}.json`)) as Example;
+      await shown(await opened(read(`${name}.dragon`), "ja-JP"), `読めています — ${ja(count(jaDiagram))}、段 ${jaDiagram.steps.length}`);
+      const enDiagram = JSON.parse(read(`${name}.en.json`)) as Example;
+      await shown(await opened(read(`${name}.en.dragon`), "en-US"), `Reads fine — ${en(count(enDiagram))}, ${enDiagram.steps.length} steps`);
+    });
+  });
+
+  describe("英語の単数形", () => {
+    it("editor-status-counts-by-kind", async () => {
       for (const { notation, said } of SINGULAR) await shown(await opened(notation, "en-US"), `Reads fine — ${said}`);
       const withdraw = JSON.parse(read("withdraw.en.json")) as Example;
       expect(withdraw.blocks.row?.length, "単数形を確かめる見本の印の列が 1 本でない").toBe(1);
       await shown(await opened(read("withdraw.en.dragon"), "en-US"), `Reads fine — 1 row, ${withdraw.steps.length} steps`);
-    },
-    SLOW,
-  );
+    });
+  });
 });

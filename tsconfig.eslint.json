@@ -12,6 +12,7 @@
     }
   ],
   "include": [
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "test-support/fixtures/limits/vitest.config.ts"
   ]
 }
