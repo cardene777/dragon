@@ -5,6 +5,8 @@ import { defineConfig } from "tsup";
 const fontVersion = (name: string): string =>
   (JSON.parse(readFileSync(new URL(`./node_modules/@fontsource-variable/${name}/package.json`, import.meta.url), "utf8")) as { version: string }).version;
 const FONT_VERSIONS = { "noto-sans-jp": fontVersion("noto-sans-jp"), "jetbrains-mono": fontVersion("jetbrains-mono") };
+/** package の版。script の1行の入口の案内役が、同じ版の場所から本体を読む (#3375) */
+const VERSION = (JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string }).version;
 
 export default defineConfig([
   {
@@ -57,17 +59,34 @@ export default defineConfig([
   },
   {
     // script の1行の入口 (#3343)。頁が jsDelivr から ES module として読む。依存ごと束ね、種類の部品は軽い入口と同じく塊に分けて後から読む。
-    // 塊の名前は版ごとに替わるので、自分の置き場だけを消す。source map は塊がどの種類の部品を持つかを検査が読むのに使う
-    entry: { dragon: "src/script.ts" },
+    // 塊の名前は版ごとに替わるので、自分の置き場を消す。案内役の設定が同時に書く dragon.js は消さない。
+    // source map は塊がどの種類の部品を持つかを検査が読むのに使う
+    entry: { "dragon-main": "src/script.ts" },
     format: ["esm"],
     platform: "browser",
     splitting: true,
     noExternal: [/.*/],
     minify: true,
     sourcemap: true,
-    clean: true,
+    clean: ["!dragon.js", "!dragon.js.map"],
     dts: false,
     define: { __DRAGON_FONT_VERSIONS__: JSON.stringify(FONT_VERSIONS) },
+    outDir: "dist/cdn",
+    target: "es2022",
+  },
+  {
+    // 頁が読む script の1行の入口の案内役 (#3375)。同じ版の場所から本体 dragon-main を読む。
+    // 本体と同じ設定で束ねると、esbuild が本体と分け合う部品 (値が object の define も) を塊に分け、案内役がそれを範囲の場所から読む。
+    // 分け合う物が出ないよう、別の設定で 1 file に束ねる
+    entry: { dragon: "src/script-loader.ts" },
+    format: ["esm"],
+    platform: "browser",
+    splitting: false,
+    minify: true,
+    sourcemap: true,
+    clean: false,
+    dts: false,
+    define: { __DRAGON_VERSION__: JSON.stringify(VERSION) },
     outDir: "dist/cdn",
     target: "es2022",
   },
