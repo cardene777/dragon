@@ -23,14 +23,20 @@ declare module "vitest" {
   export interface ProvidedContext {
     /** build した見本帳の頁。鍵は build の設定の `apps/playground-spa` からの path で、名指さない build は `default` */
     dragonSites: Record<string, Built>;
-    /** この段が作業者ごとに起こした Chromium のつなぐ先。頁を開かない回は空 */
-    dragonBrowsers: string[];
+    /** この段が作業者ごとに起こした Chromium のつなぐ先と、それを起こした process の番号。頁を開かない回は空 */
+    dragonBrowsers: { endpoint: string; pid: number }[];
   }
 }
 
-/** 画面なしの Chromium を 1 つ、この process の外の node の process で起こす。`close` は Chromium を閉じ、その process が終わるまで待つ */
-export async function launchChromiumServer(): Promise<{ endpoint: string; pid: number; close: () => Promise<void> }> {
-  const child = spawn(process.execPath, [join(app, "src/lib/chromium-server.mjs")], { stdio: ["ignore", "ignore", "inherit", "ipc"] });
+/** Chromium を起こす node の script。つなぐ先を IPC で渡し、`close` を受けるか親が居なくなると閉じて終わる */
+export const CHROMIUM_SERVER = join(app, "src/lib/chromium-server.mjs");
+
+/**
+ * 画面なしの Chromium を 1 つ、この process の外の node の process で起こす。`close` は閉じよと送り、その process が終わるまで待つ。
+ * `script` は同じ約束で動く別の script を渡す口で、閉じ方の検査が Chromium を起こさずに確かめるのに使う
+ */
+export async function launchChromiumServer(script = CHROMIUM_SERVER): Promise<{ endpoint: string; pid: number; close: () => Promise<void> }> {
+  const child = spawn(process.execPath, [script], { stdio: ["ignore", "ignore", "inherit", "ipc"] });
   const endpoint = await new Promise<string>((resolve, reject) => {
     child.once("message", (m) => resolve((m as { endpoint: string }).endpoint));
     child.once("exit", (code) => reject(new Error(`Chromium を起こす process が、つなぐ先を渡す前に終わった (終わり方 ${String(code)})`)));
@@ -81,7 +87,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
   ]);
   const sites = Object.fromEntries(built);
   project.provide("dragonSites", sites);
-  project.provide("dragonBrowsers", browsers.map((browser) => browser.endpoint));
+  project.provide("dragonBrowsers", browsers.map(({ endpoint, pid }) => ({ endpoint, pid })));
   return async () => {
     await Promise.all(browsers.map((browser) => browser.close()));
     for (const site of Object.values(sites)) rmSync(site.dir, { recursive: true, force: true });

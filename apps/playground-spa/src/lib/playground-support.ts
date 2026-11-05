@@ -176,7 +176,7 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
   if (built === undefined) throw new Error(`見本帳の build (${key}) が準備の段に無い。検査の file が \`startSite()\` か \`startSite({ config: join(app, "…") })\` の形で呼んでいるかを確かめる (#3381)`);
   // 作業者の番号 (`VITEST_POOL_ID`) は 1 から数える。頁を開く file が作業者より少ない回は Chromium も少ないので、余りで選ぶ
   const browsers = inject("dragonBrowsers");
-  const endpoint = browsers[(Number(process.env.VITEST_POOL_ID ?? "1") - 1) % browsers.length] as string;
+  const { endpoint } = browsers[(Number(process.env.VITEST_POOL_ID ?? "1") - 1) % browsers.length] as { endpoint: string };
   const server = await servePage(built.dir);
   // つないだ Chromium の `close` は、この線で開いた context を閉じて線を切るだけ
   const browser: Browser = await chromium.connect(endpoint);
