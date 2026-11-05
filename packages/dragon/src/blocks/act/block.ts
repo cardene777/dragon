@@ -10,6 +10,6 @@ import type { Block } from "../block";
 export const block: Block = {
   name: "act",
   rank: 60,
-  attach: { how: "attach-to-box", except: ["lineup"] },
+  attach: { how: "attach-to-box", except: ["lineup", "pipe"] },
   words: { heads: ["act"] },
 };

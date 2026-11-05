@@ -35,7 +35,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, or `tree <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, or `pipe <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Strip | `strip <title>: <field>, <field>`. In a time diagram, `[meter: <ratio>]` after a field name makes that field a meter | `strip Message: ID, receiver, state` |
@@ -245,6 +245,66 @@ step Waiting in line
 step Build a block
   say The two highest fees go into block 1.
   press Build
+```
+
+In a pipe diagram (`pipe <title>`), declare balances with `hold <owner>: <amount> <token>, ...` and stored values with `hold <contract>: <name> <value>` before the first step.
+A line `<caller> -> <callee>: <text>` is a call: `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` or `[call: static]` sets its kind, and `[fold]` folds its inner steps into one box.
+Inside a step, `move <token>: <amount> <from> -> <to>` moves a balance, `write <party>: <name> <value>` rewrites a value, `check <party>: <left> <op> <right>` checks (a check on values that are not numbers fails only with `[fail]`), `emit <party>: <name>(<arg>, ...)` emits an event, and `calc <party>: <in> -> <out>` converts.
+`return <party>: <value>` closes the innermost open call and `revert <party>: <reason>` fails it. Changes stay provisional until the outermost call returns.
+
+```dragon
+pipe Swap 1 ETH for USDC
+
+box alice as Alice
+box ex as Exchange
+box old as OldPool
+box pool as Pool
+box usdc as USDC
+
+hold alice: 1 ETH, 0 USDC
+hold ex: 0 ETH
+hold pool: 5000 USDC
+hold ex: "swaps[alice]" 0
+
+step Alice asks Exchange with 1 ETH attached
+  say ETH attached to a call moves into the callee's tank as the call is made.
+  alice -> ex: swap [value: 1 ETH]
+
+step The old pool is closed
+  say The check fails, and every change up to it rolls back.
+  ex -> old: swap
+  check old: open == true [fail]
+  revert old: closed
+
+step Read the pool price
+  say A call that cannot write reads only the price.
+  ex -> pool: price [call: static]
+  return pool: 3200
+
+step Hand the swap to the pool
+  say The inner steps fold into one box, which opens when pressed.
+  ex -> pool: swap [fold]
+
+step Work out the amount to pay
+  say Work out how much USDC 1 ETH is worth at the current price.
+  calc pool: 1 ETH -> 3200 USDC
+
+step USDC moves to Alice
+  say USDC takes the amount from the pool's balance and adds it to Alice's.
+  pool -> usdc: transfer
+  move usdc: 3200 pool -> alice
+  emit usdc: Transfer(pool, alice, 3200)
+  return usdc: true
+
+step The pool returns the amount it paid
+  say Even after the inner call returns, the changes stay provisional.
+  return pool: 3200 USDC
+
+step The swap ends
+  say Exchange writes its record and returns, and every change becomes final here.
+  write ex: "swaps[alice]" 1
+  emit ex: Swapped(alice, 3200)
+  return ex: 3200 USDC
 ```
 
 ## Attributes

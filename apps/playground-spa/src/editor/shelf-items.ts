@@ -369,7 +369,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   return [
     {
       id: "kind",
-      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try"))],
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try")), head(empty("pipe"))],
     },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {

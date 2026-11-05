@@ -3,14 +3,20 @@ import { reading as actReading } from "./act/read";
 import { reading as askReading } from "./ask/read";
 import { reading as boxReading } from "./box/read";
 import { reading as branchReading } from "./branch/read";
+import { reading as calcReading } from "./calc/read";
+import { reading as callReading } from "./call/read";
 import { reading as carryReading } from "./carry/read";
 import { reading as chainReading } from "./chain/read";
+import { reading as checkReading } from "./check/read";
 import { reading as colorReading } from "./color/read";
 import { reading as commitReading } from "./commit/read";
 import { reading as copyReading } from "./copy/read";
 import { reading as edgeReading } from "./edge/read";
 import { reading as edgeLabelReading } from "./edge-label/read";
+import { reading as emitReading } from "./emit/read";
+import { reading as foldReading } from "./fold/read";
 import { reading as groupReading } from "./group/read";
+import { reading as holdReading } from "./hold/read";
 import { reading as iconReading } from "./icon/read";
 import { reading as itemReading } from "./item/read";
 import { reading as leafReading } from "./leaf/read";
@@ -26,6 +32,8 @@ import { reading as pickReading } from "./pick/read";
 import { reading as pointReading } from "./point/read";
 import { reading as pressReading } from "./press/read";
 import { reading as queueReading } from "./queue/read";
+import { reading as returnReading } from "./return/read";
+import { reading as revertReading } from "./revert/read";
 import { reading as roleReading } from "./role/read";
 import { reading as routeReading } from "./route/read";
 import { reading as rowReading } from "./row/read";
@@ -37,6 +45,8 @@ import { reading as stampReading } from "./stamp/read";
 import { reading as startFinishReading } from "./start-finish/read";
 import { reading as stepReading } from "./step/read";
 import { reading as stripReading } from "./strip/read";
+import { reading as valueReading } from "./value/read";
+import { reading as writeReading } from "./write/read";
 import { reading as zoomReading } from "./zoom/read";
 
 /** 全てのブロックの読み方。鍵は置き場の dir の名前。全部入りの入口と検査が読み、軽い入口は読まない (#3349) */
@@ -45,14 +55,20 @@ export const READINGS = {
   "ask": askReading,
   "box": boxReading,
   "branch": branchReading,
+  "calc": calcReading,
+  "call": callReading,
   "carry": carryReading,
   "chain": chainReading,
+  "check": checkReading,
   "color": colorReading,
   "commit": commitReading,
   "copy": copyReading,
   "edge": edgeReading,
   "edge-label": edgeLabelReading,
+  "emit": emitReading,
+  "fold": foldReading,
   "group": groupReading,
+  "hold": holdReading,
   "icon": iconReading,
   "item": itemReading,
   "leaf": leafReading,
@@ -68,6 +84,8 @@ export const READINGS = {
   "point": pointReading,
   "press": pressReading,
   "queue": queueReading,
+  "return": returnReading,
+  "revert": revertReading,
   "role": roleReading,
   "route": routeReading,
   "row": rowReading,
@@ -79,5 +97,7 @@ export const READINGS = {
   "start-finish": startFinishReading,
   "step": stepReading,
   "strip": stripReading,
+  "value": valueReading,
+  "write": writeReading,
   "zoom": zoomReading,
 } as const;

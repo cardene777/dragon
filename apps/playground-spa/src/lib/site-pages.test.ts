@@ -180,7 +180,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
@@ -215,8 +215,32 @@ const eventsOf = (d: Diagram): Diagram["steps"][number]["events"] => d.steps.fla
 /** 図の箱。版2の原本は箱の無い図で箱の欄を持たない */
 const boxesOf = (d: Diagram): NonNullable<Diagram["blocks"]["box"]> => d.blocks.box ?? [];
 
+/**
+ * 図に描く箱の名前。配管の図は、`[fold]` の呼び出しの内側の段 (開いた段の次の段から閉じた段の前の段まで) にしか出ない関係者を、箱を開くまで描かない (#3389)
+ */
+const drawnNames = (d: Diagram): string[] => {
+  if (d.kind !== "pipe") return boxesOf(d).map((b) => b.name);
+  const partiesOf = (e: Diagram["steps"][number]["events"][number]): string[] =>
+    e.type === "call" ? [e.from, e.to] : !("box" in e) ? [] : e.type === "move" ? [e.box, e.from, e.to] : [e.box];
+  const inner = new Set<number>();
+  const open: { step: number; fold: boolean }[] = [];
+  d.steps.forEach((step, s) => {
+    for (const e of step.events) {
+      if (e.type === "call") open.push({ step: s, fold: e.fold === true });
+      if (e.type !== "return" && e.type !== "revert") continue;
+      const call = open.pop();
+      if (call?.fold) for (let k = call.step + 1; k < s; k++) inner.add(k);
+    }
+  });
+  const outside = new Set(d.steps.flatMap((step, s) => (inner.has(s) ? [] : step.events.flatMap(partiesOf))));
+  const insideOnly = new Set(d.steps.flatMap((step, s) => (inner.has(s) ? step.events.flatMap(partiesOf) : [])).filter((id) => !outside.has(id)));
+  return boxesOf(d)
+    .filter((b) => !insideOnly.has(b.id))
+    .map((b) => b.name);
+};
+
 /** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
-const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "tree", "try", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "leaf", "node", "route", "queue", "chain", "ask", "press", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
+const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "tree", "try", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "leaf", "node", "route", "queue", "chain", "ask", "press", "pipe", "hold", "move", "write", "check", "return", "revert", "emit", "calc", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
@@ -262,6 +286,16 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
     d.kind === "try" &&
     ["route", "queue", "chain", "ask", "press"].every((type) => (d.blocks.part ?? []).some((part) => part.type === type)) &&
     ["line", "ask", "press"].every((type) => eventsOf(d).some((e) => e.type === type)),
+  // 残高と残高でない値を宣言し、配管の図の段の中の行を全て書く (#3389)。ETH を添える呼び出しと処理の種類を付けた呼び出しと畳む呼び出しと落ちる確認も書く
+  pipe: (d) =>
+    d.kind === "pipe" &&
+    (d.blocks.hold ?? []).some((h) => "token" in h) &&
+    (d.blocks.hold ?? []).some((h) => "name" in h) &&
+    ["move", "write", "check", "return", "revert", "emit", "calc"].every((type) => eventsOf(d).some((e) => e.type === type)) &&
+    eventsOf(d).some((e) => e.type === "call" && e.value !== undefined) &&
+    eventsOf(d).some((e) => e.type === "call" && e.call !== undefined) &&
+    eventsOf(d).some((e) => e.type === "call" && e.fold === true) &&
+    eventsOf(d).some((e) => e.type === "check" && e.fail === true),
   steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
   strip: (d) => d.blocks.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
@@ -343,7 +377,7 @@ const EDGE_FORM = /^\S+\s*->/u;
  * 前の形と新しい形の対応表 (#3138) を作った後に足した記法の語。前の形が無いので対応表に行を持たない。
  * 対応表は出した版 (0.36.0) の変更履歴の表と同じで、後から行を足さない
  */
-const ADDED_AFTER_MIGRATION = ["state", "git", "branch", "commit", "time", "scale", "period", "row", "point", "zoom", "mark", "span", "source", "tree", "leaf", "node", "lineup", "item", "line", "seal", "open", "pick", "stamp", "role", "try", "route", "queue", "chain", "ask", "press"];
+const ADDED_AFTER_MIGRATION = ["state", "git", "branch", "commit", "time", "scale", "period", "row", "point", "zoom", "mark", "span", "source", "tree", "leaf", "node", "lineup", "item", "line", "seal", "open", "pick", "stamp", "role", "try", "route", "queue", "chain", "ask", "press", "pipe", "hold", "move", "write", "check", "return", "revert", "emit", "calc"];
 
 /** 使い方の頁の前置きと札と節 */
 const docsOf = (
@@ -1140,7 +1174,7 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
       const expectDocs = async (lang: Lang): Promise<void> => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
-        const words = ["sequence", "architecture", "state", "git", "time", "tree", "try"];
+        const words = ["sequence", "architecture", "state", "git", "time", "tree", "try", "pipe"];
         const want = DOC_SECTIONS.map((id, i) => {
           const text = WITHOUT_EXAMPLE.includes(id) ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);
@@ -1153,11 +1187,12 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
             const first = text.split("\n").find((line) => line.trim() !== "" && !line.startsWith("//")) ?? "";
             expect(words, `${lang} の ${id} の節の例が頁の言葉の語で書かれない`).toContain(first.split(" ")[0]);
           }
-          return { id, no: String(i + 1).padStart(2, "0"), code: text ?? null, names: diagram ? [...new Set(boxesOf(diagram).map((b) => b.name))].sort() : [] };
+          return { id, no: String(i + 1).padStart(2, "0"), code: text ?? null, names: diagram ? [...new Set(drawnNames(diagram))].sort() : [] };
         });
 
         // 記法の全ての行の種類を、節の例のどれかが使い、節の本文のどれかが語で説明する
-        const used = new Set(want.flatMap((s) => (s.code ?? "").split("\n").map((line) => (line.includes(" -> ") ? "->" : (line.trim().split(/\s+/u)[0] ?? "")))));
+        // 線の行は箱の名札の後ろに `->` が来る行で、配管の図の `move` と `calc` の行のように中に `->` を書く行は頭の語で数える (#3389)
+        const used = new Set(want.flatMap((s) => (s.code ?? "").split("\n").map((line) => (EDGE_FORM.test(line.trim()) ? "->" : (line.trim().split(/\s+/u)[0] ?? "")))));
         const missing = LINE_KINDS.filter((kind) => !used.has(kind));
         expect(missing, `${lang} の節の例が使わない行の種類`).toEqual([]);
 

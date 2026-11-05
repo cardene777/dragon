@@ -1,0 +1,205 @@
+{
+  "version": 2,
+  "kind": "pipe",
+  "title": "The swap pays too little and is undone",
+  "blocks": {
+    "box": [
+      {
+        "id": "alice",
+        "name": "Alice"
+      },
+      {
+        "id": "router",
+        "name": "SwapRouter"
+      },
+      {
+        "id": "usdc",
+        "name": "USDC"
+      },
+      {
+        "id": "pool",
+        "name": "LiquidityPool"
+      },
+      {
+        "id": "weth",
+        "name": "WETH"
+      },
+      {
+        "id": "bob",
+        "name": "Bob"
+      }
+    ],
+    "hold": [
+      {
+        "box": "alice",
+        "amount": "1000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool",
+        "amount": "2000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool",
+        "amount": "10",
+        "token": "WETH"
+      },
+      {
+        "box": "bob",
+        "amount": "0",
+        "token": "WETH"
+      },
+      {
+        "box": "usdc",
+        "name": "allowance[alice][router]",
+        "value": "100"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Alice asks the router to swap",
+      "body": "Alice asks the router to turn 100 USDC into WETH and send it to Bob. She wants at least 0.06 WETH.",
+      "events": [
+        {
+          "type": "call",
+          "from": "alice",
+          "to": "router",
+          "label": "swap 100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "The router checks the path",
+      "body": "The router checks how many tokens are on the swap path.",
+      "events": [
+        {
+          "type": "check",
+          "box": "router",
+          "left": "2",
+          "op": "==",
+          "right": "2"
+        }
+      ]
+    },
+    {
+      "title": "The router has USDC move the funds",
+      "body": "The router asks USDC to move Alice's 100 USDC to the pool.",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "usdc",
+          "label": "move 100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "USDC checks the allowance",
+      "body": "USDC checks that what Alice allowed the router covers the amount.",
+      "events": [
+        {
+          "type": "check",
+          "box": "usdc",
+          "left": "100",
+          "op": ">=",
+          "right": "100"
+        }
+      ]
+    },
+    {
+      "title": "100 USDC moves from Alice to the pool",
+      "body": "USDC takes 100 from Alice, adds it to the pool, and lowers the allowance by what was used.",
+      "events": [
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "100",
+          "from": "alice",
+          "to": "pool"
+        },
+        {
+          "type": "write",
+          "box": "usdc",
+          "name": "allowance[alice][router]",
+          "value": "0"
+        },
+        {
+          "type": "emit",
+          "box": "usdc",
+          "name": "Transfer",
+          "args": [
+            "alice",
+            "pool",
+            "100"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "USDC reports that it is done",
+      "body": "USDC tells the router it has moved the funds. The changes are still provisional.",
+      "events": [
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "The router asks the pool to swap",
+      "body": "The router asks the pool to turn the USDC into WETH and send it to Bob.",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "pool",
+          "label": "swap 100 USDC"
+        }
+      ]
+    },
+    {
+      "title": "The pool prices the swap",
+      "body": "At its current rate, the pool works out how much WETH 100 USDC is worth.",
+      "events": [
+        {
+          "type": "calc",
+          "box": "pool",
+          "in": "100 USDC",
+          "out": "0.05 WETH"
+        }
+      ]
+    },
+    {
+      "title": "0.05 WETH misses the minimum",
+      "body": "The 0.05 WETH the pool can pay is less than the 0.06 WETH Alice asked for.",
+      "events": [
+        {
+          "type": "check",
+          "box": "pool",
+          "left": "0.05 WETH",
+          "op": ">=",
+          "right": "0.06 WETH"
+        }
+      ]
+    },
+    {
+      "title": "The whole swap is undone",
+      "body": "The pool fails, nobody catches it, and the router fails too. What moved, the written value, and the events all go back.",
+      "events": [
+        {
+          "type": "revert",
+          "box": "pool",
+          "reason": "INSUFFICIENT_OUTPUT_AMOUNT"
+        },
+        {
+          "type": "revert",
+          "box": "router",
+          "reason": "INSUFFICIENT_OUTPUT_AMOUNT"
+        }
+      ]
+    }
+  ]
+}

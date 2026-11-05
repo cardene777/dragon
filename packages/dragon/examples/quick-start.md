@@ -35,7 +35,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 中身の帯 | `strip <題>: <欄>, <欄>`。時間軸の図では欄の名前の後ろに `[meter: <割合>]` を付けると物差しになる | `strip メッセージ: ID, 宛先, 状態` |
@@ -245,6 +245,66 @@ step 並んで待つ
 step ブロックを作る
   say 手数料の高い順に2件がブロック1に入る。
   press 作る
+```
+
+配管の図 (`pipe <題>`) では、最初の段より前に `hold <持ち主>: <量> <トークン>, ...` で残高を、`hold <持つ Contract>: <名前> <値>` で残高でない値を宣言する。
+`<呼ぶ者> -> <呼ばれる者>: <字>` の行は呼び出しで、`[value: <量> ETH]` で ETH を添え、`[call: delegate]` か `[call: static]` で呼び出しの種類を決め、`[fold]` で内側の段を 1 つの箱に畳む。
+段の中の `move <トークンの Contract>: <量> <送り手> -> <受け手>` は残高を移し、`write <者>: <名前> <値>` は値を書き替え、`check <者>: <左> <比べ方> <右>` は確かめ (数でない確認は `[fail]` を書いた時だけ落ちる)、`emit <者>: <名前>(<引数>, ...)` はイベントを出し、`calc <者>: <入る値> -> <出る値>` は換算する。
+`return <戻る者>: <値>` はいちばん内側で開いている呼び出しを閉じ、`revert <者>: <理由>` はその呼び出しを落とす。変更は一番外の呼び出しが戻るまで暫定のまま。
+
+```dragon
+pipe 1 ETHをUSDCに替える
+
+box alice as Alice
+box ex as Exchange
+box old as OldPool
+box pool as Pool
+box usdc as USDC
+
+hold alice: 1 ETH, 0 USDC
+hold ex: 0 ETH
+hold pool: 5000 USDC
+hold ex: "swaps[alice]" 0
+
+step AliceがExchangeに1 ETHを添えて頼む
+  say 呼び出しに添えたETHは、呼んだ所で相手の槽へ移る。
+  alice -> ex: swap [value: 1 ETH]
+
+step 古いPoolは閉じている
+  say 確かめた所で落ち、そこまでの変更が元へ戻る。
+  ex -> old: swap
+  check old: open == true [fail]
+  revert old: 閉じている
+
+step Poolの価格を読む
+  say 書き込めない呼び出しで価格だけを読む。
+  ex -> pool: price [call: static]
+  return pool: 3200
+
+step Poolに交換を任せる
+  say 内側の段は1つの箱に畳まれ、押すと開く。
+  ex -> pool: swap [fold]
+
+step 払う量を計算する
+  say 1 ETHが今の価格でいくらのUSDCになるかを計算する。
+  calc pool: 1 ETH -> 3200 USDC
+
+step USDCがAliceへ移る
+  say USDCがPoolの残高を減らしてAliceに足す。
+  pool -> usdc: transfer
+  move usdc: 3200 pool -> alice
+  emit usdc: Transfer(pool, alice, 3200)
+  return usdc: true
+
+step Poolが払った量を返す
+  say 内側の呼び出しが戻っても、変更は暫定のまま。
+  return pool: 3200 USDC
+
+step 交換が終わる
+  say Exchangeが記録を書いて戻り、ここで全ての変更が確定する。
+  write ex: "swaps[alice]" 1
+  emit ex: Swapped(alice, 3200)
+  return ex: 3200 USDC
 ```
 
 ## 属性

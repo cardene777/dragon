@@ -3,14 +3,20 @@ import { uses as actUses } from "../../../../packages/dragon/src/blocks/act/gall
 import { uses as askUses } from "../../../../packages/dragon/src/blocks/ask/gallery/uses";
 import { uses as boxUses } from "../../../../packages/dragon/src/blocks/box/gallery/uses";
 import { uses as branchUses } from "../../../../packages/dragon/src/blocks/branch/gallery/uses";
+import { uses as calcUses } from "../../../../packages/dragon/src/blocks/calc/gallery/uses";
+import { uses as callUses } from "../../../../packages/dragon/src/blocks/call/gallery/uses";
 import { uses as carryUses } from "../../../../packages/dragon/src/blocks/carry/gallery/uses";
 import { uses as chainUses } from "../../../../packages/dragon/src/blocks/chain/gallery/uses";
+import { uses as checkUses } from "../../../../packages/dragon/src/blocks/check/gallery/uses";
 import { uses as colorUses } from "../../../../packages/dragon/src/blocks/color/gallery/uses";
 import { uses as commitUses } from "../../../../packages/dragon/src/blocks/commit/gallery/uses";
 import { uses as copyUses } from "../../../../packages/dragon/src/blocks/copy/gallery/uses";
 import { uses as edgeUses } from "../../../../packages/dragon/src/blocks/edge/gallery/uses";
 import { uses as edgeLabelUses } from "../../../../packages/dragon/src/blocks/edge-label/gallery/uses";
+import { uses as emitUses } from "../../../../packages/dragon/src/blocks/emit/gallery/uses";
+import { uses as foldUses } from "../../../../packages/dragon/src/blocks/fold/gallery/uses";
 import { uses as groupUses } from "../../../../packages/dragon/src/blocks/group/gallery/uses";
+import { uses as holdUses } from "../../../../packages/dragon/src/blocks/hold/gallery/uses";
 import { uses as iconUses } from "../../../../packages/dragon/src/blocks/icon/gallery/uses";
 import { uses as itemUses } from "../../../../packages/dragon/src/blocks/item/gallery/uses";
 import { uses as leafUses } from "../../../../packages/dragon/src/blocks/leaf/gallery/uses";
@@ -26,6 +32,8 @@ import { uses as pickUses } from "../../../../packages/dragon/src/blocks/pick/ga
 import { uses as pointUses } from "../../../../packages/dragon/src/blocks/point/gallery/uses";
 import { uses as pressUses } from "../../../../packages/dragon/src/blocks/press/gallery/uses";
 import { uses as queueUses } from "../../../../packages/dragon/src/blocks/queue/gallery/uses";
+import { uses as returnUses } from "../../../../packages/dragon/src/blocks/return/gallery/uses";
+import { uses as revertUses } from "../../../../packages/dragon/src/blocks/revert/gallery/uses";
 import { uses as roleUses } from "../../../../packages/dragon/src/blocks/role/gallery/uses";
 import { uses as routeUses } from "../../../../packages/dragon/src/blocks/route/gallery/uses";
 import { uses as rowUses } from "../../../../packages/dragon/src/blocks/row/gallery/uses";
@@ -37,6 +45,8 @@ import { uses as stampUses } from "../../../../packages/dragon/src/blocks/stamp/
 import { uses as startFinishUses } from "../../../../packages/dragon/src/blocks/start-finish/gallery/uses";
 import { uses as stepUses } from "../../../../packages/dragon/src/blocks/step/gallery/uses";
 import { uses as stripUses } from "../../../../packages/dragon/src/blocks/strip/gallery/uses";
+import { uses as valueUses } from "../../../../packages/dragon/src/blocks/value/gallery/uses";
+import { uses as writeUses } from "../../../../packages/dragon/src/blocks/write/gallery/uses";
 import { uses as zoomUses } from "../../../../packages/dragon/src/blocks/zoom/gallery/uses";
 
 /** 部品の頁が、見本がブロックの語を使ったかを決める関数。鍵はブロックの置き場の dir の名前 */
@@ -45,14 +55,20 @@ export const BLOCK_USES = {
   "ask": askUses,
   "box": boxUses,
   "branch": branchUses,
+  "calc": calcUses,
+  "call": callUses,
   "carry": carryUses,
   "chain": chainUses,
+  "check": checkUses,
   "color": colorUses,
   "commit": commitUses,
   "copy": copyUses,
   "edge": edgeUses,
   "edge-label": edgeLabelUses,
+  "emit": emitUses,
+  "fold": foldUses,
   "group": groupUses,
+  "hold": holdUses,
   "icon": iconUses,
   "item": itemUses,
   "leaf": leafUses,
@@ -68,6 +84,8 @@ export const BLOCK_USES = {
   "point": pointUses,
   "press": pressUses,
   "queue": queueUses,
+  "return": returnUses,
+  "revert": revertUses,
   "role": roleUses,
   "route": routeUses,
   "row": rowUses,
@@ -79,5 +97,7 @@ export const BLOCK_USES = {
   "start-finish": startFinishUses,
   "step": stepUses,
   "strip": stripUses,
+  "value": valueUses,
+  "write": writeUses,
   "zoom": zoomUses,
 } as const;

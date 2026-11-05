@@ -3,14 +3,20 @@ import { block as actBlock } from "./act/block";
 import { block as askBlock } from "./ask/block";
 import { block as boxBlock } from "./box/block";
 import { block as branchBlock } from "./branch/block";
+import { block as calcBlock } from "./calc/block";
+import { block as callBlock } from "./call/block";
 import { block as carryBlock } from "./carry/block";
 import { block as chainBlock } from "./chain/block";
+import { block as checkBlock } from "./check/block";
 import { block as colorBlock } from "./color/block";
 import { block as commitBlock } from "./commit/block";
 import { block as copyBlock } from "./copy/block";
 import { block as edgeBlock } from "./edge/block";
 import { block as edgeLabelBlock } from "./edge-label/block";
+import { block as emitBlock } from "./emit/block";
+import { block as foldBlock } from "./fold/block";
 import { block as groupBlock } from "./group/block";
+import { block as holdBlock } from "./hold/block";
 import { block as iconBlock } from "./icon/block";
 import { block as itemBlock } from "./item/block";
 import { block as leafBlock } from "./leaf/block";
@@ -26,6 +32,8 @@ import { block as pickBlock } from "./pick/block";
 import { block as pointBlock } from "./point/block";
 import { block as pressBlock } from "./press/block";
 import { block as queueBlock } from "./queue/block";
+import { block as returnBlock } from "./return/block";
+import { block as revertBlock } from "./revert/block";
 import { block as roleBlock } from "./role/block";
 import { block as routeBlock } from "./route/block";
 import { block as rowBlock } from "./row/block";
@@ -37,6 +45,8 @@ import { block as stampBlock } from "./stamp/block";
 import { block as startFinishBlock } from "./start-finish/block";
 import { block as stepBlock } from "./step/block";
 import { block as stripBlock } from "./strip/block";
+import { block as valueBlock } from "./value/block";
+import { block as writeBlock } from "./write/block";
 import { block as zoomBlock } from "./zoom/block";
 
 /** ブロックの一覧。鍵は置き場の dir の名前 */
@@ -45,14 +55,20 @@ export const BLOCKS = {
   "ask": askBlock,
   "box": boxBlock,
   "branch": branchBlock,
+  "calc": calcBlock,
+  "call": callBlock,
   "carry": carryBlock,
   "chain": chainBlock,
+  "check": checkBlock,
   "color": colorBlock,
   "commit": commitBlock,
   "copy": copyBlock,
   "edge": edgeBlock,
   "edge-label": edgeLabelBlock,
+  "emit": emitBlock,
+  "fold": foldBlock,
   "group": groupBlock,
+  "hold": holdBlock,
   "icon": iconBlock,
   "item": itemBlock,
   "leaf": leafBlock,
@@ -68,6 +84,8 @@ export const BLOCKS = {
   "point": pointBlock,
   "press": pressBlock,
   "queue": queueBlock,
+  "return": returnBlock,
+  "revert": revertBlock,
   "role": roleBlock,
   "route": routeBlock,
   "row": rowBlock,
@@ -79,8 +97,10 @@ export const BLOCKS = {
   "start-finish": startFinishBlock,
   "step": stepBlock,
   "strip": stripBlock,
+  "value": valueBlock,
+  "write": writeBlock,
   "zoom": zoomBlock,
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "ask", "box", "branch", "carry", "chain", "color", "commit", "copy", "edge", "edge-label", "group", "icon", "item", "leaf", "legend", "lifeline", "line", "link", "merge", "node", "note", "order", "pick", "point", "press", "queue", "role", "route", "row", "scale", "seal", "side-path", "source", "stamp", "start-finish", "step", "strip", "zoom"] as const;
+export const BLOCK_NAMES = ["act", "ask", "box", "branch", "calc", "call", "carry", "chain", "check", "color", "commit", "copy", "edge", "edge-label", "emit", "fold", "group", "hold", "icon", "item", "leaf", "legend", "lifeline", "line", "link", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "role", "route", "row", "scale", "seal", "side-path", "source", "stamp", "start-finish", "step", "strip", "value", "write", "zoom"] as const;

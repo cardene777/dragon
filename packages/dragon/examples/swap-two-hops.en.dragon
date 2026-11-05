@@ -1,0 +1,76 @@
+// Alice's USDC passes through two pools in turn and becomes DAI by way of WETH.
+// More parties and tokens still line up by the same rules, with no positions written.
+pipe Turn USDC into DAI by way of WETH
+
+box alice as Alice
+box router as SwapRouter
+box usdc as USDC
+box pool1 as Pool1
+box weth as WETH
+box pool2 as Pool2
+box dai as DAI
+
+hold alice: 1000 USDC, 0 DAI
+hold pool1: 2000 USDC, 10 WETH
+hold pool2: 5 WETH, 20000 DAI
+
+step Alice asks the router to swap
+  say Alice asks the router to turn 100 USDC into DAI. She wants at least 150 DAI.
+  alice -> router: swap 100 USDC into DAI
+
+step The router checks the path
+  say The router checks how many tokens are on the path. There are three: USDC, WETH, and DAI.
+  check router: 3 == 3
+
+step 100 USDC moves from Alice to pool 1
+  say The router asks USDC to move Alice's 100 USDC to pool 1.
+  router -> usdc: move 100 USDC
+  move usdc: 100 alice -> pool1
+  emit usdc: Transfer(alice, pool1, 100)
+  return usdc: true
+
+step The router asks pool 1 to swap
+  say The router asks pool 1 to turn the USDC into WETH and send it to pool 2.
+  router -> pool1: swap 100 USDC
+
+step Pool 1 prices the WETH
+  say At its current rate, pool 1 works out how much WETH 100 USDC is worth.
+  calc pool1: 100 USDC -> 0.05 WETH
+
+step 0.05 WETH moves from pool 1 to pool 2
+  say Pool 1 asks WETH to send 0.05 WETH to pool 2.
+  pool1 -> weth: send 0.05 WETH
+  move weth: 0.05 pool1 -> pool2
+  emit weth: Transfer(pool1, pool2, 0.05)
+  return weth: true
+
+step Pool 1 reports what it paid
+  say Pool 1 tells the router it paid 0.05 WETH.
+  return pool1: 0.05 WETH
+
+step The router asks pool 2 to swap
+  say The router asks pool 2 to turn the WETH that arrived into DAI and send it to Alice.
+  router -> pool2: swap 0.05 WETH
+
+step Pool 2 prices the DAI
+  say At its current rate, pool 2 works out how much DAI 0.05 WETH is worth.
+  calc pool2: 0.05 WETH -> 160 DAI
+
+step 160 DAI meets the minimum
+  say Pool 2 checks that the 160 DAI it pays is at least the 150 DAI Alice asked for.
+  check pool2: 160 DAI >= 150 DAI
+
+step 160 DAI moves from pool 2 to Alice
+  say Pool 2 asks DAI to send 160 DAI to Alice.
+  pool2 -> dai: send 160 DAI
+  move dai: 160 pool2 -> alice
+  emit dai: Transfer(pool2, alice, 160)
+  return dai: true
+
+step Pool 2 reports what it paid
+  say Pool 2 tells the router it paid 160 DAI.
+  return pool2: 160 DAI
+
+step The swap ends
+  say The outermost call returns, and every change from both swaps becomes final.
+  return router: 160 DAI

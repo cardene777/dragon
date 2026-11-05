@@ -9,7 +9,8 @@
  *
  * 検査の関数は schema から前もって書き出した物 (`schemas/validate-diagram.js`) を使う。
  * ajv に schema をその場で組み立てさせると `new Function` を使い、`eval` を許さない頁の CSP で止まる。
- * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false }` で行う。
+ * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false, messages: false }` で行う。
+ * ajv の英語の文は書き出さないので、誤りの `message` は持たない。
  */
 import type { ErrorObject } from "ajv";
 import type { GitBranch } from "./blocks/branch/block";
@@ -28,6 +29,13 @@ import type { TimeMarkEvent, TimeRow } from "./blocks/row/block";
 import type { TimePeriod, TimeScale, TimeSpanEvent } from "./blocks/scale/block";
 import type { StatePath } from "./blocks/side-path/block";
 import type { StepSource } from "./blocks/source/block";
+import type { PipeCalc } from "./blocks/calc/block";
+import type { CheckOp, PipeCheck } from "./blocks/check/block";
+import type { PipeEmit } from "./blocks/emit/block";
+import type { PipeHold, PipeMove } from "./blocks/hold/block";
+import type { PipeCall, PipeCallKind, PipeReturn } from "./blocks/return/block";
+import type { PipeRevert } from "./blocks/revert/block";
+import type { PipeWrite } from "./blocks/write/block";
 import type { LineupStamp } from "./blocks/stamp/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
@@ -83,7 +91,15 @@ export type DiagramEvent =
   | TryLine
   | TryAsk
   | TryPress
-  | TryEdit;
+  | TryEdit
+  | PipeCall
+  | PipeReturn
+  | PipeRevert
+  | PipeMove
+  | PipeWrite
+  | PipeCheck
+  | PipeEmit
+  | PipeCalc;
 
 /**
  * 時間軸の図 (#3165) の印の色を変える出来事と範囲の括弧の出来事と、目盛りと区切りと印の列と節目の型は、
@@ -173,6 +189,8 @@ export type { StepSource };
 export type { LabelSide };
 /** 線の上を走る物の型は運ぶ物のブロックが持つ (#3345) */
 export type { Carry };
+/** 配管の図 (#3389) の始めの値と、段の中の出来事 */
+export type { CheckOp, PipeCalc, PipeCall, PipeCallKind, PipeCheck, PipeEmit, PipeHold, PipeMove, PipeReturn, PipeRevert, PipeWrite };
 
 export interface Step {
   title: string;
@@ -184,7 +202,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -212,6 +230,8 @@ export interface DiagramBlocks {
   item?: LineupItem[] | TryItem[];
   role?: LineupRole[];
   part?: TryPart[];
+  /** 配管の図 (#3389) の始めの値。残高と、残高でない値 */
+  hold?: PipeHold[];
 }
 
 /**
@@ -248,6 +268,23 @@ export interface DiagramModel {
   lineup?: { items: LineupItem[]; roles?: LineupRole[] };
   /** 試す図 (#3337) の部品とチップ。版1の原本に無かった種類なので、版2の原本の `part` と `item` をそのまま持つ */
   try?: { parts: TryPart[]; items: TryItem[] };
+  /**
+   * 配管の図 (#3389) の始めの値と、`[fold]` の呼び出しを畳んだ箱。版1の原本に無かった種類なので、版2の原本の `hold` をそのまま持つ。
+   * `folds` は描く処理が畳んだ図 (`kinds/pipe/layout.ts` の `foldPipe`) だけが持ち、原本は持たない
+   */
+  pipe?: { holds: PipeHold[]; folds?: PipeFold[] };
+}
+
+/**
+ * 配管の図の、`[fold]` の呼び出しを畳んだ箱 (#3389)。`call` は畳んだ呼び出しの出てきた順の番号、`step` は箱を描く段 (畳んだ後の段の番号)、
+ * `from` と `to` は箱にまとめた原本の段の範囲 (`to` を含む)、`hidden` は内側の段にしか出ない関係者。畳んだ間は `hidden` の列と槽と札を描かない
+ */
+export interface PipeFold {
+  call: number;
+  step: number;
+  from: number;
+  to: number;
+  hidden: string[];
 }
 
 export interface FieldError {
@@ -264,7 +301,7 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
 const PART_TYPES = ["route", "queue", "chain", "ask", "press"] as const satisfies readonly TryPart["type"][];
 
@@ -291,14 +328,15 @@ const ABSENT_KINDS: Record<string, string> = {
   role: "lineup",
   part: "try",
   values: "try",
-  box: "sequence / architecture / state / git / time / tree / lineup",
+  hold: "pipe",
+  box: "sequence / architecture / state / git / time / tree / lineup / pipe",
   order: "lineup",
   at: "time",
   into: "time",
   color: "time",
   meters: "time",
   region: "sequence / architecture / state",
-  icon: "sequence / architecture / state / git / time / tree",
+  icon: "sequence / architecture / state / git / time / tree / pipe",
   link: "sequence / architecture / state / git / time / tree",
 };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
@@ -328,6 +366,10 @@ const LINEUP_EVENTS = ["line", "seal", "open", "pick", "stamp", "role"] as const
 const TRY_EVENT = "#/definitions/notTryEvent/not";
 /** 試す図だけが書ける出来事 */
 const TRY_EVENTS = ["ask", "press", "item"] as const satisfies readonly DiagramEvent["type"][];
+/** 配管の図でない図に、配管の図だけの出来事を書いた時の決まりの場所 (#3389) */
+const PIPE_EVENT = "#/definitions/notPipeEvent/not";
+/** 配管の図だけが書ける出来事 */
+export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類の決まりの場所 (#3337) */
 const PART_TAG = "#/definitions/part/discriminator";
 /** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
@@ -396,6 +438,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       if (TREE_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TREE_EVENTS, "tree") };
       if (error.schemaPath === LINEUP_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(LINEUP_EVENTS, "lineup") };
       if (error.schemaPath === TRY_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(TRY_EVENTS, "try") };
+      if (error.schemaPath === PIPE_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(PIPE_EVENTS, "pipe") };
       if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };
@@ -444,7 +487,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
     case "oneOf":
       return { pointer: at, message: m.oneOf };
     default:
-      return { pointer: at, message: error.message ?? error.keyword };
+      return { pointer: at, message: error.keyword };
   }
 }
 

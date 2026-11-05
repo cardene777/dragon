@@ -1,0 +1,14 @@
+pipe 出典
+
+box alice as Alice
+box vault as Vault
+
+step 呼ぶ
+  say source で段に出典の名前と url を書く。
+  source dragon の README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  alice -> vault: 預ける
+
+step 戻る
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前の link で出る。
+  source dragon の repo [url: https://github.com/cardene777/dragon]
+  return vault: ok

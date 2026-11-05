@@ -1,0 +1,15 @@
+pipe 値の札
+
+box alice as Alice
+box vault as Vault
+
+hold vault: paused false
+
+step AliceがVaultを止める
+  say AliceがVaultを呼び、止めた印を書き替える。
+  alice -> vault: 止める
+  write vault: paused true
+
+step 呼び出しが戻る
+  say 一番外の呼び出しが戻り、書き替えが確定する。
+  return vault: ok

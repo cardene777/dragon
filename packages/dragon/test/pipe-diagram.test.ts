@@ -42,8 +42,10 @@
  * - `gauges`: その段だけの計器。`lamps`: 段ごとの行う者の確認の印。`checks`: 段ごとの図の上の確認の印
  * - `events`: 段ごとの図の上の端のイベントの札。`emitted` は出した段、`args` は出した段だけ持つ引数の字
  * - `converters`: 段ごとの換算の札。`calc` は換算した段
- * - `folds`: `[fold]` の呼び出しを畳んだ箱。`steps` は内側の段の数、`parties` は内側の関係者の数
- *   (内側の段は畳んだ呼び出しを開いた段の次の段から閉じた段の前の段まで。内側の関係者は、内側の段で呼ぶか呼ばれるか行の頭に名指された者のうち、畳んだ呼び出しの両端を除く)
+ * - `folds`: `[fold]` の呼び出しを畳んだ箱。`steps` は内側の段の数、`parties` は箱に畳んだ関係者の数
+ *   (内側の段は畳んだ呼び出しを開いた段の次の段から閉じた段の前の段まで。箱に畳んだ関係者は、内側の段で呼ぶか呼ばれるか行の頭か `move` の両端に名指され、
+ *   畳まなかった段には出ない者。畳んだ間は、その関係者の列と名札と槽と値の札と、内側にしか出ないトークンの管を描かない)
+ * - `pills`: 段ごとの関係者の名札。`glasses`: 段ごとの槽のガラス。`pipes`: 段ごとのトークンの管
  *
  * 描いた SVG の印
  *
@@ -78,6 +80,9 @@ const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 
 /** 畳んだ列の幅の上限 */
 const STRIP_MOST = 24;
+
+/** 流れた分の線の太さ。中心がこれより近い平行な線は重なって見える */
+const FLOW_WIDTH = 4;
 
 /** 0 より多い量の水位の下限として、目で見える高さ */
 const BAND_LEAST = 4;
@@ -205,6 +210,9 @@ interface PipeLayout {
   height: number;
   parties: Party[];
   columns: Column[];
+  pills: { party: string; step: number }[];
+  glasses: { party: string; token: string; step: number }[];
+  pipes: (Bus & { step: number })[];
   tanks: Tank[];
   levels: Level[];
   buses: Bus[];
@@ -547,12 +555,12 @@ function exampleJson(name: string): Json {
 /** repo の file の中身。無ければ空 */
 const repoText = (path: string): string => (existsSync(join(ROOT, path)) ? readFileSync(join(ROOT, path), "utf8") : "");
 
-/** 描いた配管の図。`width` は描く枠の幅。描けなければ断りの文を名指して落とす */
-function render(diagram: Json, lang?: "ja" | "en", width?: number): PipeRendered {
+/** 描いた配管の図。`width` は描く枠の幅、`open` は開いた `[fold]` の呼び出しの番号。描けなければ断りの文を名指して落とす */
+function render(diagram: Json, lang?: "ja" | "en", width?: number, open?: number[]): PipeRendered {
   let rendered: Rendered | undefined;
   let refusal = "";
   try {
-    rendered = draw("renderDiagram")(diagram, { ...(lang ? { lang } : {}), ...(width === undefined ? {} : { width }) });
+    rendered = draw("renderDiagram")(diagram, { ...(lang ? { lang } : {}), ...(width === undefined ? {} : { width }), ...(open ? { open } : {}) });
   } catch (error) {
     refusal = String(error);
   }
@@ -1234,6 +1242,25 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
       [2, "USDC", "alice", "pool", "100", "provisional"],
       [3, "USDC", "alice", "pool", "100", "final"],
     ]);
+    // 同じ段に描く流れた分は、横の線どうしも縦の線どうしも重ならない (Aggregator の箱を開いた図は、同じトークンの流れを 1 段に 3 本より多く描く)
+    const crowded = render(exampleJson("aggregator.json"), "ja", undefined, [2]).layout;
+    const segmentsOf = (f: Flow): { flat: boolean; at: number; lo: number; hi: number }[] =>
+      f.points.slice(1).map((b, i) => {
+        const a = f.points[i] as Point;
+        const flat = Math.abs(a[1] - b[1]) < 0.5;
+        return flat ? { flat, at: a[1], lo: Math.min(a[0], b[0]), hi: Math.max(a[0], b[0]) } : { flat, at: a[0], lo: Math.min(a[1], b[1]), hi: Math.max(a[1], b[1]) };
+      });
+    const busiest = Math.max(
+      ...crowded.flows.map((f) => crowded.flows.filter((g) => g.step === f.step && g.token === f.token).length),
+    );
+    expect(busiest, "Aggregator の箱を開いた図で、1 段に同じトークンの流れを描く数").toBeGreaterThan(3);
+    for (const [k, f] of crowded.flows.entries())
+      for (const g of crowded.flows.slice(k + 1).filter((x) => x.step === f.step))
+        for (const a of segmentsOf(f))
+          for (const b of segmentsOf(g)) {
+            const touches = a.flat === b.flat && Math.abs(a.at - b.at) < FLOW_WIDTH && a.lo < b.hi && b.lo < a.hi;
+            expect(touches, `段 ${f.step + 1} の ${f.from}→${f.to} と ${g.from}→${g.to} の流れの線が重なる`).toBe(false);
+          }
     const motion = motionFrom(rendered as unknown as Rendered);
     for (const s of [1, 2]) {
       const sel = `[data-pipe-flow][data-pipe-step="${s}"]`;
@@ -1548,7 +1575,7 @@ describe("大きな Trace の縮め方 (#3389)", () => {
 
   it("pipe-fold-collapses-inner-calls", () => {
     const source = foldPipe();
-    const rendered = render(source);
+    const rendered = render(source, "ja");
     const { layout, timeline } = rendered;
     // [fold] の呼び出しの内側 (段 3 から段 5) を 1 つの箱にまとめ、内側の段の数と関係者の数を出す
     expect(timeline.steps.length, "畳んだ図の段の数").toBe(5);
@@ -1563,22 +1590,73 @@ describe("大きな Trace の縮め方 (#3389)", () => {
     const english = render(source, "en").layout.folds[0]?.text.text ?? "";
     expect(english, "英語の畳んだ箱の字が内側の段の数と関係者の数を出さない").toMatch(/3[^\d]+4|4[^\d]+3/u);
     expect(KANA.test(english), `英語の畳んだ箱の字に仮名か漢字がある: ${english}`).toBe(false);
-    // 畳んだ箱の段では、内側の move をまとめて 1 段で槽に出す
+    // 畳んだ間は、内側にしか出ない関係者 (USDC、Pool、WETH、Vault) の列と名札と槽と値の札と、内側にしか出ないトークンの Contract の弁を描かない
+    const inner = ["usdc", "pool", "weth", "vault"];
     expect(
-      [levelOf(layout, "alice", "USDC", 1).amount, levelOf(layout, "pool", "USDC", 1).amount, levelOf(layout, "pool", "WETH", 1).amount, levelOf(layout, "alice", "WETH", 1).amount],
-      "畳んだ箱の前の段の槽",
-    ).toEqual(["100", "0", "10", "0"]);
-    const boxed = ["alice|USDC", "pool|USDC", "pool|WETH", "alice|WETH"].map((key) => {
+      layout.parties.map((p) => p.id),
+      "畳んだ図の関係者の並び",
+    ).toEqual(["alice", "router", "agg"]);
+    for (const [what, owners] of [
+      ["列", layout.columns.map((c) => c.party)],
+      ["名札", layout.pills.map((p) => p.party)],
+      ["槽", layout.tanks.map((t) => t.party)],
+      ["段ごとの槽", layout.glasses.map((g) => g.party)],
+      ["水位", layout.levels.map((l) => l.party)],
+      ["値の札", layout.plates.map((p) => p.party)],
+      ["管の弁", [...layout.buses, ...layout.pipes].flatMap((b) => (b.valve ? [b.valve.party] : []))],
+      ["流れた分", layout.flows.flatMap((f) => [f.from, f.to])],
+    ] as const)
+      expect(
+        owners.filter((id) => inner.includes(id)),
+        `畳んだ図に内側にしか出ない関係者の${what}がある`,
+      ).toEqual([]);
+    // 見えている Alice の量が内側で変わるトークンの管は残し、内側の流れは描かない
+    expect(layout.buses.map((b) => b.token).sort(), "畳んだ図の管のトークン").toEqual(["USDC", "WETH"]);
+    expect(
+      layout.flows.filter((f) => f.step === 2),
+      "畳んだ箱の段に内側の流れを描く",
+    ).toEqual([]);
+    // 畳んだ箱の段では、内側の move をまとめて、見えている関係者の量の差し引きだけを 1 段で槽に出す
+    const aliceAt = (s: number): [string, string, string | undefined][] =>
+      ["USDC", "WETH"].map((token) => {
+        const level = levelOf(layout, "alice", token, s);
+        return [level.amount, level.state, level.was?.text];
+      });
+    expect(aliceAt(1), "畳んだ箱の前の段の Alice の槽").toEqual([
+      ["100", "none", undefined],
+      ["0", "none", undefined],
+    ]);
+    expect(aliceAt(2), "畳んだ箱の段の Alice の槽").toEqual([
+      ["0", "provisional", "100"],
+      ["1", "provisional", "0"],
+    ]);
+    // 箱を開いた図は、内側の関係者の列と槽と値の札を今まで通りに描き、内側の最後の段の量が畳んだ箱の段の量と同じになる
+    const opened = render(source, "ja", undefined, [1]).layout;
+    expect(opened.folds, "開いた図に畳んだ箱がある").toEqual([]);
+    expect(
+      opened.parties.map((p) => p.id),
+      "開いた図の関係者の並び",
+    ).toEqual(["alice", "router", "agg", "usdc", "pool", "weth", "vault"]);
+    expect(
+      [levelOf(opened, "pool", "USDC", 1).amount, levelOf(opened, "pool", "WETH", 1).amount],
+      "開いた図の、内側の前の段の Pool の槽",
+    ).toEqual(["0", "10"]);
+    const lastInner = ["alice|USDC", "pool|USDC", "pool|WETH", "alice|WETH"].map((key) => {
       const [party = "", token = ""] = key.split("|");
-      const level = levelOf(layout, party, token, 2);
+      const level = levelOf(opened, party, token, 4);
       return [level.amount, level.state];
     });
-    expect(boxed, "畳んだ箱の段の槽").toEqual([
+    expect(lastInner, "開いた図の内側の最後の段の槽").toEqual([
       ["0", "provisional"],
       ["100", "provisional"],
       ["9", "provisional"],
       ["1", "provisional"],
     ]);
+    expect(plateOf(opened, "vault", "count", 4).value, "開いた図の内側の最後の段の Vault の値の札").toBe("1");
+    expect(
+      ["USDC", "WETH"].map((token) => levelOf(opened, "alice", token, 4).amount),
+      "開いた図の内側の最後の段の Alice の量が、畳んだ箱の段の量と違う",
+    ).toEqual(aliceAt(2).map(([amount]) => amount));
     const motion = motionFrom(rendered as unknown as Rendered);
     expect(seen(motion, '[data-pipe-fold="1"]', stillOf(rendered, 2)), "畳んだ箱が見えない").toBeGreaterThan(0.9);
     // 箱を押すと、内側の段を開いて描く
@@ -1597,8 +1675,10 @@ describe("大きな Trace の縮め方 (#3389)", () => {
       expect(count(), "再生の部品に置いた畳んだ図の段の数").toBe(5);
       const folded = host.querySelector('[data-pipe-fold="1"]');
       expect(folded, "再生の部品に置いた図に畳んだ箱が無い").not.toBeNull();
+      expect(host.querySelector('[data-pipe-party="pool"]'), "再生の部品に置いた畳んだ図に内側にしか出ない Pool の名札がある").toBeNull();
       folded?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       expect(count(), "畳んだ箱を押しても内側の段を開かない").toBe(7);
+      expect(host.querySelector('[data-pipe-party="pool"]'), "畳んだ箱を押しても内側の Pool の名札を描かない").not.toBeNull();
     } finally {
       player?.destroy();
       host.remove();

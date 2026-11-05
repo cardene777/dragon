@@ -1,0 +1,132 @@
+// AliceのUSDCを、Aggregatorが3つのPoolに分けてWETHに替え、手数料を引いた残りをRouterがBobへ送るまで。
+// 関係者が15あり、Aggregatorの内側は1つの箱にまとまり、内側にしか出ない9の関係者の列は箱を開くまで描かない。
+pipe Aggregatorが3つのPoolに分けて交換する
+
+box alice as Alice
+box router as Router
+box agg as Aggregator
+box usdc as USDC
+box oracle as Oracle
+box lib as Lib
+box pool1 as Pool1
+box pool2 as Pool2
+box pool3 as Pool3
+box weth as WETH
+box pool4 as Pool4
+box dai as DAI
+box fee as Fee
+box vault as Vault
+box bob as Bob
+
+hold alice: 1000 USDC
+hold router: 0 WETH
+hold agg: 0 USDC, 0 WETH
+hold pool1: 2000 USDC, 10 WETH
+hold pool2: 1500 USDC, 8 WETH
+hold pool3: 1000 USDC, 6 WETH
+hold pool4: 30 WETH, 100000 DAI
+hold fee: 0 DAI
+hold bob: 0 WETH
+hold vault: volume 0
+
+step AliceがRouterに交換を頼む
+  say AliceがRouterに、100 USDCをWETHに替えてBobへ送るよう頼む。受け取る量は最低0.049 WETHにする。
+  alice -> router: 100 USDCをWETHに交換
+
+step 100 USDCがAliceからAggregatorへ移る
+  say RouterがUSDCに頼み、Aliceの100 USDCをAggregatorへ移させる。
+  router -> usdc: 100 USDCを移す
+  move usdc: 100 alice -> agg
+  emit usdc: Transfer(alice, agg, 100)
+  return usdc: true
+
+step RouterがAggregatorに交換を任せる
+  say RouterがAggregatorに交換を任せる。内側の段は1つの箱に畳まれ、押すと開く。
+  router -> agg: 100 USDCをWETHに交換 [fold]
+
+step Aggregatorが価格と分け方を読む
+  say Aggregatorが、Oracleから価格を、Libから3つのPoolへの分け方を読む。
+  agg -> oracle: price [call: static]
+  return oracle: 3200
+  agg -> lib: split [call: static]
+  return lib: 40/35/25
+
+step Pool1で40 USDCを替える
+  say AggregatorがPool1へ40 USDCを送り、Pool1が0.02 WETHを返す。
+  agg -> usdc: 40 USDCを送る
+  move usdc: 40 agg -> pool1
+  return usdc: true
+  agg -> pool1: 40 USDCを交換
+  calc pool1: 40 USDC -> 0.02 WETH
+  pool1 -> weth: 0.02 WETHを送る
+  move weth: 0.02 pool1 -> agg
+  return weth: true
+  return pool1: 0.02 WETH
+
+step Pool2で35 USDCを替える
+  say AggregatorがPool2へ35 USDCを送り、Pool2が0.0175 WETHを返す。
+  agg -> usdc: 35 USDCを送る
+  move usdc: 35 agg -> pool2
+  return usdc: true
+  agg -> pool2: 35 USDCを交換
+  calc pool2: 35 USDC -> 0.0175 WETH
+  pool2 -> weth: 0.0175 WETHを送る
+  move weth: 0.0175 pool2 -> agg
+  return weth: true
+  return pool2: 0.0175 WETH
+
+step Pool3で25 USDCを替える
+  say AggregatorがPool3へ25 USDCを送り、Pool3が0.0125 WETHを返す。
+  agg -> usdc: 25 USDCを送る
+  move usdc: 25 agg -> pool3
+  return usdc: true
+  agg -> pool3: 25 USDCを交換
+  calc pool3: 25 USDC -> 0.0125 WETH
+  pool3 -> weth: 0.0125 WETHを送る
+  move weth: 0.0125 pool3 -> agg
+  return weth: true
+  return pool3: 0.0125 WETH
+
+step 手数料をDAIに替えてFeeへ送る
+  say AggregatorがPool4へ0.0005 WETHを送り、Pool4が1.6 DAIを手数料としてFeeへ送る。
+  agg -> weth: 0.0005 WETHを送る
+  move weth: 0.0005 agg -> pool4
+  return weth: true
+  agg -> pool4: 手数料をDAIに交換
+  calc pool4: 0.0005 WETH -> 1.6 DAI
+  pool4 -> dai: 1.6 DAIをFeeへ送る
+  move dai: 1.6 pool4 -> fee
+  return dai: true
+  return pool4: 1.6 DAI
+
+step 残りのWETHをRouterへ送る
+  say Aggregatorが、残りの0.0495 WETHをRouterへ送る。
+  agg -> weth: 0.0495 WETHを送る
+  move weth: 0.0495 agg -> router
+  emit weth: Transfer(agg, router, 0.0495)
+  return weth: true
+
+step 交換した量を記録する
+  say AggregatorがVaultに、交換した量を記録させる。
+  agg -> vault: 量を記録
+  write vault: volume 100
+  return vault: true
+
+step Aggregatorが戻る
+  say AggregatorがRouterに、0.0495 WETHを送ったと返す。
+  return agg: 0.0495 WETH
+
+step 0.0495 WETHはAliceの最低額を満たす
+  say Routerが、受け取った0.0495 WETHが最低0.049 WETH以上かを確かめる。
+  check router: 0.0495 WETH >= 0.049 WETH
+
+step RouterがWETHをBobへ送る
+  say RouterがWETHに頼み、0.0495 WETHをBobへ送らせる。
+  router -> weth: 0.0495 WETHをBobへ送る
+  move weth: 0.0495 router -> bob
+  emit weth: Transfer(router, bob, 0.0495)
+  return weth: true
+
+step 交換が終わる
+  say 一番外の呼び出しが戻り、15の関係者にまたがる変更が全て確定する。
+  return router: 0.0495 WETH

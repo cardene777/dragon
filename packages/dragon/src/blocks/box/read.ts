@@ -11,6 +11,8 @@ import { declareRegion } from "../group/read";
 import { urlOf } from "../link/read";
 
 export const LANE_ATTRS = ["note", "color", "order"] as const;
+/** 配管の図 (#3389) の箱は関係者で、種類は行から導くので、書ける属性は形を替える `icon` だけ */
+export const PARTY_ATTRS = ["icon"] as const;
 
 /** 列の図の箱の `order` に書ける並べ方。`none` は順番の無い置き場 (#3351) */
 export const ORDERS = ["none"] as const;
@@ -75,7 +77,7 @@ export const reading: BlockReading<BoxMessages> = {
     // `box` の行。開いている `group` の中なら、その区画に置く
     box: (source, state) => {
       state.beforeSteps(source);
-      const declared = readDeclared(source, "box", state.kind === "lineup" ? LANE_ATTRS : (state.attrs.box ?? []), state.m);
+      const declared = readDeclared(source, "box", state.kind === "lineup" ? LANE_ATTRS : state.kind === "pipe" ? PARTY_ATTRS : (state.attrs.box ?? []), state.m);
       state.claim(source, declared.id, declared.idAt);
       state.figure.firstBox ??= source;
       const { note, ...look } = readLook(source, declared.attrs, state.m);

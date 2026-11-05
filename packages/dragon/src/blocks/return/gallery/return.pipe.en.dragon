@@ -1,0 +1,21 @@
+pipe Call pipes
+
+box alice as Alice
+box router as Router
+box pool as Pool
+
+step Alice calls the router
+  say Alice calls the router, and a pipe opens.
+  alice -> router: swap
+
+step The router calls the pool
+  say The call goes deeper, and its pipe runs one level lower.
+  router -> pool: quote
+
+step The pool returns
+  say The pool returns a value, and its pipe turns dotted.
+  return pool: 0.05 WETH
+
+step The router returns
+  say The outermost call returns.
+  return router: done

@@ -109,8 +109,10 @@ export function eventOwners(shapes = SHAPES) {
 /** 書き出す 2 つの file の中身。骨組みとブロックの形と ajv の版が同じなら毎回同じ字の並びになる */
 export function generate(shapes = SHAPES) {
   const schema = compose(shapes);
-  // 設定は検査の結果を変えるため、src/schema.ts の説明と同じにする
-  const ajv = new Ajv({ allErrors: true, discriminator: true, strictTypes: false, code: { source: true, esm: true } });
+  // 設定は検査の結果を変えるため、src/schema.ts の説明と同じにする。
+  // 誤りの文は field-messages.ts が決まりごとに持ち、ajv の英語の文は使わないので書き出さない (`messages: false`)。
+  // 文を書き出すと、script の 1 行の入口が最初に読む量の上限を配管の図 (#3389) で超えた
+  const ajv = new Ajv({ allErrors: true, discriminator: true, strictTypes: false, messages: false, code: { source: true, esm: true } });
   const code = standaloneCode(ajv, ajv.compile(schema));
   const requires = code.match(/require\(/gu) ?? [];
   if (requires.length !== code.split(REQUIRE_UCS2LENGTH).length - 1) {

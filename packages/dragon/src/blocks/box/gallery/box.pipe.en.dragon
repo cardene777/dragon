@@ -1,0 +1,15 @@
+pipe Parties
+
+box alice as Alice
+box router as Router
+box usdc as USDC
+
+hold alice: 10 USDC
+
+step Alice calls the router
+  say Parties line up from the left in the order they appear, and their kind comes from the lines.
+  alice -> router: swap
+
+step The router returns
+  say When the callee returns, the call pipe closes.
+  return router: ok

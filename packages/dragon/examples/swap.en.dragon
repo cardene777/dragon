@@ -1,0 +1,74 @@
+// Alice asks the router to turn 100 USDC into WETH and send it to Bob.
+// What moves stays provisional to the end, and every change becomes final at the step where the outermost call returns.
+pipe Swap 100 USDC into WETH for Bob
+
+box alice as Alice
+box router as SwapRouter
+box usdc as USDC
+box pool as LiquidityPool
+box weth as WETH
+box bob as Bob
+
+hold alice: 1000 USDC
+hold pool: 2000 USDC, 10 WETH
+hold bob: 0 WETH
+hold usdc: "allowance[alice][router]" 100
+
+step Alice asks the router to swap
+  say Alice asks the router to turn 100 USDC into WETH and send it to Bob. She wants at least 0.04 WETH.
+  alice -> router: swap 100 USDC
+
+step The router checks the path
+  say The router checks how many tokens are on the swap path.
+  check router: 2 == 2
+
+step The router has USDC move the funds
+  say The router asks USDC to move Alice's 100 USDC to the pool.
+  router -> usdc: move 100 USDC
+
+step USDC checks the allowance
+  say USDC checks that what Alice allowed the router covers the amount.
+  check usdc: 100 >= 100
+
+step 100 USDC moves from Alice to the pool
+  say USDC takes 100 from Alice, adds it to the pool, and lowers the allowance by what was used.
+  move usdc: 100 alice -> pool
+  write usdc: "allowance[alice][router]" 0
+  emit usdc: Transfer(alice, pool, 100)
+
+step USDC reports that it is done
+  say USDC tells the router it has moved the funds. The changes are still provisional.
+  return usdc: true
+
+step The router asks the pool to swap
+  say The router asks the pool to turn the USDC into WETH and send it to Bob.
+  router -> pool: swap 100 USDC
+
+step The pool prices the swap
+  say At its current rate, the pool works out how much WETH 100 USDC is worth.
+  calc pool: 100 USDC -> 0.05 WETH
+
+step 0.05 WETH meets the minimum
+  say The pool checks that the 0.05 WETH it pays is at least the 0.04 WETH Alice asked for.
+  check pool: 0.05 WETH >= 0.04 WETH
+
+step The pool has WETH pay Bob
+  say The pool asks WETH to send 0.05 WETH to Bob.
+  pool -> weth: send 0.05 WETH
+
+step 0.05 WETH moves from the pool to Bob
+  say WETH takes 0.05 from the pool and adds it to Bob.
+  move weth: 0.05 pool -> bob
+  emit weth: Transfer(pool, bob, 0.05)
+
+step WETH reports that it is done
+  say WETH tells the pool it has sent the funds.
+  return weth: true
+
+step The pool reports what it paid
+  say The pool tells the router it paid 0.05 WETH. An inner call returning leaves the changes provisional.
+  return pool: 0.05 WETH
+
+step The swap ends
+  say The outermost call returns, and every change becomes final here.
+  return router: 0.05 WETH

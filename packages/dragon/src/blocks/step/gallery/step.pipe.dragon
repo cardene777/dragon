@@ -1,0 +1,16 @@
+pipe 段 [view: fixed]
+
+box alice as Alice
+box vault as Vault
+
+step 呼ぶ
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code cast send vault "deposit()"
+  alice -> vault: 預ける
+
+step 戻る
+  say 段は1つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  code cast receipt
+  return vault: ok

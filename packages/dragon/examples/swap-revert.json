@@ -1,0 +1,205 @@
+{
+  "version": 2,
+  "kind": "pipe",
+  "title": "受け取る量が足りず交換が取り消される",
+  "blocks": {
+    "box": [
+      {
+        "id": "alice",
+        "name": "Alice"
+      },
+      {
+        "id": "router",
+        "name": "SwapRouter"
+      },
+      {
+        "id": "usdc",
+        "name": "USDC"
+      },
+      {
+        "id": "pool",
+        "name": "LiquidityPool"
+      },
+      {
+        "id": "weth",
+        "name": "WETH"
+      },
+      {
+        "id": "bob",
+        "name": "Bob"
+      }
+    ],
+    "hold": [
+      {
+        "box": "alice",
+        "amount": "1000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool",
+        "amount": "2000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool",
+        "amount": "10",
+        "token": "WETH"
+      },
+      {
+        "box": "bob",
+        "amount": "0",
+        "token": "WETH"
+      },
+      {
+        "box": "usdc",
+        "name": "allowance[alice][router]",
+        "value": "100"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "AliceがRouterに交換を頼む",
+      "body": "AliceがRouterに、100 USDCをWETHに替えてBobへ送るよう頼む。受け取る量は最低0.06 WETHにする。",
+      "events": [
+        {
+          "type": "call",
+          "from": "alice",
+          "to": "router",
+          "label": "100 USDCを交換"
+        }
+      ]
+    },
+    {
+      "title": "Routerが道筋を確かめる",
+      "body": "Routerが、交換の道筋にあるトークンの数を確かめる。",
+      "events": [
+        {
+          "type": "check",
+          "box": "router",
+          "left": "2",
+          "op": "==",
+          "right": "2"
+        }
+      ]
+    },
+    {
+      "title": "RouterがUSDCに移させる",
+      "body": "RouterがUSDCに、Aliceの100 USDCをPoolへ移させる。",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "usdc",
+          "label": "100 USDCを移す"
+        }
+      ]
+    },
+    {
+      "title": "USDCが許可額を確かめる",
+      "body": "USDCが、AliceがRouterに許した額で足りるかを確かめる。",
+      "events": [
+        {
+          "type": "check",
+          "box": "usdc",
+          "left": "100",
+          "op": ">=",
+          "right": "100"
+        }
+      ]
+    },
+    {
+      "title": "100 USDCがAliceからPoolへ移る",
+      "body": "USDCがAliceの残高を減らしてPoolに足し、使った分だけ許可額を減らす。",
+      "events": [
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "100",
+          "from": "alice",
+          "to": "pool"
+        },
+        {
+          "type": "write",
+          "box": "usdc",
+          "name": "allowance[alice][router]",
+          "value": "0"
+        },
+        {
+          "type": "emit",
+          "box": "usdc",
+          "name": "Transfer",
+          "args": [
+            "alice",
+            "pool",
+            "100"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "USDCが移し終えたと返す",
+      "body": "USDCがRouterに、移し終えたと返す。変更はまだ暫定のまま。",
+      "events": [
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "RouterがPoolに交換を頼む",
+      "body": "RouterがPoolに、受け取ったUSDCをWETHに替えてBobへ送るよう頼む。",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "pool",
+          "label": "100 USDCを交換"
+        }
+      ]
+    },
+    {
+      "title": "Poolが払うWETHを計算する",
+      "body": "Poolが今の比率で、100 USDCがWETHでいくらになるかを計算する。",
+      "events": [
+        {
+          "type": "calc",
+          "box": "pool",
+          "in": "100 USDC",
+          "out": "0.05 WETH"
+        }
+      ]
+    },
+    {
+      "title": "0.05 WETHはAliceの最低額に届かない",
+      "body": "払える0.05 WETHは、Aliceの決めた最低0.06 WETHより少ない。",
+      "events": [
+        {
+          "type": "check",
+          "box": "pool",
+          "left": "0.05 WETH",
+          "op": ">=",
+          "right": "0.06 WETH"
+        }
+      ]
+    },
+    {
+      "title": "交換の全てが取り消される",
+      "body": "Poolが落ち、受け止める者がいないままRouterも落ちる。移した分も書き換えた値もイベントも、全て元に戻る。",
+      "events": [
+        {
+          "type": "revert",
+          "box": "pool",
+          "reason": "INSUFFICIENT_OUTPUT_AMOUNT"
+        },
+        {
+          "type": "revert",
+          "box": "router",
+          "reason": "INSUFFICIENT_OUTPUT_AMOUNT"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+pipe Call kinds
+
+box alice as Alice
+box proxy as Proxy
+box logic as Logic
+box oracle as Oracle
+
+hold proxy: count 0
+
+step Borrow code
+  say The proxy borrows the code of Logic, which rewrites a value of the proxy.
+  alice -> proxy: count
+  proxy -> logic: count [call: delegate]
+  write logic: count 1
+
+step A call that only reads
+  say Logic reads a price. Nothing can be written inside this call.
+  logic -> oracle: price [call: static]
+  return oracle: 3200
+
+step Return
+  say The borrowed code ends, and the outermost call returns.
+  return logic: true
+  return proxy: true

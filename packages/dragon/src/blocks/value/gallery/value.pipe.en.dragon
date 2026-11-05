@@ -1,0 +1,15 @@
+pipe ETH transfers
+
+box alice as Alice
+box vault as Vault
+
+hold alice: 2 ETH
+hold vault: 0 ETH
+
+step Alice calls with ETH
+  say Alice calls the vault and sends 1 ETH along.
+  alice -> vault: deposit [value: 1 ETH]
+
+step The call returns
+  say The outermost call returns, and the ETH sent becomes final.
+  return vault: ok

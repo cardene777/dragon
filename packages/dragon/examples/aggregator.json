@@ -1,0 +1,599 @@
+{
+  "version": 2,
+  "kind": "pipe",
+  "title": "Aggregatorが3つのPoolに分けて交換する",
+  "blocks": {
+    "box": [
+      {
+        "id": "alice",
+        "name": "Alice"
+      },
+      {
+        "id": "router",
+        "name": "Router"
+      },
+      {
+        "id": "agg",
+        "name": "Aggregator"
+      },
+      {
+        "id": "usdc",
+        "name": "USDC"
+      },
+      {
+        "id": "oracle",
+        "name": "Oracle"
+      },
+      {
+        "id": "lib",
+        "name": "Lib"
+      },
+      {
+        "id": "pool1",
+        "name": "Pool1"
+      },
+      {
+        "id": "pool2",
+        "name": "Pool2"
+      },
+      {
+        "id": "pool3",
+        "name": "Pool3"
+      },
+      {
+        "id": "weth",
+        "name": "WETH"
+      },
+      {
+        "id": "pool4",
+        "name": "Pool4"
+      },
+      {
+        "id": "dai",
+        "name": "DAI"
+      },
+      {
+        "id": "fee",
+        "name": "Fee"
+      },
+      {
+        "id": "vault",
+        "name": "Vault"
+      },
+      {
+        "id": "bob",
+        "name": "Bob"
+      }
+    ],
+    "hold": [
+      {
+        "box": "alice",
+        "amount": "1000",
+        "token": "USDC"
+      },
+      {
+        "box": "router",
+        "amount": "0",
+        "token": "WETH"
+      },
+      {
+        "box": "agg",
+        "amount": "0",
+        "token": "USDC"
+      },
+      {
+        "box": "agg",
+        "amount": "0",
+        "token": "WETH"
+      },
+      {
+        "box": "pool1",
+        "amount": "2000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool1",
+        "amount": "10",
+        "token": "WETH"
+      },
+      {
+        "box": "pool2",
+        "amount": "1500",
+        "token": "USDC"
+      },
+      {
+        "box": "pool2",
+        "amount": "8",
+        "token": "WETH"
+      },
+      {
+        "box": "pool3",
+        "amount": "1000",
+        "token": "USDC"
+      },
+      {
+        "box": "pool3",
+        "amount": "6",
+        "token": "WETH"
+      },
+      {
+        "box": "pool4",
+        "amount": "30",
+        "token": "WETH"
+      },
+      {
+        "box": "pool4",
+        "amount": "100000",
+        "token": "DAI"
+      },
+      {
+        "box": "fee",
+        "amount": "0",
+        "token": "DAI"
+      },
+      {
+        "box": "bob",
+        "amount": "0",
+        "token": "WETH"
+      },
+      {
+        "box": "vault",
+        "name": "volume",
+        "value": "0"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "AliceがRouterに交換を頼む",
+      "body": "AliceがRouterに、100 USDCをWETHに替えてBobへ送るよう頼む。受け取る量は最低0.049 WETHにする。",
+      "events": [
+        {
+          "type": "call",
+          "from": "alice",
+          "to": "router",
+          "label": "100 USDCをWETHに交換"
+        }
+      ]
+    },
+    {
+      "title": "100 USDCがAliceからAggregatorへ移る",
+      "body": "RouterがUSDCに頼み、Aliceの100 USDCをAggregatorへ移させる。",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "usdc",
+          "label": "100 USDCを移す"
+        },
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "100",
+          "from": "alice",
+          "to": "agg"
+        },
+        {
+          "type": "emit",
+          "box": "usdc",
+          "name": "Transfer",
+          "args": [
+            "alice",
+            "agg",
+            "100"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "RouterがAggregatorに交換を任せる",
+      "body": "RouterがAggregatorに交換を任せる。内側の段は1つの箱に畳まれ、押すと開く。",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "agg",
+          "label": "100 USDCをWETHに交換",
+          "fold": true
+        }
+      ]
+    },
+    {
+      "title": "Aggregatorが価格と分け方を読む",
+      "body": "Aggregatorが、Oracleから価格を、Libから3つのPoolへの分け方を読む。",
+      "events": [
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "oracle",
+          "label": "price",
+          "call": "static"
+        },
+        {
+          "type": "return",
+          "box": "oracle",
+          "value": "3200"
+        },
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "lib",
+          "label": "split",
+          "call": "static"
+        },
+        {
+          "type": "return",
+          "box": "lib",
+          "value": "40/35/25"
+        }
+      ]
+    },
+    {
+      "title": "Pool1で40 USDCを替える",
+      "body": "AggregatorがPool1へ40 USDCを送り、Pool1が0.02 WETHを返す。",
+      "events": [
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "usdc",
+          "label": "40 USDCを送る"
+        },
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "40",
+          "from": "agg",
+          "to": "pool1"
+        },
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        },
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "pool1",
+          "label": "40 USDCを交換"
+        },
+        {
+          "type": "calc",
+          "box": "pool1",
+          "in": "40 USDC",
+          "out": "0.02 WETH"
+        },
+        {
+          "type": "call",
+          "from": "pool1",
+          "to": "weth",
+          "label": "0.02 WETHを送る"
+        },
+        {
+          "type": "move",
+          "box": "weth",
+          "amount": "0.02",
+          "from": "pool1",
+          "to": "agg"
+        },
+        {
+          "type": "return",
+          "box": "weth",
+          "value": "true"
+        },
+        {
+          "type": "return",
+          "box": "pool1",
+          "value": "0.02 WETH"
+        }
+      ]
+    },
+    {
+      "title": "Pool2で35 USDCを替える",
+      "body": "AggregatorがPool2へ35 USDCを送り、Pool2が0.0175 WETHを返す。",
+      "events": [
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "usdc",
+          "label": "35 USDCを送る"
+        },
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "35",
+          "from": "agg",
+          "to": "pool2"
+        },
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        },
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "pool2",
+          "label": "35 USDCを交換"
+        },
+        {
+          "type": "calc",
+          "box": "pool2",
+          "in": "35 USDC",
+          "out": "0.0175 WETH"
+        },
+        {
+          "type": "call",
+          "from": "pool2",
+          "to": "weth",
+          "label": "0.0175 WETHを送る"
+        },
+        {
+          "type": "move",
+          "box": "weth",
+          "amount": "0.0175",
+          "from": "pool2",
+          "to": "agg"
+        },
+        {
+          "type": "return",
+          "box": "weth",
+          "value": "true"
+        },
+        {
+          "type": "return",
+          "box": "pool2",
+          "value": "0.0175 WETH"
+        }
+      ]
+    },
+    {
+      "title": "Pool3で25 USDCを替える",
+      "body": "AggregatorがPool3へ25 USDCを送り、Pool3が0.0125 WETHを返す。",
+      "events": [
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "usdc",
+          "label": "25 USDCを送る"
+        },
+        {
+          "type": "move",
+          "box": "usdc",
+          "amount": "25",
+          "from": "agg",
+          "to": "pool3"
+        },
+        {
+          "type": "return",
+          "box": "usdc",
+          "value": "true"
+        },
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "pool3",
+          "label": "25 USDCを交換"
+        },
+        {
+          "type": "calc",
+          "box": "pool3",
+          "in": "25 USDC",
+          "out": "0.0125 WETH"
+        },
+        {
+          "type": "call",
+          "from": "pool3",
+          "to": "weth",
+          "label": "0.0125 WETHを送る"
+        },
+        {
+          "type": "move",
+          "box": "weth",
+          "amount": "0.0125",
+          "from": "pool3",
+          "to": "agg"
+        },
+        {
+          "type": "return",
+          "box": "weth",
+          "value": "true"
+        },
+        {
+          "type": "return",
+          "box": "pool3",
+          "value": "0.0125 WETH"
+        }
+      ]
+    },
+    {
+      "title": "手数料をDAIに替えてFeeへ送る",
+      "body": "AggregatorがPool4へ0.0005 WETHを送り、Pool4が1.6 DAIを手数料としてFeeへ送る。",
+      "events": [
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "weth",
+          "label": "0.0005 WETHを送る"
+        },
+        {
+          "type": "move",
+          "box": "weth",
+          "amount": "0.0005",
+          "from": "agg",
+          "to": "pool4"
+        },
+        {
+          "type": "return",
+          "box": "weth",
+          "value": "true"
+        },
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "pool4",
+          "label": "手数料をDAIに交換"
+        },
+        {
+          "type": "calc",
+          "box": "pool4",
+          "in": "0.0005 WETH",
+          "out": "1.6 DAI"
+        },
+        {
+          "type": "call",
+          "from": "pool4",
+          "to": "dai",
+          "label": "1.6 DAIをFeeへ送る"
+        },
+        {
+          "type": "move",
+          "box": "dai",
+          "amount": "1.6",
+          "from": "pool4",
+          "to": "fee"
+        },
+        {
+          "type": "return",
+          "box": "dai",
+          "value": "true"
+        },
+        {
+          "type": "return",
+          "box": "pool4",
+          "value": "1.6 DAI"
+        }
+      ]
+    },
+    {
+      "title": "残りのWETHをRouterへ送る",
+      "body": "Aggregatorが、残りの0.0495 WETHをRouterへ送る。",
+      "events": [
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "weth",
+          "label": "0.0495 WETHを送る"
+        },
+        {
+          "type": "move",
+          "box": "weth",
+          "amount": "0.0495",
+          "from": "agg",
+          "to": "router"
+        },
+        {
+          "type": "emit",
+          "box": "weth",
+          "name": "Transfer",
+          "args": [
+            "agg",
+            "router",
+            "0.0495"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "weth",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "交換した量を記録する",
+      "body": "AggregatorがVaultに、交換した量を記録させる。",
+      "events": [
+        {
+          "type": "call",
+          "from": "agg",
+          "to": "vault",
+          "label": "量を記録"
+        },
+        {
+          "type": "write",
+          "box": "vault",
+          "name": "volume",
+          "value": "100"
+        },
+        {
+          "type": "return",
+          "box": "vault",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "Aggregatorが戻る",
+      "body": "AggregatorがRouterに、0.0495 WETHを送ったと返す。",
+      "events": [
+        {
+          "type": "return",
+          "box": "agg",
+          "value": "0.0495 WETH"
+        }
+      ]
+    },
+    {
+      "title": "0.0495 WETHはAliceの最低額を満たす",
+      "body": "Routerが、受け取った0.0495 WETHが最低0.049 WETH以上かを確かめる。",
+      "events": [
+        {
+          "type": "check",
+          "box": "router",
+          "left": "0.0495 WETH",
+          "op": ">=",
+          "right": "0.049 WETH"
+        }
+      ]
+    },
+    {
+      "title": "RouterがWETHをBobへ送る",
+      "body": "RouterがWETHに頼み、0.0495 WETHをBobへ送らせる。",
+      "events": [
+        {
+          "type": "call",
+          "from": "router",
+          "to": "weth",
+          "label": "0.0495 WETHをBobへ送る"
+        },
+        {
+          "type": "move",
+          "box": "weth",
+          "amount": "0.0495",
+          "from": "router",
+          "to": "bob"
+        },
+        {
+          "type": "emit",
+          "box": "weth",
+          "name": "Transfer",
+          "args": [
+            "router",
+            "bob",
+            "0.0495"
+          ]
+        },
+        {
+          "type": "return",
+          "box": "weth",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "title": "交換が終わる",
+      "body": "一番外の呼び出しが戻り、15の関係者にまたがる変更が全て確定する。",
+      "events": [
+        {
+          "type": "return",
+          "box": "router",
+          "value": "0.0495 WETH"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+pipe Checks
+
+box alice as Alice
+box pool as Pool
+
+step Check the amount
+  say The pool checks that the amount paid is at least the minimum.
+  alice -> pool: swap
+  check pool: 0.05 WETH >= 0.04 WETH
+
+step Check the owner
+  say A check of anything but numbers fails only with the fail mark.
+  check pool: owner == alice [fail]
+  revert pool: not the owner

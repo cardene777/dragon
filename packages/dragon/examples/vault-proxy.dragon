@@ -1,0 +1,50 @@
+// AliceがProxyを通してVaultに1 ETHを預けるまで。
+// ETHは呼び出しに添えて送り、Proxyは処理を借りて自分の値に書き込み、価格は書き込めない呼び出しで読む。
+pipe Proxyを通してVaultに1 ETHを預ける
+
+box alice as Alice
+box proxy as VaultProxy
+box logic as VaultLogic
+box oracle as PriceOracle
+
+hold alice: 5 ETH
+hold proxy: 0 ETH
+hold proxy: owner alice
+hold proxy: "deposits[alice]" 0
+hold proxy: paused false
+
+step AliceがProxyに1 ETHを添えて頼む
+  say AliceがProxyのdepositを呼び、呼び出しに1 ETHを添えて送る。
+  alice -> proxy: deposit [value: 1 ETH]
+
+step ProxyがVaultLogicの処理を借りる
+  say Proxyは処理を持たず、VaultLogicの処理を借りて自分の値の上で動かす。
+  proxy -> logic: deposit [call: delegate]
+
+step 止まっていないかを確かめる
+  say 借りた処理が、Vaultが止められていないかを確かめる。
+  check logic: paused == false
+
+step 価格を読むだけの呼び出し
+  say 借りた処理がPriceOracleに価格を尋ねる。この呼び出しの中では何も書き込めない。
+  logic -> oracle: price [call: static]
+
+step PriceOracleが価格を返す
+  say PriceOracleが今のETHの価格を返す。
+  return oracle: 3200
+
+step 預けた額をProxyの値に書く
+  say 借りた処理が書き込む先は、VaultLogicではなくProxyの値になる。
+  write logic: "deposits[alice]" 1
+
+step 借りた処理が終わる
+  say VaultLogicの処理が終わり、Proxyに戻る。
+  return logic: true
+
+step Proxyが預けた記録を出す
+  say Proxyが、誰がいくら預けたかをイベントとして出す。
+  emit proxy: Deposited(alice, 1)
+
+step 預け入れが終わる
+  say 一番外の呼び出しが戻り、ETHの送金も書き込んだ値も確定する。
+  return proxy: true

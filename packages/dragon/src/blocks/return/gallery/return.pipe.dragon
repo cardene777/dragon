@@ -1,0 +1,21 @@
+pipe 呼び出しの管
+
+box alice as Alice
+box router as Router
+box pool as Pool
+
+step AliceがRouterを呼ぶ
+  say AliceがRouterを呼び、管が開く。
+  alice -> router: 交換
+
+step RouterがPoolを呼ぶ
+  say 呼び出しが深くなり、管が1段下がる。
+  router -> pool: 見積もり
+
+step Poolが戻る
+  say Poolが値を返して戻り、管は点線になる。
+  return pool: 0.05 WETH
+
+step Routerが戻る
+  say 一番外の呼び出しが戻る。
+  return router: 済み

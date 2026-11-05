@@ -1,0 +1,16 @@
+pipe Steps [view: fixed]
+
+box alice as Alice
+box vault as Vault
+
+step Call
+  say step separates steps, and say writes the body of a step.
+    code writes the command typed in that step.
+  code cast send vault "deposit()"
+  alice -> vault: deposit
+
+step Return
+  say Steps are viewed one at a time.
+    view picks whether the frame follows the step or holds the whole diagram.
+  code cast receipt
+  return vault: ok

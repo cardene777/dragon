@@ -59,6 +59,10 @@ export interface CoreMessages {
   lineupOrTryOnly: (word: string) => string;
   /** 試す図だけの行を、別の種類の図に書いた (#3349) */
   tryOnly: (word: string) => string;
+  /** 配管の図だけの行を、別の種類の図に書いた (#3389) */
+  pipeOnly: (word: string) => string;
+  /** 配管の図の呼び出しの行だけの印 (`call`、`value`、`fold`) を、別の種類の図の線に書いた (#3389) */
+  pipeOnlyAttr: (key: string) => string;
   /** 軽い入口で、まだ読んでいないブロック `block` の行か原本を読んだ。`loadFor` を待てば読める (#3349) */
   blockNotLoaded: (block: string) => string;
 }
@@ -109,6 +113,8 @@ const ja = (): Messages => {
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
     lineupOrTryOnly: (word) => `${word} の行は lineup (列の図) と try (試す図) でだけ書ける`,
     tryOnly: (word) => `${word} の行は try (試す図) でだけ書ける`,
+    pipeOnly: (word) => `${word} の行は pipe (配管の図) でだけ書ける`,
+    pipeOnlyAttr: (key) => `${key} は pipe (配管の図) の呼び出しの行にだけ書ける`,
     blockNotLoaded: (block) => `${block} のブロックの読み方を読んでいない。読む前に loadFor を待つ`,
   };
 };
@@ -155,6 +161,8 @@ const en = (): Messages => {
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
     lineupOrTryOnly: (word) => `${word} lines can be written only in lineup and try diagrams`,
     tryOnly: (word) => `${word} lines can be written only in try diagrams`,
+    pipeOnly: (word) => `${word} lines can be written only in pipe diagrams`,
+    pipeOnlyAttr: (key) => `${key} can be written only on call lines of pipe diagrams`,
     blockNotLoaded: (block) => `The ${block} block is not loaded. Await loadFor before reading`,
   };
 };

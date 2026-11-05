@@ -31,6 +31,7 @@ export const HOMES = [
   ["zoom", "time.zoom"],
   ["item", "lineup.items"],
   ["role", "lineup.roles"],
+  ["hold", "pipe.holds"],
 ] as const satisfies readonly (readonly [keyof DiagramBlocks, string])[];
 
 type Obj = Record<string, unknown>;
@@ -72,7 +73,7 @@ export const isVersion1 = (input: unknown): input is Obj =>
 
 /**
  * 版2の原本を描く処理の形にする。欄と並びは版1の原本を読んでいた時と同じにする
- * (版、種類、題、見せ方、区画、箱、帯、段、生存線、移れる道、枝、チップ、時間軸の図の欄)。
+ * (版、種類、題、見せ方、区画、箱、帯、段、生存線、移れる道、枝、チップ、配管の図の始めの値、時間軸の図の欄)。
  * 時系列図の生存線は、箱の並びのまま左から組む。試す図 (#3337) は部品とチップを試す図の欄 (`try`) に持つ
  */
 export function toModel(diagram: Diagram): DiagramModel {
@@ -101,6 +102,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(b.path !== undefined ? { state: { paths: b.path } } : {}),
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),
     ...(b.item !== undefined ? { lineup: { items: b.item, ...(b.role !== undefined ? { roles: b.role } : {}) } } : {}),
+    ...(b.hold !== undefined ? { pipe: { holds: b.hold } } : {}),
     ...(b.scale !== undefined || b.row !== undefined
       ? {
           time: {

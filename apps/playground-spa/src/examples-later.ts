@@ -4,6 +4,18 @@
  * `examples.ts` がこの file を `import()` で読み、build はこの file を見本の記法だけを持つ 1 つの塊にする。
  * 概要の頁と編集画面の最初の見本は待たずに出すので、ここに置かず `examples.ts` が最初に読む。
  */
+import swapJa from "../../../packages/dragon/examples/swap.dragon?raw";
+import swapEn from "../../../packages/dragon/examples/swap.en.dragon?raw";
+import swapRevertJa from "../../../packages/dragon/examples/swap-revert.dragon?raw";
+import swapRevertEn from "../../../packages/dragon/examples/swap-revert.en.dragon?raw";
+import swapTwoHopsJa from "../../../packages/dragon/examples/swap-two-hops.dragon?raw";
+import swapTwoHopsEn from "../../../packages/dragon/examples/swap-two-hops.en.dragon?raw";
+import swapRetryJa from "../../../packages/dragon/examples/swap-retry.dragon?raw";
+import swapRetryEn from "../../../packages/dragon/examples/swap-retry.en.dragon?raw";
+import vaultProxyJa from "../../../packages/dragon/examples/vault-proxy.dragon?raw";
+import vaultProxyEn from "../../../packages/dragon/examples/vault-proxy.en.dragon?raw";
+import aggregatorJa from "../../../packages/dragon/examples/aggregator.dragon?raw";
+import aggregatorEn from "../../../packages/dragon/examples/aggregator.en.dragon?raw";
 import apiJa from "../../../packages/dragon/examples/api.dragon?raw";
 import apiEn from "../../../packages/dragon/examples/api.en.dragon?raw";
 import auctionJa from "../../../packages/dragon/examples/auction.dragon?raw";
@@ -45,4 +57,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   merkle: { ja: merkleJa, en: merkleEn },
   auction: { ja: auctionJa, en: auctionEn },
   "tx-block": { ja: txBlockJa, en: txBlockEn },
+  swap: { ja: swapJa, en: swapEn },
+  "swap-revert": { ja: swapRevertJa, en: swapRevertEn },
+  "swap-two-hops": { ja: swapTwoHopsJa, en: swapTwoHopsEn },
+  "swap-retry": { ja: swapRetryJa, en: swapRetryEn },
+  "vault-proxy": { ja: vaultProxyJa, en: vaultProxyEn },
+  aggregator: { ja: aggregatorJa, en: aggregatorEn },
 };

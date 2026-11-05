@@ -1,0 +1,24 @@
+pipe 呼び出しの種類
+
+box alice as Alice
+box proxy as Proxy
+box logic as Logic
+box oracle as Oracle
+
+hold proxy: count 0
+
+step 処理を借りる
+  say ProxyがLogicの処理を借り、Proxyの値を書き替える。
+  alice -> proxy: 数える
+  proxy -> logic: 数える [call: delegate]
+  write logic: count 1
+
+step 読むだけの呼び出し
+  say Logicが価格を読む。この呼び出しの内側では何も書き替えられない。
+  logic -> oracle: 価格 [call: static]
+  return oracle: 3200
+
+step 戻る
+  say 借りた処理が終わり、一番外の呼び出しが戻る。
+  return logic: true
+  return proxy: true

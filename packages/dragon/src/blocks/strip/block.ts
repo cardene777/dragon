@@ -17,6 +17,6 @@ export const SET_ATTRS: readonly string[] = ["tag"];
 export const block: Block = {
   name: "strip",
   rank: 30,
-  attach: { how: "attach-to-figure", except: ["try"] },
+  attach: { how: "attach-to-figure", except: ["try", "pipe"] },
   words: { heads: ["strip", "set"], headRanks: { set: 80 }, attrs: { strip: STRIP_ATTRS, set: SET_ATTRS } },
 };

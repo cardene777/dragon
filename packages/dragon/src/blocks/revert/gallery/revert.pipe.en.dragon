@@ -1,0 +1,17 @@
+pipe Reverts
+
+box alice as Alice
+box usdc as USDC
+box pool as Pool
+
+hold alice: 100 USDC
+hold pool: 0 USDC
+
+step Move
+  say USDC moves 100 from Alice to the pool. The change is still pending.
+  alice -> usdc: send
+  move usdc: 100 alice -> pool
+
+step Fail
+  say USDC fails, and every change inside it is undone.
+  revert usdc: failed

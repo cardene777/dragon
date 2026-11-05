@@ -88,10 +88,10 @@ export function readName(source: SourceLine, at: number, m: Messages): { value: 
 }
 
 /**
- * `at` の `[` から行の終わりの `]` までの属性を読む。`allowed` に無い鍵は誤り。
+ * `at` の `[` から行の終わりの `]` までの属性を読む。`allowed` に無い鍵は誤り。`flags` の鍵は値を持たない印で、`:` を書かずに置き、値は空の字になる。
  * `allowed` を渡さない時はどの鍵も読み、鍵を確かめるのは呼ぶ側に任せる (試す図のチップの欄は、後の行の入力の帯で決まる、#3337)
  */
-export function readAttrs(source: SourceLine, at: number, allowed: readonly string[] | undefined, m: Messages): Map<string, Attr> {
+export function readAttrs(source: SourceLine, at: number, allowed: readonly string[] | undefined, m: Messages, flags: readonly string[] = []): Map<string, Attr> {
   const text = source.text;
   if (!text.endsWith("]")) throw fail(source, at, m.attrUnclosed);
   const close = text.length - 1;
@@ -100,7 +100,16 @@ export function readAttrs(source: SourceLine, at: number, allowed: readonly stri
     const start = skipSpaces(text, i);
     let colon = start;
     while (colon < close && text[colon] !== ":" && text[colon] !== ",") colon++;
-    if (colon >= close || text[colon] !== ":") throw fail(source, start, m.attrNoColon(text.slice(start, colon).trim()));
+    // 値を持たない印 (配管の図の `[fold]` と `[fail]`、#3389) は、鍵だけを書く
+    const bare = text.slice(start, colon).trim();
+    if ((colon >= close || text[colon] === ",") && flags.includes(bare)) {
+      if (attrs.has(bare)) throw fail(source, start, m.attrTwice(bare));
+      attrs.set(bare, { value: "", at: start });
+      if (colon >= close) return attrs;
+      i = colon + 1;
+      continue;
+    }
+    if (colon >= close || text[colon] !== ":") throw fail(source, start, m.attrNoColon(bare));
     const key = text.slice(start, colon).trim();
     if (allowed && !allowed.includes(key)) throw fail(source, start, m.badAttr(key, allowed));
     if (attrs.has(key)) throw fail(source, start, m.attrTwice(key));
