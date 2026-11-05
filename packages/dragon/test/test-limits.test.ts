@@ -97,4 +97,21 @@ describe("検査の時間の上限 (#3381)", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("unfinished-out-not-inherited-by-tests", () => {
+    // 続きを回す命令が渡す書き先 (`DRAGON_UNFINISHED_OUT`) を、検査の file の process は受け継がない (#3388)。
+    // 受け継ぐと、検査が起こす vitest (この file の見本の検査など) も受け継ぎ、上限で止まった時に親の実行の終わっていない file の一覧を上書きする
+    const dir = mkdtempSync(join(tmpdir(), "dragon-unfinished-"));
+    const out = join(dir, "unfinished.json");
+    const probe = join(dir, "probe.json");
+    try {
+      const ran = runFixture("env-probe.fixture.ts", { DRAGON_UNFINISHED_OUT: out, FIXTURE_OUT: probe });
+      expect(ran.code, `書き先を見る見本の検査が通らなかった:\n${ran.brief}`).toBe(0);
+      expect(existsSync(probe), `見本の検査が、受け取った書き先を書いていない:\n${ran.brief}`).toBe(true);
+      expect((JSON.parse(readFileSync(probe, "utf8")) as { out: string | null }).out, "検査の file の process が、続きを回す命令の書き先を受け継いだ").toBeNull();
+      expect(existsSync(out), "上限で止まっていない実行が、書き先に書いた").toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

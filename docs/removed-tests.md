@@ -48,6 +48,10 @@
 | `common-parts-draw-state` | `apps/playground-spa/src/lib/state-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-part-shows-both-kinds`、`catalog-common-parts-listed` |
 | `common-parts-draw-tree` | `apps/playground-spa/src/lib/tree-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-part-shows-both-kinds`、`catalog-common-parts-listed` |
 | `common-parts-draw-git` | `apps/playground-spa/src/lib/git-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-part-shows-both-kinds`、`catalog-common-parts-listed` |
+| `chromium-launched-per-worker` | `apps/playground-spa/src/lib/playground.test.ts` | 守っていた仕組みを外した。Chromium は作業者ごとに別の process で起こさず、検査の file の process の中で file を読む前に起こし始める (#3388) | `chromium-preloaded-before-file` |
+| `chromium-server-runs-in-own-process` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、Chromium を別の node の process で起こす仕組みを外した。つなぐ通信の往復で頁を開くのが約3割遅かった | `chromium-preloaded-before-file` |
+| `site-close-keeps-shared-chromium` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、file をまたいで Chromium を共にする仕組みを外した。後始末は今も Chromium を閉じない | `chromium-cleaned-on-process-exit` |
+| `shared-chromium-closes-at-teardown` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、準備の段の片付けで Chromium を閉じる仕組みを外した。閉じるのは file の process が終わる時の Playwright の片付け | `chromium-cleaned-on-process-exit` |
 
 ## 速くした検査
 
