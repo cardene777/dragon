@@ -31,7 +31,7 @@
 | 枝分かれの図の部品の頁で、図を 1 段目から 1 段ずつ送れる | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`catalog-has-four-git-parts`が通る | #3231 |
 | 指で触る幅の時系列図の分類の頁で、検索に字を入れた時とコードの側と重ね窓の部品が 44px に届く | `pnpm exec vitest run apps/playground-spa/src/lib/site-catalog-touch.test.ts`の検査`coarse-catalog-touch-targets-after-action`が通る | #3231 |
 | 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3231 #3300 #3379 |
-| `startSite`で開いた頁 (概要、編集画面、カタログの一覧) が描けるまでに、手元の HTTP の server が browser から受けた要求が0件 | `pnpm exec vitest run`の検査`site-pages-skip-the-local-server`が通る | #3379 |
+| `startSite`で開いた頁 (概要、編集画面、カタログの一覧) が描けるまでに、手元の HTTP の server が browser から受けた要求が0件 | `pnpm exec vitest run`の検査`site-pages-skip-the-local-server`が通る | #3379 #3388 |
 | 拡張子の無い経路には同じ名前の`.html`を、無い path には`404.html`を 404 で返す規則が、browser で開いた頁でも node からの問いでも同じに働く | `pnpm exec vitest run`の検査`page-routes-answer-200`と`pages-open-directly`と`unknown-catalog-routes-are-not-found`が通る | #3379 |
 | 頁の塊の読み込みを止めた頁で、読み直しを促し、頁を1度だけ読み直す | `pnpm exec vitest run`の検査`page-chunk-failure-offers-reload`と`page-chunk-failure-reloads-once`が通る | #3379 |
 | カタログの記法の読み込みを遅らせても、図の大きさを保つ | `pnpm exec vitest run`の検査`catalog-holds-figure-size-until-notation-arrives`が通る | #3379 |
@@ -49,21 +49,20 @@
 | 1件の検査とその前後処理の上限が10秒で、超えた検査は止まって落ち、名前が出る | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`test-over-limit-is-stopped-and-named`が通る | #3381 |
 | 1回の実行の上限が5分で、超えた時は実行全体が止まり、終わっていない検査の名前を出して終わり方1で終わる | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-is-five-minutes`と`run-limit-stops-whole-run`が通る | #3381 |
 | 見本帳の頁は1回の実行で1度だけ build され、頁を開く検査の file は全てその build を使う | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-built-once-per-run`が通る | #3381 |
-| 外した検査はどの検査の file にも無く、外した検査ごとに理由と、同じ守りを担う残りの検査の名前が`docs/removed-tests.md`に在り、その残りの検査は在る | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`removed-tests-are-gone-and-covered`が通る | #3381 |
+| 外した検査はどの検査の file にも無く、外した検査ごとに理由と、同じ守りを担う残りの検査の名前が`docs/removed-tests.md`に在り、その残りの検査は在る | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`removed-tests-are-gone-and-covered`が通る | #3381 #3388 |
 | `.ikkan/specs/`の行が名指す検査は、全て検査の file に在る | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`spec-rows-name-existing-tests`が通る | #3381 |
 | `.ikkan/checks.md`が一式を軽いと宣言する | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`checks-declare-light-suite`が通る | #3381 |
 | `docs/maintaining.md`が、課題ごとには関係する検査を命令で回し、一式は版を出す前の1回だけ回すと書く | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`maintainer-notes-name-related-runner`が通る | #3381 |
 | `dist`が`src`より古い時は、検査を回す前に止まる | `pnpm exec vitest run packages/dragon/test/dist-freshness.test.ts`の検査`"dist が古ければ stale"`が通る | #3381 |
 | 書き出しの4つの形と、同じ原本から2度書き出した結果の一致を確かめる検査が残る | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-writes-four-formats`と`export-is-deterministic`が通る | #3381 |
 | 一式が通り、検査の実行は5分の上限に止められない | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終わり方0で終わる | #3381 |
-| 頁を開く検査の file が`startSite()`を呼ぶと、準備の段が作業者ごとに1つずつ起こした Chromium のうち自分の作業者の Chromium につなぎ、自分では Chromium を起こさない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`chromium-launched-per-worker`が通る | #3384 |
-| 準備の段は Chromium を vitest の process の外で、Chromium ごとに別の node の process で起こす | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`chromium-server-runs-in-own-process`が通る | #3384 |
-| 検査の file の後始末 (`site.close()`) は Chromium を閉じずにつないだ線を切るだけで、同じ作業者の次の file は同じ Chromium で頁を開ける | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-close-keeps-shared-chromium`が通る | #3384 |
-| 準備の段の片付けが起こした Chromium を閉じ、閉じた後はつなぐ先へつなげず、Chromium を起こした process も残らない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`shared-chromium-closes-at-teardown`が通る | #3384 |
-| 頁を開く検査の file を含まない回は、準備の段が見本帳の build も Chromium の起動もしない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-setup-skips-without-pages`が通る | #3384 |
-| 見本帳の頁は1回の実行で1度だけ build され、頁を開く検査が今どおり通る | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-built-once-per-run`と`site-palette-switch-draws-arcade`が通る | #3384 |
-| 編集画面で書き出した`.dragon`の file の名前と中身を、検査が今どおり確かめる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`editor-imports-and-exports-notation`が通る | #3384 |
-| 1件の検査とその前後処理の上限10秒と、1回の実行の上限5分は変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`が通る | #3384 #3386 |
+| 頁を開く検査の file では、file を読む前の準備の段 (`setupFiles`) が Chromium を起こし始め、`startSite()`は自分で Chromium を起こさずにそれを使う | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`chromium-preloaded-before-file`が通る | #3388 |
+| 頁を開かない検査の file では、準備の段は Chromium を起こさない | `pnpm exec vitest run apps/playground-spa/src/lib/chromium-preload.test.ts`の検査`chromium-not-preloaded-without-pages`が通る | #3388 |
+| 検査の file の前後処理は Chromium を閉じず、file の process が終わると、Chromium の process と作業用の folder が残らない | `pnpm exec vitest run apps/playground-spa/src/lib/chromium-preload.test.ts`の検査`chromium-cleaned-on-process-exit`が通る | #3388 |
+| 頁を開く検査の file を含まない回は、準備の段が見本帳を build しない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`site-setup-skips-without-pages`が通る | #3384 #3388 |
+| 見本帳の頁は1回の実行で1度だけ build され、頁を開く検査が今どおり通る | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-built-once-per-run`と`site-palette-switch-draws-arcade`が通る | #3384 #3388 |
+| 編集画面で書き出した`.dragon`の file の名前と中身を、検査が今どおり確かめる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`editor-imports-and-exports-notation`が通る | #3384 #3388 |
+| 1件の検査とその前後処理の上限10秒と、1回の実行の上限5分は変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`が通る | #3384 #3386 #3388 |
 | 1回の実行の上限で止めた時、止める段は環境変数`DRAGON_UNFINISHED_OUT`が名指す file に、終わっていない検査の file と、終わった file で落ちた検査の名前を書く | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-writes-unfinished-files`が通る | #3386 |
 | `pnpm test:related`は、実行が上限で止まった時に終わっていない file だけを次の実行で回し、全部が回って落ちた検査が無ければ終わり方0で終わる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-continues-unfinished-files`が通る | #3386 |
 | 続きの実行で終わっていない file が前の実行より減らなかった時は、そこで止まり、残った file の名前を出して終わり方1で終わる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-stops-without-progress`が通る | #3386 |
