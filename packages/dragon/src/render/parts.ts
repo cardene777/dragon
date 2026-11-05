@@ -23,8 +23,12 @@ export const esc = (s: string): string =>
 /** 座標を小数 2 桁に丸める。角の形 (`corner.ts`) も読むため、置き場は `round.ts` が持つ */
 export { r1 };
 
-/** 点を辿る線。曲がる所は共通の値の表の半径 (`LOOK.edge.bend`) で丸め、直角の角を作らない (#3171)。 */
-export function pathOf(points: Point[]): string {
+/**
+ * 点を辿る線。曲がる所は共通の値の表の半径 (`LOOK.edge.bend`) で丸め、直角の角を作らない (#3171)。
+ * 角を落とす色味 (`corner` の `cut`) では、`LOOK.edge.square` 度以上曲がる折れ目を丸めずに直角で描く。
+ * 点で区切って描いた曲線 (git の枝の線、同じ箱へ戻る輪) は 1 つの曲がりが緩いので、丸めのまま残る (#3358)
+ */
+export function pathOf(points: Point[], corner: Corner): string {
   const pts = points.filter(
     (p, i) =>
       i === 0 || p[0] !== (points[i - 1] as Point)[0] || p[1] !== (points[i - 1] as Point)[1],
@@ -37,6 +41,11 @@ export function pathOf(points: Point[]): string {
     const [cx, cy] = pts[i + 1] as Point;
     const l1 = Math.hypot(bx - ax, by - ay);
     const l2 = Math.hypot(cx - bx, cy - by);
+    const cos = ((bx - ax) * (cx - bx) + (by - ay) * (cy - by)) / (l1 * l2);
+    if (corner === "cut" && (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI >= LOOK.edge.square) {
+      d += ` L ${r1(bx)} ${r1(by)}`;
+      continue;
+    }
     const a = Math.min(LOOK.edge.bend, l1 / 2, l2 / 2);
     d += ` L ${r1(bx - ((bx - ax) / l1) * a)} ${r1(by - ((by - ay) / l1) * a)} Q ${r1(bx)} ${r1(by)} ${r1(bx + ((cx - bx) / l2) * a)} ${r1(by + ((cy - by) / l2) * a)}`;
   }

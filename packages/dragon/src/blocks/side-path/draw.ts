@@ -14,13 +14,13 @@ import { cs } from "../color/draw";
 import { drawsIcon, glyph } from "../icon/draw";
 
 /** 状態遷移図の通らない道。点線で道と向きだけを見せ、運ぶ物を走らせない */
-export function path(p: ScenePath, color: ColorKey, ink: Ink[], traces: Trace[]): string {
+export function path(p: ScenePath, color: ColorKey, ink: Ink[], traces: Trace[], corner: Corner): string {
   traces.push({ from: p.from, to: p.to, points: p.points, shown: ALWAYS });
   const sans = p.label?.family === "sans";
   const label = p.label
     ? write(ink, `dg-path-t${sans ? " dg-path-tj" : ""}`, p.label.x + LOOK.label.padX, p.label.y + p.label.h / 2 + LOOK.baseline.label, p.label.text, sans ? TYPE.labelJa : TYPE.label)
     : "";
-  return `<g data-path="${esc(`${p.from}->${p.to}`)}" style="${cs(color)}"><path class="dg-path" d="${pathOf(p.points)}"/><path class="dg-path-h" d="${arrowHead(p.points)}"/>${label}</g>`;
+  return `<g data-path="${esc(`${p.from}->${p.to}`)}" style="${cs(color)}"><path class="dg-path" d="${pathOf(p.points, corner)}"/><path class="dg-path-h" d="${arrowHead(p.points)}"/>${label}</g>`;
 }
 
 /** 状態遷移図の脇道の囲み。左上に囲みの名前を、その下に添え書きを 1 行ずつ置く。囲みの角は色味の角の形 (`corner`) で描く */

@@ -25,7 +25,7 @@ export function treeLink(l: TreeLink, time: EdgeTime, ctx: Ctx): string {
     [m.last, { opacity: 1, "stroke-dashoffset": 0 }, EASE.inOut],
     [m.total, { opacity: 0, "stroke-dashoffset": 0 }],
   ]);
-  return `<path class="dg-tree-l dg-a" data-tree-link="${esc(l.from)}" pathLength="1" d="${pathOf(l.points)}" style="${kf}"/>`;
+  return `<path class="dg-tree-l dg-a" data-tree-link="${esc(l.from)}" pathLength="1" d="${pathOf(l.points, ctx.corner)}" style="${kf}"/>`;
 }
 
 /**

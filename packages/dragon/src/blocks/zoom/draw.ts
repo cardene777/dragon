@@ -63,7 +63,7 @@ export function zoomLens(k: TimeKit): void {
     .map((s) => k.at(s.step, s.event))
     .filter((t): t is number => t !== undefined)
     .sort((a, b) => a - b)[0];
-  const guides = z.guides.map((g) => `<path class="dg-tm-gd" d="${pathOf(g)}"/>`).join("");
+  const guides = z.guides.map((g) => `<path class="dg-tm-gd" d="${pathOf(g, k.ctx.corner)}"/>`).join("");
   const lens = `<rect class="dg-tm-fr" x="${r1(z.frame.x)}" y="${r1(z.frame.y)}" width="${r1(z.frame.w)}" height="${r1(z.frame.h)}" rx="${partRadius(k.ctx.corner, 4)}"/>${guides}`;
   k.base.push(hide === undefined ? lens : `<g class="dg-a" style="${m.until(hide)}">${lens}</g>`);
 }

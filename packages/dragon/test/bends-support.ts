@@ -98,7 +98,8 @@ export function lineOf(d: string): Omit<Line, "cls"> | undefined {
   }
   const corners: Corner[] = [];
   for (let k = 1; k < points.length - 1; k++) {
-    const [a, b, c] = [points[k - 1], points[k], points[k + 1]] as { p: Point; by: string }[];
+    type At = { p: Point; by: string };
+    const [a, b, c] = [points[k - 1] as At, points[k] as At, points[k + 1] as At];
     if (b.by !== "L" || c.by !== "L" || near(a.p, b.p) || near(b.p, c.p)) continue;
     const turn = turnOf(a.p, b.p, c.p);
     if (turn > 0.5) corners.push({ at: b.p, turn });
