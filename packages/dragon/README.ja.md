@@ -171,7 +171,7 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 種類を先に読んでおく時は、種類の名前を渡して `loadKind` を待つ。
 その種類の描く部品と、その種類の全てのブロックの読み方と、原本の形の検査を読む。
 描かずに図の題と種類だけを引く時は `loadReadings` を待つ。ブロックの読み方だけを読み、描く部品は読まない。
-`diagramKind` は、読む前の記法か JSON の図の種類を返す。
+`diagramKind` は、読む前の記法か JSON の図の種類を返す。`definesBlocks` は記法が足すブロックの定義を持つかを返し、持つ記法は `loadReadings` か `loadFor` を待ってから読む。
 読んでいない種類を描くと種類の名前を含む誤りで、読んでいないブロックの行を読むとブロックの名前を含む誤りで止まる。
 読み込みが落ちると `loadFor` と `loadKind` が拒否され、次に呼ぶと読み直す。
 `sequence` と `architecture` は描く部品とブロックの読み方を初めから持つので、記法の図は何も待たずに読んで描ける。

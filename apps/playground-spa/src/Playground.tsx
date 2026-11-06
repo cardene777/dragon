@@ -33,7 +33,7 @@ import { Shelf } from "./editor/Shelf";
 import { Stage } from "./editor/Stage";
 import { type ExampleKey, exampleText, FIRST_EXAMPLE, firstScreenText, LATER_EXAMPLES, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
 import { fromHash, toHash } from "./share";
-import { kindFailed, kindReady, onKindSettled, onValidatorSettled, validatorFailed, validatorReady } from "./site/kinds";
+import { definitionsFailed, definitionsReady, kindFailed, kindReady, onDefinitionsSettled, onKindSettled, onValidatorSettled, validatorFailed, validatorReady } from "./site/kinds";
 import { useLater } from "./site/later";
 import { type CountedPart, type Lang, TEXT } from "./text";
 
@@ -80,6 +80,15 @@ function waitKind(kind: string | undefined, lang: Lang): Outcome | undefined {
 }
 
 /**
+ * 記法が足したブロックの定義の行を持つ時、定義を読む処理の塊 (#3399) が届くまで読まずに待つ (#3407)。
+ * 届いていれば `undefined`、届いていなければ待つ印、読めなかった時は誤り
+ */
+function waitDefinitions(text: string, lang: Lang): Outcome | undefined {
+  if (definitionsReady(text)) return undefined;
+  return { ok: false, problem: definitionsFailed(text) ? { lang, notices: [{ text: TEXT[lang].site.catalog.loadFailed }] } : KIND_WAITING };
+}
+
+/**
  * 原本の形の検査の塊 (#3400) が届くまで、原本の JSON を読まずに待つ。
  * 届いていれば `undefined`、届いていなければ待つ印、読めなかった時は誤り
  */
@@ -106,9 +115,9 @@ function check(input: unknown, lang: Lang, json?: string): Outcome {
   return { ok: true, diagram: read.diagram };
 }
 
-/** 記法を読む。誤りは頁の言葉で出す。後から読む種類の記法は、種類の塊が届いてから読む */
+/** 記法を読む。誤りは頁の言葉で出す。後から読む種類の記法は種類の塊が、足したブロックの定義を持つ記法は定義を読む処理の塊が届いてから読む */
 function fromNotation(text: string, pageLang: Lang): Outcome {
-  const waiting = waitKind(diagramKind(text), pageLang);
+  const waiting = waitKind(diagramKind(text), pageLang) ?? waitDefinitions(text, pageLang);
   if (waiting) return waiting;
   const parsed = parseNotation(text, { lang: pageLang });
   if (!parsed.ok) return { ok: false, problem: { lang: pageLang, notices: lineNotices(parsed.errors) } };
@@ -399,6 +408,8 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   useEffect(() => onKindSettled(() => reread.current()), []);
   // 原本の形の検査の塊は、編集画面を開いた後に裏で読み、届いたら原本の JSON の欄を読み直す (#3400)
   useEffect(() => onValidatorSettled(() => reread.current()), []);
+  // 足したブロックの定義を読む処理の塊も裏で読み、届いたら定義の行を持つ記法を読み直す (#3407)
+  useEffect(() => onDefinitionsSettled(() => reread.current()), []);
 
   // 描くたびに今の書く欄の中身を読む処理を渡し直す。編集画面を離れたら外す
   useLayoutEffect(() => {

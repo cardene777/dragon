@@ -167,7 +167,7 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 To load a kind ahead of time, await `loadKind` with the kind's name.
 It loads the kind's renderer, every block of that kind, and the schema check.
 To read a diagram's title and kind without drawing it, await `loadReadings`, which loads only the blocks and leaves the renderer out.
-`diagramKind` returns the kind of a notation or JSON before you read it.
+`diagramKind` returns the kind of a notation or JSON before you read it, and `definesBlocks` tells whether a notation has block definitions, which need `loadReadings` or `loadFor` before you read it.
 Drawing a kind that has not been loaded stops with an error that names the kind, and reading a line of a block that has not been loaded stops with an error that names the block.
 If loading fails, `loadFor` and `loadKind` reject, and the next call loads it again.
 `sequence` and `architecture` and their blocks are there from the start, so their notation reads and draws without loading anything.

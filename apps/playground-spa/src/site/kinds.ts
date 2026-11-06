@@ -6,7 +6,7 @@
  * 読み込みの状態は見本の塊と同じ形で持ち (`later.ts`)、読めなかった時は失敗のまま持つ。
  * 時系列図と構成図の部品は最初に読む script に在るので、待たずに描ける。
  */
-import { LATER_KINDS, loadKind, loadValidator } from "@cardenelabs/dragon/light";
+import { definesBlocks, LATER_KINDS, loadKind, loadReadings, loadValidator } from "@cardenelabs/dragon/light";
 
 import { useSyncExternalStore } from "react";
 
@@ -23,6 +23,24 @@ const KEPT: LaterChunk<void> = { start: () => undefined, state: () => READY, sub
 
 /** 原本の形の検査の塊 (#3400)。記法から読んだ図は検査を要らないので、原本の JSON を読む所だけが待つ */
 const VALIDATOR = laterChunk(() => loadValidator());
+
+/**
+ * 足したブロックの定義を読む処理の塊 (#3399、#3407)。読む処理は 1 つで、どの記法にも同じ物を使う。
+ * 定義の版の行だけの記法を `loadReadings` に渡し、定義を読む処理だけを読む
+ */
+const DEFINITIONS = laterChunk(() => loadReadings("blocks 1\n"));
+
+/** 記法 `text` を読むのに要る、足したブロックの定義を読む処理の塊の状態。定義の行を持たない記法は待たずに届いた扱いにし、塊を読み始めない */
+export const useDefinitions = (text: string): Later<void> => useLater(definesBlocks(text) ? DEFINITIONS : KEPT);
+
+/** 記法 `text` を読むのに要る、足したブロックの定義を読む処理が届いたか。定義の行を持たない記法は届いている */
+export const definitionsReady = (text: string): boolean => !definesBlocks(text) || DEFINITIONS.state().status === "ready";
+
+/** 記法 `text` が定義の行を持ち、定義を読む処理を読めなかったか */
+export const definitionsFailed = (text: string): boolean => definesBlocks(text) && DEFINITIONS.state().status === "failed";
+
+/** 定義を読む処理の塊が届くか読めなかった時に `listener` を呼ぶ。呼ぶと塊を読み始める。返した関数で外す */
+export const onDefinitionsSettled = (listener: () => void): (() => void) => DEFINITIONS.subscribe(listener);
 
 /** 原本の形の検査の塊の状態。`want` が偽の時は待たずに届いた扱いにし、塊を読み始めない */
 export const useValidator = (want: boolean): Later<void> => useLater(want ? VALIDATOR : KEPT);

@@ -180,7 +180,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
@@ -244,6 +244,8 @@ const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "tree", 
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
+  // 箱と線と印を元にした足したブロックを 1 つずつ定義する (#3407)
+  extend: (d) => [...new Set((d.define?.blocks ?? []).map((b) => b.base))].length === 3,
   start: (d) => boxesOf(d).length >= 2 && d.steps.length >= 1,
   // 決まり 4 つを全部使う。区画の入れ子、引用符で囲んだ `,` を含む値、字下げして続けた本文
   rules: (d) =>
@@ -936,7 +938,8 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
       await onScreen(arch.page, "category", "構成図の分類の頁が出ない");
       await expect
         .poll(async () => (await categoryOf(arch.page)).items, { ...WAIT, message: "構成図の分類の一覧に見本が並ばない" })
-        .toEqual(one.map((key) => ({ title: titleOf(key), current: true })));
+        // 最初の見本に印が付く。構成図の見本は足したブロックの見本 (bridge) を加えて 2 つになった (#3407)
+        .toEqual(one.map((key, i) => ({ title: titleOf(key), current: i === 0 })));
       expect((await categoryOf(arch.page)).count).toBe(`全 ${one.length} 件`);
       await expect
         .poll(async () => shownOf(await categoryOf(arch.page)), { ...WAIT, message: "構成図の分類で右に見本が出ない" })
