@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.55.1] - 2026-11-06
+
+### Fixed
+
+- **A try diagram read from notation can be placed with the light entry and the script entry** (#3416)
+
+  Since 0.54.0, placing a try diagram read with `parseNotation` through the light entry or the script entry stopped with an error that the schema check was not loaded, even after awaiting `loadFor`. `mountDiagram` copies a try diagram to start from the writer's first step and copies it again each time the reader sends a value or presses a button, and the copies lost the mark that lets a diagram read from notation skip the check. The copies now keep the mark, so the page places the diagram and redraws it without loading the schema check. A try diagram built from JSON still asks you to await `loadFor` first.
+
 ## [0.55.0] - 2026-11-06
 
 ### Added
