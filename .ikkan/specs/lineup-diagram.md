@@ -32,7 +32,7 @@
 | 概要の頁の使いどころは今の3つのまま | `pnpm test`の検査`home-uses-stay-three`が通る | #3239 |
 | 列の図の`box`の行に`[order: none]`を書いた時、記法とJSON Schemaがその箱を順番の無い置き場として通す。`order`に`none`以外の値を書いた時と、列の図でない図の`box`に書いた時は、行と列かJSON Pointerを示した誤りで止まり、英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-order-none-marks-a-pool`が通る | #3351 |
 | 列の図の最上位に`role 名前`を書いた時、記法とJSON Schemaがその名前を役として通し、`[note: 一言]`を添えられる。段の中に`role 名前`を書いた時は、その段で動く役として通す。宣言していない役を段に書いた時と、列の図でない図に`role`を書いた時は、行と列かJSON Pointerを示した誤りで止まり、英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-role-declares-and-acts`が通る | #3351 |
-| 列の図を描く枠の幅を渡さない時と、箱を横に並べても枠に収めた箱の名前が10.5px以上になる幅を渡した時、役の札を宣言した順に左から1列に並べて箱の列の上に置き、箱を宣言した順に左から札として並べる。`[order: none]`の箱は点線の枠の置き場としてチップを順番の無い形に散らし、それ以外の箱は実線の枠の札としてチップを`line`に書いた順に上から縦に積む。どの段でも役の札と箱と字が10px以上離れる | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-layout-places-roles-and-cards`が通る | #3351 |
+| 列の図を描く枠の幅を渡さない時と、箱を横に並べても枠に収めた箱の名前が10.5px以上になる幅を渡した時、役の札を宣言した順に左から1列に並べて箱の列の上に置き、箱を宣言した順に左から札として並べる。`[order: none]`の箱は点線の枠の置き場としてチップを格子に並べ、それ以外の箱は実線の枠の札としてチップを`line`に書いた順に上から縦に積む。どの段でも役の札と箱と字が10px以上離れる | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-layout-places-roles-and-cards`が通る | #3351、#3408 |
 | 箱を横に並べると枠に収めた箱の名前が10.5px未満になる枠の幅 (390と324) を渡して入札の図を描いた時、縦に組む。置き場を図の幅の帯にし、続けて宣言した札を左から1列に並べ、帯と札の列を宣言した順に上から積む。役の札は図の幅に収まるよう並べる。全体を出す見せ方 (`fixed`) になり、枠に収めた字が10.5px以上ある。英語の入札の図も同じ | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-narrow-frame-stacks-places`が通る | #3351 |
 | 再生の部品に入札の図を置いた時、枠の幅が390なら縦に組んだ図を、760なら横に並べた図を出し、置いた後に枠の幅が変わって並べ方が替わる時は組み直す | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-player-arranges-by-frame-width`が通る | #3351 |
 | 札は枠の頭に名前と「上から実行」を出し、`note`を持つ札は`note`の字を札の下の端にチップの字の1.6倍以上の大きさで出す。置き場は枠の頭に名前と「順番なし」を出す。英語を渡した時はこれらの字が仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-cards-show-name-and-note`が通る | #3351 |
@@ -61,3 +61,7 @@
 | 背景の記法を枠324pxの寄って追うで描く時、箱の名前を縮めずに描いた大きさで出す | `pnpm exec vitest run --reporter=verbose`の検査`follow-stack-keeps-size`が通る | #3365 |
 | 背景の記法を枠880pxで描く時、列を横に並べる形 (`row`) の全体の見せ方になる | `pnpm exec vitest run --reporter=verbose`の検査`follow-stack-wide-stays-row`が通る | #3365 |
 | 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3365 |
+| 箱を横に並べた列の図で、順番の無い置き場に 7 枚のチップを置いた時、同じ行のチップの上端が同じ値で、同じ列のチップの左端と幅が同じ値で、上下の間と左右の間がそれぞれ全て同じ値である | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-pool-chips-on-grid`が通る | #3408 |
+| 携帯の幅で縦に組んだ列の図で、置き場の帯に 7 枚のチップを置いた時も、同じ行のチップの上端が同じ値で、同じ列のチップの左端と幅が同じ値で、上下の間と左右の間がそれぞれ全て同じ値である | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-band-chips-on-grid`が通る | #3408 |
+| 常に、順番の無い置き場の枠は点線で、置き場のチップは縦の 1 列にも横の 1 列にもならず、札のチップは`line`に書いた順に同じ左端で上から積む | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-layout-places-roles-and-cards`が通る | #3408 |
+| 常に、携帯の幅では置き場を帯にして札の列の上下に積み、置き場に 12 枚のチップを置いても置き場の中に収まる | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-narrow-frame-stacks-places`と`lineup-holds-12-chips-in-places`が通る | #3408 |

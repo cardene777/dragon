@@ -6,7 +6,7 @@ box Desk
 item apply, query, change
 
 step Drop
-  say A box with order: none is a pool with no order, and its chips are scattered.
+  say A box with order: none is a pool with no order, and its chips sit on a grid.
   line Inbox: apply, query, change
 
 step Stack
