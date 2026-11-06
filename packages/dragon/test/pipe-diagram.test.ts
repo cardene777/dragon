@@ -116,6 +116,8 @@ interface Level extends Rect {
   state: State;
   text: Writing;
   was?: Writing;
+  /** 残高の下の増えた分か減った分 (#3418) */
+  delta?: Writing;
   /** 前の量の消し線 (#3398) */
   strike?: Rect;
   /** 槽の下の数に添える暫定か確定の語 (#3398) */
@@ -981,7 +983,8 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
     const after = { alice: levelOf(layout, "alice", "USDC", 1), pool: levelOf(layout, "pool", "USDC", 1) };
     expect(after.alice.h, "move の段で Alice の槽が下がらない").toBeLessThan(before.alice.h);
     expect(after.pool.h, "move の段で Pool の槽が上がらない").toBeGreaterThan(before.pool.h);
-    expect([after.alice.amount, after.alice.was?.text, after.pool.amount, after.pool.was?.text], "move の段の量と前の量").toEqual(["900", "1,000", "2100", "2,000"]);
+    // 前の量は書かず、残高の下に増えた分か減った分を単位つきで書く (#3418)
+    expect([after.alice.amount, after.alice.delta?.text, after.pool.amount, after.pool.delta?.text], "move の段の量と増減").toEqual(["900", "−100 USDC", "2100", "+100 USDC"]);
     expect([after.alice.state, after.pool.state, levelOf(layout, "bob", "USDC", 1).state], "move の段の槽の印").toEqual(["provisional", "provisional", "none"]);
     // 管を流れた分は、確定するまで斜線の暫定で描く
     expect(
@@ -1200,15 +1203,15 @@ describe("大きな Trace の縮め方 (#3389)", () => {
     const aliceAt = (s: number): [string, string, string | undefined][] =>
       ["USDC", "WETH"].map((token) => {
         const level = levelOf(layout, "alice", token, s);
-        return [level.amount, level.state, level.was?.text];
+        return [level.amount, level.state, level.delta?.text];
       });
     expect(aliceAt(1), "畳んだ箱の前の段の Alice の槽").toEqual([
       ["100", "none", undefined],
       ["0", "none", undefined],
     ]);
     expect(aliceAt(2), "畳んだ箱の段の Alice の槽").toEqual([
-      ["0", "provisional", "100"],
-      ["1", "provisional", "0"],
+      ["0", "provisional", "−100 USDC"],
+      ["1", "provisional", "+1 WETH"],
     ]);
     // 箱を開いた図は、内側の関係者の列と槽と値の札を今まで通りに描き、内側の最後の段の量が畳んだ箱の段の量と同じになる
     const opened = render(source, "ja", undefined, [1]).layout;
@@ -1709,6 +1712,8 @@ interface Housing extends Rect {
 interface Crossing {
   call: number;
   token: string;
+  /** 越えた値の管の番号 (`valuePipes` の並び) */
+  pipe: number;
   x: number;
   y: number;
 }
@@ -1881,35 +1886,32 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
     expect(new Set(names).size, "決まりの名前が重なる").toBe(names.length);
   });
 
-  it("pipe-rules-zero-violations-in-every-example", () => {
-    const { violations } = rulesApi();
-    const palettes = Object.keys(draw("PALETTES"));
-    const found: string[] = [];
-    for (const name of SAMPLES)
-      for (const lang of ["ja", "en"] as const) {
-        const source = exampleJson(lang === "ja" ? `${name}.json` : `${name}.en.json`);
-        const open = name === "aggregator" ? [2] : undefined;
-        for (const width of [1280, 390]) {
-          const rendered = render(source, lang, width, open);
-          for (const v of listed(violations(rendered.layout))) found.push(`${name} (${lang}, 幅 ${width}) ${v}`);
-        }
-      }
-    // 色味は置き場所を変えない。色味ごとに描いた置き場所が既定の色味と同じなら、違反の数も同じ
-    for (const name of SAMPLES) {
-      const source = exampleJson(`${name}.json`);
-      const base = JSON.stringify(render(source, "ja", 390).layout);
-      for (const palette of palettes) {
-        const layout = JSON.stringify(draw("renderDiagram")(source, { lang: "ja", width: 390, palette }).layout);
-        if (layout !== base) found.push(`${name} の色味 ${palette} の置き場所が既定の色味と違う`);
-      }
-    }
-    expect(found, "決まりの表への違反").toEqual([]);
+  // 見本と言語と枠の幅ごとに件を分け、1 件が混んだ機械でも 10 秒の上限に迫らないようにする (#3410 と同じ分け方)。
+  // 広い枠を先に描くので、狭い枠の件は覚えに在る広い枠の図を使う
+  const exampleCases = SAMPLES.flatMap((name) => (["ja", "en"] as const).flatMap((lang) => ([1280, 390] as const).map((width) => [name, lang, width] as const)));
+  describe.for(exampleCases)("%s %s 幅 %i", ([name, lang, width]) => {
+    it("pipe-rules-zero-violations-in-every-example", () => {
+      const { violations } = rulesApi();
+      const source = exampleJson(lang === "ja" ? `${name}.json` : `${name}.en.json`);
+      const rendered = render(source, lang, width, name === "aggregator" ? [2] : undefined);
+      expect(listed(violations(rendered.layout)), `${name} (${lang}, 幅 ${width}) の決まりの表への違反`).toEqual([]);
+    });
   });
 
-  it("pipe-rules-zero-violations-in-generated-figures", () => {
-    const { violations } = rulesApi();
-    const found: string[] = [];
-    for (let seed = 1; seed <= 10; seed++)
+  describe.for(SAMPLES)("%s の色味", (name) => {
+    it("pipe-rules-zero-violations-in-every-example", () => {
+      // 色味は置き場所を変えない。色味ごとに描いた置き場所が既定の色味と同じなら、違反の数も同じ
+      const source = exampleJson(`${name}.json`);
+      const base = JSON.stringify(render(source, "ja", 390).layout);
+      const differ = Object.keys(draw("PALETTES")).filter((palette) => JSON.stringify(draw("renderDiagram")(source, { lang: "ja", width: 390, palette }).layout) !== base);
+      expect(differ, `${name} の置き場所が既定の色味と違う色味`).toEqual([]);
+    });
+  });
+
+  describe.for(Array.from({ length: 10 }, (_, k) => k + 1))("種 %i", (seed) => {
+    it("pipe-rules-zero-violations-in-generated-figures", () => {
+      const { violations } = rulesApi();
+      const found: string[] = [];
       for (const long of [false, true]) {
         const source = generatedPipe(seed, long);
         for (const width of [1280, 390]) {
@@ -1917,7 +1919,8 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
           for (const v of listed(violations(rendered.layout))) found.push(`種 ${seed}${long ? " (長い名前)" : ""} 幅 ${width} ${v}`);
         }
       }
-    expect(found, "機械で作った図の決まりの表への違反").toEqual([]);
+      expect(found, "機械で作った図の決まりの表への違反").toEqual([]);
+    });
   });
 
   it("pipe-rules-broken-value-names-the-rule", () => {
@@ -2003,19 +2006,20 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       // 呼び出しの管が値の管を越える所は直角に 1 回だけで、くぐる所を置き場所に持つ
       const seen = new Set<string>();
       for (const c of layout.calls)
-        for (const pipe of layout.valuePipes) {
+        for (const [index, pipe] of layout.valuePipes.entries()) {
           const xs = crossingsOf(c.points, pipe.points);
           expect(xs.length, `${name} の ${c.index + 1} 番目の呼び出しの管が ${pipe.token} の値の管を越える回数`).toBeLessThanOrEqual(1);
           for (const x of xs) {
             const flatA = x.a[0][1] === x.a[1][1];
             const flatB = x.b[0][1] === x.b[1][1];
             expect(flatA !== flatB, `${name} の ${c.index + 1} 番目の呼び出しの管が ${pipe.token} の値の管を直角に越えない`).toBe(true);
-            const listedAt = layout.crossings.find((k) => k.call === c.index && k.token === pipe.token);
+            // 同じトークンの値の管が 2 本ある時、1 本の呼び出しの管が両方を越えることがあるため、管の番号で引く
+            const listedAt = layout.crossings.find((k) => k.call === c.index && k.pipe === index);
             expect(listedAt && Math.hypot(listedAt.x - x.at[0], listedAt.y - x.at[1]) < 1, `${name} の ${c.index + 1} 番目の呼び出しの管が ${pipe.token} の値の管をくぐる所が置き場所に無い`).toBe(true);
-            seen.add(`${c.index}|${pipe.token}`);
+            seen.add(`${c.index}|${index}`);
           }
         }
-      expect(layout.crossings.map((k) => `${k.call}|${k.token}`).sort(), `${name} のくぐる所の一覧`).toEqual([...seen].sort());
+      expect(layout.crossings.map((k) => `${k.call}|${k.pipe}`).sort(), `${name} のくぐる所の一覧`).toEqual([...seen].sort());
       // くぐる所は値の管の下に描く (呼び出しの管を値の管より先に描き、くぐる所で呼び出しの管を切る)
       const doc = new DOMParser().parseFromString(rendered.svg, "image/svg+xml");
       for (const k of layout.crossings) expect(doc.querySelector(`[data-pipe-crossing="${k.call}"][data-pipe-token="${k.token}"]`), `${name} のくぐる所の印が SVG に無い`).not.toBeNull();
