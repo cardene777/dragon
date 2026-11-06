@@ -118,14 +118,21 @@ afterAll(async () => {
   await (await opened)?.close();
 });
 
+/** 頁の開き方。`extra` は頁が読む別の file、`touch` は指で触る端末を模す、`reducedMotion` は動きを嫌う設定で開く */
+interface PageOptions {
+  extra?: Record<string, Buffer>;
+  touch?: boolean;
+  reducedMotion?: boolean;
+}
+
 async function withPage<T>(
   html: string,
   viewport: { width: number; height: number },
   run: (page: Page) => Promise<T>,
-  extra: Record<string, Buffer> = {},
-  touch = false,
+  { extra = {}, touch = false, reducedMotion = false }: PageOptions = {},
 ): Promise<T> {
-  const context = await (await sharedBrowser()).newContext({ viewport, hasTouch: touch });
+  // 動きを嫌う設定は頁を開く前に付ける。開いた後に付けて読み直すと、頁を 2 度読み込む (#3421)
+  const context = await (await sharedBrowser()).newContext({ viewport, hasTouch: touch, ...(reducedMotion ? { reducedMotion: "reduce" as const } : {}) });
   try {
     const page = await context.newPage();
     page.on("load", () => {
@@ -179,7 +186,7 @@ export async function decodeFrames(mp4: Buffer, fractions: number[]): Promise<Fr
       }, fractions);
       return out.map((frame) => ({ width: frame.width, height: frame.height, rgba: Buffer.from(frame.rgba, "base64") }));
     },
-    { "/video.mp4": mp4 },
+    { extra: { "/video.mp4": mp4 } },
   );
 }
 
@@ -220,8 +227,6 @@ export interface CaptionStep {
  */
 export async function captionSteps(html: string, width: number): Promise<CaptionStep[]> {
   return withPage(html, { width, height: 2000 }, async (page) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.reload();
     await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
     await page.evaluate(() => document.fonts.ready);
     const count = await page.locator('[data-dragon="steps"] > li').count();
@@ -243,7 +248,7 @@ export async function captionSteps(html: string, width: number): Promise<Caption
       if (s < count - 1) await page.locator('[data-dragon="next"]').click();
     }
     return seen;
-  });
+  }, { reducedMotion: true });
 }
 
 /** 段の本文の帯の中の、釦、段の番号、今の段の題と本文の箱と、帯の左右の余白を除いた中身の左端と右端 (px、#3057) */
@@ -260,8 +265,6 @@ export interface CaptionLayout {
 /** 書き出した HTML を動きを嫌う設定で幅 `width` で開き、1 段目の段の本文の帯の並べ方を読む (#3057) */
 export async function captionLayout(html: string, width: number): Promise<CaptionLayout> {
   return withPage(html, { width, height: 2000 }, async (page) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.reload();
     await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
     await page.evaluate(() => document.fonts.ready);
     return page.evaluate(() => {
@@ -284,7 +287,7 @@ export async function captionLayout(html: string, width: number): Promise<Captio
         segments: rect(".dg-segs"),
       };
     });
-  });
+  }, { reducedMotion: true });
 }
 
 /**
@@ -304,8 +307,7 @@ export async function playerButtons(html: string, width: number, touch = false):
         }),
       );
     },
-    {},
-    touch,
+    { touch },
   );
 }
 
@@ -440,9 +442,10 @@ export const fontCssOf = (html: string): string => [...html.matchAll(/@font-face
  * 頁で同時に読ませると、範囲の重なる別の file が字を描き、読めない file が隠れる。
  */
 export async function unreadableFonts(htmls: [string, string][]): Promise<string[]> {
-  const browser = await chromium.launch();
+  // file の Chromium を使う。見本ごとの件が起こし直すと、1 件ごとに 1 秒ほどかかる (#3381、#3421)
+  const context = await (await sharedBrowser()).newContext();
   try {
-    const page = await browser.newPage();
+    const page = await context.newPage();
     const out: string[] = [];
     for (const [name, html] of htmls) {
       for (const [rule] of html.matchAll(/@font-face\s*\{[^}]*\}/g)) {
@@ -462,7 +465,7 @@ export async function unreadableFonts(htmls: [string, string][]): Promise<string
     }
     return out;
   } finally {
-    await browser.close();
+    await context.close();
   }
 }
 

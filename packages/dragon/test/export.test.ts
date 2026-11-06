@@ -101,14 +101,19 @@ const oneEdge = (): Json => {
 };
 
 
-/** 帯と釦の件が確かめる、`oauth.json` を書き出した HTML。書き出した回数を数える (#3421) */
+/**
+ * 帯と釦の件が確かめる、`oauth.json` を書き出した HTML。書き出した回数を数える (#3421)。
+ * 最初に要った件が 1 度だけ書き出し、残りの件は同じ HTML を使う。件ごとに書き出すと、同じ図を 5 回書き出していた
+ */
 let oauthExports = 0;
-async function oauthHtml(): Promise<string> {
-  oauthExports++;
-  const exportDiagram = await exporter();
-  const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
-  return readFileSync(result.files.html as string, "utf8");
-}
+let oauthShot: Promise<string> | undefined;
+const oauthHtml = (): Promise<string> =>
+  (oauthShot ??= (async () => {
+    oauthExports++;
+    const exportDiagram = await exporter();
+    const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
+    return readFileSync(result.files.html as string, "utf8");
+  })());
 /** 帯と釦の件ごとに、頁を読み込んだ回数 (#3421) */
 const bandLoads = new Map<string, number>();
 
@@ -354,15 +359,14 @@ describe("書き出した頁の帯と釦 (#2986、#3421)", () => {
     },
   );
 
-  it(
-    "html-export-narrow-caption-stacks-body",
-    async () => {
-      // 携帯の幅では釦と番号と題と本文を横 1 列に並べ、本文の欄が帯の幅の 4 割ほどに細って帯が高くなっていた (#3057)。
-      // 帯は上から、操作の段 (釦と段ごとの進み具合)、段の番号と題、題の下の説明文の順に置き、題は番号の右から、説明文は帯の左端から帯の右端までを使う (#3398)
-      const html = await oauthHtml();
-      // 600 は中身の幅が 640px より狭く、携帯の幅と同じく積む (#3398)
-      for (const width of [360, 390, 430, 600]) {
-        const { inner, buttons, no, title, body } = await captionLayout(html, width);
+  // 幅ごとに 1 件 1 頁で確かめる (#3421)。600 は中身の幅が 640px より狭く、携帯の幅と同じく積む (#3398)
+  describe.for([{ width: 360 }, { width: 390 }, { width: 430 }, { width: 600 }])("幅 $width", ({ width }) => {
+    it(
+      "html-export-narrow-caption-stacks-body",
+      async () => {
+        // 携帯の幅では釦と番号と題と本文を横 1 列に並べ、本文の欄が帯の幅の 4 割ほどに細って帯が高くなっていた (#3057)。
+        // 帯は上から、操作の段 (釦と段ごとの進み具合)、段の番号と題、題の下の説明文の順に置き、題は番号の右から、説明文は帯の左端から帯の右端までを使う (#3398)
+        const { inner, buttons, no, title, body } = await captionLayout(await oauthHtml(), width);
         const sameRow = (a: { y: number; h: number }, b: { y: number; h: number }): boolean => a.y < b.y + b.h && a.y + a.h > b.y;
         expect(
           { withTitle: sameRow(no, title), left: no.x + no.w <= title.x + 0.5, edge: Math.abs(no.x - inner.left) <= 1 },
@@ -376,17 +380,16 @@ describe("書き出した頁の帯と釦 (#2986、#3421)", () => {
           `幅 ${width}px で、題か本文が帯の中身の右端までの幅を使わない`,
         ).toEqual({ title: true, body: true });
         expect(title.w, `幅 ${width}px で、題の欄が帯の中身の幅の 8 割より細い`).toBeGreaterThanOrEqual(0.8 * (inner.right - inner.left));
-      }
-    },
-  );
+      },
+    );
+  });
 
-  it(
-    "html-export-wide-caption-one-row",
-    async () => {
-      // 広い帯は釦を題の行の右に置き、進み具合を説明文の下の全幅の帯にする。縦に積むと帯が高くなり、低い画面で大きな図が寄って追う図に替わる (#3398)
-      const html = await oauthHtml();
-      for (const width of [800, 1280]) {
-        const { inner, buttons, title, body, segments } = await captionLayout(html, width);
+  describe.for([{ width: 800 }, { width: 1280 }])("幅 $width", ({ width }) => {
+    it(
+      "html-export-wide-caption-one-row",
+      async () => {
+        // 広い帯は釦を題の行の右に置き、進み具合を説明文の下の全幅の帯にする。縦に積むと帯が高くなり、低い画面で大きな図が寄って追う図に替わる (#3398)
+        const { inner, buttons, title, body, segments } = await captionLayout(await oauthHtml(), width);
         expect(
           {
             buttonsBesideTitle: buttons.y < title.y + title.h && buttons.y + buttons.h > title.y && buttons.x >= title.x + title.w - 0.5,
@@ -397,33 +400,31 @@ describe("書き出した頁の帯と釦 (#2986、#3421)", () => {
           },
           `幅 ${width}px で、釦が題の行の右に無いか、進み具合が説明文の下の全幅に無い`,
         ).toEqual({ buttonsBesideTitle: true, buttonsAtRight: true, bodyUnderTitle: true, segmentsUnder: true, segmentsFull: true });
-      }
-    },
-  );
+      },
+    );
+  });
 
-  it(
-    "html-export-player-buttons-touch-size",
-    async () => {
-      // 段を送る釦は 36px で間が 5px しか無く、携帯の幅では前と次を押し違えやすかった (#3069)。帯の中身が 440px より狭い時だけ 44px にする。
-      // 釦はやり直し、前、名前の付いた再生、次の 4 つで、再生の釦だけ名前の分だけ横に長い (#3398)
-      const html = await oauthHtml();
-      for (const [width, size] of [
-        [360, "44x44"],
-        [390, "44x44"],
-        [430, "44x44"],
-        [1440, "36x36"],
-      ] as const) {
-        expect(fourButtons(await playerButtons(html, width), size), `幅 ${width}px で、段を送る釦が ${size} でない`).toEqual(FOUR_BUTTONS);
-      }
-    },
-  );
+  describe.for([
+    { width: 360, size: "44x44" },
+    { width: 390, size: "44x44" },
+    { width: 430, size: "44x44" },
+    { width: 1440, size: "36x36" },
+  ])("幅 $width", ({ width, size }) => {
+    it(
+      "html-export-player-buttons-touch-size",
+      async () => {
+        // 段を送る釦は 36px で間が 5px しか無く、携帯の幅では前と次を押し違えやすかった (#3069)。帯の中身が 440px より狭い時だけ 44px にする。
+        // 釦はやり直し、前、名前の付いた再生、次の 4 つで、再生の釦だけ名前の分だけ横に長い (#3398)
+        expect(fourButtons(await playerButtons(await oauthHtml(), width), size), `幅 ${width}px で、段を送る釦が ${size} でない`).toEqual(FOUR_BUTTONS);
+      },
+    );
+  });
 
   it(
     "html-export-coarse-player-buttons",
     async () => {
       // 指で触るタブレットでは、広い帯の段を送る釦も 36px で押しにくかった (#3076)。指で触る時は帯の幅に関わらず 44px にする
-      const html = await oauthHtml();
-      expect(fourButtons(await playerButtons(html, 1024, true), "44x44"), "指で触る幅 1024px で、段を送る釦が 44x44 でない").toEqual(FOUR_BUTTONS);
+      expect(fourButtons(await playerButtons(await oauthHtml(), 1024, true), "44x44"), "指で触る幅 1024px で、段を送る釦が 44x44 でない").toEqual(FOUR_BUTTONS);
     },
   );
 

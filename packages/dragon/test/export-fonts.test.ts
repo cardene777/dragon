@@ -45,6 +45,15 @@ function ideographicSpace(): Json {
   };
 }
 
+/** 字の file を Chromium に読ませる図。英語の見本の全てと、全角空白の図 (#3212、#3421) */
+const FONT_CASES: { name: string; diagram: () => Json; lang: "ja" | "en" }[] = [
+  ...readdirSync(EXAMPLES)
+    .filter((name) => name.endsWith(".en.json"))
+    .sort()
+    .map((name) => ({ name, diagram: () => exampleJson(name), lang: "en" as const })),
+  { name: "全角空白の図", diagram: ideographicSpace, lang: "ja" },
+];
+
 describe("書き出しが埋める字の file (#3212)", () => {
   it("blank-font-file-adds-one-shaped-char", async () => {
     for (const blank of BLANKS) {
@@ -70,23 +79,19 @@ describe("書き出しが埋める字の file (#3212)", () => {
     }
   });
 
-  it(
-    "export-font-faces-all-load",
-    async () => {
-      const exportDiagram = await exporter();
-      const english = readdirSync(EXAMPLES).filter((name) => name.endsWith(".en.json"));
-      expect(english.length, "英語の見本が 1 つも無い").toBeGreaterThan(0);
-      const cases: [string, Json, "ja" | "en"][] = [...english.map((name): [string, Json, "en"] => [name, exampleJson(name), "en"]), ["全角空白の図", ideographicSpace(), "ja"]];
-      const htmls: [string, string][] = [];
-      for (const [name, diagram, lang] of cases) {
-        const result = await exportDiagram(diagram, { outDir: scratch(), formats: ["html"], lang });
+  // 英語の見本ごとの件と、全角空白の図の件に分ける (#3421)。全ての見本を 1 件で書き出すと、混み 42 で 5 秒かかり、見本を足すたびに遅くなった
+  describe.for(FONT_CASES)("$name", ({ name, diagram, lang }) => {
+    it(
+      "export-font-faces-all-load",
+      async () => {
+        const exportDiagram = await exporter();
+        const result = await exportDiagram(diagram(), { outDir: scratch(), formats: ["html"], lang });
         const html = readFileSync(result.files.html as string, "utf8");
         expect(embeddedFonts(html).length, `${name} の HTML に字の file が 1 つも無い`).toBeGreaterThan(0);
-        htmls.push([name, html]);
-      }
-      expect(await unreadableFonts(htmls), "Chromium が読めない字の file を埋めている").toEqual([]);
-    },
-  );
+        expect(await unreadableFonts([[name, html]]), "Chromium が読めない字の file を埋めている").toEqual([]);
+      },
+    );
+  });
 });
 
 describe("字の file の件の分け方 (#3421)", () => {
@@ -94,7 +99,8 @@ describe("字の file の件の分け方 (#3421)", () => {
     // 字の file の件は、英語の見本ごとの件と全角空白の図の件に分かれる。全ての見本を 1 件で書き出すと、混み 42 で 5 秒かかり、見本を足すたびに遅くなった
     const cases: string[] = [];
     const walk = (seen: RunnerTask): void => {
-      if (seen.type === "test" && seen.name === "export-font-faces-all-load") cases.push(seen.suite?.name ?? "");
+      // describe.for の `$name` は字の列を引用符で囲んだ名前にする
+      if (seen.type === "test" && seen.name === "export-font-faces-all-load") cases.push((seen.suite?.name ?? "").replace(/^'(.*)'$/, "$1"));
       if (seen.type === "suite") seen.tasks.forEach(walk);
     };
     task.file.tasks.forEach(walk);
