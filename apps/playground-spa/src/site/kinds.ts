@@ -6,7 +6,7 @@
  * 読み込みの状態は見本の塊と同じ形で持ち (`later.ts`)、読めなかった時は失敗のまま持つ。
  * 時系列図と構成図の部品は最初に読む script に在るので、待たずに描ける。
  */
-import { LATER_KINDS, loadKind } from "@cardenelabs/dragon/light";
+import { LATER_KINDS, loadKind, loadValidator } from "@cardenelabs/dragon/light";
 
 import { useSyncExternalStore } from "react";
 
@@ -20,6 +20,21 @@ export const KIND_CHUNKS: readonly LaterChunk<void>[] = [...CHUNKS.values()];
 const READY: Later<void> = { status: "ready", value: undefined };
 /** 初めから持つ種類の状態。読むものが無いので状態は替わらない */
 const KEPT: LaterChunk<void> = { start: () => undefined, state: () => READY, subscribe: () => () => undefined };
+
+/** 原本の形の検査の塊 (#3400)。記法から読んだ図は検査を要らないので、原本の JSON を読む所だけが待つ */
+const VALIDATOR = laterChunk(() => loadValidator());
+
+/** 原本の形の検査の塊の状態。`want` が偽の時は待たずに届いた扱いにし、塊を読み始めない */
+export const useValidator = (want: boolean): Later<void> => useLater(want ? VALIDATOR : KEPT);
+
+/** 原本の形の検査の塊が届いたか */
+export const validatorReady = (): boolean => VALIDATOR.state().status === "ready";
+
+/** 原本の形の検査の塊を読めなかったか */
+export const validatorFailed = (): boolean => VALIDATOR.state().status === "failed";
+
+/** 原本の形の検査の塊が届くか読めなかった時に `listener` を呼ぶ。呼ぶと塊を読み始める。返した関数で外す */
+export const onValidatorSettled = (listener: () => void): (() => void) => VALIDATOR.subscribe(listener);
 
 /** 種類の部品の今の状態。読み始めていなければ読み始める */
 export const useKind = (kind: string | undefined): Later<void> => useLater((kind !== undefined && CHUNKS.get(kind)) || KEPT);

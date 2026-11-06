@@ -14,6 +14,7 @@ import {
   USER_SHAPES,
   type UserBase,
   type UserBlock,
+  isUserPath,
   UserBlockFailure,
   type UserBlockReader,
   type UserBlocks,
@@ -28,11 +29,6 @@ const TAKES_PATH: Readonly<Record<UserBase, boolean>> = { box: true, edge: false
 /** 元のブロックごとに、色の役を書けるか。印は載せた箱の色で描く */
 const TAKES_COLOR: Readonly<Record<UserBase, boolean>> = { box: true, edge: true, icon: false };
 
-/** path の文法の字。命令の字と数と区切りだけで、`<` も `(` も `:` も書けない */
-const PATH_TEXT = /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]+$/u;
-/** path の長さの上限。1 つのブロックの形にこれより長い path は要らない */
-const PATH_MAX = 2000;
-
 /** 定義を読む時の誤りの文。日英で持つ */
 export interface UserBlockMessages extends UserBlockUseMessages {
   versionUnknown: (version: string) => string;
@@ -46,7 +42,6 @@ export interface UserBlockMessages extends UserBlockUseMessages {
   badShape: (base: UserBase, value: string) => string;
   noPath: (base: UserBase) => string;
   needsPath: string;
-  badPath: string;
   shapeAndPath: string;
   badColor: (value: string) => string;
   noColor: (base: UserBase) => string;
@@ -69,7 +64,6 @@ const MESSAGES: Readonly<Record<NotationLang, UserBlockMessages>> = {
     badShape: (base, value) => `${value} は ${base} を元にしたブロックの形でない。shape は ${listOf([...USER_SHAPES[base], ...(TAKES_PATH[base] ? ["path"] : [])])} のどれか`,
     noPath: (base) => `${base} を元にしたブロックは path の形を持てない`,
     needsPath: "icon を元にしたブロックは shape path \"…\" で形を書く",
-    badPath: `path に書けるのは path の文法の字 (命令の字と数と区切り) だけで、${PATH_MAX} 字まで`,
     shapeAndPath: "基本の形と path は一緒に書けない",
     badColor: (value) => `${value} は色の役でない。color は ${listOf(COLORS)} のどれか`,
     noColor: (base) => `${base} を元にしたブロックは色を持てない。載せた箱の色で描く`,
@@ -88,7 +82,6 @@ const MESSAGES: Readonly<Record<NotationLang, UserBlockMessages>> = {
     badShape: (base, value) => `${value} is not a shape of a block based on ${base}. shape is one of ${listOf([...USER_SHAPES[base], ...(TAKES_PATH[base] ? ["path"] : [])])}`,
     noPath: (base) => `A block based on ${base} cannot take a path shape`,
     needsPath: 'A block based on icon takes its shape as shape path "…"',
-    badPath: `A path takes only path syntax (commands, numbers and separators), up to ${PATH_MAX} characters`,
     shapeAndPath: "A block takes a named shape or a path, not both",
     badColor: (value) => `${value} is not a color role. color is one of ${listOf(COLORS)}`,
     noColor: (base) => `A block based on ${base} takes no color. It is drawn in the color of its box`,
@@ -99,7 +92,6 @@ const MESSAGES: Readonly<Record<NotationLang, UserBlockMessages>> = {
 
 const failAt = (source: SourceLine, index: number, message: string): UserBlockFailure => new UserBlockFailure(source.line, columnOf(source, index), message);
 
-const isPath = (value: string): boolean => value.length <= PATH_MAX && PATH_TEXT.test(value) && /^\s*[Mm]/u.test(value);
 
 /** 定義の鍵。誤りを指す所を選ぶ */
 type BlockKey = "name" | "base" | "shape" | "path" | "color";
@@ -114,7 +106,7 @@ function checkBlock(block: UserBlock, m: UserBlockMessages, fail: (key: BlockKey
   if (block.shape !== undefined && block.path !== undefined) throw fail("path", m.shapeAndPath);
   if (block.shape !== undefined && !USER_SHAPES[base].includes(block.shape)) throw fail("shape", m.badShape(base, block.shape));
   if (block.path !== undefined && !TAKES_PATH[base]) throw fail("path", m.noPath(base));
-  if (block.path !== undefined && !isPath(block.path)) throw fail("path", m.badPath);
+  if (block.path !== undefined && !isUserPath(block.path)) throw fail("path", m.badPath);
   if (base === "icon" && block.path === undefined) throw fail("name", m.needsPath);
   if (block.color !== undefined && !TAKES_COLOR[base]) throw fail("color", m.noColor(base));
   if (block.color !== undefined && !(COLORS as readonly string[]).includes(block.color)) throw fail("color", m.badColor(block.color));

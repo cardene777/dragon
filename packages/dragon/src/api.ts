@@ -60,6 +60,7 @@ export {
   type TryPart,
   type TryPress,
   validateDiagram,
+  validatorLoaded,
   type ViewMode,
 } from "./schema";
 export { FORMAT_VERSION, type Read, readDiagram } from "./version";

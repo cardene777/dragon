@@ -346,6 +346,8 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
         const host = { ownerDocument: { defaultView: null } };
         const message = (run) => { try { run(); return "描けた"; } catch (e) { return e.message; } };
         out.refused = {}; out.kept = []; out.loaded = [];
+        // 原本の JSON を描くには原本の形の検査が要るので (#3400)、先に検査だけを読み、描く部品が無い時の誤りを確かめる
+        await light.loadValidator();
         for (const [kind, file] of Object.entries(later)) {
           const diagram = read(file);
           out.refused[kind] = [message(() => light.renderDiagram(diagram)), message(() => light.mountDiagram(host, diagram))];

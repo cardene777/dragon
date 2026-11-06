@@ -107,6 +107,7 @@ import { fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
 import type { Diagram, DiagramModel, Step } from "./schema";
 import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
+import { markParsed } from "./parsed";
 import { defineUserBlocks, type UserBlock, UserBlockFailure, type UserBlocks, userBlock, userBlockReader, versionLine, withUserBlocks } from "./user-blocks";
 import { ATTRS, DEFAULT_LANG, HEADS, KINDS, type NotationLang, OLD_HEADS } from "./words";
 
@@ -428,7 +429,8 @@ export function parseNotation(notation: string, options: ParseOptions = {}): Par
   const lang = options.lang ?? DEFAULT_LANG;
   try {
     // 引数で渡した定義と図の頭の定義は、読んでいる間だけ有効にする (#3399)
-    return withUserBlocks([options.blocks], () => ({ ok: true, diagram: fromModel(parseLines(tokenize(notation), messagesFor(lang), lang), FORMAT_VERSION) }));
+    // 読んだ図には印を付け、描く時の原本の形の検査を省く (#3400)
+    return withUserBlocks([options.blocks], () => ({ ok: true, diagram: markParsed(fromModel(parseLines(tokenize(notation), messagesFor(lang), lang), FORMAT_VERSION)) }));
   } catch (error) {
     if (!(error instanceof NotationError) && !(error instanceof UserBlockFailure)) throw error;
     return { ok: false, errors: [{ line: error.line, column: error.column, message: error.message }] };

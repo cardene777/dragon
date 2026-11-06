@@ -6,6 +6,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **A page that draws notation loads less script first** (#3400)
+
+  A diagram read from notation with `parseNotation` skips the schema check when it is drawn, because the parser only builds diagrams the check accepts. Values that go into the SVG and the page as they are (the `path` of an added block, the `link` of a box, and the `url` of a source) are still checked, so a parsed diagram rewritten with an unsafe value is refused.
+  The light entry and the script entry no longer load the schema check up front. `loadFor` loads it when you pass JSON, and `loadKind` and the new `loadValidator` load it as well. Reading or drawing JSON with the light entry before that stops with an error that tells you to await `loadFor`. The script entry's first load is about 68KB gzipped, down from about 95KB.
+
 ## [0.53.0] - 2026-11-06
 
 ### Added

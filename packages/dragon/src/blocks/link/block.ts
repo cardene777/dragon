@@ -8,6 +8,9 @@
  */
 import type { Block } from "../block";
 
+/** 頁を移る形の決まり。/ で始まる path か、http:// か https:// で始まる URL。原本の形の検査と、記法から読んだ図を読む時に使う (#3400) */
+export const LINK_URL = "^(/|https?://)";
+
 export interface LinkFieldMessages {
   /** 頁を移る形だけを書ける決まり (箱の飛び先と段の出典の URL、#3199) */
   url: string;

@@ -8,6 +8,8 @@ import * as git from "./git";
 import * as lineup from "./lineup";
 import * as pipe from "./pipe";
 import { registerKind } from "./registry";
+import { registerValidator } from "../schema";
+import validate from "../schemas/validate-diagram.js";
 import { registerUserBlockReader } from "../user-blocks";
 import { USER_BLOCK_READER } from "../user-blocks-read";
 import * as state from "./state";
@@ -27,3 +29,6 @@ for (const [name, reading] of Object.entries(READINGS)) registerReading(name, re
 
 // 使う人が足すブロックの定義を読む処理 (#3399)。軽い入口は定義の行を持つ図の時だけ後から読む
 registerUserBlockReader(USER_BLOCK_READER);
+
+// 原本の形の検査 (#3400)。軽い入口は原本の JSON を読む前にだけ後から読む
+registerValidator(validate);
