@@ -109,6 +109,9 @@ const MEDIABUNNY = join(dirname(require_.resolve("mediabunny")), "mediabunny.min
  */
 let browser: Promise<Browser> | undefined;
 const sharedBrowser = (): Promise<Browser> => (browser ??= chromium.launch());
+/** 書き出した HTML の頁を読み込んだ回数 (読み直しも数える)。件が頁を何度読み込んだかを確かめる (#3421) */
+let loads = 0;
+export const pageLoads = (): number => loads;
 afterAll(async () => {
   const opened = browser;
   browser = undefined;
@@ -125,6 +128,9 @@ async function withPage<T>(
   const context = await (await sharedBrowser()).newContext({ viewport, hasTouch: touch });
   try {
     const page = await context.newPage();
+    page.on("load", () => {
+      loads++;
+    });
     await page.route("http://localhost/**", async (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path === "/") return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
