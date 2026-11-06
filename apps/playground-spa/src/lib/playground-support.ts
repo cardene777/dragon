@@ -123,6 +123,11 @@ export interface OpenOptions {
   reducedMotion?: "reduce" | "no-preference";
   /** 頁を開く前に済ませる処理。読み込みを止めたり遅らせたりする道 (`page.route`) はここで置く (#3246) */
   prepare?: (page: Page) => Promise<void> | void;
+  /**
+   * 件の終わりに閉じない (#3419)。件をまたいで頁を使い回す道具 (`site-support.ts` の `pageGroups`) が、
+   * 組の最後の件の後か件が落ちた時に閉じる
+   */
+  keep?: boolean;
 }
 
 /** 頁が読み込みの最初の瞬間に読んだ、動きを嫌う設定と指で触る設定が当たっているか */
@@ -188,7 +193,7 @@ export async function startSite(o: { config?: string } = {}): Promise<Site> {
       hasTouch: o.touch ?? false,
       reducedMotion: o.reducedMotion ?? "no-preference",
     });
-    contexts.push(context);
+    if (!o.keep) contexts.push(context);
     // 機械のネットワークが変わると、Chromium は 127.0.0.1 への読み込み中の通信も net::ERR_NETWORK_CHANGED で切る。
     // 頁の通信は手元の server を通さず、server と同じ規則で build した file から返す (#3379)。
     // 頁ごとに読み込みを止める検査は `page.route` を先に通り、`route.fallback()` でここへ渡す
@@ -393,41 +398,60 @@ export const barClearance = (page: Page, scope: string, edge: string): Promise<n
     [scope, edge] as const,
   );
 
+/** 確かめる段の範囲。`from` 段目 (0 から数える) から `to` 段目の前まで */
+export interface StepRange {
+  from: number;
+  to: number;
+}
+
 /**
  * 自動で送らずに `scope` の中の再生の部品の段を 1 つずつ送り、どの段でも段の本文の帯の高さと、図の幅と高さと上端の位置が
- * 1 段目と同じかを確かめる (#3049)。呼ぶ前に動きを嫌う設定 (`reducedMotion: "reduce"`) にしておく
+ * 1 段目と同じかを確かめる (#3049)。呼ぶ前に動きを嫌う設定 (`reducedMotion: "reduce"`) にしておく。
+ * `range` を渡すと、図と帯の形を比べるのはその範囲の段だけにする。範囲の外の段も送り、本文の欄の高さは全ての段で比べる (#3419)
  */
-export async function expectSteadyAcrossSteps(page: Page, scope: string, label: string): Promise<void> {
+export async function expectSteadyAcrossSteps(page: Page, scope: string, label: string, range?: StepRange): Promise<void> {
   const items = page.locator(`${scope} [data-dragon="steps"] > li`);
   await expect.poll(() => items.count(), { ...STEP_WAIT, message: `${label} の段が読めない` }).toBeGreaterThan(1);
   const count = await items.count();
   const first = await settledStepShape(page, scope, `${label} の 1 段目`);
   expect(first.step, `${label} が 1 段目から始まらない`).toBe(stepLabel(0, count));
   /**
-   * 今の段の題の上端から本文の下端までの高さと、それを入れる欄の高さ。欄は全部の段の写しを重ねた高さになる。
+   * 今の段の題の上端から本文の下端までの高さ (`live`) と、それを入れる欄の高さ (`room`) と、段ごとの写しの同じ高さ (`each`)。
+   * 欄は全部の段の写しを重ねた高さになる。写しは段ごとに 1 つずつ在り、今の段と同じ升に同じ字の組みで置かれる。
    * 今の段の題と本文を包む箱は欄いっぱいに伸びるので、箱ではなく題と本文の端で測る。
-   * 欄は写しの題と本文を囲む範囲で測る。狭い帯では題と本文を別の段に置き、写しを包む箱が無くなる (#3057)
+   * 欄は写しの題と本文を囲む範囲で測る。狭い帯では題と本文を別の段に置き、写しを包む箱が無くなる (#3057)。写しの題と本文の端は狭い帯でも測れる
    */
-  const caption = (): Promise<{ live: number; room: number }> =>
+  const caption = (): Promise<{ live: number; room: number; each: number[] }> =>
     page.evaluate((scope) => {
       const title = document.querySelector(`${scope} [data-dragon="step-title"]`);
       const body = document.querySelector(`${scope} [data-dragon="step-body"]`);
-      const copies = [...document.querySelectorAll(`${scope} [data-dragon="caption-room"] > *`)].map((copy) => copy.getBoundingClientRect());
-      if (!title || !body || copies.length === 0) return { live: 0, room: -1 };
+      const rooms = [...document.querySelectorAll(`${scope} [data-dragon="caption-room"]`)];
+      const copies = rooms.flatMap((room) => [...room.children]).map((copy) => copy.getBoundingClientRect());
+      if (!title || !body || copies.length === 0) return { live: 0, room: -1, each: [] };
       const room = Math.max(...copies.map((copy) => copy.bottom)) - Math.min(...copies.map((copy) => copy.top));
-      return { live: body.getBoundingClientRect().bottom - title.getBoundingClientRect().top, room };
+      const each = rooms.map((one) => {
+        const [copyTitle, copyBody] = [...one.children].map((copy) => copy.getBoundingClientRect());
+        return copyTitle && copyBody ? copyBody.bottom - copyTitle.top : -1;
+      });
+      return { live: body.getBoundingClientRect().bottom - title.getBoundingClientRect().top, room, each };
     }, scope);
-  const seen = [await caption()];
-  for (let s = 1; s < count; s++) {
+  // 範囲の外の段は送るだけで確かめず、範囲の後の段は送らない (#3419)。全ての段の本文の高さは写しから読む
+  const { from, to } = range ?? { from: 0, to: count };
+  const seen: { step: number; live: number; room: number; each: number[] }[] = from === 0 ? [{ step: 0, ...(await caption()) }] : [];
+  for (let s = 1; s < to; s++) {
     await page.locator(`${scope} [data-dragon="next"]`).click();
+    if (s < from) continue;
     await expect
       .poll(() => stepShapeOf(page, scope), { ...STEP_WAIT, message: `${label} の ${s + 1} 段目で、段の本文の帯の高さか図の大きさか位置が 1 段目と違う` })
       .toEqual({ ...first, step: stepLabel(s, count) });
-    seen.push(await caption());
+    seen.push({ step: s, ...(await caption()) });
   }
-  // 欄は本文の最も長い段の高さで足り、写しを縦に積んで帯を高くしすぎない
-  const tallest = Math.max(...seen.map((c) => c.live));
-  for (const c of seen) expect(Math.abs(c.room - tallest), `${label} の本文の欄の高さが、本文の最も長い段の高さと違う`).toBeLessThan(1);
+  // 欄は本文の最も長い段の高さで足り、写しを縦に積んで帯を高くしすぎない。確かめた段の本文の高さは、その段の写しと同じ
+  for (const c of seen) {
+    expect(c.each.length, `${label} の段の写しの数が段の数と違う`).toBe(count);
+    expect(Math.abs(c.room - Math.max(...c.each)), `${label} の本文の欄の高さが、本文の最も長い段の高さと違う`).toBeLessThan(1);
+    expect(Math.abs(c.live - (c.each[c.step] ?? -1)), `${label} の ${c.step + 1} 段目の本文の高さが、その段の写しの高さと違う`).toBeLessThan(1);
+  }
 }
 
 /**
