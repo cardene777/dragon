@@ -34,7 +34,7 @@ import {
   renderDiagram,
 } from "./render/draw";
 import { kindParts } from "./kinds/registry";
-import type { Diagram, Step } from "./schema";
+import type { Diagram, Step, ViewMode } from "./schema";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
 import { DEFAULT_LANG } from "./words";
@@ -81,40 +81,39 @@ function playerCss(): string {
   return [
     `.dg-player{display:flex;flex-direction:column;gap:${px(P.gap)};color:var(--ink)}`,
     `.dg-player .dg-frame{border-radius:${px(P.radius)};overflow:hidden}`,
+    // 横に長い配管の図は縮めずに枠の中を横に送る。手でも送れるように、横だけ枠の外を動かせる (#3398)
+    `.dg-player .dg-frame[data-dragon="pan"]{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain}`,
+    `.dg-player .dg-frame[data-dragon="pan"]::-webkit-scrollbar{display:none}`,
+    `.dg-player .dg-frame[data-dragon="pan"]>svg{max-width:none}`,
+    `.dg-ov{position:relative;height:${px(P.overview)};margin-top:${px(P.overviewGap - P.gap)};border-radius:${px(P.overview / 2)};background:var(--hair)}`,
+    `.dg-ov-t{position:absolute;top:0;bottom:0;border-radius:${px(P.overview / 2)};background:var(--mute)}`,
     // 角を落とす色味の再生の枠は、図の枠と同じく右上と左下を落として切り抜き、釦の角を丸めない (#3344)
     `.dg-player[data-corner="cut"] .dg-frame{border-radius:0;clip-path:polygon(0 0,calc(100% - ${px(C)}) 0,100% ${px(C)},100% 100%,${px(C)} 100%,0 calc(100% - ${px(C)}))}`,
-    `.dg-player[data-corner="cut"] .dg-btn{border-radius:0}`,
-    // 並べ方は帯の中身の幅で選ぶ。帯の中の 1 段 (`.dg-row`) が並べ替わり、帯の左右の余白は置いた頁が帯に付ける
-    `.dg-bar{container:dg-bar/inline-size}`,
-    `.dg-row{display:flex;align-items:flex-start;gap:${px(P.gap)}}`,
-    `.dg-btns{display:flex;gap:${px(P.gap / 2)};flex:none}`,
-    `.dg-btn{width:${px(P.button)};height:${px(P.button)};border-radius:${px(P.radius)};border:${px(LOOK.stroke.hair)} solid var(--hair);background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer}`,
-    `.dg-btn:focus-visible{outline:${px(P.focus)} solid var(--c-blue);outline-offset:${px(P.focus)}}`,
-    `.dg-say{display:flex;gap:${px(P.gap)};min-width:0}`,
-    `.dg-no{${font(TYPE.stepNo)};color:var(--mute);padding-top:${px(P.focus)}}`,
-    `.dg-txt{display:grid;grid-template-columns:minmax(0,1fr);min-width:0}`,
+    `.dg-player[data-corner="cut"] .dg-btn,.dg-player[data-corner="cut"] .dg-seg{border-radius:0}`,
+    // 帯は上から、段の番号と大きな段の題、題の下の小さな説明文、操作の段 (やり直し、前、名前の付いた再生、次、段ごとの進み具合) の順に置く (#3398)。
+    // 帯の左右の余白は置いた頁が帯に付ける
+    `.dg-bar{container:dg-bar/inline-size;display:flex;flex-direction:column;gap:${px(P.gap)}}`,
+    `.dg-say{display:flex;align-items:baseline;gap:${px(P.captionGap)};min-width:0}`,
+    `.dg-no{${font(TYPE.stepNo)};font-size:${px(TYPE.stepNo.size)};color:var(--mute);flex:none}`,
+    `.dg-txt{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;flex:1}`,
     `.dg-txt>*{grid-area:1/1}`,
     `.dg-room{visibility:hidden}`,
-    `.dg-tt{${font(TYPE.stepTitle)};margin:0}`,
-    `.dg-tb{${font(TYPE.stepBody)};color:var(--ink2);margin:0;white-space:pre-line}`,
+    `.dg-tt{${font(TYPE.stepTitle)};font-size:${px(TYPE.stepTitle.size)};line-height:1.3;margin:0}`,
+    `.dg-tb{${font(TYPE.stepBody)};font-size:${px(TYPE.stepBody.size)};line-height:1.5;color:var(--ink2);margin:${px(P.focus * 2)} 0 0;white-space:pre-line}`,
+    `.dg-ctl{display:flex;align-items:center;gap:${px(P.gap)};min-width:0}`,
+    `.dg-btns{display:flex;gap:${px(P.segmentGap)};flex:none}`,
+    `.dg-btn{min-width:${px(P.button)};height:${px(P.button)};padding:0;border-radius:${px(P.radius)};border:${px(LOOK.stroke.hair)} solid var(--line);background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer;white-space:nowrap}`,
+    `.dg-btn[data-dragon="toggle"]{padding:0 ${px(P.button / 2)};background:var(--c-blue);border-color:var(--c-blue);color:var(--on-c)}`,
+    `.dg-btn:focus-visible{outline:${px(P.focus)} solid var(--c-blue);outline-offset:${px(P.focus)}}`,
+    `.dg-segs{display:flex;gap:${px(P.segmentGap)};flex:1;min-width:0}`,
+    `.dg-seg{flex:1;min-width:${px(P.focus)};height:${px(P.segment)};border-radius:${px(P.segment / 2)};background:var(--line);cursor:pointer}`,
+    `.dg-seg[data-state="done"]{background:color-mix(in srgb,var(--c-blue) ${P.segmentPast}%,var(--line))}`,
+    `.dg-seg[data-state="now"]{background:var(--c-blue)}`,
     `.dg-sr{position:absolute;width:${hidden};height:${hidden};margin:-${hidden};padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}`,
-    // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにし、その横に番号を置き、
-    // 題を 2 段目、本文を 3 段目に置いてどちらも帯の全幅を使う (#3057、#3069)。
-    // 釦を大きくすると横に題を置く幅が足りず題が細かく折れるため、題は釦の段に置かない。
-    // 題と本文を包む箱を外して写しも同じ升に重ねるので、2 段目は最も高い題、3 段目は最も長い本文の高さになる。
-    // 題と本文の間は広い帯と同じく空けず、釦の段の下にだけ間を取って、帯が高くなる分を抑える
-    `@container dg-bar (width < ${px(P.narrow)}){` +
-      `.dg-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:0 ${px(P.gap)}}` +
-      `.dg-say,.dg-txt,.dg-txt>*{display:contents}` +
-      `.dg-btns{grid-area:1/1;margin-bottom:${px(P.gap / 2)}}` +
-      `.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}` +
-      `.dg-no{grid-area:1/2;display:flex;align-items:center;min-height:${px(P.touch)};padding-top:0}` +
-      `.dg-tt{grid-area:2/1/3/3}` +
-      `.dg-tb{grid-area:3/1/4/3}` +
-      `}`,
-    // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは横 1 列のまま変えない。
-    // 広い帯は本文が 2 行あれば帯の高さが変わらず、本文の無い帯だけが釦の分だけ高くなる
-    `@media (pointer: coarse){.dg-btn{width:${px(P.touch)};height:${px(P.touch)}}}`,
+    // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにする (#3057、#3069)。題と説明文は帯の全幅を使う
+    `@container dg-bar (width < ${px(P.narrow)}){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}}`,
+    // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは変えない
+    `@media (pointer: coarse){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}}`,
     `.dg-spot{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
   ].join("");
 }
@@ -141,7 +140,7 @@ function ensureCss(doc: Document): void {
 }
 
 /** 釦に出す字。HTML に書き出す時は、この字も字の file に残す。 */
-export const BUTTON_TEXT = { prev: "‹", pause: "❚❚", play: "▶", next: "›" } as const;
+export const BUTTON_TEXT = { restart: "↺", prev: "‹", pause: "❚❚", play: "▶", next: "›" } as const;
 
 /** 図の上に四角を描く時の SVG の名前空間 */
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -168,7 +167,7 @@ export function mountDiagram(
   let rendered = renderDiagram(source, options);
   const lang = options.lang ?? DEFAULT_LANG;
   const words = FIGURE_TEXT[lang];
-  const palette = paletteOf(options, rendered.theme);
+  const palette = paletteOf({ ...options, palette: rendered.palette }, rendered.theme);
   let { timeline } = rendered;
   let steps = rendered.diagram.steps;
   let count = steps.length;
@@ -192,14 +191,33 @@ export function mountDiagram(
     b.textContent = text;
     return b;
   };
+  const restartButton = button("restart", words.restart, BUTTON_TEXT.restart);
   const prevButton = button("prev", words.prev, BUTTON_TEXT.prev);
-  const toggleButton = button("toggle", words.pause, BUTTON_TEXT.pause);
+  const toggleButton = button("toggle", words.pause, `${BUTTON_TEXT.pause} ${words.pause}`);
   const nextButton = button("next", words.next, BUTTON_TEXT.next);
   const buttons = doc.createElement("div");
   buttons.className = "dg-btns";
   // 置いた頁の言葉と違っても、釦の名前を名前の言葉の声で読ませる
   buttons.setAttribute("lang", lang);
-  buttons.append(prevButton, toggleButton, nextButton);
+  buttons.append(restartButton, prevButton, toggleButton, nextButton);
+  // 段ごとに分けた進み具合の帯 (#3398)。済んだ段、今の段、まだの段を分けて塗り、押すとその段へ移る。
+  // 段は前と次の釦でも送れるので、帯は読み上げから隠す
+  const progress = doc.createElement("div");
+  progress.className = "dg-segs";
+  progress.dataset.dragon = "progress";
+  progress.setAttribute("aria-hidden", "true");
+  const fillProgress = (): void => {
+    progress.replaceChildren(
+      ...steps.map((_, i) => {
+        const segment = doc.createElement("span");
+        segment.className = "dg-seg";
+        segment.dataset.dragon = "segment";
+        segment.dataset.step = String(i);
+        return segment;
+      }),
+    );
+  };
+  fillProgress();
 
   // 見える語り。読み上げには下の一覧を読ませるので、こちらは読み上げから隠す
   const say = doc.createElement("div");
@@ -222,15 +240,23 @@ export function mountDiagram(
   // 全部の段の題と本文の写しを今の段と同じ升に重ね、段を送っても図の枠が伸び縮みしない (#3049)
   drawRooms(doc, text, steps);
   say.append(no, text);
-  // 狭い帯では語りの箱を外して番号と題と本文を釦と同じ升の並びに置く (#3057)。
-  // 箱を外した要素の読み上げからの隠し方に頼らず、見える語りの 1 つずつも読み上げから隠す
+  // 見える語りの 1 つずつも読み上げから隠す
   for (const shown of [no, title, body]) shown.setAttribute("aria-hidden", "true");
   const row = doc.createElement("div");
-  row.className = "dg-row";
-  row.append(buttons, say);
+  row.className = "dg-ctl";
+  row.append(buttons, progress);
   const bar = doc.createElement("div");
   bar.className = "dg-bar";
-  bar.append(row);
+  bar.append(say, row);
+  // 横に送る図の下の細い線。全体のどこを見ているかを示し、図が枠に収まる時は置かない (#3398)
+  const overview = doc.createElement("div");
+  overview.className = "dg-ov";
+  overview.dataset.dragon = "overview";
+  overview.setAttribute("aria-hidden", "true");
+  const thumb = doc.createElement("i");
+  thumb.className = "dg-ov-t";
+  thumb.dataset.dragon = "overview-thumb";
+  overview.append(thumb);
 
   // 読み上げの道具が段の順に読む一覧。見た目からは外すが、読み上げからは隠さない。
   // 段の出典は本文の後ろに、名前を URL への link にして書いた順に並べる (#3199)
@@ -291,7 +317,12 @@ export function mountDiagram(
       (Number.parseFloat(style.paddingBottom) || 0);
     return inner > 0 ? inner : undefined;
   };
-  let mode = chooseView(rendered, frameWidth(), frameHeight()).mode;
+  /**
+   * 見せ方を選ぶ。配管の図は寄って追わず、図を縮めずに置き、枠より広い時は枠の中を横に送る (#3398)。
+   * 書き出した絵だけは全体を 1 枚に縮めて写す
+   */
+  const viewOf = (w: number, h: number | undefined): ViewMode => (rendered.diagram.kind === "pipe" ? "fixed" : chooseView(rendered, w, h).mode);
+  let mode = viewOf(frameWidth(), frameHeight());
   let width = frameWidth();
   let height = frameHeight();
   let svg: SVGSVGElement | null = null;
@@ -331,6 +362,47 @@ export function mountDiagram(
     (svg.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-a') ?? svg).append(group);
   };
 
+  /** 横に送るか (#3398)。配管の図の横幅が枠より広い時だけ、縮めずに枠の中を横に送る */
+  const pans = (): boolean => rendered.diagram.kind === "pipe" && rendered.layout.width > frameWidth() + 0.5;
+  /** 全体の線を、枠が図のどこを見ているかに合わせる */
+  const follow = (): void => {
+    const total = rendered.layout.width;
+    thumb.style.left = `${(frame.scrollLeft / total) * 100}%`;
+    thumb.style.width = `${(Math.min(frameWidth(), total) / total) * 100}%`;
+  };
+  /**
+   * 今の段に関わる関係者の所へ送る。関わる関係者が枠に収まる時は全員を枠に入れ、収まらない時は真ん中を枠の真ん中に置く。
+   * 流している時は滑らかに送り、動きを嫌う設定と止めて送る時は一度に送る
+   */
+  const panTo = (): void => {
+    if (frame.dataset.dragon !== "pan") return;
+    const w = frameWidth();
+    const total = rendered.layout.width;
+    const focus = (rendered.layout as { focus?: (Rect & { step: number })[] }).focus?.find((f) => f.step === step);
+    if (focus) {
+      const middle = focus.x + focus.w / 2 - w / 2;
+      const fits = focus.w <= w ? Math.min(Math.max(middle, focus.x + focus.w - w), focus.x) : middle;
+      const left = Math.round(Math.min(Math.max(0, fits), Math.max(0, total - w)));
+      if (playing && !reduce && typeof frame.scrollTo === "function") frame.scrollTo({ left, behavior: "smooth" });
+      else frame.scrollLeft = left;
+    }
+    follow();
+  };
+  /** 置いた図を、枠の幅に合わせて横に送る形か縮めて収める形にする */
+  const settle = (): void => {
+    if (!svg) return;
+    if (pans()) {
+      frame.dataset.dragon = "pan";
+      svg.style.width = `${rendered.layout.width}px`;
+      if (!overview.isConnected) frame.after(overview);
+      panTo();
+    } else {
+      delete frame.dataset.dragon;
+      svg.style.removeProperty("width");
+      overview.remove();
+    }
+  };
+
   /** 動きの変数を付けた図を置き直す。置き直すと動きの時計が最初から数え直される */
   const place = (markup?: string): void => {
     let next: SVGSVGElement | null;
@@ -362,6 +434,7 @@ export function mountDiagram(
     drawMarks();
     controls?.fit(frame, next);
     controls?.mark(next, step);
+    settle();
   };
   const markup = (): string =>
     mode === "follow"
@@ -386,7 +459,12 @@ export function mountDiagram(
     title.textContent = current?.title ?? "";
     body.textContent = current?.body ?? "";
     toggleButton.setAttribute("aria-label", playing ? words.pause : words.play);
-    toggleButton.textContent = playing ? BUTTON_TEXT.pause : BUTTON_TEXT.play;
+    toggleButton.textContent = playing ? `${BUTTON_TEXT.pause} ${words.pause}` : `${BUTTON_TEXT.play} ${words.play}`;
+    for (const segment of progress.children) {
+      const i = Number((segment as HTMLElement).dataset.step);
+      (segment as HTMLElement).dataset.state = i < step ? "done" : i === step ? "now" : "todo";
+    }
+    panTo();
     if (svg) controls?.mark(svg, step);
     options.onStep?.(step);
   };
@@ -437,9 +515,10 @@ export function mountDiagram(
     for (const room of text.querySelectorAll(".dg-room")) room.remove();
     drawRooms(doc, text, steps);
     fillList();
+    fillProgress();
     width = frameWidth();
     height = frameHeight();
-    mode = chooseView(rendered, width, height).mode;
+    mode = viewOf(width, height);
     controls.update(drawn.layout as TryLayout);
     controls.arrange(mode, width);
     step = count - 1;
@@ -467,9 +546,10 @@ export function mountDiagram(
     for (const room of text.querySelectorAll(".dg-room")) room.remove();
     drawRooms(doc, text, steps);
     fillList();
+    fillProgress();
     width = frameWidth();
     height = frameHeight();
-    mode = chooseView(rendered, width, height).mode;
+    mode = viewOf(width, height);
     step = Math.min(count - 1, folded?.step ?? step);
     playing = false;
     at = timeline.stills[step] ?? 0;
@@ -499,6 +579,17 @@ export function mountDiagram(
   const onPrev = (): void => go(step - 1);
   const onNext = (): void => go(step + 1);
   const onToggle = (): void => (playing ? restart(now(), false) : resume());
+  /** 最初の段へ戻る。流していれば最初の段から流し直し、止めていれば最初の段の止め絵で止める (#3398) */
+  const onRestart = (): void => {
+    step = 0;
+    restart(playing ? 0 : (timeline.stills[0] ?? 0), playing);
+  };
+  const onProgress = (event: Event): void => {
+    const s = Number((event.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-dragon=\"segment\"]")?.dataset.step);
+    if (Number.isInteger(s)) go(s);
+  };
+  // 手で横に送った時も、全体の線を見ている所に付ける
+  const onPan = (): void => follow();
   // 段の番号を押すとその段へ移る。試す図のブロックの中のチップを押すと、書き換える欄を出す
   const onFigure = (event: Event): void => {
     const chip = controls ? (event.target as Element | null)?.closest?.("[data-chip]") : null;
@@ -518,7 +609,10 @@ export function mountDiagram(
   prevButton.addEventListener("click", onPrev);
   nextButton.addEventListener("click", onNext);
   toggleButton.addEventListener("click", onToggle);
+  restartButton.addEventListener("click", onRestart);
+  progress.addEventListener("click", onProgress);
   frame.addEventListener("click", onFigure);
+  frame.addEventListener("scroll", onPan);
 
   // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも) で決まるので、変われば描き直す
   const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)
@@ -528,10 +622,11 @@ export function mountDiagram(
         const w = frameWidth();
         const h = frameHeight();
         const rearranged = arrange(w);
-        const chosen = chooseView(rendered, w, h).mode;
+        const chosen = viewOf(w, h);
         controls?.arrange(chosen, w);
         if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height))) {
           if (svg) controls?.fit(frame, svg);
+          settle();
           return;
         }
         const t = now();
@@ -578,7 +673,10 @@ export function mountDiagram(
       prevButton.removeEventListener("click", onPrev);
       nextButton.removeEventListener("click", onNext);
       toggleButton.removeEventListener("click", onToggle);
+      restartButton.removeEventListener("click", onRestart);
+      progress.removeEventListener("click", onProgress);
       frame.removeEventListener("click", onFigure);
+      frame.removeEventListener("scroll", onPan);
       root.remove();
     },
   };

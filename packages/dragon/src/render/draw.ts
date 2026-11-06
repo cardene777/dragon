@@ -50,6 +50,7 @@ import {
   FONT_VARS,
   isColorName,
   isColorValue,
+  KIND_PALETTE,
   LOOK,
   MOTION,
   type Palette,
@@ -116,6 +117,11 @@ export interface Rendered {
   timeline: Timeline;
   /** 描いた図の形。版1と同じ欄と並びで、図の id はこの形の字から作る (#3346) */
   diagram: DiagramModel;
+  /**
+   * 配管の図の `[fold]` の呼び出しの内側を 1 段にまとめる前の形 (#3398)。まとめた段を持つ図だけが持つ。
+   * 書き出した頁はこの形を収め、読み手が箱を押した時に内側の段を開いて描き直す
+   */
+  source?: DiagramModel;
   /** 段ごとの止め絵で、同時に見えている字どうしの重なりと、線が札を持たない字を横切る所 (#3175)。重なりが無ければ空 */
   overlaps: Overlap[];
 }
@@ -992,7 +998,11 @@ function renderRead(source: Diagram, options: RenderOptions, lang: NotationLang)
                       ...(options.width === undefined ? {} : { width: options.width }),
                     })
                   : KIND_FOLDERS.architecture.layout(diagram, lang);
-  return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
+  // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
+  const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;
+  const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };
+  const rendered = renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), drawn);
+  return diagram === model || diagram.steps.length === model.steps.length ? rendered : { ...rendered, source: model };
 }
 
 /**

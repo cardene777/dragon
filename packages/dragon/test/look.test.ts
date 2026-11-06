@@ -1,7 +1,7 @@
 /**
  * 見た目の値の表と色味と字 (#2985)。
  *
- * 色味は澄んだ色 / 紙と墨 / 夜の計器 / アーケードの画面 (#3341) の 4 案で、既定は紙と墨。墨と朱は持たない。
+ * 色味は澄んだ色 / 紙と墨 / 夜の計器 / アーケードの画面 (#3341) / 紺と生成り (#3398) の 5 案で、既定は紙と墨 (配管の図だけは紺と生成り)。墨と朱は持たない。
  * 呼ぶ側は `colors` で色の値を渡し、名前で選んだ色味の色を上書きできる (#3198)。
  * 描く file は色の値と字の大きさを直接書かず、共通の値の表から読む。字は同梱した 2 つだけを使う。
  */
@@ -35,8 +35,8 @@ describe("色味", () => {
 
   it("palettes-keep-cvd-separation", () => {
     const palettes = draw("PALETTES");
-    // bitsumi の頁と同じ色の arcade を足した 4 つ (#3341)
-    expect(Object.keys(palettes).sort()).toEqual(["arcade", "clear", "night", "paper"]);
+    // bitsumi の頁と同じ色の arcade (#3341) と、配管の図の既定の sea (#3398) を足した 5 つ
+    expect(Object.keys(palettes).sort()).toEqual(["arcade", "clear", "night", "paper", "sea"]);
 
     const floors: Record<Sight, number> = { normal: 15, protan: 6, deutan: 6, tritan: 6 };
     for (const palette of Object.values(palettes)) {

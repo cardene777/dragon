@@ -28,6 +28,12 @@ export interface Palette {
 /** 色味を指定しない時と、知らない名前を渡した時に使う色味。 */
 export const DEFAULT_PALETTE = "paper";
 
+/**
+ * 色味を指定しない時に図の種類ごとに使う色味 (#3398)。書かない種類は `DEFAULT_PALETTE`。
+ * 配管の図は試作の配色を元にした紺と生成りで描く。紙と墨では暗い表示が黒地に茶色の液になり、トークンの液の色の差も小さい
+ */
+export const KIND_PALETTE: Readonly<Record<string, string>> = { pipe: "sea" };
+
 export const PALETTES: Readonly<Record<string, Palette>> = Object.fromEntries(
   Object.entries(palettes as Record<string, Omit<Palette, "id">>).map(([id, p]) => [
     id,
@@ -154,8 +160,9 @@ export const TYPE = {
   fieldValueJa: text(12, 600),
   tag: text(10.5, 700),
   miniTitle: text(10.5, 700),
-  stepTitle: text(15, 700),
-  stepBody: text(13.5, 500),
+  /** 再生の操作の段の題と説明文 (#3398)。題は図の上の見出しとして大きく、説明文は題の下に小さく置く */
+  stepTitle: text(22, 700),
+  stepBody: text(14, 500),
   stepNo: text(13, 700, "mono"),
   button: text(14, 700),
   /** 枝分かれの図 (#3164) の、丸の中の commit の名札と、丸の外に添える hash と一言 */
@@ -613,6 +620,16 @@ export const LOOK = {
     hidden: 1,
     focus: 2,
     narrow: 440,
+    /** 段ごとに分けた進み具合の帯の高さと間 (#3398) */
+    segment: 8,
+    segmentGap: 6,
+    /** 済んだ段の帯に混ぜる呼び出しの色の割合 */
+    segmentPast: 55,
+    /** 段の番号と題の間 */
+    captionGap: 16,
+    /** 横に送る図の下の、全体のどこを見ているかを示す線の高さと、図との間 (#3398) */
+    overview: 4,
+    overviewGap: 8,
     ask: {
       pad: 14,
       label: 6,
