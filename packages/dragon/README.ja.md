@@ -75,7 +75,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.55/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.56/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -89,7 +89,7 @@ step ログインを押す
 </pre>
 ```
 
-script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.55`) で読む。
+script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.56`) で読む。
 後の直しの版は頁を直さずに届き、記法を変える版は届かない。
 最初に読むのは `sequence` と `architecture` の描く部品で、ほかの種類の部品は、頁の塊がその種類を使う時だけ読む。
 同梱の 2 つの字の CSS を jsDelivr から読む `<link>` を、頁に 1 度だけ足す。
@@ -441,6 +441,7 @@ step 取引3から根まで上る
 - `queue <名札> [order: <欄>]` は待ち行列。`order` の欄の値の高い順に上から並べる
 - `chain <名札> [edit: <欄>]` は機械の列。ブロックは 1 つ前のブロックの `hash` を `prev` に持ち、`edit` を書くと読み手がブロックの中のチップのその欄を書き換えられる
 - `ask <欄>, <欄>, ... [into: <待ち行列>, via: <網>]` は入力の帯。最初の欄の値がチップの名前になる
+- `choose <欄>: <値>, <値>, ...` はその欄の選択肢。読み手は値を打たずに、書いた順に並ぶ選択肢から選ぶ。最初の欄にも書け、ブロックの中のチップを書き換える欄も同じ選択肢から選ぶ
 - `press <名札> [from: <待ち行列>, into: <機械の列>, take: <件数>, at: <部品>]` は釦。待ち行列の上から `take` 件を新しいブロックへ移す。`at` を書くとその部品の所に置き、書かなければ入力の帯に置く
 
 チップは `item <名札> [<欄>: <値>]` で書く。段の中の `line` で待ち行列の並びとブロックを書き、`ask <値>, ...` と `press <名札>` と `item <名札> [<欄>: <値>]` で書き手の例 (送る、作る、書き換える) を書く。
@@ -453,6 +454,7 @@ route ノードの網: あなた - node-1 - 作る人, あなた - node-2 - node
 queue メモリプール [order: 手数料]
 chain 機械の列 [edit: 量]
 ask 送り手, 宛先, 量, 手数料 [into: メモリプール, via: ノードの網]
+choose 宛先: Bob, Carol, Dave, Erin
 press ブロックを作る [from: メモリプール, into: 機械の列, take: 2]
 
 item 他1 [宛先: Carol, 量: 3, 手数料: 7]

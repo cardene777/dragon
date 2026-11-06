@@ -167,13 +167,14 @@ export interface TryEdit {
  * 試す図の部品。書いた順に図の上から積む。網 (`route`) は `-` でつないだ節の並び (`paths`) を持ち、`from` から `to` へチップを運ぶ。
  * 待ち行列 (`queue`) は `order` の欄の値の高い順にチップを並べ、機械の列 (`chain`) は `edit` の欄を読み手に書き換えさせる。
  * 入力の帯 (`ask`) は図に 1 つまでで、`id` は常に `ask`。最初の欄の値がチップの名前になる。
+ * `choices` は欄ごとの選択肢 (`choose` の行を書いた順、#3422) で、選択肢を持つ欄は読み手に値を選ばせる。
  * 釦 (`press`) は `from` の待ち行列の上から `take` 件を `into` の機械の列の新しいブロックへ移し、`at` の部品の所に置く
  */
 export type TryPart =
   | { type: "route"; id: string; paths: string[][]; from: string; to: string }
   | { type: "queue"; id: string; order?: string }
   | { type: "chain"; id: string; edit?: string }
-  | { type: "ask"; id: "ask"; fields: string[]; into: string; via?: string }
+  | { type: "ask"; id: "ask"; fields: string[]; into: string; via?: string; choices?: Record<string, string[]> }
   | { type: "press"; id: string; from: string; into: string; take: number; at?: string };
 
 /** 試す図のチップ。`values` の鍵は入力の帯の欄 (最初の欄を除く) で、名札がチップの名前 (最初の欄の値) になる */

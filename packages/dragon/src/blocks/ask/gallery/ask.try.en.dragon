@@ -3,6 +3,7 @@ try Input strip
 route Net: You - Relay - Maker [from: You, to: Maker]
 queue Pool [order: Fee]
 ask Sender, Fee [into: Pool, via: Net]
+choose Fee: 2, 4, 6
 
 item a [Fee: 4]
 

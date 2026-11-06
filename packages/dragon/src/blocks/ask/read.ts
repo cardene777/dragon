@@ -4,14 +4,18 @@
  */
 import { attrs, quote } from "../../print-kit";
 import { type Attr, fail, ID, list, readAttrs, skipSpaces } from "../../read-kit";
-import type { DiagramModel, TryItem } from "../../schema";
+import type { DiagramModel, TryItem, TryPart } from "../../schema";
 import type { SourceLine } from "../../tokenize";
-import { faultOf, fieldAt, needed, refer, valuesOf } from "../../try-read";
+import { faultOf, fieldAt, needed, refer, valueAt, valuesOf } from "../../try-read";
 import { askFields } from "../../try-state";
 import type { BlockReading, ParseState } from "../block";
 import { namesAt } from "../item/read";
 
 const TRY_ITEM = /^item\s+([^\s[]+)/du;
+/** `choose <欄>:` の頭。欄の名札を捕まえる (#3422) */
+const CHOOSE = /^choose\s+([^\s:,[]+)\s*:/du;
+
+type AskPart = Extract<TryPart, { type: "ask" }>;
 
 export interface AskMessages {
   askShape: string;
@@ -25,6 +29,14 @@ export interface AskMessages {
   /** 段の中の `ask` の値の数が、欄の数 `count` と違う */
   askCount: (count: number) => string;
   tryItemShape: string;
+  chooseShape: string;
+  /** `choose` の欄 `field` が入力の帯の欄 `fields` に無い */
+  notChooseField: (field: string, fields: readonly string[]) => string;
+  chooseTwice: (field: string) => string;
+  fewChoices: string;
+  choiceTwice: (value: string) => string;
+  /** 欄 `field` の値 `value` が、その欄の選択肢 `choices` に無い */
+  notChoice: (field: string, value: string, choices: readonly string[]) => string;
 }
 
 /** 試す図の値。`,` で区切る並びと属性の中で読み直せるよう、`,` か `]` を含む値と、`"` で始まる値と、前後に空白を持つ値を囲む */
@@ -59,14 +71,55 @@ function readAsk(source: SourceLine, state: ParseState): void {
   parts.push({ type: "ask", id: "ask", fields: fields.map((f) => f.value), into: into.value, ...(via ? { via: via.value } : {}) });
 }
 
-/** 段の中の `ask <値>, <値>` の行。値の数は入力の帯の欄の数と同じで、満杯の待ち行列へは送れない */
+/** 入力の帯の部品。まだ宣言していなければ `undefined` */
+const askOf = (state: ParseState): AskPart | undefined => state.figure.try.parts.find((p): p is AskPart => p.type === "ask");
+
+/**
+ * 最初の step より前の `choose <欄>: <値>, <値>` の行 (#3422)。欄は入力の帯の欄 (最初の欄も書ける) で、欄ごとに 1 行まで、
+ * 選択肢は重ならない値を 2 つ以上。書いた順に選択肢を持ち、読み手はその順に並ぶ選択肢から選ぶ
+ */
+function readChoose(source: SourceLine, state: ParseState): void {
+  const { m } = state;
+  const ask = askOf(state);
+  if (!ask) throw fail(source, 0, m.noAsk);
+  const text = source.text;
+  const found = CHOOSE.exec(text);
+  const field = found?.[1];
+  if (!found || field === undefined) throw fail(source, 0, m.chooseShape);
+  const at = found.indices?.[1]?.[0] ?? 0;
+  if (!ask.fields.includes(field)) throw fail(source, at, m.notChooseField(field, ask.fields));
+  const choices = ask.choices ?? {};
+  if (Object.hasOwn(choices, field)) throw fail(source, at, m.chooseTwice(field));
+  const start = skipSpaces(text, found[0].length);
+  if (start >= text.length) throw fail(source, start, m.fewChoices);
+  const values = valuesOf(source, found[0].length, state);
+  if (values.length < 2) throw fail(source, start, m.fewChoices);
+  values.forEach((value, k) => {
+    if (values.indexOf(value) < k) throw fail(source, Math.max(text.indexOf(value, start), start), m.choiceTwice(value));
+  });
+  ask.choices = { ...choices, [field]: values };
+}
+
+/** 欄 `field` が選択肢を持つ時、値 `value` がその選択肢のどれかか。`at` は誤りを出す位置 */
+function choiceAt(source: SourceLine, field: string, value: string, at: number, state: ParseState): void {
+  const choices = askOf(state)?.choices?.[field];
+  if (choices && !choices.includes(value)) throw fail(source, at, state.m.notChoice(field, value, choices));
+}
+
+/** 段の中の `ask <値>, <値>` の行。値の数は入力の帯の欄の数と同じで、満杯の待ち行列へは送れない。選択肢を持つ欄の値は選択肢のどれか */
 function readSend(source: SourceLine, state: ParseState): void {
   const { m } = state;
   const step = state.inStep(source);
-  const ask = state.figure.try.parts.find((p) => p.type === "ask");
+  const ask = askOf(state);
   if (!ask) throw fail(source, 0, m.noAsk);
   const values = valuesOf(source, "ask".length, state);
   if (values.length !== ask.fields.length) throw fail(source, 0, m.askCount(ask.fields.length));
+  let from = "ask".length;
+  values.forEach((value, k) => {
+    const at = source.text.indexOf(value, from);
+    if (at >= 0) from = at + value.length;
+    choiceAt(source, ask.fields[k] ?? "", value, Math.max(at, 0), state);
+  });
   const fault = state.figure.try.run?.ask(values).fault;
   if (fault) throw faultOf(source, fault, state);
   step.events.push({ type: "ask", values });
@@ -100,13 +153,18 @@ export function readTryChip(source: SourceLine, state: ParseState): void {
     state.declare(source, id, idAt);
     for (const [key, attr] of read) {
       values[key] = attr.value;
-      state.figure.try.pending.push(() => fieldAt(source, key, attr.at, state));
+      // 選択肢の行はチップの行より後ろにも書けるので、全ての宣言を読んでから確かめる
+      state.figure.try.pending.push(() => {
+        fieldAt(source, key, attr.at, state);
+        choiceAt(source, key, attr.value, valueAt(source, attr), state);
+      });
     }
     state.figure.try.items.push({ id, values });
     return;
   }
   for (const [key, attr] of read) {
     fieldAt(source, key, attr.at, state);
+    choiceAt(source, key, attr.value, valueAt(source, attr), state);
     values[key] = attr.value;
   }
   const run = state.figure.try.run;
@@ -129,16 +187,24 @@ export const reading: BlockReading<AskMessages> = {
   },
   read: {
     ask: (source, state) => (state.current() ? readSend(source, state) : readAsk(source, state)),
+    choose: (source, state) => {
+      if (state.current()) throw fail(source, 0, state.m.tryPartInStep("choose"));
+      readChoose(source, state);
+    },
   },
   print: {
     // 試す図のチップの塊は、部品の塊の直ぐ後ろに書く
     lead: (diagram) => (diagram.try && diagram.try.items.length > 0 ? [chipLines(diagram, diagram.try.items)] : []),
+    // 選択肢の行は、入力の帯の行の直ぐ後ろに書いた順で書く
     part: (part) =>
       part.type === "ask"
-        ? `ask ${part.fields.join(", ")}${attrs([
-            ["into", part.into],
-            ["via", part.via],
-          ])}`
+        ? [
+            `ask ${part.fields.join(", ")}${attrs([
+              ["into", part.into],
+              ["via", part.via],
+            ])}`,
+            ...Object.entries(part.choices ?? {}).map(([field, values]) => `choose ${field}: ${values.map(tryValue).join(", ")}`),
+          ].join("\n")
         : "",
     events: {
       ask: (e) => `ask ${e.values.map(tryValue).join(", ")}`,
@@ -155,6 +221,13 @@ export const reading: BlockReading<AskMessages> = {
       noAsk: "ask <欄>, <欄> [into: <待ち行列>] の行で入力の帯を宣言してから、欄と値を書く",
       askCount: (count) => `ask の値は欄と同じ ${count} つを , で区切って書く`,
       tryItemShape: "item は最初の step より前なら item <名札> [<欄>: <値>]、step の中なら item <チップ> [<欄>: <値>] の形で書く",
+      chooseShape: "choose は最初の step より前に choose <欄>: <値>, <値> の形で書く",
+      notChooseField: (field, fields) => `${field} は ask の欄に無い。choose に書けるのは ${list(fields)}`,
+      // 見本帳が切り出した字に「択」と「肢」が無いので、誤りの文は選択肢を「choose の値」と呼ぶ
+      chooseTwice: (field) => `${field} の choose の行はもう書いた`,
+      fewChoices: "choose の値は , で区切って 2 つ以上書く",
+      choiceTwice: (value) => `${value} は choose の値にもう書いた`,
+      notChoice: (field, value, choices) => `${value} は ${field} の choose の値に無い。書けるのは ${list(choices)}`,
     },
     en: {
       askShape: "Write ask as ask <field>, <field> [into: <queue>, via: <route>] before the first step, or as ask <value>, <value> inside a step",
@@ -165,6 +238,12 @@ export const reading: BlockReading<AskMessages> = {
       noAsk: "Declare the input strip with ask <field>, <field> [into: <queue>] before writing fields and values",
       askCount: (count) => `Write ${count} ask values separated by ,, one for each field`,
       tryItemShape: "Write item as item <id> [<field>: <value>] before the first step, or as item <chip> [<field>: <value>] inside a step",
+      chooseShape: "Write choose as choose <field>: <value>, <value> before the first step",
+      notChooseField: (field, fields) => `${field} is not an ask field. choose takes ${list(fields)}`,
+      chooseTwice: (field) => `The choices for ${field} are already written`,
+      fewChoices: "Write at least two choices, separated by ,",
+      choiceTwice: (value) => `${value} is already a choice`,
+      notChoice: (field, value, choices) => `${value} is not a choice for ${field}. Write ${list(choices)}`,
     },
   },
 };
