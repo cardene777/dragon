@@ -8,8 +8,8 @@
  */
 import { DEFAULT_PALETTE, PALETTES, resolvePalette, type Theme } from "@cardenelabs/dragon/light";
 
-/** 色味ごとの差し色の色相。紙と墨は朱、澄んだ色と夜の計器は青、アーケードの画面は bitsumi の強調と同じ緑 (#3341) */
-const ACCENT_HUE: Readonly<Record<string, string>> = { paper: "rose", clear: "blue", night: "blue", arcade: "green" };
+/** 色味ごとの差し色の色相。紙と墨は朱、澄んだ色と夜の計器と紺と生成り (#3398) は青、アーケードの画面は bitsumi の強調と同じ緑 (#3341) */
+const ACCENT_HUE: Readonly<Record<string, string>> = { paper: "rose", clear: "blue", night: "blue", arcade: "green", sea: "blue" };
 
 /** 選んだ色味を残す鍵 */
 const STORE = "dragon-site-palette";
