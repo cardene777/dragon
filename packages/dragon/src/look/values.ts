@@ -164,6 +164,9 @@ export const TYPE = {
   stepTitle: text(22, 700),
   /** 積む帯 (中身の幅が `player.wide` より狭い帯) の段の題。大きいままだと帯が高くなり、図の枠が低くなる (#3398) */
   stepTitleStacked: text(18, 700),
+  /** 狭い帯 (携帯の幅) の段の題と説明文。帯が高いと編集画面の記法の欄と段を送る釦が最初の画面から押し出される (#3061) */
+  stepTitleNarrow: text(15, 700),
+  stepBodyNarrow: text(13, 500),
   stepBody: text(14, 500),
   stepNo: text(13, 700, "mono"),
   button: text(14, 700),
@@ -637,6 +640,8 @@ export const LOOK = {
     /** 段の題と説明文の行の高さ (字の大きさに対する割合)。広げると帯が高くなる (#3051) */
     titleLine: 1.15,
     bodyLine: 1.4,
+    /** 狭い帯 (携帯の幅) の説明文の行の高さ */
+    bodyLineNarrow: 1.3,
     /** 済んだ段の帯に混ぜる呼び出しの色の割合 */
     segmentPast: 55,
     /** 段の番号と題の間 */

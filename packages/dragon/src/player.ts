@@ -81,8 +81,9 @@ function playerCss(): string {
   return [
     `.dg-player{display:flex;flex-direction:column;gap:${px(P.gap)};color:var(--ink)}`,
     `.dg-player .dg-frame{border-radius:${px(P.radius)};overflow:hidden}`,
-    // 横に長い配管の図は縮めずに枠の中を横に送る。手でも送れるように、横だけ枠の外を動かせる (#3398)
-    `.dg-player .dg-frame[data-dragon="pan"]{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain}`,
+    // 横に長い配管の図は縮めずに枠の中を横に送る。手でも送れるように枠の外を動かせる (#3398)。
+    // 置いた頁が枠の高さを決めていて図の方が高い時も、縦に送って図の下まで見せる
+    `.dg-player .dg-frame[data-dragon="pan"]{overflow-x:auto;overflow-y:auto;scrollbar-width:none;overscroll-behavior-x:contain}`,
     `.dg-player .dg-frame[data-dragon="pan"]::-webkit-scrollbar{display:none}`,
     `.dg-player .dg-frame[data-dragon="pan"]>svg{max-width:none}`,
     `.dg-ov{position:relative;height:${px(P.overview)};margin-top:${px(P.overviewGap - P.gap)};border-radius:${px(P.overview / 2)};background:var(--hair)}`,
@@ -91,7 +92,7 @@ function playerCss(): string {
     `.dg-player[data-corner="cut"] .dg-frame{border-radius:0;clip-path:polygon(0 0,calc(100% - ${px(C)}) 0,100% ${px(C)},100% 100%,${px(C)} 100%,0 calc(100% - ${px(C)}))}`,
     `.dg-player[data-corner="cut"] .dg-btn,.dg-player[data-corner="cut"] .dg-seg{border-radius:0}`,
     // 帯は段の番号と大きな段の題、題の下の小さな説明文、操作 (やり直し、前、名前の付いた再生、次、段ごとの進み具合) を持つ (#3398)。
-    // 中身の幅が `wide` より狭い帯は上から題、説明文、操作の段の順に積む。広い帯は釦を題の行の右に置き、進み具合を全幅の細い帯にして帯を低く保つ。
+    // 中身の幅が `wide` より狭い帯は上から操作の段、題、説明文の順に積む。広い帯は釦を題の行の右に置き、進み具合を全幅の細い帯にして帯を低く保つ。
     // 帯が高いと図に使える高さが減り、低い画面で大きな図が寄って追う図に替わるため。帯の左右の余白は置いた頁が帯に付ける
     `.dg-bar{container:dg-bar/inline-size}`,
     `.dg-lay{display:flex;flex-direction:column;gap:${px(P.gap)}}`,
@@ -112,14 +113,16 @@ function playerCss(): string {
     `.dg-seg[data-state="done"]{background:color-mix(in srgb,var(--c-blue) ${P.segmentPast}%,var(--line))}`,
     `.dg-seg[data-state="now"]{background:var(--c-blue)}`,
     `.dg-sr{position:absolute;width:${hidden};height:${hidden};margin:-${hidden};padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}`,
-    // 積む帯は番号の右に題、その下に説明文を帯の全幅で置く。説明文を番号の右の欄に入れると行が増えて帯が高くなり、
+    // 積む帯は操作の段 (釦と進み具合) を図のすぐ下に置き、段を送る釦を携帯の最初の画面に収める (#3061)。
+    // その下の番号の右に題、その下に説明文を帯の全幅で置く。説明文を番号の右の欄に入れると行が増えて帯が高くなり、
     // 重ね窓の図の枠が低くなる (#3059)。題と説明文を包む箱を外して写しも同じ升に重ねるので、題の升は最も高い題、
     // 説明文の升は最も長い説明文の高さになる (#3049)。題を小さくし、題と説明文から操作の段までを詰めて、図の枠の高さを残す
-    `@container dg-bar (width < ${px(P.wide)}){.dg-lay{gap:${px(P.progressGap)}}.dg-tt{font-size:${px(TYPE.stepTitleStacked.size)}}` +
+    `@container dg-bar (width < ${px(P.wide)}){.dg-lay{gap:${px(P.progressGap)}}.dg-ctl{order:-1}.dg-tt{font-size:${px(TYPE.stepTitleStacked.size)}}` +
       `.dg-say{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:${px(P.captionGap)};align-items:baseline}` +
       `.dg-txt,.dg-txt>*{display:contents}.dg-no{grid-area:1/1}.dg-tt{grid-area:1/2}.dg-tb{grid-area:2/1/3/3}}`,
-    // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにする (#3057、#3069)
-    `@container dg-bar (width < ${px(P.narrow)}){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}}`,
+    // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにする (#3057、#3069)。題と説明文の字を小さくし、帯を低く保つ (#3061)
+    `@container dg-bar (width < ${px(P.narrow)}){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}` +
+      `.dg-tt{font-size:${px(TYPE.stepTitleNarrow.size)}}.dg-tb{font-size:${px(TYPE.stepBodyNarrow.size)};line-height:${P.bodyLineNarrow}}}`,
     // 広い帯は題と説明文の右に釦、その下の行に全幅の進み具合。題と説明文を隠した頁 (見本帳の欄) では釦が左に寄る
     `@container dg-bar (width >= ${px(P.wide)}){.dg-lay{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:${px(P.captionGap)};row-gap:${px(P.progressGap)}}.dg-ctl{display:contents}.dg-btns{justify-self:start;align-self:start}.dg-segs{grid-column:1/-1}}`,
     // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは変えない

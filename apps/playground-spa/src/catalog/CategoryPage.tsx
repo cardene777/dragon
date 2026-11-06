@@ -294,7 +294,8 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
     if (fit.frame <= frame.offsetHeight) return;
     // 枠の外 (再生の釦の帯と上の罫) の高さは見せ方で変わらない
     const needed = fit.frame + el.offsetHeight - frame.offsetHeight;
-    setTall({ diagram, room, shape: needed <= room ? "grow" : "follow" });
+    // 横に送る図 (配管の図、#3398) は寄って追う図に替わらないので、画面より高くても枠を伸ばす
+    setTall({ diagram, room, shape: needed <= room || fit.pan ? "grow" : "follow" });
   }, [fit, shape, diagram, room]);
 
   useEffect(() => {

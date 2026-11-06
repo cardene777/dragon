@@ -183,13 +183,13 @@ export function valve(x: number, y: number, vertical: boolean, opened: boolean, 
 /** 取っ手の向き (度)。閉じた取っ手は管と直角、開いた取っ手は管の向き */
 export const leverAngle = (vertical: boolean, opened: boolean): number => (opened ? (vertical ? 90 : 0) : vertical ? 0 : -90);
 
-/** トークンの箱。名前と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く */
+/** トークンの箱。名前と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。名前は関係者の名前と同じく `dg-sn` も持つ */
 export function tokenBox(p: PipeParty, on: boolean, valveAt: Point | undefined, ctx: Ctx, shown: Shown[], attrs: string): string {
   const cx = p.x + p.w / 2;
   const stem = valveAt ? `<line class="dg-pp-tstem" x1="${r1(cx)}" y1="${r1(valveAt[1] - P.bus.valveUp)}" x2="${r1(cx)}" y2="${r1(p.y + p.h / 2)}"/>` : "";
   return (
     `<g${attrs} class="dg-pp-tokv${on ? " dg-pp-on" : ""}">${stem}${frame(ctx, "dg-pp-act", p, P.token.radius)}` +
-    `${write(ctx.ink, "dg-pp-actn", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
+    `${write(ctx.ink, "dg-sn dg-pp-actn", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
   );
 }
 

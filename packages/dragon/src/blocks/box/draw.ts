@@ -203,7 +203,8 @@ export interface PipeLook {
 
 /**
  * 配管の図の丸の名札 (#3398)。送り手と、呼ばれない口座を描く。値の色から呼び出しの色へ移る丸に頭文字を書き、丸の下に名前を書く。
- * その段の出来事に出る者 (`on`) は外に光の輪を出す。`attrs` は部品の印
+ * その段の出来事に出る者 (`on`) は外に光の輪を出す。`attrs` は部品の印。
+ * 名前は他の図の箱の名前と同じ `dg-sn` も持つ。置いた頁は図の名前をこの印で読み、図を縮める下限の字の大きさもこの字で測る
  */
 export function avatar(p: PipeParty, on: boolean, ctx: Ctx, shown: Shown[], attrs: string, look: PipeLook, fill: string): string {
   const { P, T } = look;
@@ -213,7 +214,7 @@ export function avatar(p: PipeParty, on: boolean, ctx: Ctx, shown: Shown[], attr
     `<g${attrs} class="dg-pp-who${on ? " dg-pp-on" : ""}"><circle class="dg-pp-halo" cx="${r1(cx)}" cy="${r1(cy)}" r="${P.avatar.halo}"/>` +
     `<circle class="dg-pp-avu" fill="${fill}" cx="${r1(cx)}" cy="${r1(cy)}" r="${P.avatar.r}"/>` +
     `<text class="dg-pp-glyph" x="${r1(cx)}" y="${r1(cy + P.avatar.initialY)}" text-anchor="middle">${esc(([...p.name][0] ?? "").toUpperCase())}</text>` +
-    `${write(ctx.ink, "dg-pp-pname", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
+    `${write(ctx.ink, "dg-sn dg-pp-pname", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
   );
 }
 
@@ -233,6 +234,6 @@ export function cabinet(p: PipeParty, on: boolean, pool: boolean, ctx: Ctx, show
   return (
     `<g${attrs} class="dg-pp-cab${on ? " dg-pp-on" : ""}${pool ? " dg-pp-pool" : ""}">` +
     frameShape(ctx.corner, ' class="dg-pp-cabr"', p, `<rect class="dg-pp-cabr" x="${r1(p.x)}" y="${r1(p.y)}" width="${r1(p.w)}" height="${r1(p.h)}" rx="${big ? C.radius : C.radiusSmall}"/>`) +
-    `${mark}${write(ctx.ink, "dg-pp-cabn", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
+    `${mark}${write(ctx.ink, "dg-sn dg-pp-cabn", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
   );
 }

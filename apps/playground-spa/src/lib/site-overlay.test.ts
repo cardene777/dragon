@@ -413,7 +413,7 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
         "390 × 844": { oauth: { bar: 151, frame: 502 }, ccip: { bar: 191, frame: 462 } },
       } as const;
       // 今の帯の高さ。題と本文の間や帯の下の余白が広がると帯が高くなる (#3101)。題は図の上の見出しとして大きい (#3398)
-      const bars = { oauth: 152, ccip: 171 } as const;
+      const bars = { oauth: 141, ccip: 158 } as const;
       const seenAll: Record<string, { bar: number; taller: boolean } | null> = {};
       const want: Record<string, { bar: number; taller: boolean }> = {};
       for (const viewport of [

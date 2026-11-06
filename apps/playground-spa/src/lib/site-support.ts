@@ -316,8 +316,8 @@ export const wideCaptionShape = (seen: NonNullable<Awaited<ReturnType<typeof cap
 };
 
 /**
- * 積む帯 (中身の幅が 640px より狭い帯、#3398) の並べ方。番号の右に題、その下に説明文を帯の全幅で置き、
- * その下の操作の段に釦を左から、段ごとの進み具合を釦の右から帯の右端まで置く。`gaps` は番号と題の間と、釦と進み具合の間
+ * 積む帯 (中身の幅が 640px より狭い帯、#3398) の並べ方。上の操作の段に釦を左から、段ごとの進み具合を釦の右から帯の右端まで置き、
+ * その下の番号の右に題、その下に説明文を帯の全幅で置く。`gaps` は番号と題の間と、釦と進み具合の間
  */
 export const stackedCaptionShape = (seen: NonNullable<Awaited<ReturnType<typeof captionOf>>>) => {
   const { inner, buttons, no, title, body, segments } = seen;
@@ -325,7 +325,7 @@ export const stackedCaptionShape = (seen: NonNullable<Awaited<ReturnType<typeof 
     noBesideTitle: no.right <= title.left && Math.abs(no.left - inner.left) <= 1 && no.top < title.bottom,
     bodyUnderTitle: body.top >= title.bottom,
     bodyFull: Math.abs(body.left - inner.left) <= 1 && Math.abs(body.right - inner.right) <= 1,
-    buttonsUnderBody: buttons.top >= body.bottom && Math.abs(buttons.left - inner.left) <= 1,
+    buttonsAboveTitle: buttons.bottom <= title.top && Math.abs(buttons.left - inner.left) <= 1,
     segmentsBesideButtons: segments.top < buttons.bottom && segments.bottom > buttons.top && Math.abs(segments.right - inner.right) <= 1,
     gaps: { title: title.left - no.right, buttons: segments.left - buttons.right },
   };
@@ -336,7 +336,7 @@ export const STACKED_CAPTION = {
   noBesideTitle: true,
   bodyUnderTitle: true,
   bodyFull: true,
-  buttonsUnderBody: true,
+  buttonsAboveTitle: true,
   segmentsBesideButtons: true,
   gaps: { title: 16, buttons: 10 },
 } as const;

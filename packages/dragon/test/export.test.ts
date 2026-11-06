@@ -274,7 +274,7 @@ describe("書き出し (#2986)", () => {
     "html-export-narrow-caption-stacks-body",
     async () => {
       // 携帯の幅では釦と番号と題と本文を横 1 列に並べ、本文の欄が帯の幅の 4 割ほどに細って帯が高くなっていた (#3057)。
-      // 帯は上から、段の番号と大きな題、題の下の説明文、操作の段 (釦と段ごとの進み具合) の順に置き、題と説明文は番号の右から帯の右端までを使う (#3398)
+      // 帯は上から、操作の段 (釦と段ごとの進み具合)、段の番号と題、題の下の説明文の順に置き、題は番号の右から、説明文は帯の左端から帯の右端までを使う (#3398)
       const exportDiagram = await exporter();
       const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
       const html = readFileSync(result.files.html as string, "utf8");
@@ -287,7 +287,7 @@ describe("書き出し (#2986)", () => {
           `幅 ${width}px で、段の番号が題と同じ段の左端に無い`,
         ).toEqual({ withTitle: true, left: true, edge: true });
         expect(body.y, `幅 ${width}px で、本文が題の下に無い`).toBeGreaterThanOrEqual(title.y + title.h - 0.5);
-        expect(buttons.y, `幅 ${width}px で、釦が本文の下に無い`).toBeGreaterThanOrEqual(body.y + body.h - 0.5);
+        expect(buttons.y + buttons.h, `幅 ${width}px で、釦が題の上に無い`).toBeLessThanOrEqual(title.y + 0.5);
         expect(Math.abs(buttons.x - inner.left), `幅 ${width}px で、釦が帯の左端から始まらない`).toBeLessThanOrEqual(1);
         expect(
           { title: Math.abs(title.x + title.w - inner.right) <= 1, body: Math.abs(body.x + body.w - inner.right) <= 1 },
