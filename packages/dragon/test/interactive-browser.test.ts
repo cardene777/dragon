@@ -9,10 +9,9 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Page } from "playwright-core";
+import { chromium, type Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 import { exporter } from "./export-support";
-import { preloadedChromium } from "./page-needs";
 import { parsedTry, SMALL_PARTS, smallTry } from "./try-support";
 
 
@@ -81,10 +80,9 @@ async function withPage<T>(
   width: number,
   run: (page: Page) => Promise<T>,
 ): Promise<Opened<T>> {
-  // 準備の段が起こした Chromium に頁ごとの文脈を作る (#3424)。頁を開くたびに Chromium を起こすと、混んだ機械で 1 回ごとに 1 秒ほどかかった
-  const context = await (await preloadedChromium()).newContext({ viewport: { width, height: 1600 }, hasTouch: true });
+  const browser = await chromium.launch();
   try {
-    const page = await context.newPage();
+    const page = await browser.newPage({ viewport: { width, height: 1600 }, hasTouch: true });
     const outside: string[] = [];
     page.on("request", (request) => {
       const url = request.url();
@@ -102,7 +100,7 @@ async function withPage<T>(
       .waitFor({ state: "attached" });
     return { result: await run(page), outside };
   } finally {
-    await context.close();
+    await browser.close();
   }
 }
 

@@ -14,9 +14,8 @@ import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { Blob as HbBlob, Face } from "harfbuzzjs";
-import type { Browser, Page } from "playwright-core";
-import { expect, type RunnerTask, type RunnerTestFile } from "vitest";
-import { preloadedChromium } from "./page-needs";
+import { type Browser, chromium, type Page } from "playwright-core";
+import { afterAll, expect, type RunnerTask, type RunnerTestFile } from "vitest";
 
 const require_ = createRequire(import.meta.url);
 const fontverter = require_("fontverter") as { convert(buffer: Uint8Array, to: "sfnt"): Promise<Uint8Array> };
@@ -124,15 +123,19 @@ const MEDIABUNNY = join(dirname(require_.resolve("mediabunny")), "mediabunny.min
  * `touch` の時は指で触る端末を模し、`(pointer: coarse)` が当たる (#3076)
  */
 /**
- * 検査の file ごとに 1 つの Chromium (#3381)。頁を開くたびに起こし直すと 1 回ごとに 1 秒ほどかかる。
- * 頁ごとに別の context を作るので、頁の間で状態は混ざらない。
- * Chromium は file を読む前に準備の段が起こし始め、file の process の終わりに Playwright が止める (`page-needs.ts`、#3424)。
- * 検査の中で起こすと file の最初に頁を開く件が、後処理で閉じると後処理が、1 件の上限 (10 秒) の中で待つ
+ * 検査の file ごとに 1 つ起こす Chromium (#3381)。頁を開くたびに起こし直すと 1 回ごとに 1 秒ほどかかる。
+ * 頁ごとに別の context を作るので、頁の間で状態は混ざらない。file の検査が終わったら閉じる
  */
-const sharedBrowser = (): Promise<Browser> => preloadedChromium();
+let browser: Promise<Browser> | undefined;
+const sharedBrowser = (): Promise<Browser> => (browser ??= chromium.launch());
 /** 書き出した HTML の頁を読み込んだ回数 (読み直しも数える)。件が頁を何度読み込んだかを確かめる (#3421) */
 let loads = 0;
 export const pageLoads = (): number => loads;
+afterAll(async () => {
+  const opened = browser;
+  browser = undefined;
+  await (await opened)?.close();
+});
 
 /** 頁の開き方。`extra` は頁が読む別の file、`touch` は指で触る端末を模す、`reducedMotion` は動きを嫌う設定で開く */
 interface PageOptions {
@@ -458,7 +461,7 @@ export const fontCssOf = (html: string): string => [...html.matchAll(/@font-face
  * 頁で同時に読ませると、範囲の重なる別の file が字を描き、読めない file が隠れる。
  */
 export async function unreadableFonts(htmls: [string, string][]): Promise<string[]> {
-  // file の Chromium を使う。見本ごとの件が起こし直すと、1 件ごとに 1 秒ほどかかる (#3381、#3421、#3424)
+  // file の Chromium を使う。見本ごとの件が起こし直すと、1 件ごとに 1 秒ほどかかる (#3381、#3421)
   const context = await (await sharedBrowser()).newContext();
   try {
     const page = await context.newPage();

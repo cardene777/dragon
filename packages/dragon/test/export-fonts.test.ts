@@ -134,16 +134,6 @@ function exampleChars(): string[] {
   return [...chars];
 }
 
-/** 見本の字を符号の順に並べ、`count` 組に分ける (#3424) */
-function charGroups(chars: string[], count: number): string[][] {
-  const sorted = [...chars].sort((a, b) => (a.codePointAt(0) ?? 0) - (b.codePointAt(0) ?? 0));
-  const size = Math.ceil(sorted.length / count);
-  return Array.from({ length: count }, (_, k) => sorted.slice(k * size, (k + 1) * size));
-}
-const OVERLAP_CHARS = exampleChars();
-/** 字の file の重なりの件が組ごとに確かめる字。組の名前は最初と最後の字の符号 */
-const OVERLAP_GROUPS = charGroups(OVERLAP_CHARS, 4).map((chars, k) => ({ name: `${k + 1} 組目 (${code(chars[0] ?? "")} から ${code(chars.at(-1) ?? "")})`, chars }));
-
 describe("書き出しが同じ字を 1 つの字の file にだけ埋める (#3213)", () => {
   it("font-chars-in-one-file-each", async () => {
     // Noto Sans JP では英字、空白、改行しない空白、ä が番号付きの file と latin の両方の範囲に入り、`あ` と全角空白は番号付きの file だけに入る
@@ -154,20 +144,17 @@ describe("書き出しが同じ字を 1 つの字の file にだけ埋める (#3
     for (const char of chars) expect(sans.filter((face) => face.range.includes(char)).length, `${code(char)} を範囲に載せた Noto Sans JP の file が 1 つでない`).toBe(1);
   });
 
-  // 字の file は字ごとに、後に並ぶ file の範囲にも入る字をそちらにだけ入れて決める (`fontFaces`)。ほかの字に左右されないので、
-  // 見本ごとに書き出す代わりに、全ての見本の字を選ぶ (#3381)。見本ごとに書き出すと 1 件の上限 (10 秒) に収まらない。
-  // 字を符号の順に 4 組に分けて組ごとに選ぶ (#3424)。全ての字 (518 字) を 1 件で選ぶと、混み 65 で 9.9 秒かかった
-  describe.for(OVERLAP_GROUPS)("$name", ({ chars }) => {
-    it("export-font-files-do-not-overlap", async () => {
-      expect(OVERLAP_CHARS.length, "見本の字を数え損ねた").toBeGreaterThan(100);
-      expect(chars.length, "組に字が無い").toBeGreaterThan(0);
-      const css = await fontFaces(chars);
-      expect(overlaps(css), "同じ字を 2 つ以上の字の file の範囲に載せた").toEqual([]);
-      // 落とした字も無い。Noto Sans JP は仮名、漢字、英数字を持つので、それらは Noto Sans JP の file のどれか 1 つに必ず入る
-      const sans = embeddedFonts(css).filter((face) => face.family === "Noto Sans JP Variable");
-      const lost = chars.filter((char) => /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}A-Za-z0-9]/u.test(char) && sans.filter((face) => face.range.includes(char)).length !== 1);
-      expect(lost.map(code), "Noto Sans JP の file のちょうど 1 つに入らない字").toEqual([]);
-    });
+  it("export-font-files-do-not-overlap", async () => {
+    // 字の file は字ごとに、後に並ぶ file の範囲にも入る字をそちらにだけ入れて決める (`fontFaces`)。ほかの字に左右されないので、
+    // 見本ごとに書き出す代わりに、全ての見本の字をまとめて 1 度選ぶ (#3381)。見本ごとに書き出すと 1 件の上限 (10 秒) に収まらない
+    const chars = exampleChars();
+    expect(chars.length, "見本の字を数え損ねた").toBeGreaterThan(100);
+    const css = await fontFaces(chars);
+    expect(overlaps(css), "同じ字を 2 つ以上の字の file の範囲に載せた").toEqual([]);
+    // 落とした字も無い。Noto Sans JP は仮名、漢字、英数字を持つので、それらは Noto Sans JP の file のどれか 1 つに必ず入る
+    const sans = embeddedFonts(css).filter((face) => face.family === "Noto Sans JP Variable");
+    const lost = chars.filter((char) => /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}A-Za-z0-9]/u.test(char) && sans.filter((face) => face.range.includes(char)).length !== 1);
+    expect(lost.map(code), "Noto Sans JP の file のちょうど 1 つに入らない字").toEqual([]);
   });
 
   it(
