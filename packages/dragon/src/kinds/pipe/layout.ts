@@ -2983,7 +2983,12 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         const rectAt = ([x, y]: Point): Rect => ({ x: x - w / 2, y: y - chipH / 2, w, h: chipH });
         let d = 0;
         while (name && d < lengthOf(back) / 2 && !apart(rectAt(along(back, d)), name, PART_GAP / 2)) d += 2;
-        const path = d > 0 ? fromAlong(back, d) : back;
+        const started = d > 0 ? fromAlong(back, d) : back;
+        // 着く所も、呼んだ側の名札に札が載らない手前で止める
+        const caller = labelOf(c.from);
+        let e = 0;
+        while (e < lengthOf(started) / 2 && !apart(rectAt(along(started, lengthOf(started) - e)), caller, 2)) e += 2;
+        const path = e > 0 ? fromAlong([...started].reverse(), e).reverse() : started;
         chips.push(chipOf("return", ret.value, rectAt(path[0] as Point), ret.step, { party: c.to, path, call: c.index, event: ret.event }));
       }
 
