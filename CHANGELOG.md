@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-11-06
+
 ### Added
 
 - **The playground shows how to add your own blocks** (#3407)
@@ -18,6 +20,11 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - **The editor draws notation with block definitions when it is opened directly** (#3407)
 
   Opening the editor with such notation in its link, or typing a `blocks 1` line, showed an error until something else had loaded the definition reader. The editor now waits for the reader and reads the notation again when it arrives.
+
+- **Chips in a place with no order sit on a grid** (#3408)
+
+  A place written `box <name> [order: none]` shifted each chip by up to 4px up or down and 6px sideways, so the tops of chips in the same row did not line up and the place looked broken rather than unordered. Chips now take the width of the widest chip and sit on a grid, with their tops aligned in each row and their left edges aligned in each column.
+  The dashed outline and the "No order" text under the name still show that the place has no order. The room kept for the shift is gone, so the place is 8px shorter.
 
 ## [0.54.0] - 2026-11-06
 
