@@ -73,7 +73,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.56/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.57/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -87,7 +87,7 @@ step Press sign in
 </pre>
 ```
 
-The script loads from jsDelivr with the version pinned up to the middle number (`@0.56`), so fixes in later patch versions reach the page and a version that changes the notation does not.
+The script loads from jsDelivr with the version pinned up to the middle number (`@0.57`), so fixes in later patch versions reach the page and a version that changes the notation does not.
 It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
@@ -439,6 +439,7 @@ Start with `try` to draw a try diagram, which readers move themselves by typing 
 - `ask <field>, <field>, ... [into: <queue>, via: <route>]` is the input strip. The first field's value becomes the chip's name
 - `choose <field>: <value>, <value>, ...` gives that field choices. The reader picks one from the choices in the written order instead of typing. The first field takes choices too, and changing that field of a chip inside a block picks from the same choices
 - `press <name> [from: <queue>, into: <chain>, take: <count>, at: <part>]` is a button. It moves the top `take` chips of the queue into a new block. With `at` it sits on that part, and without it in the input strip
+- `side <part>, <part>, ...` puts route, queue, and chain parts on one row, left to right in the written order, when the frame is wide. A queue takes only the width its chips need and the rest goes to the route and chain. When the row would shrink the text below a readable size, the parts stack as without the line
 
 Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line` writes a queue's contents or a block, and `ask <value>, ...`, `press <name>`, and `item <name> [<field>: <value>]` write the author's example (send, build, change).
 The player stops at the first step and waits for the reader, and adds one step and plays it each time the reader sends, presses, or changes a value. Images, videos, and print draw the author's example steps.

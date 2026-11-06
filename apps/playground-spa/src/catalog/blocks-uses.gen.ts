@@ -39,6 +39,7 @@ import { uses as routeUses } from "../../../../packages/dragon/src/blocks/route/
 import { uses as rowUses } from "../../../../packages/dragon/src/blocks/row/gallery/uses";
 import { uses as scaleUses } from "../../../../packages/dragon/src/blocks/scale/gallery/uses";
 import { uses as sealUses } from "../../../../packages/dragon/src/blocks/seal/gallery/uses";
+import { uses as sideUses } from "../../../../packages/dragon/src/blocks/side/gallery/uses";
 import { uses as sidePathUses } from "../../../../packages/dragon/src/blocks/side-path/gallery/uses";
 import { uses as sourceUses } from "../../../../packages/dragon/src/blocks/source/gallery/uses";
 import { uses as stampUses } from "../../../../packages/dragon/src/blocks/stamp/gallery/uses";
@@ -91,6 +92,7 @@ export const BLOCK_USES = {
   "row": rowUses,
   "scale": scaleUses,
   "seal": sealUses,
+  "side": sideUses,
   "side-path": sidePathUses,
   "source": sourceUses,
   "stamp": stampUses,
