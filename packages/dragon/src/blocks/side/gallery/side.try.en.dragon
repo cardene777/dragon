@@ -1,0 +1,16 @@
+try Side by side
+
+route Net: Sender - Relay - Maker [from: Sender, to: Maker]
+queue Pool [order: Fee]
+ask Name, Fee [into: Pool, via: Net]
+side Net, Pool
+
+item a [Fee: 3]
+
+step Side by side
+  say Parts on a side line sit left to right in the written order when the frame is wide. The queue takes only the width its chips need.
+  line Pool: a
+
+step From the route to the queue
+  say A sent chip travels the route and enters the queue on the right.
+  ask b, 5

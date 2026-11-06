@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-11-07
+
+### Added
+
+- **Parts of a try diagram can sit side by side** (#3429)
+
+  Write `side <part>, <part>` before the first step, and when the frame is wide, the named route, queue, and chain parts sit on one row, left to right in the written order. A queue on the row takes only the width its chips and title need, and the route and chain share the rest, so a try diagram with a route and a queue on one row is lower than the same parts stacked. When the row would shrink the text below a readable size, the parts stack as they do without the line. A `side` line stops with an error naming the line and column when it names a part the diagram lacks, the input strip, or a button, when it has fewer than two parts, when a part is already on another `side` line, or when it comes after the first step.
+
 ## [0.56.0] - 2026-11-06
 
 ### Added

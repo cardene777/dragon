@@ -44,3 +44,15 @@
 | 常に、`choose`の行を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになる | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`が通る | #3422 |
 | 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`choose`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`docs-describe-try-choices`が通る | #3422 |
 | `packages/dragon/package.json`の`version`が`0.56.0`で、英語と日本語の変更履歴の`## [0.56.0]`の節が`(#3422)`の項を持ち、その項が`choose`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-56-0-adds-try-choices`が通る | #3422 |
+| 試す図の最初の step より前に`side <部品>, <部品>`の行を書いた記法を読むと、原本の試す図が同じ行に置く部品の名前を書いた順で持ち、原本の形の検査がその原本を通す | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-parses-row`が通る | #3429 |
+| `side`の行を持つ原本を記法に書き戻すと、`side`の行が元の記法と同じ文字列で並び、読み直すと元の原本と同じJSONになる | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-round-trip-keeps-notation`が通る | #3429 |
+| 試す図に無い部品の名前、入力の帯と釦の名前、部品が2つ未満の`side`の行、別の`side`の行に書いた部品、最初の step より後の`side`の行は、行と列を名指した誤りで止まり、英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-refuses-bad-lines`が通る | #3429 |
+| 枠が広い時、`side`の行に書いた部品の四角は書いた順に左から並び、上端がそろい、互いに重ならない | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-places-parts-in-a-row`が通る | #3429 |
+| 枠が広い時、`side`の行に書いた待ち行列はチップと題が入る幅だけを取り、同じ行の網が残りの幅を持つ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-queue-takes-chip-width`が通る | #3429 |
+| 枠が広い時、`side`の行を持つ試す図の高さが、同じ部品を縦に積んだ試す図の高さより低い | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-is-lower-than-stack`が通る | #3429 |
+| 横に並べると字が`READABLE_PX`より小さくなる狭い枠では、`side`の行に書いた部品を、`side`の行を持たない試す図と同じ四角で縦に積む | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-stacks-when-narrow`が通る | #3429 |
+| 横に並べた時、網を運ばれるチップの道の最後の点が送り先の待ち行列の席に着き、部品の題とチップの四角が重ならない | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-trip-reaches-queue`が通る | #3429 |
+| 横に並べた試す図を寄って追う見せ方で再生すると、チップが待ち行列へ入る段の窓がその待ち行列の四角を含む | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-follow-holds-queue`が通る | #3429 |
+| 常に、`side`の行を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3429 |
+| 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`side`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`docs-describe-try-side`が通る | #3429 |
+| `packages/dragon/package.json`の`version`が`0.57.0`で、英語と日本語の変更履歴の`## [0.57.0]`の節が`(#3429)`の項を持ち、その項が`side`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-57-0-adds-try-side`が通る | #3429 |

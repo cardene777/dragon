@@ -233,6 +233,8 @@ export interface DiagramBlocks {
   item?: LineupItem[] | TryItem[];
   role?: LineupRole[];
   part?: TryPart[];
+  /** 試す図 (#3429) の、同じ行に左から並べる部品の名札の組 */
+  side?: string[][];
   /** 配管の図 (#3389) の始めの値。残高と、残高でない値 */
   hold?: PipeHold[];
 }
@@ -274,7 +276,7 @@ export interface DiagramModel {
   time?: TimeSpec;
   lineup?: { items: LineupItem[]; roles?: LineupRole[] };
   /** 試す図 (#3337) の部品とチップ。版1の原本に無かった種類なので、版2の原本の `part` と `item` をそのまま持つ */
-  try?: { parts: TryPart[]; items: TryItem[] };
+  try?: { parts: TryPart[]; items: TryItem[]; sides?: string[][] };
   /**
    * 配管の図 (#3389) の始めの値と、`[fold]` の呼び出しを畳んだ箱。版1の原本に無かった種類なので、版2の原本の `hold` をそのまま持つ。
    * `folds` は描く処理が畳んだ図 (`kinds/pipe/layout.ts` の `foldPipe`) だけが持ち、原本は持たない

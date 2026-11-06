@@ -102,6 +102,18 @@
             "$ref": "#/definitions/role"
           }
         },
+        "side": {
+          "description": "試す図の、同じ行に左から並べる部品の名札の組 (side の行、#3429)。1 つの組は 2 つ以上の部品を持つ",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "$ref": "#/definitions/id"
+            }
+          }
+        },
         "hold": {
           "description": "配管の図の始めの値。残高と、残高でない値を宣言した順に並べる",
           "type": "array",
@@ -224,6 +236,9 @@
           },
           "hold": {
             "$ref": "#/definitions/absent"
+          },
+          "side": {
+            "$ref": "#/definitions/absent"
           }
         }
       },
@@ -298,6 +313,9 @@
             },
             "hold": {
               "$ref": "#/definitions/absent"
+            },
+            "side": {
+              "$ref": "#/definitions/absent"
             }
           }
         },
@@ -359,6 +377,9 @@
               },
               "hold": {
                 "$ref": "#/definitions/absent"
+              },
+              "side": {
+                "$ref": "#/definitions/absent"
               }
             }
           },
@@ -405,6 +426,9 @@
                   "$ref": "#/definitions/absent"
                 },
                 "hold": {
+                  "$ref": "#/definitions/absent"
+                },
+                "side": {
                   "$ref": "#/definitions/absent"
                 }
               }
@@ -466,6 +490,9 @@
                     "$ref": "#/definitions/absent"
                   },
                   "hold": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "side": {
                     "$ref": "#/definitions/absent"
                   }
                 }
@@ -546,6 +573,9 @@
                       }
                     },
                     "hold": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "side": {
                       "$ref": "#/definitions/absent"
                     }
                   }
@@ -693,6 +723,9 @@
                         },
                         "part": {
                           "$ref": "#/definitions/absent"
+                        },
+                        "side": {
+                          "$ref": "#/definitions/absent"
                         }
                       }
                     },
@@ -745,6 +778,9 @@
                           "$ref": "#/definitions/absent"
                         },
                         "hold": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "side": {
                           "$ref": "#/definitions/absent"
                         }
                       }

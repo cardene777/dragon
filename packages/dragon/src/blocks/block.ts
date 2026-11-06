@@ -89,7 +89,7 @@ export interface FigureDraft {
    * 部品を名指す属性と欄を名指す鍵は全ての宣言を読んでから確かめるので `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる。
    * 確かめた後に、段の中の出来事を当てる状態 (`run`) を作る
    */
-  try: { parts: TryPart[]; items: TryItem[]; pending: (() => void)[]; run?: TryRun };
+  try: { parts: TryPart[]; items: TryItem[]; sides: string[][]; pending: (() => void)[]; run?: TryRun };
   /**
    * 配管の図の始めの値と、段の中の出来事を当てる手順と、開いている呼び出しを書いた行 (#3389)。槽のブロックが `hold` の行で始めの値を足し、
    * 呼び出しの管のブロックが最初の段を始める時に手順 (`run`) を作る。開いている呼び出しを書いた行は手順の呼び出しと同じ順に積み、閉じない呼び出しの誤りで名指す

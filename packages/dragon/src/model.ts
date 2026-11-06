@@ -50,6 +50,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
   if (model.kind === "try") {
     blocks.part = model.try?.parts ?? [];
     if (!blank(model.try?.items)) blocks.item = model.try?.items;
+    if (!blank(model.try?.sides)) blocks.side = model.try?.sides;
   } else {
     for (const [field, home] of HOMES) {
       const [section, inner] = home.split(".");
@@ -89,7 +90,7 @@ export function toModel(diagram: Diagram): DiagramModel {
       ...(diagram.define !== undefined ? { define: diagram.define } : {}),
       boxes,
       steps: diagram.steps,
-      try: { parts: b.part ?? [], items: (b.item ?? []) as TryItem[] },
+      try: { parts: b.part ?? [], items: (b.item ?? []) as TryItem[], ...(b.side !== undefined ? { sides: b.side } : {}) },
     };
   return {
     version: MODEL_VERSION,
