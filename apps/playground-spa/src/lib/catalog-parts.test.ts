@@ -173,6 +173,32 @@ const examplesOnDisk = (): { name: string; text: string; kind: string; title: st
 
 let site: Site;
 
+/** 部品ごとの件の名前。部品の頁を開いた回数は、部品ごとにこの件の分だけ数える (#3432) */
+const PER_PART_CHECKS = [
+  "catalog-common-part-shows-both-kinds",
+  "catalog-kind-part-names-its-kind",
+  "catalog-part-opens-in-editor",
+  "catalog-parts-in-english",
+  "part-page-links-examples",
+] as const;
+
+/** 部品ごとの件が部品の頁を開いた回数。部品の名札ごとに数える (#3432) */
+const partOpens = new Map<string, number>();
+
+/**
+ * 頁を開く道具 `open` を包み、部品ごとの件 (`PER_PART_CHECKS`) がその部品の頁を開いた回数を `partOpens` に数える (#3432)。
+ * 件の名前は組の名前 (部品の名札) の後に件の名前が続く形で、ほかの組の同じ名前の件 (見本の札を押す件など) は数えない
+ */
+const countingPartOpens =
+  (open: Site["open"]): Site["open"] =>
+  (o = {}) => {
+    const name = expect.getState().currentTestName ?? "";
+    const prefix = partPath("");
+    const id = o.path?.startsWith(prefix) ? o.path.slice(prefix.length) : undefined;
+    if (id !== undefined && PER_PART_CHECKS.some((check) => name.endsWith(`'${id}' > ${check}`))) partOpens.set(id, (partOpens.get(id) ?? 0) + 1);
+    return open(o);
+  };
+
 async function onScreen(page: Page, screen: string, message: string): Promise<void> {
   await expect.poll(() => screenOf(page), { ...WAIT, message }).toBe(screen);
 }
@@ -287,7 +313,8 @@ describe("部品の表と記法の file (#3166)", () => {
 
 describe("カタログの部品の頁 (#3166)", () => {
   beforeAll(async () => {
-    site = await startSite();
+    const started = await startSite();
+    site = { ...started, open: countingPartOpens(started.open) };
   });
 
   afterEach(async () => {
@@ -579,5 +606,12 @@ describe("カタログの部品の頁 (#3166)", () => {
     for (const copy of copies) expect(readFileSync(join(dir, copy), "utf8") === index, `${copy} が index.html の写しでない`).toBe(true);
     const statuses = await Promise.all(parts.map(async (part) => [part.id, (await fetch(`${site.origin}${partPath(part.id)}`)).status] as const));
     expect(Object.fromEntries(statuses), "部品の頁の経路が 200 で答えない").toEqual(Object.fromEntries(parts.map((part) => [part.id, 200])));
+  });
+
+  it("catalog-parts-open-one-page-per-part", () => {
+    // 部品ごとの件は、部品の頁を部品ごとに 1 度だけ開いて使い回す (#3432)。この組の最後の件として、部品ごとの件の後に数える
+    expect([...partOpens.keys()].sort(), "部品ごとの件が頁を開いた部品が、部品の表と違う (走査の空振り)").toEqual(PART_CASES.map((part) => part.id).sort());
+    const many = [...partOpens].filter(([, n]) => n > 1).map(([id, n]) => `${id} ${n} 回`);
+    expect(many, "部品ごとの件が、部品の頁を 2 度以上開いた部品").toEqual([]);
   });
 });
