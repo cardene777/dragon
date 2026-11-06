@@ -169,6 +169,17 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-55-0-releases-pool-grid-and-block-samples", () => {
+    // 見本帳でブロックの足し方を見せる変更 (#3407) と、順番の無い置き場のチップを格子に並べる変更 (#3408) は 0.55.0 で npm に出す (#3412)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 55, `package の版 ${version()} が 0.55.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.55\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.55.0"), "0.55.0");
+      expect(released, `${file} に日付付きの ## [0.55.0] の節が無い`).not.toBe("");
+      for (const issue of ["#3407", "#3408"]) expect(released, `${file} の 0.55.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+    }
+  });
+
   it("changelog-0-54-0-releases-lighter-first-load", () => {
     // 記法から読んだ図は描く時に原本の形の検査を省き、頁が最初に読む script から検査を外した変更 (#3400) は 0.54.0 で npm に出す (#3405)
     const [major = 0, minor = 0] = version().split(".").map(Number);
