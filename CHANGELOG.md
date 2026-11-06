@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-11-06
+
 ### Added
 
 - **You can add your own blocks in your own project** (#3399)
