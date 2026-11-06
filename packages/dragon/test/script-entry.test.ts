@@ -14,10 +14,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
-import { type Browser, chromium, type Page } from "playwright-core";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Page } from "playwright-core";
+import { describe, expect, it } from "vitest";
 
 import { runCli } from "./export-support";
+import { fileChromium } from "./page-needs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CDN = join(ROOT, "dist/cdn");
@@ -100,19 +101,11 @@ interface Requests {
   outside: string[];
 }
 
-let browser: Browser | undefined;
-
-beforeAll(async () => {
-  browser = await chromium.launch();
-});
-
-afterAll(async () => {
-  await browser?.close();
-});
 
 /** 入口の1行と `body` を置いた頁を開いて `run` を回す。入口と塊は `place` から渡す */
 async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja", place: Place = LOCAL): Promise<T> {
-  const context = await (browser as Browser).newContext({ viewport: { width: 960, height: 720 } });
+  // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
+  const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
   const requests: Requests = { scripts: [], urls: [], fonts: [], outside: [] };
   const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><script type="module" src="${place.entry}"></script></head><body>${body}</body></html>`;
   await context.route("**/*", async (route) => {
@@ -335,7 +328,7 @@ describe("script の1行の入口 (#3343)", () => {
       const written = readFileSync(out, "utf8");
       expect(written, "入口の1行の外を読む script を残さない").not.toMatch(/<script[^>]*\bsrc=/iu);
 
-      const context = await (browser as Browser).newContext({ viewport: { width: 960, height: 720 } });
+      const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
       const outside: string[] = [];
       try {
         await context.route(/^https?:/u, async (route) => {

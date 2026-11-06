@@ -14,8 +14,9 @@ import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { Blob as HbBlob, Face } from "harfbuzzjs";
-import { type Browser, chromium, type Page } from "playwright-core";
-import { afterAll, expect } from "vitest";
+import type { Browser, Page } from "playwright-core";
+import { expect, type RunnerTask, type RunnerTestFile } from "vitest";
+import { fileChromium } from "./page-needs";
 
 const require_ = createRequire(import.meta.url);
 const fontverter = require_("fontverter") as { convert(buffer: Uint8Array, to: "sfnt"): Promise<Uint8Array> };
@@ -74,8 +75,13 @@ export const withoutPlaywright = (): RunPlace => ({
   nodeArgs: ["--import", pathToFileURL(join(process.cwd(), "packages/dragon/test/fixtures/hide-playwright-core.mjs")).href],
 });
 
+/** 書き出しの命令を起こした回数。件が命令を何回起こしたかを確かめる (#3424) */
+let cliRuns = 0;
+export const cliRunCount = (): number => cliRuns;
+
 /** 書き出しの命令を node で走らせる。落ちても投げずに終わり方を返す */
 export async function runCli(args: string[], place: RunPlace = {}): Promise<Ran> {
+  cliRuns++;
   try {
     const { stdout, stderr } = await promisify(execFile)(process.execPath, [...(place.nodeArgs ?? []), CLI, ...args], {
       encoding: "utf8",
@@ -86,6 +92,20 @@ export async function runCli(args: string[], place: RunPlace = {}): Promise<Ran>
     const failed = error as { code?: unknown; stdout?: string; stderr?: string };
     return { code: typeof failed.code === "number" ? failed.code : 1, stdout: failed.stdout ?? "", stderr: failed.stderr ?? "" };
   }
+}
+
+/**
+ * 集めた件の木で、名前が `name` の件が入る describe の名前 (#3421、#3424)。
+ * `describe.for` の `$name` は字の列を引用符で囲んだ名前にするので、囲みを外して返す
+ */
+export function casesNamed(file: RunnerTestFile, name: string): string[] {
+  const found: string[] = [];
+  const walk = (seen: RunnerTask): void => {
+    if (seen.type === "test" && seen.name === name) found.push((seen.suite?.name ?? "").replace(/^'(.*)'$/, "$1"));
+    if (seen.type === "suite") seen.tasks.forEach(walk);
+  };
+  file.tasks.forEach(walk);
+  return found;
 }
 
 /** file の頭の数バイトで形を見分ける */
@@ -104,19 +124,14 @@ const MEDIABUNNY = join(dirname(require_.resolve("mediabunny")), "mediabunny.min
  * `touch` の時は指で触る端末を模し、`(pointer: coarse)` が当たる (#3076)
  */
 /**
- * 検査の file ごとに 1 つ起こす Chromium (#3381)。頁を開くたびに起こし直すと 1 回ごとに 1 秒ほどかかる。
- * 頁ごとに別の context を作るので、頁の間で状態は混ざらない。file の検査が終わったら閉じる
+ * 検査の file ごとに 1 つの Chromium (#3381)。頁を開くたびに起こし直すと 1 回ごとに 1 秒ほどかかる。
+ * 頁ごとに別の context を作るので、頁の間で状態は混ざらない。
+ * Chromium は初めて要った件が起こし、後処理で閉じず、file の process の終わりに Playwright が止める (`page-needs.ts`、#3424)
  */
-let browser: Promise<Browser> | undefined;
-const sharedBrowser = (): Promise<Browser> => (browser ??= chromium.launch());
+const sharedBrowser = (): Promise<Browser> => fileChromium();
 /** 書き出した HTML の頁を読み込んだ回数 (読み直しも数える)。件が頁を何度読み込んだかを確かめる (#3421) */
 let loads = 0;
 export const pageLoads = (): number => loads;
-afterAll(async () => {
-  const opened = browser;
-  browser = undefined;
-  await (await opened)?.close();
-});
 
 /** 頁の開き方。`extra` は頁が読む別の file、`touch` は指で触る端末を模す、`reducedMotion` は動きを嫌う設定で開く */
 interface PageOptions {
@@ -442,7 +457,7 @@ export const fontCssOf = (html: string): string => [...html.matchAll(/@font-face
  * 頁で同時に読ませると、範囲の重なる別の file が字を描き、読めない file が隠れる。
  */
 export async function unreadableFonts(htmls: [string, string][]): Promise<string[]> {
-  // file の Chromium を使う。見本ごとの件が起こし直すと、1 件ごとに 1 秒ほどかかる (#3381、#3421)
+  // file の Chromium を使う。見本ごとの件が起こし直すと、1 件ごとに 1 秒ほどかかる (#3381、#3421、#3424)
   const context = await (await sharedBrowser()).newContext();
   try {
     const page = await context.newPage();

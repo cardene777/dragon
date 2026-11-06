@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 // 初めて読む時の変換は、検査の中で読むと最初の件だけが 2 秒から 3 秒遅れた。変換は 1 回の実行の中で使い回す
 import "@cardenelabs/dragon/export";
 import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
-import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, pageLoads, playerButtons, readGif, runCli, unfoldedSteps } from "./export-support";
+import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, pageLoads, playerButtons, readGif, runCli, unfoldedSteps, casesNamed } from "./export-support";
 import { draw } from "./render-support";
 
 
@@ -117,6 +117,15 @@ const oauthHtml = (): Promise<string> =>
 /** 帯と釦の件ごとに、頁を読み込んだ回数 (#3421) */
 const bandLoads = new Map<string, number>();
 
+/** 書き出した file の中身。無い時は空にして、形の判定で落とす */
+function writtenBytes(file: string): Buffer {
+  try {
+    return readFileSync(file);
+  } catch {
+    return Buffer.alloc(0);
+  }
+}
+
 /** 4 つの釦がそれぞれ期待どおりの大きさか。やり直しと前と次は `size`、再生は同じ高さで横に長い */
 const FOUR_BUTTONS = { count: 4, restart: true, prev: true, play: true, next: true };
 function fourButtons(sizes: string[], size: string): typeof FOUR_BUTTONS {
@@ -210,35 +219,39 @@ describe("書き出しのコマと形 (#3115)", () => {
 });
 
 describe("書き出し (#2986)", () => {
-  // 原本の JSON と記法の file を、それぞれ 1 件 1 回の命令で書き出す (#3410)。2 つを 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた
-  describe.for([
-    { input: "JSON", name: "small", write: (): string => JSON.stringify(oneEdge()), ext: "json" },
-    { input: "記法", name: "small-notation", write: (): string => api("printNotation")(oneEdge()), ext: "dragon" },
-  ])("$input", ({ name, write, ext }) => {
-    it(
-      "export-writes-four-formats",
-      async () => {
-        const dir = scratch();
-        const input = join(dir, `${name}.${ext}`);
-        writeFileSync(input, write());
-        // 書き出す先の dir はまだ無い
-        const out = join(dir, "new", name);
-        // 4 つの形式に書かれることだけを見るので、2 秒に 1 コマで撮る (#3410)
-        const ran = await runCli(["export", input, "--out", out, "--fps", "0.5", "--gif-fps", "0.5"]);
-        expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
-        for (const format of ["mp4", "gif", "html", "png"] as const) {
-          const file = join(out, `${name}.${format}`);
-          let bytes = Buffer.alloc(0);
-          try {
-            bytes = readFileSync(file);
-          } catch {
-            // 無い時は下の判定で落とす
-          }
-          expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
-        }
-      },
-    );
-  });
+  // 原本の JSON と記法の file を、それぞれ 1 件 1 回の命令で書き出す (#3410)。2 つを 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた。
+  // 4 つの形式を書くことは原本の JSON の件だけが確かめ、記法の file の件は HTML だけを書く (#3424)。命令で 4 つの形式を書くと混み 65 で 7.9 秒、HTML だけなら 3.7 秒だった
+  it(
+    "export-writes-four-formats",
+    async () => {
+      const dir = scratch();
+      const input = join(dir, "small.json");
+      writeFileSync(input, JSON.stringify(oneEdge()));
+      // 書き出す先の dir はまだ無い
+      const out = join(dir, "new", "small");
+      // 4 つの形式に書かれることだけを見るので、2 秒に 1 コマで撮る (#3410)
+      const ran = await runCli(["export", input, "--out", out, "--fps", "0.5", "--gif-fps", "0.5"]);
+      expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
+      for (const format of ["mp4", "gif", "html", "png"] as const) {
+        const file = join(out, `small.${format}`);
+        expect(formatOf(writtenBytes(file)), `${file} が ${format} として書かれていない`).toBe(format);
+      }
+    },
+  );
+
+  it(
+    "export-notation-file-writes-html",
+    async () => {
+      const dir = scratch();
+      const input = join(dir, "small-notation.dragon");
+      writeFileSync(input, api("printNotation")(oneEdge()));
+      const out = join(dir, "new", "small-notation");
+      const ran = await runCli(["export", input, "--out", out, "--format", "html"]);
+      expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
+      const file = join(out, "small-notation.html");
+      expect(formatOf(writtenBytes(file)), `${file} が html として書かれていない`).toBe("html");
+    },
+  );
 
   it(
     "export-is-deterministic",
@@ -437,6 +450,14 @@ describe("書き出した頁の帯と釦 (#2986、#3421)", () => {
     // 帯と釦の件は幅ごとの件に分かれ、件ごとにその幅の頁を 1 度だけ読み込む (#3421)。開いた後に読み直すと 2 度と数える
     expect(bandLoads.size, "帯と釦の件が 1 つも回っていない").toBeGreaterThan(0);
     expect([...bandLoads].filter(([, count]) => count !== 1), "頁を 1 度だけ読み込まない帯と釦の件 (件の名前と読み込んだ回数)").toEqual([]);
+  });
+});
+
+describe("書き出しの件の分け方 (#3424)", () => {
+  it("four-formats-written-once-from-json", ({ task }) => {
+    // 4 つの形式を書く件は原本の JSON の 1 件だけで、記法の file は HTML だけを書く件で確かめる。命令で 4 つの形式を書くと混み 65 で 7.9 秒、HTML だけなら 3.7 秒だった
+    expect(casesNamed(task.file, "export-writes-four-formats"), "4 つの形式を書く件").toHaveLength(1);
+    expect(casesNamed(task.file, "export-notation-file-writes-html"), "記法の file を HTML に書き出す件").toHaveLength(1);
   });
 });
 
