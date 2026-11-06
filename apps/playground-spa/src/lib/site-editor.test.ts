@@ -10,7 +10,7 @@ import type { Page } from "playwright";
 import { EXAMPLE_KEYS, type ExampleKey } from "../examples";
 import { toHash } from "../share";
 import { TEXT } from "../text";
-import { BASE } from "./playground-support";
+import { BASE, example } from "./playground-support";
 import { describe, expect, it } from "vitest";
 import { site, useSite, exampleText, WAIT, siteSel, PALETTE_IDS, figureLook, figureLooks, KINDS, samplesOf, onScreen, stripCoveredOf, CAPTION_SAMPLES, openItem, openEditor, PHONES, expectSizes } from "./site-support";
 
@@ -909,4 +909,38 @@ describe("編集画面の幅と指の操作 (#3061)", () => {
       }
     },
   );
+});
+
+describe("編集画面の棚の足したブロックの見本 (#3407)", () => {
+  useSite();
+
+  it("editor-shelf-has-user-blocks", async () => {
+    // 箱と線と印を元に足したブロックを使う見本は構成図なので、棚の構成図の束に載る
+    const text = example("bridge.dragon");
+    expect(text, "packages/dragon/examples/bridge.dragon が無い").toBeDefined();
+    const parsed = parseNotation(text ?? "", { lang: "ja" });
+    expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), "bridge.dragon が読めない").toEqual([]);
+    if (!parsed.ok) return;
+    expect(parsed.diagram.kind, "bridge.dragon が構成図でない").toBe("architecture");
+    expect(parsed.diagram.define?.blocks.length ?? 0, "bridge.dragon が足したブロックを定義しない").toBeGreaterThan(0);
+    const title = parsed.diagram.title;
+    const { page } = await site.open({ path: `${BASE}editor`, viewport: { width: 1440, height: 900 } });
+    await onScreen(page, "editor", "編集画面が出ない");
+    const placed = (): Promise<{ title: string; group: string } | null> =>
+      page.evaluate((s) => {
+        const b = document.querySelector(s);
+        return b ? { title: b.textContent?.trim() ?? "", group: b.closest("section")?.querySelector("h3")?.textContent?.trim() ?? "" } : null;
+      }, '[data-playground="sample-bridge"]');
+    await expect.poll(placed, { ...WAIT, message: "編集画面の棚の構成図の束に、足したブロックの見本 bridge が無い" }).toEqual({ title, group: "構成図" });
+    await page.locator('[data-playground="sample-bridge"]').click();
+    const editorValue = (): Promise<string | null> =>
+      page.evaluate(() => document.querySelector<HTMLTextAreaElement>('[data-playground="editor"]')?.value.trimEnd() ?? null);
+    await expect.poll(editorValue, { ...WAIT, message: "棚の足したブロックの見本を押しても、その記法が書く欄に入らない" }).toBe(text?.trimEnd());
+    await expect
+      .poll(() => page.evaluate(() => document.querySelector('[data-playground="stage"] [data-dragon="steps"]')?.getAttribute("aria-label") ?? ""), {
+        ...WAIT,
+        message: "棚の足したブロックの見本が描かれない",
+      })
+      .toContain(title);
+  });
 });

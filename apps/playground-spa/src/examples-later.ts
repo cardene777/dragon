@@ -38,6 +38,8 @@ import txBlockJa from "../../../packages/dragon/examples/tx-block.dragon?raw";
 import txBlockEn from "../../../packages/dragon/examples/tx-block.en.dragon?raw";
 import walletJa from "../../../packages/dragon/examples/wallet.dragon?raw";
 import walletEn from "../../../packages/dragon/examples/wallet.en.dragon?raw";
+import bridgeJa from "../../../packages/dragon/examples/bridge.dragon?raw";
+import bridgeEn from "../../../packages/dragon/examples/bridge.en.dragon?raw";
 import withdrawJa from "../../../packages/dragon/examples/withdraw.dragon?raw";
 import withdrawEn from "../../../packages/dragon/examples/withdraw.en.dragon?raw";
 
@@ -49,6 +51,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   retry: { ja: retryJa, en: retryEn },
   payment: { ja: paymentJa, en: paymentEn },
   wallet: { ja: walletJa, en: walletEn },
+  bridge: { ja: bridgeJa, en: bridgeEn },
   order: { ja: orderJa, en: orderEn },
   rebase: { ja: rebaseJa, en: rebaseEn },
   merge: { ja: mergeJa, en: mergeEn },

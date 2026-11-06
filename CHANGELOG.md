@@ -6,6 +6,19 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **The playground shows how to add your own blocks** (#3407)
+
+  The docs page has an "Adding blocks" section after pipe diagrams, with an example that adds a box, a line, and an icon, and the code for reading definitions from a page's `<link rel="dragon-blocks">` and with `readBlocks`. The same example is in the editor's samples under architecture.
+  The light entry exports `definesBlocks`, which tells whether notation has block definitions, so a page knows to await `loadReadings` or `loadFor` before reading it.
+
+### Fixed
+
+- **The editor draws notation with block definitions when it is opened directly** (#3407)
+
+  Opening the editor with such notation in its link, or typing a `blocks 1` line, showed an error until something else had loaded the definition reader. The editor now waits for the reader and reads the notation again when it arrives.
+
 ## [0.54.0] - 2026-11-06
 
 ### Changed
