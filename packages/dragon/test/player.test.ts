@@ -459,6 +459,21 @@ describe("止めて置く、1 度だけ流す (#3200)", () => {
   });
 });
 
+describe("試す図でない図の帯の並び (#3437)", () => {
+  // 試す図の並びを変えても、試す図でない図は図の枠のすぐ下に段の説明とゲージの帯を置き、入力の帯を持たない
+  it("player-caption-sits-under-frame", () => {
+    prefersReducedMotion(true);
+    for (const name of ["oauth.json", "swap.json"]) {
+      const { host } = mount(exampleJson(name));
+      const frame = host.querySelector(".dg-frame");
+      const bar = host.querySelector(".dg-bar");
+      expect(frame && bar, `${name} の図の枠か段の説明の帯が無い`).toBeTruthy();
+      expect(frame?.nextElementSibling, `${name} の図の枠の次が段の説明とゲージの帯でない`).toBe(bar);
+      expect(host.querySelector(".dg-try"), `${name} に入力の帯が在る`).toBeNull();
+    }
+  });
+});
+
 describe("試作の形の再生の操作 (#3398)", () => {
   it("player-r6-controls", () => {
     prefersReducedMotion(true);

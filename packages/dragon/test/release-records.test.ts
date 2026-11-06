@@ -193,6 +193,19 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-58-0-moves-try-caption", () => {
+    // 試す図の段の説明とゲージの帯を図の枠のすぐ下、入力の帯の上へ移す変更 (#3437) は 0.58.0 で npm に出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 58, `package の版 ${version()} が 0.58.0 より前`).toBe(true);
+    const words = { "CHANGELOG.md": "input strip", "CHANGELOG.ja.md": "入力の帯" };
+    for (const [file, word] of Object.entries(words)) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.58\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.58.0"), "0.58.0");
+      expect(released, `${file} に日付付きの ## [0.58.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.58.0 の節に #3437 の項が無い`).toContain("(#3437)");
+      expect(released, `${file} の 0.58.0 の節が入力の帯を名指さない`).toContain(word);
+    }
+  });
+
   it("changelog-0-56-0-lists-pipe-redesign", () => {
     // 全ての図の再生の操作の並べ替えと配管の図の描き直し (#3398) も 0.56.0 で npm に出すため、2 つの変更履歴の 0.56.0 の節に項を置く (#3426)
     const controls = { "CHANGELOG.md": "player controls", "CHANGELOG.ja.md": "再生の操作" };

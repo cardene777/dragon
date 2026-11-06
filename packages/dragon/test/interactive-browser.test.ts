@@ -171,6 +171,34 @@ describe("試す図を Chromium で触る (#3337)", () => {
     },
   );
 
+  // 段の説明は読み手が押した後に図で何が変わったかを書くため、図の枠のすぐ下に置き、入力の帯はその下に置く (#3437)。
+  // 狭い枠では帯が縦に組み替わり、広い枠では横に並ぶので、両方の幅で上下の順と重なりを測る
+  it(
+    "interactive-caption-above-controls",
+    async () => {
+      const html = await htmlOf(onLine());
+      for (const width of [390, 1280]) {
+        const { result } = await withPage(html, width, (page) =>
+          page.evaluate(() => {
+            const box = (selector: string): { top: number; bottom: number } | undefined => {
+              const el = document.querySelector<HTMLElement>(`[data-dragon="player"] > ${selector}`);
+              if (!el) return undefined;
+              const rect = el.getBoundingClientRect();
+              return { top: rect.top, bottom: rect.bottom };
+            };
+            return { frame: box(".dg-frame"), bar: box(".dg-bar"), tools: box(".dg-try") };
+          }),
+        );
+        const { frame, bar, tools } = result;
+        expect(frame && bar && tools, `幅 ${width}px で図の枠か段の説明の帯か入力の帯が無い`).toBeTruthy();
+        if (!frame || !bar || !tools) continue;
+        expect(bar.bottom - bar.top, `幅 ${width}px で段の説明の帯の高さが無い`).toBeGreaterThan(0);
+        expect(bar.top, `幅 ${width}px で段の説明の帯が図の枠と重なるか、図の枠より上に在る`).toBeGreaterThanOrEqual(frame.bottom);
+        expect(tools.top, `幅 ${width}px で入力の帯が段の説明の帯と重なるか、段の説明の帯より上に在る`).toBeGreaterThanOrEqual(bar.bottom);
+      }
+    },
+  );
+
   it(
     "interactive-uses-no-storage-or-network",
     async () => {
