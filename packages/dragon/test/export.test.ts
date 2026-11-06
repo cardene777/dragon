@@ -140,9 +140,10 @@ describe("書き出しのコマと形 (#3115)", () => {
   it(
     "gif-palette-fits-format",
     async () => {
-      // GIF の色の表は 256 色まで。CCIP は表の上限まで色を使う
+      // GIF の色の表は 256 色まで。CCIP は表の上限まで色を使う。
+      // 色の表は 1 コマごとに作るので、2 秒に 1 コマ (コマの数は 0 より大きい数を受ける) で撮りコマの数を半分にする (#3410)
       const exportDiagram = await exporter();
-      const result = await exportDiagram(ccipHead(), { outDir: scratch(), formats: ["gif"], gifFps: 1 });
+      const result = await exportDiagram(ccipHead(), { outDir: scratch(), formats: ["gif"], gifFps: 0.5 });
       const gif = readGif(readFileSync(result.files.gif as string));
       expect(gif.frames.length, "CCIP の GIF にコマが無い").toBeGreaterThan(0);
       gif.frames.forEach((frame, i) => {
@@ -237,10 +238,10 @@ describe("書き出し (#2986)", () => {
       const exportDiagram = await exporter();
       // 書き手が寄って見せると決めた図。幅は指定しない
       // 全ての段を撮ると 45 秒の図になるので、見る範囲の離れた最初の段と最後の段だけを撮る (#3381)。
-      // 比べるのは最初と途中の 2 コマなので、1 秒 1 コマで撮る (#3410)
+      // 比べるのは最初と途中の 2 コマなので、2 秒に 1 コマ (コマの数は 0 より大きい数を受ける) で撮る (#3410)
       const full = exampleJson("ccip.json") as { steps: Json[] };
       const ccip = patched({ ...full, steps: [full.steps[0], full.steps.at(-1)].filter((step): step is Json => step !== undefined) }, ["view"], "follow");
-      const result = await exportDiagram(ccip, { outDir: scratch(), formats: ["mp4", "html"], fps: 1 });
+      const result = await exportDiagram(ccip, { outDir: scratch(), formats: ["mp4", "html"], fps: 0.5 });
       expect(result.view).toBe("follow");
       expect(result.files.mp4, "mp4 を書き出していない").toBeDefined();
 
