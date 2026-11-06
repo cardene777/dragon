@@ -422,6 +422,43 @@ function heapOf(count: number, card = true): Json {
   };
 }
 
+/** 置き場 1 つと札 3 つと置き場 1 つを並べ、最初の置き場に字の幅の違う 7 枚のチップを置く図 (bitsumi のメモリプールの図と同じ形、#3408) */
+function mempoolLineup(): Json {
+  const ids = ["他1", "他2", "自分", "他3", "他4", "他5", "他6"];
+  return {
+    version: 1,
+    kind: "lineup",
+    title: "メモリプールの図",
+    boxes: [
+      { id: "池", name: "メモリプール", order: "none" },
+      { id: "甲", name: "ビルダーA" },
+      { id: "乙", name: "ビルダーB" },
+      { id: "丙", name: "ビルダーC" },
+      { id: "出口", name: "バリデーター", order: "none" },
+    ],
+    lineup: { items: ids.map((id) => (id === "自分" ? { id, color: "amber" } : { id })) },
+    steps: [stepOf("並ぶ", [lineEvent("池", ids)]), stepOf("組む", [lineEvent("甲", ids)])],
+  };
+}
+
+/** 置き場のチップが格子に並ぶか。行の上端と列の左端と幅が揃い、上下の間と左右の間がそれぞれ全て同じ */
+function expectGrid(chips: Seat[]): void {
+  expect(chips.length, "置き場に置いたチップの数").toBe(7);
+  const key = (v: number): number => Math.round(v * 1000) / 1000;
+  for (const c of chips)
+    expect(c.w, `${c.id} の幅が最も広いチップの幅と揃わない`).toBeCloseTo(Math.max(...chips.map((d) => d.w)), 6);
+  const xs = [...new Set(chips.map((c) => key(c.x)))].sort((a, b) => a - b);
+  const ys = [...new Set(chips.map((c) => key(c.y)))].sort((a, b) => a - b);
+  expect(xs.length, `列の数 (左端 ${xs.join(", ")})`).toBeGreaterThan(1);
+  expect(ys.length, `行の数 (上端 ${ys.join(", ")})`).toBe(Math.ceil(chips.length / xs.length));
+  const steps = (vs: number[]): number[] => vs.slice(1).map((v, i) => key(v - (vs[i] as number)));
+  expect(new Set(steps(xs)).size, `左右の間 (${steps(xs).join(", ")})`).toBe(1);
+  expect(new Set(steps(ys)).size, `上下の間 (${steps(ys).join(", ")})`).toBe(1);
+  const [w, h] = [chips[0]?.w ?? 0, chips[0]?.h ?? 0];
+  expect((steps(xs)[0] ?? 0) - w, "左右のチップが重なる").toBeGreaterThan(0);
+  expect((steps(ys)[0] ?? 0) - h, "上下のチップが重なる").toBeGreaterThan(0);
+}
+
 /** 字を持つチップと、色の無いチップと、色付きのチップを、置き場と札の両方に置く図 */
 function chipsLineup(): Json {
   return {
@@ -1703,6 +1740,20 @@ describe("列の図を卓の形で並べる (#3351)", () => {
         "描いた札の note の字",
       ).toContain("1.5");
     }
+  });
+
+  // 順番の無い置き場のチップは、ずらさず格子に並べる (#3408)。順番が無いことは点線の枠と「順番なし」の字で伝え、
+  // 席ごとにずらすと、同じ行のチップの上端が食い違い、チップの間が詰まる所ができて崩れて見えた
+  it("lineup-pool-chips-on-grid", () => {
+    const { layout } = render(mempoolLineup());
+    expect(layout.arrangement, "枠の幅を渡さない時の並べ方").toBe("row");
+    expectGrid(layout.chips.filter((c) => c.lane === "池" && c.step === 0));
+  });
+
+  it("lineup-band-chips-on-grid", () => {
+    const { layout } = render(mempoolLineup(), "ja", 390);
+    expect(layout.arrangement, "390px の枠の並べ方").toBe("stack");
+    expectGrid(layout.chips.filter((c) => c.lane === "池" && c.step === 0));
   });
 
   it("lineup-holds-12-chips-in-places", () => {
