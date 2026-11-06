@@ -75,7 +75,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.54/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.55/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -89,7 +89,7 @@ step ログインを押す
 </pre>
 ```
 
-script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.54`) で読む。
+script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.55`) で読む。
 後の直しの版は頁を直さずに届き、記法を変える版は届かない。
 最初に読むのは `sequence` と `architecture` の描く部品で、ほかの種類の部品は、頁の塊がその種類を使う時だけ読む。
 同梱の 2 つの字の CSS を jsDelivr から読む `<link>` を、頁に 1 度だけ足す。
@@ -171,7 +171,7 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 種類を先に読んでおく時は、種類の名前を渡して `loadKind` を待つ。
 その種類の描く部品と、その種類の全てのブロックの読み方と、原本の形の検査を読む。
 描かずに図の題と種類だけを引く時は `loadReadings` を待つ。ブロックの読み方だけを読み、描く部品は読まない。
-`diagramKind` は、読む前の記法か JSON の図の種類を返す。
+`diagramKind` は、読む前の記法か JSON の図の種類を返す。`definesBlocks` は記法が足すブロックの定義を持つかを返し、持つ記法は `loadReadings` か `loadFor` を待ってから読む。
 読んでいない種類を描くと種類の名前を含む誤りで、読んでいないブロックの行を読むとブロックの名前を含む誤りで止まる。
 読み込みが落ちると `loadFor` と `loadKind` が拒否され、次に呼ぶと読み直す。
 `sequence` と `architecture` は描く部品とブロックの読み方を初めから持つので、記法の図は何も待たずに読んで描ける。

@@ -73,7 +73,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.54/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.55/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -87,7 +87,7 @@ step Press sign in
 </pre>
 ```
 
-The script loads from jsDelivr with the version pinned up to the middle number (`@0.54`), so fixes in later patch versions reach the page and a version that changes the notation does not.
+The script loads from jsDelivr with the version pinned up to the middle number (`@0.55`), so fixes in later patch versions reach the page and a version that changes the notation does not.
 It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
@@ -167,7 +167,7 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 To load a kind ahead of time, await `loadKind` with the kind's name.
 It loads the kind's renderer, every block of that kind, and the schema check.
 To read a diagram's title and kind without drawing it, await `loadReadings`, which loads only the blocks and leaves the renderer out.
-`diagramKind` returns the kind of a notation or JSON before you read it.
+`diagramKind` returns the kind of a notation or JSON before you read it, and `definesBlocks` tells whether a notation has block definitions, which need `loadReadings` or `loadFor` before you read it.
 Drawing a kind that has not been loaded stops with an error that names the kind, and reading a line of a block that has not been loaded stops with an error that names the block.
 If loading fails, `loadFor` and `loadKind` reject, and the next call loads it again.
 `sequence` and `architecture` and their blocks are there from the start, so their notation reads and draws without loading anything.

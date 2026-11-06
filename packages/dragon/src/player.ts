@@ -34,6 +34,7 @@ import {
   renderDiagram,
 } from "./render/draw";
 import { kindParts } from "./kinds/registry";
+import { isParsed, markParsed } from "./parsed";
 import type { Diagram, Step, ViewMode } from "./schema";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
@@ -138,10 +139,18 @@ function isTrySource(input: unknown): input is Diagram {
   return source.kind === "try" && Array.isArray(source.steps);
 }
 
+/**
+ * 記法から読んだ図 (`from`) を写した図 (`copy`) に、記法から読んだ印を引き継ぐ (#3416)。
+ * 写した図は印を持たないので、引き継がないと軽い入口は原本の形の検査を求めて止まる。原本の JSON を写した図には付けない
+ */
+function keepParsed<T extends object>(from: unknown, copy: T): T {
+  return isParsed(from) ? markParsed(copy) : copy;
+}
+
 /** 書き手の最初の段だけを持つ今の原本。渡した原本は書き換えない */
 function startSession(input: Diagram): Diagram {
   const copy = JSON.parse(JSON.stringify(input)) as Diagram;
-  return { ...copy, steps: copy.steps.slice(0, 1) };
+  return keepParsed(input, { ...copy, steps: copy.steps.slice(0, 1) });
 }
 
 function ensureCss(doc: Document): void {
@@ -512,7 +521,7 @@ export function mountDiagram(
    */
   const add = (added: Step): boolean => {
     if (!session || !controls) return false;
-    const next = { ...session, steps: [...session.steps, added] };
+    const next = keepParsed(session, { ...session, steps: [...session.steps, added] });
     let drawn: Rendered;
     try {
       // 足した後も今の枠の幅で並べる。狭い枠で縦に組んだ形のまま描き直す (#3366)

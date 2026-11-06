@@ -7,12 +7,13 @@
  * 寄って追う見せ方は小さな枠では動く所だけが大きく映り、何の図かが分からないため。
  * `json` を渡すと、記法ではなく原本の JSON の字として読む (#3034、使い方の JSON の節)。
  * 後から読む種類の図は、種類の塊 (描く部品と、その種類の個別ブロックの読み方、#3349) が届いてから読む。塊が届くまでは枠に読み込み中を出す。
+ * 足したブロックの定義を持つ記法は、定義を読む処理の塊 (#3399) が届いてから読む (#3407)。
  */
 import { type Diagram, diagramKind, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
 import { type ReactElement, useEffect, useMemo, useRef } from "react";
 
 import type { Lang } from "../text";
-import { useKind, useValidator } from "./kinds";
+import { useDefinitions, useKind, useValidator } from "./kinds";
 import { KindState } from "./KindState";
 
 interface Props {
@@ -64,7 +65,9 @@ export function LiveFigure({ notation, lang, theme, palette, whole = false, json
   const kind = useMemo(() => kindOfText(notation, json), [notation, json]);
   // 原本の JSON は原本の形の検査の塊も待つ。記法から読んだ図は検査を要らない (#3400)
   const checked = useValidator(json).status === "ready";
-  const ready = useKind(kind).status === "ready" && checked;
+  // 足したブロックの定義を持つ記法は、定義を読む処理の塊も待つ (#3407)
+  const defined = useDefinitions(json ? "" : notation).status === "ready";
+  const ready = useKind(kind).status === "ready" && checked && defined;
   const diagram = useMemo((): Diagram | null => {
     if (!ready) return null;
     const read = json ? readJson(notation) : readNotation(notation);

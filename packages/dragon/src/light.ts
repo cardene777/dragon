@@ -8,6 +8,7 @@
  * - `loadKind(<種類>)` を待つと、その種類の描く部品と、その種類の個別ブロックの読み方と、原本の形の検査を全て読む (裏で先に読む時に使う)
  * - `loadReadings(<記法か原本>)` を待つと、書いた図が使う個別ブロックの読み方だけを読み、描く部品は読まない (題と種類だけを引く時に使う)
  * - `diagramKind(<記法か原本>)` は、読む前に図の種類を返す。どの種類の `loadKind` を待つかを決める時に使う
+ * - `definesBlocks(<記法>)` は、記法が足すブロックの定義の行 (`blocks 1`) を持つかを返す。持つ記法は `loadReadings` か `loadFor` を待ってから読む (#3399、#3407)
  * - `loadValidator()` を待つと、原本の形の検査だけを読む。`parseNotation` で記法から読んだ図は描く時に検査を省くので、原本の JSON を読む頁だけが要る (#3400)
  *
  * 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -26,7 +27,7 @@ import { type Diagram, registerValidator, validatorLoaded } from "./schema";
 import { definesBlocks, registerUserBlockReader, userBlockReader } from "./user-blocks";
 
 export * from "./api";
-export { kindLoaded, LATER_KINDS, type LaterKind };
+export { definesBlocks, kindLoaded, LATER_KINDS, type LaterKind };
 
 const LOADERS: { [K in LaterKind]: () => Promise<LaterKinds[K]> } = {
   git: () => import("./kinds/git"),
