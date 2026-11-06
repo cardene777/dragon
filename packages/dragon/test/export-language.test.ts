@@ -8,10 +8,10 @@
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { launch, stage } from "../src/export/capture";
 import { exampleJson, type Json } from "./diagram-support";
-import { drawnText, embeddedFonts, exporter, fontChars, formatOf, isBlank, type PlayerWords, playerWords, runCli } from "./export-support";
+import { cliRunCount, drawnText, embeddedFonts, exporter, fontChars, formatOf, isBlank, type PlayerWords, playerWords, runCli } from "./export-support";
 
 /** 寄って見せる見せ方になり、縦長の全体図を出す枠の幅。440px より狭い枠は縦長の全体図を出さない (#3055) */
 const NARROW = 440;
@@ -72,7 +72,19 @@ function english(): Json {
   };
 }
 
+/** 件ごとに、命令を起こした回数 (#3424) */
+const cliRuns = new Map<string, number>();
+
 describe("書き出しの図の中の字の言葉 (#3001)", () => {
+  let runsAtStart = 0;
+  beforeEach(() => {
+    runsAtStart = cliRunCount();
+  });
+  afterEach(() => {
+    const name = expect.getState().currentTestName ?? "";
+    if (!name.includes("language-cases-run-cli-once")) cliRuns.set(name, cliRunCount() - runsAtStart);
+  });
+
   it(
     "overview-label-fits-minimap",
     async () => {
@@ -205,4 +217,10 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       }
     },
   );
+
+  it("language-cases-run-cli-once", () => {
+    // どの件も命令を 1 回までしか起こさない (#3424)。命令は起こすだけで混み 65 で 1.2 秒かかり、2 回起こす件は混んだ機械で 1 件の上限 (10 秒) を超えた。この describe の最後の件として数える
+    expect(cliRuns.size, "書き出しの言葉の件が 1 つも回っていない").toBeGreaterThan(0);
+    expect([...cliRuns].filter(([, count]) => count > 1), "命令を 2 回以上起こした件 (件の名前と回数)").toEqual([]);
+  });
 });

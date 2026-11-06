@@ -15,7 +15,7 @@ import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { Blob as HbBlob, Face } from "harfbuzzjs";
 import { type Browser, chromium, type Page } from "playwright-core";
-import { afterAll, expect } from "vitest";
+import { afterAll, expect, type RunnerTask, type RunnerTestFile } from "vitest";
 
 const require_ = createRequire(import.meta.url);
 const fontverter = require_("fontverter") as { convert(buffer: Uint8Array, to: "sfnt"): Promise<Uint8Array> };
@@ -74,8 +74,13 @@ export const withoutPlaywright = (): RunPlace => ({
   nodeArgs: ["--import", pathToFileURL(join(process.cwd(), "packages/dragon/test/fixtures/hide-playwright-core.mjs")).href],
 });
 
+/** 書き出しの命令を起こした回数。件が命令を何回起こしたかを確かめる (#3424) */
+let cliRuns = 0;
+export const cliRunCount = (): number => cliRuns;
+
 /** 書き出しの命令を node で走らせる。落ちても投げずに終わり方を返す */
 export async function runCli(args: string[], place: RunPlace = {}): Promise<Ran> {
+  cliRuns++;
   try {
     const { stdout, stderr } = await promisify(execFile)(process.execPath, [...(place.nodeArgs ?? []), CLI, ...args], {
       encoding: "utf8",
@@ -86,6 +91,20 @@ export async function runCli(args: string[], place: RunPlace = {}): Promise<Ran>
     const failed = error as { code?: unknown; stdout?: string; stderr?: string };
     return { code: typeof failed.code === "number" ? failed.code : 1, stdout: failed.stdout ?? "", stderr: failed.stderr ?? "" };
   }
+}
+
+/**
+ * 集めた件の木で、名前が `name` の件が入る describe の名前 (#3421、#3424)。
+ * `describe.for` の `$name` は字の列を引用符で囲んだ名前にするので、囲みを外して返す
+ */
+export function casesNamed(file: RunnerTestFile, name: string): string[] {
+  const found: string[] = [];
+  const walk = (seen: RunnerTask): void => {
+    if (seen.type === "test" && seen.name === name) found.push((seen.suite?.name ?? "").replace(/^'(.*)'$/, "$1"));
+    if (seen.type === "suite") seen.tasks.forEach(walk);
+  };
+  file.tasks.forEach(walk);
+  return found;
 }
 
 /** file の頭の数バイトで形を見分ける */

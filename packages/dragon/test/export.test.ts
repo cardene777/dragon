@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 // 初めて読む時の変換は、検査の中で読むと最初の件だけが 2 秒から 3 秒遅れた。変換は 1 回の実行の中で使い回す
 import "@cardenelabs/dragon/export";
 import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
-import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, pageLoads, playerButtons, readGif, runCli, unfoldedSteps } from "./export-support";
+import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, pageLoads, playerButtons, readGif, runCli, unfoldedSteps, casesNamed } from "./export-support";
 import { draw } from "./render-support";
 
 
@@ -437,6 +437,14 @@ describe("書き出した頁の帯と釦 (#2986、#3421)", () => {
     // 帯と釦の件は幅ごとの件に分かれ、件ごとにその幅の頁を 1 度だけ読み込む (#3421)。開いた後に読み直すと 2 度と数える
     expect(bandLoads.size, "帯と釦の件が 1 つも回っていない").toBeGreaterThan(0);
     expect([...bandLoads].filter(([, count]) => count !== 1), "頁を 1 度だけ読み込まない帯と釦の件 (件の名前と読み込んだ回数)").toEqual([]);
+  });
+});
+
+describe("書き出しの件の分け方 (#3424)", () => {
+  it("four-formats-written-once-from-json", ({ task }) => {
+    // 4 つの形式を書く件は原本の JSON の 1 件だけで、記法の file は HTML だけを書く件で確かめる。命令で 4 つの形式を書くと混み 65 で 7.9 秒、HTML だけなら 3.7 秒だった
+    expect(casesNamed(task.file, "export-writes-four-formats"), "4 つの形式を書く件").toHaveLength(1);
+    expect(casesNamed(task.file, "export-notation-file-writes-html"), "記法の file を HTML に書き出す件").toHaveLength(1);
   });
 });
 
