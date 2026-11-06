@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-11-06
+
 ### Changed
 
 - **A page that draws notation loads less script first** (#3400)
