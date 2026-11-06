@@ -15,7 +15,8 @@ export default defineConfig({
     // `pnpm test` に build は含まれていないため、 古い `dist` が残っていると
     // src を壊しても通ってしまう。 走らせる前に検知する (#979)。
     // 1 回の実行は 5 分で止める (`run-limit.ts`、#3381)。見本帳の頁は 1 回の実行で 1 度だけ build する (`site-setup.ts`、#3381)
-    globalSetup: ["./test-support/global-setup.ts", "./test-support/run-limit.ts", "./apps/playground-spa/src/lib/site-setup.ts"],
+    // npm に出す file の一覧は 1 回の実行で 1 度だけ `npm pack --dry-run` で出す (`pack-setup.ts`、#3410)
+    globalSetup: ["./test-support/global-setup.ts", "./test-support/run-limit.ts", "./apps/playground-spa/src/lib/site-setup.ts", "./test-support/pack-setup.ts"],
     /*
      * 1 件の検査とその前後処理は 10 秒で止める (#3381)。上限の値と、下げる環境変数は `test-support/limits.ts` が持つ。
      *

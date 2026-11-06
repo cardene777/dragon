@@ -97,21 +97,21 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
     },
   );
 
-  it(
-    "export-lang-flag",
-    async () => {
-      const json = join(EXAMPLES, "oauth.en.json");
-      const title = titleOf("oauth.en.json");
-      expect(await exported(json, ["--lang", "en"]), "JSON に --lang en を渡した時").toEqual({ ...expected("en", title), overviewFits: true });
-      // --lang を渡さない時は既定の英語 (#3338)
-      expect(await exported(json), "JSON に --lang を渡さない時").toEqual({ ...expected("en", title), overviewFits: true });
-      expect(await exported(json, ["--lang", "ja"]), "JSON に --lang ja を渡した時").toEqual({ ...expected("ja", title), overviewFits: true });
-      expect(await exported(join(EXAMPLES, "oauth.en.dragon"), ["--lang", "ja"]), "英語の記法に --lang ja を渡した時").toEqual({
-        ...expected("ja", title),
-        overviewFits: true,
-      });
-    },
-  );
+  // 渡し方ごとに 1 件 1 回の命令に分ける (#3410)。4 回の命令を 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた。
+  // --lang を渡さない時は既定の英語 (#3338)
+  describe.for([
+    { what: "JSON に --lang en を渡した時", file: "oauth.en.json", extra: ["--lang", "en"], lang: "en" },
+    { what: "JSON に --lang を渡さない時", file: "oauth.en.json", extra: [], lang: "en" },
+    { what: "JSON に --lang ja を渡した時", file: "oauth.en.json", extra: ["--lang", "ja"], lang: "ja" },
+    { what: "英語の記法に --lang ja を渡した時", file: "oauth.en.dragon", extra: ["--lang", "ja"], lang: "ja" },
+  ] as const)("$what", ({ what, file, extra, lang }) => {
+    it(
+      "export-lang-flag",
+      async () => {
+        expect(await exported(join(EXAMPLES, file), [...extra]), what).toEqual({ ...expected(lang, titleOf("oauth.en.json")), overviewFits: true });
+      },
+    );
+  });
 
   it(
     "export-refusal-follows-language",

@@ -178,75 +178,77 @@ const overlayHeadOf = (
     return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
   });
 
-describe("カタログの重ね窓と帯 (#3047)", () => {
-  useSite();
-
-
-  // 寄って追う図になる幅 (390、860)、止めて見せる図になる幅 (1024、1440)、低い画面 (1280 × 720)
-  describe.for((["architecture", "sequence"] as const).flatMap((category) => [
+/**
+ * 重ね窓を分類の見本ごとに確かめる組。寄って追う図になる幅 (390、860)、止めて見せる図になる幅 (1024、1440)、低い画面 (1280 × 720)。
+ * 分類の見本を全て 1 件で開くと、混んだ機械で 1 件の上限 (10 秒) を超えたので、見本ごとに分ける (#3410)
+ */
+const OVERLAY_CASES = (["architecture", "sequence"] as const).flatMap((category) =>
+  [
     { width: 390, height: 844 },
     { width: 860, height: 900 },
     { width: 1024, height: 768 },
     { width: 1440, height: 900 },
     { width: 1280, height: 720 },
-  ].map(({ width, height }) => ({ category, width, height }))))("$category $width × $height", ({ category, width, height }) => {
+  ].flatMap(({ width, height }) => samplesOf(category).map((key, index) => ({ category, width, height, key, index }))),
+);
+
+describe("カタログの重ね窓と帯 (#3047)", () => {
+  useSite();
+
+  it("overlay-cases-cover-every-sample", () => {
+    // 見本ごとの検査は分類の見本が 1 つも無いと 1 件も走らず、落ちずに素通りする
+    for (const category of ["architecture", "sequence"] as const)
+      expect(OVERLAY_CASES.filter((c) => c.category === category).length, `${category} の分類の見本が無い (走査の空振り)`).toBeGreaterThan(0);
+  });
+
+
+  // 幅と見本の組は `OVERLAY_CASES` が持つ
+  describe.for(OVERLAY_CASES)("$category $width × $height $key", ({ category, width, height, key, index }) => {
     it("catalog-overlay-figure-whole-without-scroll", async () => {
       const viewport = { width, height };
-      const count = samplesOf(category).length;
       // 段の説明の行の数で図の枠の高さが替わるので、自動で送らずに 1 段ずつ確かめる
       const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport, reducedMotion: "reduce" });
       await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${category} の分類の頁が出ない`);
-      for (let i = 0; i < count; i++) {
-        await page.locator(catalogSel("item")).nth(i).click();
-        await page.locator(catalogSel("expand")).click();
-        const stepItems = page.locator('[data-catalog="overlay"] [data-dragon="steps"] > li');
-        await expect.poll(() => stepItems.count(), { ...WAIT, message: `${category} の ${i + 1} 番目の見本の段が読めない` }).toBeGreaterThan(0);
-        const steps = await stepItems.count();
-        for (let s = 0; s < steps; s++) {
-          const label = `${viewport.width} × ${viewport.height} の ${category} の ${i + 1} 番目の見本の ${s + 1} 段目`;
-          const step = `${String(s + 1).padStart(2, "0")}/${String(steps).padStart(2, "0")}`;
-          await expect
-            .poll(async () => {
-              const seen = await overlayFigureOf(page);
-              if (!seen) return null;
-              const follow = seen.view === "follow";
-              // 全体図は出す時だけ枠の中かを見る。携帯の幅の縦長の全体図は出さない (#3055)
-              return { step: seen.step, scrolls: seen.scrolls, figure: seen.figure, window: follow ? seen.window : true, overview: follow ? seen.overview !== false : true };
-            }, { ...WAIT, message: `${label} を重ね窓で開くと、送らないと図の全体が見えない` })
-            .toEqual({ step, scrolls: false, figure: true, window: true, overview: true });
-          if (s < steps - 1) await page.locator('[data-catalog="overlay"] [data-dragon="next"]').click();
-        }
-        await page.keyboard.press("Escape");
-        await expect.poll(() => overlayFigureOf(page), { ...WAIT, message: `${category} の ${i + 1} 番目の見本の重ね窓が閉じない` }).toBeNull();
+      await page.locator(catalogSel("item")).nth(index).click();
+      await page.locator(catalogSel("expand")).click();
+      const stepItems = page.locator('[data-catalog="overlay"] [data-dragon="steps"] > li');
+      await expect.poll(() => stepItems.count(), { ...WAIT, message: `${category} の ${key} の段が読めない` }).toBeGreaterThan(0);
+      const steps = await stepItems.count();
+      for (let s = 0; s < steps; s++) {
+        const label = `${viewport.width} × ${viewport.height} の ${category} の ${key} の ${s + 1} 段目`;
+        const step = `${String(s + 1).padStart(2, "0")}/${String(steps).padStart(2, "0")}`;
+        await expect
+          .poll(async () => {
+            const seen = await overlayFigureOf(page);
+            if (!seen) return null;
+            const follow = seen.view === "follow";
+            // 全体図は出す時だけ枠の中かを見る。携帯の幅の縦長の全体図は出さない (#3055)
+            return { step: seen.step, scrolls: seen.scrolls, figure: seen.figure, window: follow ? seen.window : true, overview: follow ? seen.overview !== false : true };
+          }, { ...WAIT, message: `${label} を重ね窓で開くと、送らないと図の全体が見えない` })
+          .toEqual({ step, scrolls: false, figure: true, window: true, overview: true });
+        if (s < steps - 1) await page.locator('[data-catalog="overlay"] [data-dragon="next"]').click();
       }
+      await page.keyboard.press("Escape");
+      await expect.poll(() => overlayFigureOf(page), { ...WAIT, message: `${category} の ${key} の重ね窓が閉じない` }).toBeNull();
     });
   });
 
 
   // 段の本文の行の数で帯の高さが替わり、図が縮むか上下に動いていた大きさを全部含める (#3049)
-  describe.for((["architecture", "sequence"] as const).flatMap((category) => [
-    { width: 390, height: 844 },
-    { width: 860, height: 900 },
-    { width: 1024, height: 768 },
-    { width: 1440, height: 900 },
-    { width: 1280, height: 720 },
-  ].map(({ width, height }) => ({ category, width, height }))))("$category $width × $height", ({ category, width, height }) => {
+  describe.for(OVERLAY_CASES)("$category $width × $height $key", ({ category, width, height, key, index }) => {
     it("overlay-figure-steady-across-steps", async () => {
       const viewport = { width, height };
-      const count = samplesOf(category).length;
       const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport, reducedMotion: "reduce" });
       await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${category} の分類の頁が出ない`);
-      for (let i = 0; i < count; i++) {
-        const label = `${viewport.width} × ${viewport.height} の ${category} の ${i + 1} 番目の見本の重ね窓`;
-        await page.locator(catalogSel("item")).nth(i).click();
-        await page.locator(catalogSel("expand")).click();
-        const steps = page.locator('[data-catalog="overlay"] [data-dragon="steps"] > li');
-        await expect.poll(() => steps.count(), { ...WAIT, message: `${label} が開かない` }).toBeGreaterThan(0);
-        // 段が 1 つだけの見本は送る先が無い
-        if ((await steps.count()) > 1) await expectSteadyAcrossSteps(page, '[data-catalog="overlay"]', label);
-        await page.keyboard.press("Escape");
-        await expect.poll(() => page.locator('[data-catalog="overlay"]').count(), { ...WAIT, message: `${label} が閉じない` }).toBe(0);
-      }
+      const label = `${viewport.width} × ${viewport.height} の ${category} の ${key} の重ね窓`;
+      await page.locator(catalogSel("item")).nth(index).click();
+      await page.locator(catalogSel("expand")).click();
+      const steps = page.locator('[data-catalog="overlay"] [data-dragon="steps"] > li');
+      await expect.poll(() => steps.count(), { ...WAIT, message: `${label} が開かない` }).toBeGreaterThan(0);
+      // 段が 1 つだけの見本は送る先が無い
+      if ((await steps.count()) > 1) await expectSteadyAcrossSteps(page, '[data-catalog="overlay"]', label);
+      await page.keyboard.press("Escape");
+      await expect.poll(() => page.locator('[data-catalog="overlay"]').count(), { ...WAIT, message: `${label} が閉じない` }).toBe(0);
     });
   });
 
@@ -441,18 +443,20 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
 
 
   // 携帯の幅で帯の並べ方を替えても、段を送った時に帯と図が動かず、題と本文が帯からはみ出さない (#3049、#3057)
-  describe.for(PHONES.flatMap(({ width, height }) => CAPTION_SAMPLES.map((sample) => ({ width, height, sample, name: sample.key }))))("$width × $height $name", ({ width, height, sample }) => {
+  // 置き場ごとに分ける (#3410)。重ね窓と編集画面を 1 件で開くと、混んだ機械で 1 件の上限 (10 秒) に迫った
+  describe.for(
+    PHONES.flatMap(({ width, height }) =>
+      CAPTION_SAMPLES.flatMap((sample) => (["重ね窓", "編集画面"] as const).map((where) => ({ width, height, sample, name: sample.key, where }))),
+    ),
+  )("$width × $height $name $where", ({ width, height, sample, where }) => {
     it("narrow-caption-steady-and-inside", async () => {
       const viewport = { width, height };
       const size = `${viewport.width} × ${viewport.height}`;
-      for (const [where, scope, page] of [
-        ["重ね窓", '[data-catalog="overlay"]', await openOverlay(viewport, sample, true)],
-        ["編集画面", '[data-playground="stage"]', await openEditor(viewport, sample.key, true)],
-      ] as const) {
-        const label = `${size} の${where}の ${sample.key}`;
-        await expect.poll(async () => (await captionOf(page, scope))?.inside, { ...WAIT, message: `${label} で、題か本文が帯の中身の幅からはみ出す` }).toBe(true);
-        await expectSteadyAcrossSteps(page, scope, label);
-      }
+      const scope = where === "重ね窓" ? '[data-catalog="overlay"]' : '[data-playground="stage"]';
+      const page = where === "重ね窓" ? await openOverlay(viewport, sample, true) : await openEditor(viewport, sample.key, true);
+      const label = `${size} の${where}の ${sample.key}`;
+      await expect.poll(async () => (await captionOf(page, scope))?.inside, { ...WAIT, message: `${label} で、題か本文が帯の中身の幅からはみ出す` }).toBe(true);
+      await expectSteadyAcrossSteps(page, scope, label);
     });
   });
 

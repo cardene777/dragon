@@ -10,6 +10,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
+// 書き出しの部品 (1MB を超える束) を、この file を読む段で先に読む (#3410)。
+// 初めて読む時の変換は、検査の中で読むと最初の件だけが 2 秒から 3 秒遅れた。変換は 1 回の実行の中で使い回す
+import "@cardenelabs/dragon/export";
 import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
 import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, readGif, runCli, unfoldedSteps } from "./export-support";
 import { draw } from "./render-support";
@@ -58,22 +61,43 @@ function twoSteps(): Json {
   };
 }
 
-/** 2 段の構成図を、コマの数を指定せずに mp4、GIF、PNG に書き出した物。3 つの検査が同じ書き出しを読む */
 /**
- * 2 段の図を 1 秒 2 コマの mp4 と 1 秒 1 コマの GIF と PNG に書き出す。同じ file の検査で 1 度だけ撮る。
- * 既定のコマの数 (1 秒 30 コマ) で撮ると 20 秒を超え、1 件の上限 (10 秒、#3381) に収まらない。既定の数は `export-defaults.test.ts` が確かめる
+ * 1 秒 1 コマの mp4 と 2 秒に 1 コマの GIF を 1 回で撮る動画と、2 段の図の PNG の 2 回に分けて書き出す。同じ file の検査で 1 度ずつ撮る。
+ * 既定のコマの数 (1 秒 30 コマ) で撮ると 20 秒を超え、1 件の上限 (10 秒、#3381) に収まらない。既定の数は `export-defaults.test.ts` が確かめる。
+ * mp4 と GIF は 1 回で撮る。GIF は mp4 のコマを間引いて使うので、間引きのとおりのコマの数になるかを本物の書き出しで確かめる。
+ * PNG まで 1 回で撮ると、最初に読む検査が混んだ機械で 1 件の上限を超えたので、PNG は分けて撮る。
+ * 混んだ機械では 1 コマに 0.3 秒から 0.5 秒かかるので、コマの数は数えて比べられる最小にする (コマの数は 0 より大きい数を受ける、#3410)
  */
-const RATES = { fps: 2, gifFps: 1 } as const;
-let twoStepsShot: Promise<Exported> | undefined;
-const shootTwoSteps = (): Promise<Exported> => {
-  twoStepsShot ??= exporter().then((exportDiagram) => exportDiagram(twoSteps(), { outDir: scratch(), formats: ["mp4", "gif", "png"], ...RATES }));
-  return twoStepsShot;
+const RATES = { fps: 1, gifFps: 0.5 } as const;
+/** 動画で撮る図。コマの数を数えるだけなので 2 段の図の最初の段だけを撮り、コマの数を半分にする (#3410) */
+const oneStep = (): Json => {
+  const two = twoSteps() as { steps: Json[] };
+  return { ...two, steps: two.steps.slice(0, 1) };
+};
+type Shot = "video" | "png";
+const twoStepsShots = new Map<Shot, Promise<Exported>>();
+const shootTwoSteps = (shot: Shot): Promise<Exported> => {
+  const seen = twoStepsShots.get(shot);
+  if (seen) return seen;
+  const formats = shot === "video" ? (["mp4", "gif"] as const) : (["png"] as const);
+  const made = exporter().then((exportDiagram) => exportDiagram(shot === "video" ? oneStep() : twoSteps(), { outDir: scratch(), formats: [...formats], ...RATES }));
+  twoStepsShots.set(shot, made);
+  return made;
 };
 
-/** CCIP の最初の 3 段。全ての段を撮ると 45 秒の図になり、1 件の上限 (10 秒、#3381) の中で撮れない */
+/**
+ * CCIP の最初の段。図の箱と絵柄は最初の段から全て描くので、GIF の色の表は最初の段で上限まで埋まる。
+ * 段を 3 つ撮ると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3381、#3410)
+ */
 const ccipHead = (): Json => {
   const ccip = exampleJson("ccip.json") as { steps: Json[] };
-  return { ...ccip, steps: ccip.steps.slice(0, 3) };
+  return { ...ccip, steps: ccip.steps.slice(0, 1) };
+};
+
+/** 線を 1 本だけ持つ最小の時系列図。4 つの形式を書き出すことだけを確かめる検査が使う (#3410) */
+const oneEdge = (): Json => {
+  const small = smallSequence() as { steps: { events: Json[] }[] };
+  return { ...small, steps: small.steps.map((step) => ({ ...step, body: "送る側が受ける側へ送る。", events: step.events.slice(0, 1) })) };
 };
 
 
@@ -86,24 +110,36 @@ function fourButtons(sizes: string[], size: string): typeof FOUR_BUTTONS {
 }
 
 describe("書き出しのコマと形 (#3115)", () => {
-  it(
-    "export-frame-counts-follow-rates",
-    async () => {
-      // 渡したコマの数のとおりに撮る。mp4 は 1 秒 2 コマ、GIF は 1 秒 1 コマで、GIF の 1 コマは 1 秒。既定の数は export-defaults.test.ts が確かめる (#3381)
-      const result = await shootTwoSteps();
-      const { total } = draw("renderDiagram")(twoSteps()).timeline;
-      expect(result.frames, `1 周 ${total} 秒の mp4 のコマの数`).toBe(Math.round(total * RATES.fps));
-      const gif = readGif(readFileSync(result.files.gif as string));
-      expect(gif.frames.length, `1 周 ${total} 秒の GIF のコマの数`).toBe(Math.round(total * RATES.gifFps));
-      expect([...new Set(gif.frames.map((frame) => frame.delay))], "GIF の 1 コマの長さ (1/100 秒)").toEqual([100 / RATES.gifFps]);
-    },
-  );
+  // 渡したコマの数のとおりに撮る。mp4 は 1 秒 1 コマ、GIF は 2 秒に 1 コマで、GIF の 1 コマは 2 秒。既定の数は export-defaults.test.ts が確かめる (#3381)
+  describe("mp4", () => {
+    it(
+      "export-frame-counts-follow-rates",
+      async () => {
+        const result = await shootTwoSteps("video");
+        const { total } = draw("renderDiagram")(oneStep()).timeline;
+        expect(result.frames, `1 周 ${total} 秒の mp4 のコマの数`).toBe(Math.round(total * RATES.fps));
+      },
+    );
+  });
+
+  describe("GIF", () => {
+    it(
+      "export-frame-counts-follow-rates",
+      async () => {
+        const result = await shootTwoSteps("video");
+        const { total } = draw("renderDiagram")(oneStep()).timeline;
+        const gif = readGif(readFileSync(result.files.gif as string));
+        expect(gif.frames.length, `1 周 ${total} 秒の GIF のコマの数`).toBe(Math.round(total * RATES.gifFps));
+        expect([...new Set(gif.frames.map((frame) => frame.delay))], "GIF の 1 コマの長さ (1/100 秒)").toEqual([100 / RATES.gifFps]);
+      },
+    );
+  });
 
   it(
     "gif-keeps-unchanged-pixels",
     async () => {
       // 2 コマ目からは変わった所だけを書き、残りは透明にするので、後始末は前のコマを残す (1) でないと絵が欠ける
-      const gif = readGif(readFileSync((await shootTwoSteps()).files.gif as string));
+      const gif = readGif(readFileSync((await shootTwoSteps("video")).files.gif as string));
       expect(gif.frames.length, "GIF のコマが 2 つ以上無い").toBeGreaterThan(1);
       gif.frames.slice(1).forEach((frame, i) => {
         expect(frame.dispose, `GIF の ${i + 2} コマ目の後始末`).toBe(1);
@@ -114,9 +150,10 @@ describe("書き出しのコマと形 (#3115)", () => {
   it(
     "gif-palette-fits-format",
     async () => {
-      // GIF の色の表は 256 色まで。CCIP は表の上限まで色を使う
+      // GIF の色の表は 256 色まで。CCIP は表の上限まで色を使う。
+      // 色の表は 1 コマごとに作るので、4 秒に 1 コマ (コマの数は 0 より大きい数を受ける) で撮り、コマを 3 つに絞る (#3410)
       const exportDiagram = await exporter();
-      const result = await exportDiagram(ccipHead(), { outDir: scratch(), formats: ["gif"], gifFps: 1 });
+      const result = await exportDiagram(ccipHead(), { outDir: scratch(), formats: ["gif"], gifFps: 0.25 });
       const gif = readGif(readFileSync(result.files.gif as string));
       expect(gif.frames.length, "CCIP の GIF にコマが無い").toBeGreaterThan(0);
       gif.frames.forEach((frame, i) => {
@@ -130,7 +167,7 @@ describe("書き出しのコマと形 (#3115)", () => {
     "png-export-shows-last-step",
     async () => {
       // PNG は最後の段の止め絵で撮る。まだ来ていない段の番号は出さないので、最初の段の止め絵には 2 段目の番号の丸が無い
-      const result = await shootTwoSteps();
+      const result = await shootTwoSteps("png");
       const { layout } = draw("renderDiagram")(twoSteps());
       const png = PNG.sync.read(readFileSync(result.files.png as string));
       const scale = png.width / Math.ceil(layout.width);
@@ -157,38 +194,35 @@ describe("書き出しのコマと形 (#3115)", () => {
 });
 
 describe("書き出し (#2986)", () => {
-  it(
-    "export-writes-four-formats",
-    async () => {
-      const dir = scratch();
-      const json = join(dir, "small.json");
-      writeFileSync(json, JSON.stringify(smallSequence()));
-      const notation = join(dir, "small-notation.dragon");
-      writeFileSync(notation, api("printNotation")(smallSequence()));
-
-      // 書き出す先の dir はまだ無い。2 つの命令は互いに独立しているので、並べて起こす (#3381)
-      const cases = [
-        [json, join(dir, "new", "from-json"), "small"],
-        [notation, join(dir, "new", "from-notation"), "small-notation"],
-      ] as const;
-      await Promise.all(
-        cases.map(async ([input, out, name]) => {
-          const ran = await runCli(["export", input, "--out", out, "--fps", "2", "--gif-fps", "1"]);
-          expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
-          for (const format of ["mp4", "gif", "html", "png"] as const) {
-            const file = join(out, `${name}.${format}`);
-            let bytes = Buffer.alloc(0);
-            try {
-              bytes = readFileSync(file);
-            } catch {
-              // 無い時は下の判定で落とす
-            }
-            expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
+  // 原本の JSON と記法の file を、それぞれ 1 件 1 回の命令で書き出す (#3410)。2 つを 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた
+  describe.for([
+    { input: "JSON", name: "small", write: (): string => JSON.stringify(oneEdge()), ext: "json" },
+    { input: "記法", name: "small-notation", write: (): string => api("printNotation")(oneEdge()), ext: "dragon" },
+  ])("$input", ({ name, write, ext }) => {
+    it(
+      "export-writes-four-formats",
+      async () => {
+        const dir = scratch();
+        const input = join(dir, `${name}.${ext}`);
+        writeFileSync(input, write());
+        // 書き出す先の dir はまだ無い
+        const out = join(dir, "new", name);
+        // 4 つの形式に書かれることだけを見るので、2 秒に 1 コマで撮る (#3410)
+        const ran = await runCli(["export", input, "--out", out, "--fps", "0.5", "--gif-fps", "0.5"]);
+        expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
+        for (const format of ["mp4", "gif", "html", "png"] as const) {
+          const file = join(out, `${name}.${format}`);
+          let bytes = Buffer.alloc(0);
+          try {
+            bytes = readFileSync(file);
+          } catch {
+            // 無い時は下の判定で落とす
           }
-        }),
-      );
-    },
-  );
+          expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
+        }
+      },
+    );
+  });
 
   it(
     "export-is-deterministic",
@@ -214,10 +248,12 @@ describe("書き出し (#2986)", () => {
     async () => {
       const exportDiagram = await exporter();
       // 書き手が寄って見せると決めた図。幅は指定しない
-      // 全ての段を撮ると 45 秒の図になるので、見る範囲の離れた最初の段と最後の段だけを撮る (#3381)
+      // 全ての段を撮ると 45 秒の図になるので、見る範囲の離れた最初の段と最後の段だけを撮る (#3381)。
+      // 比べるのは最初と途中の 2 コマなので、2 秒に 1 コマ (コマの数は 0 より大きい数を受ける) で撮る (#3410)。
+      // 4 秒に 1 コマで撮ると、途中のコマの見る範囲が最初のコマと同じになった
       const full = exampleJson("ccip.json") as { steps: Json[] };
       const ccip = patched({ ...full, steps: [full.steps[0], full.steps.at(-1)].filter((step): step is Json => step !== undefined) }, ["view"], "follow");
-      const result = await exportDiagram(ccip, { outDir: scratch(), formats: ["mp4", "html"], fps: 2 });
+      const result = await exportDiagram(ccip, { outDir: scratch(), formats: ["mp4", "html"], fps: 0.5 });
       expect(result.view).toBe("follow");
       expect(result.files.mp4, "mp4 を書き出していない").toBeDefined();
 
@@ -351,36 +387,32 @@ describe("書き出し (#2986)", () => {
     },
   );
 
-  it(
-    "html-export-draws-every-kind",
-    async () => {
-      // 書き出した HTML に埋める script は全ての種類を持ち、部品を後から読まない (#3248)。頁の外を読めない形で全ての段を送る
-      const exportDiagram = await exporter();
-      const parse = api("parseNotation");
-      const kinds: Record<string, string> = {
-        architecture: "ccip.dragon",
-        git: "rebase.dragon",
-        lineup: "auction.dragon",
-        sequence: "api.dragon",
-        state: "order.dragon",
-        time: "finality.dragon",
-        tree: "merkle.dragon",
-      };
-      // 種類ごとの書き出しは互いに独立しているので、並べて回す (#3381)
-      await Promise.all(
-        Object.entries(kinds).map(async ([kind, file]) => {
-          const parsed = parse(exampleText(file));
-          expect(parsed.ok, `見本 ${file} の記法を読めない`).toBe(true);
-          if (!parsed.ok) return;
-          const diagram = parsed.diagram as { kind?: string; steps: unknown[] };
-          expect(diagram.kind ?? "architecture", `見本 ${file} の種類`).toBe(kind);
-          const result = await exportDiagram(parsed.diagram, { outDir: scratch(), formats: ["html"] });
-          const html = readFileSync(result.files.html as string, "utf8");
-          expect(await captionSteps(html, 1280), `${kind} の書き出した HTML で送れた段の数`).toHaveLength(diagram.steps.length);
-        }),
-      );
-    },
-  );
+  // 書き出した HTML に埋める script は全ての種類を持ち、部品を後から読まない (#3248)。頁の外を読めない形で全ての段を送る。
+  // 種類ごとに 1 件 1 回の書き出しに分ける (#3410)。全ての種類を 1 件で書き出すと、混んだ機械で 1 件の上限 (10 秒) を超えた
+  describe.for([
+    { kind: "architecture", file: "ccip.dragon" },
+    { kind: "git", file: "rebase.dragon" },
+    { kind: "lineup", file: "auction.dragon" },
+    { kind: "sequence", file: "api.dragon" },
+    { kind: "state", file: "order.dragon" },
+    { kind: "time", file: "finality.dragon" },
+    { kind: "tree", file: "merkle.dragon" },
+  ])("$kind", ({ kind, file }) => {
+    it(
+      "html-export-draws-every-kind",
+      async () => {
+        const exportDiagram = await exporter();
+        const parsed = api("parseNotation")(exampleText(file));
+        expect(parsed.ok, `見本 ${file} の記法を読めない`).toBe(true);
+        if (!parsed.ok) return;
+        const diagram = parsed.diagram as { kind?: string; steps: unknown[] };
+        expect(diagram.kind ?? "architecture", `見本 ${file} の種類`).toBe(kind);
+        const result = await exportDiagram(parsed.diagram, { outDir: scratch(), formats: ["html"] });
+        const html = readFileSync(result.files.html as string, "utf8");
+        expect(await captionSteps(html, 1280), `${kind} の書き出した HTML で送れた段の数`).toHaveLength(diagram.steps.length);
+      },
+    );
+  });
 });
 
 describe("書き出した配管の図の畳んだ箱 (#3398)", () => {

@@ -53,7 +53,8 @@ const FRAMES = [
 
 /**
  * 角を確かめる見本。英語の見本 (`*.en.json`) は日本語の見本と同じ箱と囲みを、字の言葉だけ替えて描くので外す (#3381)。
- * 全ての見本を全ての色味で描いて読むと、1 件の上限 (10 秒) に収まらない
+ * 全ての見本を全ての色味で描いて読むと、1 件の上限 (10 秒) に収まらない。
+ * 検査は見本ごとに分ける (#3410)。全ての見本を 1 件で描くと、混んだ機械で 1 件の上限を超えた
  */
 const FILES = readdirSync(EXAMPLES)
   .filter((file) => file.endsWith(".json") && !file.endsWith(".en.json"))
@@ -171,56 +172,62 @@ function framePairs(file: string, theme: Theme): { paper: Element; arcade: Eleme
   return paper.map((el, i) => ({ paper: el, arcade: arcade[i] as Element }));
 }
 
-describe("arcade の角 (#3344)", () => {
+describe("arcade の角の見本 (#3410)", () => {
+  it("arcade-corner-examples-found", () => {
+    // 見本ごとの検査は見本が 1 つも無いと 1 件も走らず、落ちずに素通りする
+    expect(FILES.length, "角を確かめる見本が無い (走査の空振り)").toBeGreaterThan(0);
+  });
+});
+
+describe.for(FILES)("arcade の角 (#3344) %s", (file) => {
   it("arcade-cuts-box-region-frame-corners", () => {
     const wrong: string[] = [];
     let seen = 0;
-    for (const file of FILES) {
-      for (const theme of THEMES) {
-        for (const { paper, arcade } of framePairs(file, theme)) {
-          seen++;
-          const box = boxOf(paper);
-          const points =
-            arcade.localName === "path" ? ring(arcade.getAttribute("d") ?? "") : undefined;
-          const corners: Point[] = [
-            [box.x, box.y],
-            [box.x + box.w, box.y + box.h],
-          ];
-          const cutAway: Point[] = [
-            [box.x + box.w, box.y],
-            [box.x, box.y + box.h],
-          ];
-          const ok =
-            points?.length === 6 &&
-            corners.every((p) => points.some((q) => near(p, q))) &&
-            cutAway.every((p) => !points.some((q) => near(p, q)));
-          if (!ok)
-            wrong.push(
-              `${file} の ${theme} の ${where(arcade)} が右上と左下を落とした 6 つの頂点の形でない`,
-            );
-        }
+    for (const theme of THEMES) {
+      for (const { paper, arcade } of framePairs(file, theme)) {
+        seen++;
+        const box = boxOf(paper);
+        const points =
+          arcade.localName === "path" ? ring(arcade.getAttribute("d") ?? "") : undefined;
+        const corners: Point[] = [
+          [box.x, box.y],
+          [box.x + box.w, box.y + box.h],
+        ];
+        const cutAway: Point[] = [
+          [box.x + box.w, box.y],
+          [box.x, box.y + box.h],
+        ];
+        const ok =
+          points?.length === 6 &&
+          corners.every((p) => points.some((q) => near(p, q))) &&
+          cutAway.every((p) => !points.some((q) => near(p, q)));
+        if (!ok)
+          wrong.push(
+            `${file} の ${theme} の ${where(arcade)} が右上と左下を落とした 6 つの頂点の形でない`,
+          );
       }
     }
-    expect(seen, "角を落とす形を 1 つも描いていない").toBeGreaterThan(0);
+    expect(seen, `${file} に角を落とす形を 1 つも描いていない`).toBeGreaterThan(0);
     expect(wrong).toEqual([]);
   });
 
   it("arcade-draws-no-rounded-corner", () => {
     const wrong: string[] = [];
-    for (const file of FILES) {
-      for (const theme of THEMES) {
-        const arcade = figureOf(file, "arcade", theme);
-        for (const el of roundedIn(arcade))
-          wrong.push(
-            `${file} の ${theme} の ${where(el)} が丸い角 (rx=${el.getAttribute("rx")}) を持つ`,
-          );
-        // 小さな部品は消さずに四角で描く。角を落とす形のほかは、paper と同じ数の四角が在る
-        const paper = shapeCounts(figureOf(file, "paper", theme));
-        expect(shapeCounts(arcade), `${file} の ${theme} を arcade で描いた形の数`).toEqual(paper);
-      }
+    for (const theme of THEMES) {
+      const arcade = figureOf(file, "arcade", theme);
+      for (const el of roundedIn(arcade))
+        wrong.push(
+          `${file} の ${theme} の ${where(el)} が丸い角 (rx=${el.getAttribute("rx")}) を持つ`,
+        );
+      // 小さな部品は消さずに四角で描く。角を落とす形のほかは、paper と同じ数の四角が在る
+      const paper = shapeCounts(figureOf(file, "paper", theme));
+      expect(shapeCounts(arcade), `${file} の ${theme} を arcade で描いた形の数`).toEqual(paper);
     }
     expect(wrong).toEqual([]);
   });
+});
+
+describe("arcade の角 (#3344)", () => {
 
   it("arcade-cut-is-8-or-a-quarter", async () => {
     const wrong: string[] = [];
@@ -333,31 +340,31 @@ describe("arcade の再生の枠 (#3344)", () => {
   });
 });
 
-describe("今の色味の角 (#3344)", () => {
+/** 角の形を足す前に、今の色味で描いた丸い角の数と半径の記録 */
+const before = JSON.parse(
+  readFileSync(join(ROOT, "packages/dragon/test/fixtures/corners-before-arcade.json"), "utf8"),
+) as Record<string, Record<string, number>>;
+
+describe.for(FILES)("今の色味の角 (#3344) %s", (file) => {
   it("other-palettes-keep-rounded-corners", () => {
-    const before = JSON.parse(
-      readFileSync(join(ROOT, "packages/dragon/test/fixtures/corners-before-arcade.json"), "utf8"),
-    ) as Record<string, Record<string, number>>;
     // 記録は英語の見本も持つ。英語の見本は日本語の見本と同じ形なので、日本語の見本だけを比べる
-    expect(Object.keys(before).filter((file) => !file.endsWith(".en.json")).sort(), "角の形を足す前の記録と見本の file").toEqual(FILES);
+    expect(Object.keys(before).filter((name) => !name.endsWith(".en.json")).sort(), "角の形を足す前の記録と見本の file").toEqual(FILES);
     // 明暗は色だけを替え、角の形を替えない。ほかの色味は明るい表示だけで確かめる (#3381)
-    for (const file of FILES) {
-      for (const palette of OTHERS) {
-        for (const theme of ["light"] as const) {
-          const figure = figureOf(file, palette, theme);
-          const rounded: Record<string, number> = {};
-          for (const el of roundedIn(figure)) {
-            const key = `${el.getAttribute("class") ?? "(none)"} rx=${num(el, "rx")}`;
-            rounded[key] = (rounded[key] ?? 0) + 1;
-          }
-          expect(rounded, `${file} を ${palette} の ${theme} で描いた丸い角の数と半径`).toEqual(
-            before[file],
-          );
-          expect(
-            [...figure.querySelectorAll("path")].filter(isFrame).map(where),
-            `${file} を ${palette} の ${theme} で描いて角を落とした形`,
-          ).toEqual([]);
+    for (const palette of OTHERS) {
+      for (const theme of ["light"] as const) {
+        const figure = figureOf(file, palette, theme);
+        const rounded: Record<string, number> = {};
+        for (const el of roundedIn(figure)) {
+          const key = `${el.getAttribute("class") ?? "(none)"} rx=${num(el, "rx")}`;
+          rounded[key] = (rounded[key] ?? 0) + 1;
         }
+        expect(rounded, `${file} を ${palette} の ${theme} で描いた丸い角の数と半径`).toEqual(
+          before[file],
+        );
+        expect(
+          [...figure.querySelectorAll("path")].filter(isFrame).map(where),
+          `${file} を ${palette} の ${theme} で描いて角を落とした形`,
+        ).toEqual([]);
       }
     }
   });

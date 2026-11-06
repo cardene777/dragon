@@ -5,20 +5,18 @@
  * package の `files` から `gallery/` を外し、入口からも読まないので、npm に出す file に見本帳の字は入らない。
  * `npm pack --dry-run` が出す file の一覧と、その file の中身の両方を見る。一覧だけを見ると、見本帳の字を別の file へ写した形を捕まえられない。
  */
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, inject, it } from "vitest";
 
 const PACKAGE = join(__dirname, "..");
 const BLOCKS = join(PACKAGE, "src/blocks");
 
-/** `npm pack --dry-run` が npm に出すと答えた file の path (package の dir から見た相対 path) */
-function packedFiles(): string[] {
-  const out = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: PACKAGE, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-  const [pack] = JSON.parse(out) as { files: { path: string }[] }[];
-  return (pack?.files ?? []).map((file) => file.path);
-}
+/**
+ * `npm pack --dry-run` が npm に出すと答えた file の path (package の dir から見た相対 path)。
+ * npm は準備の段 (`test-support/pack-setup.ts`) が 1 度だけ起こし、ここでは渡された一覧を読む (#3410)
+ */
+const packedFiles = (): string[] => ((inject as (key: string) => unknown)("dragonPackFiles") as string[] | undefined) ?? [];
 
 /**
  * 見本帳の説明と、使い方の頁の段落の字。ブロックの置き場の `gallery/` の `text.ts` と `docs.ts` が出す字をそのまま引く。
@@ -56,6 +54,16 @@ const unescaped = (text: string): string =>
   text.replace(/\\u\{([0-9a-fA-F]+)\}|\\u([0-9a-fA-F]{4})/gu, (_, wide: string | undefined, hex: string | undefined) => String.fromCodePoint(parseInt(wide ?? hex ?? "0", 16)));
 
 describe("npm に出す package の file (#3350)", () => {
+  it("pack-list-comes-from-setup", () => {
+    // npm に出す file の一覧は、この file を回す時だけ準備の段が npm pack を 1 度だけ起こして出し、検査はその一覧を読む (#3410)
+    const files = (inject as (key: string) => unknown)("dragonPackFiles") as string[] | undefined;
+    expect(files?.length ?? 0, "準備の段が npm に出す file の一覧を渡していない").toBeGreaterThan(0);
+    expect(files, "準備の段が渡した一覧に package.json が無い").toContain("package.json");
+    // npm の起動は 1 件の上限 (10 秒) の中で数秒かかり、混んだ機械で上限を超えたので、検査の中では起こさない
+    const source = readFileSync(join(__dirname, "package-files.test.ts"), "utf8");
+    expect(/execFileSync\(\s*"npm"|spawn(?:Sync)?\(\s*"npm"/u.test(source), "package-files.test.ts が検査の中で npm を起こす").toBe(false);
+  });
+
   it("package-excludes-catalog-material", async () => {
     const files = packedFiles();
     expect(files.length, "npm に出す file が無い (走査の空振り)").toBeGreaterThan(0);
