@@ -22,9 +22,18 @@ vi.mock("../src/render/ink", async (importOriginal) => {
 /*
  * 命令の元の code が読む部品を、検査の外 (この file を読む段) で先に読む (#3410)。
  * 元の code は 500 を超える file を読み、初めて読む時に 1 つずつ変換する。検査の中で初めて読むと、混んだ機械で変換だけで 9 秒かかった。
- * 変換は 1 回の実行の中で使い回すので、検査の中で命令を読み直す (`vi.resetModules`) 時は変換し直さない。命令そのもの (`src/cli.ts`) は読むと走るので、ここでは読まない
+ * 変換は 1 回の実行の中で使い回すので、検査の中で命令を読み直す (`vi.resetModules`) 時は変換し直さない。命令そのもの (`src/cli.ts`) は読むと走るので、ここでは読まない。
+ * Chromium を起こす部品 (`playwright-core`) は書き出す時に初めて読むので、これも先に読む
  */
-await Promise.all([import("../src/export/embed"), import("../src/export/index"), import("../src/look/values"), import("../src/parser"), import("../src/render/ink"), import("../src/words")]);
+await Promise.all([
+  import("../src/export/embed"),
+  import("../src/export/index"),
+  import("../src/look/values"),
+  import("../src/parser"),
+  import("../src/render/ink"),
+  import("../src/words"),
+  import("playwright-core"),
+]);
 
 /**
  * 2 段目に書き込みだけを持つ状態遷移図。通らない箱「支払い済み」を脇道の囲みに入れ、囲みの名前「脇道」と添え書き「今回は通らない」を描く。
