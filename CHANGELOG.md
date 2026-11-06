@@ -6,6 +6,16 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.55.1] - 2026-11-06
+
+### Fixed
+
+- **A try diagram read from notation can be placed with the light entry and the script entry** (#3416)
+
+  Since 0.54.0, placing a try diagram read with `parseNotation` through the light entry or the script entry stopped with an error that the schema check was not loaded, even after awaiting `loadFor`. `mountDiagram` copies a try diagram to start from the writer's first step and copies it again each time the reader sends a value or presses a button, and the copies lost the mark that lets a diagram read from notation skip the check. The copies now keep the mark, so the page places the diagram and redraws it without loading the schema check. A try diagram built from JSON still asks you to await `loadFor` first.
+
+## [0.55.0] - 2026-11-06
+
 ### Added
 
 - **The playground shows how to add your own blocks** (#3407)
@@ -18,6 +28,11 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - **The editor draws notation with block definitions when it is opened directly** (#3407)
 
   Opening the editor with such notation in its link, or typing a `blocks 1` line, showed an error until something else had loaded the definition reader. The editor now waits for the reader and reads the notation again when it arrives.
+
+- **Chips in a place with no order sit on a grid** (#3408)
+
+  A place written `box <name> [order: none]` shifted each chip by up to 4px up or down and 6px sideways, so the tops of chips in the same row did not line up and the place looked broken rather than unordered. Chips now take the width of the widest chip and sit on a grid, with their tops aligned in each row and their left edges aligned in each column.
+  The dashed outline and the "No order" text under the name still show that the place has no order. The room kept for the shift is gone, so the place is 8px shorter.
 
 ## [0.54.0] - 2026-11-06
 

@@ -50,6 +50,7 @@ import {
   FONT_VARS,
   isColorName,
   isColorValue,
+  KIND_PALETTE,
   LOOK,
   MOTION,
   type Palette,
@@ -90,8 +91,8 @@ export interface RenderOptions {
   /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ英語 (#3001、#3338) */
   lang?: NotationLang;
   /**
-   * 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351)。
-   * 配管の図は、関係者を横に並べると名前が読めない幅で、段ごとに関わらない関係者の列を細い帯に畳む (#3389)。書かなければ横に並べる
+   * 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351)。書かなければ横に並べる。
+   * 配管の図は幅に関わらず横に長いまま並べ、再生の部品が枠の中を横に送る (#3398)
    */
   width?: number;
   /** 配管の図 (#3389) で開いて描く `[fold]` の呼び出しの番号 (出てきた順、0 から)。書かない呼び出しは内側の段を 1 つの箱に畳む */
@@ -116,6 +117,11 @@ export interface Rendered {
   timeline: Timeline;
   /** 描いた図の形。版1と同じ欄と並びで、図の id はこの形の字から作る (#3346) */
   diagram: DiagramModel;
+  /**
+   * 配管の図の `[fold]` の呼び出しの内側を 1 段にまとめる前の形 (#3398)。まとめた段を持つ図だけが持つ。
+   * 書き出した頁はこの形を収め、読み手が箱を押した時に内側の段を開いて描き直す
+   */
+  source?: DiagramModel;
   /** 段ごとの止め絵で、同時に見えている字どうしの重なりと、線が札を持たない字を横切る所 (#3175)。重なりが無ければ空 */
   overlaps: Overlap[];
 }
@@ -987,12 +993,13 @@ function renderRead(source: Diagram, options: RenderOptions, lang: NotationLang)
                     ...(options.width === undefined ? {} : { width: options.width }),
                   })
                 : diagram.kind === "pipe"
-                  ? kindParts("pipe", lang).layoutPipe(diagram, {
-                      lang,
-                      ...(options.width === undefined ? {} : { width: options.width }),
-                    })
+                  ? kindParts("pipe", lang).layoutPipe(diagram, { lang })
                   : KIND_FOLDERS.architecture.layout(diagram, lang);
-  return renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), options);
+  // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
+  const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;
+  const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };
+  const rendered = renderLayout(diagram, layout, buildTimeline(diagram, options.still === true), drawn);
+  return diagram === model || diagram.steps.length === model.steps.length ? rendered : { ...rendered, source: model };
 }
 
 /**

@@ -8,6 +8,7 @@
  */
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { FIGURE_TEXT } from "../figure-text";
 import { paletteVars, resolvePalette, type Theme } from "../look/values";
 import { FORMAT_VERSION, fromModel } from "../model";
 import { BUTTON_TEXT, stepNo } from "../player";
@@ -76,8 +77,28 @@ function drawnTexts(rendered: Rendered, followSvg: string | undefined, lang: Not
     ...svgs.flatMap(svgTexts),
     ...diagram.steps.flatMap((step, s) => [step.title, step.body, stepNo(s, count)]),
     ...Object.values(BUTTON_TEXT),
+    // 再生の釦は名前も字で出す (#3398)
+    FIGURE_TEXT[lang].play,
+    FIGURE_TEXT[lang].pause,
     ...(diagram.kind === "try" ? tryTexts(diagram, lang) : []),
   ];
+}
+
+/**
+ * 配管の図の畳んだ箱を全て開いた図で描かれる字 (#3398)。頁で読み手が箱を押すと、内側の段の題と本文と関係者の名前を描く。
+ * 箱の内側にも箱が在るので、新しい箱が出なくなるまで開いて描く
+ */
+function openedTexts(input: unknown, rendered: Rendered, options: ExportOptions, lang: NotationLang): string[] {
+  if (!rendered.source) return [];
+  const texts: string[] = [];
+  let open: number[] = [];
+  for (let folds = (rendered.layout as { folds?: { call: number }[] }).folds ?? []; folds.length > 0; ) {
+    open = [...open, ...folds.map((f) => f.call)];
+    const opened = renderDiagram(input, { ...(options.palette ? { palette: options.palette } : {}), lang, open });
+    texts.push(...drawnTexts(opened, undefined, lang));
+    folds = ((opened.layout as { folds?: { call: number }[] }).folds ?? []).filter((f) => !open.includes(f.call));
+  }
+  return texts;
 }
 
 export async function exportDiagram(input: unknown, options: ExportOptions): Promise<ExportResult> {
@@ -96,13 +117,14 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   // 寄って見せる図は動画と字の file の両方に使うので 1 度だけ描き、2 つの全体図の札の言葉を揃える
   const followSvg = rendered.view === "fixed" ? undefined : drawSvg(diagram, layout, timeline, palette, theme, { width, lang });
   const videoSvg = view === "follow" && followSvg ? followSvg : rendered.svg;
-  const fontCss = await fontFaces(charsOf(drawnTexts(rendered, followSvg, lang)));
+  const fontCss = await fontFaces(charsOf([...drawnTexts(rendered, followSvg, lang), ...openedTexts(input, rendered, options, lang)]));
 
   // 撮る物を全て撮り終えてから書く。撮る所で失敗した時に、書き出し先の dir と途中の file を残さないため (#3013)
   const outputs: [ExportFormat, string | Buffer][] = [];
 
-  // 頁は埋めた原本を読み直して描くので、今の版の原本 (版2) に戻して埋める (#3346)
-  if (formats.includes("html")) outputs.push(["html", pageHtml(fromModel(diagram, FORMAT_VERSION), { palette: palette.id, theme, vars, lang }, fontCss)]);
+  // 頁は埋めた原本を読み直して描くので、今の版の原本 (版2) に戻して埋める (#3346)。
+  // 配管の図は内側の段をまとめる前の形を埋め、頁が箱を押された時に内側の段を開けるようにする (#3398)
+  if (formats.includes("html")) outputs.push(["html", pageHtml(fromModel(rendered.source ?? diagram, FORMAT_VERSION), { palette: palette.id, theme, vars, lang }, fontCss)]);
 
   let frames = 0;
   const mp4 = formats.includes("mp4");

@@ -257,13 +257,13 @@ export interface CaptionBox {
 export const captionOf = (
   page: Page,
   scope: string,
-): Promise<{ bar: number; frame: number; inner: { left: number; right: number }; buttons: CaptionBox; no: CaptionBox; title: CaptionBox; body: CaptionBox; inside: boolean } | null> =>
+): Promise<{ bar: number; frame: number; inner: { left: number; right: number }; buttons: CaptionBox; no: CaptionBox; title: CaptionBox; body: CaptionBox; segments: CaptionBox; inside: boolean } | null> =>
   page.evaluate(async (scope) => {
     await document.fonts.ready;
     const read = () => {
       const bar = document.querySelector(`${scope} .dg-bar`);
       const frameEl = document.querySelector<HTMLElement>(`${scope} .dg-frame`);
-      const parts = [".dg-btns", '[data-dragon="step-no"]', '[data-dragon="step-title"]', '[data-dragon="step-body"]'].map((s) => document.querySelector(`${scope} ${s}`));
+      const parts = [".dg-btns", '[data-dragon="step-no"]', '[data-dragon="step-title"]', '[data-dragon="step-body"]', '[data-dragon="progress"]'].map((s) => document.querySelector(`${scope} ${s}`));
       if (!bar || !frameEl || parts.some((part) => !part)) return null;
       const box = (el: Element): CaptionBox => {
         const r = el.getBoundingClientRect();
@@ -274,7 +274,7 @@ export const captionOf = (
       const inner = { left: Math.round(barBox.left + Number.parseFloat(style.paddingLeft)), right: Math.round(barBox.right - Number.parseFloat(style.paddingRight)) };
       const frameStyle = getComputedStyle(frameEl);
       const texts = [...document.querySelectorAll(`${scope} [data-dragon="caption-room"] > *, ${scope} [data-dragon="step-title"], ${scope} [data-dragon="step-body"]`)];
-      const [buttons, no, title, body] = parts.map((part) => box(part as Element)) as [CaptionBox, CaptionBox, CaptionBox, CaptionBox];
+      const [buttons, no, title, body, segments] = parts.map((part) => box(part as Element)) as [CaptionBox, CaptionBox, CaptionBox, CaptionBox, CaptionBox];
       return {
         bar: Math.round(barBox.height),
         frame: Math.round(frameEl.clientHeight - Number.parseFloat(frameStyle.paddingTop) - Number.parseFloat(frameStyle.paddingBottom)),
@@ -283,6 +283,7 @@ export const captionOf = (
         no,
         title,
         body,
+        segments,
         inside: texts.every((text) => {
           const r = text.getBoundingClientRect();
           return r.left >= inner.left - 0.5 && r.right <= inner.right + 0.5 && text.scrollWidth <= text.clientWidth + 1;
@@ -296,6 +297,60 @@ export const captionOf = (
     const second = read();
     return first && second && JSON.stringify(first) === JSON.stringify(second) ? second : null;
   }, scope);
+
+/**
+ * 広い帯 (中身の幅が 640px 以上) の並べ方 (#3398)。番号と題と本文を左に、釦を題の行の右端に、段ごとの進み具合を帯の全幅で一番下に置く。
+ * `gaps` は番号と題の間、題の欄と釦の間、題と釦の上端の差、題と本文の間
+ */
+export const wideCaptionShape = (seen: NonNullable<Awaited<ReturnType<typeof captionOf>>>) => {
+  const { inner, buttons, no, title, body, segments } = seen;
+  return {
+    buttonsBesideTitle: buttons.left >= title.right && buttons.top < title.bottom,
+    buttonsAtRight: Math.abs(buttons.right - inner.right) <= 1,
+    noBesideTitle: no.right <= title.left && Math.abs(no.left - inner.left) <= 1,
+    bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
+    segmentsUnder: segments.top >= Math.max(body.bottom, buttons.bottom),
+    segmentsFull: Math.abs(segments.left - inner.left) <= 1 && Math.abs(segments.right - inner.right) <= 1,
+    gaps: { title: title.left - no.right, buttons: buttons.left - title.right, top: buttons.top - title.top, body: body.top - title.bottom },
+  };
+};
+
+/**
+ * 積む帯 (中身の幅が 640px より狭い帯、#3398) の並べ方。上の操作の段に釦を左から、段ごとの進み具合を釦の右から帯の右端まで置き、
+ * その下の番号の右に題、その下に説明文を帯の全幅で置く。`gaps` は番号と題の間と、釦と進み具合の間
+ */
+export const stackedCaptionShape = (seen: NonNullable<Awaited<ReturnType<typeof captionOf>>>) => {
+  const { inner, buttons, no, title, body, segments } = seen;
+  return {
+    noBesideTitle: no.right <= title.left && Math.abs(no.left - inner.left) <= 1 && no.top < title.bottom,
+    bodyUnderTitle: body.top >= title.bottom,
+    bodyFull: Math.abs(body.left - inner.left) <= 1 && Math.abs(body.right - inner.right) <= 1,
+    buttonsAboveTitle: buttons.bottom <= title.top && Math.abs(buttons.left - inner.left) <= 1,
+    segmentsBesideButtons: segments.top < buttons.bottom && segments.bottom > buttons.top && Math.abs(segments.right - inner.right) <= 1,
+    gaps: { title: title.left - no.right, buttons: segments.left - buttons.right },
+  };
+};
+
+/** 積む帯の並べ方の期待。番号と題の間は 16px、釦と進み具合の間は 10px */
+export const STACKED_CAPTION = {
+  noBesideTitle: true,
+  bodyUnderTitle: true,
+  bodyFull: true,
+  buttonsAboveTitle: true,
+  segmentsBesideButtons: true,
+  gaps: { title: 16, buttons: 10 },
+} as const;
+
+/** 広い帯の並べ方の期待。番号と題の間と題の欄と釦の間は 16px、釦は題の上端にそろえ、本文は題のすぐ下に置く */
+export const WIDE_CAPTION = {
+  buttonsBesideTitle: true,
+  buttonsAtRight: true,
+  noBesideTitle: true,
+  bodyUnderTitle: true,
+  segmentsUnder: true,
+  segmentsFull: true,
+  gaps: { title: 16, buttons: 16, top: 0, body: 0 },
+} as const;
 
 export const PHONES = [
   { width: 360, height: 780 },

@@ -150,6 +150,76 @@ describe("記法から読んだ図は描く時の検査を省く (#3400)", () =>
   });
 });
 
+/**
+ * 新しい Node で jsdom の頁に試す図の見本を置き、読み手が値を送ってブロックを作る釦を押す式。
+ * `out.mounted`、`out.steps` (置いた時、送った後、押した後の原本の段の数)、`out.refused` (帯が出した断りの訳)、`out.error` を入れる。
+ * `source` は図を作る式で、`text` (見本の記法) を読める
+ */
+/** 試す図の見本の記法 */
+const TRY_EXAMPLE = readFileSync(join(EXAMPLES, "tx-block.dragon"), "utf8");
+
+function tryOnPage(source: string): string {
+  return `
+    const { JSDOM } = await import("jsdom");
+    const dom = new JSDOM("<!doctype html><html><body><div id=host></div></body></html>", { pretendToBeVisual: true });
+    for (const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGElement", "Event", "MouseEvent", "getComputedStyle", "requestAnimationFrame", "cancelAnimationFrame"]) globalThis[key] ??= key === "window" ? dom.window : dom.window[key];
+    const host = dom.window.document.getElementById("host");
+    const text = ${JSON.stringify(TRY_EXAMPLE)};
+    const steps = (player) => (player.diagram?.steps ?? []).length;
+    const set = (field, value) => {
+      const input = host.querySelector('form[data-dragon="ask"] input[data-field="' + field + '"]');
+      input.value = value;
+      input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    };
+    let player;
+    try {
+      const diagram = await (async () => { ${source} })();
+      player = light.mountDiagram(host, diagram, { lang: "ja" });
+      out.mounted = true;
+      out.steps = [steps(player)];
+      for (const [field, value] of Object.entries({ 送り手: "Dan", 宛先: "Bob", 量: "4", 手数料: "11" })) set(field, value);
+      host.querySelector('button[data-dragon="send"]').click();
+      out.steps.push(steps(player));
+      host.querySelector('button[data-dragon="press"][data-press="ブロックを作る"]').click();
+      out.steps.push(steps(player));
+      out.refused = host.querySelector('[data-dragon="reason"]')?.textContent ?? "";
+    } catch (e) { out.error = e.message; }
+    out.validator = ${VALIDATOR_LOADED};
+    // 流す動きと頁の時計が残ると process が終わらないので、片付けて頁を閉じる
+    player?.destroy();
+    dom.window.close();
+  `;
+}
+
+describe("記法から読んだ試す図は、置いた後に写した図も検査を省く (#3416)", () => {
+  it("light-mounts-parsed-try-without-validator", () => {
+    // 試す図は書き手の最初の段だけを持つ図を写して置き、押すたびに段を足した図を写して描き直す。写した図も記法から読んだ図として描く
+    const out = inFreshNode<{ mounted?: boolean; steps?: number[]; refused?: string; error?: string; validator: unknown }>(
+      tryOnPage(`await light.loadFor(text); const parsed = light.parseNotation(text); return parsed.diagram;`),
+    );
+    expect(out.error, "記法から読んだ試す図を軽い入口で置けない").toBeUndefined();
+    expect(out.mounted).toBe(true);
+    expect(out.steps, "置いた後、値を送るたびとブロックを作るたびに段が 1 つずつ増えない").toEqual([1, 2, 3]);
+    expect(out.refused ?? "", "読み手の操作を断った").not.toMatch(/schema check/u);
+    expect(out.validator, "記法から読んだ試す図を置いて操作した後に、原本の形の検査を読んでいた").toBe(false);
+  });
+
+  it("light-refuses-json-try-before-validator", async () => {
+    // 原本の JSON から作った試す図は印を持たないので、今どおり loadFor を待つよう示して止まる
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const parsed = whole.parseNotation(TRY_EXAMPLE);
+    const json = JSON.stringify(parsed.ok ? parsed.diagram : {});
+    const out = inFreshNode<{ mounted?: boolean; error?: string; validator: unknown }>(
+      // loadKind と原本の JSON を渡した loadFor は検査も読むので、記法を渡した loadFor で試す図の部品だけを読む
+      tryOnPage(`await light.loadFor(text); return JSON.parse(${JSON.stringify(json)});`),
+    );
+    expect(out.mounted, "loadFor を待たずに原本の JSON の試す図を置けた (検査を通していない)").toBeUndefined();
+    expect(out.error ?? "", "原本の形の検査を読んでいないことを名指さない").toMatch(/schema check.*loadFor|loadFor.*schema check/u);
+  });
+});
+
 describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3349)", () => {
   it("light-entry-loads-only-used-blocks", () => {
     const out = loadedAfter(`

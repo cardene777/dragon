@@ -26,6 +26,11 @@ export interface Fit {
    * 字の下限で止まった図は今の枠より高くなる。枠を図に合わせて伸ばす置き場が使う (カタログの見本、#3250)
    */
   frame: number;
+  /**
+   * 図を縮めずに枠の中を横に送るか (配管の図、#3398)。倍率は 1 で、枠の高さは図の原寸の高さで決まる。
+   * 寄って追う図に替わらないので、置き場は枠を図の高さまで伸ばす
+   */
+  pan: boolean;
 }
 
 interface Options {
@@ -85,11 +90,13 @@ export function useFittedFigure(
       // 高さに収める時は、再生の部品が止めて見せる図を選ぶ字の大きさを下限にする。
       // 下限が違うと、部品が止めて見せる図を選んだのに、ここで縮めるのを止めて送りが残る (#3047)
       const readable = fitHeight ? VIEW_READABLE_PX : undefined;
-      const scale = fitScale(inner, { width: view.width, height: view.height }, namePx, readable);
+      // 横に送る図は再生の部品が原寸の幅で置くので、縮めた倍率で枠の高さを決めると図の下が切れる
+      const pan = frame.dataset.dragon === "pan";
+      const scale = pan ? 1 : fitScale(inner, { width: view.width, height: view.height }, namePx, readable);
       // 切り上げで、伸ばした枠の中で測り直しても倍率が下がらない (図の高さが枠の中の高さを超えない)。
       // 割り算の誤差で 1px 伸び続けないよう、0.01px 未満の端数は切り上げない
       const frameHeight = Math.ceil(view.height * scale - 0.01) + px(style.paddingTop) + px(style.paddingBottom);
-      setFit({ diagram, width: view.width, scale, frame: frameHeight });
+      setFit({ diagram, width: view.width, scale, frame: frameHeight, pan });
     };
     // 再生の部品も同じ枠を見て見せ方を選び直すので、その後に測る (先に見始めた方が先に呼ばれる)
     const observer = new ResizeObserver(measure);

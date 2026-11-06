@@ -73,7 +73,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.54/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.55/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -87,7 +87,7 @@ step Press sign in
 </pre>
 ```
 
-The script loads from jsDelivr with the version pinned up to the middle number (`@0.54`), so fixes in later patch versions reach the page and a version that changes the notation does not.
+The script loads from jsDelivr with the version pinned up to the middle number (`@0.55`), so fixes in later patch versions reach the page and a version that changes the notation does not.
 It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
@@ -593,7 +593,7 @@ dragon export ccip.json --out out
 |---|---|
 | `--out <dir>` | Where to write. Created if missing (default: the current dir) |
 | `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow` |
-| `--palette <name>` | Colors (`clear` / `paper` / `night` / `arcade`, default `paper`). `arcade` also cuts the top-right and bottom-left corners of boxes |
+| `--palette <name>` | Colors (`clear` / `paper` / `night` / `arcade` / `sea`, default `paper`, and `sea` for the pipe diagram). `arcade` also cuts the top-right and bottom-left corners of boxes |
 | `--theme <mode>` | `light` or `dark` |
 | `--lang <lang>` | Language of the text in the diagram (overview labels, the names read in HTML, and the message when it cannot draw) and of the command's usage and error messages (`ja` or `en`). Defaults to `en` for both notation files and source JSON |
 | `--fps <n>` | Frames per second of the MP4 (default 30) |

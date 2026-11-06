@@ -75,7 +75,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.54/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.55/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -89,7 +89,7 @@ step ログインを押す
 </pre>
 ```
 
-script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.54`) で読む。
+script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.55`) で読む。
 後の直しの版は頁を直さずに届き、記法を変える版は届かない。
 最初に読むのは `sequence` と `architecture` の描く部品で、ほかの種類の部品は、頁の塊がその種類を使う時だけ読む。
 同梱の 2 つの字の CSS を jsDelivr から読む `<link>` を、頁に 1 度だけ足す。
@@ -597,7 +597,7 @@ dragon export ccip.json --out out
 |---|---|
 | `--out <dir>` | 書き出す先。無ければ作る (既定は今の dir) |
 | `--width <px>` | 枠の幅。見せ方 (全体を止める / 寄って追う) を選び、寄って追う窓の幅になる |
-| `--palette <名前>` | 色味 (`clear` / `paper` / `night` / `arcade`、既定は `paper`)。`arcade` は図の箱の右上と左下を落として描く |
+| `--palette <名前>` | 色味 (`clear` / `paper` / `night` / `arcade` / `sea`、既定は `paper` で、配管の図は `sea`)。`arcade` は図の箱の右上と左下を落として描く |
 | `--theme <明暗>` | `light` か `dark` |
 | `--lang <言葉>` | 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) と、命令が出す使い方の文と誤りの文の言葉 (`ja` か `en`)。記法の file でも JSON の原本でも、既定は `en` |
 | `--fps <数>` | mp4 の 1 秒のコマの数 (既定 30) |

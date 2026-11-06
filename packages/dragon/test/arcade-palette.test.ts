@@ -84,7 +84,7 @@ describe("arcade で描く (#3341)", () => {
     const others = Object.values(palettes)
       .filter((palette) => palette.id !== "arcade")
       .flatMap((palette) => THEMES.map((theme) => ({ where: `${palette.id} の ${theme} の地`, value: (palette[theme].bg ?? "").toLowerCase() })));
-    expect(others.length, "arcade のほかの色味の地の数").toBe(6);
+    expect(others.length, "arcade のほかの色味の地の数").toBe(8);
 
     for (const file of files) {
       const diagram = JSON.parse(readFileSync(join(EXAMPLES, file), "utf8")) as unknown;

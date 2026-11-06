@@ -140,6 +140,8 @@ export interface RenderOptions {
   still?: boolean;
   /** 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351) */
   width?: number;
+  /** 配管の図 (#3389) で開いて描く `[fold]` の呼び出しの番号 */
+  open?: readonly number[];
 }
 
 export interface PlayerOptions extends RenderOptions {

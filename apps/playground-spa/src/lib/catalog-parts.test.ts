@@ -408,18 +408,19 @@ describe("カタログの部品の頁 (#3166)", () => {
     "catalog-part-figures-keep-drawn-size",
     async () => {
       // 部品の図は元の大きさより大きく描かず、枠が狭い時だけ枠の幅に縮める (#3305)。
-      // 描画の package が図に `width:100%` を当てるので、幅を戻さないと箱 2 つの図が枠いっぱいに拡大される
+      // 描画の package が図に `width:100%` を当てるので、幅を戻さないと箱 2 つの図が枠いっぱいに拡大される。
+      // 配管の図だけは縮めずに原寸で置き、枠より広い時は枠の中を横に送る (#3398)。図の箱の幅は整数に切り上げるので 1px まで許す
       for (const width of [1440, 390]) {
         for (const id of ["edge-label", "box"]) {
           const { page } = await site.open({ path: partPath(id), viewport: { width, height: 900 } });
           await onScreen(page, "part", `${partPath(id)} で部品の頁が出ない`);
-          const sizes = (): Promise<{ kind: string; drawn: number; natural: number; frame: number }[]> =>
+          const sizes = (): Promise<{ kind: string; drawn: number; natural: number; frame: number; pan: boolean }[]> =>
             page.evaluate(() =>
               [...document.querySelectorAll<HTMLElement>('[data-catalog="part-figure"]')].flatMap((section) => {
                 const svg = section.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
                 const frame = section.querySelector<HTMLElement>(".catalog-part-stage");
                 return svg && frame
-                  ? [{ kind: section.dataset.kind ?? "", drawn: svg.getBoundingClientRect().width, natural: svg.viewBox.baseVal.width, frame: frame.clientWidth }]
+                  ? [{ kind: section.dataset.kind ?? "", drawn: svg.getBoundingClientRect().width, natural: svg.viewBox.baseVal.width, frame: frame.clientWidth, pan: section.querySelector('.dg-frame[data-dragon="pan"]') !== null }]
                   : [];
               }),
             );
@@ -431,8 +432,12 @@ describe("カタログの部品の頁 (#3166)", () => {
             `幅 ${width} の ${id} の頁で、元の大きさより大きく描いた図がある`,
           ).toEqual([]);
           expect(
-            seen.filter((s) => s.drawn > s.frame + 0.5).map((s) => `${s.kind} ${Math.round(s.drawn)}px > 枠 ${s.frame}px`),
+            seen.filter((s) => !s.pan && s.drawn > s.frame + 0.5).map((s) => `${s.kind} ${Math.round(s.drawn)}px > 枠 ${s.frame}px`),
             `幅 ${width} の ${id} の頁で、枠からはみ出す図がある`,
+          ).toEqual([]);
+          expect(
+            seen.filter((s) => s.pan && (s.kind !== "pipe" || Math.abs(s.drawn - s.natural) > 1)).map((s) => `${s.kind} ${Math.round(s.drawn)}px / ${s.natural}px`),
+            `幅 ${width} の ${id} の頁で、横に送る枠の図が配管の図でないか、原寸でない`,
           ).toEqual([]);
           await site.closeContexts();
         }
