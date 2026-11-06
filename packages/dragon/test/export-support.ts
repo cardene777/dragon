@@ -340,28 +340,43 @@ export async function miniWorld(html: string, width: number): Promise<Rect> {
   });
 }
 
-/** 畳んだ箱を押す前と後の段の番号と、押した後の段の数 (#3398) */
+/** 進み具合の帯の段の数と、今の段の番号 (0 から) */
+export interface Progress {
+  count: number;
+  now: number;
+}
+
+/** 畳んだ箱を押す前と後の進み具合の帯と、段の番号が見えるか (#3418) */
 export interface Unfolded {
-  before: string;
-  after: string;
-  steps: number;
+  before: Progress;
+  after: Progress;
+  numberShown: boolean;
 }
 
 /**
- * 書き出した配管の図の HTML を動きを嫌う設定で幅 `width` で開き、段の番号が `at` になるまで送ってから畳んだ箱を押す (#3398)。
+ * 書き出した配管の図の HTML を動きを嫌う設定で幅 `width` で開き、今の段が `at` 番目 (0 から) になるまで送ってから畳んだ箱を押す (#3418)。
  * 箱は止め絵の中で押せる所に在るとは限らないので、押した知らせを箱に直に送る
  */
-export async function unfoldedSteps(html: string, width: number, at: string): Promise<Unfolded> {
+export async function unfoldedSteps(html: string, width: number, at: number): Promise<Unfolded> {
   return withPage(html, { width, height: 2000 }, async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.reload();
     await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
-    const no = (): Promise<string> => page.evaluate(() => document.querySelector('[data-dragon="step-no"]')?.textContent ?? "");
+    const progress = (): Promise<Progress> =>
+      page.evaluate(() => {
+        const segs = [...document.querySelectorAll<HTMLElement>('[data-dragon="progress"] [data-dragon="segment"]')];
+        return { count: segs.length, now: segs.findIndex((s) => s.dataset.state === "now") };
+      });
     const count = await page.locator('[data-dragon="steps"] > li').count();
-    for (let s = 0; s < count && (await no()) !== at; s++) await page.locator('[data-dragon="next"]').click();
-    const before = await no();
+    for (let s = 0; s < count && (await progress()).now !== at; s++) await page.locator('[data-dragon="next"]').click();
+    const before = await progress();
     await page.locator("[data-pipe-fold]").first().dispatchEvent("click");
-    return { before, after: await no(), steps: await page.locator('[data-dragon="steps"] > li').count() };
+    const after = await progress();
+    const numberShown = await page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>('[data-dragon="step-no"]');
+      return !!el && getComputedStyle(el).display !== "none" && (el.textContent ?? "").trim() !== "";
+    });
+    return { before, after, numberShown };
   });
 }
 
