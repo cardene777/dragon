@@ -14,6 +14,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   Write `choose <field>: <value>, <value>` before the first step, one line per field, and the reader picks that field's value from the choices in the written order instead of typing it. The field opens with the first choice selected, the first field (the chip's name) takes choices too, and changing that field of a chip inside a block picks from the same choices. A `choose` line for a field the strip lacks, a second `choose` for the same field, fewer than two choices, and an `item` or a step's `ask` with a value outside the choices stop with an error naming the line and column. Fields without choices stay free text as before.
 
+### Changed
+
+- **The player controls take a new layout in every kind of diagram, and pipe diagrams are redrawn** (#3398)
+
+  The player now shows the step number and a large step title, a short description under the title, the restart, previous, named play, and next buttons, and a progress bar split by step. When the strip is 640px or wider, the title and the buttons share one row; narrower strips stack them. Pipe diagrams are laid out again from tanks, value pipes, token boxes, and valves: water levels move, liquid flows through the pipes, valve handles turn, and gauge needles swing. A pipe diagram wider than its frame scrolls sideways inside the frame with a thin line showing where you are, instead of shrinking. The new palette `sea` (navy and ecru) keeps the call, confirm, check, and cancel colors apart for color-blind readers too. In `arcade`, the boxes of a pipe diagram have cut corners. Exported HTML carries the unfolded source, so a reader can press a box to open its inner steps.
+
 ## [0.55.1] - 2026-11-06
 
 ### Fixed

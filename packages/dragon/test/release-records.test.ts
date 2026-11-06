@@ -181,6 +181,17 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-56-0-lists-pipe-redesign", () => {
+    // 全ての図の再生の操作の並べ替えと配管の図の描き直し (#3398) も 0.56.0 で npm に出すため、2 つの変更履歴の 0.56.0 の節に項を置く (#3426)
+    const controls = { "CHANGELOG.md": "player controls", "CHANGELOG.ja.md": "再生の操作" };
+    for (const [file, words] of Object.entries(controls)) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.56\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.56.0"), "0.56.0");
+      expect(released, `${file} の 0.56.0 の節に #3398 の項が無い`).toContain("(#3398)");
+      expect(released, `${file} の 0.56.0 の節が色味 sea を名指さない`).toContain("`sea`");
+      expect(released, `${file} の 0.56.0 の節が再生の操作の並べ替えを名指さない`).toContain(words);
+    }
+  });
+
   it("changelog-0-55-1-releases-try-on-light-entry", () => {
     // 軽い入口で記法から読んだ試す図を置けるようにした直し (#3416) は 0.55.1 で npm に出す
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
