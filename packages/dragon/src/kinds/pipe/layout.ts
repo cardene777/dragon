@@ -1,29 +1,33 @@
 /**
- * 配管の図の置き場所 (#3389)。見た目の元は Tracelyth の第8回の試作 (`pipes2`)。
+ * 配管の図の置き場所 (#3389)。見た目の元は Tracelyth の第6回の試作の「4 配管」(#3398)。
  *
- * 関係者は段の中に出てきた順に左から 1 列に並び、出てこない関係者は宣言した順に後ろへ足す。
  * 関係者の種類は行から導く。残高の単位に名前を書かれた関係者はトークンの Contract、最初の呼び出しを呼んだ者は送り手、
  * ほかに呼ぶか呼ばれる者は Contract、どちらでもない者は口座。
+ * 送り手と呼ばれない口座は丸の名札で一番上の行に、呼ばれる Contract は最初に呼ばれた深さの行に箱で置き、トークンの Contract はトークンの箱にする。
  *
- * 上から順に、確認の印と今の段の変更の札の行、イベントの札の列、呼び出しの管、関係者の名札、名札の下の札 (計器、換算、取り消し、畳んだ箱)、
- * 値の札、槽、トークンごとの管を置く。呼び出しの管は深さごとに 1 段下がり、呼んだ者の名札の上から出て、呼ばれた者の名札の上に入る。
- * 槽の水位はトークンごとに量に比例させ、0 より多い量は最小の帯 (`PIPE_LOOK.tank.least`) より低くしない。
+ * 下の段に、槽か値の札を持つ関係者 (送り手を左の端に、ほかは宣言した順) の槽と値の札をまとめて左から並べ、持ち主の名札をその真上に置く。
+ * 槽を持たない関係者は、呼ぶ相手と呼ばれる相手の真ん中に置き、同じ行の名札と重なれば空いた所へずらす。
+ * 槽の水位はトークンごとに量に比例させ、一番多い量を高さの 8 割にし、0 より多い量は最小の帯 (`PIPE_LOOK.tank.least`) より低くしない。
+ *
+ * 値の管は、流れが全て隣の槽どうしを結ぶ図では槽の横を結ぶ管にし、トークンの箱をその管の弁の真上に置く。
+ * ほかの図は、トークンごとの本管を槽の上に通し、トークンの箱を本管の上に並べる。
+ * 呼び出しの管は、呼んだ者ごとに 1 本の本管を引き、呼ぶ相手ごとに枝を分け、枝の根元に弁を置く。確かめる者の計器は、その者を呼んだ枝の上に載せる。
+ * 段ごとに 1 つの吹き出しで、その段の動きを大きな字で出す。吹き出しは名札と槽と槽の下の数に重ならない所に置く。
  *
  * 段の中の出来事は記法を読む所と同じ手順 (`PipeRun`) に当て、段ごとの残高と値と、変更が暫定か確定か取り消しかを作る。
  * 変更は一番外の呼び出しが戻った段で確定し、落ちた呼び出しの内側の変更は、落ちた段で取り消しの印を付けて元の値へ戻る。
  *
- * 枠の幅 (`width`) を渡し、全員を同じ幅で並べると名前が `READABLE_PX` に届かない時は、段ごとに関わらない関係者の列を細い帯に畳む。
- * `[fold]` の呼び出しの内側の段は、描く前に 1 つの段へまとめる (`foldPipe`)。まとめた段は呼び出しの管を描かず、畳んだ箱を出す。
- * 畳んだ間は、内側の段にしか出ない関係者の列と槽と値の札を描かず、内側にしか出ないトークンの管も描かない。
+ * 図は縮めずに横に長いまま並べる。枠より広い図は、再生の部品が枠の中を横に送って見せる (#3398)。
+ * `[fold]` の呼び出しの内側の段は、描く前に 1 つの段へまとめる (`foldPipe`)。まとめた段は内側の呼び出しの管を描かず、畳んだ箱を出す。
+ * 畳んだ間は、内側の段にしか出ない関係者の名札と槽と値の札を描かず、内側にしか出ないトークンの管も描かない。
  * まとめた段は内側の流れを描かず、見えている関係者の槽に内側の出来事を全て当てた後の量を出す。
- * 同じトークンの管を同じ段に流れる分は、横に重なるものを管の下へ 1 本ずつずらし、槽の口も流れごとに分ける。
- * 並べ方は描き方を読まない。描く部品は `render/pipe.ts` が持つ。
+ * 並べ方は描き方を読まない。描く部品は `render/pipe.ts` とブロックの描き方が持つ。
  */
 import { ETH } from "../../blocks/return/block";
 import { textWidth } from "../../layout/measure";
 import type { Layout, Point, Rect } from "../../layout/scene";
 import { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
-import { READABLE_PX, type TextStyle } from "../../look/values";
+import type { TextStyle } from "../../look/values";
 import { checkPasses, isFault, keyOf, PipeRun, rateOf } from "../../pipe-run";
 import type { CheckOp, DiagramModel, PipeCallKind, PipeCheck, PipeFold, Step } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
@@ -35,19 +39,19 @@ const T = PIPE_TYPE;
 export type PipeState = "none" | "provisional" | "final" | "rolled";
 /** 関係者の種類 */
 export type PipeRole = "sender" | "contract" | "token" | "account";
+/** 名札の形。`round` は丸の名札、`cabinet` は Contract の箱、`token` はトークンの箱 */
+export type PipeShape = "round" | "cabinet" | "token";
 
 /** 配管の図の言葉。図の原本は語を持たないので、描く時の言葉で引く */
 export interface PipeWords {
-  checks: string;
   events: string;
   tags: Record<Exclude<PipeState, "none">, string>;
-  pending: (n: number) => string;
-  final: string;
-  rolled: string;
-  partial: (n: number) => string;
-  check: string;
-  convert: (rate: string) => string;
   undo: string;
+  call: string;
+  back: string;
+  returned: string;
+  moves: (name: string) => string;
+  emitted: string;
   fold: (steps: number, parties: number) => string;
   open: string;
   foldTitle: (name: string) => string;
@@ -56,32 +60,28 @@ export interface PipeWords {
 
 export const PIPE_TEXT: Record<NotationLang, PipeWords> = {
   ja: {
-    checks: "確認",
     events: "イベント",
     tags: { provisional: "暫定", final: "確定", rolled: "取り消し" },
-    pending: (n) => `暫定の変更${n}件`,
-    final: "全て確定",
-    rolled: "全て取り消し",
-    partial: (n) => `${n}件を取り消し`,
-    check: "確認",
-    convert: (rate) => `換算 ${rate}`,
     undo: "取り消し",
+    call: "呼び出し",
+    back: "戻り",
+    returned: "戻った",
+    moves: (name) => `${name}が移す`,
+    emitted: "イベント",
     fold: (steps, parties) => `内側の${steps}段と${parties}人`,
     open: "押すと開く",
     foldTitle: (name) => `${name}の内側をまとめて進む`,
     join: (titles) => `${titles.join("。")}。`,
   },
   en: {
-    checks: "Checks",
     events: "Events",
     tags: { provisional: "Pending", final: "Final", rolled: "Undone" },
-    pending: (n) => `${n} pending ${n === 1 ? "change" : "changes"}`,
-    final: "All final",
-    rolled: "All undone",
-    partial: (n) => `${n} undone`,
-    check: "Check",
-    convert: (rate) => `Convert ${rate}`,
     undo: "Undone",
+    call: "Call",
+    back: "Return",
+    returned: "Returned",
+    moves: (name) => `${name} moves`,
+    emitted: "Event",
     fold: (steps, parties) => `${steps} ${steps === 1 ? "step" : "steps"} and ${parties} ${parties === 1 ? "party" : "parties"} inside`,
     open: "Click to open",
     foldTitle: (name) => `Inside ${name}, folded`,
@@ -109,58 +109,70 @@ export interface PipeParty extends Rect {
   name: string;
   role: PipeRole;
   icon?: string;
+  shape: PipeShape;
+  /** 名札の行。一番上が 0。トークンの箱は持たない */
+  row?: number;
+  /** 名前の字。丸の名札は丸の下、箱は箱の中に書く */
+  label: PipeText;
+  /** 槽か値の札を持つか */
+  holder: boolean;
 }
 export interface PipeColumn extends Rect {
   party: string;
   step: number;
   folded: boolean;
 }
-/** 段ごとの名札。`active` は段の終わりにいちばん内側で開いている呼び出しの呼ばれた者 */
+/** 段ごとの名札。`active` は段の終わりにいちばん内側で開いている呼び出しの呼ばれた者、`involved` はその段の出来事に出る者 */
 export interface PipePill extends Rect {
   party: string;
   step: number;
   folded: boolean;
   active: boolean;
+  involved: boolean;
 }
 export interface PipeTank extends Rect {
   party: string;
   token: string;
   title: PipeText;
+  /** 液の色の番号。トークンごとに 3 つの色を順に使う */
+  tone: number;
 }
-/** 段ごとの槽のガラス。`stub` は槽の下から管までの縦の管 */
+/** 段ごとの槽 */
 export interface PipeGlass extends PipeTank {
   step: number;
-  stub: { x: number; y1: number; y2: number };
 }
 export interface PipeLevel extends Rect, PipeAt {
   party: string;
   token: string;
   amount: string;
   state: PipeState;
+  /** 槽の下の大きな数。3 桁ごとに区切る */
   text: PipeText;
+  /** 前の数。変わった段から確定するまでと、確定と取り消しの段に出す */
   was?: PipeText;
-  /** ガラスの上の端の印の札 */
-  tag?: PipeText & { box: Rect };
+  /** 前の数の消し線 */
+  strike?: Rect;
+  /** 前の数に添える暫定か確定か取り消しの語 */
+  tag?: PipeText;
+  /** 前の量の水位。前の数を持つ槽だけが持つ */
+  base?: Rect;
   /** 段の始まりの水位。この段で変わった槽だけが持つ */
   from?: Rect;
-  /** 前の量 (`was`) の水位。前の量を持つ槽だけが持つ */
-  base?: Rect;
 }
 export interface PipeBus {
   token: string;
   y: number;
   x1: number;
   x2: number;
-  valve?: { party: string; x: number };
+  /** 値の管の通し方。`side` は隣の槽の横を結ぶ管、`main` は槽の上に通す本管 */
+  mode: "side" | "main";
+  /** トークンの Contract の弁。`ETH` の管と、トークンの箱を描かない管は持たない */
+  valve?: { party: string; x: number; y: number };
+  /** 本管から槽へ下りる管。`x` に下りて `y` で槽に入る */
+  drops: { x: number; y: number }[];
 }
 export interface PipeBusAt extends PipeBus {
   step: number;
-  /** 弁から名札の下の端までの縦の点線の上の端 */
-  top?: number;
-}
-export interface PipeBusChip extends Rect {
-  token: string;
-  text: PipeText;
 }
 export interface PipeFlow extends PipeAt {
   /** 流れた分の番号。同じ流れた分を段をまたいで引く */
@@ -174,6 +186,9 @@ export interface PipeFlow extends PipeAt {
   points: Point[];
   /** 向きの印の場所と向き (右へ流れる時 1、左へ -1) */
   arrow: { x: number; y: number; dir: 1 | -1 };
+  tone: number;
+  /** この段で流れたか。流れた段は液の粒が管を流れる */
+  fresh: boolean;
 }
 export interface PipeCallLane {
   index: number;
@@ -182,45 +197,57 @@ export interface PipeCallLane {
   from: string;
   to: string;
   depth: number;
+  /** 呼んだ者の本管の高さ */
   y: number;
   kind: "call" | PipeCallKind;
   width: number;
+  /** 呼んだ者の真ん中から本管を通り、枝の端まで */
   points: Point[];
+  /** 光る管の道。呼んだ者の名札を出た所から、枝の端まで */
+  lit: Point[];
   value?: string;
   close?: { step: number; event: number; how: "return" | "revert" };
 }
-/** 段ごとの呼び出しの管。`opened` はこの段で開いた出来事、`shut` はこの段で閉じた出来事 */
+/** 本管の枝。弁 (`valve`) は枝の根元の近くに置き、`vertical` は枝が縦に走るか */
+export interface PipeBranch {
+  to: string;
+  points: Point[];
+  valve: { x: number; y: number; vertical: boolean };
+}
+/** 同じ関係者から出る呼び出しの本管 */
+export interface PipeMain {
+  from: string;
+  y: number;
+  points: Point[];
+  branches: PipeBranch[];
+}
+/** 段ごとの開いている呼び出し。`opened` はこの段で開いた出来事、`shut` はこの段で閉じた出来事 */
 export interface PipeLane {
   call: number;
   step: number;
+  from: string;
+  to: string;
   kind: "call" | PipeCallKind;
   width: number;
   points: Point[];
-  state: "open" | "closed";
-  how?: "return" | "revert";
   opened?: number;
   shut?: number;
-}
-/** 管の上の字の札。`call` は札を出す呼び出しの番号、`kind` は呼び出しの字か戻る値か */
-export interface PipeTag extends Rect {
-  step: number;
-  event: number;
-  call: number;
-  kind: "call" | "return";
-  text: string;
-  label: PipeText;
 }
 export interface PipePlate extends Rect, PipeAt {
   party: string;
   name: string;
   value: string;
   state: PipeState;
+  /** トークンの箱の中の値か */
+  boxed: boolean;
   label: PipeText;
   text: PipeText;
   was?: PipeText;
   strike?: Rect;
-  /** 段の始まりの値。この段で変わった札だけが持つ */
-  before?: { text: PipeText; state: PipeState };
+  /** 前の値と今の値の間の矢印。トークンの箱の中の値だけが持つ */
+  arrow?: PipeText;
+  /** 前の値に添える語。トークンの箱の外の値だけが持つ */
+  tag?: PipeText;
 }
 export interface PipeWrite {
   step: number;
@@ -230,30 +257,27 @@ export interface PipeWrite {
   name: string;
   points: Point[];
 }
-/** 名札の下の札 (計器、換算、取り消し、畳んだ箱) の共通の欄。`title` は上の小さな字、`value` は下の大きな字 */
-export interface PipeCardBox extends Rect {
-  party: string;
-  step: number;
-  title: PipeText;
-  value: PipeText;
-}
-export interface PipeGauge extends PipeCardBox {
-  event: number;
-  ok: boolean;
-}
-export interface PipeLamp extends Rect {
+/** 計器。`on` は載せる管 (`call` は呼び出しの管、`value` は値の管、`party` は呼ばれない者の名札の横) */
+export interface PipeGauge extends Rect {
   party: string;
   step: number;
   event: number;
   ok: boolean;
-  /** その段で確かめた印か */
+  on: "call" | "value" | "party";
+  cx: number;
+  cy: number;
+  r: number;
+  /** その段で確かめたか。確かめた段は針が振れて印が付く */
   fresh: boolean;
-}
-export interface PipeCheckMark extends Rect {
-  step: number;
-  event: number;
-  ok: boolean;
-  fresh: boolean;
+  /** 段の始まりと終わりの針の向き (度) */
+  from: number;
+  angle: number;
+  /** 通ったかの印 */
+  lamp: { x: number; y: number; r: number };
+  /** 値の管から計器までの軸 */
+  stem?: { y1: number; y2: number };
+  /** 確かめた後に計器の上に残す式。値の管の計器だけが持つ */
+  read?: PipeText;
 }
 export interface PipeEventChip extends Rect, PipeAt {
   /** 出した順の番号。同じ札を段をまたいで引く */
@@ -265,20 +289,42 @@ export interface PipeEventChip extends Rect, PipeAt {
   text: PipeText;
   args?: PipeText;
 }
-export interface PipeConverter extends PipeCardBox {
+/** 変換器。`calc` を行う関係者の 2 つの槽の間に、全ての段で置き、計算した段だけ `active` */
+export interface PipeConverter extends Rect {
+  party: string;
+  step: number;
   calc: number;
   event?: number;
   in: string;
   out: string;
   rate: string;
+  active: boolean;
+  cx: number;
+  cy: number;
+  r: number;
+  /** 左の槽の右の縁と右の槽の左の縁。変換器と槽を短い管で結ぶ */
+  left: number;
+  right: number;
 }
-export interface PipeUndo extends PipeCardBox {
-  event: number;
+/** 2 つ以上の槽を持つ関係者の槽の点線の囲い */
+export interface PipeHousing extends Rect {
+  party: string;
 }
-export interface PipeFoldBox extends PipeCardBox {
+/** 名札から自分の槽へ下りる点線 */
+export interface PipeTie {
+  party: string;
+  x: number;
+  y1: number;
+  y2: number;
+}
+export interface PipeFoldBox extends Rect {
+  party: string;
+  step: number;
   call: number;
   steps: number;
   parties: number;
+  title: PipeText;
+  value: PipeText;
   text: PipeText;
 }
 export interface PipeRing {
@@ -286,16 +332,21 @@ export interface PipeRing {
   step: number;
   event: number;
 }
-/** 段ごとの右上の変更の札。`event` は確定か取り消しを起こした出来事 */
-export interface PipeStatus extends Rect, PipeAt {
-  kind: "pending" | "final" | "rolled" | "partial";
+/** 吹き出しの色の役。呼び出しと戻り、確かめる、値の動き、確定、取り消しと落ちた確認、イベント */
+export type PipeTone = "call" | "check" | "value" | "good" | "bad" | "event";
+/** 段ごとの吹き出し。`kind` はその段で吹き出しが出す出来事の種類、`tag` は上の小さな語、`text` は下の大きな字 */
+export interface PipeCallout extends Rect, PipeAt {
+  kind: string;
+  tone: PipeTone;
+  mono: boolean;
+  tag: PipeText;
   text: PipeText;
 }
 
 export interface PipeLayout extends Layout {
   kind: "pipe";
-  /** 列を畳んだか。畳んだ図は段ごとに関わらない関係者の列を細い帯にする */
-  arrangement: "wide" | "narrow";
+  /** 縮めずに横に長いまま並べる */
+  arrangement: "wide";
   parties: PipeParty[];
   columns: PipeColumn[];
   pills: PipePill[];
@@ -304,33 +355,30 @@ export interface PipeLayout extends Layout {
   levels: PipeLevel[];
   buses: PipeBus[];
   pipes: PipeBusAt[];
-  busChips: PipeBusChip[];
   flows: PipeFlow[];
   calls: PipeCallLane[];
+  mains: PipeMain[];
   lanes: PipeLane[];
-  tags: PipeTag[];
-  returns: PipeTag[];
   plates: PipePlate[];
   writes: PipeWrite[];
   gauges: PipeGauge[];
-  lamps: PipeLamp[];
-  checks: PipeCheckMark[];
+  /** 図の上の確認の印。第6回の形は計器に結果を残すので、図の上には描かない */
+  checks: [];
   events: PipeEventChip[];
   converters: PipeConverter[];
-  undos: PipeUndo[];
+  housings: PipeHousing[];
+  ties: PipeTie[];
   folds: PipeFoldBox[];
   rings: PipeRing[];
-  statuses: PipeStatus[];
-  /** 図の上の端の行の字 (「確認」と「イベント」)。その印を持つ図だけが持つ */
-  heads: { checks?: PipeText; events?: PipeText };
-  /** 段ごとに動く関係者の列を囲む所。寄って追う窓が段ごとに見る */
+  callouts: PipeCallout[];
+  /** 図の上の端の行の字 (「イベント」)。イベントを出す図だけが持つ */
+  heads: { events?: PipeText };
+  /** 段ごとに動く関係者を囲む所。再生の部品が横に送る時と、寄って追う窓が段ごとに見る */
   focus: (Rect & { step: number })[];
 }
 
 export interface PipeLayoutOptions {
   lang?: NotationLang;
-  /** 描く枠の幅。全員を横に並べると名前が読めない幅では、段ごとに関わらない列を畳む */
-  width?: number;
 }
 
 // ---- 字
@@ -466,7 +514,7 @@ interface Snap {
   changed: Map<string, number>;
   emitted: number[];
   active?: string;
-  status?: { kind: PipeStatus["kind"]; count: number; event?: number };
+  status?: { kind: "pending" | "final" | "rolled" | "partial"; count: number; event?: number };
 }
 
 interface Simulated {
@@ -649,20 +697,35 @@ function simulate(diagram: DiagramModel, foldSteps: ReadonlySet<number>): Simula
 
 // ---- 並べる
 
-/** 段ごとの列。`x` は列の左端、`w` は列の幅 */
+/** 量の字を 3 桁ごとに区切る (#3398)。数でない字はそのまま */
+export function grouped(amount: string): string {
+  const m = /^(-?)(\d+)(\.\d+)?$/u.exec(amount);
+  return m ? `${m[1] ?? ""}${(m[2] ?? "").replace(/\B(?=(\d{3})+(?!\d))/gu, ",")}${m[3] ?? ""}` : amount;
+}
+
+const amountNumber = (amount: string | undefined): number => {
+  const n = Number(amount);
+  return Number.isFinite(n) ? n : 0;
+};
+const mean = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+/** 2 つの四角が離れているか。触れているだけの物も重なりに数える */
+const clear = (a: Rect, b: Rect): boolean => a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h;
+
+/** 槽と値の札をまとめた関係者の列 */
 interface Col {
-  x: number;
-  w: number;
-  folded: boolean;
+  id: string;
+  left: number;
+  right: number;
+  cx: number;
+  tanks: { token: string; x: number; w: number }[];
+  plates: { name: string; x: number; w: number }[];
 }
-
-/** 名札の下の札の大きさ */
-interface CardSize {
-  party: string;
-  w: number;
+/** 値の管を横に通す区間。`a` が左、`b` が右の関係者 */
+interface Seg {
+  a: string;
+  b: string;
+  token: string;
 }
-
-const amountNumber = (amount: string): number => Number(amount);
 
 export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {}): PipeLayout {
   const lang = options.lang ?? DEFAULT_LANG;
@@ -676,8 +739,10 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
   const holds = diagram.pipe?.holds ?? [];
   const names = new Map(diagram.boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
+  const declaredAt = new Map(diagram.boxes.map((b, i) => [b.id, i]));
+  const snapOf = (s: number): Snap => sim.snaps[s] as Snap;
 
-  // 関係者の並びと種類。畳んだ箱の内側にしか出ない関係者は並べない
+  // 関係者の並びと種類と形。畳んだ箱の内側にしか出ない関係者は並べない
   const order: string[] = [];
   const declared = new Set(diagram.boxes.map((b) => b.id));
   const see = (id: string): void => {
@@ -685,17 +750,30 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
   };
   for (const step of diagram.steps) for (const e of step.events) for (const id of partiesOf(e)) see(id);
   for (const b of diagram.boxes) see(b.id);
+  const visible = new Set(order);
+  const isBox = (id: string): boolean => sim.tokens.has(id);
   const callers = new Set(sim.calls.flatMap((c) => [c.from, c.to]));
+  const callees = new Set(sim.calls.map((c) => c.to));
   const sender = sim.calls[0]?.from;
-  const roleOf = (id: string): PipeRole => (sim.tokens.has(id) ? "token" : id === sender ? "sender" : callers.has(id) ? "contract" : "account");
+  const roleOf = (id: string): PipeRole => (isBox(id) ? "token" : id === sender ? "sender" : callers.has(id) ? "contract" : "account");
+  const shapeOf = (id: string): PipeShape => (isBox(id) ? "token" : id === sender || !callees.has(id) ? "round" : "cabinet");
+  const depthOf = new Map<string, number>(sender === undefined ? [] : [[sender, 0]]);
+  for (const c of sim.calls) if (!depthOf.has(c.to)) depthOf.set(c.to, c.depth);
+  const rowOf = (id: string): number => (shapeOf(id) === "cabinet" ? (depthOf.get(id) ?? 0) : 0);
 
-  // 槽と値の札の並びと幅
+  // 槽と値の札。トークンの箱は槽を持たず、箱の中に値を書く
   const tanksOf = new Map<string, string[]>(order.map((id) => [id, []]));
   const platesOf = new Map<string, string[]>(order.map((id) => [id, []]));
   for (const h of holds) {
     if ("token" in h) tanksOf.get(h.box)?.push(h.token);
     else platesOf.get(h.box)?.push(h.name);
   }
+  for (const snap of sim.snaps)
+    for (const k of snap.balances.keys()) {
+      const cut = k.indexOf("|");
+      const list = tanksOf.get(k.slice(0, cut));
+      if (list && !list.includes(k.slice(cut + 1))) list.push(k.slice(cut + 1));
+    }
   // 畳んだ間は、Contract が内側にしか出ず、見えている関係者の量も変えないトークンの槽と管を描かない
   const tokenParty = new Map([...sim.tokens].map(([id, token]) => [token, id]));
   const varies = (party: string, token: string): boolean => {
@@ -705,8 +783,15 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
   const gone = new Set(
     [...tokenParty].filter(([token, id]) => hidden.has(id) && !order.some((party) => (tanksOf.get(party) ?? []).includes(token) && varies(party, token))).map(([token]) => token),
   );
-  for (const [party, list] of tanksOf) tanksOf.set(party, list.filter((token) => !gone.has(token)));
-  const tokens = [...new Set(holds.flatMap((h) => ("token" in h && !hidden.has(h.box) && !gone.has(h.token) ? [h.token] : [])))];
+  for (const [party, list] of tanksOf) tanksOf.set(party, isBox(party) ? [] : list.filter((token) => !gone.has(token)));
+  const has = (party: string, token: string): boolean => (tanksOf.get(party) ?? []).includes(token);
+  const holders = order.filter((id) => !isBox(id) && ((tanksOf.get(id) ?? []).length > 0 || (platesOf.get(id) ?? []).length > 0));
+  holders.sort((a, b) => (a === sender ? -1 : b === sender ? 1 : (declaredAt.get(a) ?? 0) - (declaredAt.get(b) ?? 0)));
+  const holding = new Set(holders);
+  const tokens = [...new Set(order.flatMap((id) => tanksOf.get(id) ?? []))].sort(
+    (a, b) => holds.findIndex((h) => "token" in h && h.token === a) - holds.findIndex((h) => "token" in h && h.token === b),
+  );
+  const toneOf = (token: string): number => Math.max(0, tokens.indexOf(token)) % 3;
   const historyOf = (key: string): string[] => {
     const all = new Set<string>();
     for (const snap of sim.snaps) {
@@ -722,390 +807,449 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     return [...all];
   };
   const widest = (texts: readonly string[], style: TextStyle): number => Math.max(0, ...texts.map((t) => textWidth(t, style)));
-  const tagWidest = Math.max(...Object.values(words.tags).map((t) => textWidth(t, T.tag))) + P.tank.tagPadX * 2;
-  const tankW = new Map<string, number>();
-  for (const [party, list] of tanksOf)
-    for (const token of list) {
-      const history = historyOf(`b${keyOf(party, token)}`);
-      tankW.set(keyOf(party, token), Math.max(P.tank.w, textWidth(token, T.tankTitle), widest(history, T.amount), widest(history, T.was), tagWidest));
+
+  // 値の管の通し方。流れが全て隣の槽どうしを結び、トークンの箱を全て横の管に置ける時だけ、槽の横を結ぶ
+  const seq = holders.flatMap((h) => tokens.filter((t) => has(h, t)).map((t) => keyOf(h, t)));
+  const moving = sim.flows.filter((f) => !foldSteps.has(f.step) && has(f.from, f.token) && has(f.to, f.token));
+  const apartOf = (f: FlowRec): number => Math.abs(seq.indexOf(keyOf(f.from, f.token)) - seq.indexOf(keyOf(f.to, f.token)));
+  const segs: Seg[] = [];
+  for (const f of moving) {
+    const [a, b] = seq.indexOf(keyOf(f.from, f.token)) < seq.indexOf(keyOf(f.to, f.token)) ? [f.from, f.to] : [f.to, f.from];
+    if (!segs.some((s) => s.a === a && s.b === b && s.token === f.token)) segs.push({ a, b, token: f.token });
+  }
+  const boxOf = (token: string): string | undefined => {
+    const id = tokenParty.get(token);
+    return id !== undefined && visible.has(id) ? id : undefined;
+  };
+  const side =
+    moving.length > 0 &&
+    moving.every((f) => apartOf(f) === 1) &&
+    segs.every((s) => holders.indexOf(s.b) === holders.indexOf(s.a) + 1) &&
+    order.filter(isBox).every((id) => segs.some((s) => s.token === sim.tokens.get(id)));
+  const segOf = (f: FlowRec): Seg | undefined => segs.find((s) => s.token === f.token && ((s.a === f.from && s.b === f.to) || (s.a === f.to && s.b === f.from)));
+
+  // 名札の大きさ
+  const many = holders.length > 5;
+  const nameW = (id: string): number => textWidth(nameOf(id), T.party);
+  const boxValues = (id: string): string[] => platesOf.get(id) ?? [];
+  const arrowW = textWidth("→", T.keyValue);
+  const tokenW = (id: string): number =>
+    Math.max(
+      P.token.w,
+      nameW(id) + P.token.nameW,
+      ...boxValues(id).flatMap((name) => {
+        const history = historyOf(`v${keyOf(id, name)}`);
+        return [textWidth(name, T.key) + P.token.keyW, widest(history, T.keyValue) * 2 + arrowW + P.token.arrowGap * 2 + P.token.keyW];
+      }),
+    );
+  const tokenH = (id: string): number => P.token.h + P.token.line * boxValues(id).length;
+  const sizeOf = (id: string): { w: number; h: number } => {
+    const shape = shapeOf(id);
+    if (shape === "token") return { w: tokenW(id), h: tokenH(id) };
+    if (shape === "round") return { w: P.avatar.size, h: P.avatar.size };
+    const big = rowOf(id) === 0;
+    return { w: (big ? P.cabinet.pad : P.cabinet.padSmall) + nameW(id) + P.cabinet.end, h: big ? P.cabinet.h : P.cabinet.hSmall };
+  };
+  /** 置き場を探す時に避ける幅。丸の名札は下に書く名前の幅まで */
+  const roomOf = (id: string): number => (shapeOf(id) === "round" ? Math.max(P.avatar.size, nameW(id) + 8) : sizeOf(id).w);
+
+  // 下の段。槽と値の札を関係者ごとにまとめて左から並べる
+  const tankW1 = many ? P.tank.w1Small : P.tank.w1;
+  const tankW2 = many ? P.tank.w2Small : P.tank.w2;
+  const inner = many ? P.tank.innerSmall : P.tank.inner;
+  const tankH = many ? P.tank.hSmall : P.tank.h;
+  const cols: Col[] = [];
+  let x = P.edge;
+  holders.forEach((h, i) => {
+    const prev = cols[i - 1];
+    if (prev) {
+      const seg = side ? segs.find((s) => s.a === prev.id && s.b === h) : undefined;
+      const box = seg ? boxOf(seg.token) : undefined;
+      x += seg ? (box ? Math.max(P.column.segment, tokenW(box) + P.column.segmentBox) : P.column.segmentPlain) : many ? P.column.gapSmall : P.column.gap;
     }
-  const plateW = new Map<string, number>();
-  for (const [party, list] of platesOf) {
-    if (list.length === 0) continue;
-    const need = list.map((name) => {
-      const history = historyOf(`v${keyOf(party, name)}`);
-      return Math.max(textWidth(name, T.plateName), widest(history, T.plateValue) + P.plate.wasGap + widest(history, T.was));
+    const list = tokens.filter((t) => has(h, t));
+    const col: Col = { id: h, left: x, right: x, cx: x, tanks: [], plates: [] };
+    if (list.length > 1) x += P.tank.housing;
+    list.forEach((t, j) => {
+      if (j > 0) x += inner;
+      const w = Math.max(list.length > 1 ? tankW2 : tankW1, widest(historyOf(`b${keyOf(h, t)}`).map(grouped), T.amount) + P.tank.pad * 2);
+      col.tanks.push({ token: t, x, w });
+      x += w;
     });
-    plateW.set(party, Math.max(...need) + P.plate.padX * 2);
-  }
-  const groupW = (party: string): number => {
-    const list = tanksOf.get(party) ?? [];
-    return list.reduce((sum, token) => sum + (tankW.get(keyOf(party, token)) ?? P.tank.w), 0) + Math.max(0, list.length - 1) * P.tank.gap;
-  };
-  const pillW = new Map(order.map((id) => [id, P.pill.padX * 2 + P.pill.avatar + P.pill.gap + textWidth(nameOf(id), T.party)]));
-  const colW = new Map(order.map((id) => [id, Math.max(pillW.get(id) ?? 0, groupW(id), plateW.get(id) ?? 0)]));
-
-  // 名札の下の札。段ごとに、確認の計器、換算、取り消し、畳んだ箱を出す
-  const cardW = (title: string, value: string, titleStyle: TextStyle = T.cardTitle, valueStyle: TextStyle = T.cardValue): number =>
-    P.card.padX * 2 + P.card.icon + P.card.gap + Math.max(textWidth(title, titleStyle), textWidth(value, valueStyle));
-  const gaugeValue = (c: CheckRec): string => `${c.check.left} ${OP_TEXT[c.check.op]} ${c.check.right}`;
-  const converterUntil = (c: CalcRec): number =>
-    sim.checks.find((k) => k.party === c.party && (k.step > c.step || (k.step === c.step && k.event > c.event)))?.step ?? c.step;
-  const cardsAt = stepList.map((): (CardSize & { make: (x: number, y: number) => void })[] => []);
-  const gauges: PipeGauge[] = [];
-  const converters: PipeConverter[] = [];
-  const undos: PipeUndo[] = [];
-  const foldBoxes: PipeFoldBox[] = [];
-  const cardRect = (x: number, y: number, w: number): Rect => ({ x, y, w, h: P.card.h });
-  const cardTexts = (x: number, y: number, title: string, value: string, valueStyle: TextStyle = T.cardValue): { title: PipeText; value: PipeText } => {
-    const left = x + P.card.padX + P.card.icon + P.card.gap;
-    return { title: textAt(title, left, y + P.card.titleY, T.cardTitle), value: textAt(value, left, y + P.card.valueY, valueStyle) };
-  };
-  for (const s of stepList) {
-    const list = cardsAt[s] as (CardSize & { make: (x: number, y: number) => void })[];
-    const fold = folds.find((f) => f.step === s);
-    if (fold) {
-      const call = sim.calls[fold.call];
-      const party = call?.to ?? "";
-      const count = fold.to - fold.from + 1;
-      const text = words.fold(count, fold.hidden.length);
-      const w = cardW(words.open, text, T.hint, T.fold);
-      list.push({
-        party,
-        w,
-        make: (x, y) => {
-          const t = cardTexts(x, y, words.open, text, T.fold);
-          foldBoxes.push({ ...cardRect(x, y, w), party, step: s, call: fold.call, steps: count, parties: fold.hidden.length, title: t.title, value: t.value, text: t.value });
-        },
-      });
-      continue;
+    for (const name of platesOf.get(h) ?? []) {
+      if (col.tanks.length > 0 || col.plates.length > 0) x += P.plate.gap;
+      const w = Math.max(P.plate.w, textWidth(name, T.tankTitle) + P.plate.padX, widest(historyOf(`v${keyOf(h, name)}`), T.plateValue) + P.plate.padX);
+      col.plates.push({ name, x, w });
+      x += w;
     }
-    for (const c of sim.checks.filter((k) => k.step === s)) {
-      const w = cardW(words.check, gaugeValue(c)) + P.card.icon;
-      list.push({
-        party: c.party,
-        w,
-        make: (x, y) => gauges.push({ ...cardRect(x, y, w), ...cardTexts(x, y, words.check, gaugeValue(c)), party: c.party, step: s, event: c.event, ok: c.ok }),
-      });
-    }
-    for (const c of sim.calcs.filter((k) => k.step <= s && converterUntil(k) >= s && !foldSteps.has(k.step))) {
-      const value = `${c.input} → ${c.output}`;
-      const title = words.convert(c.rate);
-      const w = cardW(title, value);
-      list.push({
-        party: c.party,
-        w,
-        make: (x, y) =>
-          converters.push({
-            ...cardRect(x, y, w),
-            ...cardTexts(x, y, title, value),
-            party: c.party,
-            step: s,
-            calc: c.step,
-            ...(c.step === s ? { event: c.event } : {}),
-            in: c.input,
-            out: c.output,
-            rate: c.rate,
-          }),
-      });
-    }
-    for (const r of sim.reverts.filter((k) => k.step === s)) {
-      const value = r.reason ?? "revert";
-      const w = cardW(words.undo, value);
-      list.push({
-        party: r.party,
-        w,
-        make: (x, y) => undos.push({ ...cardRect(x, y, w), ...cardTexts(x, y, words.undo, value), party: r.party, step: s, event: r.event }),
-      });
-    }
-  }
-
-  // 段ごとに関わる関係者。呼び出しの両端と行の頭の者と、move の送り手と受け手と、書き替えた札の持ち主
-  const involved = diagram.steps.map((step, s) => {
-    const set = new Set(step.events.flatMap(partiesOf));
-    for (const w of sim.writes.filter((x) => x.step === s)) set.add(w.to);
-    return set;
+    if (list.length > 1) x += P.tank.housing;
+    col.right = x;
+    col.cx = (col.left + col.right) / 2;
+    cols.push(col);
   });
+  const colOf = new Map(cols.map((c) => [c.id, c]));
+  const tankAt = new Map(cols.flatMap((c) => c.tanks.map((t) => [keyOf(c.id, t.token), t] as const)));
+  const tankOf = (party: string, token: string): { x: number; w: number } => tankAt.get(keyOf(party, token)) ?? { x: 0, w: 0 };
+  let width = x + P.edge;
 
-  // 横の並び
-  const busChipW = new Map(tokens.map((t) => [t, P.bus.chipPadX * 2 + P.bus.chip / 2 + P.bus.chipPadX + textWidth(t, T.bus)]));
-  const gutter = tokens.length > 0 ? P.margin + Math.max(...busChipW.values()) + P.bus.chipGap : P.margin;
-  const place = (folded: (id: string) => boolean): { cols: Map<string, Col>; right: number } => {
-    const cols = new Map<string, Col>();
-    let x = gutter;
-    order.forEach((id, i) => {
-      const fold = folded(id);
-      const w = fold ? P.pill.strip : (colW.get(id) ?? 0);
-      cols.set(id, { x, w, folded: fold });
-      const next = order[i + 1];
-      x += w + (fold || (next !== undefined && folded(next)) ? P.lane.port / 2 : P.colGap);
+  // 横の置き場。槽を持つ関係者は自分の槽の真上、横の管のトークンの箱は管の上、ほかは呼ぶ相手と呼ばれる相手の真ん中
+  const xOf = new Map<string, number>(cols.map((c) => [c.id, c.cx]));
+  const shown = sim.calls.filter((c) => !c.inner && visible.has(c.from) && visible.has(c.to));
+  const callersOf = (id: string): string[] => [...new Set(shown.filter((c) => c.to === id).map((c) => c.from))];
+  const calleesOf = (id: string): string[] => [...new Set(shown.filter((c) => c.from === id).map((c) => c.to))];
+  const nearOf = (id: string): number[] =>
+    [...callersOf(id), ...calleesOf(id)].filter((n) => n !== id).flatMap((n) => {
+      const at = xOf.get(n);
+      return at === undefined ? [] : [at];
     });
-    return { cols, right: x };
+  if (side)
+    for (const id of order.filter(isBox)) {
+      const seg = segs.find((s) => s.token === sim.tokens.get(id));
+      if (!seg) continue;
+      const a = tankOf(seg.a, seg.token);
+      const b = tankOf(seg.b, seg.token);
+      xOf.set(id, Math.max((a.x + a.w + b.x) / 2 + P.side.boxRight, b.x - P.side.boxLeft - tokenW(id) / 2));
+    }
+  /** 同じ行の名札と、上の行から槽へ下りる点線を避けて、`want` に一番近い所 */
+  const freeX = (want: number, w: number, row: number, skip: string): number => {
+    const occ: [number, number][] = [];
+    for (const [id, cx] of xOf) {
+      if (id === skip || isBox(id)) continue;
+      if (rowOf(id) === row) occ.push([cx - roomOf(id) / 2 - P.cabinet.gap, cx + roomOf(id) / 2 + P.cabinet.gap]);
+      if (holding.has(id) && rowOf(id) < row) occ.push([cx - P.tie.room, cx + P.tie.room]);
+    }
+    const ok = (cx: number): boolean => cx - w / 2 >= P.margin && occ.every(([a, b]) => cx + w / 2 < a || cx - w / 2 > b);
+    for (let d = 0; d < 1e5; d += 6) {
+      if (ok(want + d)) return want + d;
+      if (ok(want - d)) return want - d;
+    }
+    return want;
   };
-  const wide = place(() => false);
-  // 札が左の端からはみ出す分だけ列を右へずらす
-  const centerOf = (col: Col | undefined): number => (col ? col.x + col.w / 2 : 0);
-  const shift = Math.max(0, ...stepList.flatMap((s) => (cardsAt[s] ?? []).map((c) => P.margin - (centerOf(wide.cols.get(c.party)) - c.w / 2))));
-  for (const col of wide.cols.values()) col.x += shift;
-  const checksLabelW = sim.checks.length > 0 ? textWidth(words.checks, T.head) + P.head.labelGap : 0;
-  const markCount = sim.checks.length;
-  const statusW = (status: Snap["status"]): number =>
-    status === undefined ? 0 : P.status.padX * 2 + P.status.icon + P.status.gap + textWidth(statusText(status), T.status);
-  const statusText = (status: NonNullable<Snap["status"]>): string =>
-    status.kind === "pending" ? words.pending(status.count) : status.kind === "final" ? words.final : status.kind === "rolled" ? words.rolled : words.partial(status.count);
-  const headNeed = P.margin * 2 + checksLabelW + markCount * (P.head.mark + P.head.gap) + P.colGap + Math.max(0, ...sim.snaps.map((snap) => statusW(snap.status)));
-  const eventsLabelW = sim.emits.length > 0 ? textWidth(words.events, T.head) + P.head.labelGap : 0;
+  const others = order.filter((id) => !isBox(id) && !holding.has(id));
+  const placeOther = (id: string): void => {
+    const near = nearOf(id);
+    let want = near.length > 0 ? mean(near) : width / 2;
+    // 呼ぶトークンの箱が真下にあれば、まっすぐ下ろせる所へ寄せる
+    if (side)
+      for (const t of calleesOf(id)) {
+        const tx = xOf.get(t);
+        if (isBox(t) && tx !== undefined && Math.abs(tx - want) < sizeOf(id).w / 2 + 60) want = tx;
+      }
+    xOf.set(id, freeX(want, roomOf(id), rowOf(id), id));
+  };
+  const later = others.filter((id) => nearOf(id).length === 0);
+  for (const id of others) if (!later.includes(id)) placeOther(id);
+  for (const id of later) placeOther(id);
+  if (!side)
+    for (const id of order.filter(isBox)) {
+      const near = nearOf(id);
+      const want = near.length > 0 ? mean(near) : width / 2;
+      const w = tokenW(id);
+      const occ: [number, number][] = [];
+      for (const [other, cx] of xOf) if (isBox(other) && other !== id) occ.push([cx - tokenW(other) / 2 - 30, cx + tokenW(other) / 2 + 30]);
+      for (const t of tankAt.values()) occ.push([t.x + t.w / 2 - 14, t.x + t.w / 2 + 14]);
+      const ok = (cx: number): boolean => cx - w / 2 >= P.margin && occ.every(([a, b]) => cx + w / 2 < a || cx - w / 2 > b);
+      let got = want;
+      for (let d = 0; d < 1e5; d += 6) {
+        if (ok(want + d)) {
+          got = want + d;
+          break;
+        }
+        if (ok(want - d)) {
+          got = want - d;
+          break;
+        }
+      }
+      xOf.set(id, got);
+    }
+  for (const id of order) width = Math.max(width, (xOf.get(id) ?? 0) + roomOf(id) / 2 + P.edge);
+
+  // 流れた分の道筋 (横だけ)。段ごとに、暫定と取り消しの分と、その段で確定した分を描く。
+  // 本管を通す図は、同じトークンの流れの槽の口を分け、横に重なる流れを本管から上へ 1 本ずつずらす。横の管の図は管の中で上下にずらす
+  const shownAt = stepList.map((s) => {
+    const snap = snapOf(s);
+    return moving.filter((f) => {
+      if (f.step > s) return false;
+      const state = snap.states.get(`f${f.id}`);
+      return state === "provisional" || state === "rolled" || (state === "final" && snap.changed.has(`f${f.id}`));
+    });
+  });
+  const mid = (party: string, token: string): number => {
+    const t = tankOf(party, token);
+    return t.x + t.w / 2;
+  };
+  const routes = new Map<string, { fx: number; tx: number; track: number }>();
+  const deepest = new Map<string, number>();
+  for (const s of stepList) {
+    const groups = new Map<string, FlowRec[]>();
+    for (const f of shownAt[s] ?? []) {
+      const key = side ? `${segOf(f)?.a}|${segOf(f)?.b}|${f.token}` : f.token;
+      groups.set(key, [...(groups.get(key) ?? []), f]);
+    }
+    for (const [, same] of groups) {
+      const xs = new Map<string, number>();
+      if (side)
+        for (const f of same) {
+          const seg = segOf(f) as Seg;
+          const left = tankOf(seg.a, f.token);
+          const right = tankOf(seg.b, f.token);
+          xs.set(`${f.id}>`, f.from === seg.a ? left.x + left.w : right.x);
+          xs.set(`${f.id}<`, f.to === seg.a ? left.x + left.w : right.x);
+        }
+      else {
+        const ends = new Map<string, { key: string; other: number }[]>();
+        for (const f of same) {
+          ends.set(f.from, [...(ends.get(f.from) ?? []), { key: `${f.id}>`, other: mid(f.to, f.token) }]);
+          ends.set(f.to, [...(ends.get(f.to) ?? []), { key: `${f.id}<`, other: mid(f.from, f.token) }]);
+        }
+        const token = same[0]?.token ?? "";
+        for (const [party, list] of ends) {
+          const center = mid(party, token);
+          const sorted = [...list].sort((a, b) => Number(a.other >= center) - Number(b.other >= center) || b.other - a.other);
+          const room = tankOf(party, token).w - P.tank.pad * 2 - P.flow.width * 2;
+          const gap = sorted.length > 1 ? Math.min(P.flow.track * 2, room / (sorted.length - 1)) : 0;
+          sorted.forEach((e, k) => xs.set(e.key, center + (k - (sorted.length - 1) / 2) * gap));
+        }
+      }
+      const placed: { lo: number; hi: number; track: number }[] = [];
+      const spans = same.map((f) => {
+        const fx = xs.get(`${f.id}>`) ?? 0;
+        const tx = xs.get(`${f.id}<`) ?? 0;
+        return { f, fx, tx, lo: Math.min(fx, tx), hi: Math.max(fx, tx) };
+      });
+      for (const span of [...spans].sort((a, b) => a.hi - a.lo - (b.hi - b.lo) || a.f.id - b.f.id)) {
+        const near = placed.filter((p) => p.lo < span.hi + P.flow.track && span.lo < p.hi + P.flow.track);
+        let track = side ? 0 : Math.max(0, ...near.filter((p) => p.lo >= span.lo && p.hi <= span.hi).map((p) => p.track + 1));
+        while (near.some((p) => p.track === track)) track++;
+        placed.push({ lo: span.lo, hi: span.hi, track });
+        routes.set(`${s}|${span.f.id}`, { fx: span.fx, tx: span.tx, track });
+        deepest.set(span.f.token, Math.max(deepest.get(span.f.token) ?? 0, track));
+      }
+    }
+  }
+  /** 横の管の中で流れをずらす量。真ん中から上と下へ交互に */
+  const sideShift = (track: number): number => (track === 0 ? 0 : (track % 2 === 1 ? -1 : 1) * Math.ceil(track / 2) * P.flow.track);
+
+  // 縦の帯。上から、イベントの札、吹き出しの帯、名札の行、(本管の図は) トークンの箱と本管、槽
+  const eventsLabelW = sim.emits.length > 0 ? textWidth(words.events, T.head) + P.chip.labelGap : 0;
   const chipTextOf = (e: EmitRec): string => `${nameOf(e.party)}.${e.name}`;
   const argsOf = (e: EmitRec): string | undefined => (e.args && e.args.length > 0 ? e.args.join(", ") : undefined);
   const chipW = (e: EmitRec, withArgs: boolean): number => {
     const args = withArgs ? argsOf(e) : undefined;
     return P.chip.padX * 2 + textWidth(chipTextOf(e), T.chip) + (args ? P.chip.argsGap + textWidth(args, T.args) : 0);
   };
-  const chipNeed = P.margin * 2 + eventsLabelW + Math.max(0, ...sim.emits.map((e) => chipW(e, true)));
-  const cardRight = Math.max(0, ...stepList.flatMap((s) => (cardsAt[s] ?? []).map((c) => centerOf(wide.cols.get(c.party)) + c.w / 2 + P.margin)));
-  const fullWidth = Math.max(wide.right + shift - P.colGap + P.margin, cardRight, headNeed, chipNeed);
-  const narrow = options.width !== undefined && (options.width / fullWidth) * T.party.size < READABLE_PX;
-  const geometry = stepList.map((s) => (narrow ? place((id) => !(involved[s] as Set<string>).has(id)) : wide));
-  const width = narrow ? Math.max(headNeed, chipNeed, ...geometry.map((g) => g.right - P.lane.port / 2 + P.margin)) : fullWidth;
-  const colAt = (s: number, id: string): Col => (geometry[s] as { cols: Map<string, Col> }).cols.get(id) ?? { x: 0, w: 0, folded: true };
-  const midAt = (s: number, id: string): number => centerOf(colAt(s, id));
-  const tankX = (s: number, party: string, token: string): number => {
-    const col = colAt(s, party);
-    const list = tanksOf.get(party) ?? [];
-    let x = col.x + (col.w - groupW(party)) / 2;
-    for (const t of list) {
-      if (t === token) return x;
-      x += (tankW.get(keyOf(party, t)) ?? P.tank.w) + P.tank.gap;
-    }
-    return x;
-  };
-  const mouthAt = (s: number, party: string, token: string): number => tankX(s, party, token) + (tankW.get(keyOf(party, token)) ?? P.tank.w) / 2;
-
-  // 流れた分の道筋。段ごとに、暫定と取り消しの分と、その段で確定した分を描く。まとめた段の内側の流れと、畳んだ列に触れる流れは描かない。
-  // 同じトークンの流れは、槽の口を分ける。口は左へ行く分を短い順に、右へ行く分を長い順に、左から並べる。
-  // 横に重なる流れは短い順に管から下へ 1 本ずつずらし、内に収まる流れより外の流れを下に置く。外の流れの縦の線は、内の流れの横の線を横切らない
-  const routes = new Map<string, { fx: number; tx: number; track: number }>();
-  const shownAt = stepList.map((s) => {
-    const snap = sim.snaps[s] as Snap;
-    return sim.flows.filter((f) => {
-      const state = snap.states.get(`f${f.id}`);
-      if (foldSteps.has(f.step) || f.step > s || colAt(s, f.from).folded || colAt(s, f.to).folded) return false;
-      return state === "provisional" || state === "rolled" || (state === "final" && snap.changed.has(`f${f.id}`));
-    });
-  });
-  const deepest = new Map<string, number>();
-  for (const s of stepList)
-    for (const token of new Set((shownAt[s] ?? []).map((f) => f.token))) {
-      const same = (shownAt[s] ?? []).filter((f) => f.token === token);
-      const ends = new Map<string, { key: string; other: number }[]>();
-      for (const f of same) {
-        ends.set(f.from, [...(ends.get(f.from) ?? []), { key: `${f.id}>`, other: mouthAt(s, f.to, token) }]);
-        ends.set(f.to, [...(ends.get(f.to) ?? []), { key: `${f.id}<`, other: mouthAt(s, f.from, token) }]);
-      }
-      const xs = new Map<string, number>();
-      for (const [party, list] of ends) {
-        const mid = mouthAt(s, party, token);
-        const sorted = [...list].sort((a, b) => Number(a.other >= mid) - Number(b.other >= mid) || b.other - a.other);
-        const room = (tankW.get(keyOf(party, token)) ?? P.tank.w) - P.tank.inner * 2 - P.flow.width;
-        const gap = sorted.length > 1 ? Math.min(P.flow.track, room / (sorted.length - 1)) : 0;
-        sorted.forEach((e, k) => xs.set(e.key, mid + (k - (sorted.length - 1) / 2) * gap));
-      }
-      const placed: { lo: number; hi: number; track: number }[] = [];
-      const spans = same.map((f) => {
-        const fx = xs.get(`${f.id}>`) ?? 0;
-        const tx = xs.get(`${f.id}<`) ?? 0;
-        return { id: f.id, fx, tx, lo: Math.min(fx, tx), hi: Math.max(fx, tx) };
-      });
-      for (const span of [...spans].sort((a, b) => a.hi - a.lo - (b.hi - b.lo) || a.id - b.id)) {
-        const near = placed.filter((p) => p.lo < span.hi + P.flow.track && span.lo < p.hi + P.flow.track);
-        let track = Math.max(0, ...near.filter((p) => p.lo >= span.lo && p.hi <= span.hi).map((p) => p.track + 1));
-        while (near.some((p) => p.track === track)) track++;
-        placed.push({ lo: span.lo, hi: span.hi, track });
-        routes.set(`${s}|${span.id}`, { fx: span.fx, tx: span.tx, track });
-        deepest.set(token, Math.max(deepest.get(token) ?? 0, track));
-      }
-    }
-
-  // 縦の帯
-  const headY = P.margin;
-  let y = headY + P.head.h;
-  const chipsTop = y + P.zoneGap;
+  width = Math.max(width, P.margin * 2 + eventsLabelW + Math.max(0, ...sim.emits.map((e) => chipW(e, true))));
+  const chipsTop = P.margin;
   const chipLeft = P.margin + eventsLabelW;
   const chipRows = stepList.map((s) => {
-    const shown = (sim.snaps[s] as Snap).emitted;
     const rows: { id: number; x: number; row: number; w: number }[] = [];
-    let x = chipLeft;
+    let cx = chipLeft;
     let row = 0;
-    for (const id of shown) {
+    for (const id of snapOf(s).emitted) {
       const e = sim.emits[id] as EmitRec;
       const w = chipW(e, e.step === s);
-      if (x > chipLeft && x + w > width - P.margin) {
+      if (cx > chipLeft && cx + w > width - P.margin) {
         row++;
-        x = chipLeft;
+        cx = chipLeft;
       }
-      rows.push({ id, x, row, w });
-      x += w + P.chip.gap;
+      rows.push({ id, x: cx, row, w });
+      cx += w + P.chip.gap;
     }
     return rows;
   });
   const rowCount = Math.max(0, ...chipRows.map((rows) => Math.max(0, ...rows.map((r) => r.row + 1))));
-  if (rowCount > 0) y = chipsTop + rowCount * P.chip.h + (rowCount - 1) * P.chip.rowGap;
-  const shownCalls = sim.calls.filter((c) => !c.inner);
-  const laneTop = y + P.zoneGap + P.lane.room;
-  const maxDepth = Math.max(0, ...shownCalls.map((c) => c.depth));
-  const pillY = shownCalls.length > 0 ? laneTop + maxDepth * P.lane.pitch + P.lane.below : y + P.zoneGap;
-  const pillBottom = pillY + P.pill.h;
-  const cardTop = pillBottom + P.card.top;
-
-  // 名札の下の札を段ごとに行へ置く。前の札と横に重なる札は次の行へ
-  let cardRows = 0;
-  for (const s of stepList) {
-    const placed: { x: number; w: number; row: number }[] = [];
-    for (const card of cardsAt[s] ?? []) {
-      const x = Math.min(width - P.margin - card.w, Math.max(P.margin, midAt(s, card.party) - card.w / 2));
-      let row = 0;
-      while (placed.some((p) => p.row === row && x < p.x + p.w + P.card.gap && p.x < x + card.w + P.card.gap)) row++;
-      placed.push({ x, w: card.w, row });
-      cardRows = Math.max(cardRows, row + 1);
-      card.make(x, cardTop + row * (P.card.h + P.card.gap));
+  const bandTop = rowCount > 0 ? chipsTop + rowCount * P.chip.h + (rowCount - 1) * P.chip.rowGap + P.callout.gap : P.margin;
+  // 名札の行。計器を載せた縦の枝が入る行は、弁と計器が並ぶ高さを空ける
+  const rowParties = order.filter((id) => !isBox(id));
+  const maxRow = Math.max(0, ...rowParties.map(rowOf));
+  const pitch = Array.from({ length: maxRow }, (): number => P.row.pitch);
+  const checkers = [...new Set(sim.checks.map((c) => c.party))].filter((id) => visible.has(id));
+  for (const id of checkers) {
+    const first = shown.find((c) => c.to === id);
+    if (isBox(id) || !first || isBox(first.from) || rowOf(first.from) === rowOf(id)) continue;
+    const lo = Math.min(rowOf(first.from), rowOf(id));
+    if (lo < maxRow) pitch[lo] = P.row.gauge;
+  }
+  const rowY = [bandTop + P.callout.h + P.callout.gap + P.row.top];
+  for (let r = 1; r <= maxRow; r++) rowY.push((rowY[r - 1] as number) + (pitch[r - 1] ?? P.row.pitch));
+  const lowRow = rowY[maxRow] as number;
+  const anyBox = order.some(isBox);
+  const boxBand = anyBox ? Math.max(...order.filter(isBox).map(tokenH)) : 0;
+  const tokenTop = lowRow + P.band.tokens;
+  // 本管。一番上の本管はトークンの箱の下、ほかは上の本管から、上へずらした流れの分だけ離して下に置く
+  const mainY = new Map<string, number>();
+  if (!side && tokens.length > 0) {
+    let y = tokenTop + (anyBox ? boxBand + P.band.mains : 0) + (deepest.get(tokens[tokens.length - 1] ?? "") ?? 0) * P.flow.track;
+    for (let k = tokens.length - 1; k >= 0; k--) {
+      const token = tokens[k] ?? "";
+      if (k < tokens.length - 1) y += P.bus.pitch + (deepest.get(token) ?? 0) * P.flow.track;
+      mainY.set(token, y);
     }
   }
-  const plateTop = cardTop + cardRows * (P.card.h + P.card.gap);
-  const plateRows = Math.max(0, ...[...platesOf.values()].map((list) => list.length));
-  const tankTop = plateTop + plateRows * (P.plate.h + P.plate.gap);
-  const glassY = tankTop + P.tank.wasY + P.tank.below;
-  const anyTank = [...tanksOf.values()].some((list) => list.length > 0);
-  const glassBottom = glassY + P.tank.h;
-  // トークンごとの管。下へずらした流れの分だけ、次の管を下げる
-  const busY = new Map<string, number>();
-  let busNext = glassBottom + P.bus.top;
-  for (const token of tokens) {
-    busY.set(token, busNext);
-    busNext += P.bus.pitch + Math.max(0, (deepest.get(token) ?? 0) - 1) * P.flow.track;
-  }
-  const lastToken = tokens[tokens.length - 1] ?? "";
-  const busBottom = (busY.get(lastToken) ?? 0) + Math.max(P.bus.width / 2, (deepest.get(lastToken) ?? 0) * P.flow.track + P.flow.width / 2);
-  const height = anyTank ? busBottom + P.margin : Math.max(plateTop, tankTop - P.plate.gap) + P.margin;
-
-  // 段ごとの名札と列
-  const roles = new Map(order.map((id) => [id, roleOf(id)]));
-  const pillAt = (s: number, id: string): Rect => {
-    const col = colAt(s, id);
-    const w = col.folded ? col.w : (pillW.get(id) ?? 0);
-    return { x: col.x + (col.w - w) / 2, y: pillY, w, h: P.pill.h };
+  const anyRow = holders.length > 0;
+  const tankTop = side ? lowRow + P.band.side : tokens.length > 0 ? (mainY.get(tokens[0] ?? "") ?? 0) + P.band.tanks : tokenTop + (anyBox ? boxBand + P.band.mains : 0);
+  const tankBottom = tankTop + tankH;
+  const pipeY = tankBottom - P.side.pipeY;
+  const boxTop = (id: string): number => (side ? pipeY - P.side.boxUp - tokenH(id) : tokenTop);
+  const cyOf = (id: string): number => (isBox(id) ? boxTop(id) + tokenH(id) / 2 : (rowY[rowOf(id)] as number));
+  const rectOf = (id: string): Rect => {
+    const { w, h } = sizeOf(id);
+    return { x: (xOf.get(id) ?? 0) - w / 2, y: cyOf(id) - h / 2, w, h };
   };
+  const nameBottom = (id: string): number => (shapeOf(id) === "round" ? cyOf(id) + P.avatar.nameY + T.party.size * 0.3 : rectOf(id).y + rectOf(id).h);
+  const height = anyRow
+    ? tankBottom + P.band.bottom
+    : Math.max(...order.map((id) => (isBox(id) ? boxTop(id) + tokenH(id) : nameBottom(id)))) + P.band.plain;
+
+  // 関係者
+  const parties: PipeParty[] = order.map((id) => {
+    const r = rectOf(id);
+    const shape = shapeOf(id);
+    const box = diagram.boxes.find((b) => b.id === id);
+    const big = rowOf(id) === 0;
+    const label =
+      shape === "round"
+        ? textAt(nameOf(id), r.x + r.w / 2, cyOf(id) + P.avatar.nameY, T.party, "middle")
+        : shape === "token"
+          ? textAt(nameOf(id), r.x + r.w / 2, r.y + P.token.nameY, T.party, "middle")
+          : textAt(nameOf(id), r.x + (big ? P.cabinet.name : P.cabinet.nameSmall), cyOf(id) + T.party.size * 0.4, T.party);
+    return {
+      ...r,
+      id,
+      name: nameOf(id),
+      role: roleOf(id),
+      ...(box?.icon ? { icon: box.icon } : {}),
+      shape,
+      ...(shape === "token" ? {} : { row: rowOf(id) }),
+      label,
+      holder: holding.has(id),
+    };
+  });
+  const partyOf = new Map(parties.map((p) => [p.id, p]));
+  const involved = diagram.steps.map((step, s) => {
+    const set = new Set(step.events.flatMap(partiesOf));
+    for (const c of shown) if (c.close?.step === s) set.add(c.to);
+    return set;
+  });
   const columns: PipeColumn[] = [];
   const pills: PipePill[] = [];
   for (const s of stepList)
-    for (const id of order) {
-      const col = colAt(s, id);
-      columns.push({ party: id, step: s, x: col.x, y: pillY, w: col.w, h: height - P.margin - pillY, folded: col.folded });
-      pills.push({ ...pillAt(s, id), party: id, step: s, folded: col.folded, active: (sim.snaps[s] as Snap).active === id });
+    for (const p of parties) {
+      const col = colOf.get(p.id);
+      const left = col ? Math.min(col.left, p.x) : p.x;
+      const right = col ? Math.max(col.right, p.x + p.w) : p.x + p.w;
+      columns.push({ party: p.id, step: s, x: left, y: p.y, w: right - left, h: height - P.margin - p.y, folded: false });
+      pills.push({ x: p.x, y: p.y, w: p.w, h: p.h, party: p.id, step: s, folded: false, active: snapOf(s).active === p.id, involved: (involved[s] as Set<string>).has(p.id) });
     }
-  const parties: PipeParty[] = order.map((id) => {
-    const box = diagram.boxes.find((b) => b.id === id);
-    return { ...pillAt(0, id), id, name: nameOf(id), role: roles.get(id) ?? "account", ...(box?.icon ? { icon: box.icon } : {}) };
+  const ties: PipeTie[] = parties.flatMap((p) => {
+    const col = colOf.get(p.id);
+    if (!col || p.shape === "token") return [];
+    const top = p.shape === "round" ? p.label.y + p.label.h + P.tie.gap : p.y + p.h + P.tie.gap;
+    return [{ party: p.id, x: p.x + p.w / 2, y1: top, y2: tankTop - (col.tanks.length > 1 ? P.tie.housing : P.tie.up) }];
   });
 
-  // 槽と水位
-  // 水位の物差しは、並べた関係者の量だけで作る
+  // 槽と水位。水位の物差しは、トークンごとに並べた槽の一番多い量で作る
   const scale = new Map(
     tokens.map((token) => {
-      const amounts = sim.snaps.flatMap((snap) =>
-        [...snap.balances].filter(([k]) => k.endsWith(`|${token}`) && !hidden.has(k.slice(0, -token.length - 1))).map(([, v]) => amountNumber(v)),
-      );
-      const initial = holds.flatMap((h) => ("token" in h && h.token === token && !hidden.has(h.box) ? [amountNumber(h.amount)] : []));
-      return [token, Math.max(0, ...amounts, ...initial)];
+      const owners = holders.filter((h) => has(h, token));
+      const amounts = owners.flatMap((h) => historyOf(`b${keyOf(h, token)}`).map(amountNumber));
+      return [token, Math.max(0, ...amounts)];
     }),
   );
-  const room = P.tank.h - P.tank.inner * 2;
-  const levelH = (token: string, amount: string): number => {
+  const room = tankH - P.tank.pad * 2;
+  const levelH = (token: string, amount: string | undefined): number => {
     const most = scale.get(token) ?? 0;
     const n = amountNumber(amount);
     if (!(n > 0) || most <= 0) return 0;
-    return Math.min(room, Math.max(P.tank.least, (n / most) * room));
+    return Math.min(room, Math.max(P.tank.least, (n / most) * room * P.tank.fill));
   };
-  const glassAt = (s: number, party: string, token: string): Rect => ({ x: tankX(s, party, token), y: glassY, w: tankW.get(keyOf(party, token)) ?? P.tank.w, h: P.tank.h });
-  const liquid = (glass: Rect, token: string, amount: string): Rect => {
+  const liquid = (glass: Rect, token: string, amount: string | undefined): Rect => {
     const h = levelH(token, amount);
-    return { x: glass.x + P.tank.inner, y: glass.y + glass.h - P.tank.inner - h, w: glass.w - P.tank.inner * 2, h };
+    return { x: glass.x + P.tank.pad, y: glass.y + glass.h - P.tank.pad - h, w: glass.w - P.tank.pad * 2, h };
+  };
+  /** 槽か値の札の下の行。前の字と語を真ん中に並べ、前の字に消し線を引く */
+  const subLine = (cx: number, base: number, was: string, tag: string): { was: PipeText; strike: Rect; tag: PipeText } => {
+    const ww = textWidth(was, T.sub);
+    const total = ww + P.tank.tagGap + textWidth(tag, T.tag);
+    const w = textAt(was, cx - total / 2, base, T.sub);
+    return { was: w, strike: { x: w.x - 1, y: w.y + w.h * 0.55, w: w.w + 2, h: 1.5 }, tag: textAt(tag, w.x + w.w + P.tank.tagGap, base, T.tag) };
   };
   const tanks: PipeTank[] = [];
   const glasses: PipeGlass[] = [];
   const levels: PipeLevel[] = [];
-  for (const party of order)
-    for (const token of tanksOf.get(party) ?? []) {
-      const key = `b${keyOf(party, token)}`;
+  for (const col of cols)
+    for (const t of col.tanks) {
+      const glass: Rect = { x: t.x, y: tankTop, w: t.w, h: tankH };
+      const cx = t.x + t.w / 2;
+      const tank: PipeTank = { ...glass, party: col.id, token: t.token, title: textAt(t.token, cx, tankTop + P.tank.titleY, T.tankTitle, "middle"), tone: toneOf(t.token) };
+      tanks.push(tank);
+      const key = `b${keyOf(col.id, t.token)}`;
       for (const s of stepList) {
-        const glass = glassAt(s, party, token);
-        const mid = glass.x + glass.w / 2;
-        const title = textAt(token, mid, tankTop + P.tank.titleY, T.tankTitle, "middle");
-        if (s === 0) tanks.push({ ...glass, party, token, title });
-        glasses.push({ ...glass, party, token, title, step: s, stub: { x: mid, y1: glass.y + glass.h, y2: busY.get(token) ?? glass.y + glass.h } });
-        const snap = sim.snaps[s] as Snap;
-        const amount = snap.balances.get(keyOf(party, token)) ?? "0";
+        glasses.push({ ...tank, step: s });
+        const snap = snapOf(s);
+        const amount = snap.balances.get(keyOf(col.id, t.token)) ?? "0";
         const state = snap.states.get(key) ?? "none";
         const old = snap.was.get(key);
         const changedAt = snap.changed.get(key);
-        const prev = s > 0 ? (sim.snaps[s - 1] as Snap).balances.get(keyOf(party, token)) : undefined;
-        const tagText = state === "none" ? undefined : words.tags[state];
-        const tagW = tagText ? textWidth(tagText, T.tag) + P.tank.tagPadX * 2 : 0;
-        const tagBox: Rect = { x: mid - tagW / 2, y: glass.y - P.tank.tag / 2, w: tagW, h: P.tank.tag };
+        const prev = s > 0 ? snapOf(s - 1).balances.get(keyOf(col.id, t.token)) : undefined;
+        const sub = old !== undefined && state !== "none" ? subLine(cx, tankBottom + P.tank.numberY + P.tank.subY, grouped(old), words.tags[state]) : undefined;
         levels.push({
-          ...liquid(glass, token, amount),
-          party,
-          token,
+          ...liquid(glass, t.token, amount),
+          party: col.id,
+          token: t.token,
           step: s,
           amount,
           state,
-          text: textAt(amount, mid, tankTop + P.tank.amountY, T.amount, "middle"),
-          ...(old !== undefined ? { was: textAt(old, mid, tankTop + P.tank.wasY, T.was, "middle"), base: liquid(glass, token, old) } : {}),
-          ...(tagText ? { tag: { ...textAt(tagText, mid, middleBase(tagBox.y, tagBox.h, T.tag), T.tag, "middle"), box: tagBox } } : {}),
+          text: textAt(grouped(amount), cx, tankBottom + P.tank.numberY, T.amount, "middle"),
+          ...(sub ? { was: sub.was, strike: sub.strike, tag: sub.tag, base: liquid(glass, t.token, old) } : {}),
           ...(changedAt !== undefined ? { event: changedAt } : {}),
-          ...(changedAt !== undefined && prev !== undefined && prev !== amount ? { from: liquid(glass, token, prev) } : {}),
+          ...(changedAt !== undefined && prev !== undefined && prev !== amount ? { from: liquid(glass, t.token, prev) } : {}),
         });
       }
     }
+  const housings: PipeHousing[] = cols
+    .filter((c) => c.tanks.length > 1)
+    .map((c) => ({ party: c.id, x: c.left, y: tankTop - P.tank.housing, w: c.right - c.left, h: tankH + P.tank.housing * 2 }));
 
-  // 管と弁
-  const busAt = (s: number, token: string): PipeBusAt => {
-    const owners = order.filter((id) => (tanksOf.get(id) ?? []).includes(token));
-    const centers = owners.map((id) => {
-      const g = glassAt(s, id, token);
-      return g.x + g.w / 2;
-    });
-    const valveParty = token === ETH ? undefined : tokenParty.get(token);
-    const valveX = valveParty !== undefined && order.includes(valveParty) ? midAt(s, valveParty) : undefined;
-    const right = Math.max(...centers, valveX ?? Number.NEGATIVE_INFINITY) + P.lane.port;
-    return {
-      token,
-      step: s,
-      y: busY.get(token) ?? 0,
-      x1: gutter - P.bus.chipGap / 2,
-      x2: Math.min(width - P.margin, right),
-      ...(valveParty !== undefined && valveX !== undefined ? { valve: { party: valveParty, x: valveX }, top: pillBottom } : {}),
-    };
+  // 値の管と弁
+  const valveOf = (token: string, y: number): PipeBus["valve"] => {
+    const box = token === ETH ? undefined : boxOf(token);
+    return box === undefined ? undefined : { party: box, x: xOf.get(box) ?? 0, y };
   };
-  const pipes: PipeBusAt[] = anyTank ? stepList.flatMap((s) => tokens.map((t) => busAt(s, t))) : [];
-  const buses: PipeBus[] = pipes.filter((b) => b.step === 0).map(({ token, y: by, x1, x2, valve }) => ({ token, y: by, x1, x2, ...(valve ? { valve } : {}) }));
-  const busChips: PipeBusChip[] = anyTank
-    ? tokens.map((token) => {
-        const by = busY.get(token) ?? 0;
-        const w = busChipW.get(token) ?? 0;
-        const box: Rect = { x: P.margin, y: by - P.bus.chip / 2, w, h: P.bus.chip };
-        return { ...box, token, text: textAt(token, box.x + P.bus.chipPadX + P.bus.chip / 2, middleBase(box.y, box.h, T.bus), T.bus) };
+  const buses: PipeBus[] = side
+    ? segs.map((seg, k) => {
+        const a = tankOf(seg.a, seg.token);
+        const b = tankOf(seg.b, seg.token);
+        const first = segs.findIndex((s) => s.token === seg.token) === k;
+        const valve = first ? valveOf(seg.token, pipeY) : undefined;
+        return { token: seg.token, y: pipeY, x1: a.x + a.w, x2: b.x, mode: "side", ...(valve ? { valve } : {}), drops: [] };
       })
-    : [];
+    : tokens.map((token) => {
+        const y = mainY.get(token) ?? 0;
+        const valve = valveOf(token, y);
+        const xs = [...holders.filter((h) => has(h, token)).map((h) => mid(h, token)), ...(valve ? [valve.x] : [])];
+        return {
+          token,
+          y,
+          x1: Math.min(...xs) - P.bus.end,
+          x2: Math.max(...xs) + P.bus.end,
+          mode: "main",
+          ...(valve ? { valve } : {}),
+          drops: holders.filter((h) => has(h, token)).map((h) => ({ x: mid(h, token), y: tankTop + P.tank.pad })),
+        };
+      });
+  const pipes: PipeBusAt[] = stepList.flatMap((s) => buses.map((b) => ({ ...b, step: s })));
 
   // 流れた分
   const flows: PipeFlow[] = stepList.flatMap((s) =>
     (shownAt[s] ?? []).map((f): PipeFlow => {
-      const snap = sim.snaps[s] as Snap;
-      const { fx, tx, track } = routes.get(`${s}|${f.id}`) ?? { fx: mouthAt(s, f.from, f.token), tx: mouthAt(s, f.to, f.token), track: 0 };
-      const from = glassAt(s, f.from, f.token);
-      const to = glassAt(s, f.to, f.token);
-      const by = (busY.get(f.token) ?? 0) + track * P.flow.track;
+      const snap = snapOf(s);
+      const { fx, tx, track } = routes.get(`${s}|${f.id}`) ?? { fx: mid(f.from, f.token), tx: mid(f.to, f.token), track: 0 };
       const changedAt = snap.changed.get(`f${f.id}`);
+      const bus = side ? buses.find((b) => b.token === f.token && b.x1 <= Math.min(fx, tx) + 1 && b.x2 >= Math.max(fx, tx) - 1) : undefined;
+      const valveX = side ? (buses.find((b) => b.token === f.token && b.valve)?.valve?.x ?? (fx + tx) / 2) : (fx + tx) / 2;
+      const y = side ? pipeY + sideShift(track) : (mainY.get(f.token) ?? 0) - track * P.flow.track;
+      const arrowX = side && bus?.valve && valveX > Math.min(fx, tx) && valveX < Math.max(fx, tx) ? (fx + valveX) / 2 : (fx + tx) / 2;
       return {
         id: f.id,
         step: s,
@@ -1114,192 +1258,331 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
         to: f.to,
         amount: f.amount,
         state: snap.states.get(`f${f.id}`) ?? "none",
-        points: [
-          [fx, from.y + from.h],
-          [fx, by],
-          [tx, by],
-          [tx, to.y + to.h],
-        ],
-        arrow: { x: (fx + tx) / 2, y: by, dir: tx >= fx ? 1 : -1 },
+        points: side
+          ? [
+              [fx, y],
+              [tx, y],
+            ]
+          : [
+              [fx, tankTop],
+              [fx, y],
+              [tx, y],
+              [tx, tankTop],
+            ],
+        arrow: { x: arrowX, y, dir: tx >= fx ? 1 : -1 },
+        tone: toneOf(f.token),
+        fresh: f.step === s,
         ...(changedAt !== undefined ? { event: changedAt } : {}),
       };
     }),
   );
 
-  // 呼び出しの管。名札ごとに口を呼び出しの順に並べ、名札の上の端に等しく割る
-  const ports = new Map<string, string[]>();
-  for (const c of shownCalls) {
-    ports.set(c.from, [...(ports.get(c.from) ?? []), `${c.index}>`]);
-    ports.set(c.to, [...(ports.get(c.to) ?? []), `${c.index}<`]);
+  // 呼び出しの管。呼んだ者ごとに本管を 1 本引き、呼ぶ相手ごとに枝を分ける
+  interface Branch {
+    from: string;
+    to: string;
+    root: Point;
+    end: Point;
+    exit: Point;
+    vertical: boolean;
+    /** 枝の向き。横の枝は右へ 1、縦の枝は下へ 1 */
+    dir: 1 | -1;
+    valve: Point;
   }
-  const portX = (s: number, party: string, key: string): number => {
-    const pill = pillAt(s, party);
-    const list = ports.get(party) ?? [];
-    const k = list.indexOf(key);
-    if (list.length <= 1 || pill.w <= P.lane.port * 2) return pill.x + pill.w / 2;
-    return pill.x + P.lane.port + (k * (pill.w - P.lane.port * 2)) / (list.length - 1);
+  const along = (p: Point, b: Branch, d: number): Point => (b.vertical ? [p[0], p[1] + b.dir * d] : [p[0] + b.dir * d, p[1]]);
+  const lengthOf = (a: Point, b: Point): number => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const branches = new Map<string, Branch>();
+  for (const c of shown) {
+    const key = `${c.from}>${c.to}`;
+    if (branches.has(key)) continue;
+    const a = rectOf(c.from);
+    const b = rectOf(c.to);
+    const ay = cyOf(c.from);
+    const sameRow = !isBox(c.from) && !isBox(c.to) && rowOf(c.from) === rowOf(c.to);
+    let root: Point;
+    let end: Point;
+    let exit: Point;
+    let dir: 1 | -1;
+    if (sameRow) {
+      dir = b.x + b.w / 2 >= a.x + a.w / 2 ? 1 : -1;
+      root = [a.x + a.w / 2 + (dir * a.w) / 2, ay];
+      end = [b.x + b.w / 2 - (dir * b.w) / 2, cyOf(c.to)];
+      exit = root;
+    } else {
+      const bx = b.x + b.w / 2;
+      dir = cyOf(c.to) > ay ? 1 : -1;
+      root = [bx, ay];
+      end = [bx, dir === 1 ? b.y : b.y + b.h];
+      exit = bx > a.x && bx < a.x + a.w ? [bx, dir === 1 ? a.y + a.h : a.y] : root;
+    }
+    const branch: Branch = { from: c.from, to: c.to, root, end, exit, vertical: !sameRow, dir, valve: exit };
+    branch.valve = along(exit, branch, Math.min(P.call.valveAt, lengthOf(exit, end) * 0.4));
+    branches.set(key, branch);
+  }
+  const mains: PipeMain[] = [];
+  for (const from of order) {
+    const own = [...branches.values()].filter((b) => b.from === from);
+    if (own.length === 0) continue;
+    const a = rectOf(from);
+    const y = cyOf(from);
+    const xs = [a.x, a.x + a.w, ...own.map((b) => b.root[0])];
+    mains.push({
+      from,
+      y,
+      points: [
+        [Math.min(...xs), y],
+        [Math.max(...xs), y],
+      ],
+      branches: own.map((b) => ({ to: b.to, points: [b.root, b.end], valve: { x: b.valve[0], y: b.valve[1], vertical: b.vertical } })),
+    });
+  }
+  /** 光る管の道。呼んだ者の名札を出た所から本管を通って枝の端まで */
+  const litOf = (b: Branch): Point[] => {
+    if (b.exit !== b.root) return [b.exit, b.end];
+    if (!b.vertical) return [b.root, b.end];
+    const a = rectOf(b.from);
+    const edge: Point = [b.root[0] >= a.x + a.w / 2 ? a.x + a.w : a.x, b.root[1]];
+    return [edge, b.root, b.end];
   };
-  const laneY = (depth: number): number => laneTop + depth * P.lane.pitch;
-  const lanePoints = (s: number, c: CallRec): Point[] => {
-    const fx = portX(s, c.from, `${c.index}>`);
-    const tx = portX(s, c.to, `${c.index}<`);
-    const ly = laneY(c.depth);
-    return [
-      [fx, pillY],
-      [fx, ly],
-      [tx, ly],
-      [tx, pillY],
-    ];
-  };
-  const widthOf = (kind: CallRec["kind"]): number => (kind === "static" ? P.lane.width / 2 : P.lane.width);
-  const calls: PipeCallLane[] = shownCalls.map((c) => ({
-    index: c.index,
-    step: c.step,
-    event: c.event,
-    from: c.from,
-    to: c.to,
-    depth: c.depth,
-    y: laneY(c.depth),
-    kind: c.kind,
-    width: widthOf(c.kind),
-    points: lanePoints(c.step, c),
-    ...(c.value !== undefined ? { value: c.value } : {}),
-    ...(c.close ? { close: c.close } : {}),
-  }));
-  const lanes: PipeLane[] = [];
-  for (const s of stepList)
-    for (const c of shownCalls) {
-      if (c.step > s) continue;
-      const closed = c.close !== undefined && c.close.step <= s;
-      lanes.push({
+  const widthOf = (kind: CallRec["kind"]): number => (kind === "static" ? P.call.flow / 2 : P.call.flow);
+  const calls: PipeCallLane[] = shown.map((c) => {
+    const b = branches.get(`${c.from}>${c.to}`) as Branch;
+    const a = rectOf(c.from);
+    return {
+      index: c.index,
+      step: c.step,
+      event: c.event,
+      from: c.from,
+      to: c.to,
+      depth: c.depth,
+      y: cyOf(c.from),
+      kind: c.kind,
+      width: widthOf(c.kind),
+      points: [[a.x + a.w / 2, cyOf(c.from)], b.root, b.end],
+      lit: litOf(b),
+      ...(c.value !== undefined ? { value: c.value } : {}),
+      ...(c.close ? { close: c.close } : {}),
+    };
+  });
+  const lanes: PipeLane[] = stepList.flatMap((s) =>
+    shown
+      .filter((c) => c.step <= s && (c.close === undefined || c.close.step >= s))
+      .map((c) => ({
         call: c.index,
         step: s,
+        from: c.from,
+        to: c.to,
         kind: c.kind,
         width: widthOf(c.kind),
-        points: lanePoints(s, c),
-        state: closed ? "closed" : "open",
-        ...(closed && c.close ? { how: c.close.how } : {}),
+        points: litOf(branches.get(`${c.from}>${c.to}`) as Branch),
         ...(c.step === s ? { opened: c.event } : {}),
         ...(c.close?.step === s ? { shut: c.close.event } : {}),
+      })),
+  );
+
+  // 計器。確かめる者ごとに 1 つ、最初に確かめた段から最後の段まで置き、針と通ったかの印を残す
+  const gauges: PipeGauge[] = [];
+  for (const party of checkers) {
+    const own = sim.checks.filter((c) => c.party === party);
+    const firstStep = Math.min(...own.map((c) => c.step));
+    const incoming = shown.find((c) => c.to === party);
+    const branch = incoming ? branches.get(`${incoming.from}>${incoming.to}`) : undefined;
+    const valveBus = isBox(party) ? buses.find((b) => b.valve?.party === party) : undefined;
+    let place: { on: PipeGauge["on"]; cx: number; cy: number; r: number; stem?: { y1: number; y2: number } };
+    if (valveBus?.valve) {
+      const r = P.gauge.rValue;
+      const box = rectOf(party);
+      const want = Math.min(valveBus.valve.x - P.gauge.valveX, box.x - P.gauge.boxX);
+      const cx = valveBus.mode === "side" ? Math.max(valveBus.x1 + r + P.flow.width, want) : want;
+      const cy = valveBus.valve.y - P.gauge.up;
+      place = { on: "value", cx, cy, r, stem: { y1: cy + r, y2: valveBus.valve.y - P.gauge.stemGap } };
+    } else if (branch && !isBox(party)) {
+      const r = P.gauge.r;
+      const len = lengthOf(branch.root, branch.end);
+      const valveAt = lengthOf(branch.root, branch.valve);
+      const want = len - (branch.vertical ? P.call.gaugeDown : P.call.gaugeEnd);
+      const least = valveAt + P.valve.r + r + P.call.gaugeGap / 4;
+      const at = Math.min(len - r, Math.max(least, want));
+      const [cx, cy] = along(branch.root, branch, at);
+      place = { on: "call", cx, cy, r };
+    } else {
+      const r = P.gauge.r;
+      const box = rectOf(party);
+      place = { on: "party", cx: box.x + box.w + P.gauge.lampGap + r, cy: box.y + box.h / 2, r };
+    }
+    let angle: number = P.gauge.unseen;
+    for (let s = firstStep; s < steps; s++) {
+      const done = own.filter((c) => c.step <= s);
+      const latest = done[done.length - 1] as CheckRec;
+      const here = own.filter((c) => c.step === s);
+      const from = angle;
+      angle = latest.ok ? P.gauge.ok : P.gauge.fail;
+      const { cx, cy, r } = place;
+      const read = place.on === "value" && here.length === 0 ? `${latest.check.left} ${OP_TEXT[latest.check.op]} ${latest.check.right}` : undefined;
+      gauges.push({
+        x: cx - r,
+        y: cy - r,
+        w: r * 2,
+        h: r * 2,
+        party,
+        step: s,
+        event: (here[0] ?? latest).event,
+        ok: latest.ok,
+        on: place.on,
+        cx,
+        cy,
+        r,
+        fresh: here.length > 0 && !foldSteps.has(s),
+        from,
+        angle,
+        lamp: { x: cx + r + P.gauge.lampGap, y: cy - r + 4, r: P.gauge.lamp },
+        ...(place.stem ? { stem: place.stem } : {}),
+        ...(read ? { read: textAt(read, cx, cy - r - P.gauge.readGap, T.read, "middle") } : {}),
       });
     }
-
-  // 管の上の字の札。呼び出しの字と ETH、戻る値
-  const tags: PipeTag[] = [];
-  const tagOn = (s: number, c: CallRec, event: number, kind: PipeTag["kind"], text: string): void => {
-    const pts = lanePoints(s, c);
-    const [fx] = pts[0] as Point;
-    const [tx] = pts[3] as Point;
-    const w = textWidth(text, T.lane) + P.lane.tagPadX * 2;
-    const x = Math.min(width - P.margin - w, Math.max(P.margin, (fx + tx) / 2 - w / 2));
-    const top = laneY(c.depth) - P.lane.tagGap - P.lane.tagH;
-    tags.push({ x, y: top, w, h: P.lane.tagH, step: s, event, call: c.index, kind, text, label: textAt(text, x + P.lane.tagPadX, middleBase(top, P.lane.tagH, T.lane), T.lane) });
-  };
-  for (const c of shownCalls) {
-    const text = [c.label, c.value !== undefined ? `+${c.value} ${ETH}` : undefined].filter((t) => t !== undefined && t !== "").join(" ");
-    if (text !== "") tagOn(c.step, c, c.event, "call", text);
   }
-  for (const r of sim.returns) {
-    const c = sim.calls[r.call];
-    if (c && !c.inner) tagOn(r.step, c, r.event, "return", r.value);
-  }
-  tags.sort((a, b) => a.step - b.step || a.event - b.event);
-  const returns = tags.filter((t) => t.kind === "return");
 
-  // 値の札
+  // 変換器と囲い。計算する関係者の最初の 2 つの槽の間に置く
+  const converters: PipeConverter[] = [];
+  for (const col of cols) {
+    const own = sim.calcs.filter((c) => c.party === col.id);
+    const [ta, tb] = col.tanks;
+    if (own.length === 0 || !ta || !tb) continue;
+    const r = many ? P.converter.rSmall : P.converter.r;
+    const left = ta.x + ta.w;
+    const right = tb.x;
+    const cx = (left + right) / 2;
+    const cy = tankTop + tankH / 2;
+    for (const s of stepList) {
+      const here = own.filter((c) => c.step === s && !foldSteps.has(s));
+      const shownCalc = here[0] ?? [...own].reverse().find((c) => c.step <= s) ?? (own[0] as CalcRec);
+      converters.push({
+        x: cx - r,
+        y: cy - r,
+        w: r * 2,
+        h: r * 2,
+        party: col.id,
+        step: s,
+        calc: shownCalc.step,
+        ...(here[0] ? { event: here[0].event } : {}),
+        in: shownCalc.input,
+        out: shownCalc.output,
+        rate: shownCalc.rate,
+        active: here.length > 0,
+        cx,
+        cy,
+        r,
+        left,
+        right,
+      });
+    }
+  }
+
+  // 値の札。トークンの箱の値は箱の中の名前の下に、ほかは持ち主の槽の並びに置く
   const plates: PipePlate[] = [];
-  const plateX = (s: number, party: string): number => {
-    const col = colAt(s, party);
-    return col.x + (col.w - (plateW.get(party) ?? 0)) / 2;
-  };
-  const plateAt = (s: number, party: string, name: string): Rect => ({
-    x: plateX(s, party),
-    y: plateTop + (platesOf.get(party) ?? []).indexOf(name) * (P.plate.h + P.plate.gap),
-    w: plateW.get(party) ?? 0,
-    h: P.plate.h,
-  });
-  for (const party of order)
-    for (const name of platesOf.get(party) ?? []) {
+  for (const party of order) {
+    const boxed = isBox(party);
+    const col = colOf.get(party);
+    (platesOf.get(party) ?? []).forEach((name, i) => {
       const key = `v${keyOf(party, name)}`;
+      const box = rectOf(party);
+      const spot = col?.plates.find((p) => p.name === name);
+      if (!boxed && !spot) return;
       for (const s of stepList) {
-        const snap = sim.snaps[s] as Snap;
-        const box = plateAt(s, party, name);
+        const snap = snapOf(s);
         const value = snap.values.get(keyOf(party, name)) ?? "";
         const state = snap.states.get(key) ?? "none";
-        const old = snap.was.get(key);
-        const left = box.x + P.plate.padX;
-        const text = textAt(value, left, box.y + P.plate.valueY, T.plateValue);
-        const was = old !== undefined ? textAt(old, text.x + text.w + P.plate.wasGap, box.y + P.plate.valueY, T.was) : undefined;
+        const old = state === "none" ? undefined : snap.was.get(key);
         const changedAt = snap.changed.get(key);
-        const prevSnap = s > 0 ? (sim.snaps[s - 1] as Snap) : undefined;
-        const prev = prevSnap?.values.get(keyOf(party, name));
+        const at = changedAt !== undefined ? { event: changedAt } : {};
+        if (boxed) {
+          const cx = box.x + box.w / 2;
+          const keyBase = box.y + P.token.keyY + P.token.line * i;
+          const base = keyBase + P.token.valueY;
+          const valueW = textWidth(value, T.keyValue);
+          const total = old === undefined ? valueW : textWidth(old, T.keyValue) + P.token.arrowGap * 2 + arrowW + valueW;
+          const start = cx - total / 2;
+          const was = old === undefined ? undefined : textAt(old, start, base, T.keyValue);
+          const arrow = was ? textAt("→", was.x + was.w + P.token.arrowGap, base, T.keyValue) : undefined;
+          const text = textAt(value, arrow ? arrow.x + arrow.w + P.token.arrowGap : start, base, T.keyValue);
+          plates.push({
+            x: box.x + P.token.plateX,
+            y: keyBase - T.key.size,
+            w: box.w - P.token.plateX * 2,
+            h: P.token.valueY + T.key.size + T.keyValue.size * 0.3,
+            party,
+            name,
+            step: s,
+            value,
+            state,
+            boxed,
+            label: textAt(name, cx, keyBase, T.key, "middle"),
+            text,
+            ...(was && arrow ? { was, arrow, strike: { x: was.x - 1, y: was.y + was.h * 0.55, w: was.w + 2, h: 1.5 } } : {}),
+            ...at,
+          });
+          continue;
+        }
+        const p = spot as { x: number; w: number };
+        const y = tankTop + P.plate.top;
+        const h = tankH - P.plate.short;
+        const cx = p.x + p.w / 2;
+        const sub = old !== undefined ? subLine(cx, tankBottom + P.tank.numberY, old, words.tags[state as Exclude<PipeState, "none">]) : undefined;
         plates.push({
-          ...box,
+          x: p.x,
+          y,
+          w: p.w,
+          h,
           party,
           name,
           step: s,
           value,
           state,
-          label: textAt(name, left, box.y + P.plate.nameY, T.plateName),
-          text,
-          ...(was ? { was, strike: { x: was.x - 1, y: was.y + was.h * 0.55, w: was.w + 2, h: 1.25 } } : {}),
-          ...(changedAt !== undefined ? { event: changedAt } : {}),
-          ...(changedAt !== undefined && prev !== undefined && prevSnap
-            ? { before: { text: textAt(prev, left, box.y + P.plate.valueY, T.plateValue), state: prevSnap.states.get(key) ?? "none" } }
-            : {}),
+          boxed,
+          label: textAt(name, cx, y + P.plate.nameY, T.tankTitle, "middle"),
+          text: textAt(value, cx, y + h / 2 + P.plate.valueY, T.plateValue, "middle"),
+          ...(sub ? { was: sub.was, strike: sub.strike, tag: sub.tag } : {}),
+          ...at,
         });
       }
-    }
+    });
+  }
+  const plateAt = (party: string, name: string): PipePlate | undefined => plates.find((p) => p.party === party && p.name === name);
   const writes: PipeWrite[] = sim.writes
-    .filter((w) => !foldSteps.has(w.step))
-    .map((w) => {
-      const plate = plateAt(w.step, w.to, w.name);
-      const wx = midAt(w.step, w.from);
+    .filter((w) => !foldSteps.has(w.step) && visible.has(w.from))
+    .flatMap((w) => {
+      const plate = plateAt(w.to, w.name);
+      if (!plate) return [];
+      const writer = rectOf(w.from);
+      const wx = writer.x + writer.w / 2;
       const px = plate.x + plate.w / 2;
-      const turn = pillBottom + P.card.top / 2;
-      return {
-        ...w,
-        points:
-          w.from === w.to
+      const target = plate.boxed ? rectOf(w.to).y : plate.y;
+      const turn = plate.boxed ? target - P.write.turn : tankTop - P.write.turn;
+      const start = writer.y + writer.h;
+      const points: Point[] =
+        plate.boxed && w.from === w.to
+          ? [
+              [px, plate.y],
+              [px, plate.y],
+            ]
+          : Math.abs(wx - px) < 1
             ? [
-                [wx, pillBottom],
-                [wx, plate.y],
+                [wx, start],
+                [px, target],
               ]
             : [
-                [wx, pillBottom],
+                [wx, start],
                 [wx, turn],
                 [px, turn],
-                [px, plate.y],
-              ],
-      };
+                [px, target],
+              ];
+      return [{ ...w, points }];
     });
 
-  // 確認の印。行う者の名札の右上の角に印を並べ、図の上の端の行にも並べる
-  const lamps: PipeLamp[] = [];
-  const checks: PipeCheckMark[] = [];
-  const marksLeft = P.margin + checksLabelW;
-  for (const s of stepList) {
-    const done = sim.checks.filter((c) => c.step <= s);
-    done.forEach((c, i) => {
-      checks.push({ x: marksLeft + i * (P.head.mark + P.head.gap), y: headY + (P.head.h - P.head.mark) / 2, w: P.head.mark, h: P.head.mark, step: s, event: c.event, ok: c.ok, fresh: c.step === s });
-    });
-    for (const party of order) {
-      const own = done.filter((c) => c.party === party);
-      if (own.length === 0) continue;
-      const pill = pillAt(s, party);
-      const span = Math.max(0, pill.w / 3 - P.pill.lamp);
-      const stepX = own.length > 1 ? Math.min(P.pill.lampStep, span / (own.length - 1)) : 0;
-      own.forEach((c, i) => {
-        const right = pill.x + pill.w - P.pill.lamp / 2 - (own.length - 1 - i) * stepX;
-        lamps.push({ x: right - P.pill.lamp / 2, y: pill.y - P.pill.lamp / 2 + P.pill.lampY, w: P.pill.lamp, h: P.pill.lamp, party, step: s, event: c.event, ok: c.ok, fresh: c.step === s && !foldSteps.has(s) });
-      });
-    }
-  }
-
-  // イベントの札
+  // イベントの札と、イベントを出した者の輪
   const events: PipeEventChip[] = [];
   for (const s of stepList) {
-    const snap = sim.snaps[s] as Snap;
+    const snap = snapOf(s);
     for (const r of chipRows[s] ?? []) {
       const e = sim.emits[r.id] as EmitRec;
       const top = chipsTop + r.row * (P.chip.h + P.chip.rowGap);
@@ -1323,38 +1606,175 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
       });
     }
   }
-  const rings: PipeRing[] = sim.emits.filter((e) => !foldSteps.has(e.step)).map((e) => ({ party: e.party, step: e.step, event: e.event }));
+  const rings: PipeRing[] = sim.emits.filter((e) => !foldSteps.has(e.step) && visible.has(e.party)).map((e) => ({ party: e.party, step: e.step, event: e.event }));
+  const heads: PipeLayout["heads"] = sim.emits.length > 0 ? { events: textAt(words.events, P.margin, middleBase(chipsTop, P.chip.h, T.head), T.head) } : {};
 
-  // 右上の変更の札
-  const statuses: PipeStatus[] = stepList.flatMap((s) => {
-    const status = (sim.snaps[s] as Snap).status;
-    if (!status) return [];
-    const w = statusW(status);
-    const box: Rect = { x: width - P.margin - w, y: headY + (P.head.h - P.status.h) / 2, w, h: P.status.h };
-    return [
-      {
-        ...box,
-        step: s,
-        kind: status.kind,
-        text: textAt(statusText(status), box.x + P.status.padX + P.status.icon + P.status.gap, middleBase(box.y, box.h, T.status), T.status),
-        ...(status.event !== undefined ? { event: status.event } : {}),
-      },
+  // 段ごとに避ける所。名札と名前、槽と下の数、値の札、トークンの箱、変換器、計器、イベントの札
+  const fixedAvoid: Rect[] = [
+    ...parties.map((p) => (p.shape === "round" ? { x: Math.min(p.x, p.label.x), y: p.y, w: Math.max(p.w, p.label.w), h: p.label.y + p.label.h - p.y } : p)),
+    ...tanks.map((t) => ({ x: t.x, y: t.y, w: t.w, h: t.h + P.tank.numberY + P.tank.subY + T.sub.size * 0.4 })),
+    ...housings,
+  ];
+  const avoidAt = (s: number): Rect[] => [
+    ...fixedAvoid,
+    ...levels.filter((l) => l.step === s).flatMap((l) => [l.text, ...(l.was ? [l.was] : []), ...(l.tag ? [l.tag] : [])]),
+    ...plates.filter((p) => p.step === s).flatMap((p) => [p, ...(p.was ? [p.was] : []), ...(p.tag ? [p.tag] : [])]),
+    ...converters.filter((c) => c.step === s),
+    ...gauges.filter((g) => g.step === s).flatMap((g) => [g, { x: g.lamp.x - g.lamp.r, y: g.lamp.y - g.lamp.r, w: g.lamp.r * 2, h: g.lamp.r * 2 }, ...(g.read ? [g.read] : [])]),
+    ...events.filter((e) => e.step === s),
+  ];
+  /** 置き場の候補を順に試し、避ける所と重ならない最初の所。どれも重なる時は吹き出しの帯に置く */
+  const placeAt = (w: number, h: number, anchor: Point, avoid: Rect[], band: number): Rect => {
+    const C = P.callout;
+    const [ax, ay] = anchor;
+    const fit = ([cx, cy]: Point): Rect => ({
+      x: Math.min(Math.max(cx - w / 2, C.edge), width - C.edge - w),
+      y: Math.min(Math.max(cy - h / 2, P.margin), height - P.margin - h),
+      w,
+      h,
+    });
+    const tries: Point[] = [
+      [ax, ay],
+      [ax, ay - C.near],
+      [ax, ay + C.near],
+      [ax + w / 2 + C.beside, ay],
+      [ax - w / 2 - C.beside, ay],
+      [ax, ay - C.far],
+      [ax, ay + C.far],
     ];
-  });
-  const heads: PipeLayout["heads"] = {
-    ...(sim.checks.length > 0 ? { checks: textAt(words.checks, P.margin, middleBase(headY, P.head.h, T.head), T.head) } : {}),
-    ...(sim.emits.length > 0 ? { events: textAt(words.events, P.margin, middleBase(chipsTop, P.chip.h, T.head), T.head) } : {}),
+    for (const at of tries) {
+      const r = fit(at);
+      if (avoid.every((o) => clear(r, o))) return r;
+    }
+    return fit([ax, band + h / 2]);
   };
+
+  // 畳んだ箱。呼ばれた者の下の空いた所に置く
+  const foldBoxes: PipeFoldBox[] = folds.flatMap((fold) => {
+    const call = sim.calls[fold.call];
+    const party = call?.to ?? "";
+    if (!visible.has(party)) return [];
+    const count = fold.to - fold.from + 1;
+    const text = words.fold(count, fold.hidden.length);
+    const w = P.card.padX * 2 + P.card.icon + P.card.gap + Math.max(textWidth(words.open, T.cardTitle), textWidth(text, T.fold));
+    const owner = rectOf(party);
+    const at = placeAt(w, P.card.h, [owner.x + owner.w / 2, owner.y + owner.h + P.card.top + P.card.h / 2], avoidAt(fold.step), bandTop);
+    const left = at.x + P.card.padX + P.card.icon + P.card.gap;
+    const title = textAt(words.open, left, at.y + P.card.titleY, T.cardTitle);
+    const value = textAt(text, left, at.y + P.card.valueY, T.fold);
+    return [{ ...at, party, step: fold.step, call: fold.call, steps: count, parties: fold.hidden.length, title, value, text: value }];
+  });
+
+  // 段ごとの吹き出し。その段の出来事のうち、取り消し、移す、確かめる、換算、戻る、呼ぶ、書く、出すの順に先に来る 1 つを出す
+  const KINDS = ["revert", "move", "check", "calc", "return", "call", "write", "emit"] as const;
+  const callouts: PipeCallout[] = [];
+  for (const s of stepList) {
+    if (foldSteps.has(s)) continue;
+    const events0 = (diagram.steps[s] as Step).events;
+    let found: { e: Step["events"][number]; at: number } | undefined;
+    for (const kind of KINDS) {
+      const at = events0.findIndex((e) => e.type === kind);
+      if (at >= 0) {
+        found = { e: events0[at] as Step["events"][number], at };
+        break;
+      }
+    }
+    if (!found) continue;
+    const { e, at } = found;
+    let tag = "";
+    let text = "";
+    let tone: PipeTone = "call";
+    let mono = false;
+    let anchor: Point = [width / 2, bandTop];
+    const partyMid = (id: string): Point => {
+      const r = rectOf(id);
+      return [r.x + r.w / 2, r.y + r.h / 2];
+    };
+    if (e.type === "revert") {
+      tag = words.undo;
+      text = e.reason ?? "revert";
+      tone = "bad";
+      anchor = [partyMid(e.box)[0], bandTop + P.callout.h / 2];
+    } else if (e.type === "move") {
+      const token = sim.tokens.get(e.box) ?? "";
+      tag = words.moves(nameOf(e.box));
+      text = `${e.amount} ${token}`;
+      tone = "value";
+      const f = flows.find((g) => g.step === s && g.event === at) ?? flows.find((g) => g.step === s);
+      anchor = f ? (side ? [f.arrow.x, pipeY + P.callout.h + P.side.pipeY] : [f.arrow.x, f.arrow.y - P.callout.near]) : partyMid(e.box);
+    } else if (e.type === "check") {
+      const ok = checkPasses(e);
+      tag = (diagram.steps[s] as Step).title;
+      text = `${e.left} ${OP_TEXT[e.op]} ${e.right}  ${ok ? "✓" : "✕"}`;
+      tone = ok ? "check" : "bad";
+      mono = true;
+      const g = gauges.find((x) => x.party === e.box && x.step === s);
+      anchor = g ? [g.cx, g.cy - (g.on === "value" ? P.callout.far - P.gauge.up : P.callout.near)] : partyMid(e.box);
+    } else if (e.type === "calc") {
+      tag = rateOf(e.in, e.out);
+      text = `${e.in} → ${e.out}`;
+      tone = "value";
+      const col = colOf.get(e.box);
+      anchor = col ? [col.cx, tankTop - P.callout.h] : partyMid(e.box);
+    } else if (e.type === "return") {
+      const rec = sim.returns.find((r) => r.step === s && r.event === at);
+      const call = rec ? sim.calls[rec.call] : undefined;
+      const outer = call?.depth === 0 && snapOf(s).status?.kind === "final";
+      tag = outer ? words.tags.final : words.back;
+      text = e.value ?? words.returned;
+      tone = outer ? "good" : "call";
+      const [cx, cy] = partyMid(call?.from ?? e.box);
+      anchor = [cx, cy - P.callout.near];
+    } else if (e.type === "call") {
+      tag = words.call;
+      const label = e.label ?? `${nameOf(e.from)} → ${nameOf(e.to)}`;
+      text = e.value === undefined ? label : `${label} +${e.value} ${ETH}`;
+      const b = branches.get(`${e.from}>${e.to}`);
+      anchor = b ? [b.valve[0], b.valve[1] - P.callout.near] : partyMid(e.from);
+    } else if (e.type === "write") {
+      tag = e.name;
+      text = e.value;
+      tone = "value";
+      mono = true;
+      const plate = plateAt(sim.writes.find((w) => w.step === s && w.event === at)?.to ?? e.box, e.name);
+      anchor = plate ? [plate.x + plate.w / 2, plate.y - P.callout.h] : partyMid(e.box);
+    } else if (e.type === "emit") {
+      tag = words.emitted;
+      text = `${nameOf(e.box)}.${e.name}`;
+      tone = "event";
+      const [cx, cy] = partyMid(e.box);
+      anchor = [cx, cy - P.callout.near];
+    }
+    const textStyle = mono ? T.calloutMono : T.callout;
+    const w = Math.max(textWidth(text, textStyle), textWidth(tag, T.calloutTag)) + P.callout.padX * 2;
+    const r = placeAt(w, P.callout.h, anchor, avoidAt(s), bandTop);
+    const cx = r.x + r.w / 2;
+    const cy = r.y + r.h / 2;
+    callouts.push({
+      ...r,
+      step: s,
+      event: at,
+      kind: e.type,
+      tone,
+      mono,
+      tag: textAt(tag, cx, cy + P.callout.tagY, T.calloutTag, "middle"),
+      text: textAt(text, cx, cy + P.callout.textY, textStyle, "middle"),
+    });
+  }
+
+  // 段ごとに関わる関係者を囲む所
   const focus = stepList.flatMap((s) => {
-    const cols = order.filter((id) => (involved[s] as Set<string>).has(id)).map((id) => colAt(s, id));
-    if (cols.length === 0) return [];
-    const x = Math.min(...cols.map((c) => c.x));
-    return [{ step: s, x, y: P.margin, w: Math.max(...cols.map((c) => c.x + c.w)) - x, h: height - P.margin * 2 }];
+    const ids = [...new Set((diagram.steps[s] as Step).events.flatMap(partiesOf))].filter((id) => visible.has(id));
+    if (ids.length === 0) return [];
+    const rects = ids.map(rectOf);
+    const left = Math.min(...rects.map((r) => r.x));
+    const top = Math.min(...rects.map((r) => r.y));
+    return [{ step: s, x: left, y: top, w: Math.max(...rects.map((r) => r.x + r.w)) - left, h: Math.max(...rects.map((r) => r.y + r.h)) - top }];
   });
 
   return {
     kind: "pipe",
-    arrangement: narrow ? "narrow" : "wide",
+    arrangement: "wide",
     width,
     height,
     regions: [],
@@ -1374,23 +1794,21 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     levels,
     buses,
     pipes,
-    busChips,
     flows,
     calls,
+    mains,
     lanes,
-    tags,
-    returns,
     plates,
     writes,
     gauges,
-    lamps,
-    checks,
+    checks: [],
     events,
     converters,
-    undos,
+    housings,
+    ties,
     folds: foldBoxes,
     rings,
-    statuses,
+    callouts,
     heads,
     focus,
   };

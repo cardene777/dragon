@@ -292,12 +292,11 @@ export function mountDiagram(
   /**
    * 列の図は枠の幅で箱の並べ方を変える (#3351)。横に並べると箱の名前が読めない幅では縦に組んだ図を描き直す。
    * 試す図も同じ幅で縦に組み、縦に組んだ形は枠の幅で描くので、幅が変わった時も描き直す (#3366)。
-   * 配管の図は関係者を横に並べると名前が読めない幅で、段ごとに関わらない列を畳んだ図を描き直す (#3389)。
    * 描き直した時だけ真を返す。段と時刻の表は原本だけで決まるので、描き直しても変わらない
    */
   const arrange = (w: number): boolean => {
     const kind = rendered.diagram.kind;
-    if (kind !== "lineup" && kind !== "try" && kind !== "pipe") return false;
+    if (kind !== "lineup" && kind !== "try") return false;
     const next = renderDiagram(source, { ...options, open, width: w });
     const before = rendered.layout as { arrangement?: string; width: number };
     const after = next.layout as { arrangement?: string; width: number };

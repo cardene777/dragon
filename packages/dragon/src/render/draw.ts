@@ -91,8 +91,8 @@ export interface RenderOptions {
   /** 描く部品が出す字 (断りの文、全体図の札、読み上げの名前) の言葉。書かなければ英語 (#3001、#3338) */
   lang?: NotationLang;
   /**
-   * 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351)。
-   * 配管の図は、関係者を横に並べると名前が読めない幅で、段ごとに関わらない関係者の列を細い帯に畳む (#3389)。書かなければ横に並べる
+   * 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351)。書かなければ横に並べる。
+   * 配管の図は幅に関わらず横に長いまま並べ、再生の部品が枠の中を横に送る (#3398)
    */
   width?: number;
   /** 配管の図 (#3389) で開いて描く `[fold]` の呼び出しの番号 (出てきた順、0 から)。書かない呼び出しは内側の段を 1 つの箱に畳む */
@@ -993,10 +993,7 @@ function renderRead(source: Diagram, options: RenderOptions, lang: NotationLang)
                     ...(options.width === undefined ? {} : { width: options.width }),
                   })
                 : diagram.kind === "pipe"
-                  ? kindParts("pipe", lang).layoutPipe(diagram, {
-                      lang,
-                      ...(options.width === undefined ? {} : { width: options.width }),
-                    })
+                  ? kindParts("pipe", lang).layoutPipe(diagram, { lang })
                   : KIND_FOLDERS.architecture.layout(diagram, lang);
   // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
   const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;

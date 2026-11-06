@@ -25,7 +25,7 @@ const JA_USAGE = [
   "使い方: dragon export <図の file (.json か .dragon)> [設定]",
   "  --out <dir>        書き出す先 (既定は今の dir)",
   "  --width <px>       枠の幅。見せ方を選び、寄って見せる窓の幅になる",
-  "  --palette <名前>   色味 (clear / paper / night / arcade)",
+  "  --palette <名前>   色味 (clear / paper / night / arcade / sea)",
   "  --theme <明暗>     light か dark",
   "  --lang <言葉>      図の中の字の言葉 (ja か en)。既定は記法の file の言葉で、JSON は ja",
   "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
