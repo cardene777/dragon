@@ -278,7 +278,8 @@ describe("書き出し (#2986)", () => {
       const exportDiagram = await exporter();
       const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
       const html = readFileSync(result.files.html as string, "utf8");
-      for (const width of [360, 390, 430]) {
+      // 600 は中身の幅が 640px より狭く、携帯の幅と同じく積む (#3398)
+      for (const width of [360, 390, 430, 600]) {
         const { inner, buttons, no, title, body } = await captionLayout(html, width);
         const sameRow = (a: { y: number; h: number }, b: { y: number; h: number }): boolean => a.y < b.y + b.h && a.y + a.h > b.y;
         expect(
@@ -293,6 +294,29 @@ describe("書き出し (#2986)", () => {
           `幅 ${width}px で、題か本文が帯の中身の右端までの幅を使わない`,
         ).toEqual({ title: true, body: true });
         expect(title.w, `幅 ${width}px で、題の欄が帯の中身の幅の 8 割より細い`).toBeGreaterThanOrEqual(0.8 * (inner.right - inner.left));
+      }
+    },
+  );
+
+  it(
+    "html-export-wide-caption-one-row",
+    async () => {
+      // 広い帯は釦を題の行の右に置き、進み具合を説明文の下の全幅の帯にする。縦に積むと帯が高くなり、低い画面で大きな図が寄って追う図に替わる (#3398)
+      const exportDiagram = await exporter();
+      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
+      const html = readFileSync(result.files.html as string, "utf8");
+      for (const width of [800, 1280]) {
+        const { inner, buttons, title, body, segments } = await captionLayout(html, width);
+        expect(
+          {
+            buttonsBesideTitle: buttons.y < title.y + title.h && buttons.y + buttons.h > title.y && buttons.x >= title.x + title.w - 0.5,
+            buttonsAtRight: Math.abs(buttons.x + buttons.w - inner.right) <= 1,
+            bodyUnderTitle: body.y >= title.y + title.h - 0.5,
+            segmentsUnder: segments.y >= Math.max(body.y + body.h, buttons.y + buttons.h) - 0.5,
+            segmentsFull: Math.abs(segments.x - inner.left) <= 1 && Math.abs(segments.x + segments.w - inner.right) <= 1,
+          },
+          `幅 ${width}px で、釦が題の行の右に無いか、進み具合が説明文の下の全幅に無い`,
+        ).toEqual({ buttonsBesideTitle: true, buttonsAtRight: true, bodyUnderTitle: true, segmentsUnder: true, segmentsFull: true });
       }
     },
   );

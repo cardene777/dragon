@@ -90,16 +90,18 @@ function playerCss(): string {
     // 角を落とす色味の再生の枠は、図の枠と同じく右上と左下を落として切り抜き、釦の角を丸めない (#3344)
     `.dg-player[data-corner="cut"] .dg-frame{border-radius:0;clip-path:polygon(0 0,calc(100% - ${px(C)}) 0,100% ${px(C)},100% 100%,${px(C)} 100%,0 calc(100% - ${px(C)}))}`,
     `.dg-player[data-corner="cut"] .dg-btn,.dg-player[data-corner="cut"] .dg-seg{border-radius:0}`,
-    // 帯は上から、段の番号と大きな段の題、題の下の小さな説明文、操作の段 (やり直し、前、名前の付いた再生、次、段ごとの進み具合) の順に置く (#3398)。
-    // 帯の左右の余白は置いた頁が帯に付ける
-    `.dg-bar{container:dg-bar/inline-size;display:flex;flex-direction:column;gap:${px(P.gap)}}`,
+    // 帯は段の番号と大きな段の題、題の下の小さな説明文、操作 (やり直し、前、名前の付いた再生、次、段ごとの進み具合) を持つ (#3398)。
+    // 中身の幅が `wide` より狭い帯は上から題、説明文、操作の段の順に積む。広い帯は釦を題の行の右に置き、進み具合を全幅の細い帯にして帯を低く保つ。
+    // 帯が高いと図に使える高さが減り、低い画面で大きな図が寄って追う図に替わるため。帯の左右の余白は置いた頁が帯に付ける
+    `.dg-bar{container:dg-bar/inline-size}`,
+    `.dg-lay{display:flex;flex-direction:column;gap:${px(P.gap)}}`,
     `.dg-say{display:flex;align-items:baseline;gap:${px(P.captionGap)};min-width:0}`,
     `.dg-no{${font(TYPE.stepNo)};font-size:${px(TYPE.stepNo.size)};color:var(--mute);flex:none}`,
     `.dg-txt{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;flex:1}`,
     `.dg-txt>*{grid-area:1/1}`,
     `.dg-room{visibility:hidden}`,
-    `.dg-tt{${font(TYPE.stepTitle)};font-size:${px(TYPE.stepTitle.size)};line-height:1.3;margin:0}`,
-    `.dg-tb{${font(TYPE.stepBody)};font-size:${px(TYPE.stepBody.size)};line-height:1.5;color:var(--ink2);margin:${px(P.focus * 2)} 0 0;white-space:pre-line}`,
+    `.dg-tt{${font(TYPE.stepTitle)};font-size:${px(TYPE.stepTitle.size)};line-height:${P.titleLine};margin:0}`,
+    `.dg-tb{${font(TYPE.stepBody)};font-size:${px(TYPE.stepBody.size)};line-height:${P.bodyLine};color:var(--ink2);margin:0;white-space:pre-line}`,
     `.dg-ctl{display:flex;align-items:center;gap:${px(P.gap)};min-width:0}`,
     `.dg-btns{display:flex;gap:${px(P.segmentGap)};flex:none}`,
     `.dg-btn{min-width:${px(P.button)};height:${px(P.button)};padding:0;border-radius:${px(P.radius)};border:${px(LOOK.stroke.hair)} solid var(--line);background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer;white-space:nowrap}`,
@@ -110,8 +112,16 @@ function playerCss(): string {
     `.dg-seg[data-state="done"]{background:color-mix(in srgb,var(--c-blue) ${P.segmentPast}%,var(--line))}`,
     `.dg-seg[data-state="now"]{background:var(--c-blue)}`,
     `.dg-sr{position:absolute;width:${hidden};height:${hidden};margin:-${hidden};padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}`,
-    // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにする (#3057、#3069)。題と説明文は帯の全幅を使う
+    // 積む帯は番号の右に題、その下に説明文を帯の全幅で置く。説明文を番号の右の欄に入れると行が増えて帯が高くなり、
+    // 重ね窓の図の枠が低くなる (#3059)。題と説明文を包む箱を外して写しも同じ升に重ねるので、題の升は最も高い題、
+    // 説明文の升は最も長い説明文の高さになる (#3049)。題を小さくし、題と説明文から操作の段までを詰めて、図の枠の高さを残す
+    `@container dg-bar (width < ${px(P.wide)}){.dg-lay{gap:${px(P.progressGap)}}.dg-tt{font-size:${px(TYPE.stepTitleStacked.size)}}` +
+      `.dg-say{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:${px(P.captionGap)};align-items:baseline}` +
+      `.dg-txt,.dg-txt>*{display:contents}.dg-no{grid-area:1/1}.dg-tt{grid-area:1/2}.dg-tb{grid-area:2/1/3/3}}`,
+    // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにする (#3057、#3069)
     `@container dg-bar (width < ${px(P.narrow)}){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}}`,
+    // 広い帯は題と説明文の右に釦、その下の行に全幅の進み具合。題と説明文を隠した頁 (見本帳の欄) では釦が左に寄る
+    `@container dg-bar (width >= ${px(P.wide)}){.dg-lay{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:${px(P.captionGap)};row-gap:${px(P.progressGap)}}.dg-ctl{display:contents}.dg-btns{justify-self:start;align-self:start}.dg-segs{grid-column:1/-1}}`,
     // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは変えない
     `@media (pointer: coarse){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}}`,
     `.dg-spot{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
@@ -245,9 +255,13 @@ export function mountDiagram(
   const row = doc.createElement("div");
   row.className = "dg-ctl";
   row.append(buttons, progress);
+  // 帯の幅で並べ方を替えるため、帯 (幅を測る入れ物) の中に並べる箱を 1 つ置く
+  const lay = doc.createElement("div");
+  lay.className = "dg-lay";
+  lay.append(say, row);
   const bar = doc.createElement("div");
   bar.className = "dg-bar";
-  bar.append(say, row);
+  bar.append(lay);
   // 横に送る図の下の細い線。全体のどこを見ているかを示し、図が枠に収まる時は置かない (#3398)
   const overview = doc.createElement("div");
   overview.className = "dg-ov";

@@ -7,9 +7,9 @@
 
 import type { Page } from "playwright";
 import { toHash } from "../share";
-import { BASE, captionClearance, expectSteadyAcrossSteps, settledStepShape } from "./playground-support";
+import { BASE, barClearance, expectSteadyAcrossSteps, settledStepShape } from "./playground-support";
 import { describe, expect, it } from "vitest";
-import { site, useSite, exampleText, WAIT, sampleOf, catalogSel, samplesOf, onScreen, stripCoveredOf, CAPTION_SAMPLES, openOverlay, openEditor, captionOf, PHONES } from "./site-support";
+import { site, useSite, exampleText, WAIT, sampleOf, catalogSel, samplesOf, onScreen, stripCoveredOf, CAPTION_SAMPLES, openOverlay, openEditor, captionOf, PHONES, STACKED_CAPTION, stackedCaptionShape, WIDE_CAPTION, wideCaptionShape } from "./site-support";
 
 /**
  * 重ね窓の今の段の番号、図の枠を縦に送る必要があるか、図と寄って追う図の窓の枠と全体図の地が枠の中に収まるか。
@@ -296,7 +296,7 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
   });
 
 
-  // 段の本文の帯の下に余白が無く、本文の最後の行が重ね窓の札の縁に接していた (#3051)
+  // 段の本文の帯の下に余白が無く、本文の最後の行が重ね窓の札の縁に接していた (#3051)。帯の最後の行 (進み具合か操作の段) を札の縁から離す (#3398)
   describe.for((["architecture", "sequence"] as const).flatMap((category) => [
     { width: 390, height: 844 },
     { width: 860, height: 900 },
@@ -313,13 +313,13 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
         const label = `${viewport.width} × ${viewport.height} の ${category} の ${i + 1} 番目の見本の重ね窓`;
         await page.locator(catalogSel("item")).nth(i).click();
         await page.locator(catalogSel("expand")).click();
-        // 帯の下の余白は 10px で、本文の行の下の空きと合わせて 11px。広がると図の枠が低くなる (#3101)
+        // 帯の下の余白 6px と札の縁の線 1px で 7px。広がると図の枠が低くなる (#3101)
         await expect
           .poll(async () => {
-            const clearance = await captionClearance(page, '[data-catalog="overlay"]', ".catalog-overlay-card");
+            const clearance = await barClearance(page, '[data-catalog="overlay"]', ".catalog-overlay-card");
             return clearance === null ? null : Math.round(clearance);
-          }, { ...WAIT, message: `${label} で、本文の最後の行と札の下の縁の間が 11px でない` })
-          .toBe(11);
+          }, { ...WAIT, message: `${label} で、帯の最後の行と札の下の縁の間が 7px でない` })
+          .toBe(7);
         await page.keyboard.press("Escape");
         await expect.poll(() => page.locator('[data-catalog="overlay"]').count(), { ...WAIT, message: `${label} が閉じない` }).toBe(0);
       }
@@ -412,8 +412,10 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
         "360 × 780": { oauth: { bar: 191, frame: 398 }, ccip: { bar: 211, frame: 355 } },
         "390 × 844": { oauth: { bar: 151, frame: 502 }, ccip: { bar: 191, frame: 462 } },
       } as const;
-      // 今の帯の高さ。題と本文の間や帯の下の余白が広がると帯が高くなる (#3101)
-      const bars = { oauth: 140, ccip: 160 } as const;
+      // 今の帯の高さ。題と本文の間や帯の下の余白が広がると帯が高くなる (#3101)。題は図の上の見出しとして大きい (#3398)
+      const bars = { oauth: 152, ccip: 171 } as const;
+      const seenAll: Record<string, { bar: number; taller: boolean } | null> = {};
+      const want: Record<string, { bar: number; taller: boolean }> = {};
       for (const viewport of [
         { width: 360, height: 780 },
         { width: 390, height: 844 },
@@ -422,14 +424,18 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
         for (const sample of CAPTION_SAMPLES) {
           const page = await openOverlay(viewport, sample);
           const now = before[size][sample.key];
+          const key = `${size} ${sample.key}`;
+          want[key] = { bar: bars[sample.key], taller: true };
           await expect
             .poll(async () => {
               const seen = await captionOf(page, '[data-catalog="overlay"]');
-              return seen && { bar: Math.round(seen.bar), taller: seen.frame > now.frame };
-            }, { ...WAIT, message: `${size} の ${sample.key} の重ね窓で、帯が ${bars[sample.key]}px でないか、図の枠の中が ${now.frame}px より高くならない` })
-            .toEqual({ bar: bars[sample.key], taller: true });
+              seenAll[key] = seen && { bar: Math.round(seen.bar), taller: seen.frame > now.frame };
+              return seenAll[key] !== null;
+            }, { ...WAIT, message: `${key} の重ね窓の帯が読めない` })
+            .toBe(true);
         }
       }
+      expect(seenAll, "狭い重ね窓で、帯の高さが今と違うか、図の枠の中が前より高くならない").toEqual(want);
     },
   );
 
@@ -451,10 +457,29 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
   });
 
 
-  // 帯の中身の幅が 440px 以上の時は、釦と番号と題と本文を横 1 列に並べる今の形のまま (#3057)
+  // 帯の中身の幅が 440px 以上 640px 未満の時は、題と説明文の下に操作の段を積む。釦 4 つを題の行に置くと題の欄が細り、
+  // 説明文が細かく折れて帯が高くなり、図の枠が低くなる (#3398)
+  describe.for(CAPTION_SAMPLES.map((sample) => ({ sample, name: sample.key })))("560 × 900 $name", ({ sample }) => {
+    it("medium-caption-stacks", async () => {
+      const viewport = { width: 560, height: 900 };
+      for (const [where, scope, page] of [
+        ["重ね窓", '[data-catalog="overlay"]', await openOverlay(viewport, sample)],
+        ["編集画面", '[data-playground="stage"]', await openEditor(viewport, sample.key)],
+      ] as const) {
+        await expect
+          .poll(async () => {
+            const seen = await captionOf(page, scope);
+            return seen && stackedCaptionShape(seen);
+          }, { ...WAIT, message: `560 × 900 の${where}の ${sample.key} で、帯が積む並べ方でないか、番号と題と釦と進み具合の間が今と違う` })
+          .toEqual(STACKED_CAPTION);
+      }
+    });
+  });
+
+
+  // 帯の中身の幅が 640px 以上の時は、番号と題と本文を左に、釦を題の行の右に、進み具合を一番下の全幅に置く (#3057、#3398)
   describe.for(
     [
-      { width: 560, height: 900 },
       { width: 1440, height: 900 },
     ].flatMap(({ width, height }) => CAPTION_SAMPLES.map((sample) => ({ width, height, sample, name: sample.key }))),
   )("$width × $height $name", ({ width, height, sample }) => {
@@ -469,21 +494,9 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
           .poll(async () => {
             const seen = await captionOf(page, scope);
             if (!seen) return null;
-            const { buttons, no, title, body } = seen;
-            return {
-              titleBesideButtons: title.left > buttons.right && title.top < buttons.bottom,
-              noBesideButtons: no.left > buttons.right && no.right <= title.left && no.top < buttons.bottom,
-              bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
-              // 釦の右 10px に番号、番号の右 10px に題を置き、題は釦の上端にそろえる (#3099)。本文は題のすぐ下に置く (#3101)
-              gaps: {
-                no: Math.round(no.left) - Math.round(buttons.right),
-                title: Math.round(title.left) - Math.round(no.right),
-                top: Math.round(title.top) - Math.round(buttons.top),
-                body: Math.round(body.top) - Math.round(title.bottom),
-              },
-            };
-          }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でないか、釦と番号と題と本文の間が今と違う` })
-          .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true, gaps: { no: 10, title: 10, top: 0, body: 0 } });
+            return wideCaptionShape(seen);
+          }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が広い帯の並べ方でないか、番号と題と釦と本文の間が今と違う` })
+          .toEqual(WIDE_CAPTION);
       }
     });
   });

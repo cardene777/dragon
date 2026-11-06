@@ -247,6 +247,8 @@ export interface CaptionLayout {
   no: Rect;
   title: Rect;
   body: Rect;
+  /** 段ごとの進み具合の帯 (#3398) */
+  segments: Rect;
 }
 
 /** 書き出した HTML を動きを嫌う設定で幅 `width` で開き、1 段目の段の本文の帯の並べ方を読む (#3057) */
@@ -273,6 +275,7 @@ export async function captionLayout(html: string, width: number): Promise<Captio
         no: rect('[data-dragon="step-no"]'),
         title: rect('[data-dragon="step-title"]'),
         body: rect('[data-dragon="step-body"]'),
+        segments: rect(".dg-segs"),
       };
     });
   });

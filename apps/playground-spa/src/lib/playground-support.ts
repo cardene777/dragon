@@ -378,18 +378,17 @@ export async function settledStepShape(page: Page, scope: string, label: string)
 }
 
 /**
- * `scope` の中の再生の部品で、本文が最も長い段の本文の下端と `edge` の下の縁の間 (px、#3051)。部品が無ければ `null`。
- * 帯の高さは全部の段の題と本文の写しを重ねて決まる (#3049) ので、写しの本文の下端のうち最も下の物で測る
+ * `scope` の中の再生の部品で、帯の最後の行 (広い帯は段ごとの進み具合、狭い帯は操作の段) の下端と `edge` の下の縁の間 (px、#3051、#3398)。
+ * 部品が無ければ `null`。帯の高さは全部の段の題と本文の写しを重ねて決まる (#3049) ので、段を送っても変わらない
  */
-export const captionClearance = (page: Page, scope: string, edge: string): Promise<number | null> =>
+export const barClearance = (page: Page, scope: string, edge: string): Promise<number | null> =>
   page.evaluate(
     async ([scope, edge]) => {
       await document.fonts.ready;
-      const bodies = [...document.querySelectorAll(`${scope} [data-dragon="caption-room"] > :last-child`)];
+      const lay = document.querySelector(`${scope} .dg-lay`);
       const holder = document.querySelector(edge);
-      if (bodies.length === 0 || !holder) return null;
-      const lowest = Math.max(...bodies.map((body) => body.getBoundingClientRect().bottom));
-      return holder.getBoundingClientRect().bottom - lowest;
+      if (!lay || !holder) return null;
+      return holder.getBoundingClientRect().bottom - lay.getBoundingClientRect().bottom;
     },
     [scope, edge] as const,
   );

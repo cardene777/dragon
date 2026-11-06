@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, inject, it, vi } from
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { PATHS } from "../site/routes";
-import { BASE, bundleSizes, captionClearance, example, expectSteadyAcrossSteps, firstLoadFiles, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, screenOf, type Site, startSite, waitForCoarse } from "./playground-support";
+import { BASE, bundleSizes, barClearance, example, expectSteadyAcrossSteps, firstLoadFiles, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, screenOf, type Site, startSite, waitForCoarse } from "./playground-support";
 
 /** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、カタログの分類から導く (#3157) */
 const screenRoutes = (): string[] => {
@@ -1004,19 +1004,19 @@ describe("公開する頁 (#2995)", () => {
   it(
     "editor-caption-clear-of-bottom-edge",
     async () => {
-      // 段の本文の帯の下に余白が無く、本文の最後の行が図の側の下の縁 (進み具合の帯の上) に接していた (#3051)
+      // 段の本文の帯の下に余白が無く、本文の最後の行が図の側の下の縁 (進み具合の帯の上) に接していた (#3051)。帯の最後の行を縁から離す (#3398)
       for (const [key, text] of [["oauth", OAUTH], ["ccip", CCIP]] as const) {
         const { page } = await open({ viewport: { width: 1440, height: 900 } });
         await drawn(page);
         await click(page, `sample-${key}`);
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `見本 ${key} の図が描かれない` }).toContain(titleOf(text));
-        // 帯の下の余白は 10px。広がると図の枠が低くなる (#3101)
+        // 帯の下の余白は 6px。広がると図の枠が低くなる (#3101)
         await expect
           .poll(async () => {
-            const clearance = await captionClearance(page, sel("stage"), sel("figure"));
+            const clearance = await barClearance(page, sel("stage"), sel("figure"));
             return clearance === null ? null : Math.round(clearance);
-          }, { ...WAIT, message: `見本 ${key} で、本文の最後の行と図の側の下の縁の間が 10px でない` })
-          .toBe(10);
+          }, { ...WAIT, message: `見本 ${key} で、帯の最後の行と図の側の下の縁の間が 6px でない` })
+          .toBe(6);
       }
     },
   );
