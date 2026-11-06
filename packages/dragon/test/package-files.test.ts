@@ -5,7 +5,6 @@
  * package の `files` から `gallery/` を外し、入口からも読まないので、npm に出す file に見本帳の字は入らない。
  * `npm pack --dry-run` が出す file の一覧と、その file の中身の両方を見る。一覧だけを見ると、見本帳の字を別の file へ写した形を捕まえられない。
  */
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, inject, it } from "vitest";
@@ -13,12 +12,11 @@ import { describe, expect, inject, it } from "vitest";
 const PACKAGE = join(__dirname, "..");
 const BLOCKS = join(PACKAGE, "src/blocks");
 
-/** `npm pack --dry-run` が npm に出すと答えた file の path (package の dir から見た相対 path) */
-function packedFiles(): string[] {
-  const out = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: PACKAGE, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-  const [pack] = JSON.parse(out) as { files: { path: string }[] }[];
-  return (pack?.files ?? []).map((file) => file.path);
-}
+/**
+ * `npm pack --dry-run` が npm に出すと答えた file の path (package の dir から見た相対 path)。
+ * npm は準備の段 (`test-support/pack-setup.ts`) が 1 度だけ起こし、ここでは渡された一覧を読む (#3410)
+ */
+const packedFiles = (): string[] => ((inject as (key: string) => unknown)("dragonPackFiles") as string[] | undefined) ?? [];
 
 /**
  * 見本帳の説明と、使い方の頁の段落の字。ブロックの置き場の `gallery/` の `text.ts` と `docs.ts` が出す字をそのまま引く。

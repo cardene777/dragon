@@ -38,22 +38,19 @@ interface Source {
 }
 
 /**
- * 見本を組に分ける (#3381)。全ての見本を 1 件で描くと 1 件の上限 (10 秒) を超えるので、
- * 部品の図は図の種類ごとに、使い方の頁の例と `packages/dragon/examples` の見本はそれぞれ 1 組にする
+ * 描く見本の全て。検査は見本ごとに分ける (#3410)。
+ * 組ごとに 1 件で描くと (#3381)、`packages/dragon/examples` の組が混んだ機械で 1 件の上限 (10 秒) に迫った
  */
-function groups(): { group: string; sources: Source[] }[] {
-  const parts = partFigureNames().map((file) => ({ name: `catalog/parts/${file}`, dir: dirname(partFigure(file)), file }));
-  const kinds = [...new Set(parts.map((s) => s.file.split(".")[1] ?? ""))].sort();
+function sources(): Source[] {
+  const parts = partFigureNames()
+    .sort()
+    .map((file) => ({ name: `catalog/parts/${file}`, dir: dirname(partFigure(file)), file }));
   const listed = (label: string, dir: string): Source[] =>
     readdirSync(dir)
       .filter((f) => /\.(dragon|json)$/.test(f))
       .sort()
       .map((file) => ({ name: `${label}/${file}`, dir, file }));
-  return [
-    ...kinds.map((kind) => ({ group: `catalog/parts ${kind}`, sources: parts.filter((s) => s.file.split(".")[1] === kind) })),
-    { group: "docs/examples", sources: listed("docs/examples", DOCS) },
-    { group: "examples", sources: listed("examples", PACKAGE) },
-  ];
+  return [...parts, ...listed("docs/examples", DOCS), ...listed("examples", PACKAGE)];
 }
 
 /** 見本 1 つで、運ぶ物が隠した物を 1 件 1 行で返す */
@@ -93,21 +90,21 @@ function hidden(name: string, rendered: Rendered): string[] {
 }
 
 describe("見本の運ぶ物が隠さない (#3176)", () => {
-  /** 組ごとの件が数えた、運ぶ物を持つ見本の数。全ての組の後の件が足して確かめる */
+  /** 見本ごとの件が数えた、運ぶ物を持つか (1 か 0)。全ての見本の後の件が足して確かめる */
   const withCarriers: number[] = [];
 
-  describe.for(groups())("$group", ({ sources }) => {
+  describe.for(sources())("$name", ({ name, dir, file }) => {
     it("carriers-clear-in-every-example", () => {
-      const list = sources.map(({ name, dir, file }) => ({ name, rendered: draw(dir, file) }));
-      withCarriers.push(list.filter(({ rendered }) => rendered.timeline.carriers.length > 0).length);
-      const found = list.flatMap(({ name, rendered }) => hidden(name, rendered));
+      const rendered = draw(dir, file);
+      withCarriers.push(rendered.timeline.carriers.length > 0 ? 1 : 0);
+      const found = hidden(name, rendered);
       expect(found, `運ぶ物が隠した物 ${found.length} 件\n${found.join("\n")}`).toEqual([]);
     });
   });
 
   describe("運ぶ物を持つ見本の数", () => {
     it("carriers-clear-in-every-example", () => {
-      expect(withCarriers.length, "見本の組を 1 つも描いていない").toBe(groups().length);
+      expect(withCarriers.length, "描いた見本の数が見本の数と合わない (走査の空振り)").toBe(sources().length);
       expect(withCarriers.reduce((sum, n) => sum + n, 0), "運ぶ物を持つ見本が少なすぎる").toBeGreaterThanOrEqual(20);
     });
   });

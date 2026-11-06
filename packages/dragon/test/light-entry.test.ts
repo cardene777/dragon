@@ -33,17 +33,17 @@ interface LightEntry extends Entry {
 const name = "@cardenelabs/dragon";
 const importEntry = <T>(path: string): Promise<T | undefined> => (import(/* @vite-ignore */ path) as Promise<T>).catch(() => undefined);
 
-/** 見本の全ての記法。種類を読む */
-function examples(entry: Entry): { file: string; kind: string; diagram: unknown }[] {
-  return readdirSync(EXAMPLES)
-    .filter((file) => file.endsWith(".dragon"))
-    .sort()
-    .map((file) => {
-      const parsed = entry.parseNotation(readFileSync(join(EXAMPLES, file), "utf8"));
-      expect(parsed.ok, `見本 ${file} の記法を読めない`).toBe(true);
-      const diagram = parsed.ok ? parsed.diagram : {};
-      return { file, kind: diagram.kind ?? "architecture", diagram };
-    });
+/** 見本の記法の file。検査を見本ごとに分けるため、検査を組む時に読む (#3410) */
+const DRAGON_FILES = readdirSync(EXAMPLES)
+  .filter((file) => file.endsWith(".dragon"))
+  .sort();
+
+/** 見本の記法を読んだ図と、その種類 */
+function example(entry: Entry, file: string): { file: string; kind: string; diagram: unknown } {
+  const parsed = entry.parseNotation(readFileSync(join(EXAMPLES, file), "utf8"));
+  expect(parsed.ok, `見本 ${file} の記法を読めない`).toBe(true);
+  const diagram = parsed.ok ? parsed.diagram : {};
+  return { file, kind: diagram.kind ?? "architecture", diagram };
 }
 
 /** 新しい Node で軽い入口を読み、中で回した結果を受け取る。登録は読み込みごとに 1 度なので、読んでいない形は別の process でしか作れない */
@@ -316,22 +316,12 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
 });
 
 describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
-  it("light-entry-draws-same-svg", async () => {
-    const light = await importEntry<LightEntry>(`${name}/light`);
-    expect(light, "軽い入口を読めない").toBeDefined();
-    if (!light) return;
+  it("light-entry-samples-cover-kinds", async () => {
+    // 見本ごとの SVG の一致は下の見本ごとの検査が持つ。ここではどの種類も見本を持つ (走査が空振りしていない) ことを確かめる
     const whole = await importEntry<Entry>(name);
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
-    const samples = examples(whole);
-    // どの種類も見本を持つ (走査が空振りしていない)
-    expect([...new Set(samples.map((s) => s.kind))].sort(), "見本が描く種類").toEqual(ALL_KINDS);
-    for (const options of [{}, { theme: "dark", still: true, lang: "en" }]) {
-      for (const { file, kind, diagram } of samples) {
-        await light.loadKind(kind);
-        expect(light.renderDiagram(diagram, options).svg, `${file} (${JSON.stringify(options)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, options).svg);
-      }
-    }
+    expect([...new Set(DRAGON_FILES.map((file) => example(whole, file).kind))].sort(), "見本が描く種類").toEqual(ALL_KINDS);
   });
 
   it("light-entry-refuses-unloaded-kind", () => {
@@ -385,7 +375,7 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
     const whole = await importEntry<Entry>(name);
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
-    const samples = examples(whole);
+    const samples = DRAGON_FILES.map((file) => example(whole, file));
     expect([...new Set(samples.map((s) => s.kind))].sort(), "見本が描く種類").toEqual(ALL_KINDS);
     for (const { file, diagram } of samples) {
       // bitsumi と同じ呼び方。読んだ後に待たずに続けて描き、SVG と段の時刻と見せ方を読む
@@ -394,5 +384,21 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
       expect(rendered.timeline.stills.length, `${file} の段の時刻`).toBeGreaterThan(0);
       expect(["fixed", "follow"], `${file} の見せ方`).toContain(whole.chooseView(rendered, 1280).mode);
     }
+  });
+});
+
+/** 全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えたので、見本ごとに分ける (#3410) */
+describe.for(DRAGON_FILES)("軽い入口と既定の入口の SVG (#3248) %s", (file) => {
+  it("light-entry-draws-same-svg", async () => {
+    const light = await importEntry<LightEntry>(`${name}/light`);
+    expect(light, "軽い入口を読めない").toBeDefined();
+    if (!light) return;
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const { kind, diagram } = example(whole, file);
+    await light.loadKind(kind);
+    for (const options of [{}, { theme: "dark", still: true, lang: "en" }])
+      expect(light.renderDiagram(diagram, options).svg, `${file} (${JSON.stringify(options)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, options).svg);
   });
 });

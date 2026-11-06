@@ -19,6 +19,13 @@ vi.mock("../src/render/ink", async (importOriginal) => {
   return { ...real, findOverlaps: withPairedOverlap(real.findOverlaps) };
 });
 
+/*
+ * 命令の元の code が読む部品を、検査の外 (この file を読む段) で先に読む (#3410)。
+ * 元の code は 500 を超える file を読み、初めて読む時に 1 つずつ変換する。検査の中で初めて読むと、混んだ機械で変換だけで 9 秒かかった。
+ * 変換は 1 回の実行の中で使い回すので、検査の中で命令を読み直す (`vi.resetModules`) 時は変換し直さない。命令そのもの (`src/cli.ts`) は読むと走るので、ここでは読まない
+ */
+await Promise.all([import("../src/export/embed"), import("../src/export/index"), import("../src/look/values"), import("../src/parser"), import("../src/render/ink"), import("../src/words")]);
+
 /**
  * 2 段目に書き込みだけを持つ状態遷移図。通らない箱「支払い済み」を脇道の囲みに入れ、囲みの名前「脇道」と添え書き「今回は通らない」を描く。
  * 包みは 2 段目に見えている字から、描いた順に添え書きと囲みの名前を組にする
@@ -63,22 +70,22 @@ async function runInProcess(args: string[]): Promise<Ran> {
   }
 }
 
-describe("書き出しの命令が字の重なりを知らせる (#3197)", () => {
+// 言葉ごとに 1 件 1 回の命令に分ける (#3410)。2 回の命令を 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた。
+// 既定は英語なので、日本語の重なりの文は --lang ja を渡して確かめる (#3338)
+describe.for([
+  { lang: "ja", line: "段 2: 「今回は通らない」と「脇道」が重なる" },
+  { lang: "en", line: 'Step 2: "Not taken this time" and "Side path" overlap' },
+] as const)("書き出しの命令が字の重なりを知らせる (#3197) $lang", ({ lang, line }) => {
   it(
     "export-warns-overlaps",
     async () => {
       const out = mkdtempSync(join(tmpdir(), "dragon-overlap-cli-"));
-      // 既定は英語なので、日本語の重なりの文は --lang ja を渡して確かめる (#3338)
-      const ja = await runInProcess(["export", OVERLAPPING, "--format", "png", "--out", out, "--lang", "ja"]);
-      expect(ja.code, ja.stderr.join("\n")).toBe(0);
+      const ran = await runInProcess(["export", OVERLAPPING, "--format", "png", "--out", out, "--lang", lang]);
+      expect(ran.code, ran.stderr.join("\n")).toBe(0);
       expect(readdirSync(out), "重なる図を書き出さなかった").toContain("corner-note.png");
       expect(statSync(join(out, "corner-note.png")).size, "書き出した file が空").toBeGreaterThan(0);
-      expect(ja.stdout, "書き出した file の path を標準出力に出さない").toEqual([join(out, "corner-note.png")]);
-      expect(ja.stderr, "標準エラーに重なりが 1 件 1 行で出ない").toEqual(["段 2: 「今回は通らない」と「脇道」が重なる"]);
-
-      const en = await runInProcess(["export", OVERLAPPING, "--format", "png", "--out", out, "--lang", "en"]);
-      expect(en.code, en.stderr.join("\n")).toBe(0);
-      expect(en.stderr, "英語の標準エラーに重なりが 1 件 1 行で出ない").toEqual(['Step 2: "Not taken this time" and "Side path" overlap']);
+      expect(ran.stdout, "書き出した file の path を標準出力に出さない").toEqual([join(out, "corner-note.png")]);
+      expect(ran.stderr, `${lang} の標準エラーに重なりが 1 件 1 行で出ない`).toEqual([line]);
     },
   );
 });
