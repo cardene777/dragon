@@ -4,6 +4,7 @@
  * 起こしている Chromium の約束 (Promise) は `globalThis` の `PRELOADED_CHROMIUM` に置き、`startSite` (`playground-support.ts`) が待って使う。
  * 起動は検査の file を読み込む間と並んで進むので、file の最初の頁を開くまでの待ちが縮む。
  * 頁を開く file かは、1 回の実行の準備の段が build を決めるのと同じ規則 (`site-needs.ts`) で file の字から読む。頁を開かない file では playwright も読み込まない。
+ * `packages/dragon/test/` の file は、頁を開く道具か準備の段の Chromium を受け取る道具の名前を字に持つ時に起こす (`page-needs.ts`、#3424)。
  *
  * Chromium は検査の file の process の中で起こし、つながずに使う。
  * 別の process で起こした Chromium へつないでいた時 (#3384) は、頁を開くたびに通信の往復が 1 段増え、頁を開くのが約 3 割遅かった。
@@ -17,14 +18,15 @@
 import { readFileSync } from "node:fs";
 import type { Browser } from "playwright";
 import { expect } from "vitest";
+import { PRELOADED_CHROMIUM, usesChromium } from "../../../../packages/dragon/test/page-needs";
 import { sitesNeeded } from "./site-needs";
 
-/** 起こしている Chromium の約束を置く `globalThis` の鍵 */
-export const PRELOADED_CHROMIUM = Symbol.for("dragon.chromium");
+export { PRELOADED_CHROMIUM };
 
-/** 検査の file が見本帳の頁を開くか */
+/** 検査の file が見本帳の頁を開くか、`packages/dragon/test/` の Chromium を使う道具を使うか */
 export function opensPages(path: string): boolean {
-  return sitesNeeded([readFileSync(path, "utf8")]).length > 0;
+  const source = readFileSync(path, "utf8");
+  return sitesNeeded([source]).length > 0 || usesChromium(source);
 }
 
 const store = globalThis as Record<symbol, unknown>;

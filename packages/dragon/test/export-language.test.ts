@@ -98,16 +98,19 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
     },
   );
 
-  it(
-    "export-without-lang-is-english",
-    async () => {
-      // dragon記法の語は英語だけで file から言葉が決まらないため、日本語の字の見本も `--lang` が無ければ既定の英語で書き出す (#3338)
-      const en = await exported(join(EXAMPLES, "oauth.en.dragon"));
-      expect(en).toEqual({ ...expected("en", titleOf("oauth.en.json")), overviewFits: true });
-      const ja = await exported(join(EXAMPLES, "oauth.dragon"));
-      expect(ja).toEqual({ ...expected("en", titleOf("oauth.json")), overviewFits: true });
-    },
-  );
+  // 英語の記法と日本語の記法を、それぞれ 1 件 1 回の命令で書き出す (#3424)。2 回の命令を 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた
+  describe.for([
+    { what: "英語の記法", file: "oauth.en.dragon", source: "oauth.en.json" },
+    { what: "日本語の記法", file: "oauth.dragon", source: "oauth.json" },
+  ])("$what", ({ file, source }) => {
+    it(
+      "export-without-lang-is-english",
+      async () => {
+        // dragon記法の語は英語だけで file から言葉が決まらないため、日本語の字の見本も `--lang` が無ければ既定の英語で書き出す (#3338)
+        expect(await exported(join(EXAMPLES, file))).toEqual({ ...expected("en", titleOf(source)), overviewFits: true });
+      },
+    );
+  });
 
   // 渡し方ごとに 1 件 1 回の命令に分ける (#3410)。4 回の命令を 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた。
   // --lang を渡さない時は既定の英語 (#3338)
