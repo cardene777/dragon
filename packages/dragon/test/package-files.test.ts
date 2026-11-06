@@ -8,7 +8,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, inject, it } from "vitest";
 
 const PACKAGE = join(__dirname, "..");
 const BLOCKS = join(PACKAGE, "src/blocks");
@@ -56,6 +56,16 @@ const unescaped = (text: string): string =>
   text.replace(/\\u\{([0-9a-fA-F]+)\}|\\u([0-9a-fA-F]{4})/gu, (_, wide: string | undefined, hex: string | undefined) => String.fromCodePoint(parseInt(wide ?? hex ?? "0", 16)));
 
 describe("npm に出す package の file (#3350)", () => {
+  it("pack-list-comes-from-setup", () => {
+    // npm に出す file の一覧は、この file を回す時だけ準備の段が npm pack を 1 度だけ起こして出し、検査はその一覧を読む (#3410)
+    const files = (inject as (key: string) => unknown)("dragonPackFiles") as string[] | undefined;
+    expect(files?.length ?? 0, "準備の段が npm に出す file の一覧を渡していない").toBeGreaterThan(0);
+    expect(files, "準備の段が渡した一覧に package.json が無い").toContain("package.json");
+    // npm の起動は 1 件の上限 (10 秒) の中で数秒かかり、混んだ機械で上限を超えたので、検査の中では起こさない
+    const source = readFileSync(join(__dirname, "package-files.test.ts"), "utf8");
+    expect(/execFileSync\(\s*"npm"|spawn(?:Sync)?\(\s*"npm"/u.test(source), "package-files.test.ts が検査の中で npm を起こす").toBe(false);
+  });
+
   it("package-excludes-catalog-material", async () => {
     const files = packedFiles();
     expect(files.length, "npm に出す file が無い (走査の空振り)").toBeGreaterThan(0);
