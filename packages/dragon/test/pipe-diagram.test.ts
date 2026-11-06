@@ -97,6 +97,8 @@ interface Party extends Rect {
   shape?: string;
   /** 名札の行 (#3398)。一番上が 0。トークンの箱は持たない */
   row?: number;
+  /** 名前の字。丸の名札は丸の下、箱は箱の中に書く */
+  label?: Writing;
 }
 interface Column extends Rect {
   party: string;
@@ -1728,6 +1730,9 @@ interface Chip extends Rect {
   rx: number;
   party?: string;
   token?: string;
+  /** 戻り値の札が伝う道 (呼ばれた側から呼んだ側へ) と、戻した呼び出しの番号 */
+  path?: Point[];
+  call?: number;
 }
 interface ComposedLayout extends PipeLayout {
   housings: Housing[];
@@ -2200,6 +2205,27 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       const p = posAt(span.start + (stillOf(rendered, 5) - span.start) * k);
       expect(onPath(p, points, 6), `戻り値の札が途中 (${k}) で呼び出しの管を外れる`).toBe(true);
     }
+    // 着いた札は、呼んだ側の丸や箱にも名前の字にも載らない。全ての見本の広い枠で見る
+    const covers = (a: Rect, b: Rect): boolean => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0.5 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0.5;
+    let seen = 0;
+    for (const name of SAMPLES)
+      for (const lang of ["ja", "en"] as const) {
+        const laid = composed(render(exampleJson(lang === "ja" ? `${name}.json` : `${name}.en.json`), lang, 1280, name === "aggregator" ? [2] : undefined));
+        for (const c of laid.chips.filter((k) => k.kind === "return")) {
+          const path = c.path ?? [];
+          const at = path[path.length - 1];
+          const from = laid.calls.find((k) => k.index === c.call)?.from;
+          const party = laid.parties.find((p) => p.id === from);
+          expect(at && party, `${name} (${lang}) の段 ${c.step + 1} の戻り値の札 ${c.text} の道か呼んだ側が無い`).toBeTruthy();
+          if (!at || !party) continue;
+          const arrived = { x: at[0] - c.w / 2, y: at[1] - c.h / 2, w: c.w, h: c.h };
+          for (const [what, r] of [["丸か箱", party], ["名前の字", party.label]] as const)
+            if (r) expect(covers(arrived, r), `${name} (${lang}) の段 ${c.step + 1} の戻り値の札 ${c.text} が呼んだ側 ${party.id} の${what}に載る`).toBe(false);
+          seen++;
+        }
+      }
+    // 戻り値の札を 1 枚も見ずに通らない
+    expect(seen, "見本の中に戻り値の札が無い").toBeGreaterThan(0);
   });
 
   it("pipe-narrow-shows-balances-and-current-value", () => {
