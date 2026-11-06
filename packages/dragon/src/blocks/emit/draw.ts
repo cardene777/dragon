@@ -32,9 +32,10 @@ export function eventChip(e: PipeEventChip, ctx: Ctx, shown: Shown[], attrs: str
   );
 }
 
-/** イベントを出した者の名札を囲む輪 */
-export function ring(pill: PipePill, attrs: string, ctx: Ctx): string {
+/** イベントを出した者の名札を囲む輪。`radius` は名札の角 (丸の名札は渡さない) */
+export function ring(pill: PipePill, attrs: string, ctx: Ctx, radius?: number): string {
   const pad = P.ring.width + 1;
   const h = pill.h + pad * 2;
-  return `<rect${attrs} class="dg-pp-ring" style="${cs("rose")}" x="${r1(pill.x - pad)}" y="${r1(pill.y - pad)}" width="${r1(pill.w + pad * 2)}" height="${r1(h)}" rx="${partRadius(ctx.corner, h / 2)}"/>`;
+  const rx = radius === undefined ? h / 2 : radius + pad;
+  return `<rect${attrs} class="dg-pp-ring" style="${cs("rose")}" x="${r1(pill.x - pad)}" y="${r1(pill.y - pad)}" width="${r1(pill.w + pad * 2)}" height="${r1(h)}" rx="${partRadius(ctx.corner, rx)}"/>`;
 }

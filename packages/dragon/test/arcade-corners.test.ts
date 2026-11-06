@@ -42,6 +42,13 @@ const FRAMES = [
   "dg-bg",
   "dg-vp-frame",
   "dg-mm-bg",
+  // 配管の図の箱と囲み (#3398)。槽、トークンの箱、Contract の箱、槽の囲い、値の札、吹き出し
+  "dg-pp-glass",
+  "dg-pp-act",
+  "dg-pp-cabr",
+  "dg-pp-housing",
+  "dg-pp-pbox",
+  "dg-pp-cbr",
 ];
 
 /**

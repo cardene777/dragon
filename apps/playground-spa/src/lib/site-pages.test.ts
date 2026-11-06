@@ -15,8 +15,8 @@ import { app, BASE, rgb, root } from "./playground-support";
 import { describe, expect, it } from "vitest";
 import { site, useSite, exampleText, WAIT, siteSel, SCREENS, REPO, DESTINATIONS, PALETTE_IDS, type Scheme, figureLook, figureLooks, sampleOf, catalogSel, KINDS, samplesOf, type Category, categoryOf, onScreen, navOf } from "./site-support";
 
-/** 色味ごとにサイトの差し色にする字の色の欄 (#3033)。紙と墨は朱、澄んだ色と夜の計器は青、アーケードの画面は緑 (#3341) */
-const ACCENT: Record<string, string> = { paper: "t-rose", clear: "t-blue", night: "t-blue", arcade: "t-green" };
+/** 色味ごとにサイトの差し色にする字の色の欄 (#3033)。紙と墨は朱、澄んだ色と夜の計器と紺と生成りは青 (#3398)、アーケードの画面は緑 (#3341) */
+const ACCENT: Record<string, string> = { paper: "t-rose", clear: "t-blue", night: "t-blue", arcade: "t-green", sea: "t-blue" };
 
 /** 色味と明暗のサイトの地、帯の面、字、釦の差し色。図の色味の表 (`PALETTES`) から引く */
 const siteLook = (id: string, scheme: Scheme): { bg: string; surface: string; text: string; accent: string } => {
@@ -1044,8 +1044,8 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
       const pressedOnly = (id: string): { id: string; pressed: boolean; label: string | null }[] =>
         PALETTE_IDS.map((p) => ({ id: `palette-${p}`, pressed: p === id, label: TEXT.ja.paletteNames[p] ?? null }));
 
-      // 帯に 3 つの色味が並び、紙と墨を選んでいる
-      expect(await switchOf(), "帯の色味の切替が 3 つの色味でないか、紙と墨を選んでいない").toEqual(pressedOnly(DEFAULT_PALETTE));
+      // 帯に全ての色味が並び、紙と墨を選んでいる
+      expect(await switchOf(), "帯の色味の切替が全ての色味でないか、紙と墨を選んでいない").toEqual(pressedOnly(DEFAULT_PALETTE));
 
       // 色味を選ぶと、サイトの色と頁の全部の図が替わる
       const figures = 1 + HOME_USES.length;
@@ -1135,7 +1135,7 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
   it(
     "site-palette-switch-fits-four-at-390",
     async () => {
-      // 色味を 4 つにしても、幅 390 の畳んだ行き先の面の色味の札は 1 行に収まり、指で押せる大きさを保つ (#3341)
+      // 色味を 4 つ (#3341)、5 つ (#3398) にしても、幅 390 の畳んだ行き先の面の色味の札は 1 行に収まり、指で押せる大きさを保つ
       const { page } = await site.open({ path: BASE, viewport: { width: 390, height: 844 }, colorScheme: "light" });
       await onScreen(page, "home", "幅 390 で概要の頁が出ない");
       await page.locator(siteSel("menu")).click();
@@ -1146,9 +1146,9 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
             return { id: b.dataset.site ?? "", top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height), right: Math.round(r.right) };
           });
         }, siteSel("sheet-palette"));
-      await expect.poll(async () => (await swatches()).length, { ...WAIT, message: "幅 390 の畳んだ面の色味の札が 4 つでない" }).toBe(4);
+      await expect.poll(async () => (await swatches()).length, { ...WAIT, message: "幅 390 の畳んだ面の色味の札が 5 つでない" }).toBe(5);
       const found = await swatches();
-      expect(found.map((s) => s.id), "幅 390 の畳んだ面にアーケードの画面の札が無い").toContain("palette-arcade");
+      expect(found.map((s) => s.id), "幅 390 の畳んだ面にアーケードの画面か紺と生成りの札が無い").toEqual(expect.arrayContaining(["palette-arcade", "palette-sea"]));
       expect(found.filter((s) => s.width < 44 || s.height < 44).map((s) => `${s.id} ${s.width}x${s.height}`), "幅 390 で 44px に届かない色味の札").toEqual([]);
       expect(new Set(found.map((s) => s.top)).size, `幅 390 で色味の札が 1 行に収まらない: ${found.map((s) => `${s.id} 上 ${s.top}`).join(", ")}`).toBe(1);
       expect(Math.max(...found.map((s) => s.right)), "幅 390 で色味の札が頁の右へはみ出す").toBeLessThanOrEqual(390);

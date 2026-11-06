@@ -691,6 +691,7 @@ describe("編集画面の幅と指の操作 (#3061)", () => {
           "palette-paper 44x44",
           "palette-night 44x44",
           "palette-arcade 44x44",
+          "palette-sea 44x44",
           "font-down 44x44",
           "font-up 44x44",
           "grid 44x44",

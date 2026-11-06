@@ -8,7 +8,7 @@
 import type { Page } from "playwright";
 import { BASE } from "./playground-support";
 import { describe, expect, it } from "vitest";
-import { site, useSite, WAIT, siteSel, SCREENS, DESTINATIONS, catalogSel, onScreen, navOf, CAPTION_SAMPLES, openOverlay, openEditor, captionOf, PHONES, expectSizes, openSequence } from "./site-support";
+import { site, useSite, WAIT, siteSel, SCREENS, DESTINATIONS, catalogSel, onScreen, navOf, CAPTION_SAMPLES, openOverlay, openEditor, captionOf, PHONES, expectSizes, openSequence, WIDE_CAPTION, wideCaptionShape } from "./site-support";
 
 /**
  * 指で触る時に確かめる概要と使い方の頁の本文の部品 (#3079)。`targets` は枠のある釦と字だけの札、`links` はそのうち字だけの札。
@@ -127,7 +127,12 @@ const textLinkPlacesOf = (page: Page, sel: string): Promise<{ above: number; bel
         const range = document.createRange();
         range.selectNodeContents(el);
         const text = range.getBoundingClientRect();
-        return { above: half(text.top - (prev?.bottom ?? Number.NaN)), below: half((section?.getBoundingClientRect().bottom ?? Number.NaN) - text.bottom) };
+        // 札より下にある再生の帯は、指で触る時に操作の段の釦が 44px になる分だけ高くなる (#3076、#3398)。その帯の高さを除いて比べる
+        const bars = [...(section?.querySelectorAll(".dg-bar") ?? [])]
+          .map((bar) => bar.getBoundingClientRect())
+          .filter((bar) => bar.top >= text.bottom)
+          .reduce((sum, bar) => sum + bar.height, 0);
+        return { above: half(text.top - (prev?.bottom ?? Number.NaN)), below: half((section?.getBoundingClientRect().bottom ?? Number.NaN) - text.bottom - bars) };
       });
   }, sel);
 
@@ -288,7 +293,8 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
   );
 
 
-  // 字だけの札は見た目と並びを変えずに押せる範囲だけを広げる。指で触る時も字の位置と区画の高さはマウスで使う時と同じ (#3079)
+  // 字だけの札は見た目と並びを変えずに押せる範囲だけを広げる。指で触る時も字の位置と区画の高さはマウスで使う時と同じ (#3079)。
+  // 区画の高さは、指で触る時に釦の分だけ高くなる再生の帯 (#3076、#3398) を除いて比べる
   describe.for((TOUCH_PAGE_SIZES).flatMap((viewport) => (BODY_PAGES).map((body) => ({ viewport, body }))))("$viewport.width × $viewport.height $body", ({ viewport, body }) => {
     it("coarse-pages-text-links-keep-place", async () => {
       const mouse = await textLinkPlacesOf(await openBodyPage(viewport, body), body.links);
@@ -386,7 +392,7 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
   it(
     "narrow-player-buttons-work",
     async () => {
-      // 携帯の幅で段を送る釦を 44px にし、題を釦の下の段に置いても、前と次と再生の働きは今と同じ (#3069)
+      // 携帯の幅で段を送る釦を 44px にし、題を釦の下の段に置いても、前と次と再生の働きは今と同じ (#3069)。再生の釦は印と名前を持つ (#3398)
       for (const viewport of PHONES) {
         const page = await openEditor(viewport, "oauth", true);
         const where = `${viewport.width} × ${viewport.height} の oauth の編集画面`;
@@ -398,9 +404,9 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
         await expect.poll(no, { ...WAIT, message: `${where} で、次の釦で段が進まない` }).toMatch(/^02\//);
         await page.locator(`${stage} [data-dragon="prev"]`).click();
         await expect.poll(no, { ...WAIT, message: `${where} で、前の釦で段が戻らない` }).toMatch(/^01\//);
-        expect(await toggle(), `${where} で、動きを嫌う設定なのに再生の釦が出ない`).toBe("▶");
+        expect(await toggle(), `${where} で、動きを嫌う設定なのに再生の釦が出ない`).toBe("▶ 動かす");
         await page.locator(`${stage} [data-dragon="toggle"]`).click();
-        await expect.poll(toggle, { ...WAIT, message: `${where} で、再生の釦で動き出さない` }).toBe("❚❚");
+        await expect.poll(toggle, { ...WAIT, message: `${where} で、再生の釦で動き出さない` }).toBe("❚❚ 止める");
       }
     },
   );
@@ -409,16 +415,22 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
   it(
     "wide-player-buttons-keep-size",
     async () => {
-      // 広い帯の段を送る釦は、今と同じ 36px のまま (#3069)
+      // 広い帯の段を送る釦は、今と同じ 36px のまま (#3069)。名前の付いた再生の釦 (#3398) は名前の分だけ横に長く、高さは同じ 36px
       const viewport = { width: 1440, height: 900 };
       for (const place of PLAYER_PLACES) {
         const { page, scope } = await openPlayerPlace(viewport, place);
         await expect
-          .poll(async () => [...new Set((await playerButtonsOf(page, scope)).map((b) => `${Math.round(b.width)}x${Math.round(b.height)}`))], {
+          .poll(async () => {
+            const buttons = await playerButtonsOf(page, scope);
+            return {
+              square: [...new Set(buttons.filter((b) => b.name !== "toggle").map((b) => `${Math.round(b.width)}x${Math.round(b.height)}`))],
+              toggle: [...new Set(buttons.filter((b) => b.name === "toggle").map((b) => Math.round(b.height)))],
+            };
+          }, {
             ...WAIT,
             message: `1440 × 900 の ${place} で、段を送る釦の大きさが今と違う`,
           })
-          .toEqual(["36x36"]);
+          .toEqual({ square: ["36x36"], toggle: [36] });
       }
     },
   );
@@ -473,14 +485,14 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
       }
       expect(heights, `${where} で、帯の高さが 1 段目 (${first}px) と違う段がある`).toEqual([]);
 
-      expect(await toggle(), `${where} で、動きを嫌う設定なのに再生の釦が出ない`).toBe("▶");
+      expect(await toggle(), `${where} で、動きを嫌う設定なのに再生の釦が出ない`).toBe("▶ 動かす");
       await page.locator(`${stage} [data-dragon="toggle"]`).click();
-      await expect.poll(toggle, { ...WAIT, message: `${where} で、再生の釦で動き出さない` }).toBe("❚❚");
+      await expect.poll(toggle, { ...WAIT, message: `${where} で、再生の釦で動き出さない` }).toBe("❚❚ 止める");
     },
   );
 
 
-  // 指で触る時も、帯の中身の幅が 440px 以上の帯は釦と番号と題と本文を横 1 列に並べる今の形のまま (#3076)
+  // 指で触る時も、帯の中身の幅が 440px 以上の帯は広い帯の並べ方のまま (#3076、#3398)
   describe.for(([
     { width: 1024, height: 1366 },
     { width: 1366, height: 1024 },
@@ -495,21 +507,9 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
           .poll(async () => {
             const seen = await captionOf(page, scope);
             if (!seen) return null;
-            const { buttons, no, title, body } = seen;
-            return {
-              titleBesideButtons: title.left > buttons.right && title.top < buttons.bottom,
-              noBesideButtons: no.left > buttons.right && no.right <= title.left && no.top < buttons.bottom,
-              bodyUnderTitle: body.top >= title.bottom && Math.abs(body.left - title.left) <= 1,
-              // 釦の右 10px に番号、番号の右 10px に題を置き、題は釦の上端にそろえる (#3099)。本文は題のすぐ下に置く (#3101)
-              gaps: {
-                no: Math.round(no.left) - Math.round(buttons.right),
-                title: Math.round(title.left) - Math.round(no.right),
-                top: Math.round(title.top) - Math.round(buttons.top),
-                body: Math.round(body.top) - Math.round(title.bottom),
-              },
-            };
-          }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が横 1 列でないか、釦と番号と題と本文の間が今と違う` })
-          .toEqual({ titleBesideButtons: true, noBesideButtons: true, bodyUnderTitle: true, gaps: { no: 10, title: 10, top: 0, body: 0 } });
+            return wideCaptionShape(seen);
+          }, { ...WAIT, message: `${size} の${where}の ${sample.key} で、帯が広い帯の並べ方でないか、番号と題と釦と本文の間が今と違う` })
+          .toEqual(WIDE_CAPTION);
       }
     });
   });
@@ -535,14 +535,14 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
   it(
     "narrow-header-sheet-touch-targets",
     async () => {
-      // 一覧の中の色味の札は高さ 32px、編集画面を開く釦は 42px だった (#3071)。行き先 6 つ、色味の札 4 つ (#3341)、編集画面を開く釦の 11 個
+      // 一覧の中の色味の札は高さ 32px、編集画面を開く釦は 42px だった (#3071)。行き先 6 つ、色味の札 5 つ (#3341、#3398)、編集画面を開く釦の 12 個
       for (const viewport of PHONES) {
         const { page } = await site.open({ path: BASE, viewport });
         await onScreen(page, "home", "概要の頁が出ない");
         await page.locator(siteSel("menu")).click();
         await expect
-          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の開いた一覧で、部品が 11 個無いか、44px に届かない部品がある` })
-          .toEqual({ count: 11, small: [] });
+          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${viewport.width} × ${viewport.height} の開いた一覧で、部品が 12 個無いか、44px に届かない部品がある` })
+          .toEqual({ count: 12, small: [] });
         if (viewport === PHONES[1]) {
           await expectSizes(() => headerTargetsOf(page, ".site-sheet"), `${viewport.width} × ${viewport.height} の開いた一覧`, [
             "概要 374x44",
@@ -551,10 +551,11 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
             "使い方 374x44",
             "更新履歴 374x44",
             "GitHub ↗ 374x44",
-            "palette-clear 82x66",
-            "palette-paper 82x66",
-            "palette-night 82x66",
-            "palette-arcade 82x66",
+            "palette-clear 64x66",
+            "palette-paper 64x66",
+            "palette-night 64x66",
+            "palette-arcade 64x66",
+            "palette-sea 64x66",
             "編集画面を開く → 374x44",
           ]);
         }
@@ -622,6 +623,7 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
           "palette-paper 23x21",
           "palette-night 23x21",
           "palette-arcade 23x21",
+          "palette-sea 23x21",
           "theme 29x27",
           "open-editor 131x31",
         ],
@@ -644,7 +646,7 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
   it(
     "coarse-header-touch-targets",
     async () => {
-      // 指で触るタブレットの見出しの帯は、部品が 21 から 35px で指で押し違えやすかった (#3075)。指で触る時は幅に関わらず 44 × 44px にする
+      // 指で触るタブレットの見出しの帯は、部品が 21 から 35px で指で押し違えやすかった (#3075)。指で触る時は幅に関わらず 44 × 44px にする。幅 1024 では外側の編集画面を開く釦を隠す (#3398)
       for (const viewport of TOUCH_SIZES) {
         const { page } = await site.open({ path: BASE, viewport, touch: true });
         await onScreen(page, "home", "概要の頁が出ない");
@@ -669,8 +671,8 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
             "palette-paper 44x44",
             "palette-night 44x44",
             "palette-arcade 44x44",
+            "palette-sea 44x44",
             "theme 44x44",
-            "open-editor 131x44",
           ]);
         }
       }
@@ -678,16 +680,16 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
   );
 
 
-  // 指で触る時、900px 以下では行き先と色味の切替を一覧に畳み、携帯の幅と同じ形にする (#3075)。
-  // 901 から 1016px では 44px の部品が 1 行に収まらず行き先が縮むので、外側の編集画面を開く釦から隠す。
-  // 色味が 4 つになって境が 1000px から 1016px に上がった (#3341)
+  // 指で触る時、920px 以下では行き先と色味の切替を一覧に畳み、携帯の幅と同じ形にする (#3075、#3398)。
+  // 921 から 1056px では 44px の部品が 1 行に収まらず行き先が縮むので、外側の編集画面を開く釦から隠す。
+  // 色味が 4 つになって境が 1000px から 1016px に上がった (#3341)。5 つになって畳む境が 900px から 920px に、釦を隠す境が 1056px に上がった (#3398)
   describe.for([
     { viewport: { width: 768, height: 1024 }, expected: { nav: false, palette: false, menu: true, cta: false, squeezed: [] } },
-    { viewport: { width: 901, height: 1200 }, expected: { nav: true, palette: true, menu: false, cta: false, squeezed: [] } },
-    { viewport: { width: 1000, height: 1200 }, expected: { nav: true, palette: true, menu: false, cta: false, squeezed: [] } },
-    { viewport: { width: 1016, height: 1200 }, expected: { nav: true, palette: true, menu: false, cta: false, squeezed: [] } },
-    { viewport: { width: 1017, height: 1200 }, expected: { nav: true, palette: true, menu: false, cta: true, squeezed: [] } },
-    { viewport: { width: 1024, height: 1366 }, expected: { nav: true, palette: true, menu: false, cta: true, squeezed: [] } },
+    { viewport: { width: 920, height: 1200 }, expected: { nav: false, palette: false, menu: true, cta: false, squeezed: [] } },
+    { viewport: { width: 921, height: 1200 }, expected: { nav: true, palette: true, menu: false, cta: false, squeezed: [] } },
+    { viewport: { width: 1024, height: 1366 }, expected: { nav: true, palette: true, menu: false, cta: false, squeezed: [] } },
+    { viewport: { width: 1056, height: 1200 }, expected: { nav: true, palette: true, menu: false, cta: false, squeezed: [] } },
+    { viewport: { width: 1057, height: 1200 }, expected: { nav: true, palette: true, menu: false, cta: true, squeezed: [] } },
   ])("$viewport.width × $viewport.height", ({ viewport, expected }) => {
     it("coarse-header-folds-below-900", async () => {
       const { page } = await site.open({ path: BASE, viewport, touch: true });
@@ -705,7 +707,7 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
   it(
     "coarse-header-sheet-touch-targets",
     async () => {
-      // 指で触る時の一覧の部品も 44 × 44px にする (#3075)。行き先 6 つ、色味の札 4 つ (#3341)、編集画面を開く釦の 11 個
+      // 指で触る時の一覧の部品も 44 × 44px にする (#3075)。行き先 6 つ、色味の札 5 つ (#3341、#3398)、編集画面を開く釦の 12 個
       for (const viewport of [
         { width: 600, height: 960 },
         { width: 768, height: 1024 },
@@ -715,8 +717,8 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
         await onScreen(page, "home", "概要の頁が出ない");
         await page.locator(siteSel("menu")).click();
         await expect
-          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${where}で、部品が 11 個無いか、44px に届かない部品がある` })
-          .toEqual({ count: 11, small: [] });
+          .poll(() => headerShortOf(page, ".site-sheet"), { ...WAIT, message: `${where}で、部品が 12 個無いか、44px に届かない部品がある` })
+          .toEqual({ count: 12, small: [] });
         if (viewport.width === 768) {
           await expectSizes(() => headerTargetsOf(page, ".site-sheet"), where, [
             "概要 752x44",
@@ -725,10 +727,11 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
             "使い方 752x44",
             "更新履歴 752x44",
             "GitHub ↗ 752x44",
-            "palette-clear 177x49",
-            "palette-paper 177x49",
-            "palette-night 177x49",
-            "palette-arcade 177x49",
+            "palette-clear 140x49",
+            "palette-paper 140x49",
+            "palette-night 140x49",
+            "palette-arcade 140x49",
+            "palette-sea 140x49",
             "編集画面を開く → 752x44",
           ]);
         }
@@ -839,6 +842,7 @@ describe("頁と再生と帯の指の操作 (#3075)", () => {
           "palette-paper 23x21",
           "palette-night 23x21",
           "palette-arcade 23x21",
+          "palette-sea 23x21",
           "theme 29x27",
         ]);
     },

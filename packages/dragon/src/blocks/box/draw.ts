@@ -4,8 +4,12 @@
  * 箱は地と縁の札に名前と下の小さな字を置き、絵柄を持つ箱は名前の上に絵柄を置く。
  * 動く段は縁に色を付け、外側に淡い光を足す。下の小さな字は起きたこと (`note` と `act`) に合わせて書き換わる。
  * 寄って追う時系列図では、窓の上端に名前と下の字の 2 段にした頭の箱を貼る (#3120)。
+ * 配管の図の関係者は、丸の名札 (`avatar`) か Contract の箱 (`cabinet`) で描く (#3398)。
+ * 配管の図の値の表 (`look/pipe.ts`) は後から読む塊にあるので、この 2 つは寸法と字の形を呼ぶ側から受け取り、表を読まない。
  */
+import type { PipeParty } from "../../kinds/pipe/layout";
 import { textWidth } from "../../layout/measure";
+import type { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
 import type { Rect, SceneBox } from "../../layout/scene";
 import { LOOK, MOTION, TYPE } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
@@ -189,4 +193,47 @@ export function headCard(box: SceneBox, ctx: Ctx, on: number[], changes: SubChan
   const subs = subLines(box, ctx.m, changes, pad + subY);
   const act = on.length > 0 ? activeKf(ctx, on) : undefined;
   return `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, pad, h)}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(pad + nameY)}" text-anchor="middle">${esc(box.name)}</text>${subs}</g>`;
+}
+
+/** 配管の図の名札を描く時に呼ぶ側が渡す、配管の図の値の表 (#3398) */
+export interface PipeLook {
+  P: typeof PIPE_LOOK;
+  T: typeof PIPE_TYPE;
+}
+
+/**
+ * 配管の図の丸の名札 (#3398)。送り手と、呼ばれない口座を描く。値の色から呼び出しの色へ移る丸に頭文字を書き、丸の下に名前を書く。
+ * その段の出来事に出る者 (`on`) は外に光の輪を出す。`attrs` は部品の印。
+ * 名前は他の図の箱の名前と同じ `dg-sn` も持つ。置いた頁は図の名前をこの印で読み、図を縮める下限の字の大きさもこの字で測る
+ */
+export function avatar(p: PipeParty, on: boolean, ctx: Ctx, shown: Shown[], attrs: string, look: PipeLook, fill: string): string {
+  const { P, T } = look;
+  const cx = p.x + p.w / 2;
+  const cy = p.y + p.h / 2;
+  return (
+    `<g${attrs} class="dg-pp-who${on ? " dg-pp-on" : ""}"><circle class="dg-pp-halo" cx="${r1(cx)}" cy="${r1(cy)}" r="${P.avatar.halo}"/>` +
+    `<circle class="dg-pp-avu" fill="${fill}" cx="${r1(cx)}" cy="${r1(cy)}" r="${P.avatar.r}"/>` +
+    `<text class="dg-pp-glyph" x="${r1(cx)}" y="${r1(cy + P.avatar.initialY)}" text-anchor="middle">${esc(([...p.name][0] ?? "").toUpperCase())}</text>` +
+    `${write(ctx.ink, "dg-sn dg-pp-pname", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
+  );
+}
+
+/**
+ * 配管の図の Contract の箱 (#3398)。左に頭文字 (形を書いた関係者はその形) を、右に名前を書く。
+ * 一番上の行の箱は大きく、下の行の箱は小さく描く。2 つ以上の槽を持つ箱 (`pool`) は縁に値の色を混ぜる。その段の出来事に出る者 (`on`) は縁を呼び出しの色にする
+ */
+export function cabinet(p: PipeParty, on: boolean, pool: boolean, ctx: Ctx, shown: Shown[], attrs: string, look: PipeLook): string {
+  const { P, T } = look;
+  const big = p.row === 0;
+  const C = P.cabinet;
+  const cy = p.y + p.h / 2;
+  const mx = p.x + (big ? C.mark : C.markSmall);
+  const mark = drawsIcon(p.icon)
+    ? glyph(p.icon, mx, cy, big ? C.icon : C.iconSmall, "dg-pp-cgl")
+    : `<text class="dg-pp-cabg${big ? "" : " dg-pp-cabg-s"}" x="${r1(mx)}" y="${r1(cy + (big ? T.mark : T.markSmall).size * 0.35)}" text-anchor="middle">${esc(([...p.name][0] ?? "").toUpperCase())}</text>`;
+  return (
+    `<g${attrs} class="dg-pp-cab${on ? " dg-pp-on" : ""}${pool ? " dg-pp-pool" : ""}">` +
+    frameShape(ctx.corner, ' class="dg-pp-cabr"', p, `<rect class="dg-pp-cabr" x="${r1(p.x)}" y="${r1(p.y)}" width="${r1(p.w)}" height="${r1(p.h)}" rx="${big ? C.radius : C.radiusSmall}"/>`) +
+    `${mark}${write(ctx.ink, "dg-sn dg-pp-cabn", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
+  );
 }

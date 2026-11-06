@@ -28,6 +28,12 @@ export interface Palette {
 /** 色味を指定しない時と、知らない名前を渡した時に使う色味。 */
 export const DEFAULT_PALETTE = "paper";
 
+/**
+ * 色味を指定しない時に図の種類ごとに使う色味 (#3398)。書かない種類は `DEFAULT_PALETTE`。
+ * 配管の図は試作の配色を元にした紺と生成りで描く。紙と墨では暗い表示が黒地に茶色の液になり、トークンの液の色の差も小さい
+ */
+export const KIND_PALETTE: Readonly<Record<string, string>> = { pipe: "sea" };
+
 export const PALETTES: Readonly<Record<string, Palette>> = Object.fromEntries(
   Object.entries(palettes as Record<string, Omit<Palette, "id">>).map(([id, p]) => [
     id,
@@ -154,8 +160,14 @@ export const TYPE = {
   fieldValueJa: text(12, 600),
   tag: text(10.5, 700),
   miniTitle: text(10.5, 700),
-  stepTitle: text(15, 700),
-  stepBody: text(13.5, 500),
+  /** 再生の操作の段の題と説明文 (#3398)。題は図の上の見出しとして大きく、説明文は題の下に小さく置く */
+  stepTitle: text(22, 700),
+  /** 積む帯 (中身の幅が `player.wide` より狭い帯) の段の題。大きいままだと帯が高くなり、図の枠が低くなる (#3398) */
+  stepTitleStacked: text(18, 700),
+  /** 狭い帯 (携帯の幅) の段の題と説明文。帯が高いと編集画面の記法の欄と段を送る釦が最初の画面から押し出される (#3061) */
+  stepTitleNarrow: text(15, 700),
+  stepBodyNarrow: text(13, 500),
+  stepBody: text(14, 500),
   stepNo: text(13, 700, "mono"),
   button: text(14, 700),
   /** 枝分かれの図 (#3164) の、丸の中の commit の名札と、丸の外に添える hash と一言 */
@@ -613,6 +625,30 @@ export const LOOK = {
     hidden: 1,
     focus: 2,
     narrow: 440,
+    /**
+     * 帯の中身の幅がこれ以上の時だけ、釦を題の行の右に置いて帯を 1 段にまとめる (#3398)。
+     * 狭いと釦 4 つに題の欄を取られて説明文が細かく折れ、積んだ帯より高くなって図の枠が低くなる
+     */
+    wide: 640,
+    /**
+     * 段ごとに分けた進み具合の帯の高さと間と、広い帯で題と説明文の行から帯までの間 (#3398)。
+     * 帯を太くするか間を広げると図の枠が低くなり、1280 × 720 の重ね窓で構成図が寄って追う図に替わる (#3051)
+     */
+    segment: 4,
+    segmentGap: 6,
+    progressGap: 5,
+    /** 段の題と説明文の行の高さ (字の大きさに対する割合)。広げると帯が高くなる (#3051) */
+    titleLine: 1.15,
+    bodyLine: 1.4,
+    /** 狭い帯 (携帯の幅) の説明文の行の高さ */
+    bodyLineNarrow: 1.3,
+    /** 済んだ段の帯に混ぜる呼び出しの色の割合 */
+    segmentPast: 55,
+    /** 段の番号と題の間 */
+    captionGap: 16,
+    /** 横に送る図の下の、全体のどこを見ているかを示す線の高さと、図との間 (#3398) */
+    overview: 4,
+    overviewGap: 8,
     ask: {
       pad: 14,
       label: 6,
@@ -678,9 +714,11 @@ export const MOTION = {
    */
   try: { trip: 1.6, settle: 0.6, build: 0.9, edit: 0.5 },
   /**
-   * 配管の図 (#3389)。段の中の出来事を 1 つずつ `beat` 秒ずつずらして起こし、出来事の多い段 (畳んだ箱の段) は全部で `most` 秒に収める
+   * 配管の図 (#3389)。段の中の出来事を 1 つずつ `beat` 秒ずつずらして起こし、出来事の多い段 (畳んだ箱の段) は全部で `most` 秒に収める。
+   * 出来事の時刻から、水位が変わる長さ `level`、液の塊が管を通り抜ける長さ `slug`、弁の取っ手が回る長さ `lever`、計器の針が振れる長さ `needle`、
+   * 通ったかの印が出るまで `lamp` (#3398)
    */
-  pipe: { beat: 0.55, most: 3.3 },
+  pipe: { beat: 0.55, most: 3.3, level: 0.7, slug: 0.9, lever: 0.6, needle: 0.9, lamp: 0.4 },
 } as const;
 
 /** 見せ方を決める字の大きさ。全体を枠に収めた時の箱の名前がこれを下回ると寄って追う。 */

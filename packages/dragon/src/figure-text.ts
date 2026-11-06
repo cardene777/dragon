@@ -17,6 +17,8 @@ export interface FigureText {
   /** 寄って動かす見せ方の、隅の全体図の札 */
   overview: string;
   /** 再生の釦の読み上げの名前 */
+  /** 最初の段から流し直す釦 (#3398) */
+  restart: string;
   prev: string;
   pause: string;
   play: string;
@@ -81,6 +83,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     unknownColor: (name) => `colors の ${name} は色味に無い色の名前`,
     unreadableColor: (name) => `colors の ${name} の値を色として読めない`,
     overview: "全体図",
+    restart: "最初から",
     prev: "前の段",
     pause: "止める",
     play: "動かす",
@@ -120,6 +123,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     unknownColor: (name) => `colors.${name} is not a color name of the palette`,
     unreadableColor: (name) => `colors.${name} cannot be read as a color`,
     overview: "Overview",
+    restart: "Restart",
     prev: "Previous step",
     pause: "Pause",
     play: "Play",
