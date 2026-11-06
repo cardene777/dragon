@@ -53,8 +53,7 @@ const PIPE_CSS = [
   `.dg-pp-chev{fill:none;stroke:var(--pp-t);stroke-width:${P.flow.width - 0.5};stroke-linecap:round;stroke-linejoin:round}`,
   ".dg-pp-trace-final .dg-pp-tline{stroke-dasharray:none;opacity:.6}",
   ".dg-pp-trace-rolled .dg-pp-tline,.dg-pp-trace-rolled .dg-pp-chev{stroke:var(--c-rose)}",
-  `.dg-pp-tband{fill:none;stroke-width:${P.bus.core - 4};opacity:.8}`,
-  `.dg-pp-slug{fill:var(--pp-t);stroke:var(--bg);stroke-width:${S.arrow}}`,
+  `.dg-pp-slug{fill:none;stroke-width:${P.bus.core - 4};stroke-dasharray:${P.flow.slug} ${1 + P.flow.slug}}`,
   // 斜線と液
   `.dg-pp-hb{fill:${mix("var(--pp-t)", 26, "transparent")}}`,
   `.dg-pp-hl{stroke:var(--pp-t);stroke-width:${P.flow.width}}`,
@@ -233,7 +232,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     const pillOf = (party: string) => layout.pills.find((p) => p.step === s && p.party === party);
     const parts: string[] = [];
 
-    // 値の管を流れた分。この段で流れた分は、出来事の時刻に液の粒が管を流れる
+    // 値の管を流れた分。この段で流れた分は、出来事の時刻に斜線の液の塊が管を通り抜ける
     for (const fl of layout.flows.filter((x) => x.step === s)) {
       const attrs = on({ flow: `${fl.from}>${fl.to}`, token: fl.token, state: fl.state });
       const t = timeOf(s, fl.event);

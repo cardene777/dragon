@@ -187,7 +187,7 @@ export interface PipeFlow extends PipeAt {
   /** 向きの印の場所と向き (右へ流れる時 1、左へ -1) */
   arrow: { x: number; y: number; dir: 1 | -1 };
   tone: number;
-  /** この段で流れたか。流れた段は液の粒が管を流れる */
+  /** この段で流れたか。流れた段は斜線の液の塊が管を通り抜ける */
   fresh: boolean;
 }
 export interface PipeCallLane {
@@ -821,6 +821,18 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     const id = tokenParty.get(token);
     return id !== undefined && visible.has(id) ? id : undefined;
   };
+  // 値を払う前の確認は、払う値の管に計器を載せる (#3398)。試作の4配管は Pool の最低額の確認を WETH の管に置き、確かめた式を計器の上に書く。
+  // 確かめる式がトークンの単位を持ち、確かめた者がその段から後にそのトークンを払う時に限る。トークンの Contract が自分の管で確かめる時は、管をその Contract に譲る
+  const paysOn = (party: string): string | undefined => {
+    if (sim.tokens.has(party)) return undefined;
+    const own = sim.checks.filter((c) => c.party === party);
+    const first = Math.min(...own.map((c) => c.step));
+    const unitOf = (s: string): string | undefined => s.trim().split(/\s+/u).pop();
+    const units = new Set(own.flatMap((c) => [unitOf(c.check.left), unitOf(c.check.right)]));
+    const pay = moving.find((f) => f.from === party && f.step >= first && units.has(f.token));
+    const box = pay ? boxOf(pay.token) : undefined;
+    return pay && box !== undefined && !sim.checks.some((c) => c.party === box) ? pay.token : undefined;
+  };
   const side =
     moving.length > 0 &&
     moving.every((f) => apartOf(f) === 1) &&
@@ -1066,7 +1078,7 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
   const checkers = [...new Set(sim.checks.map((c) => c.party))].filter((id) => visible.has(id));
   for (const id of checkers) {
     const first = shown.find((c) => c.to === id);
-    if (isBox(id) || !first || isBox(first.from) || rowOf(first.from) === rowOf(id)) continue;
+    if (isBox(id) || paysOn(id) !== undefined || !first || isBox(first.from) || rowOf(first.from) === rowOf(id)) continue;
     const lo = Math.min(rowOf(first.from), rowOf(id));
     if (lo < maxRow) pitch[lo] = P.row.gauge;
   }
@@ -1386,13 +1398,24 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     const firstStep = Math.min(...own.map((c) => c.step));
     const incoming = shown.find((c) => c.to === party);
     const branch = incoming ? branches.get(`${incoming.from}>${incoming.to}`) : undefined;
-    const valveBus = isBox(party) ? buses.find((b) => b.valve?.party === party) : undefined;
+    const pays = paysOn(party);
+    const valveBus = isBox(party)
+      ? buses.find((b) => b.valve?.party === party)
+      : pays !== undefined
+        ? buses.find((b) => b.token === pays && b.valve)
+        : undefined;
+    // 値の管の計器の式は、管が運ぶトークンの単位を外して書く。単位は管とトークンの箱が示し、式を計器の幅に収めるため
+    const bare = (side: string): string => (valveBus && side.endsWith(` ${valveBus.token}`) ? side.slice(0, -valveBus.token.length - 1) : side);
+    const readOf = (c: CheckRec): string => `${bare(c.check.left)} ${OP_TEXT[c.check.op]} ${bare(c.check.right)}`;
     let place: { on: PipeGauge["on"]; cx: number; cy: number; r: number; stem?: { y1: number; y2: number } };
     if (valveBus?.valve) {
       const r = P.gauge.rValue;
-      const box = rectOf(party);
+      const box = rectOf(valveBus.valve.party);
       const want = Math.min(valveBus.valve.x - P.gauge.valveX, box.x - P.gauge.boxX);
-      const cx = valveBus.mode === "side" ? Math.max(valveBus.x1 + r + P.flow.width, want) : want;
+      // 横の管では、式の字を左の槽の縁と囲いの点線から離す
+      const half = Math.max(...own.map((c) => textWidth(readOf(c), T.read))) / 2;
+      const edge = Math.max(valveBus.x1, ...housings.filter((h) => h.x <= valveBus.x1 && h.x + h.w >= valveBus.x1).map((h) => h.x + h.w));
+      const cx = valveBus.mode === "side" ? Math.max(valveBus.x1 + r + P.flow.width, edge + half + P.gauge.readGap, want) : want;
       const cy = valveBus.valve.y - P.gauge.up;
       place = { on: "value", cx, cy, r, stem: { y1: cy + r, y2: valveBus.valve.y - P.gauge.stemGap } };
     } else if (branch && !isBox(party)) {
@@ -1417,7 +1440,7 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
       const from = angle;
       angle = latest.ok ? P.gauge.ok : P.gauge.fail;
       const { cx, cy, r } = place;
-      const read = place.on === "value" && here.length === 0 ? `${latest.check.left} ${OP_TEXT[latest.check.op]} ${latest.check.right}` : undefined;
+      const read = place.on === "value" && here.length === 0 ? readOf(latest) : undefined;
       gauges.push({
         x: cx - r,
         y: cy - r,

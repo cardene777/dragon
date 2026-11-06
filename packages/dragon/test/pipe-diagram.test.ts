@@ -195,6 +195,8 @@ interface Gauge extends Rect {
   ok: boolean;
   /** 計器を載せる管 (#3398)。`value` は値の管、`call` は呼び出しの管 */
   on?: string;
+  /** 値の管の計器の上に書く式。確かめた段の後だけ持つ */
+  read?: Rect & { text: string };
 }
 interface CheckMark extends Rect {
   step: number;
@@ -1045,12 +1047,21 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
     for (const s of [1, 2]) {
       const sel = `[data-pipe-flow][data-pipe-step="${s}"]`;
       expect(seen(motion, sel, stillOf(rendered, s)), `段 ${s + 1} に流れた分が見えない`).toBeGreaterThan(0.9);
-      expect(
-        partsOf(motion, sel).some((el) => hatched(svg, el)),
-        `段 ${s + 1} の流れた分が斜線でない`,
-      ).toBe(true);
     }
+    // 管を流れた分は、流れた段に斜線の液の塊が管を通り抜け、確定するまでの斜線は受け手の槽が持つ。管には斜線を残さない (試作の4配管と同じ、#3398)
+    expect(
+      partsOf(motion, '[data-pipe-slug][data-pipe-step="1"]').some((el) => hatched(svg, el)),
+      "段 2 で管を通り抜ける液の塊が斜線でない",
+    ).toBe(true);
+    expect(
+      partsOf(motion, '[data-pipe-flow][data-pipe-step="2"]').some((el) => hatched(svg, el)),
+      "段 3 の管に流れた分の斜線が残る",
+    ).toBe(false);
     const poolAt = (s: number): string => `[data-pipe-level="pool"][data-pipe-token="USDC"][data-pipe-step="${s}"]`;
+    expect(
+      partsOf(motion, poolAt(2)).some((el) => hatched(svg, el)),
+      "確定する前の段 3 の Pool の上がった分が斜線でない",
+    ).toBe(true);
     expect(partsOf(motion, poolAt(1))[0]?.getAttribute("data-pipe-state"), "move の段の Pool の水の印").toBe("provisional");
     expect(
       partsOf(motion, poolAt(1)).some((el) => hatched(svg, el)),
@@ -1831,10 +1842,11 @@ describe("第6回の試作の形の配管の図 (#3398)", () => {
     expect(layout.checks, "図の上に確認の印がある").toEqual([]);
     expect(layout.heads?.checks, "図の上の端に確認の行の字がある").toBeUndefined();
     const motion = motionFrom(rendered as unknown as Rendered);
-    for (const [party, step, on] of [
-      ["router", 1, "call"],
-      ["usdc", 3, "value"],
-      ["pool", 8, "call"],
+    // 値を払う前の確認は払う値の管に載せる。Pool の最低額の確認 (0.05 WETH >= 0.04 WETH) は、Pool が払う WETH の管に載る
+    for (const [party, step, on, token] of [
+      ["router", 1, "call", ""],
+      ["usdc", 3, "value", "USDC"],
+      ["pool", 8, "value", "WETH"],
     ] as const) {
       const own = layout.gauges.filter((g) => g.party === party);
       // 確かめた段の後も、針と通ったかの印を残す
@@ -1850,9 +1862,9 @@ describe("第6回の試作の形の配管の図 (#3398)", () => {
         const pipe = layout.calls.find((c) => c.to === party);
         expect(onPath(mid, pipe?.points ?? []), `${party} の計器が ${party} を呼んだ管の上に無い`).toBe(true);
       } else {
-        const bus = layout.buses.find((b) => b.token === "USDC");
-        expect(mid[0] > (bus?.x1 ?? Number.NaN) && mid[0] < (bus?.x2 ?? Number.NaN), "USDC の計器が値の管の横の範囲に無い").toBe(true);
-        expect(mid[1] < (bus?.y ?? Number.NaN) && (bus?.y ?? Number.NaN) - mid[1] <= 90, "USDC の計器が値の管の上に無い").toBe(true);
+        const bus = layout.buses.find((b) => b.token === token && b.valve);
+        expect(mid[0] > (bus?.x1 ?? Number.NaN) && mid[0] < (bus?.x2 ?? Number.NaN), `${party} の計器が ${token} の値の管の横の範囲に無い`).toBe(true);
+        expect(mid[1] < (bus?.y ?? Number.NaN) && (bus?.y ?? Number.NaN) - mid[1] <= 90, `${party} の計器が ${token} の値の管の上に無い`).toBe(true);
       }
       for (let s = step; s <= last; s++) {
         const sel = `[data-pipe-gauge="${party}"][data-pipe-step="${s}"]`;
@@ -1862,6 +1874,11 @@ describe("第6回の試作の形の配管の図 (#3398)", () => {
         expect(drawn.querySelector("[data-pipe-lamp]"), `段 ${s + 1} の ${party} の計器に通ったかの印が無い`).not.toBeNull();
       }
     }
+    // 値の管の計器の式は、管が運ぶトークンの単位を外して書き、Pool の囲いの点線にかけない
+    const read = layout.gauges.find((g) => g.party === "pool" && g.step === last)?.read;
+    expect(read?.text, "Pool の計器の式").toBe("0.05 ≥ 0.04");
+    const housing = layout.housings?.find((h) => h.party === "pool");
+    expect((read?.x ?? Number.NaN) >= (housing?.x ?? Number.NaN) + (housing?.w ?? Number.NaN), "Pool の計器の式が Pool の囲いにかかる").toBe(true);
   });
 
   it("pipe-r6-converter-between-tanks", () => {
@@ -1967,7 +1984,7 @@ describe("第6回の試作の形の配管の図 (#3398)", () => {
     const slug = partsOf(motion, '[data-pipe-slug][data-pipe-step="4"]');
     const times = timesIn(rendered, 4);
     expect(
-      slug.some((el) => times.some((t) => changes(motion, el, "transform", times[0] ?? 0, t))),
+      slug.some((el) => times.some((t) => changes(motion, el, "stroke-dashoffset", times[0] ?? 0, t))),
       "move の段で液が値の管を流れない",
     ).toBe(true);
     const pool = partsOf(motion, '[data-pipe-level="pool"][data-pipe-token="USDC"][data-pipe-step="4"]');

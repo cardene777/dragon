@@ -70,7 +70,8 @@ export const PIPE_TYPE = {
  *   値の管を横に通す時の一番下の行の真ん中から槽まで `side`、槽から図の下の端まで `bottom`、槽を持たない図の下の端の余白 `plain`
  * - `bus` は値の管で、外の太さ `case`、中の太さ `core`、本管の間 `pitch`、本管から槽への管の太さ `stub`、本管の端のはみ出し `end`、弁から箱へ上る軸の空き `valveUp`
  * - `side` は値の管を横に通す時で、槽の下の端から管まで `pipeY`、管からトークンの箱の下の端まで `boxUp`、箱を右へ寄せる量 `boxRight`、右の槽の手前の空き `boxLeft`
- * - `flow` は流れた分で、太さ `width`、同じ管で重なる分をずらす間 `track`、点線 `dash`、向きの印の大きさ `chevron`、斜線の幅 `stripe`
+ * - `flow` は流れた分で、太さ `width`、同じ管で重なる分をずらす間 `track`、点線 `dash`、向きの印の大きさ `chevron`、斜線の幅 `stripe`、
+ *   流れた段に管を通る斜線の液の塊の長さ `slug` (管の長さに対する割合。試作の4配管と同じ 0.34)
  * - `write` は書き込む管で、槽の上の端から折れる高さまで `turn`
  * - `card` は畳んだ箱で、高さ `h`、左右の余白 `padX`、札の間 `gap`、印の一辺 `icon`、題と値の基準線 `titleY` と `valueY`、名札からの離れ `top`
  * - `ring` はイベントを出した名札の外の輪の太さ
@@ -120,7 +121,7 @@ export const PIPE_LOOK = {
   band: { tokens: 78, mains: 54, tanks: 52, side: 128, bottom: 116, plain: 40 },
   bus: { case: 24, core: 16, pitch: 26, stub: 6, end: 10, valveUp: 14 },
   side: { pipeY: 22, boxUp: 58, boxRight: 40, boxLeft: 44 },
-  flow: { width: 4, track: 8, dash: "2 9", chevron: 7, stripe: 9 },
+  flow: { width: 4, track: 8, dash: "2 9", chevron: 7, stripe: 9, slug: 0.34 },
   write: { turn: 28 },
   card: { top: 16, h: 46, padX: 12, gap: 10, icon: 22, titleY: 18, valueY: 36 },
   ring: { width: 3 },

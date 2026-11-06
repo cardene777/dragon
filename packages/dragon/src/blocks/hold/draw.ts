@@ -5,7 +5,7 @@
  * 槽の下に 3 桁ごとに区切った大きな数を書き、変わった段から確定するまで、前の数を消し線で残して暫定の語を添える。確定した段は確定の語を添える。
  * 暫定の槽は増えた分を斜線で、減った分を点線の枠で示し、前の水位に点線を引く。確定した槽は緑の縁、取り消した槽は桃色の縁で描く。
  * 値の管は、隣の槽の横を結ぶ管か、槽の上に通す本管と槽へ下りる管で描く。トークンの Contract は箱で描き、管の弁の真上に置いて軸で結ぶ。
- * `move` と `[value]` で流れた分は管に沿った点線と向きの印で描き、流れた段は液の粒が管を流れる。暫定の分は下に斜線の帯を敷く。
+ * `move` と `[value]` で流れた分は管に沿った点線と向きの印で描き、流れた段は斜線の液の塊が管を通り抜ける。暫定か確定かは管に残さず、点線か実線かと槽の斜線で示す。
  * 弁は 2 つの三角を向かい合わせた形で、取っ手が開くと管の向きに倒れる。弁と計器と名札は呼び出しの管と値の管の両方が使う。
  * 角を落とす色味 (#3344) では、槽とトークンの箱の右上と左下を落とし、つやと取っ手の角を丸めない。
  * この file は配管の図を描く部品 (`render/pipe.ts`) と配管の図のブロックの描き方だけが読み、見本帳を開いた時に読む塊に入れない
@@ -193,9 +193,6 @@ export function tokenBox(p: PipeParty, on: boolean, valveAt: Point | undefined, 
   );
 }
 
-/** 点の並びの長さ */
-const lengthOf = (points: readonly Point[]): number => points.slice(1).reduce((sum, b, i) => sum + Math.hypot(b[0] - (points[i] as Point)[0], b[1] - (points[i] as Point)[1]), 0);
-
 /** 点の並びの上の、始まりから `d` 進んだ所 */
 export function pointAlong(points: readonly Point[], d: number): Point {
   let left = d;
@@ -212,21 +209,10 @@ export function pointAlong(points: readonly Point[], d: number): Point {
   return points[0] ?? [0, 0];
 }
 
-/** 液の粒が管を流れる時刻ごとの場所。粒は `[時刻, x, y]` の点を辿る */
-export function slugPath(points: readonly Point[], start: number, length: number): [number, number, number][] {
-  const total = lengthOf(points) || 1;
-  const out: [number, number, number][] = [];
-  let walked = 0;
-  points.forEach((p, i) => {
-    if (i > 0) walked += Math.hypot(p[0] - (points[i - 1] as Point)[0], p[1] - (points[i - 1] as Point)[1]);
-    out.push([start + (walked / total) * length, p[0], p[1]]);
-  });
-  return out;
-}
-
 /**
- * 流れた分。管に沿った点線と向きの印。暫定の分は下に斜線の帯を敷き、確定した分は実線、取り消した分は桃色で描く。
- * `at` を渡すと、その時刻に液の粒が管を流れる。粒は `data-pipe-slug` と段の番号を持つ。`attrs` は部品の印
+ * 流れた分。管に沿った点線と向きの印。暫定の分は点線、確定した分は実線、取り消した分は桃色で描く。
+ * `at` を渡すと、その時刻に斜線の液の塊が管の始まりから終わりへ通り抜ける。塊は `data-pipe-slug` と段の番号を持つ。`attrs` は部品の印。
+ * 塊は管の道筋を長さ 1 と数えた破線の 1 本で、破線のずれを動かして送る。折れた管でも向きを計算せずに道筋どおり曲がるため (試作の4配管と同じ作り)
  */
 export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number): string {
   const d = `M ${f.points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
@@ -234,26 +220,25 @@ export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number): string 
   const { x, y, dir } = f.arrow;
   const chevron = `M ${r1(x - a * dir * 0.7)} ${r1(y - a)} l ${r1(a * dir * 1.15)} ${a} l ${r1(-a * dir * 1.15)} ${a}`;
   const tone = `--pp-t:var(--pp-tone${f.tone})`;
-  const band = f.state === "provisional" ? `<path class="dg-pp-tband" stroke="url(#${defId(ctx, `h${f.tone}`)})" d="${d}"/>` : "";
   let blob = "";
   if (at !== undefined) {
-    const path = slugPath(f.points, at, MOTION.pipe.slug);
-    const at0 = path[0] as [number, number, number];
-    const at1 = path[path.length - 1] as [number, number, number];
-    const place = (x: number, y: number): string => `translate(${r1(x)}px,${r1(y)}px)`;
+    // 塊が管の始まりの手前に隠れている時のずれと、終わりの先へ抜けた時のずれ
+    const before = P.flow.slug;
+    const after = -1;
+    const end = at + MOTION.pipe.slug;
     const frames: Frame[] = [
-      [0, { opacity: 0, transform: place(at0[1], at0[2]) }],
-      [at, { opacity: 0 }],
+      [0, { opacity: 0, "stroke-dashoffset": before }],
+      [at, { opacity: 0, "stroke-dashoffset": before }, EASE.inOut],
       [at + MOTION.pipe.slug * 0.15, { opacity: 1 }],
-      ...path.map(([t, x, y]): Frame => [t, { transform: place(x, y) }, EASE.inOut]),
-      [at1[0] - MOTION.pipe.slug * 0.15, { opacity: 1 }],
-      [at1[0] + MOTION.fade, { opacity: 0 }],
-      [ctx.m.total, { opacity: 0, transform: place(at1[1], at1[2]) }],
+      [end - MOTION.pipe.slug * 0.15, { opacity: 1 }],
+      [end, { "stroke-dashoffset": after }],
+      [end + MOTION.fade, { opacity: 0 }],
+      [ctx.m.total, { opacity: 0, "stroke-dashoffset": after }],
     ];
-    blob = `<circle class="dg-pp-slug dg-a" data-pipe-slug="" data-pipe-step="${f.step}" style="${tone};${ctx.m.kf(frames)}" cx="0" cy="0" r="${P.flow.width * 1.5}"/>`;
+    blob = `<path class="dg-pp-slug dg-a" data-pipe-slug="" data-pipe-step="${f.step}" pathLength="1" stroke="url(#${defId(ctx, `h${f.tone}`)})" style="${tone};${ctx.m.kf(frames)}" d="${d}"/>`;
   }
   return (
-    `<g${attrs} class="dg-pp-trace dg-pp-trace-${f.state}" style="${tone};${cs(STATE_COLOR[f.state])}">${band}` +
+    `<g${attrs} class="dg-pp-trace dg-pp-trace-${f.state}" style="${tone};${cs(STATE_COLOR[f.state])}">` +
     `<path class="dg-pp-tline" d="${d}"/><path class="dg-pp-chev" d="${chevron}"/>${blob}</g>`
   );
 }
