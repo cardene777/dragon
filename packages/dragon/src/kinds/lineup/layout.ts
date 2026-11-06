@@ -1,7 +1,7 @@
 /**
  * 列の図の置き場所 (#3239)。卓の形 (#3351) の見た目の元は `docs/design/lineup/auction.pen` の 2 枚の板 (横に並べた形と、携帯の幅で縦に組んだ形)。
  *
- * 箱 (`box`) は宣言した順に左から並ぶ。`[order: none]` の箱は順番の無い置き場で、チップを散らして置き、点線の枠で描く。
+ * 箱 (`box`) は宣言した順に左から並ぶ。`[order: none]` の箱は順番の無い置き場で、チップを格子に並べ、点線の枠で描く。
  * ほかの箱は札で、チップを `line` に書いた順に上から積み、札の下の端に `note` の字 (`sub` と段の中の `note`) を大きく出す。
  * どの札も同じ幅と高さにし、高さは札に積む最も多い枚数で決まる。置き場と札が隣り合う所には左から右へ向く矢印を置く。
  * 枠の幅 (`width`) を渡し、横に並べると箱の名前が `READABLE_PX` に届かない時は縦に組む。置き場を札の列の幅の帯にし、
@@ -31,9 +31,6 @@ import { boxColors, type Layout, layoutStrip, type Point, type Rect, replaceSame
 
 const L = LINEUP_LOOK;
 const C = L.chip;
-/** 置き場のチップを散らして上下へずらす最も大きな量。チップを置く所の上下にこの分を空ける */
-const LIFT = Math.max(...L.pool.jitter.map(([, dy]) => Math.abs(dy)));
-
 /** 1 行の字。`x` は左端、`baseline` は基準線 */
 export interface TextLine {
   text: string;
@@ -272,23 +269,24 @@ function notesOf(diagram: DiagramModel, id: string, sub: string | undefined): st
   return sub === undefined ? written : [sub, ...written];
 }
 
-/** 置き場にチップを散らした四角。`inner` の上端から行を積み、行ごとに `gapX` 以上空けて等しく割った枠の中で `jitter` だけずらす */
-function scatter(widths: number[], inner: { x: number; y: number; w: number }, gapX: number): { seats: Rect[]; h: number } {
+/**
+ * 置き場のチップを格子に並べた四角 (#3408)。`inner` の上端から行を積み、行ごとに `gapX` 以上空けて等しく割った枠の真ん中に置く。
+ * どのチップも最も広いチップの幅にそろえ、同じ行の上端と同じ列の左端をそろえる。席ごとにずらすと、崩れたように見えて間の詰まる所ができた
+ */
+function grid(widths: number[], inner: { x: number; y: number; w: number }, gapX: number): { seats: Rect[]; h: number } {
   const n = widths.length;
-  if (n === 0) return { seats: [], h: C.h + LIFT * 2 };
+  if (n === 0) return { seats: [], h: C.h };
   const widest = Math.max(...widths);
   const fit = Math.max(1, Math.min(n, Math.floor((inner.w + gapX) / (widest + gapX))));
   const rows = Math.ceil(n / fit);
   const cols = Math.ceil(n / rows);
   const cell = inner.w / cols;
-  const seats = widths.map((w, k) => {
-    const [jx, jy] = L.pool.jitter[k % L.pool.jitter.length] as readonly [number, number];
-    const left = inner.x + (k % cols) * cell;
-    const x = Math.max(left, Math.min(left + (cell - w) / 2 + jx, left + cell - w));
-    const y = inner.y + LIFT + Math.floor(k / cols) * (C.h + L.pool.gapY) + jy;
-    return { x, y, w, h: C.h };
+  const seats = widths.map((_, k) => {
+    const x = inner.x + (k % cols) * cell + (cell - widest) / 2;
+    const y = inner.y + Math.floor(k / cols) * (C.h + L.pool.gapY);
+    return { x, y, w: widest, h: C.h };
   });
-  return { seats, h: rows * (C.h + L.pool.gapY) - L.pool.gapY + LIFT * 2 };
+  return { seats, h: rows * (C.h + L.pool.gapY) - L.pool.gapY };
 }
 
 /** 札の下の一言の中身。置く所は並べ方が決める */
@@ -449,8 +447,8 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
   const cardH = L.trackY + cardMost * (C.h + C.gap) - C.gap + L.card.foot + L.card.noteY + L.card.bottom;
   const poolTrackY = stacked ? L.band.trackY : L.trackY;
   const poolGapX: number = L.pool.gapX;
-  /** 置き場の幅 `w` で、置き場に書いた `line` のチップを散らした中で最も高い高さ */
-  const poolRows = (id: string, w: number): number => Math.max(...[[] as string[], ...lines.filter((l) => l.lane === id).map((l) => l.items)].map((ids) => scatter(ids.map(chipW), { x: 0, y: 0, w: w - pad * 2 }, poolGapX).h));
+  /** 置き場の幅 `w` で、置き場に書いた `line` のチップを格子に並べた中で最も高い高さ */
+  const poolRows = (id: string, w: number): number => Math.max(...[[] as string[], ...lines.filter((l) => l.lane === id).map((l) => l.items)].map((ids) => grid(ids.map(chipW), { x: 0, y: 0, w: w - pad * 2 }, poolGapX).h));
   const placed = new Map<string, Rect>();
   if (stacked) {
     let y = laneTop;
@@ -503,7 +501,7 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
     if (b.pool) {
       const hint = stacked ? single(hintText(true), title.x + title.w + L.band.hintGap, r.y + L.titleY, TYPE.laneHint) : single(hintText(true), r.x + pad, r.y + L.hintY, TYPE.laneHint);
       const track = { x: r.x + pad, y: r.y + poolTrackY, w: r.w - pad * 2, h: r.h - poolTrackY - L.pool.bottom };
-      const empty = single(words.lineupEmpty, r.x + pad, track.y + LIFT + C.h / 2 + LOOK.baseline.tag, TYPE.laneEmpty);
+      const empty = single(words.lineupEmpty, r.x + pad, track.y + C.h / 2 + LOOK.baseline.tag, TYPE.laneEmpty);
       return { ...base, title, hint, track, slots: [], empty };
     }
     const arrowX = r.x + pad;
@@ -539,7 +537,7 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
     seatsOf.set(
       line,
       lane.pool
-        ? scatter(line.items.map(chipW), { x: lane.track.x, y: lane.track.y, w: lane.track.w }, poolGapX).seats
+        ? grid(line.items.map(chipW), { x: lane.track.x, y: lane.track.y, w: lane.track.w }, poolGapX).seats
         : line.items.map((_, index) => lane.slots[index] as Rect),
     );
   }

@@ -2228,7 +2228,7 @@
           "$ref": "#/definitions/userBlockName"
         },
         "order": {
-          "description": "列の図の箱の並べ方。none は順番の無い置き場で、チップを散らして置く。書かない箱は上から実行する札で、チップを line に書いた順に積む",
+          "description": "列の図の箱の並べ方。none は順番の無い置き場で、チップを格子に並べる。書かない箱は上から実行する札で、チップを line に書いた順に積む",
           "enum": [
             "none"
           ]

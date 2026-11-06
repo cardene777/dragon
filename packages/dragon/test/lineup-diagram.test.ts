@@ -43,7 +43,6 @@ import {
   sampleTimes,
 } from "./render-support";
 
-
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 
 /** 入札の図の 7 段の題 (step 4 で決めた) */
@@ -436,7 +435,7 @@ function mempoolLineup(): Json {
       { id: "丙", name: "ビルダーC" },
       { id: "出口", name: "バリデーター", order: "none" },
     ],
-    lineup: { items: ids.map((id) => (id === "自分" ? { id, color: "amber" } : { id })) },
+    lineup: { items: ids.map((id): Json => (id === "自分" ? { id, color: "amber" } : { id })) },
     steps: [stepOf("並ぶ", [lineEvent("池", ids)]), stepOf("組む", [lineEvent("甲", ids)])],
   };
 }
@@ -446,17 +445,23 @@ function expectGrid(chips: Seat[]): void {
   expect(chips.length, "置き場に置いたチップの数").toBe(7);
   const key = (v: number): number => Math.round(v * 1000) / 1000;
   for (const c of chips)
-    expect(c.w, `${c.id} の幅が最も広いチップの幅と揃わない`).toBeCloseTo(Math.max(...chips.map((d) => d.w)), 6);
+    expect(c.w, `${c.id} の幅が最も広いチップの幅と揃わない`).toBeCloseTo(
+      Math.max(...chips.map((d) => d.w)),
+      6,
+    );
   const xs = [...new Set(chips.map((c) => key(c.x)))].sort((a, b) => a - b);
   const ys = [...new Set(chips.map((c) => key(c.y)))].sort((a, b) => a - b);
   expect(xs.length, `列の数 (左端 ${xs.join(", ")})`).toBeGreaterThan(1);
   expect(ys.length, `行の数 (上端 ${ys.join(", ")})`).toBe(Math.ceil(chips.length / xs.length));
+  // 間は 2 つ以上の列か行がある時だけ数える (広い帯では 7 枚が 1 行に収まる)
   const steps = (vs: number[]): number[] => vs.slice(1).map((v, i) => key(v - (vs[i] as number)));
-  expect(new Set(steps(xs)).size, `左右の間 (${steps(xs).join(", ")})`).toBe(1);
-  expect(new Set(steps(ys)).size, `上下の間 (${steps(ys).join(", ")})`).toBe(1);
   const [w, h] = [chips[0]?.w ?? 0, chips[0]?.h ?? 0];
+  expect(new Set(steps(xs)).size, `左右の間 (${steps(xs).join(", ")})`).toBe(1);
   expect((steps(xs)[0] ?? 0) - w, "左右のチップが重なる").toBeGreaterThan(0);
-  expect((steps(ys)[0] ?? 0) - h, "上下のチップが重なる").toBeGreaterThan(0);
+  if (ys.length > 1) {
+    expect(new Set(steps(ys)).size, `上下の間 (${steps(ys).join(", ")})`).toBe(1);
+    expect((steps(ys)[0] ?? 0) - h, "上下のチップが重なる").toBeGreaterThan(0);
+  }
 }
 
 /** 字を持つチップと、色の無いチップと、色付きのチップを、置き場と札の両方に置く図 */
