@@ -5,9 +5,10 @@
  * 描く時には要らないので定義 (`block.ts`) に置かず、描く時に読む塊に入れない。
  */
 import type { BlockShape } from "../block";
+import { LINK_URL } from "./block";
 
 export const shape: BlockShape = {
   definitions: {
-    url: { description: "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL", type: "string", pattern: "^(/|https?://)" },
+    url: { description: "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL", type: "string", pattern: LINK_URL },
   },
 };

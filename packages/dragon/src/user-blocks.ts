@@ -36,6 +36,14 @@ export const USER_SHAPES: Readonly<Record<UserBase, readonly string[]>> = {
 /** 足すブロックの名前。頭に `+` を付け、英小文字で始め、英小文字と数字と `-` だけを使う */
 export const USER_NAME = /^\+[a-z][a-z0-9-]*$/u;
 
+/** path の文法の字。命令の字と数と区切りだけで、`<` も `(` も `:` も書けない */
+const PATH_TEXT = /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]+$/u;
+/** path の長さの上限。1 つのブロックの形にこれより長い path は要らない */
+const PATH_MAX = 2000;
+
+/** 足したブロックの path として描いてよい字か。定義を読む時と、記法から読んだ図を読む時と、描く時に同じ決まりで確かめる (#3400) */
+export const isUserPath = (value: string): boolean => value.length <= PATH_MAX && PATH_TEXT.test(value) && /^\s*[Mm]/u.test(value);
+
 /** 足すブロックの定義 1 つ */
 export interface UserBlock {
   /** `+` で始まる名前。記法では行の頭の語 (箱)、線の矢印の代わり (線)、`icon:` の値 (印) に書く */
@@ -68,6 +76,7 @@ export interface UserBlockUseMessages {
   versionMissing: string;
   undefinedBlock: (name: string) => string;
   wrongBase: (name: string, base: UserBase, want: UserBase) => string;
+  badPath: string;
 }
 
 const USE_MESSAGES: Readonly<Record<NotationLang, UserBlockUseMessages>> = {
@@ -75,11 +84,13 @@ const USE_MESSAGES: Readonly<Record<NotationLang, UserBlockUseMessages>> = {
     versionMissing: "ブロックの定義の前に、定義の形の版の行 (blocks 1) を書く",
     undefinedBlock: (name) => `${name} のブロックは定義されていない。図の頭の blocks 1 の後か、頁の link か、引数 blocks で定義する`,
     wrongBase: (name, base, want) => `${name} は ${base} を元にしたブロックで、${want} の所には書けない`,
+    badPath: `path に書けるのは path の文法の字 (命令の字と数と区切り) だけで、${PATH_MAX} 字まで`,
   },
   en: {
     versionMissing: "Write the version line of the block definitions (blocks 1) before them",
     undefinedBlock: (name) => `The block ${name} is not defined. Define it after blocks 1 at the head of the diagram, in a page link, or in the blocks option`,
     wrongBase: (name, base, want) => `${name} is based on ${base} and cannot be written where a ${want} goes`,
+    badPath: `A path takes only path syntax (commands, numbers and separators), up to ${PATH_MAX} characters`,
   },
 };
 

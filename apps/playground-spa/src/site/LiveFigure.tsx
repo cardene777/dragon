@@ -12,7 +12,7 @@ import { type Diagram, diagramKind, mountDiagram, parseNotation, readDiagram, ty
 import { type ReactElement, useEffect, useMemo, useRef } from "react";
 
 import type { Lang } from "../text";
-import { useKind } from "./kinds";
+import { useKind, useValidator } from "./kinds";
 import { KindState } from "./KindState";
 
 interface Props {
@@ -62,12 +62,16 @@ function readNotation(text: string): Diagram | null {
 export function LiveFigure({ notation, lang, theme, palette, whole = false, json = false, onStep, className }: Props): ReactElement {
   const host = useRef<HTMLDivElement>(null);
   const kind = useMemo(() => kindOfText(notation, json), [notation, json]);
-  const ready = useKind(kind).status === "ready";
+  // 原本の JSON は原本の形の検査の塊も待つ。記法から読んだ図は検査を要らない (#3400)
+  const checked = useValidator(json).status === "ready";
+  const ready = useKind(kind).status === "ready" && checked;
   const diagram = useMemo((): Diagram | null => {
     if (!ready) return null;
     const read = json ? readJson(notation) : readNotation(notation);
     if (!read) return null;
-    return whole ? { ...read, view: "fixed" } : read;
+    // 写して作り直すと記法から読んだ図の印が消えて検査が要るので、読んだ図の見せ方を直に替える (#3400)
+    if (whole) read.view = "fixed";
+    return read;
   }, [notation, whole, json, ready]);
   // 段の知らせ先は描くたびに替わりうるので、置き直さずに最新の物を呼ぶ
   const stepTo = useRef(onStep);

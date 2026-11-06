@@ -6,7 +6,12 @@
  * 頁の入口に Node の組み込みの module を読む部品が 1 つでも在ると、ブラウザ向けの build が止まる。
  */
 import { readFile, writeFile } from "node:fs/promises";
+import { registerValidator } from "./schema";
+import validate from "./schemas/validate-diagram.js";
 import { FORMAT_VERSION, readDiagram } from "./version";
+
+// 原本の file を移す入口は原本の JSON を読むので、原本の形の検査を初めから持つ (#3400)
+registerValidator(validate);
 
 export interface Migrated {
   changed: boolean;

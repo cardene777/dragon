@@ -86,6 +86,70 @@ function loadedAfter(body: string): Loaded | undefined {
   }
 }
 
+/** 原本の形の検査を読んだかを返す式。関数がまだ無い時は "missing" (#3400) */
+const VALIDATOR_LOADED = `typeof light.validatorLoaded === "function" ? light.validatorLoaded() : "missing"`;
+
+/** 時系列図の入門の見本。後から読む種類の部品を要らない */
+const INTRO = readFileSync(join(EXAMPLES, "intro.dragon"), "utf8");
+
+describe("記法から読んだ図は描く時の検査を省く (#3400)", () => {
+  it("light-draws-parsed-without-validator", async () => {
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const out = inFreshNode<{ svg?: string; error?: string; validator: unknown }>(`
+      const text = ${JSON.stringify(INTRO)};
+      await light.loadFor(text);
+      const parsed = light.parseNotation(text);
+      try { out.svg = light.renderDiagram(parsed.diagram).svg; } catch (e) { out.error = e.message; }
+      out.validator = ${VALIDATOR_LOADED};
+    `);
+    expect(out.error, "記法から読んだ図を軽い入口で描けない").toBeUndefined();
+    const parsed = whole.parseNotation(INTRO);
+    expect(out.svg, "軽い入口で描いた SVG が既定の入口と違う").toBe(parsed.ok ? whole.renderDiagram(parsed.diagram).svg : "");
+    // 記法から読んだ図を描くだけの頁は、原本の形の検査を 1 度も読まない
+    expect(out.validator, "記法から読んだ図を描いた後に、原本の形の検査を読んでいた").toBe(false);
+  });
+
+  it("light-refuses-json-before-validator", async () => {
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const parsed = whole.parseNotation(INTRO);
+    const json = JSON.stringify(parsed.ok ? parsed.diagram : {});
+    const out = inFreshNode<{ svg?: string; error?: string; validator: unknown }>(`
+      try { out.svg = light.renderDiagram(JSON.parse(${JSON.stringify(json)})).svg; } catch (e) { out.error = e.message; }
+      out.validator = ${VALIDATOR_LOADED};
+    `);
+    expect(out.svg, "loadFor を待たずに原本の JSON を描けた (検査を通していない)").toBeUndefined();
+    expect(out.error ?? "", "原本の形の検査を読んでいないことを名指さない").toMatch(/schema check.*loadFor|loadFor.*schema check/u);
+  });
+
+  it("light-load-for-json-reads-validator", async () => {
+    const whole = await importEntry<Entry & { readDiagram(input: unknown): unknown }>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const parsed = whole.parseNotation(INTRO);
+    const diagram = JSON.parse(JSON.stringify(parsed.ok ? parsed.diagram : {})) as { blocks: { box: { icon?: string }[] } };
+    const bad = structuredClone(diagram);
+    (bad.blocks.box[0] as { icon?: string }).icon = "usr";
+    const out = inFreshNode<{ svg?: string; error?: string; read?: unknown; validator: unknown }>(`
+      const json = JSON.parse(${JSON.stringify(JSON.stringify(diagram))});
+      const bad = JSON.parse(${JSON.stringify(JSON.stringify(bad))});
+      await light.loadFor(json);
+      await light.loadFor(bad);
+      out.validator = ${VALIDATOR_LOADED};
+      try { out.svg = light.renderDiagram(json).svg; } catch (e) { out.error = e.message; }
+      out.read = light.readDiagram(bad);
+    `);
+    expect(out.validator, "loadFor に原本の JSON を渡して待った後に、原本の形の検査を読んでいない").toBe(true);
+    expect(out.error, "loadFor を待った後に原本の JSON を描けない").toBeUndefined();
+    expect(out.svg, "軽い入口で原本の JSON を描いた SVG が既定の入口と違う").toBe(whole.renderDiagram(diagram).svg);
+    // 知らないアイコン名の誤りは、既定の入口と同じ欄と文で返す
+    expect(out.read, "軽い入口で読んだ原本の誤りが既定の入口と違う").toEqual(whole.readDiagram(bad));
+  });
+});
+
 describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3349)", () => {
   it("light-entry-loads-only-used-blocks", () => {
     const out = loadedAfter(`
@@ -282,6 +346,8 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
         const host = { ownerDocument: { defaultView: null } };
         const message = (run) => { try { run(); return "描けた"; } catch (e) { return e.message; } };
         out.refused = {}; out.kept = []; out.loaded = [];
+        // 原本の JSON を描くには原本の形の検査が要るので (#3400)、先に検査だけを読み、描く部品が無い時の誤りを確かめる
+        await light.loadValidator();
         for (const [kind, file] of Object.entries(later)) {
           const diagram = read(file);
           out.refused[kind] = [message(() => light.renderDiagram(diagram)), message(() => light.mountDiagram(host, diagram))];

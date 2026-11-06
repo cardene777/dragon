@@ -41,7 +41,6 @@ import type { LineupStamp } from "./blocks/stamp/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
 import { nearest } from "./nearest";
-import validate from "./schemas/validate-diagram.js";
 import { DEFAULT_LANG, type NotationLang, STATE_ENDS } from "./words";
 
 /** 色の役の型と一覧は色の役のブロック、アイコン名の一覧は絵のブロックが持つ (#3311、#3345) */
@@ -515,13 +514,38 @@ function toVersion1Error(error: ErrorObject): ErrorObject {
 }
 
 /**
+ * build の時に原本の形の決まりから書き出した検査の関数の形 (`schemas/validate-diagram.js`)。
+ * 誤りの中身は ajv の形 (`ErrorObject`) で、読む時に形を決める。登録する口の型に ajv の型を出さないため、ここでは object として持つ
+ */
+interface Validate {
+  (input: unknown): boolean;
+  errors?: readonly object[] | null;
+}
+
+/**
+ * 原本の形の検査 (#3400)。gzip で約 30KB あり、記法から読んだ図を描くだけの頁は要らないので、最初に読む束に入れない。
+ * 全部を持つ入口は初めから登録し (`kinds/all.ts`、`node.ts`)、軽い入口は原本の JSON を読む前に後から読んで登録する (`loadFor`)
+ */
+let validate: Validate | undefined;
+
+/** 原本の形の検査を登録する */
+export function registerValidator(given: Validate): void {
+  validate = given;
+}
+
+/** 原本の形の検査を読んだか */
+export const validatorLoaded = (): boolean => validate !== undefined;
+
+/**
  * 原本の JSON を検査する。版が道具より新しいかは見ない (`readDiagram` が見る)。
+ * 軽い入口で原本の形の検査を読む前に呼ぶと、読んでいないことを名指す誤りを投げる。
  * 版1の原本は版2の形へ移して検査し、誤りは版1の欄の場所で返す。同じ場所の同じ文の誤りは 1 つにまとめる
  */
 export function validateDiagram(input: unknown, options: CheckOptions = {}): Checked {
+  if (validate === undefined) throw new Error(FIELD_MESSAGES[options.lang ?? DEFAULT_LANG].validatorNotLoaded);
   const version1 = isVersion1(input);
   if (validate(version1 ? upgrade(input, FORMAT_VERSION) : input)) return { ok: true };
-  const all = (validate.errors ?? []).map((error) => (version1 ? toVersion1Error(error) : error));
+  const all = ((validate.errors ?? []) as ErrorObject[]).map((error) => (version1 ? toVersion1Error(error) : error));
   const inBranch = new Set(all.filter((error) => error.keyword === "anyOf").flatMap((anyOf) => branchesOf(anyOf, all)));
   const m = FIELD_MESSAGES[options.lang ?? DEFAULT_LANG];
   // 条件付きの決まり (if / then) は中で落ちた決まりの誤りを別に出すので、包む側の if の誤りは出さない

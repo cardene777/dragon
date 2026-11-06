@@ -9,7 +9,7 @@
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
-import { drawUserBlocks, type UserBlock, type UserBlocks, type UserBlockUseMessages, userBlock, userBlockUseMessages, withUserBlocks } from "../user-blocks";
+import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, type UserBlockUseMessages, userBlock, userBlockUseMessages, withUserBlocks } from "../user-blocks";
 import { action } from "../blocks/act/draw";
 import { boxTextY, card, headCard } from "../blocks/box/draw";
 import { carrier } from "../blocks/carry/draw";
@@ -925,7 +925,9 @@ function useUserBlocks(diagram: Diagram, m: UserBlockUseMessages): string | unde
   const find = (name: string, want: UserBlock["base"]): UserBlock | string => {
     const found = userBlock(name);
     if (!found) return m.undefinedBlock(name);
-    return found.base === want ? found : m.wrongBase(name, found.base, want);
+    if (found.base !== want) return m.wrongBase(name, found.base, want);
+    // 引数 blocks で渡した定義は原本の形の検査を通らないので、SVG に入る path をここで確かめる (#3400)
+    return found.path === undefined || isUserPath(found.path) ? found : `${name}: ${m.badPath}`;
   };
   for (const box of diagram.blocks.box ?? []) {
     for (const [name, want] of [

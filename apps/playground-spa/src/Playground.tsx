@@ -18,6 +18,7 @@ import {
   describeOverlap,
   diagramKind,
   loadFor,
+  loadValidator,
   parseNotation,
   printNotation,
   readDiagram,
@@ -32,7 +33,7 @@ import { Shelf } from "./editor/Shelf";
 import { Stage } from "./editor/Stage";
 import { type ExampleKey, exampleText, FIRST_EXAMPLE, firstScreenText, LATER_EXAMPLES, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
 import { fromHash, toHash } from "./share";
-import { kindFailed, kindReady, onKindSettled } from "./site/kinds";
+import { kindFailed, kindReady, onKindSettled, onValidatorSettled, validatorFailed, validatorReady } from "./site/kinds";
 import { useLater } from "./site/later";
 import { type CountedPart, type Lang, TEXT } from "./text";
 
@@ -79,6 +80,15 @@ function waitKind(kind: string | undefined, lang: Lang): Outcome | undefined {
 }
 
 /**
+ * 原本の形の検査の塊 (#3400) が届くまで、原本の JSON を読まずに待つ。
+ * 届いていれば `undefined`、届いていなければ待つ印、読めなかった時は誤り
+ */
+function waitValidator(lang: Lang): Outcome | undefined {
+  if (validatorReady()) return undefined;
+  return { ok: false, problem: validatorFailed() ? { lang, notices: [{ text: TEXT[lang].site.catalog.loadFailed }] } : KIND_WAITING };
+}
+
+/**
  * 原本の形を検査し、描けるかまで確かめる。描けない図を受け取ると、最後に描けた図を失う。
  * `lang` は誤りを出す言葉。`json` を渡した時は、形の誤りの場所を JSON の字の行へ写す。
  */
@@ -115,6 +125,8 @@ function fromJson(text: string, pageLang: Lang): Outcome {
     const line = jsonErrorLine(message, text);
     return { ok: false, problem: { lang: pageLang, notices: [{ ...(line !== undefined ? { line } : {}), text: TEXT[pageLang].notJson(message) }] } };
   }
+  const waiting = waitValidator(pageLang);
+  if (waiting) return waiting;
   return check(value, pageLang, text);
 }
 
@@ -294,7 +306,10 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     let next = content;
     if (/^\s*\{/u.test(content)) {
       try {
-        const read = readDiagram(JSON.parse(content), { lang });
+        const input: unknown = JSON.parse(content);
+        // 原本の JSON は、読む前に原本の形の検査を読む (#3400)
+        await loadValidator();
+        const read = readDiagram(input, { lang });
         // 記法に書き戻す前に、原本が使うブロックの読み方を読む (#3349)
         if (read.ok) {
           await loadFor(read.diagram);
@@ -382,6 +397,8 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     };
   });
   useEffect(() => onKindSettled(() => reread.current()), []);
+  // 原本の形の検査の塊は、編集画面を開いた後に裏で読み、届いたら原本の JSON の欄を読み直す (#3400)
+  useEffect(() => onValidatorSettled(() => reread.current()), []);
 
   // 描くたびに今の書く欄の中身を読む処理を渡し直す。編集画面を離れたら外す
   useLayoutEffect(() => {

@@ -4,10 +4,11 @@
  * 既定の入口と同じ部品を出すが、git、lineup、pipe、state、time、tree、try の描く部品と、その図の種類だけの個別ブロックの読み方を持たない。
  * コアブロックと、時系列図と構成図の個別ブロックの読み方は初めから持つ。
  *
- * - `loadFor(<記法か原本>)` を待つと、書いた図の種類の描く部品と、書いた図が使う個別ブロックの読み方だけを読む
- * - `loadKind(<種類>)` を待つと、その種類の描く部品と、その種類の個別ブロックの読み方を全て読む (裏で先に読む時に使う)
+ * - `loadFor(<記法か原本>)` を待つと、書いた図の種類の描く部品と、書いた図が使う個別ブロックの読み方だけを読む。原本の JSON を渡した時だけ、原本の形の検査も読む (#3400)
+ * - `loadKind(<種類>)` を待つと、その種類の描く部品と、その種類の個別ブロックの読み方と、原本の形の検査を全て読む (裏で先に読む時に使う)
  * - `loadReadings(<記法か原本>)` を待つと、書いた図が使う個別ブロックの読み方だけを読み、描く部品は読まない (題と種類だけを引く時に使う)
  * - `diagramKind(<記法か原本>)` は、読む前に図の種類を返す。どの種類の `loadKind` を待つかを決める時に使う
+ * - `loadValidator()` を待つと、原本の形の検査だけを読む。`parseNotation` で記法から読んだ図は描く時に検査を省くので、原本の JSON を読む頁だけが要る (#3400)
  *
  * 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
  * 読んでいない種類を描くと種類の名前を含む誤りで、読んでいない個別ブロックの行を読むとブロックの名前を含む誤りで止まる。
@@ -20,7 +21,8 @@ import { blocksUsedBy, kindOf } from "./blocks/used";
 import { kindLoaded, LATER_KINDS, type LaterKind, type LaterKinds, registerKind } from "./kinds/registry";
 import { FORMAT_VERSION, isVersion1, upgrade } from "./model";
 import { printNotation } from "./printer";
-import type { Diagram } from "./schema";
+import { isParsed } from "./parsed";
+import { type Diagram, registerValidator, validatorLoaded } from "./schema";
 import { definesBlocks, registerUserBlockReader, userBlockReader } from "./user-blocks";
 
 export * from "./api";
@@ -77,12 +79,12 @@ async function loadBlocks(names: readonly string[]): Promise<void> {
 }
 
 /**
- * 種類の描く部品と、その種類の個別ブロックの読み方を全て読む。時系列図と構成図は初めから持つので何もしない。
- * 読み込みが落ちると拒否され、次に呼ぶと読み直す
+ * 種類の描く部品と、その種類の個別ブロックの読み方を全て読む。時系列図と構成図の部品は初めから持つ。
+ * 読んだ後はその種類の原本の JSON も描けるよう、原本の形の検査も読む (#3400)。読み込みが落ちると拒否され、次に呼ぶと読み直す
  */
 export async function loadKind(kind: string | undefined): Promise<void> {
-  if (!isLater(kind)) return;
-  await Promise.all([loadParts(kind), loadBlocks(LATER_BLOCKS.filter((name) => blockKinds(name).includes(kind)))]);
+  if (!isLater(kind)) return loadValidator();
+  await Promise.all([loadParts(kind), loadBlocks(LATER_BLOCKS.filter((name) => blockKinds(name).includes(kind))), loadValidator()]);
 }
 
 /** 記法 `text` が足すブロックの定義の行を持てば、定義を読む処理を読む (#3399)。読んでいれば何もしない */
@@ -114,9 +116,19 @@ export async function loadReadings(source: string | object): Promise<void> {
 }
 
 /**
+ * 原本の形の検査を読む (#3400)。読んでいれば何もしない。
+ * 記法から読んだ図は検査を要らないので、`loadFor` は原本の JSON を渡した時だけこれを待つ。読み込みが落ちると拒否され、次に呼ぶと読み直す
+ */
+export async function loadValidator(): Promise<void> {
+  if (!validatorLoaded()) registerValidator((await import("./schemas/validate-diagram.js")).default);
+}
+
+/**
  * 記法か原本 (版1か版2) の図を読んで描くのに要る物だけを読む。書いた図の種類の描く部品と、書いた図が使う個別ブロックの読み方 (`loadReadings`、#3349)。
  * 図の種類が読めない記法や原本は何も読まずに終わり、読む処理がその誤りを返す。読み込みが落ちると拒否され、次に呼ぶと読み直す
  */
 export async function loadFor(source: string | object): Promise<void> {
-  await Promise.all([loadParts(diagramKind(source)), loadReadings(source)]);
+  // 原本の JSON は、読む前に原本の形の検査も読む。記法と、記法から読んだ図は検査を要らない (#3400)
+  const json = typeof source !== "string" && !isParsed(source);
+  await Promise.all([loadParts(diagramKind(source)), loadReadings(source), json ? loadValidator() : undefined]);
 }
