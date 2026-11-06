@@ -70,6 +70,8 @@
 | `cli-language.test.ts` の断りの検査 | 命令を順に起こすのをやめ、同時に起こす | 起こす命令と確かめる中身は同じ |
 | `release-notes-for-every-section` | 版ごとの本文を作る命令を、順に起こすのをやめて 8 つずつ同時に起こす | 全ての版の本文を同じ命令で作って確かめる。順に起こすと版が増えるほど遅くなる |
 | `catalog-common-part-shows-both-kinds` ほか部品ごとの 5 つの件 (`catalog-parts.test.ts`) | 部品の頁を、件ごとに開き直すのをやめ、部品ごとに 1 度開いて使い回す (#3432) | 読むだけの件を先に回し、頁を移る件と言語を替える件は部品の頁と日本語に戻して終わる。開く回数は `catalog-parts-open-one-page-per-part` が数える |
+| `narrow-editor-step-buttons-on-first-screen` ほか編集画面を読むだけの 12 の件 (`site-editor.test.ts`) | 編集画面を、件ごとに開き直すのをやめ、画面の大きさと指で触るかの組ごとに 1 度開いて使い回す (#3435) | 頁の状態を変えない件だけを並べ、見本は棚から読んで頁を上端へ戻してから読む。開く回数は `editor-readers-open-one-page-per-setting` が数える |
+| `docs-state-section-follows-regions` ほか使い方の頁を読む 8 つの件 (`site-pages.test.ts`) | 使い方の頁を、件ごとに開き直すのをやめ、言語ごとに 1 度開いて使い回す (#3435) | 頁の状態を変えない件で、部品「絵」の頁へ移る件は使い方の頁へ戻して終わる。開く回数は `docs-readers-open-one-page-per-lang` が数える |
 
 1 件の中で画面の大きさや見本の組を順に回していた検査は、組ごとの件に分けた。
 件の名前は元の名前のまま変えず、組は件を包む `describe` の名前に出る。
