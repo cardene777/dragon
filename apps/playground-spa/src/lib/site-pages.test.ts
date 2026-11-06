@@ -1609,6 +1609,98 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
   );
 
 
+  it("docs-extend-example-uses-three-bases", () => {
+    // ブロックを足す節の例は、箱と線と印を元にした足したブロックを 1 つずつ定義し、3 つとも図の中で使う (#3407)
+    for (const lang of ["ja", "en"] as const) {
+      const text = docsExample("extend", lang);
+      expect(text, `${lang} のブロックを足す節の例の file (src/docs/examples/extend${lang === "en" ? ".en" : ""}.dragon) が無い`).toBeDefined();
+      if (text === undefined) continue;
+      const parsed = parseNotation(text);
+      expect(parsed.ok ? [] : parsed.errors.map((e) => `${e.line}: ${e.message}`), `${lang} のブロックを足す節の例が読めない`).toEqual([]);
+      if (!parsed.ok) continue;
+      const defined = parsed.diagram.define?.blocks ?? [];
+      expect(defined.map((b) => b.base).sort(), `${lang} のブロックを足す節の例が、箱と線と印を元にした足したブロックを 1 つずつ定義しない`).toEqual(["box", "edge", "icon"]);
+      const nameOf = (base: string): string | undefined => defined.find((b) => b.base === base)?.name;
+      const boxes = boxesOf(parsed.diagram);
+      expect(boxes.some((b) => b.block === nameOf("box")), `${lang} のブロックを足す節の例が、足した箱を図で使わない`).toBe(true);
+      expect(eventsOf(parsed.diagram).some((e) => e.type === "edge" && e.block === nameOf("edge")), `${lang} のブロックを足す節の例が、足した線を図で使わない`).toBe(true);
+      expect(boxes.some((b) => b.icon === nameOf("icon")), `${lang} のブロックを足す節の例が、足した印を図で使わない`).toBe(true);
+      // 同じ見本を編集画面の見本の一覧にも置く。見本の file は頭に `//` の説明の行を持ち、それを除くと節の例と同じ字になる
+      const sample = join(root, `packages/dragon/examples/bridge${lang === "en" ? ".en" : ""}.dragon`);
+      expect(existsSync(sample), `${lang} の編集画面の見本の file (packages/dragon/examples/bridge${lang === "en" ? ".en" : ""}.dragon) が無い`).toBe(true);
+      if (!existsSync(sample)) continue;
+      const body = readFileSync(sample, "utf8")
+        .split("\n")
+        .filter((line) => !line.startsWith("//"))
+        .join("\n")
+        .trim();
+      expect(body, `${lang} の編集画面の見本が、説明の行を除いてブロックを足す節の例と同じ字でない`).toBe(text.trim());
+    }
+  });
+
+  it(
+    "docs-extend-section-follows-pipe",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
+        const { sections } = await docsOf(page);
+        const ids = sections.map((s) => s.id);
+        expect(ids[ids.indexOf("pipe") + 1], `${lang} の配管の図の節の次がブロックを足す節でない`).toBe("extend");
+        const extend = sections.find((s) => s.id === "extend");
+        // 本文は定義の版の行と、定義を囲む語と、元と形と色の役の語と、図で `+<名前>` と書くことを説明する
+        for (const word of ["blocks 1", "block", "base", "shape", "color", "end"]) {
+          expect(new RegExp(`(^|[^A-Za-z-])${word}($|[^A-Za-z-])`, "u").test(extend?.prose ?? ""), `${lang} のブロックを足す節の本文が ${word} を説明しない`).toBe(true);
+        }
+        expect(extend?.prose ?? "", `${lang} のブロックを足す節の本文が、図で + を付けて書くことを説明しない`).toMatch(/\+<[^>]+>|\+[a-z]+/u);
+      }
+    },
+  );
+
+  it(
+    "docs-extend-example-draws-user-blocks",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const text = docsExample("extend", lang);
+        const parsed = text === undefined ? undefined : parseNotation(text);
+        const path = parsed?.ok ? parsed.diagram.define?.blocks.find((b) => b.base === "box")?.path : undefined;
+        expect(path, `${lang} のブロックを足す節の例が、足した箱の path を定義しない`).toBeDefined();
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        // 節の例の図が描かれ、足した箱の枠が定義に書いた path で描かれる
+        await expect
+          .poll(
+            () =>
+              page.evaluate((d) => {
+                const svg = document.querySelector('section#extend [data-docs="example"] svg[data-dragon="figure"]');
+                return svg === null ? "図が無い" : [...svg.querySelectorAll("path")].some((p) => p.getAttribute("d")?.includes(d ?? "?")) ? "描けた" : "path が無い";
+              }, path?.split(" ").slice(0, 3).join(" ")),
+            { ...WAIT, message: `${lang} のブロックを足す節の例の図が描かれないか、足した箱の枠が定義の path で描かれない` },
+          )
+          .toBe("描けた");
+      }
+    },
+  );
+
+  it(
+    "docs-extend-shows-shared-definitions",
+    async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
+        await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
+        const commands = (await docsOf(page)).sections.find((s) => s.id === "extend")?.commands ?? [];
+        // 定義を 1 つの file に置いて使い回す 2 つの口を、code の枠で示す
+        expect(commands.some((c) => c.includes('<link rel="dragon-blocks"')), `${lang} のブロックを足す節に、頁の link で定義の file を読む code の枠が無い`).toBe(true);
+        expect(
+          commands.some((c) => c.includes("readBlocks(") && /parseNotation\([^)]*blocks/u.test(c)),
+          `${lang} のブロックを足す節に、readBlocks で読んだ定義を parseNotation の blocks に渡す code の枠が無い`,
+        ).toBe(true);
+      }
+    },
+  );
+
   it(
     "docs-boxes-lead-to-every-icon",
     async () => {
