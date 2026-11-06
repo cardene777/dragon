@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-11-06
+
+### Added
+
+- **Fields of a try diagram's input strip can offer choices** (#3422)
+
+  Write `choose <field>: <value>, <value>` before the first step, one line per field, and the reader picks that field's value from the choices in the written order instead of typing it. The field opens with the first choice selected, the first field (the chip's name) takes choices too, and changing that field of a chip inside a block picks from the same choices. A `choose` line for a field the strip lacks, a second `choose` for the same field, fewer than two choices, and an `item` or a step's `ask` with a value outside the choices stop with an error naming the line and column. Fields without choices stay free text as before.
+
 ## [0.55.1] - 2026-11-06
 
 ### Fixed

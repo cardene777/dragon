@@ -3,6 +3,7 @@ try 入力の帯
 route 網: あなた - 中継 - 作る人 [from: あなた, to: 作る人]
 queue 待ち [order: 手数料]
 ask 送り手, 手数料 [into: 待ち, via: 網]
+choose 手数料: 2, 4, 6
 
 item 甲 [手数料: 4]
 

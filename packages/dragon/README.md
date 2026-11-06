@@ -73,7 +73,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.55/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.56/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -87,7 +87,7 @@ step Press sign in
 </pre>
 ```
 
-The script loads from jsDelivr with the version pinned up to the middle number (`@0.55`), so fixes in later patch versions reach the page and a version that changes the notation does not.
+The script loads from jsDelivr with the version pinned up to the middle number (`@0.56`), so fixes in later patch versions reach the page and a version that changes the notation does not.
 It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
@@ -437,6 +437,7 @@ Start with `try` to draw a try diagram, which readers move themselves by typing 
 - `queue <name> [order: <field>]` is a waiting line. It sorts chips from the highest value of the `order` field
 - `chain <name> [edit: <field>]` is a chain of blocks. Each block holds the previous block's `hash` as `prev`, and with `edit` the reader can change that field of a chip inside a block
 - `ask <field>, <field>, ... [into: <queue>, via: <route>]` is the input strip. The first field's value becomes the chip's name
+- `choose <field>: <value>, <value>, ...` gives that field choices. The reader picks one from the choices in the written order instead of typing. The first field takes choices too, and changing that field of a chip inside a block picks from the same choices
 - `press <name> [from: <queue>, into: <chain>, take: <count>, at: <part>]` is a button. It moves the top `take` chips of the queue into a new block. With `at` it sits on that part, and without it in the input strip
 
 Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line` writes a queue's contents or a block, and `ask <value>, ...`, `press <name>`, and `item <name> [<field>: <value>]` write the author's example (send, build, change).
@@ -449,6 +450,7 @@ route Network: You - node-1 - Builder, You - node-2 - node-3 - Builder [from: Yo
 queue Mempool [order: Fee]
 chain Chain [edit: Amount]
 ask Sender, To, Amount, Fee [into: Mempool, via: Network]
+choose To: Bob, Carol, Dave, Erin
 press Build [from: Mempool, into: Chain, take: 2]
 
 item tx1 [To: Carol, Amount: 3, Fee: 7]
