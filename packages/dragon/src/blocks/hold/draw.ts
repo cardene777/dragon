@@ -209,7 +209,7 @@ export function pointAlong(points: readonly Point[], d: number): Point {
     }
     left -= len;
   }
-  return (points[0] ?? [0, 0]) as Point;
+  return points[0] ?? [0, 0];
 }
 
 /** 液の粒が管を流れる時刻ごとの場所。粒は `[時刻, x, y]` の点を辿る */

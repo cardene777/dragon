@@ -1125,7 +1125,6 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
       holder: holding.has(id),
     };
   });
-  const partyOf = new Map(parties.map((p) => [p.id, p]));
   const involved = diagram.steps.map((step, s) => {
     const set = new Set(step.events.flatMap(partiesOf));
     for (const c of shown) if (c.close?.step === s) set.add(c.to);
@@ -1446,8 +1445,9 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
   const converters: PipeConverter[] = [];
   for (const col of cols) {
     const own = sim.calcs.filter((c) => c.party === col.id);
+    const [first] = own;
     const [ta, tb] = col.tanks;
-    if (own.length === 0 || !ta || !tb) continue;
+    if (!first || !ta || !tb) continue;
     const r = many ? P.converter.rSmall : P.converter.r;
     const left = ta.x + ta.w;
     const right = tb.x;
@@ -1455,7 +1455,7 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     const cy = tankTop + tankH / 2;
     for (const s of stepList) {
       const here = own.filter((c) => c.step === s && !foldSteps.has(s));
-      const shownCalc = here[0] ?? [...own].reverse().find((c) => c.step <= s) ?? (own[0] as CalcRec);
+      const shownCalc = here[0] ?? [...own].reverse().find((c) => c.step <= s) ?? first;
       converters.push({
         x: cx - r,
         y: cy - r,
