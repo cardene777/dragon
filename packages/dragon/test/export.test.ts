@@ -10,6 +10,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
+// 書き出しの部品 (1MB を超える束) を、この file を読む段で先に読む (#3410)。
+// 初めて読む時の変換は、検査の中で読むと最初の件だけが 2 秒から 3 秒遅れた。変換は 1 回の実行の中で使い回す
+import "@cardenelabs/dragon/export";
 import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
 import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, readGif, runCli } from "./export-support";
 import { draw } from "./render-support";
@@ -59,19 +62,24 @@ function twoSteps(): Json {
 }
 
 /**
- * 2 段の図を、1 秒 2 コマの mp4 と 1 秒 1 コマの GIF を 1 回で撮る動画と、PNG の 2 回に分けて書き出す。同じ file の検査で 1 度ずつ撮る。
+ * 1 秒 2 コマの mp4 と 1 秒 1 コマの GIF を 1 回で撮る動画と、2 段の図の PNG の 2 回に分けて書き出す。同じ file の検査で 1 度ずつ撮る。
  * 既定のコマの数 (1 秒 30 コマ) で撮ると 20 秒を超え、1 件の上限 (10 秒、#3381) に収まらない。既定の数は `export-defaults.test.ts` が確かめる。
  * mp4 と GIF は 1 回で撮る。GIF は mp4 のコマを間引いて使うので、間引きのとおりのコマの数になるかを本物の書き出しで確かめる。
  * PNG まで 1 回で撮ると、最初に読む検査が混んだ機械で 1 件の上限を超えたので、PNG は分けて撮る (#3410)
  */
 const RATES = { fps: 2, gifFps: 1 } as const;
+/** 動画で撮る図。コマの数を数えるだけなので 2 段の図の最初の段だけを撮り、コマの数を半分にする (#3410) */
+const oneStep = (): Json => {
+  const two = twoSteps() as { steps: Json[] };
+  return { ...two, steps: two.steps.slice(0, 1) };
+};
 type Shot = "video" | "png";
 const twoStepsShots = new Map<Shot, Promise<Exported>>();
 const shootTwoSteps = (shot: Shot): Promise<Exported> => {
   const seen = twoStepsShots.get(shot);
   if (seen) return seen;
   const formats = shot === "video" ? (["mp4", "gif"] as const) : (["png"] as const);
-  const made = exporter().then((exportDiagram) => exportDiagram(twoSteps(), { outDir: scratch(), formats: [...formats], ...RATES }));
+  const made = exporter().then((exportDiagram) => exportDiagram(shot === "video" ? oneStep() : twoSteps(), { outDir: scratch(), formats: [...formats], ...RATES }));
   twoStepsShots.set(shot, made);
   return made;
 };
@@ -98,7 +106,7 @@ describe("書き出しのコマと形 (#3115)", () => {
       "export-frame-counts-follow-rates",
       async () => {
         const result = await shootTwoSteps("video");
-        const { total } = draw("renderDiagram")(twoSteps()).timeline;
+        const { total } = draw("renderDiagram")(oneStep()).timeline;
         expect(result.frames, `1 周 ${total} 秒の mp4 のコマの数`).toBe(Math.round(total * RATES.fps));
       },
     );
@@ -109,7 +117,7 @@ describe("書き出しのコマと形 (#3115)", () => {
       "export-frame-counts-follow-rates",
       async () => {
         const result = await shootTwoSteps("video");
-        const { total } = draw("renderDiagram")(twoSteps()).timeline;
+        const { total } = draw("renderDiagram")(oneStep()).timeline;
         const gif = readGif(readFileSync(result.files.gif as string));
         expect(gif.frames.length, `1 周 ${total} 秒の GIF のコマの数`).toBe(Math.round(total * RATES.gifFps));
         expect([...new Set(gif.frames.map((frame) => frame.delay))], "GIF の 1 コマの長さ (1/100 秒)").toEqual([100 / RATES.gifFps]);
