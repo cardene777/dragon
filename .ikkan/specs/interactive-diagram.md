@@ -34,3 +34,13 @@
 | 同じ枠で値を送ってブロックを作った後も、全体の見せ方のまま、作ったブロックが枠の中に入る | `pnpm exec vitest run --reporter=verbose`の検査`try-narrow-new-block-fits`が通る | #3366 |
 | 枠880pxで描く時、今と同じく網と待ち行列とブロックの鎖を横に広げる並べ方になる | `pnpm exec vitest run --reporter=verbose`の検査`try-wide-keeps-layout`が通る | #3366 |
 | 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3366 |
+| 試す図の最初の step より前に`choose <欄>: <値>, <値>`の行を書いた記法を読むと、原本の`ask`の部品が欄ごとの選択肢を書いた順で持ち、最初の欄にも選択肢を書け、原本の形の検査がその原本を通す | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-parses-choices`が通る | #3422 |
+| 選択肢を持つ原本を記法に書き戻すと、`choose`の行が元の記法と同じ文字列で`ask`の行の後ろに並び、読み直すと元の原本と同じJSONになる | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-round-trip-keeps-notation`が通る | #3422 |
+| `ask`の欄に無い欄の`choose`、同じ欄の2度目の`choose`、選択肢が2つ未満の`choose`、選択肢に無い値を書いた`item`と段の中の`ask`は、行と列を名指した誤りで止まり、英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-refuses-bad-lines`が通る | #3422 |
+| 図を置くと、選択肢を持つ欄は選択肢を書いた順に並ぶ`select`の要素で描かれ、最初の選択肢を選んだ状態で開く | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-draws-select-in-order`が通る | #3422 |
+| 常に、選択肢を持たない欄は`input type="text"`の要素で描かれる | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-keeps-text-without-choices`が通る | #3422 |
+| `select`で選んで送ると、同じ値を自由入力の欄に打って送った時と同じ段が原本に足される | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-send-matches-typed-send`が通る | #3422 |
+| ブロックの中のチップの選択肢を持つ欄を書き換える時、書き換えの欄も同じ選択肢を同じ順に並べた`select`の要素で描かれ、今の値を選んだ状態で開く | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-edit-uses-select`が通る | #3422 |
+| 常に、`choose`の行を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになる | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`が通る | #3422 |
+| 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`choose`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`docs-describe-try-choices`が通る | #3422 |
+| `packages/dragon/package.json`の`version`が`0.56.0`で、英語と日本語の変更履歴の`## [0.56.0]`の節が`(#3422)`の項を持ち、その項が`choose`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-56-0-adds-try-choices`が通る | #3422 |
