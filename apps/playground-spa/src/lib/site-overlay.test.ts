@@ -5,10 +5,13 @@
  * 2 つ以上の file が使う道具は `site-support.ts` に在る (#3381)
  */
 
+import { parseNotation } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
+import type { ExampleKey } from "../examples";
 import { toHash } from "../share";
 import { BASE, barClearance, expectSteadyAcrossSteps, settledStepShape } from "./playground-support";
 import { describe, expect, it } from "vitest";
+import * as siteSupport from "./site-support";
 import { site, useSite, exampleText, WAIT, sampleOf, catalogSel, samplesOf, onScreen, stripCoveredOf, CAPTION_SAMPLES, openOverlay, openEditor, captionOf, PHONES, STACKED_CAPTION, stackedCaptionShape, WIDE_CAPTION, wideCaptionShape } from "./site-support";
 
 /**
@@ -191,6 +194,94 @@ const OVERLAY_CASES = (["architecture", "sequence"] as const).flatMap((category)
     { width: 1280, height: 720 },
   ].flatMap(({ width, height }) => samplesOf(category).map((key, index) => ({ category, width, height, key, index }))),
 );
+
+/** 段の数がこれを超える見本は、段の前半と後半の件に分ける (#3419) */
+const LONG_STEPS = 6;
+
+/** 見本の段の数。見本の記法を読んで数える */
+const stepsOf = (key: ExampleKey): number => {
+  const parsed = parseNotation(exampleText(key, "ja"));
+  return parsed.ok ? parsed.diagram.steps.length : 0;
+};
+
+/**
+ * 携帯の幅の段の本文を、幅と置き場と見本ごとに確かめる組 (#3049、#3057)。
+ * 置き場ごとに分ける (#3410)。重ね窓と編集画面を 1 件で開くと、混んだ機械で 1 件の上限 (10 秒) に迫った
+ */
+const NARROW_CASES = PHONES.flatMap(({ width, height }) =>
+  CAPTION_SAMPLES.flatMap((sample) => (["重ね窓", "編集画面"] as const).map((where) => ({ width, height, sample, name: sample.key, where }))),
+);
+
+/** 頁を組ごとに使い回す道具 (`site-support.ts` の `pageGroups`) の形 (#3419) */
+interface PageGroupsShape<T> {
+  /** 組 `key` の頁。無ければ `open` で開く。今の件が落ちたら (`onFailed` に渡した処理が呼ばれたら) 閉じ、同じ組の次の件に開き直させる */
+  get(key: string, open: () => Promise<T>, onFailed: (run: () => void) => void): Promise<T>;
+  /** 開いた回数 */
+  opened(): number;
+  /** 頁を求められた組の数 */
+  groups(): number;
+  /** 開いている頁を閉じる */
+  close(): Promise<void>;
+}
+
+/** 重ね窓の 3 件が頁を使い回す組 (#3419) */
+let overlayPages: PageGroupsShape<Page> | undefined;
+
+describe("重ね窓の頁を組ごとに使い回す (#3419)", () => {
+  it("overlay-page-reopens-after-failure", async () => {
+    const pageGroups = (siteSupport as { pageGroups?: <T>(close: (item: T) => Promise<void>) => PageGroupsShape<T> }).pageGroups;
+    expect(pageGroups, "組ごとに頁を使い回す道具 (site-support.ts の pageGroups) が無い").toBeTypeOf("function");
+    if (!pageGroups) return;
+    const closed: number[] = [];
+    let made = 0;
+    const groups = pageGroups<number>((item) => {
+      closed.push(item);
+      return Promise.resolve();
+    });
+    const failed: (() => void)[] = [];
+    const onFailed = (run: () => void): void => void failed.push(run);
+    const open = (): Promise<number> => Promise.resolve(++made);
+    expect(await groups.get("a", open, onFailed), "組の最初の件が頁を開かない").toBe(1);
+    expect(await groups.get("a", open, onFailed), "同じ組の次の件が頁を使い回さない").toBe(1);
+    // 2 件目が落ちた
+    failed.at(-1)?.();
+    expect(await groups.get("a", open, onFailed), "落ちた件の後に、同じ組の次の件が新しく開いた頁を使わない").toBe(2);
+    expect(closed, "落ちた件の頁を閉じない").toEqual([1]);
+    expect(await groups.get("b", open, onFailed), "組が替わっても新しく頁を開かない").toBe(3);
+    expect(closed, "組が替わった時に前の組の頁を閉じない").toEqual([1, 2]);
+    await groups.close();
+    expect(closed, "最後に開いている頁を閉じない").toEqual([1, 2, 3]);
+    expect({ opened: groups.opened(), groups: groups.groups() }, "開いた回数と組の数").toEqual({ opened: 3, groups: 2 });
+  });
+
+  it("overlay-step-halves-cover-all-steps", () => {
+    // 段の多い見本は段の前半と後半の件に分け、2 つの件で全ての段を確かめる。ほかの見本は 1 件で全ての段を確かめる
+    expect([stepsOf("ccip"), stepsOf("oauth")].every((n) => n > LONG_STEPS), "ccip と oauth の段の数が分ける境を超えない").toBe(true);
+    type Ranged = { key: ExampleKey; slot: string; from?: number; to?: number };
+    const tables: [string, Ranged[]][] = [
+      ["重ね窓の見本ごとの件", OVERLAY_CASES.map((c) => ({ ...c, slot: `${c.category} ${c.width} × ${c.height} ${c.key}` }))],
+      ["狭い幅の段の本文の件", NARROW_CASES.map((c) => ({ ...c, key: c.sample.key, slot: `${c.width} × ${c.height} ${c.where} ${c.sample.key}` }))],
+    ];
+    for (const [what, cases] of tables) {
+      const slots = new Map<string, { key: ExampleKey; ranges: [number, number][] }>();
+      for (const c of cases) {
+        const entry = slots.get(c.slot) ?? { key: c.key, ranges: [] };
+        entry.ranges.push([c.from ?? Number.NaN, c.to ?? Number.NaN]);
+        slots.set(c.slot, entry);
+      }
+      expect(slots.size, `${what}が 1 つも無い (走査の空振り)`).toBeGreaterThan(0);
+      for (const [slot, { key, ranges }] of slots) {
+        const n = stepsOf(key);
+        const sorted = [...ranges].sort(([a], [b]) => a - b);
+        expect(sorted.length, `${what}の ${slot} の件の数 (段 ${n})`).toBe(n > LONG_STEPS ? 2 : 1);
+        expect(
+          sorted.every(([from, to], i) => from === (i === 0 ? 0 : sorted[i - 1]?.[1]) && to > from) && sorted.at(-1)?.[1] === n,
+          `${what}の ${slot} の件が、段 1 から段 ${n} までを隙間と重なり無く確かめない (${JSON.stringify(sorted)})`,
+        ).toBe(true);
+      }
+    }
+  });
+});
 
 describe("カタログの重ね窓と帯 (#3047)", () => {
   useSite();
@@ -442,13 +533,8 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
   );
 
 
-  // 携帯の幅で帯の並べ方を替えても、段を送った時に帯と図が動かず、題と本文が帯からはみ出さない (#3049、#3057)
-  // 置き場ごとに分ける (#3410)。重ね窓と編集画面を 1 件で開くと、混んだ機械で 1 件の上限 (10 秒) に迫った
-  describe.for(
-    PHONES.flatMap(({ width, height }) =>
-      CAPTION_SAMPLES.flatMap((sample) => (["重ね窓", "編集画面"] as const).map((where) => ({ width, height, sample, name: sample.key, where }))),
-    ),
-  )("$width × $height $name $where", ({ width, height, sample, where }) => {
+  // 携帯の幅で帯の並べ方を替えても、段を送った時に帯と図が動かず、題と本文が帯からはみ出さない (#3049、#3057)。組は `NARROW_CASES` が持つ
+  describe.for(NARROW_CASES)("$width × $height $name $where", ({ width, height, sample, where }) => {
     it("narrow-caption-steady-and-inside", async () => {
       const viewport = { width, height };
       const size = `${viewport.width} × ${viewport.height}`;
@@ -580,4 +666,12 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
       }
     },
   );
+
+  it("overlay-opens-one-page-per-group", () => {
+    // 重ね窓の 3 件は、件の種類と分類と画面の大きさと置き場の組ごとに頁を 1 度だけ開く (#3419)。この file の最後の件として、3 件の後に数える
+    expect(overlayPages, "重ね窓の 3 件が頁を組ごとに使い回していない").toBeDefined();
+    if (!overlayPages) return;
+    expect(overlayPages.groups(), "頁を使い回す件が 1 つも走っていない").toBeGreaterThan(0);
+    expect(overlayPages.opened(), `重ね窓の 3 件が開いた頁の数が組の数 (${overlayPages.groups()}) を超える`).toBeLessThanOrEqual(overlayPages.groups());
+  });
 });
