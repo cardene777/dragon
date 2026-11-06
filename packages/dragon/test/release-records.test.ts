@@ -181,6 +181,18 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-57-0-adds-try-side", () => {
+    // 試す図の部品を横に並べる行 (side) を足す変更 (#3429) は 0.57.0 で npm に出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 57, `package の版 ${version()} が 0.57.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.57\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.57.0"), "0.57.0");
+      expect(released, `${file} に日付付きの ## [0.57.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.57.0 の節に #3429 の項が無い`).toContain("(#3429)");
+      expect(released, `${file} の 0.57.0 の節が side を名指さない`).toContain("`side`");
+    }
+  });
+
   it("changelog-0-56-0-lists-pipe-redesign", () => {
     // 全ての図の再生の操作の並べ替えと配管の図の描き直し (#3398) も 0.56.0 で npm に出すため、2 つの変更履歴の 0.56.0 の節に項を置く (#3426)
     const controls = { "CHANGELOG.md": "player controls", "CHANGELOG.ja.md": "再生の操作" };
