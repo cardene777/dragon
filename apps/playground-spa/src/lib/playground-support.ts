@@ -407,9 +407,10 @@ export interface StepRange {
 /**
  * 自動で送らずに `scope` の中の再生の部品の段を 1 つずつ送り、どの段でも段の本文の帯の高さと、図の幅と高さと上端の位置が
  * 1 段目と同じかを確かめる (#3049)。呼ぶ前に動きを嫌う設定 (`reducedMotion: "reduce"`) にしておく。
- * `range` を渡すと、図と帯の形を比べるのはその範囲の段だけにする。範囲の外の段も送り、本文の欄の高さは全ての段で比べる (#3419)
+ * `range` を渡すと、図と帯の形を比べるのはその範囲の段だけにする。範囲の外の段も送り、本文の欄の高さは全ての段で比べる (#3419)。
+ * `onStep` を渡すと、範囲の段ごとに形を比べた後に呼ぶ。同じ段送りの中でほかの確かめを済ませ、段を 2 度送らないため (#3432)
  */
-export async function expectSteadyAcrossSteps(page: Page, scope: string, label: string, range?: StepRange): Promise<void> {
+export async function expectSteadyAcrossSteps(page: Page, scope: string, label: string, range?: StepRange, onStep?: (step: number) => Promise<void>): Promise<void> {
   const items = page.locator(`${scope} [data-dragon="steps"] > li`);
   await expect.poll(() => items.count(), { ...STEP_WAIT, message: `${label} の段が読めない` }).toBeGreaterThan(1);
   const count = await items.count();
@@ -437,13 +438,18 @@ export async function expectSteadyAcrossSteps(page: Page, scope: string, label: 
     }, scope);
   // 範囲の外の段は送るだけで確かめず、範囲の後の段は送らない (#3419)。全ての段の本文の高さは写しから読む
   const { from, to } = range ?? { from: 0, to: count };
-  const seen: { step: number; live: number; room: number; each: number[] }[] = from === 0 ? [{ step: 0, ...(await caption()) }] : [];
+  const seen: { step: number; live: number; room: number; each: number[] }[] = [];
+  if (from === 0) {
+    await onStep?.(0);
+    seen.push({ step: 0, ...(await caption()) });
+  }
   for (let s = 1; s < to; s++) {
     await page.locator(`${scope} [data-dragon="next"]`).click();
     if (s < from) continue;
     await expect
       .poll(() => stepShapeOf(page, scope), { ...STEP_WAIT, message: `${label} の ${s + 1} 段目で、段の本文の帯の高さか図の大きさか位置が 1 段目と違う` })
       .toEqual({ ...first, step: stepLabel(s, count) });
+    await onStep?.(s);
     seen.push({ step: s, ...(await caption()) });
   }
   // 欄は本文の最も長い段の高さで足り、写しを縦に積んで帯を高くしすぎない。確かめた段の本文の高さは、その段の写しと同じ

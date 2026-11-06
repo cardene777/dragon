@@ -229,7 +229,7 @@ const NARROW_CASES = PHONES.flatMap(({ width, height }) =>
   ),
 );
 
-/** 重ね窓の 3 件が頁を使い回す組 (#3419)。頁は `site.open` の `keep` で開き、組の最後の件の後か件が落ちた時に閉じる */
+/** 重ね窓の 2 件が頁を使い回す組 (#3419、#3432)。頁は `site.open` の `keep` で開き、組の最後の件の後か件が落ちた時に閉じる */
 const overlayPages: PageGroups<Page> = pageGroups<Page>((page) => page.context().close());
 
 describe("重ね窓の頁を組ごとに使い回す (#3419)", () => {
@@ -296,26 +296,21 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
   });
 
 
-  // 幅と見本の組は `OVERLAY_CASES` が持つ
+  // 段の説明の行の数で図の枠の高さが替わり (#3047)、段の本文の行の数で帯の高さが替わって図が縮むか上下に動いていた (#3049) ので、
+  // 自動で送らずに段を 1 つずつ送り、どの段でも図の全体が見えることと、帯と図の形が 1 段目と同じことを、同じ段送りの中で確かめる (#3432)
   describe.for(OVERLAY_CASES)("$category $width × $height $key $part", ({ category, width, height, key, index, from, to }) => {
-    it("catalog-overlay-figure-whole-without-scroll", async ({ onTestFailed }) => {
+    it("overlay-figure-whole-and-steady-across-steps", async ({ onTestFailed }) => {
       const viewport = { width, height };
-      // 段の説明の行の数で図の枠の高さが替わるので、自動で送らずに 1 段ずつ確かめる。頁は分類と画面の大きさごとに使い回す (#3419)
-      const page = await overlayPages.get(`図の全体 ${category} ${width} × ${height}`, () => openKeptCategory(viewport, category), onTestFailed);
+      const label = `${viewport.width} × ${viewport.height} の ${category} の ${key} の重ね窓`;
+      // 頁は分類と画面の大きさごとに使い回す (#3419)
+      const page = await overlayPages.get(`図の全体と形 ${category} ${width} × ${height}`, () => openKeptCategory(viewport, category), onTestFailed);
       await page.locator(catalogSel("item")).nth(index).click();
       await page.locator(catalogSel("expand")).click();
       const stepItems = page.locator('[data-catalog="overlay"] [data-dragon="steps"] > li');
-      await expect.poll(() => stepItems.count(), { ...WAIT, message: `${category} の ${key} の段が読めない` }).toBeGreaterThan(0);
+      await expect.poll(() => stepItems.count(), { ...WAIT, message: `${label} の段が読めない` }).toBeGreaterThan(0);
       const steps = await stepItems.count();
-      for (let s = 0; s < to; s++) {
-        const label = `${viewport.width} × ${viewport.height} の ${category} の ${key} の ${s + 1} 段目`;
+      const whole = async (s: number): Promise<void> => {
         const step = `${String(s + 1).padStart(2, "0")}/${String(steps).padStart(2, "0")}`;
-        if (s < from) {
-          // 後半の件は、前半の件が確かめた段を確かめずに送る
-          await expect.poll(() => page.locator('[data-catalog="overlay"] [data-dragon="step-no"]').textContent(), { ...WAIT, message: `${label}へ進まない` }).toBe(step);
-          await page.locator('[data-catalog="overlay"] [data-dragon="next"]').click();
-          continue;
-        }
         await expect
           .poll(async () => {
             const seen = await overlayFigureOf(page);
@@ -323,29 +318,12 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
             const follow = seen.view === "follow";
             // 全体図は出す時だけ枠の中かを見る。携帯の幅の縦長の全体図は出さない (#3055)
             return { step: seen.step, scrolls: seen.scrolls, figure: seen.figure, window: follow ? seen.window : true, overview: follow ? seen.overview !== false : true };
-          }, { ...WAIT, message: `${label} を重ね窓で開くと、送らないと図の全体が見えない` })
+          }, { ...WAIT, message: `${label} の ${s + 1} 段目で、送らないと図の全体が見えない` })
           .toEqual({ step, scrolls: false, figure: true, window: true, overview: true });
-        if (s < to - 1) await page.locator('[data-catalog="overlay"] [data-dragon="next"]').click();
-      }
-      await page.keyboard.press("Escape");
-      await expect.poll(() => overlayFigureOf(page), { ...WAIT, message: `${category} の ${key} の重ね窓が閉じない` }).toBeNull();
-    });
-  });
-
-
-  // 段の本文の行の数で帯の高さが替わり、図が縮むか上下に動いていた大きさを全部含める (#3049)
-  describe.for(OVERLAY_CASES)("$category $width × $height $key $part", ({ category, width, height, key, index, from, to }) => {
-    it("overlay-figure-steady-across-steps", async ({ onTestFailed }) => {
-      const viewport = { width, height };
-      // 頁は分類と画面の大きさごとに使い回す (#3419)
-      const page = await overlayPages.get(`段を送る ${category} ${width} × ${height}`, () => openKeptCategory(viewport, category), onTestFailed);
-      const label = `${viewport.width} × ${viewport.height} の ${category} の ${key} の重ね窓`;
-      await page.locator(catalogSel("item")).nth(index).click();
-      await page.locator(catalogSel("expand")).click();
-      const steps = page.locator('[data-catalog="overlay"] [data-dragon="steps"] > li');
-      await expect.poll(() => steps.count(), { ...WAIT, message: `${label} が開かない` }).toBeGreaterThan(0);
-      // 段が 1 つだけの見本は送る先が無い
-      if ((await steps.count()) > 1) await expectSteadyAcrossSteps(page, '[data-catalog="overlay"]', label, { from, to });
+      };
+      // 段が 1 つだけの見本は送る先が無いので、1 段目の図の全体だけを確かめる
+      if (steps > 1) await expectSteadyAcrossSteps(page, '[data-catalog="overlay"]', label, { from, to }, whole);
+      else await whole(0);
       await page.keyboard.press("Escape");
       await expect.poll(() => page.locator('[data-catalog="overlay"]').count(), { ...WAIT, message: `${label} が閉じない` }).toBe(0);
     });
@@ -683,8 +661,28 @@ describe("カタログの重ね窓と帯 (#3047)", () => {
   );
 
   it("overlay-opens-one-page-per-group", () => {
-    // 重ね窓の 3 件は、件の種類と分類と画面の大きさと置き場の組ごとに頁を 1 度だけ開く (#3419)。この file の最後の件として、3 件の後に数える
+    // 重ね窓の 2 件は、件の種類と分類と画面の大きさと置き場の組ごとに頁を 1 度だけ開く (#3419、#3432)。この file の終わりの件として、2 件の後に数える
     expect(overlayPages.groups(), "頁を使い回す件が 1 つも走っていない").toBeGreaterThan(0);
-    expect(overlayPages.opened(), `重ね窓の 3 件が開いた頁の数が組の数 (${overlayPages.groups()}) を超える`).toBeLessThanOrEqual(overlayPages.groups());
+    expect(overlayPages.opened(), `重ね窓の 2 件が開いた頁の数が組の数 (${overlayPages.groups()}) を超える`).toBeLessThanOrEqual(overlayPages.groups());
+  });
+
+  it("overlay-walks-each-case-once", ({ task }) => {
+    // 重ね窓の見本と画面の大きさと段の範囲の組 (`OVERLAY_CASES`) ごとに、段を送る件は 1 つだけ (#3432)。
+    // 同じ組を 2 つの件で送ると、段送りの手間が 2 倍になる。組の名前は `describe.for` が字の値を引用符で囲んで付けるので、外して比べる
+    const want = new Set(OVERLAY_CASES.map((c) => `${c.category} ${c.width} × ${c.height} ${c.key} ${c.part}`.trim()));
+    const counts = new Map<string, number>();
+    const walk = (tasks: readonly { type: string; name: string; tasks?: readonly unknown[] }[]): void => {
+      for (const child of tasks) {
+        if (child.type !== "suite") continue;
+        const name = child.name.replaceAll("'", "").trim();
+        const inner = (child.tasks ?? []) as readonly { type: string; name: string; tasks?: readonly unknown[] }[];
+        if (want.has(name)) counts.set(name, (counts.get(name) ?? 0) + inner.filter((t) => t.type === "test").length);
+        walk(inner);
+      }
+    };
+    walk(task.file.tasks);
+    expect(counts.size, `段を送る組の数が OVERLAY_CASES の組の数 (${want.size}) と違う (走査の空振り)`).toBe(want.size);
+    const twice = [...counts].filter(([, n]) => n !== 1).map(([name, n]) => `${name} ${n} 件`);
+    expect(twice, "段を送る件が 1 つでない組").toEqual([]);
   });
 });

@@ -34,7 +34,7 @@
 | カタログの構成図の頁 (`/dragon/catalog/architecture`) を幅 390px と 860px で開いた時、寄って追う図の窓の枠 (`.dg-vp-frame`) が図の枠 (`.dg-frame`) の中に全部収まる。全体図の地 (`.dg-mm-bg`) は 860px では図の枠の中に全部収まり、値の表を持つ見本 (ccip) なので 390px では無い | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3044、#3274 |
 | 時系列図のカタログの頁 (`/dragon/catalog/sequence`) を幅 390px と 860px と 1440px (高さ 900px) で開いた時、全体を止めて見せる図の枠 (`[data-catalog="stage"]`) の高さが 522px (`clamp(360px, 58vh, 620px)` の値) のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3044 |
 | 編集画面を開き、幅 860px の oauth と ccip、幅 390px の wallet の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3044、#3274 |
-| 画面の大きさ 390 × 844、860 × 900、1024 × 768、1440 × 900、1280 × 720 で、構成図と時系列図のカタログの頁の全部の見本について拡大の重ね窓を開き、段を 1 つずつ送った時、どの段でも図の枠 (`.dg-frame`) を送らずに図の全体が見える。寄って追う図では窓の枠 (`.dg-vp-frame`) と全体図の地 (`.dg-mm-bg`) が図の枠の中に全部収まる | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3047 |
+| 画面の大きさ 390 × 844、860 × 900、1024 × 768、1440 × 900、1280 × 720 で、構成図と時系列図のカタログの頁の全部の見本について拡大の重ね窓を開き、段を 1 つずつ送った時、どの段でも図の枠 (`.dg-frame`) を送らずに図の全体が見える。寄って追う図では窓の枠 (`.dg-vp-frame`) と全体図の地 (`.dg-mm-bg`) が図の枠の中に全部収まる | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3047 |
 | 再生の部品に枠の中で見える高さに収めるよう頼んだ時 (`fitHeight`)、oauth (幅 560px の枠) と ccip (値の表を外して幅 390px の枠、表を持ったまま 560px の枠) を寄って追う図にすると、窓の下限 160px と全体図と値の表が入る高さの枠では、図の高さが枠の中で見える高さを超えない | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3047、#3274 |
 | 再生の部品に `fitHeight` を頼んだ時、枠の高さに全体を収めると箱の名前の字が読める下限を割る図 (幅 1200px と高さ 675px の枠の oauth) は寄って追う図になり、収めても読める図 (同じ枠の ccip) と、書き手が見せ方を決めた図は今の見せ方のまま | `pnpm test`の検査`fit-height-turns-tall-figure-follow`が通る | #3047 |
 | 再生の部品に `fitHeight` を頼まない時は、枠の高さが低くても見せ方を枠の幅だけで選ぶ (幅 1200px と高さ 300px の枠の oauth は全体を止めて見せる図) | `pnpm test`の検査`view-by-width-without-fit-height`が通る | #3047 |
@@ -46,19 +46,19 @@
 | 画面の大きさ 390 × 844、860 × 900、1024 × 768、1280 × 720、1440 × 900 で、構成図と時系列図のカタログの頁の全部の見本を拡大の重ね窓で開いた時、本文が最も長い段の本文の下端と重ね窓の札 (`.catalog-overlay-card`) の下の縁の間が 8px 以上ある | `pnpm test`の検査`overlay-caption-clear-of-bottom-edge`が通る | #3051 |
 | 1440 × 900 の編集画面で oauth と ccip の見本を開いた時、本文が最も長い段の本文の下端と図の側 (`[data-playground="figure"]`) の下の縁の間が 8px 以上ある | `pnpm test`の検査`editor-caption-clear-of-bottom-edge`が通る | #3051 |
 | 1280 × 720 で構成図のカタログの頁の 1 番目の見本を拡大の重ね窓で開いた時、図は今と同じく全体を止めて見せる図 (`data-view="fixed"`) のまま | `pnpm test`の検査`overlay-low-screen-keeps-whole-figure`が通る | #3051 |
-| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3051 |
-| 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3051 |
+| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3051 |
+| 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3051 |
 | 編集画面で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`editor-figure-steady-across-steps`が通る | #3051 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を拡大の重ね窓で開いた時、見出しに説明が見えず、題は切れずに全部見える | `pnpm test`の検査`narrow-overlay-head-title-only`が通る | #3059 |
 | 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を拡大の重ね窓で開いた時、見出しが今 (360 × 780 で 133px と 156px、390 × 844 で 133px と 133px) より低く、図の枠の中が今 (472px と 435px、542px と 522px) より高い | `pnpm test`の検査`narrow-overlay-head-lower`が通る | #3059、#3067 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で重ね窓を開いた時、見出しの題と閉じる釦が見出しの中に収まって重ならず、閉じる釦を押すと重ね窓が閉じる | `pnpm test`の検査`narrow-overlay-head-close-works`が通る | #3059、#3067 |
 | 画面の大きさ 560 × 900 と 1440 × 900 で oauth と ccip を拡大の重ね窓で開いた時、見出しに題と説明が見える | `pnpm test`の検査`wide-overlay-head-keeps-description`が通る | #3059 |
 | 1440 × 900 のカタログの頁で、拡大の釦で画面を覆う重ね窓に見本の題と図が出て、閉じる釦と Escape で閉じる | `pnpm test`の検査`category-item-opens-overlay-and-editor`が通る | #3059 |
-| 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3059 |
+| 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3059 |
 | 390 × 844 と 1440 × 900 の oauth の重ね窓で、寄って追う窓の高さが図の枠の中で見える高さと合い、図が枠に収まる | `pnpm test`の検査`overlay-follow-window-fills-frame-height`が通る | #3059 |
 | 360 × 780 から 430 × 932 の重ね窓で、oauth の寄って追う窓が枠の幅いっぱいで、図が枠の中に送らずに収まる | `pnpm test`の検査`narrow-follow-window-fills-frame-width`が通る | #3059 |
 | 360 × 780 から 430 × 932 の重ね窓と編集画面で、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じで、題と本文が帯の中身の幅に収まる | `pnpm test`の検査`narrow-caption-steady-and-inside`が通る | #3059、#3061 |
-| 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3059 |
+| 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3059 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を編集画面で開いた時、段の札が見えない | `pnpm test`の検査`narrow-editor-hides-phase-badge`が通る | #3061 |
 | 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を編集画面で開いた時、道具の帯と図の枠の中の間が今 (48px) より小さく、最初の画面に見える記法の欄が今 (360 × 780 で 93px と -41px、390 × 844 で 163px と 16px) より高い | `pnpm test`の検査`narrow-editor-figure-starts-higher`が通る | #3061、#3071 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を編集画面で開いた時、図の箱が道具の帯に重ならず、図の枠の中の上端より上に出ない。寄って追う図では、窓の切り抜きの中に見える部分だけを箱として数える | `pnpm test`の検査`narrow-editor-figure-clear-of-toolbar`が通る | #3061、#3120 |
@@ -185,4 +185,4 @@
 | 画面の大きさ 1280 × 800 で、カタログの全部の見本の全体を止めて見せる図の箱の名前の字が、画面の上で11px以上ある | `pnpm test`の検査`catalog-figure-names-readable`が通る | #3250 |
 | 時系列図のカタログの頁を幅 390px と 860px と 1440px (高さ 900px) で開いた時、最初の見本の枠の高さが 522px (`clamp(360px, 58vh, 620px)` の値) のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3250 |
 | カタログの構成図の頁を幅 390px と 860px で開いた時、寄って追う図の窓の枠と全体図の地が図の枠の中に全部収まる | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3250 |
-| 拡大の重ね窓で、どの段でも図の枠を送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3250 |
+| 拡大の重ね窓で、どの段でも図の枠を送らずに図の全体が見える | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3250 |
