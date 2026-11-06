@@ -12,8 +12,8 @@ import { EXAMPLE_KEYS, type ExampleKey, HOME_USES, TEMPLATE } from "../examples"
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
 import { app, BASE, rgb, root } from "./playground-support";
-import { describe, expect, it } from "vitest";
-import { site, useSite, exampleText, WAIT, siteSel, SCREENS, REPO, DESTINATIONS, PALETTE_IDS, type Scheme, figureLook, figureLooks, sampleOf, catalogSel, KINDS, samplesOf, type Category, categoryOf, onScreen, navOf } from "./site-support";
+import { afterAll, describe, expect, it, type TestContext } from "vitest";
+import { countOpens, expectOneOpenPerSetting, pageGroups, site, useSite, exampleText, WAIT, siteSel, SCREENS, REPO, DESTINATIONS, PALETTE_IDS, type Scheme, figureLook, figureLooks, sampleOf, catalogSel, KINDS, samplesOf, type Category, categoryOf, onScreen, navOf } from "./site-support";
 
 /** 色味ごとにサイトの差し色にする字の色の欄 (#3033)。紙と墨は朱、澄んだ色と夜の計器と紺と生成りは青 (#3398)、アーケードの画面は緑 (#3341) */
 const ACCENT: Record<string, string> = { paper: "t-rose", clear: "t-blue", night: "t-blue", arcade: "t-green", sea: "t-blue" };
@@ -530,8 +530,37 @@ const colorsOf = (page: Page): Promise<{ bg: string; surface: string; text: stri
 const rgbOf = (c: { bg: string; surface: string; text: string; accent: string }): Record<string, string> =>
   Object.fromEntries(Object.entries(c).map(([k, v]) => [k, rgb(v)]));
 
+/**
+ * 使い方の頁を読む件 (#3435)。頁の状態を変えないので、言語ごとに 1 度開いた使い方の頁を順に使える。
+ * 箱の節の案内を押して部品「絵」の頁へ移る `docs-boxes-lead-to-every-icon` は最後に回す
+ */
+const DOCS_READERS = [
+  "docs-state-section-follows-regions",
+  "docs-git-section-follows-state",
+  "docs-time-section-follows-git",
+  "docs-tree-section-follows-time",
+  "docs-extend-section-follows-pipe",
+  "docs-extend-example-draws-user-blocks",
+  "docs-extend-shows-shared-definitions",
+  "docs-boxes-lead-to-every-icon",
+] as const;
+
 describe("サイトの帯と経路と頁 (#3030)", () => {
   useSite();
+  // 使い方の頁を読む件が使い方の頁を開いた回数を、言語ごとに数える (#3435)
+  const docsOpens = countOpens(DOCS_READERS, (o) => (o.path === `${BASE}docs` ? (o.locale ?? "ja-JP") : undefined));
+  // 使い方の頁を読む件は、言語ごとに 1 度開いた使い方の頁を順に使う (#3435)。件が落ちるとその言語の頁を閉じ、次の件が開き直す
+  const docsPages = { ja: pageGroups<Page>((page) => page.context().close()), en: pageGroups<Page>((page) => page.context().close()) };
+  afterAll(async () => {
+    await docsPages.ja.close();
+    await docsPages.en.close();
+  });
+  const docsPage = (lang: Lang, onTestFailed: TestContext["onTestFailed"]): Promise<Page> =>
+    docsPages[lang].get(
+      "docs",
+      async () => (await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 }, keep: true })).page,
+      onTestFailed,
+    );
 
 
   describe.for(SCREENS.map(([screen, path]) => ({ screen, path })))("$screen", ({ screen, path }) => {
@@ -1404,9 +1433,9 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
   it(
     "docs-state-section-follows-regions",
-    async () => {
+    async ({ onTestFailed }) => {
       for (const lang of ["ja", "en"] as const) {
-        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
         await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
         const { sections } = await docsOf(page);
@@ -1456,9 +1485,9 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
   it(
     "docs-git-section-follows-state",
-    async () => {
+    async ({ onTestFailed }) => {
       for (const lang of ["ja", "en"] as const) {
-        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
         await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
         const { lead, sections } = await docsOf(page);
@@ -1515,9 +1544,9 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
   it(
     "docs-time-section-follows-git",
-    async () => {
+    async ({ onTestFailed }) => {
       for (const lang of ["ja", "en"] as const) {
-        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
         await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
         const { lead, sections } = await docsOf(page);
@@ -1576,9 +1605,9 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
   it(
     "docs-tree-section-follows-time",
-    async () => {
+    async ({ onTestFailed }) => {
       for (const lang of ["ja", "en"] as const) {
-        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
         await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
         const { lead, sections } = await docsOf(page);
@@ -1643,9 +1672,9 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
   it(
     "docs-extend-section-follows-pipe",
-    async () => {
+    async ({ onTestFailed }) => {
       for (const lang of ["ja", "en"] as const) {
-        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
         await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
         const { sections } = await docsOf(page);
@@ -1663,13 +1692,13 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
   it(
     "docs-extend-example-draws-user-blocks",
-    async () => {
+    async ({ onTestFailed }) => {
       for (const lang of ["ja", "en"] as const) {
         const text = docsExample("extend", lang);
         const parsed = text === undefined ? undefined : parseNotation(text);
         const path = parsed?.ok ? parsed.diagram.define?.blocks.find((b) => b.base === "box")?.path : undefined;
         expect(path, `${lang} のブロックを足す節の例が、足した箱の path を定義しない`).toBeDefined();
-        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
         // 節の例の図が描かれ、足した箱の枠が定義に書いた path で描かれる
         await expect
@@ -1688,9 +1717,9 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
   it(
     "docs-extend-shows-shared-definitions",
-    async () => {
+    async ({ onTestFailed }) => {
       for (const lang of ["ja", "en"] as const) {
-        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
         await expect.poll(async () => (await docsOf(page)).sections.length, { ...WAIT, message: `${lang} の使い方の頁に節が無い` }).toBeGreaterThan(0);
         const commands = (await docsOf(page)).sections.find((s) => s.id === "extend")?.commands ?? [];
@@ -1706,12 +1735,12 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
   it(
     "docs-boxes-lead-to-every-icon",
-    async () => {
+    async ({ onTestFailed }) => {
       // 使える絵柄の名前は package の絵柄の定義から引き、検査に一覧を書き写さない (#3172)
       const icons = Object.keys(((await import("@cardenelabs/dragon")) as { ICONS?: Readonly<Record<string, string>> }).ICONS ?? {}).sort();
       expect(icons.length, "package の入口から絵柄の定義 (ICONS) を読めない").toBeGreaterThan(0);
       for (const lang of ["ja", "en"] as const) {
-        const { page } = await site.open({ path: `${BASE}docs`, locale: lang === "ja" ? "ja-JP" : "en-US", viewport: { width: 1440, height: 900 } });
+        const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
         // 箱の節から部品「絵」の頁へ移れる
         const link = page.locator(`section#boxes a[href$="${BASE}catalog/part/icon"]`).first();
@@ -1736,7 +1765,17 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
           expect(item.label, `${lang} の部品「絵」の頁の ${item.name} に名前が出ない`).toBe(item.name);
           expect(item.drawn, `${lang} の部品「絵」の頁の ${item.name} に形が描かれない`).toBe(true);
         }
+        // 使い方の頁は言語ごとに使い回すので、使い方の頁へ戻して終わる (#3435)
+        await page.goBack();
+        await onScreen(page, "docs", `${lang} の部品「絵」の頁から使い方の頁へ戻れない`);
       }
     },
   );
+
+
+  it("docs-readers-open-one-page-per-lang", () => {
+    // 使い方の頁を読む件は、言語ごとに使い方の頁を 1 度だけ開いて順に使う (#3435)
+    expectOneOpenPerSetting(docsOpens, DOCS_READERS, "使い方の頁を読む件");
+    expect([...docsOpens.opens.keys()].sort(), "使い方の頁を読む件が開いた頁の言語が、日本語と英語の 2 つでない").toEqual(["en-US", "ja-JP"]);
+  });
 });
