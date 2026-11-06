@@ -1,45 +1,29 @@
 /**
- * `packages/dragon/test/` の検査の file が画面なしの Chromium を使うかを、file の字から決める (#3424)。
+ * `packages/dragon/test/` の検査の file で 1 つの画面なしの Chromium (#3424)。
  *
- * 準備の段 (`apps/playground-spa/src/lib/chromium-preload.ts`) が file を読む前に呼び、使う file でだけ Chromium を起こし始める。
- * 使う file は、頁を開く道具 (`export-support.ts`) か、準備の段の Chromium を受け取る道具 (`RECEIVER`) の名前を持つ。
- * 道具の名前の一覧が `export-support.ts` の頁を開く道具と食い違うと、`page-needs.test.ts` が落ちる。
- * 準備の段が読む file なので、Playwright は型だけを読む。
+ * 初めて要った件が起こし、2 度目からは同じ Chromium を返す。頁は呼んだ側が文脈 (`newContext`) ごとに開いて閉じる。
+ * 頁を開くたびに起こし直すと、混んだ機械で 1 回ごとに 1 秒ほどかかる (#3381)。
+ *
+ * Chromium は前後処理で閉じず、検査の file の process の終わりに Playwright が止める (SIGKILL) 。
+ * 混んだ機械では閉じるのに 10 秒を超えた回があり、後処理で閉じると 1 件の上限 (10 秒) に当たる (#3384)。
+ * vitest は file を回し終えた作業者の process を SIGTERM で止め、500ms で終わらなければ SIGKILL で落とす。
+ * Playwright に SIGTERM を扱わせず (`handleSIGTERM: false`)、SIGTERM を受けたらすぐ process を終えて、Playwright の `exit` の片付けを走らせる。
+ * 見本帳の頁を開く file は、file を読む前の準備の段 (`chromium-preload.ts`) が同じ形で起こす。
+ * `packages/dragon/test/` の file で準備の段が起こす形も試したが、6 つの file を回す全体の時間が初めて要った件が起こす形より長かった。
  */
 import type { Browser } from "playwright-core";
 
-/** 起こしている Chromium の約束を置く `globalThis` の鍵。準備の段が置き、検査の file が受け取る */
-export const PRELOADED_CHROMIUM = Symbol.for("dragon.chromium");
+let launching: Promise<Browser> | undefined;
+let launches = 0;
 
-/** 準備の段の Chromium を受け取る道具の名前 */
-export const RECEIVER = "preloadedChromium";
-
-/** 名前が file の字に在れば、準備の段が Chromium を起こす道具。頁を開く道具は `export-support.ts` に在る */
-export const PAGE_HELPERS: readonly string[] = [
-  "captionLayout",
-  "captionSteps",
-  "decodeFrames",
-  "drawnText",
-  "miniWorld",
-  "playerButtons",
-  "playerWords",
-  "unfoldedSteps",
-  "unreadableFonts",
-  RECEIVER,
-];
-
-/** 検査の file の字 `source` が、Chromium を使う道具の名前を持つか */
-export function usesChromium(source: string): boolean {
-  return PAGE_HELPERS.some((name) => new RegExp(`\\b${name}\\b`).test(source));
-}
-
-/**
- * 準備の段が起こした Chromium。頁は呼んだ側が文脈 (`newContext`) ごとに開いて閉じ、Chromium は閉じない。
- * Chromium は file の process の終わりに Playwright が止める (`chromium-preload.ts`)。
- * 起こしていない時は、file の字が道具の名前を持たないことを名指して落とす
- */
-export function preloadedChromium(): Promise<Browser> {
-  const launching = (globalThis as Record<symbol, unknown>)[PRELOADED_CHROMIUM] as Promise<Browser> | undefined;
+/** file で 1 つの Chromium。初めて要った時に起こす */
+export function fileChromium(): Promise<Browser> {
   if (launching) return launching;
-  return Promise.reject(new Error("準備の段 (chromium-preload.ts) が Chromium を起こしていない。検査の file が Chromium を使う道具の名前 (page-needs.ts の PAGE_HELPERS) を持たない"));
+  launches++;
+  process.once("SIGTERM", () => process.exit());
+  launching = import("playwright-core").then(({ chromium }) => chromium.launch({ handleSIGTERM: false }));
+  return launching;
 }
+
+/** この file の process で Chromium を起こした回数 */
+export const fileChromiumLaunches = (): number => launches;

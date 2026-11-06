@@ -18,7 +18,7 @@ import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 
 import { runCli } from "./export-support";
-import { preloadedChromium } from "./page-needs";
+import { fileChromium } from "./page-needs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CDN = join(ROOT, "dist/cdn");
@@ -104,8 +104,8 @@ interface Requests {
 
 /** 入口の1行と `body` を置いた頁を開いて `run` を回す。入口と塊は `place` から渡す */
 async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja", place: Place = LOCAL): Promise<T> {
-  // 準備の段が起こした Chromium を使う。起こすのも閉じるのも 1 件の上限の外に在る (#3424)
-  const context = await (await preloadedChromium()).newContext({ viewport: { width: 960, height: 720 } });
+  // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
+  const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
   const requests: Requests = { scripts: [], urls: [], fonts: [], outside: [] };
   const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><script type="module" src="${place.entry}"></script></head><body>${body}</body></html>`;
   await context.route("**/*", async (route) => {
@@ -328,7 +328,7 @@ describe("script の1行の入口 (#3343)", () => {
       const written = readFileSync(out, "utf8");
       expect(written, "入口の1行の外を読む script を残さない").not.toMatch(/<script[^>]*\bsrc=/iu);
 
-      const context = await (await preloadedChromium()).newContext({ viewport: { width: 960, height: 720 } });
+      const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
       const outside: string[] = [];
       try {
         await context.route(/^https?:/u, async (route) => {
