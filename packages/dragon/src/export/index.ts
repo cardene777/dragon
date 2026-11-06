@@ -11,7 +11,8 @@ import { join } from "node:path";
 import { FIGURE_TEXT } from "../figure-text";
 import { paletteVars, resolvePalette, type Theme } from "../look/values";
 import { FORMAT_VERSION, fromModel } from "../model";
-import { BUTTON_TEXT, stepNo } from "../player";
+import { pipeTexts } from "../pipe-player";
+import { BUTTON_TEXT, stepNo, ZOOM_TEXT } from "../player";
 import type { Overlap } from "../render/ink";
 import { drawSvg, type Rendered, renderDiagram } from "../render/svg";
 import type { ViewMode } from "../schema";
@@ -67,7 +68,8 @@ const svgTexts = (svg: string): string[] => [...svg.matchAll(/<text\b[^>]*>([\s\
 
 /**
  * 頁と書き出しで描かれうる字。寄って見せる時の全体図の題 (`followSvg` の中) と、釦と段の番号の字も含む。
- * 試す図は、頁の入力の帯の欄の名前と釦の字と、押せない訳と読み手が足す段の題と本文の字も含む (#3337)
+ * 試す図は、頁の入力の帯の欄の名前と釦の字と、押せない訳と読み手が足す段の題と本文の字も含む (#3337)。
+ * 配管の図は、図の下の呼び出しの一覧の字と、拡大と縮小の釦と拡大の度合いの札の字も含む (#3418)
  */
 function drawnTexts(rendered: Rendered, followSvg: string | undefined, lang: NotationLang): string[] {
   const { diagram } = rendered;
@@ -81,6 +83,7 @@ function drawnTexts(rendered: Rendered, followSvg: string | undefined, lang: Not
     FIGURE_TEXT[lang].play,
     FIGURE_TEXT[lang].pause,
     ...(diagram.kind === "try" ? tryTexts(diagram, lang) : []),
+    ...(diagram.kind === "pipe" ? [...pipeTexts(diagram, lang), ...Object.values(ZOOM_TEXT)] : []),
   ];
 }
 

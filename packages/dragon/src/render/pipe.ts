@@ -2,13 +2,16 @@
  * 配管の図 (#3389) を描く部品。見た目の元は Tracelyth の第6回の試作の「4 配管」(#3398) で、色と字は値の表から読む。
  *
  * 段ごとの絵 (`data-pipe-frame`) に、その段の部品を全て描き、段が替わる時に次の段の絵を重ねてから前の段の絵を消す。
- * 段ごとに変わらない部品 (地の点、槽の囲い、値の管と呼び出しの管の外の管、名札から槽へ下りる点線) は段の絵の下に 1 度だけ描く。
- * 段の中で変わる部品 (水位と数、値の札、イベントの札、流れた分、光る管と弁、計器、吹き出し) は、変えた出来事の時刻に替わる。
+ * 段ごとに変わらない部品 (地の点、槽の囲い、呼び出しの管の外の管、名札から槽へ下りる点線) は段の絵の下に 1 度だけ描く。
+ * 段の中で変わる部品 (水位と数、値の札、イベントの札、流れた分、光る管と弁、計器、図の中の札) は、変えた出来事の時刻に替わる。
  * 前の段の値はその時刻まで同じ所に残し、部品の印 (`data-pipe-*`) は替わった後の部品だけが持つ。
+ * その段で動かなかった槽と値の管と値の札と名札は薄く描き、計器と流れた分とイベントの札は薄くしない (#3418)。
  *
+ * 呼び出しの管は値の管の下をくぐる (#3418)。全ての段の光る呼び出しの管を先に描き (`data-pipe-layer="calls"`)、くぐる所の印を重ね、
+ * その後に段ごとの絵で値の管を描く。値の管の外の管がくぐる所の呼び出しの管を覆う。
  * 部品の形はブロックの描き方 (`blocks/<名前>/draw.ts`) が描き、この file は並べ方の置き場所と時刻を渡して組む。
- * 下から順に、値の管を流れた分、トークンの箱と弁、槽と水、変換器、値の札と書き込む管、光る呼び出しの管と弁、計器、名札と輪、
- * イベントの札、畳んだ箱、吹き出しを重ねる。
+ * 段ごとの絵は下から順に、値の管、流れた分、トークンの箱と弁、槽と水、変換器、値の札と書き込む管、呼び出しの管の弁、計器、名札と輪、
+ * イベントの札、図の中の札 (流れた量、計器の式、入力と出力の印)、戻り値の札、畳んだ箱を重ねる。
  * 配管の図の見た目の規則は配管の図の SVG にだけ書き、ほかの図の SVG と頁が最初に読む script に入れない (列の図と同じ訳)。
  */
 import { avatar, cabinet } from "../blocks/box/draw";
@@ -17,17 +20,17 @@ import { gauge } from "../blocks/check/draw";
 import { cs } from "../blocks/color/draw";
 import { eventChip, ring } from "../blocks/emit/draw";
 import { foldBox } from "../blocks/fold/draw";
-import { defId, flow, grid, leverAngle, level, pipeDefs, tank, tokenBox, valuePipe, valve } from "../blocks/hold/draw";
+import { defId, flow, grid, leverAngle, level, pipeDefs, sizedText, STATE_COLOR, tank, tokenBox, valuePipe, valve } from "../blocks/hold/draw";
 import { callCase, litPipe } from "../blocks/return/draw";
 import { plate, wide, writePipe } from "../blocks/write/draw";
-import type { PipeCallout, PipeLayout, PipeLevel, PipeTone } from "../kinds/pipe/layout";
+import type { PipeChip, PipeLayout, PipeLevel } from "../kinds/pipe/layout";
 import { PIPE_LOOK, PIPE_TYPE } from "../look/pipe";
 import { type ColorKey, EASE, LOOK, MOTION } from "../look/values";
 import type { Timeline } from "../timeline";
-import { frameShape } from "./corner";
-import { ALWAYS, type Shown } from "./ink";
+import { frameShape, partRadius } from "./corner";
+import type { Shown } from "./ink";
 import type { Frame } from "./motion";
-import { type Ctx, cssFont as font, r1, write } from "./parts";
+import { type Ctx, cssFont as font, r1 } from "./parts";
 
 const P = PIPE_LOOK;
 const T = PIPE_TYPE;
@@ -47,13 +50,15 @@ const PIPE_CSS = [
   `.dg-pp-gdot{fill:${mix("var(--line)", 60, "transparent")}}`,
   `.dg-pp-housing{fill:${mix("var(--surf)", 55, "transparent")};stroke:var(--line);stroke-width:${S.hair + 0.5};stroke-dasharray:6 6}`,
   // 値の管と流れた分
-  `.dg-pp-pcase{fill:none;stroke:var(--line);stroke-width:${P.bus.case}}`,
-  `.dg-pp-pcore{fill:none;stroke:var(--bg);stroke-width:${P.bus.core}}`,
-  `.dg-pp-tline{fill:none;stroke:var(--pp-t);stroke-width:${P.flow.width};stroke-linecap:round;stroke-dasharray:${P.flow.dash}}`,
+  `.dg-pp-pcase{fill:none;stroke:var(--line);stroke-width:${P.bus.case};stroke-linejoin:round}`,
+  `.dg-pp-pcore{fill:none;stroke:var(--bg);stroke-width:${P.bus.core};stroke-linejoin:round}`,
+  `.dg-pp-tline{fill:none;stroke:var(--pp-t);stroke-width:${P.flow.width};stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:${P.flow.dash}}`,
   `.dg-pp-chev{fill:none;stroke:var(--pp-t);stroke-width:${P.flow.width - 0.5};stroke-linecap:round;stroke-linejoin:round}`,
   ".dg-pp-trace-final .dg-pp-tline{stroke-dasharray:none;opacity:.6}",
   ".dg-pp-trace-rolled .dg-pp-tline,.dg-pp-trace-rolled .dg-pp-chev{stroke:var(--c-rose)}",
-  `.dg-pp-slug{fill:none;stroke-width:${P.bus.core - 4};stroke-dasharray:${P.flow.slug} ${1 + P.flow.slug}}`,
+  `.dg-pp-slug{fill:none;stroke-width:${P.bus.core - 4};stroke-linejoin:round;stroke-dasharray:${P.flow.slug} ${1 + P.flow.slug}}`,
+  // くぐる所。呼び出しの管を値の管の縁で切る
+  `.dg-pp-under{stroke:var(--bg);stroke-width:${S.edgeOn + 1.5}}`,
   // 斜線と液
   `.dg-pp-hb{fill:${mix("var(--pp-t)", 26, "transparent")}}`,
   `.dg-pp-hl{stroke:var(--pp-t);stroke-width:${P.flow.width}}`,
@@ -71,12 +76,14 @@ const PIPE_CSS = [
   ".dg-pp-mark-rolled{stroke:var(--c-rose)}",
   `.dg-pp-shine{fill:${mix("var(--ink)", 9, "transparent")}}`,
   `.dg-pp-tick{stroke:${mix("var(--ink)", 22, "transparent")};stroke-width:${S.hair + 0.5}}`,
-  `.dg-pp-tok{${font(T.tankTitle)};letter-spacing:.1em;fill:var(--mute)}`,
+  `.dg-pp-tok{${font(T.tankTitle)};letter-spacing:${P.tank.titleTrack}em;fill:var(--mute)}`,
   `.dg-pp-num{${font(T.amount)};fill:var(--ink)}`,
   `.dg-pp-was{${font(T.sub)};fill:var(--mute)}`,
+  `.dg-pp-dlt{${font(T.delta)};fill:var(--ct)}`,
   ".dg-pp-strike{fill:var(--mute)}",
   `.dg-pp-tagw{${font(T.tag)};fill:var(--t-slate)}`,
   ".dg-pp-lv-final .dg-pp-num,.dg-pp-lv-final .dg-pp-tagw,.dg-pp-lv-rolled .dg-pp-num,.dg-pp-lv-rolled .dg-pp-tagw{fill:var(--ct)}",
+  ".dg-pp-lv-provisional .dg-pp-dlt{fill:var(--ink2)}",
   // 呼び出しの管と弁
   `.dg-pp-ccase{fill:none;stroke:var(--line);stroke-width:${P.call.case};stroke-linecap:round;stroke-linejoin:round}`,
   ".dg-pp-cflow{fill:none;stroke:var(--c);stroke-linecap:round;stroke-linejoin:round}",
@@ -115,8 +122,6 @@ const PIPE_CSS = [
   ".dg-pp-lamp{fill:var(--c-green)}",
   ".dg-pp-gfail .dg-pp-lamp{fill:var(--c-rose)}",
   `.dg-pp-lampm{fill:none;stroke:var(--on-c);stroke-width:${S.edgeOn + 0.6};stroke-linecap:round;stroke-linejoin:round}`,
-  `.dg-pp-gread{${font(T.read)};fill:var(--ink2)}`,
-  ".dg-pp-gfail .dg-pp-gread{fill:var(--c-rose)}",
   // 変換器
   `.dg-pp-cstub{fill:none;stroke:var(--line);stroke-width:${P.bus.stub}}`,
   `.dg-pp-cface{fill:var(--surf);stroke:var(--line);stroke-width:${S.edgeOn + 0.5}}`,
@@ -135,17 +140,21 @@ const PIPE_CSS = [
   `.dg-pp-cab.dg-pp-pool .dg-pp-cabr{stroke:${mix("var(--c-amber)", 60, "var(--line)")}}`,
   `.dg-pp-cab.dg-pp-on .dg-pp-cabr{stroke:var(--c-blue);stroke-width:${S.edgeOn + 1.5}}`,
   `.dg-pp-cabg{${font(T.mark)};fill:var(--ink2)}`,
-  `.dg-pp-cabg-s{${font(T.markSmall)}}`,
   `.dg-pp-cgl{fill:none;stroke:var(--ink2);stroke-width:${S.glyph};stroke-linecap:round;stroke-linejoin:round}`,
   `.dg-pp-cabn{${font(T.party)};fill:var(--ink)}`,
   `.dg-pp-ring{fill:none;stroke:var(--c);stroke-width:${P.ring.width}}`,
-  // イベントの札と図の上の端の字
-  `.dg-pp-hd{${font(T.head)};letter-spacing:.06em;fill:var(--mute)}`,
+  // イベントの札
   `.dg-pp-chip{fill:var(--surf);stroke:var(--c);stroke-width:${S.on}}`,
   ".dg-pp-chip-provisional{stroke-dasharray:3 2}",
   `.dg-pp-ct{${font(T.chip)};fill:var(--ct)}`,
   `.dg-pp-ca{${font(T.args)};fill:var(--mute)}`,
   ".dg-pp-x{fill:var(--mute)}",
+  // 図の中の札。流れた量、計器の式、入力と出力の印、戻り値
+  `.dg-pp-lab{fill:var(--surf);stroke:var(--c);stroke-width:${S.on}}`,
+  ".dg-pp-lab-provisional .dg-pp-lab{stroke-dasharray:3 2}",
+  `.dg-pp-labt{${font(T.chip)};fill:var(--ct)}`,
+  `.dg-pp-io .dg-pp-labt{${font(T.io)}}`,
+  ".dg-pp-io .dg-pp-lab{fill:var(--bg)}",
   // 畳んだ箱
   `.dg-pp-card{fill:var(--surf);stroke:var(--c);stroke-width:${S.arrow}}`,
   ".dg-pp-fold{stroke-dasharray:5 3;cursor:pointer}",
@@ -153,26 +162,19 @@ const PIPE_CSS = [
   `.dg-pp-k1{${font(T.cardTitle)};fill:var(--mute)}`,
   `.dg-pp-k2{${font(T.cardValue)};fill:var(--ct)}`,
   `.dg-pp-k3{${font(T.fold)}}`,
-  // 吹き出し
-  `.dg-pp-cbr{fill:var(--surf);stroke:var(--c);stroke-width:${S.edgeOn}}`,
-  `.dg-pp-cbk{${font(T.calloutTag)};letter-spacing:.06em;fill:var(--mute)}`,
-  `.dg-pp-cbt{${font(T.callout)};fill:var(--ink)}`,
-  `.dg-pp-cb-mono .dg-pp-cbt{${font(T.calloutMono)}}`,
-  ".dg-pp-cb-good .dg-pp-cbt,.dg-pp-cb-bad .dg-pp-cbt{fill:var(--ct)}",
   ".dg-pp-j{font-family:var(--sans)}",
 ].join("");
 
-/** 吹き出しの色の役 */
-const TONE_COLOR: Record<PipeTone, ColorKey> = { call: "blue", check: "violet", value: "amber", good: "green", bad: "rose", event: "rose" };
+/** 図の中の札の色の役。流れた量は印の色、計器の式は確かめる色か落ちた色、入力と出力の印は暫定の印の色、戻り値は呼び出しの色 */
+const chipColor = (c: PipeChip): ColorKey =>
+  c.kind === "amount" ? STATE_COLOR[c.state ?? "none"] : c.kind === "formula" ? (c.ok === false ? "rose" : "violet") : c.kind === "io" ? "slate" : "blue";
 
-/** 段ごとの吹き出し。上に小さな語、下に大きな字を書く */
-function callout(c: PipeCallout, ctx: Ctx, shown: Shown[], attrs: string): string {
+/** 図の中の札。角の丸みは並べ方が決め (#3418)、字は並べ方が決めた大きさで書く */
+function chipPart(c: PipeChip, ctx: Ctx, shown: Shown[], attrs: string): string {
   return (
-    `<g${attrs} class="dg-pp-cb dg-pp-cb-${c.tone}${c.mono ? " dg-pp-cb-mono" : ""}" style="${cs(TONE_COLOR[c.tone])}">` +
-    frameShape(ctx.corner, ' class="dg-pp-cbr"', c, `<rect class="dg-pp-cbr" x="${r1(c.x)}" y="${r1(c.y)}" width="${r1(c.w)}" height="${r1(c.h)}" rx="${P.callout.radius}"/>`) +
-    write(ctx.ink, `dg-pp-cbk${wide(c.tag.text)}`, c.tag.x, c.tag.base, c.tag.text, T.calloutTag, shown) +
-    write(ctx.ink, `dg-pp-cbt${c.mono ? wide(c.text.text) : ""}`, c.text.x, c.text.base, c.text.text, c.mono ? T.calloutMono : T.callout, shown) +
-    `</g>`
+    `<g${attrs} class="dg-pp-labg dg-pp-${c.kind}${c.state ? ` dg-pp-lab-${c.state}` : ""}" style="${cs(chipColor(c))}">` +
+    `<rect class="dg-pp-lab" x="${r1(c.x)}" y="${r1(c.y)}" width="${r1(c.w)}" height="${r1(c.h)}" rx="${partRadius(ctx.corner, c.rx)}"/>` +
+    `${sizedText(ctx, `dg-pp-labt${wide(c.text)}`, c.label, c.kind === "io" ? T.io : T.chip, shown)}</g>`
   );
 }
 
@@ -200,6 +202,20 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     return m.kf(frames);
   };
   const deg = (v: number): string => `rotate(${r1(v)}deg)`;
+  /** 段ごとの見える間 */
+  const spanOf = (s: number): { a: number; b: number } => ({
+    a: s === 0 ? 0 : (timeline.steps[s]?.start ?? 0),
+    b: s === lastStep ? timeline.last : (timeline.steps[s]?.end ?? 0) + f,
+  });
+  const attrsOf = (s: number, attrs: Record<string, string | number>): string =>
+    Object.entries({ ...attrs, step: s })
+      .map(([k, v]) => ` data-pipe-${k}="${String(v).replace(/&/gu, "&amp;").replace(/"/gu, "&quot;").replace(/</gu, "&lt;").replace(/>/gu, "&gt;")}"`)
+      .join("");
+  /** その段で動かなかった部品を薄く描く */
+  const dimmed = (lit: boolean, markup: string): string => (lit ? markup : `<g opacity="${P.dim}">${markup}</g>`);
+  /** 流れた分が通る値の管の番号 */
+  const pipeOfFlow = (fl: { token: string; from: string; to: string }): number =>
+    layout.valuePipes.findIndex((p) => p.token === fl.token && ((p.from === fl.from && p.to === fl.to) || (p.from === fl.to && p.to === fl.from)));
 
   // 段ごとに変わらない部品
   const out: string[] = [
@@ -207,17 +223,51 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     grid(ctx, layout.width, layout.height),
     ...layout.housings.map((h) => {
       const attrs = ` class="dg-pp-housing" data-pipe-housing="${h.party}"`;
-      return frameShape(ctx.corner, attrs, h, `<rect${attrs} x="${r1(h.x)}" y="${r1(h.y)}" width="${r1(h.w)}" height="${r1(h.h)}" rx="${P.tank.radius + P.tank.housing / 2}"/>`);
+      return frameShape(ctx.corner, attrs, h, `<rect${attrs} x="${r1(h.x)}" y="${r1(h.y)}" width="${r1(h.w)}" height="${r1(h.h)}" rx="${P.tank.radius + P.housing.pad / 2}"/>`);
     }),
-    ...layout.buses.map(valuePipe),
     ...layout.mains.map(callCase),
     ...layout.ties.map((t) => `<path class="dg-pp-tie" d="M ${r1(t.x)} ${r1(t.y1)} V ${r1(t.y2)}"/>`),
   ];
-  if (layout.heads.events) out.push(write(ctx.ink, "dg-pp-hd", layout.heads.events.x, layout.heads.events.base, layout.heads.events.text, T.head, ALWAYS));
+
+  // 光る呼び出しの管。全ての段の分を値の管より先に描き、値の管の下をくぐらせる
+  timeline.steps.forEach((_, s) => {
+    const { a, b } = spanOf(s);
+    const on = (attrs: Record<string, string | number>): string => attrsOf(s, attrs);
+    const parts: string[] = [];
+    for (const lane of layout.lanes.filter((x) => x.step === s)) {
+      const opened = timeOf(s, lane.opened);
+      const shut = timeOf(s, lane.shut);
+      const shownAt = m.vis(opened ?? a, shut ?? b);
+      const draw =
+        opened === undefined
+          ? ""
+          : m.kf([
+              [0, { "stroke-dashoffset": 1 }],
+              [opened, { "stroke-dashoffset": 1 }, EASE.out],
+              [opened + MOTION.draw, { "stroke-dashoffset": 0 }],
+              [m.total, { "stroke-dashoffset": 0 }],
+            ]);
+      parts.push(litPipe(lane, on({ branch: `${lane.from}>${lane.to}`, call: lane.call, pipe: "open" }), shownAt, false, draw));
+    }
+    // 一番外の呼び出しが戻って全てが確定した段は、送り手から出る管を確定の色で光らせる
+    for (const c of layout.calls.filter((x) => x.depth === 0 && x.close?.how === "return" && x.close.step === s)) {
+      const t = timeOf(s, c.close?.event) ?? a;
+      parts.push(litPipe({ kind: c.kind, width: c.width, points: c.lit }, on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "done" }), m.vis(t, b), true));
+    }
+    out.push(`<g class="dg-a" data-pipe-frame="${s}" data-pipe-layer="calls" style="${m.vis(a, b)}">${parts.join("")}</g>`);
+  });
+  // くぐる所。値の管の縁で呼び出しの管を切る
+  const half = P.bus.case / 2 + 2;
+  const cut = P.call.case / 2 + 2;
+  for (const k of layout.crossings) {
+    const d = k.vertical
+      ? `M ${r1(k.x - cut)} ${r1(k.y - half)} H ${r1(k.x + cut)} M ${r1(k.x - cut)} ${r1(k.y + half)} H ${r1(k.x + cut)}`
+      : `M ${r1(k.x - half)} ${r1(k.y - cut)} V ${r1(k.y + cut)} M ${r1(k.x + half)} ${r1(k.y - cut)} V ${r1(k.y + cut)}`;
+    out.push(`<path class="dg-pp-under" data-pipe-crossing="${k.call}" data-pipe-token="${k.token}" data-pipe-under="${k.pipe}" d="${d}"/>`);
+  }
 
   timeline.steps.forEach((span, s) => {
-    const a = s === 0 ? 0 : span.start;
-    const b = s === lastStep ? timeline.last : span.end + f;
+    const { a, b } = spanOf(s);
     const whole: Shown[] = [[a, b + f]];
     const since = (t: number | undefined): Shown[] => (t === undefined ? whole : [[t, b + f]]);
     const until = (t: number): Shown[] => [[a, t + f]];
@@ -225,15 +275,17 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     const appear = (t: number | undefined, markup: string): string => (t === undefined ? markup : `<g class="dg-a" style="${m.vis(t, b)}">${markup}</g>`);
     /** 段の始まりから時刻 `t` まで見える部品 */
     const vanish = (t: number, markup: string): string => `<g class="dg-a" style="${m.vis(a, t)}">${markup}</g>`;
-    const on = (attrs: Record<string, string | number>): string =>
-      Object.entries({ ...attrs, step: s })
-        .map(([k, v]) => ` data-pipe-${k}="${String(v).replace(/&/gu, "&amp;").replace(/"/gu, "&quot;").replace(/</gu, "&lt;").replace(/>/gu, "&gt;")}"`)
-        .join("");
+    const on = (attrs: Record<string, string | number>): string => attrsOf(s, attrs);
     const pillOf = (party: string) => layout.pills.find((p) => p.step === s && p.party === party);
     const parts: string[] = [];
+    const here = layout.flows.filter((x) => x.step === s);
+    const moved = (k: number): boolean => here.some((fl) => pipeOfFlow(fl) === k && (fl.fresh || fl.event !== undefined));
 
+    // 値の管。その段で流れた管と、流れた分の印が替わった管だけを濃く描く
+    layout.valuePipes.forEach((pipe, k) => parts.push(dimmed(moved(k), valuePipe(pipe.points, on({ value: pipe.token, pipe: k })))));
+    for (const stub of layout.stubs) parts.push(dimmed(false, valuePipe(stub.points, on({ stub: stub.token }))));
     // 値の管を流れた分。この段で流れた分は、出来事の時刻に斜線の液の塊が管を通り抜ける
-    for (const fl of layout.flows.filter((x) => x.step === s)) {
+    for (const fl of here) {
       const attrs = on({ flow: `${fl.from}>${fl.to}`, token: fl.token, state: fl.state });
       const t = timeOf(s, fl.event);
       const prev = layout.flows.find((x) => x.step === s - 1 && x.id === fl.id);
@@ -244,19 +296,20 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     for (const bus of layout.buses) {
       const v = bus.valve;
       if (!v) continue;
-      const moved = layout.flows
-        .filter((x) => x.step === s && x.fresh && x.token === bus.token && x.points.some((p) => p[0] >= bus.x1 - 1 && p[0] <= bus.x2 + 1))
+      const times = here
+        .filter((x) => x.fresh && x.token === bus.token)
         .map((x) => timeOf(s, x.event))
         .filter((t): t is number => t !== undefined)
         .sort((x, y) => x - y);
-      const at = moved[0];
+      const at = times[0];
       const turn = at === undefined ? "" : rotation(leverAngle(false, false), [[at, leverAngle(false, true)]], deg, M.lever);
       const open = at === undefined ? "" : m.vis(at, b);
       parts.push(`<g class="dg-pp-vval">${valve(v.x, v.y, false, false, on({ lever: v.party }), ctx, turn, open)}</g>`);
     }
     for (const p of layout.parties.filter((x) => x.shape === "token")) {
       const v = layout.buses.find((x) => x.valve?.party === p.id)?.valve;
-      parts.push(tokenBox(p, pillOf(p.id)?.involved ?? false, v ? [v.x, v.y] : undefined, ctx, whole, on({ party: p.id, role: p.role })));
+      const involved = pillOf(p.id)?.involved ?? false;
+      parts.push(dimmed(involved, tokenBox(p, involved, v ? [v.x, v.y] : undefined, ctx, whole, on({ party: p.id, role: p.role }))));
     }
     // 槽と水。水と数は、変わった出来事の時刻に段の始まりの値から今の値へ替わる
     for (const g of layout.glasses.filter((x) => x.step === s)) {
@@ -271,48 +324,29 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
             ? level(lv, g, ctx, whole, attrs)
             : vanish(t, level(prev, g, ctx, until(t), "")) + appear(t, level(lv, g, ctx, since(t), attrs, lv.from ? t : undefined));
       }
-      parts.push(tank(g, edgeOf(lv), inside, ctx, whole, on({ tank: g.party, token: g.token })));
+      const lit = lv?.event !== undefined || layout.converters.some((c) => c.step === s && c.party === g.party && c.active);
+      parts.push(dimmed(lit, tank(g, edgeOf(lv), inside, ctx, whole, on({ tank: g.party, token: g.token }))));
     }
-    for (const c of layout.converters.filter((x) => x.step === s)) parts.push(converter(c, on({ converter: c.party })));
+    for (const c of layout.converters.filter((x) => x.step === s)) parts.push(dimmed(c.active, converter(c, on({ converter: c.party }))));
     // 値の札と書き込む管
     for (const w of layout.writes.filter((x) => x.step === s)) parts.push(appear(timeOf(s, w.event), writePipe(w, ctx, on({ write: w.to, name: w.name }))));
     for (const p of layout.plates.filter((x) => x.step === s)) {
       const attrs = on({ plate: p.party, name: p.name, state: p.state });
       const t = timeOf(s, p.event);
       const prev = s > 0 ? layout.plates.find((x) => x.step === s - 1 && x.party === p.party && x.name === p.name) : undefined;
+      const lit = p.event !== undefined || p.boxed;
       if (t === undefined || !prev) {
-        parts.push(plate(p, ctx, whole, attrs));
+        parts.push(dimmed(lit, plate(p, ctx, whole, attrs)));
         continue;
       }
-      parts.push(vanish(t, plate(prev, ctx, until(t), "")), appear(t, plate(p, ctx, since(t), attrs)));
-    }
-    // 光る呼び出しの管。開いている間だけ呼び出しの色で光る
-    for (const lane of layout.lanes.filter((x) => x.step === s)) {
-      const opened = timeOf(s, lane.opened);
-      const shut = timeOf(s, lane.shut);
-      const shown = m.vis(opened ?? a, shut ?? b);
-      const draw =
-        opened === undefined
-          ? ""
-          : m.kf([
-              [0, { "stroke-dashoffset": 1 }],
-              [opened, { "stroke-dashoffset": 1 }, EASE.out],
-              [opened + MOTION.draw, { "stroke-dashoffset": 0 }],
-              [m.total, { "stroke-dashoffset": 0 }],
-            ]);
-      parts.push(litPipe(lane, on({ branch: `${lane.from}>${lane.to}`, call: lane.call, pipe: "open" }), shown, false, draw));
-    }
-    // 一番外の呼び出しが戻って全てが確定した段は、送り手から出る管を確定の色で光らせる
-    for (const c of layout.calls.filter((x) => x.depth === 0 && x.close?.how === "return" && x.close.step === s)) {
-      const t = timeOf(s, c.close?.event) ?? a;
-      parts.push(litPipe({ kind: c.kind, width: c.width, points: c.lit }, on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "done" }), m.vis(t, b), true));
+      parts.push(dimmed(lit, vanish(t, plate(prev, ctx, until(t), "")) + appear(t, plate(p, ctx, since(t), attrs))));
     }
     // 呼び出しの管の弁。呼び出しが開いた時刻に取っ手が倒れ、戻った時刻に立つ
     for (const main of layout.mains)
       for (const br of main.branches) {
-        const here = layout.lanes.filter((x) => x.step === s && x.from === main.from && x.to === br.to);
-        const start = here.some((x) => x.opened === undefined);
-        const moves = here
+        const lanes = layout.lanes.filter((x) => x.step === s && x.from === main.from && x.to === br.to);
+        const start = lanes.some((x) => x.opened === undefined);
+        const moves = lanes
           .flatMap((x): [number, boolean][] => [
             ...(timeOf(s, x.opened) === undefined ? [] : [[timeOf(s, x.opened) as number, true] as [number, boolean]]),
             ...(timeOf(s, x.shut) === undefined ? [] : [[timeOf(s, x.shut) as number, false] as [number, boolean]]),
@@ -342,7 +376,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         }
         parts.push(valve(br.valve.x, br.valve.y, vertical, moves.length === 0 ? end : false, on({ lever: `${main.from}>${br.to}` }), ctx, turn, open));
       }
-    // 計器。確かめた段は、確かめた時刻に針が振れて通ったかの印が付く
+    // 計器。確かめた段は、確かめた時刻に針が振れて通ったかの印が付く。計器は薄くしない
     for (const g of layout.gauges.filter((x) => x.step === s)) {
       const attrs = on({ gauge: g.party, ok: String(g.ok) });
       const t = g.fresh ? timeOf(s, g.event) : undefined;
@@ -363,24 +397,26 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     }
     // 名札と輪
     for (const p of layout.parties.filter((x) => x.shape !== "token")) {
-      const pill = pillOf(p.id);
-      const involved = pill?.involved ?? false;
+      const involved = pillOf(p.id)?.involved ?? false;
       const attrs = on({ party: p.id, role: p.role });
       parts.push(
-        p.shape === "round"
-          ? avatar(p, involved, ctx, whole, attrs, look, `url(#${defId(ctx, "av")})`)
-          : cabinet(p, involved, pooled.has(p.id), ctx, whole, attrs, look),
+        dimmed(
+          involved,
+          p.shape === "round"
+            ? avatar(p, involved, ctx, whole, attrs, look, `url(#${defId(ctx, "av")})`)
+            : cabinet(p, involved, pooled.has(p.id), ctx, whole, attrs, look),
+        ),
       );
     }
     for (const r of layout.rings.filter((x) => x.step === s)) {
       const p = parties.get(r.party);
       const pill = pillOf(r.party);
       if (!p || !pill) continue;
-      const radius = p.shape === "round" ? undefined : p.shape === "token" ? P.token.radius : p.row === 0 ? P.cabinet.radius : P.cabinet.radiusSmall;
+      const radius = p.shape === "round" ? undefined : p.shape === "token" ? P.token.radius : P.cabinet.radius;
       const round = p.shape === "round" ? { ...pill, x: pill.x + pill.w / 2 - P.avatar.halo, y: pill.y + pill.h / 2 - P.avatar.halo, w: P.avatar.halo * 2, h: P.avatar.halo * 2 } : pill;
       parts.push(appear(timeOf(s, r.event), ring(round, on({ ring: r.party }), ctx, radius)));
     }
-    // イベントの札
+    // イベントの札。出した者の箱の横に出る
     for (const e of layout.events.filter((x) => x.step === s)) {
       const attrs = on({ event: `${e.party}.${e.name}`, state: e.state });
       const t = timeOf(s, e.event);
@@ -388,15 +424,39 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       if (t !== undefined && prev) parts.push(vanish(t, eventChip(prev, ctx, until(t), "")));
       parts.push(appear(t, eventChip(e, ctx, since(t), attrs)));
     }
-    // 畳んだ箱と吹き出し
-    for (const fold of layout.folds.filter((x) => x.step === s)) parts.push(foldBox(fold, ctx, whole, ` data-pipe-step="${s}"`));
-    for (const c of layout.callouts.filter((x) => x.step === s)) {
-      const t = timeOf(s, c.event) ?? a;
-      const origin = `transform-origin:${r1(c.x + c.w / 2)}px ${r1(c.y + c.h / 2)}px`;
-      parts.push(`<g class="dg-a" style="${origin};${m.pop(t, b)}">${callout(c, ctx, since(t), on({ callout: c.kind }))}</g>`);
+    // 図の中の札。流れた量と計器の式は変えた出来事の時刻に出す。済んだ段の流れた量は薄くする
+    for (const c of layout.chips.filter((x) => x.step === s && x.kind !== "event" && x.kind !== "return")) {
+      const t = timeOf(s, c.event);
+      parts.push(dimmed(c.kind !== "amount" || c.event !== undefined, appear(t, chipPart(c, ctx, since(t), on({ chip: c.kind, ...(c.token ? { token: c.token } : {}) })))));
     }
+    // 戻り値の札。戻した時刻に呼ばれた側を出て、呼び出しの管を伝って呼んだ側へ戻る
+    for (const c of layout.chips.filter((x) => x.step === s && x.kind === "return" && x.path && x.path.length > 1)) {
+      const path = c.path as [number, number][];
+      const t0 = timeOf(s, c.event) ?? a;
+      const still = timeline.stills[s] ?? span.end;
+      const t1 = Math.max(t0 + 0.2, Math.min(t0 + M.slug + M.level, still - 0.05));
+      const [sx, sy] = path[0] as [number, number];
+      const total = path.slice(1).reduce((sum, p, i) => sum + Math.abs(p[0] - (path[i] as [number, number])[0]) + Math.abs(p[1] - (path[i] as [number, number])[1]), 0) || 1;
+      const frames: Frame[] = [
+        [0, { transform: "translate(0,0)" }],
+        [t0, { transform: "translate(0,0)" }],
+      ];
+      let walked = 0;
+      path.slice(1).forEach((p, i) => {
+        const q = path[i] as [number, number];
+        walked += Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]);
+        frames.push([t0 + ((t1 - t0) * walked) / total, { transform: `translate(${r1(p[0] - sx)}px,${r1(p[1] - sy)}px)` }]);
+      });
+      const [ex, ey] = path[path.length - 1] as [number, number];
+      frames.push([m.total, { transform: `translate(${r1(ex - sx)}px,${r1(ey - sy)}px)` }]);
+      parts.push(
+        `<g class="dg-a" style="${m.vis(t0, t1 + f)}"><g class="dg-a" data-pipe-return-chip="" data-pipe-step="${s}" data-pipe-x="${r1(sx)}" data-pipe-y="${r1(sy)}" style="${m.kf(frames)}">` +
+          `${chipPart(c, ctx, [[t0, t1 + f]], "")}</g></g>`,
+      );
+    }
+    // 畳んだ箱
+    for (const fold of layout.folds.filter((x) => x.step === s)) parts.push(foldBox(fold, ctx, whole, ` data-pipe-step="${s}"`));
     out.push(`<g class="dg-a" data-pipe-frame="${s}" style="${m.vis(a, b)}">${parts.join("")}</g>`);
   });
   return { base: `<g class="dg-pp">${out.join("")}</g>`, css: PIPE_CSS };
 }
-

@@ -993,7 +993,10 @@ function renderRead(source: Diagram, options: RenderOptions, lang: NotationLang)
                     ...(options.width === undefined ? {} : { width: options.width }),
                   })
                 : diagram.kind === "pipe"
-                  ? kindParts("pipe", lang).layoutPipe(diagram, { lang })
+                  ? kindParts("pipe", lang).layoutPipe(diagram, {
+                      lang,
+                      ...(options.width === undefined ? {} : { width: options.width }),
+                    })
                   : KIND_FOLDERS.architecture.layout(diagram, lang);
   // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
   const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;

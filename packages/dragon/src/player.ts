@@ -18,6 +18,11 @@
  * 読み手が送るか釦を押すかチップを書き換えるたびに、その出来事の段を今の原本の最後に足して描き直し、足した段を 1 度だけ流す。
  * 動きを嫌う設定では流さずに足した段の止め絵で止める。今の原本は `player.diagram` で読め、置き直すと最初の段に戻る (#3337)。
  * 入力の帯などの操作は試す図の描く部品と同じ塊が持ち、試す図を描けた後に登録簿 (`kinds/registry.ts`) から引いて置く。
+ * 配管の図 (`pipe`) は帯に段の番号と題を出さずに段の説明の文だけを出し、図の下に呼び出しの一覧を置く (#3418)。
+ * 一覧は配管の図の描く部品と同じ塊が持ち、配管の図を描けた後に登録簿から引いて置く。
+ * 配管の図の枠 (`[data-dragon="zoom-frame"]`、図が枠より広い間は `[data-dragon="pan"]`) は図を 100% から 400% まで拡大でき、
+ * 釦、Ctrl か Command を押しながらのホイール、ダブルクリックで拡大し、拡大した図を引いて枠の中を縦横に送る。
+ * 100% の図は、枠の幅が `ZOOM.fit` より狭い時は枠の幅に収め、広い時は縮めずに置く。配管の図は枠の幅を渡して描く。
  */
 import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
@@ -35,6 +40,7 @@ import {
 } from "./render/draw";
 import { kindParts } from "./kinds/registry";
 import { isParsed, markParsed } from "./parsed";
+import type { PipeCalls } from "./pipe-player";
 import type { Diagram, Step, ViewMode } from "./schema";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
@@ -75,6 +81,13 @@ export interface Player {
 const font = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
 const px = (v: number): string => `${v}px`;
 
+/**
+ * 配管の図の拡大 (#3418)。度合いの下限と上限、釦 1 回の倍率、ダブルクリックの倍率と 100% へ戻す度合い、
+ * 100% の図を枠の幅に収める枠の幅の上限、ホイールの 1px で変わる度合いの割合、引いて動かすと見る動きの下限 (px)、
+ * 押せない拡大の釦の濃さ
+ */
+const ZOOM = { min: 1, max: 4, step: 1.25, double: 1.6, reset: 2.5, fit: 600, wheel: 0.002, drag: 3, dim: 0.4 } as const;
+
 function playerCss(): string {
   const P = LOOK.player;
   const C = LOOK.corner.cut;
@@ -84,9 +97,14 @@ function playerCss(): string {
     `.dg-player .dg-frame{border-radius:${px(P.radius)};overflow:hidden}`,
     // 横に長い配管の図は縮めずに枠の中を横に送る。手でも送れるように枠の外を動かせる (#3398)。
     // 置いた頁が枠の高さを決めていて図の方が高い時も、縦に送って図の下まで見せる
-    `.dg-player .dg-frame[data-dragon="pan"]{overflow-x:auto;overflow-y:auto;scrollbar-width:none;overscroll-behavior-x:contain}`,
-    `.dg-player .dg-frame[data-dragon="pan"]::-webkit-scrollbar{display:none}`,
-    `.dg-player .dg-frame[data-dragon="pan"]>svg{max-width:none}`,
+    // 配管の図の拡大する枠も同じく送り、拡大した図を縦横に送る (#3418)
+    `.dg-player .dg-frame:is([data-dragon="pan"],[data-dragon="zoom-frame"]){overflow-x:auto;overflow-y:auto;scrollbar-width:none;overscroll-behavior-x:contain}`,
+    `.dg-player .dg-frame:is([data-dragon="pan"],[data-dragon="zoom-frame"])::-webkit-scrollbar{display:none}`,
+    // 枠より狭い図は枠の真ん中に置く。枠より広い図は左の端から送る
+    `.dg-player .dg-frame:is([data-dragon="pan"],[data-dragon="zoom-frame"])>svg{max-width:none;margin-inline:auto}`,
+    // 送れる図は引いて動かせることを指の形で示し、引く間に字を選ばない
+    `.dg-player .dg-frame:is([data-dragon="pan"],[data-zoomed]){cursor:grab;user-select:none}`,
+    `.dg-player .dg-frame[data-drag]{cursor:grabbing}`,
     `.dg-ov{position:relative;height:${px(P.overview)};margin-top:${px(P.overviewGap - P.gap)};border-radius:${px(P.overview / 2)};background:var(--hair)}`,
     `.dg-ov-t{position:absolute;top:0;bottom:0;border-radius:${px(P.overview / 2)};background:var(--mute)}`,
     // 角を落とす色味の再生の枠は、図の枠と同じく右上と左下を落として切り抜き、釦の角を丸めない (#3344)
@@ -128,6 +146,15 @@ function playerCss(): string {
     `@container dg-bar (width >= ${px(P.wide)}){.dg-lay{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:${px(P.captionGap)};row-gap:${px(P.progressGap)}}.dg-ctl{display:contents}.dg-btns{justify-self:start;align-self:start}.dg-segs{grid-column:1/-1}}`,
     // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは変えない
     `@media (pointer: coarse){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}}`,
+    // 配管の図の帯は段の番号と題を出さず、段の説明の文だけを出す (#3418)。題の写しも隠し、帯の高さを最も長い説明の文で決める
+    ".dg-player[data-pipe] .dg-no,.dg-player[data-pipe] .dg-tt{display:none}",
+    // 拡大の釦と度合いの札。積む帯では操作の段の右の端に置き、釦と並ばない幅では次の行へ送る。
+    // 広い帯では段を送る釦の右に置き、帯を 1 段に保つ
+    `.dg-zm{display:flex;align-items:center;gap:${px(P.segmentGap)};flex:none;margin-left:auto}`,
+    `.dg-zl{${font(TYPE.stepNo)};min-width:${px(P.button * 1.5)};text-align:center;color:var(--mute)}`,
+    `.dg-zm .dg-btn:disabled{opacity:${ZOOM.dim};cursor:default}`,
+    ".dg-player[data-pipe] .dg-ctl{flex-wrap:wrap}",
+    `@container dg-bar (width >= ${px(P.wide)}){.dg-player[data-pipe] .dg-lay{grid-template-columns:minmax(0,1fr) auto auto}.dg-zm{grid-area:1/3;align-self:start}}`,
     `.dg-spot{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
   ].join("");
 }
@@ -137,6 +164,11 @@ function isTrySource(input: unknown): input is Diagram {
   if (typeof input !== "object" || input === null) return false;
   const source = input as { kind?: unknown; steps?: unknown };
   return source.kind === "try" && Array.isArray(source.steps);
+}
+
+/** 配管の図の原本か。描く前に読み、枠の幅を渡して描く (#3418) */
+function isPipeSource(input: unknown): boolean {
+  return typeof input === "object" && input !== null && (input as { kind?: unknown }).kind === "pipe";
 }
 
 /**
@@ -163,6 +195,8 @@ function ensureCss(doc: Document): void {
 
 /** 釦に出す字。HTML に書き出す時は、この字も字の file に残す。 */
 export const BUTTON_TEXT = { restart: "↺", prev: "‹", pause: "❚❚", play: "▶", next: "›" } as const;
+/** 配管の図だけが置く拡大と縮小の釦の字 (#3418)。配管の図を HTML に書き出す時だけ、字の file に残す */
+export const ZOOM_TEXT = { out: "−", in: "+" } as const;
 
 /** 図の上に四角を描く時の SVG の名前空間 */
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -186,13 +220,29 @@ export function mountDiagram(
   let source: unknown = session ?? diagram;
   /** 配管の図で、読み手が押して開いた `[fold]` の呼び出しの番号 (#3389)。描き直す時に渡す */
   let open: number[] = [...(options.open ?? [])];
-  let rendered = renderDiagram(source, options);
+  /** 置く所の中身の幅。枠を置く前に配管の図を描く幅にする。測れない時は 0 */
+  const hostWidth = (): number => {
+    const style = win?.getComputedStyle(host);
+    const padding = style ? (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0) : 0;
+    return Math.max(0, (host.clientWidth || 0) - padding);
+  };
+  /** 配管の図を描いた時の枠の幅 (#3418)。0 は幅を渡さずに描いた図 */
+  let drawnWidth = 0;
+  /** 配管の図を枠の幅 `w` で描く設定。開いた `[fold]` の呼び出しと、測れた時は枠の幅を渡す。並べ方は狭い枠で字を大きくする (#3418) */
+  const pipeOptions = (w: number): RenderOptions => {
+    drawnWidth = w;
+    return { ...options, open, ...(w > 0 ? { width: w } : {}) };
+  };
+  // 描けない図は頁に何も置く前に断る
+  let rendered = renderDiagram(source, isPipeSource(source) ? pipeOptions(hostWidth()) : options);
   const lang = options.lang ?? DEFAULT_LANG;
   const words = FIGURE_TEXT[lang];
   const palette = paletteOf({ ...options, palette: rendered.palette }, rendered.theme);
   let { timeline } = rendered;
   let steps = rendered.diagram.steps;
   let count = steps.length;
+  /** 配管の図か。描き直しても種類は変わらない */
+  const isPipe = rendered.diagram.kind === "pipe";
 
   ensureCss(doc);
   const root = doc.createElement("div");
@@ -201,9 +251,12 @@ export function mountDiagram(
   root.setAttribute("style", `${FONT_VARS};${paletteVars(palette, rendered.theme)}`);
   if (palette.corner === "cut") root.dataset.corner = "cut";
   if (session) root.dataset.try = "";
+  if (isPipe) root.dataset.pipe = "";
 
   const frame = doc.createElement("div");
   frame.className = "dg-frame";
+  /** 図の枠の中身の幅。枠を測れない時は置く所の中身の幅。どちらも測れない時は 0 */
+  const measuredWidth = (): number => frame.clientWidth || hostWidth();
   const button = (name: string, label: string, text: string): HTMLButtonElement => {
     const b = doc.createElement("button");
     b.type = "button";
@@ -264,9 +317,19 @@ export function mountDiagram(
   say.append(no, text);
   // 見える語りの 1 つずつも読み上げから隠す
   for (const shown of [no, title, body]) shown.setAttribute("aria-hidden", "true");
+  // 配管の図の拡大と縮小の釦と、今の拡大の度合いの札 (#3418)
+  const zoomOutButton = button("zoom-out", words.zoomOut, ZOOM_TEXT.out);
+  const zoomInButton = button("zoom-in", words.zoomIn, ZOOM_TEXT.in);
+  const zoomLevel = doc.createElement("span");
+  zoomLevel.className = "dg-zl";
+  zoomLevel.dataset.dragon = "zoom-level";
+  const zoomTools = doc.createElement("div");
+  zoomTools.className = "dg-zm";
+  zoomTools.setAttribute("lang", lang);
+  zoomTools.append(zoomOutButton, zoomLevel, zoomInButton);
   const row = doc.createElement("div");
   row.className = "dg-ctl";
-  row.append(buttons, progress);
+  row.append(buttons, progress, ...(isPipe ? [zoomTools] : []));
   // 帯の幅で並べ方を替えるため、帯 (幅を測る入れ物) の中に並べる箱を 1 つ置く
   const lay = doc.createElement("div");
   lay.className = "dg-lay";
@@ -311,17 +374,26 @@ export function mountDiagram(
         (added) => add(added),
       )
     : undefined;
-  root.append(frame, ...(controls ? [controls.tools] : []), bar, list);
+  // 配管の図の呼び出しの一覧は帯の下に置き、段を送る釦を図のすぐ下に保つ (#3418)。配管の図を描けたので、配管の図の塊は届いている
+  const calls: PipeCalls | undefined = isPipe ? kindParts("pipe", lang).mountPipeCalls(doc, lang) : undefined;
+  root.append(frame, ...(controls ? [controls.tools] : []), bar, ...(calls ? [calls.element] : []), list);
   host.append(root);
 
   const frameWidth = (): number => frame.clientWidth || host.clientWidth || rendered.layout.width;
   /**
    * 列の図は枠の幅で箱の並べ方を変える (#3351)。横に並べると箱の名前が読めない幅では縦に組んだ図を描き直す。
    * 試す図も同じ幅で縦に組み、縦に組んだ形は枠の幅で描くので、幅が変わった時も描き直す (#3366)。
+   * 配管の図は描いた時と枠の幅が変わった時に、測った枠の幅で描き直す (#3418)。
    * 描き直した時だけ真を返す。段と時刻の表は原本だけで決まるので、描き直しても変わらない
    */
   const arrange = (w: number): boolean => {
     const kind = rendered.diagram.kind;
+    if (kind === "pipe") {
+      const measured = measuredWidth();
+      if (measured === 0 || measured === drawnWidth) return false;
+      rendered = renderDiagram(source, pipeOptions(measured));
+      return true;
+    }
     if (kind !== "lineup" && kind !== "try") return false;
     const next = renderDiagram(source, { ...options, open, width: w });
     const before = rendered.layout as { arrangement?: string; width: number };
@@ -387,45 +459,105 @@ export function mountDiagram(
     (svg.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-a') ?? svg).append(group);
   };
 
-  /** 横に送るか (#3398)。配管の図の横幅が枠より広い時だけ、縮めずに枠の中を横に送る */
-  const pans = (): boolean => rendered.diagram.kind === "pipe" && rendered.layout.width > frameWidth() + 0.5;
+  /** 配管の図の拡大の度合い (#3418)。1 が拡大していない図 */
+  let zoom = 1;
+  /**
+   * 拡大していない配管の図の幅 (px)。枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。
+   * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)
+   */
+  const baseWidth = (): number => {
+    const w = frameWidth();
+    return w < ZOOM.fit ? Math.min(w, rendered.layout.width) : rendered.layout.width;
+  };
+  /** 置いた図の幅 (px)。配管の図は拡大の度合いを掛ける */
+  const shownWidth = (): number => (isPipe ? baseWidth() * zoom : rendered.layout.width);
+  /** 図の座標を、置いた図の px にする倍率 */
+  const scale = (): number => shownWidth() / rendered.layout.width;
+  /** 横に送るか (#3398)。置いた配管の図が枠より広い時だけ、縮めずに枠の中を横に送る。拡大して枠より広くなった図も送る (#3418) */
+  const pans = (): boolean => isPipe && shownWidth() > frameWidth() + 0.5;
   /** 全体の線を、枠が図のどこを見ているかに合わせる */
   const follow = (): void => {
-    const total = rendered.layout.width;
+    const total = shownWidth();
     thumb.style.left = `${(frame.scrollLeft / total) * 100}%`;
     thumb.style.width = `${(Math.min(frameWidth(), total) / total) * 100}%`;
   };
+  /** 一続きの範囲 `[x, x + size)` を、幅 `view` の窓に入れる送り位置。入らない時は真ん中を窓の真ん中に置く。`total` は送れる全体の長さ */
+  const reach = (x: number, size: number, view: number, total: number): number => {
+    const middle = x + size / 2 - view / 2;
+    const fits = size <= view ? Math.min(Math.max(middle, x + size - view), x) : middle;
+    return Math.round(Math.min(Math.max(0, fits), Math.max(0, total - view)));
+  };
   /**
    * 今の段に関わる関係者の所へ送る。関わる関係者が枠に収まる時は全員を枠に入れ、収まらない時は真ん中を枠の真ん中に置く。
-   * 流している時は滑らかに送り、動きを嫌う設定と止めて送る時は一度に送る
+   * 拡大して縦にも送る図は、縦も同じく送る (#3418)。流している時は滑らかに送り、動きを嫌う設定と止めて送る時は一度に送る
    */
   const panTo = (): void => {
     if (frame.dataset.dragon !== "pan") return;
-    const w = frameWidth();
-    const total = rendered.layout.width;
+    const k = scale();
     const focus = (rendered.layout as { focus?: (Rect & { step: number })[] }).focus?.find((f) => f.step === step);
     if (focus) {
-      const middle = focus.x + focus.w / 2 - w / 2;
-      const fits = focus.w <= w ? Math.min(Math.max(middle, focus.x + focus.w - w), focus.x) : middle;
-      const left = Math.round(Math.min(Math.max(0, fits), Math.max(0, total - w)));
-      if (playing && !reduce && typeof frame.scrollTo === "function") frame.scrollTo({ left, behavior: "smooth" });
-      else frame.scrollLeft = left;
+      const left = reach(focus.x * k, focus.w * k, frameWidth(), shownWidth());
+      const tall = zoom > ZOOM.min && frame.clientHeight > 0;
+      const top = tall ? reach(focus.y * k, focus.h * k, frame.clientHeight, frame.scrollHeight) : frame.scrollTop;
+      if (playing && !reduce && typeof frame.scrollTo === "function") frame.scrollTo({ left, top, behavior: "smooth" });
+      else {
+        frame.scrollLeft = left;
+        frame.scrollTop = top;
+      }
     }
     follow();
   };
-  /** 置いた図を、枠の幅に合わせて横に送る形か縮めて収める形にする */
+  /** 拡大の度合いの札と、拡大と縮小の釦を押せるかを今の度合いに合わせる */
+  const showZoom = (): void => {
+    zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+    zoomOutButton.disabled = zoom <= ZOOM.min;
+    zoomInButton.disabled = zoom >= ZOOM.max;
+  };
+  /**
+   * 置いた図を、枠の幅に合わせて横に送る形か縮めて収める形にする。
+   * 配管の図は拡大の度合いを掛けた幅で置き、図が枠より広い間は横に送る枠 (`pan`)、収まる間は拡大する枠 (`zoom-frame`) と名乗る (#3418)。
+   * 拡大した図は枠の高さを拡大していない図の高さに保ち、枠の中を縦にも送る。置いた頁が枠の高さを決める時は頁の高さに任せる
+   */
   const settle = (): void => {
     if (!svg) return;
-    if (pans()) {
-      frame.dataset.dragon = "pan";
-      svg.style.width = `${rendered.layout.width}px`;
-      if (!overview.isConnected) frame.after(overview);
-      panTo();
-    } else {
-      delete frame.dataset.dragon;
-      svg.style.removeProperty("width");
-      overview.remove();
+    if (isPipe) {
+      const wide = pans();
+      frame.dataset.dragon = wide ? "pan" : "zoom-frame";
+      svg.style.width = px(shownWidth());
+      if (zoom > ZOOM.min && !options.fitHeight) frame.style.height = px((baseWidth() * rendered.layout.height) / rendered.layout.width);
+      else frame.style.removeProperty("height");
+      if (zoom > ZOOM.min) frame.dataset.zoomed = "";
+      else delete frame.dataset.zoomed;
+      if (!wide) overview.remove();
+      else if (!overview.isConnected) frame.after(overview);
+      showZoom();
+      return;
     }
+    delete frame.dataset.dragon;
+    svg.style.removeProperty("width");
+    overview.remove();
+  };
+  /**
+   * 配管の図を度合い `target` に拡大する (#3418)。度合いは `ZOOM.min` から `ZOOM.max` に収める。
+   * `at` (画面の座標) を渡すと、その点に在る図の所を同じ点に残し、渡さなければ枠の真ん中を残す
+   */
+  const zoomTo = (target: number, at?: { x: number; y: number }): void => {
+    if (!isPipe || !svg) return;
+    const next = Math.min(ZOOM.max, Math.max(ZOOM.min, target));
+    const ratio = next / zoom;
+    if (ratio === 1) return;
+    const box = frame.getBoundingClientRect();
+    const ax = at ? at.x - box.left : frame.clientWidth / 2;
+    const ay = at ? at.y - box.top : frame.clientHeight / 2;
+    // 枠より狭い図は真ん中に置くので、図の左の端と枠の左の端の間を除いて図の中の点を求める
+    const inset = (): number => Math.max(0, (frame.clientWidth - shownWidth()) / 2);
+    const x = frame.scrollLeft + ax - inset();
+    const y = frame.scrollTop + ay;
+    zoom = next;
+    settle();
+    frame.scrollLeft = Math.max(0, inset() + x * ratio - ax);
+    frame.scrollTop = Math.max(0, y * ratio - ay);
+    follow();
   };
 
   /** 動きの変数を付けた図を置き直す。置き直すと動きの時計が最初から数え直される */
@@ -460,6 +592,7 @@ export function mountDiagram(
     controls?.fit(frame, next);
     controls?.mark(next, step);
     settle();
+    panTo();
   };
   const markup = (): string =>
     mode === "follow"
@@ -491,6 +624,7 @@ export function mountDiagram(
     }
     panTo();
     if (svg) controls?.mark(svg, step);
+    calls?.show(rendered.diagram, step);
     options.onStep?.(step);
   };
   const restart = (t: number, play: boolean): void => {
@@ -563,7 +697,7 @@ export function mountDiagram(
     if (!Number.isInteger(call) || open.includes(call)) return;
     const folded = (rendered.diagram.pipe?.folds ?? []).find((f) => f.call === call);
     open = [...open, call];
-    rendered = renderDiagram(source, { ...options, open, width: frameWidth() });
+    rendered = renderDiagram(source, pipeOptions(measuredWidth()));
     timeline = rendered.timeline;
     steps = rendered.diagram.steps;
     count = steps.length;
@@ -631,6 +765,64 @@ export function mountDiagram(
     const s = target ? Number(target.getAttribute("data-step")) : Number.NaN;
     if (Number.isInteger(s)) go(s);
   };
+  // 配管の図の拡大 (#3418)。釦は 1 回で `ZOOM.step` 倍、Ctrl か Command を押しながらのホイールは指した所を中心に拡大する。
+  // 押さないホイールは今どおり枠か頁を送る
+  const onZoomIn = (): void => zoomTo(zoom * ZOOM.step);
+  const onZoomOut = (): void => zoomTo(zoom / ZOOM.step);
+  const onWheel = (event: WheelEvent): void => {
+    if (!isPipe || !(event.ctrlKey || event.metaKey)) return;
+    event.preventDefault();
+    // 行と頁の単位で送るホイールは、px に直してから度合いにする
+    const unit = event.deltaMode === 1 ? TYPE.stepBody.size : event.deltaMode === 2 ? frame.clientHeight : 1;
+    zoomTo(zoom * Math.exp(-event.deltaY * unit * ZOOM.wheel), { x: event.clientX, y: event.clientY });
+  };
+  // ダブルクリックは押した所を中心に `ZOOM.double` 倍にし、`ZOOM.reset` まで拡大した図は 100% に戻す
+  const onDouble = (event: MouseEvent): void => {
+    if (!isPipe) return;
+    event.preventDefault();
+    zoomTo(zoom >= ZOOM.reset ? ZOOM.min : zoom * ZOOM.double, { x: event.clientX, y: event.clientY });
+  };
+  /** 引いている指。`ZOOM.drag` より動いた後は枠を送り、離した後の押下を図に渡さない */
+  let drag: { id: number; x: number; y: number; left: number; top: number; moved: boolean } | undefined;
+  let dragged = false;
+  // マウスとペンで引くと枠を送る。指は枠をそのまま送れるので受けない
+  const onPointerDown = (event: PointerEvent): void => {
+    if (!isPipe || event.button !== 0 || event.pointerType === "touch") return;
+    dragged = false;
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: frame.scrollLeft, top: frame.scrollTop, moved: false };
+  };
+  const onPointerMove = (event: PointerEvent): void => {
+    if (!drag || event.pointerId !== drag.id) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    if (!drag.moved) {
+      if (Math.hypot(dx, dy) < ZOOM.drag) return;
+      drag.moved = true;
+      frame.dataset.drag = "";
+      // 動き始めてから捕まえる。押しただけの時に捕まえると、押した先が枠に替わって段の番号と畳んだ箱を押せない
+      try {
+        frame.setPointerCapture(drag.id);
+      } catch {
+        // 捕まえられない指でも、枠の上で動く間は送れる
+      }
+    }
+    frame.scrollLeft = Math.max(0, drag.left - dx);
+    frame.scrollTop = Math.max(0, drag.top - dy);
+    follow();
+  };
+  const onPointerUp = (event: PointerEvent): void => {
+    if (!drag || event.pointerId !== drag.id) return;
+    dragged = drag.moved;
+    drag = undefined;
+    delete frame.dataset.drag;
+  };
+  // 引いて送った後の押下は、段の番号や畳んだ箱を押したことにしない
+  const onDragClick = (event: Event): void => {
+    if (!dragged) return;
+    dragged = false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
   prevButton.addEventListener("click", onPrev);
   nextButton.addEventListener("click", onNext);
   toggleButton.addEventListener("click", onToggle);
@@ -638,6 +830,18 @@ export function mountDiagram(
   progress.addEventListener("click", onProgress);
   frame.addEventListener("click", onFigure);
   frame.addEventListener("scroll", onPan);
+  if (isPipe) {
+    zoomInButton.addEventListener("click", onZoomIn);
+    zoomOutButton.addEventListener("click", onZoomOut);
+    // ホイールの既定の動き (頁の拡大) を止めるので、受け身でない受け方で受ける
+    frame.addEventListener("wheel", onWheel, { passive: false });
+    frame.addEventListener("dblclick", onDouble);
+    frame.addEventListener("pointerdown", onPointerDown);
+    frame.addEventListener("pointermove", onPointerMove);
+    frame.addEventListener("pointerup", onPointerUp);
+    frame.addEventListener("pointercancel", onPointerUp);
+    frame.addEventListener("click", onDragClick, true);
+  }
 
   // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも) で決まるので、変われば描き直す
   const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)
@@ -651,7 +855,9 @@ export function mountDiagram(
         controls?.arrange(chosen, w);
         if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height))) {
           if (svg) controls?.fit(frame, svg);
+          // 枠の幅が変わらない時は送り位置を残す。読み手が引いて動かした所と拡大した所を、高さの変わりで戻さない
           settle();
+          follow();
           return;
         }
         const t = now();
@@ -702,6 +908,15 @@ export function mountDiagram(
       progress.removeEventListener("click", onProgress);
       frame.removeEventListener("click", onFigure);
       frame.removeEventListener("scroll", onPan);
+      zoomInButton.removeEventListener("click", onZoomIn);
+      zoomOutButton.removeEventListener("click", onZoomOut);
+      frame.removeEventListener("wheel", onWheel);
+      frame.removeEventListener("dblclick", onDouble);
+      frame.removeEventListener("pointerdown", onPointerDown);
+      frame.removeEventListener("pointermove", onPointerMove);
+      frame.removeEventListener("pointerup", onPointerUp);
+      frame.removeEventListener("pointercancel", onPointerUp);
+      frame.removeEventListener("click", onDragClick, true);
       root.remove();
     },
   };
