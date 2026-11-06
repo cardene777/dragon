@@ -21,6 +21,7 @@ import { kindLoaded, LATER_KINDS, type LaterKind, type LaterKinds, registerKind 
 import { FORMAT_VERSION, isVersion1, upgrade } from "./model";
 import { printNotation } from "./printer";
 import type { Diagram } from "./schema";
+import { definesBlocks, registerUserBlockReader, userBlockReader } from "./user-blocks";
 
 export * from "./api";
 export { kindLoaded, LATER_KINDS, type LaterKind };
@@ -84,15 +85,24 @@ export async function loadKind(kind: string | undefined): Promise<void> {
   await Promise.all([loadParts(kind), loadBlocks(LATER_BLOCKS.filter((name) => blockKinds(name).includes(kind)))]);
 }
 
+/** 記法 `text` が足すブロックの定義の行を持てば、定義を読む処理を読む (#3399)。読んでいれば何もしない */
+async function loadUserBlocks(text: string): Promise<void> {
+  if (definesBlocks(text) && userBlockReader() === undefined) registerUserBlockReader((await import("./user-blocks-read")).USER_BLOCK_READER);
+}
+
 /**
  * 記法か原本 (版1か版2) の図を読んで書き戻すのに要る、個別ブロックの読み方だけを読む (#3349)。描く部品は読まない。
  * 原本を渡した時は、原本を書き戻した記法を読むのに要るブロックも読む (時間軸の図の線は、拡大の範囲のブロックが読む時に確かめる)。
+ * 足すブロックの定義の行を持つ記法と、定義 (`define`) を持つ原本では、定義を読む処理も読む (#3399)。
  * 記法の題と種類だけを引き、描くのは後の頁に任せる時に使う。読み込みが落ちると拒否され、次に呼ぶと読み直す
  */
 export async function loadReadings(source: string | object): Promise<void> {
   const diagram = current(source);
+  if (typeof diagram === "string") {
+    await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadUserBlocks(diagram)]);
+    return;
+  }
   await loadBlocks(blocksUsedBy(diagram));
-  if (typeof diagram === "string") return;
   let printed: string;
   try {
     printed = printNotation(diagram as Diagram);
@@ -100,7 +110,7 @@ export async function loadReadings(source: string | object): Promise<void> {
     // 書き戻せない原本は、読む処理 (`readDiagram`) がその誤りを返す
     return;
   }
-  await loadBlocks(blocksUsedBy(printed));
+  await Promise.all([loadBlocks(blocksUsedBy(printed)), loadUserBlocks(printed)]);
 }
 
 /**

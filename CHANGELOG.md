@@ -8,6 +8,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **You can add your own blocks in your own project** (#3399)
+
+  Base a block on a box, a line, or an icon and change its shape and color role. Write the definition after a `blocks 1` line from `block +<name>` to `end`, or as JSON with `"format": 1`, and write `+<name>` in place of `box`, in place of `->`, or as `[icon: +<name>]`.
+  A shape is a named shape (`round`, `circle`, `cylinder`, `diamond`, `hexagon` for boxes, `solid`, `dashed`, `dotted` for lines) or a `path` of path syntax only. The block keeps the placement and motion of its base and reads its colors from the palette table.
+  Definitions are read at the head of a diagram, from a page's `<link rel="dragon-blocks">`, or from the new `readBlocks` passed as the `blocks` option of `parseNotation` and `renderDiagram`. A definition without its version line, or with URLs, code, or SVG elements, is refused.
+
 - **Added the pipe diagram (`pipe`), which follows the calls, balances, and stored values inside one transaction step by step** (#3389)
 
   Start the first line with `pipe` and declare the parties with `box`. Whether each party is a sender, a contract, a token contract, or an account comes from the lines.

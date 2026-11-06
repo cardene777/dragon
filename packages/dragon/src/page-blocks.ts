@@ -5,8 +5,13 @@
  * 記法に誤りがある塊は図にせず、誤りの文を行ごとに並べた `<pre class="dragon-error">` に置き換える。
  * 言葉は頁の `lang` 属性が `ja` で始まれば日本語、ほかは英語にする。図の中の字と誤りの文の両方に使う。
  * 頁を読み終えた時に在る塊だけを描き、後から足した塊は見張らない。
+ *
+ * 頁の `<link rel="dragon-blocks" href="…">` が指す file は、使う人が足すブロックの定義として 1 度だけ読み、頁の全ての塊に渡す (#3399)。
+ * file は記法 (`blocks 1` で始まる) か JSON (`"format": 1`) で書く。読む file は頁を書いた人が指した所だけで、定義は外の物を読ませない。
+ * 定義を読めない時は、全ての塊をその誤りの文に置き換える。
  */
 import { parseNotation } from "./parser";
+import type { UserBlocks } from "./user-blocks";
 import { mountDiagram } from "./player";
 import type { NotationLang } from "./words";
 
@@ -31,16 +36,18 @@ function errorBox(doc: Document, lines: string[]): HTMLElement {
   return box;
 }
 
-async function drawBlock(block: Element, prepare: (text: string) => Promise<void>, lang: NotationLang): Promise<void> {
+async function drawBlock(block: Element, prepare: (text: string) => Promise<void>, lang: NotationLang, defined: Promise<UserBlocks[]>): Promise<void> {
   const doc = block.ownerDocument;
   const text = dedent(block.textContent ?? "");
+  let blocks: UserBlocks | undefined;
   try {
     await prepare(text);
+    blocks = merged(await defined);
   } catch (error) {
     block.replaceWith(errorBox(doc, [detail(error)]));
     return;
   }
-  const parsed = parseNotation(text, { lang });
+  const parsed = parseNotation(text, { lang, ...(blocks ? { blocks } : {}) });
   if (!parsed.ok) {
     block.replaceWith(errorBox(doc, parsed.errors.map((error) => `${error.line}: ${error.message}`)));
     return;
@@ -50,10 +57,33 @@ async function drawBlock(block: Element, prepare: (text: string) => Promise<void
   host.className = "dragon-figure";
   block.replaceWith(host);
   try {
-    mountDiagram(host, parsed.diagram, { lang });
+    mountDiagram(host, parsed.diagram, { lang, ...(blocks ? { blocks } : {}) });
   } catch (error) {
     host.replaceWith(errorBox(doc, [detail(error)]));
   }
+}
+
+/** 定義の並びを 1 つにまとめる。後ろの並びが同じ名前の定義を上書きする。並びが無ければ undefined */
+function merged(sets: readonly UserBlocks[]): UserBlocks | undefined {
+  if (sets.length === 0) return undefined;
+  const byName = new Map(sets.flatMap((set) => set.blocks.map((b) => [b.name, b] as const)));
+  return { format: 1, blocks: [...byName.values()] };
+}
+
+/** 頁の `<link rel="dragon-blocks">` が指す定義の file を全て読む。読めないか誤りのある file は、その file の URL を添えた誤りで断る */
+async function pageDefinitions(doc: Document, lang: NotationLang): Promise<UserBlocks[]> {
+  const links = [...doc.querySelectorAll('link[rel~="dragon-blocks"][href]')].map((link) => new URL(link.getAttribute("href") ?? "", doc.baseURI).href);
+  return Promise.all(
+    [...new Set(links)].map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${url}: ${response.status}`);
+      const text = await response.text();
+      const { readBlocks } = await import("./user-blocks-read");
+      const read = readBlocks(text.trimStart().startsWith("{") ? (JSON.parse(text) as unknown) : text, { lang });
+      if (!read.ok) throw new Error(read.errors.map((e) => `${url} ${e.line}: ${e.message}`).join("\n"));
+      return read.blocks;
+    }),
+  );
 }
 
 /**
@@ -63,7 +93,10 @@ async function drawBlock(block: Element, prepare: (text: string) => Promise<void
 export function drawPageBlocks(doc: Document, prepare: (text: string) => Promise<void>): void {
   const lang: NotationLang = doc.documentElement.lang.toLowerCase().startsWith("ja") ? "ja" : "en";
   const draw = (): void => {
-    for (const block of doc.querySelectorAll("pre.dragon")) void drawBlock(block, prepare, lang);
+    const defined = pageDefinitions(doc, lang);
+    // 誤りは塊ごとに誤りの文として出すので、まとめて待つ側では握らない
+    defined.catch(() => undefined);
+    for (const block of doc.querySelectorAll("pre.dragon")) void drawBlock(block, prepare, lang, defined);
   };
   if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", draw, { once: true });
   else draw();

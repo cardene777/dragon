@@ -26,8 +26,9 @@ export interface BoxMessages {
   orderNone: string;
 }
 
+/** 箱の宣言の行。使う人が足した箱のブロックの箱は、行の頭にそのブロックの名前 (`+<名前>`) を書く (#3399) */
 const declareBox = (b: Box): string =>
-  `box ${b.id}${shown(b.id, b.name)}${attrs([
+  `${b.block ?? "box"} ${b.id}${shown(b.id, b.name)}${attrs([
     ["note", b.sub],
     ["color", b.color],
     ["icon", b.icon],

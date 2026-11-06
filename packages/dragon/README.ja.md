@@ -23,9 +23,9 @@ dragon は、ブロックを組み立てて図を作る道具である。
 どの図でどのブロックを使えるかは、ブロックの付け方から決まる。
 色と字の大きさと余白は 1 つの表が持ち、全てのブロックがそこから読むので、どの図も同じ見た目に揃う。
 
-ブロックと図の種類は、足して広げられる。
-今は、この repo への pull request か fork で足す。
-使う人が自分の手元でブロックを足す口はまだ無く、ブロックの形が固まってから開く。
+ブロックは、使う人が自分の手元でも足せる。
+今の箱と線と印のどれかを元にして形と色の役を替えたブロックを、データだけの定義で書く ([ブロックを足す](https://github.com/cardene777/dragon/blob/main/packages/dragon/README.ja.md#ブロックを足す))。
+図の種類と、元にできるブロックを増やす時は、この repo への pull request か fork で足す。
 
 もう 1 つの軸は、mermaid と同じ手軽さで書けて、そのまま表示まで出ることである。
 
@@ -175,6 +175,72 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 読み込みが落ちると `loadFor` と `loadKind` が拒否され、次に呼ぶと読み直す。
 `sequence` と `architecture` は描く部品とブロックの読み方を初めから持つので、何も待たずに読んで描ける。
 1 つの頁で既定の入口と混ぜると、全ての種類の部品が頁に入る。
+
+## ブロックを足す
+
+今の箱と線と印のどれかを元にして、形と色の役を替えたブロックを、自分の手元で足せる。
+置き場所と動きと置ける図の種類は元のブロックのままで、色は色味の表から読むので、足したブロックも他のブロックと同じ見た目に揃う。
+
+定義は `blocks 1` の行の後に、`block +<名前>` から `end` までで書く。
+名前は `+` で始める。
+後で dragon が同じ名前のブロックを足しても、書いた図の意味は変わらない。
+
+```text
+architecture 橋を渡る
+
+blocks 1
+block +bridge
+  base box
+  shape path "M 0 70 Q 50 0 100 70 Z"
+  color violet
+end
+block +wire
+  base edge
+  shape dashed
+  color amber
+end
+
+box eth as Ethereum
++bridge cc as CCIP
+box base as Base
+
+step 送る
+  say トークンを橋へ送る。
+  eth -> cc: 送る
+
+step 渡す
+  say 橋がトークンを渡す。
+  cc +wire base: 渡す
+```
+
+| 元 (`base`) | 記法の書き方 | 形 (`shape`) | 色 (`color`) |
+|---|---|---|---|
+| `box` | 箱の行の `box` の代わりに `+<名前>` を書く | `round` / `circle` / `cylinder` / `diamond` / `hexagon` か、100 四方に描く `path "…"` | 色の役 |
+| `edge` | 線の行の `->` の代わりに `+<名前>` を書く | `solid` / `dashed` / `dotted` | 色の役 |
+| `icon` | 箱の行に `[icon: +<名前>]` を書く | 中心を (0, 0) に置いて 20 四方に描く `path "…"` | 載せた箱の色 |
+
+定義はデータだけで、path に書けるのは path の文法の字 (命令の字と数と区切り) だけである。
+URL と code と SVG の要素は書けないので、他の人が書いた定義を読んでも何も実行されない。
+版の行 (`blocks 1`) を書かない定義と、知らない版の定義は断る。
+
+定義は 3 つの入口で読む。
+
+- 図の頭に書くと、その図だけで使える
+- 定義を 1 つの file に置き、頁の `<link rel="dragon-blocks" href="bridge.dragon">` で読むと、頁の全ての記法の塊で使える
+- code では `readBlocks` で読み、`parseNotation` と `renderDiagram` の引数 `blocks` に渡す
+
+```ts
+import { parseNotation, readBlocks, renderDiagram } from "@cardenelabs/dragon";
+
+// 記法の字か、{ "format": 1, "blocks": [...] } の JSON を渡す
+const read = readBlocks(definition);
+if (read.ok) {
+  const parsed = parseNotation(notation, { blocks: read.blocks });
+  if (parsed.ok) renderDiagram(parsed.diagram, { blocks: read.blocks });
+}
+```
+
+図の種類と、元にできるブロックを増やす時は、この repo への pull request か fork で足す。
 
 ## dragon記法
 

@@ -29,12 +29,12 @@ const LANGS = {
 const PHRASES = {
   ja: {
     blocks: ["| コアブロック |", "| 個別ブロック |", "| 接続ブロック |", "図は、ブロックを組み立てたものである", "1 つの表"],
-    extend: ["pull request", "fork", "手元でブロックを足す口はまだ無く"],
+    extend: ["pull request", "fork", "使う人が自分の手元でも足せる"],
     mermaid: ["mermaid と同じ手軽さ", "- 書く字が短い。", "- script の 1 行で出る。", "- AI が速く書ける。", "- 軽くて速い。", "mermaid とは互換にしない"],
   },
   en: {
     blocks: ["| Core blocks |", "| Kind blocks |", "| Connector blocks |", "A diagram is blocks put together", "one table"],
-    extend: ["pull request", "fork", "There is no way yet for users to add their own blocks"],
+    extend: ["pull request", "fork", "You can also add your own blocks in your own project"],
     mermaid: ["as easy as mermaid", "- Short to write.", "- One script line.", "- Fast for AI to write.", "- Light and fast.", "not compatible with mermaid"],
   },
 } as const;
@@ -76,7 +76,7 @@ describe("README の思想の節 (#3391)", () => {
   });
 
   it("readme-idea-names-extend-path", () => {
-    // 思想の節は、今ブロックを足す道が pull request か fork で、使う人が手元で足す口はまだ無いことを書く
+    // 思想の節は、使う人が手元でブロックを足せることと、図の種類と元にできるブロックを増やす道が pull request か fork であることを書く (#3399)
     for (const { lang, path, section } of ideaSections()) {
       for (const phrase of PHRASES[lang].extend) expect(section, `${path} の思想の節に「${phrase}」が無い`).toContain(phrase);
     }

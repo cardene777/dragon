@@ -6,16 +6,23 @@
  * 描く下請け (`render/parts.ts`) も箱と区画の絵柄をここから引くので、この file は下請けを読まない。
  */
 import { LOOK } from "../../look/values";
+import { userBlock } from "../../user-blocks";
 import { ICONS } from "./icons";
 
 /** 座標を小数 2 桁に丸める。描く下請けの `r1` と同じ丸めで、下請けを読むと輪になるのでここに置く */
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 
 /** 絵柄を描ける名前か。`ICONS` の継いだ鍵 (`constructor` など) は描けない名前に数える */
-export const drawsIcon = (name: string | undefined): boolean => name !== undefined && Object.hasOwn(ICONS, name);
+export const drawsIcon = (name: string | undefined): boolean => name !== undefined && pathOf(name) !== undefined;
+
+/** 絵柄の形。`+` で始まる名前は、使う人が足した印のブロックの path (#3399) */
+function pathOf(name: string): string | undefined {
+  if (name.startsWith("+")) return userBlock(name, "icon")?.path;
+  return Object.hasOwn(ICONS, name) ? ICONS[name] : undefined;
+}
 
 export function glyph(name: string | undefined, x: number, y: number, scale: number, cls = "dg-gl"): string {
-  const d = name !== undefined && drawsIcon(name) ? ICONS[name] : undefined;
+  const d = name === undefined ? undefined : pathOf(name);
   return d ? `<path class="${cls}" transform="translate(${r1(x)} ${r1(y)}) scale(${scale})" d="${d}"/>` : "";
 }
 

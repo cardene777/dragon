@@ -18,9 +18,10 @@ export const shape: BlockShape = {
         name: { $ref: "#/definitions/text" },
         sub: { $ref: "#/definitions/text" },
         color: { $ref: "#/definitions/color" },
-        icon: { $ref: "#/definitions/icon" },
+        icon: { $ref: "#/definitions/iconField" },
         region: { $ref: "#/definitions/id" },
         link: { description: "飛び先。描いた図ではこの箱がここへの link になる", $ref: "#/definitions/url" },
+        block: { description: "使う人が足した、箱を元にしたブロックの名前。形と色はその定義から読む", $ref: "#/definitions/userBlockName" },
         order: {
           description: "列の図の箱の並べ方。none は順番の無い置き場で、チップを散らして置く。書かない箱は上から実行する札で、チップを line に書いた順に積む",
           enum: ["none"],

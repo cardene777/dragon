@@ -58,15 +58,16 @@ export function readEdgeLine(source: SourceLine, edge: RegExpExecArray, state: P
   return event;
 }
 
-/** 線の行の両端と名前。名前は省ける */
-export const line = (from: string, to: string, label: string | undefined): string => `${from} -> ${to}${label === undefined ? "" : `: ${name(label)}`}`;
+/** 線の行の両端と名前。名前は省ける。使う人が足した線のブロックの線は、矢印の代わりにそのブロックの名前 (`+<名前>`) を書く (#3399) */
+export const line = (from: string, to: string, label: string | undefined, block?: string): string =>
+  `${from} ${block ?? "->"} ${to}${label === undefined ? "" : `: ${name(label)}`}`;
 
 export const reading: BlockReading<EdgeMessages> = {
   read: none("線の行は行の頭の語を持たない。名札の次に -> が来る行を parser が見分けて readEdgeLine を呼ぶ"),
   print: {
     events: {
       // 枝分かれの図の線は、送る側の名前の札を書かない時の運ぶ物にする
-      edge: (e, kind) => `${line(e.from, e.to, e.label)}${attrs([...carryAttrs(e, kind), ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`,
+      edge: (e, kind) => `${line(e.from, e.to, e.label, e.block)}${attrs([...carryAttrs(e, kind), ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`,
     },
   },
   messages: {

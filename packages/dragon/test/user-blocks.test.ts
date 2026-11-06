@@ -114,8 +114,15 @@ interface Event {
   type: string;
   block?: string;
 }
-const boxesOf = (diagram: Json): Box[] => (diagram as unknown as { boxes: Box[] }).boxes;
+/** 原本の箱。原本は宣言をブロックの名前ごとの欄 (`blocks`) に持つ */
+const boxesOf = (diagram: Json): Box[] => (diagram as unknown as { blocks: { box?: Box[] } }).blocks.box ?? [];
 const eventsOf = (diagram: Json, step: number): Event[] => (diagram as unknown as { steps: { events: Event[] }[] }).steps[step]?.events ?? [];
+
+/** 図の id を外した SVG。図の id は原本の字から作り、図の class と動きの名前に入るので、中身を比べる時は外す */
+function withoutId(svg: string): string {
+  const id = figureClass(svg)?.slice("dg-".length) ?? "";
+  return id === "" ? svg : svg.replaceAll(id, "x");
+}
 
 /** 箱の札 (`.dg-st`) の並びの中で、`id` の箱の光 (`.dg-halo`) が時刻 `t` に見える濃さ */
 function haloAt(m: Motion, id: string, t: number): number {
@@ -230,8 +237,7 @@ describe("使う人が足すブロック (#3399)", () => {
       const rendered = render(parsed(text));
       const box = rendered.layout.boxes.find((b) => b.id === "cc");
       expect(box && frame && { x: box.x, y: box.y, w: box.w, h: box.h }, `${shape} の箱が元の箱の枠からずれる`).toEqual(frame && { x: frame.x, y: frame.y, w: frame.w, h: frame.h });
-      const name = figureClass(rendered.svg) ?? "";
-      svgs.add(rendered.svg.replaceAll(name, "dg-x"));
+      svgs.add(withoutId(rendered.svg));
     }
     expect(svgs.size, "基本の形の名前ごとに描く形が変わらない").toBe(5);
   });
@@ -247,7 +253,8 @@ describe("使う人が足すブロック (#3399)", () => {
     for (const attr of ["fill", "stroke"]) expect(card?.getAttribute(attr) ?? "", `足した箱の ${attr} に色の値を直に書いている`).not.toMatch(/#[0-9a-f]{3,8}|rgb\(/iu);
     expect(figureVars(clear.svg)["c-violet"], "色味を変えても violet の色が変わらない").not.toBe(figureVars(night.svg)["c-violet"]);
     const wire = new DOMParser().parseFromString(clear.svg, "image/svg+xml").querySelectorAll(".dg-e-on")[1];
-    expect(wire?.closest("[style]")?.getAttribute("style") ?? wire?.getAttribute("style") ?? "", "足した線が色の表の役 (amber) から色を読まない").toContain("var(--c-amber)");
+    // 色の線は自分の style に動きを持ち、色の役は包む部品の style が持つ
+    expect(wire?.parentElement?.closest("[style]")?.getAttribute("style") ?? "", "足した線が色の表の役 (amber) から色を読まない").toContain("var(--c-amber)");
   });
 
   it("user-block-json-equals-notation", () => {
@@ -258,8 +265,7 @@ describe("使う人が足すブロック (#3399)", () => {
     expect(fromJson.blocks, "JSON の定義が記法の定義と違う中身になる").toEqual(fromText.blocks);
     const inline = render(parsed(TEXT)).svg;
     const passed = render(parsed(BARE_TEXT, { blocks: fromJson.blocks }), { blocks: fromJson.blocks }).svg;
-    const same = (svg: string): string => svg.replaceAll(figureClass(svg) ?? "", "dg-x");
-    expect(same(passed), "JSON で渡した定義の図が、図の頭に書いた定義の図と違う").toBe(same(inline));
+    expect(withoutId(passed), "JSON で渡した定義の図が、図の頭に書いた定義の図と違う").toBe(withoutId(inline));
   });
 
   it("user-block-round-trips", () => {

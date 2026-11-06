@@ -40,6 +40,10 @@
         "follow"
       ]
     },
+    "define": {
+      "description": "図の頭に書いた、使う人が足すブロックの定義",
+      "$ref": "#/definitions/define"
+    },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
       "type": "object",
@@ -1305,6 +1309,74 @@
               }
             }
           }
+        }
+      }
+    },
+    "userBlockName": {
+      "description": "使う人が足すブロックの名前。+ で始め、英小文字で始まり、英小文字と数字と - で書く",
+      "type": "string",
+      "pattern": "^\\+[a-z][a-z0-9-]*$"
+    },
+    "define": {
+      "description": "使う人が足すブロックの定義の並び。format は定義の形の版",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "blocks"
+      ],
+      "properties": {
+        "format": {
+          "const": 1
+        },
+        "blocks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/userBlock"
+          }
+        }
+      }
+    },
+    "userBlock": {
+      "description": "使う人が足すブロック 1 つ。元のブロック (box / edge / icon) の形と色の役を替える",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "base"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/userBlockName"
+        },
+        "base": {
+          "enum": [
+            "box",
+            "edge",
+            "icon"
+          ]
+        },
+        "shape": {
+          "enum": [
+            "round",
+            "circle",
+            "cylinder",
+            "diamond",
+            "hexagon",
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "path": {
+          "description": "SVG の path の文法の字だけ",
+          "type": "string",
+          "maxLength": 2000,
+          "pattern": "^\\s*[Mm][MmLlHhVvCcSsQqTtAaZz0-9eE.,+\\-\\s]*$"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
         }
       }
     }

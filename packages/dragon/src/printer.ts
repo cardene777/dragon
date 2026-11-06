@@ -34,6 +34,7 @@ import { messagesFor } from "./messages";
 import { attrs, name } from "./print-kit";
 import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
 import type { Diagram, DiagramEvent, DiagramModel, Step, TryPart } from "./schema";
+import { printBlocks } from "./user-blocks";
 import { DEFAULT_LANG } from "./words";
 
 /** 持っている読み方の書き戻す処理を、ブロックの並び (`rank`) の順に引く (#3349) */
@@ -121,6 +122,8 @@ export function printNotation(source: Diagram): string {
   const diagram = toModel(current);
   const blocks = [
     `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
+    // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)
+    ...(diagram.define ? [printBlocks(diagram.define)] : []),
     ...(diagram.try ? [tryParts(diagram.try.parts)] : []),
     ...leadPrinters().flatMap((print) => print(diagram)),
     ...declarePrinters().flatMap((print) => print(diagram)),

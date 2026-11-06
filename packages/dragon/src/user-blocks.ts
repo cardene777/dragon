@@ -1,0 +1,180 @@
+/**
+ * 使う人が自分の手元で足すブロック (#3399)。
+ *
+ * 足すブロックは、今の箱 (`box`) と線 (`edge`) と箱に付く印 (`icon`) のどれかを元にして、形と色の役を替えた物にする。
+ * 置き場所と動きと置ける図の種類は元のブロックのままなので、8 つの図の種類の並べ方を直さずに全ての図で使える。
+ *
+ * 定義はデータだけで、記法の行 (`blocks 1` の後の `block +<名前>` から `end` まで) か、同じ中身の JSON (`"format": 1`) で書く。
+ * 書けるのは元のブロック、形 (基本の形の名前か SVG の path の文法の字)、色の役の名前だけで、URL と code と SVG の要素は断る。
+ * 定義が頁に外の物を読ませることは無く、他の人が書いた定義を読んでも何も実行されない。
+ *
+ * 記法の語は頭に `+` を付ける。後で本体が同じ名前のブロックを足しても、前に書いた図の意味が変わらないため。
+ * 定義の頭に版を書かせ、知らない版は断る。形を変えた時に、古い定義を黙って読み違えないため。
+ *
+ * 定義の並びを読む処理と誤りの文の多くは `user-blocks-read.ts` に置き、軽い入口は定義を書いた図の時だけ後から読む。
+ * 読む処理と描く処理は、読む間と描く間だけ定義を有効にする (`withUserBlocks`)。
+ * 箱の描き方と線の描き方と印の描き方は、引数を増やさずにここから名前で引く。
+ */
+import type { Color } from "./blocks/color/block";
+import type { SourceLine } from "./tokenize";
+import type { NotationLang } from "./words";
+
+/** 定義の形の版。知らない版は断る */
+export const USER_BLOCKS_FORMAT = 1;
+
+/** 元にできるブロック */
+export const USER_BASES = ["box", "edge", "icon"] as const;
+export type UserBase = (typeof USER_BASES)[number];
+
+/** 元のブロックごとの、名前で選べる基本の形。印は path だけで描く */
+export const USER_SHAPES: Readonly<Record<UserBase, readonly string[]>> = {
+  box: ["round", "circle", "cylinder", "diamond", "hexagon"],
+  edge: ["solid", "dashed", "dotted"],
+  icon: [],
+};
+
+/** 足すブロックの名前。頭に `+` を付け、英小文字で始め、英小文字と数字と `-` だけを使う */
+export const USER_NAME = /^\+[a-z][a-z0-9-]*$/u;
+
+/** 足すブロックの定義 1 つ */
+export interface UserBlock {
+  /** `+` で始まる名前。記法では行の頭の語 (箱)、線の矢印の代わり (線)、`icon:` の値 (印) に書く */
+  name: string;
+  base: UserBase;
+  /** 基本の形の名前。`path` と一緒には書けない */
+  shape?: string;
+  /** SVG の path の文法の字。箱は 100 四方に描いて箱の枠に収め、印は (0, 0) を中心に 20 四方に描く */
+  path?: string;
+  /** 色の役の名前。色そのものは色味の表から読む */
+  color?: Color;
+}
+
+/** 足すブロックの定義の並び。JSON の file と、原本の `define` の欄と、`parseNotation` と `renderDiagram` の引数 `blocks` の形 */
+export interface UserBlocks {
+  format: typeof USER_BLOCKS_FORMAT;
+  blocks: UserBlock[];
+}
+
+export interface UserBlockError {
+  line: number;
+  column: number;
+  message: string;
+}
+
+export type ReadBlocks = { ok: true; blocks: UserBlocks } | { ok: false; errors: UserBlockError[] };
+
+/** 定義を読まずに図を読む時と描く時にも要る誤りの文。日英で持つ */
+export interface UserBlockUseMessages {
+  versionMissing: string;
+  undefinedBlock: (name: string) => string;
+  wrongBase: (name: string, base: UserBase, want: UserBase) => string;
+}
+
+const USE_MESSAGES: Readonly<Record<NotationLang, UserBlockUseMessages>> = {
+  ja: {
+    versionMissing: "ブロックの定義の前に、定義の形の版の行 (blocks 1) を書く",
+    undefinedBlock: (name) => `${name} のブロックは定義されていない。図の頭の blocks 1 の後か、頁の link か、引数 blocks で定義する`,
+    wrongBase: (name, base, want) => `${name} は ${base} を元にしたブロックで、${want} の所には書けない`,
+  },
+  en: {
+    versionMissing: "Write the version line of the block definitions (blocks 1) before them",
+    undefinedBlock: (name) => `The block ${name} is not defined. Define it after blocks 1 at the head of the diagram, in a page link, or in the blocks option`,
+    wrongBase: (name, base, want) => `${name} is based on ${base} and cannot be written where a ${want} goes`,
+  },
+};
+
+export const userBlockUseMessages = (lang: NotationLang): UserBlockUseMessages => USE_MESSAGES[lang];
+
+/** 定義の読み方の誤り。読む処理が行と列を付けて投げる */
+export class UserBlockFailure extends Error {
+  constructor(
+    readonly line: number,
+    readonly column: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/** `blocks <版>` の行か。版の字を返す */
+export const versionLine = (source: SourceLine): string | undefined => {
+  const m = /^blocks(?:\s+(.*))?$/u.exec(source.text);
+  return m ? (m[1] ?? "").trim() : undefined;
+};
+
+/** 記法の字が、定義の並びの行 (`blocks <版>`) を持つか。軽い入口が、定義を読む処理を後から読むかを決める */
+export const definesBlocks = (text: string): boolean => /^[ \t]*blocks(?:[ \t]|$)/mu.test(text);
+
+/** 定義の並びを読む処理。最初に読む束を軽くするため別の file (`user-blocks-read.ts`) に置き、全部を持つ入口と軽い入口が登録する */
+export interface UserBlockReader {
+  readBlockLines: (lines: readonly SourceLine[], start: number, lang: NotationLang, known?: ReadonlySet<string>) => { blocks: UserBlock[]; next: number };
+}
+
+let reader: UserBlockReader | undefined;
+
+/** 定義の並びを読む処理を登録する */
+export function registerUserBlockReader(given: UserBlockReader): void {
+  reader = given;
+}
+
+/** 登録した、定義の並びを読む処理。まだ読んでいなければ `undefined` */
+export const userBlockReader = (): UserBlockReader | undefined => reader;
+
+/** 定義の並びを記法の行に書き戻す。`blocks 1` の行から最後の `end` まで */
+export function printBlocks(set: UserBlocks): string {
+  const lines = [`blocks ${set.format}`];
+  for (const b of set.blocks) {
+    lines.push(`block ${b.name}`, `  base ${b.base}`);
+    if (b.shape !== undefined) lines.push(`  shape ${b.shape}`);
+    if (b.path !== undefined) lines.push(`  shape path "${b.path.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`);
+    if (b.color !== undefined) lines.push(`  color ${b.color}`);
+    lines.push("end");
+  }
+  return lines.join("\n");
+}
+
+/** 読む間と描く間に有効な定義。名前から引く */
+let active: Map<string, UserBlock> = new Map();
+/** 描く間に有効な、足した箱のブロックを持つ箱の名札と、足した線のブロックを持つ線 (`<段>:<出来事>`) */
+let drawing: { boxes: Map<string, UserBlock>; edges: Map<string, UserBlock> } = { boxes: new Map(), edges: new Map() };
+
+/**
+ * 定義の並び `sets` を有効にして `run` を回し、終えたら前の定義に戻す。後ろの並びが同じ名前の定義を上書きする。
+ * 読む処理と描く処理は同期で回るので、回している間だけ有効にすれば他の図に混ざらない
+ */
+export function withUserBlocks<T>(sets: readonly (UserBlocks | undefined)[], run: () => T): T {
+  const before = active;
+  const beforeDrawing = drawing;
+  active = new Map(before);
+  for (const set of sets) for (const b of set?.blocks ?? []) active.set(b.name, b);
+  try {
+    return run();
+  } finally {
+    active = before;
+    drawing = beforeDrawing;
+  }
+}
+
+/** 読んでいる間に、図の頭の定義を有効な定義に足す */
+export function defineUserBlocks(blocks: readonly UserBlock[]): void {
+  for (const b of blocks) active.set(b.name, b);
+}
+
+/** 有効な定義の名前 */
+export const definedUserBlocks = (): ReadonlySet<string> => new Set(active.keys());
+
+/** 名前 `name` の有効な定義。`want` を渡すと、その元のブロックの定義だけを返す */
+export function userBlock(name: string, want?: UserBase): UserBlock | undefined {
+  const found = active.get(name);
+  return found !== undefined && (want === undefined || found.base === want) ? found : undefined;
+}
+
+/** 描く間に、足した箱と線を名札と出来事の番号で引けるようにする */
+export function drawUserBlocks(boxes: Map<string, UserBlock>, edges: Map<string, UserBlock>): void {
+  drawing = { boxes, edges };
+}
+
+/** 描いている図で、名札 `id` の箱が足した箱のブロックなら、その定義 */
+export const userBoxOf = (id: string): UserBlock | undefined => drawing.boxes.get(id);
+/** 描いている図で、段 `step` の `event` 番目の線が足した線のブロックなら、その定義 */
+export const userEdgeOf = (step: number, event: number): UserBlock | undefined => drawing.edges.get(`${step}:${event}`);

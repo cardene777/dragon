@@ -10,3 +10,5 @@
 import "./kinds/all";
 
 export * from "./api";
+// 足すブロックの定義を読む関数は全部を持つ入口だけが出す。軽い入口は定義の行を持つ図を読む前に `loadFor` が後から読む (#3399)
+export { readBlocks } from "./user-blocks-read";

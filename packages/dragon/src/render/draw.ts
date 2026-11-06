@@ -9,6 +9,7 @@
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
+import { drawUserBlocks, type UserBlock, type UserBlocks, type UserBlockUseMessages, userBlock, userBlockUseMessages, withUserBlocks } from "../user-blocks";
 import { action } from "../blocks/act/draw";
 import { boxTextY, card, headCard } from "../blocks/box/draw";
 import { carrier } from "../blocks/carry/draw";
@@ -59,7 +60,7 @@ import {
 } from "../look/values";
 import { readDiagram } from "../version";
 import { toModel } from "../model";
-import type { DiagramModel, ViewMode } from "../schema";
+import type { Diagram, DiagramModel, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
@@ -100,6 +101,8 @@ export interface RenderOptions {
    * 箱の下の 1 行に出す処理は、その箱で最後に起きた処理か書き換えの字を出す。違う段の名前が重なっても置き直さず、最後の段の重なり (`overlaps`) に出す
    */
   still?: boolean;
+  /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
+  blocks?: UserBlocks;
 }
 
 export interface Rendered {
@@ -904,6 +907,57 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
     throw new Error(
       FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")),
     );
+  // 使う人が足したブロックの定義は、描く間だけ有効にする。原本の頭の定義が、引数で渡した同じ名前の定義に勝つ (#3399)
+  return withUserBlocks([options.blocks, read.diagram.define], () => {
+    const missing = useUserBlocks(read.diagram, userBlockUseMessages(lang));
+    if (missing !== undefined) throw new Error(FIGURE_TEXT[lang].cannotDraw(missing));
+    return renderRead(read.diagram, options, lang);
+  });
+}
+
+/**
+ * 原本が使う足したブロックを、描く処理が名札と出来事の番号で引けるようにする。
+ * 定義に無い名前か、元のブロックの違う名前を使っていれば、その誤りの文を返す
+ */
+function useUserBlocks(diagram: Diagram, m: UserBlockUseMessages): string | undefined {
+  const boxes = new Map<string, UserBlock>();
+  const edges = new Map<string, UserBlock>();
+  const find = (name: string, want: UserBlock["base"]): UserBlock | string => {
+    const found = userBlock(name);
+    if (!found) return m.undefinedBlock(name);
+    return found.base === want ? found : m.wrongBase(name, found.base, want);
+  };
+  for (const box of diagram.blocks.box ?? []) {
+    for (const [name, want] of [
+      [box.block, "box"],
+      [box.icon?.startsWith("+") ? box.icon : undefined, "icon"],
+    ] as const) {
+      if (name === undefined) continue;
+      const found = find(name, want);
+      if (typeof found === "string") return found;
+      if (want === "box") boxes.set(box.id, found);
+    }
+  }
+  for (const region of diagram.blocks.group ?? []) {
+    if (!region.icon?.startsWith("+")) continue;
+    const found = find(region.icon, "icon");
+    if (typeof found === "string") return found;
+  }
+  for (const [s, step] of diagram.steps.entries()) {
+    for (const [e, event] of step.events.entries()) {
+      if (event.type !== "edge" || event.block === undefined) continue;
+      const found = find(event.block, "edge");
+      if (typeof found === "string") return found;
+      edges.set(`${s}:${e}`, found);
+    }
+  }
+  drawUserBlocks(boxes, edges);
+  return undefined;
+}
+
+/** 検査を通った原本を並べて描く */
+function renderRead(source: Diagram, options: RenderOptions, lang: NotationLang): Rendered {
+  const read = { diagram: source };
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)。
   // 配管の図は `[fold]` の呼び出しの内側の段を、開くと頼まれていなければ 1 つの段にまとめてから並べる (#3389)
   const model = toModel(read.diagram);

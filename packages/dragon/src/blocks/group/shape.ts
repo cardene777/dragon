@@ -18,7 +18,7 @@ export const shape: BlockShape = {
         name: { $ref: "#/definitions/text" },
         note: { $ref: "#/definitions/text" },
         color: { $ref: "#/definitions/color" },
-        icon: { $ref: "#/definitions/icon" },
+        icon: { $ref: "#/definitions/iconField" },
       },
     },
   },

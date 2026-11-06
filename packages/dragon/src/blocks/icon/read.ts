@@ -7,6 +7,7 @@ import type { Messages } from "../../messages";
 import { type Attr, fail, list } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none } from "../block";
+import { userBlock } from "../../user-blocks";
 import { ICON_NAMES } from "./block";
 
 export interface IconMessages {
@@ -14,9 +15,18 @@ export interface IconMessages {
   badIcon: (value: string) => string;
 }
 
-/** 箱と区画の行の属性の、絵の名前。知らない名前は誤りで止める */
+/**
+ * 箱と区画の行の属性の、絵の名前。知らない名前は誤りで止める。
+ * `+` で始まる名前は、使う人が足した印のブロックの名前で、読む前に定義してあれば読む (#3399)
+ */
 export function readIcon(source: SourceLine, attrs: Map<string, Attr>, m: Messages): Attr | undefined {
   const icon = attrs.get("icon");
+  if (icon?.value.startsWith("+")) {
+    const added = userBlock(icon.value);
+    if (!added) throw fail(source, icon.at, m.userBlocks.undefinedBlock(icon.value));
+    if (added.base !== "icon") throw fail(source, icon.at, m.userBlocks.wrongBase(icon.value, added.base, "icon"));
+    return icon;
+  }
   if (icon && !ICON_NAMES.includes(icon.value)) throw fail(source, icon.at, m.badIcon(icon.value));
   return icon;
 }
