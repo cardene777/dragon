@@ -1,0 +1,30 @@
+// Add blocks based on a box, a line, and an icon, and draw a bridge handing a token to another chain
+architecture Draw a bridge with added blocks
+
+blocks 1
+block +bridge
+  base box
+  shape path "M 0 70 Q 50 0 100 70 Z"
+  color violet
+end
+block +relay
+  base edge
+  shape dashed
+  color amber
+end
+block +key
+  base icon
+  shape path "M -8 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 0 h 8 M 5 0 v 3"
+end
+
+box eth as Ethereum [note: sending chain]
++bridge cc as Bridge [note: added box]
+box base as Base [note: receiving chain, icon: +key]
+
+step Send
+  say Ethereum sends the token to the bridge. The bridge box is drawn in the shape its definition gives.
+  eth -> cc: send
+
+step Hand over
+  say The bridge hands the token to Base. The dashed line comes from the added line, and the key on the receiving side from the added icon.
+  cc +relay base: hand over

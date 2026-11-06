@@ -16,7 +16,7 @@ import type { Lang } from "../text";
  * 節の並び。記法の決まりの後に記法の要素を書く順に並べ、図を外で使う 2 つの形 (頁に置く、書き出す) を続け、
  * 前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** その節に置くブロックの段落。段落の `section` がその節のブロックを、ブロックの並びの順に */
@@ -45,6 +45,7 @@ export const EXITS: Record<SectionId, Exit> = {
   tree: { kind: "tree" },
   try: { kind: "try" },
   pipe: { kind: "pipe" },
+  extend: { screen: "editor" },
   steps: { section: "strip" },
   strip: { kind: "sequence" },
   carry: { section: "json" },
@@ -59,6 +60,36 @@ export const EXITS: Record<SectionId, Exit> = {
  * 頁に置く節の code は package の README の頁に置く節の例と同じ物 (検査が突き合わせる)
  */
 export const COMMANDS: Partial<Record<SectionId, readonly (string | null)[]>> = {
+  // ブロックを足す節の code は package の README の足し方の節と同じ形 (#3407)
+  extend: [
+    null,
+    null,
+    [
+      '<link rel="dragon-blocks" href="bridge.dragon">',
+      "",
+      '<pre class="dragon">',
+      "architecture Across the bridge",
+      "",
+      "box eth as Ethereum",
+      "+bridge cc as CCIP",
+      "box base as Base [icon: +key]",
+      "",
+      "step Hand over",
+      "  say The bridge hands the token over.",
+      "  cc +relay base: hand over",
+      "</pre>",
+    ].join("\n"),
+    [
+      'import { parseNotation, readBlocks, renderDiagram } from "@cardenelabs/dragon";',
+      "",
+      '// Pass notation text, or JSON shaped as { "format": 1, "blocks": [...] }',
+      "const read = readBlocks(definition);",
+      "if (read.ok) {",
+      "  const parsed = parseNotation(notation, { blocks: read.blocks });",
+      "  if (parsed.ok) renderDiagram(parsed.diagram, { blocks: read.blocks });",
+      "}",
+    ].join("\n"),
+  ],
   place: [
     [
       'import "@cardenelabs/dragon/fonts";',
@@ -103,7 +134,7 @@ interface DocsText {
 export const DOCS: Record<Lang, DocsText> = {
   ja: {
     eyebrow: (version) => `使い方の案内 · ${version}`,
-    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、試す図、配管の図、段、帯、運ぶ物の順に記法の要素を掴む。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
+    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、試す図、配管の図、段、帯、運ぶ物の順に記法の要素を掴み、使う人が手元でブロックを足す書き方も載せる。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
     start: "5 分で始める →",
     browse: "カタログで図を見る",
     iconLink: "使える絵柄を部品「絵」の頁で全て見る →",
@@ -190,6 +221,16 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "配管の図",
         text: [...blockParagraphs("pipe", "ja")],
         exit: "配管の図の見本を見る →",
+      },
+      extend: {
+        title: "ブロックを足す",
+        text: [
+          "dragon が持つブロックの他に、使う人が自分の手元でブロックを足せる。今の箱 (`box`)、線 (`edge`)、箱に付く印 (`icon`) のどれかを元にして、形と色の役を替えた物を足す。足したブロックは元の置き場所と動きのまま描かれ、色を色味の表から読むので、他のブロックと同じ見た目に揃う。",
+          "定義は図の頭に、`blocks 1` の行の後へ `block +<名前>` から `end` までを書く。`base` に元を、`shape` に形を、`color` に色の役を書く。形は名前の付いた形 (箱は `round`、`circle`、`cylinder`、`diamond`、`hexagon`、線は `solid`、`dashed`、`dotted`) か、path の文法だけで書いた `path` にする。図では、箱の行の `box` と線の行の `->` の代わりに `+<名前>` を書き、印は `[icon: +<名前>]` と書く。",
+          "同じブロックを複数の図で使う時は、定義を 1 つの file に置く。頁で描く時は `<link rel=\"dragon-blocks\">` でその file を指すと、頁の全ての図がその定義を読む。",
+          "code で描く時は `readBlocks` で定義を読み、`parseNotation` と `renderDiagram` の `blocks` に渡す。定義は字のデータだけで、URL や code や SVG の要素を書くと誤りで断るので、他の人が書いた定義を読んでも何も実行されない。",
+        ],
+        exit: "編集画面で書いてみる →",
       },
       steps: {
         title: "段",
@@ -301,7 +342,7 @@ export const DOCS: Record<Lang, DocsText> = {
   en: {
     // 英語の側の区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
     eyebrow: (version) => `guide • ${version}`,
-    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, try diagrams, pipe diagrams, steps, the strip and what travels. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
+    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, try diagrams, pipe diagrams, steps, the strip and what travels, and how to add your own blocks. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
     start: "Start in five minutes →",
     browse: "Browse the catalog",
     iconLink: "See every icon on the Icon part page →",
@@ -388,6 +429,16 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "Pipe diagrams",
         text: [...blockParagraphs("pipe", "en")],
         exit: "See the pipe diagram samples →",
+      },
+      extend: {
+        title: "Adding blocks",
+        text: [
+          "Besides the blocks dragon has, you can add your own blocks in your own project. Base one on a box (`box`), a line (`edge`), or an icon on a box (`icon`), and change its shape and color role. An added block is drawn with the placement and motion of its base and reads its colors from the palette table, so it looks like every other block.",
+          "Write the definitions at the head of a diagram, after a `blocks 1` line, each from `block +<name>` to `end`. Write the base after `base`, the shape after `shape`, and the color role after `color`. A shape is a named shape (`round`, `circle`, `cylinder`, `diamond`, `hexagon` for boxes, `solid`, `dashed`, `dotted` for lines) or a `path` of path syntax only. In the diagram, write `+<name>` in place of `box` on a box line and in place of `->` on a line, and write an icon as `[icon: +<name>]`.",
+          "To use the same blocks in several diagrams, keep the definitions in one file. On a page, point `<link rel=\"dragon-blocks\">` at that file, and every diagram on the page reads them.",
+          "In code, read the definitions with `readBlocks` and pass them as the `blocks` option of `parseNotation` and `renderDiagram`. A definition is data only, and one with URLs, code, or SVG elements is refused, so reading a definition someone else wrote runs nothing.",
+        ],
+        exit: "Write one in the editor →",
       },
       steps: {
         title: "Steps",
