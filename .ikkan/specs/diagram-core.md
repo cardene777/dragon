@@ -97,11 +97,11 @@
 | 寄って追う図の全体図に、今見ている所の枠 (`.dg-mm-vp`) と、全体図の札 (`全体図`) が出る | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3042 |
 | 全体を止めて見せる図 (`data-view="fixed"`) は全体図を持たず、図の幅と高さが配置の幅と高さのまま | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3042 |
 | 寄って動かす見せ方で縦に長い図を置いた時も、全体図の札が全体図の地の中に収まる | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3042 |
-| 画面の大きさ 390 × 844、860 × 900、1024 × 768、1280 × 720、1440 × 900 で、構成図と時系列図のカタログの頁の全部の見本を拡大の重ね窓で開き、自動で送らずに段を 1 つずつ送った時、どの段でも段の本文の帯の高さと、図 (`svg[data-dragon="figure"]`) の幅と高さと上端の位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3049 |
+| 画面の大きさ 390 × 844、860 × 900、1024 × 768、1280 × 720、1440 × 900 で、構成図と時系列図のカタログの頁の全部の見本を拡大の重ね窓で開き、自動で送らずに段を 1 つずつ送った時、どの段でも段の本文の帯の高さと、図 (`svg[data-dragon="figure"]`) の幅と高さと上端の位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3049 |
 | 1440 × 900 の編集画面で oauth と ccip の見本を開き、自動で送らずに段を 1 つずつ送った時、どの段でも段の本文の帯の高さと、図の幅と高さと上端の位置が 1 段目と同じ | `pnpm test`の検査`editor-figure-steady-across-steps`が通る | #3049 |
 | oauth を書き出した HTML を幅 390px で開き、自動で送らずに段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の上端の位置が 1 段目と同じ | `pnpm test`の検査`html-export-caption-bar-steady`が通る | #3049 |
 | 再生の部品で図を置いた時、段の題 (`[data-dragon="step-title"]`) と本文 (`[data-dragon="step-body"]`) は 1 つずつのままで今の段の中身を出し、帯の高さを決めるための全部の段の題と本文の写しは見た目から隠れ、読み上げの道具からも隠れる | `pnpm test`の検査`player-caption-room-holds-every-step`が通る | #3049 |
-| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3049 |
+| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3049 |
 | 全部の段の題と本文が、段の順に読み上げの道具へ出る | `pnpm test`の検査`steps-exposed-to-screen-readers`が通る | #3049 |
 | 動きを嫌う設定で図を開いた時、自動再生せず、段の題が今の段の題を出す | `pnpm test`の検査`reduced-motion-shows-stills`が通る | #3049 |
 | 編集画面で字の大きさを替えると、段の題の字が大きくなり小さくなる | `pnpm test`の検査`editor-stage-tools-change-view`が通る | #3049 |
@@ -114,8 +114,8 @@
 | 枠の中で見える高さが今の窓より低く、窓の下限 160px と全体図と値の表が入る時、窓と全体図と値の表がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3053 |
 | 寄って追う図の全体図が窓に重ならずに窓の外に出る | `pnpm test`の検査`overview-outside-window`が通る | #3053 |
 | 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3053 |
-| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3053 |
-| 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3053 |
+| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3053 |
+| 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3053 |
 | 枠の幅が 440px より狭く全体図が縦に長い時 (oauth、枠の幅 360、390、430px、高さに収める時と収めない時)、全体図を描かず、窓の幅が枠の幅と同じ | `pnpm test`の検査`narrow-tall-figure-drops-overview`が通る | #3055 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth をカタログの頁の見本の枠、拡大の重ね窓、編集画面で開いた時、全体図が無く、窓の幅と図の枠の中の幅の差が 1px 以下で、図が枠の中に送らずに収まる | `pnpm test`の検査`narrow-follow-window-fills-frame-width`が通る | #3055 |
 | 縦に長い全体図は枠の幅 440px 以上で窓の右に、横に長い全体図は値の表を持たない図なら枠の幅に関わらず窓の下に出る (oauth は 440 と 560px、ccip は値の表を外して 390px、表を持ったまま 560px) | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3055、#3274 |
@@ -128,14 +128,14 @@
 | 書き出しの命令に言葉を渡した時、再生の釦と全体図の札がその言葉で出る | `pnpm test`の検査`export-lang-flag`が通る | #3055 |
 | 縦に長い図の書き出した HTML を幅 440px で開いた時、全体図の札が全体図の地からはみ出さない | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3055 |
 | 編集画面で、全体図を出す見本 (860px の oauth と ccip、390px の wallet) の全体図が窓に重ならず図の枠の中にある | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3055、#3274 |
-| 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`catalog-overlay-figure-whole-without-scroll`が通る | #3055 |
+| 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3055 |
 | 1024 × 768 から 1440 × 900 の重ね窓で、oauth の窓が図の横幅の全部を見せる | `pnpm test`の検査`overlay-follow-window-shows-whole-width`が通る | #3055 |
 | 帯の中身の幅が 440px より狭い時 (oauth の書き出した HTML を幅 360、390、430px で開く)、戻る・再生・進むの釦と段の番号が同じ段に並び、題がその下の段で、題と本文が釦の左端から帯の中身の右端までの幅を使う | `pnpm test`の検査`html-export-narrow-caption-stacks-body`が通る | #3057、#3069 |
 | 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を拡大の重ね窓で開いた時、段の本文の帯が今 (360 × 780 で 191px と 211px、390 × 844 で 151px と 191px) より低く、図の枠の中の高さが今 (398px と 355px、502px と 462px) より高い | `pnpm test`の検査`narrow-overlay-caption-lower`が通る | #3057、#3069 |
 | 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を拡大の重ね窓と編集画面で開き、自動で送らずに段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じで、全部の段の題と本文が帯の中身の幅に収まる | `pnpm test`の検査`narrow-caption-steady-and-inside`が通る | #3057、#3069 |
 | 画面の大きさ 360 × 780 の編集画面で、字の大きさの釦を押すと段の題と本文の字が大きくなり小さくなる | `pnpm test`の検査`narrow-editor-caption-font-scales`が通る | #3057、#3069 |
 | 画面の大きさ 560 × 900 と 1440 × 900 で oauth と ccip を拡大の重ね窓と編集画面で開いた時、帯は横 1 列のまま (釦と番号と題が同じ段に並び、本文が題の下で題と同じ左端から始まる) | `pnpm test`の検査`wide-caption-stays-one-row`が通る | #3057、#3069、#3076 |
-| 画面の大きさ 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-steady-across-steps`が通る | #3057 |
+| 画面の大きさ 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3057 |
 | 1440 × 900 の編集画面で oauth と ccip を開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`editor-figure-steady-across-steps`が通る | #3057 |
 | oauth を書き出した HTML を幅 390px で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の上端の位置が 1 段目と同じ | `pnpm test`の検査`html-export-caption-bar-steady`が通る | #3057、#3069、#3076 |
 | 段の題と本文は 1 つずつで今の段の中身を出し、全部の段の写しは見た目と読み上げの道具から隠れる | `pnpm test`の検査`player-caption-room-holds-every-step`が通る | #3057、#3069、#3076 |

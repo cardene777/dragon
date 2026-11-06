@@ -52,6 +52,8 @@
 | `chromium-server-runs-in-own-process` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、Chromium を別の node の process で起こす仕組みを外した。つなぐ通信の往復で頁を開くのが約3割遅かった | `chromium-preloaded-before-file` |
 | `site-close-keeps-shared-chromium` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、file をまたいで Chromium を共にする仕組みを外した。後始末は今も Chromium を閉じない | `chromium-cleaned-on-process-exit` |
 | `shared-chromium-closes-at-teardown` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、準備の段の片付けで Chromium を閉じる仕組みを外した。閉じるのは file の process が終わる時の Playwright の片付け | `chromium-cleaned-on-process-exit` |
+| `catalog-overlay-figure-whole-without-scroll` | `apps/playground-spa/src/lib/site-overlay.test.ts` | 重ね窓の見本と画面の大きさの組ごとに、図の形の件と同じ段送りをもう 1 度していた (#3432)。まとめた件が 1 回の段送りで、各段の図の全体と形を両方読む | `overlay-figure-whole-and-steady-across-steps` |
+| `overlay-figure-steady-across-steps` | `apps/playground-spa/src/lib/site-overlay.test.ts` | 同じく、図の全体の件と同じ段送りを 2 度していた | `overlay-figure-whole-and-steady-across-steps` |
 
 ## 速くした検査
 
@@ -67,6 +69,7 @@
 | `package-excludes-catalog-material` | `.map` の file を読まない | 配る file に載る字を探す検査で、`.map` は同じ字の写し。読む前に `\uXXXX` の形の字を戻すので、日本語の字も見つかる |
 | `cli-language.test.ts` の断りの検査 | 命令を順に起こすのをやめ、同時に起こす | 起こす命令と確かめる中身は同じ |
 | `release-notes-for-every-section` | 版ごとの本文を作る命令を、順に起こすのをやめて 8 つずつ同時に起こす | 全ての版の本文を同じ命令で作って確かめる。順に起こすと版が増えるほど遅くなる |
+| `catalog-common-part-shows-both-kinds` ほか部品ごとの 5 つの件 (`catalog-parts.test.ts`) | 部品の頁を、件ごとに開き直すのをやめ、部品ごとに 1 度開いて使い回す (#3432) | 読むだけの件を先に回し、頁を移る件と言語を替える件は部品の頁と日本語に戻して終わる。開く回数は `catalog-parts-open-one-page-per-part` が数える |
 
 1 件の中で画面の大きさや見本の組を順に回していた検査は、組ごとの件に分けた。
 件の名前は元の名前のまま変えず、組は件を包む `describe` の名前に出る。

@@ -31,6 +31,7 @@ import { PARTS } from "../catalog/parts";
 import { fromHash, toHash } from "../share";
 import { type Lang, TEXT } from "../text";
 import { BASE, partFigure, partFigureNames, root, screenOf, type Site, startSite, stepLabel } from "./playground-support";
+import { type PageGroups, pageGroups } from "./site-support";
 
 const { ATTRS, HEADS, KINDS: WORD_KINDS } = WORDS;
 
@@ -385,52 +386,6 @@ describe("カタログの部品の頁 (#3166)", () => {
     }
   });
 
-  describe.for(PART_CASES.filter(isCommon))("$id", (part) => {
-    it("catalog-common-part-shows-both-kinds", async () => {
-      const { page } = await site.open({ path: partPath(part.id), viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-      await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
-      // 同じ部品を、図の種類ごとに 1 つずつ描いて並べる
-      await expect
-        .poll(async () => (await figuresOf(page)).map((f) => f.kind), { ...WAIT, message: `${part.id} の頁に、部品を使える図の種類ごとの図が並ばない` })
-        .toEqual([...part.kinds]);
-      await expect
-        .poll(async () => (await figuresOf(page)).map((f) => ({ kind: f.kind, svgs: f.svgs, names: f.names, source: f.source })), {
-          ...WAIT,
-          message: `${part.id} の頁の図が、部品の記法の file の図と記法で描かれない`,
-        })
-        .toEqual(
-          part.kinds.map((kind) => {
-            const text = snippetOf(part.id, kind, "ja") ?? "";
-            return { kind, svgs: 1, names: namesOf(text), source: text };
-          }),
-        );
-      for (const kind of part.kinds) await expectStepsAdvance(page, `${catalogSel("part")} ${figureSel(kind)}`, `${part.id} の ${kind} の図`);
-    });
-  });
-
-  describe.for(PART_CASES.filter((part) => !isCommon(part)))("$id", (part) => {
-    it("catalog-kind-part-names-its-kind", async () => {
-      expect(part.kinds.length, `${part.id} は図の種類だけの部品なのに図の種類を 1 つに絞らない`).toBe(1);
-      const kind = part.kinds[0] as Kind;
-      const { page } = await site.open({ path: partPath(part.id), viewport: { width: 1440, height: 900 } });
-      await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
-      // その図の種類の図を 1 つだけ描く
-      await expect
-        .poll(async () => (await figuresOf(page)).map((f) => ({ kind: f.kind, svgs: f.svgs, source: f.source })), {
-          ...WAIT,
-          message: `${part.id} の頁が ${kind} の図を 1 つだけ描かない`,
-        })
-        .toEqual([{ kind, svgs: 1, source: snippetOf(part.id, kind, "ja") ?? "" }]);
-      // どの図の種類の部品かを名指し、その図の頁へ向かう
-      const kindLinks = (): Promise<string[]> =>
-        page.evaluate(() => [...document.querySelectorAll<HTMLAnchorElement>('[data-catalog="part-kinds"] a')].map((a) => new URL(a.href).pathname));
-      expect(await kindLinks(), `${part.id} の頁が ${kind} の図の頁を名指さない`).toEqual([`${BASE}catalog/${kind}`]);
-      await page.locator(`${catalogSel("part-kinds")} a`).first().click();
-      await onScreen(page, "category", `${part.id} の頁から ${kind} の図の頁へ移れない`);
-      expect(await page.evaluate(() => location.pathname)).toBe(`${BASE}catalog/${kind}`);
-    });
-  });
-
   it(
     "catalog-part-figures-keep-drawn-size",
     async () => {
@@ -509,10 +464,114 @@ describe("カタログの部品の頁 (#3166)", () => {
     });
   });
 
+  /** 部品ごとの件が使い回す部品の頁 (#3432)。組は部品で、組の最初の件が開き、件が落ちたら同じ組の次の件が開き直す */
+  const partPages: PageGroups<Page> = pageGroups<Page>((page) => page.context().close());
+  afterAll(() => partPages.close());
+
+  /**
+   * 部品ごとの件が使う、部品 `part` の頁 (#3432)。動きを嫌う設定で開くので、部品の図は段を自動で送らない。
+   * 部品ごとに 4 つの件が頁を開き直すと、開く回数が部品の数の 4 倍になり、件の時間の大半が頁を開く手間だった
+   */
+  const partPage = (part: PartRow, onTestFailed: (run: () => void) => void): Promise<Page> =>
+    partPages.get(
+      part.id,
+      async () => {
+        const { page } = await site.open({ path: partPath(part.id), viewport: { width: 1440, height: 900 }, reducedMotion: "reduce", keep: true });
+        await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
+        return page;
+      },
+      onTestFailed,
+    );
+
+  // 部品ごとの件は、同じ部品の頁を順に使う。読むだけの件を先に、頁を移る件と言語を替える件を後に置き、
+  // 移った件と替えた件は部品の頁と日本語に戻して終わる。編集画面へ移る件は最後に置く (#3432)
   describe.for(PART_CASES)("$id", (part) => {
-    it("catalog-part-opens-in-editor", async () => {
-      const { page } = await site.open({ path: partPath(part.id), viewport: { width: 1440, height: 900 } });
-      await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
+    it("part-page-links-examples", async ({ onTestFailed }) => {
+      // その部品を描ける図の種類の見本のうち、部品の語を 1 つでも使う見本の札を並べ、図の頁のその見本へ向ける
+      const want = examplesOnDisk()
+        .filter((e) => (part.kinds as readonly string[]).includes(e.kind) && part.words.some((word) => usesWord(e.text, word)))
+        .map((e) => `${BASE}catalog/${e.kind}#${e.name}`)
+        .sort();
+      const page = await partPage(part, onTestFailed);
+      await expect
+        .poll(async () => [...(await partSamplesOf(page))].sort(), { ...WAIT, message: `${part.id} の頁の見本の札が、その部品の語を使う見本と違う` })
+        .toEqual(want);
+    });
+
+    if (isCommon(part))
+      it("catalog-common-part-shows-both-kinds", async ({ onTestFailed }) => {
+        const page = await partPage(part, onTestFailed);
+        // 同じ部品を、図の種類ごとに 1 つずつ描いて並べる
+        await expect
+          .poll(async () => (await figuresOf(page)).map((f) => f.kind), { ...WAIT, message: `${part.id} の頁に、部品を使える図の種類ごとの図が並ばない` })
+          .toEqual([...part.kinds]);
+        await expect
+          .poll(async () => (await figuresOf(page)).map((f) => ({ kind: f.kind, svgs: f.svgs, names: f.names, source: f.source })), {
+            ...WAIT,
+            message: `${part.id} の頁の図が、部品の記法の file の図と記法で描かれない`,
+          })
+          .toEqual(
+            part.kinds.map((kind) => {
+              const text = snippetOf(part.id, kind, "ja") ?? "";
+              return { kind, svgs: 1, names: namesOf(text), source: text };
+            }),
+          );
+        for (const kind of part.kinds) await expectStepsAdvance(page, `${catalogSel("part")} ${figureSel(kind)}`, `${part.id} の ${kind} の図`);
+      });
+
+    else
+      it("catalog-kind-part-names-its-kind", async ({ onTestFailed }) => {
+        expect(part.kinds.length, `${part.id} は図の種類だけの部品なのに図の種類を 1 つに絞らない`).toBe(1);
+        const kind = part.kinds[0] as Kind;
+        const page = await partPage(part, onTestFailed);
+        // その図の種類の図を 1 つだけ描く
+        await expect
+          .poll(async () => (await figuresOf(page)).map((f) => ({ kind: f.kind, svgs: f.svgs, source: f.source })), {
+            ...WAIT,
+            message: `${part.id} の頁が ${kind} の図を 1 つだけ描かない`,
+          })
+          .toEqual([{ kind, svgs: 1, source: snippetOf(part.id, kind, "ja") ?? "" }]);
+        // どの図の種類の部品かを名指し、その図の頁へ向かう
+        const kindLinks = (): Promise<string[]> =>
+          page.evaluate(() => [...document.querySelectorAll<HTMLAnchorElement>('[data-catalog="part-kinds"] a')].map((a) => new URL(a.href).pathname));
+        expect(await kindLinks(), `${part.id} の頁が ${kind} の図の頁を名指さない`).toEqual([`${BASE}catalog/${kind}`]);
+        await page.locator(`${catalogSel("part-kinds")} a`).first().click();
+        await onScreen(page, "category", `${part.id} の頁から ${kind} の図の頁へ移れない`);
+        expect(await page.evaluate(() => location.pathname)).toBe(`${BASE}catalog/${kind}`);
+        // 次の件は同じ部品の頁を使い回すので、部品の頁へ戻して終わる (#3432)
+        await page.goBack();
+        await onScreen(page, "part", `${part.id} の頁から ${kind} の図の頁へ移った後に、部品の頁へ戻れない`);
+      });
+
+    it("catalog-parts-in-english", async ({ onTestFailed }) => {
+      const page = await partPage(part, onTestFailed);
+      const shown = (): Promise<{ name: string; desc: string; sources: string[] }> =>
+        page.evaluate(() => {
+          const root = document.querySelector('[data-catalog="part"]');
+          return {
+            name: root?.querySelector("h1")?.textContent?.trim() ?? "",
+            desc: root?.querySelector('[data-catalog="desc"]')?.textContent?.trim() ?? "",
+            sources: [...(root?.querySelectorAll('[data-catalog="part-source"]') ?? [])].map((s) => s.textContent?.trimEnd() ?? ""),
+          };
+        });
+      const expected = (lang: Lang): { name: string; desc: string; sources: string[] } => ({
+        name: partText(lang, part.id)?.name ?? `(${part.id} の名前が TEXT.${lang} に無い)`,
+        desc: partText(lang, part.id)?.desc ?? `(${part.id} の説明が TEXT.${lang} に無い)`,
+        sources: part.kinds.map((kind) => snippetOf(part.id, kind, lang) ?? `(${snippetName(part.id, kind, lang)} が無い)`),
+      });
+      await expect.poll(shown, { ...WAIT, message: `${part.id} の頁が日本語の名前と説明と記法を出さない` }).toEqual(expected("ja"));
+
+      await page.locator(siteSel("lang-en")).click();
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${part.id} の頁で言語が EN にならない` }).toBe("en");
+      await expect.poll(shown, { ...WAIT, message: `${part.id} の頁を EN に替えても、英語の名前と説明と記法にならない` }).toEqual(expected("en"));
+      await expect.poll(() => leftover(page), { ...WAIT, message: `${part.id} の頁を EN に替えても仮名か漢字が残る` }).toBe("");
+      // 次の件 (編集画面で開く) は日本語の記法を確かめるので、日本語に戻して終わる (#3432)
+      await page.locator(siteSel("lang-ja")).click();
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${part.id} の頁で言語が日本語に戻らない` }).toBe("ja");
+    });
+
+    it("catalog-part-opens-in-editor", async ({ onTestFailed }) => {
+      const page = await partPage(part, onTestFailed);
       // 頁の全ての図の「編集画面で開く」は、行き先を編集画面と同じ読み方で戻すとその図の記法になる
       for (const kind of part.kinds) {
         const text = snippetOf(part.id, kind, "ja");
@@ -534,44 +593,6 @@ describe("カタログの部品の頁 (#3166)", () => {
       await expect.poll(() => editorValue(page), { ...WAIT, message: `${part.id} の ${kind} の図を編集画面で開いても、その記法が書く欄に入らない` }).toBe(text);
       expect(await page.evaluate(() => location.hash), `${part.id} の ${kind} の図の編集画面のアドレスに記法が載らない`).toBe(toHash(text ?? ""));
       expect(await page.evaluate(() => (window as unknown as { __stay?: number }).__stay), "編集画面で開く時に頁を読み直した").toBe(1);
-    });
-
-    it("catalog-parts-in-english", async () => {
-      const { page } = await site.open({ path: partPath(part.id), locale: "ja-JP", viewport: { width: 1440, height: 900 } });
-      await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
-      const shown = (): Promise<{ name: string; desc: string; sources: string[] }> =>
-        page.evaluate(() => {
-          const root = document.querySelector('[data-catalog="part"]');
-          return {
-            name: root?.querySelector("h1")?.textContent?.trim() ?? "",
-            desc: root?.querySelector('[data-catalog="desc"]')?.textContent?.trim() ?? "",
-            sources: [...(root?.querySelectorAll('[data-catalog="part-source"]') ?? [])].map((s) => s.textContent?.trimEnd() ?? ""),
-          };
-        });
-      const expected = (lang: Lang): { name: string; desc: string; sources: string[] } => ({
-        name: partText(lang, part.id)?.name ?? `(${part.id} の名前が TEXT.${lang} に無い)`,
-        desc: partText(lang, part.id)?.desc ?? `(${part.id} の説明が TEXT.${lang} に無い)`,
-        sources: part.kinds.map((kind) => snippetOf(part.id, kind, lang) ?? `(${snippetName(part.id, kind, lang)} が無い)`),
-      });
-      await expect.poll(shown, { ...WAIT, message: `${part.id} の頁が日本語の名前と説明と記法を出さない` }).toEqual(expected("ja"));
-
-      await page.locator(siteSel("lang-en")).click();
-      await expect.poll(() => page.evaluate(() => document.documentElement.lang), { ...WAIT, message: `${part.id} の頁で言語が EN にならない` }).toBe("en");
-      await expect.poll(shown, { ...WAIT, message: `${part.id} の頁を EN に替えても、英語の名前と説明と記法にならない` }).toEqual(expected("en"));
-      await expect.poll(() => leftover(page), { ...WAIT, message: `${part.id} の頁を EN に替えても仮名か漢字が残る` }).toBe("");
-    });
-
-    it("part-page-links-examples", async () => {
-      // その部品を描ける図の種類の見本のうち、部品の語を 1 つでも使う見本の札を並べ、図の頁のその見本へ向ける
-      const want = examplesOnDisk()
-        .filter((e) => (part.kinds as readonly string[]).includes(e.kind) && part.words.some((word) => usesWord(e.text, word)))
-        .map((e) => `${BASE}catalog/${e.kind}#${e.name}`)
-        .sort();
-      const { page } = await site.open({ path: partPath(part.id), viewport: { width: 1440, height: 900 } });
-      await onScreen(page, "part", `${partPath(part.id)} で部品の頁が出ない`);
-      await expect
-        .poll(async () => [...(await partSamplesOf(page))].sort(), { ...WAIT, message: `${part.id} の頁の見本の札が、その部品の語を使う見本と違う` })
-        .toEqual(want);
     });
   });
 
