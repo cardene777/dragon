@@ -64,7 +64,7 @@ import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
-import { covers, draw, figureClass, gap, type Rect, type Rendered, sampleTimes } from "./render-support";
+import { covers, draw, figureClass, figureVars, gap, type Rect, type Rendered, sampleTimes } from "./render-support";
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
@@ -96,6 +96,10 @@ interface Party extends Rect {
   name: string;
   role: string;
   icon?: string;
+  /** 名札の形 (#3398)。`round` は丸の名札、`cabinet` は Contract の箱、`token` はトークンの箱 */
+  shape?: string;
+  /** 名札の行 (#3398)。一番上が 0。トークンの箱は持たない */
+  row?: number;
 }
 interface Column extends Rect {
   party: string;
@@ -115,13 +119,32 @@ interface Level extends Rect {
   state: State;
   text: Writing;
   was?: Writing;
+  /** 前の量の消し線 (#3398) */
+  strike?: Rect;
+  /** 槽の下の数に添える暫定か確定の語 (#3398) */
+  tag?: Writing;
 }
 interface Bus {
   token: string;
   y: number;
   x1: number;
   x2: number;
-  valve?: { party: string; x: number };
+  valve?: { party: string; x: number; y?: number };
+  /** 値の管の通し方 (#3398)。`side` は隣の槽の横を結ぶ管、`main` は槽の上に通す本管 */
+  mode?: string;
+}
+/** 同じ関係者から出る呼び出しの本管と、呼ぶ相手ごとの枝 (#3398) */
+interface Main {
+  from: string;
+  points: Point[];
+  branches: { to: string; points: Point[]; valve: { x: number; y: number } }[];
+}
+/** 段ごとの吹き出し (#3398)。`kind` はその段の動きの種類、`text` は大きな字 */
+interface Callout extends Rect {
+  step: number;
+  kind: string;
+  tag?: Writing;
+  text: Writing;
 }
 interface Flow {
   step: number;
@@ -173,6 +196,8 @@ interface Gauge extends Rect {
   step: number;
   event: number;
   ok: boolean;
+  /** 計器を載せる管 (#3398)。`value` は値の管、`call` は呼び出しの管 */
+  on?: string;
 }
 interface CheckMark extends Rect {
   step: number;
@@ -195,6 +220,8 @@ interface Converter extends Rect {
   in: string;
   out: string;
   rate: string;
+  /** その段で計算したか (#3398) */
+  active?: boolean;
 }
 interface Fold extends Rect {
   call: number;
@@ -227,6 +254,12 @@ interface PipeLayout {
   events: EventChip[];
   converters: Converter[];
   folds: Fold[];
+  arrangement?: string;
+  heads?: { checks?: unknown; events?: unknown };
+  mains?: Main[];
+  /** `calc` を行う関係者の槽の点線の囲い (#3398) */
+  housings?: (Rect & { party: string })[];
+  callouts?: Callout[];
 }
 
 interface PipeRendered extends Omit<Rendered, "layout"> {
@@ -1818,5 +1851,585 @@ describe("配管の図の書き方の文書 (#3389)", () => {
     const blocks = join(ROOT, "packages/dragon/src/blocks");
     const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
     describes("使い方の頁", [content, ...sections, ...paragraphs].join("\n"));
+  });
+});
+
+// ---- 第6回の試作の形 (#3398)
+
+/** 原本の段の中の出来事。吹き出しが出す字を読むので、行の全ての欄を持つ */
+interface AnyEvent {
+  type: string;
+  box?: string;
+  from?: string;
+  to?: string;
+  label?: string;
+  amount?: string;
+  value?: string;
+  reason?: string;
+  left?: string;
+  right?: string;
+  in?: string;
+  out?: string;
+}
+
+/** 描いた見本 (`open` は開く `[fold]` の呼び出しの番号) と、描いた段の原本の段。畳んだ箱を開いた図は段が増える */
+function drawnSteps(rendered: PipeRendered): { title: string; events: AnyEvent[] }[] {
+  const diagram = (rendered as unknown as { diagram?: { steps: { title: string; events: AnyEvent[] }[] } }).diagram;
+  expect(diagram?.steps, "描いた結果に描いた段の原本 (diagram.steps) が無い").toBeDefined();
+  return diagram?.steps ?? [];
+}
+
+/** 原本の段を順に読み、呼ばれた者ごとに最初に呼ばれた深さを返す。一番外の呼び出しは 0 */
+function calledDepths(steps: { events: AnyEvent[] }[]): Map<string, number> {
+  const depths = new Map<string, number>();
+  const stack: string[] = [];
+  for (const step of steps)
+    for (const e of step.events) {
+      if (e.type === "call" && e.to) {
+        if (!depths.has(e.to)) depths.set(e.to, stack.length);
+        stack.push(e.to);
+      } else if (e.type === "return" || e.type === "revert") stack.pop();
+    }
+  return depths;
+}
+
+/** 点 `p` が折れ線 `points` の上 (`tol` px 以内) に在るか */
+function onPath(p: Point, points: Point[], tol = 1.5): boolean {
+  return points.slice(1).some((b, i) => {
+    const a = points[i] as Point;
+    const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+    const len = dx * dx + dy * dy;
+    const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len));
+    return Math.hypot(a[0] + t * dx - p[0], a[1] + t * dy - p[1]) <= tol;
+  });
+}
+
+/** 四角 `inner` が四角 `outer` の中に在るか */
+const inside = (inner: Rect, outer: Rect, tol = 0.5): boolean =>
+  inner.x >= outer.x - tol && inner.y >= outer.y - tol && inner.x + inner.w <= outer.x + outer.w + tol && inner.y + inner.h <= outer.y + outer.h + tol;
+
+/** 字の部品の字の大きさ (px)。部品から包む部品へ、属性、style、class の規則の順に、`font-size` か `font` の中の大きさを読む */
+function fontPxOf(svg: string, el: Element): number | undefined {
+  const read = (text: string): number | undefined => {
+    const m = /font-size:\s*([\d.]+)px/u.exec(text) ?? /(?:^|[;{\s])font:[^;]*?([\d.]+)px/u.exec(text);
+    return m?.[1] === undefined ? undefined : Number(m[1]);
+  };
+  for (let e: Element | null = el; e; e = e.parentElement) {
+    const attr = e.getAttribute("font-size");
+    if (attr !== null) return Number.parseFloat(attr);
+    const style = read(e.getAttribute("style") ?? "");
+    if (style !== undefined) return style;
+    for (const rule of classRules(svg, e)) {
+      const found = read(`;${rule}`);
+      if (found !== undefined) return found;
+    }
+  }
+  return undefined;
+}
+
+/** 部品か中の部品のどれかが、時刻 `t0` と `t1` で性質 `prop` の値を変えるか */
+const changes = (motion: Motion, el: Element, prop: string, t0: number, t1: number): boolean =>
+  [el, ...el.querySelectorAll("*")].some((e) => JSON.stringify(motion.value(e, prop, t0)) !== JSON.stringify(motion.value(e, prop, t1)));
+
+/** 段 `s` の中の時刻 (始まりから止め絵まで、0.05 秒ごと) */
+function timesIn(rendered: PipeRendered, s: number): number[] {
+  const start = rendered.timeline.steps[s]?.start ?? Number.NaN;
+  const still = stillOf(rendered, s);
+  const out: number[] = [];
+  for (let t = start; t <= still; t += 0.05) out.push(t);
+  return out;
+}
+
+/** 見本 aggregator の箱を全て開き、幅 1200 の枠で描いた図 */
+const openedAggregator = (lang: "ja" | "en" = "ja"): PipeRendered => render(exampleJson(lang === "ja" ? "aggregator.json" : "aggregator.en.json"), lang, 1200, [2]);
+
+describe("第6回の試作の形の配管の図 (#3398)", () => {
+  it("pipe-r6-parties-by-call-depth", () => {
+    for (const [name, rendered] of [
+      ["swap", render(exampleJson("swap.json"))],
+      ["aggregator を開いた図", openedAggregator()],
+    ] as const) {
+      const { layout } = rendered;
+      const depths = calledDepths(drawnSteps(rendered));
+      // 送り手と呼ばれない口座は丸の名札で一番上の行、呼ばれる Contract は呼ばれた深さの行の箱、トークンの Contract はトークンの箱
+      for (const p of layout.parties) {
+        const want = p.role === "token" ? "token" : p.role !== "sender" && depths.has(p.id) ? "cabinet" : "round";
+        expect(p.shape, `${name} の ${p.id} の名札の形`).toBe(want);
+        if (want !== "token") expect(p.row, `${name} の ${p.id} の名札の行`).toBe(want === "round" ? 0 : depths.get(p.id));
+      }
+      // 同じ行の名札は同じ高さに並び、深い行ほど下に置く
+      const named = layout.parties.filter((p) => p.shape !== "token");
+      const middle = (p: Party): number => p.y + p.h / 2;
+      const rows = [...new Set(named.map((p) => p.row ?? Number.NaN))].sort((a, b) => a - b);
+      rows.forEach((row, k) => {
+        const same = named.filter((p) => p.row === row);
+        for (const p of same) expect(middle(p), `${name} の ${p.id} が行 ${row} のほかの名札と同じ高さに無い`).toBeCloseTo(middle(same[0] as Party), 0);
+        const below = rows[k + 1];
+        if (below !== undefined)
+          expect(Math.min(...named.filter((p) => p.row === below).map((p) => p.y)), `${name} の行 ${below} が行 ${row} の下に無い`).toBeGreaterThan(Math.max(...same.map((p) => p.y + p.h)));
+      });
+      // 槽を持つ関係者は、自分の槽の真上に置く
+      for (const owner of new Set(layout.tanks.map((t) => t.party))) {
+        const p = partyOf(layout, owner);
+        if (p.shape === "token") continue;
+        const own = layout.tanks.filter((t) => t.party === owner);
+        const lo = Math.min(...own.map((t) => t.x));
+        const hi = Math.max(...own.map((t) => t.x + t.w));
+        expect(center(p) >= lo && center(p) <= hi, `${name} の ${owner} の名札が自分の槽の真上に無い`).toBe(true);
+        expect(p.y + p.h, `${name} の ${owner} の名札が自分の槽より上に無い`).toBeLessThanOrEqual(Math.min(...own.map((t) => t.y)));
+      }
+    }
+    // 見本 swap では Alice と SwapRouter と Bob が 1 行目、LiquidityPool が 2 行目
+    const swap = render(exampleJson("swap.json")).layout;
+    expect(
+      Object.fromEntries(swap.parties.filter((p) => p.shape !== "token").map((p) => [p.id, p.row])),
+      "見本 swap の名札の行",
+    ).toEqual({ alice: 0, router: 0, pool: 1, bob: 0 });
+  });
+
+  it("pipe-r6-value-pipes-follow-flows", () => {
+    // 隣の槽どうしだけを結ぶ図は、槽の横を結ぶ値の管で描く
+    const swap = render(exampleJson("swap.json")).layout;
+    for (const [token, from, to, owner] of [
+      ["USDC", "alice", "pool", "usdc"],
+      ["WETH", "pool", "bob", "weth"],
+    ] as const) {
+      const bus = swap.buses.find((b) => b.token === token);
+      expect(bus?.mode, `見本 swap の ${token} の値の管の通し方`).toBe("side");
+      if (!bus) continue;
+      const a = tankOf(swap, from, token);
+      const b = tankOf(swap, to, token);
+      const [l, r] = center(a) < center(b) ? [a, b] : [b, a];
+      expect(Math.abs(bus.x1 - (l.x + l.w)), `${token} の値の管が左の槽の右の縁から出ない`).toBeLessThanOrEqual(2);
+      expect(Math.abs(bus.x2 - r.x), `${token} の値の管が右の槽の左の縁へ入らない`).toBeLessThanOrEqual(2);
+      expect(bus.y > Math.max(l.y, r.y) && bus.y < Math.min(l.y + l.h, r.y + r.h), `${token} の値の管が槽の横の高さを通らない`).toBe(true);
+      for (const f of swap.flows.filter((g) => g.token === token)) {
+        const [x0] = f.points[0] ?? [Number.NaN];
+        const [x1] = f.points[f.points.length - 1] ?? [Number.NaN];
+        expect(x0 >= l.x - 2 && x0 <= r.x + r.w + 2 && x1 >= l.x - 2 && x1 <= r.x + r.w + 2, `段 ${f.step + 1} の ${token} の流れが 2 つの槽の間を通らない`).toBe(true);
+      }
+      expect(bus.valve?.party, `${token} の値の管の弁`).toBe(owner);
+      const valve = bus.valve ?? { party: "", x: Number.NaN, y: Number.NaN };
+      expect(valve.x > bus.x1 && valve.x < bus.x2, `${token} の弁が値の管の上に無い`).toBe(true);
+      expect(Math.abs((valve.y ?? Number.NaN) - bus.y), `${token} の弁が値の管の高さに無い`).toBeLessThan(1);
+      const box = partyOf(swap, owner);
+      expect(Math.abs(center(box) - valve.x), `${owner} のトークンの箱が弁の真上に無い`).toBeLessThan(1);
+      expect(box.y + box.h, `${owner} のトークンの箱が弁より上に無い`).toBeLessThan(valve.y ?? Number.NaN);
+    }
+    // 離れた槽を結ぶ図は、槽の上に本管を通す
+    const opened = openedAggregator();
+    const crowd = opened.layout;
+    const crowdLast = opened.timeline.steps.length - 1;
+    for (const token of ["USDC", "WETH", "DAI"]) {
+      const bus = crowd.buses.find((b) => b.token === token);
+      expect(bus?.mode, `aggregator を開いた図の ${token} の値の管の通し方`).toBe("main");
+      if (!bus) continue;
+      const tanks = crowd.tanks.filter((t) => t.token === token);
+      expect(bus.y, `${token} の本管が槽の上を通らない`).toBeLessThan(Math.min(...tanks.map((t) => t.y)));
+      expect(bus.x1, `${token} の本管が左の槽に届かない`).toBeLessThanOrEqual(Math.min(...tanks.map(center)));
+      expect(bus.x2, `${token} の本管が右の槽に届かない`).toBeGreaterThanOrEqual(Math.max(...tanks.map(center)));
+      const owner = bus.valve?.party ?? "";
+      const box = partyOf(crowd, owner);
+      expect(box.shape, `${token} の本管の弁の持ち主がトークンの箱でない`).toBe("token");
+      expect(Math.abs(center(box) - (bus.valve?.x ?? Number.NaN)), `${owner} のトークンの箱が弁の真上に無い`).toBeLessThan(1);
+      expect(box.y + box.h, `${owner} のトークンの箱が本管より上に無い`).toBeLessThan(bus.y);
+      for (const f of crowd.flows.filter((g) => g.token === token && g.step === crowdLast)) {
+        const [x0] = f.points[0] ?? [Number.NaN];
+        expect(within(x0, tankOf(crowd, f.from, token)), `${f.from} から ${f.to} の ${token} の流れが送り手の槽から出ない`).toBe(true);
+      }
+    }
+  });
+
+  it("pipe-r6-token-box-holds-values", () => {
+    const source = exampleJson("swap.json");
+    const rendered = render(source);
+    const { layout } = rendered;
+    const box = partyOf(layout, "usdc");
+    expect(box.shape, "USDC の名札の形").toBe("token");
+    const name = "allowance[alice][router]";
+    // hold で宣言したトークンの箱の値は、箱の中の名前の下に書く
+    for (let s = 0; s <= lastStep(source); s++) {
+      const plate = plateOf(layout, "usdc", name, s);
+      expect(inside(plate, box), `段 ${s + 1} の許可額の札が USDC の箱の中に無い`).toBe(true);
+      expect(plate.y, `段 ${s + 1} の許可額の札が USDC の箱の名前の下に無い`).toBeGreaterThanOrEqual(box.y + 18);
+    }
+    // write の段で、前の値を消し線で残す
+    const written = plateOf(layout, "usdc", name, 4);
+    expect([written.value, written.was?.text, written.state], "write の段の許可額の札").toEqual(["0", "100", "provisional"]);
+    const was = written.was ?? { x: Number.NaN, y: Number.NaN, w: 0, h: 0 };
+    expect(
+      written.strike !== undefined && written.strike.x <= was.x + 1 && written.strike.x + written.strike.w >= was.x + was.w - 1,
+      "write の段の前の許可額に消し線が無い",
+    ).toBe(true);
+    const motion = motionFrom(rendered as unknown as Rendered);
+    const drawn = partsOf(motion, `[data-pipe-plate="usdc"][data-pipe-step="4"]`)[0] as Element;
+    const texts = [...drawn.querySelectorAll("text, tspan")].map((t) => t.textContent ?? "");
+    for (const want of [name, "100", "0"]) expect(texts, `描いた write の段の許可額の札に ${want} が無い`).toContain(want);
+  });
+
+  it("pipe-r6-tank-parts", () => {
+    const source = exampleJson("swap.json");
+    const rendered = render(source);
+    const { layout, svg } = rendered;
+    const last = lastStep(source);
+    const motion = motionFrom(rendered as unknown as Rendered);
+    // 槽はつやと 5 本の目盛りとトークンの名前を持つ
+    for (const tank of layout.tanks) {
+      const g = partsOf(motion, `[data-pipe-tank="${tank.party}"][data-pipe-token="${tank.token}"]`)[0] as Element;
+      expect(g.querySelectorAll("[data-pipe-shine]").length, `${tank.party} の ${tank.token} の槽につやが無い`).toBeGreaterThan(0);
+      expect(g.querySelectorAll("[data-pipe-tick]").length, `${tank.party} の ${tank.token} の槽の目盛りの数`).toBe(5);
+      expect(
+        [...g.querySelectorAll("text")].map((t) => t.textContent),
+        `${tank.party} の ${tank.token} の槽にトークンの名前が無い`,
+      ).toContain(tank.token);
+    }
+    // 槽の下に 3 桁ごとに区切った大きな数を出す
+    for (const level of layout.levels) {
+      const tank = tankOf(layout, level.party, level.token);
+      expect(level.text.y, `段 ${level.step + 1} の ${level.party} の ${level.token} の数が槽の下に無い`).toBeGreaterThanOrEqual(tank.y + tank.h);
+    }
+    expect([levelOf(layout, "alice", "USDC", 0).text.text, levelOf(layout, "pool", "USDC", 0).text.text], "段 1 の槽の下の数").toEqual(["1,000", "2,000"]);
+    // 変わった段から確定するまで、前の値の消し線と暫定の語を添え、確定した後は確定の語を添える
+    expect(levelOf(layout, "pool", "USDC", 3).tag, "変わる前の段の Pool の USDC に語がある").toBeUndefined();
+    for (let s = 4; s < last; s++) {
+      const moved = levelOf(layout, "pool", "USDC", s);
+      expect([moved.text.text, moved.was?.text, moved.tag?.text], `段 ${s + 1} の Pool の USDC の数と前の数と語`).toEqual(["2,100", "2,000", "暫定"]);
+      const was = moved.was ?? { x: Number.NaN, y: 0, w: 0, h: 0 };
+      expect(
+        moved.strike !== undefined && moved.strike.x <= was.x + 1 && moved.strike.x + moved.strike.w >= was.x + was.w - 1,
+        `段 ${s + 1} の Pool の USDC の前の数に消し線が無い`,
+      ).toBe(true);
+      expect(moved.text.h, `段 ${s + 1} の Pool の USDC の数が前の数より大きくない`).toBeGreaterThanOrEqual(1.6 * was.h);
+    }
+    const done = levelOf(layout, "pool", "USDC", last);
+    expect([done.state, done.tag?.text], "最後の段の Pool の USDC の語").toEqual(["final", "確定"]);
+    // トークンごとに液の色を分ける
+    const fillOf = (party: string, token: string): string => {
+      const el = partsOf(motion, `[data-pipe-level="${party}"][data-pipe-token="${token}"][data-pipe-step="0"]`)[0] as Element;
+      return [el, ...el.querySelectorAll("*")].map((e) => `${e.getAttribute("fill") ?? ""}${e.getAttribute("style") ?? ""}${classRules(svg, e).join("")}`).join("|");
+    };
+    expect(fillOf("pool", "USDC"), "USDC と WETH の液が同じ色").not.toBe(fillOf("pool", "WETH"));
+  });
+
+  it("pipe-r6-calls-share-a-main", () => {
+    const rendered = openedAggregator();
+    const { layout, svg } = rendered;
+    const mains = layout.mains ?? [];
+    // 同じ関係者から出る呼び出しの管は 1 本の本管と呼ぶ相手ごとの枝で描き、弁は枝の根元に置く
+    for (const from of new Set(layout.calls.map((c) => c.from))) {
+      const own = mains.filter((m) => m.from === from);
+      expect(own.length, `${from} から出る本管の数`).toBe(1);
+      const main = own[0];
+      if (!main) continue;
+      expect(
+        main.branches.map((b) => b.to).sort(),
+        `${from} の本管の枝の相手`,
+      ).toEqual([...new Set(layout.calls.filter((c) => c.from === from).map((c) => c.to))].sort());
+      for (const b of main.branches) {
+        const root = b.points[0] ?? [Number.NaN, Number.NaN];
+        expect(onPath(root, main.points), `${from} から ${b.to} の枝の根元が本管の上に無い`).toBe(true);
+        expect(onPath([b.valve.x, b.valve.y], b.points), `${from} から ${b.to} の枝の弁が枝の上に無い`).toBe(true);
+        expect(Math.hypot(b.valve.x - root[0], b.valve.y - root[1]), `${from} から ${b.to} の枝の弁が根元から遠い`).toBeLessThanOrEqual(48);
+        const end = b.points[b.points.length - 1] ?? [Number.NaN, Number.NaN];
+        const callee = partyOf(layout, b.to);
+        expect(inside({ x: end[0], y: end[1], w: 0, h: 0 }, callee, 1), `${from} から ${b.to} の枝が呼ばれた者の名札へ入らない`).toBe(true);
+      }
+    }
+    expect(mains.find((m) => m.from === "agg")?.branches.length, "Aggregator の本管の枝の数").toBe(9);
+    // まだ戻っていない呼び出しの管だけを光らせる
+    const motion = motionFrom(rendered as unknown as Rendered);
+    const lit = (from: string, to: string, s: number): string => `[data-pipe-branch="${from}>${to}"][data-pipe-pipe="open"][data-pipe-step="${s}"]`;
+    const toAgg = layout.calls.find((c) => c.from === "router" && c.to === "agg");
+    const closed = toAgg?.close?.step ?? Number.NaN;
+    expect(closed, "Router から Aggregator への呼び出しを閉じた段").toBe(10);
+    for (let s = 0; s < rendered.timeline.steps.length; s++) {
+      const open = s >= 2 && s < closed;
+      const shown = seen(motion, lit("router", "agg", s), stillOf(rendered, s));
+      if (open) expect(shown, `段 ${s + 1} に開いている Router から Aggregator への管が光らない`).toBeGreaterThan(0.9);
+      else expect(shown, `段 ${s + 1} に Router から Aggregator への管が光る`).toBeLessThan(0.1);
+      if (s >= 1) expect(seen(motion, lit("router", "usdc", s), stillOf(rendered, s)), `段 ${s + 1} に戻った Router から USDC への管が光る`).toBeLessThan(0.1);
+    }
+    expect(
+      partsOf(motion, lit("router", "agg", 2)).some((el) => roleOf(svg, el) === "blue"),
+      "光る呼び出しの管が呼び出しの色 (c-blue) でない",
+    ).toBe(true);
+    // 段の中で開いて閉じる呼び出しは、開いている間だけ光る
+    const during = Math.max(...timesIn(rendered, 4).map((t) => seen(motion, lit("agg", "pool1", 4), t)));
+    expect(during, "段 5 の中で Aggregator から Pool1 への管が光らない").toBeGreaterThan(0.9);
+    expect(seen(motion, lit("agg", "pool1", 4), stillOf(rendered, 4)), "段 5 の止め絵で戻った Aggregator から Pool1 への管が光る").toBeLessThan(0.1);
+  });
+
+  it("pipe-r6-gauge-on-pipe", () => {
+    const source = exampleJson("swap.json");
+    const rendered = render(source);
+    const { layout } = rendered;
+    const last = lastStep(source);
+    // 図の上に確認の印の列は描かない
+    expect(layout.checks, "図の上に確認の印がある").toEqual([]);
+    expect(layout.heads?.checks, "図の上の端に確認の行の字がある").toBeUndefined();
+    const motion = motionFrom(rendered as unknown as Rendered);
+    for (const [party, step, on] of [
+      ["router", 1, "call"],
+      ["usdc", 3, "value"],
+      ["pool", 8, "call"],
+    ] as const) {
+      const own = layout.gauges.filter((g) => g.party === party);
+      // 確かめた段の後も、針と通ったかの印を残す
+      expect(
+        own.map((g) => g.step),
+        `${party} の計器を描く段`,
+      ).toEqual(Array.from({ length: last - step + 1 }, (_, i) => step + i));
+      expect(own.every((g) => g.ok && g.on === on), `${party} の計器の結果と載せる管`).toBe(true);
+      const g = own[0];
+      if (!g) continue;
+      const mid: Point = [center(g), g.y + g.h / 2];
+      if (on === "call") {
+        const pipe = layout.calls.find((c) => c.to === party);
+        expect(onPath(mid, pipe?.points ?? []), `${party} の計器が ${party} を呼んだ管の上に無い`).toBe(true);
+      } else {
+        const bus = layout.buses.find((b) => b.token === "USDC");
+        expect(mid[0] > (bus?.x1 ?? Number.NaN) && mid[0] < (bus?.x2 ?? Number.NaN), "USDC の計器が値の管の横の範囲に無い").toBe(true);
+        expect(mid[1] < (bus?.y ?? Number.NaN) && (bus?.y ?? Number.NaN) - mid[1] <= 90, "USDC の計器が値の管の上に無い").toBe(true);
+      }
+      for (let s = step; s <= last; s++) {
+        const sel = `[data-pipe-gauge="${party}"][data-pipe-step="${s}"]`;
+        expect(seen(motion, sel, stillOf(rendered, s)), `段 ${s + 1} に ${party} の計器が見えない`).toBeGreaterThan(0.9);
+        const drawn = partsOf(motion, sel)[0] as Element;
+        expect(drawn.querySelector("[data-pipe-needle]"), `段 ${s + 1} の ${party} の計器に針が無い`).not.toBeNull();
+        expect(drawn.querySelector("[data-pipe-lamp]"), `段 ${s + 1} の ${party} の計器に通ったかの印が無い`).not.toBeNull();
+      }
+    }
+  });
+
+  it("pipe-r6-converter-between-tanks", () => {
+    const source = exampleJson("swap.json");
+    const rendered = render(source);
+    const { layout, svg } = rendered;
+    const last = lastStep(source);
+    const own = layout.converters.filter((c) => c.party === "pool");
+    expect(
+      own.map((c) => c.step),
+      "Pool の変換器を描く段",
+    ).toEqual(Array.from({ length: last + 1 }, (_, i) => i));
+    expect(
+      own.filter((c) => c.active).map((c) => c.step),
+      "Pool の変換器が計算する段",
+    ).toEqual([7]);
+    // 変換器は Pool の 2 つの槽の間に置く
+    const usdc = tankOf(layout, "pool", "USDC");
+    const weth = tankOf(layout, "pool", "WETH");
+    const [l, r] = usdc.x < weth.x ? [usdc, weth] : [weth, usdc];
+    for (const c of own) {
+      expect(center(c) > l.x + l.w && center(c) < r.x, `段 ${c.step + 1} の変換器が Pool の 2 つの槽の間に無い`).toBe(true);
+      const mid = c.y + c.h / 2;
+      expect(mid > Math.max(l.y, r.y) && mid < Math.min(l.y + l.h, r.y + r.h), `段 ${c.step + 1} の変換器が槽の横の高さに無い`).toBe(true);
+    }
+    // Pool の槽を点線の囲いで囲む
+    const housing = (layout.housings ?? []).find((h) => h.party === "pool");
+    expect(housing, "Pool の槽の囲いが無い").toBeDefined();
+    if (housing) for (const t of [usdc, weth]) expect(inside(t, housing), `Pool の ${t.token} の槽が囲いの中に無い`).toBe(true);
+    const motion = motionFrom(rendered as unknown as Rendered);
+    expect(
+      partsOf(motion, '[data-pipe-housing="pool"]').some((el) => dashed(svg, el)),
+      "Pool の槽の囲いが点線でない",
+    ).toBe(true);
+    // 計算する段で、変換器を値の色にする
+    expect(roleOf(svg, partsOf(motion, '[data-pipe-converter="pool"][data-pipe-step="7"]')[0] as Element), "計算する段の変換器が値の色 (c-amber) でない").toBe("amber");
+    expect(roleOf(svg, partsOf(motion, '[data-pipe-converter="pool"][data-pipe-step="6"]')[0] as Element), "計算しない段の変換器が値の色").not.toBe("amber");
+  });
+
+  it("pipe-r6-callout-per-step", () => {
+    /** 段の出来事のうち、吹き出しが出す 1 つ。取り消し、移す、確かめる、換算、戻る、呼ぶの順に先に来る物 */
+    const pick = (events: AnyEvent[]): AnyEvent | undefined => {
+      for (const type of ["revert", "move", "check", "calc", "return", "call"]) {
+        const found = events.find((e) => e.type === type);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const words = (e: AnyEvent): string[] => {
+      if (e.type === "revert") return e.reason ? [e.reason] : [];
+      if (e.type === "move") return [e.amount ?? ""];
+      if (e.type === "check") return [e.left ?? "", e.right ?? ""];
+      if (e.type === "calc") return [e.in ?? "", e.out ?? ""];
+      if (e.type === "return") return e.value ? [e.value] : [];
+      return e.label ? [e.label] : [];
+    };
+    for (const [name, rendered] of [
+      ["swap", render(exampleJson("swap.json"))],
+      ["swap-revert", render(exampleJson("swap-revert.json"))],
+      ["aggregator を開いた図", openedAggregator()],
+    ] as const) {
+      const { layout } = rendered;
+      const steps = drawnSteps(rendered);
+      steps.forEach((step, s) => {
+        const own = (layout.callouts ?? []).filter((c) => c.step === s);
+        expect(own.length, `${name} の段 ${s + 1} の吹き出しの数`).toBe(1);
+        const callout = own[0];
+        const event = pick(step.events);
+        if (!callout || !event) return;
+        expect(callout.kind, `${name} の段 ${s + 1} の吹き出しの種類`).toBe(event.type);
+        for (const word of words(event)) expect(`${callout.tag?.text ?? ""} ${callout.text.text}`, `${name} の段 ${s + 1} の吹き出しに ${word} が無い`).toContain(word);
+        // 名札と槽と槽の下の数に重ならない
+        const others: [string, Rect][] = [
+          ...layout.parties.map((p): [string, Rect] => [`名札 ${p.id}`, p]),
+          ...layout.tanks.map((t): [string, Rect] => [`${t.party} の ${t.token} の槽`, t]),
+          ...layout.levels
+            .filter((l) => l.step === s)
+            .flatMap((l): [string, Rect][] => [
+              [`${l.party} の ${l.token} の数`, l.text],
+              ...(l.was ? [[`${l.party} の ${l.token} の前の数`, l.was] as [string, Rect]] : []),
+              ...(l.tag ? [[`${l.party} の ${l.token} の語`, l.tag] as [string, Rect]] : []),
+            ]),
+        ];
+        for (const [what, rect] of others) expect(gap(callout, rect), `${name} の段 ${s + 1} の吹き出しが${what}に重なる`).toBeGreaterThan(0);
+      });
+    }
+  });
+
+  it("pipe-r6-motions", () => {
+    const rendered = render(exampleJson("swap.json"));
+    const motion = motionFrom(rendered as unknown as Rendered);
+    const startOf = (s: number): number => rendered.timeline.steps[s]?.start ?? Number.NaN;
+    // 呼び出しの段で、管が光って弁の取っ手が回る
+    const lit = '[data-pipe-branch="alice>router"][data-pipe-pipe="open"][data-pipe-step="0"]';
+    expect(seen(motion, lit, startOf(0)), "呼び出しの段の始まりに管が光っている").toBeLessThan(0.1);
+    expect(seen(motion, lit, stillOf(rendered, 0)), "呼び出しの段の止め絵で管が光らない").toBeGreaterThan(0.9);
+    const lever = partsOf(motion, '[data-pipe-lever="alice>router"][data-pipe-step="0"]');
+    expect(
+      lever.some((el) => changes(motion, el, "transform", startOf(0), stillOf(rendered, 0))),
+      "呼び出しの段で弁の取っ手が回らない",
+    ).toBe(true);
+    // move の段で、液が値の管を流れて槽の水位が変わる
+    const slug = partsOf(motion, '[data-pipe-slug][data-pipe-step="4"]');
+    const times = timesIn(rendered, 4);
+    expect(
+      slug.some((el) => times.some((t) => changes(motion, el, "transform", times[0] ?? 0, t))),
+      "move の段で液が値の管を流れない",
+    ).toBe(true);
+    const pool = partsOf(motion, '[data-pipe-level="pool"][data-pipe-token="USDC"][data-pipe-step="4"]');
+    expect(
+      pool.some((el) => changes(motion, el, "transform", startOf(4), stillOf(rendered, 4))),
+      "move の段で Pool の USDC の水位が動かない",
+    ).toBe(true);
+    // check の段で、計器の針が振れて印が付く
+    const needle = partsOf(motion, '[data-pipe-gauge="router"][data-pipe-step="1"] [data-pipe-needle]');
+    expect(
+      needle.some((el) => changes(motion, el, "transform", startOf(1), stillOf(rendered, 1))),
+      "check の段で計器の針が振れない",
+    ).toBe(true);
+    const lamp = '[data-pipe-gauge="router"][data-pipe-step="1"] [data-pipe-lamp]';
+    expect(seen(motion, lamp, startOf(1)), "check の段の始まりに印が付いている").toBeLessThan(0.1);
+    expect(seen(motion, lamp, stillOf(rendered, 1)), "check の段の止め絵に印が無い").toBeGreaterThan(0.9);
+  });
+
+  it("pipe-r6-wide-figure-keeps-text-size", () => {
+    const swap = render(exampleJson("swap.json"));
+    const crowd = openedAggregator();
+    const { layout, svg } = crowd;
+    // 縮めずに横に長い図のまま描く。列を畳まない
+    expect(layout.width, "aggregator を開いた図の幅").toBeGreaterThan(1200);
+    expect(layout.arrangement, "aggregator を開いた図の並べ方").toBe("wide");
+    expect(layout.columns.filter((c) => c.folded), "aggregator を開いた図で畳んだ列").toEqual([]);
+    // 関係者の名前を 1 字に略さない
+    const motion = motionFrom(crowd as unknown as Rendered);
+    for (const p of layout.parties) {
+      const named = partsOf(motion, `[data-pipe-party="${p.id}"]`);
+      for (const el of named)
+        expect(
+          [...el.querySelectorAll("text")].map((t) => t.textContent),
+          `${p.id} の名札の名前が略されている`,
+        ).toContain(p.name);
+    }
+    // 関係者の名前と槽の下の数を、見本 swap と同じ字の大きさで出す
+    const swapMotion = motionFrom(swap as unknown as Rendered);
+    const nameText = (m: Motion, id: string, name: string): Element =>
+      [...partsOf(m, `[data-pipe-party="${id}"] text`)].find((t) => t.textContent === name) as Element;
+    const swapName = fontPxOf(swap.svg, nameText(swapMotion, "alice", "Alice"));
+    expect(swapName, "見本 swap の名前の字の大きさ").toBeDefined();
+    for (const id of ["alice", "agg", "pool3", "bob"]) {
+      const p = partyOf(layout, id);
+      expect(fontPxOf(svg, nameText(motion, id, p.name)), `${id} の名前の字の大きさが見本 swap と違う`).toBe(swapName);
+    }
+    const swapNumber = levelOf(swap.layout, "alice", "USDC", 0).text.h;
+    for (const [party, token] of [
+      ["alice", "USDC"],
+      ["pool3", "WETH"],
+      ["bob", "WETH"],
+    ] as const)
+      expect(levelOf(layout, party, token, 0).text.h, `${party} の ${token} の数の字の大きさが見本 swap と違う`).toBeCloseTo(swapNumber, 6);
+    expect(swapNumber, "見本 swap の槽の下の数の字の高さ").toBeGreaterThanOrEqual(24);
+  });
+
+  it("pipe-r6-final-step-draws-all-tanks", () => {
+    const rendered = openedAggregator();
+    const { layout } = rendered;
+    const last = rendered.timeline.steps.length - 1;
+    const motion = motionFrom(rendered as unknown as Rendered);
+    for (const [party, token] of [
+      ["alice", "USDC"],
+      ["router", "WETH"],
+      ["bob", "WETH"],
+    ] as const) {
+      const glass = layout.glasses.find((g) => g.step === last && g.party === party && g.token === token);
+      expect(glass, `最後の段に ${party} の ${token} の槽が無い`).toBeDefined();
+      const tank = tankOf(layout, party, token);
+      expect(inside(tank, { x: 0, y: 0, w: layout.width, h: layout.height }), `${party} の ${token} の槽が図の外にはみ出す`).toBe(true);
+      levelOf(layout, party, token, last);
+      expect(
+        seen(motion, `[data-pipe-level="${party}"][data-pipe-token="${token}"][data-pipe-step="${last}"]`, stillOf(rendered, last)),
+        `最後の段に ${party} の ${token} の水が見えない`,
+      ).toBeGreaterThan(0.9);
+    }
+  });
+
+  it("pipe-default-palette-is-sea", () => {
+    const palettes = draw("PALETTES");
+    const sea = palettes.sea;
+    expect(sea, "色味 sea が値の表に無い").toBeDefined();
+    const source = exampleJson("swap.json");
+    for (const theme of ["light", "dark"] as const) {
+      // 色味を指定しない配管の図は sea で描く
+      const plain = draw("renderDiagram")(source, { theme });
+      expect(plain.palette, `色味を指定しない配管の図 (${theme}) の色味`).toBe("sea");
+      const vars = figureVars(plain.svg);
+      for (const key of ["bg", "ink", "c-blue", "c-amber", "c-green"]) expect(vars[key], `色味を指定しない配管の図 (${theme}) の ${key}`).toBe(sea?.[theme]?.[key]);
+      // 色味を指定した時はその色味で描く
+      const paper = draw("renderDiagram")(source, { theme, palette: "paper" });
+      expect(paper.palette, `色味 paper を指定した配管の図 (${theme}) の色味`).toBe("paper");
+      expect(figureVars(paper.svg)["c-blue"], `色味 paper を指定した配管の図 (${theme}) の c-blue`).toBe(palettes.paper?.[theme]?.["c-blue"]);
+    }
+    // 配管の図以外の図の既定の色味は変えない
+    expect(draw("renderDiagram")(exampleJson("oauth.json")).palette, "配管の図以外の図の既定の色味").toBe("paper");
+  });
+
+  it("pipe-r6-parts-live-in-blocks", () => {
+    const parts: [string, string[]][] = [
+      ["hold", ["tank", "valuePipe", "tokenBox", "valve"]],
+      ["check", ["gauge"]],
+      ["calc", ["converter"]],
+      ["write", ["plate"]],
+      ["box", ["avatar", "cabinet"]],
+    ];
+    const pipe = repoText("packages/dragon/src/render/pipe.ts");
+    expect(pipe, "packages/dragon/src/render/pipe.ts が無い").not.toBe("");
+    for (const [block, names] of parts) {
+      const path = `packages/dragon/src/blocks/${block}/draw.ts`;
+      const text = repoText(path);
+      expect(text, `${path} が無い`).not.toBe("");
+      // 部品はブロックの描き方が描き、配管の図の描き方はそれを呼んで組む
+      for (const name of names) {
+        expect(new RegExp(`export (?:function|const) ${name}\\b`, "u").test(text), `${path} が ${name} を描かない`).toBe(true);
+        expect(
+          new RegExp(`import \\{[^}]*\\b${name}\\b[^}]*\\} from "\\.\\./blocks/${block}/draw(?:\\.js)?"`, "u").test(pipe),
+          `render/pipe.ts が blocks/${block}/draw.ts の ${name} を呼ばない`,
+        ).toBe(true);
+      }
+    }
+    // 色は値の表から読み、描き方の中に色の値を直接書かない
+    for (const path of ["packages/dragon/src/render/pipe.ts", ...parts.map(([block]) => `packages/dragon/src/blocks/${block}/draw.ts`)]) {
+      const literal = /#[0-9a-fA-F]{3,8}\b(?![\w-])|\brgba?\(/u.exec(repoText(path).replace(/url\(#[\w-]+\)|href="#[\w-]+"|`#\$\{[^}]*\}`/gu, ""));
+      expect(literal?.[0], `${path} に色の値が直接書かれている`).toBeUndefined();
+    }
   });
 });

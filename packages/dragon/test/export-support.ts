@@ -337,6 +337,31 @@ export async function miniWorld(html: string, width: number): Promise<Rect> {
   });
 }
 
+/** 畳んだ箱を押す前と後の段の番号と、押した後の段の数 (#3398) */
+export interface Unfolded {
+  before: string;
+  after: string;
+  steps: number;
+}
+
+/**
+ * 書き出した配管の図の HTML を動きを嫌う設定で幅 `width` で開き、段の番号が `at` になるまで送ってから畳んだ箱を押す (#3398)。
+ * 箱は止め絵の中で押せる所に在るとは限らないので、押した知らせを箱に直に送る
+ */
+export async function unfoldedSteps(html: string, width: number, at: string): Promise<Unfolded> {
+  return withPage(html, { width, height: 2000 }, async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    const no = (): Promise<string> => page.evaluate(() => document.querySelector('[data-dragon="step-no"]')?.textContent ?? "");
+    const count = await page.locator('[data-dragon="steps"] > li').count();
+    for (let s = 0; s < count && (await no()) !== at; s++) await page.locator('[data-dragon="next"]').click();
+    const before = await no();
+    await page.locator("[data-pipe-fold]").first().dispatchEvent("click");
+    return { before, after: await no(), steps: await page.locator('[data-dragon="steps"] > li').count() };
+  });
+}
+
 /**
  * 四角の中の濃い点の重心。全体図では今見ている所の枠だけが墨の色で描かれる。
  * 動画のコマは CSS の px の `scale` 倍で撮られている。

@@ -458,3 +458,91 @@ describe("止めて置く、1 度だけ流す (#3200)", () => {
     }
   });
 });
+
+describe("試作の形の再生の操作 (#3398)", () => {
+  it("player-r6-controls", () => {
+    prefersReducedMotion(true);
+    for (const name of ["oauth.json", "swap.json"]) {
+      const diagram = exampleJson(name) as { steps: { title: string; body: string }[] };
+      const { host, player } = mount(diagram);
+      // やり直しの釦と、前と次の釦と、名前の付いた再生の釦を持つ
+      const names = [...host.querySelectorAll<HTMLButtonElement>("button[data-dragon]")].map((b) => b.dataset.dragon);
+      for (const want of ["restart", "prev", "toggle", "next"]) expect(names, `${name} の再生の操作に ${want} の釦が無い`).toContain(want);
+      const toggle = host.querySelector<HTMLButtonElement>('button[data-dragon="toggle"]');
+      expect(toggle?.textContent ?? "", `${name} の再生の釦に名前が無い`).toMatch(/\p{L}{2,}/u);
+      // 大きな段の題と、題の下の小さな段の説明文
+      const title = host.querySelector<HTMLElement>('[data-dragon="step-title"]');
+      const body = host.querySelector<HTMLElement>('[data-dragon="step-body"]');
+      expect(title && body, `${name} の段の題か説明文が無い`).toBeTruthy();
+      if (!title || !body) continue;
+      const size = (el: HTMLElement): number => Number.parseFloat(getComputedStyle(el).fontSize);
+      expect(size(title), `${name} の段の題の字の大きさ`).toBeGreaterThanOrEqual(20);
+      expect(size(title), `${name} の段の題が説明文より大きくない`).toBeGreaterThanOrEqual(1.4 * size(body));
+      expect(title.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING, `${name} の段の説明文が題の下に無い`).toBeTruthy();
+      // 段ごとに分けた進み具合の帯。済んだ段と今の段とまだの段を分ける
+      const segments = (): string[] =>
+        [...host.querySelectorAll<HTMLElement>('[data-dragon="progress"] [data-dragon="segment"]')].map((el) => el.dataset.state ?? "");
+      const want = (now: number): string[] => diagram.steps.map((_, i) => (i < now ? "done" : i === now ? "now" : "todo"));
+      expect(segments(), `${name} の進み具合の帯の最初の段`).toEqual(want(0));
+      click(host, "next");
+      click(host, "next");
+      expect(segments(), `${name} の進み具合の帯の 3 段目`).toEqual(want(2));
+      // やり直しの釦で最初の段へ戻る
+      click(host, "restart");
+      expect(player.step, `${name} のやり直しの釦で最初の段へ戻らない`).toBe(0);
+      expect(segments(), `${name} のやり直した後の進み具合の帯`).toEqual(want(0));
+    }
+  });
+
+  it("player-pans-wide-figure", () => {
+    prefersReducedMotion(true);
+    const source = exampleJson("aggregator.json");
+    const frame = 1200;
+    const host = document.createElement("div");
+    Object.defineProperty(host, "clientWidth", { value: frame });
+    document.body.appendChild(host);
+    const player = draw("mountDiagram")(host, source, { open: [2] });
+    players.push(player);
+    const drawn = draw("renderDiagram")(source, { open: [2], width: frame }) as unknown as {
+      layout: { width: number; parties: { id: string; x: number; w: number }[] };
+      diagram: { steps: { events: { from?: string; to?: string; box?: string }[] }[] };
+    };
+    const { layout } = drawn;
+    expect(layout.width, "aggregator を開いた図の幅").toBeGreaterThan(frame);
+    // 図を縮めずに枠の中を横に送る。手でも横に動かせる
+    const pan = host.querySelector<HTMLElement>('[data-dragon="pan"]');
+    expect(pan, "横に送る枠が無い").not.toBeNull();
+    if (!pan) return;
+    expect(["auto", "scroll"], "横に送る枠を手で動かせない").toContain(pan.style.overflowX || getComputedStyle(pan).overflowX);
+    const svg = pan.querySelector("svg");
+    expect(Number.parseFloat(svg?.style.width || svg?.getAttribute("width") || ""), "横に送る枠の中の図が縮んでいる").toBeCloseTo(layout.width, 0);
+    // 図の下の細い線が、全体のどこを見ているかを示す
+    const thumb = host.querySelector<HTMLElement>('[data-dragon="overview"] [data-dragon="overview-thumb"]');
+    expect(thumb, "全体のどこを見ているかを示す線が無い").not.toBeNull();
+    const steps = drawn.diagram.steps;
+    expect(steps.length, "aggregator を開いた図の段の数").toBe(14);
+    const rectOf = new Map(layout.parties.map((p) => [p.id, p]));
+    steps.forEach((step, s) => {
+      player.goTo(s);
+      const left = pan.scrollLeft;
+      expect(left >= 0 && left <= layout.width - frame + 1, `段 ${s + 1} の送った位置が図の外`).toBe(true);
+      // 段を進めると、その段に関わる関係者の所へ送る
+      const ids = [...new Set(step.events.flatMap((e) => [e.from, e.to, e.box]).filter((id): id is string => id !== undefined))];
+      const rects = ids.flatMap((id) => rectOf.get(id) ?? []);
+      expect(rects.length, `段 ${s + 1} に関わる関係者が並べた図に無い`).toBeGreaterThan(0);
+      const lo = Math.min(...rects.map((r) => r.x));
+      const hi = Math.max(...rects.map((r) => r.x + r.w));
+      if (hi - lo <= frame) expect(lo >= left - 1 && hi <= left + frame + 1, `段 ${s + 1} に関わる関係者が枠の中に無い`).toBe(true);
+      else expect(left + frame / 2 >= lo && left + frame / 2 <= hi, `段 ${s + 1} の枠の真ん中が関わる関係者の間に無い`).toBe(true);
+      expect(Number.parseFloat(thumb?.style.left ?? ""), `段 ${s + 1} の全体の線の位置`).toBeCloseTo((left / layout.width) * 100, 0);
+      expect(Number.parseFloat(thumb?.style.width ?? ""), `段 ${s + 1} の全体の線の幅`).toBeCloseTo((frame / layout.width) * 100, 0);
+    });
+    // 手で動かした時も、全体の線が見ている所に付いていく
+    pan.scrollLeft = 0;
+    pan.dispatchEvent(new Event("scroll"));
+    expect(Number.parseFloat(thumb?.style.left ?? ""), "手で左の端へ動かした後の全体の線の位置").toBeCloseTo(0, 0);
+    // 枠に収まる図は横に送らない
+    const small = mount(exampleJson("swap.json"));
+    expect(small.host.querySelector('[data-dragon="overview"]'), "枠に収まる図に全体の線がある").toBeNull();
+  });
+});

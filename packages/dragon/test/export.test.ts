@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
-import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, readGif, runCli } from "./export-support";
+import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, readGif, runCli, unfoldedSteps } from "./export-support";
 import { draw } from "./render-support";
 
 
@@ -352,6 +352,22 @@ describe("書き出し (#2986)", () => {
           expect(await captionSteps(html, 1280), `${kind} の書き出した HTML で送れた段の数`).toHaveLength(diagram.steps.length);
         }),
       );
+    },
+  );
+});
+
+describe("書き出した配管の図の畳んだ箱 (#3398)", () => {
+  it(
+    "export-pipe-opens-inner-steps",
+    async () => {
+      // 書き出しが内側の段を 1 段にまとめた後の原本を収めると、押しても段が分かれない
+      const exportDiagram = await exporter();
+      const result = await exportDiagram(exampleJson("aggregator.json"), { outDir: scratch(), formats: ["html"] });
+      const html = readFileSync(result.files.html as string, "utf8");
+      const seen = await unfoldedSteps(html, 1280, "03/08");
+      expect(seen.before, "畳んだ箱の段の番号").toBe("03/08");
+      expect(seen.after, "畳んだ箱を押した後の段の番号").toBe("04/14");
+      expect(seen.steps, "畳んだ箱を押した後の段の数").toBe(14);
     },
   );
 });
