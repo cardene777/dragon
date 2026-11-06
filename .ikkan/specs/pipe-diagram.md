@@ -37,7 +37,7 @@
 | トークンの箱は、`hold`で宣言したその箱の値(許可額など)を名前の下に書き、`write`の段で前の値を消し線で残す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-token-box-holds-values`が通る | #3398 |
 | 槽は、つやと5本の目盛りとトークンの名前を持ち、下に3桁ごとに区切った大きな数を出し、変わった段から確定するまで前の値の消し線と暫定の語を、確定した後は確定の語を添える | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-tank-parts`が通る | #3398 |
 | 同じ関係者から出る呼び出しの管は1本の本管と呼ぶ相手ごとの枝で描き、弁は枝の根元に置き、まだ戻っていない呼び出しの管だけを光らせる(見本aggregatorの箱を開いた図のAggregator) | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-calls-share-a-main`が通る | #3398 |
-| `check`の計器は、トークンのContractが確かめる時は値の管の上に、ほかの関係者が確かめる時はその関係者を呼んだ管の上に描き、確かめた段の後も針と通ったか落ちたかの印を残す。図の上に確認の印の列は描かない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-gauge-on-pipe`が通る | #3398 |
+| `check`の計器は、トークンのContractが確かめる時と、確かめた者がその後に払うトークンの単位を式が持つ時(見本swapのPoolの最低額の確認)は値の管の上に、ほかの確認は確かめる関係者を呼んだ管の上に描き、確かめた段の後も針と通ったか落ちたかの印を残す。値の管の計器の式は管が運ぶ単位を外して書く。図の上に確認の印の列は描かない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-gauge-on-pipe`が通る | #3398 |
 | `calc`を行う関係者の2つの槽の間に変換器を描き、その関係者の槽を点線の囲いで囲み、計算する段で変換器を値の色にする | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-converter-between-tanks`が通る | #3398 |
 | どの段でも、その段の動き(移した量、確かめた式、換算、戻った値、呼び出しの字のどれか)を吹き出し1つで出し、吹き出しは名札と槽と槽の下の数に重ならない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-callout-per-step`が通る | #3398 |
 | 呼び出しの段で管が光って弁の取っ手が回り、`move`の段で液が値の管を流れて槽の水位が変わり、`check`の段で計器の針が振れて印が付く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-motions`が通る | #3398 |
