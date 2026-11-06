@@ -23,9 +23,9 @@ A diagram kind decides only how its blocks are laid out and which ways of attach
 Which blocks a diagram can use follows from how each block attaches.
 Colors, text sizes, and spacing live in one table, and every block reads from it, so every diagram has the same look.
 
-Blocks and diagram kinds can be added to grow dragon.
-For now, add them with a pull request to this repository or in a fork.
-There is no way yet for users to add their own blocks in their own projects, and it opens once the shape of blocks settles.
+You can also add your own blocks in your own project.
+Base one on a box, a line, or an icon, change its shape and color role, and write it as a definition made of data only ([Add your own blocks](https://github.com/cardene777/dragon/blob/main/packages/dragon/README.md#add-your-own-blocks)).
+To add diagram kinds or more blocks to base on, send a pull request to this repository or work in a fork.
 
 The other axis is to be as easy as mermaid to write, and to show the diagram right away.
 
@@ -171,6 +171,72 @@ Drawing a kind that has not been loaded stops with an error that names the kind,
 If loading fails, `loadFor` and `loadKind` reject, and the next call loads it again.
 `sequence` and `architecture` and their blocks are there from the start, so they read and draw without loading anything.
 Mixing it with the default entry on one page puts every kind's renderer on the page.
+
+## Add your own blocks
+
+You can add your own blocks in your own project by basing one on a box, a line, or an icon and changing its shape and color role.
+A block keeps the placement, the motion, and the diagram kinds of the block it is based on, and reads its colors from the palette table, so it looks like every other block.
+
+Write definitions after a `blocks 1` line, each from `block +<name>` to `end`.
+Start the name with `+`.
+If dragon later adds a block of the same name, your diagrams keep their meaning.
+
+```text
+architecture Across the bridge
+
+blocks 1
+block +bridge
+  base box
+  shape path "M 0 70 Q 50 0 100 70 Z"
+  color violet
+end
+block +wire
+  base edge
+  shape dashed
+  color amber
+end
+
+box eth as Ethereum
++bridge cc as CCIP
+box base as Base
+
+step Send
+  say The token goes to the bridge.
+  eth -> cc: send
+
+step Hand over
+  say The bridge hands the token over.
+  cc +wire base: hand over
+```
+
+| Base (`base`) | How to write it | Shape (`shape`) | Color (`color`) |
+|---|---|---|---|
+| `box` | Write `+<name>` in place of `box` on a box line | `round` / `circle` / `cylinder` / `diamond` / `hexagon`, or `path "…"` drawn in a 100 by 100 square | A color role |
+| `edge` | Write `+<name>` in place of `->` on a line | `solid` / `dashed` / `dotted` | A color role |
+| `icon` | Write `[icon: +<name>]` on a box line | `path "…"` drawn in a 20 by 20 square centered on (0, 0) | The color of its box |
+
+A definition is data only, and a path takes only path syntax (commands, numbers, and separators).
+It cannot hold URLs, code, or SVG elements, so reading a definition someone else wrote runs nothing.
+A definition without the version line (`blocks 1`), or with an unknown version, is refused.
+
+Definitions are read in three places.
+
+- At the head of a diagram, for that diagram only
+- In a file the page reads with `<link rel="dragon-blocks" href="bridge.dragon">`, for every notation block on the page
+- In code, read with `readBlocks` and passed as the `blocks` option of `parseNotation` and `renderDiagram`
+
+```ts
+import { parseNotation, readBlocks, renderDiagram } from "@cardenelabs/dragon";
+
+// Pass notation text, or JSON shaped as { "format": 1, "blocks": [...] }
+const read = readBlocks(definition);
+if (read.ok) {
+  const parsed = parseNotation(notation, { blocks: read.blocks });
+  if (parsed.ok) renderDiagram(parsed.diagram, { blocks: read.blocks });
+}
+```
+
+To add diagram kinds or more blocks to base on, send a pull request to this repo or work in a fork.
 
 ## Notation
 

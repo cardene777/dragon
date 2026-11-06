@@ -29,9 +29,9 @@ A diagram kind decides only how its blocks are laid out and which ways of attach
 Which blocks a diagram can use follows from how each block attaches.
 Colors, text sizes, and spacing live in one table, and every block reads from it, so every diagram has the same look.
 
-Blocks and diagram kinds can be added to grow dragon.
-For now, add them with a pull request to this repository or in a fork.
-There is no way yet for users to add their own blocks in their own projects, and it opens once the shape of blocks settles.
+You can also add your own blocks in your own project.
+Base one on a box, a line, or an icon, change its shape and color role, and write it as a definition made of data only ([Add your own blocks](https://github.com/cardene777/dragon/blob/main/packages/dragon/README.md#add-your-own-blocks)).
+To add diagram kinds or more blocks to base on, send a pull request to this repository or work in a fork.
 
 The other axis is to be as easy as mermaid to write, and to show the diagram right away.
 

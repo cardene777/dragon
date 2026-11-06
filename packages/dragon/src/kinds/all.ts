@@ -8,6 +8,8 @@ import * as git from "./git";
 import * as lineup from "./lineup";
 import * as pipe from "./pipe";
 import { registerKind } from "./registry";
+import { registerUserBlockReader } from "../user-blocks";
+import { USER_BLOCK_READER } from "../user-blocks-read";
 import * as state from "./state";
 import * as time from "./time";
 import * as tree from "./tree";
@@ -22,3 +24,6 @@ registerKind("tree", tree);
 registerKind("try", tryKind);
 
 for (const [name, reading] of Object.entries(READINGS)) registerReading(name, reading);
+
+// 使う人が足すブロックの定義を読む処理 (#3399)。軽い入口は定義の行を持つ図の時だけ後から読む
+registerUserBlockReader(USER_BLOCK_READER);

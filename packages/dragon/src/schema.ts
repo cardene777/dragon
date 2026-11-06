@@ -12,6 +12,7 @@
  * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false, messages: false }` で行う。
  * ajv の英語の文は書き出さないので、誤りの `message` は持たない。
  */
+import type { UserBlocks } from "./user-blocks";
 import type { ErrorObject } from "ajv";
 import type { GitBranch } from "./blocks/branch/block";
 import type { Carry } from "./blocks/carry/block";
@@ -65,13 +66,15 @@ export interface Box {
   link?: string;
   /** 列の図の箱の並べ方 (#3351)。`none` は順番の無い置き場で、書かない箱は上から実行する札 */
   order?: "none";
+  /** 使う人が足した、箱を元にしたブロックの名前 (#3399)。形と色はその定義から読む */
+  block?: string;
 }
 
 /** 見せ方。`fixed` は全体を止めて中だけ動かし、`follow` は寄って動かし全体図で今どこかを示す。 */
 export type ViewMode = "fixed" | "follow";
 
 export type DiagramEvent =
-  | { type: "edge"; from: string; to: string; label?: string; carry: Carry; labelSide?: LabelSide; at?: number; into?: number }
+  | { type: "edge"; from: string; to: string; label?: string; carry: Carry; labelSide?: LabelSide; at?: number; into?: number; block?: string }
   | { type: "action"; box: string; label: string }
   | { type: "swap"; box: string; text: string; color?: Color }
   | { type: "strip"; field: string; value?: string; tag?: string }
@@ -243,6 +246,8 @@ export interface Diagram {
   kind: DiagramKind;
   title: string;
   view?: ViewMode;
+  /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
+  define?: UserBlocks;
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -257,6 +262,8 @@ export interface DiagramModel {
   kind: DiagramKind;
   title: string;
   view?: ViewMode;
+  /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
+  define?: UserBlocks;
   regions?: Region[];
   boxes: Box[];
   strip?: Strip;

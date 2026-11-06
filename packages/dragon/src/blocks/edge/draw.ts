@@ -11,6 +11,10 @@ import type { Frame } from "../../render/motion";
 import { arrowHead, type Ctx, pathOf } from "../../render/parts";
 import { cs } from "../color/draw";
 import type { EdgeTime } from "../../timeline";
+import { userEdgeOf } from "../../user-blocks";
+
+/** 使う人が足した線のブロックの、線の形ごとの点線の模様 (#3399)。実線は模様を持たない */
+const USER_DASH: Readonly<Record<string, string>> = { dashed: "8 6", dotted: "1.5 5" };
 
 /**
  * 線。点線で道を見せておき、その段で色の線を引いて、段の終わりまで流れる点で向きを見せる。
@@ -59,9 +63,17 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false, since
     [m.total, { opacity: 0, "stroke-dashoffset": run }],
   ]);
   const grey = past ? m.kf([[0, { opacity: 0 }], [end, { opacity: 0 }, EASE.inOut], [end + 0.4, { opacity: 1 }], [m.last, { opacity: 1 }, EASE.inOut], [m.total, { opacity: 0 }]]) : "";
-  const path = `<path class="dg-e" d="${d}"/><path class="dg-eh" d="${head}"/>`;
+  // 使う人が足した線のブロックの線は、その定義の色の役と点線の模様で描く。点線の線は引き終えた形で現れる (#3399)
+  const added = userEdgeOf(e.step, e.event);
+  const dash = added?.shape === undefined ? undefined : USER_DASH[added.shape];
+  const dashed = dash === undefined ? "" : ` stroke-dasharray="${dash}"`;
+  const path = `<path class="dg-e" d="${d}"${dashed}/><path class="dg-eh" d="${head}"/>`;
+  const on =
+    dash === undefined
+      ? `<path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}"/>`
+      : `<path class="dg-e-on dg-a" d="${d}" style="${line};stroke-dasharray:${dash}"/>`;
   return {
-    base: `${since > 0 ? `<g class="dg-a" style="${m.vis(since)}">${path}</g>` : path}${past ? `<path class="dg-e-past dg-a" d="${d}" style="${grey}"/><path class="dg-eh-past dg-a" d="${head}" style="${grey}"/>` : ""}`,
-    lit: `<g style="${cs(e.color)}"><path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}"/><path class="dg-eh-on dg-a" d="${head}" style="${hk}"/><path class="dg-flow dg-a" d="${d}" style="${flow}"/></g>`,
+    base: `${since > 0 ? `<g class="dg-a" style="${m.vis(since)}">${path}</g>` : path}${past ? `<path class="dg-e-past dg-a" d="${d}"${dashed} style="${grey}"/><path class="dg-eh-past dg-a" d="${head}" style="${grey}"/>` : ""}`,
+    lit: `<g style="${cs(added?.color ?? e.color)}">${on}<path class="dg-eh-on dg-a" d="${head}" style="${hk}"/><path class="dg-flow dg-a" d="${d}" style="${flow}"/></g>`,
   };
 }

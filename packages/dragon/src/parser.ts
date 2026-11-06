@@ -107,6 +107,7 @@ import { fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
 import type { Diagram, DiagramModel, Step } from "./schema";
 import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
+import { defineUserBlocks, type UserBlock, UserBlockFailure, type UserBlocks, userBlock, userBlockReader, versionLine, withUserBlocks } from "./user-blocks";
 import { ATTRS, DEFAULT_LANG, HEADS, KINDS, type NotationLang, OLD_HEADS } from "./words";
 
 /** 読み方の手続きの名前 */
@@ -123,7 +124,14 @@ export type Parsed = { ok: true; diagram: Diagram } | { ok: false; errors: LineE
 export interface ParseOptions {
   /** 誤りの文の言葉。既定は英語 (#3338) */
   lang?: NotationLang;
+  /** 図の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物 */
+  blocks?: UserBlocks;
 }
+
+/** 段の中の、足した線のブロックで結ぶ線の行。名札、`+<名前>`、名札 (#3399) */
+const USER_EDGE = /^([^\s:[\]]+?)\s+(\+[^\s:[\]]*)\s+([^\s:[\]]+)/du;
+/** 行の頭の `+` で始まる語 (#3399) */
+const USER_HEAD = /^\+[^\s:[\]]*/u;
 
 /**
  * 前の形 (#2997 まで) の行なら、その印と、新しい形で書く行の形。`inStep` は段の中の行か。
@@ -165,7 +173,7 @@ const LINEUP_OR_TRY = ["item", "line"];
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
-function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
+function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
   const head = lines[headAt];
   if (!head) throw new NotationError(1, 1, m.noHead);
@@ -295,11 +303,61 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
   const taken = (source: SourceLine, line: LineView): boolean =>
     own.some(({ block, reading }) => reading.take !== undefined && (block.lines ?? []).some((match) => matches(match, line)) && reading.take(source, state, line));
 
+  /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
+  const define: UserBlock[] = [];
+  /** 名前 `name` の足したブロックの定義。無いか、元のブロックが `want` でなければ、行の `at` の字を指して止める */
+  const added = (source: SourceLine, name: string, at: number, want: UserBlock["base"]): UserBlock => {
+    const found = userBlock(name);
+    if (!found) throw fail(source, at, m.userBlocks.undefinedBlock(name));
+    if (found.base !== want) throw fail(source, at, m.userBlocks.wrongBase(name, found.base, want));
+    return found;
+  };
+
   const rest = lines.slice(headAt + 1);
   for (let i = 0; i < rest.length; i++) {
     const source = rest[i];
     if (!source || isBlankOrComment(source)) continue;
     const text = source.text;
+    // 使う人が足すブロック (#3399)。定義の並びと、`+` の語で書いた箱と線の行は、行の頭の語より先に読む。
+    // `block` と `blocks` は名札にも書けるので、名札の次に `->` が来る行は線と読む (CCIP の見本の `block -> Verifier`)
+    const named = EDGE.test(text);
+    if (!named && versionLine(source) !== undefined) {
+      beforeSteps(source);
+      // 定義を読む処理は後から読む (軽い入口は `loadFor` が読む)。読んでいなければ止める
+      const reader = userBlockReader();
+      if (reader === undefined) throw fail(source, 0, m.blockNotLoaded("blocks"));
+      const read = reader.readBlockLines(rest, i, lang, new Set(define.map((b) => b.name)));
+      define.push(...read.blocks);
+      defineUserBlocks(read.blocks);
+      i = read.next - 1;
+      continue;
+    }
+    if (!named && /^block(?:\s|$)/u.test(text)) throw fail(source, 0, m.userBlocks.versionMissing);
+    const userHead = USER_HEAD.exec(text)?.[0];
+    if (userHead !== undefined) {
+      added(source, userHead, 0, "box");
+      // 箱の行として読む。名前の分だけ列をずらし、後ろの字の誤りが元の行の列を指すようにする
+      const asBox: SourceLine = { ...source, text: `box${text.slice(userHead.length)}`, column: source.column + Array.from(userHead).length - "box".length };
+      const before = boxes.length;
+      headReaders().get("box")?.(asBox, state, (offset) => rest[i + offset]);
+      for (const box of boxes.slice(before)) box.block = userHead;
+      continue;
+    }
+    const userEdge = USER_EDGE.exec(text);
+    if (userEdge) {
+      const [from, name] = [userEdge[1] ?? "", userEdge[2] ?? ""];
+      const at = userEdge.indices?.[2]?.[0] ?? from.length;
+      added(source, name, at, "edge");
+      // 線の行として読む。名前を同じ長さの矢印に替え、後ろの字の誤りが元の行の列を指すようにする
+      const arrow = `->${" ".repeat(Math.max(0, name.length - 2))}`;
+      const asEdge: SourceLine = { ...source, text: `${text.slice(0, at)}${arrow}${text.slice(at + name.length)}` };
+      const edge = EDGE.exec(asEdge.text);
+      if (!edge) throw fail(source, at, m.edgeShape);
+      const read = readEdgeLine(asEdge, edge, state);
+      read.block = name;
+      for (const after of hooks("afterEdge")) after(read, state);
+      continue;
+    }
     const line = lineView(text, building !== undefined);
     needed(source, line);
     // 行の頭の語でなく行の形で読む行 (時間軸の図の針、状態遷移図の道、枝を切る行、試す図のチップと中身と線) は、その行を読むブロックが先に読む
@@ -342,6 +400,7 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
     kind,
     title,
     ...(view ? { view } : {}),
+    ...(define.length > 0 ? { define: { format: 1, blocks: define } } : {}),
     ...(regions.length > 0 ? { regions } : {}),
     boxes,
     ...(figure.strip ? { strip: figure.meters.length > 0 ? { ...figure.strip, meters: figure.meters } : figure.strip } : {}),
@@ -366,10 +425,12 @@ function parseLines(lines: SourceLine[], m: Messages): DiagramModel {
 }
 
 export function parseNotation(notation: string, options: ParseOptions = {}): Parsed {
+  const lang = options.lang ?? DEFAULT_LANG;
   try {
-    return { ok: true, diagram: fromModel(parseLines(tokenize(notation), messagesFor(options.lang ?? DEFAULT_LANG)), FORMAT_VERSION) };
+    // 引数で渡した定義と図の頭の定義は、読んでいる間だけ有効にする (#3399)
+    return withUserBlocks([options.blocks], () => ({ ok: true, diagram: fromModel(parseLines(tokenize(notation), messagesFor(lang), lang), FORMAT_VERSION) }));
   } catch (error) {
-    if (!(error instanceof NotationError)) throw error;
+    if (!(error instanceof NotationError) && !(error instanceof UserBlockFailure)) throw error;
     return { ok: false, errors: [{ line: error.line, column: error.column, message: error.message }] };
   }
 }

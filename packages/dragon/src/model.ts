@@ -62,6 +62,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     kind: model.kind,
     title: model.title,
     ...(model.view !== undefined ? { view: model.view } : {}),
+    ...(model.define !== undefined ? { define: model.define } : {}),
     blocks,
     steps: model.steps,
   };
@@ -85,6 +86,7 @@ export function toModel(diagram: Diagram): DiagramModel {
       kind: diagram.kind,
       title: diagram.title,
       ...(diagram.view !== undefined ? { view: diagram.view } : {}),
+      ...(diagram.define !== undefined ? { define: diagram.define } : {}),
       boxes,
       steps: diagram.steps,
       try: { parts: b.part ?? [], items: (b.item ?? []) as TryItem[] },
@@ -94,6 +96,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     kind: diagram.kind,
     title: diagram.title,
     ...(diagram.view !== undefined ? { view: diagram.view } : {}),
+    ...(diagram.define !== undefined ? { define: diagram.define } : {}),
     ...(b.group !== undefined ? { regions: b.group } : {}),
     boxes,
     ...(b.strip !== undefined ? { strip: b.strip } : {}),

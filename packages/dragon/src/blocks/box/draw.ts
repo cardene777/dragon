@@ -14,6 +14,7 @@ import type { Motion } from "../../render/motion";
 import { activeKf, type Ctx, esc, r1, rangeKf, write } from "../../render/parts";
 import type { Span } from "../../timeline";
 import { cs } from "../color/draw";
+import { type UserBlock, userBoxOf } from "../../user-blocks";
 import { drawsIcon, glyph } from "../icon/draw";
 
 /** 箱の名前 (`name`) と下の字 (`sub`) の基準線の、箱の真ん中からの下がり */
@@ -74,9 +75,55 @@ export function subLines(
     .join("");
 }
 
+/**
+ * 使う人が足した箱のブロックの形 (#3399)。箱の枠 (`x`、`y`、`w`、`h`) に収め、地と縁と光は今の箱と同じ class で描く。
+ * path は 100 四方に描いた形を枠の大きさへ伸ばし、縁の太さは伸ばさない。形を持たない定義は今の箱の形で描く
+ */
+function userShape(added: UserBlock, cls: string, extra: string, x: number, y: number, w: number, h: number): string | undefined {
+  const attrs = ` class="${cls}"${extra}`;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const points = (list: [number, number][]): string => `<polygon${attrs} points="${list.map(([px, py]) => `${r1(px)},${r1(py)}`).join(" ")}"/>`;
+  if (added.path !== undefined)
+    return `<path${attrs} d="${added.path}" transform="translate(${r1(x)} ${r1(y)}) scale(${r1(w / 100)} ${r1(h / 100)})" vector-effect="non-scaling-stroke"/>`;
+  switch (added.shape) {
+    case "round":
+      return `<rect${attrs} x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${r1(h / 2)}"/>`;
+    case "circle":
+      return `<ellipse${attrs} cx="${r1(cx)}" cy="${r1(cy)}" rx="${r1(w / 2)}" ry="${r1(h / 2)}"/>`;
+    case "cylinder": {
+      const ry = Math.min(h / 6, 10);
+      const rx = w / 2;
+      return `<path${attrs} d="M ${r1(x)} ${r1(y + ry)} A ${r1(rx)} ${r1(ry)} 0 0 1 ${r1(x + w)} ${r1(y + ry)} V ${r1(y + h - ry)} A ${r1(rx)} ${r1(ry)} 0 0 1 ${r1(x)} ${r1(y + h - ry)} Z M ${r1(x)} ${r1(y + ry)} A ${r1(rx)} ${r1(ry)} 0 0 0 ${r1(x + w)} ${r1(y + ry)}"/>`;
+    }
+    case "diamond":
+      return points([
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ]);
+    case "hexagon": {
+      const k = Math.min(h / 2, w / 4);
+      return points([
+        [x + k, y],
+        [x + w - k, y],
+        [x + w, cy],
+        [x + w - k, y + h],
+        [x + k, y + h],
+        [x, cy],
+      ]);
+    }
+    default:
+      return undefined;
+  }
+}
+
 /** 箱の地と縁。上端 `y` から高さ `h`。動く段 (`act` の間) は縁に色を付け、外側に淡い光を足す。 */
 function cardFrame(box: SceneBox, ctx: Ctx, act: string | undefined, y: number, h: number): string {
+  const added = userBoxOf(box.id);
   const rect = (cls: string, extra = ""): string =>
+    (added ? userShape(added, cls, extra, box.x, y, box.w, h) : undefined) ??
     frameShape(
       ctx.corner,
       ` class="${cls}"${extra}`,
@@ -126,8 +173,9 @@ export function card(
     });
     mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${partRadius(ctx.corner, iconRadius)}"/>${glyph(box.icon, ix, box.cy + iconY, iconScale)}`;
   }
+  // 足した箱のブロックの箱は、その定義の色の役で描く (#3399)
   return (
-    `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
+    `<g style="${cs(userBoxOf(box.id)?.color ?? box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
     `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + ctx.boxText.name, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`
   );
 }

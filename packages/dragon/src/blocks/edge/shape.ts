@@ -22,6 +22,7 @@ export const shape: BlockShape = {
         labelSide: { description: "線の名前を置く側 (寄せの指示)", enum: ["above", "below", "left", "right"] },
         at: { description: "時間軸の図の拡大の帯で、線を引く列の目盛り", $ref: "#/definitions/unit" },
         into: { description: "時間軸の図の拡大の帯で、受ける箱を選ぶ列の目盛り。書かなければ at の列", $ref: "#/definitions/unit" },
+        block: { description: "使う人が足した、線を元にしたブロックの名前。線の形と色はその定義から読む", $ref: "#/definitions/userBlockName" },
       },
     },
   },

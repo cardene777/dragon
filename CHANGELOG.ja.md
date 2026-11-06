@@ -8,6 +8,12 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **使う人が自分の手元でブロックを足せるようにした** (#3399)
+
+  今の箱と線と印のどれかを元にして、形と色の役を替えたブロックを足す。定義は `blocks 1` の行の後に `block +<名前>` から `end` までで書くか、`"format": 1` の JSON で書き、図では `box` の代わり、`->` の代わり、`[icon: +<名前>]` に `+<名前>` を書く。
+  形は基本の形の名前 (箱は `round`、`circle`、`cylinder`、`diamond`、`hexagon`、線は `solid`、`dashed`、`dotted`) か、path の文法の字だけの `path` で書く。足したブロックは元のブロックの置き場所と動きのまま、色を色味の表から読む。
+  定義は図の頭、頁の `<link rel="dragon-blocks">`、新しい `readBlocks` で読んで `parseNotation` と `renderDiagram` の引数 `blocks` に渡す形の 3 つで読む。版の行の無い定義と、URL と code と SVG の要素を持つ定義は断る。
+
 - **1 つのトランザクションの中の呼び出しと残高と記録の値を段ごとに追う配管の図 (`pipe`) を足した** (#3389)
 
   1 行目を `pipe` にし、関係者を `box` で宣言する。送り手、Contract、トークンの Contract、口座のどれかは行から決まる。

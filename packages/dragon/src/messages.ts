@@ -10,6 +10,7 @@
 import { cachedByReadings, loadedReadings } from "./blocks/reading";
 import type { READINGS } from "./blocks/readings";
 import { list } from "./read-kit";
+import { type UserBlockUseMessages, userBlockUseMessages } from "./user-blocks";
 import { HEADS, KINDS, type NotationLang } from "./words";
 
 /** 新しい形のどの行の書き方を示すか。前の形の行に当たった時に、誤りの文が書き方を示す */
@@ -65,6 +66,8 @@ export interface CoreMessages {
   pipeOnlyAttr: (key: string) => string;
   /** 軽い入口で、まだ読んでいないブロック `block` の行か原本を読んだ。`loadFor` を待てば読める (#3349) */
   blockNotLoaded: (block: string) => string;
+  /** 使う人が足すブロックの定義と、`+` の語の行の誤りの文 (#3399) */
+  userBlocks: UserBlockUseMessages;
 }
 
 /** 持っている読み方が持つ `lang` の誤りの文を 1 つの表に束ねる */
@@ -116,6 +119,7 @@ const ja = (): Messages => {
     pipeOnly: (word) => `${word} の行は pipe (配管の図) でだけ書ける`,
     pipeOnlyAttr: (key) => `${key} は pipe (配管の図) の呼び出しの行にだけ書ける`,
     blockNotLoaded: (block) => `${block} のブロックの読み方を読んでいない。読む前に loadFor を待つ`,
+    userBlocks: userBlockUseMessages("ja"),
   };
 };
 
@@ -164,6 +168,7 @@ const en = (): Messages => {
     pipeOnly: (word) => `${word} lines can be written only in pipe diagrams`,
     pipeOnlyAttr: (key) => `${key} can be written only on call lines of pipe diagrams`,
     blockNotLoaded: (block) => `The ${block} block is not loaded. Await loadFor before reading`,
+    userBlocks: userBlockUseMessages("en"),
   };
 };
 
