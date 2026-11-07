@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.63.2] - 2026-11-07
+
 ### Fixed
 
 - **`dragon check` shows the shape of an edge line when its arrow has no target** (#3468)
