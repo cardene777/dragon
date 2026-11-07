@@ -998,7 +998,7 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
       [3, "USDC", "alice", "pool", "100", "final"],
     ]);
     // 同じ段に描く流れた分は、横の線どうしも縦の線どうしも少しずれて並ばない (Aggregator の箱を開いた図は、同じトークンの流れを 1 段に 3 本より多く描く)。
-    // 同じトークンで同じ持ち主の槽を端に持つ流れは 1 本の幹を共に通るため、同じ筋の上で重なる所だけは数えない (#3418)
+    // 同じトークンで同じ持ち主の槽を端に持つ流れは、向きを問わず 1 本の幹を共に通るため、同じ筋の上で重なる所だけは数えない (#3418)
     const crowded = render(exampleJson("aggregator.json"), "ja", undefined, [2]).layout;
     const segmentsOf = (f: Flow): { flat: boolean; at: number; lo: number; hi: number }[] =>
       f.points.slice(1).map((b, i) => {
@@ -1012,7 +1012,7 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
     expect(busiest, "Aggregator の箱を開いた図で、1 段に同じトークンの流れを描く数").toBeGreaterThan(3);
     for (const [k, f] of crowded.flows.entries())
       for (const g of crowded.flows.slice(k + 1).filter((x) => x.step === f.step)) {
-        const trunk = f.token === g.token && (f.from === g.from || f.to === g.to);
+        const trunk = f.token === g.token && [f.from, f.to].some((end) => end === g.from || end === g.to);
         for (const a of segmentsOf(f))
           for (const b of segmentsOf(g)) {
             const touches = a.flat === b.flat && Math.abs(a.at - b.at) < FLOW_WIDTH && a.lo < b.hi && b.lo < a.hi && !(trunk && Math.abs(a.at - b.at) < 0.5);
