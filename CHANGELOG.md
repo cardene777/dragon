@@ -6,6 +6,20 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-11-07
+
+### Changed
+
+- **Stepping through a diagram reuses the figure** (#3445)
+
+  The player no longer copies the whole SVG each time it moves to another step. It changes the step variables on the same figure and rewinds every animation in it to the start with Web Animations, so each step still plays from its beginning. Where `getAnimations` is missing, such as jsdom, the player skips the rewind and still moves to the step. In the `aggregator` example with every box open, one step in Chromium went from a median of 25.0ms to 12.4ms. Focus on a box link inside the figure stays when the step changes.
+
+### Fixed
+
+- **Pipe diagrams keep parts and lines apart** (#3418)
+
+  A pipe diagram drew parts and lines on top of each other, and its pipes tangled. The layout now follows a table of rules: the space between parts, where a line may pass a part, how far lines keep apart and how they cross, at most four bends on a line, and no segment shorter than 16. No example or generated diagram breaks any of them. Value pipes that end at the same pool for the same token share one trunk, and the layout leaves room around valves. In the `aggregator` example with every box open, crossings between call pipes and value pipes fell from 26 to 14, and crossings between call pipes fell from 25 to 8. At a width of 390 the diagram fits the frame and shows the balances and the current step title larger. The full entry exports the rule table `PIPE_RULES` and `pipeViolations`, which counts the rules a laid-out pipe diagram breaks. The scene types `PipeCallout` and `PipeTone` were removed, and `PipeChip`, `PipeCrossing`, `PipePort`, `PipeStub` and `PipeValuePipe` were added.
+
 ## [0.60.0] - 2026-11-07
 
 ### Added

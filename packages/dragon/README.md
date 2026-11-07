@@ -84,7 +84,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.60/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.61/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
