@@ -307,6 +307,27 @@ npx prettier --list-different . | sed -E 's/.*\.([A-Za-z0-9]+)$/\1/' | sort | un
 代わりに **触った `.ts` / `.tsx` だけを整形する**。 触るたびに 1 file ずつ準拠していくため、
 実際に読まれる file から順に揃う。 整形だけの commit は作らない。
 
+## 版を出す前に同じ版が出ていないか確かめる
+
+版を上げる PR を取り込んだら、印 (`v<版>`) を付ける前に、npm に出た版と GitHub の印を引く。
+いくつもの会話が並んで版を出すため、取り込んでから公開するまでの間に、別の会話が同じ版を先に出していることがある (#3442)。
+
+```sh
+npm view @cardenelabs/dragon versions --json
+git ls-remote --tags origin refs/tags/v0.59.0
+```
+
+どちらにも版が無い時だけ、印を付け、Release を作り、npm に出す。
+どちらかに版が在る時は、印と Release と npm への公開を打たない。
+代わりに、出た版の中身が取り込んだ commit と同じかを確かめ、課題に記録する。
+
+- 印は、指す commit が取り込んだ commit と同じかを `git ls-remote` の出力で見る
+- npm の版は、`npm pack @cardenelabs/dragon@<版>` で落とした物と手元の `npm pack` を展開して比べる
+- source map に書かれた組み立て場所の path と、公開の時に外れる `prepublishOnly` の行は、どちらの会話が組んだかで変わるので違いに数えない
+
+中身が違う時は、出た版を直さず、次の版で出し直す課題を立てる。
+npm の版は消しても同じ番号で出し直せないため。
+
 ## 版を出す時に GitHub Release を作る
 
 版の印 (`v<版>`) を GitHub に送ったら、同じ版の Release を作る。

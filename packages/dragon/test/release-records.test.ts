@@ -589,6 +589,18 @@ describe("Release の本文 (#3335)", () => {
     expect(text, "docs/maintaining.md が印の在る時だけ Release を作る命令を書かない").toMatch(/gh release create .*--verify-tag/u);
   });
 
+  it("maintainer-notes-check-version-unpublished", () => {
+    // 並行する会話が同じ版を先に出していても、印を付ける段まで気付けなかった (#3442、#3446)
+    const text = readFileSync(join(ROOT, "docs/maintaining.md"), "utf8");
+    const steps = section(text, "版を出す前に同じ版が出ていないか確かめる");
+    expect(steps, "docs/maintaining.md に版を出す前の確かめの節が無い").not.toBe("");
+    expect(steps, "npm に出た版を引く命令を書かない").toContain("npm view @cardenelabs/dragon versions --json");
+    expect(steps, "GitHub の印を引く命令を書かない").toContain("git ls-remote --tags origin");
+    expect(steps, "既に出ていた時に打たない物を名指さない").toMatch(/印と Release と npm への公開を打たない/u);
+    expect(steps, "既に出ていた時に中身を突き合わせると書かない").toContain("取り込んだ commit");
+    expect(text.indexOf("## 版を出す前に同じ版が出ていないか確かめる"), "確かめの節が Release を作る節より後に在る").toBeLessThan(text.indexOf("## 版を出す時に GitHub Release を作る"));
+  });
+
   it("release-notes-missing-version-fails", () => {
     const run = spawnSync("node", [SCRIPT, "9.9.9"], { encoding: "utf8" });
     expect(run.status, "節の無い版で 1 以外を返した").toBe(1);
