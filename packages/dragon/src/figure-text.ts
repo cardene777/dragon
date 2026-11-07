@@ -69,15 +69,19 @@ export interface FigureText {
   zoomIn: string;
   zoomOut: string;
   /**
-   * 配管の図の下の呼び出しの一覧 (#3418)。一覧の読み上げの名前、列の名前、中で動いた値の種類、
-   * 中身の無い欄の印、戻る前の出力の字、取り消して戻った呼び出しの出力
+   * 配管の図の下の段の矢印と呼び出しの結果 (#3418、#3450)。結果の一覧の名前、矢印の札 (送る、呼ぶ、返す、計算する、記録を出す)、
+   * 同じ段で戻った呼び出しの返した値の札、確かめた式を満たした時と満たさない時の札、中身の無い所の印、
+   * 一覧の先頭に置くいちばん外の呼び出しの札、戻る前の呼び出しの返した値の欄、取り消しの札
    */
   calls: string;
-  callHeads: Record<"call" | "input" | "inside" | "output", string>;
-  callKinds: Record<"move" | "check" | "calc" | "emit", string>;
+  flowTags: Record<"move" | "call" | "return" | "calc" | "emit", string>;
+  returnOf: (label: string) => string;
+  checkPass: string;
+  checkFail: string;
   callNone: string;
-  callWaiting: string;
-  callReverted: (reason?: string) => string;
+  deal: string;
+  waiting: string;
+  reverted: string;
 }
 
 /** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
@@ -131,12 +135,15 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupMissing: (name) => `${name}が無い`,
     zoomIn: "拡大する",
     zoomOut: "縮小する",
-    calls: "呼び出しの一覧",
-    callHeads: { call: "呼び出し", input: "入力", inside: "中で動いた値", output: "出力" },
-    callKinds: { move: "移動", check: "確認", calc: "計算", emit: "イベント" },
+    calls: "呼び出しの結果",
+    flowTags: { move: "送る", call: "呼ぶ", return: "返す", calc: "計算する", emit: "記録を出す" },
+    returnOf: (label) => `${label}を返す`,
+    checkPass: "✓ 満たす",
+    checkFail: "✗ 満たさない",
     callNone: "—",
-    callWaiting: "返り待ち",
-    callReverted: (reason) => (reason === undefined ? "取り消し" : `取り消し (${reason})`),
+    deal: "取引",
+    waiting: "返り待ち",
+    reverted: "✗ 取り消し",
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
@@ -179,11 +186,14 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupMissing: (name) => `${name} is missing`,
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
-    calls: "Calls",
-    callHeads: { call: "Call", input: "Input", inside: "Values inside", output: "Output" },
-    callKinds: { move: "Move", check: "Check", calc: "Calc", emit: "Event" },
+    calls: "Call results",
+    flowTags: { move: "sends", call: "calls", return: "returns", calc: "calculates", emit: "emits" },
+    returnOf: (label) => `returns ${label}`,
+    checkPass: "✓ holds",
+    checkFail: "✗ fails",
     callNone: "—",
-    callWaiting: "Waiting",
-    callReverted: (reason) => (reason === undefined ? "Reverted" : `Reverted (${reason})`),
+    deal: "Transaction",
+    waiting: "Pending",
+    reverted: "✗ Reverted",
   },
 };
