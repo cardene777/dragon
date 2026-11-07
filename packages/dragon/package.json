@@ -1,6 +1,6 @@
 {
   "name": "@cardenelabs/dragon",
-  "version": "0.65.1",
+  "version": "0.65.2",
   "description": "Animated diagrams that people and AI write in a plain notation. Plays on a page and exports MP4, GIF, HTML, and PNG.",
   "license": "MIT",
   "author": "cardene777",

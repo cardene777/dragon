@@ -2,6 +2,7 @@
  * 網の描き方 (#3337、#3348)。
  *
  * 部品の題と網の線と節は動かさずに描き、送る側 (`from`) の節は人の絵、作る人 (`to`) の節は箱の絵、ほかの節は機械の絵を丸に載せる。
+ * 名札は節の下に描き、隣の名札とぶつかるので上へ逃がした節 (#3478) だけ節の上に描く。
  * 網を運ばれたチップが通った線は、送った段の間だけ強める。
  * 関門で止まったチップ (#3476) の節には、チップが着いた時刻 (`move`) から段の終わりまで輪の印 (`data-stop`) を出す。
  * この file は試す図を描く部品 (`render/try.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
@@ -42,7 +43,7 @@ export function routeNet(k: TryKit): void {
           ctx.ink,
           `${cls("dg-try-nt", n.id)}${end ? " dg-try-nte" : ""}`,
           n.x,
-          n.y + T.route.labelY,
+          n.label === "above" ? n.y - T.route.labelUp : n.y + T.route.labelY,
           n.id,
           hasWide(n.id) ? sansOf(TYPE.tryNode) : TYPE.tryNode,
           ALWAYS,
