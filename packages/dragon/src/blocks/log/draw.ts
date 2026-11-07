@@ -5,6 +5,8 @@
  * 狭い枠で縦に組んだ形は上から古い順に積み、記録が足されると上へ滑る。機械の列と違って、記録の間につながりを引かない。
  * 記録の中の字は番号と、`all` を書いた記録の列の印と、中のチップの名前と欄の値の行だけで、prev と hash と SHA-256 を出さない。
  * 印と欄の値は、書き換えた段から新しい値に替わる。印は `yes` の印を部品の色、`no` の印を橙で出す。
+ * 網の節の関門で止まった記録 (#3476) は、印の札に再試行できるかの印 (再試行できるは橙、直して送り直すは止まった色) を出し、
+ * チップの行の下に止まった節とエラーの名前の行を止まった色で出す。
  * この file は試す図を描く部品 (`render/try.ts`) だけが読み、見本帳を開いた時に読む塊に入れない。
  */
 import { recordKey, type TryLogPlaced, type TryMoment } from "../../kinds/try/layout";
@@ -64,11 +66,12 @@ function drawLog(k: TryKit, log: TryLogPlaced): string {
     const no = write(undefined, cls("dg-try-no", label), B.padX, noY, label, TYPE.tryBlockNo);
     record(label, hasWide(label) ? sansOf(TYPE.tryBlockNo) : TYPE.tryBlockNo, moved.rests, B.padX, noY);
 
-    // 印の札。印が替わる時刻で区切り、yes の印と no の印で色を替える
+    // 印の札。印が替わる時刻で区切り、yes の印と no の印で色を替える。関門で止まった記録は再試行できるかの印を出す (#3476)
     let mark = "";
     const markW = log.mark;
-    if (all && markW !== undefined) {
-      const marks = moments.map((mo) => recordOf(mo, n)?.mark ?? "");
+    const stop = log.stops?.[n];
+    if ((all || stop) && markW !== undefined) {
+      const marks = moments.map((mo) => (all ? (recordOf(mo, n)?.mark ?? "") : recordOf(mo, n) && stop ? stop.mark : ""));
       const phases = phasesOf(marks).filter((p) => p.value !== "");
       const x = log.w - B.padX - markW;
       const y = log.markY - log.top;
@@ -78,7 +81,7 @@ function drawLog(k: TryKit, log: TryLogPlaced): string {
       mark = kinds
         .map((kind) => {
           const ranges: Shown[] = phases.filter((p) => p.value === kind).map((p) => [p.from, p.to]);
-          const color = kind === all.yes ? T.color.part : T.color.broken;
+          const color = all ? (kind === all.yes ? T.color.part : T.color.broken) : stop?.retry ? T.color.broken : T.color.stop;
           const style = hasWide(kind) ? sansOf(TYPE.tryChipValue) : TYPE.tryChipValue;
           for (const [from, to] of ranges)
             record(kind, style, moved.rests, x + markW / 2, textY, "middle", [from, to]);
@@ -112,7 +115,19 @@ function drawLog(k: TryKit, log: TryLogPlaced): string {
         return `<g data-item="${esc(id)}"><rect class="dg-try-row" x="${B.padX}" y="${r1(y)}" width="${r1(rowW)}" height="${C.h}" rx="${partRadius(ctx.corner, C.radius)}"/>${nameText}${valueText}</g>`;
       })
       .join("");
-    return `<g class="dg-a" data-record="${n}" style="${moved.style}">${frame}${ring}${no}${mark}${rows}</g>`;
+    // 関門で止まった記録の、止まった節とエラーの名前の行。チップの行の下に止まった色で出す (#3476)
+    let stopRow = "";
+    if (stop) {
+      const y = log.rowTop - log.top + items.length * pitch;
+      const at = write(undefined, cls("dg-try-cn", stop.at), B.padX + C.padX, y + baseline, stop.at, TYPE.tryChip);
+      record(stop.at, hasWide(stop.at) ? sansOf(TYPE.tryChip) : TYPE.tryChip, moved.rests, B.padX + C.padX, y + baseline);
+      const errorX = log.w - B.padX - C.padX;
+      const errorStyle = hasWide(stop.error) ? sansOf(TYPE.tryChipValue) : TYPE.tryChipValue;
+      const error = phased([stop.error], errorX, y + baseline, cls("dg-try-cv", stop.error), "end");
+      record(stop.error, errorStyle, moved.rests, errorX - textBox(stop.error, 0, 0, errorStyle).w, y + baseline);
+      stopRow = `<g style="${cs(T.color.stop)}"><rect class="dg-try-hrow" x="${B.padX}" y="${r1(y)}" width="${r1(rowW)}" height="${C.h}" rx="${partRadius(ctx.corner, C.radius)}"/>${at}${error}</g>`;
+    }
+    return `<g class="dg-a" data-record="${n}" style="${moved.style}">${frame}${ring}${no}${mark}${rows}${stopRow}</g>`;
   });
 
   // 畳んだ印。畳んだ数ごとに字を替え、畳んだ記録が無い間は出さない

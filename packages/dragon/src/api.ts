@@ -54,6 +54,7 @@ export {
   type TreeLeaf,
   type TreeNode,
   type TryAsk,
+  type TryCheck,
   type TryEdit,
   type TryItem,
   type TryLine,

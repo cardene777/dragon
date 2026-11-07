@@ -20,6 +20,14 @@ export interface TryText {
   /** 記録の列で畳んだ記録の数の字 (#3441) */
   tryFoldedRecords: (n: number) => string;
   /**
+   * 関門で止まった記録 (#3476) の字。止まった節の字と、`retry` を書いた関門の「再試行できる」の印と、書かない関門の「直して送り直す」の印。
+   * 送ったチップが関門で止まった段の本文
+   */
+  tryStoppedAt: (node: string) => string;
+  tryRetry: string;
+  tryResend: string;
+  tryStoppedBody: (name: string, node: string, error: string) => string;
+  /**
    * 試す図の再生の部品 (#3337)。入力の帯と書き換える欄の読み上げの名前、送る釦と決める釦と閉じる釦の字、書き換える欄の名前。
    * 押せない訳は、満杯の待ち行列へ送れないこと、空の待ち行列から取り出せないこと、待ち行列が受け入れない名前、
    * 集める待ち行列が足りないこと、空の欄、チップの名前に使えない字、空の書き換え。
@@ -67,6 +75,10 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
     tryFolded: (n) => `古いブロック ${n} つ`,
     tryRecord: (n) => `記録 ${n}`,
     tryFoldedRecords: (n) => `古い記録 ${n} つ`,
+    tryStoppedAt: (node) => `${spaced(node)}で止まった`,
+    tryRetry: "再試行できる",
+    tryResend: "直して送り直す",
+    tryStoppedBody: (name, node, error) => `${spaced(name)}が${inner(node)}の関門で止まった (${error})。`,
     tryAsk: "送る値",
     tryEditForm: "チップを書き換える",
     trySend: "送る",
@@ -103,6 +115,10 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
     tryFolded: (n) => `${n} older ${n === 1 ? "block" : "blocks"}`,
     tryRecord: (n) => `Record ${n}`,
     tryFoldedRecords: (n) => `${n} older ${n === 1 ? "record" : "records"}`,
+    tryStoppedAt: (node) => `Stopped at ${node}`,
+    tryRetry: "retryable",
+    tryResend: "fix and resend",
+    tryStoppedBody: (name, node, error) => `${name} stopped at the gate on ${node} (${error}).`,
     tryAsk: "Values to send",
     tryEditForm: "Edit a chip",
     trySend: "Send",

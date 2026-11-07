@@ -166,6 +166,9 @@
           },
           "side": {
             "$ref": "#/definitions/absent"
+          },
+          "check": {
+            "$ref": "#/definitions/absent"
           }
         }
       },
@@ -243,6 +246,9 @@
             },
             "side": {
               "$ref": "#/definitions/absent"
+            },
+            "check": {
+              "$ref": "#/definitions/absent"
             }
           }
         },
@@ -307,6 +313,9 @@
               },
               "side": {
                 "$ref": "#/definitions/absent"
+              },
+              "check": {
+                "$ref": "#/definitions/absent"
               }
             }
           },
@@ -356,6 +365,9 @@
                   "$ref": "#/definitions/absent"
                 },
                 "side": {
+                  "$ref": "#/definitions/absent"
+                },
+                "check": {
                   "$ref": "#/definitions/absent"
                 }
               }
@@ -420,6 +432,9 @@
                     "$ref": "#/definitions/absent"
                   },
                   "side": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "check": {
                     "$ref": "#/definitions/absent"
                   }
                 }
@@ -503,6 +518,9 @@
                       "$ref": "#/definitions/absent"
                     },
                     "side": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "check": {
                       "$ref": "#/definitions/absent"
                     }
                   }
@@ -653,6 +671,9 @@
                         },
                         "side": {
                           "$ref": "#/definitions/absent"
+                        },
+                        "check": {
+                          "$ref": "#/definitions/absent"
                         }
                       }
                     },
@@ -708,6 +729,9 @@
                           "$ref": "#/definitions/absent"
                         },
                         "side": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "check": {
                           "$ref": "#/definitions/absent"
                         }
                       }
