@@ -154,3 +154,79 @@ describe("dragon check (#3455)", () => {
     }
   });
 });
+
+/**
+ * 矢印の先を書き忘れた線の行 (#3468)。
+ *
+ * 先の無い行は線の行の形に合わないため、行の頭の語を断る文 (`cannot start with`) へ落ちていた。
+ * 先頭の名札は正しい書き方なので、その文では直す場所が分からない。
+ * 線の行の正しい形の文を、矢印の後ろで名札が入る位置に返す。
+ */
+describe("矢印の先を書き忘れた線の行 (#3468)", () => {
+  const EDGE_SHAPE = { en: "Write a line as <id> -> <id>: <label> [<attributes>]", ja: "線は <名札> -> <名札>: <線の名前> [<属性>] の形で書く" };
+  const HEAD_REFUSAL = "cannot start with";
+
+  /** 行の中で `marker` が始まる桁 (1 から数える) */
+  const columnOf = (line: string, marker: string): number => line.indexOf(marker) + 1;
+
+  /** dragon の囲みを並べた Markdown と、各囲みの中身が始まる file の行の 1 つ前 */
+  function fenced(...diagrams: string[]): { text: string; offsets: number[] } {
+    const rows: string[] = [];
+    const offsets: number[] = [];
+    for (const diagram of diagrams) {
+      rows.push("```dragon");
+      offsets.push(rows.length);
+      rows.push(...diagram.trimEnd().split("\n"), "```", "");
+    }
+    return { text: lines(...rows), offsets };
+  }
+
+  it("check-names-edge-shape-for-missing-arrow-target", async () => {
+    const last = "B -> : answer";
+    const file = place("missing-target.dragon", lines("sequence", "A -> B: ask", last));
+    const ran = await runCli(["check", file]);
+    expect(ran.code, `先の無い線の行で終わり方 1 にならない ${ran.stderr}`).toBe(1);
+    expect(ran.stdout, "行の頭の語を断る文を返した").not.toContain(HEAD_REFUSAL);
+    // 矢印の後ろで名札が入る位置は `:` の桁
+    expect(outputLines(ran.stdout), "線の行の正しい形の文を矢印の後ろで返さない").toEqual([`${file}:3:${columnOf(last, ":")} error ${EDGE_SHAPE.en}`]);
+  });
+
+  it("check-missing-arrow-target-in-both-languages", async () => {
+    const last = "  a -> : send";
+    const file = place("missing-target-architecture.dragon", lines("architecture Hand over", "", "box a as A", "box b as B", "", "step Send", last));
+    for (const lang of ["en", "ja"] as const) {
+      const ran = await runCli(["check", file, "--lang", lang]);
+      expect(ran.code, `${lang} で終わり方 1 にならない ${ran.stderr}`).toBe(1);
+      expect(outputLines(ran.stdout), `${lang} で線の行の正しい形の文を返さない`).toEqual([`${file}:7:${columnOf(last, ":")} error ${EDGE_SHAPE[lang]}`]);
+    }
+  });
+
+  it("check-missing-target-at-line-end-and-shared-edge", async () => {
+    // 行の終わりで切れた矢印と、共有の線のブロック (+relay) の先を書き忘れた行
+    const cut = "B ->";
+    const shared = "  a +relay : send";
+    const { text, offsets } = fenced(lines("sequence", "A -> B: ask", cut), lines("architecture Bridge", "box a as A", "+bridge b as B", "step Send", shared));
+    const file = place("missing-target.md", text);
+    const ran = await runCli(["check", file]);
+    expect(ran.code, `先の無い線の行で終わり方 1 にならない ${ran.stderr}`).toBe(1);
+    expect(ran.stdout, "行の頭の語を断る文を返した").not.toContain(HEAD_REFUSAL);
+    expect(outputLines(ran.stdout), "先の無い 2 つの行に線の行の正しい形の文を返さない").toEqual([
+      // 切れた矢印は行の終わりの次の桁、共有の線のブロックは名前の後ろの `:` の桁
+      `${file}:${(offsets[0] ?? 0) + 3}:${cut.length + 1} error ${EDGE_SHAPE.en}`,
+      `${file}:${(offsets[1] ?? 0) + 5}:${columnOf(shared, ":")} error ${EDGE_SHAPE.en}`,
+    ]);
+  });
+
+  it("check-keeps-unknown-head-and-complete-edge-messages", async () => {
+    // 矢印を持たない行の頭の語の誤りと、先を書いた線の行の誤りの文は変えない
+    const unknown = "foo bar";
+    const complete = "B -> A answer";
+    const { text, offsets } = fenced(lines("sequence", "A -> B: ask", unknown), lines("sequence", "A -> B: ask", complete));
+    const file = place("kept.md", text);
+    const ran = await runCli(["check", file]);
+    expect(ran.code, ran.stderr).toBe(1);
+    const [head, edge] = outputLines(ran.stdout);
+    expect(head?.startsWith(`${file}:${(offsets[0] ?? 0) + 3}:1 error A line ${HEAD_REFUSAL} foo. `), `矢印を持たない行で行の頭の語を断る文を返さない ${head}`).toBe(true);
+    expect(edge, "先を書いた線の行の誤りの文と桁が変わった").toBe(`${file}:${(offsets[1] ?? 0) + 3}:8 error ${EDGE_SHAPE.en}`);
+  });
+});
