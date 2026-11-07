@@ -193,6 +193,22 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-62-1-keeps-try-chip-names", () => {
+    // 試す図のチップの名前を切らずに出し、入力の帯の打つ欄を 12 字までにした直し (#3458) は 0.62.1 で出す
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 62 || (minor === 62 && patch >= 1), `package の版 ${version()} が 0.62.1 より前`).toBe(true);
+    const words = { "CHANGELOG.md": "12 characters", "CHANGELOG.ja.md": "12 字" };
+    for (const [file, word] of Object.entries(words)) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.62\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.62.1"), "0.62.1");
+      expect(released, `${file} に日付付きの ## [0.62.1] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3458)")) ?? "";
+      expect(entry, `${file} の 0.62.1 の節に #3458 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.62.1 の節の #3458 の項が打つ欄の上限 (${word}) を名指さない`).toContain(word);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3458)");
+    }
+  });
+
   it("changelog-0-62-0-adds-accept-gather", () => {
     // 試す図の待ち行列に入れてよい名前を書く accept と、釦の from に 2 つ以上の待ち行列を書いて集める形 (#3453) は 0.62.0 で npm に出す
     const [major = 0, minor = 0] = version().split(".").map(Number);
