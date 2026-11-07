@@ -931,9 +931,15 @@ describe("段を送る時に図を置き直さない (#3445)", () => {
     const placing = process.cpuUsage();
     const { player } = mount(diagram, { lang: "ja" });
     const placed = ms(process.cpuUsage(placing));
-    const sending = process.cpuUsage();
-    for (let s = 0; s < source.steps.length; s++) player.goTo(s);
-    const sent = ms(process.cpuUsage(sending));
-    expect(sent, `全ての段を送る CPU 時間 (${Math.round(sent)}ms) が、図を置く CPU 時間 (${Math.round(placed)}ms) の 4 分の 1 以上`).toBeLessThan(placed / 4);
+    // 全ての段を送る手間は、ごみ集めなどで 1 周だけ跳ね、置く手間の 4 分の 1 を超えることがある。配管の道の探しが速くなって置く手間が
+    // 減った分、跳ねた周で落ちやすくなったため、全ての段を 3 周送って最も短い周を使う (#3472)。段を送るたびに図を写し直すと、どの周も重い
+    const sent = Math.min(
+      ...[0, 1, 2].map(() => {
+        const sending = process.cpuUsage();
+        for (let s = 0; s < source.steps.length; s++) player.goTo(s);
+        return ms(process.cpuUsage(sending));
+      }),
+    );
+    expect(sent, `全ての段を送る最も短い周の CPU 時間 (${Math.round(sent)}ms) が、図を置く CPU 時間 (${Math.round(placed)}ms) の 4 分の 1 以上`).toBeLessThan(placed / 4);
   });
 });

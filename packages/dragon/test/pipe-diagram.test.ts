@@ -58,10 +58,12 @@
  *
  * 見本の file と配管の図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
+import { type Ask, Router } from "../src/pipe-route";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { covers, draw, figureClass, figureVars, gap, type Rect, type Rendered, sampleTimes } from "./render-support";
@@ -1904,6 +1906,72 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       const rendered = render(source, lang, width, name === "aggregator" ? [2] : undefined);
       expect(listed(violations(rendered.layout)), `${name} (${lang}, 幅 ${width}) の決まりの表への違反`).toEqual([]);
     });
+  });
+
+  /*
+   * 置き場所の指紋 (#3472)。道を探す処理を速くしても、管の線を 1 本も変えないことを縛る。
+   * 見本と言語と枠の幅と開いた箱ごとに、描いた置き場所 (`layout`) を JSON にした文の指紋を、記録した指紋と比べる。
+   * 上の決まりの表の件が同じ図を描くので、多くの件は覚えに在る図を使う。
+   * 線を変えると決めた変更では、`DRAGON_RECORD_PIPE_FINGERPRINTS=1` を付けてこの検査を回し、記録を書き直す
+   */
+  const FINGERPRINTS = join(ROOT, "packages/dragon/test/fixtures/pipe-layout-fingerprints.json");
+  const fingerprintCases = SAMPLES.flatMap((name) =>
+    (["ja", "en"] as const).flatMap((lang) =>
+      ([1280, 390] as const).flatMap((width) => (name === "aggregator" ? ["-", "2"] : ["-"]).map((open) => [name, lang, width, open] as const)),
+    ),
+  );
+  describe.for(fingerprintCases)("%s %s 幅 %i 開く箱 %s", ([name, lang, width, open]) => {
+    it("pipe-layout-matches-recorded-fingerprints", () => {
+      const source = exampleJson(lang === "ja" ? `${name}.json` : `${name}.en.json`);
+      const rendered = render(source, lang, width, open === "-" ? undefined : open.split(",").map(Number));
+      const key = `${name} ${lang} ${width} ${open}`;
+      const print = createHash("sha256").update(JSON.stringify(rendered.layout)).digest("hex").slice(0, 16);
+      const recorded = existsSync(FINGERPRINTS) ? (JSON.parse(readFileSync(FINGERPRINTS, "utf8")) as Record<string, string>) : {};
+      if (process.env.DRAGON_RECORD_PIPE_FINGERPRINTS === "1") {
+        recorded[key] = print;
+        writeFileSync(FINGERPRINTS, `${JSON.stringify(Object.fromEntries(Object.entries(recorded).sort()), null, 2)}\n`);
+        return;
+      }
+      expect(recorded[key], `${key} の指紋が記録に無い`).toBeDefined();
+      expect(print, `${key} の置き場所が記録した指紋と違う。管の線が変わった`).toBe(recorded[key]);
+    });
+  });
+
+  it("router-paths-same-when-routers-alternate", () => {
+    // 大きさの違う格子の Router を交互に使っても、それぞれを新しく作った Router と同じ道を返す (#3472)。
+    // 道を探す作業の配列を Router の間で使い回す時に、前の探しの覚えが混ざると道が変わる
+    const lines = (count: number): number[] => Array.from({ length: count }, (_, k) => k * 20);
+    const big = { xs: lines(60), ys: lines(40), obstacles: [{ rect: { x: 200, y: 100, w: 200, h: 400 }, pad: 10 }, { rect: { x: 600, y: 300, w: 300, h: 200 }, pad: 10 }] };
+    const small = { xs: lines(16), ys: lines(12), obstacles: [{ rect: { x: 100, y: 60, w: 60, h: 120 }, pad: 10 }] };
+    const ask = (from: Point, to: Point, bend: number): Ask => ({
+      owner: "a",
+      group: "a",
+      kind: "value",
+      width: 4,
+      starts: [{ at: from, dir: 0 }],
+      ends: [{ at: to, dir: 0 }],
+      cross: () => 5,
+      gap: 4,
+      bend,
+      hug: 0.2,
+    });
+    const asks = {
+      big: [ask([0, 0], [1000, 700], 30), ask([0, 700], [1100, 40], 300), ask([0, 300], [1000, 320], 30)],
+      small: [ask([0, 0], [280, 200], 30), ask([0, 200], [300, 20], 300), ask([0, 100], [240, 100], 30)],
+    };
+    const fresh = (grid: typeof big, a: Ask): Point[] | undefined => new Router(grid.xs, grid.ys, grid.obstacles).route(a);
+    const want = { big: asks.big.map((a) => fresh(big, a)), small: asks.small.map((a) => fresh(small, a)) };
+    for (const path of [...want.big, ...want.small]) expect(path, "新しく作った Router が道を見つけない").toBeDefined();
+    // 小さい格子から始めて大きい格子へ移り、また小さい格子へ戻る
+    const routers = { big: new Router(big.xs, big.ys, big.obstacles), small: new Router(small.xs, small.ys, small.obstacles) };
+    const got: string[] = [];
+    const expected: string[] = [];
+    for (let k = 0; k < 3; k++)
+      for (const size of ["small", "big"] as const) {
+        got.push(`${size} ${k} ${JSON.stringify(routers[size].route(asks[size][k] as Ask))}`);
+        expected.push(`${size} ${k} ${JSON.stringify(want[size][k])}`);
+      }
+    expect(got, "交互に使った Router の道が、新しく作った Router の道と違う").toEqual(expected);
   });
 
   describe.for(SAMPLES)("%s の色味", (name) => {

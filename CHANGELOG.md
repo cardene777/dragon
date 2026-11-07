@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **A pipe diagram with an opened box draws faster** (#3472)
+
+  Finding the routes of the pipes took most of the time to draw a pipe diagram with an opened box. The route search now reuses its work arrays and its heap across searches, keeps lists only for grid edges that an obstacle or a laid line touches, works out the distance estimate once per grid point, and skips heap entries that a cheaper entry for the same state has replaced. Every pipe keeps the same route. The layouts of 28 cases (the six pipe examples in both languages at widths 1280 and 390, and `aggregator` with box 2 opened) match fingerprints recorded before the change. Drawing `aggregator` with box 2 opened at width 390 took 1.74 to 1.82 seconds of CPU time in English and 1.35 to 1.39 seconds in Japanese, and now takes 1.16 to 1.37 seconds and 1.03 to 1.08 seconds.
+
 ## [0.65.0] - 2026-11-07
 
 ### Added

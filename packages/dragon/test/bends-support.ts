@@ -195,34 +195,73 @@ function specificity(selector: string): number {
   return ids * 10000 + classes * 100 + types;
 }
 
+type StrokeProp = "stroke-linejoin" | "stroke-linecap";
+
+/** 規則の列と線の値の名前ごとに 1 度だけ用意する物。値を持つ選び方と詳しさ、style 属性を読む形、形ごとに求めた値の覚え */
+interface StrokeLookup {
+  picks: { selector: string; value: string; rank: number }[];
+  inline: RegExp;
+  seen: WeakMap<Element, string>;
+}
+const lookups = new WeakMap<Rule[], Map<StrokeProp, StrokeLookup>>();
+
+function lookupOf(rules: Rule[], prop: StrokeProp): StrokeLookup {
+  const byProp = lookups.get(rules) ?? new Map<StrokeProp, StrokeLookup>();
+  lookups.set(rules, byProp);
+  const known = byProp.get(prop);
+  if (known) return known;
+  const picks = rules.flatMap((rule) => {
+    const value = rule.decls[prop];
+    return value === undefined ? [] : rule.selectors.map((selector) => ({ selector, value, rank: specificity(selector) * 100000 + rule.order }));
+  });
+  const made = { picks, inline: new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([a-z-]+)`, "u"), seen: new WeakMap<Element, string>() };
+  byProp.set(prop, made);
+  return made;
+}
+
+/** 1 つの形が自分で持つ値。style 属性、CSS の規則 (詳しさと順で選ぶ)、表示の属性の順に見て、どれも無ければ `undefined` */
+function ownStroke(node: Element, prop: StrokeProp, lookup: StrokeLookup): string | undefined {
+  const inline = lookup.inline.exec(node.getAttribute("style") ?? "");
+  if (inline) return inline[1];
+  let best: { value: string; rank: number } | undefined;
+  for (const { selector, value, rank } of lookup.picks) {
+    let hit = false;
+    try {
+      hit = node.matches(selector);
+    } catch {
+      hit = false;
+    }
+    if (hit && (!best || rank >= best.rank)) best = { value, rank };
+  }
+  if (best) return best.value;
+  // 空の属性は値を持たないとみなし、先祖へ進む
+  return node.getAttribute(prop) || undefined;
+}
+
 /**
  * 形に効いている線の継ぎ目か端。形とその先祖を近い順に見て、style 属性、CSS の規則 (詳しさと順で選ぶ)、
- * 表示の属性の順に最初に見つかった値を使い、どこにも無ければ初期値 (`miter` と `butt`) にする
+ * 表示の属性の順に最初に見つかった値を使い、どこにも無ければ初期値 (`miter` と `butt`) にする。
+ * 同じ図の形は先祖を分け合うため、形ごとに求めた値を覚え、先祖を何度も照らさない (#3472)。
+ * 覚える前は 1 万個ほどの線ごとに先祖を辿って全ての規則を照らし、線の端の検査が混んだ機械で 10 秒の上限を超えた
  */
-export function strokeOf(el: Element, prop: "stroke-linejoin" | "stroke-linecap", rules: Rule[]): string {
+export function strokeOf(el: Element, prop: StrokeProp, rules: Rule[]): string {
+  const lookup = lookupOf(rules, prop);
+  const walked: Element[] = [];
+  let value: string | undefined;
   for (let node: Element | null = el; node; node = node.parentElement) {
-    const inline = new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([a-z-]+)`, "u").exec(node.getAttribute("style") ?? "");
-    if (inline) return inline[1] as string;
-    let best: { value: string; rank: number } | undefined;
-    for (const rule of rules) {
-      const value = rule.decls[prop];
-      if (value === undefined) continue;
-      for (const selector of rule.selectors) {
-        let hit = false;
-        try {
-          hit = node.matches(selector);
-        } catch {
-          hit = false;
-        }
-        const rank = specificity(selector) * 100000 + rule.order;
-        if (hit && (!best || rank >= best.rank)) best = { value, rank };
-      }
+    const known = lookup.seen.get(node);
+    if (known !== undefined) {
+      value = known;
+      break;
     }
-    if (best) return best.value;
-    const attr = node.getAttribute(prop);
-    if (attr) return attr;
+    walked.push(node);
+    value = ownStroke(node, prop, lookup);
+    if (value !== undefined) break;
   }
-  return prop === "stroke-linejoin" ? "miter" : "butt";
+  // 辿った形は、自分も途中の先祖も値を持たなかったので、見つけた値 (無ければ初期値) が効く
+  const result = value ?? (prop === "stroke-linejoin" ? "miter" : "butt");
+  for (const node of walked) lookup.seen.set(node, result);
+  return result;
 }
 
 /** 図の中の `<style>` の規則 */
