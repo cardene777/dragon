@@ -21,6 +21,7 @@ Pick `lineup` instead when the reader only watches.
 | `choose <field>: <value>, <value>, ...` | Turns a field into a choice instead of typing |
 | `press <name> [from: <queue>, into: <chain or log>, take: <count>, at: <part>]` | A button that moves the top `take` chips into a new block or record. `at` places it on a part; without it, it sits in the input strip |
 | `side <part>, <part>, ...` | Puts route, queue, chain and log parts on one row when the frame is wide enough |
+| `check <node>: <field> <op> <value> [no: <error>, retry, into: <log>]` | A gate on a node of the shortest path of the `ask` line's `via` route. A sent chip stops at the first gate it fails (gates of a node in the written order), enters no queue, and adds a record with the node, the error and `retry` to the `into` log, which has no `all`. A number value compares numbers, other values only `==` and `!=` |
 | `item <name> [<field>: <value>, ...]` | A chip declared up front |
 
 ## Lines in a step (the author's example)

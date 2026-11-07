@@ -50,7 +50,7 @@ export function settleTry(state: ParseState): void {
   const spec = state.figure.try;
   if (state.kind !== "try" || spec.run) return;
   for (const check of spec.pending) check();
-  spec.run = new TryRun({ parts: spec.parts, items: spec.items });
+  spec.run = new TryRun({ parts: spec.parts, items: spec.items, checks: spec.checks });
 }
 
 /**

@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.65.0] - 2026-11-07
+
+### Added
+
+- **A try diagram can stop a chip at a gate on a route node** (#3476)
+
+  A route node let every chip through, so a try diagram could not show a transaction refused at one stage for one reason. Write `check <node>: <field> <op> <value> [no: <error>, retry, into: <log>]` before the first step to put a gate on a node of the shortest path of the route that `ask` sends through. A sent chip checks the gates of each node it reaches in the written order and stops at the first gate it fails. The stopped chip enters no queue, its path ends at that node, the node gets a stop mark, and the `into` log gains one record with the chip, the node, the error and a mark: retryable for a gate with `retry`, and fix and resend for a gate without it. A number value compares the field as a number, and a field that is not a number fails. Other values are compared as text with `==` and `!=`. Chips that pass every gate enter their queue as before. The JSON holds the gates in `blocks.check` in the written order. A node off the shortest path, a field not in `ask`, an `into` that is not a log or has `all`, and `>=`, `<=`, `>` or `<` on a value that is not a number are refused with the line and column. A `check` inside a step of a try diagram is still refused as a pipe diagram line. Try diagrams without gates draw as before.
+
 ## [0.64.0] - 2026-11-07
 
 ### Added

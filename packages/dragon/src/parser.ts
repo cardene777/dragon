@@ -231,7 +231,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     time: { rows: [], points: [], pending: [], settled: false, needle: 0 },
     tree: { boxes: new Map(), parents: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },
-    try: { parts: [], items: [], sides: [], pending: [] },
+    try: { parts: [], items: [], sides: [], checks: [], pending: [] },
     pipe: { holds: [], opened: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
@@ -478,7 +478,16 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items: figure.lineup.items, ...(figure.lineup.roles.length > 0 ? { roles: figure.lineup.roles } : {}) } } : {}),
-    ...(isTry ? { try: { parts: figure.try.parts, items: figure.try.items, ...(figure.try.sides.length > 0 ? { sides: figure.try.sides } : {}) } } : {}),
+    ...(isTry
+      ? {
+          try: {
+            parts: figure.try.parts,
+            items: figure.try.items,
+            ...(figure.try.sides.length > 0 ? { sides: figure.try.sides } : {}),
+            ...(figure.try.checks.length > 0 ? { checks: figure.try.checks } : {}),
+          },
+        }
+      : {}),
     ...(figure.pipe.holds.length > 0 ? { pipe: { holds: figure.pipe.holds } } : {}),
     ...(isTime && time.scale
       ? {
