@@ -997,7 +997,8 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
       [2, "USDC", "alice", "pool", "100", "provisional"],
       [3, "USDC", "alice", "pool", "100", "final"],
     ]);
-    // 同じ段に描く流れた分は、横の線どうしも縦の線どうしも重ならない (Aggregator の箱を開いた図は、同じトークンの流れを 1 段に 3 本より多く描く)
+    // 同じ段に描く流れた分は、横の線どうしも縦の線どうしも少しずれて並ばない (Aggregator の箱を開いた図は、同じトークンの流れを 1 段に 3 本より多く描く)。
+    // 同じトークンで同じ持ち主の槽を端に持つ流れは 1 本の幹を共に通るため、同じ筋の上で重なる所だけは数えない (#3418)
     const crowded = render(exampleJson("aggregator.json"), "ja", undefined, [2]).layout;
     const segmentsOf = (f: Flow): { flat: boolean; at: number; lo: number; hi: number }[] =>
       f.points.slice(1).map((b, i) => {
@@ -1010,12 +1011,14 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
     );
     expect(busiest, "Aggregator の箱を開いた図で、1 段に同じトークンの流れを描く数").toBeGreaterThan(3);
     for (const [k, f] of crowded.flows.entries())
-      for (const g of crowded.flows.slice(k + 1).filter((x) => x.step === f.step))
+      for (const g of crowded.flows.slice(k + 1).filter((x) => x.step === f.step)) {
+        const trunk = f.token === g.token && (f.from === g.from || f.to === g.to);
         for (const a of segmentsOf(f))
           for (const b of segmentsOf(g)) {
-            const touches = a.flat === b.flat && Math.abs(a.at - b.at) < FLOW_WIDTH && a.lo < b.hi && b.lo < a.hi;
+            const touches = a.flat === b.flat && Math.abs(a.at - b.at) < FLOW_WIDTH && a.lo < b.hi && b.lo < a.hi && !(trunk && Math.abs(a.at - b.at) < 0.5);
             expect(touches, `段 ${f.step + 1} の ${f.from}→${f.to} と ${g.from}→${g.to} の流れの線が重なる`).toBe(false);
           }
+      }
     const motion = motionFrom(rendered as unknown as Rendered);
     for (const s of [1, 2]) {
       const sel = `[data-pipe-flow][data-pipe-step="${s}"]`;
@@ -2038,18 +2041,111 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
           expect(segmentsOf(c.points).some((s) => cutsThrough(s, p)), `${name} の ${c.index + 1} 番目の呼び出しの管が ${p.id} の名札を横切る`).toBe(false);
         for (const t of layout.tanks) expect(segmentsOf(c.points).some((s) => cutsThrough(s, t)), `${name} の ${c.index + 1} 番目の呼び出しの管が ${t.party} の ${t.token} の槽を横切る`).toBe(false);
       }
-      // 呼び出しの弁と計器は管が横に走る所に置き、決まりの間を空ける
+      // 呼び出しの弁は管が横か縦に走る所に、管の向きに合わせて置く (縦に走る所の弁は `vertical`)。計器は横に走る所に置き、決まりの間を空ける
       for (const main of layout.mains ?? [])
         for (const b of main.branches) {
           const v = b.valve;
-          const flat = segmentsOf(main.points.concat(b.points)).some(([a, z]) => a[1] === z[1] && Math.abs(a[1] - v.y) < 0.5 && v.x >= Math.min(a[0], z[0]) && v.x <= Math.max(a[0], z[0]));
-          expect(flat || (v as { vertical?: boolean }).vertical === false, `${name} の ${main.from} から ${b.to} への弁が横に走る所に無い`).toBe(true);
+          const upright = (v as { vertical?: boolean }).vertical === true;
+          const onRun = segmentsOf(main.points.concat(b.points)).some(([a, z]) =>
+            upright
+              ? a[0] === z[0] && Math.abs(a[0] - v.x) < 0.5 && v.y >= Math.min(a[1], z[1]) && v.y <= Math.max(a[1], z[1])
+              : a[1] === z[1] && Math.abs(a[1] - v.y) < 0.5 && v.x >= Math.min(a[0], z[0]) && v.x <= Math.max(a[0], z[0]),
+          );
+          expect(onRun, `${name} の ${main.from} から ${b.to} への弁が、弁の向きに走る管の上に無い`).toBe(true);
         }
       const onCall = layout.gauges.filter((g) => g.on === "call");
       for (const g of onCall)
         for (const h of onCall.filter((k) => k !== g && k.step === g.step))
           expect(gap(g, h), `${name} の段 ${g.step + 1} の ${g.party} と ${h.party} の計器の間`).toBeGreaterThanOrEqual(spacing - 1e-6);
     }
+  });
+
+  it("pipe-value-pipes-share-a-trunk", () => {
+    // 見本 aggregator では、Aggregator の USDC の槽から 3 つの Pool へ出る管と、3 つの Pool から Aggregator の WETH の槽へ入る管が、それぞれ 1 本の幹を作る
+    const layout = composed(render(exampleJson("aggregator.json"), "ja", 1280, [2]));
+    /** 2 本の折れ線が同じ筋の上で重なって走る長さ */
+    const sharedLength = (p: Point[], q: Point[]): number => {
+      let n = 0;
+      for (const [a, b] of segmentsOf(p))
+        for (const [u, v] of segmentsOf(q)) {
+          const flat = a[1] === b[1];
+          if (flat !== (u[1] === v[1])) continue;
+          if (flat ? Math.abs(a[1] - u[1]) > 0.5 : Math.abs(a[0] - u[0]) > 0.5) continue;
+          const k = flat ? 0 : 1;
+          n += Math.max(0, Math.min(Math.max(a[k], b[k]), Math.max(u[k], v[k])) - Math.max(Math.min(a[k], b[k]), Math.min(u[k], v[k])));
+        }
+      return n;
+    };
+    for (const [token, root] of [
+      ["USDC", 0],
+      ["WETH", 1],
+    ] as const) {
+      const leaf = root === 0 ? 1 : 0;
+      const group = layout.valuePipes.filter((p) => p.token === token && p.ports[root].party === "agg" && /^pool[1-3]$/.test(p.ports[leaf].party));
+      expect(group.map((p) => p.ports[leaf].party).sort(), `${token} の幹の管が結ぶ Pool`).toEqual(["pool1", "pool2", "pool3"]);
+      // 根の槽の 1 つの口を共に使う
+      const roots = new Set(group.map((p) => `${Math.round(p.ports[root].x)},${Math.round(p.ports[root].y)}`));
+      expect(roots.size, `${token} の幹の管が Aggregator の槽の別々の口を使う`).toBe(1);
+      // 2 本ずつ、同じ筋の上を重なって走る幹を持ち、互いを突き抜けて越えない
+      for (let i = 0; i < group.length; i++)
+        for (let j = i + 1; j < group.length; j++) {
+          const [a, b] = [group[i] as ValuePipe, group[j] as ValuePipe];
+          const label = `${token} の ${a.ports[leaf].party} と ${b.ports[leaf].party} の管`;
+          expect(sharedLength(a.points, b.points), `${label}が重なって走る長さ`).toBeGreaterThan(40);
+          expect(crossingsOf(a.points, b.points), `${label}が互いを突き抜ける`).toEqual([]);
+        }
+    }
+  });
+
+  it("pipe-rules-valve-clearance", () => {
+    const { rules, violations } = rulesApi();
+    const rule = rules.find((r) => r.name === "valve-clearance");
+    expect(rule, "決まりの表に valve-clearance の行が無い").toBeDefined();
+    expect([rule?.kind, rule?.value, rule?.breakage, rule?.counted], "valve-clearance の向きと値と崩れの種類").toEqual(["min", 3, "crowded", true]);
+    // 見本 swap の弁はどれもほかの線から離れている
+    const layout = render(exampleJson("swap.json"), "ja", 1280).layout as unknown as ComposedLayout;
+    const clearance = (l: unknown): Violation[] => violations(l).filter((v) => v.rule === "valve-clearance");
+    expect(listed(clearance(layout)), "見本 swap の弁とほかの線の間の違反").toEqual([]);
+    // 弁を 1 つ、横に走る値の管の 35px 下へ動かす。弁の胴は値の管から離れ、閉じた取っ手が値の管に重なる
+    const pipe = layout.valuePipes.find((p) => segmentsOf(p.points).some(([a, b]) => a[1] === b[1] && Math.abs(b[0] - a[0]) >= 60));
+    expect(pipe, "見本 swap に横に 60px 以上走る値の管が無い").toBeDefined();
+    const [a, b] = segmentsOf((pipe as ValuePipe).points).find(([u, v]) => u[1] === v[1] && Math.abs(v[0] - u[0]) >= 60) as [Point, Point];
+    const moved = JSON.parse(JSON.stringify(layout)) as ComposedLayout;
+    const main = (moved.mains ?? [])[0] as Main;
+    const branch = main.branches[0] as Main["branches"][number];
+    branch.valve = { ...branch.valve, x: (a[0] + b[0]) / 2, y: a[1] + 35, vertical: false } as Main["branches"][number]["valve"];
+    const found = clearance(moved);
+    expect(
+      found.some((v) => v.parts[0] === `valve:${main.from}>${branch.to}`),
+      `取っ手を値の管に重ねた ${main.from} から ${branch.to} への弁を違反に数えない: ${listed(found).join(", ")}`,
+    ).toBe(true);
+  });
+
+  it("pipe-aggregator-untangled", () => {
+    // 見本 aggregator の箱を全て開いた図の最後の段で、管が交わる所を数える
+    const layout = composed(render(exampleJson("aggregator.json"), "ja", 1280, [2]));
+    const calls = (layout.mains ?? []).flatMap((m) => m.branches.map((b) => ({ name: `${m.from}>${b.to}`, from: m.from, points: b.points })));
+    const stubs = (layout as unknown as { stubs: { points: Point[] }[] }).stubs;
+    const values = [...layout.valuePipes.map((p) => p.points), ...stubs.map((s) => s.points)];
+    const at = (p: Point): string => `${Math.round(p[0])},${Math.round(p[1])}`;
+    // 呼び出しの管どうしが交わる所
+    const callCalls = new Set<string>();
+    for (let i = 0; i < calls.length; i++)
+      for (let j = i + 1; j < calls.length; j++) for (const x of crossingsOf((calls[i] as (typeof calls)[number]).points, (calls[j] as (typeof calls)[number]).points)) callCalls.add(at(x.at));
+    // 呼び出しの管が値の管を越える所。幹を共に通る値の管を 1 か所で越える時は 1 と数える
+    const overValues = new Set<string>();
+    for (const c of calls) for (const v of values) for (const x of crossingsOf(c.points, v)) overValues.add(`${c.name}|${at(x.at)}`);
+    // 1 本の呼び出しの管が越える線。値の管と、ほかの者から出る呼び出しの管
+    const perCall = calls.map((c) => {
+      const points = new Set<string>();
+      for (const v of values) for (const x of crossingsOf(c.points, v)) points.add(at(x.at));
+      for (const o of calls.filter((k) => k.from !== c.from)) for (const x of crossingsOf(c.points, o.points)) points.add(at(x.at));
+      return [c.name, points.size] as const;
+    });
+    const most = perCall.reduce((m, x) => (x[1] > m[1] ? x : m), ["", 0] as readonly [string, number]);
+    expect(callCalls.size, "呼び出しの管どうしが交わる所 (直す前は 25)").toBeLessThanOrEqual(12);
+    expect(overValues.size, "呼び出しの管が値の管を越える所 (直す前は 26)").toBeLessThanOrEqual(16);
+    expect(most[1], `1 本の呼び出しの管 (${most[0]}) が越える線 (直す前は 10)`).toBeLessThanOrEqual(7);
   });
 
   it("pipe-text-caps-and-square-labels", () => {
