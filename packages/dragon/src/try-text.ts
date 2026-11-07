@@ -21,8 +21,7 @@ export interface TryText {
   tryFoldedRecords: (n: number) => string;
   /**
    * 試す図の再生の部品 (#3337)。入力の帯と書き換える欄の読み上げの名前、送る釦と決める釦と閉じる釦の字、書き換える欄の名前。
-   * 押せない訳は、満杯の待ち行列へ送れないこと、空の待ち行列から取り出せないこと、待ち行列が受け入れない名前、
-   * 集める待ち行列が足りないこと、空の欄、チップの名前に使えない字、空の書き換え。
+   * 押せない訳は、満杯の待ち行列へ送れないこと、空の待ち行列から取り出せないこと、空の欄、チップの名前に使えない字、空の書き換え。
    * 読み手が足した段の題と本文は、送った、釦を押した、書き換えたの 3 つ
    */
   tryAsk: string;
@@ -33,10 +32,6 @@ export interface TryText {
   tryEditField: (item: string, field: string) => string;
   tryFull: (queue: string, most: number) => string;
   tryEmpty: (queue: string, press: string) => string;
-  /** 待ち行列 `queue` が名前 `name` のチップを受け入れないので送れない (#3453) */
-  tryRefused: (queue: string, name: string) => string;
-  /** 2 つ以上の待ち行列から集める釦 `press` を、待ち行列 `queue` が `take` 件に満たないので押せない (#3453) */
-  tryShort: (queue: string, press: string, take: number) => string;
   tryBlank: string;
   tryBadName: (field: string) => string;
   tryBlankEdit: string;
@@ -46,19 +41,9 @@ export interface TryText {
   tryPressedBody: (count: number, from: string, block: number) => string;
   /** 釦が記録の列 `log` の記録 `record` に `from` の上から `count` 件を入れた時の段の本文 (#3441) */
   tryPressedRecordBody: (count: number, from: string, log: string, record: number) => string;
-  /** 釦が 2 つ以上の待ち行列 `froms` のそれぞれの上から `count` 件ずつをブロック `block` に入れた時の段の本文 (#3453) */
-  tryGatheredBody: (count: number, froms: readonly string[], block: number) => string;
-  /** 釦が 2 つ以上の待ち行列 `froms` のそれぞれの上から `count` 件ずつを記録の列 `log` の記録 `record` に入れた時の段の本文 (#3453) */
-  tryGatheredRecordBody: (count: number, froms: readonly string[], log: string, record: number) => string;
   tryEdited: (item: string, field: string) => string;
   tryEditedBody: (field: string, from: string, to: string) => string;
 }
-
-/** 日本語の文で、名札を「と」でつなぐ。英数字の名札の端だけを空白で離す */
-const jaList = (names: readonly string[]): string => names.map((name, i) => (i === 0 ? spaced(name) : inner(name))).join("と");
-/** 英語の文で、名札を `,` と and でつなぐ */
-const enList = (names: readonly string[]): string =>
-  names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1] ?? ""}`;
 
 export const TRY_TEXT: Record<NotationLang, TryText> = {
   ja: {
@@ -75,8 +60,6 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
     tryEditField: (item, field) => `${spaced(item)}の${led(field)}`,
     tryFull: (queue, most) => `${spaced(queue)}が満杯 (${most} 件) なので送れない`,
     tryEmpty: (queue, press) => `${spaced(queue)}が空なので「${press}」を押せない`,
-    tryRefused: (queue, name) => `${spaced(queue)}は${inner(name)}を受け入れないので送れない`,
-    tryShort: (queue, press, take) => `${spaced(queue)}のチップが ${take} 件に満たないので「${press}」を押せない`,
     tryBlank: "全ての欄を埋めてから送る",
     tryBadName: (field) => `${spaced(field)}に空白と [ ] 「 」 = : は使えない`,
     tryBlankEdit: "値を入れてから決める",
@@ -90,9 +73,6 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
       `${spaced(from)}の上から ${count} 件がブロック ${block} に入った。`,
     tryPressedRecordBody: (count, from, log, record) =>
       `${spaced(from)}の上から ${count} 件が${inner(log)}の記録 ${record} に入った。`,
-    tryGatheredBody: (count, froms, block) => `${jaList(froms)}の上から ${count} 件ずつがブロック ${block} に入った。`,
-    tryGatheredRecordBody: (count, froms, log, record) =>
-      `${jaList(froms)}の上から ${count} 件ずつが${inner(log)}の記録 ${record} に入った。`,
     tryEdited: (item, field) => `${spaced(item)}の${inner(field)}を書き換えた`,
     tryEditedBody: (field, from, to) =>
       `${spaced(field)}を ${from} から ${to} にした。ブロックの hash を出し直す。`,
@@ -111,8 +91,6 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
     tryEditField: (item, field) => `${field} of ${item}`,
     tryFull: (queue, most) => `${queue} is full (${most}), so nothing more can be sent`,
     tryEmpty: (queue, press) => `${queue} is empty, so "${press}" cannot be pressed`,
-    tryRefused: (queue, name) => `${queue} does not accept ${name}, so it cannot be sent`,
-    tryShort: (queue, press, take) => `${queue} holds fewer than ${take} chips, so "${press}" cannot be pressed`,
     tryBlank: "Fill in every field before sending",
     tryBadName: (field) => `${field} cannot contain spaces, brackets, "=" or ":"`,
     tryBlankEdit: "Enter a value before applying",
@@ -126,10 +104,6 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
       `The top ${count === 1 ? "item" : `${count} items`} of ${from} went into block ${block}.`,
     tryPressedRecordBody: (count, from, log, record) =>
       `The top ${count === 1 ? "item" : `${count} items`} of ${from} went into record ${record} of ${log}.`,
-    tryGatheredBody: (count, froms, block) =>
-      `The top ${count === 1 ? "item" : `${count} items`} of each of ${enList(froms)} went into block ${block}.`,
-    tryGatheredRecordBody: (count, froms, log, record) =>
-      `The top ${count === 1 ? "item" : `${count} items`} of each of ${enList(froms)} went into record ${record} of ${log}.`,
     tryEdited: (item, field) => `Changed ${field} of ${item}`,
     tryEditedBody: (field, from, to) =>
       `Set ${field} from ${from} to ${to}. The block hash is computed again.`,

@@ -16,7 +16,7 @@
 import { TRY_LOOK } from "../../look/try";
 import { LOOK, READABLE_PX, TYPE } from "../../look/values";
 import type { DiagramModel, TryPart } from "../../schema";
-import { askFields, fromsOf, intoOf, type TryState, TryRun } from "../../try-state";
+import { askFields, intoOf, type TryState, TryRun } from "../../try-state";
 import { TRY_TEXT } from "../../try-text";
 import { DEFAULT_LANG, LABEL_MOST, type NotationLang } from "../../words";
 import { textWidth } from "../../layout/measure";
@@ -344,10 +344,10 @@ export function layoutTry(
   const readable = (w: number): boolean => frame === undefined || (frame / w) * TYPE.boxName.size >= READABLE_PX;
   const stacked = !readable(wide);
 
-  // 待ち行列の横に出す、釦が上から何件を取り出すかの字と、その字が要る幅。2 つ以上の待ち行列から集める釦は、そのどれにも出す (#3453)
+  // 待ち行列の横に出す、釦が上から何件を取り出すかの字と、その字が要る幅
   const hintTextOf = (id: string): string | undefined => {
     const press = spec.parts.find(
-      (p): p is Extract<TryPart, { type: "press" }> => p.type === "press" && fromsOf(p).includes(id),
+      (p): p is Extract<TryPart, { type: "press" }> => p.type === "press" && p.from === id,
     );
     return press ? words.tryTakes(press.take) : undefined;
   };
@@ -707,7 +707,7 @@ export function layoutTry(
 /**
  * 寄って追う窓が段 `step` で見る所 (#3337)。その段の出来事が触る部品の四角を、出来事が着く所から順に並べる。
  * 窓は最初の四角を外さずに全部を囲んだ所へ寄るので、最初の四角は読み手が結果を見る所にする。
- * 送った段は送った先の待ち行列と網、釦を押した段は作ったブロックと取り出した待ち行列 (2 つ以上なら書いた順に全て)、
+ * 送った段は送った先の待ち行列と網、釦を押した段は作ったブロックと取り出した待ち行列、
  * 書き換えた段は書き換えたチップのブロックと次のブロックとのつながり、`line` は書いた待ち行列とブロック (待ち行列を先) を見る。
  * ブロックはその段の終わりの位置で見て、畳んだブロックは見ない
  */
@@ -754,7 +754,7 @@ export function tryFocusParts(layout: TryLayout, diagram: DiagramModel, step: nu
         (p): p is Extract<TryPart, { type: "press" }> => p.type === "press" && p.id === event.press,
       );
       push(lead, built);
-      for (const from of press ? fromsOf(press) : []) push(rest, partRect(from));
+      push(rest, partRect(press?.from));
     } else if (event.type === "item") {
       const [chain, block] =
         Object.entries(end.state.chains).flatMap(([id, list]) =>

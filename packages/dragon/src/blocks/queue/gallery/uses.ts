@@ -4,6 +4,4 @@ import type { BlockUses } from "../../gallery";
 export const uses = {
   "head:queue": (v) => v.tryParts("queue").length > 0,
   "attr:queue.order": (v) => v.tryParts("queue").some((p) => p.order !== undefined),
-  /** 入れてよいチップの名前 (#3453) */
-  "attr:queue.accept": (v) => v.tryParts("queue").some((p) => p.accept !== undefined),
 } satisfies BlockUses;

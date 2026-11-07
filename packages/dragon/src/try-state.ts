@@ -11,8 +11,6 @@
  * 記録の列 (`log`、#3441) の記録は番号と中のチップだけを持ち、prev と hash を持たない。`all` を書いた記録の列は、記録の中のチップのその欄が全てその値なら `yes`、
  * 1 つでも違えば `no` の印を、段ごとに今の欄の値で出し直す。記録の列を持たない図の状態は、記録の列の欄 (`logs`) を持たない。
  * 入力の帯の `into` は同じ名札の待ち行列が在ればその待ち行列で、無ければ欄の名前で、送ったチップをその欄の値と同じ名札の待ち行列へ入れる (#3441)。
- * `accept` を書いた待ち行列へ入力の帯が送るチップは、名前 (最初の欄の値) が `accept` に在る時だけ入る (#3453)。段の中の `line` は書き手が中身を書くので断らない。
- * `from` に 2 つ以上の待ち行列を書いた釦は、書いた順にそれぞれの上から `take` 件ずつを取り出して 1 つにまとめ、どれかが `take` 件に満たなければ何も変えない (#3453)。
  * 原本の JSON は部品の名札の食い違い (宣言していない部品やチップ) を形の検査で止められないので、当てられない出来事は何も変えずに誤りの種類を返す。
  */
 import { queueMost, TRY_LOOK } from "./look/try";
@@ -74,9 +72,7 @@ export interface TryState {
 
 /**
  * 出来事を当てられなかった訳。`index` は `line` の中の何番目のチップか。
- * `part` は部品の名札の食い違い (宣言していない部品か、種類の違う部品)、`count` は `ask` の値の数の食い違い。
- * `refused` は待ち行列 `part` が名前 `item` のチップを受け入れないこと (#3453)。
- * `empty` は釦が取り出す待ち行列 `part` が空なこと。`want` は 2 つ以上の待ち行列から集める釦で、チップはあるが `want` 件に満たないこと (#3453)
+ * `part` は部品の名札の食い違い (宣言していない部品か、種類の違う部品)、`count` は `ask` の値の数の食い違い
  */
 export type TryFault =
   | { kind: "part"; part: string }
@@ -85,9 +81,8 @@ export type TryFault =
   | { kind: "twice"; index: number; item: string }
   | { kind: "elsewhere"; index: number; item: string; part: string }
   | { kind: "full"; part: string; most: number }
-  | { kind: "refused"; part: string; item: string }
   | { kind: "blockFull"; part: string; most: number }
-  | { kind: "empty"; part: string; want?: number };
+  | { kind: "empty"; part: string };
 
 /** 出来事を当てた結果。`chip` は送って作ったチップ、`block` は足したブロック (機械の列と番号)、`record` は足した記録 (記録の列と番号) */
 export interface TryApplied {
@@ -162,14 +157,6 @@ export function intoOf(ask: Part<"ask">, values: readonly string[], isPart: (id:
   const at = ask.fields.indexOf(ask.into);
   return at < 0 ? ask.into : (values[at] ?? ask.into);
 }
-
-/** 釦が取り出す待ち行列の名札を、書いた順に重ならずに並べる。`from` が 1 つの名札の字なら、その 1 つ (#3453) */
-export const fromsOf = (press: Part<"press">): string[] =>
-  typeof press.from === "string" ? [press.from] : [...new Set(press.from)];
-
-/** 名前 `name` のチップを、待ち行列 `queue` が受け入れるか。`accept` を書かない待ち行列はどの名前も受け入れる (#3453) */
-export const accepts = (queue: TryPart | undefined, name: string): boolean =>
-  queue?.type !== "queue" || queue.accept === undefined || queue.accept.includes(name);
 
 /** 入力の帯の欄。入力の帯が無ければ空 */
 export const askFields = (parts: readonly TryPart[]): string[] =>
@@ -262,8 +249,7 @@ export class TryRun {
 
   /**
    * 入力の帯の欄の値でチップを作り、入力の帯の待ち行列へ送る。網を書いた入力の帯は、網の最短の道を運ぶ。
-   * `into` が部品の名札でなく欄の名前なら、その欄の値と同じ名札の待ち行列へ送る (#3441)。
-   * 送る先の待ち行列が名前 (最初の欄の値) を受け入れなければ、満杯かを見る前に断る (#3453)
+   * `into` が部品の名札でなく欄の名前なら、その欄の値と同じ名札の待ち行列へ送る (#3441)
    */
   ask(values: readonly string[]): TryApplied {
     const ask = this.partOf("ask", "ask");
@@ -273,10 +259,9 @@ export class TryRun {
     const into = intoOf(ask, values, (id) => this.parts.has(id));
     const queue = this.queues.get(into);
     if (!queue) return { fault: { kind: "part", part: into } };
-    const name = values[0] ?? "";
-    if (!accepts(this.parts.get(into), name)) return { fault: { kind: "refused", part: into, item: name } };
     if (queue.length >= this.most)
       return { fault: { kind: "full", part: into, most: this.most } };
+    const name = values[0] ?? "";
     const id = freshId(name, (x) => this.chips.has(x));
     this.chips.set(id, [...values]);
     queue.push({ id, seq: this.seq++ });
@@ -285,31 +270,20 @@ export class TryRun {
     return { chip: id };
   }
 
-  /**
-   * 釦を押す。待ち行列の上から `take` 件 (少なければ全部) を、機械の列の新しいブロックか記録の列の新しい記録へ待ち行列の並びのまま移す。
-   * `from` に 2 つ以上の待ち行列を書いた釦は、書いた順にそれぞれの上から `take` 件ずつを 1 つにまとめる。
-   * どれかが `take` 件に満たなければ、書いた順で最初に足りない待ち行列を名指して断り、どの待ち行列も変えない (#3453)
-   */
+  /** 釦を押す。待ち行列の上から `take` 件 (少なければ全部) を、機械の列の新しいブロックか記録の列の新しい記録へ待ち行列の並びのまま移す */
   press(name: string): TryApplied {
     const press = this.partOf("press", name);
     if (!press) return { fault: { kind: "part", part: name } };
-    const froms = fromsOf(press);
-    const missing = froms.find((id) => !this.queues.has(id));
+    const queue = this.queues.get(press.from);
     const log = this.logs.get(press.into);
-    if (missing !== undefined || (!this.chains.has(press.into) && !log))
-      return { fault: { kind: "part", part: missing ?? press.into } };
-    const gather = froms.length > 1;
-    for (const id of froms) {
-      const waiting = this.queues.get(id)?.length ?? 0;
-      if (waiting === 0) return { fault: { kind: "empty", part: id } };
-      if (gather && waiting < press.take) return { fault: { kind: "empty", part: id, want: press.take } };
-    }
-    const taken = froms.flatMap((id) => this.sorted(id).slice(0, press.take));
-    for (const id of froms)
-      this.queues.set(
-        id,
-        (this.queues.get(id) ?? []).filter((entry) => !taken.includes(entry.id)),
-      );
+    if (!queue || (!this.chains.has(press.into) && !log))
+      return { fault: { kind: "part", part: queue ? press.into : press.from } };
+    if (queue.length === 0) return { fault: { kind: "empty", part: press.from } };
+    const taken = this.sorted(press.from).slice(0, press.take);
+    this.queues.set(
+      press.from,
+      queue.filter((entry) => !taken.includes(entry.id)),
+    );
     if (log) {
       log.push(taken);
       return { record: { log: press.into, number: log.length } };

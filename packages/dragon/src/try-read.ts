@@ -53,10 +53,7 @@ export function settleTry(state: ParseState): void {
   spec.run = new TryRun({ parts: spec.parts, items: spec.items });
 }
 
-/**
- * 段の中の出来事を当てられなかった訳を、行の誤りにする。`chips` は `line` の行のチップか `ask` の行の値の位置、`press` は押した釦。
- * 受け入れない名前 (#3453) は `ask` の行の最初の値 (チップの名前) を名指す
- */
+/** 段の中の出来事を当てられなかった訳を、行の誤りにする。`chips` は `line` の行のチップの位置、`press` は押した釦 */
 export function faultOf(source: SourceLine, fault: TryFault, state: ParseState, chips: { at: number }[] = [], press = ""): NotationError {
   const { m } = state;
   switch (fault.kind) {
@@ -68,12 +65,10 @@ export function faultOf(source: SourceLine, fault: TryFault, state: ParseState, 
       return fail(source, chips[fault.index]?.at ?? 0, m.chipElsewhere(fault.item, fault.part));
     case "full":
       return fail(source, 0, m.queueFull(fault.part, fault.most));
-    case "refused":
-      return fail(source, chips[0]?.at ?? 0, m.queueRefuses(fault.part, fault.item));
     case "blockFull":
       return fail(source, 0, m.blockFull(fault.part, fault.most));
     case "empty":
-      return fail(source, 0, fault.want === undefined ? m.queueEmpty(fault.part, press) : m.queueShort(fault.part, press, fault.want));
+      return fail(source, 0, m.queueEmpty(fault.part, press));
     case "count":
       return fail(source, 0, m.askCount(fault.want));
     case "part":

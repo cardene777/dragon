@@ -1943,7 +1943,7 @@
           }
         },
         {
-          "description": "待ち行列。order の欄の値の高い順 (同じ値は入った順) にチップを上から並べる。order を書かなければ入った順。accept を書くと、その名前のチップだけを入れる (#3453)",
+          "description": "待ち行列。order の欄の値の高い順 (同じ値は入った順) にチップを上から並べる。order を書かなければ入った順",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -1959,14 +1959,6 @@
             },
             "order": {
               "$ref": "#/definitions/id"
-            },
-            "accept": {
-              "description": "入れてよいチップの名前 (入力の帯の最初の欄の値、#3453)。書いていない名前のチップは送れない",
-              "type": "array",
-              "minItems": 1,
-              "items": {
-                "$ref": "#/definitions/id"
-              }
             }
           }
         },
@@ -2075,7 +2067,7 @@
           }
         },
         {
-          "description": "釦。from の待ち行列の上から take 件を、into の機械の列の新しいブロックか記録の列の新しい記録へ移す。at は釦を置く部品 (書かなければ入力の帯)。from に 2 つ以上の待ち行列を並べると、書いた順にそれぞれの上から take 件ずつを 1 つにまとめ、どれかが take 件に満たない間は押せない (#3453)",
+          "description": "釦。from の待ち行列の上から take 件を、into の機械の列の新しいブロックか記録の列の新しい記録へ移す。at は釦を置く部品 (書かなければ入力の帯)",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -2093,19 +2085,7 @@
               "$ref": "#/definitions/id"
             },
             "from": {
-              "description": "取り出す待ち行列。1 つなら名札の字で、2 つ以上なら名札の配列 (#3453)",
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/id"
-                },
-                {
-                  "type": "array",
-                  "minItems": 2,
-                  "items": {
-                    "$ref": "#/definitions/id"
-                  }
-                }
-              ]
+              "$ref": "#/definitions/id"
             },
             "into": {
               "$ref": "#/definitions/id"

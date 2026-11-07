@@ -171,18 +171,15 @@ export interface TryEdit {
  * `into` に欄を書くと、送ったチップはその欄の値と同じ名札の待ち行列へ入る (#3441)。その欄は選択肢を持ち、選択肢ごとに同じ名札の待ち行列が要る。
  * 記録の列 (`log`、#3441) は釦が取り出したチップを番号の付いた記録にまとめ、機械の列と違って prev と hash を持たない。
  * `all` を書くと、記録の中のチップの `all.field` の欄が全て `all.value` なら `all.yes`、1 つでも違えば `all.no` の印を記録に出す。
- * 釦 (`press`) は `from` の待ち行列の上から `take` 件を `into` の機械の列の新しいブロックか記録の列の新しい記録へ移し、`at` の部品の所に置く。
- * 待ち行列の `accept` は入れてよいチップの名前 (#3453) で、書いた待ち行列へは書いていない名前のチップを送れない。
- * 釦の `from` は待ち行列が 1 つなら名札の字で、2 つ以上なら名札の配列 (#3453)。配列の釦は書いた順にそれぞれの上から `take` 件ずつを 1 つにまとめ、
- * どれかの待ち行列が `take` 件に満たない間は押せない
+ * 釦 (`press`) は `from` の待ち行列の上から `take` 件を `into` の機械の列の新しいブロックか記録の列の新しい記録へ移し、`at` の部品の所に置く
  */
 export type TryPart =
   | { type: "route"; id: string; paths: string[][]; from: string; to: string }
-  | { type: "queue"; id: string; order?: string; accept?: string[] }
+  | { type: "queue"; id: string; order?: string }
   | { type: "chain"; id: string; edit?: string }
   | { type: "log"; id: string; all?: TryVerdict }
   | { type: "ask"; id: "ask"; fields: string[]; into: string; via?: string; choices?: Record<string, string[]> }
-  | { type: "press"; id: string; from: string | string[]; into: string; take: number; at?: string };
+  | { type: "press"; id: string; from: string; into: string; take: number; at?: string };
 
 /** 記録の列の印の決め方 (#3441)。記録の中のチップの `field` の欄が全て `value` なら `yes`、1 つでも違えば `no` */
 export interface TryVerdict {
