@@ -201,11 +201,12 @@ describe("版の記録 (#3151)", () => {
       const text = readFileSync(join(ROOT, file), "utf8");
       const released = section(text.replace(/^## \[0\.63\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.63.0"), "0.63.0");
       expect(released, `${file} に日付付きの ## [0.63.0] の節が無い`).not.toBe("");
-      expect(released, `${file} の 0.63.0 の節に #3455 の項が無い`).toContain("(#3455)");
+      // 版上げの後に入った配管の図の直し (#3450) も 0.63.0 で出す (#3466)
+      for (const issue of ["(#3455)", "(#3450)"]) expect(released, `${file} の 0.63.0 の節に ${issue} の項が無い`).toContain(issue);
       for (const name of ["`dragon check`", "`dragon --version`", "`+bridge`", "`<pre><code class=\"language-dragon\">`"]) {
         expect(released, `${file} の 0.63.0 の節が ${name} を名指さない`).toContain(name);
       }
-      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3455)");
+      for (const issue of ["(#3455)", "(#3450)"]) expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain(issue);
     }
   });
 
