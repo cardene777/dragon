@@ -6,4 +6,4 @@
  */
 import { type None, none } from "../block";
 
-export const shape: None = none("待ち行列は試す図の部品の 1 つで、原本の形は部品の欄 (blocks.part) の判別で 5 つの部品の枝を持つ骨組みの部品の形 (definitions.part) が持つ");
+export const shape: None = none("待ち行列は試す図の部品の 1 つで、原本の形は部品の欄 (blocks.part) の判別で部品の種類ごとの枝を持つ骨組みの部品の形 (definitions.part) が持つ");

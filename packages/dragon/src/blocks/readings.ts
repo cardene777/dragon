@@ -24,6 +24,7 @@ import { reading as legendReading } from "./legend/read";
 import { reading as lifelineReading } from "./lifeline/read";
 import { reading as lineReading } from "./line/read";
 import { reading as linkReading } from "./link/read";
+import { reading as logReading } from "./log/read";
 import { reading as mergeReading } from "./merge/read";
 import { reading as nodeReading } from "./node/read";
 import { reading as noteReading } from "./note/read";
@@ -77,6 +78,7 @@ export const READINGS = {
   "lifeline": lifelineReading,
   "line": lineReading,
   "link": linkReading,
+  "log": logReading,
   "merge": mergeReading,
   "node": nodeReading,
   "note": noteReading,

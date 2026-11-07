@@ -3,11 +3,12 @@
  *
  * 出来事ごとの時刻と、出来事ごとの位置を辿る動きと、時点ごとに替わる字を描く状態 (`TryKit`) に組み、
  * 網、待ち行列、機械の列、入力の帯のブロックの描き方 (`blocks/<名前>/draw.ts`) を層の順に呼ぶ (#3348)。
- * 呼ぶ順は網、待ち行列、機械の列、チップで、この順が動きの名前の番号を決める。見た目の規則 (`TRY_CSS`) は試す図の SVG にだけ書く。
+ * 呼ぶ順は網、待ち行列、機械の列、チップ、記録の列で、この順が動きの名前の番号を決める。見た目の規則 (`TRY_CSS`) は試す図の SVG にだけ書く。
  * 書き手の段を全て描くので、書き出しと印刷は書き手の例の段を描く。最後の段の止め絵は最後の段の状態。
  */
 import { tryChips } from "../blocks/ask/draw";
 import { chainRows } from "../blocks/chain/draw";
+import { logRows } from "../blocks/log/draw";
 import { queueFrames } from "../blocks/queue/draw";
 import { routeNet } from "../blocks/route/draw";
 import { hasWide, textBox } from "../layout/measure";
@@ -61,6 +62,16 @@ const TRY_CSS = [
   `.dg-try-fold{fill:var(--surf);stroke:var(--hair);stroke-width:${S.hair};stroke-dasharray:3 3}`,
   `.dg-try-ft{${font(TYPE.tryHint)};fill:var(--mute)}`,
   `.dg-try-ftj{${font(sansOf(TYPE.tryHint))}}`,
+].join("");
+
+/**
+ * 記録の列 (#3441) だけが使う見た目。記録の列を持つ図の SVG にだけ書き、記録の列を持たない図の SVG を変えない。
+ * 印の札は色の役の色で縁を引き、印の字は色の役の字の色で書く
+ */
+const LOG_CSS = [
+  `.dg-try-mb{fill:${mix(X.chipTint)};stroke:var(--c);stroke-width:${S.on}}`,
+  `.dg-try-mk{${font(TYPE.tryChipValue)};fill:var(--ct)}`,
+  `.dg-try-mkj{${font(sansOf(TYPE.tryChipValue))}}`,
 ].join("");
 
 /** 和文を含む字に、和文の字の class を足す */
@@ -301,11 +312,13 @@ export function drawTry(
   queueFrames(kit);
   chainRows(kit);
   tryChips(kit);
+  // 記録の列はチップの後に呼び、記録の列を持たない図の動きの名前の番号を変えない
+  logRows(kit);
   return {
     base: base.join(""),
     lit: lit.join(""),
     node: node.join(""),
     top: top.join(""),
-    css: TRY_CSS,
+    css: layout.logs ? TRY_CSS + LOG_CSS : TRY_CSS,
   };
 }

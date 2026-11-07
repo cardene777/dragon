@@ -15,6 +15,10 @@ export interface TryText {
   tryBlock: (n: number) => string;
   tryTakes: (n: number) => string;
   tryFolded: (n: number) => string;
+  /** 記録の列の記録の番号の字 (#3441) */
+  tryRecord: (n: number) => string;
+  /** 記録の列で畳んだ記録の数の字 (#3441) */
+  tryFoldedRecords: (n: number) => string;
   /**
    * 試す図の再生の部品 (#3337)。入力の帯と書き換える欄の読み上げの名前、送る釦と決める釦と閉じる釦の字、書き換える欄の名前。
    * 押せない訳は、満杯の待ち行列へ送れないこと、空の待ち行列から取り出せないこと、空の欄、チップの名前に使えない字、空の書き換え。
@@ -35,6 +39,8 @@ export interface TryText {
   trySentBody: (name: string, into: string, via?: string) => string;
   tryPressed: (press: string) => string;
   tryPressedBody: (count: number, from: string, block: number) => string;
+  /** 釦が記録の列 `log` の記録 `record` に `from` の上から `count` 件を入れた時の段の本文 (#3441) */
+  tryPressedRecordBody: (count: number, from: string, log: string, record: number) => string;
   tryEdited: (item: string, field: string) => string;
   tryEditedBody: (field: string, from: string, to: string) => string;
 }
@@ -44,6 +50,8 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
     tryBlock: (n) => `ブロック ${n}`,
     tryTakes: (n) => `次は上から ${n} 件`,
     tryFolded: (n) => `古いブロック ${n} つ`,
+    tryRecord: (n) => `記録 ${n}`,
+    tryFoldedRecords: (n) => `古い記録 ${n} つ`,
     tryAsk: "送る値",
     tryEditForm: "チップを書き換える",
     trySend: "送る",
@@ -63,6 +71,8 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
     tryPressed: (press) => `「${press}」を押した`,
     tryPressedBody: (count, from, block) =>
       `${spaced(from)}の上から ${count} 件がブロック ${block} に入った。`,
+    tryPressedRecordBody: (count, from, log, record) =>
+      `${spaced(from)}の上から ${count} 件が${inner(log)}の記録 ${record} に入った。`,
     tryEdited: (item, field) => `${spaced(item)}の${inner(field)}を書き換えた`,
     tryEditedBody: (field, from, to) =>
       `${spaced(field)}を ${from} から ${to} にした。ブロックの hash を出し直す。`,
@@ -71,6 +81,8 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
     tryBlock: (n) => `Block ${n}`,
     tryTakes: (n) => `Top ${n} go next`,
     tryFolded: (n) => `${n} older ${n === 1 ? "block" : "blocks"}`,
+    tryRecord: (n) => `Record ${n}`,
+    tryFoldedRecords: (n) => `${n} older ${n === 1 ? "record" : "records"}`,
     tryAsk: "Values to send",
     tryEditForm: "Edit a chip",
     trySend: "Send",
@@ -90,6 +102,8 @@ export const TRY_TEXT: Record<NotationLang, TryText> = {
     tryPressed: (press) => `Pressed "${press}"`,
     tryPressedBody: (count, from, block) =>
       `The top ${count === 1 ? "item" : `${count} items`} of ${from} went into block ${block}.`,
+    tryPressedRecordBody: (count, from, log, record) =>
+      `The top ${count === 1 ? "item" : `${count} items`} of ${from} went into record ${record} of ${log}.`,
     tryEdited: (item, field) => `Changed ${field} of ${item}`,
     tryEditedBody: (field, from, to) =>
       `Set ${field} from ${from} to ${to}. The block hash is computed again.`,

@@ -24,6 +24,7 @@ import { docs as legendDocs } from "../../../../packages/dragon/src/blocks/legen
 import { docs as lifelineDocs } from "../../../../packages/dragon/src/blocks/lifeline/gallery/docs";
 import { docs as lineDocs } from "../../../../packages/dragon/src/blocks/line/gallery/docs";
 import { docs as linkDocs } from "../../../../packages/dragon/src/blocks/link/gallery/docs";
+import { docs as logDocs } from "../../../../packages/dragon/src/blocks/log/gallery/docs";
 import { docs as mergeDocs } from "../../../../packages/dragon/src/blocks/merge/gallery/docs";
 import { docs as nodeDocs } from "../../../../packages/dragon/src/blocks/node/gallery/docs";
 import { docs as noteDocs } from "../../../../packages/dragon/src/blocks/note/gallery/docs";
@@ -77,6 +78,7 @@ export const BLOCK_DOCS = {
   "lifeline": lifelineDocs,
   "line": lineDocs,
   "link": linkDocs,
+  "log": logDocs,
   "merge": mergeDocs,
   "node": nodeDocs,
   "note": noteDocs,

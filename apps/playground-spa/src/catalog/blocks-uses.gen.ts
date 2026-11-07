@@ -24,6 +24,7 @@ import { uses as legendUses } from "../../../../packages/dragon/src/blocks/legen
 import { uses as lifelineUses } from "../../../../packages/dragon/src/blocks/lifeline/gallery/uses";
 import { uses as lineUses } from "../../../../packages/dragon/src/blocks/line/gallery/uses";
 import { uses as linkUses } from "../../../../packages/dragon/src/blocks/link/gallery/uses";
+import { uses as logUses } from "../../../../packages/dragon/src/blocks/log/gallery/uses";
 import { uses as mergeUses } from "../../../../packages/dragon/src/blocks/merge/gallery/uses";
 import { uses as nodeUses } from "../../../../packages/dragon/src/blocks/node/gallery/uses";
 import { uses as noteUses } from "../../../../packages/dragon/src/blocks/note/gallery/uses";
@@ -77,6 +78,7 @@ export const BLOCK_USES = {
   "lifeline": lifelineUses,
   "line": lineUses,
   "link": linkUses,
+  "log": logUses,
   "merge": mergeUses,
   "node": nodeUses,
   "note": noteUses,

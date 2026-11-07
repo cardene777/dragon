@@ -18,7 +18,7 @@ import { TRY_LOOK } from "./look/try";
 import { LOOK, TYPE } from "./look/values";
 import { cssFont as font } from "./render/parts";
 import type { DiagramModel, Step, TryPart } from "./schema";
-import { askFields, type TryState } from "./try-state";
+import { askFields, intoOf, type TryState } from "./try-state";
 import { TRY_TEXT } from "./try-text";
 import type { NotationLang } from "./words";
 
@@ -99,6 +99,12 @@ export function tryTexts(model: DiagramModel, lang: NotationLang): string[] {
     w.tryPressed(""),
     w.tryPressedBody(1, "", 0),
     w.tryPressedBody(2, "", 0),
+    // 記録の列 (#3441) の、読み手が足す記録の番号と印と、押した段の本文
+    ...parts.flatMap((p) =>
+      p.type === "log"
+        ? [w.tryRecord(0), w.tryFoldedRecords(1), w.tryFoldedRecords(2), w.tryPressedRecordBody(1, "", "", 0), w.tryPressedRecordBody(2, "", "", 0), ...(p.all ? [p.all.yes, p.all.no] : [])]
+        : [],
+    ),
     w.tryEdited("", ""),
     w.tryEditedBody("", "", ""),
   ];
@@ -270,14 +276,18 @@ export function mountTryControls(
     position();
   };
 
+  /** 送る先の待ち行列。`into` に欄を書いた入力の帯は、その欄に今選んでいる値の待ち行列 (#3441) */
+  const target = (): string =>
+    ask ? intoOf(ask, inputs.map((i) => i.input.value.trim()), (id) => parts.some((p) => p.id === id)) : "";
   const update = (next: TryLayout): void => {
     current = next;
     const last = lastState();
     const reasons: string[] = [];
     if (ask && send) {
-      const most = next.parts.find((p) => p.id === ask.into)?.most ?? Number.POSITIVE_INFINITY;
-      send.disabled = (last?.queues[ask.into]?.length ?? 0) >= most;
-      if (send.disabled) reasons.push(words.tryFull(ask.into, most));
+      const into = target();
+      const most = next.parts.find((p) => p.id === into)?.most ?? Number.POSITIVE_INFINITY;
+      send.disabled = (last?.queues[into]?.length ?? 0) >= most;
+      if (send.disabled) reasons.push(words.tryFull(into, most));
     }
     for (const p of presses) {
       const b = pressed.get(p.id) as HTMLButtonElement;
@@ -327,7 +337,7 @@ export function mountTryControls(
     if (!NAME.test(name)) return refuse(words.tryBadName(fields[0] ?? ""));
     add({
       title: words.trySent(name),
-      body: words.trySentBody(name, ask.into, ask.via),
+      body: words.trySentBody(name, target(), ask.via),
       events: [{ type: "ask", values }],
     });
   };
@@ -336,13 +346,13 @@ export function mountTryControls(
     const last = lastState();
     const waiting = p ? (last?.queues[p.from]?.length ?? 0) : 0;
     if (!p || waiting === 0) return;
+    const count = Math.min(p.take, waiting);
+    const records = last?.logs?.[p.into];
     add({
       title: words.tryPressed(p.id),
-      body: words.tryPressedBody(
-        Math.min(p.take, waiting),
-        p.from,
-        (last?.chains[p.into]?.length ?? 0) + 1,
-      ),
+      body: records
+        ? words.tryPressedRecordBody(count, p.from, p.into, records.length + 1)
+        : words.tryPressedBody(count, p.from, (last?.chains[p.into]?.length ?? 0) + 1),
       events: [{ type: "press", press: p.id }],
     });
   };
@@ -373,7 +383,12 @@ export function mountTryControls(
     if (event.target === form) sendValues();
     else if (editor && event.target === editor.form) applyEdit();
   };
-  const onInput = (): void => {
+  const onInput = (event: Event): void => {
+    // into に書いた欄を選び直すと送る先の待ち行列が替わるので、送れるかを決め直す (#3441)
+    if (ask && (event.target as HTMLElement | null)?.dataset?.field === ask.into) {
+      update(current);
+      return;
+    }
     if (notice === "") return;
     notice = "";
     say();
@@ -384,6 +399,7 @@ export function mountTryControls(
   tools.addEventListener("click", onClick);
   tools.addEventListener("submit", onSubmit);
   tools.addEventListener("input", onInput);
+  tools.addEventListener("change", onInput);
   tools.addEventListener("keydown", onKey);
   layer.addEventListener("click", onClick);
 

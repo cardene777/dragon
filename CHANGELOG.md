@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-11-07
+
+### Added
+
+- **A try diagram can route chips by a chosen value and gather them into a `log` without a chain** (#3441)
+
+  When the input strip's `into` names a field, a sent chip enters the queue whose name matches the value chosen for that field. Give that field a `choose` line and place a queue named after each choice. A field without a `choose` line, and a choice with no queue of the same name, are refused with the line and column. The new part `log <name> [all: <field> = <value>, yes: <mark>, no: <mark>]` is a log, and when a button's `into` names it, the button gathers the top `take` chips of its queue into one numbered record. A record holds only its number and the names and field values of its chips, and unlike a chain it has no `prev` or `hash`. With `all`, a record shows the `yes` mark when that field of every chip in it has the value, and the `no` mark when even one differs. Diagrams without a log draw as before.
+
 ## [0.59.0] - 2026-11-07
 
 ### Added
