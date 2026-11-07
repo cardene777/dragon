@@ -18,8 +18,8 @@
  * 読み手が送るか釦を押すかチップを書き換えるたびに、その出来事の段を今の原本の最後に足して描き直し、足した段を 1 度だけ流す。
  * 動きを嫌う設定では流さずに足した段の止め絵で止める。今の原本は `player.diagram` で読め、置き直すと最初の段に戻る (#3337)。
  * 入力の帯などの操作は試す図の描く部品と同じ塊が持ち、試す図を描けた後に登録簿 (`kinds/registry.ts`) から引いて置く。
- * 配管の図 (`pipe`) は帯に段の番号と題を出さずに段の説明の文だけを出し、図の下に呼び出しの一覧を置く (#3418)。
- * 一覧は配管の図の描く部品と同じ塊が持ち、配管の図を描けた後に登録簿から引いて置く。
+ * 配管の図 (`pipe`) は帯に段の番号と題を出して段の説明の文を出さず、図の下に段の動きの矢印と畳んだ呼び出しの記録を置く (#3450)。
+ * 矢印と記録は配管の図の描く部品と同じ塊が持ち、配管の図を描けた後に登録簿から引いて置く。
  * 配管の図の枠 (`[data-dragon="zoom-frame"]`、図が枠より広い間は `[data-dragon="pan"]`) は図を 100% から 400% まで拡大でき、
  * 釦、Ctrl か Command を押しながらのホイール、ダブルクリックで拡大し、拡大した図を引いて枠の中を縦横に送る。
  * 100% の図は、枠の幅が `ZOOM.fit` より狭い時は枠の幅に収め、広い時は縮めずに置く。配管の図は枠の幅を渡して描く。
@@ -149,8 +149,9 @@ function playerCss(): string {
     `@container dg-bar (width >= ${px(P.wide)}){.dg-lay{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:${px(P.captionGap)};row-gap:${px(P.progressGap)}}.dg-ctl{display:contents}.dg-btns{justify-self:start;align-self:start}.dg-segs{grid-column:1/-1}}`,
     // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは変えない
     `@media (pointer: coarse){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}}`,
-    // 配管の図の帯は段の番号と題を出さず、段の説明の文だけを出す (#3418)。題の写しも隠し、帯の高さを最も長い説明の文で決める
-    ".dg-player[data-pipe] .dg-no,.dg-player[data-pipe] .dg-tt{display:none}",
+    // 配管の図の帯は段の番号と題を出し、段の説明の文は出さない (#3450)。段の動きは図の下の矢印が見せ、説明の文は読み上げの一覧が読む。
+    // 説明の文の写しも隠し、帯の高さを最も長い題で決める
+    ".dg-player[data-pipe] .dg-tb{display:none}",
     // 拡大の釦と度合いの札。積む帯では操作の段の右の端に置き、釦と並ばない幅では次の行へ送る。
     // 広い帯では段を送る釦の右に置き、帯を 1 段に保つ
     `.dg-zm{display:flex;align-items:center;gap:${px(P.segmentGap)};flex:none;margin-left:auto}`,
@@ -378,7 +379,7 @@ export function mountDiagram(
         (added) => add(added),
       )
     : undefined;
-  // 配管の図の呼び出しの一覧は帯の下に置き、段を送る釦を図のすぐ下に保つ (#3418)。配管の図を描けたので、配管の図の塊は届いている
+  // 配管の図の段の矢印と呼び出しの記録は帯の下に置き、段を送る釦を図のすぐ下に保つ (#3418、#3450)。配管の図を描けたので、配管の図の塊は届いている
   const calls: PipeCalls | undefined = isPipe ? kindParts("pipe", lang).mountPipeCalls(doc, lang) : undefined;
   root.append(frame, bar, ...(controls ? [controls.tools] : []), ...(calls ? [calls.element] : []), list);
   host.append(root);

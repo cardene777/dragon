@@ -69,14 +69,15 @@ export interface FigureText {
   zoomIn: string;
   zoomOut: string;
   /**
-   * 配管の図の下の呼び出しの一覧 (#3418)。一覧の読み上げの名前、列の名前、中で動いた値の種類、
-   * 中身の無い欄の印、戻る前の出力の字、取り消して戻った呼び出しの出力
+   * 配管の図の下の段の矢印と呼び出しの記録 (#3418、#3450)。記録の名前、矢印の札 (送る、呼ぶ、返す、取り消す、計算する、記録を出す)、
+   * 同じ段で戻った呼び出しの返した値の札、確かめた式を満たした時と満たさない時の札、中身の無い所の印、取り消して戻った呼び出しの返した値
    */
   calls: string;
-  callHeads: Record<"call" | "input" | "inside" | "output", string>;
-  callKinds: Record<"move" | "check" | "calc" | "emit", string>;
+  flowTags: Record<"move" | "call" | "return" | "revert" | "calc" | "emit", string>;
+  returnOf: (label: string) => string;
+  checkPass: string;
+  checkFail: string;
   callNone: string;
-  callWaiting: string;
   callReverted: (reason?: string) => string;
 }
 
@@ -131,11 +132,12 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupMissing: (name) => `${name}が無い`,
     zoomIn: "拡大する",
     zoomOut: "縮小する",
-    calls: "呼び出しの一覧",
-    callHeads: { call: "呼び出し", input: "入力", inside: "中で動いた値", output: "出力" },
-    callKinds: { move: "移動", check: "確認", calc: "計算", emit: "イベント" },
+    calls: "呼び出しの記録",
+    flowTags: { move: "送る", call: "呼ぶ", return: "返す", revert: "取り消す", calc: "計算する", emit: "記録を出す" },
+    returnOf: (label) => `${label}を返す`,
+    checkPass: "✓ 満たす",
+    checkFail: "✗ 満たさない",
     callNone: "—",
-    callWaiting: "返り待ち",
     callReverted: (reason) => (reason === undefined ? "取り消し" : `取り消し (${reason})`),
   },
   en: {
@@ -179,11 +181,12 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupMissing: (name) => `${name} is missing`,
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
-    calls: "Calls",
-    callHeads: { call: "Call", input: "Input", inside: "Values inside", output: "Output" },
-    callKinds: { move: "Move", check: "Check", calc: "Calc", emit: "Event" },
+    calls: "Call record",
+    flowTags: { move: "sends", call: "calls", return: "returns", revert: "reverts", calc: "calculates", emit: "emits" },
+    returnOf: (label) => `returns ${label}`,
+    checkPass: "✓ holds",
+    checkFail: "✗ fails",
     callNone: "—",
-    callWaiting: "Waiting",
     callReverted: (reason) => (reason === undefined ? "Reverted" : `Reverted (${reason})`),
   },
 };
