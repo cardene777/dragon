@@ -1,0 +1,393 @@
+// @vitest-environment jsdom
+/**
+ * 試す図の関門の記録で、止まった節の行とエラーの名前の行を分ける (#3478)。
+ *
+ * 0.65.0 (#3476) の関門の記録は、止まった節 (`<節> で止まった`) とエラーの名前を 1 行に並べ、記録の幅をその行の字の幅で決めていた。
+ * エラーの名前が長いと記録が広がり、記録を 3 つ横に並べる広い組みは幅 740 を、記録を縦に積む細い組みは幅 324 を超える。
+ * 頁では 1 回目に送った所で図の幅が 740 から広がって組みが変わり、携帯の幅の頁では部品が置かれなかった。
+ * 関門の記録は止まった節の行とエラーの名前の行を別の行に持ち、記録の幅は 2 つの行の長い方の字の幅で決める。
+ * 記録が増えても試す図は広い組みで幅 740、細い組みで幅 324 に収まり、頁で送って記録が増えても図の幅は変わらない。
+ *
+ * 図は bitsumi の Canton の図解の試す図 (トランザクションが拒否される段) で、網の 4 つの節に 6 つの関門を置き、
+ * エラーの名前は書き手の頁の解説のまま使う。英語の言葉 (`Stopped at <node>`) でも確かめるので、英字だけの図も足す。
+ * 置き場所は描く部品が返す値 (`layout`) で、行の位置は描いた SVG の字の位置で確かめる。
+ *
+ * 記録で図が広がらなくなると、5 つの節を 1 列に並べた網は細い組み (幅 324) で節の名札どうしが重なる。
+ * 直す前は記録の幅で図が 397 に広がり、網に場所があったので重ならなかった。
+ * 細い組みでも網の名札は互いに重ならず、節の丸にも掛からず、図の枠の内に収まる。
+ * 隣の名札とぶつからない網の名札は、今の位置 (節の真下、丸の真ん中から `TRY_LOOK.route.labelY` の基準線、真ん中揃え) のまま描く。
+ */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { textWidth } from "../src/layout/measure";
+import { TRY_LOOK } from "../src/look/try";
+import { TYPE } from "../src/look/values";
+import { draw, type Rendered } from "./render-support";
+import { askStrip, figureOf, mountTry, parsedTry, releaseTry, sendButton, tryLayout } from "./try-support";
+
+afterEach(releaseTry);
+
+/** 広い組みの図の幅の上限。関門の記録が無い試す図はこの幅で描く */
+const WIDE = 740;
+/** 携帯の幅の頁で図を置く枠の幅 (幅 390 の頁から余白を除いた幅) */
+const PHONE = 324;
+/** 広い頁の枠の幅 */
+const DESK = 1440;
+
+/** Canton の図の記録の列 */
+const CANTON_LOG = "拒否の記録";
+
+/** Canton の図の段。[題, 説明, 送る値]。送る値の段は、それぞれ 1 つの関門で止まるトランザクションを送る */
+const CANTON_STEPS: readonly (readonly [string, string, string?])[] = [
+  ["段ごとの関門を順に通る", "トランザクションは送る Participant Node、Sequencer、確かめる Participant Node、Mediator の順に関門を通ります。"],
+  ["署名が無効だと送る前に止まる", "署名が無効なトランザクションは、送る Participant Node で止まります。", "送金A, 無効, 12000, 空き, 整合, 間に合う"],
+  ["混んだ Sequencer は受け付けを待たせる", "Sequencer が混雑していると、Sequencer で止まります。", "送金B, 有効, 12000, 混雑, 整合, 間に合う"],
+  ["27,000 byte を超える batch は受け付けない", "85,134 byte の batch は、Sequencer で止まります。", "送金C, 有効, 85134, 空き, 整合, 間に合う"],
+  ["View が合わないと Reject が返る", "View が合わないと、確かめる Participant Node が Reject を返します。", "送金D, 有効, 12000, 空き, 不整合, 間に合う"],
+  ["順序付けが遅れると timeout になる", "順序付けが遅れると、Sequencer で止まります。", "送金E, 有効, 12000, 空き, 整合, 順序付けの遅れ"],
+  ["応答が遅れると ABORTED になる", "応答が遅れると、Mediator で止まります。", "送金F, 有効, 12000, 空き, 整合, 応答の遅れ"],
+  ["全ての関門を通るとコミットする", "全ての関門に合うトランザクションだけがコミットされます。", "送金G, 有効, 12000, 空き, 整合, 間に合う"],
+];
+
+/** Canton の図の網。5 つの節を 1 列に並べる */
+const CANTON_ROUTE = "route 送信経路: アプリ - 送るNode - Sequencer - 確かめるNode - Mediator [from: アプリ, to: Mediator]";
+
+/** Canton の図の記法。部品、関門、段の塊を空の行で区切って並べる */
+const CANTON = [
+  "try トランザクションが拒否される段",
+  [
+    CANTON_ROUTE,
+    "queue コミットした",
+    `log ${CANTON_LOG}`,
+    "ask トランザクション, 署名, 大きさ, 混み具合, View, 期限 [into: コミットした, via: 送信経路]",
+    "choose 署名: 有効, 無効",
+    "choose 大きさ: 12000, 85134",
+    "choose 混み具合: 空き, 混雑",
+    "choose View: 整合, 不整合",
+    "choose 期限: 間に合う, 順序付けの遅れ, 応答の遅れ",
+    `check 送るNode: 署名 == 有効 [no: INVALID_EXTERNAL_SIGNATURE, into: ${CANTON_LOG}]`,
+    `check Sequencer: 混み具合 == 空き [no: SEQUENCER_BACKPRESSURE, retry, into: ${CANTON_LOG}]`,
+    `check Sequencer: 大きさ <= 27000 [no: SEQUENCER_REQUEST_FAILED, into: ${CANTON_LOG}]`,
+    `check Sequencer: 期限 != 順序付けの遅れ [no: NOT_SEQUENCED_TIMEOUT, retry, into: ${CANTON_LOG}]`,
+    `check 確かめるNode: View == 整合 [no: Reject, into: ${CANTON_LOG}]`,
+    `check Mediator: 期限 != 応答の遅れ [no: ABORTED, retry, into: ${CANTON_LOG}]`,
+  ].join("\n"),
+  ...CANTON_STEPS.map(([title, say, ask]) => [`step ${title}`, `  say ${say}`, ...(ask ? [`  ask ${ask}`] : [])].join("\n")),
+].join("\n\n");
+
+/** 英字だけの図の記録の列 */
+const PLAIN_LOG = "rejects";
+
+/** 英字だけの図の記法。網の 3 つの節に 4 つの関門を置き、段ごとに 1 つの関門で止まるチップを送る */
+const PLAIN = [
+  "try gate records",
+  "route path: app - sender - Sequencer - checker - Mediator [from: app, to: Mediator]",
+  "queue committed",
+  `log ${PLAIN_LOG}`,
+  "ask tx, sig, size, load, view [into: committed, via: path]",
+  "choose sig: ok, bad",
+  "choose size: 12000, 85134",
+  "choose load: idle, busy",
+  "choose view: match, mismatch",
+  `check sender: sig == ok [no: BAD_SIGNATURE, into: ${PLAIN_LOG}]`,
+  `check Sequencer: load == idle [no: SEQUENCER_BACKPRESSURE, retry, into: ${PLAIN_LOG}]`,
+  `check Sequencer: size <= 27000 [no: SEQUENCER_REQUEST_FAILED, into: ${PLAIN_LOG}]`,
+  `check checker: view == match [no: Reject, into: ${PLAIN_LOG}]`,
+  "step start",
+  "  say Each stage checks the chip.",
+  "step bad signature",
+  "  say A bad signature stops at the sender.",
+  "  ask t1, bad, 12000, idle, match",
+  "step busy",
+  "  say A busy Sequencer stops the chip.",
+  "  ask t2, ok, 12000, busy, match",
+  "step too large",
+  "  say A large batch stops at the Sequencer.",
+  "  ask t3, ok, 85134, idle, match",
+  "step mismatch",
+  "  say A view mismatch stops at the checker.",
+  "  ask t4, ok, 12000, idle, mismatch",
+].join("\n");
+
+/** 確かめる図。記法、描く言葉、関門の記録の列 */
+const FIGURES = [
+  { name: "Canton の図", text: CANTON, lang: "ja", log: CANTON_LOG },
+  { name: "英字だけの図", text: PLAIN, lang: "en", log: PLAIN_LOG },
+] as const;
+
+/** 確かめる組み。枠の幅を渡さない広い組みと、携帯の幅の枠の細い組み */
+const FRAMES = [
+  { name: "枠の幅を渡さない図", width: undefined, most: WIDE },
+  { name: `枠 ${PHONE}px の図`, width: PHONE, most: PHONE },
+] as const;
+
+/** 記録の列の 1 つの記録。関門で止まった記録は止まった節とエラーの名前を持つ */
+interface GateRecord {
+  number: number;
+  items: string[];
+  node?: string;
+  error?: string;
+}
+
+/** 描いた記録の列の置き場所。`w` は 1 つの記録の枠の幅 */
+interface LogPlaced {
+  id: string;
+  w: number;
+}
+
+/** 原本の最後の段の終わりの、記録の列 `log` の関門で止まった記録 */
+function gateRecords(diagram: unknown, log: string): GateRecord[] {
+  const states = tryLayout(diagram).states as unknown as { logs?: Record<string, GateRecord[]> }[];
+  return (states[states.length - 1]?.logs?.[log] ?? []).filter((r) => r.node !== undefined);
+}
+
+/** 枠の幅 `width` で描いた図 */
+const rendered = (diagram: unknown, lang: "ja" | "en", width: number | undefined): Rendered =>
+  draw("renderDiagram")(diagram, { lang, ...(width === undefined ? {} : { width }) });
+
+/** 描いた図の SVG を置いた要素 */
+function holderOf(r: Rendered): HTMLElement {
+  const holder = document.createElement("div");
+  holder.innerHTML = r.svg;
+  return holder;
+}
+
+/** SVG の描いた幅 (`viewBox` の幅) */
+const drawnWidth = (svg: Element | null | undefined): number => Number((svg?.getAttribute("viewBox") ?? "").split(" ")[2]);
+
+/** 字の左の端。`text-anchor` が `end` なら右の端から、`middle` なら真ん中から字の幅で戻す */
+function leftOf(text: Element, width: number): number {
+  const x = Number(text.getAttribute("x"));
+  const anchor = text.getAttribute("text-anchor");
+  return anchor === "end" ? x - width : anchor === "middle" ? x - width / 2 : x;
+}
+
+/** 入力の帯の欄に値を入れて送る。選ぶ欄 (select) と打つ欄 (input) のどちらにも入れる */
+function sendValues(host: HTMLElement, values: Record<string, string>, label: string): void {
+  const strip = askStrip(host);
+  expect(strip, `${label}: 入力の帯 (form[data-dragon=ask]) が無い`).not.toBeNull();
+  for (const [field, value] of Object.entries(values)) {
+    const control = strip?.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${field}"]`);
+    expect(control, `${label}: 入力の帯に ${field} の欄が無い`).toBeTruthy();
+    if (!control) continue;
+    control.value = value;
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  const button = sendButton(host);
+  expect(button, `${label}: 入力の帯に送る釦が無い`).not.toBeNull();
+  expect(button?.disabled, `${label}: 送る釦が押せない (関門で止まる値も送れる)`).toBe(false);
+  button?.click();
+}
+
+/** Canton の図の入力の帯から送る値。どれも Sequencer の関門で止まる */
+const SENDS = [
+  {
+    label: "85134 byte のトランザクション",
+    values: { トランザクション: "送金X", 署名: "有効", 大きさ: "85134", 混み具合: "空き", View: "整合", 期限: "間に合う" },
+    error: "SEQUENCER_REQUEST_FAILED",
+  },
+  {
+    label: "混雑した時のトランザクション",
+    values: { トランザクション: "送金Y", 署名: "有効", 大きさ: "12000", 混み具合: "混雑", View: "整合", 期限: "間に合う" },
+    error: "SEQUENCER_BACKPRESSURE",
+  },
+] as const;
+
+describe("関門の記録 (#3478)", () => {
+  it("try-gate-record-fits-widths", () => {
+    for (const figure of FIGURES) {
+      const diagram = parsedTry(figure.text, figure.lang);
+      const records = gateRecords(diagram, figure.log);
+      expect(records.length, `${figure.name} の関門で止まった記録の数`).toBeGreaterThanOrEqual(3);
+      expect(
+        records.some((r) => r.node === "Sequencer" && r.error === "SEQUENCER_REQUEST_FAILED"),
+        `${figure.name} が Sequencer で SEQUENCER_REQUEST_FAILED で止まった記録を持たない: ${JSON.stringify(records)}`,
+      ).toBe(true);
+      for (const frame of FRAMES) {
+        const svg = holderOf(rendered(diagram, figure.lang, frame.width)).querySelector("svg");
+        expect(drawnWidth(svg), `${figure.name} を${frame.name}で描いた viewBox の幅が ${frame.most} を超える`).toBeLessThanOrEqual(frame.most);
+      }
+    }
+  });
+
+  it("try-gate-record-splits-rows", () => {
+    for (const figure of FIGURES) {
+      const diagram = parsedTry(figure.text, figure.lang);
+      const records = gateRecords(diagram, figure.log);
+      expect(records.length, `${figure.name} の関門で止まった記録の数`).toBeGreaterThanOrEqual(3);
+      for (const frame of FRAMES) {
+        const r = rendered(diagram, figure.lang, frame.width);
+        const where = `${figure.name} を${frame.name}で描いた`;
+        const placed = ((r.layout as unknown as { logs?: LogPlaced[] }).logs ?? []).find((l) => l.id === figure.log);
+        expect(placed, `${where}置き場所に記録の列 ${figure.log} が無い`).toBeDefined();
+        const frameW = placed?.w ?? 0;
+        const holder = holderOf(r);
+        for (const record of records) {
+          const node = record.node ?? "";
+          const error = record.error ?? "";
+          const label = `${where}記録 ${record.number} (${node}、${error})`;
+          const box = holder.querySelector(`[data-log="${figure.log}"] [data-record="${record.number}"]`);
+          expect(box, `${label} が SVG に無い (data-record)`).not.toBeNull();
+          const texts = [...(box?.querySelectorAll("text") ?? [])];
+          const at = texts.find((t) => (t.textContent ?? "").includes(node) && t.textContent !== error);
+          const name = texts.find((t) => t.textContent === error);
+          expect(at, `${label} に止まった節 ${node} の字が無い`).toBeDefined();
+          expect(name, `${label} にエラーの名前 ${error} だけの字が無い`).toBeDefined();
+          if (!at || !name) continue;
+          const atY = Number(at.getAttribute("y"));
+          const nameY = Number(name.getAttribute("y"));
+          expect(
+            Math.abs(nameY - atY),
+            `${label} の止まった節の字 (y ${atY}) とエラーの名前の字 (y ${nameY}) が同じ行に並ぶ`,
+          ).toBeGreaterThanOrEqual(TYPE.tryChipValue.size);
+          for (const [text, style] of [
+            [at, TYPE.tryChip],
+            [name, TYPE.tryChipValue],
+          ] as const) {
+            const content = text.textContent ?? "";
+            const w = textWidth(content, style);
+            expect(w, `${label} の字 ${content} の幅が記録の枠の幅 ${frameW} より狭くない`).toBeLessThan(frameW);
+            const left = leftOf(text, w);
+            expect(left, `${label} の字 ${content} の左の端が記録の枠の左からはみ出す`).toBeGreaterThanOrEqual(0);
+            expect(left + w, `${label} の字 ${content} の右の端が記録の枠 (幅 ${frameW}) の右からはみ出す`).toBeLessThanOrEqual(frameW);
+          }
+        }
+        expect((r as unknown as { overlaps?: unknown[] }).overlaps ?? [], `${where}図の字の重なり`).toEqual([]);
+      }
+    }
+  });
+
+  it("try-gate-record-keeps-figure-width", () => {
+    const diagram = parsedTry(CANTON);
+    for (const width of [DESK, PHONE]) {
+      const { host } = mountTry(diagram, width, { lang: "ja" });
+      const before = drawnWidth(figureOf(host));
+      expect(before, `枠 ${width}px に置いた図の viewBox の幅が読めない`).toBeGreaterThan(0);
+      SENDS.forEach((send, i) => {
+        sendValues(host, send.values, `枠 ${width}px で ${send.label}`);
+        const record = figureOf(host)?.querySelector(`[data-log="${CANTON_LOG}"] [data-record="${i + 1}"]`);
+        expect(record?.textContent ?? "", `枠 ${width}px で ${send.label} を送っても記録 ${i + 1} に ${send.error} が出ない`).toContain(send.error);
+        expect(drawnWidth(figureOf(host)), `枠 ${width}px で ${send.label} を送った後の図の viewBox の幅が送る前 (${before}) と違う`).toBe(before);
+      });
+      releaseTry();
+    }
+  });
+});
+
+/**
+ * 網の名札の確かめに使う、Canton の図と同じ 5 つの節を 1 列に並べた網だけの図。関門も記録の列も持たない。
+ * 記録で図が広がらないので、記録の直しの前から幅 324 で隣の名札とぶつかる
+ */
+const ROUTE_ONLY = [
+  "try 送信経路だけの図",
+  CANTON_ROUTE,
+  "queue コミットした",
+  "ask トランザクション, 署名 [into: コミットした, via: 送信経路]",
+  "step 送る",
+  "  say トランザクションは送る Participant Node、Sequencer、確かめる Participant Node、Mediator の順に通ります。",
+].join("\n");
+
+/** 網の名札の確かめに使う、3 つの節を 1 列に並べた網の図。幅 324 でも隣の名札とぶつからない */
+const THREE = [
+  "try three nodes",
+  "route path: app - Sequencer - Mediator [from: app, to: Mediator]",
+  "queue committed",
+  "ask tx, size [into: committed, via: path]",
+  "step start",
+  "  say Start.",
+].join("\n");
+
+/** 見本 `tx-block.dragon` (節が 7 つで、道が 2 段に分かれる網)。幅 324 でも隣の名札とぶつからない */
+const TX_BLOCK = (): string => readFileSync(join(process.cwd(), "packages/dragon/examples/tx-block.dragon"), "utf8");
+
+/** 四角 */
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** 2 つの四角が重なるか。辺が触れるだけなら重ならない */
+const overlap = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** 網の節の名札。字の要素と、字の形の四角 (基準線から上に字の大きさの 8 割、下に 2 割) */
+interface NodeLabel {
+  id: string;
+  text: Element;
+  box: Box;
+  /** 節の丸の真ん中 */
+  cx: number;
+  cy: number;
+}
+
+/** 描いた図の網の節の名札。節ごとに、節の名前だけを書いた字を探す */
+function nodeLabels(holder: HTMLElement, where: string): NodeLabel[] {
+  const nodes = [...holder.querySelectorAll("[data-route] [data-node]")];
+  expect(nodes.length, `${where}網の節 (data-node) が無い`).toBeGreaterThan(0);
+  return nodes.flatMap((node) => {
+    const id = node.getAttribute("data-node") ?? "";
+    const text = [...node.querySelectorAll("text")].find((t) => t.textContent === id);
+    const circle = node.querySelector("circle");
+    expect(text, `${where}節 ${id} の名札の字が無い`).toBeDefined();
+    expect(circle, `${where}節 ${id} の丸が無い`).not.toBeNull();
+    if (!text || !circle) return [];
+    const w = textWidth(id, TYPE.tryNode);
+    const size = TYPE.tryNode.size;
+    const box = { x: leftOf(text, w), y: Number(text.getAttribute("y")) - size * 0.8, w, h: size };
+    return [{ id, text, box, cx: Number(circle.getAttribute("cx")), cy: Number(circle.getAttribute("cy")) }];
+  });
+}
+
+describe("細い組みの網の名札 (#3478)", () => {
+  it("try-route-labels-clear-narrow", () => {
+    const r = TRY_LOOK.route.r;
+    // 5 つの節を 1 列に並べた網を幅 324 で描くと、名札どうしが重ならず、節の丸にも掛からず、図の枠の内に収まる。
+    // 関門と記録の無い網だけの図を先に見る (記録が図を広げて名札に場所を作る形に頼らない)
+    const narrow = [{ name: "関門の無い網だけの図", text: ROUTE_ONLY, lang: "ja" as const }, ...FIGURES];
+    for (const figure of narrow) {
+      const drawn = rendered(parsedTry(figure.text, figure.lang), figure.lang, PHONE);
+      const where = `${figure.name} を枠 ${PHONE}px の図で描いた`;
+      const holder = holderOf(drawn);
+      const svg = holder.querySelector("svg");
+      const [, , vw = 0, vh = 0] = (svg?.getAttribute("viewBox") ?? "").split(" ").map(Number);
+      const labels = nodeLabels(holder, where);
+      expect(labels.map((l) => l.id), `${where}網の節の数`).toHaveLength(5);
+      const ids = new Set(labels.map((l) => l.id));
+      const reported = ((drawn as unknown as { overlaps?: { texts: string[] }[] }).overlaps ?? []).filter((o) => o.texts.every((t) => ids.has(t)));
+      expect(reported.map((o) => o.texts.join(" と ")), `${where}網の名札どうしの重なり`).toEqual([]);
+      for (const [i, a] of labels.entries()) {
+        for (const b of labels.slice(i + 1))
+          expect(overlap(a.box, b.box), `${where}網の名札 ${a.id} ${JSON.stringify(a.box)} と ${b.id} ${JSON.stringify(b.box)} が重なる`).toBe(false);
+        for (const c of labels)
+          expect(
+            overlap(a.box, { x: c.cx - r, y: c.cy - r, w: r * 2, h: r * 2 }),
+            `${where}網の名札 ${a.id} ${JSON.stringify(a.box)} が節 ${c.id} の丸に掛かる`,
+          ).toBe(false);
+        const inside = a.box.x >= 0 && a.box.y >= 0 && a.box.x + a.box.w <= vw && a.box.y + a.box.h <= vh;
+        expect(inside, `${where}網の名札 ${a.id} ${JSON.stringify(a.box)} が図の枠 (${vw}×${vh}) からはみ出す`).toBe(true);
+      }
+    }
+    // 隣の名札とぶつからない網の名札は、今の位置 (節の真下、真ん中揃え) のまま描く
+    const clear = [
+      { name: "3 つの節の網の図", text: THREE, lang: "en" as const, width: PHONE },
+      { name: "3 つの節の網の図", text: THREE, lang: "en" as const, width: undefined },
+      { name: "見本 tx-block", text: TX_BLOCK(), lang: "ja" as const, width: PHONE },
+      { name: "見本 tx-block", text: TX_BLOCK(), lang: "ja" as const, width: undefined },
+      ...FIGURES.map((f) => ({ name: f.name, text: f.text, lang: f.lang, width: undefined })),
+    ];
+    for (const figure of clear) {
+      const where = `${figure.name} を${figure.width === undefined ? "枠の幅を渡さない図" : `枠 ${figure.width}px の図`}で描いた`;
+      for (const label of nodeLabels(holderOf(rendered(parsedTry(figure.text, figure.lang), figure.lang, figure.width)), where)) {
+        expect(label.text.getAttribute("text-anchor"), `${where}網の名札 ${label.id} が真ん中揃えでない`).toBe("middle");
+        expect(Number(label.text.getAttribute("x")), `${where}網の名札 ${label.id} が節の真下から横にずれる`).toBeCloseTo(label.cx, 1);
+        expect(Number(label.text.getAttribute("y")), `${where}網の名札 ${label.id} が今の高さ (節の真ん中から ${TRY_LOOK.route.labelY} 下) にない`).toBeCloseTo(
+          label.cy + TRY_LOOK.route.labelY,
+          1,
+        );
+      }
+    }
+  });
+});
