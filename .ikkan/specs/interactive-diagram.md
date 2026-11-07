@@ -85,8 +85,8 @@
 | 6つの見本の全ての段を幅1280と幅390の枠に描いた時、決まりの表への違反が0件のまま | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3450 |
 | 配管の図の再生の部品は、図の下に段の番号と題を出し、段の説明の文を画面に出さない。読み上げの一覧には段の題と本文を今どおり出す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-bar-shows-step-title`が通る | #3450 |
 | 値が動く段では、動いた値ごとに送る側、量とトークン、受ける側を1本の実線の矢印で出し、呼び出しと返した値の矢印は出さない(見本`swap-two-hops`の段3は1本、箱を開いた`aggregator`の段7は2本) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-flows-show-moves`が通る | #3450 |
-| 確かめる段は式と、満たすか満たさないかを出し、取り消す段は取り消した側と戻る先と理由を出す(見本`swap`の段9、見本`swap-revert`の段9と段10) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-flows-show-checks-and-reverts`が通る | #3450 |
+| 確かめる段は、満たすか満たさないかの札を式の前に置いた1行を出す(見本`swap`の段9、見本`swap-revert`の段9)。取り消す段は理由を1回だけ出し、同じ理由で続けて取り消した呼び出しを、取り消した側から戻る先までの関係者の道1本にまとめる(見本`swap-revert`の段10は、LiquidityPool、SwapRouter、Aliceの順の道1本) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-flows-show-checks-and-reverts`が通る | #3450 |
 | 値が動かず確かめも取り消しも無い段は、呼び出しを点線の矢印で、返した値を返した側からの点線の矢印で出し、同じ段で戻った呼び出しは返した値の矢印1本にまとめる(見本`swap`の段1、箱を開いた`aggregator`の段4、見本`vault-proxy`の段5) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-flows-show-calls-and-returns`が通る | #3450 |
-| 呼び出しの記録は畳んで置き、開くと今の段までの呼び出しを1つ1行で呼び出しの深さだけ字下げして出し、今の段で開くか閉じる呼び出しの行に印を付ける | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-call-record`が通る | #3450 |
+| 呼び出しの記録は「呼び出しの結果」の題で畳んで置く。開くと、先頭にいちばん外の呼び出しの呼んだ側、呼ばれた側、中身と、返した値か「返り待ち」を出し、その下に今の段までに戻った内側の呼び出しを、呼ばれた側、中身、返した値の3列で出す。返した値が無いか`true`の呼び出しは出さず、取り消した呼び出しは返した値の欄に取り消しと出し、今の段で戻った行に印を付ける(見本`swap-two-hops`の段1と段3と最後の段、見本`swap-revert`の段10) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-call-record`が通る | #3450 |
 | 英語を渡した時、図の下の段の矢印と呼び出しの記録の字は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-flows-english`が通る | #3450 |
 | 書き出した頁の字の file に残す配管の図の字(`pipeTexts`)は、見本の全ての段で図の下の矢印と呼び出しの記録が出す字を全て含む | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`pipe-texts-cover-flows`が通る | #3450 |
