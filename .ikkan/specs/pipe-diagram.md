@@ -79,3 +79,15 @@
 | 配管の図の見本の記法と原本のJSONの形は変わらず、記法から読んだJSONが同じ名前のJSONと一致し、記法とJSONを往復しても最初と最後のJSONが一致する | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`notation-compiles-pipe-examples-to-json`と`pipe-roundtrip-keeps-json-identical`が通る | #3418 |
 | 図の横幅が枠を超える時、段を進めると枠の中の図がその段に関わる関係者の所へ送られ、手でも動かせ、図の下の細い線が全体のどこを見ているかを示す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pans-wide-figure`が通る | #3418 |
 | 段を持つ全ての図の再生の操作は、やり直しの釦、名前の付いた再生の釦、段ごとに分けた進み具合の帯を持ち、配管の図でない図は大きな段の題と題の下の小さな段の説明文を持つ | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-r6-controls`が通る | #3418 |
+| 配管の図の段に`gist <要点>`の行を書いた記法を読むと、原本の段が`gist`の欄に要点の文を持ち、原本の形の検査がその原本を通し、書き戻すと元の記法と同じ文字列に戻る(日本語と英語) | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-step-gist-roundtrip`が通る | #3464 |
+| 配管の図でない図の段に`gist`の行を書くと、行と列を名指して配管の図だけで書けると知らせる誤りで止まる。1つの段に`gist`を2行書いた時と、要点の文が空の時も、行と列を名指した誤りで止まる。原本のJSONで配管の図でない図の段が`gist`を持つと、原本の形の検査がその欄の場所を名指して断る。英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-gist-only-in-pipe`が通る | #3464 |
+| 配管の図の再生の部品は、`gist`を持つ段で、図の下の矢印の後に「要点」の名札と要点の文を持つ札を出し、`gist`を持たない段では札を出さない(見本`swap`の段14は札を出し、段1は出さない)。英語を渡した時の名札は`Key point`。読み上げの段の一覧は、`gist`を持つ段に要点の文を出す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-shows-gist`が通る | #3464 |
+| 6つの配管の図の見本の日本語版と英語版で、次の11段が`gist`を持ち、要点の文が括弧の語を含む。`swap`の段6と段13(暫定、`provisional`)と段14(確定、`final`)、`swap-two-hops`の段13と`swap-retry`の段11と`vault-proxy`の段9と`aggregator`の段14(確定、`final`)、`swap-retry`の段7(Pool1と内側、`pool 1`と`inside`)、`vault-proxy`の段2(Proxyの値、`proxy`)と段4(書き込めない、`written`)、`aggregator`の段3(押すと開く、`press`)。ほかの段は`gist`を持たない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-examples-carry-gists`が通る | #3464 |
+| 英語と日本語のREADMEの配管の図の小節と、AIのskillの配管の図の段の行の表が、`gist`の書き方を持つ | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`docs-describe-gist`が通る | #3464 |
+| 書き出した頁の字の file に残す配管の図の字(`pipeTexts`)は、見本の全ての段で図の下の矢印と要点の札と呼び出しの結果が出す字を全て含む | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`pipe-texts-cover-flows`が通る | #3464 |
+| 配管の図でない図に配管の図の行(`move`など)を書くと、今どおり配管の図だけで書けると知らせる誤りで止まる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`notation-limits-pipe-lines-to-pipe`が通る | #3464 |
+| 配管の図の見本の記法と原本のJSONは、往復しても今どおり同じJSONになる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-roundtrip-keeps-json-identical`が通る | #3464 |
+| 6つの見本の全ての段を幅1280と幅390の枠に描いた時、決まりの表への違反が0件のまま | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3464 |
+| 記法の行の頭の語は、今どおり1つの語を1つのブロックだけが持つ | `pnpm exec vitest run packages/dragon/test/blocks.test.ts`の検査`block-heads-owned-once`が通る | #3464 |
+| 見本帳の部品は、今どおり記法の全ての語を受け持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-parts-cover-every-word`が通る | #3464 |
+| AIのskillの記法の囲みは、今どおり全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-fences-parse`が通る | #3464 |
