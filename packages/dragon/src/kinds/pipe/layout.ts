@@ -23,6 +23,7 @@ import { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
 import type { TextStyle } from "../../look/values";
 import { type Ask, type Dir, type End, gridLines, type Laid, type Obstacle, Router, simplify, unjog } from "../../pipe-route";
 import { checkPasses, isFault, keyOf, minus, PipeRun, rateOf } from "../../pipe-run";
+import { valveRects } from "../../pipe-valve";
 import type { CheckOp, DiagramModel, PipeCallKind, PipeCheck, PipeFold, Step } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
 
@@ -148,7 +149,10 @@ export interface PipePort {
   x: number;
   y: number;
 }
-/** 値の管。持ち主の槽の横の口どうしを結ぶ折れ線。`from` と `to` は最初に流れた向き */
+/**
+ * 値の管。持ち主の槽の横の口どうしを結ぶ折れ線。`from` と `to` は最初に流れた向き。
+ * `group` は幹の組で、同じ組の管は根の槽の口を共に出て 1 本の幹を重なって通り、相手の近くで枝分かれする。組の違う管とは重ならない
+ */
 export interface PipeValuePipe {
   token: string;
   from: string;
@@ -156,6 +160,7 @@ export interface PipeValuePipe {
   points: Point[];
   ports: [PipePort, PipePort];
   tone: number;
+  group: string;
 }
 /** 値の管を持たないトークンの箱を、持ち主の槽へ結ぶ短い管 */
 export interface PipeStub {
@@ -228,11 +233,14 @@ export interface PipeCallLane {
   value?: string;
   close?: { step: number; event: number; how: "return" | "revert" };
 }
-/** 本管の枝。弁 (`valve`) は枝の根元の近くに置き、`vertical` は枝が縦に走るか */
+/**
+ * 本管の枝。弁 (`valve`) は枝の上の、ほかの線から離れた所に置く。`vertical` は弁を置いた所が縦に走るか、
+ * `under` は取っ手を管の下 (縦の管では左) に立てるか。取っ手は上 (縦の管では右) の側にほかの線が通る時に下の側へ立てる
+ */
 export interface PipeBranch {
   to: string;
   points: Point[];
-  valve: { x: number; y: number; vertical: boolean };
+  valve: { x: number; y: number; vertical: boolean; under: boolean };
 }
 /** 同じ関係者から出る呼び出しの本管 */
 export interface PipeMain {
@@ -760,6 +768,24 @@ const SPACING = P.call.room;
 const APPROACH = 18;
 /** 部品どうしの間の下限 */
 const PART_GAP = 8;
+/** 呼び出しの管の弁が描く形 (胴と軸と取っ手) と、ほかの線の縁の間の下限。決まりの表 (`valve-clearance`) と同じ値 */
+const VALVE_ROOM = 3;
+/**
+ * 上の行の者から真下の行の者へ下りる呼び出しの管の、弁を縦に置ける長さ。弁の胴を下りる前の横の線 (同じ者の管が共に通る) から離し、
+ * 下へ倒れる開いた取っ手を呼ばれた側の名札から離す。弁の置き場所は 4px 刻みで探すため、その 1 刻みを足す
+ */
+const VALVE_DROP = P.call.case / 2 + VALVE_ROOM + P.valve.r + 4 + (P.valve.lever - P.valve.leverH / 2) + VALVE_ROOM;
+/**
+ * 幹を共に通る値の管が、先に引いた同じ組の管と重なって走る所の長さに掛ける割合。
+ * 小さいほど幹を長く共に通る。重なった所を離れて並ぶ道より安くし、遠回りしてまで共に通らない値にする
+ */
+const SHARE = 0.3;
+/** 値の管が折れる時に足す値 */
+const BEND_VALUE = 60;
+/** 弁を置くために引き直す呼び出しの管の、元の道の長さに対する長さの上限 */
+const DETOUR_RATE = 1.5;
+/** ほかの管の弁に譲る呼び出しの管が、名札の縁から出て折れるまでの短い長さ。自分の弁が両側に決まりの間を空けて載る */
+const SHORT_RUN = P.valve.r * 2 + P.call.room + VALVE_ROOM * 2;
 
 const amountNumber = (amount: string | undefined): number => {
   const n = Number(amount);
@@ -783,6 +809,22 @@ const MAX_BENDS = 4;
 const bendsOf = (points: readonly Point[]): number => Math.max(0, simplify(points).length - 2);
 /** 流れた量の札を管に沿って置く所 (線分の長さに対する割合)。真ん中に近い順に試し、どれも塞がる時は細かく刻んだ所を試す */
 const AMOUNT_AT = [0.5, 0.3, 0.7, 0.15, 0.85, 0.4, 0.6, 0.2, 0.8, 0.1, 0.9, 0.25, 0.75, 0.35, 0.65, 0.45, 0.55, 0.05, 0.95];
+/** 呼び出しの管が 1 本の値の管を 2 度越える時に、探し直す道でその管の組を越える値 */
+const REVISIT = 2000;
+/** 折れ線 `p` が折れ線 `q` を直角に越える回数。端どうしで触れるだけの所は数えない */
+function crossedTimes(p: readonly Point[], q: readonly Point[]): number {
+  let n = 0;
+  for (const [a, b] of segs(p))
+    for (const [u, v] of segs(q)) {
+      const fa = flat(a, b);
+      if (fa === flat(u, v)) continue;
+      const [h1, h2, v1, v2] = fa ? [a, b, u, v] : [u, v, a, b];
+      const x = v1[0];
+      const y = h1[1];
+      if (x > Math.min(h1[0], h2[0]) + 1e-6 && x < Math.max(h1[0], h2[0]) - 1e-6 && y > Math.min(v1[1], v2[1]) + 1e-6 && y < Math.max(v1[1], v2[1]) - 1e-6) n++;
+    }
+  return n;
+}
 /** 前から順に比べて、最初に違う値で `a` が小さいか */
 const lessThan = (a: readonly number[], b: readonly number[]): boolean => {
   const i = a.findIndex((v, j) => v !== b[j]);
@@ -1006,8 +1048,15 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
   for (const h of holders) if (!rank.has(h)) rank.set(h, rank.size);
   const rankOf = (id: string): number => rank.get(id) ?? 0;
   const linked = (a: string, b: string): boolean => defs.some((d) => (d.from === a && d.to === b) || (d.from === b && d.to === a));
-  const nbrs = new Map(holders.map((a) => [a, holders.filter((b) => b !== a && linked(a, b)).sort((x, y) => rankOf(x) - rankOf(y))]));
-  /** `from` から伸びる一番長い道。同じ長さの道は、流れに先に出た者を先に通る道 */
+  // 隣の者の並び。呼び出しの浅い者を先に、同じ深さは流れに先に出た者を先にする。呼ばれない者は呼ばれる者の後
+  const callDepth = (id: string): number => depthOf.get(id) ?? Number.POSITIVE_INFINITY;
+  const nbrs = new Map(
+    holders.map((a) => [a, holders.filter((b) => b !== a && linked(a, b)).sort((x, y) => callDepth(x) - callDepth(y) || rankOf(x) - rankOf(y))]),
+  );
+  /**
+   * `from` から伸びる一番長い道。同じ長さの道は、呼び出しの浅い者を先に通る道。
+   * 名札の行は呼び出しの深さで下がるため、浅い者の囲いを上の段に並べると、浅い者どうしの呼び出しの管が上の段の中で短く済む
+   */
   const longest = (from: string, avoid: ReadonlySet<string>): string[] => {
     let best: string[] = [from];
     let budget = 20000;
@@ -1285,6 +1334,28 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     }
   }
 
+  // 値の管の幹の組。同じトークンで同じ槽を端に持つ管が 2 本以上在る時、その槽を根にした組にし、管は根の槽の口を共に出て 1 本の幹を通り、
+  // 相手の近くで枝分かれする。何本もの管が平行に並ぶ束にしない。両端が根になれる管は、管の多い方の槽の組に入れる。
+  // トークンの箱を載せる管は箱の下を横に走る所を持つため、組に入れない
+  const trunkOf = new Map<number, string>();
+  {
+    const homeDefs = new Set(homes.flatMap((m) => (m.def === undefined ? [] : [m.def])));
+    const tankKey = (party: string, token: string): string => `t:${party}|${token}`;
+    const degree = new Map<string, number>();
+    for (const [k, d] of defs.entries()) {
+      if (homeDefs.has(k)) continue;
+      for (const party of [d.from, d.to]) degree.set(tankKey(party, d.token), (degree.get(tankKey(party, d.token)) ?? 0) + 1);
+    }
+    for (const [k, d] of defs.entries()) {
+      if (homeDefs.has(k)) continue;
+      const [a, b] = [tankKey(d.from, d.token), tankKey(d.to, d.token)];
+      const root = (degree.get(b) ?? 0) > (degree.get(a) ?? 0) ? b : a;
+      if ((degree.get(root) ?? 0) >= 2) trunkOf.set(k, root);
+    }
+  }
+  /** 値の管の組。幹を共に通る管は根の槽の組、ほかは管ごとの組 */
+  const groupOfDef = (k: number): string => trunkOf.get(k) ?? `v${k}`;
+
   // ---- 組む。管が通らない時は、間を広げて組み直す
 
   let result: PipeLayout | undefined;
@@ -1451,7 +1522,11 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         for (const b of here) {
           const ax = xOf.get(a) ?? 0;
           const bx = xOf.get(b) ?? 0;
-          if (Math.abs(ax - bx) < (roomOf(a) + roomOf(b)) / 2 + P.lane.clear * 4) need = Math.max(need, belowOf(a) + aboveOf(b) + P.lane.clear * 3 + plan.rows);
+          if (Math.abs(ax - bx) < (roomOf(a) + roomOf(b)) / 2 + P.lane.clear * 4) {
+            need = Math.max(need, belowOf(a) + aboveOf(b) + P.lane.clear * 3 + plan.rows);
+            // 真下の者を呼ぶ管は、名札の下の側の高さから出て下りる。下りる所に自分の弁を縦に置ける高さを取る
+            if (shown.some((c) => c.from === a && c.to === b)) need = Math.max(need, P.call.case + LINE_GAP + VALVE_DROP + aboveOf(b) + plan.rows);
+          }
         }
       if (rowsWith.has(r - 1)) need = Math.max(need, P.gauge.r + Math.max(...here.map(aboveOf), 0) + P.lane.clear * 2);
       need = Math.max(need, up + Math.max(0, ...prev.map(belowOf)) + PART_GAP);
@@ -1577,7 +1652,8 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     // ---- 値の管の道
 
     const portSlots = P.tank.ports as readonly number[];
-    const taken = new Set<string>();
+    /** 使った口と、使った管の組。同じ組の管は口を共に使う */
+    const taken = new Map<string, string>();
     const portAt = (party: string, token: string, side: "left" | "right", k: number): PipePort => {
       const t = tankOf(party, token);
       return { party, token, side, x: side === "left" ? t.x : t.x + t.w, y: t.y + (portSlots[k] as number) };
@@ -1625,18 +1701,19 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
           });
           const order = (list: typeof rows): typeof rows =>
             [...list].sort((a, b) => Number(b.continuing) - Number(a.continuing) || (a.continuing ? a.dist - b.dist : b.dist - a.dist));
-          const down = order(rows.filter((r) => r.vertical > 0));
-          const up = order(rows.filter((r) => r.vertical < 0));
-          down.forEach((r, i) => {
-            const slot = free[i];
-            if (slot !== undefined) preferSlot.set(`${r.k}|${h}|${side}`, slot);
-            rankUp(r.k, down.length - 1 - i);
-          });
-          up.forEach((r, i) => {
-            const slot = free[free.length - 1 - i];
-            if (slot !== undefined) preferSlot.set(`${r.k}|${h}|${side}`, slot);
-            rankUp(r.k, up.length - 1 - i);
-          });
+          // この槽を根にする幹の組の管は、1 つの口を共に使う。組は組の中で先に並んだ管の所に置く
+          const laneKey = (r: (typeof rows)[number]): string => (trunkOf.get(r.k) === `t:${h}|${token}` ? `t:${h}|${token}` : `k${r.k}`);
+          const assign = (list: typeof rows, slotAt: (i: number) => number | undefined): void => {
+            const keys = [...new Set(list.map(laneKey))];
+            for (const r of list) {
+              const i = keys.indexOf(laneKey(r));
+              const slot = slotAt(i);
+              if (slot !== undefined) preferSlot.set(`${r.k}|${h}|${side}`, slot);
+              rankUp(r.k, keys.length - 1 - i);
+            }
+          };
+          assign(order(rows.filter((r) => r.vertical > 0)), (i) => free[i]);
+          assign(order(rows.filter((r) => r.vertical < 0)), (i) => free[free.length - 1 - i]);
         }
     }
     /** 口の値。割り当てた口が在る時は、割り当てから離れた口ほど重い */
@@ -1654,11 +1731,16 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       const plates = platesOf.get(party) ?? [];
       const plateBottom = P.plate.top + (P.tank.h - P.plate.short);
       const underPlate = (k: number): boolean => (portSlots[k] as number) - P.bus.case / 2 - LINE_GAP >= plateBottom;
+      /** 口を使えるか。使った口は、同じ組の管だけが共に使う */
+      const usable = (key: string): boolean => !taken.has(key) || (def !== undefined && taken.get(key) === groupOfDef(def));
+      /** 同じ組の管が使った口は値を足さず、幹を共に通らせる */
+      const shared = (key: string): boolean => def !== undefined && taken.get(key) === groupOfDef(def);
       if (j === list.length - 1 && plates.length > 0 && hs)
         portSlots.forEach((_, k) => {
-          if (!underPlate(k) || taken.has(`${party}|${token}|right|${k}`)) return;
+          const key = `${party}|${token}|right|${k}`;
+          if (!underPlate(k) || !usable(key)) return;
           const port = portAt(party, token, "right", k);
-          out.push({ port, cost: k * 24, exit: [hs.x + hs.w + vPadOut, port.y], inner: false });
+          out.push({ port, cost: shared(key) ? 0 : k * 24, exit: [hs.x + hs.w + vPadOut, port.y], inner: false });
         });
       for (const side of ["left", "right"] as const) {
         const inner = !outer.includes(side);
@@ -1671,7 +1753,8 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
           const next = list[side === "left" ? j - 1 : j + 1];
           const gapMid = next !== undefined ? (side === "left" ? (tankOf(party, next).x + tankOf(party, next).w + port.x) / 2 : (port.x + tankOf(party, next).x) / 2) : port.x;
           const exit: Point = !hs ? [port.x, port.y] : inner ? [gapMid, port.y] : [side === "left" ? hs.x - vPadOut : hs.x + hs.w + vPadOut, port.y];
-          if (!taken.has(`${party}|${token}|${side}|${k}`)) out.push({ port, cost: (inner ? k * 24 + 400 : slotCost(def, party, side, k)), exit, inner });
+          const key = `${party}|${token}|${side}|${k}`;
+          if (usable(key)) out.push({ port, cost: shared(key) ? 0 : inner ? k * 24 + 400 : slotCost(def, party, side, k), exit, inner });
         });
       }
       return out;
@@ -1773,14 +1856,28 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     let routes: { def: number; points: Point[]; ports: [PipePort, PipePort] }[] = [];
     let stubs: PipeStub[] = [];
     const lineOwner = (k: number): string => `v${k}`;
-    const layValue = (k: number, points: Point[]): void => valueRouter.lay(points, { owner: lineOwner(k), group: lineOwner(k), kind: "value", width: P.bus.case });
-    // 箱を載せる管は先に置く。隣の囲いを結ぶ管は横に 1 本、外側の口から出る管は箱の下を横に走ってから道を探す
+    const layValue = (k: number, points: Point[]): void => valueRouter.lay(points, { owner: lineOwner(k), group: groupOfDef(k), kind: "value", width: P.bus.case });
+    // 箱を載せる管は先に置く。隣の囲いを結ぶ管は横に 1 本、外側の口から出る管は箱の下を横に走ってから道を探す。
+    // 幹を共に通る組の管は、組の中で一番近い管の順の所にまとめて置き、組の中では近い相手の管から引く。
+    // 近い相手への管は根の囲いのそばで下りて幹になり、遠い相手の管は幹を共に通って先で分かれる。根から離れた所で下りる幹は、ほかの囲いの名札を囲んで呼び出しの管の道を塞ぐ
+    const members = (k: number): number[] => (trunkOf.has(k) ? [...defs.keys()].filter((x) => trunkOf.get(x) === trunkOf.get(k)) : [k]);
     const order2 = [...defs.keys()].sort((a, b) => {
       const ha = homes.some((m) => m.def === a) ? 0 : 1;
       const hb = homes.some((m) => m.def === b) ? 0 : 1;
       const da = isAdjacent(defs[a] as Def) ? 0 : 1;
       const db = isAdjacent(defs[b] as Def) ? 0 : 1;
-      return ha - hb || da - db || (laneRank.get(a) ?? 0) - (laneRank.get(b) ?? 0) || spanOf(a) - spanOf(b) || a - b;
+      const rankOfGroup = (k: number): number => Math.min(...members(k).map((x) => laneRank.get(x) ?? 0));
+      const spanOfGroup = (k: number): number => Math.min(...members(k).map(spanOf));
+      const lead = (k: number): number => Math.min(...members(k));
+      return (
+        ha - hb ||
+        da - db ||
+        rankOfGroup(a) - rankOfGroup(b) ||
+        spanOfGroup(a) - spanOfGroup(b) ||
+        lead(a) - lead(b) ||
+        spanOf(a) - spanOf(b) ||
+        a - b
+      );
     });
     /** 道の長さのうち、端と端の真っすぐな隔たりを超えた分 */
     const detourOf = (points: readonly Point[]): number => {
@@ -1804,7 +1901,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         .filter((b) => b.home.def === undefined)
         .map((b) => {
           const a = portAt(b.home.party, b.home.token, b.home.side, b.home.slot);
-          taken.add(keyPort(a));
+          taken.set(keyPort(a), `s${b.home.token}`);
           const end: Point = [b.home.side === "left" ? b.x1 : b.x2, a.y];
           const points: Point[] = b.home.side === "left" ? [end, [a.x, a.y]] : [[a.x, a.y], end];
           valueRouter.lay(points, { owner: `s${b.home.token}`, group: `s${b.home.token}`, kind: "stub", width: P.bus.case });
@@ -1823,7 +1920,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       let ports: [PipePort, PipePort] | undefined;
       const askOf = (starts: End[], ends: End[], allow: number[]): Ask => ({
         owner: lineOwner(k),
-        group: lineOwner(k),
+        group: groupOfDef(k),
         kind: "value",
         width: P.bus.case,
         starts,
@@ -1831,8 +1928,9 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         allow: new Set(allow),
         cross: (l) => (l.kind !== "tie" && plan.last ? 5000 : undefined),
         gap: LINE_GAP,
-        bend: 60,
+        bend: BEND_VALUE,
         hug: 0.02,
+        share: SHARE,
       });
       const own = (party: string, token: string): number[] => [...(ownObs.get(`h:${party}`) ?? []), ...(ownObs.get(`t:${keyOf(party, token)}`) ?? [])];
       if (home && bay && home.gap) {
@@ -1853,19 +1951,40 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
             const xa = sa.filter((p) => (loose || !p.inner) && clear(p));
             const xb = sb.filter((p) => (loose || !p.inner) && clear(p));
             if (xa.length === 0 || xb.length === 0 || (loose && xa.every((p) => !p.inner) && xb.every((p) => !p.inner))) continue;
+            // 内側の口は槽の間を上か下へ抜ける。外側の口は外の点から横に進むほか、外の点で上か下へ折れてよい。
+            // 外の点の筋を同じ組の幹が通る時は、外の点で幹に入る。1 つ先の点まで出てから折れると、幹の際で行って戻る段差になる
+            const turns = (p: PortChoice, straight: Dir): End[] =>
+              p.inner
+                ? ([1, 3] as Dir[]).map((dir) => ({ at: p.exit, dir, cost: p.cost }))
+                : [{ at: p.exit, dir: straight, cost: p.cost }, ...([1, 3] as Dir[]).map((dir) => ({ at: p.exit, dir, cost: p.cost + BEND_VALUE }))];
             const request = askOf(
-              // 内側の口は槽の間を上か下へ抜ける
-              xa.flatMap((p): End[] => (p.inner ? ([1, 3] as Dir[]).map((dir) => ({ at: p.exit, dir, cost: p.cost })) : [{ at: p.exit, dir: dirOut(p.port.side), cost: p.cost }])),
-              xb.flatMap((p): End[] => (p.inner ? ([1, 3] as Dir[]).map((dir) => ({ at: p.exit, dir, cost: p.cost })) : [{ at: p.exit, dir: dirIn(p.port.side), cost: p.cost }])),
+              xa.flatMap((p) => turns(p, dirOut(p.port.side))),
+              xb.flatMap((p) => turns(p, dirIn(p.port.side))),
               loose ? [...own(d.from, d.token), ...own(d.to, d.token)] : [],
             );
-            // 道の途中の短い段差を消す。口から外の点までの線は動かさない
+            // 道の途中の短い段差を消す。口の点は動かさず、外の点は口から外の点までの線の上で口の側へ動かしてよい。
+            // 幹を共に通る管は外の点が決まっているため、幹の筋と外の点の筋が少しずれると、外の点の手前に短い段差が残る
             const finish = (path: Point[]): { points: Point[]; a: PipePort; b: PipePort } | undefined => {
               const pa = xa.find((p) => same(p, path[0] as Point));
               const pb = xb.find((p) => same(p, path[path.length - 1] as Point));
               if (!pa || !pb) return undefined;
-              const body = unjog(path, 16, (u, v) => valueRouter.passable(request, u, v));
-              return { points: simplify([[pa.port.x, pa.port.y], ...body, [pb.port.x, pb.port.y]]), a: pa.port, b: pb.port };
+              /**
+               * 線が通れるか。口から外の点までの線の上の所は道を探さずに引くため通れるとし、外の点より先の所は道を探す時と同じく測る
+               */
+              const passes = (u: Point, v: Point): boolean => {
+                for (const c of [pa, pb]) {
+                  if (Math.abs(u[1] - c.port.y) >= 0.5 || Math.abs(v[1] - c.port.y) >= 0.5) continue;
+                  const [lo, hi] = [Math.min(c.port.x, c.exit[0]), Math.max(c.port.x, c.exit[0])];
+                  const [s0, s1] = [Math.min(u[0], v[0]), Math.max(u[0], v[0])];
+                  if (s0 >= lo - 0.5 && s1 <= hi + 0.5) return true;
+                  // 外の点をまたいで外へ伸びる線は、外の点から先の所だけを測る
+                  if (s0 >= lo - 0.5 && s0 <= hi + 0.5) return valueRouter.passable(request, [hi, c.port.y], [s1, c.port.y]);
+                  if (s1 >= lo - 0.5 && s1 <= hi + 0.5) return valueRouter.passable(request, [lo, c.port.y], [s0, c.port.y]);
+                }
+                return valueRouter.passable(request, u, v);
+              };
+              const full = unjog([[pa.port.x, pa.port.y], ...path, [pb.port.x, pb.port.y]], 16, passes, valueRouter);
+              return { points: simplify(full), a: pa.port, b: pb.port };
             };
             const got = fewerBends(valueRouter, request, finish);
             if (got) return got;
@@ -1909,8 +2028,8 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         ];
         ports = [a, b];
       }
-      taken.add(keyPort(ports[0]));
-      taken.add(keyPort(ports[1]));
+      taken.set(keyPort(ports[0]), groupOfDef(k));
+      taken.set(keyPort(ports[1]), groupOfDef(k));
       layValue(k, points);
       routes[k] = { def: k, points, ports };
       detours.set(k, detourOf(points));
@@ -2051,191 +2170,58 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     const callYList = gridLines(valueYs, [...callYs], 16);
     let callRouter = new Router(callXList, callYList, callObs);
     let callPath = new Map<string, Point[]>();
-    /** 呼び出しの管を `list` の順に引く。道の無かった管を返す */
-    const routeCalls = (list: readonly (typeof branches)[number][], fallback: boolean): { failed: string[]; bent: string[] } => {
-      callRouter = new Router(callXList, callYList, callObs);
-      callPath = new Map();
-      for (const r of routes) if (r) callRouter.lay(r.points, { owner: lineOwner(r.def), group: lineOwner(r.def), kind: "value", width: P.bus.case });
-      for (const s of stubs) callRouter.lay(s.points, { owner: `s${s.token}`, group: `s${s.token}`, kind: "stub", width: P.bus.case });
-      for (const t of ties) {
-        const tie: Point[] = [
-          [t.x, t.y1],
-          [t.x, t.y2],
-        ];
-        callRouter.lay(tie, { owner: `tie:${t.party}`, group: `tie:${t.party}`, kind: "tie", width: 2 });
-      }
-      const failedCalls: string[] = [];
-      const bentCalls: string[] = [];
-      const lanes = new Map<string, number>();
-      /** 名札の横の、入る管が使った所 (`id|向き|高さ`) と、出る管が使った所。入る管と出る管は同じ所を使わない */
-      const entered = new Set<string>();
-      const left = new Set<string>();
-      const sideKey = (id: string, side: 0 | 2, y: number): string => `${id}|${side}|${Math.round(y)}`;
-      const sideUsed = (set: ReadonlySet<string>, id: string, side: 0 | 2): boolean => [...set].some((k) => k.startsWith(`${id}|${side}|`));
-      /** 出る管の高さ。同じ者の管は同じ高さを共に使ってよいが、入る管が使った高さは避ける */
-      /** 出る管の高さの候補。入る管が使った高さを除き、まだ使っていない高さ、呼ぶ相手の高さに近い方の順 */
-      const startYs = (id: string, side: 0 | 2, toward: number): number[] => {
-        const base = cyOf(id);
-        const used = (y: number): number => Number(left.has(sideKey(id, side, y)));
-        // 入る管が使った横からは出ない。同じ横に出入りが並ぶと、入る管の計器を置く所が無くなる
-        if (sideUsed(entered, id, side)) return [];
-        const ys = [...new Set([0, 1, 2].map((k) => base + laneOff(id, k)))];
-        return ys.sort((a, b) => used(a) - used(b) || Math.abs(a - toward) - Math.abs(b - toward));
-      };
-    for (const c of list) {
-      const a = rectOf(c.from);
-      const b = rectOf(c.to);
-      const ay0 = cyOf(c.from);
-      const toward = b.x + b.w / 2 >= a.x + a.w / 2 ? 0 : 2;
-      const ysR = startYs(c.from, 0, cyOf(c.to));
-      const ysL = startYs(c.from, 2, cyOf(c.to));
-      // 始まりの点では、そのまま進むほかに上か下へ折れてよい。縁から始まりの点までの横の線が弁を載せる所になる
-      const startsAt = (at: Point, dir: 0 | 2, cost: number): End[] => [
-        { at, dir, cost },
-        { at, dir: 1, cost: cost + 50 },
-        { at, dir: 3, cost: cost + 50 },
-      ];
-      const starts: End[] = [
-        ...ysR.flatMap((y, i) => startsAt([a.x + a.w + runOf(c.from, c.to, 0, lanes.get(`${c.from}|0`) ?? 0), y], 0, (toward === 0 ? 0 : 80) + i * 30)),
-        ...ysL.flatMap((y, i) => startsAt([a.x - runOf(c.from, c.to, 2, lanes.get(`${c.from}|2`) ?? 0), y], 2, (toward === 2 ? 0 : 80) + i * 30)),
-      ];
-      const bx = b.x + b.w / 2;
-      const by = cyOf(c.to);
-      const entries: (End & { edge: Point })[] = [
-        ...topsOf(c.to).map((x, i): End & { edge: Point } => ({ at: [x, b.y - APPROACH], dir: 1, cost: Math.ceil(i / 2) * 8, edge: [x, b.y] })),
-        ...(entered.has(sideKey(c.to, 2, by)) || sideUsed(left, c.to, 2) ? [] : [{ at: [b.x - APPROACH, by] as Point, dir: 0 as Dir, cost: 20, edge: [b.x, by] as Point }]),
-        ...(entered.has(sideKey(c.to, 0, by)) || sideUsed(left, c.to, 0) ? [] : [{ at: [b.x + b.w + APPROACH, by] as Point, dir: 2 as Dir, cost: 20, edge: [b.x + b.w, by] as Point }]),
-        // 下から入る口は、囲いへ下りる点線と重なるため、囲いを持つ者には置かない
-        ...(isBox(c.to) || holding.has(c.to) ? [] : [{ at: [bx, b.y + b.h + APPROACH] as Point, dir: 3 as Dir, cost: 60, edge: [bx, b.y + b.h] as Point }]),
-        // トークンの箱の下の真ん中は管の弁へ下りる軸が在る。幅の広い箱は、軸と弁から離れた下の口を持つ
-        ...(isBox(c.to)
-          ? topsOf(c.to)
-              .filter((x) => Math.abs(x - bx) >= P.valve.r + P.call.case / 2 + LINE_GAP)
-              .map((x, i): End & { edge: Point } => ({ at: [x, b.y + b.h + APPROACH], dir: 3, cost: 60 + i * 8, edge: [x, b.y + b.h] }))
-          : []),
-      ];
-      // 呼ばれた側がさらに呼ぶ時は、その相手の方の横を自分の出る管に残すため、その横から入りにくくする
-      const facing = (side: 0 | 2): boolean =>
-        branches.some((x) => {
-          if (x.from !== c.to) return false;
-          const t = rectOf(x.to);
-          return (t.x + t.w / 2 >= b.x + b.w / 2 ? 0 : 2) === side;
-        });
-      // 左から入る (向き 0) のは左の横、右から入る (向き 2) のは右の横
-      const ends: End[] = entries.map(({ at, dir, cost }) => ({ at, dir, cost: (dir === 0 && facing(2)) || (dir === 2 && facing(0)) ? (cost ?? 0) + 300 : cost }));
-      // 呼ばれた側へは縁の手前の点で向きを揃えて入るため、呼ばれた側の縁は通さない。縁に沿って走る線を作らない。
-      // 呼ぶ側の名札の縁は、名札の際から出る 2 度目の試しだけ通す。1 度目から通すと、名札の下を回って自分の点線をまたぐ
-      const allow = new Set<number>();
-      const ask = {
-        owner: `c:${c.from}>${c.to}`,
-        group: `c:${c.from}`,
-        kind: "call" as const,
-        width: P.call.case,
-        starts,
-        ends,
-        allow,
-        cross: (l: Laid): number | undefined => (l.kind === "value" || l.kind === "stub" ? 300 : l.kind === "call" ? 400 : undefined),
-        gap: LINE_GAP,
-        bend: 50,
-      };
-      // 名札の縁から始まりの点までの線は道を探さずに引くため、点線や線をまたがないかを先に確かめる
-      const ownAsk = { ...ask, allow: new Set([...allow, ...(callOwn.get(c.from) ?? [])]) };
-      const edgeOf = (s: End): Point => [s.at[0] > a.x + a.w / 2 ? a.x + a.w : a.x, s.at[1]];
-      ask.starts = starts.filter((s) => callRouter.passable(ownAsk, edgeOf(s), s.at));
-      const callFinish = (path: Point[]): { points: Point[]; raw: Point[] } => {
-        const head = path[0] as Point;
-        const tail = path[path.length - 1] as Point;
-        const into = entries.find((e) => Math.abs(e.at[0] - tail[0]) < 0.5 && Math.abs(e.at[1] - tail[1]) < 0.5);
-        return { points: simplify([edgeOf({ at: head, dir: 0 }), ...path, ...(into ? [into.edge] : [])]), raw: path };
-      };
-      let found = fewerBends(callRouter, ask, callFinish);
-      // 弁を載せる長さの所で上か下へ折れられず、曲がりすぎた時は、別の長さで出る始まりも加えて探し直す。
-      // 短い始まりは先の管と同じ所で折れて共に通り、弁は共に通らない所へ置く。折れが減った時だけ採る
-      if (found && bendsOf(found.points) > MAX_BENDS) {
-        const longer = (side: 0 | 2, ys: number[], x: (k: number) => number): End[] => {
-          const now = lanes.get(`${c.from}|${side}`) ?? 0;
-          return [0, 1, 2, 3].filter((k) => k !== now).flatMap((k) => ys.flatMap((y, i) => startsAt([x(k), y], side, (toward === side ? 0 : 80) + i * 30 + 60)));
-        };
-        const extra = [
-          ...longer(0, ysR, (k) => a.x + a.w + runOf(c.from, c.to, 0, k)),
-          ...longer(2, ysL, (k) => a.x - runOf(c.from, c.to, 2, k)),
-        ].filter((st) => callRouter.passable(ownAsk, edgeOf(st), st.at));
-        const again = extra.length > 0 ? fewerBends(callRouter, { ...ask, starts: [...ask.starts, ...extra] }, callFinish) : undefined;
-        if (again && bendsOf(again.points) < bendsOf(found.points)) found = again;
-      }
-      const path =
-        found?.raw ??
-        callRouter.route({ ...ask, allow: new Set([...allow, ...(callOwn.get(c.from) ?? [])]), starts: starts.filter((s) => s.dir === 0 || s.dir === 2).map((s) => ({ ...s, at: edgeOf(s) })) });
-      if (!path) {
-        failedCalls.push(`${c.from}>${c.to}`);
-        if (!fallback) continue;
-        callPath.set(`${c.from}>${c.to}`, [
-          [a.x + a.w, ay0],
-          [bx, ay0],
-          [bx, b.y],
-        ]);
-        continue;
-      }
-      const first = path[0] as Point;
-      const last = path[path.length - 1] as Point;
-      const right = first[0] > a.x + a.w / 2;
-      // 同じ横から出た管の数。次の管は高さが違っても弁 1 つ分長く出て、弁を横にずらす
-      const laneKey = `${c.from}|${right ? 0 : 2}`;
-      lanes.set(laneKey, (lanes.get(laneKey) ?? 0) + 1);
-      left.add(sideKey(c.from, right ? 0 : 2, first[1]));
-      const edge: Point = [right ? a.x + a.w : a.x, first[1]];
-      const entry = entries.find((e) => Math.abs(e.at[0] - last[0]) < 0.5 && Math.abs(e.at[1] - last[1]) < 0.5);
-      if (entry && entry.dir === 0) entered.add(sideKey(c.to, 2, entry.at[1]));
-      if (entry && entry.dir === 2) entered.add(sideKey(c.to, 0, entry.at[1]));
-      // 縁の際の短い段差を消す。ずらした線が通れる時だけ
-      const simple = unjog([edge, ...path, ...(entry ? [entry.edge] : [])], 16, (u, v) => callRouter.passable(ownAsk, u, v));
-      callPath.set(`${c.from}>${c.to}`, simple);
-      if (bendsOf(simple) > MAX_BENDS) bentCalls.push(`${c.from}>${c.to}`);
-      callRouter.lay(simple, { owner: ask.owner, group: ask.group, kind: "call", width: P.call.case });
-    }
-      return { failed: failedCalls, bent: bentCalls };
-    };
-    // 道の無い呼び出しと曲がりすぎた呼び出しを前に出して、引く順を最大 4 通り試す。道の無い管が少なく、曲がりすぎた管が少ない順を採る
-    {
-      let callList = [...branches];
-      let bestCalls: { list: typeof branches; failed: number; bent: number } | undefined;
-      let ranCalls = callList;
-      const triedCalls = new Set<string>();
-      const keyOfList = (l: typeof branches): string => l.map((c) => `${c.from}>${c.to}`).join(",");
-      for (let round = 0; round < 4 && !triedCalls.has(keyOfList(callList)); round++) {
-        triedCalls.add(keyOfList(callList));
-        ranCalls = callList;
-        const got = routeCalls(callList, false);
-        if (!bestCalls || got.failed.length < bestCalls.failed || (got.failed.length === bestCalls.failed && got.bent.length < bestCalls.bent))
-          bestCalls = { list: callList, failed: got.failed.length, bent: got.bent.length };
-        const bad = [...got.failed, ...got.bent];
-        if (bad.length === 0) break;
-        callList = [...callList.filter((c) => bad.includes(`${c.from}>${c.to}`)), ...callList.filter((c) => !bad.includes(`${c.from}>${c.to}`))];
-      }
-      // 道が無いか曲がりすぎた管が残る時は、間を広げた組み方で組み直す
-      if (bestCalls && bestCalls.failed + bestCalls.bent > 0 && !plan.last) return undefined;
-      if (bestCalls && (bestCalls.list !== ranCalls || bestCalls.failed > 0)) routeCalls(bestCalls.list, bestCalls.failed > 0);
-    }
 
-    // ---- 呼び出しの管の弁と計器。管が横に走る所に、決まりの間を空けて置く
-
+    // 呼び出しの管の弁。全ての呼び出しの管を引いた後に置く。弁を置けない管を引き直す時は、置いた弁の形を間を空けて通る障害にし、
+    // 書き込む管を引く時は、弁の形の縁を越えない線として置く。後から引く管が弁の形から離れて通るため、弁がほかの線に載らない
     const onCall: { at: Point; half: number; tall: number; branch: string }[] = [];
     const valves = new Map<string, Point>();
+    /** 取っ手を管の下 (縦の管では左) に立てた弁 */
+    const underValves = new Set<string>();
+    /** 縦に走る所に置いた弁 */
+    const uprightValves = new Set<string>();
+    /** 置いた弁が描く形 */
+    const valveShapes: Rect[] = [];
+    /** 弁が描く形の縁を、後から引く線が越えない線として置く */
+    const layValve = (router: Router, key: string, at: Point, under: boolean, vertical: boolean): void => {
+      for (const r of valveRects(at[0], at[1], vertical, under))
+        router.lay(
+          [
+            [r.x, r.y],
+            [r.x + r.w, r.y],
+            [r.x + r.w, r.y + r.h],
+            [r.x, r.y + r.h],
+            [r.x, r.y],
+          ],
+          { owner: `valve:${key}`, group: `valve:${key}`, kind: "valve", width: 0 },
+        );
+    };
+    const placeValve = (key: string, at: Point, under: boolean, vertical = false): void => {
+      valves.set(key, at);
+      if (under) underValves.add(key);
+      if (vertical) uprightValves.add(key);
+      onCall.push({ at, half: vertical ? P.valve.half : P.valve.r, tall: vertical ? P.valve.r : P.valve.half, branch: key });
+      valveShapes.push(...valveRects(at[0], at[1], vertical, under));
+      layValve(callRouter, key, at, under, vertical);
+    };
     /** 弁と計器の縦の半分。弁は横に長い */
     const tallOf = (half: number): number => (half === P.valve.r ? P.valve.half : half);
-    /** 弁と計器の四角どうしの縁の間が、決まりの間を超えるか。決まりの表と同じく、横と縦の隔たりの大きい方で測る */
-    const free = (p: Point, half: number): boolean =>
-      onCall.every((o) => Math.max(Math.abs(o.at[0] - p[0]) - o.half - half, Math.abs(o.at[1] - p[1]) - o.tall - tallOf(half)) >= SPACING);
+    /** 横の半分が `half`、縦の半分が `tall` の四角と、置いた弁と計器の四角の縁の間が、決まりの間を超えるか。決まりの表と同じく、横と縦の隔たりの大きい方で測る */
+    const freeBox = (p: Point, half: number, tall: number): boolean =>
+      onCall.every((o) => Math.max(Math.abs(o.at[0] - p[0]) - o.half - half, Math.abs(o.at[1] - p[1]) - o.tall - tall) >= SPACING);
+    /** 弁と計器の四角どうしの縁の間が、決まりの間を超えるか */
+    const free = (p: Point, half: number): boolean => freeBox(p, half, tallOf(half));
     /**
      * 置いた線のうち、`branch` の管でない物。`mine` の時は同じ者から出た管も含める (計器は同じ者の管が分かれる所に置かない)
      */
-    const otherLines = (branch: string, mine = false): { points: Point[]; half: number }[] => {
+    const otherLines = (branch: string, mine = false, skip: ReadonlySet<string> = new Set()): { points: Point[]; half: number; sibling?: boolean }[] => {
       const from = branch.split(">")[0];
       return [
         ...routes.flatMap((r) => (r ? [{ points: r.points, half: P.bus.case / 2 }] : [])),
         ...stubs.map((s) => ({ points: s.points, half: P.bus.case / 2 })),
         ...ties.map((t) => ({ points: [[t.x, t.y1], [t.x, t.y2]] as Point[], half: 1 })),
-        ...[...callPath.entries()].filter(([k]) => k !== branch && (mine || k.split(">")[0] !== from)).map(([, points]) => ({ points, half: cHalf })),
+        ...[...callPath.entries()]
+          .filter(([k]) => k !== branch && !skip.has(k) && (mine || k.split(">")[0] !== from))
+          .map(([k, points]) => ({ points, half: cHalf, sibling: k.split(">")[0] === from })),
       ];
     };
     /** 道の上で、横に走る所の、ほかの弁と計器と線から離れた所。`from` は道の始まりからの距離の下限 */
@@ -2260,66 +2246,467 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       }
       return undefined;
     };
-    // 弁は、載せられる横の線が短い管から先に置く。長い管は後から空いた所を選べる
-    const roomOn = (c: (typeof branches)[number]): number =>
-      segs(callPath.get(`${c.from}>${c.to}`) ?? []).reduce((sum, [a, b]) => sum + (flat(a, b) ? Math.abs(b[0] - a[0]) : 0), 0);
-    const valveOrder = [...branches].sort((a, b) => roomOn(a) - roomOn(b));
-    const earlier: { from: string; points: Point[] }[] = [];
-    for (const c of valveOrder) {
-      const key = `${c.from}>${c.to}`;
-      const points = callPath.get(key) as Point[];
-      const mine = earlier.filter((e) => e.from === c.from).map((e) => e.points);
-      const at =
-        spot(points, P.valve.r, P.call.valveAt, mine, key) ??
-        spot(points, P.valve.r, P.call.valveAt, [], key) ??
-        spot(points, P.valve.r, 0, [], key) ??
-        along(points, Math.min(P.call.valveAt, lengthOf(points) / 2));
-      valves.set(key, at);
-      onCall.push({ at, half: P.valve.r, tall: P.valve.half, branch: key });
-      earlier.push({ from: c.from, points });
-    }
-    const gaugeAt = new Map<string, { on: PipeGauge["on"]; cx: number; cy: number; stem?: { y1: number; y2: number }; col?: { x: number; w: number } }>();
-    for (const party of checkers) {
-      const bay = bays.find((b) => b.gauges.some((g) => g.party === party));
-      const g = bay?.gauges.find((x) => x.party === party);
-      if (bay && g) {
-        gaugeAt.set(party, { on: "value", cx: g.cx, cy: g.cy, stem: { y1: g.cy + P.gauge.r, y2: bay.y - P.gauge.stemGap }, col: g.col });
-        continue;
-      }
-      const incoming = shown.find((c) => c.to === party);
-      const points = incoming ? callPath.get(`${incoming.from}>${incoming.to}`) : undefined;
-      if (points && !isBox(party)) {
-        const valve = valves.get(`${incoming?.from}>${incoming?.to}`) as Point;
-        const dist = (() => {
-          let walked = 0;
-          for (const [a, b] of segs(points)) {
-            const len = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
-            if (Math.abs(valve[1] - a[1]) < 0.5 && flat(a, b) && valve[0] >= Math.min(a[0], b[0]) && valve[0] <= Math.max(a[0], b[0])) return walked + Math.abs(valve[0] - a[0]);
-            walked += len;
-          }
-          return 0;
-        })();
-        const branch = `${incoming?.from}>${incoming?.to}`;
-        const at = spot(points, P.gauge.r, dist + P.valve.r + SPACING + P.gauge.r, [], branch) ?? spot(points, P.gauge.r, 0, [], branch);
-        if (at) {
-          gaugeAt.set(party, { on: "call", cx: at[0], cy: at[1] });
-          onCall.push({ at, half: P.gauge.r, tall: P.gauge.r, branch });
-          continue;
+    /**
+     * 弁が描く形 (胴と軸と、閉じた取っ手と開いた取っ手) が、`lines` の全ての線から `VALVE_ROOM` 離れるか。
+     * 同じ者から出る管も数える。同じ者の管が共に通る本管の上の弁は、どの枝の弁か読めない
+     */
+    const valveClear = (p: Point, vertical: boolean, under: boolean, lines: readonly { parts: [Point, Point][]; half: number }[]): boolean => {
+      const rects = valveRects(p[0], p[1], vertical, under);
+      // 取っ手どうしも重ねない
+      if (rects.some((r) => valveShapes.some((o) => !apart(r, o, VALVE_ROOM)))) return false;
+      return lines.every((l) => l.parts.every(([u, v]) => rects.every((r) => !hits(u, v, r, l.half + VALVE_ROOM))));
+    };
+    /**
+     * 道の上の、ほかの弁と計器から決まりの間を空け、弁の形がほかの線から離れる所と、取っ手を下 (縦の管では左) に立てるか。
+     * 横に走る所にも縦に走る所にも置き、弁は管の向きに合わせて描く。同じ者の管と共に通る幹から分かれた枝は、
+     * 分かれた先が縦に走ることが多く、自分の枝に弁を置くには縦の所に置く。
+     * 始まりに近い所から選び、同じ所では取っ手を上 (縦の管では右) に立てる方を先に試す。`skip` の管の線は測らない
+     */
+    const valveSpot = (
+      points: Point[],
+      branch: string,
+      skip: ReadonlySet<string> = new Set(),
+      shared = false,
+    ): { at: Point; under: boolean; vertical: boolean } | undefined => {
+      const r = P.valve.r;
+      const reach = P.valve.stem + P.valve.lever + VALVE_ROOM;
+      const others = otherLines(branch, true, skip);
+      for (const [a, b] of segs(points)) {
+        const vertical = !flat(a, b);
+        const len = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
+        if (len < r * 2 + SPACING) continue;
+        const dx = Math.sign(b[0] - a[0]);
+        const dy = Math.sign(b[1] - a[1]);
+        // 弁の形が届く所の近くを通る線だけを測る
+        const along = len + (P.valve.lever + VALVE_ROOM) * 2;
+        const near: Rect = vertical
+          ? { x: a[0] - reach, y: Math.min(a[1], b[1]) - P.valve.lever - VALVE_ROOM, w: reach * 2, h: along }
+          : { x: Math.min(a[0], b[0]) - P.valve.lever - VALVE_ROOM, y: a[1] - reach, w: along, h: reach * 2 };
+        /** `shared` の時は、この所で重なって走る同じ者の管の線分を測らない (弁が本管に載る) */
+        const onHere = (u: Point, v: Point): boolean =>
+          vertical
+            ? !flat(u, v) && Math.abs(u[0] - a[0]) < 0.5 && Math.max(u[1], v[1]) > Math.min(a[1], b[1]) && Math.min(u[1], v[1]) < Math.max(a[1], b[1])
+            : flat(u, v) && Math.abs(u[1] - a[1]) < 0.5 && Math.max(u[0], v[0]) > Math.min(a[0], b[0]) && Math.min(u[0], v[0]) < Math.max(a[0], b[0]);
+        const lines = others
+          .map((l) => (shared && l.sibling ? { ...l, points: [] as Point[], parts: segs(l.points).filter(([u, v]) => !onHere(u, v)) } : { ...l, parts: segs(l.points) }))
+          .filter((l) => l.parts.some(([u, v]) => hits(u, v, near, l.half)));
+        for (let t = r + SPACING / 2; t <= len - r - SPACING / 2; t += 4) {
+          const p: Point = [a[0] + dx * t, a[1] + dy * t];
+          if (!(vertical ? freeBox(p, P.valve.half, r) : freeBox(p, r, P.valve.half))) continue;
+          for (const under of [false, true]) if (valveClear(p, vertical, under, lines)) return { at: p, under, vertical };
         }
       }
-      // 管に載せられない時は名札の横に置く。線と重ならない向きを選ぶ
-      const box = rectOf(party);
-      const cy = box.y + box.h / 2;
-      const r = P.gauge.r;
-      const lines = otherLines("", true);
-      const right: Point = [box.x + box.w + P.gauge.lampGap + r, cy];
-      const tries: Point[] = [
-        right,
-        [box.x - P.gauge.lampGap - r - P.gauge.lamp * 2, cy],
-        [box.x + box.w / 2, box.y - P.gauge.lampGap - r],
-      ];
-      const at = tries.find(([x, y]) => !lines.some((l) => segs(l.points).some(([u, v]) => hits(u, v, { x: x - r, y: y - r, w: r * 2 + P.gauge.lampGap + P.gauge.lamp * 2, h: r * 2 }, l.half + 2)))) ?? right;
-      gaugeAt.set(party, { on: "party", cx: at[0], cy: at[1] });
+      return undefined;
+    };
+    /** 呼び出しの管の道を探す前に置く線。値の管と短い管と点線 */
+    const callBase = (router: Router): Router => {
+      for (const r of routes) if (r) router.lay(r.points, { owner: lineOwner(r.def), group: groupOfDef(r.def), kind: "value", width: P.bus.case });
+      for (const s of stubs) router.lay(s.points, { owner: `s${s.token}`, group: `s${s.token}`, kind: "stub", width: P.bus.case });
+      for (const t of ties) {
+        const tie: Point[] = [
+          [t.x, t.y1],
+          [t.x, t.y2],
+        ];
+        router.lay(tie, { owner: `tie:${t.party}`, group: `tie:${t.party}`, kind: "tie", width: 2 });
+      }
+      return router;
+    };
+    /** 呼び出しの管を `list` の順に引く。道の無かった管を返す */
+    const routeCalls = (list: readonly (typeof branches)[number][], fallback: boolean): { failed: string[]; bent: string[]; twice: string[]; cramped: string[] } => {
+      callRouter = new Router(callXList, callYList, callObs);
+      callPath = new Map();
+      valves.clear();
+      underValves.clear();
+      uprightValves.clear();
+      valveShapes.length = 0;
+      onCall.length = 0;
+      /** ほかの線から離れた所が無く、弁を置けなかった呼び出し */
+      const crampedCalls: string[] = [];
+      callBase(callRouter);
+      const failedCalls: string[] = [];
+      const bentCalls: string[] = [];
+      /** 1 本の値の管を 2 度越えた呼び出し */
+      const twiceCalls: string[] = [];
+      const lanes = new Map<string, number>();
+      /** 名札の横の、入る管が使った所 (`id|向き|高さ`) と、出る管が使った所。入る管と出る管は同じ所を使わない */
+      const entered = new Set<string>();
+      const left = new Set<string>();
+      const sideKey = (id: string, side: 0 | 2, y: number): string => `${id}|${side}|${Math.round(y)}`;
+      const sideUsed = (set: ReadonlySet<string>, id: string, side: 0 | 2): boolean => [...set].some((k) => k.startsWith(`${id}|${side}|`));
+      /** 出る管の高さ。同じ者の管は同じ高さを共に使ってよいが、入る管が使った高さは避ける */
+      /** 出る管の高さの候補。入る管が使った高さを除き、まだ使っていない高さ、呼ぶ相手の高さに近い方の順 */
+      const startYs = (id: string, side: 0 | 2, toward: number): number[] => {
+        const base = cyOf(id);
+        const used = (y: number): number => Number(left.has(sideKey(id, side, y)));
+        // 入る管が使った横からは出ない。同じ横に出入りが並ぶと、入る管の計器を置く所が無くなる
+        if (sideUsed(entered, id, side)) return [];
+        const ys = [...new Set([0, 1, 2].map((k) => base + laneOff(id, k)))];
+        return ys.sort((a, b) => used(a) - used(b) || Math.abs(a - toward) - Math.abs(b - toward));
+      };
+      /** 呼び出しが入った所 (`id|向き|高さ`)。引き直す管は、自分が入った所を外して入る口を選び直す */
+      const entryOf = new Map<string, string>();
+      /** 呼び出し `c` の道を探す問いと、探した道を名札の縁から呼ばれた側の縁までの線に仕上げる処理 */
+      const planOf = (c: (typeof branches)[number]) => {
+        const a = rectOf(c.from);
+        const b = rectOf(c.to);
+        const toward = b.x + b.w / 2 >= a.x + a.w / 2 ? 0 : 2;
+        const ysR = startYs(c.from, 0, cyOf(c.to));
+        const ysL = startYs(c.from, 2, cyOf(c.to));
+        // 始まりの点では、そのまま進むほかに上か下へ折れてよい。縁から始まりの点までの横の線が弁を載せる所になる
+        const startsAt = (at: Point, dir: 0 | 2, cost: number): End[] => [
+          { at, dir, cost },
+          { at, dir: 1, cost: cost + 50 },
+          { at, dir: 3, cost: cost + 50 },
+        ];
+        const starts: End[] = [
+          ...ysR.flatMap((y, i) => startsAt([a.x + a.w + runOf(c.from, c.to, 0, lanes.get(`${c.from}|0`) ?? 0), y], 0, (toward === 0 ? 0 : 80) + i * 30)),
+          ...ysL.flatMap((y, i) => startsAt([a.x - runOf(c.from, c.to, 2, lanes.get(`${c.from}|2`) ?? 0), y], 2, (toward === 2 ? 0 : 80) + i * 30)),
+        ];
+        const bx = b.x + b.w / 2;
+        const by = cyOf(c.to);
+        const entries: (End & { edge: Point })[] = [
+          ...topsOf(c.to).map((x, i): End & { edge: Point } => ({ at: [x, b.y - APPROACH], dir: 1, cost: Math.ceil(i / 2) * 8, edge: [x, b.y] })),
+          ...(entered.has(sideKey(c.to, 2, by)) || sideUsed(left, c.to, 2) ? [] : [{ at: [b.x - APPROACH, by] as Point, dir: 0 as Dir, cost: 20, edge: [b.x, by] as Point }]),
+          ...(entered.has(sideKey(c.to, 0, by)) || sideUsed(left, c.to, 0) ? [] : [{ at: [b.x + b.w + APPROACH, by] as Point, dir: 2 as Dir, cost: 20, edge: [b.x + b.w, by] as Point }]),
+          // 下から入る口は、囲いへ下りる点線と重なるため、囲いを持つ者には置かない
+          ...(isBox(c.to) || holding.has(c.to) ? [] : [{ at: [bx, b.y + b.h + APPROACH] as Point, dir: 3 as Dir, cost: 60, edge: [bx, b.y + b.h] as Point }]),
+          // トークンの箱の下の真ん中は管の弁へ下りる軸が在る。幅の広い箱は、軸と弁から離れた下の口を持つ
+          ...(isBox(c.to)
+            ? topsOf(c.to)
+                .filter((x) => Math.abs(x - bx) >= P.valve.r + P.call.case / 2 + LINE_GAP)
+                .map((x, i): End & { edge: Point } => ({ at: [x, b.y + b.h + APPROACH], dir: 3, cost: 60 + i * 8, edge: [x, b.y + b.h] }))
+            : []),
+        ];
+        // 呼ばれた側がさらに呼ぶ時は、その相手の方の横を自分の出る管に残すため、その横から入りにくくする
+        const facing = (side: 0 | 2): boolean =>
+          branches.some((x) => {
+            if (x.from !== c.to) return false;
+            const t = rectOf(x.to);
+            return (t.x + t.w / 2 >= b.x + b.w / 2 ? 0 : 2) === side;
+          });
+        // 左から入る (向き 0) のは左の横、右から入る (向き 2) のは右の横
+        const ends: End[] = entries.map(({ at, dir, cost }) => ({ at, dir, cost: (dir === 0 && facing(2)) || (dir === 2 && facing(0)) ? (cost ?? 0) + 300 : cost }));
+        // 呼ばれた側へは縁の手前の点で向きを揃えて入るため、呼ばれた側の縁は通さない。縁に沿って走る線を作らない。
+        // 呼ぶ側の名札の縁は、名札の際から出る 2 度目の試しだけ通す。1 度目から通すと、名札の下を回って自分の点線をまたぐ
+        const allow = new Set<number>();
+        const ask = {
+          owner: `c:${c.from}>${c.to}`,
+          group: `c:${c.from}`,
+          kind: "call" as const,
+          width: P.call.case,
+          starts,
+          ends,
+          allow,
+          cross: (l: Laid): number | undefined => (l.kind === "value" || l.kind === "stub" ? 300 : l.kind === "call" ? 400 : undefined),
+          gap: LINE_GAP,
+          bend: 50,
+        };
+        // 名札の縁から始まりの点までの線は道を探さずに引くため、点線や線をまたがないかを先に確かめる
+        const ownAsk = { ...ask, allow: new Set([...allow, ...(callOwn.get(c.from) ?? [])]) };
+        const edgeOf = (st: End): Point => [st.at[0] > a.x + a.w / 2 ? a.x + a.w : a.x, st.at[1]];
+        ask.starts = starts.filter((st) => callRouter.passable(ownAsk, edgeOf(st), st.at));
+        const callFinish = (path: Point[]): { points: Point[]; raw: Point[] } => {
+          const head = path[0] as Point;
+          const tail = path[path.length - 1] as Point;
+          const into = entries.find((e) => Math.abs(e.at[0] - tail[0]) < 0.5 && Math.abs(e.at[1] - tail[1]) < 0.5);
+          return { points: simplify([edgeOf({ at: head, dir: 0 }), ...path, ...(into ? [into.edge] : [])]), raw: path };
+        };
+        /** 探した道を、名札の縁から呼ばれた側の縁までの線にする。縁の際の短い段差は消す */
+        const finish = (path: Point[]): { points: Point[]; entry: (End & { edge: Point }) | undefined } => {
+          const first = path[0] as Point;
+          const last = path[path.length - 1] as Point;
+          const edge: Point = [first[0] > a.x + a.w / 2 ? a.x + a.w : a.x, first[1]];
+          const entry = entries.find((e) => Math.abs(e.at[0] - last[0]) < 0.5 && Math.abs(e.at[1] - last[1]) < 0.5);
+          // ずらした線が通れる時だけ消す。呼ばれた側の手前の点から縁までの線は、道を探さずに引く線なので通れるとする
+          const approach = (u: Point, v: Point): boolean =>
+            entry !== undefined && Math.abs(u[0] - entry.at[0]) < 0.5 && Math.abs(u[1] - entry.at[1]) < 0.5 && Math.abs(v[0] - entry.edge[0]) < 0.5 && Math.abs(v[1] - entry.edge[1]) < 0.5;
+          return { points: unjog([edge, ...path, ...(entry ? [entry.edge] : [])], 16, (u, v) => approach(u, v) || callRouter.passable(ownAsk, u, v), callRouter), entry };
+        };
+        return { a, b, bx, toward, ysR, ysL, startsAt, starts, ask, ownAsk, edgeOf, callFinish, finish, allow };
+      };
+      /** 入った所を覚える。左から入る (向き 0) のは左の横、右から入る (向き 2) のは右の横 */
+      const enter = (key: string, to: string, entry: (End & { edge: Point }) | undefined): void => {
+        if (!entry || (entry.dir !== 0 && entry.dir !== 2)) return;
+        const k = sideKey(to, entry.dir === 0 ? 2 : 0, entry.at[1]);
+        entered.add(k);
+        entryOf.set(key, k);
+      };
+    for (const c of list) {
+      const key = `${c.from}>${c.to}`;
+      const { a, b, bx, toward, ysR, ysL, startsAt, starts, ask, ownAsk, edgeOf, callFinish, finish, allow } = planOf(c);
+      const ay0 = cyOf(c.from);
+      let found = fewerBends(callRouter, ask, callFinish);
+      // 弁を載せる長さの所で上か下へ折れられず、曲がりすぎた時は、別の長さで出る始まりも加えて探し直す。
+      // 短い始まりは先の管と同じ所で折れて共に通り、弁は共に通らない所へ置く。折れが減った時だけ採る
+      if (found && bendsOf(found.points) > MAX_BENDS) {
+        const longer = (side: 0 | 2, ys: number[], x: (k: number) => number): End[] => {
+          const now = lanes.get(`${c.from}|${side}`) ?? 0;
+          return [0, 1, 2, 3].filter((k) => k !== now).flatMap((k) => ys.flatMap((y, i) => startsAt([x(k), y], side, (toward === side ? 0 : 80) + i * 30 + 60)));
+        };
+        const extra = [
+          ...longer(0, ysR, (k) => a.x + a.w + runOf(c.from, c.to, 0, k)),
+          ...longer(2, ysL, (k) => a.x - runOf(c.from, c.to, 2, k)),
+        ].filter((st) => callRouter.passable(ownAsk, edgeOf(st), st.at));
+        const again = extra.length > 0 ? fewerBends(callRouter, { ...ask, starts: [...ask.starts, ...extra] }, callFinish) : undefined;
+        if (again && bendsOf(again.points) < bendsOf(found.points)) found = again;
+      }
+      // 1 本の値の管を 2 度越えた時は、その管の組を越える値を重くして探し直す。越える値は辺ごとに組で 1 度だけ数えるため、
+      // 幹を何度も越える道が、1 本ずつ越える道より安く見えることがある。2 度越える管が減り、折れが上限を超えない時だけ採る
+      if (found) {
+        const twice = (points: readonly Point[]): Set<string> =>
+          new Set(routes.flatMap((r) => (r && crossedTimes(points, r.points) > 1 ? [groupOfDef(r.def)] : [])));
+        const heavy = twice(found.points);
+        if (heavy.size > 0) {
+          const again = fewerBends(callRouter, { ...ask, cross: (l: Laid) => (heavy.has(l.group) ? REVISIT : ask.cross(l)) }, callFinish);
+          if (again && bendsOf(again.points) <= MAX_BENDS && twice(again.points).size < heavy.size) found = again;
+        }
+      }
+      const path =
+        found?.raw ??
+        callRouter.route({ ...ask, allow: new Set([...allow, ...(callOwn.get(c.from) ?? [])]), starts: starts.filter((st) => st.dir === 0 || st.dir === 2).map((st) => ({ ...st, at: edgeOf(st) })) });
+      if (!path) {
+        failedCalls.push(key);
+        if (!fallback) continue;
+        callPath.set(key, [
+          [a.x + a.w, ay0],
+          [bx, ay0],
+          [bx, b.y],
+        ]);
+        continue;
+      }
+      const first = path[0] as Point;
+      const right = first[0] > a.x + a.w / 2;
+      // 同じ横から出た管の数。次の管は高さが違っても弁 1 つ分長く出て、弁を横にずらす
+      const laneKey = `${c.from}|${right ? 0 : 2}`;
+      lanes.set(laneKey, (lanes.get(laneKey) ?? 0) + 1);
+      left.add(sideKey(c.from, right ? 0 : 2, first[1]));
+      const { points: simple, entry } = finish(path);
+      enter(key, c.to, entry);
+      callPath.set(key, simple);
+      if (bendsOf(simple) > MAX_BENDS) bentCalls.push(key);
+      if (routes.some((r) => r && crossedTimes(simple, r.points) > 1)) twiceCalls.push(key);
+      callRouter.lay(simple, { owner: ask.owner, group: ask.group, kind: "call", width: P.call.case });
+    }
+      // 弁は、載せられる横の線が短い管から先に置く。長い管は後から空いた所を選べる
+      const roomOn = (c: (typeof branches)[number]): number =>
+        segs(callPath.get(`${c.from}>${c.to}`) ?? []).reduce((sum, [a, b]) => sum + (flat(a, b) ? Math.abs(b[0] - a[0]) : 0), 0);
+      const waiting: (typeof branches)[number][] = [];
+      for (const c of [...list].sort((a, b) => roomOn(a) - roomOn(b))) {
+        const key = `${c.from}>${c.to}`;
+        const points = callPath.get(key);
+        if (!points || valves.has(key)) continue;
+        const clear = valveSpot(points, key);
+        if (clear) placeValve(key, clear.at, clear.under, clear.vertical);
+        else waiting.push(c);
+      }
+      /** 値の管と点線と置いた呼び出しの管と弁で、道を探す道具を作り直す */
+      const rebuild = (xs: readonly number[] = callXList, ys: readonly number[] = callYList): Router => {
+        // 置いた弁の形は、管の縁が決まりの間を空けて通る障害にする。線として置くと、形の角の際を通る管を止められない
+        const valveObs = [...valves].flatMap(([k, at]) =>
+          valveRects(at[0], at[1], uprightValves.has(k), underValves.has(k)).map((rect): Obstacle => ({ rect, pad: cHalf + VALVE_ROOM })),
+        );
+        const router = callBase(new Router(xs, ys, [...callObs, ...valveObs]));
+        for (const [k, points] of callPath) router.lay(points, { owner: `c:${k}`, group: `c:${k.split(">")[0]}`, kind: "call", width: P.call.case });
+        return router;
+      };
+      /** 置いた弁を外す */
+      const unplaceValve = (key: string): void => {
+        valves.delete(key);
+        underValves.delete(key);
+        uprightValves.delete(key);
+        valveShapes.length = 0;
+        for (const [k, at] of valves) valveShapes.push(...valveRects(at[0], at[1], uprightValves.has(k), underValves.has(k)));
+        for (let i = onCall.length - 1; i >= 0; i--) if (onCall[i]?.branch === key) onCall.splice(i, 1);
+      };
+      /**
+       * 弁を置けない管 `c` のために、ほかの呼び出しの管を引き直す。ほかの呼び出しの管の線と弁を測らずに `c` の弁の置き場所を取り、
+       * その場所を塞ぐ管 (2 本まで) を、取った弁を越えない道で引き直す。同じ者の管が同じ横に詰めて出る時や、
+       * ほかの者の管が弁の真上を並んで走る時は、取っ手を塞いで弁を置けないため、先に引いた管を譲らせる。
+       * 引き直した管が弁を置け、折れと長さが元の道を大きく超えず、1 本の値の管を 2 度越えない時だけ採り、採らない時は元に戻す
+       */
+      const yieldFor = (c: (typeof branches)[number], key: string, old: Point[]): boolean => {
+        const rivals = new Set([...callPath.keys()].filter((k) => k !== key));
+        if (rivals.size === 0) return false;
+        const saved = {
+          paths: new Map(callPath),
+          valves: new Map(valves),
+          under: new Set(underValves),
+          upright: new Set(uprightValves),
+          shapes: [...valveShapes],
+          on: [...onCall],
+          entered: new Set(entered),
+          entryOf: new Map(entryOf),
+        };
+        const restore = (): false => {
+          callPath = new Map(saved.paths);
+          valves.clear();
+          for (const [k, v] of saved.valves) valves.set(k, v);
+          underValves.clear();
+          for (const k of saved.under) underValves.add(k);
+          uprightValves.clear();
+          for (const k of saved.upright) uprightValves.add(k);
+          valveShapes.splice(0, valveShapes.length, ...saved.shapes);
+          onCall.splice(0, onCall.length, ...saved.on);
+          entered.clear();
+          for (const k of saved.entered) entered.add(k);
+          entryOf.clear();
+          for (const [k, v] of saved.entryOf) entryOf.set(k, v);
+          callRouter = rebuild();
+          return false;
+        };
+        for (const k of rivals) unplaceValve(k);
+        const reserved = valveSpot(old, key, rivals);
+        if (!reserved) return restore();
+        const rects = valveRects(reserved.at[0], reserved.at[1], reserved.vertical, reserved.under);
+        const blocking = [...rivals].filter((k) => {
+          const v = saved.valves.get(k);
+          const shape = v ? valveRects(v[0], v[1], saved.upright.has(k), saved.under.has(k)) : [];
+          return (
+            segs(callPath.get(k) as Point[]).some(([u, v2]) => rects.some((r) => hits(u, v2, r, cHalf + VALVE_ROOM))) ||
+            shape.some((s) => rects.some((r) => !apart(s, r, VALVE_ROOM)))
+          );
+        });
+        if (blocking.length === 0 || blocking.length > 2) return restore();
+        // 塞がない管の弁は元の所に戻す
+        for (const k of rivals)
+          if (!blocking.includes(k)) {
+            const v = saved.valves.get(k);
+            if (v) placeValve(k, v, saved.under.has(k), saved.upright.has(k));
+          }
+        for (const k of blocking) {
+          const e = entryOf.get(k);
+          if (e) entered.delete(e);
+          callPath.delete(k);
+        }
+        placeValve(key, reserved.at, reserved.under, reserved.vertical);
+        // 取った弁の形の際を通る筋を格子に足す。格子の筋が弁の形から遠いと、譲る管は弁の手前で折れられず大きく回る
+        const off = cHalf + LINE_GAP + 1;
+        const xs = gridLines(rects.flatMap((r) => [r.x - off, r.x + r.w + off]), callXList, 4);
+        const ys = gridLines(rects.flatMap((r) => [r.y - off, r.y + r.h + off]), callYList, 4);
+        for (const k of blocking) {
+          const bc = list.find((x) => `${x.from}>${x.to}` === k);
+          const was = saved.paths.get(k);
+          if (!bc || !was) return restore();
+          // 譲る管は、自分の弁が載る長さだけ出て折れる短い始まりも使う。いつもの長さで出ると、取った弁の取っ手の上を通る
+          const ra = rectOf(bc.from);
+          const runs = [SHORT_RUN, (SHORT_RUN + startRun(bc.from, bc.to)) / 2];
+          const startX = (side: 0 | 2, run: number): number => (side === 0 ? ra.x + ra.w + run : ra.x - run);
+          callRouter = rebuild(gridLines([...xs, ...runs.flatMap((run) => [startX(0, run), startX(2, run)])], callXList, 4), ys);
+          const plan = planOf(bc);
+          const short = ([[0, plan.ysR], [2, plan.ysL]] as const).flatMap(([side, list2]) =>
+            list2.flatMap((y, i) =>
+              runs.flatMap((run) => {
+                const at: Point = [startX(side, run), y];
+                return callRouter.passable(plan.ownAsk, plan.edgeOf({ at, dir: side }), at) ? plan.startsAt(at, side, (plan.toward === side ? 0 : 80) + i * 30 + 40) : [];
+              }),
+            ),
+          );
+          const found = fewerBends(callRouter, { ...plan.ask, starts: [...plan.ask.starts, ...short] }, plan.callFinish);
+          const redone = found ? plan.finish(found.raw) : undefined;
+          if (
+            !redone ||
+            bendsOf(redone.points) > Math.min(MAX_BENDS, bendsOf(was) + 1) ||
+            lengthOf(redone.points) > lengthOf(was) * DETOUR_RATE ||
+            routes.some((r) => r && crossedTimes(redone.points, r.points) > 1)
+          )
+            return restore();
+          callPath.set(k, redone.points);
+          enter(k, bc.to, redone.entry);
+          const at = valveSpot(redone.points, k);
+          if (!at) return restore();
+          placeValve(k, at.at, at.under, at.vertical);
+        }
+        callRouter = rebuild();
+        return true;
+      };
+      // 弁を置けなかった管は、ほかの管と置いた弁をそのままにして、弁を置ける始まりの線を持つ始まりから引き直す。
+      // 始まりの線は名札の縁から始まりの点までの横の線で、長く出る始まりも試す。引き直した道に弁を置け、
+      // 折れが上限を超えず、1 本の値の管を 2 度越えず、元の道より大きく回らない時だけ採る。
+      // 大きく回る道は、ほかの者の名札を囲んで計器の置き場所を塞ぎ、弁 1 つの空きより読みにくい
+      for (const c of waiting) {
+        const key = `${c.from}>${c.to}`;
+        // 先の管の兄弟として引き直し、弁を置いた管は飛ばす
+        if (valves.has(key)) continue;
+        const old = callPath.get(key) as Point[];
+        callPath.delete(key);
+        callRouter = rebuild();
+        callPath.set(key, old);
+        const was = entryOf.get(key);
+        if (was) entered.delete(was);
+        const plan = planOf(c);
+        const tries: End[] = [];
+        for (const side of [0, 2] as const) {
+          if (sideUsed(entered, c.from, side)) continue;
+          const ys = [...new Set([0, 1, 2].map((k) => cyOf(c.from) + laneOff(c.from, k)))];
+          for (const k of [0, 1, 2, 3])
+            for (const y of ys) {
+              const at: Point = [side === 0 ? plan.a.x + plan.a.w + runOf(c.from, c.to, 0, k) : plan.a.x - runOf(c.from, c.to, 2, k), y];
+              const edge = plan.edgeOf({ at, dir: side });
+              if (callRouter.passable(plan.ownAsk, edge, at) && valveSpot([edge, at], key)) tries.push(...plan.startsAt(at, side, (plan.toward === side ? 0 : 80) + k * 30));
+            }
+        }
+        const found = tries.length > 0 ? fewerBends(callRouter, { ...plan.ask, starts: tries }, plan.callFinish) : undefined;
+        const redone = found ? plan.finish(found.raw) : undefined;
+        const fits =
+          redone &&
+          bendsOf(redone.points) <= Math.min(MAX_BENDS, bendsOf(old) + 1) &&
+          lengthOf(redone.points) <= lengthOf(old) * DETOUR_RATE &&
+          !routes.some((r) => r && crossedTimes(redone.points, r.points) > 1);
+        const at = fits ? valveSpot(redone.points, key) : undefined;
+        if (redone && at) {
+          callPath.set(key, redone.points);
+          enter(key, c.to, redone.entry);
+          callRouter.lay(redone.points, { owner: plan.ask.owner, group: plan.ask.group, kind: "call", width: P.call.case });
+          placeValve(key, at.at, at.under, at.vertical);
+          continue;
+        }
+        if (was) entered.add(was);
+        callRouter.lay(old, { owner: plan.ask.owner, group: plan.ask.group, kind: "call", width: P.call.case });
+        yieldFor(c, key, old);
+      }
+      // 自分だけが通る所に離れた所の無い弁は、同じ者の管と重なって走る本管の上の、ほかの線と弁から離れた所に置く。
+      // それも無い時は、ほかの弁と計器から決まりの間を空け、同じ者の管が共に通る所を避けて置く。決まりの表が違反に数える
+      for (const c of waiting) {
+        const key = `${c.from}>${c.to}`;
+        const points = callPath.get(key);
+        if (!points || valves.has(key)) continue;
+        const onMain = valveSpot(points, key, new Set(), true);
+        if (onMain) {
+          placeValve(key, onMain.at, onMain.under, onMain.vertical);
+          continue;
+        }
+        crampedCalls.push(key);
+        const mine = [...callPath.entries()].filter(([k]) => k !== key && k.split(">")[0] === c.from && valves.has(k)).map(([, q]) => q);
+        const at =
+          spot(points, P.valve.r, P.call.valveAt, mine, key) ??
+          spot(points, P.valve.r, P.call.valveAt, [], key) ??
+          spot(points, P.valve.r, 0, [], key) ??
+          along(points, Math.min(P.call.valveAt, lengthOf(points) / 2));
+        placeValve(key, at, false);
+      }
+      return { failed: failedCalls, bent: bentCalls, twice: twiceCalls, cramped: crampedCalls };
+    };
+    // 道の無い呼び出しと曲がりすぎた呼び出しと 1 本の値の管を 2 度越えた呼び出しと弁を置けなかった呼び出しを前に出して、引く順を最大 4 通り試す。
+    // 道の無い管が少なく、曲がりすぎた管が少なく、2 度越えた管が少なく、弁を置けなかった管が少ない順を採る
+    {
+      let callList = [...branches];
+      let bestCalls: { list: typeof branches; failed: number; bent: number; twice: number; cramped: number } | undefined;
+      let ranCalls = callList;
+      const triedCalls = new Set<string>();
+      const keyOfList = (l: typeof branches): string => l.map((c) => `${c.from}>${c.to}`).join(",");
+      for (let round = 0; round < 4 && !triedCalls.has(keyOfList(callList)); round++) {
+        triedCalls.add(keyOfList(callList));
+        ranCalls = callList;
+        const got = routeCalls(callList, false);
+        if (!bestCalls || lessThan([got.failed.length, got.bent.length, got.twice.length, got.cramped.length], [bestCalls.failed, bestCalls.bent, bestCalls.twice, bestCalls.cramped]))
+          bestCalls = { list: callList, failed: got.failed.length, bent: got.bent.length, twice: got.twice.length, cramped: got.cramped.length };
+        const bad = [...new Set([...got.failed, ...got.bent, ...got.twice, ...got.cramped])];
+        if (bad.length === 0) break;
+        callList = [...callList.filter((c) => bad.includes(`${c.from}>${c.to}`)), ...callList.filter((c) => !bad.includes(`${c.from}>${c.to}`))];
+      }
+      // 道が無いか、曲がりすぎたか、1 本の値の管を 2 度越えたか、弁を置けなかった管が残る時は、間を広げた組み方で組み直す
+      if (bestCalls && bestCalls.failed + bestCalls.bent + bestCalls.twice + bestCalls.cramped > 0 && !plan.last) return undefined;
+      if (bestCalls && (bestCalls.list !== ranCalls || bestCalls.failed > 0)) routeCalls(bestCalls.list, bestCalls.failed > 0);
     }
 
     // ---- 書き込む管
@@ -2365,7 +2752,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
             { at: [px, turn], dir: 2, cost: 0 },
           ],
           allow: new Set(callOwn.get(`h:${w.to}`) ?? []),
-          cross: (l) => (l.kind === "tie" ? undefined : 40),
+          cross: (l) => (l.kind === "tie" || l.kind === "valve" ? undefined : 40),
           gap: 4,
           bend: 40,
         });
@@ -2374,6 +2761,53 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         const edge: Point = Math.abs(first[0] - wx) < 0.5 ? [wx, start] : [first[0] < wx ? writer.x : writer.x + writer.w, cy];
         return [{ ...w, points: simplify([edge, ...path, [px, plate.y]]) }];
       });
+
+    // ---- 呼び出しの管の弁と計器。管が横に走る所に、決まりの間を空けて置く
+
+    const gaugeAt = new Map<string, { on: PipeGauge["on"]; cx: number; cy: number; stem?: { y1: number; y2: number }; col?: { x: number; w: number } }>();
+    for (const party of checkers) {
+      const bay = bays.find((b) => b.gauges.some((g) => g.party === party));
+      const g = bay?.gauges.find((x) => x.party === party);
+      if (bay && g) {
+        gaugeAt.set(party, { on: "value", cx: g.cx, cy: g.cy, stem: { y1: g.cy + P.gauge.r, y2: bay.y - P.gauge.stemGap }, col: g.col });
+        continue;
+      }
+      const incoming = shown.find((c) => c.to === party);
+      const points = incoming ? callPath.get(`${incoming.from}>${incoming.to}`) : undefined;
+      if (points && !isBox(party)) {
+        const valve = valves.get(`${incoming?.from}>${incoming?.to}`) as Point;
+        const dist = (() => {
+          let walked = 0;
+          for (const [a, b] of segs(points)) {
+            const len = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
+            if (Math.abs(valve[1] - a[1]) < 0.5 && flat(a, b) && valve[0] >= Math.min(a[0], b[0]) && valve[0] <= Math.max(a[0], b[0])) return walked + Math.abs(valve[0] - a[0]);
+            if (Math.abs(valve[0] - a[0]) < 0.5 && !flat(a, b) && valve[1] >= Math.min(a[1], b[1]) && valve[1] <= Math.max(a[1], b[1])) return walked + Math.abs(valve[1] - a[1]);
+            walked += len;
+          }
+          return 0;
+        })();
+        const branch = `${incoming?.from}>${incoming?.to}`;
+        const at = spot(points, P.gauge.r, dist + P.valve.r + SPACING + P.gauge.r, [], branch) ?? spot(points, P.gauge.r, 0, [], branch);
+        if (at) {
+          gaugeAt.set(party, { on: "call", cx: at[0], cy: at[1] });
+          onCall.push({ at, half: P.gauge.r, tall: P.gauge.r, branch });
+          continue;
+        }
+      }
+      // 管に載せられない時は名札の横に置く。線と重ならない向きを選ぶ
+      const box = rectOf(party);
+      const cy = box.y + box.h / 2;
+      const r = P.gauge.r;
+      const lines = otherLines("", true);
+      const right: Point = [box.x + box.w + P.gauge.lampGap + r, cy];
+      const tries: Point[] = [
+        right,
+        [box.x - P.gauge.lampGap - r - P.gauge.lamp * 2, cy],
+        [box.x + box.w / 2, box.y - P.gauge.lampGap - r],
+      ];
+      const at = tries.find(([x, y]) => !lines.some((l) => segs(l.points).some(([u, v]) => hits(u, v, { x: x - r, y: y - r, w: r * 2 + P.gauge.lampGap + P.gauge.lamp * 2, h: r * 2 }, l.half + 2)))) ?? right;
+      gaugeAt.set(party, { on: "party", cx: at[0], cy: at[1] });
+    }
 
     // ---- 部品
 
@@ -2491,7 +2925,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       if (!r) continue;
       const d = defs[r.def] as Def;
       pipeIndex.set(r.def, valuePipes.length);
-      valuePipes.push({ token: d.token, from: d.from, to: d.to, points: r.points, ports: r.ports, tone: toneOf(d.token) });
+      valuePipes.push({ token: d.token, from: d.from, to: d.to, points: r.points, ports: r.ports, tone: toneOf(d.token), group: groupOfDef(r.def) });
     }
     const buses: PipeBus[] = tokens.map((token) => {
       const box = boxOf(token);
@@ -2583,7 +3017,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         .filter((c) => c.from === from)
         .map((c) => {
           const v = valves.get(`${c.from}>${c.to}`) as Point;
-          return { to: c.to, points: callPath.get(`${c.from}>${c.to}`) as Point[], valve: { x: v[0], y: v[1], vertical: false } };
+          return { to: c.to, points: callPath.get(`${c.from}>${c.to}`) as Point[], valve: { x: v[0], y: v[1], vertical: uprightValves.has(`${c.from}>${c.to}`), under: underValves.has(`${c.from}>${c.to}`) } };
         }),
     }));
     const lanes: PipeLane[] = stepList.flatMap((s) =>

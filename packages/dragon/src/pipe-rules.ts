@@ -12,6 +12,7 @@
 import type { Point, Rect } from "./layout/scene";
 import { PIPE_LOOK } from "./look/pipe";
 import type { PipeLayout } from "./kinds/pipe/layout";
+import { valveRects } from "./pipe-valve";
 
 const P = PIPE_LOOK;
 
@@ -41,6 +42,14 @@ export interface PipeViolation {
 export const PIPE_RULES: readonly PipeRule[] = [
   { name: "part-gap", breakage: "crowded", counted: true, kind: "min", value: 8, about: "部品どうしの縁の間の下限 (px)。囲いの中の部品は同じ囲いの部品どうしで測る" },
   { name: "call-part-spacing", breakage: "crowded", counted: true, kind: "min", value: 14, about: "呼び出しの管に載せた弁と計器どうしの縁の間の下限 (px)" },
+  {
+    name: "valve-clearance",
+    breakage: "crowded",
+    counted: true,
+    kind: "min",
+    value: 3,
+    about: "呼び出しの管の弁が描く形 (胴と軸と、閉じた取っ手と開いた取っ手) と、ほかの線の縁の間の下限 (px)。弁が載る管と、弁の所でその管と重なって走る同じ者の管は測らない",
+  },
   { name: "line-through-part", breakage: "behind-tag", counted: true, kind: "max", value: 0, about: "線が通り抜ける部品の数の上限。線の両端の部品と自分の囲いは数えない" },
   { name: "text-clear", breakage: "text-under-line", counted: true, kind: "max", value: 0, about: "字と札にかかる線の数の上限" },
   { name: "gauge-on-line", breakage: "gauge-astray", counted: true, kind: "max", value: 1, about: "計器の真ん中か軸の端と、載せる管の芯の間の上限 (px)" },
@@ -84,13 +93,25 @@ function cuts(a: Point, b: Point, r: Rect, pad: number): boolean {
   if (x1 <= x0 || y1 <= y0) return false;
   return Math.max(a[0], b[0]) > x0 && Math.min(a[0], b[0]) < x1 && Math.max(a[1], b[1]) > y0 && Math.min(a[1], b[1]) < y1;
 }
-/** 2 本の折れ線の交わる回数。直角に越える所を 1 回、重なって走る所を 2 回と数える */
-function crossCount(p: readonly Point[], q: readonly Point[], tol = 0): number {
+/**
+ * 2 本の折れ線の交わる回数。直角に越える所を 1 回、重なって走る所を 2 回と数える。
+ * `trunk` の時は 1 本の幹を共に通る組の 2 本で、重なって走る所と、幹から枝が分かれる所 (片方の折れ目が相手の上に在る所) は数えず、
+ * 相手を突き抜けて越える所だけを数える
+ */
+function crossCount(p: readonly Point[], q: readonly Point[], tol = 0, trunk = false): number {
   let n = 0;
   for (const [a, b] of segs(p))
     for (const [u, v] of segs(q)) {
       const fa = flat(a, b);
       const fu = flat(u, v);
+      if (trunk) {
+        if (fa === fu) continue;
+        const [h1, h2, v1, v2] = fa ? [a, b, u, v] : [u, v, a, b];
+        const x = v1[0];
+        const y = h1[1];
+        if (x > Math.min(h1[0], h2[0]) + 0.5 && x < Math.max(h1[0], h2[0]) - 0.5 && y > Math.min(v1[1], v2[1]) + 0.5 && y < Math.max(v1[1], v2[1]) - 0.5) n++;
+        continue;
+      }
       if (fa === fu) {
         const same = fa ? Math.abs(a[1] - u[1]) <= tol : Math.abs(a[0] - u[0]) <= tol;
         if (!same) continue;
@@ -120,10 +141,11 @@ function distanceTo(p: Point, points: readonly Point[]): number {
 /** 組んだ図の線。値の管、短い管、呼び出しの管 (呼ぶ相手ごと)、名札から囲いへの点線、書き込む管 */
 function linesOf(layout: PipeLayout): Line[] {
   const out: Line[] = [];
-  layout.valuePipes.forEach((p, i) => {
+  for (const p of layout.valuePipes) {
     const own = new Set(p.ports.flatMap((port) => [`tank:${port.party}:${port.token}`, `housing:${port.party}`]));
-    out.push({ name: `value:${p.token}:${p.from}>${p.to}`, kind: "value", points: p.points, half: P.bus.case / 2, group: `value:${i}`, own });
-  });
+    // 幹を共に通る組の管は、組の名前を同じにする
+    out.push({ name: `value:${p.token}:${p.from}>${p.to}`, kind: "value", points: p.points, half: P.bus.case / 2, group: `value:${p.group}`, own });
+  }
   layout.stubs.forEach((s, i) => {
     const bus = layout.buses.find((b) => b.token === s.token);
     const owner = layout.tanks.find((t) => t.token === s.token && s.points.some((q) => Math.abs(q[0] - t.x) < 1 || Math.abs(q[0] - (t.x + t.w)) < 1));
@@ -175,8 +197,9 @@ function solidsOf(layout: PipeLayout): Part[] {
   }
   for (const m of layout.mains)
     for (const b of m.branches) {
-      const V = P.valve;
-      out.push({ x: b.valve.x - V.r, y: b.valve.y - V.half, w: V.r * 2, h: V.half * 2, name: `valve:${m.from}>${b.to}`, inside: "" });
+      // 弁の胴。縦に走る所の弁は縦に長い
+      const [hx, hy] = b.valve.vertical ? [P.valve.half, P.valve.r] : [P.valve.r, P.valve.half];
+      out.push({ x: b.valve.x - hx, y: b.valve.y - hy, w: hx * 2, h: hy * 2, name: `valve:${m.from}>${b.to}`, inside: "" });
     }
   for (const f of layout.folds) out.push({ ...f, name: `fold:${f.call}`, inside: "", step: f.step });
   return out;
@@ -257,6 +280,38 @@ export function pipeViolations(layout: PipeLayout, rules: readonly PipeRule[] = 
       }
   }
 
+  // 呼び出しの管の弁が描く形と、ほかの線の間。同じ者の管が弁の所で重なって走る時、その所は弁が載る管と同じ線なので測らない
+  const clearance = rule("valve-clearance");
+  if (clearance)
+    for (const m of layout.mains)
+      for (const b of m.branches) {
+        const name = `call:${m.from}>${b.to}`;
+        const { x, y, vertical, under } = b.valve;
+        const rects = valveRects(x, y, vertical, under);
+        const onValve = (u: Point, v: Point): boolean =>
+          vertical
+            ? !flat(u, v) && Math.abs(u[0] - x) < 0.5 && Math.min(u[1], v[1]) <= y - P.valve.r && Math.max(u[1], v[1]) >= y + P.valve.r
+            : flat(u, v) && Math.abs(u[1] - y) < 0.5 && Math.min(u[0], v[0]) <= x - P.valve.r && Math.max(u[0], v[0]) >= x + P.valve.r;
+        let least = Number.POSITIVE_INFINITY;
+        let who = "";
+        for (const l of lines) {
+          if (l.name === name) continue;
+          const sibling = l.kind === "call" && l.group === `call:${m.from}`;
+          for (const [u, v] of segs(l.points)) {
+            if (sibling && onValve(u, v)) continue;
+            const seg: Rect = { x: Math.min(u[0], v[0]) - l.half, y: Math.min(u[1], v[1]) - l.half, w: Math.abs(v[0] - u[0]) + l.half * 2, h: Math.abs(v[1] - u[1]) + l.half * 2 };
+            for (const r of rects) {
+              const g = gapOf(seg, r);
+              if (g < least) {
+                least = g;
+                who = l.name;
+              }
+            }
+          }
+        }
+        if (over(clearance, least)) out.push({ rule: clearance.name, parts: [`valve:${m.from}>${b.to}`, who] });
+      }
+
   // 線が部品を通り抜ける数
   const through = rule("line-through-part");
   if (through)
@@ -306,11 +361,14 @@ export function pipeViolations(layout: PipeLayout, rules: readonly PipeRule[] = 
       for (let j = i + 1; j < runs.length; j++) {
         const p = runs[i] as (typeof runs)[number];
         const q = runs[j] as (typeof runs)[number];
-        if (p.l === q.l || p.l.group === q.l.group || p.flat !== q.flat) continue;
+        // 同じ者から出る呼び出しの管どうしは測らない。幹を共に通る値の管どうしは、重なって走る所を測らず、離れて並ぶ所を測る
+        const same = p.l.group === q.l.group;
+        if (p.l === q.l || (same && p.l.kind !== "value") || p.flat !== q.flat) continue;
         const [lo, hi] = p.flat ? [Math.min(p.a[0], p.b[0]), Math.max(p.a[0], p.b[0])] : [Math.min(p.a[1], p.b[1]), Math.max(p.a[1], p.b[1])];
         const [lo2, hi2] = q.flat ? [Math.min(q.a[0], q.b[0]), Math.max(q.a[0], q.b[0])] : [Math.min(q.a[1], q.b[1]), Math.max(q.a[1], q.b[1])];
         if (Math.min(hi, hi2) - Math.max(lo, lo2) <= 0.5) continue;
         const d = p.flat ? Math.abs(p.a[1] - q.a[1]) : Math.abs(p.a[0] - q.a[0]);
+        if (same && d <= 0.5) continue;
         const g = d - p.l.half - q.l.half;
         if (over(parallel, g)) out.push({ rule: parallel.name, parts: [p.l.name, q.l.name] });
       }
@@ -324,7 +382,7 @@ export function pipeViolations(layout: PipeLayout, rules: readonly PipeRule[] = 
       for (let j = i + 1; j < values.length; j++) {
         const a = values[i] as Line;
         const b = values[j] as Line;
-        const n = crossCount(a.points, b.points);
+        const n = crossCount(a.points, b.points, 0, a.group === b.group);
         if (over(valueCross, n)) out.push({ rule: valueCross.name, parts: [a.name, b.name] });
       }
   }

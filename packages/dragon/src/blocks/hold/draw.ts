@@ -13,6 +13,7 @@
 import type { PipeFlow, PipeLevel, PipeParty, PipeState, PipeTank, PipeText } from "../../kinds/pipe/layout";
 import type { Point, Rect } from "../../layout/scene";
 import { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
+import { valveLever, valvePivot } from "../../pipe-valve";
 import { EASE, MOTION, type TextStyle } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import type { Shown } from "../../render/ink";
@@ -161,17 +162,17 @@ export function valuePipe(points: readonly Point[], attrs = ""): string {
 /**
  * 弁。2 つの三角を向かい合わせた形と、軸と取っ手。`vertical` は縦に走る管の弁。
  * 取っ手は閉じた時に管と直角に立ち、開いた時に管の向きに倒れる。`turn` を渡すと取っ手がその style の動きで回り、`open` を渡すとその style の間だけ弁が開いた色になる。
+ * `under` は軸と取っ手を管の下 (縦の管は左) に立てる。
  * `ctx` は取っ手の角の形を読む。
  * `attrs` は取っ手の印 (`data-pipe-lever` など)
  */
-export function valve(x: number, y: number, vertical: boolean, opened: boolean, attrs: string, ctx: Ctx, turn = "", open = ""): string {
+export function valve(x: number, y: number, vertical: boolean, opened: boolean, attrs: string, ctx: Ctx, turn = "", open = "", under = false): string {
   const V = P.valve;
   const body = vertical
     ? `M ${r1(x - V.half)} ${r1(y - V.r)} L ${r1(x + V.half)} ${r1(y - V.r)} L ${r1(x)} ${r1(y)} Z M ${r1(x - V.half)} ${r1(y + V.r)} L ${r1(x + V.half)} ${r1(y + V.r)} L ${r1(x)} ${r1(y)} Z`
     : `M ${r1(x - V.r)} ${r1(y - V.half)} L ${r1(x - V.r)} ${r1(y + V.half)} L ${r1(x)} ${r1(y)} Z M ${r1(x + V.r)} ${r1(y - V.half)} L ${r1(x + V.r)} ${r1(y + V.half)} L ${r1(x)} ${r1(y)} Z`;
-  const px = vertical ? x + V.stem : x;
-  const py = vertical ? y : y - V.stem;
-  const angle = leverAngle(vertical, opened);
+  const [px, py] = valvePivot(x, y, vertical, under);
+  const angle = leverAngle(vertical, opened, under);
   const origin = `transform-origin:${r1(px)}px ${r1(py)}px`;
   const lever = `<rect class="dg-pp-lever" x="${r1(px - V.leverH / 2)}" y="${r1(py - V.leverH / 2)}" width="${V.lever}" height="${V.leverH}" rx="${partRadius(ctx.corner, V.leverH / 2)}"/>`;
   const turned = turn ? `<g${attrs} class="dg-a" style="${origin};${turn}">${lever}</g>` : `<g${attrs} transform="rotate(${angle} ${r1(px)} ${r1(py)})">${lever}</g>`;
@@ -183,8 +184,8 @@ export function valve(x: number, y: number, vertical: boolean, opened: boolean, 
   );
 }
 
-/** 取っ手の向き (度)。閉じた取っ手は管と直角、開いた取っ手は管の向き */
-export const leverAngle = (vertical: boolean, opened: boolean): number => (opened ? (vertical ? 90 : 0) : vertical ? 0 : -90);
+/** 取っ手の向き (度)。閉じた取っ手は管と直角、開いた取っ手は管の向き。向きの決め方は弁の形と共に `pipe-valve.ts` が持つ */
+export const leverAngle = (vertical: boolean, opened: boolean, under = false): number => valveLever(vertical, opened, under);
 
 /** トークンの箱。名前と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。名前は関係者の名前と同じく `dg-sn` も持つ */
 export function tokenBox(p: PipeParty, on: boolean, valveAt: Point | undefined, ctx: Ctx, shown: Shown[], attrs: string): string {

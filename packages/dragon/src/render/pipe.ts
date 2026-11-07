@@ -354,12 +354,13 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
           .sort((x, y) => x[0] - y[0]);
         const end = moves.length > 0 ? (moves[moves.length - 1] as [number, boolean])[1] : start;
         const vertical = br.valve.vertical;
+        const under = br.valve.under;
         const turn =
           moves.length === 0
             ? ""
             : rotation(
-                leverAngle(vertical, start),
-                moves.map(([t, opened]): [number, number] => [t, leverAngle(vertical, opened)]),
+                leverAngle(vertical, start, under),
+                moves.map(([t, opened]): [number, number] => [t, leverAngle(vertical, opened, under)]),
                 deg,
                 M.lever,
               );
@@ -374,7 +375,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
           frames.push([m.total, { opacity: now ? 1 : 0 }]);
           open = m.kf(frames);
         }
-        parts.push(valve(br.valve.x, br.valve.y, vertical, moves.length === 0 ? end : false, on({ lever: `${main.from}>${br.to}` }), ctx, turn, open));
+        parts.push(valve(br.valve.x, br.valve.y, vertical, moves.length === 0 ? end : false, on({ lever: `${main.from}>${br.to}` }), ctx, turn, open, under));
       }
     // 計器。確かめた段は、確かめた時刻に針が振れて通ったかの印が付く。計器は薄くしない
     for (const g of layout.gauges.filter((x) => x.step === s)) {

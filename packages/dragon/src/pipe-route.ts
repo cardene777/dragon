@@ -4,7 +4,9 @@
  * 管は格子の点から隣の点へ縦か横に進み、折れるたびに値を足す。後ろへは戻らない。
  * 障害の四角 (広げた縁を含む) の中を通る道と、置いた線と重なるか近すぎる道は選ばない。
  * 置いた線を直角に越えてよいかと越える時の値は、頼む側 (`Ask.cross`) が線の種類ごとに決める。値の管はほかの値の管を越えず、呼び出しの管は値の管を越えてよい。
- * 重なってよい組 (`group`) が同じ線どうしは、重なっても近くても選ぶ。同じ者から出る呼び出しの管は 1 本の本管を分け合う。
+ * 重なってよい組 (`group`) が同じ線どうしは、重なって走る道を選べる。同じ者から出る呼び出しの管は 1 本の本管を分け合い、
+ * 同じ槽を端に持つ同じトークンの値の管は 1 本の幹を分け合う。重なって走る所は値を減らして数え (`Ask.share`)、幹から枝が分かれる形にする。
+ * 同じ組の線も、直角に突き抜けて越える道は選ばない。突き抜けると十字の継ぎ目に見え、どの枝がどこへ行くかが読めない。
  * 並べ方 (`layout.ts`) が格子の線と障害と管の端を渡し、この file は道だけを返す。部品の置き場所は決めない
  */
 import type { Point, Rect } from "./layout/scene";
@@ -13,9 +15,8 @@ import type { Point, Rect } from "./layout/scene";
 export type Dir = 0 | 1 | 2 | 3;
 const DX = [1, 0, -1, 0] as const;
 const DY = [0, 1, 0, -1] as const;
-
-/** 置いた線の種類。値の管、呼び出しの管、名札から囲いへの点線、トークンの箱から管への短い管 */
-export type LineKind = "value" | "call" | "tie" | "stub" | "write";
+/** 置いた線の種類。値の管、呼び出しの管、名札から囲いへの点線、トークンの箱から管への短い管、書き込む管、呼び出しの管の弁が描く形の縁 */
+export type LineKind = "value" | "call" | "tie" | "stub" | "write" | "valve";
 
 /** 置いた線の 1 本の線分。`group` が同じ線どうしは重なってよい */
 export interface Laid {
@@ -54,6 +55,11 @@ export interface Ask {
    * 内側から順に引いた管が入れ子に並ぶ。値が同じ道が幾つも在る時に、どれを選ぶかを決める
    */
   hug?: number;
+  /**
+   * 同じ組の置いた線と重なって走る辺の長さに掛ける割合。1 より小さいと、後から引く管は先に引いた同じ組の管の道を幹として共に通り、
+   * 相手の近くで枝分かれする。省くと 1 で、重なっても値は減らない
+   */
+  share?: number;
 }
 
 /** 道を探す障害。`pad` だけ広げた四角の中を通らない */
@@ -153,7 +159,10 @@ function heap(): Heap {
   };
 }
 
-/** 置いた線と格子の辺の関わり。`cross` は直角に越えるか触れる、`along` は平行に `d` だけ離れて並ぶ */
+/**
+ * 置いた線と格子の辺の関わり。`cross` は直角に越えるか触れる、`along` は平行に `d` だけ離れて並ぶ。
+ * `cross` の `d` は、辺が線分の端の間を越える時 0、線分の端に触れる時 1
+ */
 interface Mark {
   laid: number;
   rel: "cross" | "along";
@@ -176,6 +185,10 @@ export class Router {
   private readonly vRail: Uint8Array;
   /** `edgeCost` が最後に見た辺が、縁かほかの線の隣の筋か */
   private lastRail = false;
+  /** `edgeCost` が最後に見た辺が、同じ組の置いた線と重なって走るか */
+  private lastShared = false;
+  /** `edgeCost` が最後に見た辺が直角に越えるか触れる、同じ組の置いた線分の番号。無ければ -1 */
+  private lastJoin = -1;
   /** 道を探すたびに 1 つ進める番号。探した状態と辺の値の覚えは、この番号が合う時だけ使う */
   private epoch = 0;
   private work?: {
@@ -190,6 +203,8 @@ export class Router {
     vCost: Float64Array;
     hHug: Uint8Array;
     vHug: Uint8Array;
+    hJoin: Int32Array;
+    vJoin: Int32Array;
   };
 
   constructor(xs: readonly number[], ys: readonly number[], obstacles: readonly Obstacle[]) {
@@ -255,7 +270,7 @@ export class Router {
       // 縦の辺のうち、線分の横の範囲の中を通り、高さが線分にかかる物
       for (let i = lowerBound(this.xs, lo - 0.25); i < this.nx && (this.xs[i] as number) <= hi + 0.25; i++)
         for (let j = Math.max(0, lowerBound(this.ys, y) - 1); j < this.ny - 1 && (this.ys[j] as number) <= y + 0.25; j++)
-          if ((this.ys[j + 1] as number) >= y - 0.25) (this.vMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "cross", d: 0 });
+          if ((this.ys[j + 1] as number) >= y - 0.25) (this.vMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "cross", d: (this.xs[i] as number) > lo + 0.5 && (this.xs[i] as number) < hi - 0.5 ? 0 : 1 });
       // 横の辺のうち、近くを平行に走る物
       for (let j = lowerBound(this.ys, y - reach); j < this.ny && (this.ys[j] as number) <= y + reach; j++)
         for (let i = Math.max(0, lowerBound(this.xs, lo) - 1); i < this.nx - 1 && (this.xs[i] as number) < hi; i++)
@@ -266,7 +281,7 @@ export class Router {
       const hi = Math.max(l.a[1], l.b[1]);
       for (let j = lowerBound(this.ys, lo - 0.25); j < this.ny && (this.ys[j] as number) <= hi + 0.25; j++)
         for (let i = Math.max(0, lowerBound(this.xs, x) - 1); i < this.nx - 1 && (this.xs[i] as number) <= x + 0.25; i++)
-          if ((this.xs[i + 1] as number) >= x - 0.25) (this.hMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "cross", d: 0 });
+          if ((this.xs[i + 1] as number) >= x - 0.25) (this.hMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "cross", d: (this.ys[j] as number) > lo + 0.5 && (this.ys[j] as number) < hi - 0.5 ? 0 : 1 });
       for (let i = lowerBound(this.xs, x - reach); i < this.nx && (this.xs[i] as number) <= x + reach; i++)
         for (let j = Math.max(0, lowerBound(this.ys, lo) - 1); j < this.ny - 1 && (this.ys[j] as number) < hi; j++)
           if ((this.ys[j + 1] as number) > lo) (this.vMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "along", d: Math.abs((this.xs[i] as number) - x) });
@@ -290,11 +305,18 @@ export class Router {
     for (const o of obs) if (!ask.allow?.has(o)) return undefined;
     let extra = 0;
     this.lastRail = ((horizontal ? this.hRail : this.vRail)[index] as number) === 1;
+    this.lastShared = false;
+    this.lastJoin = -1;
+    /** この辺で越える値を足した組。幹を共に通る何本もの線を越える時も、1 本を越える値だけを足す */
+    let charged: string[] | undefined;
     for (const m of (horizontal ? this.hMarks : this.vMarks)[index] as Mark[]) {
       const l = this.laid[m.laid] as Laid;
       if (l.group === ask.group) {
         // 同じ組の線は重ねて共に通ってよいが、少しずれて並ぶと二重の線に見えるため、重ならない時は間を取る
-        if (m.rel === "along" && m.d > 0.5 && m.d < (l.width + ask.width) / 2 + ask.gap) return undefined;
+        if (m.rel === "along") {
+          if (m.d > 0.5 && m.d < (l.width + ask.width) / 2 + ask.gap) return undefined;
+          if (m.d <= 0.5) this.lastShared = true;
+        } else if (m.d === 0 && this.lastJoin < 0) this.lastJoin = m.laid;
         continue;
       }
       if (m.rel === "along") {
@@ -306,6 +328,8 @@ export class Router {
       }
       const c = ask.cross(l);
       if (c === undefined) return undefined;
+      if (charged?.includes(l.group)) continue;
+      (charged ??= []).push(l.group);
       extra += c;
     }
     return extra;
@@ -318,6 +342,7 @@ export class Router {
     const ti = this.ix(b[0]);
     const tj = this.iy(b[1]);
     if (i < 0 || j < 0 || ti < 0 || tj < 0 || (i !== ti && j !== tj)) return false;
+    let join = -1;
     while (i !== ti || j !== tj) {
       const d: Dir = ti > i ? 0 : ti < i ? 2 : tj > j ? 1 : 3;
       const ni = i + DX[d];
@@ -325,6 +350,9 @@ export class Router {
       const horizontal = d === 0 || d === 2;
       const index = horizontal ? j * this.nx + Math.min(i, ni) : Math.min(j, nj) * this.nx + i;
       if (this.edgeCost(ask, horizontal, index) === undefined) return false;
+      // 同じ組の線を突き抜けない
+      if (this.lastJoin >= 0 && this.lastJoin === join) return false;
+      join = this.lastJoin;
       i = ni;
       j = nj;
     }
@@ -350,9 +378,12 @@ export class Router {
       vCost: new Float64Array(nx * ny),
       hHug: new Uint8Array(nx * ny),
       vHug: new Uint8Array(nx * ny),
+      hJoin: new Int32Array(nx * ny),
+      vJoin: new Int32Array(nx * ny),
     };
-    const { seen, best, from, goal, goalCost, hSeen, hCost, vSeen, vCost, hHug, vHug } = this.work;
+    const { seen, best, from, goal, goalCost, hSeen, hCost, vSeen, vCost, hHug, vHug, hJoin, vJoin } = this.work;
     const hug = ask.hug ?? 0;
+    const share = ask.share ?? 1;
     const ep = ++this.epoch;
     const bestOf = (st: number): number => (seen[st] === ep ? (best[st] as number) : Number.POSITIVE_INFINITY);
     const open = heap();
@@ -378,7 +409,9 @@ export class Router {
         const v = Math.abs((ex[k] as number) - x) + Math.abs((ey[k] as number) - y);
         if (v < m) m = v;
       }
-      // 寄り添う辺は長さを減らして数えるため、見積もりも同じ割合で減らし、見積もりが本当の値を超えないようにする
+      // 寄り添う辺は長さを減らして数えるため、見積もりも同じ割合で減らし、見積もりが本当の値を超えないようにする。
+      // 同じ組の線と重なる辺はさらに減らして数えるが、見積もりは減らさない。見積もりが本当の値を超える所では、
+      // 相手へ向かう幹を先に辿るため幹を共に通る道が早く見つかり、探す点の数も増えない
       return m * (1 - hug);
     };
     /** 辺を通る時に足す値。通れない辺は -1。同じ探しの中では辺の値は変わらないため、1 度だけ求める */
@@ -389,9 +422,13 @@ export class Router {
       const extra = this.edgeCost(ask, horizontal, index);
       stamp[index] = ep;
       cost[index] = extra === undefined ? -1 : extra;
-      (horizontal ? hHug : vHug)[index] = this.lastRail ? 1 : 0;
+      // 辺の走り方。0 はほかの線から離れて走る、1 は縁かほかの線の隣の筋に寄り添う、2 は同じ組の線と重なって走る
+      (horizontal ? hHug : vHug)[index] = this.lastShared ? 2 : this.lastRail ? 1 : 0;
+      (horizontal ? hJoin : vJoin)[index] = this.lastJoin;
       return cost[index];
     };
+    /** 辺の長さに掛ける割合 */
+    const rate = (run: number): number => (run === 2 ? share : run === 1 ? 1 - hug : 1);
     /** 点 (i, j) から向き d に 1 つ進む値。進めない時は -1 */
     const stepCost = (i: number, j: number, d: Dir): number => {
       const ni = i + DX[d];
@@ -402,7 +439,26 @@ export class Router {
       const extra = edge(horizontal, index);
       if (extra < 0) return -1;
       const len = horizontal ? Math.abs((this.xs[ni] as number) - (this.xs[i] as number)) : Math.abs((this.ys[nj] as number) - (this.ys[j] as number));
-      return len * (((horizontal ? hHug : vHug)[index] as number) === 1 ? 1 - hug : 1) + extra;
+      return len * rate((horizontal ? hHug : vHug)[index] as number) + extra;
+    };
+    /**
+     * 点 (i, j) へ向き d で入った辺と、そのまま d へ進む辺が、同じ組の同じ線分を直角に越えるか。
+     * 越えると同じ組の線を突き抜けて十字の継ぎ目になるため、その進み方を選ばない
+     */
+    const piercing = (i: number, j: number, d: Dir): boolean => {
+      const horizontal = d === 0 || d === 2;
+      const pi = i - DX[d];
+      const pj = j - DY[d];
+      const ni = i + DX[d];
+      const nj = j + DY[d];
+      if (pi < 0 || pj < 0 || ni < 0 || nj < 0 || pi >= nx || pj >= ny || ni >= nx || nj >= ny) return false;
+      const joins = horizontal ? hJoin : vJoin;
+      const stamp = horizontal ? hSeen : vSeen;
+      const before = horizontal ? j * nx + Math.min(i, pi) : Math.min(j, pj) * nx + i;
+      const after = horizontal ? j * nx + Math.min(i, ni) : Math.min(j, nj) * nx + i;
+      if (stamp[before] !== ep || stamp[after] !== ep) return false;
+      const a = joins[before] as number;
+      return a >= 0 && a === joins[after];
     };
     for (const s of ask.starts) {
       const i = this.ix(s.at[0]);
@@ -440,7 +496,7 @@ export class Router {
       for (let t = 0; t < 3; t++) {
         const nd = (t === 0 ? d : t === 1 ? (d + 1) % 4 : (d + 3) % 4) as Dir;
         const c = stepCost(i, j, nd);
-        if (c < 0) continue;
+        if (c < 0 || (nd === d && piercing(i, j, d))) continue;
         const ni = i + DX[nd];
         const nj = j + DY[nd];
         const ng = g + c + (nd === d ? 0 : ask.bend);
@@ -477,9 +533,10 @@ export class Router {
 
 /**
  * 道の途中の、`min` より短い段差を消す。段差の前か後ろの線を段差の分だけずらし、ずらした線が `ok` で通れる時だけ採る。
+ * 前と後ろの線が逆向きに走る短い段差 (U の形) は、格子 (`grid`) を渡した時だけ、U の底の線を段差の向きに格子の線までずらして段差を `min` まで伸ばす。
  * 端の点は動かさない
  */
-export function unjog(points: readonly Point[], min: number, ok: (a: Point, b: Point) => boolean): Point[] {
+export function unjog(points: readonly Point[], min: number, ok: (a: Point, b: Point) => boolean, grid?: { xs: readonly number[]; ys: readonly number[] }): Point[] {
   let pts = simplify(points);
   for (let guard = 0; guard < 8; guard++) {
     let changed = false;
@@ -492,10 +549,17 @@ export function unjog(points: readonly Point[], min: number, ok: (a: Point, b: P
       const after = pts[i + 2];
       const dx = q[0] - p[0];
       const dy = q[1] - p[1];
-      // 前と後ろの線が両方在る時は、同じ向きに走る段差 (Z の形) だけを扱う。逆向き (U の形) をずらすと線が重なる
+      // 前と後ろの線が両方在る時は、同じ向きに走る段差 (Z の形) を詰める。逆向き (U の形) を詰めると線が重なるため、U の底をずらして段差を伸ばす
       if (before && after) {
         const sameWay = near(before[0], p[0]) ? Math.sign(p[1] - before[1]) === Math.sign(after[1] - q[1]) : Math.sign(p[0] - before[0]) === Math.sign(after[0] - q[0]);
-        if (!sameWay) continue;
+        if (!sameWay) {
+          const grown = grid ? stretch(pts, i, min, ok, grid) : undefined;
+          if (grown) {
+            pts = grown;
+            changed = true;
+          }
+          continue;
+        }
       }
       // 前の線をずらす。前の線の始まり (端の点でもよい) は動かさない
       if (before && i - 2 >= 0) {
@@ -514,12 +578,105 @@ export function unjog(points: readonly Point[], min: number, ok: (a: Point, b: P
         if (ok(p, moved) && ok(moved, a2)) {
           pts = simplify([...pts.slice(0, i + 1), moved, ...pts.slice(i + 3)]);
           changed = true;
+          continue;
+        }
+      }
+      // 詰められない Z の形の段差は、前の線を段差と逆の向きへ、または後ろの線を段差の向きへずらして `min` まで伸ばす。
+      // 前と後ろの線の筋が、それぞれ別の部品の際で決まっていて揃えられない時に残る
+      if (before && after && len > 0.5) {
+        const grown = widen(pts, i, min, ok, grid);
+        if (grown) {
+          pts = grown;
+          changed = true;
         }
       }
     }
     if (!changed) break;
   }
   return pts;
+}
+
+/**
+ * U の形の短い段差 (`pts[i]` から `pts[i + 1]`) を `min` まで伸ばす。段差の後ろの線を段差の向きへ、段差の前の線を逆の向きへ、
+ * 格子の線までずらす。ずらした線と、その先の線が `min` 以上で通れる時だけ採る。端の点は動かさない
+ */
+function stretch(pts: readonly Point[], i: number, min: number, ok: (a: Point, b: Point) => boolean, grid: { xs: readonly number[]; ys: readonly number[] }): Point[] | undefined {
+  const p = pts[i] as Point;
+  const q = pts[i + 1] as Point;
+  const vertical = near(p[0], q[0]);
+  const axis = vertical ? 1 : 0;
+  const lines = vertical ? grid.ys : grid.xs;
+  const dir = Math.sign(q[axis] - p[axis]);
+  const at = (v: Point, c: number): Point => (vertical ? [v[0], c] : [c, v[1]]);
+  // 段差の終わりを先へ。後ろの線 (q から after) を段差の向きにずらし、その先の線 (after から a2) が短くなる
+  const after = pts[i + 2];
+  const a2 = pts[i + 3];
+  if (after && a2) {
+    const ends = lines.filter((c) => (c - p[axis]) * dir >= min).sort((u, v) => Math.abs(u - p[axis]) - Math.abs(v - p[axis]));
+    for (const c of ends.slice(0, 4)) {
+      const q2 = at(q, c);
+      const after2 = at(after, c);
+      const rest = (a2[axis] - c) * Math.sign(a2[axis] - after[axis]);
+      if (rest < min || Math.sign(a2[axis] - c) !== Math.sign(a2[axis] - after[axis])) continue;
+      if (ok(p, q2) && ok(q2, after2) && ok(after2, a2)) return simplify([...pts.slice(0, i + 1), q2, after2, ...pts.slice(i + 3)]);
+    }
+  }
+  // 段差の始まりを手前へ。前の線 (before から p) を段差の逆の向きにずらし、その手前の線 (b2 から before) が短くなる
+  const before = pts[i - 1];
+  const b2 = pts[i - 2];
+  if (before && b2) {
+    const starts = lines.filter((c) => (q[axis] - c) * dir >= min).sort((u, v) => Math.abs(u - q[axis]) - Math.abs(v - q[axis]));
+    for (const c of starts.slice(0, 4)) {
+      const p2 = at(p, c);
+      const before2 = at(before, c);
+      const rest = (c - b2[axis]) * Math.sign(before[axis] - b2[axis]);
+      if (rest < min || Math.sign(c - b2[axis]) !== Math.sign(before[axis] - b2[axis])) continue;
+      if (ok(b2, before2) && ok(before2, p2) && ok(p2, q)) return simplify([...pts.slice(0, i - 1), before2, p2, ...pts.slice(i + 1)]);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Z の形の短い段差 (`pts[i]` から `pts[i + 1]`) を `min` まで伸ばす。段差の前の線を段差と逆の向きへずらすか、
+ * 後ろの線を段差の向きへずらす。ずらす先は、格子 (`grid`) を渡した時は格子の線、渡さない時は段差がちょうど `min` になる所。
+ * ずらした線と、その前と後ろの線が `ok` で通れる時だけ採る。端の点は動かさない
+ */
+function widen(
+  pts: readonly Point[],
+  i: number,
+  min: number,
+  ok: (a: Point, b: Point) => boolean,
+  grid?: { xs: readonly number[]; ys: readonly number[] },
+): Point[] | undefined {
+  const p = pts[i] as Point;
+  const q = pts[i + 1] as Point;
+  const axis = near(p[0], q[0]) ? 1 : 0;
+  const dir = Math.sign(q[axis] - p[axis]);
+  const at = (v: Point, c: number): Point => (axis === 1 ? [v[0], c] : [c, v[1]]);
+  const lines = grid ? (axis === 1 ? grid.ys : grid.xs) : undefined;
+  /** 基の点 `from` から `dir` の逆 (`sign` が -1) か同じ向き (1) へ、`min` 以上離れた筋。近い順 */
+  const targets = (from: number, sign: number): number[] =>
+    lines
+      ? lines.filter((c) => (c - from) * sign * dir >= min - 0.5).sort((u, v) => Math.abs(u - from) - Math.abs(v - from)).slice(0, 4)
+      : [from + sign * dir * min];
+  const before = pts[i - 1];
+  const b2 = pts[i - 2];
+  if (before && b2)
+    for (const c of targets(q[axis], -1)) {
+      const mb = at(before, c);
+      const mp = at(p, c);
+      if (ok(b2, mb) && ok(mb, mp) && ok(mp, q)) return simplify([...pts.slice(0, i - 1), mb, mp, ...pts.slice(i + 1)]);
+    }
+  const after = pts[i + 2];
+  const a2 = pts[i + 3];
+  if (after && a2)
+    for (const c of targets(p[axis], 1)) {
+      const mq = at(q, c);
+      const ma = at(after, c);
+      if (ok(p, mq) && ok(mq, ma) && ok(ma, a2)) return simplify([...pts.slice(0, i + 1), mq, ma, ...pts.slice(i + 3)]);
+    }
+  return undefined;
 }
 
 /** 一直線に並ぶ点を外し、折れる所と端だけを残す */
