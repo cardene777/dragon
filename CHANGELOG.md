@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`dragon check` shows the shape of an edge line when its arrow has no target** (#3468)
+
+  An edge line whose arrow lost its target (`B -> : answer`, `B ->`, or `a +relay : send` with a shared edge block) fell through to the message for an unknown line head, `A line cannot start with B`. The line rightly starts with a box id, so that message did not say what to fix. Such a line now gets the edge line message, `Write a line as <id> -> <id>: <label> [<attributes>]`, at the column after the arrow where the target goes. Lines without an arrow and edge lines that name their target keep their messages. The plugin marketplace now has a description, so `claude plugin validate` passes without a warning.
+
 ## [0.63.1] - 2026-11-07
 
 ### Fixed

@@ -14,6 +14,9 @@ export type EdgeEvent = Extract<DiagramEvent, { type: "edge" }>;
 /** 線の行。名札、`->`、名札 */
 export const EDGE = /^([^\s:[\]]+?)\s*->\s*([^\s:[\]]+)/du;
 
+/** 矢印の先の名札を書き忘れた線の行。`->` の後ろが行の終わりか、線の名前 (`:`) か属性 (`[`) で始まる (#3468) */
+export const EDGE_WITHOUT_TARGET = /^([^\s:[\]]+?)\s*->\s*(?=$|[:[])/du;
+
 export const block: Block = {
   name: "edge",
   rank: 82,
