@@ -12,9 +12,8 @@ import type { ColorKey } from "./values";
  * 図の幅の下限 `width`、外周の余白 `margin`、部品どうしの間 `gap`。部品は書いた順に上から積む。
  * `head` は部品の題で、部品の上端から題の基準線まで `titleY`、中身の上端まで `body`。
  * `route` は網で、節の丸の半径 `r`、同じ列の節どうしの間 `pitch`、両端の列を図の左右から離す `padX`、丸の真ん中から名札の基準線まで `labelY`、
- * 名札の下の余白 `bottom`、丸の中の絵柄の縮み `glyph`、部品を横に並べた時 (#3429) に隣の列の名札どうしを離す間で、これより近い名札を上へ逃がす (#3478) 間 `labelGap`、
- * 関門で止まった節 (#3476) に描く輪を節の丸の縁から離す間 `stop`、隣の名札とぶつかる名札を節の上へ逃がす時 (#3478) の丸の真ん中から名札の基準線まで `labelUp` と、
- * 上へ逃がした名札が題の行とぶつからないよう網の節を下げる名札 1 行ぶんの高さ `upRow`。
+ * 名札の下の余白 `bottom`、丸の中の絵柄の縮み `glyph`、部品を横に並べた時 (#3429) に隣の列の名札どうしを離す間 `labelGap`、
+ * 関門で止まった節 (#3476) に描く輪を節の丸の縁から離す間 `stop`。
  * `queue` は待ち行列で、チップを積む所の高さ `h` (縦に収まる数はここから導く)、枠の内側の余白 `padX` と `padY`、チップの列と字の間 `hintGap`。
  * `chip` はチップで、高さ `h`、チップどうしの縦の間 `gap`、字の左右の余白 `padX`、名前と値の間 `valueGap`、幅の下限 `minW`、角の丸み `radius`。
  * `block` はブロックで、幅の下限 `w`、隣のブロックとの間 `gap` (つながりの線と印を置く)、内側の左右の余白 `padX`、上の余白 `padTop`、
@@ -31,7 +30,7 @@ export const TRY_LOOK = {
   margin: 24,
   gap: 30,
   head: { titleY: 12, body: 24 },
-  route: { r: 17, pitch: 62, padX: 46, labelY: 31, bottom: 6, glyph: 0.62, labelGap: 16, stop: 5, labelUp: 25, upRow: 18 },
+  route: { r: 17, pitch: 62, padX: 46, labelY: 31, bottom: 6, glyph: 0.62, labelGap: 16, stop: 5 },
   queue: { h: 196, padX: 14, padY: 14, hintGap: 22 },
   chip: { h: 26, gap: 8, padX: 10, valueGap: 8, minW: 72, radius: 4 },
   block: {

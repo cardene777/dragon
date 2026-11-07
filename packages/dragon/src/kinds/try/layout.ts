@@ -7,11 +7,9 @@
  * 枠の幅 (`width`) を渡し、横に並べると字が `READABLE_PX` に届かない時は、枠の幅で縦に組む (#3366)。網の節は枠の幅に詰め、
  * 待ち行列は枠の幅いっぱいに置き、ブロックは上から古い順に積む。見た目の元は `docs/design/interactive/tx-block-narrow.pen` の案A。
  * 記録の列 (`log`、#3441) は機械の列と同じく新しい方から `TRY_LOOK.shown` 個の記録を並べ、記録は番号と印と、中のチップの名前と欄の値の行を持つ。
- * 横に並べた形では、ほかの部品が決めた図の幅に収まる数ずつ記録を並べて次の段へ折り返し、記録の列で図を広げない (#3478)。
- * 網の一番上の段で隣の名札とぶつかる名札は、1 つおきに節の上へ逃がし、網の節を名札 1 行ぶん下げる (#3478)。
  * 記録の中のチップは記録が行として描くので、記録の列に入ったチップは図の上に置き場所を持たない。
  * 網の節の関門 (#3476) で止まったチップは、網を止まった節まで運ばれて消え、関門の記録の列の記録になる。関門の記録は番号の横に再試行できるかの印を、
- * チップの行の下に止まった節の行とエラーの名前の行を分けて持つ (#3478)。
+ * チップの行の下に止まった節とエラーの名前の行を持つ。
  * 入力の帯 (`ask`) と釦 (`press`) は頁の部品 (再生の部品) が描くので、図の上に置き場所を持たない。
  *
  * 段ごとの状態 (`states`) と出来事ごとの状態 (`moments`) は、記法を読む所と同じ手順 (`try-state.ts`) で作る。
@@ -39,13 +37,12 @@ export interface TryPartPlaced {
   most?: number;
 }
 
-/** 網の節。`end` は送る側 (`from`) か作る人 (`to`)。`label` は名札を節の上に置く時だけ持つ (#3478) */
+/** 網の節。`end` は送る側 (`from`) か作る人 (`to`) */
 export interface TryNodePlaced {
   id: string;
   x: number;
   y: number;
   end?: "from" | "to";
-  label?: "above";
 }
 
 /** 網の節どうしの線。丸の縁から縁まで */
@@ -101,8 +98,7 @@ export interface TryChainPlaced {
 }
 
 /**
- * 記録の列 (#3441)。記録は同じ大きさで、`slots` は古い順の記録の左上 (横に並べた形は左から並べ、図の幅に収まらない分は次の段の左から (#3478)、
- * 縦に組んだ形は上から)。`top` は最初の記録の上端で、
+ * 記録の列 (#3441)。記録は同じ大きさで、`slots` は古い順の記録の左上 (横に並べた形は左から、縦に組んだ形は上から)。`top` は最初の記録の上端で、
  * `noBaseline` は番号の字の基準線、`markY` は印の札の上端、`rowTop` は最初の行の上端。`mark` は印の札の幅で、`all` を持たず関門の `into` でもない記録の列は持たない。
  * `field` は行に出す欄の位置 (`all` の欄か、待ち行列が並べる順の欄)。`fold` は畳んだ印の右端と上端。`labels` は記録の番号ごとの字、`folds` は畳んだ数ごとの字。
  * `stops` は関門で止まった記録 (#3476) の番号ごとの、止まった節の字とエラーの名前と再試行できるかの印の字で、関門で止まった記録の無い記録の列は持たない
@@ -314,7 +310,7 @@ export function layoutTry(
     B.rowPad * 2;
   const blockW = Math.max(B.w, chipW + B.padX * 2, rowText + B.padX * 2);
 
-  // 記録の幅は、番号と印の札が並ぶ幅と、チップの名前と欄の値の行と、関門で止まった節の行とエラーの名前の行 (#3476、#3478) が入る幅 (#3441)
+  // 記録の幅は、番号と印の札が並ぶ幅と、チップの名前と欄の値の行と、関門で止まった節とエラーの名前の行 (#3476) が入る幅 (#3441)
   const logParts = spec.parts.filter((p): p is LogPart => p.type === "log");
   const logField = (part: LogPart): number | undefined => {
     const at = part.all ? fields.indexOf(part.all.field) : -1;
@@ -342,7 +338,7 @@ export function layoutTry(
           rowValueW = Math.max(rowValueW, textWidth(row[field] ?? "", TYPE.tryChipValue));
     const rowW = C.padX * 2 + nameW + (field === undefined ? 0 : C.valueGap + rowValueW);
     const stopW = stoppedOf(part).map(
-      (r) => C.padX * 2 + Math.max(textWidth(words.tryStoppedAt(r.node ?? ""), TYPE.tryChip), textWidth(r.error ?? "", TYPE.tryChipValue)),
+      (r) => C.padX * 2 + textWidth(words.tryStoppedAt(r.node ?? ""), TYPE.tryChip) + C.valueGap + textWidth(r.error ?? "", TYPE.tryChipValue),
     );
     const labels = raws.flatMap((raw) => (raw.state.logs?.[part.id] ?? []).map((r) => textWidth(words.tryRecord(r.number), TYPE.tryBlockNo)));
     const mark = markWidth(part);
@@ -350,22 +346,16 @@ export function layoutTry(
     return Math.max(L.w, rowW + B.padX * 2, ...stopW.map((w) => w + B.padX * 2), head + B.padX * 2);
   };
   const logW = new Map(logParts.map((p) => [p.id, recordW(p)]));
+  const logRowW = (id: string): number => T.shown * (logW.get(id) ?? L.w) + (T.shown - 1) * L.gap;
   const titles = spec.parts
     .filter((p) => p.type === "route" || p.type === "queue" || p.type === "chain" || p.type === "log")
     .map((p) => textWidth(p.id, TYPE.tryTitle));
-  /** 記録の列を除いた部品が決める図の幅 */
-  const base = Math.max(T.width, T.margin * 2 + T.shown * blockW + (T.shown - 1) * B.gap, T.margin * 2 + Math.max(0, ...titles));
-  /**
-   * 横に並べた形で 1 段に並べる記録の数 (#3478)。ほかの部品が決めた幅に収まる数だけ並べ、残りは次の段へ折り返す。
-   * 並べる数を図の幅から決めるので、読み手が送って記録が増え、記録の幅が広がっても、図の幅は変わらない
-   */
-  const logColumns = (id: string): number =>
-    Math.max(1, Math.min(T.shown, Math.floor((base - T.margin * 2 + L.gap) / ((logW.get(id) ?? L.w) + L.gap))));
-  const logRowW = (id: string): number => {
-    const n = logColumns(id);
-    return n * (logW.get(id) ?? L.w) + (n - 1) * L.gap;
-  };
-  const wide = Math.max(base, ...logParts.map((p) => T.margin * 2 + logRowW(p.id)));
+  const wide = Math.max(
+    T.width,
+    T.margin * 2 + T.shown * blockW + (T.shown - 1) * B.gap,
+    T.margin * 2 + Math.max(0, ...titles),
+    ...logParts.map((p) => T.margin * 2 + logRowW(p.id)),
+  );
   const frame = options.width;
   /** 幅 `w` の図を枠に縮めても箱の名前の字が読める大きさに届くか。枠を渡さない時は縮めない */
   const readable = (w: number): boolean => frame === undefined || (frame / w) * TYPE.boxName.size >= READABLE_PX;
@@ -458,35 +448,24 @@ export function layoutTry(
         const R = T.route;
         const columns = columnsOf(part);
         const lane = lanesOf(part, columns);
-        const xs = new Map(
-          columns.flatMap((list, c) =>
-            list.map((id) => [
+        const nodes: TryNodePlaced[] = columns.flatMap((list, c) =>
+          list.map((id) => {
+            const x =
+              columns.length === 1
+                ? left + span / 2
+                : left + R.padX + (c * (span - R.padX * 2)) / (columns.length - 1);
+            const cy = body + R.r + (lane.get(id) ?? 0) * R.pitch;
+            return {
               id,
-              columns.length === 1 ? left + span / 2 : left + R.padX + (c * (span - R.padX * 2)) / (columns.length - 1),
-            ] as const),
-          ),
-        );
-        // 一番上の段で、左の名札との間が `labelGap` より狭い名札を、左の名札が節の下に在る時だけ節の上へ逃がす (#3478)。
-        // ぶつかり続ける並びは 1 つおきに上へ逃げ、ぶつからない名札は節の下のまま描く。
-        // 下の段の名札は上の段の名札とぶつかるので逃がさない
-        const topLane = Math.min(...[...xs.keys()].map((id) => lane.get(id) ?? 0));
-        const half = (id: string): number => textWidth(id, TYPE.tryNode) / 2;
-        const raised = new Set<string>();
-        const topRow = [...xs.keys()].filter((id) => (lane.get(id) ?? 0) === topLane).sort((a, b) => (xs.get(a) ?? 0) - (xs.get(b) ?? 0));
-        topRow.forEach((id, i) => {
-          const prev = topRow[i - 1];
-          if (prev !== undefined && !raised.has(prev) && (xs.get(id) ?? 0) - half(id) - (xs.get(prev) ?? 0) - half(prev) < R.labelGap) raised.add(id);
-        });
-        // 上へ逃がした名札が題の行とぶつからないよう、網の節を名札 1 行ぶん下げる
-        const nodesTop = body + R.r + (raised.size > 0 ? R.upRow : 0);
-        const nodes: TryNodePlaced[] = columns.flatMap((list) =>
-          list.map((id) => ({
-            id,
-            x: xs.get(id) ?? left,
-            y: nodesTop + (lane.get(id) ?? 0) * R.pitch,
-            ...(id === part.from ? { end: "from" as const } : id === part.to ? { end: "to" as const } : {}),
-            ...(raised.has(id) ? { label: "above" as const } : {}),
-          })),
+              x,
+              y: cy,
+              ...(id === part.from
+                ? { end: "from" as const }
+                : id === part.to
+                  ? { end: "to" as const }
+                  : {}),
+            };
+          }),
         );
         const at = new Map(nodes.map((n) => [n.id, n]));
         const links: TryNetLink[] = [];
@@ -562,8 +541,8 @@ export function layoutTry(
       } else if (part.type === "log") {
         const w = logW.get(part.id) ?? L.w;
         const records = raws.flatMap((raw) => raw.state.logs?.[part.id] ?? []);
-        // 関門で止まった記録は、チップの行の下に止まった節の行とエラーの名前の行を持つ (#3476、#3478)
-        const rows = Math.max(1, ...records.map((r) => r.items.length + (r.node === undefined ? 0 : 2)));
+        // 関門で止まった記録は、チップの行の下に止まった節とエラーの名前の行を持つ (#3476)
+        const rows = Math.max(1, ...records.map((r) => r.items.length + (r.node === undefined ? 0 : 1)));
         const mark = markWidth(part);
         const head = mark === undefined ? B.noH : T.fold.h;
         const noBaseline = body + B.padTop + head / 2 + TYPE.tryBlockNo.size * 0.35;
@@ -575,19 +554,15 @@ export function layoutTry(
         );
         const field = logField(part);
         const stopped = stoppedOf(part);
-        // 縦に組んだ形は 1 列に積み、横に並べた形は図の幅に収まる数ずつ並べて折り返す (#3478)
-        const columns = stacked ? 1 : logColumns(part.id);
-        const lines = Math.ceil(T.shown / columns);
         logs.push({
           id: part.id,
           title: titleOf(part.id, top, left),
           top: body,
           h,
           w,
-          slots: Array.from({ length: T.shown }, (_, n): Point => [
-            left + (n % columns) * (w + L.gap),
-            body + Math.floor(n / columns) * (h + L.gap),
-          ]),
+          slots: Array.from({ length: T.shown }, (_, n): Point =>
+            stacked ? [left, body + n * (h + L.gap)] : [left + n * (w + L.gap), body],
+          ),
           noBaseline,
           markY: body + B.padTop,
           ...(mark !== undefined ? { mark } : {}),
@@ -612,7 +587,7 @@ export function layoutTry(
               }
             : {}),
         });
-        const bottom = body + lines * h + (lines - 1) * L.gap;
+        const bottom = stacked ? body + T.shown * h + (T.shown - 1) * L.gap : body + h;
         parts.push({ id: part.id, type: "log", rect: { x: left, y: top, w: span, h: bottom - top } });
         lowest = Math.max(lowest, bottom);
       } else {

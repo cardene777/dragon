@@ -6,7 +6,7 @@
  * 記録の中の字は番号と、`all` を書いた記録の列の印と、中のチップの名前と欄の値の行だけで、prev と hash と SHA-256 を出さない。
  * 印と欄の値は、書き換えた段から新しい値に替わる。印は `yes` の印を部品の色、`no` の印を橙で出す。
  * 網の節の関門で止まった記録 (#3476) は、印の札に再試行できるかの印 (再試行できるは橙、直して送り直すは止まった色) を出し、
- * チップの行の下に止まった節の行とエラーの名前の行を分けて止まった色で出す (#3478)。
+ * チップの行の下に止まった節とエラーの名前の行を止まった色で出す。
  * この file は試す図を描く部品 (`render/try.ts`) だけが読み、見本帳を開いた時に読む塊に入れない。
  */
 import { recordKey, type TryLogPlaced, type TryMoment } from "../../kinds/try/layout";
@@ -115,20 +115,19 @@ function drawLog(k: TryKit, log: TryLogPlaced): string {
         return `<g data-item="${esc(id)}"><rect class="dg-try-row" x="${B.padX}" y="${r1(y)}" width="${r1(rowW)}" height="${C.h}" rx="${partRadius(ctx.corner, C.radius)}"/>${nameText}${valueText}</g>`;
       })
       .join("");
-    // 関門で止まった記録の、止まった節の行とエラーの名前の行。チップの行の下に 1 行ずつ分けて止まった色で出す (#3476、#3478)
-    const stopRows = stop
-      ? `<g style="${cs(T.color.stop)}">${[
-          { text: stop.at, base: "dg-try-cn", style: TYPE.tryChip },
-          { text: stop.error, base: "dg-try-cv", style: TYPE.tryChipValue },
-        ]
-          .map(({ text, base, style }, k) => {
-            const y = log.rowTop - log.top + (items.length + k) * pitch;
-            record(text, hasWide(text) ? sansOf(style) : style, moved.rests, B.padX + C.padX, y + baseline);
-            return `<rect class="dg-try-hrow" x="${B.padX}" y="${r1(y)}" width="${r1(rowW)}" height="${C.h}" rx="${partRadius(ctx.corner, C.radius)}"/>${write(undefined, cls(base, text), B.padX + C.padX, y + baseline, text, style)}`;
-          })
-          .join("")}</g>`
-      : "";
-    return `<g class="dg-a" data-record="${n}" style="${moved.style}">${frame}${ring}${no}${mark}${rows}${stopRows}</g>`;
+    // 関門で止まった記録の、止まった節とエラーの名前の行。チップの行の下に止まった色で出す (#3476)
+    let stopRow = "";
+    if (stop) {
+      const y = log.rowTop - log.top + items.length * pitch;
+      const at = write(undefined, cls("dg-try-cn", stop.at), B.padX + C.padX, y + baseline, stop.at, TYPE.tryChip);
+      record(stop.at, hasWide(stop.at) ? sansOf(TYPE.tryChip) : TYPE.tryChip, moved.rests, B.padX + C.padX, y + baseline);
+      const errorX = log.w - B.padX - C.padX;
+      const errorStyle = hasWide(stop.error) ? sansOf(TYPE.tryChipValue) : TYPE.tryChipValue;
+      const error = phased([stop.error], errorX, y + baseline, cls("dg-try-cv", stop.error), "end");
+      record(stop.error, errorStyle, moved.rests, errorX - textBox(stop.error, 0, 0, errorStyle).w, y + baseline);
+      stopRow = `<g style="${cs(T.color.stop)}"><rect class="dg-try-hrow" x="${B.padX}" y="${r1(y)}" width="${r1(rowW)}" height="${C.h}" rx="${partRadius(ctx.corner, C.radius)}"/>${at}${error}</g>`;
+    }
+    return `<g class="dg-a" data-record="${n}" style="${moved.style}">${frame}${ring}${no}${mark}${rows}${stopRow}</g>`;
   });
 
   // 畳んだ印。畳んだ数ごとに字を替え、畳んだ記録が無い間は出さない
