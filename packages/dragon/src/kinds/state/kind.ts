@@ -8,5 +8,6 @@ import type { Kind } from "../kind";
 export const kind: Kind = {
   name: "state",
   accepts: ["place", "connect", "ride-on-line", "attach-to-box", "attach-to-figure"],
+  short: true,
   later: true,
 };

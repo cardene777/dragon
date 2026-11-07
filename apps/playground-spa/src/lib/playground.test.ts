@@ -266,11 +266,12 @@ describe("公開する頁 (#2995)", () => {
   it(
     "notation-error-shows-line-and-keeps-diagram",
     async () => {
-      // 段「認可サーバーへ回す」の `say` の行を消すと、その段の `step` の行が誤りになる
+      // 段「認可サーバーへ回す」の `say` の行を本文の無い `say` にすると、その行が誤りになる。
+      // `say` の行を消した段は、段の線の名前から本文を導いて読めるので誤りにならない (#3438)
       const lines = OAUTH.split("\n");
       const head = lines.indexOf("step 認可サーバーへ回す");
       expect(head, "OAuth の見本に段「認可サーバーへ回す」が無い").toBeGreaterThan(0);
-      const broken = lines.filter((_, i) => i !== head + 1).join("\n");
+      const broken = lines.map((line, i) => (i === head + 1 ? "  say" : line)).join("\n");
       // 開く頁は日本語なので、頁が出す誤りの文と比べる文も ja で作る (既定は英語、#3338)
       const parsed = parseNotation(broken, { lang: "ja" });
       expect(parsed.ok, "検査に使う記法が誤りにならない").toBe(false);

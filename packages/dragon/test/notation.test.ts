@@ -7,8 +7,9 @@
  * JSON から記法へは決まった並べ方で書き戻し、書き手の並べ方とコメントは保たない。
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, exampleText, type Json, type LineError, type Parsed, reversedKeys } from "./diagram-support";
 import { draw } from "./render-support";
@@ -543,6 +544,28 @@ describe("JSON から記法へ", () => {
     for (const [label, json] of Object.entries(shapes)) {
       expect(parse(print(json)), label).toEqual({ ok: true, diagram: json });
     }
+  });
+
+  it("examples-notation-matches-json", () => {
+    // 原本の JSON を持つ見本は全て、記法がその原本と同じ図として読め、原本を書き戻した記法を読み直しても同じ原本になる (#3438)。
+    // 書き戻す時に宣言や段を省いても、見本の図が変わらないことを確かめる
+    const parse = api("parseNotation");
+    const print = api("printNotation");
+    const dir = join(process.cwd(), "packages/dragon/examples");
+    const names = readdirSync(dir)
+      .filter((file) => file.endsWith(".dragon") && existsSync(join(dir, file.replace(/\.dragon$/u, ".json"))))
+      .map((file) => file.replace(/\.dragon$/u, ""));
+    expect(names.length, "原本の JSON を持つ見本を 1 つも数えていない").toBeGreaterThan(0);
+    const differ = names.flatMap((name) => {
+      const json = exampleJson(`${name}.json`);
+      const read = parse(exampleText(`${name}.dragon`));
+      const again = parse(print(json));
+      return [
+        ...(read.ok && isDeepStrictEqual(read.diagram, json) ? [] : [`${name}.dragon が原本と違う図になる`]),
+        ...(again.ok && isDeepStrictEqual(again.diagram, json) ? [] : [`${name}.json を書き戻して読み直すと原本と違う`]),
+      ];
+    });
+    expect(differ, `${names.length} の見本のうち原本と合わない物`).toEqual([]);
   });
 
   it("print-matches-the-printed-fixtures", () => {

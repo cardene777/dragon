@@ -13,10 +13,10 @@ import { BLOCK_DOCS } from "../catalog/blocks-docs.gen";
 import type { Lang } from "../text";
 
 /**
- * 節の並び。記法の決まりの後に記法の要素を書く順に並べ、図を外で使う 2 つの形 (頁に置く、書き出す) を続け、
- * 前の形から書き直す人の対応表を最後に置く
+ * 節の並び。最初の図の後に宣言と段を省いた短い書き方 (#3438) を置き、記法の決まりの後に記法の要素を書く順に並べ、
+ * 図を外で使う 2 つの形 (頁に置く、書き出す) を続け、前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** その節に置くブロックの段落。段落の `section` がその節のブロックを、ブロックの並びの順に */
@@ -35,6 +35,7 @@ export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | {
 
 export const EXITS: Record<SectionId, Exit> = {
   start: { screen: "editor" },
+  short: { screen: "editor" },
   rules: { section: "boxes" },
   boxes: { section: "edges" },
   edges: { section: "regions" },
@@ -134,7 +135,7 @@ interface DocsText {
 export const DOCS: Record<Lang, DocsText> = {
   ja: {
     eyebrow: (version) => `使い方の案内 · ${version}`,
-    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、試す図、配管の図、段、帯、運ぶ物の順に記法の要素を掴み、使う人が手元でブロックを足す書き方も載せる。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
+    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、宣言と段を省いた短い書き方を見て、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、試す図、配管の図、段、帯、運ぶ物の順に記法の要素を掴み、使う人が手元でブロックを足す書き方も載せる。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
     start: "5 分で始める →",
     browse: "カタログで図を見る",
     iconLink: "使える絵柄を部品「絵」の頁で全て見る →",
@@ -144,7 +145,16 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           "何も入れずに試すなら、編集画面を開く。左の欄に記法を書くと、右にその場で動く図が出る。",
           "記法は行の頭の語で、その行に何を書くかが決まる。最初の行に図の種類と題を書き、`sequence` なら時間の順に箱どうしのやり取りを、`architecture` なら区画に置いた箱のつながりを描く。",
-          "次に登場する箱を `box` の行で並べ、`step` の行の下に字下げして、その段で起きることを起きる順に書く。下の例は箱 2 つと段 1 つの、いちばん小さな図になる。",
+          "次に登場する箱を `box` の行で並べ、`step` の行の下に字下げして、その段で起きることを起きる順に書く。下の例は箱 2 つと段 1 つの図になる。",
+        ],
+        exit: "編集画面で書いてみる →",
+      },
+      short: {
+        title: "省いて書く",
+        text: [
+          "時系列図と構成図と状態遷移図は、箱の宣言と段を省いて書ける。最初の行は図の種類の語だけでよく、箱どうしを `->` で結ぶ行を並べると、線 1 本が 1 段になり、書いた順に光る。",
+          "`box` の行を 1 つも書かない図は、線に出た名前を出た順に箱にする。`say` を書かない段は線の名前を段の本文にし、名前の無い線は箱の名前を「→」で結んだ字を出す。",
+          "1 字だけ違う名前の箱が出ると、書き間違いかもしれないと、図を描いたまま知らせる。箱に添え書きや色を付ける時と、段に題と本文を付ける時は `box` と `step` の行を書く。`box` を 1 つでも書いた図は、宣言の無い名前を誤りにする。",
         ],
         exit: "編集画面で書いてみる →",
       },
@@ -342,7 +352,7 @@ export const DOCS: Record<Lang, DocsText> = {
   en: {
     // 英語の側の区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
     eyebrow: (version) => `guide • ${version}`,
-    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, try diagrams, pipe diagrams, steps, the strip and what travels, and how to add your own blocks. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
+    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, see the short form that leaves out declarations and steps, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, try diagrams, pipe diagrams, steps, the strip and what travels, and how to add your own blocks. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
     start: "Start in five minutes →",
     browse: "Browse the catalog",
     iconLink: "See every icon on the Icon part page →",
@@ -352,7 +362,16 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           "To try it without installing anything, open the editor. Write notation in the box on the left and a moving diagram appears on the right as you type.",
           "The first word of each line says what the line holds. The first line gives the diagram kind and title: `sequence` draws boxes exchanging messages in time order, and `architecture` draws how boxes placed in regions connect.",
-          "Then list the boxes that take part with `box` lines, and indented under a `step` line, write what happens in that step in the order it happens. The example below is the smallest diagram: two boxes and one step.",
+          "Then list the boxes that take part with `box` lines, and indented under a `step` line, write what happens in that step in the order it happens. The example below has two boxes and one step.",
+        ],
+        exit: "Write one in the editor →",
+      },
+      short: {
+        title: "Leave things out",
+        text: [
+          "Sequence, architecture and state diagrams can leave out the box declarations and the steps. The first line can be just the diagram kind, and when you list lines joining boxes with `->`, each line becomes one step that lights up in the order written.",
+          "A diagram with no `box` line makes a box of each name on the lines, in the order the names appear. A step without `say` uses the line label as its body, and a line without a label shows the box names joined by an arrow.",
+          "When two box names differ by one character, the editor and the export command point it out as a possible typo and still draw the diagram. Write `box` and `step` lines when a box needs a caption or a color, or a step needs a title and a body. Once a diagram has one `box` line, a name that is not declared is an error.",
         ],
         exit: "Write one in the editor →",
       },

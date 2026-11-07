@@ -80,10 +80,13 @@ function insertedLines(before: string[], after: string[]): number[] {
   return added;
 }
 
-/** `after` を書いた行のうち、`before` を書いた行に足された行。空の行は数えない */
+/**
+ * `after` を書いた行のうち、`before` を書いた行に足された行。空の行は数えない。
+ * 短い記法で省ける物を省くと、箱を 1 つ足しただけで宣言の行が全て現れるので、2 つの図とも省かずに書いて比べる (#3438)
+ */
 export function addedLines(before: Diagram, after: Diagram): Added {
-  const from = printNotation(before).split("\n");
-  const to = printNotation(after).split("\n");
+  const from = printNotation(before, { short: false }).split("\n");
+  const to = printNotation(after, { short: false }).split("\n");
   const firstStep = to.findIndex((line) => STEP.test(line));
   const added: Added = { declarations: [], steps: [] };
   for (const j of insertedLines(from, to)) {

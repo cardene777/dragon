@@ -180,7 +180,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
@@ -247,6 +247,8 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
   // 箱と線と印を元にした足したブロックを 1 つずつ定義する (#3407)
   extend: (d) => [...new Set((d.define?.blocks ?? []).map((b) => b.base))].length === 3,
   start: (d) => boxesOf(d).length >= 2 && d.steps.length >= 1,
+  // 箱の宣言と段を省いた短い書き方。線に出た名前を箱にし、線 1 本を 1 段にする (#3438)
+  short: (d) => boxesOf(d).length >= 2 && d.steps.length >= 2 && d.steps.every((s) => s.events.length === 1 && s.events[0]?.type === "edge"),
   // 決まり 4 つを全部使う。区画の入れ子、引用符で囲んだ `,` を含む値、字下げして続けた本文
   rules: (d) =>
     (d.blocks.group?.length ?? 0) >= 1 &&

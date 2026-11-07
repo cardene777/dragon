@@ -220,6 +220,32 @@ describe("記法から読んだ試す図は、置いた後に写した図も検�
   });
 });
 
+/** 宣言と段を省いた時系列図 (#3438)。箱は線に出た名前から、段は線 1 本ずつから導く */
+const SHORT = "sequence\n\nブラウザ -> アプリ: GET /login\nアプリ -> ブラウザ: 認可の頁へ送る\n";
+
+describe("宣言と段を省いた短い記法 (#3438)", () => {
+  it("light-draws-short-notation", async () => {
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const out = inFreshNode<{ ok?: boolean; svg?: string; error?: string; validator: unknown }>(`
+      const text = ${JSON.stringify(SHORT)};
+      await light.loadFor(text);
+      const parsed = light.parseNotation(text);
+      out.ok = parsed.ok;
+      try { out.svg = light.renderDiagram(parsed.diagram).svg; } catch (e) { out.error = e.message; }
+      out.validator = ${VALIDATOR_LOADED};
+    `);
+    expect(out.ok, "軽い入口が短い記法を読めない").toBe(true);
+    expect(out.error, "短い記法から読んだ図を軽い入口で描けない").toBeUndefined();
+    const parsed = whole.parseNotation(SHORT);
+    expect(parsed.ok, "既定の入口が短い記法を読めない").toBe(true);
+    expect(out.svg, "軽い入口で描いた SVG が既定の入口と違う").toBe(parsed.ok ? whole.renderDiagram(parsed.diagram).svg : "");
+    // 短い記法の図も記法から読んだ図なので、原本の形の検査を読まない (#3400)
+    expect(out.validator, "短い記法の図を描いた後に、原本の形の検査を読んでいた").toBe(false);
+  });
+});
+
 describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3349)", () => {
   it("light-entry-loads-only-used-blocks", () => {
     const out = loadedAfter(`

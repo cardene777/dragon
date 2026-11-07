@@ -19,7 +19,7 @@
 ## 利用者
 
 - 人は dragon記法で書く。行の頭の英語の語 (`sequence` や `box` や `step`) が行の役目を決め、段の中の行は字下げして書く。記法の語は英語だけで、名前と本文の字は何語でもよく、誤りの文の言葉は呼ぶ側が渡す (既定は英語で、`packages/dragon/src/words.ts` の `DEFAULT_LANG` が持つ) (`packages/dragon/src/parser.ts`、#3137、#3338)。
-- AI は原本の JSON で書き、schema で形を確かめる (`packages/dragon/src/schema.ts`、`packages/dragon/src/schemas`)。原本は版2の形で、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。版1の原本は読む時に版2へ移し、`migrateFile` が file を書き換える (`packages/dragon/src/model.ts`、#3346)。
+- AI も人と同じ dragon記法で書き、読む処理の誤りの文が示す行と列を直す (#3438)。時系列図と構成図と状態遷移図は宣言と段を省いた短い記法で書ける (`packages/dragon/src/short-form.ts`)。原本の JSON は道具が持ち、schema で形を確かめる (`packages/dragon/src/schema.ts`、`packages/dragon/src/schemas`)。原本は版2の形で、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。版1の原本は読む時に版2へ移し、`migrateFile` が file を書き換える (`packages/dragon/src/model.ts`、#3346)。
 - 利用者の数と、どこで使われているかは不明。
 
 ## 配り方

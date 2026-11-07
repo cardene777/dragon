@@ -23,6 +23,13 @@
  * 段の中で起きることのうちブロックが持つ種類は、そのブロックの書き戻す処理 (`print.events`) が起きた順に 1 行ずつ書く (#3345)。
  * ブロックが持つ宣言の塊 (中身の帯の `strip` の行) は、区画と箱とチップの宣言の後ろに、ブロックの書き戻す処理 (`print.figure`) が書く。
  * 書き戻す処理はブロックの読み方 (`blocks/<名前>/read.ts`) が持ち、登録簿 (`blocks/reading.ts`) が持つ読み方から引く (#3349)。
+ *
+ * 宣言と段を省いた短い記法を読む図の種類 (#3438) は、省ける物を省いて書く。原本に省いた印は持たない。
+ * 題が図の種類の語なら 1 行目に題を書かず、段の本文が段の線から導く字と同じなら `say` を書かず、
+ * どの段も線 1 本で題と本文が線から導く字と同じなら `step` の行を書かずに線だけを並べる (導き方は `short-form.ts`)。
+ * 名前が名札と同じ箱だけを持つ図は、箱の宣言を省いた記法を読み直して同じ原本になる時だけ宣言を省く。箱の並びが線に出た順と違う時は宣言を書いて並びを残す。
+ * 省いた記法を読み直して原本と違う時は、省かずに書く。
+ * 足す前と後の図の書き方の差を取る所 (見本帳の棚の部品) は、`short: false` を渡して省かずに書く。省くと、箱を 1 つ足しただけで宣言の行が全て現れ、差が足した行だけにならない。
  */
 import type { Block, BlockPrint, EventPrinter } from "./blocks/block";
 import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
@@ -34,6 +41,8 @@ import { messagesFor } from "./messages";
 import { attrs, name } from "./print-kit";
 import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
 import type { Diagram, DiagramEvent, DiagramModel, Step, TryPart } from "./schema";
+import { parseNotation } from "./parser";
+import { derivedBody, lineText, type NameOf } from "./short-form";
 import { printBlocks } from "./user-blocks";
 import { DEFAULT_LANG } from "./words";
 
@@ -114,28 +123,100 @@ function event(e: DiagramEvent, kind: DiagramModel["kind"], diagram: DiagramMode
  * 版1の原本も、読む時と同じく版2の形へ移してから書く。
  * 軽い入口では、書き戻す図が使うブロックの読み方を `loadFor` で読んでから呼ぶ。読んでいない時は、ブロックの名前を名指す誤りで止める (#3349)
  */
-export function printNotation(source: Diagram): string {
+/** 書き戻す時の指定 */
+export interface PrintOptions {
+  /** 短い記法を読む図で、省ける物を省いて書くか (#3438)。既定は省く */
+  short?: boolean;
+}
+
+export function printNotation(source: Diagram, options: PrintOptions = {}): string {
   const current = isVersion1(source) ? (upgrade(source, FORMAT_VERSION) as unknown as Diagram) : source;
   // 書き戻す処理は読んだブロックの物だけを回すので、読んでいないブロックの欄は黙って落ちる。書く前に、原本が使う全てのブロックを読んだかを見る
   const missing = blocksUsedBy(current).find((name) => !readingLoaded(name));
   if (missing !== undefined) throw new Error(messagesFor(DEFAULT_LANG).blockNotLoaded(missing));
   const diagram = toModel(current);
+  if (options.short === false || (KIND_FOLDERS as unknown as Readonly<Record<string, Kind | undefined>>)[diagram.kind]?.short !== true) return printModel(diagram, KEEP_ALL);
+  const nameOf: NameOf = (id) => diagram.boxes.find((box) => box.id === id)?.name ?? id;
+  const omit: Omissions = {
+    title: diagram.title === diagram.kind,
+    boxes: false,
+    lineSteps: lineStepsOnly(diagram, nameOf),
+    say: (step) => step.body === derivedBody(step.events, nameOf)?.join("\n"),
+  };
+  // 省いた記法を読み直し、同じ原本になる形を返す。箱の宣言を省く形を先に試す
+  const candidates = bareBoxes(diagram) ? [{ ...omit, boxes: true }, omit] : [omit];
+  for (const tried of candidates) {
+    const text = printModel(diagram, tried);
+    const again = parseNotation(text);
+    if (again.ok && sameJson(again.diagram, current)) return text;
+  }
+  return printModel(diagram, KEEP_ALL);
+}
+
+/** 短い記法で省く物 (#3438) */
+interface Omissions {
+  /** 1 行目の題 */
+  title: boolean;
+  /** 箱の宣言 */
+  boxes: boolean;
+  /** `step` の行。段ごとに線 1 本だけを並べる */
+  lineSteps: boolean;
+  /** その段の `say` の行 */
+  say: (step: Step) => boolean;
+}
+
+/** 何も省かずに書く */
+const KEEP_ALL: Omissions = { title: false, boxes: false, lineSteps: false, say: () => false };
+
+/** 区画を持たず、どの箱も名前が名札と同じで、ほかの欄を持たないか */
+function bareBoxes(diagram: DiagramModel): boolean {
+  return (diagram.regions ?? []).length === 0 && diagram.boxes.length > 0 && diagram.boxes.every((box) => box.name === box.id && Object.keys(box).every((key) => key === "id" || key === "name"));
+}
+
+/** 状態遷移図の道を持たず、どの段も線 1 本だけで、題と本文がその線から導く字と同じで、命令と出典を持たないか */
+function lineStepsOnly(diagram: DiagramModel, nameOf: NameOf): boolean {
+  if (diagram.steps.length === 0 || (diagram.state?.paths ?? []).length > 0) return false;
+  return diagram.steps.every((step) => {
+    const [only, ...more] = step.events;
+    if (only?.type !== "edge" || more.length > 0) return false;
+    const text = lineText(only, nameOf);
+    return step.title === text && step.body === text && step.code === undefined && (step.sources ?? []).length === 0;
+  });
+}
+
+/** 2 つの JSON の値が、欄の並び順を除いて同じか */
+function sameJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null || Array.isArray(a) !== Array.isArray(b)) return false;
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  const keys = Object.keys(left).filter((key) => left[key] !== undefined);
+  if (keys.length !== Object.keys(right).filter((key) => right[key] !== undefined).length) return false;
+  return keys.every((key) => sameJson(left[key], right[key]));
+}
+
+/** 描く処理の形の図を、`omit` の物を省いて記法に書く */
+function printModel(diagram: DiagramModel, omit: Omissions): string {
   const blocks = [
-    `${diagram.kind} ${name(diagram.title)}${attrs([["view", diagram.view]])}`,
+    `${omit.title ? diagram.kind : `${diagram.kind} ${name(diagram.title)}`}${attrs([["view", diagram.view]])}`,
     // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)
     ...(diagram.define ? [printBlocks(diagram.define)] : []),
     ...(diagram.try ? [tryParts(diagram.try.parts)] : []),
     ...leadPrinters().flatMap((print) => print(diagram)),
-    ...declarePrinters().flatMap((print) => print(diagram)),
+    ...declarePrinters().flatMap((print) => print(omit.boxes ? { ...diagram, boxes: [] } : diagram)),
     ...figurePrinters().flatMap((print) => print(diagram)),
   ];
+  // 段を書かない図は、段の線を 1 つの塊に並べる
+  if (omit.lineSteps) blocks.push(diagram.steps.flatMap((step) => step.events.map((e) => event(e, diagram.kind, diagram))).join("\n"));
   // 段の区切りの `step` の行の下に、段の中でブロックが受け持つ行を字下げして書く。空の行 (本文の空の行) は字下げしない
-  for (const step of diagram.steps) {
+  // 本文を省く段は、本文を空にして段のブロックに渡す。段のブロックは本文が空の段の `say` を書かない
+  for (const step of omit.lineSteps ? [] : diagram.steps) {
+    const written = omit.say(step) ? { ...step, body: "" } : step;
     blocks.push(
       [
         `step ${step.title}`,
         ...stepPrinters()
-          .flatMap((print) => print(step))
+          .flatMap((print) => print(written))
           .map((line) => (line === "" ? "" : `  ${line}`)),
         ...step.events.map((e) => `  ${event(e, diagram.kind, diagram)}`),
       ].join("\n"),

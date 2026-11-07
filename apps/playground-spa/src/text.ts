@@ -239,6 +239,8 @@ export const TEXT = {
     notices: {
       line: (line: number) => `${line} 行目`,
       count: (n: number) => `誤り ${n} 件`,
+      /** 図を描いたまま出す知らせの数 (#3438) */
+      hints: (n: number) => `知らせ ${n} 件`,
       goTo: (line: number) => `${line} 行目へ移る`,
     },
     overlaps: {
@@ -462,6 +464,7 @@ export const TEXT = {
     notices: {
       line: (line: number) => `Line ${line}`,
       count: (n: number) => `${n} ${n === 1 ? "error" : "errors"}`,
+      hints: (n: number) => `${n} ${n === 1 ? "notice" : "notices"}`,
       goTo: (line: number) => `Go to line ${line}`,
     },
     overlaps: {

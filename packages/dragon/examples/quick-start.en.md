@@ -1,6 +1,6 @@
 # Writing dragon notation
 
-A dragon diagram is written by people in dragon notation and kept by tools as JSON (the source).
+A dragon diagram is written by people and AI in dragon notation and kept by tools as JSON (the source).
 The first English word of each line decides its kind, and under each `step` line you list what happens in that step, in order.
 Examples that use every form are `oauth.en.dragon` (a sequence diagram), `ccip.en.dragon` (an architecture diagram), `order.en.dragon` (a state diagram), and `rebase.en.dragon` (a git graph) in this directory.
 
@@ -8,6 +8,22 @@ The words of the notation are English only, and box names and step bodies can be
 The Japanese guide is `quick-start.md` in this directory.
 
 ## The smallest diagram
+
+```dragon
+sequence
+
+browser -> app: GET /login
+```
+
+The diagram kind on the first line and a line joining boxes with `->` are enough to make a diagram.
+Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, and the steps.
+A diagram with no `box` line makes a box of each name on the lines, in the order the names appear.
+When two box names differ by one character, it points this out as a possible typo and still draws the diagram.
+A diagram with no `step` line makes each line one step, lit in the order written.
+A step without `say` uses the line label as its body, and a line without a label uses the box names joined by an arrow.
+A line outside the steps of a diagram that has steps, and a name that is not declared in a diagram with at least one `box` line, are errors.
+
+Write the declarations and the steps when a box needs a shown name, a caption or a color, or a step needs a title and a body.
 
 ```dragon
 sequence Ask to sign in
@@ -330,6 +346,8 @@ Lines starting with `//` and empty lines are not read.
 
 A line that cannot be read stops with an error that shows its line and column.
 The caller chooses the language of the error (`parseNotation(text, { lang: "ja" })` or `dragon export --lang ja`), and English is the default.
+Notation written by AI can be fixed the same way: hand the error message to the AI and it fixes the line it points to.
+Similar box names in a diagram without box declarations are not errors. The diagram is still drawn, and the notice goes into `notices` of the `parseNotation` result in the same shape as an error, and the export command prints it to standard error.
 A line in the old form (such as one starting with `#` or `region`) stops with an error that shows the new form of that line.
 A table from the old form to the new one is in the English version of the guide page in the sample site.
 
