@@ -683,7 +683,7 @@ describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
       return { kind: row.dataset.kind ?? "", from: part("from"), amount: part("amount"), to: part("to"), tag: part("tag") };
     });
   const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
-  /** 全ての段を順に送り、図の下の矢印と、開いた呼び出しの記録の字を集める */
+  /** 全ての段を順に送り、図の下の矢印と要点の札と、開いた呼び出しの結果の字を集める */
   function shownTexts(host: HTMLElement, player: Player): { text: string; rows: number } {
     const record = host.querySelector<HTMLDetailsElement>('[data-dragon="call-record"]');
     if (record) record.open = true;
@@ -693,7 +693,8 @@ describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
       player.goTo(s);
       if (player.step !== s) break;
       rows += rowsOf(host).length;
-      seen.push(host.querySelector('[data-dragon="flows"]')?.textContent ?? "", record?.textContent ?? "");
+      // 矢印と要点の札と、開いた呼び出しの結果は、図の下の入れ物にまとまる
+      seen.push(host.querySelector('[data-dragon="calls"]')?.textContent ?? "");
     }
     return { text: seen.join(" "), rows };
   }
@@ -778,6 +779,39 @@ describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
       const known = new Set([...pipeTexts(model, lang).join("")]);
       const missing = [...new Set([...text.replace(/\s/g, "")])].filter((c) => !known.has(c));
       expect(missing, `${file} の図の下の字のうち、書き出した頁の字の file に残らない字`).toEqual([]);
+    }
+  });
+});
+
+describe("配管の図の段の要点の札 (#3464)", () => {
+  it("player-pipe-shows-gist", () => {
+    prefersReducedMotion(true);
+    for (const [file, lang, label, word] of [
+      ["swap.json", "ja", "要点", "確定"],
+      ["swap.en.json", "en", "Key point", "final"],
+    ] as const) {
+      const source = exampleJson(file) as { steps: { gist?: string }[] };
+      const gist = source.steps[13]?.gist;
+      expect(gist, `${file} の段 14 が要点を持たない`).toBeDefined();
+      const { host, player } = mount(source, { lang });
+      const note = (): HTMLElement | null => host.querySelector<HTMLElement>('[data-dragon="calls"] [data-dragon="gist"]');
+      const part = (name: string): string | undefined => note()?.querySelector(`[data-dragon="gist-${name}"]`)?.textContent ?? undefined;
+      // 要点を持たない段には札を出さない
+      expect(note(), `${file} の段 1 に要点の札がある`).toBeNull();
+      player.goTo(13);
+      expect(part("label"), `${file} の段 14 の要点の札の名札`).toBe(label);
+      expect(part("text"), `${file} の段 14 の要点の札の文`).toBe(gist);
+      expect((part("text") ?? "").toLowerCase(), `${file} の段 14 の要点の札の文`).toContain(word);
+      // 札は段の矢印の後に置く
+      const flows = host.querySelector('[data-dragon="flows"]');
+      const shown = note();
+      expect(flows && shown ? flows.compareDocumentPosition(shown) & Node.DOCUMENT_POSITION_FOLLOWING : 0, `${file} の要点の札が矢印の後に無い`).toBeTruthy();
+      player.goTo(1);
+      expect(note(), `${file} の段 2 に戻っても段 14 の要点の札が消えない`).toBeNull();
+      // 読み上げの段の一覧は、要点を持つ段に要点の文を出す
+      const items = [...host.querySelectorAll('[data-dragon="steps"] > li')];
+      expect(items[13]?.querySelector('[data-dragon="step-gist"]')?.textContent, `${file} の読み上げの段 14 の要点`).toBe(gist);
+      expect(items[0]?.querySelector('[data-dragon="step-gist"]'), `${file} の読み上げの段 1 に要点がある`).toBeNull();
     }
   });
 });
