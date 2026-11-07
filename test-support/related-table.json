@@ -102,6 +102,21 @@
       ],
       "tests": [],
       "why": "repo の取り決めと、外の道具の設定。読む検査は字で名前を書くので、命令が字から選ぶ"
+    },
+    {
+      "files": [
+        "packages/dragon/blocks/**"
+      ],
+      "tests": [
+        "packages/dragon/test/shared-blocks.test.ts",
+        "packages/dragon/test/user-blocks.test.ts",
+        "packages/dragon/test/notation.test.ts",
+        "packages/dragon/test/light-entry.test.ts",
+        "packages/dragon/test/script-entry.test.ts",
+        "packages/dragon/test/package-files.test.ts",
+        "packages/dragon/test/notation-skill.test.ts"
+      ],
+      "why": "共有のブロック集。build が読んで本体に埋め、図の頭に定義の無い +名前 を引く読む処理と描く処理の全てに効く (#3455)"
     }
   ]
 }
