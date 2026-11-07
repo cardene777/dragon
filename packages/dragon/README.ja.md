@@ -1,6 +1,6 @@
 # @cardenelabs/dragon
 
-動く図を、人は dragon記法で、AI は JSON で書くための package。
+動く図を、人も AI も dragon記法で書くための package。
 
 [English](README.md)
 
@@ -53,6 +53,20 @@ npm install @cardenelabs/dragon
 | 書き出し | 同じ原本から mp4、GIF、HTML、PNG を書き出す命令 `dragon export` |
 
 前の版から上げる時に書き直す所は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
+
+## AI に図を書かせる
+
+dragon の skill は、AI に dragon記法で図を書かせ、`dragon check` で確かめて読めるまで直させる。
+Claude Code では、GitHub の repo cardene777/dragon をプラグインの置き場に足してから、プラグインを入れる。
+
+```text
+/plugin marketplace add cardene777/dragon
+/plugin install dragon@dragon
+```
+
+ほかの AI では、GitHub の repo cardene777/dragon の skill の dir (`plugins/dragon/skills/dragon`) を、その AI が skill を読む場所へ写す。
+AI は `SKILL.md` から読み始め、描く図の種類の参照の file だけを読む。
+プラグインの版は npm の `@cardenelabs/dragon` の版と同じで、skill は入れた版を `dragon --version` で確かめる。
 
 ## 最初の図
 

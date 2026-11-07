@@ -220,7 +220,8 @@ describe("版の記録 (#3151)", () => {
       for (const issue of ["(#3418)", "(#3445)"]) expect(released, `${file} の 0.61.0 の節に ${issue} の項が無い`).toContain(issue);
       // 公開する型を外したことを、使う人が変更の一覧で知れるようにする
       for (const name of ["`pipeViolations`", "`PIPE_RULES`", "`PipeCallout`", "`PipeTone`"]) expect(released, `${file} の 0.61.0 の節が ${name} を名指さない`).toContain(name);
-      expect(section(text, "[Unreleased]").trim(), `${file} の Unreleased に項が残る`).toBe("");
+      // 0.60.0 と 0.59.0 の検査と同じく、出した項が Unreleased に残らないことだけを見る。後の課題の項は Unreleased に足す (#3455)
+      for (const issue of ["(#3418)", "(#3445)"]) expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain(issue);
     }
   });
 

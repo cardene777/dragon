@@ -273,9 +273,11 @@ describe("記法から JSON へ", () => {
 
   it("every-dragon-file-parses", () => {
     const parse = api("parseNotation");
+    // 共有のブロック集の定義の file (`packages/dragon/blocks/<名前>.dragon`) は図でなく定義なので、
+    // shared-blocks.test.ts の shared-blocks-read-and-have-examples が readBlocks で読む (#3455)
     const files = execFileSync("git", ["ls-files", "*.dragon"], { encoding: "utf8" })
       .split("\n")
-      .filter((file) => file !== "");
+      .filter((file) => file !== "" && !/^packages\/dragon\/blocks\/[^/]+\.dragon$/u.test(file));
     // 0 件で通らないように、repo の .dragon の file を数える
     expect(files.length, "git ls-files が .dragon の file を挙げない").toBeGreaterThan(0);
     const failed = files.flatMap((file) => {

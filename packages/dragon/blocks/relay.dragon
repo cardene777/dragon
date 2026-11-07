@@ -1,0 +1,7 @@
+// A relayed hand-over, drawn as a dashed amber line
+blocks 1
+block +relay
+  base edge
+  shape dashed
+  color amber
+end

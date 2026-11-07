@@ -3,6 +3,8 @@
  * `dragon export <図の file>` の命令。原本の JSON (`.json`) か記法 (`.dragon`) を読み、mp4、GIF、HTML、PNG を書き出す。
  * 書き出した file の path を 1 行ずつ出す。
  * `dragon embed <HTML の file>` の命令は、頁の script の1行の入口を束ねた script の中身に置き換え、外へ通信しない1 file を書く (#3343)。
+ * `dragon check <file>` の命令は、記法を描かずに確かめ、誤りと知らせを `<file>:<行>:<列> <重さ> <文>` の 1 件 1 行で出す (#3455)。
+ * 誤りがあれば終わり方 1、知らせだけなら 0 で終わる。`dragon --version` は package の版を出す。
  * 図に字の重なりがある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出し、終わり方は 0 のままにする (#3178)。
  * 重なりは描けない誤りではなく、止めると避けられない重なりを持つ図を書き出せなくなるため。
  *
@@ -12,6 +14,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { CHECKED_FILES, checkText, type Problem, problemLine } from "./check";
 import { embedPage } from "./export/embed";
 import { type ExportFormat, exportDiagram, FORMATS } from "./export/index";
 import { PALETTES, type Theme } from "./look/values";
@@ -33,6 +36,12 @@ const OPTIONS = {
 /** `dragon embed` の設定 */
 const EMBED_OPTIONS = { out: { type: "string" }, lang: { type: "string" } } as const;
 
+/** `dragon check` の設定 */
+const CHECK_OPTIONS = { json: { type: "boolean" }, lang: { type: "string" } } as const;
+
+/** package の版。build が入れる (`tsup.config.ts`) */
+declare const __DRAGON_VERSION__: string;
+
 type Values = Partial<Record<keyof typeof OPTIONS, string>>;
 
 const THEMES: readonly Theme[] = ["light", "dark"];
@@ -45,6 +54,12 @@ interface CliText {
   embedUsage: string;
   /** `dragon embed` の誤りの文 */
   embed: { extraFiles: (extra: string[]) => string; noFile: (path: string) => string; unreadable: (path: string, detail: string) => string; noEntry: (path: string) => string };
+  /** `dragon check` の使い方 */
+  checkUsage: string;
+  /** `dragon check` が読めない拡張子の file */
+  cannotCheck: (path: string) => string;
+  /** `dragon --version` の使い方 */
+  versionUsage: string;
   unknownOption: (name: string) => string;
   missingValue: (name: string) => string;
   extraFiles: (extra: string[]) => string;
@@ -84,6 +99,13 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       unreadable: (path, detail) => `HTML の file を読めない: ${path} (${detail})`,
       noEntry: (path) => `入口の1行 (src が dist/cdn/dragon.js で終わる script) が無い: ${path}`,
     },
+    checkUsage: [
+      "使い方: dragon check <記法の file (.dragon か .md) か -> [設定]",
+      "  --json             誤りと知らせを JSON で出す",
+      "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
+    ].join("\n"),
+    cannotCheck: (path) => `確かめられない file: ${path} (.dragon か .md の file か、標準入力の - を渡す)`,
+    versionUsage: "使い方: dragon --version (版を出す)",
     unknownOption: (name) => `知らない設定: ${name}`,
     missingValue: (name) => `設定に値が無い: ${name}`,
     extraFiles: (extra) => `図の file は 1 つだけ渡す。余分な引数: ${extra.join(" ")}`,
@@ -118,6 +140,13 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       unreadable: (path, detail) => `Cannot read the HTML file: ${path} (${detail})`,
       noEntry: (path) => `No entry line (a script whose src ends with dist/cdn/dragon.js): ${path}`,
     },
+    checkUsage: [
+      "Usage: dragon check <notation file (.dragon or .md) or -> [options]",
+      "  --json             Print the errors and warnings as JSON",
+      "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
+    ].join("\n"),
+    cannotCheck: (path) => `Cannot check this file: ${path} (pass a .dragon or .md file, or - for stdin)`,
+    versionUsage: "Usage: dragon --version (prints the version)",
     unknownOption: (name) => `Unknown option: ${name}`,
     missingValue: (name) => `Option needs a value: ${name}`,
     extraFiles: (extra) => `Pass only one diagram file. Extra arguments: ${extra.join(" ")}`,
@@ -150,11 +179,14 @@ function langOf(args: string[]): string | undefined {
  * 設定の誤りを、Node の文ではなく命令の言葉で返す。誤りが無ければ `undefined`。
  * 値の要る設定の後ろに `-` で始まる語が続く時は、その語を値と取り違えずに値が無いとみなす (Node も同じ形を断る)。
  */
-function optionProblem(args: string[], text: CliText, options: typeof OPTIONS | typeof EMBED_OPTIONS = OPTIONS): string | undefined {
+function optionProblem(args: string[], text: CliText, options: typeof OPTIONS | typeof EMBED_OPTIONS | typeof CHECK_OPTIONS = OPTIONS): string | undefined {
   const { tokens } = parseArgs({ args, options, allowPositionals: true, strict: false, tokens: true });
+  const types: Readonly<Record<string, { type: string }>> = options;
   for (const token of tokens) {
     if (token.kind !== "option") continue;
     if (!Object.hasOwn(options, token.name)) return text.unknownOption(token.rawName);
+    // 値を取らない設定 (`--json`) は値を確かめない
+    if (types[token.name]?.type !== "string") continue;
     if (token.value === undefined || (!token.inlineValue && token.value.startsWith("-"))) return text.missingValue(token.rawName);
   }
   return undefined;
@@ -248,14 +280,60 @@ function embed(args: string[], text: CliText): number {
   return 0;
 }
 
+/**
+ * `dragon check <file>...`。記法の file と Markdown の file と標準入力 (`-`) を確かめる (#3455)。
+ * 無い file か読めない拡張子の file が 1 つでも在れば、どれも確かめずに終わり方 2 で断る
+ */
+function check(args: string[], text: CliText): number {
+  const problem = optionProblem(args, text, CHECK_OPTIONS);
+  if (problem !== undefined) {
+    console.error(`${problem}\n${text.checkUsage}`);
+    return 2;
+  }
+  const { values, positionals } = parseArgs({ args, options: CHECK_OPTIONS, allowPositionals: true });
+  if (values.lang !== undefined && !isLang(values.lang)) {
+    console.error(`${text.badValue("--lang", values.lang, text.allowed.lang)}\n${text.checkUsage}`);
+    return 2;
+  }
+  if (positionals.length === 0) {
+    console.error(text.checkUsage);
+    return 2;
+  }
+  const lang = values.lang ?? DEFAULT_LANG;
+  const sources: { file: string; source: string; form: "notation" | "markdown" }[] = [];
+  for (const file of positionals) {
+    const form = file === "-" ? "notation" : CHECKED_FILES[extname(file).toLowerCase()];
+    if (form === undefined) {
+      console.error(text.cannotCheck(file));
+      return 2;
+    }
+    try {
+      sources.push({ file, source: readFileSync(file === "-" ? 0 : file, "utf8"), form });
+    } catch (error) {
+      const missing = error instanceof Error && "code" in error && error.code === "ENOENT";
+      console.error(missing ? text.noFile(file) : text.unreadable(file, detail(error)));
+      return 2;
+    }
+  }
+  const problems: Problem[] = sources.flatMap(({ file, source, form }) => checkText(file, source, form, lang));
+  if (values.json) console.log(JSON.stringify(problems, null, 2));
+  else for (const found of problems) console.log(problemLine(found));
+  return problems.some((found) => found.severity === "error") ? 1 : 0;
+}
+
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const chosen = langOf(argv);
   // file を読む前の文は、渡した言葉か既定の英語で出す。知らない言葉は英語の使い方で断る
   const early = CLI_TEXT[isLang(chosen) ? chosen : DEFAULT_LANG];
+  if (command === "--version") {
+    console.log(__DRAGON_VERSION__);
+    return 0;
+  }
   if (command === "embed") return embed(rest, early);
+  if (command === "check") return check(rest, early);
   if (command !== "export") {
-    console.error(`${early.usage}\n\n${early.embedUsage}`);
+    console.error(`${early.usage}\n\n${early.embedUsage}\n\n${early.checkUsage}\n\n${early.versionUsage}`);
     return 2;
   }
   const problem = optionProblem(rest, early);

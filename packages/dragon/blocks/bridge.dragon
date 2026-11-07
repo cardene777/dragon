@@ -1,0 +1,7 @@
+// A bridge between two chains, drawn as an arch
+blocks 1
+block +bridge
+  base box
+  shape path "M 0 70 Q 50 0 100 70 Z"
+  color violet
+end

@@ -179,3 +179,42 @@ describe("repo の README の最初の図と、できることの表 (#3391)", (
     expect(/^\| Source \| (.+) \|$/mu.exec(en)?.[1] ?? "", "README.md の Source の欄が、ブロックを並べる欄 (`blocks`) を書いていない").toContain("`blocks`");
   });
 });
+
+/** README の冒頭 (最初の `## ` の見出しの前まで) */
+const leadOf = (text: string): string => text.split(/^## /mu)[0] ?? "";
+
+/** 冒頭が AI も記法で書くと書いたと読める字と、前の形 (AI は JSON で書く) の字。言葉ごとに持つ (#3455) */
+const LEAD = {
+  ja: { says: "人も AI も", old: /AI は(同じ図を )?JSON で書/u },
+  en: { says: "people and AI write", old: /AI (can )?writes? (the same diagram )?as JSON/u },
+} as const;
+
+/** skill の入れ方。Claude Code のプラグインの命令と、ほかの AI に写す skill の dir (#3455) */
+const SKILL_INSTALL = ["/plugin marketplace add cardene777/dragon", "/plugin install dragon@dragon", "plugins/dragon/skills/dragon"];
+
+describe("AI が記法で図を書く skill (#3455)", () => {
+  it("readme-lead-says-ai-writes-notation", () => {
+    // 4 つの README の冒頭の 1 行と導入文は、AI も記法で書くと書き、AI が JSON で書くと書かない
+    for (const lang of Object.keys(LANGS) as (keyof typeof LANGS)[]) {
+      for (const path of [LANGS[lang].repo, LANGS[lang].npm]) {
+        const lead = leadOf(read(path));
+        expect(lead, `${path} の冒頭が、AI も記法で書くと書いていない`).toContain(LEAD[lang].says);
+        expect(lead, `${path} の冒頭が、AI は JSON で書くと書いている`).not.toMatch(LEAD[lang].old);
+      }
+    }
+    // npm の頁に出る package の説明も同じ
+    const description = (JSON.parse(read("packages/dragon/package.json")) as { description: string }).description;
+    expect(description, "package の説明が、AI も記法で書くと書いていない").toContain(LEAD.en.says);
+    expect(description, "package の説明が、AI は JSON で書くと書いている").not.toMatch(LEAD.en.old);
+  });
+
+  it("readme-shows-skill-install", () => {
+    // 4 つの README は、Claude Code で skill を入れる命令と、ほかの AI に skill の dir を写す手順を書く
+    for (const lang of Object.keys(LANGS) as (keyof typeof LANGS)[]) {
+      for (const path of [LANGS[lang].repo, LANGS[lang].npm]) {
+        const text = read(path);
+        for (const words of SKILL_INSTALL) expect(text, `${path} が \`${words}\` を書いていない`).toContain(words);
+      }
+    }
+  });
+});

@@ -6,6 +6,20 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- **AI に dragon記法で図を書かせる skill と `dragon check`** (#3455)
+
+  この repo を Claude Code のプラグインの置き場にした。`/plugin marketplace add cardene777/dragon` と `/plugin install dragon@dragon` で入る skill `dragon` は、AI に図の種類の選び方、`step` と `say` を使った記法の書き方、確かめ方、文書のサイトと README の画像とアプリでの見せ方を教える。ほかの AI は `plugins/dragon/skills/dragon` を写して使う。プラグインの版は npm の版と同じにする。新しい命令 `dragon check <file>` は、`.dragon` の file、Markdown の file の `dragon` の囲み、標準入力 (`-`) を描かずに読み、1 件ずつ `<file>:<行>:<列> error|warning <文>` の形で出す。誤りがあれば終わり方 1、知らせだけなら 0、無い file と読めない拡張子は 2 で終わる。`--json` で JSON を出す。`dragon --version` は版を出す。
+
+- **共有のブロック集** (#3455)
+
+  `packages/dragon/blocks/` に 1 定義 1 file で置いたブロックは、図の頭に定義を書かずに `+名前` で使える。最初の集は `+bridge`、`+relay`、`+key` の 3 つ。図の頭の定義が同じ名前の共有の定義に勝ち、読んだ図は使った共有の定義を `define` に入れる。集へは定義 1 file と見本 1 つを足す pull request で足す。
+
+- **script の入口が Markdown の囲みを描く** (#3455)
+
+  script の 1 行の入口は、Markdown から作った HTML の ```dragon の囲み (`<pre><code class="language-dragon">`) も図に置き換える。
+
 ## [0.62.0] - 2026-11-07
 
 ### Added

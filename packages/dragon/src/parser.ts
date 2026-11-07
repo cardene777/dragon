@@ -117,7 +117,7 @@ import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
 import { similarNames } from "./nearest";
 import { derivedBody, lineText } from "./short-form";
-import { defineUserBlocks, type UserBlock, UserBlockFailure, type UserBlocks, userBlock, userBlockReader, versionLine, withUserBlocks } from "./user-blocks";
+import { defineUserBlocks, sharedBlocksUsed, type UserBlock, UserBlockFailure, type UserBlocks, userBlock, userBlockReader, versionLine, withUserBlocks } from "./user-blocks";
 import { ATTRS, DEFAULT_LANG, HEADS, KINDS, type NotationLang, OLD_HEADS } from "./words";
 
 /** 読み方の手続きの名前 */
@@ -450,6 +450,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   if (boxes.length === 0 && !BOXLESS.includes(kind)) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
   for (const verify of hooks("verify")) verify(state, head);
+  // 共有のブロック集から引いた定義も原本の定義の欄に入れ、原本だけを受け取った側でも同じ図を描けるようにする (#3455)
+  define.push(...sharedBlocksUsed().filter((b) => !define.some((own) => own.name === b.name)));
 
   return {
     version: MODEL_VERSION,

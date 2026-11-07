@@ -119,8 +119,10 @@ function isInstalled(dir: string): boolean {
  */
 export function checkFreshness(pkgDir: string): FreshnessVerdict {
   if (isInstalled(pkgDir)) return { kind: "installed" };
-  const srcMtime = newestMtime(join(pkgDir, "src"));
-  if (srcMtime === null) return { kind: "no-src" };
+  const codeMtime = newestMtime(join(pkgDir, "src"));
+  if (codeMtime === null) return { kind: "no-src" };
+  // 共有のブロック集 (`blocks/`) も build が本体に埋めるので、src と同じく新しさを見る (#3455)
+  const srcMtime = Math.max(codeMtime, newestMtime(join(pkgDir, "blocks")) ?? codeMtime);
   const distMtime = oldestMtime(join(pkgDir, "dist"));
   if (distMtime === null) return { kind: "no-dist" };
   if (distMtime >= srcMtime) return { kind: "fresh" };
