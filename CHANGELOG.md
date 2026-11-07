@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-11-07
+
 ### Added
 
 - **The short form leaves out declarations and steps** (#3438)
