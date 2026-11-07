@@ -1,6 +1,6 @@
 try Queue
 
-queue Pool [order: Fee]
+queue Pool [order: Fee, accept: "a, b, c, d"]
 ask Name, Fee [into: Pool]
 
 item a [Fee: 3]
@@ -11,5 +11,5 @@ step Highest first
   line Pool: a, b
 
 step Cut in
-  say A sent chip also takes its place by the value of that field.
+  say A sent chip also takes its place by the value of that field. Only chips named in accept get in, and other names cannot be sent.
   ask c, 5

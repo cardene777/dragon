@@ -136,7 +136,10 @@ function choiceAt(source: SourceLine, field: string, value: string, at: number, 
   if (choices && !choices.includes(value)) throw fail(source, at, state.m.notChoice(field, value, choices));
 }
 
-/** 段の中の `ask <値>, <値>` の行。値の数は入力の帯の欄の数と同じで、満杯の待ち行列へは送れない。選択肢を持つ欄の値は選択肢のどれか */
+/**
+ * 段の中の `ask <値>, <値>` の行。値の数は入力の帯の欄の数と同じで、満杯の待ち行列へは送れない。選択肢を持つ欄の値は選択肢のどれか。
+ * 送る先の待ち行列が `accept` に名前 (最初の値) を書いていなければ、その名前を名指して断る (#3453)
+ */
 function readSend(source: SourceLine, state: ParseState): void {
   const { m } = state;
   const step = state.inStep(source);
@@ -145,13 +148,14 @@ function readSend(source: SourceLine, state: ParseState): void {
   const values = valuesOf(source, "ask".length, state);
   if (values.length !== ask.fields.length) throw fail(source, 0, m.askCount(ask.fields.length));
   let from = "ask".length;
-  values.forEach((value, k) => {
+  const ats = values.map((value, k) => {
     const at = source.text.indexOf(value, from);
     if (at >= 0) from = at + value.length;
     choiceAt(source, ask.fields[k] ?? "", value, Math.max(at, 0), state);
+    return { at: Math.max(at, 0) };
   });
   const fault = state.figure.try.run?.ask(values).fault;
-  if (fault) throw faultOf(source, fault, state);
+  if (fault) throw faultOf(source, fault, state, ats);
   step.events.push({ type: "ask", values });
 }
 

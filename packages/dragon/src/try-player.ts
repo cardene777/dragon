@@ -5,6 +5,7 @@
  * 図の下の入力の帯 (`form[data-dragon="ask"]`) には、欄ごとの入力と送る釦と、置き場 (`at`) を書かない釦 (`press`) を並べる。
  * 置き場を書いた釦は図の上のその部品の題の右に置き、寄って追う図か、帯の中身の幅が `LOOK.player.narrow` より狭い時は帯へ移す。
  * 空の待ち行列から取り出す釦と、満杯の待ち行列へ送る送る釦は押せなくし、押せない訳を `[data-dragon="reason"]` に出す。
+ * 送る先の待ち行列が `accept` に書いていない名前を入れた送る釦と、2 つ以上の待ち行列のどれかが `take` 件に満たない釦も同じく押せなくする (#3453)。
  * 機械の列が `edit` を持つ時、ブロックの中のチップを押すと書き換える欄 (`form[data-dragon="edit"]`) を出す。
  * 送る、押す、書き換えるたびに、記法と同じ出来事を 1 つ持つ段を渡した言葉の題と本文で作り、再生の部品へ渡す。
  * 押せるかと訳は今の原本の最後の段の状態 (`layout.states`) から読む。読み手の値はどこにも保存しない。
@@ -18,7 +19,7 @@ import { TRY_LOOK } from "./look/try";
 import { LOOK, TYPE } from "./look/values";
 import { cssFont as font } from "./render/parts";
 import type { DiagramModel, Step, TryPart } from "./schema";
-import { askFields, intoOf, type TryState } from "./try-state";
+import { accepts, askFields, fromsOf, intoOf, type TryState } from "./try-state";
 import { TRY_TEXT } from "./try-text";
 import type { NotationLang } from "./words";
 
@@ -91,6 +92,11 @@ export function tryTexts(model: DiagramModel, lang: NotationLang): string[] {
     w.tryBlankEdit,
     w.tryFull("", 0),
     w.tryEmpty("", ""),
+    // 待ち行列の accept と、2 つ以上の待ち行列から集める釦 (#3453) の、押せない訳と押した段の本文
+    ...(parts.some((p) => p.type === "queue" && p.accept !== undefined) ? [w.tryRefused("", "")] : []),
+    ...(parts.some((p) => p.type === "press" && fromsOf(p).length > 1)
+      ? [w.tryShort("", "", 0), w.tryGatheredBody(1, ["", ""], 0), w.tryGatheredBody(2, ["", ""], 0), w.tryGatheredRecordBody(1, ["", ""], "", 0), w.tryGatheredRecordBody(2, ["", ""], "", 0)]
+      : []),
     w.tryBadName(""),
     w.tryEditField("", ""),
     w.trySent(""),
@@ -153,6 +159,8 @@ export function mountTryControls(
     ),
   );
   const fields = askFields(parts);
+  /** 送る先を受け入れる名前で限る待ち行列が在るか (#3453)。在れば、名前の欄を打ち直すたびに送れるかを決め直す */
+  const limited = parts.some((p) => p.type === "queue" && p.accept !== undefined);
   let current = layout;
   /** 押した時の断り (空の欄など)。次に描き直すか打ち込むまで出す */
   let notice = "";
@@ -286,13 +294,23 @@ export function mountTryControls(
     if (ask && send) {
       const into = target();
       const most = next.parts.find((p) => p.id === into)?.most ?? Number.POSITIVE_INFINITY;
-      send.disabled = (last?.queues[into]?.length ?? 0) >= most;
-      if (send.disabled) reasons.push(words.tryFull(into, most));
+      // 名前を入れる前は受け入れるかを問わない。空の欄は送る時に断る
+      const name = inputs[0]?.input.value.trim() ?? "";
+      const refused = name !== "" && !accepts(parts.find((p) => p.id === into), name);
+      const full = (last?.queues[into]?.length ?? 0) >= most;
+      send.disabled = refused || full;
+      if (refused) reasons.push(words.tryRefused(into, name));
+      if (full) reasons.push(words.tryFull(into, most));
     }
     for (const p of presses) {
       const b = pressed.get(p.id) as HTMLButtonElement;
-      b.disabled = (last?.queues[p.from]?.length ?? 0) === 0;
-      if (b.disabled) reasons.push(words.tryEmpty(p.from, p.id));
+      const froms = fromsOf(p);
+      // 1 つの待ち行列から取り出す釦は 1 件でもあれば押せ、2 つ以上から集める釦はどれにも take 件要る (#3453)
+      const need = froms.length > 1 ? p.take : 1;
+      const short = froms.find((id) => (last?.queues[id]?.length ?? 0) < need);
+      b.disabled = short !== undefined;
+      if (short !== undefined)
+        reasons.push((last?.queues[short]?.length ?? 0) === 0 ? words.tryEmpty(short, p.id) : words.tryShort(short, p.id, p.take));
     }
     blocked = reasons;
     notice = "";
@@ -343,16 +361,28 @@ export function mountTryControls(
   };
   const press = (id: string | undefined): void => {
     const p = presses.find((x) => x.id === id);
+    if (!p) return;
     const last = lastState();
-    const waiting = p ? (last?.queues[p.from]?.length ?? 0) : 0;
-    if (!p || waiting === 0) return;
-    const count = Math.min(p.take, waiting);
+    const froms = fromsOf(p);
+    const waiting = froms.map((from) => last?.queues[from]?.length ?? 0);
     const records = last?.logs?.[p.into];
+    const next = records ? records.length + 1 : (last?.chains[p.into]?.length ?? 0) + 1;
+    // 2 つ以上の待ち行列から集める釦は、どの待ち行列にも take 件ある時だけ押せる (#3453)
+    if (froms.length > 1) {
+      if (waiting.some((n) => n < p.take)) return;
+      add({
+        title: words.tryPressed(p.id),
+        body: records ? words.tryGatheredRecordBody(p.take, froms, p.into, next) : words.tryGatheredBody(p.take, froms, next),
+        events: [{ type: "press", press: p.id }],
+      });
+      return;
+    }
+    const from = froms[0] ?? "";
+    const count = Math.min(p.take, waiting[0] ?? 0);
+    if (count === 0) return;
     add({
       title: words.tryPressed(p.id),
-      body: records
-        ? words.tryPressedRecordBody(count, p.from, p.into, records.length + 1)
-        : words.tryPressedBody(count, p.from, (last?.chains[p.into]?.length ?? 0) + 1),
+      body: records ? words.tryPressedRecordBody(count, from, p.into, next) : words.tryPressedBody(count, from, next),
       events: [{ type: "press", press: p.id }],
     });
   };
@@ -384,8 +414,10 @@ export function mountTryControls(
     else if (editor && event.target === editor.form) applyEdit();
   };
   const onInput = (event: Event): void => {
-    // into に書いた欄を選び直すと送る先の待ち行列が替わるので、送れるかを決め直す (#3441)
-    if (ask && (event.target as HTMLElement | null)?.dataset?.field === ask.into) {
+    // into に書いた欄を選び直すと送る先の待ち行列が替わるので、送れるかを決め直す (#3441)。
+    // 受け入れる名前を限る待ち行列が在る図は、名前の欄を打ち直しても決め直す (#3453)
+    const changed = (event.target as HTMLElement | null)?.dataset?.field;
+    if (ask && changed !== undefined && (changed === ask.into || (limited && changed === fields[0]))) {
       update(current);
       return;
     }
