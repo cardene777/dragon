@@ -6,13 +6,21 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
-## [0.65.1] - 2026-11-08
+## [0.65.2] - 2026-11-08
 
 ### Fixed
 
 - **Gate records keep a try diagram within its width** (#3478)
 
-  A gate record put `Stopped at <node>` and the error name on one row, and the record was as wide as that row. A long error name such as `SEQUENCER_REQUEST_FAILED` widened the record, so a try diagram with gate records grew past the wide width of 740 and the narrow width of 324. On a page, the first send widened the figure from 740. A gate record now puts the stopped node and the error name on separate rows, and the record is as wide as the longer of the two. The wide form places as many records side by side as fit in the width the other parts set, and wraps the rest to the next row, so sending more values does not change the figure width. Try diagrams without gates draw as before.
+  A gate record put `Stopped at <node>` and the error name on one row, and the record was as wide as that row. A long error name such as `SEQUENCER_REQUEST_FAILED` widened the record, so a try diagram with gate records grew past the wide width of 740 and the narrow width of 324. On a page, the first send widened the figure from 740. A gate record now puts the stopped node and the error name on separate rows, and the record is as wide as the longer of the two. The wide form places as many records side by side as fit in the width the other parts set, and wraps the rest to the next row, so sending more values does not change the figure width. In the narrow form, a route node label that comes closer than the label gap to the label on its left is drawn above its node, and a route with such labels moves its nodes down by one label row, so the labels of a five-node route no longer overlap. Try diagrams without gates, and routes whose labels do not collide, draw as before.
+
+## [0.65.1] - 2026-11-08
+
+### Changed
+
+- **A pipe diagram with an opened box draws faster** (#3472)
+
+  Finding the routes of the pipes took most of the time to draw a pipe diagram with an opened box. The route search now reuses its work arrays and its heap across searches, keeps lists only for grid edges that an obstacle or a laid line touches, works out the distance estimate once per grid point, and skips heap entries that a cheaper entry for the same state has replaced. Every pipe keeps the same route. The layouts of 28 cases (the six pipe examples in both languages at widths 1280 and 390, and `aggregator` with box 2 opened) match fingerprints recorded before the change. Drawing `aggregator` with box 2 opened at width 390 took 1.74 to 1.82 seconds of CPU time in English and 1.35 to 1.39 seconds in Japanese, and now takes 1.16 to 1.37 seconds and 1.03 to 1.08 seconds.
 
 ## [0.65.0] - 2026-11-07
 

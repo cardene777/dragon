@@ -97,67 +97,95 @@ export function gridLines(values: readonly number[], keep: readonly number[], mi
   return out;
 }
 
-interface Heap {
-  push(cost: number, state: number): void;
-  pop(): number | undefined;
-  size(): number;
-}
+/**
+ * 値の小さい順に取り出す山。値が同じ物の順は、入れ替えて並べ直す山と同じ。
+ * 入れた時の道の値 (`g`) も持ち、取り出した物の `g` を `poppedG` で返す。
+ * 道を探すたびに山を作らず、型付きの配列を使い回す (#3472)。並べ方は配列で持っていた時と同じで、取り出す順は変わらない
+ */
+class Heap {
+  private costs = new Float64Array(1024);
+  private states = new Int32Array(1024);
+  private gs = new Float64Array(1024);
+  private n = 0;
+  /** 最後に取り出した物を入れた時の道の値 */
+  poppedG = 0;
 
-/** 値の小さい順に取り出す山。値が同じ物の順は、入れ替えて並べ直す山と同じ */
-function heap(): Heap {
-  const costs: number[] = [];
-  const states: number[] = [];
-  return {
-    push(cost, state) {
-      let i = costs.length;
-      costs.push(cost);
-      states.push(state);
-      while (i > 0) {
-        const p = (i - 1) >> 1;
-        const pc = costs[p] as number;
-        if (pc <= cost) break;
-        costs[i] = pc;
-        states[i] = states[p] as number;
-        i = p;
-      }
-      costs[i] = cost;
-      states[i] = state;
-    },
-    pop() {
-      const n = costs.length;
-      if (n === 0) return undefined;
-      const top = states[0];
-      const lastC = costs.pop() as number;
-      const lastS = states.pop() as number;
-      const m = n - 1;
-      if (m > 0) {
-        let i = 0;
-        for (;;) {
-          const l = i * 2 + 1;
-          const r = l + 1;
-          let k = i;
-          let kc = lastC;
-          if (l < m && (costs[l] as number) < kc) {
-            k = l;
-            kc = costs[l] as number;
-          }
-          if (r < m && (costs[r] as number) < kc) {
-            k = r;
-            kc = costs[r] as number;
-          }
-          if (k === i) break;
-          costs[i] = kc;
-          states[i] = states[k] as number;
-          i = k;
+  clear(): void {
+    this.n = 0;
+  }
+
+  size(): number {
+    return this.n;
+  }
+
+  push(cost: number, state: number, g: number): void {
+    if (this.n === this.costs.length) this.grow();
+    const { costs, states, gs } = this;
+    let i = this.n++;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      const pc = costs[p] as number;
+      if (pc <= cost) break;
+      costs[i] = pc;
+      states[i] = states[p] as number;
+      gs[i] = gs[p] as number;
+      i = p;
+    }
+    costs[i] = cost;
+    states[i] = state;
+    gs[i] = g;
+  }
+
+  pop(): number {
+    const { costs, states, gs } = this;
+    const top = states[0] as number;
+    this.poppedG = gs[0] as number;
+    const m = --this.n;
+    if (m > 0) {
+      const lastC = costs[m] as number;
+      const lastS = states[m] as number;
+      const lastG = gs[m] as number;
+      let i = 0;
+      for (;;) {
+        const l = i * 2 + 1;
+        const r = l + 1;
+        let k = i;
+        let kc = lastC;
+        if (l < m && (costs[l] as number) < kc) {
+          k = l;
+          kc = costs[l] as number;
         }
-        costs[i] = lastC;
-        states[i] = lastS;
+        if (r < m && (costs[r] as number) < kc) {
+          k = r;
+          kc = costs[r] as number;
+        }
+        if (k === i) break;
+        costs[i] = kc;
+        states[i] = states[k] as number;
+        gs[i] = gs[k] as number;
+        i = k;
       }
-      return top;
-    },
-    size: () => costs.length,
-  };
+      costs[i] = lastC;
+      states[i] = lastS;
+      gs[i] = lastG;
+    }
+    return top;
+  }
+
+  private grow(): void {
+    const size = this.costs.length * 2;
+    const costs = new Float64Array(size);
+    const states = new Int32Array(size);
+    const gs = new Float64Array(size);
+    costs.set(this.costs);
+    states.set(this.states);
+    gs.set(this.gs);
+    this.costs = costs;
+    this.states = states;
+    this.gs = gs;
+  }
 }
+const open = new Heap();
 
 /**
  * 置いた線と格子の辺の関わり。`cross` は直角に越えるか触れる、`along` は平行に `d` だけ離れて並ぶ。
@@ -169,17 +197,69 @@ interface Mark {
   d: number;
 }
 
+/** 障害も印も無い辺が返す空の列。辺ごとに空の配列を作らない (#3472) */
+const NONE: readonly never[] = [];
+
+/** 道を探す作業の配列。格子の点の数で決まる大きさを持ち、Router を作り直しても使い回す (#3472) */
+interface Work {
+  seen: Uint32Array;
+  best: Float64Array;
+  from: Int32Array;
+  goal: Uint32Array;
+  goalCost: Float64Array;
+  hSeen: Uint32Array;
+  hCost: Float64Array;
+  vSeen: Uint32Array;
+  vCost: Float64Array;
+  hHug: Uint8Array;
+  vHug: Uint8Array;
+  hJoin: Int32Array;
+  vJoin: Int32Array;
+  /** 点ごとの終わりまでの見積もりと、それを求めた探しの番号 */
+  guessSeen: Uint32Array;
+  guessVal: Float64Array;
+}
+let shared: Work | undefined;
+/** 道を探すたびに 1 つ進める番号。作業の配列を Router の間で使い回すため、全ての Router で 1 つの番号を数える */
+let epoch = 0;
+
+/** `cells` 個の格子の点を探せる作業の配列。前に作った配列が足りる時は使い回す */
+function workFor(cells: number): Work {
+  if (shared && shared.hSeen.length >= cells) return shared;
+  const size = cells * 4;
+  shared = {
+    seen: new Uint32Array(size),
+    best: new Float64Array(size),
+    from: new Int32Array(size),
+    goal: new Uint32Array(size),
+    goalCost: new Float64Array(size),
+    hSeen: new Uint32Array(cells),
+    hCost: new Float64Array(cells),
+    vSeen: new Uint32Array(cells),
+    vCost: new Float64Array(cells),
+    hHug: new Uint8Array(cells),
+    vHug: new Uint8Array(cells),
+    hJoin: new Int32Array(cells),
+    vJoin: new Int32Array(cells),
+    guessSeen: new Uint32Array(cells),
+    guessVal: new Float64Array(cells),
+  };
+  // 新しい配列の番号は全て 0 なので、0 より大きい番号から数え直す
+  epoch = 0;
+  return shared;
+}
+
 export class Router {
   readonly xs: readonly number[];
   readonly ys: readonly number[];
   readonly laid: Laid[] = [];
   private readonly nx: number;
   private readonly ny: number;
-  /** 横の辺 (i, j)-(i+1, j) と縦の辺 (i, j)-(i, j+1) が通る障害 */
-  private readonly hObs: number[][];
-  private readonly vObs: number[][];
-  private readonly hMarks: Mark[][];
-  private readonly vMarks: Mark[][];
+  /** 横の辺 (i, j)-(i+1, j) と縦の辺 (i, j)-(i, j+1) が通る障害。障害の無い辺は持たない (#3472) */
+  private readonly hObs: (number[] | undefined)[];
+  private readonly vObs: (number[] | undefined)[];
+  private readonly hMarks: (Mark[] | undefined)[];
+  private readonly vMarks: (Mark[] | undefined)[];
   /** 障害の広げた縁の上を通る辺 */
   private readonly hRail: Uint8Array;
   private readonly vRail: Uint8Array;
@@ -189,33 +269,17 @@ export class Router {
   private lastShared = false;
   /** `edgeCost` が最後に見た辺が直角に越えるか触れる、同じ組の置いた線分の番号。無ければ -1 */
   private lastJoin = -1;
-  /** 道を探すたびに 1 つ進める番号。探した状態と辺の値の覚えは、この番号が合う時だけ使う */
-  private epoch = 0;
-  private work?: {
-    seen: Uint32Array;
-    best: Float64Array;
-    from: Int32Array;
-    goal: Uint32Array;
-    goalCost: Float64Array;
-    hSeen: Uint32Array;
-    hCost: Float64Array;
-    vSeen: Uint32Array;
-    vCost: Float64Array;
-    hHug: Uint8Array;
-    vHug: Uint8Array;
-    hJoin: Int32Array;
-    vJoin: Int32Array;
-  };
 
   constructor(xs: readonly number[], ys: readonly number[], obstacles: readonly Obstacle[]) {
     this.xs = xs;
     this.ys = ys;
     this.nx = xs.length;
     this.ny = ys.length;
-    this.hObs = Array.from({ length: this.nx * this.ny }, () => []);
-    this.vObs = Array.from({ length: this.nx * this.ny }, () => []);
-    this.hMarks = Array.from({ length: this.nx * this.ny }, () => []);
-    this.vMarks = Array.from({ length: this.nx * this.ny }, () => []);
+    // 辺の数だけ空の配列を作ると、開いた箱を持つ図では Router ごとに 10 万個を超え、作るだけで描く時間の 1 割を使った (#3472)
+    this.hObs = new Array<number[] | undefined>(this.nx * this.ny);
+    this.vObs = new Array<number[] | undefined>(this.nx * this.ny);
+    this.hMarks = new Array<Mark[] | undefined>(this.nx * this.ny);
+    this.vMarks = new Array<Mark[] | undefined>(this.nx * this.ny);
     this.hRail = new Uint8Array(this.nx * this.ny);
     this.vRail = new Uint8Array(this.nx * this.ny);
     obstacles.forEach((o) => {
@@ -243,10 +307,10 @@ export class Router {
       // 横の辺は、高さが四角の中で、横の範囲が四角と重なる物
       for (let j = lowerBound(ys, y0 + 1e-6); j < this.ny && (ys[j] as number) < y1 - 1e-6; j++)
         for (let i = Math.max(0, lowerBound(xs, x0) - 1); i < this.nx - 1 && (xs[i] as number) < x1 - 1e-6; i++)
-          if ((xs[i + 1] as number) > x0 + 1e-6) (this.hObs[j * this.nx + i] as number[]).push(k);
+          if ((xs[i + 1] as number) > x0 + 1e-6) (this.hObs[j * this.nx + i] ??= []).push(k);
       for (let i = lowerBound(xs, x0 + 1e-6); i < this.nx && (xs[i] as number) < x1 - 1e-6; i++)
         for (let j = Math.max(0, lowerBound(ys, y0) - 1); j < this.ny - 1 && (ys[j] as number) < y1 - 1e-6; j++)
-          if ((ys[j + 1] as number) > y0 + 1e-6) (this.vObs[j * this.nx + i] as number[]).push(k);
+          if ((ys[j + 1] as number) > y0 + 1e-6) (this.vObs[j * this.nx + i] ??= []).push(k);
     });
   }
 
@@ -270,21 +334,21 @@ export class Router {
       // 縦の辺のうち、線分の横の範囲の中を通り、高さが線分にかかる物
       for (let i = lowerBound(this.xs, lo - 0.25); i < this.nx && (this.xs[i] as number) <= hi + 0.25; i++)
         for (let j = Math.max(0, lowerBound(this.ys, y) - 1); j < this.ny - 1 && (this.ys[j] as number) <= y + 0.25; j++)
-          if ((this.ys[j + 1] as number) >= y - 0.25) (this.vMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "cross", d: (this.xs[i] as number) > lo + 0.5 && (this.xs[i] as number) < hi - 0.5 ? 0 : 1 });
+          if ((this.ys[j + 1] as number) >= y - 0.25) (this.vMarks[j * this.nx + i] ??= []).push({ laid: index, rel: "cross", d: (this.xs[i] as number) > lo + 0.5 && (this.xs[i] as number) < hi - 0.5 ? 0 : 1 });
       // 横の辺のうち、近くを平行に走る物
       for (let j = lowerBound(this.ys, y - reach); j < this.ny && (this.ys[j] as number) <= y + reach; j++)
         for (let i = Math.max(0, lowerBound(this.xs, lo) - 1); i < this.nx - 1 && (this.xs[i] as number) < hi; i++)
-          if ((this.xs[i + 1] as number) > lo) (this.hMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "along", d: Math.abs((this.ys[j] as number) - y) });
+          if ((this.xs[i + 1] as number) > lo) (this.hMarks[j * this.nx + i] ??= []).push({ laid: index, rel: "along", d: Math.abs((this.ys[j] as number) - y) });
     } else {
       const x = l.a[0];
       const lo = Math.min(l.a[1], l.b[1]);
       const hi = Math.max(l.a[1], l.b[1]);
       for (let j = lowerBound(this.ys, lo - 0.25); j < this.ny && (this.ys[j] as number) <= hi + 0.25; j++)
         for (let i = Math.max(0, lowerBound(this.xs, x) - 1); i < this.nx - 1 && (this.xs[i] as number) <= x + 0.25; i++)
-          if ((this.xs[i + 1] as number) >= x - 0.25) (this.hMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "cross", d: (this.ys[j] as number) > lo + 0.5 && (this.ys[j] as number) < hi - 0.5 ? 0 : 1 });
+          if ((this.xs[i + 1] as number) >= x - 0.25) (this.hMarks[j * this.nx + i] ??= []).push({ laid: index, rel: "cross", d: (this.ys[j] as number) > lo + 0.5 && (this.ys[j] as number) < hi - 0.5 ? 0 : 1 });
       for (let i = lowerBound(this.xs, x - reach); i < this.nx && (this.xs[i] as number) <= x + reach; i++)
         for (let j = Math.max(0, lowerBound(this.ys, lo) - 1); j < this.ny - 1 && (this.ys[j] as number) < hi; j++)
-          if ((this.ys[j + 1] as number) > lo) (this.vMarks[j * this.nx + i] as Mark[]).push({ laid: index, rel: "along", d: Math.abs((this.xs[i] as number) - x) });
+          if ((this.ys[j + 1] as number) > lo) (this.vMarks[j * this.nx + i] ??= []).push({ laid: index, rel: "along", d: Math.abs((this.xs[i] as number) - x) });
     }
   }
 
@@ -301,7 +365,7 @@ export class Router {
 
   /** 辺を通る時に足す値。通れない辺は `undefined` */
   private edgeCost(ask: Ask, horizontal: boolean, index: number): number | undefined {
-    const obs = (horizontal ? this.hObs : this.vObs)[index] as number[];
+    const obs = (horizontal ? this.hObs : this.vObs)[index] ?? NONE;
     for (const o of obs) if (!ask.allow?.has(o)) return undefined;
     let extra = 0;
     this.lastRail = ((horizontal ? this.hRail : this.vRail)[index] as number) === 1;
@@ -309,7 +373,7 @@ export class Router {
     this.lastJoin = -1;
     /** この辺で越える値を足した組。幹を共に通る何本もの線を越える時も、1 本を越える値だけを足す */
     let charged: string[] | undefined;
-    for (const m of (horizontal ? this.hMarks : this.vMarks)[index] as Mark[]) {
+    for (const m of (horizontal ? this.hMarks : this.vMarks)[index] ?? NONE) {
       const l = this.laid[m.laid] as Laid;
       if (l.group === ask.group) {
         // 同じ組の線は重ねて共に通ってよいが、少しずれて並ぶと二重の線に見えるため、重ならない時は間を取る
@@ -365,28 +429,12 @@ export class Router {
    */
   route(ask: Ask): Point[] | undefined {
     const { nx, ny } = this;
-    const size = nx * ny * 4;
-    this.work ??= {
-      seen: new Uint32Array(size),
-      best: new Float64Array(size),
-      from: new Int32Array(size),
-      goal: new Uint32Array(size),
-      goalCost: new Float64Array(size),
-      hSeen: new Uint32Array(nx * ny),
-      hCost: new Float64Array(nx * ny),
-      vSeen: new Uint32Array(nx * ny),
-      vCost: new Float64Array(nx * ny),
-      hHug: new Uint8Array(nx * ny),
-      vHug: new Uint8Array(nx * ny),
-      hJoin: new Int32Array(nx * ny),
-      vJoin: new Int32Array(nx * ny),
-    };
-    const { seen, best, from, goal, goalCost, hSeen, hCost, vSeen, vCost, hHug, vHug, hJoin, vJoin } = this.work;
+    const { seen, best, from, goal, goalCost, hSeen, hCost, vSeen, vCost, hHug, vHug, hJoin, vJoin, guessSeen, guessVal } = workFor(nx * ny);
     const hug = ask.hug ?? 0;
     const share = ask.share ?? 1;
-    const ep = ++this.epoch;
+    const ep = ++epoch;
     const bestOf = (st: number): number => (seen[st] === ep ? (best[st] as number) : Number.POSITIVE_INFINITY);
-    const open = heap();
+    open.clear();
     let goals = 0;
     for (const e of ask.ends) {
       const i = this.ix(e.at[0]);
@@ -401,7 +449,11 @@ export class Router {
     if (goals === 0) return undefined;
     const ex = Float64Array.from(ask.ends, (e) => e.at[0]);
     const ey = Float64Array.from(ask.ends, (e) => e.at[1]);
+    // 見積もりは点と終わりの端だけで決まるため、同じ探しの中では点ごとに 1 度だけ求める。
+    // 山に入れるたびに全ての終わりの端と比べると、開いた箱を持つ図では探しの時間の多くを使った (#3472)
     const guess = (i: number, j: number): number => {
+      const node = j * nx + i;
+      if (guessSeen[node] === ep) return guessVal[node] as number;
       const x = this.xs[i] as number;
       const y = this.ys[j] as number;
       let m = Number.POSITIVE_INFINITY;
@@ -412,7 +464,10 @@ export class Router {
       // 寄り添う辺は長さを減らして数えるため、見積もりも同じ割合で減らし、見積もりが本当の値を超えないようにする。
       // 同じ組の線と重なる辺はさらに減らして数えるが、見積もりは減らさない。見積もりが本当の値を超える所では、
       // 相手へ向かう幹を先に辿るため幹を共に通る道が早く見つかり、探す点の数も増えない
-      return m * (1 - hug);
+      const v = m * (1 - hug);
+      guessSeen[node] = ep;
+      guessVal[node] = v;
+      return v;
     };
     /** 辺を通る時に足す値。通れない辺は -1。同じ探しの中では辺の値は変わらないため、1 度だけ求める */
     const edge = (horizontal: boolean, index: number): number => {
@@ -474,18 +529,23 @@ export class Router {
         seen[state] = ep;
         best[state] = g;
         from[state] = -2 - ((j * nx + i) * 4 + s.dir);
-        open.push(g + guess(ni, nj), state);
+        open.push(g + guess(ni, nj), state, g);
       }
     }
     let found = -1;
     let foundCost = Number.POSITIVE_INFINITY;
+    const bend = ask.bend;
     while (open.size() > 0) {
-      const state = open.pop() as number;
+      const state = open.pop();
       const g = best[state] as number;
       if (g >= foundCost) break;
+      // 後から小さい値で入れ直した状態の古い物は飛ばす。新しい物は値が小さいため先に取り出して同じ値で広げ終えており、
+      // 広げ直しても山に入れる物も辺の覚えも変わらない (#3472)。終わりの状態は、新しい物を広げずに終えた時があるため飛ばさない
+      const isGoal = goal[state] === ep;
+      if (!isGoal && open.poppedG > g) continue;
       const node = state >> 2;
       const d = (state & 3) as Dir;
-      if (goal[state] === ep && g + (goalCost[state] as number) < foundCost) {
+      if (isGoal && g + (goalCost[state] as number) < foundCost) {
         found = state;
         foundCost = g + (goalCost[state] as number);
         continue;
@@ -494,18 +554,18 @@ export class Router {
       const j = (node - i) / nx;
       // そのまま進む、右へ折れる、左へ折れるの順に試す
       for (let t = 0; t < 3; t++) {
-        const nd = (t === 0 ? d : t === 1 ? (d + 1) % 4 : (d + 3) % 4) as Dir;
+        const nd = (t === 0 ? d : t === 1 ? (d + 1) & 3 : (d + 3) & 3) as Dir;
         const c = stepCost(i, j, nd);
-        if (c < 0 || (nd === d && piercing(i, j, d))) continue;
+        if (c < 0 || (t === 0 && piercing(i, j, d))) continue;
         const ni = i + DX[nd];
         const nj = j + DY[nd];
-        const ng = g + c + (nd === d ? 0 : ask.bend);
+        const ng = t === 0 ? g + c : g + c + bend;
         const ns = (nj * nx + ni) * 4 + nd;
-        if (ng < bestOf(ns)) {
+        if (seen[ns] !== ep || ng < (best[ns] as number)) {
           seen[ns] = ep;
           best[ns] = ng;
           from[ns] = state;
-          open.push(ng + guess(ni, nj), ns);
+          open.push(ng + guess(ni, nj), ns, ng);
         }
       }
     }
