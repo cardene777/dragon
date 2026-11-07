@@ -561,7 +561,22 @@ export function mountDiagram(
     follow();
   };
 
-  /** 動きの変数を付けた図を置き直す。置き直すと動きの時計が最初から数え直される */
+  /**
+   * 図の中の全ての動きの時刻を 0 へ戻し、動きの時計を最初から数え直させる。
+   * 動きの遅れは `--at` から引くので、時刻が 0 の動きは `--at` 秒の所を描く。
+   * 前に流れた時間を残したまま `--at` だけを替えると、残った時間の分だけ別の段の絵になる (#3445)。
+   * 動きを持たない環境 (`getAnimations` の無い jsdom など) では何もしない
+   */
+  const rewind = (figure: SVGSVGElement): void => {
+    if (typeof figure.getAnimations !== "function") return;
+    for (const animation of figure.getAnimations({ subtree: true })) animation.currentTime = 0;
+  };
+
+  /**
+   * 動きの変数を付けた図を置き、動きの時計を最初から数え直す。
+   * `markup` を渡した時は描き直した新しい図に替え、渡さない時は今の図をそのまま使う。
+   * 段を送るたびに図を写して置き直すと、大きな図では写す手間が段の送りの大半を占める (#3445)
+   */
   const place = (markup?: string): void => {
     let next: SVGSVGElement | null;
     if (markup !== undefined) {
@@ -569,27 +584,32 @@ export function mountDiagram(
       holder.innerHTML = markup;
       next = holder.querySelector("svg");
     } else {
-      next = svg ? (svg.cloneNode(true) as SVGSVGElement) : null;
+      next = svg;
     }
     if (!next) return;
-    // 箱の飛び先 (#3199) の link を持つ図を隠すと、Tab で押せる link が読み上げから消える。
-    // その図は名前を残した group として読ませ、link の無い図は段の一覧に読ませて図を隠す (#3329)
-    if (next.querySelector("a[href]")) {
-      next.removeAttribute("aria-hidden");
-      next.setAttribute("role", "group");
-    } else {
-      next.setAttribute("aria-hidden", "true");
-      next.removeAttribute("role");
-      next.removeAttribute("aria-label");
+    // 図を替えた時だけ、図の中を全てたどる読み上げの属性と点線の四角を付け直す。同じ図ではどちらも変わらない (#3445)
+    const fresh = next !== svg;
+    if (fresh) {
+      // 箱の飛び先 (#3199) の link を持つ図を隠すと、Tab で押せる link が読み上げから消える。
+      // その図は名前を残した group として読ませ、link の無い図は段の一覧に読ませて図を隠す (#3329)
+      if (next.querySelector("a[href]")) {
+        next.removeAttribute("aria-hidden");
+        next.setAttribute("role", "group");
+      } else {
+        next.setAttribute("aria-hidden", "true");
+        next.removeAttribute("role");
+        next.removeAttribute("aria-label");
+      }
     }
     next.style.setProperty("--at", String(at));
     next.style.setProperty("--play", playing ? "running" : "paused");
     next.dataset.motion = playing ? "play" : "still";
-    if (svg) svg.replaceWith(next);
-    else frame.append(next);
+    if (svg && fresh) svg.replaceWith(next);
+    else if (!svg) frame.append(next);
     svg = next;
+    rewind(next);
     born = Date.now();
-    drawMarks();
+    if (fresh) drawMarks();
     controls?.fit(frame, next);
     controls?.mark(next, step);
     settle();

@@ -159,11 +159,11 @@ describe("飛び先を持つ図の読み上げ (#3329)", () => {
   it("player-linked-figure-readable-after-replace", () => {
     prefersReducedMotion(false);
     const { host, player } = mount(linked());
-    // 段を送ると、部品は図を置き直す
+    // 段を送ると、部品は図の読み上げの属性と動きの変数を付け直す (#3445 からは図を写さず同じ図に付ける)
     click(host, "next");
     expect(player.step).toBe(1);
     expectReadable(host);
-    // 流している図の止める釦を押しても、部品は図を置き直す
+    // 流している図の止める釦を押しても、部品は図の属性を付け直す
     expect(player.playing).toBe(true);
     click(host, "toggle");
     expect(player.playing).toBe(false);
@@ -690,8 +690,9 @@ describe("段を送る時に図を置き直さない (#3445)", () => {
     player.goTo(2);
     expect(host.querySelector("svg"), "段を送ると図の SVG を写して置き直す").toBe(svg);
     expect(clock(svg), "段 3 へ送った図の動きの変数").toEqual({ at: String(timeline.stills[2]), play: "paused", motion: "still" });
-    // 流し直した時も同じ図のまま、流す変数に替える
-    player.play();
+    // 再生の釦で流し直した時も同じ図のまま、流す変数に替える
+    click(host, "toggle");
+    expect(player.playing, "再生の釦で流れない").toBe(true);
     expect(host.querySelector("svg"), "流し直すと図の SVG を写して置き直す").toBe(svg);
     expect(clock(svg), "流し直した図の動きの変数").toEqual({ at: String(timeline.stills[2]), play: "running", motion: "play" });
   });
@@ -713,9 +714,10 @@ describe("段を送る時に図を置き直さない (#3445)", () => {
       player.goTo(2);
       expect(fakes.map((f) => f.currentTime), "段を送った後の動きの時刻").toEqual([0, 0]);
       expect(asked.some((a) => a.tag === "svg" && a.subtree), "図の SVG の中の全ての動きを引いていない").toBe(true);
-      // 流し直す時も 0 へ戻し、動きの時計を最初から数え直す
+      // 再生の釦で流し直す時も 0 へ戻し、動きの時計を最初から数え直す
       for (const f of fakes) f.currentTime = 800;
-      player.play();
+      click(host, "toggle");
+      expect(player.playing, "再生の釦で流れない").toBe(true);
       expect(fakes.map((f) => f.currentTime), "流し直した後の動きの時刻").toEqual([0, 0]);
       expect(host.querySelector("svg"), "図が置かれていない").not.toBeNull();
     } finally {
@@ -729,14 +731,16 @@ describe("段を送る時に図を置き直さない (#3445)", () => {
 
   it("player-goto-costs-less-than-mount", () => {
     prefersReducedMotion(true);
-    // 段を送る手間を、同じ図を置く手間と比べる。秒ではなく比で見るので、機械が混んでいても両方が同じだけ遅れる
-    const diagram = exampleJson("swap-two-hops.json") as { steps: unknown[] };
+    // 段を送る手間を、同じ図を置く手間と比べる。秒ではなく比で見るので、機械が混んでいても両方が同じだけ遅れる。
+    // 配管の図は組んだ置き場所を原本ごとに覚えるので、題を替えて前の件が組んだ覚えを使わせず、置く手間を件の順に依らせない
+    const source = exampleJson("swap-two-hops.json") as { steps: unknown[] };
+    const diagram = { ...source, title: "段の送りの手間を測る図 (#3445)" } as Json;
     const ms = (u: NodeJS.CpuUsage): number => (u.user + u.system) / 1000;
     const placing = process.cpuUsage();
     const { player } = mount(diagram, { lang: "ja" });
     const placed = ms(process.cpuUsage(placing));
     const sending = process.cpuUsage();
-    for (let s = 0; s < diagram.steps.length; s++) player.goTo(s);
+    for (let s = 0; s < source.steps.length; s++) player.goTo(s);
     const sent = ms(process.cpuUsage(sending));
     expect(sent, `全ての段を送る CPU 時間 (${Math.round(sent)}ms) が、図を置く CPU 時間 (${Math.round(placed)}ms) の 4 分の 1 以上`).toBeLessThan(placed / 4);
   });
