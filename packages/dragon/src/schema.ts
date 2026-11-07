@@ -168,14 +168,26 @@ export interface TryEdit {
  * 待ち行列 (`queue`) は `order` の欄の値の高い順にチップを並べ、機械の列 (`chain`) は `edit` の欄を読み手に書き換えさせる。
  * 入力の帯 (`ask`) は図に 1 つまでで、`id` は常に `ask`。最初の欄の値がチップの名前になる。
  * `choices` は欄ごとの選択肢 (`choose` の行を書いた順、#3422) で、選択肢を持つ欄は読み手に値を選ばせる。
- * 釦 (`press`) は `from` の待ち行列の上から `take` 件を `into` の機械の列の新しいブロックへ移し、`at` の部品の所に置く
+ * `into` に欄を書くと、送ったチップはその欄の値と同じ名札の待ち行列へ入る (#3441)。その欄は選択肢を持ち、選択肢ごとに同じ名札の待ち行列が要る。
+ * 記録の列 (`log`、#3441) は釦が取り出したチップを番号の付いた記録にまとめ、機械の列と違って prev と hash を持たない。
+ * `all` を書くと、記録の中のチップの `all.field` の欄が全て `all.value` なら `all.yes`、1 つでも違えば `all.no` の印を記録に出す。
+ * 釦 (`press`) は `from` の待ち行列の上から `take` 件を `into` の機械の列の新しいブロックか記録の列の新しい記録へ移し、`at` の部品の所に置く
  */
 export type TryPart =
   | { type: "route"; id: string; paths: string[][]; from: string; to: string }
   | { type: "queue"; id: string; order?: string }
   | { type: "chain"; id: string; edit?: string }
+  | { type: "log"; id: string; all?: TryVerdict }
   | { type: "ask"; id: "ask"; fields: string[]; into: string; via?: string; choices?: Record<string, string[]> }
   | { type: "press"; id: string; from: string; into: string; take: number; at?: string };
+
+/** 記録の列の印の決め方 (#3441)。記録の中のチップの `field` の欄が全て `value` なら `yes`、1 つでも違えば `no` */
+export interface TryVerdict {
+  field: string;
+  value: string;
+  yes: string;
+  no: string;
+}
 
 /** 試す図のチップ。`values` の鍵は入力の帯の欄 (最初の欄を除く) で、名札がチップの名前 (最初の欄の値) になる */
 export interface TryItem {
@@ -312,7 +324,7 @@ export interface CheckOptions {
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
 const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
-const PART_TYPES = ["route", "queue", "chain", "ask", "press"] as const satisfies readonly TryPart["type"][];
+const PART_TYPES = ["route", "queue", "chain", "log", "ask", "press"] as const satisfies readonly TryPart["type"][];
 
 /**
  * その種類の図に書けない根の欄を書いた時の決まりの場所 (#3164)。根の欄に `not: {}` を置く決まり (`absent`) を指し、

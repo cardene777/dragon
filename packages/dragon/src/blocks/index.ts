@@ -24,6 +24,7 @@ import { block as legendBlock } from "./legend/block";
 import { block as lifelineBlock } from "./lifeline/block";
 import { block as lineBlock } from "./line/block";
 import { block as linkBlock } from "./link/block";
+import { block as logBlock } from "./log/block";
 import { block as mergeBlock } from "./merge/block";
 import { block as nodeBlock } from "./node/block";
 import { block as noteBlock } from "./note/block";
@@ -77,6 +78,7 @@ export const BLOCKS = {
   "lifeline": lifelineBlock,
   "line": lineBlock,
   "link": linkBlock,
+  "log": logBlock,
   "merge": mergeBlock,
   "node": nodeBlock,
   "note": noteBlock,
@@ -105,4 +107,4 @@ export const BLOCKS = {
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "ask", "box", "branch", "calc", "call", "carry", "chain", "check", "color", "commit", "copy", "edge", "edge-label", "emit", "fold", "group", "hold", "icon", "item", "leaf", "legend", "lifeline", "line", "link", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "value", "write", "zoom"] as const;
+export const BLOCK_NAMES = ["act", "ask", "box", "branch", "calc", "call", "carry", "chain", "check", "color", "commit", "copy", "edge", "edge-label", "emit", "fold", "group", "hold", "icon", "item", "leaf", "legend", "lifeline", "line", "link", "log", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "value", "write", "zoom"] as const;

@@ -6,6 +6,8 @@
  * 機械の列 (`chain`) は新しい方から `TRY_LOOK.shown` 個のブロックを左から古い順に並べ、それより古いブロックは畳んだ印にまとめる。
  * 枠の幅 (`width`) を渡し、横に並べると字が `READABLE_PX` に届かない時は、枠の幅で縦に組む (#3366)。網の節は枠の幅に詰め、
  * 待ち行列は枠の幅いっぱいに置き、ブロックは上から古い順に積む。見た目の元は `docs/design/interactive/tx-block-narrow.pen` の案A。
+ * 記録の列 (`log`、#3441) は機械の列と同じく新しい方から `TRY_LOOK.shown` 個の記録を並べ、記録は番号と印と、中のチップの名前と欄の値の行を持つ。
+ * 記録の中のチップは記録が行として描くので、記録の列に入ったチップは図の上に置き場所を持たない。
  * 入力の帯 (`ask`) と釦 (`press`) は頁の部品 (再生の部品) が描くので、図の上に置き場所を持たない。
  *
  * 段ごとの状態 (`states`) と出来事ごとの状態 (`moments`) は、記法を読む所と同じ手順 (`try-state.ts`) で作る。
@@ -14,7 +16,7 @@
 import { TRY_LOOK } from "../../look/try";
 import { LOOK, READABLE_PX, TYPE } from "../../look/values";
 import type { DiagramModel, TryPart } from "../../schema";
-import { askFields, type TryState, TryRun } from "../../try-state";
+import { askFields, intoOf, type TryState, TryRun } from "../../try-state";
 import { TRY_TEXT } from "../../try-text";
 import { DEFAULT_LANG, LABEL_MOST, type NotationLang } from "../../words";
 import { textWidth } from "../../layout/measure";
@@ -23,11 +25,12 @@ import type { Layout, Point, Rect } from "../../layout/scene";
 const T = TRY_LOOK;
 const C = T.chip;
 const B = T.block;
+const L = T.record;
 
 /** 図の上に置き場所を持つ部品。`most` は待ち行列だけが持つ */
 export interface TryPartPlaced {
   id: string;
-  type: "route" | "queue" | "chain";
+  type: "route" | "queue" | "chain" | "log";
   rect: Rect;
   most?: number;
 }
@@ -93,9 +96,32 @@ export interface TryChainPlaced {
 }
 
 /**
+ * 記録の列 (#3441)。記録は同じ大きさで、`slots` は古い順の記録の左上 (横に並べた形は左から、縦に組んだ形は上から)。`top` は最初の記録の上端で、
+ * `noBaseline` は番号の字の基準線、`markY` は印の札の上端、`rowTop` は最初の行の上端。`mark` は印の札の幅で、`all` を持たない記録の列は持たない。
+ * `field` は行に出す欄の位置 (`all` の欄か、待ち行列が並べる順の欄)。`fold` は畳んだ印の右端と上端。`labels` は記録の番号ごとの字、`folds` は畳んだ数ごとの字
+ */
+export interface TryLogPlaced {
+  id: string;
+  title: TryTitle;
+  top: number;
+  h: number;
+  w: number;
+  slots: Point[];
+  noBaseline: number;
+  markY: number;
+  mark?: number;
+  rowTop: number;
+  field?: number;
+  fold: { right: number; y: number };
+  labels: Record<number, string>;
+  folds: Record<number, string>;
+}
+
+/**
  * 出来事を当てた後の時点。`step` と `event` は出来事の場所で、最初の時点 (何も起きる前) は -1 を持つ。
  * `chips` はチップの左上 (出ていなければ `null`)、`blocks` は `<機械の列>/<番号>` ごとのブロックの左上 (畳んだか、まだ無ければ `null`)。
- * `trip` はこの出来事で網を運ばれたチップと、通る節の真ん中にチップを置く左上の並び、`built` はこの出来事で足したブロック
+ * `trip` はこの出来事で網を運ばれたチップと、通る節の真ん中にチップを置く左上の並び、`built` はこの出来事で足したブロック。
+ * `records` は `<記録の列>/<番号>` ごとの記録の左上、`logged` はこの出来事で足した記録で、記録の列を持たない図は持たない (#3441)
  */
 export interface TryMoment {
   step: number;
@@ -103,8 +129,10 @@ export interface TryMoment {
   state: TryState;
   chips: Record<string, Point | null>;
   blocks: Record<string, Point | null>;
+  records?: Record<string, Point | null>;
   trip?: { item: string; route: string; points: Point[] };
   built?: { chain: string; number: number };
+  logged?: { log: string; number: number };
 }
 
 export interface TryLayout extends Layout {
@@ -119,6 +147,8 @@ export interface TryLayout extends Layout {
   routes: TryRoutePlaced[];
   queues: TryQueuePlaced[];
   chains: TryChainPlaced[];
+  /** 記録の列。記録の列を持たない図は持たない (#3441) */
+  logs?: TryLogPlaced[];
   /** チップの大きさ */
   chip: { w: number; h: number };
   /** チップに出す値の欄の位置 (入力の帯の欄の順)。待ち行列が並べる順の欄を持たなければ持たない */
@@ -141,6 +171,9 @@ const cut = (text: string): string => [...text].slice(0, LABEL_MOST).join("");
 
 /** ブロックの鍵 */
 export const blockKey = (chain: string, number: number): string => `${chain}/${number}`;
+
+/** 記録の鍵 (#3441) */
+export const recordKey = (log: string, number: number): string => `${log}/${number}`;
 
 /**
  * 網の節の列。送る側を 0 列、作る人を最後の列に置き、ほかの節は書いた道の中の何番目かの最も大きい番号の列に置く。
@@ -199,8 +232,9 @@ function lanesOf(
   return lane;
 }
 
-/** 図の上に置き場所を持つ部品 (網、待ち行列、機械の列) */
-type PlacedPart = Extract<TryPart, { type: "route" | "queue" | "chain" }>;
+/** 図の上に置き場所を持つ部品 (網、待ち行列、機械の列、記録の列) */
+type PlacedPart = Extract<TryPart, { type: "route" | "queue" | "chain" | "log" }>;
+type LogPart = Extract<TryPart, { type: "log" }>;
 
 /** 試す図を並べる時の設定。`width` は描く枠の幅で、渡すと横に並べた形の字が読めない幅で縦に組む (#3366) */
 export interface TryOptions {
@@ -219,7 +253,7 @@ export function layoutTry(
   const most = run.most;
 
   // 出来事を 1 つずつ当て、段ごとの状態と出来事ごとの状態を作る
-  type Raw = Omit<TryMoment, "chips" | "blocks" | "trip"> & { tripItem?: string };
+  type Raw = Omit<TryMoment, "chips" | "blocks" | "records" | "trip"> & { tripItem?: string };
   const raws: Raw[] = [{ step: -1, event: -1, state: run.state() }];
   const states: TryState[] = [];
   diagram.steps.forEach((step, s) => {
@@ -237,6 +271,7 @@ export function layoutTry(
         state,
         ...(tripItem !== undefined ? { tripItem } : {}),
         ...(applied.block ? { built: applied.block } : {}),
+        ...(applied.record ? { logged: applied.record } : {}),
       });
     });
     states.push(run.state());
@@ -270,13 +305,39 @@ export function layoutTry(
     textWidth("0000", TYPE.tryRowValue) +
     B.rowPad * 2;
   const blockW = Math.max(B.w, chipW + B.padX * 2, rowText + B.padX * 2);
+
+  // 記録の幅は、番号と印の札が並ぶ幅と、チップの名前と欄の値の行が入る幅 (#3441)
+  const logParts = spec.parts.filter((p): p is LogPart => p.type === "log");
+  const logField = (part: LogPart): number | undefined => {
+    const at = part.all ? fields.indexOf(part.all.field) : -1;
+    return at >= 1 ? at : valueField;
+  };
+  const markWidth = (part: LogPart): number | undefined =>
+    part.all
+      ? L.markPadX * 2 + Math.max(...[part.all.yes, part.all.no].map((t) => textWidth(t, TYPE.tryChipValue)))
+      : undefined;
+  const recordW = (part: LogPart): number => {
+    const field = logField(part);
+    let rowValueW = 0;
+    if (field !== undefined)
+      for (const raw of raws)
+        for (const row of Object.values(raw.state.items))
+          rowValueW = Math.max(rowValueW, textWidth(row[field] ?? "", TYPE.tryChipValue));
+    const rowW = C.padX * 2 + nameW + (field === undefined ? 0 : C.valueGap + rowValueW);
+    const labels = raws.flatMap((raw) => (raw.state.logs?.[part.id] ?? []).map((r) => textWidth(words.tryRecord(r.number), TYPE.tryBlockNo)));
+    const head = Math.max(0, ...labels) + (part.all ? L.headGap + (markWidth(part) ?? 0) : 0);
+    return Math.max(L.w, rowW + B.padX * 2, head + B.padX * 2);
+  };
+  const logW = new Map(logParts.map((p) => [p.id, recordW(p)]));
+  const logRowW = (id: string): number => T.shown * (logW.get(id) ?? L.w) + (T.shown - 1) * L.gap;
   const titles = spec.parts
-    .filter((p) => p.type === "route" || p.type === "queue" || p.type === "chain")
+    .filter((p) => p.type === "route" || p.type === "queue" || p.type === "chain" || p.type === "log")
     .map((p) => textWidth(p.id, TYPE.tryTitle));
   const wide = Math.max(
     T.width,
     T.margin * 2 + T.shown * blockW + (T.shown - 1) * B.gap,
     T.margin * 2 + Math.max(0, ...titles),
+    ...logParts.map((p) => T.margin * 2 + logRowW(p.id)),
   );
   const frame = options.width;
   /** 幅 `w` の図を枠に縮めても箱の名前の字が読める大きさに届くか。枠を渡さない時は縮めない */
@@ -294,11 +355,14 @@ export function layoutTry(
     text === undefined ? 0 : T.queue.hintGap + textWidth(text, TYPE.tryHint);
 
   // side の行 (#3429)。同じ行に置いた時に部品が要る幅は、待ち行列はチップの列と字と題、機械の列は出すブロック、網は節の名札が重ならない間
-  const placedParts = spec.parts.filter((p): p is PlacedPart => p.type === "route" || p.type === "queue" || p.type === "chain");
+  const placedParts = spec.parts.filter(
+    (p): p is PlacedPart => p.type === "route" || p.type === "queue" || p.type === "chain" || p.type === "log",
+  );
   const needOf = (part: PlacedPart): number => {
     const title = textWidth(part.id, TYPE.tryTitle);
     if (part.type === "queue") return Math.max(T.queue.padX * 2 + chipW + hintWidth(hintTextOf(part.id)), title);
     if (part.type === "chain") return Math.max(T.shown * blockW + (T.shown - 1) * B.gap, title);
+    if (part.type === "log") return Math.max(logRowW(part.id), title);
     const labels = columnsOf(part).map((list) => Math.max(...list.map((id) => textWidth(id, TYPE.tryNode))));
     const apart = labels.slice(1).reduce((sum, w, c) => sum + ((labels[c] ?? 0) + w) / 2 + T.route.labelGap, 0);
     return Math.max(T.route.padX * 2 + apart, title);
@@ -318,6 +382,7 @@ export function layoutTry(
         frame,
         T.margin * 2 + blockW + B.side + T.link.badge / 2,
         T.margin * 2 + Math.max(0, ...titles),
+        ...logParts.map((p) => T.margin * 2 + (logW.get(p.id) ?? L.w)),
       )
     : side
       ? sideWide
@@ -346,6 +411,7 @@ export function layoutTry(
   const routes: TryRoutePlaced[] = [];
   const queues: TryQueuePlaced[] = [];
   const chains: TryChainPlaced[] = [];
+  const logs: TryLogPlaced[] = [];
   let y: number = T.margin;
   const titleOf = (id: string, top: number, left: number): TryTitle => ({
     text: id,
@@ -455,6 +521,46 @@ export function layoutTry(
           most,
         });
         lowest = Math.max(lowest, bottomOf(box));
+      } else if (part.type === "log") {
+        const w = logW.get(part.id) ?? L.w;
+        const records = raws.flatMap((raw) => raw.state.logs?.[part.id] ?? []);
+        const rows = Math.max(1, ...records.map((r) => r.items.length));
+        const head = part.all ? T.fold.h : B.noH;
+        const noBaseline = body + B.padTop + head / 2 + TYPE.tryBlockNo.size * 0.35;
+        const rowTop = body + B.padTop + head + B.rowGap;
+        const h = rowTop + rows * pitch - C.gap + B.padBottom - body;
+        const numbers = new Set(records.map((r) => r.number));
+        const folded = new Set(
+          raws.map((raw) => Math.max(0, (raw.state.logs?.[part.id] ?? []).length - T.shown)),
+        );
+        const field = logField(part);
+        const mark = markWidth(part);
+        logs.push({
+          id: part.id,
+          title: titleOf(part.id, top, left),
+          top: body,
+          h,
+          w,
+          slots: Array.from({ length: T.shown }, (_, n): Point =>
+            stacked ? [left, body + n * (h + L.gap)] : [left + n * (w + L.gap), body],
+          ),
+          noBaseline,
+          markY: body + B.padTop,
+          ...(mark !== undefined ? { mark } : {}),
+          rowTop,
+          ...(field !== undefined ? { field } : {}),
+          fold: {
+            right: left + span,
+            y: top + T.head.titleY - TYPE.tryTitle.size * 0.35 - T.fold.h / 2,
+          },
+          labels: Object.fromEntries([...numbers].map((n) => [n, words.tryRecord(n)])),
+          folds: Object.fromEntries(
+            [...folded].filter((n) => n > 0).map((n) => [n, words.tryFoldedRecords(n)]),
+          ),
+        });
+        const bottom = stacked ? body + T.shown * h + (T.shown - 1) * L.gap : body + h;
+        parts.push({ id: part.id, type: "log", rect: { x: left, y: top, w: span, h: bottom - top } });
+        lowest = Math.max(lowest, bottom);
       } else {
         const rows = Math.max(
           1,
@@ -515,9 +621,20 @@ export function layoutTry(
   const queueOf = new Map(queues.map((q) => [q.id, q]));
   const chainOf = new Map(chains.map((c) => [c.id, c]));
   const routeOf = new Map(routes.map((r) => [r.id, r]));
+  const logOf = new Map(logs.map((l) => [l.id, l]));
   const moments: TryMoment[] = raws.map(({ tripItem, ...raw }) => {
     const chips: Record<string, Point | null> = {};
     const blocks: Record<string, Point | null> = {};
+    const records: Record<string, Point | null> = {};
+    // 記録の中のチップは記録が行として描くので、チップの置き場所は持たない
+    for (const [id, list] of Object.entries(raw.state.logs ?? {})) {
+      const l = logOf.get(id);
+      const first = list.length - list.filter((r) => r.shown).length;
+      list.forEach((record, i) => {
+        const slot = record.shown && l ? l.slots[i - first] : undefined;
+        records[recordKey(id, record.number)] = slot === undefined ? null : [slot[0], slot[1]];
+      });
+    }
     for (const id of Object.keys(raw.state.items)) chips[id] = null;
     for (const [id, list] of Object.entries(raw.state.queues)) {
       const q = queueOf.get(id);
@@ -552,6 +669,7 @@ export function layoutTry(
       ...raw,
       chips,
       blocks,
+      ...(logs.length > 0 ? { records } : {}),
       ...(trip && points.length > 0
         ? { trip: { item: trip.item, route: trip.route, points } }
         : {}),
@@ -579,6 +697,7 @@ export function layoutTry(
     routes,
     queues,
     chains,
+    ...(logs.length > 0 ? { logs } : {}),
     chip: { w: chipW, h: C.h },
     ...(valueField !== undefined ? { valueField } : {}),
     names,
@@ -604,6 +723,11 @@ export function tryFocusParts(layout: TryLayout, diagram: DiagramModel, step: nu
     const at = end.blocks[blockKey(chain, number)];
     return c && at ? { x: at[0], y: at[1], w: c.w, h: c.h } : undefined;
   };
+  const recordRect = (log: string, number: number): Rect | undefined => {
+    const l = layout.logs?.find((x) => x.id === log);
+    const at = end.records?.[recordKey(log, number)];
+    return l && at ? { x: at[0], y: at[1], w: l.w, h: l.h } : undefined;
+  };
   /** 窓から外さない所の候補、`line` がブロックに書いた所、続けて見る所 */
   const lead: Rect[] = [];
   const lines: Rect[] = [];
@@ -613,13 +737,17 @@ export function tryFocusParts(layout: TryLayout, diagram: DiagramModel, step: nu
   };
   (diagram.steps[step]?.events ?? []).forEach((event, k) => {
     const mo = moments.find((x) => x.event === k);
-    const built = mo?.built ? blockRect(mo.built.chain, mo.built.number) : undefined;
+    const built = mo?.built
+      ? blockRect(mo.built.chain, mo.built.number)
+      : mo?.logged
+        ? recordRect(mo.logged.log, mo.logged.number)
+        : undefined;
     if (event.type === "line" && "part" in event) {
       if (built) lines.push(built);
       else push(lead, partRect(event.part));
     } else if (event.type === "ask") {
       const ask = parts.find((p): p is Extract<TryPart, { type: "ask" }> => p.type === "ask");
-      push(lead, partRect(ask?.into));
+      push(lead, partRect(ask ? intoOf(ask, event.values, (id) => parts.some((p) => p.id === id)) : undefined));
       if (mo?.trip) push(rest, partRect(mo.trip.route));
     } else if (event.type === "press") {
       const press = parts.find(
@@ -655,7 +783,7 @@ export function tryFocusParts(layout: TryLayout, diagram: DiagramModel, step: nu
   return [...lead, ...lines, ...rest];
 }
 
-/** 全体図に描く試す図の部品 (#3337)。網の節と待ち行列の枠と、最後の時点に出ているブロック */
+/** 全体図に描く試す図の部品 (#3337)。網の節と待ち行列の枠と、最後の時点に出ているブロックと記録 */
 export function tryOverview(layout: TryLayout): TryOverviewShape[] {
   const color = T.color.part;
   const last = layout.moments[layout.moments.length - 1];
@@ -673,6 +801,12 @@ export function tryOverview(layout: TryLayout): TryOverviewShape[] {
       (last?.state.chains[c.id] ?? []).flatMap((b) => {
         const at = last?.blocks[blockKey(c.id, b.number)];
         return at ? [{ rect: { x: at[0], y: at[1], w: c.w, h: c.h }, band: false, color }] : [];
+      }),
+    ),
+    ...(layout.logs ?? []).flatMap((l) =>
+      (last?.state.logs?.[l.id] ?? []).flatMap((r) => {
+        const at = last?.records?.[recordKey(l.id, r.number)];
+        return at ? [{ rect: { x: at[0], y: at[1], w: l.w, h: l.h }, band: false, color }] : [];
       }),
     ),
   ];

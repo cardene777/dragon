@@ -8,11 +8,14 @@
  * 待ち行列は `order` の欄の値の高い順 (同じ値は入った順) に並べる。値は 2 つとも有限の数として読めれば数で、そうでなければ字で比べる。
  * ブロックの `prev` は作った時の 1 つ前のブロックの `hash` で、作った後は変えない。`hash` は番号と `prev` と中のチップの欄の値から、
  * 段ごとに今の欄の値で出し直す。2 つ目以降のブロックは、`prev` が 1 つ前のブロックの今の `hash` と同じなら `ok`、違えば `broken` を持つ。
+ * 記録の列 (`log`、#3441) の記録は番号と中のチップだけを持ち、prev と hash を持たない。`all` を書いた記録の列は、記録の中のチップのその欄が全てその値なら `yes`、
+ * 1 つでも違えば `no` の印を、段ごとに今の欄の値で出し直す。記録の列を持たない図の状態は、記録の列の欄 (`logs`) を持たない。
+ * 入力の帯の `into` は同じ名札の待ち行列が在ればその待ち行列で、無ければ欄の名前で、送ったチップをその欄の値と同じ名札の待ち行列へ入れる (#3441)。
  * 原本の JSON は部品の名札の食い違い (宣言していない部品やチップ) を形の検査で止められないので、当てられない出来事は何も変えずに誤りの種類を返す。
  */
 import { queueMost, TRY_LOOK } from "./look/try";
 import { sha256 } from "./sha256";
-import type { DiagramEvent, TryItem, TryPart } from "./schema";
+import type { DiagramEvent, TryItem, TryPart, TryVerdict } from "./schema";
 import { LANE_MOST } from "./blocks/line/block";
 
 /** 最初のブロックの prev。前のブロックが無いことを 0 が 64 字並んだ値で表す */
@@ -34,6 +37,18 @@ export interface TryBlock {
   link?: "ok" | "broken";
 }
 
+/** 記録の列の記録 (#3441) */
+export interface TryRecord {
+  /** 1 から数える記録の番号 */
+  number: number;
+  /** 中のチップ (まとめた順) */
+  items: string[];
+  /** `all` の印。記録の列が `all` を持たなければ持たない */
+  mark?: string;
+  /** 図に出すか。新しい方から `TRY_LOOK.shown` 個を出し、それより古い記録は畳む */
+  shown: boolean;
+}
+
 /** 網を運ばれたチップと、通った節 (送る側から作る人まで) */
 export interface TryTrip {
   route: string;
@@ -47,6 +62,8 @@ export interface TryState {
   queues: Record<string, string[]>;
   /** 機械の列ごとのブロック (古い順) */
   chains: Record<string, TryBlock[]>;
+  /** 記録の列ごとの記録 (古い順)。記録の列を持たない図は持たない (#3441) */
+  logs?: Record<string, TryRecord[]>;
   /** チップごとの欄の値。入力の帯の欄の順で、最初の欄がチップの名前 */
   items: Record<string, string[]>;
   /** この段で網を運ばれたチップ */
@@ -67,11 +84,12 @@ export type TryFault =
   | { kind: "blockFull"; part: string; most: number }
   | { kind: "empty"; part: string };
 
-/** 出来事を当てた結果。`chip` は送って作ったチップ、`block` は足したブロック (機械の列と番号) */
+/** 出来事を当てた結果。`chip` は送って作ったチップ、`block` は足したブロック (機械の列と番号)、`record` は足した記録 (記録の列と番号) */
 export interface TryApplied {
   fault?: TryFault;
   chip?: string;
   block?: { chain: string; number: number };
+  record?: { log: string; number: number };
 }
 
 type Part<T extends TryPart["type"]> = Extract<TryPart, { type: T }>;
@@ -130,6 +148,16 @@ export function freshId(name: string, used: (id: string) => boolean): string {
   for (let n = 2; ; n++) if (!used(`${name}-${n}`)) return `${name}-${n}`;
 }
 
+/**
+ * 入力の帯が送るチップの行き先の待ち行列の名札 (#3441)。`into` が部品の名札 (`isPart`) ならその名札で、
+ * そうでなく入力の帯の欄の名前なら、送る値のうちその欄の値
+ */
+export function intoOf(ask: Part<"ask">, values: readonly string[], isPart: (id: string) => boolean): string {
+  if (isPart(ask.into)) return ask.into;
+  const at = ask.fields.indexOf(ask.into);
+  return at < 0 ? ask.into : (values[at] ?? ask.into);
+}
+
 /** 入力の帯の欄。入力の帯が無ければ空 */
 export const askFields = (parts: readonly TryPart[]): string[] =>
   parts.find((p): p is Part<"ask"> => p.type === "ask")?.fields ?? [];
@@ -156,6 +184,8 @@ export class TryRun {
   private readonly chips = new Map<string, string[]>();
   private readonly queues = new Map<string, Entry[]>();
   private readonly chains = new Map<string, Built[]>();
+  /** 記録の列ごとの、記録の中のチップ (古い順) */
+  private readonly logs = new Map<string, string[][]>();
   private trips: TryTrip[] = [];
   private seq = 0;
 
@@ -166,6 +196,7 @@ export class TryRun {
     for (const p of spec.parts) {
       if (p.type === "queue") this.queues.set(p.id, []);
       if (p.type === "chain") this.chains.set(p.id, []);
+      if (p.type === "log") this.logs.set(p.id, []);
     }
     for (const item of spec.items)
       this.chips.set(item.id, [item.id, ...this.fields.slice(1).map((f) => item.values[f] ?? "")]);
@@ -216,16 +247,20 @@ export class TryRun {
     return { block: this.build(part, [...items]) };
   }
 
-  /** 入力の帯の欄の値でチップを作り、入力の帯の待ち行列へ送る。網を書いた入力の帯は、網の最短の道を運ぶ */
+  /**
+   * 入力の帯の欄の値でチップを作り、入力の帯の待ち行列へ送る。網を書いた入力の帯は、網の最短の道を運ぶ。
+   * `into` が部品の名札でなく欄の名前なら、その欄の値と同じ名札の待ち行列へ送る (#3441)
+   */
   ask(values: readonly string[]): TryApplied {
     const ask = this.partOf("ask", "ask");
     if (!ask) return { fault: { kind: "part", part: "ask" } };
     if (values.length !== ask.fields.length)
       return { fault: { kind: "count", want: ask.fields.length } };
-    const queue = this.queues.get(ask.into);
-    if (!queue) return { fault: { kind: "part", part: ask.into } };
+    const into = intoOf(ask, values, (id) => this.parts.has(id));
+    const queue = this.queues.get(into);
+    if (!queue) return { fault: { kind: "part", part: into } };
     if (queue.length >= this.most)
-      return { fault: { kind: "full", part: ask.into, most: this.most } };
+      return { fault: { kind: "full", part: into, most: this.most } };
     const name = values[0] ?? "";
     const id = freshId(name, (x) => this.chips.has(x));
     this.chips.set(id, [...values]);
@@ -235,12 +270,13 @@ export class TryRun {
     return { chip: id };
   }
 
-  /** 釦を押す。待ち行列の上から `take` 件 (少なければ全部) を、機械の列の新しいブロックへ待ち行列の並びのまま移す */
+  /** 釦を押す。待ち行列の上から `take` 件 (少なければ全部) を、機械の列の新しいブロックか記録の列の新しい記録へ待ち行列の並びのまま移す */
   press(name: string): TryApplied {
     const press = this.partOf("press", name);
     if (!press) return { fault: { kind: "part", part: name } };
     const queue = this.queues.get(press.from);
-    if (!queue || !this.chains.has(press.into))
+    const log = this.logs.get(press.into);
+    if (!queue || (!this.chains.has(press.into) && !log))
       return { fault: { kind: "part", part: queue ? press.into : press.from } };
     if (queue.length === 0) return { fault: { kind: "empty", part: press.from } };
     const taken = this.sorted(press.from).slice(0, press.take);
@@ -248,6 +284,10 @@ export class TryRun {
       press.from,
       queue.filter((entry) => !taken.includes(entry.id)),
     );
+    if (log) {
+      log.push(taken);
+      return { record: { log: press.into, number: log.length } };
+    }
     return { block: this.build(press.into, taken) };
   }
 
@@ -284,7 +324,19 @@ export class TryRun {
     }
     const items: Record<string, string[]> = {};
     for (const [id, row] of this.chips) items[id] = [...row];
-    return { queues, chains, items, trips: this.trips.map((t) => ({ ...t, path: [...t.path] })) };
+    const trips = this.trips.map((t) => ({ ...t, path: [...t.path] }));
+    if (this.logs.size === 0) return { queues, chains, items, trips };
+    const logs: Record<string, TryRecord[]> = {};
+    for (const [id, records] of this.logs) {
+      const p = this.partOf("log", id);
+      logs[id] = records.map((list, i): TryRecord => ({
+        number: i + 1,
+        items: [...list],
+        ...(p?.all ? { mark: this.markOf(p.all, list) } : {}),
+        shown: i >= records.length - TRY_LOOK.shown,
+      }));
+    }
+    return { queues, chains, logs, items, trips };
   }
 
   /** 名札 `id` の種類 `type` の部品 */
@@ -297,7 +349,14 @@ export class TryRun {
   private where(item: string): string | undefined {
     for (const [id, entries] of this.queues) if (entries.some((e) => e.id === item)) return id;
     for (const [id, built] of this.chains) if (built.some((b) => b.items.includes(item))) return id;
+    for (const [id, records] of this.logs) if (records.some((list) => list.includes(item))) return id;
     return undefined;
+  }
+
+  /** 記録の印。中のチップの `all.field` の欄が全て `all.value` なら `all.yes`、1 つでも違えば `all.no` */
+  private markOf(all: TryVerdict, items: readonly string[]): string {
+    const at = this.fields.indexOf(all.field);
+    return items.every((id) => this.chips.get(id)?.[at] === all.value) ? all.yes : all.no;
   }
 
   /** 待ち行列の上から見せる順。`order` の欄の値の高い順、同じ値は入った順。`order` が無ければ入った順 */

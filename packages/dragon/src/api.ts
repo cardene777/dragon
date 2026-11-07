@@ -59,6 +59,7 @@ export {
   type TryLine,
   type TryPart,
   type TryPress,
+  type TryVerdict,
   validateDiagram,
   validatorLoaded,
   type ViewMode,
@@ -85,8 +86,8 @@ export type {
 } from "./layout/scene";
 export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTick, TimeWire, TimeZoom } from "./kinds/time/layout";
 export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./kinds/tree/layout";
-export type { TryChainPlaced, TryLayout, TryMoment, TryNetLink, TryNodePlaced, TryPartPlaced, TryQueuePlaced, TryRoutePlaced, TryTitle } from "./kinds/try/layout";
-export type { TryBlock, TryState, TryTrip } from "./try-state";
+export type { TryChainPlaced, TryLayout, TryLogPlaced, TryMoment, TryNetLink, TryNodePlaced, TryPartPlaced, TryQueuePlaced, TryRoutePlaced, TryTitle } from "./kinds/try/layout";
+export type { TryBlock, TryRecord, TryState, TryTrip } from "./try-state";
 export type {
   PipeAt,
   PipeBranch,

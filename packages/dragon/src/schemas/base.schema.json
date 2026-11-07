@@ -1199,7 +1199,48 @@
           }
         },
         {
-          "description": "入力の帯。図に 1 つまでで、id は常に ask。最初の欄の値がチップの名前になる。into の待ち行列へ、via の網を通って送る",
+          "description": "記録の列 (#3441)。釦が取り出したチップを番号の付いた記録にまとめ、機械の列と違って prev と hash を持たない。all を書くと、記録の中のチップの all.field の欄が全て all.value なら all.yes、1 つでも違えば all.no の印を記録に出す",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "id"
+          ],
+          "properties": {
+            "type": {
+              "const": "log"
+            },
+            "id": {
+              "$ref": "#/definitions/id"
+            },
+            "all": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field",
+                "value",
+                "yes",
+                "no"
+              ],
+              "properties": {
+                "field": {
+                  "$ref": "#/definitions/id"
+                },
+                "value": {
+                  "$ref": "#/definitions/text"
+                },
+                "yes": {
+                  "$ref": "#/definitions/text"
+                },
+                "no": {
+                  "$ref": "#/definitions/text"
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "入力の帯。図に 1 つまでで、id は常に ask。最初の欄の値がチップの名前になる。into の待ち行列へ、via の網を通って送る。into に欄を書くと、その欄の値と同じ名札の待ち行列へ送る (#3441)",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -1242,7 +1283,7 @@
           }
         },
         {
-          "description": "釦。from の待ち行列の上から take 件を、into の機械の列の新しいブロックへ移す。at は釦を置く部品 (書かなければ入力の帯)",
+          "description": "釦。from の待ち行列の上から take 件を、into の機械の列の新しいブロックか記録の列の新しい記録へ移す。at は釦を置く部品 (書かなければ入力の帯)",
           "type": "object",
           "additionalProperties": false,
           "required": [

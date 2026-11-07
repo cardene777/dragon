@@ -1,0 +1,32 @@
+try Log
+
+queue GroupA [order: Due]
+queue GroupB [order: Due]
+log Records [all: Vote = Yes, yes: Pass, no: Return]
+ask Name, Group, Vote, Due [into: Group]
+choose Group: GroupA, GroupB
+choose Vote: Yes, No
+press DecideA [from: GroupA, into: Records, take: 2]
+press DecideB [from: GroupB, into: Records, take: 2]
+side GroupA, GroupB
+
+item a [Group: GroupA, Vote: Yes, Due: 3]
+item b [Group: GroupA, Vote: Yes, Due: 2]
+item c [Group: GroupB, Vote: No, Due: 4]
+
+step Lined up by group
+  say With a field in into, a chip joins the queue whose id matches the value chosen for that field.
+  line GroupA: a, b
+  line GroupB: c
+
+step Send to the chosen group
+  say Choose GroupB and send, and the chip enters GroupB.
+  ask d, GroupB, Yes, 1
+
+step Gather into a record
+  say Pressing the button gathers the top 2 chips of the queue into one numbered record. A record holds only its number and chips, with no prev or hash.
+  press DecideA
+
+step Show the mark
+  say When every all field is Yes the record gets Pass, and if even one differs it gets Return.
+  press DecideB

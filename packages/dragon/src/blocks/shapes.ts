@@ -24,6 +24,7 @@ import { shape as legendShape } from "./legend/shape";
 import { shape as lifelineShape } from "./lifeline/shape";
 import { shape as lineShape } from "./line/shape";
 import { shape as linkShape } from "./link/shape";
+import { shape as logShape } from "./log/shape";
 import { shape as mergeShape } from "./merge/shape";
 import { shape as nodeShape } from "./node/shape";
 import { shape as noteShape } from "./note/shape";
@@ -77,6 +78,7 @@ export const SHAPES = {
   "lifeline": lifelineShape,
   "line": lineShape,
   "link": linkShape,
+  "log": logShape,
   "merge": mergeShape,
   "node": nodeShape,
   "note": noteShape,

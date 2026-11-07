@@ -20,7 +20,7 @@ export interface PressMessages {
   badTake: string;
 }
 
-/** 最初の step より前の `press <名札> [from: <待ち行列>, into: <機械の列>, take: <数>, at: <部品>]` の行 */
+/** 最初の step より前の `press <名札> [from: <待ち行列>, into: <機械の列か記録の列>, take: <数>, at: <部品>]` の行 */
 function readPress(source: SourceLine, state: ParseState): void {
   const { m } = state;
   const declared = readDeclared(source, "press", state.attrs.press ?? [], m);
@@ -34,10 +34,10 @@ function readPress(source: SourceLine, state: ParseState): void {
   const take = needed(source, read, "press", "take", at, state);
   if (!COUNT.test(take.value)) throw fail(source, valueAt(source, take), m.badTake);
   refer(source, from, ["queue"], state);
-  refer(source, into, ["chain"], state);
+  refer(source, into, ["chain", "log"], state);
   const place = read.get("at");
   if (place) {
-    refer(source, place, ["route", "queue", "chain", "ask"], state);
+    refer(source, place, ["route", "queue", "chain", "log", "ask"], state);
     if (place.value === declared.id) throw fail(source, valueAt(source, place), m.pressAt(place.value));
   }
   state.figure.try.parts.push({ type: "press", id: declared.id, from: from.value, into: into.value, take: Number(take.value), ...(place ? { at: place.value } : {}) });
@@ -79,12 +79,12 @@ export const reading: BlockReading<PressMessages> = {
   },
   messages: {
     ja: {
-      pressShape: "press は最初の step より前なら press <名札> [from: <待ち行列>, into: <機械の列>, take: <数>]、step の中なら press <名札> の形で書く",
+      pressShape: "press は最初の step より前なら press <名札> [from: <待ち行列>, into: <機械の列か記録の列>, take: <数>]、step の中なら press <名札> の形で書く",
       pressAt: (id) => `${id} は釦なので、釦の置き場所にできない`,
       badTake: "take は 1 以上の整数にする",
     },
     en: {
-      pressShape: "Write press as press <id> [from: <queue>, into: <chain>, take: <count>] before the first step, or as press <id> inside a step",
+      pressShape: "Write press as press <id> [from: <queue>, into: <chain or log>, take: <count>] before the first step, or as press <id> inside a step",
       pressAt: (id) => `${id} is a button, so a button cannot be placed at it`,
       badTake: "take is a whole number of 1 or more",
     },

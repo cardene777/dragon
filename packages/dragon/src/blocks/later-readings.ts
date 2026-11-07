@@ -18,6 +18,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "leaf": () => import("./leaf/read").then((m): BlockReading => m.reading),
   "legend": () => import("./legend/read").then((m): BlockReading => m.reading),
   "line": () => import("./line/read").then((m): BlockReading => m.reading),
+  "log": () => import("./log/read").then((m): BlockReading => m.reading),
   "merge": () => import("./merge/read").then((m): BlockReading => m.reading),
   "node": () => import("./node/read").then((m): BlockReading => m.reading),
   "order": () => import("./order/read").then((m): BlockReading => m.reading),
