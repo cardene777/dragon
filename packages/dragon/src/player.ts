@@ -23,12 +23,15 @@
  * 配管の図の枠 (`[data-dragon="zoom-frame"]`、図が枠より広い間は `[data-dragon="pan"]`) は図を 100% から 400% まで拡大でき、
  * 釦、Ctrl か Command を押しながらのホイール、ダブルクリックで拡大し、拡大した図を引いて枠の中を縦横に送る。
  * 100% の図は、枠の幅が `ZOOM.fit` より狭い時は枠の幅に収め、広い時は縮めずに置く。配管の図は枠の幅を渡して描く。
+ * ただし狭い枠に収めると槽の残高の字が `PIPE_LOOK.narrow.px` に届かない図は、字が届く幅で置いて横に送る (#3450)。
  */
 import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
+import type { PipeLayout } from "./kinds/pipe/layout";
 import type { TryLayout } from "./kinds/try/layout";
+import { PIPE_LOOK } from "./look/pipe";
 import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
 import { partRadius } from "./render/corner";
 import {
@@ -463,12 +466,22 @@ export function mountDiagram(
   /** 配管の図の拡大の度合い (#3418)。1 が拡大していない図 */
   let zoom = 1;
   /**
+   * 槽の残高の字が画面で `PIPE_LOOK.narrow.px` 以上に見える、配管の図の最も細い幅 (px) (#3450)。
+   * 狭い枠で組み直しても字の倍率が届かない図 (箱を開いた広い図) は、これより細く置くと字が読めない。
+   * 残高の字を持たない図は 0 を返し、幅を縛らない
+   */
+  const readableWidth = (): number => {
+    const heights = ((rendered.layout as PipeLayout).levels ?? []).map((level) => level.text.h).filter((h) => h > 0);
+    return heights.length > 0 ? (rendered.layout.width * PIPE_LOOK.narrow.px) / Math.min(...heights) : 0;
+  };
+  /**
    * 拡大していない配管の図の幅 (px)。枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。
+   * ただし収めると残高の字が読めない図は、字が読める幅で置いて横に送る (#3450)。
    * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)
    */
   const baseWidth = (): number => {
     const w = frameWidth();
-    return w < ZOOM.fit ? Math.min(w, rendered.layout.width) : rendered.layout.width;
+    return w < ZOOM.fit ? Math.min(rendered.layout.width, Math.max(w, readableWidth())) : rendered.layout.width;
   };
   /** 置いた図の幅 (px)。配管の図は拡大の度合いを掛ける */
   const shownWidth = (): number => (isPipe ? baseWidth() * zoom : rendered.layout.width);

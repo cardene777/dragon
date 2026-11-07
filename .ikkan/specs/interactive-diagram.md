@@ -78,3 +78,8 @@
 | 途中の段へ送った止め絵に、その段の札だけが出る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-still-middle-step-own-labels`が通る | #3445 |
 | 1度だけ流す図が、最後の段の止め絵で止まる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-plays-once-then-still`が通る | #3445 |
 | 箱の飛び先の`link`を持つ図は、段を送った後と止めた後も読み上げに残る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-linked-figure-readable-after-replace`が通る | #3445 |
+| 幅390の枠に置いた見本`aggregator`の箱を全て開いた図は、残高の字が画面で10.5px以上に見える幅で置かれ、枠は横に送る形(`pan`)になって全体の線を出す(日本語版と英語版) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-narrow-keeps-text-readable`が通る | #3450 |
+| 幅390の枠に置いたほかの5つの見本と箱を閉じた`aggregator`は、今どおり図を枠の幅に収めて横に送らず、残高の字が画面で10.5px以上に見える | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-narrow-fits-readable-figures`が通る | #3450 |
+| 配管の図は拡大の釦とホイールとダブルクリックで拡大でき、拡大した図を引いて動かせる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-zooms-and-pans`が通る | #3450 |
+| 幅1200の枠に置いた箱を開いた`aggregator`は、今どおり縮めずに置いて横に送り、段を送ると関わる関係者の所へ枠を送る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pans-wide-figure`が通る | #3450 |
+| 6つの見本の全ての段を幅1280と幅390の枠に描いた時、決まりの表への違反が0件のまま | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3450 |
