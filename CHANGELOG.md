@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-11-07
+
+### Changed
+
+- **A try diagram puts the step caption and progress right under the figure** (#3437)
+
+  A try diagram now stacks the figure, the step caption with its progress bar, and then the input strip. The caption tells what changed in the figure after the reader pressed a button, so it sits directly under the figure instead of below the input strip. In an exported HTML page, the bottom margin moved from the caption bar to the player, so the input strip at the bottom keeps the same distance from the window's bottom edge. Diagrams other than try diagrams keep their order and spacing.
+
 ## [0.57.0] - 2026-11-07
 
 ### Added

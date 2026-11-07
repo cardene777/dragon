@@ -82,6 +82,19 @@ describe("試す図は読み手を待つ (#3337)", () => {
   });
 });
 
+describe("段の説明とゲージの帯は図の枠のすぐ下に置く (#3437)", () => {
+  it("interactive-caption-sits-under-frame", () => {
+    const { host } = mountTry(parsedTry(smallTry()));
+    const frame = host.querySelector(".dg-frame");
+    const bar = host.querySelector(".dg-bar");
+    const tools = host.querySelector(".dg-try");
+    expect(frame && bar && tools, "図の枠か段の説明の帯か入力の帯が無い").toBeTruthy();
+    expect(bar?.querySelector('[data-dragon="progress"]'), "ゲージが段の説明の帯の中に無い").toBeTruthy();
+    expect(frame?.nextElementSibling, "図の枠の次が段の説明とゲージの帯でない").toBe(bar);
+    expect(bar?.nextElementSibling, "段の説明とゲージの帯の次が入力の帯でない").toBe(tools);
+  });
+});
+
 describe("入力の帯で送る (#3337)", () => {
   it("interactive-send-adds-chip-and-step", () => {
     const { host, player } = mountTry(parsedTry(smallTry()));
