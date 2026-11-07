@@ -1,0 +1,13 @@
+{
+  "name": "dragon",
+  "owner": {
+    "name": "cardene777"
+  },
+  "plugins": [
+    {
+      "name": "dragon",
+      "source": "./plugins/dragon",
+      "description": "Write animated diagrams in the dragon notation, check them with dragon check, and show them on a page, in a README, or in an app."
+    }
+  ]
+}

@@ -307,6 +307,12 @@ npx prettier --list-different . | sed -E 's/.*\.([A-Za-z0-9]+)$/\1/' | sort | un
 代わりに **触った `.ts` / `.tsx` だけを整形する**。 触るたびに 1 file ずつ準拠していくため、
 実際に読まれる file から順に揃う。 整形だけの commit は作らない。
 
+## 版を上げる時はプラグインの版も上げる
+
+`packages/dragon/package.json` の版を上げる PR では、AI に記法を書かせる skill のプラグインの版 (`plugins/dragon/.claude-plugin/plugin.json` の `version`) も同じ数に上げる。
+skill は使う人の dragon の版を `dragon --version` で確かめ、プラグインの版と比べるため (#3455)。
+2 つの版が違うと `packages/dragon/test/notation-skill.test.ts` の `plugin-version-matches-package` が落ちる。
+
 ## 版を出す前に同じ版が出ていないか確かめる
 
 版を上げる PR を取り込んだら、印 (`v<版>`) を付ける前に、npm に出た版と GitHub の印を引く。

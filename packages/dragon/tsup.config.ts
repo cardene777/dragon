@@ -1,5 +1,7 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { defineConfig } from "tsup";
+import type { UserBlock } from "./src/user-blocks";
+import { readBlocks } from "./src/user-blocks-read";
 
 /** 字の package の入れた版。script の1行の入口が jsDelivr から同じ版の字の CSS を読む (#3343) */
 const fontVersion = (name: string): string =>
@@ -7,6 +9,28 @@ const fontVersion = (name: string): string =>
 const FONT_VERSIONS = { "noto-sans-jp": fontVersion("noto-sans-jp"), "jetbrains-mono": fontVersion("jetbrains-mono") };
 /** package の版。script の1行の入口の案内役が、同じ版の場所から本体を読む (#3375) */
 const VERSION = (JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string }).version;
+
+/**
+ * 共有のブロック集 (#3455)。`blocks/` の 1 定義 1 file を読み、読んだ定義を本体に埋める (`__DRAGON_SHARED_BLOCKS__`)。
+ * 読めない file、定義を 1 つだけ持たない file、file の名前とブロックの名前が違う file が在れば build を止める。
+ * file の名前を名前に揃えると、同じ名前の定義が 2 つの file に分かれない
+ */
+function sharedBlocks(): UserBlock[] {
+  const dir = new URL("./blocks/", import.meta.url);
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".dragon"))
+    .sort()
+    .map((file) => {
+      const read = readBlocks(readFileSync(new URL(file, dir), "utf8"), { lang: "en" });
+      if (!read.ok) throw new Error(`blocks/${file}: ${read.errors.map((e) => `${e.line}:${e.column} ${e.message}`).join(" / ")}`);
+      const [block, ...rest] = read.blocks.blocks;
+      if (block === undefined || rest.length > 0) throw new Error(`blocks/${file}: write exactly one block definition in a file`);
+      if (block.name !== `+${file.slice(0, -".dragon".length)}`) throw new Error(`blocks/${file}: name the file after its block (${block.name})`);
+      return block;
+    });
+}
+/** 本体を束ねる全ての設定に渡す。定義を引く処理 (`user-blocks.ts`) がどの入口にも入るため */
+const SHARED_BLOCKS = { __DRAGON_SHARED_BLOCKS__: JSON.stringify(sharedBlocks()) };
 
 export default defineConfig([
   {
@@ -27,6 +51,8 @@ export default defineConfig([
     treeshake: true,
     // 字の package は束ねず、頁を束ねる道具に CSS と字の file を運ばせる
     external: ["@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono"],
+    // 命令の `dragon --version` は package の版を出す (#3455)
+    define: { ...SHARED_BLOCKS, __DRAGON_VERSION__: JSON.stringify(VERSION) },
     outDir: "dist",
     target: "es2022",
   },
@@ -40,6 +66,7 @@ export default defineConfig([
     sourcemap: true,
     clean: true,
     shims: true,
+    define: SHARED_BLOCKS,
     outDir: "dist/light",
     target: "es2022",
   },
@@ -54,6 +81,7 @@ export default defineConfig([
     sourcemap: false,
     clean: false,
     dts: false,
+    define: SHARED_BLOCKS,
     outDir: "dist",
     target: "es2022",
   },
@@ -70,7 +98,7 @@ export default defineConfig([
     sourcemap: true,
     clean: ["!dragon.js", "!dragon.js.map"],
     dts: false,
-    define: { __DRAGON_FONT_VERSIONS__: JSON.stringify(FONT_VERSIONS) },
+    define: { ...SHARED_BLOCKS, __DRAGON_FONT_VERSIONS__: JSON.stringify(FONT_VERSIONS) },
     outDir: "dist/cdn",
     target: "es2022",
   },
@@ -100,6 +128,7 @@ export default defineConfig([
     sourcemap: false,
     clean: false,
     dts: false,
+    define: SHARED_BLOCKS,
     outDir: "dist",
     target: "es2022",
   },

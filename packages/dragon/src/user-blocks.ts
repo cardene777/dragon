@@ -11,6 +11,10 @@
  * 記法の語は頭に `+` を付ける。後で本体が同じ名前のブロックを足しても、前に書いた図の意味が変わらないため。
  * 定義の頭に版を書かせ、知らない版は断る。形を変えた時に、古い定義を黙って読み違えないため。
  *
+ * 皆で使える定義は共有のブロック集 (`packages/dragon/blocks/`、1 定義 1 file) に置き、図の頭に定義を書かずに `+名前` で使える (#3455)。
+ * 集は build が読んで本体に埋める (`tsup.config.ts`)。図の頭の定義と引数で渡した定義が、同じ名前の共有の定義に勝つ。
+ * 後から集に同じ名前が足されても、前に書いた図の意味が変わらないため。
+ *
  * 定義の並びを読む処理と誤りの文の多くは `user-blocks-read.ts` に置き、軽い入口は定義を書いた図の時だけ後から読む。
  * 読む処理と描く処理は、読む間と描く間だけ定義を有効にする (`withUserBlocks`)。
  * 箱の描き方と線の描き方と印の描き方は、引数を増やさずにここから名前で引く。
@@ -144,8 +148,17 @@ export function printBlocks(set: UserBlocks): string {
   return lines.join("\n");
 }
 
+/** 共有のブロック集の定義。build が `packages/dragon/blocks/` の file を読んで入れる (`tsup.config.ts`) */
+declare const __DRAGON_SHARED_BLOCKS__: readonly UserBlock[];
+
+/** 共有のブロック集の定義を名前で引く表。build が集を読む時にもこの file を通るので、初めて引く時に作る */
+let shared: ReadonlyMap<string, UserBlock> | undefined;
+const sharedBlock = (name: string): UserBlock | undefined => (shared ??= new Map(__DRAGON_SHARED_BLOCKS__.map((b) => [b.name, b]))).get(name);
+
 /** 読む間と描く間に有効な定義。名前から引く */
 let active: Map<string, UserBlock> = new Map();
+/** 読む間と描く間に、有効な定義に無く共有のブロック集から引いた定義。引いた順に持つ */
+let usedShared: Map<string, UserBlock> = new Map();
 /** 描く間に有効な、足した箱のブロックを持つ箱の名札と、足した線のブロックを持つ線 (`<段>:<出来事>`) */
 let drawing: { boxes: Map<string, UserBlock>; edges: Map<string, UserBlock> } = { boxes: new Map(), edges: new Map() };
 
@@ -156,13 +169,16 @@ let drawing: { boxes: Map<string, UserBlock>; edges: Map<string, UserBlock> } = 
 export function withUserBlocks<T>(sets: readonly (UserBlocks | undefined)[], run: () => T): T {
   const before = active;
   const beforeDrawing = drawing;
+  const beforeShared = usedShared;
   active = new Map(before);
+  usedShared = new Map();
   for (const set of sets) for (const b of set?.blocks ?? []) active.set(b.name, b);
   try {
     return run();
   } finally {
     active = before;
     drawing = beforeDrawing;
+    usedShared = beforeShared;
   }
 }
 
@@ -174,11 +190,21 @@ export function defineUserBlocks(blocks: readonly UserBlock[]): void {
 /** 有効な定義の名前 */
 export const definedUserBlocks = (): ReadonlySet<string> => new Set(active.keys());
 
-/** 名前 `name` の有効な定義。`want` を渡すと、その元のブロックの定義だけを返す */
+/**
+ * 名前 `name` の有効な定義。有効な定義に無ければ共有のブロック集から引き、引いた定義を覚える (`sharedBlocksUsed`)。
+ * `want` を渡すと、その元のブロックの定義だけを返す
+ */
 export function userBlock(name: string, want?: UserBase): UserBlock | undefined {
-  const found = active.get(name);
+  let found = active.get(name);
+  if (found === undefined) {
+    found = sharedBlock(name);
+    if (found !== undefined) usedShared.set(name, found);
+  }
   return found !== undefined && (want === undefined || found.base === want) ? found : undefined;
 }
+
+/** 読んでいる間に共有のブロック集から引いた定義。読んだ図の `define` に入れ、原本だけを受け取った側でも同じ図を描けるようにする */
+export const sharedBlocksUsed = (): UserBlock[] => [...usedShared.values()];
 
 /** 描く間に、足した箱と線を名札と出来事の番号で引けるようにする */
 export function drawUserBlocks(boxes: Map<string, UserBlock>, edges: Map<string, UserBlock>): void {

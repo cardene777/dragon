@@ -1,0 +1,14 @@
+// Use the shared blocks +bridge, +relay and +key without defining them in the diagram
+architecture Hand a token over a bridge
+
+box eth as Ethereum [note: sending chain]
++bridge cc as Bridge [note: shared box]
+box base as Base [note: receiving chain, icon: +key]
+
+step Send
+  say Ethereum sends the token to the bridge, drawn as an arch.
+  eth -> cc: send
+
+step Hand over
+  say The bridge hands the token to Base over a dashed relay line.
+  cc +relay base: hand over

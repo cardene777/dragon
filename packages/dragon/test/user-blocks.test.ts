@@ -317,7 +317,8 @@ describe("使う人が足すブロック (#3399)", () => {
   it("user-block-names-need-plus", () => {
     const noPlus = TEXT.replace("block +bridge", "block bridge");
     bothLangs(noPlus, lineOf(noPlus, "block bridge"), "`+` で始まらない名前の定義", "plus");
-    bothLangs(BARE_TEXT, lineOf(BARE_TEXT, "+bridge cc"), "定義していない `+bridge` の行", "undefined");
+    // `+bridge` と `+key` は共有のブロック集に在り、定義を書かずに読める (#3455)。集に無い `+wire` で確かめる
+    bothLangs(BARE_TEXT, lineOf(BARE_TEXT, "cc +wire"), "定義していない `+wire` の行", "undefined");
   });
 });
 

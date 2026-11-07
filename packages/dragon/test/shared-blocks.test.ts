@@ -69,7 +69,7 @@ describe("共有のブロック集 (#3455)", () => {
     const problems = files.flatMap((file) => {
       const result = readBlocks(read(file));
       if (!result.ok) return [`${relative(ROOT, file)} を読めない ${JSON.stringify(result.errors)}`];
-      const names = (result.blocks as { name: string }[]).map((block) => block.name);
+      const names = (result.blocks as { blocks: { name: string }[] }).blocks.map((block) => block.name);
       if (names.length !== 1) return [`${relative(ROOT, file)} が定義を 1 つだけ持たない (${names.join(", ")})`];
       const [name = ""] = names;
       const used = examples.some(({ text }) => new RegExp(`(^|[\\s:,\\[])${name.replace("+", "\\+")}(?![a-z0-9-])`, "mu").test(text));
