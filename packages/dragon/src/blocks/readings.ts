@@ -39,6 +39,7 @@ import { reading as routeReading } from "./route/read";
 import { reading as rowReading } from "./row/read";
 import { reading as scaleReading } from "./scale/read";
 import { reading as sealReading } from "./seal/read";
+import { reading as sideReading } from "./side/read";
 import { reading as sidePathReading } from "./side-path/read";
 import { reading as sourceReading } from "./source/read";
 import { reading as stampReading } from "./stamp/read";
@@ -91,6 +92,7 @@ export const READINGS = {
   "row": rowReading,
   "scale": scaleReading,
   "seal": sealReading,
+  "side": sideReading,
   "side-path": sidePathReading,
   "source": sourceReading,
   "stamp": stampReading,

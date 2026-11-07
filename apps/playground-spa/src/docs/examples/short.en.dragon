@@ -1,0 +1,5 @@
+sequence
+
+browser -> app: Press sign in
+app -> auth: Send to the sign-in page
+auth -> browser: Return the sign-in page

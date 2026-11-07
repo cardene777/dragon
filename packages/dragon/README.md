@@ -29,9 +29,9 @@ To add diagram kinds or more blocks to base on, send a pull request to this repo
 
 The other axis is to be as easy as mermaid to write, and to show the diagram right away.
 
-- Short to write. One `box` line makes a box, and one `A -> B: name` line makes an edge
+- Short to write. The diagram kind and one `A -> B: name` line make a diagram, and the names on the lines become boxes
 - One script line. Put one script line and the notation on a page, and it becomes a diagram that plays
-- Fast for AI to write. People write the notation, AI writes the same diagram as JSON, and both draw the same diagram
+- Fast for AI to write. AI writes the same notation as people and fixes the line and column that the parser's error messages point to. JSON stays as the source and converts to and from the notation
 - Light and fast. A page loads only the blocks its diagrams use
 
 The notation takes mermaid as its model but is its own form, and it is not compatible with mermaid.
@@ -55,6 +55,17 @@ The package has four parts.
 ## A first diagram
 
 ```dragon
+sequence
+
+browser -> app: GET /login
+app -> browser: Return the sign-in page
+```
+
+The diagram kind and lines joining boxes with `->` are enough to make a diagram.
+The names on the lines become boxes, and each line becomes one step, lit in the order written.
+Write `box` and `step` lines when a box needs a shown name or a caption, or a step needs a title and a body.
+
+```dragon
 sequence Ask to sign in
 
 box browser as User's browser [note: operated by the user, color: slate]
@@ -73,7 +84,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.55/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.59/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -87,7 +98,7 @@ step Press sign in
 </pre>
 ```
 
-The script loads from jsDelivr with the version pinned up to the middle number (`@0.55`), so fixes in later patch versions reach the page and a version that changes the notation does not.
+The script loads from jsDelivr with the version pinned up to the middle number (`@0.57`), so fixes in later patch versions reach the page and a version that changes the notation does not.
 It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
@@ -249,6 +260,9 @@ Every line follows these four rules.
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
 The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
+Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
+A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
+A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
 A destination in the `link` attribute of a box line makes that box a link in the drawn diagram.
 A `source <name> [url: <URL>]` line inside a step is a source of that step; a step can have any number, and they are listed as links in the step list that screen readers read.
 A destination or source URL is a path that starts with `/`, or a URL that starts with `http://` or `https://`.
@@ -272,6 +286,7 @@ step Pass to shipping
 ```
 
 `parseNotation` turns the notation into the source JSON, and `printNotation` turns the source JSON back into the notation.
+`printNotation` leaves out declarations and steps when a diagram allows it, and writes everything when you pass `{ short: false }`.
 Error messages are in the language you pass, as in `parseNotation(text, { lang: "ja" })`, and are in English when you pass none.
 The old form of the notation (starting with `時系列図` or `構成図`) is not read, and stops with an error that shows the new form of that line.
 The table from the old form to the new one is in [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).
@@ -437,7 +452,9 @@ Start with `try` to draw a try diagram, which readers move themselves by typing 
 - `queue <name> [order: <field>]` is a waiting line. It sorts chips from the highest value of the `order` field
 - `chain <name> [edit: <field>]` is a chain of blocks. Each block holds the previous block's `hash` as `prev`, and with `edit` the reader can change that field of a chip inside a block
 - `ask <field>, <field>, ... [into: <queue>, via: <route>]` is the input strip. The first field's value becomes the chip's name
+- `choose <field>: <value>, <value>, ...` gives that field choices. The reader picks one from the choices in the written order instead of typing. The first field takes choices too, and changing that field of a chip inside a block picks from the same choices
 - `press <name> [from: <queue>, into: <chain>, take: <count>, at: <part>]` is a button. It moves the top `take` chips of the queue into a new block. With `at` it sits on that part, and without it in the input strip
+- `side <part>, <part>, ...` puts route, queue, and chain parts on one row, left to right in the written order, when the frame is wide. A queue takes only the width its chips need and the rest goes to the route and chain. When the row would shrink the text below a readable size, the parts stack as without the line
 
 Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line` writes a queue's contents or a block, and `ask <value>, ...`, `press <name>`, and `item <name> [<field>: <value>]` write the author's example (send, build, change).
 The player stops at the first step and waits for the reader, and adds one step and plays it each time the reader sends, presses, or changes a value. Images, videos, and print draw the author's example steps.
@@ -449,6 +466,7 @@ route Network: You - node-1 - Builder, You - node-2 - node-3 - Builder [from: Yo
 queue Mempool [order: Fee]
 chain Chain [edit: Amount]
 ask Sender, To, Amount, Fee [into: Mempool, via: Network]
+choose To: Bob, Carol, Dave, Erin
 press Build [from: Mempool, into: Chain, take: 2]
 
 item tx1 [To: Carol, Amount: 3, Fee: 7]

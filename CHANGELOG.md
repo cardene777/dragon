@@ -6,6 +6,44 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-11-07
+
+### Added
+
+- **The short form leaves out declarations and steps** (#3438)
+
+  Sequence, architecture and state diagrams can be written as just the diagram kind on the first line and lines joining boxes with `->`. A diagram with no `box` line makes a box of each name on the lines in the order the names appear, and a diagram with no `step` line makes each line one step, lit in the order written. A step without `say` uses the line label as its body, and a line without a label uses the box names joined by an arrow. When two box names in a diagram without box declarations differ by one character, `parseNotation` still reads the diagram and puts a notice in `notices` of its result, the editor shows it where errors appear, and the export command prints it to standard error. Names that differ only in digits are not pointed out. A line outside the steps of a diagram that has steps, and a name that is not declared in a diagram with at least one `box` line, are still errors. Printing JSON back to the notation leaves out what can be left out. The README and the notation guide now have AI write the notation too and fix it from the parser's error messages.
+
+## [0.58.0] - 2026-11-07
+
+### Changed
+
+- **A try diagram puts the step caption and progress right under the figure** (#3437)
+
+  A try diagram now stacks the figure, the step caption with its progress bar, and then the input strip. The caption tells what changed in the figure after the reader pressed a button, so it sits directly under the figure instead of below the input strip. In an exported HTML page, the bottom margin moved from the caption bar to the player, so the input strip at the bottom keeps the same distance from the window's bottom edge. Diagrams other than try diagrams keep their order and spacing.
+
+## [0.57.0] - 2026-11-07
+
+### Added
+
+- **Parts of a try diagram can sit side by side** (#3429)
+
+  Write `side <part>, <part>` before the first step, and when the frame is wide, the named route, queue, and chain parts sit on one row, left to right in the written order. A queue on the row takes only the width its chips and title need, and the route and chain share the rest, so a try diagram with a route and a queue on one row is lower than the same parts stacked. When the row would shrink the text below a readable size, the parts stack as they do without the line. A `side` line stops with an error naming the line and column when it names a part the diagram lacks, the input strip, or a button, when it has fewer than two parts, when a part is already on another `side` line, or when it comes after the first step.
+
+## [0.56.0] - 2026-11-06
+
+### Added
+
+- **Fields of a try diagram's input strip can offer choices** (#3422)
+
+  Write `choose <field>: <value>, <value>` before the first step, one line per field, and the reader picks that field's value from the choices in the written order instead of typing it. The field opens with the first choice selected, the first field (the chip's name) takes choices too, and changing that field of a chip inside a block picks from the same choices. A `choose` line for a field the strip lacks, a second `choose` for the same field, fewer than two choices, and an `item` or a step's `ask` with a value outside the choices stop with an error naming the line and column. Fields without choices stay free text as before.
+
+### Changed
+
+- **The player controls take a new layout in every kind of diagram, and pipe diagrams are redrawn** (#3398)
+
+  The player now shows the step number and a large step title, a short description under the title, the restart, previous, named play, and next buttons, and a progress bar split by step. When the strip is 640px or wider, the title and the buttons share one row; narrower strips stack them. Pipe diagrams are laid out again from tanks, value pipes, token boxes, and valves: water levels move, liquid flows through the pipes, valve handles turn, and gauge needles swing. A pipe diagram wider than its frame scrolls sideways inside the frame with a thin line showing where you are, instead of shrinking. The new palette `sea` (navy and ecru) keeps the call, confirm, check, and cancel colors apart for color-blind readers too. In `arcade`, the boxes of a pipe diagram have cut corners. Exported HTML carries the unfolded source, so a reader can press a box to open its inner steps.
+
 ## [0.55.1] - 2026-11-06
 
 ### Fixed

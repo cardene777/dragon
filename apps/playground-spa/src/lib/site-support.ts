@@ -11,8 +11,61 @@ import type { Page } from "playwright";
 import { EXAMPLE_KEYS, type ExampleKey } from "../examples";
 import { toHash } from "../share";
 import { type Lang, TEXT } from "../text";
-import { BASE, example, screenOf, type Site, startSite } from "./playground-support";
-import { afterAll, afterEach, beforeAll, expect } from "vitest";
+import { BASE, example, type OpenOptions, screenOf, type Site, startSite } from "./playground-support";
+import { afterAll, afterEach, beforeAll, beforeEach, expect } from "vitest";
+
+/** 頁を組ごとに使い回す道具 (#3419) */
+export interface PageGroups<T> {
+  /** 組 `key` の頁。無ければ `open` で開く。今の件が落ちたら (`onFailed` に渡した処理が呼ばれたら) 閉じ、同じ組の次の件に開き直させる */
+  get(key: string, open: () => Promise<T>, onFailed: (run: () => void) => void): Promise<T>;
+  /** 開いた回数 */
+  opened(): number;
+  /** 頁を求められた組の数 */
+  groups(): number;
+  /** 開いている頁を閉じる */
+  close(): Promise<void>;
+}
+
+/**
+ * 頁を組ごとに使い回す (#3419)。組の最初の件が頁を開き、同じ組の続く件は同じ頁を使う。
+ * 頁を開くたびに読み込み (script と字) を待つ手間を、組の数に減らす。
+ * 組が替わると前の組の頁を閉じるので、同時に開いている頁は 1 つだけ。前の組の件が残した頁の状態は次の組へ渡らない。
+ * 件が落ちるとその頁を閉じ、同じ組の次の件に開き直させる。落ちた件は重ね窓を開いたままや段を送った途中で止まるので、
+ * そのまま使うと次の件も巻き込まれて落ちる
+ */
+export function pageGroups<T>(close: (item: T) => Promise<void>): PageGroups<T> {
+  let current: { key: string; item: Promise<T> } | undefined;
+  let closing: Promise<void> = Promise.resolve();
+  const keys = new Set<string>();
+  let opened = 0;
+  const drop = (): void => {
+    const was = current;
+    current = undefined;
+    if (was) closing = closing.then(() => was.item.then(close, () => undefined));
+  };
+  return {
+    async get(key, open, onFailed) {
+      keys.add(key);
+      if (current?.key !== key) drop();
+      await closing;
+      if (current === undefined) {
+        opened += 1;
+        current = { key, item: open() };
+      }
+      const mine = current;
+      onFailed(() => {
+        if (current === mine) drop();
+      });
+      return mine.item;
+    },
+    opened: () => opened,
+    groups: () => keys.size,
+    close: async () => {
+      drop();
+      await closing;
+    },
+  };
+}
 
 /** 検査の file が開く頁の配り手と、頁を開く口。`useSite()` が file の最初に起こし、最後に配り手を閉じる。Chromium は file の process が終わる時に止まる (#3388) */
 export let site: Site;
@@ -28,6 +81,46 @@ export function useSite(): void {
   afterAll(async () => {
     await site?.close();
   });
+}
+
+/** 件が頁を開いた回数を頁の設定ごとに数えた記録 (#3435) */
+export interface OpenCounts {
+  /** 頁の設定の名前ごとの、件 `checks` が開いた回数 */
+  opens: Map<string, number>;
+  /** 走った件 `checks` の名前。数える件が 1 つも走らない空振りを見分ける */
+  ran: Set<string>;
+}
+
+/**
+ * 件 `checks` が頁を開いた回数を、頁の設定 (`settingOf` が返す名前) ごとに数える (#3435)。
+ * `settingOf` が名前を返さない頁は数えない。file の `useSite()` の後に呼び、頁を開く口 `site.open` を包む
+ */
+export function countOpens(checks: readonly string[], settingOf: (o: OpenOptions) => string | undefined): OpenCounts {
+  const counts: OpenCounts = { opens: new Map(), ran: new Set() };
+  const counted = (): boolean => {
+    const name = expect.getState().currentTestName ?? "";
+    return checks.some((check) => name.endsWith(` > ${check}`));
+  };
+  beforeAll(() => {
+    const open = site.open;
+    site.open = (o = {}) => {
+      const setting = counted() ? settingOf(o) : undefined;
+      if (setting !== undefined) counts.opens.set(setting, (counts.opens.get(setting) ?? 0) + 1);
+      return open(o);
+    };
+  });
+  beforeEach(({ task }) => {
+    if (checks.includes(task.name)) counts.ran.add(task.name);
+  });
+  return counts;
+}
+
+/** 件 `checks` が、同じ設定の頁を 2 回以上開かず、全ての件が走ったかを確かめる (#3435) */
+export function expectOneOpenPerSetting(counts: OpenCounts, checks: readonly string[], what: string): void {
+  expect([...counts.ran].sort(), `${what}が走らない (走査の空振り)`).toEqual([...checks].sort());
+  expect(counts.opens.size, `${what}が頁を 1 度も開かない (走査の空振り)`).toBeGreaterThan(0);
+  const many = [...counts.opens].filter(([, n]) => n > 1).map(([setting, n]) => `${setting} ${n} 回`);
+  expect(many, `${what}が、同じ設定の頁を 2 回以上開く`).toEqual([]);
 }
 
 /**
@@ -235,6 +328,56 @@ export const openOverlay = async (viewport: { width: number; height: number }, s
   const page = await openItem(viewport, sample, still, touch);
   await page.locator(catalogSel("expand")).click();
   return page;
+};
+
+/** 件をまたいで使い回す分類の頁を、動きを嫌う設定で開く (#3419)。閉じるのは使い回す道具 (`pageGroups`) */
+export const openKeptCategory = async (viewport: { width: number; height: number }, category: Kind): Promise<Page> => {
+  const { page } = await site.open({ path: `${BASE}catalog/${category}`, viewport, reducedMotion: "reduce", keep: true });
+  await onScreen(page, "category", `${viewport.width} × ${viewport.height} で ${category} の分類の頁が出ない`);
+  return page;
+};
+
+/**
+ * 件をまたいで使い回す編集画面を、動きを嫌う設定で開く (#3419)。`touch` の時は指で触る端末を模す (#3435)。
+ * 見本は `showInEditor` で棚から読む。閉じるのは使い回す道具 (`pageGroups`)
+ */
+export const openKeptEditor = async (viewport: { width: number; height: number }, touch = false): Promise<Page> => {
+  const { page } = await site.open({ path: `${BASE}editor`, viewport, touch, reducedMotion: "reduce", keep: true });
+  await onScreen(page, "editor", `${viewport.width} × ${viewport.height} で編集画面が出ない`);
+  return page;
+};
+
+/**
+ * 使い回す分類の頁で、見本 `sample` を重ね窓で開く (#3419)。頁が別の分類を出している時は、カタログの一覧を通って見本の分類の頁へ移る。
+ * 頁を読み直さずに移るので、頁の読み込みを待たない。前の件は重ね窓を閉じて終わる
+ */
+export const showInOverlay = async (page: Page, sample: { key: ExampleKey; category: Kind }): Promise<void> => {
+  if (!new URL(page.url()).pathname.endsWith(`/catalog/${sample.category}`)) {
+    await page.locator(`${catalogSel("crumb")} a[href$="/catalog"]`).click();
+    await page.locator(`${catalogSel("card")}[href$="/catalog/${sample.category}"]`).click();
+    await onScreen(page, "category", `カタログの一覧から ${sample.category} の分類の頁へ移れない`);
+  }
+  await page.locator(catalogSel("item")).nth(samplesOf(sample.category).indexOf(sample.key)).click();
+  await page.locator(catalogSel("expand")).click();
+};
+
+/**
+ * 使い回す編集画面に、見本 `key` を棚から読んで 1 段目から出す (#3419)。
+ * 今の見本が `key` の時は読み直さず、前の件が送った段を 1 段目へ戻す。
+ * 棚を開く釦は棚を畳む幅でだけ出るので、釦が見える時だけ押して棚を開く。棚を横に並べる幅では棚の見本をそのまま押す (#3435)
+ */
+export const showInEditor = async (page: Page, key: ExampleKey): Promise<void> => {
+  const sample = page.locator(`[data-playground="sample-${key}"]`);
+  if ((await sample.getAttribute("aria-current")) !== "true") {
+    const toggle = page.locator('[data-playground="shelf-toggle"]');
+    if (await toggle.isVisible()) await toggle.click();
+    await sample.click();
+    await expect.poll(() => sample.getAttribute("aria-current"), { ...WAIT, message: `編集画面の棚から ${key} を読めない` }).toBe("true");
+  }
+  await page.locator('[data-playground="stage"] [data-dragon="restart"]').click();
+  await expect
+    .poll(() => page.locator('[data-playground="stage"] [data-dragon="step-no"]').textContent(), { ...WAIT, message: `編集画面の ${key} が 1 段目に戻らない` })
+    .toMatch(/^01\//u);
 };
 
 /** 見本 `key` を編集画面で開く。`still` の時は動きを嫌う設定で開き、段を釦で送れるようにする。`touch` の時は指で触る端末を模す (#3076) */

@@ -23,8 +23,9 @@ export function pageHtml(diagram: Diagram, look: { palette: string; theme: Theme
     `<html lang="${look.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`,
     `<title>${esc(diagram.title)}</title>`,
     // 再生の帯の左右と下の余白は置いた頁が付ける (`player.ts`)。図は窓の幅いっぱいに置き、帯の字と釦と進み具合だけを窓の縁から離す (#3398)。
-    // 配管の図の下の呼び出しの一覧も、帯と同じだけ窓の縁から離す (#3418)
-    `<style>${fontCss}:root{${look.vars}}html,body{margin:0}body{background:var(--bg)}.dg-bar,.dg-calls{padding:0 16px 12px}</style>`,
+    // 試す図は段の説明の帯の下に入力の帯を置くので、下の余白は帯ではなく再生の部品の下に付け、最後に置いた帯を窓の下の縁から離す (#3437)。
+    // 配管の図の下の呼び出しの一覧も、帯と同じだけ窓の左右の縁から離す (#3418)
+    `<style>${fontCss}:root{${look.vars}}html,body{margin:0}body{background:var(--bg)}.dg-player{padding-bottom:12px}.dg-bar,.dg-calls{padding:0 16px}</style>`,
     '</head><body><div id="dragon"></div>',
     `<script type="application/json" id="dragon-diagram">${json}</script>`,
     `<script>${readFileSync(PLAYER, "utf8").replace(/<\/script/gi, "<\\/script")}</script>`,

@@ -203,6 +203,8 @@ function read(file: string, text: CliText, lang: NotationLang): unknown {
   }
   const parsed = parseNotation(source, { lang });
   if (!parsed.ok) throw new Error(parsed.errors.map((e) => `${file}:${e.line} ${e.message}`).join("\n"));
+  // 知らせ (箱を宣言しない図の似た名前、#3438) は、誤りと同じ形で標準エラーに出し、書き出しは続ける
+  for (const notice of parsed.notices ?? []) console.error(`${file}:${notice.line} ${notice.message}`);
   return parsed.diagram;
 }
 

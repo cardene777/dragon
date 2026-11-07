@@ -9,9 +9,10 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium, type Page } from "playwright-core";
+import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 import { exporter } from "./export-support";
+import { fileChromium } from "./page-needs";
 import { parsedTry, SMALL_PARTS, smallTry } from "./try-support";
 
 
@@ -80,9 +81,10 @@ async function withPage<T>(
   width: number,
   run: (page: Page) => Promise<T>,
 ): Promise<Opened<T>> {
-  const browser = await chromium.launch();
+  // file で 1 つの Chromium に頁ごとの文脈を作る (#3424)。頁を開くたびに Chromium を起こすと、混んだ機械で 1 回ごとに 1 秒ほどかかった
+  const context = await (await fileChromium()).newContext({ viewport: { width, height: 1600 }, hasTouch: true });
   try {
-    const page = await browser.newPage({ viewport: { width, height: 1600 }, hasTouch: true });
+    const page = await context.newPage();
     const outside: string[] = [];
     page.on("request", (request) => {
       const url = request.url();
@@ -100,7 +102,7 @@ async function withPage<T>(
       .waitFor({ state: "attached" });
     return { result: await run(page), outside };
   } finally {
-    await browser.close();
+    await context.close();
   }
 }
 
@@ -165,6 +167,34 @@ describe("試す図を Chromium で触る (#3337)", () => {
           control.height,
           `幅 390px で ${control.name} の高さが 44px より低い`,
         ).toBeGreaterThanOrEqual(44);
+      }
+    },
+  );
+
+  // 段の説明は読み手が押した後に図で何が変わったかを書くため、図の枠のすぐ下に置き、入力の帯はその下に置く (#3437)。
+  // 狭い枠では帯が縦に組み替わり、広い枠では横に並ぶので、両方の幅で上下の順と重なりを測る
+  it(
+    "interactive-caption-above-controls",
+    async () => {
+      const html = await htmlOf(onLine());
+      for (const width of [390, 1280]) {
+        const { result } = await withPage(html, width, (page) =>
+          page.evaluate(() => {
+            const box = (selector: string): { top: number; bottom: number } | undefined => {
+              const el = document.querySelector<HTMLElement>(`[data-dragon="player"] > ${selector}`);
+              if (!el) return undefined;
+              const rect = el.getBoundingClientRect();
+              return { top: rect.top, bottom: rect.bottom };
+            };
+            return { frame: box(".dg-frame"), bar: box(".dg-bar"), tools: box(".dg-try") };
+          }),
+        );
+        const { frame, bar, tools } = result;
+        expect(frame && bar && tools, `幅 ${width}px で図の枠か段の説明の帯か入力の帯が無い`).toBeTruthy();
+        if (!frame || !bar || !tools) continue;
+        expect(bar.bottom - bar.top, `幅 ${width}px で段の説明の帯の高さが無い`).toBeGreaterThan(0);
+        expect(bar.top, `幅 ${width}px で段の説明の帯が図の枠と重なるか、図の枠より上に在る`).toBeGreaterThanOrEqual(frame.bottom);
+        expect(tools.top, `幅 ${width}px で入力の帯が段の説明の帯と重なるか、段の説明の帯より上に在る`).toBeGreaterThanOrEqual(bar.bottom);
       }
     },
   );

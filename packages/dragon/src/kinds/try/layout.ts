@@ -199,6 +199,9 @@ function lanesOf(
   return lane;
 }
 
+/** 図の上に置き場所を持つ部品 (網、待ち行列、機械の列) */
+type PlacedPart = Extract<TryPart, { type: "route" | "queue" | "chain" }>;
+
 /** 試す図を並べる時の設定。`width` は描く枠の幅で、渡すと横に並べた形の字が読めない幅で縦に組む (#3366) */
 export interface TryOptions {
   width?: number;
@@ -276,180 +279,236 @@ export function layoutTry(
     T.margin * 2 + Math.max(0, ...titles),
   );
   const frame = options.width;
-  const stacked = frame !== undefined && (frame / wide) * TYPE.boxName.size < READABLE_PX;
+  /** 幅 `w` の図を枠に縮めても箱の名前の字が読める大きさに届くか。枠を渡さない時は縮めない */
+  const readable = (w: number): boolean => frame === undefined || (frame / w) * TYPE.boxName.size >= READABLE_PX;
+  const stacked = !readable(wide);
+
+  // 待ち行列の横に出す、釦が上から何件を取り出すかの字と、その字が要る幅
+  const hintTextOf = (id: string): string | undefined => {
+    const press = spec.parts.find(
+      (p): p is Extract<TryPart, { type: "press" }> => p.type === "press" && p.from === id,
+    );
+    return press ? words.tryTakes(press.take) : undefined;
+  };
+  const hintWidth = (text: string | undefined): number =>
+    text === undefined ? 0 : T.queue.hintGap + textWidth(text, TYPE.tryHint);
+
+  // side の行 (#3429)。同じ行に置いた時に部品が要る幅は、待ち行列はチップの列と字と題、機械の列は出すブロック、網は節の名札が重ならない間
+  const placedParts = spec.parts.filter((p): p is PlacedPart => p.type === "route" || p.type === "queue" || p.type === "chain");
+  const needOf = (part: PlacedPart): number => {
+    const title = textWidth(part.id, TYPE.tryTitle);
+    if (part.type === "queue") return Math.max(T.queue.padX * 2 + chipW + hintWidth(hintTextOf(part.id)), title);
+    if (part.type === "chain") return Math.max(T.shown * blockW + (T.shown - 1) * B.gap, title);
+    const labels = columnsOf(part).map((list) => Math.max(...list.map((id) => textWidth(id, TYPE.tryNode))));
+    const apart = labels.slice(1).reduce((sum, w, c) => sum + ((labels[c] ?? 0) + w) / 2 + T.route.labelGap, 0);
+    return Math.max(T.route.padX * 2 + apart, title);
+  };
+  const sideRows = (spec.sides ?? []).map((row) =>
+    row.flatMap((id) => placedParts.filter((p) => p.id === id)),
+  );
+  const rowNeed = (row: PlacedPart[]): number =>
+    row.reduce((sum, p) => sum + needOf(p), 0) + (row.length - 1) * T.gap;
+  const sideWide = Math.max(wide, ...sideRows.map((row) => T.margin * 2 + rowNeed(row)));
+  // 横に並べると字が読める大きさより小さくなる枠では、side の行を持たない時と同じ形にする
+  const side = !stacked && sideRows.length > 0 && readable(sideWide);
   // 縦に組んだ形は枠の幅で描く。ブロックと右に回すつながりの印と部品の題が入る幅より狭い枠では、その幅で描く
-  const width = stacked
+  const width =
+    stacked && frame !== undefined
     ? Math.max(
         frame,
         T.margin * 2 + blockW + B.side + T.link.badge / 2,
         T.margin * 2 + Math.max(0, ...titles),
       )
-    : wide;
+    : side
+      ? sideWide
+      : wide;
   const inner = width - T.margin * 2;
+
+  // 部品を書いた順に行へまとめる。side の行の部品は、その中で最初に書いた部品の所に side の行の順で 1 つの行にまとめる
+  const rowOf = new Map((side ? sideRows : []).flatMap((row) => row.map((p) => [p.id, row] as const)));
+  const lines: PlacedPart[][] = [];
+  const lined = new Set<string>();
+  for (const part of placedParts) {
+    if (lined.has(part.id)) continue;
+    const line = rowOf.get(part.id) ?? [part];
+    for (const p of line) lined.add(p.id);
+    lines.push(line);
+  }
+  // 行の部品の幅。待ち行列は要る幅だけを取り、残りを網と機械の列に等しく分ける
+  const spansOf = (line: PlacedPart[]): number[] => {
+    if (line.length === 1) return [inner];
+    const flexible = line.filter((p) => p.type !== "queue").length;
+    const extra = inner - rowNeed(line);
+    return line.map((p) => needOf(p) + (flexible === 0 ? extra / line.length : p.type === "queue" ? 0 : extra / flexible));
+  };
 
   const parts: TryPartPlaced[] = [];
   const routes: TryRoutePlaced[] = [];
   const queues: TryQueuePlaced[] = [];
   const chains: TryChainPlaced[] = [];
   let y: number = T.margin;
-  const titleOf = (id: string, top: number): TryTitle => ({
+  const titleOf = (id: string, top: number, left: number): TryTitle => ({
     text: id,
-    x: T.margin,
+    x: left,
     baseline: top + T.head.titleY,
   });
-  for (const part of spec.parts) {
-    if (part.type !== "route" && part.type !== "queue" && part.type !== "chain") continue;
+  for (const line of lines) {
     if (parts.length > 0) y += T.gap;
     const top = y;
     const body = top + T.head.body;
-    if (part.type === "route") {
-      const R = T.route;
-      const columns = columnsOf(part);
-      const lane = lanesOf(part, columns);
-      const nodes: TryNodePlaced[] = columns.flatMap((list, c) =>
-        list.map((id) => {
-          const x =
-            columns.length === 1
-              ? T.margin + inner / 2
-              : T.margin + R.padX + (c * (inner - R.padX * 2)) / (columns.length - 1);
-          const cy = body + R.r + (lane.get(id) ?? 0) * R.pitch;
-          return {
-            id,
-            x,
-            y: cy,
-            ...(id === part.from
-              ? { end: "from" as const }
-              : id === part.to
-                ? { end: "to" as const }
-                : {}),
-          };
-        }),
-      );
-      const at = new Map(nodes.map((n) => [n.id, n]));
-      const links: TryNetLink[] = [];
-      for (const path of part.paths)
-        path.forEach((a, i) => {
-          const b = path[i + 1];
-          if (
-            b === undefined ||
-            links.some((l) => (l.a === a && l.b === b) || (l.a === b && l.b === a))
-          )
-            return;
-          const p = at.get(a) as TryNodePlaced;
-          const q = at.get(b) as TryNodePlaced;
-          const len = Math.hypot(q.x - p.x, q.y - p.y) || 1;
-          const ux = (q.x - p.x) / len;
-          const uy = (q.y - p.y) / len;
-          links.push({
-            a,
-            b,
-            points: [
-              [p.x + ux * R.r, p.y + uy * R.r],
-              [q.x - ux * R.r, q.y - uy * R.r],
-            ],
-          });
-        });
-      const bottom = Math.max(...nodes.map((n) => n.y)) + R.labelY + R.bottom;
-      routes.push({ id: part.id, title: titleOf(part.id, top), nodes, links });
-      parts.push({
-        id: part.id,
-        type: "route",
-        rect: { x: T.margin, y: top, w: inner, h: bottom - top },
-      });
-      y = bottom;
-    } else if (part.type === "queue") {
-      const Q = T.queue;
-      const press = spec.parts.find(
-        (p): p is Extract<TryPart, { type: "press" }> => p.type === "press" && p.from === part.id,
-      );
-      const hintText = press ? words.tryTakes(press.take) : undefined;
-      const hintW = hintText === undefined ? 0 : Q.hintGap + textWidth(hintText, TYPE.tryHint);
-      const track = most * pitch - C.gap;
-      const box = {
-        x: T.margin,
-        y: body,
-        w: stacked ? inner : Math.min(inner, Q.padX * 2 + chipW + hintW),
-        h: Q.padY * 2 + track,
-      };
-      const slots = Array.from({ length: most }, (_, k) => ({
-        x: box.x + Q.padX,
-        y: box.y + Q.padY + k * pitch,
-        w: chipW,
-        h: C.h,
-      }));
-      const hint =
-        hintText === undefined
-          ? undefined
-          : {
-              text: hintText,
-              x: box.x + Q.padX + chipW + Q.hintGap,
-              baseline: box.y + Q.padY + C.h / 2 + LOOK.baseline.tag,
+    const spans = spansOf(line);
+    let left: number = T.margin;
+    let lowest = top;
+    for (const [k, part] of line.entries()) {
+      const span = spans[k] ?? inner;
+      if (part.type === "route") {
+        const R = T.route;
+        const columns = columnsOf(part);
+        const lane = lanesOf(part, columns);
+        const nodes: TryNodePlaced[] = columns.flatMap((list, c) =>
+          list.map((id) => {
+            const x =
+              columns.length === 1
+                ? left + span / 2
+                : left + R.padX + (c * (span - R.padX * 2)) / (columns.length - 1);
+            const cy = body + R.r + (lane.get(id) ?? 0) * R.pitch;
+            return {
+              id,
+              x,
+              y: cy,
+              ...(id === part.from
+                ? { end: "from" as const }
+                : id === part.to
+                  ? { end: "to" as const }
+                  : {}),
             };
-      queues.push({
-        id: part.id,
-        title: titleOf(part.id, top),
-        box,
-        slots,
-        ...(hint ? { hint } : {}),
-      });
-      parts.push({
-        id: part.id,
-        type: "queue",
-        rect: { x: T.margin, y: top, w: box.w, h: bottomOf(box) - top },
-        most,
-      });
-      y = bottomOf(box);
-    } else {
-      const rows = Math.max(
-        1,
-        ...raws.flatMap((raw) => (raw.state.chains[part.id] ?? []).map((b) => b.items.length)),
-      );
-      const noBaseline = body + B.padTop + TYPE.tryBlockNo.size * 0.8;
-      const prevY = body + B.padTop + B.noH + B.rowGap;
-      const chipTop = prevY + B.row + B.rowGap;
-      const rowsBottom = chipTop + rows * pitch - C.gap;
-      const captionBaseline = rowsBottom + B.rowGap + B.sha * 0.75;
-      const hashY = rowsBottom + B.rowGap + B.sha;
-      const h = hashY + B.row + B.padBottom - body;
-      const numbers = new Set(
-        raws.flatMap((raw) => (raw.state.chains[part.id] ?? []).map((b) => b.number)),
-      );
-      const folded = new Set(
-        raws.map((raw) => Math.max(0, (raw.state.chains[part.id] ?? []).length - T.shown)),
-      );
-      chains.push({
-        id: part.id,
-        title: titleOf(part.id, top),
-        top: body,
-        h,
-        w: blockW,
-        slots: Array.from({ length: T.shown }, (_, k): Point =>
-          stacked ? [T.margin, body + k * (h + B.gap)] : [T.margin + k * (blockW + B.gap), body],
-        ),
-        noBaseline,
-        prevY,
-        chipTop,
-        captionBaseline,
-        hashY,
-        // 畳んだ印は題の行の右端に、題の字の真ん中の高さで置く
-        fold: {
-          right: T.margin + inner,
-          y: top + T.head.titleY - TYPE.tryTitle.size * 0.35 - T.fold.h / 2,
-        },
-        labels: Object.fromEntries([...numbers].map((n) => [n, words.tryBlock(n)])),
-        folds: Object.fromEntries(
-          [...folded].filter((n) => n > 0).map((n) => [n, words.tryFolded(n)]),
-        ),
-      });
-      // 縦に組んだ形は出すブロックの数だけ席を積み、ブロックが足りない間も高さを変えない
-      const bottom = stacked ? body + T.shown * h + (T.shown - 1) * B.gap : body + h;
-      parts.push({
-        id: part.id,
-        type: "chain",
-        rect: { x: T.margin, y: top, w: inner, h: bottom - top },
-      });
-      y = bottom;
+          }),
+        );
+        const at = new Map(nodes.map((n) => [n.id, n]));
+        const links: TryNetLink[] = [];
+        for (const path of part.paths)
+          path.forEach((a, i) => {
+            const b = path[i + 1];
+            if (
+              b === undefined ||
+              links.some((l) => (l.a === a && l.b === b) || (l.a === b && l.b === a))
+            )
+              return;
+            const p = at.get(a) as TryNodePlaced;
+            const q = at.get(b) as TryNodePlaced;
+            const len = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+            const ux = (q.x - p.x) / len;
+            const uy = (q.y - p.y) / len;
+            links.push({
+              a,
+              b,
+              points: [
+                [p.x + ux * R.r, p.y + uy * R.r],
+                [q.x - ux * R.r, q.y - uy * R.r],
+              ],
+            });
+          });
+        const bottom = Math.max(...nodes.map((n) => n.y)) + R.labelY + R.bottom;
+        routes.push({ id: part.id, title: titleOf(part.id, top, left), nodes, links });
+        parts.push({
+          id: part.id,
+          type: "route",
+          rect: { x: left, y: top, w: span, h: bottom - top },
+        });
+        lowest = Math.max(lowest, bottom);
+      } else if (part.type === "queue") {
+        const Q = T.queue;
+        const hintText = hintTextOf(part.id);
+        const hintW = hintWidth(hintText);
+        const track = most * pitch - C.gap;
+        const box = {
+          x: left,
+          y: body,
+          w: stacked ? span : Math.min(span, Q.padX * 2 + chipW + hintW),
+          h: Q.padY * 2 + track,
+        };
+        const slots = Array.from({ length: most }, (_, k) => ({
+          x: box.x + Q.padX,
+          y: box.y + Q.padY + k * pitch,
+          w: chipW,
+          h: C.h,
+        }));
+        const hint =
+          hintText === undefined
+            ? undefined
+            : {
+                text: hintText,
+                x: box.x + Q.padX + chipW + Q.hintGap,
+                baseline: box.y + Q.padY + C.h / 2 + LOOK.baseline.tag,
+              };
+        queues.push({
+          id: part.id,
+          title: titleOf(part.id, top, left),
+          box,
+          slots,
+          ...(hint ? { hint } : {}),
+        });
+        parts.push({
+          id: part.id,
+          type: "queue",
+          rect: { x: left, y: top, w: box.w, h: bottomOf(box) - top },
+          most,
+        });
+        lowest = Math.max(lowest, bottomOf(box));
+      } else {
+        const rows = Math.max(
+          1,
+          ...raws.flatMap((raw) => (raw.state.chains[part.id] ?? []).map((b) => b.items.length)),
+        );
+        const noBaseline = body + B.padTop + TYPE.tryBlockNo.size * 0.8;
+        const prevY = body + B.padTop + B.noH + B.rowGap;
+        const chipTop = prevY + B.row + B.rowGap;
+        const rowsBottom = chipTop + rows * pitch - C.gap;
+        const captionBaseline = rowsBottom + B.rowGap + B.sha * 0.75;
+        const hashY = rowsBottom + B.rowGap + B.sha;
+        const h = hashY + B.row + B.padBottom - body;
+        const numbers = new Set(
+          raws.flatMap((raw) => (raw.state.chains[part.id] ?? []).map((b) => b.number)),
+        );
+        const folded = new Set(
+          raws.map((raw) => Math.max(0, (raw.state.chains[part.id] ?? []).length - T.shown)),
+        );
+        chains.push({
+          id: part.id,
+          title: titleOf(part.id, top, left),
+          top: body,
+          h,
+          w: blockW,
+          slots: Array.from({ length: T.shown }, (_, n): Point =>
+            stacked ? [left, body + n * (h + B.gap)] : [left + n * (blockW + B.gap), body],
+          ),
+          noBaseline,
+          prevY,
+          chipTop,
+          captionBaseline,
+          hashY,
+          // 畳んだ印は題の行の右端に、題の字の真ん中の高さで置く
+          fold: {
+            right: left + span,
+            y: top + T.head.titleY - TYPE.tryTitle.size * 0.35 - T.fold.h / 2,
+          },
+          labels: Object.fromEntries([...numbers].map((n) => [n, words.tryBlock(n)])),
+          folds: Object.fromEntries(
+            [...folded].filter((n) => n > 0).map((n) => [n, words.tryFolded(n)]),
+          ),
+        });
+        // 縦に組んだ形は出すブロックの数だけ席を積み、ブロックが足りない間も高さを変えない
+        const bottom = stacked ? body + T.shown * h + (T.shown - 1) * B.gap : body + h;
+        parts.push({
+          id: part.id,
+          type: "chain",
+          rect: { x: left, y: top, w: span, h: bottom - top },
+        });
+        lowest = Math.max(lowest, bottom);
+      }
+      left += span + T.gap;
     }
+    y = lowest;
   }
 
   // 出来事ごとのチップとブロックの左上。待ち行列の席か、出ているブロックの中の席に置く

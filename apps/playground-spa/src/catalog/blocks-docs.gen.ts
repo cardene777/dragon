@@ -39,6 +39,7 @@ import { docs as routeDocs } from "../../../../packages/dragon/src/blocks/route/
 import { docs as rowDocs } from "../../../../packages/dragon/src/blocks/row/gallery/docs";
 import { docs as scaleDocs } from "../../../../packages/dragon/src/blocks/scale/gallery/docs";
 import { docs as sealDocs } from "../../../../packages/dragon/src/blocks/seal/gallery/docs";
+import { docs as sideDocs } from "../../../../packages/dragon/src/blocks/side/gallery/docs";
 import { docs as sidePathDocs } from "../../../../packages/dragon/src/blocks/side-path/gallery/docs";
 import { docs as sourceDocs } from "../../../../packages/dragon/src/blocks/source/gallery/docs";
 import { docs as stampDocs } from "../../../../packages/dragon/src/blocks/stamp/gallery/docs";
@@ -91,6 +92,7 @@ export const BLOCK_DOCS = {
   "row": rowDocs,
   "scale": scaleDocs,
   "seal": sealDocs,
+  "side": sideDocs,
   "side-path": sidePathDocs,
   "source": sourceDocs,
   "stamp": stampDocs,

@@ -14,10 +14,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
-import { type Browser, chromium, type Page } from "playwright-core";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Page } from "playwright-core";
+import { describe, expect, it } from "vitest";
 
 import { runCli } from "./export-support";
+import { fileChromium } from "./page-needs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CDN = join(ROOT, "dist/cdn");
@@ -49,6 +50,8 @@ const version = (): string => (JSON.parse(readFileSync(join(ROOT, "package.json"
 const SEQUENCE = "sequence ログイン\n\nbox browser as ブラウザ\nbox app as アプリ\n\nstep 押す\n  say ログインを押す。\n  browser -> app: GET /login\n";
 /** 構成図の記法 */
 const ARCHITECTURE = "architecture 配り方\n\nbox app as アプリ\nbox cdn as 配る所\n\nstep 読む\n  say アプリが配る所から読む。\n  app -> cdn: 読む\n";
+/** 宣言と段を省いた時系列図 (#3438)。最小の図が script の 1 行で出るまでの時間も、この図で測る */
+const SHORT = "sequence\n\nブラウザ -> アプリ: GET /login\nアプリ -> ブラウザ: 認可の頁へ送る\n";
 /** 4 行目に知らない行の頭の語 (`boxx`) を書いた記法 */
 const BROKEN = "sequence 誤り\n\nbox a\nboxx b\n\nstep 一\n  say あ。\n";
 
@@ -100,19 +103,11 @@ interface Requests {
   outside: string[];
 }
 
-let browser: Browser | undefined;
-
-beforeAll(async () => {
-  browser = await chromium.launch();
-});
-
-afterAll(async () => {
-  await browser?.close();
-});
 
 /** 入口の1行と `body` を置いた頁を開いて `run` を回す。入口と塊は `place` から渡す */
 async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja", place: Place = LOCAL): Promise<T> {
-  const context = await (browser as Browser).newContext({ viewport: { width: 960, height: 720 } });
+  // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
+  const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
   const requests: Requests = { scripts: [], urls: [], fonts: [], outside: [] };
   const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><script type="module" src="${place.entry}"></script></head><body>${body}</body></html>`;
   await context.route("**/*", async (route) => {
@@ -234,6 +229,18 @@ describe("script の1行の入口 (#3343)", () => {
     });
   });
 
+  it("script-entry-draws-short-notation", async () => {
+    // 宣言と段を省いた短い記法の塊も、script の 1 行で動く図に置き換わり、線に出た名前を箱に描く (#3438)
+    if (!entryBuilt()) return;
+    await withPage(`<pre class="dragon">${escape(SHORT)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect(await counts(page), "短い記法の塊が1つの図に置き換わらない").toEqual({ players: 1, drawn: 1, blocks: 0 });
+      const names = await page.evaluate(() => [...document.querySelectorAll('[data-dragon="player"] svg text.dg-sn')].map((text) => text.textContent ?? ""));
+      expect(names, "線に出た名前を箱に描かない").toEqual(expect.arrayContaining(["ブラウザ", "アプリ"]));
+      expect(requests.outside, "入口と塊と字の CSS のほかに取りに行った物").toEqual([]);
+    });
+  });
+
   it("script-entry-loads-only-used-kinds", async () => {
     if (!entryBuilt()) return;
     const later = await laterKinds();
@@ -335,7 +342,7 @@ describe("script の1行の入口 (#3343)", () => {
       const written = readFileSync(out, "utf8");
       expect(written, "入口の1行の外を読む script を残さない").not.toMatch(/<script[^>]*\bsrc=/iu);
 
-      const context = await (browser as Browser).newContext({ viewport: { width: 960, height: 720 } });
+      const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
       const outside: string[] = [];
       try {
         await context.route(/^https?:/u, async (route) => {

@@ -9,12 +9,12 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PNG } from "pngjs";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 // 書き出しの部品 (1MB を超える束) を、この file を読む段で先に読む (#3410)。
 // 初めて読む時の変換は、検査の中で読むと最初の件だけが 2 秒から 3 秒遅れた。変換は 1 回の実行の中で使い回す
 import "@cardenelabs/dragon/export";
 import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
-import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, playerButtons, readGif, runCli, unfoldedSteps } from "./export-support";
+import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, pageLoads, playerButtons, readGif, runCli, unfoldedSteps, casesNamed } from "./export-support";
 import { draw } from "./render-support";
 
 
@@ -100,6 +100,31 @@ const oneEdge = (): Json => {
   return { ...small, steps: small.steps.map((step) => ({ ...step, body: "送る側が受ける側へ送る。", events: step.events.slice(0, 1) })) };
 };
 
+
+/**
+ * 帯と釦の件が確かめる、`oauth.json` を書き出した HTML。書き出した回数を数える (#3421)。
+ * 最初に要った件が 1 度だけ書き出し、残りの件は同じ HTML を使う。件ごとに書き出すと、同じ図を 5 回書き出していた
+ */
+let oauthExports = 0;
+let oauthShot: Promise<string> | undefined;
+const oauthHtml = (): Promise<string> =>
+  (oauthShot ??= (async () => {
+    oauthExports++;
+    const exportDiagram = await exporter();
+    const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
+    return readFileSync(result.files.html as string, "utf8");
+  })());
+/** 帯と釦の件ごとに、頁を読み込んだ回数 (#3421) */
+const bandLoads = new Map<string, number>();
+
+/** 書き出した file の中身。無い時は空にして、形の判定で落とす */
+function writtenBytes(file: string): Buffer {
+  try {
+    return readFileSync(file);
+  } catch {
+    return Buffer.alloc(0);
+  }
+}
 
 /** 4 つの釦がそれぞれ期待どおりの大きさか。やり直しと前と次は `size`、再生は同じ高さで横に長い */
 const FOUR_BUTTONS = { count: 4, restart: true, prev: true, play: true, next: true };
@@ -194,35 +219,39 @@ describe("書き出しのコマと形 (#3115)", () => {
 });
 
 describe("書き出し (#2986)", () => {
-  // 原本の JSON と記法の file を、それぞれ 1 件 1 回の命令で書き出す (#3410)。2 つを 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた
-  describe.for([
-    { input: "JSON", name: "small", write: (): string => JSON.stringify(oneEdge()), ext: "json" },
-    { input: "記法", name: "small-notation", write: (): string => api("printNotation")(oneEdge()), ext: "dragon" },
-  ])("$input", ({ name, write, ext }) => {
-    it(
-      "export-writes-four-formats",
-      async () => {
-        const dir = scratch();
-        const input = join(dir, `${name}.${ext}`);
-        writeFileSync(input, write());
-        // 書き出す先の dir はまだ無い
-        const out = join(dir, "new", name);
-        // 4 つの形式に書かれることだけを見るので、2 秒に 1 コマで撮る (#3410)
-        const ran = await runCli(["export", input, "--out", out, "--fps", "0.5", "--gif-fps", "0.5"]);
-        expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
-        for (const format of ["mp4", "gif", "html", "png"] as const) {
-          const file = join(out, `${name}.${format}`);
-          let bytes = Buffer.alloc(0);
-          try {
-            bytes = readFileSync(file);
-          } catch {
-            // 無い時は下の判定で落とす
-          }
-          expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
-        }
-      },
-    );
-  });
+  // 原本の JSON と記法の file を、それぞれ 1 件 1 回の命令で書き出す (#3410)。2 つを 1 件で起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた。
+  // 4 つの形式を書くことは原本の JSON の件だけが確かめ、記法の file の件は HTML だけを書く (#3424)。命令で 4 つの形式を書くと混み 65 で 7.9 秒、HTML だけなら 3.7 秒だった
+  it(
+    "export-writes-four-formats",
+    async () => {
+      const dir = scratch();
+      const input = join(dir, "small.json");
+      writeFileSync(input, JSON.stringify(oneEdge()));
+      // 書き出す先の dir はまだ無い
+      const out = join(dir, "new", "small");
+      // 4 つの形式に書かれることだけを見るので、2 秒に 1 コマで撮る (#3410)
+      const ran = await runCli(["export", input, "--out", out, "--fps", "0.5", "--gif-fps", "0.5"]);
+      expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
+      for (const format of ["mp4", "gif", "html", "png"] as const) {
+        const file = join(out, `small.${format}`);
+        expect(formatOf(writtenBytes(file)), `${file} が ${format} として書かれていない`).toBe(format);
+      }
+    },
+  );
+
+  it(
+    "export-notation-file-writes-html",
+    async () => {
+      const dir = scratch();
+      const input = join(dir, "small-notation.dragon");
+      writeFileSync(input, api("printNotation")(oneEdge()));
+      const out = join(dir, "new", "small-notation");
+      const ran = await runCli(["export", input, "--out", out, "--format", "html"]);
+      expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
+      const file = join(out, "small-notation.html");
+      expect(formatOf(writtenBytes(file)), `${file} が html として書かれていない`).toBe("html");
+    },
+  );
 
   it(
     "export-is-deterministic",
@@ -291,102 +320,6 @@ describe("書き出し (#2986)", () => {
     },
   );
 
-  it(
-    "html-export-caption-bar-steady",
-    async () => {
-      // 段の本文の行の数で帯の高さが替わると、帯の下の中身が段ごとに上下する (#3049)
-      const exportDiagram = await exporter();
-      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
-      const steps = await captionSteps(readFileSync(result.files.html as string, "utf8"), 390);
-      expect(steps.length, "書き出した HTML の段が読めない").toBeGreaterThan(1);
-      const [first] = steps;
-      for (const step of steps) {
-        expect({ bar: step.bar, top: step.top }, `${step.step} の帯の高さか図の上端の位置が 1 段目と違う`).toEqual({ bar: first?.bar, top: first?.top });
-      }
-    },
-  );
-
-  it(
-    "html-export-narrow-caption-stacks-body",
-    async () => {
-      // 携帯の幅では釦と番号と題と本文を横 1 列に並べ、本文の欄が帯の幅の 4 割ほどに細って帯が高くなっていた (#3057)。
-      // 帯は上から、操作の段 (釦と段ごとの進み具合)、段の番号と題、題の下の説明文の順に置き、題は番号の右から、説明文は帯の左端から帯の右端までを使う (#3398)
-      const exportDiagram = await exporter();
-      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
-      const html = readFileSync(result.files.html as string, "utf8");
-      // 600 は中身の幅が 640px より狭く、携帯の幅と同じく積む (#3398)
-      for (const width of [360, 390, 430, 600]) {
-        const { inner, buttons, no, title, body } = await captionLayout(html, width);
-        const sameRow = (a: { y: number; h: number }, b: { y: number; h: number }): boolean => a.y < b.y + b.h && a.y + a.h > b.y;
-        expect(
-          { withTitle: sameRow(no, title), left: no.x + no.w <= title.x + 0.5, edge: Math.abs(no.x - inner.left) <= 1 },
-          `幅 ${width}px で、段の番号が題と同じ段の左端に無い`,
-        ).toEqual({ withTitle: true, left: true, edge: true });
-        expect(body.y, `幅 ${width}px で、本文が題の下に無い`).toBeGreaterThanOrEqual(title.y + title.h - 0.5);
-        expect(buttons.y + buttons.h, `幅 ${width}px で、釦が題の上に無い`).toBeLessThanOrEqual(title.y + 0.5);
-        expect(Math.abs(buttons.x - inner.left), `幅 ${width}px で、釦が帯の左端から始まらない`).toBeLessThanOrEqual(1);
-        expect(
-          { title: Math.abs(title.x + title.w - inner.right) <= 1, body: Math.abs(body.x + body.w - inner.right) <= 1 },
-          `幅 ${width}px で、題か本文が帯の中身の右端までの幅を使わない`,
-        ).toEqual({ title: true, body: true });
-        expect(title.w, `幅 ${width}px で、題の欄が帯の中身の幅の 8 割より細い`).toBeGreaterThanOrEqual(0.8 * (inner.right - inner.left));
-      }
-    },
-  );
-
-  it(
-    "html-export-wide-caption-one-row",
-    async () => {
-      // 広い帯は釦を題の行の右に置き、進み具合を説明文の下の全幅の帯にする。縦に積むと帯が高くなり、低い画面で大きな図が寄って追う図に替わる (#3398)
-      const exportDiagram = await exporter();
-      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
-      const html = readFileSync(result.files.html as string, "utf8");
-      for (const width of [800, 1280]) {
-        const { inner, buttons, title, body, segments } = await captionLayout(html, width);
-        expect(
-          {
-            buttonsBesideTitle: buttons.y < title.y + title.h && buttons.y + buttons.h > title.y && buttons.x >= title.x + title.w - 0.5,
-            buttonsAtRight: Math.abs(buttons.x + buttons.w - inner.right) <= 1,
-            bodyUnderTitle: body.y >= title.y + title.h - 0.5,
-            segmentsUnder: segments.y >= Math.max(body.y + body.h, buttons.y + buttons.h) - 0.5,
-            segmentsFull: Math.abs(segments.x - inner.left) <= 1 && Math.abs(segments.x + segments.w - inner.right) <= 1,
-          },
-          `幅 ${width}px で、釦が題の行の右に無いか、進み具合が説明文の下の全幅に無い`,
-        ).toEqual({ buttonsBesideTitle: true, buttonsAtRight: true, bodyUnderTitle: true, segmentsUnder: true, segmentsFull: true });
-      }
-    },
-  );
-
-  it(
-    "html-export-player-buttons-touch-size",
-    async () => {
-      // 段を送る釦は 36px で間が 5px しか無く、携帯の幅では前と次を押し違えやすかった (#3069)。帯の中身が 440px より狭い時だけ 44px にする。
-      // 釦はやり直し、前、名前の付いた再生、次の 4 つで、再生の釦だけ名前の分だけ横に長い (#3398)
-      const exportDiagram = await exporter();
-      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
-      const html = readFileSync(result.files.html as string, "utf8");
-      for (const [width, size] of [
-        [360, "44x44"],
-        [390, "44x44"],
-        [430, "44x44"],
-        [1440, "36x36"],
-      ] as const) {
-        expect(fourButtons(await playerButtons(html, width), size), `幅 ${width}px で、段を送る釦が ${size} でない`).toEqual(FOUR_BUTTONS);
-      }
-    },
-  );
-
-  it(
-    "html-export-coarse-player-buttons",
-    async () => {
-      // 指で触るタブレットでは、広い帯の段を送る釦も 36px で押しにくかった (#3076)。指で触る時は帯の幅に関わらず 44px にする
-      const exportDiagram = await exporter();
-      const result = await exportDiagram(exampleJson("oauth.json"), { outDir: scratch(), formats: ["html"] });
-      const html = readFileSync(result.files.html as string, "utf8");
-      expect(fourButtons(await playerButtons(html, 1024, true), "44x44"), "指で触る幅 1024px で、段を送る釦が 44x44 でない").toEqual(FOUR_BUTTONS);
-    },
-  );
-
   // 書き出した HTML に埋める script は全ての種類を持ち、部品を後から読まない (#3248)。頁の外を読めない形で全ての段を送る。
   // 種類ごとに 1 件 1 回の書き出しに分ける (#3410)。全ての種類を 1 件で書き出すと、混んだ機械で 1 件の上限 (10 秒) を超えた
   describe.for([
@@ -412,6 +345,119 @@ describe("書き出し (#2986)", () => {
         expect(await captionSteps(html, 1280), `${kind} の書き出した HTML で送れた段の数`).toHaveLength(diagram.steps.length);
       },
     );
+  });
+});
+
+describe("書き出した頁の帯と釦 (#2986、#3421)", () => {
+  // 件ごとに頁を読み込んだ回数。件の名前は describe の名前から続けた全体の名前で持つ
+  let loadsAtStart = 0;
+  beforeEach(() => {
+    loadsAtStart = pageLoads();
+  });
+  afterEach(() => {
+    const name = expect.getState().currentTestName ?? "";
+    if (!name.includes("html-export-band-")) bandLoads.set(name, pageLoads() - loadsAtStart);
+  });
+
+  it(
+    "html-export-caption-bar-steady",
+    async () => {
+      // 段の本文の行の数で帯の高さが替わると、帯の下の中身が段ごとに上下する (#3049)
+      const steps = await captionSteps(await oauthHtml(), 390);
+      expect(steps.length, "書き出した HTML の段が読めない").toBeGreaterThan(1);
+      const [first] = steps;
+      for (const step of steps) {
+        expect({ bar: step.bar, top: step.top }, `${step.step} の帯の高さか図の上端の位置が 1 段目と違う`).toEqual({ bar: first?.bar, top: first?.top });
+      }
+    },
+  );
+
+  // 幅ごとに 1 件 1 頁で確かめる (#3421)。600 は中身の幅が 640px より狭く、携帯の幅と同じく積む (#3398)
+  describe.for([{ width: 360 }, { width: 390 }, { width: 430 }, { width: 600 }])("幅 $width", ({ width }) => {
+    it(
+      "html-export-narrow-caption-stacks-body",
+      async () => {
+        // 携帯の幅では釦と番号と題と本文を横 1 列に並べ、本文の欄が帯の幅の 4 割ほどに細って帯が高くなっていた (#3057)。
+        // 帯は上から、操作の段 (釦と段ごとの進み具合)、段の番号と題、題の下の説明文の順に置き、題は番号の右から、説明文は帯の左端から帯の右端までを使う (#3398)
+        const { inner, buttons, no, title, body } = await captionLayout(await oauthHtml(), width);
+        const sameRow = (a: { y: number; h: number }, b: { y: number; h: number }): boolean => a.y < b.y + b.h && a.y + a.h > b.y;
+        expect(
+          { withTitle: sameRow(no, title), left: no.x + no.w <= title.x + 0.5, edge: Math.abs(no.x - inner.left) <= 1 },
+          `幅 ${width}px で、段の番号が題と同じ段の左端に無い`,
+        ).toEqual({ withTitle: true, left: true, edge: true });
+        expect(body.y, `幅 ${width}px で、本文が題の下に無い`).toBeGreaterThanOrEqual(title.y + title.h - 0.5);
+        expect(buttons.y + buttons.h, `幅 ${width}px で、釦が題の上に無い`).toBeLessThanOrEqual(title.y + 0.5);
+        expect(Math.abs(buttons.x - inner.left), `幅 ${width}px で、釦が帯の左端から始まらない`).toBeLessThanOrEqual(1);
+        expect(
+          { title: Math.abs(title.x + title.w - inner.right) <= 1, body: Math.abs(body.x + body.w - inner.right) <= 1 },
+          `幅 ${width}px で、題か本文が帯の中身の右端までの幅を使わない`,
+        ).toEqual({ title: true, body: true });
+        expect(title.w, `幅 ${width}px で、題の欄が帯の中身の幅の 8 割より細い`).toBeGreaterThanOrEqual(0.8 * (inner.right - inner.left));
+      },
+    );
+  });
+
+  describe.for([{ width: 800 }, { width: 1280 }])("幅 $width", ({ width }) => {
+    it(
+      "html-export-wide-caption-one-row",
+      async () => {
+        // 広い帯は釦を題の行の右に置き、進み具合を説明文の下の全幅の帯にする。縦に積むと帯が高くなり、低い画面で大きな図が寄って追う図に替わる (#3398)
+        const { inner, buttons, title, body, segments } = await captionLayout(await oauthHtml(), width);
+        expect(
+          {
+            buttonsBesideTitle: buttons.y < title.y + title.h && buttons.y + buttons.h > title.y && buttons.x >= title.x + title.w - 0.5,
+            buttonsAtRight: Math.abs(buttons.x + buttons.w - inner.right) <= 1,
+            bodyUnderTitle: body.y >= title.y + title.h - 0.5,
+            segmentsUnder: segments.y >= Math.max(body.y + body.h, buttons.y + buttons.h) - 0.5,
+            segmentsFull: Math.abs(segments.x - inner.left) <= 1 && Math.abs(segments.x + segments.w - inner.right) <= 1,
+          },
+          `幅 ${width}px で、釦が題の行の右に無いか、進み具合が説明文の下の全幅に無い`,
+        ).toEqual({ buttonsBesideTitle: true, buttonsAtRight: true, bodyUnderTitle: true, segmentsUnder: true, segmentsFull: true });
+      },
+    );
+  });
+
+  describe.for([
+    { width: 360, size: "44x44" },
+    { width: 390, size: "44x44" },
+    { width: 430, size: "44x44" },
+    { width: 1440, size: "36x36" },
+  ])("幅 $width", ({ width, size }) => {
+    it(
+      "html-export-player-buttons-touch-size",
+      async () => {
+        // 段を送る釦は 36px で間が 5px しか無く、携帯の幅では前と次を押し違えやすかった (#3069)。帯の中身が 440px より狭い時だけ 44px にする。
+        // 釦はやり直し、前、名前の付いた再生、次の 4 つで、再生の釦だけ名前の分だけ横に長い (#3398)
+        expect(fourButtons(await playerButtons(await oauthHtml(), width), size), `幅 ${width}px で、段を送る釦が ${size} でない`).toEqual(FOUR_BUTTONS);
+      },
+    );
+  });
+
+  it(
+    "html-export-coarse-player-buttons",
+    async () => {
+      // 指で触るタブレットでは、広い帯の段を送る釦も 36px で押しにくかった (#3076)。指で触る時は帯の幅に関わらず 44px にする
+      expect(fourButtons(await playerButtons(await oauthHtml(), 1024, true), "44x44"), "指で触る幅 1024px で、段を送る釦が 44x44 でない").toEqual(FOUR_BUTTONS);
+    },
+  );
+
+  it("html-export-band-exports-oauth-once", () => {
+    // 帯と釦の件は、`oauth.json` を HTML に 1 度だけ書き出して使い回す (#3421)。この describe の最後の件として、帯と釦の件の後に数える
+    expect(oauthExports, "帯と釦の件が oauth.json を HTML に書き出した回数").toBe(bandLoads.size > 0 ? 1 : 0);
+  });
+
+  it("html-export-band-loads-once-per-case", () => {
+    // 帯と釦の件は幅ごとの件に分かれ、件ごとにその幅の頁を 1 度だけ読み込む (#3421)。開いた後に読み直すと 2 度と数える
+    expect(bandLoads.size, "帯と釦の件が 1 つも回っていない").toBeGreaterThan(0);
+    expect([...bandLoads].filter(([, count]) => count !== 1), "頁を 1 度だけ読み込まない帯と釦の件 (件の名前と読み込んだ回数)").toEqual([]);
+  });
+});
+
+describe("書き出しの件の分け方 (#3424)", () => {
+  it("four-formats-written-once-from-json", ({ task }) => {
+    // 4 つの形式を書く件は原本の JSON の 1 件だけで、記法の file は HTML だけを書く件で確かめる。命令で 4 つの形式を書くと混み 65 で 7.9 秒、HTML だけなら 3.7 秒だった
+    expect(casesNamed(task.file, "export-writes-four-formats"), "4 つの形式を書く件").toHaveLength(1);
+    expect(casesNamed(task.file, "export-notation-file-writes-html"), "記法の file を HTML に書き出す件").toHaveLength(1);
   });
 });
 

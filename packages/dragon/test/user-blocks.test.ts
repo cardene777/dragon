@@ -11,11 +11,12 @@
 import * as dragon from "@cardenelabs/dragon";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Browser, chromium, type Page } from "playwright-core";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Page } from "playwright-core";
+import { describe, expect, it } from "vitest";
 import type { Json, LineError, NotationLang } from "./diagram-support";
 import { api } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
+import { fileChromium } from "./page-needs";
 import { draw, figureClass, figureVars, type Rendered, type RenderOptions } from "./render-support";
 
 /** 足したブロックの定義を読んだ結果。`blocks` は `parseNotation` と `renderDiagram` にそのまま渡す */
@@ -328,21 +329,13 @@ const DEFS_URL = "http://localhost/blocks/bridge.dragon";
 const FONT_CSS = /^https:\/\/cdn\.jsdelivr\.net\/npm\/@fontsource-variable\/[^/]+\/index\.css$/u;
 const escape = (text: string): string => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;");
 
-let browser: Browser | undefined;
-
 describe("頁の link で読む定義 (#3399)", () => {
-  beforeAll(async () => {
-    browser = await chromium.launch();
-  });
-  afterAll(async () => {
-    await browser?.close();
-  });
-
   it("user-block-page-link", async () => {
     expect(existsSync(join(CDN, "dragon.js")), "入口の file が build されていない").toBe(true);
     const second = BARE_TEXT.replace("architecture 橋を渡る", "architecture もう 1 つの橋");
     const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><link rel="dragon-blocks" href="${DEFS_URL}"><script type="module" src="${LOCAL}dragon.js"></script></head><body><pre class="dragon">${escape(BARE_TEXT)}</pre><pre class="dragon">${escape(second)}</pre></body></html>`;
-    const context = await (browser as Browser).newContext();
+    // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
+    const context = await (await fileChromium()).newContext();
     const defsRead: string[] = [];
     const outside: string[] = [];
     await context.route("**/*", async (route) => {

@@ -163,6 +163,9 @@
           },
           "hold": {
             "$ref": "#/definitions/absent"
+          },
+          "side": {
+            "$ref": "#/definitions/absent"
           }
         }
       },
@@ -237,6 +240,9 @@
             },
             "hold": {
               "$ref": "#/definitions/absent"
+            },
+            "side": {
+              "$ref": "#/definitions/absent"
             }
           }
         },
@@ -298,6 +304,9 @@
               },
               "hold": {
                 "$ref": "#/definitions/absent"
+              },
+              "side": {
+                "$ref": "#/definitions/absent"
               }
             }
           },
@@ -344,6 +353,9 @@
                   "$ref": "#/definitions/absent"
                 },
                 "hold": {
+                  "$ref": "#/definitions/absent"
+                },
+                "side": {
                   "$ref": "#/definitions/absent"
                 }
               }
@@ -405,6 +417,9 @@
                     "$ref": "#/definitions/absent"
                   },
                   "hold": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "side": {
                     "$ref": "#/definitions/absent"
                   }
                 }
@@ -485,6 +500,9 @@
                       }
                     },
                     "hold": {
+                      "$ref": "#/definitions/absent"
+                    },
+                    "side": {
                       "$ref": "#/definitions/absent"
                     }
                   }
@@ -632,6 +650,9 @@
                         },
                         "part": {
                           "$ref": "#/definitions/absent"
+                        },
+                        "side": {
+                          "$ref": "#/definitions/absent"
                         }
                       }
                     },
@@ -684,6 +705,9 @@
                           "$ref": "#/definitions/absent"
                         },
                         "hold": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "side": {
                           "$ref": "#/definitions/absent"
                         }
                       }
@@ -1203,6 +1227,17 @@
             },
             "via": {
               "$ref": "#/definitions/id"
+            },
+            "choices": {
+              "description": "欄ごとに読み手に選ばせる値 (choose の行、#3422)。鍵は fields の欄で、値は選ばせる値を並べる順に 2 つ以上持つ",
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "$ref": "#/definitions/text"
+                }
+              }
             }
           }
         },

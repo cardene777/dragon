@@ -38,6 +38,8 @@ export interface CoreMessages {
   badId: (id: string) => string;
   afterId: string;
   declarationInStep: string;
+  /** 段を書かない短い記法の図で、最初の線より後に宣言の行を書いた (#3438) */
+  declarationAfterLine: string;
   stepLineBeforeStep: string;
   emptyName: (id: string) => string;
   quoteUnclosed: string;
@@ -100,6 +102,7 @@ const ja = (): Messages => {
     badId: (id) => `${id} は名札に使えない。名札には空白と [ ] 「 」 = : を含めない`,
     afterId: "名札の後ろには as <名前> か属性を書く",
     declarationInStep: "group と box と strip と branch と、scale と period と row と point と zoom は最初の step より前に書く",
+    declarationAfterLine: "段を書かない図では、group と box と strip を最初の線より前に書く",
     stepLineBeforeStep: "線と say と code と source と act と note と set と commit と枝を切る行と、now と mark と span と、leaf と node の行は step の下に書く",
     emptyName: (id) => `${id} の名前が空`,
     quoteUnclosed: '" で始めた字を " で閉じていない',
@@ -149,6 +152,7 @@ const en = (): Messages => {
     badId: (id) => `${id} cannot be an id. An id has no spaces and none of [ ] 「 」 = :`,
     afterId: "Write as <name> or attributes after the id",
     declarationInStep: "Write group, box, strip, branch, scale, period, row, point and zoom before the first step",
+    declarationAfterLine: "In a diagram without steps, write group, box and strip before the first line",
     stepLineBeforeStep: "Write lines, say, code, source, act, note, set, commit, branch cuts, now, mark, span, leaf and node under a step",
     emptyName: (id) => `${id} has an empty name`,
     quoteUnclosed: 'A value that starts with " is not closed with "',

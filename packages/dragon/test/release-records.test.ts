@@ -169,6 +169,69 @@ describe("版の記録 (#3151)", () => {
     for (const issue of ["#3165", "#3198", "#3199", "#3200"]) expect(released, `CHANGELOG.md の 0.42.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
   });
 
+  it("changelog-0-56-0-adds-try-choices", () => {
+    // 試す図の入力の帯の欄に選択肢を書く行 (choose) を足す変更 (#3422) は 0.56.0 で npm に出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 56, `package の版 ${version()} が 0.56.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.56\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.56.0"), "0.56.0");
+      expect(released, `${file} に日付付きの ## [0.56.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.56.0 の節に #3422 の項が無い`).toContain("(#3422)");
+      expect(released, `${file} の 0.56.0 の節が choose を名指さない`).toContain("`choose`");
+    }
+  });
+
+  it("changelog-0-57-0-adds-try-side", () => {
+    // 試す図の部品を横に並べる行 (side) を足す変更 (#3429) は 0.57.0 で npm に出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 57, `package の版 ${version()} が 0.57.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.57\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.57.0"), "0.57.0");
+      expect(released, `${file} に日付付きの ## [0.57.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.57.0 の節に #3429 の項が無い`).toContain("(#3429)");
+      expect(released, `${file} の 0.57.0 の節が side を名指さない`).toContain("`side`");
+    }
+  });
+
+  it("changelog-0-59-0-releases-short-notation", () => {
+    // 宣言と段を省いた短い記法 (#3438) は 0.59.0 で npm に出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 59, `package の版 ${version()} が 0.59.0 より前`).toBe(true);
+    const words = { "CHANGELOG.md": "short form", "CHANGELOG.ja.md": "短い記法" };
+    for (const [file, word] of Object.entries(words)) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.59\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.59.0"), "0.59.0");
+      expect(released, `${file} に日付付きの ## [0.59.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.59.0 の節に #3438 の項が無い`).toContain("(#3438)");
+      expect(released, `${file} の 0.59.0 の節が短い記法を名指さない`).toContain(word);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3438)");
+    }
+  });
+
+  it("changelog-0-58-0-moves-try-caption", () => {
+    // 試す図の段の説明とゲージの帯を図の枠のすぐ下、入力の帯の上へ移す変更 (#3437) は 0.58.0 で npm に出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 58, `package の版 ${version()} が 0.58.0 より前`).toBe(true);
+    const words = { "CHANGELOG.md": "input strip", "CHANGELOG.ja.md": "入力の帯" };
+    for (const [file, word] of Object.entries(words)) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.58\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.58.0"), "0.58.0");
+      expect(released, `${file} に日付付きの ## [0.58.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.58.0 の節に #3437 の項が無い`).toContain("(#3437)");
+      expect(released, `${file} の 0.58.0 の節が入力の帯を名指さない`).toContain(word);
+    }
+  });
+
+  it("changelog-0-56-0-lists-pipe-redesign", () => {
+    // 全ての図の再生の操作の並べ替えと配管の図の描き直し (#3398) も 0.56.0 で npm に出すため、2 つの変更履歴の 0.56.0 の節に項を置く (#3426)
+    const controls = { "CHANGELOG.md": "player controls", "CHANGELOG.ja.md": "再生の操作" };
+    for (const [file, words] of Object.entries(controls)) {
+      const released = section(readFileSync(join(ROOT, file), "utf8").replace(/^## \[0\.56\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.56.0"), "0.56.0");
+      expect(released, `${file} の 0.56.0 の節に #3398 の項が無い`).toContain("(#3398)");
+      expect(released, `${file} の 0.56.0 の節が色味 sea を名指さない`).toContain("`sea`");
+      expect(released, `${file} の 0.56.0 の節が再生の操作の並べ替えを名指さない`).toContain(words);
+    }
+  });
+
   it("changelog-0-55-1-releases-try-on-light-entry", () => {
     // 軽い入口で記法から読んだ試す図を置けるようにした直し (#3416) は 0.55.1 で npm に出す
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);

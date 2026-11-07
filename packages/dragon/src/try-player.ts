@@ -23,6 +23,8 @@ import { TRY_TEXT } from "./try-text";
 import type { NotationLang } from "./words";
 
 type Part<T extends TryPart["type"]> = Extract<TryPart, { type: T }>;
+/** 入力の帯と書き換えの欄。選択肢を持つ欄は選ぶ欄、持たない欄は文字の欄 (#3422) */
+type FieldInput = HTMLInputElement | HTMLSelectElement;
 
 const px = (v: number): string => `${v}px`;
 const percent = (v: number): string => `${v * 100}%`;
@@ -161,22 +163,39 @@ export function mountTryControls(
     b.textContent = text;
     return b;
   };
-  const field = (
-    name: string,
-    label: string,
-    value = "",
-  ): { label: HTMLLabelElement; input: HTMLInputElement } => {
+  /** 欄ごとの選択肢 (#3422)。選択肢を持つ欄は打たせず選ばせる */
+  const choices = ask?.choices ?? {};
+  /**
+   * 欄 `name` の札と欄。選択肢を持つ欄は選択肢を書いた順に並べた選ぶ欄で、`value` が選択肢に無ければ最初の選択肢を選ぶ。
+   * 選択肢を持たない欄は文字の欄
+   */
+  const field = (name: string, label: string, value = ""): { label: HTMLLabelElement; input: FieldInput } => {
     const box = doc.createElement("label");
     box.className = "dg-field";
     const caption = doc.createElement("span");
     caption.className = "dg-fl";
     caption.textContent = label;
-    const input = doc.createElement("input");
+    const options = choices[name];
+    let input: FieldInput;
+    if (options) {
+      const select = doc.createElement("select");
+      for (const option of options) {
+        const o = doc.createElement("option");
+        o.value = option;
+        o.textContent = option;
+        select.append(o);
+      }
+      select.value = options.includes(value) ? value : (options[0] ?? "");
+      input = select;
+    } else {
+      const text = doc.createElement("input");
+      text.type = "text";
+      text.autocomplete = "off";
+      text.value = value;
+      input = text;
+    }
     input.className = "dg-in";
-    input.type = "text";
     input.dataset.field = name;
-    input.autocomplete = "off";
-    input.value = value;
     box.append(caption, input);
     return { label: box, input };
   };
@@ -212,7 +231,7 @@ export function mountTryControls(
   const layer = doc.createElement("div");
   layer.className = "dg-ats";
   let editor:
-    { form: HTMLFormElement; input: HTMLInputElement; item: string; field: string } | undefined;
+    { form: HTMLFormElement; input: FieldInput; item: string; field: string } | undefined;
 
   const lastState = (): TryState | undefined => current.states[current.states.length - 1];
   const say = (): void => {
@@ -296,7 +315,8 @@ export function mountTryControls(
     tools.insertBefore(editForm, reason);
     editor = { form: editForm, input: box.input, item, field: name };
     box.input.focus();
-    box.input.select();
+    // 文字の欄は今の値を選んだ状態にして打ち直させる。選ぶ欄は今の値を選んで開く
+    if (box.input.tagName === "INPUT") (box.input as HTMLInputElement).select();
   };
 
   const sendValues = (): void => {

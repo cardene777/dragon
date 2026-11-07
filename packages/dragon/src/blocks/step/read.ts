@@ -85,10 +85,11 @@ export const reading: BlockReading<StepMessages> = {
     },
   },
   print: {
+    // 本文が空の段は `say` を書かない。原本の本文は空にできず、書き戻す処理が線から導ける本文を省く時だけ空にして渡す (#3438)
     step: (step) => {
       const body = step.body.split("\n");
       return [
-        ...(body.length === 1 ? [`say ${step.body}`] : ["say", ...body.map((line) => (line === "" ? "" : `  ${line}`))]),
+        ...(step.body === "" ? [] : body.length === 1 ? [`say ${step.body}`] : ["say", ...body.map((line) => (line === "" ? "" : `  ${line}`))]),
         ...(step.code === undefined ? [] : [`code ${step.code}`]),
       ];
     },

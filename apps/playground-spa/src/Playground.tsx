@@ -243,11 +243,15 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   }
 
   const t = TEXT[lang];
+  /** 書く欄の記法を読んだ結果。部品を足す先の図と、図を描いたまま出す知らせが使う */
+  const read = useMemo(() => parseNotation(text, { lang }), [text, lang]);
   /** 部品を足す先の図。書く欄の記法が読めない時は最後に描けた図 */
-  const base = useMemo(() => {
-    const parsed = parseNotation(text, { lang });
-    return parsed.ok ? parsed.diagram : drawn;
-  }, [text, lang, drawn]);
+  const base = read.ok ? read.diagram : drawn;
+  /**
+   * 図を描いたまま出す知らせ (箱を宣言しない図の似た名前、#3438)。誤りの文と同じく読む処理が出すので、図を描くのを待たない。
+   * 誤りと同じ欄に、行へ移る釦と文の組で出す
+   */
+  const hints = tab === "notation" && read.ok ? lineNotices(read.notices ?? []) : [];
 
   useLayoutEffect(() => {
     const line = reveal.current;
@@ -550,6 +554,27 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
               <p className="pg-ok">
                 <span aria-hidden="true">✓</span> {drawn ? t.readable(...mainParts(drawn), drawn.steps.length) : ""}
               </p>
+              {hints.length > 0 && (
+                <div className="pg-hints" data-playground="hints">
+                  <p className="pg-notices-head">
+                    <span className="pg-hints-badge" data-playground="hints-count">
+                      {t.notices.hints(hints.length)}
+                    </span>
+                  </p>
+                  <ul className="pg-notice-list">
+                    {hints.map((n, i) => (
+                      <li key={`${i}-${n.line ?? "-"}`} className="pg-notice" data-playground="notice">
+                        {n.line !== undefined && (
+                          <button type="button" className="pg-hint-line" data-playground="notice-line" aria-label={t.notices.goTo(n.line)} onClick={() => goToLine(n.line ?? 1)}>
+                            {t.notices.line(n.line)}
+                          </button>
+                        )}
+                        <span className="pg-notice-text">{n.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {overlaps.length > 0 && (
                 <div className="pg-overlaps" data-playground="overlaps">
                   <p className="pg-notices-head">

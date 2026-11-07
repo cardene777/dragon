@@ -83,6 +83,12 @@
  * 段の中では `move`、`write`、`check`、`return`、`revert`、`emit`、`calc` を書き、呼び出しの開け閉めと残高は
  * 段ごとの状態の手順 (`pipe-run.ts`) に 1 つずつ当てる。これらの行は配管の図でだけ書け、配管の図に区画のような配管の図の持たない行は書けない。
  *
+ * 時系列図と構成図と状態遷移図 (種類の定義が `short` を名乗る図) は、宣言と段を省いた短い記法も読む (#3438)。
+ * 1 行目は図の種類の語だけでよく、原本の題は図の種類の語にする。`step` の行を 1 つも書かない図は、線 1 本を 1 段にして書いた順に並べ、
+ * 状態遷移図でもその線を道にしない。`say` を書かない段は、段の線の名前から本文を導く (`short-form.ts`)。
+ * 箱を 1 つも宣言しない図は、線に出た名前を出た順に箱にし、前に出た名前と 1 字だけ違う名前を、図を描いたまま知らせ (`notices`) で返す。
+ * 段を書いた図の段の外の線と、箱を 1 つでも宣言した図の宣言の無い名前は、省いた形と読まずに誤りで止める。
+ *
  * 行の頭の語と同じ綴りの名札 (`end` や `step`) も書ける。名札の次に `->` が来る行は線と読む。
  * 誤りは最初の 1 つで止め、行と列を示す。誤りの文の言葉は呼ぶ側が渡す。
  *
@@ -92,7 +98,7 @@
  * 図の種類の決まり (名札に使えない名前、線の端、読み終えた時の確かめ) は、その種類の図が必ず使うブロック (定義の `always`) の読み方の手続きが持つ。
  */
 import type { BlockReading, FigureDraft, HeadReader, KindName, LineView, ParseState, StepDraft } from "./blocks/block";
-import { EDGE } from "./blocks/edge/block";
+import { EDGE, type EdgeEvent } from "./blocks/edge/block";
 import { readEdgeLine } from "./blocks/edge/read";
 import { BLOCKS } from "./blocks/index";
 import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
@@ -105,9 +111,11 @@ import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
 import type { Diagram, DiagramModel, Step } from "./schema";
-import { isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
+import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
+import { similarNames } from "./nearest";
+import { derivedBody, lineText } from "./short-form";
 import { defineUserBlocks, type UserBlock, UserBlockFailure, type UserBlocks, userBlock, userBlockReader, versionLine, withUserBlocks } from "./user-blocks";
 import { ATTRS, DEFAULT_LANG, HEADS, KINDS, type NotationLang, OLD_HEADS } from "./words";
 
@@ -120,7 +128,11 @@ export interface LineError {
   message: string;
 }
 
-export type Parsed = { ok: true; diagram: Diagram } | { ok: false; errors: LineError[] };
+/**
+ * 読んだ結果。読めた図は、図を描いたまま書き手に知らせる事 (`notices`) を持つことがある (#3438)。
+ * 知らせは箱を宣言しない図の似た名前の箱で、誤りと同じく行と列と文を持つ。知らせが無い時は欄を持たない
+ */
+export type Parsed = { ok: true; diagram: Diagram; notices?: LineError[] } | { ok: false; errors: LineError[] };
 
 export interface ParseOptions {
   /** 誤りの文の言葉。既定は英語 (#3338) */
@@ -174,7 +186,7 @@ const LINEUP_OR_TRY = ["item", "line"];
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
-function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): DiagramModel {
+function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
   const head = lines[headAt];
   if (!head) throw new NotationError(1, 1, m.noHead);
@@ -183,15 +195,18 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
     const old = oldForm(head.text, false);
     throw fail(head, 0, old ? m.oldForm(old.word, old.shape) : m.badHead);
   }
+  const kindFolder = (KIND_FOLDERS as unknown as Readonly<Record<string, Kind>>)[kind] as Kind;
+  /** 宣言と段を省いた短い記法を読む図の種類か (#3438) */
+  const short = kindFolder.short === true;
   const titled = readName(head, kind.length, m);
-  if (titled.value === "") throw fail(head, 0, m.badHead);
-  const title = titled.value;
+  if (titled.value === "" && !short) throw fail(head, 0, m.badHead);
+  // 短い記法の 1 行目は図の種類の語だけでよい。原本の題は空にできないので、図の種類の語を題にする
+  const title = titled.value === "" ? kind : titled.value;
   const view = viewOf(head, titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m).get("view") : undefined, m);
 
   // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
   const always = kindNeeds(kind).find((name) => !readingLoaded(name));
   if (always !== undefined) throw fail(head, 0, m.blockNotLoaded(always));
-  const kindFolder = (KIND_FOLDERS as unknown as Readonly<Record<string, Kind>>)[kind] as Kind;
   /** この図の種類で使える、持っている読み方。ブロックの並び (`rank`) の順 */
   const own = loadedReadings().filter(({ block }) => fits(block, kindFolder));
   /** この図の種類で使える読み方が持つ、名前 `key` の手続き。ブロックの並びの順 */
@@ -213,21 +228,41 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
     time: { rows: [], points: [], pending: [], settled: false, needle: 0 },
     tree: { boxes: new Map(), parents: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },
-    try: { parts: [], items: [], pending: [] },
+    try: { parts: [], items: [], sides: [], pending: [] },
     pipe: { holds: [], opened: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
   const steps: Step[] = [];
   let building: StepDraft | undefined;
+  const rest = lines.slice(headAt + 1);
+  /** `step` の行を 1 つも書かない短い記法の図か。線 1 本を 1 段にする (#3438) */
+  const lineSteps = short && !rest.some((source) => !isBlankOrComment(source) && !EDGE.test(source.text) && /^step(?:\s|$)/u.test(source.text));
+  /** 箱を宣言しない図で、線に出た名前から最初に導いた箱の行と位置 (#3438)。導いた後に宣言の行が来たら、ここを宣言の無い名前の誤りとして示す */
+  let inferred: { source: SourceLine; at: number; id: string } | undefined;
+  /** 名札から箱の名前を引く。箱でない端は名札のまま */
+  const nameOf = (id: string): string => boxes.find((box) => box.id === id)?.name ?? id;
   /** 全ての宣言を読んでから確かめる宣言を、もう確かめたか */
   let settled = false;
 
   const declare = (source: SourceLine, id: string, at: number): void => {
+    // 箱を導いた後の宣言は、箱を宣言した図の宣言の無い名前として、最初に導いた名前を示して止める (#3438)
+    if (inferred) throw fail(inferred.source, inferred.at, m.undeclaredBox(inferred.id));
     if (ids.has(id)) throw fail(source, at, m.duplicate(id));
     ids.add(id);
   };
+  /**
+   * 線の端などに書いた箱の名札。箱を 1 つも宣言しない短い記法の図は、出た名前を出た順に箱にし (#3438)、
+   * 前に導いた箱と 1 字だけ違う名前は、図を描いたまま知らせる
+   */
   const boxAt = (source: SourceLine, id: string, at: number): string => {
-    if (!boxes.some((box) => box.id === id)) throw fail(source, at, m.undeclaredBox(id));
+    if (boxes.some((box) => box.id === id)) return id;
+    if (!short || (boxes.length > 0 && !inferred)) throw fail(source, at, m.undeclaredBox(id));
+    notReserved(source, id, at);
+    const like = boxes.find((box) => similarNames(id, box.id));
+    if (like) notices.push({ line: source.line, column: columnOf(source, at), message: m.similarBox(id, like.id) });
+    inferred ??= { source, at, id };
+    ids.add(id);
+    boxes.push({ id, name: id });
     return id;
   };
   /**
@@ -255,9 +290,10 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
     if (!building) throw fail(source, 0, m.stepLineBeforeStep);
     return building;
   };
-  /** 宣言の行。最初の `step` より後なら誤り */
+  /** 宣言の行。最初の `step` より後か、段を書かない図の最初の線より後なら誤り */
   const beforeSteps = (source: SourceLine): void => {
     if (building) throw fail(source, 0, m.declarationInStep);
+    if (lineSteps && steps.length > 0) throw fail(source, 0, m.declarationAfterLine);
   };
   /** 全ての宣言を読んでから確かめる宣言を、最初の段を始める時か記法の終わりに 1 度だけ確かめる */
   const settle = (): void => {
@@ -269,11 +305,25 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
   const closeStep = (): void => {
     if (figure.group) throw fail(figure.group.source, 0, m.unclosedGroup(figure.group.id));
     settle();
-    if (building) steps.push(stepOf(building, m));
+    if (!building) return;
+    // 短い記法の図の `say` を書かない段は、段の線の名前から本文を導く (#3438)。線も無ければ本文の無い段の誤りになる
+    if (short && building.body === undefined) building.body = derivedBody(building.events, nameOf);
+    steps.push(stepOf(building, m));
   };
   const openStep = (draft: StepDraft): void => {
     building = draft;
     for (const begin of hooks("beginStep")) begin(state);
+  };
+  /** 段を書かない図の線の行を 1 段にして始める (#3438)。題は線を読んだ後に `closeLineStep` が付ける */
+  const openLineStep = (source: SourceLine): void => {
+    closeStep();
+    openStep({ source, title: "", sources: [], events: [] });
+  };
+  /** 線 1 本の段を、線から導いた題で閉じる。次の行は段の外の行として読む */
+  const closeLineStep = (edge: EdgeEvent): void => {
+    if (building) building.title = lineText(edge, nameOf);
+    closeStep();
+    building = undefined;
   };
   /** ブロックの読む処理が受ける、読んでいる記法の状態 */
   const declared = (id: string): boolean => ids.has(id);
@@ -314,7 +364,6 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
     return found;
   };
 
-  const rest = lines.slice(headAt + 1);
   for (let i = 0; i < rest.length; i++) {
     const source = rest[i];
     if (!source || isBlankOrComment(source)) continue;
@@ -334,6 +383,9 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
       continue;
     }
     if (!named && /^block(?:\s|$)/u.test(text)) throw fail(source, 0, m.userBlocks.versionMissing);
+    // 段を書かない短い記法の図は、線の行ごとに 1 段を始める (#3438)。状態遷移図でも道にせず、段として読む
+    const lineStep = lineSteps && (named || USER_EDGE.test(text));
+    if (lineStep) openLineStep(source);
     const userHead = USER_HEAD.exec(text)?.[0];
     if (userHead !== undefined) {
       added(source, userHead, 0, "box");
@@ -357,6 +409,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
       const read = readEdgeLine(asEdge, edge, state);
       read.block = name;
       for (const after of hooks("afterEdge")) after(read, state);
+      if (lineStep) closeLineStep(read);
       continue;
     }
     const line = lineView(text, building !== undefined);
@@ -368,6 +421,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
     if (edge) {
       const read = readEdgeLine(source, edge, state);
       for (const after of hooks("afterEdge")) after(read, state);
+      if (lineStep) closeLineStep(read);
       continue;
     }
     const { word } = line;
@@ -409,7 +463,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang): Diagr
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items: figure.lineup.items, ...(figure.lineup.roles.length > 0 ? { roles: figure.lineup.roles } : {}) } } : {}),
-    ...(isTry ? { try: { parts: figure.try.parts, items: figure.try.items } } : {}),
+    ...(isTry ? { try: { parts: figure.try.parts, items: figure.try.items, ...(figure.try.sides.length > 0 ? { sides: figure.try.sides } : {}) } } : {}),
     ...(figure.pipe.holds.length > 0 ? { pipe: { holds: figure.pipe.holds } } : {}),
     ...(isTime && time.scale
       ? {
@@ -430,7 +484,12 @@ export function parseNotation(notation: string, options: ParseOptions = {}): Par
   try {
     // 引数で渡した定義と図の頭の定義は、読んでいる間だけ有効にする (#3399)
     // 読んだ図には印を付け、描く時の原本の形の検査を省く (#3400)
-    return withUserBlocks([options.blocks], () => ({ ok: true, diagram: markParsed(fromModel(parseLines(tokenize(notation), messagesFor(lang), lang), FORMAT_VERSION)) }));
+    // 知らせ (#3438) は図を描いたまま返し、無ければ欄を持たない
+    const notices: LineError[] = [];
+    return withUserBlocks([options.blocks], (): Parsed => {
+      const diagram = markParsed(fromModel(parseLines(tokenize(notation), messagesFor(lang), lang, notices), FORMAT_VERSION));
+      return notices.length > 0 ? { ok: true, diagram, notices } : { ok: true, diagram };
+    });
   } catch (error) {
     if (!(error instanceof NotationError) && !(error instanceof UserBlockFailure)) throw error;
     return { ok: false, errors: [{ line: error.line, column: error.column, message: error.message }] };

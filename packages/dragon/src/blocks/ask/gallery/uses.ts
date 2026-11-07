@@ -6,4 +6,6 @@ export const uses = {
   /** 入力の帯の `into` は必ず書くので、入力の帯があるかで決める */
   "attr:ask.into": (v) => v.tryParts("ask").length > 0,
   "attr:ask.via": (v) => v.tryParts("ask").some((p) => p.via !== undefined),
+  /** 欄の選択肢の行 (#3422)。入力の帯が選択肢を持つかで決める */
+  "head:choose": (v) => v.tryParts("ask").some((p) => p.choices !== undefined),
 } satisfies BlockUses;
