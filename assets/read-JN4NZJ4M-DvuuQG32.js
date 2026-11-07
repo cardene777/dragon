@@ -1,1 +1,0 @@
-import{n as u}from"./index-bLQdpGO2.js";var A={read:u("fold の印は呼び出しの行の属性で、呼び出しの管のブロックが呼び出しの行と一緒に読む"),print:u("fold の印は呼び出しの管のブロックが呼び出しの行の属性として書き戻す"),messages:u("fold の印の誤りの文は、配管の図なら必ず読む呼び出しの管のブロックが持つ")};export{A as reading};
