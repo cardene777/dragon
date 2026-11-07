@@ -10,7 +10,7 @@
  * 命令を子の process で起こし、`--list` で選んだ検査の file を出させて確かめる。
  * 規則は、この repo そのものと、検査の中で作る小さな repo の 2 つで確かめる。
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -31,8 +31,23 @@ interface Listed {
 /** 命令に `--list` を付けて起こし、選んだ検査の file を読む */
 function list(args: string[], root = ROOT): Listed {
   const ran = spawnSync(process.execPath, [RUNNER, "--list", "--root", root, ...args], { cwd: root, encoding: "utf8" });
-  const lines = ran.stdout.split("\n").filter((line) => line.trim() !== "");
-  return { code: ran.status, stdout: ran.stdout, stderr: ran.stderr, files: lines.slice(1).map((line) => line.trim()) };
+  return listed(ran.status, ran.stdout, ran.stderr);
+}
+
+/** 命令の出力から、選んだ検査の file を読む */
+function listed(code: number | null, stdout: string, stderr: string): Listed {
+  const lines = stdout.split("\n").filter((line) => line.trim() !== "");
+  return { code, stdout, stderr, files: lines.slice(1).map((line) => line.trim()) };
+}
+
+/** `list` と同じ命令を、待たずに起こす。いくつもの命令を同時に起こして、全てを待つ時に使う (#3463) */
+function listLater(args: string[], root = ROOT): Promise<Listed> {
+  return new Promise((done) => {
+    execFile(process.execPath, [RUNNER, "--list", "--root", root, ...args], { cwd: root, encoding: "utf8" }, (error, stdout, stderr) => {
+      const code = error === null ? 0 : typeof error.code === "number" ? error.code : null;
+      done(listed(code, stdout, stderr));
+    });
+  });
 }
 
 /** 検査の中で使う小さな repo を作る。`files` は repo の根からの path と中身 */
@@ -116,7 +131,7 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     expect(fromExample.files, "見本を読む検査 (lineup-diagram.test.ts) を選んでいない").toContain("packages/dragon/test/lineup-diagram.test.ts");
   });
 
-  it("related-table-covers-material-readers", () => {
+  it("related-table-covers-material-readers", async () => {
     // 材料の file の名前を字で書く検査の file は、その材料を変えた時に全て選ばれる。
     // 命令の選び方とは別に、検査の file の字を数えて確かめる (命令の側の誤りを、命令の答えで確かめない)
     const tablePath = join(ROOT, "test-support/related-table.json");
@@ -127,10 +142,12 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     const tests = execFileSync("git", ["-C", ROOT, "ls-files", "*.test.ts", "*.test.tsx"], { encoding: "utf8" }).split("\n").filter(Boolean);
     const sources = new Map(tests.map((path) => [path, readFileSync(join(ROOT, path), "utf8")]));
     const checked: string[] = [];
-    for (const material of ["CHANGELOG.md", "README.md", "docs/maintaining.md", "packages/dragon/examples/auction.dragon", ".ikkan/checks.md"]) {
+    const materials = ["CHANGELOG.md", "README.md", "docs/maintaining.md", "packages/dragon/examples/auction.dragon", ".ikkan/checks.md"];
+    // 材料ごとの命令を同時に起こす。1 つずつ順に起こすと、機械が混んだ時に 1 件 10 秒の上限を超えた (#3463)
+    const answers = await Promise.all(materials.map(async (material) => ({ material, chosen: await listLater([material]) })));
+    for (const { material, chosen } of answers) {
       const base = material.split("/").pop() ?? material;
       const readers = [...sources].filter(([, body]) => body.includes(`"${material}"`) || body.includes(`"${base}"`)).map(([path]) => path);
-      const chosen = list([material]);
       expect(chosen.code, `${material} を変えた時に命令が止まった: ${chosen.stderr}`).toBe(0);
       expect(readers.filter((reader) => !chosen.files.includes(reader)), `${material} の名前を書く検査の file のうち、選ばれなかった物`).toEqual([]);
       checked.push(...readers);
