@@ -1,1 +1,0 @@
-import{n as u}from"./index-Dl-yOBHF.js";var r={read:u("order は箱の行の鍵で、行の頭の語を持たない。箱の行を読む処理が order の鍵を読む"),print:u("order は箱の行の鍵で、箱の宣言を書き戻す処理が order の鍵を書く"),messages:u("order の誤りの文は、箱の行を読む処理が出すので箱のブロックが持つ")};export{r as reading};
