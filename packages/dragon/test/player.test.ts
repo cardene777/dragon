@@ -671,6 +671,53 @@ describe("配管の図の再生 (#3418)", () => {
   });
 });
 
+describe("携帯の幅で配管の図の字を読める大きさに置く (#3450)", () => {
+  /** 携帯の幅の枠で配管の図に求める、画面で見える残高の字の大きさの下限 (`look/pipe.ts` の `narrow.px`) */
+  const READABLE_PX = 10.5;
+  const PHONE = 390;
+
+  type PipeShown = { layout: { width: number; levels: { text: { h: number } }[] } };
+
+  /** 幅 `PHONE` の枠に配管の見本を置き、置いた枠と図の幅と、画面で見える残高の字の大きさを返す */
+  function placeOnPhone(file: string, lang: "ja" | "en", open?: number[]): { host: HTMLElement; shown: number; px: number; frame: HTMLElement | null } {
+    prefersReducedMotion(true);
+    const source = exampleJson(file);
+    const host = document.createElement("div");
+    Object.defineProperty(host, "clientWidth", { value: PHONE });
+    document.body.appendChild(host);
+    players.push(draw("mountDiagram")(host, source, { lang, ...(open ? { open } : {}) }));
+    const { layout } = draw("renderDiagram")(source, { lang, width: PHONE, ...(open ? { open } : {}) }) as unknown as PipeShown;
+    const frame = host.querySelector<HTMLElement>('[data-dragon="pan"],[data-dragon="zoom-frame"]');
+    const shown = Number.parseFloat(frame?.querySelector<SVGElement>("svg")?.style.width || "0");
+    const level = layout.levels[0];
+    expect(level, `${file} の槽の残高の字が無い`).toBeDefined();
+    return { host, shown, px: ((level?.text.h ?? 0) * shown) / layout.width, frame };
+  }
+
+  // 言葉ごとに件を分け、1 件が混んだ機械でも上限に収まるようにする
+  describe.for(["ja", "en"] as const)("%s", (lang) => {
+    it("player-pipe-narrow-keeps-text-readable", () => {
+      const file = lang === "ja" ? "aggregator.json" : "aggregator.en.json";
+      const { host, shown, px, frame } = placeOnPhone(file, lang, [2]);
+      expect(px, `箱を開いた aggregator (${lang}) を幅 ${PHONE} に置いた残高の字 (置いた図の幅 ${Math.round(shown)}px)`).toBeGreaterThanOrEqual(READABLE_PX);
+      // 字を読める幅で置くと枠より広くなるので、縮めずに横に送り、全体のどこを見ているかを線で示す
+      expect(frame?.dataset.dragon, "幅に収まらない図を横に送る枠にしていない").toBe("pan");
+      expect(host.querySelector('[data-dragon="overview"] [data-dragon="overview-thumb"]'), "全体のどこを見ているかを示す線が無い").not.toBeNull();
+    });
+  });
+
+  // 字が読める図は今どおり枠の幅に収める。見本ごとに件を分ける
+  const FITTING = ["swap.json", "swap-revert.json", "swap-two-hops.json", "swap-retry.json", "vault-proxy.json", "aggregator.json"] as const;
+  describe.for(FITTING)("%s", (file) => {
+    it("player-pipe-narrow-fits-readable-figures", () => {
+      const { shown, px, frame } = placeOnPhone(file, "ja");
+      expect(frame?.dataset.dragon, `${file} を幅 ${PHONE} に置いた枠が横に送る形になる`).toBe("zoom-frame");
+      expect(shown, `${file} を幅 ${PHONE} に置いた図の幅`).toBeCloseTo(PHONE, 0);
+      expect(px, `${file} を幅 ${PHONE} に置いた残高の字`).toBeGreaterThanOrEqual(READABLE_PX);
+    });
+  });
+});
+
 describe("段を送る時に図を置き直さない (#3445)", () => {
   /** 置いた SVG の動きの変数と、止めているか流しているか */
   const clock = (svg: SVGSVGElement | null): { at: string | undefined; play: string | undefined; motion: string | null | undefined } => ({
