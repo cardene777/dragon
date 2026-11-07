@@ -223,6 +223,24 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-65-1-splits-gate-records", () => {
+    // 試す図の関門の記録で止まった節の行とエラーの名前の行を分け、記録が増えても図の幅を 740 と 324 に収める直し (#3478) は 0.65.1 で出す
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 65 || (minor === 65 && patch >= 1), `package の版 ${version()} が 0.65.1 より前`).toBe(true);
+    for (const [file, word] of [
+      ["CHANGELOG.md", /\bgate/iu],
+      ["CHANGELOG.ja.md", /関門/u],
+    ] as const) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.65\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.65.1"), "0.65.1");
+      expect(released, `${file} に日付付きの ## [0.65.1] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3478)")) ?? "";
+      expect(entry, `${file} の 0.65.1 の節に #3478 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.65.1 の節の #3478 の項が関門の記録 (${word.source}) を名指さない`).toMatch(word);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3478)");
+    }
+  });
+
   it("changelog-0-63-2-fixes-missing-arrow-target", () => {
     // 矢印の先を書き忘れた線の行に dragon check が線の行の形の文を返す直し (#3468) は 0.63.2 で出す (#3470)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
