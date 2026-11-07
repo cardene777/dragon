@@ -35,9 +35,9 @@ To add diagram kinds or more blocks to base on, send a pull request to this repo
 
 The other axis is to be as easy as mermaid to write, and to show the diagram right away.
 
-- Short to write. One `box` line makes a box, and one `A -> B: name` line makes an edge
+- Short to write. The diagram kind and one `A -> B: name` line make a diagram, and the names on the lines become boxes
 - One script line. Put one script line and the notation on a page, and it becomes a diagram that plays
-- Fast for AI to write. People write the notation, AI writes the same diagram as JSON, and both draw the same diagram
+- Fast for AI to write. AI writes the same notation as people and fixes the line and column that the parser's error messages point to. JSON stays as the source and converts to and from the notation
 - Light and fast. A page loads only the blocks its diagrams use
 
 The notation takes mermaid as its model but is its own form, and it is not compatible with mermaid.
@@ -50,6 +50,17 @@ npm install @cardenelabs/dragon
 ```
 
 ## A first diagram
+
+```dragon
+sequence
+
+browser -> app: GET /login
+app -> browser: Return the sign-in page
+```
+
+The diagram kind and lines joining boxes with `->` are enough to make a diagram.
+The names on the lines become boxes, and each line becomes one step, lit in the order written.
+Write `box` and `step` lines when a box needs a shown name or a caption, or a step needs a title and a body.
 
 ```dragon
 sequence Ask to sign in
@@ -86,6 +97,10 @@ Every line follows these four rules.
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
 Every line form is in the [notation guide](packages/dragon/examples/quick-start.en.md), and a full example of each kind of diagram is in [`packages/dragon/examples`](packages/dragon/examples).
+
+Sequence, architecture and state diagrams can leave out the title, the box declarations and the steps (the first example in A first diagram).
+A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
+A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
 
 A pipe diagram (`pipe <title>`) follows one transaction step by step: the calls between contracts, the balances in tanks, and the stored values.
 Changes stay provisional until the outermost call returns, and then they all become final.

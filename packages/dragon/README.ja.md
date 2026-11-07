@@ -29,9 +29,9 @@ dragon は、ブロックを組み立てて図を作る道具である。
 
 もう 1 つの軸は、mermaid と同じ手軽さで書けて、そのまま表示まで出ることである。
 
-- 書く字が短い。`box` の 1 行で箱、`A -> B: 名前` の 1 行で線になる
+- 書く字が短い。図の種類の語と `A -> B: 名前` の 2 行で図になり、線に出た名前が箱になる
 - script の 1 行で出る。頁に script の 1 行と記法の塊を置くだけで、動く図になる
-- AI が速く書ける。人は記法で、AI は同じ図を JSON で書き、どちらも同じ図になる
+- AI が速く書ける。AI も人と同じ記法で書き、読む処理の誤りの文が示す行と列を直す。JSON は原本として残り、記法と行き来できる
 - 軽くて速い。頁は、書いた図が使うブロックだけを読む
 
 記法は mermaid を手本にした独自の形で、mermaid とは互換にしない。
@@ -55,6 +55,17 @@ npm install @cardenelabs/dragon
 前の版から上げる時に書き直す所は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
 
 ## 最初の図
+
+```dragon
+sequence
+
+ブラウザ -> アプリ: GET /login
+アプリ -> ブラウザ: ログインの頁を返す
+```
+
+図の種類の語と、箱どうしを `->` で結ぶ行だけで図になる。
+線に出た名前が箱になり、線 1 本が 1 段になって書いた順に光る。
+箱に見せる名前や添え書きを付け、段に題と本文を付ける時は、`box` と `step` の行を書く。
 
 ```dragon
 sequence ログインを頼む
@@ -253,6 +264,9 @@ if (read.ok) {
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
 行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
+`box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
+`step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
 箱の行の属性 `link` に飛び先を書くと、描いた図でその箱が飛び先への link になる。
 段の中の `source <名前> [url: <URL>]` の行は段の出典になり、1 つの段に何行でも書け、読み上げの段の一覧に名前の link で出る。
 飛び先と出典の URL には、`/` で始まる path か、`http://` か `https://` で始まる URL だけを書ける。
@@ -276,6 +290,7 @@ step 出荷に回す
 ```
 
 `parseNotation` は記法を原本の JSON に、`printNotation` は原本の JSON を記法に直す。
+`printNotation` は宣言と段を省ける図を省いて書き、`{ short: false }` を渡すと省かずに書く。
 誤りの文の言葉は `parseNotation(text, { lang: "ja" })` のように渡した言葉で決まり、渡さなければ英語になる。
 前の形の記法 (`時系列図` か `構成図` で始まる形) は読まず、その行の新しい形を示す誤りで止まる。
 前の形と新しい形の対応表は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。

@@ -4,7 +4,7 @@
  */
 export { extractDiagrams, type Fence } from "./markdown";
 export { type LineError, type ParseOptions, type Parsed, parseNotation } from "./parser";
-export { printNotation } from "./printer";
+export { type PrintOptions, printNotation } from "./printer";
 export type { NotationLang } from "./words";
 export {
   type Box,

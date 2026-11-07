@@ -8,5 +8,6 @@ import { layoutSequence } from "./layout";
 export const kind: EagerKind = {
   name: "sequence",
   accepts: ["place", "connect", "ride-on-line", "attach-to-box", "attach-to-figure"],
+  short: true,
   layout: layoutSequence,
 };

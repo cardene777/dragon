@@ -22,6 +22,19 @@ export function nearest(word: string, candidates: readonly string[]): string | u
   return best;
 }
 
+/**
+ * 2 つの名札が、書き間違いを疑うほど似ているか (#3438)。箱を宣言しない図で、似た名前の箱を知らせる時に使う。
+ * 大文字と小文字を区別して 1 字だけ違う時に似ているとみなす。
+ * ただし数字を外すと同じになる名前 (`node1` と `node2`) は番号を振った別の箱なので、数字を外した残りが 1 字の名前 (`A` と `B`、`A1` と `B1`) は
+ * どの 2 つも 1 字違いになるので、どちらも似ているとみなさない
+ */
+export function similarNames(a: string, b: string): boolean {
+  const bareA = [...a.replace(/\p{Nd}/gu, "")];
+  const bareB = [...b.replace(/\p{Nd}/gu, "")];
+  if (bareA.join("") === bareB.join("") || Math.min(bareA.length, bareB.length) < 2) return false;
+  return distance([...a], [...b]) === 1;
+}
+
 /** 2 つの字の並びの編集距離 */
 function distance(a: readonly string[], b: readonly string[]): number {
   let previous = Array.from({ length: b.length + 1 }, (_, j) => j);

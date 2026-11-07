@@ -50,6 +50,8 @@ const version = (): string => (JSON.parse(readFileSync(join(ROOT, "package.json"
 const SEQUENCE = "sequence ログイン\n\nbox browser as ブラウザ\nbox app as アプリ\n\nstep 押す\n  say ログインを押す。\n  browser -> app: GET /login\n";
 /** 構成図の記法 */
 const ARCHITECTURE = "architecture 配り方\n\nbox app as アプリ\nbox cdn as 配る所\n\nstep 読む\n  say アプリが配る所から読む。\n  app -> cdn: 読む\n";
+/** 宣言と段を省いた時系列図 (#3438)。最小の図が script の 1 行で出るまでの時間も、この図で測る */
+const SHORT = "sequence\n\nブラウザ -> アプリ: GET /login\nアプリ -> ブラウザ: 認可の頁へ送る\n";
 /** 4 行目に知らない行の頭の語 (`boxx`) を書いた記法 */
 const BROKEN = "sequence 誤り\n\nbox a\nboxx b\n\nstep 一\n  say あ。\n";
 
@@ -224,6 +226,18 @@ describe("script の1行の入口 (#3343)", () => {
       for (const message of messages) expect(bad.text, "誤りのある塊の場所に誤りの文を出す").toContain(message);
       const good = await page.evaluate(() => document.querySelectorAll('#good [data-dragon="player"] svg').length);
       expect(good, "誤りの無い塊は図に置き換わる").toBe(1);
+    });
+  });
+
+  it("script-entry-draws-short-notation", async () => {
+    // 宣言と段を省いた短い記法の塊も、script の 1 行で動く図に置き換わり、線に出た名前を箱に描く (#3438)
+    if (!entryBuilt()) return;
+    await withPage(`<pre class="dragon">${escape(SHORT)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect(await counts(page), "短い記法の塊が1つの図に置き換わらない").toEqual({ players: 1, drawn: 1, blocks: 0 });
+      const names = await page.evaluate(() => [...document.querySelectorAll('[data-dragon="player"] svg text.dg-sn')].map((text) => text.textContent ?? ""));
+      expect(names, "線に出た名前を箱に描かない").toEqual(expect.arrayContaining(["ブラウザ", "アプリ"]));
+      expect(requests.outside, "入口と塊と字の CSS のほかに取りに行った物").toEqual([]);
     });
   });
 

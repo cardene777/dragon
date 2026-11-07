@@ -22,10 +22,12 @@ const BODY_PAGES = [
     screen: "docs",
     targets: '[data-docs="cta"] a, a[data-docs="section-cta"], a[data-docs="icon-link"]',
     links: 'a[data-docs="section-cta"], a[data-docs="icon-link"]',
-    count: 22,
+    count: 23,
     touchSizes: [
       "5 分で始める → 133x44",
       "カタログで図を見る 160x44",
+      "編集画面で書いてみる → 151x46",
+      // 省いて書く節の出口 (#3438)
       "編集画面で書いてみる → 151x46",
       "続き → 箱 60x46",
       "使える絵柄を部品「絵」の頁で全て見る → 259x46",

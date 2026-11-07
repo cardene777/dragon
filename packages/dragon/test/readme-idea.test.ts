@@ -39,6 +39,12 @@ const PHRASES = {
   },
 } as const;
 
+/** AI が書く形を書いたと読める字と、前の形 (AI は JSON で書く) の字。言葉ごとに持つ (#3438) */
+const AI_WRITES = {
+  ja: { says: ["AI も人と同じ記法で書き", "読む処理の誤りの文"], old: "AI は同じ図を JSON で書き" },
+  en: { says: ["AI writes the same notation as people", "the parser's error messages"], old: "AI writes the same diagram as JSON" },
+} as const;
+
 /** 4 つの README の思想の節。言葉と置き場ごと */
 const ideaSections = (): { lang: keyof typeof LANGS; path: string; section: string }[] =>
   (Object.keys(LANGS) as (keyof typeof LANGS)[]).flatMap((lang) => [LANGS[lang].repo, LANGS[lang].npm].map((path) => ({ lang, path, section: sectionOf(read(path), LANGS[lang].idea) })));
@@ -86,6 +92,15 @@ describe("README の思想の節 (#3391)", () => {
     // 思想の節は、mermaid と同じ手軽さの 4 つと、mermaid と互換にしないことを書く
     for (const { lang, path, section } of ideaSections()) {
       for (const phrase of PHRASES[lang].mermaid) expect(section, `${path} の思想の節に「${phrase}」が無い`).toContain(phrase);
+    }
+  });
+
+  it("readme-idea-ai-writes-notation", () => {
+    // AI も人と同じ記法で書き、読む処理の誤りの文で直す。JSON は原本として残すが、AI に JSON で書かせない (#3438)
+    for (const { lang, path, section } of ideaSections()) {
+      expect(section, `${path} に思想の節が無い`).not.toBe("");
+      for (const phrase of AI_WRITES[lang].says) expect(section, `${path} の思想の節に「${phrase}」が無い`).toContain(phrase);
+      expect(section, `${path} の思想の節が、AI は JSON で書くと書いている`).not.toContain(AI_WRITES[lang].old);
     }
   });
 

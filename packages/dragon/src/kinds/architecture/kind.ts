@@ -8,5 +8,6 @@ import { layoutArchitecture } from "./layout";
 export const kind: EagerKind = {
   name: "architecture",
   accepts: ["place", "connect", "ride-on-line", "attach-to-box", "attach-to-figure"],
+  short: true,
   layout: layoutArchitecture,
 };

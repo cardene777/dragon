@@ -108,7 +108,8 @@ export async function loadReadings(source: string | object): Promise<void> {
   await loadBlocks(blocksUsedBy(diagram));
   let printed: string;
   try {
-    printed = printNotation(diagram as Diagram);
+    // 読むのに要るブロックを数えるだけなので、省かずに書く。省く形は読み直して確かめるので、まだ読んでいないブロックで落ちる
+    printed = printNotation(diagram as Diagram, { short: false });
   } catch {
     // 書き戻せない原本は、読む処理 (`readDiagram`) がその誤りを返す
     return;

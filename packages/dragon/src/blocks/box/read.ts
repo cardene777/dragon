@@ -19,6 +19,8 @@ export const ORDERS = ["none"] as const;
 
 export interface BoxMessages {
   undeclaredBox: (id: string) => string;
+  /** 箱を宣言しない図で、線に出た名前 `id` が前に出た名前 `like` と 1 字だけ違う (#3438)。誤りでなく知らせの文 */
+  similarBox: (id: string, like: string) => string;
   noBoxes: string;
   /** 列の図の箱だけの属性 (`order`) を、別の種類の図の箱に書いた (#3351) */
   lineupOnlyAttr: (key: string) => string;
@@ -102,12 +104,14 @@ export const reading: BlockReading<BoxMessages> = {
   messages: {
     ja: {
       undeclaredBox: (id) => `${id} という箱は宣言していない`,
+      similarBox: (id, like) => `${id} は ${like} と 1 字だけ違う別の箱になる。同じ箱なら名前を揃える`,
       noBoxes: "箱を 1 つ以上宣言する",
       lineupOnlyAttr: (key) => `${key} は lineup (列の図) の box にだけ書ける`,
       orderNone: "order には none だけを書ける。順番の無い置き場にする箱に書く",
     },
     en: {
       undeclaredBox: (id) => `No box named ${id} is declared`,
+      similarBox: (id, like) => `${id} differs from ${like} by one character and becomes another box. Use one name if they are the same box`,
       noBoxes: "Declare at least one box",
       lineupOnlyAttr: (key) => `${key} can be written only on box lines of lineup diagrams`,
       orderNone: "order takes only none. Write it on a box that holds chips in no order",

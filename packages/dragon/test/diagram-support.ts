@@ -25,7 +25,8 @@ export interface LineError {
 
 export type Checked = { ok: true } | { ok: false; errors: FieldError[] };
 export type Read = { ok: true; diagram: Json; warnings: string[] } | { ok: false; errors: FieldError[] };
-export type Parsed = { ok: true; diagram: Json } | { ok: false; errors: LineError[] };
+/** 読めた図は、図を描いたまま書き手に知らせる事 (`notices`) を持つことがある。知らせが無い時は欄を持たない (#3438) */
+export type Parsed = { ok: true; diagram: Json; notices?: LineError[] } | { ok: false; errors: LineError[] };
 
 /** 誤りの文と図の中の字の言葉。dragon記法の語は英語だけで、file から言葉は決まらない (#3137) */
 export type NotationLang = "ja" | "en";
@@ -40,7 +41,8 @@ interface DragonApi {
   validateDiagram(input: unknown, options?: { lang?: NotationLang }): Checked;
   readDiagram(input: unknown, options?: { lang?: NotationLang }): Read;
   parseNotation(text: string, options?: { lang?: NotationLang }): Parsed;
-  printNotation(diagram: unknown): string;
+  /** `short: false` を渡すと、短い記法で省ける物も省かずに書く (#3438) */
+  printNotation(diagram: unknown, options?: { short?: boolean }): string;
   extractDiagrams(markdown: string): Fence[];
   /** ブロックを使える図の種類。付け方から導く (#3348) */
   blockKinds(name: string): readonly string[];
