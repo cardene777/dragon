@@ -670,3 +670,74 @@ describe("配管の図の再生 (#3418)", () => {
     expect([frame.scrollLeft, frame.scrollTop], "引いて動かした後の位置").toEqual([150, 130]);
   });
 });
+
+describe("段を送る時に図を置き直さない (#3445)", () => {
+  /** 置いた SVG の動きの変数と、止めているか流しているか */
+  const clock = (svg: SVGSVGElement | null): { at: string | undefined; play: string | undefined; motion: string | null | undefined } => ({
+    at: svg?.style.getPropertyValue("--at"),
+    play: svg?.style.getPropertyValue("--play"),
+    motion: svg?.getAttribute("data-motion"),
+  });
+
+  it("player-goto-keeps-the-figure", () => {
+    prefersReducedMotion(true);
+    const diagram = exampleJson("oauth.json");
+    const { timeline } = draw("renderDiagram")(diagram);
+    const { host, player } = mount(diagram);
+    const svg = host.querySelector("svg");
+    expect(svg, "図が置かれていない").not.toBeNull();
+    // 段を送ると、同じ図の動きの変数を替えて、その段の止め絵で止める
+    player.goTo(2);
+    expect(host.querySelector("svg"), "段を送ると図の SVG を写して置き直す").toBe(svg);
+    expect(clock(svg), "段 3 へ送った図の動きの変数").toEqual({ at: String(timeline.stills[2]), play: "paused", motion: "still" });
+    // 流し直した時も同じ図のまま、流す変数に替える
+    player.play();
+    expect(host.querySelector("svg"), "流し直すと図の SVG を写して置き直す").toBe(svg);
+    expect(clock(svg), "流し直した図の動きの変数").toEqual({ at: String(timeline.stills[2]), play: "running", motion: "play" });
+  });
+
+  it("player-goto-rewinds-animations", () => {
+    prefersReducedMotion(true);
+    // jsdom は動きを持たないので、図の中の動きを偽の動きに差し替え、時刻を 0 に戻したかを読む
+    const fakes = [{ currentTime: 0 as number | null }, { currentTime: 0 as number | null }];
+    const asked: { tag: string; subtree: boolean }[] = [];
+    const proto = Element.prototype as unknown as { getAnimations?: (options?: { subtree?: boolean }) => unknown[] };
+    proto.getAnimations = function (this: Element, options?: { subtree?: boolean }) {
+      asked.push({ tag: this.tagName.toLowerCase(), subtree: options?.subtree === true });
+      return fakes;
+    };
+    try {
+      const { host, player } = mount(exampleJson("oauth.json"));
+      // 流れた後の時刻が残っている動きを、段を送った時に 0 へ戻す
+      for (const f of fakes) f.currentTime = 1500;
+      player.goTo(2);
+      expect(fakes.map((f) => f.currentTime), "段を送った後の動きの時刻").toEqual([0, 0]);
+      expect(asked.some((a) => a.tag === "svg" && a.subtree), "図の SVG の中の全ての動きを引いていない").toBe(true);
+      // 流し直す時も 0 へ戻し、動きの時計を最初から数え直す
+      for (const f of fakes) f.currentTime = 800;
+      player.play();
+      expect(fakes.map((f) => f.currentTime), "流し直した後の動きの時刻").toEqual([0, 0]);
+      expect(host.querySelector("svg"), "図が置かれていない").not.toBeNull();
+    } finally {
+      delete proto.getAnimations;
+    }
+    // getAnimations を持たない環境では時刻を戻す所を飛ばし、止まらずに段を送る
+    const { player } = mount(exampleJson("oauth.json"));
+    expect(() => player.goTo(3), "getAnimations を持たない環境で段を送ると止まる").not.toThrow();
+    expect(player.step).toBe(3);
+  });
+
+  it("player-goto-costs-less-than-mount", () => {
+    prefersReducedMotion(true);
+    // 段を送る手間を、同じ図を置く手間と比べる。秒ではなく比で見るので、機械が混んでいても両方が同じだけ遅れる
+    const diagram = exampleJson("swap-two-hops.json") as { steps: unknown[] };
+    const ms = (u: NodeJS.CpuUsage): number => (u.user + u.system) / 1000;
+    const placing = process.cpuUsage();
+    const { player } = mount(diagram, { lang: "ja" });
+    const placed = ms(process.cpuUsage(placing));
+    const sending = process.cpuUsage();
+    for (let s = 0; s < diagram.steps.length; s++) player.goTo(s);
+    const sent = ms(process.cpuUsage(sending));
+    expect(sent, `全ての段を送る CPU 時間 (${Math.round(sent)}ms) が、図を置く CPU 時間 (${Math.round(placed)}ms) の 4 分の 1 以上`).toBeLessThan(placed / 4);
+  });
+});
