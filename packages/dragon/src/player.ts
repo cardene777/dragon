@@ -14,7 +14,7 @@
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
  * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、段を送る釦を指で押せる大きさにして段の番号と上の段に並べ、
  * 題と本文をその下の段の全幅に置く (#3057、#3069)。
- * 試す図 (`try`) は書き手の最初の段だけを持つ原本 (今の原本) で描き、流さずに最初の段の止め絵で置く。図の下に入力の帯を置き、
+ * 試す図 (`try`) は書き手の最初の段だけを持つ原本 (今の原本) で描き、流さずに最初の段の止め絵で置く。図の下に段の説明とゲージの帯を、その下に入力の帯を置き (#3437)、
  * 読み手が送るか釦を押すかチップを書き換えるたびに、その出来事の段を今の原本の最後に足して描き直し、足した段を 1 度だけ流す。
  * 動きを嫌う設定では流さずに足した段の止め絵で止める。今の原本は `player.diagram` で読め、置き直すと最初の段に戻る (#3337)。
  * 入力の帯などの操作は試す図の描く部品と同じ塊が持ち、試す図を描けた後に登録簿 (`kinds/registry.ts`) から引いて置く。
@@ -300,7 +300,8 @@ export function mountDiagram(
   };
   fillList();
 
-  // 試す図の入力の帯は図と語りの帯の間に置く。足した段は `add` が今の原本に足して描き直す。
+  // 試す図は、図の枠、段の説明とゲージの帯、入力の帯の順に置く。段の説明は押した後に図で何が変わったかを書くため、
+  // 入力の帯を挟まずに図のすぐ下へ置く (#3437)。足した段は `add` が今の原本に足して描き直す。
   // 試す図を描けたので、試す図の塊は届いている
   const controls = session
     ? kindParts("try", lang).mountTryControls(
@@ -311,7 +312,7 @@ export function mountDiagram(
         (added) => add(added),
       )
     : undefined;
-  root.append(frame, ...(controls ? [controls.tools] : []), bar, list);
+  root.append(frame, bar, ...(controls ? [controls.tools] : []), list);
   host.append(root);
 
   const frameWidth = (): number => frame.clientWidth || host.clientWidth || rendered.layout.width;
