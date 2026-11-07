@@ -229,4 +229,16 @@ describe("矢印の先を書き忘れた線の行 (#3468)", () => {
     expect(head?.startsWith(`${file}:${(offsets[0] ?? 0) + 3}:1 error A line ${HEAD_REFUSAL} foo. `), `矢印を持たない行で行の頭の語を断る文を返さない ${head}`).toBe(true);
     expect(edge, "先を書いた線の行の誤りの文と桁が変わった").toBe(`${file}:${(offsets[1] ?? 0) + 3}:8 error ${EDGE_SHAPE.en}`);
   });
+
+  it("check-lineup-missing-target-says-no-edge-lines", async () => {
+    // 列の図は線の行を持たないので、先の無い線の行にも線の行の形でなく、先を書いた線の行と同じ文を返す
+    const diagram = (edge: string): string => lines("lineup Two lanes", "", "box a as A", "box b as B", "", "step Move", edge);
+    const { text } = fenced(diagram("  a -> : send"), diagram("  a -> b: send"));
+    const ran = await runCli(["check", place("lineup.md", text)]);
+    expect(ran.code, ran.stderr).toBe(1);
+    const messages = outputLines(ran.stdout).map((line) => line.replace(/^.*?:\d+:\d+ error /u, ""));
+    expect(messages, "先の無い線の行と先を書いた線の行で文が違う").toHaveLength(2);
+    expect(messages[0], "先の無い線の行に列の図の文を返さない").toBe(messages[1]);
+    expect(messages[0], "列の図の先の無い線の行に線の行の形を返した").not.toBe(EDGE_SHAPE.en);
+  });
 });
