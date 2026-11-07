@@ -1,6 +1,6 @@
 {
   "name": "dragon",
-  "version": "0.62.0",
+  "version": "0.63.0",
   "description": "Write animated diagrams in the dragon notation, check them with dragon check, and show them on a page, in a README, or in an app.",
   "author": {
     "name": "cardene777"

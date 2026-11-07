@@ -193,6 +193,22 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-63-0-adds-check-and-shared-blocks", () => {
+    // 記法を確かめる命令 dragon check と共有のブロック集と Markdown の囲みの描画 (#3455) は 0.63.0 で npm に出す (#3461)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 63, `package の版 ${version()} が 0.63.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.63\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.63.0"), "0.63.0");
+      expect(released, `${file} に日付付きの ## [0.63.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.63.0 の節に #3455 の項が無い`).toContain("(#3455)");
+      for (const name of ["`dragon check`", "`dragon --version`", "`+bridge`", "`<pre><code class=\"language-dragon\">`"]) {
+        expect(released, `${file} の 0.63.0 の節が ${name} を名指さない`).toContain(name);
+      }
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3455)");
+    }
+  });
+
   it("changelog-0-62-0-adds-accept-gather", () => {
     // 試す図の待ち行列に入れてよい名前を書く accept と、釦の from に 2 つ以上の待ち行列を書いて集める形 (#3453) は 0.62.0 で npm に出す
     const [major = 0, minor = 0] = version().split(".").map(Number);
