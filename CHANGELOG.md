@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.65.1] - 2026-11-08
+
 ### Changed
 
 - **A pipe diagram with an opened box draws faster** (#3472)
