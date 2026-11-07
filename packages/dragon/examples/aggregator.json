@@ -193,7 +193,7 @@
     {
       "title": "RouterがAggregatorに交換を任せる",
       "body": "RouterがAggregatorに交換を任せる。内側の段は1つの箱に畳まれ、押すと開く。",
-      "gist": "内側の段は1つの箱に畳まれていて、箱を押すと開く",
+      "gist": "Aggregatorの内側の段は、畳んだ箱を押すと開く",
       "events": [
         {
           "type": "call",

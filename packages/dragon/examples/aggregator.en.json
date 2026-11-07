@@ -193,7 +193,7 @@
     {
       "title": "The router hands the swap to the aggregator",
       "body": "The router leaves the swap to the aggregator. The steps inside fold into one box that opens when pressed.",
-      "gist": "The inner steps fold into one box, and the box opens when you press it",
+      "gist": "The aggregator's inner steps open when you press the folded box",
       "events": [
         {
           "type": "call",

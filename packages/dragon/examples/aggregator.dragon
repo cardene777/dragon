@@ -42,7 +42,7 @@ step 100 USDCがAliceからAggregatorへ移る
 
 step RouterがAggregatorに交換を任せる
   say RouterがAggregatorに交換を任せる。内側の段は1つの箱に畳まれ、押すと開く。
-  gist 内側の段は1つの箱に畳まれていて、箱を押すと開く
+  gist Aggregatorの内側の段は、畳んだ箱を押すと開く
   router -> agg: 100 USDCをWETHに交換 [fold]
 
 step Aggregatorが価格と分け方を読む
