@@ -1,6 +1,6 @@
 # @cardenelabs/dragon
 
-動く図を、人は dragon記法で、AI は JSON で書くための package。
+動く図を、人も AI も dragon記法で書くための package。
 
 [English](README.md)
 
@@ -54,6 +54,20 @@ npm install @cardenelabs/dragon
 
 前の版から上げる時に書き直す所は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
 
+## AI に図を書かせる
+
+dragon の skill は、AI に dragon記法で図を書かせ、`dragon check` で確かめて読めるまで直させる。
+Claude Code では、GitHub の repo cardene777/dragon をプラグインの置き場に足してから、プラグインを入れる。
+
+```text
+/plugin marketplace add cardene777/dragon
+/plugin install dragon@dragon
+```
+
+ほかの AI では、GitHub の repo cardene777/dragon の skill の dir (`plugins/dragon/skills/dragon`) を、その AI が skill を読む場所へ写す。
+AI は `SKILL.md` から読み始め、描く図の種類の参照の file だけを読む。
+プラグインの版は npm の `@cardenelabs/dragon` の版と同じで、skill は入れた版を `dragon --version` で確かめる。
+
 ## 最初の図
 
 ```dragon
@@ -86,7 +100,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.61/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.63/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -453,12 +467,12 @@ step 取引3から根まで上る
 `try` で始めると、読み手が値を打ち込み、釦を押して動かせる試す図になる。部品の行を最初の段より前に上から並べて書くと、その順に上から積んで描く。
 
 - `route <名札>: <節> - <節> - ..., ... [from: <節>, to: <節>]` は網。送ったチップを `from` から `to` まで最短の道で運ぶ
-- `queue <名札> [order: <欄>]` は待ち行列。`order` の欄の値の高い順に上から並べる
+- `queue <名札> [order: <欄>, accept: <名前>]` は待ち行列。`order` の欄の値の高い順に上から並べる。`accept` を書くと、入力の帯はその名前のチップだけをこの待ち行列へ送れ、ほかの名前では送る釦を押せない。名前を 2 つ以上書く時は `accept: "<名前>, <名前>"` と囲む。最初の欄に `choose` の行を書いた時は、`accept` の名前をその選択肢から選ぶ
 - `chain <名札> [edit: <欄>]` は機械の列。ブロックは 1 つ前のブロックの `hash` を `prev` に持ち、`edit` を書くと読み手がブロックの中のチップのその欄を書き換えられる
 - `log <名札> [all: <欄> = <値>, yes: <印>, no: <印>]` は記録の列。釦がまとめたチップを番号の付いた記録に並べ、機械の列と違って `prev` と `hash` を持たない。`all` を書くと、記録の中のチップのその欄が全てその値なら `yes` の印を、1 つでも違えば `no` の印を記録に出す
 - `ask <欄>, <欄>, ... [into: <待ち行列か欄>, via: <網>]` は入力の帯。最初の欄の値がチップの名前になる。`into` に欄を書くと、送ったチップはその欄の値と同じ名札の待ち行列へ入る。その欄には `choose` の行を書き、`choose` の値ごとに同じ名札の待ち行列を置く
 - `choose <欄>: <値>, <値>, ...` はその欄の選択肢。読み手は値を打たずに、書いた順に並ぶ選択肢から選ぶ。最初の欄にも書け、ブロックの中のチップを書き換える欄も同じ選択肢から選ぶ
-- `press <名札> [from: <待ち行列>, into: <機械の列か記録の列>, take: <件数>, at: <部品>]` は釦。待ち行列の上から `take` 件を新しいブロックか新しい記録へ移す。`at` を書くとその部品の所に置き、書かなければ入力の帯に置く
+- `press <名札> [from: <待ち行列>, into: <機械の列か記録の列>, take: <件数>, at: <部品>]` は釦。待ち行列の上から `take` 件を新しいブロックか新しい記録へ移す。`from: "<待ち行列>, <待ち行列>"` と 2 つ以上の待ち行列を書くと、書いた順にそれぞれの上から `take` 件ずつを 1 つのブロックか記録にまとめ、どれかの待ち行列が `take` 件に満たない間は押せない。`at` を書くとその部品の所に置き、書かなければ入力の帯に置く
 - `side <部品>, <部品>, ...` は、枠が広い時に網と待ち行列と機械の列と記録の列のうち書いた部品を、書いた順に左から 1 つの行に並べる。待ち行列はチップが入る幅だけを取り、残りの幅を網と機械の列に渡す。横に並べると字が読める大きさより小さくなる枠では、この行が無い時と同じく上から積む
 
 チップは `item <名札> [<欄>: <値>]` で書く。段の中の `line` で待ち行列の並びとブロックを書き、`ask <値>, ...` と `press <名札>` と `item <名札> [<欄>: <値>]` で書き手の例 (送る、作る、書き換える) を書く。

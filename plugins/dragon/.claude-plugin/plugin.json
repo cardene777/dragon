@@ -1,0 +1,12 @@
+{
+  "name": "dragon",
+  "version": "0.63.0",
+  "description": "Write animated diagrams in the dragon notation, check them with dragon check, and show them on a page, in a README, or in an app.",
+  "author": {
+    "name": "cardene777"
+  },
+  "homepage": "https://github.com/cardene777/dragon",
+  "repository": "https://github.com/cardene777/dragon",
+  "license": "MIT",
+  "keywords": ["dragon", "diagram", "animation", "notation"]
+}

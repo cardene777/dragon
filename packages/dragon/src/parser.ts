@@ -67,15 +67,16 @@
  * 試す図 (`try`、#3337) は、最初の `step` より前に部品の行を上から積む順に書く。
  *
  *   route <名札>: <節> - <節>, <節> - <節> [from: <節>, to: <節>]     網。from から to へ最短の道でチップを運ぶ
- *   queue <名札> [order: <欄>]                                        待ち行列。order の欄の値の高い順に並べる
+ *   queue <名札> [order: <欄>, accept: <名前>]                        待ち行列。order の欄の値の高い順に並べ、accept の名前のチップだけを入れる
  *   chain <名札> [edit: <欄>]                                         機械の列。edit の欄を読み手が書き換えられる
  *   ask <欄>, <欄> [into: <待ち行列>, via: <網>]                       入力の帯。図に 1 つまで。最初の欄の値がチップの名前
- *   press <名札> [from: <待ち行列>, into: <機械の列>, take: <数>, at: <部品>]   釦
+ *   press <名札> [from: <待ち行列>, into: <機械の列か記録の列>, take: <数>, at: <部品>]   釦。from: "<待ち行列>, <待ち行列>" はそれぞれから take 件ずつ集める
  *   item <名札> [<欄>: <値>]                                          チップ。鍵は ask の欄 (最初の欄を除く)
  *
  * 段の中では `line <待ち行列か機械の列>: <チップ>, <チップ>` で中身を書き、`ask <値>, <値>` で送り、`press <釦>` で押し、
  * `item <チップ> [<欄>: <値>]` で書き換える。部品を名指す属性は全ての宣言を読んでから確かめ、誤りは名指した行に出す。
  * 段の中の出来事は段ごとの状態の手順 (`try-state.ts`) に 1 つずつ当て、空の待ち行列からの press と満杯の待ち行列への ask を断る。
+ * 受け入れない名前の ask と、2 つ以上の待ち行列のどれかが take 件に満たない press も断る (#3453)。
  * 部品の行は試す図でだけ書け、試す図に箱と区画と線の行は書けない。
  *
  * 配管の図 (`pipe`、#3389) は、`box` の行が関係者になり、最初の `step` より前に `hold <持ち主>: <量> <トークン>, ...` で残高を、
@@ -116,7 +117,7 @@ import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
 import { similarNames } from "./nearest";
 import { derivedBody, lineText } from "./short-form";
-import { defineUserBlocks, type UserBlock, UserBlockFailure, type UserBlocks, userBlock, userBlockReader, versionLine, withUserBlocks } from "./user-blocks";
+import { defineUserBlocks, sharedBlocksUsed, type UserBlock, UserBlockFailure, type UserBlocks, userBlock, userBlockReader, versionLine, withUserBlocks } from "./user-blocks";
 import { ATTRS, DEFAULT_LANG, HEADS, KINDS, type NotationLang, OLD_HEADS } from "./words";
 
 /** 読み方の手続きの名前 */
@@ -449,6 +450,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   if (boxes.length === 0 && !BOXLESS.includes(kind)) throw fail(head, 0, m.noBoxes);
   if (steps.length === 0) throw fail(head, 0, m.noSteps);
   for (const verify of hooks("verify")) verify(state, head);
+  // 共有のブロック集から引いた定義も原本の定義の欄に入れ、原本だけを受け取った側でも同じ図を描けるようにする (#3455)
+  define.push(...sharedBlocksUsed().filter((b) => !define.some((own) => own.name === b.name)));
 
   return {
     version: MODEL_VERSION,

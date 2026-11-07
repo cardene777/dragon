@@ -35,12 +35,12 @@ const DESIGN_ID = /["'`](letterpress|blueprint|neon|relief|sketch)["'`]/;
 const CODE = /\.(ts|tsx|js|mjs|cjs|css|html|json)$/;
 
 // 消した見本帳と cdl を前提に組んだ skill と、前の記法と描き方の文書 (#2993)
+// `.claude-plugin/` は古い skill (`dragon-diagram`) を配る置き場だったので消した。今の記法の skill を配る置き場として作り直したので、ここでは見ない (#3455)
 const STALE_PATHS = [
   ".claude/skills/dragon-design/",
   ".claude/skills/dragon-diagram/",
   ".claude/skills/dragon-match/",
   ".claude/skills/dragon-redraw/",
-  ".claude-plugin/",
   "docs/spec-parts-actors-unified.md",
   "docs/spec-reactive-diagram.md",
   "docs/spec-widgets-syntax.md",

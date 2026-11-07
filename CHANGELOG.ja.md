@@ -6,6 +6,30 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-11-07
+
+### Added
+
+- **AI に dragon記法で図を書かせる skill と `dragon check`** (#3455)
+
+  この repo を Claude Code のプラグインの置き場にした。`/plugin marketplace add cardene777/dragon` と `/plugin install dragon@dragon` で入る skill `dragon` は、AI に図の種類の選び方、`step` と `say` を使った記法の書き方、確かめ方、文書のサイトと README の画像とアプリでの見せ方を教える。ほかの AI は `plugins/dragon/skills/dragon` を写して使う。プラグインの版は npm の版と同じにする。新しい命令 `dragon check <file>` は、`.dragon` の file、Markdown の file の `dragon` の囲み、標準入力 (`-`) を描かずに読み、1 件ずつ `<file>:<行>:<列> error|warning <文>` の形で出す。誤りがあれば終わり方 1、知らせだけなら 0、無い file と読めない拡張子は 2 で終わる。`--json` で JSON を出す。`dragon --version` は版を出す。
+
+- **共有のブロック集** (#3455)
+
+  `packages/dragon/blocks/` に 1 定義 1 file で置いたブロックは、図の頭に定義を書かずに `+名前` で使える。最初の集は `+bridge`、`+relay`、`+key` の 3 つ。図の頭の定義が同じ名前の共有の定義に勝ち、読んだ図は使った共有の定義を `define` に入れる。集へは定義 1 file と見本 1 つを足す pull request で足す。
+
+- **script の入口が Markdown の囲みを描く** (#3455)
+
+  script の 1 行の入口は、Markdown から作った HTML の ```dragon の囲み (`<pre><code class="language-dragon">`) も図に置き換える。
+
+## [0.62.0] - 2026-11-07
+
+### Added
+
+- **試す図で待ち列に入る名前を限り、複数の待ち列から 1 件ずつ集められる** (#3453)
+
+  待ち行列の行に `accept` を書くと、`queue <名札> [order: <欄>, accept: <名前>]` の名前のチップだけが入力の帯からその待ち行列へ入る。名前を 2 つ以上書く時は `accept: "<名前>, <名前>"` と囲み、原本の JSON は名前の配列を持つ。書いていない名前のチップは送れず、どの待ち行列も変わらない。頁では送る釦を押せなくなり、待ち行列と名前を名指した訳が出る。書き手の例の段の `ask` が受け入れられない名前を送る時と、最初の欄が `choose` の行を持つのに `accept` の名前がその値に無い時は、行と列を名指して断る。釦の `from` に `from: "<待ち行列>, <待ち行列>"` と 2 つ以上の待ち行列を書くと、押した時に書いた順にそれぞれの上から `take` 件ずつを 1 つのブロックか記録にまとめ、記録の列の `all` の印はまとめた全てのチップで決まる。どれかの待ち行列が `take` 件に満たない間は、その待ち行列を名指して断り、頁では釦を押せない。原本の JSON の `from` は、待ち行列が 1 つなら今どおり名札の字で、2 つ以上なら名札の配列になる。`accept` も 2 つ以上の `from` も持たない図の描き方は変わらない。
+
 ## [0.61.0] - 2026-11-07
 
 ### Changed

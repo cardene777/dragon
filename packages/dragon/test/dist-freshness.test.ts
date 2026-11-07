@@ -140,6 +140,16 @@ describe("鮮度の判定", () => {
     expect(v.distMtime).toBe(1000 * 1000);
   });
 
+  it("共有のブロック集が dist より新しければ stale (build が本体に埋めるため、#3455)", () => {
+    const d = pkg(1000, 2000);
+    write(join(d, "blocks", "bridge.dragon"), 3000);
+    stampDirs(join(d, "blocks"), 3000);
+    const v = checkFreshness(d);
+    expect(v.kind).toBe("stale");
+    if (v.kind !== "stale") return;
+    expect(v.srcMtime).toBe(3000 * 1000);
+  });
+
   it("dist の一部だけ新しい状態も stale (最も古いもので見る)", () => {
     const d = tmp();
     write(join(d, "src", "index.ts"), 2000);

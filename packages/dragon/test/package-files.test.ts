@@ -67,8 +67,9 @@ describe("npm に出す package の file (#3350)", () => {
   it("package-excludes-catalog-material", async () => {
     const files = packedFiles();
     expect(files.length, "npm に出す file が無い (走査の空振り)").toBeGreaterThan(0);
+    // 共有のブロック集 (`blocks/`) の定義と見本は、使う人が手元で読めるよう npm に出す (#3455)。見本帳の部品の図は src の下に在る
     expect(
-      files.filter((path) => /(?:^|\/)gallery\//u.test(path) || path.endsWith(".dragon")),
+      files.filter((path) => /(?:^|\/)gallery\//u.test(path) || (path.startsWith("src/") && path.endsWith(".dragon"))),
       "npm に出す file に入った見本帳の分 (gallery/ と部品の図)",
     ).toEqual([]);
     const phrases = await catalogPhrases();

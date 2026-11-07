@@ -43,6 +43,8 @@ const FIRST_LOAD_BUDGET = 90_000;
 
 /** 頁が書き換わるのを待つ長さ */
 const SETTLE = 15_000;
+/** 1 つの件の時間の上限より短く待つ長さ。書き換わらない時も判定の文で落とす (#3455) */
+const QUICK_SETTLE = 6_000;
 
 const version = (): string => (JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { version: string }).version;
 
@@ -52,6 +54,10 @@ const SEQUENCE = "sequence ログイン\n\nbox browser as ブラウザ\nbox app 
 const ARCHITECTURE = "architecture 配り方\n\nbox app as アプリ\nbox cdn as 配る所\n\nstep 読む\n  say アプリが配る所から読む。\n  app -> cdn: 読む\n";
 /** 宣言と段を省いた時系列図 (#3438)。最小の図が script の 1 行で出るまでの時間も、この図で測る */
 const SHORT = "sequence\n\nブラウザ -> アプリ: GET /login\nアプリ -> ブラウザ: 認可の頁へ送る\n";
+/** 共有のブロック集の箱 (`+bridge`) の形 (#3455) */
+const BRIDGE = "M 0 70 Q 50 0 100 70 Z";
+/** 図の頭に定義を書かずに共有のブロックを使う構成図 */
+const SHARED_BLOCK = "architecture 橋\n\nbox eth as Ethereum\n+bridge cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
 /** 4 行目に知らない行の頭の語 (`boxx`) を書いた記法 */
 const BROKEN = "sequence 誤り\n\nbox a\nboxx b\n\nstep 一\n  say あ。\n";
 
@@ -237,6 +243,36 @@ describe("script の1行の入口 (#3343)", () => {
       expect(await counts(page), "短い記法の塊が1つの図に置き換わらない").toEqual({ players: 1, drawn: 1, blocks: 0 });
       const names = await page.evaluate(() => [...document.querySelectorAll('[data-dragon="player"] svg text.dg-sn')].map((text) => text.textContent ?? ""));
       expect(names, "線に出た名前を箱に描かない").toEqual(expect.arrayContaining(["ブラウザ", "アプリ"]));
+      expect(requests.outside, "入口と塊と字の CSS のほかに取りに行った物").toEqual([]);
+    });
+  });
+
+  it("script-entry-draws-markdown-code-fence", async () => {
+    // Markdown の ```dragon の囲みから作った HTML (`<pre><code class="language-dragon">`) も図に置き換え、ほかの言葉の囲みは残す (#3455)
+    if (!entryBuilt()) return;
+    const body = `<pre><code class="language-dragon">${escape(SEQUENCE)}</code></pre><pre id="js"><code class="language-js">const a = 1;</code></pre>`;
+    await withPage(body, async (page, requests) => {
+      await page
+        .waitForFunction(() => document.querySelectorAll("code.language-dragon").length === 0 && document.querySelectorAll('[data-dragon="player"] svg').length >= 1, undefined, { timeout: QUICK_SETTLE })
+        .catch(() => undefined);
+      const fences = await page.evaluate(() => document.querySelectorAll("code.language-dragon").length);
+      expect(fences, "dragon の囲みを記法のまま残した").toBe(0);
+      expect(await counts(page), "dragon の囲みが1つの図に置き換わらない").toEqual({ players: 1, drawn: 1, blocks: 0 });
+      const js = await page.evaluate(() => document.querySelector("#js code.language-js")?.textContent ?? null);
+      expect(js, "ほかの言葉の囲みを残さない").toBe("const a = 1;");
+      expect(requests.outside, "入口と塊と字の CSS のほかに取りに行った物").toEqual([]);
+    });
+  });
+
+  it("script-entry-draws-shared-block", async () => {
+    // 図の頭に定義を書かない共有のブロック (`+bridge`) を、共有の形で描く (#3455)
+    if (!entryBuilt()) return;
+    await withPage(`<pre class="dragon">${escape(SHARED_BLOCK)}</pre>`, async (page, requests) => {
+      // 読めない塊も誤りの文に置き換わるので、塊が無くなるまでを待つ
+      await page.waitForFunction(() => document.querySelectorAll("pre.dragon").length === 0, undefined, { timeout: QUICK_SETTLE }).catch(() => undefined);
+      expect(await counts(page), "共有のブロックを使う塊が1つの図に置き換わらない").toEqual({ players: 1, drawn: 1, blocks: 0 });
+      const shapes = await page.evaluate((d) => [...document.querySelectorAll('[data-dragon="player"] svg path')].filter((path) => path.getAttribute("d") === d).length, BRIDGE);
+      expect(shapes, "共有のブロックの形で描かない").toBeGreaterThan(0);
       expect(requests.outside, "入口と塊と字の CSS のほかに取りに行った物").toEqual([]);
     });
   });
