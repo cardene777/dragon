@@ -193,6 +193,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-64-0-adds-pipe-gist", () => {
+    // 配管の図の段に要点を書く gist の行 (#3464) は 0.64.0 で出す (#3474)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 64, `package の版 ${version()} が 0.64.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.64\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.64.0"), "0.64.0");
+      expect(released, `${file} に日付付きの ## [0.64.0] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3464)")) ?? "";
+      expect(entry, `${file} の 0.64.0 の節に #3464 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.64.0 の節の #3464 の項が gist を名指さない`).toContain("`gist <");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3464)");
+    }
+  });
+
   it("changelog-0-63-2-fixes-missing-arrow-target", () => {
     // 矢印の先を書き忘れた線の行に dragon check が線の行の形の文を返す直し (#3468) は 0.63.2 で出す (#3470)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);

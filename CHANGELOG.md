@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.64.0] - 2026-11-07
+
 ### Added
 
 - **A pipe diagram step can carry a key point** (#3464)
