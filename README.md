@@ -1,6 +1,6 @@
 # dragon
 
-> Animated diagrams that people write in a plain notation and AI writes as JSON.
+> Animated diagrams that people and AI write in a plain notation.
 
 [![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -8,7 +8,7 @@
 
 dragon draws a diagram that plays step by step from a short text file.
 It draws boxes, the lines between them, and what travels along those lines, and each step moves the story forward.
-People write a diagram in the dragon notation, and AI can write the same diagram as JSON.
+People and AI write a diagram in the same dragon notation, and the notation converts to and from a JSON source.
 The same source plays on a web page and exports to MP4, GIF, HTML, and PNG.
 
 The catalog, with every kind of diagram and an editor that plays what you type, is at <https://cardene777.github.io/dragon/>.
@@ -48,6 +48,20 @@ It leaves out hard-to-read forms such as `-->|text|`, and lets the first English
 ```sh
 npm install @cardenelabs/dragon
 ```
+
+## Write diagrams with AI
+
+The dragon skill teaches an AI agent to write diagrams in the dragon notation, check them with `dragon check`, and fix them until they read.
+In Claude Code, add this repository as a plugin marketplace and install the plugin.
+
+```text
+/plugin marketplace add cardene777/dragon
+/plugin install dragon@dragon
+```
+
+For another AI agent, copy the skill directory `plugins/dragon/skills/dragon` of this repository to the place where that agent reads skills.
+The agent starts from `SKILL.md` and reads only the reference file for the kind of diagram it draws.
+The plugin version matches the npm version of `@cardenelabs/dragon`, and the skill checks the installed version with `dragon --version`.
 
 ## A first diagram
 

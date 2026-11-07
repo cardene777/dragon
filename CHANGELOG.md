@@ -6,13 +6,29 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
-## [0.62.1] - 2026-11-07
+## [0.63.1] - 2026-11-07
 
 ### Fixed
 
 - **A try diagram shows chip names whole, and its typed fields take at most 12 characters** (#3458)
 
   A try diagram cut a chip's name, the value of the first field, to the 4 characters of a column diagram's `item` label, so a choice `Alice` showed as `Alic` in queue chips and in the rows of log records. Names the author writes in `choose` lines, `item` lines and `ask` lines of example steps now show whole, and chips, queues, blocks and records grow to fit the name. Fields without a `choose` line in the input strip, and the field that edits a chip, take at most 12 characters, and a name the reader types shows whole too. Fields with a `choose` line stay select boxes, and the 4-character limit of a column diagram's `item` label does not change. Try diagrams whose names have 4 characters or fewer draw as before.
+
+## [0.63.0] - 2026-11-07
+
+### Added
+
+- **A skill that teaches AI to write dragon diagrams, and `dragon check`** (#3455)
+
+  The repository is a Claude Code plugin marketplace. `/plugin marketplace add cardene777/dragon` and `/plugin install dragon@dragon` install the `dragon` skill, which tells an AI agent how to pick a kind of diagram, write it in the notation with `step` and `say`, check it, and show it on a docs site, in a README as an exported image, or in an app. Other agents can copy `plugins/dragon/skills/dragon`. The plugin version matches the npm version. The new command `dragon check <file>` reads `.dragon` files, the `dragon` fences of Markdown files, or stdin (`-`) without drawing, and prints each problem as `<file>:<line>:<column> error|warning <message>`. It exits with 1 when there is an error, 0 when there are only warnings, and 2 for a missing file or an unsupported extension. `--json` prints the problems as JSON. `dragon --version` prints the version.
+
+- **Shared blocks** (#3455)
+
+  Blocks in `packages/dragon/blocks/` (one definition per file) can be used as `+name` without a definition at the head of the diagram. The first ones are `+bridge`, `+relay` and `+key`. A definition at the head of the diagram wins over a shared one with the same name, and a parsed diagram copies the shared definitions it used into `define`. Add a shared block with a pull request that adds one definition file and one example.
+
+- **The script entry draws Markdown fences** (#3455)
+
+  The one script line also replaces `<pre><code class="language-dragon">`, the HTML that Markdown renderers make from a ```dragon fence.
 
 ## [0.62.0] - 2026-11-07
 

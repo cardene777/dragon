@@ -1,6 +1,6 @@
 # dragon
 
-> 動く図を、人は書きやすい記法で、AI は JSON で書く。
+> 動く図を、人も AI も書きやすい記法で書く。
 
 [![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -8,7 +8,7 @@
 
 dragon は、短い文の file から段ごとに動く図を描く。
 箱と、箱をつなぐ線と、線の上を運ばれる物を描き、段を送るごとに話が進む。
-人は dragon記法で図を書き、AI は同じ図を JSON で書ける。
+人も AI も同じ dragon記法で図を書き、記法は原本の JSON と行き来できる。
 同じ原本を頁に置いて動かし、mp4、GIF、HTML、PNG にも書き出せる。
 
 見本帳 (全ての種類の図と、書くとその場で動く編集画面) は <https://cardene777.github.io/dragon/> にある。
@@ -48,6 +48,20 @@ dragon は、ブロックを組み立てて図を作る道具である。
 ```sh
 npm install @cardenelabs/dragon
 ```
+
+## AI に図を書かせる
+
+dragon の skill は、AI に dragon記法で図を書かせ、`dragon check` で確かめて読めるまで直させる。
+Claude Code では、この repo をプラグインの置き場に足してから、プラグインを入れる。
+
+```text
+/plugin marketplace add cardene777/dragon
+/plugin install dragon@dragon
+```
+
+ほかの AI では、この repo の skill の dir (`plugins/dragon/skills/dragon`) を、その AI が skill を読む場所へ写す。
+AI は `SKILL.md` から読み始め、描く図の種類の参照の file だけを読む。
+プラグインの版は npm の `@cardenelabs/dragon` の版と同じで、skill は入れた版を `dragon --version` で確かめる。
 
 ## 最初の図
 

@@ -1,6 +1,6 @@
 # @cardenelabs/dragon
 
-Animated diagrams that people write in a plain notation and AI writes as JSON.
+Animated diagrams that people and AI write in a plain notation.
 
 [日本語](https://github.com/cardene777/dragon/blob/main/packages/dragon/README.ja.md)
 
@@ -52,6 +52,20 @@ The package has four parts.
 | Renderer | Draws the source on a page and plays it one step at a time. It draws sequence, architecture, state, git, time, tree, lineup, and try diagrams |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
+## Write diagrams with AI
+
+The dragon skill teaches an AI agent to write diagrams in the dragon notation, check them with `dragon check`, and fix them until they read.
+In Claude Code, add the GitHub repository cardene777/dragon as a plugin marketplace and install the plugin.
+
+```text
+/plugin marketplace add cardene777/dragon
+/plugin install dragon@dragon
+```
+
+For another AI agent, copy the skill directory `plugins/dragon/skills/dragon` in the GitHub repository cardene777/dragon to the place where that agent reads skills.
+The agent starts from `SKILL.md` and reads only the reference file for the kind of diagram it draws.
+The plugin version matches the npm version of `@cardenelabs/dragon`, and the skill checks the installed version with `dragon --version`.
+
 ## A first diagram
 
 ```dragon
@@ -84,7 +98,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.62/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.63/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in

@@ -1,6 +1,6 @@
 # @cardenelabs/dragon
 
-動く図を、人は dragon記法で、AI は JSON で書くための package。
+動く図を、人も AI も dragon記法で書くための package。
 
 [English](README.md)
 
@@ -54,6 +54,20 @@ npm install @cardenelabs/dragon
 
 前の版から上げる時に書き直す所は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
 
+## AI に図を書かせる
+
+dragon の skill は、AI に dragon記法で図を書かせ、`dragon check` で確かめて読めるまで直させる。
+Claude Code では、GitHub の repo cardene777/dragon をプラグインの置き場に足してから、プラグインを入れる。
+
+```text
+/plugin marketplace add cardene777/dragon
+/plugin install dragon@dragon
+```
+
+ほかの AI では、GitHub の repo cardene777/dragon の skill の dir (`plugins/dragon/skills/dragon`) を、その AI が skill を読む場所へ写す。
+AI は `SKILL.md` から読み始め、描く図の種類の参照の file だけを読む。
+プラグインの版は npm の `@cardenelabs/dragon` の版と同じで、skill は入れた版を `dragon --version` で確かめる。
+
 ## 最初の図
 
 ```dragon
@@ -86,7 +100,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.62/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.63/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む

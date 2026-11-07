@@ -1,0 +1,6 @@
+// A key, drawn as an icon on a box
+blocks 1
+block +key
+  base icon
+  shape path "M -8 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 0 h 8 M 5 0 v 3"
+end

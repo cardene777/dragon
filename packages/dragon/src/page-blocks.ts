@@ -1,5 +1,6 @@
 /**
  * 頁に置いた記法の塊 (`<pre class="dragon">`) を動く図に置き換える (#3343)。script の1行の入口と、`dragon embed` が埋める script が共に使う。
+ * Markdown の ```dragon の囲みから作った HTML (`<pre><code class="language-dragon">`) も塊として読み、`<pre>` ごと置き換える (#3455)。
  *
  * 塊の字から共通の字下げを外して記法として読み、塊を図の枠 (`<div class="dragon-figure">`) に置き換えて描く。
  * 記法に誤りがある塊は図にせず、誤りの文を行ごとに並べた `<pre class="dragon-error">` に置き換える。
@@ -86,6 +87,12 @@ async function pageDefinitions(doc: Document, lang: NotationLang): Promise<UserB
   );
 }
 
+/** 頁の記法の塊。`<pre class="dragon">` と、Markdown の囲みから作った `<pre><code class="language-dragon">` の `<pre>` */
+const pageBlocks = (doc: Document): Element[] => [
+  ...doc.querySelectorAll("pre.dragon"),
+  ...[...doc.querySelectorAll("pre > code.language-dragon")].flatMap((code) => (code.parentElement && !code.parentElement.matches("pre.dragon") ? [code.parentElement] : [])),
+];
+
 /**
  * 頁の記法の塊を全て図に置き換える。`prepare` は記法を読む前に待ち、その記法が使う部品を読む。
  * 頁を読み終える前に呼ばれた時は、読み終えてから置き換える
@@ -96,7 +103,7 @@ export function drawPageBlocks(doc: Document, prepare: (text: string) => Promise
     const defined = pageDefinitions(doc, lang);
     // 誤りは塊ごとに誤りの文として出すので、まとめて待つ側では握らない
     defined.catch(() => undefined);
-    for (const block of doc.querySelectorAll("pre.dragon")) void drawBlock(block, prepare, lang, defined);
+    for (const block of pageBlocks(doc)) void drawBlock(block, prepare, lang, defined);
   };
   if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", draw, { once: true });
   else draw();

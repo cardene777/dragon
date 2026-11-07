@@ -222,6 +222,10 @@ describe("記法から読んだ試す図は、置いた後に写した図も検�
 
 /** 宣言と段を省いた時系列図 (#3438)。箱は線に出た名前から、段は線 1 本ずつから導く */
 const SHORT = "sequence\n\nブラウザ -> アプリ: GET /login\nアプリ -> ブラウザ: 認可の頁へ送る\n";
+/** 共有のブロック集の箱 (`+bridge`) の形 (#3455) */
+const BRIDGE = "M 0 70 Q 50 0 100 70 Z";
+/** 図の頭に定義を書かずに共有のブロックを使う構成図 */
+const SHARED_BLOCK = "architecture 橋\n\nbox eth as Ethereum\n+bridge cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
 
 describe("宣言と段を省いた短い記法 (#3438)", () => {
   it("light-draws-short-notation", async () => {
@@ -244,7 +248,29 @@ describe("宣言と段を省いた短い記法 (#3438)", () => {
     // 短い記法の図も記法から読んだ図なので、原本の形の検査を読まない (#3400)
     expect(out.validator, "短い記法の図を描いた後に、原本の形の検査を読んでいた").toBe(false);
   });
+
+  it("light-draws-shared-block", async () => {
+    // 図の頭に定義を書かない共有のブロック (`+bridge`) を、軽い入口も既定の入口と同じ図に描く (#3455)
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const out = inFreshNode<{ ok?: boolean; svg?: string; error?: string }>(`
+      const text = ${JSON.stringify(SHARED_BLOCK)};
+      await light.loadFor(text);
+      const parsed = light.parseNotation(text);
+      out.ok = parsed.ok;
+      if (!parsed.ok) out.error = JSON.stringify(parsed.errors);
+      else try { out.svg = light.renderDiagram(parsed.diagram).svg; } catch (e) { out.error = e.message; }
+    `);
+    expect(out.ok, `軽い入口が共有のブロックを使う図を読めない ${out.error ?? ""}`).toBe(true);
+    expect(out.error, "共有のブロックを使う図を軽い入口で描けない").toBeUndefined();
+    expect(out.svg ?? "", "軽い入口が共有のブロックの形で描かない").toContain(`d="${BRIDGE}"`);
+    const parsed = whole.parseNotation(SHARED_BLOCK);
+    expect(parsed.ok, "既定の入口が共有のブロックを使う図を読めない").toBe(true);
+    expect(out.svg, "軽い入口で描いた SVG が既定の入口と違う").toBe(parsed.ok ? whole.renderDiagram(parsed.diagram).svg : "");
+  });
 });
+
 
 describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3349)", () => {
   it("light-entry-loads-only-used-blocks", () => {
