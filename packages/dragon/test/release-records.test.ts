@@ -193,6 +193,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-61-0-releases-pipe-and-player", () => {
+    // 配管の図の重なりの直し (#3418) と段を送る時に図を写し直さない変更 (#3445) は、変更の一覧に項を書かずに取り込まれたので、0.61.0 の節で書いて npm に出す (#3452)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 61, `package の版 ${version()} が 0.61.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.61\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.61.0"), "0.61.0");
+      expect(released, `${file} に日付付きの ## [0.61.0] の節が無い`).not.toBe("");
+      for (const issue of ["(#3418)", "(#3445)"]) expect(released, `${file} の 0.61.0 の節に ${issue} の項が無い`).toContain(issue);
+      // 公開する型を外したことを、使う人が変更の一覧で知れるようにする
+      for (const name of ["`pipeViolations`", "`PIPE_RULES`", "`PipeCallout`", "`PipeTone`"]) expect(released, `${file} の 0.61.0 の節が ${name} を名指さない`).toContain(name);
+      expect(section(text, "[Unreleased]").trim(), `${file} の Unreleased に項が残る`).toBe("");
+    }
+  });
+
   it("changelog-0-60-0-adds-try-log", () => {
     // 試す図の into に欄を書いて行き先を選ぶ形と、鎖でない記録の列 log (#3441) は 0.60.0 で npm に出す
     const [major = 0, minor = 0] = version().split(".").map(Number);
