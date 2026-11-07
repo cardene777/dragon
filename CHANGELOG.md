@@ -12,6 +12,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   Sequence, architecture and state diagrams can be written as just the diagram kind on the first line and lines joining boxes with `->`. A diagram with no `box` line makes a box of each name on the lines in the order the names appear, and a diagram with no `step` line makes each line one step, lit in the order written. A step without `say` uses the line label as its body, and a line without a label uses the box names joined by an arrow. When two box names in a diagram without box declarations differ by one character, `parseNotation` still reads the diagram and puts a notice in `notices` of its result, the editor shows it where errors appear, and the export command prints it to standard error. Names that differ only in digits are not pointed out. A line outside the steps of a diagram that has steps, and a name that is not declared in a diagram with at least one `box` line, are still errors. Printing JSON back to the notation leaves out what can be left out. The README and the notation guide now have AI write the notation too and fix it from the parser's error messages.
 
+## [0.58.0] - 2026-11-07
+
+### Changed
+
+- **A try diagram puts the step caption and progress right under the figure** (#3437)
+
+  A try diagram now stacks the figure, the step caption with its progress bar, and then the input strip. The caption tells what changed in the figure after the reader pressed a button, so it sits directly under the figure instead of below the input strip. In an exported HTML page, the bottom margin moved from the caption bar to the player, so the input strip at the bottom keeps the same distance from the window's bottom edge. Diagrams other than try diagrams keep their order and spacing.
+
 ## [0.57.0] - 2026-11-07
 
 ### Added
