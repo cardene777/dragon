@@ -82,6 +82,8 @@ export interface FigureText {
   deal: string;
   waiting: string;
   reverted: string;
+  /** 配管の図の下の、段の要点の札の名札 (#3464)。読み上げの段の一覧でも要点の前に置く */
+  gist: string;
 }
 
 /** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
@@ -144,6 +146,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     deal: "取引",
     waiting: "返り待ち",
     reverted: "✗ 取り消し",
+    gist: "要点",
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
@@ -195,5 +198,6 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     deal: "Transaction",
     waiting: "Pending",
     reverted: "✗ Reverted",
+    gist: "Key point",
   },
 };

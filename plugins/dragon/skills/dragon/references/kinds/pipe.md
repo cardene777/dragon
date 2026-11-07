@@ -33,6 +33,7 @@ Pick `architecture` instead when the explanation is about which contracts exist 
 | `check <party>: <left> <op> <right>` | A check with `>=`, `<=`, `==`, `!=`, `>`, `<`. Numbers are compared for you. Add `[fail]` to make a check on other values fail |
 | `emit <party>: <Name>(<arg>, ...)` | An event |
 | `calc <party>: <in> -> <out>` | A conversion, such as a price calculation |
+| `gist <key point>` | A key point shown under the step's arrows. Pipe only. At most one per step |
 
 ## Rules the parser checks
 
@@ -49,6 +50,7 @@ Pick `architecture` instead when the explanation is about which contracts exist 
 - Call the token contract before moving its balance (`router -> usdc: transferFrom`, then `move usdc: ...`).
 - Show the user's limit with a `check` (`check pool: 0.05 WETH >= 0.04 WETH`).
 - Fold long inner call chains with `[fold]` so the outer story stays short.
+- The player does not show the `say` body under a pipe diagram. Put a point the reader must not miss in `gist`, such as the step where every change becomes final.
 
 ## Example
 
@@ -82,6 +84,7 @@ step The balance moves
 
 step The payment is final
   say The shop records the payment and returns. Every change becomes final here.
+  gist Every change becomes final when the outermost call returns
   write shop: "paid[alice]" 80
   emit shop: Paid(alice, 80)
   return shop: true

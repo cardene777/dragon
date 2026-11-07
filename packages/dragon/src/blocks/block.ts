@@ -48,6 +48,8 @@ export interface StepDraft {
   body?: string[];
   code?: string;
   sources: NonNullable<Step["sources"]>;
+  /** 段の要点。配管の図の `gist` の行を読むまで無い (#3464) */
+  gist?: string;
   events: DiagramEvent[];
 }
 
@@ -271,6 +273,11 @@ export interface Block<F extends object = object> {
    * 原本から書いた図が使うブロックを引く時 (`blocks/used.ts`) に、欄の鍵からこのブロックを引く
    */
   fields?: readonly string[];
+  /**
+   * 原本の段の中で、このブロックが持つ欄 (配管の図の段の要点 `gist`、#3464)。
+   * 原本から書いた図が使うブロックを引く時 (`blocks/used.ts`) に、段の欄の鍵からこのブロックを引く
+   */
+  stepFields?: readonly string[];
   /**
    * 原本の JSON の誤りの文 (`field-messages.ts`) のうち、ブロックの形の決まりに当てる文。`F` はその表の型で、日英で同じ鍵を持つ。
    * 原本の誤りの文を持たないブロックは書かない

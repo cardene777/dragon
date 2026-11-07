@@ -140,6 +140,7 @@
     {
       "title": "USDC reports that it is done",
       "body": "USDC tells the router it has moved the funds. The changes are still provisional.",
+      "gist": "The moved funds stay provisional until the swap ends",
       "events": [
         {
           "type": "return",
@@ -234,6 +235,7 @@
     {
       "title": "The pool reports what it paid",
       "body": "The pool tells the router it paid 0.05 WETH. An inner call returning leaves the changes provisional.",
+      "gist": "An inner call returning leaves the changes provisional",
       "events": [
         {
           "type": "return",
@@ -245,6 +247,7 @@
     {
       "title": "The swap ends",
       "body": "The outermost call returns, and every change becomes final here.",
+      "gist": "Every change becomes final when the outermost call returns",
       "events": [
         {
           "type": "return",

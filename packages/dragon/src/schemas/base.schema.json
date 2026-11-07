@@ -734,9 +734,12 @@
       "not": {}
     },
     "plainSteps": {
-      "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
+      "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
       "items": {
         "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
           "events": {
             "items": {
               "not": {
@@ -783,9 +786,12 @@
       }
     },
     "gitSteps": {
-      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
+      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
       "items": {
         "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
           "events": {
             "items": {
               "not": {
@@ -824,9 +830,12 @@
       }
     },
     "timeSteps": {
-      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
+      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
       "items": {
         "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
           "events": {
             "items": {
               "allOf": [
@@ -861,9 +870,12 @@
       }
     },
     "treeSteps": {
-      "description": "木の図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
+      "description": "木の図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
       "items": {
         "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
           "events": {
             "items": {
               "not": {
@@ -905,9 +917,12 @@
       }
     },
     "lineupSteps": {
-      "description": "列の図の段。線と処理と、枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (color) と、木の図だけの出来事 (leaf と node) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) を書けない",
+      "description": "列の図の段。線と処理と、枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (color) と、木の図だけの出来事 (leaf と node) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
       "items": {
         "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
           "events": {
             "items": {
               "not": {
@@ -1073,9 +1088,12 @@
       }
     },
     "trySteps": {
-      "description": "試す図の段。line と ask と press と item だけを書け、line は列 (box) でなく部品 (part) を名指す",
+      "description": "試す図の段。line と ask と press と item だけを書け、line は列 (box) でなく部品 (part) を名指す。配管の図だけの段の要点 (gist) を書けない",
       "items": {
         "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
           "events": {
             "items": {
               "properties": {
@@ -1384,7 +1402,7 @@
       }
     },
     "pipeSteps": {
-      "description": "配管の図の段。呼び出し (call) と、return と revert と move と write と check と emit と calc だけを書ける",
+      "description": "配管の図の段。呼び出し (call) と、return と revert と move と write と check と emit と calc だけを書け、段の要点 (gist) も書ける",
       "items": {
         "properties": {
           "events": {

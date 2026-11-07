@@ -19,12 +19,14 @@
  * 動きを嫌う設定では流さずに足した段の止め絵で止める。今の原本は `player.diagram` で読め、置き直すと最初の段に戻る (#3337)。
  * 入力の帯などの操作は試す図の描く部品と同じ塊が持ち、試す図を描けた後に登録簿 (`kinds/registry.ts`) から引いて置く。
  * 配管の図 (`pipe`) は帯に段の番号と題を出して段の説明の文を出さず、図の下に段の動きの矢印と畳んだ呼び出しの結果を置く (#3450)。
+ * 要点 (`gist`) を書いた段は、矢印の後ろに要点の札を置く (#3464)。
  * 矢印と記録は配管の図の描く部品と同じ塊が持ち、配管の図を描けた後に登録簿から引いて置く。
  * 配管の図の枠 (`[data-dragon="zoom-frame"]`、図が枠より広い間は `[data-dragon="pan"]`) は図を 100% から 400% まで拡大でき、
  * 釦、Ctrl か Command を押しながらのホイール、ダブルクリックで拡大し、拡大した図を引いて枠の中を縦横に送る。
  * 100% の図は、枠の幅が `ZOOM.fit` より狭い時は枠の幅に収め、広い時は縮めずに置く。配管の図は枠の幅を渡して描く。
  * ただし狭い枠に収めると槽の残高の字が `PIPE_LOOK.narrow.px` に届かない図は、字が届く幅で置いて横に送る (#3450)。
  */
+import { drawGist } from "./blocks/gist/draw";
 import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import { FIGURE_TEXT } from "./figure-text";
@@ -352,7 +354,7 @@ export function mountDiagram(
   overview.append(thumb);
 
   // 読み上げの道具が段の順に読む一覧。見た目からは外すが、読み上げからは隠さない。
-  // 段の出典は本文の後ろに、名前を URL への link にして書いた順に並べる (#3199)
+  // 段の出典は本文の後ろに、名前を URL への link にして書いた順に並べる (#3199)。配管の図の段の要点は出典の後ろに名札を添えて置く (#3464)
   const list = doc.createElement("ol");
   list.className = "dg-sr";
   list.dataset.dragon = "steps";
@@ -362,6 +364,7 @@ export function mountDiagram(
     for (const step of steps) {
       const item = drawStepItem(doc, step);
       drawSources(doc, item, step.sources);
+      drawGist(doc, item, step.gist, words.gist);
       list.append(item);
     }
   };

@@ -35,6 +35,7 @@ const PIPE_PARTS: readonly (readonly [string, string])[] = [
   ["calc", "換算"],
   ["revert", "取り消し"],
   ["fold", "畳み"],
+  ["gist", "要点"],
 ];
 
 const catalogSel = (name: string): string => `[data-catalog="${name}"]`;

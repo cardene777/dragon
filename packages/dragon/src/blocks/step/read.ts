@@ -34,6 +34,7 @@ export function stepOf(draft: StepDraft, m: Messages): Step {
     body: draft.body.join("\n"),
     ...(draft.code !== undefined ? { code: draft.code } : {}),
     ...(draft.sources.length > 0 ? { sources: draft.sources } : {}),
+    ...(draft.gist !== undefined ? { gist: draft.gist } : {}),
     events: draft.events,
   };
 }

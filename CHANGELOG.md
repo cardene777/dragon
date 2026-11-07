@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **A pipe diagram step can carry a key point** (#3464)
+
+  A pipe diagram does not show the step body under the figure, so a point told only in the body was lost from the screen. Write `gist <key point>` in a step of a pipe diagram, at most one per step, and the player shows a note with the label "Key point" and the text after the step's arrows, in the same form at every frame width. The step list that screen readers read shows it too. In the JSON a step holds it as `gist`, and a step without one has no `gist` field. A `gist` line in another kind of diagram, a second `gist` in one step and an empty `gist` are refused with the line and column, and a `gist` field on a step of another kind of diagram is refused with its JSON pointer. Five of the six pipe examples carry key points, such as on the steps where changes stay provisional or become final.
+
 ## [0.63.2] - 2026-11-07
 
 ### Fixed

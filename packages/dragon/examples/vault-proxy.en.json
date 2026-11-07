@@ -66,6 +66,7 @@
     {
       "title": "The proxy borrows the vault logic",
       "body": "The proxy has no code of its own, so it runs the code of VaultLogic on its own values.",
+      "gist": "The proxy has no code of its own and runs the borrowed code on the proxy's values",
       "events": [
         {
           "type": "call",
@@ -92,6 +93,7 @@
     {
       "title": "A call that only reads the price",
       "body": "The borrowed code asks PriceOracle for the price. Nothing can be written inside this call.",
+      "gist": "Nothing can be written inside a read-only call",
       "events": [
         {
           "type": "call",
@@ -154,6 +156,7 @@
     {
       "title": "The deposit ends",
       "body": "The outermost call returns, and the ETH sent and the value written both become final.",
+      "gist": "The ETH transfer and the written values become final when the outermost call returns",
       "events": [
         {
           "type": "return",

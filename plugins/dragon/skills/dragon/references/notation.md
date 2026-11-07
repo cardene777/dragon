@@ -100,6 +100,7 @@ Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as
 | Line or attribute | Kinds |
 |---|---|
 | `step`, `say`, `code`, `source` | all |
+| `gist` | `pipe` |
 | `box` | all except `try` (which declares its own parts) |
 | `note` | all except `pipe` and `try` |
 | `act`, `link`, `carry`, `->` lines between boxes | `architecture`, `git`, `sequence`, `state`, `time`, `tree` |

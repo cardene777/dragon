@@ -15,6 +15,7 @@ import { uses as edgeUses } from "../../../../packages/dragon/src/blocks/edge/ga
 import { uses as edgeLabelUses } from "../../../../packages/dragon/src/blocks/edge-label/gallery/uses";
 import { uses as emitUses } from "../../../../packages/dragon/src/blocks/emit/gallery/uses";
 import { uses as foldUses } from "../../../../packages/dragon/src/blocks/fold/gallery/uses";
+import { uses as gistUses } from "../../../../packages/dragon/src/blocks/gist/gallery/uses";
 import { uses as groupUses } from "../../../../packages/dragon/src/blocks/group/gallery/uses";
 import { uses as holdUses } from "../../../../packages/dragon/src/blocks/hold/gallery/uses";
 import { uses as iconUses } from "../../../../packages/dragon/src/blocks/icon/gallery/uses";
@@ -69,6 +70,7 @@ export const BLOCK_USES = {
   "edge-label": edgeLabelUses,
   "emit": emitUses,
   "fold": foldUses,
+  "gist": gistUses,
   "group": groupUses,
   "hold": holdUses,
   "icon": iconUses,

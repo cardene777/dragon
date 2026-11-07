@@ -19,6 +19,7 @@ step Alice calls the proxy with 1 ETH
 
 step The proxy borrows the vault logic
   say The proxy has no code of its own, so it runs the code of VaultLogic on its own values.
+  gist The proxy has no code of its own and runs the borrowed code on the proxy's values
   proxy -> logic: deposit [call: delegate]
 
 step The vault checks it is not paused
@@ -27,6 +28,7 @@ step The vault checks it is not paused
 
 step A call that only reads the price
   say The borrowed code asks PriceOracle for the price. Nothing can be written inside this call.
+  gist Nothing can be written inside a read-only call
   logic -> oracle: price [call: static]
 
 step PriceOracle returns the price
@@ -47,4 +49,5 @@ step The proxy records the deposit
 
 step The deposit ends
   say The outermost call returns, and the ETH sent and the value written both become final.
+  gist The ETH transfer and the written values become final when the outermost call returns
   return proxy: true
