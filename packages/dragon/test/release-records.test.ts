@@ -193,6 +193,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-59-0-releases-short-notation", () => {
+    // 宣言と段を省いた短い記法 (#3438) は 0.59.0 で npm に出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 59, `package の版 ${version()} が 0.59.0 より前`).toBe(true);
+    const words = { "CHANGELOG.md": "short form", "CHANGELOG.ja.md": "短い記法" };
+    for (const [file, word] of Object.entries(words)) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.59\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.59.0"), "0.59.0");
+      expect(released, `${file} に日付付きの ## [0.59.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.59.0 の節に #3438 の項が無い`).toContain("(#3438)");
+      expect(released, `${file} の 0.59.0 の節が短い記法を名指さない`).toContain(word);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3438)");
+    }
+  });
+
   it("changelog-0-58-0-moves-try-caption", () => {
     // 試す図の段の説明とゲージの帯を図の枠のすぐ下、入力の帯の上へ移す変更 (#3437) は 0.58.0 で npm に出す
     const [major = 0, minor = 0] = version().split(".").map(Number);
