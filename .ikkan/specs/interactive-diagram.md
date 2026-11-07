@@ -71,3 +71,10 @@
 | 常に、`into`に待ち行列を書いた試す図と`log`を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3441 |
 | 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`into`に欄を書く書き方と`log`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/interactive-group-log.test.ts`の検査`docs-describe-try-log`が通る | #3441 |
 | `packages/dragon/package.json`の`version`が`0.60.0`で、英語と日本語の変更履歴の`## [0.60.0]`の節が`(#3441)`の項を持ち、その項が`log`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-60-0-adds-try-log`が通る | #3441 |
+| 段を送った時、再生の部品は図の`SVG`を写して置き直さず、同じ要素の`--at`と`--play`と`data-motion`を替える | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-goto-keeps-the-figure`が通る | #3445 |
+| 段を送った時と流し直す時、図の中の全ての動きの時刻を0にして、動きの時計を最初から数え直す。`getAnimations`を持たない環境では時刻を0にする所を飛ばし、止まらずに段を送る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-goto-rewinds-animations`が通る | #3445 |
+| 見本`swap-two-hops`の全ての段を順に送る間の`CPU`時間が、その図を置く間の`CPU`時間の4分の1より短い | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-goto-costs-less-than-mount`が通る | #3445 |
+| 見本`aggregator`を開いた横に長い図で、段を送ると関わる関係者の所へ枠を送り、全体の線が見ている所に付いていく | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pans-wide-figure`が通る | #3445 |
+| 途中の段へ送った止め絵に、その段の札だけが出る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-still-middle-step-own-labels`が通る | #3445 |
+| 1度だけ流す図が、最後の段の止め絵で止まる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-plays-once-then-still`が通る | #3445 |
+| 箱の飛び先の`link`を持つ図は、段を送った後と止めた後も読み上げに残る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-linked-figure-readable-after-replace`が通る | #3445 |
