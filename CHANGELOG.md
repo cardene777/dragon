@@ -6,14 +6,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
-## [0.63.1] - 2026-11-07
-
-### Fixed
-
-- **A try diagram shows chip names whole, and its typed fields take at most 12 characters** (#3458)
-
-  A try diagram cut a chip's name, the value of the first field, to the 4 characters of a column diagram's `item` label, so a choice `Alice` showed as `Alic` in queue chips and in the rows of log records. Names the author writes in `choose` lines, `item` lines and `ask` lines of example steps now show whole, and chips, queues, blocks and records grow to fit the name. Fields without a `choose` line in the input strip, and the field that edits a chip, take at most 12 characters, and a name the reader types shows whole too. Fields with a `choose` line stay select boxes, and the 4-character limit of a column diagram's `item` label does not change. Try diagrams whose names have 4 characters or fewer draw as before.
-
 ## [0.63.0] - 2026-11-07
 
 ### Added

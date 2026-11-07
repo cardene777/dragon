@@ -3,7 +3,6 @@
  *
  * 再生の部品 (`player.ts`) は試す図を、書き手の最初の段だけを持つ原本 (今の原本) で描き、この file の操作を図の下と図の上に置く。
  * 図の下の入力の帯 (`form[data-dragon="ask"]`) には、欄ごとの入力と送る釦と、置き場 (`at`) を書かない釦 (`press`) を並べる。
- * 選択肢を持たない文字の欄は `TYPED_MOST` 字までしか打てず、図は打った名前を切らずに出す (#3458)。
  * 置き場を書いた釦は図の上のその部品の題の右に置き、寄って追う図か、帯の中身の幅が `LOOK.player.narrow` より狭い時は帯へ移す。
  * 空の待ち行列から取り出す釦と、満杯の待ち行列へ送る送る釦は押せなくし、押せない訳を `[data-dragon="reason"]` に出す。
  * 送る先の待ち行列が `accept` に書いていない名前を入れた送る釦と、2 つ以上の待ち行列のどれかが `take` 件に満たない釦も同じく押せなくする (#3453)。
@@ -33,9 +32,6 @@ const percent = (v: number): string => `${v * 100}%`;
 
 /** チップの名前に使える字。原本はチップを名札で名指すので、名札に使えない字 (空白、`[`、`]`、`「`、`」`、`=`、`:`) を断る */
 const NAME = /^[^\s[\]「」=:]+$/u;
-
-/** 文字の欄に打てる字数。図はチップの名前を切らずに出すので、読み手が打つ値をここで限る (#3458) */
-const TYPED_MOST = 12;
 
 /** 入力の帯と書き換える欄と、図の上の釦の見た目。操作を置く時に頁へ 1 度だけ入れる */
 function tryCss(): string {
@@ -185,7 +181,7 @@ export function mountTryControls(
   const choices = ask?.choices ?? {};
   /**
    * 欄 `name` の札と欄。選択肢を持つ欄は選択肢を書いた順に並べた選ぶ欄で、`value` が選択肢に無ければ最初の選択肢を選ぶ。
-   * 選択肢を持たない欄は `TYPED_MOST` 字まで打てる文字の欄
+   * 選択肢を持たない欄は文字の欄
    */
   const field = (name: string, label: string, value = ""): { label: HTMLLabelElement; input: FieldInput } => {
     const box = doc.createElement("label");
@@ -209,7 +205,6 @@ export function mountTryControls(
       const text = doc.createElement("input");
       text.type = "text";
       text.autocomplete = "off";
-      text.maxLength = TYPED_MOST;
       text.value = value;
       input = text;
     }
