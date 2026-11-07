@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-11-07
+
 ### Added
 
 - **A skill that teaches AI to write dragon diagrams, and `dragon check`** (#3455)

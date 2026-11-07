@@ -6,6 +6,8 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-11-07
+
 ### Added
 
 - **AI に dragon記法で図を書かせる skill と `dragon check`** (#3455)
