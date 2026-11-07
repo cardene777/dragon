@@ -99,7 +99,7 @@
  * 図の種類の決まり (名札に使えない名前、線の端、読み終えた時の確かめ) は、その種類の図が必ず使うブロック (定義の `always`) の読み方の手続きが持つ。
  */
 import type { BlockReading, FigureDraft, HeadReader, KindName, LineView, ParseState, StepDraft } from "./blocks/block";
-import { EDGE, type EdgeEvent } from "./blocks/edge/block";
+import { EDGE, EDGE_WITHOUT_TARGET, type EdgeEvent } from "./blocks/edge/block";
 import { readEdgeLine } from "./blocks/edge/read";
 import { BLOCKS } from "./blocks/index";
 import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
@@ -144,6 +144,8 @@ export interface ParseOptions {
 
 /** 段の中の、足した線のブロックで結ぶ線の行。名札、`+<名前>`、名札 (#3399) */
 const USER_EDGE = /^([^\s:[\]]+?)\s+(\+[^\s:[\]]*)\s+([^\s:[\]]+)/du;
+/** 足した線のブロックで結ぶ線の行のうち、先の名札を書き忘れた行 (#3468) */
+const USER_EDGE_WITHOUT_TARGET = /^([^\s:[\]]+?)\s+(\+[^\s:[\]]*)\s*(?=$|[:[])/du;
 /** 行の頭の `+` で始まる語 (#3399) */
 const USER_HEAD = /^\+[^\s:[\]]*/u;
 
@@ -433,7 +435,17 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     if (refuse) throw fail(source, 0, refuse(word));
     if (!isOneOf(HEADS, word)) {
       const old = oldForm(text, building !== undefined);
-      throw fail(source, 0, old ? m.oldForm(old.word, old.shape) : m.unknownHead(word));
+      if (old) throw fail(source, 0, m.oldForm(old.word, old.shape));
+      // 矢印の先を書き忘れた線の行は、行の頭の語でなく線の行の形で断る。頭の名札は正しく、直す所は矢印の後ろなので (#3468)
+      const cut = EDGE_WITHOUT_TARGET.exec(text);
+      const userCut = cut ? null : USER_EDGE_WITHOUT_TARGET.exec(text);
+      const missing = cut ?? userCut;
+      if (missing) {
+        if (isLineup) throw fail(source, 0, m.lineupNoEdge);
+        if (userCut) added(source, userCut[2] ?? "", userCut.indices?.[2]?.[0] ?? 0, "edge");
+        throw fail(source, missing[0].length, m.edgeShape);
+      }
+      throw fail(source, 0, m.unknownHead(word));
     }
     for (const check of hooks("checkHead")) check(source, word, state);
     const reader = headReaders().get(word);

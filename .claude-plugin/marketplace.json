@@ -3,6 +3,9 @@
   "owner": {
     "name": "cardene777"
   },
+  "metadata": {
+    "description": "The dragon plugin teaches AI to write animated diagrams in the dragon notation and to check them with dragon check."
+  },
   "plugins": [
     {
       "name": "dragon",
