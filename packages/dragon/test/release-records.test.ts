@@ -223,6 +223,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-65-1-draws-opened-pipes-faster", () => {
+    // 開いた箱を持つ配管の図を、どの管の道も変えずに速く描く直し (#3472) は 0.65.1 で出す (#3480)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 65 || (minor === 65 && patch >= 1), `package の版 ${version()} が 0.65.1 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.65\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.65.1"), "0.65.1");
+      expect(released, `${file} に日付付きの ## [0.65.1] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3472)")) ?? "";
+      expect(entry, `${file} の 0.65.1 の節に #3472 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.65.1 の節の #3472 の項が aggregator を名指さない`).toContain("`aggregator`");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3472)");
+    }
+  });
+
   it("changelog-0-63-2-fixes-missing-arrow-target", () => {
     // 矢印の先を書き忘れた線の行に dragon check が線の行の形の文を返す直し (#3468) は 0.63.2 で出す (#3470)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
