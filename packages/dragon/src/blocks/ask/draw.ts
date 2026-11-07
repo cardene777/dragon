@@ -4,6 +4,7 @@
  * チップは 1 枚につき 1 つの部品 (`data-chip`) で、中の字は名前と、待ち行列が並べる順の欄の値の 2 つだけ。
  * 出来事ごとの位置を keyframes で辿り、待ち行列の席とブロックの中の席の間を滑る。
  * 網を運ばれるチップは送る側の節で現れ、最短の道の節を順に通って作る人へ着いてから待ち行列へ入る。
+ * 網の節の関門で止まったチップ (#3476) は待ち行列に席を持たず、止まった節まで運ばれてそこで薄れて消える。
  * 宣言したチップは塗り、送ったチップは縁だけで描く。入力の帯そのものは再生の部品 (`try-player.ts`) が描く。
  * この file は試す図を描く部品 (`render/try.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
  */
@@ -24,7 +25,7 @@ export function tryChips(k: TryKit): void {
   const declared = new Set((diagram.try?.items ?? []).map((item) => item.id));
   const chipIds = [
     ...new Set(
-      moments.flatMap((mo) => Object.entries(mo.chips).flatMap(([id, at]) => (at ? [id] : []))),
+      moments.flatMap((mo) => [...Object.entries(mo.chips).flatMap(([id, at]) => (at ? [id] : [])), ...(mo.trip ? [mo.trip.item] : [])]),
     ),
   ];
   for (const id of chipIds) {

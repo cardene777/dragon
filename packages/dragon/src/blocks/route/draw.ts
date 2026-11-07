@@ -3,6 +3,7 @@
  *
  * 部品の題と網の線と節は動かさずに描き、送る側 (`from`) の節は人の絵、作る人 (`to`) の節は箱の絵、ほかの節は機械の絵を丸に載せる。
  * 網を運ばれたチップが通った線は、送った段の間だけ強める。
+ * 関門で止まったチップ (#3476) の節には、チップが着いた時刻 (`move`) から段の終わりまで輪の印 (`data-stop`) を出す。
  * この file は試す図を描く部品 (`render/try.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
  */
 import { hasWide } from "../../layout/measure";
@@ -17,11 +18,19 @@ import { glyph } from "../icon/draw";
 
 const T = TRY_LOOK;
 
-/** 網ごとの題と線と節と、送った段の間だけ強める通った線 */
+/** 網ごとの題と線と節と、送った段の間だけ強める通った線と、関門で止まった節の印 */
 export function routeNet(k: TryKit): void {
   const { layout, ctx, moments, windows, spanOf, title, cls, base, lit, node } = k;
   const { m } = ctx;
   for (const route of layout.routes) {
+    const stops = moments
+      .map((mo, k) => {
+        const at = mo.stop?.route === route.id ? route.nodes.find((n) => n.id === mo.stop?.node) : undefined;
+        if (!at) return "";
+        const w = windows[k] as TryWindow;
+        return `<g class="dg-a" data-stop="${esc(at.id)}" style="${cs(T.color.stop)};${m.vis(w.move, spanOf(mo.step).end)}"><circle class="dg-try-stop" cx="${r1(at.x)}" cy="${r1(at.y)}" r="${T.route.r + T.route.stop}"/></g>`;
+      })
+      .join("");
     const links = route.links
       .map((l) => `<path class="dg-try-net" d="${pathOf(l.points, ctx.corner)}"/>`)
       .join("");
@@ -45,7 +54,7 @@ export function routeNet(k: TryKit): void {
     base.push(
       `<g data-part="${esc(route.id)}" style="${cs(T.color.part)}">${title(route.title)}${links}</g>`,
     );
-    node.push(`<g data-route="${esc(route.id)}" style="${cs(T.color.part)}">${nodes}</g>`);
+    node.push(`<g data-route="${esc(route.id)}" style="${cs(T.color.part)}">${nodes}${stops}</g>`);
     moments.forEach((mo, k) => {
       if (mo.trip?.route !== route.id) return;
       const at = new Map(route.nodes.map((n) => [n.id, n]));

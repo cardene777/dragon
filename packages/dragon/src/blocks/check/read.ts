@@ -9,10 +9,7 @@ import { inPipeStep, pipeLine, textAt } from "../../pipe-read";
 import { quantityOf } from "../../pipe-run";
 import { type Attr, fail, readAttrs } from "../../read-kit";
 import type { BlockReading } from "../block";
-import { CHECK_OPS, type CheckOp, type PipeCheck } from "./block";
-
-/** 比べ方。前後を空白で区切った記号 */
-const OP = new RegExp(`\\s(${CHECK_OPS.join("|")})\\s`, "du");
+import { CHECK_OP, type CheckOp, type PipeCheck } from "./block";
 
 export interface CheckMessages {
   checkShape: string;
@@ -32,7 +29,7 @@ export const reading: BlockReading<CheckMessages> = {
       const open = text.endsWith("]") ? text.lastIndexOf(" [") + 1 : 0;
       const marks = open > rest ? readAttrs(source, open, ["fail"], m, ["fail"]) : new Map<string, Attr>();
       const body = text.slice(rest, open > rest ? open : text.length);
-      const found = OP.exec(body);
+      const found = CHECK_OP.exec(body);
       const left = found ? body.slice(0, found.index).trim() : "";
       const right = found ? body.slice(found.index + found[0].length).trim() : "";
       if (!found || left === "" || right === "") throw fail(source, 0, m.checkShape);

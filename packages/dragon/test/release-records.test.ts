@@ -208,6 +208,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-65-0-adds-try-gate", () => {
+    // 試す図の網の節に check の行で関門を置き、送ったチップを止めて記録に残す変更 (#3476) は 0.65.0 で出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 65, `package の版 ${version()} が 0.65.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.65\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.65.0"), "0.65.0");
+      expect(released, `${file} に日付付きの ## [0.65.0] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3476)")) ?? "";
+      expect(entry, `${file} の 0.65.0 の節に #3476 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.65.0 の節の #3476 の項が check を名指さない`).toContain("`check <");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3476)");
+    }
+  });
+
   it("changelog-0-63-2-fixes-missing-arrow-target", () => {
     // 矢印の先を書き忘れた線の行に dragon check が線の行の形の文を返す直し (#3468) は 0.63.2 で出す (#3470)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);

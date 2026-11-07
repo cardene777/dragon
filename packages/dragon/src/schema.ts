@@ -198,6 +198,22 @@ export interface TryItem {
   values: Record<string, string>;
 }
 
+/**
+ * 試す図の網の節の関門 (#3476)。最初の `step` より前の `check` の行で、入力の帯の網 (`via`) の最短の道の節 `node` に置く。
+ * 送ったチップの欄 `field` の値が `op` で `value` と比べて成り立てば通り、成り立たなければその節で止まり、記録の列 `into` にエラーの名前 `no` を持つ記録が 1 件増える。
+ * `value` は書いたままの字で、数なら欄の値も数として比べ (数でない欄の値は成り立たない)、数でなければ `==` と `!=` で字として比べる。
+ * `retry` は書いた時だけ `true` を持ち、記録に「再試行できる」の印を、書かない関門は「直して送り直す」の印を出す
+ */
+export interface TryCheck {
+  node: string;
+  field: string;
+  op: CheckOp;
+  value: string;
+  no: string;
+  retry?: true;
+  into: string;
+}
+
 /** 枝分かれの図の枝の型は枝のブロック、状態遷移図の移れる道の型は脇道のブロックが持つ (#3347) */
 export type { GitBranch, StatePath };
 
@@ -234,7 +250,7 @@ export interface Strip {
 /**
  * 原本の図の宣言 (#3346)。ブロックの名前ごとの欄に、そのブロックの宣言を持つ。空の並びは書かない。
  * 区画 (`group`)、箱 (`box`)、中身の帯 (`strip`) と、図の種類だけの宣言 (状態遷移図の移れる道 `path`、枝分かれの図の枝 `branch`、
- * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と節目 `point` と拡大の範囲 `zoom`、列の図と試す図のチップ `item`、試す図の部品 `part`)
+ * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と節目 `point` と拡大の範囲 `zoom`、列の図と試す図のチップ `item`、試す図の部品 `part` と関門 `check`)
  */
 export interface DiagramBlocks {
   group?: Region[];
@@ -252,6 +268,8 @@ export interface DiagramBlocks {
   part?: TryPart[];
   /** 試す図 (#3429) の、同じ行に左から並べる部品の名札の組 */
   side?: string[][];
+  /** 試す図 (#3476) の網の節の関門。書いた順に確かめる */
+  check?: TryCheck[];
   /** 配管の図 (#3389) の始めの値。残高と、残高でない値 */
   hold?: PipeHold[];
 }
@@ -292,8 +310,8 @@ export interface DiagramModel {
   git?: { branches: GitBranch[] };
   time?: TimeSpec;
   lineup?: { items: LineupItem[]; roles?: LineupRole[] };
-  /** 試す図 (#3337) の部品とチップ。版1の原本に無かった種類なので、版2の原本の `part` と `item` をそのまま持つ */
-  try?: { parts: TryPart[]; items: TryItem[]; sides?: string[][] };
+  /** 試す図 (#3337) の部品とチップと関門 (#3476)。版1の原本に無かった種類なので、版2の原本の `part` と `item` と `check` をそのまま持つ */
+  try?: { parts: TryPart[]; items: TryItem[]; sides?: string[][]; checks?: TryCheck[] };
   /**
    * 配管の図 (#3389) の始めの値と、`[fold]` の呼び出しを畳んだ箱。版1の原本に無かった種類なので、版2の原本の `hold` をそのまま持つ。
    * `folds` は描く処理が畳んだ図 (`kinds/pipe/layout.ts` の `foldPipe`) だけが持ち、原本は持たない
@@ -353,6 +371,7 @@ const ABSENT_KINDS: Record<string, string> = {
   item: "lineup / try",
   role: "lineup",
   part: "try",
+  check: "try",
   values: "try",
   hold: "pipe",
   box: "sequence / architecture / state / git / time / tree / lineup / pipe",

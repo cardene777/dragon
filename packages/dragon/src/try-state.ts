@@ -13,11 +13,13 @@
  * 入力の帯の `into` は同じ名札の待ち行列が在ればその待ち行列で、無ければ欄の名前で、送ったチップをその欄の値と同じ名札の待ち行列へ入れる (#3441)。
  * `accept` を書いた待ち行列へ入力の帯が送るチップは、名前 (最初の欄の値) が `accept` に在る時だけ入る (#3453)。段の中の `line` は書き手が中身を書くので断らない。
  * `from` に 2 つ以上の待ち行列を書いた釦は、書いた順にそれぞれの上から `take` 件ずつを取り出して 1 つにまとめ、どれかが `take` 件に満たなければ何も変えない (#3453)。
+ * 入力の帯が網を通して送るチップは、最短の道で着いた節の関門 (`check`、#3476) を書いた順に確かめ、最初に合わない関門で止まる。止まったチップはどの待ち行列にも入らず、
+ * 網の道はその節で切れ、関門の `into` の記録の列に止まった節とエラーの名前と再試行できるかを持つ記録が 1 件増える。待ち行列の受け入れと満杯は、関門を通ったチップだけが見る。
  * 原本の JSON は部品の名札の食い違い (宣言していない部品やチップ) を形の検査で止められないので、当てられない出来事は何も変えずに誤りの種類を返す。
  */
 import { queueMost, TRY_LOOK } from "./look/try";
 import { sha256 } from "./sha256";
-import type { DiagramEvent, TryItem, TryPart, TryVerdict } from "./schema";
+import type { DiagramEvent, TryCheck, TryItem, TryPart, TryVerdict } from "./schema";
 import { LANE_MOST } from "./blocks/line/block";
 
 /** 最初のブロックの prev。前のブロックが無いことを 0 が 64 字並んだ値で表す */
@@ -47,6 +49,10 @@ export interface TryRecord {
   items: string[];
   /** `all` の印。記録の列が `all` を持たなければ持たない */
   mark?: string;
+  /** 関門で止まった記録 (#3476) の、止まった節とエラーの名前と再試行できるか。関門で止まった記録でなければ持たない */
+  node?: string;
+  error?: string;
+  retry?: boolean;
   /** 図に出すか。新しい方から `TRY_LOOK.shown` 個を出し、それより古い記録は畳む */
   shown: boolean;
 }
@@ -89,22 +95,57 @@ export type TryFault =
   | { kind: "blockFull"; part: string; most: number }
   | { kind: "empty"; part: string; want?: number };
 
-/** 出来事を当てた結果。`chip` は送って作ったチップ、`block` は足したブロック (機械の列と番号)、`record` は足した記録 (記録の列と番号) */
+/**
+ * 出来事を当てた結果。`chip` は送って作ったチップ、`block` は足したブロック (機械の列と番号)、`record` は足した記録 (記録の列と番号)。
+ * `stop` は送ったチップが関門で止まった網と節 (#3476)
+ */
 export interface TryApplied {
   fault?: TryFault;
   chip?: string;
   block?: { chain: string; number: number };
   record?: { log: string; number: number };
+  stop?: { route: string; node: string };
 }
 
 type Part<T extends TryPart["type"]> = Extract<TryPart, { type: T }>;
 
+/** 値を有限の数として読む。空か、数として読めなければ `undefined` */
+export function numberOf(text: string): number | undefined {
+  const n = Number(text);
+  return text.trim() !== "" && Number.isFinite(n) ? n : undefined;
+}
+
 /** 2 つの値を比べる。`a` が高い時に正。2 つとも有限の数として読めれば数で、そうでなければ字の並び (符号の位置) で比べる */
 export function compareValues(a: string, b: string): number {
-  const x = Number(a);
-  const y = Number(b);
-  if (a.trim() !== "" && b.trim() !== "" && Number.isFinite(x) && Number.isFinite(y)) return x - y;
+  const x = numberOf(a);
+  const y = numberOf(b);
+  if (x !== undefined && y !== undefined) return x - y;
   return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/**
+ * チップの欄の値 `value` が関門 `check` を通るか (#3476)。関門の値が数なら欄の値も数として比べ、数でない欄の値は通らない。
+ * 関門の値が数でなければ `==` と `!=` で字として比べ、ほかの比べ方は通らない (記法は読む時に断る)
+ */
+function passes(check: TryCheck, value: string): boolean {
+  const want = numberOf(check.value);
+  if (want === undefined) return check.op === "==" ? value === check.value : check.op === "!=" && value !== check.value;
+  const got = numberOf(value);
+  if (got === undefined) return false;
+  switch (check.op) {
+    case ">=":
+      return got >= want;
+    case "<=":
+      return got <= want;
+    case ">":
+      return got > want;
+    case "<":
+      return got < want;
+    case "==":
+      return got === want;
+    case "!=":
+      return got !== want;
+  }
 }
 
 /**
@@ -175,6 +216,24 @@ export const accepts = (queue: TryPart | undefined, name: string): boolean =>
 export const askFields = (parts: readonly TryPart[]): string[] =>
   parts.find((p): p is Part<"ask"> => p.type === "ask")?.fields ?? [];
 
+/**
+ * 入力の帯の欄 `fields` の値 `values` のチップが、網 `route` の `from` から最短の道を辿って最初に止まる関門と、その節までの道 (#3476)。
+ * 着いた節ごとに、その節の関門を `checks` に書いた順に確かめる。どの関門も通るなら `undefined`
+ */
+export function stopOf(
+  checks: readonly TryCheck[],
+  route: Part<"route">,
+  fields: readonly string[],
+  values: readonly string[],
+): { check: TryCheck; path: string[] } | undefined {
+  const path = shortestPath(route);
+  for (const [i, node] of path.entries()) {
+    const check = checks.find((c) => c.node === node && !passes(c, values[fields.indexOf(c.field)] ?? ""));
+    if (check) return { check, path: path.slice(0, i + 1) };
+  }
+  return undefined;
+}
+
 interface Entry {
   id: string;
   /** 入った順 */
@@ -187,6 +246,12 @@ interface Built {
   items: string[];
 }
 
+/** 記録の列の記録。関門で止まった記録 (#3476) は止まった節とエラーの名前と再試行できるかを持つ */
+interface Logged {
+  items: string[];
+  stop?: { node: string; error: string; retry: boolean };
+}
+
 /** 試す図の状態を出来事ごとに進める。作った時は宣言したチップだけを持ち、待ち行列と機械の列は空 */
 export class TryRun {
   /** 待ち行列に縦に収まるチップの数 */
@@ -194,18 +259,21 @@ export class TryRun {
   /** 入力の帯の欄 */
   readonly fields: string[];
   private readonly parts: Map<string, TryPart>;
+  /** 網の節の関門 (#3476)。書いた順 */
+  private readonly checks: readonly TryCheck[];
   private readonly chips = new Map<string, string[]>();
   private readonly queues = new Map<string, Entry[]>();
   private readonly chains = new Map<string, Built[]>();
-  /** 記録の列ごとの、記録の中のチップ (古い順) */
-  private readonly logs = new Map<string, string[][]>();
+  /** 記録の列ごとの記録 (古い順) */
+  private readonly logs = new Map<string, Logged[]>();
   private trips: TryTrip[] = [];
   private seq = 0;
 
-  constructor(spec: { parts: readonly TryPart[]; items: readonly TryItem[] }, most = queueMost()) {
+  constructor(spec: { parts: readonly TryPart[]; items: readonly TryItem[]; checks?: readonly TryCheck[] }, most = queueMost()) {
     this.most = most;
     this.fields = askFields(spec.parts);
     this.parts = new Map(spec.parts.map((p) => [p.id, p]));
+    this.checks = spec.checks ?? [];
     for (const p of spec.parts) {
       if (p.type === "queue") this.queues.set(p.id, []);
       if (p.type === "chain") this.chains.set(p.id, []);
@@ -263,6 +331,7 @@ export class TryRun {
   /**
    * 入力の帯の欄の値でチップを作り、入力の帯の待ち行列へ送る。網を書いた入力の帯は、網の最短の道を運ぶ。
    * `into` が部品の名札でなく欄の名前なら、その欄の値と同じ名札の待ち行列へ送る (#3441)。
+   * 道の節の関門に合わないチップは、その節で止めて関門の記録の列へ記録を足し、待ち行列へ入れない (#3476)。
    * 送る先の待ち行列が名前 (最初の欄の値) を受け入れなければ、満杯かを見る前に断る (#3453)
    */
   ask(values: readonly string[]): TryApplied {
@@ -274,13 +343,24 @@ export class TryRun {
     const queue = this.queues.get(into);
     if (!queue) return { fault: { kind: "part", part: into } };
     const name = values[0] ?? "";
+    const route = ask.via === undefined ? undefined : this.partOf("route", ask.via);
+    const stop = route ? stopOf(this.checks, route, this.fields, values) : undefined;
+    if (route && stop) {
+      const { node, no, retry, into: to } = stop.check;
+      const log = this.logs.get(to);
+      if (!log) return { fault: { kind: "part", part: to } };
+      const id = freshId(name, (x) => this.chips.has(x));
+      this.chips.set(id, [...values]);
+      this.trips.push({ route: route.id, item: id, path: stop.path });
+      log.push({ items: [id], stop: { node, error: no, retry: retry === true } });
+      return { chip: id, record: { log: to, number: log.length }, stop: { route: route.id, node } };
+    }
     if (!accepts(this.parts.get(into), name)) return { fault: { kind: "refused", part: into, item: name } };
     if (queue.length >= this.most)
       return { fault: { kind: "full", part: into, most: this.most } };
     const id = freshId(name, (x) => this.chips.has(x));
     this.chips.set(id, [...values]);
     queue.push({ id, seq: this.seq++ });
-    const route = ask.via === undefined ? undefined : this.partOf("route", ask.via);
     if (route) this.trips.push({ route: route.id, item: id, path: shortestPath(route) });
     return { chip: id };
   }
@@ -311,7 +391,7 @@ export class TryRun {
         (this.queues.get(id) ?? []).filter((entry) => !taken.includes(entry.id)),
       );
     if (log) {
-      log.push(taken);
+      log.push({ items: taken });
       return { record: { log: press.into, number: log.length } };
     }
     return { block: this.build(press.into, taken) };
@@ -355,10 +435,11 @@ export class TryRun {
     const logs: Record<string, TryRecord[]> = {};
     for (const [id, records] of this.logs) {
       const p = this.partOf("log", id);
-      logs[id] = records.map((list, i): TryRecord => ({
+      logs[id] = records.map((r, i): TryRecord => ({
         number: i + 1,
-        items: [...list],
-        ...(p?.all ? { mark: this.markOf(p.all, list) } : {}),
+        items: [...r.items],
+        ...(p?.all ? { mark: this.markOf(p.all, r.items) } : {}),
+        ...r.stop,
         shown: i >= records.length - TRY_LOOK.shown,
       }));
     }
@@ -375,7 +456,7 @@ export class TryRun {
   private where(item: string): string | undefined {
     for (const [id, entries] of this.queues) if (entries.some((e) => e.id === item)) return id;
     for (const [id, built] of this.chains) if (built.some((b) => b.items.includes(item))) return id;
-    for (const [id, records] of this.logs) if (records.some((list) => list.includes(item))) return id;
+    for (const [id, records] of this.logs) if (records.some((r) => r.items.includes(item))) return id;
     return undefined;
   }
 

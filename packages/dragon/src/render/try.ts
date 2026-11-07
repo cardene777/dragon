@@ -74,6 +74,9 @@ const LOG_CSS = [
   `.dg-try-mkj{${font(sansOf(TYPE.tryChipValue))}}`,
 ].join("");
 
+/** 網の節の関門 (#3476) を持つ図だけが使う見た目。関門で止まった節の輪を止まった色で引く。関門を持たない図の SVG を変えない */
+const GATE_CSS = `.dg-try-stop{fill:none;stroke:var(--c);stroke-width:${S.on}}`;
+
 /** 和文を含む字に、和文の字の class を足す */
 const cls = (base: string, text: string): string => (hasWide(text) ? `${base} ${base}j` : base);
 
@@ -150,7 +153,7 @@ export function drawTry(
 
   /**
    * 出来事ごとの位置 `positions` (出ていなければ `null`) を辿る動き。現れる時は席で浮かび、消える時は席で薄れ、別の席へは滑る。
-   * `trip` を返す時点は、その点を順に辿ってから席へ入る。繰り返す前に消える
+   * `trip` を返す時点は、その点を順に辿ってから席へ入る。席の無い時点 (関門で止まったチップ、#3476) は最後の点で薄れて消える。繰り返す前に消える
    */
   const track = (
     positions: (Point | null)[],
@@ -169,7 +172,7 @@ export function drawTry(
       if (same(cur, next) && !path) continue;
       // 止まっていた間は、動き出す時刻まで。席から席へ滑るチップは、網を運ばれるチップが待ち行列へ入り始めるまで止まっている
       if (cur) rests.push({ at: cur, from: since, to: next && !path ? w.move : w.a });
-      if (path && path.length > 0 && next) {
+      if (path && path.length > 0) {
         // 送る側の節で現れ、道の長さに比べた時間で節を順に通り、作る人から待ち行列の席へ入る
         const start = path[0] as Point;
         const arrive = Math.min(w.b, w.a + MOTION.try.trip);
@@ -190,14 +193,16 @@ export function drawTry(
             { opacity: 1, transform: translate(p) },
           ]);
         });
+        const end = path[path.length - 1] as Point;
         frames.push(
           [
             arrive,
-            { opacity: 1, transform: translate(path[path.length - 1] as Point) },
+            { opacity: 1, transform: translate(end) },
             EASE.inOut,
           ],
-          [w.b, { opacity: 1, transform: translate(next) }],
+          [w.b, { opacity: next ? 1 : 0, transform: translate(next ?? end) }],
         );
+        if (!next) lastSeen = end;
       } else if (!cur && next) {
         frames.push(
           [w.a, { opacity: 0, transform: translate(next) }, EASE.out],
@@ -319,6 +324,6 @@ export function drawTry(
     lit: lit.join(""),
     node: node.join(""),
     top: top.join(""),
-    css: layout.logs ? TRY_CSS + LOG_CSS : TRY_CSS,
+    css: (layout.logs ? TRY_CSS + LOG_CSS : TRY_CSS) + ((diagram.try?.checks ?? []).length > 0 ? GATE_CSS : ""),
   };
 }

@@ -42,7 +42,7 @@ const blank = (value: unknown): boolean => value === undefined || (Array.isArray
 
 /**
  * 描く処理の形を版2の原本にする。空の並びは書かず、`blocks` の欄は `HOMES` の順に並べる。
- * 試す図 (#3337) は版1に無かった種類なので `HOMES` を通さず、部品 (`part`) とチップ (`item`) をこの順に置く
+ * 試す図 (#3337) は版1に無かった種類なので `HOMES` を通さず、部品 (`part`) とチップ (`item`) と並べる組 (`side`) と関門 (`check`、#3476) をこの順に置く
  */
 export function fromModel(model: DiagramModel, version: number): Diagram {
   const source = model as unknown as Obj;
@@ -51,6 +51,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     blocks.part = model.try?.parts ?? [];
     if (!blank(model.try?.items)) blocks.item = model.try?.items;
     if (!blank(model.try?.sides)) blocks.side = model.try?.sides;
+    if (!blank(model.try?.checks)) blocks.check = model.try?.checks;
   } else {
     for (const [field, home] of HOMES) {
       const [section, inner] = home.split(".");
@@ -76,7 +77,7 @@ export const isVersion1 = (input: unknown): input is Obj =>
 /**
  * 版2の原本を描く処理の形にする。欄と並びは版1の原本を読んでいた時と同じにする
  * (版、種類、題、見せ方、区画、箱、帯、段、生存線、移れる道、枝、チップ、配管の図の始めの値、時間軸の図の欄)。
- * 時系列図の生存線は、箱の並びのまま左から組む。試す図 (#3337) は部品とチップを試す図の欄 (`try`) に持つ
+ * 時系列図の生存線は、箱の並びのまま左から組む。試す図 (#3337) は部品とチップと関門 (#3476) を試す図の欄 (`try`) に持つ
  */
 export function toModel(diagram: Diagram): DiagramModel {
   const b = diagram.blocks;
@@ -90,7 +91,12 @@ export function toModel(diagram: Diagram): DiagramModel {
       ...(diagram.define !== undefined ? { define: diagram.define } : {}),
       boxes,
       steps: diagram.steps,
-      try: { parts: b.part ?? [], items: (b.item ?? []) as TryItem[], ...(b.side !== undefined ? { sides: b.side } : {}) },
+      try: {
+        parts: b.part ?? [],
+        items: (b.item ?? []) as TryItem[],
+        ...(b.side !== undefined ? { sides: b.side } : {}),
+        ...(b.check !== undefined ? { checks: b.check } : {}),
+      },
     };
   return {
     version: MODEL_VERSION,
