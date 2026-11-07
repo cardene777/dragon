@@ -1,0 +1,17 @@
+pipe 要点
+
+box alice as Alice
+box vault as Vault
+
+hold vault: total 0
+
+step 預ける
+  say AliceがVaultに預け、Vaultが預かった額を書き込む。
+  gist 書き込んだ値は、一番外の呼び出しが戻るまで暫定のまま
+  alice -> vault: 預ける
+  write vault: total 100
+
+step 戻る
+  say Vaultが戻る。
+  gist 一番外の呼び出しが戻った時に、全ての変更が確定する
+  return vault: ok

@@ -13,6 +13,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "copy": () => import("./copy/read").then((m): BlockReading => m.reading),
   "emit": () => import("./emit/read").then((m): BlockReading => m.reading),
   "fold": () => import("./fold/read").then((m): BlockReading => m.reading),
+  "gist": () => import("./gist/read").then((m): BlockReading => m.reading),
   "hold": () => import("./hold/read").then((m): BlockReading => m.reading),
   "item": () => import("./item/read").then((m): BlockReading => m.reading),
   "leaf": () => import("./leaf/read").then((m): BlockReading => m.reading),

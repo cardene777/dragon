@@ -1,0 +1,17 @@
+pipe Key points
+
+box alice as Alice
+box vault as Vault
+
+hold vault: total 0
+
+step Deposit
+  say Alice deposits into the vault, and the vault writes the amount it holds.
+  gist The written value stays provisional until the outermost call returns
+  alice -> vault: deposit
+  write vault: total 100
+
+step Return
+  say The vault returns.
+  gist Every change becomes final when the outermost call returns
+  return vault: ok

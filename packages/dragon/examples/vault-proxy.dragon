@@ -19,6 +19,7 @@ step AliceがProxyに1 ETHを添えて頼む
 
 step ProxyがVaultLogicの処理を借りる
   say Proxyは処理を持たず、VaultLogicの処理を借りて自分の値の上で動かす。
+  gist Proxyは処理を持たず、借りた処理をProxyの値の上で動かす
   proxy -> logic: deposit [call: delegate]
 
 step 止まっていないかを確かめる
@@ -27,6 +28,7 @@ step 止まっていないかを確かめる
 
 step 価格を読むだけの呼び出し
   say 借りた処理がPriceOracleに価格を尋ねる。この呼び出しの中では何も書き込めない。
+  gist 読むだけの呼び出しの中では、何も書き込めない
   logic -> oracle: price [call: static]
 
 step PriceOracleが価格を返す
@@ -47,4 +49,5 @@ step Proxyが預けた記録を出す
 
 step 預け入れが終わる
   say 一番外の呼び出しが戻り、ETHの送金も書き込んだ値も確定する。
+  gist 一番外の呼び出しが戻った時に、ETHの送金も書き込んだ値も確定する
   return proxy: true

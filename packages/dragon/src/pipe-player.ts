@@ -9,6 +9,8 @@
  * 確かめは満たすかの札を式の前に置いた 1 行の枠にする。同じ理由で続けて取り消した呼び出しは、取り消した側から戻る先までの
  * 道 1 本の枠にまとめ、理由を 1 回だけ小さく出す。取り消しを矢印ごとに分けて理由を大きく出すと、携帯の幅で枠が詰まるため。
  *
+ * 要点 (`gist`) を書いた段は、矢印の後ろに要点の札を置く (#3464)。札は名札と要点の文を 1 つの枠に並べ、枠の幅に関わらず同じ形で出す。
+ * 配管の図は段の本文を見せないので、本文にしか無い要点が画面から消えないよう、書き手が段ごとに選んで出す。
  * 呼び出しの結果は畳んで置き、開くと先頭にいちばん外の呼び出し (取引) を、その下に今の段までに戻った内側の呼び出しを、
  * 呼ばれた側、中身、返した値の 3 列で出す。返した値が無いか `true` だけの呼び出しは、その段の矢印に値の動きとして出ているため出さない。
  * 今の段で戻った行に `data-state="now"` を付ける。
@@ -29,7 +31,8 @@ const px = (v: number): string => `${v}px`;
 /**
  * 段の動きの見た目。矢印どうしの間と矢印の上下の余白、名前と矢印の間、矢印の線の太さと先の長さ、量と線と札の間、
  * 矢印の欄と結果の間、矢印の欄と結果の最も広い幅、確かめと取り消しの枠の左右と上下の余白と角の丸みと枠どうしの間、
- * 取り消しの道の矢印の長さと名前との間、結果の 1 つの欄の上下と左右の余白、今の段の行の左の印の太さ。
+ * 取り消しの道の矢印の長さと名前との間、結果の 1 つの欄の上下と左右の余白、今の段の行の左の印の太さ、
+ * 要点の札の上の間と上下の余白 (#3464)。
  * 広い枠でも矢印と結果を枠の全幅に伸ばさない。送る側と受ける側が離れると、どの名前がどの量に付くかを目で追えなくなるため
  */
 const FLOWS = {
@@ -49,10 +52,12 @@ const FLOWS = {
   cellY: 6,
   cellX: 10,
   mark: 3,
+  gist: 8,
+  gistY: 7,
 } as const;
 
-/** 枠と行に敷く色の濃さ (%)。確かめを満たした枠、満たさない枠と取り消しの枠、取引の枠、今の段の行 */
-const TINT = { pass: 9, fail: 9, deal: 10, now: 8 } as const;
+/** 枠と行に敷く色の濃さ (%)。確かめを満たした枠、満たさない枠と取り消しの枠、取引の枠、今の段の行、要点の札 */
+const TINT = { pass: 9, fail: 9, deal: 10, now: 8, gist: 8 } as const;
 
 /** 矢印の種類。値が動く、確かめる、取り消す、呼ぶ、返す、計算する、記録を出す */
 export type FlowKind = "move" | "check" | "revert" | "call" | "return" | "calc" | "emit";
@@ -173,7 +178,7 @@ export function callList(model: DiagramModel, lang: NotationLang): CallList {
  */
 const hasResult = (row: CallRow): boolean => row.close !== undefined && (row.close.reverted || (row.close.value !== undefined && row.close.value !== "true"));
 
-/** 書き出した頁で段の矢印と呼び出しの結果と拡大の度合いの札が出しうる字。字の file に残す */
+/** 書き出した頁で段の矢印と要点の札と呼び出しの結果と拡大の度合いの札が出しうる字。字の file に残す */
 export function pipeTexts(model: DiagramModel, lang: NotationLang): string[] {
   const w = FIGURE_TEXT[lang];
   const { rows, flows } = callList(model, lang);
@@ -182,6 +187,8 @@ export function pipeTexts(model: DiagramModel, lang: NotationLang): string[] {
     w.deal,
     w.waiting,
     w.reverted,
+    w.gist,
+    ...model.steps.flatMap((step) => (step.gist === undefined ? [] : [step.gist])),
     "→",
     ...rows.flatMap((row) => [row.from, row.to, row.label ?? w.callNone, row.close?.value ?? ""]),
     ...flows.flat().flatMap((flow) => [flow.from, flow.amount, flow.to, flow.tag, ...(flow.via ?? [])]),
@@ -190,7 +197,7 @@ export function pipeTexts(model: DiagramModel, lang: NotationLang): string[] {
   ];
 }
 
-/** 段の動きと呼び出しの結果の見た目。置く時に頁へ 1 度だけ入れる */
+/** 段の動きと要点の札と呼び出しの結果の見た目。置く時に頁へ 1 度だけ入れる */
 function callsCss(): string {
   const line = `${px(FLOWS.line)} solid var(--mute)`;
   const tint = (color: string, percent: number): string => `color-mix(in srgb,var(${color}) ${percent}%,transparent)`;
@@ -225,6 +232,9 @@ function callsCss(): string {
     `.dg-fs{display:inline-flex;align-items:center;gap:${px(FLOWS.linkGap)};white-space:nowrap}`,
     `.dg-fk{display:inline-block;position:relative;width:${px(FLOWS.link)};border-top:${px(FLOWS.line)} dashed var(--t-rose);margin-right:${px(FLOWS.head)}}`,
     `.dg-fk::after{content:"";position:absolute;right:-${px(FLOWS.head)};top:-${px(FLOWS.head / 2 + FLOWS.line / 2)};border:${px(FLOWS.head / 2)} solid transparent;border-left:${px(FLOWS.head)} solid var(--t-rose);border-right:0}`,
+    // 要点の札は矢印の欄と同じ幅までの薄い青の枠に、太字の名札と要点の文を続けて書き、長い文は枠の中で折る
+    `.dg-gs{margin-top:${px(FLOWS.gist)};max-width:${px(FLOWS.max)};padding:${px(FLOWS.gistY)} ${px(FLOWS.boxX)};border-radius:${px(FLOWS.round)};background:${tint("--c-blue", TINT.gist)};${font(TYPE.stepBodyNarrow)};color:var(--ink);overflow-wrap:anywhere}`,
+    `.dg-gsl{font-weight:${strong};color:var(--c-blue);margin-right:${px(FLOWS.linkGap)}}`,
     // 呼び出しの結果は畳み、開くと取引の枠と、戻った内側の呼び出しを 3 列で揃えて出す
     `.dg-cr{margin-top:${px(FLOWS.record)};max-width:${px(FLOWS.max)};${font(TYPE.stepBodyNarrow)};color:var(--ink)}`,
     `.dg-cr>summary{cursor:pointer;color:var(--c-blue)}`,
@@ -259,13 +269,13 @@ function ensureCallsCss(doc: Document): void {
 }
 
 export interface PipeCalls {
-  /** 図の下に置く、段の矢印と呼び出しの結果の入れ物 */
+  /** 図の下に置く、段の矢印と要点の札と呼び出しの結果の入れ物 */
   readonly element: HTMLElement;
-  /** 図 `model` の段 `step` (0 から) の矢印と、その段までの呼び出しの結果を出す。描き直した図を渡すと作り直す */
+  /** 図 `model` の段 `step` (0 から) の矢印と要点の札と、その段までの呼び出しの結果を出す。描き直した図を渡すと作り直す */
   show(model: DiagramModel, step: number): void;
 }
 
-/** 段の矢印と呼び出しの結果を作る。置く所は再生の部品が決める */
+/** 段の矢印と要点の札と呼び出しの結果を作る。置く所は再生の部品が決める */
 export function mountPipeCalls(doc: Document, lang: NotationLang): PipeCalls {
   ensureCallsCss(doc);
   const w = FIGURE_TEXT[lang];
@@ -336,6 +346,12 @@ export function mountPipeCalls(doc: Document, lang: NotationLang): PipeCalls {
     row.append(span("dg-ff", "flow-from", flow.from), middle, span("dg-ft", "flow-to", flow.to));
     return row;
   };
+  // 要点の札。要点を書いた段だけ、矢印と呼び出しの結果の間に置き、書かない段では外す
+  const gist = doc.createElement("div");
+  gist.className = "dg-gs";
+  gist.dataset.dragon = "gist";
+  const gistText = span("", "gist-text", "");
+  gist.append(span("dg-gsl", "gist-label", w.gist), gistText);
   /** 戻った呼び出しの返した値の欄の字。取り消した呼び出しは取り消しと出す */
   const valueOf = (row: CallRow): string => (row.close?.reverted ? w.reverted : (row.close?.value ?? w.callNone));
   /** いちばん外の呼び出し (取引) の枠。呼んだ側、呼ばれた側、返した値か返り待ちと、その下に中身 */
@@ -376,6 +392,12 @@ export function mountPipeCalls(doc: Document, lang: NotationLang): PipeCalls {
         list = callList(model, lang);
       }
       board.replaceChildren(...(list.flows[step] ?? []).map(arrowOf));
+      const point = model.steps[step]?.gist;
+      if (point === undefined) gist.remove();
+      else {
+        gistText.textContent = point;
+        if (gist.parentNode === null) record.before(gist);
+      }
       // 取引ごとに枠を置き、その下にその取引の中で戻った呼び出しを並べる
       const parts: HTMLElement[] = [];
       let grid: HTMLElement | undefined;

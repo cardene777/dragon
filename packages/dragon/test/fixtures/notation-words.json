@@ -55,7 +55,8 @@
     "check",
     "emit",
     "calc",
-    "revert"
+    "revert",
+    "gist"
   ],
   "ATTRS": {
     "diagram": [

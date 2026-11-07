@@ -42,6 +42,7 @@ step 100 USDC moves from Alice to the aggregator
 
 step The router hands the swap to the aggregator
   say The router leaves the swap to the aggregator. The steps inside fold into one box that opens when pressed.
+  gist The inner steps fold into one box, and the box opens when you press it
   router -> agg: swap 100 USDC into WETH [fold]
 
 step The aggregator reads the price and the split
@@ -129,4 +130,5 @@ step The router sends the WETH to Bob
 
 step The swap ends
   say The outermost call returns, and every change across the 15 parties becomes final.
+  gist Every change across the 15 parties becomes final when the outermost call returns
   return router: 0.0495 WETH

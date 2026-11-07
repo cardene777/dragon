@@ -267,6 +267,7 @@ In a pipe diagram (`pipe <title>`), declare balances with `hold <owner>: <amount
 A line `<caller> -> <callee>: <text>` is a call: `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` or `[call: static]` sets its kind, and `[fold]` folds its inner steps into one box.
 Inside a step, `move <token>: <amount> <from> -> <to>` moves a balance, `write <party>: <name> <value>` rewrites a value, `check <party>: <left> <op> <right>` checks (a check on values that are not numbers fails only with `[fail]`), `emit <party>: <name>(<arg>, ...)` emits an event, and `calc <party>: <in> -> <out>` converts.
 `return <party>: <value>` closes the innermost open call and `revert <party>: <reason>` fails it. Changes stay provisional until the outermost call returns.
+The step body does not show under a pipe diagram, so write a key point with `gist <key point>`, at most one per step. It shows in a note after the step's arrows.
 
 ```dragon
 pipe Swap 1 ETH for USDC
@@ -318,6 +319,7 @@ step The pool returns the amount it paid
 
 step The swap ends
   say Exchange writes its record and returns, and every change becomes final here.
+  gist Every change becomes final when the outermost call returns
   write ex: "swaps[alice]" 1
   emit ex: Swapped(alice, 3200)
   return ex: 3200 USDC

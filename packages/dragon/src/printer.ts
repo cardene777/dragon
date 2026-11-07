@@ -19,7 +19,7 @@
  * 試す図 (#3337) の部品の行は、部品の種類と同じ名前のブロックの書き戻す処理 (`print.part`) が書き、原本の並びのまま 1 つの塊にする (#3348)。
  * その後ろのチップの `item` の行は入力の帯のブロックが書き、欄の値と段の中の書き換えの鍵を入力の帯の欄の順に書く。
  * 段の中でブロックが受け持つ行は、段の区切りの `step` の行の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
- * 段の本文の `say` と命令の `code` の行は段のブロックが、段の出典 (#3199) は出典のブロックが書く。
+ * 段の本文の `say` と命令の `code` の行は段のブロックが、段の出典 (#3199) は出典のブロックが、配管の図の段の要点 (#3464) は要点のブロックが書く。
  * 段の中で起きることのうちブロックが持つ種類は、そのブロックの書き戻す処理 (`print.events`) が起きた順に 1 行ずつ書く (#3345)。
  * ブロックが持つ宣言の塊 (中身の帯の `strip` の行) は、区画と箱とチップの宣言の後ろに、ブロックの書き戻す処理 (`print.figure`) が書く。
  * 書き戻す処理はブロックの読み方 (`blocks/<名前>/read.ts`) が持ち、登録簿 (`blocks/reading.ts`) が持つ読み方から引く (#3349)。
@@ -173,14 +173,14 @@ function bareBoxes(diagram: DiagramModel): boolean {
   return (diagram.regions ?? []).length === 0 && diagram.boxes.length > 0 && diagram.boxes.every((box) => box.name === box.id && Object.keys(box).every((key) => key === "id" || key === "name"));
 }
 
-/** 状態遷移図の道を持たず、どの段も線 1 本だけで、題と本文がその線から導く字と同じで、命令と出典を持たないか */
+/** 状態遷移図の道を持たず、どの段も線 1 本だけで、題と本文がその線から導く字と同じで、命令と出典と要点を持たないか */
 function lineStepsOnly(diagram: DiagramModel, nameOf: NameOf): boolean {
   if (diagram.steps.length === 0 || (diagram.state?.paths ?? []).length > 0) return false;
   return diagram.steps.every((step) => {
     const [only, ...more] = step.events;
     if (only?.type !== "edge" || more.length > 0) return false;
     const text = lineText(only, nameOf);
-    return step.title === text && step.body === text && step.code === undefined && (step.sources ?? []).length === 0;
+    return step.title === text && step.body === text && step.code === undefined && (step.sources ?? []).length === 0 && step.gist === undefined;
   });
 }
 

@@ -193,6 +193,7 @@
     {
       "title": "The router hands the swap to the aggregator",
       "body": "The router leaves the swap to the aggregator. The steps inside fold into one box that opens when pressed.",
+      "gist": "The inner steps fold into one box, and the box opens when you press it",
       "events": [
         {
           "type": "call",
@@ -587,6 +588,7 @@
     {
       "title": "The swap ends",
       "body": "The outermost call returns, and every change across the 15 parties becomes final.",
+      "gist": "Every change across the 15 parties becomes final when the outermost call returns",
       "events": [
         {
           "type": "return",

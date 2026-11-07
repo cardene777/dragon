@@ -50,6 +50,7 @@ step The WETH transfer fails for lack of funds
 
 step The router tries pool 2
   say The router catches the failure of pool 1 and asks pool 2 for the same swap. Only the changes inside pool 1 went back.
+  gist Only the changes inside pool 1 went back, and the outer changes stay
   router -> pool2: swap 100 USDC
 
 step Pool 2 takes the USDC
@@ -72,4 +73,5 @@ step Pool 2 reports what it paid
 
 step The swap ends
   say The outermost call returns, and every change that is left becomes final.
+  gist The remaining changes become final when the outermost call returns
   return router: 0.05 WETH

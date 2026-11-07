@@ -50,6 +50,7 @@ step WETHの送金が残高不足で落ちる
 
 step RouterがPool2で交換し直す
   say RouterはPool1が落ちたことを受け止め、Pool2に同じ交換を頼む。元に戻ったのはPool1の内側の変更だけ。
+  gist 元に戻ったのはPool1の内側の変更だけで、外側の変更は残る
   router -> pool2: 100 USDCを交換
 
 step Pool2がUSDCを受け取る
@@ -72,4 +73,5 @@ step Pool2が払った量を返す
 
 step 交換が終わる
   say 一番外の呼び出しが戻り、残った変更が全て確定する。
+  gist 一番外の呼び出しが戻った時に、残った変更が全て確定する
   return router: 0.05 WETH

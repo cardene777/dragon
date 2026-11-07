@@ -15,6 +15,7 @@ import { shape as edgeShape } from "./edge/shape";
 import { shape as edgeLabelShape } from "./edge-label/shape";
 import { shape as emitShape } from "./emit/shape";
 import { shape as foldShape } from "./fold/shape";
+import { shape as gistShape } from "./gist/shape";
 import { shape as groupShape } from "./group/shape";
 import { shape as holdShape } from "./hold/shape";
 import { shape as iconShape } from "./icon/shape";
@@ -69,6 +70,7 @@ export const SHAPES = {
   "edge-label": edgeLabelShape,
   "emit": emitShape,
   "fold": foldShape,
+  "gist": gistShape,
   "group": groupShape,
   "hold": holdShape,
   "icon": iconShape,

@@ -47,6 +47,7 @@ step The pool returns the amount it paid
 
 step The swap ends
   say Exchange writes its record and returns, and every change becomes final here.
+  gist Every change becomes final when the outermost call returns
   write ex: "swaps[alice]" 1
   emit ex: Swapped(alice, 3200)
   return ex: 3200 USDC

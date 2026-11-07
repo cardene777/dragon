@@ -38,6 +38,7 @@ step 100 USDCがAliceからPoolへ移る
 
 step USDCが移し終えたと返す
   say USDCがRouterに、移し終えたと返す。変更はまだ暫定のまま。
+  gist 移した分はまだ暫定で、取引が終わるまで確定しない
   return usdc: true
 
 step RouterがPoolに交換を頼む
@@ -67,8 +68,10 @@ step WETHが送り終えたと返す
 
 step Poolが払った量を返す
   say PoolがRouterに、0.05 WETHを払ったと返す。内側の呼び出しが戻っても、変更は暫定のまま。
+  gist 内側の呼び出しが戻っても、変更は暫定のまま
   return pool: 0.05 WETH
 
 step 交換が終わる
   say 一番外の呼び出しが戻り、ここで全ての変更が確定する。
+  gist 一番外の呼び出しが戻った時に、全ての変更が確定する
   return router: 0.05 WETH

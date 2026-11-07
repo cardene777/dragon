@@ -209,6 +209,7 @@
     {
       "title": "The router tries pool 2",
       "body": "The router catches the failure of pool 1 and asks pool 2 for the same swap. Only the changes inside pool 1 went back.",
+      "gist": "Only the changes inside pool 1 went back, and the outer changes stay",
       "events": [
         {
           "type": "call",
@@ -300,6 +301,7 @@
     {
       "title": "The swap ends",
       "body": "The outermost call returns, and every change that is left becomes final.",
+      "gist": "The remaining changes become final when the outermost call returns",
       "events": [
         {
           "type": "return",

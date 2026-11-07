@@ -280,6 +280,7 @@
     {
       "title": "The swap ends",
       "body": "The outermost call returns, and every change from both swaps becomes final.",
+      "gist": "The changes of both swaps become final when the outermost call returns",
       "events": [
         {
           "type": "return",

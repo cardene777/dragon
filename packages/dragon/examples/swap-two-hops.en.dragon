@@ -73,4 +73,5 @@ step Pool 2 reports what it paid
 
 step The swap ends
   say The outermost call returns, and every change from both swaps becomes final.
+  gist The changes of both swaps become final when the outermost call returns
   return router: 160 DAI

@@ -513,6 +513,7 @@ Declare the parties with `box`. Whether each party is a sender, a contract, a to
 - `move <token>: <amount> <from> -> <to>` moves a balance through the token's pipe, and `write <party>: <name> <value>` rewrites a value plate
 - `check <party>: <left> <op> <right>` is a check with `>=`, `<=`, `==`, `!=`, `>`, or `<`. dragon compares numbers itself, and a check on other values fails only with `[fail]`
 - `emit <party>: <name>(<arg>, ...)` is an event, and `calc <party>: <in> -> <out>` is a conversion
+- `gist <key point>` is the key point of the step, shown in a note after the step's arrows under the figure. A pipe diagram does not show the step body under the figure, so write here a point the body alone would carry. A step takes at most one, and other kinds of diagram cannot take it
 
 Tank levels are drawn to scale for each token. Changes stay provisional (hatched) until the outermost call returns, and then they all turn final (green). Changes that a `revert` rolls back are marked in red.
 
@@ -566,6 +567,7 @@ step The pool returns the amount it paid
 
 step The swap ends
   say Exchange writes its record and returns, and every change becomes final here.
+  gist Every change becomes final when the outermost call returns
   write ex: "swaps[alice]" 1
   emit ex: Swapped(alice, 3200)
   return ex: 3200 USDC

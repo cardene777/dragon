@@ -22,6 +22,7 @@ export const shape: BlockShape = {
           minItems: 1,
           items: { $ref: "#/definitions/source" },
         },
+        gist: { $ref: "#/definitions/gist" },
         events: { type: "array", items: { $ref: "#/definitions/event" } },
       },
     },

@@ -216,6 +216,8 @@ export interface Step {
   code?: string;
   /** 書いた順の出典。書かない段は欄を持たない */
   sources?: StepSource[];
+  /** 段の要点。配管の図だけが持ち、書かない段は欄を持たない (#3464) */
+  gist?: string;
   events: DiagramEvent[];
 }
 
@@ -362,6 +364,7 @@ const ABSENT_KINDS: Record<string, string> = {
   region: "sequence / architecture / state",
   icon: "sequence / architecture / state / git / time / tree / pipe",
   link: "sequence / architecture / state / git / time / tree",
+  gist: "pipe",
 };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
 const NOT_ALLOWED: Record<string, Allowed> = {

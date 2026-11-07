@@ -42,6 +42,7 @@ step 100 USDCがAliceからAggregatorへ移る
 
 step RouterがAggregatorに交換を任せる
   say RouterがAggregatorに交換を任せる。内側の段は1つの箱に畳まれ、押すと開く。
+  gist 内側の段は1つの箱に畳まれていて、箱を押すと開く
   router -> agg: 100 USDCをWETHに交換 [fold]
 
 step Aggregatorが価格と分け方を読む
@@ -129,4 +130,5 @@ step RouterがWETHをBobへ送る
 
 step 交換が終わる
   say 一番外の呼び出しが戻り、15の関係者にまたがる変更が全て確定する。
+  gist 一番外の呼び出しが戻った時に、15の関係者にまたがる変更が全て確定する
   return router: 0.0495 WETH

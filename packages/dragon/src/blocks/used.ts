@@ -10,7 +10,8 @@
  * - 定義の `lines` が行の形に当たるブロック (時間軸の図の針を進める行、状態遷移図の最初の段より前の線、試す図の `item` と `line` の行)
  *
  * 加えて、図の種類の決まりを持つブロック (定義の `always`) は、行が無くてもその種類の図なら使う。
- * 原本からは、`blocks` の欄の鍵 (ブロックの名前か、定義の `fields`) と、試す図の部品の種類と、段の中で起きることを書き戻すブロック (`eventOwners`) を引く。
+ * 原本からは、`blocks` の欄の鍵 (ブロックの名前か、定義の `fields`) と、段の欄の鍵 (定義の `stepFields`) と、試す図の部品の種類と、
+ * 段の中で起きることを書き戻すブロック (`eventOwners`) を引く。
  */
 import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
@@ -26,6 +27,9 @@ const KINDS = KIND_FOLDERS as unknown as Readonly<Record<string, Kind>>;
 
 /** 原本の `blocks` の欄の鍵ごとの、その欄を持つブロック。鍵はブロックの名前か、定義の `fields` に書いた名前 */
 const FIELD_OWNERS: ReadonlyMap<string, Block> = new Map(Object.values(ALL).flatMap((block) => [block.name, ...(block.fields ?? [])].map((key) => [key, block] as const)));
+
+/** 原本の段の欄の鍵ごとの、その欄を持つブロック (定義の `stepFields`、#3464) */
+const STEP_FIELD_OWNERS: ReadonlyMap<string, Block> = new Map(Object.values(ALL).flatMap((block) => (block.stepFields ?? []).map((key) => [key, block] as const)));
 
 /** 行の頭の語ごとの、その語を持つブロック */
 const HEAD_OWNERS: ReadonlyMap<string, Block> = new Map(Object.values(ALL).flatMap((block) => (block.words.heads ?? []).map((head) => [head, block] as const)));
@@ -102,7 +106,7 @@ function notationNeeds(text: string): string[] {
 interface SourceShape {
   kind?: unknown;
   blocks?: Record<string, unknown>;
-  steps?: { events?: { type?: unknown }[] }[];
+  steps?: (Record<string, unknown> & { events?: { type?: unknown }[] })[];
 }
 
 /** 原本 (版2) から、書いた図が使うブロックの名前 */
@@ -122,8 +126,15 @@ function sourceNeeds(source: SourceShape): string[] {
   // 試す図の部品は、部品の種類と同じ名前のブロックが持つ
   const parts = source.blocks?.["part"];
   if (Array.isArray(parts)) for (const part of parts as { type?: unknown }[]) add(typeof part.type === "string" ? ALL[part.type] : undefined);
-  // 段の中で起きることは、その図の種類で書き戻すブロックが要る
-  for (const step of source.steps ?? []) for (const event of step.events ?? []) if (typeof event.type === "string") for (const name of eventOwners(event.type, kind)) out.add(name);
+  for (const step of source.steps ?? []) {
+    // 段の欄 (配管の図の段の要点) は、その欄を持つブロックが書き戻す。使えない種類のブロックの欄は数えない
+    for (const key of Object.keys(step)) {
+      const block = STEP_FIELD_OWNERS.get(key);
+      if (block && fits(block, found)) add(block);
+    }
+    // 段の中で起きることは、その図の種類で書き戻すブロックが要る
+    for (const event of step.events ?? []) if (typeof event.type === "string") for (const name of eventOwners(event.type, kind)) out.add(name);
+  }
   return [...out];
 }
 
