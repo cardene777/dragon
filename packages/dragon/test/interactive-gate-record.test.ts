@@ -50,11 +50,14 @@ const CANTON_STEPS: readonly (readonly [string, string, string?])[] = [
   ["全ての関門を通るとコミットする", "全ての関門に合うトランザクションだけがコミットされます。", "送金G, 有効, 12000, 空き, 整合, 間に合う"],
 ];
 
+/** Canton の図の網。5 つの節を 1 列に並べる */
+const CANTON_ROUTE = "route 送信経路: アプリ - 送るNode - Sequencer - 確かめるNode - Mediator [from: アプリ, to: Mediator]";
+
 /** Canton の図の記法。部品、関門、段の塊を空の行で区切って並べる */
 const CANTON = [
   "try トランザクションが拒否される段",
   [
-    "route 送信経路: アプリ - 送るNode - Sequencer - 確かめるNode - Mediator [from: アプリ, to: Mediator]",
+    CANTON_ROUTE,
     "queue コミットした",
     `log ${CANTON_LOG}`,
     "ask トランザクション, 署名, 大きさ, 混み具合, View, 期限 [into: コミットした, via: 送信経路]",
@@ -273,6 +276,19 @@ describe("関門の記録 (#3478)", () => {
   });
 });
 
+/**
+ * 網の名札の確かめに使う、Canton の図と同じ 5 つの節を 1 列に並べた網だけの図。関門も記録の列も持たない。
+ * 記録で図が広がらないので、記録の直しの前から幅 324 で隣の名札とぶつかる
+ */
+const ROUTE_ONLY = [
+  "try 送信経路だけの図",
+  CANTON_ROUTE,
+  "queue コミットした",
+  "ask トランザクション, 署名 [into: コミットした, via: 送信経路]",
+  "step 送る",
+  "  say トランザクションは送る Participant Node、Sequencer、確かめる Participant Node、Mediator の順に通ります。",
+].join("\n");
+
 /** 網の名札の確かめに使う、3 つの節を 1 列に並べた網の図。幅 324 でも隣の名札とぶつからない */
 const THREE = [
   "try three nodes",
@@ -328,8 +344,10 @@ function nodeLabels(holder: HTMLElement, where: string): NodeLabel[] {
 describe("細い組みの網の名札 (#3478)", () => {
   it("try-route-labels-clear-narrow", () => {
     const r = TRY_LOOK.route.r;
-    // 5 つの節を 1 列に並べた網を幅 324 で描くと、名札どうしが重ならず、節の丸にも掛からず、図の枠の内に収まる
-    for (const figure of FIGURES) {
+    // 5 つの節を 1 列に並べた網を幅 324 で描くと、名札どうしが重ならず、節の丸にも掛からず、図の枠の内に収まる。
+    // 関門と記録の無い網だけの図を先に見る (記録が図を広げて名札に場所を作る形に頼らない)
+    const narrow = [{ name: "関門の無い網だけの図", text: ROUTE_ONLY, lang: "ja" as const }, ...FIGURES];
+    for (const figure of narrow) {
       const drawn = rendered(parsedTry(figure.text, figure.lang), figure.lang, PHONE);
       const where = `${figure.name} を枠 ${PHONE}px の図で描いた`;
       const holder = holderOf(drawn);
