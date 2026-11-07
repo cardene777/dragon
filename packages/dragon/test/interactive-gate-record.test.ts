@@ -11,9 +11,17 @@
  * 図は bitsumi の Canton の図解の試す図 (トランザクションが拒否される段) で、網の 4 つの節に 6 つの関門を置き、
  * エラーの名前は書き手の頁の解説のまま使う。英語の言葉 (`Stopped at <node>`) でも確かめるので、英字だけの図も足す。
  * 置き場所は描く部品が返す値 (`layout`) で、行の位置は描いた SVG の字の位置で確かめる。
+ *
+ * 記録で図が広がらなくなると、5 つの節を 1 列に並べた網は細い組み (幅 324) で節の名札どうしが重なる。
+ * 直す前は記録の幅で図が 397 に広がり、網に場所があったので重ならなかった。
+ * 細い組みでも網の名札は互いに重ならず、節の丸にも掛からず、図の枠の内に収まる。
+ * 隣の名札とぶつからない網の名札は、今の位置 (節の真下、丸の真ん中から `TRY_LOOK.route.labelY` の基準線、真ん中揃え) のまま描く。
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { textWidth } from "../src/layout/measure";
+import { TRY_LOOK } from "../src/look/try";
 import { TYPE } from "../src/look/values";
 import { draw, type Rendered } from "./render-support";
 import { askStrip, figureOf, mountTry, parsedTry, releaseTry, sendButton, tryLayout } from "./try-support";
@@ -261,6 +269,107 @@ describe("関門の記録 (#3478)", () => {
         expect(drawnWidth(figureOf(host)), `枠 ${width}px で ${send.label} を送った後の図の viewBox の幅が送る前 (${before}) と違う`).toBe(before);
       });
       releaseTry();
+    }
+  });
+});
+
+/** 網の名札の確かめに使う、3 つの節を 1 列に並べた網の図。幅 324 でも隣の名札とぶつからない */
+const THREE = [
+  "try three nodes",
+  "route path: app - Sequencer - Mediator [from: app, to: Mediator]",
+  "queue committed",
+  "ask tx, size [into: committed, via: path]",
+  "step start",
+  "  say Start.",
+].join("\n");
+
+/** 見本 `tx-block.dragon` (節が 7 つで、道が 2 段に分かれる網)。幅 324 でも隣の名札とぶつからない */
+const TX_BLOCK = (): string => readFileSync(join(process.cwd(), "packages/dragon/examples/tx-block.dragon"), "utf8");
+
+/** 四角 */
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** 2 つの四角が重なるか。辺が触れるだけなら重ならない */
+const overlap = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** 網の節の名札。字の要素と、字の形の四角 (基準線から上に字の大きさの 8 割、下に 2 割) */
+interface NodeLabel {
+  id: string;
+  text: Element;
+  box: Box;
+  /** 節の丸の真ん中 */
+  cx: number;
+  cy: number;
+}
+
+/** 描いた図の網の節の名札。節ごとに、節の名前だけを書いた字を探す */
+function nodeLabels(holder: HTMLElement, where: string): NodeLabel[] {
+  const nodes = [...holder.querySelectorAll("[data-route] [data-node]")];
+  expect(nodes.length, `${where}網の節 (data-node) が無い`).toBeGreaterThan(0);
+  return nodes.flatMap((node) => {
+    const id = node.getAttribute("data-node") ?? "";
+    const text = [...node.querySelectorAll("text")].find((t) => t.textContent === id);
+    const circle = node.querySelector("circle");
+    expect(text, `${where}節 ${id} の名札の字が無い`).toBeDefined();
+    expect(circle, `${where}節 ${id} の丸が無い`).not.toBeNull();
+    if (!text || !circle) return [];
+    const w = textWidth(id, TYPE.tryNode);
+    const size = TYPE.tryNode.size;
+    const box = { x: leftOf(text, w), y: Number(text.getAttribute("y")) - size * 0.8, w, h: size };
+    return [{ id, text, box, cx: Number(circle.getAttribute("cx")), cy: Number(circle.getAttribute("cy")) }];
+  });
+}
+
+describe("細い組みの網の名札 (#3478)", () => {
+  it("try-route-labels-clear-narrow", () => {
+    const r = TRY_LOOK.route.r;
+    // 5 つの節を 1 列に並べた網を幅 324 で描くと、名札どうしが重ならず、節の丸にも掛からず、図の枠の内に収まる
+    for (const figure of FIGURES) {
+      const drawn = rendered(parsedTry(figure.text, figure.lang), figure.lang, PHONE);
+      const where = `${figure.name} を枠 ${PHONE}px の図で描いた`;
+      const holder = holderOf(drawn);
+      const svg = holder.querySelector("svg");
+      const [, , vw = 0, vh = 0] = (svg?.getAttribute("viewBox") ?? "").split(" ").map(Number);
+      const labels = nodeLabels(holder, where);
+      expect(labels.map((l) => l.id), `${where}網の節の数`).toHaveLength(5);
+      const ids = new Set(labels.map((l) => l.id));
+      const reported = ((drawn as unknown as { overlaps?: { texts: string[] }[] }).overlaps ?? []).filter((o) => o.texts.every((t) => ids.has(t)));
+      expect(reported.map((o) => o.texts.join(" と ")), `${where}網の名札どうしの重なり`).toEqual([]);
+      for (const [i, a] of labels.entries()) {
+        for (const b of labels.slice(i + 1))
+          expect(overlap(a.box, b.box), `${where}網の名札 ${a.id} ${JSON.stringify(a.box)} と ${b.id} ${JSON.stringify(b.box)} が重なる`).toBe(false);
+        for (const c of labels)
+          expect(
+            overlap(a.box, { x: c.cx - r, y: c.cy - r, w: r * 2, h: r * 2 }),
+            `${where}網の名札 ${a.id} ${JSON.stringify(a.box)} が節 ${c.id} の丸に掛かる`,
+          ).toBe(false);
+        const inside = a.box.x >= 0 && a.box.y >= 0 && a.box.x + a.box.w <= vw && a.box.y + a.box.h <= vh;
+        expect(inside, `${where}網の名札 ${a.id} ${JSON.stringify(a.box)} が図の枠 (${vw}×${vh}) からはみ出す`).toBe(true);
+      }
+    }
+    // 隣の名札とぶつからない網の名札は、今の位置 (節の真下、真ん中揃え) のまま描く
+    const clear = [
+      { name: "3 つの節の網の図", text: THREE, lang: "en" as const, width: PHONE },
+      { name: "3 つの節の網の図", text: THREE, lang: "en" as const, width: undefined },
+      { name: "見本 tx-block", text: TX_BLOCK(), lang: "ja" as const, width: PHONE },
+      { name: "見本 tx-block", text: TX_BLOCK(), lang: "ja" as const, width: undefined },
+      ...FIGURES.map((f) => ({ name: f.name, text: f.text, lang: f.lang, width: undefined })),
+    ];
+    for (const figure of clear) {
+      const where = `${figure.name} を${figure.width === undefined ? "枠の幅を渡さない図" : `枠 ${figure.width}px の図`}で描いた`;
+      for (const label of nodeLabels(holderOf(rendered(parsedTry(figure.text, figure.lang), figure.lang, figure.width)), where)) {
+        expect(label.text.getAttribute("text-anchor"), `${where}網の名札 ${label.id} が真ん中揃えでない`).toBe("middle");
+        expect(Number(label.text.getAttribute("x")), `${where}網の名札 ${label.id} が節の真下から横にずれる`).toBeCloseTo(label.cx, 1);
+        expect(Number(label.text.getAttribute("y")), `${where}網の名札 ${label.id} が今の高さ (節の真ん中から ${TRY_LOOK.route.labelY} 下) にない`).toBeCloseTo(
+          label.cy + TRY_LOOK.route.labelY,
+          1,
+        );
+      }
     }
   });
 });
