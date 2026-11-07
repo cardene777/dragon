@@ -598,22 +598,40 @@ describe("配管の図の再生 (#3418)", () => {
     expect(svg && record.compareDocumentPosition(svg) & Node.DOCUMENT_POSITION_PRECEDING, "呼び出しの記録が図の下に無い").toBeTruthy();
     // 4 列の表は置かない
     expect(host.querySelector("table"), "図の下に表が残る").toBeNull();
+    expect(record.querySelector("summary")?.textContent, "呼び出しの記録の題").toBe("呼び出しの結果");
     record.open = true;
-    const lines = (): HTMLElement[] => [...record.querySelectorAll<HTMLElement>('[data-dragon="call"]')];
-    const text = (el: HTMLElement | undefined): string => (el?.textContent ?? "").replace(/\s+/g, " ").trim();
-    const depth = (el: HTMLElement | undefined): number => Number(el?.dataset.depth ?? "-1");
-    // 段 1 は Alice が SwapRouter を呼ぶ。戻る前の呼び出しは返した値を持たない
-    expect(lines().map(text), "段 1 の呼び出しの記録").toEqual(["Alice → SwapRouter 100 USDCをDAIに交換"]);
-    expect(lines()[0]?.dataset.state, "段 1 の今の行").toBe("now");
-    // 段 3 は SwapRouter が USDC を呼んで戻る。内側の呼び出しは字下げし、今の段の行だけに印を付ける
+    const cell = (el: HTMLElement, name: string): string => (el.querySelector(`[data-dragon="call-${name}"]`)?.textContent ?? "").replace(/\s+/g, " ").trim();
+    /** 先頭に置くいちばん外の呼び出し (取引)。呼んだ側、呼ばれた側、中身、返した値か返り待ち */
+    const deals = (): { from: string; to: string; what: string; value: string; now: boolean }[] =>
+      [...record.querySelectorAll<HTMLElement>('[data-dragon="call-tx"]')].map((el) => ({ from: cell(el, "from"), to: cell(el, "to"), what: cell(el, "what"), value: cell(el, "value"), now: el.dataset.state === "now" }));
+    /** 戻った内側の呼び出し。呼ばれた側、中身、返した値の 3 列 */
+    const results = (): { to: string; what: string; value: string; now: boolean }[] =>
+      [...record.querySelectorAll<HTMLElement>('[data-dragon="call"]')].map((el) => ({ to: cell(el, "to"), what: cell(el, "what"), value: cell(el, "value"), now: el.dataset.state === "now" }));
+    // 段 1 は Alice が SwapRouter を呼ぶ。戻る前の取引は返り待ちと出し、内側の結果はまだ無い
+    expect(deals(), "段 1 の取引").toEqual([{ from: "Alice", to: "SwapRouter", what: "100 USDCをDAIに交換", value: "返り待ち", now: false }]);
+    expect(results(), "段 1 の呼び出しの結果").toEqual([]);
+    // 段 3 は SwapRouter が USDC を呼んで true を返す。返した値が true だけの呼び出しは出さない
     player.goTo(2);
-    expect(lines().map(text), "段 3 の呼び出しの記録").toEqual(["Alice → SwapRouter 100 USDCをDAIに交換", "SwapRouter → USDC 100 USDCを移す → true"]);
-    expect(depth(lines()[1]), "内側の呼び出しの行が字下げされない").toBeGreaterThan(depth(lines()[0]));
-    expect(lines().map((l) => l.dataset.state ?? ""), "段 3 の今の行").toEqual(["", "now"]);
-    // 最後の段は全ての呼び出しが戻り、一番外の呼び出しが返した値を出す
+    expect(results(), "段 3 の呼び出しの結果").toEqual([]);
+    // 段 12 は Pool2 が交換した値を返す。今の段で戻った行に印を付ける
+    player.goTo(11);
+    expect(results(), "段 12 の呼び出しの結果").toEqual([
+      { to: "Pool1", what: "100 USDCを交換", value: "0.05 WETH", now: false },
+      { to: "Pool2", what: "0.05 WETHを交換", value: "160 DAI", now: true },
+    ]);
+    // 最後の段は取引が返した値を出す
     player.goTo(12);
-    expect(lines().length, "最後の段の呼び出しの記録の行の数").toBe(6);
-    expect(text(lines()[0]), "最後の段の一番外の呼び出し").toBe("Alice → SwapRouter 100 USDCをDAIに交換 → 160 DAI");
+    expect(deals(), "最後の段の取引").toEqual([{ from: "Alice", to: "SwapRouter", what: "100 USDCをDAIに交換", value: "160 DAI", now: true }]);
+    expect(results().map((r) => r.now), "最後の段で戻っていない行に印が付く").toEqual([false, false]);
+    // 取り消した呼び出しは、返した値の欄に取り消しと出す
+    const revert = mount(exampleJson("swap-revert.json"), { lang: "ja" });
+    const revertRecord = revert.host.querySelector<HTMLDetailsElement>('[data-dragon="call-record"]');
+    if (revertRecord) revertRecord.open = true;
+    revert.player.goTo(9);
+    const revertDeals = [...revert.host.querySelectorAll<HTMLElement>('[data-dragon="call-tx"]')].map((el) => [cell(el, "to"), cell(el, "value"), el.dataset.state ?? ""]);
+    expect(revertDeals, "見本 swap-revert の段 10 の取引").toEqual([["SwapRouter", "✗ 取り消し", "now"]]);
+    const revertResults = [...revert.host.querySelectorAll<HTMLElement>('[data-dragon="call"]')].map((el) => [cell(el, "to"), cell(el, "what"), cell(el, "value"), el.dataset.state ?? ""]);
+    expect(revertResults, "見本 swap-revert の段 10 の呼び出しの結果").toEqual([["LiquidityPool", "100 USDCを交換", "✗ 取り消し", "now"]]);
   });
 
   it("player-pipe-zooms-and-pans", () => {
@@ -697,17 +715,24 @@ describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
 
   it("player-pipe-flows-show-checks-and-reverts", () => {
     prefersReducedMotion(true);
+    /** 今の段の行ごとの、部品の並び */
+    const partsOf = (host: HTMLElement): (string | undefined)[][] =>
+      rowsOf(host).map((row) => [...row.querySelectorAll<HTMLElement>('[data-dragon^="flow-"]')].map((el) => el.dataset.dragon));
     const swap = mount(exampleJson("swap.json"), { lang: "ja" });
     swap.player.goTo(8);
     expect(flowsOf(swap.host), "見本 swap の段 9 の確かめ").toEqual([{ kind: "check", from: "", amount: "0.05 WETH ≥ 0.04 WETH", to: "", tag: "✓ 満たす" }]);
+    // 確かめは満たすかの札を式の前に置いた 1 行にする
+    expect(partsOf(swap.host), "見本 swap の段 9 の確かめの部品の並び").toEqual([["flow-tag", "flow-amount"]]);
     const revert = mount(exampleJson("swap-revert.json"), { lang: "ja" });
     revert.player.goTo(8);
     expect(flowsOf(revert.host), "見本 swap-revert の段 9 の確かめ").toEqual([{ kind: "check", from: "", amount: "0.05 WETH ≥ 0.06 WETH", to: "", tag: "✗ 満たさない" }]);
+    expect(partsOf(revert.host), "見本 swap-revert の段 9 の確かめの部品の並び").toEqual([["flow-tag", "flow-amount"]]);
+    // 同じ理由で続けて取り消した呼び出しは、取り消した側から戻る先までの道 1 本にまとめ、理由を 1 回だけ出す
     revert.player.goTo(9);
-    expect(flowsOf(revert.host), "見本 swap-revert の段 10 の取り消し").toEqual([
-      { kind: "revert", from: "LiquidityPool", amount: "INSUFFICIENT_OUTPUT_AMOUNT", to: "SwapRouter", tag: "取り消す" },
-      { kind: "revert", from: "SwapRouter", amount: "INSUFFICIENT_OUTPUT_AMOUNT", to: "Alice", tag: "取り消す" },
-    ]);
+    expect(flowsOf(revert.host), "見本 swap-revert の段 10 の取り消し").toEqual([{ kind: "revert", from: "LiquidityPool", amount: "INSUFFICIENT_OUTPUT_AMOUNT", to: "Alice", tag: "✗ 取り消し" }]);
+    expect(partsOf(revert.host), "見本 swap-revert の段 10 の取り消しの部品の並び").toEqual([["flow-tag", "flow-amount", "flow-from", "flow-via", "flow-to"]]);
+    const via = [...revert.host.querySelectorAll('[data-dragon="flows"] [data-dragon="flow-via"]')].map((el) => el.textContent?.trim());
+    expect(via, "見本 swap-revert の段 10 の道の途中の関係者").toEqual(["SwapRouter"]);
   });
 
   it("player-pipe-flows-show-calls-and-returns", () => {
