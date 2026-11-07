@@ -1,0 +1,32 @@
+try 記録の列
+
+queue 甲組 [order: 期限]
+queue 乙組 [order: 期限]
+log 記録 [all: 答え = 可, yes: 通す, no: 戻す]
+ask 名前, 組, 答え, 期限 [into: 組]
+choose 組: 甲組, 乙組
+choose 答え: 可, 不可
+press 甲組を決める [from: 甲組, into: 記録, take: 2]
+press 乙組を決める [from: 乙組, into: 記録, take: 2]
+side 甲組, 乙組
+
+item 一 [組: 甲組, 答え: 可, 期限: 3]
+item 二 [組: 甲組, 答え: 可, 期限: 2]
+item 三 [組: 乙組, 答え: 不可, 期限: 4]
+
+step 組ごとに並ぶ
+  say into に組の欄を書くと、チップは組で選んだ値と同じ名札の待ち行列に並ぶ。
+  line 甲組: 一, 二
+  line 乙組: 三
+
+step 選んだ組へ送る
+  say 組に乙組を選んで送ると、チップは乙組に入る。
+  ask 四, 乙組, 可, 1
+
+step 記録にまとめる
+  say 釦を押すと、待ち行列の上から 2 件が 1 つの記録にまとまる。記録は番号と中のチップだけを持ち、prev と hash を持たない。
+  press 甲組を決める
+
+step 印を出す
+  say all の欄が全て 可 なら 通す、1 つでも違えば 戻す の印が付く。
+  press 乙組を決める

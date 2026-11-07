@@ -193,6 +193,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-60-0-adds-try-log", () => {
+    // 試す図の into に欄を書いて行き先を選ぶ形と、鎖でない記録の列 log (#3441) は 0.60.0 で npm に出す
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 60, `package の版 ${version()} が 0.60.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.60\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.60.0"), "0.60.0");
+      expect(released, `${file} に日付付きの ## [0.60.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.60.0 の節に #3441 の項が無い`).toContain("(#3441)");
+      expect(released, `${file} の 0.60.0 の節が log を名指さない`).toContain("`log`");
+      expect(released, `${file} の 0.60.0 の節が into を名指さない`).toContain("`into`");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3441)");
+    }
+  });
+
   it("changelog-0-59-0-releases-short-notation", () => {
     // 宣言と段を省いた短い記法 (#3438) は 0.59.0 で npm に出す
     const [major = 0, minor = 0] = version().split(".").map(Number);

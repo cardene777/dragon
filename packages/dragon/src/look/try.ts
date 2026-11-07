@@ -19,7 +19,9 @@ import type { ColorKey } from "./values";
  * 番号の行の高さ `noH`、行どうしの間 `rowGap`、prev と hash の行の高さ `row`、SHA-256 の字の行の高さ `sha`、下の余白 `padBottom`、
  * 角の丸み `radius`、prev と hash の行の角の丸み `rowRadius`、行の中の字の左の余白 `rowPad`、札と値の間 `keyGap`、
  * 縦に組んだ形 (#3366) でつながりの線を回すブロックの右の端からの長さ `side` (つながりの印の真ん中がここに来る)。
- * `link` はつながりの印の一辺 `badge`。`fold` は畳んだ印の高さ `h` と字の左右の余白 `padX`。`shown` は出すブロックの数。
+ * `link` はつながりの印の一辺 `badge`。`fold` は畳んだ印の高さ `h` と字の左右の余白 `padX`。`shown` は出すブロックと記録の数。
+ * `record` は記録の列 (#3441) の記録で、幅の下限 `w`、隣の記録との間 `gap`、番号と印の札の間 `headGap`、印の札の字の左右の余白 `markPadX`。
+ * 記録の高さと内側の余白と行の間は、ブロックの値 (`block`) とチップの値 (`chip`) を使い、印の札の高さは畳んだ印の高さ (`fold.h`) を使う。
  * `color` は部品の色 `part`、切れたつながりの色 `broken` (橙)、網の中の節の色 `node`
  */
 export const TRY_LOOK = {
@@ -46,6 +48,7 @@ export const TRY_LOOK = {
     keyGap: 8,
     side: 42,
   },
+  record: { w: 160, gap: 18, headGap: 12, markPadX: 8 },
   link: { badge: 20 },
   fold: { h: 22, padX: 8 },
   shown: 3,

@@ -43,6 +43,7 @@
     "route",
     "queue",
     "chain",
+    "log",
     "ask",
     "choose",
     "press",
@@ -141,6 +142,11 @@
     ],
     "chain": [
       "edit"
+    ],
+    "log": [
+      "all",
+      "yes",
+      "no"
     ],
     "ask": [
       "into",

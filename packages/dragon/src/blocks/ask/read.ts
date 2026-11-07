@@ -37,6 +37,10 @@ export interface AskMessages {
   choiceTwice: (value: string) => string;
   /** 欄 `field` の値 `value` が、その欄の選択肢 `choices` に無い */
   notChoice: (field: string, value: string, choices: readonly string[]) => string;
+  /** `into` に書いた欄 `field` が選択肢を持たない (#3441) */
+  intoNoChoices: (field: string) => string;
+  /** `into` に書いた欄 `field` の選択肢 `value` と同じ名札の待ち行列が無い (#3441) */
+  choiceNoQueue: (value: string, field: string) => string;
 }
 
 /** 試す図の値。`,` で区切る並びと属性の中で読み直せるよう、`,` か `]` を含む値と、`"` で始まる値と、前後に空白を持つ値を囲む */
@@ -49,7 +53,11 @@ function tryAttrs(values: Readonly<Record<string, string>>, fields: readonly str
   return keys.length === 0 ? "" : ` [${keys.map((k) => `${k}: ${tryValue(values[k] ?? "")}`).join(", ")}]`;
 }
 
-/** 最初の step より前の `ask <欄>, <欄> [into: <待ち行列>, via: <網>]` の行。図に 1 つまでで、欄は 2 つ以上 */
+/**
+ * 最初の step より前の `ask <欄>, <欄> [into: <待ち行列か欄>, via: <網>]` の行。図に 1 つまでで、欄は 2 つ以上。
+ * `into` は同じ名札の部品が在ればその待ち行列で、無ければ入力の帯の欄 (#3441)。欄を書いた時は、送ったチップをその欄の値と同じ名札の待ち行列へ送るので、
+ * その欄は選択肢を持つ。部品と選択肢の行は入力の帯の行より後ろにも書けるので、全ての宣言を読んでから確かめる
+ */
 function readAsk(source: SourceLine, state: ParseState): void {
   const { m } = state;
   const { parts } = state.figure.try;
@@ -65,7 +73,16 @@ function readAsk(source: SourceLine, state: ParseState): void {
   if (open < 0) throw fail(source, text.length, m.needsAttr("ask", "into"));
   const read = readAttrs(source, open, state.attrs.ask ?? [], m);
   const into = needed(source, read, "ask", "into", open, state);
-  refer(source, into, ["queue"], state);
+  state.figure.try.pending.push(() => {
+    const at = valueAt(source, into);
+    const part = state.figure.try.parts.find((p) => p.id === into.value);
+    if (part) {
+      if (part.type !== "queue") throw fail(source, at, m.wrongPart(into.value, ["queue"]));
+      return;
+    }
+    if (!fields.some((f) => f.value === into.value)) throw fail(source, at, m.undeclaredPart(into.value));
+    if (!askOf(state)?.choices?.[into.value]) throw fail(source, at, m.intoNoChoices(into.value));
+  });
   const via = read.get("via");
   if (via) refer(source, via, ["route"], state);
   parts.push({ type: "ask", id: "ask", fields: fields.map((f) => f.value), into: into.value, ...(via ? { via: via.value } : {}) });
@@ -94,10 +111,23 @@ function readChoose(source: SourceLine, state: ParseState): void {
   if (start >= text.length) throw fail(source, start, m.fewChoices);
   const values = valuesOf(source, found[0].length, state);
   if (values.length < 2) throw fail(source, start, m.fewChoices);
-  values.forEach((value, k) => {
-    if (values.indexOf(value) < k) throw fail(source, Math.max(text.indexOf(value, start), start), m.choiceTwice(value));
+  const valueAts = values.map((value, k) => {
+    const where = Math.max(text.indexOf(value, start), start);
+    if (values.indexOf(value) < k) throw fail(source, where, m.choiceTwice(value));
+    return where;
   });
   ask.choices = { ...choices, [field]: values };
+  // into に書いた欄の選択肢は、送ったチップの行き先の待ち行列の名札 (#3441)。同じ名札の部品が在れば into はその待ち行列なので確かめない
+  if (field === ask.into)
+    state.figure.try.pending.push(() => {
+      const { parts } = state.figure.try;
+      if (parts.some((p) => p.id === ask.into)) return;
+      values.forEach((value, k) => {
+        const part = parts.find((p) => p.id === value);
+        if (!part) throw fail(source, valueAts[k] ?? start, m.choiceNoQueue(value, field));
+        if (part.type !== "queue") throw fail(source, valueAts[k] ?? start, m.wrongPart(value, ["queue"]));
+      });
+    });
 }
 
 /** 欄 `field` が選択肢を持つ時、値 `value` がその選択肢のどれかか。`at` は誤りを出す位置 */
@@ -213,7 +243,7 @@ export const reading: BlockReading<AskMessages> = {
   },
   messages: {
     ja: {
-      askShape: "ask は最初の step より前なら ask <欄>, <欄> [into: <待ち行列>, via: <網>]、step の中なら ask <値>, <値> の形で書く",
+      askShape: "ask は最初の step より前なら ask <欄>, <欄> [into: <待ち行列か欄>, via: <網>]、step の中なら ask <値>, <値> の形で書く",
       askTwice: "ask の行は図に 1 つまで",
       fewFields: "ask の欄は , で区切って 2 つ以上書く",
       fieldTwice: (field) => `${field} の欄はもう書いた`,
@@ -228,9 +258,11 @@ export const reading: BlockReading<AskMessages> = {
       fewChoices: "choose の値は , で区切って 2 つ以上書く",
       choiceTwice: (value) => `${value} は choose の値にもう書いた`,
       notChoice: (field, value, choices) => `${value} は ${field} の choose の値に無い。書けるのは ${list(choices)}`,
+      intoNoChoices: (field) => `into に書いた ${field} の欄は choose の値を持たない。choose ${field}: <待ち行列>, <待ち行列> の行を書く`,
+      choiceNoQueue: (value, field) => `${value} という待ち行列が無いので、into に書いた ${field} の choose の値にできない`,
     },
     en: {
-      askShape: "Write ask as ask <field>, <field> [into: <queue>, via: <route>] before the first step, or as ask <value>, <value> inside a step",
+      askShape: "Write ask as ask <field>, <field> [into: <queue or field>, via: <route>] before the first step, or as ask <value>, <value> inside a step",
       askTwice: "A diagram takes at most one ask line",
       fewFields: "Write at least two ask fields, separated by ,",
       fieldTwice: (field) => `The field ${field} is already written`,
@@ -244,6 +276,8 @@ export const reading: BlockReading<AskMessages> = {
       fewChoices: "Write at least two choices, separated by ,",
       choiceTwice: (value) => `${value} is already a choice`,
       notChoice: (field, value, choices) => `${value} is not a choice for ${field}. Write ${list(choices)}`,
+      intoNoChoices: (field) => `The field ${field} named by into has no choices. Write choose ${field}: <queue>, <queue>`,
+      choiceNoQueue: (value, field) => `No queue named ${value}, so it cannot be a choice for ${field}, the field named by into`,
     },
   },
 };

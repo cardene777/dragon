@@ -10,7 +10,7 @@ import { LOOK, TYPE } from "../../look/values";
 
 /** 部品 `part` の題の右の、図の上の釦を置く所 (図の座標)。題を持たない部品は `undefined` */
 export function pressSpot(layout: TryLayout, part: string): { x: number; y: number } | undefined {
-  const title = [...layout.routes, ...layout.queues, ...layout.chains].find((p) => p.id === part)?.title;
+  const title = [...layout.routes, ...layout.queues, ...layout.chains, ...(layout.logs ?? [])].find((p) => p.id === part)?.title;
   if (!title) return undefined;
   return {
     x: title.x + textWidth(title.text, TYPE.tryTitle),
