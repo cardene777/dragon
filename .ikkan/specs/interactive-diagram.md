@@ -56,3 +56,8 @@
 | 常に、`side`の行を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3429 |
 | 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`side`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`docs-describe-try-side`が通る | #3429 |
 | `packages/dragon/package.json`の`version`が`0.57.0`で、英語と日本語の変更履歴の`## [0.57.0]`の節が`(#3429)`の項を持ち、その項が`side`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-57-0-adds-try-side`が通る | #3429 |
+| 試す図を描くと、`.dg-bar`が`.dg-frame`の次の兄弟要素に在り、`.dg-try`が`.dg-bar`の次の兄弟要素に在る | `pnpm exec vitest run packages/dragon/test/interactive-player.test.ts`の検査`interactive-caption-sits-under-frame`が通る | #3437 |
+| 書き出した試す図の HTML を幅 390px と 1280px で開くと、`.dg-frame`と`.dg-bar`と`.dg-try`の四角が上からこの順に並び、互いに重ならない | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`interactive-caption-above-controls`が通る | #3437 |
+| 常に、試す図でない図を描くと、`.dg-bar`が`.dg-frame`の次の兄弟要素に在り、`.dg-try`が無い | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-caption-sits-under-frame`が通る | #3437 |
+| 常に、幅 390px の試す図で全ての操作が幅に収まり、縦横 44px 以上の大きさを持つ | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`interactive-controls-fit-390-at-44px`が通る | #3437 |
+| `packages/dragon/package.json`の`version`が`0.58.0`で、英語と日本語の変更履歴の`## [0.58.0]`の節が`(#3437)`の項を持ち、その項が段の説明とゲージの帯を図の枠のすぐ下へ移したことを書く | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-58-0-moves-try-caption`が通る | #3437 |
