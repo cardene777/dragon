@@ -30,6 +30,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   The one script line also replaces `<pre><code class="language-dragon">`, the HTML that Markdown renderers make from a ```dragon fence.
 
+### Fixed
+
+- **Pipe diagrams read on a phone** (#3450)
+
+  In a frame narrower than 600, a pipe diagram is laid out no narrower than the width at which balance text shows at 10.5px, and the part wider than the frame scrolls sideways. With every box open, the `aggregator` example in a frame of width 390 shows balances at 10.5px instead of 7.25px. Under the diagram, a band shows the step number and title, and below it each movement of the step as one arrow from the sender, with the amount, to the receiver. A check step shows its label and expression in one framed line, and a revert step shows the reason once and the path the revert traveled in one frame. The four-column call table is replaced by a folded call results list that shows the transaction first and the returned calls below it in three columns.
+
 ## [0.62.0] - 2026-11-07
 
 ### Added

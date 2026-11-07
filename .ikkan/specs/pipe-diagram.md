@@ -65,8 +65,6 @@
 | どの段でも、その段で動いた部品(流れた値の管、回った弁、振れた計器、計算した変換器、出したイベント)を明るく描き、動かなかった部品を薄く描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-dims-parts-that-did-not-move`が通る | #3418 |
 | `return`の段で、戻り値の札が呼び出しの管を伝って呼んだ側の名札まで動く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-return-travels-back-along-call`が通る | #3418 |
 | 枠の幅が390の時、図を枠の幅に合わせて全体を出し、全ての槽の残高と、今の段で動いた値(流れた量、確認の式)を画面で10px以上に見える字で出す。済んだ段の値と計算とイベントと戻り値と槽の下の増減は図に出さず、呼び出しの一覧で読める | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-narrow-shows-balances-and-current-value`が通る | #3418 |
-| 配管の図を再生する時、図の下に呼び出しの一覧を出す。一覧は呼び出し、入力、中で動いた値、出力の列を持ち、呼び出しの深さを字下げで示し、中で動いた値の欄に移動と確認と計算とイベントを値つきで、動いた時に開いているいちばん内側の呼び出しの行へ並べ、戻る前の出力を「返り待ち」と出し、今の段の行と値を明るくする。英語を渡した時の一覧の字は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-call-list`が通る | #3418 |
-| 配管の図の再生の欄は段の番号と段の題を出さず、段の説明の文だけを出す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-bar-shows-only-the-sentence`が通る | #3418 |
 | 配管の図の再生の枠は、拡大と縮小の釦と拡大の度合いの百分率を持ち、CtrlかCommandを押しながらのホイールで拡大と縮小ができ、拡大した図を引いて動かせ、ダブルクリックで押した所を中心に拡大する | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-zooms-and-pans`が通る | #3418 |
 | `dragon export`で書き出した見本`aggregator`のHTMLで畳んだ箱を押すと、段の番号を出さないまま進み具合の帯が8つから14に分かれ、今の段が4つ目になる | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-pipe-opens-inner-steps-by-progress`が通る | #3418 |
 | 見本`swap`の5段目と最後の段は、[#3398](https://github.com/cardene777/dragon/issues/3398)で本人が良しとした絵と同じ並び(関係者の左右と上下の順、槽の順、値の管がつなぐ槽)で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-swap-keeps-approved-arrangement`が通る | #3418 |

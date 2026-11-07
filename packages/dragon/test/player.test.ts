@@ -8,6 +8,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, exampleJson, type Json } from "./diagram-support";
 import { motionFrom, tagOpacity } from "./motion-support";
+import { pipeTexts } from "../src/pipe-player";
 import { ARCADE_COLORS, cssVars, draw, figureVars, type LaidAction, type Player, type PlayerOptions } from "./render-support";
 
 /** 頁の設定を模す。jsdom は `matchMedia` を持たないため、系の境目として差し替える。 */
@@ -565,56 +566,7 @@ describe("試作の形の再生の操作 (#3398)", () => {
 });
 
 describe("配管の図の再生 (#3418)", () => {
-  it("player-pipe-call-list", () => {
-    prefersReducedMotion(true);
-    const { host, player } = mount(exampleJson("swap-two-hops.json"), { lang: "ja" });
-    const list = (): HTMLElement => {
-      const el = host.querySelector<HTMLElement>('[data-dragon="calls"]');
-      expect(el, "図の下に呼び出しの一覧が無い").not.toBeNull();
-      return el as HTMLElement;
-    };
-    const svg = host.querySelector("svg");
-    expect(svg && list().compareDocumentPosition(svg) & Node.DOCUMENT_POSITION_PRECEDING, "呼び出しの一覧が図の下に無い").toBeTruthy();
-    expect([...list().querySelectorAll("th")].map((th) => th.textContent), "呼び出しの一覧の列").toEqual(["呼び出し", "入力", "中で動いた値", "出力"]);
-    const rows = (): HTMLTableRowElement[] => [...list().querySelectorAll<HTMLTableRowElement>('tr[data-dragon="call"]')];
-    const cells = (row: HTMLTableRowElement): string[] => [...row.cells].map((c) => (c.textContent ?? "").replace(/\s+/g, " ").trim());
-    const indent = (row: HTMLTableRowElement): number => Number.parseFloat((row.cells[0] as HTMLElement).style.paddingLeft || "0");
-    // 段 1 は Alice が SwapRouter を呼ぶ。戻る前の出力は「返り待ち」
-    expect(rows().map(cells), "段 1 の呼び出しの一覧").toEqual([["Alice → SwapRouter", "100 USDCをDAIに交換", "—", "返り待ち"]]);
-    expect(rows()[0]?.dataset.state, "段 1 の今の行").toBe("now");
-    // 段 3 は SwapRouter が USDC を呼び、中で 100 USDC が移ってイベントが出る。動いた値はいちばん内側の呼び出しの行に並ぶ
-    player.goTo(2);
-    const third = rows();
-    expect(third.map((r) => cells(r)[0]), "段 3 の呼び出しの一覧の呼び出し").toEqual(["Alice → SwapRouter", "SwapRouter → USDC"]);
-    expect(indent(third[1] as HTMLTableRowElement), "内側の呼び出しの行が字下げされない").toBeGreaterThan(indent(third[0] as HTMLTableRowElement));
-    const items = [...(third[1] as HTMLTableRowElement).querySelectorAll<HTMLElement>('[data-dragon="call-item"]')];
-    expect(items.map((it) => (it.textContent ?? "").replace(/\s+/g, " ").trim()), "段 3 の SwapRouter → USDC の中で動いた値").toEqual(["移動 100 USDC Alice → Pool1", "イベント Transfer(alice, pool1, 100)"]);
-    expect(items.every((it) => it.dataset.state === "now"), "段 3 で動いた値が明るくない").toBe(true);
-    expect(cells(third[1] as HTMLTableRowElement)[3], "段 3 の SwapRouter → USDC の出力").toBe("true");
-    expect(cells(third[0] as HTMLTableRowElement)[2], "段 3 の Alice → SwapRouter の中で動いた値 (段 2 の確認)").toBe("確認 3 = 3 ✓");
-    expect(third[1]?.dataset.state, "段 3 の今の行").toBe("now");
-    // 段 5 は Pool1 が計算する。前の段の値は明るくない
-    player.goTo(4);
-    const fifth = rows();
-    const pool1 = fifth.find((r) => cells(r)[0] === "SwapRouter → Pool1") as HTMLTableRowElement;
-    expect(cells(pool1).slice(1), "段 5 の SwapRouter → Pool1 の行").toEqual(["100 USDCを交換", "計算 100 USDC → 0.05 WETH", "返り待ち"]);
-    const old = [...(fifth[1] as HTMLTableRowElement).querySelectorAll<HTMLElement>('[data-dragon="call-item"]')];
-    expect(old.every((it) => it.dataset.state !== "now"), "段 5 に段 3 の値が明るく残る").toBe(true);
-    // 最後の段は全ての呼び出しが戻り、一番外の出力が出る
-    player.goTo(12);
-    const done = rows();
-    expect(done.length, "最後の段の呼び出しの一覧の行の数").toBe(6);
-    expect(cells(done[0] as HTMLTableRowElement)[3], "最後の段の一番外の出力").toBe("160 DAI");
-    expect(done.every((r) => cells(r)[3] !== "返り待ち"), "最後の段に返り待ちが残る").toBe(true);
-    // 英語を渡した時の一覧の字は仮名と漢字を含まない
-    const en = mount(exampleJson("swap-two-hops.en.json"), { lang: "en" });
-    en.player.goTo(12);
-    const text = en.host.querySelector('[data-dragon="calls"]')?.textContent ?? "";
-    expect(text.length, "英語の呼び出しの一覧が無い").toBeGreaterThan(0);
-    expect(/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(text), "英語の呼び出しの一覧に仮名か漢字がある").toBe(false);
-  });
-
-  it("player-pipe-bar-shows-only-the-sentence", () => {
+  it("player-pipe-bar-shows-step-title", () => {
     prefersReducedMotion(true);
     const diagram = exampleJson("swap.json") as { steps: { title: string; body: string }[] };
     const { host, player } = mount(diagram);
@@ -624,12 +576,62 @@ describe("配管の図の再生 (#3418)", () => {
     };
     for (const s of [0, 5]) {
       player.goTo(s);
-      expect(shown("step-no"), `段 ${s + 1} の再生の欄に段の番号がある`).toBeNull();
-      expect(shown("step-title"), `段 ${s + 1} の再生の欄に段の題がある`).toBeNull();
-      expect(shown("step-body")?.textContent, `段 ${s + 1} の再生の欄の説明の文`).toBe(diagram.steps[s]?.body);
+      expect((shown("step-no")?.textContent ?? "").replace(/\s/g, ""), `段 ${s + 1} の再生の欄の段の番号`).toMatch(new RegExp(`^0*${s + 1}/0*${diagram.steps.length}$`));
+      expect(shown("step-title")?.textContent, `段 ${s + 1} の再生の欄の段の題`).toBe(diagram.steps[s]?.title);
+      expect(shown("step-body"), `段 ${s + 1} の再生の欄に段の説明の文がある`).toBeNull();
     }
     // 読み上げには段の題と本文を今どおり出す
-    expect(host.querySelector('[data-dragon="steps"] > li')?.textContent ?? "", "読み上げの一覧に段の題が無い").toContain(diagram.steps[0]?.title ?? "?");
+    const read = host.querySelector('[data-dragon="steps"] > li')?.textContent ?? "";
+    expect(read, "読み上げの一覧に段の題が無い").toContain(diagram.steps[0]?.title ?? "?");
+    expect(read, "読み上げの一覧に段の説明の文が無い").toContain(diagram.steps[0]?.body ?? "?");
+  });
+
+  it("player-pipe-call-record", () => {
+    prefersReducedMotion(true);
+    const { host, player } = mount(exampleJson("swap-two-hops.json"), { lang: "ja" });
+    const record = host.querySelector<HTMLDetailsElement>('[data-dragon="call-record"]');
+    expect(record, "図の下に呼び出しの記録が無い").not.toBeNull();
+    if (!record) return;
+    expect(record.tagName, "呼び出しの記録を畳めない").toBe("DETAILS");
+    expect(record.open, "呼び出しの記録が初めから開いている").toBe(false);
+    const svg = host.querySelector("svg");
+    expect(svg && record.compareDocumentPosition(svg) & Node.DOCUMENT_POSITION_PRECEDING, "呼び出しの記録が図の下に無い").toBeTruthy();
+    // 4 列の表は置かない
+    expect(host.querySelector("table"), "図の下に表が残る").toBeNull();
+    expect(record.querySelector("summary")?.textContent, "呼び出しの記録の題").toBe("呼び出しの結果");
+    record.open = true;
+    const cell = (el: HTMLElement, name: string): string => (el.querySelector(`[data-dragon="call-${name}"]`)?.textContent ?? "").replace(/\s+/g, " ").trim();
+    /** 先頭に置くいちばん外の呼び出し (取引)。呼んだ側、呼ばれた側、中身、返した値か返り待ち */
+    const deals = (): { from: string; to: string; what: string; value: string; now: boolean }[] =>
+      [...record.querySelectorAll<HTMLElement>('[data-dragon="call-tx"]')].map((el) => ({ from: cell(el, "from"), to: cell(el, "to"), what: cell(el, "what"), value: cell(el, "value"), now: el.dataset.state === "now" }));
+    /** 戻った内側の呼び出し。呼ばれた側、中身、返した値の 3 列 */
+    const results = (): { to: string; what: string; value: string; now: boolean }[] =>
+      [...record.querySelectorAll<HTMLElement>('[data-dragon="call"]')].map((el) => ({ to: cell(el, "to"), what: cell(el, "what"), value: cell(el, "value"), now: el.dataset.state === "now" }));
+    // 段 1 は Alice が SwapRouter を呼ぶ。戻る前の取引は返り待ちと出し、内側の結果はまだ無い
+    expect(deals(), "段 1 の取引").toEqual([{ from: "Alice", to: "SwapRouter", what: "100 USDCをDAIに交換", value: "返り待ち", now: false }]);
+    expect(results(), "段 1 の呼び出しの結果").toEqual([]);
+    // 段 3 は SwapRouter が USDC を呼んで true を返す。返した値が true だけの呼び出しは出さない
+    player.goTo(2);
+    expect(results(), "段 3 の呼び出しの結果").toEqual([]);
+    // 段 12 は Pool2 が交換した値を返す。今の段で戻った行に印を付ける
+    player.goTo(11);
+    expect(results(), "段 12 の呼び出しの結果").toEqual([
+      { to: "Pool1", what: "100 USDCを交換", value: "0.05 WETH", now: false },
+      { to: "Pool2", what: "0.05 WETHを交換", value: "160 DAI", now: true },
+    ]);
+    // 最後の段は取引が返した値を出す
+    player.goTo(12);
+    expect(deals(), "最後の段の取引").toEqual([{ from: "Alice", to: "SwapRouter", what: "100 USDCをDAIに交換", value: "160 DAI", now: true }]);
+    expect(results().map((r) => r.now), "最後の段で戻っていない行に印が付く").toEqual([false, false]);
+    // 取り消した呼び出しは、返した値の欄に取り消しと出す
+    const revert = mount(exampleJson("swap-revert.json"), { lang: "ja" });
+    const revertRecord = revert.host.querySelector<HTMLDetailsElement>('[data-dragon="call-record"]');
+    if (revertRecord) revertRecord.open = true;
+    revert.player.goTo(9);
+    const revertDeals = [...revert.host.querySelectorAll<HTMLElement>('[data-dragon="call-tx"]')].map((el) => [cell(el, "to"), cell(el, "value"), el.dataset.state ?? ""]);
+    expect(revertDeals, "見本 swap-revert の段 10 の取引").toEqual([["SwapRouter", "✗ 取り消し", "now"]]);
+    const revertResults = [...revert.host.querySelectorAll<HTMLElement>('[data-dragon="call"]')].map((el) => [cell(el, "to"), cell(el, "what"), cell(el, "value"), el.dataset.state ?? ""]);
+    expect(revertResults, "見本 swap-revert の段 10 の呼び出しの結果").toEqual([["LiquidityPool", "100 USDCを交換", "✗ 取り消し", "now"]]);
   });
 
   it("player-pipe-zooms-and-pans", () => {
@@ -668,6 +670,162 @@ describe("配管の図の再生 (#3418)", () => {
     frame.dispatchEvent(new PointerEvent("pointermove", { clientX: 150, clientY: 170, pointerId: 1, bubbles: true }));
     frame.dispatchEvent(new PointerEvent("pointerup", { clientX: 150, clientY: 170, pointerId: 1, bubbles: true }));
     expect([frame.scrollLeft, frame.scrollTop], "引いて動かした後の位置").toEqual([150, 130]);
+  });
+});
+
+describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
+  type Flow = { kind: string; from: string; amount: string; to: string; tag: string };
+  const rowsOf = (host: HTMLElement): HTMLElement[] => [...host.querySelectorAll<HTMLElement>('[data-dragon="flows"] [data-dragon="flow"]')];
+  /** 今の段の矢印。送る側、量、受ける側、札を 1 本ずつ読む */
+  const flowsOf = (host: HTMLElement): Flow[] =>
+    rowsOf(host).map((row) => {
+      const part = (name: string): string => (row.querySelector(`[data-dragon="flow-${name}"]`)?.textContent ?? "").replace(/\s+/g, " ").trim();
+      return { kind: row.dataset.kind ?? "", from: part("from"), amount: part("amount"), to: part("to"), tag: part("tag") };
+    });
+  const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
+  /** 全ての段を順に送り、図の下の矢印と、開いた呼び出しの記録の字を集める */
+  function shownTexts(host: HTMLElement, player: Player): { text: string; rows: number } {
+    const record = host.querySelector<HTMLDetailsElement>('[data-dragon="call-record"]');
+    if (record) record.open = true;
+    const seen: string[] = [];
+    let rows = 0;
+    for (let s = 0; ; s++) {
+      player.goTo(s);
+      if (player.step !== s) break;
+      rows += rowsOf(host).length;
+      seen.push(host.querySelector('[data-dragon="flows"]')?.textContent ?? "", record?.textContent ?? "");
+    }
+    return { text: seen.join(" "), rows };
+  }
+
+  it("player-pipe-flows-show-moves", () => {
+    prefersReducedMotion(true);
+    const two = mount(exampleJson("swap-two-hops.json"), { lang: "ja" });
+    two.player.goTo(2);
+    expect(flowsOf(two.host), "見本 swap-two-hops の段 3 の矢印").toEqual([{ kind: "move", from: "Alice", amount: "100 USDC", to: "Pool1", tag: "送る" }]);
+    const agg = mount(exampleJson("aggregator.json"), { lang: "ja", open: [2] });
+    agg.player.goTo(6);
+    // 呼び出しと返した値は出さず、動いた値だけを出す
+    expect(flowsOf(agg.host), "箱を開いた aggregator の段 7 の矢印").toEqual([
+      { kind: "move", from: "Aggregator", amount: "25 USDC", to: "Pool3", tag: "送る" },
+      { kind: "move", from: "Pool3", amount: "0.0125 WETH", to: "Aggregator", tag: "送る" },
+    ]);
+    expect(rowsOf(agg.host).map((r) => r.dataset.line), "動いた値の矢印が実線でない").toEqual(["solid", "solid"]);
+  });
+
+  it("player-pipe-flows-show-checks-and-reverts", () => {
+    prefersReducedMotion(true);
+    /** 今の段の行ごとの、部品の並び */
+    const partsOf = (host: HTMLElement): (string | undefined)[][] =>
+      rowsOf(host).map((row) => [...row.querySelectorAll<HTMLElement>('[data-dragon^="flow-"]')].map((el) => el.dataset.dragon));
+    const swap = mount(exampleJson("swap.json"), { lang: "ja" });
+    swap.player.goTo(8);
+    expect(flowsOf(swap.host), "見本 swap の段 9 の確かめ").toEqual([{ kind: "check", from: "", amount: "0.05 WETH ≥ 0.04 WETH", to: "", tag: "✓ 満たす" }]);
+    // 確かめは満たすかの札を式の前に置いた 1 行にする
+    expect(partsOf(swap.host), "見本 swap の段 9 の確かめの部品の並び").toEqual([["flow-tag", "flow-amount"]]);
+    const revert = mount(exampleJson("swap-revert.json"), { lang: "ja" });
+    revert.player.goTo(8);
+    expect(flowsOf(revert.host), "見本 swap-revert の段 9 の確かめ").toEqual([{ kind: "check", from: "", amount: "0.05 WETH ≥ 0.06 WETH", to: "", tag: "✗ 満たさない" }]);
+    expect(partsOf(revert.host), "見本 swap-revert の段 9 の確かめの部品の並び").toEqual([["flow-tag", "flow-amount"]]);
+    // 同じ理由で続けて取り消した呼び出しは、取り消した側から戻る先までの道 1 本にまとめ、理由を 1 回だけ出す
+    revert.player.goTo(9);
+    expect(flowsOf(revert.host), "見本 swap-revert の段 10 の取り消し").toEqual([{ kind: "revert", from: "LiquidityPool", amount: "INSUFFICIENT_OUTPUT_AMOUNT", to: "Alice", tag: "✗ 取り消し" }]);
+    expect(partsOf(revert.host), "見本 swap-revert の段 10 の取り消しの部品の並び").toEqual([["flow-tag", "flow-amount", "flow-from", "flow-via", "flow-to"]]);
+    const via = [...revert.host.querySelectorAll('[data-dragon="flows"] [data-dragon="flow-via"]')].map((el) => el.textContent?.trim());
+    expect(via, "見本 swap-revert の段 10 の道の途中の関係者").toEqual(["SwapRouter"]);
+  });
+
+  it("player-pipe-flows-show-calls-and-returns", () => {
+    prefersReducedMotion(true);
+    const swap = mount(exampleJson("swap.json"), { lang: "ja" });
+    expect(flowsOf(swap.host), "見本 swap の段 1 の呼び出し").toEqual([{ kind: "call", from: "Alice", amount: "100 USDCを交換", to: "SwapRouter", tag: "呼ぶ" }]);
+    const agg = mount(exampleJson("aggregator.json"), { lang: "ja", open: [2] });
+    agg.player.goTo(3);
+    // 同じ段で戻った呼び出しは、返した側から返した値の矢印 1 本にまとめる
+    expect(flowsOf(agg.host), "箱を開いた aggregator の段 4 の矢印").toEqual([
+      { kind: "return", from: "Oracle", amount: "3200", to: "Aggregator", tag: "priceを返す" },
+      { kind: "return", from: "Lib", amount: "40/35/25", to: "Aggregator", tag: "splitを返す" },
+    ]);
+    expect(rowsOf(agg.host).map((r) => r.dataset.line), "返した値の矢印が点線でない").toEqual(["dashed", "dashed"]);
+    // 前の段で開いた呼び出しが戻る段は、返した値だけを出す
+    const vault = mount(exampleJson("vault-proxy.json"), { lang: "ja" });
+    vault.player.goTo(4);
+    expect(flowsOf(vault.host), "見本 vault-proxy の段 5 の矢印").toEqual([{ kind: "return", from: "PriceOracle", amount: "3200", to: "VaultLogic", tag: "返す" }]);
+  });
+
+  it("player-pipe-flows-english", () => {
+    prefersReducedMotion(true);
+    for (const file of ["swap-two-hops.en.json", "swap-revert.en.json", "vault-proxy.en.json"]) {
+      const { host, player } = mount(exampleJson(file), { lang: "en" });
+      const { text, rows } = shownTexts(host, player);
+      expect(rows, `${file} の図の下に矢印が無い`).toBeGreaterThan(0);
+      expect(KANA_KANJI.test(text), `${file} の図の下の矢印か呼び出しの記録に仮名か漢字がある`).toBe(false);
+    }
+  });
+
+  it("pipe-texts-cover-flows", () => {
+    prefersReducedMotion(true);
+    for (const [file, lang] of [
+      ["swap-two-hops.json", "ja"],
+      ["swap-revert.json", "ja"],
+      ["vault-proxy.en.json", "en"],
+    ] as const) {
+      const source = exampleJson(file);
+      const { host, player } = mount(source, { lang });
+      const { text, rows } = shownTexts(host, player);
+      expect(rows, `${file} の図の下に矢印が無い`).toBeGreaterThan(0);
+      const model = (draw("renderDiagram")(source, { lang }) as unknown as { diagram: Parameters<typeof pipeTexts>[0] }).diagram;
+      const known = new Set([...pipeTexts(model, lang).join("")]);
+      const missing = [...new Set([...text.replace(/\s/g, "")])].filter((c) => !known.has(c));
+      expect(missing, `${file} の図の下の字のうち、書き出した頁の字の file に残らない字`).toEqual([]);
+    }
+  });
+});
+
+describe("携帯の幅で配管の図の字を読める大きさに置く (#3450)", () => {
+  /** 携帯の幅の枠で配管の図に求める、画面で見える残高の字の大きさの下限 (`look/pipe.ts` の `narrow.px`) */
+  const READABLE_PX = 10.5;
+  const PHONE = 390;
+
+  type PipeShown = { layout: { width: number; levels: { text: { h: number } }[] } };
+
+  /** 幅 `PHONE` の枠に配管の見本を置き、置いた枠と図の幅と、画面で見える残高の字の大きさを返す */
+  function placeOnPhone(file: string, lang: "ja" | "en", open?: number[]): { host: HTMLElement; shown: number; px: number; frame: HTMLElement | null } {
+    prefersReducedMotion(true);
+    const source = exampleJson(file);
+    const host = document.createElement("div");
+    Object.defineProperty(host, "clientWidth", { value: PHONE });
+    document.body.appendChild(host);
+    players.push(draw("mountDiagram")(host, source, { lang, ...(open ? { open } : {}) }));
+    const { layout } = draw("renderDiagram")(source, { lang, width: PHONE, ...(open ? { open } : {}) }) as unknown as PipeShown;
+    const frame = host.querySelector<HTMLElement>('[data-dragon="pan"],[data-dragon="zoom-frame"]');
+    const shown = Number.parseFloat(frame?.querySelector<SVGElement>("svg")?.style.width || "0");
+    const level = layout.levels[0];
+    expect(level, `${file} の槽の残高の字が無い`).toBeDefined();
+    return { host, shown, px: ((level?.text.h ?? 0) * shown) / layout.width, frame };
+  }
+
+  // 言葉ごとに件を分け、1 件が混んだ機械でも上限に収まるようにする
+  describe.for(["ja", "en"] as const)("%s", (lang) => {
+    it("player-pipe-narrow-keeps-text-readable", () => {
+      const file = lang === "ja" ? "aggregator.json" : "aggregator.en.json";
+      const { host, shown, px, frame } = placeOnPhone(file, lang, [2]);
+      expect(px, `箱を開いた aggregator (${lang}) を幅 ${PHONE} に置いた残高の字 (置いた図の幅 ${Math.round(shown)}px)`).toBeGreaterThanOrEqual(READABLE_PX);
+      // 字を読める幅で置くと枠より広くなるので、縮めずに横に送り、全体のどこを見ているかを線で示す
+      expect(frame?.dataset.dragon, "幅に収まらない図を横に送る枠にしていない").toBe("pan");
+      expect(host.querySelector('[data-dragon="overview"] [data-dragon="overview-thumb"]'), "全体のどこを見ているかを示す線が無い").not.toBeNull();
+    });
+  });
+
+  // 字が読める図は今どおり枠の幅に収める。見本ごとに件を分ける
+  const FITTING = ["swap.json", "swap-revert.json", "swap-two-hops.json", "swap-retry.json", "vault-proxy.json", "aggregator.json"] as const;
+  describe.for(FITTING)("%s", (file) => {
+    it("player-pipe-narrow-fits-readable-figures", () => {
+      const { shown, px, frame } = placeOnPhone(file, "ja");
+      expect(frame?.dataset.dragon, `${file} を幅 ${PHONE} に置いた枠が横に送る形になる`).toBe("zoom-frame");
+      expect(shown, `${file} を幅 ${PHONE} に置いた図の幅`).toBeCloseTo(PHONE, 0);
+      expect(px, `${file} を幅 ${PHONE} に置いた残高の字`).toBeGreaterThanOrEqual(READABLE_PX);
+    });
   });
 });
 
