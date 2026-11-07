@@ -485,15 +485,17 @@ describe("試作の形の再生の操作 (#3398)", () => {
       for (const want of ["restart", "prev", "toggle", "next"]) expect(names, `${name} の再生の操作に ${want} の釦が無い`).toContain(want);
       const toggle = host.querySelector<HTMLButtonElement>('button[data-dragon="toggle"]');
       expect(toggle?.textContent ?? "", `${name} の再生の釦に名前が無い`).toMatch(/\p{L}{2,}/u);
-      // 大きな段の題と、題の下の小さな段の説明文
+      // 配管の図でない図は、大きな段の題と、題の下の小さな段の説明文を持つ (配管の図は説明の文だけ、#3418)
+      const pipe = name === "swap.json";
       const title = host.querySelector<HTMLElement>('[data-dragon="step-title"]');
       const body = host.querySelector<HTMLElement>('[data-dragon="step-body"]');
-      expect(title && body, `${name} の段の題か説明文が無い`).toBeTruthy();
-      if (!title || !body) continue;
+      expect(pipe || (title && body), `${name} の段の題か説明文が無い`).toBeTruthy();
+      if (!pipe && title && body) {
       const size = (el: HTMLElement): number => Number.parseFloat(getComputedStyle(el).fontSize);
       expect(size(title), `${name} の段の題の字の大きさ`).toBeGreaterThanOrEqual(20);
       expect(size(title), `${name} の段の題が説明文より大きくない`).toBeGreaterThanOrEqual(1.4 * size(body));
       expect(title.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING, `${name} の段の説明文が題の下に無い`).toBeTruthy();
+      }
       // 段ごとに分けた進み具合の帯。済んだ段と今の段とまだの段を分ける
       const segments = (): string[] =>
         [...host.querySelectorAll<HTMLElement>('[data-dragon="progress"] [data-dragon="segment"]')].map((el) => el.dataset.state ?? "");
@@ -559,5 +561,112 @@ describe("試作の形の再生の操作 (#3398)", () => {
     // 枠に収まる図は横に送らない
     const small = mount(exampleJson("swap.json"));
     expect(small.host.querySelector('[data-dragon="overview"]'), "枠に収まる図に全体の線がある").toBeNull();
+  });
+});
+
+describe("配管の図の再生 (#3418)", () => {
+  it("player-pipe-call-list", () => {
+    prefersReducedMotion(true);
+    const { host, player } = mount(exampleJson("swap-two-hops.json"), { lang: "ja" });
+    const list = (): HTMLElement => {
+      const el = host.querySelector<HTMLElement>('[data-dragon="calls"]');
+      expect(el, "図の下に呼び出しの一覧が無い").not.toBeNull();
+      return el as HTMLElement;
+    };
+    const svg = host.querySelector("svg");
+    expect(svg && list().compareDocumentPosition(svg) & Node.DOCUMENT_POSITION_PRECEDING, "呼び出しの一覧が図の下に無い").toBeTruthy();
+    expect([...list().querySelectorAll("th")].map((th) => th.textContent), "呼び出しの一覧の列").toEqual(["呼び出し", "入力", "中で動いた値", "出力"]);
+    const rows = (): HTMLTableRowElement[] => [...list().querySelectorAll<HTMLTableRowElement>('tr[data-dragon="call"]')];
+    const cells = (row: HTMLTableRowElement): string[] => [...row.cells].map((c) => (c.textContent ?? "").replace(/\s+/g, " ").trim());
+    const indent = (row: HTMLTableRowElement): number => Number.parseFloat((row.cells[0] as HTMLElement).style.paddingLeft || "0");
+    // 段 1 は Alice が SwapRouter を呼ぶ。戻る前の出力は「返り待ち」
+    expect(rows().map(cells), "段 1 の呼び出しの一覧").toEqual([["Alice → SwapRouter", "100 USDCをDAIに交換", "—", "返り待ち"]]);
+    expect(rows()[0]?.dataset.state, "段 1 の今の行").toBe("now");
+    // 段 3 は SwapRouter が USDC を呼び、中で 100 USDC が移ってイベントが出る。動いた値はいちばん内側の呼び出しの行に並ぶ
+    player.goTo(2);
+    const third = rows();
+    expect(third.map((r) => cells(r)[0]), "段 3 の呼び出しの一覧の呼び出し").toEqual(["Alice → SwapRouter", "SwapRouter → USDC"]);
+    expect(indent(third[1] as HTMLTableRowElement), "内側の呼び出しの行が字下げされない").toBeGreaterThan(indent(third[0] as HTMLTableRowElement));
+    const items = [...(third[1] as HTMLTableRowElement).querySelectorAll<HTMLElement>('[data-dragon="call-item"]')];
+    expect(items.map((it) => (it.textContent ?? "").replace(/\s+/g, " ").trim()), "段 3 の SwapRouter → USDC の中で動いた値").toEqual(["移動 100 USDC Alice → Pool1", "イベント Transfer(alice, pool1, 100)"]);
+    expect(items.every((it) => it.dataset.state === "now"), "段 3 で動いた値が明るくない").toBe(true);
+    expect(cells(third[1] as HTMLTableRowElement)[3], "段 3 の SwapRouter → USDC の出力").toBe("true");
+    expect(cells(third[0] as HTMLTableRowElement)[2], "段 3 の Alice → SwapRouter の中で動いた値 (段 2 の確認)").toBe("確認 3 = 3 ✓");
+    expect(third[1]?.dataset.state, "段 3 の今の行").toBe("now");
+    // 段 5 は Pool1 が計算する。前の段の値は明るくない
+    player.goTo(4);
+    const fifth = rows();
+    const pool1 = fifth.find((r) => cells(r)[0] === "SwapRouter → Pool1") as HTMLTableRowElement;
+    expect(cells(pool1).slice(1), "段 5 の SwapRouter → Pool1 の行").toEqual(["100 USDCを交換", "計算 100 USDC → 0.05 WETH", "返り待ち"]);
+    const old = [...(fifth[1] as HTMLTableRowElement).querySelectorAll<HTMLElement>('[data-dragon="call-item"]')];
+    expect(old.every((it) => it.dataset.state !== "now"), "段 5 に段 3 の値が明るく残る").toBe(true);
+    // 最後の段は全ての呼び出しが戻り、一番外の出力が出る
+    player.goTo(12);
+    const done = rows();
+    expect(done.length, "最後の段の呼び出しの一覧の行の数").toBe(6);
+    expect(cells(done[0] as HTMLTableRowElement)[3], "最後の段の一番外の出力").toBe("160 DAI");
+    expect(done.every((r) => cells(r)[3] !== "返り待ち"), "最後の段に返り待ちが残る").toBe(true);
+    // 英語を渡した時の一覧の字は仮名と漢字を含まない
+    const en = mount(exampleJson("swap-two-hops.en.json"), { lang: "en" });
+    en.player.goTo(12);
+    const text = en.host.querySelector('[data-dragon="calls"]')?.textContent ?? "";
+    expect(text.length, "英語の呼び出しの一覧が無い").toBeGreaterThan(0);
+    expect(/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(text), "英語の呼び出しの一覧に仮名か漢字がある").toBe(false);
+  });
+
+  it("player-pipe-bar-shows-only-the-sentence", () => {
+    prefersReducedMotion(true);
+    const diagram = exampleJson("swap.json") as { steps: { title: string; body: string }[] };
+    const { host, player } = mount(diagram);
+    const shown = (name: string): HTMLElement | null => {
+      const el = host.querySelector<HTMLElement>(`[data-dragon="${name}"]`);
+      return el && !el.hidden && el.style.display !== "none" && getComputedStyle(el).display !== "none" ? el : null;
+    };
+    for (const s of [0, 5]) {
+      player.goTo(s);
+      expect(shown("step-no"), `段 ${s + 1} の再生の欄に段の番号がある`).toBeNull();
+      expect(shown("step-title"), `段 ${s + 1} の再生の欄に段の題がある`).toBeNull();
+      expect(shown("step-body")?.textContent, `段 ${s + 1} の再生の欄の説明の文`).toBe(diagram.steps[s]?.body);
+    }
+    // 読み上げには段の題と本文を今どおり出す
+    expect(host.querySelector('[data-dragon="steps"] > li')?.textContent ?? "", "読み上げの一覧に段の題が無い").toContain(diagram.steps[0]?.title ?? "?");
+  });
+
+  it("player-pipe-zooms-and-pans", () => {
+    prefersReducedMotion(true);
+    const { host } = mount(exampleJson("swap.json"));
+    const frame = host.querySelector<HTMLElement>('[data-dragon="zoom-frame"]');
+    expect(frame, "拡大する枠が無い").not.toBeNull();
+    if (!frame) return;
+    const level = (): string => host.querySelector('[data-dragon="zoom-level"]')?.textContent ?? "";
+    const svgWidth = (): number => Number.parseFloat(frame.querySelector<SVGElement>("svg")?.style.width || "0");
+    expect(level(), "始めの拡大の度合い").toBe("100%");
+    const base = svgWidth();
+    expect(base, "図の幅").toBeGreaterThan(0);
+    // 拡大と縮小の釦
+    click(host, "zoom-in");
+    expect(level(), "拡大の釦を押した後の度合い").toBe("125%");
+    expect(svgWidth(), "拡大の釦を押した後の図の幅").toBeCloseTo(base * 1.25, 0);
+    click(host, "zoom-out");
+    expect(level(), "縮小の釦を押した後の度合い").toBe("100%");
+    // Ctrl か Command を押しながらのホイールで拡大する。押さないホイールは拡大しない
+    frame.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }));
+    expect(level(), "押さないホイールで拡大した").toBe("100%");
+    const ctrl = new WheelEvent("wheel", { deltaY: -100, ctrlKey: true, bubbles: true, cancelable: true });
+    frame.dispatchEvent(ctrl);
+    expect(Number.parseInt(level(), 10), "Ctrl を押しながらのホイールで拡大しない").toBeGreaterThan(100);
+    expect(ctrl.defaultPrevented, "Ctrl を押しながらのホイールで頁が拡大する").toBe(true);
+    frame.dispatchEvent(new WheelEvent("wheel", { deltaY: 400, metaKey: true, bubbles: true, cancelable: true }));
+    expect(level(), "Command を押しながらのホイールで縮小しない").toBe("100%");
+    // ダブルクリックで押した所を中心に拡大する
+    frame.dispatchEvent(new MouseEvent("dblclick", { clientX: 10, clientY: 10, bubbles: true }));
+    expect(level(), "ダブルクリックの後の度合い").toBe("160%");
+    // 拡大した図を引いて動かす
+    frame.scrollLeft = 100;
+    frame.scrollTop = 100;
+    frame.dispatchEvent(new PointerEvent("pointerdown", { clientX: 200, clientY: 200, pointerId: 1, bubbles: true }));
+    frame.dispatchEvent(new PointerEvent("pointermove", { clientX: 150, clientY: 170, pointerId: 1, bubbles: true }));
+    frame.dispatchEvent(new PointerEvent("pointerup", { clientX: 150, clientY: 170, pointerId: 1, bubbles: true }));
+    expect([frame.scrollLeft, frame.scrollTop], "引いて動かした後の位置").toEqual([150, 130]);
   });
 });

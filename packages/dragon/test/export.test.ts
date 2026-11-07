@@ -461,18 +461,18 @@ describe("書き出しの件の分け方 (#3424)", () => {
   });
 });
 
-describe("書き出した配管の図の畳んだ箱 (#3398)", () => {
+describe("書き出した配管の図の畳んだ箱 (#3418)", () => {
   it(
-    "export-pipe-opens-inner-steps",
+    "export-pipe-opens-inner-steps-by-progress",
     async () => {
-      // 書き出しが内側の段を 1 段にまとめた後の原本を収めると、押しても段が分かれない
+      // 書き出しが内側の段を 1 段にまとめた後の原本を収めると、押しても段が分かれない。段の番号は出さず、進み具合の帯で確かめる
       const exportDiagram = await exporter();
       const result = await exportDiagram(exampleJson("aggregator.json"), { outDir: scratch(), formats: ["html"] });
       const html = readFileSync(result.files.html as string, "utf8");
-      const seen = await unfoldedSteps(html, 1280, "03/08");
-      expect(seen.before, "畳んだ箱の段の番号").toBe("03/08");
-      expect(seen.after, "畳んだ箱を押した後の段の番号").toBe("04/14");
-      expect(seen.steps, "畳んだ箱を押した後の段の数").toBe(14);
+      const seen = await unfoldedSteps(html, 1280, 2);
+      expect(seen.before, "畳んだ箱を押す前の進み具合の帯").toEqual({ count: 8, now: 2 });
+      expect(seen.after, "畳んだ箱を押した後の進み具合の帯").toEqual({ count: 14, now: 3 });
+      expect(seen.numberShown, "書き出した配管の図に段の番号が出る").toBe(false);
     },
   );
 });

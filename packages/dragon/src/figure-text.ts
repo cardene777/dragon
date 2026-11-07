@@ -65,6 +65,19 @@ export interface FigureText {
   lineupAt: (name: string, n: number) => string;
   lineupAdded: (names: string[]) => string;
   lineupMissing: (name: string) => string;
+  /** 配管の図の拡大と縮小の釦の読み上げの名前 (#3418) */
+  zoomIn: string;
+  zoomOut: string;
+  /**
+   * 配管の図の下の呼び出しの一覧 (#3418)。一覧の読み上げの名前、列の名前、中で動いた値の種類、
+   * 中身の無い欄の印、戻る前の出力の字、取り消して戻った呼び出しの出力
+   */
+  calls: string;
+  callHeads: Record<"call" | "input" | "inside" | "output", string>;
+  callKinds: Record<"move" | "check" | "calc" | "emit", string>;
+  callNone: string;
+  callWaiting: string;
+  callReverted: (reason?: string) => string;
 }
 
 /** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
@@ -116,6 +129,14 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupAt: (name, n) => `${name}は${n}番目`,
     lineupAdded: (names) => `${names.join("、")}を足した`,
     lineupMissing: (name) => `${name}が無い`,
+    zoomIn: "拡大する",
+    zoomOut: "縮小する",
+    calls: "呼び出しの一覧",
+    callHeads: { call: "呼び出し", input: "入力", inside: "中で動いた値", output: "出力" },
+    callKinds: { move: "移動", check: "確認", calc: "計算", emit: "イベント" },
+    callNone: "—",
+    callWaiting: "返り待ち",
+    callReverted: (reason) => (reason === undefined ? "取り消し" : `取り消し (${reason})`),
   },
   en: {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
@@ -156,5 +177,13 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupAt: (name, n) => `${name} is #${n}`,
     lineupAdded: (names) => `Added ${names.join(", ")}`,
     lineupMissing: (name) => `${name} is missing`,
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    calls: "Calls",
+    callHeads: { call: "Call", input: "Input", inside: "Values inside", output: "Output" },
+    callKinds: { move: "Move", check: "Check", calc: "Calc", emit: "Event" },
+    callNone: "—",
+    callWaiting: "Waiting",
+    callReverted: (reason) => (reason === undefined ? "Reverted" : `Reverted (${reason})`),
   },
 };

@@ -12,3 +12,5 @@ import "./kinds/all";
 export * from "./api";
 // 足すブロックの定義を読む関数は全部を持つ入口だけが出す。軽い入口は定義の行を持つ図を読む前に `loadFor` が後から読む (#3399)
 export { readBlocks } from "./user-blocks-read";
+// 配管の図の置き場所の決まりの表と、違反を数える処理 (#3418)。配管の図の部品と同じく、全部を持つ入口だけが出す
+export { type PipeBreakage, PIPE_RULES, type PipeRule, type PipeViolation, pipeViolations } from "./pipe-rules";

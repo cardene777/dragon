@@ -224,16 +224,15 @@ export function avatar(p: PipeParty, on: boolean, ctx: Ctx, shown: Shown[], attr
  */
 export function cabinet(p: PipeParty, on: boolean, pool: boolean, ctx: Ctx, shown: Shown[], attrs: string, look: PipeLook): string {
   const { P, T } = look;
-  const big = p.row === 0;
   const C = P.cabinet;
   const cy = p.y + p.h / 2;
-  const mx = p.x + (big ? C.mark : C.markSmall);
+  const mx = p.x + C.mark;
   const mark = drawsIcon(p.icon)
-    ? glyph(p.icon, mx, cy, big ? C.icon : C.iconSmall, "dg-pp-cgl")
-    : `<text class="dg-pp-cabg${big ? "" : " dg-pp-cabg-s"}" x="${r1(mx)}" y="${r1(cy + (big ? T.mark : T.markSmall).size * 0.35)}" text-anchor="middle">${esc(([...p.name][0] ?? "").toUpperCase())}</text>`;
+    ? glyph(p.icon, mx, cy, C.icon, "dg-pp-cgl")
+    : `<text class="dg-pp-cabg" x="${r1(mx)}" y="${r1(cy + T.mark.size * 0.35)}" text-anchor="middle">${esc(([...p.name][0] ?? "").toUpperCase())}</text>`;
   return (
     `<g${attrs} class="dg-pp-cab${on ? " dg-pp-on" : ""}${pool ? " dg-pp-pool" : ""}">` +
-    frameShape(ctx.corner, ' class="dg-pp-cabr"', p, `<rect class="dg-pp-cabr" x="${r1(p.x)}" y="${r1(p.y)}" width="${r1(p.w)}" height="${r1(p.h)}" rx="${big ? C.radius : C.radiusSmall}"/>`) +
+    frameShape(ctx.corner, ' class="dg-pp-cabr"', p, `<rect class="dg-pp-cabr" x="${r1(p.x)}" y="${r1(p.y)}" width="${r1(p.w)}" height="${r1(p.h)}" rx="${C.radius}"/>`) +
     `${mark}${write(ctx.ink, "dg-sn dg-pp-cabn", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
   );
 }

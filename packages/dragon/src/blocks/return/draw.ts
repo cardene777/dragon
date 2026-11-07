@@ -18,7 +18,10 @@ const lineOf = (points: readonly Point[]): string => `M ${points.map((p) => `${r
 
 /** 本管と枝の外の管 */
 export function callCase(main: PipeMain): string {
-  const d = [main.points, ...main.branches.map((b) => b.points)].map(lineOf).join(" ");
+  const d = [main.points, ...main.branches.map((b) => b.points)]
+    .filter((p) => p.length > 1)
+    .map(lineOf)
+    .join(" ");
   return `<path class="dg-pp-ccase" d="${d}"/>`;
 }
 

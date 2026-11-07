@@ -2,18 +2,19 @@
  * 槽と値の管の描き方 (#3389、#3398)。
  *
  * 残高は持ち主の槽で描く。ガラスの中に、つやと 5 本の目盛りとトークンの名前を描き、水位は量に比例させ、液の色はトークンごとに分ける。
- * 槽の下に 3 桁ごとに区切った大きな数を書き、変わった段から確定するまで、前の数を消し線で残して暫定の語を添える。確定した段は確定の語を添える。
+ * 槽の下に 3 桁ごとに区切った大きな数 (今の残高) を書き、変わった段から確定するまで、その下に増えた分か減った分と暫定の語を添える。確定した段は確定の語を添える (#3418)。
  * 暫定の槽は増えた分を斜線で、減った分を点線の枠で示し、前の水位に点線を引く。確定した槽は緑の縁、取り消した槽は桃色の縁で描く。
- * 値の管は、隣の槽の横を結ぶ管か、槽の上に通す本管と槽へ下りる管で描く。トークンの Contract は箱で描き、管の弁の真上に置いて軸で結ぶ。
+ * 値の管は、持ち主の槽の横の口どうしを結ぶ折れ線で描く (#3418)。トークンの Contract は箱で描き、管の弁の真上に置いて軸で結ぶ。
  * `move` と `[value]` で流れた分は管に沿った点線と向きの印で描き、流れた段は斜線の液の塊が管を通り抜ける。暫定か確定かは管に残さず、点線か実線かと槽の斜線で示す。
  * 弁は 2 つの三角を向かい合わせた形で、取っ手が開くと管の向きに倒れる。弁と計器と名札は呼び出しの管と値の管の両方が使う。
  * 角を落とす色味 (#3344) では、槽とトークンの箱の右上と左下を落とし、つやと取っ手の角を丸めない。
  * この file は配管の図を描く部品 (`render/pipe.ts`) と配管の図のブロックの描き方だけが読み、見本帳を開いた時に読む塊に入れない
  */
-import type { PipeBus, PipeFlow, PipeLevel, PipeParty, PipeState, PipeTank } from "../../kinds/pipe/layout";
+import type { PipeFlow, PipeLevel, PipeParty, PipeState, PipeTank, PipeText } from "../../kinds/pipe/layout";
 import type { Point, Rect } from "../../layout/scene";
 import { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
-import { EASE, MOTION } from "../../look/values";
+import { valveLever, valvePivot } from "../../pipe-valve";
+import { EASE, MOTION, type TextStyle } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import type { Shown } from "../../render/ink";
 import type { Frame } from "../../render/motion";
@@ -67,6 +68,12 @@ export function pipeDefs(ctx: Ctx, tanks: readonly PipeTank[]): string {
 export const grid = (ctx: Ctx, width: number, height: number): string =>
   `<rect class="dg-pp-grid" fill="url(#${defId(ctx, "grid")})" x="0" y="0" width="${r1(width)}" height="${r1(height)}"/>`;
 
+/** 字。並べ方が字の大きさを替えた時 (狭い枠の大きな字) は、その大きさを字に書く */
+export function sizedText(ctx: Ctx, cls: string, t: PipeText, style: TextStyle, shown: Shown[]): string {
+  const drawn = write(ctx.ink, cls, t.x, t.base, t.text, { ...style, size: t.h }, shown);
+  return Math.abs(t.h - style.size) < 0.05 ? drawn : drawn.replace("<text ", `<text style="font-size:${r1(t.h)}px" `);
+}
+
 /** 四角 */
 const rect = (cls: string, r: Rect, radius: number, extra = ""): string =>
   `<rect class="${cls}" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(Math.max(0, r.w))}" height="${r1(Math.max(0, r.h))}" rx="${radius}"${extra}/>`;
@@ -97,7 +104,7 @@ export function tank(t: PipeTank, edge: "final" | "rolled" | "", inside: string,
 }
 
 /**
- * 水と、槽の下の数と前の数と語。`at` を渡すと、その時刻に水が段の始まりの水位 (`from`) から今の水位へ動く。
+ * 水と、槽の下の数と、増えた分か減った分と語。`at` を渡すと、その時刻に水が段の始まりの水位 (`from`) から今の水位へ動く。
  * 暫定で増えた分は斜線の帯が下から伸び、暫定で減った分は液が縮んで点線の枠が残り、ほかは水面がそのまま上下する。
  * 水は切り抜きの下の端より下まで伸ばし、下がる時にも底が空かないようにする
  */
@@ -138,37 +145,34 @@ export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attr
     marks.push(`<line class="dg-pp-mark" x1="${r1(t.x - P.tank.markOut)}" y1="${r1(old)}" x2="${r1(t.x + t.w + P.tank.markOut)}" y2="${r1(old)}"/>`);
   if (old !== undefined && lv.state === "rolled") marks.push(undoneMark(t.x - P.tank.markOut, t.x + t.w + P.tank.markOut, old));
   const sub =
-    lv.was && lv.tag
-      ? write(ctx.ink, "dg-pp-was", lv.was.x, lv.was.base, lv.was.text, T.sub, shown) +
-        (lv.strike ? rect("dg-pp-strike", lv.strike, 0) : "") +
-        write(ctx.ink, "dg-pp-tagw", lv.tag.x, lv.tag.base, lv.tag.text, T.tag, shown)
-      : "";
+    (lv.delta ? write(ctx.ink, "dg-pp-dlt", lv.delta.x, lv.delta.base, lv.delta.text, T.delta, shown) : "") +
+    (lv.tag ? write(ctx.ink, "dg-pp-tagw", lv.tag.x, lv.tag.base, lv.tag.text, T.tag, shown) : "");
   return (
     `<g${attrs} class="dg-pp-lv dg-pp-lv-${lv.state}" style="${cs(STATE_COLOR[lv.state])}">${water}${marks.join("")}` +
-    `${write(ctx.ink, "dg-pp-num", lv.text.x, lv.text.base, lv.text.text, T.amount, shown)}${sub}</g>`
+    `${sizedText(ctx, "dg-pp-num", lv.text, T.amount, shown)}${sub}</g>`
   );
 }
 
-/** 値の管。横の管は槽の縁から縁まで、本管は槽の上を横に通り、槽へ下りる管を持つ */
-export function valuePipe(b: PipeBus): string {
-  const d = `M ${r1(b.x1)} ${r1(b.y)} H ${r1(b.x2)}${b.drops.map((p) => ` M ${r1(p.x)} ${r1(b.y)} V ${r1(p.y)}`).join("")}`;
-  return `<path class="dg-pp-pcase" d="${d}"/><path class="dg-pp-pcore" d="${d}"/>`;
+/** 値の管。持ち主の槽の横の口どうしを結ぶ折れ線を、外の管と中の管の 2 本で描く。`attrs` は部品の印 (`data-pipe-value` など) */
+export function valuePipe(points: readonly Point[], attrs = ""): string {
+  const d = `M ${points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
+  return `<g${attrs}><path class="dg-pp-pcase" d="${d}"/><path class="dg-pp-pcore" d="${d}"/></g>`;
 }
 
 /**
  * 弁。2 つの三角を向かい合わせた形と、軸と取っ手。`vertical` は縦に走る管の弁。
  * 取っ手は閉じた時に管と直角に立ち、開いた時に管の向きに倒れる。`turn` を渡すと取っ手がその style の動きで回り、`open` を渡すとその style の間だけ弁が開いた色になる。
+ * `under` は軸と取っ手を管の下 (縦の管は左) に立てる。
  * `ctx` は取っ手の角の形を読む。
  * `attrs` は取っ手の印 (`data-pipe-lever` など)
  */
-export function valve(x: number, y: number, vertical: boolean, opened: boolean, attrs: string, ctx: Ctx, turn = "", open = ""): string {
+export function valve(x: number, y: number, vertical: boolean, opened: boolean, attrs: string, ctx: Ctx, turn = "", open = "", under = false): string {
   const V = P.valve;
   const body = vertical
     ? `M ${r1(x - V.half)} ${r1(y - V.r)} L ${r1(x + V.half)} ${r1(y - V.r)} L ${r1(x)} ${r1(y)} Z M ${r1(x - V.half)} ${r1(y + V.r)} L ${r1(x + V.half)} ${r1(y + V.r)} L ${r1(x)} ${r1(y)} Z`
     : `M ${r1(x - V.r)} ${r1(y - V.half)} L ${r1(x - V.r)} ${r1(y + V.half)} L ${r1(x)} ${r1(y)} Z M ${r1(x + V.r)} ${r1(y - V.half)} L ${r1(x + V.r)} ${r1(y + V.half)} L ${r1(x)} ${r1(y)} Z`;
-  const px = vertical ? x + V.stem : x;
-  const py = vertical ? y : y - V.stem;
-  const angle = leverAngle(vertical, opened);
+  const [px, py] = valvePivot(x, y, vertical, under);
+  const angle = leverAngle(vertical, opened, under);
   const origin = `transform-origin:${r1(px)}px ${r1(py)}px`;
   const lever = `<rect class="dg-pp-lever" x="${r1(px - V.leverH / 2)}" y="${r1(py - V.leverH / 2)}" width="${V.lever}" height="${V.leverH}" rx="${partRadius(ctx.corner, V.leverH / 2)}"/>`;
   const turned = turn ? `<g${attrs} class="dg-a" style="${origin};${turn}">${lever}</g>` : `<g${attrs} transform="rotate(${angle} ${r1(px)} ${r1(py)})">${lever}</g>`;
@@ -180,8 +184,8 @@ export function valve(x: number, y: number, vertical: boolean, opened: boolean, 
   );
 }
 
-/** 取っ手の向き (度)。閉じた取っ手は管と直角、開いた取っ手は管の向き */
-export const leverAngle = (vertical: boolean, opened: boolean): number => (opened ? (vertical ? 90 : 0) : vertical ? 0 : -90);
+/** 取っ手の向き (度)。閉じた取っ手は管と直角、開いた取っ手は管の向き。向きの決め方は弁の形と共に `pipe-valve.ts` が持つ */
+export const leverAngle = (vertical: boolean, opened: boolean, under = false): number => valveLever(vertical, opened, under);
 
 /** トークンの箱。名前と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。名前は関係者の名前と同じく `dg-sn` も持つ */
 export function tokenBox(p: PipeParty, on: boolean, valveAt: Point | undefined, ctx: Ctx, shown: Shown[], attrs: string): string {
@@ -217,8 +221,10 @@ export function pointAlong(points: readonly Point[], d: number): Point {
 export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number): string {
   const d = `M ${f.points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
   const a = P.flow.chevron;
-  const { x, y, dir } = f.arrow;
-  const chevron = `M ${r1(x - a * dir * 0.7)} ${r1(y - a)} l ${r1(a * dir * 1.15)} ${a} l ${r1(-a * dir * 1.15)} ${a}`;
+  const { x, y, dir, vertical } = f.arrow;
+  const chevron = vertical
+    ? `M ${r1(x - a)} ${r1(y - a * dir * 0.7)} l ${a} ${r1(a * dir * 1.15)} l ${a} ${r1(-a * dir * 1.15)}`
+    : `M ${r1(x - a * dir * 0.7)} ${r1(y - a)} l ${r1(a * dir * 1.15)} ${a} l ${r1(-a * dir * 1.15)} ${a}`;
   const tone = `--pp-t:var(--pp-tone${f.tone})`;
   let blob = "";
   if (at !== undefined) {

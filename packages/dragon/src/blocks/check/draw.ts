@@ -65,7 +65,6 @@ export function gauge(g: PipeGauge, ctx: Ctx, shown: Shown[], attrs: string, swi
     `<circle class="dg-pp-face" cx="${r1(cx)}" cy="${r1(cy)}" r="${r}"/>` +
     `<path class="dg-pp-zone dg-pp-zbad" d="${arc(cx, cy, -125, -12, r - G.zone)}"/><path class="dg-pp-zone dg-pp-zgood" d="${arc(cx, cy, -4, 125, r - G.zone)}"/>` +
     `${turned}<circle class="dg-pp-hub" cx="${r1(cx)}" cy="${r1(cy)}" r="${G.hub}"/>${lamp}` +
-    (g.read ? write(ctx.ink, "dg-pp-gread", g.read.x, g.read.base, g.read.text, PIPE_TYPE.read, shown) : "") +
     `</g>`
   );
 }
