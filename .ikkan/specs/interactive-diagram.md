@@ -78,3 +78,13 @@
 | 途中の段へ送った止め絵に、その段の札だけが出る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-still-middle-step-own-labels`が通る | #3445 |
 | 1度だけ流す図が、最後の段の止め絵で止まる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-plays-once-then-still`が通る | #3445 |
 | 箱の飛び先の`link`を持つ図は、段を送った後と止めた後も読み上げに残る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-linked-figure-readable-after-replace`が通る | #3445 |
+| `queue`に`accept`を書いた試す図の記法を読むと、原本の待ち行列が受け入れる名前の並びを持ち、原本の形の検査がその原本を通し、書き戻すと元の記法と同じ文字列に戻る | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-accept-round-trip`が通る | #3453 |
+| `accept`を書いた待ち行列へ、書いていない名前のチップを送ると、受け入れない理由の誤りが返り、どの待ち行列も変わらず、書いた名前のチップは今どおり入る | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-accept-refuses-other-names`が通る | #3453 |
+| `accept`の名前が最初の欄の選択肢に無い時と、書き手の例の`ask`が受け入れられない名前を送る時は、行と列を名指した誤りで止まり、英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-accept-refuses-bad-names`が通る | #3453 |
+| 頁の入力の帯で受け入れられない名前を選ぶと、送る釦を押せなくなり、待ち行列と名前を名指した理由の文を日本語と英語で出す | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-accept-explains-refusal`が通る | #3453 |
+| `press`の`from`に2つ以上の待ち行列を書いた記法を読むと、原本の釦が待ち行列の配列を持ち、1つの時は今どおり文字列を持ち、書き戻すと元の記法と同じ文字列に戻る | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-gather-round-trip`が通る | #3453 |
+| `from`に2つ以上の待ち行列を書いた釦を押すと、それぞれの上から`take`件ずつが1つの記録にまとまってそれぞれの待ち行列から外れ、`log`の`all`の印はまとめた全部のチップで決まる | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-gather-takes-from-each`が通る | #3453 |
+| `from`に書いた待ち行列のどれかが`take`件に満たない間は、釦を押すと足りない待ち行列を名指した誤りが返り、どの待ち行列も記録も変わらない | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-gather-waits-for-every-queue`が通る | #3453 |
+| 常に、`accept`と2つ以上の`from`を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3453 |
+| 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`accept`の書き方と`from`に2つ以上の待ち行列を書く書き方を持つ | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`docs-describe-try-accept-gather`が通る | #3453 |
+| `packages/dragon/package.json`の`version`が`0.62.0`で、英語と日本語の変更履歴の`## [0.62.0]`の節が`(#3453)`の項を持ち、その項が`accept`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-62-0-adds-accept-gather`が通る | #3453 |

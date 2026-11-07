@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-11-07
+
+### Added
+
+- **A try diagram can limit the names a queue takes and gather one chip from each of several queues** (#3453)
+
+  Write `accept` on a queue line, `queue <name> [order: <field>, accept: <name>]`, and the input strip sends only chips with those names into the queue. Wrap two or more names as `accept: "<name>, <name>"`, and the JSON holds them as an array. A chip with a name not written is not sent, and no queue changes. On the page the send button cannot be pressed, and the reason names the queue and the name. An `ask` in the author's example steps that sends a name the queue does not accept, and a name in `accept` that is not a choice of the first field when that field has a `choose` line, are refused with the line and column. Write two or more queues in a button's `from` as `from: "<queue>, <queue>"`, and pressing it gathers the top `take` chips of each, in the written order, into one block or record, and the `all` mark of a log is decided by every chip gathered. While any of those queues holds fewer than `take` chips, the press is refused naming that queue, and the button cannot be pressed on the page. In the JSON, `from` stays a single id for one queue and becomes an array of ids for two or more. Diagrams without `accept` or two or more queues in `from` draw as before.
+
 ## [0.61.0] - 2026-11-07
 
 ### Changed
