@@ -93,4 +93,5 @@
 | 頁の入力の帯で、選択肢の無い欄の入力欄は12字までしか打てず (`maxLength`が12)、選択肢のある欄は今どおり選択肢の箱を出す | `pnpm exec vitest run packages/dragon/test/interactive-chip-name.test.ts`の検査`try-free-field-limits-twelve`が通る | #3458 |
 | 頁の入力の帯で、選択肢の無い欄に12字の名前を打って送ると、待ち列のチップの字がその12字を持つ | `pnpm exec vitest run packages/dragon/test/interactive-chip-name.test.ts`の検査`try-reader-name-shown-whole`が通る | #3458 |
 | 常に、名前が4字以内の試す図は今どおり描け、見本の指紋が変わらず、記法を書き戻して読み直すと元の原本と同じJSONになる | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts packages/dragon/test/interactive-diagram.test.ts`の検査`examples-svg-unchanged`と`interactive-round-trip-keeps-json`が通る | #3458 |
-| `packages/dragon/package.json`の`version`が`0.62.1`で、英語と日本語の変更履歴の`## [0.62.1]`の節が`(#3458)`の項を持ち、その項が12字の上限を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-62-1-keeps-try-chip-names`が通る | #3458 |
+| `packages/dragon/package.json`の`version`が`0.63.1`で、英語と日本語の変更履歴の`## [0.63.1]`の節が`(#3458)`の項を持ち、その項が12字の上限を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-63-1-keeps-try-chip-names`が通る | #3458 |
+| 常に、プラグインの版 (`plugins/dragon/.claude-plugin/plugin.json`の`version`) が npm の package の版と同じ | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`plugin-version-matches-package`が通る | #3458 |
