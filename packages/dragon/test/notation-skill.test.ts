@@ -91,6 +91,15 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(typeof manifest.description === "string" ? manifest.description : "", "プラグインの説明が無い").not.toBe("");
   });
 
+  it("marketplace-describes-the-plugin", () => {
+    // 説明文が無いと `claude plugin validate` が警告する (#3468)。説明は英語の 1 文で書く
+    const metadata = (json(MARKETPLACE).metadata ?? {}) as { description?: unknown };
+    const description = typeof metadata.description === "string" ? metadata.description : "";
+    expect(description, `${relative(ROOT, MARKETPLACE)} の metadata.description が無い`).not.toBe("");
+    expect(description, "説明が 1 文でない").toMatch(/^[^.!?]+[.!?]$/u);
+    expect(description, "説明に日本語の字がある").not.toMatch(JAPANESE);
+  });
+
   it("plugin-version-matches-package", () => {
     const pkg = json(join(ROOT, "packages/dragon/package.json"));
     expect(json(MANIFEST).version, "プラグインの版が @cardenelabs/dragon の版と違う").toBe(pkg.version);

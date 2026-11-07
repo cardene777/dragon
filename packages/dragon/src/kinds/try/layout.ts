@@ -18,7 +18,7 @@ import { LOOK, READABLE_PX, TYPE } from "../../look/values";
 import type { DiagramModel, TryPart } from "../../schema";
 import { askFields, fromsOf, intoOf, type TryState, TryRun } from "../../try-state";
 import { TRY_TEXT } from "../../try-text";
-import { DEFAULT_LANG, LABEL_MOST, type NotationLang } from "../../words";
+import { DEFAULT_LANG, type NotationLang } from "../../words";
 import { textWidth } from "../../layout/measure";
 import type { Layout, Point, Rect } from "../../layout/scene";
 
@@ -153,7 +153,7 @@ export interface TryLayout extends Layout {
   chip: { w: number; h: number };
   /** チップに出す値の欄の位置 (入力の帯の欄の順)。待ち行列が並べる順の欄を持たなければ持たない */
   valueField?: number;
-  /** チップごとの、図に出す名前 (`LABEL_MOST` 字まで) */
+  /** チップごとの、図に出す名前。書き手が書いた名前も読み手が打った名前も切らずに出す (#3458) */
   names: Record<string, string>;
 }
 
@@ -165,9 +165,6 @@ export interface TryOverviewShape {
 }
 
 const bottomOf = (r: Rect): number => r.y + r.h;
-
-/** チップの名前を図に出す字数までに切る */
-const cut = (text: string): string => [...text].slice(0, LABEL_MOST).join("");
 
 /** ブロックの鍵 */
 export const blockKey = (chain: string, number: number): string => `${chain}/${number}`;
@@ -287,7 +284,7 @@ export function layoutTry(
   let valueW = 0;
   for (const raw of raws)
     for (const [id, row] of Object.entries(raw.state.items)) {
-      names[id] = cut(row[0] ?? id);
+      names[id] = row[0] ?? id;
       nameW = Math.max(nameW, textWidth(names[id] ?? "", TYPE.tryChip));
       if (valueField !== undefined)
         valueW = Math.max(valueW, textWidth(row[valueField] ?? "", TYPE.tryChipValue));

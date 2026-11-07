@@ -193,6 +193,37 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-63-2-fixes-missing-arrow-target", () => {
+    // 矢印の先を書き忘れた線の行に dragon check が線の行の形の文を返す直し (#3468) は 0.63.2 で出す (#3470)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 63 || (minor === 63 && patch >= 2), `package の版 ${version()} が 0.63.2 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.63\.2\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.63.2"), "0.63.2");
+      expect(released, `${file} に日付付きの ## [0.63.2] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3468)")) ?? "";
+      expect(entry, `${file} の 0.63.2 の節に #3468 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.63.2 の節の #3468 の項が dragon check を名指さない`).toContain("`dragon check`");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3468)");
+    }
+  });
+
+  it("changelog-0-63-1-keeps-try-chip-names", () => {
+    // 試す図のチップの名前を切らずに出し、入力の帯の打つ欄を 12 字までにした直し (#3458) は 0.63.1 で出す
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 63 || (minor === 63 && patch >= 1), `package の版 ${version()} が 0.63.1 より前`).toBe(true);
+    const words = { "CHANGELOG.md": "12 characters", "CHANGELOG.ja.md": "12 字" };
+    for (const [file, word] of Object.entries(words)) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.63\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.63.1"), "0.63.1");
+      expect(released, `${file} に日付付きの ## [0.63.1] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3458)")) ?? "";
+      expect(entry, `${file} の 0.63.1 の節に #3458 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.63.1 の節の #3458 の項が打つ欄の上限 (${word}) を名指さない`).toContain(word);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3458)");
+    }
+  });
+
   it("changelog-0-63-0-adds-check-and-shared-blocks", () => {
     // 記法を確かめる命令 dragon check と共有のブロック集と Markdown の囲みの描画 (#3455) は 0.63.0 で npm に出す (#3461)
     const [major = 0, minor = 0] = version().split(".").map(Number);
