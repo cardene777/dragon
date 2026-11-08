@@ -28,7 +28,7 @@ interface Entry {
 }
 interface LightEntry extends Entry {
   loadKind(kind: string): Promise<void>;
-  loadFor(source: string | object): Promise<void>;
+  loadFor(source: unknown): Promise<void>;
 }
 
 const name = "@cardenelabs/dragon";
