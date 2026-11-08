@@ -439,6 +439,8 @@ export const onFrameLine = (y: number, lines: number[]): boolean => lines.some((
  * 先に置いた番号 (`taken`) に重なる時は、線に沿って進めて前の番号を避ける (#3175)。
  * 囲みと列と帯の枠線 (`frames` の高さの線) に掛かる時も線に沿って進め、矢じりに掛かる手前で止める (#3525)。
  * 進めても枠線を避けられない時は線の始まりへ戻し、線を出す箱の縁に丸が掛かってよい。囲みの間を通る短い線は、線のどこに置いても枠線に掛かるため。
+ * 戻した所がほかの線 (`lines`) に掛かる時は戻さない。同じ箱の同じ辺から出る線の始まりは近く、戻すと後の線の番号の置き場を塞ぐ。
+ * 戻せない時は、枠線に掛かる所でも前の番号を避ける所に置く。番号どうしの重なりは片方の数を読めなくするため。
  * 線の上で避けきれない時は線の脇へずらし、ずらす向きはほかの線 (`lines`) に乗らない側にする (#3189)
  */
 export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[][] = [], frames: number[] = []): Point {
@@ -457,8 +459,14 @@ export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[]
   }
   for (let d = first - 1; crossed && d >= 0; d -= 1) {
     const p = along(points, d);
-    if (free(p) && !onFrameLine(p[1], frames)) return p;
+    if (free(p) && !onFrameLine(p[1], frames) && lines.every((line) => !crossesRect(line, badgeRect(p), 0))) return p;
   }
+  // 枠線を避けられない時は、枠線に掛かっても前の番号を避ける
+  if (crossed)
+    for (let d = first; d <= length; d += 1) {
+      const p = along(points, d);
+      if (free(p)) return p;
+    }
   return besideLine(points, first, taken, lines) ?? along(points, first);
 }
 
@@ -591,13 +599,18 @@ function stripParts(strip: SceneStrip): Rect[] {
 }
 
 /**
- * 前の段の番号の脇へずらす番号を断る所 (#3525)。囲みと列と帯の枠線に掛かる所と、避ける物 (`parts`) に丸が触れる所。
+ * 前の段の番号の脇へずらす番号を断る所 (#3525)。図の枠の外へ丸がはみ出す所、囲みと列と帯の枠線 (横の線と左右の縦の線) に掛かる所、
+ * 避ける物 (`parts`) に丸が触れる所。
  * 箱の角の番号は箱の縁に掛かってよいので、箱そのものではなく箱の中の絵柄と字 (`boxParts`) を避ける
  */
 export function badgeBlocked(layout: Layout, parts: Rect[] = []): (p: Point) => boolean {
-  const lines = frameLines([...layout.regions, ...(layout.strip ? [layout.strip] : [])]);
-  const avoid = [...layout.boxes.flatMap(boxParts), ...(layout.strip ? stripParts(layout.strip) : []), ...layout.regions.map((r) => r.header), ...layout.labels, ...layout.actions, ...parts];
-  return (p) => onFrameLine(p[1], lines) || avoid.some((a) => gapBetween(badgeRect(p), a) < LOOK.label.touch);
+  const frames = [...layout.regions, ...(layout.strip ? [layout.strip] : [])];
+  const lines = frameLines(frames);
+  const { r } = LOOK.badge;
+  const outside = ([x, y]: Point): boolean => x - r < 0 || x + r > layout.width || y - r < 0 || y + r > layout.height;
+  const onSide = ([x, y]: Point): boolean => frames.some((f) => y >= f.y && y <= f.y + f.h && [f.x + 0.5, f.x + f.w - 0.5].some((side) => Math.abs(x - side) < r + 1.5));
+  const avoid = [...layout.boxes.flatMap(boxParts), ...(layout.strip ? stripParts(layout.strip) : []), ...layout.regions.map((g) => g.header), ...layout.labels, ...layout.actions, ...parts];
+  return (p) => outside(p) || onFrameLine(p[1], lines) || onSide(p) || avoid.some((a) => gapBetween(badgeRect(p), a) < LOOK.label.touch);
 }
 
 /** 中身の帯だけを書き換える段の番号の点 (#3525)。帯の左上の角の丸みの中に丸を収め、枠線にも帯の絵柄にも掛けない */

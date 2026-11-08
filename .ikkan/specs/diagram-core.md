@@ -241,7 +241,7 @@
 | 区画の中の箱と下の帯の箱を往復する 2 本の線を持つ構成図 (packages/dragon/test/fixtures/pair-band.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-pair-band-no-overlaps`が通る | #3189 |
 | 同じ帯の上下の行の箱を往復する 2 本の線を持つ構成図 (packages/dragon/test/fixtures/pair-row.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-pair-row-no-overlaps`が通る | #3189 |
 | 別の箱どうしの線が同じ箱の同じ辺から出るか入る構成図 (packages/dragon/test/fixtures/shared-side.dragon、crowd-side.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-shared-side-no-overlaps`が通る | #3189 |
-| 44px より短い線の段の番号は、線の始まりから番号の半径と 1px だけ進んだ所に置かれる | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-short-line-at-start`が通る | #3189 |
+| 44px より短い線の段の番号は、線の始まりから番号の半径と 1px だけ進んだ所に置かれる。その所が区画の枠線に掛かる時は、線の上を始まりの側へ戻して枠線から離す (#3525) | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-short-line-at-start`が通る | #3189 |
 | 線の上で前の番号を避けられない時、番号は線の脇へずれ、ほかの線に乗らない (crowd-side.dragon) | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-crowd-aside-clear-of-lines`が通る | #3189 |
 | 44px 以上の線の段の番号は、今までどおり線の始まりから 14px 進んだ所に置かれる | `pnpm exec vitest run packages/dragon/test/badge-pair.test.ts`の検査`badge-long-line-unchanged`が通る | #3189 |
 | 同じ線を後の段がまた通る時、番号は同じ所に置かれて入れ替わる (#3184) | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`repeat-line-badges-share-one-spot`が通る | #3189 |
@@ -251,7 +251,7 @@
 | 何も書かない段を持つ状態遷移図 (packages/dragon/test/fixtures/corner-empty.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-state-empty-no-overlaps`が通る | #3187 |
 | 札を置く枠を持つ構成図の箱に `note` だけを書いた段 (packages/dragon/test/fixtures/corner-slot.dragon) の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-architecture-slot-no-overlaps`が通る | #3187 |
 | 線の無い段の番号の中心が、状態遷移図と構成図と時系列図のどれでも、書き換わる箱の左上の角に在る | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-centered-on-corner`が通る | #3187 |
-| 中身の帯だけを書き換える線の無い段の番号は、今までどおり帯の左上の角から 4px 内側に在る | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-strip-unchanged`が通る | #3187 |
+| 中身の帯だけを書き換える線の無い段の番号は、帯の左上の角の丸みの中に在り、続く段の番号も帯の枠線に掛からず図の枠の内に在る。帯の左上の角から 4px 内側の形から変えた (#3525) | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-strip-inside-corner`が通る | #3187 |
 | 箱が図の左端と上端に在る 4 つの見本 (corner-note、corner-empty、corner-slot、時系列図の書き込みだけの段) で、線の無い段の番号が図の外へはみ出さない | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-inside-figure`が通る | #3187 |
 | 線の無い段が同じ箱か中身の帯を続けて書き換える時、後の段の番号は前の段の番号の脇に並び、全ての段で `overlaps` が 0 件。同じ角で数字を入れ替える形から、脇に並べる形に変えた (#3525) | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`corner-badges-sit-side-by-side`が通る | #3187 |
 | 重なりを知らせる文は、番号を絵柄に重ねた図で、日本語と英語の文を出す。重なりは描いた後の置き場所を書き換えて作る | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-message-in-both-languages`が通る | #3187 |

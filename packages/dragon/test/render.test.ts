@@ -5,6 +5,7 @@
  * 運ぶ物、線の名前、段の番号がいつ見えるかを、表を 0.25 秒ごとに数えて確かめる (見本帳の `probe.mjs` と同じ範囲)。
  */
 import { describe, expect, it } from "vitest";
+import { along, frameLines, onFrameLine } from "../src/layout/scene";
 import { LOOK } from "../src/look/values";
 import { exampleJson, type Json } from "./diagram-support";
 import { covers, draw, type Rendered, sampleTimes, type Span } from "./render-support";
@@ -295,7 +296,14 @@ describe("段の番号の置き場 (#3017)", () => {
       return line && lengthOf(line.points) < LOOK.badge.short ? [{ badge, line }] : [];
     });
     expect(short.length, "CCIP の 44 より短い線に置いた番号").toBeGreaterThan(0);
+    const frames = frameLines([...layout.regions, ...(layout.strip ? [layout.strip] : [])]);
     for (const { badge, line } of short) {
+      // 線の始まりが区画の枠線に掛かる番号は、線の上を始まりの側へ戻して枠線から離し、出る箱の縁に掛かってよい (#3525)
+      if (onFrameLine(along(line.points, LOOK.badge.r + 1)[1], frames)) {
+        expect(distanceAlong(badge.x, badge.y, line.points), `段 ${badge.step + 1} の丸が線の始まりの側へ戻っていない`).toBeLessThan(LOOK.badge.r + 1);
+        expect(onFrameLine(badge.y, frames), `段 ${badge.step + 1} の丸が区画の枠線に掛かる`).toBe(false);
+        continue;
+      }
       // 短い線も始まりに置く。中ほどに置くと、往復する 2 本の短い線で 2 つの番号が同じ高さに並んで重なる (#3189)。
       // 出る箱の縁から番号の半径と 1px だけ進めるので、丸は出る箱に掛からない
       expect(distanceAlong(badge.x, badge.y, line.points), `段 ${badge.step + 1} の丸の、線の始まりからの道のり`).toBeCloseTo(LOOK.badge.r + 1, 6);
