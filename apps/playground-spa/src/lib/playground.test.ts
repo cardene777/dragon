@@ -1029,21 +1029,19 @@ describe("公開する頁 (#2995)", () => {
     async () => {
       // 寄って追う図になる幅で開く。携帯の幅と、記法と並べて図の枠が 560px になる幅 (#3042)。
       // 縦長の全体図を持つ oauth (#3055) と値の表を持つ ccip (#3274) は、携帯の幅では全体図を出さないので 860px だけで見る。
-      // 携帯の幅は、表を持たず横長の全体図を出す wallet で見る。
-      // ccip は高さ 920px の画面で開く。窓の高さは枠の幅で決まり、その下に全体図と値の表を足すので、図が伸びると全体図が枠の下へ出る。
-      // 高さ 900px の画面では全体図の下の縁と枠の下の縁の間が 0.1px しか無く、囲みの外へ下りる線の名前のために図が 26px 伸びると 4px はみ出した (#3554)
+      // 携帯の幅は、表を持たず横長の全体図を出す wallet で見る
       const cases = [
-        [860, 900, "oauth", OAUTH],
-        [390, 900, "wallet", WALLET],
-        [860, 920, "ccip", CCIP],
+        [860, "oauth", OAUTH],
+        [390, "wallet", WALLET],
+        [860, "ccip", CCIP],
       ] as const;
-      for (const [width, height, key, text] of cases) {
+      for (const [width, key, text] of cases) {
         const parsed = parseNotation(text);
         const steps = parsed.ok ? parsed.diagram.steps.length : 0;
         expect(steps, `見本 ${key} の段が無い`).toBeGreaterThan(1);
         // 狭い幅では見本の棚が畳まれるので、見本は共有の形の URL (`#n=`) で開く
         const shared = `${EDITOR}#n=${Buffer.from(text, "utf8").toString("base64url")}`;
-        const { page } = await open({ path: shared, viewport: { width, height } });
+        const { page } = await open({ path: shared, viewport: { width, height: 900 } });
         await drawn(page);
         await expect.poll(() => stepsLabel(page), { ...WAIT, message: `${width}px で見本 ${key} の図が描かれない` }).toContain(titleOf(text));
         // 止めてから段を送る。動いている間は段が進む

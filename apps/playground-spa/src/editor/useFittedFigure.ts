@@ -7,6 +7,7 @@
  * 止めて見せる図は枠の幅と高さの両方に収める。`fitHeight` では寄って追う図も枠の高さに収め、
  * 高さに収めると字が読めない図は寄って追う図にする (拡大の重ね窓、#3047)。
  * その時の字の下限は、再生の部品が見せ方を選ぶ字の大きさ (`@cardenelabs/dragon` の `READABLE_PX`) にそろえる。
+ * `fitOverview` では見せ方を変えず、寄って追う図の窓の下の全体図だけを枠の高さに収める (編集画面、#3554)。
  */
 import { type Diagram, mountDiagram, type Player, READABLE_PX as VIEW_READABLE_PX, type Theme } from "@cardenelabs/dragon/light";
 import { type RefObject, useEffect, useRef, useState } from "react";
@@ -41,6 +42,8 @@ interface Options {
   onStep: (step: number) => void;
   /** 寄って追う図も枠の高さに収める。枠の高さが決まっている置き場だけで使い、図に合わせて伸びる枠では使わない */
   fitHeight?: boolean;
+  /** 寄って追う図の窓の下の全体図を、枠の中で見える高さに収める (#3554)。枠の高さが決まっていて図を枠の中で送る置き場 (編集画面) だけで使う */
+  fitOverview?: boolean;
   /** 再生の部品を置いた時にそれを、片付けた時に `null` を受け取る。段へ移る時と図の上を囲む時に呼ぶ (#3178) */
   onPlayer?: (player: Player | null) => void;
 }
@@ -50,7 +53,7 @@ const px = (value: string): number => Number.parseFloat(value) || 0;
 export function useFittedFigure(
   host: RefObject<HTMLDivElement | null>,
   diagram: Diagram | null,
-  { palette, theme, lang, onStep, fitHeight = false, onPlayer }: Options,
+  { palette, theme, lang, onStep, fitHeight = false, fitOverview = false, onPlayer }: Options,
 ): Fit | null {
   const [fit, setFit] = useState<Fit | null>(null);
   // 図の種類の部品が届くまでは置かない (#3248)
@@ -67,7 +70,7 @@ export function useFittedFigure(
   useEffect(() => {
     const el = host.current;
     if (!el || !diagram || !ready) return;
-    const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: (step) => stepTo.current(step), fitHeight });
+    const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: (step) => stepTo.current(step), fitHeight, fitOverview });
     playerTo.current?.(player);
     const frame = el.querySelector<HTMLElement>(".dg-frame");
     /** 枠の中身の大きさと図の原寸から、枠に合わせる倍率を出す。寄って追う図には当てない */
@@ -106,7 +109,7 @@ export function useFittedFigure(
       player.destroy();
       playerTo.current?.(null);
     };
-  }, [host, diagram, ready, palette, theme, lang, fitHeight]);
+  }, [host, diagram, ready, palette, theme, lang, fitHeight, fitOverview]);
 
   return fit;
 }

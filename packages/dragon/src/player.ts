@@ -59,6 +59,12 @@ export interface PlayerOptions extends RenderOptions {
    * 枠の高さが決まっている置き場 (カタログの拡大の重ね窓) で使う。枠の高さが図に合わせて伸びる置き場で使うと、描くたびに低くなる
    */
   fitHeight?: boolean;
+  /**
+   * 寄って追う図の窓の下の全体図を、図の枠の中で見える高さに収まるまで縮める (#3554)。窓の高さは枠の幅で決めたまま変えず、全体図の下の表は枠の中で送って見せる。
+   * `fitHeight` と違い、見せ方の選び方は変えない。枠の高さが決まっていて図を枠の中で送る置き場 (編集画面) で使う。
+   * 枠の高さが図に合わせて伸びる置き場で使うと、描くたびに全体図が小さくなる
+   */
+  fitOverview?: boolean;
   /** 置いた時に流さず、段 `pausedAt` (0 から) の止め絵で止めて置く。段の数を超えた時は最後の段で止める。書かなければ置いた時から流す (#3200) */
   pausedAt?: number;
   /** 流した時に最後の段の止め絵で止め、繰り返さない。最後の段で止まった図を流すと、最初の段から流し直す (#3200) */
@@ -421,9 +427,9 @@ export function mountDiagram(
     return true;
   };
   arrange(frameWidth());
-  /** 高さに収めると頼まれた時だけ、図の枠の中で見える高さ (上下の余白を除く)。測れない時は `undefined` で、幅だけで決める */
-  const frameHeight = (): number | undefined => {
-    if (!options.fitHeight || !win) return undefined;
+  /** 図の枠の中で見える高さ (上下の余白を除く)。測れない時は `undefined` */
+  const innerHeight = (): number | undefined => {
+    if (!win) return undefined;
     const style = win.getComputedStyle(frame);
     const inner =
       frame.clientHeight -
@@ -431,6 +437,10 @@ export function mountDiagram(
       (Number.parseFloat(style.paddingBottom) || 0);
     return inner > 0 ? inner : undefined;
   };
+  /** 高さに収めると頼まれた時だけ、図の枠の中で見える高さ。測れない時は `undefined` で、幅だけで決める */
+  const frameHeight = (): number | undefined => (options.fitHeight ? innerHeight() : undefined);
+  /** 全体図を収めると頼まれた時だけ、全体図を収める見える高さ (#3554)。高さに収める時は窓と全体図を一緒に収めるので測らない */
+  const overviewHeight = (): number | undefined => (options.fitOverview && !options.fitHeight ? innerHeight() : undefined);
   /**
    * 見せ方を選ぶ。配管の図は寄って追わず、図を縮めずに置き、枠より広い時は枠の中を横に送る (#3398)。
    * 書き出した絵だけは全体を 1 枚に縮めて写す
@@ -439,6 +449,7 @@ export function mountDiagram(
   let mode = viewOf(frameWidth(), frameHeight());
   let width = frameWidth();
   let height = frameHeight();
+  let visible = overviewHeight();
   let svg: SVGSVGElement | null = null;
   // 止めて置く段を渡された図は、動きを嫌う人と同じく止め絵で置く。試す図は読み手が押すまで流さない
   let step =
@@ -666,6 +677,7 @@ export function mountDiagram(
       ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, {
           width,
           ...(height === undefined ? {} : { height }),
+          ...(visible === undefined ? {} : { visible }),
           lang,
         })
       : rendered.svg;
@@ -744,6 +756,7 @@ export function mountDiagram(
     fillProgress();
     width = frameWidth();
     height = frameHeight();
+    visible = overviewHeight();
     mode = viewOf(width, height);
     controls.update(drawn.layout as TryLayout);
     controls.arrange(mode, width);
@@ -775,6 +788,7 @@ export function mountDiagram(
     fillProgress();
     width = frameWidth();
     height = frameHeight();
+    visible = overviewHeight();
     mode = viewOf(width, height);
     step = Math.min(count - 1, folded?.step ?? step);
     playing = false;
@@ -910,20 +924,21 @@ export function mountDiagram(
     frame.addEventListener("click", onDragClick, true);
   }
 
-  // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも) で決まるので、変われば描き直す
+  // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも、全体図を収める時は見える高さも) で決まるので、変われば描き直す
   const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)
     ?.ResizeObserver;
   const observer = Observer
     ? new Observer(() => {
         const w = frameWidth();
         const h = frameHeight();
+        const v = overviewHeight();
         const rearranged = arrange(w);
         // 読める大きさで始める図は、枠の幅が変わって描き直した時に度合いを求め直す。600px 以上へ広がると拡大を外す。
         // 高さだけが変わった時は求め直さず、読み手が拡大した所を残す (#3483)
         if (rearranged && options.zoom) zoom = readableZoom();
         const chosen = viewOf(w, h);
         controls?.arrange(chosen, w);
-        if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height))) {
+        if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height && v === visible))) {
           if (svg) controls?.fit(frame, svg);
           // 枠の幅が変わらない時は送り位置を残す。読み手が引いて動かした所と拡大した所を、高さの変わりで戻さない
           settle();
@@ -934,6 +949,7 @@ export function mountDiagram(
         mode = chosen;
         width = w;
         height = h;
+        visible = v;
         at = t;
         place(markup());
       })
