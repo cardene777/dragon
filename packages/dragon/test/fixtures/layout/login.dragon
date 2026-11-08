@@ -1,0 +1,38 @@
+// skill の評価で AI が書いた図 (#3515)。段 5 の札「session id」は一番左の箱 (ブラウザ) へ向かう線の先に留まり、段 1 の札「email + password」は同じ箱の左で走り出しを待つ
+// どちらも生存線より左へ伸びるので、枠を広げないと図の枠の左端で切れる
+sequence ログインの流れ
+
+box browser as ブラウザ [note: 利用者が操作する, color: slate, icon: globe]
+box api as APIサーバー [note: ログインを受け付ける, color: blue, icon: server]
+box db as DB [note: 利用者を保存している, color: violet, icon: db]
+
+strip ログイン: メール, 照合, セッション
+
+step メールとパスワードを送る
+  say ブラウザが、利用者の入力したメールとパスワードをAPIサーバーに送る。
+  code POST /login
+  browser -> api: メールとパスワード [tag: email + password]
+  set メール: user@example.com
+  set 照合: まだ
+  set セッション: なし
+
+step 利用者を引く
+  say APIサーバーはメールをキーにしてDBから利用者を探し、保存されたパスワードのハッシュを受け取る。
+  api -> db: メールで利用者を検索
+  db -> api: 利用者とパスワードのハッシュ [side: below]
+
+step パスワードを照合する
+  say APIサーバーは送られたパスワードを保存されたハッシュと照らし合わせる。一致すればログイン成功になる。
+  act api: パスワードとハッシュを照合
+  set 照合: 成功
+
+step セッションを作る
+  say 照合に成功したので、APIサーバーはこの利用者のセッションを作る。
+  act api: セッションを作成
+  note api: セッションを持っている
+  set セッション: 作成済み
+
+step cookieを返す
+  say APIサーバーはセッションIDをcookieに入れてブラウザに返す。以後ブラウザはこのcookieでログイン済みとして扱われる。
+  api -> browser: 200 OK と Set-Cookie [tag: session id, side: below]
+  note browser: ログイン済み

@@ -661,7 +661,7 @@ describe("公開する頁 (#2995)", () => {
       await clickSite(page, "lang-ja");
       await expect
         .poll(() => playerNames(page), { ...WAIT, message: "日本語に戻しても再生の釦と全体図の札が日本語に戻らない" })
-        .toMatchObject({ prev: "前の段", next: "次の段", steps: "書き換えた図 の段", overview: "全体図" });
+        .toMatchObject({ prev: "前の段", next: "次の段", steps: "書き換えた図の段", overview: "全体図" });
       expect((await playerNames(page)).toggle).toMatch(/^(止める|動かす)$/u);
     },
   );
@@ -677,7 +677,8 @@ describe("公開する頁 (#2995)", () => {
       await expect.poll(() => stepsLabel(page), { ...WAIT, message: "英語の字の図が描かれない" }).toContain("Edited diagram");
       await expect
         .poll(() => playerNames(page), { ...WAIT, message: "日本語の頁で再生の釦と全体図の札が日本語で出ない" })
-        .toMatchObject({ prev: "前の段", next: "次の段", steps: "Edited diagram の段", overview: "全体図" });
+        // 段の一覧の名前は題と「の段」の間に空白を置かない (#3517)
+        .toMatchObject({ prev: "前の段", next: "次の段", steps: "Edited diagramの段", overview: "全体図" });
       expect((await playerNames(page)).toggle).toMatch(/^(止める|動かす)$/u);
     },
   );
@@ -1201,7 +1202,7 @@ describe("公開する頁 (#2995)", () => {
       .map((name) => readFileSync(join(site.built.dir, "assets", name), "utf8"))
       .join("\n");
     expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
-    const kinds = ["badges-close", "lines-close", "badge-off-shape", "slot-outside-shape", "text-outside-shape"];
+    const kinds = ["badges-close", "lines-close", "badge-off-shape", "slot-outside-shape", "text-outside-shape", "part-outside-frame"];
     expect(
       kinds.filter((kind) => first.includes(`"${kind}"`) || first.includes(`'${kind}'`) || first.includes(`\`${kind}\``)),
       "最初に読む script に在る崩れの種類の名前",
