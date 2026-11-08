@@ -9,6 +9,7 @@
  * 番号の丸が囲みと列と帯の枠線に乗る (`badge-on-frame`、#3525)。
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
+ * 別々の箱へ向かう2本の線が同じ道に重なって走るのも同じ崩れに数える (#3552)。
  * 同じ箱か commit の同じ所から出る2本の線が重なって走り、その先で分かれるのも同じ崩れに数える (#3547)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
@@ -417,10 +418,12 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   const edgeSteps = new Map(edges.map((e) => [e.points, e.step + 1]));
   traces.forEach((a, i) => {
     for (const b of traces.slice(i + 1)) {
-      // 同じ2つの箱を逆向きに結ぶ線は、重なって走る (間が0の) 時も数える。頼みと答えの線が同じ道に重なると、互いの番号の丸が相手の矢じりを隠す (#3521)。
+      // 別々の箱へ向かう2本の線は、重なって走る (間が0の) 時も数える。重なった線は、どの線がどの箱へ向かうかが読めない (#3552)。
+      // 同じ2つの箱を逆向きに結ぶ線も、頼みと答えの線が同じ道に重なると互いの番号の丸が相手の矢じりを隠すので数える (#3521)。
+      // 同じ箱へ向かう線は数えない。同じ線を別の段でもう一度引くと同じ道に重なり、別々の箱から同じ箱へ入る線は入る前に合わさって走る (木の図の枝が親へ集まる形)。
+      // どちらも、線が向かう箱は読める。
       // 同じ箱か commit の同じ所から出て重なって走り、その先で分かれる2本の線も数える。どちらの線がどこへ向かうかが読めない (#3547)
-      const back = a.from !== a.to && a.from === b.to && a.to === b.from;
-      if (!runAlong(a.points, b.points, back) && !(a.from === b.from && partAfterRun(a.points, b.points))) continue;
+      if (!runAlong(a.points, b.points, a.to !== b.to) && !(a.from === b.from && partAfterRun(a.points, b.points))) continue;
       const seen = firstSeen(a, b);
       if (seen === undefined) continue;
       const stepA = edgeSteps.get(a.points) ?? firstSeen(a) ?? seen;
@@ -599,8 +602,7 @@ function partAfterRun(a: Point[], b: Point[]): boolean {
 
 /**
  * 2本の線のどこかで、縦か横の区間どうしが間 `LINE_GAP` 未満で `LINE_ALONG` より長く並んで走るか。
- * 重なって走る (間が0の) 区間は `overlap` の時だけ数える。
- * 同じ線を別の段でもう一度引くと同じ道に重なるので、それは数えない
+ * 重なって走る (間が0の) 区間は `overlap` の時だけ数える。呼ぶ側は、2本が別々の箱へ向かう時に数えさせる (#3552)
  */
 function runAlong(a: Point[], b: Point[], overlap: boolean): boolean {
   const segments = (points: Point[]): [Point, Point][] => points.slice(1).map((p, k) => [points[k] as Point, p]);
