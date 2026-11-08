@@ -397,7 +397,8 @@ export const LOOK = {
   // 試す図 (#3337) の値も同じ理由で `look/try.ts` の `TRY_LOOK` が持つ
   /**
    * 時間軸の図 (#3165)。見本帳の試作 (`scenes/finality.js`) の寸法を写す。
-   * 図の幅は `width` で、時間軸は左の `axisX` から右の余白 `right` の手前まで。印の列の名前が長い時は、名前の右に `gutterGap` を空けて軸を右へ寄せる。
+   * 図の幅は `width` で、時間軸は左の `axisX` から、時間軸の囲みの枠の内側の余白 (`region.inset`) の手前まで。印の列の名前が長い時は、名前の右に `gutterGap` を空けて軸を右へ寄せる。
+   * `axisX` は試作の 118 から 12 左へ寄せ、軸の長さを試作と同じ 594 に保ったまま右端に余白を空ける (#3527)。
    * 拡大の帯は列ごとに、上端から `head` に列の上の字の基準線を、`boxTop` に最初の箱の上端を置き、箱を `boxGap` ずつ空けて縦に並べ、
    * 最後の箱の下に `zoomBottom` を空ける。`sep` は列の区切りの点線を帯の上下から縮める長さ、`zoomGap` は拡大の帯と時間軸の帯の間。
    * 時間軸の帯は、上端から `rowsTop` に最初の印の列を置き、列の高さ `row` と間 `rowGap` で並べる。
@@ -415,8 +416,7 @@ export const LOOK = {
    */
   time: {
     width: 728,
-    axisX: 118,
-    right: 16,
+    axisX: 106,
     gutterGap: 12,
     head: 22,
     boxTop: 34,
