@@ -117,6 +117,9 @@ function brokenArch(): Parameters<typeof findBreaks>[0] {
       { text: "3", rect: { x: -BADGE_R, y: -BADGE_R, w: BADGE_R * 2, h: BADGE_R * 2 }, shown: fromTime(3), badge: true },
     ],
     traces: [],
+    // 時間軸の囲みの崩れ (#3527) と図の枠の崩れ (#3515) はこの姿で確かめないので、囲みに収める部品を持たせず、枠は箱の大きさにする
+    framed: [],
+    frame: { w: box.w, h: box.h },
     stills: [1, 2, 3, 4],
     boxes: [box],
     edges: [],
