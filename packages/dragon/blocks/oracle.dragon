@@ -1,0 +1,7 @@
+// An oracle that brings data from off chain onto a chain, drawn as an amber rounded box with a broadcast icon
+blocks 1
+block +oracle
+  base box
+  color amber
+  icon tabler:broadcast
+end

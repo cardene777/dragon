@@ -1,0 +1,7 @@
+// A wallet that holds the key and signs transactions, drawn as a blue rounded box with a wallet icon
+blocks 1
+block +wallet
+  base box
+  color blue
+  icon tabler:wallet
+end

@@ -1,0 +1,14 @@
+// Use the shared block +cache without defining it in the diagram
+architecture Read through a cache
+
+box app as App [note: reads a user, icon: app]
++cache c as Cache [note: keeps recent reads]
+box db as Database [note: keeps every user, icon: db]
+
+step Look up
+  say The app asks the cache for the user first.
+  app -> c: get user
+
+step Load on a miss
+  say The cache does not have the user, so it loads the user from the database and keeps a copy.
+  c -> db: load user

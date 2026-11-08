@@ -1,0 +1,14 @@
+// Use the shared block +contract without defining it in the diagram
+architecture Call a token contract
+
+box user as User [note: holds tokens, icon: user]
++contract token as Token contract [note: keeps the balances]
+box shop as Shop [note: receives tokens, icon: cart]
+
+step Call
+  say The user calls transfer on the token contract.
+  user -> token: transfer
+
+step Move
+  say The contract moves the tokens from the user's balance to the shop's balance.
+  token -> shop: tokens [carry: coin]
