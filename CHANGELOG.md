@@ -50,6 +50,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   The step text written after a send, the record numbers, the queue hint and the stopped-at row put a space around every name or number written in Latin letters or digits, as in `送金E が送信経路を通って全体の列に入った。`, `記録 1` and `次は上から 1 件`. They now read `送金Eが送信経路を通って全体の列に入った。`, `記録1` and `次は上から1件`. English text keeps its spaces, and the layout warnings that the CLI shows to authors are unchanged. The fingerprints of the 20 examples that draw a try diagram in Japanese changed with the text.
 
+- **A shaped box grows until its name, the text under it and its slot fit inside the shape, and its step number sits on the edge of the shape** (#3520)
+
+  A box drawn from a block with `shape diamond`, `hexagon`, `circle`, `cylinder` or `path` kept the size of a plain box and placed its contents as in a plain box. Its name, its `note:` text and its coin or envelope slot stuck out of the shape, and a step number on the box's corner floated away from the shape. dragon now measures the room inside the shape row by row and makes the box wider and taller, up to three times its size, until every row fits, moving the rows inside the shape when needed (below the lid of a cylinder). A row of boxes takes the height of its tallest box, and the heads of a sequence diagram line up at their bottom edge. A step number on a shaped box sits on the point of the shape nearest the box's top-left corner. A `path` shape is stretched so that the smallest rectangle around it fills the box, instead of a drawing in a 100 by 100 square, so the empty part of that square no longer keeps the shape away from the box edges. In the payment, bridge and pie diagrams the issue names, `dragon check --layout` no longer reports text, slot or step number breaks on the shaped boxes. A box whose contents already fit keeps its size, and diagrams without shaped boxes draw as before. Drawing and measuring shapes now loads with the block definitions, and the script and CSS the catalog loads first went from 186,310 to 186,226 bytes gzipped.
+
 ## [0.66.1] - 2026-11-08
 
 ### Fixed

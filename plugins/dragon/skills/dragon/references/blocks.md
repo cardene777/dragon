@@ -22,7 +22,7 @@ end
 
 | Base (`base`) | Where you write it | Shape (`shape`) | Color (`color`) |
 |---|---|---|---|
-| `box` | `+<name>` in place of `box` on a box line | `round`, `circle`, `cylinder`, `diamond`, `hexagon`, or `path "..."` drawn in a 100 by 100 square | A color role |
+| `box` | `+<name>` in place of `box` on a box line | `round`, `circle`, `cylinder`, `diamond`, `hexagon`, or `path "..."`, whose outline is stretched to fill the box | A color role |
 | `edge` | `+<name>` in place of `->` on a line | `solid`, `dashed`, `dotted` (no path) | A color role |
 | `icon` | `[icon: +<name>]` on a box line | `path "..."` drawn in a 20 by 20 square centered on (0, 0). Required | None. It takes the color of its box |
 

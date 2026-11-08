@@ -34,14 +34,13 @@ Fix one break, run `dragon check --layout` again, and repeat. A fix often clears
 
 - `badges-close` between lines that leave the same box toward different boxes: Reorder the boxes, for example swap the order of two boxes in a group, so the lines leave from different sides.
 - `lines-close` and `badges-close` between a request and its reply on the same two boxes (`api -> oracle` then `oracle -> api`): dragon draws the two lines a fixed distance apart, so moving boxes does not help. When the reply only brings back a value and its line style does not matter, write it as `note api: <value>` on the asking box instead of a second line. Otherwise keep it and report it.
-- `text-outside-shape` where the text sticks out at the sides: Shorten the box name or the text under it (`note:`, `act <id>:`, `note <id>:`). The box gets narrower with the text, so check again: a narrower box can push the slot out instead.
-- `text-outside-shape` below a shape with no room at the bottom (the arch of `+bridge`), `slot-outside-shape` and `badge-off-shape`: Use a plain `box` with an `icon:` when the explanation does not need that shape. Otherwise keep it and report it.
+- `text-outside-shape`, `slot-outside-shape` and `badge-off-shape`: dragon makes a shaped box larger until its name, the text under it and its slot fit inside the shape, and puts the step number on the edge of the shape. These breaks are left only when a shape has little room inside even at three times its size, such as a thin `path`. Shorten the box name or the text under it (`note:`, `act <id>:`, `note <id>:`), or use a plain `box` with an `icon:` when the explanation does not need that shape. Otherwise keep it and report it.
 
 Do not drop content the explanation needs just to clear a warning.
 
 ## Report what is left
 
-The breaks left after these fixes come from how dragon draws (the slot or step number does not follow the shape of a block, a reply drawn right next to its request), and the notation cannot fix them.
+The breaks left after these fixes come from how dragon draws (a shape with too little room inside, a reply drawn right next to its request), and the notation cannot fix them.
 
 1. In your reply, name each break left by its step number and the parts the message names, for example "Step 3: step number 3 floats away from the shape of the bridge box".
 2. Export the step so the user can see it, and attach the image.
