@@ -1,0 +1,26 @@
+// skill の評価のケース new-kind-issue で Claude が書いた、円グラフの代わりの構成図 (#3549)。
+// グループの外の4つの箱を1行に並べ、スマートフォン市場から3本の線を出す。
+// iOS とその他へ行く線は、スマートフォン市場の下の同じ所から出て、行の下の同じ道を重なって走り、段3で lines-close が出ていた。
+architecture スマートフォンOSの市場占有率
+
+box market as スマートフォン市場 [note: 全体 100%, color: slate, icon: globe]
+box android as Android [note: 約70%, color: green, icon: app]
+box ios as iOS [note: 約29%, color: blue, icon: app]
+box other as その他 [note: 約1%, color: amber, icon: app]
+
+strip 占有率: Android, iOS, その他
+
+step Android
+  say スマートフォン市場のおよそ7割をAndroidが占める。
+  market -> android: 約70% [carry: none]
+  set Android: 約70%
+
+step iOS
+  say 残りのほとんどをiOSが占め、およそ3割になる。
+  market -> ios: 約29% [carry: none]
+  set iOS: 約29%
+
+step その他
+  say それ以外のOSは合わせてもおよそ1%にとどまる。
+  market -> other: 約1% [carry: none]
+  set その他: 約1%
