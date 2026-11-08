@@ -796,11 +796,27 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
     (obstacles.touch ?? []).every((mark) => gapBetween(rect, mark) >= LOOK.label.touch);
   const lines = obstacles.lines ?? [];
   const across = (rect: Rect): boolean => lines.every((line) => !crossesRect(line, rect, -LOOK.label.touch));
-  const { search, searchMax } = LOOK.label;
-  /** 自分の線の中ほどの脇から順に、`fits` を満たす最初の所。`reach` は脇から離す長さの上限 */
-  const find = (fits: (rect: Rect) => boolean, reach: number): Rect | undefined => {
-    for (let d = 0; d <= reach; d += search) {
+  const { search, searchMax, soft } = LOOK.label;
+  /** 脇から線から離す向きへ動かす長さ。0 から `reach` まで `search` ずつ */
+  const outward = (reach: number): number[] => Array.from({ length: Math.floor(reach / search) + 1 }, (_, k) => k * search);
+  /**
+   * 脇から線へ寄せる長さ (#3556)。`search` ずつ寄せ、最後は札と線の間が `LOOK.label.soft` になる所まで寄せる。
+   * 並んだ道の間では、決まった離れに置くと隣の道が自分の線より近くなる
+   */
+  const inward = (side: LabelSide): number[] => {
+    const room = (side === "above" || side === "below" ? offset - h / 2 : sideGap) - soft;
+    const steps: number[] = [];
+    for (let d = search; d < room; d += search) steps.push(-d);
+    return room > 0 ? [...steps, -room] : steps;
+  };
+  /** 自分の線の中ほどの脇から順に、`fits` を満たす最初の所。`reach` は脇から離す長さの上限。`toward` なら脇から線へ寄せて探す */
+  const find = (fits: (rect: Rect) => boolean, reach: number, toward = false): Rect | undefined => {
+    const steps = (side: LabelSide): number[] => (toward ? inward(side) : outward(reach));
+    const most = Math.max(...sides.map((side) => steps(side).length));
+    for (let k = 0; k < most; k++) {
       for (const side of sides) {
+        const d = steps(side)[k];
+        if (d === undefined) continue;
         const base = side === preferred ? first : baseOf(side);
         // 離す向き (その側) と、ずらす向き (それに直交する向き)
         const away: Point = side === "above" ? [0, -1] : side === "below" ? [0, 1] : side === "left" ? [-1, 0] : [1, 0];
@@ -822,11 +838,15 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
   const clear = (rect: Rect): boolean => frames.every((y) => rect.y - y >= clearance || y - (rect.y + rect.h) >= clearance);
   // `nearest` の時は、脇で別の線が自分の線の 2 倍より離れた所、脇で自分の線が最も近い所、脇で `lines` を横切らない所、
   // `lines` を見ない所の順に探す。最後は脇に限らない (#3552)。
+  // 初めの 2 つが決まった離れから外へ無い時は、同じ 2 つを線へ寄せて探す。寄せても札と自分の線の間は `LOOK.label.soft` 空ける (#3556)。
   // 枠線 (`frames`) を渡した時は、初めの 3 つを枠線から離れた所で探し、無ければ枠線を見ずに同じ 3 つを探す (#3554)
   const beside = (rect: Rect): boolean => lineGap(request.points, rect) <= besideReach(offset);
+  const clearOwn = (rect: Rect): boolean => lineGap(request.points, rect) >= soft - 0.01;
   const tiers = (keep: (rect: Rect) => boolean): Rect | undefined =>
     find((rect) => keep(rect) && across(rect) && nearestLine(rect, request.points, lines, offset, 2), h) ??
     find((rect) => keep(rect) && across(rect) && nearestLine(rect, request.points, lines, offset), h) ??
+    find((rect) => keep(rect) && clearOwn(rect) && across(rect) && nearestLine(rect, request.points, lines, offset, 2), h, true) ??
+    find((rect) => keep(rect) && clearOwn(rect) && across(rect) && nearestLine(rect, request.points, lines, offset), h, true) ??
     find((rect) => keep(rect) && across(rect) && beside(rect), h);
   const found = obstacles.nearest
     ? (tiers((rect) => free(rect) && clear(rect)) ?? (frames.length > 0 ? tiers(free) : undefined) ?? find(free, searchMax))
