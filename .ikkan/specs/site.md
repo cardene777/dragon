@@ -186,3 +186,10 @@
 | 時系列図のカタログの頁を幅 390px と 860px と 1440px (高さ 900px) で開いた時、最初の見本の枠の高さが 522px (`clamp(360px, 58vh, 620px)` の値) のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3250 |
 | カタログの構成図の頁を幅 390px と 860px で開いた時、寄って追う図の窓の枠と全体図の地が図の枠の中に全部収まる | `pnpm test`の検査`catalog-follow-figure-whole-in-frame`が通る | #3250 |
 | 拡大の重ね窓で、どの段でも図の枠を送らずに図の全体が見える | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3250 |
+| 概要の頁 (`/dragon/`) を開き、後から読む見本の記法の塊を読み終えて通信が止まるまで待っても、Tabler の表の塊を取りに行かない | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`home-skips-tabler-table`が通る | #3505 |
+| 編集画面の棚に橋の見本が載り、選ぶと書く欄にその記法が入って図が描かれる | `pnpm exec vitest run apps/playground-spa/src/lib/site-editor.test.ts`の検査`editor-shelf-has-user-blocks`が通る | #3505 |
+| 編集画面の棚で選んだ橋の見本の橋の箱に、Tabler の石の橋の絵柄が描かれる | `pnpm exec vitest run apps/playground-spa/src/lib/site-editor.test.ts`の検査`editor-shelf-bridge-draws-tabler-icon`が通る | #3505 |
+| 見本の一覧の分類の頁に、その図の種類の見本が全て載り、どの見本も記法として読める | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`catalog-samples-all-valid`が通る | #3505 |
+| 使い方の頁の「ブロックを足す」の節の図が、足した箱に定義の絵柄を、受け取る側の箱に足した印の path を描く | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`docs-extend-example-draws-user-blocks`が通る | #3505 |
+| 編集画面を描いた後に、使い方の頁とカタログの頁を持つ塊を読み始める | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunks-start-after-first-screen`が通る | #3505 |
+| 見本帳が最初に読む script と CSS の合計が、今の上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3505 |

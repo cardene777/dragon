@@ -8,11 +8,19 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **`dragon check` が足したブロックの定義の file を確かめ、`--blocks <file>` でその file の定義を使って図を確かめる** (#3508)
+
+  注釈の後の最初の行が `blocks 1` の file (`packages/dragon/blocks/` の共有のブロックなど) を、図ではなく足したブロックの定義として読む。正しい file は何も出さずに終わり方0で終わり、誤りは行と列を出して終わり方1で終わる。これまでは、どの定義の file も `Start the first line with sequence or ...` で止まっていた。`dragon check --blocks vault.dragon example.dragon` は定義を読み、その定義を使って `example.dragon` を確かめるので、入れた `dragon` がまだ知らないブロックを使う図も、dragonを組み立て直さずに確かめられる。`--layout` を付けた時も、渡した定義で図を描く。`checkLayoutText` も、設定の `blocks` を描く処理に渡すようにした。`--blocks` に無い file か図の file を渡すと、その file を名指して終わり方2で止まる。skill の、共有のブロックを dragon の repo に出す手順も、この形で定義と見本を確かめ、`pnpm verify` を回せなかった時は PR に書くようにした。
+
 - **箱を元にしたブロックの定義に、箱の絵柄を書ける** (#3489)
 
   `box` を元にした定義の `block +<名前>` から `end` の間に `icon tabler:building-bridge-2` のような `icon <名前>` の行を書くと、そのブロックの箱は全て絵柄の枠にその絵柄を描く。書ける名前は箱の行の `icon:` と同じで、手描きの絵柄か `tabler:<名前>` を書ける。箱の行に書いた絵柄が定義の絵柄に勝つ。`edge` と `icon` を元にした定義に `icon` を書くとその行で止まり、知らない名前もその行で止まって一番近い名前を挙げる。原本のJSONの `define` も `icon` を持ち、`validateDiagram` はTablerに無い名前を `/define/blocks/<番号>/icon` を指して断る。記法に書き戻すと行も書き戻す。軽い入口は、定義に `icon tabler:` を書いた図か、Tablerの絵柄を持つ共有のブロックを使う図で `loadFor` を待つと、Tablerの塊を読む。読む前にその図を描くと `loadFor` を待つよう告げる誤りで止まる。
 
 ### Changed
+
+- **見本帳の概要の頁を開いただけでは、Tablerの絵柄の表 (gzipで約225KB) を裏で読まないようにした** (#3505)
+
+  0.67.0の見本帳は、最初の画面を描いた後に後から読む見本を裏で読む時、橋の見本の定義の `icon tabler:` を見てTablerの表も読んでいた。そのため橋の見本も使い方の頁も開かない人まで表を読んでいた。見本の記法は今どおり裏で読み、表は編集画面かカタログの頁を開いた時と、使い方の頁の「ブロックを足す」の節の図を描く時に読む。最初に読む script と CSS は gzip で186,341バイトから186,327バイトになった。
 
 - **共有の `+bridge` を、アーチの形から石の橋の絵柄を持つ角丸の箱にした** (#3489)
 

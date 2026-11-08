@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { CHECKED_FILES, checkText, type Problem, problemLine } from "./check";
+import { CHECKED_FILES, checkText, isBlocksFile, type Problem, problemLine, readBlocksFile } from "./check";
 import { embedPage } from "./export/embed";
 import { type ExportFormat, exportDiagram, FORMATS, NoSuchStep } from "./export/index";
 import { PALETTES, type Theme } from "./look/values";
@@ -38,7 +38,7 @@ const OPTIONS = {
 const EMBED_OPTIONS = { out: { type: "string" }, lang: { type: "string" } } as const;
 
 /** `dragon check` の設定 */
-const CHECK_OPTIONS = { json: { type: "boolean" }, layout: { type: "boolean" }, lang: { type: "string" } } as const;
+const CHECK_OPTIONS = { json: { type: "boolean" }, layout: { type: "boolean" }, lang: { type: "string" }, blocks: { type: "string" } } as const;
 
 /** package の版。build が入れる (`tsup.config.ts`) */
 declare const __DRAGON_VERSION__: string;
@@ -59,6 +59,10 @@ interface CliText {
   checkUsage: string;
   /** `dragon check` が読めない拡張子の file */
   cannotCheck: (path: string) => string;
+  /** `dragon check --blocks` に渡した定義の file が無い (#3508) */
+  noBlocksFile: (path: string) => string;
+  /** `dragon check --blocks` に渡した file が足したブロックの定義の file でない (#3508) */
+  notBlocksFile: (path: string) => string;
   /** `dragon --version` の使い方 */
   versionUsage: string;
   unknownOption: (name: string) => string;
@@ -105,9 +109,12 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "使い方: dragon check <記法の file (.dragon か .md) か -> [設定]",
       "  --json             誤りと知らせを JSON で出す",
       "  --layout           図を描き、崩れ (丸や線の詰まり、箱の形からのはみ出し) も段ごとに知らせる",
+      "  --blocks <file>    足したブロックの定義の file を読み、その定義を図に渡して確かめる",
       "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
     ].join("\n"),
     cannotCheck: (path) => `確かめられない file: ${path} (.dragon か .md の file か、標準入力の - を渡す)`,
+    noBlocksFile: (path) => `足したブロックの定義の file が無い: ${path}`,
+    notBlocksFile: (path) => `足したブロックの定義の file でない: ${path} (注釈の後の最初の行を blocks 1 にする)`,
     versionUsage: "使い方: dragon --version (版を出す)",
     unknownOption: (name) => `知らない設定: ${name}`,
     missingValue: (name) => `設定に値が無い: ${name}`,
@@ -148,9 +155,12 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "Usage: dragon check <notation file (.dragon or .md) or -> [options]",
       "  --json             Print the errors and warnings as JSON",
       "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, parts sticking out of a box shape) per step",
+      "  --blocks <file>    Read the block definitions in this file and check the diagrams with them",
       "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
     ].join("\n"),
     cannotCheck: (path) => `Cannot check this file: ${path} (pass a .dragon or .md file, or - for stdin)`,
+    noBlocksFile: (path) => `No such block definitions file: ${path}`,
+    notBlocksFile: (path) => `Not a block definitions file: ${path} (start it with blocks 1 after any comments)`,
     versionUsage: "Usage: dragon --version (prints the version)",
     unknownOption: (name) => `Unknown option: ${name}`,
     missingValue: (name) => `Option needs a value: ${name}`,
@@ -288,7 +298,9 @@ function embed(args: string[], text: CliText): number {
 
 /**
  * `dragon check <file>...`。記法の file と Markdown の file と標準入力 (`-`) を確かめる (#3455)。
- * 無い file か読めない拡張子の file が 1 つでも在れば、どれも確かめずに終わり方 2 で断る
+ * 無い file か読めない拡張子の file が 1 つでも在れば、どれも確かめずに終わり方 2 で断る。
+ * 足したブロックの定義の file も確かめ、`--blocks <file>` で渡した定義は確かめる図に渡す (#3508)。
+ * 渡した定義の file が無いか定義の file でない時は終わり方 2 で断り、定義に誤りがある時はその誤りを出して終わり方 1 で終わる
  */
 function check(args: string[], text: CliText): number {
   const problem = optionProblem(args, text, CHECK_OPTIONS);
@@ -321,8 +333,36 @@ function check(args: string[], text: CliText): number {
       return 2;
     }
   }
-  const problems: Problem[] = sources.flatMap(({ file, source, form }) => checkText(file, source, form, lang, values.layout ? CLI_TEXT[lang].overlap : undefined));
-  if (values.json) console.log(JSON.stringify(problems, null, 2));
+  const blocks = values.blocks === undefined ? undefined : blocksOption(values.blocks, lang, text);
+  if (typeof blocks === "number") return blocks;
+  if (blocks !== undefined && !blocks.ok) return report(blocks.problems, values.json === true);
+  const layout = values.layout ? CLI_TEXT[lang].overlap : undefined;
+  return report(
+    sources.flatMap(({ file, source, form }) => checkText(file, source, form, lang, { ...(layout !== undefined ? { layout } : {}), ...(blocks !== undefined ? { blocks: blocks.blocks } : {}) })),
+    values.json === true,
+  );
+}
+
+/** `--blocks` で渡した定義の file を読む。無いか定義の file でない時は断りを出し、終わり方 2 を返す (#3508) */
+function blocksOption(path: string, lang: NotationLang, text: CliText): ReturnType<typeof readBlocksFile> | number {
+  let source: string;
+  try {
+    source = readFileSync(path, "utf8");
+  } catch (error) {
+    const missing = error instanceof Error && "code" in error && error.code === "ENOENT";
+    console.error(missing ? text.noBlocksFile(path) : text.unreadable(path, detail(error)));
+    return 2;
+  }
+  if (!isBlocksFile(source)) {
+    console.error(`${text.notBlocksFile(path)}\n${text.checkUsage}`);
+    return 2;
+  }
+  return readBlocksFile(path, source, lang);
+}
+
+/** 誤りと知らせを出し、誤りがあれば終わり方 1、無ければ 0 を返す */
+function report(problems: Problem[], json: boolean): number {
+  if (json) console.log(JSON.stringify(problems, null, 2));
   else for (const found of problems) console.log(problemLine(found));
   return problems.some((found) => found.severity === "error") ? 1 : 0;
 }

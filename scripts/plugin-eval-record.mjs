@@ -11,9 +11,14 @@
  * 評価の囲いは npm に届かず、プラグインの置き場の外の file も読めない。そこで、プラグインの写しを作り、
  * この repo で build した `dist/cli.cjs` を写しの中に置いて、それを呼ぶ `dragon` を PATH の頭に足して回す。
  *
- * 1 回の run が通るのは、ケースの判定が全て通り、かつ保存した図の崩れの段を全て返答が名指している時。
- * 保存した図を、この repo の `dragon check --layout` に掛け直し、出た崩れの段の番号 (「段 3」「Step 3」) が最後の返答に有るかを見る。
- * 崩れが 0 件の図は、名指す段が無いので通る。
+ * 1 回の run が通るのは、ケースの判定が全て通り、かつケースの印 (`prompt.md` の `tags`) ごとの次の確かめが通った時。
+ *
+ * - `layout` の印のケースは、保存した図を、この repo の `dragon check --layout` に掛け直し、出た崩れの段の番号
+ *   (「段 3」「Step 3」) が最後の返答に有るかを見る。崩れが 0 件の図は、名指す段が無いので通る。
+ * - `pr` の印のケースは、fork の代わりの写しの repo (`plugin-eval-stand-in.mjs`) で、共有のブロックの定義と見本を 1 つずつ足し、
+ *   2 つともこの repo の `dragon check` (見本は `--blocks` で定義を渡す) が通り、偽の `gh` に `pr create` を `--repo cardene777/dragon` と
+ *   `feat:` で始まる題で渡し、`pr merge` を渡さず、PR の本文が `pnpm verify` に触れているかを見る (#3508)。
+ *   写しの repo は作業場所へ下ごしらえ (`scaffold.sh`) が写すので、評価を `--scaffold` 付きで回す。
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -32,6 +37,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
+import { BASE_TAG, GH_LOG, makeStandIn } from "./plugin-eval-stand-in.mjs";
 
 const ROOT = process.cwd();
 const PLUGIN = join(ROOT, "plugins/dragon");
@@ -94,6 +100,116 @@ function breakSteps(file) {
 /** 返答が段 `step` を名指すか */
 const namesStep = (reply, step) =>
   new RegExp(`(?:段|ステップ|Step|step)\\s*${step}(?!\\d)`, "u").test(reply);
+
+/** ケースの印。`prompt.md` の頭の `tags: [...]` */
+function tagsOf(name) {
+  const head = readFileSync(join(EVALS, name, "prompt.md"), "utf8");
+  const tags = /^tags:\s*\[([^\]]*)\]/mu.exec(head)?.[1] ?? "";
+  return tags.split(",").map((tag) => tag.trim()).filter((tag) => tag !== "");
+}
+
+/** 崩れを伝えるケースの確かめ。通らない理由と、崩れの段の並びを返す */
+function judgeLayout(base, reply) {
+  const files = globSync("sealed/**/*.dragon", { cwd: base }).map((file) => join(base, file));
+  const found = files.map((file) => ({ file, ...breakSteps(file) }));
+  const unnamed = found.flatMap((f) =>
+    (f.steps ?? [])
+      .filter((step) => !namesStep(reply, step))
+      .map((step) => `${relative(base, f.file)} の段 ${step}`),
+  );
+  const why = [
+    ...(files.length === 0 ? ["保存した .dragon が無い"] : []),
+    ...unnamed.map((s) => `返答が ${s} の崩れを名指さない`),
+    ...found.flatMap((f) => (f.error ? [`${relative(base, f.file)}: ${f.error}`] : [])),
+  ];
+  const note = found
+    .map((f) => `${relative(base, f.file)}: 崩れの段 [${(f.steps ?? []).join(", ")}]`)
+    .join(" / ");
+  return { why, note };
+}
+
+/** 引数の並びから設定 `names` の値を引く。`--repo x` と `--repo=x` の 2 つの書き方を読む */
+function optionValue(args, names) {
+  for (const [i, arg] of args.entries()) {
+    if (names.includes(arg)) return args[i + 1];
+    const long = names.find((name) => name.startsWith("--") && arg.startsWith(`${name}=`));
+    if (long !== undefined) return arg.slice(long.length + 1);
+  }
+  return undefined;
+}
+
+/** この repo の `dragon check` を回し、通らない時は理由を返す */
+function checkWithRepoCli(args) {
+  const ran = spawnSync(process.execPath, [CLI, "check", ...args], { encoding: "utf8" });
+  return ran.status === 0 ? undefined : `dragon check ${args.join(" ")} の終わり方 ${ran.status}: ${(ran.stdout + ran.stderr).trim()}`;
+}
+
+/** `dir` の下の file の、`dir` からの path と中身。`.git` と `node_modules` の下は数えない */
+function treeOf(dir) {
+  const files = new Map();
+  const walk = (at) => {
+    for (const name of readdirSync(at)) {
+      if (name === ".git" || name === "node_modules") continue;
+      const path = join(at, name);
+      if (lstatSync(path).isDirectory()) walk(path);
+      else files.set(relative(dir, path), readFileSync(path));
+    }
+  };
+  walk(dir);
+  return files;
+}
+
+/**
+ * 共有のブロックを足して PR を出すケースの確かめ (#3508)。通らない理由と、足した file と PR の題を返す。
+ * 残した作業場所の中では git を打たない (囲いの中で書かれた設定を読んで動くため)。写しの repo の元 (`template`) と file を見比べて数える
+ */
+function judgePr(base, template) {
+  const heads = globSync("sealed/**/.git/refs/tags/" + BASE_TAG, { cwd: base });
+  if (heads.length !== 1) return { why: [`作業場所に写しの repo が 1 つでない (${heads.length} 個)`], note: "" };
+  const gitDir = join(base, dirname(dirname(dirname(heads[0]))));
+  const repo = dirname(gitDir);
+  const before = treeOf(template);
+  const after = treeOf(repo);
+  const all = [
+    ...[...after.keys()].filter((path) => !before.has(path)).map((path) => ["A", path]),
+    ...[...before.keys()].filter((path) => !after.has(path)).map((path) => ["D", path]),
+    ...[...after.keys()].filter((path) => before.has(path) && !before.get(path).equals(after.get(path))).map((path) => ["M", path]),
+  ];
+  const blocksDir = "packages/dragon/blocks/";
+  const added = all.filter(([status, path]) => status === "A" && path.startsWith(blocksDir)).map(([, path]) => path);
+  const definitions = added.filter((path) => /^packages\/dragon\/blocks\/[a-z0-9-]+\.dragon$/u.test(path));
+  const examples = added.filter((path) => /^packages\/dragon\/blocks\/examples\/[a-z0-9-]+\.dragon$/u.test(path));
+  const touched = all.filter(([status, path]) => status !== "A" || path.startsWith("packages/")).filter(([, path]) => !added.includes(path));
+  const why = [];
+  if (definitions.length !== 1 || examples.length !== 1 || added.length !== 2)
+    why.push(`共有のブロック集に足した file が定義と見本の 1 つずつでない: [${added.join(", ")}]`);
+  else if (definitions[0].split("/").at(-1) !== examples[0].split("/").at(-1))
+    why.push(`定義と見本の file の名前が違う: ${definitions[0]} と ${examples[0]}`);
+  if (touched.length > 0) why.push(`ほかの file を変えた: [${touched.map(([status, path]) => `${status} ${path}`).join(", ")}]`);
+  if (definitions.length === 1) {
+    const definition = join(repo, definitions[0]);
+    const failed = [checkWithRepoCli([definition]), ...examples.map((example) => checkWithRepoCli(["--blocks", definition, join(repo, example)]))];
+    why.push(...failed.filter((reason) => reason !== undefined));
+  }
+  const logPath = join(gitDir, GH_LOG);
+  const calls = existsSync(logPath)
+    ? readFileSync(logPath, "utf8").trimEnd().split("\n").filter((line) => line !== "").map((line) => JSON.parse(line))
+    : [];
+  const creates = calls.map((args, index) => ({ args, index })).filter(({ args }) => args[0] === "pr" && args[1] === "create");
+  if (calls.some((args) => args[0] === "pr" && args[1] === "merge")) why.push("gh pr merge を呼んだ");
+  const last = creates.at(-1);
+  if (last === undefined) why.push("gh pr create を呼んでいない");
+  const title = last === undefined ? undefined : optionValue(last.args, ["--title", "-t"]);
+  if (last !== undefined) {
+    const target = optionValue(last.args, ["--repo", "-R"]);
+    if (target !== "cardene777/dragon") why.push(`gh pr create の宛先が cardene777/dragon でない: ${target ?? "なし"}`);
+    if (!title?.startsWith("feat:")) why.push(`PR の題が feat: で始まらない: ${title ?? "なし"}`);
+    const bodyPath = join(gitDir, `gh-pr-body-${last.index + 1}.md`);
+    const body = existsSync(bodyPath) ? readFileSync(bodyPath, "utf8") : optionValue(last.args, ["--body", "-b"]) ?? "";
+    if (!body.includes("pnpm verify")) why.push("PR の本文が pnpm verify に触れない");
+  }
+  return { why, note: `足した file [${added.join(", ")}] PR の題 ${title ?? "なし"}` };
+}
 
 if (!existsSync(CLI)) {
   console.error(`${relative(ROOT, CLI)} が無い。先に pnpm build:packages を回す`);
@@ -166,6 +282,8 @@ if (tried.status !== 0) {
   console.error(`写しの dragon が動かない: ${tried.stderr}`);
   process.exit(1);
 }
+// fork の代わりの写しの repo と偽の gh も、囲いの中から読めるプラグインの写しの中に置く (#3508)
+const standIn = makeStandIn({ root: ROOT, dir: join(copy, "eval-stand-in") });
 
 const out = join(work, "result.json");
 const ran = spawnSync(
@@ -181,6 +299,7 @@ const ran = spawnSync(
     "--trust-plugin",
     "--no-publish",
     "--keep-temp",
+    "--scaffold",
     "--ablation",
     "none",
     "-j",
@@ -190,7 +309,7 @@ const ran = spawnSync(
   ],
   {
     stdio: "inherit",
-    env: { ...process.env, PATH: `${dirname(wrapper)}:${process.env.PATH ?? ""}` },
+    env: { ...process.env, PATH: `${dirname(wrapper)}:${standIn.bin}:${process.env.PATH ?? ""}` },
   },
 );
 if (!existsSync(out)) {
@@ -204,36 +323,27 @@ const record = existsSync(RECORD) ? JSON.parse(readFileSync(RECORD, "utf8")) : {
 const date = new Date().toISOString().slice(0, 10);
 for (const evalCase of result.cases) {
   const runs = evalCase.arms.with ?? [];
+  const tags = tagsOf(evalCase.name);
   let passed = 0;
   runs.forEach((run, index) => {
     const base = dirname(dirname(run.tracePath));
     // 残した囲いの dir は持ち主しか開けない形で封じてあるので、読む前に開ける
     for (const dir of [base, join(base, "sealed")]) if (existsSync(dir)) chmodSync(dir, 0o700);
     const reply = existsSync(run.tracePath) ? lastReply(run.tracePath) : "";
-    const files = globSync("sealed/**/*.dragon", { cwd: base }).map((file) => join(base, file));
-    const found = files.map((file) => ({ file, ...breakSteps(file) }));
-    const unnamed = found.flatMap((f) =>
-      (f.steps ?? [])
-        .filter((step) => !namesStep(reply, step))
-        .map((step) => `${relative(base, f.file)} の段 ${step}`),
-    );
-    const errors = found.flatMap((f) => (f.error ? [`${relative(base, f.file)}: ${f.error}`] : []));
+    const judged = [
+      ...(tags.includes("layout") ? [judgeLayout(base, reply)] : []),
+      ...(tags.includes("pr") ? [judgePr(base, standIn.repo)] : []),
+    ];
     const failedGraders = (run.graders ?? [])
       .filter((g) => !g.passed)
       .map((g) => `${g.name} (${g.explanation})`);
-    const ok = run.passed && files.length > 0 && unnamed.length === 0 && errors.length === 0;
+    const why = [...failedGraders, ...judged.flatMap((j) => j.why)];
+    if (judged.length === 0) why.push(`確かめ方の印 (layout か pr) が無い: [${tags.join(", ")}]`);
+    const ok = run.passed && why.length === 0;
     if (ok) passed++;
-    const why = [
-      ...failedGraders,
-      ...(files.length === 0 ? ["保存した .dragon が無い"] : []),
-      ...unnamed.map((s) => `返答が ${s} の崩れを名指さない`),
-      ...errors,
-    ];
-    const steps = found
-      .map((f) => `${relative(base, f.file)}: 崩れの段 [${(f.steps ?? []).join(", ")}]`)
-      .join(" / ");
+    const note = judged.map((j) => j.note).join(" / ");
     console.log(
-      `${evalCase.name} run${index + 1}: ${ok ? "通った" : "落ちた"} ${steps}${why.length > 0 ? ` 理由: ${why.join(" / ")}` : ""} 記録: ${run.tracePath}`,
+      `${evalCase.name} run${index + 1}: ${ok ? "通った" : "落ちた"} ${note}${why.length > 0 ? ` 理由: ${why.join(" / ")}` : ""} 記録: ${run.tracePath}`,
     );
   });
   record[evalCase.name] = {

@@ -43,7 +43,11 @@ The renderer draws everything inside `packages/dragon` and does not depend on an
    pnpm verify
    ```
 
+   If you cannot run it, for example because `pnpm install` cannot reach npm, write that and the error in the pull request's test plan instead of ticking the box.
+
 5. Open a pull request.
+
+A new shared block in `packages/dragon/blocks/` can be checked without building. Run `dragon check` on the definition file, and `dragon check --blocks <definition file> <example file>` on its example.
 
 `pnpm verify` runs the type check, the build, lint, and every test, shortest first.
 Run all of it, not only the tests near your change.

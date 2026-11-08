@@ -8,11 +8,19 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **`dragon check` checks a block definitions file, and `--blocks <file>` checks diagrams with the definitions in that file** (#3508)
+
+  A file whose first line after any comments is `blocks 1`, such as a shared block in `packages/dragon/blocks/`, is now read as block definitions instead of a diagram. A correct file prints nothing and exits 0, and an error prints its line and column and exits 1. Before, every such file stopped at `Start the first line with sequence or ...`. `dragon check --blocks vault.dragon example.dragon` reads the definitions and checks `example.dragon` with them, so a diagram that uses a block the installed `dragon` does not know yet can be checked without building dragon again. With `--layout`, it also draws the diagram with those definitions, and `checkLayoutText` now passes its `blocks` option to the drawing as well. Passing a missing file or a diagram to `--blocks` stops with exit code 2 and names the file. The skill's steps for offering a shared block to the dragon repo now check the definition and its example this way, and say to write in the pull request when `pnpm verify` could not run.
+
 - **A block definition based on a box can give its boxes an icon** (#3489)
 
   Write `icon <name>` between `block +<name>` and `end` in a definition based on `box`, such as `icon tabler:building-bridge-2`, and every box of that block draws the icon in its icon slot. The line takes the same names as `icon:` on a box line, a hand-drawn icon or `tabler:<name>`, and an icon written on the box line wins over the definition's. A definition based on `edge` or `icon` that writes `icon` stops at that line, and an unknown name stops at that line and names the closest one. The JSON `define` field takes `icon` too, `validateDiagram` refuses a Tabler name it does not have at `/define/blocks/<n>/icon`, and printing writes the line back. The light entry reads the Tabler chunk when you await `loadFor` for a diagram whose definitions write `icon tabler:`, or that uses a shared block with a Tabler icon. Drawing such a diagram before that stops with an error that says to await `loadFor`.
 
 ### Changed
+
+- **Opening the catalog's home page no longer loads the Tabler icon table (about 225KB gzipped) in the background** (#3505)
+
+  In 0.67.0, when the catalog loaded the later examples in the background after drawing the first screen, it saw `icon tabler:` in the bridge example's definition and loaded the Tabler table too. Visitors who never opened the bridge example or the guide page loaded the table anyway. The example notation still loads in the background, and the table now loads when you open the editor or a catalog page, or when the guide page draws the figure in its "Adding blocks" section. The script and CSS loaded first went from 186,341 to 186,327 bytes gzipped.
 
 - **The shared `+bridge` block is a rounded box with a stone bridge icon instead of an arch** (#3489)
 

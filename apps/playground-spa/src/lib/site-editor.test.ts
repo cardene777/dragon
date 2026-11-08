@@ -5,7 +5,7 @@
  * 2 つ以上の file が使う道具は `site-support.ts` に在る (#3381)
  */
 
-import { parseNotation } from "@cardenelabs/dragon";
+import { parseNotation, renderDiagram } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { EXAMPLE_KEYS, type ExampleKey } from "../examples";
 import { toHash } from "../share";
@@ -1032,5 +1032,27 @@ describe("編集画面の棚の足したブロックの見本 (#3407)", () => {
         message: "棚の足したブロックの見本が描かれない",
       })
       .toContain(title);
+  });
+
+  it("editor-shelf-bridge-draws-tabler-icon", async () => {
+    // 橋の見本の足した箱は、定義に書いた Tabler の石の橋の絵柄で描く (#3489)。見本帳は棚を開いた時に表の塊を読む (#3505)
+    const text = example("bridge.dragon") ?? "";
+    const parsed = parseNotation(text, { lang: "ja" });
+    const icon = parsed.ok ? parsed.diagram.define?.blocks.find((b) => b.base === "box")?.icon : undefined;
+    expect(icon, "bridge.dragon の足した箱が Tabler の絵柄を定義しない").toMatch(/^tabler:/u);
+    // 定義の絵柄の形は、同じ絵柄を箱の行に書いて既定の入口で描いた形と比べる
+    const sample = parseNotation(["architecture 絵柄", "", "box a as A", `box b as B [icon: ${icon}]`, "", "step 見る", "  say 見る。", "  a -> b: 見る", ""].join("\n"));
+    const glyph = sample.ok ? /class="dg-gl"[^>]* d="([^"]+)"/u.exec(renderDiagram(sample.diagram).svg)?.[1] : undefined;
+    expect(glyph, `箱の行に書いた ${icon} が既定の入口で描かれない`).toBeDefined();
+    const { page } = await site.open({ path: `${BASE}editor`, viewport: { width: 1440, height: 900 } });
+    await onScreen(page, "editor", "編集画面が出ない");
+    await expect.poll(() => page.locator('[data-playground="sample-bridge"]').count(), { ...WAIT, message: "編集画面の棚に橋の見本が載らない" }).toBe(1);
+    await page.locator('[data-playground="sample-bridge"]').click();
+    await expect
+      .poll(
+        () => page.evaluate((d) => [...document.querySelectorAll('[data-playground="stage"] svg path.dg-gl')].some((p) => p.getAttribute("d") === d), glyph),
+        { ...WAIT, message: "棚の橋の見本の橋の箱に、定義の石の橋の絵柄が描かれない" },
+      )
+      .toBe(true);
   });
 });

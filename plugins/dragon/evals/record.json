@@ -12,5 +12,12 @@
     "passed": 3,
     "claude": "2.1.319",
     "date": "2026-11-08"
+  },
+  "block-pr": {
+    "fingerprint": "ca550ebe74f369618e470dc4a3630501631c8028893521eba3f20962f8a42552",
+    "runs": 3,
+    "passed": 3,
+    "claude": "2.1.319",
+    "date": "2026-11-08"
   }
 }

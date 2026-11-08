@@ -8,6 +8,7 @@ import { FIGURE_TEXT } from "../figure-text";
 import { type ParseOptions, parseNotation } from "../parser";
 import type { Diagram } from "../schema";
 import { tokenize } from "../tokenize";
+import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { boxOutline } from "../blocks/box/draw";
 import type { Point } from "../layout/scene";
@@ -44,14 +45,15 @@ export function checkLayout(render: (width: number | undefined) => LayoutBreak[]
 }
 
 /** 読めた図 `diagram` の崩れ。描けない図は描く処理の断りを投げる */
-export function diagramBreaks(diagram: Diagram, lang: NotationLang = DEFAULT_LANG): LayoutBreak[] {
-  return checkLayout((width) => drawDiagram(diagram, { lang, findBreaks: finder, ...(width === undefined ? {} : { width }) }).breaks ?? []);
+export function diagramBreaks(diagram: Diagram, lang: NotationLang = DEFAULT_LANG, blocks?: UserBlocks): LayoutBreak[] {
+  // 図の頭に書かずに渡した定義 (`dragon check --blocks`、#3508) も描く処理に渡す
+  return checkLayout((width) => drawDiagram(diagram, { lang, findBreaks: finder, ...(width === undefined ? {} : { width }), ...(blocks === undefined ? {} : { blocks }) }).breaks ?? []);
 }
 
 /** 記法 `text` の崩れ。記法に誤りがあれば描かずに空を返す (誤りは `parseNotation` か `dragon check` が出す) */
 export function checkLayoutText(text: string, options: ParseOptions = {}): LayoutBreak[] {
   const parsed = parseNotation(text, options);
-  return parsed.ok ? diagramBreaks(parsed.diagram, options.lang ?? DEFAULT_LANG) : [];
+  return parsed.ok ? diagramBreaks(parsed.diagram, options.lang ?? DEFAULT_LANG, options.blocks) : [];
 }
 
 /** 記法 `text` の段を始める `step` の行の番号 (1 から数える) を段の順に */

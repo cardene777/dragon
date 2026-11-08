@@ -5,7 +5,7 @@
  * 時系列図の見本は、入門と OAuth の間に、よく描く形 (往復、やり直し、支払い、署名) を易しい順に並べる (#3167)。
  *
  * 概要の頁の用例と編集画面の最初の見本 (`FIRST_SCREEN_EXAMPLES`) だけを最初に読み、待たずに出す。
- * ほかの見本は `examples-later.ts` の 1 つの塊にし、最初の画面を描いた後に裏で読む (#3246)。
+ * ほかの見本は `examples-later.ts` の 1 つの塊にし、最初の画面を描いた後に記法だけを裏で読む (#3246)。見本が使う読み方は、見本を並べる所が待つ時に読む (#3505)。
  * 届く前の見本の記法は `undefined` で、届いたかは `LATER_EXAMPLES` の状態で分かる。
  */
 import ccipJa from "../../../packages/dragon/examples/ccip.dragon?raw";
@@ -43,14 +43,10 @@ const FIRST: Record<FirstScreenKey, Record<Lang, string>> = {
 
 /**
  * 後から読む見本の塊。見本の題と種類を引く所 (見本帳、棚、部品の頁) は届いた見本の記法を待たずに読むので、
- * 見本が使うブロックの読み方を読んでから届いたことにする (#3349)。描く部品は読まず、図を描く所が種類の塊を待つ
+ * 見本が使うブロックの読み方を読んでから届いたことにする (#3349)。描く部品は読まず、図を描く所が種類の塊を待つ。
+ * 絵柄集 Tabler の絵柄を書く見本 (橋の見本) は、題と種類を読むにも表の塊 (gzip で約 225KB) が要るので、この塊を待つ所が表も読む (#3505)
  */
-export const LATER_EXAMPLES = laterChunk(() =>
-  import("./examples-later").then(async (m) => {
-    await Promise.all(Object.values(m.LATER_EXAMPLES).flatMap((texts) => Object.values(texts).map((text) => loadReadings(text))));
-    return m.LATER_EXAMPLES;
-  }),
-);
+export const LATER_EXAMPLES = laterChunk(() => import("./examples-later").then((m) => m.withReadings(loadReadings)));
 
 const isFirstScreen = (key: ExampleKey): key is FirstScreenKey => (FIRST_SCREEN_EXAMPLES as readonly ExampleKey[]).includes(key);
 
