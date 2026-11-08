@@ -25,7 +25,7 @@ const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-export-lang-"))
 function expected(lang: "ja" | "en", title: string): Omit<PlayerWords, "overviewFits"> {
   return lang === "en"
     ? { htmlLang: "en", prev: "Previous step", pause: "Pause", play: "Play", next: "Next step", steps: `Steps of ${title}`, overview: "Overview" }
-    : { htmlLang: "ja", prev: "前の段", pause: "止める", play: "動かす", next: "次の段", steps: `${title} の段`, overview: "全体図" };
+    : { htmlLang: "ja", prev: "前の段", pause: "止める", play: "動かす", next: "次の段", steps: `${title}の段`, overview: "全体図" };
 }
 
 /** 命令で HTML だけを書き出し、書き出した HTML を狭い枠で開いて読む */
