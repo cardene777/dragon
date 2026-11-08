@@ -105,6 +105,10 @@ export interface RenderOptions {
   still?: boolean;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
   blocks?: UserBlocks;
+}
+
+/** 描く処理の中だけで渡す設定。使う人の入口の設定 (`RenderOptions`) には出さない */
+export interface DrawOptions extends RenderOptions {
   /**
    * 描いた図の崩れ (`breaks`) を数える処理 (#3484)。`dragon check --layout` が `findDrawnBreaks` を渡す。書かなければ数えない。
    * 描く処理が数える処理を読み込むと、頁が最初に読む塊に使わない処理が入るので、使う側が渡す
@@ -130,7 +134,7 @@ export interface Rendered {
   source?: DiagramModel;
   /** 段ごとの止め絵で、同時に見えている字どうしの重なりと、線が札を持たない字を横切る所 (#3175)。重なりが無ければ空 */
   overlaps: Overlap[];
-  /** 描いた図の崩れ (#3484)。`findBreaks` を立てて描いた時だけ持つ */
+  /** 描いた図の崩れ (#3484)。崩れを数える処理を渡して描いた時だけ持つ */
   breaks?: LayoutBreak[];
 }
 
@@ -915,6 +919,11 @@ export function paletteOf(options: RenderOptions, theme: Theme): Palette {
 
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */
 export function renderDiagram(input: unknown, options: RenderOptions = {}): Rendered {
+  return drawDiagram(input, options);
+}
+
+/** `renderDiagram` と同じく描き、描く処理の中だけの設定 (`DrawOptions`) も受け取る。`dragon check --layout` が崩れを数える処理を渡す */
+export function drawDiagram(input: unknown, options: DrawOptions = {}): Rendered {
   const lang = options.lang ?? DEFAULT_LANG;
   const read = readDiagram(input, { lang });
   if (!read.ok)
@@ -972,7 +981,7 @@ function useUserBlocks(diagram: Diagram, m: UserBlockUseMessages): string | unde
 }
 
 /** 検査を通った原本を並べて描く */
-function renderRead(source: Diagram, options: RenderOptions, lang: NotationLang): Rendered {
+function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): Rendered {
   const read = { diagram: source };
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)。
   // 配管の図は `[fold]` の呼び出しの内側の段を、開くと頼まれていなければ 1 つの段にまとめてから並べる (#3389)
@@ -1021,7 +1030,7 @@ export function renderLayout(
   diagram: DiagramModel,
   layout: Layout,
   timeline: Timeline,
-  options: RenderOptions = {},
+  options: DrawOptions = {},
 ): Rendered {
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
   const palette = paletteOf(options, theme);
