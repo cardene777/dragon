@@ -98,11 +98,7 @@ export interface FigureText {
 }
 
 /** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
-export const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
-/** 英数字で始まる語の前に空白を置く。仮名の後ろに続く英数字の語を離す */
-export const led = (word: string): string => (/^[0-9A-Za-z]/u.test(word) ? ` ${word}` : word);
-/** 仮名の間に置く語。英数字の端だけを空白で離す */
-export const inner = (word: string): string => spaced(led(word));
+const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
 /** 英語の文の頭を大文字にする */
 const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
