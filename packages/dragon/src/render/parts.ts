@@ -8,6 +8,7 @@
  * 色の役の変数と箱と区画の絵柄は逆向きで、この file が色の役と絵のブロックの描き方 (`blocks/color/draw.ts`、`blocks/icon/draw.ts`) を読む。
  */
 import type { BoxTextY } from "../blocks/box/draw";
+import type { Seat } from "../blocks/carry/timing";
 import { cs } from "../blocks/color/draw";
 import { glyph } from "../blocks/icon/draw";
 import { textBox } from "../layout/measure";
@@ -86,6 +87,8 @@ export interface Ctx {
   boxText: BoxTextY;
   /** 色味の角の形。角を落とす色味は図の箱と囲みと図の枠の右上と左下を落とし、小さな部品の角を丸めない (#3344) */
   corner: Corner;
+  /** 運ぶ物が置き場に座っている所と間 (#3518)。箱の置き場の枠は、運ぶ物が座っている間だけ見せる */
+  seats: Seat[];
 }
 
 /** 和文を含む字の、和文の字で描く時の字の形 */
