@@ -47,6 +47,8 @@ const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
 const BRIDGE = join(FIXTURES, "bridge.dragon");
 /** 自分で定義した `+oracle` (六角形) と `+price` (点線) を使い、段 2 と段 3 の線と丸が詰まる図 */
 const PAYMENT = join(FIXTURES, "payment.dragon");
+/** アーチの形の金庫が硬貨を送り出すだけで、金庫の置き場に運ぶ物が一度も座らない図 (#3518) */
+const SEND_ONLY = join(FIXTURES, "send-only.dragon");
 /** 重なって当然の組だけを持つ図 */
 const INTENDED = join(FIXTURES, "intended.dragon");
 /** 見本に今ある崩れの一覧。見本の file ごとに崩れを並べる */
@@ -167,9 +169,16 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
 
   it("layout-check-merges-repeated-steps", async () => {
     const { found } = await layoutOf(BRIDGE);
-    // 硬貨の枠は段 1 から最後の段までアーチからはみ出したまま見えている
+    // 置き場の枠は運ぶ物が座っている間だけ見える (#3518)。硬貨は段 2 にブリッジへ着き、段 5 で出ていくまで枠はアーチからはみ出したまま見えている
     const slots = found.filter((b) => b.kind === "slot-outside-shape");
-    expect(slots.map((b) => b.step), "続く段の同じ崩れを最初の段の 1 件にまとめない").toEqual([1]);
+    expect(slots.map((b) => b.step), "続く段の同じ崩れを、硬貨が座り始める段 2 の 1 件にまとめない").toEqual([2]);
+  });
+
+  it("layout-check-skips-slot-never-held", async () => {
+    // アーチの形の金庫は硬貨を送り出すだけで、硬貨は金庫の置き場で待たない。見えない枠のはみ出しは知らせない (#3518)
+    const { found } = await layoutOf(SEND_ONLY);
+    expect(found.filter((b) => b.kind === "slot-outside-shape"), "運ぶ物が一度も座らない枠のはみ出しを知らせる").toEqual([]);
+    expect(found.filter((b) => b.kind === "text-outside-shape" && hasBox(b, "金庫")).length, "金庫の形の崩れを測っていない").toBeGreaterThan(0);
   });
 
   it("layout-check-names-narrow-width", async () => {

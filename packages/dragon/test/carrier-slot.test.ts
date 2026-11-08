@@ -6,11 +6,14 @@
  * 走り出す前は出る箱の置き場で待つので、段の番号を隠さない。時系列図には箱が無いので、生存線の脇に留まり、脇で待つ。
  * 運ぶ物の位置は描いた動きを時刻で読み、絵柄と枠は SVG の四角で読む。
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // 状態遷移図と枝分かれの図の記法を読むので、全部入りの入口と同じく全てのブロックの読み方を登録する (#3349)
 import "../src/kinds/all";
 import { parseNotation } from "../src/parser";
-import { badgeRect, cardOf, carried, carrierRect, doneRect, overlap, waiting } from "./carrier-support";
+import { badgeRect, cardOf, carried, carrierRect, doneRect, overlap, seatedAt, slotFrameOf, waiting } from "./carrier-support";
+import { api } from "./diagram-support";
 import { type Motion, motionOf } from "./motion-support";
 
 const diagram = (lines: string[]): unknown => {
@@ -137,9 +140,8 @@ describe("運ぶ物の置き場 (#3176)", () => {
       const card = cardOf(m, id);
       expect(card?.slot, `運ぶ物を出し入れする ${id} に置き場の枠が無い`).toBeDefined();
       if (!card?.slot || !card.icon) continue;
+      // 枠が見える間は運ぶ物が座っている間だけなので (#3518)、ここでは枠の場所だけを見る
       expect(card.slot.x, `${id} の置き場の枠が絵柄の右に無い`).toBeGreaterThanOrEqual(card.icon.x + card.icon.w);
-      const frame = m.doc.querySelector(`rect.dg-slot[x="${card.slot.x}"]`) as Element;
-      expect(m.opacity(frame, 0.05), `${id} の置き場の枠が初めの段から見えない`).toBeGreaterThan(0.5);
     }
     const ledger = cardOf(m, "台帳");
     expect(ledger?.slot, "運ぶ物を出し入れしない台帳に置き場の枠が在る").toBeUndefined();
@@ -231,5 +233,70 @@ describe("運ぶ物の置き場 (#3176)", () => {
     for (const l of labels) {
       expect(l.x >= 0 && l.y >= 0 && l.x + l.w <= width && l.y + l.h <= height, `線の名前「${l.text}」(${l.x}, ${l.y}, ${l.w}x${l.h}) が図 (${width}x${height}) の外へはみ出す`).toBe(true);
     }
+  });
+});
+
+/** 評価でAIが書いた、運ぶ物を使う 3 つの図 (#3518)。最後の段で置き場が空になる箱を持つ */
+const EMPTY_SLOT = join(process.cwd(), "packages/dragon/test/fixtures/empty-slot");
+
+/** 止め絵の時刻 `t` に、置き場を持つ箱ごとの枠の見える濃さと、運ぶ物が座っているか */
+function frames(m: Motion, t: number): { name: string; shown: number; seated: boolean }[] {
+  const list = carried(m);
+  return m.rendered.layout.boxes.flatMap((box) => {
+    const frame = slotFrameOf(m, box.id);
+    return frame ? [{ name: box.name, shown: m.opacity(frame, t), seated: seatedAt(list, box.id, t) }] : [];
+  });
+}
+
+describe("空の置き場の枠を見せない (#3518)", () => {
+  it("slot-frame-only-while-carrier-sits", () => {
+    let seated = 0;
+    let empty = 0;
+    for (const [name, lines] of [
+      ["構成図", ARCH],
+      ["状態遷移図", STATE],
+    ] as const) {
+      const m = motionOf(diagram(lines));
+      m.rendered.timeline.stills.forEach((t, step) => {
+        for (const f of frames(m, t)) {
+          const where = `${name}の段 ${step + 1} の ${f.name} の置き場の枠`;
+          if (f.seated) {
+            expect(f.shown, `${where}が、運ぶ物が座っているのに見えない`).toBeGreaterThan(0.5);
+            seated++;
+          } else {
+            expect(f.shown, `${where}が、空なのに見える`).toBeLessThan(0.05);
+            empty++;
+          }
+        }
+      });
+    }
+    // 運ぶ物が座る枠と空の枠の両方を見て、片方だけを見て通らないようにする
+    expect(seated, "運ぶ物が座っている枠を見た数が足りない").toBeGreaterThanOrEqual(4);
+    expect(empty, "空の枠を見た数が足りない").toBeGreaterThanOrEqual(4);
+  });
+
+  it("final-still-shows-no-empty-slot", () => {
+    const shownEmpty: string[] = [];
+    let empty = 0;
+    let seated = 0;
+    for (const file of ["order-state", "bridge", "payment"]) {
+      const parsed = api("parseNotation")(readFileSync(join(EMPTY_SLOT, `${file}.dragon`), "utf8"), { lang: "ja" });
+      if (!parsed.ok) throw new Error(`${file}.dragon を読めない: ${JSON.stringify(parsed.errors)}`);
+      const m = motionOf(parsed.diagram);
+      const { stills } = m.rendered.timeline;
+      for (const f of frames(m, stills[stills.length - 1] as number)) {
+        if (f.seated) {
+          expect(f.shown, `${file} の最後の段で、運ぶ物が座る ${f.name} の枠が見えない`).toBeGreaterThan(0.5);
+          seated++;
+          continue;
+        }
+        empty++;
+        if (f.shown >= 0.05) shownEmpty.push(`${file} の ${f.name}`);
+      }
+    }
+    expect(shownEmpty, "最後の段に見えている空の置き場の枠").toEqual([]);
+    // 3 つの図の最後の段は、空の置き場 8 つと、運ぶ物が座る置き場 4 つを持つ
+    expect(empty, "最後の段の空の置き場の数").toBe(8);
+    expect(seated, "最後の段に運ぶ物が座る置き場の数").toBe(4);
   });
 });
