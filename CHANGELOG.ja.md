@@ -6,11 +6,19 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-11-08
+
 ### Added
 
 - **箱と区画の絵柄に、無料のTablerの線の絵柄を `icon: tabler:<名前>` で書ける** (#3493)
 
   dragonが描く絵柄は手描きの38個で、ほかの絵が要る箱はブロックの形に頼るしかなかった。箱と区画の行の `icon:` に、`tabler:` とTablerの線の絵柄5,184個のどれかの名前を書けるようにした (例 `[icon: tabler:building-bridge-2]`)。buildの段がTablerの24四方の格子から手描きの絵柄と同じ20四方の格子へ移すので、手描きの絵柄と同じclassと縮みと線の太さで描く。Tablerに無い名前は `icon` の属性を指して読むのを止め、一番近いTablerの名前を挙げる。`validateDiagram` も原本の `icon` の欄を指して断る。既定の入口は全ての絵柄を持つ。軽い入口は `tabler:` を書いた図の時だけ、`loadFor` を待つと絵柄を1つの塊として読む。読む前にその図を読むと `loadFor` を待つよう告げる誤りで止まり、`iconSetLoaded("tabler")` は塊を読んだかを返す。書き出したHTMLの頁と `dragon embed` が書く頁は、図が使った絵柄だけを持つ。Tablerの利用許諾 (MIT) は `THIRD_PARTY_NOTICES.md` に入れてnpmに出す。
+
+### Fixed
+
+- **全ての SVG に大きさを当てる頁でも、選ぶ欄の矢印の大きさが変わらない** (#3499)
+
+  0.66.1 では選ぶ欄の矢印を dragon が SVG で描き、大きさを頁の CSS に負ける規則で決めていた。図の中の全ての SVG に `display: block; width: auto; height: auto` を当てる頁では、矢印が幅 121px、高さ 73px に膨らみ、欄の名前と選んだ値に重なった。矢印は SVG でなく `span` の縁を CSS で描くので、頁が SVG に当てる規則は届かない。大きさは変わらず、矢印の右端から右の縁までの間は字の左の余白と同じに保つ。
 
 ## [0.66.1] - 2026-11-08
 
