@@ -1,1 +1,122 @@
-{}
+{
+  "packages/dragon/examples/merge.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 2
+        },
+        {
+          "kind": "badge",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "kind": "badges-close",
+      "step": 4,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 3
+        },
+        {
+          "kind": "badge",
+          "step": 4
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/merge.en.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 2
+        },
+        {
+          "kind": "badge",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "kind": "badges-close",
+      "step": 4,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 3
+        },
+        {
+          "kind": "badge",
+          "step": 4
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/rebase.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 2
+        },
+        {
+          "kind": "badge",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "kind": "badges-close",
+      "step": 7,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 5
+        },
+        {
+          "kind": "badge",
+          "step": 7
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/rebase.en.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 2
+        },
+        {
+          "kind": "badge",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "kind": "badges-close",
+      "step": 7,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 5
+        },
+        {
+          "kind": "badge",
+          "step": 7
+        }
+      ]
+    }
+  ]
+}
