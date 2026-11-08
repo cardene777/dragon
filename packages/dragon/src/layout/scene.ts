@@ -377,37 +377,6 @@ export function crossesRect(points: Point[], rect: Rect, inset = 0): boolean {
   return false;
 }
 
-/** 点から四角までの距離。四角の内の点は 0 */
-export function distanceToRect([px, py]: Point, r: Rect): number {
-  const dx = Math.max(r.x - px, 0, px - (r.x + r.w));
-  const dy = Math.max(r.y - py, 0, py - (r.y + r.h));
-  return Math.hypot(dx, dy);
-}
-
-/** 点から線分 a-b までの距離 */
-export function distanceToSegment([px, py]: Point, [ax, ay]: Point, [bx, by]: Point): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const length = dx * dx + dy * dy;
-  const t = length === 0 ? 0 : Math.min(1, Math.max(0, ((px - ax) * dx + (py - ay) * dy) / length));
-  return Math.hypot(ax + t * dx - px, ay + t * dy - py);
-}
-
-/** 札の四角から折れ線までの距離。線が四角を通れば 0、通らなければ線の点から四角までと、四角の角から線の区間までの最小 */
-export function lineGap(points: Point[], r: Rect): number {
-  if (crossesRect(points, r)) return 0;
-  const corners: Point[] = [
-    [r.x, r.y],
-    [r.x + r.w, r.y],
-    [r.x, r.y + r.h],
-    [r.x + r.w, r.y + r.h],
-  ];
-  return Math.min(
-    ...points.map((p) => distanceToRect(p, r)),
-    ...points.slice(1).flatMap((b, k) => corners.map((c) => distanceToSegment(c, points[k] as Point, b))),
-  );
-}
-
 /** 折れ線のうち一番長い区間。 */
 export function longest(points: Point[]): { a: Point; b: Point; vertical: boolean } {
   let best = { a: points[0] as Point, b: (points[1] ?? points[0]) as Point, length: -1 };
@@ -732,28 +701,6 @@ export interface Obstacles {
   touch?: Rect[];
   /** 名前を横切らせない線 (#3175)。札を外して薄く残す名前は、地の色で線を隠せないため */
   lines?: Point[][];
-  /**
-   * 真なら、`lines` の線を名前の自分の線より近くにも置かない (#3552)。別の線に乗るか近い名前は、その線の名前に読める。
-   * 自分の線の脇にそう置ける所が無ければ、`lines` を横切らない所を脇に探し、それも無ければ `lines` を見ずに置く。
-   * 脇に空きが無い時に遠くへ離すと、名前はどの線の名前か読めなくなる
-   */
-  nearest?: boolean;
-}
-
-/**
- * 名前の札が自分の線の脇に在るとみなす、札から線までの離れの上限 (#3552)。最初に置く離れに札の高さを足した長さで、
- * 崩れの検査が線から離れた名前 (`label-off-line`) に数えない上限と同じ。`offset` は札を線の上か下に置く時の、線から札の真ん中までの離れ
- */
-const besideReach = (offset: number): number => Math.max(offset - LOOK.label.h / 2, LOOK.label.side) + LOOK.label.h;
-
-/**
- * 名前の札 `rect` が自分の線 `own` の脇に在り、`lines` のどの線も、札から自分の線までの `apart` 倍より近くないか (#3552)。
- * 別の線に乗るか、自分の線より別の線の近くに在る名前は、その線の名前に読める。
- * 2つの線の間の真ん中に近い名前も、どちらの線の名前か読めないので、置く処理は初めに 2 倍離れた所を探す
- */
-export function nearestLine(rect: Rect, own: Point[], lines: Point[][], offset: number = LOOK.label.offset, apart = 1): boolean {
-  const gap = lineGap(own, rect);
-  return gap <= besideReach(offset) && lines.every((line) => lineGap(line, rect) >= gap * apart);
 }
 
 export const labelStyle = (text: string) => (hasWide(text) ? TYPE.labelJa : TYPE.label);
@@ -784,42 +731,28 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
           : { x: mx + sideGap, y: my - h / 2, w, h };
   const first: Rect = request.base ? { ...request.base, w, h } : baseOf(preferred);
   const sides = request.flip ? [preferred, OPPOSITE[preferred]] : [preferred];
-  const free = (rect: Rect): boolean =>
+  const clear = (rect: Rect): boolean =>
     obstacles.hard.every((box) => gapBetween(rect, box) >= LOOK.gap) &&
     obstacles.soft.every((other) => gapBetween(rect, other) >= LOOK.label.soft) &&
-    (obstacles.touch ?? []).every((mark) => gapBetween(rect, mark) >= LOOK.label.touch);
-  const lines = obstacles.lines ?? [];
-  const across = (rect: Rect): boolean => lines.every((line) => !crossesRect(line, rect, -LOOK.label.touch));
+    (obstacles.touch ?? []).every((mark) => gapBetween(rect, mark) >= LOOK.label.touch) &&
+    (obstacles.lines ?? []).every((line) => !crossesRect(line, rect, -LOOK.label.touch));
   const { search, searchMax } = LOOK.label;
-  /** 自分の線の中ほどの脇から順に、`fits` を満たす最初の所。`reach` は脇から離す長さの上限 */
-  const find = (fits: (rect: Rect) => boolean, reach: number): Rect | undefined => {
-    for (let d = 0; d <= reach; d += search) {
-      for (const side of sides) {
-        const base = side === preferred ? first : baseOf(side);
-        // 離す向き (その側) と、ずらす向き (それに直交する向き)
-        const away: Point = side === "above" ? [0, -1] : side === "below" ? [0, 1] : side === "left" ? [-1, 0] : [1, 0];
-        const slideAxis: Point = [Math.abs(away[1]), Math.abs(away[0])];
-        const slideMax = request.slide ?? (side === "above" || side === "below" ? w : h * 4);
-        for (let s = 0; s <= slideMax; s += search) {
-          for (const sign of s === 0 ? [1] : [1, -1]) {
-            const rect = { x: base.x + away[0] * d + slideAxis[0] * s * sign, y: base.y + away[1] * d + slideAxis[1] * s * sign, w, h };
-            if (fits(rect)) return rect;
-          }
+  for (let d = 0; d <= searchMax; d += search) {
+    for (const side of sides) {
+      const base = side === preferred ? first : baseOf(side);
+      // 離す向き (その側) と、ずらす向き (それに直交する向き)
+      const away: Point = side === "above" ? [0, -1] : side === "below" ? [0, 1] : side === "left" ? [-1, 0] : [1, 0];
+      const slideAxis: Point = [Math.abs(away[1]), Math.abs(away[0])];
+      const slideMax = request.slide ?? (side === "above" || side === "below" ? w : h * 4);
+      for (let s = 0; s <= slideMax; s += search) {
+        for (const sign of s === 0 ? [1] : [1, -1]) {
+          const rect = { x: base.x + away[0] * d + slideAxis[0] * s * sign, y: base.y + away[1] * d + slideAxis[1] * s * sign, w, h };
+          if (clear(rect)) return { ...rect, step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
         }
       }
     }
-    return undefined;
-  };
-  // `nearest` の時は、脇で別の線が自分の線の 2 倍より離れた所、脇で自分の線が最も近い所、脇で `lines` を横切らない所、
-  // `lines` を見ない所の順に探す。最後は脇に限らない (#3552)
-  const beside = (rect: Rect): boolean => lineGap(request.points, rect) <= besideReach(offset);
-  const found = obstacles.nearest
-    ? (find((rect) => free(rect) && across(rect) && nearestLine(rect, request.points, lines, offset, 2), h) ??
-      find((rect) => free(rect) && across(rect) && nearestLine(rect, request.points, lines, offset), h) ??
-      find((rect) => free(rect) && across(rect) && beside(rect), h) ??
-      find(free, searchMax))
-    : find((rect) => free(rect) && across(rect), searchMax);
-  return { ...(found ?? first), step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
+  }
+  return { ...first, step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
 }
 
 /**

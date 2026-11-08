@@ -9,10 +9,8 @@
  * 番号の丸が囲みと列と帯の枠線に乗る (`badge-on-frame`、#3525)。
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
- * 別々の箱へ向かう2本の線が同じ道に重なって走るのも同じ崩れに数える (#3552)。
  * 同じ箱か commit の同じ所から出る2本の線が重なって走り、その先で分かれるのも同じ崩れに数える (#3547)。
- * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。名指す線より別の線の近くに在る線の名前も、離れた名前に数える (#3552)。
- * 線の名前の札が、名指す線とは別の線に乗るもの (`label-on-line`、#3552) も拾う。札が乗った線の名前に読めるため。
+ * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
@@ -26,7 +24,7 @@
  */
 import { heldIn, type Seat } from "../blocks/carry/timing";
 import type { PipeLayout } from "../kinds/pipe/layout";
-import { along, crossesRect, distanceToRect, distanceToSegment, type Layout, lineGap, pathLength, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
+import { along, crossesRect, type Layout, pathLength, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
 import { PIPE_LOOK } from "../look/pipe";
 import { APART, LOOK } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
@@ -67,7 +65,6 @@ export type LayoutBreakKind =
   | "part-outside-frame"
   | "panel-edge"
   | "label-off-line"
-  | "label-on-line"
   | "line-crosses-text"
   | "chip-over-part"
   | "pipe-behind-box"
@@ -223,6 +220,37 @@ function signedDistance(rings: Point[][], p: Point): number {
     best = Math.min(best, Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)));
   }
   return insideRings(rings, p) ? -best : best;
+}
+
+/** 点から四角までの距離。四角の内の点は 0 */
+function distanceToRect([px, py]: Point, r: Rect): number {
+  const dx = Math.max(r.x - px, 0, px - (r.x + r.w));
+  const dy = Math.max(r.y - py, 0, py - (r.y + r.h));
+  return Math.hypot(dx, dy);
+}
+
+/** 点から線分 a-b までの距離 */
+function distanceToSegment([px, py]: Point, [ax, ay]: Point, [bx, by]: Point): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const length = dx * dx + dy * dy;
+  const t = length === 0 ? 0 : Math.min(1, Math.max(0, ((px - ax) * dx + (py - ay) * dy) / length));
+  return Math.hypot(ax + t * dx - px, ay + t * dy - py);
+}
+
+/** 札の四角から折れ線までの距離。線が四角を通れば 0、通らなければ線の点から四角までと、四角の角から線の区間までの最小 */
+function lineGap(points: Point[], r: Rect): number {
+  if (crossesRect(points, r)) return 0;
+  const corners: Point[] = [
+    [r.x, r.y],
+    [r.x + r.w, r.y],
+    [r.x, r.y + r.h],
+    [r.x + r.w, r.y + r.h],
+  ];
+  return Math.min(
+    ...points.map((p) => distanceToRect(p, r)),
+    ...points.slice(1).flatMap((b, k) => corners.map((c) => distanceToSegment(c, points[k] as Point, b))),
+  );
 }
 
 /**
@@ -389,12 +417,10 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   const edgeSteps = new Map(edges.map((e) => [e.points, e.step + 1]));
   traces.forEach((a, i) => {
     for (const b of traces.slice(i + 1)) {
-      // 別々の箱へ向かう2本の線は、重なって走る (間が0の) 時も数える。重なった線は、どの線がどの箱へ向かうかが読めない (#3552)。
-      // 同じ2つの箱を逆向きに結ぶ線も、頼みと答えの線が同じ道に重なると互いの番号の丸が相手の矢じりを隠すので数える (#3521)。
-      // 同じ箱へ向かう線は数えない。同じ線を別の段でもう一度引くと同じ道に重なり、別々の箱から同じ箱へ入る線は入る前に合わさって走る (木の図の枝が親へ集まる形)。
-      // どちらも、線が向かう箱は読める。
+      // 同じ2つの箱を逆向きに結ぶ線は、重なって走る (間が0の) 時も数える。頼みと答えの線が同じ道に重なると、互いの番号の丸が相手の矢じりを隠す (#3521)。
       // 同じ箱か commit の同じ所から出て重なって走り、その先で分かれる2本の線も数える。どちらの線がどこへ向かうかが読めない (#3547)
-      if (!runAlong(a.points, b.points, a.to !== b.to) && !(a.from === b.from && partAfterRun(a.points, b.points))) continue;
+      const back = a.from !== a.to && a.from === b.to && a.to === b.from;
+      if (!runAlong(a.points, b.points, back) && !(a.from === b.from && partAfterRun(a.points, b.points))) continue;
       const seen = firstSeen(a, b);
       if (seen === undefined) continue;
       const stepA = edgeSteps.get(a.points) ?? firstSeen(a) ?? seen;
@@ -501,42 +527,14 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   }
 
   // 線の名前と流れた量の札。配管の図の札は段ごとに置き直すので、同じ札と線の組が続く段で離れている時は最初の段の 1 件にする
-  // 札の近くに、名指す線より近い別の線が在る時も離れた札に数える (#3552)。間が上限より狭くても、札は近い線の名前に読める。
-  // 比べるのは札と同じ止め絵に見えている線で、札に乗る線 (`label-on-line` が数える) は比べない。名指す線と同じ道をもう一度引いた線は、間が同じなので近くならない。
-  // 配管の図の流れた量の札は並んだ管の間に置くので比べない
-  const nearer = (tag: Tag): boolean => {
-    const ink = layout?.kind === "pipe" ? undefined : inks.find((i) => i.rect === tag.rect);
-    if (!ink) return false;
-    const own = lineGap(tag.points, tag.rect);
-    return traces.some(
-      (trace) => !crossesRect(trace.points, tag.rect, BITE) && firstSeen(ink, trace) !== undefined && lineGap(trace.points, tag.rect) < own,
-    );
-  };
   const offLine = new Set<string>();
   for (const tag of (layout === undefined ? [] : tagsOf(layout)).sort((a, b) => a.step - b.step)) {
-    if (lineGap(tag.points, tag.rect) <= tag.near && !nearer(tag)) continue;
+    if (lineGap(tag.points, tag.rect) <= tag.near) continue;
     const key = JSON.stringify([tag.text, tag.line]);
     if (offLine.has(key)) continue;
     offLine.add(key);
     add("label-off-line", tag.step + 1, [{ kind: "text", text: tag.text }, tag.line]);
   }
-
-  // 線の名前の札が別の線に乗る (#3552)。札の地が下の線を隠しても、札が乗った線の名前に読める。
-  // 札が名指す線と、同じ道を別の段でもう一度引いた線は、札が名指す線そのものなので比べない。配管の図の札は管の部品で見る (`pipe-breaks.ts`)
-  if (layout !== undefined && layout.kind !== "pipe")
-    for (const tag of tagsOf(layout)) {
-      const ink = inks.find((i) => i.rect === tag.rect);
-      if (!ink) continue;
-      for (const trace of traces) {
-        if (samePath(trace.points, tag.points) || !crossesRect(trace.points, tag.rect, BITE)) continue;
-        const seen = firstSeen(ink, trace);
-        if (seen === undefined) continue;
-        add("label-on-line", seen, [
-          { kind: "text", text: tag.text },
-          { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
-        ]);
-      }
-    }
 
   if (input.pieces) out.push(...pipeBreaks(input.pieces, stills));
 
@@ -599,12 +597,10 @@ function partAfterRun(a: Point[], b: Point[]): boolean {
   return run > LINE_ALONG;
 }
 
-/** 2本の線が同じ点の並びを通るか。同じ線を別の段でもう一度引くと、点の並びは別に作っても同じ道を通る */
-const samePath = (a: Point[], b: Point[]): boolean => a.length === b.length && a.every((p, k) => p[0] === b[k]?.[0] && p[1] === b[k]?.[1]);
-
 /**
  * 2本の線のどこかで、縦か横の区間どうしが間 `LINE_GAP` 未満で `LINE_ALONG` より長く並んで走るか。
- * 重なって走る (間が0の) 区間は `overlap` の時だけ数える。呼ぶ側は、2本が別々の箱へ向かう時に数えさせる (#3552)
+ * 重なって走る (間が0の) 区間は `overlap` の時だけ数える。
+ * 同じ線を別の段でもう一度引くと同じ道に重なるので、それは数えない
  */
 function runAlong(a: Point[], b: Point[], overlap: boolean): boolean {
   const segments = (points: Point[]): [Point, Point][] => points.slice(1).map((p, k) => [points[k] as Point, p]);

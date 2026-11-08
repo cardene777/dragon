@@ -97,7 +97,6 @@ interface BreakText {
   borderOf: (name: string) => string;
   onBorder: (badge: string, border: string) => string;
   offLine: (text: string, line: string) => string;
-  onLine: (text: string, line: string) => string;
   valveOf: (from: string, to: string | undefined) => string;
   gaugeOf: (box: string) => string;
   pipeOf: (from: string, to: string, step: number) => string;
@@ -125,7 +124,6 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     borderOf: (name) => (name === "" ? "枠線" : `「${name}」の枠線`),
     onBorder: (badge, border) => `${spaced(badge)}が${border}に乗る`,
     offLine: (text, line) => `${spaced(text)}が${line}から離れて描かれる`,
-    onLine: (text, line) => `${spaced(text)}が${line}に乗る`,
     valveOf: (from, to) => (to === undefined ? `「${from}」の弁` : `管 ${from} → ${to} の弁`),
     gaugeOf: (box) => `「${box}」の計器`,
     pipeOf: (from, to, step) => `管 ${from} → ${to} (段 ${step})`,
@@ -151,7 +149,6 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     borderOf: (name) => (name === "" ? "a border" : `the border of "${name}"`),
     onBorder: (badge, border) => capital(`${badge} sits on ${border}`),
     offLine: (text, line) => capital(`${text} is drawn away from ${line}`),
-    onLine: (text, line) => capital(`${text} sits on ${line}`),
     valveOf: (from, to) => (to === undefined ? `the valve of "${from}"` : `the valve on the pipe ${from} → ${to}`),
     gaugeOf: (box) => `the gauge of "${box}"`,
     pipeOf: (from, to, step) => `the pipe ${from} → ${to} (step ${step})`,
@@ -219,8 +216,6 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
               ? w.reachesEdge(name(a), name(b2))
               : b.kind === "label-off-line"
                 ? w.offLine(name(a), name(b2))
-                : b.kind === "label-on-line"
-                  ? w.onLine(name(a), name(b2))
                 : b.kind === "line-crosses-text" && a.kind === "line"
                   ? t.lineCrosses(a.from, a.to, name(b2))
                   : b.kind === "chip-over-part"
