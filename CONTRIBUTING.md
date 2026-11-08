@@ -87,7 +87,7 @@ bash scripts/check-dependency-vulnerabilities.sh
 ```
 
 The script reads `pnpm-lock.yaml` with `osv-scanner`.
-It exits with 0 when nothing is found, 1 when something is found, and 2 when it cannot run (for example, `osv-scanner` is not installed).
+It exits with 0 when nothing is found, 1 when something is found, 2 when it cannot run (for example, `osv-scanner` is not installed), and 3 when nothing is found but `osv-scanner.toml` keeps a record that no longer matches any dependency.
 Expect 0.
 If something is found, reinstall with `pnpm install` first, which clears most findings.
 If a finding remains, say so in the pull request, and the maintainer decides how to handle it.

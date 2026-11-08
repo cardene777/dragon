@@ -60,7 +60,9 @@ function tryCss(): string {
     `.dg-in:focus{outline:${hair} solid ${tint};border-color:${tint}}`,
     // 選ぶ欄はブラウザの矢印を描かず、右に矢印の場所を空けて、dragon が描く矢印 (.dg-caret) を右の縁から字と同じ余白で置く (#3492)
     `select.dg-in{appearance:none;-webkit-appearance:none;padding-right:${px(A.inset + A.arrow)}}`,
-    `.dg-caret{position:absolute;right:${px(A.inset + LOOK.stroke.hair)};bottom:${px((P.touch - A.caret.h) / 2)};width:${px(A.caret.w)};height:${px(A.caret.h)};color:var(--mute);pointer-events:none}`,
+    `.dg-caret{position:absolute;right:${px(A.inset + LOOK.stroke.hair)};bottom:${px((P.touch - A.caret.h) / 2)};width:${px(A.caret.w)};height:${px(A.caret.h)};margin:0;padding:0;border:0;color:var(--mute);pointer-events:none}`,
+    // 矢印の山形は、対角が矢印の幅になる正方形の右と下の縁を 45 度回して描く (#3499)。左右の角が枠の左右の端に、下の角が枠の下の端に来る
+    `.dg-caret::before{content:"";position:absolute;left:50%;top:${px(A.caret.h - A.caret.w / 2)};width:${px(A.caret.w / Math.SQRT2)};height:${px(A.caret.w / Math.SQRT2)};box-sizing:border-box;border-right:${px(A.caret.line)} solid currentColor;border-bottom:${px(A.caret.line)} solid currentColor;transform:translate(-50%,-50%) rotate(45deg)}`,
     `.dg-act{box-sizing:border-box;flex:none;min-width:${px(P.touch)};min-height:${px(P.touch)};margin:0;padding:0 ${px(A.side)};border:${hair} solid var(--line);border-radius:${px(A.radius)};background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer}`,
     `.dg-act:focus-visible{outline:${px(P.focus)} solid var(--c-blue);outline-offset:${px(P.focus)}}`,
     `.dg-act:is([data-dragon="send"],[data-dragon="apply"]){border-color:${tint};background:${tint};color:var(--on-c)}`,
@@ -194,24 +196,15 @@ export function mountTryControls(
     b.textContent = text;
     return b;
   };
-  /** 選ぶ欄の右に置く下向きの矢印 (#3492)。見た目だけの絵で、押した時は下の選ぶ欄が開く */
-  const caret = (): SVGSVGElement => {
-    const { w, h, line } = LOOK.player.ask.caret;
-    const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "dg-caret");
-    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-    svg.setAttribute("aria-hidden", "true");
-    svg.setAttribute("focusable", "false");
-    const path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-    const pad = line / 2;
-    path.setAttribute("d", `M${pad} ${pad}L${w / 2} ${h - pad}L${w - pad} ${pad}`);
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke", "currentColor");
-    path.setAttribute("stroke-width", String(line));
-    path.setAttribute("stroke-linecap", "round");
-    path.setAttribute("stroke-linejoin", "round");
-    svg.append(path);
-    return svg;
+  /**
+   * 選ぶ欄の右に置く下向きの矢印 (#3492)。見た目だけの印で、押した時は下の選ぶ欄が開く。
+   * 形は CSS (`.dg-caret::before`) が描き、svg を使わない。図を置いた頁が svg に当てる幅や高さの規則で膨らまない (#3499)
+   */
+  const caret = (): HTMLSpanElement => {
+    const mark = doc.createElement("span");
+    mark.className = "dg-caret";
+    mark.setAttribute("aria-hidden", "true");
+    return mark;
   };
   /** 欄ごとの選択肢 (#3422)。選択肢を持つ欄は打たせず選ばせる */
   const choices = ask?.choices ?? {};
