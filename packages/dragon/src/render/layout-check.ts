@@ -59,9 +59,19 @@ export function checkLayoutText(text: string, options: ParseOptions = {}): Layou
 /** 記法 `text` の段を始める `step` の行の番号 (1 から数える) を段の順に */
 export const stepLines = (text: string): number[] => tokenize(text).flatMap((line) => (line.text.split(/\s/u)[0] === "step" ? [line.line] : []));
 
+/**
+ * 時間軸の囲みの崩れ (#3527) を知らせる語。針と時刻の目盛りの線の呼び方、時間軸の囲みの呼び方、部品が囲みの枠に掛かる文。
+ * 見本帳が最初に読む塊 (`figure-text.ts`を含む) は量の上限に収める決まりなので、崩れを知らせる側だけが持つ
+ */
+const PANEL_TEXT: Record<NotationLang, { needle: string; ticks: string; axis: string; reaches: (part: string, panel: string) => string }> = {
+  ja: { needle: "針", ticks: "時刻の目盛りの線", axis: "時間軸の囲み", reaches: (part, panel) => `${part}が${panel}の枠に掛かる` },
+  en: { needle: "the needle", ticks: "the line of time tick marks", axis: "the time axis panel", reaches: (part, panel) => `${part.charAt(0).toUpperCase()}${part.slice(1)} reaches the edge of ${panel}` },
+};
+
 /** 崩れを知らせる文。段の番号は文に含めない (命令の行が頭に段を書く) */
 export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG): string {
   const t = FIGURE_TEXT[lang];
+  const p = PANEL_TEXT[lang];
   const name = (part: LayoutPart): string => {
     switch (part.kind) {
       case "badge":
@@ -74,6 +84,12 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return t.quoted(part.text);
       case "line":
         return t.lineOf(part.from, part.to, part.step);
+      case "needle":
+        return p.needle;
+      case "ticks":
+        return p.ticks;
+      case "panel":
+        return p.axis;
     }
   };
   const [a, b2] = b.parts;
@@ -84,6 +100,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         ? t.sticksOut(name(a), name(b2))
         : b.kind === "badges-close"
           ? t.tooClose(name(a), name(b2))
-          : t.runClose(name(a), name(b2));
+          : b.kind === "panel-edge"
+            ? p.reaches(name(a), name(b2))
+            : t.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

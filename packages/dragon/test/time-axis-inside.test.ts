@@ -201,7 +201,7 @@ describe("時間軸の部品が囲みの枠に掛かると知らせる (#3527)",
         // 4px離れた字は崩れでない
         { part: { kind: "text", text: "19.2 分" }, rect: { x: right - 4 - 40, y: 260, w: 40, h: 11 }, frame: panel, shown: ALWAYS },
       ],
-    } as Parameters<typeof findBreaks>[0]);
+    });
     const panelPart = { kind: "panel", panel: "axis" };
     expect(breaks, "針と目盛りの線が枠に掛かる崩れを、最初に見える段の1件ずつで出さない").toEqual([
       { kind: "panel-edge", step: 1, parts: [{ kind: "ticks" }, panelPart] },
