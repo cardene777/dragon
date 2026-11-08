@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
 import { exporter } from "./export-support";
 import { LOOK } from "../src/look/values";
 import { fileChromium } from "./page-needs";
-import { parsedTry, SMALL_PARTS, smallTry, WIDE_ASK_LONGEST, wideAskTry } from "./try-support";
+import { labeledAskTry, parsedTry, SMALL_PARTS, smallTry, WIDE_ASK_LONGEST, wideAskTry } from "./try-support";
 
 
 const PAGE = "http://localhost/";
@@ -380,6 +380,33 @@ describe("入力の帯の欄の幅 (#3485)", () => {
         expect(Math.abs(field.caretGap - field.textGap), `選ぶ欄 ${field.name} の矢印の右端から縁まで ${field.caretGap} が、字の左端から縁まで ${field.textGap} と揃わない`).toBeLessThanOrEqual(0.5);
         expect(field.caretLeft, `選ぶ欄 ${field.name} の矢印の左端 ${field.caretLeft} が、字を置ける所の右端 ${field.textEnd} より左に在り、字と重なる`).toBeGreaterThanOrEqual(field.textEnd - 0.5);
       }
+    },
+  );
+
+  // 名前の長い欄を次の行へ送っても、欄の名前を「…」で切らない (#3492)
+  it(
+    "try-ask-label-not-clipped",
+    async () => {
+      const html = await htmlOf(parsedTry(labeledAskTry()));
+      const { result } = await withPage(html, 1280, async (page) => {
+        await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
+        return page.evaluate(() =>
+          [...document.querySelectorAll<HTMLElement>('form[data-dragon="ask"] .dg-field')].map((field) => {
+            const label = field.querySelector<HTMLElement>(".dg-fl");
+            return {
+              name: label?.textContent ?? "",
+              bottom: Math.round(field.getBoundingClientRect().bottom),
+              shown: label?.clientWidth ?? 0,
+              full: label?.scrollWidth ?? 0,
+            };
+          }),
+        );
+      });
+      expect(result, "入力の帯の欄の数").toHaveLength(7);
+      const first = Math.min(...result.map((field) => field.bottom));
+      expect(result.some((field) => field.bottom > first), "幅 740 の枠で、名前の長い 7 つの欄が次の行へ送られていない").toBe(true);
+      for (const field of result)
+        expect(field.full, `幅 740 の枠で、欄の名前「${field.name}」の字の幅 ${field.full} が見える幅 ${field.shown} を超えて切れる`).toBeLessThanOrEqual(field.shown);
     },
   );
 
