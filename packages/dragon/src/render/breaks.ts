@@ -9,6 +9,7 @@
  * 番号の丸が囲みと列と帯の枠線に乗る (`badge-on-frame`、#3525)。
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
+ * 同じ箱か commit の同じ所から出る2本の線が重なって走り、その先で分かれるのも同じ崩れに数える (#3547)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
@@ -23,7 +24,7 @@
  */
 import { heldIn, type Seat } from "../blocks/carry/timing";
 import type { PipeLayout } from "../kinds/pipe/layout";
-import { crossesRect, type Layout, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
+import { along, crossesRect, type Layout, pathLength, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
 import { PIPE_LOOK } from "../look/pipe";
 import { APART, LOOK } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
@@ -416,13 +417,14 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   const edgeSteps = new Map(edges.map((e) => [e.points, e.step + 1]));
   traces.forEach((a, i) => {
     for (const b of traces.slice(i + 1)) {
-      // 同じ2つの箱を逆向きに結ぶ線は、重なって走る (間が0の) 時も数える。頼みと答えの線が同じ道に重なると、互いの番号の丸が相手の矢じりを隠す (#3521)
+      // 同じ2つの箱を逆向きに結ぶ線は、重なって走る (間が0の) 時も数える。頼みと答えの線が同じ道に重なると、互いの番号の丸が相手の矢じりを隠す (#3521)。
+      // 同じ箱か commit の同じ所から出て重なって走り、その先で分かれる2本の線も数える。どちらの線がどこへ向かうかが読めない (#3547)
       const back = a.from !== a.to && a.from === b.to && a.to === b.from;
-      if (!runAlong(a.points, b.points, back)) continue;
+      if (!runAlong(a.points, b.points, back) && !(a.from === b.from && partAfterRun(a.points, b.points))) continue;
       const seen = firstSeen(a, b);
       if (seen === undefined) continue;
-      const stepA = edgeSteps.get(a.points) ?? seen;
-      const stepB = edgeSteps.get(b.points) ?? seen;
+      const stepA = edgeSteps.get(a.points) ?? firstSeen(a) ?? seen;
+      const stepB = edgeSteps.get(b.points) ?? firstSeen(b) ?? seen;
       const [first, second] = stepA <= stepB ? [[a, stepA] as const, [b, stepB] as const] : [[b, stepB] as const, [a, stepA] as const];
       // 点線の道は初めから見えているので、2 本目の線を引く段で知らせる
       add("lines-close", Math.max(seen, stepA, stepB), [
@@ -568,6 +570,31 @@ function runsNear(points: Point[], rect: Rect, inside: boolean): boolean {
     }
   }
   return false;
+}
+
+/** 点から折れ線までの距離 */
+const distanceToLine = (p: Point, points: Point[]): number =>
+  Math.min(...points.slice(1).map((q, k) => distanceToSegment(p, points[k] as Point, q)));
+
+/**
+ * 始まりが触れ合う2本の線が、始まりから間 `LINE_GAP` 未満で `LINE_ALONG` より長く重なって走り、その先で分かれるか (#3547)。
+ * 枝分かれの図で同じ commit から別の枝へ分かれる線は曲線で、縦か横の区間を持たないので、線に沿って 1px ずつ測る。
+ * 片方の線が丸ごともう一方の上に在る時は、同じ線を別の段でもう一度引いた (枝を切る線と、その枝に最初に積んだ commit の線) ので数えない。
+ * 始まりが離れた線は、同じ箱から別々の向きへ広がる線 (試す図の網) なので比べない
+ */
+function partAfterRun(a: Point[], b: Point[]): boolean {
+  const [a0, b0] = [a[0], b[0]];
+  if (!a0 || !b0 || a.length < 2 || b.length < 2 || Math.hypot(a0[0] - b0[0], a0[1] - b0[1]) > TOUCH) return false;
+  const lies = (x: Point[], y: Point[]): boolean => {
+    const length = pathLength(x);
+    for (let d = 0; d <= length; d += 1) if (distanceToLine(along(x, d), y) > ROUNDING) return false;
+    return true;
+  };
+  if (lies(a, b) || lies(b, a)) return false;
+  const length = pathLength(a);
+  let run = 0;
+  while (run <= length && distanceToLine(along(a, run), b) < LINE_GAP) run += 1;
+  return run > LINE_ALONG;
 }
 
 /**

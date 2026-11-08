@@ -49,13 +49,13 @@ const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
 const BRIDGE = join(FIXTURES, "bridge.dragon");
 /** 自分で定義した `+oracle` (六角形) と `+price` (点線) を使う支払いの図。段3の丸は六角形の上の辺に1pxの間で付く */
 const PAYMENT = join(FIXTURES, "payment.dragon");
-/**
- * 段2と段3の番号の丸が近すぎるgit図 (#3521)。
- * 支払いの図の行きと帰りの線は崩れの下限より広く離して描くようになったので、近すぎる番号を見つける見本を別に持つ
- */
-const CLOSE_BADGES = join(FIXTURES, "close-badges.dragon");
 /** 点線の箱へ入る通らない道が段1から並んで近すぎる状態遷移図 (#3521)。並んで近すぎる線を見つける見本 */
 const CROWDED = join(FIXTURES, "crowded-lines.dragon");
+/**
+ * ウォレットの右の縁の同じ所から、段1のトークンへの線と段3のブリッジへの線が出て重なって走り、その先で分かれる構成図 (#3547)。
+ * 段2と段3の番号の丸が近すぎたgit図 (#3521) は、同じ commit から分かれる線を離して描くようになって崩れが消えたので、重なる線を見つける見本を持つ
+ */
+const OVERLAP = join(FIXTURES, "overlap-lines.dragon");
 /** アーチの形の金庫が硬貨を送り出すだけで、金庫の置き場に運ぶ物が一度も座らない図 (#3518) */
 const SEND_ONLY = join(FIXTURES, "send-only.dragon");
 /** 重なって当然の組だけを持つ図 */
@@ -177,11 +177,36 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(found.filter((b) => b.parts.some((p) => p.kind === "text" && p.text === "ブリッジ")), "アーチの内の名前を崩れに数える").toEqual([]);
   });
 
-  it("layout-check-finds-close-badges", async () => {
-    const { found } = await layoutOf(CLOSE_BADGES);
+  it("layout-check-finds-close-badges", () => {
+    // 見本の図も検査の図も、段の番号を崩れの下限より離して置くようになった (#3521、#3525、#3547)。
+    // 近すぎる番号を持つ姿は、段 2 と段 3 の番号の丸を縁どうしの間 1px で並べて組む
+    const ink = (step: number, x: number): Parameters<typeof findBreaks>[0]["inks"][number] => ({
+      text: String(step),
+      rect: { x, y: 100, w: BADGE_R * 2, h: BADGE_R * 2 },
+      shown: fromTime(step - 1),
+      boxed: true,
+      badge: true,
+    });
+    const found = findBreaks({
+      inks: [ink(2, 100), ink(3, 100 + BADGE_R * 2 + 1)],
+      traces: [],
+      framed: [],
+      stills: [0.5, 1.5, 2.5],
+      frame: { w: 400, h: 400 },
+      boxes: [],
+      edges: [],
+      outlines: new Map(),
+    }) as LayoutBreak[];
     const hits = found.filter((b) => b.kind === "badges-close" && hasBadge(b, 2) && hasBadge(b, 3));
     expect(hits, "段 2 と段 3 の丸が近すぎることを 1 件で出さない").toHaveLength(1);
     expect(hits[0]?.step, "2 つの丸が揃って見える最初の段").toBe(3);
+  });
+
+  it("layout-check-finds-lines-leaving-one-spot", async () => {
+    const { found } = await layoutOf(OVERLAP);
+    const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "ウォレット", "トークン", 1) && hasLine(b, "ウォレット", "ブリッジ", 3));
+    expect(hits, "ウォレットの同じ所から出て重なるトークンへの線とブリッジへの線を 1 件で出さない").toHaveLength(1);
+    expect(hits[0]?.step, "2 本の線が揃って見える最初の段").toBe(3);
   });
 
   it("layout-check-finds-crowded-lines", async () => {
@@ -191,34 +216,34 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
   });
 
   it("layout-check-line-names-step-and-parts", async () => {
-    const ja = await runCli(["check", CLOSE_BADGES, "--layout", "--lang", "ja"]);
+    // 段の番号を名指す文は、近すぎる番号を持つ姿を組んで確かめる (`layout-check-finds-close-badges` と `badge-spots.test.ts`)。
+    // 見本の図に近すぎる番号が無くなったので (#3547)、命令の行の形は並んで近すぎる道を持つ状態遷移図で確かめる
+    const ja = await runCli(["check", CROWDED, "--layout", "--lang", "ja"]);
     expect(ja.code, ja.stderr).toBe(0);
     const lines = ja.stdout.trimEnd().split("\n");
-    const badges = lines.find((line) => line.includes("段の番号 2") && line.includes("段の番号 3"));
-    expect(badges, `段 2 と段 3 の丸を名指す行が無い\n${ja.stdout}`).toBeDefined();
+    const crowded = lines.find((line) => line.includes("線 受付 → 取消 (段 1)") && line.includes("線 確認 → 取消 (段 1)"));
+    expect(crowded, `受付と確認から取消への道を名指す行が無い\n${ja.stdout}`).toBeDefined();
     // 行は `<file>:<段の step の行>:1 warning 段 <N>: <文>` の形で、崩れが見え始める段の行を名指す
-    expect(badges, "丸の崩れの行の頭").toMatch(new RegExp(`^${CLOSE_BADGES.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(CLOSE_BADGES, 3)}:1 warning 段 3: `, "u"));
-    const crowdedRun = await runCli(["check", CROWDED, "--layout", "--lang", "ja"]);
-    const crowded = crowdedRun.stdout.trimEnd().split("\n").find((line) => line.includes("受付") && line.includes("取消"));
-    expect(crowded, `受付から取消への道を名指す行が無い\n${crowdedRun.stdout}`).toBeDefined();
-    const en = await runCli(["check", CLOSE_BADGES, "--layout", "--lang", "en"]);
-    const badgesEn = en.stdout.trimEnd().split("\n").find((line) => line.includes("step number 3"));
-    expect(badgesEn, `英語の行が段と丸を名指さない\n${en.stdout}`).toMatch(/warning Step 3: Step number 2 and step number 3 /u);
+    expect(crowded, "線の崩れの行の頭").toMatch(new RegExp(`^${CROWDED.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(CROWDED, 1)}:1 warning 段 1: `, "u"));
+    const en = await runCli(["check", CROWDED, "--layout", "--lang", "en"]);
+    const crowdedEn = en.stdout.trimEnd().split("\n").find((line) => line.includes("受付 → 取消"));
+    expect(crowdedEn, `英語の行が段と線を名指さない\n${en.stdout}`).toMatch(/warning Step 1: The line 受付 → 取消 \(step 1\) and the line 確認 → 取消 \(step 1\) /u);
     // はみ出した字の文は、字と箱の名前を名指す。形を持つ箱は中身が収まるまで大きくなるので (#3520)、崩れを持つ前のアーチの姿で確かめる
     const text = (findBreaks(brokenArch()) as LayoutBreak[]).find((b) => b.kind === "text-outside-shape");
     expect(text && describeBreak(text as never, "en"), "英語の文がはみ出した字と箱を名指さない").toBe('"100 USDC を預かり中" sticks out of the shape of "ブリッジ"');
   });
 
   it("layout-check-prints-json", async () => {
-    // 決済の図は行きと帰りの線を離し (#3521)、六角形の箱が中身に合わせて大きくなって (#3520) 崩れを持たないので、近すぎる丸を持つ図で確かめる
-    const { code, problems } = await layoutOf(CLOSE_BADGES);
+    // 決済の図は行きと帰りの線を離し (#3521)、六角形の箱が中身に合わせて大きくなって (#3520) 崩れを持たず、
+    // 近すぎる丸を持っていたgit図も線を離して崩れが消えたので (#3547)、並んで近すぎる道を持つ図で確かめる
+    const { code, problems } = await layoutOf(CROWDED);
     expect(code).toBe(0);
     const layout = problems.filter((p) => p.layout !== undefined);
     expect(layout.length, "JSON に崩れが無い").toBeGreaterThan(0);
     for (const p of layout) {
       expect(p.severity, "崩れの重さ").toBe("warning");
-      expect(p.file).toBe(CLOSE_BADGES);
-      expect(p.line, "崩れの段の step の行").toBe(stepLine(CLOSE_BADGES, p.layout?.step ?? 0));
+      expect(p.file).toBe(CROWDED);
+      expect(p.line, "崩れの段の step の行").toBe(stepLine(CROWDED, p.layout?.step ?? 0));
       expect(p.layout?.parts, "崩れに関わる物").toHaveLength(2);
       expect(Number.isInteger(p.layout?.step), "崩れの段").toBe(true);
     }

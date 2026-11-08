@@ -1,0 +1,28 @@
+// 同じ箱の同じ所から出る2本の線が重なって走り、その先で分かれる構成図 (#3547)。
+// ウォレットからトークンへの段1の線と、ウォレットからブリッジへの段3の線が、ウォレットの右の縁の同じ所から出て横に重なる。
+// 崩れの検査が段3で重なる2本の線を名指すことを確かめる見本で、段は3つ。
+architecture 同じ所から出る2本の線
+
+group l1 as Ethereum [note: 送る側のチェーン, color: blue, icon: chain]
+  box wallet as ウォレット [note: 100 USDC を持つ, icon: user]
+  box token as トークン [note: L1 のトークン, icon: doc]
+end
+
+box bridge as ブリッジ [note: トークンを預かる]
+
+group l2 as Base [note: 受け取る側のチェーン, color: green, icon: key]
+  box portal as 受け取り口 [note: 届いた知らせを確かめる]
+  box l2token as Base のトークン [note: L2 のトークン, icon: doc]
+end
+
+step 許す
+  say ウォレットがトークンに使うことを許す。
+  wallet -> token: 許す
+
+step 書き留める
+  say トークンが許しを書き留める。
+  act token: 許しを書き留める
+
+step 預ける
+  say ウォレットがブリッジに預ける。
+  wallet -> bridge: 預ける
