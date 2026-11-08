@@ -394,6 +394,48 @@ describe("入力の帯の欄の幅 (#3485)", () => {
     },
   );
 
+  // 図を置いた頁が図の中の svg に幅と高さを当てても、選ぶ欄の矢印は膨らまず、字の左の余白と同じ間で右の縁から離れる (#3499)。
+  // bitsumi の頁は `.article-body :is(.dragon-canvas, .dragon-step-still) svg` に同じ値を当て、0.66.1 の svg の矢印が幅 121、高さ 73 に膨らんだ
+  it(
+    "try-ask-caret-ignores-host-svg-rule",
+    async () => {
+      const html = await htmlOf(parsedTry(wideAskTry()));
+      const { result } = await withPage(html, 1280, async (page) => {
+        await page.addStyleTag({
+          content: [
+            '[data-dragon="player"]{width:740px;max-width:740px}',
+            'html body [data-dragon="player"] svg{display:block;width:auto;max-width:100%;height:auto;margin-inline:auto}',
+          ].join("\n"),
+        });
+        await nextPaint(page);
+        return page.evaluate(() =>
+          [...document.querySelectorAll<HTMLElement>('form[data-dragon="ask"] .dg-field')].flatMap((field) => {
+            const select = field.querySelector("select");
+            if (!select) return [];
+            const box = select.getBoundingClientRect();
+            const style = getComputedStyle(select);
+            const caret = field.querySelector(".dg-caret")?.getBoundingClientRect();
+            return [
+              {
+                name: select.dataset.field ?? "",
+                width: caret?.width ?? Number.NaN,
+                height: caret?.height ?? Number.NaN,
+                textGap: Number.parseFloat(style.borderLeftWidth) + Number.parseFloat(style.paddingLeft),
+                caretGap: caret ? box.right - caret.right : Number.NaN,
+              },
+            ];
+          }),
+        );
+      });
+      expect(result.map((field) => field.name), "選ぶ欄の数").toHaveLength(5);
+      for (const field of result) {
+        expect(field.width, `頁が svg に幅を当てた時、選ぶ欄 ${field.name} の矢印の幅 ${field.width} が 12px を超える`).toBeLessThanOrEqual(12);
+        expect(field.height, `頁が svg に高さを当てた時、選ぶ欄 ${field.name} の矢印の高さ ${field.height} が 12px を超える`).toBeLessThanOrEqual(12);
+        expect(Math.abs(field.caretGap - field.textGap), `頁が svg に幅を当てた時、選ぶ欄 ${field.name} の矢印の右端から縁まで ${field.caretGap} が、字の左端から縁まで ${field.textGap} と揃わない`).toBeLessThanOrEqual(0.5);
+      }
+    },
+  );
+
   // 名前の長い欄を次の行へ送っても、欄の名前を「…」で切らない (#3492)
   it(
     "try-ask-label-not-clipped",
