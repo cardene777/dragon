@@ -2,7 +2,7 @@
  * 頁の言葉。日本語と英語の 2 つを持ち、上の帯の切り替えで替える (#2995、#3030、#3032、#3033)。
  *
  * 記法の語 (`時系列図` や `帯`) は見本の file が持ち、ここには持たない。
- * 部品の名前と説明と、編集画面の棚の部品の名前はブロックの見本帳の分が持ち、
+ * 部品の名前と、編集画面の棚の部品の名前はブロックの見本帳の分が持ち、
  * 書き出した一覧 (`catalog/blocks.gen.ts`) から全てのブロックの分を引く。ブロックの名前を手で並べない (#3345、#3350)。
  */
 import { BLOCK_ORDER, BLOCK_SHELF, BLOCK_TEXT } from "./catalog/blocks.gen";
@@ -10,10 +10,10 @@ import type { PartId as ShelfPartId } from "./editor/shelf-items";
 
 export type Lang = "ja" | "en";
 
-/** 見本帳の一覧の部品の名前と説明。鍵はブロックの名前 */
+/** 見本帳の一覧の部品の名前。鍵はブロックの名前。説明は部品の頁だけが読み、ここには持たない (#3531) */
 type PartTexts = { readonly [K in keyof typeof BLOCK_TEXT]: (typeof BLOCK_TEXT)[K][Lang] };
 
-/** 全てのブロックの、見本帳の一覧の名前と説明 */
+/** 全てのブロックの、見本帳の一覧の名前 */
 const partTexts = (lang: Lang): PartTexts => Object.fromEntries(Object.entries(BLOCK_TEXT).map(([name, text]) => [name, text[lang]])) as PartTexts;
 
 /** 全てのブロックが棚に置く部品の名前。鍵は棚の部品の id */

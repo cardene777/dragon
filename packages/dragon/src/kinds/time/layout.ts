@@ -235,7 +235,10 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
   // 印の列の名前を軸の左に置き、長い名前は軸を右へ寄せる
   const nameRight = Math.max(0, ...spec.rows.map((r) => textWidth(r.name, TYPE.timeRow)));
   const axisX = Math.max(T.axisX, margin + R.inset + nameRight + T.gutterGap);
-  const axisW = width - T.right - axisX;
+  // 軸の右端は、時間軸の囲みの枠から、左の印の列の名前と同じ内側の余白 (`LOOK.region.inset`) だけ離す。
+  // 右端に来る針の頭と終わりの点、右端の目盛りの線と右に寄せた目盛りの字が、字の言葉と幅に関わらず枠に掛からないため (#3527)。
+  // 既定の`axisX`はその分だけ左に寄せてあり、軸の長さと目盛りの間隔は前と変わらない
+  const axisW = width - margin - R.inset - axisX;
   const unit = axisW / count;
 
   const colors = boxColors(diagram);

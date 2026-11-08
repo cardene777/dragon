@@ -300,6 +300,32 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(bridgeRow, "共有の +bridge の行がまだアーチの path を持つ").not.toContain("path");
   });
 
+  it("skill-shared-blocks-table-lists-every-block", () => {
+    // 共有のブロックの表は、共有のブロック集の全ての定義を名前と元と色の役と絵柄で挙げる (#3522)。
+    // 挙げる定義は置き場の file から導く。#3522 で足した 8 つは、置き場に file が在ることも確かめる
+    const shared = join(ROOT, "packages/dragon/blocks");
+    const added = ["+wallet", "+contract", "+oracle", "+validator", "+queue", "+cache", "+gateway", "+async"];
+    const files = [...new Set([...readdirSync(shared).filter((name) => name.endsWith(".dragon")), ...added.map((name) => `${name.slice(1)}.dragon`)])].map((name) => join(shared, name));
+    const section = sectionOf(read(join(REFERENCES, "blocks.md")), "## Shared blocks");
+    expect(section, "references/blocks.md に Shared blocks の節が無い").not.toBe("");
+    const rows = section.split("\n").filter((line) => line.startsWith("| `+"));
+    const field = (text: string, key: string): string | undefined => new RegExp(`^ *${key} (\\S+)$`, "mu").exec(text)?.[1];
+    const missing = files.flatMap((file) => {
+      const text = read(file);
+      if (text === "") return [`${relative(ROOT, file)} が無い`];
+      const name = /^block (\+[a-z][a-z0-9-]*)$/mu.exec(text)?.[1] ?? "";
+      const row = rows.find((line) => line.startsWith(`| \`${name}\` |`));
+      if (row === undefined) return [`${name} の行が無い`];
+      const base = field(text, "base");
+      const wants = [field(text, "color"), field(text, "icon")].flatMap((value) => (value === undefined ? [] : [`\`${value}\``]));
+      return [
+        ...(row.split("|")[2]?.trim() === `\`${base ?? ""}\`` ? [] : [`${name} の行の元の欄が \`${base ?? ""}\` でない`]),
+        ...wants.filter((want) => !row.includes(want)).map((want) => `${name} の行が ${want} を持たない`),
+      ];
+    });
+    expect(missing, "共有のブロックの表に無い定義").toEqual([]);
+  });
+
   it("skill-layout-fixes-and-issue-route", () => {
     const text = read(join(REFERENCES, "layout.md"));
     expect(text, "references/layout.md が無い").not.toBe("");
@@ -315,6 +341,8 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
       "崩れの種類 (重なって通る管、#3523)": "pipes-merged",
       "崩れの種類 (管に近すぎる弁、#3523)": "valve-near-pipe",
       "札を短くする直し方 (#3515)": "Shorten the tag",
+      "崩れの種類 (線から離れた名前)": "label-off-line",
+      "名前の置く側の指示を外す直し方": "[side:",
       "箱の並びを変える直し方": "Reorder the boxes",
       "名前を短くする直し方": "Shorten",
       "行きと帰りの線を分ける直し方": "reply",

@@ -286,7 +286,7 @@ describe("dragon check --layout が配管の図の重なりを知らせる (#352
       return { kind: "valve" as const, from, to, step, body: body as Rect, lever, shown: ALWAYS };
     };
     const run = (pieces: unknown[]): LayoutBreak[] =>
-      findBreaks({ inks: [], traces: [], stills: [1, 2, 3, 4], boxes: [], edges: [], outlines: new Map(), pieces } as never) as unknown as LayoutBreak[];
+      findBreaks({ inks: [], traces: [], framed: [], stills: [1, 2, 3, 4], boxes: [], edges: [], outlines: new Map(), pieces } as never) as unknown as LayoutBreak[];
     const router = box("Router", 100, 100, 160, 56);
     // 箱の下の縁から 6px の高さで右の縁を出る管は、角の丸みにかかり、箱の縁の後ろを通って見える
     const behind = run([router, pipe("Router", "Pool1", 2, [[260, 150], [420, 150], [420, 300]])]);

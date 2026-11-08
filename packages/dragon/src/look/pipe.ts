@@ -40,7 +40,7 @@ export const PIPE_TYPE = {
  *
  * - `margin` は上下の余白、`edge` は左右の余白、`radius` は畳んだ箱の角、`grid` は地の点の間と点の半径
  * - `chip` は図の中の札 (流れた量、イベント、戻り値、計器の式、入力と出力の印) で、高さ `h`、左右の余白 `padX`、札の間 `gap`、名前と引数の間 `argsGap`、
- *   角 `rx` (札は丸めず角にする)、管から札までの離れ `off`、イベントの札と出した箱の間 `beside`
+ *   角 `rx` (札は丸めず角にする)、管から札までの離れ `off`、イベントの札と出した箱の間 `beside`、流れた量の札を管に沿ってずらす刻み `slide`
  * - `row` は名札の行で、行の間 `pitch`、上の余白から一番上の行の真ん中まで `top`
  * - `avatar` は丸の名札で、四角の一辺 `size`、丸の半径 `r`、光の輪の半径 `halo`、真ん中から名前の基準線まで `nameY`、頭文字の基準線 `initialY`
  * - `cabinet` は Contract の箱で、高さ `h`、名前の前と後ろの余白 `pad`・`end`、頭文字の真ん中 `mark`、名前の左の端 `name`、角 `radius`、印の縮み `icon`、
@@ -79,7 +79,7 @@ export const PIPE_LOOK = {
   edge: 60,
   radius: 8,
   grid: { step: 24, dot: 1 },
-  chip: { h: 22, padX: 8, gap: 8, argsGap: 6, rx: 4, off: 10, beside: 12 },
+  chip: { h: 22, padX: 8, gap: 8, argsGap: 6, rx: 4, off: 10, beside: 12, slide: 4 },
   row: { pitch: 84, top: 48 },
   avatar: { size: 80, r: 32, halo: 40, nameY: 64, initialY: 10 },
   cabinet: { h: 80, pad: 52, end: 22, mark: 26, name: 46, radius: 12, icon: 1, gap: 16 },

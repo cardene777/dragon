@@ -3,7 +3,7 @@
  * ブロックと図の種類の置き場の dir から、一覧の file を書き出す (#3345、#3348、#3350)。
  *
  * ブロックは `src/blocks/<名前>/`、図の種類は `src/kinds/<種類>/` に置き場を1つずつ持つ。
- * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 10 を書き出す。
+ * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 11 を書き出す。
  *
  * - `src/blocks/index.ts` ... 各置き場の `block.ts` が出す定義を、dir の名前を鍵にした `BLOCKS` と、名前の並び `BLOCK_NAMES`
  * - `src/blocks/shapes.ts` ... 各置き場の `shape.ts` が出す原本の形の欠片を、dir の名前を鍵にした `SHAPES`
@@ -15,13 +15,14 @@
  *   ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に並べた `BLOCK_ORDER`
  * - `apps/playground-spa/src/catalog/blocks-docs.gen.ts` ... 見本帳の分のうち、使い方の頁だけが読む段落 (`BLOCK_DOCS`) の表
  * - `apps/playground-spa/src/catalog/blocks-uses.gen.ts` ... 見本帳の分のうち、部品の頁が見本を探す関数 (`BLOCK_USES`) の表
+ * - `apps/playground-spa/src/catalog/blocks-desc.gen.ts` ... 見本帳の分のうち、部品の頁だけが出す説明 (`BLOCK_DESC`) の表 (#3531)
  * - `docs/design/base/GRAMMAR.md` の部品と使い方の表 ... 各置き場の `gallery/rule.ts` の行を、ブロックの並びの順に並べた表の行
  *
  * 形の欠片の一覧を `src/blocks/index.ts` と分けるのは、形の欠片を使うのが build の時に原本の検査を書き出す script と検査だけで、
  * 描く時に読む塊に入れないため (#3348)。package の入口は `src/blocks/shapes.ts` を読まない。
  * 使い方の頁の段落を別の file に分けるのは、上の表と同じ module に置くと、最初に読む塊へ全てのブロックの段落が入るため (#3341)。
  * 塊は module ごとに分かれ、最初の画面が読む `BLOCK_TEXT` と同じ module の値は、後から読む頁だけが使う値も最初の塊に入る。
- * 見本を探す関数も同じ理由で別の file に分ける。
+ * 見本を探す関数も同じ理由で別の file に分ける。部品の説明も同じ理由で分け、置き場でも名前 (`gallery/text.ts`) と別の file に置く (#3531)。
  * `GRAMMAR.md` は人が読む文書なので、部品と使い方の表の行だけを書き換え、見出しと表の頭の行とほかの節は触らない。
  * `rule.ts` は TypeScript なので読み込まず、行の 3 つの欄の字 (`part`、`rule`、`name`) を JSON の字として読む。
  * 読み違えると見本帳の検査 (`block-gallery.test.ts` の `grammar-parts-table-from-blocks`) が、読み込んだ行と表の行の食い違いで落ちる。
@@ -48,9 +49,9 @@ export const CATALOG = join(here, "../../../apps/playground-spa/src/catalog/bloc
 /** 部品と使い方の表を書き換える文書 */
 export const GRAMMAR = join(here, "../../../docs/design/base/GRAMMAR.md");
 /** 見本帳の分の file。file ごとに file の名前と同じ名前の値を出す (`gallery/text.ts` は `text`) */
-export const GALLERY_FILES = ["text", "shelf", "docs", "rule", "uses"];
+export const GALLERY_FILES = ["text", "desc", "shelf", "docs", "rule", "uses"];
 /** 見本帳の分のうち、`catalog` の隣の別の file に書き出す分と、その file の名前。使い方の頁と部品の頁だけが読む */
-const APART_FILES = { docs: "blocks-docs.gen.ts", uses: "blocks-uses.gen.ts" };
+const APART_FILES = { desc: "blocks-desc.gen.ts", docs: "blocks-docs.gen.ts", uses: "blocks-uses.gen.ts" };
 /** 部品と使い方の表の見出し */
 const GRAMMAR_TABLE = "## 部品と使い方";
 
@@ -175,9 +176,10 @@ function kindsIndex(names) {
 }
 
 function catalogIndex(root, catalog, names, files, order) {
-  const exportName = { text: "BLOCK_TEXT", shelf: "BLOCK_SHELF", docs: "BLOCK_DOCS", rule: "BLOCK_RULE", uses: "BLOCK_USES" };
+  const exportName = { text: "BLOCK_TEXT", desc: "BLOCK_DESC", shelf: "BLOCK_SHELF", docs: "BLOCK_DOCS", rule: "BLOCK_RULE", uses: "BLOCK_USES" };
   const what = {
-    text: "見本帳の一覧の名前と説明",
+    text: "見本帳の一覧の名前",
+    desc: "部品の頁の説明",
     shelf: "編集画面の棚に置く部品",
     docs: "使い方の頁の段落",
     rule: "`GRAMMAR.md` の部品と使い方の表の行",

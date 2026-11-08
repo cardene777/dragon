@@ -3,7 +3,9 @@
  *
  * 運ぶ物は主役 (封筒と札は 1 つ、硬貨は別の 1 つ) ごとに途切れず見え続ける。着いた後は
  * 次の同じ主役が出発するまで着いた先に留まり、次が無ければ終わりまで留まる。
+ * 箱の置き場の枠は運ぶ物が座っている間だけ出すので、その間もここで出す (#3518)。
  */
+import type { Rect, SceneEdge } from "../../layout/scene";
 import type { Span } from "../../timeline";
 
 /** 運ぶ物が見えている間。`depart` に出発し `arrive` に着く。出発を待つ間と、着いた先で留まる間も含む。 */
@@ -47,4 +49,35 @@ export function carrierTimes(departures: Departure[], first: number, last: numbe
   }
   carriers.sort((x, y) => x.depart - y.depart);
   return carriers;
+}
+
+/** 運ぶ物が置き場に座っている所と間。`[x, y, 座り始める時刻, 立つ時刻]` (#3518) */
+export type Seat = [number, number, number, number];
+
+/**
+ * 運ぶ物が置き場に座っている所と間。着いた物は着いた所 (`settle`) で `arrive` から `end` まで、
+ * 走り出す前の物は待つ所 (`wait`) で `start` から `depart` まで座る。走っている途中は数えない
+ */
+export const seatsOf = (edges: readonly SceneEdge[], times: readonly CarrierTime[]): Seat[] =>
+  times.flatMap((t) => {
+    const e = edges.find((x) => x.step === t.step && x.event === t.event);
+    const out: Seat[] = [];
+    if (e?.wait) out.push([...e.wait, t.start, t.depart]);
+    if (e?.settle) out.push([...e.settle, t.arrive, t.end]);
+    return out;
+  });
+
+/**
+ * 置き場の枠 `r` に運ぶ物が座っている間を、重なりをまとめて時刻の順に並べる。
+ * 座る所で枠を選ぶのは、時間軸の図が同じ名札の箱を列ごとに持ち、名札では枠を選べないため
+ */
+export function heldIn(r: Rect, seats: readonly Seat[]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const [x, y, a, b] of [...seats].sort((p, q) => p[2] - q[2]))
+    if (b > a && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+      const last = out[out.length - 1];
+      if (last && a <= last[1]) last[1] = Math.max(last[1], b);
+      else out.push([a, b]);
+    }
+  return out;
 }

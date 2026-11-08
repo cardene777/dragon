@@ -189,6 +189,11 @@ export interface PipeChip extends Rect, PipeAt {
   label: PipeText;
   party?: string;
   token?: string;
+  /**
+   * 流れた量の札が名指す流れ (`PipeFlow` の `id`、#3528)。崩れの確かめが、札と流れの管の離れを測る。
+   * 狭い枠の図の下の帯に並べた札は、管から離して置くと決めた札なので持たない
+   */
+  flow?: number;
   /** 札の色の役。`state` は流れた量とイベントの印、`ok` は計器の式の結果 */
   state?: PipeState;
   ok?: boolean;
@@ -1205,12 +1210,11 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     plates: { name: string; dx: number; w: number }[];
     w: number;
   }
-  const numberW = (h: string, token: string): number => {
-    const k = `b${keyOf(h, token)}`;
-    const nums = widest(historyOf(k).map(grouped), amountStyle);
-    const subs = narrow ? 0 : Math.max(widest(historyOf(k).map((v) => joinWords(`+${grouped(v)}`, token)), T.delta), ...Object.values(words.tags).map((t) => textWidth(t, T.tag)));
-    return Math.max(nums, subs);
-  };
+  /** 槽の下の残高の行の幅と、その下の増減と語の行の幅。狭い枠は増減と語を描かない */
+  const balanceW = (h: string, token: string): number => widest(historyOf(`b${keyOf(h, token)}`).map(grouped), amountStyle);
+  const subW = (h: string, token: string): number =>
+    narrow ? 0 : Math.max(widest(historyOf(`b${keyOf(h, token)}`).map((v) => joinWords(`+${grouped(v)}`, token)), T.delta), ...Object.values(words.tags).map((t) => textWidth(t, T.tag)));
+  const numberW = (h: string, token: string): number => Math.max(balanceW(h, token), subW(h, token));
   /** 槽の名前の幅。名前は字の間を空けて描く */
   const titleW = (token: string): number => textWidth(token, T.tankTitle) + [...token].length * T.tankTitle.size * P.tank.titleTrack;
   /** 槽の幅。名前が長い時は、名前がつやと目盛りにかからない幅まで広げる */
@@ -1608,6 +1612,25 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       const t = tankOf(party, token);
       const w = numberW(party, token) + 4;
       return { x: t.x + t.w / 2 - w / 2, y: t.y + t.h + 4, w, h: housingH - P.housing.top - P.tank.h - 6 };
+    };
+    /** 槽の下の残高の基準線。槽の下の端から `numberY` 下で、残高の字を大きくした枠では字の高さに合わせて下げる */
+    const numberBaseOf = (t: Rect): number => t.y + t.h + Math.max(P.tank.numberY, sizes.amount + 6);
+    /**
+     * 槽の下の字の帯を、残高の行と、その下の増減と語の行に分けた四角 (#3528)。図の中の札だけがこの形で避ける。
+     * 帯 1 つで避けると、残高の行の横の空き (増減の行より狭い残高の横) まで塞ぎ、槽から出る管の際に流れた量の札を置けない
+     */
+    const textRows = (party: string, token: string): Rect[] => {
+      const t = tankOf(party, token);
+      const band = textBand(party, token);
+      const cx = t.x + t.w / 2;
+      const base = numberBaseOf(t);
+      const balance = balanceW(party, token) + 4;
+      const sub = subW(party, token) + 4;
+      const subTop = base + P.tank.deltaY - T.delta.size * 0.8;
+      return [
+        { x: cx - balance / 2, y: band.y, w: balance, h: base + amountStyle.size * 0.2 - band.y },
+        { x: cx - sub / 2, y: subTop, w: sub, h: band.y + band.h - subTop },
+      ];
     };
     const plateRect = (party: string, name: string): Rect | undefined => {
       const hs = housingOf.get(party);
@@ -2936,8 +2959,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         const tank: PipeTank = { ...glass, party: h, token, title: { ...textAt(token, cx, glass.y + P.tank.titleY, T.tankTitle, "middle"), x: cx - titleW(token) / 2, w: titleW(token) }, tone: toneOf(token) };
         tanks.push(tank);
         const key = `b${keyOf(h, token)}`;
-        const bottom = glass.y + glass.h;
-        const numberBase = bottom + Math.max(P.tank.numberY, sizes.amount + 6);
+        const numberBase = numberBaseOf(glass);
         for (const s of stepList) {
           glasses.push({ ...tank, step: s });
           const snap = snapOf(s);
@@ -3259,7 +3281,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     const fixed: Rect[] = [
       ...parties.map((p) => labelOf(p.id)),
       ...tanks,
-      ...holders.flatMap((h) => (tanksOf.get(h) ?? []).map((t) => textBand(h, t))),
+      ...holders.flatMap((h) => (tanksOf.get(h) ?? []).flatMap((t) => textRows(h, t))),
       ...holders.flatMap((h) => (platesOf.get(h) ?? []).flatMap((n) => (plateRect(h, n) ? [grow(plateRect(h, n) as Rect, 0)] : []))),
       ...holders.flatMap((h) => (converterRect(h) ? [converterRect(h) as Rect] : [])),
       // 値の札の前の値と語は、札の下の槽の数字と同じ行に在る
@@ -3377,28 +3399,29 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         const off = vHalf + P.chip.off;
         const tries: Rect[] = [];
         const ordered = segs(pipe.points).sort(([a, b], [c, d]) => Number(!flat(a, b)) - Number(!flat(c, d)) || Math.abs(d[0] - c[0]) + Math.abs(d[1] - c[1]) - (Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1])));
-        for (const [a, b] of ordered)
-          for (const k of AMOUNT_AT) {
-            const x = a[0] + (b[0] - a[0]) * k;
-            const y = a[1] + (b[1] - a[1]) * k;
-            if (flat(a, b)) tries.push({ x: x - w / 2, y: y + off, w, h: chipH }, { x: x - w / 2, y: y - off - chipH, w, h: chipH });
-            else tries.push({ x: x + off, y: y - chipH / 2, w, h: chipH }, { x: x - off - w, y: y - chipH / 2, w, h: chipH });
-          }
+        /** 線分 a-b の割合 k の所から、管の真ん中から d 離した両脇の札の四角。横の管は下と上、縦の管は右と左の順 */
+        const beside = (a: Point, b: Point, k: number, d: number): Rect[] => {
+          const x = a[0] + (b[0] - a[0]) * k;
+          const y = a[1] + (b[1] - a[1]) * k;
+          return flat(a, b)
+            ? [{ x: x - w / 2, y: y + d, w, h: chipH }, { x: x - w / 2, y: y - d - chipH, w, h: chipH }]
+            : [{ x: x + d, y: y - chipH / 2, w, h: chipH }, { x: x - d - w, y: y - chipH / 2, w, h: chipH }];
+        };
+        for (const [a, b] of ordered) for (const k of AMOUNT_AT) tries.push(...beside(a, b, k, off));
+        // 決めた割合の所が全て塞がる時は、管の際のまま線分に沿って細かくずらし、真ん中に近い所から試す (#3528)。
+        // 束の外側まで離すと、札と管の間にほかの管や部品が入り、どの流れの量か読み手が取り違える
+        for (const [a, b] of ordered) {
+          const length = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
+          const shifts = Array.from({ length: Math.floor(length / P.chip.slide) + 1 }, (_, i) => i * P.chip.slide).sort((p, q) => Math.abs(p - length / 2) - Math.abs(q - length / 2));
+          for (const t of shifts) tries.push(...beside(a, b, t / length, off));
+        }
         // 管の際が束ねた管で塞がる時は、束の外側まで離した所を試す
-        for (const [a, b] of ordered)
-          for (const far of [1, 2, 3, 4, 5])
-            for (const k of AMOUNT_AT) {
-              const x = a[0] + (b[0] - a[0]) * k;
-              const y = a[1] + (b[1] - a[1]) * k;
-              const d = off + far * (chipH + PART_GAP);
-              if (flat(a, b)) tries.push({ x: x - w / 2, y: y + d, w, h: chipH }, { x: x - w / 2, y: y - d - chipH, w, h: chipH });
-              else tries.push({ x: x + d, y: y - chipH / 2, w, h: chipH }, { x: x - d - w, y: y - chipH / 2, w, h: chipH });
-            }
+        for (const [a, b] of ordered) for (const far of [1, 2, 3, 4, 5]) for (const k of AMOUNT_AT) tries.push(...beside(a, b, k, off + far * (chipH + PART_GAP)));
         // それでも空きが無い時は、一番長い線分の真ん中の近くの空きに置く
         const [la, lb] = ordered[0] ?? [];
         if (la && lb) tries.push(...around({ x: (la[0] + lb[0]) / 2, y: (la[1] + lb[1]) / 2, w: 0, h: 0 }, w, chipH));
         const at = firstClear(tries, placedAt[s] ?? []);
-        chips.push(chipOf("amount", text, at, s, { token: f.token, state: f.state, tone: f.tone, ...(f.event !== undefined ? { event: f.event } : {}) }));
+        chips.push(chipOf("amount", text, at, s, { token: f.token, flow: f.id, state: f.state, tone: f.tone, ...(f.event !== undefined ? { event: f.event } : {}) }));
         placedAt[s]?.push(at);
       }
 

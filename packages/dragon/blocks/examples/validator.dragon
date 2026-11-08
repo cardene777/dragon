@@ -1,0 +1,14 @@
+// Use the shared block +validator without defining it in the diagram
+architecture Vote on a block
+
+box proposer as Proposer [note: builds the block, icon: server]
++validator v as Validators [note: check and vote]
+box chain as Chain [note: finalizes the block, icon: chain]
+
+step Propose
+  say The proposer sends the new block to the validators.
+  proposer -> v: new block
+
+step Vote
+  say The validators check the block and vote, and enough votes finalize it on the chain.
+  v -> chain: votes
