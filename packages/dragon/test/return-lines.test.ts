@@ -111,8 +111,12 @@ const badgeGap = (a: Point, b: Point): number => Math.hypot(a[0] - b[0], a[1] - 
 /** 崩れの検査に渡す描いた線。どの時刻にも見えている */
 const trace = (from: string, to: string, points: Point[]): Trace => ({ from, to, points, shown: ALWAYS });
 
-/** 描いた線 `traces` だけを崩れの検査に掛ける。図の枠は線の全てを中に収める広さにし、枠からはみ出す崩れ (#3515) を出さない */
-const linesOnly = (traces: Trace[]): LayoutBreak[] => findBreaks({ inks: [], traces, stills: [0], frame: { w: 1000, h: 1000 }, boxes: [], edges: [], outlines: new Map() });
+/**
+ * 描いた線 `traces` だけを崩れの検査に掛ける。図の枠は線の全てを中に収める広さにし、枠からはみ出す崩れ (#3515) を出さない。
+ * 時間軸の囲みの中の部品 (#3527) は持たない
+ */
+const linesOnly = (traces: Trace[]): LayoutBreak[] =>
+  findBreaks({ inks: [], traces, framed: [], stills: [0], frame: { w: 1000, h: 1000 }, boxes: [], edges: [], outlines: new Map() });
 
 describe("評価でClaudeが描いた支払いの図の行きと帰りの線 (#3521)", () => {
   it("return-lines-payment-eval-no-close-breaks", async () => {
