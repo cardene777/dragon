@@ -21,6 +21,7 @@
  *
  * 段の番号は図の右上の同じ所に置き、次の段の番号と入れ替える。
  */
+import { type FigureText, FIGURE_TEXT } from "../../figure-text";
 import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../../look/values";
 import { LINEUP_LOOK } from "../../look/lineup";
 import type { DiagramModel, DiagramEvent } from "../../schema";
@@ -29,48 +30,6 @@ import { hasWide, textWidth } from "../../layout/measure";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 
 const L = LINEUP_LOOK;
-
-/**
- * 列の図の卓の形の字 (#3351)。札と置き場の名前の下の字、選んだ札の印、封の字、「この先」の帯の字、空の置き場の字。
- * 札の下の一言は、色付きのチップの席の番号、置き場に無かったチップを足したこと、置き場に在った色付きのチップが無いことを言う。
- * 列の図を描く時にだけ要るので、見本帳が最初に読む図の字の表 (`figure-text.ts`) ではなく、後から読む列の図の塊に置く (#3525)
- */
-interface LineupWords {
-  lineupInOrder: string;
-  lineupNoOrder: string;
-  lineupPicked: string;
-  lineupSealed: string;
-  lineupAhead: string;
-  lineupEmpty: string;
-  lineupAt: (name: string, n: number) => string;
-  lineupAdded: (names: string[]) => string;
-  lineupMissing: (name: string) => string;
-}
-
-const LINEUP_WORDS: Record<NotationLang, LineupWords> = {
-  ja: {
-    lineupInOrder: "上から実行",
-    lineupNoOrder: "順番なし",
-    lineupPicked: "選ばれる",
-    lineupSealed: "封",
-    lineupAhead: "この先",
-    lineupEmpty: "まだ空",
-    lineupAt: (name, n) => `${name}は${n}番目`,
-    lineupAdded: (names) => `${names.join("、")}を足した`,
-    lineupMissing: (name) => `${name}が無い`,
-  },
-  en: {
-    lineupInOrder: "Top first",
-    lineupNoOrder: "No order",
-    lineupPicked: "Picked",
-    lineupSealed: "Sealed",
-    lineupAhead: "Next",
-    lineupEmpty: "Empty",
-    lineupAt: (name, n) => `${name} is #${n}`,
-    lineupAdded: (names) => `Added ${names.join(", ")}`,
-    lineupMissing: (name) => `${name} is missing`,
-  },
-};
 const C = L.chip;
 /** 1 行の字。`x` は左端、`baseline` は基準線 */
 export interface TextLine {
@@ -342,7 +301,7 @@ interface RemarkSpec extends LineupAt {
  * 置き場に無かったチップは色ごとに 1 つの一言にまとめ、置き場に在った色付きのチップは席の番号か、無いことを言う。
  * 一言は札の中の最初の席の順に並べ、無いことを言う一言は最後に置く。段の始まりに置き場にチップが無い段は一言を出さない
  */
-function remarksOf(diagram: DiagramModel, lines: Line[], pools: Set<string>, words: LineupWords): RemarkSpec[] {
+function remarksOf(diagram: DiagramModel, lines: Line[], pools: Set<string>, words: FigureText): RemarkSpec[] {
   const items = new Map((diagram.lineup?.items ?? []).map((item) => [item.id, item]));
   const nameOf = (id: string): string => items.get(id)?.label ?? id;
   const held = new Map<string, string[]>();
@@ -388,14 +347,14 @@ interface Sized {
 }
 
 export function layoutLineup(diagram: DiagramModel, options: LineupOptions = {}): LineupLayout {
-  const words = LINEUP_WORDS[options.lang ?? DEFAULT_LANG];
+  const words = FIGURE_TEXT[options.lang ?? DEFAULT_LANG];
   const row = arrange(diagram, words, "row");
   const { width } = options;
   if (width === undefined || (width / row.width) * TYPE.boxName.size >= READABLE_PX) return row;
   return arrange(diagram, words, "stack");
 }
 
-function arrange(diagram: DiagramModel, words: LineupWords, arrangement: "row" | "stack"): LineupLayout {
+function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | "stack"): LineupLayout {
   const stacked = arrangement === "stack";
   const margin = stacked ? L.stack.margin : L.margin;
   const pad = L.padX;

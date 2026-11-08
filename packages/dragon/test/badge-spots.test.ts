@@ -144,11 +144,13 @@ describe("前の番号を隠す番号を知らせる (#3525)", () => {
         { text: "6", rect: { ...rect }, shown: [[3, Number.POSITIVE_INFINITY]], boxed: true, badge: true },
       ],
       traces: [],
+      framed: [],
       stills: [0.5, 1.5, 2.5, 3.5],
+      frame: { w: 400, h: 400 },
       boxes: [],
       edges: [],
       outlines: new Map(),
-      frames: [],
+      borders: [],
     } as unknown as Parameters<typeof findBreaks>[0];
     const found = findBreaks(input);
     const hit = { kind: "badges-close", step: 4, parts: [{ kind: "badge", step: 4 }, { kind: "badge", step: 6 }] };

@@ -12,7 +12,7 @@ import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { boxOutline } from "../blocks/box/draw";
 import type { Point } from "../layout/scene";
-import { type BreakFinder, breakKey, findBreaks, type LayoutBreak, type LayoutPart } from "./breaks";
+import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
 
 /**
@@ -23,7 +23,7 @@ import { drawDiagram } from "./draw";
 const finder: BreakFinder = ({ regions, strip, diagram, ...drawn }) =>
   findBreaks({
     ...drawn,
-    frames: [
+    borders: [
       ...regions.map((r) => ({ name: diagram.regions?.find((g) => g.id === r.id)?.name ?? r.lines.join(" "), rect: r })),
       ...(strip ? [{ name: strip.title, rect: strip }] : []),
     ],
@@ -65,77 +65,110 @@ export function checkLayoutText(text: string, options: ParseOptions = {}): Layou
 export const stepLines = (text: string): number[] => tokenize(text).flatMap((line) => (line.text.split(/\s/u)[0] === "step" ? [line.line] : []));
 
 /**
- * 崩れを知らせる文の言葉 (#3484)。運ぶ物の枠と段を添えた線と囲みの枠線の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
- * 2 つの丸が近すぎる、丸が枠線に乗る (#3525)、2 本の線が並んで近すぎる、携帯の幅でだけ出る崩れの幅。
- * 崩れの確かめは見本帳が最初に読む script に載せないので (#3494)、図の字の表 `FIGURE_TEXT` ではなくここに置く
+ * 描いた図の崩れの種類ごとの文 (#3484)。運ぶ物の枠と図の枠の端の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
+ * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、部品が図の枠の端からはみ出す (#3515)。
+ * 時間軸の図の針と時刻の目盛りの線と時間軸の囲みの呼び方と、部品が時間軸の囲みの枠に掛かる文も持つ (#3527)。
+ * 囲みと列と帯の枠線の呼び方と、番号の丸が枠線に乗る文も持つ (#3525)。
+ * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
+ * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
  */
 interface BreakText {
   slotOf: (box: string) => string;
-  lineOf: (from: string, to: string, step: number) => string;
-  frameOf: (name: string) => string;
+  frameEdge: (side: FrameSide) => string;
   floatsOff: (badge: string, box: string) => string;
   sticksOut: (part: string, box: string) => string;
   tooClose: (a: string, b: string) => string;
-  onFrame: (badge: string, frame: string) => string;
   runClose: (a: string, b: string) => string;
-  atWidth: (width: number) => string;
+  outOfFrame: (part: string, edge: string) => string;
+  needle: string;
+  ticks: string;
+  axisPanel: string;
+  reachesEdge: (part: string, panel: string) => string;
+  borderOf: (name: string) => string;
+  onBorder: (badge: string, border: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
   ja: {
     slotOf: (box) => `「${box}」の運ぶ物の枠`,
-    lineOf: (from, to, step) => `線 ${from} → ${to} (段 ${step})`,
-    frameOf: (name) => (name === "" ? "枠線" : `「${name}」の枠線`),
+    frameEdge: (side) => `図の枠の${{ left: "左端", right: "右端", top: "上端", bottom: "下端" }[side]}`,
     floatsOff: (badge, box) => `${spaced(badge)}が${box}の形から離れて浮く`,
     sticksOut: (part, box) => `${spaced(part)}が${box}の形からはみ出す`,
     tooClose: (a, b) => `${spaced(a)}と${spaced(b)}が近すぎる`,
-    onFrame: (badge, frame) => `${spaced(badge)}が${frame}に乗る`,
     runClose: (a, b) => `${spaced(a)}と${spaced(b)}が並んで近すぎる`,
-    atWidth: (width) => `(幅 ${width} の時)`,
+    outOfFrame: (part, edge) => `${spaced(part)}が${edge}からはみ出す`,
+    needle: "針",
+    ticks: "時刻の目盛りの線",
+    axisPanel: "時間軸の囲み",
+    reachesEdge: (part, panel) => `${spaced(part)}が${panel}の枠に掛かる`,
+    borderOf: (name) => (name === "" ? "枠線" : `「${name}」の枠線`),
+    onBorder: (badge, border) => `${spaced(badge)}が${border}に乗る`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
-    lineOf: (from, to, step) => `the line ${from} → ${to} (step ${step})`,
-    frameOf: (name) => (name === "" ? "a border" : `the border of "${name}"`),
+    frameEdge: (side) => `the ${side} edge of the diagram frame`,
     floatsOff: (badge, box) => capital(`${badge} floats away from the shape of ${box}`),
     sticksOut: (part, box) => capital(`${part} sticks out of the shape of ${box}`),
     tooClose: (a, b) => capital(`${a} and ${b} are too close`),
-    onFrame: (badge, frame) => capital(`${badge} sits on ${frame}`),
     runClose: (a, b) => capital(`${a} and ${b} run too close side by side`),
-    atWidth: (width) => `(at width ${width})`,
+    outOfFrame: (part, edge) => capital(`${part} sticks out of ${edge}`),
+    needle: "the needle",
+    ticks: "the line of time tick marks",
+    axisPanel: "the time axis panel",
+    reachesEdge: (part, panel) => capital(`${part} reaches the edge of ${panel}`),
+    borderOf: (name) => (name === "" ? "a border" : `the border of "${name}"`),
+    onBorder: (badge, border) => capital(`${badge} sits on ${border}`),
   },
 };
 
 /** 崩れを知らせる文。段の番号は文に含めない (命令の行が頭に段を書く) */
 export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG): string {
-  const words = FIGURE_TEXT[lang];
-  const t = BREAK_TEXT[lang];
+  const t = FIGURE_TEXT[lang];
+  const w = BREAK_TEXT[lang];
   const name = (part: LayoutPart): string => {
     switch (part.kind) {
       case "badge":
-        return words.badgeName(String(part.step));
+        return t.badgeName(String(part.step));
       case "box":
-        return words.quoted(part.name);
+        return t.quoted(part.name);
       case "slot":
-        return t.slotOf(part.box);
+        return w.slotOf(part.box);
       case "text":
-        return words.quoted(part.text);
+        return t.quoted(part.text);
       case "line":
         return t.lineOf(part.from, part.to, part.step);
+      case "icon":
+        return t.iconOf(part.box);
+      case "coin":
+        return t.coin;
+      case "envelope":
+        return t.envelope;
       case "frame":
-        return t.frameOf(part.name);
+        return w.frameEdge(part.side);
+      case "needle":
+        return w.needle;
+      case "ticks":
+        return w.ticks;
+      case "panel":
+        return w.axisPanel;
+      case "border":
+        return w.borderOf(part.name);
     }
   };
   const [a, b2] = b.parts;
   const said =
     b.kind === "badge-off-shape"
-      ? t.floatsOff(name(a), name(b2))
+      ? w.floatsOff(name(a), name(b2))
       : b.kind === "slot-outside-shape" || b.kind === "text-outside-shape"
-        ? t.sticksOut(name(a), name(b2))
+        ? w.sticksOut(name(a), name(b2))
         : b.kind === "badges-close"
-          ? t.tooClose(name(a), name(b2))
-          : b.kind === "badge-on-frame"
-            ? t.onFrame(name(a), name(b2))
-            : t.runClose(name(a), name(b2));
+          ? w.tooClose(name(a), name(b2))
+          : b.kind === "part-outside-frame"
+            ? w.outOfFrame(name(a), name(b2))
+            : b.kind === "panel-edge"
+              ? w.reachesEdge(name(a), name(b2))
+              : b.kind === "badge-on-frame"
+                ? w.onBorder(name(a), name(b2))
+                : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

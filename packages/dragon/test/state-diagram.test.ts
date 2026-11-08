@@ -689,7 +689,8 @@ describe("状態遷移図の見た目 (#3171)", () => {
     if (!start) return;
     expect(start.x + start.r, "始まりの印が脇道の囲みに重なる").toBeLessThan(side.x);
     expect(start.y, "始まりの印が脇道の囲みと同じ高さの帯に無い").toBeLessThan(side.y + side.h);
-    expect(side.notes, "脇道の囲みの添え書きが 2 行でない").toEqual(["今回は通らない", "3 つの状態から入れる"]);
+    // 日本語の添え書きは数と仮名の間に空白を置かない (#3517)
+    expect(side.notes, "脇道の囲みの添え書きが 2 行でない").toEqual(["今回は通らない", "3つの状態から入れる"]);
     for (const note of side.notes ?? []) expect(svg, `日本語の図に「${note}」が無い`).toContain(note);
     const english = render(orderJson("order.en.json"), "en").layout.side;
     expect(english?.notes, "英語の図の脇道の添え書き").toEqual(["Not taken this time", "Enterable from 3 states"]);

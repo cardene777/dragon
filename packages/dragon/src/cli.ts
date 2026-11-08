@@ -8,7 +8,8 @@
  * 図に字の重なりがある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出し、終わり方は 0 のままにする (#3178)。
  * 重なりは描けない誤りではなく、止めると避けられない重なりを持つ図を書き出せなくなるため。
  *
- * 使い方の文と誤りの文は、図の中の字と同じ言葉で出す (#3003)。`--lang` を渡せばその言葉、無ければ英語 (#3338)。
+ * 使い方の文と誤りの文は `--lang` の言葉で出し、無ければ英語で出す (#3003、#3338)。
+ * 図の中の字も `--lang` の言葉で描き、無ければ書き出しが図の題と `say` に仮名か漢字があれば日本語、無ければ英語で描く (#3516)。
  * dragon記法の語は英語だけで file から言葉が決まらないため、記法の file も JSON の原本と同じに扱う (#3137)。
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -88,7 +89,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --width <px>       枠の幅。見せ方を選び、寄って見せる窓の幅になる",
       `  --palette <名前>   色味 (${PALETTE_NAMES})`,
       "  --theme <明暗>     light か dark",
-      "  --lang <言葉>      図の中の字と命令の文の言葉 (ja か en)。既定は en",
+      "  --lang <言葉>      図の中の字と命令の文の言葉 (ja か en)。無ければ図の中の字は題と say の言葉、命令の文は en",
       "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
       "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
       "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
@@ -108,7 +109,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     checkUsage: [
       "使い方: dragon check <記法の file (.dragon か .md) か -> [設定]",
       "  --json             誤りと知らせを JSON で出す",
-      "  --layout           図を描き、崩れ (丸や線の詰まり、箱の形からのはみ出し) も段ごとに知らせる",
+      "  --layout           図を描き、崩れ (丸や線の詰まり、箱の形や図の枠からのはみ出し) も段ごとに知らせる",
       "  --blocks <file>    足したブロックの定義の file を読み、その定義を図に渡して確かめる",
       "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
     ].join("\n"),
@@ -134,7 +135,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --width <px>       Frame width. Picks the view and sets the window width when following",
       `  --palette <name>   Colors (${PALETTE_NAMES})`,
       "  --theme <mode>     light or dark",
-      "  --lang <lang>      Language of the diagram text and command messages (ja or en). Defaults to en",
+      "  --lang <lang>      Language of the diagram text and command messages (ja or en). Without it, the diagram text follows the title and say lines, and messages are in en",
       "  --fps <n>          Frames per second of the mp4 (default 30)",
       "  --gif-fps <n>      Frames per second of the GIF (default 10)",
       "  --format <list>    Formats to write, separated by , (default mp4,gif,html,png)",
@@ -154,7 +155,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     checkUsage: [
       "Usage: dragon check <notation file (.dragon or .md) or -> [options]",
       "  --json             Print the errors and warnings as JSON",
-      "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, parts sticking out of a box shape) per step",
+      "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, parts sticking out of a box shape or the diagram frame) per step",
       "  --blocks <file>    Read the block definitions in this file and check the diagrams with them",
       "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
     ].join("\n"),
@@ -407,7 +408,7 @@ async function main(argv: string[]): Promise<number> {
   const fps = number(values.fps);
   const gifFps = number(values["gif-fps"]);
   const step = number(values.step);
-  // 言葉は渡した物だけで決める。渡さなければ、書き出しの既定 (英語) になる
+  // 渡した言葉だけを書き出しに渡す。渡さなければ、書き出しが図の題と `say` から図の中の字の言葉を決め、命令の文は英語で出す (#3516)
   const lang = isLang(chosen) ? chosen : undefined;
   const diagram = read(file, early, lang ?? DEFAULT_LANG);
   let result: Awaited<ReturnType<typeof exportDiagram>>;

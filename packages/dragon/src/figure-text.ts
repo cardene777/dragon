@@ -2,7 +2,7 @@
  * 描く部品が出す字 (#3001)。
  *
  * 図の原本は語を持たないので、呼ぶ側が言葉を渡す。渡さなければ英語で出す (#3338)。
- * 頁は頁の言葉を、`dragon export` は `--lang` の言葉 (渡さなければ英語) を渡す。
+ * 頁は頁の言葉を、`dragon export` は `--lang` の言葉を渡す。`--lang` が無ければ、書き出しが図の題と `say` から言葉を決める (#3516)。
  */
 import type { NotationLang } from "./words";
 
@@ -44,6 +44,12 @@ export interface FigureText {
   textsOverlap: (a: string, b: string) => string;
   lineCrosses: (from: string, to: string, text: string) => string;
   /**
+   * 描いた図の崩れを知らせる文に添える、段を添えた線の呼び方と、携帯の幅でだけ出る崩れの幅 (#3484)。
+   * 崩れの種類ごとの文は、崩れを探す処理 (`render/layout-check.ts`) だけが持つ (#3515)
+   */
+  lineOf: (from: string, to: string, step: number) => string;
+  atWidth: (width: number) => string;
+  /**
    * 時間軸の図 (#3165)。時刻の字の単位、拡大の帯の名前、目盛りの番号の範囲の書き方、列の上の目盛りの番号と時刻の間、
    * 空きの目盛りの枠の字
    */
@@ -52,21 +58,54 @@ export interface FigureText {
   range: (from: string, to: string) => string;
   headJoin: string;
   empty: string;
+  /**
+   * 列の図の卓の形 (#3351)。札と置き場の名前の下の字、選んだ札の印、封の字、「この先」の帯の字、空の置き場の字。
+   * 札の下の一言は、色付きのチップの席の番号、置き場に無かったチップを足したこと、置き場に在った色付きのチップが無いことを言う
+   */
+  lineupInOrder: string;
+  lineupNoOrder: string;
+  lineupPicked: string;
+  lineupSealed: string;
+  lineupAhead: string;
+  lineupEmpty: string;
+  lineupAt: (name: string, n: number) => string;
+  lineupAdded: (names: string[]) => string;
+  lineupMissing: (name: string) => string;
   /** 配管の図の拡大と縮小の釦の読み上げの名前 (#3418) */
   zoomIn: string;
   zoomOut: string;
   /**
-   * 配管の図の呼び出しの結果 (#3418、#3450)。結果の一覧の名前と、戻る前の呼び出しの返した値の欄。
-   * 配管の図の再生の部品だけが使う札は、後から読む配管の図の塊 (`pipe-player.ts`) に置く (#3525)
+   * 配管の図の下の段の矢印と呼び出しの結果 (#3418、#3450)。結果の一覧の名前、矢印の札 (送る、呼ぶ、返す、計算する、記録を出す)、
+   * 同じ段で戻った呼び出しの返した値の札、確かめた式を満たした時と満たさない時の札、中身の無い所の印、
+   * 一覧の先頭に置くいちばん外の呼び出しの札、戻る前の呼び出しの返した値の欄、取り消しの札
    */
   calls: string;
+  flowTags: Record<"move" | "call" | "return" | "calc" | "emit", string>;
+  returnOf: (label: string) => string;
+  checkPass: string;
+  checkFail: string;
+  callNone: string;
+  deal: string;
   waiting: string;
+  reverted: string;
   /** 配管の図の下の、段の要点の札の名札 (#3464)。読み上げの段の一覧でも要点の前に置く */
   gist: string;
 }
 
-/** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
+/**
+ * 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする。
+ * 書き手が CLI で受け取る配置の警告だけが使う。読み手が図で見る字は和文と英数字の間に空白を置かない (#3517)
+ */
 export const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
+/** 和文の字 (漢字、ひらがな、カタカナ、長音) で終わる語と始まる語。句読点と中黒は和文の字に数えない */
+const ENDS_WITH_KANA_KANJI = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]$/u;
+const STARTS_WITH_KANA_KANJI = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]/u;
+/**
+ * 読み手が図で見る字で、2 つの語を並べる (#3517)。境の片側が和文の字なら空白を置かず、それ以外は空白で離す。
+ * 時間軸の図の「12秒」と「slot 3200」、配管の図の「10ポイント」と「100 USDC」のように、書き手の語と数をつなぐ
+ */
+export const joinWords = (left: string, right: string): string =>
+  ENDS_WITH_KANA_KANJI.test(left) || STARTS_WITH_KANA_KANJI.test(right) ? `${left}${right}` : `${left} ${right}`;
 /** 英語の文の頭を大文字にする */
 export const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -82,10 +121,10 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     pause: "止める",
     play: "動かす",
     next: "次の段",
-    steps: (title) => `${title} の段`,
+    steps: (title) => `${title}の段`,
     side: "脇道",
     sideNote: "今回は通らない",
-    sideFrom: (count) => `${count} つの状態から入れる`,
+    sideFrom: (count) => `${count}つの状態から入れる`,
     trail: "通った状態",
     start: "始まり",
     end: "終わり",
@@ -96,15 +135,33 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "「封筒」",
     textsOverlap: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
     lineCrosses: (from, to, text) => `線 ${from} → ${to} が${spaced(text)}を横切る`,
+    lineOf: (from, to, step) => `線 ${from} → ${to} (段 ${step})`,
+    atWidth: (width) => `(幅 ${width} の時)`,
     timeUnits: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
     zoom: "拡大",
     range: (from, to) => `${from}〜${to}`,
     headJoin: " ・ ",
     empty: "空き",
+    lineupInOrder: "上から実行",
+    lineupNoOrder: "順番なし",
+    lineupPicked: "選ばれる",
+    lineupSealed: "封",
+    lineupAhead: "この先",
+    lineupEmpty: "まだ空",
+    lineupAt: (name, n) => `${name}は${n}番目`,
+    lineupAdded: (names) => `${names.join("、")}を足した`,
+    lineupMissing: (name) => `${name}が無い`,
     zoomIn: "拡大する",
     zoomOut: "縮小する",
     calls: "呼び出しの結果",
+    flowTags: { move: "送る", call: "呼ぶ", return: "返す", calc: "計算する", emit: "記録を出す" },
+    returnOf: (label) => `${label}を返す`,
+    checkPass: "✓ 満たす",
+    checkFail: "✗ 満たさない",
+    callNone: "—",
+    deal: "取引",
     waiting: "返り待ち",
+    reverted: "✗ 取り消し",
     gist: "要点",
   },
   en: {
@@ -132,15 +189,33 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "the envelope",
     textsOverlap: (a, b) => capital(`${a} and ${b} overlap`),
     lineCrosses: (from, to, text) => `The line ${from} → ${to} crosses ${text}`,
+    lineOf: (from, to, step) => `the line ${from} → ${to} (step ${step})`,
+    atWidth: (width) => `(at width ${width})`,
     timeUnits: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
     zoom: "Zoom",
     range: (from, to) => `${from}–${to}`,
     headJoin: " · ",
     empty: "Empty",
+    lineupInOrder: "Top first",
+    lineupNoOrder: "No order",
+    lineupPicked: "Picked",
+    lineupSealed: "Sealed",
+    lineupAhead: "Next",
+    lineupEmpty: "Empty",
+    lineupAt: (name, n) => `${name} is #${n}`,
+    lineupAdded: (names) => `Added ${names.join(", ")}`,
+    lineupMissing: (name) => `${name} is missing`,
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     calls: "Call results",
+    flowTags: { move: "sends", call: "calls", return: "returns", calc: "calculates", emit: "emits" },
+    returnOf: (label) => `returns ${label}`,
+    checkPass: "✓ holds",
+    checkFail: "✗ fails",
+    callNone: "—",
+    deal: "Transaction",
     waiting: "Pending",
+    reverted: "✗ Reverted",
     gist: "Key point",
   },
 };

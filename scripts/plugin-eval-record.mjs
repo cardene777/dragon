@@ -22,6 +22,13 @@
  *   写しの repo は作業場所へ下ごしらえ (`scaffold.sh`) が写すので、評価を `--scaffold` 付きで回す。
  * - `issue` の印のケースは、`.dragon` を保存し、偽の `gh` に `issue create` を `--repo cardene777/dragon` と `feat:` で始まる題で渡し、
  *   本文の dragon の囲みの記法がこの repo の `dragon check` を通り、`dragon export` の後に Issue を立て、`pr create` を渡していないかを見る (#3513)。
+ *
+ * 記録を書いた後に、AIが描いた図を1枚の頁に並べる (`plugin-eval-gallery.mjs`、#3519)。
+ * 各実行で保存した`.dragon`ごとに、最後の段と`dragon check --layout`が崩れを知らせた段を、囲いの外でPNGに書き出し、
+ * ケースごと・実行ごとに崩れの数と並べて、写しのdirの`gallery.html`に書く。頁の置き場は出力の最後の行に出す。
+ * 頁はPNGを埋め込んだ1つのfileで、ほかのfileを読まない。
+ * 評価の結果を本人に報告するAIは、この頁をArtifactで公開してリンクを渡す。
+ * 手元のfileの置き場だけを渡すと、本人は開くたびにそのfileを探すことになる。
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -40,6 +47,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
+import { cliTools, writeGallery } from "./plugin-eval-gallery.mjs";
 import { BASE_TAG, GH_LOG, GH_TMP_DIR, ghBody, makeStandIn } from "./plugin-eval-stand-in.mjs";
 
 const ROOT = process.cwd();
@@ -377,10 +385,14 @@ if (!existsSync(out)) {
 const result = JSON.parse(readFileSync(out, "utf8"));
 const record = existsSync(RECORD) ? JSON.parse(readFileSync(RECORD, "utf8")) : {};
 const date = new Date().toISOString().slice(0, 10);
+/** 図の頁に並べるケースと実行 (#3519) */
+const gallery = [];
 for (const evalCase of result.cases) {
   const runs = evalCase.arms.with ?? [];
   const tags = tagsOf(evalCase.name);
   let passed = 0;
+  const shown = [];
+  gallery.push({ name: evalCase.name, runs: shown });
   runs.forEach((run, index) => {
     const base = dirname(dirname(run.tracePath));
     // 残した囲いの dir は持ち主しか開けない形で封じてあるので、読む前に開ける
@@ -398,6 +410,7 @@ for (const evalCase of result.cases) {
     if (judged.length === 0) why.push(`確かめ方の印 (layout か pr か issue) が無い: [${tags.join(", ")}]`);
     const ok = run.passed && why.length === 0;
     if (ok) passed++;
+    shown.push({ dir: base, passed: ok, why });
     const note = judged.map((j) => j.note).join(" / ");
     console.log(
       `${evalCase.name} run${index + 1}: ${ok ? "通った" : "落ちた"} ${note}${why.length > 0 ? ` 理由: ${why.join(" / ")}` : ""} 記録: ${run.tracePath}`,
@@ -415,3 +428,6 @@ writeFileSync(RECORD, `${JSON.stringify(record, null, 2)}\n`);
 console.log(
   `${relative(ROOT, RECORD)} を書いた。費用 ${result.costUsd} USD。写しと結果は ${relative(ROOT, work)}`,
 );
+// 囲いの外なのでChromiumで書き出せる。写しのrepoから作業場所に置かれた見本は、AIが保存した図に数えない
+const page = await writeGallery({ cases: gallery, page: join(work, "gallery.html"), tools: cliTools(CLI), known: [standIn.repo] });
+console.log(`AIが描いた図を並べた頁: ${page}`);
