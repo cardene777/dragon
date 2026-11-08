@@ -356,7 +356,8 @@ describe("評価で AI が描いた図を 1 枚の頁に並べる (#3519)", () =
     expect(css, "暗い表示を選んだ時の色が無い").toMatch(/:root\[data-theme="dark"\]\s*\{[^}]*--bg:/u);
     expect(css, "body の背景が色の変数でない").toMatch(/body\s*\{[^}]*background:\s*var\(--bg\)/u);
     expect(css, "絵を枠の幅に収めない").toMatch(/img\s*\{[^}]*max-width:\s*100%/u);
-    expect(css, "長い path を折り返さない").toMatch(/overflow-wrap:\s*anywhere/u);
+    // 実行の欄の中の字 (path、検査と書き出しの失敗の文) は、区切りの無い長い path でも欄の幅で折り返す
+    expect(css, "実行の欄の中の長い path を折り返さない").toMatch(/\.run\s*\{[^}]*overflow-wrap:\s*anywhere/u);
   });
 
   it("plugin-eval-gallery-cli-tools-read-breaks-and-steps", async () => {
