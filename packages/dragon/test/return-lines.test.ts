@@ -238,7 +238,7 @@ describe("段の番号の丸の間を検査と同じ値で決める (#3521)", ()
 
 describe("崩れの検査の線の下限 (#3521)", () => {
   it("layout-check-line-gap-from-apart", () => {
-    expect(shared, "崩れの検査と描く処理が分け合う間の下限 APART が無い").toBeDefined();
+    expect(shared, "崩れの検査と描く処理が分け合う間の下限APARTが無い").toBeDefined();
     const vertical = (x: number): Point[] => [
       [x, 0],
       [x, 100],

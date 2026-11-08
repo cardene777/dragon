@@ -426,8 +426,7 @@ export const LOOP_ROOM = LOOK.state.loop.h + LOOK.label.soft * 2 + LOOK.label.h;
 export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[][] = []): Point {
   const length = pathLength(points);
   const first = length < LOOK.badge.short ? Math.min(LOOK.badge.r + 1, length / 2) : LOOK.badge.along;
-  const apart = LOOK.badge.r * 2 + APART.badge;
-  const clear = (p: Point): boolean => taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart);
+  const clear = (p: Point): boolean => taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= LOOK.badge.r * 2 + APART.badge);
   for (let d = first; d <= length; d += 1) {
     const p = along(points, d);
     if (clear(p)) return p;
@@ -438,8 +437,9 @@ export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[]
   for (const margin of [LOOK.edge.arrowHalf, 0]) {
     for (let d = first; d <= length; d += 1) {
       const [px, py] = along(points, d);
-      const [ax, ay] = along(points, Math.max(0, d - 1));
-      const [bx, by] = along(points, Math.min(length, d + 1));
+      // 線の向きは前後1pxの点から取る。`along` は線の終わりより先を終わりの点にし、始まりより前を始まりの区間の延長にする
+      const [ax, ay] = along(points, d - 1);
+      const [bx, by] = along(points, d + 1);
       const n = Math.hypot(bx - ax, by - ay);
       for (let s = 1; s <= LOOK.badge.r * 2 + LOOK.badge.inset; s++) {
         for (const sign of [1, -1]) {
@@ -471,7 +471,7 @@ export function pullApart(edges: SceneEdge[]): Map<SceneEdge, LabelSide> {
   // 組は先に全て見つけてからずらす。ずらしながら探すと、ずらした線と組の相手が同じ道でなくなる
   const paired = edges.filter(
     (e) =>
-      e.points.length > 1 &&
+      e.points[1] !== undefined &&
       edges.some(
         (o) =>
           o.from === e.to &&
