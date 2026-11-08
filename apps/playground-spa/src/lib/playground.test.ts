@@ -1202,6 +1202,7 @@ describe("公開する頁 (#2995)", () => {
       .map((name) => readFileSync(join(site.built.dir, "assets", name), "utf8"))
       .join("\n");
     expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+    // 枠に沿って近すぎる線と枠に接する字 (#3526) も、崩れの確かめだけが持つ
     const kinds = [
       "badges-close",
       "lines-close",
@@ -1216,6 +1217,8 @@ describe("公開する頁 (#2995)", () => {
       "pipe-behind-box",
       "pipes-merged",
       "valve-near-pipe",
+      "line-near-border",
+      "text-touches-border",
     ];
     expect(
       kinds.filter((kind) => first.includes(`"${kind}"`) || first.includes(`'${kind}'`) || first.includes(`\`${kind}\``)),

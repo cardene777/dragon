@@ -2,8 +2,8 @@
   "aggregator.json": "d082c6495700d41e1e338beee7c86efae0660318eec95e3db6f5b79e5b0c5543",
   "api.json": "4b8d950f392ecb2ae9d3e6fa6676dbb6887b2698ecca3049afde783b3a11a22b",
   "auction.json": "bcb5a774512289d2f79886fa03568cf5e0f23dcd892d1e6cd04af1f189e5c1b5",
-  "ccip.json": "a8f1e81588cb52019c128ee2dc76259589649450eb258cc48e959e289709af25",
-  "finality.json": "b1b170f04e5911540a101da362879d4a5c4ccfa852e97bc915c05e5150a6f5aa",
+  "ccip.json": "514fd91730f8184ec196a8cccaf5fde6d26450bae929c7bd17408877d3bb6adf",
+  "finality.json": "48140e9d739938e02a7200599b14e238538c680b2caf64ddd2f7bf34cd368e40",
   "intro.json": "daad70b372c65ecd44170c5d3b3d1be8671e505c75f0275dbb406ffe77471f78",
   "merge.json": "2ed05f4ec8b05852fbc64cbcd6814933e421850af1bf5c4f42a99a31aaac911a",
   "merkle.json": "219b5fe54bd8fb4674f085caabdeffdc6ca6c9f47cc978c21e9c833dfda6dd9b",
@@ -17,7 +17,7 @@
   "swap-two-hops.json": "3442b50b063ba319b22b8e3f9ddac43e284b7908c5e4c402867cc9780cd3e41d",
   "swap.json": "bfda6821d72319f7a7eae0f2de23414deb8056c99b042c3e4dda427e2fc3aec2",
   "tx-block.json": "fd6435ab8bf6c9283a42dd2b1c6397eafbcf2c5afdaa67fdaa011c237a0c5a49",
-  "vault-proxy.json": "f400405e850b80e088750c98367727435ca2dc2569b4254da4230b7d7df94e98",
+  "vault-proxy.json": "30fbea2f797fd3452d7430b310a173bce406f72459218ea8cd6c5d61f649f651",
   "wallet.json": "ebabad32926147ac472137c2771de7894698fd7147aa438bb89cbf20961b6225",
-  "withdraw.json": "df22f17ad62add54e04b76e31216cafc63d32dca598f6284b653f2994e3f2006"
+  "withdraw.json": "d4b7f19863f9803ac22cefd7d9f03a40d96ba67fa5df8a2a06eaea2922639df3"
 }

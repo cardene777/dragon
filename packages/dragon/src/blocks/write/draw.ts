@@ -43,11 +43,14 @@ export function plate(p: PipePlate, ctx: Ctx, shown: Shown[], attrs: string): st
         (p.strike ? strike(p.strike) : "") +
         write(ctx.ink, "dg-pp-tagw", p.tag.x, p.tag.base, p.tag.text, T.tag, shown)
       : "";
+  // 札の名前と値の字は、札の枠と一緒に描いた四角で記録する。崩れの確かめが、札の枠に接する字を探す (#3526)
+  const frame = { name: p.name, rect: { x: p.x, y: p.y, w: p.w, h: p.h } };
+  for (const t of [p.label, p.text]) ctx.ink.push({ text: t.text, rect: { x: t.x, y: t.y, w: t.w, h: t.h }, shown, frame });
   return (
     `<g${attrs} class="dg-pp-plate dg-pp-plate-${p.state}" style="${cs(STATE_COLOR[p.state])}">` +
     frameShape(ctx.corner, ' class="dg-pp-pbox"', p, `<rect class="dg-pp-pbox" x="${r1(p.x)}" y="${r1(p.y)}" width="${r1(p.w)}" height="${r1(p.h)}" rx="${P.plate.radius}"/>`) +
-    write(ctx.ink, `dg-pp-tok${wide(p.label.text)}`, p.label.x, p.label.base, p.label.text, T.tankTitle, shown) +
-    write(ctx.ink, `dg-pp-pv${wide(p.text.text)}`, p.text.x, p.text.base, p.text.text, T.plateValue, shown) +
+    write(undefined, `dg-pp-tok${wide(p.label.text)}`, p.label.x, p.label.base, p.label.text, T.tankTitle, shown) +
+    write(undefined, `dg-pp-pv${wide(p.text.text)}`, p.text.x, p.text.base, p.text.text, T.plateValue, shown) +
     `${sub}</g>`
   );
 }

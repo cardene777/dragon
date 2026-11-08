@@ -1,6 +1,6 @@
 # Layout breaks
 
-`dragon check` reads the notation without drawing it, so a diagram can pass it and still look broken once drawn: step numbers piled up, two lines running on top of each other, a line running across a name, a coin slot or label sticking out of a shaped box, a tag cut off at the edge of the diagram, or a line name drawn away from its line.
+`dragon check` reads the notation without drawing it, so a diagram can pass it and still look broken once drawn: step numbers piled up, two lines running on top of each other, a line running across a name, a line squeezed along the border of a box or group, a text touching its frame, a coin slot or label sticking out of a shaped box, a tag cut off at the edge of the diagram, or a line name drawn away from its line.
 `dragon check --layout` draws the diagram and reports these breaks.
 It looks at every step, at the default width and at a phone width of 390px.
 
@@ -14,7 +14,7 @@ dragon check --layout --json order.dragon
 - Each break is one `warning` line: `<file>:<line>:1 warning Step <n>: <message>`. The line is the `step` line of the first step where the break shows, and the message names the two parts involved.
 - A break that only shows at the phone width ends with `(at width 390)`.
 - A break that stays over several steps is reported once, at the first step where it shows.
-- With `--json`, each break also has a `layout` object: `{ kind, step, width?, parts }`. `parts` holds two of `{ kind: "badge", step }`, `{ kind: "box", name }`, `{ kind: "slot", box }`, `{ kind: "text", text, box }`, `{ kind: "line", from, to, step }`, `{ kind: "icon", box }`, `{ kind: "coin" }`, `{ kind: "envelope" }`, `{ kind: "frame", side }` (`side` is `left`, `right`, `top` or `bottom`), `{ kind: "needle" }`, `{ kind: "ticks" }`, `{ kind: "panel", panel: "axis" }`, and for pipe diagrams `{ kind: "valve", from, to }` (a valve on the call pipe `from` → `to`; the valve of a token box has no `to`), `{ kind: "gauge", box }` and `{ kind: "pipe", from, to, step }` (the call pipe `from` → `to`, first used in `step`).
+- With `--json`, each break also has a `layout` object: `{ kind, step, width?, parts }`. `parts` holds two of `{ kind: "badge", step }`, `{ kind: "box", name }`, `{ kind: "group", name }`, `{ kind: "slot", box }`, `{ kind: "text", text, box }`, `{ kind: "line", from, to, step }`, `{ kind: "icon", box }`, `{ kind: "coin" }`, `{ kind: "envelope" }`, `{ kind: "frame", side }` (`side` is `left`, `right`, `top` or `bottom`), `{ kind: "needle" }`, `{ kind: "ticks" }`, `{ kind: "panel", panel: "axis" }`, and for pipe diagrams `{ kind: "valve", from, to }` (a valve on the call pipe `from` → `to`; the valve of a token box has no `to`), `{ kind: "gauge", box }` and `{ kind: "pipe", from, to, step }` (the call pipe `from` → `to`, first used in `step`).
 - Breaks are warnings, so the exit code stays `0`. Errors in the notation still exit `1`, and `--layout` does not draw a diagram that has errors.
 - Pairs that are meant to touch are not reported: a line and the boxes at its ends, a group and the boxes in it, a step number on the corner of its own box, and a step number at the start of a line next to the box the line leaves.
 
@@ -35,6 +35,8 @@ dragon check --layout --json order.dragon
 | `pipe-behind-box` | In a pipe diagram, a call pipe leaves or enters a box at its rounded corner, or runs inside a box, so it looks like it passes behind the edge of the box |
 | `pipes-merged` | In a pipe diagram, two call pipes run on top of each other. Calls from one box that leave on the same line in the same direction share one trunk until they part, and are not reported |
 | `valve-near-pipe` | In a pipe diagram, the body of a valve is less than 10px from another call pipe, so it looks like it touches that pipe |
+| `line-near-border` | A straight run of a line goes along the border of a box or a group closer than the 14px margin, so it reads as part of the border and its step number sits on the border. The line's own end boxes are not counted |
+| `text-touches-border` | A text touches or crosses the border of the plain box or the value plate it sits in |
 
 ## Fix what the notation can fix
 
@@ -47,6 +49,8 @@ Fix one break, run `dragon check --layout` again, and repeat. A fix often clears
 - `label-off-line` on a line whose name you placed with `[side: above]` or `[side: below]`: Drop the `[side: ...]` so dragon can put the name on the free side of the line, or move one of the lines to its own step. Two names placed on the same side of the same line stack, and the outer one ends up away from its line.
 - `chip-over-part`: dragon stops the tag of a returned value at the first spot on the call pipe, counted from the caller, that is clear of valves, gauges and boxes. A long value on a short pipe has no such spot. Shorten the value in `return <id>: <value>`. Otherwise keep it and report it.
 - `pipe-behind-box`, `pipes-merged` and `valve-near-pipe` come from how dragon routes the call pipes, so the notation cannot fix them. Keep them and report them.
+- `line-near-border`: Reorder the boxes so the line does not have to pass along other boxes, for example put the two boxes it joins next to each other. Otherwise keep it and report it.
+- `text-touches-border`: Shorten the text. Otherwise keep it and report it.
 - `panel-edge` on a point label: A point near the right end writes its name and `note` text to the right of its flag. Shorten the text, or place the point at an earlier unit. A `panel-edge` on the needle, the ticks or a tick label comes from how dragon draws, so report it.
 
 Do not drop content the explanation needs just to clear a warning.

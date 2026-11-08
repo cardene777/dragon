@@ -20,9 +20,14 @@ import { drawDiagram } from "./draw";
  * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める。
  * 輪郭は定義を読む処理と一緒に登録した形を測る処理 (`BoxShapes`) が組む。形を持つ箱は定義を読んだ図にしか無いため (#3520)
  */
-const finder: BreakFinder = (drawn) =>
-  findBreaks({
+const finder: BreakFinder = (drawn) => {
+  const { layout } = drawn;
+  // 囲みは図の区画と状態遷移図の脇道。名前の行で呼び、名前を持たない帯 (時間軸の図の軸の帯) は名札で呼ぶ (#3526)
+  const regions = layout ? layout.regions.map((r) => ({ ...r, name: r.lines.join(" ") || r.id })) : [];
+  const side = layout?.side ? [{ ...layout.side, name: layout.side.title }] : [];
+  return findBreaks({
     ...drawn,
+    groups: [...regions, ...side],
     outlines: new Map(
       drawn.boxes.flatMap((box): [string, Point[][]][] => {
         const rings = userBlockReader()?.shapes.outline(box.id, box);
@@ -30,6 +35,7 @@ const finder: BreakFinder = (drawn) =>
       }),
     ),
   });
+};
 
 /** 崩れを確かめる携帯の幅 (CSS の px)。よく使われる携帯の画面の幅 */
 const NARROW_WIDTH = 390;
@@ -63,6 +69,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
 /**
  * 描いた図の崩れの種類ごとの文 (#3484)。運ぶ物の枠と図の枠の端の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
  * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、部品が図の枠の端からはみ出す (#3515)、線の名前か流れた量の札が線から離れる (#3528)。
+ * 囲みの呼び方と、線が箱か囲みの枠に沿って近すぎる文と、字が枠に接する文も持つ (#3526)。
  * 時間軸の図の針と時刻の目盛りの線と時間軸の囲みの呼び方と、部品が時間軸の囲みの枠に掛かる文も持つ (#3527)。
  * 配管の図の弁と計器と管の呼び方、札が部品に重なる、管が箱の縁の後ろを通る、2 本の管が重なって通る (#3523)。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
@@ -70,6 +77,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
  */
 interface BreakText {
   slotOf: (box: string) => string;
+  groupOf: (name: string) => string;
   frameEdge: (side: FrameSide) => string;
   floatsOff: (badge: string, box: string) => string;
   sticksOut: (part: string, box: string) => string;
@@ -87,11 +95,14 @@ interface BreakText {
   covers: (chip: string, part: string) => string;
   behindBox: (pipe: string, box: string) => string;
   merged: (a: string, b: string) => string;
+  nearBorder: (line: string, part: string) => string;
+  touchesBorder: (text: string, box: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
   ja: {
     slotOf: (box) => `「${box}」の運ぶ物の枠`,
+    groupOf: (name) => `囲み「${name}」`,
     frameEdge: (side) => `図の枠の${{ left: "左端", right: "右端", top: "上端", bottom: "下端" }[side]}`,
     floatsOff: (badge, box) => `${spaced(badge)}が${box}の形から離れて浮く`,
     sticksOut: (part, box) => `${spaced(part)}が${box}の形からはみ出す`,
@@ -109,9 +120,12 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     covers: (chip, part) => `${spaced(chip)}が${spaced(part)}に重なる`,
     behindBox: (pipe, box) => `${spaced(pipe)}が${box}の縁の後ろを通る`,
     merged: (a, b) => `${spaced(a)}と${spaced(b)}が重なって通る`,
+    nearBorder: (line, part) => `${spaced(line)}が${part}の枠に沿って近すぎる`,
+    touchesBorder: (text, box) => `${spaced(text)}が${box}の枠に接する`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
+    groupOf: (name) => `the group "${name}"`,
     frameEdge: (side) => `the ${side} edge of the diagram frame`,
     floatsOff: (badge, box) => capital(`${badge} floats away from the shape of ${box}`),
     sticksOut: (part, box) => capital(`${part} sticks out of the shape of ${box}`),
@@ -129,6 +143,8 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     covers: (chip, part) => capital(`${chip} covers ${part}`),
     behindBox: (pipe, box) => capital(`${pipe} runs behind the edge of ${box}`),
     merged: (a, b) => capital(`${a} and ${b} run on top of each other`),
+    nearBorder: (line, part) => capital(`${line} runs too close along the border of ${part}`),
+    touchesBorder: (text, box) => capital(`${text} touches the border of ${box}`),
   },
 };
 
@@ -142,6 +158,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return t.badgeName(String(part.step));
       case "box":
         return t.quoted(part.name);
+      case "group":
+        return w.groupOf(part.name);
       case "slot":
         return w.slotOf(part.box);
       case "text":
@@ -192,6 +210,10 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
                       ? w.behindBox(name(a), name(b2))
                       : b.kind === "pipes-merged"
                         ? w.merged(name(a), name(b2))
-                        : w.runClose(name(a), name(b2));
+                        : b.kind === "line-near-border"
+                          ? w.nearBorder(name(a), name(b2))
+                          : b.kind === "text-touches-border"
+                            ? w.touchesBorder(name(a), name(b2))
+                            : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

@@ -308,8 +308,9 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
     axisTop = bottom + T.zoomGap;
   }
 
-  // 時間軸の帯の印の列と印
-  const rowsTop = axisTop + T.rowsTop;
+  // 時間軸の帯の印の列と印。範囲の囲みを持つ図は、囲みの上の枠に乗る札の分 (札の高さの半分) だけ印の列を下げる (#3526)
+  const boxed = diagram.steps.some((step) => step.events.some((e) => e.type === "span" && e.shape === "box"));
+  const rowsTop = axisTop + T.rowsTop + (boxed ? T.box.tagH / 2 : 0);
   const rows: TimeRowPlaced[] = spec.rows.map((r, k) => ({
     id: r.id,
     name: r.name,
@@ -451,7 +452,9 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
     const base = { step: s, event: e, kind, from: event.from, to: event.to, text: event.text, color, ...(later ? { until: later.s } : {}) } as const;
     if (kind === "box") {
       const B = T.box;
-      const rect = { x: x0 - B.pad, y: rowsTop - B.pad, w: x1 - x0 + B.pad * 2, h: rowsBottom - rowsTop + B.pad * 2 };
+      // 札は囲みの上の枠に真ん中を置く。上の枠を札の高さの半分だけ上げ、札の下の端を囲みの左右と下と同じだけ印から離す (#3526)
+      const top = rowsTop - B.pad - B.tagH / 2;
+      const rect = { x: x0 - B.pad, y: top, w: x1 - x0 + B.pad * 2, h: rowsBottom + B.pad - top };
       const w = textWidth(event.text, TYPE.tag) + B.tagPadX * 2;
       const textRect = { x: rect.x + B.tagX, y: rect.y - B.tagH / 2, w, h: B.tagH };
       spans.push({ ...base, ...rect, textRect, textY: rect.y + LOOK.baseline.tag });
