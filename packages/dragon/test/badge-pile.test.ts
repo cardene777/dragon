@@ -1,8 +1,9 @@
 /**
- * 同じ所に置く段の番号を 1 つの丸にまとめ、後の段が始まると数字を入れ替える (#3184)。
+ * 同じ線を通る段の番号を 1 つの丸にまとめ、後の段が始まると数字を入れ替える (#3184)。
  *
  * 同じ線を何度も通る時、その線を通る段の番号は全て同じ所に置き、後の段が始まると前の段の番号を消す。
- * 線の無い段が同じ箱か中身の帯を続けて書き換える時も、番号は同じ角に置いて同じように入れ替える。
+ * 線の無い段が同じ箱か中身の帯を続けて書き換える時は、後の段の番号を前の段の番号の脇に並べ、前の段の番号も残す (#3525)。
+ * 同じ角で入れ替えると、前の段で何が起きたかを後の段で読めなくなるため。
  * 状態遷移図で同じ線に同じ名前が付く段は、名前も前の名前の所に重ねて 1 つにまとめる。
  * 前の段の番号と名前が後の段と同じ時刻に見えていないことは、同じ所に置いたうえで重なり (`overlaps`) が 0 件であることで確かめる。
  *
@@ -12,6 +13,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
 import { describeOverlap, type Overlap } from "../src/render/ink";
 import { renderDiagram, renderLayout } from "../src/render/svg";
@@ -109,16 +111,25 @@ describe("同じ所の段の番号を入れ替える (#3184)", () => {
     }
   });
 
-  it("corner-badges-share-one-spot", () => {
+  it("corner-badges-sit-side-by-side", () => {
     const rendered = renderDiagram(fixture("repeat-corner.dragon"));
-    const at = (step: number): Spot => {
+    const at = (step: number): Spot & { until?: number } => {
       const badge = rendered.layout.badges.find((b) => b.step === step);
       if (!badge) throw new Error(`段の番号 ${step + 1} が無い`);
       return badge;
     };
-    // 2 段目と 3 段目は画面を書き換え、4 段目と 5 段目は中身の帯を書き換える
-    expect(sameSpot(at(1), at(2)), "画面を続けて書き換える段の番号が同じ角に無い").toBe(true);
-    expect(sameSpot(at(3), at(4)), "帯を続けて書き換える段の番号が同じ角に無い").toBe(true);
+    const r = LOOK.badge.r;
+    // 2 段目と 3 段目は画面を書き換え、4 段目と 5 段目は中身の帯を書き換える (#3525)。
+    // 後の段の番号は前の段の番号の脇に、丸と丸の間を丸の半径より広く空けて並び、前の段の番号は最後の段まで消えない
+    for (const [before, after, what] of [
+      [1, 2, "画面"],
+      [3, 4, "帯"],
+    ] as const) {
+      const gap = Math.hypot(at(before).x - at(after).x, at(before).y - at(after).y);
+      expect(gap, `${what}を続けて書き換える段の番号 ${before + 1} と ${after + 1} の間`).toBeGreaterThanOrEqual(r * 3);
+      expect(gap, `${what}を続けて書き換える段の番号 ${after + 1} が、前の番号 ${before + 1} の脇に無い`).toBeLessThan(r * 7);
+      expect(at(before).until, `${what}の段の番号 ${before + 1} が後の段で消える`).toBeUndefined();
+    }
     expect(report(rendered.overlaps)).toEqual([]);
   });
 
