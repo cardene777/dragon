@@ -1,8 +1,9 @@
 /**
- * 形の輪郭 (#3484)。SVG の path の字を折れ線の輪にし、点が形の内にあるかと、形の縁までの距離を測る。
+ * 形の輪郭 (#3484)。SVG の path の字を折れ線の輪にする。
  *
- * 崩れの確かめ (`breaks.ts`) が、足した箱のブロックの見えている形 (アーチや六角形) と、硬貨の枠や字や番号の丸を比べるために使う。
- * 曲線と弧は短い線に分けて近似する。形の内外は SVG の塗りの既定 (nonzero) と同じ決まりで決める。
+ * 足した箱のブロックの形を測る処理 (`blocks/box/fit.ts`、#3520) が、見えている形 (アーチや六角形) の輪郭を組むために使う。
+ * 崩れの確かめ (`breaks.ts`) は、その輪郭と硬貨の枠や字や番号の丸を比べる。曲線と弧は短い線に分けて近似する。
+ * 形を測る処理と一緒に後から読む束に入るよう、描く処理からは読まない。
  */
 import type { Point } from "../layout/scene";
 
@@ -179,35 +180,4 @@ export function flattenPath(d: string): Point[][] {
   }
   if (ring.length > 1) rings.push(ring);
   return rings;
-}
-
-/** 輪の辺を、閉じる辺も含めて 1 本ずつ */
-function* edgesOf(rings: Point[][]): Generator<[Point, Point]> {
-  for (const ring of rings)
-    for (let k = 0; k < ring.length; k++) yield [ring[k] as Point, ring[(k + 1) % ring.length] as Point];
-}
-
-/** 点 `p` が形の内にあるか。SVG の塗りの既定 (nonzero) と同じく、輪が点を回る数で決める */
-export function insideRings(rings: Point[][], [px, py]: Point): boolean {
-  let winding = 0;
-  for (const [a, b] of edgesOf(rings)) {
-    const cross = (b[0] - a[0]) * (py - a[1]) - (px - a[0]) * (b[1] - a[1]);
-    if (a[1] <= py) {
-      if (b[1] > py && cross > 0) winding++;
-    } else if (b[1] <= py && cross < 0) winding--;
-  }
-  return winding !== 0;
-}
-
-/** 点 `p` から形の縁までの距離。形の内の点は負の値にする */
-export function signedDistance(rings: Point[][], p: Point): number {
-  let best = Number.POSITIVE_INFINITY;
-  for (const [a, b] of edgesOf(rings)) {
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const len = dx * dx + dy * dy;
-    const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len));
-    best = Math.min(best, Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)));
-  }
-  return insideRings(rings, p) ? -best : best;
 }

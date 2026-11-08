@@ -1,0 +1,45 @@
+// skill の評価で Claude が書いた、扇形の shape path の箱を 3 つ並べた図 (#3520)。名前と添え書きと処理の字が扇形からはみ出し、段 1 と段 3 の番号が浮いていた
+architecture スマートフォンのOSの市場占有率
+
+// dragon には円グラフの種類がないため、architecture の箱の形を扇形にして代用している。
+// 各扇形は 100×100 の正方形の中で、中心 (50, 50)、半径 50、真上から時計回りに描く。
+blocks 1
+block +android-slice
+  base box
+  // 70% = 252°
+  shape path "M 50 50 L 50 0 A 50 50 0 1 1 2.45 65.45 Z"
+  color green
+end
+block +ios-slice
+  base box
+  // 29% = 104.4°(252° から 356.4° まで)
+  shape path "M 50 50 L 2.45 65.45 A 50 50 0 0 1 46.86 0.10 Z"
+  color slate
+end
+block +other-slice
+  base box
+  // 1% = 3.6°(356.4° から 360° まで)
+  shape path "M 50 50 L 46.86 0.10 A 50 50 0 0 1 50 0 Z"
+  color amber
+end
+
++android-slice android as Android [note: 約70%]
++ios-slice ios as iOS [note: 約29%]
++other-slice other as その他 [note: 約1%]
+
+strip 占有率: Android, iOS, その他
+
+step Android
+  say Android が市場の約7割を占め、扇はいちばん大きい。
+  act android: 約70%
+  set Android: 約70%
+
+step iOS
+  say iOS は約3割で、Android に次ぐ大きさの扇になる。
+  act ios: 約29%
+  set iOS: 約29%
+
+step その他
+  say その他の OS はあわせて約1%で、扇はごく細い。
+  act other: 約1%
+  set その他: 約1%

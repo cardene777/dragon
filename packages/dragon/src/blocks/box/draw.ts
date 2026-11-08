@@ -10,17 +10,16 @@
 import type { PipeParty } from "../../kinds/pipe/layout";
 import { textWidth } from "../../layout/measure";
 import type { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
-import type { Point, Rect, SceneBox } from "../../layout/scene";
+import { contentCenter, type Rect, type SceneBox } from "../../layout/scene";
 import { LOOK, MOTION, TYPE } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import { ALWAYS, type Ink, type Shown } from "../../render/ink";
 import type { Motion } from "../../render/motion";
-import { flattenPath } from "../../render/outline";
 import { activeKf, type Ctx, esc, r1, rangeKf, write } from "../../render/parts";
 import type { Span } from "../../timeline";
 import { heldIn } from "../carry/timing";
 import { cs } from "../color/draw";
-import { type UserBlock, userBoxOf } from "../../user-blocks";
+import { userBlockReader, userBoxOf } from "../../user-blocks";
 import { drawsIcon, glyph } from "../icon/draw";
 
 /** 箱の名前 (`name`) と下の字 (`sub`) の基準線の、箱の真ん中からの下がり */
@@ -45,7 +44,8 @@ export type SubChange = [number, string, string];
 
 /**
  * 箱の下の小さな字。基準線を `y` に置き、起きたことに合わせて書き換わる。
- * `right` を渡すと、箱の真ん中でなく字の右端を `right` に揃える (列の図の列の右上の字、#3239)
+ * `right` を渡すと、箱の真ん中でなく字の右端を `right` に揃える (列の図の列の右上の字、#3239)。
+ * `x` は字の真ん中の x で、形を持つ箱は中身を並べる真ん中 (`content`) を渡す (#3520)
  */
 export function subLines(
   box: SceneBox,
@@ -54,6 +54,7 @@ export function subLines(
   y: number,
   ink?: Ink[],
   right?: number,
+  x: number = box.cx,
 ): string {
   const seq: SubChange[] = [[0, box.sub ?? "", "dg-ss"], ...changes];
   return seq
@@ -74,109 +75,18 @@ export function subLines(
       const style = cls === "dg-ss" ? TYPE.boxSub : TYPE.boxSubStrong;
       const drawn =
         right === undefined
-          ? write(ink, cls, box.cx, y, text, style, shown, "middle")
+          ? write(ink, cls, x, y, text, style, shown, "middle")
           : write(ink, cls, right - textWidth(text, style), y, text, style, shown);
       return `<g${anim ? ` class="dg-a" style="${anim}"` : ""}>${drawn}</g>`;
     })
     .join("");
 }
 
-/**
- * 使う人が足した箱のブロックの形 (#3399)。箱の枠 (`x`、`y`、`w`、`h`) に収め、地と縁と光は今の箱と同じ class で描く。
- * path は 100 四方に描いた形を枠の大きさへ伸ばし、縁の太さは伸ばさない。形を持たない定義は今の箱の形で描く
- */
-function userShape(added: UserBlock, cls: string, extra: string, x: number, y: number, w: number, h: number): string | undefined {
-  const attrs = ` class="${cls}"${extra}`;
-  const points = (list: Point[]): string => `<polygon${attrs} points="${list.map(([px, py]) => `${r1(px)},${r1(py)}`).join(" ")}"/>`;
-  if (added.path !== undefined) {
-    const { tx, ty, sx, sy } = pathFit(x, y, w, h);
-    return `<path${attrs} d="${added.path}" transform="translate(${tx} ${ty}) scale(${sx} ${sy})" vector-effect="non-scaling-stroke"/>`;
-  }
-  switch (added.shape) {
-    case "round":
-      return `<rect${attrs} x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${r1(h / 2)}"/>`;
-    case "circle":
-      return `<ellipse${attrs} cx="${r1(x + w / 2)}" cy="${r1(y + h / 2)}" rx="${r1(w / 2)}" ry="${r1(h / 2)}"/>`;
-    case "cylinder": {
-      const ry = cylinderCap(h);
-      return `<path${attrs} d="${cylinderBody(x, y, w, h)} M ${r1(x)} ${r1(y + ry)} A ${r1(w / 2)} ${r1(ry)} 0 0 0 ${r1(x + w)} ${r1(y + ry)}"/>`;
-    }
-    case "diamond":
-      return points(diamondPoints(x, y, w, h));
-    case "hexagon":
-      return points(hexagonPoints(x, y, w, h));
-    default:
-      return undefined;
-  }
-}
-
-/** path の形を箱の枠に収める、移す量と伸ばす割合。100 四方に描いた形を枠の大きさへ伸ばす */
-const pathFit = (x: number, y: number, w: number, h: number): { tx: number; ty: number; sx: number; sy: number } => ({ tx: r1(x), ty: r1(y), sx: r1(w / 100), sy: r1(h / 100) });
-/** 円柱の上と下の楕円の縦の半径 */
-const cylinderCap = (h: number): number => Math.min(h / 6, 10);
-/** 円柱の外形。上の楕円の上半分、右の縁、下の楕円の下半分、左の縁を回る。上の楕円の下半分は外形に入らない */
-function cylinderBody(x: number, y: number, w: number, h: number): string {
-  const ry = cylinderCap(h);
-  const rx = w / 2;
-  return `M ${r1(x)} ${r1(y + ry)} A ${r1(rx)} ${r1(ry)} 0 0 1 ${r1(x + w)} ${r1(y + ry)} V ${r1(y + h - ry)} A ${r1(rx)} ${r1(ry)} 0 0 1 ${r1(x)} ${r1(y + h - ry)} Z`;
-}
-const diamondPoints = (x: number, y: number, w: number, h: number): Point[] => [
-  [x + w / 2, y],
-  [x + w, y + h / 2],
-  [x + w / 2, y + h],
-  [x, y + h / 2],
-];
-function hexagonPoints(x: number, y: number, w: number, h: number): Point[] {
-  const k = Math.min(h / 2, w / 4);
-  return [
-    [x + k, y],
-    [x + w - k, y],
-    [x + w, y + h / 2],
-    [x + w - k, y + h],
-    [x + k, y + h],
-    [x, y + h / 2],
-  ];
-}
-
-/**
- * 足した箱のブロックの箱が見せる形の輪郭 (#3484)。描く形 (`userShape`) と同じ寸法から作る。
- * 崩れの確かめが、硬貨の枠と字と番号の丸を、箱の四角でなく見えている形と比べるために使う。形を持たない箱は `undefined`
- */
-export function boxOutline(box: SceneBox): Point[][] | undefined {
-  const added = userBoxOf(box.id);
-  if (!added) return undefined;
-  const { x, y, w, h } = box;
-  if (added.path !== undefined) {
-    const { tx, ty, sx, sy } = pathFit(x, y, w, h);
-    return flattenPath(added.path).map((ring) => ring.map(([px, py]): Point => [tx + px * sx, ty + py * sy]));
-  }
-  switch (added.shape) {
-    case "round": {
-      // SVG の rect は縦の半径を書かないと横の半径と同じにし、横は幅の半分まで、縦は高さの半分までに詰める
-      const rx = Math.min(h / 2, w / 2);
-      const ry = h / 2;
-      return flattenPath(
-        `M ${x + rx} ${y} H ${x + w - rx} A ${rx} ${ry} 0 0 1 ${x + w} ${y + ry} V ${y + h - ry} A ${rx} ${ry} 0 0 1 ${x + w - rx} ${y + h} H ${x + rx} A ${rx} ${ry} 0 0 1 ${x} ${y + h - ry} V ${y + ry} A ${rx} ${ry} 0 0 1 ${x + rx} ${y} Z`,
-      );
-    }
-    case "circle":
-      return flattenPath(`M ${x} ${y + h / 2} A ${w / 2} ${h / 2} 0 1 1 ${x + w} ${y + h / 2} A ${w / 2} ${h / 2} 0 1 1 ${x} ${y + h / 2} Z`);
-    case "cylinder":
-      return flattenPath(cylinderBody(x, y, w, h));
-    case "diamond":
-      return [diamondPoints(x, y, w, h)];
-    case "hexagon":
-      return [hexagonPoints(x, y, w, h)];
-    default:
-      return undefined;
-  }
-}
-
 /** 箱の地と縁。上端 `y` から高さ `h`。動く段 (`act` の間) は縁に色を付け、外側に淡い光を足す。 */
 function cardFrame(box: SceneBox, ctx: Ctx, act: string | undefined, y: number, h: number): string {
-  const added = userBoxOf(box.id);
+  // 足した箱のブロックの形は、定義を読む処理と一緒に後から読む形の処理が描く (#3520)。読む前は今の箱の形で描く
   const rect = (cls: string, extra = ""): string =>
-    (added ? userShape(added, cls, extra, box.x, y, box.w, h) : undefined) ??
+    userBlockReader()?.shapes.draw(box.id, cls, extra, { x: box.x, y, w: box.w, h }) ??
     frameShape(
       ctx.corner,
       ` class="${cls}"${extra}`,
@@ -199,7 +109,9 @@ export function card(
 ): string {
   const { icon, iconRadius, iconScale, iconY } = LOOK.box;
   const inked = ctx.ink.length;
-  const subs = subLines(box, ctx.m, changes, box.cy + ctx.boxText.sub, ctx.ink);
+  // 形を持つ箱は、名前と下の字と絵柄の行を形の内側に収めた真ん中に並べる (#3520)
+  const [tx, ty] = contentCenter(box);
+  const subs = subLines(box, ctx.m, changes, ty + ctx.boxText.sub, ctx.ink, undefined, tx);
   const act = lit
     ? lit.length > 0
       ? rangeKf(
@@ -212,13 +124,13 @@ export function card(
       : undefined;
   // 置き場を持つ箱は絵柄を左へ寄せ、右に置き場の場所を空ける (#3176)。
   // 点線の枠は運ぶ物が座っている間だけ見せ、空の間は消す。最後の段に空の四角が残ると作りかけに見えるため (#3518)
-  const ix = box.iconX ?? box.cx;
+  const ix = box.iconX ?? tx;
   const slot = box.slot
     ? `<g class="dg-a" style="${rangeKf(ctx.m, heldIn(box.slot, ctx.seats))}"><rect class="dg-slot" x="${r1(box.slot.x)}" y="${r1(box.slot.y)}" width="${r1(box.slot.w)}" height="${r1(box.slot.h)}" rx="${partRadius(ctx.corner, LOOK.slot.radius)}"/></g>`
     : "";
   let mark = "";
   if (drawsIcon(box.icon)) {
-    const rect = { x: ix - icon / 2, y: box.cy + iconY - icon / 2, w: icon, h: icon };
+    const rect = { x: ix - icon / 2, y: ty + iconY - icon / 2, w: icon, h: icon };
     ctx.ink.push({
       text: `${box.name} の絵柄`,
       rect,
@@ -226,12 +138,12 @@ export function card(
       boxed: true,
       part: { kind: "icon", box: box.name },
     });
-    mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${partRadius(ctx.corner, iconRadius)}"/>${glyph(box.icon, ix, box.cy + iconY, iconScale)}`;
+    mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${partRadius(ctx.corner, iconRadius)}"/>${glyph(box.icon, ix, ty + iconY, iconScale)}`;
   }
   // 足した箱のブロックの箱は、その定義の色の役で描く (#3399)
   const markup =
     `<g style="${cs(userBoxOf(box.id)?.color ?? box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
-    `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + ctx.boxText.name, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`;
+    `${slot}${mark}${write(ctx.ink, "dg-sn", tx, ty + ctx.boxText.name, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`;
   // 箱の中に書いた字 (名前、下の字、絵柄) に箱の名札を付け、崩れの確かめが箱の形の外へはみ出す字を探せるようにする (#3484)
   for (const ink of ctx.ink.slice(inked)) ink.box = box.id;
   return markup;

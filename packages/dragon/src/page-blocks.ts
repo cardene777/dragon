@@ -12,7 +12,7 @@
  * 定義を読めない時は、全ての塊をその誤りの文に置き換える。
  */
 import { parseNotation } from "./parser";
-import type { UserBlocks } from "./user-blocks";
+import { registerUserBlockReader, type UserBlocks, userBlockReader } from "./user-blocks";
 import { mountDiagram } from "./player";
 import type { NotationLang } from "./words";
 
@@ -79,7 +79,9 @@ async function pageDefinitions(doc: Document, lang: NotationLang): Promise<UserB
       const response = await fetch(url);
       if (!response.ok) throw new Error(`${url}: ${response.status}`);
       const text = await response.text();
-      const { readBlocks } = await import("./user-blocks-read");
+      const { readBlocks, USER_BLOCK_READER } = await import("./user-blocks-read");
+      // 頁が指す定義の形の箱を描いて測る処理も、定義を読む処理と一緒に登録する (#3520)
+      if (userBlockReader() === undefined) registerUserBlockReader(USER_BLOCK_READER);
       const read = readBlocks(text.trimStart().startsWith("{") ? (JSON.parse(text) as unknown) : text, { lang });
       if (!read.ok) throw new Error(read.errors.map((e) => `${url} ${e.line}: ${e.message}`).join("\n"));
       return read.blocks;

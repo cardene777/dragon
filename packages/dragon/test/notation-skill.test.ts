@@ -339,6 +339,7 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
       "札を短くする直し方 (#3515)": "Shorten the tag",
       "崩れの種類 (線から離れた名前)": "label-off-line",
       "名前の置く側の指示を外す直し方": "[side:",
+      "崩れの種類 (字を横切る線)": "line-crosses-text",
       // 線が箱か囲みの枠に沿って近すぎる崩れと、字が自分の枠に接する崩れ (#3526)
       "崩れの種類 (枠に近い線)": "line-near-border",
       "崩れの種類 (枠に接する字)": "text-touches-border",

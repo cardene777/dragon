@@ -10,14 +10,15 @@ import type { Diagram } from "../schema";
 import { tokenize } from "../tokenize";
 import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
-import { boxOutline } from "../blocks/box/draw";
 import type { Point } from "../layout/scene";
+import { userBlockReader } from "../user-blocks";
 import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
 
 /**
  * 描いた物から崩れを数える関数 (#3494)。描く処理に渡し、描いた後に呼ばせる。
- * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める
+ * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める。
+ * 輪郭は定義を読む処理と一緒に登録した形を測る処理 (`BoxShapes`) が組む。形を持つ箱は定義を読んだ図にしか無いため (#3520)
  */
 const finder: BreakFinder = (drawn) => {
   const { layout } = drawn;
@@ -29,8 +30,8 @@ const finder: BreakFinder = (drawn) => {
     groups: [...regions, ...side],
     outlines: new Map(
       drawn.boxes.flatMap((box): [string, Point[][]][] => {
-        const outline = boxOutline(box);
-        return outline ? [[box.id, outline]] : [];
+        const rings = userBlockReader()?.shapes.outline(box.id, box);
+        return rings ? [[box.id, rings]] : [];
       }),
     ),
   });
@@ -176,10 +177,12 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
               ? w.reachesEdge(name(a), name(b2))
               : b.kind === "label-off-line"
                 ? w.offLine(name(a), name(b2))
-                : b.kind === "line-near-border"
-                  ? w.nearBorder(name(a), name(b2))
-                  : b.kind === "text-touches-border"
-                    ? w.touchesBorder(name(a), name(b2))
-                    : w.runClose(name(a), name(b2));
+                : b.kind === "line-crosses-text" && a.kind === "line"
+                  ? t.lineCrosses(a.from, a.to, name(b2))
+                  : b.kind === "line-near-border"
+                    ? w.nearBorder(name(a), name(b2))
+                    : b.kind === "text-touches-border"
+                      ? w.touchesBorder(name(a), name(b2))
+                      : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }
