@@ -1213,6 +1213,7 @@ describe("公開する頁 (#2995)", () => {
       "panel-edge",
       "label-off-line",
       "label-on-line",
+      "label-on-frame",
       "line-crosses-text",
       "chip-over-part",
       "pipe-behind-box",

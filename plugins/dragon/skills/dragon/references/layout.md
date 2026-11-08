@@ -33,6 +33,7 @@ dragon check --layout --json order.dragon
 | `panel-edge` | In a time diagram, the needle, the axis line with its ticks, a tick or period label, or a point label crosses the border of the time axis panel or comes closer than 4px to it |
 | `label-off-line` | A line name, or the amount chip of a flow in a `pipe` diagram, is drawn away from its line, so it reads as the name of another line. A line name that sits closer to another line than to its own line is reported too, even when it is close to its own line |
 | `label-on-line` | A line name sits on top of another line, so it reads as the name of that line. The line the name belongs to, and the same line drawn again at a later step, are not counted |
+| `label-on-frame` | A line name crosses the border of a group, a lane or the strip, so the border line runs into the name and through its text |
 | `chip-over-part` | In a pipe diagram, the tag of a returned value stops on a valve, a gauge or a box, so it hides that part |
 | `pipe-behind-box` | In a pipe diagram, a call pipe leaves or enters a box at its rounded corner, or runs inside a box, so it looks like it passes behind the edge of the box |
 | `pipes-merged` | In a pipe diagram, two call pipes run on top of each other. Calls from one box that leave on the same line in the same direction share one trunk until they part, and are not reported |
@@ -57,6 +58,7 @@ Fix one break, run `dragon check --layout` again, and repeat. A fix often clears
 - `text-touches-border`: Shorten the text. Otherwise keep it and report it.
 - `panel-edge` on a point label: A point near the right end writes its name and `note` text to the right of its flag. Shorten the text, or place the point at an earlier unit. A `panel-edge` on the needle, the ticks or a tick label comes from how dragon draws, so report it.
 - `badge-on-frame`: dragon moves a step number along its line off the borders, so this only shows when no spot on the line is clear. Keep it and report it.
+- `label-on-frame`: In an architecture diagram, dragon already puts the name of a line that leaves a group clear of the group's border, widens the gap between two groups when the name has no room there, and makes room above the top row for a name over a detour. If it still shows, shorten the name or reorder the boxes so the line does not leave the group next to another line. Otherwise keep it and report it.
 
 Do not drop content the explanation needs just to clear a warning.
 

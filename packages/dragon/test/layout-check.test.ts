@@ -180,6 +180,35 @@ function labelShape(rect: { x: number; y: number; w: number; h: number }, redraw
   } as never) as LayoutBreak[];
 }
 
+/**
+ * 検査の見本`label-straddles-group.dragon`の囲み「自社サービス」と、段1の APIサーバー → 価格オラクル の線に、名前「為替レートを聞く」の札を
+ * 上の端が `top` の所に置いた姿の崩れ (#3554)。座標は #3554 の前に見本を描いた時の形で、囲みの下の枠線は y = 121.5 を通る
+ */
+function frameShape(top: number): LayoutBreak[] {
+  const region = { id: "ours", x: 14, y: 14, w: 280, h: 108 };
+  const box = (id: string, name: string, x: number, y: number, w: number) => ({ id, name, color: "blue" as const, x, y, w, h: 72, cx: x + w / 2, cy: y + 36 });
+  const boxes = [box("api", "APIサーバー", 119.3, 32, 97.3), box("oracle", "価格オラクル", 117, 150, 102)];
+  const points: [number, number][] = [
+    [168, 104],
+    [168, 147],
+  ];
+  const edge = { step: 0, event: 0, from: "api", to: "oracle", points, color: "blue" as const, carry: { kind: "none" as const } };
+  // 札の字は、描く処理が記録した札の四角と同じ物を持つ。検査は線の名前とその札の字を、四角が同じ物かで結ぶ
+  const label = { x: 182, y: top, w: 106, h: 20, step: 0, event: 0, text: "為替レートを聞く", family: "sans" as const, color: "blue" as const };
+  return findBreaks({
+    inks: [{ text: label.text, rect: label, shown: fromTime(0.5), boxed: true }],
+    traces: [{ from: "api", to: "oracle", points, shown: fromTime(0.5) }],
+    framed: [],
+    stills: [1],
+    frame: { w: 308, h: 236 },
+    boxes,
+    edges: [edge],
+    outlines: new Map(),
+    layout: { kind: "architecture", width: 308, height: 236, regions: [region], boxes, lifelines: [], edges: [edge], labels: [label], actions: [], badges: [], paths: [], ends: [] },
+    borders: [{ name: "自社サービス", rect: region }],
+  } as never) as LayoutBreak[];
+}
+
 /** file の中で、段 `step` (1 から数える) を始める `step` の行の番号 */
 function stepLine(file: string, step: number): number {
   const lines = readFileSync(file, "utf8").split("\n");
@@ -372,6 +401,20 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
       labelShape({ x: 387, y: 130, w: 29, h: 20 }, false, 5).filter((b) => b.kind === "label-off-line"),
       "名前と同じ止め絵に見えない線との近さで、離れた名前に数える",
     ).toEqual([]);
+  });
+
+  it("layout-check-finds-label-on-frame", () => {
+    // 線の名前の札に囲みの枠線が刺さると、枠線と字が重なって読みにくい (#3554)。
+    // 段1の名前「為替レートを聞く」の札 (y = 115.5 から 135.5) を、囲み「自社サービス」の下の枠線 (y = 121.5) が横切る
+    const on = frameShape(115.5).filter((b) => b.kind === "label-on-frame");
+    expect(on, "名前の札が囲みの枠線をまたぐことを、段と名前と囲みで 1 件にしない").toEqual([
+      { kind: "label-on-frame", step: 1, parts: [{ kind: "text", text: "為替レートを聞く" }, { kind: "border", name: "自社サービス" }] },
+    ]);
+    expect(describeBreak(on[0] as Parameters<typeof describeBreak>[0], "ja"), "日本語の文が名前と囲みの枠線を名指さない").toBe("「為替レートを聞く」が「自社サービス」の枠線に乗る");
+    expect(describeBreak(on[0] as Parameters<typeof describeBreak>[0], "en"), "英語の文が名前と囲みの枠線を名指さない").toBe('"為替レートを聞く" sits on the border of "自社サービス"');
+    // 札が囲みの内に在る姿と、枠線から離れて囲みの外に在る姿は数えない
+    expect(frameShape(60).filter((b) => b.kind === "label-on-frame"), "囲みの内に在る名前を枠線に乗る名前に数える").toEqual([]);
+    expect(frameShape(128).filter((b) => b.kind === "label-on-frame"), "囲みの外に在る名前を枠線に乗る名前に数える").toEqual([]);
   });
 
   it("layout-check-finds-crowded-lines", async () => {

@@ -13,6 +13,7 @@
  * 同じ箱か commit の同じ所から出る2本の線が重なって走り、その先で分かれるのも同じ崩れに数える (#3547)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。名指す線より別の線の近くに在る線の名前も、離れた名前に数える (#3552)。
  * 線の名前の札が、名指す線とは別の線に乗るもの (`label-on-line`、#3552) も拾う。札が乗った線の名前に読めるため。
+ * 線の名前の札が囲みと列と帯の枠線をまたぐもの (`label-on-frame`、#3554) も拾う。枠線が札に刺さり、字と重なるため。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
@@ -73,7 +74,8 @@ export type LayoutBreakKind =
   | "pipe-behind-box"
   | "pipes-merged"
   | "valve-near-pipe"
-  | "badge-on-frame";
+  | "badge-on-frame"
+  | "label-on-frame";
 
 /** 枠線を描いた囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
 export interface Border {
@@ -185,6 +187,26 @@ function borderDistance([px, py]: Point, r: Rect): number {
   const qx = Math.abs(px - (r.x + r.w / 2)) - ((r.w - 1) / 2 - radius);
   const qy = Math.abs(py - (r.y + r.h / 2)) - ((r.h - 1) / 2 - radius);
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
+}
+
+/**
+ * 札の四角 `r` が、囲みか帯の四角 `frame` の枠線をまたぐか (#3554)。札の中に枠線の内と外の両方が、枠線の太さの半分より深く入る時にまたぐ。
+ * 枠線は丸めを除いた芯の四角を `LOOK.region.radius` だけ太らせた形 (`borderDistance` と同じ)。形は凸なので、外へ最も出る所は札の角に在り、
+ * 内へ最も入る所は、札と芯の四角の離れから半径を引いた深さになる (札が芯の四角に掛かれば半径より深い)
+ */
+function straddles(r: Rect, frame: Rect): boolean {
+  const radius = LOOK.region.radius;
+  const core = { x: frame.x + 0.5 + radius, y: frame.y + 0.5 + radius, w: frame.w - 1 - radius * 2, h: frame.h - 1 - radius * 2 };
+  const corners: Point[] = [
+    [r.x, r.y],
+    [r.x + r.w, r.y],
+    [r.x, r.y + r.h],
+    [r.x + r.w, r.y + r.h],
+  ];
+  const outside = Math.max(...corners.map((p) => borderDistance(p, frame)));
+  const dx = Math.max(core.x - (r.x + r.w), 0, r.x - (core.x + core.w));
+  const dy = Math.max(core.y - (r.y + r.h), 0, r.y - (core.y + core.h));
+  return outside > STROKE && Math.hypot(dx, dy) - radius < -STROKE;
 }
 /**
  * 線の名前の札を描く処理が最初に置く、札の四角から線までの間 (#3528)。線の上か下に置く札は線から札の真ん中まで `offset` 離すので、
@@ -534,6 +556,21 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
         add("label-on-line", seen, [
           { kind: "text", text: tag.text },
           { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
+        ]);
+      }
+    }
+
+  // 線の名前の札が囲みと列と帯の枠線をまたぐ (#3554)。札の地が枠線を隠しても、枠線は札の両脇から出て札に刺さり、札の字と重なって読みにくい。
+  // 囲みと列と帯は初めから最後まで見えているので、札が見え始める段で数える。配管の図の札は管の部品で見る (`pipe-breaks.ts`)
+  if (layout !== undefined && layout.kind !== "pipe")
+    for (const tag of tagsOf(layout)) {
+      const ink = inks.find((i) => i.rect === tag.rect);
+      if (!ink) continue;
+      for (const border of borders) {
+        if (!straddles(tag.rect, border.rect)) continue;
+        add("label-on-frame", firstSeen(ink), [
+          { kind: "text", text: tag.text },
+          { kind: "border", name: border.name },
         ]);
       }
     }

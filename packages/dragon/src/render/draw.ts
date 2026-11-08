@@ -327,6 +327,11 @@ export interface FollowFrame {
   width: number;
   /** 枠の中で見える高さ (px)。渡すと、窓と全体図をこの高さに収め (#3047)、窓をこの高さまで伸ばす (#3053)。枠の高さが図で伸びる置き場では渡さない */
   height?: number;
+  /**
+   * 枠の中で見える高さ (px)。`height` を渡さない時に渡すと、窓の下の全体図だけをこの高さに収まるまで縮める (#3554)。
+   * 窓の高さは幅で決めたまま変えず、全体図の下の表は収めずに枠の中で送って見せる。枠の高さが決まっている置き場 (編集画面) で渡す
+   */
+  visible?: number;
   /** 隅の全体図の札の言葉。渡し忘れを型の検査で止めるため、省けない欄にする */
   lang: NotationLang;
 }
@@ -731,11 +736,11 @@ function followView(
   const full = Math.min(layout.width, frameWidth);
   const worldH = layout.strip ? layout.strip.y : layout.height;
   const title = FIGURE_TEXT[follow.lang].overview;
-  /** 窓の高さ `vh` の時の全体図の寸法。全体図は窓の高さで縮むので、窓を低くしたら測り直す */
-  const sized = (vh: number) => {
+  /** 窓の高さ `vh` の時の全体図の寸法。全体図は窓の高さで縮むので、窓を低くしたら測り直す。`least` を渡すと全体図の幅をそれ以下にする */
+  const sized = (vh: number, least = Number.POSITIVE_INFINITY) => {
     // 全体図の寸法は枠の幅と窓の高さで決め、置き場所に依らない
     // 全体図の幅は表を含む図の比で決める。表を除いた比にすると全体図の列が太り、窓が狭くなる
-    const mw = Math.min(M.w, full * 0.4, ((vh * 0.4) / layout.height) * layout.width);
+    const mw = Math.min(M.w, full * 0.4, ((vh * 0.4) / layout.height) * layout.width, least);
     const k = mw / layout.width;
     const mh = worldH * k;
     // 地の幅は図の縦横の比で決まるので、縦に長い図では札より狭くなる。その時は地を札の幅まで広げ、図は広げた地の真ん中に置く
@@ -765,10 +770,18 @@ function followView(
       : (natural.beside || bare ? follow.height : follow.height - natural.bgH - M.inset) - tableH;
   // 見える高さが窓より低ければ窓と全体図を縮め、高ければ全体図はそのままに窓を図の高さまで伸ばす。
   // 全体図も伸ばすと、狭い枠では右の全体図の列が太って窓が狭くなる
-  const { vh, mw, k, mh, bw, bgW, bgH, beside } =
+  const fitted =
     room < natural.vh
       ? sized(Math.max(F.fitMinH, room))
       : { ...natural, vh: Number.isFinite(room) ? Math.min(worldH, room) : natural.vh };
+  // 高さを渡さない枠で窓の下に出す全体図は、見える高さ `visible` から窓を引いた残りに収まるまで縮める (#3554)。
+  // 窓の高さは枠の幅で決まるので、図が伸びると全体図だけが枠の下へ出て切れる。全体図は半分の大きさまで縮め、それでも収まらない時は枠の中で送る
+  const spare =
+    follow.height === undefined && follow.visible !== undefined && !fitted.beside && !bare
+      ? follow.visible - fitted.vh - M.inset - M.pad * 2 - M.title
+      : Number.POSITIVE_INFINITY;
+  const { vh, mw, k, mh, bw, bgW, bgH, beside } =
+    fitted.mh > spare ? sized(fitted.vh, (Math.max(spare, fitted.mh / 2) / worldH) * layout.width) : fitted;
   // 右の全体図の列は枠の余りに置き、窓は図の原寸の幅まで広げる。枠が図より狭い時は今までどおり枠の幅から列を引く
   const vw = beside && !bare ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
   const clampX = (x: number): number => Math.min(layout.width - vw / 2, Math.max(vw / 2, x));

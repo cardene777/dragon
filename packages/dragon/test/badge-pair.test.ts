@@ -70,7 +70,9 @@ describe("短い線の段の番号を線の始まりに置く (#3189)", () => {
   });
 
   it("badge-short-line-at-start", () => {
-    const { layout } = renderDiagram(fixture("pair-band.dragon"));
+    // 囲みの外へ下りる線の名前を囲みの枠線から離して置くと帯の間が広がり、線が短い線でなくなる (#3554)。
+    // 名前を外した形で、帯の間を狭いままにして線を短くする
+    const { layout } = renderDiagram(fixture("pair-band.dragon", true));
     const frames = frameLines([...layout.regions, ...(layout.strip ? [layout.strip] : [])]);
     for (const step of [0, 1]) {
       const { point, edge } = badgeOf(layout, step);
