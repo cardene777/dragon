@@ -346,7 +346,7 @@ describe("線の名前と札を線の近くに描く (#3528)", () => {
         { kind: "amount", text: "5 ETH", step: 1, x: 100, y: 400, w: 60, h: 22 },
       ],
     };
-    const breaks = findBreaks({ inks: [], traces: [], stills: [0, 1], boxes: [], edges: [], outlines: new Map(), layout: pipe } as never);
+    const breaks = findBreaks({ inks: [], traces: [], stills: [0, 1], frame: { w: 1280, h: 800 }, boxes: [], edges: [], outlines: new Map(), layout: pipe } as never);
     expect(breaks, "管から離れた流れた量の札を知らせない").toEqual([
       { kind: "label-off-line", step: 2, parts: [{ kind: "text", text: "5 ETH" }, { kind: "line", from: "Alice", to: "Bob", step: 1 }] },
     ]);

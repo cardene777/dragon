@@ -108,7 +108,7 @@ Source: [login.dragon](docs/diagrams/login.dragon)
 | `--palette <name>` | `clear`, `paper`, `night`, `arcade`, `sea` (default `paper`, `sea` for pipe) |
 | `--theme <mode>` | `light` or `dark` |
 | `--width <px>` | Frame width. It also picks the view |
-| `--lang <lang>` | `ja` or `en` for the text dragon adds and the command messages (default `en`) |
+| `--lang <lang>` | `ja` or `en` for the text dragon adds and the command messages. Without it, the text dragon adds is `ja` when the title or a `say` line has kana or kanji and `en` otherwise, and the messages are `en` |
 | `--step <n>` | The step the PNG shows, counted from 1 (default the last step). A step the diagram does not have exits `2` |
 
 - The GIF plays every step. The PNG is a still of the last step unless `--step` picks another.
