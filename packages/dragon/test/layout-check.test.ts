@@ -300,6 +300,57 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(found.filter((b) => b.kind === "lines-close"), "同じ箱へ入る前に合わさる2本の線を並んで近すぎる線に数える").toEqual([]);
   });
 
+  it("layout-check-finds-label-on-another-line", () => {
+    // 線の名前の札が別の線に乗ると、その線の名前に読める (#3552)。描く処理は札を別の線から離して置くようになったので、
+    // 乗った姿は検査の見本`lane-overlap.dragon`を #3552 の途中で描いた時の形を写して組む。
+    // 段4の B → D の名前「四」が、段3の A → C が C へ上る縦の区間と、その手前の横の区間に乗る
+    const ac: [number, number][] = [
+      [78, 104],
+      [78, 139.3],
+      [384, 139.3],
+      [384, 107],
+    ];
+    const bd: [number, number][] = [
+      [231, 104],
+      [231, 118],
+      [532, 118],
+      [532, 107],
+    ];
+    const box = (id: string, x: number) => ({ id, name: id.toUpperCase(), color: "blue" as const, x, y: 32, w: 92, h: 72, cx: x + 46, cy: 68 });
+    const edge = (from: string, to: string, step: number, points: [number, number][]) => ({ step: step - 1, event: 0, from, to, points, color: "blue" as const, carry: { kind: "none" as const } });
+    const boxes = [box("a", 32), box("b", 185), box("c", 338), box("d", 486)];
+    const breaksWith = (rect: { x: number; y: number; w: number; h: number }, redrawn = false): LayoutBreak[] => {
+      // 札の字は、描く処理が記録した札の四角と同じ物を持つ。検査は線の名前とその札の字を、四角が同じ物かで結ぶ
+      const label = { ...rect, step: 3, event: 0, text: "四", family: "sans" as const, color: "amber" as const };
+      const edges = [edge("a", "c", 3, ac), edge("b", "d", 4, bd), ...(redrawn ? [edge("b", "d", 5, bd.map(([x, y]): [number, number] => [x, y]))] : [])];
+      return findBreaks({
+        // 名前は段4の間だけ見える
+        inks: [{ text: "四", rect: label, shown: [[3.5, 4.5]], boxed: true }],
+        traces: edges.map((e) => ({ from: e.from, to: e.to, points: e.points, shown: fromTime(e.step + 0.5) })),
+        framed: [],
+        stills: redrawn ? [1, 2, 3, 4, 5] : [1, 2, 3, 4],
+        frame: { w: 610, h: 180 },
+        boxes,
+        edges,
+        outlines: new Map(),
+        layout: { kind: "architecture", width: 610, height: 180, regions: [], boxes, lifelines: [], edges, labels: [label], actions: [], badges: [], paths: [], ends: [] },
+      } as never) as LayoutBreak[];
+    };
+    const on = breaksWith({ x: 370, y: 122, w: 29, h: 20 }).filter((b) => b.kind === "label-on-line");
+    expect(on, "B → D の名前が A → C に乗ることを、段と名前と乗った線で 1 件にしない").toEqual([
+      { kind: "label-on-line", step: 4, parts: [{ kind: "text", text: "四" }, { kind: "line", from: "A", to: "C", step: 3 }] },
+    ]);
+    expect(describeBreak(on[0] as Parameters<typeof describeBreak>[0], "ja"), "日本語の文が名前と乗った線を名指さない").toBe("「四」が線 A → C (段 3)に乗る");
+    expect(describeBreak(on[0] as Parameters<typeof describeBreak>[0], "en"), "英語の文が名前と乗った線を名指さない").toBe('"四" sits on the line A → C (step 3)');
+    // 描く処理が今置く所 (B と C の間の、B → D の上) は、どの線にも乗らない
+    expect(breaksWith({ x: 299, y: 86, w: 29, h: 20 }).filter((b) => b.kind === "label-on-line"), "別の線に乗らない名前を数える").toEqual([]);
+    // 名前が乗る線が自分の線と同じ道を別の段でもう一度引いた線なら、自分の線なので数えない
+    expect(
+      breaksWith({ x: 300, y: 108, w: 29, h: 20 }, true).filter((b) => b.kind === "label-on-line"),
+      "自分の線と同じ道をもう一度引いた線に乗る名前を数える",
+    ).toEqual([]);
+  });
+
   it("layout-check-finds-crowded-lines", async () => {
     const { found } = await layoutOf(CROWDED);
     const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "受付", "取消", 1) && hasLine(b, "確認", "取消", 1));

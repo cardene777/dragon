@@ -6,6 +6,8 @@
  * 行の下か上か列の間を回る道は、出る箱によらず、区間が重なる線どうしを`APART.line`以上離して並べる。
  * 回る道を離すと入る線の縦の区間が長くなり、1つの箱の同じ所へ入る線とそこから出る線の重なりが崩れの検査の下限を超えたので、
  * 入る所と出る所も離す。
+ * 線の名前は自分の線の脇に置き、別の線に乗せず、自分の線より別の線の近くにも置かない。乗るか近い名前は、その線の名前に読める。
+ * 縦の線の脇を列の外を回る線が塞ぐ時は、回る道を列の外へ離して名前の置き場を空ける。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,7 +30,17 @@ interface Edge {
   from: string;
   to: string;
   step: number;
+  event: number;
   points: Point[];
+}
+interface Label {
+  step: number;
+  event: number;
+  text: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 const FIXTURES = join(process.cwd(), "packages/dragon/test/fixtures/layout");
@@ -36,6 +48,8 @@ const FIXTURES = join(process.cwd(), "packages/dragon/test/fixtures/layout");
 const LANE_OVERLAP = join(FIXTURES, "lane-overlap.dragon");
 /** 形を変えた箱の図 (#3520)。段4の関所からプールへの線が行の下を回ってプールの下へ入り、段5のプールから記録の倉庫への線が同じ所から下へ出る */
 const SHAPES = join(FIXTURES, "shapes.dragon");
+/** 箱を1列に縦に並べ、段4の APIサーバー → 決済代行 が列の右を縦に回る、Claude が評価で描いた図。段2の名前の右を段4の線が回る */
+const BESIDE_DETOUR = join(FIXTURES, "label-beside-detour.dragon");
 
 /** 1行に並べる4つの箱。段1から段3の線が`a`から`d`を順に右へ並べる */
 const ROW = ["box a as A", "box b as B", "box c as C", "box d as D"];
@@ -99,7 +113,7 @@ const IN_OUT_SIDE = notation("箱の左へ入る線と同じ所から出る線",
   "f -> b: 八",
 ]);
 
-function laid(text: string): { edges: Edge[] } {
+function laid(text: string): { edges: Edge[]; labels: Label[] } {
   const parsed = parseNotation(text, { lang: "ja" });
   if (!parsed.ok) throw new Error(`記法を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
   return renderDiagram(parsed.diagram, { lang: "ja" }).layout;
@@ -215,5 +229,83 @@ describe("別々の箱から出て同じ道を回る構成図の線は離れて�
     expect(Math.abs((enter.points.at(-1) as Point)[1] - (leave.points[0] as Point)[1]), "F の左へ入る所と出る所の間").toBeGreaterThanOrEqual(APART.line);
     expect(closeRuns(enter, leave), "A から F への線と F から B への線が並んで近すぎる所").toEqual([]);
     expect(problems("in-out-side.dragon", IN_OUT_SIDE, "lines-close"), "並んで近すぎる線の知らせ").toEqual([]);
+  });
+});
+
+/**
+ * 名前の札から線までの離れ。線を 0.5px ごとに区切った点から札の四角までの最も短い離れで、線が札を通れば 0。
+ * 描く処理の測り方を使わずに測り、描く処理と同じ誤りで通らないようにする
+ */
+function gapTo(points: Point[], r: Label): number {
+  let least = Number.POSITIVE_INFINITY;
+  for (const [k, q] of points.slice(1).entries()) {
+    const p = points[k] as Point;
+    const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 0.5));
+    for (let i = 0; i <= n; i++) {
+      const [x, y] = [p[0] + ((q[0] - p[0]) * i) / n, p[1] + ((q[1] - p[1]) * i) / n];
+      least = Math.min(least, Math.hypot(Math.max(r.x - x, 0, x - (r.x + r.w)), Math.max(r.y - y, 0, y - (r.y + r.h))));
+    }
+  }
+  return least;
+}
+
+/**
+ * 図の名前のうち、自分の線の脇に無いか、別の線が自分の線より近い名前。
+ * 脇は札から自分の線までが、描く処理が最初に置く離れに札の高さを足した長さまでの所で、崩れの検査が線から離れた名前に数えない所。
+ * 同じ道をもう一度引いた線は自分の線として比べない。離れは 0.5px ごとに測るので、0.5px より近い時だけ近いとする
+ */
+function strayLabels(layout: { edges: Edge[]; labels: Label[] }): string[] {
+  const reach = Math.max(LOOK.label.offset - LOOK.label.h / 2, LOOK.label.side) + LOOK.label.h;
+  const key = (e: Edge): string => JSON.stringify(e.points);
+  return layout.labels.flatMap((l) => {
+    const own = layout.edges.find((e) => e.step === l.step && e.event === l.event);
+    if (!own) return [`段${l.step + 1}の名前「${l.text}」の線が無い`];
+    const gap = gapTo(own.points, l);
+    const nearer = layout.edges.filter((e) => key(e) !== key(own) && gapTo(e.points, l) < gap - 0.5);
+    return [
+      ...(gap > reach ? [`段${l.step + 1}の名前「${l.text}」が自分の線から ${gap.toFixed(1)} 離れる`] : []),
+      ...nearer.map((e) => `段${l.step + 1}の名前「${l.text}」に、自分の線 (${gap.toFixed(1)}) より線 ${e.from} → ${e.to} (${gapTo(e.points, l).toFixed(1)}) が近い`),
+    ];
+  });
+}
+
+describe("構成図の線の名前は自分の線の脇に置き、別の線に乗せない (#3552)", () => {
+  it("lane-label-beside-own-line", () => {
+    const text = readFileSync(LANE_OVERLAP, "utf8");
+    const layout = laid(text);
+    // 図が名前を持つことを先に確かめる。持たなければ外れた名前0件は当たり前になる
+    expect(layout.labels.map((l) => l.text), "行の下で重なっていた図の線の名前").toEqual(["一", "二", "三", "四"]);
+    expect(strayLabels(layout), "自分の線の脇に無いか、別の線の方が近い名前").toEqual([]);
+    expect(problems(LANE_OVERLAP, text, "label-on-line"), "別の線に乗る名前の知らせ").toEqual([]);
+    // 行へ戻る線と進む線と帰りの線を混ぜた図、行の間で下りる線と上る線、同じ列の間を縦に回る線、箱の同じ所へ入る線と出る線の図でも、
+    // 名前は別の線に乗らず、自分の線から離れない。並べて回る道と並べて出す線の間 (`APART.line`) は札より狭いので、その間の名前は
+    // 自分の線より隣の線の近くに置くことがあり、ここでは近さを比べない
+    for (const [name, mixed] of [
+      ["mixed.dragon", MIXED],
+      ["between-rows.dragon", BETWEEN_ROWS],
+      ["column.dragon", COLUMN],
+      ["in-out-side.dragon", IN_OUT_SIDE],
+    ] as const) {
+      expect(laid(mixed).labels.length, `${name} が線の名前を持たない`).toBeGreaterThan(0);
+      expect(
+        problems(name, mixed).filter((line) => line.includes("に乗る") || line.includes("から離れて描かれる")),
+        `${name} の、別の線に乗るか自分の線から離れた名前の知らせ`,
+      ).toEqual([]);
+    }
+  });
+
+  it("lane-label-room-beside-detour", () => {
+    const text = readFileSync(BESIDE_DETOUR, "utf8");
+    const layout = laid(text);
+    const asked = line(layout.edges, "api", "oracle");
+    const detour = line(layout.edges, "api", "gateway");
+    // 段2の線は真下へ下り、段4の線は列の右を縦に回る。どちらでもなければ、名前の右を回る線が無い図になる
+    expect(asked.points.length, "APIサーバー → 価格オラクル が真下へ下りない").toBe(2);
+    expect(detour.points.length, "APIサーバー → 決済代行 が列の右を回らない").toBe(4);
+    expect(strayLabels(layout), "自分の線の脇に無いか、別の線の方が近い名前").toEqual([]);
+    // 名前と回る線の間は、名前と自分の線の間の 2 倍空ける。同じ離れだと、名前がどちらの線の名前か読めない
+    const name = layout.labels.find((l) => l.step === asked.step && l.event === asked.event) as Label;
+    expect(gapTo(detour.points, name), "名前と列の右を回る線の間").toBeGreaterThanOrEqual(2 * gapTo(asked.points, name) - 0.5);
+    expect(problems(BESIDE_DETOUR, text), "列の右を回る線の脇に名前を置いた図の崩れの知らせ").toEqual([]);
   });
 });
