@@ -1,0 +1,7 @@
+// A validator that checks blocks and votes on them, drawn as an amber rounded box with a checked shield icon
+blocks 1
+block +validator
+  base box
+  color amber
+  icon tabler:shield-check
+end

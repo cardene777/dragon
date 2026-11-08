@@ -1,0 +1,14 @@
+// Use the shared block +async without defining it in the diagram
+architecture Send an event without waiting
+
+box shop as Shop [note: takes the order, icon: cart]
+box orders as Orders [note: saves the order, icon: server]
+box mail as Mail [note: sends the receipt, icon: doc]
+
+step Order
+  say The shop sends the order to the orders service.
+  shop -> orders: place order
+
+step Notify
+  say The orders service sends an event to mail and goes on without waiting for an answer.
+  orders +async mail: order placed

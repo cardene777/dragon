@@ -13,6 +13,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, type NotationLang } from "./diagram-support";
+import { runCli } from "./export-support";
 import { draw } from "./render-support";
 
 type ReadBlocks = { ok: true; blocks: unknown } | { ok: false; errors: LineError[] };
@@ -20,7 +21,16 @@ type Parsed = { ok: true; diagram: Json } | { ok: false; errors: LineError[] };
 
 interface Define {
   format: number;
-  blocks: { name: string; base: string; path?: string; shape?: string; color?: string }[];
+  blocks: SharedBlock[];
+}
+
+interface SharedBlock {
+  name: string;
+  base: string;
+  path?: string;
+  shape?: string;
+  color?: string;
+  icon?: string;
 }
 
 const ROOT = process.cwd();
@@ -169,5 +179,132 @@ describe("共有のブロック集 (#3455)", () => {
       expect(errors[0]?.message ?? "", `${lang}: 誤りの文が定義の無いことを名指さない`).toMatch(word);
       expect(errors[0]?.message ?? "", `${lang}: 誤りの文がブロックの名前を名指さない`).toContain("+nosuch");
     }
+  });
+});
+
+/**
+ * Web3 と一般のシステムの共有のブロック (#3522)。
+ *
+ * AI が書いた図は、ウォレットやコントラクトや待ち行列を、既にある絵柄か自分で定義した形で代用していた。共有のブロック集に 8 つ足す。
+ * 箱のブロックは角丸の箱の形のまま、Tabler の絵柄と色の役で見分ける。形を変えると字が形からはみ出す崩れ (#3520) を招くため。
+ * 線のブロック `+async` は待たずに送る線で、共有の `+relay` と線の形か色の役で見分ける。
+ */
+describe("Web3 と一般のシステムの共有のブロック (#3522)", () => {
+  /** 足した共有のブロックと、それぞれの元。Web3 の 4 つ、一般のシステムの箱 3 つと線 1 つ */
+  const ADDED: Record<string, "box" | "edge"> = {
+    "+wallet": "box",
+    "+contract": "box",
+    "+oracle": "box",
+    "+validator": "box",
+    "+queue": "box",
+    "+cache": "box",
+    "+gateway": "box",
+    "+async": "edge",
+  };
+  const ROLES = ["blue", "amber", "green", "violet", "rose", "slate", "coin"];
+  const BOXES = Object.keys(ADDED).filter((name) => ADDED[name] === "box");
+  const definitionFile = (name: string): string => join(SHARED, `${name.slice(1)}.dragon`);
+  const exampleFile = (name: string): string => join(EXAMPLES, `${name.slice(1)}.dragon`);
+
+  /** 共有のブロック集の file から読んだ定義。file が無い時と読めない時は undefined */
+  function sharedDefinition(name: string): SharedBlock | undefined {
+    const file = definitionFile(name);
+    if (!existsSync(file)) return undefined;
+    const result = readBlocks(read(file));
+    return result.ok ? (result.blocks as { blocks: SharedBlock[] }).blocks[0] : undefined;
+  }
+
+  /** 名前 Plain の箱 a から、行 `line` が置く箱 b へ線を引く図 */
+  const boxDiagram = (line: string): string =>
+    ["architecture Shared box", "", "box a as Plain", line, "", "step Send", "  say The plain box sends to the other box.", "  a -> b: send", ""].join("\n");
+
+  /** 箱の行に絵柄 `icon` を書いて描いた時の絵柄の d。共有の箱のブロックの絵柄と比べる相手 */
+  function glyphOf(icon: string): string {
+    const parsed = parse(boxDiagram(`box b as Shared [icon: ${icon}]`));
+    const [d] = glyphDs(draw("renderDiagram")(parsed.ok ? parsed.diagram : {}, {}).svg);
+    expect(d, `箱の行に書いた ${icon} が描かれない`).toBeDefined();
+    return d ?? "";
+  }
+
+  it("shared-blocks-add-web3-and-systems", () => {
+    const problems = Object.entries(ADDED).flatMap(([name, base]) => {
+      const file = definitionFile(name);
+      if (!existsSync(file)) return [`${relative(ROOT, file)} が無い`];
+      const text = read(file);
+      const found: string[] = [];
+      const [head = ""] = text.split("\n").filter((line) => line.trim() !== "");
+      if (!/^\/\/\s*\S/u.test(head)) found.push(`${relative(ROOT, file)} の最初の行が何のブロックかを書く // の注釈でない`);
+      const result = readBlocks(text);
+      if (!result.ok) return [...found, `${relative(ROOT, file)} を読めない ${JSON.stringify(result.errors)}`];
+      const blocks = (result.blocks as { blocks: SharedBlock[] }).blocks;
+      if (blocks.length !== 1 || blocks[0]?.name !== name) found.push(`${relative(ROOT, file)} が ${name} の定義を 1 つだけ持たない`);
+      if (blocks[0]?.base !== base) found.push(`${name} の元が ${base} でない (${blocks[0]?.base ?? "無し"})`);
+      const example = exampleFile(name);
+      if (!existsSync(example)) return [...found, `${relative(ROOT, example)} が無い`];
+      const shown = read(example);
+      if (/^\s*blocks\s+1\s*$/mu.test(shown) || /^\s*block\s+\+/mu.test(shown)) found.push(`${relative(ROOT, example)} が定義を書いている`);
+      const parsed = parse(shown);
+      if (!parsed.ok) return [...found, `${relative(ROOT, example)} を読めない ${JSON.stringify(parsed.errors[0])}`];
+      // 定義を書かずに使った共有の定義は、原本の JSON の定義の欄に入る
+      if (!(defineOf(parsed)?.blocks ?? []).some((block) => block.name === name)) found.push(`${relative(ROOT, example)} が ${name} を使わない`);
+      return found;
+    });
+    expect(problems, "足した共有のブロックの誤り").toEqual([]);
+  });
+
+  it("shared-box-blocks-are-cards-with-icons", () => {
+    const definitions = BOXES.map((name) => ({ name, text: existsSync(definitionFile(name)) ? read(definitionFile(name)) : "", block: sharedDefinition(name) }));
+    expect(
+      definitions.filter(({ block }) => block === undefined).map(({ name }) => name),
+      "読めない共有の箱のブロック",
+    ).toEqual([]);
+    const wrong = definitions.flatMap(({ name, text, block }) => [
+      ...(/^\s*shape\b/mu.test(text) ? [`${name} が shape の行を持つ`] : []),
+      ...(/^\s*icon\s+tabler:[a-z0-9-]+\s*$/mu.test(text) ? [] : [`${name} が icon tabler:<名前> の行を持たない`]),
+      ...(ROLES.includes(block?.color ?? "") ? [] : [`${name} が色の役を持たない (${block?.color ?? "無し"})`]),
+    ]);
+    expect(wrong, "共有の箱のブロックの定義の誤り").toEqual([]);
+    const icons = definitions.map(({ block }) => block?.icon ?? "");
+    expect(new Set([...icons, BRIDGE_ICON]).size, `共有の箱のブロックの絵柄が、互いにか +bridge と重なる (${icons.join(", ")})`).toBe(icons.length + 1);
+    for (const { name, block } of definitions) {
+      const parsed = parse(boxDiagram(`${name} b as Shared`));
+      expect(parsed.ok, `${name} の箱を使う図を読めない ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
+      const rendered = draw("renderDiagram")(parsed.ok ? parsed.diagram : {}, {});
+      const found = cards(rendered);
+      expect(found.get("b"), `${name} の箱の縁が、ほかの箱と同じ角の丸みの四角で描かれない`).toEqual(found.get("a"));
+      expect(found.get("a"), "比べる相手の箱の縁が角の丸み 12 の四角でない").toEqual({ tag: "rect", rx: "12" });
+      expect(glyphDs(rendered.svg), `${name} の箱の絵柄の枠に ${block?.icon ?? ""} が描かれない`).toContain(glyphOf(block?.icon ?? ""));
+    }
+  });
+
+  it("shared-async-edge-reads-as-line", () => {
+    const relay = sharedDefinition("+relay");
+    expect(relay, "比べる相手の共有の +relay が無い").toMatchObject({ base: "edge" });
+    const text = ["architecture Send without waiting", "", "box a as Orders", "box b as Mail", "", "step Send", "  say Orders sends the event and does not wait for Mail.", "  a +async b: order placed", ""].join("\n");
+    const parsed = parse(text);
+    expect(parsed.ok, `共有の +async を書いた線の行を読めない ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
+    if (!parsed.ok) return;
+    const [line] = (parsed.diagram as unknown as { steps: { events: { type: string; block?: string }[] }[] }).steps[0]?.events ?? [];
+    expect(line, "+async の行が線として読まれない").toMatchObject({ type: "edge", block: "+async" });
+    const [async] = defineOf(parsed)?.blocks ?? [];
+    expect(async, "原本の JSON の定義の欄が +async の定義を持たない").toMatchObject({ name: "+async", base: "edge" });
+    expect(["solid", "dashed", "dotted"], "+async が線の形を持たない").toContain(async?.shape);
+    expect(ROLES, "+async が色の役を持たない").toContain(async?.color);
+    expect([async?.shape, async?.color], "+async の線の形と色の役が +relay と同じ").not.toEqual([relay?.shape, relay?.color]);
+    expect(draw("renderDiagram")(parsed.diagram, {}).layout.edges, "+async の線が描かれない").toHaveLength(1);
+  });
+
+  it("shared-block-examples-check-clean", async () => {
+    const files = Object.keys(ADDED).map(exampleFile);
+    expect(
+      files.filter((file) => !existsSync(file)).map((file) => relative(ROOT, file)),
+      "足した共有のブロックの見本が無い",
+    ).toEqual([]);
+    const plain = await runCli(["check", ...files]);
+    expect(plain.code, `dragon check が見本で終わり方 0 にならない\n${plain.stdout}${plain.stderr}`).toBe(0);
+    expect(plain.stdout.trim(), "dragon check が見本に誤りか警告を出した").toBe("");
+    const layout = await runCli(["check", "--layout", "--json", ...files]);
+    expect(layout.code, `dragon check --layout が見本で終わり方 0 にならない\n${layout.stdout}${layout.stderr}`).toBe(0);
+    expect(JSON.parse(layout.stdout.trim() === "" ? "null" : layout.stdout) as unknown, "dragon check --layout が見本に誤りか崩れを出した").toEqual([]);
   });
 });
