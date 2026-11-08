@@ -1192,6 +1192,21 @@ describe("公開する頁 (#2995)", () => {
     expect(all - loaded, report).toBeGreaterThanOrEqual(20 * 1024);
   });
 
+  // 崩れの検査 (#3484) は `dragon check --layout` と `checkLayoutText` だけが使う。描くだけの頁が最初に読むと、
+  // 使わない部品の分だけ上の上限を押し上げるので、崩れの種類の名前で最初の script に入っていないことを確かめる (#3494)
+  it("first-load-carries-no-layout-check", () => {
+    const first = firstLoadFiles(site.built.dir)
+      .filter((name) => name.endsWith(".js"))
+      .map((name) => readFileSync(join(site.built.dir, "assets", name), "utf8"))
+      .join("\n");
+    expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+    const kinds = ["badges-close", "lines-close", "badge-off-shape", "slot-outside-shape", "text-outside-shape"];
+    expect(
+      kinds.filter((kind) => first.includes(`"${kind}"`) || first.includes(`'${kind}'`) || first.includes(`\`${kind}\``)),
+      "最初に読む script に在る崩れの種類の名前",
+    ).toEqual([]);
+  });
+
   it("page-draws-with-package-parts", () => {
     const sources = pageSources();
     expect(sources.length, "頁の source が無い").toBeGreaterThan(0);
