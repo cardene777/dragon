@@ -236,10 +236,11 @@ export function mountTryControls(
         select.append(o);
       }
       select.value = options.includes(value) ? value : (options[0] ?? "");
-      // 一番長い候補の字と左右の余白と矢印と縁が収まる幅を、欄の幅の下限にする (#3485)。選んだ値の字を欄の幅で切らない
+      // 一番長い候補の字と左右の余白と矢印と縁が収まる幅を、欄の幅の下限にする (#3485)。選んだ値の字を欄の幅で切らない。
+      // 欄の名前の字の幅も下回らないので、次の行へ送って伸ばさない欄でも名前を「…」で切らない (#3492)
       const A = LOOK.player.ask;
       const longest = Math.max(0, ...options.map((option) => textWidth(option, TYPE.askInput)));
-      const least = Math.ceil(longest + 2 * A.inset + A.arrow + 2 * LOOK.stroke.hair);
+      const least = Math.ceil(Math.max(longest + 2 * A.inset + A.arrow + 2 * LOOK.stroke.hair, textWidth(label, TYPE.askLabel)));
       box.style.setProperty("--dg-field-min", px(least));
       input = select;
     } else {
