@@ -12,6 +12,16 @@ dragon DSL の主要変更履歴。
 
   dragonが描く絵柄は手描きの38個で、ほかの絵が要る箱はブロックの形に頼るしかなかった。箱と区画の行の `icon:` に、`tabler:` とTablerの線の絵柄5,184個のどれかの名前を書けるようにした (例 `[icon: tabler:building-bridge-2]`)。buildの段がTablerの24四方の格子から手描きの絵柄と同じ20四方の格子へ移すので、手描きの絵柄と同じclassと縮みと線の太さで描く。Tablerに無い名前は `icon` の属性を指して読むのを止め、一番近いTablerの名前を挙げる。`validateDiagram` も原本の `icon` の欄を指して断る。既定の入口は全ての絵柄を持つ。軽い入口は `tabler:` を書いた図の時だけ、`loadFor` を待つと絵柄を1つの塊として読む。読む前にその図を読むと `loadFor` を待つよう告げる誤りで止まり、`iconSetLoaded("tabler")` は塊を読んだかを返す。書き出したHTMLの頁と `dragon embed` が書く頁は、図が使った絵柄だけを持つ。Tablerの利用許諾 (MIT) は `THIRD_PARTY_NOTICES.md` に入れてnpmに出す。
 
+- **箱を元にしたブロックの定義に、箱の絵柄を書ける** (#3489)
+
+  `box` を元にした定義の `block +<名前>` から `end` の間に `icon tabler:building-bridge-2` のような `icon <名前>` の行を書くと、そのブロックの箱は全て絵柄の枠にその絵柄を描く。書ける名前は箱の行の `icon:` と同じで、手描きの絵柄か `tabler:<名前>` を書ける。箱の行に書いた絵柄が定義の絵柄に勝つ。`edge` と `icon` を元にした定義に `icon` を書くとその行で止まり、知らない名前もその行で止まって一番近い名前を挙げる。原本のJSONの `define` も `icon` を持ち、`validateDiagram` はTablerに無い名前を `/define/blocks/<番号>/icon` を指して断る。記法に書き戻すと行も書き戻す。軽い入口は、定義に `icon tabler:` を書いた図か、Tablerの絵柄を持つ共有のブロックを使う図で `loadFor` を待つと、Tablerの塊を読む。読む前にその図を描くと `loadFor` を待つよう告げる誤りで止まる。
+
+### Changed
+
+- **共有の `+bridge` を、アーチの形から石の橋の絵柄を持つ角丸の箱にした** (#3489)
+
+  共有の `+bridge` は箱をアーチの形で描いていた。アーチの形の外に絵柄の枠と箱の名前と段の番号がはみ出し、`dragon check --layout` が橋の見本の全てで崩れを見つけた。`+bridge` はほかの箱と同じ角丸の箱 (角の丸み12) のまま、絵柄の枠にTablerの石の橋 `tabler:building-bridge-2` を同じ `violet` の役で描く。`+bridge` を使う図を読んだ原本のJSONは、`define` に新しい定義を持つ。アーチの形が要る図は、図の頭に `shape path` で自分のブロックを定義すれば描ける。
+
 ## [0.66.1] - 2026-11-08
 
 ### Fixed

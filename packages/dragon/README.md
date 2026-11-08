@@ -246,6 +246,9 @@ step Hand over
 | `edge` | Write `+<name>` in place of `->` on a line | `solid` / `dashed` / `dotted` | A color role |
 | `icon` | Write `[icon: +<name>]` on a box line | `path "…"` drawn in a 20 by 20 square centered on (0, 0) | The color of its box |
 
+A definition based on `box` can also give its boxes an icon with a line such as `icon key` or `icon tabler:building-bridge-2`.
+It takes the same names as `icon:` on a box line, and an icon written on the box line wins over the definition's.
+
 A definition is data only, and a path takes only path syntax (commands, numbers, and separators).
 It cannot hold URLs, code, or SVG elements, so reading a definition someone else wrote runs nothing.
 A definition without the version line (`blocks 1`), or with an unknown version, is refused.

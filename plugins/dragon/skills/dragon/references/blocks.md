@@ -3,7 +3,7 @@
 Read this when no existing box, line or icon expresses what the explanation needs.
 Back to the workflow: [SKILL.md](../SKILL.md). Shared syntax: [notation](notation.md).
 
-A block you add is based on one of three existing blocks and changes only its shape and color role.
+A block you add is based on one of three existing blocks and changes only its shape and color role, and for a box also its icon.
 It keeps the placement, the motion and the diagram kinds of its base, and reads its colors from the palette, so it looks like every other block.
 
 ## Define a block at the head of the diagram
@@ -16,6 +16,7 @@ block +<name>
   base box | edge | icon
   shape <basic shape>          or   shape path "<svg path>"
   color <role>
+  icon <icon name>             box only: a hand-drawn icon or tabler:<name>
 end
 ```
 
@@ -29,7 +30,8 @@ The parser enforces these rules.
 
 - `blocks 1` comes first. A definition without the version line, or with another version, is refused.
 - A name matches `^\+[a-z][a-z0-9-]*$`: a `+`, a lowercase letter, then lowercase letters, digits and `-`. The same name cannot be defined twice.
-- A definition takes only `base`, `shape` and `color`, and every `block` needs `base` and a closing `end`.
+- A definition takes only `base`, `shape`, `color` and `icon`, and every `block` needs `base` and a closing `end`.
+- Only a definition based on `box` takes `icon`. It takes the same names as `icon:` on a box line (a hand-drawn icon or `tabler:<name>`), not an added icon block (`+<name>`). An icon written on the box line wins over the definition's.
 - `shape` takes a basic shape name or a path, not both.
 - A path takes only path syntax: the command letters `M L H V C S Q T A Z` (either case), numbers and separators, starting with `M`, at most 2000 characters. No URLs, code or SVG elements, so reading a definition someone else wrote runs nothing.
 - Color roles are `blue`, `amber`, `green`, `violet`, `rose`, `slate`, `coin`.
@@ -39,10 +41,10 @@ The parser enforces these rules.
 architecture Move a token across a bridge
 
 blocks 1
-block +arch
+block +span
   base box
-  shape path "M 0 70 Q 50 0 100 70 Z"
   color violet
+  icon tabler:building-arch
 end
 block +handover
   base edge
@@ -55,11 +57,11 @@ block +seal
 end
 
 box eth as Ethereum [note: sending chain, color: blue]
-+arch cc as Bridge [note: holds the token]
++span cc as Bridge [note: holds the token]
 box base as Base [note: receiving chain, icon: +seal]
 
 step Send
-  say Ethereum sends the token to the bridge, drawn as an arch.
+  say Ethereum sends the token to the bridge, drawn with an arch icon.
   eth -> cc: send
 
 step Hand over
@@ -92,7 +94,7 @@ A shared block works as `+name` in any diagram without a definition.
 
 | Block | Base | Shape | Color |
 |---|---|---|---|
-| `+bridge` | `box` | `path "M 0 70 Q 50 0 100 70 Z"` (an arch) | `violet` |
+| `+bridge` | `box` | the rounded box, with the icon `tabler:building-bridge-2` (a stone bridge) | `violet` |
 | `+relay` | `edge` | `dashed` | `amber` |
 | `+key` | `icon` | `path "M -8 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 0 h 8 M 5 0 v 3"` | the color of its box |
 
@@ -109,7 +111,7 @@ box eth as Ethereum [note: sending chain]
 box base as Base [note: receiving chain, icon: +key]
 
 step Send
-  say Ethereum sends the token to the bridge, drawn as an arch.
+  say Ethereum sends the token to the bridge, drawn with a stone bridge icon.
   eth -> cc: send
 
 step Hand over

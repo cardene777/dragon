@@ -6,7 +6,7 @@ box eth as Ethereum [note: sending chain]
 box base as Base [note: receiving chain, icon: +key]
 
 step Send
-  say Ethereum sends the token to the bridge, drawn as an arch.
+  say Ethereum sends the token to the bridge, drawn with a stone bridge icon.
   eth -> cc: send
 
 step Hand over

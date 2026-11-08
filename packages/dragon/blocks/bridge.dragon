@@ -1,7 +1,7 @@
-// A bridge between two chains, drawn as an arch
+// A bridge between two chains, drawn as a rounded box with a stone bridge icon
 blocks 1
 block +bridge
   base box
-  shape path "M 0 70 Q 50 0 100 70 Z"
   color violet
+  icon tabler:building-bridge-2
 end

@@ -9,13 +9,14 @@
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
-import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, type UserBlockUseMessages, userBlock, userBlockUseMessages, withUserBlocks } from "../user-blocks";
+import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, userBlock, userBlockUseMessages, withUserBlocks } from "../user-blocks";
 import { action } from "../blocks/act/draw";
 import { boxTextY, card, headCard } from "../blocks/box/draw";
 import { carrier } from "../blocks/carry/draw";
 import { cs } from "../blocks/color/draw";
 import { edge } from "../blocks/edge/draw";
 import { fadeBefore, label } from "../blocks/edge-label/draw";
+import { TABLER_MESSAGES, tablerError } from "../blocks/icon/sets";
 import { band } from "../blocks/group/draw";
 import { lifeline } from "../blocks/lifeline/draw";
 import { linkTo } from "../blocks/link/draw";
@@ -933,53 +934,44 @@ export function drawDiagram(input: unknown, options: DrawOptions = {}): Rendered
       FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")),
     );
   // 使う人が足したブロックの定義は、描く間だけ有効にする。原本の頭の定義が、引数で渡した同じ名前の定義に勝つ (#3399)
-  return withUserBlocks([options.blocks, read.diagram.define], () => {
-    const missing = useUserBlocks(read.diagram, userBlockUseMessages(lang));
-    if (missing !== undefined) throw new Error(FIGURE_TEXT[lang].cannotDraw(missing));
-    return renderRead(read.diagram, options, lang);
-  });
+  return withUserBlocks([options.blocks, read.diagram.define], () => renderRead(useUserBlocks(read.diagram, lang), options, lang));
 }
 
 /**
- * 原本が使う足したブロックを、描く処理が名札と出来事の番号で引けるようにする。
- * 定義に無い名前か、元のブロックの違う名前を使っていれば、その誤りの文を返す
+ * 原本が使う足したブロックを、描く処理が名札と出来事の番号で引けるようにし、描く原本を返す。
+ * 定義に無い名前か、元のブロックの違う名前を使っていれば、その誤りの文で断る。
+ * 定義に絵柄を持つ箱のブロックの箱は、箱の行に絵柄が無ければ定義の絵柄で描く (#3489)。並べ方も絵柄の枠を空けるので、描く原本の写しの箱に絵柄を入れる。
+ * 軽い入口で絵柄集の表を読む前に絵柄集の絵柄を描こうとすると、空の枠を描かずに `loadFor` を待つよう断る
  */
-function useUserBlocks(diagram: Diagram, m: UserBlockUseMessages): string | undefined {
+function useUserBlocks(diagram: Diagram, lang: NotationLang): Diagram {
+  const m = userBlockUseMessages(lang);
   const boxes = new Map<string, UserBlock>();
   const edges = new Map<string, UserBlock>();
-  const find = (name: string, want: UserBlock["base"]): UserBlock | string => {
-    const found = userBlock(name);
-    if (!found) return m.undefinedBlock(name);
-    if (found.base !== want) return m.wrongBase(name, found.base, want);
-    // 引数 blocks で渡した定義は原本の形の検査を通らないので、SVG に入る path をここで確かめる (#3400)
-    return found.path === undefined || isUserPath(found.path) ? found : `${name}: ${m.badPath}`;
+  const fail = (message: string): never => {
+    throw new Error(FIGURE_TEXT[lang].cannotDraw(message));
   };
-  for (const box of diagram.blocks.box ?? []) {
-    for (const [name, want] of [
-      [box.block, "box"],
-      [box.icon?.startsWith("+") ? box.icon : undefined, "icon"],
-    ] as const) {
-      if (name === undefined) continue;
-      const found = find(name, want);
-      if (typeof found === "string") return found;
-      if (want === "box") boxes.set(box.id, found);
-    }
-  }
-  for (const region of diagram.blocks.group ?? []) {
-    if (!region.icon?.startsWith("+")) continue;
-    const found = find(region.icon, "icon");
-    if (typeof found === "string") return found;
-  }
-  for (const [s, step] of diagram.steps.entries()) {
-    for (const [e, event] of step.events.entries()) {
-      if (event.type !== "edge" || event.block === undefined) continue;
-      const found = find(event.block, "edge");
-      if (typeof found === "string") return found;
-      edges.set(`${s}:${e}`, found);
-    }
-  }
+  const find = (name: string, want: UserBlock["base"]): UserBlock => {
+    const found = userBlock(name) ?? fail(m.undefinedBlock(name));
+    if (found.base !== want) fail(m.wrongBase(name, found.base, want));
+    // 引数 blocks で渡した定義は原本の形の検査を通らないので、SVG に入る path をここで確かめる (#3400)
+    if (found.path !== undefined && !isUserPath(found.path)) fail(`${name}: ${m.badPath}`);
+    const error = found.icon && tablerError(found.icon, TABLER_MESSAGES[lang]);
+    if (error) fail(error);
+    return found;
+  };
+  const box = diagram.blocks.box?.map((b) => {
+    const found = b.block === undefined ? undefined : find(b.block, "box");
+    if (b.icon?.startsWith("+")) find(b.icon, "icon");
+    if (!found) return b;
+    boxes.set(b.id, found);
+    // 箱の行に書いた絵柄は後ろに広げて、定義の絵柄に勝たせる
+    return found.icon === undefined ? b : { icon: found.icon, ...b };
+  });
+  for (const region of diagram.blocks.group ?? []) if (region.icon?.startsWith("+")) find(region.icon, "icon");
+  for (const [s, step] of diagram.steps.entries())
+    for (const [e, event] of step.events.entries()) if (event.type === "edge" && event.block !== undefined) edges.set(`${s}:${e}`, find(event.block, "edge"));
   drawUserBlocks(boxes, edges);
-  return undefined;
+  return box ? { ...diagram, blocks: { ...diagram.blocks, box } } : diagram;
 }
 
 /** 検査を通った原本を並べて描く */

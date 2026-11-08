@@ -26,9 +26,11 @@ const VALIDATOR = laterChunk(() => loadValidator());
 
 /**
  * 足したブロックの定義を読む処理の塊 (#3399、#3407)。読む処理は 1 つで、どの記法にも同じ物を使う。
- * 定義の版の行だけの記法を `loadReadings` に渡し、定義を読む処理だけを読む
+ * 定義の版の行だけの記法を `loadReadings` に渡し、定義を読む処理を読む。
+ * 見本帳の橋の見本の定義は絵柄集 Tabler の絵柄を持つ (#3489) ので、定義の `icon tabler:` の行も渡して絵柄集の表も一緒に読む。
+ * 定義を持たない記法は待たないので、最初の画面は表を待たない
  */
-const DEFINITIONS = laterChunk(() => loadReadings("blocks 1\n"));
+const DEFINITIONS = laterChunk(() => loadReadings("blocks 1\n  icon tabler:\n"));
 
 /** 記法 `text` を読むのに要る、足したブロックの定義を読む処理の塊の状態。定義の行を持たない記法は待たずに届いた扱いにし、塊を読み始めない */
 export const useDefinitions = (text: string): Later<void> => useLater(definesBlocks(text) ? DEFINITIONS : KEPT);

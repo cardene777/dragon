@@ -24,5 +24,14 @@ export const shape: BlockShape = {
     // 絵柄集の絵柄の名前 (#3493)。5,000 を超える名前を形に並べると検査の関数が大きくなるので、形は名前の書き方だけを決め、
     // 絵柄集に在るかは原本の検査 (`validateDiagram`) が登録した絵柄集の表と比べる
     setIcon: { description: "絵柄集 Tabler の線の絵柄の名前 (tabler:<名前>)", type: "string", pattern: TABLER_NAME.source },
+    // 箱を元にしたブロックの定義の icon の欄 (#3489)。箱の行と同じ名前を書けるが、足した印のブロックの名前 (+ で始まる) は書けない。
+    // box 以外を元にした定義の icon は、定義を読む処理 (`user-blocks-read.ts`) が断る
+    blockIcon: {
+      description: "箱を元にしたブロックの箱の絵柄。アイコンの表 (ICONS) に在る名前か、絵柄集の絵柄 (tabler: で始まる)",
+      type: "string",
+      if: { pattern: "^tabler:" },
+      then: { $ref: "#/definitions/setIcon" },
+      else: { $ref: "#/definitions/icon" },
+    },
   },
 };

@@ -28,6 +28,7 @@ interface Entry {
 }
 interface LightEntry extends Entry {
   loadKind(kind: string): Promise<void>;
+  loadFor(source: string | object): Promise<void>;
 }
 
 const name = "@cardenelabs/dragon";
@@ -556,6 +557,8 @@ describe.for(DRAGON_FILES)("軽い入口と既定の入口の SVG (#3248) %s", (
     if (!whole) return;
     const { kind, diagram } = example(whole, file);
     await light.loadKind(kind);
+    // 絵柄集 Tabler の表は種類を読む関数では読まず、loadFor が読む (#3493)。表を使う見本 (橋の見本、#3489) だけ loadFor も待つ
+    if (JSON.stringify(diagram).includes('"tabler:')) await light.loadFor(diagram);
     for (const options of [{}, { theme: "dark", still: true, lang: "en" }])
       expect(light.renderDiagram(diagram, options).svg, `${file} (${JSON.stringify(options)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, options).svg);
   });
