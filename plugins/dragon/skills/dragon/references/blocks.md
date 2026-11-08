@@ -144,7 +144,20 @@ gh pr create --repo cardene777/dragon --title "feat: add the shared block +<name
 ```
 
 If none of `box`, `edge` or `icon` can serve as the base (the explanation needs a new kind of part or a new kind of diagram), do not force it into a block.
-Open an issue instead with `gh issue create --repo cardene777/dragon`, describing what the diagram must show and why the three bases cannot express it.
+Ask for a new kind of diagram instead (next section).
+
+## Ask for a new kind of diagram
+
+Do this only after you tried. The explanation is written in the closest kind, `dragon check` and `dragon check --layout` pass, and the user saw the exported picture and decided it is not enough.
+Ask the user first; open the issue only if they agree.
+
+1. Write the issue body in a file. Put in what the diagram must show (the parts, what moves, and in how many steps), the notation you tried in a ```` ```dragon ```` fence, and what it could not draw with the reason the closest kind and your own blocks cannot express it.
+2. Open the issue with `gh issue create`. The title starts with `feat:`.
+3. Stop there. The maintainers decide whether and how to add the kind.
+
+```sh
+gh issue create --repo cardene777/dragon --title "feat: a new kind of diagram for <what it shows>" --body-file issue-body.md
+```
 
 ## Report a layout break dragon draws
 

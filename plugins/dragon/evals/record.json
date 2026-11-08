@@ -19,5 +19,12 @@
     "passed": 3,
     "claude": "2.1.319",
     "date": "2026-11-08"
+  },
+  "new-kind-issue": {
+    "fingerprint": "5056cda361a739758a5fe6c1027726cf57e217fae3442ed7ce50e8e7de03fb84",
+    "runs": 3,
+    "passed": 3,
+    "claude": "2.1.319",
+    "date": "2026-11-08"
   }
 }
