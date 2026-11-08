@@ -311,7 +311,7 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--width <px>", "枠の幅。見せ方 (`fixed` / `follow`) を選び、`follow` の時の窓の幅になる"],
         ["--palette <名前>", `色味 (${palettes}、既定は \`${fallback}\`)`],
         ["--theme <明暗>", "`light` か `dark`"],
-        ["--lang <言葉>", "図の中の字と命令の文の言葉 (`ja` か `en`)。無ければ、図の中の字は図の題か `say` に仮名か漢字があれば `ja`、無ければ `en` で、命令の文は `en`"],
+        ["--lang <言葉>", "図の中の字と命令の文の言葉 (`ja` か `en`)。無ければ、図の中の字は図の題か `say` に日本語の字があれば `ja`、無ければ `en` で、命令の文は `en`"],
         ["--fps <数>", "mp4 の 1 秒のコマの数 (既定 30)"],
         ["--gif-fps <数>", "GIF の 1 秒のコマの数 (既定 10)"],
         ["--format <形>", "書き出す形を `,` で区切る (既定 `mp4,gif,html,png`)"],
