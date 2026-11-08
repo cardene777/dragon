@@ -134,3 +134,17 @@ gh pr create --repo cardene777/dragon --title "feat: add the shared block +<name
 
 If none of `box`, `edge` or `icon` can serve as the base (the explanation needs a new kind of part or a new kind of diagram), do not force it into a block.
 Open an issue instead with `gh issue create --repo cardene777/dragon`, describing what the diagram must show and why the three bases cannot express it.
+
+## Report a layout break dragon draws
+
+`dragon check --layout` can report a break that no notation fix clears, because it comes from how dragon draws: a slot or a step number that does not follow the shape of a block, or a reply drawn right next to its request ([layout](layout.md)).
+Offer to report it to the dragon repo. Ask the user first; do it only if they agree.
+
+1. Keep the smallest diagram that shows the break, and run `dragon check --layout --json` on it.
+2. Export the step the break shows at: `dragon export <file> --format png --step <n>`.
+3. Open an issue with `gh issue create --repo cardene777/dragon`. Write the warning line, the `layout` object from the JSON, the dragon version (`dragon --version`), and the diagram in a ```` ```dragon ```` fence. Attach the PNG when you have one.
+4. Stop there. The maintainers fix how dragon draws.
+
+```sh
+gh issue create --repo cardene777/dragon --title "fix: the slot sticks out of the +bridge shape" --body-file issue-body.md
+```

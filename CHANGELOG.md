@@ -6,6 +6,20 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **`dragon check --layout` reports layout breaks per step** (#3484)
+
+  `dragon check` reads the notation without drawing it, so a diagram could pass it and still look broken once drawn. `dragon check --layout` draws the diagram at the default width and at a phone width of 390 and reports five kinds of breaks as warnings: two step numbers too close (`badges-close`), two lines running side by side too close (`lines-close`), a step number on the rectangle of a shaped box that floats away from the shape (`badge-off-shape`), and a carry slot or a box text sticking out of a shaped box (`slot-outside-shape`, `text-outside-shape`). Each break is one line at the `step` line of the first step where it shows, with the two parts it involves, and `(at width 390)` when it shows only at the phone width. `--json` adds a `layout` object with the kind, the step, the width and the two parts. Breaks are warnings, so the exit code stays `0`. Pairs meant to touch are not reported: a line and the boxes at its ends, a group and its boxes, a step number on the corner of its box, and a step number at the start of a line next to the box it leaves. The package exports `checkLayoutText` and `describeBreak`. `dragon check` without `--layout` does not draw and prints the same lines as before.
+
+- **`dragon export --step <n>` writes the PNG of one step** (#3484)
+
+  The PNG was always a still of the last step, so a break that showed in an earlier step could not be exported. `--step <n>` picks the step the PNG shows, counted from 1. A step the diagram does not have exits `2` before Chromium starts. Without `--step` the PNG is the last step as before.
+
+- **The plugin skill checks the layout and reports what is left** (#3484)
+
+  After `dragon check` passes, the skill runs `dragon check --layout`, fixes the breaks the notation can fix (reordering boxes, shortening text, using a plain box), and names every break left by its step number in the reply, with the PNG of that step when Chromium is installed. The new reference `layout.md` lists the kinds and the fixes, and `blocks.md` tells how to send a break that only dragon's drawing can fix to the dragon repo. The plugin carries two eval cases, `layout-bridge` and `layout-payment`, and the results of running them are kept with a fingerprint of each case in `plugins/dragon/evals/record.json`.
+
 ## [0.65.2] - 2026-11-08
 
 ### Fixed

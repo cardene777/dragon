@@ -42,6 +42,18 @@ export interface ExportOptions {
   gifFps?: number;
   /** 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) の言葉。書かなければ英語 (#3001、#3338) */
   lang?: NotationLang;
+  /** PNG に撮る段 (1 から数える)。書かなければ最後の段 (#3484)。崩れを知らされた段を撮って見るために使う */
+  step?: number;
+}
+
+/** 図に無い段を `step` に選んだ時の断り (#3484)。撮る前に断り、命令は使い方の誤りとして終える */
+export class NoSuchStep extends Error {
+  constructor(
+    readonly step: number,
+    readonly count: number,
+  ) {
+    super(`No step ${step} in the diagram (steps 1 to ${count})`);
+  }
 }
 
 export interface ExportResult {
@@ -113,6 +125,8 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
     lang,
   });
   const { diagram, layout, timeline, theme } = rendered;
+  const steps = timeline.stills.length;
+  if (options.step !== undefined && !(Number.isInteger(options.step) && options.step >= 1 && options.step <= steps)) throw new NoSuchStep(options.step, steps);
   const palette = resolvePalette(rendered.palette);
   const vars = paletteVars(palette, theme);
   const width = options.width ?? (rendered.view === "follow" ? DEFAULTS.followWidth : layout.width);
@@ -137,7 +151,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
     try {
       if (formats.includes("png")) {
         const fixed = await stage(browser, rendered.svg, fontCss, "", lang);
-        outputs.push(["png", await still(fixed, timeline.stills[timeline.stills.length - 1] ?? 0)]);
+        outputs.push(["png", await still(fixed, timeline.stills[(options.step ?? steps) - 1] ?? 0)]);
       }
       if (mp4 || gif) {
         const fps = mp4 ? (options.fps ?? DEFAULTS.fps) : (options.gifFps ?? DEFAULTS.gifFps);

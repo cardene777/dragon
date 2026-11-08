@@ -117,6 +117,11 @@
         "packages/dragon/test/notation-skill.test.ts"
       ],
       "why": "共有のブロック集。build が読んで本体に埋め、図の頭に定義の無い +名前 を引く読む処理と描く処理の全てに効く (#3455)"
+    },
+    {
+      "files": ["scripts/layout-breaks-record.mjs", "scripts/plugin-eval-record.mjs"],
+      "tests": ["packages/dragon/test/layout-check.test.ts", "packages/dragon/test/plugin-eval.test.ts"],
+      "why": "見本の崩れの一覧と、プラグインの評価の記録を書き直す script (#3484)。検査は script が書いた一覧と記録を読む"
     }
   ]
 }

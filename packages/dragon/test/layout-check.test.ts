@@ -12,8 +12,31 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "no
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runCli } from "./export-support";
+
+// 書き出しの撮る所だけを差し替え、撮った止め絵の時刻を PNG の中身にする。段の選び方を Chromium を起こさずに確かめる。
+// Chromium を起こす書き出しは 1 回で 8 秒かかり、3 回撮って比べると 1 件の上限 (10 秒) を超える
+vi.mock("../src/export/capture", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../src/export/capture")>();
+  return {
+    ...real,
+    launch: () => Promise.resolve({ close: () => Promise.resolve() }),
+    stage: () => Promise.resolve({}),
+    still: (_stage: unknown, t: number) => Promise.resolve(Buffer.from(`still at ${t}`)),
+  };
+});
+
+/*
+ * 描く部品と書き出す部品の元の code を、検査の外 (この file を読む段) で先に読む。
+ * 元の code は 500 を超える file を読み、検査の中で初めて読むと混んだ機械で変換だけで 9 秒かかる (#3410)
+ */
+const [{ checkLayout }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }] = await Promise.all([
+  import("../src/render/layout-check"),
+  import("../src/export/index"),
+  import("../src/render/draw"),
+  import("../src/parser"),
+]);
 
 const ROOT = process.cwd();
 const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
@@ -147,7 +170,6 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
   });
 
   it("layout-check-names-narrow-width", async () => {
-    const { checkLayout } = await import("../src/render/layout-check");
     const seen: (number | undefined)[] = [];
     const both = { kind: "badges-close", step: 2, parts: [{ kind: "badge", step: 1 }, { kind: "badge", step: 2 }] };
     const narrowOnly = { kind: "lines-close", step: 3, parts: [{ kind: "line", from: "a", to: "b", step: 2 }, { kind: "line", from: "b", to: "a", step: 3 }] };
@@ -212,21 +234,30 @@ describe("見本に今ある崩れ (#3484)", () => {
 
 describe("dragon export --step (#3484)", () => {
   it("export-png-at-step", async () => {
+    const parsed = parseNotation(readFileSync(PAYMENT, "utf8"), { lang: "ja" });
+    if (!parsed.ok) throw new Error(`決済の図を読めない: ${JSON.stringify(parsed.errors)}`);
+    const { stills } = renderDiagram(parsed.diagram, { lang: "ja" }).timeline;
+    expect(stills, "決済の図の段").toHaveLength(4);
     const out = mkdtempSync(join(tmpdir(), "dragon-step-"));
-    const first = join(out, "first");
-    const last = join(out, "last");
-    const a = await runCli(["export", PAYMENT, "--format", "png", "--step", "1", "--out", first]);
-    expect(a.code, `段を選んで書き出せない ${a.stderr}`).toBe(0);
-    const b = await runCli(["export", PAYMENT, "--format", "png", "--out", last]);
-    expect(b.code, b.stderr).toBe(0);
-    const png = (dir: string): Buffer => readFileSync(join(dir, "payment.png"));
-    expect(existsSync(join(first, "payment.png")), "段 1 の PNG が無い").toBe(true);
-    // 段 1 の止め絵は最後の段の止め絵と違う。段 1 には段 2 から先の線と丸が無い
-    expect(png(first).equals(png(last)), "段 1 を選んでも最後の段を撮る").toBe(false);
-    const c = await runCli(["export", PAYMENT, "--format", "png", "--step", "4", "--out", join(out, "four")]);
-    expect(png(join(out, "four")).equals(png(last)), "最後の段を選んだ PNG が既定の PNG と違う").toBe(true);
-    expect(c.code).toBe(0);
-    const bad = await runCli(["export", PAYMENT, "--format", "png", "--step", "9", "--out", join(out, "bad")]);
-    expect(bad.code, "図に無い段を選んでも断らない").toBe(2);
+    const png = async (dir: string, step?: number): Promise<string> => {
+      await exportDiagram(parsed.diagram, { outDir: join(out, dir), name: "payment", formats: ["png"], lang: "ja", ...(step === undefined ? {} : { step }) });
+      return readFileSync(join(out, dir, "payment.png"), "utf8");
+    };
+    // 段 1 の止め絵は最後の段の止め絵と違う時刻に撮る。段 1 には段 2 から先の線と丸が無い
+    expect(await png("first", 1), "段 1 を選んでも段 1 の止め絵を撮らない").toBe(`still at ${stills[0]}`);
+    expect(await png("last"), "既定で最後の段の止め絵を撮らない").toBe(`still at ${stills[3]}`);
+    expect(await png("four", 4), "最後の段を選んだ PNG が既定の PNG と違う").toBe(`still at ${stills[3]}`);
+    await expect(png("bad", 9), "図に無い段を選んでも断らない").rejects.toBeInstanceOf(NoSuchStep);
+    expect(existsSync(join(out, "bad")), "図に無い段を選んだ時に書き出し先を作る").toBe(false);
+  });
+
+  it("export-step-cli-rejects-missing-step", async () => {
+    // 命令は段を数えずに書き出しへ渡し、書き出しが撮る前に断る。図に無い段で終わり方 2 になれば、命令が段を書き出しへ渡している
+    const out = mkdtempSync(join(tmpdir(), "dragon-step-cli-"));
+    const missing = await runCli(["export", PAYMENT, "--format", "png", "--step", "9", "--out", join(out, "missing")]);
+    expect(missing.code, `図に無い段を選んでも断らない ${missing.stderr}`).toBe(2);
+    expect(missing.stderr, "断りの文が段と図の段の数を名指さない").toContain("--step 9 (the diagram has steps 1 to 4)");
+    const zero = await runCli(["export", PAYMENT, "--format", "png", "--step", "0", "--out", join(out, "zero")]);
+    expect(zero.code, `0 の段を断らない ${zero.stderr}`).toBe(2);
   });
 });

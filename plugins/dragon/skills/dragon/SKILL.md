@@ -122,7 +122,21 @@ Repeat this loop.
 
 In code, `parseNotation(text, { lang: "en" })` returns the same problems: `errors` (each with `line`, `column`, `message`) and `notices` for the warnings.
 
-## 6. Show it
+## 6. Check the layout
+
+A diagram that passes `dragon check` can still look broken once drawn: step numbers piled up, a request and its reply drawn on top of each other, or a slot or label sticking out of a shaped box.
+After the notation is clean, draw it and look for breaks.
+
+```sh
+dragon check --layout order.dragon
+```
+
+1. Each break is a `warning` line that names the step and the two parts, for example `order.dragon:18:1 warning Step 3: Step number 2 and step number 3 are too close`.
+2. Fix what the notation can fix (reorder the boxes, shorten names, use a plain box), one break at a time, and run `dragon check --layout` again. [layout](references/layout.md) lists the kinds and the fixes.
+3. Report every break left in your reply by its step number and the parts it names. Do not say the diagram has no breaks unless the command printed none.
+4. Attach the step where a break shows: `dragon export order.dragon --format png --step 3`. Exporting needs Chromium; when it is not installed, report in words only.
+
+## 7. Show it
 
 Pick the way the destination supports. Details and code are in [setup](references/setup.md).
 
@@ -135,7 +149,7 @@ Pick the way the destination supports. Details and code are in [setup](reference
 
 Keep the `.dragon` file next to any exported image so the diagram can be edited and exported again.
 
-## 7. When no block fits
+## 8. When no block fits
 
 If no existing box, line or icon expresses what the explanation needs, define your own block or use a shared one.
 Read [blocks](references/blocks.md). It also covers how to offer a reusable block to the dragon repo.
