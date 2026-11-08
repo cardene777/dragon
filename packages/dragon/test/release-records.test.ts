@@ -259,6 +259,24 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-66-0-adds-readable-zoom", () => {
+    // 狭い枠で配管の図を箱の名前が読める大きさから始める設定 (#3483) と、描いた図の崩れの確かめ (#3484) は 0.66.0 で出す (#3490)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 66, `package の版 ${version()} が 0.66.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.66\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.66.0"), "0.66.0");
+      expect(released, `${file} に日付付きの ## [0.66.0] の節が無い`).not.toBe("");
+      const zoom = released.split("\n- ").find((item) => item.includes("(#3483)")) ?? "";
+      expect(zoom, `${file} の 0.66.0 の節の #3483 の項が zoom: "readable" を名指さない`).toContain('`zoom: "readable"`');
+      expect(released, `${file} の 0.66.0 の節に #3484 の項が無い`).toContain("(#3484)");
+      const unreleased = section(text, "[Unreleased]");
+      for (const issue of ["(#3483)", "(#3484)"]) expect(unreleased, `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      // 取り込みで残った衝突の印の行が、変更の一覧に残らない
+      expect(text, `${file} に衝突の印の行が残る`).not.toMatch(/^(?:<{7}|\|{7}|>{7})(?: |$)/mu);
+    }
+  });
+
   it("changelog-0-65-2-splits-gate-records", () => {
     // 試す図の関門の記録で止まった節の行とエラーの名前の行を分け、記録が増えても図の幅を 740 と 324 に収める直し (#3478) は、別の会話が先に 0.65.2 を出したので 0.65.2 で出す
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);

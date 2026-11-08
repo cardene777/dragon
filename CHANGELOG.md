@@ -6,7 +6,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-11-08
+
 ### Added
+
+- **A pipe diagram in a narrow frame can start zoomed in so box names are readable** (#3483)
+
+  In a frame narrower than 600px the player fits the whole pipe diagram to the frame width, so at a phone width of 390 the box names came out about 3px high and the reader had to press the zoom button to read them. Pass `zoom: "readable"` to `mountDiagram` and the diagram starts at the zoom where the smallest party name shows at 10.5px or larger, drawn with the same layout as in a wide frame. The frame grows to the height of the zoomed diagram and pans only sideways, and moving through the steps pans to the parties in each step. When those parties do not fit in the frame, the leftmost one is placed at the left edge. The zoom-out button returns to the whole diagram fitted to the frame width. When the frame width changes the zoom is worked out again, and in a frame 600px or wider the diagram is drawn at full size. Without `zoom`, and for other kinds of diagram, nothing changes.
 
 - **`dragon check --layout` reports layout breaks per step** (#3484)
 
@@ -19,8 +25,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - **The plugin skill checks the layout and reports what is left** (#3484)
 
   After `dragon check` passes, the skill runs `dragon check --layout`, fixes the breaks the notation can fix (reordering boxes, shortening text, using a plain box), and names every break left by its step number in the reply, with the PNG of that step when Chromium is installed. The new reference `layout.md` lists the kinds and the fixes, and `blocks.md` tells how to send a break that only dragon's drawing can fix to the dragon repo. The plugin carries two eval cases, `layout-bridge` and `layout-payment`, and the results of running them are kept with a fingerprint of each case in `plugins/dragon/evals/record.json`.
-
-||||||| c17a4e46
 
 ## [0.65.3] - 2026-11-08
 
