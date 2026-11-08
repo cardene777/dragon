@@ -9,7 +9,7 @@ import * as lineup from "./lineup";
 import * as pipe from "./pipe";
 import { registerKind } from "./registry";
 import { registerValidator } from "../schema";
-import validate from "../schemas/validate-diagram.js";
+import { VALIDATOR } from "../schemas/validator";
 import { registerUserBlockReader } from "../user-blocks";
 import { USER_BLOCK_READER } from "../user-blocks-read";
 import * as state from "./state";
@@ -31,4 +31,4 @@ for (const [name, reading] of Object.entries(READINGS)) registerReading(name, re
 registerUserBlockReader(USER_BLOCK_READER);
 
 // 原本の形の検査 (#3400)。軽い入口は原本の JSON を読む前にだけ後から読む
-registerValidator(validate);
+registerValidator(VALIDATOR);

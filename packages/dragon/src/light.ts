@@ -10,6 +10,7 @@
  * - `diagramKind(<記法か原本>)` は、読む前に図の種類を返す。どの種類の `loadKind` を待つかを決める時に使う
  * - `definesBlocks(<記法>)` は、記法が足すブロックの定義の行 (`blocks 1`) を持つかを返す。持つ記法は `loadReadings` か `loadFor` を待ってから読む (#3399、#3407)
  * - `loadValidator()` を待つと、原本の形の検査だけを読む。`parseNotation` で記法から読んだ図は描く時に検査を省くので、原本の JSON を読む頁だけが要る (#3400)
+ * - 箱と区画の `icon` に絵柄集の絵柄 (`tabler:<名前>`) を書いた図は、`loadFor` と `loadReadings` が絵柄集の表も読む。`iconSetLoaded("tabler")` は読んだかを返す (#3493)
  *
  * 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
  * 読んでいない種類を描くと種類の名前を含む誤りで、読んでいない個別ブロックの行を読むとブロックの名前を含む誤りで止まる。
@@ -24,10 +25,11 @@ import { FORMAT_VERSION, isVersion1, upgrade } from "./model";
 import { printNotation } from "./printer";
 import { isParsed } from "./parsed";
 import { type Diagram, registerValidator, validatorLoaded } from "./schema";
+import { iconSetLoaded, registerTabler, usesTabler } from "./blocks/icon/sets";
 import { definesBlocks, registerUserBlockReader, userBlockReader } from "./user-blocks";
 
 export * from "./api";
-export { definesBlocks, kindLoaded, LATER_KINDS, type LaterKind };
+export { definesBlocks, iconSetLoaded, kindLoaded, LATER_KINDS, type LaterKind };
 
 const LOADERS: { [K in LaterKind]: () => Promise<LaterKinds[K]> } = {
   git: () => import("./kinds/git"),
@@ -88,6 +90,14 @@ export async function loadKind(kind: string | undefined): Promise<void> {
   await Promise.all([loadParts(kind), loadBlocks(LATER_BLOCKS.filter((name) => blockKinds(name).includes(kind))), loadValidator()]);
 }
 
+/**
+ * 記法か原本 `source` が絵柄集 Tabler の絵柄を書いていれば、絵柄集の表を読む (#3493)。読んでいれば何もしない。
+ * 表は 5,000 を超える絵柄を持つ 1 つの塊で、書いた図の時だけ読む
+ */
+async function loadIconSets(source: string | object): Promise<void> {
+  if (usesTabler(source) && !iconSetLoaded("tabler")) registerTabler((await import("./blocks/icon/tabler.js")).default);
+}
+
 /** 記法 `text` が足すブロックの定義の行を持てば、定義を読む処理を読む (#3399)。読んでいれば何もしない */
 async function loadUserBlocks(text: string): Promise<void> {
   if (definesBlocks(text) && userBlockReader() === undefined) registerUserBlockReader((await import("./user-blocks-read")).USER_BLOCK_READER);
@@ -97,15 +107,16 @@ async function loadUserBlocks(text: string): Promise<void> {
  * 記法か原本 (版1か版2) の図を読んで書き戻すのに要る、個別ブロックの読み方だけを読む (#3349)。描く部品は読まない。
  * 原本を渡した時は、原本を書き戻した記法を読むのに要るブロックも読む (時間軸の図の線は、拡大の範囲のブロックが読む時に確かめる)。
  * 足すブロックの定義の行を持つ記法と、定義 (`define`) を持つ原本では、定義を読む処理も読む (#3399)。
+ * 絵柄集の絵柄を書いた記法と原本では、絵柄集の表も読む (#3493)。
  * 記法の題と種類だけを引き、描くのは後の頁に任せる時に使う。読み込みが落ちると拒否され、次に呼ぶと読み直す
  */
 export async function loadReadings(source: string | object): Promise<void> {
   const diagram = current(source);
   if (typeof diagram === "string") {
-    await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadUserBlocks(diagram)]);
+    await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadUserBlocks(diagram), loadIconSets(diagram)]);
     return;
   }
-  await loadBlocks(blocksUsedBy(diagram));
+  await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadIconSets(diagram)]);
   let printed: string;
   try {
     // 読むのに要るブロックを数えるだけなので、省かずに書く。省く形は読み直して確かめるので、まだ読んでいないブロックで落ちる
@@ -122,7 +133,7 @@ export async function loadReadings(source: string | object): Promise<void> {
  * 記法から読んだ図は検査を要らないので、`loadFor` は原本の JSON を渡した時だけこれを待つ。読み込みが落ちると拒否され、次に呼ぶと読み直す
  */
 export async function loadValidator(): Promise<void> {
-  if (!validatorLoaded()) registerValidator((await import("./schemas/validate-diagram.js")).default);
+  if (!validatorLoaded()) registerValidator((await import("./schemas/validator")).VALIDATOR);
 }
 
 /**

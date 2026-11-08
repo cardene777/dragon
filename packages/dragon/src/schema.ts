@@ -20,6 +20,7 @@ import { type Color, COLORS } from "./blocks/color/block";
 import type { GitCommit } from "./blocks/commit/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
+import type { TablerMessages } from "./blocks/icon/sets";
 import type { LineupItem } from "./blocks/item/block";
 import type { TreeLeaf } from "./blocks/leaf/block";
 import type { LineupOrder } from "./blocks/line/block";
@@ -562,19 +563,25 @@ interface Validate {
   errors?: readonly object[] | null;
 }
 
-/**
- * 原本の形の検査 (#3400)。gzip で約 30KB あり、記法から読んだ図を描くだけの頁は要らないので、最初に読む束に入れない。
- * 全部を持つ入口は初めから登録し (`kinds/all.ts`、`node.ts`)、軽い入口は原本の JSON を読む前に後から読んで登録する (`loadFor`)
- */
-let validate: Validate | undefined;
-
-/** 原本の形の検査を登録する */
-export function registerValidator(given: Validate): void {
-  validate = given;
+/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査の関数と、Tabler の絵柄が表に在るかの検査 (#3493) */
+interface Validator {
+  shape: Validate;
+  tablerErrors: (input: unknown, m: TablerMessages) => FieldError[];
 }
 
-/** 原本の形の検査を読んだか */
-export const validatorLoaded = (): boolean => validate !== undefined;
+/**
+ * 原本の検査 (#3400)。gzip で約 30KB あり、記法から読んだ図を描くだけの頁は要らないので、最初に読む束に入れない。
+ * 全部を持つ入口は初めから登録し (`kinds/all.ts`、`node.ts`)、軽い入口は原本の JSON を読む前に後から読んで登録する (`loadFor`)
+ */
+let validator: Validator | undefined;
+
+/** 原本の検査を登録する */
+export function registerValidator(given: Validator): void {
+  validator = given;
+}
+
+/** 原本の検査を読んだか */
+export const validatorLoaded = (): boolean => validator !== undefined;
 
 /**
  * 原本の JSON を検査する。版が道具より新しいかは見ない (`readDiagram` が見る)。
@@ -582,13 +589,19 @@ export const validatorLoaded = (): boolean => validate !== undefined;
  * 版1の原本は版2の形へ移して検査し、誤りは版1の欄の場所で返す。同じ場所の同じ文の誤りは 1 つにまとめる
  */
 export function validateDiagram(input: unknown, options: CheckOptions = {}): Checked {
-  if (validate === undefined) throw new Error(FIELD_MESSAGES[options.lang ?? DEFAULT_LANG].validatorNotLoaded);
+  if (validator === undefined) throw new Error(FIELD_MESSAGES[options.lang ?? DEFAULT_LANG].validatorNotLoaded);
+  const { shape: validate, tablerErrors } = validator;
   const version1 = isVersion1(input);
-  if (validate(version1 ? upgrade(input, FORMAT_VERSION) : input)) return { ok: true };
+  const m = FIELD_MESSAGES[options.lang ?? DEFAULT_LANG];
+  // 絵柄集の絵柄は、形が名前の書き方だけを決めるので、絵柄集に在るかをここで確かめる (#3493)。
+  // 原本を書いた形 (版1か版2) のまま辿るので、誤りの場所は書いた原本の欄になる
+  const sets = tablerErrors(input, m);
+  if (validate(version1 ? upgrade(input, FORMAT_VERSION) : input)) return sets.length === 0 ? { ok: true } : { ok: false, errors: sets };
   const all = ((validate.errors ?? []) as ErrorObject[]).map((error) => (version1 ? toVersion1Error(error) : error));
   const inBranch = new Set(all.filter((error) => error.keyword === "anyOf").flatMap((anyOf) => branchesOf(anyOf, all)));
-  const m = FIELD_MESSAGES[options.lang ?? DEFAULT_LANG];
   // 条件付きの決まり (if / then) は中で落ちた決まりの誤りを別に出すので、包む側の if の誤りは出さない
-  const errors = all.filter((error) => error.keyword !== "if" && !inBranch.has(error)).map((error) => toFieldError(error, all, m, input));
+  const found = all.filter((error) => error.keyword !== "if" && !inBranch.has(error)).map((error) => toFieldError(error, all, m, input));
+  const errors = [...found, ...sets];
   return { ok: false, errors: errors.filter((error, i) => errors.findIndex((other) => other.pointer === error.pointer && other.message === error.message) === i) };
 }
+

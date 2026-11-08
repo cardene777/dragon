@@ -404,6 +404,50 @@ describe("script の1行の入口 (#3343)", () => {
     }
   });
 
+  // 埋めた頁は絵柄集の表を持たないので、頁の記法が使う Tabler の絵柄だけを頁に収め、それで描く (#3493)
+  it("embed-carries-page-icons", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "dragon-embed-icons-"));
+    try {
+      const [major, minor] = version().split(".");
+      const text = ["architecture 絵柄", "", "box 橋 [icon: tabler:building-bridge-2]", "box 岸", "", "step 渡る", "  say 橋から岸へ渡る。", "  橋 -> 岸: 渡る"].join("\n");
+      const source = join(dir, "page.html");
+      const out = join(dir, "page.offline.html");
+      writeFileSync(
+        source,
+        [
+          "<!doctype html>",
+          '<html lang="ja"><head><meta charset="utf-8">',
+          `<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@${major}.${minor}/dist/cdn/dragon.js"></script>`,
+          "</head><body>",
+          `<pre class="dragon">${escape(text)}</pre>`,
+          "</body></html>",
+        ].join("\n"),
+      );
+      const ran = await runCli(["embed", source, "--out", out]);
+      expect(ran.code, `dragon embed の終わり方 (${ran.stderr})`).toBe(0);
+      const written = readFileSync(out, "utf8");
+      const icons = /<script type="application\/json" id="dragon-icons">([^<]*)<\/script>/u.exec(written)?.[1];
+      expect(icons, "頁が使う絵柄の表を収めていない").toBeDefined();
+      expect(Object.keys((JSON.parse(icons ?? "{}") as { tabler?: object }).tabler ?? {}), "収めた絵柄").toEqual(["building-bridge-2"]);
+
+      const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
+      try {
+        await context.route(/^https?:/u, (route) => route.abort());
+        const page = await context.newPage();
+        await page.goto(pathToFileURL(out).href);
+        await settle(page, 1);
+        expect(await counts(page), "外への通信を止めて開くと、塊が図に置き換わる").toEqual({ players: 1, drawn: 1, blocks: 0 });
+        const drawn = await page.evaluate(() => [...document.querySelectorAll("path.dg-gl")].map((path) => path.getAttribute("d") ?? ""));
+        const tabler = (JSON.parse(icons ?? "{}") as { tabler: Record<string, string> }).tabler["building-bridge-2"];
+        expect(drawn, "収めた石の橋の形で箱の絵柄を描く").toContain(tabler);
+      } finally {
+        await context.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("readme-shows-script-entry", () => {
     const [major, minor] = version().split(".");
     const line = `<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@${major}.${minor}/dist/cdn/dragon.js"></script>`;

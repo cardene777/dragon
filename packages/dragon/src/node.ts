@@ -7,11 +7,11 @@
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { registerValidator } from "./schema";
-import validate from "./schemas/validate-diagram.js";
+import { VALIDATOR } from "./schemas/validator";
 import { FORMAT_VERSION, readDiagram } from "./version";
 
 // 原本の file を移す入口は原本の JSON を読むので、原本の形の検査を初めから持つ (#3400)
-registerValidator(validate);
+registerValidator(VALIDATOR);
 
 export interface Migrated {
   changed: boolean;
