@@ -232,6 +232,74 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(hits[0]?.step, "2 本の線が揃って見える最初の段").toBe(3);
   });
 
+  it("layout-check-finds-lines-overlapping-from-different-boxes", () => {
+    // 構成図は別々の箱から出て同じ道を回る線も離して描くようになり (#3552)、検査の見本`lane-overlap.dragon`の線は重ならなくなった。
+    // 重なる線を持つ姿は、#3552 の前に見本を描いた時の座標を写して組む。
+    // 段3の A → C と段4の B → D が、行の下の同じ高さ (y=118) を B の真ん中から C の真ん中まで間0で重なって走る
+    const ac: [number, number][] = [
+      [78, 104],
+      [78, 118],
+      [384, 118],
+      [384, 107],
+    ];
+    const bd: [number, number][] = [
+      [231, 104],
+      [231, 118],
+      [532, 118],
+      [532, 107],
+    ];
+    const box = (id: string, x: number) => ({ id, name: id.toUpperCase(), color: "blue" as const, x, y: 32, w: 92, h: 72, cx: x + 46, cy: 68 });
+    const edge = (from: string, to: string, step: number, points: [number, number][]) => ({ step: step - 1, event: 0, from, to, points, color: "blue" as const, carry: { kind: "none" as const } });
+    // 線の段は、描いた線の点の並びを引いて取る。崩れの検査は線と同じ点の並びの持ち主を探すので、線と描いた線に同じ並びを渡す
+    const found = findBreaks({
+      inks: [],
+      traces: [
+        { from: "a", to: "c", points: ac, shown: fromTime(2.5) },
+        { from: "b", to: "d", points: bd, shown: fromTime(3.5) },
+      ],
+      framed: [],
+      stills: [1, 2, 3, 4],
+      frame: { w: 610, h: 160 },
+      boxes: [box("a", 32), box("b", 185), box("c", 338), box("d", 486)],
+      edges: [edge("a", "c", 3, ac), edge("b", "d", 4, bd)],
+      outlines: new Map(),
+    }) as LayoutBreak[];
+    const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "A", "C", 3) && hasLine(b, "B", "D", 4));
+    expect(hits, "行の下の同じ道を間0で重なって走る A → C と B → D を 1 件で出さない").toHaveLength(1);
+    expect(hits[0]?.step, "2 本目の線を引く段").toBe(4);
+  });
+
+  it("layout-check-skips-lines-merging-into-one-box", () => {
+    // 別々の箱から同じ箱へ入る2本の線は、入る前に合わさって同じ道を走ってよい。どちらの線も同じ箱へ向かうと読めるため (#3552)。
+    // 検査の図`crowd-side.dragon`の段1と段2の線の座標を写す。画面から通知への線が受け付けの下で折れ、受け付けから通知への線に合わさって通知の上へ入る
+    const direct: [number, number][] = [
+      [163, 104],
+      [163, 157],
+    ];
+    const joining: [number, number][] = [
+      [289.8, 104],
+      [289.8, 118],
+      [163, 118],
+      [163, 157],
+    ];
+    const box = (id: string, x: number, y: number) => ({ id, name: id, color: "blue" as const, x, y, w: 92, h: 72, cx: x + 46, cy: y + 36 });
+    const edge = (from: string, step: number, points: [number, number][]) => ({ step: step - 1, event: 0, from, to: "通知", points, color: "blue" as const, carry: { kind: "none" as const } });
+    const found = findBreaks({
+      inks: [],
+      traces: [
+        { from: "受け付け", to: "通知", points: direct, shown: fromTime(0.5) },
+        { from: "画面", to: "通知", points: joining, shown: fromTime(1.5) },
+      ],
+      framed: [],
+      stills: [1, 2],
+      frame: { w: 400, h: 260 },
+      boxes: [box("受け付け", 117, 32), box("画面", 265, 32), box("通知", 117, 160)],
+      edges: [edge("受け付け", 1, direct), edge("画面", 2, joining)],
+      outlines: new Map(),
+    }) as LayoutBreak[];
+    expect(found.filter((b) => b.kind === "lines-close"), "同じ箱へ入る前に合わさる2本の線を並んで近すぎる線に数える").toEqual([]);
+  });
+
   it("layout-check-finds-crowded-lines", async () => {
     const { found } = await layoutOf(CROWDED);
     const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "受付", "取消", 1) && hasLine(b, "確認", "取消", 1));
