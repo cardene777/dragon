@@ -246,7 +246,7 @@ step 渡す
 
 | 元 (`base`) | 記法の書き方 | 形 (`shape`) | 色 (`color`) |
 |---|---|---|---|
-| `box` | 箱の行の `box` の代わりに `+<名前>` を書く | `round` / `circle` / `cylinder` / `diamond` / `hexagon` か、100 四方に描く `path "…"` | 色の役 |
+| `box` | 箱の行の `box` の代わりに `+<名前>` を書く | `round` / `circle` / `cylinder` / `diamond` / `hexagon` か、形を囲む四角を箱の枠いっぱいに伸ばす `path "…"` | 色の役 |
 | `edge` | 線の行の `->` の代わりに `+<名前>` を書く | `solid` / `dashed` / `dotted` | 色の役 |
 | `icon` | 箱の行に `[icon: +<名前>]` を書く | 中心を (0, 0) に置いて 20 四方に描く `path "…"` | 載せた箱の色 |
 

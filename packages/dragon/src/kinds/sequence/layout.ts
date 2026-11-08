@@ -27,6 +27,8 @@ import {
   type SceneBox,
   type SceneEdge,
   type SceneLabel,
+  type BoxFit,
+  shapedSize,
   shiftContent,
   stripNeed,
 } from "../../layout/scene";
@@ -37,7 +39,10 @@ export function layoutSequence(diagram: DiagramModel): Layout {
   const listed = diagram.sequence?.lifelines ?? [];
   const order = [...listed, ...diagram.boxes.map((b) => b.id).filter((id) => !listed.includes(id))];
   const column = new Map(order.map((id, i) => [id, i]));
-  const widths = order.map((id) => boxWidth(diagram, id, false));
+  // 形を持つ頭の箱は、中身が形の内に収まる大きさにする (#3520)。頭の箱の行の高さは最も高い箱の高さ
+  const fits = order.map((id) => shapedSize(diagram, id, boxWidth(diagram, id, false), false));
+  const widths = fits.map((fit) => fit.w);
+  const headH = Math.max(B.h, ...fits.map((fit) => fit.h));
 
   // 生存線の間。隣の箱どうしの隙間を取り、名前のある線が走る間は名前が収まるまで広げる
   const spacing = widths.slice(1).map((w, i) => (widths[i] as number) / 2 + w / 2 + Q.columnGap);
@@ -69,8 +74,11 @@ export function layoutSequence(diagram: DiagramModel): Layout {
 
   const boxes: SceneBox[] = order.map((id, i) => {
     const source = diagram.boxes.find((b) => b.id === id);
-    const w = widths[i] as number;
+    const fit = fits[i] as BoxFit;
+    const { w, h } = fit;
     const cx = xs[i] as number;
+    // 頭の箱は下の縁を揃え、どの箱の下からも生存線を隙間なく引く
+    const y = margin + headH - h;
     return {
       id,
       name: source?.name ?? id,
@@ -78,14 +86,13 @@ export function layoutSequence(diagram: DiagramModel): Layout {
       ...(source?.icon !== undefined ? { icon: source.icon } : {}),
       color: colors.get(id) ?? "slate",
       x: cx - w / 2,
-      y: margin,
-      w,
-      h: B.h,
+      y,
+      ...fit,
       cx,
-      cy: margin + B.h / 2,
+      cy: y + h / 2,
     };
   });
-  const headBottom = margin + B.h;
+  const headBottom = margin + headH;
 
   // 行を積む。線は上か下に名前を、処理は札を持つので、行ごとに上下に要る高さが違う
   const edges: SceneEdge[] = [];
