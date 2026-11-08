@@ -14,6 +14,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- **Opening the catalog's home page no longer loads the Tabler icon table (about 225KB gzipped) in the background** (#3505)
+
+  In 0.67.0, when the catalog loaded the later examples in the background after drawing the first screen, it saw `icon tabler:` in the bridge example's definition and loaded the Tabler table too. Visitors who never opened the bridge example or the guide page loaded the table anyway. The example notation still loads in the background, and the table now loads when you open the editor or a catalog page, or when the guide page draws the figure in its "Adding blocks" section. The script and CSS loaded first went from 186,341 to 186,327 bytes gzipped.
+
 - **The shared `+bridge` block is a rounded box with a stone bridge icon instead of an arch** (#3489)
 
   The shared `+bridge` drew its box as an arch. The arch left the icon slot, the box name and the step number outside the drawn shape, so `dragon check --layout` found breaks in every bridge example. `+bridge` now keeps the rounded box every other box uses (corner radius 12) and draws the Tabler stone bridge `tabler:building-bridge-2` in the icon slot, in the same `violet` role. The parsed JSON of a diagram that uses `+bridge` carries the new definition in `define`. A diagram that wants the arch can still define its own block with `shape path` at its head.
