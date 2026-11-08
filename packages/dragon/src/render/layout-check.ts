@@ -62,6 +62,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
 /**
  * 描いた図の崩れの種類ごとの文 (#3484)。運ぶ物の枠と図の枠の端の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
  * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、部品が図の枠の端からはみ出す (#3515)。
+ * 時間軸の図の針と時刻の目盛りの線と時間軸の囲みの呼び方と、部品が時間軸の囲みの枠に掛かる文も持つ (#3527)。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
  * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
  */
@@ -73,6 +74,10 @@ interface BreakText {
   tooClose: (a: string, b: string) => string;
   runClose: (a: string, b: string) => string;
   outOfFrame: (part: string, edge: string) => string;
+  needle: string;
+  ticks: string;
+  axisPanel: string;
+  reachesEdge: (part: string, panel: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
@@ -84,6 +89,10 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     tooClose: (a, b) => `${spaced(a)}と${spaced(b)}が近すぎる`,
     runClose: (a, b) => `${spaced(a)}と${spaced(b)}が並んで近すぎる`,
     outOfFrame: (part, edge) => `${spaced(part)}が${edge}からはみ出す`,
+    needle: "針",
+    ticks: "時刻の目盛りの線",
+    axisPanel: "時間軸の囲み",
+    reachesEdge: (part, panel) => `${spaced(part)}が${panel}の枠に掛かる`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -93,6 +102,10 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     tooClose: (a, b) => capital(`${a} and ${b} are too close`),
     runClose: (a, b) => capital(`${a} and ${b} run too close side by side`),
     outOfFrame: (part, edge) => capital(`${part} sticks out of ${edge}`),
+    needle: "the needle",
+    ticks: "the line of time tick marks",
+    axisPanel: "the time axis panel",
+    reachesEdge: (part, panel) => capital(`${part} reaches the edge of ${panel}`),
   },
 };
 
@@ -120,6 +133,12 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return t.envelope;
       case "frame":
         return w.frameEdge(part.side);
+      case "needle":
+        return w.needle;
+      case "ticks":
+        return w.ticks;
+      case "panel":
+        return w.axisPanel;
     }
   };
   const [a, b2] = b.parts;
@@ -132,6 +151,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
           ? w.tooClose(name(a), name(b2))
           : b.kind === "part-outside-frame"
             ? w.outOfFrame(name(a), name(b2))
-            : w.runClose(name(a), name(b2));
+            : b.kind === "panel-edge"
+              ? w.reachesEdge(name(a), name(b2))
+              : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

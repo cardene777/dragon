@@ -15,7 +15,7 @@ import { type Point, type SceneBadge, type SceneBox } from "../layout/scene";
 import { type Corner, EASE, LOOK, MOTION, type TextStyle } from "../look/values";
 import type { Span, Timeline } from "../timeline";
 import { r1 } from "./round";
-import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
+import { ALWAYS, type Framed, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
 export const esc = (s: string): string =>
@@ -80,6 +80,8 @@ export interface Ctx {
   ink: Ink[];
   /** 描いた線の記録 (#3175)。札を持たない字を横切る線を数える */
   traces: Trace[];
+  /** 時間軸の囲みの枠の内に収める部品の記録 (#3527)。枠に掛かる部品を数える */
+  framed: Framed[];
   /** 箱の名前と下の字の基準線を、箱の真ん中からどれだけ下げるか (`boxTextY`) */
   boxText: BoxTextY;
   /** 色味の角の形。角を落とす色味は図の箱と囲みと図の枠の右上と左下を落とし、小さな部品の角を丸めない (#3344) */
