@@ -15,7 +15,7 @@
  * 呼ばれた側、中身、返した値の 3 列で出す。返した値が無いか `true` だけの呼び出しは、その段の矢印に値の動きとして出ているため出さない。
  * 今の段で戻った行に `data-state="now"` を付ける。
  * 出来事は描く部品の並べ方と同じ手順 (`PipeRun`) に当て、当てられない出来事は図と同じく矢印にも結果にも出さない。
- * 字は渡した言葉 (`FIGURE_TEXT`) で出す。この file は配管の図の描く部品と同じ塊 (`kinds/pipe.ts`) に入り、
+ * 字は渡した言葉 (`FIGURE_TEXT` と `PIPE_WORDS`) で出す。この file は配管の図の描く部品と同じ塊 (`kinds/pipe.ts`) に入り、
  * 再生の部品は配管の図を描けた後に登録簿から引いて置く。見た目は置く時に頁へ 1 度だけ入れる。
  */
 import { FIGURE_TEXT } from "./figure-text";
@@ -25,6 +25,46 @@ import { checkPasses, isFault, PipeRun } from "./pipe-run";
 import { cssFont as font } from "./render/parts";
 import type { DiagramModel } from "./schema";
 import type { NotationLang } from "./words";
+
+/**
+ * 配管の図の下の段の矢印と呼び出しの結果の札 (#3418、#3450)。矢印の札 (送る、呼ぶ、返す、計算する、記録を出す)、
+ * 同じ段で戻った呼び出しの返した値の札、確かめた式を満たした時と満たさない時の札、中身の無い所の印、
+ * 一覧の先頭に置くいちばん外の呼び出しの札、取り消しの札。
+ * 配管の図を再生する時にだけ要るので、見本帳が最初に読む図の字の表 (`figure-text.ts`) ではなく、この塊に置く (#3525)
+ */
+interface PipeWords {
+  flowTags: Record<"move" | "call" | "return" | "calc" | "emit", string>;
+  returnOf: (label: string) => string;
+  checkPass: string;
+  checkFail: string;
+  callNone: string;
+  deal: string;
+  reverted: string;
+}
+
+const PIPE_WORDS: Record<NotationLang, PipeWords> = {
+  ja: {
+    flowTags: { move: "送る", call: "呼ぶ", return: "返す", calc: "計算する", emit: "記録を出す" },
+    returnOf: (label) => `${label}を返す`,
+    checkPass: "✓ 満たす",
+    checkFail: "✗ 満たさない",
+    callNone: "—",
+    deal: "取引",
+    reverted: "✗ 取り消し",
+  },
+  en: {
+    flowTags: { move: "sends", call: "calls", return: "returns", calc: "calculates", emit: "emits" },
+    returnOf: (label) => `returns ${label}`,
+    checkPass: "✓ holds",
+    checkFail: "✗ fails",
+    callNone: "—",
+    deal: "Transaction",
+    reverted: "✗ Reverted",
+  },
+};
+
+/** 図の字の表と配管の図の札を合わせた、言葉 `lang` の字 */
+const wordsOf = (lang: NotationLang): (typeof FIGURE_TEXT)[NotationLang] & PipeWords => ({ ...FIGURE_TEXT[lang], ...PIPE_WORDS[lang] });
 
 const px = (v: number): string => `${v}px`;
 
@@ -94,7 +134,7 @@ export interface CallList {
 
 /** 図 `model` の段を頭から当て、記録の行を出てきた順に作り、段ごとの矢印を作る */
 export function callList(model: DiagramModel, lang: NotationLang): CallList {
-  const w = FIGURE_TEXT[lang];
+  const w = wordsOf(lang);
   const names = new Map(model.boxes.map((b) => [b.id, b.name]));
   const name = (id: string): string => names.get(id) ?? id;
   const run = new PipeRun(model.boxes, model.pipe?.holds ?? []);
@@ -180,7 +220,7 @@ const hasResult = (row: CallRow): boolean => row.close !== undefined && (row.clo
 
 /** 書き出した頁で段の矢印と要点の札と呼び出しの結果と拡大の度合いの札が出しうる字。字の file に残す */
 export function pipeTexts(model: DiagramModel, lang: NotationLang): string[] {
-  const w = FIGURE_TEXT[lang];
+  const w = wordsOf(lang);
   const { rows, flows } = callList(model, lang);
   return [
     w.calls,
@@ -278,7 +318,7 @@ export interface PipeCalls {
 /** 段の矢印と要点の札と呼び出しの結果を作る。置く所は再生の部品が決める */
 export function mountPipeCalls(doc: Document, lang: NotationLang): PipeCalls {
   ensureCallsCss(doc);
-  const w = FIGURE_TEXT[lang];
+  const w = wordsOf(lang);
   const element = doc.createElement("div");
   element.className = "dg-calls";
   element.dataset.dragon = "calls";
