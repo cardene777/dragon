@@ -5,7 +5,7 @@
  * 中身の帯は図の下に横いっぱいに置く。
  */
 import type { Family } from "../look/fonts";
-import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
+import { APART, COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
 import type { Carry, DiagramModel, DiagramEvent, LabelSide } from "../schema";
 import { hasWide, textWidth } from "./measure";
 
@@ -419,48 +419,77 @@ export const LOOP_ROOM = LOOK.state.loop.h + LOOK.label.soft * 2 + LOOK.label.h;
 /**
  * 段の番号を置く点。線の始まりから少し進んだ所。`LOOK.badge.short` より短い線も始まりに置き、出る箱の縁から番号の半径と 1px だけ進める。
  * 中ほどに置くと、往復する 2 本の短い線で 2 つの番号が同じ高さに並んで重なるため (#3189)。
- * 先に置いた番号 (`taken`) に重なる時は、線に沿って進めて前の番号を避ける (#3175)。
+ * 先に置いた番号 (`taken`) に近い時は、線に沿って進めて前の番号を避ける (#3175)。
+ * 近いかは崩れの検査と同じ値で決め、丸の縁どうしの間が `APART.badge` より狭い所に置かない (#3521)。
  * 線の上で避けきれない時は線の脇へずらし、ずらす向きはほかの線 (`lines`) に乗らない側にする (#3189)
  */
 export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[][] = []): Point {
   const length = pathLength(points);
   const first = length < LOOK.badge.short ? Math.min(LOOK.badge.r + 1, length / 2) : LOOK.badge.along;
-  const apart = LOOK.badge.r * 2 + LOOK.badge.inset;
+  const clear = (p: Point): boolean => taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= LOOK.badge.r * 2 + APART.badge);
   for (let d = first; d <= length; d += 1) {
     const p = along(points, d);
-    if (taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart)) return p;
+    if (clear(p)) return p;
   }
-  return besideLine(points, first, taken, lines) ?? along(points, first);
-}
-
-/**
- * 線の上で前の番号を避けきれない番号を、線の向きと直角に脇へずらした点 (#3189)。
- * 前の番号の四角にも、ほかの線にも掛からない所のうち、線に一番近い所。番号 1 つ分ずらしても無ければ返さない。
- * ほかの線は先に矢じりの幅だけ太らせて避け、それで空きが無い時だけ線そのものを避ける (矢じりに少し掛かっても、番号どうしを重ねるよりよい)
- */
-function besideLine(points: Point[], at: number, taken: Point[], lines: Point[][]): Point | undefined {
-  const length = pathLength(points);
-  const [px, py] = along(points, at);
-  const [ax, ay] = along(points, Math.max(0, at - 1));
-  const [bx, by] = along(points, Math.min(length, at + 1));
-  const n = Math.hypot(bx - ax, by - ay);
-  if (n === 0) return undefined;
-  const [nx, ny] = [-(by - ay) / n, (bx - ax) / n];
-  const size = LOOK.badge.r * 2;
+  // 線の上で避けきれない番号は、線の向きと直角に脇へずらす。前の番号から離れていて、ほかの線にも掛からない所のうち、線に一番近い所に置く。
+  // 脇も線の始まりから順に探す。始まりの脇だけを見ると、往復する線の間を別の線が通る所で空きが無く、前の番号の上に置いてしまうため (#3521)。
+  // ほかの線は先に矢じりの幅だけ太らせて避け、それで空きが無い時だけ線そのものを避ける (矢じりに少し掛かっても、番号どうしを近づけるよりよい)
   for (const margin of [LOOK.edge.arrowHalf, 0]) {
-    for (let s = 1; s <= size + LOOK.badge.inset; s++) {
-      for (const sign of [1, -1]) {
-        const c: Point = [px + nx * s * sign, py + ny * s * sign];
-        const free = taken.every(([x, y]) => Math.max(Math.abs(c[0] - x), Math.abs(c[1] - y)) >= size + 1);
-        if (free && lines.every((line) => !crossesRect(line, badgeRect(c), -margin))) return c;
+    for (let d = first; d <= length; d += 1) {
+      const [px, py] = along(points, d);
+      // 線の向きは前後1pxの点から取る。`along` は線の終わりより先を終わりの点にし、始まりより前を始まりの区間の延長にする
+      const [ax, ay] = along(points, d - 1);
+      const [bx, by] = along(points, d + 1);
+      const n = Math.hypot(bx - ax, by - ay);
+      for (let s = 1; s <= LOOK.badge.r * 2 + LOOK.badge.inset; s++) {
+        for (const sign of [1, -1]) {
+          const c: Point = [px - ((by - ay) / n) * s * sign, py + ((bx - ax) / n) * s * sign];
+          if (clear(c) && lines.every((line) => !crossesRect(line, badgeRect(c), -margin))) return c;
+        }
       }
     }
   }
-  return undefined;
+  return along(points, first);
 }
 
 /** 引いた線の形を表す鍵。同じ 2 つの箱を結んでも、時系列図の別の行のように形が違えば別の線 (#3184) */
 export const lineKey = (edge: SceneEdge): string => edge.points.map(([x, y]) => `${Math.round(x * 10)},${Math.round(y * 10)}`).join(" ");
+
+/**
+ * 同じ2つの箱を行きと帰りで結び、同じ道を逆に通る線を、左右に離して引く (#3175、#3521)。構成図と状態遷移図が使う。
+ * 2本の線の真ん中どうしの間は、崩れの検査が並んだ線に求める間 (`APART.line`) に光った線の太さを足した値にする。
+ * 2本の線の縁どうしの間も、検査の下限を下回らない。
+ * 縦寄りの区間は横へ、横寄りの区間は縦へずらし、名前の早い箱から出る線を右か下へ、もう一方を左か上へずらす。
+ * 曲がり目は縦と横の両方へずらす。
+ * 返す表は、ずらした線ごとに名前を置く側 (一番長い区間でずらした側) を持つ。
+ * もう一方の線の側に名前を置くと、どちらの線の名前か取り違えるため
+ */
+export function pullApart(edges: SceneEdge[]): Map<SceneEdge, LabelSide> {
+  const sides = new Map<SceneEdge, LabelSide>();
+  // 組は、逆向きの線を逆に辿った道と同じ道を通る線。矢じりの側の端は箱から `LOOK.edge.inset` だけ離すので、その分の違いは同じとみなす。
+  // 同じ箱へ戻る輪は、逆に辿ると始まりと終わりが箱の幅だけ離れるので、自分とも組にならない。
+  // 組は先に全て見つけてからずらす。ずらしながら探すと、ずらした線と組の相手が同じ道でなくなる
+  const paired = edges.filter(
+    (e) =>
+      e.points[1] !== undefined &&
+      edges.some(
+        (o) =>
+          o.from === e.to &&
+          o.to === e.from &&
+          o.points.length === e.points.length &&
+          [...o.points].reverse().every(([x, y], i) => Math.hypot(x - (e.points[i] as Point)[0], y - (e.points[i] as Point)[1]) <= LOOK.edge.inset + 0.5),
+      ),
+  );
+  for (const edge of paired) {
+    const d = ((edge.from < edge.to ? 1 : -1) * (APART.line + LOOK.stroke.edgeOn)) / 2;
+    const points = edge.points;
+    // 区間ごとに横寄りか。横寄りの区間は縦へ、縦寄りの区間は横へずらす
+    const flat = points.slice(1).map(([x, y], k) => Math.abs(y - (points[k] as Point)[1]) < Math.abs(x - (points[k] as Point)[0]));
+    edge.points = points.map(([x, y], i) => [flat[i - 1] === false || flat[i] === false ? x + d : x, flat[i - 1] || flat[i] ? y + d : y]);
+    sides.set(edge, longest(edge.points).vertical ? (d > 0 ? "right" : "left") : d > 0 ? "below" : "above");
+  }
+  return sides;
+}
 
 /**
  * 線を持つ段の番号の点 (#3175)。段の最初の線の上に `at` で置き、別の線の番号に重なる時は線に沿ってずらす。
