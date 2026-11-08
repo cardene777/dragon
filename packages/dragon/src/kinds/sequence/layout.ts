@@ -9,7 +9,9 @@ import type { DiagramModel } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
   carrierHalf,
+  badgeBlocked,
   badgeRect,
+  besideSameSpot,
   boxColors,
   cornerBadge,
   boxWidth,
@@ -17,7 +19,6 @@ import {
   labelStyle,
   type Layout,
   lineBadges,
-  replaceSameSpot,
   layoutStrip,
   type Point,
   placeLabel,
@@ -202,6 +203,6 @@ function badges(diagram: DiagramModel, layout: Layout): SceneBadge[] {
     if (action && lifeline) return { step: s, x: lifeline.x, y: action.y + action.h / 2, color: action.color };
     return cornerBadge(step.events, s, layout);
   });
-  // 同じ所に置いた番号は、後の段が始まると入れ替える (#3184)
-  return replaceSameSpot(placed);
+  // 同じ箱の角に来た番号は前の番号の脇に並べる (#3525)。時系列図の線は段ごとに行が分かれるので、線の番号は同じ所に来ない
+  return besideSameSpot(placed, badgeBlocked(layout));
 }

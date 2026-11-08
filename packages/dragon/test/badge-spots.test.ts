@@ -90,7 +90,7 @@ const TWO_NOTES = [
 function laid(text: string, lang: "ja" | "en" = "ja"): Laid {
   const parsed = parseNotation(text, { lang });
   if (!parsed.ok) throw new Error(`記法を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
-  return renderDiagram(parsed.diagram, { lang }).layout as unknown as Laid;
+  return renderDiagram(parsed.diagram, { lang }).layout;
 }
 
 /** 段 `step` (1 から数える) を描いた時に見えている段の番号。後の段が同じ所で入れ替えた番号 (`until`) は見えない */

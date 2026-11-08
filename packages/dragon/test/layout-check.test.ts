@@ -45,8 +45,13 @@ const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
  * 共有の `+bridge` は #3489 で角丸の箱になったので、崩れを持つ形を図の頭に残す
  */
 const BRIDGE = join(FIXTURES, "bridge.dragon");
-/** 自分で定義した `+oracle` (六角形) と `+price` (点線) を使い、段 2 と段 3 の線と丸が詰まる図 */
+/**
+ * 自分で定義した `+oracle` (六角形) と `+price` (点線) を使い、段 2 と段 3 の線が詰まる図。
+ * 段 2 と段 3 の丸も囲みの枠線の上で詰まっていたが、丸が枠線を避けるようになって (#3525) 離れた
+ */
 const PAYMENT = join(FIXTURES, "payment.dragon");
+/** 段 2 と段 3 の丸、段 3 と段 4 の丸が近すぎる見本。見本に今ある崩れの一覧 (`RECORDED`) にも在る */
+const MERGE = join(ROOT, "packages/dragon/examples/merge.dragon");
 /** 重なって当然の組だけを持つ図 */
 const INTENDED = join(FIXTURES, "intended.dragon");
 /** 見本に今ある崩れの一覧。見本の file ごとに崩れを並べる */
@@ -124,7 +129,7 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
   });
 
   it("layout-check-finds-close-badges", async () => {
-    const { found } = await layoutOf(PAYMENT);
+    const { found } = await layoutOf(MERGE);
     const hits = found.filter((b) => b.kind === "badges-close" && hasBadge(b, 2) && hasBadge(b, 3));
     expect(hits, "段 2 と段 3 の丸が近すぎることを 1 件で出さない").toHaveLength(1);
     expect(hits[0]?.step, "2 つの丸が揃って見える最初の段").toBe(3);
@@ -137,13 +142,18 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
   });
 
   it("layout-check-line-names-step-and-parts", async () => {
+    const merge = await runCli(["check", MERGE, "--layout", "--lang", "ja"]);
+    expect(merge.code, merge.stderr).toBe(0);
+    const badges = merge.stdout
+      .trimEnd()
+      .split("\n")
+      .find((line) => line.includes("段の番号 2") && line.includes("段の番号 3"));
+    expect(badges, `段 2 と段 3 の丸を名指す行が無い\n${merge.stdout}`).toBeDefined();
+    // 行は `<file>:<段の step の行>:1 warning 段 <N>: <文>` の形で、崩れが見え始める段の行を名指す
+    expect(badges, "丸の崩れの行の頭").toMatch(new RegExp(`^${MERGE.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(MERGE, 3)}:1 warning 段 3: `, "u"));
     const ja = await runCli(["check", PAYMENT, "--layout", "--lang", "ja"]);
     expect(ja.code, ja.stderr).toBe(0);
     const lines = ja.stdout.trimEnd().split("\n");
-    const badges = lines.find((line) => line.includes("段の番号 2") && line.includes("段の番号 3"));
-    expect(badges, `段 2 と段 3 の丸を名指す行が無い\n${ja.stdout}`).toBeDefined();
-    // 行は `<file>:<段の step の行>:1 warning 段 <N>: <文>` の形で、崩れが見え始める段の行を名指す
-    expect(badges, "丸の崩れの行の頭").toMatch(new RegExp(`^${PAYMENT.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(PAYMENT, 3)}:1 warning 段 3: `, "u"));
     const crowded = lines.find((line) => line.includes("APIサーバー") && line.includes("価格オラクル"));
     expect(crowded, `段 2 と段 3 の線を名指す行が無い\n${ja.stdout}`).toBeDefined();
     const bridge = await runCli(["check", BRIDGE, "--layout", "--lang", "en"]);

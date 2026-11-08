@@ -27,7 +27,7 @@ import { LINEUP_LOOK } from "../../look/lineup";
 import type { DiagramModel, DiagramEvent } from "../../schema";
 import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../../words";
 import { hasWide, textWidth } from "../../layout/measure";
-import { boxColors, type Layout, layoutStrip, type Point, type Rect, replaceSameSpot, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
+import { boxColors, countInPlace, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 
 const L = LINEUP_LOOK;
 const C = L.chip;
@@ -714,7 +714,7 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
   if (strip) layout.strip = strip;
   // 段の番号は図の右上の同じ所に置き、次の段の番号と入れ替える
   const badges: SceneBadge[] = diagram.steps.map((_, s) => ({ step: s, x: width - margin - LOOK.badge.r, y: margin + H.badgeY, color: "green" }));
-  layout.badges = replaceSameSpot(badges);
+  layout.badges = countInPlace(badges);
   return layout;
 
   /** 札の頭の印。名前の右に入れば名前の行に、入らなければ札の上の端に掛けて右に寄せる */

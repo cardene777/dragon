@@ -208,6 +208,7 @@ export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
     shown: [[a, pastEnd]],
     boxed: true,
     badge: true,
+    ...(b.shared ? { shared: true } : {}),
   });
   return (
     `<g class="dg-bd" data-step="${b.step}" style="${cs(b.color)}"><circle class="dg-bdr dg-popc dg-a" cx="${x}" cy="${y}" r="${rr}" style="${ring}"/>` +

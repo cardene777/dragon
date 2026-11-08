@@ -1,16 +1,20 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない 5 種を拾う。
+ * 字の重なり (`ink.ts`) が拾わない 6 種を拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
- * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)。
+ * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)、
+ * 番号の丸が囲みと列と帯の枠線に乗る (`badge-on-frame`、#3525)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
+ * 後の段の番号がぴったり同じ所で前の段の番号と入れ替わる時も、2 つは同時に見えないが前の番号を隠すので、番号が近すぎる崩れに数える (#3525)。
+ * 同じ線を何度も通る段の番号と列の図の右上の番号は、入れ替えるのが作りどおりなので数えない。
  *
  * 重なって当然の組は数えない。線とその両端の箱、グループとその中の箱は、どの種類も比べない組なので数えない。
  * 箱の角に付いた番号の丸と、線の始まりの番号の丸とその線を出す箱の縁 (1px の間) は、丸が形に触れているので浮いた丸に数えない。
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
-import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
+import type { Point, Rect, SceneBox, SceneEdge, SceneRegion, SceneStrip } from "../layout/scene";
+import type { DiagramModel } from "../schema";
 import { LOOK } from "../look/values";
 import { type Ink, type Trace, visible } from "./ink";
 import { signedDistance } from "./outline";
@@ -21,9 +25,16 @@ export type LayoutPart =
   | { kind: "box"; name: string }
   | { kind: "slot"; box: string }
   | { kind: "text"; text: string; box?: string }
-  | { kind: "line"; from: string; to: string; step: number };
+  | { kind: "line"; from: string; to: string; step: number }
+  | { kind: "frame"; name: string };
 
-export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close";
+export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "badge-on-frame";
+
+/** 囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
+export interface Frame {
+  name: string;
+  rect: Rect;
+}
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -44,10 +55,15 @@ export interface BreakInput {
   edges: SceneEdge[];
   /** 箱の名札ごとの見えている形の輪郭。形を持たない箱は持たない */
   outlines: ReadonlyMap<string, Point[][]>;
+  /** 枠線を描いた囲みと列と帯 (#3525) */
+  frames: Frame[];
 }
 
-/** 描く処理が描いた後に渡す材料。箱の形の輪郭は崩れを探す側が組む */
-export type DrawnFigure = Omit<BreakInput, "outlines">;
+/**
+ * 描く処理が描いた後に渡す材料。箱の形の輪郭と枠線は崩れを探す側が組む。
+ * 枠線は描いた囲みと列と帯 (`regions` と `strip`) から組み、囲みは原本 (`diagram`) の名前で呼ぶ (#3525)
+ */
+export type DrawnFigure = Omit<BreakInput, "outlines" | "frames"> & { regions: SceneRegion[]; strip?: SceneStrip | undefined; diagram: DiagramModel };
 
 /**
  * 描いた図の崩れを返す関数 (#3494)。`renderDiagram` の `findBreaks` に渡すと、描いた後に呼ばれて結果が `breaks` になる。
@@ -64,6 +80,20 @@ const BADGE_GAP = R;
 /** 並んだ線の間の下限と、並んで走る長さの下限。番号の丸 1 つ分より狭い間で丸 2 つ分より長く並ぶ線は 1 本の太い線に見える */
 const LINE_GAP = 2 * R;
 const LINE_ALONG = 2 * R;
+/** 同じ所に置いたとみなす番号の丸の中心の間 (px)。描く処理が同じ所で数字を入れ替える番号と同じ値 */
+const SAME = 0.5;
+/** 囲みと列と帯の枠線の太さの半分 (px)。番号の丸が枠線に乗るのは、丸の中心から枠線までが丸の半径とこの値の和より近い時 */
+const STROKE = 0.5;
+
+/**
+ * 点から囲みか帯の枠線までの距離 (内が負)。枠線は四角を 0.5px 内へ縮め、角を `LOOK.region.radius` で丸めて描く (`band` と `strip`)
+ */
+function frameDistance([px, py]: Point, r: Rect): number {
+  const radius = LOOK.region.radius;
+  const qx = Math.abs(px - (r.x + r.w / 2)) - ((r.w - 1) / 2 - radius);
+  const qy = Math.abs(py - (r.y + r.h / 2)) - ((r.h - 1) / 2 - radius);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
+}
 
 /** 点から四角までの距離。四角の内の点は 0 */
 function distanceToRect([px, py]: Point, r: Rect): number {
@@ -79,7 +109,7 @@ export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.st
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, stills, boxes, edges, outlines } = input;
+  const { inks, traces, stills, boxes, edges, outlines, frames } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -111,14 +141,28 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     for (const b of badges.slice(i + 1)) {
       const [ax, ay] = centerOf(a.rect);
       const [bx, by] = centerOf(b.rect);
-      if (Math.hypot(ax - bx, ay - by) - a.rect.w / 2 - b.rect.w / 2 >= BADGE_GAP) continue;
+      const apart = Math.hypot(ax - bx, ay - by);
+      if (apart - a.rect.w / 2 - b.rect.w / 2 >= BADGE_GAP) continue;
       const [first, second] = Number(a.text) <= Number(b.text) ? [a, b] : [b, a];
-      add("badges-close", firstSeen(a, b), [
+      // 同じ所の後の番号は、前の番号と入れ替わって同時に見えなくても、前の番号を隠す。後の番号が見え始める段で数える
+      const hidden = apart <= SAME && first.shared !== true ? firstSeen(second) : undefined;
+      add("badges-close", firstSeen(a, b) ?? hidden, [
         { kind: "badge", step: Number(first.text) },
         { kind: "badge", step: Number(second.text) },
       ]);
     }
   });
+  // 囲みと列と帯は初めから最後まで見えているので、番号の丸が見え始める段で数える
+  for (const ink of badges) {
+    const center = centerOf(ink.rect);
+    for (const frame of frames) {
+      if (Math.abs(frameDistance(center, frame.rect)) >= ink.rect.w / 2 + STROKE) continue;
+      add("badge-on-frame", firstSeen(ink), [
+        { kind: "badge", step: Number(ink.text) },
+        { kind: "frame", name: frame.name },
+      ]);
+    }
+  }
 
   for (const box of shaped) {
     const outline = outlines.get(box.id) as Point[][];

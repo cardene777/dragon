@@ -18,8 +18,10 @@ import type { DiagramModel } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
   along,
+  badgeBlocked,
   badgeOnPath,
   badgeRect,
+  besideSameSpot,
   boxColors,
   boxWidth,
   carrierHalf,
@@ -35,7 +37,6 @@ import {
   placeSlot,
   type Point,
   type Rect,
-  replaceSameSpot,
   type SceneBadge,
   type SceneBox,
   type SceneEdge,
@@ -43,6 +44,7 @@ import {
   seatCarriers,
   slotBoxWidth,
   slotRooms,
+  stripBadge,
   stripNeed,
 } from "../../layout/scene";
 
@@ -356,8 +358,9 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
 /**
  * 段の番号。箱が現れる段は最初に現れた木の箱の左に置き、左が埋まっていれば左上の角、右、右上の角の順に空きを探す。
  * 線を引く段は最初の線の上に置く。木の線を走る線は、子の側の曲がり角から横の線に沿って `LOOK.tree.badgeAlong` 進めた所に、ほかの線は真ん中に置き、
- * 運ぶ物が出発を待つ所と着いた所を空ける。同じ 2 つの箱を結ぶ線を前の段が通っていれば、前の段の番号と同じ所に置く (#3184)。
- * どちらも無い段は、書き換える箱か帯の左上の角に置き、それも無ければ前の段の番号と入れ替える
+ * 運ぶ物が出発を待つ所と着いた所を空ける。同じ 2 つの箱を結ぶ線を前の段が通っていれば、前の段の番号と同じ所に置いて数字を入れ替える (#3184)。
+ * どちらも無い段は、書き換える箱の左上の角か、帯の左上の角の丸みの中に置き、それも無ければ前の段の番号の所に置く。
+ * 線の番号のほかで前の段の番号と同じ所に来た番号は、前の番号の脇に並べる (#3525)
  */
 function badgesOf(diagram: DiagramModel, layout: TreeLayout): SceneBadge[] {
   const { r, inset } = LOOK.badge;
@@ -372,6 +375,7 @@ function badgesOf(diagram: DiagramModel, layout: TreeLayout): SceneBadge[] {
     out.push({ step: s, x: p[0], y: p[1], color });
   };
   const passed = new Map<string, Point>();
+  const lineOf = new Map<number, string>();
   diagram.steps.forEach((step, s) => {
     const k = step.events.findIndex((e) => e.type === "leaf" || e.type === "node" || e.type === "edge");
     const first = step.events[k];
@@ -393,6 +397,7 @@ function badgesOf(diagram: DiagramModel, layout: TreeLayout): SceneBadge[] {
       const lines = layout.edges.filter((x) => x !== e).map((x) => x.points);
       const point = passed.get(key) ?? (run ? onLink(e.points, free) : midway(e, free)) ?? badgeOnPath(e.points, taken, lines);
       passed.set(key, point);
+      lineOf.set(s, key);
       put(s, point, e.color);
       return;
     }
@@ -402,14 +407,16 @@ function badgesOf(diagram: DiagramModel, layout: TreeLayout): SceneBadge[] {
       return;
     }
     if (layout.strip && step.events.some((ev) => ev.type === "strip")) {
-      out.push({ step: s, x: layout.strip.x + inset, y: layout.strip.y + inset, color: "slate" });
+      const [x, y] = stripBadge(layout.strip);
+      out.push({ step: s, x, y, color: "slate" });
       return;
     }
     const before = out[out.length - 1];
     const root = layout.nodes.find((x) => x.root);
     out.push(before ? { ...before, step: s } : { step: s, x: root?.x ?? LOOK.margin, y: root?.y ?? LOOK.margin, color: root?.color ?? "slate" });
   });
-  return replaceSameSpot(out);
+  const cards: Rect[] = [...layout.nodes, ...layout.nodes.flatMap((n) => (n.card ? [n.card] : []))];
+  return besideSameSpot(out, badgeBlocked(layout, cards), (before, after) => lineOf.has(before.step) && lineOf.get(before.step) === lineOf.get(after.step));
 }
 
 /** 木の線の上の段の番号の点。最初の曲がり角から横の線に沿って進め、横の線が短い時は縦の線の真ん中の脇に置く */

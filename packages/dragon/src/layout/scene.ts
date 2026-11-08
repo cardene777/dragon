@@ -114,6 +114,11 @@ export interface SceneBadge {
   color: ColorKey;
   /** 同じ所に次に番号を置く段 (#3184)。その段が始まると、この番号を消して数字を入れ替える。無ければ最後まで残る */
   until?: number;
+  /**
+   * 同じ所で後の段の番号と数字を入れ替えるのが作りどおりの番号 (#3525)。同じ線を何度も通る段の番号 (#3184) と、列の図の右上で段を数える番号が持つ。
+   * `dragon check --layout` は、同じ所で入れ替わる番号のうち、これを持たない番号を、前の番号を隠す崩れに数える
+   */
+  shared?: boolean;
 }
 
 export interface SceneLifeline {
@@ -405,18 +410,42 @@ export function loopLabelBase(points: Point[], w: number): { x: number; y: numbe
 export const LOOP_ROOM = LOOK.state.loop.h + LOOK.label.soft * 2 + LOOK.label.h;
 
 /**
+ * 囲みと列と帯の枠線の、横の線の高さ (#3525)。囲みと列と帯は図の横幅いっぱいに引くので、図の中の番号が掛かりうるのは上と下の線だけ。
+ * 枠線は四角を 0.5px 内へ縮めて描く (`band` と `strip`)
+ */
+export const frameLines = (frames: Rect[]): number[] => frames.flatMap((f) => [f.y + 0.5, f.y + f.h - 0.5]);
+
+/**
+ * 中心の高さ `y` の段の番号の丸が、枠線 (高さ `lines` の横の線、太さ 1px) に掛かるか (#3525)。
+ * 丸と線の間に 1px を空けない所も掛かるとみなし、`dragon check --layout` が枠線に乗る番号に数える所から離す
+ */
+export const onFrameLine = (y: number, lines: number[]): boolean => lines.some((line) => Math.abs(y - line) < LOOK.badge.r + 1.5);
+
+/**
  * 段の番号を置く点。線の始まりから少し進んだ所。`LOOK.badge.short` より短い線も始まりに置き、出る箱の縁から番号の半径と 1px だけ進める。
  * 中ほどに置くと、往復する 2 本の短い線で 2 つの番号が同じ高さに並んで重なるため (#3189)。
  * 先に置いた番号 (`taken`) に重なる時は、線に沿って進めて前の番号を避ける (#3175)。
+ * 囲みと列と帯の枠線 (`frames` の高さの線) に掛かる時も線に沿って進め、矢じりに掛かる手前で止める (#3525)。
+ * 進めても枠線を避けられない時は線の始まりへ戻し、線を出す箱の縁に丸が掛かってよい。囲みの間を通る短い線は、線のどこに置いても枠線に掛かるため。
  * 線の上で避けきれない時は線の脇へずらし、ずらす向きはほかの線 (`lines`) に乗らない側にする (#3189)
  */
-export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[][] = []): Point {
+export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[][] = [], frames: number[] = []): Point {
   const length = pathLength(points);
   const first = length < LOOK.badge.short ? Math.min(LOOK.badge.r + 1, length / 2) : LOOK.badge.along;
   const apart = LOOK.badge.r * 2 + LOOK.badge.inset;
+  const free = (p: Point): boolean => taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart);
+  const tip = length - LOOK.badge.r - LOOK.edge.arrow;
+  let crossed = false;
   for (let d = first; d <= length; d += 1) {
     const p = along(points, d);
-    if (taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart)) return p;
+    if (!free(p)) continue;
+    if (crossed && d > tip) break;
+    if (!onFrameLine(p[1], frames)) return p;
+    crossed = true;
+  }
+  for (let d = first - 1; crossed && d >= 0; d -= 1) {
+    const p = along(points, d);
+    if (free(p) && !onFrameLine(p[1], frames)) return p;
   }
   return besideLine(points, first, taken, lines) ?? along(points, first);
 }
@@ -482,17 +511,91 @@ export function lineBadges(
   return out;
 }
 
+/** 前の段の番号と同じ所に来た番号をずらす長さ (#3525)。丸と丸の間を丸の半径より半 px 広く空け、`dragon check --layout` が近すぎる番号に数えない */
+const BESIDE = LOOK.badge.r * 3 + 0.5;
+
 /**
- * 同じ所に置いた段の番号を入れ替える (#3184)。後の段の番号が前の段の番号と同じ所に来る時、前の段の番号に `until` を付けて、
- * 後の段が始まると消す。同じ線を何度も通る段と、線の無い段が同じ箱か帯を続けて書き換える段がこれに当たる
+ * 前の段の番号と同じ所に来た段の番号を、前の番号の脇に並べる (#3525)。
+ * 線の無い段が同じ箱か点か帯を続けて書き換える段と、何も起きない段は、番号を置く所が前の段の番号と同じになる。
+ * 同じ所で入れ替えると (#3184)、前の段で何が起きたかを後の段で読めない。
+ * 右、下、左、上の順に `BESIDE` ずつ離した所を探し、ほかの番号から `BESIDE` 離れていて、`blocked` が断らない最初の所に置く。
+ * 同じ線を何度も通る段のように、入れ替えるのが作りどおりの組 (`shares`) は、前の番号に `until` と `shared` を付けて同じ所で入れ替える。
+ * 4 つ分離しても空かない時だけ、前の番号を消して入れ替える。`dragon check --layout` はこれを前の番号を隠す崩れとして知らせる
  */
-export function replaceSameSpot(badges: SceneBadge[]): SceneBadge[] {
-  const same = (a: SceneBadge, b: SceneBadge): boolean => Math.hypot(a.x - b.x, a.y - b.y) <= 0.5;
-  return badges.map((badge) => {
-    const next = badges.filter((other) => other.step > badge.step && same(other, badge)).sort((a, b) => a.step - b.step)[0];
-    return next ? { ...badge, until: next.step } : badge;
+export function besideSameSpot(badges: SceneBadge[], blocked: (p: Point) => boolean = () => false, shares: (before: SceneBadge, after: SceneBadge) => boolean = () => false): SceneBadge[] {
+  const out: SceneBadge[] = [];
+  const within = (p: Point, b: SceneBadge, d: number): boolean => Math.hypot(p[0] - b.x, p[1] - b.y) < d;
+  const swap = (before: SceneBadge, badge: SceneBadge, shared: boolean): void => {
+    out[out.indexOf(before)] = { ...before, until: badge.step, ...(shared ? { shared } : {}) };
+    out.push(badge);
+  };
+  badges.forEach((badge, i) => {
+    const before = out.filter((o) => within([badge.x, badge.y], o, 0.5)).at(-1);
+    if (!before) {
+      out.push(badge);
+      return;
+    }
+    if (shares(before, badge)) {
+      swap(before, badge, true);
+      return;
+    }
+    const others = [...out, ...badges.slice(i + 1)];
+    for (let k = 1; k <= 4; k++)
+      for (const [dx, dy] of [
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+        [0, -1],
+      ] as const) {
+        const p: Point = [badge.x + dx * BESIDE * k, badge.y + dy * BESIDE * k];
+        if (others.every((o) => !within(p, o, BESIDE - 0.25)) && !blocked(p)) {
+          out.push({ ...badge, x: p[0], y: p[1] });
+          return;
+        }
+      }
+    swap(before, badge, false);
   });
+  return out;
 }
+
+/**
+ * 段の番号が避ける、箱の中の絵柄と運ぶ物の枠と字の所 (#3525)。
+ * 絵柄は箱の真ん中から `LOOK.box.iconY` 上、字は箱の真ん中より少し上から下の縁の手前まで、左右の余白の内に描く
+ */
+export function boxParts(box: SceneBox): Rect[] {
+  const B = LOOK.box;
+  const ix = box.iconX ?? box.cx;
+  return [
+    ...(box.icon !== undefined ? [{ x: ix - B.icon / 2, y: box.cy + B.iconY - B.icon / 2, w: B.icon, h: B.icon }] : []),
+    ...(box.slot ? [box.slot] : []),
+    { x: box.x + B.padX, y: box.cy - B.padX, w: box.w - B.padX * 2, h: box.y + box.h - box.cy + B.padX - LOOK.badge.inset },
+  ];
+}
+
+/** 段の番号が避ける、中身の帯の中の絵柄と欄の所 (#3525) */
+export function stripParts(strip: SceneStrip): Rect[] {
+  const S = LOOK.strip;
+  return [{ x: strip.x + S.pad, y: strip.y + S.h / 2 - S.icon / 2, w: S.icon, h: S.icon }, ...strip.fields.map((f) => ({ x: f.x, y: f.y, w: f.w, h: S.line }))];
+}
+
+/**
+ * 前の段の番号の脇へずらす番号を断る所 (#3525)。囲みと列と帯の枠線に掛かる所と、避ける物 (`parts`) に丸が触れる所。
+ * 箱の角の番号は箱の縁に掛かってよいので、箱そのものではなく箱の中の絵柄と字 (`boxParts`) を避ける
+ */
+export function badgeBlocked(layout: Layout, parts: Rect[] = []): (p: Point) => boolean {
+  const lines = frameLines([...layout.regions, ...(layout.strip ? [layout.strip] : [])]);
+  const avoid = [...layout.boxes.flatMap(boxParts), ...(layout.strip ? stripParts(layout.strip) : []), ...layout.regions.map((r) => r.header), ...layout.labels, ...layout.actions, ...parts];
+  return (p) => onFrameLine(p[1], lines) || avoid.some((a) => gapBetween(badgeRect(p), a) < LOOK.label.touch);
+}
+
+/**
+ * 列の図の右上のように、全ての段の番号を同じ所に置いて段を数える番号 (#3184、#3525)。後の段が始まると前の段の番号を消して数字を入れ替える。
+ * 入れ替えるのが作りどおりなので、`dragon check --layout` は前の番号を隠す崩れに数えない
+ */
+export const countInPlace = (badges: SceneBadge[]): SceneBadge[] => besideSameSpot(badges, () => true, () => true);
+
+/** 中身の帯だけを書き換える段の番号の点 (#3525)。帯の左上の角の丸みの中に丸を収め、枠線にも帯の絵柄にも掛けない */
+export const stripBadge = (strip: SceneStrip): Point => [strip.x + LOOK.region.radius, strip.y + LOOK.region.radius];
 
 /** 段の番号の丸を囲む四角。線の名前が避ける相手にする (#3175) */
 export const badgeRect = ([x, y]: Point): Rect => ({ x: x - LOOK.badge.r, y: y - LOOK.badge.r, w: LOOK.badge.r * 2, h: LOOK.badge.r * 2 });
@@ -752,16 +855,18 @@ export function shiftContent(layout: Layout, dx: number, dy: number): void {
 
 /**
  * 線も処理も無い段の番号。書き換わる箱か最初の箱では、番号の中心を箱の左上の角に置き、半分を箱の外へ出す (#3187)。
- * 箱の左上には絵柄が在り、箱の内側に置くと番号が絵柄の角に掛かるため。中身の帯だけを書き換える段は、帯の左上の角から内側に置く。
+ * 箱の左上には絵柄が在り、箱の内側に置くと番号が絵柄の角に掛かるため。中身の帯だけを書き換える段は、帯の左上の角の丸みの中に置く (`stripBadge`)。
  */
 export function cornerBadge(events: DiagramEvent[], step: number, layout: Layout): SceneBadge {
-  const { inset } = LOOK.badge;
   for (const event of events) {
     const id = event.type === "swap" || event.type === "action" ? event.box : undefined;
     const box = layout.boxes.find((b) => b.id === id);
     if (box) return { step, x: box.x, y: box.y, color: box.color };
   }
-  if (layout.strip && events.some((event) => event.type === "strip")) return { step, x: layout.strip.x + inset, y: layout.strip.y + inset, color: "slate" };
+  if (layout.strip && events.some((event) => event.type === "strip")) {
+    const [x, y] = stripBadge(layout.strip);
+    return { step, x, y, color: "slate" };
+  }
   const box = layout.boxes[0] as SceneBox;
   return { step, x: box.x, y: box.y, color: box.color };
 }

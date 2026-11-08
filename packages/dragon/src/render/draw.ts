@@ -1033,7 +1033,7 @@ export function renderLayout(
   const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces);
   // 箱の札は、時間軸の図と列の図では描く部品が別に描くので、崩れの確かめも箱の札を描いた図の種類の箱だけを見る
   const carded = isTimeLayout(layout) || isLineupLayout(layout) ? [] : layout.boxes.filter((box) => !box.ghost);
-  const breaks = options.findBreaks?.({ inks: ink, traces, stills: timeline.stills, boxes: carded, edges: layout.edges });
+  const breaks = options.findBreaks?.({ inks: ink, traces, stills: timeline.stills, boxes: carded, edges: layout.edges, regions: layout.regions, strip: layout.strip, diagram });
   return {
     svg,
     palette: palette.id,

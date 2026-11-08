@@ -50,6 +50,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   The step text written after a send, the record numbers, the queue hint and the stopped-at row put a space around every name or number written in Latin letters or digits, as in `送金E が送信経路を通って全体の列に入った。`, `記録 1` and `次は上から 1 件`. They now read `送金Eが送信経路を通って全体の列に入った。`, `記録1` and `次は上から1件`. English text keeps its spaces, and the layout warnings that the CLI shows to authors are unchanged. The fingerprints of the 20 examples that draw a try diagram in Japanese changed with the text.
 
+- **A step number no longer takes the exact spot of an earlier step number or sits on the border of a group, a lane or the strip** (#3525)
+
+  When a step had no line and changed the same box, point or strip as the step before it, or nothing happened in it, dragon put its number on the spot of the earlier number and swapped the digits when the step began. The earlier step could no longer be read in the later one, and a diagram with two notes on one point or two acts on one box showed only one number. The later number now sits next to the earlier one, to the right, below, to the left or above, on a spot clear of the other numbers, the icons and text in boxes, the labels and the borders. The number of a step that changes only the strip sits inside the rounded top-left corner of the strip instead of on its border. A number on a line that crosses the border of a group, a lane or the strip moves along the line off the border, and back toward the start of the line when the rest of the line runs over the border. A line taken again in a later step still swaps its number on one spot, and so does the step counter at the top right of a lineup. `dragon check --layout` reports a number on such a border as the new kind `badge-on-frame`, and reports `badges-close` when a later number takes the exact spot of an earlier one and hides it. The layout-check messages left the script the catalog loads first, and that script still grew to 182.4KB gzipped, so its budget went from 182KB to 183KB. The fingerprints of 87 example, part and fixture files changed with the layout.
+
 ## [0.66.1] - 2026-11-08
 
 ### Fixed
