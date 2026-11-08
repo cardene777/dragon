@@ -160,6 +160,11 @@ To place a diagram stopped on a still of one step, pass the step number (from 0)
 `renderDiagram` also takes `still`.
 Without any of these, the diagram plays every step on a loop from the moment it is placed.
 
+A pipe diagram placed in a frame narrower than 600px starts fitted to the frame width, so its box names come out small.
+Pass `zoom: "readable"` to start zoomed in so box names are readable (10.5px or larger on screen), with the frame grown to the zoomed diagram's height and panning sideways.
+Moving through the steps pans the diagram to the parties in each step, and the zoom-out button returns it to the fitted view.
+The setting works only for pipe diagrams in frames narrower than 600px; wider frames and other kinds draw as before.
+
 Choose colors by name with `palette`, and pass color variable names and values in `colors` to override only those colors for the current `theme`.
 The keys are the names the palette has (`bg`, `surf`, `ink`, `line`, `c-green`, `t-green`, and so on; the type is `ColorName`), and the colors you leave out keep the palette's values.
 The placed diagram, the overview shown while following, and the buttons and step bar all use the same colors, and `renderDiagram` takes the same `colors`.

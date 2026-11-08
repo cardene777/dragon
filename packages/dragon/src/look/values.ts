@@ -654,6 +654,11 @@ export const LOOK = {
       label: 6,
       field: 110,
       inset: 12,
+      /**
+       * 選ぶ欄 (select) の右に描かれる矢印が取る幅 (#3485)。選ぶ欄は一番長い候補の字の幅に左右の `inset` とこの幅と縁を足した幅より縮めない。
+       * Chromium の矢印は 20 で、ほかのブラウザの矢印の幅の差を見て 4 を足した
+       */
+      arrow: 24,
       side: 16,
       radius: 8,
       at: 10,

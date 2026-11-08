@@ -20,6 +20,16 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   After `dragon check` passes, the skill runs `dragon check --layout`, fixes the breaks the notation can fix (reordering boxes, shortening text, using a plain box), and names every break left by its step number in the reply, with the PNG of that step when Chromium is installed. The new reference `layout.md` lists the kinds and the fixes, and `blocks.md` tells how to send a break that only dragon's drawing can fix to the dragon repo. The plugin carries two eval cases, `layout-bridge` and `layout-payment`, and the results of running them are kept with a fingerprint of each case in `plugins/dragon/evals/record.json`.
 
+||||||| c17a4e46
+
+## [0.65.3] - 2026-11-08
+
+### Fixed
+
+- **Choice fields in the input strip no longer clip their values** (#3485)
+
+  The input strip of a try diagram put every field on one row and let each shrink from the same base width of 110, so a choice field with a long choice clipped the chosen value. With six fields on a 740 frame, `順序付けの遅れ` showed only its first five characters. A choice field now never gets narrower than its longest choice plus the side padding, the arrow and the border, and a field that does not fit on the row moves to the next row. A choice field also stops growing at that width (or the base width, whichever is wider) plus the base width, so a field moved to the next row stays beside the send button. Text fields still shrink as before, and the narrow two-column grid is unchanged.
+
 ## [0.65.2] - 2026-11-08
 
 ### Fixed

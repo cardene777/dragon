@@ -5,7 +5,10 @@
  * 動きを嫌う設定 (`prefers-reduced-motion: reduce`) の人には自動再生せず、段ごとの止め絵を釦で送る。
  * 各段の題と本文は、読み上げの道具が段の順に読める一覧として頁に置く。
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { PIPE_TYPE } from "../src/look/pipe";
 import { api, exampleJson, type Json } from "./diagram-support";
 import { motionFrom, tagOpacity } from "./motion-support";
 import { pipeTexts } from "../src/pipe-player";
@@ -941,5 +944,154 @@ describe("段を送る時に図を置き直さない (#3445)", () => {
       }),
     );
     expect(sent, `全ての段を送る最も短い周の CPU 時間 (${Math.round(sent)}ms) が、図を置く CPU 時間 (${Math.round(placed)}ms) の 4 分の 1 以上`).toBeLessThan(placed / 4);
+  });
+});
+
+describe("狭い枠で配管の図を箱の名前が読める大きさから始める (#3483)", () => {
+  /** 箱の名前を画面で読める字の大きさの下限 (`look/values.ts` の `READABLE_PX`) */
+  const READABLE_PX = 10.5;
+  const PHONE = 390;
+  /** 狭い枠の並べ方 (残高と札の字を大きくした図) にならない広い枠の幅 */
+  const WIDE = 1200;
+  const SOURCE = "swap.json";
+  /** 置く側が渡す、箱の名前が読める大きさで始める設定 */
+  const READABLE = { lang: "ja", zoom: "readable" } as PlayerOptions;
+
+  type PipeDrawn = { layout: { width: number; height: number; focus: { step: number; x: number; y: number; w: number; h: number }[] } };
+
+  /** 幅 `width` で並べた見本の配管の図 */
+  const laid = (width: number): PipeDrawn["layout"] =>
+    (draw("renderDiagram")(exampleJson(SOURCE), { lang: "ja", width }) as unknown as PipeDrawn).layout;
+
+  /** 幅を `width()` が返す枠に、見本の配管の図を `options` で置く */
+  function place(width: () => number, options: PlayerOptions) {
+    prefersReducedMotion(true);
+    const host = document.createElement("div");
+    Object.defineProperty(host, "clientWidth", { configurable: true, get: width });
+    document.body.appendChild(host);
+    const player = draw("mountDiagram")(host, exampleJson(SOURCE), options);
+    players.push(player);
+    const frame = (): HTMLElement => {
+      const el = host.querySelector<HTMLElement>('[data-dragon="pan"],[data-dragon="zoom-frame"]');
+      expect(el, "配管の図の枠が無い").not.toBeNull();
+      return el as HTMLElement;
+    };
+    /** 置いた図の幅 (px) */
+    const shown = (): number => Number.parseFloat(frame().querySelector<SVGElement>("svg")?.style.width || "0");
+    /** 並べた図の幅。描いた図の `viewBox` の幅 */
+    const drawn = (): number => Number(frame().querySelector("svg")?.getAttribute("viewBox")?.split(" ")[2] ?? Number.NaN);
+    /** 画面で見える箱の名前の字の大きさ (px)。図の中の字の大きさに、置いた図の幅と並べた図の幅の比を掛ける */
+    const namePx = (): number => (PIPE_TYPE.party.size * shown()) / drawn();
+    const level = (): string => host.querySelector('[data-dragon="zoom-level"]')?.textContent ?? "";
+    return { host, player, frame, shown, drawn, namePx, level };
+  }
+
+  it("player-pipe-readable-zoom-names", () => {
+    const { frame, drawn, namePx } = place(() => PHONE, READABLE);
+    expect(namePx(), `幅 ${PHONE} の枠に置いた ${SOURCE} の箱の名前の字`).toBeGreaterThanOrEqual(READABLE_PX);
+    // 倍率は箱の名前の字から求め、読める大きさを拡大の釦 1 回分より大きく超えない
+    expect(namePx(), `幅 ${PHONE} の枠に置いた ${SOURCE} の箱の名前の字が大きすぎる`).toBeLessThan(READABLE_PX * 1.25);
+    expect(frame().dataset.dragon, "寄せた図を横に送る枠にしていない").toBe("pan");
+    // 寄せて読む図は広い枠と同じ並べ方で描く。狭い枠で大きくした残高と札の字を、さらに寄せて枠からはみ出させない
+    expect(drawn(), "狭い枠の並べ方 (残高と札の字を大きくした図) を寄せている").toBeCloseTo(laid(WIDE).width, -1);
+  });
+
+  it("player-pipe-readable-zoom-frame-height", () => {
+    const { frame, shown } = place(() => PHONE, READABLE);
+    const layout = laid(WIDE);
+    expect(shown(), "図を寄せていない").toBeGreaterThan(PHONE);
+    // 枠を寄せた図の高さまで伸ばし、枠の中を縦に送らない
+    expect(Number.parseFloat(frame().style.height), "枠の高さが寄せた図の高さでない").toBeCloseTo((shown() * layout.height) / layout.width, 0);
+  });
+
+  it("player-pipe-readable-zoom-follows-step", () => {
+    const { host, player, frame, shown } = place(() => PHONE, READABLE);
+    expect(frame().dataset.dragon, "寄せた図を横に送る枠にしていない").toBe("pan");
+    const thumb = host.querySelector<HTMLElement>('[data-dragon="overview"] [data-dragon="overview-thumb"]');
+    expect(thumb, "全体のどこを見ているかを示す線が無い").not.toBeNull();
+    const layout = laid(WIDE);
+    const k = shown() / layout.width;
+    expect(layout.focus.length, `${SOURCE} の段に関わる関係者の所`).toBeGreaterThan(0);
+    const lefts = new Set<number>();
+    let apart = 0;
+    for (const focus of layout.focus) {
+      player.goTo(focus.step);
+      const left = frame().scrollLeft;
+      lefts.add(left);
+      const lo = focus.x * k;
+      const hi = (focus.x + focus.w) * k;
+      // 段に関わる関係者が枠に収まる時は全員を枠に入れ、収まらない時は左の端の関係者を枠の左に置く。
+      // 真ん中を枠の真ん中に置くと、狭い枠ではどの関係者の名前も枠に入らない
+      if (hi - lo <= PHONE) expect(lo >= left - 1 && hi <= left + PHONE + 1, `段 ${focus.step + 1} に関わる関係者が枠の中に無い`).toBe(true);
+      else {
+        apart += 1;
+        expect(left, `段 ${focus.step + 1} の左の端の関係者が枠の左に無い`).toBeCloseTo(Math.min(lo, shown() - PHONE), -1);
+      }
+      expect(Number.parseFloat(thumb?.style.left ?? ""), `段 ${focus.step + 1} の全体の線の位置`).toBeCloseTo((left / shown()) * 100, 0);
+    }
+    expect(lefts.size, "段を進めても枠を送らない").toBeGreaterThan(1);
+    expect(apart, `${SOURCE} に関わる関係者が枠に収まらない段が無い (左の端へ送る形を確かめていない)`).toBeGreaterThan(0);
+  });
+
+  it("player-pipe-readable-zoom-steps-back-to-whole", () => {
+    const { host, frame, shown, level } = place(() => PHONE, READABLE);
+    expect(level(), "拡大の度合いの札が寄せた倍率を示さない").toBe(`${Math.round((shown() / PHONE) * 100)}%`);
+    expect(Number.parseInt(level(), 10), "寄せた倍率が 100% を超えない").toBeGreaterThan(100);
+    const zoomOut = host.querySelector<HTMLButtonElement>('button[data-dragon="zoom-out"]');
+    expect(zoomOut, "縮小の釦が無い").not.toBeNull();
+    for (let i = 0; i < 20 && zoomOut && !zoomOut.disabled; i++) zoomOut.click();
+    expect(level(), "縮小の釦を押していった後の度合い").toBe("100%");
+    expect(shown(), "100% の図が枠の幅に収まらない").toBeCloseTo(PHONE, 0);
+    expect(frame().dataset.dragon, "100% の図を横に送る枠のまま").toBe("zoom-frame");
+  });
+
+  it("player-pipe-readable-zoom-follows-resize", () => {
+    const win = window as unknown as { ResizeObserver?: unknown };
+    const saved = win.ResizeObserver;
+    const watchers: (() => void)[] = [];
+    win.ResizeObserver = class {
+      constructor(cb: () => void) {
+        watchers.push(cb);
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    };
+    try {
+      let width = PHONE;
+      const { shown, namePx, level } = place(() => width, READABLE);
+      expect(namePx(), `幅 ${PHONE} の枠で置いた箱の名前の字`).toBeGreaterThanOrEqual(READABLE_PX);
+      // 携帯を横にして枠が 600px 以上に広がると、拡大を外して原寸で描く
+      width = 800;
+      for (const watch of watchers) watch();
+      expect(level(), "幅 800 の枠に広げた後の度合い").toBe("100%");
+      expect(shown(), "幅 800 の枠に広げた後の図の幅").toBeCloseTo(laid(800).width, 0);
+      // 600px 未満へ戻すと、箱の名前が読める倍率で置き直す
+      width = PHONE;
+      for (const watch of watchers) watch();
+      expect(namePx(), `幅 ${PHONE} の枠へ戻した後の箱の名前の字`).toBeGreaterThanOrEqual(READABLE_PX);
+    } finally {
+      win.ResizeObserver = saved;
+    }
+  });
+
+  it("player-pipe-readable-zoom-wide-frame-native", () => {
+    for (const width of [600, 1200]) {
+      const { frame, shown, level } = place(() => width, READABLE);
+      expect(level(), `幅 ${width} の枠の度合い`).toBe("100%");
+      expect(shown(), `幅 ${width} の枠の図が原寸でない`).toBeCloseTo(laid(width).width, 0);
+      expect(frame().style.height, `幅 ${width} の枠の高さを決めている`).toBe("");
+    }
+  });
+
+  it("player-docs-describe-readable-zoom", () => {
+    const ROOT = process.cwd();
+    for (const path of ["packages/dragon/README.md", "packages/dragon/README.ja.md", "plugins/dragon/skills/dragon/references/setup.md"]) {
+      const text = readFileSync(join(ROOT, path), "utf8");
+      // 設定を書いた段落が、600px 未満の枠の配管の図だけに効くことも書く
+      const paragraph = text.split(/\n\s*\n/).find((p) => p.includes('zoom: "readable"'));
+      expect(paragraph, `${path} に zoom: "readable" の渡し方が無い`).toBeDefined();
+      expect(paragraph ?? "", `${path} の zoom: "readable" の段落に、600px 未満の枠だけに効くことが無い`).toMatch(/600/);
+    }
   });
 });
