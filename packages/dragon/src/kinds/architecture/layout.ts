@@ -7,6 +7,7 @@
  * 線は縦と横の折れ線で、間にある箱を避ける。名前が箱に掛かる時は帯を広げて名前の場所を空ける。
  * 箱の下か上を回る線は、行で最も高い箱の枠と帯の枠から余白 (`LOOK.margin`) 以上離して通し、帯が狭ければ帯を広げる (#3526、#3546)。
  * 同じ箱の同じ所から別々の箱へ出る線は、出る所と回る道を離して通し、離した道が収まるまで行の間か帯か列の間を広げる (#3549)。
+ * 別々の箱から出て同じ道を回る線も、区間が重なれば道を離し、同じ所へ入る線と出る線も入る所と出る所を離す (#3552)。
  */
 import { APART, LOOK, TYPE } from "../../look/values";
 import type { DiagramModel, LabelSide, Region } from "../../schema";
@@ -27,6 +28,7 @@ import {
   type Layout,
   lineBadges,
   lineKey,
+  longest,
   LOOP_ROOM,
   loopBadge,
   loopLabelBase,
@@ -35,6 +37,7 @@ import {
   type BoxFit,
   shapedSize,
   type Point,
+  nearestLine,
   placeLabel,
   placeSlot,
   pullApart,
@@ -244,6 +247,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   }
   // 列の間を縦に走る道を離して並べる時は、並べた幅だけ列の間を広げる (#3549)
   between.forEach((w, i) => (between[i] = Math.max(w, A.columnGap + extra(`col:${i}`))));
+  // 縦の線の脇の名前に要る間を、別の線が回る列の間に足す (#3552)。一番右の列の右を回る道は `gapX` が足す
+  between.forEach((w, i) => (between[i] = w + extra(`label:${i}`)));
   const headers = groups.map((g) => (g.region ? headerSize(g.region) : undefined));
   const headerW = Math.max(0, ...headers.map((h) => (h ? h.w + R.inset * 2 : 0)));
   const colLeft: number[] = [];
@@ -270,12 +275,16 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     // 行の下と上を回る道を離して並べる時は、並べた分だけ行の間と帯を広げる (#3549)
     const below = (r: number): number => extra(`${g}:${r}:below`);
     const above = (r: number): number => extra(`${g}:${r}:above`);
-    const top = cursor + R.pad + room.top + above(0);
+    // 横の線の脇の名前のために、行の下か上を回る道を行から離す分 (#3552)
+    const drop = (r: number, side: "below" | "above"): number => extra(`label-lane:${g}:${r}:${side}`);
+    const top = cursor + R.pad + room.top + above(0) + drop(0, "above");
     // 行の高さは行で最も高い箱の高さ。形を持つ箱は中身を収めるために高くなる (#3520)
     const rowH = Array.from({ length: rows }, (_, r) => Math.max(B.h, ...group.members.filter((id) => slots.get(id)?.row === r).map((id) => fits.get(id)?.h ?? B.h)));
     // 行の上端。輪を持つ行の下は、行の間に輪の分を足す
     const rowTop: number[] = [0];
-    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1) + below(r - 1) + above(r));
+    // 縦の線の脇の名前が行の間を横に回る線の下に入る分と、横の線の脇の名前のために道を行から離す分だけ行の間を広げる (#3552)
+    const labelRow = (r: number): number => extra(`label-row:${g}:${r}`) + drop(r, "below") + drop(r + 1, "above");
+    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1) + below(r - 1) + above(r) + labelRow(r - 1));
     for (let r = 0; r < rows; r++) rowSpan.set(`${g}:${r}`, { top: top + (rowTop[r] as number), bottom: top + (rowTop[r] as number) + (rowH[r] as number) });
     for (const id of group.members) {
       const slot = slots.get(id) as Slot;
@@ -298,7 +307,9 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
         cy: y + h / 2,
       });
     }
-    const contentBottom = top + (rowTop[rows - 1] as number) + (rowH[rows - 1] as number) + loopRoom(g, rows - 1) + below(rows - 1);
+    // 帯の最後の行の下も、名前のために道を離す分と、次の帯の箱へ下りる線の脇の名前が入る分だけ広げる (#3552)
+    const contentBottom =
+      top + (rowTop[rows - 1] as number) + (rowH[rows - 1] as number) + loopRoom(g, rows - 1) + below(rows - 1) + drop(rows - 1, "below") + extra(`label-row:${g}:${rows - 1}`);
     const header = headers[g];
     const h = Math.max(contentBottom + R.pad + room.bottom - cursor, header ? header.h + R.inset * 2 : 0, group.region ? R.minH : 0);
     bands.push({ group: g, y: cursor, h, rows });
@@ -337,16 +348,16 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const laneBelow = (id: string): number => {
     const { slot, span } = spanOf(id);
     const under = span.bottom + loopRoom(slot.group, slot.row);
-    return slot.row < bandOf(id).rows - 1 ? under + A.rowGap / 2 : under + margin;
+    return (slot.row < bandOf(id).rows - 1 ? under + A.rowGap / 2 : under + margin) + extra(`label-lane:${slot.group}:${slot.row}:below`);
   };
   const laneAbove = (id: string): number => {
     const { slot, span } = spanOf(id);
-    return slot.row > 0 ? span.top - A.rowGap / 2 : span.top - margin;
+    return (slot.row > 0 ? span.top - A.rowGap / 2 : span.top - margin) - extra(`label-lane:${slot.group}:${slot.row}:above`);
   };
   const inset = LOOK.edge.inset;
   /** 列 `col` の右 (左) の、隣の列との間の真ん中。同じ列の箱は幅が違うので、箱ではなく列の端から測る (幅の広い箱の中を通さない) */
   const gapX = (col: number, toRight: boolean): number =>
-    toRight ? (colLeft[col] as number) + (colW[col] as number) + (between[col] ?? A.columnGap) / 2 : (colLeft[col] as number) - (between[col - 1] ?? A.columnGap) / 2;
+    toRight ? (colLeft[col] as number) + (colW[col] as number) + (between[col] ?? A.columnGap + extra(`label:${col}`)) / 2 : (colLeft[col] as number) - (between[col - 1] ?? A.columnGap) / 2;
   const route = (from: string, to: string): Point[] => {
     const a = byId.get(from) as SceneBox;
     const b = byId.get(to) as SceneBox;
@@ -471,22 +482,107 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const frames = frameLines(regions);
   const badgeAt = (edge: SceneEdge, taken: Point[], lines: Point[][]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken, lines, frames));
   const early = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
+  /**
+   * 縦の線 `edge` の脇に名前を置く間を空ける (#3552)。`x` は線の縦の区間が通る所、`span` はその区間の両端の高さ、`w` は名前の札の幅。
+   * 名前と別の線の間は、名前と自分の線の間 (`LOOK.label.side`) より狭くしない。狭いと、名前が 2 本の線のどちらの名前か読めない。
+   *
+   * 列の外を縦に走る別の線が名前の側で近い時は、近い分の 2 倍を名前の側の列の間に足し、名前と別の線の間を名前と自分の線の間の 2 倍にする。
+   * 列の間の真ん中を回る線は広げた分の半分しか動かないので 2 倍にする。列の中を走る線 (並べた線や帰りの線) は列の間を広げても動かないので数えない。
+   * 一番左の列の左は広げない。
+   * 行の間を横に回る線が名前の幅の所を通る時は、その線から名前と自分の線の間の 2 倍下に名前が入るだけ、線が結ぶ 2 つの行の間を広げる。
+   * 2 つの行は同じ帯の続く行か、続く2つの帯の上の帯の最後の行と下の帯の最初の行で、帯の間は上の帯を下へ延ばして広げる。
+   * 行の下を回る道は上の行から測って置くので、下の行を下げれば道と下の行の間が空く。
+   * 名前を置く所は線に沿って `LOOK.label.search` ずつずらして探すので、置ける所の幅が 0 だと探す所が当たらない。ずらす 1 回分を足しておく
+   */
+  const roomBeside = (edge: SceneEdge, x: number, span: [number, number], w: number, right: boolean, lines: Point[][]): void => {
+    const { side, h } = LOOK.label;
+    const [y0, y1] = [Math.min(...span), Math.max(...span)];
+    const segments = lines.flatMap((line) => line.slice(1).map((q, k): [Point, Point] => [line[k] as Point, q]));
+    const col = colLeft.findIndex((left, c) => x >= left && x <= left + (colW[c] as number));
+    const at = right ? col : col - 1;
+    if (col >= 0 && at >= 0) {
+      const edgeX = right ? (colLeft[col] as number) + (colW[col] as number) : (colLeft[col] as number);
+      let short = 0;
+      for (const [p, q] of segments) {
+        if (Math.abs(p[0] - q[0]) > 0.5 || (right ? p[0] <= edgeX : p[0] >= edgeX)) continue;
+        if (Math.min(Math.max(p[1], q[1]), y1) - Math.max(Math.min(p[1], q[1]), y0) <= 0) continue;
+        short = Math.max(short, right ? x + w + side * 3 - p[0] : p[0] - (x - w - side * 3));
+      }
+      const key = `label:${at}`;
+      if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + 2 * Math.ceil(short)));
+    }
+    // 線が結ぶ上の箱と下の箱。同じ帯の続く行か、続く帯の最後の行と最初の行を結ぶ線だけを見る
+    const [m, n] = [slots.get(edge.from), slots.get(edge.to)];
+    if (!m || !n || m.col !== n.col) return;
+    const topOf = (slot: Slot): number => (rowSpan.get(`${slot.group}:${slot.row}`) as Room).top;
+    const [upper, lower] = topOf(m) <= topOf(n) ? [m, n] : [n, m];
+    const next = upper.group === lower.group ? upper.row + 1 === lower.row : upper.group + 1 === lower.group && upper.row === (bands[upper.group]?.rows ?? 0) - 1 && lower.row === 0;
+    if (!next) return;
+    const [lx0, lx1] = right ? [x + side, x + side + w] : [x - side - w, x - side];
+    let lowest = Number.NEGATIVE_INFINITY;
+    for (const [p, q] of segments) {
+      if (Math.abs(p[1] - q[1]) > 0.5 || p[1] <= y0 || p[1] >= y1) continue;
+      if (Math.min(Math.max(p[0], q[0]), lx1) - Math.max(Math.min(p[0], q[0]), lx0) <= 0) continue;
+      lowest = Math.max(lowest, p[1]);
+    }
+    const short = lowest + side * 2 + h + LOOK.gap + LOOK.label.search - topOf(lower);
+    const key = `label-row:${upper.group}:${upper.row}`;
+    if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + Math.ceil(short)));
+  };
+  /**
+   * 同じ行の2つの箱をまっすぐ結ぶ横の線 `edge` の脇に名前を置く間を空ける (#3552)。`toward` は名前を置く側、`w` は名前の札の幅。
+   * 名前の側の、行の下か上を回る道が、名前と自分の線の間の 2 倍より名前に近い時は、その道を行から離す。
+   * 行の下か上を回る道は、行の間の真ん中か帯の縁から測って置くので、名前の側の道だけを動かせる
+   */
+  const roomAlong = (edge: SceneEdge, toward: "above" | "below", lines: Point[][]): void => {
+    const slot = slots.get(edge.from);
+    const [a, b] = edge.points as [Point, Point];
+    if (!slot || edge.points.length !== 2 || Math.abs(a[1] - b[1]) > 0.5) return;
+    const span = rowSpan.get(`${slot.group}:${slot.row}`) as Room;
+    const gap = LOOK.label.offset - LOOK.label.h / 2;
+    // 名前の札の外の縁から、名前と自分の線の間の 2 倍離す
+    const reach = gap * 3 + LOOK.label.h;
+    const [x0, x1] = [Math.min(a[0], b[0]), Math.max(a[0], b[0])];
+    let short = 0;
+    for (const line of lines)
+      for (let k = 1; k < line.length; k++) {
+        const [p, q] = [line[k - 1] as Point, line[k] as Point];
+        if (Math.abs(p[1] - q[1]) > 0.5 || Math.min(Math.max(p[0], q[0]), x1) - Math.max(Math.min(p[0], q[0]), x0) <= 0) continue;
+        if (toward === "below" ? p[1] <= span.bottom : p[1] >= span.top) continue;
+        short = Math.max(short, toward === "below" ? a[1] + reach - p[1] : p[1] - (a[1] - reach));
+      }
+    const key = `label-lane:${slot.group}:${slot.row}:${toward}`;
+    if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + Math.ceil(short)));
+  };
   const labels: SceneLabel[] = [];
+  // 線の名前は別の線に乗せず、自分の線より別の線の近くにも置かない。乗るか近い名前は、その線の名前に読める (#3552)。
+  // 後の段の線も初めから点線の道で見えているので、全ての段の線を避ける。同じ道をもう一度引いた線は自分の線なので避けない。
+  // 中ほどの脇が空かない時は、一番長い区間の端までずらして空きを探し、自分の線の脇に留める
+  const keys = new Map(sceneEdges.map((e) => [e, lineKey(e)]));
   for (const edge of sceneEdges) {
     const source = diagram.steps[edge.step]?.events[edge.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
     const seen = [...early].filter(([s]) => s <= edge.step).map(([, b]) => badgeRect(b.point));
+    const lines = sceneEdges.filter((o) => keys.get(o) !== keys.get(edge)).map((o) => o.points);
     const soft: Rect[] = [...regions.map((r) => r.header), ...labels.filter((l) => l.step === edge.step)];
     // 指示の無い線の名前は、空いていなければ反対の側も探す。ずらした線は自分の側だけを探す
     const side = source.labelSide ?? outward.get(edge);
+    const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
     // 輪の名前は輪の下から探す (#3186)
-    const below = edge.from === edge.to ? { side: "below" as const, base: loopLabelBase(edge.points, textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2) } : undefined;
-    labels.push(
-      placeLabel(
-        { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(below ?? (side ? { side } : { flip: true })) },
-        { hard: boxes, soft, touch: seen },
-      ),
+    const below = edge.from === edge.to ? { side: "below" as const, base: loopLabelBase(edge.points, w) } : undefined;
+    const { a, b, vertical } = longest(edge.points);
+    const slide = vertical ? Math.max(LOOK.label.h * 4, (Math.abs(b[1] - a[1]) - LOOK.label.h) / 2) : Math.max(w, (Math.abs(b[0] - a[0]) - w) / 2);
+    const label = placeLabel(
+      { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(below ?? { slide, ...(side ? { side } : { flip: true }) }) },
+      { hard: boxes, soft, touch: seen, lines, nearest: true },
     );
+    labels.push(label);
+    // 名前の脇に自分の線より近い線が残る時は、縦の線なら列か行の間を、横の線なら行を回る道との間を広げて置き直す
+    const toward = side ?? (vertical ? "right" : "above");
+    if (!below && !nearestLine(label, edge.points, lines)) {
+      if (vertical && (toward === "left" || toward === "right")) roomBeside(edge, a[0], [a[1], b[1]], w, toward === "right", lines);
+      if (!vertical && (toward === "above" || toward === "below")) roomAlong(edge, toward, lines);
+    }
   }
 
   const layout: Layout = { kind: "architecture", width: 0, height: 0, regions, boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths: [], ends: [] };
@@ -533,29 +629,63 @@ const FAN = APART.line + LOOK.stroke.edgeOn;
  * 辺の長さにも収まらない時だけ、辺の長さに収まるまで詰める。
  * 並べる順は、出た後に曲がる向きと、曲がった後の道の遠さで決める。辺に沿って負の向きへ曲がる線を負の側に、正の向きへ曲がる線を正の側に、
  * 曲がらない線をその間に置き、どちらの側も遠い道を通る線ほど真ん中に寄せる。遠い道を通る線が先に曲がる線の道を横切らないため。
- * 行の下か上か列の間を回る道は、曲がる向きごとに `FAN` ずつ外へ並べる。行の下と上の道は行から余白だけ離した所から外へ、
- * 列の間の道は列の間の真ん中を挟んで並べる。
+ * 出る線と同じ所へ入る線も、箱から逆に辿った道で同じように並べる (#3552)。
+ * 行の下か上か列の間を回る道は、出る箱によらず同じ道を通る線どうしで `stackLanes` が並べる (#3552)。
  * 帰りの線を持つ線は、帰りの線も同じだけ動かす。2本は後で `pullApart` が離すので、2本分の場所を取る。
  * 同じ線を別の段でもう一度引いた線は同じ道なので、一緒に動かす
  */
 function spreadFans(edges: SceneEdge[], byId: Map<string, SceneBox>, laneOf: (edge: SceneEdge) => { key: string; centered: boolean } | undefined): Lanes {
   const need: Lanes = new Map();
   // 出る箱と出る所と出る向きが同じ線を、道ごとにまとめる
-  const fans = new Map<string, SceneEdge[][]>();
+  const fans = new Map<string, Port[]>();
+  const spotKey = (box: string, [x, y]: Point, [dx, dy]: Point): string => `${box} ${Math.round(x * 10)},${Math.round(y * 10)} ${Math.sign(Math.round(dx))},${Math.sign(Math.round(dy))}`;
   for (const edge of edges) {
     const [p0, p1] = edge.points;
     if (edge.from === edge.to || !p0 || !p1) continue;
-    const key = `${edge.from} ${Math.round(p0[0] * 10)},${Math.round(p0[1] * 10)} ${Math.sign(Math.round(p1[0] - p0[0]))},${Math.sign(Math.round(p1[1] - p0[1]))}`;
+    const key = spotKey(edge.from, p0, [p1[0] - p0[0], p1[1] - p0[1]]);
     const fan = fans.get(key) ?? [];
-    const same = fan.find((lines) => lineKey(lines[0] as SceneEdge) === lineKey(edge));
-    if (same) same.push(edge);
-    else fan.push([edge]);
+    const same = fan.find((g) => lineKey(g.lines[0] as SceneEdge) === lineKey(edge));
+    if (same) same.lines.push(edge);
+    else fan.push({ lines: [edge], incoming: false });
     fans.set(key, fan);
   }
-  const moved = new Set<SceneEdge>();
+  // 出る線と同じ所へ入る線も並べる。並べないと、入る線と出る線が箱の同じ所で重なって走る (#3552)。
+  // 入る線の終わりは箱から `LOOK.edge.inset` だけ離すので、その分を戻した所で比べる。出る線の帰りの線は出る線と一緒に動くので足さない
+  for (const edge of edges) {
+    const n = edge.points.length;
+    const [end, before] = [edge.points[n - 1], edge.points[n - 2]];
+    if (edge.from === edge.to || !end || !before) continue;
+    const length = Math.hypot(end[0] - before[0], end[1] - before[1]);
+    if (length === 0) continue;
+    const inset = LOOK.edge.inset / length;
+    const at: Point = [end[0] + (end[0] - before[0]) * inset, end[1] + (end[1] - before[1]) * inset];
+    const fan = fans.get(spotKey(edge.to, at, [before[0] - end[0], before[1] - end[1]]));
+    if (!fan || fan.some((g) => !g.incoming && g.lines.some((line) => backOf(line, edge)))) continue;
+    const same = fan.find((g) => g.incoming && lineKey(g.lines[0] as SceneEdge) === lineKey(edge));
+    if (same) same.lines.push(edge);
+    else fan.push({ lines: [edge], incoming: true });
+  }
+  // 回る道は、出る箱によらず同じ道を通る線どうしで並べる (#3552)
+  const fanned = new Set([...fans.values()].filter((fan) => fan.length >= 2).flatMap((fan) => fan.flatMap((g) => g.lines)));
+  const riders = ridersOf(edges, laneOf, fanned);
+  stackLanes(riders, need);
+  const laneShift = new Map(riders.flatMap((r) => [...r.lines, ...r.backs].map((e): [SceneEdge, number] => [e, r.out * r.shift])));
+  // 線の始まりと終わりは、それぞれの箱で1度だけ動かす。真っすぐな線は2つの点しか持たず、両端を動かすと線ごと2度動くので、1度だけ動かす
+  const movedStart = new Set<SceneEdge>();
+  const movedEnd = new Set<SceneEdge>();
+  const move = (line: SceneEdge, atEnd: boolean, delta: (i: number) => Point): void => {
+    const [mine, other] = atEnd ? [movedEnd, movedStart] : [movedStart, movedEnd];
+    const n = line.points.length;
+    if (mine.has(line) || (n < 3 && other.has(line))) return;
+    mine.add(line);
+    line.points = line.points.map(([x, y], i) => {
+      const [dx, dy] = delta(atEnd ? n - 1 - i : i);
+      return [x + dx, y + dy];
+    });
+  };
   for (const fan of fans.values()) {
     if (fan.length < 2) continue;
-    const first = fan[0]?.[0] as SceneEdge;
+    const first = fan.find((g) => !g.incoming)?.lines[0] as SceneEdge;
     const box = byId.get(first.from);
     if (!box) continue;
     const [p0, p1] = first.points as [Point, Point];
@@ -563,47 +693,24 @@ function spreadFans(edges: SceneEdge[], byId: Map<string, SceneBox>, laneOf: (ed
     const u: 0 | 1 = Math.abs(p0[0] - p1[0]) < 0.5 ? 0 : 1;
     const o: 0 | 1 = u === 0 ? 1 : 0;
     const out = Math.sign(p1[o] - p0[o]);
-    const members = fan.map((lines) => {
-      const points = (lines[0] as SceneEdge).points;
-      const [a, b, c, d] = points as [Point, Point, Point | undefined, Point | undefined];
+    const members = fan.map(({ lines, incoming }) => {
+      // 入る線は、箱から逆に辿った道で並べる
+      const points = incoming ? [...(lines[0] as SceneEdge).points].reverse() : (lines[0] as SceneEdge).points;
+      const [a, b, c] = points as [Point, Point, Point | undefined];
       const step = c ? c[u] - b[u] : 0;
-      const backs = edges.filter((e) => lines.some((line) => backOf(line, e)));
+      const backs = incoming ? [] : edges.filter((e) => lines.some((line) => backOf(line, e)));
       return {
         lines,
+        incoming,
         backs,
         turn: Math.abs(step) < 0.5 ? 0 : Math.sign(step),
         reach: Math.abs(step),
-        // 回った後に出た箱の行へ戻る線 (同じ行の箱へ行く線)。戻らない線は回った後に次の行か帯へ進む
-        returns: c !== undefined && d !== undefined && Math.sign(d[o] - c[o]) === -out,
         depth: Math.abs(b[o] - a[o]),
-        lane: points.length >= 4 ? laneOf(lines[0] as SceneEdge) : undefined,
         width: backs.length > 0 ? 2 : 1,
-        shift: 0,
+        // 回る道を道の内から外へずらした量。道に並べた順で決まる
+        shift: out * (laneShift.get(lines[0] as SceneEdge) ?? 0),
       };
     });
-    // 回る道。曲がる向きと道ごとに、内から外へ並べる
-    const stacks = new Map<string, typeof members>();
-    for (const m of members) {
-      if (!m.lane) continue;
-      const key = `${m.turn} ${m.lane.key}`;
-      stacks.set(key, [...(stacks.get(key) ?? []), m]);
-    }
-    for (const stack of stacks.values()) {
-      // 内から、行へ戻る線を近い行き先から、次に先へ進む線を遠い行き先から並べる。
-      // 行へ戻る線は遠い線ほど外を回れば近い線の戻る所を横切らず、先へ進む線は遠い線ほど内を回れば近い線の進む所を横切らない
-      stack.sort((a, b) => (a.returns === b.returns ? (a.returns ? a.reach - b.reach : b.reach - a.reach) : a.returns ? -1 : 1));
-      // 帰りの線を持つ線は後で `pullApart` が2本に離すので、2本の真ん中を半分外へ置き、内の1本を道の位置に合わせる
-      stack.forEach((m, k) => {
-        const before = stack[k - 1];
-        m.shift = before ? before.shift + ((before.width + m.width) / 2) * FAN : ((m.width - 1) / 2) * FAN;
-      });
-      const last = stack.at(-1);
-      const span = last ? last.shift + ((last.width - 1) / 2) * FAN : 0;
-      const lane = stack[0]?.lane;
-      if (!lane || span === 0) continue;
-      if (lane.centered) for (const m of stack) m.shift -= span / 2;
-      need.set(lane.key, Math.max(need.get(lane.key) ?? 0, span));
-    }
     // 出る所。負の向きへ曲がる線、曲がらない線、正の向きへ曲がる線の順に、辺に沿って並べる
     const far = (m: (typeof members)[number]): number => m.depth + m.shift;
     const order = [
@@ -625,33 +732,224 @@ function spreadFans(edges: SceneEdge[], byId: Map<string, SceneBox>, laneOf: (ed
       // 角の丸みに掛けて出す線は、丸みの縁から出るよう始まりを箱へ寄せる
       const corner = Math.max(0, Math.abs(along) - (length / 2 - radius));
       const sink = radius - Math.sqrt(Math.max(0, radius * radius - corner * corner));
-      const delta = (i: number, count: number): Point => {
+      const delta = (i: number): Point => {
         const d: Point = [0, 0];
         if (i <= 1) d[u] += along;
         if (i === 0) d[o] -= out * sink;
-        if (count >= 4 && (i === 1 || i === 2)) d[o] += out * m.shift;
         return d;
       };
-      for (const line of m.lines) {
-        if (moved.has(line)) continue;
-        moved.add(line);
-        line.points = line.points.map(([x, y], i) => {
-          const [dx, dy] = delta(i, line.points.length);
-          return [x + dx, y + dy];
-        });
-      }
-      for (const back of m.backs) {
-        if (moved.has(back)) continue;
-        moved.add(back);
-        const n = back.points.length;
-        back.points = back.points.map(([x, y], i) => {
-          const [dx, dy] = delta(n - 1 - i, n);
-          return [x + dx, y + dy];
-        });
-      }
+      for (const line of m.lines) move(line, m.incoming, delta);
+      for (const back of m.backs) move(back, true, delta);
     }
   }
+  // 回る道。線は2つ目の区間を、帰りの線は後ろから2つ目の区間をずらす
+  for (const r of riders) {
+    if (r.shift === 0) continue;
+    const shifted = (points: Point[], at: (i: number) => number): Point[] =>
+      points.map((p, i): Point => {
+        const k = at(i);
+        if (k !== 1 && k !== 2) return p;
+        const q: Point = [p[0], p[1]];
+        q[r.axis] += r.out * r.shift;
+        return q;
+      });
+    for (const line of r.lines) line.points = shifted(line.points, (i) => i);
+    for (const back of r.backs) back.points = shifted(back.points, (i) => back.points.length - 1 - i);
+  }
   return need;
+}
+
+/** 箱の同じ所から出る線か入る線の組。同じ道にもう一度引いた線を含む。`incoming` が真なら、その所へ入る線 (#3552) */
+interface Port {
+  lines: SceneEdge[];
+  incoming: boolean;
+}
+
+/**
+ * 回る道を通る線の組 (#3552)。同じ道にもう一度引いた線と帰りの線を1つにまとめる。
+ * 帰りの線を持つ組は後で `pullApart` が2本に離すので、道の中で2本分の場所を取る
+ */
+interface Rider {
+  /** 同じ道にもう一度引いた線を含む線 */
+  lines: SceneEdge[];
+  backs: SceneEdge[];
+  width: number;
+  lane: { key: string; centered: boolean };
+  /** 道を並べる向き (0 は x、1 は y) と、その向きで道の内から外へ進む符号。列の間の道は x の正の向きを外とする */
+  axis: 0 | 1;
+  out: number;
+  /** 道に沿った区間の両端 */
+  lo: number;
+  hi: number;
+  /**
+   * 道の両端で線が道を離れる所。`side` が負なら道の内の側へ、正なら外の側へ離れる。
+   * `start` は線を出す箱の側の端で、段の番号の丸が乗る。帰りの線を持つ組は両端とも線を出す箱の側になる
+   */
+  legs: { at: number; side: number; start: boolean }[];
+  to: string;
+  /** 同じ箱の同じ所から別々の箱へ出る線の組 (#3549) に入るか */
+  fanned: boolean;
+  /** 道の内から外へずらす量 */
+  shift: number;
+}
+
+/** 2つ目の区間で行の下か上か列の間を回る線を、組ごとにまとめる。並べ方は辿る前の点の並びで決める */
+function ridersOf(edges: SceneEdge[], laneOf: (edge: SceneEdge) => { key: string; centered: boolean } | undefined, fanned: Set<SceneEdge>): Rider[] {
+  const riders: Rider[] = [];
+  const taken = new Set<SceneEdge>();
+  for (const edge of edges) {
+    if (taken.has(edge) || edge.from === edge.to || edge.points.length < 4) continue;
+    const lane = laneOf(edge);
+    if (!lane) continue;
+    const lines = edges.filter((e) => !taken.has(e) && lineKey(e) === lineKey(edge));
+    const backs = edges.filter((e) => !taken.has(e) && !lines.includes(e) && lines.some((line) => backOf(line, e)));
+    for (const e of [...lines, ...backs]) taken.add(e);
+    const [p0, p1, p2, p3] = edge.points as [Point, Point, Point, Point];
+    const axis: 0 | 1 = Math.abs(p1[1] - p2[1]) < 0.5 ? 1 : 0;
+    const run: 0 | 1 = axis === 0 ? 1 : 0;
+    const out = lane.centered ? 1 : Math.sign(p1[axis] - p0[axis]);
+    const side = (end: Point, at: Point): number => Math.sign(end[axis] - at[axis]) * out;
+    riders.push({
+      lines,
+      backs,
+      width: backs.length > 0 ? 2 : 1,
+      lane,
+      axis,
+      out,
+      lo: Math.min(p1[run], p2[run]),
+      hi: Math.max(p1[run], p2[run]),
+      legs: [
+        { at: p1[run], side: side(p0, p1), start: true },
+        { at: p2[run], side: side(p3, p2), start: backs.length > 0 },
+      ],
+      to: edge.to,
+      fanned: lines.some((line) => fanned.has(line)),
+      shift: 0,
+    });
+  }
+  return riders;
+}
+
+/**
+ * 同じ道で区間の重なる2つの組か。同じ箱へ入る線どうしは、入る前に合わさって同じ道を走ってよい。
+ * どちらの線も同じ箱へ向かうと読めるので、崩れの検査も数えない
+ */
+const clash = (a: Rider, b: Rider): boolean => Math.min(a.hi, b.hi) - Math.max(a.lo, b.lo) > 0.5 && !(a.width === 1 && b.width === 1 && a.to === b.to);
+
+/**
+ * 組 `inner` を内に、`outer` を外に並べた時に、線が相手の道を横切る所。
+ * 外の線が内の側へ離れる所は内の道の区間の中にあれば内の道を横切り、内の線が外の側へ離れる所は外の道の区間の中にあれば外の道を横切る
+ */
+function crossings(inner: Rider, outer: Rider): Rider["legs"] {
+  const within = (at: number, r: Rider): boolean => at > r.lo + 0.5 && at < r.hi - 0.5;
+  return [...outer.legs.filter((l) => l.side < 0 && within(l.at, inner)), ...inner.legs.filter((l) => l.side > 0 && within(l.at, outer))];
+}
+
+/** 内から並べる順で、区間の重なる組を重ならない段に積む。返す値は組ごとの段 (内から数える) */
+function tracksOf(order: Rider[]): Map<Rider, number> {
+  const track = new Map<Rider, number>();
+  order.forEach((r, k) => {
+    track.set(r, Math.max(0, ...order.slice(0, k).filter((o) => clash(o, r)).map((o) => (track.get(o) ?? 0) + o.width)));
+  });
+  return track;
+}
+
+/** 並べる順を全て試す組の数の上限。7つ以上の組は、先に引いた線を内にする順で並べる */
+const TRY_ALL = 6;
+
+/**
+ * 区間の重なる組を内から並べる順。線が相手の道を横切る数の少ない順を選ぶ。
+ * 同じなら、線を出す箱の側で横切る数の少ない順を選ぶ。そこには段の番号の丸が乗り、丸が相手の線に重なるため。
+ * それも同じなら段の数の少ない順、それも同じなら先に引いた線を内にする順に近い順を選ぶ
+ */
+function bestOrder(part: Rider[]): Rider[] {
+  if (part.length > TRY_ALL) return part;
+  const rank = new Map(part.map((r, i) => [r, i]));
+  const score = (order: Rider[]): number[] => {
+    let crossed = 0;
+    let atStart = 0;
+    let swapped = 0;
+    order.forEach((a, i) => {
+      for (const b of order.slice(i + 1)) {
+        const legs = clash(a, b) ? crossings(a, b) : [];
+        crossed += legs.length;
+        atStart += legs.filter((l) => l.start).length;
+        if ((rank.get(a) ?? 0) > (rank.get(b) ?? 0)) swapped += 1;
+      }
+    });
+    const track = tracksOf(order);
+    return [crossed, atStart, Math.max(...order.map((r) => (track.get(r) ?? 0) + r.width)), swapped];
+  };
+  const better = (a: number[], b: number[]): boolean => {
+    for (let i = 0; i < a.length; i++) if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) < (b[i] ?? 0);
+    return false;
+  };
+  let best = part;
+  let bestScore = score(part);
+  const visit = (head: Rider[], rest: Rider[]): void => {
+    if (rest.length === 0) {
+      const s = score(head);
+      if (better(s, bestScore)) [best, bestScore] = [head, s];
+      return;
+    }
+    rest.forEach((r, i) => visit([...head, r], [...rest.slice(0, i), ...rest.slice(i + 1)]));
+  };
+  visit([], part);
+  return best;
+}
+
+/**
+ * 同じ道を通る組を、区間が重なる組どうしで `FAN` ずつ離した段に積み、ずらす量と道を並べるのに要る間を決める (#3552)。
+ * 区間が重ならない組は同じ段を通り、どの組とも重ならない組は動かさない。
+ * ただし同じ箱の同じ所から出る線の組 (#3549) の帰りの線を持つ組は、2本の内の1本を道の位置に合わせる。
+ * 行の間の道は、上の行から下りる線と下の行から上る線が同じ高さを通るので、2つの線の区間が重なれば、`FAN` だけ離す間を足す
+ */
+function stackLanes(riders: Rider[], need: Lanes): void {
+  const byKey = new Map<string, Rider[]>();
+  for (const r of riders) byKey.set(r.lane.key, [...(byKey.get(r.lane.key) ?? []), r]);
+  for (const [key, list] of byKey) {
+    const seen = new Set<Rider>();
+    for (const start of list) {
+      if (seen.has(start)) continue;
+      // 区間の重なりで繋がる組を、元の順のまま集める
+      const part: Rider[] = [];
+      const queue = [start];
+      seen.add(start);
+      while (queue.length > 0) {
+        const r = queue.shift() as Rider;
+        part.push(r);
+        for (const o of list) {
+          if (seen.has(o) || !clash(r, o)) continue;
+          seen.add(o);
+          queue.push(o);
+        }
+      }
+      part.sort((a, b) => list.indexOf(a) - list.indexOf(b));
+      let span = 0;
+      if (part.length === 1) {
+        const [r] = part as [Rider];
+        // 帰りの線を持つ組は後で `pullApart` が2本に離すので、2本の真ん中を半分外へ置き、内の1本を道の位置に合わせる
+        if (r.fanned) [r.shift, span] = [((r.width - 1) / 2) * FAN, (r.width - 1) * FAN];
+      } else {
+        const order = bestOrder(part);
+        const track = tracksOf(order);
+        for (const r of order) {
+          const t = track.get(r) ?? 0;
+          r.shift = (t + (r.width - 1) / 2) * FAN;
+          span = Math.max(span, (t + r.width - 1) * FAN);
+        }
+      }
+      if (span === 0) continue;
+      if (start.lane.centered) for (const r of part) r.shift -= span / 2;
+      need.set(key, Math.max(need.get(key) ?? 0, span));
+    }
+  }
+  for (const [key, list] of byKey) {
+    // 行の下の道と、次の行の上の道は、行の間の同じ所を通る
+    const [g, row, end] = key.split(":");
+    const next = end === "below" ? byKey.get(`${g}:${Number(row) + 1}:above`) : undefined;
+    if (next?.some((b) => list.some((a) => clash(a, b)))) need.set(key, (need.get(key) ?? 0) + FAN);
+  }
 }
 
 /**
