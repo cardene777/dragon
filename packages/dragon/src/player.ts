@@ -33,7 +33,7 @@ import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import type { PipeLayout } from "./kinds/pipe/layout";
 import type { TryLayout } from "./kinds/try/layout";
-import { PIPE_LOOK, PIPE_TYPE } from "./look/pipe";
+import { PIPE_LOOK } from "./look/pipe";
 import { FONT_VARS, LOOK, paletteVars, READABLE_PX, type TextStyle, TYPE } from "./look/values";
 import { partRadius } from "./render/corner";
 import {
@@ -494,18 +494,18 @@ export function mountDiagram(
     return w < ZOOM.fit ? Math.min(rendered.layout.width, Math.max(w, readableWidth())) : rendered.layout.width;
   };
   /**
-   * 読める大きさで始める図 (`zoom: "readable"`) の拡大の度合い (#3483)。箱の名前の字が画面で `READABLE_PX` 以上に見える度合いを、
-   * 拡大の上限までで求める。0.01 刻みで切り上げ、計算の誤差で読める大きさを下回らないようにする。
-   * 設定を渡さない図と、枠が `ZOOM.fit` 以上の図は拡大しない
+   * 読める大きさで始める図 (`zoom: "readable"`) の拡大の度合い (#3483)。並べた図で最も小さい関係者の名前の字が、画面で
+   * `READABLE_PX` 以上に見える度合いを拡大の上限までで求め、計算の誤差で下回らないよう 0.01 刻みで切り上げる。
+   * 字の大きさは並べた図の名札から読み、頁が最初に読む script に字の表を引き込まない。
+   * 設定を渡さない図と、枠が `ZOOM.fit` 以上の図は拡大しない。名前を持たない図は求める度合いが 0 になり、拡大しない
    */
   const readableZoom = (): number => {
-    if (!isPipe || options.zoom !== "readable" || frameWidth() >= ZOOM.fit) return ZOOM.min;
-    const need = (READABLE_PX * rendered.layout.width) / (PIPE_TYPE.party.size * baseWidth());
+    if (!options.zoom || !isPipe || frameWidth() >= ZOOM.fit) return ZOOM.min;
+    const names = ((rendered.layout as PipeLayout).parties ?? []).map((party) => party.label.h);
+    const need = (READABLE_PX * rendered.layout.width) / (Math.min(...names) * baseWidth());
     return Math.min(ZOOM.max, Math.max(ZOOM.min, Math.ceil(need * 100) / 100));
   };
   zoom = readableZoom();
-  /** 読める大きさの度合いを求めた時の枠の幅。幅が変わった時だけ求め直し、読み手が拡大した所を高さの変わりで戻さない */
-  let readableFor = frameWidth();
   /** 置いた図の幅 (px)。配管の図は拡大の度合いを掛ける */
   const shownWidth = (): number => (isPipe ? baseWidth() * zoom : rendered.layout.width);
   /** 図の座標を、置いた図の px にする倍率 */
@@ -910,11 +910,9 @@ export function mountDiagram(
         const w = frameWidth();
         const h = frameHeight();
         const rearranged = arrange(w);
-        // 読める大きさで始める図は、枠の幅が変わったら度合いを求め直す。600px 以上へ広がると拡大を外す (#3483)
-        if (options.zoom === "readable" && w !== readableFor) {
-          readableFor = w;
-          zoom = readableZoom();
-        }
+        // 読める大きさで始める図は、枠の幅が変わって描き直した時に度合いを求め直す。600px 以上へ広がると拡大を外す。
+        // 高さだけが変わった時は求め直さず、読み手が拡大した所を残す (#3483)
+        if (rearranged && options.zoom) zoom = readableZoom();
         const chosen = viewOf(w, h);
         controls?.arrange(chosen, w);
         if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height))) {
