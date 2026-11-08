@@ -156,3 +156,12 @@
 | 常に、次の行へ送った選ぶ欄は伸びず、欄の名前は切れない | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-wrapped-choice-not-stretched`と`try-ask-label-not-clipped`が通る | #3499 |
 | 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3499 |
 | `packages/dragon/package.json`の`version`が`0.67.0`で、英語と日本語の変更履歴の`## [0.67.0]`の節が`(#3499)`の項を持ち、その項が矢印を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-67-0-caret-without-svg`が通る | #3499 |
+| 待ち列と記録の列を`side`の行に書いた試す図を読むと記法の誤りにならず、書き戻した記法も同じ`side`の行を持つ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-accepts-log`が通る | #3506 |
+| 待ち列と記録の列を`side`の行に書き、記録が3件ある試す図を幅740で描いた時、図の幅は740のままで、2つの部品の上の端のずれは1未満で重ならず、どの記録も記録の列の四角の右の端より左に収まる | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-places-log-in-row`が通る | #3506 |
+| 同じ図を幅324の枠で描いた時、縦に組み、部品の四角と図の高さが`side`の行を持たない図と同じ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-log-stacks-when-narrow`が通る | #3506 |
+| 英語と日本語の README の`side`の行の説明が、待ち列の残りの幅を記録の列にも渡すと書く | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`docs-side-gives-rest-to-log`が通る | #3506 |
+| 待ち列と記録の列を`side`の行に書き、記録の列に割り当てた幅に3件が1段で入らない試す図を幅740で描いた時、出す記録は1段に入る数だけで全て同じ高さに並び、古い記録を畳んだ印を持つ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-log-folds-to-one-line`が通る | #3506 |
+| 記録がまだ1件も無い記録の列は、記録1件分の空いた段を取らず、図が記録1件の図より低い | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-log-empty-takes-no-line`が通る | #3506 |
+| 常に、網と待ち列と機械の列を`side`の行に書いた図は今どおり並び、細い枠では縦に積む | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-places-parts-in-a-row`と`interactive-side-queue-takes-chip-width`と`interactive-side-stacks-when-narrow`が通る | #3506 |
+| 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3506 |
+| 英語と日本語の変更履歴の`## [0.67.0]`の節が`(#3506)`と`(#3489)`の項を持ち、`(#3506)`の項が記録の列を名指し、Unreleased にどちらの項も残らない | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-67-0-side-log`が通る | #3506 |
