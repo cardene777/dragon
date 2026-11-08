@@ -18,7 +18,7 @@ block +key
 end
 
 box eth as Ethereum [note: sending chain]
-+bridge cc as Bridge [note: added box]
++bridge cc as Bridge [note: carries tokens across chains]
 box base as Base [note: receiving chain, icon: +key]
 
 step Send

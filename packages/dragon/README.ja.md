@@ -217,7 +217,7 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 後で dragon が同じ名前のブロックを足しても、書いた図の意味は変わらない。
 
 ```text
-architecture 橋を渡る
+architecture ブリッジを渡る
 
 blocks 1
 block +bridge
@@ -236,11 +236,11 @@ box eth as Ethereum
 box base as Base
 
 step 送る
-  say トークンを橋へ送る。
+  say トークンをブリッジへ送る。
   eth -> cc: 送る
 
 step 渡す
-  say 橋がトークンを渡す。
+  say ブリッジがトークンを渡す。
   cc +wire base: 渡す
 ```
 
