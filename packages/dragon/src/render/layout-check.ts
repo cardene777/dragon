@@ -9,7 +9,7 @@ import { type ParseOptions, parseNotation } from "../parser";
 import type { Diagram } from "../schema";
 import { tokenize } from "../tokenize";
 import { DEFAULT_LANG, type NotationLang } from "../words";
-import { breakKey, type LayoutBreak, type LayoutPart } from "./breaks";
+import { breakKey, findDrawnBreaks, type LayoutBreak, type LayoutPart } from "./breaks";
 import { renderDiagram } from "./draw";
 
 /** 崩れを確かめる携帯の幅 (CSS の px)。よく使われる携帯の画面の幅 */
@@ -28,7 +28,7 @@ export function checkLayout(render: (width: number | undefined) => LayoutBreak[]
 
 /** 読めた図 `diagram` の崩れ。描けない図は描く処理の断りを投げる */
 export function diagramBreaks(diagram: Diagram, lang: NotationLang = DEFAULT_LANG): LayoutBreak[] {
-  return checkLayout((width) => renderDiagram(diagram, { lang, findBreaks: true, ...(width === undefined ? {} : { width }) }).breaks ?? []);
+  return checkLayout((width) => renderDiagram(diagram, { lang, findBreaks: findDrawnBreaks, ...(width === undefined ? {} : { width }) }).breaks ?? []);
 }
 
 /** 記法 `text` の崩れ。記法に誤りがあれば描かずに空を返す (誤りは `parseNotation` か `dragon check` が出す) */

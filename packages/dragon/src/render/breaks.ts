@@ -10,6 +10,7 @@
  * 箱の角に付いた番号の丸と、線の始まりの番号の丸とその線を出す箱の縁 (1px の間) は、丸が形に触れているので浮いた丸に数えない。
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
+import { boxOutline } from "../blocks/box/draw";
 import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
 import { LOOK } from "../look/values";
 import { type Ink, type Trace, visible } from "./ink";
@@ -66,6 +67,18 @@ const centerOf = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
 
 /** 崩れの中身を比べる鍵。同じ崩れを 1 件にまとめ、幅ごとの崩れを突き合わせる */
 export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.step, b.parts]);
+
+/** 描く処理が描いた時に渡す材料。箱の形の輪郭は、数える側が箱から作る */
+export type DrawnParts = Omit<BreakInput, "outlines">;
+
+/** 描いた結果 `drawn` の崩れ。足した箱のブロックの箱の形の輪郭を作ってから数える */
+export function findDrawnBreaks(drawn: DrawnParts): LayoutBreak[] {
+  const outlines = new Map(drawn.boxes.flatMap((box) => {
+    const outline = boxOutline(box);
+    return outline ? [[box.id, outline] as const] : [];
+  }));
+  return findBreaks({ ...drawn, outlines });
+}
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
