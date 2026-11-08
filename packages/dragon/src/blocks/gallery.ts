@@ -2,7 +2,7 @@
  * 見本帳の分の型 (#3342、#3345、#3350)。
  *
  * ブロックの置き場の `gallery/` は、見本帳 (`apps/playground-spa`) だけが読む分を持つ。
- * 一覧の名前と説明 (`text.ts`)、編集画面の棚の部品 (`shelf.ts`)、使い方の頁の本文 (`docs.ts`)、
+ * 一覧の名前 (`text.ts`)、部品の頁の説明 (`desc.ts`)、編集画面の棚の部品 (`shelf.ts`)、使い方の頁の本文 (`docs.ts`)、
  * `docs/design/base/GRAMMAR.md` の部品の表の行 (`rule.ts`)、部品の頁が見本を探す関数 (`uses.ts`) と、
  * 部品の図 (`<名前>.<図の種類>.dragon` と英語の `.en.dragon`)。
  * 見本帳の一覧と棚と使い方の頁は、この分をブロックの並び (`rank`) の順に並べて作り、ブロックの名前を手で並べない (#3350)。
@@ -13,6 +13,7 @@
  * `{ none: <理由> }` を直に書き、棚の部品の組み立てと見本を探す関数は、見本帳が渡す道具 (`ShelfKit`、`SampleView`) だけを使う。
  * 一覧は `scripts/build-blocks.mjs` が置き場の dir から書き出す (`apps/playground-spa/src/catalog/blocks.gen.ts`)。
  * 使い方の頁の段落は使い方の頁だけが読む `blocks-docs.gen.ts` に、見本を探す関数は部品の頁が読む `blocks-uses.gen.ts` に書き出す (#3341、#3350)。
+ * 部品の説明も部品の頁だけが読む `blocks-desc.gen.ts` に書き出し、見本帳が最初に読む塊に入れない (#3531)。
  */
 import type { Carry, Diagram, DiagramEvent, LabelSide, LineupItem, TryPart } from "../schema";
 import type { None } from "./block";
@@ -22,14 +23,19 @@ export type { None };
 /** 見本帳の言葉 */
 export type GalleryLang = "ja" | "en";
 
-/** 見本帳の一覧の、部品の名前と説明 */
+/** 見本帳の一覧の、部品の名前 */
 export interface PartText {
   readonly name: string;
-  readonly desc: string;
 }
 
 /** `gallery/text.ts` が出す `text` */
 export type BlockText = Readonly<Record<GalleryLang, PartText>>;
+
+/**
+ * `gallery/desc.ts` が出す `desc`。部品の頁に出す説明 (#3531)。
+ * 名前 (`text.ts`) と分けるのは、名前を読む最初の画面の塊に、部品の頁だけが見せる説明が入らないため
+ */
+export type BlockDesc = Readonly<Record<GalleryLang, string>>;
 
 /** 編集画面の棚に置く部品 1 つの名前 */
 export type ShelfName = Readonly<Record<GalleryLang, string>>;
@@ -121,6 +127,7 @@ export type BlockRule = readonly RuleRow[] | None;
 /** ブロック 1 つの見本帳の分 */
 export interface BlockGallery {
   readonly text: BlockText;
+  readonly desc: BlockDesc;
   readonly shelf: BlockShelf;
   readonly docs: BlockDocs | None;
   readonly rule: BlockRule;

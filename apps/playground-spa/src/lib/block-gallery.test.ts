@@ -8,7 +8,7 @@
  * 見る関数はこの file が持ち、正しい分に当てて通ることと、崩した分に当てて名指すことの両方を確かめる。
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BLOCK_DOCS } from "../catalog/blocks-docs.gen";
@@ -124,6 +124,29 @@ describe("見本帳と決まりをブロックの置き場から作る (#3350)",
     expect(pages.length, "見本帳の頁の code が無い (走査の空振り)").toBeGreaterThan(0);
     const hand = pages.filter((file) => /\bBLOCK_(?:TEXT|DOCS|SHELF|RULE)(?:\.[a-z]|\[")/u.test(readFileSync(join(ROOT, file), "utf8")));
     expect(hand, "見本帳の分をブロックの名前で手で引く file").toEqual([]);
+  });
+
+  it("part-desc-apart-from-names", async () => {
+    // 部品の説明は部品の頁だけが見せるので、名前と別の file に置き、最初の画面が読む一覧に入れない (#3531)
+    const ranked = await rankedBlocks();
+    expect(ranked.length, "ブロックが無い (走査の空振り)").toBeGreaterThan(0);
+    const gallery = (name: string, file: string): string | undefined => {
+      const path = join(ROOT, "packages/dragon/src/blocks", name, "gallery", file);
+      return existsSync(path) ? readFileSync(path, "utf8") : undefined;
+    };
+    const misplaced = ranked.flatMap(({ name }) => [
+      ...(/\bdesc\s*:/u.test(gallery(name, "text.ts") ?? "") ? [`${name}: gallery/text.ts が説明を持つ`] : []),
+      ...(gallery(name, "desc.ts") === undefined ? [`${name}: gallery/desc.ts が無い`] : []),
+    ]);
+    expect(misplaced, "部品の説明の置き場").toEqual([]);
+    // 説明の表は部品の頁だけが読む file に書き出し、最初の画面が読む一覧は説明を読まない
+    const catalog = readFileSync(join(ROOT, "apps/playground-spa/src/catalog/blocks.gen.ts"), "utf8");
+    expect(catalog, "最初の画面が読む一覧が説明を読む").not.toMatch(/gallery\/desc"|BLOCK_DESC/u);
+    const { BLOCK_DESC } = (await import("../catalog/blocks-desc.gen")) as { BLOCK_DESC: Readonly<Record<string, Readonly<Record<"ja" | "en", unknown>>>> };
+    const empty = ranked.flatMap(({ name }) =>
+      (["ja", "en"] as const).filter((lang) => typeof BLOCK_DESC[name]?.[lang] !== "string" || String(BLOCK_DESC[name]?.[lang]).trim() === "").map((lang) => `${name}.${lang}`),
+    );
+    expect(empty, "説明の表に日本語か英語の説明が無いブロック").toEqual([]);
   });
 
   it("grammar-parts-table-from-blocks", async () => {

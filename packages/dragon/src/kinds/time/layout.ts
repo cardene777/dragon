@@ -8,7 +8,7 @@
  * 印の列と同じ名札の箱は、その列が空きにした目盛りの列で空きの枠になる。時間軸の上の拡大した範囲を枠で囲み、枠の上の角から上の帯へ点線でつなぐ。
  * 中身の帯は図の下に置く。
  */
-import { FIGURE_TEXT } from "../../figure-text";
+import { FIGURE_TEXT, joinWords } from "../../figure-text";
 import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../../look/values";
 import type { DiagramModel, DiagramEvent } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
@@ -178,7 +178,9 @@ function durationOf(text: string): { seconds: number; unit: TimeUnit } {
  */
 const unitFor = (max: number, fallback: TimeUnit): TimeUnit => UNITS.find((u) => max / SECONDS[u] >= 2 - 1e-9) ?? fallback;
 
-const timeText = (seconds: number, unit: TimeUnit, lang: NotationLang): string => `${Number((seconds / SECONDS[unit]).toFixed(2))} ${FIGURE_TEXT[lang].timeUnits[unit]}`;
+/** 時刻の字。数と単位は `joinWords` で並べ、日本語の単位の前には空白を置かない (#3517) */
+const timeText = (seconds: number, unit: TimeUnit, lang: NotationLang): string =>
+  joinWords(String(Number((seconds / SECONDS[unit]).toFixed(2))), FIGURE_TEXT[lang].timeUnits[unit]);
 
 /** 時刻の字を置く境。区切りがあれば区切りの境ごとに、無ければ字が `LOOK.time.ticks` 個に収まる切りのよい間ごとに置く */
 function majorTicks(count: number, period: number | undefined, unitPx: number): { at: number[]; step: number } {
@@ -284,7 +286,7 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
         return box;
       });
       boxes.push(...placed);
-      const head = `${scale.unit} ${(scale.from ?? 0) + u}${text.headJoin}${timeText(u * length.seconds, headUnit, lang)}`;
+      const head = `${joinWords(scale.unit, String((scale.from ?? 0) + u))}${text.headJoin}${timeText(u * length.seconds, headUnit, lang)}`;
       columns.push({ unit: u, head, boxes: placed, x, y: top, w: colW, h: 0 });
     }
     const last = Math.max(top + T.boxTop, ...boxes.map((b) => b.y + b.h));
@@ -293,7 +295,7 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
     regions.push({
       id: "zoom",
       lines: [text.zoom],
-      note: `${n} ${scale.unit}`,
+      note: joinWords(String(n), scale.unit),
       icon: "clock",
       color: "blue",
       x: margin,
@@ -504,9 +506,9 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
     const list: TimePeriodPlaced[] = [];
     for (let index = 0, from = 0; from < count; index++, from += P.length) {
       const to = Math.min(count, from + P.length) - 1;
-      const name = `${P.name} ${(P.from ?? 0) + index}`;
+      const name = joinWords(P.name, String((P.from ?? 0) + index));
       const first = (scale.from ?? 0) + from;
-      const range = `${scale.unit} ${text.range(String(first), String((scale.from ?? 0) + to))}`;
+      const range = joinWords(scale.unit, text.range(String(first), String((scale.from ?? 0) + to)));
       list.push({ index, from, to, name, range, x: axisX + from * unit, y: axisLine, w: (to - from + 1) * unit, h: 0, nameY: tickY, rangeY: tickY + T.rangeY });
     }
     // 区切りの名前が時刻の字に掛かる時は、時刻の字の下の行へ送る
