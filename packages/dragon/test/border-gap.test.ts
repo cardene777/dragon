@@ -59,13 +59,15 @@ function draw(name: string, lang: "ja" | "en") {
   const parsed = dragon.parseNotation(text, { lang });
   if (!parsed.ok) throw new Error(`${name} を読めない: ${JSON.stringify(parsed.errors)}`);
   let drawn: { inks: { text: string; rect: Rect; frame?: { name: string; rect: Rect } }[] } | undefined;
-  const rendered = dragon.renderDiagram(parsed.diagram, {
+  // 描く処理は描いた後に `findBreaks` を呼び、崩れを数える材料を渡す。公開の型は持たないので、変数に入れて渡す
+  const options = {
     lang,
-    findBreaks: (figure) => {
-      drawn = figure as unknown as typeof drawn;
+    findBreaks: (figure: unknown) => {
+      drawn = figure as typeof drawn;
       return [];
     },
-  });
+  };
+  const rendered = dragon.renderDiagram(parsed.diagram, options);
   const breaks = dragon.checkLayoutText(text, { lang }) as unknown as Break[];
   return { rendered, layout: rendered.layout as unknown as Record<string, unknown>, breaks, inks: drawn?.inks ?? [] };
 }

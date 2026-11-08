@@ -424,25 +424,34 @@ export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[]
 /**
  * 線の上で前の番号を避けきれない番号を、線の向きと直角に脇へずらした点 (#3189)。
  * 前の番号の四角にも、ほかの線にも掛からない所のうち、線に一番近い所。番号 1 つ分ずらしても無ければ返さない。
- * ほかの線は先に矢じりの幅だけ太らせて避け、それで空きが無い時だけ線そのものを避ける (矢じりに少し掛かっても、番号どうしを重ねるよりよい)
+ * ほかの線は先に矢じりの幅だけ太らせて避け、それで空きが無い時だけ線そのものを避ける (矢じりに少し掛かっても、番号どうしを重ねるよりよい)。
+ * 置きたい所の脇に空きが無い時は、線の先の方へ 1px ずつ進めて脇の空きを探す (#3526)。
+ * 箱の下を回る線が箱から余白だけ離れて曲がると、その曲がり角の番号の脇を、隣の線の番号が使えなくなるため
  */
 function besideLine(points: Point[], at: number, taken: Point[], lines: Point[][]): Point | undefined {
   const length = pathLength(points);
-  const [px, py] = along(points, at);
-  const [ax, ay] = along(points, Math.max(0, at - 1));
-  const [bx, by] = along(points, Math.min(length, at + 1));
-  const n = Math.hypot(bx - ax, by - ay);
-  if (n === 0) return undefined;
-  const [nx, ny] = [-(by - ay) / n, (bx - ax) / n];
   const size = LOOK.badge.r * 2;
-  for (const margin of [LOOK.edge.arrowHalf, 0]) {
-    for (let s = 1; s <= size + LOOK.badge.inset; s++) {
-      for (const sign of [1, -1]) {
-        const c: Point = [px + nx * s * sign, py + ny * s * sign];
-        const free = taken.every(([x, y]) => Math.max(Math.abs(c[0] - x), Math.abs(c[1] - y)) >= size + 1);
-        if (free && lines.every((line) => !crossesRect(line, badgeRect(c), -margin))) return c;
+  const besideAt = (d: number): Point | undefined => {
+    const [px, py] = along(points, d);
+    const [ax, ay] = along(points, Math.max(0, d - 1));
+    const [bx, by] = along(points, Math.min(length, d + 1));
+    const n = Math.hypot(bx - ax, by - ay);
+    if (n === 0) return undefined;
+    const [nx, ny] = [-(by - ay) / n, (bx - ax) / n];
+    for (const margin of [LOOK.edge.arrowHalf, 0]) {
+      for (let s = 1; s <= size + LOOK.badge.inset; s++) {
+        for (const sign of [1, -1]) {
+          const c: Point = [px + nx * s * sign, py + ny * s * sign];
+          const free = taken.every(([x, y]) => Math.max(Math.abs(c[0] - x), Math.abs(c[1] - y)) >= size + 1);
+          if (free && lines.every((line) => !crossesRect(line, badgeRect(c), -margin))) return c;
+        }
       }
     }
+    return undefined;
+  };
+  for (let d = at; d <= length; d += 1) {
+    const c = besideAt(d);
+    if (c) return c;
   }
   return undefined;
 }

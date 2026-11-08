@@ -1225,7 +1225,8 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     const plates: Inner["plates"] = [];
     for (const name of platesOf.get(h) ?? []) {
       if (tanks.length > 0 || plates.length > 0) x += P.plate.gap;
-      const w = Math.max(P.plate.w, textWidth(name, T.tankTitle) + P.plate.padX, widest(historyOf(`v${keyOf(h, name)}`), T.plateValue) + P.plate.padX);
+      // 札の名前は槽の名前と同じく字の間を空けて描くので、字の間を含む幅で測る (#3526)
+      const w = Math.max(P.plate.w, titleW(name) + P.plate.padX, widest(historyOf(`v${keyOf(h, name)}`), T.plateValue) + P.plate.padX);
       plates.push({ name, dx: x, w });
       x += w;
     }
@@ -3190,7 +3191,8 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
             value,
             state,
             boxed,
-            label: textAt(name, cx, p.y + P.plate.nameY, T.tankTitle, "middle"),
+            // 名前は字の間を含む幅の真ん中を札の真ん中に置く (#3526)
+            label: { ...textAt(name, cx, p.y + P.plate.nameY, T.tankTitle), x: cx - titleW(name) / 2, w: titleW(name) },
             text: textAt(value, cx, p.y + p.h / 2 + P.plate.valueY, T.plateValue, "middle"),
             ...(was && strike && tag ? { was, strike, tag } : {}),
             ...at,

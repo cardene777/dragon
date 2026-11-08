@@ -1,16 +1,18 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない 5 種を拾う。
+ * 字の重なり (`ink.ts`) が拾わない 7 種を拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
- * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)。
+ * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)、
+ * 線が箱か囲みの枠に沿って近すぎる (`line-near-border`、#3526)、字が自分の箱か札の枠に接する (`text-touches-border`、#3526)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
+ * 形を持たない四角の箱の字は、形の崩れの代わりに枠に接するかを見る。
  *
  * 重なって当然の組は数えない。線とその両端の箱、グループとその中の箱は、どの種類も比べない組なので数えない。
  * 箱の角に付いた番号の丸と、線の始まりの番号の丸とその線を出す箱の縁 (1px の間) は、丸が形に触れているので浮いた丸に数えない。
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
-import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
+import type { Point, Rect, SceneBox, SceneEdge, SceneRegion, SceneSide } from "../layout/scene";
 import { LOOK } from "../look/values";
 import { type Ink, type Trace, visible } from "./ink";
 import { signedDistance } from "./outline";
@@ -19,11 +21,12 @@ import { signedDistance } from "./outline";
 export type LayoutPart =
   | { kind: "badge"; step: number }
   | { kind: "box"; name: string }
+  | { kind: "group"; name: string }
   | { kind: "slot"; box: string }
   | { kind: "text"; text: string; box?: string }
   | { kind: "line"; from: string; to: string; step: number };
 
-export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close";
+export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "line-near-border" | "text-touches-border";
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -33,7 +36,12 @@ export interface LayoutBreak {
   parts: [LayoutPart, LayoutPart];
 }
 
-/** 崩れを数える材料。描く処理が描いた時に記録した字と線と、描いた箱と線と、足した箱のブロックの箱の形 */
+/** 囲み (#3526)。線が枠に沿って近すぎるかを見る。`name` は知らせる文で呼ぶ囲みの名前 */
+export interface BreakGroup extends Rect {
+  name: string;
+}
+
+/** 崩れを数える材料。描く処理が描いた時に記録した字と線と、描いた箱と線と囲みと、足した箱のブロックの箱の形 */
 export interface BreakInput {
   inks: Ink[];
   traces: Trace[];
@@ -42,12 +50,17 @@ export interface BreakInput {
   /** 箱の札を描いた箱 */
   boxes: SceneBox[];
   edges: SceneEdge[];
+  /** 描いた囲み。囲みを持たない図の種類は空 */
+  groups: BreakGroup[];
   /** 箱の名札ごとの見えている形の輪郭。形を持たない箱は持たない */
   outlines: ReadonlyMap<string, Point[][]>;
 }
 
-/** 描く処理が描いた後に渡す材料。箱の形の輪郭は崩れを探す側が組む */
-export type DrawnFigure = Omit<BreakInput, "outlines">;
+/**
+ * 描く処理が描いた後に渡す材料。箱の形の輪郭と、囲みの名前は崩れを探す側が組む。
+ * 描く処理は図の区画と状態遷移図の脇道の囲みをそのまま渡し、名前を組む処理を見本帳が最初に読む script に入れない (#3526)
+ */
+export type DrawnFigure = Omit<BreakInput, "outlines" | "groups"> & { regions: SceneRegion[]; side: SceneSide | undefined };
 
 /**
  * 描いた図の崩れを返す関数 (#3494)。`renderDiagram` の `findBreaks` に渡すと、描いた後に呼ばれて結果が `breaks` になる。
@@ -64,6 +77,13 @@ const BADGE_GAP = R;
 /** 並んだ線の間の下限と、並んで走る長さの下限。番号の丸 1 つ分より狭い間で丸 2 つ分より長く並ぶ線は 1 本の太い線に見える */
 const LINE_GAP = 2 * R;
 const LINE_ALONG = 2 * R;
+/**
+ * 線と箱か囲みの枠の間の下限 (#3526)。図の外周の余白と同じ値で、構成図の線も箱の下と上を回る時にこれだけ空けて通る。
+ * これより近く、丸 2 つ分より長く枠に沿って走る線は、枠の線と 1 本に見えるか、線に乗る番号の丸が枠に掛かる
+ */
+const BORDER_GAP = LOOK.margin;
+/** 間を測る足し引きの丸めの誤差。余白ちょうどに描いた線を崩れに数えない */
+const ROUNDING = 0.01;
 
 /** 点から四角までの距離。四角の内の点は 0 */
 function distanceToRect([px, py]: Point, r: Rect): number {
@@ -79,7 +99,7 @@ export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.st
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, stills, boxes, edges, outlines } = input;
+  const { inks, traces, stills, boxes, edges, groups, outlines } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -174,6 +194,41 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     }
   });
 
+  // 字とその枠。札の字は描く処理が記録した札の枠、箱の字は形を持たない四角の箱の枠と比べる。形を持つ箱の字は形からのはみ出しで見る
+  const byId = new Map(boxes.map((b) => [b.id, b]));
+  for (const ink of inks) {
+    if (ink.badge === true || ink.part !== undefined) continue;
+    const owner = ink.box === undefined || outlines.has(ink.box) ? undefined : byId.get(ink.box);
+    const frame = ink.frame ?? (owner ? { name: owner.name, rect: owner } : undefined);
+    if (!frame) continue;
+    const { rect: r } = ink;
+    const f = frame.rect;
+    if (Math.min(r.x - f.x, f.x + f.w - (r.x + r.w), r.y - f.y, f.y + f.h - (r.y + r.h)) >= TOUCH) continue;
+    add("text-touches-border", firstSeen(ink), [
+      { kind: "text", text: ink.text, box: frame.name },
+      { kind: "box", name: frame.name },
+    ]);
+  }
+
+  // 線と箱か囲みの枠。線の両端の箱は線が出入りする箱なので比べない。箱は名前の字が見えている段から比べる
+  const boxInk = new Map<string, Ink>();
+  for (const ink of inks) if (ink.box !== undefined && ink.part === undefined && ink.badge !== true && !boxInk.has(ink.box)) boxInk.set(ink.box, ink);
+  for (const trace of traces) {
+    const lineStep = edgeSteps.get(trace.points);
+    const line = (seen: number): LayoutPart => ({ kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: lineStep ?? seen });
+    for (const box of boxes) {
+      if (box.id === trace.from || box.id === trace.to || !runsNear(trace.points, box, false)) continue;
+      const ink = boxInk.get(box.id);
+      const seen = ink ? firstSeen(trace, ink) : firstSeen(trace);
+      if (seen !== undefined) add("line-near-border", Math.max(seen, lineStep ?? seen), [line(seen), { kind: "box", name: box.name }]);
+    }
+    for (const group of groups) {
+      if (!runsNear(trace.points, group, true)) continue;
+      const seen = firstSeen(trace);
+      if (seen !== undefined) add("line-near-border", Math.max(seen, lineStep ?? seen), [line(seen), { kind: "group", name: group.name }]);
+    }
+  }
+
   const seen = new Set<string>();
   return out
     .filter((b) => {
@@ -183,6 +238,29 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       return true;
     })
     .sort((a, b) => a.step - b.step);
+}
+
+/**
+ * 線のどこかで、縦か横の区間が四角の枠に沿って間 `BORDER_GAP` 未満で `LINE_ALONG` より長く走るか (#3526)。
+ * `inside` が偽なら箱で、外から枠に沿う区間だけを見る (箱を横切る線は線と字の重なりが見る)。真なら囲みで、内と外の両方から枠に沿う区間を見る
+ */
+function runsNear(points: Point[], rect: Rect, inside: boolean): boolean {
+  for (let k = 1; k < points.length; k++) {
+    const [p, q] = [points[k - 1] as Point, points[k] as Point];
+    for (const axis of [0, 1] as const) {
+      // `axis` が 0 なら縦の区間 (x が同じ) を左右の枠と、1 なら横の区間 (y が同じ) を上下の枠と比べる
+      if (p[axis] !== q[axis]) continue;
+      const other = axis === 0 ? 1 : 0;
+      const [lo, hi] = [Math.min(p[other], q[other]), Math.max(p[other], q[other])];
+      const [start, end] = axis === 0 ? [rect.y, rect.y + rect.h] : [rect.x, rect.x + rect.w];
+      if (Math.min(hi, end) - Math.max(lo, start) <= LINE_ALONG) continue;
+      const at = p[axis];
+      const [near, far] = axis === 0 ? [rect.x, rect.x + rect.w] : [rect.y, rect.y + rect.h];
+      const gaps = inside ? [Math.abs(at - near), Math.abs(at - far)] : at < near ? [near - at] : at > far ? [at - far] : [];
+      if (gaps.some((gap) => gap < BORDER_GAP - ROUNDING)) return true;
+    }
+  }
+  return false;
 }
 
 /** 2 本の線のどこかで、縦か横の区間どうしが間 `LINE_GAP` 未満で `LINE_ALONG` より長く並んで走るか */
