@@ -54,6 +54,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   The side-path note of a state diagram, the times and the numbers after scale and period names in a time diagram, the amounts before token names in a pipe diagram and the screen-reader name of the step list put a space around every number or Latin name, as in `3 つの状態から入れる`, `12 秒`, `スロット 3200`, `10 ポイント` and `注文の流れ の段`. They now read `3つの状態から入れる`, `12秒`, `スロット3200`, `10ポイント` and `注文の流れの段`. A space between a Latin name and a number, as in `slot 3200` and `100 USDC`, stays, English text keeps its spaces, and the layout warnings that the CLI shows to authors are unchanged. The fingerprints of the 46 examples that draw a state diagram with a side path or a time diagram in Japanese changed with the text.
 
+- **`dragon export` and `exportDiagram` draw the text dragon adds in the diagram's own language when no language is passed** (#3516)
+
+  Without `--lang` (or `lang` for `exportDiagram`), an export drew the text dragon adds to a diagram in English, so a Japanese state diagram showed `Side path`, `Not taken this time`, `Start` and `End`. The skill asks for the diagram text in the user's language but does not pass `--lang`, so this happened every time it exported a Japanese diagram. The export now draws that text in Japanese when the diagram's title or a `say` line has kana or kanji, and in English otherwise, in the PNG, MP4, GIF and HTML (including the page's `lang` attribute, the names read aloud and the overview label). A `--lang` you pass still decides. The command's own messages (usage, errors, the refusals when it cannot draw or has no Chromium, and the wording of the overlap lines) stay in English without `--lang`, and the overlap lines quote the text as it was drawn. `dragon check --layout`, `renderDiagram`, `mountDiagram` and `checkLayoutText` still default to English.
+
 ## [0.66.1] - 2026-11-08
 
 ### Fixed
