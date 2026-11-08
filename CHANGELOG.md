@@ -12,6 +12,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   dragon draws 38 icons of its own, so a box that needed another picture had to fall back to a block's shape. `icon:` on a box or group line now also takes `tabler:` and the name of one of the 5,184 Tabler outline icons, such as `[icon: tabler:building-bridge-2]`. The build moves each icon from Tabler's 24 x 24 grid onto the 20 x 20 grid of dragon's own icons, so it draws with the same class, scale and line width. A name Tabler does not have stops reading at the `icon` attribute and names the closest Tabler name, and `validateDiagram` refuses it at the `icon` field of the JSON. The default entry carries all the icons. The light entry reads them as one chunk only for a diagram that writes `tabler:`, when you await `loadFor`; reading such a diagram before that stops with an error that says to await `loadFor`, and `iconSetLoaded("tabler")` tells whether the chunk is in. An exported HTML page and a page written by `dragon embed` carry only the icons their diagrams use. The Tabler license (MIT) ships in `THIRD_PARTY_NOTICES.md`.
 
+## [0.66.1] - 2026-11-08
+
+### Fixed
+
+- **Choice fields draw their own arrow, and wrapped fields keep their width and their label** (#3492)
+
+  A choice field in the input strip used the browser arrow, which Chromium draws about 8px from the right border, closer than the 12px before the text. Since 0.65.3 a choice field moved to the next row grew up to its longest choice plus the base width, so the text and the arrow drifted apart. A choice field now hides the browser arrow and dragon draws its own arrow as far from the right border as the text is from the left border. Fields moved to the next row keep the width of their longest choice (or the base width, whichever is wider), and fields on the first row still grow to fill the row. The least width of a choice field also covers its label, so a long label such as `確かめるNodeのView` is not cut with an ellipsis on a field that does not grow.
+
 ## [0.66.0] - 2026-11-08
 
 ### Added

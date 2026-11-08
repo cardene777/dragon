@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
 import { exporter } from "./export-support";
 import { LOOK } from "../src/look/values";
 import { fileChromium } from "./page-needs";
-import { parsedTry, SMALL_PARTS, smallTry, WIDE_ASK_LONGEST, wideAskTry } from "./try-support";
+import { labeledAskTry, parsedTry, SMALL_PARTS, smallTry, WIDE_ASK_LONGEST, wideAskTry } from "./try-support";
 
 
 const PAGE = "http://localhost/";
@@ -241,6 +241,15 @@ interface StripBox {
 }
 
 /** 幅 740 の枠に試す図を置き、入力の帯の欄と釦の並びを測る。`pick` の欄と値を先に選ぶ */
+/**
+ * 次に描く時まで待つ。枠の幅を変えると、入力の帯は行の大きさを見張る `ResizeObserver` で次の行へ送った欄に印を付ける (#3492)。
+ * ブラウザは見張りの知らせを描く前に届けるので、読者は印を付ける前の欄を見ない。幅を変えた直後に測ると知らせより先に測る回があり、
+ * 2 回目の `requestAnimationFrame` まで待てば、1 回目の後に届く知らせを済ませた、読者が見る形を測れる
+ */
+async function nextPaint(page: Page): Promise<void> {
+  await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+}
+
 async function stripAt740(diagram: unknown, pick: Record<string, string> = {}): Promise<StripBox> {
   const html = await htmlOf(diagram);
   const { result } = await withPage(html, 1280, async (page) => {
@@ -248,6 +257,7 @@ async function stripAt740(diagram: unknown, pick: Record<string, string> = {}): 
     await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
     for (const [field, value] of Object.entries(pick))
       await page.locator(`form[data-dragon="ask"] select[data-field="${field}"]`).selectOption(value);
+    await nextPaint(page);
     return page.evaluate(() => {
       const form = document.querySelector<HTMLFormElement>('form[data-dragon="ask"]');
       const row = form?.querySelector<HTMLElement>(".dg-ask-row")?.getBoundingClientRect();
@@ -316,7 +326,7 @@ describe("入力の帯の欄の幅 (#3485)", () => {
     },
   );
 
-  // 次の行へ送った選ぶ欄は、その行に欄が少なくても行の幅いっぱいに伸ばさず、一番長い候補が収まる幅 (基準の幅より狭ければ基準の幅) に基準の幅を足した幅で止める
+  // 次の行へ送った選ぶ欄は、その行に欄が少なくても伸ばさず、一番長い候補が収まる幅 (基準の幅より狭ければ基準の幅) に留める (#3485、#3492)
   it(
     "try-ask-wrapped-choice-not-stretched",
     async () => {
@@ -328,9 +338,87 @@ describe("入力の帯の欄の幅 (#3485)", () => {
       for (const field of wrapped) {
         const least = Number.parseFloat(field.least);
         expect(Number.isFinite(least), `次の行へ送った選ぶ欄 ${field.name} が幅の下限 (--dg-field-min) を持たない`).toBe(true);
-        const most = Math.max(least, base) + base;
-        expect(field.width, `幅 740 の枠で、次の行へ送った選ぶ欄 ${field.name} の幅 ${field.width} が上限 ${most} を超えて伸びる`).toBeLessThanOrEqual(most + 0.5);
+        // 次の行へ送った欄は伸ばさず、一番長い候補が収まる幅 (基準の幅より狭ければ基準の幅) に留める (#3492)
+        const kept = Math.max(least, base);
+        expect(Math.abs(field.width - kept), `幅 740 の枠で、次の行へ送った選ぶ欄 ${field.name} の幅 ${field.width} が、一番長い候補が収まる幅 ${kept} と違い、伸びている`).toBeLessThanOrEqual(0.5);
       }
+    },
+  );
+
+  // 1 行目の欄は今どおり伸びて行を埋める。伸ばさないのは次の行へ送った欄だけ (#3492)
+  it(
+    "try-ask-first-row-fills",
+    async () => {
+      const { row, fields } = await stripAt740(parsedTry(wideAskTry()));
+      const first = Math.min(...fields.map((field) => field.bottom));
+      const right = Math.max(...fields.filter((field) => field.bottom === first).map((field) => field.right));
+      expect(row.right - right, `幅 740 の枠で、1 行目の右端の欄の右端 ${right} が帯の右端 ${row.right} から 1px より離れ、1 行目の欄が行を埋めない`).toBeLessThanOrEqual(1);
+    },
+  );
+
+  // 選ぶ欄の矢印はブラウザに描かせず、dragon が欄の中に描く。矢印の右端から欄の右の縁までを、字の左端から欄の左の縁までと揃え、矢印を字と重ねない (#3492)
+  it(
+    "try-ask-arrow-matches-inset",
+    async () => {
+      const html = await htmlOf(parsedTry(wideAskTry()));
+      const { result } = await withPage(html, 1280, async (page) => {
+        await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
+        await nextPaint(page);
+        return page.evaluate(() =>
+          [...document.querySelectorAll<HTMLElement>('form[data-dragon="ask"] .dg-field')].flatMap((field) => {
+            const select = field.querySelector("select");
+            if (!select) return [];
+            const box = select.getBoundingClientRect();
+            const style = getComputedStyle(select);
+            const caret = field.querySelector(".dg-caret")?.getBoundingClientRect();
+            return [
+              {
+                name: select.dataset.field ?? "",
+                appearance: style.appearance,
+                textGap: Number.parseFloat(style.borderLeftWidth) + Number.parseFloat(style.paddingLeft),
+                caretGap: caret ? box.right - caret.right : Number.NaN,
+                caretLeft: caret ? caret.left : Number.NaN,
+                textEnd: box.right - Number.parseFloat(style.borderRightWidth) - Number.parseFloat(style.paddingRight),
+              },
+            ];
+          }),
+        );
+      });
+      expect(result.map((field) => field.name), "選ぶ欄の数").toHaveLength(5);
+      for (const field of result) {
+        expect(field.appearance, `選ぶ欄 ${field.name} がブラウザの矢印を描く (appearance が none でない)`).toBe("none");
+        expect(Number.isFinite(field.caretGap), `選ぶ欄 ${field.name} に dragon が描いた矢印 (.dg-caret) が無い`).toBe(true);
+        expect(Math.abs(field.caretGap - field.textGap), `選ぶ欄 ${field.name} の矢印の右端から縁まで ${field.caretGap} が、字の左端から縁まで ${field.textGap} と揃わない`).toBeLessThanOrEqual(0.5);
+        expect(field.caretLeft, `選ぶ欄 ${field.name} の矢印の左端 ${field.caretLeft} が、字を置ける所の右端 ${field.textEnd} より左に在り、字と重なる`).toBeGreaterThanOrEqual(field.textEnd - 0.5);
+      }
+    },
+  );
+
+  // 名前の長い欄を次の行へ送っても、欄の名前を「…」で切らない (#3492)
+  it(
+    "try-ask-label-not-clipped",
+    async () => {
+      const html = await htmlOf(parsedTry(labeledAskTry()));
+      const { result } = await withPage(html, 1280, async (page) => {
+        await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
+        await nextPaint(page);
+        return page.evaluate(() =>
+          [...document.querySelectorAll<HTMLElement>('form[data-dragon="ask"] .dg-field')].map((field) => {
+            const label = field.querySelector<HTMLElement>(".dg-fl");
+            return {
+              name: label?.textContent ?? "",
+              bottom: Math.round(field.getBoundingClientRect().bottom),
+              shown: label?.clientWidth ?? 0,
+              full: label?.scrollWidth ?? 0,
+            };
+          }),
+        );
+      });
+      expect(result, "入力の帯の欄の数").toHaveLength(7);
+      const first = Math.min(...result.map((field) => field.bottom));
+      expect(result.some((field) => field.bottom > first), "幅 740 の枠で、名前の長い 7 つの欄が次の行へ送られていない").toBe(true);
+      for (const field of result)
+        expect(field.full, `幅 740 の枠で、欄の名前「${field.name}」の字の幅 ${field.full} が見える幅 ${field.shown} を超えて切れる`).toBeLessThanOrEqual(field.shown);
     },
   );
 

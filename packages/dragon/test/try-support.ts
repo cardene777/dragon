@@ -109,6 +109,28 @@ export function wideAskTry(): string {
   ].join("\n");
 }
 
+/**
+ * 欄の名前に確かめる段を入れた、名前の長い 7 つの選ぶ欄を持つ試す図 (#3492)。候補は短く、名前の字の幅が候補で決まる欄の幅の下限より広い欄を持つ。
+ * bitsumi の Canton のトランザクションが拒否される場面の図に倣った欄で、幅 740 の枠では 6 つ目から次の行へ送られる。
+ * 最後の「Mediatorが応答を待つ期限」は、次の行へ送られて基準の幅 110 に留まると、どのブラウザの字でも名前が切れる長さにした
+ */
+export function labeledAskTry(): string {
+  return [
+    "try 名前の長い欄の試す図",
+    "queue 通った",
+    "ask トランザクション, 送るNodeの署名, batchのbyte数, Sequencerの混み具合, Sequencerの期限, 確かめるNodeのView, Mediatorが応答を待つ期限 [into: 通った]",
+    "choose トランザクション: 送金A, 送金B",
+    "choose 送るNodeの署名: 正しい, 壊れている",
+    "choose batchのbyte数: 12000, 85134",
+    "choose Sequencerの混み具合: 空いている, 混んでいる",
+    "choose Sequencerの期限: 間に合う, 過ぎる",
+    "choose 確かめるNodeのView: 合う, 合わない",
+    "choose Mediatorが応答を待つ期限: 間に合う, 過ぎる",
+    "step start",
+    "  say 始める。",
+  ].join("\n");
+}
+
 /** 記法を読んだ原本。読めなければ誤りを名指して落とす */
 export function parsedTry(text: string, lang: "ja" | "en" = "ja"): Json {
   const parsed = api("parseNotation")(text, { lang });
