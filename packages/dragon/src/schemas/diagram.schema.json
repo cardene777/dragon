@@ -2622,7 +2622,7 @@
       ]
     },
     "iconField": {
-      "description": "箱と区画の icon の欄。アイコンの表 (ICONS) に在る名前か、使う人が足した印のブロックの名前 (+ で始まる)",
+      "description": "箱と区画の icon の欄。アイコンの表 (ICONS) に在る名前か、使う人が足した印のブロックの名前 (+ で始まる) か、絵柄集の絵柄 (tabler: で始まる)",
       "type": "string",
       "if": {
         "pattern": "^\\+"
@@ -2631,8 +2631,21 @@
         "$ref": "#/definitions/userBlockName"
       },
       "else": {
-        "$ref": "#/definitions/icon"
+        "if": {
+          "pattern": "^tabler:"
+        },
+        "then": {
+          "$ref": "#/definitions/setIcon"
+        },
+        "else": {
+          "$ref": "#/definitions/icon"
+        }
       }
+    },
+    "setIcon": {
+      "description": "絵柄集 Tabler の線の絵柄の名前 (tabler:<名前>)",
+      "type": "string",
+      "pattern": "^tabler:[a-z0-9]+(?:-[a-z0-9]+)*$"
     },
     "url": {
       "description": "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL",

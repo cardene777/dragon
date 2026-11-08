@@ -9,15 +9,18 @@ import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none } from "../block";
 import { userBlock } from "../../user-blocks";
 import { ICON_NAMES } from "./block";
+import { isTabler, TABLER_MESSAGES, type TablerMessages, tablerError } from "./sets";
 
-export interface IconMessages {
+/** 絵柄集の絵柄 (`tabler:<名前>`) の誤りの文は、原本の検査と同じ文を使う (#3493) */
+export interface IconMessages extends TablerMessages {
   /** 知らないアイコン名 `value`。近い名前が在ればそれだけを、無ければ使える名前を全て挙げる (#3315) */
   badIcon: (value: string) => string;
 }
 
 /**
  * 箱と区画の行の属性の、絵の名前。知らない名前は誤りで止める。
- * `+` で始まる名前は、使う人が足した印のブロックの名前で、読む前に定義してあれば読む (#3399)
+ * `+` で始まる名前は、使う人が足した印のブロックの名前で、読む前に定義してあれば読む (#3399)。
+ * `tabler:` で始まる名前は絵柄集の絵柄で、絵柄集の表に在る名前だけを読む。軽い入口で絵柄集を読む前に書くと、`loadFor` を待つよう断る (#3493)
  */
 export function readIcon(source: SourceLine, attrs: Map<string, Attr>, m: Messages): Attr | undefined {
   const icon = attrs.get("icon");
@@ -27,7 +30,10 @@ export function readIcon(source: SourceLine, attrs: Map<string, Attr>, m: Messag
     if (added.base !== "icon") throw fail(source, icon.at, m.userBlocks.wrongBase(icon.value, added.base, "icon"));
     return icon;
   }
-  if (icon && !ICON_NAMES.includes(icon.value)) throw fail(source, icon.at, m.badIcon(icon.value));
+  if (!icon) return icon;
+  // Tabler の絵柄は Tabler の表と比べ、ほかは手描きの絵柄の表と比べる
+  const error = isTabler(icon.value) ? tablerError(icon.value, m) : ICON_NAMES.includes(icon.value) ? undefined : m.badIcon(icon.value);
+  if (error !== undefined) throw fail(source, icon.at, error);
   return icon;
 }
 
@@ -41,7 +47,7 @@ export const reading: BlockReading<IconMessages> = {
   read: none("絵は箱と区画の行の属性で、行の頭の語を持たない。箱と区画の行を読む処理が readIcon を呼ぶ"),
   print: none("絵は箱と区画の行の属性で、箱と区画の宣言を書き戻す処理が icon の鍵を書く"),
   messages: {
-    ja: { badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`) },
-    en: { badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`) },
+    ja: { ...TABLER_MESSAGES.ja, badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`) },
+    en: { ...TABLER_MESSAGES.en, badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`) },
   },
 };

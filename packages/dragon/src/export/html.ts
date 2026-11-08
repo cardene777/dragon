@@ -2,9 +2,11 @@
  * 1 file で開ける HTML。削った字と、頁に図を置いて動かす script と、原本の JSON を収める。
  *
  * 開くと頁と同じく、枠の幅で見せ方を選び、動きを嫌う設定では止め絵を釦で送る。
- * 外へ何も取りに行かない。
+ * 外へ何も取りに行かない。絵柄集の絵柄 (`tabler:<名前>`) は、図が使った絵柄の形だけを頁に収める (#3493)。
  */
 import { readFileSync } from "node:fs";
+import { iconsElement } from "../blocks/icon/page-icons";
+import { setIconFields } from "../blocks/icon/set-fields";
 import type { Theme } from "../look/values";
 import { esc } from "../render/parts";
 import type { Diagram } from "../schema";
@@ -28,6 +30,8 @@ export function pageHtml(diagram: Diagram, look: { palette: string; theme: Theme
     `<style>${fontCss}:root{${look.vars}}html,body{margin:0}body{background:var(--bg)}.dg-player{padding-bottom:12px}.dg-bar,.dg-calls{padding:0 16px}</style>`,
     '</head><body><div id="dragon"></div>',
     `<script type="application/json" id="dragon-diagram">${json}</script>`,
+    // 頁の script が読み込みの時に登録するので、script より前に置く
+    iconsElement(setIconFields(diagram).map(([, value]) => value)),
     `<script>${readFileSync(PLAYER, "utf8").replace(/<\/script/gi, "<\\/script")}</script>`,
     `<script>DragonPlayer.mountDiagram(document.getElementById("dragon"),JSON.parse(document.getElementById("dragon-diagram").textContent),${options});</script>`,
     "</body></html>",
