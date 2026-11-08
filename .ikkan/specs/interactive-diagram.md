@@ -150,3 +150,9 @@
 | 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3492 |
 | `packages/dragon/package.json`の`version`が`0.66.1`で、英語と日本語の変更履歴の`## [0.66.1]`の節が`(#3492)`の項を持ち、その項が選ぶ欄の矢印を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-66-1-draws-ask-arrow`が通る | #3492 |
 | 選ぶ欄を置いた時、欄の幅の下限 (`--dg-field-min`) は、欄の名前の字を`textWidth`で欄の名前の字の型で測った幅も下回らず、幅740の枠で次の行へ送った欄でも欄の名前が切れない | `pnpm exec vitest run packages/dragon/test/interactive-player.test.ts packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-field-min-covers-label`と`try-ask-label-not-clipped`が通る | #3492 |
+| 選ぶ欄を持つ試す図をChromiumで幅740の枠に置き、頁が図の中の全ての`svg`に`display: block; width: auto; height: auto`を当てた時、どの選ぶ欄でもdragonが描いた矢印の幅と高さは12px以下で、矢印の右端から欄の右の縁までの間が、字の左端から欄の左の縁までの間と0.5px以内で同じ | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-caret-ignores-host-svg-rule`が通る | #3499 |
+| 選ぶ欄を持つ試す図を置いた時、入力の帯は`svg`の要素を持たず、選ぶ欄ごとに矢印の要素を1つ持つ | `pnpm exec vitest run packages/dragon/test/interactive-player.test.ts`の検査`try-ask-caret-not-svg`が通る | #3499 |
+| 常に、頁が`svg`に規則を当てない時も、矢印の右端から欄の右の縁までの間が字の左の余白と0.5px以内で同じで、矢印が字と重ならず、どの選ぶ欄もブラウザの矢印を描かない | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-arrow-matches-inset`が通る | #3499 |
+| 常に、次の行へ送った選ぶ欄は伸びず、欄の名前は切れない | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-wrapped-choice-not-stretched`と`try-ask-label-not-clipped`が通る | #3499 |
+| 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3499 |
+| `packages/dragon/package.json`の`version`が`0.67.0`で、英語と日本語の変更履歴の`## [0.67.0]`の節が`(#3499)`の項を持ち、その項が矢印を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-67-0-caret-without-svg`が通る | #3499 |

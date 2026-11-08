@@ -364,4 +364,15 @@ describe("入力の帯の欄の幅 (#3485)", () => {
       expect(min, `選ぶ欄「${label}」の幅の下限 ${min} が、欄の名前の字の幅 ${need} より狭い`).toBeGreaterThanOrEqual(need);
     }
   });
+
+  // 選ぶ欄の矢印は svg で描かない。図を置いた頁が svg に当てる幅や高さの規則で膨らまない (#3499)
+  it("try-ask-caret-not-svg", () => {
+    const { host } = mountTry(parsedTry(labeledAskTry()), 740);
+    const form = host.querySelector<HTMLFormElement>('form[data-dragon="ask"]');
+    expect(form, "入力の帯").not.toBeNull();
+    expect(form?.querySelectorAll("svg").length, "入力の帯が svg の要素を持つ").toBe(0);
+    const selects = [...(form?.querySelectorAll<HTMLElement>(".dg-field") ?? [])].filter((box) => box.querySelector("select"));
+    expect(selects, "選ぶ欄の数").toHaveLength(7);
+    for (const box of selects) expect(box.querySelectorAll(".dg-caret"), `選ぶ欄「${box.querySelector(".dg-fl")?.textContent ?? ""}」の矢印の数`).toHaveLength(1);
+  });
 });
