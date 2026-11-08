@@ -159,6 +159,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
               ? w.reachesEdge(name(a), name(b2))
               : b.kind === "label-off-line"
                 ? w.offLine(name(a), name(b2))
-                : w.runClose(name(a), name(b2));
+                : b.kind === "line-crosses-text" && a.kind === "line"
+                  ? t.lineCrosses(a.from, a.to, name(b2))
+                  : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

@@ -1,6 +1,6 @@
 # Layout breaks
 
-`dragon check` reads the notation without drawing it, so a diagram can pass it and still look broken once drawn: step numbers piled up, two lines running on top of each other, a coin slot or label sticking out of a shaped box, a tag cut off at the edge of the diagram, or a line name drawn away from its line.
+`dragon check` reads the notation without drawing it, so a diagram can pass it and still look broken once drawn: step numbers piled up, two lines running on top of each other, a line running across a name, a coin slot or label sticking out of a shaped box, a tag cut off at the edge of the diagram, or a line name drawn away from its line.
 `dragon check --layout` draws the diagram and reports these breaks.
 It looks at every step, at the default width and at a phone width of 390px.
 
@@ -24,6 +24,7 @@ dragon check --layout --json order.dragon
 |---|---|
 | `badges-close` | Two step numbers seen together are less than one number's radius apart, so they read as one blob |
 | `lines-close` | Two straight runs of different lines go side by side less than one step number's width apart, or two lines between the same two boxes in opposite directions run on top of each other |
+| `line-crosses-text` | A line runs across a text with no label behind it, such as a box name or the name of a node in a try diagram's network |
 | `badge-off-shape` | A step number sits on the rectangle of a shaped box (`+bridge`, a hexagon) but floats away from the shape you see |
 | `slot-outside-shape` | The slot a coin or envelope waits in sticks out of a shaped box |
 | `text-outside-shape` | A box name or the text under it sticks out of a shaped box |
@@ -36,6 +37,7 @@ dragon check --layout --json order.dragon
 Fix one break, run `dragon check --layout` again, and repeat. A fix often clears several lines or moves a break to another step.
 
 - `badges-close` between lines that leave the same box toward different boxes: Reorder the boxes, for example swap the order of two boxes in a group, so the lines leave from different sides.
+- `line-crosses-text` on the network of a try diagram, where a line that skips a column (`you - builder` next to `you - a - b - builder`) runs under the names of the nodes in that column: Write that path through a node of the column it skips when the explanation allows it. Otherwise keep it and report it.
 - `text-outside-shape`, `slot-outside-shape` and `badge-off-shape`: dragon makes a shaped box larger until its name, the text under it and its slot fit inside the shape, and puts the step number on the edge of the shape. These breaks are left only when a shape has little room inside even at three times its size, such as a thin `path`. Shorten the box name or the text under it (`note:`, `act <id>:`, `note <id>:`), or use a plain `box` with an `icon:` when the explanation does not need that shape. Otherwise keep it and report it.
 - `part-outside-frame`: dragon already widens the diagram for tags that rest next to the leftmost or rightmost box, so this is rare. Shorten the tag (`[tag: ...]`) or the text that sticks out, or reorder the boxes so the box the line goes to or leaves is not at the edge. Otherwise keep it and report it.
 - `label-off-line` on a line whose name you placed with `[side: above]` or `[side: below]`: Drop the `[side: ...]` so dragon can put the name on the free side of the line, or move one of the lines to its own step. Two names placed on the same side of the same line stack, and the outer one ends up away from its line.

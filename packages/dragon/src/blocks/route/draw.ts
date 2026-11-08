@@ -3,6 +3,7 @@
  *
  * 部品の題と網の線と節は動かさずに描き、送る側 (`from`) の節は人の絵、作る人 (`to`) の節は箱の絵、ほかの節は機械の絵を丸に載せる。
  * 名札は節の下に描き、隣の名札とぶつかるので上へ逃がした節 (#3478) だけ節の上に描く。
+ * 網の線は描いた線の記録 (`traces`) にも足し、線が名札を横切ると字の重なりと崩れの確かめが知らせる (#3524)。
  * 網を運ばれたチップが通った線は、送った段の間だけ強める。
  * 関門で止まったチップ (#3476) の節には、チップが着いた時刻 (`move`) から段の終わりまで輪の印 (`data-stop`) を出す。
  * この file は試す図を描く部品 (`render/try.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
@@ -33,7 +34,11 @@ export function routeNet(k: TryKit): void {
       })
       .join("");
     const links = route.links
-      .map((l) => `<path class="dg-try-net" d="${pathOf(l.points, ctx.corner)}"/>`)
+      .map((l) => {
+        // 線の両端は節の名前で呼ぶ。網の線は初めから最後まで見えている
+        ctx.traces.push({ from: l.a, to: l.b, points: l.points, shown: ALWAYS });
+        return `<path class="dg-try-net" d="${pathOf(l.points, ctx.corner)}"/>`;
+      })
       .join("");
     const nodes = route.nodes
       .map((n) => {
