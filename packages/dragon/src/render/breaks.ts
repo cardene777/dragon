@@ -1,16 +1,19 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない 7 種を拾う。
+ * 字の重なり (`ink.ts`) が拾わない 9 種を拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
- * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)。
+ * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)、
+ * 線が箱か囲みの枠に沿って近すぎる (`line-near-border`、#3526)、字が自分の箱か札の枠に接する (`text-touches-border`、#3526)。
  * 時間軸の図の針と目盛りの線と字が、時間軸の囲みの枠を越えるか枠に接する (`panel-edge`、#3527)。
  * 番号の丸が囲みと列と帯の枠線に乗る (`badge-on-frame`、#3525)。
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
+ * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
+ * 形を持たない四角の箱の字は、形の崩れの代わりに枠に接するかを見る。
  * 後の段の番号がぴったり同じ所で前の段の番号と入れ替わる時も、2 つは同時に見えないが前の番号を隠すので、番号が近すぎる崩れに数える (#3525)。
  * 同じ線を何度も通る段の番号と列の図の右上の番号は、入れ替えるのが作りどおりなので数えない。
  *
@@ -23,8 +26,8 @@ import type { PipeLayout } from "../kinds/pipe/layout";
 import { crossesRect, type Layout, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
 import { PIPE_LOOK } from "../look/pipe";
 import { APART, LOOK } from "../look/values";
-import type { DiagramModel } from "../schema";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
+import { pipeBreaks } from "./pipe-breaks";
 
 /** 図の枠の 4 つの端 */
 export type FrameSide = "left" | "right" | "top" | "bottom";
@@ -36,6 +39,7 @@ export type FrameSide = "left" | "right" | "top" | "bottom";
 export type LayoutPart =
   | { kind: "badge"; step: number }
   | { kind: "box"; name: string }
+  | { kind: "group"; name: string }
   | { kind: "slot"; box: string }
   | { kind: "text"; text: string; box?: string }
   | { kind: "line"; from: string; to: string; step: number }
@@ -44,6 +48,9 @@ export type LayoutPart =
   | { kind: "needle" }
   | { kind: "ticks" }
   | { kind: "panel"; panel: "axis" }
+  | { kind: "valve"; from: string; to?: string }
+  | { kind: "gauge"; box: string }
+  | { kind: "pipe"; from: string; to: string; step: number }
   | { kind: "border"; name: string };
 
 export type LayoutBreakKind =
@@ -52,10 +59,16 @@ export type LayoutBreakKind =
   | "text-outside-shape"
   | "badges-close"
   | "lines-close"
+  | "line-near-border"
+  | "text-touches-border"
   | "part-outside-frame"
   | "panel-edge"
   | "label-off-line"
   | "line-crosses-text"
+  | "chip-over-part"
+  | "pipe-behind-box"
+  | "pipes-merged"
+  | "valve-near-pipe"
   | "badge-on-frame";
 
 /** 枠線を描いた囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
@@ -63,6 +76,18 @@ export interface Border {
   name: string;
   rect: Rect;
 }
+
+/**
+ * 配管の図の描く処理が記録する部品 (#3523)。名前は書き手が書いた箱の名前で、段は 1 から数える。
+ * 箱は名札の四角と角の丸み、呼び出しの管は点の並びと太さの半分、弁は胴と軸と取っ手の四角、計器は盤と通ったかの印と軸の四角、
+ * 返した値の札は止まった所の四角を持つ。弁の `to` は呼び出しの管の弁だけが持ち、トークンの箱の弁は持たない
+ */
+export type PipePiece =
+  | { kind: "box"; name: string; rect: Rect; corner: number; shown: Shown[] }
+  | { kind: "pipe"; from: string; to: string; step: number; points: Point[]; half: number; shown: Shown[] }
+  | { kind: "valve"; from: string; to?: string; step?: number; body: Rect; lever: Rect[]; shown: Shown[] }
+  | { kind: "gauge"; box: string; rects: Rect[]; shown: Shown[] }
+  | { kind: "chip"; text: string; rect: Rect; shown: Shown[] };
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -72,7 +97,12 @@ export interface LayoutBreak {
   parts: [LayoutPart, LayoutPart];
 }
 
-/** 崩れを数える材料。描く処理が描いた時に記録した字と線と時間軸の囲みに収める部品と、描いた箱と線と、足した箱のブロックの箱の形と、図の枠の大きさ */
+/** 囲み (#3526)。線が枠に沿って近すぎるかを見る。`name` は知らせる文で呼ぶ囲みの名前 */
+export interface BreakGroup extends Rect {
+  name: string;
+}
+
+/** 崩れを数える材料。描く処理が描いた時に記録した字と線と時間軸の囲みに収める部品と、描いた箱と線と囲みと、足した箱のブロックの箱の形と、図の枠の大きさ */
 export interface BreakInput {
   inks: Ink[];
   traces: Trace[];
@@ -84,6 +114,8 @@ export interface BreakInput {
   /** 箱の札を描いた箱 */
   boxes: SceneBox[];
   edges: SceneEdge[];
+  /** 描いた囲み。囲みを持たない図の種類は空。描いた部品だけで崩れを組んで確かめる呼び出しは渡さず、その時は囲みと線を比べない */
+  groups?: BreakGroup[];
   /**
    * 描いた図の置き場所。線の名前と配管の図の流れた量の札と、札が名指す線をここから引く (#3528)。
    * 描く処理は必ず渡す。描いた部品だけで崩れを組んで確かめる呼び出しは渡さず、その時は線から離れた札を数えない
@@ -91,15 +123,18 @@ export interface BreakInput {
   layout?: Layout;
   /** 箱の名札ごとの見えている形の輪郭。形を持たない箱は持たない */
   outlines: ReadonlyMap<string, Point[][]>;
+  /** 配管の図の部品。配管の図だけが持つ (#3523) */
+  pieces?: PipePiece[];
   /** 枠線を描いた囲みと列と帯 (#3525)。渡さない時は枠線に乗る番号を数えない */
   borders?: Border[];
 }
 
 /**
- * 描く処理が描いた後に渡す材料。箱の形の輪郭と、囲みと列と帯の枠線は崩れを探す側が組む。
- * 枠線は描いた置き場所 (`layout`) の囲みと列と帯から組み、囲みは原本 (`diagram`) の名前で呼ぶ (#3525)
+ * 描く処理が描いた後に渡す材料。箱の形の輪郭と、囲みと、囲みと列と帯の枠線は崩れを探す側が組む。
+ * 囲みは置き場所 `layout` の区画と状態遷移図の脇道から組み、名前を組む処理を見本帳が最初に読む script に入れない (#3526)。
+ * 枠線も置き場所 `layout` の囲みと列と帯から組む (#3525)
  */
-export type DrawnFigure = Omit<BreakInput, "outlines" | "borders"> & { diagram: DiagramModel };
+export type DrawnFigure = Omit<BreakInput, "outlines" | "groups" | "borders">;
 
 /**
  * 描いた図の崩れを返す関数 (#3494)。`renderDiagram` の `findBreaks` に渡すと、描いた後に呼ばれて結果が `breaks` になる。
@@ -119,6 +154,13 @@ const BADGE_GAP = APART.badge;
 const LINE_GAP = APART.line;
 /** 並んで走る長さの下限。番号の丸2つ分より長く狭い間で並ぶ線は1本の太い線に見える */
 const LINE_ALONG = 2 * R;
+/**
+ * 線と箱か囲みの枠の間の下限 (#3526)。図の外周の余白と同じ値で、構成図の線も箱の下と上を回る時にこれだけ空けて通る。
+ * これより近く、丸 2 つ分より長く枠に沿って走る線は、枠の線と 1 本に見えるか、線に乗る番号の丸が枠に掛かる
+ */
+const BORDER_GAP = LOOK.margin;
+/** 間を測る足し引きの丸めの誤差。余白ちょうどに描いた線を崩れに数えない */
+const ROUNDING = 0.01;
 /**
  * 線が字を横切ったとみなす食い込みの下限 (px)。字の重なり (`ink.ts` の `BITE`) と同じ値にし、書き出しが知らせる組と同じ組を数える。
  * `ink.ts` は頁が最初に読む塊に在り、値を書き出すだけで最初に読む量が増えるので、ここに同じ値を置く
@@ -275,7 +317,7 @@ export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.st
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, framed, stills, boxes, edges, layout, outlines, frame, borders = [] } = input;
+  const { inks, traces, framed, stills, boxes, edges, groups = [], layout, outlines, frame, borders = [] } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -404,6 +446,41 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     }
   }
 
+  // 字とその枠。札の字は描く処理が記録した札の枠、箱の字は形を持たない四角の箱の枠と比べる。形を持つ箱の字は形からのはみ出しで見る
+  const byId = new Map(boxes.map((b) => [b.id, b]));
+  for (const ink of inks) {
+    if (ink.badge === true || ink.part !== undefined) continue;
+    const owner = ink.box === undefined || outlines.has(ink.box) ? undefined : byId.get(ink.box);
+    const border = ink.frame ?? (owner ? { name: owner.name, rect: owner } : undefined);
+    if (!border) continue;
+    const { rect: r } = ink;
+    const f = border.rect;
+    if (Math.min(r.x - f.x, f.x + f.w - (r.x + r.w), r.y - f.y, f.y + f.h - (r.y + r.h)) >= TOUCH) continue;
+    add("text-touches-border", firstSeen(ink), [
+      { kind: "text", text: ink.text, box: border.name },
+      { kind: "box", name: border.name },
+    ]);
+  }
+
+  // 線と箱か囲みの枠。線の両端の箱は線が出入りする箱なので比べない。箱は名前の字が見えている段から比べる
+  const boxInk = new Map<string, Ink>();
+  for (const ink of inks) if (ink.box !== undefined && ink.part === undefined && ink.badge !== true && !boxInk.has(ink.box)) boxInk.set(ink.box, ink);
+  for (const trace of traces) {
+    const lineStep = edgeSteps.get(trace.points);
+    const line = (seen: number): LayoutPart => ({ kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: lineStep ?? seen });
+    for (const box of boxes) {
+      if (box.id === trace.from || box.id === trace.to || !runsNear(trace.points, box, false)) continue;
+      const ink = boxInk.get(box.id);
+      const seen = ink ? firstSeen(trace, ink) : firstSeen(trace);
+      if (seen !== undefined) add("line-near-border", Math.max(seen, lineStep ?? seen), [line(seen), { kind: "box", name: box.name }]);
+    }
+    for (const group of groups) {
+      if (!runsNear(trace.points, group, true)) continue;
+      const seen = firstSeen(trace);
+      if (seen !== undefined) add("line-near-border", Math.max(seen, lineStep ?? seen), [line(seen), { kind: "group", name: group.name }]);
+    }
+  }
+
   // 時間軸の部品は、囲みの枠を越えるか、枠の線の内側の縁から`PANEL_GAP`より近ければ崩れにする (#3527)
   for (const item of framed)
     if (clearance(item.rect, item.frame) < PANEL_GAP) add("panel-edge", firstSeen(item), [item.part, { kind: "panel", panel: "axis" }]);
@@ -457,6 +534,8 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     add("label-off-line", tag.step + 1, [{ kind: "text", text: tag.text }, tag.line]);
   }
 
+  if (input.pieces) out.push(...pipeBreaks(input.pieces, stills));
+
   const seen = new Set<string>();
   return out
     .filter((b) => {
@@ -466,6 +545,29 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       return true;
     })
     .sort((a, b) => a.step - b.step);
+}
+
+/**
+ * 線のどこかで、縦か横の区間が四角の枠に沿って間 `BORDER_GAP` 未満で `LINE_ALONG` より長く走るか (#3526)。
+ * `inside` が偽なら箱で、外から枠に沿う区間だけを見る (箱を横切る線は線と字の重なりが見る)。真なら囲みで、内と外の両方から枠に沿う区間を見る
+ */
+function runsNear(points: Point[], rect: Rect, inside: boolean): boolean {
+  for (let k = 1; k < points.length; k++) {
+    const [p, q] = [points[k - 1] as Point, points[k] as Point];
+    for (const axis of [0, 1] as const) {
+      // `axis` が 0 なら縦の区間 (x が同じ) を左右の枠と、1 なら横の区間 (y が同じ) を上下の枠と比べる
+      if (p[axis] !== q[axis]) continue;
+      const other = axis === 0 ? 1 : 0;
+      const [lo, hi] = [Math.min(p[other], q[other]), Math.max(p[other], q[other])];
+      const [start, end] = axis === 0 ? [rect.y, rect.y + rect.h] : [rect.x, rect.x + rect.w];
+      if (Math.min(hi, end) - Math.max(lo, start) <= LINE_ALONG) continue;
+      const at = p[axis];
+      const [near, far] = axis === 0 ? [rect.x, rect.x + rect.w] : [rect.y, rect.y + rect.h];
+      const gaps = inside ? [Math.abs(at - near), Math.abs(at - far)] : at < near ? [near - at] : at > far ? [at - far] : [];
+      if (gaps.some((gap) => gap < BORDER_GAP - ROUNDING)) return true;
+    }
+  }
+  return false;
 }
 
 /**

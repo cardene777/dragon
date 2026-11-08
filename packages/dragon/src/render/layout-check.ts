@@ -19,14 +19,19 @@ import { drawDiagram } from "./draw";
  * 描いた物から崩れを数える関数 (#3494)。描く処理に渡し、描いた後に呼ばせる。
  * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める。
  * 輪郭は定義を読む処理と一緒に登録した形を測る処理 (`BoxShapes`) が組む。形を持つ箱は定義を読んだ図にしか無いため (#3520)。
- * 枠線を描く囲みと列と帯もここで組む (#3525)。囲みは原本の名前で、列 (枝の帯) と時間軸の図の帯は描いた名前で呼ぶ
+ * 枠線を描く囲みと列と帯もここで組む (#3525)。囲みと列は名前の行で、帯は題で呼び、名前を持たない囲み (時間軸の図の軸の帯) は名前を空にして「枠線」と呼ぶ
  */
-const finder: BreakFinder = ({ diagram, ...drawn }) =>
-  findBreaks({
+const finder: BreakFinder = (drawn) => {
+  const { layout } = drawn;
+  // 囲みは図の区画と状態遷移図の脇道。名前の行で呼び、名前を持たない帯 (時間軸の図の軸の帯) は名札で呼ぶ (#3526)
+  const regions = layout ? layout.regions.map((r) => ({ ...r, name: r.lines.join(" ") || r.id })) : [];
+  const side = layout?.side ? [{ ...layout.side, name: layout.side.title }] : [];
+  return findBreaks({
     ...drawn,
+    groups: [...regions, ...side],
     borders: [
-      ...(drawn.layout?.regions ?? []).map((r) => ({ name: diagram.regions?.find((g) => g.id === r.id)?.name ?? r.lines.join(" "), rect: r })),
-      ...(drawn.layout?.strip ? [{ name: drawn.layout.strip.title, rect: drawn.layout.strip }] : []),
+      ...(layout?.regions ?? []).map((r) => ({ name: r.lines.join(" "), rect: r })),
+      ...(layout?.strip ? [{ name: layout.strip.title, rect: layout.strip }] : []),
     ],
     outlines: new Map(
       drawn.boxes.flatMap((box): [string, Point[][]][] => {
@@ -35,6 +40,7 @@ const finder: BreakFinder = ({ diagram, ...drawn }) =>
       }),
     ),
   });
+};
 
 /** 崩れを確かめる携帯の幅 (CSS の px)。よく使われる携帯の画面の幅 */
 const NARROW_WIDTH = 390;
@@ -68,13 +74,16 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
 /**
  * 描いた図の崩れの種類ごとの文 (#3484)。運ぶ物の枠と図の枠の端の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
  * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、部品が図の枠の端からはみ出す (#3515)、線の名前か流れた量の札が線から離れる (#3528)。
+ * 囲みの呼び方と、線が箱か囲みの枠に沿って近すぎる文と、字が枠に接する文も持つ (#3526)。
  * 時間軸の図の針と時刻の目盛りの線と時間軸の囲みの呼び方と、部品が時間軸の囲みの枠に掛かる文も持つ (#3527)。
  * 囲みと列と帯の枠線の呼び方と、番号の丸が枠線に乗る文も持つ (#3525)。
+ * 配管の図の弁と計器と管の呼び方、札が部品に重なる、管が箱の縁の後ろを通る、2 本の管が重なって通る (#3523)。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
  * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
  */
 interface BreakText {
   slotOf: (box: string) => string;
+  groupOf: (name: string) => string;
   frameEdge: (side: FrameSide) => string;
   floatsOff: (badge: string, box: string) => string;
   sticksOut: (part: string, box: string) => string;
@@ -88,11 +97,20 @@ interface BreakText {
   borderOf: (name: string) => string;
   onBorder: (badge: string, border: string) => string;
   offLine: (text: string, line: string) => string;
+  valveOf: (from: string, to: string | undefined) => string;
+  gaugeOf: (box: string) => string;
+  pipeOf: (from: string, to: string, step: number) => string;
+  covers: (chip: string, part: string) => string;
+  behindBox: (pipe: string, box: string) => string;
+  merged: (a: string, b: string) => string;
+  nearBorder: (line: string, part: string) => string;
+  touchesBorder: (text: string, box: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
   ja: {
     slotOf: (box) => `「${box}」の運ぶ物の枠`,
+    groupOf: (name) => `囲み「${name}」`,
     frameEdge: (side) => `図の枠の${{ left: "左端", right: "右端", top: "上端", bottom: "下端" }[side]}`,
     floatsOff: (badge, box) => `${spaced(badge)}が${box}の形から離れて浮く`,
     sticksOut: (part, box) => `${spaced(part)}が${box}の形からはみ出す`,
@@ -106,9 +124,18 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     borderOf: (name) => (name === "" ? "枠線" : `「${name}」の枠線`),
     onBorder: (badge, border) => `${spaced(badge)}が${border}に乗る`,
     offLine: (text, line) => `${spaced(text)}が${line}から離れて描かれる`,
+    valveOf: (from, to) => (to === undefined ? `「${from}」の弁` : `管 ${from} → ${to} の弁`),
+    gaugeOf: (box) => `「${box}」の計器`,
+    pipeOf: (from, to, step) => `管 ${from} → ${to} (段 ${step})`,
+    covers: (chip, part) => `${spaced(chip)}が${spaced(part)}に重なる`,
+    behindBox: (pipe, box) => `${spaced(pipe)}が${box}の縁の後ろを通る`,
+    merged: (a, b) => `${spaced(a)}と${spaced(b)}が重なって通る`,
+    nearBorder: (line, part) => `${spaced(line)}が${part}の枠に沿って近すぎる`,
+    touchesBorder: (text, box) => `${spaced(text)}が${box}の枠に接する`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
+    groupOf: (name) => `the group "${name}"`,
     frameEdge: (side) => `the ${side} edge of the diagram frame`,
     floatsOff: (badge, box) => capital(`${badge} floats away from the shape of ${box}`),
     sticksOut: (part, box) => capital(`${part} sticks out of the shape of ${box}`),
@@ -122,6 +149,14 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     borderOf: (name) => (name === "" ? "a border" : `the border of "${name}"`),
     onBorder: (badge, border) => capital(`${badge} sits on ${border}`),
     offLine: (text, line) => capital(`${text} is drawn away from ${line}`),
+    valveOf: (from, to) => (to === undefined ? `the valve of "${from}"` : `the valve on the pipe ${from} → ${to}`),
+    gaugeOf: (box) => `the gauge of "${box}"`,
+    pipeOf: (from, to, step) => `the pipe ${from} → ${to} (step ${step})`,
+    covers: (chip, part) => capital(`${chip} covers ${part}`),
+    behindBox: (pipe, box) => capital(`${pipe} runs behind the edge of ${box}`),
+    merged: (a, b) => capital(`${a} and ${b} run on top of each other`),
+    nearBorder: (line, part) => capital(`${line} runs too close along the border of ${part}`),
+    touchesBorder: (text, box) => capital(`${text} touches the border of ${box}`),
   },
 };
 
@@ -135,6 +170,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return t.badgeName(String(part.step));
       case "box":
         return t.quoted(part.name);
+      case "group":
+        return w.groupOf(part.name);
       case "slot":
         return w.slotOf(part.box);
       case "text":
@@ -155,6 +192,12 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return w.ticks;
       case "panel":
         return w.axisPanel;
+      case "valve":
+        return w.valveOf(part.from, part.to);
+      case "gauge":
+        return w.gaugeOf(part.box);
+      case "pipe":
+        return w.pipeOf(part.from, part.to, part.step);
       case "border":
         return w.borderOf(part.name);
     }
@@ -165,7 +208,7 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
       ? w.floatsOff(name(a), name(b2))
       : b.kind === "slot-outside-shape" || b.kind === "text-outside-shape"
         ? w.sticksOut(name(a), name(b2))
-        : b.kind === "badges-close"
+        : b.kind === "badges-close" || b.kind === "valve-near-pipe"
           ? w.tooClose(name(a), name(b2))
           : b.kind === "part-outside-frame"
             ? w.outOfFrame(name(a), name(b2))
@@ -175,8 +218,18 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
                 ? w.offLine(name(a), name(b2))
                 : b.kind === "line-crosses-text" && a.kind === "line"
                   ? t.lineCrosses(a.from, a.to, name(b2))
-                  : b.kind === "badge-on-frame"
-                    ? w.onBorder(name(a), name(b2))
-                    : w.runClose(name(a), name(b2));
+                  : b.kind === "chip-over-part"
+                    ? w.covers(name(a), name(b2))
+                    : b.kind === "pipe-behind-box"
+                      ? w.behindBox(name(a), name(b2))
+                      : b.kind === "pipes-merged"
+                        ? w.merged(name(a), name(b2))
+                        : b.kind === "line-near-border"
+                          ? w.nearBorder(name(a), name(b2))
+                          : b.kind === "text-touches-border"
+                            ? w.touchesBorder(name(a), name(b2))
+                            : b.kind === "badge-on-frame"
+                              ? w.onBorder(name(a), name(b2))
+                              : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

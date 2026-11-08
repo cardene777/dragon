@@ -55,6 +55,17 @@
 | 常に、線の名前は箱から10px以上離れ、図の中に収まる | `pnpm exec vitest run packages/dragon/test/layout.test.ts`の検査`layout-keeps-10px-gap`が通る | #3528 |
 | 常に、見本の崩れは記録の一覧と合い、一覧に線から離れた名前の崩れを足さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3528 |
 | 常に、見本帳が最初に読む script に崩れの種類の名前が入らず、最初に読む量が上限の182KB以下に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-layout-check`と`page-bundle-within-budget`が通る | #3528 |
+| 見本`ccip`と`ccip.en`の段13を描いた時、OffRampからRouterへの線の横に走る所と、その上に並ぶ箱の底の間、囲み「送信先チェーン」の下の枠との間がどれも`LOOK.margin`以上空き、段の番号13の丸がOffRampの箱の枠に重ならず、`dragon check --layout`がこの線の崩れを出さない | `pnpm exec vitest run packages/dragon/test/border-gap.test.ts`の検査`border-gap-ccip-line-clears-boxes`が通る | #3526 |
+| 見本`vault-proxy`と`vault-proxy.en`の段9を描いた時、字「deposits[alice]」を字の間を空けて描いた幅が、その札の枠の内に左右とも2px以上空けて収まり、`dragon check --layout`がこの字の崩れを出さない | `pnpm exec vitest run packages/dragon/test/border-gap.test.ts`の検査`border-gap-plate-name-inside`が通る | #3526 |
+| 見本`finality`と`finality.en`の段10を描いた時、区間の札「確定して戻せない」の下の端が棒の上の端から2px以上離れ、札の上の端も時間軸の帯の枠から2px以上離れる | `pnpm exec vitest run packages/dragon/test/border-gap.test.ts`の検査`border-gap-span-tag-clears-marks`が通る | #3526 |
+| 線の縦か横に走る所が、線の両端でない箱か囲みの枠に沿って`LOOK.margin`より近く、番号の丸2つ分より長く走る時、崩れの確かめが`line-near-border`の崩れを1件出し、その崩れは段の番号と、線 (両端の箱の名前と段) と、箱か囲みの名前を持つ。ちょうど`LOOK.margin`離れた線と、線の両端の箱は数えない | `pnpm exec vitest run packages/dragon/test/border-gap.test.ts`の検査`layout-check-finds-line-near-border`が通る | #3526 |
+| 字が自分の箱か札の枠に2pxより近い時 (はみ出す時も含む)、崩れの確かめが`text-touches-border`の崩れを1件出し、その崩れは段の番号と字と枠の名前を持つ。枠から2px以上離れた字と、形を持つ箱の字は数えない | `pnpm exec vitest run packages/dragon/test/border-gap.test.ts`の検査`layout-check-finds-text-touching-border`が通る | #3526 |
+| 配管の図を描いた時、値の札の名前と値の字は札の枠と一緒に記録され、名前の字の幅は字の間を含む | `pnpm exec vitest run packages/dragon/test/border-gap.test.ts`の検査`layout-check-sees-plate-frame`が通る | #3526 |
+| `dragon check --layout`の行の文が、新しい2種の崩れを日本語と英語で知らせ、線と箱か囲みの名前、字と枠の名前を挙げる | `pnpm exec vitest run packages/dragon/test/border-gap.test.ts`の検査`layout-check-names-border-breaks`が通る | #3526 |
+| skill の参照が、新しい2種の崩れの名前と記法での直し方を持つ | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-layout-fixes-and-issue-route`が通る | #3526 |
+| 常に、見本の崩れが記録と合い、一覧に無い崩れが出ると見本の検査が落ちる | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3526 |
+| 常に、今ある5種の崩れを今どおり見つけ、重なって当然の組は数えない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-badge-off-shape`と`layout-check-finds-slot-outside-shape`と`layout-check-finds-text-outside-shape`と`layout-check-finds-close-badges`と`layout-check-finds-crowded-lines`と`layout-check-skips-intended-overlaps`が通る | #3526 |
+| 常に、見本帳が最初に読む script に崩れの種類の名前が入らず、最初に読む量が上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-layout-check`と`page-bundle-within-budget`が通る | #3526 |
 | 同じ箱に`act`の段を2つ置いた図を描いた時、2つの段の番号が重ならず、後の段を描いた時もどちらの数も読める | `pnpm exec vitest run packages/dragon/test/badge-spots.test.ts`の検査`two-acts-on-one-box-keep-both-numbers`が通る | #3525 |
 | 時間軸の図で同じ節目に`note`の段を2つ置いた時、2つの段の番号が重ならず、後の段を描いた時もどちらの数も読める | `pnpm exec vitest run packages/dragon/test/badge-spots.test.ts`の検査`two-notes-on-one-point-keep-both-numbers`が通る | #3525 |
 | 線の無い段が同じ箱か中身の帯を続けて書き換える時、後の段の番号は前の段の番号の脇に並び、どの段でも字の重なりが0件 | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`corner-badges-sit-side-by-side`が通る | #3525 |

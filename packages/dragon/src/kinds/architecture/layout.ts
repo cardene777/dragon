@@ -5,6 +5,7 @@
  * 区画をまたぐ線は縦にまっすぐ走る。箱の並びは線を辿って決める。前の区画の箱から線が来る箱を
  * その箱の列に置き、そこから線で繋がる箱を隣の列へ (寄せの指示が左か右なら下の行へ) 置いていく。
  * 線は縦と横の折れ線で、間にある箱を避ける。名前が箱に掛かる時は帯を広げて名前の場所を空ける。
+ * 箱の下か上を回る線は、箱の枠と帯の枠から余白 (`LOOK.margin`) 以上離して通し、帯が狭ければ帯を広げる (#3526)。
  */
 import { LOOK, TYPE } from "../../look/values";
 import type { DiagramModel, LabelSide, Region } from "../../schema";
@@ -69,7 +70,7 @@ export function layoutArchitecture(diagram: DiagramModel): Layout {
   const slots = placeBoxes(diagram, groups);
   const rooms = groups.map(() => ({ top: 0, bottom: 0 }));
   let layout = arrange(diagram, groups, slots, rooms);
-  // 名前を置く場所が帯の外へ出たら、その帯を広げて置き直す
+  // 名前を置く場所が帯の外へ出たら、その帯を広げて置き直す。箱の下か上を回る線が帯の枠に近い時も広げる (#3526)
   for (let pass = 0; pass < 3 && grow(layout, groups, slots, rooms); pass++) layout = arrange(diagram, groups, slots, rooms);
   return layout;
 }
@@ -265,18 +266,18 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const onLoop = (points: Point[]): boolean => loopZones.some((zone) => crosses(points, zone, 0));
   const blocked = (points: Point[], a: string, b: string): boolean =>
     boxes.some((box) => box.id !== a && box.id !== b && crosses(points, box, LOOK.label.search)) || onLoop(points);
-  // 箱の下 (上) の、次の行か次の帯との間の真ん中。箱の下に輪が在る時は、輪と名前の下を通す (#3186)
+  // 箱の下 (上) の、次の行との間の真ん中。箱の下に輪が在る時は、輪と名前の下を通す (#3186)
+  // 帯の最後 (最初) の行は、箱の枠から余白だけ離す。帯の枠との間が余白より狭ければ `grow` が帯を広げる (#3526)
   const laneBelow = (id: string): number => {
     const box = byId.get(id) as SceneBox;
     const band = bandOf(id);
     const slot = slots.get(id);
     const under = box.y + box.h + (slot ? loopRoom(slot.group, slot.row) : 0);
-    return (slot?.row ?? 0) < band.rows - 1 ? under + A.rowGap / 2 : Math.min(under + R.pad / 2, band.y + band.h - LOOK.edge.inset);
+    return (slot?.row ?? 0) < band.rows - 1 ? under + A.rowGap / 2 : under + margin;
   };
   const laneAbove = (id: string): number => {
     const box = byId.get(id) as SceneBox;
-    const band = bandOf(id);
-    return (slots.get(id)?.row ?? 0) > 0 ? box.y - A.rowGap / 2 : Math.max(box.y - R.pad / 2, band.y + LOOK.edge.inset);
+    return (slots.get(id)?.row ?? 0) > 0 ? box.y - A.rowGap / 2 : box.y - margin;
   };
   const inset = LOOK.edge.inset;
   /** 列 `col` の右 (左) の、隣の列との間の真ん中。同じ列の箱は幅が違うので、箱ではなく列の端から測る (幅の広い箱の中を通さない) */
@@ -441,9 +442,31 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   return layout;
 }
 
-/** 区画の中を結ぶ線の名前が帯の外へ出ていたら、その分だけ帯の上か下を広げる。広げたら true。 */
+/**
+ * 区画の中を結ぶ線の名前が帯の外へ出ていたら、その分だけ帯の上か下を広げる。
+ * 帯の中を横に走る線が帯の上か下の枠に余白 (`LOOK.margin`) より近い時も、余白が空くまで広げる (#3526)。広げたら true。
+ */
 function grow(layout: Layout, groups: Group[], slots: Map<string, Slot>, rooms: Room[]): boolean {
   let grown = false;
+  const { margin } = LOOK;
+  groups.forEach((group, g) => {
+    const region = layout.regions.find((r) => r.id === group.region?.id);
+    const room = rooms[g];
+    if (!region || !room) return;
+    let [top, bottom] = [0, 0];
+    for (const edge of layout.edges)
+      edge.points.slice(1).forEach(([x, y], k) => {
+        const [px, py] = edge.points[k] as Point;
+        // 番号の丸 2 つ分より長く横に走る所だけを見る。輪の弧の短い区間は輪の分を空けた行の下に収まる
+        if (py !== y || Math.abs(x - px) <= LOOK.badge.r * 2 || y < region.y || y > region.y + region.h) return;
+        top = Math.max(top, margin - (y - region.y));
+        bottom = Math.max(bottom, margin - (region.y + region.h - y));
+      });
+    // 広げた後の足し引きの丸めの誤差 (1px の 100 分の 1 未満) では広げ直さない
+    if (top > 0.01) room.top += top;
+    if (bottom > 0.01) room.bottom += bottom;
+    if (top > 0.01 || bottom > 0.01) grown = true;
+  });
   const soft = LOOK.label.soft;
   for (const label of layout.labels) {
     const edge = layout.edges.find((e) => e.step === label.step && e.event === label.event);
