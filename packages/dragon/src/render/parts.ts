@@ -15,6 +15,7 @@ import { type Point, type SceneBadge, type SceneBox } from "../layout/scene";
 import { type Corner, EASE, LOOK, MOTION, type TextStyle } from "../look/values";
 import type { Span, Timeline } from "../timeline";
 import { r1 } from "./round";
+import type { PipePiece } from "./breaks";
 import { ALWAYS, type Ink, type Shown, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
@@ -80,6 +81,8 @@ export interface Ctx {
   ink: Ink[];
   /** 描いた線の記録 (#3175)。札を持たない字を横切る線を数える */
   traces: Trace[];
+  /** 配管の図の描いた部品の記録 (#3523)。崩れの確かめが、返した値の札と弁の重なりや管どうしの重なりを数える */
+  pieces?: PipePiece[];
   /** 箱の名前と下の字の基準線を、箱の真ん中からどれだけ下げるか (`boxTextY`) */
   boxText: BoxTextY;
   /** 色味の角の形。角を落とす色味は図の箱と囲みと図の枠の右上と左下を落とし、小さな部品の角を丸めない (#3344) */

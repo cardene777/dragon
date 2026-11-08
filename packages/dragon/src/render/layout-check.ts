@@ -62,6 +62,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
 /**
  * 描いた図の崩れの種類ごとの文 (#3484)。運ぶ物の枠と図の枠の端の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
  * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、部品が図の枠の端からはみ出す (#3515)。
+ * 配管の図の弁と計器と管の呼び方、札が部品に重なる、管が箱の縁の後ろを通る、2 本の管が重なって通る (#3523)。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
  * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
  */
@@ -73,6 +74,12 @@ interface BreakText {
   tooClose: (a: string, b: string) => string;
   runClose: (a: string, b: string) => string;
   outOfFrame: (part: string, edge: string) => string;
+  valveOf: (from: string, to: string | undefined) => string;
+  gaugeOf: (box: string) => string;
+  pipeOf: (from: string, to: string, step: number) => string;
+  covers: (chip: string, part: string) => string;
+  behindBox: (pipe: string, box: string) => string;
+  merged: (a: string, b: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
@@ -84,6 +91,12 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     tooClose: (a, b) => `${spaced(a)}と${spaced(b)}が近すぎる`,
     runClose: (a, b) => `${spaced(a)}と${spaced(b)}が並んで近すぎる`,
     outOfFrame: (part, edge) => `${spaced(part)}が${edge}からはみ出す`,
+    valveOf: (from, to) => (to === undefined ? `「${from}」の弁` : `管 ${from} → ${to} の弁`),
+    gaugeOf: (box) => `「${box}」の計器`,
+    pipeOf: (from, to, step) => `管 ${from} → ${to} (段 ${step})`,
+    covers: (chip, part) => `${spaced(chip)}が${spaced(part)}に重なる`,
+    behindBox: (pipe, box) => `${spaced(pipe)}が${box}の縁の後ろを通る`,
+    merged: (a, b) => `${spaced(a)}と${spaced(b)}が重なって通る`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -93,6 +106,12 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     tooClose: (a, b) => capital(`${a} and ${b} are too close`),
     runClose: (a, b) => capital(`${a} and ${b} run too close side by side`),
     outOfFrame: (part, edge) => capital(`${part} sticks out of ${edge}`),
+    valveOf: (from, to) => (to === undefined ? `the valve of "${from}"` : `the valve on the pipe ${from} → ${to}`),
+    gaugeOf: (box) => `the gauge of "${box}"`,
+    pipeOf: (from, to, step) => `the pipe ${from} → ${to} (step ${step})`,
+    covers: (chip, part) => capital(`${chip} covers ${part}`),
+    behindBox: (pipe, box) => capital(`${pipe} runs behind the edge of ${box}`),
+    merged: (a, b) => capital(`${a} and ${b} run on top of each other`),
   },
 };
 
@@ -120,6 +139,12 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return t.envelope;
       case "frame":
         return w.frameEdge(part.side);
+      case "valve":
+        return w.valveOf(part.from, part.to);
+      case "gauge":
+        return w.gaugeOf(part.box);
+      case "pipe":
+        return w.pipeOf(part.from, part.to, part.step);
     }
   };
   const [a, b2] = b.parts;
@@ -128,10 +153,16 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
       ? w.floatsOff(name(a), name(b2))
       : b.kind === "slot-outside-shape" || b.kind === "text-outside-shape"
         ? w.sticksOut(name(a), name(b2))
-        : b.kind === "badges-close"
+        : b.kind === "badges-close" || b.kind === "valve-near-pipe"
           ? w.tooClose(name(a), name(b2))
           : b.kind === "part-outside-frame"
             ? w.outOfFrame(name(a), name(b2))
-            : w.runClose(name(a), name(b2));
+            : b.kind === "chip-over-part"
+              ? w.covers(name(a), name(b2))
+              : b.kind === "pipe-behind-box"
+                ? w.behindBox(name(a), name(b2))
+                : b.kind === "pipes-merged"
+                  ? w.merged(name(a), name(b2))
+                  : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

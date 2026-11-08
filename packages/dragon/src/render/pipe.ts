@@ -23,12 +23,13 @@ import { foldBox } from "../blocks/fold/draw";
 import { defId, flow, grid, leverAngle, level, pipeDefs, sizedText, STATE_COLOR, tank, tokenBox, valuePipe, valve } from "../blocks/hold/draw";
 import { callCase, litPipe } from "../blocks/return/draw";
 import { plate, wide, writePipe } from "../blocks/write/draw";
-import type { PipeChip, PipeLayout, PipeLevel } from "../kinds/pipe/layout";
+import type { PipeChip, PipeGauge, PipeLayout, PipeLevel } from "../kinds/pipe/layout";
 import { PIPE_LOOK, PIPE_TYPE } from "../look/pipe";
 import { type ColorKey, EASE, LOOK, MOTION } from "../look/values";
+import { valveRects } from "../pipe-valve";
 import type { Timeline } from "../timeline";
 import { frameShape, partRadius } from "./corner";
-import type { Shown } from "./ink";
+import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
 import { type Ctx, cssFont as font, r1 } from "./parts";
 
@@ -178,6 +179,42 @@ function chipPart(c: PipeChip, ctx: Ctx, shown: Shown[], attrs: string): string 
   );
 }
 
+/** 計器が描く形。針の盤と、通ったかの印と、値の管から上る軸 */
+const gaugeRects = (g: PipeGauge) => [
+  { x: g.x, y: g.y, w: g.w, h: g.h },
+  { x: g.lamp.x - g.lamp.r, y: g.lamp.y - g.lamp.r, w: g.lamp.r * 2, h: g.lamp.r * 2 },
+  ...(g.stem ? [{ x: g.cx - 2, y: Math.min(g.stem.y1, g.stem.y2), w: 4, h: Math.abs(g.stem.y2 - g.stem.y1) }] : []),
+];
+
+/**
+ * 段ごとに変わらない部品 (名札、呼び出しの管、弁) を、崩れの確かめのために `pieces` へ記録する (#3523)。
+ * 呼び出しの管と弁の段は、その管が呼び出しを初めて運ぶ段にする
+ */
+function recordPieces(layout: PipeLayout, pieces: NonNullable<Ctx["pieces"]>): void {
+  const names = new Map(layout.parties.map((p) => [p.id, p.name]));
+  const nameOf = (id: string): string => names.get(id) ?? id;
+  for (const p of layout.parties) {
+    const corner = p.shape === "round" ? p.w / 2 : p.shape === "token" ? P.token.radius : P.cabinet.radius;
+    pieces.push({ kind: "box", name: p.name, rect: { x: p.x, y: p.y, w: p.w, h: p.h }, corner, shown: ALWAYS });
+  }
+  for (const main of layout.mains)
+    for (const br of main.branches) {
+      const steps = layout.lanes.filter((x) => x.from === main.from && x.to === br.to).map((x) => x.step + 1);
+      const step = steps.length > 0 ? Math.min(...steps) : 1;
+      const from = nameOf(main.from);
+      const to = nameOf(br.to);
+      pieces.push({ kind: "pipe", from, to, step, points: br.points, half: P.call.case / 2, shown: ALWAYS });
+      const [body, ...lever] = valveRects(br.valve.x, br.valve.y, br.valve.vertical, br.valve.under);
+      if (body) pieces.push({ kind: "valve", from, to, step, body, lever, shown: ALWAYS });
+    }
+  for (const bus of layout.buses) {
+    const v = bus.valve;
+    if (!v) continue;
+    const [body, ...lever] = valveRects(v.x, v.y, false, false);
+    if (body) pieces.push({ kind: "valve", from: nameOf(v.party), body, lever, shown: ALWAYS });
+  }
+}
+
 /** 槽の縁の色。確定した槽は確定の縁、取り消した槽は取り消しの縁 */
 const edgeOf = (lv: PipeLevel | undefined): "final" | "rolled" | "" => (lv?.state === "final" ? "final" : lv?.state === "rolled" ? "rolled" : "");
 
@@ -216,6 +253,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
   /** 流れた分が通る値の管の番号 */
   const pipeOfFlow = (fl: { token: string; from: string; to: string }): number =>
     layout.valuePipes.findIndex((p) => p.token === fl.token && ((p.from === fl.from && p.to === fl.to) || (p.from === fl.to && p.to === fl.from)));
+  if (ctx.pieces) recordPieces(layout, ctx.pieces);
 
   // 段ごとに変わらない部品
   const out: string[] = [
@@ -379,6 +417,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       }
     // 計器。確かめた段は、確かめた時刻に針が振れて通ったかの印が付く。計器は薄くしない
     for (const g of layout.gauges.filter((x) => x.step === s)) {
+      ctx.pieces?.push({ kind: "gauge", box: parties.get(g.party)?.name ?? g.party, rects: gaugeRects(g), shown: whole });
       const attrs = on({ gauge: g.party, ok: String(g.ok) });
       const t = g.fresh ? timeOf(s, g.event) : undefined;
       if (t === undefined) {
@@ -450,10 +489,14 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       });
       const [ex, ey] = path[path.length - 1] as [number, number];
       frames.push([m.total, { transform: `translate(${r1(ex - sx)}px,${r1(ey - sy)}px)` }]);
+      // 札の字は止め絵で止まる所に記録する。描く所は動き出す所で、動きが止まる所まで運ぶ (#3523)
+      const drawnFrom = ctx.ink.length;
       parts.push(
         `<g class="dg-a" style="${m.vis(t0, t1 + f)}"><g class="dg-a" data-pipe-return-chip="" data-pipe-step="${s}" data-pipe-x="${r1(sx)}" data-pipe-y="${r1(sy)}" style="${m.kf(frames)}">` +
           `${chipPart(c, ctx, [[t0, t1 + f]], "")}</g></g>`,
       );
+      for (const ink of ctx.ink.slice(drawnFrom)) ink.rect = { ...ink.rect, x: ink.rect.x + ex - sx, y: ink.rect.y + ey - sy };
+      ctx.pieces?.push({ kind: "chip", text: c.text, rect: { x: c.x + ex - sx, y: c.y + ey - sy, w: c.w, h: c.h }, shown: [[t1, t1 + f]] });
     }
     // 畳んだ箱
     for (const fold of layout.folds.filter((x) => x.step === s)) parts.push(foldBox(fold, ctx, whole, ` data-pipe-step="${s}"`));
