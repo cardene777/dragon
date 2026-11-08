@@ -46,7 +46,7 @@ function parsed(text: string, options: { lang?: NotationLang; blocks?: unknown }
   return result.ok ? result.diagram : {};
 }
 
-/** 足した箱の形の path。100 四方に描き、箱の枠に収める */
+/** 足した箱の形の path。形を囲む最も小さい四角を箱の枠いっぱいに伸ばす (#3520) */
 const BRIDGE = "M 0 70 Q 50 0 100 70 Z";
 /** 足した印の path。今の絵柄と同じく、(0, 0) を中心に 20 四方へ収める */
 const KEY = "M -8 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 0 h 8 M 5 0 v 3";
@@ -237,7 +237,9 @@ describe("使う人が足すブロック (#3399)", () => {
       const text = `architecture 橋を渡る\n\n${defs}\n\n${BODY.replaceAll("+wire", "->").replace(" [icon: +key]", "")}\n`;
       const rendered = render(parsed(text));
       const box = rendered.layout.boxes.find((b) => b.id === "cc");
-      expect(box && frame && { x: box.x, y: box.y, w: box.w, h: box.h }, `${shape} の箱が元の箱の枠からずれる`).toEqual(frame && { x: frame.x, y: frame.y, w: frame.w, h: frame.h });
+      expect(box && frame, `${shape} の箱が無い`).toBeTruthy();
+      // 形の内に名前と下の字が収まらない時は箱を大きくする (#3520)。形を持たない箱より小さくはしない
+      expect(box && frame && box.w >= frame.w - 0.01 && box.h >= frame.h - 0.01, `${shape} の箱が元の箱の枠より小さい`).toBe(true);
       svgs.add(withoutId(rendered.svg));
     }
     expect(svgs.size, "基本の形の名前ごとに描く形が変わらない").toBe(5);

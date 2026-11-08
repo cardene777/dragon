@@ -10,14 +10,15 @@ import type { Diagram } from "../schema";
 import { tokenize } from "../tokenize";
 import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
-import { boxOutline } from "../blocks/box/draw";
 import type { Point } from "../layout/scene";
+import { userBlockReader } from "../user-blocks";
 import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
 
 /**
  * 描いた物から崩れを数える関数 (#3494)。描く処理に渡し、描いた後に呼ばせる。
  * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める。
+ * 輪郭は定義を読む処理と一緒に登録した形を測る処理 (`BoxShapes`) が組む。形を持つ箱は定義を読んだ図にしか無いため (#3520)。
  * 枠線を描く囲みと列と帯もここで組む (#3525)。囲みは原本の名前で、列 (枝の帯) と時間軸の図の帯は描いた名前で呼ぶ
  */
 const finder: BreakFinder = ({ diagram, ...drawn }) =>
@@ -29,8 +30,8 @@ const finder: BreakFinder = ({ diagram, ...drawn }) =>
     ],
     outlines: new Map(
       drawn.boxes.flatMap((box): [string, Point[][]][] => {
-        const outline = boxOutline(box);
-        return outline ? [[box.id, outline]] : [];
+        const rings = userBlockReader()?.shapes.outline(box.id, box);
+        return rings ? [[box.id, rings]] : [];
       }),
     ),
   });

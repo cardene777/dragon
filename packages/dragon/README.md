@@ -242,7 +242,7 @@ step Hand over
 
 | Base (`base`) | How to write it | Shape (`shape`) | Color (`color`) |
 |---|---|---|---|
-| `box` | Write `+<name>` in place of `box` on a box line | `round` / `circle` / `cylinder` / `diamond` / `hexagon`, or `path "…"` drawn in a 100 by 100 square | A color role |
+| `box` | Write `+<name>` in place of `box` on a box line | `round` / `circle` / `cylinder` / `diamond` / `hexagon`, or `path "…"`, whose outline is stretched to fill the box | A color role |
 | `edge` | Write `+<name>` in place of `->` on a line | `solid` / `dashed` / `dotted` | A color role |
 | `icon` | Write `[icon: +<name>]` on a box line | `path "…"` drawn in a 20 by 20 square centered on (0, 0) | The color of its box |
 

@@ -38,6 +38,7 @@ import {
   loopUnder,
   layoutStrip,
   markText,
+  shapedSize,
   type Point,
   placeLabel,
   placeSlot,
@@ -93,9 +94,14 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   // 運ぶ物を出し入れする状態は、絵柄の横に置き場を並べ、置き場の枠を右上の済んだ印から離せる幅にする (#3176)
   const carriedIn = slotRooms(diagram);
   const doneSide = Math.max(B.padX, T.done.inset + T.done.r + LOOK.slot.clear);
-  const widths = new Map(
-    diagram.boxes.map((b) => [b.id, ghosts.includes(b.id) ? ghostWidth(b.id) : Math.max(boxWidth(diagram, b.id, true), slotBoxWidth(carriedIn.get(b.id), b.icon !== undefined, doneSide))]),
+  // 形を持つ状態は、中身が形の内に収まる大きさにする (#3520)。点線の札は形を持たずに描く
+  const fits = new Map(
+    diagram.boxes.map((b) => [
+      b.id,
+      ghosts.includes(b.id) ? { w: ghostWidth(b.id), h: G.h } : shapedSize(diagram, b.id, Math.max(boxWidth(diagram, b.id, true), slotBoxWidth(carriedIn.get(b.id), b.icon !== undefined, doneSide)), true, carriedIn),
+    ]),
   );
+  const widths = new Map([...fits].map(([id, fit]) => [id, fit.w]));
   const columnCount = Math.max(1, Math.min(T.columns, walked.length));
   const rowCount = Math.max(1, Math.ceil(walked.length / T.columns));
   // 奇数番目の段は右から左へ並べ、段の最後の状態の真下から次の段を始める
@@ -130,12 +136,14 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   // 1 段目の上には、脇道の囲みか、始まりの印から最初の状態へ下りる間を空ける。どちらも無ければ空けない
   const starts = lines.some((line) => line.from === "start");
   const top0 = margin + (ghosts.length > 0 ? sideH + T.side.gap : starts ? T.start + T.drop : 0);
-  const rowY = (row: number): number => top0 + row * (B.h + T.rowGap);
+  // 段の高さは段で最も高い状態の高さ。形を持つ状態は中身を収めるために高くなる (#3520)
+  const rowH = Array.from({ length: rowCount }, (_, r) => Math.max(B.h, ...walked.filter((id) => slot.get(id)?.row === r).map((id) => fits.get(id)?.h ?? B.h)));
+  const rowY = (row: number): number => top0 + rowH.slice(0, row).reduce((sum, h) => sum + h + T.rowGap, 0);
 
   const boxOf = (id: string, cx: number, y: number, ghost: boolean): SceneBox => {
     const source = diagram.boxes.find((b) => b.id === id);
-    const w = widths.get(id) ?? B.minW;
-    const h = ghost ? G.h : B.h;
+    const fit = fits.get(id) ?? { w: B.minW, h: B.h };
+    const { w, h } = fit;
     return {
       id,
       name: source?.name ?? id,
@@ -144,16 +152,16 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
       color: colors.get(id) ?? "slate",
       x: cx - w / 2,
       y,
-      w,
-      h,
+      ...fit,
       cx,
       cy: y + h / 2,
       ...(ghost ? { ghost: true } : {}),
     };
   };
+  // 段より低い状態は段の真ん中に置き、同じ段の状態を結ぶ線をまっすぐにする
   const boxes: SceneBox[] = walked.map((id) => {
     const s = slot.get(id) as { row: number; col: number };
-    return boxOf(id, center(s.col), rowY(s.row), false);
+    return boxOf(id, center(s.col), rowY(s.row) + ((rowH[s.row] as number) - (fits.get(id)?.h ?? B.h)) / 2, false);
   });
   for (const box of boxes) placeSlot(box, carriedIn.get(box.id), doneSide);
   const byId = new Map(boxes.map((b) => [b.id, b]));
@@ -387,7 +395,7 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   // 帯の最後に、段が辿り着く順に状態を点で並べる
   const trail = { title: words.trail, states: walked.map((id) => ({ box: id, color: colors.get(id) ?? "slate" })) };
   const width = Math.max(Math.max(...rights) + margin, stripNeed(diagram, trail) + margin * 2);
-  const bottom = Math.max(...bottoms, rowY(rowCount - 1) + B.h);
+  const bottom = Math.max(...bottoms, rowY(rowCount - 1) + (rowH[rowCount - 1] as number));
   const strip = layoutStrip(diagram, margin, bottom + gap, width - margin * 2, trail);
   layout.width = width;
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;

@@ -377,6 +377,6 @@
 | `exportDiagram`に`lang`を渡さずに日本語の原本のJSON (`oauth.json`) をHTMLに書き出した時、頁の`lang`属性と頁に渡す言葉が`ja`になる | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-diagram-without-lang-follows-japanese-text`が通る | #3516 |
 | 構成図と状態遷移図の各段の止め絵で、置き場の点線の枠は運ぶ物が座っている間だけ見え、空の間は見えない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`slot-frame-only-while-carrier-sits`が通る | #3518 |
 | 運ぶ物を使う注文の状態の図、橋の図、支払いの図の最後の段の止め絵に空の置き場の枠が1つも見えず、運ぶ物が座っている枠だけが見える | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`final-still-shows-no-empty-slot`が通る | #3518 |
-| 背景のブリッジの図に`dragon check --layout`を打つと、アーチからはみ出す硬貨の枠を、硬貨が座り始める段2の1件で知らせる | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-merges-repeated-steps`が通る | #3518 |
+| 背景のブリッジの図をアーチの箱で描いた#3520の前の姿に崩れの検査を掛けると、アーチからはみ出す硬貨の枠を、硬貨が座り始める段2の1件で知らせる | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-merges-repeated-steps`が通る | #3518 |
 | 形を持つ箱の置き場に運ぶ物が一度も座らない図に`dragon check --layout`を打つと、その枠のはみ出しを知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-skips-slot-never-held`が通る | #3518 |
-| 背景のブリッジの図に`dragon check --layout`を打つと、硬貨の枠がアーチの形からはみ出すことを1件の知らせとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-slot-outside-shape`が通る | #3518 |
+| 背景のブリッジの図をアーチの箱で描いた#3520の前の姿に崩れの検査を掛けると、硬貨の枠がアーチの形からはみ出すことを1件の崩れとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-slot-outside-shape`が通る | #3518 |

@@ -25,7 +25,6 @@ import { PIPE_LOOK } from "../look/pipe";
 import { APART, LOOK } from "../look/values";
 import type { DiagramModel } from "../schema";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
-import { signedDistance } from "./outline";
 
 /** 図の枠の 4 つの端 */
 export type FrameSide = "left" | "right" | "top" | "bottom";
@@ -148,6 +147,37 @@ function borderDistance([px, py]: Point, r: Rect): number {
 const LABEL_GAP = Math.max(LOOK.label.offset - LOOK.label.h / 2, LOOK.label.side);
 /** 配管の図の流れた量の札を描く処理が最初に置く、札の四角から管の真ん中までの間。管の太さの半分と、管から札までの離れを足す */
 const CHIP_GAP = PIPE_LOOK.bus.case / 2 + PIPE_LOOK.chip.off;
+
+/** 輪の辺を、閉じる辺も含めて 1 本ずつ */
+function* edgesOf(rings: Point[][]): Generator<[Point, Point]> {
+  for (const ring of rings)
+    for (let k = 0; k < ring.length; k++) yield [ring[k] as Point, ring[(k + 1) % ring.length] as Point];
+}
+
+/** 点 `p` が形の内にあるか。SVG の塗りの既定 (nonzero) と同じく、輪が点を回る数で決める */
+function insideRings(rings: Point[][], [px, py]: Point): boolean {
+  let winding = 0;
+  for (const [a, b] of edgesOf(rings)) {
+    const cross = (b[0] - a[0]) * (py - a[1]) - (px - a[0]) * (b[1] - a[1]);
+    if (a[1] <= py) {
+      if (b[1] > py && cross > 0) winding++;
+    } else if (b[1] <= py && cross < 0) winding--;
+  }
+  return winding !== 0;
+}
+
+/** 点 `p` から形の縁までの距離。形の内の点は負の値にする */
+function signedDistance(rings: Point[][], p: Point): number {
+  let best = Number.POSITIVE_INFINITY;
+  for (const [a, b] of edgesOf(rings)) {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = dx * dx + dy * dy;
+    const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len));
+    best = Math.min(best, Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)));
+  }
+  return insideRings(rings, p) ? -best : best;
+}
 
 /** 点から四角までの距離。四角の内の点は 0 */
 function distanceToRect([px, py]: Point, r: Rect): number {
