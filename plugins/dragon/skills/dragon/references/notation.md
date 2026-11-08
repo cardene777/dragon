@@ -85,13 +85,14 @@ A strip works in every kind except `pipe` and `try`.
 | Key | Values |
 |---|---|
 | `color` | `blue`, `amber`, `green`, `violet`, `rose`, `slate`, `coin` |
-| `icon` | `app`, `block`, `bolt`, `box`, `branch`, `card`, `cart`, `chain`, `check`, `clock`, `cloud`, `code`, `db`, `doc`, `env`, `exe`, `flag`, `globe`, `idx`, `key`, `layers`, `lock`, `net`, `off`, `on`, `paint`, `pool`, `refresh`, `router`, `server`, `shield`, `sign`, `tree`, `truck`, `undo`, `user`, `x`, `yen`, or a `+name` icon block |
+| `icon` | `app`, `block`, `bolt`, `box`, `branch`, `card`, `cart`, `chain`, `check`, `clock`, `cloud`, `code`, `db`, `doc`, `env`, `exe`, `flag`, `globe`, `idx`, `key`, `layers`, `lock`, `net`, `off`, `on`, `paint`, `pool`, `refresh`, `router`, `server`, `shield`, `sign`, `tree`, `truck`, `undo`, `user`, `x`, `yen`, a `+name` icon block, or `tabler:<name>` for a Tabler outline icon (for example `tabler:building-bridge-2`) |
 | `carry` | `coin`, `none` |
 | `side` | `above`, `below`, `left`, `right` |
 | `view` | `fixed`, `follow` |
 
 Pick colors by meaning and keep them consistent in one diagram: for example `slate` for people and clients, `blue` for your system, `green` for success, `rose` for failure, `amber` for waiting or money.
 `lineup` takes no icons.
+`tabler:<name>` works on box and group lines only, and the name must be one of the Tabler outline icons; `dragon check` names the closest one when it is not.
 
 Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as `\"` and `\\`.
 

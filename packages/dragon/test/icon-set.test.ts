@@ -24,7 +24,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** Tabler の線の絵柄の置き場。devDependency の `@tabler/icons` が持つ */
 const TABLER = join(ROOT, "node_modules", "@tabler", "icons", "icons", "outline");
 const ICONS = (dragon as unknown as { ICONS: Record<string, string> }).ICONS;
-const renderDiagram = (dragon as unknown as { renderDiagram(diagram: Json): { svg: string } }).renderDiagram;
+const renderDiagram = (dragon as unknown as { renderDiagram: (diagram: Json) => { svg: string } }).renderDiagram;
 /** npm に出す file の一覧。準備の段 (`test-support/pack-setup.ts`) が 1 度だけ作る */
 const packedFiles = (): string[] => ((inject as (key: string) => unknown)("dragonPackFiles") as string[] | undefined) ?? [];
 

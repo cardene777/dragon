@@ -6,6 +6,12 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- **箱と区画の絵柄に、無料のTablerの線の絵柄を `icon: tabler:<名前>` で書ける** (#3493)
+
+  dragonが描く絵柄は手描きの38個で、ほかの絵が要る箱はブロックの形に頼るしかなかった。箱と区画の行の `icon:` に、`tabler:` とTablerの線の絵柄5,184個のどれかの名前を書けるようにした (例 `[icon: tabler:building-bridge-2]`)。buildの段がTablerの24四方の格子から手描きの絵柄と同じ20四方の格子へ移すので、手描きの絵柄と同じclassと縮みと線の太さで描く。Tablerに無い名前は `icon` の属性を指して読むのを止め、一番近いTablerの名前を挙げる。`validateDiagram` も原本の `icon` の欄を指して断る。既定の入口は全ての絵柄を持つ。軽い入口は `tabler:` を書いた図の時だけ、`loadFor` を待つと絵柄を1つの塊として読む。読む前にその図を読むと `loadFor` を待つよう告げる誤りで止まり、`iconSetLoaded("tabler")` は塊を読んだかを返す。書き出したHTMLの頁と `dragon embed` が書く頁は、図が使った絵柄だけを持つ。Tablerの利用許諾 (MIT) は `THIRD_PARTY_NOTICES.md` に入れてnpmに出す。
+
 ## [0.66.0] - 2026-11-08
 
 ### Added
