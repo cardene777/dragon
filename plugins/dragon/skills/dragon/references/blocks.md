@@ -126,9 +126,18 @@ When the block you defined would help other diagrams (a common concept, not a on
 1. Fork or branch the dragon repo (`cardene777/dragon`). Check that `packages/dragon/blocks/` has no block of the same name.
 2. Add exactly one definition file, `packages/dragon/blocks/<name>.dragon`: a `//` comment that says what the block is, `blocks 1`, and one `block +<name>` ... `end`. The file name is the block name without `+`.
 3. Add exactly one example diagram, `packages/dragon/blocks/examples/<name>.dragon`, that uses the block without defining it.
-4. Build the fork so its `dragon` knows the new block (`pnpm install`, then `pnpm build:packages`), run `dragon check` on both files with the fork's CLI (`node packages/dragon/dist/cli.js check <file>`), and fix every error. Then run `pnpm verify` as the repo's `CONTRIBUTING.md` asks.
-5. Open the pull request with `gh pr create`. The title starts with `feat:`. Fill the template's headings: what the block shows and which diagrams need it, why no existing block works, and how you checked it.
-6. Stop there. The maintainers review and merge. Never merge it yourself.
+4. Check both files with the installed `dragon` and fix every error. The installed `dragon` does not know the new block yet, so check the definition file on its own and pass it to the example with `--blocks`. You do not need to build the fork for this.
+
+   ```sh
+   dragon check packages/dragon/blocks/<name>.dragon
+   dragon check --blocks packages/dragon/blocks/<name>.dragon packages/dragon/blocks/examples/<name>.dragon
+   ```
+
+   Add `--layout` to the second command to check the example's layout too ([layout](layout.md)).
+
+5. Run `pnpm install` and then `pnpm verify` in the fork, as the repo's `CONTRIBUTING.md` asks. If you cannot run `pnpm verify` (for example, `pnpm install` cannot reach npm), say so in the PR body under how you checked it, with the error it printed. Do not claim it passed.
+6. Open the pull request with `gh pr create`. The title starts with `feat:`. Fill the template's headings: what the block shows and which diagrams need it, why no existing block works, and how you checked it.
+7. Stop there. The maintainers review and merge. Never merge it yourself.
 
 ```sh
 gh pr create --repo cardene777/dragon --title "feat: add the shared block +<name>" --body-file pr-body.md
