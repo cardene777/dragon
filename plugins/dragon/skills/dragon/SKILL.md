@@ -129,7 +129,7 @@ In code, `parseNotation(text, { lang: "en" })` returns the same problems: `error
 
 ## 6. Check the layout
 
-A diagram that passes `dragon check` can still look broken once drawn: step numbers piled up, a request and its reply drawn on top of each other, or a slot or label sticking out of a shaped box.
+A diagram that passes `dragon check` can still look broken once drawn: step numbers piled up, two lines running side by side too close, or a slot or label sticking out of a shaped box.
 After the notation is clean, draw it and look for breaks.
 
 ```sh
