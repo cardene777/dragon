@@ -282,7 +282,7 @@ export const LOOK = {
    * 形の幅か高さの 4 分の 1 を超える時はそこまで縮める
    */
   corner: { cut: 8 },
-  architecture: { columns: 4, columnGap: 56, maxColumnGap: 160, rowGap: 44, labelRoom: 16 },
+  architecture: { columns: 4, columnGap: 56, rowGap: 44, labelRoom: 16 },
   /**
    * 時系列図。線の名前の札は、構成図と状態遷移図より線に寄せる (`labelOffset` は線から札の真ん中まで)。
    * 札と線の離れが図の他の空きと同じ 6 になり、行を詰めても札がどの線の名前かが分かる (#3177)。
