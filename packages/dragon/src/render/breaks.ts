@@ -1,9 +1,10 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない 5 種を拾う。
+ * 字の重なり (`ink.ts`) が拾わない 6 種を拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
  * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)。
+ * 時間軸の図の針と目盛りの線と字が、時間軸の囲みの枠を越えるか枠に接する (`panel-edge`、#3527)。
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
@@ -12,9 +13,10 @@
  * 箱の角に付いた番号の丸と、線の始まりの番号の丸とその線を出す箱の縁 (1px の間) は、丸が形に触れているので浮いた丸に数えない。
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
+import { heldIn, type Seat } from "../blocks/carry/timing";
 import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
 import { APART, LOOK } from "../look/values";
-import { type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
+import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
 import { signedDistance } from "./outline";
 
 /** 図の枠の 4 つの端 */
@@ -22,7 +24,7 @@ export type FrameSide = "left" | "right" | "top" | "bottom";
 
 /**
  * 崩れに関わる物。段の番号と線の段は 1 から数え、箱と線の端は箱の名前で呼ぶ。
- * 書き手が書いていない図の部品 (箱の絵柄、運ぶ物の硬貨と封筒) は部品の種類で、図の枠は部品がはみ出す端で呼ぶ (#3515)
+ * 書き手が書いていない図の部品 (箱の絵柄、運ぶ物の硬貨と封筒) は部品の種類で、図の枠は部品がはみ出す端で呼ぶ (#3515)。時間軸の囲みは`panel`で呼ぶ (#3527)
  */
 export type LayoutPart =
   | { kind: "badge"; step: number }
@@ -31,9 +33,12 @@ export type LayoutPart =
   | { kind: "text"; text: string; box?: string }
   | { kind: "line"; from: string; to: string; step: number }
   | InkPart
-  | { kind: "frame"; side: FrameSide };
+  | { kind: "frame"; side: FrameSide }
+  | { kind: "needle" }
+  | { kind: "ticks" }
+  | { kind: "panel"; panel: "axis" };
 
-export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "part-outside-frame";
+export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "part-outside-frame" | "panel-edge";
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -43,10 +48,11 @@ export interface LayoutBreak {
   parts: [LayoutPart, LayoutPart];
 }
 
-/** 崩れを数える材料。描く処理が描いた時に記録した字と線と、描いた箱と線と、足した箱のブロックの箱の形と、図の枠の大きさ */
+/** 崩れを数える材料。描く処理が描いた時に記録した字と線と時間軸の囲みに収める部品と、描いた箱と線と、足した箱のブロックの箱の形と、図の枠の大きさ */
 export interface BreakInput {
   inks: Ink[];
   traces: Trace[];
+  framed: Framed[];
   /** 段ごとの止め絵の時刻 */
   stills: number[];
   /** 図の枠の幅と高さ。枠は左上を原点に置く (#3515) */
@@ -79,6 +85,8 @@ const BADGE_GAP = APART.badge;
 const LINE_GAP = APART.line;
 /** 並んで走る長さの下限。番号の丸2つ分より長く狭い間で並ぶ線は1本の太い線に見える */
 const LINE_ALONG = 2 * R;
+/** 時間軸の囲みの枠の線の内側の縁から、部品までの間の下限 (px)。これより近い部品は枠に接して見える (#3527) */
+const PANEL_GAP = 4;
 
 /** 点から四角までの距離。四角の内の点は 0 */
 function distanceToRect([px, py]: Point, r: Rect): number {
@@ -89,12 +97,31 @@ function distanceToRect([px, py]: Point, r: Rect): number {
 
 const centerOf = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
 
+/**
+ * 四角`rect`が、囲み`frame`の枠の線の内側の縁からどれだけ内に在るか (px)。縁を越えた分は負になる。
+ * 囲みの枠は太さ1pxの線を囲みの四角の内側に引き、角を`LOOK.region.radius`で丸める (`blocks/group/draw.ts`の`band`)。
+ * 丸めた四角は凸なので、四角の4つの角で測れば足りる
+ */
+function clearance(rect: Rect, frame: Rect): number {
+  const r = LOOK.region.radius - 1;
+  const cx = frame.x + frame.w / 2;
+  const cy = frame.y + frame.h / 2;
+  let least = Number.POSITIVE_INFINITY;
+  for (const px of [rect.x, rect.x + rect.w])
+    for (const py of [rect.y, rect.y + rect.h]) {
+      const qx = Math.abs(px - cx) - (frame.w / 2 - 1 - r);
+      const qy = Math.abs(py - cy) - (frame.h / 2 - 1 - r);
+      least = Math.min(least, r - Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) - Math.min(Math.max(qx, qy), 0));
+    }
+  return least;
+}
+
 /** 崩れの中身を比べる鍵。同じ崩れを 1 件にまとめ、幅ごとの崩れを突き合わせる */
 export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.step, b.parts]);
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, stills, boxes, edges, outlines, frame } = input;
+  const { inks, traces, framed, stills, boxes, edges, outlines, frame } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -109,6 +136,10 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
 
   const badges = inks.filter((ink) => ink.badge === true);
   const shaped = boxes.filter((b) => outlines.has(b.id));
+  // 運ぶ物が見えている所と間 (#3518)。運ぶ物は箱の名札と段の番号の印を持たない字として残り、置き場の枠の中に中心を持つ字は運ぶ物だけ
+  const seats = inks.flatMap((ink) =>
+    ink.box === undefined && ink.badge !== true ? ink.shown.map(([a, b]): Seat => [...centerOf(ink.rect), a, b]) : [],
+  );
   for (const ink of badges) {
     const center = centerOf(ink.rect);
     const r = ink.rect.w / 2;
@@ -147,9 +178,9 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
         [slot.x + slot.w, slot.y + slot.h],
         [slot.x, slot.y + slot.h],
       ];
-      // 硬貨の枠は初めから最後まで見えている
+      // 置き場の枠は運ぶ物が座っている間だけ見えるので、座り始める段の 1 件にする。運ぶ物が座らない枠は見えないので数えない (#3518)
       if (corners.some(outside))
-        add("slot-outside-shape", stills.length > 0 ? 1 : undefined, [
+        add("slot-outside-shape", firstSeen({ shown: heldIn(slot, seats) }), [
           { kind: "slot", box: box.name },
           { kind: "box", name: box.name },
         ]);
@@ -190,6 +221,10 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       ]);
     }
   });
+
+  // 時間軸の部品は、囲みの枠を越えるか、枠の線の内側の縁から`PANEL_GAP`より近ければ崩れにする (#3527)
+  for (const item of framed)
+    if (clearance(item.rect, item.frame) < PANEL_GAP) add("panel-edge", firstSeen(item), [item.part, { kind: "panel", panel: "axis" }]);
 
   // 図の枠からはみ出す部品 (#3515)。枠の外へ触れている間より多く出た字と札と丸と絵柄と運ぶ物と線を、出た量の最も多い端で知らせる。
   // 走り出しを待つ運ぶ物は止め絵に映らず動きの途中だけ留まるので、止め絵に映らない部品は、出た後の最初の止め絵の段で知らせる
