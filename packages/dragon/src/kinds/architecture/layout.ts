@@ -1,11 +1,11 @@
 /**
  * 構成図の置き場所。
  *
- * 区画を上から帯に積み、帯の左に区画の名前を置く。箱は全ての帯で共通の列に並べるので、
+ * 区画を書いた順に上から帯に積み、帯の左に区画の名前を置く。区画の外の箱は、書いた所の前後の区画の間の帯に置く (#3546)。箱は全ての帯で共通の列に並べるので、
  * 区画をまたぐ線は縦にまっすぐ走る。箱の並びは線を辿って決める。前の区画の箱から線が来る箱を
  * その箱の列に置き、そこから線で繋がる箱を隣の列へ (寄せの指示が左か右なら下の行へ) 置いていく。
  * 線は縦と横の折れ線で、間にある箱を避ける。名前が箱に掛かる時は帯を広げて名前の場所を空ける。
- * 箱の下か上を回る線は、箱の枠と帯の枠から余白 (`LOOK.margin`) 以上離して通し、帯が狭ければ帯を広げる (#3526)。
+ * 箱の下か上を回る線は、行で最も高い箱の枠と帯の枠から余白 (`LOOK.margin`) 以上離して通し、帯が狭ければ帯を広げる (#3526、#3546)。
  */
 import { LOOK, TYPE } from "../../look/values";
 import type { DiagramModel, LabelSide, Region } from "../../schema";
@@ -75,12 +75,38 @@ export function layoutArchitecture(diagram: DiagramModel): Layout {
   return layout;
 }
 
+/**
+ * 帯を上から積む順。区画は書いた順に並べる。区画に入らない箱は、続けて書いた箱ごとに1つの帯にまとめ、書いた所の前後の区画の間に積む。
+ * 区画の外の箱を全て最後の帯にまとめると、2つの区画の間に書いた橋の箱が下の区画の下へ回り、上の区画から橋へ行く線が
+ * 下の区画を縦に貫いて、その区画の箱の字を横切る (#3546)。箱を1つも持たない区画は書いた場所が判らないので、前の区画の後に置く
+ */
 function groupsOf(diagram: DiagramModel): Group[] {
   const regions = diagram.regions ?? [];
-  const known = new Set(regions.map((r) => r.id));
-  const groups: Group[] = regions.map((region) => ({ region, members: diagram.boxes.filter((b) => b.region === region.id).map((b) => b.id) }));
-  const loose = diagram.boxes.filter((b) => b.region === undefined || !known.has(b.region)).map((b) => b.id);
-  if (loose.length > 0) groups.push({ members: loose });
+  const order = new Map(regions.map((r, i) => [r.id, i]));
+  const groups: Group[] = [];
+  const byRegion = new Map<string, Group>();
+  let opened = 0;
+  /** `last` 番目の区画まで、まだ積んでいない区画を書いた順に積む */
+  const openUpTo = (last: number): void => {
+    for (; opened <= last; opened++) {
+      const region = regions[opened] as Region;
+      const group: Group = { region, members: [] };
+      groups.push(group);
+      byRegion.set(region.id, group);
+    }
+  };
+  for (const box of diagram.boxes) {
+    const at = box.region === undefined ? undefined : order.get(box.region);
+    if (at === undefined) {
+      const last = groups.at(-1);
+      if (last && !last.region) last.members.push(box.id);
+      else groups.push({ members: [box.id] });
+      continue;
+    }
+    openUpTo(at);
+    byRegion.get(box.region as string)?.members.push(box.id);
+  }
+  openUpTo(regions.length - 1);
   return groups;
 }
 
@@ -207,6 +233,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   // 帯を上から積む
   const boxes: SceneBox[] = [];
   const bands: { group: number; y: number; h: number; rows: number }[] = [];
+  /** 帯 `g` の行 `r` の上端と下端 (鍵は `g:r`)。行で最も高い箱の上端と下端 */
+  const rowSpan = new Map<string, Room>();
   let cursor = margin;
   groups.forEach((group, g) => {
     const rows = Math.max(1, ...group.members.map((id) => (slots.get(id)?.row ?? 0) + 1));
@@ -217,6 +245,7 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     // 行の上端。輪を持つ行の下は、行の間に輪の分を足す
     const rowTop: number[] = [0];
     for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1));
+    for (let r = 0; r < rows; r++) rowSpan.set(`${g}:${r}`, { top: top + (rowTop[r] as number), bottom: top + (rowTop[r] as number) + (rowH[r] as number) });
     for (const id of group.members) {
       const slot = slots.get(id) as Slot;
       const source = diagram.boxes.find((b) => b.id === id);
@@ -266,18 +295,22 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const onLoop = (points: Point[]): boolean => loopZones.some((zone) => crosses(points, zone, 0));
   const blocked = (points: Point[], a: string, b: string): boolean =>
     boxes.some((box) => box.id !== a && box.id !== b && crosses(points, box, LOOK.label.search)) || onLoop(points);
-  // 箱の下 (上) の、次の行との間の真ん中。箱の下に輪が在る時は、輪と名前の下を通す (#3186)
-  // 帯の最後 (最初) の行は、箱の枠から余白だけ離す。帯の枠との間が余白より狭ければ `grow` が帯を広げる (#3526)
+  // 箱の行の下 (上) の、次の行との間の真ん中。箱の下に輪が在る時は、輪と名前の下を通す (#3186)
+  // 帯の最後 (最初) の行は、行の箱の枠から余白だけ離す。帯の枠との間が余白より狭ければ `grow` が帯を広げる (#3526)
+  // 測るのは回る箱ではなく行で最も高い箱の端から。形を持つ箱は行を高くし (#3520)、低い箱は行の真ん中に置くので、
+  // 低い箱の端から測ると、線は同じ行の高い箱の枠に余白より近く沿って走る (#3546)
+  const spanOf = (id: string): { slot: Slot; span: Room } => {
+    const slot = slots.get(id) as Slot;
+    return { slot, span: rowSpan.get(`${slot.group}:${slot.row}`) as Room };
+  };
   const laneBelow = (id: string): number => {
-    const box = byId.get(id) as SceneBox;
-    const band = bandOf(id);
-    const slot = slots.get(id);
-    const under = box.y + box.h + (slot ? loopRoom(slot.group, slot.row) : 0);
-    return (slot?.row ?? 0) < band.rows - 1 ? under + A.rowGap / 2 : under + margin;
+    const { slot, span } = spanOf(id);
+    const under = span.bottom + loopRoom(slot.group, slot.row);
+    return slot.row < bandOf(id).rows - 1 ? under + A.rowGap / 2 : under + margin;
   };
   const laneAbove = (id: string): number => {
-    const box = byId.get(id) as SceneBox;
-    return (slots.get(id)?.row ?? 0) > 0 ? box.y - A.rowGap / 2 : box.y - margin;
+    const { slot, span } = spanOf(id);
+    return slot.row > 0 ? span.top - A.rowGap / 2 : span.top - margin;
   };
   const inset = LOOK.edge.inset;
   /** 列 `col` の右 (左) の、隣の列との間の真ん中。同じ列の箱は幅が違うので、箱ではなく列の端から測る (幅の広い箱の中を通さない) */

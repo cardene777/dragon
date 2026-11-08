@@ -71,8 +71,17 @@ const COUNT_STEPS = [
 export function cliTools(cli) {
   const entry = pathToFileURL(resolve(dirname(cli), "index.js")).href;
   return {
-    async breaks(file) {
-      const ran = await runNode([cli, "check", file, "--layout", "--json", "--lang", "ja"]);
+    async breaks(file, blocks) {
+      const ran = await runNode([
+        cli,
+        "check",
+        file,
+        "--layout",
+        "--json",
+        "--lang",
+        "ja",
+        ...(blocks === undefined ? [] : ["--blocks", blocks]),
+      ]);
       // 終わり方1は記法の誤りで、誤りもJSONで出る
       if (ran.code === 0 || ran.code === 1) {
         try {
@@ -126,6 +135,20 @@ export function cliTools(cli) {
 const dragonFiles = (dir) => globSync("**/*.dragon", { cwd: dir }).sort();
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
+/**
+ * AIが試して捨てた写しを置く一時のdir。評価の囲いの`sealed`からのpath。
+ * 本人の手元に残るのは`home/`の下だけなので、ここの図は頁に並べても崩れの数には入れない (#3546)
+ */
+const TRIAL_DIR = "tmp/";
+
+/** 定義の file が定めるブロックの名前 (`block +vault` の `+vault`) */
+const definedBlocks = (text) =>
+  [...text.matchAll(/^\s*block\s+(\+[a-z0-9-]+)/gmu)].map((match) => match[1]);
+
+/** 図がブロック`name`を使うか。名前の前は行の頭か区切り、後ろは名前に続かない字 */
+const usesBlock = (text, name) =>
+  new RegExp(`(^|[\\s:,\\[])${name.replace("+", "\\+")}(?![a-z0-9-])`, "mu").test(text);
+
 /** ブロックの定義だけのfileか。注釈と空の行の後の最初の行が`blocks <版>` (`dragon check`と同じ見分け方) */
 function isDefinitions(text) {
   const first = text
@@ -165,36 +188,103 @@ async function runAll(tasks) {
 export async function writeGallery({ cases, page, tools, known = [] }) {
   const pngDir = join(dirname(page), `${basename(page, extname(page))}-png`);
   rmSync(pngDir, { recursive: true, force: true });
-  const prepared = new Set(
-    known.flatMap((dir) => dragonFiles(dir).map((file) => digest(readFileSync(join(dir, file))))),
-  );
-  const laid = cases.map((evalCase) => ({
-    name: evalCase.name,
-    runs: evalCase.runs.map((run, index) => {
-      const sealed = join(run.dir, "sealed");
-      const files = existsSync(sealed)
-        ? dragonFiles(sealed).filter((file) => {
-            const bytes = readFileSync(join(sealed, file));
-            return !prepared.has(digest(bytes)) && !isDefinitions(bytes.toString("utf8"));
-          })
-        : [];
-      return {
-        ...run,
-        number: index + 1,
-        present: existsSync(run.dir),
-        diagrams: files.map((file) => ({ file, path: join(sealed, file) })),
-      };
-    }),
-  }));
+  const laid = aiDiagrams(cases, known);
   const diagrams = laid.flatMap((evalCase) =>
     evalCase.runs.flatMap((run) =>
       run.diagrams.map((diagram, at) => ({ evalCase, run, diagram, at })),
     ),
   );
+  return drawGallery({ laid, diagrams, page, pngDir, tools });
+}
+
+/**
+ * ケースごとに、AI が保存した図の数と、崩れの残る図の数と、崩れを数えられなかった図の数を返す (#3546)。
+ *
+ * 数える図は頁に並べる図から、一時の dir (`TRIAL_DIR`) の試し書きを除いた図で
+ * (`known` の写しの repo に前から在った図と、ブロックの定義だけの file も数えない)、PNG は書き出さない。
+ * 足したブロックを使う見本は、同じ実行で保存したその定義と一緒に確かめる。
+ * 崩れが何件あっても 1 枚と数える。検査が失敗した図と、記法の誤り (`error`) を持つ図は崩れを測れないので、
+ * 崩れ 0 件の図ではなく `unchecked` に数える。
+ */
+export async function countBreaks({ cases, tools, known = [] }) {
+  const laid = aiDiagrams(cases, known);
+  const counts = Object.fromEntries(
+    laid.map((evalCase) => [evalCase.name, { diagrams: 0, broken: 0, unchecked: 0 }]),
+  );
+  await runAll(
+    laid.flatMap((evalCase) =>
+      evalCase.runs.flatMap((run) =>
+        run.diagrams
+          .filter((diagram) => !diagram.trial)
+          .map((diagram) => async () => {
+            const found = await settle(() => tools.breaks(diagram.path, diagram.blocks));
+            const problems = found.problems ?? [];
+            const count = counts[evalCase.name];
+            count.diagrams += 1;
+            const measured =
+              found.error === undefined &&
+              !problems.some(
+                (problem) => problem.layout === undefined && problem.severity === "error",
+              );
+            if (!measured) count.unchecked += 1;
+            else if (problems.some((problem) => problem.layout !== undefined)) count.broken += 1;
+          }),
+      ),
+    ),
+  );
+  return counts;
+}
+
+/**
+ * ケースごとに、各実行で AI が保存した図を並べる。前から在った図とブロックの定義だけの file は外す。
+ *
+ * 図が使うブロックを同じ実行で保存した定義が持つ時は、その定義の file を`blocks`に持たせる。
+ * 足したブロックの見本は、定義と一緒に確かめないと記法の誤りになり、崩れを測れない (#3546)。
+ * 一時のdir (`TRIAL_DIR`) の図は`trial`の印を持つ
+ */
+function aiDiagrams(cases, known) {
+  const prepared = new Set(
+    known.flatMap((dir) => dragonFiles(dir).map((file) => digest(readFileSync(join(dir, file))))),
+  );
+  return cases.map((evalCase) => ({
+    name: evalCase.name,
+    runs: evalCase.runs.map((run, index) => {
+      const sealed = join(run.dir, "sealed");
+      const saved = existsSync(sealed)
+        ? dragonFiles(sealed)
+            .map((file) => {
+              const bytes = readFileSync(join(sealed, file));
+              return { file, path: join(sealed, file), text: bytes.toString("utf8"), bytes };
+            })
+            .filter(({ bytes }) => !prepared.has(digest(bytes)))
+        : [];
+      const definitions = saved
+        .filter(({ text }) => isDefinitions(text))
+        .map(({ path, text }) => ({ path, names: definedBlocks(text) }));
+      return {
+        ...run,
+        number: index + 1,
+        present: existsSync(run.dir),
+        diagrams: saved
+          .filter(({ text }) => !isDefinitions(text))
+          .map(({ file, path, text }) => ({
+            file,
+            path,
+            trial: file.startsWith(TRIAL_DIR),
+            blocks: definitions.find(({ names }) => names.some((name) => usesBlock(text, name)))
+              ?.path,
+          })),
+      };
+    }),
+  }));
+}
+
+/** 図ごとに崩れと段の数を読み、絵にする段を書き出して、頁を`page`に書く */
+async function drawGallery({ laid, diagrams, page, pngDir, tools }) {
   // 崩れと段の数を読み、絵にする段を決める
   await runAll(
     diagrams.map(({ diagram }) => async () => {
-      const found = await settle(() => tools.breaks(diagram.path));
+      const found = await settle(() => tools.breaks(diagram.path, diagram.blocks));
       const steps = await settle(() => tools.steps(diagram.path));
       const problems = found.problems ?? [];
       diagram.checkError = found.error;
@@ -279,6 +369,9 @@ function diagramHtml(diagram) {
   return [
     `<div class="diagram" data-file="${escape(diagram.file)}" data-breaks="${count}" data-break-steps="${diagram.breakSteps.join(",")}">`,
     `<p class="file"><code>${escape(diagram.file)}</code></p>`,
+    diagram.trial
+      ? `<p class="trial">一時のdirに残った試し書き。本人の手元に残らないので、崩れの数には入れない</p>`
+      : "",
     `<p class="count ${count > 0 ? "warn" : "calm"}">崩れ${count}件${count > 0 ? ` (${where})` : ""}</p>`,
     failures.length > 0
       ? `<ul class="errors">${failures.map((text) => `<li>${escape(text)}</li>`).join("")}</ul>`
@@ -384,6 +477,7 @@ img { display: block; max-width: 100%; height: auto; }
 .break-shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 10px; }
 .fail, .empty { font-size: 0.9rem; padding: 12px; border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); }
 .fail { color: var(--ng); }
+.trial { font-size: 0.85rem; color: var(--muted); margin: 0; }
 dialog { max-width: 96vw; max-height: 94vh; padding: 0; border: 0; background: transparent; }
 dialog img { max-width: 96vw; max-height: 92vh; width: auto; background: #ffffff; border-radius: 6px; cursor: zoom-out; }
 dialog::backdrop { background: rgb(0 0 0 / 0.78); }

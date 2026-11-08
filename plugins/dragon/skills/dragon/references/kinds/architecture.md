@@ -15,7 +15,7 @@ Pick `sequence` instead when the order of messages between a few parties is the 
 |---|---|
 | `group <id> as <name> [note: ..., color: ..., icon: ...]` ... `end` | A place. The `box` lines in between sit inside it |
 | `group <id>` ... `end` | Opens the same group again to add boxes later. Write the name and attributes only the first time |
-| `box <id> as <name> [note: ..., icon: ...]` | A part. Boxes outside any group are allowed |
+| `box <id> as <name> [note: ..., icon: ...]` | A part. Boxes outside any group are allowed, and are drawn between the groups they are written between |
 | `<from> -> <to>: <label>` | Something moving from one part to another, across groups too |
 | `act <id>: <action>` | Work done inside a part |
 | `note <id>: <text>` | Rewrites the caption under a part from this step on |

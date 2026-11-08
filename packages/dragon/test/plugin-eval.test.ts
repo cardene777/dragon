@@ -21,11 +21,36 @@ const RECORD = join(EVALS, "record.json");
 const MIN_RUNS = 3;
 
 interface Entry {
+  /** 記録の形の版。2 から AI が保存した図の数と崩れの数を持つ (#3546) */
+  version?: number;
   fingerprint: string;
   runs: number;
   passed: number;
   claude: string;
   date: string;
+  /** AI が保存した図の数 */
+  diagrams?: number;
+  /** `dragon check --layout` の崩れが残る図の数 */
+  broken?: number;
+  /** 検査が失敗したか記法の誤りで、崩れを数えられなかった図の数 */
+  unchecked?: number;
+}
+
+/** 記録の形を読む module。記録を書く script も同じ module で版を書く (#3546) */
+const FORM = join(ROOT, "scripts/plugin-eval-form.mjs");
+
+interface FormModule {
+  RECORD_VERSION: number;
+  entryProblems: (name: string, entry: Entry | undefined) => string[];
+}
+
+async function form(): Promise<FormModule> {
+  expect(existsSync(FORM), `${relative(ROOT, FORM)} が無い`).toBe(true);
+  return (await import(FORM)) as FormModule;
+}
+
+function readRecord(): Record<string, Entry> {
+  return JSON.parse(readFileSync(RECORD, "utf8")) as Record<string, Entry>;
 }
 
 /** ケースの dir の下の file を全て、ケースの dir からの path の順に */
@@ -45,21 +70,88 @@ function caseFingerprint(dir: string): string {
   return hash.digest("hex");
 }
 
-function checkRecorded(name: string): void {
+async function checkRecorded(name: string): Promise<void> {
   const dir = join(EVALS, name);
   expect(existsSync(join(dir, "prompt.md")), `評価のケース ${relative(ROOT, dir)} が無い`).toBe(true);
   expect(existsSync(RECORD), `${relative(ROOT, RECORD)} が無い`).toBe(true);
   if (!existsSync(join(dir, "prompt.md")) || !existsSync(RECORD)) return;
-  const entry = (JSON.parse(readFileSync(RECORD, "utf8")) as Record<string, Entry>)[name];
+  const entry = readRecord()[name];
   expect(entry, `${name} を回した記録が無い`).toBeDefined();
   expect(entry?.fingerprint, `${name} のケースを書き換えた後に回し直していない`).toBe(caseFingerprint(dir));
   expect(entry?.runs ?? 0, `${name} を回した回数が少ない`).toBeGreaterThanOrEqual(MIN_RUNS);
   expect(entry?.passed, `${name} の回のうち通らなかった回がある`).toBe(entry?.runs);
+  // AI が描いた図の崩れは、記録の形が数を持つ版でだけ読める。古い形は数えていないので通さない
+  const { entryProblems } = await form();
+  expect(entryProblems(name, entry), `${name} の記録が通らない理由`).toEqual([]);
 }
+
+/** 評価のケースの名前。ケースの dir の下に `prompt.md` を持つ dir */
+const CASES = readdirSync(EVALS).filter((name) => existsSync(join(EVALS, name, "prompt.md"))).sort();
+
+describe("評価の記録が AI の描いた図の崩れの数を持つ (#3546)", () => {
+  it("plugin-eval-record-counts-ai-diagrams", () => {
+    expect(CASES, "評価のケースが無い").not.toEqual([]);
+    const record = readRecord();
+    const counts = CASES.map((name) => record[name]?.diagrams);
+    expect(counts.every((count) => Number.isInteger(count)), `AI が保存した図の数を持たないケースがある: ${JSON.stringify(Object.fromEntries(CASES.map((name, at) => [name, counts[at]])))}`).toBe(true);
+    // 図が 0 枚なら崩れ 0 件は何も確かめていないので、全てのケースを合わせて 1 枚以上を求める
+    const total = counts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
+    expect(total, "評価で AI が保存した図が 1 枚も無い").toBeGreaterThanOrEqual(1);
+  });
+
+  it("plugin-eval-record-rejects-old-form", async () => {
+    const { entryProblems, RECORD_VERSION } = await form();
+    expect(RECORD_VERSION, "崩れの数を持つ形の版").toBe(2);
+    const old: Entry = { fingerprint: "f", runs: 3, passed: 3, claude: "2.1.319", date: "2026-11-08" };
+    const counted: Entry = { ...old, version: 2, diagrams: 4, broken: 0, unchecked: 0 };
+    expect(entryProblems("layout-bridge", old).join("\n"), "版を持たない記録を通す").toMatch(/layout-bridge.*古い形.*回し直す/u);
+    expect(entryProblems("layout-bridge", { ...old, version: 1 }).join("\n"), "版 1 の記録を通す").toMatch(/古い形/u);
+    expect(entryProblems("layout-bridge", { ...old, version: 3 }).join("\n"), "知らない版の記録を通す").toMatch(/古い形|知らない形/u);
+    expect(entryProblems("layout-bridge", undefined).join("\n"), "記録の無いケースを通す").toMatch(/記録が無い/u);
+    expect(entryProblems("layout-bridge", counted), "数を持ち崩れの無い記録を断る").toEqual([]);
+    expect(entryProblems("layout-bridge", { ...counted, broken: 2 }).join("\n"), "崩れの残る記録を通す").toMatch(/2枚.*崩れ/u);
+    expect(entryProblems("layout-bridge", { ...counted, unchecked: 1 }).join("\n"), "崩れを数えられなかった図を 0 件と読む").toMatch(/1枚.*数えられなかった/u);
+    const { diagrams: _drop, ...noCount } = counted;
+    expect(entryProblems("layout-bridge", noCount).join("\n"), "図の数を持たない記録を通す").toMatch(/図の数/u);
+  });
+});
 
 describe("skill を入れた Claude が崩れを伝える評価 (#3484)", () => {
   it("layout-bridge", () => checkRecorded("layout-bridge"));
   it("layout-payment", () => checkRecorded("layout-payment"));
+
+  // 返答が崩れの段を名指したかの見分け。日本語の「第3段」「3段目」も名指しと読み、「5段で進む図」のような段の数は名指しと読まない
+  it("plugin-eval-judge-reads-step-names", async () => {
+    const script = join(ROOT, "scripts/plugin-eval-judge.mjs");
+    expect(existsSync(script), `${relative(ROOT, script)} が無い`).toBe(true);
+    if (!existsSync(script)) return;
+    const { namesStep } = (await import(script)) as { namesStep: (reply: string, step: number) => boolean };
+    const named: [string, number][] = [
+      ["段 3 で番号が浮く", 3],
+      ["段3の番号", 3],
+      ["ステップ 3 の札", 3],
+      ["Step 3 badge", 3],
+      ["第3段の段番号が橋の形から浮いてしまう", 3],
+      ["第 3 段で", 3],
+      ["3段目の番号", 3],
+      ["第3ステップ", 3],
+    ];
+    for (const [reply, step] of named) expect(namesStep(reply, step), `「${reply}」を段 ${step} の名指しと読まない`).toBe(true);
+    const unnamed: [string, number][] = [
+      ["5段で進む図にして保存しました", 5],
+      ["段 13 で番号が浮く", 3],
+      ["第13段", 3],
+      ["13段目", 3],
+      ["段 3", 1],
+    ];
+    for (const [reply, step] of unnamed) expect(namesStep(reply, step), `「${reply}」を段 ${step} の名指しと読む`).toBe(false);
+  });
+
+  it("plugin-eval-record-judges-with-judge-module", () => {
+    const record = readFileSync(join(ROOT, "scripts/plugin-eval-record.mjs"), "utf8");
+    expect(record, "記録の script が段の名指しを見分ける module を使わない").toMatch(/import\s*\{[^}]*\bnamesStep\b[^}]*\}\s*from\s*"\.\/plugin-eval-judge\.mjs"/u);
+    expect(record, "記録の script が段の名指しの見分けを自分で持つ").not.toMatch(/const\s+namesStep\s*=/u);
+  });
 });
 
 /** 評価のために fork の代わりに作る写しの repo と、偽の `gh` を置いた dir */
@@ -111,6 +203,23 @@ describe("skill を入れた Claude がブロックを足して PR を出す評�
     expect(logged, "偽の gh が受けた引数を順に残さない").toEqual(calls);
   });
 
+  // 本物の gh は --body-file の file が無いと終わり方 1 で断る。偽の gh が通すと、AI は本文を渡し損ねたことに気付けない
+  it("plugin-eval-stand-in-gh-rejects-missing-body", async () => {
+    const script = join(ROOT, "scripts/plugin-eval-stand-in.mjs");
+    const { makeStandIn } = (await import(script)) as { makeStandIn: (options: { root: string; dir: string }) => StandIn };
+    const dir = mkdtempSync(join(tmpdir(), "dragon-stand-in-"));
+    const standIn = makeStandIn({ root: ROOT, dir });
+    const env = { ...process.env, PATH: `${standIn.bin}:${process.env.PATH ?? ""}` };
+    const missing = join(dir, "no-body.md");
+    for (const flag of [["--body-file", missing], ["-F", missing], [`--body-file=${missing}`]]) {
+      const args = ["issue", "create", "--repo", "cardene777/dragon", "--title", "feat: x", ...flag];
+      const ran = spawnSync("gh", args, { cwd: standIn.repo, encoding: "utf8", env, timeout: 10_000 });
+      expect(ran.status, `偽の gh ${args.join(" ")} が無い本文の file を通す`).toBe(1);
+      expect(ran.stderr, "断りの文が本物の gh と違う").toContain(`open ${missing}: no such file or directory`);
+      expect(ran.stdout, "断ったのに Issue の URL を返す").toBe("");
+    }
+  });
+
   it("block-pr", () => checkRecorded("block-pr"));
 });
 
@@ -131,7 +240,8 @@ interface GalleryProblem {
 
 /** 頁を作る時に使う道具。崩れを数える、段の数を読む、1 つの段を PNG に書き出すの 3 つ */
 interface GalleryTools {
-  breaks: (file: string) => Promise<{ problems?: GalleryProblem[]; error?: string }>;
+  /** `blocks` は図と一緒に渡すブロックの定義の file (`dragon check --blocks`) */
+  breaks: (file: string, blocks?: string) => Promise<{ problems?: GalleryProblem[]; error?: string }>;
   steps: (file: string) => Promise<number | undefined>;
   png: (file: string, step: number | undefined, dest: string) => Promise<{ error?: string }>;
 }
@@ -143,8 +253,16 @@ interface GalleryRun {
   why?: string[];
 }
 
+/** 1 つのケースで AI が保存した図の数と、崩れの残る図の数と、崩れを数えられなかった図の数 */
+interface BreakCount {
+  diagrams: number;
+  broken: number;
+  unchecked: number;
+}
+
 interface GalleryModule {
   writeGallery: (options: { cases: { name: string; runs: GalleryRun[] }[]; page: string; tools: GalleryTools; known?: string[] }) => Promise<string>;
+  countBreaks?: (options: { cases: { name: string; runs: GalleryRun[] }[]; tools: GalleryTools; known?: string[] }) => Promise<Record<string, BreakCount>>;
   cliTools: (cli: string) => GalleryTools;
 }
 
@@ -175,6 +293,8 @@ interface FakeDiagram {
   steps?: number;
   /** 書き出しが投げる誤りの文 */
   pngThrows?: string;
+  /** この定義の file (`sealed` からの path) を一緒に渡さないと、記法の誤りになる */
+  needsBlocks?: string;
 }
 
 /** 偽の道具が書く PNG の中身。頁が埋めた絵がどの段の物かを中身で見分ける */
@@ -182,14 +302,18 @@ const pngBytes = (name: string, step: number | undefined): Buffer => Buffer.from
 const brk = (step: number, message: string): GalleryProblem => ({ severity: "warning", message, layout: { step } });
 
 /** Chromium を起こさない偽の道具と、道具を呼んだ記録 */
-function fakeTools(diagrams: Record<string, FakeDiagram>): { tools: GalleryTools; calls: { breaks: string[]; png: [string, number | undefined][] } } {
-  const calls = { breaks: [] as string[], png: [] as [string, number | undefined][] };
+function fakeTools(diagrams: Record<string, FakeDiagram>): { tools: GalleryTools; calls: { breaks: string[]; blocks: [string, string | undefined][]; png: [string, number | undefined][] } } {
+  const calls = { breaks: [] as string[], blocks: [] as [string, string | undefined][], png: [] as [string, number | undefined][] };
   const of = (file: string): FakeDiagram => diagrams[basename(file)] ?? {};
   const tools: GalleryTools = {
-    breaks: (file) => {
+    breaks: (file, blocks) => {
       calls.breaks.push(file);
+      calls.blocks.push([file, blocks]);
       const d = of(file);
-      return Promise.resolve(d.breakError === undefined ? { problems: d.problems ?? [] } : { error: d.breakError });
+      if (d.breakError !== undefined) return Promise.resolve({ error: d.breakError });
+      if (d.needsBlocks !== undefined && !(blocks ?? "").endsWith(d.needsBlocks))
+        return Promise.resolve({ problems: [{ severity: "error", message: "定義の無いブロックを使う" }] });
+      return Promise.resolve({ problems: d.problems ?? [] });
     },
     steps: (file) => Promise.resolve(of(file).steps),
     png: (file, step, dest) => {
@@ -316,6 +440,77 @@ describe("評価で AI が描いた図を 1 枚の頁に並べる (#3519)", () =
     expect(files, "頁に並べる図").toEqual(["home/cwd/packages/dragon/blocks/examples/vault.dragon", "tmp/claude-501/draft.dragon"]);
   });
 
+  it("plugin-eval-gallery-counts-breaks", async () => {
+    const { countBreaks } = await gallery();
+    expect(typeof countBreaks, "崩れを数える関数 countBreaks が無い").toBe("function");
+    if (countBreaks === undefined) return;
+    const root = mkdtempSync(join(tmpdir(), "dragon-count-"));
+    const example = "architecture 橋\n+bridge b as 橋\n";
+    const prepared = join(root, "template");
+    mkdirSync(join(prepared, "packages/dragon/blocks/examples"), { recursive: true });
+    writeFileSync(join(prepared, "packages/dragon/blocks/examples/bridge.dragon"), example);
+    const a = runDir(root, "e-a", {
+      "home/cwd/ok.dragon": "sequence 崩れ無し\n",
+      "home/cwd/bad.dragon": "sequence 崩れ有り\n",
+      "home/cwd/packages/dragon/blocks/examples/bridge.dragon": example,
+      "home/cwd/packages/dragon/blocks/vault.dragon": "// 金庫\nblocks 1\nblock +vault\n  base box\nend\n",
+    });
+    const b = runDir(root, "e-b", { "home/cwd/lost.dragon": "sequence 検査が落ちる\n", "home/cwd/wrong.dragon": "sequence 記法の誤り\n" });
+    const none = join(root, "e-none");
+    const { tools, calls } = fakeTools({
+      "bad.dragon": { problems: [brk(2, "段 2: 字がはみ出す"), brk(3, "段 3: 札が詰まる")] },
+      "lost.dragon": { breakError: "dragon が起きない" },
+      "wrong.dragon": { problems: [{ severity: "error", message: "1 行目: 知らない語" }] },
+    });
+    const counts = await countBreaks({
+      cases: [
+        { name: "demo", runs: [{ dir: a }, { dir: b }] },
+        { name: "empty", runs: [{ dir: none }] },
+      ],
+      tools,
+      known: [prepared],
+    });
+    // 崩れが 2 件ある図も 1 枚と数える。検査が落ちた図と記法の誤りで崩れを測れない図は、崩れ 0 件ではなく数えられなかった図にする
+    expect(counts, "ケースごとの数").toEqual({
+      demo: { diagrams: 4, broken: 1, unchecked: 2 },
+      empty: { diagrams: 0, broken: 0, unchecked: 0 },
+    });
+    expect(calls.png, "数えるだけで PNG を書き出した").toEqual([]);
+  });
+
+  /**
+   * 足したブロックを使う見本は、同じ実行で保存したそのブロックの定義と一緒に確かめないと、記法の誤りで崩れを測れない。
+   * 一時の dir (`tmp/`) の図は AI が試して捨てた写しで、本人の手元に残らないので数えない (頁には並べる)
+   */
+  it("plugin-eval-gallery-counts-what-the-ai-handed-over", async () => {
+    const { countBreaks } = await gallery();
+    expect(typeof countBreaks, "崩れを数える関数 countBreaks が無い").toBe("function");
+    if (countBreaks === undefined) return;
+    const root = mkdtempSync(join(tmpdir(), "dragon-count-"));
+    const definitions = "home/cwd/packages/dragon/blocks/vault.dragon";
+    const run = runDir(root, "e-block", {
+      [definitions]: "// 金庫\nblocks 1\nblock +vault\n  base box\nend\n",
+      "tmp/claude-501/other.dragon": "blocks 1\nblock +other\n  base box\nend\n",
+      "home/cwd/packages/dragon/blocks/examples/vault.dragon": "architecture 金庫\n+vault v as 金庫\n",
+      "home/cwd/plain.dragon": "sequence 素\n",
+      "tmp/claude-501/t.dragon": "architecture 試し\n",
+    });
+    const { tools, calls } = fakeTools({
+      "vault.dragon": { needsBlocks: definitions },
+      "t.dragon": { problems: [brk(3, "段 3: 段の番号が形から浮く")] },
+    });
+    const counts = await countBreaks({ cases: [{ name: "block", runs: [{ dir: run }] }], tools });
+    expect(counts, "渡した図の数").toEqual({ block: { diagrams: 2, broken: 0, unchecked: 0 } });
+    const sealed = join(run, "sealed");
+    expect(
+      calls.blocks.map(([file, blocks]) => [relative(sealed, file), blocks === undefined ? undefined : relative(sealed, blocks)]).sort(),
+      "見本に、それが使うブロックの定義を渡さない",
+    ).toEqual([
+      ["home/cwd/packages/dragon/blocks/examples/vault.dragon", definitions],
+      ["home/cwd/plain.dragon", undefined],
+    ]);
+  });
+
   it("plugin-eval-gallery-reports-tool-failure", async () => {
     const { writeGallery } = await gallery();
     const root = mkdtempSync(join(tmpdir(), "dragon-gallery-"));
@@ -398,6 +593,20 @@ describe("記録の script が評価の後に図の頁を書く (#3519)", () => 
     const last = [...text.matchAll(/console\.log\(/gu)].at(-1)?.index ?? -1;
     expect(last, "頁を書いた後に出力しない").toBeGreaterThan(call?.index ?? Infinity);
     expect(text.slice(last), "最後の出力に頁の置き場が無い").toContain(`\${${call?.[1] ?? "page"}}`);
+  });
+
+  it("plugin-eval-record-writes-break-counts", () => {
+    const text = readFileSync(RECORD_SCRIPT, "utf8");
+    expect(text, "崩れを数える関数を読まない").toMatch(/import \{[^}]*\bcountBreaks\b[^}]*\} from "\.\/plugin-eval-gallery\.mjs";/u);
+    expect(text, "記録の形の版を読まない").toMatch(/import \{[^}]*\bRECORD_VERSION\b[^}]*\} from "\.\/plugin-eval-form\.mjs";/u);
+    const count = text.indexOf("await countBreaks(");
+    const record = text.indexOf("writeFileSync(RECORD");
+    expect(count, "崩れを数えない").toBeGreaterThan(-1);
+    expect(count, "record.json を書いた後に崩れを数える").toBeLessThan(record);
+    const entry = /record\[evalCase\.name\] = \{([\s\S]*?)\};/u.exec(text)?.[1] ?? "";
+    for (const field of ["version: RECORD_VERSION", "diagrams", "broken", "unchecked"]) {
+      expect(entry, `ケースの記録に ${field} を書かない`).toContain(field);
+    }
   });
 
   it("plugin-eval-record-header-says-publish-gallery", () => {

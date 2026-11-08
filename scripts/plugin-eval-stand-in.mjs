@@ -56,6 +56,9 @@ function fakeGh(fallback) {
     "appendFileSync(log, JSON.stringify(args) + '\\n');",
     "const at = args.findIndex((a) => a === '--body-file' || a === '-F');",
     "const body = at >= 0 ? args[at + 1] : args.find((a) => a.startsWith('--body-file='))?.slice('--body-file='.length);",
+    // 本物の gh は本文の file が無いと、その旨を出して終わり方 1 で断る。通すと AI は本文を渡し損ねたことに気付けない (#3546)。
+    // gh api の -F は本文の file でなく値を渡す設定なので見ない
+    "if (args[0] !== 'api' && body !== undefined && body !== '-' && !existsSync(body)) { process.stderr.write('open ' + body + ': no such file or directory\\n'); process.exit(1); }",
     "const count = readFileSync(log, 'utf8').trimEnd().split('\\n').length;",
     `if (body !== undefined && existsSync(body)) copyFileSync(body, join(dir, ${JSON.stringify(ghBody("COUNT"))}.replace('COUNT', String(count))));`,
     `if (args[0] === 'pr' && args[1] === 'create') console.log(${JSON.stringify(PR_URL)});`,

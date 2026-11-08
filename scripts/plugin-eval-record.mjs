@@ -23,6 +23,9 @@
  * - `issue` の印のケースは、`.dragon` を保存し、偽の `gh` に `issue create` を `--repo cardene777/dragon` と `feat:` で始まる題で渡し、
  *   本文の dragon の囲みの記法がこの repo の `dragon check` を通り、`dragon export` の後に Issue を立て、`pr create` を渡していないかを見る (#3513)。
  *
+ * ケースの記録は版 2 の形 (`plugin-eval-form.mjs`) で、AIが保存した図の数と、`dragon check --layout`の崩れが残る図の数と、
+ * 崩れを数えられなかった図の数を持つ (#3546)。数は記録を書く前に囲いの外で数える (`countBreaks`)。検査は、崩れの残る図と数えられなかった図が0枚の記録だけを通す。
+ *
  * 記録を書いた後に、AIが描いた図を1枚の頁に並べる (`plugin-eval-gallery.mjs`、#3519)。
  * 各実行で保存した`.dragon`ごとに、最後の段と`dragon check --layout`が崩れを知らせた段を、囲いの外でPNGに書き出し、
  * ケースごと・実行ごとに崩れの数と並べて、写しのdirの`gallery.html`に書く。頁の置き場は出力の最後の行に出す。
@@ -47,7 +50,9 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import { cliTools, writeGallery } from "./plugin-eval-gallery.mjs";
+import { RECORD_VERSION } from "./plugin-eval-form.mjs";
+import { namesStep } from "./plugin-eval-judge.mjs";
+import { cliTools, countBreaks, writeGallery } from "./plugin-eval-gallery.mjs";
 import { BASE_TAG, GH_LOG, GH_TMP_DIR, ghBody, makeStandIn } from "./plugin-eval-stand-in.mjs";
 
 const ROOT = process.cwd();
@@ -120,15 +125,14 @@ function breakSteps(file) {
   };
 }
 
-/** 返答が段 `step` を名指すか */
-const namesStep = (reply, step) =>
-  new RegExp(`(?:段|ステップ|Step|step)\\s*${step}(?!\\d)`, "u").test(reply);
-
 /** ケースの印。`prompt.md` の頭の `tags: [...]` */
 function tagsOf(name) {
   const head = readFileSync(join(EVALS, name, "prompt.md"), "utf8");
   const tags = /^tags:\s*\[([^\]]*)\]/mu.exec(head)?.[1] ?? "";
-  return tags.split(",").map((tag) => tag.trim()).filter((tag) => tag !== "");
+  return tags
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter((tag) => tag !== "");
 }
 
 /** 崩れを伝えるケースの確かめ。通らない理由と、崩れの段の並びを返す */
@@ -164,12 +168,17 @@ function optionValue(args, names) {
 /** この repo の `dragon check` を回し、通らない時は理由を返す */
 function checkWithRepoCli(args) {
   const ran = spawnSync(process.execPath, [CLI, "check", ...args], { encoding: "utf8" });
-  return ran.status === 0 ? undefined : `dragon check ${args.join(" ")} の終わり方 ${ran.status}: ${(ran.stdout + ran.stderr).trim()}`;
+  return ran.status === 0
+    ? undefined
+    : `dragon check ${args.join(" ")} の終わり方 ${ran.status}: ${(ran.stdout + ran.stderr).trim()}`;
 }
 
 /** 偽の `gh` の記録を全て読む。写しの repo の `.git` と一時の dir の下の 2 つの置き場を見る。`count` は記録の何行目か */
 function ghCallsUnder(base) {
-  const logs = [...globSync(`sealed/**/.git/${GH_LOG}`, { cwd: base }), ...globSync(`sealed/**/${GH_TMP_DIR}/${GH_LOG}`, { cwd: base })];
+  const logs = [
+    ...globSync(`sealed/**/.git/${GH_LOG}`, { cwd: base }),
+    ...globSync(`sealed/**/${GH_TMP_DIR}/${GH_LOG}`, { cwd: base }),
+  ];
   return logs.flatMap((log) => {
     const dir = dirname(join(base, log));
     return readFileSync(join(base, log), "utf8")
@@ -183,27 +192,37 @@ function ghCallsUnder(base) {
 /** 合う種類の無い図を描いてから Issue を立てるケースの確かめ (#3513)。通らない理由と、Issue の題を返す */
 function judgeIssue(base, tracePath) {
   const why = [];
-  if (globSync("sealed/**/*.dragon", { cwd: base }).length === 0) why.push("保存した .dragon が無い");
+  if (globSync("sealed/**/*.dragon", { cwd: base }).length === 0)
+    why.push("保存した .dragon が無い");
   // 描いて見せてから頼む。書き出しより先に Issue を立てた run は通さない
   const commands = existsSync(tracePath) ? bashCommands(tracePath) : [];
   const exported = commands.findIndex((command) => /dragon[^\s"]*\s+export\b/u.test(command));
   const filed = commands.findIndex((command) => /\bgh\s+issue\s+create\b/u.test(command));
-  if (filed !== -1 && (exported === -1 || exported > filed)) why.push("dragon export で書き出す前に gh issue create を呼んだ");
+  if (filed !== -1 && (exported === -1 || exported > filed))
+    why.push("dragon export で書き出す前に gh issue create を呼んだ");
   const calls = ghCallsUnder(base);
-  if (calls.some(({ args }) => args[0] === "pr" && args[1] === "create")) why.push("gh pr create を呼んだ");
+  if (calls.some(({ args }) => args[0] === "pr" && args[1] === "create"))
+    why.push("gh pr create を呼んだ");
   const last = calls.filter(({ args }) => args[0] === "issue" && args[1] === "create").at(-1);
   if (last === undefined) return { why: [...why, "gh issue create を呼んでいない"], note: "" };
   const target = optionValue(last.args, ["--repo", "-R"]);
-  if (target !== "cardene777/dragon") why.push(`gh issue create の宛先が cardene777/dragon でない: ${target ?? "なし"}`);
+  if (target !== "cardene777/dragon")
+    why.push(`gh issue create の宛先が cardene777/dragon でない: ${target ?? "なし"}`);
   const title = optionValue(last.args, ["--title", "-t"]);
   if (!title?.startsWith("feat:")) why.push(`Issue の題が feat: で始まらない: ${title ?? "なし"}`);
   const bodyPath = join(last.dir, ghBody(last.count));
-  const body = existsSync(bodyPath) ? readFileSync(bodyPath, "utf8") : optionValue(last.args, ["--body", "-b"]) ?? "";
+  const body = existsSync(bodyPath)
+    ? readFileSync(bodyPath, "utf8")
+    : (optionValue(last.args, ["--body", "-b"]) ?? "");
   const fence = /^```dragon\n([\s\S]*?)^```/mu.exec(body)?.[1];
   if (fence === undefined) why.push("Issue の本文に試した記法の dragon の囲みが無い");
   else {
-    const ran = spawnSync(process.execPath, [CLI, "check", "-"], { input: fence, encoding: "utf8" });
-    if (ran.status !== 0) why.push(`Issue の本文の記法が dragon check を通らない: ${(ran.stdout + ran.stderr).trim()}`);
+    const ran = spawnSync(process.execPath, [CLI, "check", "-"], {
+      input: fence,
+      encoding: "utf8",
+    });
+    if (ran.status !== 0)
+      why.push(`Issue の本文の記法が dragon check を通らない: ${(ran.stdout + ran.stderr).trim()}`);
   }
   return { why, note: `Issue の題 ${title ?? "なし"}` };
 }
@@ -229,7 +248,8 @@ function treeOf(dir) {
  */
 function judgePr(base, template) {
   const heads = globSync("sealed/**/.git/refs/tags/" + BASE_TAG, { cwd: base });
-  if (heads.length !== 1) return { why: [`作業場所に写しの repo が 1 つでない (${heads.length} 個)`], note: "" };
+  if (heads.length !== 1)
+    return { why: [`作業場所に写しの repo が 1 つでない (${heads.length} 個)`], note: "" };
   const gitDir = join(base, dirname(dirname(dirname(heads[0]))));
   const repo = dirname(gitDir);
   const before = treeOf(template);
@@ -237,39 +257,65 @@ function judgePr(base, template) {
   const all = [
     ...[...after.keys()].filter((path) => !before.has(path)).map((path) => ["A", path]),
     ...[...before.keys()].filter((path) => !after.has(path)).map((path) => ["D", path]),
-    ...[...after.keys()].filter((path) => before.has(path) && !before.get(path).equals(after.get(path))).map((path) => ["M", path]),
+    ...[...after.keys()]
+      .filter((path) => before.has(path) && !before.get(path).equals(after.get(path)))
+      .map((path) => ["M", path]),
   ];
   const blocksDir = "packages/dragon/blocks/";
-  const added = all.filter(([status, path]) => status === "A" && path.startsWith(blocksDir)).map(([, path]) => path);
-  const definitions = added.filter((path) => /^packages\/dragon\/blocks\/[a-z0-9-]+\.dragon$/u.test(path));
-  const examples = added.filter((path) => /^packages\/dragon\/blocks\/examples\/[a-z0-9-]+\.dragon$/u.test(path));
-  const touched = all.filter(([status, path]) => status !== "A" || path.startsWith("packages/")).filter(([, path]) => !added.includes(path));
+  const added = all
+    .filter(([status, path]) => status === "A" && path.startsWith(blocksDir))
+    .map(([, path]) => path);
+  const definitions = added.filter((path) =>
+    /^packages\/dragon\/blocks\/[a-z0-9-]+\.dragon$/u.test(path),
+  );
+  const examples = added.filter((path) =>
+    /^packages\/dragon\/blocks\/examples\/[a-z0-9-]+\.dragon$/u.test(path),
+  );
+  const touched = all
+    .filter(([status, path]) => status !== "A" || path.startsWith("packages/"))
+    .filter(([, path]) => !added.includes(path));
   const why = [];
   if (definitions.length !== 1 || examples.length !== 1 || added.length !== 2)
     why.push(`共有のブロック集に足した file が定義と見本の 1 つずつでない: [${added.join(", ")}]`);
   else if (definitions[0].split("/").at(-1) !== examples[0].split("/").at(-1))
     why.push(`定義と見本の file の名前が違う: ${definitions[0]} と ${examples[0]}`);
-  if (touched.length > 0) why.push(`ほかの file を変えた: [${touched.map(([status, path]) => `${status} ${path}`).join(", ")}]`);
+  if (touched.length > 0)
+    why.push(
+      `ほかの file を変えた: [${touched.map(([status, path]) => `${status} ${path}`).join(", ")}]`,
+    );
   if (definitions.length === 1) {
     const definition = join(repo, definitions[0]);
-    const failed = [checkWithRepoCli([definition]), ...examples.map((example) => checkWithRepoCli(["--blocks", definition, join(repo, example)]))];
+    const failed = [
+      checkWithRepoCli([definition]),
+      ...examples.map((example) => checkWithRepoCli(["--blocks", definition, join(repo, example)])),
+    ];
     why.push(...failed.filter((reason) => reason !== undefined));
   }
   const logPath = join(gitDir, GH_LOG);
   const calls = existsSync(logPath)
-    ? readFileSync(logPath, "utf8").trimEnd().split("\n").filter((line) => line !== "").map((line) => JSON.parse(line))
+    ? readFileSync(logPath, "utf8")
+        .trimEnd()
+        .split("\n")
+        .filter((line) => line !== "")
+        .map((line) => JSON.parse(line))
     : [];
-  const creates = calls.map((args, index) => ({ args, index })).filter(({ args }) => args[0] === "pr" && args[1] === "create");
-  if (calls.some((args) => args[0] === "pr" && args[1] === "merge")) why.push("gh pr merge を呼んだ");
+  const creates = calls
+    .map((args, index) => ({ args, index }))
+    .filter(({ args }) => args[0] === "pr" && args[1] === "create");
+  if (calls.some((args) => args[0] === "pr" && args[1] === "merge"))
+    why.push("gh pr merge を呼んだ");
   const last = creates.at(-1);
   if (last === undefined) why.push("gh pr create を呼んでいない");
   const title = last === undefined ? undefined : optionValue(last.args, ["--title", "-t"]);
   if (last !== undefined) {
     const target = optionValue(last.args, ["--repo", "-R"]);
-    if (target !== "cardene777/dragon") why.push(`gh pr create の宛先が cardene777/dragon でない: ${target ?? "なし"}`);
+    if (target !== "cardene777/dragon")
+      why.push(`gh pr create の宛先が cardene777/dragon でない: ${target ?? "なし"}`);
     if (!title?.startsWith("feat:")) why.push(`PR の題が feat: で始まらない: ${title ?? "なし"}`);
     const bodyPath = join(gitDir, ghBody(last.index + 1));
-    const body = existsSync(bodyPath) ? readFileSync(bodyPath, "utf8") : optionValue(last.args, ["--body", "-b"]) ?? "";
+    const body = existsSync(bodyPath)
+      ? readFileSync(bodyPath, "utf8")
+      : (optionValue(last.args, ["--body", "-b"]) ?? "");
     if (!body.includes("pnpm verify")) why.push("PR の本文が pnpm verify に触れない");
   }
   return { why, note: `足した file [${added.join(", ")}] PR の題 ${title ?? "なし"}` };
@@ -407,7 +453,8 @@ for (const evalCase of result.cases) {
       .filter((g) => !g.passed)
       .map((g) => `${g.name} (${g.explanation})`);
     const why = [...failedGraders, ...judged.flatMap((j) => j.why)];
-    if (judged.length === 0) why.push(`確かめ方の印 (layout か pr か issue) が無い: [${tags.join(", ")}]`);
+    if (judged.length === 0)
+      why.push(`確かめ方の印 (layout か pr か issue) が無い: [${tags.join(", ")}]`);
     const ok = run.passed && why.length === 0;
     if (ok) passed++;
     shown.push({ dir: base, passed: ok, why });
@@ -416,12 +463,27 @@ for (const evalCase of result.cases) {
       `${evalCase.name} run${index + 1}: ${ok ? "通った" : "落ちた"} ${note}${why.length > 0 ? ` 理由: ${why.join(" / ")}` : ""} 記録: ${run.tracePath}`,
     );
   });
+  // AI が保存した図の崩れを囲いの外で数える。数える図は頁に並べる図と同じ (#3546)
+  const { diagrams, broken, unchecked } = (
+    await countBreaks({
+      cases: [{ name: evalCase.name, runs: shown }],
+      tools: cliTools(CLI),
+      known: [standIn.repo],
+    })
+  )[evalCase.name];
+  console.log(
+    `${evalCase.name}: AIが保存した図 ${diagrams}枚、崩れの残る図 ${broken}枚、崩れを数えられなかった図 ${unchecked}枚`,
+  );
   record[evalCase.name] = {
+    version: RECORD_VERSION,
     fingerprint: caseFingerprint(join(EVALS, evalCase.name)),
     runs: runs.length,
     passed,
     claude: result.claudeVersion,
     date,
+    diagrams,
+    broken,
+    unchecked,
   };
 }
 writeFileSync(RECORD, `${JSON.stringify(record, null, 2)}\n`);
@@ -429,5 +491,10 @@ console.log(
   `${relative(ROOT, RECORD)} を書いた。費用 ${result.costUsd} USD。写しと結果は ${relative(ROOT, work)}`,
 );
 // 囲いの外なのでChromiumで書き出せる。写しのrepoから作業場所に置かれた見本は、AIが保存した図に数えない
-const page = await writeGallery({ cases: gallery, page: join(work, "gallery.html"), tools: cliTools(CLI), known: [standIn.repo] });
+const page = await writeGallery({
+  cases: gallery,
+  page: join(work, "gallery.html"),
+  tools: cliTools(CLI),
+  known: [standIn.repo],
+});
 console.log(`AIが描いた図を並べた頁: ${page}`);

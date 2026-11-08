@@ -1,0 +1,33 @@
+// 評価でAIが書いた図 (#3546)。2つのグループの間に書いた共有の +bridge が下のグループ Base の下に置かれ、
+// 段2のトークンからブリッジへの線が Base を縦に貫いて「Base受け取り口」の字を横切っていた
+architecture EthereumからBaseへトークンをブリッジする
+
+group l1 as Ethereum [note: 送り元のチェーン, color: blue, icon: chain]
+  box user as 利用者のウォレット [note: トークンを送る, icon: user]
+  box token as トークン [note: ERC-20, icon: card]
+end
+
++bridge bridge as ブリッジ [note: トークンを預かる]
+
+group l2 as Base [note: 受け取り先のチェーン, color: green, icon: chain]
+  box portal as Base受け取り口 [note: 受け取りを確かめる, icon: key]
+  box wallet as Base側のウォレット [note: トークンを受け取る, icon: user]
+end
+
+step 送る量を許可する
+  say 利用者がトークンのコントラクトに、ブリッジが100トークンを動かしてよいと許可する。
+  user -> token: approve
+
+step ブリッジに預ける
+  say 利用者がブリッジに入金を頼み、トークンがブリッジに移ってロックされる。
+  user -> bridge: 入金する
+  token -> bridge: 100トークン [carry: coin]
+  act bridge: ロックしてメッセージを出す
+
+step 中継者が運ぶ
+  say 中継者がEthereum上の入金メッセージを拾い、Baseの受け取り口まで運ぶ。
+  bridge +relay portal: 入金メッセージ
+
+step Base側で受け取る
+  say 確認が済むと同じ量のトークンがBase側で作られ、利用者のウォレットに届く。
+  portal -> wallet: 100トークン [carry: coin]
