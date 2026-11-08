@@ -240,10 +240,13 @@ export function mountDiagram(
   };
   /** 配管の図を描いた時の枠の幅 (#3418)。0 は幅を渡さずに描いた図 */
   let drawnWidth = 0;
-  /** 配管の図を枠の幅 `w` で描く設定。開いた `[fold]` の呼び出しと、測れた時は枠の幅を渡す。並べ方は狭い枠で字を大きくする (#3418) */
+  /**
+   * 配管の図を枠の幅 `w` で描く設定。開いた `[fold]` の呼び出しと、測れた時は枠の幅を渡す。並べ方は狭い枠で字を大きくする (#3418)。
+   * 読める大きさで始める図は寄せて読むので、狭い枠でも広い枠と同じ並べ方で描き、大きくした字をさらに寄せない (#3483)
+   */
   const pipeOptions = (w: number): RenderOptions => {
     drawnWidth = w;
-    return { ...options, open, ...(w > 0 ? { width: w } : {}) };
+    return { ...options, open, ...(w > 0 && !(options.zoom && w < ZOOM.fit) ? { width: w } : {}) };
   };
   // 描けない図は頁に何も置く前に断る
   let rendered = renderDiagram(source, isPipeSource(source) ? pipeOptions(hostWidth()) : options);
@@ -487,11 +490,12 @@ export function mountDiagram(
   /**
    * 拡大していない配管の図の幅 (px)。枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。
    * ただし収めると残高の字が読めない図は、字が読める幅で置いて横に送る (#3450)。
-   * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)
+   * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)。
+   * 読める大きさで始める図は、縮めた時に全体を見せるので、残高の字に関わらず枠の幅に収める (#3483)
    */
   const baseWidth = (): number => {
     const w = frameWidth();
-    return w < ZOOM.fit ? Math.min(rendered.layout.width, Math.max(w, readableWidth())) : rendered.layout.width;
+    return w < ZOOM.fit ? Math.min(rendered.layout.width, Math.max(w, options.zoom ? 0 : readableWidth())) : rendered.layout.width;
   };
   /**
    * 読める大きさで始める図 (`zoom: "readable"`) の拡大の度合い (#3483)。並べた図で最も小さい関係者の名前の字が、画面で
@@ -518,14 +522,18 @@ export function mountDiagram(
     thumb.style.left = `${(frame.scrollLeft / total) * 100}%`;
     thumb.style.width = `${(Math.min(frameWidth(), total) / total) * 100}%`;
   };
-  /** 一続きの範囲 `[x, x + size)` を、幅 `view` の窓に入れる送り位置。入らない時は真ん中を窓の真ん中に置く。`total` は送れる全体の長さ */
-  const reach = (x: number, size: number, view: number, total: number): number => {
+  /**
+   * 一続きの範囲 `[x, x + size)` を、幅 `view` の窓に入れる送り位置。入らない時は真ん中を窓の真ん中に置き、`start` が真なら範囲の頭を窓の頭に置く。
+   * `total` は送れる全体の長さ
+   */
+  const reach = (x: number, size: number, view: number, total: number, start = false): number => {
     const middle = x + size / 2 - view / 2;
-    const fits = size <= view ? Math.min(Math.max(middle, x + size - view), x) : middle;
+    const fits = size <= view ? Math.min(Math.max(middle, x + size - view), x) : start ? x : middle;
     return Math.round(Math.min(Math.max(0, fits), Math.max(0, total - view)));
   };
   /**
    * 今の段に関わる関係者の所へ送る。関わる関係者が枠に収まる時は全員を枠に入れ、収まらない時は真ん中を枠の真ん中に置く。
+   * 読める大きさで始めた狭い枠では、真ん中に置くとどの関係者の名前も枠に入らないので、左の端の関係者を枠の左に置く (#3483)。
    * 拡大して縦にも送る図は、縦も同じく送る (#3418)。流している時は滑らかに送り、動きを嫌う設定と止めて送る時は一度に送る
    */
   const panTo = (): void => {
@@ -533,7 +541,7 @@ export function mountDiagram(
     const k = scale();
     const focus = (rendered.layout as { focus?: (Rect & { step: number })[] }).focus?.find((f) => f.step === step);
     if (focus) {
-      const left = reach(focus.x * k, focus.w * k, frameWidth(), shownWidth());
+      const left = reach(focus.x * k, focus.w * k, frameWidth(), shownWidth(), readableZoom() > ZOOM.min);
       const tall = zoom > ZOOM.min && frame.clientHeight > 0;
       const top = tall ? reach(focus.y * k, focus.h * k, frame.clientHeight, frame.scrollHeight) : frame.scrollTop;
       if (playing && !reduce && typeof frame.scrollTo === "function") frame.scrollTo({ left, top, behavior: "smooth" });

@@ -951,6 +951,8 @@ describe("狭い枠で配管の図を箱の名前が読める大きさから始�
   /** 箱の名前を画面で読める字の大きさの下限 (`look/values.ts` の `READABLE_PX`) */
   const READABLE_PX = 10.5;
   const PHONE = 390;
+  /** 狭い枠の並べ方 (残高と札の字を大きくした図) にならない広い枠の幅 */
+  const WIDE = 1200;
   const SOURCE = "swap.json";
   /** 置く側が渡す、箱の名前が読める大きさで始める設定 */
   const READABLE = { lang: "ja", zoom: "readable" } as PlayerOptions;
@@ -976,23 +978,27 @@ describe("狭い枠で配管の図を箱の名前が読める大きさから始�
     };
     /** 置いた図の幅 (px) */
     const shown = (): number => Number.parseFloat(frame().querySelector<SVGElement>("svg")?.style.width || "0");
+    /** 並べた図の幅。描いた図の `viewBox` の幅 */
+    const drawn = (): number => Number(frame().querySelector("svg")?.getAttribute("viewBox")?.split(" ")[2] ?? Number.NaN);
     /** 画面で見える箱の名前の字の大きさ (px)。図の中の字の大きさに、置いた図の幅と並べた図の幅の比を掛ける */
-    const namePx = (): number => (PIPE_TYPE.party.size * shown()) / laid(width()).width;
+    const namePx = (): number => (PIPE_TYPE.party.size * shown()) / drawn();
     const level = (): string => host.querySelector('[data-dragon="zoom-level"]')?.textContent ?? "";
-    return { host, player, frame, shown, namePx, level };
+    return { host, player, frame, shown, drawn, namePx, level };
   }
 
   it("player-pipe-readable-zoom-names", () => {
-    const { frame, namePx } = place(() => PHONE, READABLE);
+    const { frame, drawn, namePx } = place(() => PHONE, READABLE);
     expect(namePx(), `幅 ${PHONE} の枠に置いた ${SOURCE} の箱の名前の字`).toBeGreaterThanOrEqual(READABLE_PX);
     // 倍率は箱の名前の字から求め、読める大きさを拡大の釦 1 回分より大きく超えない
     expect(namePx(), `幅 ${PHONE} の枠に置いた ${SOURCE} の箱の名前の字が大きすぎる`).toBeLessThan(READABLE_PX * 1.25);
     expect(frame().dataset.dragon, "寄せた図を横に送る枠にしていない").toBe("pan");
+    // 寄せて読む図は広い枠と同じ並べ方で描く。狭い枠で大きくした残高と札の字を、さらに寄せて枠からはみ出させない
+    expect(drawn(), "狭い枠の並べ方 (残高と札の字を大きくした図) を寄せている").toBeCloseTo(laid(WIDE).width, -1);
   });
 
   it("player-pipe-readable-zoom-frame-height", () => {
     const { frame, shown } = place(() => PHONE, READABLE);
-    const layout = laid(PHONE);
+    const layout = laid(WIDE);
     expect(shown(), "図を寄せていない").toBeGreaterThan(PHONE);
     // 枠を寄せた図の高さまで伸ばし、枠の中を縦に送らない
     expect(Number.parseFloat(frame().style.height), "枠の高さが寄せた図の高さでない").toBeCloseTo((shown() * layout.height) / layout.width, 0);
@@ -1003,22 +1009,28 @@ describe("狭い枠で配管の図を箱の名前が読める大きさから始�
     expect(frame().dataset.dragon, "寄せた図を横に送る枠にしていない").toBe("pan");
     const thumb = host.querySelector<HTMLElement>('[data-dragon="overview"] [data-dragon="overview-thumb"]');
     expect(thumb, "全体のどこを見ているかを示す線が無い").not.toBeNull();
-    const layout = laid(PHONE);
+    const layout = laid(WIDE);
     const k = shown() / layout.width;
     expect(layout.focus.length, `${SOURCE} の段に関わる関係者の所`).toBeGreaterThan(0);
     const lefts = new Set<number>();
+    let apart = 0;
     for (const focus of layout.focus) {
       player.goTo(focus.step);
       const left = frame().scrollLeft;
       lefts.add(left);
       const lo = focus.x * k;
       const hi = (focus.x + focus.w) * k;
-      // 段に関わる関係者が枠に収まる時は全員を枠に入れ、収まらない時は真ん中を枠の真ん中に置く
+      // 段に関わる関係者が枠に収まる時は全員を枠に入れ、収まらない時は左の端の関係者を枠の左に置く。
+      // 真ん中を枠の真ん中に置くと、狭い枠ではどの関係者の名前も枠に入らない
       if (hi - lo <= PHONE) expect(lo >= left - 1 && hi <= left + PHONE + 1, `段 ${focus.step + 1} に関わる関係者が枠の中に無い`).toBe(true);
-      else expect(left + PHONE / 2 >= lo && left + PHONE / 2 <= hi, `段 ${focus.step + 1} の枠の真ん中が関わる関係者の間に無い`).toBe(true);
+      else {
+        apart += 1;
+        expect(left, `段 ${focus.step + 1} の左の端の関係者が枠の左に無い`).toBeCloseTo(Math.min(lo, shown() - PHONE), -1);
+      }
       expect(Number.parseFloat(thumb?.style.left ?? ""), `段 ${focus.step + 1} の全体の線の位置`).toBeCloseTo((left / shown()) * 100, 0);
     }
     expect(lefts.size, "段を進めても枠を送らない").toBeGreaterThan(1);
+    expect(apart, `${SOURCE} に関わる関係者が枠に収まらない段が無い (左の端へ送る形を確かめていない)`).toBeGreaterThan(0);
   });
 
   it("player-pipe-readable-zoom-steps-back-to-whole", () => {
