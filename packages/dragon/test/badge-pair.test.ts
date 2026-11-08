@@ -20,8 +20,9 @@ import type { Diagram } from "../src/schema";
 
 const FIXTURES = join(process.cwd(), "packages/dragon/test/fixtures");
 
-function fixture(file: string): Diagram {
-  const parsed = parseNotation(readFileSync(join(FIXTURES, file), "utf8"));
+function fixture(file: string, unnamed = false): Diagram {
+  const text = readFileSync(join(FIXTURES, file), "utf8");
+  const parsed = parseNotation(unnamed ? text.replace(/(-> \S+): \S+/g, "$1") : text);
   if (!parsed.ok) throw new Error(parsed.errors.map((e) => e.message).join(" / "));
   return parsed.diagram;
 }
@@ -88,7 +89,9 @@ describe("短い線の段の番号を線の始まりに置く (#3189)", () => {
   });
 
   it("badge-crowd-aside-clear-of-lines", () => {
-    const { layout } = renderDiagram(fixture("crowd-side.dragon"));
+    // 線の名前の置き場を空けると帯の間が広がって線が長くなり、番号が混まない (#3552)。
+    // 名前を外した形で、帯の間を狭いままにして番号を混ませる
+    const { layout } = renderDiagram(fixture("crowd-side.dragon", true));
     const aside = layout.badges.flatMap((b) => {
       const { point, edge } = badgeOf(layout, b.step);
       return distanceTo(point, edge.points) > 0.5 ? [{ step: b.step, point, edge }] : [];
