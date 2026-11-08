@@ -1,6 +1,6 @@
 # Layout breaks
 
-`dragon check` reads the notation without drawing it, so a diagram can pass it and still look broken once drawn: step numbers piled up, two lines running on top of each other, or a coin slot or label sticking out of a shaped box.
+`dragon check` reads the notation without drawing it, so a diagram can pass it and still look broken once drawn: step numbers piled up, two lines running on top of each other, a line running across a name, or a coin slot or label sticking out of a shaped box.
 `dragon check --layout` draws the diagram and reports these breaks.
 It looks at every step, at the default width and at a phone width of 390px.
 
@@ -24,6 +24,7 @@ dragon check --layout --json order.dragon
 |---|---|
 | `badges-close` | Two step numbers seen together are less than one number's radius apart, so they read as one blob |
 | `lines-close` | Two straight runs of different lines go side by side less than one step number's width apart |
+| `line-crosses-text` | A line runs across a text with no label behind it, such as a box name or the name of a node in a try diagram's network |
 | `badge-off-shape` | A step number sits on the rectangle of a shaped box (`+bridge`, a hexagon) but floats away from the shape you see |
 | `slot-outside-shape` | The slot a coin or envelope waits in sticks out of a shaped box |
 | `text-outside-shape` | A box name or the text under it sticks out of a shaped box |
@@ -34,6 +35,7 @@ Fix one break, run `dragon check --layout` again, and repeat. A fix often clears
 
 - `badges-close` between lines that leave the same box toward different boxes: Reorder the boxes, for example swap the order of two boxes in a group, so the lines leave from different sides.
 - `lines-close` and `badges-close` between a request and its reply on the same two boxes (`api -> oracle` then `oracle -> api`): dragon draws the two lines a fixed distance apart, so moving boxes does not help. When the reply only brings back a value and its line style does not matter, write it as `note api: <value>` on the asking box instead of a second line. Otherwise keep it and report it.
+- `line-crosses-text` on the network of a try diagram, where a line that skips a column (`you - builder` next to `you - a - b - builder`) runs under the names of the nodes in that column: Write that path through a node of the column it skips when the explanation allows it. Otherwise keep it and report it.
 - `text-outside-shape` where the text sticks out at the sides: Shorten the box name or the text under it (`note:`, `act <id>:`, `note <id>:`). The box gets narrower with the text, so check again: a narrower box can push the slot out instead.
 - `text-outside-shape` below a shape with no room at the bottom (the arch of `+bridge`), `slot-outside-shape` and `badge-off-shape`: Use a plain `box` with an `icon:` when the explanation does not need that shape. Otherwise keep it and report it.
 

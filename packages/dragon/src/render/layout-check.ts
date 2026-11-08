@@ -84,6 +84,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         ? t.sticksOut(name(a), name(b2))
         : b.kind === "badges-close"
           ? t.tooClose(name(a), name(b2))
-          : t.runClose(name(a), name(b2));
+          : b.kind === "line-crosses-text" && a.kind === "line"
+            ? t.lineCrosses(a.from, a.to, name(b2))
+            : t.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

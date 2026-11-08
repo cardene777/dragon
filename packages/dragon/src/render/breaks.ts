@@ -4,13 +4,14 @@
  * 字の重なり (`ink.ts`) が拾わない 5 種を拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
  * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)。
+ * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  *
  * 重なって当然の組は数えない。線とその両端の箱、グループとその中の箱は、どの種類も比べない組なので数えない。
  * 箱の角に付いた番号の丸と、線の始まりの番号の丸とその線を出す箱の縁 (1px の間) は、丸が形に触れているので浮いた丸に数えない。
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
-import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
+import { crossesRect, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
 import { LOOK } from "../look/values";
 import { type Ink, type Trace, visible } from "./ink";
 import { signedDistance } from "./outline";
@@ -23,7 +24,7 @@ export type LayoutPart =
   | { kind: "text"; text: string; box?: string }
   | { kind: "line"; from: string; to: string; step: number };
 
-export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close";
+export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "line-crosses-text";
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -64,6 +65,11 @@ const BADGE_GAP = R;
 /** 並んだ線の間の下限と、並んで走る長さの下限。番号の丸 1 つ分より狭い間で丸 2 つ分より長く並ぶ線は 1 本の太い線に見える */
 const LINE_GAP = 2 * R;
 const LINE_ALONG = 2 * R;
+/**
+ * 線が字を横切ったとみなす食い込みの下限 (px)。字の重なり (`ink.ts` の `BITE`) と同じ値にし、書き出しが知らせる組と同じ組を数える。
+ * `ink.ts` は頁が最初に読む塊に在り、値を書き出すだけで最初に読む量が増えるので、ここに同じ値を置く
+ */
+const BITE = 0.5;
 
 /** 点から四角までの距離。四角の内の点は 0 */
 function distanceToRect([px, py]: Point, r: Rect): number {
@@ -173,6 +179,20 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       ]);
     }
   });
+
+  // 札を持たない字を横切る線。札の地は下の線を隠すので数えず、段の番号と図の部品は書き手が書いた字でないので数えない
+  for (const ink of inks) {
+    if (ink.boxed === true || ink.badge === true || ink.part !== undefined) continue;
+    for (const trace of traces) {
+      if (!crossesRect(trace.points, ink.rect, BITE)) continue;
+      const seen = firstSeen(ink, trace);
+      if (seen === undefined) continue;
+      add("line-crosses-text", seen, [
+        { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
+        { kind: "text", text: ink.text, ...(ink.box === undefined ? {} : { box: nameOf(ink.box) }) },
+      ]);
+    }
+  }
 
   const seen = new Set<string>();
   return out
