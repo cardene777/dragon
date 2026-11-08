@@ -1,0 +1,42 @@
+// skill を入れた Claude が評価で描いた図 (#3552)。4つの箱を1行に並べ、段2の APIサーバー → 価格オラクル の帰りの線が上に並び、
+// 段5の APIサーバー → 決済代行 が価格オラクルを避けて行の下を回る。段2の名前「為替レートを照会」は線の下に置く。
+// #3552 の前は、名前が自分の線より行の下を回る線の近くに在り、行の下を回る線の名前に読めた。今は行の下を回る道を行から離して描く。
+architecture 支払いの流れ
+
+blocks 1
+block +rate-oracle
+  base box
+  shape hexagon
+  color amber
+  icon tabler:broadcast
+end
+block +price
+  base edge
+  shape dotted
+  color amber
+end
+
+box app as 利用者のアプリ [note: 支払いを始める, color: slate, icon: app]
+box api as APIサーバー [note: 支払いをまとめる, color: blue, icon: server]
++rate-oracle oracle as 価格オラクル [note: 外部の為替レート]
+box psp as 決済代行 [note: 請求を処理する, color: green, icon: card]
+
+step 支払いを頼む
+  say 利用者のアプリがAPIサーバーに支払いを頼む。金額は利用者の通貨で届く。
+  app -> api: 支払いを依頼
+
+step 為替レートを聞く
+  say APIサーバーは請求の通貨に換算するため、外部の価格オラクルに今の為替レートを聞く。
+  api -> oracle: 為替レートを照会
+
+step 価格が返る
+  say オラクルが為替レートを返す。外部から届く値なので点線で区別している。
+  oracle +price api: 為替レート
+
+step 換算する
+  say APIサーバーは受け取ったレートで請求額を計算する。
+  act api: 請求額を換算
+
+step 請求を送る
+  say APIサーバーが換算した金額で決済代行に請求を送る。
+  api -> psp: 請求 [carry: coin]
