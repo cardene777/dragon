@@ -316,7 +316,7 @@ describe("入力の帯の欄の幅 (#3485)", () => {
     },
   );
 
-  // 次の行へ送った選ぶ欄は、その行に欄が少なくても行の幅いっぱいに伸ばさず、一番長い候補が収まる幅 (基準の幅より狭ければ基準の幅) に基準の幅を足した幅で止める
+  // 次の行へ送った選ぶ欄は、その行に欄が少なくても伸ばさず、一番長い候補が収まる幅 (基準の幅より狭ければ基準の幅) に留める (#3485、#3492)
   it(
     "try-ask-wrapped-choice-not-stretched",
     async () => {
@@ -328,8 +328,57 @@ describe("入力の帯の欄の幅 (#3485)", () => {
       for (const field of wrapped) {
         const least = Number.parseFloat(field.least);
         expect(Number.isFinite(least), `次の行へ送った選ぶ欄 ${field.name} が幅の下限 (--dg-field-min) を持たない`).toBe(true);
-        const most = Math.max(least, base) + base;
-        expect(field.width, `幅 740 の枠で、次の行へ送った選ぶ欄 ${field.name} の幅 ${field.width} が上限 ${most} を超えて伸びる`).toBeLessThanOrEqual(most + 0.5);
+        // 次の行へ送った欄は伸ばさず、一番長い候補が収まる幅 (基準の幅より狭ければ基準の幅) に留める (#3492)
+        const kept = Math.max(least, base);
+        expect(Math.abs(field.width - kept), `幅 740 の枠で、次の行へ送った選ぶ欄 ${field.name} の幅 ${field.width} が、一番長い候補が収まる幅 ${kept} と違い、伸びている`).toBeLessThanOrEqual(0.5);
+      }
+    },
+  );
+
+  // 1 行目の欄は今どおり伸びて行を埋める。伸ばさないのは次の行へ送った欄だけ (#3492)
+  it(
+    "try-ask-first-row-fills",
+    async () => {
+      const { row, fields } = await stripAt740(parsedTry(wideAskTry()));
+      const first = Math.min(...fields.map((field) => field.bottom));
+      const right = Math.max(...fields.filter((field) => field.bottom === first).map((field) => field.right));
+      expect(row.right - right, `幅 740 の枠で、1 行目の右端の欄の右端 ${right} が帯の右端 ${row.right} から 1px より離れ、1 行目の欄が行を埋めない`).toBeLessThanOrEqual(1);
+    },
+  );
+
+  // 選ぶ欄の矢印はブラウザに描かせず、dragon が欄の中に描く。矢印の右端から欄の右の縁までを、字の左端から欄の左の縁までと揃え、矢印を字と重ねない (#3492)
+  it(
+    "try-ask-arrow-matches-inset",
+    async () => {
+      const html = await htmlOf(parsedTry(wideAskTry()));
+      const { result } = await withPage(html, 1280, async (page) => {
+        await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
+        return page.evaluate(() =>
+          [...document.querySelectorAll<HTMLElement>('form[data-dragon="ask"] .dg-field')].flatMap((field) => {
+            const select = field.querySelector("select");
+            if (!select) return [];
+            const box = select.getBoundingClientRect();
+            const style = getComputedStyle(select);
+            const caret = field.querySelector(".dg-caret")?.getBoundingClientRect();
+            return [
+              {
+                name: select.dataset.field ?? "",
+                appearance: style.appearance,
+                textGap: Number.parseFloat(style.borderLeftWidth) + Number.parseFloat(style.paddingLeft),
+                caretGap: caret ? box.right - caret.right : Number.NaN,
+                caretLeft: caret ? caret.left : Number.NaN,
+                textEnd: box.right - Number.parseFloat(style.borderRightWidth) - Number.parseFloat(style.paddingRight),
+              },
+            ];
+          }),
+        );
+      });
+      expect(result.map((field) => field.name), "選ぶ欄の数").toHaveLength(5);
+      for (const field of result) {
+        expect(field.appearance, `選ぶ欄 ${field.name} がブラウザの矢印を描く (appearance が none でない)`).toBe("none");
+        expect(Number.isFinite(field.caretGap), `選ぶ欄 ${field.name} に dragon が描いた矢印 (.dg-caret) が無い`).toBe(true);
+        expect(Math.abs(field.caretGap - field.textGap), `選ぶ欄 ${field.name} の矢印の右端から縁まで ${field.caretGap} が、字の左端から縁まで ${field.textGap} と揃わない`).toBeLessThanOrEqual(0.5);
+        expect(field.caretLeft, `選ぶ欄 ${field.name} の矢印の左端 ${field.caretLeft} が、字を置ける所の右端 ${field.textEnd} より左に在り、字と重なる`).toBeGreaterThanOrEqual(field.textEnd - 0.5);
       }
     },
   );
