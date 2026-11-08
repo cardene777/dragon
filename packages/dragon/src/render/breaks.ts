@@ -12,6 +12,7 @@
  * 箱の角に付いた番号の丸と、線の始まりの番号の丸とその線を出す箱の縁 (1px の間) は、丸が形に触れているので浮いた丸に数えない。
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
+import { heldIn, type Seat } from "../blocks/carry/timing";
 import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
 import { LOOK } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
@@ -161,6 +162,10 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
 
   const badges = inks.filter((ink) => ink.badge === true);
   const shaped = boxes.filter((b) => outlines.has(b.id));
+  // 運ぶ物が見えている所と間 (#3518)。運ぶ物は箱の名札と段の番号の印を持たない字として残り、置き場の枠の中に中心を持つ字は運ぶ物だけ
+  const seats = inks.flatMap((ink) =>
+    ink.box === undefined && ink.badge !== true ? ink.shown.map(([a, b]): Seat => [...centerOf(ink.rect), a, b]) : [],
+  );
   for (const ink of badges) {
     const center = centerOf(ink.rect);
     const r = ink.rect.w / 2;
@@ -199,9 +204,9 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
         [slot.x + slot.w, slot.y + slot.h],
         [slot.x, slot.y + slot.h],
       ];
-      // 硬貨の枠は初めから最後まで見えている
+      // 置き場の枠は運ぶ物が座っている間だけ見えるので、座り始める段の 1 件にする。運ぶ物が座らない枠は見えないので数えない (#3518)
       if (corners.some(outside))
-        add("slot-outside-shape", stills.length > 0 ? 1 : undefined, [
+        add("slot-outside-shape", firstSeen({ shown: heldIn(slot, seats) }), [
           { kind: "slot", box: box.name },
           { kind: "box", name: box.name },
         ]);

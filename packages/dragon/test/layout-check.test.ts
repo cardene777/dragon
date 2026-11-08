@@ -49,6 +49,8 @@ const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
 const BRIDGE = join(FIXTURES, "bridge.dragon");
 /** 自分で定義した `+oracle` (六角形) と `+price` (点線) を使い、段 2 と段 3 の線と丸が詰まる図 */
 const PAYMENT = join(FIXTURES, "payment.dragon");
+/** アーチの形の金庫が硬貨を送り出すだけで、金庫の置き場に運ぶ物が一度も座らない図 (#3518) */
+const SEND_ONLY = join(FIXTURES, "send-only.dragon");
 /** 重なって当然の組だけを持つ図 */
 const INTENDED = join(FIXTURES, "intended.dragon");
 /** 見本に今ある崩れの一覧。見本の file ごとに崩れを並べる */
@@ -105,9 +107,10 @@ const fromTime = (t: number): [number, number][] => [[t, Number.POSITIVE_INFINIT
  * #3520 の前に背景のブリッジの図を描いた時の、アーチの箱の段 3 までの姿。
  * 描く処理は今アーチを箱に収まるよう大きくするので、崩れを持つ姿は描いた座標を写して組む。
  * アーチは 100 四方の path を幅 200、高さ 72 の枠へ伸ばし、頂が枠の上から 25.2、底が 50.4 に来る。
- * 硬貨の枠はアーチの頂より上に、段 3 の下の字はアーチの底より下に、段 3 の番号は箱の四角の左上の角に在る。名前はアーチの内に在る
+ * 硬貨の枠はアーチの頂より上に、段 3 の下の字はアーチの底より下に、段 3 の番号は箱の四角の左上の角に在る。名前はアーチの内に在る。
+ * 硬貨は段 2 にブリッジへ着いて枠に座る。`held` が偽の時は硬貨を持たず、枠に運ぶ物が一度も座らない姿にする (#3518)
  */
-function brokenArch(): Parameters<typeof findBreaks>[0] {
+function brokenArch(held = true): Parameters<typeof findBreaks>[0] {
   const box = { id: "bridge", name: "ブリッジ", color: "violet" as const, x: 0, y: 0, w: 200, h: 72, cx: 100, cy: 36, slot: { x: 85, y: 8, w: 30, h: 24 } };
   const outline = flattenPath("M 0 70 Q 50 0 100 70 Z").map((ring) => ring.map(([x, y]): [number, number] => [x * 2, y * 0.72]));
   return {
@@ -115,6 +118,8 @@ function brokenArch(): Parameters<typeof findBreaks>[0] {
       { text: "ブリッジ", rect: { x: 74, y: 37.6, w: 52, h: 13 }, shown: fromTime(0), box: "bridge" },
       { text: "100 USDC を預かり中", rect: { x: 50, y: 54.2, w: 100, h: 11 }, shown: fromTime(3), box: "bridge" },
       { text: "3", rect: { x: -BADGE_R, y: -BADGE_R, w: BADGE_R * 2, h: BADGE_R * 2 }, shown: fromTime(3), badge: true },
+      // 運ぶ物は箱の名札と段の番号の印を持たない字として残る。真ん中が置き場の枠の中に在る間、枠が見える
+      ...(held ? [{ text: "100 USDC", rect: { x: 92, y: 12, w: 16, h: 16 }, shown: fromTime(2) }] : []),
     ],
     traces: [],
     // 時間軸の囲みの崩れ (#3527) と図の枠の崩れ (#3515) はこの姿で確かめないので、囲みに収める部品を持たせず、枠は箱の大きさにする
@@ -204,9 +209,19 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
 
   it("layout-check-merges-repeated-steps", () => {
     const found = findBreaks(brokenArch()) as LayoutBreak[];
-    // 硬貨の枠は段 1 から最後の段までアーチからはみ出したまま見えている
+    // 置き場の枠は運ぶ物が座っている間だけ見える (#3518)。硬貨は段 2 にブリッジへ着き、それから後の段で枠はアーチからはみ出したまま見えている
     const slots = found.filter((b) => b.kind === "slot-outside-shape");
-    expect(slots.map((b) => b.step), "続く段の同じ崩れを最初の段の 1 件にまとめない").toEqual([1]);
+    expect(slots.map((b) => b.step), "続く段の同じ崩れを、硬貨が座り始める段 2 の 1 件にまとめない").toEqual([2]);
+  });
+
+  it("layout-check-skips-slot-never-held", async () => {
+    // アーチの形の金庫は硬貨を送り出すだけで、硬貨は金庫の置き場で待たない。見えない枠のはみ出しは知らせない (#3518)
+    const { found } = await layoutOf(SEND_ONLY);
+    expect(found.filter((b) => b.kind === "slot-outside-shape"), "運ぶ物が一度も座らない枠のはみ出しを知らせる").toEqual([]);
+    // 形を持つ箱は中身が収まるまで大きくなり、描いた図には形の崩れが無い (#3520)。崩れを持つ #3520 の前のアーチの姿で、座らない枠を数えないことも確かめる
+    const empty = findBreaks(brokenArch(false)) as LayoutBreak[];
+    expect(empty.filter((b) => b.kind === "slot-outside-shape"), "運ぶ物が一度も座らないアーチの枠のはみ出しを知らせる").toEqual([]);
+    expect(empty.filter((b) => b.kind === "text-outside-shape" && hasBox(b, "ブリッジ")).length, "アーチの形の崩れを測っていない").toBeGreaterThan(0);
   });
 
   it("layout-check-names-narrow-width", async () => {

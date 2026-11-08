@@ -193,11 +193,11 @@
 | 段の番号はその段の線の上に在る | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`edge-step-badge-on-its-line`が通る | #3175 |
 | 状態遷移図で段が終わった後も、その段の線の名前を薄く残し、普通の濃さで見える線の名前はどの時刻でも 2 個以下 | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-keeps-past-line-names-faint`が通る | #3175 |
 | 脇道の囲みは右上に在り、始まりの印とその添え書きに重ならない | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-renders-side-path-top-right`が通る | #3175 |
-| 構成図と状態遷移図で運ぶ物が箱に着いて留まる時、運ぶ物は絵柄の右の置き場に在り、絵柄と名前と下の字に重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`carrier-rests-beside-icon`が通る | #3176 |
+| 構成図と状態遷移図で着いた運ぶ物は絵柄の右の置き場に留まり、絵柄と名前と下の字に重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`carrier-rests-beside-icon`が通る | #3176 #3518 |
 | 同じ段に同じ箱へ着く 2 つの運ぶ物は、置き場に横に並んで重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`carriers-in-one-box-side-by-side`が通る | #3176 |
-| 運ぶ物を出し入れする箱は、初めの段から絵柄の右に点線の置き場の枠を持ち、出し入れしない箱は枠を持たずに絵柄を真ん中に置く | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`slot-frame-only-on-carrier-boxes`が通る | #3176 |
+| 運ぶ物を出し入れする箱は絵柄の右に置き場の場所を持ち、出し入れしない箱は場所を持たずに絵柄を真ん中に置く | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`slot-frame-only-on-carrier-boxes`が通る | #3176 #3518 |
 | 置き場の枠と留まる札は箱の右上の済んだ印に重ならず、長い札 (例 `#1042`) が着く箱は札が枠に収まる幅に広がる | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`slot-clear-of-done-mark`が通る | #3176 |
-| 構成図と状態遷移図で、走り出す前の運ぶ物は出る箱の置き場で待ち、段の番号に重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`carrier-waits-in-slot-before-departing`が通る | #3176 |
+| 構成図と状態遷移図で走り出す前の運ぶ物は出る箱の置き場で待ち、段の番号に重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`carrier-waits-in-slot-before-departing`が通る | #3176 #3518 |
 | 時系列図で、着いた運ぶ物は生存線の向こう側に留まって矢印の先に重ならず、走り出す前の運ぶ物は出る生存線の手前側で待って段の番号に重ならない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`sequence-carrier-beside-lifeline`が通る | #3176 |
 | 運ぶ物が絵柄に重なる図を描いた時、`overlaps` がその運ぶ物と絵柄と段の番号を 1 件ずつ持つ | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-lists-carrier-over-icon`が通る | #3176 |
 | 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples` の全ての見本の全ての段で、留まる運ぶ物と走り出す前の運ぶ物が、絵柄と名前と下の字と段の番号と矢印の先に重ならない | `pnpm exec vitest run apps/playground-spa/src/lib/carrier-slot.test.ts`の検査`carriers-clear-in-every-example`が通る | #3176 |
@@ -375,3 +375,8 @@
 | `dragon export`に`--lang`を渡さずに字の重なる日本語の図を書き出した時、標準エラーの重なりの行は今と同じ英語の文の形 (`Step 2: ... overlap`) のまま、引用する字は図に描いた日本語の字 (`"今回は通らない"`と`"脇道"`) になる | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps-without-lang`が通る | #3516 |
 | `dragon export`に`--lang`を渡さずに日本語の図を渡した時、命令が出す文は今と同じ英語で出る。`playwright-core`とChromiumが無い時の断り、書き出し先に書けない時の文、記法の行の誤りの文、形の誤りのある日本語のJSONを描けない時の断り (`Cannot draw the diagram:`) がこれに当たる | `pnpm exec vitest run packages/dragon/test/cli-language.test.ts packages/dragon/test/export-language.test.ts`の検査`cli-export-refusal-default-english`と`cli-cannot-create-out-dir-follows-language`と`cli-notation-errors-follow-lang`と`export-refusal-default-english`が通る | #3516 |
 | `exportDiagram`に`lang`を渡さずに日本語の原本のJSON (`oauth.json`) をHTMLに書き出した時、頁の`lang`属性と頁に渡す言葉が`ja`になる | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-diagram-without-lang-follows-japanese-text`が通る | #3516 |
+| 構成図と状態遷移図の各段の止め絵で、置き場の点線の枠は運ぶ物が座っている間だけ見え、空の間は見えない | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`slot-frame-only-while-carrier-sits`が通る | #3518 |
+| 運ぶ物を使う注文の状態の図、橋の図、支払いの図の最後の段の止め絵に空の置き場の枠が1つも見えず、運ぶ物が座っている枠だけが見える | `pnpm exec vitest run packages/dragon/test/carrier-slot.test.ts`の検査`final-still-shows-no-empty-slot`が通る | #3518 |
+| 背景のブリッジの図をアーチの箱で描いた#3520の前の姿に崩れの検査を掛けると、アーチからはみ出す硬貨の枠を、硬貨が座り始める段2の1件で知らせる | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-merges-repeated-steps`が通る | #3518 |
+| 形を持つ箱の置き場に運ぶ物が一度も座らない図に`dragon check --layout`を打つと、その枠のはみ出しを知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-skips-slot-never-held`が通る | #3518 |
+| 背景のブリッジの図をアーチの箱で描いた#3520の前の姿に崩れの検査を掛けると、硬貨の枠がアーチの形からはみ出すことを1件の崩れとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-slot-outside-shape`が通る | #3518 |

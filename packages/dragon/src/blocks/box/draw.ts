@@ -17,6 +17,7 @@ import { ALWAYS, type Ink, type Shown } from "../../render/ink";
 import type { Motion } from "../../render/motion";
 import { activeKf, type Ctx, esc, r1, rangeKf, write } from "../../render/parts";
 import type { Span } from "../../timeline";
+import { heldIn } from "../carry/timing";
 import { cs } from "../color/draw";
 import { userBlockReader, userBoxOf } from "../../user-blocks";
 import { drawsIcon, glyph } from "../icon/draw";
@@ -121,10 +122,11 @@ export function card(
     : on.length > 0
       ? activeKf(ctx, on)
       : undefined;
-  // 置き場を持つ箱は絵柄を左へ寄せ、右に点線の枠を初めから見せる (#3176)
+  // 置き場を持つ箱は絵柄を左へ寄せ、右に置き場の場所を空ける (#3176)。
+  // 点線の枠は運ぶ物が座っている間だけ見せ、空の間は消す。最後の段に空の四角が残ると作りかけに見えるため (#3518)
   const ix = box.iconX ?? tx;
   const slot = box.slot
-    ? `<rect class="dg-slot" x="${r1(box.slot.x)}" y="${r1(box.slot.y)}" width="${r1(box.slot.w)}" height="${r1(box.slot.h)}" rx="${partRadius(ctx.corner, LOOK.slot.radius)}"/>`
+    ? `<g class="dg-a" style="${rangeKf(ctx.m, heldIn(box.slot, ctx.seats))}"><rect class="dg-slot" x="${r1(box.slot.x)}" y="${r1(box.slot.y)}" width="${r1(box.slot.w)}" height="${r1(box.slot.h)}" rx="${partRadius(ctx.corner, LOOK.slot.radius)}"/></g>`
     : "";
   let mark = "";
   if (drawsIcon(box.icon)) {
