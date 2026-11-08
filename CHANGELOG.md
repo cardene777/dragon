@@ -50,6 +50,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   The step text written after a send, the record numbers, the queue hint and the stopped-at row put a space around every name or number written in Latin letters or digits, as in `送金E が送信経路を通って全体の列に入った。`, `記録 1` and `次は上から 1 件`. They now read `送金Eが送信経路を通って全体の列に入った。`, `記録1` and `次は上から1件`. English text keeps its spaces, and the layout warnings that the CLI shows to authors are unchanged. The fingerprints of the 20 examples that draw a try diagram in Japanese changed with the text.
 
+- **Japanese text in diagrams other than try diagrams no longer puts spaces between Japanese and Latin letters or numbers** (#3517)
+
+  The side-path note of a state diagram, the times and the numbers after scale and period names in a time diagram, the amounts before token names in a pipe diagram and the screen-reader name of the step list put a space around every number or Latin name, as in `3 つの状態から入れる`, `12 秒`, `スロット 3200`, `10 ポイント` and `注文の流れ の段`. They now read `3つの状態から入れる`, `12秒`, `スロット3200`, `10ポイント` and `注文の流れの段`. A space between a Latin name and a number, as in `slot 3200` and `100 USDC`, stays, English text keeps its spaces, and the layout warnings that the CLI shows to authors are unchanged. The fingerprints of the 46 examples that draw a state diagram with a side path or a time diagram in Japanese changed with the text.
+
 ## [0.66.1] - 2026-11-08
 
 ### Fixed

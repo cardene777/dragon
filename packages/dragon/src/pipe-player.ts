@@ -18,7 +18,7 @@
  * 字は渡した言葉 (`FIGURE_TEXT`) で出す。この file は配管の図の描く部品と同じ塊 (`kinds/pipe.ts`) に入り、
  * 再生の部品は配管の図を描けた後に登録簿から引いて置く。見た目は置く時に頁へ 1 度だけ入れる。
  */
-import { FIGURE_TEXT } from "./figure-text";
+import { FIGURE_TEXT, joinWords } from "./figure-text";
 import { OP_TEXT } from "./kinds/pipe/layout";
 import { LOOK, TYPE } from "./look/values";
 import { checkPasses, isFault, PipeRun } from "./pipe-run";
@@ -148,7 +148,7 @@ export function callList(model: DiagramModel, lang: NotationLang): CallList {
         }
         case "move":
           if (!run.move(e))
-            main.push({ kind: "move", line: "solid", from: name(e.from), amount: `${e.amount} ${run.tokens.get(e.box) ?? name(e.box)}`, to: name(e.to), tag: w.flowTags.move });
+            main.push({ kind: "move", line: "solid", from: name(e.from), amount: joinWords(e.amount, run.tokens.get(e.box) ?? name(e.box)), to: name(e.to), tag: w.flowTags.move });
           break;
         case "emit":
           if (!isFault(run.emit())) rest.push({ kind: "emit", line: "none", from: actor(), amount: `${e.name}(${(e.args ?? []).join(", ")})`, to: "", tag: w.flowTags.emit });

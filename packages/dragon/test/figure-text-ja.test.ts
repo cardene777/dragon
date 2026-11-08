@@ -55,7 +55,7 @@ interface Placed {
 const parsed = (source: string): Json => {
   const read = api("parseNotation")(source, { lang: "ja" });
   expect(read.ok, `記法を読めない: ${JSON.stringify(read.ok ? [] : read.errors)}`).toBe(true);
-  return (read.ok ? read.diagram : {}) as Json;
+  return read.ok ? read.diagram : {};
 };
 
 const rendered = (diagram: Json, lang: Lang): { layout: Placed; texts: string[] } => {
