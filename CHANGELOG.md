@@ -30,7 +30,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 - **The catalog no longer loads the descriptions of every part on its first screen** (#3531)
 
-  The script the catalog loads first carried the description of every part in both languages, 104 texts, because the page text read the whole `BLOCK_TEXT` table, though only a part's own page shows its description. Each block folder now keeps the description in its own `gallery/desc.ts`, next to the name in `gallery/text.ts`, and the build writes the descriptions to `blocks-desc.gen.ts`, which only the part page reads. A part page shows the same description as before. The script and CSS loaded first went from 186,296 to 179,169 bytes gzipped.
+  The script the catalog loads first carried the description of every part in both languages, 104 texts, because the page text read the whole `BLOCK_TEXT` table, though only a part's own page shows its description. Each block folder now keeps the description in its own `gallery/desc.ts`, next to the name in `gallery/text.ts`, and the build writes the descriptions to `blocks-desc.gen.ts`, which only the part page reads. A part page shows the same description as before. The script and CSS loaded first went from 186,249 to 179,131 bytes gzipped.
 
 - **Opening the catalog's home page no longer loads the Tabler icon table (about 225KB gzipped) in the background** (#3505)
 
