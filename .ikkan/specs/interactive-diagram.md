@@ -126,6 +126,14 @@
 | 常に、関門を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3478 |
 | `packages/dragon/package.json`の`version`が`0.65.2`で、英語と日本語の変更履歴の`## [0.65.2]`の節が`(#3478)`の項を持ち、その項が関門の記録を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-65-2-splits-gate-records`が通る | #3478 |
 | 5つの節を1列に並べた網の試す図を幅324で描くと、網の節の名札どうしが重ならず、どの名札も図の枠の内に収まる。隣の名札とぶつからない網の名札は今の位置のまま描く | `pnpm exec vitest run packages/dragon/test/interactive-gate-record.test.ts`の検査`try-route-labels-clear-narrow`が通る | #3478 |
+| 入力の帯を置いた時、`choose` で候補を書いた欄は、一番長い候補の字を`textWidth`で入力の字の型で測った幅に、左右の内側の余白と矢印の幅を足した値を、欄の幅の下限に持つ。候補を書かない入力の欄は今の基準の幅のまま | `pnpm exec vitest run packages/dragon/test/interactive-player.test.ts`の検査`try-ask-field-min-from-longest-choice`が通る | #3485 |
+| 欄を6つ持ち、1つの欄の候補に「順序付けの遅れ」を持つ試す図をChromiumで幅740の枠に置き、その候補を選んだ時、どの選択の欄の幅も、選んだ値の字の幅に左右の内側の余白と矢印の幅を足した値以上になる | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-choice-not-clipped`が通る | #3485 |
+| 同じ図を幅740の枠に置いた時、どの欄と釦も入力の帯の右端を超えず、1行に入らない欄は次の行に並ぶ | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-fields-wrap-in-strip`が通る | #3485 |
+| 常に、候補が短く欄が4つの試す図を幅740の枠に置くと、全ての欄と送る釦が1行に並ぶ | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-short-fields-one-row`が通る | #3485 |
+| 常に、幅390の枠では全ての操作が枠に収まって縦横44px以上の大きさを持ち、段の説明の帯の下に入力の帯が在る | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`interactive-controls-fit-390-at-44px`と`interactive-caption-above-controls`が通る | #3485 |
+| 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3485 |
+| `packages/dragon/package.json`の`version`が`0.65.3`で、英語と日本語の変更履歴の`## [0.65.3]`の節が`(#3485)`の項を持ち、その項が入力の帯の欄の幅を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-65-3-fits-ask-choices`が通る | #3485 |
+| 幅740の枠で次の行へ送った選ぶ欄は、一番長い候補が収まる幅 (基準の幅110より狭ければ110) に基準の幅110を足した幅より広がらない | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`try-ask-wrapped-choice-not-stretched`が通る | #3485 |
 | `mountDiagram`に`zoom: "readable"`を渡し、幅390の枠に見本`swap`を置くと、配管の図の箱の名前の字が画面で10.5px以上に見える倍率で置かれる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-names`が通る | #3483 |
 | その図は、枠を寄せた図の高さまで伸ばし、枠の中を縦に送らず横にだけ送る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-frame-height`が通る | #3483 |
 | その図で段を進めると、枠がその段に関わる関係者の所へ横に送られ、全体の線が枠の見ている所を示す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-follows-step`が通る | #3483 |
