@@ -165,3 +165,7 @@
 | 常に、網と待ち列と機械の列を`side`の行に書いた図は今どおり並び、細い枠では縦に積む | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-places-parts-in-a-row`と`interactive-side-queue-takes-chip-width`と`interactive-side-stacks-when-narrow`が通る | #3506 |
 | 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3506 |
 | 英語と日本語の変更履歴の`## [0.67.0]`の節が`(#3506)`と`(#3489)`の項を持ち、`(#3506)`の項が記録の列を名指し、Unreleased にどちらの項も残らない | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-67-0-side-log`が通る | #3506 |
+| 英字の名札で日本語の試す図の字を作った時、送った後の段の本文、止まった段の本文、集めた段の本文が和文と英数字の間に空白を持たず、どの字も和文と英数字の間に空白を持たない | `pnpm exec vitest run packages/dragon/test/try-text-ja.test.ts`の検査`try-text-ja-has-no-space-around-names`が通る | #3509 |
+| 英字の名札の試す図を日本語で描いた時、記録の番号が「記録1」、止まった節の行が「gateで止まった」、待ち行列の案内が「次は上から1件」と出る | `pnpm exec vitest run packages/dragon/test/try-text-ja.test.ts`の検査`try-ja-draws-labels-without-space`が通る | #3509 |
+| 常に、英語の試す図の記録の番号、待ち行列の案内、止まった節の行、止まった段の本文が今と同じ字で出る | `pnpm exec vitest run packages/dragon/test/try-text-ja.test.ts`の検査`try-text-en-keeps-spaces`が通る | #3509 |
+| 英語と日本語の変更履歴の`## [0.67.0]`の節が`(#3509)`の項を持ち、その項が空白を名指し、Unreleased にこの項が残らない | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-67-0-ja-space`が通る | #3509 |

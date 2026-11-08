@@ -42,6 +42,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   A log written on a `side` row, as in `side passed, rejects`, stopped reading with an error, although the README already said a `side` row places the log. The row now takes a log too: the queue keeps the width its chips need, and the log gets the rest and lays out as many records side by side as fit in that width. A log in a `side` row shows only one line of records and folds older ones into the `N older records` label, so the row no longer grows taller and leaves space under the queue as records arrive. A log with no records yet keeps only its title instead of leaving one empty record's height. A narrow frame stacks the parts as before.
 
+- **Japanese text that a try diagram writes no longer puts spaces between Japanese and Latin letters or numbers** (#3509)
+
+  The step text written after a send, the record numbers, the queue hint and the stopped-at row put a space around every name or number written in Latin letters or digits, as in `送金E が送信経路を通って全体の列に入った。`, `記録 1` and `次は上から 1 件`. They now read `送金Eが送信経路を通って全体の列に入った。`, `記録1` and `次は上から1件`. English text keeps its spaces, and the layout warnings that the CLI shows to authors are unchanged. The fingerprints of the 20 examples that draw a try diagram in Japanese changed with the text.
+
 ## [0.66.1] - 2026-11-08
 
 ### Fixed

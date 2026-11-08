@@ -241,6 +241,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-67-0-ja-space", () => {
+    // 試す図の日本語の自動の文から英字の前後の空白を外す直し (#3509) も 0.67.0 で出す
+    for (const [file, word] of [
+      ["CHANGELOG.md", /\bspaces?\b/iu],
+      ["CHANGELOG.ja.md", /空白/u],
+    ] as const) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.67\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.67.0"), "0.67.0");
+      expect(released, `${file} の 0.67.0 の節に #3509 の項が無い`).toContain("(#3509)");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した #3509 の項が残る`).not.toContain("(#3509)");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3509)")) ?? "";
+      expect(entry, `${file} の 0.67.0 の節の #3509 の項が空白 (${word.source}) を名指さない`).toMatch(word);
+    }
+  });
+
   it("changelog-0-67-0-caret-without-svg", () => {
     // 選ぶ欄の矢印を svg を使わずに描き、図を置いた頁の CSS で膨らまないようにする直し (#3499) は、main に入っていた絵柄集の機能 (#3493) と一緒に 0.67.0 で出す
     const [major = 0, minor = 0] = version().split(".").map(Number);

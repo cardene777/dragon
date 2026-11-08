@@ -4,7 +4,6 @@
  * 試す図を描く部品と再生の部品の操作は、軽い入口では試す図の塊 (`kinds/try.ts`) と一緒に後から読む。
  * 字もその塊にだけ入るよう、どの図でも使う字 (`figure-text.ts`) と分けて持つ。言葉の渡し方は `figure-text.ts` と同じ。
  */
-import { inner, led, spaced } from "./figure-text";
 import type { NotationLang } from "./words";
 
 export interface TryText {
@@ -62,52 +61,50 @@ export interface TryText {
   tryEditedBody: (field: string, from: string, to: string) => string;
 }
 
-/** 日本語の文で、名札を「と」でつなぐ。英数字の名札の端だけを空白で離す */
-const jaList = (names: readonly string[]): string => names.map((name, i) => (i === 0 ? spaced(name) : inner(name))).join("と");
 /** 英語の文で、名札を `,` と and でつなぐ */
 const enList = (names: readonly string[]): string =>
   names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1] ?? ""}`;
 
 export const TRY_TEXT: Record<NotationLang, TryText> = {
   ja: {
-    tryBlock: (n) => `ブロック ${n}`,
-    tryTakes: (n) => `次は上から ${n} 件`,
-    tryFolded: (n) => `古いブロック ${n} つ`,
-    tryRecord: (n) => `記録 ${n}`,
-    tryFoldedRecords: (n) => `古い記録 ${n} つ`,
-    tryStoppedAt: (node) => `${spaced(node)}で止まった`,
+    tryBlock: (n) => `ブロック${n}`,
+    tryTakes: (n) => `次は上から${n}件`,
+    tryFolded: (n) => `古いブロック${n}つ`,
+    tryRecord: (n) => `記録${n}`,
+    tryFoldedRecords: (n) => `古い記録${n}つ`,
+    tryStoppedAt: (node) => `${node}で止まった`,
     tryRetry: "再試行できる",
     tryResend: "直して送り直す",
-    tryStoppedBody: (name, node, error) => `${spaced(name)}が${inner(node)}の関門で止まった (${error})。`,
+    tryStoppedBody: (name, node, error) => `${name}が${node}の関門で止まった(${error})。`,
     tryAsk: "送る値",
     tryEditForm: "チップを書き換える",
     trySend: "送る",
     tryApply: "決める",
     tryClose: "閉じる",
-    tryEditField: (item, field) => `${spaced(item)}の${led(field)}`,
-    tryFull: (queue, most) => `${spaced(queue)}が満杯 (${most} 件) なので送れない`,
-    tryEmpty: (queue, press) => `${spaced(queue)}が空なので「${press}」を押せない`,
-    tryRefused: (queue, name) => `${spaced(queue)}は${inner(name)}を受け入れないので送れない`,
-    tryShort: (queue, press, take) => `${spaced(queue)}のチップが ${take} 件に満たないので「${press}」を押せない`,
+    tryEditField: (item, field) => `${item}の${field}`,
+    tryFull: (queue, most) => `${queue}が満杯(${most}件)なので送れない`,
+    tryEmpty: (queue, press) => `${queue}が空なので「${press}」を押せない`,
+    tryRefused: (queue, name) => `${queue}は${name}を受け入れないので送れない`,
+    tryShort: (queue, press, take) => `${queue}のチップが${take}件に満たないので「${press}」を押せない`,
     tryBlank: "全ての欄を埋めてから送る",
-    tryBadName: (field) => `${spaced(field)}に空白と [ ] 「 」 = : は使えない`,
+    tryBadName: (field) => `${field}に空白と [ ] 「 」 = : は使えない`,
     tryBlankEdit: "値を入れてから決める",
-    trySent: (name) => `${spaced(name)}を送った`,
+    trySent: (name) => `${name}を送った`,
     trySentBody: (name, into, via) =>
       via === undefined
-        ? `${spaced(name)}が${inner(into)}に入った。`
-        : `${spaced(name)}が${inner(via)}を通って${inner(into)}に入った。`,
+        ? `${name}が${into}に入った。`
+        : `${name}が${via}を通って${into}に入った。`,
     tryPressed: (press) => `「${press}」を押した`,
     tryPressedBody: (count, from, block) =>
-      `${spaced(from)}の上から ${count} 件がブロック ${block} に入った。`,
+      `${from}の上から${count}件がブロック${block}に入った。`,
     tryPressedRecordBody: (count, from, log, record) =>
-      `${spaced(from)}の上から ${count} 件が${inner(log)}の記録 ${record} に入った。`,
-    tryGatheredBody: (count, froms, block) => `${jaList(froms)}の上から ${count} 件ずつがブロック ${block} に入った。`,
+      `${from}の上から${count}件が${log}の記録${record}に入った。`,
+    tryGatheredBody: (count, froms, block) => `${froms.join("と")}の上から${count}件ずつがブロック${block}に入った。`,
     tryGatheredRecordBody: (count, froms, log, record) =>
-      `${jaList(froms)}の上から ${count} 件ずつが${inner(log)}の記録 ${record} に入った。`,
-    tryEdited: (item, field) => `${spaced(item)}の${inner(field)}を書き換えた`,
+      `${froms.join("と")}の上から${count}件ずつが${log}の記録${record}に入った。`,
+    tryEdited: (item, field) => `${item}の${field}を書き換えた`,
     tryEditedBody: (field, from, to) =>
-      `${spaced(field)}を ${from} から ${to} にした。ブロックの hash を出し直す。`,
+      `${field}を${from}から${to}にした。ブロックのhashを出し直す。`,
   },
   en: {
     tryBlock: (n) => `Block ${n}`,
