@@ -142,6 +142,44 @@ function brokenArch(held = true): Parameters<typeof findBreaks>[0] {
   };
 }
 
+/**
+ * 検査の見本`lane-overlap.dragon`の4つの箱と、段3の A → C と段4の B → D の線に、段4の名前「四」の札を `rect` に置いた姿の崩れ (#3552)。
+ * 線の座標は #3552 の途中で見本を描いた時の形で、A → C が外側、B → D が内側の道を回る。
+ * `redrawn` が真なら、段5で B → D を同じ道にもう一度引く
+ */
+function labelShape(rect: { x: number; y: number; w: number; h: number }, redrawn = false): LayoutBreak[] {
+  const ac: [number, number][] = [
+    [78, 104],
+    [78, 139.3],
+    [384, 139.3],
+    [384, 107],
+  ];
+  const bd: [number, number][] = [
+    [231, 104],
+    [231, 118],
+    [532, 118],
+    [532, 107],
+  ];
+  const box = (id: string, x: number) => ({ id, name: id.toUpperCase(), color: "blue" as const, x, y: 32, w: 92, h: 72, cx: x + 46, cy: 68 });
+  const edge = (from: string, to: string, step: number, points: [number, number][]) => ({ step: step - 1, event: 0, from, to, points, color: "blue" as const, carry: { kind: "none" as const } });
+  const boxes = [box("a", 32), box("b", 185), box("c", 338), box("d", 486)];
+  // 札の字は、描く処理が記録した札の四角と同じ物を持つ。検査は線の名前とその札の字を、四角が同じ物かで結ぶ
+  const label = { ...rect, step: 3, event: 0, text: "四", family: "sans" as const, color: "amber" as const };
+  const edges = [edge("a", "c", 3, ac), edge("b", "d", 4, bd), ...(redrawn ? [edge("b", "d", 5, bd.map(([x, y]): [number, number] => [x, y]))] : [])];
+  return findBreaks({
+    // 名前は段4の間だけ見える
+    inks: [{ text: "四", rect: label, shown: [[3.5, 4.5]], boxed: true }],
+    traces: edges.map((e) => ({ from: e.from, to: e.to, points: e.points, shown: fromTime(e.step + 0.5) })),
+    framed: [],
+    stills: redrawn ? [1, 2, 3, 4, 5] : [1, 2, 3, 4],
+    frame: { w: 610, h: 180 },
+    boxes,
+    edges,
+    outlines: new Map(),
+    layout: { kind: "architecture", width: 610, height: 180, regions: [], boxes, lifelines: [], edges, labels: [label], actions: [], badges: [], paths: [], ends: [] },
+  } as never) as LayoutBreak[];
+}
+
 /** file の中で、段 `step` (1 から数える) を始める `step` の行の番号 */
 function stepLine(file: string, step: number): number {
   const lines = readFileSync(file, "utf8").split("\n");
@@ -301,54 +339,34 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
   });
 
   it("layout-check-finds-label-on-another-line", () => {
-    // 線の名前の札が別の線に乗ると、その線の名前に読める (#3552)。描く処理は札を別の線から離して置くようになったので、
-    // 乗った姿は検査の見本`lane-overlap.dragon`を #3552 の途中で描いた時の形を写して組む。
-    // 段4の B → D の名前「四」が、段3の A → C が C へ上る縦の区間と、その手前の横の区間に乗る
-    const ac: [number, number][] = [
-      [78, 104],
-      [78, 139.3],
-      [384, 139.3],
-      [384, 107],
-    ];
-    const bd: [number, number][] = [
-      [231, 104],
-      [231, 118],
-      [532, 118],
-      [532, 107],
-    ];
-    const box = (id: string, x: number) => ({ id, name: id.toUpperCase(), color: "blue" as const, x, y: 32, w: 92, h: 72, cx: x + 46, cy: 68 });
-    const edge = (from: string, to: string, step: number, points: [number, number][]) => ({ step: step - 1, event: 0, from, to, points, color: "blue" as const, carry: { kind: "none" as const } });
-    const boxes = [box("a", 32), box("b", 185), box("c", 338), box("d", 486)];
-    const breaksWith = (rect: { x: number; y: number; w: number; h: number }, redrawn = false): LayoutBreak[] => {
-      // 札の字は、描く処理が記録した札の四角と同じ物を持つ。検査は線の名前とその札の字を、四角が同じ物かで結ぶ
-      const label = { ...rect, step: 3, event: 0, text: "四", family: "sans" as const, color: "amber" as const };
-      const edges = [edge("a", "c", 3, ac), edge("b", "d", 4, bd), ...(redrawn ? [edge("b", "d", 5, bd.map(([x, y]): [number, number] => [x, y]))] : [])];
-      return findBreaks({
-        // 名前は段4の間だけ見える
-        inks: [{ text: "四", rect: label, shown: [[3.5, 4.5]], boxed: true }],
-        traces: edges.map((e) => ({ from: e.from, to: e.to, points: e.points, shown: fromTime(e.step + 0.5) })),
-        framed: [],
-        stills: redrawn ? [1, 2, 3, 4, 5] : [1, 2, 3, 4],
-        frame: { w: 610, h: 180 },
-        boxes,
-        edges,
-        outlines: new Map(),
-        layout: { kind: "architecture", width: 610, height: 180, regions: [], boxes, lifelines: [], edges, labels: [label], actions: [], badges: [], paths: [], ends: [] },
-      } as never) as LayoutBreak[];
-    };
-    const on = breaksWith({ x: 370, y: 122, w: 29, h: 20 }).filter((b) => b.kind === "label-on-line");
+    // 線の名前の札が別の線に乗ると、その線の名前に読める (#3552)。段4の B → D の名前「四」が、段3の A → C が C へ上る縦の区間と、その手前の横の区間に乗る
+    const on = labelShape({ x: 370, y: 122, w: 29, h: 20 }).filter((b) => b.kind === "label-on-line");
     expect(on, "B → D の名前が A → C に乗ることを、段と名前と乗った線で 1 件にしない").toEqual([
       { kind: "label-on-line", step: 4, parts: [{ kind: "text", text: "四" }, { kind: "line", from: "A", to: "C", step: 3 }] },
     ]);
     expect(describeBreak(on[0] as Parameters<typeof describeBreak>[0], "ja"), "日本語の文が名前と乗った線を名指さない").toBe("「四」が線 A → C (段 3)に乗る");
     expect(describeBreak(on[0] as Parameters<typeof describeBreak>[0], "en"), "英語の文が名前と乗った線を名指さない").toBe('"四" sits on the line A → C (step 3)');
-    // 描く処理が今置く所 (B と C の間の、B → D の上) は、どの線にも乗らない
-    expect(breaksWith({ x: 299, y: 86, w: 29, h: 20 }).filter((b) => b.kind === "label-on-line"), "別の線に乗らない名前を数える").toEqual([]);
+    // 描く処理が今置く所 (C と D の間の、B → D の上) は、どの線にも乗らない
+    expect(labelShape({ x: 443, y: 86, w: 29, h: 20 }).filter((b) => b.kind === "label-on-line"), "別の線に乗らない名前を数える").toEqual([]);
     // 名前が乗る線が自分の線と同じ道を別の段でもう一度引いた線なら、自分の線なので数えない
     expect(
-      breaksWith({ x: 300, y: 108, w: 29, h: 20 }, true).filter((b) => b.kind === "label-on-line"),
+      labelShape({ x: 300, y: 108, w: 29, h: 20 }, true).filter((b) => b.kind === "label-on-line"),
       "自分の線と同じ道をもう一度引いた線に乗る名前を数える",
     ).toEqual([]);
+  });
+
+  it("layout-check-finds-label-nearer-another-line", () => {
+    // 線の名前が、名指す線から描く処理の最初の離れ (12px) に在っても、別の線がそれより近いと、近い線の名前に読める (#3552)。
+    // 段4の B → D の名前「四」が B → D の 12px 下で、A → C が C へ上る縦の区間の 3px 右に在る
+    const near = labelShape({ x: 387, y: 130, w: 29, h: 20 });
+    expect(near.filter((b) => b.kind === "label-off-line"), "B → D より A → C の近くに在る名前を、段と名前と名指す線で 1 件にしない").toEqual([
+      { kind: "label-off-line", step: 4, parts: [{ kind: "text", text: "四" }, { kind: "line", from: "B", to: "D", step: 4 }] },
+    ]);
+    expect(near.filter((b) => b.kind === "label-on-line"), "別の線の近くに在るだけの名前を、別の線に乗る名前に数える").toEqual([]);
+    // 名指す線が最も近い名前は数えない。描く処理が今置く所は、名指す線の 12px 上で、ほかの線はずっと遠い
+    expect(labelShape({ x: 443, y: 86, w: 29, h: 20 }).filter((b) => b.kind === "label-off-line"), "名指す線が最も近い名前を離れた名前に数える").toEqual([]);
+    // 別の線に乗る名前は`label-on-line`だけで知らせ、離れた名前に重ねて数えない
+    expect(labelShape({ x: 370, y: 122, w: 29, h: 20 }).filter((b) => b.kind === "label-off-line"), "別の線に乗る名前を離れた名前にも数える").toEqual([]);
   });
 
   it("layout-check-finds-crowded-lines", async () => {
