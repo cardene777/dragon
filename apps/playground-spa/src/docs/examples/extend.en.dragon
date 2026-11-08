@@ -3,8 +3,8 @@ architecture Draw a bridge with added blocks
 blocks 1
 block +bridge
   base box
-  shape path "M 0 70 Q 50 0 100 70 Z"
   color violet
+  icon tabler:building-bridge-2
 end
 block +relay
   base edge
@@ -21,7 +21,7 @@ box eth as Ethereum [note: sending chain]
 box base as Base [note: receiving chain, icon: +key]
 
 step Send
-  say Ethereum sends the token to the bridge. The bridge box is drawn in the shape its definition gives.
+  say Ethereum sends the token to the bridge. The bridge box is drawn in the color and stone bridge icon its definition gives.
   eth -> cc: send
 
 step Hand over

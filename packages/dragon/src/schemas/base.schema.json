@@ -1477,13 +1477,27 @@
       }
     },
     "userBlock": {
-      "description": "使う人が足すブロック 1 つ。元のブロック (box / edge / icon) の形と色の役を替える",
+      "description": "使う人が足すブロック 1 つ。元のブロック (box / edge / icon) の形と色の役を替える。box を元にしたブロックは箱の絵柄 (icon) も持てる",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "name",
         "base"
       ],
+      "if": {
+        "properties": {
+          "base": {
+            "const": "box"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "icon": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      },
       "properties": {
         "name": {
           "$ref": "#/definitions/userBlockName"
@@ -1515,6 +1529,9 @@
         },
         "color": {
           "$ref": "#/definitions/color"
+        },
+        "icon": {
+          "$ref": "#/definitions/blockIcon"
         }
       }
     }

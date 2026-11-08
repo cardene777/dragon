@@ -59,6 +59,28 @@ const OVERRIDES_SHARED = USES_SHARED.replace(
   ["", "", "blocks 1", "block +bridge", "  base box", `  shape path "${LOCAL_BRIDGE}"`, "end", "", "box eth"].join("\n"),
 );
 
+/** 共有の橋のブロックの絵柄 (#3489) */
+const BRIDGE_ICON = "tabler:building-bridge-2";
+
+/** 描いた SVG の箱の絵柄 (`dg-gl`) の path の d */
+const glyphDs = (svg: string): string[] =>
+  [...new DOMParser().parseFromString(svg, "image/svg+xml").querySelectorAll("path.dg-gl")].map((p) => p.getAttribute("d") ?? "");
+
+/** 箱の行に Tabler の石の橋を書いて描いた時の絵柄の d。共有の橋の絵柄と比べる相手 */
+function bridgeGlyph(): string {
+  const parsed = parse(["architecture Bridge", "", "box eth as Ethereum", `box cc as Bridge [icon: ${BRIDGE_ICON}]`, "", "step Send", "  say Send.", "  eth -> cc: send", ""].join("\n"));
+  const [d] = glyphDs(draw("renderDiagram")(parsed.ok ? parsed.diagram : {}, {}).svg);
+  expect(d, "箱の行に書いた Tabler の石の橋が描かれない").toBeDefined();
+  return d ?? "";
+}
+
+/** 描いた図の箱の札 (`dg-st`) の要素の名前と角の丸み。札は置いた箱の並び (`layout.boxes`) の順に描かれるので、その順で箱の名札に結ぶ */
+function cards(rendered: { svg: string; layout: { boxes: { id: string }[] } }): Map<string, { tag: string; rx: string | null }> {
+  const found = [...new DOMParser().parseFromString(rendered.svg, "image/svg+xml").querySelectorAll(".dg-st")];
+  expect(found.length, "箱の札の数が箱の数と違う").toBe(rendered.layout.boxes.length);
+  return new Map(rendered.layout.boxes.map((box, i) => [box.id, { tag: found[i]?.tagName ?? "", rx: found[i]?.getAttribute("rx") ?? null }]));
+}
+
 describe("共有のブロック集 (#3455)", () => {
   it("shared-blocks-read-and-have-examples", () => {
     const files = dragonFiles(SHARED);
@@ -91,10 +113,35 @@ describe("共有のブロック集 (#3455)", () => {
     expect(parsed.ok, `定義を書かない共有のブロックを読めない ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
     const define = defineOf(parsed);
     expect(define?.format, "原本の JSON が定義の欄を持たない").toBe(1);
-    expect(define?.blocks, "原本の JSON の定義の欄が使った共有の定義だけを持たない").toEqual([{ name: "+bridge", base: "box", path: BRIDGE, color: "violet" }]);
-    // JSON だけを受け取った側でも、共有の形で描く
-    const svg = draw("renderDiagram")(parsed.ok ? parsed.diagram : {}, {}).svg;
-    expect(pathsWith(svg, BRIDGE).length, "共有の箱の形で描かない").toBeGreaterThan(0);
+    // 共有の橋は形を持たない角丸の箱で、色と石の橋の絵柄を持つ (#3489)
+    expect(define?.blocks, "原本の JSON の定義の欄が使った共有の定義だけを持たない").toEqual([{ name: "+bridge", base: "box", color: "violet", icon: BRIDGE_ICON }]);
+    // JSON だけを受け取った側でも、共有の定義の絵柄で描く
+    const json = JSON.parse(JSON.stringify(parsed.ok ? parsed.diagram : {})) as Json;
+    expect(glyphDs(draw("renderDiagram")(json, {}).svg), "JSON だけから描くと共有の橋の絵柄が描かれない").toContain(bridgeGlyph());
+  });
+
+  it("shared-bridge-is-card-with-icon", () => {
+    const text = read(join(SHARED, "bridge.dragon"));
+    expect(text, "共有の橋の定義が path の形を持つ").not.toMatch(/^\s*shape\s+path\b/mu);
+    expect(text, "共有の橋の定義が石の橋の絵柄を持たない").toMatch(new RegExp(`^\\s*icon\\s+${BRIDGE_ICON}\\s*$`, "mu"));
+    const parsed = parse(USES_SHARED);
+    expect(parsed.ok, `共有の橋を使う図を読めない ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
+    const rendered = draw("renderDiagram")(parsed.ok ? parsed.diagram : {}, {});
+    const svg = rendered.svg;
+    const found = cards(rendered);
+    expect(found.get("cc"), "共有の橋の箱の縁が、ほかの箱と同じ角の丸みの四角で描かれない").toEqual(found.get("eth"));
+    expect(found.get("eth"), "比べる相手の箱の縁が角の丸み 12 の四角でない").toEqual({ tag: "rect", rx: "12" });
+    expect(glyphDs(svg), "共有の橋の箱の絵柄の枠に石の橋が描かれない").toContain(bridgeGlyph());
+  });
+
+  it("bridge-examples-draw-bridge-icon", () => {
+    const files = ["packages/dragon/examples/bridge.dragon", "packages/dragon/examples/bridge.en.dragon", "packages/dragon/blocks/examples/bridge.dragon"];
+    const want = bridgeGlyph();
+    const missing = files.filter((file) => {
+      const parsed = parse(read(join(ROOT, file)), file.endsWith(".en.dragon") || file.includes("/blocks/") ? "en" : "ja");
+      return !parsed.ok || !glyphDs(draw("renderDiagram")(parsed.diagram, {}).svg).includes(want);
+    });
+    expect(missing, "橋の箱に石の橋の絵柄が描かれない見本").toEqual([]);
   });
 
   it("local-definition-wins-over-shared", () => {

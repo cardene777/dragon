@@ -237,7 +237,7 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "ブロックを足す",
         text: [
           "dragon が持つブロックの他に、使う人が自分の手元でブロックを足せる。今の箱 (`box`)、線 (`edge`)、箱に付く印 (`icon`) のどれかを元にして、形と色の役を替えた物を足す。足したブロックは元の置き場所と動きのまま描かれ、色を色味の表から読むので、他のブロックと同じ見た目に揃う。",
-          "定義は図の頭に、`blocks 1` の行の後へ `block +<名前>` から `end` までを書く。`base` に元を、`shape` に形を、`color` に色の役を書く。形は名前の付いた形 (箱は `round`、`circle`、`cylinder`、`diamond`、`hexagon`、線は `solid`、`dashed`、`dotted`) か、path の文法だけで書いた `path` にする。図では、箱の行の `box` と線の行の `->` の代わりに `+<名前>` を書き、印は `[icon: +<名前>]` と書く。",
+          "定義は図の頭に、`blocks 1` の行の後へ `block +<名前>` から `end` までを書く。`base` に元を、`shape` に形を、`color` に色の役を書く。形は名前の付いた形 (箱は `round`、`circle`、`cylinder`、`diamond`、`hexagon`、線は `solid`、`dashed`、`dotted`) か、path の文法だけで書いた `path` にする。図では、箱の行の `box` と線の行の `->` の代わりに `+<名前>` を書き、印は `[icon: +<名前>]` と書く。箱を元にした定義は `icon` の行に箱の絵柄も書ける。書ける名前は箱の行の `icon:` と同じ (手描きの絵柄か `tabler:<名前>`) で、箱の行に書いた絵柄が勝つ。",
           "同じブロックを複数の図で使う時は、定義を 1 つの file に置く。頁で描く時は `<link rel=\"dragon-blocks\">` でその file を指すと、頁の全ての図がその定義を読む。",
           "code で描く時は `readBlocks` で定義を読み、`parseNotation` と `renderDiagram` の `blocks` に渡す。定義は字のデータだけで、URL や code や SVG の要素を書くと誤りで断るので、他の人が書いた定義を読んでも何も実行されない。",
         ],
@@ -456,7 +456,7 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "Adding blocks",
         text: [
           "Besides the blocks dragon has, you can add your own blocks in your own project. Base one on a box (`box`), a line (`edge`), or an icon on a box (`icon`), and change its shape and color role. An added block is drawn with the placement and motion of its base and reads its colors from the palette table, so it looks like every other block.",
-          "Write the definitions at the head of a diagram, after a `blocks 1` line, each from `block +<name>` to `end`. Write the base after `base`, the shape after `shape`, and the color role after `color`. A shape is a named shape (`round`, `circle`, `cylinder`, `diamond`, `hexagon` for boxes, `solid`, `dashed`, `dotted` for lines) or a `path` of path syntax only. In the diagram, write `+<name>` in place of `box` on a box line and in place of `->` on a line, and write an icon as `[icon: +<name>]`.",
+          "Write the definitions at the head of a diagram, after a `blocks 1` line, each from `block +<name>` to `end`. Write the base after `base`, the shape after `shape`, and the color role after `color`. A shape is a named shape (`round`, `circle`, `cylinder`, `diamond`, `hexagon` for boxes, `solid`, `dashed`, `dotted` for lines) or a `path` of path syntax only. In the diagram, write `+<name>` in place of `box` on a box line and in place of `->` on a line, and write an icon as `[icon: +<name>]`. A definition based on a box can also give its boxes an icon on an `icon` line. It takes the same names as `icon:` on a box line (a hand-drawn icon or `tabler:<name>`), and an icon written on the box line wins.",
           "To use the same blocks in several diagrams, keep the definitions in one file. On a page, point `<link rel=\"dragon-blocks\">` at that file, and every diagram on the page reads them.",
           "In code, read the definitions with `readBlocks` and pass them as the `blocks` option of `parseNotation` and `renderDiagram`. A definition is data only, and one with URLs, code, or SVG elements is refused, so reading a definition someone else wrote runs nothing.",
         ],

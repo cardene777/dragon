@@ -60,7 +60,11 @@ export function tablerError(value: string, m: TablerMessages): string | undefine
 }
 
 /**
- * 記法か原本が、Tabler の絵柄を書いているか。記法は `icon:` の属性を、原本は `"tabler:` で始まる値を探す。
- * 原本は欄を辿らずに字で探すので、`icon` 以外の欄の値に当たると要らない表まで読むが、描く図は変わらない
+ * 記法か原本が、Tabler の絵柄を書いているか。箱の行の `icon:` の属性と定義の `icon` の行と原本の値の頭の `tabler:` を探す。
+ * `names` は Tabler の絵柄を持つ共有のブロックの名前で、名前を書いた図も絵柄を描く (#3489)。
+ * 欄を辿らずに字で探すので、ほかの欄の字に当たると要らない表まで読むが、描く図は変わらない
  */
-export const usesTabler = (source: string | object): boolean => (typeof source === "string" ? /\bicon:\s*tabler:/u.test(source) : JSON.stringify(source).includes('"tabler:'));
+export const usesTabler = (source: string | object, names: readonly string[]): boolean => {
+  const text = typeof source === "string" ? source : JSON.stringify(source);
+  return [HEAD, ...names].some((name) => text.includes(name));
+};

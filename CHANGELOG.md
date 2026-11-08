@@ -6,6 +6,18 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **A block definition based on a box can give its boxes an icon** (#3489)
+
+  Write `icon <name>` between `block +<name>` and `end` in a definition based on `box`, such as `icon tabler:building-bridge-2`, and every box of that block draws the icon in its icon slot. The line takes the same names as `icon:` on a box line, a hand-drawn icon or `tabler:<name>`, and an icon written on the box line wins over the definition's. A definition based on `edge` or `icon` that writes `icon` stops at that line, and an unknown name stops at that line and names the closest one. The JSON `define` field takes `icon` too, `validateDiagram` refuses a Tabler name it does not have at `/define/blocks/<n>/icon`, and printing writes the line back. The light entry reads the Tabler chunk when you await `loadFor` for a diagram whose definitions write `icon tabler:`, or that uses a shared block with a Tabler icon. Drawing such a diagram before that stops with an error that says to await `loadFor`.
+
+### Changed
+
+- **The shared `+bridge` block is a rounded box with a stone bridge icon instead of an arch** (#3489)
+
+  The shared `+bridge` drew its box as an arch. The arch left the icon slot, the box name and the step number outside the drawn shape, so `dragon check --layout` found breaks in every bridge example. `+bridge` now keeps the rounded box every other box uses (corner radius 12) and draws the Tabler stone bridge `tabler:building-bridge-2` in the icon slot, in the same `violet` role. The parsed JSON of a diagram that uses `+bridge` carries the new definition in `define`. A diagram that wants the arch can still define its own block with `shape path` at its head.
+
 ## [0.67.0] - 2026-11-08
 
 ### Added

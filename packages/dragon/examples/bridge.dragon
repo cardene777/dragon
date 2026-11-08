@@ -4,8 +4,8 @@ architecture 足したブロックで橋を描く
 blocks 1
 block +bridge
   base box
-  shape path "M 0 70 Q 50 0 100 70 Z"
   color violet
+  icon tabler:building-bridge-2
 end
 block +relay
   base edge
@@ -22,7 +22,7 @@ box eth as Ethereum [note: 送る側のチェーン]
 box base as Base [note: 受け取る側のチェーン, icon: +key]
 
 step 送る
-  say Ethereum がトークンを橋へ送る。橋の箱は、足した箱の定義に書いた形で描かれる。
+  say Ethereum がトークンを橋へ送る。橋の箱は、足した箱の定義に書いた色と石の橋の絵柄で描かれる。
   eth -> cc: 送る
 
 step 渡す

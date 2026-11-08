@@ -90,12 +90,16 @@ export async function loadKind(kind: string | undefined): Promise<void> {
   await Promise.all([loadParts(kind), loadBlocks(LATER_BLOCKS.filter((name) => blockKinds(name).includes(kind))), loadValidator()]);
 }
 
+/** Tabler の絵柄を持つ共有のブロックの名前 (#3489)。build が共有のブロック集から選んで入れる (`tsup.config.ts`) */
+declare const __DRAGON_SHARED_TABLER__: readonly string[];
+
 /**
  * 記法か原本 `source` が絵柄集 Tabler の絵柄を書いていれば、絵柄集の表を読む (#3493)。読んでいれば何もしない。
+ * Tabler の絵柄を持つ共有のブロック (`+bridge`、#3489) の名前を書いた図も読む。
  * 表は 5,000 を超える絵柄を持つ 1 つの塊で、書いた図の時だけ読む
  */
 async function loadIconSets(source: string | object): Promise<void> {
-  if (usesTabler(source) && !iconSetLoaded("tabler")) registerTabler((await import("./blocks/icon/tabler.js")).default);
+  if (usesTabler(source, __DRAGON_SHARED_TABLER__) && !iconSetLoaded("tabler")) registerTabler((await import("./blocks/icon/tabler.js")).default);
 }
 
 /** 記法 `text` が足すブロックの定義の行を持てば、定義を読む処理を読む (#3399)。読んでいれば何もしない */

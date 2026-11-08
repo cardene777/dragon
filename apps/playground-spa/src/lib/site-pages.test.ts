@@ -6,7 +6,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_PALETTE, type Diagram, PALETTES, parseNotation, readDiagram } from "@cardenelabs/dragon";
+import { DEFAULT_PALETTE, type Diagram, PALETTES, parseNotation, readDiagram, renderDiagram } from "@cardenelabs/dragon";
 import type { Page } from "playwright";
 import { EXAMPLE_KEYS, type ExampleKey, HOME_USES, TEMPLATE } from "../examples";
 import { toHash } from "../share";
@@ -1698,19 +1698,32 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
       for (const lang of ["ja", "en"] as const) {
         const text = docsExample("extend", lang);
         const parsed = text === undefined ? undefined : parseNotation(text);
-        const path = parsed?.ok ? parsed.diagram.define?.blocks.find((b) => b.base === "box")?.path : undefined;
-        expect(path, `${lang} のブロックを足す節の例が、足した箱の path を定義しない`).toBeDefined();
+        // 足した箱は定義に書いた絵柄 (Tabler の石の橋) で描き、形の path は足した印のブロックが教える (#3489)
+        const blocks = parsed?.ok ? (parsed.diagram.define?.blocks ?? []) : [];
+        const icon = blocks.find((b) => b.base === "box")?.icon;
+        const path = blocks.find((b) => b.base === "icon")?.path;
+        expect(icon, `${lang} のブロックを足す節の例が、足した箱の絵柄を定義しない`).toBeDefined();
+        expect(path, `${lang} のブロックを足す節の例が、足した印の path を定義しない`).toBeDefined();
+        // 定義の絵柄の形は、同じ絵柄を箱の行に書いて既定の入口で描いた形と比べる
+        const sample = parseNotation(["architecture 絵柄", "", "box a as A", `box b as B [icon: ${icon}]`, "", "step 見る", "  say 見る。", "  a -> b: 見る", ""].join("\n"));
+        const glyph = sample.ok ? /class="dg-gl"[^>]* d="([^"]+)"/u.exec(renderDiagram(sample.diagram).svg)?.[1] : undefined;
+        expect(glyph, `${lang} の箱の行に書いた ${icon} が既定の入口で描かれない`).toBeDefined();
         const page = await docsPage(lang, onTestFailed);
         await onScreen(page, "docs", `${lang} の使い方の頁が出ない`);
-        // 節の例の図が描かれ、足した箱の枠が定義に書いた path で描かれる
+        // 節の例の図が描かれ、足した箱に定義の絵柄が、受け取る側の箱に足した印の path が描かれる
         await expect
           .poll(
             () =>
-              page.evaluate((d) => {
-                const svg = document.querySelector('section#extend [data-docs="example"] svg[data-dragon="figure"]');
-                return svg === null ? "図が無い" : [...svg.querySelectorAll("path")].some((p) => p.getAttribute("d")?.includes(d ?? "?")) ? "描けた" : "path が無い";
-              }, path?.split(" ").slice(0, 3).join(" ")),
-            { ...WAIT, message: `${lang} のブロックを足す節の例の図が描かれないか、足した箱の枠が定義の path で描かれない` },
+              page.evaluate(
+                ([g, d]) => {
+                  const svg = document.querySelector('section#extend [data-docs="example"] svg[data-dragon="figure"]');
+                  if (svg === null) return "図が無い";
+                  const ds = [...svg.querySelectorAll("path")].map((p) => p.getAttribute("d") ?? "");
+                  return !ds.includes(g ?? "?") ? "定義の絵柄が無い" : !ds.some((x) => x.includes(d ?? "?")) ? "印の path が無い" : "描けた";
+                },
+                [glyph, path?.split(" ").slice(0, 3).join(" ")] as const,
+              ),
+            { ...WAIT, message: `${lang} のブロックを足す節の例の図が描かれないか、足した箱の絵柄と足した印の path が定義どおりに描かれない` },
           )
           .toBe("描けた");
       }

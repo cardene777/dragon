@@ -5,7 +5,7 @@
  * 置き場所と動きと置ける図の種類は元のブロックのままなので、8 つの図の種類の並べ方を直さずに全ての図で使える。
  *
  * 定義はデータだけで、記法の行 (`blocks 1` の後の `block +<名前>` から `end` まで) か、同じ中身の JSON (`"format": 1`) で書く。
- * 書けるのは元のブロック、形 (基本の形の名前か SVG の path の文法の字)、色の役の名前だけで、URL と code と SVG の要素は断る。
+ * 書けるのは元のブロック、形 (基本の形の名前か SVG の path の文法の字)、色の役の名前、箱の絵柄の名前 (#3489) だけで、URL と code と SVG の要素は断る。
  * 定義が頁に外の物を読ませることは無く、他の人が書いた定義を読んでも何も実行されない。
  *
  * 記法の語は頭に `+` を付ける。後で本体が同じ名前のブロックを足しても、前に書いた図の意味が変わらないため。
@@ -23,22 +23,8 @@ import type { Color } from "./blocks/color/block";
 import type { SourceLine } from "./tokenize";
 import type { NotationLang } from "./words";
 
-/** 定義の形の版。知らない版は断る */
-export const USER_BLOCKS_FORMAT = 1;
-
-/** 元にできるブロック */
-export const USER_BASES = ["box", "edge", "icon"] as const;
-export type UserBase = (typeof USER_BASES)[number];
-
-/** 元のブロックごとの、名前で選べる基本の形。印は path だけで描く */
-export const USER_SHAPES: Readonly<Record<UserBase, readonly string[]>> = {
-  box: ["round", "circle", "cylinder", "diamond", "hexagon"],
-  edge: ["solid", "dashed", "dotted"],
-  icon: [],
-};
-
-/** 足すブロックの名前。頭に `+` を付け、英小文字で始め、英小文字と数字と `-` だけを使う */
-export const USER_NAME = /^\+[a-z][a-z0-9-]*$/u;
+/** 元にできるブロック。並び (`USER_BASES`) と、版と形の名前と名前の決まりは、定義を読む時だけ要るので `user-blocks-read.ts` に置く */
+export type UserBase = "box" | "edge" | "icon";
 
 /** path の文法の字。命令の字と数と区切りだけで、`<` も `(` も `:` も書けない */
 const PATH_TEXT = /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]+$/u;
@@ -59,11 +45,14 @@ export interface UserBlock {
   path?: string;
   /** 色の役の名前。色そのものは色味の表から読む */
   color?: Color;
+  /** 箱の絵柄の枠に描く絵柄の名前 (#3489)。箱を元にしたブロックだけが持ち、箱の行に書いた `icon` が勝つ */
+  icon?: string;
 }
 
 /** 足すブロックの定義の並び。JSON の file と、原本の `define` の欄と、`parseNotation` と `renderDiagram` の引数 `blocks` の形 */
 export interface UserBlocks {
-  format: typeof USER_BLOCKS_FORMAT;
+  /** 定義の形の版 (`USER_BLOCKS_FORMAT`) */
+  format: 1;
   blocks: UserBlock[];
 }
 
@@ -143,6 +132,7 @@ export function printBlocks(set: UserBlocks): string {
     if (b.shape !== undefined) lines.push(`  shape ${b.shape}`);
     if (b.path !== undefined) lines.push(`  shape path "${b.path.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`);
     if (b.color !== undefined) lines.push(`  color ${b.color}`);
+    if (b.icon !== undefined) lines.push(`  icon ${b.icon}`);
     lines.push("end");
   }
   return lines.join("\n");

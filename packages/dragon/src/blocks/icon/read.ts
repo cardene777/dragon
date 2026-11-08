@@ -31,11 +31,17 @@ export function readIcon(source: SourceLine, attrs: Map<string, Attr>, m: Messag
     return icon;
   }
   if (!icon) return icon;
-  // Tabler の絵柄は Tabler の表と比べ、ほかは手描きの絵柄の表と比べる
-  const error = isTabler(icon.value) ? tablerError(icon.value, m) : ICON_NAMES.includes(icon.value) ? undefined : m.badIcon(icon.value);
+  const error = iconError(icon.value, m);
   if (error !== undefined) throw fail(source, icon.at, error);
   return icon;
 }
+
+/**
+ * 絵の名前 `value` の誤りの文。描ける名前なら `undefined`。
+ * Tabler の絵柄は Tabler の表と比べ、ほかは手描きの絵柄の表と比べる。箱の行と、箱を元にしたブロックの定義 (#3489) が同じ決まりを使う
+ */
+export const iconError = (value: string, m: IconMessages): string | undefined =>
+  isTabler(value) ? tablerError(value, m) : ICON_NAMES.includes(value) ? undefined : m.badIcon(value);
 
 /** 書いたアイコン名に近い名前が在れば `near` の文、無ければ `none` の文 (#3315) */
 const withNear = (value: string, near: (name: string) => string, none: string): string => {
@@ -43,11 +49,14 @@ const withNear = (value: string, near: (name: string) => string, none: string): 
   return name === undefined ? none : near(name);
 };
 
+/** 絵の名前の誤りの文。箱を元にしたブロックの定義の誤りの文 (`user-blocks-read.ts`) も使う (#3489) */
+export const ICON_MESSAGES: { ja: IconMessages; en: IconMessages } = {
+  ja: { ...TABLER_MESSAGES.ja, badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`) },
+  en: { ...TABLER_MESSAGES.en, badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`) },
+};
+
 export const reading: BlockReading<IconMessages> = {
   read: none("絵は箱と区画の行の属性で、行の頭の語を持たない。箱と区画の行を読む処理が readIcon を呼ぶ"),
   print: none("絵は箱と区画の行の属性で、箱と区画の宣言を書き戻す処理が icon の鍵を書く"),
-  messages: {
-    ja: { ...TABLER_MESSAGES.ja, badIcon: (value) => withNear(value, (near) => `${value} という icon は無い。近い名前は ${near}`, `icon は ${list(ICON_NAMES)} のどれか`) },
-    en: { ...TABLER_MESSAGES.en, badIcon: (value) => withNear(value, (near) => `There is no icon named ${value}. The closest is ${near}`, `icon is one of ${list(ICON_NAMES)}`) },
-  },
+  messages: ICON_MESSAGES,
 };

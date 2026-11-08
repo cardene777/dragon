@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import type { Page } from "playwright-core";
+import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 
 import { runCli } from "./export-support";
@@ -54,8 +55,14 @@ const SEQUENCE = "sequence ログイン\n\nbox browser as ブラウザ\nbox app 
 const ARCHITECTURE = "architecture 配り方\n\nbox app as アプリ\nbox cdn as 配る所\n\nstep 読む\n  say アプリが配る所から読む。\n  app -> cdn: 読む\n";
 /** 宣言と段を省いた時系列図 (#3438)。最小の図が script の 1 行で出るまでの時間も、この図で測る */
 const SHORT = "sequence\n\nブラウザ -> アプリ: GET /login\nアプリ -> ブラウザ: 認可の頁へ送る\n";
-/** 共有のブロック集の箱 (`+bridge`) の形 (#3455) */
-const BRIDGE = "M 0 70 Q 50 0 100 70 Z";
+/** 箱の行に Tabler の石の橋を書いた構成図。共有の橋のブロックの絵柄と比べる相手 (#3489) */
+const BRIDGE_ICON_BOX = "architecture 橋\n\nbox eth as Ethereum\nbox cc as 橋 [icon: tabler:building-bridge-2]\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
+/** 既定の入口で描いた、Tabler の石の橋の絵柄の d */
+function bridgeGlyph(): string | undefined {
+  const entry = dragon as unknown as { parseNotation(text: string): { ok: boolean; diagram?: unknown }; renderDiagram(diagram: unknown): { svg: string } };
+  const parsed = entry.parseNotation(BRIDGE_ICON_BOX);
+  return parsed.ok ? /<path class="dg-gl" [^>]*\bd="([^"]*)"/u.exec(entry.renderDiagram(parsed.diagram).svg)?.[1] : undefined;
+}
 /** 図の頭に定義を書かずに共有のブロックを使う構成図 */
 const SHARED_BLOCK = "architecture 橋\n\nbox eth as Ethereum\n+bridge cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
 /** 4 行目に知らない行の頭の語 (`boxx`) を書いた記法 */
@@ -265,14 +272,16 @@ describe("script の1行の入口 (#3343)", () => {
   });
 
   it("script-entry-draws-shared-block", async () => {
-    // 図の頭に定義を書かない共有のブロック (`+bridge`) を、共有の形で描く (#3455)
+    // 図の頭に定義を書かない共有のブロック (`+bridge`) を、共有の定義で描く (#3455)。共有の橋は石の橋の絵柄を持つ角丸の箱 (#3489)
     if (!entryBuilt()) return;
+    const bridge = bridgeGlyph();
+    expect(bridge, "既定の入口で箱の行に書いた石の橋が描かれない").toBeDefined();
     await withPage(`<pre class="dragon">${escape(SHARED_BLOCK)}</pre>`, async (page, requests) => {
       // 読めない塊も誤りの文に置き換わるので、塊が無くなるまでを待つ
       await page.waitForFunction(() => document.querySelectorAll("pre.dragon").length === 0, undefined, { timeout: QUICK_SETTLE }).catch(() => undefined);
       expect(await counts(page), "共有のブロックを使う塊が1つの図に置き換わらない").toEqual({ players: 1, drawn: 1, blocks: 0 });
-      const shapes = await page.evaluate((d) => [...document.querySelectorAll('[data-dragon="player"] svg path')].filter((path) => path.getAttribute("d") === d).length, BRIDGE);
-      expect(shapes, "共有のブロックの形で描かない").toBeGreaterThan(0);
+      const shapes = await page.evaluate((d) => [...document.querySelectorAll('[data-dragon="player"] svg path.dg-gl')].filter((path) => path.getAttribute("d") === d).length, bridge ?? "");
+      expect(shapes, "共有の橋の箱の絵柄の枠に石の橋を描かない").toBeGreaterThan(0);
       expect(requests.outside, "入口と塊と字の CSS のほかに取りに行った物").toEqual([]);
     });
   });
