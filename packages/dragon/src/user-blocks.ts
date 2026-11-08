@@ -20,6 +20,8 @@
  * 箱の描き方と線の描き方と印の描き方は、引数を増やさずにここから名前で引く。
  */
 import type { Color } from "./blocks/color/block";
+import type { BoxFit, Point, Rect, SlotRoom } from "./layout/scene";
+import type { DiagramModel } from "./schema";
 import type { SourceLine } from "./tokenize";
 import type { NotationLang } from "./words";
 
@@ -41,7 +43,7 @@ export interface UserBlock {
   base: UserBase;
   /** 基本の形の名前。`path` と一緒には書けない */
   shape?: string;
-  /** SVG の path の文法の字。箱は 100 四方に描いて箱の枠に収め、印は (0, 0) を中心に 20 四方に描く */
+  /** SVG の path の文法の字。箱は形を囲む最も小さい四角を箱の枠いっぱいに伸ばし (#3520)、印は (0, 0) を中心に 20 四方に描く */
   path?: string;
   /** 色の役の名前。色そのものは色味の表から読む */
   color?: Color;
@@ -109,20 +111,29 @@ export const versionLine = (source: SourceLine): string | undefined => {
 /** 記法の字が、定義の並びの行 (`blocks <版>`) を持つか。軽い入口が、定義を読む処理を後から読むかを決める */
 export const definesBlocks = (text: string): boolean => /^[ \t]*blocks(?:[ \t]|$)/mu.test(text);
 
-/** 定義の並びを読む処理。最初に読む束を軽くするため別の file (`user-blocks-read.ts`) に置き、全部を持つ入口と軽い入口が登録する */
+/**
+ * 足した箱のブロックの形を描いて測る処理 (#3520)。形を持つ箱は定義を読んだ図にしか無いので、定義を読む処理と一緒に後から読む (`blocks/box/fit.ts`)。
+ * どれも名札 `id` の箱が形を持つ足した箱の時だけ値を返し、ほかの箱は `undefined` を返す。
+ * 読む前に描いた足した箱は、今の箱の形で描き、中身を箱の真ん中に置き、番号を箱の四角の角に付ける
+ */
+export interface BoxShapes {
+  /** 枠 `rect` に描く形の SVG の要素。地と縁と光の `cls` と、足す属性 `extra` を持つ */
+  draw: (id: string, cls: string, extra: string, rect: Rect) => string | undefined;
+  /** 枠 `rect` に描いた形の輪郭 */
+  outline: (id: string, rect: Rect) => Point[][] | undefined;
+  /** 箱の名前と下の字と絵柄の行が形の内に収まる箱の大きさ。幅は `w` から、高さは箱の高さから広げる */
+  fit: (diagram: DiagramModel, id: string, w: number, withActions: boolean, rooms?: Map<string, SlotRoom>) => BoxFit | undefined;
+  /** 枠 `rect` に描いた形の縁で、枠の左上の角に一番近い点 */
+  corner: (id: string, rect: Rect) => Point | undefined;
+}
+
+/** 定義の並びを読む処理と、足した箱の形を測る処理。最初に読む束を軽くするため別の file (`user-blocks-read.ts`) に置き、全部を持つ入口と軽い入口が登録する */
 export interface UserBlockReader {
   readBlockLines: (lines: readonly SourceLine[], start: number, lang: NotationLang, known?: ReadonlySet<string>) => { blocks: UserBlock[]; next: number };
+  shapes: BoxShapes;
 }
 
-let reader: UserBlockReader | undefined;
-
-/** 定義の並びを読む処理を登録する */
-export function registerUserBlockReader(given: UserBlockReader): void {
-  reader = given;
-}
-
-/** 登録した、定義の並びを読む処理。まだ読んでいなければ `undefined` */
-export const userBlockReader = (): UserBlockReader | undefined => reader;
+export { registerUserBlockReader, userBlockReader } from "./user-blocks-registry";
 
 /** 定義の並びを記法の行に書き戻す。`blocks 1` の行から最後の `end` まで */
 export function printBlocks(set: UserBlocks): string {

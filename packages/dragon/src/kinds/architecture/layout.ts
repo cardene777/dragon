@@ -26,6 +26,8 @@ import {
   loopUnder,
   replaceSameSpot,
   layoutStrip,
+  type BoxFit,
+  shapedSize,
   type Point,
   placeLabel,
   placeSlot,
@@ -167,10 +169,12 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
 
   // 列の幅と列の間。隣の列を横に結ぶ名前のある線は、名前が収まるまで間を広げる (広げすぎる時は脇へ寄せる)
   const columnCount = Math.max(1, ...[...slots.values()].map((s) => s.col + 1));
-  // 運ぶ物を出し入れする箱は、絵柄の横に置き場を並べられる幅にする (#3176)
+  // 運ぶ物を出し入れする箱は、絵柄の横に置き場を並べられる幅にする (#3176)。形を持つ箱は、中身が形の内に収まる大きさにする (#3520)
   const carriedIn = slotRooms(diagram);
-  const widths = new Map(diagram.boxes.map((b) => [b.id, Math.max(boxWidth(diagram, b.id, true), slotBoxWidth(carriedIn.get(b.id), b.icon !== undefined, B.padX))]));
-  const colW = Array.from({ length: columnCount }, (_, c) => Math.max(B.minW, ...[...slots].filter(([, s]) => s.col === c).map(([id]) => widths.get(id) ?? B.minW)));
+  const fits = new Map(
+    diagram.boxes.map((b) => [b.id, shapedSize(diagram, b.id, Math.max(boxWidth(diagram, b.id, true), slotBoxWidth(carriedIn.get(b.id), b.icon !== undefined, B.padX)), true, carriedIn)]),
+  );
+  const colW = Array.from({ length: columnCount }, (_, c) => Math.max(B.minW, ...[...slots].filter(([, s]) => s.col === c).map(([id]) => fits.get(id)?.w ?? B.minW)));
   const between = Array.from({ length: Math.max(0, columnCount - 1) }, () => A.columnGap as number);
   for (const { edge } of edges) {
     const a = slots.get(edge.from);
@@ -202,15 +206,19 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     const rows = Math.max(1, ...group.members.map((id) => (slots.get(id)?.row ?? 0) + 1));
     const room = rooms[g] as Room;
     const top = cursor + R.pad + room.top;
+    // 行の高さは行で最も高い箱の高さ。形を持つ箱は中身を収めるために高くなる (#3520)
+    const rowH = Array.from({ length: rows }, (_, r) => Math.max(B.h, ...group.members.filter((id) => slots.get(id)?.row === r).map((id) => fits.get(id)?.h ?? B.h)));
     // 行の上端。輪を持つ行の下は、行の間に輪の分を足す
     const rowTop: number[] = [0];
-    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + B.h + A.rowGap + loopRoom(g, r - 1));
+    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1));
     for (const id of group.members) {
       const slot = slots.get(id) as Slot;
       const source = diagram.boxes.find((b) => b.id === id);
-      const w = widths.get(id) ?? B.minW;
+      const fit = fits.get(id) as BoxFit;
+      const { w, h } = fit;
       const cx = center(slot.col);
-      const y = top + (rowTop[slot.row] as number);
+      // 行より低い箱は行の真ん中に置き、同じ行の箱を結ぶ線をまっすぐにする
+      const y = top + (rowTop[slot.row] as number) + ((rowH[slot.row] as number) - h) / 2;
       boxes.push({
         id,
         name: source?.name ?? id,
@@ -219,13 +227,12 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
         color: colors.get(id) ?? "slate",
         x: cx - w / 2,
         y,
-        w,
-        h: B.h,
+        ...fit,
         cx,
-        cy: y + B.h / 2,
+        cy: y + h / 2,
       });
     }
-    const contentBottom = top + (rowTop[rows - 1] as number) + B.h + loopRoom(g, rows - 1);
+    const contentBottom = top + (rowTop[rows - 1] as number) + (rowH[rows - 1] as number) + loopRoom(g, rows - 1);
     const header = headers[g];
     const h = Math.max(contentBottom + R.pad + room.bottom - cursor, header ? header.h + R.inset * 2 : 0, group.region ? R.minH : 0);
     bands.push({ group: g, y: cursor, h, rows });

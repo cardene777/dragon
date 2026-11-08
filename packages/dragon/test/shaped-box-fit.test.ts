@@ -218,7 +218,7 @@ describe("形を変えた箱に字と運ぶ物の枠を収める (#3520)", () =>
   });
 
   it("shaped-box-keeps-size-when-text-fits", () => {
-    // 円柱と角の丸い箱は縁の近くまで内側が広く、短い名前と下の字はそのまま収まる
+    // 円柱と角の丸い箱は縁の近くまで内側が広く、絵柄の行を持たない図の名前と下の字はそのまま収まる
     const text = [
       "architecture 収まる箱",
       "",
@@ -232,17 +232,17 @@ describe("形を変えた箱に字と運ぶ物の枠を収める (#3520)", () =>
       "  shape round",
       "end",
       "",
-      "box app as アプリ [note: 注文を送る, icon: app]",
-      "+store db as 注文の記録 [note: 注文を残す, icon: db]",
-      "+pill q as 待ち列 [note: 順に渡す, icon: server]",
+      "box app as アプリ [note: 注文を送る]",
+      "+store db as 注文を残す記録の倉庫 [note: 残す]",
+      "+pill q as 待ち列 [note: 順に渡す]",
       "",
       "step 送る",
       "  say アプリが注文を記録へ送る。",
-      "  app -> db: 注文を書く [carry: coin]",
+      "  app -> db: 注文を書く [carry: none]",
       "",
       "step 渡す",
       "  say 記録が待ち列へ渡す。",
-      "  db -> q: 渡す",
+      "  db -> q: 渡す [carry: none]",
       "",
     ].join("\n");
     const rect = (b: Box | undefined) => b && { x: b.x, y: b.y, w: b.w, h: b.h, slot: b.slot };

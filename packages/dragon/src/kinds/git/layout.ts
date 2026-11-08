@@ -26,6 +26,7 @@ import {
   along,
   badgeOnPath,
   badgeRect,
+  cornerOf,
   gapBetween,
   boxColors,
   boxWidth,
@@ -40,6 +41,7 @@ import {
   type SceneBox,
   type SceneLabel,
   type SceneRegion,
+  shapedSize,
   stripNeed,
 } from "../../layout/scene";
 
@@ -515,9 +517,14 @@ export function layoutGit(diagram: DiagramModel): GitLayout {
   );
   const boxX = right + G.boxGap;
   const firstCy = (lanes[1] ?? lanes[0])?.line ?? margin + B.h / 2;
+  // 形を持つ箱は、中身が形の内に収まる大きさにする (#3520)。高くなった箱の分だけ下の箱を下げる
+  let top = 0;
   const boxes: SceneBox[] = diagram.boxes.map((b, i) => {
-    const w = boxWidth(diagram, b.id, true);
-    const cy = firstCy + i * (B.h + gap);
+    const fit = shapedSize(diagram, b.id, boxWidth(diagram, b.id, true), true);
+    const { w, h } = fit;
+    // 最初の箱は、高くなっても真ん中を 2 本目の帯の線の高さに置く
+    const y = i === 0 ? firstCy - h / 2 : top;
+    top = y + h + gap;
     return {
       id: b.id,
       name: b.name,
@@ -525,11 +532,10 @@ export function layoutGit(diagram: DiagramModel): GitLayout {
       ...(b.icon !== undefined ? { icon: b.icon } : {}),
       color: colors.get(b.id) ?? "slate",
       x: boxX,
-      y: cy - B.h / 2,
-      w,
-      h: B.h,
+      y,
+      ...fit,
       cx: boxX + w / 2,
-      cy,
+      cy: y + h / 2,
     };
   });
 
@@ -664,7 +670,7 @@ function badgesOf(diagram: DiagramModel, layout: GitLayout): SceneBadge[] {
     }
     const box = step.events.flatMap((e) => (e.type === "swap" || e.type === "action" ? [e.box] : [])).map((id) => layout.boxes.find((b) => b.id === id))[0];
     if (box) {
-      out.push({ step: s, x: box.x, y: box.y, color: box.color });
+      out.push(cornerOf(box, s));
       return;
     }
     if (layout.strip && step.events.some((e) => e.type === "strip")) {

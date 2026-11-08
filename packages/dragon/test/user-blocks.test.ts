@@ -46,7 +46,7 @@ function parsed(text: string, options: { lang?: NotationLang; blocks?: unknown }
   return result.ok ? result.diagram : {};
 }
 
-/** 足した箱の形の path。100 四方に描き、箱の枠に収める */
+/** 足した箱の形の path。形を囲む最も小さい四角を箱の枠いっぱいに伸ばす (#3520) */
 const BRIDGE = "M 0 70 Q 50 0 100 70 Z";
 /** 足した印の path。今の絵柄と同じく、(0, 0) を中心に 20 四方へ収める */
 const KEY = "M -8 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 0 h 8 M 5 0 v 3";

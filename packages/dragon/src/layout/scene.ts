@@ -7,6 +7,7 @@
 import type { Family } from "../look/fonts";
 import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
 import type { Carry, DiagramModel, DiagramEvent, LabelSide } from "../schema";
+import { userBlockReader } from "../user-blocks-registry";
 import { hasWide, textWidth } from "./measure";
 
 export type Point = [number, number];
@@ -32,6 +33,11 @@ export interface SceneBox extends Rect {
   slot?: Rect;
   /** 絵柄の真ん中の x。置き場を持つ箱は、絵柄を左へ寄せて右を置き場にする。無ければ箱の真ん中 */
   iconX?: number;
+  /**
+   * 名前と下の字と絵柄の行を並べる真ん中の、箱の左上からの位置 (#3520)。形を持つ箱で、中身を形の内側に収めるために箱の真ん中から動かした時だけ持つ。
+   * 無ければ箱の真ん中 (`cx`、`cy`) に並べる。箱を動かしても左上からの位置は変わらない
+   */
+  at?: Point;
 }
 
 export interface SceneRegion extends Rect {
@@ -211,6 +217,24 @@ export function boxWidth(diagram: DiagramModel, id: string, withActions: boolean
   return Math.max(LOOK.box.minW, Math.max(...lines) + LOOK.box.padX * 2);
 }
 
+/** 箱の大きさと、名前と下の字と絵柄の行を並べる真ん中の、箱の左上からの位置。真ん中が箱の真ん中のままなら `at` を持たない。箱にそのまま広げて使う */
+export interface BoxFit {
+  w: number;
+  h: number;
+  at?: Point;
+}
+
+/**
+ * 形を持つ箱の大きさ (#3520)。名前と下の字と絵柄の行が幅 `w`、箱の高さの形の内に収まらない時は、収まるまで箱を大きくする。
+ * 形を持たない箱と、形を測る処理 (`BoxShapes`) をまだ読んでいない時は、幅 `w` と箱の高さを返す。
+ * `rooms` は運ぶ物の置き場を絵柄の行に並べる図の種類だけが渡す
+ */
+export const shapedSize = (diagram: DiagramModel, id: string, w: number, withActions: boolean, rooms?: Map<string, SlotRoom>): BoxFit =>
+  userBlockReader()?.shapes.fit(diagram, id, w, withActions, rooms) ?? { w, h: LOOK.box.h };
+
+/** 箱の名前と下の字と絵柄の行を並べる真ん中。形の内側へ動かした箱 (`at`) はその位置で、ほかは箱の真ん中 */
+export const contentCenter = (box: SceneBox): Point => (box.at ? [box.x + box.at[0], box.y + box.at[1]] : [box.cx, box.cy]);
+
 /** 運ぶ物の半分の幅と高さ */
 export function carrierHalf(carry: Carry): Point {
   const C = LOOK.carrier;
@@ -228,7 +252,7 @@ export interface SlotRoom {
   coin: number;
 }
 
-const roomWidth = (room: SlotRoom): number => room.main + room.coin + (room.main > 0 && room.coin > 0 ? LOOK.slot.spread : 0);
+export const roomWidth = (room: SlotRoom): number => room.main + room.coin + (room.main > 0 && room.coin > 0 ? LOOK.slot.spread : 0);
 
 /** 運ぶ物を出し入れする箱ごとの置き場の中身の幅。何も運ばない線だけの箱は持たない */
 export function slotRooms(diagram: DiagramModel): Map<string, SlotRoom> {
@@ -261,7 +285,8 @@ export function slotBoxWidth(room: SlotRoom | undefined, icon: boolean, right: n
 
 /**
  * 箱の絵柄の行に、絵柄と置き場の枠を並べる。絵柄を持たない箱は枠だけを置く。
- * 並びは真ん中に置き、右に `right` を空けられない時だけ、空けられる所まで左へ寄せる
+ * 並びは真ん中に置き、右に `right` を空けられない時だけ、空けられる所まで左へ寄せる。
+ * 中身を形の内側へ動かした箱 (`at`) は、形の内に収まるよう測った真ん中にそのまま置く (#3520)
  */
 export function placeSlot(box: SceneBox, room: SlotRoom | undefined, right: number = LOOK.box.padX): void {
   if (!room) return;
@@ -269,9 +294,10 @@ export function placeSlot(box: SceneBox, room: SlotRoom | undefined, right: numb
   const S = LOOK.slot;
   const w = roomWidth(room) + S.pad * 2;
   const lead = box.icon ? B.icon + S.gap : 0;
-  const left = Math.max(box.x + B.padX, Math.min(box.cx - (lead + w) / 2, box.x + box.w - right - (lead + w)));
+  const [cx, cy] = contentCenter(box);
+  const left = box.at ? cx - (lead + w) / 2 : Math.max(box.x + B.padX, Math.min(cx - (lead + w) / 2, box.x + box.w - right - (lead + w)));
   if (box.icon) box.iconX = left + B.icon / 2;
-  box.slot = { x: left + lead, y: box.cy + B.iconY - S.h / 2, w, h: S.h };
+  box.slot = { x: left + lead, y: cy + B.iconY - S.h / 2, w, h: S.h };
 }
 
 /**
@@ -751,7 +777,16 @@ export function shiftContent(layout: Layout, dx: number, dy: number): void {
 }
 
 /**
- * 線も処理も無い段の番号。書き換わる箱か最初の箱では、番号の中心を箱の左上の角に置き、半分を箱の外へ出す (#3187)。
+ * 箱 `box` の角に付ける段 `step` の番号。真ん中は箱の左上の角で、形を持つ箱は形の縁で左上の角に一番近い点 (#3520)。
+ * 形の箱の四角の角は形の外に在り、角に置くと番号が形から離れて浮くため
+ */
+export function cornerOf(box: SceneBox, step: number): SceneBadge {
+  const [x, y] = userBlockReader()?.shapes.corner(box.id, box) ?? [box.x, box.y];
+  return { step, x, y, color: box.color };
+}
+
+/**
+ * 線も処理も無い段の番号。書き換わる箱か最初の箱では、番号の中心を箱の左上の角 (`cornerOf`) に置き、半分を箱の外へ出す (#3187)。
  * 箱の左上には絵柄が在り、箱の内側に置くと番号が絵柄の角に掛かるため。中身の帯だけを書き換える段は、帯の左上の角から内側に置く。
  */
 export function cornerBadge(events: DiagramEvent[], step: number, layout: Layout): SceneBadge {
@@ -759,9 +794,8 @@ export function cornerBadge(events: DiagramEvent[], step: number, layout: Layout
   for (const event of events) {
     const id = event.type === "swap" || event.type === "action" ? event.box : undefined;
     const box = layout.boxes.find((b) => b.id === id);
-    if (box) return { step, x: box.x, y: box.y, color: box.color };
+    if (box) return cornerOf(box, step);
   }
   if (layout.strip && events.some((event) => event.type === "strip")) return { step, x: layout.strip.x + inset, y: layout.strip.y + inset, color: "slate" };
-  const box = layout.boxes[0] as SceneBox;
-  return { step, x: box.x, y: box.y, color: box.color };
+  return cornerOf(layout.boxes[0] as SceneBox, step);
 }
