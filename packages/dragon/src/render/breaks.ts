@@ -12,6 +12,7 @@
  * 別々の箱へ向かう2本の線が同じ道に重なって走るのも同じ崩れに数える (#3552)。
  * 同じ箱か commit の同じ所から出る2本の線が重なって走り、その先で分かれるのも同じ崩れに数える (#3547)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
+ * 線の名前の札が、名指す線とは別の線に乗るもの (`label-on-line`、#3552) も拾う。札が乗った線の名前に読めるため。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
@@ -25,7 +26,7 @@
  */
 import { heldIn, type Seat } from "../blocks/carry/timing";
 import type { PipeLayout } from "../kinds/pipe/layout";
-import { along, crossesRect, type Layout, pathLength, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
+import { along, crossesRect, distanceToRect, distanceToSegment, type Layout, lineGap, pathLength, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
 import { PIPE_LOOK } from "../look/pipe";
 import { APART, LOOK } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
@@ -66,6 +67,7 @@ export type LayoutBreakKind =
   | "part-outside-frame"
   | "panel-edge"
   | "label-off-line"
+  | "label-on-line"
   | "line-crosses-text"
   | "chip-over-part"
   | "pipe-behind-box"
@@ -221,37 +223,6 @@ function signedDistance(rings: Point[][], p: Point): number {
     best = Math.min(best, Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)));
   }
   return insideRings(rings, p) ? -best : best;
-}
-
-/** 点から四角までの距離。四角の内の点は 0 */
-function distanceToRect([px, py]: Point, r: Rect): number {
-  const dx = Math.max(r.x - px, 0, px - (r.x + r.w));
-  const dy = Math.max(r.y - py, 0, py - (r.y + r.h));
-  return Math.hypot(dx, dy);
-}
-
-/** 点から線分 a-b までの距離 */
-function distanceToSegment([px, py]: Point, [ax, ay]: Point, [bx, by]: Point): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const length = dx * dx + dy * dy;
-  const t = length === 0 ? 0 : Math.min(1, Math.max(0, ((px - ax) * dx + (py - ay) * dy) / length));
-  return Math.hypot(ax + t * dx - px, ay + t * dy - py);
-}
-
-/** 札の四角から折れ線までの距離。線が四角を通れば 0、通らなければ線の点から四角までと、四角の角から線の区間までの最小 */
-function lineGap(points: Point[], r: Rect): number {
-  if (crossesRect(points, r)) return 0;
-  const corners: Point[] = [
-    [r.x, r.y],
-    [r.x + r.w, r.y],
-    [r.x, r.y + r.h],
-    [r.x + r.w, r.y + r.h],
-  ];
-  return Math.min(
-    ...points.map((p) => distanceToRect(p, r)),
-    ...points.slice(1).flatMap((b, k) => corners.map((c) => distanceToSegment(c, points[k] as Point, b))),
-  );
 }
 
 /**
@@ -539,6 +510,23 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     add("label-off-line", tag.step + 1, [{ kind: "text", text: tag.text }, tag.line]);
   }
 
+  // 線の名前の札が別の線に乗る (#3552)。札の地が下の線を隠しても、札が乗った線の名前に読める。
+  // 札が名指す線と、同じ道を別の段でもう一度引いた線は、札が名指す線そのものなので比べない。配管の図の札は管の部品で見る (`pipe-breaks.ts`)
+  if (layout !== undefined && layout.kind !== "pipe")
+    for (const tag of tagsOf(layout)) {
+      const ink = inks.find((i) => i.rect === tag.rect);
+      if (!ink) continue;
+      for (const trace of traces) {
+        if (samePath(trace.points, tag.points) || !crossesRect(trace.points, tag.rect, BITE)) continue;
+        const seen = firstSeen(ink, trace);
+        if (seen === undefined) continue;
+        add("label-on-line", seen, [
+          { kind: "text", text: tag.text },
+          { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
+        ]);
+      }
+    }
+
   if (input.pieces) out.push(...pipeBreaks(input.pieces, stills));
 
   const seen = new Set<string>();
@@ -599,6 +587,9 @@ function partAfterRun(a: Point[], b: Point[]): boolean {
   while (run <= length && distanceToLine(along(a, run), b) < LINE_GAP) run += 1;
   return run > LINE_ALONG;
 }
+
+/** 2本の線が同じ点の並びを通るか。同じ線を別の段でもう一度引くと、点の並びは別に作っても同じ道を通る */
+const samePath = (a: Point[], b: Point[]): boolean => a.length === b.length && a.every((p, k) => p[0] === b[k]?.[0] && p[1] === b[k]?.[1]);
 
 /**
  * 2本の線のどこかで、縦か横の区間どうしが間 `LINE_GAP` 未満で `LINE_ALONG` より長く並んで走るか。

@@ -28,6 +28,7 @@ import {
   type Layout,
   lineBadges,
   lineKey,
+  longest,
   LOOP_ROOM,
   loopBadge,
   loopLabelBase,
@@ -36,6 +37,7 @@ import {
   type BoxFit,
   shapedSize,
   type Point,
+  nearestLine,
   placeLabel,
   placeSlot,
   pullApart,
@@ -245,6 +247,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   }
   // 列の間を縦に走る道を離して並べる時は、並べた幅だけ列の間を広げる (#3549)
   between.forEach((w, i) => (between[i] = Math.max(w, A.columnGap + extra(`col:${i}`))));
+  // 縦の線の脇の名前に要る間を、別の線が回る列の間に足す (#3552)。一番右の列の右を回る道は `gapX` が足す
+  between.forEach((w, i) => (between[i] = w + extra(`label:${i}`)));
   const headers = groups.map((g) => (g.region ? headerSize(g.region) : undefined));
   const headerW = Math.max(0, ...headers.map((h) => (h ? h.w + R.inset * 2 : 0)));
   const colLeft: number[] = [];
@@ -276,7 +280,9 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     const rowH = Array.from({ length: rows }, (_, r) => Math.max(B.h, ...group.members.filter((id) => slots.get(id)?.row === r).map((id) => fits.get(id)?.h ?? B.h)));
     // 行の上端。輪を持つ行の下は、行の間に輪の分を足す
     const rowTop: number[] = [0];
-    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1) + below(r - 1) + above(r));
+    // 縦の線の脇の名前が、行の間を横に回る線の下に入るだけ行の間を広げる (#3552)
+    const labelRow = (r: number): number => extra(`label-row:${g}:${r}`);
+    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1) + below(r - 1) + above(r) + labelRow(r - 1));
     for (let r = 0; r < rows; r++) rowSpan.set(`${g}:${r}`, { top: top + (rowTop[r] as number), bottom: top + (rowTop[r] as number) + (rowH[r] as number) });
     for (const id of group.members) {
       const slot = slots.get(id) as Slot;
@@ -347,7 +353,7 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const inset = LOOK.edge.inset;
   /** 列 `col` の右 (左) の、隣の列との間の真ん中。同じ列の箱は幅が違うので、箱ではなく列の端から測る (幅の広い箱の中を通さない) */
   const gapX = (col: number, toRight: boolean): number =>
-    toRight ? (colLeft[col] as number) + (colW[col] as number) + (between[col] ?? A.columnGap) / 2 : (colLeft[col] as number) - (between[col - 1] ?? A.columnGap) / 2;
+    toRight ? (colLeft[col] as number) + (colW[col] as number) + (between[col] ?? A.columnGap + extra(`label:${col}`)) / 2 : (colLeft[col] as number) - (between[col - 1] ?? A.columnGap) / 2;
   const route = (from: string, to: string): Point[] => {
     const a = byId.get(from) as SceneBox;
     const b = byId.get(to) as SceneBox;
@@ -472,22 +478,75 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const frames = frameLines(regions);
   const badgeAt = (edge: SceneEdge, taken: Point[], lines: Point[][]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken, lines, frames));
   const early = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
+  /**
+   * 縦の線 `edge` の脇に名前を置く間を空ける (#3552)。`x` は線の縦の区間が通る所、`span` はその区間の両端の高さ、`w` は名前の札の幅。
+   * 名前と別の線の間は、名前と自分の線の間 (`LOOK.label.side`) より狭くしない。狭いと、名前が 2 本の線のどちらの名前か読めない。
+   *
+   * 列の外を縦に走る別の線が名前の側で近い時は、近い分の 2 倍を名前の側の列の間に足し、名前と別の線の間を名前と自分の線の間の 2 倍にする。
+   * 列の間の真ん中を回る線は広げた分の半分しか動かないので 2 倍にする。列の中を走る線 (並べた線や帰りの線) は列の間を広げても動かないので数えない。
+   * 一番左の列の左は広げない。
+   * 行の間を横に回る線が名前の幅の所を通る時は、その線の下に名前が入るだけ、線が結ぶ 2 つの行の間を広げる。
+   * 行の下を回る道は上の行から測って置くので、下の行を下げれば道と下の行の間が空く。
+   * 名前を置く所は線に沿って `LOOK.label.search` ずつずらして探すので、置ける所の幅が 0 だと探す所が当たらない。ずらす 1 回分を足しておく
+   */
+  const roomBeside = (edge: SceneEdge, x: number, span: [number, number], w: number, right: boolean, lines: Point[][]): void => {
+    const { side, h } = LOOK.label;
+    const [y0, y1] = [Math.min(...span), Math.max(...span)];
+    const segments = lines.flatMap((line) => line.slice(1).map((q, k): [Point, Point] => [line[k] as Point, q]));
+    const col = colLeft.findIndex((left, c) => x >= left && x <= left + (colW[c] as number));
+    const at = right ? col : col - 1;
+    if (col >= 0 && at >= 0) {
+      const edgeX = right ? (colLeft[col] as number) + (colW[col] as number) : (colLeft[col] as number);
+      let short = 0;
+      for (const [p, q] of segments) {
+        if (Math.abs(p[0] - q[0]) > 0.5 || (right ? p[0] <= edgeX : p[0] >= edgeX)) continue;
+        if (Math.min(Math.max(p[1], q[1]), y1) - Math.max(Math.min(p[1], q[1]), y0) <= 0) continue;
+        short = Math.max(short, right ? x + w + side * 3 - p[0] : p[0] - (x - w - side * 3));
+      }
+      const key = `label:${at}`;
+      if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + 2 * Math.ceil(short)));
+    }
+    const from = slots.get(edge.from);
+    const to = slots.get(edge.to);
+    if (!from || !to || from.group !== to.group || from.col !== to.col || Math.abs(from.row - to.row) !== 1) return;
+    const row = Math.min(from.row, to.row);
+    const next = rowSpan.get(`${from.group}:${row + 1}`) as Room;
+    const [lx0, lx1] = right ? [x + side, x + side + w] : [x - side - w, x - side];
+    let lowest = Number.NEGATIVE_INFINITY;
+    for (const [p, q] of segments) {
+      if (Math.abs(p[1] - q[1]) > 0.5 || p[1] <= y0 || p[1] >= y1) continue;
+      if (Math.min(Math.max(p[0], q[0]), lx1) - Math.max(Math.min(p[0], q[0]), lx0) <= 0) continue;
+      lowest = Math.max(lowest, p[1]);
+    }
+    const short = lowest + side + h + LOOK.gap + LOOK.label.search - next.top;
+    const key = `label-row:${from.group}:${row}`;
+    if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + Math.ceil(short)));
+  };
   const labels: SceneLabel[] = [];
+  // 線の名前は別の線に乗せず、自分の線より別の線の近くにも置かない。乗るか近い名前は、その線の名前に読める (#3552)。
+  // 後の段の線も初めから点線の道で見えているので、全ての段の線を避ける。同じ道をもう一度引いた線は自分の線なので避けない。
+  // 中ほどの脇が空かない時は、一番長い区間の端までずらして空きを探し、自分の線の脇に留める
+  const keys = new Map(sceneEdges.map((e) => [e, lineKey(e)]));
   for (const edge of sceneEdges) {
     const source = diagram.steps[edge.step]?.events[edge.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
     const seen = [...early].filter(([s]) => s <= edge.step).map(([, b]) => badgeRect(b.point));
+    const lines = sceneEdges.filter((o) => keys.get(o) !== keys.get(edge)).map((o) => o.points);
     const soft: Rect[] = [...regions.map((r) => r.header), ...labels.filter((l) => l.step === edge.step)];
     // 指示の無い線の名前は、空いていなければ反対の側も探す。ずらした線は自分の側だけを探す
     const side = source.labelSide ?? outward.get(edge);
+    const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
     // 輪の名前は輪の下から探す (#3186)
-    const below = edge.from === edge.to ? { side: "below" as const, base: loopLabelBase(edge.points, textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2) } : undefined;
-    labels.push(
-      placeLabel(
-        { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(below ?? (side ? { side } : { flip: true })) },
-        { hard: boxes, soft, touch: seen },
-      ),
+    const below = edge.from === edge.to ? { side: "below" as const, base: loopLabelBase(edge.points, w) } : undefined;
+    const { a, b, vertical } = longest(edge.points);
+    const slide = vertical ? Math.max(LOOK.label.h * 4, (Math.abs(b[1] - a[1]) - LOOK.label.h) / 2) : Math.max(w, (Math.abs(b[0] - a[0]) - w) / 2);
+    const label = placeLabel(
+      { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(below ?? { slide, ...(side ? { side } : { flip: true }) }) },
+      { hard: boxes, soft, touch: seen, lines, nearest: true },
     );
+    labels.push(label);
+    const toward = side ?? "right";
+    if (!below && vertical && (toward === "left" || toward === "right") && !nearestLine(label, edge.points, lines)) roomBeside(edge, a[0], [a[1], b[1]], w, toward === "right", lines);
   }
 
   const layout: Layout = { kind: "architecture", width: 0, height: 0, regions, boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths: [], ends: [] };
