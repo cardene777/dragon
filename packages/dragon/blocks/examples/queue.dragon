@@ -1,0 +1,14 @@
+// Use the shared block +queue without defining it in the diagram
+architecture Hand jobs to a worker through a queue
+
+box api as API [note: takes requests, icon: server]
++queue q as Job queue [note: keeps jobs in order]
+box worker as Worker [note: runs jobs, icon: exe]
+
+step Enqueue
+  say The API puts the job in the queue and answers the request right away.
+  api -> q: job
+
+step Run
+  say The worker takes the oldest job from the queue and runs it.
+  q -> worker: next job

@@ -26,6 +26,10 @@ dragon DSL の主要変更履歴。
 
   利用者が説明したいことに9種類のどれも合わない時、skillは図が見せるべきことを書き出し、一番近い種類で、要る所には足したブロックを使って描き、`dragon check` と `dragon check --layout` を通し、`dragon export` で書き出して (Chromium が無い時は `--format html` で頁に書き出して)、描けなかった所と一緒に絵を利用者に見せるようにした。足りるか、dragonのrepoに新しい種類を頼むかは利用者が決める。`references/blocks.md` の新しい節は、先に利用者に聞き、図が見せるべきことと、試した記法を `dragon` の囲みで、描けなかった所を本文に載せ、`feat:` で始まる題で `gh issue create` を打つと書く。これまでのskillは、新しい種類を頼むとだけ書き、先に描くこともIssueに何を載せるかも書いていなかった。評価のケース `new-kind-issue` は、どの種類も扇で描けない円グラフを頼み、AIがIssueを立てる前に書き出すかを確かめる。
 
+- **共有のブロックに `+wallet`、`+contract`、`+oracle`、`+validator`、`+queue`、`+cache`、`+gateway`、`+async` の8つを足した** (#3522)
+
+  共有のブロック集は `+bridge` と `+relay` と `+key` しか持たず、skillが書いた図は、ウォレットやコントラクトや待ち行列をほかの絵柄か自分で定義したブロックで代用していた。Web3の部品4つ (`+wallet`、`+contract`、`+oracle`、`+validator`) と一般のシステムの部品3つ (`+queue`、`+cache`、`+gateway`) は角の丸い箱で、Tablerの絵柄と色の役で見分ける。箱の形を変えないので、字が形からはみ出さない。`+async` は答えを待たずに送る線で、紫の破線で描き、琥珀の破線の `+relay` と色で見分ける。各ブロックは `packages/dragon/blocks/examples/` に見本を1つ持ち、見本は `dragon check` と `dragon check --layout` を誤りと崩れ無しで通る。skillの `references/blocks.md` は、全ての共有のブロックを何に使うかと一緒に挙げる。軽い入口は `+bridge` と同じく、`loadFor` を待ってTablerの塊を読んだ後に新しい箱を描く。
+
 ### Changed
 
 - **見本帳の概要の頁を開いただけでは、Tablerの絵柄の表 (gzipで約225KB) を裏で読まないようにした** (#3505)
