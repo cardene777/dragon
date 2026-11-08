@@ -5,8 +5,9 @@
  * 頁は build して GitHub Pages と同じ形で配り、画面なしの Chromium で開く (`playground-support.ts`)。
  * 頁の部品は `data-playground` の札で探し、図は `@cardenelabs/dragon` の再生の部品 (`data-dragon` の札) で読む。
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 import { DEFAULT_PALETTE, type Diagram, FONTS, PALETTES, parseNotation } from "@cardenelabs/dragon";
 import { type Browser, chromium, type Page } from "playwright";
 import { afterAll, afterEach, beforeAll, describe, expect, inject, it, vi } from "vitest";
@@ -1205,6 +1206,31 @@ describe("公開する頁 (#2995)", () => {
       kinds.filter((kind) => first.includes(`"${kind}"`) || first.includes(`'${kind}'`) || first.includes(`\`${kind}\``)),
       "最初に読む script に在る崩れの種類の名前",
     ).toEqual([]);
+  });
+
+  // 部品の説明 (各ブロックの `gallery/desc.ts`) は部品の頁だけが見せる。最初に読む script に入ると、日英で 100 件を超える字が
+  // gzip で 7KB ほど上の上限を押し上げるので、どの説明の字も最初の script に入っていないことを確かめる (#3531)
+  it("first-load-carries-no-part-desc", async () => {
+    const blocks = join(__dirname, "../../../../packages/dragon/src/blocks");
+    const files = readdirSync(blocks)
+      .map((name) => join(blocks, name, "gallery", "desc.ts"))
+      .filter((path) => existsSync(path));
+    const descs = (
+      await Promise.all(files.map(async (path) => Object.values(((await import(/* @vite-ignore */ path)) as { desc: Record<string, string> }).desc)))
+    ).flat();
+    expect(descs.length, "部品の説明の字を数えられない (gallery/desc.ts が無い)").toBeGreaterThan(0);
+    const first = firstLoadFiles(site.built.dir)
+      .filter((name) => name.endsWith(".js"))
+      .map((name) => readFileSync(join(site.built.dir, "assets", name), "utf8"))
+      .join("\n");
+    expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+    expect(
+      descs.filter((desc) => first.includes(desc) || first.includes(JSON.stringify(desc).slice(1, -1))).map((desc) => desc.slice(0, 40)),
+      "最初に読む script に在る部品の説明の字",
+    ).toEqual([]);
+    // 外した字が最初の script をどれだけ軽くしたか。説明の字を足して gzip で比べる
+    const gz = (text: string): number => gzipSync(Buffer.from(text)).length;
+    expect(gz(`${first}\n${descs.join("\n")}`) - gz(first), "部品の説明の字を外しても、最初に読む script が gzip で 5,000 バイト軽くならない").toBeGreaterThanOrEqual(5000);
   });
 
   it("page-draws-with-package-parts", () => {
