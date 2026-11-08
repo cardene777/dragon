@@ -13,6 +13,7 @@ import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, userBlock,
 import { action } from "../blocks/act/draw";
 import { boxTextY, card, headCard } from "../blocks/box/draw";
 import { carrier } from "../blocks/carry/draw";
+import { type CarrierTime, seatsOf } from "../blocks/carry/timing";
 import { cs } from "../blocks/color/draw";
 import { edge } from "../blocks/edge/draw";
 import { fadeBefore, label } from "../blocks/edge-label/draw";
@@ -348,6 +349,10 @@ export function drawSvg(
     `${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`,
   );
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
+  // 木の図の運ぶ物は着いた所で消える。通った跡が行き先を残し、兄弟の箱から同じ親へ着いた運ぶ物が重ならないため
+  const carried: CarrierTime[] = isTreeLayout(layout)
+    ? timeline.carriers.map((time) => ({ ...time, start: time.depart, end: time.arrive + MOTION.fade }))
+    : timeline.carriers;
   const ctx: Ctx = {
     m,
     t: timeline,
@@ -358,6 +363,7 @@ export function drawSvg(
     traces,
     boxText: boxTextY(layout.boxes),
     corner: palette.corner,
+    seats: seatsOf(layout.edges, carried),
   };
   const on = involved(diagram);
   // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
@@ -516,17 +522,9 @@ export function drawSvg(
         : action(a, time.at, until, ctx, whole),
     );
   }
-  // 木の図の運ぶ物は着いた所で消える。通った跡が行き先を残し、兄弟の箱から同じ親へ着いた運ぶ物が重ならないため
-  for (const time of timeline.carriers) {
+  for (const time of carried) {
     const e = layout.edges.find((x) => x.step === time.step && x.event === time.event);
-    if (e)
-      L.top.push(
-        carrier(
-          e,
-          treeLayout ? { ...time, start: time.depart, end: time.arrive + MOTION.fade } : time,
-          ctx,
-        ),
-      );
+    if (e) L.top.push(carrier(e, time, ctx));
   }
   const content = Object.values(L)
     .map((parts) => parts.join(""))
