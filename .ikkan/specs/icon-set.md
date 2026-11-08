@@ -13,7 +13,7 @@
 | 軽い入口で`loadFor`を待たずに`tabler:`を書いた図を描くと、絵柄集を読んでいないことを名指す誤りで止まり、SVG を返さない | `pnpm exec vitest run packages/dragon/test/icon-set.test.ts`の検査`light-refuses-tabler-before-load`が通る | #3493 |
 | `tabler:`の絵柄を使った図を HTML に書き出すと、頁は外の URL を読まずにその絵柄を描き、手描きの絵柄で描いた同じ図の頁より 5KB 以上大きくならない | `pnpm exec vitest run packages/dragon/test/icon-set.test.ts`の検査`html-export-carries-only-used-tabler-icons`が通る | #3493 |
 | Tabler の利用許諾 (MIT) の全文が、npm に出す package の file に入る | `pnpm exec vitest run packages/dragon/test/icon-set.test.ts`の検査`tabler-license-ships`が通る | #3493 |
-| 常に、手描きの絵柄の名前 (`key`、`user`、`doc`) を書いた箱は、手描きの表の path をそのまま描く | `pnpm exec vitest run packages/dragon/test/icon-set.test.ts`の検査`house-icon-draws-house-path`が通る | #3493 |
-| 常に、足した印のブロック (`icon: +key`) を書いた箱は、今どおりその path を描く | `pnpm exec vitest run packages/dragon/test/user-blocks.test.ts`の検査`user-icon-block-draws-on-box`が通る | #3493 |
-| 常に、script の 1 行の入口 (CDN) が時系列図 1 つの頁でその図を描くまでに読む script の合計が、gzip で 90,000 byte 以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3493 |
-| 常に、見本帳が最初に読む script と CSS の合計が、今の上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3493 |
+| 手描きの絵柄の名前 (`key`、`user`、`doc`) を書いた箱は、手描きの表の path をそのまま描く | `pnpm exec vitest run packages/dragon/test/icon-set.test.ts`の検査`house-icon-draws-house-path`が通る | #3493 |
+| 足した印のブロック (`icon: +key`) を書いた箱は、今どおりその path を描く | `pnpm exec vitest run packages/dragon/test/user-blocks.test.ts`の検査`user-icon-block-draws-on-box`が通る | #3493 |
+| script の 1 行の入口 (CDN) が時系列図 1 つの頁でその図を描くまでに読む script の合計が、gzip で 90,000 byte 以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3493 |
+| 見本帳が最初に読む script と CSS の合計が、今の上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3493 |
