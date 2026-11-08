@@ -291,9 +291,10 @@ describe("形を変えた箱に字と運ぶ物の枠を収める (#3520)", () =>
 
   it("layout-breaks-record-has-no-shape-rows", () => {
     const recorded = JSON.parse(read(RECORDED)) as Record<string, LayoutBreak[]>;
-    const rows = Object.values(recorded).flat();
-    // 一覧を読めていなければ 0 件は当たり前になる
-    expect(rows.length, "崩れの一覧を 1 行も読めない").toBeGreaterThan(0);
+    // 見本の崩れを全て直して一覧は空になったので (#3547)、行の数でなく、見本の file ごとに崩れを並べた形で読めたかを確かめる。
+    // 一覧を読めていなければ、形の崩れの行が 0 件なのは当たり前になる
+    expect(recorded !== null && typeof recorded === "object" && !Array.isArray(recorded), "崩れの一覧を見本の file ごとの表として読めない").toBe(true);
+    for (const [file, breaks] of Object.entries(recorded)) expect(Array.isArray(breaks), `崩れの一覧の ${file} の行を読めない`).toBe(true);
     expect(
       Object.entries(recorded).flatMap(([file, breaks]) => breaks.filter((b) => SHAPE_KINDS.includes(b.kind)).map((b) => `${file}: ${JSON.stringify(b)}`)),
       "崩れの一覧に形の崩れの行が在る",
