@@ -1,0 +1,14 @@
+// Router が Alice へ返す値の札が長く、呼び出しの管のどこに止めても弁か箱に重なる図 (#3523)。
+// 札が収まる所の無い図で、dragon check --layout が札と重なる部品を名指すことを確かめる
+pipe 長い値を返す
+
+box alice as Alice
+box router as Router
+
+step AliceがRouterを呼ぶ
+  say AliceがRouterを呼ぶ。
+  alice -> router: 呼ぶ
+
+step Routerが長い値を返す
+  say Routerが長い値を返す。
+  return router: 呼び出しの管のどこにも収まらないほど長い戻り値の札

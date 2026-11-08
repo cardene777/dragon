@@ -91,3 +91,11 @@
 | 記法の行の頭の語は、今どおり1つの語を1つのブロックだけが持つ | `pnpm exec vitest run packages/dragon/test/blocks.test.ts`の検査`block-heads-owned-once`が通る | #3464 |
 | 見本帳の部品は、今どおり記法の全ての語を受け持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-parts-cover-every-word`が通る | #3464 |
 | AIのskillの記法の囲みは、今どおり全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-fences-parse`が通る | #3464 |
+| 見本`swap`の段14を描いた時、返した値の札「0.05 WETH」が止まる所は、Aliceの弁とRouterの計器に重ならない | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`pipe-return-chip-clears-valve-and-gauge`が通る | #3523 |
+| 見本`swap-retry`の段4を描いた時、札「true」が止まる所は、Pool1の箱とPool1から出る管の弁 (胴と取っ手) に重ならない | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`pipe-return-chip-clears-box-and-lever`が通る | #3523 |
+| 見本`swap-retry`の段11を描いた時、Pool1から出る2本の管の弁の胴は、ほかの管の縁から平行な管の間 (10px) 以上離れる | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`pipe-valves-keep-clear-of-sibling-pipes`が通る | #3523 |
+| 見本`swap-two-hops`の段13を描いた時、呼び出しの管は箱の縁の角の丸みにかからない所から出入りし、RouterからPool1への管とRouterからPool2への管は1本の管を共に通らない | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`pipe-calls-leave-straight-edges-and-stay-apart`が通る | #3523 |
+| 配管の図で札が弁か計器か箱に重なる時、`dragon check --layout`がその段と札と部品を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`layout-check-finds-chip-over-pipe-part`が通る | #3523 |
+| 配管の図で管が箱の縁の角の後ろを通る時と、2本の管が逆向きに1本の管を共に通る時と、弁の胴がほかの管に近すぎる時、`dragon check --layout`がその段と管か弁を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`layout-check-finds-pipes-overlapping`が通る | #3523 |
+| 常に、見本の`.dragon`に、数えた一覧 (`packages/dragon/test/fixtures/layout-breaks.json`) に無い崩れが出ない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3523 |
+| 常に、配管の図の見本と機械で作った図は、配管の図の決まりの表に違反しない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`と`pipe-rules-zero-violations-in-generated-figures`が通る | #3523 |

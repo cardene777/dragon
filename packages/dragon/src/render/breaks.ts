@@ -10,6 +10,7 @@
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
+ * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  * 形を持たない四角の箱の字は、形の崩れの代わりに枠に接するかを見る。
  *
@@ -23,6 +24,7 @@ import { crossesRect, type Layout, type Point, type Rect, type SceneBox, type Sc
 import { PIPE_LOOK } from "../look/pipe";
 import { APART, LOOK } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
+import { pipeBreaks } from "./pipe-breaks";
 
 /** 図の枠の 4 つの端 */
 export type FrameSide = "left" | "right" | "top" | "bottom";
@@ -42,7 +44,10 @@ export type LayoutPart =
   | { kind: "frame"; side: FrameSide }
   | { kind: "needle" }
   | { kind: "ticks" }
-  | { kind: "panel"; panel: "axis" };
+  | { kind: "panel"; panel: "axis" }
+  | { kind: "valve"; from: string; to?: string }
+  | { kind: "gauge"; box: string }
+  | { kind: "pipe"; from: string; to: string; step: number };
 
 export type LayoutBreakKind =
   | "badge-off-shape"
@@ -55,7 +60,23 @@ export type LayoutBreakKind =
   | "part-outside-frame"
   | "panel-edge"
   | "label-off-line"
-  | "line-crosses-text";
+  | "line-crosses-text"
+  | "chip-over-part"
+  | "pipe-behind-box"
+  | "pipes-merged"
+  | "valve-near-pipe";
+
+/**
+ * 配管の図の描く処理が記録する部品 (#3523)。名前は書き手が書いた箱の名前で、段は 1 から数える。
+ * 箱は名札の四角と角の丸み、呼び出しの管は点の並びと太さの半分、弁は胴と軸と取っ手の四角、計器は盤と通ったかの印と軸の四角、
+ * 返した値の札は止まった所の四角を持つ。弁の `to` は呼び出しの管の弁だけが持ち、トークンの箱の弁は持たない
+ */
+export type PipePiece =
+  | { kind: "box"; name: string; rect: Rect; corner: number; shown: Shown[] }
+  | { kind: "pipe"; from: string; to: string; step: number; points: Point[]; half: number; shown: Shown[] }
+  | { kind: "valve"; from: string; to?: string; step?: number; body: Rect; lever: Rect[]; shown: Shown[] }
+  | { kind: "gauge"; box: string; rects: Rect[]; shown: Shown[] }
+  | { kind: "chip"; text: string; rect: Rect; shown: Shown[] };
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -91,6 +112,8 @@ export interface BreakInput {
   layout?: Layout;
   /** 箱の名札ごとの見えている形の輪郭。形を持たない箱は持たない */
   outlines: ReadonlyMap<string, Point[][]>;
+  /** 配管の図の部品。配管の図だけが持つ (#3523) */
+  pieces?: PipePiece[];
 }
 
 /**
@@ -468,6 +491,8 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     offLine.add(key);
     add("label-off-line", tag.step + 1, [{ kind: "text", text: tag.text }, tag.line]);
   }
+
+  if (input.pieces) out.push(...pipeBreaks(input.pieces, stills));
 
   const seen = new Set<string>();
   return out

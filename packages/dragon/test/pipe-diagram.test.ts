@@ -1424,6 +1424,17 @@ function onPath(p: Point, points: Point[], tol = 1.5): boolean {
   });
 }
 
+/** 縦と横の折れ線 `points` の始まりから、線の上の点 `p` までの道のりの長さ。線の上に無い点は線の長さ */
+function alongPath(p: Point, points: Point[], tol = 1.5): number {
+  let walked = 0;
+  for (const [i, b] of points.slice(1).entries()) {
+    const a = points[i] as Point;
+    if (onPath(p, [a, b], tol)) return walked + Math.hypot(p[0] - a[0], p[1] - a[1]);
+    walked += Math.hypot(b[0] - a[0], b[1] - a[1]);
+  }
+  return walked;
+}
+
 /** 四角 `inner` が四角 `outer` の中に在るか */
 const inside = (inner: Rect, outer: Rect, tol = 0.5): boolean =>
   inner.x >= outer.x - tol && inner.y >= outer.y - tol && inner.x + inner.w <= outer.x + outer.w + tol && inner.y + inner.h <= outer.y + outer.h + tol;
@@ -2359,11 +2370,13 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
     };
     const points = lane?.points ?? [];
     const callee = points[points.length - 1] as Point;
-    const caller = points[0] as Point;
     const first = posAt(span.start + 0.05);
     const end = posAt(stillOf(rendered, 5));
     expect(Math.hypot(first[0] - callee[0], first[1] - callee[1]), "戻り値の札が呼ばれた側から動き出さない").toBeLessThanOrEqual(40);
-    expect(Math.hypot(end[0] - caller[0], end[1] - caller[1]), "戻り値の札が呼んだ側まで戻らない").toBeLessThanOrEqual(40);
+    // 着く所は呼び出しの管の上の、動き出した所より呼んだ側の所。呼んだ側の名札の手前に並ぶ弁と計器を避けて止まるので、
+    // 名札の際とは限らない (#3523)
+    expect(onPath(end, points, 6), "戻り値の札が呼び出しの管の上に止まらない").toBe(true);
+    expect(alongPath(end, points, 6), "戻り値の札が呼んだ側へ戻らない").toBeLessThan(alongPath(first, points, 6) - 40);
     // 途中は呼び出しの管の上を通る
     for (const k of [0.3, 0.5, 0.7]) {
       const p = posAt(span.start + (stillOf(rendered, 5) - span.start) * k);
