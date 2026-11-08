@@ -28,6 +28,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- **The dotted slot in a box shows only while a carried item sits in it** (#3518)
+
+  Architecture and state diagrams that carry items (`[carry: coin]` or `[tag: ...]`) gave every box that sends or receives one a dotted slot right of its icon, drawn from the first step to the last. The slot filled only while an item sat in it, so the last step showed empty dotted squares in most boxes and the diagram looked unfinished. The dotted frame now fades in when an item settles in the slot or waits there before it leaves, and fades out shortly after the item leaves. Boxes keep their width and the icon stays where it was, so nothing in a box moves while the diagram plays. `dragon check --layout` reports a slot that sticks out of a shaped box at the first step an item sits in it, and no longer reports a slot no item ever sits in. The SVG fingerprints of 18 examples, 16 test fixtures and 78 catalog part figures changed with the drawing.
+
 - **Opening the catalog's home page no longer loads the Tabler icon table (about 225KB gzipped) in the background** (#3505)
 
   In 0.67.0, when the catalog loaded the later examples in the background after drawing the first screen, it saw `icon tabler:` in the bridge example's definition and loaded the Tabler table too. Visitors who never opened the bridge example or the guide page loaded the table anyway. The example notation still loads in the background, and the table now loads when you open the editor or a catalog page, or when the guide page draws the figure in its "Adding blocks" section. The script and CSS loaded first went from 186,341 to 186,327 bytes gzipped.
