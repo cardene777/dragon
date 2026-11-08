@@ -259,11 +259,14 @@ function lineGap(points: Point[], r: Box): number {
   );
 }
 
-/** 記法を dist の部品で読んで描いた置き場所。配管の図の置き場所の欄も読めるよう、型を緩めて返す */
-function drawnLayout(file: string): Record<string, unknown> {
+/**
+ * 記法を dist の部品で読み、図の中の字を言葉 `lang` で描いた置き場所。配管の図の置き場所の欄も読めるよう、型を緩めて返す。
+ * `dragon export` は `--lang` を渡さなければ英語の字で描くので、日本語の記法も英語の字で描いて確かめる
+ */
+function drawnLayout(file: string, lang: "ja" | "en" = "ja"): Record<string, unknown> {
   const parsed = dragon.parseNotation(readFileSync(file, "utf8"), { lang: "ja" });
   if (!parsed.ok) throw new Error(`${file} を読めない: ${JSON.stringify(parsed.errors)}`);
-  return dragon.renderDiagram(parsed.diagram, { lang: "ja" }).layout as unknown as Record<string, unknown>;
+  return dragon.renderDiagram(parsed.diagram, { lang }).layout as unknown as Record<string, unknown>;
 }
 
 describe("線の名前と札を線の近くに描く (#3528)", () => {
@@ -283,28 +286,31 @@ describe("線の名前と札を線の近くに描く (#3528)", () => {
   });
 
   it("amount-chip-near-flow-in-swap-retry", () => {
-    const layout = drawnLayout(SWAP_RETRY) as {
-      chips: (Box & { kind: string; text: string; step: number; flow?: number })[];
-      flows: { id: number; step: number; from: string; to: string; points: Point[] }[];
-      housings: (Box & { party: string })[];
-    };
-    const flowOf = (chip: { step: number; flow?: number }) => layout.flows.find((f) => f.id === chip.flow && f.step === chip.step);
-    const amounts = layout.chips.filter((c) => c.kind === "amount" && flowOf(c) !== undefined);
-    // 段4 (0 から数えて 3) の、Router から Pool1 への流れの札
-    const target = amounts.find((c) => c.step === 3 && flowOf(c)?.from === "router" && flowOf(c)?.to === "pool1");
-    expect(target, "段4の Router から Pool1 への流れの札が、その流れを名指さない").toBeDefined();
-    if (!target) return;
-    expect(target.text).toBe("100 USDC");
-    const gap = lineGap(flowOf(target)?.points ?? [], target);
-    // 同じ流れの札は後の段にも残るので、ほかの流れの札と比べる
-    const others = amounts.filter((c) => c.flow !== target.flow).map((c) => lineGap(flowOf(c)?.points ?? [], c));
-    expect(others.length, "比べるほかの流れの札が無い").toBeGreaterThan(0);
-    expect(gap, `札と流れの間 (ほかの流れの札と流れの間の最大は ${Math.max(...others)})`).toBeLessThanOrEqual(Math.max(...others));
-    const inside = (r: Box, h: Box): boolean => r.x >= h.x && r.y >= h.y && r.x + r.w <= h.x + h.w && r.y + r.h <= h.y + h.h;
-    expect(
-      layout.housings.filter((h) => inside(target, h)).map((h) => h.party),
-      `札 ${JSON.stringify([target.x, target.y, target.w, target.h])} が囲みの内側に無い`,
-    ).not.toEqual([]);
+    // 英語の字では値の札の下の語 (Pending) が長く、管の際の空きが日本語の字より狭い
+    for (const lang of ["ja", "en"] as const) {
+      const layout = drawnLayout(SWAP_RETRY, lang) as {
+        chips: (Box & { kind: string; text: string; step: number; flow?: number })[];
+        flows: { id: number; step: number; from: string; to: string; points: Point[] }[];
+        housings: (Box & { party: string })[];
+      };
+      const flowOf = (chip: { step: number; flow?: number }) => layout.flows.find((f) => f.id === chip.flow && f.step === chip.step);
+      const amounts = layout.chips.filter((c) => c.kind === "amount" && flowOf(c) !== undefined);
+      // 段4 (0 から数えて 3) の、Router から Pool1 への流れの札
+      const target = amounts.find((c) => c.step === 3 && flowOf(c)?.from === "router" && flowOf(c)?.to === "pool1");
+      expect(target, `${lang} の字で、段4の Router から Pool1 への流れの札が、その流れを名指さない`).toBeDefined();
+      if (!target) return;
+      expect(target.text).toBe("100 USDC");
+      const gap = lineGap(flowOf(target)?.points ?? [], target);
+      // 同じ流れの札は後の段にも残るので、ほかの流れの札と比べる
+      const others = amounts.filter((c) => c.flow !== target.flow).map((c) => lineGap(flowOf(c)?.points ?? [], c));
+      expect(others.length, "比べるほかの流れの札が無い").toBeGreaterThan(0);
+      expect(gap, `${lang} の字で、札と流れの間 (ほかの流れの札と流れの間の最大は ${Math.max(...others)})`).toBeLessThanOrEqual(Math.max(...others));
+      const inside = (r: Box, h: Box): boolean => r.x >= h.x && r.y >= h.y && r.x + r.w <= h.x + h.w && r.y + r.h <= h.y + h.h;
+      expect(
+        layout.housings.filter((h) => inside(target, h)).map((h) => h.party),
+        `${lang} の字で、札 ${JSON.stringify([target.x, target.y, target.w, target.h])} が囲みの内側に無い`,
+      ).not.toEqual([]);
+    }
   });
 
   it("layout-check-finds-label-off-line", async () => {
