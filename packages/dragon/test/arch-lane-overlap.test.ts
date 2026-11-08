@@ -321,11 +321,7 @@ describe("構成図の線の名前は自分の線の脇に置き、別の線に�
       expect(strayLabels(laid(mixed), apart), `${name} の、自分の線の脇に無いか、別の線の方が近い名前`).toEqual([]);
       expect(problems(name, mixed, "label-off-line"), `${name} の離れた名前の知らせ`).toEqual([]);
     }
-    // 混ぜた図の段6の名前は、行の下に並べて回る4本の道の2本目の名前で、上下の道の間 (`APART.line`) は札より狭い。
-    // 名前は道に乗らないが、自分の道より隣の道の近くに残るので、崩れの検査が離れた名前として知らせる (描き方で避けられない所を隠さない)
-    expect(problems("mixed.dragon", MIXED, "label-off-line"), "混ぜた図の離れた名前の知らせ").toEqual([
-      "mixed.dragon:25:1 warning 段 6: 「六」が線 A → C (段 6)から離れて描かれる",
-    ]);
+    // 混ぜた図の段6の名前は、行の下に並べて回る道の間に置く。確かめるのは`lane-label-near-own-line-between-lanes` (#3556)
     // 中ほどの脇が別の線に乗らないだけで近い時は、そこを採らず、自分の線が最も近い所を探す。
     // 3本の線が集まる図の段1の名前は、中ほどの右の脇が段2の線の横の区間の 2.5px 下に在る。
     // 段4の名前と、同じ箱の下に線が集まる図の段1の名前は、脇を段2の線の横の区間が塞ぐので、2つの帯の間を広げてその下に置き、
@@ -412,5 +408,32 @@ describe("構成図の線の名前は自分の線の脇に置き、別の線に�
     expect(gapTo(up.points, back_name), "名前と行の上を回る道の間").toBeGreaterThanOrEqual(2 * gapTo(back.points, back_name) - 0.5);
     expect((back.points[0] as Point)[1], "名前のために行を下げない").toBeGreaterThan((line(bare.edges, "c", "b").points[0] as Point)[1]);
     expect((up.points[1] as Point)[1], "行の上を回る道と図の上の縁の間").toBeCloseTo((stay.points[1] as Point)[1], 1);
+  });
+});
+
+describe("行の下を回る道が並ぶ時も、線の名前を自分の線の脇に置く (#3556)", () => {
+  it("lane-label-near-own-line-between-lanes", () => {
+    const layout = laid(MIXED);
+    const six = layout.labels.find((l) => l.text === "六");
+    if (!six) throw new Error("混ぜた図に段6の名前「六」が無い");
+    // 「六」の線`A → C`の道の上には帰りの線`C → A`の道が、下には次の行へ進む線`A → F`の道が並び、右では`B → D`が下りる。
+    // 決まった離れ (札の縁から線まで12px) では下の道`A → F`が自分の線より近いので、線へ寄せて置く。札が線に触れないよう、札どうしを離す間は空ける
+    expect(gapTo(line(layout.edges, "a", "c").points, six), "「六」と自分の線 A → C の間").toBeGreaterThanOrEqual(LOOK.label.soft - 0.01);
+    expect(strayLabels({ edges: layout.edges, labels: [six] }, 2), "自分の線の脇に無いか、別の線が自分の線の 2 倍より近い「六」").toEqual([]);
+    for (const kind of ["label-off-line", "label-on-line"])
+      expect(problems("mixed.dragon", MIXED, kind), `混ぜた図の${kind}の知らせ`).toEqual([]);
+    // 線へ寄せて探しても、札と自分の線の間は`LOOK.label.soft`より狭めない。
+    // 札を線の6px下から探させ、札の下の2pxを別の線が通ると、決まった離れから外では別の線が近いか札を横切る。
+    // 線へ4px寄せた所は、別の線との間が自分の線との間の3倍になるが、自分の線に2pxまで近づく
+    const own: Point[] = [
+      [0, 100],
+      [200, 100],
+    ];
+    const under = 100 + LOOK.label.soft + LOOK.label.h + 2;
+    const near = placeLabel(
+      { step: 0, event: 0, text: "六", points: own, color: "slate", side: "below", base: { x: 86, y: 100 + LOOK.label.soft }, slide: 0 },
+      { hard: [], soft: [], lines: [[[0, under], [200, under]]], nearest: true },
+    );
+    expect(gapTo(own, near), "線へ寄せて探した札と自分の線の間").toBeGreaterThanOrEqual(LOOK.label.soft - 0.01);
   });
 });
