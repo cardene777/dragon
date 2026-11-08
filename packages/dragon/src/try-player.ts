@@ -52,11 +52,15 @@ function tryCss(): string {
     ".dg-ask[hidden]{display:none}",
     `.dg-ask-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:${px(P.gap)}}`,
     // 選ぶ欄は一番長い候補が収まる幅 (--dg-field-min) より縮めず、1 行に入らない欄は次の行へ送る (#3485)。打つ欄は今どおり縮める。
-    // 次の行へ送った選ぶ欄が行の幅いっぱいに伸びないよう、選ぶ欄は --dg-field-max より広げない
-    `.dg-field{display:flex;flex-direction:column;gap:${px(A.label)};flex:1 1 ${px(A.field)};min-width:var(--dg-field-min,0px);max-width:var(--dg-field-max,none)}`,
+    // 次の行へ送った欄 (data-wrap) は伸ばさず、1 行目の欄だけが伸びて行を埋める (#3492)
+    `.dg-field{position:relative;display:flex;flex-direction:column;gap:${px(A.label)};flex:1 1 ${px(A.field)};min-width:var(--dg-field-min,0px)}`,
+    ".dg-field[data-wrap]{flex-grow:0}",
     `.dg-fl{${font(TYPE.askLabel)};color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}`,
     `.dg-in{box-sizing:border-box;width:100%;height:${px(P.touch)};margin:0;padding:0 ${px(A.inset)};border:${hair} solid var(--line);border-radius:${px(A.radius)};background:var(--surf);color:var(--ink);${font(TYPE.askInput)}}`,
     `.dg-in:focus{outline:${hair} solid ${tint};border-color:${tint}}`,
+    // 選ぶ欄はブラウザの矢印を描かず、右に矢印の場所を空けて、dragon が描く矢印 (.dg-caret) を右の縁から字と同じ余白で置く (#3492)
+    `select.dg-in{appearance:none;-webkit-appearance:none;padding-right:${px(A.inset + A.arrow)}}`,
+    `.dg-caret{position:absolute;right:${px(A.inset + LOOK.stroke.hair)};bottom:${px((P.touch - A.caret.h) / 2)};width:${px(A.caret.w)};height:${px(A.caret.h)};color:var(--mute);pointer-events:none}`,
     `.dg-act{box-sizing:border-box;flex:none;min-width:${px(P.touch)};min-height:${px(P.touch)};margin:0;padding:0 ${px(A.side)};border:${hair} solid var(--line);border-radius:${px(A.radius)};background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer}`,
     `.dg-act:focus-visible{outline:${px(P.focus)} solid var(--c-blue);outline-offset:${px(P.focus)}}`,
     `.dg-act:is([data-dragon="send"],[data-dragon="apply"]){border-color:${tint};background:${tint};color:var(--on-c)}`,
@@ -190,6 +194,25 @@ export function mountTryControls(
     b.textContent = text;
     return b;
   };
+  /** 選ぶ欄の右に置く下向きの矢印 (#3492)。見た目だけの絵で、押した時は下の選ぶ欄が開く */
+  const caret = (): SVGSVGElement => {
+    const { w, h, line } = LOOK.player.ask.caret;
+    const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "dg-caret");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+    const pad = line / 2;
+    path.setAttribute("d", `M${pad} ${pad}L${w / 2} ${h - pad}L${w - pad} ${pad}`);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", String(line));
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    svg.append(path);
+    return svg;
+  };
   /** 欄ごとの選択肢 (#3422)。選択肢を持つ欄は打たせず選ばせる */
   const choices = ask?.choices ?? {};
   /**
@@ -213,13 +236,11 @@ export function mountTryControls(
         select.append(o);
       }
       select.value = options.includes(value) ? value : (options[0] ?? "");
-      // 一番長い候補の字と左右の余白と矢印と縁が収まる幅を、欄の幅の下限にする (#3485)。選んだ値の字を欄の幅で切らない。
-      // 上限は下限 (基準の幅より狭ければ基準の幅) に基準の幅を足した幅で、次の行へ送った欄が行の幅いっぱいに伸びない
+      // 一番長い候補の字と左右の余白と矢印と縁が収まる幅を、欄の幅の下限にする (#3485)。選んだ値の字を欄の幅で切らない
       const A = LOOK.player.ask;
       const longest = Math.max(0, ...options.map((option) => textWidth(option, TYPE.askInput)));
       const least = Math.ceil(longest + 2 * A.inset + A.arrow + 2 * LOOK.stroke.hair);
       box.style.setProperty("--dg-field-min", px(least));
-      box.style.setProperty("--dg-field-max", px(Math.max(least, A.field) + A.field));
       input = select;
     } else {
       const text = doc.createElement("input");
@@ -232,6 +253,7 @@ export function mountTryControls(
     input.className = "dg-in";
     input.dataset.field = name;
     box.append(caption, input);
+    if (options) box.append(caret());
     return { label: box, input };
   };
 
@@ -303,6 +325,8 @@ export function mountTryControls(
       (spotFor(p) ? layer : row).append(pressed.get(p.id) as HTMLButtonElement);
     form.hidden = row.childElementCount === 0;
     position();
+    // 釦を帯へ移すと行の並びが変わるので、次の行へ送った欄を決め直す (#3492)
+    settle();
   };
 
   /** 入力の帯の今の値 */
@@ -463,6 +487,19 @@ export function mountTryControls(
   tools.addEventListener("keydown", onKey);
   layer.addEventListener("click", onClick);
 
+  /**
+   * 帯の 2 行目より下へ送った欄に `data-wrap` を付け、伸ばさない (#3492)。印は伸びる幅だけを変え、どの欄がどの行に入るかは変えないので、
+   * 1 度の判定で落ち着く。2 列の升 (細い帯) では行の並びを升が決めるので印を外す。帯の大きさが変わるたびに判定し直す
+   */
+  const settle = (): void => {
+    const boxes = [...row.querySelectorAll<HTMLElement>(":scope > .dg-field")];
+    for (const box of boxes) box.removeAttribute("data-wrap");
+    const view = doc.defaultView;
+    if (boxes.length === 0 || !view || view.getComputedStyle(row).display !== "flex") return;
+    const top = boxes[0]?.offsetTop ?? 0;
+    for (const box of boxes) if (box.offsetTop > top + 1) box.setAttribute("data-wrap", "");
+  };
+
   move();
   update(layout);
 
@@ -487,6 +524,9 @@ export function mountTryControls(
         if (fitted) fitLayer(fitted.frame, fitted.svg);
       })
     : undefined;
+  /** 入力の帯の行の大きさが変わったら、次の行へ送った欄を決め直す (#3492) */
+  const rowResized = Observer ? new Observer(() => settle()) : undefined;
+  rowResized?.observe(row);
 
   return {
     tools,
@@ -529,6 +569,7 @@ export function mountTryControls(
     refuse,
     destroy: () => {
       resized?.disconnect();
+      rowResized?.disconnect();
       tools.removeEventListener("click", onClick);
       tools.removeEventListener("submit", onSubmit);
       tools.removeEventListener("input", onInput);
