@@ -165,10 +165,55 @@ async function runAll(tasks) {
 export async function writeGallery({ cases, page, tools, known = [] }) {
   const pngDir = join(dirname(page), `${basename(page, extname(page))}-png`);
   rmSync(pngDir, { recursive: true, force: true });
+  const laid = aiDiagrams(cases, known);
+  const diagrams = laid.flatMap((evalCase) =>
+    evalCase.runs.flatMap((run) =>
+      run.diagrams.map((diagram, at) => ({ evalCase, run, diagram, at })),
+    ),
+  );
+  return drawGallery({ laid, diagrams, page, pngDir, tools });
+}
+
+/**
+ * ケースごとに、AI が保存した図の数と、崩れの残る図の数と、崩れを数えられなかった図の数を返す (#3546)。
+ *
+ * 数える図は頁に並べる図と同じで (`known` の写しの repo に前から在った図と、ブロックの定義だけの file は数えない)、PNG は書き出さない。
+ * 崩れが何件あっても 1 枚と数える。検査が失敗した図と、記法の誤り (`error`) を持つ図は崩れを測れないので、
+ * 崩れ 0 件の図ではなく `unchecked` に数える。
+ */
+export async function countBreaks({ cases, tools, known = [] }) {
+  const laid = aiDiagrams(cases, known);
+  const counts = Object.fromEntries(
+    laid.map((evalCase) => [evalCase.name, { diagrams: 0, broken: 0, unchecked: 0 }]),
+  );
+  await runAll(
+    laid.flatMap((evalCase) =>
+      evalCase.runs.flatMap((run) =>
+        run.diagrams.map((diagram) => async () => {
+          const found = await settle(() => tools.breaks(diagram.path));
+          const problems = found.problems ?? [];
+          const count = counts[evalCase.name];
+          count.diagrams += 1;
+          const measured =
+            found.error === undefined &&
+            !problems.some(
+              (problem) => problem.layout === undefined && problem.severity === "error",
+            );
+          if (!measured) count.unchecked += 1;
+          else if (problems.some((problem) => problem.layout !== undefined)) count.broken += 1;
+        }),
+      ),
+    ),
+  );
+  return counts;
+}
+
+/** ケースごとに、各実行で AI が保存した図を並べる。前から在った図とブロックの定義だけの file は外す */
+function aiDiagrams(cases, known) {
   const prepared = new Set(
     known.flatMap((dir) => dragonFiles(dir).map((file) => digest(readFileSync(join(dir, file))))),
   );
-  const laid = cases.map((evalCase) => ({
+  return cases.map((evalCase) => ({
     name: evalCase.name,
     runs: evalCase.runs.map((run, index) => {
       const sealed = join(run.dir, "sealed");
@@ -186,11 +231,10 @@ export async function writeGallery({ cases, page, tools, known = [] }) {
       };
     }),
   }));
-  const diagrams = laid.flatMap((evalCase) =>
-    evalCase.runs.flatMap((run) =>
-      run.diagrams.map((diagram, at) => ({ evalCase, run, diagram, at })),
-    ),
-  );
+}
+
+/** 図ごとに崩れと段の数を読み、絵にする段を書き出して、頁を`page`に書く */
+async function drawGallery({ laid, diagrams, page, pngDir, tools }) {
   // 崩れと段の数を読み、絵にする段を決める
   await runAll(
     diagrams.map(({ diagram }) => async () => {
