@@ -125,6 +125,14 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(lines, `SKILL.md が ${lines} 行で、上限の ${MAIN_LINES} 行を超える`).toBeLessThanOrEqual(MAIN_LINES);
   });
 
+  // 説明は skill を呼ぶかの手掛かりになる。ブロックに触れないと、共有のブロックを足して PR を出す頼みで skill を呼ばない回が出た (#3546)
+  it("skill-description-names-shared-blocks", () => {
+    const description = frontmatter(read(MAIN)).description ?? "";
+    expect(description, "skill の説明がブロックの定義に触れない").toMatch(/\bdefines? (?:a |its own )?blocks?\b/u);
+    expect(description, "skill の説明が共有のブロック集に触れない").toMatch(/\bshared block/u);
+    expect(description, "skill の説明が dragon の repo への pull request に触れない").toMatch(/\bpull request\b/u);
+  });
+
   it("skill-links-resolve", () => {
     const files = skillFiles();
     expect(files.length, "skill の file が無い").toBeGreaterThan(1);

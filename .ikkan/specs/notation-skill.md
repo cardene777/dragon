@@ -69,3 +69,15 @@
 | 記録のscriptの頭の説明が、頁の置き場と、評価を報告する時にAIが頁をArtifactで公開してリンクを渡すことを書く | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-record-header-says-publish-gallery`が通る | #3519 |
 | 評価の記録`plugins/dragon/evals/record.json`の形が変わらず、記録を読む検査が今と同じく通る | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`layout-bridge`と`layout-payment`と`block-pr`と`new-kind-issue`が通る | #3519 |
 | 記録のscriptが評価のために作る写しのrepoで偽の`gh`を呼んだ時、渡した引数が記録のfileに残る | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-stand-in-records-gh`が通る | #3519 |
+| 評価の記録の4つのケースが、形の版`version`の2と、AIが保存した図の数と、崩れの残る図の数と、崩れを数えられなかった図の数を持ち、崩れの残る図と数えられなかった図が0件である | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`layout-bridge`、`layout-payment`、`block-pr`、`new-kind-issue`が通る | #3546 |
+| 評価の記録の4つのケースで、AIが保存した図の数の合計が1以上である | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-record-counts-ai-diagrams`が通る | #3546 |
+| `version`を持たない古い形のケースの記録を読んだ時、評価を回し直すよう名指して断る | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-record-rejects-old-form`が通る | #3546 |
+| 崩れを数える関数が、崩れの残る図と、検査が失敗して数えられなかった図を分けて数え、写しのrepoに在った図とブロックの定義だけのfileを数えない | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-counts-breaks`が通る | #3546 |
+| 記録のscriptが、`record.json`を書く前に崩れを数え、各ケースの記録に数を書く | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-record-writes-break-counts`が通る | #3546 |
+| 記録のscriptは今と同じく、`record.json`を書いた後に図の頁を書く | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-record-writes-gallery-last`が通る | #3546 |
+| 図の頁は今と同じく、実行ごとに最後の段と崩れの段を並べ、崩れの数を出す | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-exports-last-and-break-steps`と`plugin-eval-gallery-shows-break-counts`が通る | #3546 |
+| 崩れを数える関数が、足したブロックを使う見本を同じ実行で保存したその定義と一緒に確かめ、一時のdir (`tmp/`) に残った試し書きを数えない | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-counts-what-the-ai-handed-over`が通る | #3546 |
+| 返答が崩れの段を名指したかの見分けが、「段 3」の形に加えて「第3段」「3段目」も名指しと読み、「5段で進む図」を名指しと読まない | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-judge-reads-step-names`が通る | #3546 |
+| 記録のscriptが、段の名指しの見分けを`scripts/plugin-eval-judge.mjs`から読む | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-record-judges-with-judge-module`が通る | #3546 |
+| 偽の`gh`が、本物と同じく、`--body-file`の file が無い時に`open <path>: no such file or directory`を出して終わり方1で断る | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-stand-in-gh-rejects-missing-body`が通る | #3546 |
+| skill の説明 (`SKILL.md` の頭の `description`) が、ブロックを定義することと、dragon の共有のブロック集へ pull request で足すことに触れる | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-description-names-shared-blocks`が通る | #3546 |

@@ -1,6 +1,6 @@
 ---
 name: dragon
-description: Draw diagrams that play step by step in the dragon notation (@cardenelabs/dragon). Use when the user asks for a diagram, a flow, a sequence diagram, an architecture or system diagram, a state machine, a git history (merge, rebase), a timeline, a tree such as a Merkle tree, a pipeline or token flow between contracts, a lineup of queues or bids, or an interactive diagram readers can try, or when the user mentions dragon or `.dragon` files.
+description: Draw diagrams that play step by step in the dragon notation (@cardenelabs/dragon). Use when the user asks for a diagram, a flow, a sequence diagram, an architecture or system diagram, a state machine, a git history (merge, rebase), a timeline, a tree such as a Merkle tree, a pipeline or token flow between contracts, a lineup of queues or bids, or an interactive diagram readers can try, when the user wants to define blocks of their own or add one to dragon's shared block collection with a pull request, or when the user mentions dragon or `.dragon` files.
 ---
 
 # dragon

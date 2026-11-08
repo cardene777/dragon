@@ -119,6 +119,39 @@ describe("評価の記録が AI の描いた図の崩れの数を持つ (#3546)"
 describe("skill を入れた Claude が崩れを伝える評価 (#3484)", () => {
   it("layout-bridge", () => checkRecorded("layout-bridge"));
   it("layout-payment", () => checkRecorded("layout-payment"));
+
+  // 返答が崩れの段を名指したかの見分け。日本語の「第3段」「3段目」も名指しと読み、「5段で進む図」のような段の数は名指しと読まない
+  it("plugin-eval-judge-reads-step-names", async () => {
+    const script = join(ROOT, "scripts/plugin-eval-judge.mjs");
+    expect(existsSync(script), `${relative(ROOT, script)} が無い`).toBe(true);
+    if (!existsSync(script)) return;
+    const { namesStep } = (await import(script)) as { namesStep: (reply: string, step: number) => boolean };
+    const named: [string, number][] = [
+      ["段 3 で番号が浮く", 3],
+      ["段3の番号", 3],
+      ["ステップ 3 の札", 3],
+      ["Step 3 badge", 3],
+      ["第3段の段番号が橋の形から浮いてしまう", 3],
+      ["第 3 段で", 3],
+      ["3段目の番号", 3],
+      ["第3ステップ", 3],
+    ];
+    for (const [reply, step] of named) expect(namesStep(reply, step), `「${reply}」を段 ${step} の名指しと読まない`).toBe(true);
+    const unnamed: [string, number][] = [
+      ["5段で進む図にして保存しました", 5],
+      ["段 13 で番号が浮く", 3],
+      ["第13段", 3],
+      ["13段目", 3],
+      ["段 3", 1],
+    ];
+    for (const [reply, step] of unnamed) expect(namesStep(reply, step), `「${reply}」を段 ${step} の名指しと読む`).toBe(false);
+  });
+
+  it("plugin-eval-record-judges-with-judge-module", () => {
+    const record = readFileSync(join(ROOT, "scripts/plugin-eval-record.mjs"), "utf8");
+    expect(record, "記録の script が段の名指しを見分ける module を使わない").toMatch(/import\s*\{[^}]*\bnamesStep\b[^}]*\}\s*from\s*"\.\/plugin-eval-judge\.mjs"/u);
+    expect(record, "記録の script が段の名指しの見分けを自分で持つ").not.toMatch(/const\s+namesStep\s*=/u);
+  });
 });
 
 /** 評価のために fork の代わりに作る写しの repo と、偽の `gh` を置いた dir */
@@ -170,6 +203,23 @@ describe("skill を入れた Claude がブロックを足して PR を出す評�
     expect(logged, "偽の gh が受けた引数を順に残さない").toEqual(calls);
   });
 
+  // 本物の gh は --body-file の file が無いと終わり方 1 で断る。偽の gh が通すと、AI は本文を渡し損ねたことに気付けない
+  it("plugin-eval-stand-in-gh-rejects-missing-body", async () => {
+    const script = join(ROOT, "scripts/plugin-eval-stand-in.mjs");
+    const { makeStandIn } = (await import(script)) as { makeStandIn: (options: { root: string; dir: string }) => StandIn };
+    const dir = mkdtempSync(join(tmpdir(), "dragon-stand-in-"));
+    const standIn = makeStandIn({ root: ROOT, dir });
+    const env = { ...process.env, PATH: `${standIn.bin}:${process.env.PATH ?? ""}` };
+    const missing = join(dir, "no-body.md");
+    for (const flag of [["--body-file", missing], ["-F", missing], [`--body-file=${missing}`]]) {
+      const args = ["issue", "create", "--repo", "cardene777/dragon", "--title", "feat: x", ...flag];
+      const ran = spawnSync("gh", args, { cwd: standIn.repo, encoding: "utf8", env, timeout: 10_000 });
+      expect(ran.status, `偽の gh ${args.join(" ")} が無い本文の file を通す`).toBe(1);
+      expect(ran.stderr, "断りの文が本物の gh と違う").toContain(`open ${missing}: no such file or directory`);
+      expect(ran.stdout, "断ったのに Issue の URL を返す").toBe("");
+    }
+  });
+
   it("block-pr", () => checkRecorded("block-pr"));
 });
 
@@ -190,7 +240,8 @@ interface GalleryProblem {
 
 /** 頁を作る時に使う道具。崩れを数える、段の数を読む、1 つの段を PNG に書き出すの 3 つ */
 interface GalleryTools {
-  breaks: (file: string) => Promise<{ problems?: GalleryProblem[]; error?: string }>;
+  /** `blocks` は図と一緒に渡すブロックの定義の file (`dragon check --blocks`) */
+  breaks: (file: string, blocks?: string) => Promise<{ problems?: GalleryProblem[]; error?: string }>;
   steps: (file: string) => Promise<number | undefined>;
   png: (file: string, step: number | undefined, dest: string) => Promise<{ error?: string }>;
 }
@@ -242,6 +293,8 @@ interface FakeDiagram {
   steps?: number;
   /** 書き出しが投げる誤りの文 */
   pngThrows?: string;
+  /** この定義の file (`sealed` からの path) を一緒に渡さないと、記法の誤りになる */
+  needsBlocks?: string;
 }
 
 /** 偽の道具が書く PNG の中身。頁が埋めた絵がどの段の物かを中身で見分ける */
@@ -249,14 +302,18 @@ const pngBytes = (name: string, step: number | undefined): Buffer => Buffer.from
 const brk = (step: number, message: string): GalleryProblem => ({ severity: "warning", message, layout: { step } });
 
 /** Chromium を起こさない偽の道具と、道具を呼んだ記録 */
-function fakeTools(diagrams: Record<string, FakeDiagram>): { tools: GalleryTools; calls: { breaks: string[]; png: [string, number | undefined][] } } {
-  const calls = { breaks: [] as string[], png: [] as [string, number | undefined][] };
+function fakeTools(diagrams: Record<string, FakeDiagram>): { tools: GalleryTools; calls: { breaks: string[]; blocks: [string, string | undefined][]; png: [string, number | undefined][] } } {
+  const calls = { breaks: [] as string[], blocks: [] as [string, string | undefined][], png: [] as [string, number | undefined][] };
   const of = (file: string): FakeDiagram => diagrams[basename(file)] ?? {};
   const tools: GalleryTools = {
-    breaks: (file) => {
+    breaks: (file, blocks) => {
       calls.breaks.push(file);
+      calls.blocks.push([file, blocks]);
       const d = of(file);
-      return Promise.resolve(d.breakError === undefined ? { problems: d.problems ?? [] } : { error: d.breakError });
+      if (d.breakError !== undefined) return Promise.resolve({ error: d.breakError });
+      if (d.needsBlocks !== undefined && !(blocks ?? "").endsWith(d.needsBlocks))
+        return Promise.resolve({ problems: [{ severity: "error", message: "定義の無いブロックを使う" }] });
+      return Promise.resolve({ problems: d.problems ?? [] });
     },
     steps: (file) => Promise.resolve(of(file).steps),
     png: (file, step, dest) => {
@@ -419,6 +476,39 @@ describe("評価で AI が描いた図を 1 枚の頁に並べる (#3519)", () =
       empty: { diagrams: 0, broken: 0, unchecked: 0 },
     });
     expect(calls.png, "数えるだけで PNG を書き出した").toEqual([]);
+  });
+
+  /**
+   * 足したブロックを使う見本は、同じ実行で保存したそのブロックの定義と一緒に確かめないと、記法の誤りで崩れを測れない。
+   * 一時の dir (`tmp/`) の図は AI が試して捨てた写しで、本人の手元に残らないので数えない (頁には並べる)
+   */
+  it("plugin-eval-gallery-counts-what-the-ai-handed-over", async () => {
+    const { countBreaks } = await gallery();
+    expect(typeof countBreaks, "崩れを数える関数 countBreaks が無い").toBe("function");
+    if (countBreaks === undefined) return;
+    const root = mkdtempSync(join(tmpdir(), "dragon-count-"));
+    const definitions = "home/cwd/packages/dragon/blocks/vault.dragon";
+    const run = runDir(root, "e-block", {
+      [definitions]: "// 金庫\nblocks 1\nblock +vault\n  base box\nend\n",
+      "tmp/claude-501/other.dragon": "blocks 1\nblock +other\n  base box\nend\n",
+      "home/cwd/packages/dragon/blocks/examples/vault.dragon": "architecture 金庫\n+vault v as 金庫\n",
+      "home/cwd/plain.dragon": "sequence 素\n",
+      "tmp/claude-501/t.dragon": "architecture 試し\n",
+    });
+    const { tools, calls } = fakeTools({
+      "vault.dragon": { needsBlocks: definitions },
+      "t.dragon": { problems: [brk(3, "段 3: 段の番号が形から浮く")] },
+    });
+    const counts = await countBreaks({ cases: [{ name: "block", runs: [{ dir: run }] }], tools });
+    expect(counts, "渡した図の数").toEqual({ block: { diagrams: 2, broken: 0, unchecked: 0 } });
+    const sealed = join(run, "sealed");
+    expect(
+      calls.blocks.map(([file, blocks]) => [relative(sealed, file), blocks === undefined ? undefined : relative(sealed, blocks)]).sort(),
+      "見本に、それが使うブロックの定義を渡さない",
+    ).toEqual([
+      ["home/cwd/packages/dragon/blocks/examples/vault.dragon", definitions],
+      ["home/cwd/plain.dragon", undefined],
+    ]);
   });
 
   it("plugin-eval-gallery-reports-tool-failure", async () => {

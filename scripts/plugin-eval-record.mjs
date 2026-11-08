@@ -51,6 +51,7 @@ import {
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { RECORD_VERSION } from "./plugin-eval-form.mjs";
+import { namesStep } from "./plugin-eval-judge.mjs";
 import { cliTools, countBreaks, writeGallery } from "./plugin-eval-gallery.mjs";
 import { BASE_TAG, GH_LOG, GH_TMP_DIR, ghBody, makeStandIn } from "./plugin-eval-stand-in.mjs";
 
@@ -123,10 +124,6 @@ function breakSteps(file) {
     ),
   };
 }
-
-/** 返答が段 `step` を名指すか */
-const namesStep = (reply, step) =>
-  new RegExp(`(?:段|ステップ|Step|step)\\s*${step}(?!\\d)`, "u").test(reply);
 
 /** ケースの印。`prompt.md` の頭の `tags: [...]` */
 function tagsOf(name) {

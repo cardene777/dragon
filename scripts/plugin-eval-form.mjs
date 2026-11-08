@@ -22,7 +22,9 @@ export function entryProblems(name, entry) {
   if (entry === undefined) return [`${name} を回した記録が無い。${RERUN}`];
   if (entry.version !== RECORD_VERSION) {
     const seen = entry.version === undefined ? "版を持たない" : `版 ${String(entry.version)} の`;
-    return [`${name} の記録が古い形か知らない形 (${seen}記録) で、AIが描いた図の崩れを数えていない。${RERUN}`];
+    return [
+      `${name} の記録が古い形か知らない形 (${seen}記録) で、AIが描いた図の崩れを数えていない。${RERUN}`,
+    ];
   }
   const problems = [];
   for (const field of ["diagrams", "broken", "unchecked"]) {
@@ -32,10 +34,14 @@ export function entryProblems(name, entry) {
   }
   if (problems.length > 0) return problems;
   if (entry.unchecked > 0) {
-    problems.push(`${name} でAIが保存した図のうち${entry.unchecked}枚は、崩れを数えられなかった (検査が失敗したか記法の誤り)`);
+    problems.push(
+      `${name} でAIが保存した図のうち${entry.unchecked}枚は、崩れを数えられなかった (検査が失敗したか記法の誤り)`,
+    );
   }
   if (entry.broken > 0) {
-    problems.push(`${name} でAIが保存した図のうち${entry.broken}枚に、dragon check --layout の崩れが残る`);
+    problems.push(
+      `${name} でAIが保存した図のうち${entry.broken}枚に、dragon check --layout の崩れが残る`,
+    );
   }
   return problems;
 }

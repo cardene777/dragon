@@ -32,6 +32,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- **The plugin's eval record counts the diagrams the agent drew and the layout breaks left in them** (#3546)
+
+  `plugins/dragon/evals/record.json` only kept how many runs of each case passed, so a run could pass while the diagram the agent handed over still had a layout break. Each case now also keeps, as version 2 of the record, how many diagrams the agent saved, how many of them still have a `dragon check --layout` break, and how many could not be checked. The test reads an older record as stale and asks for the eval to be run again. A diagram that uses a block the agent added is checked with that block's definitions, and trial copies the agent left in the temporary directory are shown on the gallery page but not counted. The judge also reads "第3段" and "3段目" as naming step 3, and the fake `gh` used by the eval refuses a `--body-file` that does not exist, as the real `gh` does. The skill description now names defining blocks and adding one to dragon's shared block collection with a pull request, because one run of the `block-pr` case in three went on without the skill and used a title the skill does not use.
+
 - **The dotted slot in a box shows only while a carried item sits in it** (#3518)
 
   Architecture and state diagrams that carry items (`[carry: coin]` or `[tag: ...]`) gave every box that sends or receives one a dotted slot right of its icon, drawn from the first step to the last. The slot filled only while an item sat in it, so the last step showed empty dotted squares in most boxes and the diagram looked unfinished. The dotted frame now fades in when an item settles in the slot or waits there before it leaves, and fades out shortly after the item leaves. Boxes keep their width and the icon stays where it was, so nothing in a box moves while the diagram plays. `dragon check --layout` reports a slot that sticks out of a shaped box at the first step an item sits in it, and no longer reports a slot no item ever sits in. The SVG fingerprints of 18 examples, 16 test fixtures and 78 catalog part figures changed with the drawing.
