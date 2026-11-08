@@ -1,0 +1,21 @@
+// 形を持つ箱の置き場に運ぶ物が一度も座らない図 (#3518)。アーチの形の金庫は硬貨を送り出すだけで、硬貨は金庫で待たずに走り出す
+architecture 送り出すだけ
+
+blocks 1
+block +arch
+  base box
+  shape path "M 0 70 Q 50 0 100 70 Z"
+  color violet
+end
+
+box wallet as 利用者 [note: 知らせを送る, icon: user]
++arch vault as 金庫 [note: 硬貨を出す]
+box shop as 店 [note: 受け取る, icon: app]
+
+step 知らせる
+  say 利用者が店に知らせを送る。
+  wallet -> shop: 知らせ
+
+step 払う
+  say 金庫が店に硬貨を送る。
+  vault -> shop: 100 円 [carry: coin]

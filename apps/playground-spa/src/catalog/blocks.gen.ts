@@ -156,7 +156,7 @@ import { text as zoomText } from "../../../../packages/dragon/src/blocks/zoom/ga
 import { shelf as zoomShelf } from "../../../../packages/dragon/src/blocks/zoom/gallery/shelf";
 import { rule as zoomRule } from "../../../../packages/dragon/src/blocks/zoom/gallery/rule";
 
-/** 見本帳の一覧の名前と説明。鍵はブロックの置き場の dir の名前 */
+/** 見本帳の一覧の名前。鍵はブロックの置き場の dir の名前 */
 export const BLOCK_TEXT = {
   "act": actText,
   "ask": askText,

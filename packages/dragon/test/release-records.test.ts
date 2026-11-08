@@ -256,6 +256,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-67-0-figure-ja-space", () => {
+    // 試す図以外の図の日本語の字から和文と英数字の間の空白を外す直し (#3517) も 0.67.0 で出す
+    for (const [file, word] of [
+      ["CHANGELOG.md", /\bspaces?\b/iu],
+      ["CHANGELOG.ja.md", /空白/u],
+    ] as const) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.67\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.67.0"), "0.67.0");
+      expect(released, `${file} の 0.67.0 の節に #3517 の項が無い`).toContain("(#3517)");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した #3517 の項が残る`).not.toContain("(#3517)");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3517)")) ?? "";
+      expect(entry, `${file} の 0.67.0 の節の #3517 の項が空白 (${word.source}) を名指さない`).toMatch(word);
+    }
+  });
+
   it("changelog-0-67-0-try-line-name", () => {
     // 試す図の網の線がノードの名前を横切らないようにし、横切る線を `dragon check --layout` が知らせる直し (#3524) も 0.67.0 で出す
     for (const [file, word] of [

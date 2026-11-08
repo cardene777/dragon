@@ -1,0 +1,28 @@
+// 評価でAIが書いた注文の状態の図 (#3518)。札 #1042 が最後に終わりの印へ抜け、最後の段ではどの状態の置き場も空になる
+state ECサイトの注文の状態
+
+box created as 作成 [note: 支払いを待っている, color: amber, icon: cart]
+box paid as 支払い済み [note: 発送の準備をする, color: blue, icon: yen]
+box shipped as 発送済み [note: 配送業者が運んでいる, color: blue, icon: truck]
+box delivered as 配達済み [note: 購入者が受け取った, color: green, icon: check]
+box canceled as キャンセル済み [note: 支払い前に取り消された, color: rose, icon: x]
+
+created -> canceled: キャンセル
+canceled -> finish
+
+step 注文を作る
+  say 購入者がカートの中身で注文を確定し、注文は「作成」から始まる。この状態の間だけキャンセルできる。
+  start -> created: 注文確定 [tag: #1042]
+
+step 支払う
+  say 支払いが確認されると「支払い済み」に進む。ここから先はキャンセルできない。
+  created -> paid: 支払い完了 [tag: #1042]
+
+step 発送する
+  say 倉庫が商品を出荷し、注文は「発送済み」になる。
+  paid -> shipped: 出荷 [tag: #1042]
+
+step 届ける
+  say 商品が購入者に届き、「配達済み」で注文は終わる。
+  shipped -> delivered: 配達完了 [tag: #1042]
+  delivered -> finish [tag: #1042]
