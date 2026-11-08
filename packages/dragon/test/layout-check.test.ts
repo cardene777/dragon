@@ -145,9 +145,9 @@ function brokenArch(held = true): Parameters<typeof findBreaks>[0] {
 /**
  * 検査の見本`lane-overlap.dragon`の4つの箱と、段3の A → C と段4の B → D の線に、段4の名前「四」の札を `rect` に置いた姿の崩れ (#3552)。
  * 線の座標は #3552 の途中で見本を描いた時の形で、A → C が外側、B → D が内側の道を回る。
- * `redrawn` が真なら、段5で B → D を同じ道にもう一度引く
+ * `redrawn` が真なら、段5で B → D を同じ道にもう一度引く。`acFrom` は A → C が見え始める時刻で、無ければ段3の線を引く時
  */
-function labelShape(rect: { x: number; y: number; w: number; h: number }, redrawn = false): LayoutBreak[] {
+function labelShape(rect: { x: number; y: number; w: number; h: number }, redrawn = false, acFrom?: number): LayoutBreak[] {
   const ac: [number, number][] = [
     [78, 104],
     [78, 139.3],
@@ -169,7 +169,7 @@ function labelShape(rect: { x: number; y: number; w: number; h: number }, redraw
   return findBreaks({
     // 名前は段4の間だけ見える
     inks: [{ text: "四", rect: label, shown: [[3.5, 4.5]], boxed: true }],
-    traces: edges.map((e) => ({ from: e.from, to: e.to, points: e.points, shown: fromTime(e.step + 0.5) })),
+    traces: edges.map((e) => ({ from: e.from, to: e.to, points: e.points, shown: fromTime(e.from === "a" && acFrom !== undefined ? acFrom : e.step + 0.5) })),
     framed: [],
     stills: redrawn ? [1, 2, 3, 4, 5] : [1, 2, 3, 4],
     frame: { w: 610, h: 180 },
@@ -367,6 +367,11 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(labelShape({ x: 443, y: 86, w: 29, h: 20 }).filter((b) => b.kind === "label-off-line"), "名指す線が最も近い名前を離れた名前に数える").toEqual([]);
     // 別の線に乗る名前は`label-on-line`だけで知らせ、離れた名前に重ねて数えない
     expect(labelShape({ x: 370, y: 122, w: 29, h: 20 }).filter((b) => b.kind === "label-off-line"), "別の線に乗る名前を離れた名前にも数える").toEqual([]);
+    // 比べるのは名前と同じ止め絵に見えている線で、名前が消えた後に見え始める線は比べない
+    expect(
+      labelShape({ x: 387, y: 130, w: 29, h: 20 }, false, 5).filter((b) => b.kind === "label-off-line"),
+      "名前と同じ止め絵に見えない線との近さで、離れた名前に数える",
+    ).toEqual([]);
   });
 
   it("layout-check-finds-crowded-lines", async () => {

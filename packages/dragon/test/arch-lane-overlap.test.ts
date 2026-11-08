@@ -18,12 +18,13 @@ import { describe, expect, it } from "vitest";
  * 描く部品と崩れを数える部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 検査の中で初めて読むと、混んだ機械では変換だけで 1 件の上限 (10 秒) に近づく (#3410)
  */
-const [{ renderDiagram }, { parseNotation }, { checkText, problemLine }, { APART, LOOK }] = await Promise.all([
+const [{ renderDiagram }, { parseNotation }, { checkText, problemLine }, { APART, LOOK }, { placeLabel }] = await Promise.all([
   // 全ての図の種類の部品と個別ブロックの読み方を持つ入口から読む
   import("../src/render/svg"),
   import("../src/parser"),
   import("../src/check"),
   import("../src/look/values"),
+  import("../src/layout/scene"),
 ]);
 
 type Point = [number, number];
@@ -121,7 +122,14 @@ const IN_OUT_SIDE = notation("箱の左へ入る線と同じ所から出る線",
   "f -> b: 八",
 ]);
 
-function laid(text: string): { edges: Edge[]; labels: Label[] } {
+/**
+ * 4つの箱を1行に並べ、`D`の下に輪を置く図。段5の`B → D`は`C`に塞がれ、行の下を回ると`D`の下の輪を横切るので、行の上を回る。
+ * 段3の`C → B`は`B → C`と並ぶ上の線で、名前「戻す」を線の上に置く。`named`が偽なら`C → B`に名前を付けない
+ */
+const overLoop = (named: boolean): string =>
+  notation("行の上を回る線が横の線の名前の上を通る", ROW, ["a -> b: 一", "b -> c: 二", named ? "c -> b: 戻す" : "c -> b", "d -> d: 回す", "b -> d: 送る"]);
+
+function laid(text: string): { edges: Edge[]; labels: Label[]; height: number } {
   const parsed = parseNotation(text, { lang: "ja" });
   if (!parsed.ok) throw new Error(`記法を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
   return renderDiagram(parsed.diagram, { lang: "ja" }).layout;
@@ -302,13 +310,15 @@ describe("構成図の線の名前は自分の線の脇に置き、別の線に�
       expect(laid(mixed).labels.length, `${name} が線の名前を持たない`).toBeGreaterThan(0);
       expect(problems(name, mixed, "label-on-line"), `${name} の別の線に乗る名前の知らせ`).toEqual([]);
     }
-    // ほかの3つの図では、下の行へ下りる線の脇を行の間を回る道が塞ぐ時も、行の間を広げて自分の線が最も近い所に置き、離れた名前を知らせない
-    for (const [name, mixed] of [
-      ["between-rows.dragon", BETWEEN_ROWS],
-      ["column.dragon", COLUMN],
-      ["in-out-side.dragon", IN_OUT_SIDE],
+    // ほかの3つの図では、下の行へ下りる線の脇を行の間を回る道が塞ぐ時も、行の間を広げて自分の線が最も近い所に置き、離れた名前を知らせない。
+    // 行の間を広げる図は、名前と別の線の間を名前と自分の線の間の 2 倍空ける。
+    // 同じ列の間を縦に回る図は、段2と段3の名前の右を段5の道が自分の線の 1.5 倍ほどの所で回る。2 倍空く所が無いので、自分の線が最も近い所に置く
+    for (const [name, mixed, apart] of [
+      ["between-rows.dragon", BETWEEN_ROWS, 2],
+      ["column.dragon", COLUMN, 1],
+      ["in-out-side.dragon", IN_OUT_SIDE, 2],
     ] as const) {
-      expect(strayLabels(laid(mixed)), `${name} の、自分の線の脇に無いか、別の線の方が近い名前`).toEqual([]);
+      expect(strayLabels(laid(mixed), apart), `${name} の、自分の線の脇に無いか、別の線の方が近い名前`).toEqual([]);
       expect(problems(name, mixed, "label-off-line"), `${name} の離れた名前の知らせ`).toEqual([]);
     }
     // 混ぜた図の段6の名前は、行の下に並べて回る4本の道の2本目の名前で、上下の道の間 (`APART.line`) は札より狭い。
@@ -318,12 +328,41 @@ describe("構成図の線の名前は自分の線の脇に置き、別の線に�
     ]);
     // 中ほどの脇が別の線に乗らないだけで近い時は、そこを採らず、自分の線が最も近い所を探す。
     // 3本の線が集まる図の段1の名前は、中ほどの右の脇が段2の線の横の区間の 2.5px 下に在る。
-    // 段4の名前と、同じ箱の下に線が集まる図の段1の名前は、脇を段2の線の横の区間が塞ぐので、2つの帯の間を広げてその下に置く
-    for (const file of [CROWD_SIDE, SHARED_SIDE]) {
+    // 段4の名前と、同じ箱の下に線が集まる図の段1の名前は、脇を段2の線の横の区間が塞ぐので、2つの帯の間を広げてその下に置き、
+    // 段2の線との間を自分の線との間の 2 倍空ける。3本の線が集まる図の段1の線は、段2の線と合わさって通知へ入るので、2 倍空く所が無い
+    for (const [file, apart] of [
+      [CROWD_SIDE, 1],
+      [SHARED_SIDE, 2],
+    ] as const) {
       const crowd = laid(readFileSync(file, "utf8"));
       expect(crowd.labels.length, `${file} が線の名前を持たない`).toBeGreaterThan(0);
-      expect(strayLabels(crowd), `${file} の、自分の線の脇に無いか、別の線の方が近い名前`).toEqual([]);
+      expect(strayLabels(crowd, apart), `${file} の、自分の線の脇に無いか、別の線の方が近い名前`).toEqual([]);
     }
+  });
+
+  it("lane-label-own-line-nearest-before-beside", () => {
+    // 脇に別の線から自分の線の 2 倍離れた所が無い時は、自分の線が最も近い所を探し、それも無い時だけ別の線を横切らない脇に置く (#3552)。
+    // 横の線の中ほどの上の脇の右の 6px に、縦の線が下りて来る。脇を左へ 8px ずらすと、縦の線との間 (14px) が自分の線との間 (12px) より広くなるが、2 倍にはならない
+    const own: Point[] = [
+      [0, 100],
+      [400, 100],
+    ];
+    const request = { step: 0, event: 0, text: "名前", points: own, color: "blue" as const, slide: 8 };
+    const middle = placeLabel(request, { hard: [], soft: [] });
+    const right = middle.x + middle.w + 6;
+    const other: Point[] = [
+      [right, 0],
+      [right, 90],
+    ];
+    // 中ほどの脇は縦の線の方が近い。そこに置くと、縦の線の名前に読める
+    expect(gapTo(other, middle), "中ほどの脇で縦の線が自分の線より近くない").toBeLessThan(gapTo(own, middle));
+    const placed = placeLabel(request, { hard: [], soft: [], lines: [other], nearest: true });
+    const edges: Edge[] = [
+      { from: "a", to: "b", step: 0, event: 0, points: own },
+      { from: "c", to: "d", step: 0, event: 1, points: other },
+    ];
+    expect(strayLabels({ edges, labels: [placed] }), "自分の線の脇に無いか、別の線の方が近い名前").toEqual([]);
+    expect(gapTo(other, placed), "2 倍離れた所が無い形になっていない").toBeLessThan(2 * gapTo(own, placed));
   });
 
   it("lane-label-room-beside-detour", () => {
@@ -334,7 +373,7 @@ describe("構成図の線の名前は自分の線の脇に置き、別の線に�
     // 段2の線は真下へ下り、段4の線は列の右を縦に回る。どちらでもなければ、名前の右を回る線が無い図になる
     expect(asked.points.length, "APIサーバー → 価格オラクル が真下へ下りない").toBe(2);
     expect(detour.points.length, "APIサーバー → 決済代行 が列の右を回らない").toBe(4);
-    expect(strayLabels(layout), "自分の線の脇に無いか、別の線の方が近い名前").toEqual([]);
+    expect(strayLabels(layout, 2), "自分の線の脇に無いか、別の線の方が近い名前").toEqual([]);
     // 名前と回る線の間は、名前と自分の線の間の 2 倍空ける。同じ離れだと、名前がどちらの線の名前か読めない
     const name = layout.labels.find((l) => l.step === asked.step && l.event === asked.event) as Label;
     expect(gapTo(detour.points, name), "名前と列の右を回る線の間").toBeGreaterThanOrEqual(2 * gapTo(asked.points, name) - 0.5);
@@ -354,5 +393,24 @@ describe("構成図の線の名前は自分の線の脇に置き、別の線に�
     // 名前と行の下を回る線の間は、名前と自分の線の間の 2 倍空ける
     expect(strayLabels(layout, 2), "自分の線の脇に無いか、別の線が自分の線の 2 倍より近い名前").toEqual([]);
     expect(problems(BESIDE_LANE, text), "行の下を回る線の上に名前を置いた図の崩れの知らせ").toEqual([]);
+    // 道を行から離した分だけ図を下へ伸ばし、道と図の下の縁の間は、段2に名前の無い図と変えない。
+    // 段5の名前は、道の下に置かれると図の下の縁を下げるので、比べる2つの図から外す
+    const quiet = text.replace("api -> psp: 請求 [carry: coin]", "api -> psp [carry: coin]");
+    const [named, plain] = [laid(quiet), laid(quiet.replace("api -> oracle: 為替レートを照会", "api -> oracle"))];
+    const [moved, kept] = [(line(named.edges, "api", "psp").points[1] as Point)[1], (line(plain.edges, "api", "psp").points[1] as Point)[1]];
+    expect(moved, "名前のために行の下を回る道を行から離さない").toBeGreaterThan(kept);
+    expect(named.height - moved, "行の下を回る道と図の下の縁の間").toBeCloseTo(plain.height - kept, 1);
+    // 行の上を回る道も同じで、名前の上を通る道を行から離し、離した分だけ行を下げて、道と図の上の縁の間を変えない
+    const over = laid(overLoop(true));
+    const bare = laid(overLoop(false));
+    const back = line(over.edges, "c", "b");
+    const [up, stay] = [line(over.edges, "b", "d"), line(bare.edges, "b", "d")];
+    expect(up.points.length, "B → D が行の上を回らない").toBe(4);
+    expect((up.points[1] as Point)[1], "B → D が行の上を回らない").toBeLessThan((back.points[0] as Point)[1]);
+    const back_name = over.labels.find((l) => l.step === back.step && l.event === back.event) as Label;
+    expect(back_name.y, "段3の名前が線の上に無い").toBeLessThan((back.points[0] as Point)[1]);
+    expect(gapTo(up.points, back_name), "名前と行の上を回る道の間").toBeGreaterThanOrEqual(2 * gapTo(back.points, back_name) - 0.5);
+    expect((back.points[0] as Point)[1], "名前のために行を下げない").toBeGreaterThan((line(bare.edges, "c", "b").points[0] as Point)[1]);
+    expect((up.points[1] as Point)[1], "行の上を回る道と図の上の縁の間").toBeCloseTo((stay.points[1] as Point)[1], 1);
   });
 });
