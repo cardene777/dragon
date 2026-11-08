@@ -345,12 +345,26 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
       "名前の置く側の指示を外す直し方": "[side:",
       "箱の並びを変える直し方": "Reorder the boxes",
       "名前を短くする直し方": "Shorten",
-      "行きと帰りの線を分ける直し方": "reply",
       "描き方の側の崩れを課題として送る案内": "blocks.md",
     };
     const missing = Object.entries(parts)
       .filter(([, words]) => !text.includes(words))
       .map(([part, words]) => `${part} (${words})`);
     expect(missing, "崩れの参照が書かない事").toEqual([]);
+  });
+
+  it("skill-layout-no-reply-workaround", () => {
+    // 行きと帰りの線は dragon が崩れの下限より広く離して描くので (#3521)、記法で避ける手と、描き方の側の崩れとして伝える案内を書かない
+    const layout = read(join(REFERENCES, "layout.md"));
+    const skill = read(join(SKILL, "SKILL.md"));
+    expect(layout, "references/layout.md が無い").not.toBe("");
+    expect(skill, "SKILL.md が無い").not.toBe("");
+    const checks: [string, string, string][] = [
+      ["references/layout.md", layout, "a request and its reply"],
+      ["references/layout.md", layout, "reply drawn right next to its request"],
+      ["SKILL.md", skill, "a request and its reply drawn on top of each other"],
+    ];
+    const said = checks.flatMap(([file, text, words]) => (text.includes(words) ? [`${file}: ${words}`] : []));
+    expect(said, "行きと帰りの線の崩れを記法で避ける手か、描き方の側の崩れとして書く").toEqual([]);
   });
 });
