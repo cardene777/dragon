@@ -126,3 +126,11 @@
 | 常に、関門を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3478 |
 | `packages/dragon/package.json`の`version`が`0.65.2`で、英語と日本語の変更履歴の`## [0.65.2]`の節が`(#3478)`の項を持ち、その項が関門の記録を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-65-2-splits-gate-records`が通る | #3478 |
 | 5つの節を1列に並べた網の試す図を幅324で描くと、網の節の名札どうしが重ならず、どの名札も図の枠の内に収まる。隣の名札とぶつからない網の名札は今の位置のまま描く | `pnpm exec vitest run packages/dragon/test/interactive-gate-record.test.ts`の検査`try-route-labels-clear-narrow`が通る | #3478 |
+| `mountDiagram`に`zoom: "readable"`を渡し、幅390の枠に見本`swap`を置くと、配管の図の箱の名前の字が画面で10.5px以上に見える倍率で置かれる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-names`が通る | #3483 |
+| その図は、枠を寄せた図の高さまで伸ばし、枠の中を縦に送らず横にだけ送る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-frame-height`が通る | #3483 |
+| その図で段を進めると、枠がその段に関わる関係者の所へ横に送られ、全体の線が枠の見ている所を示す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-follows-step`が通る | #3483 |
+| その図の拡大の度合いの札は寄せた倍率を示し、縮小の釦を押していくと100%で図の全体を枠の幅に収める | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-steps-back-to-whole`が通る | #3483 |
+| その図の枠が600px以上へ広がると拡大を外して原寸で描き、600px未満へ戻ると箱の名前が読める倍率で置き直す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-follows-resize`が通る | #3483 |
+| `packages/dragon/README.md`と`packages/dragon/README.ja.md`と`plugins/dragon/skills/dragon/references/setup.md`に、`zoom: "readable"`の渡し方と、600px未満の枠の配管の図だけに効くことが載る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-docs-describe-readable-zoom`が通る | #3483 |
+| `zoom`を渡さない時は、幅390の枠に置いた配管の見本を今どおり枠の幅に収める | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-narrow-fits-readable-figures`が通る | #3483 |
+| 幅600px以上の枠では、`zoom: "readable"`を渡しても配管の図を拡大せず原寸で描く | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-readable-zoom-wide-frame-native`が通る | #3483 |
