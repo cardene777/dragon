@@ -19,6 +19,13 @@ const WAIT = { timeout: 8_000, interval: 100 } as const;
 const DOCS_MARKS = ['"data-docs":"hero"', '"data-docs":"section"'] as const;
 /** 一覧と分類と部品の頁の部品が描く要素の目印 */
 const CATALOG_MARKS = ['"data-catalog":"index"', '"data-catalog":"stage"', '"data-catalog":"part-figure"'] as const;
+/** Tabler の表の塊の目印。表の鍵と path の対 (#3505) */
+const TABLER_MARK = /"building-bridge-2":"M/u;
+/** 後から読む見本の記法の塊の目印。橋の見本ではない見本 (swap) の題の行 */
+const LATER_EXAMPLE_MARK =
+  readFileSync(new URL("../../../../packages/dragon/examples/swap.en.dragon", import.meta.url), "utf8")
+    .split("\n")
+    .find((line) => line.startsWith("pipe ")) ?? "";
 
 let site: Site;
 
@@ -100,6 +107,31 @@ describe("使い方の頁とカタログの頁を後から読む (#3280)", () =>
       await onScreen(page, "editor", "編集画面が出ない");
       await expect.poll(() => chunks.filter((name) => !requested.includes(name)), { ...WAIT, message: "編集画面を描いた後に読み始めない塊" }).toEqual([]);
       expect(await screenOf(page), "塊を読む間に編集画面から移った").toBe("editor");
+    },
+  );
+
+  it(
+    "home-skips-tabler-table",
+    async () => {
+      // 橋の見本を開かない人に、Tabler の表の塊 (gzip で約 225KB) を読ませない (#3505)
+      const tabler = laterScripts().filter((name) => TABLER_MARK.test(read(name)));
+      expect(tabler.length, "Tabler の表の塊を build の結果から見つけられない (走査の空振り)").toBe(1);
+      expect(LATER_EXAMPLE_MARK, "後から読む見本の題の行を読めない").not.toBe("");
+      const examples = laterScripts().filter((name) => read(name).includes(LATER_EXAMPLE_MARK));
+      expect(examples.length, "後から読む見本の記法の塊を見つけられない (走査の空振り)").toBeGreaterThan(0);
+      const requested: string[] = [];
+      const { page } = await site.open({
+        path: BASE,
+        prepare: (p) => {
+          p.on("request", (request) => requested.push(fileOf(request.url())));
+        },
+      });
+      await onScreen(page, "home", "概要の頁が出ない");
+      await expect.poll(() => examples.filter((name) => !requested.includes(name)), { ...WAIT, message: "概要の頁を描いた後に、後から読む見本の塊を読み始めない" }).toEqual([]);
+      // 見本の塊が届いた後に、見本が使う読み方の塊を読み終えて通信が止まるまで待つ
+      await page.waitForLoadState("networkidle");
+      expect(requested.filter((name) => tabler.includes(name)), "概要の頁で Tabler の表の塊を読んだ").toEqual([]);
+      expect(await screenOf(page), "塊を読む間に概要の頁から移った").toBe("home");
     },
   );
 
