@@ -6,11 +6,12 @@
  * 短い線でも番号は線の始まり (出る箱の縁から番号の半径と 1px だけ進んだ所) に置く。
  * 線の上で前の番号を避けられない時だけ、ほかの線に乗らない側の、線の脇へずらす。
  * 44px 以上の線の番号は今までどおり、線の始まりから `LOOK.badge.along` だけ進んだ所に置く。
+ * 線の始まりが囲みの枠線に掛かる時は、線の始まりの側へ戻して枠線から離す (#3525)。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { along, type Layout, type Point, type SceneEdge } from "../src/layout/scene";
+import { along, frameLines, type Layout, onFrameLine, type Point, type SceneEdge } from "../src/layout/scene";
 import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
 import { describeOverlap, type Overlap } from "../src/render/ink";
@@ -69,11 +70,20 @@ describe("短い線の段の番号を線の始まりに置く (#3189)", () => {
 
   it("badge-short-line-at-start", () => {
     const { layout } = renderDiagram(fixture("pair-band.dragon"));
+    const frames = frameLines([...layout.regions, ...(layout.strip ? [layout.strip] : [])]);
     for (const step of [0, 1]) {
       const { point, edge } = badgeOf(layout, step);
       expect(lengthOf(edge.points), `段 ${step + 1} の線が短い線ではない`).toBeLessThan(LOOK.badge.short);
       const want = along(edge.points, LOOK.badge.r + 1);
-      expect(Math.hypot(point[0] - want[0], point[1] - want[1]), `段 ${step + 1} の番号が線の始まりに無い`).toBeLessThanOrEqual(0.5);
+      if (!onFrameLine(want[1], frames)) {
+        expect(Math.hypot(point[0] - want[0], point[1] - want[1]), `段 ${step + 1} の番号が線の始まりに無い`).toBeLessThanOrEqual(0.5);
+        continue;
+      }
+      // 線の始まりが区画の枠線に掛かる番号は、線の上を始まりの側へ戻して枠線から離す (#3525)
+      expect(distanceTo(point, edge.points), `段 ${step + 1} の番号が自分の線の上に無い`).toBeLessThanOrEqual(0.5);
+      const [sx, sy] = edge.points[0] as Point;
+      expect(Math.hypot(point[0] - sx, point[1] - sy), `段 ${step + 1} の番号が線の始まりの側へ戻っていない`).toBeLessThan(LOOK.badge.r + 1);
+      expect(onFrameLine(point[1], frames), `段 ${step + 1} の番号が区画の枠線に掛かる`).toBe(false);
     }
   });
 

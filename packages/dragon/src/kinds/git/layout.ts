@@ -24,24 +24,28 @@ import { HEAD } from "../../words";
 import { hasWide, textBox, textWidth } from "../../layout/measure";
 import {
   along,
+  badgeBlocked,
   badgeOnPath,
   badgeRect,
+  besideSameSpot,
   cornerOf,
+  frameLines,
   gapBetween,
   boxColors,
   boxWidth,
   type Layout,
   layoutStrip,
+  onFrameLine,
   pathLength,
   placeLabel,
   type Point,
   type Rect,
-  replaceSameSpot,
   type SceneBadge,
   type SceneBox,
   type SceneLabel,
   type SceneRegion,
   shapedSize,
+  stripBadge,
   stripNeed,
 } from "../../layout/scene";
 
@@ -613,8 +617,11 @@ function firstMark(layout: GitLayout, step: number): { event: number; points?: P
   return marks[0];
 }
 
-/** commit の丸の右、下、左、上のうち、段の番号の丸が札と字と丸に掛からず、先に置いた番号からも離れた最初の点。無ければ `undefined` */
-function besideCommit(c: GitPlaced, taken: Point[], avoid: Rect[]): Point | undefined {
+/**
+ * commit の丸の右、下、左、上のうち、段の番号の丸が札と字と丸に掛からず、枝の帯の枠線 (`frames` の高さの線) にも掛からず、
+ * 先に置いた番号からも離れた最初の点 (#3525)。無ければ `undefined`
+ */
+function besideCommit(c: GitPlaced, taken: Point[], avoid: Rect[], frames: number[]): Point | undefined {
   const { r, inset } = LOOK.badge;
   const d = c.r + inset + r;
   const apart = r * 2 + inset;
@@ -624,14 +631,16 @@ function besideCommit(c: GitPlaced, taken: Point[], avoid: Rect[]): Point | unde
     [c.cx - d, c.cy],
     [c.cx, c.cy - d],
   ];
-  return spots.find((p) => taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart) && avoid.every((a) => gapBetween(badgeRect(p), a) >= LOOK.label.touch));
+  return spots.find(
+    (p) => taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart) && avoid.every((a) => gapBetween(badgeRect(p), a) >= LOOK.label.touch) && !onFrameLine(p[1], frames),
+  );
 }
 
 /**
- * 線の上で、段の番号の丸が札と字と丸 (`avoid`) に掛からず、先に置いた番号 (`taken`) からも離れた最初の点。
+ * 線の上で、段の番号の丸が札と字と丸 (`avoid`) に掛からず、枝の帯の枠線 (`frames` の高さの線、#3525) にも掛からず、先に置いた番号 (`taken`) からも離れた最初の点。
  * 札はどの段に留まる札も避ける。済んだ段の番号は最後の段まで残るので、後の段に来る札にも掛けない。無ければ `undefined`
  */
-function clearOnPath(points: Point[], taken: Point[], avoid: Rect[]): Point | undefined {
+function clearOnPath(points: Point[], taken: Point[], avoid: Rect[], frames: number[]): Point | undefined {
   const { r, inset, along: start, short } = LOOK.badge;
   const length = pathLength(points);
   const first = length < short ? Math.min(r + 1, length / 2) : start;
@@ -639,15 +648,17 @@ function clearOnPath(points: Point[], taken: Point[], avoid: Rect[]): Point | un
   for (let d = first; d <= length; d += 1) {
     const p = along(points, d);
     const rect = badgeRect(p);
-    if (taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart) && avoid.every((a) => gapBetween(rect, a) >= LOOK.label.touch)) return p;
+    if (taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart) && avoid.every((a) => gapBetween(rect, a) >= LOOK.label.touch) && !onFrameLine(p[1], frames)) return p;
   }
   return undefined;
 }
 
 /**
  * 段の番号。commit を積む段と枝を切る段は、段で最初に引く線の始まりから少し進んだ所に置き、先に置いた番号と札と字と丸を避けて線に沿って進める。
- * 札を動かす段は、札が着いた commit の丸の脇に置く。線の無い段は、箱か帯を書き換える段なら箱か帯の左上の角に、
- * 何も起きない段は一番上の枝の先端の commit の脇に置き、脇が埋まっていれば前の段の番号と同じ所に置いて数字を入れ替える
+ * 札を動かす段は、札が着いた commit の丸の脇に置く。線の番号と commit の脇の番号は、枝の帯の枠線を避ける (#3525)。
+ * 線の無い段は、箱を書き換える段なら箱の左上の角に、帯を書き換える段なら帯の左上の角の丸みの中に、
+ * 何も起きない段は一番上の枝の先端の commit の脇に置き、脇が埋まっていれば前の段の番号の所に置く。
+ * 前の段の番号と同じ所に来た番号は、前の番号の脇に並べる (#3525)
  */
 function badgesOf(diagram: DiagramModel, layout: GitLayout): SceneBadge[] {
   const { inset } = LOOK.badge;
@@ -658,12 +669,13 @@ function badgesOf(diagram: DiagramModel, layout: GitLayout): SceneBadge[] {
     ...layout.tags,
     ...layout.commits.flatMap((c) => [{ x: c.cx - c.r, y: c.cy - c.r, w: c.r * 2, h: c.r * 2 }, ...(c.text ? [c.text] : [])]),
   ];
+  const frames = frameLines([...layout.regions, ...(layout.strip ? [layout.strip] : [])]);
   diagram.steps.forEach((step, s) => {
     const mark = firstMark(layout, s);
-    const near = mark?.target ? besideCommit(mark.target, taken, avoid) : undefined;
+    const near = mark?.target ? besideCommit(mark.target, taken, avoid, frames) : undefined;
     if (mark && (mark.points || near)) {
       const points = mark.points;
-      const point = near ?? (points ? (clearOnPath(points, taken, avoid) ?? badgeOnPath(points, taken, all.filter((p) => p !== points))) : [0, 0]);
+      const point = near ?? (points ? (clearOnPath(points, taken, avoid, frames) ?? badgeOnPath(points, taken, all.filter((p) => p !== points), frames)) : [0, 0]);
       taken.push(point);
       out.push({ step: s, x: point[0], y: point[1], color: mark.color });
       return;
@@ -674,13 +686,14 @@ function badgesOf(diagram: DiagramModel, layout: GitLayout): SceneBadge[] {
       return;
     }
     if (layout.strip && step.events.some((e) => e.type === "strip")) {
-      out.push({ step: s, x: layout.strip.x + inset, y: layout.strip.y + inset, color: "slate" });
+      const [x, y] = stripBadge(layout.strip);
+      out.push({ step: s, x, y, color: "slate" });
       return;
     }
     // 何も起きない段と、着いた commit の脇が埋まっている札の段は、一番上の枝の先端の commit の脇に置く。
-    // 先端が無いか、脇が埋まっている時は前の段の番号と入れ替える
+    // 先端が無いか、脇が埋まっている時は前の段の番号の所に置き、前の番号の脇に並べる
     const tip = layout.commits.find((c) => c.id === layout.refs[0]?.at[s]);
-    const spot = tip ? besideCommit(tip, taken, avoid) : undefined;
+    const spot = tip ? besideCommit(tip, taken, avoid, frames) : undefined;
     if (tip && spot) {
       taken.push(spot);
       out.push({ step: s, x: spot[0], y: spot[1], color: tip.color });
@@ -690,7 +703,7 @@ function badgesOf(diagram: DiagramModel, layout: GitLayout): SceneBadge[] {
     const lane = layout.lanes[0];
     out.push(before ? { ...before, step: s } : { step: s, x: (lane?.x ?? 0) + (lane?.w ?? 0) - inset - LOOK.badge.r, y: (lane?.y ?? 0) + inset + LOOK.badge.r, color: lane?.color ?? "slate" });
   });
-  return replaceSameSpot(out);
+  return besideSameSpot(out, badgeBlocked(layout, avoid));
 }
 
 /**

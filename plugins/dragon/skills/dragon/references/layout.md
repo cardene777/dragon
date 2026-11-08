@@ -14,15 +14,16 @@ dragon check --layout --json order.dragon
 - Each break is one `warning` line: `<file>:<line>:1 warning Step <n>: <message>`. The line is the `step` line of the first step where the break shows, and the message names the two parts involved.
 - A break that only shows at the phone width ends with `(at width 390)`.
 - A break that stays over several steps is reported once, at the first step where it shows.
-- With `--json`, each break also has a `layout` object: `{ kind, step, width?, parts }`. `parts` holds two of `{ kind: "badge", step }`, `{ kind: "box", name }`, `{ kind: "group", name }`, `{ kind: "slot", box }`, `{ kind: "text", text, box }`, `{ kind: "line", from, to, step }`, `{ kind: "icon", box }`, `{ kind: "coin" }`, `{ kind: "envelope" }`, `{ kind: "frame", side }` (`side` is `left`, `right`, `top` or `bottom`), `{ kind: "needle" }`, `{ kind: "ticks" }`, `{ kind: "panel", panel: "axis" }`, and for pipe diagrams `{ kind: "valve", from, to }` (a valve on the call pipe `from` → `to`; the valve of a token box has no `to`), `{ kind: "gauge", box }` and `{ kind: "pipe", from, to, step }` (the call pipe `from` → `to`, first used in `step`).
+- With `--json`, each break also has a `layout` object: `{ kind, step, width?, parts }`. `parts` holds two of `{ kind: "badge", step }`, `{ kind: "box", name }`, `{ kind: "group", name }`, `{ kind: "slot", box }`, `{ kind: "text", text, box }`, `{ kind: "line", from, to, step }`, `{ kind: "icon", box }`, `{ kind: "coin" }`, `{ kind: "envelope" }`, `{ kind: "frame", side }` (`side` is `left`, `right`, `top` or `bottom`), `{ kind: "needle" }`, `{ kind: "ticks" }`, `{ kind: "panel", panel: "axis" }`, `{ kind: "border", name }` (the border of a group, a lane or the strip), and for pipe diagrams `{ kind: "valve", from, to }` (a valve on the call pipe `from` → `to`; the valve of a token box has no `to`), `{ kind: "gauge", box }` and `{ kind: "pipe", from, to, step }` (the call pipe `from` → `to`, first used in `step`).
 - Breaks are warnings, so the exit code stays `0`. Errors in the notation still exit `1`, and `--layout` does not draw a diagram that has errors.
-- Pairs that are meant to touch are not reported: a line and the boxes at its ends, a group and the boxes in it, a step number on the corner of its own box, and a step number at the start of a line next to the box the line leaves.
+- Pairs that are meant to touch are not reported: a line and the boxes at its ends, a group and the boxes in it, a step number on the corner of its own box, a step number at the start of a line next to the box the line leaves, a step number that takes the place of the number of an earlier step on the same line, and the step counter at the top right of a lineup.
 
 ## The kinds
 
 | Kind | What it means |
 |---|---|
-| `badges-close` | Two step numbers seen together are less than one number's radius apart, so they read as one blob |
+| `badges-close` | Two step numbers seen together are less than one number's radius apart, so they read as one blob. A later step number that takes the exact spot of an earlier one and hides it is also reported |
+| `badge-on-frame` | A step number sits on the border of a group, a lane or the strip, so the border line runs through the number |
 | `lines-close` | Two straight runs of different lines go side by side less than one step number's width apart, or two lines between the same two boxes in opposite directions run on top of each other |
 | `line-crosses-text` | A line runs across a text with no label behind it, such as a box name or the name of a node in a try diagram's network |
 | `badge-off-shape` | A step number sits on the rectangle of a shaped box (`+bridge`, a hexagon) but floats away from the shape you see |
@@ -52,6 +53,7 @@ Fix one break, run `dragon check --layout` again, and repeat. A fix often clears
 - `line-near-border`: Reorder the boxes so the line does not have to pass along other boxes, for example put the two boxes it joins next to each other. Otherwise keep it and report it.
 - `text-touches-border`: Shorten the text. Otherwise keep it and report it.
 - `panel-edge` on a point label: A point near the right end writes its name and `note` text to the right of its flag. Shorten the text, or place the point at an earlier unit. A `panel-edge` on the needle, the ticks or a tick label comes from how dragon draws, so report it.
+- `badge-on-frame`: dragon moves a step number along its line off the borders, so this only shows when no spot on the line is clear. Keep it and report it.
 
 Do not drop content the explanation needs just to clear a warning.
 
