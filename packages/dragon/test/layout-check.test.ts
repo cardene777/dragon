@@ -51,11 +51,6 @@ const BRIDGE = join(FIXTURES, "bridge.dragon");
 const PAYMENT = join(FIXTURES, "payment.dragon");
 /** 点線の箱へ入る通らない道が段1から並んで近すぎる状態遷移図 (#3521)。並んで近すぎる線を見つける見本 */
 const CROWDED = join(FIXTURES, "crowded-lines.dragon");
-/**
- * ウォレットの右の縁の同じ所から、段1のトークンへの線と段3のブリッジへの線が出て重なって走り、その先で分かれる構成図 (#3547)。
- * 段2と段3の番号の丸が近すぎたgit図 (#3521) は、同じ commit から分かれる線を離して描くようになって崩れが消えたので、重なる線を見つける見本を持つ
- */
-const OVERLAP = join(FIXTURES, "overlap-lines.dragon");
 /** アーチの形の金庫が硬貨を送り出すだけで、金庫の置き場に運ぶ物が一度も座らない図 (#3518) */
 const SEND_ONLY = join(FIXTURES, "send-only.dragon");
 /** 重なって当然の組だけを持つ図 */
@@ -202,8 +197,36 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(hits[0]?.step, "2 つの丸が揃って見える最初の段").toBe(3);
   });
 
-  it("layout-check-finds-lines-leaving-one-spot", async () => {
-    const { found } = await layoutOf(OVERLAP);
+  it("layout-check-finds-lines-leaving-one-spot", () => {
+    // 構成図も同じ箱の同じ所から出る線を離して描くようになり (#3549)、見本の図にも検査の図にも重なって走る線が無くなった。
+    // 重なる線を持つ姿は、#3549 の前に検査の図`overlap-lines.dragon`を描いた時の座標を写して組む。
+    // ウォレットの右の縁の同じ所から、段1のトークンへの線と段3のブリッジへの線が出て横に重なり、ブリッジへの線が列の間で下へ折れる
+    const token: [number, number][] = [
+      [280, 68],
+      [371, 68],
+    ];
+    const bridge: [number, number][] = [
+      [280, 68],
+      [333, 68],
+      [333, 304],
+      [284, 304],
+    ];
+    const box = (id: string, name: string, x: number, y: number) => ({ id, name, color: "blue" as const, x, y, w: 120, h: 72, cx: x + 60, cy: y + 36 });
+    const edge = (to: string, step: number, points: [number, number][]) => ({ step: step - 1, event: 0, from: "wallet", to, points, color: "blue" as const, carry: { kind: "none" as const } });
+    // 線の段は、描いた線の点の並びを引いて取る。崩れの検査は線と同じ点の並びの持ち主を探すので、線と描いた線に同じ並びを渡す
+    const found = findBreaks({
+      inks: [],
+      traces: [
+        { from: "wallet", to: "token", points: token, shown: fromTime(0.5) },
+        { from: "wallet", to: "bridge", points: bridge, shown: fromTime(2.5) },
+      ],
+      framed: [],
+      stills: [1, 2, 3],
+      frame: { w: 520, h: 360 },
+      boxes: [box("wallet", "ウォレット", 160, 32), box("token", "トークン", 375, 32), box("bridge", "ブリッジ", 164, 268)],
+      edges: [edge("token", 1, token), edge("bridge", 3, bridge)],
+      outlines: new Map(),
+    }) as LayoutBreak[];
     const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "ウォレット", "トークン", 1) && hasLine(b, "ウォレット", "ブリッジ", 3));
     expect(hits, "ウォレットの同じ所から出て重なるトークンへの線とブリッジへの線を 1 件で出さない").toHaveLength(1);
     expect(hits[0]?.step, "2 本の線が揃って見える最初の段").toBe(3);

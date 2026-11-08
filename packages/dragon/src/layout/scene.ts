@@ -518,6 +518,17 @@ export function badgeOnPath(points: Point[], taken: Point[] = [], lines: Point[]
 export const lineKey = (edge: SceneEdge): string => edge.points.map(([x, y]) => `${Math.round(x * 10)},${Math.round(y * 10)}`).join(" ");
 
 /**
+ * 線 `back` が線 `edge` の帰りの線か。帰りの線は、逆向きの線を逆に辿った道と同じ道を通る線 (#3521)。
+ * 矢じりの側の端は箱から `LOOK.edge.inset` だけ離すので、その分の違いは同じとみなす。
+ * 同じ箱へ戻る輪は、逆に辿ると始まりと終わりが箱の幅だけ離れるので、自分とも組にならない
+ */
+export const backOf = (edge: SceneEdge, back: SceneEdge): boolean =>
+  back.from === edge.to &&
+  back.to === edge.from &&
+  back.points.length === edge.points.length &&
+  [...back.points].reverse().every(([x, y], i) => Math.hypot(x - (edge.points[i] as Point)[0], y - (edge.points[i] as Point)[1]) <= LOOK.edge.inset + 0.5);
+
+/**
  * 同じ2つの箱を行きと帰りで結び、同じ道を逆に通る線を、左右に離して引く (#3175、#3521)。構成図と状態遷移図が使う。
  * 2本の線の真ん中どうしの間は、崩れの検査が並んだ線に求める間 (`APART.line`) に光った線の太さを足した値にする。
  * 2本の線の縁どうしの間も、検査の下限を下回らない。
@@ -528,20 +539,8 @@ export const lineKey = (edge: SceneEdge): string => edge.points.map(([x, y]) => 
  */
 export function pullApart(edges: SceneEdge[]): Map<SceneEdge, LabelSide> {
   const sides = new Map<SceneEdge, LabelSide>();
-  // 組は、逆向きの線を逆に辿った道と同じ道を通る線。矢じりの側の端は箱から `LOOK.edge.inset` だけ離すので、その分の違いは同じとみなす。
-  // 同じ箱へ戻る輪は、逆に辿ると始まりと終わりが箱の幅だけ離れるので、自分とも組にならない。
   // 組は先に全て見つけてからずらす。ずらしながら探すと、ずらした線と組の相手が同じ道でなくなる
-  const paired = edges.filter(
-    (e) =>
-      e.points[1] !== undefined &&
-      edges.some(
-        (o) =>
-          o.from === e.to &&
-          o.to === e.from &&
-          o.points.length === e.points.length &&
-          [...o.points].reverse().every(([x, y], i) => Math.hypot(x - (e.points[i] as Point)[0], y - (e.points[i] as Point)[1]) <= LOOK.edge.inset + 0.5),
-      ),
-  );
+  const paired = edges.filter((e) => e.points[1] !== undefined && edges.some((o) => backOf(e, o)));
   for (const edge of paired) {
     const d = ((edge.from < edge.to ? 1 : -1) * (APART.line + LOOK.stroke.edgeOn)) / 2;
     const points = edge.points;

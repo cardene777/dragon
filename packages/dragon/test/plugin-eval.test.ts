@@ -559,17 +559,19 @@ describe("評価で AI が描いた図を 1 枚の頁に並べる (#3519)", () =
     const { cliTools } = await gallery();
     expect(existsSync(CLI), `${relative(ROOT, CLI)} が無い。pnpm build:packages を回す`).toBe(true);
     const tools = cliTools(CLI);
-    // 段 3 で同じ所から出る 2 本の線が重なる図 (`layout-check.test.ts` が崩れを確かめる図)。段は 3 つ。
-    // 前に使った支払いの図は段 3 の行きと帰りの線で崩れを作っていて、行きと帰りの線を離した直し (#3521) で段 3 の崩れが消えた。
-    // 次に使った段 3 で番号の丸が近すぎるgit図も、同じ commit から分かれる線を離した直し (#3547) で崩れが消えた
-    const close = join(ROOT, "packages/dragon/test/fixtures/layout/overlap-lines.dragon");
+    // 段 2 で長い状態の字が時間軸の囲みの枠を越える時間軸の図 (`time-axis-inside.test.ts` が崩れを確かめる図)。段は 2 つで、段 1 には崩れが無い。
+    // 前に使った図は、描き方を直すたびに崩れが消えた。支払いの図は行きと帰りの線を離した直し (#3521) で、git図は同じ commit から分かれる線を離した直し (#3547) で、
+    // 同じ所から出る 2 本の線が重なる構成図は同じ箱から出る線を離した直し (#3549) で崩れが消えた。
+    // この図は字が枠を越えることを確かめるために崩れを残す図なので、線の描き方を直しても崩れが残る
+    const close = join(ROOT, "packages/dragon/test/fixtures/layout/time-edge.dragon");
     const broken = join(mkdtempSync(join(tmpdir(), "dragon-gallery-")), "broken.dragon");
     writeFileSync(broken, "not a diagram\n");
     const [found, steps, bad, badSteps] = await Promise.all([tools.breaks(close), tools.steps(close), tools.breaks(broken), tools.steps(broken)]);
     expect(found.error, "崩れを数えられない").toBeUndefined();
     const breakSteps = (found.problems ?? []).flatMap((problem) => (problem.layout ? [problem.layout.step] : []));
-    expect(breakSteps, "崩れの段の番号を layout.step から読まない").toContain(3);
-    expect(steps, "図の段の数").toBe(3);
+    expect(breakSteps, "崩れの段の番号を layout.step から読まない").toContain(2);
+    expect(breakSteps, "崩れの無い段 1 を崩れの段に数える").not.toContain(1);
+    expect(steps, "図の段の数").toBe(2);
     // 記法の誤りは崩れでない誤りとして返し、投げない
     expect(bad.problems?.some((problem) => problem.severity === "error" && problem.layout === undefined), "記法の誤りを返さない").toBe(true);
     expect(badSteps, "読めない図の段の数は分からないとする").toBeUndefined();

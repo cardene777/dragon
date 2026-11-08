@@ -6,11 +6,13 @@
  * その箱の列に置き、そこから線で繋がる箱を隣の列へ (寄せの指示が左か右なら下の行へ) 置いていく。
  * 線は縦と横の折れ線で、間にある箱を避ける。名前が箱に掛かる時は帯を広げて名前の場所を空ける。
  * 箱の下か上を回る線は、行で最も高い箱の枠と帯の枠から余白 (`LOOK.margin`) 以上離して通し、帯が狭ければ帯を広げる (#3526、#3546)。
+ * 同じ箱の同じ所から別々の箱へ出る線は、出る所と回る道を離して通し、離した道が収まるまで行の間か帯か列の間を広げる (#3549)。
  */
-import { LOOK, TYPE } from "../../look/values";
+import { APART, LOOK, TYPE } from "../../look/values";
 import type { DiagramModel, LabelSide, Region } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
+  backOf,
   badgeBlocked,
   badgeOnPath,
   badgeRect,
@@ -65,14 +67,37 @@ interface Room {
   bottom: number;
 }
 
+/**
+ * 回る道を並べるのに足す間 (鍵は行の下が `g:r:below`、行の上が `g:r:above`、列 `i` と `i + 1` の間が `col:i`)。
+ * 同じ箱の同じ所から出る線の回る道を離して並べると、並べた分だけ行の間か帯か列の間を広げる (#3549)
+ */
+type Lanes = Map<string, number>;
+
 export function layoutArchitecture(diagram: DiagramModel): Layout {
   const groups = groupsOf(diagram);
   const slots = placeBoxes(diagram, groups);
   const rooms = groups.map(() => ({ top: 0, bottom: 0 }));
-  let layout = arrange(diagram, groups, slots, rooms);
-  // 名前を置く場所が帯の外へ出たら、その帯を広げて置き直す。箱の下か上を回る線が帯の枠に近い時も広げる (#3526)
-  for (let pass = 0; pass < 3 && grow(layout, groups, slots, rooms); pass++) layout = arrange(diagram, groups, slots, rooms);
+  const lanes: Lanes = new Map();
+  let { layout, need } = arrange(diagram, groups, slots, rooms, lanes);
+  // 名前を置く場所が帯の外へ出たら、その帯を広げて置き直す。箱の下か上を回る線が帯の枠に近い時も広げる (#3526)。
+  // 同じ所から出る線の回る道を並べる間が足りない時も、その間を広げて置き直す (#3549)
+  for (let pass = 0; pass < 3; pass++) {
+    const widened = widen(lanes, need);
+    if (!grow(layout, groups, slots, rooms) && !widened) break;
+    ({ layout, need } = arrange(diagram, groups, slots, rooms, lanes));
+  }
   return layout;
+}
+
+/** 回る道を並べるのに要る間を、今の間より広い所だけ広げる。広げたら true */
+function widen(lanes: Lanes, need: Lanes): boolean {
+  let widened = false;
+  for (const [key, room] of need) {
+    if (room <= (lanes.get(key) ?? 0) + 0.01) continue;
+    lanes.set(key, room);
+    widened = true;
+  }
+  return widened;
 }
 
 /**
@@ -192,8 +217,9 @@ function headerSize(region: Region): { w: number; h: number; lines: string[] } {
   return { w, h, lines };
 }
 
-function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot>, rooms: Room[]): Layout {
+function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot>, rooms: Room[], lanes: Lanes): { layout: Layout; need: Lanes } {
   const { box: B, region: R, architecture: A, margin, gap } = LOOK;
+  const extra = (key: string): number => lanes.get(key) ?? 0;
   const colors = boxColors(diagram);
   const regionColor = regionColors(diagram);
   const edges = edgesOf(diagram);
@@ -216,6 +242,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     const i = Math.min(a.col, b.col);
     between[i] = Math.max(between[i] ?? 0, need);
   }
+  // 列の間を縦に走る道を離して並べる時は、並べた幅だけ列の間を広げる (#3549)
+  between.forEach((w, i) => (between[i] = Math.max(w, A.columnGap + extra(`col:${i}`))));
   const headers = groups.map((g) => (g.region ? headerSize(g.region) : undefined));
   const headerW = Math.max(0, ...headers.map((h) => (h ? h.w + R.inset * 2 : 0)));
   const colLeft: number[] = [];
@@ -239,12 +267,15 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   groups.forEach((group, g) => {
     const rows = Math.max(1, ...group.members.map((id) => (slots.get(id)?.row ?? 0) + 1));
     const room = rooms[g] as Room;
-    const top = cursor + R.pad + room.top;
+    // 行の下と上を回る道を離して並べる時は、並べた分だけ行の間と帯を広げる (#3549)
+    const below = (r: number): number => extra(`${g}:${r}:below`);
+    const above = (r: number): number => extra(`${g}:${r}:above`);
+    const top = cursor + R.pad + room.top + above(0);
     // 行の高さは行で最も高い箱の高さ。形を持つ箱は中身を収めるために高くなる (#3520)
     const rowH = Array.from({ length: rows }, (_, r) => Math.max(B.h, ...group.members.filter((id) => slots.get(id)?.row === r).map((id) => fits.get(id)?.h ?? B.h)));
     // 行の上端。輪を持つ行の下は、行の間に輪の分を足す
     const rowTop: number[] = [0];
-    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1));
+    for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1) + below(r - 1) + above(r));
     for (let r = 0; r < rows; r++) rowSpan.set(`${g}:${r}`, { top: top + (rowTop[r] as number), bottom: top + (rowTop[r] as number) + (rowH[r] as number) });
     for (const id of group.members) {
       const slot = slots.get(id) as Slot;
@@ -267,7 +298,7 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
         cy: y + h / 2,
       });
     }
-    const contentBottom = top + (rowTop[rows - 1] as number) + (rowH[rows - 1] as number) + loopRoom(g, rows - 1);
+    const contentBottom = top + (rowTop[rows - 1] as number) + (rowH[rows - 1] as number) + loopRoom(g, rows - 1) + below(rows - 1);
     const header = headers[g];
     const h = Math.max(contentBottom + R.pad + room.bottom - cursor, header ? header.h + R.inset * 2 : 0, group.region ? R.minH : 0);
     bands.push({ group: g, y: cursor, h, rows });
@@ -397,6 +428,20 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     color: edgeColor(edge, colors),
     carry: edge.carry,
   }));
+  /** 線の2つ目の区間が、出る箱の行の下か上か、列の間を回る道ならその鍵 (`Lanes` の鍵)。列の間の道は列の間の真ん中を挟んで並べる */
+  const laneOf = (edge: SceneEdge): { key: string; centered: boolean } | undefined => {
+    const [p0, p1] = edge.points as [Point, Point];
+    const { slot } = spanOf(edge.from);
+    if (Math.abs(p0[0] - p1[0]) < 0.5) {
+      if (p1[1] > p0[1] && Math.abs(p1[1] - laneBelow(edge.from)) < 0.5) return { key: `${slot.group}:${slot.row}:below`, centered: false };
+      if (p1[1] < p0[1] && Math.abs(p1[1] - laneAbove(edge.from)) < 0.5) return { key: `${slot.group}:${slot.row}:above`, centered: false };
+      return undefined;
+    }
+    const right = p1[0] > p0[0];
+    return Math.abs(p1[0] - gapX(slot.col, right)) < 0.5 ? { key: `col:${right ? slot.col : slot.col - 1}`, centered: true } : undefined;
+  };
+  // 同じ箱の同じ所から別々の箱へ出る線は、出る所と回る道を離す (#3549)
+  const need = spreadFans(sceneEdges, byId, laneOf);
   // 運ぶ物は着いた箱の置き場に留まり、出る箱の置き場で走り出しを待つ (#3176)
   seatCarriers(sceneEdges, byId, carriedIn);
   // 同じ2つの箱を行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す。名前はずらした側に置く (#3175、#3521)
@@ -472,7 +517,141 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     badgeBlocked(layout),
     (before, after) => lineOf(before.step) !== undefined && lineOf(before.step) === lineOf(after.step),
   );
-  return layout;
+  return { layout, need };
+}
+
+/**
+ * 並んだ線の真ん中どうしの間。崩れの検査が並んだ線に求める間 (`APART.line`) に光った線の太さを足し、行きと帰りの線 (`pullApart`) と同じ間にする。
+ * 光った線の縁どうしの間も、検査の下限を下回らない
+ */
+const FAN = APART.line + LOOK.stroke.edgeOn;
+
+/**
+ * 同じ箱の同じ所から別々の箱へ出る線を、出る所と回る道で離す (#3549)。返す表は、回る道を並べるのに要る間。
+ *
+ * 出る所は箱の辺に沿って `FAN` ずつ離す。辺の角の丸みを除いた長さに収まらない時は、線の縁どうしの間が検査の下限を下回らない所まで詰めて角の丸みからも出し、
+ * 辺の長さにも収まらない時だけ、辺の長さに収まるまで詰める。
+ * 並べる順は、出た後に曲がる向きと、曲がった後の道の遠さで決める。辺に沿って負の向きへ曲がる線を負の側に、正の向きへ曲がる線を正の側に、
+ * 曲がらない線をその間に置き、どちらの側も遠い道を通る線ほど真ん中に寄せる。遠い道を通る線が先に曲がる線の道を横切らないため。
+ * 行の下か上か列の間を回る道は、曲がる向きごとに `FAN` ずつ外へ並べる。行の下と上の道は行から余白だけ離した所から外へ、
+ * 列の間の道は列の間の真ん中を挟んで並べる。
+ * 帰りの線を持つ線は、帰りの線も同じだけ動かす。2本は後で `pullApart` が離すので、2本分の場所を取る。
+ * 同じ線を別の段でもう一度引いた線は同じ道なので、一緒に動かす
+ */
+function spreadFans(edges: SceneEdge[], byId: Map<string, SceneBox>, laneOf: (edge: SceneEdge) => { key: string; centered: boolean } | undefined): Lanes {
+  const need: Lanes = new Map();
+  // 出る箱と出る所と出る向きが同じ線を、道ごとにまとめる
+  const fans = new Map<string, SceneEdge[][]>();
+  for (const edge of edges) {
+    const [p0, p1] = edge.points;
+    if (edge.from === edge.to || !p0 || !p1) continue;
+    const key = `${edge.from} ${Math.round(p0[0] * 10)},${Math.round(p0[1] * 10)} ${Math.sign(Math.round(p1[0] - p0[0]))},${Math.sign(Math.round(p1[1] - p0[1]))}`;
+    const fan = fans.get(key) ?? [];
+    const same = fan.find((lines) => lineKey(lines[0] as SceneEdge) === lineKey(edge));
+    if (same) same.push(edge);
+    else fan.push([edge]);
+    fans.set(key, fan);
+  }
+  const moved = new Set<SceneEdge>();
+  for (const fan of fans.values()) {
+    if (fan.length < 2) continue;
+    const first = fan[0]?.[0] as SceneEdge;
+    const box = byId.get(first.from);
+    if (!box) continue;
+    const [p0, p1] = first.points as [Point, Point];
+    // `u` は出る所を並べる辺に沿う向き、`o` は箱から出ていく向き。下か上の辺から出る線は x に、左か右の辺から出る線は y に並べる
+    const u: 0 | 1 = Math.abs(p0[0] - p1[0]) < 0.5 ? 0 : 1;
+    const o: 0 | 1 = u === 0 ? 1 : 0;
+    const out = Math.sign(p1[o] - p0[o]);
+    const members = fan.map((lines) => {
+      const points = (lines[0] as SceneEdge).points;
+      const [a, b, c, d] = points as [Point, Point, Point | undefined, Point | undefined];
+      const step = c ? c[u] - b[u] : 0;
+      const backs = edges.filter((e) => lines.some((line) => backOf(line, e)));
+      return {
+        lines,
+        backs,
+        turn: Math.abs(step) < 0.5 ? 0 : Math.sign(step),
+        reach: Math.abs(step),
+        // 回った後に出た箱の行へ戻る線 (同じ行の箱へ行く線)。戻らない線は回った後に次の行か帯へ進む
+        returns: c !== undefined && d !== undefined && Math.sign(d[o] - c[o]) === -out,
+        depth: Math.abs(b[o] - a[o]),
+        lane: points.length >= 4 ? laneOf(lines[0] as SceneEdge) : undefined,
+        width: backs.length > 0 ? 2 : 1,
+        shift: 0,
+      };
+    });
+    // 回る道。曲がる向きと道ごとに、内から外へ並べる
+    const stacks = new Map<string, typeof members>();
+    for (const m of members) {
+      if (!m.lane) continue;
+      const key = `${m.turn} ${m.lane.key}`;
+      stacks.set(key, [...(stacks.get(key) ?? []), m]);
+    }
+    for (const stack of stacks.values()) {
+      // 内から、行へ戻る線を近い行き先から、次に先へ進む線を遠い行き先から並べる。
+      // 行へ戻る線は遠い線ほど外を回れば近い線の戻る所を横切らず、先へ進む線は遠い線ほど内を回れば近い線の進む所を横切らない
+      stack.sort((a, b) => (a.returns === b.returns ? (a.returns ? a.reach - b.reach : b.reach - a.reach) : a.returns ? -1 : 1));
+      // 帰りの線を持つ線は後で `pullApart` が2本に離すので、2本の真ん中を半分外へ置き、内の1本を道の位置に合わせる
+      stack.forEach((m, k) => {
+        const before = stack[k - 1];
+        m.shift = before ? before.shift + ((before.width + m.width) / 2) * FAN : ((m.width - 1) / 2) * FAN;
+      });
+      const last = stack.at(-1);
+      const span = last ? last.shift + ((last.width - 1) / 2) * FAN : 0;
+      const lane = stack[0]?.lane;
+      if (!lane || span === 0) continue;
+      if (lane.centered) for (const m of stack) m.shift -= span / 2;
+      need.set(lane.key, Math.max(need.get(lane.key) ?? 0, span));
+    }
+    // 出る所。負の向きへ曲がる線、曲がらない線、正の向きへ曲がる線の順に、辺に沿って並べる
+    const far = (m: (typeof members)[number]): number => m.depth + m.shift;
+    const order = [
+      ...members.filter((m) => m.turn < 0).sort((a, b) => far(a) - far(b) || a.reach - b.reach),
+      ...members.filter((m) => m.turn === 0).sort((a, b) => far(a) - far(b)),
+      ...members.filter((m) => m.turn > 0).sort((a, b) => far(b) - far(a) || b.reach - a.reach),
+    ];
+    const total = order.reduce((sum, m) => sum + m.width, 0);
+    // 辺の角の丸みを除いた長さに収まらない時は、線の縁どうしの間が検査の下限を下回らない所まで詰め、角の丸みにも掛けて出す。
+    // それでも辺に収まらない時だけ、辺の長さに収まるまで詰める
+    const { radius } = LOOK.box;
+    const length = u === 0 ? box.w : box.h;
+    const gaps = Math.max(1, total - 1);
+    const pitch = Math.min(FAN, Math.max(length - radius * 2, Math.min(gaps * (APART.line + LOOK.stroke.edge), length)) / gaps);
+    let taken = 0;
+    for (const m of order) {
+      const along = (taken + m.width / 2 - total / 2) * pitch;
+      taken += m.width;
+      // 角の丸みに掛けて出す線は、丸みの縁から出るよう始まりを箱へ寄せる
+      const corner = Math.max(0, Math.abs(along) - (length / 2 - radius));
+      const sink = radius - Math.sqrt(Math.max(0, radius * radius - corner * corner));
+      const delta = (i: number, count: number): Point => {
+        const d: Point = [0, 0];
+        if (i <= 1) d[u] += along;
+        if (i === 0) d[o] -= out * sink;
+        if (count >= 4 && (i === 1 || i === 2)) d[o] += out * m.shift;
+        return d;
+      };
+      for (const line of m.lines) {
+        if (moved.has(line)) continue;
+        moved.add(line);
+        line.points = line.points.map(([x, y], i) => {
+          const [dx, dy] = delta(i, line.points.length);
+          return [x + dx, y + dy];
+        });
+      }
+      for (const back of m.backs) {
+        if (moved.has(back)) continue;
+        moved.add(back);
+        const n = back.points.length;
+        back.points = back.points.map(([x, y], i) => {
+          const [dx, dy] = delta(n - 1 - i, n);
+          return [x + dx, y + dy];
+        });
+      }
+    }
+  }
+  return need;
 }
 
 /**
