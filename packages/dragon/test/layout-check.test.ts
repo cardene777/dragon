@@ -65,6 +65,8 @@ const EVAL_BRIDGE = join(FIXTURES, "eval-bridge.dragon");
 const LABEL_OFF_LINE = join(FIXTURES, "label-off-line.dragon");
 /** 段4で、Router から Pool1 への流れの札「100 USDC」を置く管の際が、値の札と束ねた管で塞がる配管の図 (#3528) */
 const SWAP_RETRY = join(ROOT, "packages/dragon/examples/swap-retry.dragon");
+/** 送る人から作る人へ列を飛ばす網の線が、中継1と中継2の名前を横切る試す図 (#3524) */
+const TRY_SKIP = join(FIXTURES, "try-skip.dragon");
 /** 見本に今ある崩れの一覧。見本の file ごとに崩れを並べる */
 const RECORDED = join(ROOT, "packages/dragon/test/fixtures/layout-breaks.json");
 /** 崩れを数える見本の置き場 */
@@ -211,6 +213,30 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     const lines = await runCli(["check", PAYMENT, "--layout", "--json"]);
     const widths = (JSON.parse(lines.stdout || "[]") as Problem[]).flatMap((p) => (p.layout?.width === undefined ? [] : [p.layout.width]));
     expect(widths, "幅で変わらない図で幅を名指す").toEqual([]);
+  });
+
+  it("layout-check-finds-line-across-node-name", async () => {
+    // 試す図の網の線も、ほかの線と同じく札を持たない字を横切れば崩れとして出す
+    const { code, found, problems, stderr } = await layoutOf(TRY_SKIP);
+    expect(code, `崩れだけの図で終わり方 0 にならない ${stderr}`).toBe(0);
+    const across = (name: string): LayoutBreak[] =>
+      found.filter((b) => b.kind === "line-crosses-text" && hasLine(b, "送る人", "作る人", 1) && b.parts.some((p) => p.kind === "text" && p.text === name));
+    for (const name of ["中継1", "中継2"]) {
+      const hits = across(name);
+      expect(hits, `線 送る人 → 作る人 が名前「${name}」を横切ることを 1 件で出さない ${JSON.stringify(found)}`).toHaveLength(1);
+      expect(hits[0]?.step, `名前「${name}」を横切る崩れの段`).toBe(1);
+      expect(hits[0]?.parts.map((p) => p.kind), "崩れに関わる 2 つの物").toEqual(["line", "text"]);
+    }
+    const lines = problems.filter((p) => p.layout?.kind === "line-crosses-text");
+    for (const p of lines) {
+      expect(p.severity, "線が字を横切る崩れの重さ").toBe("warning");
+      expect(p.line, "線が字を横切る崩れの段の step の行").toBe(stepLine(TRY_SKIP, 1));
+    }
+    // 文の行は段を頭に書き、線の両端の節と横切られる名前を名指す
+    const ja = await runCli(["check", TRY_SKIP, "--layout", "--lang", "ja"]);
+    const said = ja.stdout.trimEnd().split("\n").find((line) => line.includes("中継1"));
+    expect(said, `名前「中継1」を名指す行が無い\n${ja.stdout}`).toMatch(new RegExp(`^${TRY_SKIP.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(TRY_SKIP, 1)}:1 warning 段 1: `, "u"));
+    expect(said, "行が線の両端の節を名指さない").toMatch(/送る人.*作る人/u);
   });
 
   it("layout-check-skips-intended-overlaps", async () => {

@@ -8,6 +8,7 @@
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
+ * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  *
  * 重なって当然の組は数えない。線とその両端の箱、グループとその中の箱は、どの種類も比べない組なので数えない。
@@ -41,7 +42,7 @@ export type LayoutPart =
   | { kind: "ticks" }
   | { kind: "panel"; panel: "axis" };
 
-export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "part-outside-frame" | "panel-edge" | "label-off-line";
+export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "part-outside-frame" | "panel-edge" | "label-off-line" | "line-crosses-text";
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -93,6 +94,11 @@ const BADGE_GAP = APART.badge;
 const LINE_GAP = APART.line;
 /** 並んで走る長さの下限。番号の丸2つ分より長く狭い間で並ぶ線は1本の太い線に見える */
 const LINE_ALONG = 2 * R;
+/**
+ * 線が字を横切ったとみなす食い込みの下限 (px)。字の重なり (`ink.ts` の `BITE`) と同じ値にし、書き出しが知らせる組と同じ組を数える。
+ * `ink.ts` は頁が最初に読む塊に在り、値を書き出すだけで最初に読む量が増えるので、ここに同じ値を置く
+ */
+const BITE = 0.5;
 /** 時間軸の囲みの枠の線の内側の縁から、部品までの間の下限 (px)。これより近い部品は枠に接して見える (#3527) */
 const PANEL_GAP = 4;
 /**
@@ -299,6 +305,20 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       ]);
     }
   });
+
+  // 札を持たない字を横切る線。札の地は下の線を隠すので数えず、段の番号と図の部品は書き手が書いた字でないので数えない
+  for (const ink of inks) {
+    if (ink.boxed === true || ink.badge === true || ink.part !== undefined) continue;
+    for (const trace of traces) {
+      if (!crossesRect(trace.points, ink.rect, BITE)) continue;
+      const seen = firstSeen(ink, trace);
+      if (seen === undefined) continue;
+      add("line-crosses-text", seen, [
+        { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
+        { kind: "text", text: ink.text, ...(ink.box === undefined ? {} : { box: nameOf(ink.box) }) },
+      ]);
+    }
+  }
 
   // 時間軸の部品は、囲みの枠を越えるか、枠の線の内側の縁から`PANEL_GAP`より近ければ崩れにする (#3527)
   for (const item of framed)
