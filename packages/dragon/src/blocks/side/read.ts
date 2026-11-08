@@ -8,8 +8,8 @@ import type { BlockReading, ParseState } from "../block";
 import { namesAt } from "../item/read";
 
 const SIDE = /^side(?=\s|$)/u;
-/** 同じ行に置ける部品の種類。入力の帯と釦は頁の部品が描き、図の上に置き場所を持たない */
-const PLACED = ["route", "queue", "chain"] as const;
+/** 同じ行に置ける部品の種類 (記録の列は #3506)。入力の帯と釦は頁の部品が描き、図の上に置き場所を持たない */
+const PLACED = ["route", "queue", "chain", "log"] as const;
 
 export interface SideMessages {
   sideShape: string;

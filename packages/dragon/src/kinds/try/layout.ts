@@ -389,7 +389,8 @@ export function layoutTry(
     const title = textWidth(part.id, TYPE.tryTitle);
     if (part.type === "queue") return Math.max(T.queue.padX * 2 + chipW + hintWidth(hintTextOf(part.id)), title);
     if (part.type === "chain") return Math.max(T.shown * blockW + (T.shown - 1) * B.gap, title);
-    if (part.type === "log") return Math.max(logRowW(part.id), title);
+    // 同じ行の記録の列は記録 1 つの幅だけを要る幅にし、残りの幅に入る数ずつ記録を並べる (#3506)。図全体の幅で並べる数を要ると、行が図の幅を超える
+    if (part.type === "log") return Math.max(logW.get(part.id) ?? L.w, title);
     const labels = columnsOf(part).map((list) => Math.max(...list.map((id) => textWidth(id, TYPE.tryNode))));
     const apart = labels.slice(1).reduce((sum, w, c) => sum + ((labels[c] ?? 0) + w) / 2 + T.route.labelGap, 0);
     return Math.max(T.route.padX * 2 + apart, title);
@@ -570,14 +571,30 @@ export function layoutTry(
         const rowTop = body + B.padTop + head + B.rowGap;
         const h = rowTop + rows * pitch - C.gap + B.padBottom - body;
         const numbers = new Set(records.map((r) => r.number));
-        const folded = new Set(
-          raws.map((raw) => Math.max(0, (raw.state.logs?.[part.id] ?? []).length - T.shown)),
-        );
+        // 縦に組んだ形は 1 列に積み、横に並べた形は図の幅に収まる数ずつ並べて折り返す (#3478)
+        // side の行に置いた記録の列は、割り当てた幅 (span) に入る数ずつ並べる (#3506)
+        const inRow = (rowOf.get(part.id)?.length ?? 1) > 1;
+        const columns = stacked
+          ? 1
+          : inRow
+            ? Math.max(1, Math.min(T.shown, Math.floor((span + L.gap) / (w + L.gap))))
+            : logColumns(part.id);
+        // side の行の記録の列は 1 段に入る数だけを出し、それより古い記録は畳む (#3506)。段を足すと行が縦に伸び、同じ行のほかの部品の下が空く
+        const keep = inRow ? columns : T.shown;
+        if (keep < T.shown)
+          for (const raw of raws) {
+            const list = raw.state.logs?.[part.id] ?? [];
+            list.forEach((r, i) => {
+              r.shown = i >= list.length - keep;
+            });
+          }
+        const folded = new Set(raws.map((raw) => Math.max(0, (raw.state.logs?.[part.id] ?? []).length - keep)));
         const field = logField(part);
         const stopped = stoppedOf(part);
-        // 縦に組んだ形は 1 列に積み、横に並べた形は図の幅に収まる数ずつ並べて折り返す (#3478)
-        const columns = stacked ? 1 : logColumns(part.id);
-        const lines = Math.ceil(T.shown / columns);
+        // 空ける段は、ここまでの段で一度に出た記録の数が要る分だけにする (#3506)。3 件分の段を常に空けると、記録の少ない間は記録の列の下が空く。
+        // 記録がまだ 1 件も無い間は段を取らず題だけを置く
+        const most = Math.max(0, ...raws.map((raw) => (raw.state.logs?.[part.id] ?? []).filter((r) => r.shown).length));
+        const lines = Math.ceil(Math.min(T.shown, most) / columns);
         logs.push({
           id: part.id,
           title: titleOf(part.id, top, left),
@@ -612,7 +629,7 @@ export function layoutTry(
               }
             : {}),
         });
-        const bottom = body + lines * h + (lines - 1) * L.gap;
+        const bottom = lines === 0 ? body : body + lines * h + (lines - 1) * L.gap;
         parts.push({ id: part.id, type: "log", rect: { x: left, y: top, w: span, h: bottom - top } });
         lowest = Math.max(lowest, bottom);
       } else {

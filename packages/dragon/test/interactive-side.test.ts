@@ -301,6 +301,34 @@ describe("試す図の記録の列を横に並べる (#3506)", () => {
       expect(x + (log?.w ?? 0), `記録 ${n + 1} の右の端が記録の列の四角の右の端 ${right(rejects)} より右に出る`).toBeLessThanOrEqual(right(rejects) + 0.5);
   });
 
+  it("interactive-side-log-folds-to-one-line", () => {
+    // エラーの名前を長くして記録の幅を広げ、記録の列に割り当てた幅に 3 件が 1 段で入らない形にする
+    const wide = logSideTry().replace("BAD_SIGNATURE", "INVALID_EXTERNAL_SIGNATURE_FROM_SENDER");
+    const layout = layoutOf(parsedTry(wide), 740) as SideLayout & {
+      logs?: (LogPlaced & { folds: Record<number, string> })[];
+      moments: { records?: Record<string, [number, number] | null> }[];
+    };
+    const last = layout.moments[layout.moments.length - 1];
+    const shown = Object.entries(last?.records ?? {})
+      .filter(([key, at]) => key.startsWith("rejects/") && at !== null)
+      .map(([, at]) => at as [number, number]);
+    expect(shown.length, "3 件の記録のうち 1 段に出した記録の数").toBeGreaterThan(0);
+    expect(shown.length, "side の行の記録の列が 3 件全てを出し、段を足して行を縦に伸ばす").toBeLessThan(3);
+    expect(new Set(shown.map(([, y]) => y)).size, "side の行の記録の列が記録を 2 段以上に並べる").toBe(1);
+    const log = layout.logs?.find((l) => l.id === "rejects");
+    expect(Object.keys(log?.folds ?? {}).length, "1 段に入らない古い記録を畳んだ印が無い").toBeGreaterThan(0);
+  });
+
+  it("interactive-log-empty-takes-no-line", () => {
+    // 記録がまだ 1 件も無い記録の列は題だけを持ち、記録 1 件分の空いた段を取らない
+    const empty = layoutOf(parsedTry(logSideTry([]).split("\nstep r1")[0] ?? ""), WIDE);
+    const one = layoutOf(parsedTry(logSideTry([]).split("\nstep r2")[0] ?? ""), WIDE);
+    const blank = partOf(empty, "rejects");
+    const filled = partOf(one, "rejects");
+    expect(blank.h, "記録の無い記録の列が、記録 1 件分の高さの空いた段を取る").toBeLessThan(filled.h / 2);
+    expect(empty.height, "記録の無い記録の列の図が、記録 1 件の図と同じ高さを取る").toBeLessThan(one.height);
+  });
+
   it("interactive-side-log-stacks-when-narrow", () => {
     const side = layoutOf(parsedTry(logSideTry()), PHONE);
     const stacked = layoutOf(parsedTry(logSideTry([])), PHONE);
