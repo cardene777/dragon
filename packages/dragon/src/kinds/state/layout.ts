@@ -17,8 +17,10 @@ import type { DiagramModel, StatePath } from "../../schema";
 import { type NotationLang, STATE_ENDS } from "../../words";
 import { textBox, textWidth } from "../../layout/measure";
 import {
+  badgeBlocked,
   badgeOnPath,
   badgeRect,
+  besideSameSpot,
   boxColors,
   boxWidth,
   carrierHalf,
@@ -34,7 +36,6 @@ import {
   loopBadge,
   loopLabelBase,
   loopUnder,
-  replaceSameSpot,
   layoutStrip,
   markText,
   shapedSize,
@@ -400,13 +401,21 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
   if (strip) layout.strip = strip;
   const placedBadges = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
-  // 同じ所に置いた番号は、後の段が始まると入れ替える (#3184)
-  layout.badges = replaceSameSpot(
+  // 同じ線を通る段の番号は後の段が始まると入れ替え (#3184)、同じ状態の角に来た番号は前の番号の脇に並べる (#3525)
+  const lineOf = (step: number): string | undefined => {
+    const line = placedBadges.get(step);
+    return line ? lineKey(line.edge) : undefined;
+  };
+  // 始まりと終わりの印と、印に添えた字も避ける
+  const endParts: Rect[] = layout.ends.flatMap((e) => [{ x: e.x - e.r, y: e.y - e.r, w: e.r * 2, h: e.r * 2 }, ...(e.text === "" ? [] : [textBox(e.text, ...markText(e), TYPE.regionNote)])]);
+  layout.badges = besideSameSpot(
     diagram.steps.map((step, s) => {
       const line = placedBadges.get(s);
       if (!line) return cornerBadge(step.events, s, layout);
       return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
     }),
+    badgeBlocked(layout, endParts),
+    (before, after) => lineOf(before.step) !== undefined && lineOf(before.step) === lineOf(after.step),
   );
   return layout;
 }

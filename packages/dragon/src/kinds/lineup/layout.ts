@@ -27,7 +27,7 @@ import { LINEUP_LOOK } from "../../look/lineup";
 import type { DiagramModel, DiagramEvent } from "../../schema";
 import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../../words";
 import { hasWide, textWidth } from "../../layout/measure";
-import { boxColors, type Layout, layoutStrip, type Point, type Rect, replaceSameSpot, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
+import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 
 const L = LINEUP_LOOK;
 const C = L.chip;
@@ -712,9 +712,10 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
   const strip = layoutStrip(diagram, margin, bottom + LOOK.gap, inner);
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
   if (strip) layout.strip = strip;
-  // 段の番号は図の右上の同じ所に置き、次の段の番号と入れ替える
+  // 段の番号は図の右上の同じ所に置き、次の段の番号と入れ替えて段を数える。
+  // 入れ替えるのが作りどおりなので、どの番号も脇へずらさず (`blocked` が全ての所を断る)、`shared` を付けて崩れの確かめに数えさせない (#3525)
   const badges: SceneBadge[] = diagram.steps.map((_, s) => ({ step: s, x: width - margin - LOOK.badge.r, y: margin + H.badgeY, color: "green" }));
-  layout.badges = replaceSameSpot(badges);
+  layout.badges = besideSameSpot(badges, () => true, () => true);
   return layout;
 
   /** 札の頭の印。名前の右に入れば名前の行に、入らなければ札の上の端に掛けて右に寄せる */

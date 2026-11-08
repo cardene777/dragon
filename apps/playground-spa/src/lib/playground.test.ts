@@ -1219,6 +1219,7 @@ describe("公開する頁 (#2995)", () => {
       "valve-near-pipe",
       "line-near-border",
       "text-touches-border",
+      "badge-on-frame",
     ];
     expect(
       kinds.filter((kind) => first.includes(`"${kind}"`) || first.includes(`'${kind}'`) || first.includes(`\`${kind}\``)),

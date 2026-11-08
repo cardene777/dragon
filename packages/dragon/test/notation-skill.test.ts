@@ -334,6 +334,7 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
       "崩れの種類 (はみ出した枠)": "slot-outside-shape",
       "崩れの種類 (はみ出した字)": "text-outside-shape",
       "崩れの種類 (近すぎる丸)": "badges-close",
+      "崩れの種類 (枠線に乗る丸)": "badge-on-frame",
       "崩れの種類 (詰まった線)": "lines-close",
       "崩れの種類 (図の枠からはみ出す部品、#3515)": "part-outside-frame",
       "崩れの種類 (配管の図の部品に重なる札、#3523)": "chip-over-part",

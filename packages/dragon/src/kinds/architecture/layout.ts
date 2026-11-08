@@ -11,21 +11,24 @@ import { LOOK, TYPE } from "../../look/values";
 import type { DiagramModel, LabelSide, Region } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
+  badgeBlocked,
   badgeOnPath,
   badgeRect,
+  besideSameSpot,
   boxColors,
   boxWidth,
   cornerBadge,
   edgeColor,
   edgesOf,
+  frameLines,
   labelStyle,
   type Layout,
   lineBadges,
+  lineKey,
   LOOP_ROOM,
   loopBadge,
   loopLabelBase,
   loopUnder,
-  replaceSameSpot,
   layoutStrip,
   type BoxFit,
   shapedSize,
@@ -386,8 +389,9 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   });
 
   // 線の名前は、同じ時刻に見えている段の番号 (その段とそれより前の段の番号) も避ける (#3175)
-  // 輪の番号は弧に重ねず弧の右に置く (#3186)
-  const badgeAt = (edge: SceneEdge, taken: Point[], lines: Point[][]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken, lines));
+  // 輪の番号は弧に重ねず弧の右に置く (#3186)。線の番号は区画の枠線を避ける (#3525)
+  const frames = frameLines(regions);
+  const badgeAt = (edge: SceneEdge, taken: Point[], lines: Point[][]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken, lines, frames));
   const early = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
   const labels: SceneLabel[] = [];
   for (const edge of sceneEdges) {
@@ -421,13 +425,19 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   layout.height = (strip ? strip.y + strip.h : contentBottom) + margin;
   if (strip) layout.strip = strip;
   const lines = lineBadges(sceneEdges, diagram.steps.length, badgeAt);
-  // 同じ所に置いた番号は、後の段が始まると入れ替える (#3184)
-  layout.badges = replaceSameSpot(
+  // 同じ線を通る段の番号は後の段が始まると入れ替え (#3184)、同じ箱の角に来た番号は前の番号の脇に並べる (#3525)
+  const lineOf = (step: number): string | undefined => {
+    const line = lines.get(step);
+    return line ? lineKey(line.edge) : undefined;
+  };
+  layout.badges = besideSameSpot(
     diagram.steps.map((step, s) => {
       const line = lines.get(s);
       if (!line) return cornerBadge(step.events, s, layout);
       return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
     }),
+    badgeBlocked(layout),
+    (before, after) => lineOf(before.step) !== undefined && lineOf(before.step) === lineOf(after.step),
   );
   return layout;
 }

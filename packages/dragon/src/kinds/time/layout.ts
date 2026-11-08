@@ -14,19 +14,21 @@ import type { DiagramModel, DiagramEvent } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
 import { textBox, textWidth } from "../../layout/measure";
 import {
+  badgeBlocked,
   badgeOnPath,
   badgeRect,
+  besideSameSpot,
   boxColors,
   boxWidth,
   edgeColor,
   type EdgeEvent,
+  frameLines,
   type Layout,
   layoutStrip,
   placeLabel,
   placeSlot,
   type Point,
   type Rect,
-  replaceSameSpot,
   type SceneBadge,
   type SceneBox,
   type SceneEdge,
@@ -35,6 +37,7 @@ import {
   seatCarriers,
   slotBoxWidth,
   slotRooms,
+  stripBadge,
   stripNeed,
 } from "../../layout/scene";
 
@@ -590,8 +593,9 @@ function seat(edge: SceneEdge, from: TimeBox, to: TimeBox, rooms: ReturnType<typ
 /**
  * 段の番号。線を引く段は段で最初に引く線の上に置き、運ぶ物が線の始まりで待つ時は運ぶ物を避けて進める。
  * 線の無い段は、針を進める段なら針が進む範囲の真ん中の印と節目の間に、範囲の括弧なら括弧の左に、範囲の囲みなら囲みの左上の角に、
- * 節目の状態を変える段なら節目の丸の左に、印の色を変える段なら印の列の上に、中身の帯だけを書き換える段なら帯の左上に置く。
- * 何も起きない段は前の段の番号と同じ所に置いて数字を入れ替える
+ * 節目の状態を変える段なら節目の丸の左に、印の色を変える段なら印の列の上に、中身の帯だけを書き換える段なら帯の左上の角の丸みの中に置く。
+ * 線の番号は拡大の帯と時間軸の枠線を避ける (#3525)。
+ * 前の段の番号と同じ所に来た番号 (同じ節目を続けて書き換える段と、何も起きない段) は、前の番号の脇に並べる (#3525)
  */
 function badgesOf(diagram: DiagramModel, layout: TimeLayout, needle: [number, number][]): SceneBadge[] {
   const { r, inset } = LOOK.badge;
@@ -602,6 +606,7 @@ function badgesOf(diagram: DiagramModel, layout: TimeLayout, needle: [number, nu
   const bottom = Math.max(...layout.rows.map((row) => row.y + row.h), top);
   // 節目があれば印と節目の丸の間に、無ければ印の下に空けた間に置く
   const between = layout.points[0] ? (bottom + layout.points[0].cy - layout.points[0].r) / 2 : bottom + r + inset;
+  const frames = frameLines([...layout.regions, ...(layout.strip ? [layout.strip] : [])]);
   diagram.steps.forEach((step, s) => {
     const push = (p: Point, color: ColorKey): void => {
       taken.push(p);
@@ -612,7 +617,7 @@ function badgesOf(diagram: DiagramModel, layout: TimeLayout, needle: [number, nu
       // 線の始まりで待つ運ぶ物 (置き場を持たない節目から出る物) を、番号で隠さない
       const waits: Point[] = edge.carry.kind !== "none" && !edge.wait ? [edge.points[0] as Point] : [];
       const others = layout.edges.filter((e) => e !== edge).map((e) => e.points);
-      push(badgeOnPath(edge.points, [...taken, ...waits], others), edge.color);
+      push(badgeOnPath(edge.points, [...taken, ...waits], others, frames), edge.color);
       return;
     }
     const [from, to] = needle[s] ?? [0, 0];
@@ -632,13 +637,15 @@ function badgesOf(diagram: DiagramModel, layout: TimeLayout, needle: [number, nu
       }
     }
     if (layout.strip && step.events.some((e) => e.type === "strip")) {
-      out.push({ step: s, x: layout.strip.x + inset, y: layout.strip.y + inset, color: "slate" });
+      const [x, y] = stripBadge(layout.strip);
+      out.push({ step: s, x, y, color: "slate" });
       return;
     }
     const before = out[out.length - 1];
     out.push(before ? { ...before, step: s } : { step: s, x: axis.x - r - inset, y: top, color: "slate" });
   });
-  return replaceSameSpot(out);
+  const points: Rect[] = layout.points.flatMap((p) => [{ x: p.cx - p.r, y: p.cy - p.r, w: p.r * 2, h: p.r * 2 }, p.text]);
+  return besideSameSpot(out, badgeBlocked(layout, points));
 }
 
 /** 線と針の無い段の出来事 1 つで、番号を置く所。置けない出来事は `undefined` */

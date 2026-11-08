@@ -71,6 +71,9 @@ export interface Layout {
   actions: LaidAction[];
   badges: LaidBadge[];
   lifelines: LaidLifeline[];
+  /** 区画の四角と中身の帯の四角。段の番号が枠線に掛かるかを確かめる (#3525) */
+  regions: { x: number; y: number; w: number; h: number }[];
+  strip?: { x: number; y: number; w: number; h: number };
 }
 
 /** 秒で表した、見えている間。`end` の時刻は含まない。 */

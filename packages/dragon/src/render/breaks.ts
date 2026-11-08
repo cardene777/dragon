@@ -1,11 +1,12 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない 8 種を拾う。
+ * 字の重なり (`ink.ts`) が拾わない 9 種を拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
  * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)、
  * 線が箱か囲みの枠に沿って近すぎる (`line-near-border`、#3526)、字が自分の箱か札の枠に接する (`text-touches-border`、#3526)。
  * 時間軸の図の針と目盛りの線と字が、時間軸の囲みの枠を越えるか枠に接する (`panel-edge`、#3527)。
+ * 番号の丸が囲みと列と帯の枠線に乗る (`badge-on-frame`、#3525)。
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
@@ -13,6 +14,8 @@
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  * 形を持たない四角の箱の字は、形の崩れの代わりに枠に接するかを見る。
+ * 後の段の番号がぴったり同じ所で前の段の番号と入れ替わる時も、2 つは同時に見えないが前の番号を隠すので、番号が近すぎる崩れに数える (#3525)。
+ * 同じ線を何度も通る段の番号と列の図の右上の番号は、入れ替えるのが作りどおりなので数えない。
  *
  * 重なって当然の組は数えない。線とその両端の箱、グループとその中の箱は、どの種類も比べない組なので数えない。
  * 箱の角に付いた番号の丸と、線の始まりの番号の丸とその線を出す箱の縁 (1px の間) は、丸が形に触れているので浮いた丸に数えない。
@@ -47,7 +50,8 @@ export type LayoutPart =
   | { kind: "panel"; panel: "axis" }
   | { kind: "valve"; from: string; to?: string }
   | { kind: "gauge"; box: string }
-  | { kind: "pipe"; from: string; to: string; step: number };
+  | { kind: "pipe"; from: string; to: string; step: number }
+  | { kind: "border"; name: string };
 
 export type LayoutBreakKind =
   | "badge-off-shape"
@@ -64,7 +68,14 @@ export type LayoutBreakKind =
   | "chip-over-part"
   | "pipe-behind-box"
   | "pipes-merged"
-  | "valve-near-pipe";
+  | "valve-near-pipe"
+  | "badge-on-frame";
+
+/** 枠線を描いた囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
+export interface Border {
+  name: string;
+  rect: Rect;
+}
 
 /**
  * 配管の図の描く処理が記録する部品 (#3523)。名前は書き手が書いた箱の名前で、段は 1 から数える。
@@ -114,13 +125,16 @@ export interface BreakInput {
   outlines: ReadonlyMap<string, Point[][]>;
   /** 配管の図の部品。配管の図だけが持つ (#3523) */
   pieces?: PipePiece[];
+  /** 枠線を描いた囲みと列と帯 (#3525)。渡さない時は枠線に乗る番号を数えない */
+  borders?: Border[];
 }
 
 /**
- * 描く処理が描いた後に渡す材料。箱の形の輪郭と、囲みは崩れを探す側が組む。
- * 囲みは置き場所 `layout` の区画と状態遷移図の脇道から組み、名前を組む処理を見本帳が最初に読む script に入れない (#3526)
+ * 描く処理が描いた後に渡す材料。箱の形の輪郭と、囲みと、囲みと列と帯の枠線は崩れを探す側が組む。
+ * 囲みは置き場所 `layout` の区画と状態遷移図の脇道から組み、名前を組む処理を見本帳が最初に読む script に入れない (#3526)。
+ * 枠線も置き場所 `layout` の囲みと列と帯から組む (#3525)
  */
-export type DrawnFigure = Omit<BreakInput, "outlines" | "groups">;
+export type DrawnFigure = Omit<BreakInput, "outlines" | "groups" | "borders">;
 
 /**
  * 描いた図の崩れを返す関数 (#3494)。`renderDiagram` の `findBreaks` に渡すと、描いた後に呼ばれて結果が `breaks` になる。
@@ -154,6 +168,20 @@ const ROUNDING = 0.01;
 const BITE = 0.5;
 /** 時間軸の囲みの枠の線の内側の縁から、部品までの間の下限 (px)。これより近い部品は枠に接して見える (#3527) */
 const PANEL_GAP = 4;
+/** 同じ所に置いたとみなす番号の丸の中心の間 (px)。描く処理が同じ所で数字を入れ替える番号と同じ値 */
+const SAME = 0.5;
+/** 囲みと列と帯の枠線の太さの半分 (px)。番号の丸が枠線に乗るのは、丸の中心から枠線までが丸の半径とこの値の和より近い時 */
+const STROKE = 0.5;
+
+/**
+ * 点から囲みか帯の枠線までの距離 (内が負)。枠線は四角を 0.5px 内へ縮め、角を `LOOK.region.radius` で丸めて描く (`band` と `strip`)
+ */
+function borderDistance([px, py]: Point, r: Rect): number {
+  const radius = LOOK.region.radius;
+  const qx = Math.abs(px - (r.x + r.w / 2)) - ((r.w - 1) / 2 - radius);
+  const qy = Math.abs(py - (r.y + r.h / 2)) - ((r.h - 1) / 2 - radius);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
+}
 /**
  * 線の名前の札を描く処理が最初に置く、札の四角から線までの間 (#3528)。線の上か下に置く札は線から札の真ん中まで `offset` 離すので、
  * そこから札の高さの半分を引いた間になり、線の脇に置く札は `side` の間になる。2 つのうち広い方を取る
@@ -289,7 +317,7 @@ export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.st
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, framed, stills, boxes, edges, groups = [], layout, outlines, frame } = input;
+  const { inks, traces, framed, stills, boxes, edges, groups = [], layout, outlines, frame, borders = [] } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -325,14 +353,28 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     for (const b of badges.slice(i + 1)) {
       const [ax, ay] = centerOf(a.rect);
       const [bx, by] = centerOf(b.rect);
-      if (Math.hypot(ax - bx, ay - by) - a.rect.w / 2 - b.rect.w / 2 >= BADGE_GAP) continue;
+      const apart = Math.hypot(ax - bx, ay - by);
+      if (apart - a.rect.w / 2 - b.rect.w / 2 >= BADGE_GAP) continue;
       const [first, second] = Number(a.text) <= Number(b.text) ? [a, b] : [b, a];
-      add("badges-close", firstSeen(a, b), [
+      // 同じ所の後の番号は、前の番号と入れ替わって同時に見えなくても、前の番号を隠す。後の番号が見え始める段で数える
+      const hidden = apart <= SAME && first.shared !== true ? firstSeen(second) : undefined;
+      add("badges-close", firstSeen(a, b) ?? hidden, [
         { kind: "badge", step: Number(first.text) },
         { kind: "badge", step: Number(second.text) },
       ]);
     }
   });
+  // 囲みと列と帯は初めから最後まで見えているので、番号の丸が見え始める段で数える
+  for (const ink of badges) {
+    const center = centerOf(ink.rect);
+    for (const border of borders) {
+      if (Math.abs(borderDistance(center, border.rect)) >= ink.rect.w / 2 + STROKE) continue;
+      add("badge-on-frame", firstSeen(ink), [
+        { kind: "badge", step: Number(ink.text) },
+        { kind: "border", name: border.name },
+      ]);
+    }
+  }
 
   for (const box of shaped) {
     const outline = outlines.get(box.id) as Point[][];
