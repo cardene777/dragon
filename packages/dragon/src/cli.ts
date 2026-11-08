@@ -108,7 +108,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     checkUsage: [
       "使い方: dragon check <記法の file (.dragon か .md) か -> [設定]",
       "  --json             誤りと知らせを JSON で出す",
-      "  --layout           図を描き、崩れ (丸や線の詰まり、箱の形からのはみ出し) も段ごとに知らせる",
+      "  --layout           図を描き、崩れ (丸や線の詰まり、箱の形や図の枠からのはみ出し) も段ごとに知らせる",
       "  --blocks <file>    足したブロックの定義の file を読み、その定義を図に渡して確かめる",
       "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
     ].join("\n"),
@@ -154,7 +154,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     checkUsage: [
       "Usage: dragon check <notation file (.dragon or .md) or -> [options]",
       "  --json             Print the errors and warnings as JSON",
-      "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, parts sticking out of a box shape) per step",
+      "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, parts sticking out of a box shape or the diagram frame) per step",
       "  --blocks <file>    Read the block definitions in this file and check the diagrams with them",
       "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
     ].join("\n"),

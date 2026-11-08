@@ -50,6 +50,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   The step text written after a send, the record numbers, the queue hint and the stopped-at row put a space around every name or number written in Latin letters or digits, as in `送金E が送信経路を通って全体の列に入った。`, `記録 1` and `次は上から 1 件`. They now read `送金Eが送信経路を通って全体の列に入った。`, `記録1` and `次は上から1件`. English text keeps its spaces, and the layout warnings that the CLI shows to authors are unchanged. The fingerprints of the 20 examples that draw a try diagram in Japanese changed with the text.
 
+- **A tag on a line to or from the leftmost or rightmost box stays inside the diagram, and `dragon check --layout` warns when a part sticks out of the diagram** (#3515)
+
+  A carried tag rests on the far side of the lifeline it reaches and waits on the near side of the lifeline it leaves. Next to the leftmost or rightmost box that place is outside the box, and the diagram width did not count it, so `api -> browser: 200 OK [tag: session id]` with `browser` on the left drew the tag cut at the left edge as `ession id`. Sequence and state diagrams now count where tags, envelopes and coins rest and wait, and keep the same 14px margin around them as around box names and labels. The fingerprints of the figures whose carried things sat inside that margin changed: `oauth`, the Japanese `payment`, and the state figures of the `link`, `source` and `start-finish` parts, whose envelope waited 12.5px from the top. `dragon check --layout` also reports a new kind, `part-outside-frame`, when a text, tag, step number, icon or line sticks out of an edge of the diagram, and names the step, the part and the edge, as in `Step 5: "session id" sticks out of the left edge of the diagram frame`. A part that only rests there while the steps play, such as a tag waiting to leave, is reported at the step it shows in. None of the examples has such a part. The skill's layout reference describes the kind and how to fix it in the notation.
+
 ## [0.66.1] - 2026-11-08
 
 ### Fixed

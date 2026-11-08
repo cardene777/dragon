@@ -74,6 +74,14 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return t.quoted(part.text);
       case "line":
         return t.lineOf(part.from, part.to, part.step);
+      case "icon":
+        return t.iconOf(part.box);
+      case "coin":
+        return t.coin;
+      case "envelope":
+        return t.envelope;
+      case "frame":
+        return t.frameEdge(part.side);
     }
   };
   const [a, b2] = b.parts;
@@ -84,6 +92,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         ? t.sticksOut(name(a), name(b2))
         : b.kind === "badges-close"
           ? t.tooClose(name(a), name(b2))
-          : t.runClose(name(a), name(b2));
+          : b.kind === "part-outside-frame"
+            ? t.outOfFrame(name(a), name(b2))
+            : t.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }
