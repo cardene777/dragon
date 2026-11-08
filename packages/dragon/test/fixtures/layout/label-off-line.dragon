@@ -1,0 +1,10 @@
+// 線から離れた名前を持つ図 (#3528)。同じ段の2本の線の名前をどちらも上に寄せたので、2つ目の名前「送る」は1つ目の名前を避けて線から離れる
+architecture 上に寄せた名前
+
+box app as アプリ
+box api as API
+
+step 頼む
+  say アプリがAPIに2つのことを頼む。
+  app -> api: 残高を見る [side: above]
+  app -> api: 送る [side: above]

@@ -1,8 +1,8 @@
 /**
  * 箱と線と名前の置き場所を自動で決める (#2985)。
  *
- * 部品どうしは 10px 以上離す。線の名前が線より長い時は線の脇へ寄せ、書き手が寄せの指示
- * (`labelSide`) で側を書いた時はその側へ置く。
+ * 部品どうしは 10px 以上離す。隣の列を横に結ぶ線の名前が箱の間より長い時は、名前が収まるまで列の間を広げる (#3528)。
+ * ほかの線の名前が箱に掛かる時は線の脇へ寄せ、書き手が寄せの指示 (`labelSide`) で側を書いた時はその側へ置く。
  */
 import { describe, expect, it } from "vitest";
 import { exampleJson, type Json } from "./diagram-support";
@@ -32,7 +32,7 @@ function longLabel(): Json {
   };
 }
 
-/** 1 つの区画に 4 つの箱を並べ、中ほどの 2 つを長い名前の線で結ぶ構成図。線に沿ってずらしても両隣の箱に掛かる。 */
+/** 1 つの区画に 4 つの箱を並べ、中ほどの 2 つを長い名前の線で結ぶ構成図。名前は両隣に箱が並ぶ列の間に収める。 */
 function crowdedRow(): Json {
   return {
     version: 1,
@@ -93,7 +93,7 @@ describe("離す", () => {
     expectGaps("OAuth", layoutOf(exampleJson("oauth.json")));
     expectGaps("CCIP", layoutOf(exampleJson("ccip.json")));
 
-    // 線より長い名前は、線の脇へ寄せても箱から 10px 以上離れ、図の中に収まる
+    // 隣の箱の間より長い名前も、列の間を広げて箱から 10px 以上離れ、図の中に収まる (#3528)
     const long = layoutOf(longLabel());
     expect(long.labels).toHaveLength(1);
     expectGaps("長い名前の線", long);
@@ -102,7 +102,7 @@ describe("離す", () => {
     expect(label.x).toBeGreaterThanOrEqual(0);
     expect(label.x + label.w).toBeLessThanOrEqual(long.width);
 
-    // 線に沿ってずらすだけでは両隣の箱に掛かる名前も、線から離して箱から 10px 以上離す
+    // 両隣に箱が並ぶ列の間の長い名前も、列の間を広げて箱から 10px 以上離す (#3528)
     const crowded = layoutOf(crowdedRow());
     expect(crowded.labels).toHaveLength(1);
     expectGaps("並んだ箱の間の長い名前", crowded);
