@@ -17,8 +17,9 @@ import type { Overlap } from "../render/ink";
 import { drawSvg, type Rendered, renderDiagram } from "../render/svg";
 import type { ViewMode } from "../schema";
 import { tryTexts } from "../try-player";
+import { readDiagram } from "../version";
 import { chooseView } from "../view";
-import { DEFAULT_LANG, type NotationLang } from "../words";
+import { DEFAULT_LANG, type NotationLang, textLang } from "../words";
 import { film, launch, sizeOf, stage, still } from "./capture";
 import { charsOf, fontFaces } from "./fonts";
 import { pageHtml } from "./html";
@@ -40,7 +41,10 @@ export interface ExportOptions {
   fps?: number;
   /** GIF の 1 秒のコマの数 */
   gifFps?: number;
-  /** 図の中の字 (全体図の札、HTML の読み上げの名前、描けない時の断りの文) の言葉。書かなければ英語 (#3001、#3338) */
+  /**
+   * 図の中の字 (図に足す字、全体図の札、HTML の読み上げの名前) と断りの文 (描けない時、書き出す道具が無い時) の言葉 (#3001、#3338)。
+   * 書かなければ、図の中の字は図の題か段の本文 (`say`) に仮名か漢字があれば日本語、無ければ英語にし、断りの文は英語にする (#3516)
+   */
   lang?: NotationLang;
   /** PNG に撮る段 (1 から数える)。書かなければ最後の段 (#3484)。崩れを知らされた段を撮って見るために使う */
   step?: number;
@@ -116,9 +120,20 @@ function openedTexts(input: unknown, rendered: Rendered, options: ExportOptions,
   return texts;
 }
 
+/**
+ * 言葉を渡されない時に図の中の字を描く言葉 (#3516)。書き出しは置く頁を持たないので、頁の言葉の代わりに図の題と段の本文 (`say`) から決める。
+ * 原本を読めない時は断りの文の言葉を返し、描く処理がその言葉で描けない訳を出す
+ */
+function drawnLang(input: unknown, said: NotationLang): NotationLang {
+  const read = readDiagram(input, { lang: said });
+  return read.ok ? textLang(read.diagram) : said;
+}
+
 export async function exportDiagram(input: unknown, options: ExportOptions): Promise<ExportResult> {
   const formats = options.formats ?? FORMATS;
-  const lang = options.lang ?? DEFAULT_LANG;
+  // 断りの文は渡した言葉か英語で出し、図の中の字は渡されなければ図の字の言葉で描く (#3516)
+  const said = options.lang ?? DEFAULT_LANG;
+  const lang = options.lang ?? drawnLang(input, said);
   const rendered = renderDiagram(input, {
     ...(options.palette ? { palette: options.palette } : {}),
     ...(options.theme ? { theme: options.theme } : {}),
@@ -147,16 +162,16 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   const mp4 = formats.includes("mp4");
   const gif = formats.includes("gif");
   if (mp4 || gif || formats.includes("png")) {
-    const browser = await launch(lang);
+    const browser = await launch(said);
     try {
       if (formats.includes("png")) {
-        const fixed = await stage(browser, rendered.svg, fontCss, "", lang);
+        const fixed = await stage(browser, rendered.svg, fontCss, "", said);
         outputs.push(["png", await still(fixed, timeline.stills[(options.step ?? steps) - 1] ?? 0)]);
       }
       if (mp4 || gif) {
         const fps = mp4 ? (options.fps ?? DEFAULTS.fps) : (options.gifFps ?? DEFAULTS.gifFps);
         const gifEvery = gif ? Math.max(1, Math.round(fps / (options.gifFps ?? DEFAULTS.gifFps))) : 0;
-        const shot = await film(await stage(browser, videoSvg, fontCss, `${vars};background:var(--bg)`, lang), {
+        const shot = await film(await stage(browser, videoSvg, fontCss, `${vars};background:var(--bg)`, said), {
           total: timeline.total,
           fps,
           mp4,

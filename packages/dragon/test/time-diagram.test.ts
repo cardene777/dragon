@@ -498,7 +498,8 @@ describe("時間軸の図の並べ方 (#3165)", () => {
   });
 
   it("time-axis-labels-follow-language", () => {
-    const want = { ja: ["0 分", "6.4 分", "12.8 分", "19.2 分"], en: ["0 min", "6.4 min", "12.8 min", "19.2 min"] } as const;
+    // 日本語の時刻の字は数と単位の間に空白を置かない (#3517)
+    const want = { ja: ["0分", "6.4分", "12.8分", "19.2分"], en: ["0 min", "6.4 min", "12.8 min", "19.2 min"] } as const;
     for (const lang of ["ja", "en"] as const) {
       const { layout, svg } = render(exampleJson(lang === "en" ? "finality.en.json" : "finality.json"), lang);
       expect(layout.ticks.map((t) => t.text), `ブロックの確定の時刻の字 (${lang})`).toEqual([...want[lang]]);
@@ -509,7 +510,7 @@ describe("時間軸の図の並べ方 (#3165)", () => {
       }
       const withdraw = render(exampleJson(lang === "en" ? "withdraw.en.json" : "withdraw.json"), lang).layout;
       expect(withdraw.ticks.length, `引き出しの時刻の字の数 (${lang})`).toBeGreaterThan(1);
-      const unit = lang === "en" ? / d$/u : / 日$/u;
+      const unit = lang === "en" ? /\d d$/u : /\d日$/u;
       for (const t of withdraw.ticks) expect(t.text, `引き出しの時刻の字が日の単位でない (${lang})`).toMatch(unit);
     }
   });
@@ -563,7 +564,7 @@ describe("時間軸の図の並べ方 (#3165)", () => {
       if (!zoom) continue;
       expect(zoom.columns.map((c) => c.unit), `拡大の帯の列 (${lang})`).toEqual([0, 1, 2, 3]);
       const ids = (source.blocks.box ?? []).map((b) => b.id);
-      const seconds = lang === "en" ? ["0 s", "12 s", "24 s", "36 s"] : ["0 秒", "12 秒", "24 秒", "36 秒"];
+      const seconds = lang === "en" ? ["0 s", "12 s", "24 s", "36 s"] : ["0秒", "12秒", "24秒", "36秒"];
       zoom.columns.forEach((column, k) => {
         expect(column.boxes.map((b) => b.id), `列 ${k} の箱が宣言した並びでない (${lang})`).toEqual(ids);
         expect(column.head, `列 ${k} の上の字に目盛りの番号が無い (${lang})`).toContain(`slot ${3200 + k}`);
@@ -750,7 +751,8 @@ describe("時間軸の図の描き方 (#3165)", () => {
     // 既定は英語なので、日本語の日の単位は ja を渡して確かめる (#3338)
     const { layout, timeline } = render(source as unknown as Json, "ja");
     expect(layout.zoom, "引き出しの図に拡大の帯がある").toBeUndefined();
-    for (const t of layout.ticks) expect(t.text, "引き出しの時刻の字が日の単位でない").toMatch(/ 日$/u);
+    // 日本語の時刻の字は数と単位の間に空白を置かない (#3517)
+    for (const t of layout.ticks) expect(t.text, "引き出しの時刻の字が日の単位でない").toMatch(/\d日$/u);
     // 7 日の挑戦の期間を囲みで示す
     const box = layout.spans.find((s) => s.kind === "box");
     expect(box && box.to - box.from + 1, "挑戦の期間の囲みが 7 日を囲まない").toBe(7);

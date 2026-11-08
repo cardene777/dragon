@@ -17,6 +17,7 @@
  * 並べ方は描き方を読まない。描く部品は `render/pipe.ts` とブロックの描き方が持つ (#3418)。
  */
 import { ETH } from "../../blocks/return/block";
+import { joinWords } from "../../figure-text";
 import { textWidth } from "../../layout/measure";
 import type { Layout, Point, Rect } from "../../layout/scene";
 import { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
@@ -1195,7 +1196,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
   const numberW = (h: string, token: string): number => {
     const k = `b${keyOf(h, token)}`;
     const nums = widest(historyOf(k).map(grouped), amountStyle);
-    const subs = narrow ? 0 : Math.max(widest(historyOf(k).map((v) => `+${grouped(v)} ${token}`), T.delta), ...Object.values(words.tags).map((t) => textWidth(t, T.tag)));
+    const subs = narrow ? 0 : Math.max(widest(historyOf(k).map((v) => joinWords(`+${grouped(v)}`, token)), T.delta), ...Object.values(words.tags).map((t) => textWidth(t, T.tag)));
     return Math.max(nums, subs);
   };
   /** 槽の名前の幅。名前は字の間を空けて描く */
@@ -2898,7 +2899,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
           if (!narrow && old !== undefined && state !== "none") {
             const diff = minus(amount, old);
             const sign = diff.startsWith("-") ? "−" : "+";
-            delta = textAt(`${sign}${grouped(diff.replace(/^-/u, ""))} ${token}`, cx, numberBase + P.tank.deltaY, T.delta, "middle");
+            delta = textAt(joinWords(`${sign}${grouped(diff.replace(/^-/u, ""))}`, token), cx, numberBase + P.tank.deltaY, T.delta, "middle");
             tag = textAt(words.tags[state], cx, numberBase + P.tank.deltaY + P.tank.tagY, T.tag, "middle");
           }
           levels.push({
@@ -3314,7 +3315,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       for (const f of flows.filter((x) => x.step === s && (!narrow || x.fresh)).sort((a, b) => Number(b.fresh) - Number(a.fresh))) {
         const pipe = valuePipes[pipeIndex.get(defOf(moving.find((m) => m.id === f.id) as FlowRec)) ?? -1];
         if (!pipe) continue;
-        const text = `${grouped(f.amount)} ${f.token}`;
+        const text = joinWords(grouped(f.amount), f.token);
         if (narrow) {
           banded.push({ kind: "amount", text, step: s, extra: { token: f.token, state: f.state, tone: f.tone, ...(f.event !== undefined ? { event: f.event } : {}) } });
           continue;
