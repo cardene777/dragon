@@ -6,7 +6,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-11-08
+
 ### Added
+
+- **Boxes and groups can use the free Tabler outline icons with `icon: tabler:<name>`** (#3493)
+
+  dragon draws 38 icons of its own, so a box that needed another picture had to fall back to a block's shape. `icon:` on a box or group line now also takes `tabler:` and the name of one of the 5,184 Tabler outline icons, such as `[icon: tabler:building-bridge-2]`. The build moves each icon from Tabler's 24 x 24 grid onto the 20 x 20 grid of dragon's own icons, so it draws with the same class, scale and line width. A name Tabler does not have stops reading at the `icon` attribute and names the closest Tabler name, and `validateDiagram` refuses it at the `icon` field of the JSON. The default entry carries all the icons. The light entry reads them as one chunk only for a diagram that writes `tabler:`, when you await `loadFor`; reading such a diagram before that stops with an error that says to await `loadFor`, and `iconSetLoaded("tabler")` tells whether the chunk is in. An exported HTML page and a page written by `dragon embed` carry only the icons their diagrams use. The Tabler license (MIT) ships in `THIRD_PARTY_NOTICES.md`.
 
 - **`dragon check` checks a block definitions file, and `--blocks <file>` checks diagrams with the definitions in that file** (#3508)
 
@@ -26,19 +32,15 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   The shared `+bridge` drew its box as an arch. The arch left the icon slot, the box name and the step number outside the drawn shape, so `dragon check --layout` found breaks in every bridge example. `+bridge` now keeps the rounded box every other box uses (corner radius 12) and draws the Tabler stone bridge `tabler:building-bridge-2` in the icon slot, in the same `violet` role. The parsed JSON of a diagram that uses `+bridge` carries the new definition in `define`. A diagram that wants the arch can still define its own block with `shape path` at its head.
 
-## [0.67.0] - 2026-11-08
-
-### Added
-
-- **Boxes and groups can use the free Tabler outline icons with `icon: tabler:<name>`** (#3493)
-
-  dragon draws 38 icons of its own, so a box that needed another picture had to fall back to a block's shape. `icon:` on a box or group line now also takes `tabler:` and the name of one of the 5,184 Tabler outline icons, such as `[icon: tabler:building-bridge-2]`. The build moves each icon from Tabler's 24 x 24 grid onto the 20 x 20 grid of dragon's own icons, so it draws with the same class, scale and line width. A name Tabler does not have stops reading at the `icon` attribute and names the closest Tabler name, and `validateDiagram` refuses it at the `icon` field of the JSON. The default entry carries all the icons. The light entry reads them as one chunk only for a diagram that writes `tabler:`, when you await `loadFor`; reading such a diagram before that stops with an error that says to await `loadFor`, and `iconSetLoaded("tabler")` tells whether the chunk is in. An exported HTML page and a page written by `dragon embed` carry only the icons their diagrams use. The Tabler license (MIT) ships in `THIRD_PARTY_NOTICES.md`.
-
 ### Fixed
 
 - **The arrow of a choice field keeps its size on pages that size every SVG** (#3499)
 
   In 0.66.1 dragon drew the arrow of a choice field as an SVG and sized it with a rule that a page's own CSS overrides. A page that gives every SVG inside the figure `display: block; width: auto; height: auto` made the arrow 121px wide and 73px high, over the field label and the chosen value. The arrow is now drawn with CSS borders on a `span`, not an SVG, so rules a page writes for SVGs do not reach it. It keeps the same size, and its right end stays as far from the right border as the text is from the left border.
+
+- **A `side` row of a try diagram can place a log next to a queue, and the log shows only as many records as fit on one line** (#3506)
+
+  A log written on a `side` row, as in `side passed, rejects`, stopped reading with an error, although the README already said a `side` row places the log. The row now takes a log too: the queue keeps the width its chips need, and the log gets the rest and lays out as many records side by side as fit in that width. A log in a `side` row shows only one line of records and folds older ones into the `N older records` label, so the row no longer grows taller and leaves space under the queue as records arrive. A log with no records yet keeps only its title instead of leaving one empty record's height. A narrow frame stacks the parts as before.
 
 ## [0.66.1] - 2026-11-08
 

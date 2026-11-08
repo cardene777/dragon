@@ -223,6 +223,24 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-67-0-side-log", () => {
+    // 試す図の side の行で記録の列も横に並べる直し (#3506) と、main に入っていたブロックの定義の絵柄 (#3489) も 0.67.0 で出す
+    for (const [file, word] of [
+      ["CHANGELOG.md", /\blog\b/iu],
+      ["CHANGELOG.ja.md", /記録の列/u],
+    ] as const) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.67\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.67.0"), "0.67.0");
+      expect(released, `${file} に日付付きの ## [0.67.0] の節が無い`).not.toBe("");
+      for (const issue of ["#3506", "#3489"]) {
+        expect(released, `${file} の 0.67.0 の節に ${issue} の項が無い`).toContain(`(${issue})`);
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した ${issue} の項が残る`).not.toContain(`(${issue})`);
+      }
+      const entry = released.split("\n- ").find((item) => item.includes("(#3506)")) ?? "";
+      expect(entry, `${file} の 0.67.0 の節の #3506 の項が記録の列 (${word.source}) を名指さない`).toMatch(word);
+    }
+  });
+
   it("changelog-0-67-0-caret-without-svg", () => {
     // 選ぶ欄の矢印を svg を使わずに描き、図を置いた頁の CSS で膨らまないようにする直し (#3499) は、main に入っていた絵柄集の機能 (#3493) と一緒に 0.67.0 で出す
     const [major = 0, minor = 0] = version().split(".").map(Number);
