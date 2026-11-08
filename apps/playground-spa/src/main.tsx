@@ -4,7 +4,6 @@ import { createRoot } from "react-dom/client";
 
 import { isKind } from "./catalog/catalog";
 import { LATER_SNIPPETS, partOf } from "./catalog/parts";
-import { LATER_EXAMPLES } from "./examples";
 import { Home } from "./home/Home";
 import { NotFound } from "./not-found/NotFound";
 import { Playground } from "./Playground";
@@ -168,5 +167,7 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 // 見本と部品の図の記法は最初の画面を描いた後に裏で読み始め、見本帳を開く頃には届いているようにする (#3246)。
+// 後から読む見本は記法だけを裏で読む。見本が使う個別ブロックの読み方は種類の塊も読み、残る足したブロックの定義の読み方と
+// 絵柄集の表 (gzip で約 225KB) は、見本を並べる所 (棚と見本の一覧) を開いた時に読む (#3505)。
 // 使い方の頁とカタログの頁も同じで、初めて頁を開く時に待たせない (#3280)
-startWhenIdle([LATER_EXAMPLES, LATER_SNIPPETS, ...KIND_CHUNKS, LATER_DOCS, LATER_CATALOG]);
+startWhenIdle([{ start: () => void import("./examples-later") }, LATER_SNIPPETS, ...KIND_CHUNKS, LATER_DOCS, LATER_CATALOG]);

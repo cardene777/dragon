@@ -67,3 +67,13 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "vault-proxy": { ja: vaultProxyJa, en: vaultProxyEn },
   aggregator: { ja: aggregatorJa, en: aggregatorEn },
 };
+
+/**
+ * 見本が使うブロックの読み方を `read` で読んでから記法を返す (#3349)。題と種類を引く所が待つ `LATER_EXAMPLES` だけが呼ぶ。
+ * 処理をこの塊に置くのは、最初に読む script に入れないため (#3505)。
+ * 読み方を読む処理を受け取るのは、この塊が軽い入口を直に読むと build が軽い入口を最初に読む別の script に分けるため
+ */
+export async function withReadings(read: (text: string) => Promise<unknown>): Promise<typeof LATER_EXAMPLES> {
+  await Promise.all(Object.values(LATER_EXAMPLES).flatMap((texts) => Object.values(texts).map(read)));
+  return LATER_EXAMPLES;
+}
