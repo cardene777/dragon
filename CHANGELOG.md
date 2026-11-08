@@ -28,6 +28,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- **The dotted slot in a box shows only while a carried item sits in it** (#3518)
+
+  Architecture and state diagrams that carry items (`[carry: coin]` or `[tag: ...]`) gave every box that sends or receives one a dotted slot right of its icon, drawn from the first step to the last. The slot filled only while an item sat in it, so the last step showed empty dotted squares in most boxes and the diagram looked unfinished. The dotted frame now fades in when an item settles in the slot or waits there before it leaves, and fades out shortly after the item leaves. Boxes keep their width and the icon stays where it was, so nothing in a box moves while the diagram plays. `dragon check --layout` reports a slot that sticks out of a shaped box at the first step an item sits in it, and no longer reports a slot no item ever sits in. The SVG fingerprints of 18 examples, 16 test fixtures and 78 catalog part figures changed with the drawing.
+
 - **The catalog no longer loads the descriptions of every part on its first screen** (#3531)
 
   The script the catalog loads first carried the description of every part in both languages, 104 texts, because the page text read the whole `BLOCK_TEXT` table, though only a part's own page shows its description. Each block folder now keeps the description in its own `gallery/desc.ts`, next to the name in `gallery/text.ts`, and the build writes the descriptions to `blocks-desc.gen.ts`, which only the part page reads. A part page shows the same description as before. The script and CSS loaded first went from 186,249 to 179,131 bytes gzipped.
