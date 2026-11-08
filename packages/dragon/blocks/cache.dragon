@@ -1,0 +1,7 @@
+// A cache that keeps copies of recent reads for fast answers, drawn as a violet rounded box with a server and bolt icon
+blocks 1
+block +cache
+  base box
+  color violet
+  icon tabler:server-bolt
+end
