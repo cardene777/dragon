@@ -9,7 +9,7 @@ import type { SubChange } from "../blocks/box/draw";
 import { cs } from "../blocks/color/draw";
 import { markRows } from "../blocks/row/draw";
 import { pointLines, points } from "../blocks/point/draw";
-import { axisTicks, needle, periodShades, simplify, spans, type TimeKit } from "../blocks/scale/draw";
+import { axisTicks, needle, periodShades, simplify, spans, type TimeKit, valueAt } from "../blocks/scale/draw";
 import { zoomColumns, zoomLens } from "../blocks/zoom/draw";
 import type { TimeBox, TimeLayout } from "../kinds/time/layout";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
@@ -19,20 +19,7 @@ import { partRadius } from "./corner";
 import { ALWAYS } from "./ink";
 import { type Ctx, r1, write } from "./parts";
 
-export { simplify };
-
-/** 真っ直ぐ進む動き `keys` の、時刻 `t` の値 */
-export function valueAt(keys: [number, number][], t: number): number {
-  const first = keys[0];
-  if (!first) return 0;
-  if (t <= first[0]) return first[1];
-  for (let k = 1; k < keys.length; k++) {
-    const [t1, v1] = keys[k] as [number, number];
-    const [t0, v0] = keys[k - 1] as [number, number];
-    if (t <= t1) return t1 === t0 ? v1 : v0 + ((v1 - v0) * (t - t0)) / (t1 - t0);
-  }
-  return (keys[keys.length - 1] as [number, number])[1];
-}
+export { simplify, valueAt };
 
 export function drawTime(
   layout: TimeLayout,

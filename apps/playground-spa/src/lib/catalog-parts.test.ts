@@ -93,9 +93,15 @@ const partPath = (id: string): string => `${BASE}catalog/part/${id}`;
 /** 部品の頁の、図の種類ごとの塊 */
 const figureSel = (kind: Kind): string => `${catalogSel("part-figure")}[data-kind="${kind}"]`;
 
-/** 部品の文 (名前と説明)。`TEXT.<言葉>.site.catalog.parts` が無いか、その部品が無ければ `undefined` */
-const partText = (lang: Lang, id: string): { name: string; desc: string } | undefined =>
-  ((TEXT[lang].site.catalog as Record<string, unknown>).parts as Record<string, { name: string; desc: string }> | undefined)?.[id];
+/** 部品の名前。`TEXT.<言葉>.site.catalog.parts` が無いか、その部品が無ければ `undefined` */
+const partText = (lang: Lang, id: string): { name: string } | undefined =>
+  ((TEXT[lang].site.catalog as Record<string, unknown>).parts as Record<string, { name: string }> | undefined)?.[id];
+
+/** 部品の説明 (#3531)。部品の置き場の `gallery/desc.ts` から読む。file が無ければ `undefined` */
+async function partDesc(id: string): Promise<Readonly<Record<Lang, string>> | undefined> {
+  const path = join(root, "packages/dragon/src/blocks", id, "gallery", "desc.ts");
+  return existsSync(path) ? ((await import(/* @vite-ignore */ path)) as { desc: Readonly<Record<Lang, string>> }).desc : undefined;
+}
 
 /** 状態遷移図の線の、始まりと終わりの予約の名前 (#3163)。語の表が持たない間は空 */
 const STATE_ENDS: readonly string[] = (WORDS as { STATE_ENDS?: readonly string[] }).STATE_ENDS ?? [];
@@ -544,6 +550,9 @@ describe("カタログの部品の頁 (#3166)", () => {
       });
 
     it("catalog-parts-in-english", async ({ onTestFailed }) => {
+      // 説明は部品の置き場の gallery/desc.ts が持ち、部品の頁はその字を出す (#3531)
+      const desc = await partDesc(part.id);
+      expect(desc, `${part.id} の説明が gallery/desc.ts に無い`).toBeDefined();
       const page = await partPage(part, onTestFailed);
       const shown = (): Promise<{ name: string; desc: string; sources: string[] }> =>
         page.evaluate(() => {
@@ -556,7 +565,7 @@ describe("カタログの部品の頁 (#3166)", () => {
         });
       const expected = (lang: Lang): { name: string; desc: string; sources: string[] } => ({
         name: partText(lang, part.id)?.name ?? `(${part.id} の名前が TEXT.${lang} に無い)`,
-        desc: partText(lang, part.id)?.desc ?? `(${part.id} の説明が TEXT.${lang} に無い)`,
+        desc: desc?.[lang] ?? `(${part.id} の説明が gallery/desc.ts に無い)`,
         sources: part.kinds.map((kind) => snippetOf(part.id, kind, lang) ?? `(${snippetName(part.id, kind, lang)} が無い)`),
       });
       await expect.poll(shown, { ...WAIT, message: `${part.id} の頁が日本語の名前と説明と記法を出さない` }).toEqual(expected("ja"));

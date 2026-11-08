@@ -639,7 +639,7 @@ dragon export ccip.json --out out
 | `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow` |
 | `--palette <name>` | Colors (`clear` / `paper` / `night` / `arcade` / `sea`, default `paper`, and `sea` for the pipe diagram). `arcade` also cuts the top-right and bottom-left corners of boxes |
 | `--theme <mode>` | `light` or `dark` |
-| `--lang <lang>` | Language of the text in the diagram (overview labels, the names read in HTML, and the message when it cannot draw) and of the command's usage and error messages (`ja` or `en`). Defaults to `en` for both notation files and source JSON |
+| `--lang <lang>` | Language of the text in the diagram (the text dragon adds, overview labels, and the names read in HTML) and of the command's messages (usage, errors, and the message when it cannot draw) (`ja` or `en`). Without it, the text in the diagram is `ja` when the title or a `say` line has kana or kanji and `en` otherwise, and the messages are `en`. The same goes for notation files and source JSON |
 | `--fps <n>` | Frames per second of the MP4 (default 30) |
 | `--gif-fps <n>` | Frames per second of the GIF (default 10) |
 | `--format <formats>` | The formats to write, separated by `,` (default `mp4,gif,html,png`) |

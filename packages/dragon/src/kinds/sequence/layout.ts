@@ -9,6 +9,7 @@ import type { DiagramModel } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
   carrierHalf,
+  carrierSeats,
   badgeRect,
   boxColors,
   cornerBadge,
@@ -181,11 +182,18 @@ export function layoutSequence(diagram: DiagramModel): Layout {
 
   const layout: Layout = { kind: "sequence", width: 0, height: 0, regions: [], boxes, lifelines, edges, labels, actions, badges: [], paths: [], ends: [] };
 
-  // 図の幅。名前が左に出たら全体を右へ寄せ、右端は一番右の物に余白を足した所
-  const lefts = [...boxes.map((b) => b.x), ...labels.map((l) => l.x), ...actions.map((a) => a.x)];
+  // 図の幅。名前が左に出たら全体を右へ寄せ、右端は一番右の物に余白を足した所。
+  // 運ぶ物は着いた生存線の向こう側と出る生存線の手前側に留まり、端の箱では箱の外側に出るので、留まる所も数える (#3515)
+  const lefts = [...boxes.map((b) => b.x), ...labels.map((l) => l.x), ...actions.map((a) => a.x), ...carrierSeats(edges).map((r) => r.x)];
   const shift = Math.max(0, margin - Math.min(...lefts));
   if (shift > 0) shiftContent(layout, shift, 0);
-  const rights = [...boxes.map((b) => b.x + b.w), ...labels.map((l) => l.x + l.w), ...actions.map((a) => a.x + a.w), ...edges.flatMap((edge) => edge.points.map((p) => p[0]))];
+  const rights = [
+    ...boxes.map((b) => b.x + b.w),
+    ...labels.map((l) => l.x + l.w),
+    ...actions.map((a) => a.x + a.w),
+    ...edges.flatMap((edge) => edge.points.map((p) => p[0])),
+    ...carrierSeats(edges).map((r) => r.x + r.w),
+  ];
   const width = Math.max(Math.max(...rights) + margin, stripNeed(diagram) + margin * 2);
   const strip = layoutStrip(diagram, margin, bottom + gap, width - margin * 2);
   layout.width = width;

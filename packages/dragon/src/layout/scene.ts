@@ -244,6 +244,18 @@ export function carrierHalf(carry: Carry): Point {
 }
 
 /**
+ * 線の運ぶ物が留まる所 (着いた先と走り出しを待つ所) の四角 (#3515)。何も運ばない線は持たない。
+ * 端に置いた箱や印の外側に留まる物も図の枠の中に収まるよう、並べ方が図の幅と高さを決める時に数える
+ */
+export function carrierSeats(edges: SceneEdge[]): Rect[] {
+  return edges.flatMap((edge) => {
+    if (edge.carry.kind === "none") return [];
+    const [hx, hy] = carrierHalf(edge.carry);
+    return [edge.settle, edge.wait].flatMap((p) => (p ? [{ x: p[0] - hx, y: p[1] - hy, w: hx * 2, h: hy * 2 }] : []));
+  });
+}
+
+/**
  * 置き場の中身の幅 (#3176)。主役の運ぶ物 (封筒と札) と硬貨は別々に動き、同じ箱に同時に留まることがあるので、
  * 両方が出入りする箱は主役を左、硬貨を右に並べる。それぞれの幅は、その箱を出入りする物の最も広い幅
  */

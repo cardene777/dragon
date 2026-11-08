@@ -1,9 +1,11 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない 5 種を拾う。
+ * 字の重なり (`ink.ts`) が拾わない 6 種を拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
  * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)。
+ * 時間軸の図の針と目盛りの線と字が、時間軸の囲みの枠を越えるか枠に接する (`panel-edge`、#3527)。
+ * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  *
  * 重なって当然の組は数えない。線とその両端の箱、グループとその中の箱は、どの種類も比べない組なので数えない。
@@ -12,17 +14,28 @@
  */
 import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
 import { LOOK } from "../look/values";
-import { type Ink, type Trace, visible } from "./ink";
+import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
 
-/** 崩れに関わる物。段の番号と線の段は 1 から数え、箱と線の端は箱の名前で呼ぶ */
+/** 図の枠の 4 つの端 */
+export type FrameSide = "left" | "right" | "top" | "bottom";
+
+/**
+ * 崩れに関わる物。段の番号と線の段は 1 から数え、箱と線の端は箱の名前で呼ぶ。
+ * 書き手が書いていない図の部品 (箱の絵柄、運ぶ物の硬貨と封筒) は部品の種類で、図の枠は部品がはみ出す端で呼ぶ (#3515)。時間軸の囲みは`panel`で呼ぶ (#3527)
+ */
 export type LayoutPart =
   | { kind: "badge"; step: number }
   | { kind: "box"; name: string }
   | { kind: "slot"; box: string }
   | { kind: "text"; text: string; box?: string }
-  | { kind: "line"; from: string; to: string; step: number };
+  | { kind: "line"; from: string; to: string; step: number }
+  | InkPart
+  | { kind: "frame"; side: FrameSide }
+  | { kind: "needle" }
+  | { kind: "ticks" }
+  | { kind: "panel"; panel: "axis" };
 
-export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close";
+export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "part-outside-frame" | "panel-edge";
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -32,12 +45,15 @@ export interface LayoutBreak {
   parts: [LayoutPart, LayoutPart];
 }
 
-/** 崩れを数える材料。描く処理が描いた時に記録した字と線と、描いた箱と線と、足した箱のブロックの箱の形 */
+/** 崩れを数える材料。描く処理が描いた時に記録した字と線と時間軸の囲みに収める部品と、描いた箱と線と、足した箱のブロックの箱の形と、図の枠の大きさ */
 export interface BreakInput {
   inks: Ink[];
   traces: Trace[];
+  framed: Framed[];
   /** 段ごとの止め絵の時刻 */
   stills: number[];
+  /** 図の枠の幅と高さ。枠は左上を原点に置く (#3515) */
+  frame: { w: number; h: number };
   /** 箱の札を描いた箱 */
   boxes: SceneBox[];
   edges: SceneEdge[];
@@ -63,6 +79,8 @@ const BADGE_GAP = R;
 /** 並んだ線の間の下限と、並んで走る長さの下限。番号の丸 1 つ分より狭い間で丸 2 つ分より長く並ぶ線は 1 本の太い線に見える */
 const LINE_GAP = 2 * R;
 const LINE_ALONG = 2 * R;
+/** 時間軸の囲みの枠の線の内側の縁から、部品までの間の下限 (px)。これより近い部品は枠に接して見える (#3527) */
+const PANEL_GAP = 4;
 
 /** 輪の辺を、閉じる辺も含めて 1 本ずつ */
 function* edgesOf(rings: Point[][]): Generator<[Point, Point]> {
@@ -104,12 +122,31 @@ function distanceToRect([px, py]: Point, r: Rect): number {
 
 const centerOf = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
 
+/**
+ * 四角`rect`が、囲み`frame`の枠の線の内側の縁からどれだけ内に在るか (px)。縁を越えた分は負になる。
+ * 囲みの枠は太さ1pxの線を囲みの四角の内側に引き、角を`LOOK.region.radius`で丸める (`blocks/group/draw.ts`の`band`)。
+ * 丸めた四角は凸なので、四角の4つの角で測れば足りる
+ */
+function clearance(rect: Rect, frame: Rect): number {
+  const r = LOOK.region.radius - 1;
+  const cx = frame.x + frame.w / 2;
+  const cy = frame.y + frame.h / 2;
+  let least = Number.POSITIVE_INFINITY;
+  for (const px of [rect.x, rect.x + rect.w])
+    for (const py of [rect.y, rect.y + rect.h]) {
+      const qx = Math.abs(px - cx) - (frame.w / 2 - 1 - r);
+      const qy = Math.abs(py - cy) - (frame.h / 2 - 1 - r);
+      least = Math.min(least, r - Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) - Math.min(Math.max(qx, qy), 0));
+    }
+  return least;
+}
+
 /** 崩れの中身を比べる鍵。同じ崩れを 1 件にまとめ、幅ごとの崩れを突き合わせる */
 export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.step, b.parts]);
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, stills, boxes, edges, outlines } = input;
+  const { inks, traces, framed, stills, boxes, edges, outlines, frame } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -203,6 +240,49 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       ]);
     }
   });
+
+  // 時間軸の部品は、囲みの枠を越えるか、枠の線の内側の縁から`PANEL_GAP`より近ければ崩れにする (#3527)
+  for (const item of framed)
+    if (clearance(item.rect, item.frame) < PANEL_GAP) add("panel-edge", firstSeen(item), [item.part, { kind: "panel", panel: "axis" }]);
+
+  // 図の枠からはみ出す部品 (#3515)。枠の外へ触れている間より多く出た字と札と丸と絵柄と運ぶ物と線を、出た量の最も多い端で知らせる。
+  // 走り出しを待つ運ぶ物は止め絵に映らず動きの途中だけ留まるので、止め絵に映らない部品は、出た後の最初の止め絵の段で知らせる
+  const sideOut = (x0: number, y0: number, x1: number, y1: number): FrameSide | undefined => {
+    const over: [FrameSide, number][] = [
+      ["left", -x0],
+      ["right", x1 - frame.w],
+      ["top", -y0],
+      ["bottom", y1 - frame.h],
+    ];
+    const [side, by] = over.reduce((a, b) => (b[1] > a[1] ? b : a));
+    return by > TOUCH ? side : undefined;
+  };
+  const shownStep = (item: { shown: Shown[] }): number | undefined => {
+    const seenAt = firstSeen(item);
+    if (seenAt !== undefined) return seenAt;
+    const starts = item.shown.filter(([a, b]) => b > a).map(([a]) => a);
+    if (starts.length === 0 || stills.length === 0) return undefined;
+    const at = stills.findIndex((t) => t >= Math.min(...starts));
+    return at < 0 ? stills.length : at + 1;
+  };
+  for (const ink of inks) {
+    const side = sideOut(ink.rect.x, ink.rect.y, ink.rect.x + ink.rect.w, ink.rect.y + ink.rect.h);
+    if (side === undefined) continue;
+    const part: LayoutPart =
+      ink.badge === true ? { kind: "badge", step: Number(ink.text) } : (ink.part ?? { kind: "text", text: ink.text, ...(ink.box !== undefined ? { box: nameOf(ink.box) } : {}) });
+    add("part-outside-frame", shownStep(ink), [part, { kind: "frame", side }]);
+  }
+  for (const trace of traces) {
+    const xs = trace.points.map((p) => p[0]);
+    const ys = trace.points.map((p) => p[1]);
+    const side = sideOut(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys));
+    const step = shownStep(trace);
+    if (side === undefined || step === undefined) continue;
+    add("part-outside-frame", step, [
+      { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? step },
+      { kind: "frame", side },
+    ]);
+  }
 
   const seen = new Set<string>();
   return out
