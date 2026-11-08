@@ -165,6 +165,8 @@ describe("見本の線と字が枠から離れる (#3526)", () => {
 const box = (id: string, x: number, y: number, w = 100, h = 72) => ({ id, name: `${id} の箱`, color: "slate", x, y, w, h, cx: x + w / 2, cy: y + h / 2 });
 /** 1 段だけの図の止め絵の時刻 */
 const STILLS = [0.5];
+/** 組んだ材料の図の枠。どの部品も枠からはみ出さない大きさにし、枠の検査 (#3515) の崩れを混ぜない */
+const FRAME = { w: 1000, h: 1000 };
 
 /** 箱 A から箱 B へ、間の箱 C の下を、箱の底から `below` 離れて回る線と、下の枠が線から `groupGap` 離れた囲み G */
 function underRoute(below: number, groupGap: number) {
@@ -190,7 +192,9 @@ function underRoute(below: number, groupGap: number) {
       { from: "A", to: "B", points, shown: ALWAYS },
       { from: "A", to: "B", points: short, shown: ALWAYS },
     ],
+    framed: [],
     stills: STILLS,
+    frame: FRAME,
     boxes: [a, b, c, d],
     edges: [{ step: 0, event: 0, from: "A", to: "B", points, color: "slate", carry: { kind: "none" } }],
     outlines: new Map<string, Point[][]>(),
@@ -230,7 +234,9 @@ describe("崩れの確かめが線と字の枠への近さを見る (#3526)", ()
         ink("deposits[alice]", { x: 10, y: 210, w: 100, h: 13 }, { frame: { name: "deposits[alice]", rect: plate } }),
       ],
       traces: [],
+      framed: [],
       stills: STILLS,
+      frame: FRAME,
       boxes: [plain, shaped, fine],
       edges: [],
       outlines: new Map<string, Point[][]>([

@@ -364,15 +364,16 @@ describe("評価で AI が描いた図を 1 枚の頁に並べる (#3519)", () =
     const { cliTools } = await gallery();
     expect(existsSync(CLI), `${relative(ROOT, CLI)} が無い。pnpm build:packages を回す`).toBe(true);
     const tools = cliTools(CLI);
-    // 段 3 の丸と線が詰まる図 (`layout-check.test.ts` が崩れを確かめる図)。段は 4 つ
-    const payment = join(ROOT, "packages/dragon/test/fixtures/layout/payment.dragon");
+    // 段 3 で番号の丸どうしが近すぎる図 (`layout-check.test.ts` が崩れを確かめる図)。段は 3 つ。
+    // 前に使った支払いの図は段 3 の行きと帰りの線で崩れを作っていて、行きと帰りの線を離した直し (#3521) で段 3 の崩れが消えた
+    const close = join(ROOT, "packages/dragon/test/fixtures/layout/close-badges.dragon");
     const broken = join(mkdtempSync(join(tmpdir(), "dragon-gallery-")), "broken.dragon");
     writeFileSync(broken, "not a diagram\n");
-    const [found, steps, bad, badSteps] = await Promise.all([tools.breaks(payment), tools.steps(payment), tools.breaks(broken), tools.steps(broken)]);
+    const [found, steps, bad, badSteps] = await Promise.all([tools.breaks(close), tools.steps(close), tools.breaks(broken), tools.steps(broken)]);
     expect(found.error, "崩れを数えられない").toBeUndefined();
     const breakSteps = (found.problems ?? []).flatMap((problem) => (problem.layout ? [problem.layout.step] : []));
     expect(breakSteps, "崩れの段の番号を layout.step から読まない").toContain(3);
-    expect(steps, "図の段の数").toBe(4);
+    expect(steps, "図の段の数").toBe(3);
     // 記法の誤りは崩れでない誤りとして返し、投げない
     expect(bad.problems?.some((problem) => problem.severity === "error" && problem.layout === undefined), "記法の誤りを返さない").toBe(true);
     expect(badSteps, "読めない図の段の数は分からないとする").toBeUndefined();
