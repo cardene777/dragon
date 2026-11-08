@@ -12,6 +12,7 @@ import { join } from "node:path";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 import { exporter } from "./export-support";
+import { LOOK } from "../src/look/values";
 import { fileChromium } from "./page-needs";
 import { parsedTry, SMALL_PARTS, smallTry, WIDE_ASK_LONGEST, wideAskTry } from "./try-support";
 
@@ -235,7 +236,7 @@ describe("試す図を Chromium で触る (#3337)", () => {
 /** 入力の帯の欄と釦の並び。欄ごとの名前と下端と右端と幅と、選ぶ欄なら幅を縮めない時の幅 (`need`) を持つ。帯は欄と釦の下端を揃えて並べるので、同じ行の欄と釦は下端が同じ */
 interface StripBox {
   row: { left: number; right: number };
-  fields: { name: string; bottom: number; right: number; width: number; need?: number }[];
+  fields: { name: string; bottom: number; right: number; width: number; need?: number; least: string }[];
   send: { bottom: number; right: number } | undefined;
 }
 
@@ -265,7 +266,14 @@ async function stripAt740(diagram: unknown, pick: Record<string, string> = {}): 
           need = copy.getBoundingClientRect().width;
           holder.remove();
         }
-        return { name: input?.dataset.field ?? "", bottom: Math.round(box.bottom), right: box.right, width: box.width, need };
+        return {
+          name: input?.dataset.field ?? "",
+          bottom: Math.round(box.bottom),
+          right: box.right,
+          width: box.width,
+          need,
+          least: field.style.getPropertyValue("--dg-field-min"),
+        };
       });
       const send = form?.querySelector<HTMLElement>('button[data-dragon="send"]')?.getBoundingClientRect();
       return {
@@ -305,6 +313,24 @@ describe("入力の帯の欄の幅 (#3485)", () => {
       expect(send && send.right <= row.right + 0.5, "幅 740 の枠で、送る釦が無いか帯の右端を超える").toBe(true);
       const rows = new Set(fields.map((field) => field.bottom));
       expect(rows.size, "幅 740 の枠で、1 行に入らない 6 つの欄を次の行へ送らず、縮めて 1 行に並べた").toBeGreaterThanOrEqual(2);
+    },
+  );
+
+  // 次の行へ送った選ぶ欄は、その行に欄が少なくても行の幅いっぱいに伸ばさず、一番長い候補が収まる幅 (基準の幅より狭ければ基準の幅) に基準の幅を足した幅で止める
+  it(
+    "try-ask-wrapped-choice-not-stretched",
+    async () => {
+      const { fields } = await stripAt740(parsedTry(wideAskTry()), { 期限: WIDE_ASK_LONGEST });
+      const first = Math.min(...fields.map((field) => field.bottom));
+      const wrapped = fields.filter((field) => field.need !== undefined && field.bottom > first);
+      expect(wrapped.map((field) => field.name), "幅 740 の枠で、次の行へ送った選ぶ欄が無い").not.toEqual([]);
+      const base = LOOK.player.ask.field;
+      for (const field of wrapped) {
+        const least = Number.parseFloat(field.least);
+        expect(Number.isFinite(least), `次の行へ送った選ぶ欄 ${field.name} が幅の下限 (--dg-field-min) を持たない`).toBe(true);
+        const most = Math.max(least, base) + base;
+        expect(field.width, `幅 740 の枠で、次の行へ送った選ぶ欄 ${field.name} の幅 ${field.width} が上限 ${most} を超えて伸びる`).toBeLessThanOrEqual(most + 0.5);
+      }
     },
   );
 
