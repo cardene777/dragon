@@ -562,7 +562,7 @@ export function besideSameSpot(badges: SceneBadge[], blocked: (p: Point) => bool
  * 段の番号が避ける、箱の中の絵柄と運ぶ物の枠と字の所 (#3525)。
  * 絵柄は箱の真ん中から `LOOK.box.iconY` 上、字は箱の真ん中より少し上から下の縁の手前まで、左右の余白の内に描く
  */
-export function boxParts(box: SceneBox): Rect[] {
+function boxParts(box: SceneBox): Rect[] {
   const B = LOOK.box;
   const ix = box.iconX ?? box.cx;
   return [
@@ -573,7 +573,7 @@ export function boxParts(box: SceneBox): Rect[] {
 }
 
 /** 段の番号が避ける、中身の帯の中の絵柄と欄の所 (#3525) */
-export function stripParts(strip: SceneStrip): Rect[] {
+function stripParts(strip: SceneStrip): Rect[] {
   const S = LOOK.strip;
   return [{ x: strip.x + S.pad, y: strip.y + S.h / 2 - S.icon / 2, w: S.icon, h: S.icon }, ...strip.fields.map((f) => ({ x: f.x, y: f.y, w: f.w, h: S.line }))];
 }
@@ -587,12 +587,6 @@ export function badgeBlocked(layout: Layout, parts: Rect[] = []): (p: Point) => 
   const avoid = [...layout.boxes.flatMap(boxParts), ...(layout.strip ? stripParts(layout.strip) : []), ...layout.regions.map((r) => r.header), ...layout.labels, ...layout.actions, ...parts];
   return (p) => onFrameLine(p[1], lines) || avoid.some((a) => gapBetween(badgeRect(p), a) < LOOK.label.touch);
 }
-
-/**
- * 列の図の右上のように、全ての段の番号を同じ所に置いて段を数える番号 (#3184、#3525)。後の段が始まると前の段の番号を消して数字を入れ替える。
- * 入れ替えるのが作りどおりなので、`dragon check --layout` は前の番号を隠す崩れに数えない
- */
-export const countInPlace = (badges: SceneBadge[]): SceneBadge[] => besideSameSpot(badges, () => true, () => true);
 
 /** 中身の帯だけを書き換える段の番号の点 (#3525)。帯の左上の角の丸みの中に丸を収め、枠線にも帯の絵柄にも掛けない */
 export const stripBadge = (strip: SceneStrip): Point => [strip.x + LOOK.region.radius, strip.y + LOOK.region.radius];
