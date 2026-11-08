@@ -44,7 +44,8 @@ export const PIPE_TYPE = {
  * - `row` は名札の行で、行の間 `pitch`、上の余白から一番上の行の真ん中まで `top`
  * - `avatar` は丸の名札で、四角の一辺 `size`、丸の半径 `r`、光の輪の半径 `halo`、真ん中から名前の基準線まで `nameY`、頭文字の基準線 `initialY`
  * - `cabinet` は Contract の箱で、高さ `h`、名前の前と後ろの余白 `pad`・`end`、頭文字の真ん中 `mark`、名前の左の端 `name`、角 `radius`、印の縮み `icon`、
- *   同じ行の名札との間 `gap`。どの行の箱も同じ寸法で描き、幅は名前の長さに合わせる
+ *   同じ行の名札との間 `gap`。どの行の箱も同じ寸法で描き、幅は名前の長さに合わせる。
+ *   高さは、真ん中と上と下の 3 つの高さから出る呼び出しの管が、どれも縁の角の丸みから離れる高さ (#3523)
  * - `token` はトークンの箱で、幅の下限 `w`、名前と値の名前の左右の余白 `nameW`・`keyW`、値の無い箱の高さ `h`、値 1 つごとの高さ `line`、
  *   名前の基準線 `nameY`、値の名前の基準線 `keyY`、値の名前から値の基準線まで `valueY`、角 `radius`、値の札の左右の余白 `plateX`、前の値と矢印と今の値の間 `arrowGap`、
  *   値の管から箱の下の端まで `up`
@@ -81,7 +82,7 @@ export const PIPE_LOOK = {
   chip: { h: 22, padX: 8, gap: 8, argsGap: 6, rx: 4, off: 10, beside: 12 },
   row: { pitch: 84, top: 48 },
   avatar: { size: 80, r: 32, halo: 40, nameY: 64, initialY: 10 },
-  cabinet: { h: 56, pad: 52, end: 22, mark: 26, name: 46, radius: 12, icon: 1, gap: 16 },
+  cabinet: { h: 80, pad: 52, end: 22, mark: 26, name: 46, radius: 12, icon: 1, gap: 16 },
   token: { w: 84, nameW: 36, keyW: 28, h: 38, line: 34, nameY: 25, keyY: 44, valueY: 16, radius: 6, plateX: 8, arrowGap: 6, up: 58 },
   tie: { gap: 6 },
   call: { case: 12, flow: 6, core: 0.45, valveAt: 30, room: 16 },

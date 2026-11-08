@@ -227,7 +227,7 @@ describe("呼び出しの管と弁は重ならない (#3523)", () => {
       for (const a of segs(pool1?.branch.points ?? []))
         for (const b of segs(pool2?.branch.points ?? [])) {
           if (flat(a[0], a[1]) !== flat(b[0], b[1])) continue;
-          const [k, o] = flat(a[0], a[1]) ? [1, 0] : [0, 1];
+          const [k, o]: [0 | 1, 0 | 1] = flat(a[0], a[1]) ? [1, 0] : [0, 1];
           const along = Math.min(Math.max(a[0][o], a[1][o]), Math.max(b[0][o], b[1][o])) - Math.max(Math.min(a[0][o], a[1][o]), Math.min(b[0][o], b[1][o]));
           if (along > 0.5 && Math.abs(a[0][k] - b[0][k]) < P.call.case) shared.push(`${JSON.stringify(a)} と ${JSON.stringify(b)}`);
         }

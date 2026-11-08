@@ -769,6 +769,18 @@ const SPACING = P.call.room;
 const APPROACH = 18;
 /** 部品どうしの間の下限 */
 const PART_GAP = 8;
+/** 同じ横から出る管の高さの間。管の太さと平行な管の縁どうしの間 */
+const LANE_STEP = P.call.case + LINE_GAP;
+/**
+ * 呼び出しの管が箱の縁の角から離れる長さ。管の太さの半分と角の丸み。
+ * これより角に近い所から出入りする管は角の丸みにかかり、箱の縁の後ろを通って見える (#3523)
+ */
+const cornerRoom = (radius: number): number => P.call.case / 2 + radius;
+/**
+ * 一番上の行の名札の上の空き。名札を越えて上の口へ下りる管が、口の手前の線 (`APPROACH`) の 1 本上を、
+ * 図の上の縁から管の太さ 1 本分離れて通る (#3523)
+ */
+const TOP_ROOM = APPROACH + P.call.case + P.call.case / 2 + P.call.case;
 /** 呼び出しの管の弁が描く形 (胴と軸と取っ手) と、ほかの線の縁の間の下限。決まりの表 (`valve-clearance`) と同じ値 */
 const VALVE_ROOM = 3;
 /**
@@ -1513,7 +1525,8 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       const here = tagParties.filter((id) => rowOf(id) === r);
       const up = Math.max(P.row.top - (r === 0 ? 0 : P.row.top), ...here.map(aboveOf), rowsWith.has(r) ? gaugeUp : 0);
       if (r === 0) {
-        rowY.push(P.margin + Math.max(P.row.top, up + PART_GAP));
+        // 一番上の行の名札は、図の上の縁から `TOP_ROOM` 離す。名札を越えて上の口へ下りる管が図の外を回らないように (#3523)
+        rowY.push(Math.max(P.margin + Math.max(P.row.top, up + PART_GAP), ...here.map((id) => TOP_ROOM + aboveOf(id))));
         continue;
       }
       const prev = tagParties.filter((id) => rowOf(id) === r - 1);
@@ -2111,11 +2124,16 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       callEnds.set(id, { starts: [], ends: [], rect: r });
     }
     const branches = [...new Map(shown.map((c) => [`${c.from}>${c.to}`, c])).values()];
-    const topSlot = P.call.case + LINE_GAP;
-    /** 同じ者の同じ横から出る k 本目の管の高さのずれ。真ん中、上、下の順。名札の高さに収まらない時は真ん中 */
+    const topSlot = LANE_STEP;
+    /** 名札の角の丸み。丸の名札は角を持たない */
+    const cornerOf = (id: string): number => (shapeOf(id) === "cabinet" ? P.cabinet.radius : shapeOf(id) === "token" ? P.token.radius : 0);
+    /**
+     * 同じ者の同じ横から出る k 本目の管の高さのずれ。真ん中、上、下の順。
+     * 縁の角から `cornerRoom` 離れた所に収まらない時は真ん中にし、管を角の丸みにかけない (#3523)
+     */
     const laneOff = (id: string, k: number): number => {
       const o = [0, -topSlot, topSlot][k] ?? 0;
-      return Math.abs(o) + P.call.case / 2 <= rectOf(id).h / 2 ? o : 0;
+      return Math.abs(o) + cornerRoom(cornerOf(id)) <= rectOf(id).h / 2 ? o : 0;
     };
     /**
      * 名札の横から出て向きを決めるまでの長さ。弁を載せる分を取るが、呼ばれた側が真横の近くに居る時は、
@@ -2147,7 +2165,8 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       const bx = r.x + r.w / 2;
       if (shapeOf(id) === "round") return [bx];
       const out = [bx];
-      for (let k = 1; k * topSlot <= r.w / 2 - P.call.case; k++) out.push(bx - k * topSlot, bx + k * topSlot);
+      // 左右の口も、縁の角から `cornerRoom` 離れた所までに置く
+      for (let k = 1; k * topSlot <= r.w / 2 - cornerRoom(cornerOf(id)); k++) out.push(bx - k * topSlot, bx + k * topSlot);
       return out;
     };
     // 呼ばれた側へは、縁から `APPROACH` 手前の点で向きを揃えてから入る。縁の際で折れる短い線を作らない
@@ -2159,6 +2178,10 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       callYs.add(r.y - APPROACH);
       callYs.add(r.y + r.h + APPROACH);
     }
+    // 一番上の段の名札を上から越えて、上の口へ下りる管の線。口の手前の線の 1 本上に置く。
+    // 一番上の段の名札の上の縁が揃うと、図の上の縁との間にこの線のほかの線が残らない (#3523)
+    const topRow = Math.min(...[...partyRects.keys()].map((id) => rectOf(id).y));
+    callYs.add(topRow - APPROACH - P.call.case);
     // 書き込む管が札の上で折れる所
     for (const h of holders) {
       callYs.add(yOfBand(h) + (P.housing.top - IO_H) / 2 - 2);
@@ -2167,8 +2190,9 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         if (pr) callXs.add(pr.x + pr.w / 2);
       }
     }
-    const callXList = gridLines(valueXs, [...callXs], 16);
-    const callYList = gridLines(valueYs, [...callYs], 16);
+    // 図の上の縁と左の縁に沿う線は使わない。そこを通る管は半分が図の外に出て切れる (#3523)
+    const callXList = gridLines(valueXs, [...callXs], 16).filter((x) => x >= P.call.case);
+    const callYList = gridLines(valueYs, [...callYs], 16).filter((y) => y >= P.call.case);
     let callRouter = new Router(callXList, callYList, callObs);
     let callPath = new Map<string, Point[]>();
 
@@ -2248,26 +2272,42 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
       return undefined;
     };
     /**
-     * 弁が描く形 (胴と軸と、閉じた取っ手と開いた取っ手) が、`lines` の全ての線から `VALVE_ROOM` 離れるか。
+     * 弁が描く形 (胴と軸と、閉じた取っ手と開いた取っ手) が、`lines` の全ての線から離れるか。胴は `body`、軸と取っ手は `VALVE_ROOM` 離す。
      * 同じ者から出る管も数える。同じ者の管が共に通る本管の上の弁は、どの枝の弁か読めない
      */
-    const valveClear = (p: Point, vertical: boolean, under: boolean, lines: readonly { parts: [Point, Point][]; half: number }[]): boolean => {
+    const valveClear = (p: Point, vertical: boolean, under: boolean, lines: readonly { parts: [Point, Point][]; half: number }[], body: number): boolean => {
       const rects = valveRects(p[0], p[1], vertical, under);
       // 取っ手どうしも重ねない
       if (rects.some((r) => valveShapes.some((o) => !apart(r, o, VALVE_ROOM)))) return false;
-      return lines.every((l) => l.parts.every(([u, v]) => rects.every((r) => !hits(u, v, r, l.half + VALVE_ROOM))));
+      return lines.every((l) => l.parts.every(([u, v]) => rects.every((r, i) => !hits(u, v, r, l.half + (i === 0 ? body : VALVE_ROOM)))));
     };
     /**
      * 道の上の、ほかの弁と計器から決まりの間を空け、弁の形がほかの線から離れる所と、取っ手を下 (縦の管では左) に立てるか。
      * 横に走る所にも縦に走る所にも置き、弁は管の向きに合わせて描く。同じ者の管と共に通る幹から分かれた枝は、
      * 分かれた先が縦に走ることが多く、自分の枝に弁を置くには縦の所に置く。
-     * 始まりに近い所から選び、同じ所では取っ手を上 (縦の管では右) に立てる方を先に試す。`skip` の管の線は測らない
+     * 始まりに近い所から選び、同じ所では取っ手を上 (縦の管では右) に立てる方を先に試す。`skip` の管の線は測らない。
+     * 先に胴がほかの線から管と部品の間 (`LINE_GAP`) 離れる所を道の全体で探し、無い時だけ `VALVE_ROOM` まで寄せた所を探す (#3523)。
+     * 隣を平行に走る管から `VALVE_ROOM` しか離れない胴は、隣の管に触れて見える
      */
     const valveSpot = (
       points: Point[],
       branch: string,
       skip: ReadonlySet<string> = new Set(),
       shared = false,
+    ): { at: Point; under: boolean; vertical: boolean } | undefined => {
+      for (const body of [LINE_GAP, VALVE_ROOM]) {
+        const at = valveSpotWith(points, branch, skip, shared, body);
+        if (at) return at;
+      }
+      return undefined;
+    };
+    /** 胴をほかの線から `body` 離す、`valveSpot` の 1 回の探し */
+    const valveSpotWith = (
+      points: Point[],
+      branch: string,
+      skip: ReadonlySet<string>,
+      shared: boolean,
+      body: number,
     ): { at: Point; under: boolean; vertical: boolean } | undefined => {
       const r = P.valve.r;
       const reach = P.valve.stem + P.valve.lever + VALVE_ROOM;
@@ -2294,7 +2334,7 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         for (let t = r + SPACING / 2; t <= len - r - SPACING / 2; t += 4) {
           const p: Point = [a[0] + dx * t, a[1] + dy * t];
           if (!(vertical ? freeBox(p, P.valve.half, r) : freeBox(p, r, P.valve.half))) continue;
-          for (const under of [false, true]) if (valveClear(p, vertical, under, lines)) return { at: p, under, vertical };
+          for (const under of [false, true]) if (valveClear(p, vertical, under, lines, body)) return { at: p, under, vertical };
         }
       }
       return undefined;
@@ -2342,7 +2382,10 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         // 入る管が使った横からは出ない。同じ横に出入りが並ぶと、入る管の計器を置く所が無くなる
         if (sideUsed(entered, id, side)) return [];
         const ys = [...new Set([0, 1, 2].map((k) => base + laneOff(id, k)))];
-        return ys.sort((a, b) => used(a) - used(b) || Math.abs(a - toward) - Math.abs(b - toward));
+        // 使った高さの隣の高さは後にする。隣どうしの管に載せた弁は、胴が隣の管の縁に触れる (#3523)
+        const taken = ys.filter((y) => used(y) === 1);
+        const beside = (y: number): number => Number(used(y) === 0 && taken.some((u) => Math.abs(u - y) < topSlot * 2 - 0.5));
+        return ys.sort((a, b) => used(a) - used(b) || beside(a) - beside(b) || Math.abs(a - toward) - Math.abs(b - toward));
       };
       /** 呼び出しが入った所 (`id|向き|高さ`)。引き直す管は、自分が入った所を外して入る口を選び直す */
       const entryOf = new Map<string, string>();
@@ -2690,7 +2733,17 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     // 道の無い呼び出しと曲がりすぎた呼び出しと 1 本の値の管を 2 度越えた呼び出しと弁を置けなかった呼び出しを前に出して、引く順を最大 4 通り試す。
     // 道の無い管が少なく、曲がりすぎた管が少なく、2 度越えた管が少なく、弁を置けなかった管が少ない順を採る
     {
+      // 同じ者が呼ぶ管は、呼ばれた側が横に近い順に引く。ほかの者の管との順は変えない。
+      // 先に引いた管が曲がる向きに近い高さを取り、後の管はその外の高さから出るので、同じ横から出る管が入れ子に曲がり、
+      // 1 本の管を共に通らない (#3523)
+      const reach = (c: (typeof branches)[number]): number => Math.abs(rectOf(c.to).x + rectOf(c.to).w / 2 - (rectOf(c.from).x + rectOf(c.from).w / 2));
       let callList = [...branches];
+      const slotsOf = new Map<string, number[]>();
+      branches.forEach((c, i) => slotsOf.set(c.from, [...(slotsOf.get(c.from) ?? []), i]));
+      for (const slots of slotsOf.values()) {
+        const nearer = slots.map((i) => branches[i] as (typeof branches)[number]).sort((a, b) => reach(a) - reach(b));
+        slots.forEach((slot, k) => (callList[slot] = nearer[k] as (typeof branches)[number]));
+      }
       let bestCalls: { list: typeof branches; failed: number; bent: number; twice: number; cramped: number } | undefined;
       let ranCalls = callList;
       const triedCalls = new Set<string>();
@@ -3405,6 +3458,24 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
     const rings: PipeRing[] = sim.emits.filter((e) => !foldSteps.has(e.step) && visible.has(e.party)).map((e) => ({ party: e.party, step: e.step, event: e.event }));
 
     // 戻り値の札。呼ばれた側から呼び出しの管を伝って呼んだ側へ戻る
+    /** 戻り値の札が着く所で避ける弁の形。呼び出しの管の弁とトークンの箱の弁の、胴と軸と閉じた取っ手と開いた取っ手 */
+    const valveBlocks: Rect[] = [
+      ...[...valves].flatMap(([k, [x, y]]) => valveRects(x, y, uprightValves.has(k), underValves.has(k))),
+      ...buses.flatMap((b) => (b.valve ? valveRects(b.valve.x, b.valve.y, false, false) : [])),
+    ];
+    /** 段 `s` に戻り値の札が着く所で避ける部品。箱と名前の字、弁、その段の計器 (盤と通ったかの印と軸)、その段に置いた札 */
+    const blocks = (s: number): Rect[] => [
+      ...parties.map((p) => labelOf(p.id)),
+      ...valveBlocks,
+      ...gauges
+        .filter((g) => g.step === s)
+        .flatMap((g) => [
+          { x: g.x, y: g.y, w: g.w, h: g.h },
+          { x: g.lamp.x - g.lamp.r, y: g.lamp.y - g.lamp.r, w: g.lamp.r * 2, h: g.lamp.r * 2 },
+          ...(g.stem ? [{ x: g.cx - 2, y: g.stem.y1, w: 4, h: g.stem.y2 - g.stem.y1 }] : []),
+        ]),
+      ...(placedAt[s] ?? []),
+    ];
     if (!narrow)
       for (const ret of sim.returns) {
         const c = sim.calls[ret.call];
@@ -3419,10 +3490,25 @@ function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow
         let d = 0;
         while (name && d < lengthOf(back) / 2 && !apart(rectAt(along(back, d)), name, PART_GAP / 2)) d += 2;
         const started = d > 0 ? fromAlong(back, d) : back;
-        // 着く所も、呼んだ側の名札に札が載らない手前で止める
-        const caller = labelOf(c.from);
-        let e = 0;
-        while (e < lengthOf(started) / 2 && !apart(rectAt(along(started, lengthOf(started) - e)), caller, 2)) e += 2;
+        // 着く所は、呼んだ側から管を遡り、箱と弁と計器とその段に置いた札のどれからも離れた最初の所にする (#3523)。
+        // 呼んだ側の名札の手前には呼び出しの弁と計器が並ぶため、名札の手前で止めた札はそれらを隠していた
+        const whole = lengthOf(started);
+        const avoid = blocks(ret.step);
+        /** 呼んだ側から遡り、どの部品からも `gap` 離れた最初の所までの長さ。無い時は `whole` */
+        const backTo = (gap: number): number => {
+          let at = 0;
+          while (at < whole && !avoid.every((o) => apart(rectAt(along(started, whole - at)), o, gap))) at += 2;
+          return at;
+        };
+        // 離れた所が無い短い管では、部品の縁に触れても重ならない所にする
+        let e = backTo(PART_GAP / 2);
+        if (e >= whole) e = backTo(0);
+        // どこにも空きが無い時は、今までどおり呼んだ側の名札に札が載らない手前で止める。崩れの確かめが札と部品の重なりを知らせる
+        if (e >= whole) {
+          const caller = labelOf(c.from);
+          e = 0;
+          while (e < whole / 2 && !apart(rectAt(along(started, whole - e)), caller, 2)) e += 2;
+        }
         const path = e > 0 ? fromAlong([...started].reverse(), e).reverse() : started;
         chips.push(chipOf("return", ret.value, rectAt(path[0] as Point), ret.step, { party: c.to, path, call: c.index, event: ret.event }));
       }
