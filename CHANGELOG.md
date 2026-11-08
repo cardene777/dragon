@@ -50,6 +50,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   The step text written after a send, the record numbers, the queue hint and the stopped-at row put a space around every name or number written in Latin letters or digits, as in `送金E が送信経路を通って全体の列に入った。`, `記録 1` and `次は上から 1 件`. They now read `送金Eが送信経路を通って全体の列に入った。`, `記録1` and `次は上から1件`. English text keeps its spaces, and the layout warnings that the CLI shows to authors are unchanged. The fingerprints of the 20 examples that draw a try diagram in Japanese changed with the text.
 
+- **A long line name and the amount chip of a pipe flow stay next to their line, and `dragon check --layout` reports one drawn away from its line** (#3528)
+
+  In an architecture diagram, a line name longer than the gap between two boxes in neighboring columns was drawn above both boxes, about 50px from its line, because the gap stopped widening at 160px. The gap now widens until the name fits, as state and sequence diagrams already did, so the name sits just above its line. In a pipe diagram, the amount chip of the Router to Pool1 flow in step 4 of the `swap-retry` example was drawn about 110px below the flow and outside the housing, because the balance text under the tank and the value plate blocked the spots beside the pipe. The chip now slides along the pipe in 4px steps before it moves away, and it avoids the text under a tank by the width of each line (the balance, then the change and the state) instead of one band. `dragon check --layout` adds the kind `label-off-line`: it names the step, the text and the line when a line name or an amount chip is farther from its line than the spot dragon tries first plus the chip's own height. Amount chips now carry the `flow` they name in the layout, so the layout fingerprints of the pipe examples changed, and the drawing of `swap-retry` changed.
+
 ## [0.66.1] - 2026-11-08
 
 ### Fixed
