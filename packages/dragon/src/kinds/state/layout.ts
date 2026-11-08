@@ -22,6 +22,7 @@ import {
   boxColors,
   boxWidth,
   carrierHalf,
+  carrierSeats,
   cornerBadge,
   edgeColor,
   edgesOf,
@@ -364,13 +365,16 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   });
 
   const layout: Layout = { kind: "state", width: 0, height: 0, regions: [], boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths, ends, ...(side ? { side } : {}) };
-  // 名前が左か上へ出たら、全体を右か下へ寄せる
-  const lefts = [...boxes.map((b) => b.x), ...labels.map((l) => l.x), ...paths.flatMap((p) => (p.label ? [p.label.x] : []))];
-  const tops = [...labels.map((l) => l.y), ...paths.flatMap((p) => (p.label ? [p.label.y] : []))];
+  // 名前が左か上へ出たら、全体を右か下へ寄せる。始まりの印の左で待つ札と終わりの印の脇に留まる札も、図の中に収める (#3515)
+  const seatsBefore = carrierSeats(sceneEdges);
+  const lefts = [...boxes.map((b) => b.x), ...labels.map((l) => l.x), ...paths.flatMap((p) => (p.label ? [p.label.x] : [])), ...seatsBefore.map((r) => r.x)];
+  const tops = [...labels.map((l) => l.y), ...paths.flatMap((p) => (p.label ? [p.label.y] : [])), ...seatsBefore.map((r) => r.y)];
   const shift = Math.max(0, margin - Math.min(...lefts));
   const drop = tops.length > 0 ? Math.max(0, margin - Math.min(...tops)) : 0;
   if (shift > 0 || drop > 0) shiftContent(layout, shift, drop);
   const endRight = (e: SceneEnd): number => e.x + (e.text === "" ? e.r : T.text + textWidth(e.text, TYPE.regionNote));
+  // 寄せた後の留まる所。右端と下端はここから数える
+  const seats = carrierSeats(sceneEdges);
   const rights = [
     ...boxes.map((b) => b.x + b.w),
     ...labels.map((l) => l.x + l.w),
@@ -378,8 +382,15 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
     ...sceneEdges.flatMap((e) => e.points.map((p) => p[0])),
     ...paths.flatMap((p) => [...p.points.map((q) => q[0]), ...(p.label ? [p.label.x + p.label.w] : [])]),
     ...(side ? [side.x + side.w] : []),
+    ...seats.map((r) => r.x + r.w),
   ];
-  const bottoms = [...boxes.map((b) => b.y + b.h), ...labels.map((l) => l.y + l.h), ...ends.map((e) => e.y + e.r), ...sceneEdges.flatMap((e) => e.points.map((p) => p[1]))];
+  const bottoms = [
+    ...boxes.map((b) => b.y + b.h),
+    ...labels.map((l) => l.y + l.h),
+    ...ends.map((e) => e.y + e.r),
+    ...sceneEdges.flatMap((e) => e.points.map((p) => p[1])),
+    ...seats.map((r) => r.y + r.h),
+  ];
   // 帯の最後に、段が辿り着く順に状態を点で並べる
   const trail = { title: words.trail, states: walked.map((id) => ({ box: id, color: colors.get(id) ?? "slate" })) };
   const width = Math.max(Math.max(...rights) + margin, stripNeed(diagram, trail) + margin * 2);

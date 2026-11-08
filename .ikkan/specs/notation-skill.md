@@ -58,3 +58,14 @@
 | ブロックを足して PR を出す評価 `block-pr` の記録が、今のケースの指紋と合い、3 回とも通っている | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`block-pr`が通る | #3513 |
 | 崩れの検査の評価 `layout-bridge` の記録が、今のケースの指紋と合い、3 回とも通っている | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`layout-bridge`が通る | #3513 |
 | 崩れの検査の評価 `layout-payment` の記録が、今のケースの指紋と合い、3 回とも通っている | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`layout-payment`が通る | #3513 |
+| 頁を作る関数`writeGallery` (`scripts/plugin-eval-gallery.mjs`) にケースと実行のdirを渡した時、各実行で保存した`.dragon`ごとに、最後の段と`dragon check --layout`の崩れが出た段をPNGに書き出し、ケースごと・実行ごとに並べた1枚のHTMLの頁を書いて、頁の置き場を返す。最後の段に崩れがある時は、その段の絵を1枚だけ載せる | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-exports-last-and-break-steps`が通る | #3519 |
+| 頁が、図ごとに崩れの件数と崩れの出た段の番号を書き、崩れの段の絵に`dragon check --layout`の文を添え、実行ごとに通ったか落ちたかと落ちた理由を書く | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-shows-break-counts`が通る | #3519 |
+| 図を保存しなかった実行は、頁にその実行の欄を残し、保存した図が無いと書く | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-keeps-run-without-diagram`が通る | #3519 |
+| 実行の前から作業場所に在った`.dragon` (写しのrepoのブロックの見本) と、ブロックの定義だけのfileは、図として並べない | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-skips-prepared-and-definitions`が通る | #3519 |
+| 書き出しか崩れの検査が失敗した図は、その図の欄に失敗の理由を書き、ほかの図と実行は並べ続ける | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-reports-tool-failure`が通る | #3519 |
+| 頁はPNGをdata URIで埋め込み、ほかのfileとnetworkを読まない (`src`と`href`の値が`data:`か頁の中の`#`だけ)。明るいthemeと暗いthemeの色を`:root`の変数で持ち、画像と長いpathを枠の幅に収める | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-page-is-self-contained`が通る | #3519 |
+| 本物の道具で頁を作る時、崩れの段はこのrepoの`dragon check --layout --json --lang ja`が返す崩れの`layout.step`から、最後の段は記法を読んだ図の段の数から得る | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-cli-tools-read-breaks-and-steps`が通る | #3519 |
+| 記録のscript`scripts/plugin-eval-record.mjs`が、`record.json`を書いた後に、評価の結果の実行のdirと判定を`writeGallery`に渡して頁を書き、頁の置き場を出力の最後の行に出す | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-record-writes-gallery-last`が通る | #3519 |
+| 記録のscriptの頭の説明が、頁の置き場と、評価を報告する時にAIが頁をArtifactで公開してリンクを渡すことを書く | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-record-header-says-publish-gallery`が通る | #3519 |
+| 評価の記録`plugins/dragon/evals/record.json`の形が変わらず、記録を読む検査が今と同じく通る | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`layout-bridge`と`layout-payment`と`block-pr`と`new-kind-issue`が通る | #3519 |
+| 記録のscriptが評価のために作る写しのrepoで偽の`gh`を呼んだ時、渡した引数が記録のfileに残る | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-stand-in-records-gh`が通る | #3519 |

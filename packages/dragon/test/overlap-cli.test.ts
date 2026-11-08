@@ -98,3 +98,16 @@ describe.for([
     },
   );
 });
+
+describe("言葉を渡さない書き出しの重なりの行 (#3516)", () => {
+  it(
+    "export-warns-overlaps-without-lang",
+    async () => {
+      // 題と `say` が日本語の図は、`--lang` が無ければ図に足す字を日本語で描く。重なりの行の文は命令の文なので今どおり英語の形で、引用する字は描いた字になる
+      const out = mkdtempSync(join(tmpdir(), "dragon-overlap-cli-"));
+      const ran = await runInProcess(["export", OVERLAPPING, "--format", "png", "--out", out]);
+      expect(ran.code, ran.stderr.join("\n")).toBe(0);
+      expect(ran.stderr, "--lang なしの標準エラーの重なりの行が、英語の文の形で日本語の描いた字を引かない").toEqual(['Step 2: "今回は通らない" and "脇道" overlap']);
+    },
+  );
+});

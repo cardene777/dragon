@@ -2,7 +2,7 @@
  * 描く部品が出す字 (#3001)。
  *
  * 図の原本は語を持たないので、呼ぶ側が言葉を渡す。渡さなければ英語で出す (#3338)。
- * 頁は頁の言葉を、`dragon export` は `--lang` の言葉 (渡さなければ英語) を渡す。
+ * 頁は頁の言葉を、`dragon export` は `--lang` の言葉を渡す。`--lang` が無ければ、書き出しが図の題と `say` から言葉を決める (#3516)。
  */
 import type { NotationLang } from "./words";
 
@@ -44,15 +44,10 @@ export interface FigureText {
   textsOverlap: (a: string, b: string) => string;
   lineCrosses: (from: string, to: string, text: string) => string;
   /**
-   * 描いた図の崩れを知らせる文 (#3484)。運ぶ物の枠と段を添えた線の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
-   * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、携帯の幅でだけ出る崩れの幅
+   * 描いた図の崩れを知らせる文に添える、段を添えた線の呼び方と、携帯の幅でだけ出る崩れの幅 (#3484)。
+   * 崩れの種類ごとの文は、崩れを探す処理 (`render/layout-check.ts`) だけが持つ (#3515)
    */
-  slotOf: (box: string) => string;
   lineOf: (from: string, to: string, step: number) => string;
-  floatsOff: (badge: string, box: string) => string;
-  sticksOut: (part: string, box: string) => string;
-  tooClose: (a: string, b: string) => string;
-  runClose: (a: string, b: string) => string;
   atWidth: (width: number) => string;
   /**
    * 時間軸の図 (#3165)。時刻の字の単位、拡大の帯の名前、目盛りの番号の範囲の書き方、列の上の目盛りの番号と時刻の間、
@@ -97,10 +92,22 @@ export interface FigureText {
   gist: string;
 }
 
-/** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
-const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
+/**
+ * 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする。
+ * 書き手が CLI で受け取る配置の警告だけが使う。読み手が図で見る字は和文と英数字の間に空白を置かない (#3517)
+ */
+export const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
+/** 和文の字 (漢字、ひらがな、カタカナ、長音) で終わる語と始まる語。句読点と中黒は和文の字に数えない */
+const ENDS_WITH_KANA_KANJI = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]$/u;
+const STARTS_WITH_KANA_KANJI = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]/u;
+/**
+ * 読み手が図で見る字で、2 つの語を並べる (#3517)。境の片側が和文の字なら空白を置かず、それ以外は空白で離す。
+ * 時間軸の図の「12秒」と「slot 3200」、配管の図の「10ポイント」と「100 USDC」のように、書き手の語と数をつなぐ
+ */
+export const joinWords = (left: string, right: string): string =>
+  ENDS_WITH_KANA_KANJI.test(left) || STARTS_WITH_KANA_KANJI.test(right) ? `${left}${right}` : `${left} ${right}`;
 /** 英語の文の頭を大文字にする */
-const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+export const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
   ja: {
@@ -114,10 +121,10 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     pause: "止める",
     play: "動かす",
     next: "次の段",
-    steps: (title) => `${title} の段`,
+    steps: (title) => `${title}の段`,
     side: "脇道",
     sideNote: "今回は通らない",
-    sideFrom: (count) => `${count} つの状態から入れる`,
+    sideFrom: (count) => `${count}つの状態から入れる`,
     trail: "通った状態",
     start: "始まり",
     end: "終わり",
@@ -128,12 +135,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "「封筒」",
     textsOverlap: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
     lineCrosses: (from, to, text) => `線 ${from} → ${to} が${spaced(text)}を横切る`,
-    slotOf: (box) => `「${box}」の運ぶ物の枠`,
     lineOf: (from, to, step) => `線 ${from} → ${to} (段 ${step})`,
-    floatsOff: (badge, box) => `${spaced(badge)}が${box}の形から離れて浮く`,
-    sticksOut: (part, box) => `${spaced(part)}が${box}の形からはみ出す`,
-    tooClose: (a, b) => `${spaced(a)}と${spaced(b)}が近すぎる`,
-    runClose: (a, b) => `${spaced(a)}と${spaced(b)}が並んで近すぎる`,
     atWidth: (width) => `(幅 ${width} の時)`,
     timeUnits: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
     zoom: "拡大",
@@ -187,12 +189,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "the envelope",
     textsOverlap: (a, b) => capital(`${a} and ${b} overlap`),
     lineCrosses: (from, to, text) => `The line ${from} → ${to} crosses ${text}`,
-    slotOf: (box) => `the carry slot of "${box}"`,
     lineOf: (from, to, step) => `the line ${from} → ${to} (step ${step})`,
-    floatsOff: (badge, box) => capital(`${badge} floats away from the shape of ${box}`),
-    sticksOut: (part, box) => capital(`${part} sticks out of the shape of ${box}`),
-    tooClose: (a, b) => capital(`${a} and ${b} are too close`),
-    runClose: (a, b) => capital(`${a} and ${b} run too close side by side`),
     atWidth: (width) => `(at width ${width})`,
     timeUnits: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
     zoom: "Zoom",
