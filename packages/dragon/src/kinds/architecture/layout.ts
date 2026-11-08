@@ -275,13 +275,15 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     // 行の下と上を回る道を離して並べる時は、並べた分だけ行の間と帯を広げる (#3549)
     const below = (r: number): number => extra(`${g}:${r}:below`);
     const above = (r: number): number => extra(`${g}:${r}:above`);
-    const top = cursor + R.pad + room.top + above(0);
+    // 横の線の脇の名前のために、行の下か上を回る道を行から離す分 (#3552)
+    const drop = (r: number, side: "below" | "above"): number => extra(`label-lane:${g}:${r}:${side}`);
+    const top = cursor + R.pad + room.top + above(0) + drop(0, "above");
     // 行の高さは行で最も高い箱の高さ。形を持つ箱は中身を収めるために高くなる (#3520)
     const rowH = Array.from({ length: rows }, (_, r) => Math.max(B.h, ...group.members.filter((id) => slots.get(id)?.row === r).map((id) => fits.get(id)?.h ?? B.h)));
     // 行の上端。輪を持つ行の下は、行の間に輪の分を足す
     const rowTop: number[] = [0];
-    // 縦の線の脇の名前が、行の間を横に回る線の下に入るだけ行の間を広げる (#3552)
-    const labelRow = (r: number): number => extra(`label-row:${g}:${r}`);
+    // 縦の線の脇の名前が行の間を横に回る線の下に入る分と、横の線の脇の名前のために道を行から離す分だけ行の間を広げる (#3552)
+    const labelRow = (r: number): number => extra(`label-row:${g}:${r}`) + drop(r, "below") + drop(r + 1, "above");
     for (let r = 1; r < rows; r++) rowTop.push((rowTop[r - 1] as number) + (rowH[r - 1] as number) + A.rowGap + loopRoom(g, r - 1) + below(r - 1) + above(r) + labelRow(r - 1));
     for (let r = 0; r < rows; r++) rowSpan.set(`${g}:${r}`, { top: top + (rowTop[r] as number), bottom: top + (rowTop[r] as number) + (rowH[r] as number) });
     for (const id of group.members) {
@@ -305,7 +307,9 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
         cy: y + h / 2,
       });
     }
-    const contentBottom = top + (rowTop[rows - 1] as number) + (rowH[rows - 1] as number) + loopRoom(g, rows - 1) + below(rows - 1);
+    // 帯の最後の行の下も、名前のために道を離す分と、次の帯の箱へ下りる線の脇の名前が入る分だけ広げる (#3552)
+    const contentBottom =
+      top + (rowTop[rows - 1] as number) + (rowH[rows - 1] as number) + loopRoom(g, rows - 1) + below(rows - 1) + drop(rows - 1, "below") + extra(`label-row:${g}:${rows - 1}`);
     const header = headers[g];
     const h = Math.max(contentBottom + R.pad + room.bottom - cursor, header ? header.h + R.inset * 2 : 0, group.region ? R.minH : 0);
     bands.push({ group: g, y: cursor, h, rows });
@@ -344,11 +348,11 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const laneBelow = (id: string): number => {
     const { slot, span } = spanOf(id);
     const under = span.bottom + loopRoom(slot.group, slot.row);
-    return slot.row < bandOf(id).rows - 1 ? under + A.rowGap / 2 : under + margin;
+    return (slot.row < bandOf(id).rows - 1 ? under + A.rowGap / 2 : under + margin) + extra(`label-lane:${slot.group}:${slot.row}:below`);
   };
   const laneAbove = (id: string): number => {
     const { slot, span } = spanOf(id);
-    return slot.row > 0 ? span.top - A.rowGap / 2 : span.top - margin;
+    return (slot.row > 0 ? span.top - A.rowGap / 2 : span.top - margin) - extra(`label-lane:${slot.group}:${slot.row}:above`);
   };
   const inset = LOOK.edge.inset;
   /** 列 `col` の右 (左) の、隣の列との間の真ん中。同じ列の箱は幅が違うので、箱ではなく列の端から測る (幅の広い箱の中を通さない) */
@@ -485,7 +489,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
    * 列の外を縦に走る別の線が名前の側で近い時は、近い分の 2 倍を名前の側の列の間に足し、名前と別の線の間を名前と自分の線の間の 2 倍にする。
    * 列の間の真ん中を回る線は広げた分の半分しか動かないので 2 倍にする。列の中を走る線 (並べた線や帰りの線) は列の間を広げても動かないので数えない。
    * 一番左の列の左は広げない。
-   * 行の間を横に回る線が名前の幅の所を通る時は、その線の下に名前が入るだけ、線が結ぶ 2 つの行の間を広げる。
+   * 行の間を横に回る線が名前の幅の所を通る時は、その線から名前と自分の線の間の 2 倍下に名前が入るだけ、線が結ぶ 2 つの行の間を広げる。
+   * 2 つの行は同じ帯の続く行か、続く2つの帯の上の帯の最後の行と下の帯の最初の行で、帯の間は上の帯を下へ延ばして広げる。
    * 行の下を回る道は上の行から測って置くので、下の行を下げれば道と下の行の間が空く。
    * 名前を置く所は線に沿って `LOOK.label.search` ずつずらして探すので、置ける所の幅が 0 だと探す所が当たらない。ずらす 1 回分を足しておく
    */
@@ -506,11 +511,13 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
       const key = `label:${at}`;
       if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + 2 * Math.ceil(short)));
     }
-    const from = slots.get(edge.from);
-    const to = slots.get(edge.to);
-    if (!from || !to || from.group !== to.group || from.col !== to.col || Math.abs(from.row - to.row) !== 1) return;
-    const row = Math.min(from.row, to.row);
-    const next = rowSpan.get(`${from.group}:${row + 1}`) as Room;
+    // 線が結ぶ上の箱と下の箱。同じ帯の続く行か、続く帯の最後の行と最初の行を結ぶ線だけを見る
+    const [m, n] = [slots.get(edge.from), slots.get(edge.to)];
+    if (!m || !n || m.col !== n.col) return;
+    const topOf = (slot: Slot): number => (rowSpan.get(`${slot.group}:${slot.row}`) as Room).top;
+    const [upper, lower] = topOf(m) <= topOf(n) ? [m, n] : [n, m];
+    const next = upper.group === lower.group ? upper.row + 1 === lower.row : upper.group + 1 === lower.group && upper.row === (bands[upper.group]?.rows ?? 0) - 1 && lower.row === 0;
+    if (!next) return;
     const [lx0, lx1] = right ? [x + side, x + side + w] : [x - side - w, x - side];
     let lowest = Number.NEGATIVE_INFINITY;
     for (const [p, q] of segments) {
@@ -518,8 +525,33 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
       if (Math.min(Math.max(p[0], q[0]), lx1) - Math.max(Math.min(p[0], q[0]), lx0) <= 0) continue;
       lowest = Math.max(lowest, p[1]);
     }
-    const short = lowest + side + h + LOOK.gap + LOOK.label.search - next.top;
-    const key = `label-row:${from.group}:${row}`;
+    const short = lowest + side * 2 + h + LOOK.gap + LOOK.label.search - topOf(lower);
+    const key = `label-row:${upper.group}:${upper.row}`;
+    if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + Math.ceil(short)));
+  };
+  /**
+   * 同じ行の2つの箱をまっすぐ結ぶ横の線 `edge` の脇に名前を置く間を空ける (#3552)。`toward` は名前を置く側、`w` は名前の札の幅。
+   * 名前の側の、行の下か上を回る道が、名前と自分の線の間の 2 倍より名前に近い時は、その道を行から離す。
+   * 行の下か上を回る道は、行の間の真ん中か帯の縁から測って置くので、名前の側の道だけを動かせる
+   */
+  const roomAlong = (edge: SceneEdge, toward: "above" | "below", lines: Point[][]): void => {
+    const slot = slots.get(edge.from);
+    const [a, b] = edge.points as [Point, Point];
+    if (!slot || edge.points.length !== 2 || Math.abs(a[1] - b[1]) > 0.5) return;
+    const span = rowSpan.get(`${slot.group}:${slot.row}`) as Room;
+    const gap = LOOK.label.offset - LOOK.label.h / 2;
+    // 名前の札の外の縁から、名前と自分の線の間の 2 倍離す
+    const reach = gap * 3 + LOOK.label.h;
+    const [x0, x1] = [Math.min(a[0], b[0]), Math.max(a[0], b[0])];
+    let short = 0;
+    for (const line of lines)
+      for (let k = 1; k < line.length; k++) {
+        const [p, q] = [line[k - 1] as Point, line[k] as Point];
+        if (Math.abs(p[1] - q[1]) > 0.5 || Math.min(Math.max(p[0], q[0]), x1) - Math.max(Math.min(p[0], q[0]), x0) <= 0) continue;
+        if (toward === "below" ? p[1] <= span.bottom : p[1] >= span.top) continue;
+        short = Math.max(short, toward === "below" ? a[1] + reach - p[1] : p[1] - (a[1] - reach));
+      }
+    const key = `label-lane:${slot.group}:${slot.row}:${toward}`;
     if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + Math.ceil(short)));
   };
   const labels: SceneLabel[] = [];
@@ -545,8 +577,12 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
       { hard: boxes, soft, touch: seen, lines, nearest: true },
     );
     labels.push(label);
-    const toward = side ?? "right";
-    if (!below && vertical && (toward === "left" || toward === "right") && !nearestLine(label, edge.points, lines)) roomBeside(edge, a[0], [a[1], b[1]], w, toward === "right", lines);
+    // 名前の脇に自分の線より近い線が残る時は、縦の線なら列か行の間を、横の線なら行を回る道との間を広げて置き直す
+    const toward = side ?? (vertical ? "right" : "above");
+    if (!below && !nearestLine(label, edge.points, lines)) {
+      if (vertical && (toward === "left" || toward === "right")) roomBeside(edge, a[0], [a[1], b[1]], w, toward === "right", lines);
+      if (!vertical && (toward === "above" || toward === "below")) roomAlong(edge, toward, lines);
+    }
   }
 
   const layout: Layout = { kind: "architecture", width: 0, height: 0, regions, boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths: [], ends: [] };

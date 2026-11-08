@@ -747,12 +747,13 @@ export interface Obstacles {
 const besideReach = (offset: number): number => Math.max(offset - LOOK.label.h / 2, LOOK.label.side) + LOOK.label.h;
 
 /**
- * 名前の札 `rect` が自分の線 `own` の脇に在り、`lines` のどの線も自分の線より近くないか (#3552)。
- * 別の線に乗るか、自分の線より別の線の近くに在る名前は、その線の名前に読める
+ * 名前の札 `rect` が自分の線 `own` の脇に在り、`lines` のどの線も、札から自分の線までの `apart` 倍より近くないか (#3552)。
+ * 別の線に乗るか、自分の線より別の線の近くに在る名前は、その線の名前に読める。
+ * 2つの線の間の真ん中に近い名前も、どちらの線の名前か読めないので、置く処理は初めに 2 倍離れた所を探す
  */
-export function nearestLine(rect: Rect, own: Point[], lines: Point[][], offset: number = LOOK.label.offset): boolean {
+export function nearestLine(rect: Rect, own: Point[], lines: Point[][], offset: number = LOOK.label.offset, apart = 1): boolean {
   const gap = lineGap(own, rect);
-  return gap <= besideReach(offset) && lines.every((line) => lineGap(line, rect) >= gap);
+  return gap <= besideReach(offset) && lines.every((line) => lineGap(line, rect) >= gap * apart);
 }
 
 export const labelStyle = (text: string) => (hasWide(text) ? TYPE.labelJa : TYPE.label);
@@ -809,10 +810,12 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
     }
     return undefined;
   };
-  // `nearest` の時は、脇で自分の線が最も近い所、脇で `lines` を横切らない所、`lines` を見ない所の順に探す。最後は脇に限らない (#3552)
+  // `nearest` の時は、脇で別の線が自分の線の 2 倍より離れた所、脇で自分の線が最も近い所、脇で `lines` を横切らない所、
+  // `lines` を見ない所の順に探す。最後は脇に限らない (#3552)
   const beside = (rect: Rect): boolean => lineGap(request.points, rect) <= besideReach(offset);
   const found = obstacles.nearest
-    ? (find((rect) => free(rect) && across(rect) && nearestLine(rect, request.points, lines, offset), h) ??
+    ? (find((rect) => free(rect) && across(rect) && nearestLine(rect, request.points, lines, offset, 2), h) ??
+      find((rect) => free(rect) && across(rect) && nearestLine(rect, request.points, lines, offset), h) ??
       find((rect) => free(rect) && across(rect) && beside(rect), h) ??
       find(free, searchMax))
     : find((rect) => free(rect) && across(rect), searchMax);

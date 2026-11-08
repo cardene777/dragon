@@ -11,7 +11,7 @@
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
  * 別々の箱へ向かう2本の線が同じ道に重なって走るのも同じ崩れに数える (#3552)。
  * 同じ箱か commit の同じ所から出る2本の線が重なって走り、その先で分かれるのも同じ崩れに数える (#3547)。
- * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
+ * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。名指す線より別の線の近くに在る線の名前も、離れた名前に数える (#3552)。
  * 線の名前の札が、名指す線とは別の線に乗るもの (`label-on-line`、#3552) も拾う。札が乗った線の名前に読めるため。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
@@ -501,9 +501,20 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   }
 
   // 線の名前と流れた量の札。配管の図の札は段ごとに置き直すので、同じ札と線の組が続く段で離れている時は最初の段の 1 件にする
+  // 札の近くに、名指す線より近い別の線が在る時も離れた札に数える (#3552)。間が上限より狭くても、札は近い線の名前に読める。
+  // 比べるのは札と同じ止め絵に見えている線で、札に乗る線 (`label-on-line` が数える) は比べない。名指す線と同じ道をもう一度引いた線は、間が同じなので近くならない。
+  // 配管の図の流れた量の札は並んだ管の間に置くので比べない
+  const nearer = (tag: Tag): boolean => {
+    const ink = layout?.kind === "pipe" ? undefined : inks.find((i) => i.rect === tag.rect);
+    if (!ink) return false;
+    const own = lineGap(tag.points, tag.rect);
+    return traces.some(
+      (trace) => !crossesRect(trace.points, tag.rect, BITE) && firstSeen(ink, trace) !== undefined && lineGap(trace.points, tag.rect) < own,
+    );
+  };
   const offLine = new Set<string>();
   for (const tag of (layout === undefined ? [] : tagsOf(layout)).sort((a, b) => a.step - b.step)) {
-    if (lineGap(tag.points, tag.rect) <= tag.near) continue;
+    if (lineGap(tag.points, tag.rect) <= tag.near && !nearer(tag)) continue;
     const key = JSON.stringify([tag.text, tag.line]);
     if (offLine.has(key)) continue;
     offLine.add(key);
