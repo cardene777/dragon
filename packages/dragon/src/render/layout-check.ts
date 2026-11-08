@@ -4,7 +4,7 @@
  * 崩れの数え方は `breaks.ts` が持つ。ここは幅ごとに描いて突き合わせ、携帯の幅でだけ出る崩れに幅を付ける。
  * 列の図と試す図と配管の図は幅で組み方を変えるので、既定の幅で崩れない図も携帯の幅で崩れることがある。
  */
-import { FIGURE_TEXT } from "../figure-text";
+import { capital, FIGURE_TEXT, spaced } from "../figure-text";
 import { type ParseOptions, parseNotation } from "../parser";
 import type { Diagram } from "../schema";
 import { tokenize } from "../tokenize";
@@ -12,7 +12,7 @@ import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { boxOutline } from "../blocks/box/draw";
 import type { Point } from "../layout/scene";
-import { type BreakFinder, breakKey, findBreaks, type LayoutBreak, type LayoutPart } from "./breaks";
+import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
 
 /**
@@ -59,6 +59,21 @@ export function checkLayoutText(text: string, options: ParseOptions = {}): Layou
 /** 記法 `text` の段を始める `step` の行の番号 (1 から数える) を段の順に */
 export const stepLines = (text: string): number[] => tokenize(text).flatMap((line) => (line.text.split(/\s/u)[0] === "step" ? [line.line] : []));
 
+/**
+ * 図の枠からはみ出す部品を知らせる文 (#3515)。枠のどの端かと、部品が枠の端からはみ出す。
+ * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと最初に読む量の上限を超える
+ */
+const FRAME_TEXT: Record<NotationLang, { edge: (side: FrameSide) => string; out: (part: string, edge: string) => string }> = {
+  ja: {
+    edge: (side) => `図の枠の${{ left: "左端", right: "右端", top: "上端", bottom: "下端" }[side]}`,
+    out: (part, edge) => `${spaced(part)}が${edge}からはみ出す`,
+  },
+  en: {
+    edge: (side) => `the ${side} edge of the diagram frame`,
+    out: (part, edge) => capital(`${part} sticks out of ${edge}`),
+  },
+};
+
 /** 崩れを知らせる文。段の番号は文に含めない (命令の行が頭に段を書く) */
 export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG): string {
   const t = FIGURE_TEXT[lang];
@@ -81,7 +96,7 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
       case "envelope":
         return t.envelope;
       case "frame":
-        return t.frameEdge(part.side);
+        return FRAME_TEXT[lang].edge(part.side);
     }
   };
   const [a, b2] = b.parts;
@@ -93,7 +108,7 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         : b.kind === "badges-close"
           ? t.tooClose(name(a), name(b2))
           : b.kind === "part-outside-frame"
-            ? t.outOfFrame(name(a), name(b2))
+            ? FRAME_TEXT[lang].out(name(a), name(b2))
             : t.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

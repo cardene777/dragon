@@ -53,9 +53,6 @@ export interface FigureText {
   sticksOut: (part: string, box: string) => string;
   tooClose: (a: string, b: string) => string;
   runClose: (a: string, b: string) => string;
-  /** 図の枠からはみ出す部品の崩れ (#3515)。枠のどの端か、部品が枠の端からはみ出す */
-  frameEdge: (side: "left" | "right" | "top" | "bottom") => string;
-  outOfFrame: (part: string, edge: string) => string;
   atWidth: (width: number) => string;
   /**
    * 時間軸の図 (#3165)。時刻の字の単位、拡大の帯の名前、目盛りの番号の範囲の書き方、列の上の目盛りの番号と時刻の間、
@@ -101,9 +98,9 @@ export interface FigureText {
 }
 
 /** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
-const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
+export const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
 /** 英語の文の頭を大文字にする */
-const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+export const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
   ja: {
@@ -137,8 +134,6 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     sticksOut: (part, box) => `${spaced(part)}が${box}の形からはみ出す`,
     tooClose: (a, b) => `${spaced(a)}と${spaced(b)}が近すぎる`,
     runClose: (a, b) => `${spaced(a)}と${spaced(b)}が並んで近すぎる`,
-    frameEdge: (side) => `図の枠の${{ left: "左端", right: "右端", top: "上端", bottom: "下端" }[side]}`,
-    outOfFrame: (part, edge) => `${spaced(part)}が${edge}からはみ出す`,
     atWidth: (width) => `(幅 ${width} の時)`,
     timeUnits: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
     zoom: "拡大",
@@ -198,8 +193,6 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     sticksOut: (part, box) => capital(`${part} sticks out of the shape of ${box}`),
     tooClose: (a, b) => capital(`${a} and ${b} are too close`),
     runClose: (a, b) => capital(`${a} and ${b} run too close side by side`),
-    frameEdge: (side) => `the ${side} edge of the diagram frame`,
-    outOfFrame: (part, edge) => capital(`${part} sticks out of ${edge}`),
     atWidth: (width) => `(at width ${width})`,
     timeUnits: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
     zoom: "Zoom",
