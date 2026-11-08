@@ -50,6 +50,8 @@ const LANE_OVERLAP = join(FIXTURES, "lane-overlap.dragon");
 const SHAPES = join(FIXTURES, "shapes.dragon");
 /** 箱を1列に縦に並べ、段4の APIサーバー → 決済代行 が列の右を縦に回る、Claude が評価で描いた図。段2の名前の右を段4の線が回る */
 const BESIDE_DETOUR = join(FIXTURES, "label-beside-detour.dragon");
+/** 1つの箱の下に3本の線が集まる図 (#3549)。段1の`受け付け → 通知`の右の脇の近くを、段2の`画面 → 通知`が横に通る */
+const CROWD_SIDE = join(process.cwd(), "packages/dragon/test/fixtures/crowd-side.dragon");
 
 /** 1行に並べる4つの箱。段1から段3の線が`a`から`d`を順に右へ並べる */
 const ROW = ["box a as A", "box b as B", "box c as C", "box d as D"];
@@ -79,15 +81,16 @@ const MIXED = notation("行の間で戻る線と進む線と帰りの線を混�
 
 /**
  * 1行目の4つの箱の下に、`a`と`c`と`d`の下の箱を置く図。段7の`A → F`は行の間を回って下り、
- * 段8の`G → B`は`D`に塞がれて真上へ行けず、`F`に塞がれて横へも行けないので、同じ行の間を回って上る。2本の道は`B`から`F`までの区間で重なる
+ * 段8の`G → B`は`D`に塞がれて真上へ行けず、`F`に塞がれて横へも行けないので、同じ行の間を回って上る。2本の道は`B`から`F`までの区間で重なる。
+ * 下の行へ下りる段4から段6の線には名前を付けない。付けると、名前を2本の道の下に置くために行の間が広がり、2本の道を離す間と区別できない
  */
 const BETWEEN_ROWS = notation("行の間で下りる線と上る線が重なる", [...ROW, "box e as E", "box f as F", "box g as G"], [
   "a -> b: 一",
   "b -> c: 二",
   "c -> d: 三",
-  "a -> e: 四 [side: right]",
-  "c -> f: 五 [side: right]",
-  "d -> g: 六 [side: right]",
+  "a -> e [side: right]",
+  "c -> f [side: right]",
+  "d -> g [side: right]",
   "a -> f: 七",
   "g -> b: 八",
 ]);
@@ -278,8 +281,7 @@ describe("構成図の線の名前は自分の線の脇に置き、別の線に�
     expect(strayLabels(layout), "自分の線の脇に無いか、別の線の方が近い名前").toEqual([]);
     expect(problems(LANE_OVERLAP, text, "label-on-line"), "別の線に乗る名前の知らせ").toEqual([]);
     // 行へ戻る線と進む線と帰りの線を混ぜた図、行の間で下りる線と上る線、同じ列の間を縦に回る線、箱の同じ所へ入る線と出る線の図でも、
-    // 名前は別の線に乗らず、自分の線から離れない。並べて回る道と並べて出す線の間 (`APART.line`) は札より狭いので、その間の名前は
-    // 自分の線より隣の線の近くに置くことがあり、ここでは近さを比べない
+    // 名前は別の線に乗らず、自分の線から離れない
     for (const [name, mixed] of [
       ["mixed.dragon", MIXED],
       ["between-rows.dragon", BETWEEN_ROWS],
@@ -292,6 +294,20 @@ describe("構成図の線の名前は自分の線の脇に置き、別の線に�
         `${name} の、別の線に乗るか自分の線から離れた名前の知らせ`,
       ).toEqual([]);
     }
+    // 混ぜた図の段6の名前は、並べて回る道の間に在る。道の間 (`APART.line`) は札より狭いので、自分の線より隣の道の近くに置くことがあり、近さを比べない。
+    // ほかの3つの図では、下の行へ下りる線の脇を行の間を回る道が塞ぐ時も、行の間を広げて自分の線が最も近い所に置く
+    for (const [name, mixed] of [
+      ["between-rows.dragon", BETWEEN_ROWS],
+      ["column.dragon", COLUMN],
+      ["in-out-side.dragon", IN_OUT_SIDE],
+    ] as const)
+      expect(strayLabels(laid(mixed)), `${name} の、自分の線の脇に無いか、別の線の方が近い名前`).toEqual([]);
+    // 中ほどの脇が別の線に乗らないだけで近い時は、そこを採らず、自分の線が最も近い所を探す。
+    // 3本の線が集まる図の段1の名前は、中ほどの右の脇が段2の線の横の区間の 2.5px 下に在る
+    const crowd = laid(readFileSync(CROWD_SIDE, "utf8"));
+    const first = crowd.labels.filter((l) => l.step === 0);
+    expect(first.map((l) => l.text), "3本の線が集まる図の段1の名前").toEqual(["送る"]);
+    expect(strayLabels({ edges: crowd.edges, labels: first }), "段1の名前の、自分の線の脇に無いか、別の線の方が近い所").toEqual([]);
   });
 
   it("lane-label-room-beside-detour", () => {
