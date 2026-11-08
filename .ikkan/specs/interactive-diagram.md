@@ -169,3 +169,14 @@
 | 英字の名札の試す図を日本語で描いた時、記録の番号が「記録1」、止まった節の行が「gateで止まった」、待ち行列の案内が「次は上から1件」と出る | `pnpm exec vitest run packages/dragon/test/try-text-ja.test.ts`の検査`try-ja-draws-labels-without-space`が通る | #3509 |
 | 常に、英語の試す図の記録の番号、待ち行列の案内、止まった節の行、止まった段の本文が今と同じ字で出る | `pnpm exec vitest run packages/dragon/test/try-text-ja.test.ts`の検査`try-text-en-keeps-spaces`が通る | #3509 |
 | 英語と日本語の変更履歴の`## [0.67.0]`の節が`(#3509)`の項を持ち、その項が空白を名指し、Unreleased にこの項が残らない | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-67-0-ja-space`が通る | #3509 |
+| 見本`tx-block`を日本語と英語で、既定の幅と幅390と幅324で描いた時、段1から段4のどの止め絵でも、網の線がノードの名前の字を横切らない | `pnpm exec vitest run packages/dragon/test/try-route-lines.test.ts`の検査`try-route-lines-clear-node-names`が通る | #3524 |
+| 網の道が送る側でない節から始まる時、道の次の節を前の節より右の列に置く (見本`tx-block`の`node-3`は`node-1`より右に在る) | `pnpm exec vitest run packages/dragon/test/try-route-lines.test.ts`の検査`try-route-path-steps-right`が通る | #3524 |
+| 上下へ並べる網の列の節を、左の列で線がつながる節の段の平均の順に並べ、見本`tx-block`の網の線どうしが交わらない | `pnpm exec vitest run packages/dragon/test/try-route-lines.test.ts`の検査`try-route-links-do-not-cross`が通る | #3524 |
+| 試す図の網の線がノードの名前を横切る時、描いた結果の字の重なり (`overlaps`) に、その線の両端の節と横切られる名前の組が出る | `pnpm exec vitest run packages/dragon/test/try-route-lines.test.ts`の検査`try-route-overlaps-name-line-across-name`が通る | #3524 |
+| 試す図で線がノードの名前を横切る時、`dragon check --layout`が線が字を横切る崩れの`warning`の行を段の`step`の行に出し、行は線の両端の節と横切られる名前を名指し、`--json`は種類`line-crosses-text`と線 (`line`) と字 (`text`) の2つの物を持つ | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-line-across-node-name`が通る | #3524 |
+| skill の崩れの参照 (`references/layout.md`) が種類`line-crosses-text`を表に持つ | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-layout-fixes-and-issue-route`が通る | #3524 |
+| 英語と日本語の変更履歴の`## [0.67.0]`の節が`(#3524)`の項を持ち、その項がノードの名前を名指し、Unreleased にこの項が残らない | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-67-0-try-line-name`が通る | #3524 |
+| 常に、見本が出す崩れは見本に今ある崩れの一覧に載った物だけで、一覧に線が字を横切る崩れの行を足さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3524 |
+| 常に、枠324pxで描いた見本`tx-block`は網の節を枠に収め、字の重なりを持たない | `pnpm exec vitest run packages/dragon/test/try-narrow.test.ts`の検査`try-narrow-route-fits`が通る | #3524 |
+| 常に、細い組みの網の名札どうしは重ならず、節の丸に掛からず、ぶつからない名札は節の真下に描く | `pnpm exec vitest run packages/dragon/test/interactive-gate-record.test.ts`の検査`try-route-labels-clear-narrow`が通る | #3524 |
+| 常に、見本帳が最初に読む script は崩れの種類の名前を持たず、上限の大きさに収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-layout-check`と`page-bundle-within-budget`が通る | #3524 |
