@@ -10,6 +10,7 @@
  *
  * 評価の囲いは npm に届かず、プラグインの置き場の外の file も読めない。そこで、プラグインの写しを作り、
  * この repo で build した `dist/cli.cjs` を写しの中に置いて、それを呼ぶ `dragon` を PATH の頭に足して回す。
+ * 囲いの中では Chromium が起きないので、PNG と GIF と MP4 の書き出しは囲いの中では通らない (#3513)。
  *
  * 1 回の run が通るのは、ケースの判定が全て通り、かつケースの印 (`prompt.md` の `tags`) ごとの次の確かめが通った時。
  *
@@ -19,6 +20,8 @@
  *   2 つともこの repo の `dragon check` (見本は `--blocks` で定義を渡す) が通り、偽の `gh` に `pr create` を `--repo cardene777/dragon` と
  *   `feat:` で始まる題で渡し、`pr merge` を渡さず、PR の本文が `pnpm verify` に触れているかを見る (#3508)。
  *   写しの repo は作業場所へ下ごしらえ (`scaffold.sh`) が写すので、評価を `--scaffold` 付きで回す。
+ * - `issue` の印のケースは、`.dragon` を保存し、偽の `gh` に `issue create` を `--repo cardene777/dragon` と `feat:` で始まる題で渡し、
+ *   本文の dragon の囲みの記法がこの repo の `dragon check` を通り、`dragon export` の後に Issue を立て、`pr create` を渡していないかを見る (#3513)。
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -37,7 +40,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import { BASE_TAG, GH_LOG, makeStandIn } from "./plugin-eval-stand-in.mjs";
+import { BASE_TAG, GH_LOG, GH_TMP_DIR, ghBody, makeStandIn } from "./plugin-eval-stand-in.mjs";
 
 const ROOT = process.cwd();
 const PLUGIN = join(ROOT, "plugins/dragon");
@@ -78,6 +81,18 @@ function lastReply(tracePath) {
     )
     .filter((text) => text.trim() !== "");
   return said.at(-1) ?? "";
+}
+
+/** run の中で Claude が Bash に渡した命令の字を、渡した順に */
+function bashCommands(tracePath) {
+  return readFileSync(tracePath, "utf8")
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => JSON.parse(line))
+    .filter((entry) => entry.type === "assistant")
+    .flatMap((entry) => entry.message?.content ?? [])
+    .filter((part) => part.type === "tool_use" && part.name === "Bash")
+    .map((part) => String(part.input?.command ?? ""));
 }
 
 /** 保存した図 `file` の崩れの段の番号 (1 から数える) */
@@ -144,6 +159,47 @@ function checkWithRepoCli(args) {
   return ran.status === 0 ? undefined : `dragon check ${args.join(" ")} の終わり方 ${ran.status}: ${(ran.stdout + ran.stderr).trim()}`;
 }
 
+/** 偽の `gh` の記録を全て読む。写しの repo の `.git` と一時の dir の下の 2 つの置き場を見る。`count` は記録の何行目か */
+function ghCallsUnder(base) {
+  const logs = [...globSync(`sealed/**/.git/${GH_LOG}`, { cwd: base }), ...globSync(`sealed/**/${GH_TMP_DIR}/${GH_LOG}`, { cwd: base })];
+  return logs.flatMap((log) => {
+    const dir = dirname(join(base, log));
+    return readFileSync(join(base, log), "utf8")
+      .trimEnd()
+      .split("\n")
+      .filter((line) => line !== "")
+      .map((line, index) => ({ args: JSON.parse(line), dir, count: index + 1 }));
+  });
+}
+
+/** 合う種類の無い図を描いてから Issue を立てるケースの確かめ (#3513)。通らない理由と、Issue の題を返す */
+function judgeIssue(base, tracePath) {
+  const why = [];
+  if (globSync("sealed/**/*.dragon", { cwd: base }).length === 0) why.push("保存した .dragon が無い");
+  // 描いて見せてから頼む。書き出しより先に Issue を立てた run は通さない
+  const commands = existsSync(tracePath) ? bashCommands(tracePath) : [];
+  const exported = commands.findIndex((command) => /dragon[^\s"]*\s+export\b/u.test(command));
+  const filed = commands.findIndex((command) => /\bgh\s+issue\s+create\b/u.test(command));
+  if (filed !== -1 && (exported === -1 || exported > filed)) why.push("dragon export で書き出す前に gh issue create を呼んだ");
+  const calls = ghCallsUnder(base);
+  if (calls.some(({ args }) => args[0] === "pr" && args[1] === "create")) why.push("gh pr create を呼んだ");
+  const last = calls.filter(({ args }) => args[0] === "issue" && args[1] === "create").at(-1);
+  if (last === undefined) return { why: [...why, "gh issue create を呼んでいない"], note: "" };
+  const target = optionValue(last.args, ["--repo", "-R"]);
+  if (target !== "cardene777/dragon") why.push(`gh issue create の宛先が cardene777/dragon でない: ${target ?? "なし"}`);
+  const title = optionValue(last.args, ["--title", "-t"]);
+  if (!title?.startsWith("feat:")) why.push(`Issue の題が feat: で始まらない: ${title ?? "なし"}`);
+  const bodyPath = join(last.dir, ghBody(last.count));
+  const body = existsSync(bodyPath) ? readFileSync(bodyPath, "utf8") : optionValue(last.args, ["--body", "-b"]) ?? "";
+  const fence = /^```dragon\n([\s\S]*?)^```/mu.exec(body)?.[1];
+  if (fence === undefined) why.push("Issue の本文に試した記法の dragon の囲みが無い");
+  else {
+    const ran = spawnSync(process.execPath, [CLI, "check", "-"], { input: fence, encoding: "utf8" });
+    if (ran.status !== 0) why.push(`Issue の本文の記法が dragon check を通らない: ${(ran.stdout + ran.stderr).trim()}`);
+  }
+  return { why, note: `Issue の題 ${title ?? "なし"}` };
+}
+
 /** `dir` の下の file の、`dir` からの path と中身。`.git` と `node_modules` の下は数えない */
 function treeOf(dir) {
   const files = new Map();
@@ -204,7 +260,7 @@ function judgePr(base, template) {
     const target = optionValue(last.args, ["--repo", "-R"]);
     if (target !== "cardene777/dragon") why.push(`gh pr create の宛先が cardene777/dragon でない: ${target ?? "なし"}`);
     if (!title?.startsWith("feat:")) why.push(`PR の題が feat: で始まらない: ${title ?? "なし"}`);
-    const bodyPath = join(gitDir, `gh-pr-body-${last.index + 1}.md`);
+    const bodyPath = join(gitDir, ghBody(last.index + 1));
     const body = existsSync(bodyPath) ? readFileSync(bodyPath, "utf8") : optionValue(last.args, ["--body", "-b"]) ?? "";
     if (!body.includes("pnpm verify")) why.push("PR の本文が pnpm verify に触れない");
   }
@@ -333,12 +389,13 @@ for (const evalCase of result.cases) {
     const judged = [
       ...(tags.includes("layout") ? [judgeLayout(base, reply)] : []),
       ...(tags.includes("pr") ? [judgePr(base, standIn.repo)] : []),
+      ...(tags.includes("issue") ? [judgeIssue(base, run.tracePath)] : []),
     ];
     const failedGraders = (run.graders ?? [])
       .filter((g) => !g.passed)
       .map((g) => `${g.name} (${g.explanation})`);
     const why = [...failedGraders, ...judged.flatMap((j) => j.why)];
-    if (judged.length === 0) why.push(`確かめ方の印 (layout か pr) が無い: [${tags.join(", ")}]`);
+    if (judged.length === 0) why.push(`確かめ方の印 (layout か pr か issue) が無い: [${tags.join(", ")}]`);
     const ok = run.passed && why.length === 0;
     if (ok) passed++;
     const note = judged.map((j) => j.note).join(" / ");

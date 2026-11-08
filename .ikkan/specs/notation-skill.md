@@ -47,3 +47,14 @@
 | 崩れの検査の評価 `layout-payment` の記録が、今のケースの指紋と合い、3 回とも通っている | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`layout-payment`が通る | #3508 |
 | skill の参照 `blocks.md` が、図の頭の定義の書き方と共有のブロック集の置き場と PR の作り方を書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-blocks-reference-covers-define-share-and-pr`が通る | #3508 |
 | 共有のブロック集の全ての定義が読め、それぞれ見本を 1 つ持つ | `pnpm exec vitest run packages/dragon/test/shared-blocks.test.ts`の検査`shared-blocks-read-and-have-examples`が通る | #3508 |
+| skill の本文 `SKILL.md` の図の種類を選ぶ節が、9 種類のどれにも合わない時は一番近い種類で書いて `dragon check` と `dragon check --layout` を通し、`dragon export` で書き出して利用者に見せ、描けなかった所を挙げ、Issue を立てるかは利用者が決めると書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-no-fitting-kind-draws-first`が通る | #3513 |
+| ブロックの参照 `blocks.md` の新しい図の種類の Issue を立てる段落が、立てる前に利用者に聞くことと、本文に描きたい動きと試した記法 (dragon の囲み) と描けなかった所を載せることを書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-new-kind-issue-carries-attempt`が通る | #3513 |
+| 評価のケース `new-kind-issue` を `node scripts/plugin-eval-record.mjs new-kind-issue` で 3 回回した時、3 回とも、円グラフを頼まれた AI が `.dragon` を保存し、`dragon check` と `dragon export` を回し、偽の `gh issue create` に渡した本文に dragon の囲みがあり、`gh pr create` を呼ばずに終えた記録が `plugins/dragon/evals/record.json` にケースの指紋と一緒に残る | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`new-kind-issue`が通る | #3513 |
+| skill の本文 `SKILL.md` が、行の数の上限に収まる | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-main-stays-short`が通る | #3513 |
+| skill の本文と参照の dragon の囲みが、全て記法として読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-fences-parse`が通る | #3513 |
+| skill の本文と参照の link が、全て在る file を指す | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-links-resolve`が通る | #3513 |
+| skill の本文と参照が英語で書かれている | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-written-in-english`が通る | #3513 |
+| skill の参照 `blocks.md` が、図の頭の定義の書き方と共有のブロック集の置き場と PR の作り方を書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-blocks-reference-covers-define-share-and-pr`が通る | #3513 |
+| ブロックを足して PR を出す評価 `block-pr` の記録が、今のケースの指紋と合い、3 回とも通っている | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`block-pr`が通る | #3513 |
+| 崩れの検査の評価 `layout-bridge` の記録が、今のケースの指紋と合い、3 回とも通っている | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`layout-bridge`が通る | #3513 |
+| 崩れの検査の評価 `layout-payment` の記録が、今のケースの指紋と合い、3 回とも通っている | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`layout-payment`が通る | #3513 |

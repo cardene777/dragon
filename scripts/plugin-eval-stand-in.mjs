@@ -7,9 +7,10 @@
  * push の先は repo の `.git` の中の裸の repo にする。写しの repo を別の場所へ写しても、`.git` ごと動く。
  *
  * 偽の `gh` は GitHub へ通信せず、受けた引数を 1 回 1 行の JSON の配列で、呼んだ場所の repo の `.git/gh-calls.jsonl` に書く。
+ * 写しの repo の外で呼んだ時は、一時の dir (`TMPDIR`) の下の `dragon-eval-gh/gh-calls.jsonl` に書く (#3513)。
  * 偽の `gh` の隣には、評価の囲いの中でも動く本物の git の入口も置く。
- * `--body-file` で渡された本文も、消されても読めるよう `.git/gh-pr-body-<回>.md` に写す。
- * `gh pr create` には PR の URL を返し、ほかの命令には何も返さずに終わり方 0 で終わる。
+ * `--body-file` で渡された本文も、消されても読めるよう同じ dir の `gh-body-<回>.md` に写す。
+ * `gh pr create` には PR の URL を、`gh issue create` には Issue の URL を返し、ほかの命令には何も返さずに終わり方 0 で終わる。
  *
  *   import { makeStandIn } from "./plugin-eval-stand-in.mjs";
  *   const { repo, bin, ghLog } = makeStandIn({ root: process.cwd(), dir });
@@ -29,27 +30,36 @@ const COPIED = [
 export const GH_LOG = "gh-calls.jsonl";
 /** 写しの repo の最初の commit に付ける印。足した file をこの印からの差で数える */
 export const BASE_TAG = "stand-in-base";
+/** 写しの repo の外で偽の `gh` を呼んだ時に書く dir。一時の dir (`TMPDIR`) からの path (#3513) */
+export const GH_TMP_DIR = "dragon-eval-gh";
+/** 偽の `gh` が受けた本文を写す file の名前。`<回>` は記録の何行目か */
+export const ghBody = (count) => `gh-body-${count}.md`;
 /** 偽の `gh pr create` が返す PR の URL */
 const PR_URL = "https://github.com/cardene777/dragon/pull/1";
+/** 偽の `gh issue create` が返す Issue の URL */
+const ISSUE_URL = "https://github.com/cardene777/dragon/issues/1";
 
 /**
  * 偽の `gh` の中身。node は版を切り替える道具の shim を通さずに直に指す。
- * 書く先は、今の dir から上へ辿って最初に在る写しの repo の `.git` で、git は呼ばない (評価の囲いの中では git が動かないことがある)
+ * 書く先は、今の dir から上へ辿って最初に在る写しの repo の `.git` で、git は呼ばない (評価の囲いの中では git が動かないことがある)。
+ * 写しの repo が無い時は一時の dir の下に書き、一時の dir も無い時は写しを作った dir に書く
  */
 function fakeGh(fallback) {
   const record = [
-    "const { appendFileSync, copyFileSync, existsSync, readFileSync } = require('node:fs');",
+    "const { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync } = require('node:fs');",
     "const { dirname, join } = require('node:path');",
     "const [fallback, ...args] = process.argv.slice(1);",
-    "let dir = fallback;",
+    `let dir = process.env.TMPDIR ? join(process.env.TMPDIR, '${GH_TMP_DIR}') : fallback;`,
     `for (let at = process.cwd(); ; at = dirname(at)) { if (existsSync(join(at, '.git/refs/tags/${BASE_TAG}'))) { dir = join(at, '.git'); break; } if (dirname(at) === at) break; }`,
+    "mkdirSync(dir, { recursive: true });",
     "const log = join(dir, process.env.DRAGON_EVAL_GH_LOG_NAME);",
     "appendFileSync(log, JSON.stringify(args) + '\\n');",
     "const at = args.findIndex((a) => a === '--body-file' || a === '-F');",
     "const body = at >= 0 ? args[at + 1] : args.find((a) => a.startsWith('--body-file='))?.slice('--body-file='.length);",
     "const count = readFileSync(log, 'utf8').trimEnd().split('\\n').length;",
-    "if (body !== undefined && existsSync(body)) copyFileSync(body, join(dir, 'gh-pr-body-' + count + '.md'));",
+    `if (body !== undefined && existsSync(body)) copyFileSync(body, join(dir, ${JSON.stringify(ghBody("COUNT"))}.replace('COUNT', String(count))));`,
     `if (args[0] === 'pr' && args[1] === 'create') console.log(${JSON.stringify(PR_URL)});`,
+    `if (args[0] === 'issue' && args[1] === 'create') console.log(${JSON.stringify(ISSUE_URL)});`,
   ].join(" ");
   return [
     "#!/bin/sh",

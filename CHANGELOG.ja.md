@@ -22,6 +22,10 @@ dragon DSL の主要変更履歴。
 
   `box` を元にした定義の `block +<名前>` から `end` の間に `icon tabler:building-bridge-2` のような `icon <名前>` の行を書くと、そのブロックの箱は全て絵柄の枠にその絵柄を描く。書ける名前は箱の行の `icon:` と同じで、手描きの絵柄か `tabler:<名前>` を書ける。箱の行に書いた絵柄が定義の絵柄に勝つ。`edge` と `icon` を元にした定義に `icon` を書くとその行で止まり、知らない名前もその行で止まって一番近い名前を挙げる。原本のJSONの `define` も `icon` を持ち、`validateDiagram` はTablerに無い名前を `/define/blocks/<番号>/icon` を指して断る。記法に書き戻すと行も書き戻す。軽い入口は、定義に `icon tabler:` を書いた図か、Tablerの絵柄を持つ共有のブロックを使う図で `loadFor` を待つと、Tablerの塊を読む。読む前にその図を描くと `loadFor` を待つよう告げる誤りで止まる。
 
+- **skillが、どの種類にも合わない図を一番近い種類で描いて見せてから、dragonのrepoに新しい種類を頼む** (#3513)
+
+  利用者が説明したいことに9種類のどれも合わない時、skillは図が見せるべきことを書き出し、一番近い種類で、要る所には足したブロックを使って描き、`dragon check` と `dragon check --layout` を通し、`dragon export` で書き出して (Chromium が無い時は `--format html` で頁に書き出して)、描けなかった所と一緒に絵を利用者に見せるようにした。足りるか、dragonのrepoに新しい種類を頼むかは利用者が決める。`references/blocks.md` の新しい節は、先に利用者に聞き、図が見せるべきことと、試した記法を `dragon` の囲みで、描けなかった所を本文に載せ、`feat:` で始まる題で `gh issue create` を打つと書く。これまでのskillは、新しい種類を頼むとだけ書き、先に描くこともIssueに何を載せるかも書いていなかった。評価のケース `new-kind-issue` は、どの種類も扇で描けない円グラフを頼み、AIがIssueを立てる前に書き出すかを確かめる。
+
 ### Changed
 
 - **見本帳の概要の頁を開いただけでは、Tablerの絵柄の表 (gzipで約225KB) を裏で読まないようにした** (#3505)

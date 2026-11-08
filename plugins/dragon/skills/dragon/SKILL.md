@@ -40,6 +40,11 @@ Pick the kind from what the user wants to explain, then read [notation](referenc
 | `pipe` | One transaction through contracts: calls, balances, stored values, reverts | [pipe](references/kinds/pipe.md) |
 
 When two kinds fit, follow what moves: messages between parties (`sequence`), things flowing between places (`architecture`), one thing changing state (`state`), money and values inside one transaction (`pipe`).
+
+When no kind fits, do not force the explanation into one, and do not open an issue yet.
+Write down what the diagram must show (the parts, what moves, how many steps), write it in the closest kind, add your own blocks where they help (step 8), and run `dragon check` and `dragon check --layout` until they pass.
+Export it (`dragon export <file> --format png`; without Chromium, `--format html` writes a page that opens in a browser), show the user the picture, and name the parts it could not draw.
+Then the user decides whether it is enough or whether to ask the dragon repo for a new kind of diagram through an issue ([blocks](references/blocks.md)).
 Mermaid syntax (`graph TD`, `participant`, `-->|text|`) is not dragon notation. Do not convert it line by line; rewrite it in the notation.
 
 ## 3. Write the diagram
@@ -152,7 +157,7 @@ Keep the `.dragon` file next to any exported image so the diagram can be edited 
 ## 8. When no block fits
 
 If no existing box, line or icon expresses what the explanation needs, define your own block or use a shared one.
-Read [blocks](references/blocks.md). It also covers how to offer a reusable block to the dragon repo.
+Read [blocks](references/blocks.md). It also covers how to offer a reusable block to the dragon repo, and how to ask it for a new kind of diagram.
 
 ## Common mistakes
 
