@@ -242,3 +242,81 @@ describe("試す図の部品を横に並べる書き方の文書 (#3429)", () =>
     expect(readRepo("apps/playground-spa/src/docs/content.ts"), "使い方の頁に side の行が無い").toContain("side ");
   });
 });
+
+/**
+ * 待ち列 passed と記録の列 rejects を横に並べる試す図 (#3506)。関門 gate で止まったチップを rejects に残す。
+ * 書き手の例の段で 3 件を止めるので、最後の段の記録の列は 3 件の記録を持つ。`side` で `side` の行を差し替える (空の並びで持たない)
+ */
+function logSideTry(side: readonly string[] = ["side passed, rejects"]): string {
+  return [
+    "try 記録の列を横に並べる",
+    "route net: you - gate - done [from: you, to: done]",
+    "queue passed",
+    "log rejects",
+    "ask name, ok [into: passed, via: net]",
+    "choose ok: yes, no",
+    "check gate: ok == yes [no: BAD_SIGNATURE, into: rejects]",
+    ...side,
+    "step start",
+    "  say 始める。",
+    "step r1",
+    "  say 1 件目が止まる。",
+    "  ask a1, no",
+    "step r2",
+    "  say 2 件目が止まる。",
+    "  ask a2, no",
+    "step r3",
+    "  say 3 件目が止まる。",
+    "  ask a3, no",
+  ].join("\n");
+}
+
+interface LogPlaced {
+  id: string;
+  w: number;
+  slots: [number, number][];
+}
+
+describe("試す図の記録の列を横に並べる (#3506)", () => {
+  it("interactive-side-accepts-log", () => {
+    const parse = api("parseNotation");
+    const parsed = parse(logSideTry());
+    expect(parsed.ok, `記録の列を書いた side の行を読めない: ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
+    const printed = api("printNotation")(parsed.ok ? parsed.diagram : {});
+    expect(printed.split("\n"), "書き戻した記法が記録の列を書いた side の行を持たない").toContain("side passed, rejects");
+  });
+
+  it("interactive-side-places-log-in-row", () => {
+    const layout = layoutOf(parsedTry(logSideTry()), 740) as SideLayout & { logs?: LogPlaced[] };
+    const passed = partOf(layout, "passed");
+    const rejects = partOf(layout, "rejects");
+    expect(layout.width, "記録の列を横に並べると図の幅が 740 から変わる").toBe(740);
+    expect(Math.abs(passed.y - rejects.y), "同じ行の待ち列と記録の列の上の端のずれ").toBeLessThan(1);
+    expect(overlaps(passed, rejects), "同じ行の待ち列と記録の列が重なる").toBe(false);
+    const log = layout.logs?.find((l) => l.id === "rejects");
+    expect(log, "記録の列の置き場所が無い").toBeDefined();
+    const shown = log?.slots ?? [];
+    expect(shown.length, "記録の列の記録の置き場所の数").toBeGreaterThanOrEqual(3);
+    for (const [n, [x]] of shown.entries())
+      expect(x + (log?.w ?? 0), `記録 ${n + 1} の右の端が記録の列の四角の右の端 ${right(rejects)} より右に出る`).toBeLessThanOrEqual(right(rejects) + 0.5);
+  });
+
+  it("interactive-side-log-stacks-when-narrow", () => {
+    const side = layoutOf(parsedTry(logSideTry()), PHONE);
+    const stacked = layoutOf(parsedTry(logSideTry([])), PHONE);
+    expect(side.arrangement, `枠 ${PHONE}px で縦に組まない`).toBe("stack");
+    expect(side.parts, `枠 ${PHONE}px の記録の列を横に並べた図の部品の四角が、side の行を持たない図と違う`).toEqual(stacked.parts);
+    expect(side.height, `枠 ${PHONE}px の図の高さ`).toBe(stacked.height);
+  });
+
+  it("docs-side-gives-rest-to-log", () => {
+    const line = (path: string, head: string): string => readRepo(path).split("\n").find((l) => l.startsWith(head)) ?? "";
+    const en = line("packages/dragon/README.md", "- `side <part>, <part>, ...`");
+    const ja = line("packages/dragon/README.ja.md", "- `side <部品>, <部品>, ...`");
+    expect(en, "README.md に side の行の説明が無い").not.toBe("");
+    expect(ja, "README.ja.md に side の行の説明が無い").not.toBe("");
+    expect(en, "README.md の side の行の説明が、待ち列の残りの幅を記録の列 (log) にも渡すと書かない").toMatch(/rest goes to the route, chain, and log/u);
+    expect(ja, "README.ja.md の side の行の説明が、待ち列の残りの幅を記録の列にも渡すと書かない").toContain("残りの幅を網と機械の列と記録の列に渡す");
+  });
+});
+
