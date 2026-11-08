@@ -239,6 +239,13 @@ describe("運ぶ物の置き場 (#3176)", () => {
 /** 評価でAIが書いた、運ぶ物を使う 3 つの図 (#3518)。最後の段で置き場が空になる箱を持つ */
 const EMPTY_SLOT = join(process.cwd(), "packages/dragon/test/fixtures/empty-slot");
 
+/** 見本の図 `file` を描いて、時刻を指して読めるようにする */
+function fixture(file: string): Motion {
+  const parsed = api("parseNotation")(readFileSync(join(EMPTY_SLOT, `${file}.dragon`), "utf8"), { lang: "ja" });
+  if (!parsed.ok) throw new Error(`${file}.dragon を読めない: ${JSON.stringify(parsed.errors)}`);
+  return motionOf(parsed.diagram);
+}
+
 /** 止め絵の時刻 `t` に、置き場を持つ箱ごとの枠の見える濃さと、運ぶ物が座っているか */
 function frames(m: Motion, t: number): { name: string; shown: number; seated: boolean }[] {
   const list = carried(m);
@@ -252,11 +259,13 @@ describe("空の置き場の枠を見せない (#3518)", () => {
   it("slot-frame-only-while-carrier-sits", () => {
     let seated = 0;
     let empty = 0;
-    for (const [name, lines] of [
-      ["構成図", ARCH],
-      ["状態遷移図", STATE],
+    // 橋の図のブリッジには、初めから出発を待つ封筒と段 2 に着く硬貨が同時に座り、封筒が先に出ていく
+    for (const [name, m] of [
+      ["構成図", motionOf(diagram(ARCH))],
+      ["状態遷移図", motionOf(diagram(STATE))],
+      ["橋の図", fixture("bridge")],
+      ["支払いの図", fixture("payment")],
     ] as const) {
-      const m = motionOf(diagram(lines));
       m.rendered.timeline.stills.forEach((t, step) => {
         for (const f of frames(m, t)) {
           const where = `${name}の段 ${step + 1} の ${f.name} の置き場の枠`;
@@ -280,9 +289,7 @@ describe("空の置き場の枠を見せない (#3518)", () => {
     let empty = 0;
     let seated = 0;
     for (const file of ["order-state", "bridge", "payment"]) {
-      const parsed = api("parseNotation")(readFileSync(join(EMPTY_SLOT, `${file}.dragon`), "utf8"), { lang: "ja" });
-      if (!parsed.ok) throw new Error(`${file}.dragon を読めない: ${JSON.stringify(parsed.errors)}`);
-      const m = motionOf(parsed.diagram);
+      const m = fixture(file);
       const { stills } = m.rendered.timeline;
       for (const f of frames(m, stills[stills.length - 1] as number)) {
         if (f.seated) {
