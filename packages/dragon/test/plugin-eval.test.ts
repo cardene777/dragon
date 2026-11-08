@@ -112,3 +112,11 @@ describe("skill を入れた Claude がブロックを足して PR を出す評�
 
   it("block-pr", () => checkRecorded("block-pr"));
 });
+
+/**
+ * 9 種類のどれにも合わない図を頼まれた時に、近い種類で描いて書き出してから Issue を立てる評価 (#3513)。
+ * 円グラフは扇形で割合を描ける種類が無いので、描けない所が必ず残る。Issue は偽の `gh` が受ける
+ */
+describe("skill を入れた Claude が合う種類の無い図を描いてから Issue を立てる評価 (#3513)", () => {
+  it("new-kind-issue", () => checkRecorded("new-kind-issue"));
+});

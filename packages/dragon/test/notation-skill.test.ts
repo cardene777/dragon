@@ -29,6 +29,16 @@ const JAPANESE = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 const read = (path: string): string => (existsSync(path) ? readFileSync(path, "utf8") : "");
 const json = (path: string): Record<string, unknown> => (existsSync(path) ? (JSON.parse(read(path)) as Record<string, unknown>) : {});
 
+/** Markdown の `heading` の行から、同じ深さか浅い次の見出しの前までの文。見出しが無い時は空 */
+function sectionOf(text: string, heading: string): string {
+  const start = text.split("\n").indexOf(heading);
+  if (start < 0) return "";
+  const depth = heading.indexOf(" ");
+  const rows = text.split("\n").slice(start + 1);
+  const end = rows.findIndex((row) => /^#+ /u.test(row) && row.indexOf(" ") <= depth);
+  return rows.slice(0, end >= 0 ? end : undefined).join("\n");
+}
+
 /** dir の下の Markdown の file を全て */
 function markdownUnder(dir: string): string[] {
   if (!existsSync(dir)) return [];
@@ -206,6 +216,41 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(section, "fork を組み立てた CLI で確かめる手順が残る").not.toContain("dist/cli.js");
     expect(section, "pnpm verify を手順から外した").toContain("pnpm verify");
     expect(section, "pnpm verify を回せない時に PR 本文へ書くと書かない").toMatch(/cannot run `pnpm verify`[^\n]*PR body|PR body[^\n]*cannot run `pnpm verify`/u);
+  });
+
+  // 9 種類のどれにも合わない時は、押し込まず Issue も急がず、近い種類で描いて書き出し、足りるかを利用者が決める (#3513)
+  it("skill-no-fitting-kind-draws-first", () => {
+    const section = sectionOf(read(MAIN), "## 2. Pick the kind");
+    expect(section, "図の種類を選ぶ節が無い").not.toBe("");
+    const parts = {
+      "どの種類にも合わない時の書き出し": /When no kind fits/u,
+      "近い種類で書く": /closest kind/u,
+      "崩れまで確かめる": /dragon check --layout/u,
+      "書き出して見せる": /dragon export/u,
+      "利用者が決める": /the user decides/u,
+      "Issue へ進む道": /issue/iu,
+    };
+    const missing = Object.entries(parts)
+      .filter(([, pattern]) => !pattern.test(section))
+      .map(([part]) => part);
+    expect(missing, "図の種類を選ぶ節が、合う種類が無い時に書かない事").toEqual([]);
+  });
+
+  // 新しい図の種類の Issue は、立てる前に聞き、試した記法と描けなかった所を本文に載せる (#3513)
+  it("skill-new-kind-issue-carries-attempt", () => {
+    const section = sectionOf(read(join(REFERENCES, "blocks.md")), "## Ask for a new kind of diagram");
+    expect(section, "新しい図の種類を頼む節が無い").not.toBe("");
+    const parts = {
+      "立てる前に利用者に聞く": /Ask the user first/u,
+      "描きたい動き": /what the diagram must show/u,
+      "試した記法を dragon の囲みで載せる": /```dragon/u,
+      "描けなかった所": /could not draw/u,
+      "Issue の立て方": /gh issue create --repo cardene777\/dragon/u,
+    };
+    const missing = Object.entries(parts)
+      .filter(([, pattern]) => !pattern.test(section))
+      .map(([part]) => part);
+    expect(missing, "新しい図の種類を頼む節が書かない事").toEqual([]);
   });
 
   it("skill-setup-reference-covers-three-ways", () => {
