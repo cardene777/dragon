@@ -46,6 +46,16 @@ export interface BreakInput {
   outlines: ReadonlyMap<string, Point[][]>;
 }
 
+/** 描く処理が描いた後に渡す材料。箱の形の輪郭は崩れを探す側が組む */
+export type DrawnFigure = Omit<BreakInput, "outlines">;
+
+/**
+ * 描いた図の崩れを返す関数 (#3494)。`renderDiagram` の `findBreaks` に渡すと、描いた後に呼ばれて結果が `breaks` になる。
+ * 描く処理はこの file を型でしか読まず、崩れを探す処理は渡した側 (`layout-check.ts`) だけが読む。
+ * 描くだけの頁 (見本帳) が崩れを探す処理を最初の script に持たないため
+ */
+export type BreakFinder = (drawn: DrawnFigure) => LayoutBreak[];
+
 const R = LOOK.badge.r;
 /** 触れているとみなす間 (px)。線の始まりの番号の丸は箱の縁から 1px 離して置く */
 const TOUCH = 2;

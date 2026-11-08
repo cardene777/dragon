@@ -9,8 +9,25 @@ import { type ParseOptions, parseNotation } from "../parser";
 import type { Diagram } from "../schema";
 import { tokenize } from "../tokenize";
 import { DEFAULT_LANG, type NotationLang } from "../words";
-import { breakKey, type LayoutBreak, type LayoutPart } from "./breaks";
+import { boxOutline } from "../blocks/box/draw";
+import type { Point } from "../layout/scene";
+import { type BreakFinder, breakKey, findBreaks, type LayoutBreak, type LayoutPart } from "./breaks";
 import { renderDiagram } from "./draw";
+
+/**
+ * 描いた物から崩れを数える関数 (#3494)。描く処理に渡し、描いた後に呼ばせる。
+ * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める
+ */
+const finder: BreakFinder = (drawn) =>
+  findBreaks({
+    ...drawn,
+    outlines: new Map(
+      drawn.boxes.flatMap((box): [string, Point[][]][] => {
+        const outline = boxOutline(box);
+        return outline ? [[box.id, outline]] : [];
+      }),
+    ),
+  });
 
 /** 崩れを確かめる携帯の幅 (CSS の px)。よく使われる携帯の画面の幅 */
 const NARROW_WIDTH = 390;
@@ -28,7 +45,7 @@ export function checkLayout(render: (width: number | undefined) => LayoutBreak[]
 
 /** 読めた図 `diagram` の崩れ。描けない図は描く処理の断りを投げる */
 export function diagramBreaks(diagram: Diagram, lang: NotationLang = DEFAULT_LANG): LayoutBreak[] {
-  return checkLayout((width) => renderDiagram(diagram, { lang, findBreaks: true, ...(width === undefined ? {} : { width }) }).breaks ?? []);
+  return checkLayout((width) => renderDiagram(diagram, { lang, findBreaks: finder, ...(width === undefined ? {} : { width }) }).breaks ?? []);
 }
 
 /** 記法 `text` の崩れ。記法に誤りがあれば描かずに空を返す (誤りは `parseNotation` か `dragon check` が出す) */

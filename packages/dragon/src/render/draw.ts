@@ -11,7 +11,7 @@
  */
 import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, type UserBlockUseMessages, userBlock, userBlockUseMessages, withUserBlocks } from "../user-blocks";
 import { action } from "../blocks/act/draw";
-import { boxOutline, boxTextY, card, headCard } from "../blocks/box/draw";
+import { boxTextY, card, headCard } from "../blocks/box/draw";
 import { carrier } from "../blocks/carry/draw";
 import { cs } from "../blocks/color/draw";
 import { edge } from "../blocks/edge/draw";
@@ -66,7 +66,7 @@ import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
 import { frameShape, partRadius, sharpJoins } from "./corner";
-import { findBreaks, type LayoutBreak } from "./breaks";
+import type { BreakFinder, LayoutBreak } from "./breaks";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
@@ -105,8 +105,11 @@ export interface RenderOptions {
   still?: boolean;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
   blocks?: UserBlocks;
-  /** 描いた図の崩れ (`breaks`) も数える (#3484)。`dragon check --layout` が立てる。書かなければ数えない */
-  findBreaks?: boolean;
+  /**
+   * 描いた図の崩れ (`breaks`) を数える関数 (#3484、#3494)。`dragon check --layout` が渡す。書かなければ数えない。
+   * 描く処理は崩れを探す処理を読まず、渡された関数に描いた物を渡すだけにする。描くだけの頁が崩れの検査を持たないため
+   */
+  findBreaks?: BreakFinder;
 }
 
 export interface Rendered {
@@ -127,7 +130,7 @@ export interface Rendered {
   source?: DiagramModel;
   /** 段ごとの止め絵で、同時に見えている字どうしの重なりと、線が札を持たない字を横切る所 (#3175)。重なりが無ければ空 */
   overlaps: Overlap[];
-  /** 描いた図の崩れ (#3484)。`findBreaks` を立てて描いた時だけ持つ */
+  /** 描いた図の崩れ (#3484)。`findBreaks` を渡して描いた時だけ持つ */
   breaks?: LayoutBreak[];
 }
 
@@ -1027,19 +1030,7 @@ export function renderLayout(
   const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces);
   // 箱の札は、時間軸の図と列の図では描く部品が別に描くので、崩れの確かめも箱の札を描いた図の種類の箱だけを見る
   const carded = isTimeLayout(layout) || isLineupLayout(layout) ? [] : layout.boxes.filter((box) => !box.ghost);
-  const breaks = options.findBreaks
-    ? findBreaks({
-        inks: ink,
-        traces,
-        stills: timeline.stills,
-        boxes: carded,
-        edges: layout.edges,
-        outlines: new Map(carded.flatMap((box) => {
-          const outline = boxOutline(box);
-          return outline ? [[box.id, outline] as const] : [];
-        })),
-      })
-    : undefined;
+  const breaks = options.findBreaks?.({ inks: ink, traces, stills: timeline.stills, boxes: carded, edges: layout.edges });
   return {
     svg,
     palette: palette.id,
