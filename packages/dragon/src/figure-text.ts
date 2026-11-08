@@ -44,15 +44,10 @@ export interface FigureText {
   textsOverlap: (a: string, b: string) => string;
   lineCrosses: (from: string, to: string, text: string) => string;
   /**
-   * 描いた図の崩れを知らせる文 (#3484)。運ぶ物の枠と段を添えた線の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
-   * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、携帯の幅でだけ出る崩れの幅
+   * 描いた図の崩れを知らせる文に添える、段を添えた線の呼び方と、携帯の幅でだけ出る崩れの幅 (#3484)。
+   * 崩れの種類ごとの文は、崩れを探す処理 (`render/layout-check.ts`) だけが持つ (#3515)
    */
-  slotOf: (box: string) => string;
   lineOf: (from: string, to: string, step: number) => string;
-  floatsOff: (badge: string, box: string) => string;
-  sticksOut: (part: string, box: string) => string;
-  tooClose: (a: string, b: string) => string;
-  runClose: (a: string, b: string) => string;
   atWidth: (width: number) => string;
   /**
    * 時間軸の図 (#3165)。時刻の字の単位、拡大の帯の名前、目盛りの番号の範囲の書き方、列の上の目盛りの番号と時刻の間、
@@ -140,12 +135,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "「封筒」",
     textsOverlap: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
     lineCrosses: (from, to, text) => `線 ${from} → ${to} が${spaced(text)}を横切る`,
-    slotOf: (box) => `「${box}」の運ぶ物の枠`,
     lineOf: (from, to, step) => `線 ${from} → ${to} (段 ${step})`,
-    floatsOff: (badge, box) => `${spaced(badge)}が${box}の形から離れて浮く`,
-    sticksOut: (part, box) => `${spaced(part)}が${box}の形からはみ出す`,
-    tooClose: (a, b) => `${spaced(a)}と${spaced(b)}が近すぎる`,
-    runClose: (a, b) => `${spaced(a)}と${spaced(b)}が並んで近すぎる`,
     atWidth: (width) => `(幅 ${width} の時)`,
     timeUnits: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
     zoom: "拡大",
@@ -199,12 +189,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "the envelope",
     textsOverlap: (a, b) => capital(`${a} and ${b} overlap`),
     lineCrosses: (from, to, text) => `The line ${from} → ${to} crosses ${text}`,
-    slotOf: (box) => `the carry slot of "${box}"`,
     lineOf: (from, to, step) => `the line ${from} → ${to} (step ${step})`,
-    floatsOff: (badge, box) => capital(`${badge} floats away from the shape of ${box}`),
-    sticksOut: (part, box) => capital(`${part} sticks out of the shape of ${box}`),
-    tooClose: (a, b) => capital(`${a} and ${b} are too close`),
-    runClose: (a, b) => capital(`${a} and ${b} run too close side by side`),
     atWidth: (width) => `(at width ${width})`,
     timeUnits: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
     zoom: "Zoom",
