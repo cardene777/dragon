@@ -241,6 +241,15 @@ interface StripBox {
 }
 
 /** 幅 740 の枠に試す図を置き、入力の帯の欄と釦の並びを測る。`pick` の欄と値を先に選ぶ */
+/**
+ * 次に描く時まで待つ。枠の幅を変えると、入力の帯は行の大きさを見張る `ResizeObserver` で次の行へ送った欄に印を付ける (#3492)。
+ * ブラウザは見張りの知らせを描く前に届けるので、読者は印を付ける前の欄を見ない。幅を変えた直後に測ると知らせより先に測る回があり、
+ * 2 回目の `requestAnimationFrame` まで待てば、1 回目の後に届く知らせを済ませた、読者が見る形を測れる
+ */
+async function nextPaint(page: Page): Promise<void> {
+  await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+}
+
 async function stripAt740(diagram: unknown, pick: Record<string, string> = {}): Promise<StripBox> {
   const html = await htmlOf(diagram);
   const { result } = await withPage(html, 1280, async (page) => {
@@ -248,6 +257,7 @@ async function stripAt740(diagram: unknown, pick: Record<string, string> = {}): 
     await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
     for (const [field, value] of Object.entries(pick))
       await page.locator(`form[data-dragon="ask"] select[data-field="${field}"]`).selectOption(value);
+    await nextPaint(page);
     return page.evaluate(() => {
       const form = document.querySelector<HTMLFormElement>('form[data-dragon="ask"]');
       const row = form?.querySelector<HTMLElement>(".dg-ask-row")?.getBoundingClientRect();
@@ -353,6 +363,7 @@ describe("入力の帯の欄の幅 (#3485)", () => {
       const html = await htmlOf(parsedTry(wideAskTry()));
       const { result } = await withPage(html, 1280, async (page) => {
         await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
+        await nextPaint(page);
         return page.evaluate(() =>
           [...document.querySelectorAll<HTMLElement>('form[data-dragon="ask"] .dg-field')].flatMap((field) => {
             const select = field.querySelector("select");
@@ -390,6 +401,7 @@ describe("入力の帯の欄の幅 (#3485)", () => {
       const html = await htmlOf(parsedTry(labeledAskTry()));
       const { result } = await withPage(html, 1280, async (page) => {
         await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
+        await nextPaint(page);
         return page.evaluate(() =>
           [...document.querySelectorAll<HTMLElement>('form[data-dragon="ask"] .dg-field')].map((field) => {
             const label = field.querySelector<HTMLElement>(".dg-fl");
