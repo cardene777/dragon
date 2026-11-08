@@ -13,7 +13,7 @@ import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 import { exporter } from "./export-support";
 import { fileChromium } from "./page-needs";
-import { parsedTry, SMALL_PARTS, smallTry } from "./try-support";
+import { parsedTry, SMALL_PARTS, smallTry, WIDE_ASK_LONGEST, wideAskTry } from "./try-support";
 
 
 const PAGE = "http://localhost/";
@@ -228,6 +228,93 @@ describe("試す図を Chromium で触る (#3337)", () => {
       expect(result.local, "localStorage に値が残る").toBe(0);
       expect(result.session, "sessionStorage に値が残る").toBe(0);
       expect(outside, "頁の外へ通信した").toEqual([]);
+    },
+  );
+});
+
+/** 入力の帯の欄と釦の並び。欄ごとの名前と下端と右端と幅と、選ぶ欄なら幅を縮めない時の幅 (`need`) を持つ。帯は欄と釦の下端を揃えて並べるので、同じ行の欄と釦は下端が同じ */
+interface StripBox {
+  row: { left: number; right: number };
+  fields: { name: string; bottom: number; right: number; width: number; need?: number }[];
+  send: { bottom: number; right: number } | undefined;
+}
+
+/** 幅 740 の枠に試す図を置き、入力の帯の欄と釦の並びを測る。`pick` の欄と値を先に選ぶ */
+async function stripAt740(diagram: unknown, pick: Record<string, string> = {}): Promise<StripBox> {
+  const html = await htmlOf(diagram);
+  const { result } = await withPage(html, 1280, async (page) => {
+    // bitsumi の広い頁と同じく、図の枠の幅を 740 にする
+    await page.addStyleTag({ content: '[data-dragon="player"]{width:740px;max-width:740px}' });
+    for (const [field, value] of Object.entries(pick))
+      await page.locator(`form[data-dragon="ask"] select[data-field="${field}"]`).selectOption(value);
+    return page.evaluate(() => {
+      const form = document.querySelector<HTMLFormElement>('form[data-dragon="ask"]');
+      const row = form?.querySelector<HTMLElement>(".dg-ask-row")?.getBoundingClientRect();
+      const fields = [...(form?.querySelectorAll<HTMLElement>(".dg-field") ?? [])].map((field) => {
+        const input = field.querySelector<HTMLElement>("[data-field]");
+        const box = field.getBoundingClientRect();
+        let need: number | undefined;
+        if (input instanceof HTMLSelectElement) {
+          // 同じ選ぶ欄を幅を決めずに置くと、Chromium は一番長い候補の字と余白と矢印が収まる幅で描く
+          const holder = document.createElement("div");
+          holder.style.cssText = "position:absolute;left:0;top:0;width:max-content;visibility:hidden";
+          const copy = input.cloneNode(true) as HTMLSelectElement;
+          copy.style.width = "auto";
+          holder.append(copy);
+          form?.append(holder);
+          need = copy.getBoundingClientRect().width;
+          holder.remove();
+        }
+        return { name: input?.dataset.field ?? "", bottom: Math.round(box.bottom), right: box.right, width: box.width, need };
+      });
+      const send = form?.querySelector<HTMLElement>('button[data-dragon="send"]')?.getBoundingClientRect();
+      return {
+        row: { left: row?.left ?? 0, right: row?.right ?? 0 },
+        fields,
+        send: send ? { bottom: Math.round(send.bottom), right: send.right } : undefined,
+      };
+    });
+  });
+  return result;
+}
+
+// 入力の帯は欄を 1 行に並べて同じ基準の幅で縮めるので、欄が 6 つで長い候補を持つ図を広い枠に置くと、選んだ値の字が欄の幅で切れていた (#3485)。
+// 選ぶ欄は一番長い候補が収まる幅より縮めず、1 行に入らない欄は次の行へ送る
+describe("入力の帯の欄の幅 (#3485)", () => {
+  it(
+    "try-ask-choice-not-clipped",
+    async () => {
+      const { fields } = await stripAt740(parsedTry(wideAskTry()), { 期限: WIDE_ASK_LONGEST });
+      const selects = fields.filter((field) => field.need !== undefined);
+      expect(selects.map((field) => field.name), "選ぶ欄の数").toHaveLength(5);
+      for (const field of selects)
+        expect(
+          field.width,
+          `幅 740 の枠で、選ぶ欄 ${field.name} の幅 ${field.width} が、一番長い候補の字と余白と矢印が収まる幅 ${field.need} より狭く、選んだ値の字が切れる`,
+        ).toBeGreaterThanOrEqual((field.need ?? 0) - 0.5);
+    },
+  );
+
+  it(
+    "try-ask-fields-wrap-in-strip",
+    async () => {
+      const { row, fields, send } = await stripAt740(parsedTry(wideAskTry()));
+      expect(fields, "入力の帯の欄の数").toHaveLength(6);
+      for (const field of fields)
+        expect(field.right, `幅 740 の枠で、欄 ${field.name} の右端 ${field.right} が帯の右端 ${row.right} を超える`).toBeLessThanOrEqual(row.right + 0.5);
+      expect(send && send.right <= row.right + 0.5, "幅 740 の枠で、送る釦が無いか帯の右端を超える").toBe(true);
+      const rows = new Set(fields.map((field) => field.bottom));
+      expect(rows.size, "幅 740 の枠で、1 行に入らない 6 つの欄を次の行へ送らず、縮めて 1 行に並べた").toBeGreaterThanOrEqual(2);
+    },
+  );
+
+  it(
+    "try-ask-short-fields-one-row",
+    async () => {
+      const { fields, send } = await stripAt740(parsedTry(smallTry()));
+      expect(fields, "入力の帯の欄の数").toHaveLength(4);
+      const rows = new Set([...fields.map((field) => field.bottom), send?.bottom]);
+      expect(rows.size, "幅 740 の枠で、候補の短い 4 つの欄と送る釦が 1 行に並ばない").toBe(1);
     },
   );
 });

@@ -8,6 +8,8 @@
  * jsdom は配置を測れないので、釦の大きさと幅 390px の並びは `interactive-browser.test.ts` が実際の Chromium で確かめる。
  */
 import { afterEach, describe, expect, it } from "vitest";
+import { textWidth } from "../src/layout/measure";
+import { LOOK, TYPE } from "../src/look/values";
 import {
   blockHash,
   edit,
@@ -30,6 +32,8 @@ import {
   type TryBlock,
   tryLayout,
   txBlock,
+  WIDE_ASK_LONGEST,
+  wideAskTry,
 } from "./try-support";
 
 /** 読み手が送るチップ */
@@ -318,5 +322,31 @@ describe("動きと描き直し (#3337)", () => {
       typed.filter((value) => value !== ""),
       "置き直した後の入力の帯に前の値が残る",
     ).toEqual([]);
+  });
+});
+
+// 入力の帯は欄を 1 行に並べて同じ基準の幅で縮めるので、長い候補を持つ選ぶ欄で選んだ値の字が切れていた (#3485)。
+// 候補を持つ欄は一番長い候補の字の幅に左右の内側の余白と矢印の幅を足した値を欄の幅の下限 (`--dg-field-min`) に持ち、
+// 帯の CSS がその値を欄の最小の幅にする。jsdom は配置を測れないので、並んだ幅は interactive-browser.test.ts が Chromium で測る
+describe("入力の帯の欄の幅 (#3485)", () => {
+  // 候補を持つ欄が一番長い候補の字の幅に余白と矢印を足した幅を下限に持ち、打つ欄は持たない
+  it("try-ask-field-min-from-longest-choice", () => {
+    const { host } = mountTry(parsedTry(wideAskTry()), 740);
+    const A = LOOK.player.ask as typeof LOOK.player.ask & { arrow?: number };
+    expect(A.arrow, "入力の帯の見た目 (LOOK.player.ask) が選ぶ欄の矢印の幅 (arrow) を持たない").toBeGreaterThan(0);
+    const arrow = A.arrow ?? 0;
+    const minOf = (field: string): string =>
+      host.querySelector(`[data-field="${field}"]`)?.closest<HTMLElement>(".dg-field")?.style.getPropertyValue("--dg-field-min") ?? "";
+    const longest: Record<string, string> = { 署名: "有効", 大きさ: "85134", 混み具合: "混雑", View: "不整合", 期限: WIDE_ASK_LONGEST };
+    for (const [field, text] of Object.entries(longest)) {
+      const floor = textWidth(text, TYPE.askInput) + 2 * A.inset + arrow;
+      const min = Number.parseFloat(minOf(field));
+      expect(min, `選ぶ欄 ${field} の幅の下限 (--dg-field-min) が無いか、一番長い候補「${text}」の字の幅に余白と矢印を足した ${floor} より狭い`).toBeGreaterThanOrEqual(floor);
+    }
+    const first = textWidth("間に合う", TYPE.askInput) + 2 * A.inset + arrow;
+    expect(Number.parseFloat(minOf("期限")), "期限の欄の下限が最初の候補「間に合う」の幅で決まり、一番長い候補を見ていない").toBeGreaterThan(first);
+    expect(minOf("トランザクション"), "候補を持たない打つ欄が幅の下限を持つ").toBe("");
+    const css = [...document.querySelectorAll("style")].map((style) => style.textContent ?? "").join("");
+    expect(css, "入力の帯の CSS が欄 (.dg-field) の最小の幅に下限 (--dg-field-min) を使わない").toMatch(/\.dg-field\{[^}]*min-width:var\(--dg-field-min/u);
   });
 });
