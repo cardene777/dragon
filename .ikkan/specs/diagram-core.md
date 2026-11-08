@@ -72,8 +72,8 @@
 | 寄って動かす見せ方で、高さが幅の 6 倍ほどある縦に長い図 (箱 2 つで段 30) を置いた時も、全体図の札 (`全体図` と `Overview`) が全体図の地の中に収まる。収まりは書き出した HTML を Chromium で開き、札と地の描かれた幅 (`getBBox`) で比べる | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3001 |
 | 公開する頁で手を入れた記法を描いたまま言葉を EN に切り替えた時、再生の釦と段の一覧の読み上げの名前が英語になり、寄って動かす見せ方の図の全体図の札が `Overview` になる。日本語に戻すと日本語の名前と札に戻る | `pnpm test`の検査`page-player-labels-follow-page-language`が通る | #3001 |
 | 日本語の頁で英語の字の図を描いた時、再生の釦と段の一覧の読み上げの名前と全体図の札は頁の言葉 (日本語) で出る | `pnpm test`の検査`page-player-labels-ignore-notation-language`が通る | #3001 |
-| `dragon export` に `--lang` なしで記法の file を渡した時、英語の字の見本も日本語の字の見本も英語で、書き出した HTML の `lang` 属性と、開いた時の読み上げの名前と、寄って見せる時の全体図の札が書かれる | `pnpm test`の検査`export-without-lang-is-english`が通る | #3001、#3137、#3338 |
-| `dragon export` に `--lang` を渡した時は、記法の file でも JSON の原本でもその言葉に従う。JSON の原本は `--lang ja` なら日本語、`--lang` なしなら英語で、HTML の `lang` 属性と読み上げの名前と全体図の札を書き出す | `pnpm test`の検査`export-lang-flag`が通る | #3001、#3137、#3338 |
+| `dragon export` に `--lang` なしで英語の字の記法の file を渡した時、英語で、書き出した HTML の `lang` 属性と、開いた時の読み上げの名前と、寄って見せる時の全体図の札が書かれる。題か `say` が日本語の図は日本語で書かれる (#3516 の行) | `pnpm test`の検査`export-without-lang-is-english`が通る | #3001、#3137、#3338、#3516 |
+| `dragon export` に `--lang` を渡した時は、記法の file でも JSON の原本でもその言葉に従う。英語の字の JSON の原本は `--lang ja` なら日本語、`--lang` なしなら英語で、HTML の `lang` 属性と読み上げの名前と全体図の札を書き出す | `pnpm test`の検査`export-lang-flag`が通る | #3001、#3137、#3338、#3516 |
 | `dragon export` に `--lang en` と形の誤りのある JSON の原本を渡した時、何も書き出さずに終了 1 で終わり、出した断りの文は `Cannot draw the diagram:` で始まって誤りの場所 (`/boxes/0/colour` など) を含み、仮名と漢字を含まない | `pnpm test`の検査`export-refusal-follows-language`が通る | #3001 |
 | `dragon export` の `--lang` に `ja` と `en` 以外を渡した時、何も書き出さずに終了 2 で終わり、使い方を出す。使い方には `--lang` の行がある | `pnpm test`の検査`export-rejects-unknown-lang`が通る | #3001 |
 | 書き出しの部品 (`exportDiagram`) に英語を渡して HTML を書き出した時、埋めた字の file は全体図の札 `Overview` の字を含み、`全体図` の字を含まない。形のある字が入る字の file は図で描かない字を含まない (原本は大文字の `O` を持たない図にする) | `pnpm test`の検査`html-export-font-subset-follows-language`が通る | #3001 #3212 |
@@ -124,7 +124,7 @@
 | 全体図を出す時、全体図が今見ている所の枠と札を持つ | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3055 |
 | 枠の中で見える高さが今の窓より低く、窓の下限 160px と全体図と値の表が入る時、窓と全体図と値の表がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3055 |
 | 枠の中で見える高さが今の窓より高い時、窓が伸び、全体図の大きさは変わらない | `pnpm test`の検査`follow-window-grows-to-frame-height`が通る | #3055 |
-| `--lang` なしで書き出した HTML を幅 440px で開いた時、再生の釦と全体図の札が英語で出る | `pnpm test`の検査`export-without-lang-is-english`が通る | #3055、#3137、#3338 |
+| `--lang` なしで英語の字の図を書き出した HTML を幅 440px で開いた時、再生の釦と全体図の札が英語で出る | `pnpm test`の検査`export-without-lang-is-english`が通る | #3055、#3137、#3338、#3516 |
 | 書き出しの命令に言葉を渡した時、再生の釦と全体図の札がその言葉で出る | `pnpm test`の検査`export-lang-flag`が通る | #3055 |
 | 縦に長い図の書き出した HTML を幅 440px で開いた時、全体図の札が全体図の地からはみ出さない | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3055 |
 | 編集画面で、全体図を出す見本 (860px の oauth と ccip、390px の wallet) の全体図が窓に重ならず図の枠の中にある | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3055、#3274 |
