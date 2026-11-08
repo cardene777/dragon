@@ -93,6 +93,17 @@ export function cardOf(m: Motion, id: string): Card | undefined {
   return { id, name: box.name, cx: box.x + box.w / 2, ...(icon ? { icon } : {}), ...(slot ? { slot } : {}), nameTop: num(text, "y") - 13 * 0.8 };
 }
 
+/** 箱 `id` の置き場の枠の四角の部品。置き場を持たない箱は `undefined` (#3518) */
+export function slotFrameOf(m: Motion, id: string): Element | undefined {
+  const box = m.rendered.layout.boxes.find((b) => b.id === id);
+  const text = [...m.doc.querySelectorAll("text.dg-sn")].find((t) => t.textContent === box?.name);
+  return text?.parentElement?.querySelector("rect.dg-slot") ?? undefined;
+}
+
+/** 時刻 `t` 秒に、運ぶ物が箱 `id` の置き場に座っているか。着いて留まる間と、走り出す前に待つ間を数える (#3518) */
+export const seatedAt = (list: Carried[], id: string, t: number): boolean =>
+  list.some((c) => (c.edge.to === id && t >= c.arrive && t < c.end) || (c.edge.from === id && t >= c.start && t < c.depart));
+
 /** 状態 `id` の右上の済んだ印を囲む四角 */
 export function doneRect(m: Motion, id: string): Rect | undefined {
   const circle = m.doc.querySelector(`g[data-done="${id}"] circle.dg-done`);
