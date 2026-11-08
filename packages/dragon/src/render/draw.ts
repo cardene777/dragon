@@ -66,7 +66,7 @@ import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
 import { frameShape, partRadius, sharpJoins } from "./corner";
-import type { DrawnParts, LayoutBreak } from "./breaks";
+import type { BreakFinder, LayoutBreak } from "./breaks";
 import { findOverlaps, type Ink, type Overlap, type Trace } from "./ink";
 import { Motion } from "./motion";
 
@@ -107,13 +107,15 @@ export interface RenderOptions {
   blocks?: UserBlocks;
 }
 
-/** 描く処理の中だけで渡す設定。使う人の入口の設定 (`RenderOptions`) には出さない */
+/**
+ * package の中だけで使う描き方の指定。公開する `RenderOptions` に、崩れを数える関数を足す (#3494)
+ */
 export interface DrawOptions extends RenderOptions {
   /**
-   * 描いた図の崩れ (`breaks`) を数える処理 (#3484)。`dragon check --layout` が `findDrawnBreaks` を渡す。書かなければ数えない。
-   * 描く処理が数える処理を読み込むと、頁が最初に読む塊に使わない処理が入るので、使う側が渡す
+   * 描いた図の崩れ (`breaks`) を数える関数 (#3484、#3494)。`dragon check --layout` が渡す。書かなければ数えない。
+   * 描く処理は崩れを探す処理を読まず、渡された関数に描いた物を渡すだけにする。描くだけの頁が崩れの検査を持たないため
    */
-  findBreaks?: (drawn: DrawnParts) => LayoutBreak[];
+  findBreaks?: BreakFinder;
 }
 
 export interface Rendered {
@@ -134,7 +136,7 @@ export interface Rendered {
   source?: DiagramModel;
   /** 段ごとの止め絵で、同時に見えている字どうしの重なりと、線が札を持たない字を横切る所 (#3175)。重なりが無ければ空 */
   overlaps: Overlap[];
-  /** 描いた図の崩れ (#3484)。崩れを数える処理を渡して描いた時だけ持つ */
+  /** 描いた図の崩れ (#3484)。`findBreaks` を渡して描いた時だけ持つ */
   breaks?: LayoutBreak[];
 }
 
@@ -922,7 +924,7 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
   return drawDiagram(input, options);
 }
 
-/** `renderDiagram` と同じく描き、描く処理の中だけの設定 (`DrawOptions`) も受け取る。`dragon check --layout` が崩れを数える処理を渡す */
+/** `renderDiagram` の中身。package の中の崩れの検査は、崩れを数える関数を足してここを呼ぶ (#3494) */
 export function drawDiagram(input: unknown, options: DrawOptions = {}): Rendered {
   const lang = options.lang ?? DEFAULT_LANG;
   const read = readDiagram(input, { lang });
