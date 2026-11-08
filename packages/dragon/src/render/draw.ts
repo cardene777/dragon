@@ -105,6 +105,12 @@ export interface RenderOptions {
   still?: boolean;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
   blocks?: UserBlocks;
+}
+
+/**
+ * package の中だけで使う描き方の指定。公開する `RenderOptions` に、崩れを数える関数を足す (#3494)
+ */
+export interface DrawOptions extends RenderOptions {
   /**
    * 描いた図の崩れ (`breaks`) を数える関数 (#3484、#3494)。`dragon check --layout` が渡す。書かなければ数えない。
    * 描く処理は崩れを探す処理を読まず、渡された関数に描いた物を渡すだけにする。描くだけの頁が崩れの検査を持たないため
@@ -915,6 +921,11 @@ export function paletteOf(options: RenderOptions, theme: Theme): Palette {
 
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */
 export function renderDiagram(input: unknown, options: RenderOptions = {}): Rendered {
+  return drawDiagram(input, options);
+}
+
+/** `renderDiagram` の中身。package の中の崩れの検査は、崩れを数える関数を足してここを呼ぶ (#3494) */
+export function drawDiagram(input: unknown, options: DrawOptions = {}): Rendered {
   const lang = options.lang ?? DEFAULT_LANG;
   const read = readDiagram(input, { lang });
   if (!read.ok)
@@ -972,7 +983,7 @@ function useUserBlocks(diagram: Diagram, m: UserBlockUseMessages): string | unde
 }
 
 /** 検査を通った原本を並べて描く */
-function renderRead(source: Diagram, options: RenderOptions, lang: NotationLang): Rendered {
+function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): Rendered {
   const read = { diagram: source };
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)。
   // 配管の図は `[fold]` の呼び出しの内側の段を、開くと頼まれていなければ 1 つの段にまとめてから並べる (#3389)
@@ -1021,7 +1032,7 @@ export function renderLayout(
   diagram: DiagramModel,
   layout: Layout,
   timeline: Timeline,
-  options: RenderOptions = {},
+  options: DrawOptions = {},
 ): Rendered {
   const theme: Theme = options.theme === "dark" ? "dark" : "light";
   const palette = paletteOf(options, theme);
