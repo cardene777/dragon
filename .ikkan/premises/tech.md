@@ -37,6 +37,7 @@
 - 頁の中で動く値は `pnpm test:mutation:values` で 1 つずつ書き換えて検査を回し、受入条件が全部 `今を守る` の課題に要る壊して測った結果の表は、その結果の file から `pnpm test:mutation:table <変異の一覧> <結果の file> --step <数>` で作る (`scripts/mutate-values.mjs`)。
 - 依存の中身が公開されている物と一致するかを `pnpm verify:deps` が確かめ、network を使う (`packages/dragon/scripts/verify-dep-integrity.mjs`)。
 - 依存の既知の脆弱性は `scripts/check-dependency-vulnerabilities.sh` が `osv-scanner` で見る。
+- 外の脆弱性の一覧に問い合わせる本物の走査は、版を出す前の一式の最後に 1 回だけ走る。検査の中では代わりの道具で命令の判定だけを見る (#3498)。
 - 版を上げた時に、`packages/dragon/package.json` の版が前提の配り方の節と `CHANGELOG.md` の見出しに書かれているかを確かめる (`packages/dragon/test/release-records.test.ts`)。英語の `CHANGELOG.md` と日本語の `CHANGELOG.ja.md` は 0.35.0 以降の版を同じ見出しと同じ課題番号で持ち、片方へ書き忘れると同じ検査が落ちる (#3321)。
 - `.github/workflows` は持たない (`git ls-files`)。
 
