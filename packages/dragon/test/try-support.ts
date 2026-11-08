@@ -87,6 +87,28 @@ export function txBlock(file: "tx-block.json" | "tx-block.en.json" = "tx-block.j
   return there ? exampleJson(file) : {};
 }
 
+/** 欄の多い試す図で、一番長い候補 (#3485) */
+export const WIDE_ASK_LONGEST = "順序付けの遅れ";
+
+/**
+ * 入力の帯に欄を 6 つ持ち、5 つの欄が候補 (`choose`) を持つ試す図 (#3485)。期限の欄だけが長い候補 `WIDE_ASK_LONGEST` を持つ。
+ * bitsumi の Canton のトランザクションが拒否される場面の図と同じ欄の数と候補で、広い枠では 1 行に収まらない
+ */
+export function wideAskTry(): string {
+  return [
+    "try 欄の多い試す図",
+    "queue 通った",
+    "ask トランザクション, 署名, 大きさ, 混み具合, View, 期限 [into: 通った]",
+    "choose 署名: 有効, 無効",
+    "choose 大きさ: 12000, 85134",
+    "choose 混み具合: 空き, 混雑",
+    "choose View: 整合, 不整合",
+    `choose 期限: 間に合う, ${WIDE_ASK_LONGEST}, 応答の遅れ`,
+    "step start",
+    "  say 始める。",
+  ].join("\n");
+}
+
 /** 記法を読んだ原本。読めなければ誤りを名指して落とす */
 export function parsedTry(text: string, lang: "ja" | "en" = "ja"): Json {
   const parsed = api("parseNotation")(text, { lang });
