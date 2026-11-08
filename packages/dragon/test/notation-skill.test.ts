@@ -206,4 +206,41 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
       .map(([way, words]) => `${way} (${words})`);
     expect(missing, "入れ方の参照が書かない事").toEqual([]);
   });
+
+  // 記法が正しくても、描くと番号の丸や線が詰まり、形を持つブロックから枠や字がはみ出す図がある (#3484)。
+  // skill は描いた結果の崩れを確かめ、記法で直せる崩れを直してから、残った崩れを段と物の名前で伝えさせる
+  it("skill-names-layout-check-loop", () => {
+    const text = read(MAIN);
+    const steps = {
+      "描いた結果の崩れを確かめる": "dragon check --layout",
+      "崩れた段の PNG を書き出す": "--format png --step",
+      "崩れの直し方の参照": "references/layout.md",
+      "残った崩れを段の番号で伝える": "step number",
+      "書き出せない時は文だけで伝える": "Chromium",
+    };
+    const missing = Object.entries(steps)
+      .filter(([, words]) => !text.includes(words))
+      .map(([step, words]) => `${step} (${words})`);
+    expect(missing, "SKILL.md が書かない崩れの手順").toEqual([]);
+  });
+
+  it("skill-layout-fixes-and-issue-route", () => {
+    const text = read(join(REFERENCES, "layout.md"));
+    expect(text, "references/layout.md が無い").not.toBe("");
+    const parts = {
+      "崩れの種類 (浮いた丸)": "badge-off-shape",
+      "崩れの種類 (はみ出した枠)": "slot-outside-shape",
+      "崩れの種類 (はみ出した字)": "text-outside-shape",
+      "崩れの種類 (近すぎる丸)": "badges-close",
+      "崩れの種類 (詰まった線)": "lines-close",
+      "箱の並びを変える直し方": "Reorder the boxes",
+      "名前を短くする直し方": "Shorten",
+      "行きと帰りの線を分ける直し方": "reply",
+      "描き方の側の崩れを課題として送る案内": "blocks.md",
+    };
+    const missing = Object.entries(parts)
+      .filter(([, words]) => !text.includes(words))
+      .map(([part, words]) => `${part} (${words})`);
+    expect(missing, "崩れの参照が書かない事").toEqual([]);
+  });
 });

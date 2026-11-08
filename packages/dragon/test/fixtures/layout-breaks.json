@@ -1,0 +1,247 @@
+{
+  "packages/dragon/blocks/examples/bridge.dragon": [
+    {
+      "kind": "slot-outside-shape",
+      "step": 1,
+      "parts": [
+        {
+          "kind": "slot",
+          "box": "Bridge"
+        },
+        {
+          "kind": "box",
+          "name": "Bridge"
+        }
+      ]
+    },
+    {
+      "kind": "text-outside-shape",
+      "step": 1,
+      "parts": [
+        {
+          "kind": "text",
+          "text": "shared box",
+          "box": "Bridge"
+        },
+        {
+          "kind": "box",
+          "name": "Bridge"
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/bridge.dragon": [
+    {
+      "kind": "slot-outside-shape",
+      "step": 1,
+      "parts": [
+        {
+          "kind": "slot",
+          "box": "橋"
+        },
+        {
+          "kind": "box",
+          "name": "橋"
+        }
+      ]
+    },
+    {
+      "kind": "text-outside-shape",
+      "step": 1,
+      "parts": [
+        {
+          "kind": "text",
+          "text": "足した箱",
+          "box": "橋"
+        },
+        {
+          "kind": "box",
+          "name": "橋"
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/bridge.en.dragon": [
+    {
+      "kind": "slot-outside-shape",
+      "step": 1,
+      "parts": [
+        {
+          "kind": "slot",
+          "box": "Bridge"
+        },
+        {
+          "kind": "box",
+          "name": "Bridge"
+        }
+      ]
+    },
+    {
+      "kind": "text-outside-shape",
+      "step": 1,
+      "parts": [
+        {
+          "kind": "text",
+          "text": "added box",
+          "box": "Bridge"
+        },
+        {
+          "kind": "box",
+          "name": "Bridge"
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/finality.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 9,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 7
+        },
+        {
+          "kind": "badge",
+          "step": 9
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/finality.en.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 9,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 7
+        },
+        {
+          "kind": "badge",
+          "step": 9
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/merge.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 2
+        },
+        {
+          "kind": "badge",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "kind": "badges-close",
+      "step": 4,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 3
+        },
+        {
+          "kind": "badge",
+          "step": 4
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/merge.en.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 2
+        },
+        {
+          "kind": "badge",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "kind": "badges-close",
+      "step": 4,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 3
+        },
+        {
+          "kind": "badge",
+          "step": 4
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/rebase.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 2
+        },
+        {
+          "kind": "badge",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "kind": "badges-close",
+      "step": 7,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 5
+        },
+        {
+          "kind": "badge",
+          "step": 7
+        }
+      ]
+    }
+  ],
+  "packages/dragon/examples/rebase.en.dragon": [
+    {
+      "kind": "badges-close",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 2
+        },
+        {
+          "kind": "badge",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "kind": "badges-close",
+      "step": 7,
+      "parts": [
+        {
+          "kind": "badge",
+          "step": 5
+        },
+        {
+          "kind": "badge",
+          "step": 7
+        }
+      ]
+    }
+  ]
+}

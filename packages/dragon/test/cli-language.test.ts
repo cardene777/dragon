@@ -31,9 +31,10 @@ const JA_USAGE = [
   "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
   "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
   "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
+  "  --step <段>        png に撮る段 (1 から数える。既定は最後の段)",
 ];
 const EN_USAGE_HEAD = "Usage: dragon export <diagram file (.json or .dragon)> [options]";
-const OPTIONS = ["--out", "--width", "--palette", "--theme", "--lang", "--fps", "--gif-fps", "--format"];
+const OPTIONS = ["--out", "--width", "--palette", "--theme", "--lang", "--fps", "--gif-fps", "--format", "--step"];
 
 const INSTALL_ADD = "pnpm add -D playwright-core";
 const INSTALL_CHROMIUM = "pnpm exec playwright-core install chromium";

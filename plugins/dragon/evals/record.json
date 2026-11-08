@@ -1,0 +1,16 @@
+{
+  "layout-bridge": {
+    "fingerprint": "b30d19d314c8f15a6e89c70a69eb845fe43636759f788a6321819e62c2e91a2f",
+    "runs": 3,
+    "passed": 3,
+    "claude": "2.1.319",
+    "date": "2026-11-08"
+  },
+  "layout-payment": {
+    "fingerprint": "91caf07ef1353cd99908ec4e7ce04cefa87c54baf81b2e3e208ffa9ea0504eb2",
+    "runs": 3,
+    "passed": 3,
+    "claude": "2.1.319",
+    "date": "2026-11-08"
+  }
+}

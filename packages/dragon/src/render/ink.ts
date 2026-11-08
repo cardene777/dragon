@@ -35,6 +35,8 @@ export interface Ink {
   badge?: boolean;
   /** 図の部品。`text` は日本語の名前なので、知らせる文は部品の種類から言葉ごとに呼び方を作る */
   part?: InkPart;
+  /** 箱の中に書いた字なら、その箱の名札 (#3484)。崩れの確かめが、箱の見えている形の外へはみ出す字を探す */
+  box?: string;
 }
 
 /** 描いた線。`from` と `to` は線の両端の箱の名札 */
@@ -65,7 +67,7 @@ export type Overlap =
 /** 重なりに数える食い込みの下限 (px)。縁が触れただけの字を数えない */
 const BITE = 0.5;
 
-const visible = (item: { shown: Shown[] }, t: number): boolean => item.shown.some(([a, b]) => a <= t && t < b);
+export const visible = (item: { shown: Shown[] }, t: number): boolean => item.shown.some(([a, b]) => a <= t && t < b);
 
 /** 重なる字。札の四角は札の字の名札などを持つので、四角だけを写す */
 const spotOf = (ink: Ink): OverlapSpot => ({ text: ink.text, rect: { x: ink.rect.x, y: ink.rect.y, w: ink.rect.w, h: ink.rect.h }, badge: ink.badge === true, ...(ink.part ? { part: ink.part } : {}) });

@@ -33,6 +33,7 @@
 - 見本帳の検査は、動きを嫌う設定を頁を開く時に渡し (`site.open` の `reducedMotion`)、開いた後に `emulateMedia` で当てない。指で触る頁は `(pointer: coarse)` が当たるまで待ってから返す (#3231)。
 - script の 1 行の入口の検査は、build した `dist/cdn` を `http://localhost/` に置いた Chromium で開き、外への通信を止めて、読んだ塊と足した `<link>` を数える。どの塊がどの種類の描く部品を持つかは、塊の source map が名指す `kinds/<種類>/layout.ts` で見分ける (`packages/dragon/test/script-entry.test.ts`、#3343)。修正版を出した直後の jsDelivr は、版の範囲の場所に入口だけを置き、ほかの file を 404 にした置き場で真似る (#3375)。
 - 字の重なる図を作れないため、重なりを知らせる流れは、重なりを探す所 (`findOverlaps`) を包んで重なりを 1 件足して確かめる。書き出しの命令は `vi.mock` で包み、見本帳は検査だけの build の設定で包む (`packages/dragon/test/paired-overlap.ts`、`apps/playground-spa/src/lib/overlap-build-support.ts`、#3197)。
+- 描いた図の崩れの検査は、見本に今ある崩れを数えた一覧 (`packages/dragon/test/fixtures/layout-breaks.json`) と見比べ、一覧に無い崩れで落とす。一覧は `node scripts/layout-breaks-record.mjs` で書き直す。プラグインの skill を入れた Claude の評価 (`claude plugin eval`) は回すたびに費用がかかるので検査の中で回さず、`node scripts/plugin-eval-record.mjs` が回した結果をケースの指紋と一緒に `plugins/dragon/evals/record.json` に残し、検査 (`packages/dragon/test/plugin-eval.test.ts`) は記録を読む (#3484)。
 - 頁の中で動く値は `pnpm test:mutation:values` で 1 つずつ書き換えて検査を回し、受入条件が全部 `今を守る` の課題に要る壊して測った結果の表は、その結果の file から `pnpm test:mutation:table <変異の一覧> <結果の file> --step <数>` で作る (`scripts/mutate-values.mjs`)。
 - 依存の中身が公開されている物と一致するかを `pnpm verify:deps` が確かめ、network を使う (`packages/dragon/scripts/verify-dep-integrity.mjs`)。
 - 依存の既知の脆弱性は `scripts/check-dependency-vulnerabilities.sh` が `osv-scanner` で見る。

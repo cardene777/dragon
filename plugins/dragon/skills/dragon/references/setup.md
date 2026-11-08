@@ -36,9 +36,11 @@ npx playwright-core install chromium
 ```sh
 npx dragon check docs/diagrams/login.dragon
 npx dragon check README.md
+npx dragon check --layout docs/diagrams/login.dragon
 ```
 
 Fix every `error` line and re-run until none is left. The full contract is in step 5 of [SKILL.md](../SKILL.md).
+`--layout` also draws the diagram and warns about layout breaks per step ([layout](layout.md)). It does not need Chromium.
 
 ## A page that runs scripts
 
@@ -107,8 +109,9 @@ Source: [login.dragon](docs/diagrams/login.dragon)
 | `--theme <mode>` | `light` or `dark` |
 | `--width <px>` | Frame width. It also picks the view |
 | `--lang <lang>` | `ja` or `en` for the text dragon adds and the command messages (default `en`) |
+| `--step <n>` | The step the PNG shows, counted from 1 (default the last step). A step the diagram does not have exits `2` |
 
-- The GIF plays every step. The PNG is a still of the last step.
+- The GIF plays every step. The PNG is a still of the last step unless `--step` picks another.
 - When text overlaps in a step, the export still finishes and prints each overlap to standard error. Shorten the labels or add `[side: ...]` and export again.
 - Re-export after every change to the `.dragon` file.
 

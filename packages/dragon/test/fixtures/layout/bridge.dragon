@@ -1,0 +1,49 @@
+// skill を入れた Claude が描いた図 (#3484)。共有のブロック +bridge のアーチから、段 3 の丸と硬貨の枠と下の字がはみ出す
+architecture EthereumからBaseへトークンをブリッジする
+
+group l1 as Ethereum [note: 送る側のチェーン, color: blue, icon: chain]
+  box wallet as 利用者のウォレット [note: 100 USDC を持つ, icon: user]
+  box token as USDC コントラクト [note: L1 のトークン, icon: doc]
+end
+
++bridge bridge as ブリッジ [note: トークンを預かる]
+
+group l2 as Base [note: 受け取る側のチェーン, color: green, icon: key]
+  box portal as 受け取り口 [note: 届いた知らせを確かめる, icon: +key]
+  box l2token as Base 上の USDC [note: L2 のトークン, icon: doc]
+end
+
+strip ブリッジの状態: L1 残高, ブリッジに預けた額, Base 残高
+
+step 使うことを許す
+  say 利用者はブリッジが自分の USDC を動かしてよいと USDC コントラクトに許可する。これがないとブリッジはトークンを受け取れない。
+  code approve(bridge, 100)
+  wallet -> token: approve 100 USDC
+  set L1 残高: 100 USDC
+  set ブリッジに預けた額: 0
+  set Base 残高: 0
+
+step ブリッジに預ける
+  say 利用者が入金を頼むと、ブリッジは USDC を自分のもとへ移して預かる。Ethereum 側のトークンはここで固定される。
+  code depositERC20(USDC, 100)
+  wallet -> bridge: 100 USDC を預ける [carry: coin]
+  act bridge: トークンを預かり入金の知らせを出す
+  note wallet: 0 USDC
+  set L1 残高: 0
+  set ブリッジに預けた額: 100 USDC
+
+step 中継者が運ぶ
+  say ブリッジ自身は Base に書き込めない。中継者が入金の知らせを拾い、Base の受け取り口まで運ぶ。
+  bridge +relay portal: 入金の知らせ
+  note bridge: 100 USDC を預かり中
+
+step 受け取りを確かめる
+  say 受け取り口は、知らせが本当に Ethereum のブリッジから来たものかを鍵で確かめる。偽の知らせならここで止まる。
+  act portal: 送り元と内容を確かめる
+  note portal: 確認済み
+
+step Base でトークンを出す
+  say 確かめが済むと、受け取り口は同じ額の USDC を Base 上で発行し、利用者の口座に入れる。
+  portal -> l2token: 100 USDC を発行 [carry: coin]
+  note l2token: 利用者に 100 USDC
+  set Base 残高: 100 USDC

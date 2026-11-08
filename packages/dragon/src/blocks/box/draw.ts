@@ -10,11 +10,12 @@
 import type { PipeParty } from "../../kinds/pipe/layout";
 import { textWidth } from "../../layout/measure";
 import type { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
-import type { Rect, SceneBox } from "../../layout/scene";
+import type { Point, Rect, SceneBox } from "../../layout/scene";
 import { LOOK, MOTION, TYPE } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import { ALWAYS, type Ink, type Shown } from "../../render/ink";
 import type { Motion } from "../../render/motion";
+import { flattenPath } from "../../render/outline";
 import { activeKf, type Ctx, esc, r1, rangeKf, write } from "../../render/parts";
 import type { Span } from "../../timeline";
 import { cs } from "../color/draw";
@@ -85,39 +86,86 @@ export function subLines(
  */
 function userShape(added: UserBlock, cls: string, extra: string, x: number, y: number, w: number, h: number): string | undefined {
   const attrs = ` class="${cls}"${extra}`;
-  const cx = x + w / 2;
-  const cy = y + h / 2;
-  const points = (list: [number, number][]): string => `<polygon${attrs} points="${list.map(([px, py]) => `${r1(px)},${r1(py)}`).join(" ")}"/>`;
-  if (added.path !== undefined)
-    return `<path${attrs} d="${added.path}" transform="translate(${r1(x)} ${r1(y)}) scale(${r1(w / 100)} ${r1(h / 100)})" vector-effect="non-scaling-stroke"/>`;
+  const points = (list: Point[]): string => `<polygon${attrs} points="${list.map(([px, py]) => `${r1(px)},${r1(py)}`).join(" ")}"/>`;
+  if (added.path !== undefined) {
+    const { tx, ty, sx, sy } = pathFit(x, y, w, h);
+    return `<path${attrs} d="${added.path}" transform="translate(${tx} ${ty}) scale(${sx} ${sy})" vector-effect="non-scaling-stroke"/>`;
+  }
   switch (added.shape) {
     case "round":
       return `<rect${attrs} x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${r1(h / 2)}"/>`;
     case "circle":
-      return `<ellipse${attrs} cx="${r1(cx)}" cy="${r1(cy)}" rx="${r1(w / 2)}" ry="${r1(h / 2)}"/>`;
+      return `<ellipse${attrs} cx="${r1(x + w / 2)}" cy="${r1(y + h / 2)}" rx="${r1(w / 2)}" ry="${r1(h / 2)}"/>`;
     case "cylinder": {
-      const ry = Math.min(h / 6, 10);
-      const rx = w / 2;
-      return `<path${attrs} d="M ${r1(x)} ${r1(y + ry)} A ${r1(rx)} ${r1(ry)} 0 0 1 ${r1(x + w)} ${r1(y + ry)} V ${r1(y + h - ry)} A ${r1(rx)} ${r1(ry)} 0 0 1 ${r1(x)} ${r1(y + h - ry)} Z M ${r1(x)} ${r1(y + ry)} A ${r1(rx)} ${r1(ry)} 0 0 0 ${r1(x + w)} ${r1(y + ry)}"/>`;
+      const ry = cylinderCap(h);
+      return `<path${attrs} d="${cylinderBody(x, y, w, h)} M ${r1(x)} ${r1(y + ry)} A ${r1(w / 2)} ${r1(ry)} 0 0 0 ${r1(x + w)} ${r1(y + ry)}"/>`;
     }
     case "diamond":
-      return points([
-        [cx, y],
-        [x + w, cy],
-        [cx, y + h],
-        [x, cy],
-      ]);
-    case "hexagon": {
-      const k = Math.min(h / 2, w / 4);
-      return points([
-        [x + k, y],
-        [x + w - k, y],
-        [x + w, cy],
-        [x + w - k, y + h],
-        [x + k, y + h],
-        [x, cy],
-      ]);
+      return points(diamondPoints(x, y, w, h));
+    case "hexagon":
+      return points(hexagonPoints(x, y, w, h));
+    default:
+      return undefined;
+  }
+}
+
+/** path の形を箱の枠に収める、移す量と伸ばす割合。100 四方に描いた形を枠の大きさへ伸ばす */
+const pathFit = (x: number, y: number, w: number, h: number): { tx: number; ty: number; sx: number; sy: number } => ({ tx: r1(x), ty: r1(y), sx: r1(w / 100), sy: r1(h / 100) });
+/** 円柱の上と下の楕円の縦の半径 */
+const cylinderCap = (h: number): number => Math.min(h / 6, 10);
+/** 円柱の外形。上の楕円の上半分、右の縁、下の楕円の下半分、左の縁を回る。上の楕円の下半分は外形に入らない */
+function cylinderBody(x: number, y: number, w: number, h: number): string {
+  const ry = cylinderCap(h);
+  const rx = w / 2;
+  return `M ${r1(x)} ${r1(y + ry)} A ${r1(rx)} ${r1(ry)} 0 0 1 ${r1(x + w)} ${r1(y + ry)} V ${r1(y + h - ry)} A ${r1(rx)} ${r1(ry)} 0 0 1 ${r1(x)} ${r1(y + h - ry)} Z`;
+}
+const diamondPoints = (x: number, y: number, w: number, h: number): Point[] => [
+  [x + w / 2, y],
+  [x + w, y + h / 2],
+  [x + w / 2, y + h],
+  [x, y + h / 2],
+];
+function hexagonPoints(x: number, y: number, w: number, h: number): Point[] {
+  const k = Math.min(h / 2, w / 4);
+  return [
+    [x + k, y],
+    [x + w - k, y],
+    [x + w, y + h / 2],
+    [x + w - k, y + h],
+    [x + k, y + h],
+    [x, y + h / 2],
+  ];
+}
+
+/**
+ * 足した箱のブロックの箱が見せる形の輪郭 (#3484)。描く形 (`userShape`) と同じ寸法から作る。
+ * 崩れの確かめが、硬貨の枠と字と番号の丸を、箱の四角でなく見えている形と比べるために使う。形を持たない箱は `undefined`
+ */
+export function boxOutline(box: SceneBox): Point[][] | undefined {
+  const added = userBoxOf(box.id);
+  if (!added) return undefined;
+  const { x, y, w, h } = box;
+  if (added.path !== undefined) {
+    const { tx, ty, sx, sy } = pathFit(x, y, w, h);
+    return flattenPath(added.path).map((ring) => ring.map(([px, py]): Point => [tx + px * sx, ty + py * sy]));
+  }
+  switch (added.shape) {
+    case "round": {
+      // SVG の rect は縦の半径を書かないと横の半径と同じにし、横は幅の半分まで、縦は高さの半分までに詰める
+      const rx = Math.min(h / 2, w / 2);
+      const ry = h / 2;
+      return flattenPath(
+        `M ${x + rx} ${y} H ${x + w - rx} A ${rx} ${ry} 0 0 1 ${x + w} ${y + ry} V ${y + h - ry} A ${rx} ${ry} 0 0 1 ${x + w - rx} ${y + h} H ${x + rx} A ${rx} ${ry} 0 0 1 ${x} ${y + h - ry} V ${y + ry} A ${rx} ${ry} 0 0 1 ${x + rx} ${y} Z`,
+      );
     }
+    case "circle":
+      return flattenPath(`M ${x} ${y + h / 2} A ${w / 2} ${h / 2} 0 1 1 ${x + w} ${y + h / 2} A ${w / 2} ${h / 2} 0 1 1 ${x} ${y + h / 2} Z`);
+    case "cylinder":
+      return flattenPath(cylinderBody(x, y, w, h));
+    case "diamond":
+      return [diamondPoints(x, y, w, h)];
+    case "hexagon":
+      return [hexagonPoints(x, y, w, h)];
     default:
       return undefined;
   }
@@ -149,6 +197,7 @@ export function card(
   lit?: Span[],
 ): string {
   const { icon, iconRadius, iconScale, iconY } = LOOK.box;
+  const inked = ctx.ink.length;
   const subs = subLines(box, ctx.m, changes, box.cy + ctx.boxText.sub, ctx.ink);
   const act = lit
     ? lit.length > 0
@@ -178,10 +227,12 @@ export function card(
     mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${partRadius(ctx.corner, iconRadius)}"/>${glyph(box.icon, ix, box.cy + iconY, iconScale)}`;
   }
   // 足した箱のブロックの箱は、その定義の色の役で描く (#3399)
-  return (
+  const markup =
     `<g style="${cs(userBoxOf(box.id)?.color ?? box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
-    `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + ctx.boxText.name, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`
-  );
+    `${slot}${mark}${write(ctx.ink, "dg-sn", box.cx, box.cy + ctx.boxText.name, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`;
+  // 箱の中に書いた字 (名前、下の字、絵柄) に箱の名札を付け、崩れの確かめが箱の形の外へはみ出す字を探せるようにする (#3484)
+  for (const ink of ctx.ink.slice(inked)) ink.box = box.id;
+  return markup;
 }
 
 /**

@@ -16,7 +16,7 @@ import { basename, dirname, extname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { CHECKED_FILES, checkText, type Problem, problemLine } from "./check";
 import { embedPage } from "./export/embed";
-import { type ExportFormat, exportDiagram, FORMATS } from "./export/index";
+import { type ExportFormat, exportDiagram, FORMATS, NoSuchStep } from "./export/index";
 import { PALETTES, type Theme } from "./look/values";
 import { parseNotation } from "./parser";
 import { describeOverlap } from "./render/ink";
@@ -31,13 +31,14 @@ const OPTIONS = {
   fps: { type: "string" },
   "gif-fps": { type: "string" },
   format: { type: "string" },
+  step: { type: "string" },
 } as const;
 
 /** `dragon embed` の設定 */
 const EMBED_OPTIONS = { out: { type: "string" }, lang: { type: "string" } } as const;
 
 /** `dragon check` の設定 */
-const CHECK_OPTIONS = { json: { type: "boolean" }, lang: { type: "string" } } as const;
+const CHECK_OPTIONS = { json: { type: "boolean" }, layout: { type: "boolean" }, lang: { type: "string" } } as const;
 
 /** package の版。build が入れる (`tsup.config.ts`) */
 declare const __DRAGON_VERSION__: string;
@@ -69,7 +70,7 @@ interface CliText {
   cannotWrite: (path: string, detail: string) => string;
   badValue: (option: string, value: string, allowed: string) => string;
   /** 設定ごとの許す値の言い方 */
-  allowed: { lang: string; theme: string; positive: string; format: string };
+  allowed: { lang: string; theme: string; positive: string; format: string; step: string; steps: (count: number) => string };
   /** 字の重なりの 1 行。`step` は 1 から数える */
   overlap: (step: number, text: string) => string;
 }
@@ -87,6 +88,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
       "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
       "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
+      "  --step <段>        png に撮る段 (1 から数える。既定は最後の段)",
     ].join("\n"),
     embedUsage: [
       "使い方: dragon embed <HTML の file> [設定]",
@@ -102,6 +104,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     checkUsage: [
       "使い方: dragon check <記法の file (.dragon か .md) か -> [設定]",
       "  --json             誤りと知らせを JSON で出す",
+      "  --layout           図を描き、崩れ (丸や線の詰まり、箱の形からのはみ出し) も段ごとに知らせる",
       "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
     ].join("\n"),
     cannotCheck: (path) => `確かめられない file: ${path} (.dragon か .md の file か、標準入力の - を渡す)`,
@@ -114,7 +117,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     badJson: (path, detail) => `JSON として読めない: ${path} (${detail})`,
     cannotWrite: (path, detail) => `書き出せない: ${path} (${detail})`,
     badValue: (option, value, allowed) => `使えない値: ${option} ${value} (${allowed})`,
-    allowed: { lang: "ja か en", theme: "light か dark", positive: "0 より大きい数", format: `${FORMATS.join(" / ")} を , で区切る` },
+    allowed: { lang: "ja か en", theme: "light か dark", positive: "0 より大きい数", format: `${FORMATS.join(" / ")} を , で区切る`, step: "1 以上の整数", steps: (count) => `図の段は 1 から ${count}` },
     overlap: (step, text) => `段 ${step}: ${text}`,
   },
   en: {
@@ -128,6 +131,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --fps <n>          Frames per second of the mp4 (default 30)",
       "  --gif-fps <n>      Frames per second of the GIF (default 10)",
       "  --format <list>    Formats to write, separated by , (default mp4,gif,html,png)",
+      "  --step <n>         Step the png shows (counted from 1, default: the last step)",
     ].join("\n"),
     embedUsage: [
       "Usage: dragon embed <HTML file> [options]",
@@ -143,6 +147,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     checkUsage: [
       "Usage: dragon check <notation file (.dragon or .md) or -> [options]",
       "  --json             Print the errors and warnings as JSON",
+      "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, parts sticking out of a box shape) per step",
       "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
     ].join("\n"),
     cannotCheck: (path) => `Cannot check this file: ${path} (pass a .dragon or .md file, or - for stdin)`,
@@ -155,7 +160,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     badJson: (path, detail) => `Cannot read as JSON: ${path} (${detail})`,
     cannotWrite: (path, detail) => `Cannot write: ${path} (${detail})`,
     badValue: (option, value, allowed) => `Invalid value: ${option} ${value} (${allowed})`,
-    allowed: { lang: "ja or en", theme: "light or dark", positive: "a number above 0", format: `${FORMATS.join(" / ")} separated by ,` },
+    allowed: { lang: "ja or en", theme: "light or dark", positive: "a number above 0", format: `${FORMATS.join(" / ")} separated by ,`, step: "a whole number from 1", steps: (count) => `the diagram has steps 1 to ${count}` },
     overlap: (step, text) => `Step ${step}: ${text}`,
   },
 };
@@ -208,6 +213,7 @@ function valueProblem(values: Values, text: CliText): string | undefined {
     const value = values[name];
     if (value !== undefined && !(Number.isFinite(Number(value)) && Number(value) > 0)) return bad(name, value, text.allowed.positive);
   }
+  if (values.step !== undefined && !(Number.isInteger(Number(values.step)) && Number(values.step) >= 1)) return bad("step", values.step, text.allowed.step);
   return undefined;
 }
 
@@ -315,7 +321,7 @@ function check(args: string[], text: CliText): number {
       return 2;
     }
   }
-  const problems: Problem[] = sources.flatMap(({ file, source, form }) => checkText(file, source, form, lang));
+  const problems: Problem[] = sources.flatMap(({ file, source, form }) => checkText(file, source, form, lang, values.layout ? CLI_TEXT[lang].overlap : undefined));
   if (values.json) console.log(JSON.stringify(problems, null, 2));
   else for (const found of problems) console.log(problemLine(found));
   return problems.some((found) => found.severity === "error") ? 1 : 0;
@@ -360,6 +366,7 @@ async function main(argv: string[]): Promise<number> {
   const width = number(values.width);
   const fps = number(values.fps);
   const gifFps = number(values["gif-fps"]);
+  const step = number(values.step);
   // 言葉は渡した物だけで決める。渡さなければ、書き出しの既定 (英語) になる
   const lang = isLang(chosen) ? chosen : undefined;
   const diagram = read(file, early, lang ?? DEFAULT_LANG);
@@ -375,8 +382,14 @@ async function main(argv: string[]): Promise<number> {
       ...(lang ? { lang } : {}),
       ...(fps === undefined ? {} : { fps }),
       ...(gifFps === undefined ? {} : { gifFps }),
+      ...(step === undefined ? {} : { step }),
     });
   } catch (error) {
+    // 図に無い段を選んだ時は、使えない値として使い方を添えて断る (#3484)
+    if (error instanceof NoSuchStep) {
+      console.error(`${early.badValue("--step", String(error.step), early.allowed.steps(error.count))}\n${early.usage}`);
+      return 2;
+    }
     // 書き出し先に書けない時だけ命令の言葉で書き直す。描けない時と道具が無い時の断りは、書き出しが言葉に合わせて出す (#3009)
     const path = failedPath(error);
     if (path !== undefined) throw new Error(CLI_TEXT[lang ?? DEFAULT_LANG].cannotWrite(path, detail(error)));

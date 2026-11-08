@@ -130,6 +130,8 @@ export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETT
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
 export { ICONS } from "./blocks/icon/icons";
 export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from "./render/ink";
+export type { LayoutBreak, LayoutBreakKind, LayoutPart } from "./render/breaks";
+export { checkLayoutText, describeBreak } from "./render/layout-check";
 export { iconSvg } from "./blocks/icon/draw";
 export { type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
 export type { CarrierTime, EdgeTime, EventTime, LabelTime, Span, StateTime, Timeline } from "./timeline";

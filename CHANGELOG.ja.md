@@ -6,6 +6,22 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- **`dragon check --layout` で描いた図の崩れを段ごとに知らせる** (#3484)
+
+  `dragon check` は記法を描かずに読むので、確かめを通った図でも描くと崩れていることがあった。`dragon check --layout` は図を既定の幅と携帯の幅 390 で描き、5 種の崩れを知らせとして出す。近すぎる 2 つの段の番号 (`badges-close`)、並んで近すぎる 2 本の線 (`lines-close`)、形を持つ箱の四角に付いたのに見えている形から離れて浮く段の番号 (`badge-off-shape`)、形を持つ箱からはみ出す運ぶ物の枠と箱の字 (`slot-outside-shape`、`text-outside-shape`) の 5 つ。崩れは見え始める段の `step` の行に 1 件 1 行で出し、関わる 2 つの物を名指し、携帯の幅でだけ出る崩れには `(幅 390 の時)` を添える。`--json` は種類と段と幅と 2 つの物を持つ `layout` を足す。崩れは知らせなので終わり方は `0` のまま。線とその両端の箱、グループとその中の箱、箱の角の段の番号、線の始まりの段の番号とその線を出す箱のように、触れて当然の組は数えない。package は `checkLayoutText` と `describeBreak` を出す。`--layout` を付けない `dragon check` は描かず、今までと同じ行を出す。
+
+- **`dragon export --step <段>` で 1 つの段の PNG を書き出す** (#3484)
+
+  PNG はいつも最後の段の止め絵で、途中の段で出る崩れを書き出せなかった。`--step <段>` は PNG に撮る段を 1 から数えて選ぶ。図に無い段は Chromium を起こす前に終わり方 `2` で断る。`--step` を付けなければ今までどおり最後の段を撮る。
+
+- **プラグインの skill が描いた図の崩れを確かめ、残った崩れを伝える** (#3484)
+
+  skill は `dragon check` を通った後に `dragon check --layout` を打ち、記法で直せる崩れ (箱の並びを変える、字を短くする、形の無い箱にする) を直し、残った崩れを段の番号で名指して返答に書き、Chromium が在ればその段の PNG を添える。新しい参照 `layout.md` が崩れの種類と直し方を持ち、`blocks.md` が dragon の描き方でしか直せない崩れを dragon の repo へ送る手順を持つ。プラグインは評価のケース `layout-bridge` と `layout-payment` を持ち、回した結果をケースの指紋と一緒に `plugins/dragon/evals/record.json` に残す。
+
+||||||| c17a4e46
+
 ## [0.65.3] - 2026-11-08
 
 ### Fixed
