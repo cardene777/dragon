@@ -35,12 +35,12 @@ import { pathToFileURL } from "node:url";
 /** 一度に回す道具の数。書き出しは1枚ごとにChromiumを起こすので、並べすぎると混んだ機械が詰まる */
 const JOBS = 3;
 
-/** `node <cli> <args>` を回し、終わり方と出力を返す。終わり方0以外でも投げない */
-function runCli(cli, args) {
+/** `node <args>` を回し、終わり方と出力を返す。終わり方0以外でも投げない */
+function runNode(args) {
   return new Promise((done) => {
     execFile(
       process.execPath,
-      [cli, ...args],
+      args,
       { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
       (error, stdout, stderr) => {
         done({
@@ -53,17 +53,26 @@ function runCli(cli, args) {
   });
 }
 
+/** 記法を読んで段の数を出す。読めない図は空の行を出す */
+const COUNT_STEPS = [
+  'import { readFileSync } from "node:fs";',
+  "const [entry, file] = process.argv.slice(1);",
+  "const { parseNotation } = await import(entry);",
+  'const read = parseNotation(readFileSync(file, "utf8"));',
+  'console.log(read.ok ? read.diagram.steps.length : "");',
+].join("\n");
+
 /**
  * このrepoで組み立てたCLI (`dist/cli.cjs`) を使う道具。
  * 崩れは評価の判定と同じ`dragon check --layout --json --lang ja`で数え、絵も同じ`--lang ja`で書き出す (崩れの段と絵の字を揃える)。
- * 段の数は、CLIの隣の入口 (`dist/index.js`) の`parseNotation`で記法を読んで数える
+ * 段の数は、CLIの隣の入口 (`dist/index.js`) の`parseNotation`で記法を読んで数える。
+ * 入口は別のprocessで読む。vitestの中で読むと大きな入口を変換するのに数秒かかり、1件10秒の上限に近づいたため
  */
 export function cliTools(cli) {
-  const entry = resolve(dirname(cli), "index.js");
-  let parse;
+  const entry = pathToFileURL(resolve(dirname(cli), "index.js")).href;
   return {
     async breaks(file) {
-      const ran = await runCli(cli, ["check", file, "--layout", "--json", "--lang", "ja"]);
+      const ran = await runNode([cli, "check", file, "--layout", "--json", "--lang", "ja"]);
       // 終わり方1は記法の誤りで、誤りもJSONで出る
       if (ran.code === 0 || ran.code === 1) {
         try {
@@ -77,15 +86,18 @@ export function cliTools(cli) {
       };
     },
     async steps(file) {
-      parse ??= import(pathToFileURL(entry).href).then((module) => module.parseNotation);
-      const read = (await parse)(readFileSync(file, "utf8"));
-      return read.ok ? read.diagram.steps.length : undefined;
+      const ran = await runNode(["--input-type=module", "-e", COUNT_STEPS, entry, file]);
+      const count = Number(ran.stdout.trim());
+      return ran.code === 0 && ran.stdout.trim() !== "" && Number.isInteger(count)
+        ? count
+        : undefined;
     },
     async png(file, step, dest) {
       // 書き出しは段を選んでも`<図の名前>.png`を書くので、段ごとに別のdirへ書いてから移す
       const out = mkdtempSync(join(dirname(dest), ".export-"));
       try {
-        const ran = await runCli(cli, [
+        const ran = await runNode([
+          cli,
           "export",
           file,
           "--format",
