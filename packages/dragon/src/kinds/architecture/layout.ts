@@ -29,6 +29,7 @@ import {
   type Point,
   placeLabel,
   placeSlot,
+  pullApart,
   type Rect,
   regionColors,
   type SceneBox,
@@ -353,19 +354,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   }));
   // 運ぶ物は着いた箱の置き場に留まり、出る箱の置き場で走り出しを待つ (#3176)
   seatCarriers(sceneEdges, byId, carriedIn);
-  // 同じ 2 つの箱を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする。
-  // ずらした線の名前は、ずらした側 (もう一方の線の反対側) に置き、どちらの線の名前かを取り違えないようにする (#3175)
-  const outward = new Map<SceneEdge, LabelSide>();
-  for (const edge of sceneEdges) {
-    if (edge.points.length !== 2) continue;
-    const back = sceneEdges.some((other) => other.from === edge.to && other.to === edge.from && other.points.length === 2);
-    if (!back) continue;
-    const [p, q] = edge.points as [Point, Point];
-    const flat = Math.abs(q[1] - p[1]) < Math.abs(q[0] - p[0]);
-    const d = (edge.from < edge.to ? 1 : -1) * LOOK.edge.parallel;
-    edge.points = edge.points.map(([x, y]) => (flat ? [x, y + d] : [x + d, y]));
-    outward.set(edge, flat ? (d > 0 ? "below" : "above") : d > 0 ? "right" : "left");
-  }
+  // 同じ2つの箱を行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す。名前はずらした側に置く (#3175、#3521)
+  const outward = pullApart(sceneEdges);
 
   const regions: SceneRegion[] = [];
   groups.forEach((group, g) => {

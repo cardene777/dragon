@@ -5,6 +5,7 @@
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
  * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)。
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
+ * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  *
  * 重なって当然の組は数えない。線とその両端の箱、グループとその中の箱は、どの種類も比べない組なので数えない。
@@ -12,7 +13,7 @@
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
 import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
-import { LOOK } from "../look/values";
+import { APART, LOOK } from "../look/values";
 import { type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
 import { signedDistance } from "./outline";
 
@@ -70,10 +71,13 @@ export type BreakFinder = (drawn: DrawnFigure) => LayoutBreak[];
 const R = LOOK.badge.r;
 /** 触れているとみなす間 (px)。線の始まりの番号の丸は箱の縁から 1px 離して置く */
 const TOUCH = 2;
-/** 番号の丸どうしの間の下限。丸の半径より狭いと 2 つの番号が 1 つの塊に見える */
-const BADGE_GAP = R;
-/** 並んだ線の間の下限と、並んで走る長さの下限。番号の丸 1 つ分より狭い間で丸 2 つ分より長く並ぶ線は 1 本の太い線に見える */
-const LINE_GAP = 2 * R;
+/**
+ * 番号の丸どうしの間の下限と、並んだ線の間の下限。
+ * 描く処理が番号の丸と行きと帰りの線を離す値と同じ所 (`APART`) から取り、描いた図と食い違わないようにする (#3521)
+ */
+const BADGE_GAP = APART.badge;
+const LINE_GAP = APART.line;
+/** 並んで走る長さの下限。番号の丸2つ分より長く狭い間で並ぶ線は1本の太い線に見える */
 const LINE_ALONG = 2 * R;
 
 /** 点から四角までの距離。四角の内の点は 0 */
@@ -171,7 +175,9 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   const edgeSteps = new Map(edges.map((e) => [e.points, e.step + 1]));
   traces.forEach((a, i) => {
     for (const b of traces.slice(i + 1)) {
-      if (!runAlong(a.points, b.points)) continue;
+      // 同じ2つの箱を逆向きに結ぶ線は、重なって走る (間が0の) 時も数える。頼みと答えの線が同じ道に重なると、互いの番号の丸が相手の矢じりを隠す (#3521)
+      const back = a.from !== a.to && a.from === b.to && a.to === b.from;
+      if (!runAlong(a.points, b.points, back)) continue;
       const seen = firstSeen(a, b);
       if (seen === undefined) continue;
       const stepA = edgeSteps.get(a.points) ?? seen;
@@ -235,8 +241,12 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     .sort((a, b) => a.step - b.step);
 }
 
-/** 2 本の線のどこかで、縦か横の区間どうしが間 `LINE_GAP` 未満で `LINE_ALONG` より長く並んで走るか */
-function runAlong(a: Point[], b: Point[]): boolean {
+/**
+ * 2本の線のどこかで、縦か横の区間どうしが間 `LINE_GAP` 未満で `LINE_ALONG` より長く並んで走るか。
+ * 重なって走る (間が0の) 区間は `overlap` の時だけ数える。
+ * 同じ線を別の段でもう一度引くと同じ道に重なるので、それは数えない
+ */
+function runAlong(a: Point[], b: Point[], overlap: boolean): boolean {
   const segments = (points: Point[]): [Point, Point][] => points.slice(1).map((p, k) => [points[k] as Point, p]);
   for (const [a0, a1] of segments(a))
     for (const [b0, b1] of segments(b)) {
@@ -247,7 +257,7 @@ function runAlong(a: Point[], b: Point[]): boolean {
         const other = axis === 0 ? 1 : 0;
         const along =
           Math.min(Math.max(a0[other], a1[other]), Math.max(b0[other], b1[other])) - Math.max(Math.min(a0[other], a1[other]), Math.min(b0[other], b1[other]));
-        if (gap > 0 && gap < LINE_GAP && along > LINE_ALONG) return true;
+        if ((gap > 0 || overlap) && gap < LINE_GAP && along > LINE_ALONG) return true;
       }
     }
   return false;

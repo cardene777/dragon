@@ -35,10 +35,10 @@ const FINALITY = join(ROOT, "packages/dragon/examples/finality.dragon");
 
 const R = LOOK.badge.r;
 
-type Apart = { badge: number; line: number; along: number };
+type Apart = { badge: number; line: number };
 /** 崩れの検査と描く処理が分け合う間の下限 (`APART`)。値が無い版では、検査が自分で持っていた同じ下限 (番号の丸の半径と直径) を使う */
 const shared = (values as unknown as { APART?: Apart }).APART;
-const apart = (): Apart => shared ?? { badge: R, line: 2 * R, along: 2 * R };
+const apart = (): Apart => shared ?? { badge: R, line: 2 * R };
 
 function layoutOf(file: string): Layout {
   const parsed = parseNotation(readFileSync(file, "utf8"), { lang: "ja" });
