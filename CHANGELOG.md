@@ -6,14 +6,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
-## [0.65.3] - 2026-11-08
-
-### Fixed
-
-- **Choice fields in the input strip no longer clip their values** (#3485)
-
-  The input strip of a try diagram put every field on one row and let each shrink from the same base width of 110, so a choice field with a long choice clipped the chosen value. With six fields on a 740 frame, `順序付けの遅れ` showed only its first five characters. A choice field now never gets narrower than its longest choice plus the side padding, the arrow and the border, and a field that does not fit on the row moves to the next row. A choice field also stops growing at that width (or the base width, whichever is wider) plus the base width, so a field moved to the next row stays beside the send button. Text fields still shrink as before, and the narrow two-column grid is unchanged.
-
 ## [0.65.2] - 2026-11-08
 
 ### Fixed

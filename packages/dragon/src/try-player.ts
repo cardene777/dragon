@@ -17,7 +17,6 @@
  */
 import { pressSpot } from "./blocks/press/draw";
 import type { TryLayout } from "./kinds/try/layout";
-import { textWidth } from "./layout/measure";
 import { TRY_LOOK } from "./look/try";
 import { LOOK, TYPE } from "./look/values";
 import { cssFont as font } from "./render/parts";
@@ -51,9 +50,7 @@ function tryCss(): string {
     `.dg-ask{container:dg-ask/inline-size;margin:0;padding:${px(A.pad)};border:${hair} solid var(--hair);border-radius:${px(P.radius)};background:var(--sunk)}`,
     ".dg-ask[hidden]{display:none}",
     `.dg-ask-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:${px(P.gap)}}`,
-    // 選ぶ欄は一番長い候補が収まる幅 (--dg-field-min) より縮めず、1 行に入らない欄は次の行へ送る (#3485)。打つ欄は今どおり縮める。
-    // 次の行へ送った選ぶ欄が行の幅いっぱいに伸びないよう、選ぶ欄は --dg-field-max より広げない
-    `.dg-field{display:flex;flex-direction:column;gap:${px(A.label)};flex:1 1 ${px(A.field)};min-width:var(--dg-field-min,0px);max-width:var(--dg-field-max,none)}`,
+    `.dg-field{display:flex;flex-direction:column;gap:${px(A.label)};flex:1 1 ${px(A.field)};min-width:0}`,
     `.dg-fl{${font(TYPE.askLabel)};color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}`,
     `.dg-in{box-sizing:border-box;width:100%;height:${px(P.touch)};margin:0;padding:0 ${px(A.inset)};border:${hair} solid var(--line);border-radius:${px(A.radius)};background:var(--surf);color:var(--ink);${font(TYPE.askInput)}}`,
     `.dg-in:focus{outline:${hair} solid ${tint};border-color:${tint}}`,
@@ -70,7 +67,7 @@ function tryCss(): string {
     `@media (pointer: coarse){.dg-ats .dg-act{min-height:${px(P.touch)};height:${px(P.touch)}}}`,
     ".dg-player [data-chip][data-editable]{cursor:pointer}",
     // 狭い帯 (携帯の幅) では欄と釦を 2 列の升に並べ、どれも帯の幅に収める
-    `@container dg-ask (width < ${px(P.narrow)}){.dg-ask-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}.dg-field{min-width:0;max-width:none}.dg-act{width:100%;min-width:0}}`,
+    `@container dg-ask (width < ${px(P.narrow)}){.dg-ask-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}.dg-act{width:100%;min-width:0}}`,
     // 角を落とす色味は、帯と入力と釦の角を丸めない (#3344)
     '.dg-player[data-corner="cut"] :is(.dg-ask,.dg-in,.dg-act){border-radius:0}',
   ].join("");
@@ -213,13 +210,6 @@ export function mountTryControls(
         select.append(o);
       }
       select.value = options.includes(value) ? value : (options[0] ?? "");
-      // 一番長い候補の字と左右の余白と矢印と縁が収まる幅を、欄の幅の下限にする (#3485)。選んだ値の字を欄の幅で切らない。
-      // 上限は下限 (基準の幅より狭ければ基準の幅) に基準の幅を足した幅で、次の行へ送った欄が行の幅いっぱいに伸びない
-      const A = LOOK.player.ask;
-      const longest = Math.max(0, ...options.map((option) => textWidth(option, TYPE.askInput)));
-      const least = Math.ceil(longest + 2 * A.inset + A.arrow + 2 * LOOK.stroke.hair);
-      box.style.setProperty("--dg-field-min", px(least));
-      box.style.setProperty("--dg-field-max", px(Math.max(least, A.field) + A.field));
       input = select;
     } else {
       const text = doc.createElement("input");
