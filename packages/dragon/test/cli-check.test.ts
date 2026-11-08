@@ -306,6 +306,10 @@ describe("定義の file と --blocks (#3508)", () => {
     const ran = await runCli(["check", "--blocks", definitions, example]);
     expect(ran.code, `--blocks で定義を渡しても通らない ${ran.stdout}${ran.stderr}`).toBe(0);
     expect(ran.stdout.trim(), "--blocks で定義を渡した図で何かを出した").toBe("");
+    // 崩れも確かめる時 (--layout) も、渡した定義で図を描く
+    const layout = await runCli(["check", "--layout", "--blocks", definitions, example]);
+    expect(layout.code, `--layout と --blocks で通らない ${layout.stdout}${layout.stderr}`).toBe(0);
+    expect(layout.stdout, "--layout で描く処理に渡した定義が届かない").not.toMatch(/\+vault is not defined/u);
   });
 
   it("check-blocks-option-usage-errors", async () => {
