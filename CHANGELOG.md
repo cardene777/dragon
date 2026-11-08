@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.66.1] - 2026-11-08
+
+### Fixed
+
+- **Choice fields draw their own arrow, and wrapped fields keep their width and their label** (#3492)
+
+  A choice field in the input strip used the browser arrow, which Chromium draws about 8px from the right border, closer than the 12px before the text. Since 0.65.3 a choice field moved to the next row grew up to its longest choice plus the base width, so the text and the arrow drifted apart. A choice field now hides the browser arrow and dragon draws its own arrow as far from the right border as the text is from the left border. Fields moved to the next row keep the width of their longest choice (or the base width, whichever is wider), and fields on the first row still grow to fill the row. The least width of a choice field also covers its label, so a long label such as `確かめるNodeのView` is not cut with an ellipsis on a field that does not grow.
+
 ## [0.66.0] - 2026-11-08
 
 ### Added

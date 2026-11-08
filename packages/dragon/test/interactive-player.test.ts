@@ -32,6 +32,7 @@ import {
   type TryBlock,
   tryLayout,
   txBlock,
+  labeledAskTry,
   WIDE_ASK_LONGEST,
   wideAskTry,
 } from "./try-support";
@@ -348,5 +349,19 @@ describe("入力の帯の欄の幅 (#3485)", () => {
     expect(minOf("トランザクション"), "候補を持たない打つ欄が幅の下限を持つ").toBe("");
     const css = [...document.querySelectorAll("style")].map((style) => style.textContent ?? "").join("");
     expect(css, "入力の帯の CSS が欄 (.dg-field) の最小の幅に下限 (--dg-field-min) を使わない").toMatch(/\.dg-field\{[^}]*min-width:var\(--dg-field-min/u);
+  });
+
+  // 選ぶ欄の幅の下限は、欄の名前の字の幅も下回らない。名前を「…」で切らない (#3492)
+  it("try-ask-field-min-covers-label", () => {
+    const { host } = mountTry(parsedTry(labeledAskTry()), 740);
+    const boxes = [...host.querySelectorAll<HTMLElement>('form[data-dragon="ask"] .dg-field')];
+    const selects = boxes.filter((box) => box.querySelector("select"));
+    expect(selects, "選ぶ欄の数").toHaveLength(7);
+    for (const box of selects) {
+      const label = box.querySelector(".dg-fl")?.textContent ?? "";
+      const min = Number.parseFloat(box.style.getPropertyValue("--dg-field-min"));
+      const need = textWidth(label, TYPE.askLabel);
+      expect(min, `選ぶ欄「${label}」の幅の下限 ${min} が、欄の名前の字の幅 ${need} より狭い`).toBeGreaterThanOrEqual(need);
+    }
   });
 });

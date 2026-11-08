@@ -223,6 +223,24 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-66-1-draws-ask-arrow", () => {
+    // 試す図の選ぶ欄の矢印を dragon が描いて左右の余白を揃え、次の行へ送った選ぶ欄を伸ばさない直し (#3492) は、別の会話が出す 0.66.0 (#3490) の後に 0.66.1 で出す
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 66 || (minor === 66 && patch >= 1), `package の版 ${version()} が 0.66.1 より前`).toBe(true);
+    for (const [file, word] of [
+      ["CHANGELOG.md", /arrow/iu],
+      ["CHANGELOG.ja.md", /矢印/u],
+    ] as const) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.66\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.66.1"), "0.66.1");
+      expect(released, `${file} に日付付きの ## [0.66.1] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3492)")) ?? "";
+      expect(entry, `${file} の 0.66.1 の節に #3492 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.66.1 の節の #3492 の項が選ぶ欄の矢印 (${word.source}) を名指さない`).toMatch(word);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3492)");
+    }
+  });
+
   it("changelog-0-65-3-fits-ask-choices", () => {
     // 試す図の入力の帯で、選ぶ欄を一番長い候補が収まる幅より縮めず、1 行に入らない欄を次の行へ送る直し (#3485) は 0.65.3 で出す
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
