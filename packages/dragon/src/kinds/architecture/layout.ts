@@ -8,6 +8,7 @@
  * 箱の下か上を回る線は、行で最も高い箱の枠と帯の枠から余白 (`LOOK.margin`) 以上離して通し、帯が狭ければ帯を広げる (#3526、#3546)。
  * 同じ箱の同じ所から別々の箱へ出る線は、出る所と回る道を離して通し、離した道が収まるまで行の間か帯か列の間を広げる (#3549)。
  * 別々の箱から出て同じ道を回る線も、区間が重なれば道を離し、同じ所へ入る線と出る線も入る所と出る所を離す (#3552)。
+ * 囲みの外へ出る線の名前は囲みの枠線から離して置き、空きが無ければ帯の間を広げる。図の枠の上へ出る名前は、出た分だけ図の上を広げる (#3554)。
  */
 import { APART, LOOK, TYPE } from "../../look/values";
 import type { DiagramModel, LabelSide, Region } from "../../schema";
@@ -313,7 +314,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     const header = headers[g];
     const h = Math.max(contentBottom + R.pad + room.bottom - cursor, header ? header.h + R.inset * 2 : 0, group.region ? R.minH : 0);
     bands.push({ group: g, y: cursor, h, rows });
-    cursor += h + R.gap;
+    // 帯の間を下りる線の名前を、囲みの枠線をまたがずに置く分だけ、次の帯との間を広げる (#3554)
+    cursor += h + R.gap + extra(`label-gap:${g}`);
   });
   const bandsBottom = cursor - R.gap;
   for (const box of boxes) placeSlot(box, carriedIn.get(box.id));
@@ -554,6 +556,39 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     const key = `label-lane:${slot.group}:${slot.row}:${toward}`;
     if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + Math.ceil(short)));
   };
+  /** 囲みの枠線の横の線の真ん中の高さと、その線を持つ帯と、線が帯の下の縁か (#3554)。枠線は帯の四角を 0.5px 内へ縮めて太さ 1px で描く */
+  const borderLines = bands.flatMap((band, g) =>
+    groups[g]?.region
+      ? [
+          { y: band.y + 0.5, band: g, bottom: false },
+          { y: band.y + band.h - 0.5, band: g, bottom: true },
+        ]
+      : [],
+  );
+  /** 線が1つの囲みの中で2つの箱を結ぶか。その線の名前は、`grow` が囲みの中に収める */
+  const inRegion = (edge: SceneEdge): boolean => {
+    const [m, n] = [slots.get(edge.from), slots.get(edge.to)];
+    return m !== undefined && n !== undefined && m.group === n.group && groups[m.group]?.region !== undefined;
+  };
+  /**
+   * 帯 `k` と帯 `k + 1` の間を通る線の名前 `label` が、囲みの枠線をまたがずに収まるだけ、2つの帯の間を広げる (#3554)。
+   * 名前の上の限りは、上の帯が囲みなら枠線 (帯の下の縁から 1px の太さ) から `LOOK.label.soft` 下、囲みでなければ名前と横に重なる上の帯の箱から `LOOK.gap` 下にする。
+   * 下の限りも同じに、下の帯の枠線か箱から決める。札を置く処理が囲みの枠線と箱から離す間と同じ。
+   * 2つの帯の間を広げると下の帯が下がり、下の限りだけが下がる。足りない分に、名前を探す所をずらす 1 回分を足して広げる
+   */
+  const roomAcross = (label: Rect, k: number): void => {
+    const [upper, lower] = [bands[k], bands[k + 1]];
+    if (!upper || !lower) return;
+    const { soft, search, h } = LOOK.label;
+    const beneath = (box: SceneBox, g: number): boolean => slots.get(box.id)?.group === g && box.x < label.x + label.w + gap && box.x + box.w > label.x - gap;
+    const lows = boxes.filter((box) => beneath(box, k)).map((box) => box.y + box.h + gap);
+    const highs = boxes.filter((box) => beneath(box, k + 1)).map((box) => box.y - gap);
+    const top = groups[k]?.region ? upper.y + upper.h + soft : lows.length > 0 ? Math.max(...lows) : upper.y + upper.h;
+    const bottom = groups[k + 1]?.region ? lower.y - soft : highs.length > 0 ? Math.min(...highs) : lower.y;
+    const short = h + search - (bottom - top);
+    const key = `label-gap:${k}`;
+    if (short > 0) need.set(key, Math.max(need.get(key) ?? 0, extra(key) + Math.ceil(short)));
+  };
   const labels: SceneLabel[] = [];
   // 線の名前は別の線に乗せず、自分の線より別の線の近くにも置かない。乗るか近い名前は、その線の名前に読める (#3552)。
   // 後の段の線も初めから点線の道で見えているので、全ての段の線を避ける。同じ道をもう一度引いた線は自分の線なので避けない。
@@ -572,11 +607,20 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     const below = edge.from === edge.to ? { side: "below" as const, base: loopLabelBase(edge.points, w) } : undefined;
     const { a, b, vertical } = longest(edge.points);
     const slide = vertical ? Math.max(LOOK.label.h * 4, (Math.abs(b[1] - a[1]) - LOOK.label.h) / 2) : Math.max(w, (Math.abs(b[0] - a[0]) - w) / 2);
+    // 1つの囲みの中で結ぶ線でない線の名前は、囲みの枠線をまたがせない。枠線が札に刺さると字と重なる (#3554)
+    const fenced = !inRegion(edge);
     const label = placeLabel(
       { step: edge.step, event: edge.event, text: source.label, points: edge.points, color: edge.color, ...(below ?? { slide, ...(side ? { side } : { flip: true }) }) },
-      { hard: boxes, soft, touch: seen, lines, nearest: true },
+      { hard: boxes, soft, touch: seen, lines, nearest: true, ...(fenced ? { frames: borderLines.map((l) => l.y) } : {}) },
     );
     labels.push(label);
+    // 枠線から離せる所が脇に無かった名前は、枠線を持つ帯と隣の帯の間を広げて置き直す。離れは札を置く処理と同じく、枠線の太さの半分を足して測る
+    const clearance = LOOK.label.soft + 0.5;
+    if (fenced)
+      for (const line of borderLines) {
+        if (label.y - line.y >= clearance || line.y - (label.y + label.h) >= clearance) continue;
+        roomAcross(label, line.bottom ? line.band : line.band - 1);
+      }
     // 名前の脇に自分の線より近い線が残る時は、縦の線なら列か行の間を、横の線なら行を回る道との間を広げて置き直す
     const toward = side ?? (vertical ? "right" : "above");
     if (!below && !nearestLine(label, edge.points, lines)) {
@@ -982,7 +1026,18 @@ function grow(layout: Layout, groups: Group[], slots: Map<string, Slot>, rooms: 
     const edge = layout.edges.find((e) => e.step === label.step && e.event === label.event);
     const a = edge && slots.get(edge.from);
     const b = edge && slots.get(edge.to);
-    if (!a || !b || a.group !== b.group || !groups[a.group]?.region) continue;
+    if (!a || !b) continue;
+    if (a.group !== b.group || !groups[a.group]?.region) {
+      // 囲みの中で結ぶ線でない名前が図の上の余白より上へ出たら、一番上の帯の上を広げて図の枠の内に収める (#3554)。
+      // 行の上を回る道は行から余白だけ離して通すので、道の上に置く名前は図の枠の上へ出る
+      const above = margin - label.y;
+      const first = rooms[0];
+      if (above > 0.01 && first) {
+        first.top += above;
+        grown = true;
+      }
+      continue;
+    }
     const region = layout.regions.find((r) => r.id === groups[a.group]?.region?.id);
     const room = rooms[a.group];
     if (!region || !room) continue;

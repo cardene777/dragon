@@ -738,6 +738,12 @@ export interface Obstacles {
    * 脇に空きが無い時に遠くへ離すと、名前はどの線の名前か読めなくなる
    */
   nearest?: boolean;
+  /**
+   * 名前の札がまたがない、囲みの枠線の横の線の真ん中の高さ (#3554)。札は枠線から `LOOK.label.soft` 離す。
+   * 枠線が札に刺さると、札の字と重なって読みにくい。囲みは図の横幅いっぱいに引くので、横の線だけを見る。
+   * 離せる所が自分の線の脇に無い時は、枠線を見ずに置く。置く側 (構成図) が札の置き場を空けて置き直す
+   */
+  frames?: number[];
 }
 
 /**
@@ -810,14 +816,20 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
     }
     return undefined;
   };
+  const frames = obstacles.frames ?? [];
+  // 枠線は太さ 1px なので、線の真ん中から太さの半分を足して離す
+  const clearance = LOOK.label.soft + 0.5;
+  const clear = (rect: Rect): boolean => frames.every((y) => rect.y - y >= clearance || y - (rect.y + rect.h) >= clearance);
   // `nearest` の時は、脇で別の線が自分の線の 2 倍より離れた所、脇で自分の線が最も近い所、脇で `lines` を横切らない所、
-  // `lines` を見ない所の順に探す。最後は脇に限らない (#3552)
+  // `lines` を見ない所の順に探す。最後は脇に限らない (#3552)。
+  // 枠線 (`frames`) を渡した時は、初めの 3 つを枠線から離れた所で探し、無ければ枠線を見ずに同じ 3 つを探す (#3554)
   const beside = (rect: Rect): boolean => lineGap(request.points, rect) <= besideReach(offset);
+  const tiers = (keep: (rect: Rect) => boolean): Rect | undefined =>
+    find((rect) => keep(rect) && across(rect) && nearestLine(rect, request.points, lines, offset, 2), h) ??
+    find((rect) => keep(rect) && across(rect) && nearestLine(rect, request.points, lines, offset), h) ??
+    find((rect) => keep(rect) && across(rect) && beside(rect), h);
   const found = obstacles.nearest
-    ? (find((rect) => free(rect) && across(rect) && nearestLine(rect, request.points, lines, offset, 2), h) ??
-      find((rect) => free(rect) && across(rect) && nearestLine(rect, request.points, lines, offset), h) ??
-      find((rect) => free(rect) && across(rect) && beside(rect), h) ??
-      find(free, searchMax))
+    ? (tiers((rect) => free(rect) && clear(rect)) ?? (frames.length > 0 ? tiers(free) : undefined) ?? find(free, searchMax))
     : find((rect) => free(rect) && across(rect), searchMax);
   return { ...(found ?? first), step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
 }

@@ -76,7 +76,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
  * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、部品が図の枠の端からはみ出す (#3515)、線の名前か流れた量の札が線から離れる (#3528)。
  * 囲みの呼び方と、線が箱か囲みの枠に沿って近すぎる文と、字が枠に接する文も持つ (#3526)。
  * 時間軸の図の針と時刻の目盛りの線と時間軸の囲みの呼び方と、部品が時間軸の囲みの枠に掛かる文も持つ (#3527)。
- * 囲みと列と帯の枠線の呼び方と、番号の丸が枠線に乗る文も持つ (#3525)。
+ * 囲みと列と帯の枠線の呼び方と、番号の丸が枠線に乗る文も持つ (#3525)。線の名前が枠線をまたぐ崩れも同じ文で知らせる (#3554)。
  * 配管の図の弁と計器と管の呼び方、札が部品に重なる、管が箱の縁の後ろを通る、2 本の管が重なって通る (#3523)。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
  * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
@@ -233,7 +233,7 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
                           ? w.nearBorder(name(a), name(b2))
                           : b.kind === "text-touches-border"
                             ? w.touchesBorder(name(a), name(b2))
-                            : b.kind === "badge-on-frame"
+                            : b.kind === "badge-on-frame" || b.kind === "label-on-frame"
                               ? w.onBorder(name(a), name(b2))
                               : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
