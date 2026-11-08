@@ -107,7 +107,8 @@ describe("描く部品が出す字の言葉", () => {
       ja: {
         refusal: "図を描けない: /blocks/box/0/colour colour という欄は書けない",
         overview: "全体図",
-        labels: { prev: "前の段", pause: "止める", play: "動かす", next: "次の段", steps: `${title()} の段` },
+        // 段の一覧の名前は題と「の段」の間に空白を置かない (#3517)
+        labels: { prev: "前の段", pause: "止める", play: "動かす", next: "次の段", steps: `${title()}の段` },
       },
     };
     for (const [lang, want] of [

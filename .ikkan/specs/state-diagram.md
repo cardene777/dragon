@@ -38,7 +38,7 @@
 | 時系列図、構成図、状態遷移図のどれでも、角を丸める色味 (既定の`paper`、`clear`、`night`) では、3 点以上を通る線は曲がりを共通の値の表の半径で丸め、直角の角を持たない (角を落とす`arcade`の折れ目は #3358 の条件が持つ) | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`lines-round-their-bends`が通る | #3171 |
 | 同じ状態へ戻る線 (検品する) を箱の下の弧で描き、線は直線の区間を持たず、箱の幅からはみ出さない | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-draws-self-loop-as-arc`が通る | #3171 |
 | 状態遷移図で段が終わった後も、その段の線の名前を今の段の名前より薄い濃さで残す。どの時刻でも、普通の濃さで見える線の名前は 2 個以下 | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-keeps-past-line-names-faint`が通る | #3171 |
-| 脇道の囲みは、脇道へ入る線を持つ状態のうち最も左の状態の列から図の右端までを占め、始まりの印とその添え書きに重ならない。添え書きは日本語で `今回は通らない` と `3 つの状態から入れる`、英語で `Not taken this time` と `Enterable from 3 states` の 2 行 | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-renders-side-path-top-right`が通る | #3171 |
+| 脇道の囲みは、脇道へ入る線を持つ状態のうち最も左の状態の列から図の右端までを占め、始まりの印とその添え書きに重ならない。添え書きは日本語で `今回は通らない` と `3つの状態から入れる` (#3517で数と仮名の間の空白を外した)、英語で `Not taken this time` と `Enterable from 3 states` の 2 行 | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-renders-side-path-top-right`が通る | #3171 |
 | 脇道の点線の札は、絵柄を左に、名前と添え書きを右に並べる。脇道の状態が 2 つ以上ある図では、同じ囲みの中で横に並べる | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-lines-up-side-states`が通る | #3171 |
 | 絵柄の一覧に `undo` (戻る矢印) と `yen` (円の印) があり、注文の見本は返品の受付に `undo`、返金済みに `yen` を使う。英語版も同じ | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-order-uses-undo-and-yen`が通る | #3171 |
 | 状態遷移図の帯の最後に、通った状態を状態の色の点で並べる欄 (日本語で `通った状態`、英語で `States passed`) を出し、まだ着いていない状態は輪郭だけの点にする。注文の見本の帯に状態の欄は無い | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-strip-shows-passed-states`が通る | #3171 |
