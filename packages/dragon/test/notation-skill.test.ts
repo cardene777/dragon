@@ -224,6 +224,21 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(missing, "SKILL.md が書かない崩れの手順").toEqual([]);
   });
 
+  it("skill-blocks-names-block-icon", () => {
+    // 箱を元にしたブロックの定義は icon の行を持てる。共有の +bridge は石の橋の絵柄を持つ角丸の箱 (#3489)
+    const text = read(join(REFERENCES, "blocks.md"));
+    expect(text, "references/blocks.md が無い").not.toBe("");
+    const definitions = [...text.matchAll(/^ *block \+[a-z][a-z0-9-]*\n(?:.*\n)*? *end$/gmu)].map((match) => match[0]);
+    expect(definitions.length, "定義の見本を数えられない (走査の空振り)").toBeGreaterThan(0);
+    expect(
+      definitions.some((d) => /^ *base box\b/mu.test(d) && /^ *icon tabler:[a-z0-9-]+$/mu.test(d)),
+      "箱を元にした定義に Tabler の絵柄の icon の行を書く見本が無い",
+    ).toBe(true);
+    const bridgeRow = text.split("\n").find((line) => line.startsWith("| `+bridge` |")) ?? "";
+    expect(bridgeRow, "共有の +bridge の行が石の橋の絵柄を持たない").toContain("tabler:building-bridge-2");
+    expect(bridgeRow, "共有の +bridge の行がまだアーチの path を持つ").not.toContain("path");
+  });
+
   it("skill-layout-fixes-and-issue-route", () => {
     const text = read(join(REFERENCES, "layout.md"));
     expect(text, "references/layout.md が無い").not.toBe("");

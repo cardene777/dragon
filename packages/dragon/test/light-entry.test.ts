@@ -222,8 +222,14 @@ describe("記法から読んだ試す図は、置いた後に写した図も検�
 
 /** 宣言と段を省いた時系列図 (#3438)。箱は線に出た名前から、段は線 1 本ずつから導く */
 const SHORT = "sequence\n\nブラウザ -> アプリ: GET /login\nアプリ -> ブラウザ: 認可の頁へ送る\n";
-/** 共有のブロック集の箱 (`+bridge`) の形 (#3455) */
-const BRIDGE = "M 0 70 Q 50 0 100 70 Z";
+/** 箱の行に Tabler の石の橋を書いた構成図。共有の橋のブロックの絵柄と比べる相手 (#3489) */
+const BRIDGE_ICON_BOX = "architecture 橋\n\nbox eth as Ethereum\nbox cc as 橋 [icon: tabler:building-bridge-2]\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
+/** 既定の入口で描いた SVG の箱の絵柄 (`dg-gl`) の path の d */
+const glyphDs = (svg: string): string[] => [...svg.matchAll(/<path class="dg-gl" [^>]*\bd="([^"]*)"/gu)].map((match) => match[1] ?? "");
+/** 定義に Tabler の絵柄を書いた構成図 (#3489) */
+const BLOCK_ICON = "architecture 橋\n\nblocks 1\nblock +span\n  base box\n  icon tabler:building-bridge-2\nend\n\nbox eth as Ethereum\n+span cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
+/** 絵柄集を読んだかを返す式 */
+const TABLER_LOADED = `light.iconSetLoaded("tabler")`;
 /** 図の頭に定義を書かずに共有のブロックを使う構成図 */
 const SHARED_BLOCK = "architecture 橋\n\nbox eth as Ethereum\n+bridge cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
 
@@ -264,10 +270,40 @@ describe("宣言と段を省いた短い記法 (#3438)", () => {
     `);
     expect(out.ok, `軽い入口が共有のブロックを使う図を読めない ${out.error ?? ""}`).toBe(true);
     expect(out.error, "共有のブロックを使う図を軽い入口で描けない").toBeUndefined();
-    expect(out.svg ?? "", "軽い入口が共有のブロックの形で描かない").toContain(`d="${BRIDGE}"`);
+    // 共有の橋は石の橋の絵柄を持つ角丸の箱 (#3489)。軽い入口は絵柄集の表を読んでから描く
+    const plain = whole.parseNotation(BRIDGE_ICON_BOX);
+    const [bridge] = plain.ok ? glyphDs(whole.renderDiagram(plain.diagram).svg) : [];
+    expect(bridge, "既定の入口で箱の行に書いた石の橋が描かれない").toBeDefined();
+    expect(glyphDs(out.svg ?? ""), "軽い入口が共有の橋の石の橋の絵柄を描かない").toContain(bridge);
     const parsed = whole.parseNotation(SHARED_BLOCK);
     expect(parsed.ok, "既定の入口が共有のブロックを使う図を読めない").toBe(true);
     expect(out.svg, "軽い入口で描いた SVG が既定の入口と違う").toBe(parsed.ok ? whole.renderDiagram(parsed.diagram).svg : "");
+  });
+
+  it("light-loads-tabler-for-block-icon", () => {
+    const out = inFreshNode<{ before: unknown; after: unknown }>(`
+      out.before = ${TABLER_LOADED};
+      await light.loadFor(${JSON.stringify(BLOCK_ICON)});
+      out.after = ${TABLER_LOADED};
+    `);
+    expect(out.before, "読む前から絵柄集を持つ").toBe(false);
+    expect(out.after, "定義に Tabler の絵柄を持つ図の loadFor が絵柄集を読まない").toBe(true);
+  });
+
+  it("light-refuses-block-icon-before-load", () => {
+    const out = inFreshNode<{ result: string; loaded: unknown }>(`
+      // 構成図の部品は最初から在るので、loadFor を待たずに読んで描く
+      const parsed = light.parseNotation(${JSON.stringify(SHARED_BLOCK)});
+      if (!parsed.ok) out.result = "読めない: " + parsed.errors.map((e) => e.message).join(" / ");
+      else {
+        try { out.result = light.renderDiagram(parsed.diagram).svg ? "描けた" : "空"; } catch (e) { out.result = "描けない: " + e.message; }
+      }
+      out.loaded = ${TABLER_LOADED};
+    `);
+    expect(out.loaded, "loadFor を待っていないのに絵柄集を読んだ").toBe(false);
+    expect(out.result, "loadFor の前に共有の橋の図を描けた").not.toBe("描けた");
+    expect(out.result, "誤りの文が絵柄集の名前を言わない").toMatch(/tabler/iu);
+    expect(out.result, "誤りの文が loadFor を待つよう言わない").toContain("loadFor");
   });
 });
 

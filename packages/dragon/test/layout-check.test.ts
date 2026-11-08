@@ -40,7 +40,10 @@ const [{ checkLayout }, { exportDiagram, NoSuchStep }, { renderDiagram }, { pars
 
 const ROOT = process.cwd();
 const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
-/** 共有のブロック `+bridge` を使い、段 3 の丸と硬貨の枠と下の字がアーチからはみ出す図 */
+/**
+ * 図の頭にアーチの形の `+arch` を定義し、段 3 の丸と硬貨の枠と下の字がアーチからはみ出す図。
+ * 共有の `+bridge` は #3489 で角丸の箱になったので、崩れを持つ形を図の頭に残す
+ */
 const BRIDGE = join(FIXTURES, "bridge.dragon");
 /** 自分で定義した `+oracle` (六角形) と `+price` (点線) を使い、段 2 と段 3 の線と丸が詰まる図 */
 const PAYMENT = join(FIXTURES, "payment.dragon");
@@ -208,6 +211,23 @@ function exampleFiles(): string[] {
       : [],
   ).sort();
 }
+
+describe("共有の橋のブロックは形の崩れを出さない (#3489)", () => {
+  it("layout-check-shared-bridge-has-no-shape-breaks", () => {
+    const checkLayoutText = (dragon as unknown as { checkLayoutText?: (text: string, options: { lang: "ja" | "en" }) => LayoutBreak[] }).checkLayoutText;
+    expect(checkLayoutText, "checkLayoutText が @cardenelabs/dragon から出ていない").toBeDefined();
+    if (checkLayoutText === undefined) return;
+    const text = readFileSync(BRIDGE, "utf8");
+    // 図の頭のアーチの定義を外し、同じ箱を共有の橋のブロックで描く
+    const shared = text.replace(/^blocks 1\n(?:.*\n)*?end\n\n?/mu, "").replaceAll("+arch ", "+bridge ");
+    expect(shared, "背景のブリッジの図から図の頭の定義を外せない").not.toMatch(/^block \+arch/mu);
+    expect(shared, "背景のブリッジの図に共有の橋の行が無い").toMatch(/^\+bridge /mu);
+    // 比べる相手の、アーチの形の見本が形の崩れを持つことを先に確かめる。無ければ 0 件は当たり前になる
+    const shapeKinds = ["slot-outside-shape", "text-outside-shape", "badge-off-shape"];
+    expect(checkLayoutText(text, { lang: "ja" }).filter((b) => shapeKinds.includes(b.kind)).length, "アーチの見本が形の崩れを持たない").toBeGreaterThan(0);
+    expect(checkLayoutText(shared, { lang: "ja" }).filter((b) => shapeKinds.includes(b.kind)), "共有の橋の図が出した形の崩れ").toEqual([]);
+  });
+});
 
 describe("見本に今ある崩れ (#3484)", () => {
   it("layout-check-examples-match-recorded", () => {

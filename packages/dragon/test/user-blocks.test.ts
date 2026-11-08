@@ -322,6 +322,85 @@ describe("使う人が足すブロック (#3399)", () => {
   });
 });
 
+/** 箱を元にしたブロックの定義に、Tabler の石の橋の絵柄を書いた定義 (#3489) */
+const ICON_DEFS = ["blocks 1", "block +bridge", "  base box", "  color violet", "  icon tabler:building-bridge-2", "end"].join("\n");
+/** 絵柄を持つブロックの箱を使う図の中身 */
+const ICON_BODY = ["box eth as Ethereum", "+bridge cc as CCIP", "", "step 送る", "  say トークンを橋へ送る。", "  eth -> cc: 送る"].join("\n");
+const iconText = (body = ICON_BODY, defs = ICON_DEFS): string => `architecture 橋を渡る\n\n${defs}\n\n${body}\n`;
+const HAND_ICONS = (dragon as unknown as { ICONS: Record<string, string> }).ICONS;
+
+/** 描いた SVG の箱の絵柄 (`dg-gl`) の path の d */
+const glyphDs = (svg: string): string[] =>
+  [...new DOMParser().parseFromString(svg, "image/svg+xml").querySelectorAll("path.dg-gl")].map((p) => p.getAttribute("d") ?? "");
+
+/** 箱の行に Tabler の石の橋を書いて描いた時の絵柄の d。定義に書いた絵柄と比べる相手 */
+function bridgeGlyph(): string {
+  const text = ["architecture 橋", "", "box eth as Ethereum", "box cc as CCIP [icon: tabler:building-bridge-2]", "", "step 送る", "  say 送る。", "  eth -> cc: 送る", ""].join("\n");
+  const [d] = glyphDs(render(parsed(text)).svg);
+  expect(d, "箱の行に書いた Tabler の石の橋が描かれない").toBeDefined();
+  return d ?? "";
+}
+
+/** 記法 `text` を日英で読み、`line` 行目を指す誤りの文が `words` の語をどれも持つ */
+function refusedAt(text: string, line: number, where: string, words: { ja: RegExp[]; en: RegExp[] }): void {
+  for (const lang of ["ja", "en"] as const) {
+    const at = errorsAt(parse(text, { lang }), line, where).filter((e) => e.line === line);
+    for (const word of words[lang]) expect(at.some((e) => word.test(e.message)), `${where} の ${lang} の誤りの文が ${word} を持たない: ${JSON.stringify(at.map((e) => e.message))}`).toBe(true);
+  }
+}
+
+describe("箱を元にしたブロックの絵柄 (#3489)", () => {
+  it("box-block-icon-draws-on-box", () => {
+    const diagram = parsed(iconText());
+    expect(glyphDs(render(diagram).svg), "定義に書いた石の橋の絵柄が、ブロックの箱の絵柄の枠に描かれない").toContain(bridgeGlyph());
+  });
+
+  it("box-line-icon-wins-over-block-icon", () => {
+    const svg = render(parsed(iconText(ICON_BODY.replace("+bridge cc as CCIP", "+bridge cc as CCIP [icon: key]")))).svg;
+    expect(glyphDs(svg), "箱の行に書いた手描きの鍵が描かれない").toContain(HAND_ICONS.key);
+    expect(glyphDs(svg), "箱の行に絵柄を書いたのに、定義の石の橋も描かれる").not.toContain(bridgeGlyph());
+  });
+
+  it("block-icon-only-on-box-blocks", () => {
+    for (const [base, shape] of [
+      ["edge", "  shape dashed"],
+      ["icon", `  shape path "${KEY}"`],
+    ] as const) {
+      const defs = ["blocks 1", "block +other", `  base ${base}`, shape, "  icon key", "end"].join("\n");
+      const text = iconText(ICON_BODY, defs);
+      refusedAt(text, lineOf(text, "icon key"), `${base} を元にした定義の icon の行`, { ja: [/箱/u], en: [/box/iu] });
+    }
+  });
+
+  it("block-icon-unknown-name-refused", () => {
+    const missing = iconText(ICON_BODY, ICON_DEFS.replace("tabler:building-bridge-2", "tabler:no-such-icon"));
+    refusedAt(missing, lineOf(missing, "icon tabler:no-such-icon"), "Tabler に無い名前の定義の icon", { ja: [/tabler:no-such-icon/u, /Tabler/u], en: [/tabler:no-such-icon/u, /Tabler/u] });
+    const close = iconText(ICON_BODY, ICON_DEFS.replace("tabler:building-bridge-2", "tabler:building-bridg-2"));
+    refusedAt(close, lineOf(close, "icon tabler:building-bridg-2"), "Tabler の名前を書き間違えた定義の icon", { ja: [/tabler:building-bridge-2/u], en: [/tabler:building-bridge-2/u] });
+    const hand = iconText(ICON_BODY, ICON_DEFS.replace("tabler:building-bridge-2", "usr"));
+    refusedAt(hand, lineOf(hand, "icon usr"), "手描きの名前を書き間違えた定義の icon", { ja: [/\buser\b/u], en: [/\buser\b/u] });
+  });
+
+  it("block-icon-passes-validator", () => {
+    const validate = api("validateDiagram");
+    const diagram = JSON.parse(JSON.stringify(parsed(iconText()))) as { define: { blocks: { icon?: string }[] } };
+    expect(diagram.define.blocks[0]?.icon, "原本の JSON の定義が絵柄を持たない").toBe("tabler:building-bridge-2");
+    expect(validate(diagram), "定義に Tabler の絵柄を持つ原本を通さない").toEqual({ ok: true });
+    const missing = structuredClone(diagram);
+    if (missing.define.blocks[0]) missing.define.blocks[0].icon = "tabler:no-such-icon";
+    const result = validate(missing);
+    expect(result.ok, "定義に Tabler に無い名前を持つ原本を通す").toBe(false);
+    expect(result.ok ? [] : result.errors.map((e) => e.pointer), "誤りが指す欄").toEqual(["/define/blocks/0/icon"]);
+  });
+
+  it("block-icon-round-trips", () => {
+    const diagram = parsed(iconText());
+    const printed = api("printNotation")(diagram);
+    expect(printed, "書き戻した記法に定義の icon の行が無い").toContain("  icon tabler:building-bridge-2");
+    expect(parsed(printed), "書き戻した記法を読み直すと元の図と違う").toEqual(diagram);
+  });
+});
+
 /* 頁の `<link rel="dragon-blocks">` は script の 1 行の入口が読む。入口と塊は build した `dist/cdn` から渡す */
 const CDN = join(process.cwd(), "packages/dragon/dist/cdn");
 const PAGE = "http://localhost/";
