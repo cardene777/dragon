@@ -8,6 +8,7 @@
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
  * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
+ * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  *
@@ -21,7 +22,6 @@ import { crossesRect, type Layout, type Point, type Rect, type SceneBox, type Sc
 import { PIPE_LOOK } from "../look/pipe";
 import { APART, LOOK } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
-import { signedDistance } from "./outline";
 import { pipeBreaks } from "./pipe-breaks";
 
 /** 図の枠の 4 つの端 */
@@ -55,6 +55,7 @@ export type LayoutBreakKind =
   | "part-outside-frame"
   | "panel-edge"
   | "label-off-line"
+  | "line-crosses-text"
   | "chip-over-part"
   | "pipe-behind-box"
   | "pipes-merged"
@@ -124,6 +125,11 @@ const BADGE_GAP = APART.badge;
 const LINE_GAP = APART.line;
 /** 並んで走る長さの下限。番号の丸2つ分より長く狭い間で並ぶ線は1本の太い線に見える */
 const LINE_ALONG = 2 * R;
+/**
+ * 線が字を横切ったとみなす食い込みの下限 (px)。字の重なり (`ink.ts` の `BITE`) と同じ値にし、書き出しが知らせる組と同じ組を数える。
+ * `ink.ts` は頁が最初に読む塊に在り、値を書き出すだけで最初に読む量が増えるので、ここに同じ値を置く
+ */
+const BITE = 0.5;
 /** 時間軸の囲みの枠の線の内側の縁から、部品までの間の下限 (px)。これより近い部品は枠に接して見える (#3527) */
 const PANEL_GAP = 4;
 /**
@@ -133,6 +139,37 @@ const PANEL_GAP = 4;
 const LABEL_GAP = Math.max(LOOK.label.offset - LOOK.label.h / 2, LOOK.label.side);
 /** 配管の図の流れた量の札を描く処理が最初に置く、札の四角から管の真ん中までの間。管の太さの半分と、管から札までの離れを足す */
 const CHIP_GAP = PIPE_LOOK.bus.case / 2 + PIPE_LOOK.chip.off;
+
+/** 輪の辺を、閉じる辺も含めて 1 本ずつ */
+function* edgesOf(rings: Point[][]): Generator<[Point, Point]> {
+  for (const ring of rings)
+    for (let k = 0; k < ring.length; k++) yield [ring[k] as Point, ring[(k + 1) % ring.length] as Point];
+}
+
+/** 点 `p` が形の内にあるか。SVG の塗りの既定 (nonzero) と同じく、輪が点を回る数で決める */
+function insideRings(rings: Point[][], [px, py]: Point): boolean {
+  let winding = 0;
+  for (const [a, b] of edgesOf(rings)) {
+    const cross = (b[0] - a[0]) * (py - a[1]) - (px - a[0]) * (b[1] - a[1]);
+    if (a[1] <= py) {
+      if (b[1] > py && cross > 0) winding++;
+    } else if (b[1] <= py && cross < 0) winding--;
+  }
+  return winding !== 0;
+}
+
+/** 点 `p` から形の縁までの距離。形の内の点は負の値にする */
+function signedDistance(rings: Point[][], p: Point): number {
+  let best = Number.POSITIVE_INFINITY;
+  for (const [a, b] of edgesOf(rings)) {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = dx * dx + dy * dy;
+    const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len));
+    best = Math.min(best, Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)));
+  }
+  return insideRings(rings, p) ? -best : best;
+}
 
 /** 点から四角までの距離。四角の内の点は 0 */
 function distanceToRect([px, py]: Point, r: Rect): number {
@@ -330,6 +367,20 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       ]);
     }
   });
+
+  // 札を持たない字を横切る線。札の地は下の線を隠すので数えず、段の番号と図の部品は書き手が書いた字でないので数えない
+  for (const ink of inks) {
+    if (ink.boxed === true || ink.badge === true || ink.part !== undefined) continue;
+    for (const trace of traces) {
+      if (!crossesRect(trace.points, ink.rect, BITE)) continue;
+      const seen = firstSeen(ink, trace);
+      if (seen === undefined) continue;
+      add("line-crosses-text", seen, [
+        { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
+        { kind: "text", text: ink.text, ...(ink.box === undefined ? {} : { box: nameOf(ink.box) }) },
+      ]);
+    }
+  }
 
   // 時間軸の部品は、囲みの枠を越えるか、枠の線の内側の縁から`PANEL_GAP`より近ければ崩れにする (#3527)
   for (const item of framed)

@@ -41,6 +41,7 @@ import {
   type SceneEdge,
   type SceneLabel,
   seatCarriers,
+  shapedSize,
   slotBoxWidth,
   slotRooms,
   stripNeed,
@@ -279,9 +280,11 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
   const boxX = Math.max(treeRight + T.boxGap, (rootBox ? rootBox.x + rootBox.w : x0) + Math.max(0, ...named) + gap * 2);
   let by = rootBox?.y ?? top0;
   const boxes: SceneBox[] = diagram.boxes.map((b) => {
-    const w = Math.max(boxWidth(diagram, b.id, true), slotBoxWidth(rooms.get(b.id), b.icon !== undefined, B.padX));
+    // 形を持つ箱は、中身が形の内に収まる大きさにする (#3520)
+    const fit = shapedSize(diagram, b.id, Math.max(boxWidth(diagram, b.id, true), slotBoxWidth(rooms.get(b.id), b.icon !== undefined, B.padX)), true, rooms);
+    const { w, h } = fit;
     const y = by;
-    by += B.h + gap;
+    by += h + gap;
     const box: SceneBox = {
       id: b.id,
       name: b.name,
@@ -290,10 +293,9 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
       color: colors.get(b.id) ?? "slate",
       x: boxX,
       y,
-      w,
-      h: B.h,
+      ...fit,
       cx: boxX + w / 2,
-      cy: y + B.h / 2,
+      cy: y + h / 2,
     };
     placeSlot(box, rooms.get(b.id));
     return box;

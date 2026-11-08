@@ -4,6 +4,7 @@
  * 定義を書いた図でしか要らないので、最初に読む束から外して別の file に置く。
  * 全部を持つ入口は図の種類と一緒に登録し (`kinds/all.ts`)、軽い入口は定義の行を持つ図を読む前に後から読む (`light.ts`)
  */
+import { BOX_SHAPES } from "./blocks/box/fit";
 import { COLORS, type Color } from "./blocks/color/block";
 import { ICON_MESSAGES, type IconMessages, iconError } from "./blocks/icon/read";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
@@ -276,5 +277,5 @@ export function readBlocks(input: unknown, options: { lang?: NotationLang } = {}
   }
 }
 
-/** 図を読む処理に登録する、定義の並びを読む処理 */
-export const USER_BLOCK_READER: UserBlockReader = { readBlockLines };
+/** 図を読む処理に登録する、定義の並びを読む処理と、足した箱の形を測る処理 (#3520) */
+export const USER_BLOCK_READER: UserBlockReader = { readBlockLines, shapes: BOX_SHAPES };

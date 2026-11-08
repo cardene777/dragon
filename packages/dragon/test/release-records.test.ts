@@ -271,6 +271,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-67-0-try-line-name", () => {
+    // 試す図の網の線がノードの名前を横切らないようにし、横切る線を `dragon check --layout` が知らせる直し (#3524) も 0.67.0 で出す
+    for (const [file, word] of [
+      ["CHANGELOG.md", /\bnode names?\b/iu],
+      ["CHANGELOG.ja.md", /ノードの名前/u],
+    ] as const) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.67\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.67.0"), "0.67.0");
+      expect(released, `${file} の 0.67.0 の節に #3524 の項が無い`).toContain("(#3524)");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した #3524 の項が残る`).not.toContain("(#3524)");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3524)")) ?? "";
+      expect(entry, `${file} の 0.67.0 の節の #3524 の項がノードの名前 (${word.source}) を名指さない`).toMatch(word);
+    }
+  });
+
   it("changelog-0-67-0-caret-without-svg", () => {
     // 選ぶ欄の矢印を svg を使わずに描き、図を置いた頁の CSS で膨らまないようにする直し (#3499) は、main に入っていた絵柄集の機能 (#3493) と一緒に 0.67.0 で出す
     const [major = 0, minor = 0] = version().split(".").map(Number);

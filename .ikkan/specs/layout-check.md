@@ -2,9 +2,9 @@
 
 | 条件 | 確かめ方 | 出元 |
 |---|---|---|
-| 背景のブリッジの図に`dragon check --layout`を打つと、段 3 の番号の丸が`+bridge`の箱の見えている形 (アーチ) から離れて浮くことを 1 件の知らせとして出し、終わり方は 0 | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-badge-off-shape`が通る | #3484 |
-| 背景のブリッジの図に`dragon check --layout`を打つと、硬貨を置く枠が`+bridge`のアーチの形からはみ出すことを 1 件の知らせとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-slot-outside-shape`が通る | #3484 |
-| 背景のブリッジの図に`dragon check --layout`を打つと、段 3 の箱の下の字「100 USDC を預かり中」が`+bridge`のアーチの形の外 (アーチの底の線より下) へはみ出すことを 1 件の知らせとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-text-outside-shape`が通る | #3484 |
+| 背景のブリッジの図をアーチの箱で描いた #3520 の前の姿に崩れの検査を掛けると、段 3 の番号の丸が`+bridge`の箱の見えている形 (アーチ) から離れて浮くことを 1 件の崩れとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-badge-off-shape`が通る | #3484 |
+| 背景のブリッジの図をアーチの箱で描いた #3520 の前の姿に崩れの検査を掛けると、硬貨を置く枠が`+bridge`のアーチの形からはみ出すことを 1 件の崩れとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-slot-outside-shape`が通る | #3484 |
+| 背景のブリッジの図をアーチの箱で描いた #3520 の前の姿に崩れの検査を掛けると、段 3 の箱の下の字「100 USDC を預かり中」が`+bridge`のアーチの形の外 (アーチの底の線より下) へはみ出すことを 1 件の崩れとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-text-outside-shape`が通る | #3484 |
 | 近すぎる番号の丸を持つgit図 (`packages/dragon/test/fixtures/layout/close-badges.dragon`) に`dragon check --layout`を打つと、段 2 と段 3 の番号の丸の間が近すぎることを 1 件の知らせとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-close-badges`が通る | #3484 #3521 |
 | 点線の道が並ぶ状態遷移図 (`packages/dragon/test/fixtures/layout/crowded-lines.dragon`) に`dragon check --layout`を打つと、受付から取消への道と確認から取消への道が並んで近すぎることを 1 件の知らせとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-crowded-lines`が通る | #3484 #3521 |
 | 崩れの知らせの 1 行は、段の番号と、崩れの種類と、関わる 2 つの物の名前 (番号の丸は段の番号、箱は箱の名前、硬貨の枠、線は両端の箱の名前、字は字そのもの) を持つ | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-line-names-step-and-parts`が通る | #3484 |

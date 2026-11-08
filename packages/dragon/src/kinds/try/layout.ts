@@ -2,7 +2,7 @@
  * 試す図 (`try`、#3337) の置き場所と段ごとの状態。見た目の元は承認した板 (網を上に、待ち行列と、prev と hash を `=` でつないだ機械の列を下に置く形)。
  *
  * 部品は書いた順に上から積む。網 (`route`) は節を列に並べ、送る側 (`from`) を左端、作る人 (`to`) を右端に置き、
- * ほかの節は書いた道の中の何番目かの最も大きい番号の列に置く。待ち行列 (`queue`) はチップを縦に積み、縦に収まる数 (`most`) を持つ。
+ * ほかの節は道の中で前の節より右の列に置く (#3524)。待ち行列 (`queue`) はチップを縦に積み、縦に収まる数 (`most`) を持つ。
  * 機械の列 (`chain`) は新しい方から `TRY_LOOK.shown` 個のブロックを左から古い順に並べ、それより古いブロックは畳んだ印にまとめる。
  * 枠の幅 (`width`) を渡し、横に並べると字が `READABLE_PX` に届かない時は、枠の幅で縦に組む (#3366)。網の節は枠の幅に詰め、
  * 待ち行列は枠の幅いっぱいに置き、ブロックは上から古い順に積む。見た目の元は `docs/design/interactive/tx-block-narrow.pen` の案A。
@@ -183,8 +183,10 @@ export const blockKey = (chain: string, number: number): string => `${chain}/${n
 export const recordKey = (log: string, number: number): string => `${log}/${number}`;
 
 /**
- * 網の節の列。送る側を 0 列、作る人を最後の列に置き、ほかの節は書いた道の中の何番目かの最も大きい番号の列に置く。
- * 送る側でない道の頭の節も 1 列より左には置かない
+ * 網の節の列。送る側を 0 列、作る人を最後の列に置き、ほかの節は書いた道の中の何番目かの最も大きい番号の列に置いた上で、
+ * 道の中で前の節より右の列へ送る (#3524)。送る側でない道の頭の節も 1 列より左には置かない。
+ * 送る側でない節から始まる道 (`node-1 - node-3`) の次の節が頭の節と同じ列に入ると、2 つをつなぐ線が真下へ走り、頭の節の名前の上を通るため。
+ * 輪になった道は前の節より右へ送り続けても収まらないので、節の数だけ回して止める
  */
 function columnsOf(route: Extract<TryPart, { type: "route" }>): string[][] {
   const order: string[] = [];
@@ -195,6 +197,19 @@ function columnsOf(route: Extract<TryPart, { type: "route" }>): string[][] {
       column.set(node, Math.max(column.get(node) ?? 0, node === route.from ? 0 : Math.max(1, i)));
     });
   column.set(route.from, 0);
+  for (let pass = 0; pass < order.length; pass++) {
+    let moved = false;
+    for (const path of route.paths)
+      path.forEach((node, i) => {
+        const prev = path[i - 1];
+        if (prev === undefined || node === route.from || node === route.to || prev === route.to) return;
+        const want = (column.get(prev) ?? 0) + 1;
+        if (want <= (column.get(node) ?? 0)) return;
+        column.set(node, want);
+        moved = true;
+      });
+    if (!moved) break;
+  }
   const others = order.filter((node) => node !== route.to);
   const last = Math.max(1, ...others.map((node) => (column.get(node) ?? 0) + 1));
   column.set(route.to, Math.max(last, column.get(route.to) ?? 0));
@@ -207,7 +222,9 @@ function columnsOf(route: Extract<TryPart, { type: "route" }>): string[][] {
 /**
  * 網の節の段。1 本の道だけが通る節はその道の段に、2 本以上の道が通る節は真ん中の段に置く。
  * 列を飛ばす線が飛ばした列の節の上を通らないように、道ごとに段を分ける。
- * 同じ列の節の段が 1 段より近づく時は、その列だけ真ん中から上下へ並べる
+ * 同じ列の節の段が 1 段より近づく時は、その列だけ真ん中から上下へ並べる。
+ * 上下へ並べる順は、左の列で線がつながる節の段の平均の順にする (#3524)。
+ * 線が短く交わらなくなり、細い枠でも急な線が節の名前の上を通らない。左につながる節の無い節は望む段で比べ、同じ値は書いた順に並べる
  */
 function lanesOf(
   route: Extract<TryPart, { type: "route" }>,
@@ -224,6 +241,17 @@ function lanesOf(
   const tall = Math.max(route.paths.length, ...columns.map((list) => list.length));
   const middle = (tall - 1) / 2;
   const shift = (tall - route.paths.length) / 2;
+  /** 節ごとの、線でつながる節 */
+  const linked = new Map<string, Set<string>>();
+  for (const path of route.paths)
+    path.forEach((node, i) => {
+      for (const other of [path[i - 1], path[i + 1]]) {
+        if (other === undefined) continue;
+        const set = linked.get(node) ?? new Set<string>();
+        set.add(other);
+        linked.set(node, set);
+      }
+    });
   const lane = new Map<string, number>();
   for (const list of columns) {
     const wish = list.map((node) => {
@@ -232,9 +260,20 @@ function lanesOf(
     });
     const sorted = [...wish].sort((a, b) => a - b);
     const apart = sorted.every((at, i) => i === 0 || at - (sorted[i - 1] ?? at) >= 1);
-    list.forEach((node, k) =>
-      lane.set(node, apart ? (wish[k] ?? middle) : middle + k - (list.length - 1) / 2),
-    );
+    if (apart) {
+      list.forEach((node, k) => lane.set(node, wish[k] ?? middle));
+      continue;
+    }
+    // 列は左から順に段を決めるので、段を持つつながる節は左の列の節
+    const pull = list.map((node, k) => {
+      const left = [...(linked.get(node) ?? [])].flatMap((other) => {
+        const at = lane.get(other);
+        return at === undefined ? [] : [at];
+      });
+      return left.length > 0 ? left.reduce((sum, at) => sum + at, 0) / left.length : (wish[k] ?? middle);
+    });
+    const ranked = list.map((node, k) => ({ node, k })).sort((a, b) => (pull[a.k] ?? 0) - (pull[b.k] ?? 0) || a.k - b.k);
+    ranked.forEach(({ node }, rank) => lane.set(node, middle + rank - (list.length - 1) / 2));
   }
   return lane;
 }
