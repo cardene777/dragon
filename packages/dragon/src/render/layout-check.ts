@@ -59,6 +59,16 @@ export function checkLayoutText(text: string, options: ParseOptions = {}): Layou
 /** 記法 `text` の段を始める `step` の行の番号 (1 から数える) を段の順に */
 export const stepLines = (text: string): number[] => tokenize(text).flatMap((line) => (line.text.split(/\s/u)[0] === "step" ? [line.line] : []));
 
+/**
+ * 線の名前か流れた量の札 `text` が線 `line` から離れていると知らせる文 (#3528)。
+ * ほかの崩れの文と違い、図の字の表 (`FIGURE_TEXT`) に置かない。図の字の表は見本帳が最初に読む script に入り、
+ * 最初に読む量の上限に余りが無いので、崩れを確かめる時だけ読むこの file に置く
+ */
+const OFF_LINE: Record<NotationLang, (text: string, line: string) => string> = {
+  ja: (text, line) => `${text}が${line}から離れて描かれる`,
+  en: (text, line) => `${text} is drawn away from ${line}`,
+};
+
 /** 崩れを知らせる文。段の番号は文に含めない (命令の行が頭に段を書く) */
 export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG): string {
   const t = FIGURE_TEXT[lang];
@@ -84,6 +94,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         ? t.sticksOut(name(a), name(b2))
         : b.kind === "badges-close"
           ? t.tooClose(name(a), name(b2))
-          : t.runClose(name(a), name(b2));
+          : b.kind === "label-off-line"
+            ? OFF_LINE[lang](name(a), name(b2))
+            : t.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

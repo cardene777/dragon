@@ -1,16 +1,19 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない 5 種を拾う。
+ * 字の重なり (`ink.ts`) が拾わない 6 種を拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
- * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)。
+ * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)、
+ * 線の名前か配管の図の流れた量の札が、名指す線から離れている (`label-off-line`、#3528)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  *
  * 重なって当然の組は数えない。線とその両端の箱、グループとその中の箱は、どの種類も比べない組なので数えない。
  * 箱の角に付いた番号の丸と、線の始まりの番号の丸とその線を出す箱の縁 (1px の間) は、丸が形に触れているので浮いた丸に数えない。
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
-import type { Point, Rect, SceneBox, SceneEdge } from "../layout/scene";
+import type { PipeLayout } from "../kinds/pipe/layout";
+import { crossesRect, type Layout, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
+import { PIPE_LOOK } from "../look/pipe";
 import { LOOK } from "../look/values";
 import { type Ink, type Trace, visible } from "./ink";
 import { signedDistance } from "./outline";
@@ -23,7 +26,7 @@ export type LayoutPart =
   | { kind: "text"; text: string; box?: string }
   | { kind: "line"; from: string; to: string; step: number };
 
-export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close";
+export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "label-off-line";
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {
@@ -42,6 +45,8 @@ export interface BreakInput {
   /** 箱の札を描いた箱 */
   boxes: SceneBox[];
   edges: SceneEdge[];
+  /** 描いた図の置き場所。線の名前と配管の図の流れた量の札と、札が名指す線をここから引く (#3528) */
+  layout: Layout;
   /** 箱の名札ごとの見えている形の輪郭。形を持たない箱は持たない */
   outlines: ReadonlyMap<string, Point[][]>;
 }
@@ -64,12 +69,82 @@ const BADGE_GAP = R;
 /** 並んだ線の間の下限と、並んで走る長さの下限。番号の丸 1 つ分より狭い間で丸 2 つ分より長く並ぶ線は 1 本の太い線に見える */
 const LINE_GAP = 2 * R;
 const LINE_ALONG = 2 * R;
+/**
+ * 線の名前の札を描く処理が最初に置く、札の四角から線までの間 (#3528)。線の上か下に置く札は線から札の真ん中まで `offset` 離すので、
+ * そこから札の高さの半分を引いた間になり、線の脇に置く札は `side` の間になる。2 つのうち広い方を取る
+ */
+const LABEL_GAP = Math.max(LOOK.label.offset - LOOK.label.h / 2, LOOK.label.side);
+/** 配管の図の流れた量の札を描く処理が最初に置く、札の四角から管の真ん中までの間。管の太さの半分と、管から札までの離れを足す */
+const CHIP_GAP = PIPE_LOOK.bus.case / 2 + PIPE_LOOK.chip.off;
 
 /** 点から四角までの距離。四角の内の点は 0 */
 function distanceToRect([px, py]: Point, r: Rect): number {
   const dx = Math.max(r.x - px, 0, px - (r.x + r.w));
   const dy = Math.max(r.y - py, 0, py - (r.y + r.h));
   return Math.hypot(dx, dy);
+}
+
+/** 点から線分 a-b までの距離 */
+function distanceToSegment([px, py]: Point, [ax, ay]: Point, [bx, by]: Point): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const length = dx * dx + dy * dy;
+  const t = length === 0 ? 0 : Math.min(1, Math.max(0, ((px - ax) * dx + (py - ay) * dy) / length));
+  return Math.hypot(ax + t * dx - px, ay + t * dy - py);
+}
+
+/** 札の四角から折れ線までの距離。線が四角を通れば 0、通らなければ線の点から四角までと、四角の角から線の区間までの最小 */
+function lineGap(points: Point[], r: Rect): number {
+  if (crossesRect(points, r)) return 0;
+  const corners: Point[] = [
+    [r.x, r.y],
+    [r.x + r.w, r.y],
+    [r.x, r.y + r.h],
+    [r.x + r.w, r.y + r.h],
+  ];
+  return Math.min(
+    ...points.map((p) => distanceToRect(p, r)),
+    ...points.slice(1).flatMap((b, k) => corners.map((c) => distanceToSegment(c, points[k] as Point, b))),
+  );
+}
+
+/**
+ * 線の名前と流れた量の札と、札が名指す線 (#3528)。`step` は札が出る段 (0 から数える)、`points` は札が名指す線の点の並び、
+ * `near` は札の四角から線までの離れの上限。上限は描く処理が最初に置く間に札の高さを足した長さで、
+ * それより離れると札と線の間にもう 1 つ札が入り、間の札か別の線の名前に見える
+ */
+interface Tag {
+  text: string;
+  rect: Rect;
+  step: number;
+  points: Point[];
+  line: Extract<LayoutPart, { kind: "line" }>;
+  near: number;
+}
+
+/**
+ * 置き場所 `layout` の線の名前と流れた量の札。線の名前はその線の両端の箱の名前で、流れた量の札は流れの両端の関係者の名前で線を呼ぶ。
+ * 流れた量の札の線の段は、その流れが流れた段にする。流れを名指さない札 (狭い枠の図の下の帯の札) は、管から離して置くと決めた札なので数えない
+ */
+function tagsOf(layout: Layout): Tag[] {
+  if (layout.kind === "pipe") {
+    const pipe = layout as PipeLayout;
+    const names = new Map(pipe.parties.map((p) => [p.id, p.name]));
+    return pipe.chips.flatMap((chip): Tag[] => {
+      const flow = pipe.flows.find((f) => f.id === chip.flow && f.step === chip.step);
+      if (!flow) return [];
+      const flowed = pipe.flows.find((f) => f.id === flow.id && f.fresh)?.step ?? chip.step;
+      const line = { kind: "line" as const, from: names.get(flow.from) ?? flow.from, to: names.get(flow.to) ?? flow.to, step: flowed + 1 };
+      return [{ text: chip.text, rect: chip, step: chip.step, points: flow.points, line, near: CHIP_GAP + chip.h }];
+    });
+  }
+  const names = new Map(layout.boxes.map((b) => [b.id, b.name]));
+  return layout.labels.flatMap((label): Tag[] => {
+    const edge = layout.edges.find((e) => e.step === label.step && e.event === label.event);
+    if (!edge) return [];
+    const line = { kind: "line" as const, from: names.get(edge.from) ?? edge.from, to: names.get(edge.to) ?? edge.to, step: edge.step + 1 };
+    return [{ text: label.text, rect: label, step: label.step, points: edge.points, line, near: LABEL_GAP + label.h }];
+  });
 }
 
 const centerOf = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
@@ -79,7 +154,7 @@ export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.st
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, stills, boxes, edges, outlines } = input;
+  const { inks, traces, stills, boxes, edges, layout, outlines } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -173,6 +248,16 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       ]);
     }
   });
+
+  // 線の名前と流れた量の札。配管の図の札は段ごとに置き直すので、同じ札と線の組が続く段で離れている時は最初の段の 1 件にする
+  const offLine = new Set<string>();
+  for (const tag of tagsOf(layout).sort((a, b) => a.step - b.step)) {
+    if (lineGap(tag.points, tag.rect) <= tag.near) continue;
+    const key = JSON.stringify([tag.text, tag.line]);
+    if (offLine.has(key)) continue;
+    offLine.add(key);
+    add("label-off-line", tag.step + 1, [{ kind: "text", text: tag.text }, tag.line]);
+  }
 
   const seen = new Set<string>();
   return out
