@@ -1,0 +1,14 @@
+// Use the shared block +gateway without defining it in the diagram
+architecture Route a request through a gateway
+
+box client as Client [note: sends a request, icon: user]
++gateway gw as API gateway [note: checks and routes]
+box orders as Orders service [note: handles orders, icon: server]
+
+step Request
+  say The client sends its request to the gateway, the only way in.
+  client -> gw: request
+
+step Route
+  say The gateway checks the token and forwards the request to the orders service.
+  gw -> orders: forward

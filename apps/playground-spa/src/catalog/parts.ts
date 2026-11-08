@@ -35,7 +35,7 @@ import { BLOCK_ORDER, BLOCK_TEXT } from "./blocks.gen";
 import { BLOCK_USES } from "./blocks-uses.gen";
 import { KINDS, type Kind } from "./catalog";
 
-/** 部品の名札。ブロックの置き場の dir の名前で、名前と説明は `TEXT.<言葉>.site.catalog.parts` が持つ */
+/** 部品の名札。ブロックの置き場の dir の名前で、名前は `TEXT.<言葉>.site.catalog.parts` が、説明は部品の頁だけが読む `BLOCK_DESC` が持つ (#3531) */
 export type PartId = keyof typeof BLOCK_TEXT;
 
 export interface Part {

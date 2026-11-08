@@ -1,0 +1,14 @@
+// Use the shared block +wallet without defining it in the diagram
+architecture Sign and send from a wallet
+
+box dapp as dApp [note: builds the transaction, icon: app]
++wallet w as Wallet [note: holds the key]
+box node as RPC node [note: accepts transactions, icon: server]
+
+step Ask to sign
+  say The dApp builds the transaction and asks the wallet to sign it.
+  dapp -> w: sign request
+
+step Send
+  say The wallet signs with its key and sends the signed transaction to the RPC node.
+  w -> node: signed transaction

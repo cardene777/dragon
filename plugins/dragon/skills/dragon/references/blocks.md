@@ -92,11 +92,19 @@ if (read.ok) {
 The dragon repo keeps a shared block collection in `packages/dragon/blocks/<name>.dragon`, one definition per file (`blocks 1` and one `block`).
 A shared block works as `+name` in any diagram without a definition.
 
-| Block | Base | Shape | Color |
-|---|---|---|---|
-| `+bridge` | `box` | the rounded box, with the icon `tabler:building-bridge-2` (a stone bridge) | `violet` |
-| `+relay` | `edge` | `dashed` | `amber` |
-| `+key` | `icon` | `path "M -8 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 0 h 8 M 5 0 v 3"` | the color of its box |
+| Block | Base | Shape | Color | Use it for |
+|---|---|---|---|---|
+| `+bridge` | `box` | the rounded box, with the icon `tabler:building-bridge-2` (a stone bridge) | `violet` | a bridge between two chains |
+| `+wallet` | `box` | the rounded box, with the icon `tabler:wallet` (a wallet) | `blue` | a wallet that holds the key and signs transactions |
+| `+contract` | `box` | the rounded box, with the icon `tabler:file-code` (a file of code) | `violet` | a smart contract deployed on a chain |
+| `+oracle` | `box` | the rounded box, with the icon `tabler:broadcast` (a broadcast signal) | `amber` | an oracle that brings data from off chain onto a chain |
+| `+validator` | `box` | the rounded box, with the icon `tabler:shield-check` (a shield with a check) | `amber` | a validator that checks blocks and votes on them |
+| `+queue` | `box` | the rounded box, with the icon `tabler:list-numbers` (a numbered list) | `amber` | a queue that keeps messages or jobs in order |
+| `+cache` | `box` | the rounded box, with the icon `tabler:server-bolt` (a server with a bolt) | `violet` | a cache that keeps copies of recent reads |
+| `+gateway` | `box` | the rounded box, with the icon `tabler:door-enter` (a door with an arrow going in) | `amber` | the one way in that checks requests and routes them |
+| `+relay` | `edge` | `dashed` | `amber` | a relayed hand-over |
+| `+async` | `edge` | `dashed` | `violet` | a message sent without waiting for an answer |
+| `+key` | `icon` | `path "M -8 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 0 h 8 M 5 0 v 3"` | the color of its box | a key on a box |
 
 - A definition at the head of the diagram (or in a page link or the `blocks` option) with the same name wins over the shared one.
 - The parsed source JSON copies every shared definition the diagram used into its `define` field, so the JSON draws the same anywhere.

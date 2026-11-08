@@ -1,0 +1,7 @@
+// A queue that keeps messages or jobs in order until a consumer takes them, drawn as an amber rounded box with a numbered list icon
+blocks 1
+block +queue
+  base box
+  color amber
+  icon tabler:list-numbers
+end

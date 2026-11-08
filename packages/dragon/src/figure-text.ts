@@ -43,7 +43,12 @@ export interface FigureText {
   envelope: string;
   textsOverlap: (a: string, b: string) => string;
   lineCrosses: (from: string, to: string, text: string) => string;
-  // 描いた図の崩れを知らせる文 (#3484) は、崩れの確かめだけが使うので `render/layout-check.ts` が持つ (#3526)
+  /**
+   * 描いた図の崩れを知らせる文に添える、段を添えた線の呼び方と、携帯の幅でだけ出る崩れの幅 (#3484)。
+   * 崩れの種類ごとの文は、崩れを探す処理 (`render/layout-check.ts`) だけが持つ (#3515)
+   */
+  lineOf: (from: string, to: string, step: number) => string;
+  atWidth: (width: number) => string;
   /**
    * 時間軸の図 (#3165)。時刻の字の単位、拡大の帯の名前、目盛りの番号の範囲の書き方、列の上の目盛りの番号と時刻の間、
    * 空きの目盛りの枠の字
@@ -87,8 +92,20 @@ export interface FigureText {
   gist: string;
 }
 
-/** 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする */
+/**
+ * 英数字で終わる語の後ろに空白を置く。「段の番号 1 と」のように、数と仮名の間を空けて読みやすくする。
+ * 書き手が CLI で受け取る配置の警告だけが使う。読み手が図で見る字は和文と英数字の間に空白を置かない (#3517)
+ */
 export const spaced = (word: string): string => (/[0-9A-Za-z]$/u.test(word) ? `${word} ` : word);
+/** 和文の字 (漢字、ひらがな、カタカナ、長音) で終わる語と始まる語。句読点と中黒は和文の字に数えない */
+const ENDS_WITH_KANA_KANJI = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]$/u;
+const STARTS_WITH_KANA_KANJI = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]/u;
+/**
+ * 読み手が図で見る字で、2 つの語を並べる (#3517)。境の片側が和文の字なら空白を置かず、それ以外は空白で離す。
+ * 時間軸の図の「12秒」と「slot 3200」、配管の図の「10ポイント」と「100 USDC」のように、書き手の語と数をつなぐ
+ */
+export const joinWords = (left: string, right: string): string =>
+  ENDS_WITH_KANA_KANJI.test(left) || STARTS_WITH_KANA_KANJI.test(right) ? `${left}${right}` : `${left} ${right}`;
 /** 英語の文の頭を大文字にする */
 export const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -104,10 +121,10 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     pause: "止める",
     play: "動かす",
     next: "次の段",
-    steps: (title) => `${title} の段`,
+    steps: (title) => `${title}の段`,
     side: "脇道",
     sideNote: "今回は通らない",
-    sideFrom: (count) => `${count} つの状態から入れる`,
+    sideFrom: (count) => `${count}つの状態から入れる`,
     trail: "通った状態",
     start: "始まり",
     end: "終わり",
@@ -118,6 +135,8 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "「封筒」",
     textsOverlap: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
     lineCrosses: (from, to, text) => `線 ${from} → ${to} が${spaced(text)}を横切る`,
+    lineOf: (from, to, step) => `線 ${from} → ${to} (段 ${step})`,
+    atWidth: (width) => `(幅 ${width} の時)`,
     timeUnits: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
     zoom: "拡大",
     range: (from, to) => `${from}〜${to}`,
@@ -170,6 +189,8 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     envelope: "the envelope",
     textsOverlap: (a, b) => capital(`${a} and ${b} overlap`),
     lineCrosses: (from, to, text) => `The line ${from} → ${to} crosses ${text}`,
+    lineOf: (from, to, step) => `the line ${from} → ${to} (step ${step})`,
+    atWidth: (width) => `(at width ${width})`,
     timeUnits: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
     zoom: "Zoom",
     range: (from, to) => `${from}–${to}`,

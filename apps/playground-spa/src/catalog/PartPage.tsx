@@ -7,6 +7,7 @@
  * 部品の図は箱 2 つから 4 つの小さな図なので、使い方の頁の記法の例と同じく全体を止めて見せる。
  * 図の下には、その部品の語を使う見本の札を並べ、押すと図の頁でその見本を選んだ状態で開く (#3167)。
  * 部品「絵」の頁だけは、図の下に使える絵柄を全て形と名前で並べる。一覧は package の絵柄の表 (`ICONS`) から作り、形は package の `iconSvg` が描く (#3172)。
+ * 部品の説明は、この頁だけが読む説明の表 (`blocks-desc.gen.ts`) から引く。頁の言葉 (`TEXT`) に入れると、見本帳が最初に読む塊に入るため (#3531)。
  */
 import { ICONS, iconSvg, type Theme } from "@cardenelabs/dragon/light";
 import type { ReactElement } from "react";
@@ -17,6 +18,7 @@ import { useLater } from "../site/later";
 import { LiveFigure } from "../site/LiveFigure";
 import { follow, PATHS } from "../site/routes";
 import { type Lang, TEXT } from "../text";
+import { BLOCK_DESC } from "./blocks-desc.gen";
 import type { Kind } from "./catalog";
 import { LaterFailed } from "./LaterFailed";
 import { LATER_SNIPPETS, type Part, samplesUsing, snippetOf, wordLabel } from "./parts";
@@ -33,6 +35,7 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
   const t = TEXT[lang];
   const c = t.site.catalog;
   const text = c.parts[part.id];
+  const desc = BLOCK_DESC[part.id][lang];
   // 見本の札は後から読む見本が届いてから並べる (#3246)
   const examples = useLater(LATER_EXAMPLES);
   const samples = examples.status === "ready" ? (samplesUsing(part) ?? []) : [];
@@ -54,7 +57,7 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
         </nav>
         <h1 className="catalog-title">{text.name}</h1>
         <p className="catalog-desc" data-catalog="desc">
-          {text.desc}
+          {desc}
         </p>
         <dl className="catalog-part-facts">
           <div className="catalog-part-fact">
