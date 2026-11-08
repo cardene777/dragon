@@ -23,7 +23,7 @@ dragon check --layout --json order.dragon
 | Kind | What it means |
 |---|---|
 | `badges-close` | Two step numbers seen together are less than one number's radius apart, so they read as one blob |
-| `lines-close` | Two straight runs of different lines go side by side less than one step number's width apart |
+| `lines-close` | Two straight runs of different lines go side by side less than one step number's width apart, or two lines between the same two boxes in opposite directions run on top of each other |
 | `badge-off-shape` | A step number sits on the rectangle of a shaped box (`+bridge`, a hexagon) but floats away from the shape you see |
 | `slot-outside-shape` | The slot a coin or envelope waits in sticks out of a shaped box |
 | `text-outside-shape` | A box name or the text under it sticks out of a shaped box |
@@ -36,7 +36,6 @@ dragon check --layout --json order.dragon
 Fix one break, run `dragon check --layout` again, and repeat. A fix often clears several lines or moves a break to another step.
 
 - `badges-close` between lines that leave the same box toward different boxes: Reorder the boxes, for example swap the order of two boxes in a group, so the lines leave from different sides.
-- `lines-close` and `badges-close` between a request and its reply on the same two boxes (`api -> oracle` then `oracle -> api`): dragon draws the two lines a fixed distance apart, so moving boxes does not help. When the reply only brings back a value and its line style does not matter, write it as `note api: <value>` on the asking box instead of a second line. Otherwise keep it and report it.
 - `text-outside-shape` where the text sticks out at the sides: Shorten the box name or the text under it (`note:`, `act <id>:`, `note <id>:`). The box gets narrower with the text, so check again: a narrower box can push the slot out instead.
 - `part-outside-frame`: dragon already widens the diagram for tags that rest next to the leftmost or rightmost box, so this is rare. Shorten the tag (`[tag: ...]`) or the text that sticks out, or reorder the boxes so the box the line goes to or leaves is not at the edge. Otherwise keep it and report it.
 - `label-off-line` on a line whose name you placed with `[side: above]` or `[side: below]`: Drop the `[side: ...]` so dragon can put the name on the free side of the line, or move one of the lines to its own step. Two names placed on the same side of the same line stack, and the outer one ends up away from its line.
@@ -47,7 +46,7 @@ Do not drop content the explanation needs just to clear a warning.
 
 ## Report what is left
 
-The breaks left after these fixes come from how dragon draws (the slot or step number does not follow the shape of a block, a reply drawn right next to its request), and the notation cannot fix them.
+The breaks left after these fixes come from how dragon draws (the slot or step number does not follow the shape of a block), and the notation cannot fix them.
 
 1. In your reply, name each break left by its step number and the parts the message names, for example "Step 3: step number 3 floats away from the shape of the bridge box".
 2. Export the step so the user can see it, and attach the image.

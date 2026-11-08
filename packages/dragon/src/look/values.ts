@@ -464,7 +464,7 @@ export const LOOK = {
    * `bend` は線の曲がりを丸める半径 (#3171)。`square` は角を落とす色味で丸めずに直角にする曲がりの角度の下限 (度、#3358)。
    * 見本の線の折れ目は 90 度曲がり、点で区切って描いた曲線の 1 つの曲がりは 28 度以下なので、間の 45 で分ける
    */
-  edge: { inset: 3, arrow: 6, arrowHalf: 3.5, parallel: 5, ghostDash: 5, flowDash: 9, bend: 12, square: 45 },
+  edge: { inset: 3, arrow: 6, arrowHalf: 3.5, ghostDash: 5, flowDash: 9, bend: 12, square: 45 },
   /** `touch` は線の名前と、同じ時刻に見えている段の番号の丸の間に空ける最小の隙間 (#3175) */
   label: {
     h: 20,
@@ -672,6 +672,14 @@ export const LOOK = {
     },
   },
 } as const;
+
+/**
+ * 崩れの検査 (`render/breaks.ts`、#3484) が、同時に見える番号の丸と並んで走る線に求める間の下限。
+ * 描く処理も同じ値から番号の丸の間と行きと帰りの線の間を決め、描いた図と検査が食い違わないようにする (#3521)。
+ * `badge` は番号の丸どうしの縁の間で、丸の半径より狭いと2つの番号が1つの塊に見える。
+ * `line` は並んだ2本の線の真ん中どうしの間で、番号の丸1つ分より狭い間で並ぶ線は1本の太い線に見える
+ */
+export const APART = { badge: LOOK.badge.r, line: LOOK.badge.r * 2 } as const;
 
 /** 動きの長さ (秒)。 */
 export const MOTION = {
