@@ -1,58 +1,52 @@
-// skill の評価で Claude が書いた橋の図 (#3520)。アーチの shape path の +bridge の箱から、硬貨の枠と添え書きと処理の字がはみ出し、段 3 の番号が浮いていた
-architecture EthereumからBaseへトークンをブリッジする
+// 評価でAIが書いた図 (#3528)。段6の線の名前「100 USDC を発行して渡す」が隣の列の箱の間より長く、列の間を広げなかったので、2つの箱より上の、線から離れた所に描かれていた
+architecture EthereumからBaseへトークンをブリッジで渡す
 
-// ブリッジは橋の形、中継者の運びは破線、Baseには鍵の印
-blocks 1
-block +bridge
-  base box
-  shape path "M 0 70 Q 50 0 100 70 Z"
-  color violet
-end
-block +relay
-  base edge
-  shape dashed
-  color amber
-end
-block +key
-  base icon
-  shape path "M -8 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 0 h 8 M 5 0 v 3"
+group l1 as Ethereum [note: 送る側のチェーン, color: blue, icon: chain]
+  box user as 利用者のウォレット [note: 100 USDC を持つ, icon: user]
+  box l1bridge as L1 ブリッジ契約 [note: トークンを預かる, icon: code]
 end
 
-box user as 利用者 [note: Ethereumのウォレット, color: slate, icon: user]
-box eth as Ethereum [note: 送り出す側のチェーン, color: blue, icon: chain]
-+bridge br as ブリッジ [note: トークンを預かる]
-box base as Base [note: 受け取る側のチェーン, color: green, icon: +key]
-box recv as 受取人 [note: Baseのウォレット, color: slate, icon: user]
++bridge bridge as ブリッジ
 
-strip トークン: Ethereum, ブリッジ, Base
+group l2 as Base [note: 受け取りを鍵で確かめる, color: green, icon: +key]
+  box l2bridge as L2 ブリッジ契約 [note: 受け取りを確かめる, icon: +key]
+  box l2user as 利用者のウォレット (Base) [note: 0 USDC, icon: user]
+end
 
-step 引き出しを許可する
-  say 利用者がEthereum上で、ブリッジがトークンを動かすことを許可する。
-  code approve(bridge, 100)
-  user -> eth: approve
-  set Ethereum: 100
+strip 送金: 量, 状態
 
-step ブリッジに預ける
-  say 利用者がトークンをブリッジへ送り、ブリッジはそれをロックして預かる。
-  code depositERC20(token, 100)
-  eth -> br: 100トークン [carry: coin]
-  act br: ロックする
-  set Ethereum: 0
-  set ブリッジ: 100 ロック中
+step 送金を承認する
+  say 利用者がL1ブリッジ契約に、100 USDCを動かしてよいと承認する。
+  code approve(L1Bridge, 100 USDC)
+  act user: 承認に署名する
+  set 量: 100 USDC
+  set 状態: 承認済み
 
-step 受け渡しの知らせを出す
-  say ブリッジは「Baseで100トークンを渡して」という知らせをイベントとして残す。
-  act br: イベントを出す
+step トークンを預ける
+  say 利用者がトークンをL1ブリッジ契約に預ける。トークンはEthereum側でロックされる。
+  code depositERC20(USDC, 100)
+  user -> l1bridge: 100 USDC を預ける [carry: coin]
+  note user: 0 USDC
+  note l1bridge: 100 USDC をロック
+  set 状態: Ethereumでロック
 
-step 中継者が運ぶ
-  say 中継者がその知らせを拾い、Baseへ運んで届ける。ここは利用者ではなく中継者が動く区間。
-  br +relay base: 知らせを中継
+step 渡す知らせを出す
+  say L1ブリッジ契約が、Baseで同じ量を渡してほしいという知らせをブリッジへ送る。
+  l1bridge -> bridge: 預け入れの知らせ
+  set 状態: 知らせを送信
+
+step 中継者がBaseへ運ぶ
+  say 中継者が知らせを拾い、Base側のL2ブリッジ契約まで運ぶ。ここは普通の呼び出しではなく、中継者が届ける受け渡し。
+  bridge +relay l2bridge: 中継者が知らせを運ぶ
+  set 状態: Baseへ中継中
 
 step 受け取りを確かめる
-  say Baseは届いた知らせが本当にEthereumのブリッジから来たものかを確かめてから処理する。
-  act base: 送り元を検証する
+  say L2ブリッジ契約が、知らせが本当にEthereumのL1ブリッジ契約から来たものかを鍵で確かめる。
+  act l2bridge: 送り元と中身を検証する
+  set 状態: 検証済み
 
-step Baseで受け取る
-  say 確認が済むと、Baseで同じ量のトークンが発行され、受取人に渡る。
-  base -> recv: 100トークン [carry: coin]
-  set Base: 100
+step Base側で渡す
+  say 確かめられたので、L2ブリッジ契約が同じ量のトークンを発行し、Baseの利用者に渡す。
+  l2bridge -> l2user: 100 USDC を発行して渡す [carry: coin]
+  note l2user: 100 USDC
+  set 状態: 受け取り完了

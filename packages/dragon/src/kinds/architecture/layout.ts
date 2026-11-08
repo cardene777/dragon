@@ -167,7 +167,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const regionColor = regionColors(diagram);
   const edges = edgesOf(diagram);
 
-  // 列の幅と列の間。隣の列を横に結ぶ名前のある線は、名前が収まるまで間を広げる (広げすぎる時は脇へ寄せる)
+  // 列の幅と列の間。隣の列を横に結ぶ名前のある線は、名前が長くても収まるまで間を広げる。
+  // 広げずに脇へ寄せると、名前は両隣の箱を避けて箱より上まで離れ、どの線の名前か読み手が取り違える (#3528)
   const columnCount = Math.max(1, ...[...slots.values()].map((s) => s.col + 1));
   // 運ぶ物を出し入れする箱は、絵柄の横に置き場を並べられる幅にする (#3176)。形を持つ箱は、中身が形の内に収まる大きさにする (#3520)
   const carriedIn = slotRooms(diagram);
@@ -182,7 +183,7 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     if (!a || !b || edge.label === undefined || a.group !== b.group || a.row !== b.row || Math.abs(a.col - b.col) !== 1 || vertical(edge.labelSide)) continue;
     const need = textWidth(edge.label, labelStyle(edge.label)) + LOOK.label.padX * 2 + A.labelRoom * 2;
     const i = Math.min(a.col, b.col);
-    if (need <= A.maxColumnGap) between[i] = Math.max(between[i] ?? 0, need);
+    between[i] = Math.max(between[i] ?? 0, need);
   }
   const headers = groups.map((g) => (g.region ? headerSize(g.region) : undefined));
   const headerW = Math.max(0, ...headers.map((h) => (h ? h.w + R.inset * 2 : 0)));

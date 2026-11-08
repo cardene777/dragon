@@ -17,7 +17,7 @@ const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
 /** 評価で Claude が書いた、六角形の `+oracle` の箱を持つ支払いの図 */
 const EVAL_PAYMENT = join(FIXTURES, "eval-payment.dragon");
 /** 評価で Claude が書いた、アーチの `shape path` の `+bridge` の箱を持つ橋の図 */
-const EVAL_BRIDGE = join(FIXTURES, "eval-bridge.dragon");
+const EVAL_BRIDGE = join(FIXTURES, "eval-arch-bridge.dragon");
 /** 評価で Claude が書いた、扇形の `shape path` の箱を 3 つ並べた図 */
 const EVAL_PIE = join(FIXTURES, "eval-pie.dragon");
 /** ひし形と六角形と丸と円柱の箱に、長い名前と下の字と運ぶ物を付けた構成図 */
