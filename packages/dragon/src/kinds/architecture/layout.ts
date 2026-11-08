@@ -32,6 +32,7 @@ import {
   type Point,
   placeLabel,
   placeSlot,
+  pullApart,
   type Rect,
   regionColors,
   type SceneBox,
@@ -168,7 +169,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   const regionColor = regionColors(diagram);
   const edges = edgesOf(diagram);
 
-  // 列の幅と列の間。隣の列を横に結ぶ名前のある線は、名前が収まるまで間を広げる (広げすぎる時は脇へ寄せる)
+  // 列の幅と列の間。隣の列を横に結ぶ名前のある線は、名前が長くても収まるまで間を広げる。
+  // 広げずに脇へ寄せると、名前は両隣の箱を避けて箱より上まで離れ、どの線の名前か読み手が取り違える (#3528)
   const columnCount = Math.max(1, ...[...slots.values()].map((s) => s.col + 1));
   // 運ぶ物を出し入れする箱は、絵柄の横に置き場を並べられる幅にする (#3176)
   const carriedIn = slotRooms(diagram);
@@ -181,7 +183,7 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     if (!a || !b || edge.label === undefined || a.group !== b.group || a.row !== b.row || Math.abs(a.col - b.col) !== 1 || vertical(edge.labelSide)) continue;
     const need = textWidth(edge.label, labelStyle(edge.label)) + LOOK.label.padX * 2 + A.labelRoom * 2;
     const i = Math.min(a.col, b.col);
-    if (need <= A.maxColumnGap) between[i] = Math.max(between[i] ?? 0, need);
+    between[i] = Math.max(between[i] ?? 0, need);
   }
   const headers = groups.map((g) => (g.region ? headerSize(g.region) : undefined));
   const headerW = Math.max(0, ...headers.map((h) => (h ? h.w + R.inset * 2 : 0)));
@@ -356,19 +358,8 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   }));
   // 運ぶ物は着いた箱の置き場に留まり、出る箱の置き場で走り出しを待つ (#3176)
   seatCarriers(sceneEdges, byId, carriedIn);
-  // 同じ 2 つの箱を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする。
-  // ずらした線の名前は、ずらした側 (もう一方の線の反対側) に置き、どちらの線の名前かを取り違えないようにする (#3175)
-  const outward = new Map<SceneEdge, LabelSide>();
-  for (const edge of sceneEdges) {
-    if (edge.points.length !== 2) continue;
-    const back = sceneEdges.some((other) => other.from === edge.to && other.to === edge.from && other.points.length === 2);
-    if (!back) continue;
-    const [p, q] = edge.points as [Point, Point];
-    const flat = Math.abs(q[1] - p[1]) < Math.abs(q[0] - p[0]);
-    const d = (edge.from < edge.to ? 1 : -1) * LOOK.edge.parallel;
-    edge.points = edge.points.map(([x, y]) => (flat ? [x, y + d] : [x + d, y]));
-    outward.set(edge, flat ? (d > 0 ? "below" : "above") : d > 0 ? "right" : "left");
-  }
+  // 同じ2つの箱を行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す。名前はずらした側に置く (#3175、#3521)
+  const outward = pullApart(sceneEdges);
 
   const regions: SceneRegion[] = [];
   groups.forEach((group, g) => {

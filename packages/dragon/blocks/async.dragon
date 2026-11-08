@@ -1,0 +1,7 @@
+// A message sent without waiting for an answer, drawn as a dashed violet line
+blocks 1
+block +async
+  base edge
+  shape dashed
+  color violet
+end

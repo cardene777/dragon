@@ -1,0 +1,7 @@
+// A gateway, the one way in that checks requests and routes them, drawn as an amber rounded box with a door icon
+blocks 1
+block +gateway
+  base box
+  color amber
+  icon tabler:door-enter
+end

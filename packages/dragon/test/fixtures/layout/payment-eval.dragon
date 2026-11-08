@@ -1,0 +1,58 @@
+// skillの評価でClaudeが描いた支払いの図 (#3521)。
+// APIサーバーと価格オラクル (段2と段3)、利用者のアプリとAPIサーバー (段1と段5) を行きと帰りの真っすぐな線で結ぶ。
+// APIサーバーと決済代行 (段4と段5) は、曲がり目を持つ同じ道の行きと帰りの線で結ぶ。
+architecture 決済の流れ
+
+blocks 1
+block +oracle
+  base box
+  shape hexagon
+  color amber
+end
+block +price
+  base edge
+  shape dotted
+  color amber
+end
+
+group client as 利用者の端末 [note: 支払いを始める, color: slate, icon: user]
+  box app as 利用者のアプリ [note: 支払いボタン, icon: app]
+end
+
+group backend as 自社サービス [note: 決済をまとめる, color: blue, icon: cloud]
+  box api as APIサーバー [note: 支払いを受け付ける, icon: server]
+end
+
++oracle oracle as 価格オラクル [note: 外部の為替レート]
+box psp as 決済代行 [note: 請求を処理する, color: green, icon: card]
+
+strip 支払い: 金額, レート, 請求額, 状態
+
+step 支払いを頼む
+  say 利用者がアプリで支払いを押し、アプリがAPIサーバーに支払いを頼む。
+  code POST /payments
+  app -> api: 支払いの依頼
+  set 金額: 100 USD
+  set 状態: 受付
+
+step 為替レートを聞く
+  say 請求額を円で出すため、APIサーバーは外部の価格オラクルに今のレートを問い合わせる。
+  api -> oracle: USD/JPY のレートは?
+
+step 価格を受け取る
+  say オラクルがレートを返す。外部から届く値なので点線で描き、自社内のやり取りと区別する。
+  oracle +price api: 1 USD = 150 円
+  act api: 請求額を計算
+  set レート: 150
+  set 請求額: 15000 円
+
+step 請求を送る
+  say APIサーバーは計算した請求額で決済代行に請求を送る。
+  api -> psp: 請求 15000 円 [carry: coin]
+  set 状態: 請求済み
+
+step 結果を返す
+  say 決済代行の結果を受けて、APIサーバーがアプリに支払い完了を伝える。
+  psp -> api: 承認
+  api -> app: 支払い完了
+  set 状態: 完了

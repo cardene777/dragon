@@ -1045,8 +1045,7 @@ export function renderLayout(
     frame: { w: layout.width, h: layout.height },
     boxes: carded,
     edges: layout.edges,
-    regions: layout.regions,
-    strip: layout.strip,
+    layout,
     diagram,
   });
   return {

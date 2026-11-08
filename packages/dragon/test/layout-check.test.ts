@@ -31,11 +31,12 @@ vi.mock("../src/export/capture", async (importOriginal) => {
  * 描く部品と書き出す部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 元の code は 500 を超える file を読み、検査の中で初めて読むと混んだ機械で変換だけで 9 秒かかる (#3410)
  */
-const [{ checkLayout }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }] = await Promise.all([
+const [{ checkLayout }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }, { findBreaks }] = await Promise.all([
   import("../src/render/layout-check"),
   import("../src/export/index"),
   import("../src/render/draw"),
   import("../src/parser"),
+  import("../src/render/breaks"),
 ]);
 
 const ROOT = process.cwd();
@@ -45,17 +46,27 @@ const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
  * 共有の `+bridge` は #3489 で角丸の箱になったので、崩れを持つ形を図の頭に残す
  */
 const BRIDGE = join(FIXTURES, "bridge.dragon");
-/**
- * 自分で定義した `+oracle` (六角形) と `+price` (点線) を使い、段 2 と段 3 の線が詰まる図。
- * 段 2 と段 3 の丸も囲みの枠線の上で詰まっていたが、丸が枠線を避けるようになって (#3525) 離れた
- */
+/** 自分で定義した `+oracle` (六角形) と `+price` (点線) を使う支払いの図。段3の丸は六角形の上の辺に1pxの間で付く */
 const PAYMENT = join(FIXTURES, "payment.dragon");
-/** 段 2 と段 3 の丸、段 3 と段 4 の丸が近すぎる見本。見本に今ある崩れの一覧 (`RECORDED`) にも在る */
-const MERGE = join(ROOT, "packages/dragon/examples/merge.dragon");
+/**
+ * 段2と段3の番号の丸が近すぎるgit図 (#3521)。
+ * 支払いの図の行きと帰りの線は崩れの下限より広く離して描くようになったので、近すぎる番号を見つける見本を別に持つ
+ */
+const CLOSE_BADGES = join(FIXTURES, "close-badges.dragon");
+/** 点線の箱へ入る通らない道が段1から並んで近すぎる状態遷移図 (#3521)。並んで近すぎる線を見つける見本 */
+const CROWDED = join(FIXTURES, "crowded-lines.dragon");
 /** アーチの形の金庫が硬貨を送り出すだけで、金庫の置き場に運ぶ物が一度も座らない図 (#3518) */
 const SEND_ONLY = join(FIXTURES, "send-only.dragon");
 /** 重なって当然の組だけを持つ図 */
 const INTENDED = join(FIXTURES, "intended.dragon");
+/** 評価でAIが書いた橋の図 (#3528)。段6の線の名前「100 USDC を発行して渡す」が隣の列の箱の間より長い */
+const EVAL_BRIDGE = join(FIXTURES, "eval-bridge.dragon");
+/** 同じ段の 2 本の線の名前をどちらも上に寄せ、2 つ目の名前「送る」が 1 つ目の名前を避けて線から離れる図 (#3528) */
+const LABEL_OFF_LINE = join(FIXTURES, "label-off-line.dragon");
+/** 段4で、Router から Pool1 への流れの札「100 USDC」を置く管の際が、値の札と束ねた管で塞がる配管の図 (#3528) */
+const SWAP_RETRY = join(ROOT, "packages/dragon/examples/swap-retry.dragon");
+/** 送る人から作る人へ列を飛ばす網の線が、中継1と中継2の名前を横切る試す図 (#3524) */
+const TRY_SKIP = join(FIXTURES, "try-skip.dragon");
 /** 見本に今ある崩れの一覧。見本の file ごとに崩れを並べる */
 const RECORDED = join(ROOT, "packages/dragon/test/fixtures/layout-breaks.json");
 /** 崩れを数える見本の置き場 */
@@ -131,33 +142,29 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
   });
 
   it("layout-check-finds-close-badges", async () => {
-    const { found } = await layoutOf(MERGE);
+    const { found } = await layoutOf(CLOSE_BADGES);
     const hits = found.filter((b) => b.kind === "badges-close" && hasBadge(b, 2) && hasBadge(b, 3));
     expect(hits, "段 2 と段 3 の丸が近すぎることを 1 件で出さない").toHaveLength(1);
     expect(hits[0]?.step, "2 つの丸が揃って見える最初の段").toBe(3);
   });
 
   it("layout-check-finds-crowded-lines", async () => {
-    const { found } = await layoutOf(PAYMENT);
-    const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "APIサーバー", "価格オラクル", 2) && hasLine(b, "価格オラクル", "APIサーバー", 3));
-    expect(hits, "段 2 と段 3 の線が並んで近すぎることを 1 件で出さない").toHaveLength(1);
+    const { found } = await layoutOf(CROWDED);
+    const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "受付", "取消", 1) && hasLine(b, "確認", "取消", 1));
+    expect(hits, "受付と確認から取消へ入る道が並んで近すぎることを1件で出さない").toHaveLength(1);
   });
 
   it("layout-check-line-names-step-and-parts", async () => {
-    const merge = await runCli(["check", MERGE, "--layout", "--lang", "ja"]);
-    expect(merge.code, merge.stderr).toBe(0);
-    const badges = merge.stdout
-      .trimEnd()
-      .split("\n")
-      .find((line) => line.includes("段の番号 2") && line.includes("段の番号 3"));
-    expect(badges, `段 2 と段 3 の丸を名指す行が無い\n${merge.stdout}`).toBeDefined();
-    // 行は `<file>:<段の step の行>:1 warning 段 <N>: <文>` の形で、崩れが見え始める段の行を名指す
-    expect(badges, "丸の崩れの行の頭").toMatch(new RegExp(`^${MERGE.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(MERGE, 3)}:1 warning 段 3: `, "u"));
-    const ja = await runCli(["check", PAYMENT, "--layout", "--lang", "ja"]);
+    const ja = await runCli(["check", CLOSE_BADGES, "--layout", "--lang", "ja"]);
     expect(ja.code, ja.stderr).toBe(0);
     const lines = ja.stdout.trimEnd().split("\n");
-    const crowded = lines.find((line) => line.includes("APIサーバー") && line.includes("価格オラクル"));
-    expect(crowded, `段 2 と段 3 の線を名指す行が無い\n${ja.stdout}`).toBeDefined();
+    const badges = lines.find((line) => line.includes("段の番号 2") && line.includes("段の番号 3"));
+    expect(badges, `段 2 と段 3 の丸を名指す行が無い\n${ja.stdout}`).toBeDefined();
+    // 行は `<file>:<段の step の行>:1 warning 段 <N>: <文>` の形で、崩れが見え始める段の行を名指す
+    expect(badges, "丸の崩れの行の頭").toMatch(new RegExp(`^${CLOSE_BADGES.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(CLOSE_BADGES, 3)}:1 warning 段 3: `, "u"));
+    const crowdedRun = await runCli(["check", CROWDED, "--layout", "--lang", "ja"]);
+    const crowded = crowdedRun.stdout.trimEnd().split("\n").find((line) => line.includes("受付") && line.includes("取消"));
+    expect(crowded, `受付から取消への道を名指す行が無い\n${crowdedRun.stdout}`).toBeDefined();
     const bridge = await runCli(["check", BRIDGE, "--layout", "--lang", "en"]);
     const text = bridge.stdout.trimEnd().split("\n").find((line) => line.includes('"100 USDC を預かり中"'));
     expect(text, `英語の行がはみ出した字と箱を名指さない\n${bridge.stdout}`).toMatch(/warning Step 3: .*"ブリッジ"/u);
@@ -208,6 +215,30 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(widths, "幅で変わらない図で幅を名指す").toEqual([]);
   });
 
+  it("layout-check-finds-line-across-node-name", async () => {
+    // 試す図の網の線も、ほかの線と同じく札を持たない字を横切れば崩れとして出す
+    const { code, found, problems, stderr } = await layoutOf(TRY_SKIP);
+    expect(code, `崩れだけの図で終わり方 0 にならない ${stderr}`).toBe(0);
+    const across = (name: string): LayoutBreak[] =>
+      found.filter((b) => b.kind === "line-crosses-text" && hasLine(b, "送る人", "作る人", 1) && b.parts.some((p) => p.kind === "text" && p.text === name));
+    for (const name of ["中継1", "中継2"]) {
+      const hits = across(name);
+      expect(hits, `線 送る人 → 作る人 が名前「${name}」を横切ることを 1 件で出さない ${JSON.stringify(found)}`).toHaveLength(1);
+      expect(hits[0]?.step, `名前「${name}」を横切る崩れの段`).toBe(1);
+      expect(hits[0]?.parts.map((p) => p.kind), "崩れに関わる 2 つの物").toEqual(["line", "text"]);
+    }
+    const lines = problems.filter((p) => p.layout?.kind === "line-crosses-text");
+    for (const p of lines) {
+      expect(p.severity, "線が字を横切る崩れの重さ").toBe("warning");
+      expect(p.line, "線が字を横切る崩れの段の step の行").toBe(stepLine(TRY_SKIP, 1));
+    }
+    // 文の行は段を頭に書き、線の両端の節と横切られる名前を名指す
+    const ja = await runCli(["check", TRY_SKIP, "--layout", "--lang", "ja"]);
+    const said = ja.stdout.trimEnd().split("\n").find((line) => line.includes("中継1"));
+    expect(said, `名前「中継1」を名指す行が無い\n${ja.stdout}`).toMatch(new RegExp(`^${TRY_SKIP.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(TRY_SKIP, 1)}:1 warning 段 1: `, "u"));
+    expect(said, "行が線の両端の節を名指さない").toMatch(/送る人.*作る人/u);
+  });
+
   it("layout-check-skips-intended-overlaps", async () => {
     const intended = await layoutOf(INTENDED);
     expect(intended.code, intended.stderr).toBe(0);
@@ -245,6 +276,123 @@ describe("共有の橋のブロックは形の崩れを出さない (#3489)", ()
     const shapeKinds = ["slot-outside-shape", "text-outside-shape", "badge-off-shape"];
     expect(checkLayoutText(text, { lang: "ja" }).filter((b) => shapeKinds.includes(b.kind)).length, "アーチの見本が形の崩れを持たない").toBeGreaterThan(0);
     expect(checkLayoutText(shared, { lang: "ja" }).filter((b) => shapeKinds.includes(b.kind)), "共有の橋の図が出した形の崩れ").toEqual([]);
+  });
+});
+
+type Point = [number, number];
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * 札の四角から折れ線までの離れ。縦か横の区間は幅か高さが 0 の四角とみなし、2 つの四角の間の離れの最小を取る。
+ * 構成図と配管の図の線は縦と横の区間だけで引くので、この形で測れる
+ */
+function lineGap(points: Point[], r: Box): number {
+  return Math.min(
+    ...points.slice(1).map((b, k) => {
+      const a = points[k] as Point;
+      const dx = Math.max(0, Math.min(a[0], b[0]) - (r.x + r.w), r.x - Math.max(a[0], b[0]));
+      const dy = Math.max(0, Math.min(a[1], b[1]) - (r.y + r.h), r.y - Math.max(a[1], b[1]));
+      return Math.hypot(dx, dy);
+    }),
+  );
+}
+
+/**
+ * 記法を dist の部品で読み、図の中の字を言葉 `lang` で描いた置き場所。配管の図の置き場所の欄も読めるよう、型を緩めて返す。
+ * `dragon export` は `--lang` を渡さなければ英語の字で描くので、日本語の記法も英語の字で描いて確かめる
+ */
+function drawnLayout(file: string, lang: "ja" | "en" = "ja"): Record<string, unknown> {
+  const parsed = dragon.parseNotation(readFileSync(file, "utf8"), { lang: "ja" });
+  if (!parsed.ok) throw new Error(`${file} を読めない: ${JSON.stringify(parsed.errors)}`);
+  return dragon.renderDiagram(parsed.diagram, { lang }).layout as unknown as Record<string, unknown>;
+}
+
+describe("線の名前と札を線の近くに描く (#3528)", () => {
+  it("label-near-line-in-eval-bridge", () => {
+    const layout = drawnLayout(EVAL_BRIDGE) as { labels: (Box & { step: number; event: number; text: string })[]; edges: { step: number; event: number; points: Point[] }[] };
+    const gaps = layout.labels.map((label) => {
+      const edge = layout.edges.find((e) => e.step === label.step && e.event === label.event);
+      if (!edge) throw new Error(`線の名前「${label.text}」の線が無い`);
+      return { text: label.text, gap: lineGap(edge.points, label) };
+    });
+    const target = gaps.find((g) => g.text === "100 USDC を発行して渡す");
+    expect(target, "段6の線の名前が無い").toBeDefined();
+    const others = gaps.filter((g) => g !== target).map((g) => g.gap);
+    // 比べる相手が無ければ最大は -Infinity になり、検査が空振りする
+    expect(others.length, "比べるほかの線の名前が無い").toBeGreaterThan(0);
+    expect(target?.gap, `段6の線の名前と線の間 (ほかの名前と線の間は ${others.join(", ")})`).toBeLessThanOrEqual(Math.max(...others));
+  });
+
+  it("amount-chip-near-flow-in-swap-retry", () => {
+    // 英語の字では値の札の下の語 (Pending) が長く、管の際の空きが日本語の字より狭い
+    for (const lang of ["ja", "en"] as const) {
+      const layout = drawnLayout(SWAP_RETRY, lang) as {
+        chips: (Box & { kind: string; text: string; step: number; flow?: number })[];
+        flows: { id: number; step: number; from: string; to: string; points: Point[] }[];
+        housings: (Box & { party: string })[];
+      };
+      const flowOf = (chip: { step: number; flow?: number }) => layout.flows.find((f) => f.id === chip.flow && f.step === chip.step);
+      const amounts = layout.chips.filter((c) => c.kind === "amount" && flowOf(c) !== undefined);
+      // 段4 (0 から数えて 3) の、Router から Pool1 への流れの札
+      const target = amounts.find((c) => c.step === 3 && flowOf(c)?.from === "router" && flowOf(c)?.to === "pool1");
+      expect(target, `${lang} の字で、段4の Router から Pool1 への流れの札が、その流れを名指さない`).toBeDefined();
+      if (!target) return;
+      expect(target.text).toBe("100 USDC");
+      const gap = lineGap(flowOf(target)?.points ?? [], target);
+      // 同じ流れの札は後の段にも残るので、ほかの流れの札と比べる
+      const others = amounts.filter((c) => c.flow !== target.flow).map((c) => lineGap(flowOf(c)?.points ?? [], c));
+      expect(others.length, "比べるほかの流れの札が無い").toBeGreaterThan(0);
+      expect(gap, `${lang} の字で、札と流れの間 (ほかの流れの札と流れの間の最大は ${Math.max(...others)})`).toBeLessThanOrEqual(Math.max(...others));
+      const inside = (r: Box, h: Box): boolean => r.x >= h.x && r.y >= h.y && r.x + r.w <= h.x + h.w && r.y + r.h <= h.y + h.h;
+      expect(
+        layout.housings.filter((h) => inside(target, h)).map((h) => h.party),
+        `${lang} の字で、札 ${JSON.stringify([target.x, target.y, target.w, target.h])} が囲みの内側に無い`,
+      ).not.toEqual([]);
+    }
+  });
+
+  it("layout-check-finds-label-off-line", async () => {
+    const { code, found, problems, stderr } = await layoutOf(LABEL_OFF_LINE);
+    expect(code, stderr).toBe(0);
+    const off = found.filter((b) => b.kind === "label-off-line");
+    // 1 つ目の名前「残高を見る」は線の上の最初の置き場に在るので数えない
+    expect(off, "2 つ目の名前が線から離れることを 1 件で出さない").toEqual([
+      { kind: "label-off-line", step: 1, parts: [{ kind: "text", text: "送る" }, { kind: "line", from: "アプリ", to: "API", step: 1 }] },
+    ]);
+    const problem = problems.find((p) => p.layout?.kind === "label-off-line");
+    expect(problem?.line, "知らせの行が段1の step の行を名指さない").toBe(stepLine(LABEL_OFF_LINE, 1));
+    const ja = await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "ja"]);
+    expect(ja.stdout, "日本語の行が段と名前と線を名指さない").toContain("warning 段 1: 「送る」が線 アプリ → API (段 1)から離れて描かれる");
+    const en = await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "en"]);
+    expect(en.stdout, "英語の行が段と名前と線を名指さない").toContain('warning Step 1: "送る" is drawn away from the line アプリ → API (step 1)');
+
+    // 配管の図の流れた量の札も、名指す流れの管から離れていれば知らせる。札を出した段の 1 件にまとめる
+    const pipe = {
+      kind: "pipe",
+      labels: [],
+      edges: [],
+      parties: [
+        { id: "a", name: "Alice" },
+        { id: "b", name: "Bob" },
+      ],
+      flows: [0, 1].map((step) => ({ id: 7, step, from: "a", to: "b", fresh: step === 0, points: [[0, 100], [300, 100]] })),
+      chips: [
+        // 管の際 (管の真ん中から 22) に置いた札と、管から 100 離れた札
+        { kind: "amount", text: "5 ETH", step: 0, flow: 7, x: 100, y: 122, w: 60, h: 22 },
+        { kind: "amount", text: "5 ETH", step: 1, flow: 7, x: 100, y: 200, w: 60, h: 22 },
+        // 流れを名指さない札 (狭い枠の図の下の帯の札) は数えない
+        { kind: "amount", text: "5 ETH", step: 1, x: 100, y: 400, w: 60, h: 22 },
+      ],
+    };
+    const breaks = findBreaks({ inks: [], traces: [], framed: [], stills: [0, 1], frame: { w: 1280, h: 800 }, boxes: [], edges: [], outlines: new Map(), layout: pipe } as never);
+    expect(breaks, "管から離れた流れた量の札を知らせない").toEqual([
+      { kind: "label-off-line", step: 2, parts: [{ kind: "text", text: "5 ETH" }, { kind: "line", from: "Alice", to: "Bob", step: 1 }] },
+    ]);
   });
 });
 

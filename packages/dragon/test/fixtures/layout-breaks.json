@@ -1,36 +1,4 @@
 {
-  "packages/dragon/examples/finality.dragon": [
-    {
-      "kind": "badges-close",
-      "step": 9,
-      "parts": [
-        {
-          "kind": "badge",
-          "step": 7
-        },
-        {
-          "kind": "badge",
-          "step": 9
-        }
-      ]
-    }
-  ],
-  "packages/dragon/examples/finality.en.dragon": [
-    {
-      "kind": "badges-close",
-      "step": 9,
-      "parts": [
-        {
-          "kind": "badge",
-          "step": 7
-        },
-        {
-          "kind": "badge",
-          "step": 9
-        }
-      ]
-    }
-  ],
   "packages/dragon/examples/merge.dragon": [
     {
       "kind": "badges-close",

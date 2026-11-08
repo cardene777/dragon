@@ -20,12 +20,12 @@ import { drawDiagram } from "./draw";
  * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める。
  * 枠線を描く囲みと列と帯もここで組む (#3525)。囲みは原本の名前で、列 (枝の帯) と時間軸の図の帯は描いた名前で呼ぶ
  */
-const finder: BreakFinder = ({ regions, strip, diagram, ...drawn }) =>
+const finder: BreakFinder = ({ diagram, ...drawn }) =>
   findBreaks({
     ...drawn,
     borders: [
-      ...regions.map((r) => ({ name: diagram.regions?.find((g) => g.id === r.id)?.name ?? r.lines.join(" "), rect: r })),
-      ...(strip ? [{ name: strip.title, rect: strip }] : []),
+      ...(drawn.layout?.regions ?? []).map((r) => ({ name: diagram.regions?.find((g) => g.id === r.id)?.name ?? r.lines.join(" "), rect: r })),
+      ...(drawn.layout?.strip ? [{ name: drawn.layout.strip.title, rect: drawn.layout.strip }] : []),
     ],
     outlines: new Map(
       drawn.boxes.flatMap((box): [string, Point[][]][] => {
@@ -66,7 +66,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
 
 /**
  * 描いた図の崩れの種類ごとの文 (#3484)。運ぶ物の枠と図の枠の端の呼び方、丸が箱の形から浮く、枠か字が箱の形からはみ出す、
- * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、部品が図の枠の端からはみ出す (#3515)。
+ * 2 つの丸が近すぎる、2 本の線が並んで近すぎる、部品が図の枠の端からはみ出す (#3515)、線の名前か流れた量の札が線から離れる (#3528)。
  * 時間軸の図の針と時刻の目盛りの線と時間軸の囲みの呼び方と、部品が時間軸の囲みの枠に掛かる文も持つ (#3527)。
  * 囲みと列と帯の枠線の呼び方と、番号の丸が枠線に乗る文も持つ (#3525)。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
@@ -86,6 +86,7 @@ interface BreakText {
   reachesEdge: (part: string, panel: string) => string;
   borderOf: (name: string) => string;
   onBorder: (badge: string, border: string) => string;
+  offLine: (text: string, line: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
@@ -103,6 +104,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     reachesEdge: (part, panel) => `${spaced(part)}が${panel}の枠に掛かる`,
     borderOf: (name) => (name === "" ? "枠線" : `「${name}」の枠線`),
     onBorder: (badge, border) => `${spaced(badge)}が${border}に乗る`,
+    offLine: (text, line) => `${spaced(text)}が${line}から離れて描かれる`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -118,6 +120,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     reachesEdge: (part, panel) => capital(`${part} reaches the edge of ${panel}`),
     borderOf: (name) => (name === "" ? "a border" : `the border of "${name}"`),
     onBorder: (badge, border) => capital(`${badge} sits on ${border}`),
+    offLine: (text, line) => capital(`${text} is drawn away from ${line}`),
   },
 };
 
@@ -167,8 +170,12 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
             ? w.outOfFrame(name(a), name(b2))
             : b.kind === "panel-edge"
               ? w.reachesEdge(name(a), name(b2))
-              : b.kind === "badge-on-frame"
-                ? w.onBorder(name(a), name(b2))
-                : w.runClose(name(a), name(b2));
+              : b.kind === "label-off-line"
+                ? w.offLine(name(a), name(b2))
+                : b.kind === "line-crosses-text" && a.kind === "line"
+                  ? t.lineCrosses(a.from, a.to, name(b2))
+                  : b.kind === "badge-on-frame"
+                    ? w.onBorder(name(a), name(b2))
+                    : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

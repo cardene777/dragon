@@ -7,6 +7,9 @@
  * 時間軸の図の針と目盛りの線と字が、時間軸の囲みの枠を越えるか枠に接する (`panel-edge`、#3527)。
  * 番号の丸が囲みと列と帯の枠線に乗る (`badge-on-frame`、#3525)。
  * 図の枠からはみ出す部品 (`part-outside-frame`、#3515) も拾う。字の重なりは同じ図の中の物どうしを比べるので、枠の外で切れた字を拾わないため。
+ * 同じ2つの箱を逆向きに結ぶ2本の線が同じ道に重なって走るのも、並んだ線が近すぎる崩れに数える (#3521)。
+ * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。
+ * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  * 後の段の番号がぴったり同じ所で前の段の番号と入れ替わる時も、2 つは同時に見えないが前の番号を隠すので、番号が近すぎる崩れに数える (#3525)。
  * 同じ線を何度も通る段の番号と列の図の右上の番号は、入れ替えるのが作りどおりなので数えない。
@@ -16,9 +19,11 @@
  * 同じ崩れが続く段にわたって見える時は、最初に見える段の 1 件にする。
  */
 import { heldIn, type Seat } from "../blocks/carry/timing";
-import type { Point, Rect, SceneBox, SceneEdge, SceneRegion, SceneStrip } from "../layout/scene";
+import type { PipeLayout } from "../kinds/pipe/layout";
+import { crossesRect, type Layout, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
+import { PIPE_LOOK } from "../look/pipe";
+import { APART, LOOK } from "../look/values";
 import type { DiagramModel } from "../schema";
-import { LOOK } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
 import { signedDistance } from "./outline";
 
@@ -42,7 +47,17 @@ export type LayoutPart =
   | { kind: "panel"; panel: "axis" }
   | { kind: "border"; name: string };
 
-export type LayoutBreakKind = "badge-off-shape" | "slot-outside-shape" | "text-outside-shape" | "badges-close" | "lines-close" | "part-outside-frame" | "panel-edge" | "badge-on-frame";
+export type LayoutBreakKind =
+  | "badge-off-shape"
+  | "slot-outside-shape"
+  | "text-outside-shape"
+  | "badges-close"
+  | "lines-close"
+  | "part-outside-frame"
+  | "panel-edge"
+  | "label-off-line"
+  | "line-crosses-text"
+  | "badge-on-frame";
 
 /** 枠線を描いた囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
 export interface Border {
@@ -70,6 +85,11 @@ export interface BreakInput {
   /** 箱の札を描いた箱 */
   boxes: SceneBox[];
   edges: SceneEdge[];
+  /**
+   * 描いた図の置き場所。線の名前と配管の図の流れた量の札と、札が名指す線をここから引く (#3528)。
+   * 描く処理は必ず渡す。描いた部品だけで崩れを組んで確かめる呼び出しは渡さず、その時は線から離れた札を数えない
+   */
+  layout?: Layout;
   /** 箱の名札ごとの見えている形の輪郭。形を持たない箱は持たない */
   outlines: ReadonlyMap<string, Point[][]>;
   /** 枠線を描いた囲みと列と帯 (#3525)。渡さない時は枠線に乗る番号を数えない */
@@ -78,9 +98,9 @@ export interface BreakInput {
 
 /**
  * 描く処理が描いた後に渡す材料。箱の形の輪郭と、囲みと列と帯の枠線は崩れを探す側が組む。
- * 枠線は描いた囲みと列と帯 (`regions` と `strip`) から組み、囲みは原本 (`diagram`) の名前で呼ぶ (#3525)
+ * 枠線は描いた置き場所 (`layout`) の囲みと列と帯から組み、囲みは原本 (`diagram`) の名前で呼ぶ (#3525)
  */
-export type DrawnFigure = Omit<BreakInput, "outlines" | "borders"> & { regions: SceneRegion[]; strip?: SceneStrip | undefined; diagram: DiagramModel };
+export type DrawnFigure = Omit<BreakInput, "outlines" | "borders"> & { diagram: DiagramModel };
 
 /**
  * 描いた図の崩れを返す関数 (#3494)。`renderDiagram` の `findBreaks` に渡すと、描いた後に呼ばれて結果が `breaks` になる。
@@ -92,11 +112,19 @@ export type BreakFinder = (drawn: DrawnFigure) => LayoutBreak[];
 const R = LOOK.badge.r;
 /** 触れているとみなす間 (px)。線の始まりの番号の丸は箱の縁から 1px 離して置く */
 const TOUCH = 2;
-/** 番号の丸どうしの間の下限。丸の半径より狭いと 2 つの番号が 1 つの塊に見える */
-const BADGE_GAP = R;
-/** 並んだ線の間の下限と、並んで走る長さの下限。番号の丸 1 つ分より狭い間で丸 2 つ分より長く並ぶ線は 1 本の太い線に見える */
-const LINE_GAP = 2 * R;
+/**
+ * 番号の丸どうしの間の下限と、並んだ線の間の下限。
+ * 描く処理が番号の丸と行きと帰りの線を離す値と同じ所 (`APART`) から取り、描いた図と食い違わないようにする (#3521)
+ */
+const BADGE_GAP = APART.badge;
+const LINE_GAP = APART.line;
+/** 並んで走る長さの下限。番号の丸2つ分より長く狭い間で並ぶ線は1本の太い線に見える */
 const LINE_ALONG = 2 * R;
+/**
+ * 線が字を横切ったとみなす食い込みの下限 (px)。字の重なり (`ink.ts` の `BITE`) と同じ値にし、書き出しが知らせる組と同じ組を数える。
+ * `ink.ts` は頁が最初に読む塊に在り、値を書き出すだけで最初に読む量が増えるので、ここに同じ値を置く
+ */
+const BITE = 0.5;
 /** 時間軸の囲みの枠の線の内側の縁から、部品までの間の下限 (px)。これより近い部品は枠に接して見える (#3527) */
 const PANEL_GAP = 4;
 /** 同じ所に置いたとみなす番号の丸の中心の間 (px)。描く処理が同じ所で数字を入れ替える番号と同じ値 */
@@ -113,12 +141,82 @@ function borderDistance([px, py]: Point, r: Rect): number {
   const qy = Math.abs(py - (r.y + r.h / 2)) - ((r.h - 1) / 2 - radius);
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
 }
+/**
+ * 線の名前の札を描く処理が最初に置く、札の四角から線までの間 (#3528)。線の上か下に置く札は線から札の真ん中まで `offset` 離すので、
+ * そこから札の高さの半分を引いた間になり、線の脇に置く札は `side` の間になる。2 つのうち広い方を取る
+ */
+const LABEL_GAP = Math.max(LOOK.label.offset - LOOK.label.h / 2, LOOK.label.side);
+/** 配管の図の流れた量の札を描く処理が最初に置く、札の四角から管の真ん中までの間。管の太さの半分と、管から札までの離れを足す */
+const CHIP_GAP = PIPE_LOOK.bus.case / 2 + PIPE_LOOK.chip.off;
 
 /** 点から四角までの距離。四角の内の点は 0 */
 function distanceToRect([px, py]: Point, r: Rect): number {
   const dx = Math.max(r.x - px, 0, px - (r.x + r.w));
   const dy = Math.max(r.y - py, 0, py - (r.y + r.h));
   return Math.hypot(dx, dy);
+}
+
+/** 点から線分 a-b までの距離 */
+function distanceToSegment([px, py]: Point, [ax, ay]: Point, [bx, by]: Point): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const length = dx * dx + dy * dy;
+  const t = length === 0 ? 0 : Math.min(1, Math.max(0, ((px - ax) * dx + (py - ay) * dy) / length));
+  return Math.hypot(ax + t * dx - px, ay + t * dy - py);
+}
+
+/** 札の四角から折れ線までの距離。線が四角を通れば 0、通らなければ線の点から四角までと、四角の角から線の区間までの最小 */
+function lineGap(points: Point[], r: Rect): number {
+  if (crossesRect(points, r)) return 0;
+  const corners: Point[] = [
+    [r.x, r.y],
+    [r.x + r.w, r.y],
+    [r.x, r.y + r.h],
+    [r.x + r.w, r.y + r.h],
+  ];
+  return Math.min(
+    ...points.map((p) => distanceToRect(p, r)),
+    ...points.slice(1).flatMap((b, k) => corners.map((c) => distanceToSegment(c, points[k] as Point, b))),
+  );
+}
+
+/**
+ * 線の名前と流れた量の札と、札が名指す線 (#3528)。`step` は札が出る段 (0 から数える)、`points` は札が名指す線の点の並び、
+ * `near` は札の四角から線までの離れの上限。上限は描く処理が最初に置く間に札の高さを足した長さで、
+ * それより離れると札と線の間にもう 1 つ札が入り、間の札か別の線の名前に見える
+ */
+interface Tag {
+  text: string;
+  rect: Rect;
+  step: number;
+  points: Point[];
+  line: Extract<LayoutPart, { kind: "line" }>;
+  near: number;
+}
+
+/**
+ * 置き場所 `layout` の線の名前と流れた量の札。線の名前はその線の両端の箱の名前で、流れた量の札は流れの両端の関係者の名前で線を呼ぶ。
+ * 流れた量の札の線の段は、その流れが流れた段にする。流れを名指さない札 (狭い枠の図の下の帯の札) は、管から離して置くと決めた札なので数えない
+ */
+function tagsOf(layout: Layout): Tag[] {
+  if (layout.kind === "pipe") {
+    const pipe = layout as PipeLayout;
+    const names = new Map(pipe.parties.map((p) => [p.id, p.name]));
+    return pipe.chips.flatMap((chip): Tag[] => {
+      const flow = pipe.flows.find((f) => f.id === chip.flow && f.step === chip.step);
+      if (!flow) return [];
+      const flowed = pipe.flows.find((f) => f.id === flow.id && f.fresh)?.step ?? chip.step;
+      const line = { kind: "line" as const, from: names.get(flow.from) ?? flow.from, to: names.get(flow.to) ?? flow.to, step: flowed + 1 };
+      return [{ text: chip.text, rect: chip, step: chip.step, points: flow.points, line, near: CHIP_GAP + chip.h }];
+    });
+  }
+  const names = new Map(layout.boxes.map((b) => [b.id, b.name]));
+  return layout.labels.flatMap((label): Tag[] => {
+    const edge = layout.edges.find((e) => e.step === label.step && e.event === label.event);
+    if (!edge) return [];
+    const line = { kind: "line" as const, from: names.get(edge.from) ?? edge.from, to: names.get(edge.to) ?? edge.to, step: edge.step + 1 };
+    return [{ text: label.text, rect: label, step: label.step, points: edge.points, line, near: LABEL_GAP + label.h }];
+  });
 }
 
 const centerOf = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
@@ -147,7 +245,7 @@ export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.st
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, framed, stills, boxes, edges, outlines, frame, borders = [] } = input;
+  const { inks, traces, framed, stills, boxes, edges, layout, outlines, frame, borders = [] } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -246,7 +344,9 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   const edgeSteps = new Map(edges.map((e) => [e.points, e.step + 1]));
   traces.forEach((a, i) => {
     for (const b of traces.slice(i + 1)) {
-      if (!runAlong(a.points, b.points)) continue;
+      // 同じ2つの箱を逆向きに結ぶ線は、重なって走る (間が0の) 時も数える。頼みと答えの線が同じ道に重なると、互いの番号の丸が相手の矢じりを隠す (#3521)
+      const back = a.from !== a.to && a.from === b.to && a.to === b.from;
+      if (!runAlong(a.points, b.points, back)) continue;
       const seen = firstSeen(a, b);
       if (seen === undefined) continue;
       const stepA = edgeSteps.get(a.points) ?? seen;
@@ -259,6 +359,20 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       ]);
     }
   });
+
+  // 札を持たない字を横切る線。札の地は下の線を隠すので数えず、段の番号と図の部品は書き手が書いた字でないので数えない
+  for (const ink of inks) {
+    if (ink.boxed === true || ink.badge === true || ink.part !== undefined) continue;
+    for (const trace of traces) {
+      if (!crossesRect(trace.points, ink.rect, BITE)) continue;
+      const seen = firstSeen(ink, trace);
+      if (seen === undefined) continue;
+      add("line-crosses-text", seen, [
+        { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
+        { kind: "text", text: ink.text, ...(ink.box === undefined ? {} : { box: nameOf(ink.box) }) },
+      ]);
+    }
+  }
 
   // 時間軸の部品は、囲みの枠を越えるか、枠の線の内側の縁から`PANEL_GAP`より近ければ崩れにする (#3527)
   for (const item of framed)
@@ -303,6 +417,16 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     ]);
   }
 
+  // 線の名前と流れた量の札。配管の図の札は段ごとに置き直すので、同じ札と線の組が続く段で離れている時は最初の段の 1 件にする
+  const offLine = new Set<string>();
+  for (const tag of (layout === undefined ? [] : tagsOf(layout)).sort((a, b) => a.step - b.step)) {
+    if (lineGap(tag.points, tag.rect) <= tag.near) continue;
+    const key = JSON.stringify([tag.text, tag.line]);
+    if (offLine.has(key)) continue;
+    offLine.add(key);
+    add("label-off-line", tag.step + 1, [{ kind: "text", text: tag.text }, tag.line]);
+  }
+
   const seen = new Set<string>();
   return out
     .filter((b) => {
@@ -314,8 +438,12 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     .sort((a, b) => a.step - b.step);
 }
 
-/** 2 本の線のどこかで、縦か横の区間どうしが間 `LINE_GAP` 未満で `LINE_ALONG` より長く並んで走るか */
-function runAlong(a: Point[], b: Point[]): boolean {
+/**
+ * 2本の線のどこかで、縦か横の区間どうしが間 `LINE_GAP` 未満で `LINE_ALONG` より長く並んで走るか。
+ * 重なって走る (間が0の) 区間は `overlap` の時だけ数える。
+ * 同じ線を別の段でもう一度引くと同じ道に重なるので、それは数えない
+ */
+function runAlong(a: Point[], b: Point[], overlap: boolean): boolean {
   const segments = (points: Point[]): [Point, Point][] => points.slice(1).map((p, k) => [points[k] as Point, p]);
   for (const [a0, a1] of segments(a))
     for (const [b0, b1] of segments(b)) {
@@ -326,7 +454,7 @@ function runAlong(a: Point[], b: Point[]): boolean {
         const other = axis === 0 ? 1 : 0;
         const along =
           Math.min(Math.max(a0[other], a1[other]), Math.max(b0[other], b1[other])) - Math.max(Math.min(a0[other], a1[other]), Math.min(b0[other], b1[other]));
-        if (gap > 0 && gap < LINE_GAP && along > LINE_ALONG) return true;
+        if ((gap > 0 || overlap) && gap < LINE_GAP && along > LINE_ALONG) return true;
       }
     }
   return false;

@@ -1,0 +1,14 @@
+// Use the shared block +oracle without defining it in the diagram
+architecture Bring a price on chain
+
+box source as Price source [note: data off chain, icon: globe]
++oracle feed as Oracle [note: reports the price]
+box pool as Lending pool [note: reads the price, icon: chain]
+
+step Fetch
+  say The oracle fetches the latest price from the source off chain.
+  source -> feed: price
+
+step Report
+  say The oracle writes the price on chain, and the lending pool reads it.
+  feed -> pool: price update

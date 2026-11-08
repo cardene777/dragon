@@ -13,7 +13,7 @@
  */
 import { FIGURE_TEXT } from "../../figure-text";
 import { LOOK, TYPE } from "../../look/values";
-import type { DiagramModel, LabelSide, StatePath } from "../../schema";
+import type { DiagramModel, StatePath } from "../../schema";
 import { type NotationLang, STATE_ENDS } from "../../words";
 import { textBox, textWidth } from "../../layout/measure";
 import {
@@ -41,6 +41,7 @@ import {
   type Point,
   placeLabel,
   placeSlot,
+  pullApart,
   type Rect,
   type SceneBox,
   type SceneEdge,
@@ -302,17 +303,8 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   });
   // 状態を出入りする運ぶ物は、着いた状態の置き場に留まり、出る状態の置き場で走り出しを待つ (#3176)
   seatCarriers(sceneEdges, byId, carriedIn);
-  // 同じ 2 つの状態を行きと帰りで結ぶまっすぐな線は、少しずらして重ならないようにする。
-  // ずらした線の名前は、ずらした側 (もう一方の線の反対側) に置き、どちらの線の名前かを取り違えないようにする (#3175)
-  const outward = new Map<SceneEdge, LabelSide>();
-  for (const e of sceneEdges) {
-    if (e.points.length !== 2 || !sceneEdges.some((o) => o.from === e.to && o.to === e.from && o.points.length === 2)) continue;
-    const [p, q] = e.points as [Point, Point];
-    const flat = Math.abs(q[1] - p[1]) < Math.abs(q[0] - p[0]);
-    const d = (e.from < e.to ? 1 : -1) * LOOK.edge.parallel;
-    e.points = e.points.map(([x, y]) => (flat ? [x, y + d] : [x + d, y]));
-    outward.set(e, flat ? (d > 0 ? "below" : "above") : d > 0 ? "right" : "left");
-  }
+  // 同じ2つの状態を行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す。名前はずらした側に置く (#3175、#3521)
+  const outward = pullApart(sceneEdges);
 
   const paths: ScenePath[] = notTaken.map((p) => ({ from: p.from, to: p.to, points: route(p.from, p.to) }));
 

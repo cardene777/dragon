@@ -1,0 +1,7 @@
+// A smart contract deployed on a chain, drawn as a violet rounded box with a code file icon
+blocks 1
+block +contract
+  base box
+  color violet
+  icon tabler:file-code
+end
