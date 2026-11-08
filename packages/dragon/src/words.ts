@@ -39,6 +39,18 @@ export type NotationLang = "ja" | "en";
  */
 export const DEFAULT_LANG: NotationLang = "en";
 
+/** 仮名か漢字 */
+const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
+
+/**
+ * 図の字の言葉 (#3516)。図の題か段の本文 (`say`) に仮名か漢字があれば日本語、無ければ英語。
+ * 置く頁を持たない書き出しが、言葉を渡されない時に図に足す字 (状態遷移図の脇道、始まりと終わりの印など) の言葉を決めるために使う。
+ * 箱の名前と線の名前は数えない。英語の図が日本語の会社の名前を箱に持つことがあるため
+ */
+export function textLang(diagram: Pick<Diagram, "title" | "steps">): NotationLang {
+  return [diagram.title, ...diagram.steps.map((step) => step.body)].some((text) => KANA_KANJI.test(text)) ? "ja" : "en";
+}
+
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */
