@@ -192,6 +192,22 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(missing, "ブロックの参照が書かない事").toEqual([]);
   });
 
+  // PR を出す前の確かめは、入れた dragon で定義の file と見本を回す。fork を組み立てた CLI は評価の囲いでも利用者の手元でも重い (#3508)
+  it("skill-blocks-pr-checks-with-installed-dragon", () => {
+    const text = read(join(REFERENCES, "blocks.md"));
+    const start = text.indexOf("## Offer a reusable block to the dragon repo");
+    expect(start, "PR を出す手順の節が無い").toBeGreaterThanOrEqual(0);
+    // 見出しの頭の 1 字を外して、次の節の見出しまでを切り出す
+    const rest = text.slice(start + 1);
+    const end = rest.search(/^## /mu);
+    const section = end >= 0 ? rest.slice(0, end) : rest;
+    expect(section, "定義の file を入れた dragon で確かめない").toMatch(/dragon check packages\/dragon\/blocks\/<name>\.dragon/u);
+    expect(section, "見本を --blocks で定義を渡して確かめない").toMatch(/dragon check --blocks packages\/dragon\/blocks\/<name>\.dragon packages\/dragon\/blocks\/examples\/<name>\.dragon/u);
+    expect(section, "fork を組み立てた CLI で確かめる手順が残る").not.toContain("dist/cli.js");
+    expect(section, "pnpm verify を手順から外した").toContain("pnpm verify");
+    expect(section, "pnpm verify を回せない時に PR 本文へ書くと書かない").toMatch(/cannot run `pnpm verify`[^\n]*PR body|PR body[^\n]*cannot run `pnpm verify`/u);
+  });
+
   it("skill-setup-reference-covers-three-ways", () => {
     const text = read(join(REFERENCES, "setup.md"));
     const ways = {

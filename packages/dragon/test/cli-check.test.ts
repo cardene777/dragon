@@ -8,9 +8,10 @@
  * 文の言葉は書き出しの命令と同じく、`--lang` を渡せばその言葉、無ければ英語 (#3338)。
  */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 import { api, type LineError, type Parsed } from "./diagram-support";
 import { runCli } from "./export-support";
@@ -240,5 +241,95 @@ describe("矢印の先を書き忘れた線の行 (#3468)", () => {
     expect(messages, "先の無い線の行と先を書いた線の行で文が違う").toHaveLength(2);
     expect(messages[0], "先の無い線の行に列の図の文を返さない").toBe(messages[1]);
     expect(messages[0], "列の図の先の無い線の行に線の行の形を返した").not.toBe(EDGE_SHAPE.en);
+  });
+});
+
+/**
+ * 足したブロックの定義の file と、渡した定義で図を確かめる設定 `--blocks` (#3508)。
+ *
+ * 共有のブロック集へ PR を出す前に、組み立て直していない `dragon` で定義と見本を確かめるための形。
+ * `blocks 1` で始まる file は図ではなく定義として読み、誤りは定義を読む処理 (`readBlocks`) が返す行と列で出す。
+ * `--blocks <file>` は定義の file を読み、確かめる図に定義として渡す。
+ */
+describe("定義の file と --blocks (#3508)", () => {
+  type ReadBlocks = { ok: true; blocks: unknown } | { ok: false; errors: LineError[] };
+  const SHARED = join(process.cwd(), "packages/dragon/blocks");
+  /** 共有のブロック集に無い箱のブロックの定義。頭に何のブロックかの注釈を置く */
+  const VAULT = lines("// A vault that holds deposited tokens", "blocks 1", "block +vault", "  base box", "  color amber", "end");
+  /** 定義を書かずに +vault を使う見本 */
+  const VAULT_EXAMPLE = lines("architecture Deposit into a vault", "", "box user as User", "+vault v as Vault", "", "step Deposit", "  user -> v: deposit");
+  /** 4 行目に dragon が知らない base を書いた定義 */
+  const BAD_BASE = lines("// A block with a base dragon does not know", "blocks 1", "block +vault", "  base car", "end");
+  const readBlocks = (text: string, lang: "ja" | "en" = "en"): ReadBlocks => {
+    const fn = (dragon as unknown as { readBlocks?: (input: unknown, options?: { lang?: "ja" | "en" }) => ReadBlocks }).readBlocks;
+    expect(fn, "readBlocks が @cardenelabs/dragon から出ていない").toBeDefined();
+    return fn ? fn(text, { lang }) : { ok: false, errors: [] };
+  };
+
+  it("check-passes-definitions-file", async () => {
+    const file = place("vault.dragon", VAULT);
+    const ran = await runCli(["check", file]);
+    expect(ran.code, `読める定義の file で終わり方 0 にならない ${ran.stdout}${ran.stderr}`).toBe(0);
+    expect(ran.stdout.trim(), "読める定義の file で何かを出した").toBe("");
+    // 共有のブロック集の定義の file も、全てこの形で通る
+    const shared = readdirSync(SHARED)
+      .filter((name) => name.endsWith(".dragon"))
+      .map((name) => join(SHARED, name));
+    expect(shared.length, "共有のブロック集に定義の file が無い").toBeGreaterThan(0);
+    const all = await runCli(["check", ...shared]);
+    expect(all.code, `共有のブロック集の定義の file が通らない\n${all.stdout}${all.stderr}`).toBe(0);
+    expect(all.stdout.trim(), "共有のブロック集の定義の file で何かを出した").toBe("");
+  });
+
+  it("check-reports-definition-error-at-line", async () => {
+    const file = place("bad.dragon", BAD_BASE);
+    for (const lang of ["en", "ja"] as const) {
+      const read = readBlocks(BAD_BASE, lang);
+      const expected = read.ok ? undefined : read.errors[0];
+      expect(expected?.line, "定義を読む処理が知らない base の行を指さない").toBe(4);
+      const ran = await runCli(["check", file, "--lang", lang]);
+      expect(ran.code, `誤りのある定義の file で終わり方 1 にならない (${lang}) ${ran.stderr}`).toBe(1);
+      expect(outputLines(ran.stdout), `定義の誤りの行の形 (${lang})`).toEqual([`${file}:${expected?.line}:${expected?.column} error ${expected?.message}`]);
+    }
+  });
+
+  it("check-uses-blocks-option-definitions", async () => {
+    const definitions = place("vault.dragon", VAULT);
+    const example = place("vault-example.dragon", VAULT_EXAMPLE);
+    // 定義を渡さない時は、今どおり定義の無いブロックを断る
+    const undefinedBlock = firstError(parse(VAULT_EXAMPLE));
+    expect(undefinedBlock?.message, "読む処理が定義の無いブロックを断らない").toContain("+vault");
+    const without = await runCli(["check", example]);
+    expect(without.code, `定義を渡さずに終わり方 1 にならない ${without.stderr}`).toBe(1);
+    expect(outputLines(without.stdout), "定義の無いブロックの誤りの行").toEqual([`${example}:${undefinedBlock?.line}:${undefinedBlock?.column} error ${undefinedBlock?.message}`]);
+    // --blocks で定義を渡すと通る
+    const ran = await runCli(["check", "--blocks", definitions, example]);
+    expect(ran.code, `--blocks で定義を渡しても通らない ${ran.stdout}${ran.stderr}`).toBe(0);
+    expect(ran.stdout.trim(), "--blocks で定義を渡した図で何かを出した").toBe("");
+  });
+
+  it("check-blocks-option-usage-errors", async () => {
+    const example = place("vault-example.dragon", VAULT_EXAMPLE);
+    const diagram = place("good.dragon", GOOD);
+    const missing = join(scratch(), "none.dragon");
+    // 定義の file でない file、無い file、値の無い --blocks は、どれも確かめずに名指して断る
+    for (const [args, named] of [
+      [["check", "--blocks", diagram, example], diagram],
+      [["check", "--blocks", missing, example], missing],
+      [["check", example, "--blocks"], "--blocks"],
+    ] as const) {
+      const ran = await runCli([...args]);
+      expect(ran.code, `${args.join(" ")} で終わり方 2 にならない ${ran.stdout}`).toBe(2);
+      expect(ran.stdout.trim(), `${args.join(" ")} で確かめた結果を出した`).toBe("");
+      expect(ran.stderr, `${args.join(" ")} で何が違うかを名指さない`).toContain(named);
+    }
+    // 使い方の文は英語と日本語の両方で --blocks を挙げる
+    const en = await runCli(["check"]);
+    expect(en.code).toBe(2);
+    expect(en.stderr, "英語の使い方が --blocks を挙げない").toMatch(/^\s+--blocks /mu);
+    const ja = await runCli(["check", "--lang", "ja"]);
+    expect(ja.code).toBe(2);
+    expect(ja.stderr, "日本語の使い方を出さない").toMatch(/^使い方: dragon check /mu);
+    expect(ja.stderr, "日本語の使い方が --blocks を挙げない").toMatch(/^\s+--blocks /mu);
   });
 });
