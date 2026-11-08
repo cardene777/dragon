@@ -33,3 +33,14 @@
 | 編集画面の棚の見本に枝分かれの図の束があって rebase と merge が載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に `git` の頭の行があり、`branch`、`commit`、`copy`、`merge` と札の動きの行がある | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`editor-shelf-has-git`が通る | #3164 |
 | 概要の頁の使いどころは今の 3 つのまま | `pnpm test`の検査`home-uses-stay-three`が通る | #3164 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3164 |
+| 見本`merge`と`merge.en`を描いた時、`dragon check --layout`が`warning`の行を1つも出さない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`merge-examples-warn-nothing`が通る | #3547 |
+| 見本`rebase`と`rebase.en`を描いた時、`dragon check --layout`が`warning`の行を1つも出さない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`rebase-examples-warn-nothing`が通る | #3547 |
+| 見本`merge`の段7を描いた時、コミットBから分かれる`fix`の線と`feature`の線は、出口の間が`APART.line`に線の太さを足した値で、どこでも`APART.line`以上離れる | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`merge-branch-lines-leave-apart`が通る | #3547 |
+| 同じコミットから3本の枝を切り、それぞれにcommitを積む図を描いた時、どの2本の線も、`APART.line`より近い所を番号の丸2つ分 (`LOOK.badge.r`の2倍) より長く走らず、`dragon check --layout`が`warning`の行を出さない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`three-branch-lines-leave-apart`が通る | #3547 |
+| 見本の崩れの記録`packages/dragon/test/fixtures/layout-breaks.json`が空になる | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-breaks-record-is-empty`が通る | #3547 |
+| 同じコミットから分かれる2本の枝の線が重なる時、`dragon check --layout`がその段と2本の線を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-check-names-overlapping-branch-lines`が通る | #3547 |
+| 構成図で同じ箱の同じ所から出る2本の線が重なって走り、その先で分かれる時、`dragon check --layout`がその段と2本の線を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-lines-leaving-one-spot`が通る | #3547 |
+| 常に、枝を切る線と、その枝に最初に積んだcommitの線は同じ道を通り、`dragon check --layout`は重なる線に数えない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-check-skips-redrawn-branch-line`が通る | #3547 |
+| 常に、試す図の網で1つのノードから別々の向きへ広がる線を、`dragon check --layout`は重なる線に数えない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-check-skips-fanning-lines`が通る | #3547 |
+| 常に、`dragon check --layout`は近すぎる段の番号と並んで近すぎる線を見つけ、知らせの行とJSONに段の番号と関わる物の名前を書く | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-close-badges`と`layout-check-finds-crowded-lines`と`layout-check-line-names-step-and-parts`と`layout-check-prints-json`が通る | #3547 |
+| 常に、見本を描いた時、記録の一覧に無い崩れを出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3547 |

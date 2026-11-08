@@ -5,6 +5,7 @@
  * 同じ帯では積んだ順に右へ進める。一番上でない帯の commit は列の半分だけ右へずらし、上の帯の丸と縦に揃わないようにする。
  * hash と一言は丸の外に 2 行で置き、一番上の帯では丸の上に、ほかの帯では丸の下に置く (step 2 で本人が選んだ)。
  * 札 (枝の名前と HEAD) は丸の上に段を重ねて置き、一番上の帯では字のさらに上に置く。
+ * 同じ commit から別々の枝へ分かれる線は、出口を横に離して別々の道を通す (#3547)。
  *
  * 札がどの commit を指すかは、段の中の出来事を順に辿って決める。
  * commit を積むと、積んだ枝の札と、その枝を指す HEAD が新しい commit へ進む。最初に積んだ枝を HEAD が指す。
@@ -18,7 +19,7 @@
  * 箱は commit の並びの右に縦に並べ、中身の帯は図の下に置く。
  * 宣言していない枝に積んだ原本の JSON は、その枝の帯を下に足して描く。辿れない名札を指す出来事は描かない。
  */
-import { type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
+import { APART, type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
 import type { DiagramModel, DiagramEvent } from "../../schema";
 import { HEAD } from "../../words";
 import { hasWide, textBox, textWidth } from "../../layout/measure";
@@ -342,14 +343,44 @@ function elbow(from: Point, to: Point): Point[] {
 /** 丸の真ん中と半径 */
 type Circle = { cx: number; cy: number; r: number };
 
-/** 枝へ分かれる線。親の丸から縦に出て曲がり、`ty` の高さを横へ `tx` まで進む */
-function fork(p: Circle, tx: number, ty: number): Point[] {
+/**
+ * 枝へ分かれる線。親の丸から縦に出て曲がり、`ty` の高さを横へ `tx` まで進む。
+ * `dx` は縦に出る所を丸の真ん中から横へずらす長さ (#3547)。丸の幅に収まる出口は丸の縁から縦に出し、
+ * 丸の幅を越える出口は丸の縁から斜めに出て、ずらした所で縦に折れる
+ */
+function fork(p: Circle, tx: number, ty: number, dx = 0): Point[] {
   const sign = ty > p.cy ? 1 : -1;
-  const p0: Point = [p.cx, p.cy + sign * p.r];
-  const turn = Math.max(0, Math.min(LOOK.git.turn, tx - p.cx));
-  const p3: Point = [p.cx + turn, ty];
-  const curve = cubic(p0, [p0[0], p0[1] + (ty - p0[1]) * 0.7], [p.cx + turn * 0.2, ty], p3);
-  return [p0, ...curve, ...(tx > p3[0] ? [[tx, ty] as Point] : [])];
+  const x = p.cx + dx;
+  const inside = Math.abs(dx) < p.r;
+  const lead: Point[] = inside ? [] : [[p.cx + Math.sign(dx) * p.r * Math.SQRT1_2, p.cy + sign * p.r * Math.SQRT1_2]];
+  const p0: Point = [x, p.cy + sign * (inside ? Math.sqrt(p.r * p.r - dx * dx) : Math.abs(dx))];
+  const turn = Math.max(0, Math.min(LOOK.git.turn, tx - x));
+  const p3: Point = [x + turn, ty];
+  const curve = cubic(p0, [p0[0], p0[1] + (ty - p0[1]) * 0.7], [x + turn * 0.2, ty], p3);
+  return [...lead, p0, ...curve, ...(tx > p3[0] ? [[tx, ty] as Point] : [])];
+}
+
+/**
+ * 同じ commit から同じ向きに分かれる線の出口を、行き先の帯ごとに横へ離す長さ (#3547)。
+ * 出口の間は、崩れの検査が並んだ線に求める間 (`APART.line`) に線の太さを足した値にし、2本の線の縁どうしの間も検査の下限を下回らない。
+ * 遠い帯へ行く線ほど左から出す。近い帯へ行く線は先に右へ曲がるので、遠い帯へ縦に進む線を横切らない。
+ * 1本だけ分かれる commit の線は丸の真ん中から出す
+ */
+function exits(forks: { from: GitPlaced; ty: number }[]): Map<string, number> {
+  const apart = APART.line + LOOK.stroke.git;
+  const groups = new Map<string, { id: string; cy: number; ys: number[] }>();
+  for (const { from, ty } of forks) {
+    const key = `${from.id}\n${Math.sign(ty - from.cy)}`;
+    const group = groups.get(key) ?? { id: from.id, cy: from.cy, ys: [] };
+    if (!group.ys.includes(ty)) group.ys.push(ty);
+    groups.set(key, group);
+  }
+  const out = new Map<string, number>();
+  for (const { id, cy, ys } of groups.values()) {
+    ys.sort((a, b) => Math.abs(b - cy) - Math.abs(a - cy));
+    ys.forEach((ty, k) => out.set(`${id}\n${ty}`, (k - (ys.length - 1) / 2) * apart));
+  }
+  return out;
 }
 
 /** 枝から入る線。親の帯の線を横へ進み、曲がって子の丸へ縦に入る */
@@ -464,22 +495,38 @@ export function layoutGit(diagram: DiagramModel): GitLayout {
   });
   const placed = new Map(commits.map((c) => [c.id, c]));
 
+  // 枝へ分かれる線の行き先の高さ。枝を切る線は枝の帯の線へ、親から子への線は別の帯の子へ分かれる。merge commit へ入る線と当て直しの線は分かれる線でない。
+  // 枝を切る線は、その枝に後で commit を積む時だけ引く。積まない枝の帯へ引くと、線が何も無い所で途切れる
+  const forkTo = (l: Walked["links"][number]): number | undefined => {
+    const from = placed.get(l.from);
+    if (!from) return undefined;
+    if (l.kind === "branch") return walked.made.some((c) => c.branch === l.to) ? laneOf.get(l.to)?.line : undefined;
+    const to = placed.get(l.to);
+    if (l.kind === "copy" || !to || Math.abs(from.cy - to.cy) < 0.5 || walked.made.find((m) => m.id === l.to)?.joined === l.from) return undefined;
+    return to.cy;
+  };
+  const forkTos = new Map(walked.links.map((l) => [l, forkTo(l)]));
+  const offsets = exits(
+    walked.links.flatMap((l) => {
+      const ty = forkTos.get(l);
+      return ty === undefined ? [] : [{ from: placed.get(l.from) as GitPlaced, ty }];
+    }),
+  );
   const links: GitLink[] = walked.links.flatMap((l): GitLink[] => {
     const from = placed.get(l.from);
     if (!from) return [];
+    const ty = forkTos.get(l);
+    const dx = ty === undefined ? 0 : (offsets.get(`${from.id}\n${ty}`) ?? 0);
     if (l.kind === "branch") {
-      // 枝を切る線は、その枝に後で commit を積む時だけ引く。積まない枝の帯へ引くと、線が何も無い所で途切れる
-      if (!walked.made.some((c) => c.branch === l.to)) return [];
-      const lane = laneOf.get(l.to) as GitLane;
-      return [{ ...l, points: fork(from, from.cx + G.turn, lane.line), color: colorOf(l.to) }];
+      if (ty === undefined) return [];
+      return [{ ...l, points: fork(from, from.cx + dx + G.turn, ty, dx), color: colorOf(l.to) }];
     }
     const to = placed.get(l.to) as GitPlaced;
-    const made = walked.made.find((m) => m.id === l.to);
     let points: Point[];
-    if (l.kind === "copy") points = copyLine(from, to);
+    if (ty !== undefined) points = fork(from, to.cx - to.r, ty, dx);
+    else if (l.kind === "copy") points = copyLine(from, to);
     else if (Math.abs(from.cy - to.cy) < 0.5) points = [[from.cx + from.r, from.cy], [to.cx - to.r, to.cy]];
-    else if (made?.joined === l.from) points = join(from, to);
-    else points = fork(from, to.cx - to.r, to.cy);
+    else points = join(from, to);
     return [{ ...l, points, color: to.color }];
   });
 
@@ -618,13 +665,18 @@ function firstMark(layout: GitLayout, step: number): { event: number; points?: P
 }
 
 /**
+ * 段の番号の丸の真ん中どうしの間の下限 (#3547)。丸の縁どうしの間を、崩れの検査が近すぎる番号に数える下限 (`APART.badge`) より狭くしない。
+ * 線の上の番号 (`badgeOnPath`) と同じ値で離し、描いた図と検査が食い違わないようにする
+ */
+const BADGES_APART = LOOK.badge.r * 2 + APART.badge;
+
+/**
  * commit の丸の右、下、左、上のうち、段の番号の丸が札と字と丸に掛からず、枝の帯の枠線 (`frames` の高さの線) にも掛からず、
  * 先に置いた番号からも離れた最初の点 (#3525)。無ければ `undefined`
  */
 function besideCommit(c: GitPlaced, taken: Point[], avoid: Rect[], frames: number[]): Point | undefined {
   const { r, inset } = LOOK.badge;
   const d = c.r + inset + r;
-  const apart = r * 2 + inset;
   const spots: Point[] = [
     [c.cx + d, c.cy],
     [c.cx, c.cy + d],
@@ -632,7 +684,7 @@ function besideCommit(c: GitPlaced, taken: Point[], avoid: Rect[], frames: numbe
     [c.cx, c.cy - d],
   ];
   return spots.find(
-    (p) => taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart) && avoid.every((a) => gapBetween(badgeRect(p), a) >= LOOK.label.touch) && !onFrameLine(p[1], frames),
+    (p) => taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= BADGES_APART) && avoid.every((a) => gapBetween(badgeRect(p), a) >= LOOK.label.touch) && !onFrameLine(p[1], frames),
   );
 }
 
@@ -641,14 +693,13 @@ function besideCommit(c: GitPlaced, taken: Point[], avoid: Rect[], frames: numbe
  * 札はどの段に留まる札も避ける。済んだ段の番号は最後の段まで残るので、後の段に来る札にも掛けない。無ければ `undefined`
  */
 function clearOnPath(points: Point[], taken: Point[], avoid: Rect[], frames: number[]): Point | undefined {
-  const { r, inset, along: start, short } = LOOK.badge;
+  const { r, along: start, short } = LOOK.badge;
   const length = pathLength(points);
   const first = length < short ? Math.min(r + 1, length / 2) : start;
-  const apart = r * 2 + inset;
   for (let d = first; d <= length; d += 1) {
     const p = along(points, d);
     const rect = badgeRect(p);
-    if (taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= apart) && avoid.every((a) => gapBetween(rect, a) >= LOOK.label.touch) && !onFrameLine(p[1], frames)) return p;
+    if (taken.every(([x, y]) => Math.hypot(p[0] - x, p[1] - y) >= BADGES_APART) && avoid.every((a) => gapBetween(rect, a) >= LOOK.label.touch) && !onFrameLine(p[1], frames)) return p;
   }
   return undefined;
 }

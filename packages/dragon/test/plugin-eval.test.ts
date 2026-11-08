@@ -559,9 +559,10 @@ describe("評価で AI が描いた図を 1 枚の頁に並べる (#3519)", () =
     const { cliTools } = await gallery();
     expect(existsSync(CLI), `${relative(ROOT, CLI)} が無い。pnpm build:packages を回す`).toBe(true);
     const tools = cliTools(CLI);
-    // 段 3 で番号の丸どうしが近すぎる図 (`layout-check.test.ts` が崩れを確かめる図)。段は 3 つ。
-    // 前に使った支払いの図は段 3 の行きと帰りの線で崩れを作っていて、行きと帰りの線を離した直し (#3521) で段 3 の崩れが消えた
-    const close = join(ROOT, "packages/dragon/test/fixtures/layout/close-badges.dragon");
+    // 段 3 で同じ所から出る 2 本の線が重なる図 (`layout-check.test.ts` が崩れを確かめる図)。段は 3 つ。
+    // 前に使った支払いの図は段 3 の行きと帰りの線で崩れを作っていて、行きと帰りの線を離した直し (#3521) で段 3 の崩れが消えた。
+    // 次に使った段 3 で番号の丸が近すぎるgit図も、同じ commit から分かれる線を離した直し (#3547) で崩れが消えた
+    const close = join(ROOT, "packages/dragon/test/fixtures/layout/overlap-lines.dragon");
     const broken = join(mkdtempSync(join(tmpdir(), "dragon-gallery-")), "broken.dragon");
     writeFileSync(broken, "not a diagram\n");
     const [found, steps, bad, badSteps] = await Promise.all([tools.breaks(close), tools.steps(close), tools.breaks(broken), tools.steps(broken)]);
