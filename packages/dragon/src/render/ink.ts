@@ -47,6 +47,20 @@ export interface Trace {
   shown: Shown[];
 }
 
+/** 時間軸の囲みの枠の内に収める部品の呼び名 (#3527)。`needle`は針、`ticks`は時刻の目盛りの線、`text`は字そのもの */
+export type FramedPart = { kind: "needle" } | { kind: "ticks" } | { kind: "text"; text: string };
+
+/**
+ * 時間軸の囲みの枠の内に余白を持って収める部品 (#3527)。`rect`は部品が占める四角、`frame`は時間軸の囲みの四角、`shown`は見えている間。
+ * 動く針は止め絵ごとにいる所を、次の止め絵まで見えている物として記録する。崩れの確かめは止め絵の時刻だけを見るため
+ */
+export interface Framed {
+  part: FramedPart;
+  rect: Rect;
+  frame: Rect;
+  shown: Shown[];
+}
+
 /** 重なる字。`rect` は字 (札に入った字は札) の四角、`badge` は段の番号の丸の字か、`part` は図の部品の種類 (部品の時だけ持つ) */
 export interface OverlapSpot {
   text: string;
