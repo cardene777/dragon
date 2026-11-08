@@ -309,6 +309,7 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
       "崩れの種類 (はみ出した字)": "text-outside-shape",
       "崩れの種類 (近すぎる丸)": "badges-close",
       "崩れの種類 (詰まった線)": "lines-close",
+      "崩れの種類 (字を横切る線)": "line-crosses-text",
       "箱の並びを変える直し方": "Reorder the boxes",
       "名前を短くする直し方": "Shorten",
       "行きと帰りの線を分ける直し方": "reply",
