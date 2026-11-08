@@ -31,18 +31,20 @@ vi.mock("../src/export/capture", async (importOriginal) => {
  * 描く部品と書き出す部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 元の code は 500 を超える file を読み、検査の中で初めて読むと混んだ機械で変換だけで 9 秒かかる (#3410)
  */
-const [{ checkLayout }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }] = await Promise.all([
+const [{ checkLayout, describeBreak }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }, { findBreaks }, { flattenPath }] = await Promise.all([
   import("../src/render/layout-check"),
   import("../src/export/index"),
   import("../src/render/draw"),
   import("../src/parser"),
+  import("../src/render/breaks"),
+  import("../src/render/outline"),
 ]);
 
 const ROOT = process.cwd();
 const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
 /**
- * 図の頭にアーチの形の `+arch` を定義し、段 3 の丸と硬貨の枠と下の字がアーチからはみ出す図。
- * 共有の `+bridge` は #3489 で角丸の箱になったので、崩れを持つ形を図の頭に残す
+ * 図の頭にアーチの形の `+arch` を定義した背景のブリッジの図。#3520 の前は段 3 の丸と硬貨の枠と下の字がアーチからはみ出した。
+ * 共有の `+bridge` は #3489 で角丸の箱になったので、アーチの形を図の頭に残す
  */
 const BRIDGE = join(FIXTURES, "bridge.dragon");
 /** 自分で定義した `+oracle` (六角形) と `+price` (点線) を使い、段 2 と段 3 の線と丸が詰まる図 */
@@ -94,6 +96,34 @@ const hasBox = (b: LayoutBreak, name: string): boolean => b.parts.some((p) => (p
 const hasLine = (b: LayoutBreak, from: string, to: string, step: number): boolean =>
   b.parts.some((p) => p.kind === "line" && p.from === from && p.to === to && p.step === step);
 
+/** 番号の丸の半径。描く処理の値 (`LOOK.badge.r`) と同じ */
+const BADGE_R = 9.5;
+/** 描いた物の見え始めの時刻から最後まで見える */
+const fromTime = (t: number): [number, number][] => [[t, Number.POSITIVE_INFINITY]];
+
+/**
+ * #3520 の前に背景のブリッジの図を描いた時の、アーチの箱の段 3 までの姿。
+ * 描く処理は今アーチを箱に収まるよう大きくするので、崩れを持つ姿は描いた座標を写して組む。
+ * アーチは 100 四方の path を幅 200、高さ 72 の枠へ伸ばし、頂が枠の上から 25.2、底が 50.4 に来る。
+ * 硬貨の枠はアーチの頂より上に、段 3 の下の字はアーチの底より下に、段 3 の番号は箱の四角の左上の角に在る。名前はアーチの内に在る
+ */
+function brokenArch(): Parameters<typeof findBreaks>[0] {
+  const box = { id: "bridge", name: "ブリッジ", color: "violet" as const, x: 0, y: 0, w: 200, h: 72, cx: 100, cy: 36, slot: { x: 85, y: 8, w: 30, h: 24 } };
+  const outline = flattenPath("M 0 70 Q 50 0 100 70 Z").map((ring) => ring.map(([x, y]): [number, number] => [x * 2, y * 0.72]));
+  return {
+    inks: [
+      { text: "ブリッジ", rect: { x: 74, y: 37.6, w: 52, h: 13 }, shown: fromTime(0), box: "bridge" },
+      { text: "100 USDC を預かり中", rect: { x: 50, y: 54.2, w: 100, h: 11 }, shown: fromTime(3), box: "bridge" },
+      { text: "3", rect: { x: -BADGE_R, y: -BADGE_R, w: BADGE_R * 2, h: BADGE_R * 2 }, shown: fromTime(3), badge: true },
+    ],
+    traces: [],
+    stills: [1, 2, 3, 4],
+    boxes: [box],
+    edges: [],
+    outlines: new Map([["bridge", outline]]),
+  };
+}
+
 /** file の中で、段 `step` (1 から数える) を始める `step` の行の番号 */
 function stepLine(file: string, step: number): number {
   const lines = readFileSync(file, "utf8").split("\n");
@@ -102,25 +132,26 @@ function stepLine(file: string, step: number): number {
 }
 
 describe("dragon check --layout が崩れを見つける (#3484)", () => {
-  it("layout-check-finds-badge-off-shape", async () => {
-    const { code, found, stderr } = await layoutOf(BRIDGE);
-    expect(code, `崩れだけの図で終わり方 0 にならない ${stderr}`).toBe(0);
+  it("layout-check-finds-badge-off-shape", () => {
+    const found = findBreaks(brokenArch()) as LayoutBreak[];
     const hits = found.filter((b) => b.kind === "badge-off-shape" && hasBadge(b, 3) && hasBox(b, "ブリッジ"));
     expect(hits, "段 3 の丸がアーチから浮くことを 1 件で出さない").toHaveLength(1);
     expect(hits[0]?.step, "浮いた丸の崩れの段").toBe(3);
   });
 
-  it("layout-check-finds-slot-outside-shape", async () => {
-    const { found } = await layoutOf(BRIDGE);
+  it("layout-check-finds-slot-outside-shape", () => {
+    const found = findBreaks(brokenArch()) as LayoutBreak[];
     const hits = found.filter((b) => b.kind === "slot-outside-shape" && hasBox(b, "ブリッジ"));
     expect(hits, "硬貨の枠がアーチからはみ出すことを 1 件で出さない").toHaveLength(1);
   });
 
-  it("layout-check-finds-text-outside-shape", async () => {
-    const { found } = await layoutOf(BRIDGE);
+  it("layout-check-finds-text-outside-shape", () => {
+    const found = findBreaks(brokenArch()) as LayoutBreak[];
     const hits = found.filter((b) => b.kind === "text-outside-shape" && b.parts.some((p) => p.kind === "text" && p.text === "100 USDC を預かり中" && p.box === "ブリッジ"));
     expect(hits, "段 3 の下の字がアーチの外へはみ出すことを 1 件で出さない").toHaveLength(1);
     expect(hits[0]?.step, "はみ出した下の字の崩れの段").toBe(3);
+    // アーチの内に在る名前は崩れに数えない
+    expect(found.filter((b) => b.parts.some((p) => p.kind === "text" && p.text === "ブリッジ")), "アーチの内の名前を崩れに数える").toEqual([]);
   });
 
   it("layout-check-finds-close-badges", async () => {
@@ -146,9 +177,12 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(badges, "丸の崩れの行の頭").toMatch(new RegExp(`^${PAYMENT.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(PAYMENT, 3)}:1 warning 段 3: `, "u"));
     const crowded = lines.find((line) => line.includes("APIサーバー") && line.includes("価格オラクル"));
     expect(crowded, `段 2 と段 3 の線を名指す行が無い\n${ja.stdout}`).toBeDefined();
-    const bridge = await runCli(["check", BRIDGE, "--layout", "--lang", "en"]);
-    const text = bridge.stdout.trimEnd().split("\n").find((line) => line.includes('"100 USDC を預かり中"'));
-    expect(text, `英語の行がはみ出した字と箱を名指さない\n${bridge.stdout}`).toMatch(/warning Step 3: .*"ブリッジ"/u);
+    const en = await runCli(["check", PAYMENT, "--layout", "--lang", "en"]);
+    const badgesEn = en.stdout.trimEnd().split("\n").find((line) => line.includes("step number 3"));
+    expect(badgesEn, `英語の行が段と丸を名指さない\n${en.stdout}`).toMatch(/warning Step 3: Step number 2 and step number 3 /u);
+    // はみ出した字の文は、字と箱の名前を名指す
+    const text = (findBreaks(brokenArch()) as LayoutBreak[]).find((b) => b.kind === "text-outside-shape");
+    expect(text && describeBreak(text as never, "en"), "英語の文がはみ出した字と箱を名指さない").toBe('"100 USDC を預かり中" sticks out of the shape of "ブリッジ"');
   });
 
   it("layout-check-prints-json", async () => {
@@ -165,8 +199,8 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     }
   });
 
-  it("layout-check-merges-repeated-steps", async () => {
-    const { found } = await layoutOf(BRIDGE);
+  it("layout-check-merges-repeated-steps", () => {
+    const found = findBreaks(brokenArch()) as LayoutBreak[];
     // 硬貨の枠は段 1 から最後の段までアーチからはみ出したまま見えている
     const slots = found.filter((b) => b.kind === "slot-outside-shape");
     expect(slots.map((b) => b.step), "続く段の同じ崩れを最初の段の 1 件にまとめない").toEqual([1]);
@@ -222,9 +256,8 @@ describe("共有の橋のブロックは形の崩れを出さない (#3489)", ()
     const shared = text.replace(/^blocks 1\n(?:.*\n)*?end\n\n?/mu, "").replaceAll("+arch ", "+bridge ");
     expect(shared, "背景のブリッジの図から図の頭の定義を外せない").not.toMatch(/^block \+arch/mu);
     expect(shared, "背景のブリッジの図に共有の橋の行が無い").toMatch(/^\+bridge /mu);
-    // 比べる相手の、アーチの形の見本が形の崩れを持つことを先に確かめる。無ければ 0 件は当たり前になる
+    // 形の崩れを見つけることは、#3520 の前のアーチの姿を写した検査 (layout-check-finds-*) が確かめる
     const shapeKinds = ["slot-outside-shape", "text-outside-shape", "badge-off-shape"];
-    expect(checkLayoutText(text, { lang: "ja" }).filter((b) => shapeKinds.includes(b.kind)).length, "アーチの見本が形の崩れを持たない").toBeGreaterThan(0);
     expect(checkLayoutText(shared, { lang: "ja" }).filter((b) => shapeKinds.includes(b.kind)), "共有の橋の図が出した形の崩れ").toEqual([]);
   });
 });

@@ -237,7 +237,9 @@ describe("使う人が足すブロック (#3399)", () => {
       const text = `architecture 橋を渡る\n\n${defs}\n\n${BODY.replaceAll("+wire", "->").replace(" [icon: +key]", "")}\n`;
       const rendered = render(parsed(text));
       const box = rendered.layout.boxes.find((b) => b.id === "cc");
-      expect(box && frame && { x: box.x, y: box.y, w: box.w, h: box.h }, `${shape} の箱が元の箱の枠からずれる`).toEqual(frame && { x: frame.x, y: frame.y, w: frame.w, h: frame.h });
+      expect(box && frame, `${shape} の箱が無い`).toBeTruthy();
+      // 形の内に名前と下の字が収まらない時は箱を大きくする (#3520)。形を持たない箱より小さくはしない
+      expect(box && frame && box.w >= frame.w - 0.01 && box.h >= frame.h - 0.01, `${shape} の箱が元の箱の枠より小さい`).toBe(true);
       svgs.add(withoutId(rendered.svg));
     }
     expect(svgs.size, "基本の形の名前ごとに描く形が変わらない").toBe(5);

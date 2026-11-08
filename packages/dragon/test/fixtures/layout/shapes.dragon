@@ -1,0 +1,53 @@
+// 形を変えた箱に長い名前と添え書きと運ぶ物を付けた図 (#3520)。ひし形と六角形と丸と円柱の箱の、名前と添え書きと運ぶ物の枠と段の番号を見る
+architecture 形を変えた箱で支払いを通す
+
+blocks 1
+block +gate
+  base box
+  shape diamond
+  color amber
+end
+block +oracle
+  base box
+  shape hexagon
+  color violet
+end
+block +pool
+  base box
+  shape circle
+  color green
+end
+block +store
+  base box
+  shape cylinder
+  color blue
+end
+
+box wallet as 利用者のウォレット [note: 送る前に残高を確かめる, icon: user]
++gate gate as 関所 [note: 署名と残高と期限を確かめる, icon: key]
++oracle oracle as 価格オラクル [note: 外部から為替レートを返す, icon: chain]
++pool pool as プール [note: 預け入れと引き出しを受ける, icon: server]
++store store as 記録の倉庫 [note: 全ての取引を順に書き残す, icon: db]
+
+step 送る
+  say 利用者のウォレットが関所へ100 USDCを送る。
+  wallet -> gate: 100 USDC を送る [carry: coin]
+
+step 確かめる
+  say 関所が署名と残高と期限を確かめる。
+  act gate: 署名と残高と期限を確かめる
+
+step レートを聞く
+  say 関所が価格オラクルに今の為替レートを聞き、オラクルが値を届ける。
+  gate -> oracle: レートを聞く [tag: USD/JPY]
+  note oracle: 1 USD = 150 円を届けた
+
+step 預ける
+  say 関所が確かめた資産をプールへ預ける。
+  gate -> pool: 預ける [carry: coin]
+  note pool: 100 USDC を預かっている
+
+step 書き残す
+  say プールが取引を記録の倉庫に書き残す。
+  pool -> store: 取引を書く
+  act store: 全ての取引を順に書き残す
