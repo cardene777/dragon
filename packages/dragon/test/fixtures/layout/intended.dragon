@@ -1,0 +1,21 @@
+// 重なって当然の組だけを持つ図 (#3484)。線とその両端の箱、グループとその中の箱、箱の角の段の番号、線の始まりの段の番号だけが触れ合い、崩れの知らせは 0 件
+architecture 注文を受ける
+
+group shop as お店 [note: 自社のサービス, color: blue, icon: cloud]
+  box web as 注文画面 [note: 注文を受ける, icon: app]
+  box api as APIサーバー [note: 注文を記録する, icon: server]
+end
+
+box db as DB [note: 注文を保存する, icon: db]
+
+step 注文を送る
+  say 注文画面が APIサーバーに注文を送る。
+  web -> api: 注文
+
+step 記録する
+  say APIサーバーが注文を DB に書く。
+  api -> db: 注文を書く
+
+step 書き終える
+  say DB が注文を書き終える。
+  act db: 書き込む

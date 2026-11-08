@@ -1,0 +1,52 @@
+// skill を入れた Claude が描いた図 (#3484)。段 2 と段 3 の行きと帰りの線と丸が詰まる
+architecture 決済の流れ
+
+blocks 1
+block +oracle
+  base box
+  shape hexagon
+  color amber
+end
+block +price
+  base edge
+  shape dotted
+  color amber
+end
+
+group client as 利用者の端末 [note: 利用者が操作する, color: slate, icon: user]
+  box app as 利用者のアプリ [note: 支払いを始める, icon: app]
+end
+
+group ours as 自社サービス [note: 決済をまとめる, color: blue, icon: cloud]
+  box api as APIサーバー [note: 支払いを受け付ける, icon: server]
+end
+
+group outside as 外部サービス [note: 他社が提供する, color: violet, icon: globe]
+  +oracle oracle as 価格オラクル [note: 為替レートを返す, icon: chain]
+  box psp as 決済代行 [note: 請求を処理する, icon: card]
+end
+
+strip 支払い: 金額, 為替レート, 請求額, 状態
+
+step 支払いを頼む
+  say 利用者のアプリが、APIサーバーに支払いを頼む。
+  code POST /payments
+  app -> api: 支払いの依頼
+  set 金額: 100 USD
+  set 状態: 受付
+
+step 為替レートを聞く
+  say 請求額を決めるために、APIサーバーが外部の価格オラクルに今の為替レートを聞く。
+  api -> oracle: USD/JPY のレートを聞く
+
+step 価格を受け取る
+  say 価格オラクルがレートを返す。外部から届く価格なので、点線で描いて他のやり取りと区別する。
+  oracle +price api: 1 USD = 150 JPY [tag: 150]
+  act api: 請求額を計算する
+  set 為替レート: 150 JPY/USD
+  set 請求額: 15,000 円
+
+step 請求を送る
+  say APIサーバーが、計算した請求額で決済代行に請求を送る。
+  api -> psp: 請求 15,000 円 [carry: coin]
+  set 状態: 請求済み
