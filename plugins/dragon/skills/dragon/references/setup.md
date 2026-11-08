@@ -135,7 +135,8 @@ const { svg } = renderDiagram(parsed.diagram, { still: false });
 - Import `@cardenelabs/dragon/fonts` once. Layout measures text with the bundled fonts, so without it text can overflow.
 - `parseNotation` returns `{ ok: true, diagram }` or `{ ok: false, errors }`. Each error has `line`, `column` and `message`. A readable diagram with similar box names also has `notices` in the same shape.
 - `renderDiagram(diagram, options)` returns `{ svg, ... }`. The SVG plays on a loop. `still: true` draws one picture of the last step with every label shown.
-- `mountDiagram(host, diagram, options)` places a player and returns it (`next`, `prev`, `play`, `pause`, `destroy`). Options include `lang`, `palette`, `theme`, `colors`, `pausedAt`, `playOnce`, `still` and `onStep`.
+- `mountDiagram(host, diagram, options)` places a player and returns it (`next`, `prev`, `play`, `pause`, `destroy`). Options include `lang`, `palette`, `theme`, `colors`, `pausedAt`, `playOnce`, `still`, `zoom` and `onStep`.
+- For a pipe diagram on a phone, pass `zoom: "readable"` to start zoomed in so box names are readable and follow each step sideways. It works only in frames narrower than 600px.
 - To load only the kinds a page uses, import from `@cardenelabs/dragon/light` and `await loadFor(text)` before `parseNotation`.
 - To export from Node, use `exportDiagram` from `@cardenelabs/dragon/export`.
 - Check the package README for options this file does not list.

@@ -34,7 +34,7 @@ import type { Rect } from "./layout/scene";
 import type { PipeLayout } from "./kinds/pipe/layout";
 import type { TryLayout } from "./kinds/try/layout";
 import { PIPE_LOOK } from "./look/pipe";
-import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
+import { FONT_VARS, LOOK, paletteVars, READABLE_PX, type TextStyle, TYPE } from "./look/values";
 import { partRadius } from "./render/corner";
 import {
   drawSvg,
@@ -63,6 +63,12 @@ export interface PlayerOptions extends RenderOptions {
   pausedAt?: number;
   /** 流した時に最後の段の止め絵で止め、繰り返さない。最後の段で止まった図を流すと、最初の段から流し直す (#3200) */
   playOnce?: boolean;
+  /**
+   * 600px より狭い枠に置いた配管の図の、始めの拡大の度合い (#3483)。`"readable"` を渡すと、箱の名前の字が画面で 10.5px 以上に
+   * 見える度合いから始め、枠を寄せた図の高さまで伸ばして横に送る。段を進めると今の段の関係者の所へ送る。
+   * 書かなければ図の全体を枠の幅に収めて始める。600px 以上の枠と、配管の図でない図には効かない
+   */
+  zoom?: "readable";
 }
 
 export interface Player {
@@ -234,10 +240,13 @@ export function mountDiagram(
   };
   /** 配管の図を描いた時の枠の幅 (#3418)。0 は幅を渡さずに描いた図 */
   let drawnWidth = 0;
-  /** 配管の図を枠の幅 `w` で描く設定。開いた `[fold]` の呼び出しと、測れた時は枠の幅を渡す。並べ方は狭い枠で字を大きくする (#3418) */
+  /**
+   * 配管の図を枠の幅 `w` で描く設定。開いた `[fold]` の呼び出しと、測れた時は枠の幅を渡す。並べ方は狭い枠で字を大きくする (#3418)。
+   * 読める大きさで始める図は寄せて読むので、狭い枠でも広い枠と同じ並べ方で描き、大きくした字をさらに寄せない (#3483)
+   */
   const pipeOptions = (w: number): RenderOptions => {
     drawnWidth = w;
-    return { ...options, open, ...(w > 0 ? { width: w } : {}) };
+    return { ...options, open, ...(w > 0 && !(options.zoom && w < ZOOM.fit) ? { width: w } : {}) };
   };
   // 描けない図は頁に何も置く前に断る
   let rendered = renderDiagram(source, isPipeSource(source) ? pipeOptions(hostWidth()) : options);
@@ -481,12 +490,26 @@ export function mountDiagram(
   /**
    * 拡大していない配管の図の幅 (px)。枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。
    * ただし収めると残高の字が読めない図は、字が読める幅で置いて横に送る (#3450)。
-   * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)
+   * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)。
+   * 読める大きさで始める図は、縮めた時に全体を見せるので、残高の字に関わらず枠の幅に収める (#3483)
    */
   const baseWidth = (): number => {
     const w = frameWidth();
-    return w < ZOOM.fit ? Math.min(rendered.layout.width, Math.max(w, readableWidth())) : rendered.layout.width;
+    return w < ZOOM.fit ? Math.min(rendered.layout.width, Math.max(w, options.zoom ? 0 : readableWidth())) : rendered.layout.width;
   };
+  /**
+   * 読める大きさで始める図 (`zoom: "readable"`) の拡大の度合い (#3483)。並べた図で最も小さい関係者の名前の字が、画面で
+   * `READABLE_PX` 以上に見える度合いを拡大の上限までで求め、計算の誤差で下回らないよう 0.01 刻みで切り上げる。
+   * 字の大きさは並べた図の名札から読み、頁が最初に読む script に字の表を引き込まない。
+   * 設定を渡さない図と、枠が `ZOOM.fit` 以上の図は拡大しない。名前を持たない図は求める度合いが 0 になり、拡大しない
+   */
+  const readableZoom = (): number => {
+    if (!options.zoom || !isPipe || frameWidth() >= ZOOM.fit) return ZOOM.min;
+    const names = ((rendered.layout as PipeLayout).parties ?? []).map((party) => party.label.h);
+    const need = (READABLE_PX * rendered.layout.width) / (Math.min(...names) * baseWidth());
+    return Math.min(ZOOM.max, Math.max(ZOOM.min, Math.ceil(need * 100) / 100));
+  };
+  zoom = readableZoom();
   /** 置いた図の幅 (px)。配管の図は拡大の度合いを掛ける */
   const shownWidth = (): number => (isPipe ? baseWidth() * zoom : rendered.layout.width);
   /** 図の座標を、置いた図の px にする倍率 */
@@ -499,14 +522,18 @@ export function mountDiagram(
     thumb.style.left = `${(frame.scrollLeft / total) * 100}%`;
     thumb.style.width = `${(Math.min(frameWidth(), total) / total) * 100}%`;
   };
-  /** 一続きの範囲 `[x, x + size)` を、幅 `view` の窓に入れる送り位置。入らない時は真ん中を窓の真ん中に置く。`total` は送れる全体の長さ */
-  const reach = (x: number, size: number, view: number, total: number): number => {
+  /**
+   * 一続きの範囲 `[x, x + size)` を、幅 `view` の窓に入れる送り位置。入らない時は真ん中を窓の真ん中に置き、`start` が真なら範囲の頭を窓の頭に置く。
+   * `total` は送れる全体の長さ
+   */
+  const reach = (x: number, size: number, view: number, total: number, start = false): number => {
     const middle = x + size / 2 - view / 2;
-    const fits = size <= view ? Math.min(Math.max(middle, x + size - view), x) : middle;
+    const fits = size <= view ? Math.min(Math.max(middle, x + size - view), x) : start ? x : middle;
     return Math.round(Math.min(Math.max(0, fits), Math.max(0, total - view)));
   };
   /**
    * 今の段に関わる関係者の所へ送る。関わる関係者が枠に収まる時は全員を枠に入れ、収まらない時は真ん中を枠の真ん中に置く。
+   * 読める大きさで始めた狭い枠では、真ん中に置くとどの関係者の名前も枠に入らないので、左の端の関係者を枠の左に置く (#3483)。
    * 拡大して縦にも送る図は、縦も同じく送る (#3418)。流している時は滑らかに送り、動きを嫌う設定と止めて送る時は一度に送る
    */
   const panTo = (): void => {
@@ -514,7 +541,7 @@ export function mountDiagram(
     const k = scale();
     const focus = (rendered.layout as { focus?: (Rect & { step: number })[] }).focus?.find((f) => f.step === step);
     if (focus) {
-      const left = reach(focus.x * k, focus.w * k, frameWidth(), shownWidth());
+      const left = reach(focus.x * k, focus.w * k, frameWidth(), shownWidth(), readableZoom() > ZOOM.min);
       const tall = zoom > ZOOM.min && frame.clientHeight > 0;
       const top = tall ? reach(focus.y * k, focus.h * k, frame.clientHeight, frame.scrollHeight) : frame.scrollTop;
       if (playing && !reduce && typeof frame.scrollTo === "function") frame.scrollTo({ left, top, behavior: "smooth" });
@@ -534,7 +561,8 @@ export function mountDiagram(
   /**
    * 置いた図を、枠の幅に合わせて横に送る形か縮めて収める形にする。
    * 配管の図は拡大の度合いを掛けた幅で置き、図が枠より広い間は横に送る枠 (`pan`)、収まる間は拡大する枠 (`zoom-frame`) と名乗る (#3418)。
-   * 拡大した図は枠の高さを拡大していない図の高さに保ち、枠の中を縦にも送る。置いた頁が枠の高さを決める時は頁の高さに任せる
+   * 拡大した図は枠の高さを拡大していない図の高さに保ち、枠の中を縦にも送る。置いた頁が枠の高さを決める時は頁の高さに任せる。
+   * 読める大きさで始める図は、枠を読める大きさの度合いの図の高さまで伸ばし、その度合いまでは縦に送らない (#3483)
    */
   const settle = (): void => {
     if (!svg) return;
@@ -542,7 +570,8 @@ export function mountDiagram(
       const wide = pans();
       frame.dataset.dragon = wide ? "pan" : "zoom-frame";
       svg.style.width = px(shownWidth());
-      if (zoom > ZOOM.min && !options.fitHeight) frame.style.height = px((baseWidth() * rendered.layout.height) / rendered.layout.width);
+      const tall = baseWidth() * Math.min(zoom, readableZoom());
+      if (zoom > ZOOM.min && !options.fitHeight) frame.style.height = px((tall * rendered.layout.height) / rendered.layout.width);
       else frame.style.removeProperty("height");
       if (zoom > ZOOM.min) frame.dataset.zoomed = "";
       else delete frame.dataset.zoomed;
@@ -889,6 +918,9 @@ export function mountDiagram(
         const w = frameWidth();
         const h = frameHeight();
         const rearranged = arrange(w);
+        // 読める大きさで始める図は、枠の幅が変わって描き直した時に度合いを求め直す。600px 以上へ広がると拡大を外す。
+        // 高さだけが変わった時は求め直さず、読み手が拡大した所を残す (#3483)
+        if (rearranged && options.zoom) zoom = readableZoom();
         const chosen = viewOf(w, h);
         controls?.arrange(chosen, w);
         if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height))) {
