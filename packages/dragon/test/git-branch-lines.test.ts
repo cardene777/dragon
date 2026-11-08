@@ -147,6 +147,17 @@ function closest(a: Point[], b: Point[]): number {
   return Math.min(...samples(a).map((p) => Math.min(...b.slice(1).map((q, k) => toSegment(p, b[k] as Point, q)))));
 }
 
+/** 折れ線 `a` を 1px ごとに辿り、`b` から `APART.line` より近い所が続く長さの最大 */
+function nearRun(a: Point[], b: Point[]): number {
+  let longest = 0;
+  let run = 0;
+  for (const p of samples(a)) {
+    run = closest([p, p], b) < APART.line ? run + 1 : 0;
+    longest = Math.max(longest, run);
+  }
+  return longest;
+}
+
 /** commit `from` から、枝 `branch` の帯へ分かれる線 (枝を切る線と、その枝の commit への線) */
 function branchLines(layout: GitLaid, from: string, branch: string): Link[] {
   const on = new Set(layout.commits.filter((c) => c.branch === branch).map((c) => c.id));
@@ -182,10 +193,17 @@ describe("同じ commit から分かれる枝の線は別々の道を通る (#35
     const layout = laid(THREE_BRANCHES);
     const lines = ["fix", "feature", "docs"].map((branch) => ({ branch, lines: branchLines(layout, "B", branch) }));
     for (const { branch, lines: each } of lines) expect(each.length, `B から ${branch} へ分かれる線の数`).toBe(2);
-    lines.forEach(({ branch: a, lines: as }, i) => {
-      for (const { branch: b, lines: bs } of lines.slice(i + 1))
+    // 3 本の出口は丸の幅に収まらないので、外の 2 本は丸の縁から斜めに出る。丸の縁の近くでは線どうしが近いが、
+    // 崩れの検査が並んで走る線に数える長さ (番号の丸 2 つ分) より長くは近づかない
+    lines.forEach(({ lines: as }, i) => {
+      for (const { lines: bs } of lines.slice(i + 1))
         for (const x of as)
-          for (const y of bs) expect(closest(x.points, y.points), `${a} の線 B → ${x.to} と ${b} の線 B → ${y.to} の最も近い所`).toBeGreaterThanOrEqual(APART.line);
+          for (const y of bs)
+            for (const [p, q] of [
+              [x, y],
+              [y, x],
+            ] as const)
+              expect(nearRun(p.points, q.points), `線 B → ${p.to} が線 B → ${q.to} から APART.line より近い所を走る長さ`).toBeLessThanOrEqual(LOOK.badge.r * 2);
     });
     expect(problems("three.dragon", THREE_BRANCHES, "ja"), "3 本の枝の図の崩れの知らせ").toEqual([]);
   });
@@ -216,7 +234,7 @@ describe("重なる枝の線を名指して知らせる (#3547)", () => {
     const hit = ja.find((line) => line.includes("線 B → fix (段 2)") && line.includes("線 B → feature (段 2)"));
     expect(hit, `段 2 で重なる B → fix と B → feature の線を名指す行が無い\n${ja.join("\n")}`).toBeDefined();
     expect(hit, "重なる線の知らせの行の形").toMatch(/^.+merge\.dragon:\d+:1 warning 段 2: /u);
-    const hitEn = en.find((line) => line.includes("the line B → fix (step 2)") && line.includes("the line B → feature (step 2)"));
+    const hitEn = en.find((line) => line.includes("line B → fix (step 2)") && line.includes("line B → feature (step 2)"));
     expect(hitEn, `英語の行が重なる線を名指さない\n${en.join("\n")}`).toMatch(/warning Step 2: /u);
   });
 
