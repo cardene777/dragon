@@ -28,6 +28,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- **The catalog no longer loads the descriptions of every part on its first screen** (#3531)
+
+  The script the catalog loads first carried the description of every part in both languages, 104 texts, because the page text read the whole `BLOCK_TEXT` table, though only a part's own page shows its description. Each block folder now keeps the description in its own `gallery/desc.ts`, next to the name in `gallery/text.ts`, and the build writes the descriptions to `blocks-desc.gen.ts`, which only the part page reads. A part page shows the same description as before. The script and CSS loaded first went from 186,249 to 179,131 bytes gzipped.
+
 - **Opening the catalog's home page no longer loads the Tabler icon table (about 225KB gzipped) in the background** (#3505)
 
   In 0.67.0, when the catalog loaded the later examples in the background after drawing the first screen, it saw `icon tabler:` in the bridge example's definition and loaded the Tabler table too. Visitors who never opened the bridge example or the guide page loaded the table anyway. The example notation still loads in the background, and the table now loads when you open the editor or a catalog page, or when the guide page draws the figure in its "Adding blocks" section. The script and CSS loaded first went from 186,341 to 186,327 bytes gzipped.
