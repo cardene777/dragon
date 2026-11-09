@@ -142,10 +142,13 @@ export function card(
     });
     mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${partRadius(ctx.corner, iconRadius)}"/>${glyph(box.icon, ix, ty + iconY, iconScale)}`;
   }
+  // 手順の図は、本筋に無い箱の名前と問いを折った判断の行を手順の図の部品が書く (#3561)
+  const base = ty + ctx.boxText.name;
+  const name = ctx.boxName?.(box, ctx.ink, tx, base) ?? write(ctx.ink, "dg-sn", tx, base, box.name, TYPE.boxName, ALWAYS, "middle");
   // 足した箱のブロックの箱は、その定義の色の役で描く (#3399)
   const markup =
     `<g style="${cs(userBoxOf(box.id)?.color ?? box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
-    `${slot}${mark}${write(ctx.ink, "dg-sn", tx, ty + ctx.boxText.name, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`;
+    `${slot}${mark}${name}${subs}</g>`;
   // 箱の中に書いた字 (名前、下の字、絵柄) に箱の名札を付け、崩れの確かめが箱の形の外へはみ出す字を探せるようにする (#3484)
   for (const ink of ctx.ink.slice(inked)) ink.box = box.id;
   return markup;

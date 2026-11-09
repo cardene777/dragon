@@ -192,19 +192,15 @@
   "login-check.en.json": {
     "(none) rx=10": 3,
     "dg-bg rx=14": 1,
-    "dg-env rx=3": 5,
     "dg-halo rx=12": 2,
     "dg-on rx=12": 2,
-    "dg-slot rx=7": 2,
     "dg-st rx=12": 3
   },
   "login-check.json": {
     "(none) rx=10": 3,
     "dg-bg rx=14": 1,
-    "dg-env rx=3": 5,
     "dg-halo rx=12": 2,
     "dg-on rx=12": 2,
-    "dg-slot rx=7": 2,
     "dg-st rx=12": 3
   },
   "merge.en.json": {

@@ -97,6 +97,8 @@ export interface Ctx {
    * その形で描かない箱は `undefined` を返し、今の箱の形で描く。`cls` は縁の部品の class、`extra` は後ろに足す属性
    */
   frame?: (box: SceneBox, cls: string, extra: string, rect: Rect, corner: Corner) => string | undefined;
+  /** 箱の名前の字の書き方 (#3561)。手順の図の部品を読んだ図だけが持ち、本筋に無い箱の薄い名前と、問いを折った判断の行を書く。基準線を `y` に置く */
+  boxName?: (box: SceneBox, ink: Ink[], x: number, y: number) => string;
 }
 
 /** 和文を含む字の、和文の字で描く時の字の形 */

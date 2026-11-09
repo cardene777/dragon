@@ -19,6 +19,8 @@
  * 配管の図 (#3389) の出来事は、段の中で書いた順に決まった間 (`MOTION.pipe`) ずつずらして起こし、描く部品がその時刻に部品を替える。
  * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
  * 枝分かれの図を描く部品が札ごとに動かす。線に書いた運ぶ物 (`tag` と `carry`) だけを表に載せる。
+ * 手順の図 (#3561) の運ぶ物を書かない線は、封筒の代わりに段の印の点が走る。点が走る間 (`marks`) と、運ぶ物と光る間の手順の図の分は、
+ * 手順の図の描く部品 (`render/flow.ts` の `flowTimes`) がこの表を受け取って直す。
  */
 import { type CarrierTime, carrierTimes, type Departure } from "./blocks/carry/timing";
 import { ratioOf } from "./layout/scene";
@@ -57,6 +59,17 @@ export interface EventTime {
   at: number;
 }
 
+/**
+ * 手順の図の段の印の点が 1 本の線を走る間 (#3561)。`depart` に線の始まりを出て `arrive` に線の終わりへ着き、着くと消える。
+ * 同じ段で着いた箱から続けて出る線は、前の線の点が着いてから走り出す
+ */
+export interface MarkTime {
+  step: number;
+  event: number;
+  depart: number;
+  arrive: number;
+}
+
 /** 状態遷移図の状態ごとの、光っている間と、済んだ印が出る時刻。運ぶ物が出ていない状態は `done` を持たない */
 export interface StateTime {
   box: string;
@@ -81,6 +94,8 @@ export interface Timeline {
   whole?: Span;
   /** 状態遷移図だけが持つ */
   states?: StateTime[];
+  /** 手順の図だけが持つ (#3561)。段の印の点が走る線と間で、手順の図の描く部品が足す (`render/flow.ts` の `flowTimes`) */
+  marks?: MarkTime[];
   /** 時間軸の図だけが持つ (#3165)。針の動き。[時刻, 目盛りの境の位置] の並びで、間は真っ直ぐ進む */
   needle?: [number, number][];
   /** 時間軸の図だけが持つ。針が目盛りを過ぎた (右の境に着いた) 時刻 */

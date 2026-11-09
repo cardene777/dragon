@@ -5,8 +5,8 @@ box pay as Wait for payment
 box ship as Ship
 box done as Close
 
-step Envelope
-  say With nothing written, an envelope travels along the line.
+step Step mark
+  say With nothing written, a flow diagram runs the step mark, a dot, along the line instead of an envelope.
   order -> pay: To payment
 
 step Tag

@@ -6,9 +6,10 @@
  * 本筋に無い箱 (今回は通らない道の先) は、そこへ道を出す本筋の箱と判断の右に置き、高さはその箱と判断の真ん中の平均にする。
  * 本筋から本筋に無い箱への線は、送る側の右の角から横へ出て、箱の上か下の端へ入る。同じ側から入る線は、高い所を通る線ほど右へ入れ、線を交えない。
  * 始まりの印は最初の箱の上に、終わりの印は終わりへ移る箱の右に置く。
+ * 判断の問いは、2 行に折るとひし形が細くなる時だけ、助詞か空白の後で 2 行に折る。
  */
 import { FIGURE_TEXT } from "../../figure-text";
-import { LOOK, TYPE } from "../../look/values";
+import { type ColorKey, LOOK, TYPE } from "../../look/values";
 import type { Box, DiagramModel } from "../../schema";
 import { type NotationLang, STATE_ENDS } from "../../words";
 import { textBox, textWidth } from "../../layout/measure";
@@ -35,7 +36,6 @@ import {
   loopUnder,
   markText,
   placeLabel,
-  placeSlot,
   type Point,
   pullApart,
   type Rect,
@@ -44,15 +44,42 @@ import {
   type SceneEnd,
   type SceneLabel,
   type ScenePath,
-  seatCarriers,
   shapedSize,
   shiftContent,
-  slotBoxWidth,
-  slotRooms,
   stripNeed,
 } from "../../layout/scene";
 
 const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).includes(id);
+
+/** 後ろで折ってよい助詞。和文の問いは助詞の後で折り、助詞を行の頭に送らない */
+const PARTICLES = new Set([..."はがをにでとへもの"]);
+/** 後ろで折ってよい読点 */
+const COMMAS = new Set([..."、，"]);
+/** 前で折らない字。閉じ括弧と句読点と、問いの終わりの印を行の頭に送らない */
+const CLOSING = new Set([..."、。，．）」』！？!?,.)"]);
+/** 平仮名か。助詞と同じ字の平仮名は語の中にも出るので、前と後ろがどちらも平仮名の所では折らない */
+const isKana = (ch: string | undefined): boolean => ch !== undefined && /\p{Script=Hiragana}/u.test(ch);
+
+/**
+ * 問いを 2 行に折れる所ごとの 2 行。欧文は空白で、和文は読点の後と、漢字か片仮名か英字の後に続く助詞か、漢字か片仮名か英字の前に来る助詞の後で折る。
+ * 折った後の行が空になる所と、次の行が閉じる字で始まる所では折らない
+ */
+function twoRows(question: string): string[][] {
+  const chars = [...question];
+  const out: string[][] = [];
+  for (let k = 1; k < chars.length; k++) {
+    const prev = chars[k - 1] as string;
+    const next = chars[k] as string;
+    const space = /\s/u.test(next);
+    const particle = PARTICLES.has(prev) && k >= 2 && !(isKana(chars[k - 2]) && isKana(next));
+    if (!space && !particle && !COMMAS.has(prev)) continue;
+    const first = chars.slice(0, k).join("").trimEnd();
+    const second = chars.slice(k).join("").trimStart();
+    if (first === "" || second === "" || CLOSING.has([...second][0] as string)) continue;
+    out.push([first, second]);
+  }
+  return out;
+}
 
 /** 線の両端が同じ 2 つの線か */
 const same = (a: { from: string; to: string }, b: { from: string; to: string }): boolean => a.from === b.from && a.to === b.to;
@@ -70,8 +97,8 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const words = FIGURE_TEXT[lang];
   const choices = diagram.flow?.choices ?? [];
   const isChoice = (id: string): boolean => choices.some((c) => c.id === id);
-  // 判断も箱の並びに足し、箱と同じく幅を測り色を配る。判断の色は試作と同じ琥珀
-  const all: DiagramModel = { ...diagram, boxes: [...diagram.boxes, ...choices.map((c): Box => ({ id: c.id, name: c.name, color: "amber" }))] };
+  // 判断も箱の並びに足し、箱と同じく幅を測り色を配る。判断の色は値の表が持つ
+  const all: DiagramModel = { ...diagram, boxes: [...diagram.boxes, ...choices.map((c): Box => ({ id: c.id, name: c.name, color: F.choice.color }))] };
   const colors = boxColors(all);
   const steps = edgesOf(diagram);
   const main = mainPath(diagram);
@@ -79,20 +106,33 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const notTaken = (diagram.flow?.paths ?? []).filter((p) => !steps.some(({ edge }) => same(edge, p)));
   const lines: { from: string; to: string; label?: string }[] = [...steps.map(({ edge }) => edge), ...notTaken];
 
-  // 運ぶ物を出し入れする手順の箱は、状態遷移図と同じく絵柄の行に置き場を持ち、着いた物と走り出しを待つ物をそこに座らせる (#3176)。
-  // 置き場が無いと、走り出しを待つ物が箱の下の端に重なって名前と段の番号を隠す。判断のひし形は置き場を持たず、運ぶ物は線の端に留まる
-  const rooms = new Map([...slotRooms(all)].filter(([id]) => !isChoice(id)));
-  // 絵柄か置き場を持つ箱が 1 つでもある図は、名前を絵柄の行の下に下げてそろえる (`box/draw.ts` の `boxTextY`)。判断の問いは下げた分だけ中身の真ん中を上げ、ひし形の真ん中に置く
-  const nameBase = all.boxes.some((b) => b.icon !== undefined) || rooms.size > 0 ? B.nameY : B.nameMid;
+  // 絵柄を持つ箱が 1 つでもある図は、名前を絵柄の下に下げてそろえる (`box/draw.ts` の `boxTextY`)。判断の問いは下げた分だけ中身の真ん中を上げ、ひし形の真ん中に置く
+  const nameBase = all.boxes.some((b) => b.icon !== undefined) ? B.nameY : B.nameMid;
   const { size } = TYPE.boxName;
-  /** 箱と判断の大きさ。判断のひし形は、問いの字の四角の角がひし形の縁から `pad` 内に収まる幅にする */
+  const { h: choiceH, pad, minW, lead } = F.choice;
+  /** 問いを `rows` の行で書いた時のひし形の幅。行ごとに、字の四角の角のうち真ん中から遠い角が、ひし形の縁から `pad` 内に収まる幅にする */
+  const diamondW = (rows: readonly string[]): number =>
+    Math.max(
+      minW,
+      ...rows.map((row, k) => {
+        const far = Math.abs((k - (rows.length - 1) / 2) * lead) + size / 2;
+        return (textWidth(row, TYPE.boxName) + pad * 2) / (1 - (far * 2 + pad * 2) / choiceH);
+      }),
+    );
+  /** 判断の問いの行。2 行に折るとひし形が 1 行より細くなる時だけ、細くなる所で 2 行に折る */
+  const rowsOf = (question: string): string[] => {
+    let best = [question];
+    for (const rows of twoRows(question)) if (diamondW(rows) < diamondW(best)) best = rows;
+    return best;
+  };
+  const rows = new Map(choices.map((c) => [c.id, rowsOf(c.name)]));
+  /** 箱と判断の大きさ */
   const fitOf = (id: string): BoxFit => {
-    const choice = choices.find((c) => c.id === id);
-    if (!choice) return shapedSize(all, id, Math.max(boxWidth(all, id, true), slotBoxWidth(rooms.get(id), all.boxes.find((b) => b.id === id)?.icon !== undefined, B.padX)), true, rooms);
-    const { h, pad, minW } = F.choice;
-    const w = Math.max(minW, (textWidth(choice.name, TYPE.boxName) + pad * 2) / (1 - (size + pad * 2) / h));
+    const question = rows.get(id);
+    if (!question) return shapedSize(all, id, boxWidth(all, id, true), true);
+    const w = diamondW(question);
     // 字の四角は基準線から字の大きさの 0.8 上と 0.2 下に在るので、基準線を真ん中から字の大きさの 0.3 下げると字の高さの真ん中が真ん中に来る
-    return { w, h, at: [w / 2, h / 2 + size * 0.3 - nameBase] };
+    return { w, h: choiceH, at: [w / 2, choiceH / 2 + size * 0.3 - nameBase] };
   };
   const fits = new Map(all.boxes.map((b) => [b.id, fitOf(b.id)]));
   const fit = (id: string): BoxFit => fits.get(id) ?? { w: B.minW, h: B.h };
@@ -100,9 +140,11 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const boxOf = (id: string, x: number, y: number): SceneBox => {
     const source = all.boxes.find((b) => b.id === id);
     const { w, h, at } = fit(id);
+    const question = rows.get(id);
     return {
       id,
       name: source?.name ?? id,
+      ...(question && question.length > 1 ? { lines: question.map((text, k) => ({ text, dy: (k - (question.length - 1) / 2) * lead })) } : {}),
       ...(source?.sub !== undefined ? { sub: source.sub } : {}),
       ...(source?.icon !== undefined ? { icon: source.icon } : {}),
       color: colors.get(id) ?? "slate",
@@ -174,7 +216,6 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     }
     left += colW + F.side;
   }
-  for (const box of boxes) placeSlot(box, rooms.get(box.id));
 
   // 始まりの印は始まりから入る箱の上。本筋の途中の箱へ入る時は、その箱の左に置く
   const ends: SceneEnd[] = [];
@@ -257,26 +298,29 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     return start ? [start.x - start.r - LOOK.slot.mark - carrierHalf(edge.carry)[0], start.y] : undefined;
   };
 
+  // 運ぶ物を書かない線は封筒でなく段の印の点が走り、点は着くと消えるので、待つ所と留まる所を持たない。書いた運ぶ物 (`carry: coin` と `tag`) は今どおり待って留まる
   const sceneEdges: SceneEdge[] = steps.map(({ step, event, edge }) => {
-    const settle = settleOf(edge);
-    const wait = edge.carry.kind === "none" ? undefined : waitOf(edge);
+    const rides = edge.carry.kind === "coin" || edge.carry.kind === "tag";
+    const settle = rides ? settleOf(edge) : undefined;
+    const wait = rides ? waitOf(edge) : undefined;
     return {
       step,
       event,
       from: edge.from,
       to: edge.to,
       points: route(edge.from, edge.to),
-      color: colors.get(edge.to === "finish" ? edge.from : edge.to) ?? "slate",
+      color: F.on,
       carry: edge.carry,
       ...(settle ? { settle } : {}),
       ...(wait ? { wait } : {}),
     };
   });
-  seatCarriers(sceneEdges, byId, rooms);
   // 同じ 2 つを行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す (原本の JSON にだけ書ける)
   const outward = pullApart(sceneEdges);
   const paths: ScenePath[] = notTaken.map((p) => ({ from: p.from, to: p.to, points: route(p.from, p.to) }));
 
+  /** 線の名前と段の番号の色。線そのものは段で動く色で引くが、名前と番号は今どおり着く先の箱の色で出す */
+  const nameColor = (e: SceneEdge): ColorKey => colors.get(e.to === "finish" ? e.from : e.to) ?? "slate";
   // 線の名前。段が終わった名前も薄く残るので、段を問わず先に置いた全ての名前と、印に添えた字と段の番号を避ける
   const badgeAt = (edge: SceneEdge, taken: Point[], others: Point[][]): Point => (edge.from === edge.to ? loopBadge(edge.points) : badgeOnPath(edge.points, taken, others));
   const labels: SceneLabel[] = [];
@@ -292,7 +336,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     const same2 = labels.filter((l) => l.text === source.label && sceneEdges.some((o) => o.step === l.step && o.event === l.event && lineKey(o) === key)).at(-1);
     if (same2) {
       same2.until = e.step;
-      labels.push({ x: same2.x, y: same2.y, w: same2.w, h: same2.h, step: e.step, event: e.event, text: same2.text, family: same2.family, color: e.color });
+      labels.push({ x: same2.x, y: same2.y, w: same2.w, h: same2.h, step: e.step, event: e.event, text: same2.text, family: same2.family, color: nameColor(e) });
       continue;
     }
     const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
@@ -300,7 +344,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     const side = source.labelSide ?? (e.to === "finish" ? undefined : outward.get(e));
     labels.push(
       placeLabel(
-        { step: e.step, event: e.event, text: source.label, points: e.points, color: e.color, ...(side ? { side } : loop ? {} : { flip: true }), ...below },
+        { step: e.step, event: e.event, text: source.label, points: e.points, color: nameColor(e), ...(side ? { side } : loop ? {} : { flip: true }), ...below },
         { hard: boxes, soft: [...marks, ...labels], touch: badgeRects, lines: others(e.points) },
       ),
     );
@@ -359,7 +403,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     diagram.steps.map((step, s) => {
       const line = placedBadges.get(s);
       if (!line) return cornerBadge(step.events, s, layout);
-      return { step: s, x: line.point[0], y: line.point[1], color: line.edge.color };
+      return { step: s, x: line.point[0], y: line.point[1], color: nameColor(line.edge) };
     }),
     badgeBlocked(layout, endParts),
     (before, after) => lineOf(before.step) !== undefined && lineOf(before.step) === lineOf(after.step),

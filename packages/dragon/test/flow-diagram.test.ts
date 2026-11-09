@@ -51,6 +51,8 @@ interface FlowBox extends Rect {
   shape?: string;
   /** 形の内側に動かした中身の真ん中の、箱の左上からの位置 */
   at?: Point;
+  /** 問いを折った行。`dy` は行の基準線の、1 行で書く時の基準線からの下がり */
+  lines?: { text: string; dy: number }[];
 }
 
 interface FlowPath {
@@ -75,9 +77,14 @@ interface FlowLayout extends Omit<Layout, "boxes"> {
   ends: FlowEnd[];
 }
 
+/** 手順の図の時刻の表。段の印の点が線を走る間 (`marks`) を持つ */
+interface FlowTimeline extends Timeline {
+  marks?: { step: number; event: number; depart: number; arrive: number }[];
+}
+
 interface FlowRendered extends Omit<Rendered, "layout" | "timeline"> {
   layout: FlowLayout;
-  timeline: Timeline;
+  timeline: FlowTimeline;
 }
 
 interface SourceEdge {
@@ -436,24 +443,43 @@ describe("手順の図の並べ方 (#3561)", () => {
         const near = (points: Point[]): boolean => points.length === 4 && points.every(([px, py], i) => Math.abs(px - (want[i]?.[0] ?? 0)) < 0.6 && Math.abs(py - (want[i]?.[1] ?? 0)) < 0.6);
         expect(diamonds.some(near), `${id} のひし形の縁が判断の四角の 4 辺の真ん中を結ばない (${lang})`).toBe(true);
       }
-      // 問いの字がひし形の内に収まる
+      // 長い問いは試作と同じく助詞か空白の後で 2 行に折り、1 行で収まる短い問いは 1 行のまま書く
+      const rows = (id: string): string[] => (boxOf(layout, id).lines ?? [{ text: boxOf(layout, id).name }]).map((l) => l.text);
+      expect([rows("pw"), rows("otp")], `判断の問いの行 (${lang})`).toEqual(
+        lang === "ja"
+          ? [
+              ["パスワードは", "正しい？"],
+              ["2FAは", "正しい？"],
+            ]
+          : [["Password", "correct?"], ["2FA correct?"]],
+      );
+      // 折った問いも字の部品は 1 つで、中身は問いのまま読める (頁と読み上げが名前として読む)
+      for (const id of choices) {
+        const text = new RegExp(`<text class="dg-sn"[^>]*>((?:(?!</text>).)*${(rows(id)[0] ?? "").replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?:(?!</text>).)*)</text>`, "u").exec(svg)?.[1] ?? "";
+        expect(text.replace(/<[^>]+>/gu, ""), `${id} の字の部品の中身 (${lang})`).toBe(boxOf(layout, id).name);
+      }
+      const size = TYPE.boxName.size;
+      // 問いの字の行がどれもひし形の内に収まる
       for (const id of choices) {
         const b = boxOf(layout, id);
-        const name = b.name;
-        const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&").replaceAll("&", "&amp;");
-        const found = new RegExp(`<text class="dg-sn" x="([-\\d.]+)" y="([-\\d.]+)" text-anchor="middle">${escaped}</text>`, "u").exec(svg);
-        expect(found, `${name} の問いの字が描いた図に無い (${lang})`).not.toBeNull();
-        const x = Number(found?.[1]);
-        const y = Number(found?.[2]);
-        const w = textWidth(name, TYPE.boxName);
-        const size = TYPE.boxName.size;
-        const corners: Point[] = [
-          [x - w / 2, y - size * 0.8],
-          [x + w / 2, y - size * 0.8],
-          [x - w / 2, y + size * 0.2],
-          [x + w / 2, y + size * 0.2],
-        ];
-        for (const corner of corners) expect(inDiamond(corner, b), `${name} の問いの字の角 ${corner.join(",")} がひし形の外に出る (${lang})`).toBe(true);
+        for (const row of rows(id)) {
+          const escaped = row.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&").replaceAll("&", "&amp;");
+          // 同じ字の行はほかの判断にもあるので、この判断の四角の中に書いた行を選ぶ。折った問いは 1 つの字の部品の中に行ごとの tspan で置く
+          const found = [...svg.matchAll(new RegExp(`<(?:text class="dg-sn"|tspan) x="([-\\d.]+)" y="([-\\d.]+)"(?: text-anchor="middle")?>${escaped}</(?:text|tspan)>`, "gu"))].find(
+            (m) => Number(m[1]) > b.x && Number(m[1]) < b.x + b.w && Number(m[2]) > b.y && Number(m[2]) < b.y + b.h,
+          );
+          expect(found, `${b.name} の問いの行「${row}」が描いた図に無い (${lang})`).toBeDefined();
+          const x = Number(found?.[1]);
+          const y = Number(found?.[2]);
+          const w = textWidth(row, TYPE.boxName);
+          const corners: Point[] = [
+            [x - w / 2, y - size * 0.8],
+            [x + w / 2, y - size * 0.8],
+            [x - w / 2, y + size * 0.2],
+            [x + w / 2, y + size * 0.2],
+          ];
+          for (const corner of corners) expect(inDiamond(corner, b), `${b.name} の問いの行「${row}」の角 ${corner.join(",")} がひし形の外に出る (${lang})`).toBe(true);
+        }
       }
     }
   });
@@ -463,12 +489,17 @@ describe("手順の図の並べ方 (#3561)", () => {
       ["login-check.json", "ja"],
       ["login-check.en.json", "en"],
     ] as const) {
-      const { layout } = render(exampleJson(file), lang);
+      const { layout, svg } = render(exampleJson(file), lang);
       const pw = boxOf(layout, "pw");
       const otp = boxOf(layout, "otp");
       const err = boxOf(layout, "err");
       // 本筋に無い箱は、そこへ線を出す最初の判断 (pw) の右に置く
       expect(err.x, `本筋に無い「エラーを出す」の箱が最初の判断の右に無い (${lang})`).toBeGreaterThan(pw.x + pw.w);
+      // 本筋に無い箱は、試作と同じく点線の縁に加えて名前の字も薄い色で書き、本筋の箱の名前は濃いまま書く
+      const named = (name: string): string | undefined => new RegExp(`<text class="([^"]+)"[^>]*>${name}</text>`, "u").exec(svg)?.[1];
+      expect(named(err.name), `本筋に無い「${err.name}」の名前の字の class (${lang})`).toBe("dg-sn dg-sn-off");
+      expect(named(boxOf(layout, "done").name), `本筋の「${boxOf(layout, "done").name}」の名前の字の class (${lang})`).toBe("dg-sn");
+      expect(svg, `本筋に無い箱の名前を薄い色で書く規則 (${lang})`).toContain(".dg-sn.dg-sn-off{fill:var(--mute)}");
       const into = layout.paths.filter((p) => p.to === "err");
       expect(into.map((p) => p.from).sort(), `「エラーを出す」へ入る通らない道 (${lang})`).toEqual(["otp", "pw"]);
       for (const p of into) {
@@ -495,20 +526,31 @@ describe("手順の図の並べ方 (#3561)", () => {
     const drawn = [...svg.matchAll(/<g data-path="([^"]+)"[^>]*><path class="dg-path"/gu)].map((m) => (m[1] ?? "").replaceAll("&gt;", ">"));
     expect(drawn.sort(), "点線の道の部品 (data-path) が通らない道の数だけ無い").toEqual(before);
     expect(/data-path="[^"]*"[^>]*class="dg-a"/u.test(svg), "点線の道が段で現れる動きを持つ (最初の段から在るはず)").toBe(false);
-    // 段の中の線はその段で引かれ、段の印 (運ぶ物) がその線に沿って進む
+    // 段の中の線はその段で引かれ、段の印の点がその線に沿って進み、着くと消える。封筒は走らない (試作の「段で動く線の上を進む印」)
     for (const e of edgesOf(source)) {
       const span = timeline.steps[e.step] as Span;
       const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
       expect(Boolean(time && time.start >= span.start - 1e-9 && time.drawn <= span.end + 1e-9), `段 ${e.step + 1} の ${e.from} -> ${e.to} がその段の間に引かれない`).toBe(true);
-      const carrier = timeline.carriers.find((c) => c.step === e.step && c.event === e.event);
-      expect(carrier, `段 ${e.step + 1} の ${e.from} -> ${e.to} の上を印が進まない`).toBeDefined();
-      if (!carrier) continue;
-      expect(carrier.depart >= span.start - 1e-9 && carrier.arrive <= span.end + 1e-9 && carrier.arrive > carrier.depart, `段 ${e.step + 1} の印が段の間に線を進まない`).toBe(true);
+      const mark = timeline.marks?.find((c) => c.step === e.step && c.event === e.event);
+      expect(mark, `段 ${e.step + 1} の ${e.from} -> ${e.to} の上を印が進まない`).toBeDefined();
+      if (!mark) continue;
+      expect(mark.depart >= span.start - 1e-9 && mark.arrive <= span.end + 1e-9 && mark.arrive > mark.depart, `段 ${e.step + 1} の印が段の間に線を進まない`).toBe(true);
       const laid = layout.edges.find((l) => l.step === e.step && l.event === e.event);
       expect((laid?.points.length ?? 0) >= 2, `段 ${e.step + 1} の ${e.from} -> ${e.to} の線の道が無い`).toBe(true);
     }
-    // 通らない道の上は印が進まない
-    expect(timeline.carriers.length, "印が段の中の線の数だけ進まない").toBe(edgesOf(source).length);
+    // 通らない道の上は印が進まず、描いた図は段の印の点を線の数だけ持つ
+    expect(timeline.marks?.length, "印が段の中の線の数だけ進まない").toBe(edgesOf(source).length);
+    expect([...svg.matchAll(/<circle class="dg-fl-mark"/gu)].length, "描いた図の段の印の点の数").toBe(edgesOf(source).length);
+    expect(timeline.carriers, "運ぶ物を書かない手順の図の線に封筒が走る").toEqual([]);
+    // 段で動く線は青で引き、段が終わった線は濃い墨の色で残す。着いた判断は琥珀の薄い色で塗る
+    const lines = edgesOf(source).length;
+    expect([...svg.matchAll(/<g style="--c:var\(--c-blue\);--ct:var\(--t-blue\)"><path class="dg-e-on /gu)].length, "青で引く段の線の数").toBe(lines);
+    expect([...svg.matchAll(/<path class="dg-e-past dg-a"/gu)].length, "段が終わった後に残す線の数").toBe(lines);
+    expect(svg, "段が終わった線を、この図の中でだけ濃い墨の色で残す規則").toMatch(/\.dg-\w+ \.dg-e-past,\.dg-\w+ \.dg-eh-past\{stroke:var\(--ink2\)\}/u);
+    expect(svg, "この図の中でだけ白い点を流さない規則").toMatch(/\.dg-\w+ \.dg-flow\{display:none\}/u);
+    const reached = (source.blocks.choice ?? []).filter((c) => edgesOf(source).some((e) => e.to === c.id));
+    expect([...svg.matchAll(/<polygon class="dg-fl-reach" data-shape="diamond"/gu)].length, "琥珀の薄い色で塗る着いた判断の数").toBe(reached.length);
+    expect(svg, "着いた判断を琥珀の薄い色で塗る規則").toContain(".dg-fl-reach{fill:color-mix(in srgb,var(--c) var(--tint),var(--surf));stroke:none}");
   });
 });
 
@@ -539,10 +581,13 @@ describe("ログインの判断の見本 (#3561)", () => {
         const [x, y] = points.at(-1) ?? [Number.NaN, Number.NaN];
         expect(x >= target.x - 8 && x <= target.x + target.w + 8 && y >= target.y - 8 && y <= target.y + target.h + 8, `段 ${e.step + 1} の印が ${target.name} へ着かない`).toBe(true);
       }
-      const carrier = timeline.carriers.find((c) => c.step === e.step && c.event === e.event);
+      const mark = timeline.marks?.find((c) => c.step === e.step && c.event === e.event);
       const span = timeline.steps[e.step] as Span;
-      expect(Boolean(carrier && covers(span, carrier.depart)), `段 ${e.step + 1} の ${e.from} -> ${e.to} の印がその段で進まない`).toBe(true);
+      expect(Boolean(mark && covers(span, mark.depart)), `段 ${e.step + 1} の ${e.from} -> ${e.to} の印がその段で進まない`).toBe(true);
     }
+    // 段 4 の印は「ログイン」に着いてから終わりへ走り出す (「ログイン」を通る)
+    const [toDone, toFinish] = (timeline.marks ?? []).filter((c) => c.step === 3);
+    expect(Boolean(toDone && toFinish && toFinish.depart >= toDone.arrive - 1e-9), "段 4 の印が「ログイン」に着く前に終わりへ走り出す").toBe(true);
   });
 
   it("flow-keeps-motion-rules", () => {
