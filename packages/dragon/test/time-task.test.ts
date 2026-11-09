@@ -642,13 +642,21 @@ describe("工程表の軸の字 (#3574)", () => {
   });
 
   it("task-axis-keeps-apart-on-many-ticks", () => {
-    const text = ["time 細かい目盛り", "scale 分 1min 60", "task check as 確認 5 [color: rose]", "", "step 進む", "  say 針が最後まで進む。", "  now -> 59"].join("\n");
-    const { layout } = render(parsed(text));
-    const boxes = layout.ticks.map((tick) => ({ left: tick.left, right: tick.left + textWidth(tick.text, TYPE.timeTick) }));
-    expect(boxes.length, "軸の字が少なすぎて確かめられない").toBeGreaterThan(2);
-    for (const [k, box] of boxes.slice(1).entries()) expect(box.left, `軸の字 ${layout.ticks[k + 1]?.text} が前の字に重なる`).toBeGreaterThanOrEqual((boxes[k] as { right: number }).right);
     const check = (dragon as unknown as { checkLayoutText: (text: string, options: { lang: "ja" | "en" }) => unknown[] }).checkLayoutText;
-    expect(check(text, { lang: "ja" }), "60 目盛りの工程表に崩れがある").toEqual([]);
+    // 細かい目盛りの図と、目盛りの名前が長く隣の字に届く図 (1 と 2 の字が重なるので 2 の字を置かない)
+    const cases: [string, string, string[] | undefined][] = [
+      ["60 目盛り", "scale 分 1min 60\ntask check as 確認 5 [color: rose]\n\nstep 進む\n  say 針が最後まで進む。\n  now -> 59", undefined],
+      ["長い目盛りの名前", "scale ブロック 12s 12 [from: 1]\ntask check as 確認 0-2 [color: rose]\n\nstep 進む\n  say 針が最後まで進む。\n  now -> 11", ["1ブロック", "4ブロック", "6ブロック", "8ブロック", "10ブロック", "12ブロック"]],
+    ];
+    for (const [name, body, want] of cases) {
+      const text = `time ${name}\n${body}`;
+      const { layout } = render(parsed(text));
+      const boxes = layout.ticks.map((tick) => ({ left: tick.left, right: tick.left + textWidth(tick.text, TYPE.timeTick) }));
+      expect(boxes.length, `${name} の軸の字が少なすぎて確かめられない`).toBeGreaterThan(2);
+      if (want) expect(texts(layout), `${name} の軸の字`).toEqual(want);
+      for (const [k, box] of boxes.slice(1).entries()) expect(box.left, `${name} の軸の字 ${layout.ticks[k + 1]?.text} が前の字に重なる`).toBeGreaterThanOrEqual((boxes[k] as { right: number }).right);
+      expect(check(text, { lang: "ja" }), `${name} の工程表に崩れがある`).toEqual([]);
+    }
   });
 
   it("changelog-describes-task-axis", () => {

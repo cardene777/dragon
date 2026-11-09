@@ -72,3 +72,12 @@
 | 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) とAIのskillの`references/kinds/time.md`に`task`の行の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに工程表の棒が載る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`docs-describe-time-task`が通る | #3562 |
 | 使い方の頁と`CHANGELOG.md`の前の形との対応表の頭の語が、読む部品の語と一致し、AIのskillの記法の囲みが全て読める | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`と`skill-fences-parse`が通る | #3562 |
 | 見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #3562 |
+| `release-plan`を描いた時、軸の字が左から`1日`、`5日`、`10日`、`14日`の順に出て、`0日`が出ない | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-axis-uses-bar-numbers`が通る | #3574 |
+| 英語の`release-plan`を描いた時、軸の字が棒の字と同じ`Day 1`の形で出る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-axis-speaks-bar-words`が通る | #3574 |
+| `release-plan`を描いた時、軸の字の横の真ん中が、その番号の目盛りの真ん中と1px以内で揃う | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-axis-centers-on-its-tick`が通る | #3574 |
+| `[from: 1]`を書かない`task`の図を描いた時、軸の字が0から始まり、棒の字の番号と同じになる | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-axis-follows-scale-from`が通る | #3574 |
+| 60目盛りの`task`の図を描いた時、軸の字どうしが重ならず、`dragon check --layout`が何も出さない | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-axis-keeps-apart-on-many-ticks`が通る | #3574 |
+| `release-plan`を描いた時、`dragon check --layout`が何も出さない | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`release-plan-passes-layout-check`が通る | #3574 |
+| `task`の行を持たない見本のSVGが、`packages/dragon/test/fixtures/examples-svg.json`の記録と1字も変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3574 |
+| `task`の行を持つ図の針が、作業の棒を通った分だけ濃く塗る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-fills-passed-part`が通る | #3574 |
+| `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに軸の字の変更が載る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`changelog-describes-task-axis`が通る | #3574 |
