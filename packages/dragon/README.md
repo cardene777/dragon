@@ -181,7 +181,7 @@ A name the palette does not have, or a value that cannot be read as a color (one
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `flow`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -281,7 +281,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `group` `end` `box` `choice` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -582,12 +582,53 @@ step The swap ends
   return ex: 3200 USDC
 ```
 
+### Flow diagram
+
+Start with `flow` to draw a flow diagram, which follows a procedure from top to bottom and branches at choices.
+The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
+
+- `box <id> as <name>` is a step of the procedure
+- `choice <id> as <question>` is a choice, drawn as a diamond with the question inside. Each line out of a choice carries the answer as its label, and a choice has at most two ways out
+- Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark
+- Lines written before the first `step` are paths not taken this time and stay dotted. A box that no line in a step reaches gets a dotted border
+
+```dragon
+flow Login check
+
+box input as Input
+choice pw as Password correct?
+choice otp as 2FA correct?
+box done as Signed in [color: green]
+box err as Show an error [color: rose]
+
+pw -> err: No
+otp -> err: No
+
+step Enter
+  say The user enters an ID and a password.
+  start -> input
+
+step Check the password
+  say The server checks the password.
+  input -> pw: Send
+
+step Check the 2FA code
+  say The password matched, so the 2FA code is checked.
+  pw -> otp: Yes
+
+step Sign in
+  say The code matches too, and the user is signed in. The no paths stay dotted.
+  otp -> done: Yes
+  done -> finish
+```
+
 ## Source JSON
 
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
 Boxes go in `blocks.box`, groups in `blocks.group`, and the strip in `blocks.strip`.
 Git graph branches go in `blocks.branch`, the paths a state diagram does not take in `blocks.path`, lineup chips in `blocks.item`, and lineup roles in `blocks.role`.
 A time diagram's scale, period, rows, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.point` and `blocks.zoom`.
+A flow diagram's choices go in `blocks.choice`, and the paths it does not take in `blocks.path`.
 What happens in a step (lines and actions inside a box) goes in each step's `events`.
 
 ```json

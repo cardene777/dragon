@@ -98,7 +98,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, flow diagram |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -130,6 +130,16 @@ Changes stay provisional until the outermost call returns, and then they all bec
 | `revert <party>: <reason>` | Fails the innermost open call and rolls back the changes inside it |
 | `emit <party>: <name>(<arg>, ...)` | An event |
 | `calc <party>: <in> -> <out>` | A conversion |
+
+A flow diagram (`flow <title>`) follows a procedure from top to bottom.
+The boxes and choices on the main path stack in one column, and a path that a choice sends elsewhere leaves to the right of the choice.
+
+| Line | What it writes |
+|---|---|
+| `box <id> as <name>` | A step of the procedure |
+| `choice <id> as <question>` | A choice, drawn as a diamond with the question inside. Each line out of it carries the answer as its label, and it has at most two ways out |
+| `<id> -> <id>: <answer>` | A line. A line written before the first step stays as a dotted path not taken this time, and a box that no line in a step reaches gets a dotted border |
+| `start -> <id>`, `<id> -> finish` | The lines out of the start mark and into the finish mark |
 
 ## Documentation
 

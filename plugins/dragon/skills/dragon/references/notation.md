@@ -23,7 +23,7 @@ Lines starting with `//` and blank lines are not read.
 
 ## Head line
 
-`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try` and `pipe`.
+`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe` and `flow`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
 - `[view: fixed]` keeps the whole diagram still and moves only what is inside. `[view: follow]` moves the frame to where things happen and shows a small overview. Leave it out and dragon picks by text size.
@@ -104,10 +104,11 @@ Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as
 | `gist` | `pipe` |
 | `box` | all except `try` (which declares its own parts) |
 | `note` | all except `pipe` and `try` |
-| `act`, `link`, `carry`, `->` lines between boxes | `architecture`, `git`, `sequence`, `state`, `time`, `tree` |
+| `act`, `link`, `carry`, `->` lines between boxes | `architecture`, `flow`, `git`, `sequence`, `state`, `time`, `tree` |
 | `icon` | all except `lineup` and `try` |
 | `color` on boxes | all except `pipe` and `try` |
-| `strip` and `set` | `architecture`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
+| `strip` and `set` | `architecture`, `flow`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
+| `choice` | `flow` |
 | `group ... end` | `architecture` |
 
 ## The short form

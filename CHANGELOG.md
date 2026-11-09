@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **A flow diagram (`flow`) follows a procedure that branches at choices** (#3561)
+
+  Drawing a procedure as a state diagram crossed lines and put names on top of each other, and `dragon check --layout` found 10 breaks in a small login check. A diagram that starts with `flow <title>` now writes the steps of a procedure with `box` and each choice with the new `choice <id> as <question>` line. The boxes and choices that the steps pass through stack top to bottom in one column in the order the lines first reach them, a choice is drawn as a diamond with the question inside, and a path that a choice sends elsewhere leaves to the right of the choice. Each line out of a choice carries the answer as its label, and a choice has at most two ways out. As in a state diagram, `start` and `finish` join the start and end marks, lines written before the first step stay as dotted paths not taken this time, and a box that no line in a step reaches gets a dotted border. A line that goes back up the main path stops reading at that line. The source JSON keeps the choices in `blocks.choice` and the paths not taken in `blocks.path`, and `choice` is read as a plain name in every other kind. The example `login-check` (in Japanese and English) is in `packages/dragon/examples`, and the catalog, the editor shelf and the docs page show the new kind. The light entry loads the flow renderer only when you await `loadFor` for a flow diagram.
+
 ## [0.67.0] - 2026-11-08
 
 ### Added

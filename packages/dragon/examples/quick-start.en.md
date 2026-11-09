@@ -51,9 +51,10 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, or `pipe <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, or `flow <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
+| Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
 | Strip | `strip <title>: <field>, <field>`. In a time diagram, `[meter: <ratio>]` after a field name makes that field a meter | `strip Message: ID, receiver, state` |
 | Branch | `branch <branch> [note: <note>]`. Only in a git graph. Bands are stacked from the top in the order declared | `branch feature [note: Work branch]` |
 | Scale | `scale <unit> <length> <count> [from: <first number>]`. Write the length as a number and a unit (`ms`, `s`, `min`, `h`, `d`); that many ticks are spaced evenly along the axis. Only in a time diagram | `scale slot 12s 64` |
@@ -323,6 +324,36 @@ step The swap ends
   write ex: "swaps[alice]" 1
   emit ex: Swapped(alice, 3200)
   return ex: 3200 USDC
+```
+
+In a flow diagram (`flow <title>`), write the steps of the procedure with `box` and each choice with `choice <id> as <question>`.
+The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
+Each line out of a choice carries the answer as its label, and a choice has at most two ways out.
+As in a state diagram, `start` and `finish` join the start and end marks, and lines written before the first `step` line are paths not taken this time and stay dotted.
+A box that no line in a step reaches gets a dotted border.
+
+```dragon
+flow Taking an application
+
+box form as Receive the form
+choice ok as Filled in?
+box send as Accept [color: green]
+box back as Ask for a fix [color: rose]
+
+ok -> back: No
+
+step Receive
+  say An application arrives and the procedure starts.
+  start -> form
+
+step Check
+  say A choice decides whether it is filled in. The no path leaves to the right as a dotted line.
+  form -> ok: Check
+
+step Accept
+  say It is filled in, so the yes path goes down and the application is accepted.
+  ok -> send: Yes
+  send -> finish
 ```
 
 ## Attributes
