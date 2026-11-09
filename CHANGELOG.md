@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.69.0] - 2026-11-09
+
 ### Added
 
 - **Both answers of a choice in a flow diagram can run at once** (#3579)

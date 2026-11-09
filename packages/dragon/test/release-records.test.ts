@@ -223,9 +223,24 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-69-0-lists-fork-and-glow", () => {
+    // 判断の両方の答えへ同時に走る形 (#3579) と状態図の光の直し (#3575) を 0.69.0 で出す (#3583)
+    expect(version(), "package の版が 0.69.0 でない").toBe("0.69.0");
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.69\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.69.0"), "0.69.0");
+      expect(released, `${file} に日付付きの ## [0.69.0] の節が無い`).not.toBe("");
+      for (const entry of ["(#3579)", "(#3575)"]) {
+        expect(released, `${file} の 0.69.0 の節に ${entry} の項が無い`).toContain(entry);
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した ${entry} の項が残る`).not.toContain(entry);
+      }
+    }
+  });
+
   it("changelog-0-68-1-aligns-task-axis", () => {
     // 工程表の軸の字を棒の字と同じ番号にした直し (#3574) を 0.68.1 で出す (#3577)
-    expect(version(), "package の版が 0.68.1 でない").toBe("0.68.1");
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 68, `package の版 ${version()} が 0.68.1 より前`).toBe(true);
     for (const [file, word] of [
       ["CHANGELOG.md", /\baxis\b/iu],
       ["CHANGELOG.ja.md", /軸の字/u],

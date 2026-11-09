@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
+import { changelogEntry } from "./changelog-support";
 import { api, type Json } from "./diagram-support";
 import { draw, type LaidBox, type Layout, type Rendered, type Timeline } from "./render-support";
 
@@ -160,10 +161,6 @@ describe("判断から同じ段に書いた 2 本の線 (#3579)", () => {
     expect(docs, "使い方の頁に同じ段に 2 本書く形が日本語で無い").toContain("同じ段に 2 本");
     expect(docs, "使い方の頁に同じ段に 2 本書く形が英語で無い").toContain("in the same step");
     expect(repoText("plugins/dragon/skills/dragon/references/kinds/flow.md"), "AI の skill に同じ段に 2 本書く形が無い").toContain("in the same step");
-    for (const path of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
-      const text = repoText(path);
-      const start = text.indexOf("## [Unreleased]");
-      expect(text.slice(start, text.indexOf("\n## [", start + 1)), `${path} の Unreleased に #3579 の項が無い`).toContain("(#3579)");
-    }
+    for (const path of ["CHANGELOG.md", "CHANGELOG.ja.md"]) expect(changelogEntry(join(ROOT, path), 3579), `${path} に #3579 の項が無い`).not.toBe("");
   });
 });

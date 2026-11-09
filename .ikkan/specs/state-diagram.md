@@ -54,4 +54,4 @@
 | 区間が逆でなかった箱の光る区間と済んだ印の時刻が、直す前の記録と同じになる | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`state-lit-keeps-other-intervals`が通る | #3575 |
 | 手順の図を描く処理が光る区間を直す処理を持たない | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`flow-render-has-no-lit-fix`が通る | #3575 |
 | 今ある見本のSVGと置き場所と時刻が記録と変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3575 |
-| `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに#3575の項が載る | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`changelog-lists-state-glow-fix`が通る | #3575 |
+| `CHANGELOG.md`と`CHANGELOG.ja.md`に#3575の項が載る | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`changelog-lists-state-glow-fix`が通る | #3575 |
