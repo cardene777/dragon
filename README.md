@@ -133,12 +133,14 @@ Changes stay provisional until the outermost call returns, and then they all bec
 
 A flow diagram (`flow <title>`) follows a procedure from top to bottom.
 The boxes and choices on the main path stack in one column, and a path that a choice sends elsewhere leaves to the right of the choice.
+The line that moves in a step turns blue and a dot runs along it, a passed line stays dark, and a choice the dot reached is filled with light amber.
+A line without `carry` or `tag` runs this dot instead of an envelope.
 
 | Line | What it writes |
 |---|---|
 | `box <id> as <name>` | A step of the procedure |
-| `choice <id> as <question>` | A choice, drawn as a diamond with the question inside. Each line out of it carries the answer as its label, and it has at most two ways out |
-| `<id> -> <id>: <answer>` | A line. A line written before the first step stays as a dotted path not taken this time, and a box that no line in a step reaches gets a dotted border |
+| `choice <id> as <question>` | A choice, drawn as a diamond with the question inside. A long question wraps onto two lines. Each line out of it carries the answer as its label, and it has at most two ways out |
+| `<id> -> <id>: <answer>` | A line. A line written before the first step stays as a dotted path not taken this time, and a box that no line in a step reaches gets a dotted border and a muted name |
 | `start -> <id>`, `<id> -> finish` | The lines out of the start mark and into the finish mark |
 
 ## Documentation

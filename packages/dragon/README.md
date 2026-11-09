@@ -588,9 +588,10 @@ Start with `flow` to draw a flow diagram, which follows a procedure from top to 
 The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
 
 - `box <id> as <name>` is a step of the procedure
-- `choice <id> as <question>` is a choice, drawn as a diamond with the question inside. Each line out of a choice carries the answer as its label, and a choice has at most two ways out
+- `choice <id> as <question>` is a choice, drawn as a diamond with the question inside. A long question wraps onto two lines after a particle or a space. Each line out of a choice carries the answer as its label, and a choice has at most two ways out
 - Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark
-- Lines written before the first `step` are paths not taken this time and stay dotted. A box that no line in a step reaches gets a dotted border
+- Lines written before the first `step` are paths not taken this time and stay dotted. A box that no line in a step reaches gets a dotted border and a muted name
+- The line that moves in a step turns blue and a dot runs along it until it arrives. A passed line stays dark, and a choice the dot reached is filled with light amber. A line without `carry` or `tag` runs this dot instead of an envelope
 
 ```dragon
 flow Login check

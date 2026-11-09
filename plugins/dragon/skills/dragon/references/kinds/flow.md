@@ -24,9 +24,10 @@ Pick `state` instead when one thing moves back and forth between states and loop
 ## How to write it well
 
 - Put the main path in the steps, in order. The boxes and choices the steps reach stack top to bottom in the order the lines first reach them.
-- Write the other answer of each choice (no, fail, retry later) before the first step. A box that no line in a step reaches is drawn with a dotted border on the right.
+- Write the other answer of each choice (no, fail, retry later) before the first step. A box that no line in a step reaches is drawn on the right with a dotted border and a muted name.
 - Do not draw a line back up the main path. It stops reading at that line. Write a retry as a box on the side instead.
-- Keep each question short. The diamond grows with the question, and a long one makes the column wide.
+- Keep each question short. A long question wraps onto two lines after a particle or a space, and the diamond still grows with the longer line.
+- Leave `carry` and `tag` off the lines. In a flow diagram such a line runs the step mark, a dot on the blue moving line, instead of an envelope. Write `carry: coin` or `tag` only when a thing really moves.
 - Color the ends by outcome: `green` for done, `rose` for failed or refused.
 
 ## Example

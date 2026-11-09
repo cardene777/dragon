@@ -330,7 +330,10 @@ In a flow diagram (`flow <title>`), write the steps of the procedure with `box` 
 The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
 Each line out of a choice carries the answer as its label, and a choice has at most two ways out.
 As in a state diagram, `start` and `finish` join the start and end marks, and lines written before the first `step` line are paths not taken this time and stay dotted.
-A box that no line in a step reaches gets a dotted border.
+A box that no line in a step reaches gets a dotted border and a muted name.
+The line that moves in a step turns blue and a dot runs along it.
+A line without `carry` or `tag` runs this dot instead of an envelope.
+A long question wraps onto two lines after a particle or a space.
 
 ```dragon
 flow Taking an application
