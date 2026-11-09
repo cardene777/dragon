@@ -9,7 +9,7 @@
  * 下げられるのは、上限を超える見本の検査をこの検査の中で数秒で起こすため。
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -70,10 +70,15 @@ describe("検査の時間の上限 (#3381)", () => {
   });
 
   it("run-limit-stops-whole-run", () => {
-    const ran = runFixture("long-run.fixture.ts", { DRAGON_RUN_LIMIT_MS: "3000" });
+    // 上限で止めた回も、見本が作った一時フォルダを残さない (#3587)。走っている実行の一時フォルダの下に試す場所を作るので、この検査の分も残らない
+    const sandbox = mkdtempSync(join(tmpdir(), "dragon-sandbox-"));
+    const madeOut = join(mkdtempSync(join(tmpdir(), "dragon-sandbox-out-")), "made.txt");
+    const ran = runFixture("long-run.fixture.ts", { DRAGON_RUN_LIMIT_MS: "3000", TMPDIR: sandbox, FIXTURE_TMP_OUT: madeOut });
     expect(ran.code, `1 回の実行の上限を超えたのに終わり方 1 で終わらなかった:\n${ran.brief}`).toBe(1);
     expect(ran.out, "1 回の実行の上限で止めたことと、終わっていない検査の名前を出していない").toMatch(/1回の実行の上限[\s\S]*fixture-runs-past-run-limit/u);
     expect(ran.out, "上限で止めずに、検査が終わるまで待った").not.toMatch(/✓[^\n]*fixture-runs-past-run-limit/u);
+    expect(existsSync(madeOut), `見本の検査が一時フォルダを作る前に止まった:\n${ran.brief}`).toBe(true);
+    expect(readdirSync(sandbox), "上限で止めた実行の一時フォルダが残っている").toEqual([]);
   });
 
   it("run-limit-writes-unfinished-files", () => {

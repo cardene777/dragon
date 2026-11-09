@@ -79,3 +79,5 @@
 | 配管の見本の決まりの表への違反が 0 件のまま | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3472 |
 | `arcade-keeps-round-line-ends` と `arcade-sharpens-line-and-arrow-joins` が今と同じく、全ての見本の線の端と継ぎ目を確かめる | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`arcade-keeps-round-line-ends`と`arcade-sharpens-line-and-arrow-joins`が通る | #3472 |
 | `player-pipe-narrow-keeps-text-readable` が今と同じく、ja と en の両方で残高の字の大きさと、横に送る枠と、全体のどこを見ているかを示す線を確かめる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-narrow-keeps-text-readable`が通る | #3472 |
+| 1回の実行の上限で止めた実行の後、その実行の検査が作った一時フォルダが残らない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-stops-whole-run`が通る | #3587 |
+| 常に、一時フォルダを使う書き出しの検査はChromiumを起こして動く | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`が通る | #3587 |
