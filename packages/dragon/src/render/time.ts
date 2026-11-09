@@ -2,16 +2,18 @@
  * 時間軸の図 (#3165) を描く部品。見本帳の試作 `docs/design/base/scenes/finality.js` の時間軸と拡大の帯と節目を写す。
  *
  * 描く状態 (`TimeKit`) を 1 つ組み、目盛り、拡大の帯、印の列、節目のブロックの描き方 (`blocks/<名前>/draw.ts`) を層の順に呼ぶ (#3348)。
- * 呼ぶ順は区切りの地、拡大の帯の列、印の列、拡大した範囲の枠、目盛り、範囲、節目、節目どうしの線、針で、この順が動きの名前の番号を決める。
+ * 呼ぶ順は区切りの地、拡大の帯の列、印の列、作業の棒 (#3562)、拡大した範囲の枠、目盛り、範囲、節目、節目どうしの線、針で、この順が動きの名前の番号を決める。
+ * 作業の棒の見た目の規則は、作業を持つ図だけが返す (`css`)。
  * 拡大の帯の箱へ線が初めて届く時刻と、印を塗る時刻は、拡大の帯と印の列の両方が使うのでここで数える。
  */
 import type { SubChange } from "../blocks/box/draw";
 import { cs } from "../blocks/color/draw";
 import { markRows } from "../blocks/row/draw";
 import { pointLines, points } from "../blocks/point/draw";
+import { TASK_CSS, taskBars } from "../blocks/task/draw";
 import { axisTicks, needle, periodShades, simplify, spans, type TimeKit, valueAt } from "../blocks/scale/draw";
 import { zoomColumns, zoomLens } from "../blocks/zoom/draw";
-import type { TimeBox, TimeLayout } from "../kinds/time/layout";
+import { linesOf, type TimeBox, type TimeLayout } from "../kinds/time/layout";
 import { EASE, LOOK, MOTION, TYPE } from "../look/values";
 import type { DiagramModel } from "../schema";
 import type { Span, Timeline } from "../timeline";
@@ -27,7 +29,7 @@ export function drawTime(
   timeline: Timeline,
   ctx: Ctx,
   subs: Map<string, SubChange[]>,
-): { base: string; lit: string; node: string; top: string } {
+): { base: string; lit: string; node: string; top: string; css: string } {
   const passed = new Map((timeline.units ?? []).map((u) => [u.unit, u.passed]));
   const at = (step: number, event: number): number | undefined =>
     timeline.events.find((t) => t.step === step && t.event === event)?.at;
@@ -50,6 +52,8 @@ export function drawTime(
     return times.length > 0 ? Math.min(...times) : undefined;
   };
 
+  // 印の列と作業の行。作業を持たない図は印の列だけ
+  const lines = linesOf(layout);
   const kit: TimeKit = {
     layout,
     diagram,
@@ -63,13 +67,14 @@ export function drawTime(
     at,
     passed,
     filled,
-    rowsTop: Math.min(...layout.rows.map((r) => r.y)),
-    rowsBottom: Math.max(...layout.rows.map((r) => r.y + r.h)),
+    rowsTop: Math.min(...lines.map((r) => r.y)),
+    rowsBottom: Math.max(...lines.map((r) => r.y + r.h)),
   };
   // 呼ぶ順が動きの名前の番号を決めるので、移す前の順のまま呼ぶ
   periodShades(kit);
   zoomColumns(kit);
   markRows(kit);
+  taskBars(kit);
   zoomLens(kit);
   axisTicks(kit);
   spans(kit);
@@ -77,7 +82,7 @@ export function drawTime(
   pointLines(kit);
   needle(kit);
   const { base, lit, node, top } = kit;
-  return { base: base.join(""), lit: lit.join(""), node: node.join(""), top: top.join("") };
+  return { base: base.join(""), lit: lit.join(""), node: node.join(""), top: top.join(""), css: (layout.tasks ?? []).length > 0 ? TASK_CSS : "" };
 }
 
 /** 中身の帯の物差しの欄 (#3165)。棒を満ち具合の動きで伸ばし、`line` の割合の所に線の印と字を置く */
@@ -128,8 +133,9 @@ export function timeFocus(
     valueAt(timeline.needle ?? [], span.start) === position &&
     !(layout.strip && badge.y >= layout.strip.y);
   const ax = anchored ? badge.x : layout.axis.x + position * layout.axis.unit;
-  const top = Math.min(...layout.rows.map((r) => r.y));
-  const bottom = Math.max(...layout.rows.map((r) => r.y + r.h));
+  const lines = linesOf(layout);
+  const top = Math.min(...lines.map((r) => r.y));
+  const bottom = Math.max(...lines.map((r) => r.y + r.h));
   let held = { x: ax - 1, y: top, w: 2, h: bottom - top };
   const near = (p: { x: number; y: number; w: number; h: number }): number =>
     Math.hypot(Math.max(0, p.x - ax, ax - p.x - p.w), Math.max(0, p.y - top, top - p.y - p.h));

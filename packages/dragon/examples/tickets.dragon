@@ -1,0 +1,24 @@
+// 窓口ごとの問い合わせの件数が、4月から6月までにどう移ったかを横棒で比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+chart 窓口ごとの問い合わせの件数 [shape: bar]
+
+item mail as メール [color: blue]
+item chat as チャット [color: green]
+item phone as 電話 [color: amber]
+
+step 4月
+  say メールと電話で受け、チャットはまだ開いていない。
+  set mail: 120
+  set phone: 64
+
+step 5月
+  say チャットを開くと、電話の件数が減る。
+  set mail: 104
+  set chat: 38
+  set phone: 58
+
+step 6月
+  say チャットが伸び、メールの件数を追う。
+  set mail: 86
+  set chat: 81
+  set phone: 41

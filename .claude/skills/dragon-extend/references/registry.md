@@ -44,13 +44,15 @@
 | `apps/playground-spa/src/editor/shelf-items.ts` | 編集画面の棚 | 新しい種類の書き始めの形を足す |
 | `apps/playground-spa/src/examples.ts` | 見本の並び (`EXAMPLE_KEYS`) | 新しい見本の名前を並びに足す。最初に読む見本 (`FIRST_SCREEN_EXAMPLES`) のほかは、ここで記法を読まない |
 | `apps/playground-spa/src/examples-later.ts` | 後から読む見本の記法 | 見本の file を読む行を足す。最初に読む script に入れると `first-load-carries-no-catalog-notation` が落ちる |
-| `apps/playground-spa/src/text.ts` | 見本帳と編集画面の言葉 | 日本語と英語の両方に種類の名前と説明を足す |
+| `apps/playground-spa/src/text.ts` | 見本帳と編集画面が最初に読む言葉 | 日本語と英語の両方に種類の名前 (`shelf.kinds`) だけを足す。この表は最初に読む script に入るので、種類の説明と記法の早見の説明をここに書くと `first-load-carries-no-catalog-text` か `first-load-carries-no-syntax-text` が落ちる (#3565) |
+| `apps/playground-spa/src/catalog/text.ts` | カタログの頁だけが使う言葉 | 日本語と英語の両方に種類の説明 (`kinds`) を足す。カタログの頁と一緒に後から読む塊に入る。書かないと型検査が落ちる |
+| `apps/playground-spa/src/editor/syntax-text.ts` | 編集画面の棚の記法の早見の説明 | `shelf-items.ts` の早見に行の形 (`SyntaxId`) を足したら、日本語と英語の両方に説明を足す。記法の見出しを開いた時に後から読む。書かないと型検査が落ちる |
 | `apps/playground-spa/src/docs/content.ts` | 使い方の頁の本文 | 記法と同じ PR で書き方の節を足す |
 | `apps/playground-spa/src/docs/examples/` | 使い方の頁の例 | 日本語と英語の例をそろえる |
 | `apps/playground-spa/src/lib/<種類>-catalog.test.ts` | 見本帳での描け方の検査 | 既存の種類の検査が図の分類を全部並べて照らしていると、新しい種類で落ちる。先頭から既存の種類の順で始まるかを見る形にする |
 | `apps/playground-spa/src/lib/site-pages.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
 | `apps/playground-spa/src/lib/catalog-parts.test.ts` | 部品の頁の検査 | 部品の分類は `isCommon` と同じ規則で数える |
-| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限は頁が最初に読む script と CSS に当て (#3280)、値は検査が持つ。見本と部品の図の記法と、後から読む種類の描く部品と個別ブロックの読み方は後から読む塊に入るので増えないが、記法を読む処理と検査の関数は種類ごとに増える (#3248、#3349)。超える時は上限を上げず本人に聞く |
+| `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限は頁が最初に読む script と CSS に当て (#3280)、値は検査が持つ。見本と部品の図の記法と、後から読む種類の描く部品と個別ブロックの読み方と、カタログの種類の説明と記法の早見の説明 (#3565) は後から読む塊に入るので増えないが、記法を読む処理と検査の関数は種類ごとに増える (#3248、#3349)。超える時は上限を上げず本人に聞く |
 
 ## ブロックを足す時
 

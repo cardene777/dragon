@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "kind": "chart",
+  "title": "窓口ごとの問い合わせの件数",
+  "chart": {
+    "shape": "bar",
+    "items": [
+      {
+        "id": "mail",
+        "name": "メール",
+        "color": "blue"
+      },
+      {
+        "id": "chat",
+        "name": "チャット",
+        "color": "green"
+      },
+      {
+        "id": "phone",
+        "name": "電話",
+        "color": "amber"
+      }
+    ]
+  },
+  "blocks": {},
+  "steps": [
+    {
+      "title": "4月",
+      "body": "メールと電話で受け、チャットはまだ開いていない。",
+      "events": [
+        {
+          "type": "set",
+          "item": "mail",
+          "value": 120
+        },
+        {
+          "type": "set",
+          "item": "phone",
+          "value": 64
+        }
+      ]
+    },
+    {
+      "title": "5月",
+      "body": "チャットを開くと、電話の件数が減る。",
+      "events": [
+        {
+          "type": "set",
+          "item": "mail",
+          "value": 104
+        },
+        {
+          "type": "set",
+          "item": "chat",
+          "value": 38
+        },
+        {
+          "type": "set",
+          "item": "phone",
+          "value": 58
+        }
+      ]
+    },
+    {
+      "title": "6月",
+      "body": "チャットが伸び、メールの件数を追う。",
+      "events": [
+        {
+          "type": "set",
+          "item": "mail",
+          "value": 86
+        },
+        {
+          "type": "set",
+          "item": "chat",
+          "value": 81
+        },
+        {
+          "type": "set",
+          "item": "phone",
+          "value": 41
+        }
+      ]
+    }
+  ]
+}

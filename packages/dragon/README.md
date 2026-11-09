@@ -181,7 +181,7 @@ A name the palette does not have, or a value that cannot be read as a color (one
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `flow`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `chart`, `flow`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -281,7 +281,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `group` `end` `box` `choice` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -433,6 +433,26 @@ step C0 becomes final
   span 0-31: Final, cannot be undone [shape: box, color: rose]
 ```
 
+To show how long tasks take, as in a schedule, write `task <id> as <name> <range> [color: <color>]` before the first step.
+Each task gets its own row and is drawn as one thick bar over the ticks of the range. A range counts ticks from 0 like `mark`, as `0-2` or `13`.
+The name sits to the left of the row and the first and last tick names with the scale name (such as `Day 1–3`) inside the bar, and the part of the bar the needle has passed fills in.
+A diagram with tasks needs no `row`, and tasks and rows keep the declared order from top to bottom.
+
+```dragon
+time Schedule up to the release
+
+scale day 1d 14 [from: 1]
+
+task design as Design 0-2 [color: blue]
+task build as Build 3-8 [color: violet]
+task test as Test 7-10 [color: amber]
+task ship as Release 13 [color: green]
+
+step Build and test
+  say Start building on day 4, and start testing alongside it on day 8.
+  now -> 10
+```
+
 ### Tree diagram
 
 Starting with `tree` makes a tree diagram that follows, step by step, how leaf values fold up into their parents until one root remains. Inside a step, `leaf <id> [hash: <value>]` writes a leaf and `node <id> of <child>, <child> [hash: <value>]` writes a parent, and each box appears in the step that writes it.
@@ -582,6 +602,36 @@ step The swap ends
   return ex: 3200 USDC
 ```
 
+### Chart
+
+Start with `chart` to draw a chart, which compares items step by step. Write the shape on the first line.
+`chart <title> [shape: donut]` draws the share of each item as the angle of an arc, and `chart <title> [shape: bar]` draws the amount of each item as the length of a horizontal bar.
+
+- `item <id> as <name> [color: <color>]` declares an item before the first step. A donut lays the arcs clockwise from 12 o'clock in the order declared and shows the names and rounded percentages in its legend. A bar chart stacks the bars from the top with each name on the left. An item without `color` gets a color in the order declared, and a chart takes from 1 to 8 items
+- `set <id>: <value>` inside a step is the value of the item, a number of 0 or more written without a unit. An item without `set` keeps its previous value, and an item with no value yet shows no arc or bar
+
+Going to the next step moves the arcs and bars from the previous values to the new ones. The largest value over all steps gets the longest bar, and each value shows at the end of its bar.
+The shape stays the same through the steps, and a chart takes no `box`, `group`, `strip`, or line.
+
+```dragon
+chart Support requests by channel [shape: bar]
+
+item mail as Email [color: blue]
+item chat as Chat [color: green]
+item phone as Phone [color: amber]
+
+step April
+  say Most requests come by email.
+  set mail: 120
+  set phone: 64
+
+step May
+  say Chat opens, and phone requests drop.
+  set mail: 104
+  set chat: 38
+  set phone: 58
+```
+
 ### Flow diagram
 
 Start with `flow` to draw a flow diagram, which follows a procedure from top to bottom and branches at choices.
@@ -628,7 +678,7 @@ step Sign in
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
 Boxes go in `blocks.box`, groups in `blocks.group`, and the strip in `blocks.strip`.
 Git graph branches go in `blocks.branch`, the paths a state diagram does not take in `blocks.path`, lineup chips in `blocks.item`, and lineup roles in `blocks.role`.
-A time diagram's scale, period, rows, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.point` and `blocks.zoom`.
+A time diagram's scale, period, rows, tasks, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.task`, `blocks.point` and `blocks.zoom`.
 A flow diagram's choices go in `blocks.choice`, and the paths it does not take in `blocks.path`.
 What happens in a step (lines and actions inside a box) goes in each step's `events`.
 

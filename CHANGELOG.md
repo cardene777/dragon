@@ -8,9 +8,28 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **Added the chart (`chart`), which compares the shares of items as a donut and their amounts as horizontal bars, step by step** (#3560)
+
+  Start the first line with `chart <title> [shape: donut]` or `chart <title> [shape: bar]`, and declare the items with `item <id> as <name> [color: <color>]` before the first step, from 1 to 8 of them.
+  Inside a step, `set <id>: <value>` writes the value of an item, a number of 0 or more without a unit, and an item without `set` keeps its previous value.
+  A donut draws each share as the angle of an arc clockwise from 12 o'clock, with the step name in the middle of the ring and rounded percentages in the legend. A bar chart gives the largest value over all steps the longest bar and shows each value at the end of its bar.
+  Going to the next step moves the arcs and bars from the previous values to the new ones. In a narrow frame, the donut's legend moves below the ring and the bars get shorter.
+  `dragon check --layout` reports a step name that does not fit inside the ring of a donut as `title-outside-ring`.
+  The words `item` and `set` keep their lineup, try and strip readings in the other kinds. The examples are `os-share` (donut) and `tickets` (bar) in `packages/dragon/examples/`.
+
+- **A time diagram draws a task's period as one thick bar with `task <id> as <name> <range> [color: <color>]`** (#3562)
+
+  A time diagram could only show marks, one per tick, so a schedule where each piece of work runs over several days had to be drawn as a row of separate marks. A `task` line before the first step now declares a task with its own row. The task is drawn as one continuous thick bar over the ticks of its range, with its name to the left of the row and its first and last tick names with the scale name inside the bar, such as `Day 1–3` (`1〜3日` in Japanese, and `Day 14` for a task of one tick). The text goes outside to the right when the bar is too narrow, or to the left when the right side would run past the end of the axis. The part of the bar the needle has passed fills in with the task's color as the needle moves. Text inside the bar is drawn light over the filled part and dark over the rest, and the split moves with the edge of the fill. The range counts ticks from 0, the same as `mark` and `span`, as `0-2` or `13`. A time diagram with tasks draws without any `row`, and tasks and rows keep the order they were declared in from top to bottom. In the source JSON, tasks go in `blocks.task`. Time diagrams without `task` draw the same as before. The new example `release-plan` draws a schedule up to a release.
+
 - **A flow diagram (`flow`) follows a procedure that branches at choices** (#3561)
 
   Drawing a procedure as a state diagram crossed lines and put names on top of each other, and `dragon check --layout` found 10 breaks in a small login check. A diagram that starts with `flow <title>` now writes the steps of a procedure with `box` and each choice with the new `choice <id> as <question>` line. The boxes and choices that the steps pass through stack top to bottom in one column in the order the lines first reach them, a choice is drawn as a diamond with the question inside (a long question wraps onto two lines after a particle or a space), and a path that a choice sends elsewhere leaves to the right of the choice. Each line out of a choice carries the answer as its label, and a choice has at most two ways out. As in a state diagram, `start` and `finish` join the start and end marks, lines written before the first step stay as dotted paths not taken this time, and a box that no line in a step reaches gets a dotted border and a muted name. The line that moves in a step turns blue and a dot runs along it until it arrives, a passed line stays dark, and a choice the dot reached is filled with light amber. A line without `carry` or `tag` runs this dot instead of an envelope, and a line with `carry: coin` or `tag` appears with its thing when the line starts instead of waiting on the box. A line that goes back up the main path stops reading at that line. The source JSON keeps the choices in `blocks.choice` and the paths not taken in `blocks.path`, and `choice` is read as a plain name in every other kind. The example `login-check` (in Japanese and English) is in `packages/dragon/examples`, and the catalog, the editor shelf and the docs page show the new kind. The light entry loads the flow renderer only when you await `loadFor` for a flow diagram.
+
+### Changed
+
+- **The catalog no longer loads the text of the catalog pages and the notes of the shelf's notation tab on its first screen** (#3565)
+
+  The script the catalog loads first carried, in both languages, the text that only the catalog pages show, such as the description of each diagram kind and the words of the example list, the search box and the enlarge button, and the note beside each line shape in the notation tab of the editor's shelf. They sat in the page text table that the first screen reads. The catalog pages' text now lives in `catalog/text.ts`, which goes into the chunk the catalog pages load later, and the notes live in `editor/syntax-text.ts`, a chunk of its own that the shelf loads when the editor opens. The catalog pages and the shelf show the same text as before. The script and CSS loaded first went from 185,436 to 180,470 bytes gzipped, leaving room under the 186,368-byte limit for the next diagram kinds.
 
 ## [0.67.0] - 2026-11-08
 

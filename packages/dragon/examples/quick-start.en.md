@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, or `flow <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -60,6 +60,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 | Scale | `scale <unit> <length> <count> [from: <first number>]`. Write the length as a number and a unit (`ms`, `s`, `min`, `h`, `d`); that many ticks are spaced evenly along the axis. Only in a time diagram | `scale slot 12s 64` |
 | Period | `period <name> <ticks> [from: <first number>]`. Puts a name and a number at each period boundary | `period epoch 32` |
 | Row | `row <id> [color: <color>, empty: <tick>]`. One mark per tick, and the ticks in `empty` get empty marks | `row block [color: blue, empty: 5]` |
+| Task | `task <id> as <name> <range> [color: <color>]`. Each task gets its own row and one thick bar over the ticks of the range. The bar shows its first and last tick names with the scale name (`Day 1–3`, or `Day 14` for one tick), and the part the needle has passed fills in. A diagram with tasks needs no `row` | `task build as Build 3-8 [color: violet]` |
 | Point | `point <id> at <tick>`. Puts a flag circle and its id below the axis | `point C0 at 0` |
 | Zoom band | `zoom <range>`. Makes one column per tick in the top band, with the declared boxes in the same order in every column | `zoom 0-1` |
 
@@ -326,6 +327,29 @@ step The swap ends
   return ex: 3200 USDC
 ```
 
+A chart (`chart <title> [shape: donut]` or `chart <title> [shape: bar]`) compares items step by step. A donut draws each item's share as the angle of an arc, and a bar chart draws each item's amount as the length of a bar.
+Declare the items with `item <id> as <name> [color: <color>]` before the first step, from 1 to 8 of them.
+Inside a step, `set <id>: <value>` writes the value of an item, a number of 0 or more without a unit. An item without `set` keeps its previous value, and the arcs and bars move from the previous values to the new ones.
+
+```dragon
+chart Smartphone OS share [shape: donut]
+
+item ios as iOS [color: blue]
+item android as Android [color: green]
+item other as Other [color: slate]
+
+step 2018
+  say iOS holds 70 percent.
+  set ios: 70
+  set android: 29
+  set other: 1
+
+step 2024
+  say Android grows to almost 40 percent.
+  set ios: 60
+  set android: 39
+```
+
 In a flow diagram (`flow <title>`), write the steps of the procedure with `box` and each choice with `choice <id> as <question>`.
 The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
 Each line out of a choice carries the answer as its label, and a choice has at most two ways out.
@@ -366,6 +390,7 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | On | Key | Meaning |
 |---|---|---|
 | Kind and title | `view` | The view. `fixed` or `follow` |
+| Kind and title | `shape` | The shape of a chart. `donut` or `bar`. Only in a chart, where it is required |
 | Region and box | `note` | The note of a region, or the caption under a box |
 | Region and box | `color` | Colour role. One of `blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` |
 | Region and box | `icon` | Icon next to the name |

@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -60,6 +60,7 @@ step ログインを押す
 | 目盛り | `scale <単位> <長さ> <数> [from: <最初の番号>]`。長さは数と単位 (`ms`、`s`、`min`、`h`、`d`) の組で書き、その数の目盛りが軸に等間隔で並ぶ。時間軸の図だけで書ける | `scale slot 12s 64` |
 | 区切り | `period <名前> <目盛りの数> [from: <最初の番号>]`。境ごとに名前と番号を置く | `period epoch 32` |
 | 印の列 | `row <名札> [color: <色>, empty: <目盛り>]`。目盛りごとに印が並び、`empty` に書いた目盛りは空きの印になる | `row ブロック [color: blue, empty: 5]` |
+| 作業の棒 | `task <名札> as <名前> <範囲> [color: <色>]`。作業ごとに行を持ち、範囲の目盛りの上に続いた太い棒を引く。棒の中に `1〜3日` のように始まりと終わりの目盛りの名前で期間が出て (1つの目盛りは `14日`)、針が通った分を濃く塗る。作業を持つ図は `row` を書かなくてよい | `task build as 実装 3-8 [color: violet]` |
 | 節目 | `point <名札> at <目盛り>`。軸の下に旗の丸と名札を置く | `point C0 at 0` |
 | 拡大の帯 | `zoom <範囲>`。その目盛りごとに上の帯へ列を作り、宣言した箱を列ごとに同じ並びで置く | `zoom 0-1` |
 
@@ -326,6 +327,29 @@ step 交換が終わる
   return ex: 3200 USDC
 ```
 
+量の図 (`chart <題> [shape: donut]` か `chart <題> [shape: bar]`) は、項目どうしの大きさを段ごとに比べる。ドーナツは項目ごとの割合を弧の角度で、横棒は項目ごとの量を棒の長さで描く。
+最初の段より前に `item <名札> as <名前> [color: <色>]` で比べる項目を 1 つ以上、8 個まで宣言する。
+段の中の `set <名札>: <値>` は項目の値で、0 以上の数を単位を付けずに書く。`set` を書かない項目は前の段の値を保ち、弧と棒は前の段の値から新しい値へ動く。
+
+```dragon
+chart スマホのOSの割合 [shape: donut]
+
+item ios as iOS [color: blue]
+item android as Android [color: green]
+item other as その他 [color: slate]
+
+step 2018年
+  say iOSが7割を占める。
+  set ios: 70
+  set android: 29
+  set other: 1
+
+step 2024年
+  say Androidが4割近くまで伸びる。
+  set ios: 60
+  set android: 39
+```
+
 手順の図 (`flow <題>`) では、手順を `box`、判断を `choice <名札> as <問い>` で書く。
 段が通る箱と判断は、線が初めて辿り着く順に上から下へ 1 列に並び、判断がほかへ送る道は判断の右へ出る。
 判断から出る線には答えを名前に書き、1 つの判断から出る道は 2 つまで。
@@ -366,6 +390,7 @@ step 受け付ける
 | 付ける行 | 鍵 | 意味 |
 |---|---|---|
 | 図の種類と題 | `view` | 見せ方。`fixed` か `follow` |
+| 図の種類と題 | `shape` | 量の図の見た目。`donut` か `bar`。量の図だけが持ち、必ず書く |
 | 区画と箱 | `note` | 区画の添え書きか、箱の下の小さな字 |
 | 区画と箱 | `color` | 色の役。`blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` のどれか |
 | 区画と箱 | `icon` | 名前の横に置く印 |

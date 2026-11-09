@@ -219,6 +219,7 @@ export type SyntaxId =
   | "scale"
   | "period"
   | "row"
+  | "task"
   | "point"
   | "zoom"
   | "now"
@@ -240,6 +241,8 @@ export type SyntaxId =
   | "action"
   | "swap"
   | "strip-value"
+  | "chart-item"
+  | "chart-set"
   | "comment";
 
 /** 早見の行に置く穴の名前。`<名札>` のように山括弧で囲んで出す */
@@ -352,7 +355,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const gitBase = draw({ ...add(empty("git"), { branch: [{ id: h.branch }] }), steps: [step] });
   const inGit = (events: object[]): Diagram => draw({ ...gitBase, steps: [{ ...step, events }] });
   const commitOf = (extra: object): object => ({ type: "commit", id: h.id, branch: h.branch, ...extra });
-  // 目盛りと区切りと印の列と節目と拡大の帯と、針と印の色と範囲は時間軸の図だけが書ける (#3165)
+  // 目盛りと区切りと印の列と作業の棒と節目と拡大の帯と、針と印の色と範囲は時間軸の図だけが書ける (#3165、#3562)
   const scale = { unit: h.unit, length: h.length, count: h.count };
   const timeOf = (extra: object = {}): Diagram => draw({ ...add(empty("time"), { scale, row: [], ...extra }), steps: [step] });
   const timeBase = timeOf();
@@ -371,12 +374,16 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const inTry = (base: Diagram, events: object[]): Diagram => draw({ ...base, steps: [{ ...step, events }] });
   const askBase = tryWith({ type: "ask", id: "ask", fields: [h.name, h.field], into: h.queue, via: h.route });
   const pressBase = tryWith({ type: "press", id: h.id, from: h.queue, into: h.chain, take: h.count, at: h.part });
+  // 項目と項目の値は量の図だけが書ける (#3560)。見た目は頭の行の [shape: ] で選ぶ
+  const chartOf = (shape: string, items: object[] = []): Diagram => draw({ ...empty("chart"), chart: { shape, items } });
+  const chartBase = draw({ ...chartOf("donut"), steps: [step] });
+  const chartItemBase = draw({ ...chartOf("donut", [{ id: h.id, name: h.name }]), steps: [step] });
   // 判断は手順の図だけが書ける (#3561)
   const flowBase = draw({ ...empty("flow"), steps: [step] });
   return [
     {
       id: "kind",
-      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try")), head(empty("pipe")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]])],
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try")), head(empty("pipe")), head(chartOf("donut")), head(chartOf("bar")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]])],
     },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
@@ -410,6 +417,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "scale", lines: diff([[draw({ ...empty("time"), steps: [step] }), timeOf({ scale: { ...scale, from: h.number } })]]) },
     { id: "period", lines: diff([[timeBase, timeOf({ period: { name: h.name, length: h.count, from: h.number } })]]) },
     { id: "row", lines: diff([[timeBase, timeOf({ row: [{ id: h.id, name: h.name, color: h.color, empty: [h.tick] }] })]]) },
+    { id: "task", lines: diff([[timeBase, timeOf({ task: [{ id: h.id, name: h.name, from: h.first, to: h.last, color: h.color }] })]]) },
     { id: "point", lines: diff([[timeBase, timeOf({ point: [{ id: h.id, at: h.tick }] })]]) },
     {
       id: "zoom",
@@ -449,6 +457,8 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
     { id: "strip-value", lines: diff([[add(withStep, { strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },
+    { id: "chart-item", lines: diff([[chartBase, draw({ ...chartOf("donut", [{ id: h.id, name: h.name, color: h.color }]), steps: [step] })]]) },
+    { id: "chart-set", lines: diff([[chartItemBase, draw({ ...chartItemBase, steps: [{ ...step, events: [{ type: "set", item: h.id, value: h.value }] }] })]]) },
     { id: "comment", lines: [`// ${h.memo}`] },
   ];
 }

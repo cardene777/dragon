@@ -23,11 +23,12 @@ export interface RowMessages {
 /** `row <名札> as <名前> [color: <色>, empty: <目盛り> <目盛り>]` の行。箱と同じ名札を持てる */
 function readRow(source: SourceLine, state: ParseState): void {
   const { m } = state;
-  const { rows, points, pending } = state.figure.time;
+  const { rows, points, tasks, pending } = state.figure.time;
   state.beforeSteps(source);
   const declared = readDeclared(source, "row", state.attrs.row ?? [], m);
   state.notReserved(source, declared.id, declared.idAt);
-  if (rows.some((row) => row.id === declared.id) || points.some((point) => point.id === declared.id)) throw fail(source, declared.idAt, m.duplicate(declared.id));
+  const taken = (list: readonly { id: string }[]): boolean => list.some((x) => x.id === declared.id);
+  if (taken(rows) || taken(points) || taken(tasks)) throw fail(source, declared.idAt, m.duplicate(declared.id));
   const color = declared.attrs.get("color");
   if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
   const empty = declared.attrs.get("empty");
@@ -61,6 +62,13 @@ function readMark(source: SourceLine, state: ParseState): TimeMarkEvent {
   return { type: "mark", row, from, to, color: color.value };
 }
 
+/** 印の列の行の書き戻し。作業を持つ図は、作業のブロックがこの行を作業の行と宣言した順に並べて書く (#3562) */
+export const rowLine = (r: TimeRow): string =>
+  `row ${r.id}${shown(r.id, r.name)}${attrs([
+    ["color", r.color],
+    ["empty", r.empty && r.empty.length > 0 ? r.empty.join(" ") : undefined],
+  ])}`;
+
 export const reading: BlockReading<RowMessages> = {
   read: {
     row: readRow,
@@ -70,21 +78,11 @@ export const reading: BlockReading<RowMessages> = {
     },
   },
   print: {
-    // 印の列の行は、目盛りの塊の後ろに 1 つの塊で書く
+    // 印の列の行は、目盛りの塊の後ろに 1 つの塊で書く。作業を持つ図は作業のブロックが作業の行と並べて書く (#3562)
     lead: (diagram) => {
       const time = diagram.time;
-      if (!time) return [];
-      return [
-        time.rows
-          .map(
-            (r) =>
-              `row ${r.id}${shown(r.id, r.name)}${attrs([
-                ["color", r.color],
-                ["empty", r.empty && r.empty.length > 0 ? r.empty.join(" ") : undefined],
-              ])}`,
-          )
-          .join("\n"),
-      ];
+      if (!time || time.rows.length === 0 || (time.tasks ?? []).length > 0) return [];
+      return [time.rows.map(rowLine).join("\n")];
     },
     events: {
       mark: (e) => `mark ${e.row} ${range(e.from, e.to)}${attrs([["color", e.color]])}`,
@@ -92,13 +90,13 @@ export const reading: BlockReading<RowMessages> = {
   },
   messages: {
     ja: {
-      noRows: "row の行で印の列を 1 つ以上宣言する",
+      noRows: "row の行で印の列を、task の行で作業を、どちらか 1 つ以上宣言する",
       rowShape: "row は row <名札> as <名前> [color: <色>, empty: <目盛り> <目盛り>] の形で書く",
       markShape: "mark は mark <列> <目盛り>-<目盛り> [color: <色>] の形で書く",
       undeclaredRow: (id) => `${id} という印の列は宣言していない`,
     },
     en: {
-      noRows: "Declare at least one row with a row line",
+      noRows: "Declare at least one row with a row line or one task with a task line",
       rowShape: "Write a row as row <id> as <name> [color: <color>, empty: <unit> <unit>]",
       markShape: "Write a mark as mark <row> <unit>-<unit> [color: <color>]",
       undeclaredRow: (id) => `No row named ${id} is declared`,

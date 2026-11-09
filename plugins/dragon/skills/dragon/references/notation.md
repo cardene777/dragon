@@ -23,9 +23,10 @@ Lines starting with `//` and blank lines are not read.
 
 ## Head line
 
-`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe` and `flow`.
+`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart` and `flow`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
+- `chart` needs its shape on the head line: `chart <title> [shape: donut]` or `chart <title> [shape: bar]`. Only `chart` takes `shape` here.
 - `[view: fixed]` keeps the whole diagram still and moves only what is inside. `[view: follow]` moves the frame to where things happen and shows a small overview. Leave it out and dragon picks by text size.
 
 ## Boxes and groups
@@ -78,7 +79,7 @@ strip <title>: <field>, <field>, <field>
 ```
 
 Declare a strip before the first step to show values that change over the steps. Inside a step, `set <field>: <value>` fills a field and `set <field> [tag: <text>]` adds a tag to it.
-A strip works in every kind except `pipe` and `try`.
+A strip works in every kind except `pipe`, `try` and `chart`. In `chart`, `set <id>: <value>` is the value of an item instead.
 
 ## Attribute values
 
@@ -89,6 +90,7 @@ A strip works in every kind except `pipe` and `try`.
 | `carry` | `coin`, `none` |
 | `side` | `above`, `below`, `left`, `right` |
 | `view` | `fixed`, `follow` |
+| `shape` on the `chart` head line | `donut`, `bar` |
 
 Pick colors by meaning and keep them consistent in one diagram: for example `slate` for people and clients, `blue` for your system, `green` for success, `rose` for failure, `amber` for waiting or money.
 `lineup` takes no icons.
@@ -102,11 +104,11 @@ Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as
 |---|---|
 | `step`, `say`, `code`, `source` | all |
 | `gist` | `pipe` |
-| `box` | all except `try` (which declares its own parts) |
-| `note` | all except `pipe` and `try` |
+| `box` | all except `try` (which declares its own parts) and `chart` (which declares items) |
+| `note` | all except `pipe`, `try` and `chart` |
 | `act`, `link`, `carry`, `->` lines between boxes | `architecture`, `flow`, `git`, `sequence`, `state`, `time`, `tree` |
-| `icon` | all except `lineup` and `try` |
-| `color` on boxes | all except `pipe` and `try` |
+| `icon` | all except `lineup`, `try` and `chart` |
+| `color` on boxes | all except `pipe`, `try` and `chart` |
 | `strip` and `set` | `architecture`, `flow`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
 | `choice` | `flow` |
 | `group ... end` | `architecture` |
@@ -170,7 +172,7 @@ Examples of what the parser says.
 
 ```text
 A line cannot start with foo. Start a line with group / end / box / ... or <id> -> <id>
-Write group, box, strip, branch, scale, period, row, point and zoom before the first step
+Write group, box, strip, branch, scale, period, row, task, point and zoom before the first step
 No box named c is declared
 Step "A" needs a body (a say line)
 There is no icon named serverr. The closest is server

@@ -1,0 +1,123 @@
+/**
+ * カタログの頁だけが使う言葉。日本語と英語の 2 つを持つ (#3565)。
+ *
+ * カタログの一覧と分類と部品の頁 (`pages.ts`) だけがこの file を読むので、build はこの字を頁と一緒に後から読む塊に入れる (#3280)。
+ * 最初に読む言葉の表 (`../text.ts`) に書くと、カタログを開かない人にも図の種類の説明と一覧と検索と拡大の字を読ませ、
+ * 図の種類を足すたびに説明の分だけ最初に読む script が重くなる (`first-load-carries-no-catalog-text`)。
+ * 図の種類の名前と部品の名前は、編集画面の棚と頁の題が使うので最初に読む言葉の表に残す。
+ * 待ちの一言と、塊を読めなかった時の案内も、塊が届く前と届かない時に出すので最初に読む言葉の表に残す。
+ */
+import type { Kind } from "./catalog";
+
+export const CATALOG_TEXT = {
+  ja: {
+    crumb: "現在地",
+    lead: (parts: number, kinds: number, samples: number) =>
+      `今の記法の部品 ${parts} 個と、部品を組み合わせた ${kinds} 種類の図を並べる。部品の頁で書き方と見え方を確かめ、図の頁で見本を検索して動かし、編集画面で開ける。合計 ${samples} 件の見本。`,
+    sections: {
+      parts: { title: "コアブロック", lead: "いくつもの図の種類で使うブロック。ブロックごとに、使える図の種類それぞれで描いた見え方を並べる。列の図は線を引かないので、線と箱の中の処理のブロックは列の図に無い。試す図は箱と線を持たず、読み手が段を足していく図なので、ここのブロックは試す図に無い。" },
+      "kind-parts": { title: "個別ブロック", lead: "1 つの図の種類でだけ使うブロック。" },
+      kinds: { title: "図", lead: "ブロックを組み合わせた図。図ごとに、使うブロックの一覧と見本を載せる。" },
+    },
+    kindOnly: (kind: string) => `${kind}だけ`,
+    partKinds: "使える図",
+    words: "記法の語",
+    uses: "この図で使う部品",
+    usesLead: "部品を押すと、その部品の書き方と見え方の頁へ移る。",
+    partSamples: "この部品を使う見本",
+    partSamplesLead: "見本を押すと、図の頁でその見本を開く。",
+    partIcons: "使える絵柄",
+    partIconsLead: (count: number) => `箱と区画の icon に下の名前を書くと、その絵柄が名前の横に付く。使える絵柄は ${count} 個。`,
+    count: (n: number) => `${n} 件`,
+    open: "開く →",
+    kinds: {
+      sequence: "登場する物の間で、誰が誰に何を渡すかを段ごとに追う図。ログインの流れや API の呼び出しの順を、線の上を走る封筒で見せる。",
+      architecture: "区画と箱で仕組みの構成を描き、段ごとにどこからどこへ何が流れるかを見せる図。チェーンをまたぐ送金や、サービスの間の受け渡しに使う。",
+      state: "1 つの物が状態を移る様子を段ごとに追う図。注文や申請が受付から閉じるまでにどの状態を通るかを、線の上を走る札で見せる。",
+      git: "git の枝に commit が積まれ、rebase や merge commit で取り込まれる様子を段ごとに追う図。枝と HEAD がどの commit を指すかを、丸の上の札で見せる。",
+      time: "決まった間隔で刻む時間の上で、何がいつ起きたかを段ごとに追う図。ブロックの確定や引き出しの待ちのように、時間が長さとして効く仕組みを、進む針と塗られる印で見せる。",
+      tree: "親子で枝分かれする箱を葉から根まで組み上げ、根と葉の間を段ごとに辿る図。Merkle 木のように少しの値で全体を確かめる仕組みを、木の線の上を走る札で見せる。",
+      lineup: "横長の列にチップを並べ、段ごとに並びが替わる様子を追う図。入札でブロックの中身が決まる流れのように、順番と隠す中身が効く仕組みを、列の間を滑るチップと封で見せる。",
+      try: "読み手が値を打ち込み、釦を押して動かす図。送ったトランザクションが網を伝わり、手数料の順にブロックへ入り、hash で鎖につながる様子を、読み手が自分で試して確かめる。",
+      pipe: "1 つのトランザクションの中で、契約の呼び出しと残高と記録の値が段ごとにどう動くかを追う図。交換や取り消しのように、仮の書き換えが最後に確定するか巻き戻るかが効く仕組みを、槽の水位と管を流れるトークンで見せる。",
+      chart: "項目ごとの割合をドーナツの弧で、量を横棒の長さで描き、段ごとに値が変わる様子を追う図。年ごとの割合や月ごとの件数のように、項目どうしの大きさの差が効く話を、前の段の値から動く弧と棒で見せる。",
+      flow: "判断のひし形で道が分かれる手順を、上から下へ 1 列に並べて段ごとに追う図。ログインの確かめのように、どこで分かれてどの道を通ったかが効く手順を、選ばれた道を進む印と、今回は通らない点線の道で見せる。",
+    } satisfies Record<Kind, string>,
+    total: (n: number) => `全 ${n} 件`,
+    showing: (n: number) => `${n} 件 表示中`,
+    search: "検索 (名前 / 説明)",
+    searchLabel: "見本を検索",
+    clearSearch: "検索語を消す",
+    list: "見本の一覧",
+    nothing: "当てはまる見本が無い",
+    preview: "図の表示",
+    views: "表示の切替",
+    figure: "図",
+    code: "コード",
+    sameAsSite: "サイトと同じ",
+    expand: "拡大",
+    expandLabel: (title: string) => `${title} を拡大して見る`,
+    close: "閉じる",
+    openEditor: "編集画面で開く →",
+    source: "この図の記法",
+    copy: "コードを写す",
+    copied: "写しました",
+  },
+  en: {
+    crumb: "You are here",
+    lead: (parts: number, kinds: number, samples: number) =>
+      `The ${parts} parts of the current notation, and the ${kinds} diagram kinds built from them. A part page shows how to write the part and how it looks; a diagram page lets you search its examples, watch them move, and open them in the editor. ${samples} examples in total.`,
+    sections: {
+      parts: {
+        title: "Core blocks",
+        lead: "Blocks that many diagram kinds use. Each block page shows the block in every diagram kind that can use it. Lineup diagrams draw no edges, so the edge and action blocks are not part of them. Try diagrams have no boxes or edges and grow the steps as the reader acts, so none of these blocks are part of them.",
+      },
+      "kind-parts": { title: "Kind blocks", lead: "Blocks that only one diagram kind uses." },
+      kinds: { title: "Diagrams", lead: "Diagrams built from the blocks. Each lists the blocks it uses and its examples." },
+    },
+    kindOnly: (kind: string) => `${kind} only`,
+    partKinds: "Used in",
+    words: "Notation",
+    uses: "Parts this diagram uses",
+    usesLead: "Pick a part to see how to write it and how it looks.",
+    partSamples: "Examples that use this part",
+    partSamplesLead: "Pick an example to open it on its diagram page.",
+    partIcons: "Available icons",
+    partIconsLead: (count: number) => `Write one of these names as the icon of a box or a group to put that picture beside its name. There are ${count} icons.`,
+    count: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
+    open: "Open →",
+    kinds: {
+      sequence: "Follow who hands what to whom, step by step. Show a sign-in flow or the order of API calls with envelopes running along the edges.",
+      architecture: "Draw a system as regions and boxes, and show what flows where in each step. Use it for cross-chain transfers or hand-offs between services.",
+      state: "Follow one object as it moves between states, step by step. A tag running along the lines shows which states an order or a request passes before it closes.",
+      git: "Follow commits piling up on git branches and coming together through a rebase or a merge commit, step by step. Tags above the circles show which commit each branch and HEAD point at.",
+      time: "Follow what happens when on time cut into fixed units, step by step. For mechanisms where time itself matters, like block finality or a withdrawal wait, a moving needle and filling marks show it.",
+      tree: "Build boxes that branch into parents and children from the leaves up to the root, then follow the path between root and leaf step by step. For mechanisms like a Merkle tree, where a few values prove the whole, tags running along the tree lines show it.",
+      lineup:
+        "Line chips up in long lanes and follow how their order changes, step by step. For mechanisms where order and hidden contents matter, like an auction that decides what goes in a block, chips sliding between lanes and seals show it.",
+      try: "A figure readers move by typing values and pressing buttons. Readers try for themselves how a transaction crosses the network, enters a block in fee order, and joins the chain by its hash.",
+      pipe: "Follow how contract calls, balances and stored values move inside one transaction, step by step. For mechanisms where provisional changes either settle at the end or roll back, like a swap or a revert, tank levels and tokens flowing through pipes show it.",
+      chart: "Draw the share of each item as the arcs of a donut, or its amount as the length of a bar, and follow how the values change step by step. For stories where the size of one item against another matters, like yearly shares or monthly counts, arcs and bars moving from the previous values show it.",
+      flow: "Stack a procedure that branches at decision diamonds from top to bottom and follow it step by step. For procedures where it matters where the way splits and which way was taken, like a login check, a marker moving along the chosen path and dotted paths not taken show it.",
+    } satisfies Record<Kind, string>,
+    total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
+    showing: (n: number) => `showing ${n}`,
+    search: "Search (name / description)",
+    searchLabel: "Search the examples",
+    clearSearch: "Clear the search",
+    list: "Example list",
+    nothing: "No example matches",
+    preview: "Diagram",
+    views: "What to show",
+    figure: "Diagram",
+    code: "Code",
+    sameAsSite: "Same as the site",
+    expand: "Enlarge",
+    expandLabel: (title: string) => `Enlarge ${title}`,
+    close: "Close",
+    openEditor: "Open in the editor →",
+    source: "Notation for this diagram",
+    copy: "Copy the code",
+    copied: "Copied",
+  },
+} as const;

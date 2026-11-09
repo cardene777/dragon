@@ -9,6 +9,10 @@ export type { NotationLang } from "./words";
 export {
   type Box,
   type Carry,
+  type ChartItem,
+  type ChartSet,
+  type ChartShape,
+  type ChartSpec,
   type Checked,
   type CheckOp,
   type CheckOptions,
@@ -52,6 +56,7 @@ export {
   type TimeScale,
   type TimeSpanEvent,
   type TimeSpec,
+  type TimeTask,
   type TreeLeaf,
   type TreeNode,
   type TryAsk,
@@ -86,7 +91,7 @@ export type {
   SceneStrip,
   SceneTrail,
 } from "./layout/scene";
-export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTick, TimeWire, TimeZoom } from "./kinds/time/layout";
+export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTaskPlaced, TimeTick, TimeWire, TimeZoom } from "./kinds/time/layout";
 export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./kinds/tree/layout";
 export type { TryChainPlaced, TryLayout, TryLogPlaced, TryMoment, TryNetLink, TryNodePlaced, TryPartPlaced, TryQueuePlaced, TryRoutePlaced, TryTitle } from "./kinds/try/layout";
 export type { TryBlock, TryRecord, TryState, TryTrip } from "./try-state";
@@ -125,6 +130,7 @@ export type {
   PipeValuePipe,
   PipeWrite as PipeWritePlaced,
 } from "./kinds/pipe/layout";
+export type { ChartArc, ChartBarRow, ChartLayout, ChartLayoutOptions, ChartLegendRow, ChartPlan, ChartRow } from "./kinds/chart/layout";
 export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupText, TextLine } from "./kinds/lineup/layout";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";

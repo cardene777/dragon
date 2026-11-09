@@ -7,6 +7,9 @@ import { docs as calcDocs } from "../../../../packages/dragon/src/blocks/calc/ga
 import { docs as callDocs } from "../../../../packages/dragon/src/blocks/call/gallery/docs";
 import { docs as carryDocs } from "../../../../packages/dragon/src/blocks/carry/gallery/docs";
 import { docs as chainDocs } from "../../../../packages/dragon/src/blocks/chain/gallery/docs";
+import { docs as chartItemDocs } from "../../../../packages/dragon/src/blocks/chart-item/gallery/docs";
+import { docs as chartSetDocs } from "../../../../packages/dragon/src/blocks/chart-set/gallery/docs";
+import { docs as chartShapeDocs } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/docs";
 import { docs as checkDocs } from "../../../../packages/dragon/src/blocks/check/gallery/docs";
 import { docs as choiceDocs } from "../../../../packages/dragon/src/blocks/choice/gallery/docs";
 import { docs as colorDocs } from "../../../../packages/dragon/src/blocks/color/gallery/docs";
@@ -49,6 +52,7 @@ import { docs as stampDocs } from "../../../../packages/dragon/src/blocks/stamp/
 import { docs as startFinishDocs } from "../../../../packages/dragon/src/blocks/start-finish/gallery/docs";
 import { docs as stepDocs } from "../../../../packages/dragon/src/blocks/step/gallery/docs";
 import { docs as stripDocs } from "../../../../packages/dragon/src/blocks/strip/gallery/docs";
+import { docs as taskDocs } from "../../../../packages/dragon/src/blocks/task/gallery/docs";
 import { docs as valueDocs } from "../../../../packages/dragon/src/blocks/value/gallery/docs";
 import { docs as writeDocs } from "../../../../packages/dragon/src/blocks/write/gallery/docs";
 import { docs as zoomDocs } from "../../../../packages/dragon/src/blocks/zoom/gallery/docs";
@@ -63,6 +67,9 @@ export const BLOCK_DOCS = {
   "call": callDocs,
   "carry": carryDocs,
   "chain": chainDocs,
+  "chart-item": chartItemDocs,
+  "chart-set": chartSetDocs,
+  "chart-shape": chartShapeDocs,
   "check": checkDocs,
   "choice": choiceDocs,
   "color": colorDocs,
@@ -105,6 +112,7 @@ export const BLOCK_DOCS = {
   "start-finish": startFinishDocs,
   "step": stepDocs,
   "strip": stripDocs,
+  "task": taskDocs,
   "value": valueDocs,
   "write": writeDocs,
   "zoom": zoomDocs,

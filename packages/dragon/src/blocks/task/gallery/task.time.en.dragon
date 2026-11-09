@@ -1,0 +1,14 @@
+time Task bar
+
+scale day 1d 10 [from: 1]
+task design as Design 0-2 [color: blue]
+task build as Build 3-7 [color: violet]
+task ship as Release 9 [color: green]
+
+step Lay out the tasks
+  say Declare tasks from top to bottom with task. A bar spans the ticks of the range, and the part the needle has passed fills in.
+  now -> 4
+
+step Run to the end
+  say Once the needle passes the end of a bar, the whole bar is filled.
+  now -> 9

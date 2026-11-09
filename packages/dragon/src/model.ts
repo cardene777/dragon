@@ -27,6 +27,7 @@ export const HOMES = [
   ["scale", "time.scale"],
   ["period", "time.period"],
   ["row", "time.rows"],
+  ["task", "time.tasks"],
   ["point", "time.points"],
   ["zoom", "time.zoom"],
   ["item", "lineup.items"],
@@ -43,6 +44,7 @@ const blank = (value: unknown): boolean => value === undefined || (Array.isArray
 /**
  * 描く処理の形を版2の原本にする。空の並びは書かず、`blocks` の欄は `HOMES` の順に並べる。
  * 試す図 (#3337) は版1に無かった種類なので `HOMES` を通さず、部品 (`part`) とチップ (`item`) と並べる組 (`side`) と関門 (`check`、#3476) をこの順に置く。
+ * 量の図 (#3560) も版1に無かった種類で、見た目と項目を `blocks` でなく根の種類の欄 (`chart`) のまま移す
  * 手順の図 (#3561) も版1に無かった種類なので、箱 (`box`) と判断 (`choice`) と中身の帯 (`strip`) と今回は通らない道 (`path`) をこの順に置く
  */
 export function fromModel(model: DiagramModel, version: number): Diagram {
@@ -71,6 +73,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     title: model.title,
     ...(model.view !== undefined ? { view: model.view } : {}),
     ...(model.define !== undefined ? { define: model.define } : {}),
+    ...(model.chart !== undefined ? { chart: model.chart } : {}),
     blocks,
     steps: model.steps,
   };
@@ -128,16 +131,19 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(b.strip !== undefined ? { strip: b.strip } : {}),
     steps: diagram.steps,
     ...(diagram.kind === "sequence" ? { sequence: lifelinesOf(boxes) } : {}),
+    ...(diagram.chart !== undefined ? { chart: diagram.chart } : {}),
     ...(b.path !== undefined ? { state: { paths: b.path } } : {}),
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),
     ...(b.item !== undefined ? { lineup: { items: b.item, ...(b.role !== undefined ? { roles: b.role } : {}) } } : {}),
     ...(b.hold !== undefined ? { pipe: { holds: b.hold } } : {}),
-    ...(b.scale !== undefined || b.row !== undefined
+    ...(b.scale !== undefined || b.row !== undefined || b.task !== undefined
       ? {
           time: {
             ...(b.scale !== undefined ? { scale: b.scale } : {}),
             ...(b.period !== undefined ? { period: b.period } : {}),
-            ...(b.row !== undefined ? { rows: b.row } : {}),
+            // 作業 (#3562) だけを持つ図も、描く処理は印の列の並びを読むので空の並びを置く
+            rows: b.row ?? [],
+            ...(b.task !== undefined ? { tasks: b.task } : {}),
             ...(b.point !== undefined ? { points: b.point } : {}),
             ...(b.zoom !== undefined ? { zoom: b.zoom } : {}),
           } as DiagramModel["time"],

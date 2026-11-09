@@ -20,7 +20,7 @@ import { type Diagram, loadReadings, parseNotation } from "@cardenelabs/dragon/l
 import { laterChunk } from "./site/later";
 import type { Lang } from "./text";
 
-export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "bridge", "order", "rebase", "merge", "finality", "withdraw", "merkle", "auction", "tx-block", "swap", "swap-revert", "swap-two-hops", "swap-retry", "vault-proxy", "aggregator", "login-check"] as const;
+export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "bridge", "order", "rebase", "merge", "finality", "withdraw", "release-plan", "merkle", "auction", "tx-block", "swap", "swap-revert", "swap-two-hops", "swap-retry", "vault-proxy", "aggregator", "os-share", "tickets", "login-check"] as const;
 export type ExampleKey = (typeof EXAMPLE_KEYS)[number];
 
 /** 最初に読む見本。概要の頁の用例と編集画面の最初の見本 */

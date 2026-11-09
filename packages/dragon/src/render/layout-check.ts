@@ -81,6 +81,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
  * 時間軸の図の針と時刻の目盛りの線と時間軸の囲みの呼び方と、部品が時間軸の囲みの枠に掛かる文も持つ (#3527)。
  * 囲みと列と帯の枠線の呼び方と、番号の丸が枠線に乗る文も持つ (#3525)。線の名前が枠線をまたぐ崩れも同じ文で知らせる (#3554)。
  * 配管の図の弁と計器と管の呼び方、札が部品に重なる、管が箱の縁の後ろを通る、2 本の管が重なって通る (#3523)。
+ * ドーナツの輪の内側の呼び方も持ち、輪の真ん中の段の名前が収まらない崩れは図の枠からのはみ出しと同じ文で知らせる (#3560)。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
  * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
  */
@@ -109,6 +110,7 @@ interface BreakText {
   merged: (a: string, b: string) => string;
   nearBorder: (line: string, part: string) => string;
   touchesBorder: (text: string, box: string) => string;
+  ring: string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
@@ -137,6 +139,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     merged: (a, b) => `${spaced(a)}と${spaced(b)}が重なって通る`,
     nearBorder: (line, part) => `${spaced(line)}が${part}の枠に沿って近すぎる`,
     touchesBorder: (text, box) => `${spaced(text)}が${box}の枠に接する`,
+    ring: "ドーナツの輪の内側",
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -163,6 +166,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     merged: (a, b) => capital(`${a} and ${b} run on top of each other`),
     nearBorder: (line, part) => capital(`${line} runs too close along the border of ${part}`),
     touchesBorder: (text, box) => capital(`${text} touches the border of ${box}`),
+    ring: "the inside of the donut ring",
   },
 };
 
@@ -206,6 +210,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return w.pipeOf(part.from, part.to, part.step);
       case "border":
         return w.borderOf(part.name);
+      case "ring":
+        return w.ring;
     }
   };
   const [a, b2] = b.parts;
@@ -216,7 +222,7 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         ? w.sticksOut(name(a), name(b2))
         : b.kind === "badges-close" || b.kind === "valve-near-pipe"
           ? w.tooClose(name(a), name(b2))
-          : b.kind === "part-outside-frame"
+          : b.kind === "part-outside-frame" || b.kind === "title-outside-ring"
             ? w.outOfFrame(name(a), name(b2))
             : b.kind === "panel-edge"
               ? w.reachesEdge(name(a), name(b2))

@@ -23,6 +23,15 @@ import { rule as carryRule } from "../../../../packages/dragon/src/blocks/carry/
 import { text as chainText } from "../../../../packages/dragon/src/blocks/chain/gallery/text";
 import { shelf as chainShelf } from "../../../../packages/dragon/src/blocks/chain/gallery/shelf";
 import { rule as chainRule } from "../../../../packages/dragon/src/blocks/chain/gallery/rule";
+import { text as chartItemText } from "../../../../packages/dragon/src/blocks/chart-item/gallery/text";
+import { shelf as chartItemShelf } from "../../../../packages/dragon/src/blocks/chart-item/gallery/shelf";
+import { rule as chartItemRule } from "../../../../packages/dragon/src/blocks/chart-item/gallery/rule";
+import { text as chartSetText } from "../../../../packages/dragon/src/blocks/chart-set/gallery/text";
+import { shelf as chartSetShelf } from "../../../../packages/dragon/src/blocks/chart-set/gallery/shelf";
+import { rule as chartSetRule } from "../../../../packages/dragon/src/blocks/chart-set/gallery/rule";
+import { text as chartShapeText } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/text";
+import { shelf as chartShapeShelf } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/shelf";
+import { rule as chartShapeRule } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/rule";
 import { text as checkText } from "../../../../packages/dragon/src/blocks/check/gallery/text";
 import { shelf as checkShelf } from "../../../../packages/dragon/src/blocks/check/gallery/shelf";
 import { rule as checkRule } from "../../../../packages/dragon/src/blocks/check/gallery/rule";
@@ -149,6 +158,9 @@ import { rule as stepRule } from "../../../../packages/dragon/src/blocks/step/ga
 import { text as stripText } from "../../../../packages/dragon/src/blocks/strip/gallery/text";
 import { shelf as stripShelf } from "../../../../packages/dragon/src/blocks/strip/gallery/shelf";
 import { rule as stripRule } from "../../../../packages/dragon/src/blocks/strip/gallery/rule";
+import { text as taskText } from "../../../../packages/dragon/src/blocks/task/gallery/text";
+import { shelf as taskShelf } from "../../../../packages/dragon/src/blocks/task/gallery/shelf";
+import { rule as taskRule } from "../../../../packages/dragon/src/blocks/task/gallery/rule";
 import { text as valueText } from "../../../../packages/dragon/src/blocks/value/gallery/text";
 import { shelf as valueShelf } from "../../../../packages/dragon/src/blocks/value/gallery/shelf";
 import { rule as valueRule } from "../../../../packages/dragon/src/blocks/value/gallery/rule";
@@ -169,6 +181,9 @@ export const BLOCK_TEXT = {
   "call": callText,
   "carry": carryText,
   "chain": chainText,
+  "chart-item": chartItemText,
+  "chart-set": chartSetText,
+  "chart-shape": chartShapeText,
   "check": checkText,
   "choice": choiceText,
   "color": colorText,
@@ -211,6 +226,7 @@ export const BLOCK_TEXT = {
   "start-finish": startFinishText,
   "step": stepText,
   "strip": stripText,
+  "task": taskText,
   "value": valueText,
   "write": writeText,
   "zoom": zoomText,
@@ -226,6 +242,9 @@ export const BLOCK_SHELF = {
   "call": callShelf,
   "carry": carryShelf,
   "chain": chainShelf,
+  "chart-item": chartItemShelf,
+  "chart-set": chartSetShelf,
+  "chart-shape": chartShapeShelf,
   "check": checkShelf,
   "choice": choiceShelf,
   "color": colorShelf,
@@ -268,6 +287,7 @@ export const BLOCK_SHELF = {
   "start-finish": startFinishShelf,
   "step": stepShelf,
   "strip": stripShelf,
+  "task": taskShelf,
   "value": valueShelf,
   "write": writeShelf,
   "zoom": zoomShelf,
@@ -283,6 +303,9 @@ export const BLOCK_RULE = {
   "call": callRule,
   "carry": carryRule,
   "chain": chainRule,
+  "chart-item": chartItemRule,
+  "chart-set": chartSetRule,
+  "chart-shape": chartShapeRule,
   "check": checkRule,
   "choice": choiceRule,
   "color": colorRule,
@@ -325,10 +348,11 @@ export const BLOCK_RULE = {
   "start-finish": startFinishRule,
   "step": stepRule,
   "strip": stripRule,
+  "task": taskRule,
   "value": valueRule,
   "write": writeRule,
   "zoom": zoomRule,
 } as const;
 
 /** ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に。見本帳の一覧と棚と使い方の頁は、この順にブロックの見本帳の分を並べる */
-export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "log", "ask", "press", "side", "hold", "write", "return", "call", "value", "check", "emit", "calc", "revert", "fold", "gist", "choice"] as const;
+export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "task", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "log", "ask", "press", "side", "hold", "write", "return", "call", "value", "check", "emit", "calc", "revert", "fold", "gist", "choice", "chart-shape", "chart-item", "chart-set"] as const;

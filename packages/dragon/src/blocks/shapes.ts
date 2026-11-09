@@ -7,6 +7,9 @@ import { shape as calcShape } from "./calc/shape";
 import { shape as callShape } from "./call/shape";
 import { shape as carryShape } from "./carry/shape";
 import { shape as chainShape } from "./chain/shape";
+import { shape as chartItemShape } from "./chart-item/shape";
+import { shape as chartSetShape } from "./chart-set/shape";
+import { shape as chartShapeShape } from "./chart-shape/shape";
 import { shape as checkShape } from "./check/shape";
 import { shape as choiceShape } from "./choice/shape";
 import { shape as colorShape } from "./color/shape";
@@ -49,6 +52,7 @@ import { shape as stampShape } from "./stamp/shape";
 import { shape as startFinishShape } from "./start-finish/shape";
 import { shape as stepShape } from "./step/shape";
 import { shape as stripShape } from "./strip/shape";
+import { shape as taskShape } from "./task/shape";
 import { shape as valueShape } from "./value/shape";
 import { shape as writeShape } from "./write/shape";
 import { shape as zoomShape } from "./zoom/shape";
@@ -63,6 +67,9 @@ export const SHAPES = {
   "call": callShape,
   "carry": carryShape,
   "chain": chainShape,
+  "chart-item": chartItemShape,
+  "chart-set": chartSetShape,
+  "chart-shape": chartShapeShape,
   "check": checkShape,
   "choice": choiceShape,
   "color": colorShape,
@@ -105,6 +112,7 @@ export const SHAPES = {
   "start-finish": startFinishShape,
   "step": stepShape,
   "strip": stripShape,
+  "task": taskShape,
   "value": valueShape,
   "write": writeShape,
   "zoom": zoomShape,

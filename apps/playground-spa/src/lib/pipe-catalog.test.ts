@@ -21,6 +21,11 @@ const WAIT = { timeout: 6_000, interval: 100 } as const;
 
 /** 見本帳の図の分類の名前の並び */
 const KIND_NAMES = ["時系列図", "構成図", "状態遷移図", "枝分かれの図", "時間軸の図", "木の図", "列の図", "試す図", "配管の図"] as const;
+/** 見本帳の一覧の札と配管の図の頁に出る、配管の図の説明 */
+const PIPE_DESC =
+  "1 つのトランザクションの中で、契約の呼び出しと残高と記録の値が段ごとにどう動くかを追う図。交換や取り消しのように、仮の書き換えが最後に確定するか巻き戻るかが効く仕組みを、槽の水位と管を流れるトークンで見せる。";
+/** 編集画面の棚の記法の早見の、図の種類の行の説明 */
+const SYNTAX_KIND_NOTE = "図の種類と題。最初の行に書く";
 /** 配管の図の見本 6 組 */
 const PIPE_SAMPLES = ["swap", "swap-revert", "swap-two-hops", "swap-retry", "vault-proxy", "aggregator"] as const;
 /** 配管の図だけの部品の名札と、見本帳の札の名前 */
@@ -118,15 +123,19 @@ describe("見本帳と編集画面の配管の図 (#3389)", () => {
     await onScreen(page, "catalog", "見本帳の一覧が出ない");
     const kinds = (): Promise<string[]> =>
       page.evaluate(() => [...document.querySelectorAll('[data-catalog="section"][data-section="kinds"] [data-catalog="card"] h2')].map((h) => h.textContent?.trim() ?? ""));
-    // 後の課題が図の種類を足しても落ちないよう、先頭から今の種類の順で始まるかを見る (#3561)
-    await expect
-      .poll(async () => (await kinds()).slice(0, KIND_NAMES.length), { ...WAIT, message: `見本帳の図の分類が ${KIND_NAMES.join("、")} の順で始まらない` })
-      .toEqual([...KIND_NAMES]);
+    // 後に足した図の種類 (量の図、#3560) は配管の図の後ろに並ぶので、配管の図までの並びを確かめる
+    await expect.poll(async () => (await kinds()).slice(0, KIND_NAMES.length), { ...WAIT, message: `見本帳の図の分類が ${KIND_NAMES.join("、")} の順で始まらない` }).toEqual([...KIND_NAMES]);
+    // 図の種類の説明は、カタログの頁と一緒に後から読む字から、今と同じ字で出る (#3565)
+    const cardDesc = (): Promise<string> =>
+      page.evaluate(() => document.querySelector('[data-catalog="card"][href$="/catalog/pipe"] [data-catalog="card-desc"]')?.textContent?.trim() ?? "");
+    await expect.poll(cardDesc, { ...WAIT, message: "見本帳の一覧の配管の図の札の説明が今と同じ字でない" }).toBe(PIPE_DESC);
 
     const titles = PIPE_SAMPLES.map((key) => sample(key).title);
     const swap = sample("swap");
     const opened = await site.open({ path: `${BASE}catalog/pipe`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
     await onScreen(opened.page, "category", "配管の図の頁が出ない");
+    const heroDesc = (): Promise<string> => opened.page.evaluate(() => document.querySelector('[data-catalog="desc"]')?.textContent?.trim() ?? "");
+    await expect.poll(heroDesc, { ...WAIT, message: "配管の図の頁の説明が今と同じ字でない" }).toBe(PIPE_DESC);
     const items = (): Promise<string[]> => opened.page.evaluate(() => [...document.querySelectorAll('[data-catalog="item"]')].map((i) => i.textContent?.trim() ?? ""));
     await expect.poll(items, { ...WAIT, message: "配管の図の頁の一覧に見本 6 組が無い" }).toEqual(expect.arrayContaining(titles));
     await opened.page.locator('[data-catalog="item"]', { hasText: swap.title }).click();
@@ -192,5 +201,8 @@ describe("見本帳と編集画面の配管の図 (#3389)", () => {
     await page.locator(sel("shelf-tab-notation")).click();
     const lines = (): Promise<string[]> => page.evaluate((s) => document.querySelector(`${s} code`)?.textContent?.split("\n") ?? [], sel("syntax-kind"));
     await expect.poll(async () => (await lines()).some((l) => l.startsWith("pipe ")), { ...WAIT, message: "記法の早見の図の種類の行に pipe の頭の行が無い" }).toBe(true);
+    // 早見の説明は後から読む塊の字から、今と同じ字で出る (#3565)
+    const note = (): Promise<string> => page.evaluate((s) => document.querySelector(`${s} .pg-entry-note`)?.textContent?.trim() ?? "", sel("syntax-kind"));
+    await expect.poll(note, { ...WAIT, message: "記法の早見の図の種類の行の説明が今と同じ字でない" }).toBe(SYNTAX_KIND_NOTE);
   });
 });

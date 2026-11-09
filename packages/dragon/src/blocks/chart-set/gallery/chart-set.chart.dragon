@@ -1,0 +1,14 @@
+chart 週ごとの来客 [shape: bar]
+
+item shop as 店頭
+item web as 通販
+
+step 1週目
+  say set で段ごとの項目の値を書く。
+  set shop: 40
+  set web: 25
+
+step 2週目
+  say 段を送ると、棒が前の段の値から動く。
+    set を書かない項目は前の段の値を保つ。
+  set web: 55

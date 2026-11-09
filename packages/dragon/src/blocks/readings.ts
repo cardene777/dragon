@@ -7,6 +7,9 @@ import { reading as calcReading } from "./calc/read";
 import { reading as callReading } from "./call/read";
 import { reading as carryReading } from "./carry/read";
 import { reading as chainReading } from "./chain/read";
+import { reading as chartItemReading } from "./chart-item/read";
+import { reading as chartSetReading } from "./chart-set/read";
+import { reading as chartShapeReading } from "./chart-shape/read";
 import { reading as checkReading } from "./check/read";
 import { reading as choiceReading } from "./choice/read";
 import { reading as colorReading } from "./color/read";
@@ -49,6 +52,7 @@ import { reading as stampReading } from "./stamp/read";
 import { reading as startFinishReading } from "./start-finish/read";
 import { reading as stepReading } from "./step/read";
 import { reading as stripReading } from "./strip/read";
+import { reading as taskReading } from "./task/read";
 import { reading as valueReading } from "./value/read";
 import { reading as writeReading } from "./write/read";
 import { reading as zoomReading } from "./zoom/read";
@@ -63,6 +67,9 @@ export const READINGS = {
   "call": callReading,
   "carry": carryReading,
   "chain": chainReading,
+  "chart-item": chartItemReading,
+  "chart-set": chartSetReading,
+  "chart-shape": chartShapeReading,
   "check": checkReading,
   "choice": choiceReading,
   "color": colorReading,
@@ -105,6 +112,7 @@ export const READINGS = {
   "start-finish": startFinishReading,
   "step": stepReading,
   "strip": stripReading,
+  "task": taskReading,
   "value": valueReading,
   "write": writeReading,
   "zoom": zoomReading,

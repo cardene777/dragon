@@ -43,6 +43,7 @@
  *   scale <単位> <長さ> <数> [from: <最初の番号>]       長さは数と単位 (ms、s、min、h、d) の組 (`12s`)
  *   period <名前> <目盛りの数> [from: <最初の番号>]
  *   row <名札> as <名前> [color: <色>, empty: <目盛り> <目盛り>]
+ *   task <名札> as <名前> <範囲> [color: <色>]           作業の棒 (#3562)。印の列と作業の行は宣言した順に上から並ぶ
  *   point <名札> at <目盛り>
  *   zoom <目盛り>-<目盛り>
  *
@@ -114,8 +115,8 @@ import { TIME_EDGE_ATTRS } from "./blocks/zoom/block";
 import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
-import { fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
-import type { Diagram, DiagramModel, Step } from "./schema";
+import { type Attr, fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
+import type { ChartShape, Diagram, DiagramModel, Step } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
@@ -187,10 +188,13 @@ const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
     return only === undefined ? [] : (block.words.heads ?? []).map((head) => [head, only] as const);
   }),
 );
-/** 列の図と試す図の両方に書ける行の頭の語 (#3337)。ほかの種類の図に書いた行は、2 つの図の種類だけの語の誤りで止める */
+/**
+ * 列の図と試す図の両方に書ける行の頭の語 (#3337)。ほかの種類の図に書いた行は、2 つの図の種類だけの語の誤りで止める。
+ * `item` は量の図 (#3560) でも項目の行として書け、量の図の行は項目のブロックが行の形で先に読む
+ */
 const LINEUP_OR_TRY = ["item", "line"];
 /** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
-const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "flow"];
+const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
@@ -209,7 +213,11 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   if (titled.value === "" && !short) throw fail(head, 0, m.badHead);
   // 短い記法の 1 行目は図の種類の語だけでよい。原本の題は空にできないので、図の種類の語を題にする
   const title = titled.value === "" ? kind : titled.value;
-  const view = viewOf(head, titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m).get("view") : undefined, m);
+  const headAttrs = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m) : new Map<string, Attr>();
+  const view = viewOf(head, headAttrs.get("view"), m);
+  // 図の種類の行の `shape` は量の図の見た目で、ほかの種類の図には書けない (#3560)。量の図の見た目は見た目のブロックが確かめる
+  const shape = headAttrs.get("shape");
+  if (shape && kind !== "chart") throw fail(head, shape.at, m.chartOnlyAttr("shape"));
 
   // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
   const always = kindNeeds(kind).find((name) => !readingLoaded(name));
@@ -232,11 +240,12 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     paths: [],
     branches: [],
     git: { commits: new Set(), tips: new Map() },
-    time: { rows: [], points: [], pending: [], settled: false, needle: 0 },
+    time: { rows: [], tasks: [], points: [], pending: [], settled: false, needle: 0 },
     tree: { boxes: new Map(), parents: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },
     try: { parts: [], items: [], sides: [], checks: [], pending: [] },
     pipe: { holds: [], opened: [] },
+    chart: { items: [], ...(shape ? { shape } : {}) },
     flow: { choices: [], paths: [], lines: [], main: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
@@ -434,7 +443,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     }
     const { word } = line;
     // 列の図のチップと並びの語は試す図でも書け、ほかの種類の図に書いた行は 2 つの図の種類だけの語の誤りで止める (#3337)
-    if (LINEUP_OR_TRY.includes(word) && !isLineup && !isTry) throw fail(source, 0, m.lineupOrTryOnly(word));
+    if (LINEUP_OR_TRY.includes(word) && !isLineup && !isTry) throw fail(source, 0, word === "item" ? m.itemOnly : m.lineupOrTryOnly(word));
     const only = ONLY_HEADS.get(word);
     const refuse = only === undefined || only === kind ? undefined : onlyIn[only];
     if (refuse) throw fail(source, 0, refuse(word));
@@ -495,12 +504,15 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
         }
       : {}),
     ...(figure.pipe.holds.length > 0 ? { pipe: { holds: figure.pipe.holds } } : {}),
+    // 量の図の見た目は見た目のブロックが `donut` か `bar` と確かめた
+    ...(kind === "chart" ? { chart: { shape: figure.chart.shape?.value as ChartShape, items: figure.chart.items } } : {}),
     ...(isTime && time.scale
       ? {
           time: {
             scale: time.scale,
             ...(time.period ? { period: time.period } : {}),
             rows: time.rows,
+            ...(time.tasks.length > 0 ? { tasks: time.tasks } : {}),
             ...(time.points.length > 0 ? { points: time.points } : {}),
             ...(time.zoom ? { zoom: time.zoom } : {}),
           },

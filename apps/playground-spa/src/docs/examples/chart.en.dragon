@@ -1,0 +1,16 @@
+chart Share of work hours in a week [shape: donut]
+
+item build as Build [color: blue]
+item review as Review [color: green]
+item meet as Meet [color: amber]
+
+step Last week
+  say Building takes half of the hours.
+  set build: 20
+  set review: 8
+  set meet: 12
+
+step This week
+  say Less time in meetings, more time reviewing.
+  set review: 14
+  set meet: 6

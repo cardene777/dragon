@@ -7,6 +7,9 @@ import { desc as calcDesc } from "../../../../packages/dragon/src/blocks/calc/ga
 import { desc as callDesc } from "../../../../packages/dragon/src/blocks/call/gallery/desc";
 import { desc as carryDesc } from "../../../../packages/dragon/src/blocks/carry/gallery/desc";
 import { desc as chainDesc } from "../../../../packages/dragon/src/blocks/chain/gallery/desc";
+import { desc as chartItemDesc } from "../../../../packages/dragon/src/blocks/chart-item/gallery/desc";
+import { desc as chartSetDesc } from "../../../../packages/dragon/src/blocks/chart-set/gallery/desc";
+import { desc as chartShapeDesc } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/desc";
 import { desc as checkDesc } from "../../../../packages/dragon/src/blocks/check/gallery/desc";
 import { desc as choiceDesc } from "../../../../packages/dragon/src/blocks/choice/gallery/desc";
 import { desc as colorDesc } from "../../../../packages/dragon/src/blocks/color/gallery/desc";
@@ -49,6 +52,7 @@ import { desc as stampDesc } from "../../../../packages/dragon/src/blocks/stamp/
 import { desc as startFinishDesc } from "../../../../packages/dragon/src/blocks/start-finish/gallery/desc";
 import { desc as stepDesc } from "../../../../packages/dragon/src/blocks/step/gallery/desc";
 import { desc as stripDesc } from "../../../../packages/dragon/src/blocks/strip/gallery/desc";
+import { desc as taskDesc } from "../../../../packages/dragon/src/blocks/task/gallery/desc";
 import { desc as valueDesc } from "../../../../packages/dragon/src/blocks/value/gallery/desc";
 import { desc as writeDesc } from "../../../../packages/dragon/src/blocks/write/gallery/desc";
 import { desc as zoomDesc } from "../../../../packages/dragon/src/blocks/zoom/gallery/desc";
@@ -63,6 +67,9 @@ export const BLOCK_DESC = {
   "call": callDesc,
   "carry": carryDesc,
   "chain": chainDesc,
+  "chart-item": chartItemDesc,
+  "chart-set": chartSetDesc,
+  "chart-shape": chartShapeDesc,
   "check": checkDesc,
   "choice": choiceDesc,
   "color": colorDesc,
@@ -105,6 +112,7 @@ export const BLOCK_DESC = {
   "start-finish": startFinishDesc,
   "step": stepDesc,
   "strip": stripDesc,
+  "task": taskDesc,
   "value": valueDesc,
   "write": writeDesc,
   "zoom": zoomDesc,
