@@ -55,3 +55,12 @@
 | 書き出した一覧の file は置き場の dir と食い違わない | `pnpm exec vitest run packages/dragon/test/blocks.test.ts`の検査`block-registry-derived-from-folders`が通る | #3531 |
 | 見本帳の分の file は package の処理を読まず、npm に出す package の file に入らない | `pnpm exec vitest run packages/dragon/test/blocks.test.ts packages/dragon/test/package-files.test.ts`の検査`gallery-imports-no-package-runtime`と`package-excludes-catalog-material`が通る | #3531 |
 | 見本帳の今ある検査 (`apps/playground-spa`の検査) が全て通る | `pnpm exec vitest run apps/ --reporter=verbose`が終了0 | #3531 |
+| 見本帳を組み立てた時、最初に読むscriptに、カタログの頁だけが使う字 (`site.catalog`の図の種類の説明と、一覧と検索と拡大の字) が日本語と英語とも入らず、外した字を足してgzipで比べると最初に読むscriptが2,500バイト以上軽い | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-catalog-text`が通る | #3565 |
+| 見本帳を組み立てた時、最初に読むscriptに、編集画面の棚の記法の早見の字 (`shelf.syntax`) が日本語と英語とも入らない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-syntax-text`が通る | #3565 |
+| 最初に読むscriptとCSSのgzipの合計が上限186,368バイトに収まり、上限の値は変えない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3565 |
+| 部品の説明の字と、カタログの見本の記法は、今どおり最初に読むscriptに入らない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-carries-no-part-desc`と`first-load-carries-no-catalog-notation`が通る | #3565 |
+| カタログの頁を英語で開いた時、部品の頁の字が仮名と漢字を含まず、今と同じ英語の字が出る | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-parts-in-english`が通る | #3565 |
+| カタログの一覧と分類の頁を開いた時、図の種類の名前と説明と見本の一覧が今と同じ字で出る | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-catalog.test.ts apps/playground-spa/src/lib/site-catalog.test.ts`の検査`catalog-lists-pipe-with-examples`と`category-item-shows-source`が通る | #3565 |
+| 編集画面の棚の記法の札を開いた時、記法の早見の行と説明の字が今と同じ字で出る | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-catalog.test.ts`の検査`editor-shelf-has-pipe`が通る | #3565 |
+| 頁の塊を読めなかった時、今と同じく読めなかった頁の名前と読み直す釦を出し、1度だけ読み直す | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunk-failure-offers-reload`と`page-chunk-failure-names-the-page`と`page-chunk-failure-reloads-once`が通る | #3565 |
+| 頁の塊を読めなかった時も、編集画面は書いた字を保つ | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`editor-keeps-text-when-page-chunks-fail`が通る | #3565 |
