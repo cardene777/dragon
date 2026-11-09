@@ -456,8 +456,10 @@ describe("作業の棒の描き方 (#3562)", () => {
     expect(svg, "まだ塗られない所の字の色が色味の表の変数でない").toMatch(/\.dg-tm-tt\{[^}]*fill:var\(--ct\)/u);
     // 棒の外の字には塗りが届かないので 1 回だけ描く
     const english = render(parsed(fileText("release-plan.en.dragon") ?? "", "en"), "en").svg;
-    expect(english.split(">Day 14<").length - 1, "棒の外の期間の字が 1 回でない").toBe(1);
-    expect(english.split(">Day 1–3<").length - 1, "棒の中の期間の字が 2 回でない").toBe(2);
+    // 軸の字 (#3574) も同じ `Day 14` なので、軸の字の組 `dg-tm-tk` を除いて数える
+    const barTexts = (word: string): number => [...english.matchAll(new RegExp(`<text[^>]*>${word}</text>`, "gu"))].filter((m) => !m[0].includes("dg-tm-tk")).length;
+    expect(barTexts("Day 14"), "棒の外の期間の字が 1 回でない").toBe(1);
+    expect(barTexts("Day 1–3"), "棒の中の期間の字が 2 回でない").toBe(2);
 
     // 針が止まった時刻で描いた形を撮り、塗りの端の左と右で字の色を数える。図は頁の幅に伸びるので、頁を図の幅にして図の座標のまま撮る
     const context = await (await fileChromium()).newContext({ viewport: { width: Math.ceil(layout.width), height: Math.ceil(layout.height) }, deviceScaleFactor: 3 });
