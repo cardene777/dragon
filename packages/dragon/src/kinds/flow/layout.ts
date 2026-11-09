@@ -35,6 +35,7 @@ import {
   loopUnder,
   markText,
   placeLabel,
+  placeSlot,
   type Point,
   pullApart,
   type Rect,
@@ -43,8 +44,11 @@ import {
   type SceneEnd,
   type SceneLabel,
   type ScenePath,
+  seatCarriers,
   shapedSize,
   shiftContent,
+  slotBoxWidth,
+  slotRooms,
   stripNeed,
 } from "../../layout/scene";
 
@@ -75,13 +79,16 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const notTaken = (diagram.flow?.paths ?? []).filter((p) => !steps.some(({ edge }) => same(edge, p)));
   const lines: { from: string; to: string; label?: string }[] = [...steps.map(({ edge }) => edge), ...notTaken];
 
-  // 絵柄を持つ箱が 1 つでもある図は、名前を絵柄の下に下げてそろえる (`box/draw.ts` の `boxTextY`)。判断の問いは下げた分だけ中身の真ん中を上げ、ひし形の真ん中に置く
-  const nameBase = all.boxes.some((b) => b.icon !== undefined) ? B.nameY : B.nameMid;
+  // 運ぶ物を出し入れする手順の箱は、状態遷移図と同じく絵柄の行に置き場を持ち、着いた物と走り出しを待つ物をそこに座らせる (#3176)。
+  // 置き場が無いと、走り出しを待つ物が箱の下の端に重なって名前と段の番号を隠す。判断のひし形は置き場を持たず、運ぶ物は線の端に留まる
+  const rooms = new Map([...slotRooms(all)].filter(([id]) => !isChoice(id)));
+  // 絵柄か置き場を持つ箱が 1 つでもある図は、名前を絵柄の行の下に下げてそろえる (`box/draw.ts` の `boxTextY`)。判断の問いは下げた分だけ中身の真ん中を上げ、ひし形の真ん中に置く
+  const nameBase = all.boxes.some((b) => b.icon !== undefined) || rooms.size > 0 ? B.nameY : B.nameMid;
   const { size } = TYPE.boxName;
   /** 箱と判断の大きさ。判断のひし形は、問いの字の四角の角がひし形の縁から `pad` 内に収まる幅にする */
   const fitOf = (id: string): BoxFit => {
     const choice = choices.find((c) => c.id === id);
-    if (!choice) return shapedSize(all, id, boxWidth(all, id, true), true);
+    if (!choice) return shapedSize(all, id, Math.max(boxWidth(all, id, true), slotBoxWidth(rooms.get(id), all.boxes.find((b) => b.id === id)?.icon !== undefined, B.padX)), true, rooms);
     const { h, pad, minW } = F.choice;
     const w = Math.max(minW, (textWidth(choice.name, TYPE.boxName) + pad * 2) / (1 - (size + pad * 2) / h));
     // 字の四角は基準線から字の大きさの 0.8 上と 0.2 下に在るので、基準線を真ん中から字の大きさの 0.3 下げると字の高さの真ん中が真ん中に来る
@@ -167,6 +174,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     }
     left += colW + F.side;
   }
+  for (const box of boxes) placeSlot(box, rooms.get(box.id));
 
   // 始まりの印は始まりから入る箱の上。本筋の途中の箱へ入る時は、その箱の左に置く
   const ends: SceneEnd[] = [];
@@ -264,6 +272,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
       ...(wait ? { wait } : {}),
     };
   });
+  seatCarriers(sceneEdges, byId, rooms);
   // 同じ 2 つを行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す (原本の JSON にだけ書ける)
   const outward = pullApart(sceneEdges);
   const paths: ScenePath[] = notTaken.map((p) => ({ from: p.from, to: p.to, points: route(p.from, p.to) }));
