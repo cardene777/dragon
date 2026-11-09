@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.68.1] - 2026-11-09
+
 ### Changed
 
 - **The axis of a diagram with tasks now counts the same numbers as the bars** (#3574)

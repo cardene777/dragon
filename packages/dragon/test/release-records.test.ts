@@ -223,9 +223,26 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-68-1-aligns-task-axis", () => {
+    // 工程表の軸の字を棒の字と同じ番号にした直し (#3574) を 0.68.1 で出す (#3577)
+    expect(version(), "package の版が 0.68.1 でない").toBe("0.68.1");
+    for (const [file, word] of [
+      ["CHANGELOG.md", /\baxis\b/iu],
+      ["CHANGELOG.ja.md", /軸の字/u],
+    ] as const) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.68\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.68.1"), "0.68.1");
+      expect(released, `${file} に日付付きの ## [0.68.1] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3574)")) ?? "";
+      expect(entry, `${file} の 0.68.1 の節の #3574 の項が軸の字 (${word.source}) を名指さない`).toMatch(word);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した #3574 の項が残る`).not.toContain("(#3574)");
+    }
+  });
+
   it("changelog-0-68-0-adds-player-speed", () => {
     // 再生の部品に流す速さの倍率を渡せるようにした機能 (#3568) を 0.68.0 で出す
-    expect(version(), "package の版が 0.68.0 でない").toBe("0.68.0");
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 68, `package の版 ${version()} が 0.68.0 より前`).toBe(true);
     for (const [file, word] of [
       ["CHANGELOG.md", /\bspeed\b/iu],
       ["CHANGELOG.ja.md", /速さ/u],

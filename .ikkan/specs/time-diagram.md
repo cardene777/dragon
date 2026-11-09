@@ -80,4 +80,4 @@
 | `release-plan`を描いた時、`dragon check --layout`が何も出さない | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`release-plan-passes-layout-check`が通る | #3574 |
 | `task`の行を持たない見本のSVGが、`packages/dragon/test/fixtures/examples-svg.json`の記録と1字も変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3574 |
 | `task`の行を持つ図の針が、作業の棒を通った分だけ濃く塗る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-fills-passed-part`が通る | #3574 |
-| `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに軸の字の変更が載る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`changelog-describes-task-axis`が通る | #3574 |
+| `CHANGELOG.md`と`CHANGELOG.ja.md`の0.68.1の節に軸の字の変更が載る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`changelog-describes-task-axis`が通る | #3574 |
