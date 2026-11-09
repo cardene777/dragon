@@ -1,0 +1,29 @@
+// A login input checked by two choices, the password and the 2FA code.
+// If either choice says no, an error is shown. Lines written before the first step are paths not taken this time and stay dotted.
+flow Login check
+
+box input as Input
+choice pw as Password correct?
+choice otp as 2FA correct?
+box done as Signed in [color: green]
+box err as Show an error [color: rose]
+
+pw -> err: No
+otp -> err: No
+
+step Enter
+  say The user enters an ID and a password.
+  start -> input
+
+step Check the password
+  say The server checks the password.
+  input -> pw: Send
+
+step Check the 2FA code
+  say The password matched, so the 2FA code is checked.
+  pw -> otp: Yes
+
+step Sign in
+  say The code matches too, and the user is signed in. The no paths stay dotted.
+  otp -> done: Yes
+  done -> finish

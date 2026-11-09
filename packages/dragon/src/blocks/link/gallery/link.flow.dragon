@@ -1,0 +1,13 @@
+flow 飛び先
+
+box order as 注文を受ける
+box pay as 支払いを確かめる [link: https://github.com/cardene777/dragon]
+
+step 受ける
+  say link で手順の箱に飛び先を書くと、描いた図でその箱を押して飛び先へ移れる。
+  start -> order
+
+step 確かめる
+  say 確かめ方を別の図に描いた時は、その図の頁を飛び先にする。
+  order -> pay: 払った
+  pay -> finish

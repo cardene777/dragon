@@ -30,6 +30,7 @@ import type { TimePoint } from "./blocks/point/block";
 import type { TimeMarkEvent, TimeRow } from "./blocks/row/block";
 import type { TimePeriod, TimeScale, TimeSpanEvent } from "./blocks/scale/block";
 import type { StatePath } from "./blocks/side-path/block";
+import type { FlowChoice } from "./blocks/choice/block";
 import type { StepSource } from "./blocks/source/block";
 import type { PipeCalc } from "./blocks/calc/block";
 import type { CheckOp, PipeCheck } from "./blocks/check/block";
@@ -218,6 +219,9 @@ export interface TryCheck {
 /** 枝分かれの図の枝の型は枝のブロック、状態遷移図の移れる道の型は脇道のブロックが持つ (#3347) */
 export type { GitBranch, StatePath };
 
+/** 手順の図 (#3561) の判断の型は判断のブロックが持つ */
+export type { FlowChoice };
+
 /** 段の出典の型は出典のブロックが持つ (#3345) */
 export type { StepSource };
 /** 線の名前を置く側の型は線の名前のブロックが持つ (#3345) */
@@ -239,7 +243,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "flow";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -250,12 +254,14 @@ export interface Strip {
 
 /**
  * 原本の図の宣言 (#3346)。ブロックの名前ごとの欄に、そのブロックの宣言を持つ。空の並びは書かない。
- * 区画 (`group`)、箱 (`box`)、中身の帯 (`strip`) と、図の種類だけの宣言 (状態遷移図の移れる道 `path`、枝分かれの図の枝 `branch`、
+ * 区画 (`group`)、箱 (`box`)、中身の帯 (`strip`) と、図の種類だけの宣言 (状態遷移図と手順の図の移れる道 `path`、手順の図の判断 `choice`、枝分かれの図の枝 `branch`、
  * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と節目 `point` と拡大の範囲 `zoom`、列の図と試す図のチップ `item`、試す図の部品 `part` と関門 `check`)
  */
 export interface DiagramBlocks {
   group?: Region[];
   box?: Box[];
+  /** 手順の図 (#3561) の判断。ひし形で描く */
+  choice?: FlowChoice[];
   strip?: Strip;
   path?: StatePath[];
   branch?: GitBranch[];
@@ -318,6 +324,8 @@ export interface DiagramModel {
    * `folds` は描く処理が畳んだ図 (`kinds/pipe/layout.ts` の `foldPipe`) だけが持ち、原本は持たない
    */
   pipe?: { holds: PipeHold[]; folds?: PipeFold[] };
+  /** 手順の図 (#3561) の判断と、最初の段より前に書いた移れる道。版1の原本に無かった種類なので、版2の原本の `choice` と `path` をそのまま持つ */
+  flow?: { choices: FlowChoice[]; paths: StatePath[] };
 }
 
 /**
@@ -362,7 +370,8 @@ const ABSENT = "#/definitions/absent/not";
 const ABSENT_KINDS: Record<string, string> = {
   regions: "sequence / architecture / state",
   group: "sequence / architecture / state",
-  path: "state",
+  path: "state / flow",
+  choice: "flow",
   branch: "git",
   scale: "time",
   period: "time",
@@ -375,15 +384,15 @@ const ABSENT_KINDS: Record<string, string> = {
   check: "try",
   values: "try",
   hold: "pipe",
-  box: "sequence / architecture / state / git / time / tree / lineup / pipe",
+  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow",
   order: "lineup",
   at: "time",
   into: "time",
   color: "time",
   meters: "time",
   region: "sequence / architecture / state",
-  icon: "sequence / architecture / state / git / time / tree / pipe",
-  link: "sequence / architecture / state / git / time / tree",
+  icon: "sequence / architecture / state / git / time / tree / pipe / flow",
+  link: "sequence / architecture / state / git / time / tree / flow",
   gist: "pipe",
 };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
@@ -391,8 +400,8 @@ const NOT_ALLOWED: Record<string, Allowed> = {
   carry: { field: "text", kind: "tag" },
 };
 
-/** 状態遷移図の箱の名札に予約の名前を書いた時の決まりの場所 */
-const RESERVED_ID = /\/box\/items\/properties\/id\/not$/u;
+/** 状態遷移図と手順の図 (#3561) の箱と判断の名札に予約の名前を書いた時の決まりの場所 */
+const RESERVED_ID = /\/(?:box|choice)\/items\/properties\/id\/not$/u;
 /** 枝分かれの図でない図に、枝分かれの図だけの出来事を書いた時の決まりの場所 (#3164) */
 const GIT_EVENT = /\/events\/items\/properties\/type\/not$/u;
 /** 枝分かれの図だけが書ける出来事 */
@@ -479,7 +488,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       return { pointer: `${at}/${escape(key)}`, message: m.required(key) };
     }
     case "not": {
-      if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: m.reserved(STATE_ENDS) };
+      if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: (input as { kind?: unknown }).kind === "flow" ? m.flowReserved(STATE_ENDS) : m.reserved(STATE_ENDS) };
       if (GIT_EVENT.test(error.schemaPath)) return { pointer: at, message: m.kindOnly(GIT_EVENTS, "git") };
       if (TIME_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TIME_EVENTS, "time") };
       if (TREE_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TREE_EVENTS, "tree") };

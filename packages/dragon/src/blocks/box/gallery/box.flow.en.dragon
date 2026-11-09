@@ -1,0 +1,13 @@
+flow Box
+
+box draft as Write a draft
+box review as Review
+box publish as Publish
+
+step Write
+  say A box line places one task. Write the shown name after as.
+  draft -> review: Hand over
+
+step Ship
+  say Lines name the tasks, which stack top to bottom in the order the steps reach them.
+  review -> publish: Ship

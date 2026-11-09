@@ -1,0 +1,18 @@
+flow Choice
+
+box form as Form
+choice ok as Filled in?
+box send as Accept [color: green]
+box back as Fix it [color: rose]
+
+ok -> back: No
+
+step Check
+  say A choice is a diamond, and each line leaving it has a name.
+  start -> form
+  form -> ok: Submit
+
+step Accept
+  say A line written before the first step is a path not taken, dotted to the right.
+  ok -> send: Yes
+  send -> finish

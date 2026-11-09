@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * git、lineup、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * flow、git、lineup、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -377,6 +377,8 @@ export function drawSvg(
     boxText: boxTextY(layout.boxes),
     corner: palette.corner,
     seats: seatsOf(layout.edges, carried),
+    // 手順の図の判断はひし形で、本筋に無い箱は点線の縁で描く (#3561)
+    ...(layout.kind === "flow" ? { frame: kindParts("flow").flowFrame } : {}),
   };
   const on = involved(diagram);
   // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
@@ -399,8 +401,9 @@ export function drawSvg(
   for (const p of layout.paths)
     L.base.push(path(p, boxColor(p.to, true) ?? boxColor(p.from) ?? ghostColor, ink, traces, ctx.corner));
   for (const e of layout.ends) L.node.push(endMark(e, ghostColor, ink));
-  // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
-  const isState = layout.kind === "state";
+  // 状態遷移図は、段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)。
+  // 手順の図も同じく、済んだ線と番号を灰にし、印が着いた箱を光らせる (#3561)
+  const isState = layout.kind === "state" || layout.kind === "flow";
   const arrivals = new Map(
     (timeline.states ?? []).flatMap((s) =>
       s.lit[0] ? [[s.box, s.lit[0].start] as [string, number]] : [],
@@ -1007,6 +1010,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
     ? folder.layout(diagram, lang)
     : diagram.kind === "state"
       ? kindParts("state", lang).layoutState(diagram, lang)
+      : diagram.kind === "flow"
+        ? kindParts("flow", lang).layoutFlow(diagram, lang)
       : diagram.kind === "git"
         ? kindParts("git", lang).layoutGit(diagram)
         : diagram.kind === "time"

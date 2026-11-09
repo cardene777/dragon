@@ -1,0 +1,114 @@
+{
+  "version": 2,
+  "kind": "flow",
+  "title": "Login check",
+  "blocks": {
+    "box": [
+      {
+        "id": "input",
+        "name": "Input"
+      },
+      {
+        "id": "done",
+        "name": "Signed in",
+        "color": "green"
+      },
+      {
+        "id": "err",
+        "name": "Show an error",
+        "color": "rose"
+      }
+    ],
+    "choice": [
+      {
+        "id": "pw",
+        "name": "Password correct?"
+      },
+      {
+        "id": "otp",
+        "name": "2FA correct?"
+      }
+    ],
+    "path": [
+      {
+        "from": "pw",
+        "to": "err",
+        "label": "No"
+      },
+      {
+        "from": "otp",
+        "to": "err",
+        "label": "No"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Enter",
+      "body": "The user enters an ID and a password.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "start",
+          "to": "input",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Check the password",
+      "body": "The server checks the password.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "input",
+          "to": "pw",
+          "label": "Send",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Check the 2FA code",
+      "body": "The password matched, so the 2FA code is checked.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "pw",
+          "to": "otp",
+          "label": "Yes",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Sign in",
+      "body": "The code matches too, and the user is signed in. The no paths stay dotted.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "otp",
+          "to": "done",
+          "label": "Yes",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "done",
+          "to": "finish",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ]
+}

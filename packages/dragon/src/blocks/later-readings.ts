@@ -9,6 +9,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "call": () => import("./call/read").then((m): BlockReading => m.reading),
   "chain": () => import("./chain/read").then((m): BlockReading => m.reading),
   "check": () => import("./check/read").then((m): BlockReading => m.reading),
+  "choice": () => import("./choice/read").then((m): BlockReading => m.reading),
   "commit": () => import("./commit/read").then((m): BlockReading => m.reading),
   "copy": () => import("./copy/read").then((m): BlockReading => m.reading),
   "emit": () => import("./emit/read").then((m): BlockReading => m.reading),

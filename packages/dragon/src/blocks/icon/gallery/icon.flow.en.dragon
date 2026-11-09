@@ -1,0 +1,13 @@
+flow Icon
+
+box draft as Draft [icon: doc]
+box review as Review [icon: clock]
+box live as Live [icon: globe]
+
+step Submit
+  say icon puts a picture on a task box.
+  draft -> review: Submit
+
+step Pass
+  say The picture sits above the name.
+  review -> live: Pass

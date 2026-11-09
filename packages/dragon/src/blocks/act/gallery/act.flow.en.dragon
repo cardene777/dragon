@@ -1,0 +1,21 @@
+flow Inside a box
+
+box form as Receive the request
+choice ok as Papers complete?
+box pass as Approve [color: green]
+box back as Send back [color: rose]
+
+ok -> back: No
+
+step Receive
+  say A request arrives and the procedure starts.
+  start -> form
+
+step Check
+  say act shows work done inside a box without drawing a line.
+  act form: Compare the papers
+  form -> ok: Check
+
+step Pass
+  say A line can follow the work.
+  ok -> pass: Yes

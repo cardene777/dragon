@@ -4,6 +4,7 @@
  */
 import { registerReading } from "../blocks/reading";
 import { READINGS } from "../blocks/readings";
+import * as flow from "./flow";
 import * as git from "./git";
 import * as lineup from "./lineup";
 import * as pipe from "./pipe";
@@ -17,6 +18,7 @@ import * as time from "./time";
 import * as tree from "./tree";
 import * as tryKind from "./try";
 
+registerKind("flow", flow);
 registerKind("git", git);
 registerKind("lineup", lineup);
 registerKind("pipe", pipe);

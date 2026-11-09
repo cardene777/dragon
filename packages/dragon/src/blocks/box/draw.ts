@@ -84,8 +84,10 @@ export function subLines(
 
 /** 箱の地と縁。上端 `y` から高さ `h`。動く段 (`act` の間) は縁に色を付け、外側に淡い光を足す。 */
 function cardFrame(box: SceneBox, ctx: Ctx, act: string | undefined, y: number, h: number): string {
-  // 足した箱のブロックの形は、定義を読む処理と一緒に後から読む形の処理が描く (#3520)。読む前は今の箱の形で描く
+  // 足した箱のブロックの形は、定義を読む処理と一緒に後から読む形の処理が描く (#3520)。読む前は今の箱の形で描く。
+  // 手順の図の判断のひし形と本筋に無い箱の点線の縁は、手順の図の部品が渡す縁の描き方が描く (#3561)
   const rect = (cls: string, extra = ""): string =>
+    ctx.frame?.(box, cls, extra, { x: box.x, y, w: box.w, h }, ctx.corner) ??
     userBlockReader()?.shapes.draw(box.id, cls, extra, { x: box.x, y, w: box.w, h }) ??
     frameShape(
       ctx.corner,

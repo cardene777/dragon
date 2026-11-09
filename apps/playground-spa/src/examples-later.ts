@@ -16,6 +16,8 @@ import vaultProxyJa from "../../../packages/dragon/examples/vault-proxy.dragon?r
 import vaultProxyEn from "../../../packages/dragon/examples/vault-proxy.en.dragon?raw";
 import aggregatorJa from "../../../packages/dragon/examples/aggregator.dragon?raw";
 import aggregatorEn from "../../../packages/dragon/examples/aggregator.en.dragon?raw";
+import loginCheckJa from "../../../packages/dragon/examples/login-check.dragon?raw";
+import loginCheckEn from "../../../packages/dragon/examples/login-check.en.dragon?raw";
 import apiJa from "../../../packages/dragon/examples/api.dragon?raw";
 import apiEn from "../../../packages/dragon/examples/api.en.dragon?raw";
 import auctionJa from "../../../packages/dragon/examples/auction.dragon?raw";
@@ -66,6 +68,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "swap-retry": { ja: swapRetryJa, en: swapRetryEn },
   "vault-proxy": { ja: vaultProxyJa, en: vaultProxyEn },
   aggregator: { ja: aggregatorJa, en: aggregatorEn },
+  "login-check": { ja: loginCheckJa, en: loginCheckEn },
 };
 
 /**

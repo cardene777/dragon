@@ -1,0 +1,29 @@
+// ログインの入力を、パスワードと2FAの2つの判断で確かめる手順。
+// どちらかの判断が「いいえ」ならエラーを出す。最初の段より前の線は今回は通らない道で、点線で残る。
+flow ログインの判断
+
+box input as 入力
+choice pw as パスワードは正しい？
+choice otp as 2FAは正しい？
+box done as ログイン [color: green]
+box err as エラーを出す [color: rose]
+
+pw -> err: いいえ
+otp -> err: いいえ
+
+step 入力する
+  say 利用者がIDとパスワードを入れる。
+  start -> input
+
+step パスワードを確かめる
+  say サーバーがパスワードを照らし合わせる。
+  input -> pw: 送る
+
+step 2FAを確かめる
+  say パスワードが合ったので、2FAのコードを確かめる。
+  pw -> otp: はい
+
+step ログインする
+  say コードも合い、ログインが済む。「いいえ」の道は点線のまま残る。
+  otp -> done: はい
+  done -> finish

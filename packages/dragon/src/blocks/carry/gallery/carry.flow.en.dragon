@@ -1,0 +1,19 @@
+flow Carried item
+
+box order as Take the order
+box pay as Wait for payment
+box ship as Ship
+box done as Close
+
+step Envelope
+  say With nothing written, an envelope travels along the line.
+  order -> pay: To payment
+
+step Tag
+  say tag writes a value on a tag that travels along the line.
+  pay -> ship: To shipping [tag: #42]
+
+step Nothing
+  say carry: none draws only the line, and carry: coin shows money moving as a coin.
+  ship -> done: Close [carry: none]
+  done -> finish [carry: coin]

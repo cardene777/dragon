@@ -1,0 +1,13 @@
+flow Small text
+
+box stock as Check stock [note: 1 left]
+box sell as Sell [note: awaiting stock]
+
+step Check
+  say note adds small text under the name of a task.
+  start -> stock
+
+step Sell out
+  say A note line inside a step rewrites the small text from that step on.
+  stock -> sell: The last one
+  note stock: 0 left

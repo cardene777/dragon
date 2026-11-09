@@ -38,6 +38,10 @@ export interface SceneBox extends Rect {
    * 無ければ箱の真ん中 (`cx`、`cy`) に並べる。箱を動かしても左上からの位置は変わらない
    */
   at?: Point;
+  /** 手順の図の判断 (#3561)。箱の四角の 4 つの辺の真ん中を頂点にしたひし形で描く */
+  shape?: "diamond";
+  /** 手順の図で、段で通る本筋に無い箱 (#3561)。今回は通らない道の先なので、縁を点線で描く */
+  off?: true;
 }
 
 export interface SceneRegion extends Rect {
@@ -702,6 +706,14 @@ export const stripBadge = (strip: SceneStrip): Point => [strip.x + LOOK.region.r
 
 /** 段の番号の丸を囲む四角。線の名前が避ける相手にする (#3175) */
 export const badgeRect = ([x, y]: Point): Rect => ({ x: x - LOOK.badge.r, y: y - LOOK.badge.r, w: LOOK.badge.r * 2, h: LOOK.badge.r * 2 });
+
+/** 手順の図の判断のひし形の頂点 (#3561)。箱の四角の 4 つの辺の真ん中を、上、右、下、左の順に並べる。描く部品と崩れの確かめが同じ形を使う */
+export const diamondPoints = ({ x, y, w, h }: Rect): Point[] => [
+  [x + w / 2, y],
+  [x + w, y + h / 2],
+  [x + w / 2, y + h],
+  [x, y + h / 2],
+];
 
 /** 状態遷移図の始まりと終わりの印の右に添える字の左端と基準線。描く部品と、線の名前が字を避ける所の両方が読む (#3175) */
 export const markText = (e: SceneEnd): Point => [e.x + LOOK.state.text, e.y + LOOK.baseline.mark];

@@ -8,6 +8,7 @@ import { desc as callDesc } from "../../../../packages/dragon/src/blocks/call/ga
 import { desc as carryDesc } from "../../../../packages/dragon/src/blocks/carry/gallery/desc";
 import { desc as chainDesc } from "../../../../packages/dragon/src/blocks/chain/gallery/desc";
 import { desc as checkDesc } from "../../../../packages/dragon/src/blocks/check/gallery/desc";
+import { desc as choiceDesc } from "../../../../packages/dragon/src/blocks/choice/gallery/desc";
 import { desc as colorDesc } from "../../../../packages/dragon/src/blocks/color/gallery/desc";
 import { desc as commitDesc } from "../../../../packages/dragon/src/blocks/commit/gallery/desc";
 import { desc as copyDesc } from "../../../../packages/dragon/src/blocks/copy/gallery/desc";
@@ -63,6 +64,7 @@ export const BLOCK_DESC = {
   "carry": carryDesc,
   "chain": chainDesc,
   "check": checkDesc,
+  "choice": choiceDesc,
   "color": colorDesc,
   "commit": commitDesc,
   "copy": copyDesc,

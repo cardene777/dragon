@@ -1,0 +1,114 @@
+{
+  "version": 2,
+  "kind": "flow",
+  "title": "ログインの判断",
+  "blocks": {
+    "box": [
+      {
+        "id": "input",
+        "name": "入力"
+      },
+      {
+        "id": "done",
+        "name": "ログイン",
+        "color": "green"
+      },
+      {
+        "id": "err",
+        "name": "エラーを出す",
+        "color": "rose"
+      }
+    ],
+    "choice": [
+      {
+        "id": "pw",
+        "name": "パスワードは正しい？"
+      },
+      {
+        "id": "otp",
+        "name": "2FAは正しい？"
+      }
+    ],
+    "path": [
+      {
+        "from": "pw",
+        "to": "err",
+        "label": "いいえ"
+      },
+      {
+        "from": "otp",
+        "to": "err",
+        "label": "いいえ"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "入力する",
+      "body": "利用者がIDとパスワードを入れる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "start",
+          "to": "input",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "パスワードを確かめる",
+      "body": "サーバーがパスワードを照らし合わせる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "input",
+          "to": "pw",
+          "label": "送る",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "2FAを確かめる",
+      "body": "パスワードが合ったので、2FAのコードを確かめる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "pw",
+          "to": "otp",
+          "label": "はい",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "ログインする",
+      "body": "コードも合い、ログインが済む。「いいえ」の道は点線のまま残る。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "otp",
+          "to": "done",
+          "label": "はい",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "done",
+          "to": "finish",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ]
+}

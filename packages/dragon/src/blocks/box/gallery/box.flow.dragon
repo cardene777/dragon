@@ -1,0 +1,13 @@
+flow 箱
+
+box draft as 下書きを書く
+box review as 見直す
+box publish as 公開する
+
+step 書く
+  say box の行で手順を 1 つ置く。as の後ろに見せる名前を書く。
+  draft -> review: 渡す
+
+step 出す
+  say 線は手順の名札で書き、段で通る順に上から並ぶ。
+  review -> publish: 出す

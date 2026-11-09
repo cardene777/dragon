@@ -10,7 +10,7 @@ import type { Diagram } from "../schema";
 import { tokenize } from "../tokenize";
 import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
-import type { Point } from "../layout/scene";
+import { diamondPoints, type Point } from "../layout/scene";
 import { userBlockReader } from "../user-blocks";
 import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
@@ -19,6 +19,7 @@ import { drawDiagram } from "./draw";
  * 描いた物から崩れを数える関数 (#3494)。描く処理に渡し、描いた後に呼ばせる。
  * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める。
  * 輪郭は定義を読む処理と一緒に登録した形を測る処理 (`BoxShapes`) が組む。形を持つ箱は定義を読んだ図にしか無いため (#3520)。
+ * 手順の図の判断のひし形 (#3561) は、描く部品と同じ頂点 (`diamondPoints`) で組む。
  * 枠線を描く囲みと列と帯もここで組む (#3525)。囲みと列は名前の行で、帯は題で呼び、名前を持たない囲み (時間軸の図の軸の帯) は名前を空にして「枠線」と呼ぶ
  */
 const finder: BreakFinder = (drawn) => {
@@ -35,6 +36,8 @@ const finder: BreakFinder = (drawn) => {
     ],
     outlines: new Map(
       drawn.boxes.flatMap((box): [string, Point[][]][] => {
+        // 手順の図の判断はひし形で描く (#3561)
+        if (box.shape === "diamond") return [[box.id, [diamondPoints(box)]]];
         const rings = userBlockReader()?.shapes.outline(box.id, box);
         return rings ? [[box.id, rings]] : [];
       }),

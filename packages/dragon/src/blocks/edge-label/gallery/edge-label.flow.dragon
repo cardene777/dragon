@@ -1,0 +1,13 @@
+flow 線の名前
+
+box a as 甲
+box b as 乙
+box c as 丙
+
+step 右に置く
+  say コロンの後ろが線の名前。縦の線は書かなければ右に置く。
+  a -> b: 右の名前
+
+step 左に置く
+  say side で名前を置く側を選ぶ。above、below、left、right の 4 つ。
+  b -> c: 左の名前 [side: left]

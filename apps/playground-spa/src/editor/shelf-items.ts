@@ -282,6 +282,7 @@ const HOLE = {
     queue: "待ち行列",
     chain: "機械の列",
     part: "部品",
+    question: "問い",
   },
   en: {
     title: "title",
@@ -321,6 +322,7 @@ const HOLE = {
     queue: "queue",
     chain: "chain",
     part: "part",
+    question: "question",
   },
 } as const satisfies Record<NotationLang, Record<string, string>>;
 
@@ -369,10 +371,12 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const inTry = (base: Diagram, events: object[]): Diagram => draw({ ...base, steps: [{ ...step, events }] });
   const askBase = tryWith({ type: "ask", id: "ask", fields: [h.name, h.field], into: h.queue, via: h.route });
   const pressBase = tryWith({ type: "press", id: h.id, from: h.queue, into: h.chain, take: h.count, at: h.part });
+  // 判断は手順の図だけが書ける (#3561)
+  const flowBase = draw({ ...empty("flow"), steps: [step] });
   return [
     {
       id: "kind",
-      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try")), head(empty("pipe"))],
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try")), head(empty("pipe")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]])],
     },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
