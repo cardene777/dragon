@@ -35,7 +35,7 @@ function isGone(pid: number): boolean {
 }
 
 /** `base` の直下で、持ち主の process が終わった実行の一時フォルダを消す */
-export function sweepDeadRuns(base: string): void {
+function sweepDeadRuns(base: string): void {
   for (const name of readdirSync(base)) {
     const pid = RUN_DIR.exec(name)?.[1];
     if (pid !== undefined && isGone(Number(pid))) remove(join(base, name));

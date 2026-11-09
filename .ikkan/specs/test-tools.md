@@ -81,3 +81,9 @@
 | `player-pipe-narrow-keeps-text-readable` が今と同じく、ja と en の両方で残高の字の大きさと、横に送る枠と、全体のどこを見ているかを示す線を確かめる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-narrow-keeps-text-readable`が通る | #3472 |
 | 1回の実行の上限で止めた実行の後、その実行の検査が作った一時フォルダが残らない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-stops-whole-run`が通る | #3587 |
 | 常に、一時フォルダを使う書き出しの検査はChromiumを起こして動く | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`が通る | #3587 |
+| 検査を回す時、検査の中の`tmpdir()`がその実行の一時フォルダを返す | `pnpm exec vitest run packages/dragon/test/test-tmp.test.ts`の検査`run-tmp-points-tests-at-run-dir`が通る | #3587 |
+| 準備の段の片付けを呼んだ時、その実行の一時フォルダが中身ごと消え、`TMPDIR`が元に戻る | `pnpm exec vitest run packages/dragon/test/test-tmp.test.ts`の検査`run-tmp-cleans-after-passing-run`が通る | #3587 |
+| 検査が落ちた実行の後、その実行の検査が作った一時フォルダが残らない | `pnpm exec vitest run packages/dragon/test/test-tmp.test.ts`の検査`run-tmp-cleans-after-failing-run`が通る | #3587 |
+| 持ち主のprocessが終わった実行の一時フォルダは、次の実行が消す | `pnpm exec vitest run packages/dragon/test/test-tmp.test.ts`の検査`run-tmp-sweeps-dead-runs`が通る | #3587 |
+| 持ち主のprocessが動いている一時フォルダと、名前から持ち主を読めないフォルダは消さない | `pnpm exec vitest run packages/dragon/test/test-tmp.test.ts`の検査`run-tmp-keeps-live-runs`が通る | #3587 |
+| 見本帳の頁のbuildより先に一時フォルダを作るので、buildの結果もその実行の一時フォルダに入る | `pnpm exec vitest run packages/dragon/test/test-tmp.test.ts`の検査`run-tmp-runs-before-page-build`が通る | #3587 |

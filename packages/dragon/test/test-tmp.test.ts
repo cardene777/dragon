@@ -12,20 +12,27 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFil
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const VITEST = join(dirname(createRequire(import.meta.url).resolve("vitest/package.json")), "vitest.mjs");
 const FIXTURES = "test-support/fixtures/limits";
 
-interface RunTmp {
-  default: () => () => void;
-  sweepDeadRuns: (base: string) => void;
-}
 const RUN_TMP = "../../../test-support/run-tmp";
 /** 準備の段の道具。file が無い間も、この file を読み込んだ所で落とさず、検査ごとに無いと断って落とす */
-const runTmp = async (): Promise<Partial<RunTmp>> => (await import(/* @vite-ignore */ RUN_TMP).catch(() => ({}))) as Partial<RunTmp>;
+const runTmp = async (): Promise<{ default?: () => () => void }> => (await import(/* @vite-ignore */ RUN_TMP).catch(() => ({}))) as { default?: () => () => void };
+
+/** `TMPDIR` を `base` に向けて `run` を呼び、元へ戻す */
+const inTmpdir = (base: string, run: () => void): void => {
+  const before = process.env.TMPDIR;
+  process.env.TMPDIR = base;
+  try {
+    run();
+  } finally {
+    process.env.TMPDIR = before;
+  }
+};
 
 /** 走っている実行の一時フォルダの下に、試す場所を作る。この場所もその実行の終わりに消える */
 const sandbox = (): string => mkdtempSync(join(tmpdir(), "dragon-sandbox-"));
@@ -40,10 +47,8 @@ describe("実行ごとの一時フォルダ (#3587)", () => {
     const { default: setup } = await runTmp();
     expect(setup, "準備の段の道具 (test-support/run-tmp.ts) が無い").toBeTypeOf("function");
     if (!setup) return;
-    const before = process.env.TMPDIR;
     const base = sandbox();
-    process.env.TMPDIR = base;
-    try {
+    inTmpdir(base, () => {
       const stop = setup();
       const made = mkdtempSync(join(tmpdir(), "dragon-left-"));
       writeFileSync(join(made, "left.txt"), "消さずに終わる");
@@ -51,9 +56,7 @@ describe("実行ごとの一時フォルダ (#3587)", () => {
       stop();
       expect(readdirSync(base), "実行の一時フォルダが中身ごと消えていない").toEqual([]);
       expect(process.env.TMPDIR, "片付けの後に TMPDIR が元に戻っていない").toBe(base);
-    } finally {
-      process.env.TMPDIR = before;
-    }
+    });
   });
 
   it("run-tmp-cleans-after-failing-run", () => {
@@ -71,21 +74,21 @@ describe("実行ごとの一時フォルダ (#3587)", () => {
   });
 
   it("run-tmp-sweeps-dead-runs", async () => {
-    const { sweepDeadRuns } = await runTmp();
-    expect(sweepDeadRuns, "止められた実行の分を消す道具が無い").toBeTypeOf("function");
-    if (!sweepDeadRuns) return;
+    const { default: setup } = await runTmp();
+    expect(setup, "準備の段の道具 (test-support/run-tmp.ts) が無い").toBeTypeOf("function");
+    if (!setup) return;
     const base = sandbox();
     // 起こして終わるのを待った process の番号は、もう動いていない
     const ended = spawnSync(process.execPath, ["-p", "process.pid"], { encoding: "utf8" }).stdout.trim();
     mkdirSync(join(base, `dragon-run-${ended}-abc123`, "left"), { recursive: true });
-    sweepDeadRuns(base);
+    inTmpdir(base, () => setup()());
     expect(readdirSync(base), "持ち主の process が終わった実行の一時フォルダが残っている").toEqual([]);
   });
 
   it("run-tmp-keeps-live-runs", async () => {
-    const { sweepDeadRuns } = await runTmp();
-    expect(sweepDeadRuns, "止められた実行の分を消す道具が無い").toBeTypeOf("function");
-    if (!sweepDeadRuns) return;
+    const { default: setup } = await runTmp();
+    expect(setup, "準備の段の道具 (test-support/run-tmp.ts) が無い").toBeTypeOf("function");
+    if (!setup) return;
     const base = sandbox();
     const kept = [
       // 動いている process の実行。別の作業場所で走っている実行に当たる
@@ -98,8 +101,18 @@ describe("実行ごとの一時フォルダ (#3587)", () => {
       "dragon-export-abc123",
     ];
     for (const name of kept) mkdirSync(join(base, name));
-    sweepDeadRuns(base);
+    inTmpdir(base, () => setup()());
     expect(readdirSync(base).sort(), "消してはいけないフォルダを消した").toEqual([...kept].sort());
+  });
+
+  it("run-tmp-cleans-on-process-exit", () => {
+    // 1 回の実行の上限は process.exit で終わるので、準備の段の片付けまで届かない回がある (`run-limit.ts`)。子の process で本当に process.exit する
+    const base = sandbox();
+    const entry = pathToFileURL(join(ROOT, "test-support/run-tmp.ts")).href;
+    const script = `import setup from ${JSON.stringify(entry)}; setup(); process.exit(0);`;
+    const ran = spawnSync(process.execPath, ["--input-type=module", "-e", script], { encoding: "utf8", env: { ...process.env, TMPDIR: base } });
+    expect(ran.status, `準備の段を起こした子の process が終わり方 0 で終わらなかった: ${ran.stderr}`).toBe(0);
+    expect(readdirSync(base), "process.exit で終わった実行の一時フォルダが残っている").toEqual([]);
   });
 
   it("run-tmp-runs-before-page-build", () => {
