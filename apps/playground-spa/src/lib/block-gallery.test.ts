@@ -14,9 +14,9 @@ import { describe, expect, it } from "vitest";
 import { BLOCK_DOCS } from "../catalog/blocks-docs.gen";
 import { BLOCK_RULE, BLOCK_SHELF, BLOCK_TEXT } from "../catalog/blocks.gen";
 import { isCommon, PARTS } from "../catalog/parts";
+import { CATALOG_TEXT } from "../catalog/text";
 import { DOCS, SECTIONS } from "../docs/content";
 import { PART_IDS } from "../editor/shelf-items";
-import { TEXT } from "../text";
 
 type Rule = { none: string } | readonly { part: string; rule: string; name: string }[];
 type Shelf = { none: string } | Readonly<Record<string, unknown>>;
@@ -94,8 +94,8 @@ describe("見本帳と決まりをブロックの置き場から作る (#3350)",
     expect(PARTS.map((part) => part.id), "見本帳の部品の一覧").toEqual(listed.map((block) => block.name));
     // 一覧の段は付け方で分け、段の名前をコアブロックと個別ブロックにする
     expect(PARTS.filter(isCommon).map((part) => part.id), "コアブロックの段の部品").toEqual(listed.filter((block) => block.attach.only === undefined).map((block) => block.name));
-    expect([TEXT.ja.site.catalog.sections.parts.title, TEXT.ja.site.catalog.sections["kind-parts"].title], "一覧の段の名前").toEqual(["コアブロック", "個別ブロック"]);
-    expect([TEXT.en.site.catalog.sections.parts.title, TEXT.en.site.catalog.sections["kind-parts"].title], "英語の一覧の段の名前").toEqual(["Core blocks", "Kind blocks"]);
+    expect([CATALOG_TEXT.ja.sections.parts.title, CATALOG_TEXT.ja.sections["kind-parts"].title], "一覧の段の名前").toEqual(["コアブロック", "個別ブロック"]);
+    expect([CATALOG_TEXT.en.sections.parts.title, CATALOG_TEXT.en.sections["kind-parts"].title], "英語の一覧の段の名前").toEqual(["Core blocks", "Kind blocks"]);
     // 棚の部品は、棚の部品を持つブロックをブロックの並びで並べた物
     const shelves = BLOCK_SHELF as Readonly<Record<string, unknown>>;
     expect([...PART_IDS], "棚の部品").toEqual(ranked.flatMap((block) => Object.keys(own<object>(shelves, block.name) ?? {})));
