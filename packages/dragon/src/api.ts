@@ -128,6 +128,7 @@ export type {
   PipeText,
   PipeTie,
   PipeValuePipe,
+  PipeWordsInput,
   PipeWrite as PipeWritePlaced,
 } from "./kinds/pipe/layout";
 export type { ChartArc, ChartBarRow, ChartLayout, ChartLayoutOptions, ChartLegendRow, ChartPlan, ChartRow } from "./kinds/chart/layout";
@@ -140,7 +141,7 @@ export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from ".
 export type { FrameSide, LayoutBreak, LayoutBreakKind, LayoutPart } from "./render/breaks";
 export { checkLayoutText, describeBreak } from "./render/layout-check";
 export { iconSvg } from "./blocks/icon/draw";
-export { type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
+export { type DiagramWords, type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
 export type { CarrierTime, EdgeTime, EventTime, LabelTime, MarkTime, Span, StateTime, Timeline } from "./timeline";
 export { chooseView } from "./view";
 /** ブロックを使える図の種類。ブロックの付け方と図の種類が受け付ける付け方から導く (#3348) */

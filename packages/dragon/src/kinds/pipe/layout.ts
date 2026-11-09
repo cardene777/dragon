@@ -66,6 +66,42 @@ export const PIPE_TEXT: Record<NotationLang, PipeWords> = {
   },
 };
 
+/**
+ * 呼ぶ側が渡す配管の図の語 (#3584)。画面を持つ側が自分の語 (成功、リバートなど) で描くために、`RenderOptions` の `words.pipe` で渡す。
+ * 一部だけ渡せ、渡さない語は描く言葉の語 (`PIPE_TEXT`) で描く。数と名前が入る文は `{steps}`、`{parties}`、`{name}` の所に差し込む
+ */
+export interface PipeWordsInput {
+  /** 槽の下の数に添える語。`provisional` は暫定、`final` は確定、`rolled` は取り消し */
+  tags?: Partial<Record<Exclude<PipeState, "none">, string>>;
+  /** 始めた人が払った槽の札 (`in`) と、受け取った槽の札 (`out`) */
+  io?: Partial<Record<"in" | "out", string>>;
+  /** 内側の段をまとめた枠の文。`{steps}` に内側の段の数、`{parties}` に内側の関係者の数を差し込む */
+  fold?: string;
+  /** まとめた枠を押すと開くことを知らせる語 */
+  open?: string;
+  /** まとめた段の題。`{name}` に呼ばれた関係者の名前を差し込む */
+  foldTitle?: string;
+}
+
+/** `{鍵}` の所に値を差し込む。値を持たない鍵は書いたまま残す */
+const fill = (template: string, values: Record<string, string | number>): string =>
+  template.replace(/\{(\w+)\}/gu, (whole, key: string) => (key in values ? String(values[key]) : whole));
+
+/** 描く言葉の語に、呼ぶ側が渡した語を重ねる (#3584) */
+export function pipeWords(lang: NotationLang, given?: PipeWordsInput): PipeWords {
+  const base = PIPE_TEXT[lang];
+  if (!given) return base;
+  const { fold, foldTitle } = given;
+  return {
+    tags: { ...base.tags, ...given.tags },
+    io: { ...base.io, ...given.io },
+    fold: fold === undefined ? base.fold : (steps, parties) => fill(fold, { steps, parties }),
+    open: given.open ?? base.open,
+    foldTitle: foldTitle === undefined ? base.foldTitle : (name) => fill(foldTitle, { name }),
+    join: base.join,
+  };
+}
+
 /** 比べ方の字。`>=` は `≥` のように、読む時の字にする */
 export const OP_TEXT: Record<CheckOp, string> = { ">=": "≥", "<=": "≤", "==": "=", "!=": "≠", ">": ">", "<": "<" };
 
@@ -404,6 +440,8 @@ export interface PipeLayout extends Layout {
 
 export interface PipeLayoutOptions {
   lang?: NotationLang;
+  /** 呼ぶ側が渡す語 (#3584)。渡さない語は `lang` の語で描く */
+  words?: PipeWordsInput;
   /** 描く枠の幅。`PIPE_LOOK.narrow.frame` より狭い枠では、槽の残高と今の段の値を大きな字で出す */
   width?: number;
 }
@@ -426,7 +464,7 @@ export const middleBase = (top: number, h: number, style: TextStyle): number => 
  * 畳んだ呼び出しの内側の `[fold]` の呼び出しは、外の箱に入るので畳まない。
  * 箱ごとに、内側の段にだけ出て、まとめなかった段に出ない関係者を `hidden` に持つ。宣言しただけで段に出ない関係者は内側に数えない
  */
-export function foldPipe(diagram: DiagramModel, open: readonly number[] = [], lang: NotationLang = DEFAULT_LANG): DiagramModel {
+export function foldPipe(diagram: DiagramModel, open: readonly number[] = [], lang: NotationLang = DEFAULT_LANG, given?: PipeWordsInput): DiagramModel {
   interface Opened {
     index: number;
     step: number;
@@ -449,7 +487,7 @@ export function foldPipe(diagram: DiagramModel, open: readonly number[] = [], la
       }
     }
   });
-  const words = PIPE_TEXT[lang];
+  const words = pipeWords(lang, given);
   const names = new Map(diagram.boxes.map((b) => [b.id, b.name]));
   const steps: Step[] = [];
   const folds: PipeFold[] = [];
@@ -921,9 +959,12 @@ function offsetPath(points: readonly Point[], d: number): Point[] {
 
 export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {}): PipeLayout {
   const lang = options.lang ?? DEFAULT_LANG;
+  const words = pipeWords(lang, options.words);
   const frame = options.width;
   const narrow = frame !== undefined && frame < P.narrow.frame;
-  const key = `${lang}|${narrow ? frame : "wide"}|${JSON.stringify(diagram)}`;
+  // 渡した語で札の幅が変わるので、語も覚えの鍵に入れる (#3584)
+  const said = `${lang}|${JSON.stringify(options.words ?? {})}`;
+  const key = `${said}|${narrow ? frame : "wide"}|${JSON.stringify(diagram)}`;
   const hit = CACHE.get(key);
   if (hit) return hit;
   const remember = (k: string, layout: PipeLayout): PipeLayout => {
@@ -933,15 +974,15 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
   };
   let sizes: Sizes = { amount: T.amount.size, chip: T.chip.size };
   // 狭い枠も、字の大きさを決めるために広い枠の図を先に組む。広い枠で描いた図が覚えに在ればそれを使う
-  const wideKey = `${lang}|wide|${JSON.stringify(diagram)}`;
-  let out = CACHE.get(wideKey) ?? remember(wideKey, compose(diagram, lang, sizes, false));
+  const wideKey = `${said}|wide|${JSON.stringify(diagram)}`;
+  let out = CACHE.get(wideKey) ?? remember(wideKey, compose(diagram, words, sizes, false));
   if (narrow) {
     // 広い枠の図を枠の幅へ縮めた時に、画面で `px` の大きさに見える字で 1 度だけ組み直す。組み方は広い枠で組めた組み方から試す。
     // 大きな字で図が広がると縮める割合も変わるが、くり返して合わせない。札の多い図では字を上げるほど図が広がり、
     // 字が際限なく大きくなるため (aggregator は 10726px の幅に 293px の字まで広がった)。要る大きさより少し大きく組み、広がる分を見込む
     const want = Math.ceil(((P.narrow.px * out.width) / frame) * NARROW_OVER * 10) / 10;
     sizes = { amount: Math.max(T.amount.size, want), chip: Math.max(T.chip.size, want) };
-    out = compose(diagram, lang, sizes, true, PLAN_OF.get(out) ?? 0);
+    out = compose(diagram, words, sizes, true, PLAN_OF.get(out) ?? 0);
   }
   return narrow ? remember(key, out) : out;
 }
@@ -959,8 +1000,7 @@ const PLAN_OF = new WeakMap<PipeLayout, number>();
 /** 狭い枠の字を、要る大きさよりどれだけ大きく組むか */
 const NARROW_OVER = 1.06;
 
-function compose(diagram: DiagramModel, lang: NotationLang, sizes: Sizes, narrow: boolean, from = 0): PipeLayout {
-  const words = PIPE_TEXT[lang];
+function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: boolean, from = 0): PipeLayout {
   const folds = diagram.pipe?.folds ?? [];
   const foldSteps = new Set(folds.map((f) => f.step));
   const hidden = new Set(folds.flatMap((f) => f.hidden));

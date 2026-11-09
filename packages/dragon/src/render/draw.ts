@@ -29,7 +29,7 @@ import { FIGURE_TEXT } from "../figure-text";
 import type { ChartLayout } from "../kinds/chart/layout";
 import type { GitLayout } from "../kinds/git/layout";
 import type { LineupLayout } from "../kinds/lineup/layout";
-import type { PipeLayout } from "../kinds/pipe/layout";
+import type { PipeLayout, PipeWordsInput } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import {
   type Layout,
@@ -110,6 +110,16 @@ export interface RenderOptions {
   still?: boolean;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
   blocks?: UserBlocks;
+  /**
+   * 図の中に描く語を、描く言葉 (`lang`) の語の代わりに渡す (#3584)。画面を持つ側が自分の語で描くために使う。
+   * `pipe` は配管の図の槽の下の語と、入力と出力の札と、内側の段をまとめた枠の文。一部だけ渡せ、渡さない語は `lang` の語で描く
+   */
+  words?: DiagramWords;
+}
+
+/** 図の種類ごとの、呼ぶ側が渡す語 (#3584) */
+export interface DiagramWords {
+  pipe?: PipeWordsInput;
 }
 
 /**
@@ -1012,7 +1022,7 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)。
   // 配管の図は `[fold]` の呼び出しの内側の段を、開くと頼まれていなければ 1 つの段にまとめてから並べる (#3389)
   const model = toModel(read.diagram);
-  const diagram = model.kind === "pipe" ? kindParts("pipe", lang).foldPipe(model, options.open ?? [], lang) : model;
+  const diagram = model.kind === "pipe" ? kindParts("pipe", lang).foldPipe(model, options.open ?? [], lang, options.words?.pipe) : model;
   // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。後から読む図の種類 (#3347) と置き場の無い図の種類は登録簿から並べ方を引き、
   // 知らない種類は構成図の並べ方で並べる
   const folder = FOLDERS[diagram.kind];
@@ -1040,6 +1050,7 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
                 : diagram.kind === "pipe"
                   ? kindParts("pipe", lang).layoutPipe(diagram, {
                       lang,
+                      ...(options.words?.pipe === undefined ? {} : { words: options.words.pipe }),
                       ...(options.width === undefined ? {} : { width: options.width }),
                     })
                   : diagram.kind === "chart"

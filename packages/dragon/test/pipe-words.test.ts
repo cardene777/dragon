@@ -41,6 +41,19 @@ function render(source: unknown, words?: PipeWordsInput): Rendered {
 
 const TAGS = { provisional: "保留", final: "成功", rolled: "リバート" };
 
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+/** 配管の図の組んだ結果のうち、槽の札と槽の箱 */
+interface PipeLayoutView {
+  levels: { party: string; token: string; step: number; tag?: Box }[];
+  housings: (Box & { party: string })[];
+}
+const meets = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
 describe("配管の図の語を呼ぶ側が渡す (#3584)", () => {
   it("pipe-words-tags-replaced", () => {
     const swap = json("swap.json");
@@ -123,11 +136,25 @@ describe("配管の図の語を呼ぶ側が渡す (#3584)", () => {
   it("pipe-words-long-words-fit", () => {
     const revert = json("swap-revert.json");
     const before = render(revert);
-    const long = { provisional: "まだ確定していない", rolled: "リバートされて元に戻った" };
+    const long = { provisional: "まだ確定していない状態で残っている途中の値", rolled: "リバートされて元に戻った" };
     const after = render(revert, { tags: long });
     expect(count(after.svg, long.provisional), "長い暫定の語を切らずに描かない").toBeGreaterThan(0);
     expect(count(after.svg, long.rolled), "長い取り消しの語を切らずに描かない").toBeGreaterThan(0);
     expect(after.overlaps.length, "長い語の札が他の字か線に重なる").toBeLessThanOrEqual(before.overlaps.length);
+    // 札の行の幅は渡した語で測る。今の語の幅で組むと、長い語が槽の箱の外か隣の槽の札へはみ出す
+    const layout = after.layout as unknown as PipeLayoutView;
+    const tagged = layout.levels.filter((level) => level.tag !== undefined);
+    expect(tagged.length, "長い語の図に札を持つ槽が無い (走査の空振り)").toBeGreaterThan(0);
+    const outside = tagged.filter((level) => {
+      const box = layout.housings.find((housing) => housing.party === level.party);
+      const tag = level.tag as Box;
+      return box === undefined || tag.x < box.x || tag.x + tag.w > box.x + box.w;
+    });
+    expect(outside.map((level) => `${level.party} ${level.token} 段${level.step}`), "槽の箱の外へはみ出す札").toEqual([]);
+    const crossing = tagged.flatMap((a, i) =>
+      tagged.slice(i + 1).filter((b) => a.step === b.step && a.party === b.party && meets(a.tag as Box, b.tag as Box)).map((b) => `${a.party} ${a.token}と${b.token} 段${a.step}`),
+    );
+    expect(crossing, "同じ段で隣の槽の札に重なる札").toEqual([]);
   });
 
   it("pipe-words-absent-same-svg", () => {

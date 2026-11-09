@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **A pipe diagram can be drawn in the caller's own words** (#3584)
+
+  The words under the tank amounts (Pending, Final, Undone), the labels on the sender's and receiver's tanks (In, Out), and the text of a folded box were fixed for each language. Pass `words.pipe` to `renderDiagram` or `mountDiagram` to replace any of them; `{steps}`, `{parties}`, and `{name}` in the folded box text and title become the numbers and the party name. Words you leave out keep the words of `lang`, and a diagram drawn without `words` is the same as before.
+
 ## [0.69.0] - 2026-11-09
 
 ### Added
