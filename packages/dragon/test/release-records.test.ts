@@ -223,6 +223,23 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-68-0-adds-player-speed", () => {
+    // 再生の部品に流す速さの倍率を渡せるようにした機能 (#3568) を 0.68.0 で出す
+    expect(version(), "package の版が 0.68.0 でない").toBe("0.68.0");
+    for (const [file, word] of [
+      ["CHANGELOG.md", /\bspeed\b/iu],
+      ["CHANGELOG.ja.md", /速さ/u],
+    ] as const) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.68\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.68.0"), "0.68.0");
+      expect(released, `${file} に日付付きの ## [0.68.0] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.68.0 の節に #3568 の項が無い`).toContain("(#3568)");
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した #3568 の項が残る`).not.toContain("(#3568)");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3568)")) ?? "";
+      expect(entry, `${file} の 0.68.0 の節の #3568 の項が再生の速さ (${word.source}) を名指さない`).toMatch(word);
+    }
+  });
+
   it("changelog-0-67-0-side-log", () => {
     // 試す図の side の行で記録の列も横に並べる直し (#3506) と、main に入っていたブロックの定義の絵柄 (#3489) も 0.67.0 で出す
     for (const [file, word] of [

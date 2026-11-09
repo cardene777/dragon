@@ -299,6 +299,132 @@ describe("流して見せる (#3113)", () => {
   });
 });
 
+describe("流す速さ (#3568)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  type Oauth = { steps: { title: string }[] };
+
+  /** 偽の時計で OAuth を置く。`at(t)` は置いてからの時刻を `t` 秒まで進めて、今の段を読む */
+  function played(options: PlayerOptions = {}): {
+    host: HTMLElement;
+    player: Player;
+    seen: number[];
+    at: (t: number) => number;
+    timeline: { total: number; steps: { start: number }[]; stills: number[] };
+    last: number;
+  } {
+    prefersReducedMotion(false);
+    vi.useFakeTimers();
+    const diagram = exampleJson("oauth.json") as Oauth;
+    const seen: number[] = [];
+    const { host, player } = mount(diagram, { ...options, onStep: (step) => seen.push(step) });
+    const { timeline } = draw("renderDiagram")(diagram);
+    let now = 0;
+    const at = (t: number): number => {
+      vi.advanceTimersByTime(Math.round((t - now) * 1000));
+      now = t;
+      return player.step;
+    };
+    return { host, player, seen, at, timeline, last: diagram.steps.length - 1 };
+  }
+
+  /** 置いた SVG の動きの 1 周の秒と、動きの今の位置の秒 */
+  const motionOf = (host: HTMLElement): { T: number; at: number } => {
+    const svg = host.querySelector("svg");
+    return { T: Number.parseFloat(svg?.style.getPropertyValue("--T") ?? ""), at: Number(svg?.style.getPropertyValue("--at")) };
+  };
+
+  it("player-speed-option-doubles-pace", () => {
+    // 2 倍で流すと、時刻の表の秒の半分で段が替わり、替わった段を知らせる
+    const { at, seen, timeline } = played({ speed: 2 });
+    const second = timeline.steps[1]?.start ?? Number.NaN;
+    expect(at(second / 2 - 0.2), `段 2 の始まりの半分 (${(second / 2).toFixed(2)} 秒) の 0.2 秒前に段 1 でない`).toBe(0);
+    expect(at(second / 2 + 0.2), `段 2 の始まりの半分の 0.2 秒後に段 2 に替わらない`).toBe(1);
+    expect(seen.at(-1), "替わった段を onStep で知らせない").toBe(1);
+  });
+
+  it("player-set-speed-keeps-position", () => {
+    // 流している途中で速さを変えても、今の段から続け、最初の段へ戻らない
+    const { player, at, seen, timeline } = played();
+    const second = timeline.steps[1]?.start ?? Number.NaN;
+    const third = timeline.steps[2]?.start ?? Number.NaN;
+    expect(at(second + 0.2), "1 倍で段 2 の始まりの 0.2 秒後に段 2 でない").toBe(1);
+    const before = seen.length;
+    player.setSpeed(2);
+    expect(player.step, "速さを変えると段が替わる").toBe(1);
+    expect(player.playing, "速さを変えると止まる").toBe(true);
+    expect(seen.slice(before).filter((s) => s !== 1), "速さを変えた時に別の段を知らせる").toEqual([]);
+    const rest = third - (second + 0.2);
+    expect(at(second + 0.2 + rest / 2 - 0.2), "段 3 の始まりまでの残りの半分の 0.2 秒前に段 2 でない").toBe(1);
+    expect(at(second + 0.2 + rest / 2 + 0.2), "段 3 の始まりまでの残りの半分の 0.2 秒後に段 3 に替わらない").toBe(2);
+  });
+
+  it("player-speed-scales-motion", () => {
+    // 2 倍の図は動きの 1 周を半分の秒で回し、同じ時刻の絵を半分の秒の位置で描く
+    const twice = played({ speed: 2 });
+    expect(motionOf(twice.host).T, "2 倍の図の動きの 1 周が時刻の表の半分でない").toBeCloseTo(twice.timeline.total / 2, 3);
+    twice.at(1);
+    twice.player.pause();
+    const once = played();
+    once.at(2);
+    once.player.pause();
+    const fast = motionOf(twice.host);
+    const plain = motionOf(once.host);
+    expect(plain.T, "1 倍の図の動きの 1 周が時刻の表のとおりでない").toBeCloseTo(once.timeline.total, 3);
+    expect(fast.at / fast.T, "2 倍で 1 秒流した図と 1 倍で 2 秒流した図が同じ絵を描かない").toBeCloseTo(plain.at / plain.T, 3);
+  });
+
+  it("player-speed-plays-once-sooner", () => {
+    // 1 度だけ流す図も、2 倍なら最後の段の止め絵まで半分の秒で着いて止まる
+    const { player, at, timeline, last } = played({ playOnce: true, speed: 2 });
+    const end = (timeline.stills[last] ?? Number.NaN) / 2;
+    at(end - 0.3);
+    expect(player.playing, `最後の段の止め絵の半分 (${end.toFixed(2)} 秒) の 0.3 秒前に止まる`).toBe(true);
+    at(end + 0.3);
+    expect(player.playing, "最後の段の止め絵の半分の 0.3 秒後に止まらない").toBe(false);
+    expect(player.step).toBe(last);
+  });
+
+  it("player-set-speed-while-paused", () => {
+    // 止めて置いた図は速さを変えても止まったままで、流すとその速さで流れる
+    const { player, at, timeline } = played({ pausedAt: 0 });
+    player.setSpeed(2);
+    expect(player.playing, "止めた図に速さを渡すと流れ出す").toBe(false);
+    expect(at(1), "止めた図が時刻とともに段を進める").toBe(0);
+    player.play();
+    const rest = (timeline.steps[1]?.start ?? Number.NaN) - (timeline.stills[0] ?? Number.NaN);
+    expect(at(1 + rest / 2 - 0.1), "段 2 の始まりまでの残りの半分の 0.1 秒前に段 1 でない").toBe(0);
+    expect(at(1 + rest / 2 + 0.2), "流した後に段 2 の始まりまでの残りの半分で段 2 に替わらない").toBe(1);
+  });
+
+  it("player-speed-rejects-non-positive", () => {
+    // 0 以下と有限でない数は RangeError で断り、setSpeed で断った時は前の速さのまま流れる
+    const bad = [0, -1, Number.POSITIVE_INFINITY, Number.NaN];
+    for (const speed of bad) {
+      expect(() => mount(exampleJson("oauth.json"), { speed }), `speed: ${speed} を断らない`).toThrow(RangeError);
+    }
+    const { player, at, timeline } = played();
+    for (const speed of bad) expect(() => player.setSpeed(speed), `setSpeed(${speed}) を断らない`).toThrow(RangeError);
+    expect(player.playing, "断った後に止まる").toBe(true);
+    const second = timeline.steps[1]?.start ?? Number.NaN;
+    expect(at(second - 0.2), "断った後に 1 倍より速く流れる").toBe(0);
+    expect(at(second + 0.2), "断った後に 1 倍で段 2 に替わらない").toBe(1);
+  });
+
+  it("readme-documents-player-speed", () => {
+    const ROOT = process.cwd();
+    for (const path of ["packages/dragon/README.md", "packages/dragon/README.ja.md"]) {
+      const text = readFileSync(join(ROOT, path), "utf8");
+      const paragraph = text.split(/\n\s*\n/).find((p) => p.includes("`setSpeed`"));
+      expect(paragraph, `${path} に setSpeed の渡し方が無い`).toBeDefined();
+      expect(paragraph ?? "", `${path} の setSpeed の段落に speed の設定が無い`).toContain("`speed`");
+      expect(paragraph ?? "", `${path} の setSpeed の段落に、受けられない値で RangeError を投げることが無い`).toContain("RangeError");
+    }
+  });
+});
+
 describe("段の本文の帯の高さ (#3049)", () => {
   it("player-caption-room-holds-every-step", () => {
     // 帯の高さが段の本文の行の数で替わると、図の枠が伸び縮みして図が縮むか上下に動く
