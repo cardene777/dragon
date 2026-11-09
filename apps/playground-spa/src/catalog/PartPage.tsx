@@ -22,6 +22,7 @@ import { BLOCK_DESC } from "./blocks-desc.gen";
 import type { Kind } from "./catalog";
 import { LaterFailed } from "./LaterFailed";
 import { LATER_SNIPPETS, type Part, samplesUsing, snippetOf, wordLabel } from "./parts";
+import { CATALOG_TEXT } from "./text";
 
 interface Props {
   part: Part;
@@ -33,8 +34,8 @@ interface Props {
 
 export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
   const t = TEXT[lang];
-  const c = t.site.catalog;
-  const text = c.parts[part.id];
+  const c = CATALOG_TEXT[lang];
+  const text = t.site.catalog.parts[part.id];
   const desc = BLOCK_DESC[part.id][lang];
   // 見本の札は後から読む見本が届いてから並べる (#3246)
   const examples = useLater(LATER_EXAMPLES);
@@ -123,7 +124,7 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
  * 頁に差し込む字は package の絵柄の表から作った SVG だけで、人が書いた字を含まない
  */
 function IconList({ lang }: { lang: Lang }): ReactElement {
-  const c = TEXT[lang].site.catalog;
+  const c = CATALOG_TEXT[lang];
   const names = Object.keys(ICONS).sort();
   return (
     <section className="catalog-section" data-catalog="part-icons" aria-label={c.partIcons}>
@@ -149,7 +150,7 @@ function IconList({ lang }: { lang: Lang }): ReactElement {
  */
 function PartFigure({ part, kind, lang, theme, palette }: Props & { kind: Kind }): ReactElement {
   const t = TEXT[lang];
-  const c = t.site.catalog;
+  const c = CATALOG_TEXT[lang];
   const later = useLater(LATER_SNIPPETS);
   const notation = later.status === "ready" ? snippetOf(part.id, kind, lang) : undefined;
   if (notation === undefined) {
