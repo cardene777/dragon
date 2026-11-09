@@ -72,3 +72,10 @@
 | 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) とAIのskillの`references/kinds/time.md`に`task`の行の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに工程表の棒が載る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`docs-describe-time-task`が通る | #3562 |
 | 使い方の頁と`CHANGELOG.md`の前の形との対応表の頭の語が、読む部品の語と一致し、AIのskillの記法の囲みが全て読める | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`と`skill-fences-parse`が通る | #3562 |
 | 見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #3562 |
+| 見本`release-plan`を色味`arcade`の明暗の両方で描くと、作業の棒とその窓を切り抜く形が右上と左下を落とした6つの頂点の形になり、落とす大きさが8か箱の短い辺の4分の1になる | `pnpm exec vitest run packages/dragon/test/arcade-corners.test.ts`の検査`arcade-cuts-box-region-frame-corners`と`arcade-cut-is-8-or-a-quarter`が通る | #3570 |
+| 角の形を足す前の記録が見本`release-plan`、`os-share`、`tickets`の行を持ち、色味`arcade`でない色味で描いた丸い角の数と半径が記録と一致する | `pnpm exec vitest run packages/dragon/test/arcade-corners.test.ts`の検査`other-palettes-keep-rounded-corners`が通る | #3570 |
+| 線の形を変える前の記録が見本`release-plan`、`os-share`、`tickets`の行を持ち、`clear`、`paper`、`night`の明暗の両方で描いた線の道筋が記録と一致する | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`other-palettes-keep-round-bends`が通る | #3570 |
+| 見本帳の編集画面を幅1440と幅390で開いた時、分割された字の file を読まず、頁の文言の字が全て切り出した字に在る | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-reads-three-files`と`site-font-covers-every-word`が通る | #3570 |
+| 常に、色味`arcade`で描いた線の折れ目は角張った形のまま描かれる | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts`の検査`arcade-draws-square-line-bends`が通る | #3570 |
+| 常に、作業の棒は自分の行に続いた太い棒で描かれ、針が通った分を作業の色で濃く塗る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-draws-a-thick-bar-per-row`と`task-fills-passed-part`が通る | #3570 |
+| 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3570 |
