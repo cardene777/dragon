@@ -158,6 +158,15 @@ describe("記法と図の種類とブロックを足す skill (#3245)", () => {
     expect(missing, "SKILL.md に無い決まり").toEqual([]);
   });
 
+  it("extend-skill-release-checks-in-checks-md", () => {
+    // ikkan 0.15.8 の配る前の関門は命令を引数で受けず、`.ikkan/checks.md` の欄を回す (#3589)
+    const text = squash(read(SKILL_MD));
+    expect(text, ".claude/skills/dragon-extend/SKILL.md が無い").not.toBe("");
+    expect(text, "版を出す前に確かめる物を `.ikkan/checks.md` の欄が持つと書かない").toMatch(new RegExp(`${squash("`.ikkan/checks.md`").replaceAll(".", "\\.")}の欄`, "u"));
+    expect(text, "配る前の関門の呼び方 (`deployable.sh --since`) を書かない").toContain(squash("`deployable.sh --since"));
+    expect(text, "配った後の関門 (`deployed.sh`) を書かない").toContain(squash("`deployed.sh`"));
+  });
+
   it("extend-skill-names-existing-paths", () => {
     const tracked = git("ls-files");
     const named = skillTexts().flatMap(([file, text]) =>

@@ -117,6 +117,31 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(weight?.[1], "`.ikkan/checks.md` が一式の重さを `軽い` と書いていない").toBe("軽い");
   });
 
+  it("release-fields-all-written", () => {
+    // ikkan の配る前の関門 (`deployable.sh`) と配った後の関門 (`deployed.sh`) が求める欄 (#3589)。欄が無い repo は終わり方 3 で断られる
+    const fields = ["配る前のテスト", "配る前の動作", "配る前のセキュリティ", "配る先との整合", "壊す変更", "stagingの確かめ", "戻す確かめ", "配った後の確かめ"];
+    const rows = tableRows(readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8"));
+    const cell = (field: string): string | undefined => rows.find((cells) => cells[0] === field)?.[1];
+    expect(fields.filter((field) => cell(field) === undefined), "`.ikkan/checks.md` に無い欄").toEqual([]);
+    // 中身は backtick で囲んだ命令か、`無し (理由)`。理由の無い `無し` は ikkan が断る
+    const bad = fields.filter((field) => {
+      const text = cell(field) ?? "";
+      return !/^`[^`]+`$/u.test(text) && !/^無し\s*[(（][^)）]+[)）]$/u.test(text);
+    });
+    expect(bad, "命令でも理由つきの `無し` でもない欄").toEqual([]);
+  });
+
+  it("release-tests-skip-e2e", () => {
+    const rows = tableRows(readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8"));
+    const command = (rows.find((cells) => cells[0] === "配る前のテスト")?.[1] ?? "").replace(/^`|`$/gu, "");
+    expect(command, "`.ikkan/checks.md` に配る前のテストの命令が無い").not.toBe("");
+    for (const part of ["pnpm typecheck", "pnpm build", "pnpm lint", "vitest run packages/", "vitest run apps/"]) {
+      expect(command, `配る前のテストが ${part} を回さない`).toContain(part);
+    }
+    // e2e は配る前にも回さない (ikkan の flow/steps.md、#3585)
+    expect(command, "配る前のテストが e2e を回す").not.toMatch(/e2e|playwright\s+test|test:e2e/iu);
+  });
+
   it("maintainer-notes-name-related-runner", () => {
     const notes = readFileSync(join(ROOT, "docs/maintaining.md"), "utf8");
     expect(notes, "管理者向けの決まりが、関係する検査を回す命令を名指していない").toContain("pnpm test:related");

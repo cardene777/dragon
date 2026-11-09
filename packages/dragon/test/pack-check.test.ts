@@ -113,3 +113,34 @@ describe("結果のまとめ (#3023)", () => {
     expect(summary.文.join("\n")).toMatch(/2 件/);
   });
 });
+
+/** 包んだ物を入れて命令を回した答えの判定 (#3589)。配る前の動作の欄 (`.ikkan/checks.md`) が `check:pack` を回す */
+const answers = require_("../scripts/lib/pack-check.mjs") as {
+  版の答えを確かめる?: (答え: string, 版: string) => { 通った: boolean; 理由?: string };
+  SVGを確かめる?: (中身: string | undefined) => { 通った: boolean; 理由?: string };
+};
+
+describe("入れた dragon の答え (#3589)", () => {
+  it("pack-check-version-must-match", () => {
+    const check = answers.版の答えを確かめる;
+    expect(check, "lib/pack-check.mjs が 版の答えを確かめる を書き出さない").toBeTypeOf("function");
+    if (!check) return;
+    // `dragon --version` の答えは末尾に改行を持つ
+    expect(check("0.70.0\n", "0.70.0").通った, "包んだ版と同じ答えを落とした").toBe(true);
+    const wrong = check("0.69.0\n", "0.70.0");
+    expect(wrong.通った, "包んだ版と違う答えを通した").toBe(false);
+    expect(wrong.理由, "落とした理由に答えの版が無い").toContain("0.69.0");
+    expect(check("", "0.70.0").通った, "何も答えない回を通した").toBe(false);
+  });
+
+  it("pack-check-svg-must-be-svg", () => {
+    const check = answers.SVGを確かめる;
+    expect(check, "lib/pack-check.mjs が SVGを確かめる を書き出さない").toBeTypeOf("function");
+    if (!check) return;
+    expect(check('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>').通った, "SVG の中身を落とした").toBe(true);
+    expect(check('<?xml version="1.0" encoding="UTF-8"?>\n<svg viewBox="0 0 10 10"></svg>').通った, "XML の宣言で始まる SVG を落とした").toBe(true);
+    expect(check(undefined).通った, "file が出来ていない回を通した").toBe(false);
+    expect(check("<!doctype html><html></html>").通った, "HTML の中身を SVG と読んだ").toBe(false);
+    expect(check("").通った, "空の file を通した").toBe(false);
+  });
+});
