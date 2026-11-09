@@ -1,0 +1,18 @@
+flow 判断
+
+box form as 申し込み
+choice ok as 書けている？
+box send as 受け付ける [color: green]
+box back as 書き直す [color: rose]
+
+ok -> back: いいえ
+
+step 確かめる
+  say 判断はひし形で描き、出る線に名前を付ける。
+  start -> form
+  form -> ok: 出す
+
+step 受け付ける
+  say 最初の段より前に書いた線は、今回は通らない道として点線で右へ出る。
+  ok -> send: はい
+  send -> finish

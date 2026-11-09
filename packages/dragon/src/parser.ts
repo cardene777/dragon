@@ -85,6 +85,10 @@
  * 段の中では `move`、`write`、`check`、`return`、`revert`、`emit`、`calc` を書き、呼び出しの開け閉めと残高は
  * 段ごとの状態の手順 (`pipe-run.ts`) に 1 つずつ当てる。これらの行は配管の図でだけ書け、配管の図に区画のような配管の図の持たない行は書けない。
  *
+ * 手順の図 (`flow`、#3561) は、`box` の行の手順と、最初の `step` より前の `choice <名札> as <問い>` の行の判断を線で結ぶ。
+ * 最初の `step` より前に書いた線は今回は通らない道になり、判断から出る線は名前を持つ 2 本まで。本筋で前に置いた箱へ戻る線と `group` の行は書けない。
+ * `choice` の行は手順の図でだけ書け、線の端の `start` と `finish` は状態遷移図と同じく始まりと終わりの印になる。
+ *
  * 時系列図と構成図と状態遷移図 (種類の定義が `short` を名乗る図) は、宣言と段を省いた短い記法も読む (#3438)。
  * 1 行目は図の種類の語だけでよく、原本の題は図の種類の語にする。`step` の行を 1 つも書かない図は、線 1 本を 1 段にして書いた順に並べ、
  * 状態遷移図でもその線を道にしない。`say` を書かない段は、段の線の名前から本文を導く (`short-form.ts`)。
@@ -189,8 +193,8 @@ const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
  * `item` は量の図 (#3560) でも項目の行として書け、量の図の行は項目のブロックが行の形で先に読む
  */
 const LINEUP_OR_TRY = ["item", "line"];
-/** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める */
-const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart"];
+/** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
+const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
@@ -242,6 +246,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     try: { parts: [], items: [], sides: [], checks: [], pending: [] },
     pipe: { holds: [], opened: [] },
     chart: { items: [], ...(shape ? { shape } : {}) },
+    flow: { choices: [], paths: [], lines: [], main: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
   const steps: Step[] = [];
@@ -344,7 +349,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
    * 図の種類だけの行の頭の語を、ほかの種類の図に書いた時の誤りの文。
    * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
    */
-  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly };
+  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly };
   /** 線の列。持つ図の種類 (時間軸の図) のブロックが読み、ほかの種類の図に書いた列は誤りで止める */
   const columns: ParseState["columns"] = (source, from, to, attrs, end) => {
     const [read] = hooks("columns");
@@ -420,7 +425,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
       if (!edge) throw fail(source, at, m.edgeShape);
       const read = readEdgeLine(asEdge, edge, state);
       read.block = name;
-      for (const after of hooks("afterEdge")) after(read, state);
+      for (const after of hooks("afterEdge")) after(read, state, asEdge);
       if (lineStep) closeLineStep(read);
       continue;
     }
@@ -432,7 +437,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     const edge = EDGE.exec(text);
     if (edge) {
       const read = readEdgeLine(source, edge, state);
-      for (const after of hooks("afterEdge")) after(read, state);
+      for (const after of hooks("afterEdge")) after(read, state, source);
       if (lineStep) closeLineStep(read);
       continue;
     }
@@ -485,6 +490,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     ...(figure.strip ? { strip: figure.meters.length > 0 ? { ...figure.strip, meters: figure.meters } : figure.strip } : {}),
     steps,
     ...(paths.length > 0 ? { state: { paths } } : {}),
+    ...(kind === "flow" ? { flow: { choices: figure.flow.choices, paths: figure.flow.paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
     ...(isLineup ? { lineup: { items: figure.lineup.items, ...(figure.lineup.roles.length > 0 ? { roles: figure.lineup.roles } : {}) } } : {}),
     ...(isTry

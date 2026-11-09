@@ -20,6 +20,8 @@
  * 量の図 (#3560) の値の出来事は、段の中の全ての値を段の始まりから同時に変え、弧と棒が `MOTION.chart.move` 秒で新しい値へ動き終えるまでを引く間にする。
  * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
  * 枝分かれの図を描く部品が札ごとに動かす。線に書いた運ぶ物 (`tag` と `carry`) だけを表に載せる。
+ * 手順の図 (#3561) の運ぶ物を書かない線は、封筒の代わりに段の印の点が走る。点が走る間 (`marks`) と、運ぶ物と光る間の手順の図の分は、
+ * 手順の図の描く部品 (`render/flow.ts` の `flowTimes`) がこの表を受け取って直す。
  */
 import { type CarrierTime, carrierTimes, type Departure } from "./blocks/carry/timing";
 import { ratioOf } from "./layout/scene";
@@ -58,6 +60,17 @@ export interface EventTime {
   at: number;
 }
 
+/**
+ * 手順の図の段の印の点が 1 本の線を走る間 (#3561)。`depart` に線の始まりを出て `arrive` に線の終わりへ着き、着くと消える。
+ * 同じ段で着いた箱から続けて出る線は、前の線の点が着いてから走り出す
+ */
+export interface MarkTime {
+  step: number;
+  event: number;
+  depart: number;
+  arrive: number;
+}
+
 /** 状態遷移図の状態ごとの、光っている間と、済んだ印が出る時刻。運ぶ物が出ていない状態は `done` を持たない */
 export interface StateTime {
   box: string;
@@ -82,6 +95,8 @@ export interface Timeline {
   whole?: Span;
   /** 状態遷移図だけが持つ */
   states?: StateTime[];
+  /** 手順の図だけが持つ (#3561)。段の印の点が走る線と間で、手順の図の描く部品が足す (`render/flow.ts` の `flowTimes`) */
+  marks?: MarkTime[];
   /** 時間軸の図だけが持つ (#3165)。針の動き。[時刻, 目盛りの境の位置] の並びで、間は真っ直ぐ進む */
   needle?: [number, number][];
   /** 時間軸の図だけが持つ。針が目盛りを過ぎた (右の境に着いた) 時刻 */
@@ -288,7 +303,7 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
     for (const label of named) {
       if (whole && label.end > whole.start) label.end = whole.end;
       else {
-        if (diagram.kind === "state" && label.end < faint) label.after = { start: label.end, end: faint };
+        if ((diagram.kind === "state" || diagram.kind === "flow") && label.end < faint) label.after = { start: label.end, end: faint };
         if (whole) label.again = whole;
       }
     }
@@ -298,7 +313,8 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
 
   const first = steps[0]?.start ?? 0;
   const carriers = carrierTimes(departures, first, last);
-  const states = diagram.kind === "state" ? stateTimes(diagram, edges, last) : undefined;
+  // 手順の図も印が着いた箱と判断を光らせるが、済んだ印は出さない。判断のひし形の右上の角は形の外にあるため (#3561)
+  const states = diagram.kind === "state" || diagram.kind === "flow" ? stateTimes(diagram, edges, last, diagram.kind === "state") : undefined;
   const needle: [number, number][] = [[0, 0]];
   const units: { unit: number; passed: number }[] = [];
   plans.forEach((p, s) => {
@@ -395,8 +411,9 @@ const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).include
  * 状態遷移図の状態が光る間。段の線を引き終えて状態へ着いた時から、その状態を出る線を引き始めるまで光り、
  * 出た少し後に済んだ印を出す。同じ状態へ戻る線では光ったまま、最後に着いた状態は終わりまで光る。
  * 物が状態を移るのは線を辿った時なので、運ぶ物の種類 (硬貨や、運ばない線) を問わず全ての線で数える。
+ * `done` を立てない時 (手順の図、#3561) は済んだ印を出さない。
  */
-function stateTimes(diagram: DiagramModel, edges: EdgeTime[], last: number): StateTime[] {
+function stateTimes(diagram: DiagramModel, edges: EdgeTime[], last: number, done = true): StateTime[] {
   const times = new Map<string, StateTime>();
   const of = (box: string): StateTime => {
     const found = times.get(box) ?? { box, lit: [] };
@@ -410,7 +427,7 @@ function stateTimes(diagram: DiagramModel, edges: EdgeTime[], last: number): Sta
     if (on) {
       const left = of(on.box);
       left.lit.push({ start: on.since, end: edge.start });
-      if (on.box === event.from && left.done === undefined) left.done = edge.start + MOTION.done;
+      if (done && on.box === event.from && left.done === undefined) left.done = edge.start + MOTION.done;
       on = undefined;
     }
     if (!isEnd(event.to)) on = { box: event.to, since: edge.drawn };

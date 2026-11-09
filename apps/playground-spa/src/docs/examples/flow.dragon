@@ -1,0 +1,21 @@
+flow 申し込みの受け付け
+
+box form as 申し込みを受ける
+choice ok as 書けている？
+box send as 受け付ける [color: green]
+box back as 書き直してもらう [color: rose]
+
+ok -> back: いいえ
+
+step 受ける
+  say 申し込みが届いて手順が始まる。
+  start -> form
+
+step 確かめる
+  say 書けているかを判断する。最初の段より前の線は点線の通らない道で、判断の右へ出る。
+  form -> ok: 調べる
+
+step 受け付ける
+  say 書けていたので、はいの道を下へ進んで受け付ける。
+  ok -> send: はい
+  send -> finish

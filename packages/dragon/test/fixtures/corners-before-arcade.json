@@ -189,6 +189,20 @@
     "dg-on rx=12": 2,
     "dg-st rx=12": 2
   },
+  "login-check.en.json": {
+    "(none) rx=10": 3,
+    "dg-bg rx=14": 1,
+    "dg-halo rx=12": 2,
+    "dg-on rx=12": 2,
+    "dg-st rx=12": 3
+  },
+  "login-check.json": {
+    "(none) rx=10": 3,
+    "dg-bg rx=14": 1,
+    "dg-halo rx=12": 2,
+    "dg-on rx=12": 2,
+    "dg-st rx=12": 3
+  },
   "merge.en.json": {
     "dg-band rx=14": 3,
     "dg-bg rx=14": 1,

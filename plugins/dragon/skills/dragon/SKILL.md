@@ -39,8 +39,9 @@ Pick the kind from what the user wants to explain, then read [notation](referenc
 | `try` | A model the reader drives by typing values and pressing buttons | [try](references/kinds/try.md) |
 | `pipe` | One transaction through contracts: calls, balances, stored values, reverts | [pipe](references/kinds/pipe.md) |
 | `chart` | Comparing the sizes of a few items step by step: shares as a donut, amounts as bars | [chart](references/kinds/chart.md) |
+| `flow` | A procedure that branches at yes/no choices: a login check, a review, a deploy gate | [flow](references/kinds/flow.md) |
 
-When two kinds fit, follow what moves: messages between parties (`sequence`), things flowing between places (`architecture`), one thing changing state (`state`), money and values inside one transaction (`pipe`), how big items are next to each other (`chart`).
+When two kinds fit, follow what moves: messages between parties (`sequence`), things flowing between places (`architecture`), one thing changing state (`state`), money and values inside one transaction (`pipe`), how big items are next to each other (`chart`), one case going down a procedure past choices (`flow`).
 
 When no kind fits, do not force the explanation into one, and do not open an issue yet.
 Write down what the diagram must show (the parts, what moves, how many steps), write it in the closest kind, add your own blocks where they help (step 8), and run `dragon check` and `dragon check --layout` until they pass.

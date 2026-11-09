@@ -68,6 +68,8 @@ export interface CoreMessages {
   tryOnly: (word: string) => string;
   /** 配管の図だけの行を、別の種類の図に書いた (#3389) */
   pipeOnly: (word: string) => string;
+  /** 手順の図だけの行 (`choice`) を、別の種類の図に書いた (#3561) */
+  flowOnly: (word: string) => string;
   /** 配管の図の呼び出しの行だけの印 (`call`、`value`、`fold`) を、別の種類の図の線に書いた (#3389) */
   pipeOnlyAttr: (key: string) => string;
   /** 軽い入口で、まだ読んでいないブロック `block` の行か原本を読んだ。`loadFor` を待てば読める (#3349) */
@@ -126,6 +128,7 @@ const ja = (): Messages => {
     chartOnlyAttr: (key) => `最初の行の ${key} は chart (量の図) にだけ書ける`,
     tryOnly: (word) => `${word} の行は try (試す図) でだけ書ける`,
     pipeOnly: (word) => `${word} の行は pipe (配管の図) でだけ書ける`,
+    flowOnly: (word) => `${word} の行は flow (手順の図) でだけ書ける`,
     pipeOnlyAttr: (key) => `${key} は pipe (配管の図) の呼び出しの行にだけ書ける`,
     blockNotLoaded: (block) => `${block} のブロックの読み方を読んでいない。読む前に loadFor を待つ`,
     userBlocks: userBlockUseMessages("ja"),
@@ -178,6 +181,7 @@ const en = (): Messages => {
     chartOnlyAttr: (key) => `${key} on the first line can be written only in charts`,
     tryOnly: (word) => `${word} lines can be written only in try diagrams`,
     pipeOnly: (word) => `${word} lines can be written only in pipe diagrams`,
+    flowOnly: (word) => `${word} lines can be written only in flow diagrams`,
     pipeOnlyAttr: (key) => `${key} can be written only on call lines of pipe diagrams`,
     blockNotLoaded: (block) => `The ${block} block is not loaded. Await loadFor before reading`,
     userBlocks: userBlockUseMessages("en"),

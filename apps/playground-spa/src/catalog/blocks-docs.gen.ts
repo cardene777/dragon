@@ -11,6 +11,7 @@ import { docs as chartItemDocs } from "../../../../packages/dragon/src/blocks/ch
 import { docs as chartSetDocs } from "../../../../packages/dragon/src/blocks/chart-set/gallery/docs";
 import { docs as chartShapeDocs } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/docs";
 import { docs as checkDocs } from "../../../../packages/dragon/src/blocks/check/gallery/docs";
+import { docs as choiceDocs } from "../../../../packages/dragon/src/blocks/choice/gallery/docs";
 import { docs as colorDocs } from "../../../../packages/dragon/src/blocks/color/gallery/docs";
 import { docs as commitDocs } from "../../../../packages/dragon/src/blocks/commit/gallery/docs";
 import { docs as copyDocs } from "../../../../packages/dragon/src/blocks/copy/gallery/docs";
@@ -70,6 +71,7 @@ export const BLOCK_DOCS = {
   "chart-set": chartSetDocs,
   "chart-shape": chartShapeDocs,
   "check": checkDocs,
+  "choice": choiceDocs,
   "color": colorDocs,
   "commit": commitDocs,
   "copy": copyDocs,

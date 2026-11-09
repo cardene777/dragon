@@ -1,0 +1,18 @@
+flow Strip and fields
+
+box get as Accept
+box ship as Ship
+box done as Deliver
+
+strip Order: Number, Status
+
+step Send
+  say strip places a content strip with fields under the figure, and set puts a value in a field.
+  get -> ship: To shipping
+  set Number: 42
+  set Status: Shipped
+
+step Arrive
+  say tag on set adds a tag to the value of a field.
+  ship -> done: Delivered
+  set Status: Delivered [tag: Done]

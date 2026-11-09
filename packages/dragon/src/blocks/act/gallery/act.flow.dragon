@@ -1,0 +1,21 @@
+flow 箱の中の処理
+
+box form as 申請を受ける
+choice ok as 書類はそろう？
+box pass as 承認する [color: green]
+box back as 差し戻す [color: rose]
+
+ok -> back: いいえ
+
+step 受ける
+  say 申請が届き、手順が始まる。
+  start -> form
+
+step 確かめる
+  say act で、線を引かずに箱の中で起きる処理を見せる。
+  act form: 書類を照らし合わせる
+  form -> ok: 調べる
+
+step 通す
+  say 処理の後に線を続けられる。
+  ok -> pass: はい

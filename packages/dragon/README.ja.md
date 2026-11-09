@@ -185,7 +185,7 @@ mountDiagram(host, parsed.diagram, {
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`chart`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+既定の入口と同じ部品を出すが、`chart`、`flow`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
 これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
 `parseNotation` で記法から読んだ図は描く時に原本の形の検査を省くので、記法の図を描く頁は検査を読まない。JSON を渡した時は `loadFor` が原本の形の検査も読み、読む前に JSON を読むか描くと `loadFor` を待つよう示す誤りで止まる。
 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -285,7 +285,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -636,12 +636,54 @@ step 5月
   set phone: 58
 ```
 
+### 手順の図
+
+`flow` で始めると、手順を上から下へ追い、判断で道が分かれる手順の図になる。
+段が通る箱と判断は、線が初めて辿り着く順に上から下へ 1 列に並び、判断がほかへ送る道は判断の右へ出る。
+
+- `box <名札> as <名前>` は手順の 1 つ
+- `choice <名札> as <問い>` は判断で、問いを中に書いたひし形になる。長い問いは助詞か空白の後で 2 行に折る。判断から出る線の名前が答えになり、出る道は 2 つまで
+- 始まりの印から出る線は送る側に `start`、終わりの印へ入る線は受ける側に `finish` と書く
+- 最初の `step` より前に書いた線は今回は通らない道で、点線で残る。段の線が 1 本も辿り着かない箱は縁が点線になり、名前も薄い色で書く
+- 段で動く線は青く引かれ、その上を点が走って着くと消える。通り終えた線は濃い色で残り、点が着いた判断は琥珀の薄い色で塗られる。`carry` と `tag` を書かない線では、封筒の代わりにこの点が走る
+
+```dragon
+flow ログインの判断
+
+box input as 入力
+choice pw as パスワードは正しい？
+choice otp as 2FAは正しい？
+box done as ログイン [color: green]
+box err as エラーを出す [color: rose]
+
+pw -> err: いいえ
+otp -> err: いいえ
+
+step 入力する
+  say 利用者がIDとパスワードを入れる。
+  start -> input
+
+step パスワードを確かめる
+  say サーバーがパスワードを照らし合わせる。
+  input -> pw: 送る
+
+step 2FAを確かめる
+  say パスワードが合ったので、2FAのコードを確かめる。
+  pw -> otp: はい
+
+step ログインする
+  say コードも合い、ログインが済む。「いいえ」の道は点線のまま残る。
+  otp -> done: はい
+  done -> finish
+```
+
 ## 原本の JSON
 
 原本の JSON は、版 (`version`)、図の種類 (`kind`)、題 (`title`)、段 (`steps`) の骨組みを持ち、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。
 箱は `blocks.box`、区画は `blocks.group`、中身の帯は `blocks.strip` に書く。
 枝分かれの図の枝は `blocks.branch`、状態遷移図の通らない道は `blocks.path`、列の図のチップは `blocks.item`、役は `blocks.role` に書く。
 時間軸の図の目盛りと区切りと印の列と作業と節目と拡大の範囲は、`blocks.scale`、`blocks.period`、`blocks.row`、`blocks.task`、`blocks.point`、`blocks.zoom` に書く。
+手順の図の判断は `blocks.choice`、通らない道は `blocks.path` に書く。
 段の中で起きること (線や箱の中の処理) は、段ごとの `events` に書く。
 
 ```json

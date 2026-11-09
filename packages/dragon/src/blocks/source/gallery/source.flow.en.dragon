@@ -1,0 +1,16 @@
+flow Source
+
+box order as Take the order
+box pay as Check the payment
+
+step Take
+  say source writes the name and url of a reference on a step. A step can hold any number of them.
+  source dragon README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  start -> order
+
+step Check
+  say Sources stay out of the figure and the narration and appear as links in the read-aloud step list.
+  source Notation guide [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md]
+  source dragon repo [url: https://github.com/cardene777/dragon]
+  order -> pay: Paid
+  pay -> finish

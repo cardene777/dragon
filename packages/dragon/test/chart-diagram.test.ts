@@ -704,10 +704,11 @@ describe("量の図の書き方の文書 (#3560)", () => {
       expect(added, `${path} の Unreleased に Added の節が無い`).not.toBe("");
       expect(word.test(added) && /\bchart\b/u.test(added), `${path} の Unreleased の Added に量の図 (chart) が無い`).toBe(true);
     }
-    // 前提の文の描ける図の種類が 10 になる
+    // 前提の文の描ける図の種類の数が、図の種類の置き場の数と合う。種類を足しても数を決め打ちしない
     const product = repoText(".ikkan/premises/product.md");
     const kinds = /描ける図の種類は([^\n]*?)の (\d+) つ/u.exec(product);
-    expect(kinds?.[2], ".ikkan/premises/product.md の描ける図の種類の数").toBe("10");
+    const kindDirs = readdirSync(join(ROOT, "packages/dragon/src/kinds"), { withFileTypes: true }).filter((entry) => entry.isDirectory());
+    expect(kinds?.[2], ".ikkan/premises/product.md の描ける図の種類の数").toBe(String(kindDirs.length));
     expect(kinds?.[1] ?? "", ".ikkan/premises/product.md の描ける図の種類に量の図 (chart) が無い").toContain("`chart`");
   });
 });

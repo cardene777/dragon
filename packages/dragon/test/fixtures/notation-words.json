@@ -9,7 +9,8 @@
     "lineup",
     "try",
     "pipe",
-    "chart"
+    "chart",
+    "flow"
   ],
   "HEADS": [
     "group",
@@ -58,7 +59,8 @@
     "emit",
     "calc",
     "revert",
-    "gist"
+    "gist",
+    "choice"
   ],
   "ATTRS": {
     "diagram": [

@@ -256,10 +256,10 @@ const partSamplesOf = (page: Page): Promise<string[]> =>
     ),
   );
 
-/** 記法の箱の名前 */
+/** 記法の箱の名前。手順の図の判断も問いを名前にしたひし形の箱で描くので数える (#3561) */
 const namesOf = (text: string): string[] => {
   const parsed = parseNotation(text);
-  return parsed.ok ? [...new Set((parsed.diagram.blocks.box ?? []).map((b) => b.name))].sort() : [];
+  return parsed.ok ? [...new Set([...(parsed.diagram.blocks.box ?? []), ...(parsed.diagram.blocks.choice ?? [])].map((b) => b.name))].sort() : [];
 };
 
 /**

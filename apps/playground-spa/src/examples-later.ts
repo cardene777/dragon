@@ -20,6 +20,8 @@ import osShareJa from "../../../packages/dragon/examples/os-share.dragon?raw";
 import osShareEn from "../../../packages/dragon/examples/os-share.en.dragon?raw";
 import ticketsJa from "../../../packages/dragon/examples/tickets.dragon?raw";
 import ticketsEn from "../../../packages/dragon/examples/tickets.en.dragon?raw";
+import loginCheckJa from "../../../packages/dragon/examples/login-check.dragon?raw";
+import loginCheckEn from "../../../packages/dragon/examples/login-check.en.dragon?raw";
 import apiJa from "../../../packages/dragon/examples/api.dragon?raw";
 import apiEn from "../../../packages/dragon/examples/api.en.dragon?raw";
 import auctionJa from "../../../packages/dragon/examples/auction.dragon?raw";
@@ -75,6 +77,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   aggregator: { ja: aggregatorJa, en: aggregatorEn },
   "os-share": { ja: osShareJa, en: osShareEn },
   tickets: { ja: ticketsJa, en: ticketsEn },
+  "login-check": { ja: loginCheckJa, en: loginCheckEn },
 };
 
 /**

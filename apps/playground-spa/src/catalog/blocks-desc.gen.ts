@@ -11,6 +11,7 @@ import { desc as chartItemDesc } from "../../../../packages/dragon/src/blocks/ch
 import { desc as chartSetDesc } from "../../../../packages/dragon/src/blocks/chart-set/gallery/desc";
 import { desc as chartShapeDesc } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/desc";
 import { desc as checkDesc } from "../../../../packages/dragon/src/blocks/check/gallery/desc";
+import { desc as choiceDesc } from "../../../../packages/dragon/src/blocks/choice/gallery/desc";
 import { desc as colorDesc } from "../../../../packages/dragon/src/blocks/color/gallery/desc";
 import { desc as commitDesc } from "../../../../packages/dragon/src/blocks/commit/gallery/desc";
 import { desc as copyDesc } from "../../../../packages/dragon/src/blocks/copy/gallery/desc";
@@ -70,6 +71,7 @@ export const BLOCK_DESC = {
   "chart-set": chartSetDesc,
   "chart-shape": chartShapeDesc,
   "check": checkDesc,
+  "choice": choiceDesc,
   "color": colorDesc,
   "commit": commitDesc,
   "copy": copyDesc,

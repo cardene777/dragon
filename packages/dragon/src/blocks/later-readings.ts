@@ -12,6 +12,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "chart-set": () => import("./chart-set/read").then((m): BlockReading => m.reading),
   "chart-shape": () => import("./chart-shape/read").then((m): BlockReading => m.reading),
   "check": () => import("./check/read").then((m): BlockReading => m.reading),
+  "choice": () => import("./choice/read").then((m): BlockReading => m.reading),
   "commit": () => import("./commit/read").then((m): BlockReading => m.reading),
   "copy": () => import("./copy/read").then((m): BlockReading => m.reading),
   "emit": () => import("./emit/read").then((m): BlockReading => m.reading),

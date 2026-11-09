@@ -21,6 +21,7 @@ import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
 import type { Box, ChartItem, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, PipeHold, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TimeTask, TryCheck, TryItem, TryPart } from "../schema";
 import type { PipeRun } from "../pipe-run";
+import type { FlowChoice, FlowLine } from "./choice/block";
 import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
 
@@ -102,6 +103,11 @@ export interface FigureDraft {
    * 見た目は読む処理 (`parser.ts`) が図の種類の行の `[shape: ]` を置き、見た目のブロックが最初の段を始める時に確かめる
    */
   chart: { items: ChartItem[]; shape?: Attr };
+  /**
+   * 手順の図の判断と、今回は通らない道と、読んだ線と、本筋の順 (#3561)。判断のブロックが `choice` の行で判断を足し、最初の段より前の線を道にする。
+   * 読んだ線は判断から出る線の数と、記法の終わりの前へ戻る道の確かめに使い、本筋は段の線が初めて辿り着く順の箱と判断
+   */
+  flow: { choices: FlowChoice[]; paths: StatePath[]; lines: FlowLine[]; main: string[] };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */
@@ -315,8 +321,8 @@ export interface BlockReading<M extends object = object> {
   reserved?: (source: SourceLine, id: string, at: number, state: ParseState) => void;
   /** 線の列 (`at` と `into`)。持つ図の種類だけが持つ */
   columns?: (source: SourceLine, from: string, to: string, attrs: Map<string, Attr>, end: number, state: ParseState) => { at?: number; into?: number };
-  /** 線を読んだ後に呼ぶ (枝分かれの図は、送る側の枝の札を受ける側の commit へ動かす) */
-  afterEdge?: (edge: { from: string; to: string }, state: ParseState) => void;
+  /** 線を読んだ後に呼ぶ (枝分かれの図は、送る側の枝の札を受ける側の commit へ動かす)。`source` は線の行で、手順の図は誤りの列を示すのに使う (#3561) */
+  afterEdge?: (edge: { from: string; to: string; label?: string }, state: ParseState, source: SourceLine) => void;
   /** 記法を読み終えた時の確かめ。箱と段の確かめより前に呼ぶ */
   finish?: (state: ParseState, head: SourceLine) => void;
   /** 記法を読み終えた時の確かめ。箱と段の確かめより後に呼ぶ */
