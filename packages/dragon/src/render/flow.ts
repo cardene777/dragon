@@ -75,12 +75,10 @@ export function flowTimes(diagram: DiagramModel, t: Timeline): Timeline {
     const e = diagram.steps[c.step]?.events[c.event];
     return e?.type === "edge" && e.from === "start";
   };
-  const stepEnd = (at: number): number => t.steps.find((s) => at >= s.start && at < s.end)?.end ?? t.last;
   return {
     ...t,
     carriers: carrierTimes(departures, t.steps[0]?.start ?? 0, t.last).map((c) => (fromStart(c) ? c : { ...c, start: c.depart })),
     marks: markTimes(diagram, t.edges),
-    ...(t.states ? { states: t.states.map((s) => ({ ...s, lit: s.lit.map((l) => (l.end > l.start ? l : { start: l.start, end: stepEnd(l.start) })) })) } : {}),
   };
 }
 

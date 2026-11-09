@@ -47,3 +47,11 @@
 | 注文の図を 0.25 秒ごとに止めて数えた時、運ぶ物が図のどこにも見えない時刻が全体の 2% 以下で、段の番号はその段が始まるまで出ない | `pnpm exec vitest run packages/dragon/test/state-diagram.test.ts`の検査`state-keeps-carrier-and-badge-rules`が通る | #3171 |
 | 時系列図と構成図では、通った線を今どおり細かい点の線で描く | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`non-state-lines-keep-dotted-texture`が通る | #3171 |
 | 時系列図と構成図では、線の名前はその段の間だけ出て、どの時刻でも同時に見える数が 2 個以下 | `pnpm exec vitest run packages/dragon/test/render.test.ts`の検査`labels-show-only-during-their-step`が通る | #3171 |
+| 全ての状態図を描いた時、`timeline.states[].lit`の全ての区間で終わりが始まりより後になる | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`state-lit-never-reversed`が通る | #3575 |
+| 状態に着いた段のうちにその状態を出る図を描いた時、光る区間の終わりがその段の終わりになる | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`state-lit-ends-with-step`が通る | #3575 |
+| 見本`link.state`を描いた時、`支払い`の光の濃さが着く時刻より前は全て0で、着いた段のうちに1になる | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`state-glow-waits-for-arrival`が通る | #3575 |
+| 全ての状態図を描いた時、済んだ印の時刻がその箱が最初に光り始める時刻より後になる | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`state-done-after-arrival`が通る | #3575 |
+| 区間が逆でなかった箱の光る区間と済んだ印の時刻が、直す前の記録と同じになる | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`state-lit-keeps-other-intervals`が通る | #3575 |
+| 手順の図を描く処理が光る区間を直す処理を持たない | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`flow-render-has-no-lit-fix`が通る | #3575 |
+| 今ある見本のSVGと置き場所と時刻が記録と変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3575 |
+| `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに#3575の項が載る | `pnpm exec vitest run packages/dragon/test/state-lit.test.ts`の検査`changelog-lists-state-glow-fix`が通る | #3575 |
