@@ -19,6 +19,7 @@ export {
   type DiagramKind,
   type DiagramModel,
   type FieldError,
+  type FlowChoice,
   type GitBranch,
   type GitCommit,
   type LabelSide,
