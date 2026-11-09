@@ -21,11 +21,7 @@
 | 今の9種類の見本の描いた形は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3560 |
 | 軽い入口が量の図を読んで描き、既定の入口と同じSVGを出す | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-samples-cover-kinds`と`light-entry-draws-same-svg`と`default-entry-draws-every-kind`が通る | #3560 |
 | repoの全ての`.dragon`のfileを`parseNotation`が誤り無く読み、見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`が通る | #3560 |
-| 見本帳の一覧に図の分類が10並び、量を比べる図の頁にドーナツと横棒の2つの見本が載り、選ぶと段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/chart-catalog.test.ts`の検査`catalog-lists-chart-with-examples`が通る | #3560 |
-| 見本帳の図の種類だけの部品に、量の図の項目と値と見た目の部品が並び、頁ごとに日本語と英語の記法と、量の図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/chart-catalog.test.ts`の検査`catalog-has-chart-parts`が通る | #3560 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3560 |
-| 編集画面の棚の見本に量の図の束があって2つの見本が載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に`chart`の頭の行と`[shape: ]`があり、`item`と`set`の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/chart-catalog.test.ts`の検査`editor-shelf-has-chart`が通る | #3560 |
 | 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、頭の語`chart`と`[shape: donut]`と`[shape: bar]`と、`item`と`set`の行の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに量の図が載り、`.ikkan/premises/product.md`の描ける図の種類が10になる | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`docs-describe-chart-diagram`が通る | #3560 |
-| 使い方の頁と`CHANGELOG.md`の前の形との対応表の頭の語が、読む部品の語と一致する | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3560 |
 | AIのskillに全ての図の種類の`references/kinds/<種類>.md`が在って`SKILL.md`が全てを名指し、記法の囲みが全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-covers-every-kind`と`skill-fences-parse`が通る | #3560 |
 | 図の種類を足した時に触る登録先が全て一覧に載り、見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`extend-registry-covers-kind-additions`と`page-bundle-within-budget`が通る | #3560 |

@@ -13,7 +13,6 @@
   ],
   "include": [
     "vitest.config.ts",
-    "test-support/fixtures/limits/vitest.config.ts",
-    "test-support/fixtures/chromium/vitest.config.ts"
+    "test-support/fixtures/limits/vitest.config.ts"
   ]
 }

@@ -8,7 +8,6 @@
  * 混んだ機械では閉じるのに 10 秒を超えた回があり、後処理で閉じると 1 件の上限 (10 秒) に当たる (#3384)。
  * vitest は file を回し終えた作業者の process を SIGTERM で止め、500ms で終わらなければ SIGKILL で落とす。
  * Playwright に SIGTERM を扱わせず (`handleSIGTERM: false`)、SIGTERM を受けたらすぐ process を終えて、Playwright の `exit` の片付けを走らせる。
- * 見本帳の頁を開く file は、file を読む前の準備の段 (`chromium-preload.ts`) が同じ形で起こす。
  * `packages/dragon/test/` の file で準備の段が起こす形も試したが、6 つの file を回す全体の時間が初めて要った件が起こす形より長かった。
  */
 import type { Browser } from "playwright-core";

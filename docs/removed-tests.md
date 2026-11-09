@@ -4,6 +4,17 @@
 外した検査は、下の表に理由と、同じ守りを担う残りの検査の名前を残す。
 `packages/dragon/test/test-policy.test.ts` の `removed-tests-are-gone-and-covered` が、外した検査が検査の file に無いことと、守りを担う検査が在ることを確かめる。
 
+## 頁を開く検査を全て外した (#3585)
+
+見本帳の頁を本物の `Chromium` で開く検査を全て外した。
+本人が2026-11-09に、意味が無いので要らないと決めた。
+見た目は本人の目で見て決めるので、機械が頁を開いて確かめる価値が低いためである。
+この検査は検査時間の合計の約7割を占め、機械が混むと1件10秒の上限で公開前の一式を止めていた。
+
+同じ守りを担う検査は置かない。
+頁を開かない検査は残した (build の結果の中身、文書の例、部品の表、字の file)。
+書き出しの命令と script の1行の入口は `Chromium` を使う機能なので、`packages/dragon/test/` の検査を残した。
+
 ## 外した検査
 
 外したのは次の 3 つのどれかに当たる検査だけ。
@@ -14,10 +25,9 @@
 
 | 外した検査 | 在った file | 理由 | 同じ守りを担う検査 |
 |---|---|---|---|
-| `stall-probe-live-page` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 頁が止まった時の記録の仕組みを外した。頁の通信は手元の server を通さずに返すので (#3379)、記録が追っていた通信の切断はもう起きない | `site-pages-skip-the-local-server`、`test-over-limit-is-stopped-and-named` |
-| `stall-probe-blocked-page` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 同じく、止まった頁の記録の仕組みを外した | `site-pages-skip-the-local-server`、`test-over-limit-is-stopped-and-named` |
+| `stall-probe-live-page` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 頁が止まった時の記録の仕組みを外した。頁の通信は手元の server を通さずに返すので (#3379)、記録が追っていた通信の切断はもう起きない | `test-over-limit-is-stopped-and-named` |
+| `stall-probe-blocked-page` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 同じく、止まった頁の記録の仕組みを外した | `test-over-limit-is-stopped-and-named` |
 | `stall-record-on-failed-test` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 同じく、止まった頁の記録の仕組みを外した。落ちた検査の名前は上限で止めた時に出る | `test-over-limit-is-stopped-and-named` |
-| `stall-record-names-cut-requests` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 同じく、止まった頁の記録の仕組みを外した | `site-pages-skip-the-local-server` |
 | `stall-record-silent-on-passed-test` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 同じく、止まった頁の記録の仕組みを外した | `test-over-limit-is-stopped-and-named` |
 | `stall-record-samples-processes` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 同じく、止まった頁の記録の仕組みを外した | `test-over-limit-is-stopped-and-named` |
 | `stall-record-names-main-thread` | `apps/playground-spa/src/lib/stall-probe.test.ts` | 同じく、止まった頁の記録の仕組みを外した | `test-over-limit-is-stopped-and-named` |
@@ -44,16 +54,10 @@
 | `export-writes-git-diagram` | `packages/dragon/test/git-diagram.test.ts` | 同じく、図の種類ごとの繰り返し | `export-writes-four-formats`、`export-is-deterministic`、`html-export-draws-every-kind` |
 | `export-writes-state-diagram` | `packages/dragon/test/state-diagram.test.ts` | 同じく、図の種類ごとの繰り返し | `export-writes-four-formats`、`export-is-deterministic`、`html-export-draws-every-kind` |
 | `export-png-unchanged-by-font-dedupe` | `packages/dragon/test/export-fonts.test.ts` | 字の file の重なりを外す前と後で、24 個の見本の PNG を撮って画素を比べていた。字の振り分けは 1 字ずつ決まるので、どの字も 1 つの file にだけ入り、全ての字の file が読めれば撮る絵は変わらない | `export-font-files-do-not-overlap`、`font-chars-in-one-file-each`、`export-font-faces-all-load` |
-| `common-parts-draw-time` | `apps/playground-spa/src/lib/time-catalog.test.ts` | どの図でも使う部品の頁を、図の種類ごとに開き直して同じ確かめをしていた。部品ごとの件が全ての図の種類の図を記法から描いて段を送る。部品が時間軸の図を持つことと、中身の帯の図が物差しを使うことは、頁を開かずに確かめる | `catalog-common-part-shows-both-kinds`、`catalog-common-parts-listed`、`strip-time-figure-uses-meter` |
-| `common-parts-draw-state` | `apps/playground-spa/src/lib/state-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-part-shows-both-kinds`、`catalog-common-parts-listed` |
-| `common-parts-draw-tree` | `apps/playground-spa/src/lib/tree-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-part-shows-both-kinds`、`catalog-common-parts-listed` |
-| `common-parts-draw-git` | `apps/playground-spa/src/lib/git-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-part-shows-both-kinds`、`catalog-common-parts-listed` |
-| `chromium-launched-per-worker` | `apps/playground-spa/src/lib/playground.test.ts` | 守っていた仕組みを外した。Chromium は作業者ごとに別の process で起こさず、検査の file の process の中で file を読む前に起こし始める (#3388) | `chromium-preloaded-before-file` |
-| `chromium-server-runs-in-own-process` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、Chromium を別の node の process で起こす仕組みを外した。つなぐ通信の往復で頁を開くのが約3割遅かった | `chromium-preloaded-before-file` |
-| `site-close-keeps-shared-chromium` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、file をまたいで Chromium を共にする仕組みを外した。後始末は今も Chromium を閉じない | `chromium-cleaned-on-process-exit` |
-| `shared-chromium-closes-at-teardown` | `apps/playground-spa/src/lib/playground.test.ts` | 同じく、準備の段の片付けで Chromium を閉じる仕組みを外した。閉じるのは file の process が終わる時の Playwright の片付け | `chromium-cleaned-on-process-exit` |
-| `catalog-overlay-figure-whole-without-scroll` | `apps/playground-spa/src/lib/site-overlay.test.ts` | 重ね窓の見本と画面の大きさの組ごとに、図の形の件と同じ段送りをもう 1 度していた (#3432)。まとめた件が 1 回の段送りで、各段の図の全体と形を両方読む | `overlay-figure-whole-and-steady-across-steps` |
-| `overlay-figure-steady-across-steps` | `apps/playground-spa/src/lib/site-overlay.test.ts` | 同じく、図の全体の件と同じ段送りを 2 度していた | `overlay-figure-whole-and-steady-across-steps` |
+| `common-parts-draw-time` | `apps/playground-spa/src/lib/time-catalog.test.ts` | どの図でも使う部品の頁を、図の種類ごとに開き直して同じ確かめをしていた。部品ごとの件が全ての図の種類の図を記法から描いて段を送る。部品が時間軸の図を持つことと、中身の帯の図が物差しを使うことは、頁を開かずに確かめる | `catalog-common-parts-listed`、`strip-time-figure-uses-meter` |
+| `common-parts-draw-state` | `apps/playground-spa/src/lib/state-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-parts-listed` |
+| `common-parts-draw-tree` | `apps/playground-spa/src/lib/tree-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-parts-listed` |
+| `common-parts-draw-git` | `apps/playground-spa/src/lib/git-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-parts-listed` |
 
 ## 速くした検査
 

@@ -2,21 +2,7 @@
 
 | 条件 | 確かめ方 | 出元 |
 |---|---|---|
-| 編集画面 (`/dragon/editor`) を開いた時、書く欄に OAuth の見本の記法が入り、右に OAuth の図が描かれて段が進む | `pnpm test`の検査`playground-opens-with-oauth`が通る | #2995、#3030 |
-| 書く欄の記法を書き換えた時、右の図が書き換えた内容で描き直される | `pnpm test`の検査`editing-notation-redraws-diagram`が通る | #2995 |
-| 記法に誤りがある時、誤りの行の番号と理由を欄の下の知らせの欄に出し、図は最後に描けた図のまま残す | `pnpm test`の検査`notation-error-shows-line-and-keeps-diagram`が通る | #2995、#3031 |
-| JSON の側に切り替えた時、今の図の JSON が出て、JSON を書き換えると図と記法の側に反映する | `pnpm test`の検査`json-side-edits-sync-to-notation`が通る | #2995 |
-| JSON に誤りがある時、eval を許さない頁の CSP の下で、誤った欄の場所 (JSON Pointer) と理由を出す | `pnpm test`の検査`json-error-shows-pointer-under-csp`が通る | #2995 |
-| 編集画面の左の棚の見本の一覧で入門の例か CCIP を選んだ時、その見本の記法が欄に入り、図が替わる | `pnpm test`の検査`example-picker-loads-example`が通る | #2995、#3031 |
-| 書いた中身が URL の `#` の後ろに入り、その URL を新しく開くと同じ記法と図が出る | `pnpm test`の検査`url-hash-restores-notation`が通る | #2995 |
-| 言葉を EN に切り替えた時、頁の言葉と選んでいる見本が英語版になる。端末の言語が日本語でない時は英語で開く | `pnpm test`の検査`english-switches-page-and-example`が通る | #2995 |
 | 見本 3 つの英語版が、日本語版と同じ数の箱と線と段を持つ | `pnpm test`の検査`english-examples-match-japanese`が通る | #2995 |
-| 色味 4 案を編集画面で、明暗を上の帯で選んだ時、図の地の色と字の色が選んだ色味と明暗の値になり、頁の地は色味で替わらず前のサイトの明暗の値になる | `pnpm test`の検査`palette-and-theme-apply-to-diagram`が通る | #2995、#3030 |
-| 明暗を選んでいない時は端末の明暗の設定に従い、図の色味は紙と墨で開き、頁の地は前のサイトの明暗の値になる | `pnpm test`の検査`theme-follows-device-by-default`が通る | #2995、#3030 |
-| 頁の字が、図と同じ同梱した字 (Noto Sans JP と JetBrains Mono) で描かれる | `pnpm test`の検査`page-text-uses-bundled-fonts`が通る | #2995 |
-| 前に共有した URL (`/dragon/#n=...`) を開いた時、編集画面 (`/dragon/editor`) へ移り、`#` の後ろの記法が書く欄に入る | `pnpm test`の検査`old-share-link-opens-editor`が通る | #3030 |
-| 幅 390px で開いた時、図が書く欄の上に来て、書く欄を畳める | `pnpm test`の検査`narrow-width-stacks-diagram-above-editor`が通る | #2995 |
-| 頁に書き出しの命令 (`dragon export`) の案内があり、「作り直しの最中」の案内の文が無い | `pnpm test`の検査`page-shows-export-command-not-rebuilding-notice`が通る | #2995 |
 | build した頁の script と CSS の合計が、gzip で 270KB 以下に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #2995 #3199 |
 | 頁の図を描く code が `@cardenelabs/dragon/light` の部品を呼び、`apps/playground-spa` の中に SVG を組む code が無い | `pnpm test`の検査`page-draws-with-package-parts`が通る | #2995 |
 | 配る頁の CSP が、script を自分の置き場だけにし、inline と eval を許さない | `pnpm test`の検査`csp-script-self-only`が通る | #2995 |
@@ -25,42 +11,21 @@
 | 再生の部品の段へ移る呼び出しで、図がその段で止まる | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`player-goes-to-step`が通る | #3178 |
 | 再生の部品に四角を渡すと、図の上に点線の四角を描き、空を渡すと消す。止めて見せる図でも寄って追う図でも、四角は図の中身と同じ所に在る | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`player-marks-rects`が通る | #3178 |
 | 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3178 |
-| 編集画面で字の重ならない見本を開いた時、「読めています」だけが出て、重なりの欄も図の上の囲みも出ない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3178 |
 | 頁の側では SVG を組まない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-draws-with-package-parts`が通る | #3178 |
 | 全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3178 |
 | 書き出しの命令が、2 段目に図に描いた 2 つの字を組にした重なりを 1 件足した状態遷移図 (packages/dragon/test/fixtures/corner-note.dragon) を書き出した時、file を書き出し、標準エラーに「段 2」と文を並べた 1 行だけを出し、終わり方 0 で終える。英語を選ぶと「Step 2」と英語の文を出す | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`が通る | #3197 |
-| 編集画面が、2 段目に同じ作りの重なりを 1 件足した図を描いた時、「読めています」と並べて重なりの欄を出し、件数と、段の札と文の 1 行を並べる。英語の頁では英語の件数と札と文を並べる | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-lists-overlaps`が通る | #3197 |
-| 編集画面で、重なりの無い 1 段目では図の上に四角が出ず、2 段目に移ると点線の四角が出て、組にした 2 つの字が描かれた所をどちらも覆う。四角は塗らず、中の字を隠さない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-marks-overlaps-on-figure`が通る | #3197 |
-| 編集画面で重なりの欄の段の札を押すと、図が 2 段目へ移り、点線の四角が出る | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-overlap-step-jumps`が通る | #3197 |
-| 本番と同じ build で開いた編集画面は、重ならない見本で「読めています」だけを出し、重なりの欄も図の上の四角も出さない (重なりを足す包みが本番の build に入らない) | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3197 |
-| 編集画面の状態の欄が図の種類の主な部品を部品の頁と同じ呼び名で数えて出す。箱と枝と印の列と列を数え、英語の頁は 1 の時に単数形を出す | `pnpm exec vitest run apps/playground-spa/src/lib/editor-status.test.ts`の検査`editor-status-counts-by-kind`が通る | #3261 |
 | 組み上がった書き出しの命令は、重ならない図を書き出す時に標準エラーに何も出さない (重なりを足す包みが組み上がった命令に入らない) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3197 |
 | 見本帳の build で、最初に読む script に、概要の頁と編集画面の最初の見本 (`intro`、`oauth`、`ccip`) を除く見本の記法と、部品の図の記法の字の並びが含まれない | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-carries-no-catalog-notation`が通る | #3246 |
 | 見本帳の build で、後から読む塊のうち見本の記法を持つ塊と部品の図の記法を持つ塊がそれぞれ1つだけで、除いた全ての見本と全ての部品の図の記法を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-notation-in-two-chunks`が通る | #3246 |
 | 見本帳の build で、最初に読む script が概要の頁と編集画面の最初の見本 (`intro`、`oauth`、`ccip`) の日本語と英語の記法を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-keeps-home-examples`が通る | #3246 |
-| 概要の頁を開いて最初の画面を描いた後、見本帳の頁を開く前に、2つの塊を読み始める | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`site-prefetches-catalog-notation`が通る | #3246 |
-| 見本帳の分類の頁と部品の頁を移り歩いても、2つの塊はそれぞれ1度だけ読む | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-notation-read-once`が通る | #3246 |
-| 塊が届く前に見本帳の分類の頁を開いた時、図の枠は届いた後と同じ高さを取り、届くと図を描く | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-holds-figure-size-until-notation-arrives`が通る | #3246 |
-| 塊の読み込みに失敗した時、見本帳の図の枠に「読み直す」の button を出し、押した時だけ頁を読み直す | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-offers-reload-when-notation-fails`が通る | #3246 |
-| 塊を読めない間も、概要の頁の3つの図と、編集画面を開いた時の最初の図と、共有の link で開いた図を描く | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-screens-draw-without-catalog-notation`が通る | #3246 |
 | 頁が許す script の読み込み先は自分の置き場 (`'self'`) だけ | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts -t csp-script-self-only`の検査`csp-script-self-only`が通る | #3246 |
-| 見本帳の分類の頁と部品の頁に出る見本の並びと題と説明が今と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/lineup-catalog.test.ts apps/playground-spa/src/lib/tree-catalog.test.ts apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-lists-lineup-with-examples`と`catalog-lists-tree-with-examples`と`part-page-links-examples`が通る | #3246 |
-| 見本帳の一覧と部品の頁と編集画面の棚で、見本と部品の図が今どおり描ける | `pnpm exec vitest run apps/playground-spa/src/lib/lineup-catalog.test.ts apps/playground-spa/src/lib/tree-catalog.test.ts apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-index-three-sections`と`catalog-part-opens-in-editor`と`catalog-common-part-shows-both-kinds`と`editor-shelf-has-lineup`と`editor-shelf-has-tree`が通る | #3246 |
 | 見本帳を組み立てた時、最初に読む script に部品の説明の字 (各ブロックの`gallery/desc.ts`の日本語と英語の字) が1件も入らず、説明の字を足すと最初に読む script の gzip が5,000バイト以上増える | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-part-desc`が通る | #3531 |
 | 各ブロックの置き場の見本帳の分が、部品の説明を持つ`gallery/desc.ts`を持つ | `pnpm exec vitest run packages/dragon/test/blocks.test.ts`の検査`block-folder-holds-whole-definition`が通る | #3531 |
 | 各ブロックの`gallery/text.ts`は部品の名前だけを持ち、`gallery/desc.ts`は日本語と英語の説明を持ち、説明の表`BLOCK_DESC`は部品の頁だけが読む`blocks-desc.gen.ts`に書き出され、最初の画面が読む`blocks.gen.ts`に無い | `pnpm exec vitest run apps/playground-spa/src/lib/block-gallery.test.ts`の検査`part-desc-apart-from-names`が通る | #3531 |
-| 部品の頁を日本語と英語で開いた時、説明の欄にその部品の`gallery/desc.ts`の字が出る | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-parts-in-english`が通る | #3531 |
 | 見本帳が最初に読む script と CSS の合計が、今の上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3531 |
 | 見本帳の一覧と部品の頁と編集画面の棚と使い方の頁は、ブロックの置き場から作られる | `pnpm exec vitest run apps/playground-spa/src/lib/block-gallery.test.ts`の検査`catalog-built-from-block-folders`と`grammar-parts-table-from-blocks`が通る | #3531 |
 | 書き出した一覧の file は置き場の dir と食い違わない | `pnpm exec vitest run packages/dragon/test/blocks.test.ts`の検査`block-registry-derived-from-folders`が通る | #3531 |
 | 見本帳の分の file は package の処理を読まず、npm に出す package の file に入らない | `pnpm exec vitest run packages/dragon/test/blocks.test.ts packages/dragon/test/package-files.test.ts`の検査`gallery-imports-no-package-runtime`と`package-excludes-catalog-material`が通る | #3531 |
 | 見本帳の今ある検査 (`apps/playground-spa`の検査) が全て通る | `pnpm exec vitest run apps/ --reporter=verbose`が終了0 | #3531 |
-| 見本帳を組み立てた時、最初に読むscriptに、カタログの頁だけが使う字 (`site.catalog`の図の種類の説明と、一覧と検索と拡大の字) が日本語と英語とも入らず、外した字を足してgzipで比べると最初に読むscriptが2,500バイト以上軽い | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-catalog-text`が通る | #3565 |
-| 見本帳を組み立てた時、最初に読むscriptに、編集画面の棚の記法の早見の字 (`shelf.syntax`) が日本語と英語とも入らない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-syntax-text`が通る | #3565 |
 | 最初に読むscriptとCSSのgzipの合計が上限186,368バイトに収まり、上限の値は変えない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3565 |
 | 部品の説明の字と、カタログの見本の記法は、今どおり最初に読むscriptに入らない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-carries-no-part-desc`と`first-load-carries-no-catalog-notation`が通る | #3565 |
-| カタログの頁を英語で開いた時、部品の頁の字が仮名と漢字を含まず、今と同じ英語の字が出る | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-parts-in-english`が通る | #3565 |
-| カタログの一覧と分類の頁を開いた時、図の種類の名前と説明と見本の一覧が今と同じ字で出る | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-catalog.test.ts apps/playground-spa/src/lib/site-catalog.test.ts`の検査`catalog-lists-pipe-with-examples`と`category-item-shows-source`が通る | #3565 |
-| 編集画面の棚の記法の札を開いた時、記法の早見の行と説明の字が今と同じ字で出る | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-catalog.test.ts`の検査`editor-shelf-has-pipe`が通る | #3565 |
-| 頁の塊を読めなかった時、今と同じく読めなかった頁の名前と読み直す釦を出し、1度だけ読み直す | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`page-chunk-failure-offers-reload`と`page-chunk-failure-names-the-page`と`page-chunk-failure-reloads-once`が通る | #3565 |
-| 頁の塊を読めなかった時も、編集画面は書いた字を保つ | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`editor-keeps-text-when-page-chunks-fail`が通る | #3565 |

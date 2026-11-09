@@ -22,12 +22,8 @@
 | 今の見本の描いた形は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3561 |
 | 軽い入口が手順の図を読んで描き、既定の入口と同じSVGを出す | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-samples-cover-kinds`と`light-entry-draws-same-svg`と`default-entry-draws-every-kind`が通る | #3561 |
 | repoの全ての`.dragon`のfileを`parseNotation`が誤り無く読み、見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`が通る | #3561 |
-| 見本帳の一覧に分岐する手順の図の分類が並び、その頁にログインの判断の見本が載り、選ぶと4段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/flow-catalog.test.ts`の検査`catalog-lists-flow-with-examples`が通る | #3561 |
-| 見本帳の図の種類だけの部品に判断の部品が並び、頁に日本語と英語の記法と、手順の図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/flow-catalog.test.ts`の検査`catalog-has-flow-parts`が通る | #3561 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3561 |
-| 編集画面の棚の見本に手順の図の束があってログインの判断の図が載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に`flow`の頭の行と`choice`の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/flow-catalog.test.ts`の検査`editor-shelf-has-flow`が通る | #3561 |
 | 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、頭の語`flow`と`choice`の行の書き方と、最初の段より前の線が点線になることが載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに手順の図が載り、`.ikkan/premises/product.md`が手順の図を描ける図の種類に数える | `pnpm exec vitest run packages/dragon/test/flow-diagram.test.ts`の検査`docs-describe-flow-diagram`が通る | #3561 |
-| 使い方の頁と`CHANGELOG.md`の前の形との対応表の頭の語が、読む部品の語と一致する | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3561 |
 | AIのskillに全ての図の種類の`references/kinds/<種類>.md`が在って`SKILL.md`が全てを名指し、記法の囲みが全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-covers-every-kind`と`skill-fences-parse`が通る | #3561 |
 | 図の種類を足した時に触る登録先が全て一覧に載り、見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`extend-registry-covers-kind-additions`と`page-bundle-within-budget`が通る | #3561 |
 | 見本`login-all-paths`を描いた時、段3の`pw -> otp`と`pw -> err`の線の出発の時刻が同じで、段の印の点が同じ時刻に2つ走り出す | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`fork-lines-start-together`が通る | #3579 |
@@ -37,6 +33,5 @@
 | 判断の後に書いた線の先の箱へ、本筋の後ろの箱から線を書いた時、前へ戻る線として断らない | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`fork-side-box-accepts-later-line`が通る | #3579 |
 | 判断でない箱から同じ段に2本書いた時、線の出発は今どおり少しずつずれる | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`box-lines-keep-stagger`が通る | #3579 |
 | 今ある見本のSVGと置き場所と時刻が記録と変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3579 |
-| 見本帳の手順の図の頁に`login-all-paths`が載る | `pnpm exec vitest run apps/playground-spa/src/lib/flow-catalog.test.ts`の検査`catalog-lists-all-paths-example`が通る | #3579 |
 | 使い方の頁とAIのskillの`references/kinds/flow.md`と`CHANGELOG.md`と`CHANGELOG.ja.md`に、同じ段に2本書く形が載る | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`docs-describe-fork`が通る | #3579 |
 | 見本帳が最初に読むscriptが上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3579 |

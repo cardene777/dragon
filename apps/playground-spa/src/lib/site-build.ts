@@ -1,7 +1,7 @@
 /**
  * 公開する頁を一時の場所へ build する (#2995)。
  *
- * 頁を開く検査は、この build を 1 回の実行で 1 度だけ行い (`site-setup.ts`)、全ての file で使い回す (#3381)。
+ * build した頁の中身を読む検査は、この build を 1 回の実行で 1 度だけ行い (`site-setup.ts`)、全ての file で使い回す (#3381)。
  * そのため、検査の道具 (vitest、Playwright) を読まずに、準備の段からも検査の file からも呼べる形に分けて置く。
  */
 import { execFile } from "node:child_process";

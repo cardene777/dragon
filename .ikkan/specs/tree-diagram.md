@@ -25,19 +25,11 @@
 | `packages/dragon/examples` に Merkle の日本語と英語の記法と JSON の 4 つの file があり、英語版の葉と親と段と段ごとの出来事の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/tree-diagram.test.ts`の検査`tree-example-files-match`が通る | #3233 |
 | repo の全ての `.dragon` の file を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3233 |
 | 見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならず、運ぶ物が箱と字に掛からない | `pnpm test`の検査`overlaps-none-in-every-example`と`carriers-clear-in-every-example`が通る | #3233 |
-| 見本帳の一覧に図の分類が 6 つ (時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図) 並び、木の図の頁に Merkle の見本が載り、選ぶと 8 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`catalog-lists-tree-with-examples`が通る | #3233 |
-| 見本帳の一覧の図の分類が時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図の順で始まり、時間軸の図の頁にブロックの確定と引き出しの見本が載り、ブロックの確定を選ぶと 10 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`catalog-lists-time-with-examples`が通る | #3233 |
-| 見本帳の図の種類だけの部品に、葉と札、組んだ親の 2 つが木の図の部品として並び、頁ごとに日本語と英語の記法と、木の図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`catalog-has-two-tree-parts`が通る | #3233 |
-| どの図でも使う部品の全ての頁に、木の図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-parts-listed`と`catalog-common-part-shows-both-kinds`が通る | #3233 |
-| 木の図の部品の頁は、その部品を使う見本の札を並べ、札は木の図の頁のその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`tree-part-pages-link-examples`が通る | #3233 |
+| どの図でも使う部品の全ての頁に、木の図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-parts-listed`が通る | #3233 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3233 |
-| 編集画面の棚の見本に木の図の束があって Merkle が載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に `tree` の頭の行があり、`leaf` と `node` の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/tree-catalog.test.ts`の検査`editor-shelf-has-tree`が通る | #3233 |
-| 使い方の頁と `CHANGELOG.md` の前の形との対応表の頭の語が、読む部品の語と一致する。木の図の語は、対応表の後に足した語として表に行を持たない | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3233 |
-| 概要の頁の使いどころは今の 3 つのまま | `pnpm test`の検査`home-uses-stay-three`が通る | #3233 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3233 |
 | 木の図で、後から現れる木の箱へ向かう線の点線と矢印は、その箱が現れる段より前の止め絵で見えず、箱が現れた段から最後の段までの止め絵で見える。Merkle 木の見本ではブロックの頭から根への点線が段1から段3で見えず、段4から段8で見える | `pnpm test`の検査`tree-edge-path-waits-for-node`が通る | #3240 |
 | `packages/dragon/examples` の全ての見本の file (`.dragon`) の最初の注釈の行が、`(#` と数字の並びを持たない | `pnpm test`の検査`example-descriptions-carry-no-issue-number`が通る | #3240 |
 | 木の箱と木の線は、書いた段の止め絵で見え、その前の段の止め絵で見えない | `pnpm test`の検査`tree-boxes-appear-at-their-step`が通る | #3240 |
-| 見本帳の分類の頁で、選んだ見本の説明が見本の file の最初の注釈の行と同じ | `pnpm test`の検査`category-page-lists-samples-and-previews-one`が通る | #3240 |
 | 全ての見本で、どの段でも字が重ならず、運ぶ物が札や箱に重ならない | `pnpm test`の検査`overlaps-none-in-every-example`と`carriers-clear-in-every-example`が通る | #3240 |
 | 型の検査、build、lintと、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3240 |
