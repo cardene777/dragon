@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 /**
  * 手順の図 (#3561)。
  *
@@ -10,6 +9,7 @@
  * 置き場所 (`layout`) と時刻の表 (`timeline`) は描く部品が返す値で確かめ、点線の道と字は SVG で確かめる。
  * 見本の file と手順の図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  * 図の種類の数は数えない。ほかの図の種類が後から足されても、手順の図が並ぶことだけを確かめる。
+ * 書き出しの検査が字の file を node の Buffer で縮めるので、この file は node の場で回す (jsdom の場では字の file を縮める部品が字の中身を読めない)。
  */
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -21,9 +21,15 @@ import { covers, draw, type Layout, type Rect, type Rendered, sampleTimes, type 
 
 /*
  * 字の幅を測る部品と、崩れを数える部品の元の code を、検査の外で先に読む。
- * 検査の中で初めて読むと、混んだ機械で変換だけで数秒かかる (#3410)
+ * 検査の中で初めて読むと、混んだ機械で変換だけで数秒かかる (#3410)。
+ * 崩れを数える部品は元の code の描く所で描くので、全部入りの入口と同じく全ての種類の部品と原本の検査を読むだけで登録する (`kinds/all`)
  */
-const [{ textWidth }, { TYPE }, layoutCheck] = await Promise.all([import("../src/layout/measure"), import("../src/look/values"), import("../src/render/layout-check")]);
+const [{ textWidth }, { TYPE }, layoutCheck] = await Promise.all([
+  import("../src/layout/measure"),
+  import("../src/look/values"),
+  import("../src/render/layout-check"),
+  import("../src/kinds/all"),
+]);
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
@@ -279,7 +285,7 @@ describe("手順の図の記法 (#3561)", () => {
       ].join("\n"),
     );
     expect(small.ok, `小さな手順の図が読めない: ${small.ok ? "" : JSON.stringify(small.errors)}`).toBe(true);
-    const blocks = (small.ok ? (small.diagram as unknown as Source).blocks : {}) as Source["blocks"];
+    const blocks = small.ok ? (small.diagram as unknown as Source).blocks : {};
     expect(blocks.box, "box の行が宣言する箱").toEqual([
       { id: "a", name: "受け付ける" },
       { id: "b", name: "通す" },
@@ -559,26 +565,29 @@ describe("ログインの判断の見本 (#3561)", () => {
   });
 });
 
-/** 書き出しの件は 1 件の上限 (10 秒) に収めるため、形式ごとに分ける (#3410) */
+/**
+ * 書き出しの件は 1 件の上限 (10 秒) に収めるため、形式ごとに分ける (#3410)。
+ * 書き出す部品は検査の外 (この file を読む段) で先に読む。最初の件が読むと、混んだ機械で読むだけで上限に近づく
+ */
+const exportDiagram = await exporter();
+
 describe("手順の図の書き出し (#3561)", () => {
   const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-flow-"));
-  /** 動画で撮る図。コマの数を数えるだけなので最初の段だけを撮る */
+  /** 動画と PNG で撮る図。コマの数とバイトの一致を比べるだけなので最初の段だけを撮る。4 段を 2 回撮ると、混んだ機械で上限を超えた */
   const firstStep = (): Json => {
     const login = exampleJson("login-check.json") as { steps: Json[] };
     return { ...login, steps: login.steps.slice(0, 1) };
   };
 
   it("flow-exports-every-format", async () => {
-    const exportDiagram = await exporter();
     const result = await exportDiagram(firstStep(), { outDir: scratch(), formats: ["mp4", "gif"], fps: 1, gifFps: 0.5 });
     for (const format of ["mp4", "gif"] as const) expect(formatOf(readFileSync(result.files[format] ?? "")), `手順の図の ${format} の書き出し`).toBe(format);
   });
 
   it("flow-exports-every-format", async () => {
-    const exportDiagram = await exporter();
     const shots: Buffer[] = [];
     for (const k of [0, 1]) {
-      const result = await exportDiagram(exampleJson("login-check.json"), { outDir: join(scratch(), `run-${k}`), formats: ["png"] });
+      const result = await exportDiagram(firstStep(), { outDir: join(scratch(), `run-${k}`), formats: ["png"] });
       expect(result.files.png, "手順の図の PNG を書き出していない").toBeDefined();
       shots.push(readFileSync(result.files.png ?? ""));
     }
@@ -587,7 +596,6 @@ describe("手順の図の書き出し (#3561)", () => {
   });
 
   it("flow-exports-every-format", async () => {
-    const exportDiagram = await exporter();
     const result = await exportDiagram(exampleJson("login-check.json"), { outDir: scratch(), formats: ["html"] });
     const html = readFileSync(result.files.html ?? "", "utf8");
     expect(formatOf(Buffer.from(html)), "手順の図の html の書き出し").toBe("html");
