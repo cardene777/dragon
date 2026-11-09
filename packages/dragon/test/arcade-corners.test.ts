@@ -77,8 +77,12 @@ function figureOf(file: string, palette: string, theme: Theme): Element {
   return doc.documentElement;
 }
 
-const isFrame = (el: Element): boolean =>
-  FRAMES.some((c) => el.classList.contains(c)) || el.parentElement?.localName === "clipPath";
+/**
+ * 窓を切り抜く形か。工程表の棒 (`data-task`、#3562) の切り抜きは窓でなく、棒の塗りと字を棒の形で切る小さな部品なので、
+ * arcade では棒と同じ角の無い四角のまま描く (`arcade-draws-no-rounded-corner` が丸い角の無いことを確かめる)
+ */
+const isWindowClip = (el: Element): boolean => el.parentElement?.localName === "clipPath" && el.closest("[data-task]") === null;
+const isFrame = (el: Element): boolean => FRAMES.some((c) => el.classList.contains(c)) || isWindowClip(el);
 const num = (el: Element, name: string): number => Number(el.getAttribute(name) ?? 0) || 0;
 const boxOf = (rect: Element): Rect => ({
   x: num(rect, "x"),
