@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, or `pipe <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Strip | `strip <title>: <field>, <field>`. In a time diagram, `[meter: <ratio>]` after a field name makes that field a meter | `strip Message: ID, receiver, state` |
@@ -326,6 +326,29 @@ step The swap ends
   return ex: 3200 USDC
 ```
 
+A chart (`chart <title> [shape: donut]` or `chart <title> [shape: bar]`) compares items step by step. A donut draws each item's share as the angle of an arc, and a bar chart draws each item's amount as the length of a bar.
+Declare the items with `item <id> as <name> [color: <color>]` before the first step, from 1 to 8 of them.
+Inside a step, `set <id>: <value>` writes the value of an item, a number of 0 or more without a unit. An item without `set` keeps its previous value, and the arcs and bars move from the previous values to the new ones.
+
+```dragon
+chart Smartphone OS share [shape: donut]
+
+item ios as iOS [color: blue]
+item android as Android [color: green]
+item other as Other [color: slate]
+
+step 2018
+  say iOS holds 70 percent.
+  set ios: 70
+  set android: 29
+  set other: 1
+
+step 2024
+  say Android grows to almost 40 percent.
+  set ios: 60
+  set android: 39
+```
+
 ## Attributes
 
 Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by `,` to set how it looks and what it carries.
@@ -333,6 +356,7 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | On | Key | Meaning |
 |---|---|---|
 | Kind and title | `view` | The view. `fixed` or `follow` |
+| Kind and title | `shape` | The shape of a chart. `donut` or `bar`. Only in a chart, where it is required |
 | Region and box | `note` | The note of a region, or the caption under a box |
 | Region and box | `color` | Colour role. One of `blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` |
 | Region and box | `icon` | Icon next to the name |

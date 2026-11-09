@@ -1,0 +1,12 @@
+chart 使う時間の割合 [shape: donut]
+
+item work as 仕事
+item rest as 休み
+item move as 移動
+
+step 平日
+  say 最初の行の shape で見た目を選ぶ。
+    donut は割合をドーナツの弧の角度で描き、bar は量を横棒の長さで描く。
+  set work: 9
+  set rest: 13
+  set move: 2

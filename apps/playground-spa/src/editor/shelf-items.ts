@@ -241,6 +241,8 @@ export type SyntaxId =
   | "action"
   | "swap"
   | "strip-value"
+  | "chart-item"
+  | "chart-set"
   | "comment";
 
 /** 早見の行に置く穴の名前。`<名札>` のように山括弧で囲んで出す */
@@ -370,10 +372,14 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const inTry = (base: Diagram, events: object[]): Diagram => draw({ ...base, steps: [{ ...step, events }] });
   const askBase = tryWith({ type: "ask", id: "ask", fields: [h.name, h.field], into: h.queue, via: h.route });
   const pressBase = tryWith({ type: "press", id: h.id, from: h.queue, into: h.chain, take: h.count, at: h.part });
+  // 項目と項目の値は量の図だけが書ける (#3560)。見た目は頭の行の [shape: ] で選ぶ
+  const chartOf = (shape: string, items: object[] = []): Diagram => draw({ ...empty("chart"), chart: { shape, items } });
+  const chartBase = draw({ ...chartOf("donut"), steps: [step] });
+  const chartItemBase = draw({ ...chartOf("donut", [{ id: h.id, name: h.name }]), steps: [step] });
   return [
     {
       id: "kind",
-      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try")), head(empty("pipe"))],
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try")), head(empty("pipe")), head(chartOf("donut")), head(chartOf("bar"))],
     },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {
@@ -447,6 +453,8 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "action", lines: diff([[withStep, inStep([{ type: "action", box: h.id, label: h.action }])]]) },
     { id: "swap", lines: diff([[withStep, inStep([{ type: "swap", box: h.id, text: h.text }])]]) },
     { id: "strip-value", lines: diff([[add(withStep, { strip }), inStep([{ type: "strip", field: h.field, value: h.value, tag: h.tag }], { strip })]]) },
+    { id: "chart-item", lines: diff([[chartBase, draw({ ...chartOf("donut", [{ id: h.id, name: h.name, color: h.color }]), steps: [step] })]]) },
+    { id: "chart-set", lines: diff([[chartItemBase, draw({ ...chartItemBase, steps: [{ ...step, events: [{ type: "set", item: h.id, value: h.value }] }] })]]) },
     { id: "comment", lines: [`// ${h.memo}`] },
   ];
 }

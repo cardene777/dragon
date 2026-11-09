@@ -14,8 +14,8 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EXAMPLES = join(ROOT, "examples");
 
-const ALL_KINDS = ["architecture", "git", "lineup", "pipe", "sequence", "state", "time", "tree", "try"];
-const LATER_KINDS = ["git", "lineup", "pipe", "state", "time", "tree", "try"];
+const ALL_KINDS = ["architecture", "chart", "git", "lineup", "pipe", "sequence", "state", "time", "tree", "try"];
+const LATER_KINDS = ["chart", "git", "lineup", "pipe", "state", "time", "tree", "try"];
 
 interface Rendered {
   svg: string;
@@ -63,6 +63,7 @@ const STATE_NO_PATH = "state 注文\n\nbox 受付\nbox 発送\n\nstep 受け付�
 
 /** 後から読む種類ごとの見本の記法 */
 const LATER_SAMPLES: Record<string, string> = {
+  chart: "os-share.dragon",
   git: "rebase.dragon",
   lineup: "auction.dragon",
   pipe: "swap.dragon",
@@ -490,7 +491,7 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
         const fs = await import("node:fs");
         // 記法を読むには個別ブロックの読み方が要るので (#3349)、描く部品だけを確かめるよう原本を読む
         const read = (file) => JSON.parse(fs.readFileSync(new URL("./examples/" + file, "file://${ROOT}/"), "utf8"));
-        const later = { git: "rebase.json", lineup: "auction.json", pipe: "swap.json", state: "order.json", time: "finality.json", tree: "merkle.json", try: "tx-block.json" };
+        const later = { chart: "os-share.json", git: "rebase.json", lineup: "auction.json", pipe: "swap.json", state: "order.json", time: "finality.json", tree: "merkle.json", try: "tx-block.json" };
         const kept = { sequence: "api.json", architecture: "ccip.json" };
         const host = { ownerDocument: { defaultView: null } };
         const message = (run) => { try { run(); return "描けた"; } catch (e) { return e.message; } };

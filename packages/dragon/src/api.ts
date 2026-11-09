@@ -9,6 +9,10 @@ export type { NotationLang } from "./words";
 export {
   type Box,
   type Carry,
+  type ChartItem,
+  type ChartSet,
+  type ChartShape,
+  type ChartSpec,
   type Checked,
   type CheckOp,
   type CheckOptions,
@@ -125,6 +129,7 @@ export type {
   PipeValuePipe,
   PipeWrite as PipeWritePlaced,
 } from "./kinds/pipe/layout";
+export type { ChartArc, ChartBarRow, ChartLayout, ChartLayoutOptions, ChartLegendRow, ChartPlan, ChartRow } from "./kinds/chart/layout";
 export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupText, TextLine } from "./kinds/lineup/layout";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";

@@ -19,7 +19,7 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, PipeHold, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TimeTask, TryCheck, TryItem, TryPart } from "../schema";
+import type { Box, ChartItem, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, PipeHold, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TimeTask, TryCheck, TryItem, TryPart } from "../schema";
 import type { PipeRun } from "../pipe-run";
 import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
@@ -97,6 +97,11 @@ export interface FigureDraft {
    * 呼び出しの管のブロックが最初の段を始める時に手順 (`run`) を作る。開いている呼び出しを書いた行は手順の呼び出しと同じ順に積み、閉じない呼び出しの誤りで名指す
    */
   pipe: { holds: PipeHold[]; run?: PipeRun; opened: SourceLine[] };
+  /**
+   * 量の図の項目と、図の種類の行に書いた見た目 (#3560)。項目のブロックが `item` の行で項目を足し、
+   * 見た目は読む処理 (`parser.ts`) が図の種類の行の `[shape: ]` を置き、見た目のブロックが最初の段を始める時に確かめる
+   */
+  chart: { items: ChartItem[]; shape?: Attr };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */

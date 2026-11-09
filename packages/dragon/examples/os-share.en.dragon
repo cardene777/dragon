@@ -1,0 +1,23 @@
+// How the share of smartphone operating systems moved from 2018 to 2024, compared on a donut.
+// The values are sample numbers that show the shape, not measured figures.
+chart Smartphone OS share [shape: donut]
+
+item ios as iOS [color: blue]
+item android as Android [color: green]
+item other as Other [color: slate]
+
+step 2018
+  say iOS holds 70 percent and Android a little under 30.
+  set ios: 70
+  set android: 29
+  set other: 1
+
+step 2021
+  say Android grows step by step and passes 30 percent.
+  set ios: 66
+  set android: 33
+
+step 2024
+  say Android nears 40 percent and the gap narrows.
+  set ios: 60
+  set android: 39

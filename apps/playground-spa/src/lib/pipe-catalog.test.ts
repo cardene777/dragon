@@ -123,7 +123,8 @@ describe("見本帳と編集画面の配管の図 (#3389)", () => {
     await onScreen(page, "catalog", "見本帳の一覧が出ない");
     const kinds = (): Promise<string[]> =>
       page.evaluate(() => [...document.querySelectorAll('[data-catalog="section"][data-section="kinds"] [data-catalog="card"] h2')].map((h) => h.textContent?.trim() ?? ""));
-    await expect.poll(kinds, { ...WAIT, message: `見本帳の図の分類が ${KIND_NAMES.join("、")} の 9 つでない` }).toEqual([...KIND_NAMES]);
+    // 後に足した図の種類 (量の図、#3560) は配管の図の後ろに並ぶので、配管の図までの並びを確かめる
+    await expect.poll(async () => (await kinds()).slice(0, KIND_NAMES.length), { ...WAIT, message: `見本帳の図の分類が ${KIND_NAMES.join("、")} の順で始まらない` }).toEqual([...KIND_NAMES]);
     // 図の種類の説明は、カタログの頁と一緒に後から読む字から、今と同じ字で出る (#3565)
     const cardDesc = (): Promise<string> =>
       page.evaluate(() => document.querySelector('[data-catalog="card"][href$="/catalog/pipe"] [data-catalog="card-desc"]')?.textContent?.trim() ?? "");

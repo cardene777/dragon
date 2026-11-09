@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になる。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になる。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -27,7 +27,8 @@
         "tree",
         "lineup",
         "try",
-        "pipe"
+        "pipe",
+        "chart"
       ]
     },
     "title": {
@@ -43,6 +44,10 @@
     "define": {
       "description": "図の頭に書いた、使う人が足すブロックの定義",
       "$ref": "#/definitions/define"
+    },
+    "chart": {
+      "description": "量の図の見た目と項目。量の図だけが書け、ブロックの宣言の欄 (blocks) を使わない",
+      "$ref": "#/definitions/chart"
     },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
@@ -103,6 +108,30 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "chart"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "chart"
+        ]
+      },
+      "else": {
+        "properties": {
+          "chart": {
+            "$ref": "#/definitions/absent"
           }
         }
       }
@@ -715,64 +744,138 @@
                   }
                 },
                 "else": {
-                  "properties": {
-                    "blocks": {
-                      "required": [
-                        "box"
-                      ],
-                      "properties": {
-                        "box": {
-                          "minItems": 1
-                        },
-                        "strip": {
-                          "$ref": "#/definitions/plainStrip"
-                        },
-                        "path": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "branch": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "scale": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "period": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "row": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "task": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "point": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "zoom": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "item": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "role": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "part": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "hold": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "side": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "check": {
-                          "$ref": "#/definitions/absent"
-                        }
+                  "if": {
+                    "required": [
+                      "kind"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "chart"
                       }
-                    },
-                    "steps": {
-                      "$ref": "#/definitions/plainSteps"
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "blocks": {
+                        "properties": {
+                          "group": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "box": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "strip": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "path": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "branch": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "scale": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "period": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "row": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "task": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "point": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "zoom": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "item": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "role": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "part": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "hold": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "side": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "check": {
+                            "$ref": "#/definitions/absent"
+                          }
+                        }
+                      },
+                      "steps": {
+                        "$ref": "#/definitions/chartSteps"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "blocks": {
+                        "required": [
+                          "box"
+                        ],
+                        "properties": {
+                          "box": {
+                            "minItems": 1
+                          },
+                          "strip": {
+                            "$ref": "#/definitions/plainStrip"
+                          },
+                          "path": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "branch": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "scale": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "period": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "row": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "task": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "point": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "zoom": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "item": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "role": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "part": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "hold": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "side": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "check": {
+                            "$ref": "#/definitions/absent"
+                          }
+                        }
+                      },
+                      "steps": {
+                        "$ref": "#/definitions/plainSteps"
+                      }
                     }
                   }
                 }
@@ -793,7 +896,7 @@
       "not": {}
     },
     "plainSteps": {
-      "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
+      "description": "枝分かれの図でも時間軸の図でも木の図でも列の図でもない図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) と、量の図だけの出来事 (set) を書けない",
       "items": {
         "properties": {
           "gist": {
@@ -818,6 +921,9 @@
                 },
                 {
                   "$ref": "#/definitions/notPipeEvent"
+                },
+                {
+                  "$ref": "#/definitions/notChartEvent"
                 }
               ],
               "properties": {
@@ -845,7 +951,7 @@
       }
     },
     "gitSteps": {
-      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
+      "description": "枝分かれの図の段。時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) と、量の図だけの出来事 (set) を書けない",
       "items": {
         "properties": {
           "gist": {
@@ -870,6 +976,9 @@
                 },
                 {
                   "$ref": "#/definitions/notPipeEvent"
+                },
+                {
+                  "$ref": "#/definitions/notChartEvent"
                 }
               ],
               "properties": {
@@ -889,7 +998,7 @@
       }
     },
     "timeSteps": {
-      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
+      "description": "時間軸の図の段。枝分かれの図だけの出来事 (commit と branch) と、木の図だけの出来事 (leaf と node) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) と、量の図だけの出来事 (set) を書けない",
       "items": {
         "properties": {
           "gist": {
@@ -911,6 +1020,9 @@
                 },
                 {
                   "$ref": "#/definitions/notPipeEvent"
+                },
+                {
+                  "$ref": "#/definitions/notChartEvent"
                 }
               ],
               "properties": {
@@ -929,7 +1041,7 @@
       }
     },
     "treeSteps": {
-      "description": "木の図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
+      "description": "木の図の段。枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (at と into と color) と、列の図だけの出来事 (line と seal と open と pick と stamp と role) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) と、量の図だけの出来事 (set) を書けない",
       "items": {
         "properties": {
           "gist": {
@@ -949,6 +1061,9 @@
                 },
                 {
                   "$ref": "#/definitions/notPipeEvent"
+                },
+                {
+                  "$ref": "#/definitions/notChartEvent"
                 }
               ],
               "properties": {
@@ -976,7 +1091,7 @@
       }
     },
     "lineupSteps": {
-      "description": "列の図の段。線と処理と、枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (color) と、木の図だけの出来事 (leaf と node) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) を書けない",
+      "description": "列の図の段。線と処理と、枝分かれの図だけの出来事 (commit と branch) と、時間軸の図だけの出来事 (now と mark と span) と欄 (color) と、木の図だけの出来事 (leaf と node) と、試す図だけの出来事 (ask と press と item) と、配管の図だけの出来事 (call と return と revert と move と write と check と emit と calc) と、配管の図だけの段の要点 (gist) と、量の図だけの出来事 (set) を書けない",
       "items": {
         "properties": {
           "gist": {
@@ -1001,6 +1116,9 @@
                 },
                 {
                   "$ref": "#/definitions/notPipeEvent"
+                },
+                {
+                  "$ref": "#/definitions/notChartEvent"
                 }
               ],
               "properties": {
@@ -1477,6 +1595,42 @@
                     "check",
                     "emit",
                     "calc"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notChartEvent": {
+      "description": "量の図だけが書ける出来事を書けない",
+      "not": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "set"
+            ]
+          }
+        }
+      }
+    },
+    "chartSteps": {
+      "description": "量の図の段。項目の値を変える出来事 (set) だけを書け、配管の図だけの段の要点 (gist) を書けない",
+      "items": {
+        "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
+          "events": {
+            "items": {
+              "properties": {
+                "type": {
+                  "enum": [
+                    "set"
                   ]
                 }
               }

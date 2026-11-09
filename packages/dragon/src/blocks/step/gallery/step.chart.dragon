@@ -1,0 +1,17 @@
+chart 段 [shape: bar, view: fixed]
+
+item a as 甲
+item b as 乙
+
+step 数える
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code count
+  set a: 3
+  set b: 5
+
+step 数え直す
+  say 段は1つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  code recount
+  set a: 6

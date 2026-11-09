@@ -17,6 +17,7 @@
  * 試す図 (#3337) の送る、押す、書き換える出来事も線と同じ表に載せ、送るは網を運ばれて待ち行列へ入り終えるまで、
  * 押すはチップがブロックへ移り終えるまで、書き換えるは値が変わり終えるまでを引く間にする。同じ段の出来事は前の出来事が済んでから起こす。
  * 配管の図 (#3389) の出来事は、段の中で書いた順に決まった間 (`MOTION.pipe`) ずつずらして起こし、描く部品がその時刻に部品を替える。
+ * 量の図 (#3560) の値の出来事は、段の中の全ての値を段の始まりから同時に変え、弧と棒が `MOTION.chart.move` 秒で新しい値へ動き終えるまでを引く間にする。
  * 札を動かす線が運ぶ枝の札は運ぶ物の表に載せない。札は同じ時刻にいくつも出ていて、どの札も主役ではないので、
  * 枝分かれの図を描く部品が札ごとに動かす。線に書いた運ぶ物 (`tag` と `carry`) だけを表に載せる。
  */
@@ -168,6 +169,12 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false
     if (event.type === "now" || (needle && pulled(event))) return;
     // 列の図の役が動く出来事 (#3351) は、段の始まりから終わりまで役の札を光らせるだけで、段の中の時刻を取らない
     if (event.type === "role") return;
+    // 量の図の値の出来事 (#3560) は、段の全ての値を同じ時刻に変え、弧と棒が動き終えるまで段を留める
+    if (event.type === "set") {
+      out.events.push({ event: e, at: MOTION.edgeAt });
+      out.busy = Math.max(out.busy, MOTION.edgeAt + MOTION.chart.move);
+      return;
+    }
     // 配管の図の出来事 (#3389) は、前の出来事から決まった間を置いて起こす
     if (PIPE_EVENTS.has(event.type)) {
       out.events.push({ event: e, at: cursor });

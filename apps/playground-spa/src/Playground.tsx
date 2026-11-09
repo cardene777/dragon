@@ -63,6 +63,8 @@ function mainParts(diagram: Diagram): [CountedPart, number] {
       return ["lane", diagram.blocks.box?.length ?? 0];
     case "try":
       return ["part", diagram.blocks.part?.length ?? 0];
+    case "chart":
+      return ["item", diagram.chart?.items.length ?? 0];
     default:
       return ["box", diagram.blocks.box?.length ?? 0];
   }

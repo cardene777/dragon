@@ -1,0 +1,81 @@
+{
+  "version": 2,
+  "kind": "chart",
+  "title": "スマホのOSの割合",
+  "chart": {
+    "shape": "donut",
+    "items": [
+      {
+        "id": "ios",
+        "name": "iOS",
+        "color": "blue"
+      },
+      {
+        "id": "android",
+        "name": "Android",
+        "color": "green"
+      },
+      {
+        "id": "other",
+        "name": "その他",
+        "color": "slate"
+      }
+    ]
+  },
+  "blocks": {},
+  "steps": [
+    {
+      "title": "2018年",
+      "body": "iOSが7割を占め、Androidが3割弱。",
+      "events": [
+        {
+          "type": "set",
+          "item": "ios",
+          "value": 70
+        },
+        {
+          "type": "set",
+          "item": "android",
+          "value": 29
+        },
+        {
+          "type": "set",
+          "item": "other",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "title": "2021年",
+      "body": "Androidが少しずつ伸び、3割を超える。",
+      "events": [
+        {
+          "type": "set",
+          "item": "ios",
+          "value": 66
+        },
+        {
+          "type": "set",
+          "item": "android",
+          "value": 33
+        }
+      ]
+    },
+    {
+      "title": "2024年",
+      "body": "Androidが4割近くまで伸び、差が縮まる。",
+      "events": [
+        {
+          "type": "set",
+          "item": "ios",
+          "value": 60
+        },
+        {
+          "type": "set",
+          "item": "android",
+          "value": 39
+        }
+      ]
+    }
+  ]
+}

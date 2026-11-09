@@ -1,0 +1,23 @@
+// スマホのOSの割合が、2018年から2024年までにどう移ったかをドーナツで比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+chart スマホのOSの割合 [shape: donut]
+
+item ios as iOS [color: blue]
+item android as Android [color: green]
+item other as その他 [color: slate]
+
+step 2018年
+  say iOSが7割を占め、Androidが3割弱。
+  set ios: 70
+  set android: 29
+  set other: 1
+
+step 2021年
+  say Androidが少しずつ伸び、3割を超える。
+  set ios: 66
+  set android: 33
+
+step 2024年
+  say Androidが4割近くまで伸び、差が縮まる。
+  set ios: 60
+  set android: 39

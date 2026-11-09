@@ -7,6 +7,9 @@ import { uses as calcUses } from "../../../../packages/dragon/src/blocks/calc/ga
 import { uses as callUses } from "../../../../packages/dragon/src/blocks/call/gallery/uses";
 import { uses as carryUses } from "../../../../packages/dragon/src/blocks/carry/gallery/uses";
 import { uses as chainUses } from "../../../../packages/dragon/src/blocks/chain/gallery/uses";
+import { uses as chartItemUses } from "../../../../packages/dragon/src/blocks/chart-item/gallery/uses";
+import { uses as chartSetUses } from "../../../../packages/dragon/src/blocks/chart-set/gallery/uses";
+import { uses as chartShapeUses } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/uses";
 import { uses as checkUses } from "../../../../packages/dragon/src/blocks/check/gallery/uses";
 import { uses as colorUses } from "../../../../packages/dragon/src/blocks/color/gallery/uses";
 import { uses as commitUses } from "../../../../packages/dragon/src/blocks/commit/gallery/uses";
@@ -63,6 +66,9 @@ export const BLOCK_USES = {
   "call": callUses,
   "carry": carryUses,
   "chain": chainUses,
+  "chart-item": chartItemUses,
+  "chart-set": chartSetUses,
+  "chart-shape": chartShapeUses,
   "check": checkUses,
   "color": colorUses,
   "commit": commitUses,

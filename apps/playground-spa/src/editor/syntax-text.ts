@@ -53,6 +53,8 @@ export const SYNTAX_TEXT: Readonly<Record<Lang, Readonly<Record<SyntaxId, string
     action: "箱の中の処理",
     swap: "箱の下の小さな字の書き換え",
     "strip-value": "帯の値",
+    "chart-item": "項目。量の図で最初の step より前に宣言し、宣言した順に弧と棒を並べる",
+    "chart-set": "項目の値。量の図の段の中で、0 以上の数を単位を付けずに書く",
     comment: "メモ。図には出ない",
   },
   en: {
@@ -99,6 +101,8 @@ export const SYNTAX_TEXT: Readonly<Record<Lang, Readonly<Record<SyntaxId, string
     action: "Action inside a box",
     swap: "Rewrite the small text under a box",
     "strip-value": "Strip value",
+    "chart-item": "Item. In a chart, declare it before the first step; arcs and bars follow the order declared",
+    "chart-set": "Item value. Inside a step of a chart, a number of 0 or more without a unit",
     comment: "Memo. Not drawn",
   },
 };

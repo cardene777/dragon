@@ -8,6 +8,15 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **Added the chart (`chart`), which compares the shares of items as a donut and their amounts as horizontal bars, step by step** (#3560)
+
+  Start the first line with `chart <title> [shape: donut]` or `chart <title> [shape: bar]`, and declare the items with `item <id> as <name> [color: <color>]` before the first step, from 1 to 8 of them.
+  Inside a step, `set <id>: <value>` writes the value of an item, a number of 0 or more without a unit, and an item without `set` keeps its previous value.
+  A donut draws each share as the angle of an arc clockwise from 12 o'clock, with the step name in the middle of the ring and rounded percentages in the legend. A bar chart gives the largest value over all steps the longest bar and shows each value at the end of its bar.
+  Going to the next step moves the arcs and bars from the previous values to the new ones. In a narrow frame, the donut's legend moves below the ring and the bars get shorter.
+  `dragon check --layout` reports a step name that does not fit inside the ring of a donut as `title-outside-ring`.
+  The words `item` and `set` keep their lineup, try and strip readings in the other kinds. The examples are `os-share` (donut) and `tickets` (bar) in `packages/dragon/examples/`.
+
 - **A time diagram draws a task's period as one thick bar with `task <id> as <name> <range> [color: <color>]`** (#3562)
 
   A time diagram could only show marks, one per tick, so a schedule where each piece of work runs over several days had to be drawn as a row of separate marks. A `task` line before the first step now declares a task with its own row. The task is drawn as one continuous thick bar over the ticks of its range, with its name to the left of the row and its first and last tick names with the scale name inside the bar, such as `Day 1–3` (`1〜3日` in Japanese, and `Day 14` for a task of one tick). The text goes outside to the right when the bar is too narrow, or to the left when the right side would run past the end of the axis. The part of the bar the needle has passed fills in with the task's color as the needle moves. Text inside the bar is drawn light over the filled part and dark over the rest, and the split moves with the edge of the fill. The range counts ticks from 0, the same as `mark` and `span`, as `0-2` or `13`. A time diagram with tasks draws without any `row`, and tasks and rows keep the order they were declared in from top to bottom. In the source JSON, tasks go in `blocks.task`. Time diagrams without `task` draw the same as before. The new example `release-plan` draws a schedule up to a release.

@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * git、lineup、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * chart、git、lineup、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -26,6 +26,7 @@ import { ghostCard, path, side } from "../blocks/side-path/draw";
 import { endMark } from "../blocks/start-finish/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
+import type { ChartLayout } from "../kinds/chart/layout";
 import type { GitLayout } from "../kinds/git/layout";
 import type { LineupLayout } from "../kinds/lineup/layout";
 import type { PipeLayout } from "../kinds/pipe/layout";
@@ -75,6 +76,7 @@ import { Motion } from "./motion";
 /** 置き場を持つ図の種類を、図の種類の名前で引く表 */
 const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 
+const isChartLayout = (layout: Layout): layout is ChartLayout => layout.kind === "chart";
 const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "git";
 const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
 const isPipeLayout = (layout: Layout): layout is PipeLayout => layout.kind === "pipe";
@@ -95,7 +97,8 @@ export interface RenderOptions {
   lang?: NotationLang;
   /**
    * 描く枠の幅。列の図は、箱を横に並べると箱の名前が読めない幅で縦に組む (#3351)。書かなければ横に並べる。
-   * 配管の図は幅に関わらず横に長いまま並べ、再生の部品が枠の中を横に送る (#3398)
+   * 配管の図は幅に関わらず横に長いまま並べ、再生の部品が枠の中を横に送る (#3398)。
+   * 量の図 (#3560) は、凡例を輪の右に置けない幅で輪の下に置き、横棒を枠に入る長さまで縮める
    */
   width?: number;
   /** 配管の図 (#3389) で開いて描く `[fold]` の呼び出しの番号 (出てきた順、0 から)。書かない呼び出しは内側の段を 1 つの箱に畳む */
@@ -465,6 +468,9 @@ export function drawSvg(
   // 配管の図は段ごとに図の全てを 1 枚の絵に描くので、描く部品が全ての層を持つ (#3389)。見た目の規則も配管の図の SVG にだけ書く
   const pipeDrawn = isPipeLayout(layout) ? kindParts("pipe").drawPipe(layout, timeline, ctx) : undefined;
   if (pipeDrawn) L.base.push(pipeDrawn.base);
+  // 量の図の輪と弧と棒と字は、量の図を描く部品が描く (#3560)。段の番号はほかの図の種類と同じくここで描く。見た目の規則も量の図の SVG にだけ書く
+  const chartDrawn = isChartLayout(layout) ? kindParts("chart").drawChart(layout, diagram, ctx) : undefined;
+  if (chartDrawn) L.base.push(chartDrawn.base);
   // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く。
   // 作業の棒 (#3562) の見た目の規則は、作業を持つ時間軸の図の SVG にだけ書く
   const timeLayout = isTimeLayout(layout) ? layout : undefined;
@@ -574,7 +580,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -1028,7 +1034,11 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
                       lang,
                       ...(options.width === undefined ? {} : { width: options.width }),
                     })
-                  : KIND_FOLDERS.architecture.layout(diagram, lang);
+                  : diagram.kind === "chart"
+                    ? kindParts("chart", lang).layoutChart(diagram, {
+                        ...(options.width === undefined ? {} : { width: options.width }),
+                      })
+                    : KIND_FOLDERS.architecture.layout(diagram, lang);
   // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
   const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;
   const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };

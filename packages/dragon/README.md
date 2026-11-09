@@ -181,7 +181,7 @@ A name the palette does not have, or a value that cannot be read as a color (one
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `chart`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -600,6 +600,36 @@ step The swap ends
   write ex: "swaps[alice]" 1
   emit ex: Swapped(alice, 3200)
   return ex: 3200 USDC
+```
+
+### Chart
+
+Start with `chart` to draw a chart, which compares items step by step. Write the shape on the first line.
+`chart <title> [shape: donut]` draws the share of each item as the angle of an arc, and `chart <title> [shape: bar]` draws the amount of each item as the length of a horizontal bar.
+
+- `item <id> as <name> [color: <color>]` declares an item before the first step. A donut lays the arcs clockwise from 12 o'clock in the order declared and shows the names and rounded percentages in its legend. A bar chart stacks the bars from the top with each name on the left. An item without `color` gets a color in the order declared, and a chart takes from 1 to 8 items
+- `set <id>: <value>` inside a step is the value of the item, a number of 0 or more written without a unit. An item without `set` keeps its previous value, and an item with no value yet shows no arc or bar
+
+Going to the next step moves the arcs and bars from the previous values to the new ones. The largest value over all steps gets the longest bar, and each value shows at the end of its bar.
+The shape stays the same through the steps, and a chart takes no `box`, `group`, `strip`, or line.
+
+```dragon
+chart Support requests by channel [shape: bar]
+
+item mail as Email [color: blue]
+item chat as Chat [color: green]
+item phone as Phone [color: amber]
+
+step April
+  say Most requests come by email.
+  set mail: 120
+  set phone: 64
+
+step May
+  say Chat opens, and phone requests drop.
+  set mail: 104
+  set chat: 38
+  set phone: 58
 ```
 
 ## Source JSON

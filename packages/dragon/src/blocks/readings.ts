@@ -7,6 +7,9 @@ import { reading as calcReading } from "./calc/read";
 import { reading as callReading } from "./call/read";
 import { reading as carryReading } from "./carry/read";
 import { reading as chainReading } from "./chain/read";
+import { reading as chartItemReading } from "./chart-item/read";
+import { reading as chartSetReading } from "./chart-set/read";
+import { reading as chartShapeReading } from "./chart-shape/read";
 import { reading as checkReading } from "./check/read";
 import { reading as colorReading } from "./color/read";
 import { reading as commitReading } from "./commit/read";
@@ -63,6 +66,9 @@ export const READINGS = {
   "call": callReading,
   "carry": carryReading,
   "chain": chainReading,
+  "chart-item": chartItemReading,
+  "chart-set": chartSetReading,
+  "chart-shape": chartShapeReading,
   "check": checkReading,
   "color": colorReading,
   "commit": commitReading,

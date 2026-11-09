@@ -32,6 +32,7 @@ export * from "./api";
 export { definesBlocks, iconSetLoaded, kindLoaded, LATER_KINDS, type LaterKind };
 
 const LOADERS: { [K in LaterKind]: () => Promise<LaterKinds[K]> } = {
+  chart: () => import("./kinds/chart"),
   git: () => import("./kinds/git"),
   lineup: () => import("./kinds/lineup"),
   pipe: () => import("./kinds/pipe"),

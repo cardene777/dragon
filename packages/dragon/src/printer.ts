@@ -17,6 +17,7 @@
  * 列の図 (#3239) のチップは箱の後ろに `item` の行でチップのブロックが書き、色が同じで字を持たないチップが続く所は 1 行に並べる。
  * 列の図の役は、図の種類の行の直ぐ後ろに役のブロックが書く (#3348)。
  * 試す図 (#3337) の部品の行は、部品の種類と同じ名前のブロックの書き戻す処理 (`print.part`) が書き、原本の並びのまま 1 つの塊にする (#3348)。
+ * 量の図 (#3560) の見た目は図の種類の行の `[shape: ]` に書き、項目の `item` の行は項目のブロックが、段の中の `set` の行は値のブロックが書く。
  * その後ろのチップの `item` の行は入力の帯のブロックが書き、欄の値と段の中の書き換えの鍵を入力の帯の欄の順に書く。
  * 段の中でブロックが受け持つ行は、段の区切りの `step` の行の後ろ、段の中で起きることより前に、ブロックの並び (`rank`) の順に書く (#3345)。
  * 段の本文の `say` と命令の `code` の行は段のブロックが、段の出典 (#3199) は出典のブロックが、配管の図の段の要点 (#3464) は要点のブロックが書く。
@@ -198,7 +199,11 @@ function sameJson(a: unknown, b: unknown): boolean {
 /** 描く処理の形の図を、`omit` の物を省いて記法に書く */
 function printModel(diagram: DiagramModel, omit: Omissions): string {
   const blocks = [
-    `${omit.title ? diagram.kind : `${diagram.kind} ${name(diagram.title)}`}${attrs([["view", diagram.view]])}`,
+    // 量の図の見た目 (#3560) は図の種類の行の属性なので、見た目のブロックでなくここで書く
+    `${omit.title ? diagram.kind : `${diagram.kind} ${name(diagram.title)}`}${attrs([
+      ["shape", diagram.chart?.shape],
+      ["view", diagram.view],
+    ])}`,
     // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)
     ...(diagram.define ? [printBlocks(diagram.define)] : []),
     ...(diagram.try ? [tryParts(diagram.try.parts)] : []),
