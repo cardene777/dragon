@@ -420,6 +420,22 @@ describe("手順の図の並べ方 (#3561)", () => {
       // 判断はひし形で、手順の箱はひし形でない
       const choices = new Set((json.blocks.choice ?? []).map((c) => c.id));
       for (const b of layout.boxes) expect(b.shape === "diamond", `${b.id} の形 (${lang})`).toBe(choices.has(b.id));
+      // 描いた図も、判断ごとに 1 つだけ、判断の四角の 4 辺の真ん中を頂点にしたひし形の縁を描く
+      const diamonds = [...svg.matchAll(/<polygon class="dg-st" data-shape="diamond" points="([^"]+)"/gu)].map((m) =>
+        (m[1] ?? "").split(" ").map((pair) => pair.split(",").map(Number) as Point),
+      );
+      expect(diamonds.length, `描いた図のひし形の縁の数 (${lang})`).toBe(choices.size);
+      for (const id of choices) {
+        const b = boxOf(layout, id);
+        const want: Point[] = [
+          [b.x + b.w / 2, b.y],
+          [b.x + b.w, b.cy],
+          [b.x + b.w / 2, b.y + b.h],
+          [b.x, b.cy],
+        ];
+        const near = (points: Point[]): boolean => points.length === 4 && points.every(([px, py], i) => Math.abs(px - (want[i]?.[0] ?? 0)) < 0.6 && Math.abs(py - (want[i]?.[1] ?? 0)) < 0.6);
+        expect(diamonds.some(near), `${id} のひし形の縁が判断の四角の 4 辺の真ん中を結ばない (${lang})`).toBe(true);
+      }
       // 問いの字がひし形の内に収まる
       for (const id of choices) {
         const b = boxOf(layout, id);
