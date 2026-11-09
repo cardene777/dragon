@@ -160,6 +160,10 @@ To place a diagram stopped on a still of one step, pass the step number (from 0)
 `renderDiagram` also takes `still`.
 Without any of these, the diagram plays every step on a loop from the moment it is placed.
 
+To change how fast the diagram plays, pass a multiplier as `speed` (`speed: 2` moves through the steps in half the time), or call `setSpeed` on the `player` after placing it.
+The motion, the step label and `onStep` all follow the same speed, and changing it while the diagram plays continues from where it is.
+`speed` and `setSpeed` take a finite number greater than 0 and throw a `RangeError` for anything else.
+
 A pipe diagram placed in a frame narrower than 600px starts fitted to the frame width, so its box names come out small.
 Pass `zoom: "readable"` to start zoomed in so box names are readable (10.5px or larger on screen), with the frame grown to the zoomed diagram's height and panning sideways.
 Moving through the steps pans the diagram to the parties in each step, and the zoom-out button returns it to the fitted view.

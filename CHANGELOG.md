@@ -6,7 +6,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.68.0] - 2026-11-09
+
 ### Added
+
+- **The player plays at a chosen speed, with `speed` when placing it and `setSpeed` afterwards** (#3568)
+
+  The player could only play a diagram at the pace of its timeline, so a page that wanted 2x playback stepped through the diagram itself with `goTo`, which stops on each step's still and never shows the motion between steps. `mountDiagram` now takes `speed`, a multiplier such as `2` or `0.5`, and the returned `player` has `setSpeed`. The steps, the motion, the step label and `onStep` all follow the speed, a diagram set to play once stops on its last still in the scaled time, and changing the speed while playing continues from where the diagram is instead of starting over. A paused diagram stays paused and plays at the new speed when played. Both take a finite number greater than 0 and throw a `RangeError` for anything else, and a rejected `setSpeed` keeps the current speed. Diagrams placed without `speed` play as before.
 
 - **A time diagram draws a task's period as one thick bar with `task <id> as <name> <range> [color: <color>]`** (#3562)
 
