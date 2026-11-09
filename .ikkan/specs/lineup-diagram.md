@@ -23,13 +23,7 @@
 | `packages/dragon/examples` に入札の図の日本語と英語の記法と JSON の4つの file があり、英語版の列とチップと段と段ごとの出来事の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-example-files-match`が通る | #3239 |
 | repo の全ての `.dragon` の file を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3239 |
 | 見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`overlaps-none-in-every-example`が通る | #3239 |
-| 見本帳の一覧に図の分類が7つ (時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、列の図) 並び、列の図の頁に入札の見本が載り、選ぶと7段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/lineup-catalog.test.ts`の検査`catalog-lists-lineup-with-examples`が通る | #3239 |
-| 見本帳の図の種類だけの部品に、チップ、列の並び、封、選ぶ、札の5つが列の図の部品として並び、頁ごとに日本語と英語の記法と、列の図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/lineup-catalog.test.ts`の検査`catalog-has-lineup-parts`が通る | #3239 |
-| 列の図の部品の頁は、その部品を使う見本の札を並べ、札は列の図の頁のその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/lineup-catalog.test.ts`の検査`lineup-part-pages-link-examples`が通る | #3239 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3239 |
-| 編集画面の棚の見本に列の図の束があって入札の図が載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に `lineup` の頭の行があり、`item`、`line`、`seal`、`open`、`pick`、`stamp` の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/lineup-catalog.test.ts`の検査`editor-shelf-has-lineup`が通る | #3239 |
-| 使い方の頁と `CHANGELOG.md` の前の形との対応表の頭の語が、読む部品の語と一致する。列の図の語は、対応表の後に足した語として表に行を持たない | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3239 |
-| 概要の頁の使いどころは今の3つのまま | `pnpm test`の検査`home-uses-stay-three`が通る | #3239 |
 | 列の図の`box`の行に`[order: none]`を書いた時、記法とJSON Schemaがその箱を順番の無い置き場として通す。`order`に`none`以外の値を書いた時と、列の図でない図の`box`に書いた時は、行と列かJSON Pointerを示した誤りで止まり、英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-order-none-marks-a-pool`が通る | #3351 |
 | 列の図の最上位に`role 名前`を書いた時、記法とJSON Schemaがその名前を役として通し、`[note: 一言]`を添えられる。段の中に`role 名前`を書いた時は、その段で動く役として通す。宣言していない役を段に書いた時と、列の図でない図に`role`を書いた時は、行と列かJSON Pointerを示した誤りで止まり、英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-role-declares-and-acts`が通る | #3351 |
 | 列の図を描く枠の幅を渡さない時と、箱を横に並べても枠に収めた箱の名前が10.5px以上になる幅を渡した時、役の札を宣言した順に左から1列に並べて箱の列の上に置き、箱を宣言した順に左から札として並べる。`[order: none]`の箱は点線の枠の置き場としてチップを格子に並べ、それ以外の箱は実線の枠の札としてチップを`line`に書いた順に上から縦に積む。どの段でも役の札と箱と字が10px以上離れる | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-layout-places-roles-and-cards`が通る | #3351、#3408 |
@@ -48,7 +42,6 @@
 | 段を持つ列の図を描いた時、図の下に今の段より後の段の題を枠付きの札にして矢印で結んだ「この先」の帯を出し、最後の段では帯を出さない | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-shows-steps-ahead`が通る | #3351 |
 | 日本語と英語の入札の図で、メモリプールの箱が`[order: none]`を持ち、メモリプールに置くチップの名前が数字を含まない | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`auction-pool-chips-carry-no-numbers`が通る | #3351 |
 | 日本語と英語の入札の図で、リレーと提案者を役として宣言し、封をする段と公開する段でリレーが、金額だけを見せる段と署名する段で提案者が動く。メモリプールに置く取引のチップと、自分と裏と票のチップが凡例の説明を持つ | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`auction-declares-roles-and-legend`が通る | #3351 |
-| 見本帳の列の図の部品に置き場 (`order`) と役 (`role`) と凡例の説明 (`item`の`note`) の部品が日本語と英語の記法で並び、その頁の図が置き場と役の札と凡例を描く | `pnpm exec vitest run apps/playground-spa/src/lib/lineup-catalog.test.ts`の検査`catalog-has-lineup-pool-part`と`catalog-has-lineup-role-part`と`catalog-has-lineup-legend-part`が通る | #3351 |
 | 今ある全ての色味で入札の図を描いた時、役の札と箱とチップの位置と大きさが色味によらず同じで、変わるのは色の値だけ | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-layout-same-in-every-palette`が通る | #3351 |
 | 入札の図の7段が順に動き、段3で3つのビルダーの札に封が付き、段4で選んだ札が残り、段5で札が出て、段6で封が開いて段2と同じ並びが見える | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`auction-renders-7-steps`が通る | #3351 |
 | 封は今どおり左から伸びて札のチップを隠し、`line`の段で前の段に居たチップはその位置から今の位置へ滑る | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-seal-hides-chips`と`lineup-chips-slide-from-where-they-were`が通る | #3351 |

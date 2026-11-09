@@ -14,7 +14,7 @@ export default defineConfig({
     // test は `@cardenelabs/dragon` を package として import する = `dist` を読む。
     // `pnpm test` に build は含まれていないため、 古い `dist` が残っていると
     // src を壊しても通ってしまう。 走らせる前に検知する (#979)。
-    // 1 回の実行は 5 分で止める (`run-limit.ts`、#3381)。見本帳の頁は 1 回の実行で 1 度だけ build する (`site-setup.ts`、#3381)
+    // 1 回の実行は 5 分で止める (`run-limit.ts`、#3381)。見本帳の頁は要る時に 1 回の実行で 1 度だけ build する (`site-setup.ts`、#3381)
     // npm に出す file の一覧は 1 回の実行で 1 度だけ `npm pack --dry-run` で出す (`pack-setup.ts`、#3410)
     globalSetup: ["./test-support/global-setup.ts", "./test-support/run-limit.ts", "./apps/playground-spa/src/lib/site-setup.ts", "./test-support/pack-setup.ts"],
     /*
@@ -27,8 +27,7 @@ export default defineConfig({
      */
     testTimeout: testLimitMs(),
     hookTimeout: testLimitMs(),
-    // 頁を開く検査の file では、file を読む前に Chromium を起こし始める (`chromium-preload.ts`、#3388)
-    setupFiles: ["./apps/playground-spa/src/lib/chromium-preload.ts", "./test-support/test-limit-guard.ts"],
+    setupFiles: ["./test-support/test-limit-guard.ts"],
     /*
      * 同時に動かす数は 4 に留める (#3268)。
      *
@@ -45,14 +44,9 @@ export default defineConfig({
       "apps/**/src/**/*.test.tsx",
     ],
     // bench.test.ts は bench() のみ含み regular test mode で `bench is only available in benchmark mode` を起こすため除外。
-    // tests/**/*.spec.ts は Playwright e2e 経路、 vitest v4 の default include
-    // (`**/*.{test,spec}.?(c|m)[jt]s?(x)`) と merge されて拾われると
-    // `Playwright Test did not expect test() to be called here` で崩れるため明示除外。
     exclude: [
       "**/node_modules/**",
       "**/test/bench.test.ts",
-      "**/tests/**/*.spec.ts",
-      "**/tests/**/*.spec.tsx",
     ],
     /*
      * 既定は node。 画面の部品を要る検査は、file 冒頭に `// @vitest-environment jsdom` を書く (#2089)。

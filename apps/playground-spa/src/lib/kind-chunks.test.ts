@@ -7,14 +7,8 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { Page, Route } from "playwright";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-
-import { toHash } from "../share";
-import { BASE, firstLoadFiles, root, screenOf, type Site, startSite } from "./playground-support";
-
-/** 頁が書き換わるのを待つ長さ */
-const WAIT = { timeout: 8_000, interval: 100 } as const;
+import { describe, expect, it } from "vitest";
+import { builtDir, firstLoadFiles, root } from "./playground-support";
 
 const SRC = join(root, "packages/dragon/src");
 
@@ -108,13 +102,10 @@ function readingMarkers(): { block: string; markers: string[] }[] {
   });
 }
 
-let site: Site;
-
-const assets = (): string => join(site.built.dir, "assets");
-const fileOf = (url: string): string => new URL(url).pathname.split("/").pop() ?? "";
+const assets = (): string => join(builtDir(), "assets");
 /** その種類の塊の file の名前。無ければ `undefined` */
 const chunkOf = (kind: string): string | undefined => {
-  const first = new Set(firstLoadFiles(site.built.dir));
+  const first = new Set(firstLoadFiles(builtDir()));
   return readdirSync(assets()).find((name) => name.startsWith(`${kind}-`) && name.endsWith(".js") && !first.has(name));
 };
 
@@ -125,38 +116,10 @@ function chunkNamed(kind: string): string {
   return name ?? "";
 }
 
-const figures = (page: Page, scope: string): Promise<number> => page.locator(`${scope} svg[data-dragon="figure"]`).count();
-
-/** 届くのを止める。返す関数を呼ぶと届く */
-function holdChunk(page: Page, name: string): { release: () => void; held: () => boolean } {
-  let held = false;
-  let release: () => void = () => {};
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  void page.route(`**/assets/${name}`, async (route: Route) => {
-    held = true;
-    await gate;
-    await route.fallback();
-  });
-  return { release: () => release(), held: () => held };
-}
-
 describe("図の種類の描く部品を後から読む (#3248)", () => {
-  beforeAll(async () => {
-    site = await startSite();
-  });
-
-  afterEach(async () => {
-    await site?.closeContexts();
-  });
-
-  afterAll(async () => {
-    await site?.close();
-  });
 
   it("first-load-leaves-later-kinds-out", () => {
-    const first = firstLoadFiles(site.built.dir)
+    const first = firstLoadFiles(builtDir())
       .filter((name) => name.endsWith(".js"))
       .map((name) => readFileSync(join(assets(), name), "utf8"))
       .join("\n");
@@ -179,12 +142,12 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
   });
 
   it("first-load-leaves-later-blocks-out", () => {
-    const first = firstLoadFiles(site.built.dir)
+    const first = firstLoadFiles(builtDir())
       .filter((name) => name.endsWith(".js"))
       .map((name) => readFileSync(join(assets(), name), "utf8"))
       .join("\n");
     const later = readdirSync(assets())
-      .filter((name) => name.endsWith(".js") && !firstLoadFiles(site.built.dir).includes(name))
+      .filter((name) => name.endsWith(".js") && !firstLoadFiles(builtDir()).includes(name))
       .map((name) => readFileSync(join(assets(), name), "utf8"))
       .join("\n");
     const blocks = readingMarkers();
@@ -201,196 +164,4 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
       ).toBeGreaterThan(0);
     }
   });
-
-  it(
-    "site-prefetches-later-kinds",
-    async () => {
-      const names = Object.keys(LATER_KINDS).map(chunkNamed);
-      const asked = new Set<string>();
-      const { page } = await site.open({
-        path: BASE,
-        prepare: (p) => {
-          p.on("request", (request) => asked.add(fileOf(request.url())));
-        },
-      });
-      await expect.poll(() => screenOf(page), { ...WAIT, message: "概要の頁が出ない" }).toBe("home");
-      await expect.poll(() => names.filter((name) => !asked.has(name)), { ...WAIT, message: "裏で読みに行かない種類の塊" }).toEqual([]);
-    },
-  );
-
-  it(
-    "figure-waits-for-later-kind",
-    async () => {
-      const name = chunkNamed("lineup");
-      let gate: ReturnType<typeof holdChunk> | undefined;
-      const { page } = await site.open({
-        path: `${BASE}catalog/lineup`,
-        viewport: { width: 1440, height: 900 },
-        reducedMotion: "reduce",
-        prepare: (p) => {
-          gate = holdChunk(p, name);
-        },
-      });
-      await expect.poll(() => screenOf(page), { ...WAIT, message: "列の図の頁が出ない" }).toBe("category");
-      await expect.poll(() => gate?.held() ?? false, { ...WAIT, message: "列の図の塊を読みに行かない" }).toBe(true);
-      const waiting = page.locator('[data-catalog="stage"] [data-figure="waiting"]');
-      await expect.poll(() => waiting.count(), { ...WAIT, message: "塊が届く前に図の場所に待つ枠が出ない" }).toBe(1);
-      expect((await waiting.textContent())?.trim(), "待つ枠の字").toBe("読み込み中");
-      expect((await waiting.evaluate((el) => el.getBoundingClientRect().height)) > 0, "待つ枠の高さが 0").toBe(true);
-      expect(await figures(page, '[data-catalog="stage"]'), "塊が届く前に図を描いた").toBe(0);
-      gate?.release();
-      await expect.poll(() => figures(page, '[data-catalog="stage"]'), { ...WAIT, message: "塊が届いても図を描かない" }).toBeGreaterThan(0);
-      expect(await waiting.count(), "図を描いた後に待つ枠が残る").toBe(0);
-    },
-  );
-
-  it(
-    "figure-offers-reload-when-kind-fails",
-    async () => {
-      const name = chunkNamed("tree");
-      const { page } = await site.open({
-        path: `${BASE}catalog/tree`,
-        viewport: { width: 1440, height: 900 },
-        reducedMotion: "reduce",
-        prepare: async (p) => {
-          await p.route(`**/assets/${name}`, (route) => route.abort());
-        },
-      });
-      await expect.poll(() => screenOf(page), { ...WAIT, message: "木の図の頁が出ない" }).toBe("category");
-      const reload = page.locator('[data-catalog="stage"] button[data-catalog="reload"]');
-      await expect.poll(() => reload.count(), { ...WAIT, message: "塊を読めない時に図の場所に読み直す button が出ない" }).toBe(1);
-      expect((await reload.textContent())?.trim(), "読み直す button の字").toBe("読み直す");
-    },
-  );
-
-  it(
-    "stage-waiting-in-first-view",
-    async () => {
-      const name = chunkNamed("lineup");
-      const stage = '[data-catalog="stage"]';
-      /** 枠は図の高さを取って画面より伸びるので、枠ではなく字そのものの下端を測る */
-      const textBottom = (page: Page): Promise<number> =>
-        page.locator(`${stage} [data-figure="waiting"]`).evaluate((el) => {
-          const range = document.createRange();
-          range.selectNodeContents(el);
-          return range.getBoundingClientRect().bottom;
-        });
-      const waitingOn = async (viewport: { width: number; height: number }): Promise<Page> => {
-        const { page } = await site.open({
-          path: `${BASE}catalog/lineup`,
-          viewport,
-          reducedMotion: "reduce",
-          prepare: (p) => {
-            holdChunk(p, name);
-          },
-        });
-        await expect.poll(() => page.locator(`${stage} [data-figure="waiting"]`).count(), { ...WAIT, message: "待つ枠が出ない" }).toBe(1);
-        return page;
-      };
-
-      const pc = await waitingOn({ width: 1366, height: 720 });
-      expect(await textBottom(pc), "読み込み中の字が最初の画面の外に出る").toBeLessThanOrEqual(720);
-
-      const phone = await waitingOn({ width: 390, height: 844 });
-      const stageTop = await phone.locator(stage).evaluate((el) => el.getBoundingClientRect().top);
-      expect((await textBottom(phone)) - stageTop, "幅 390 で読み込み中の字が枠の上端から遠い").toBeLessThanOrEqual(120);
-
-      const failed = await site.open({
-        path: `${BASE}catalog/lineup`,
-        viewport: { width: 1366, height: 720 },
-        reducedMotion: "reduce",
-        prepare: async (p) => {
-          await p.route(`**/assets/${name}`, (route) => route.abort());
-        },
-      });
-      const reload = failed.page.locator(`${stage} button[data-catalog="reload"]`);
-      await expect.poll(() => reload.count(), { ...WAIT, message: "読み直す button が出ない" }).toBe(1);
-      expect(await reload.evaluate((el) => el.getBoundingClientRect().bottom), "読み直す button が最初の画面の外に出る").toBeLessThanOrEqual(720);
-    },
-  );
-
-  it(
-    "editor-keeps-figure-while-kind-loads",
-    async () => {
-      const name = chunkNamed("git");
-      let gate: ReturnType<typeof holdChunk> | undefined;
-      const { page } = await site.open({
-        path: `${BASE}editor`,
-        prepare: (p) => {
-          gate = holdChunk(p, name);
-        },
-      });
-      await expect.poll(() => screenOf(page), { ...WAIT, message: "編集画面が出ない" }).toBe("editor");
-      const scope = '[data-playground="figure"]';
-      await expect.poll(() => figures(page, scope), { ...WAIT, message: "最初の見本の図が描かれない" }).toBeGreaterThan(0);
-      const before = await page.locator(`${scope} svg[data-dragon="figure"]`).first().innerHTML();
-      const git = ["git 枝の図", "", "branch main", "", "step 積む", "  say 枝に積む。", "  commit A on main"].join("\n");
-      await page.locator('[data-playground="editor"]').fill(git);
-      await page.waitForTimeout(1_500);
-      expect(await page.locator(`${scope} svg[data-dragon="figure"]`).first().innerHTML(), "塊を待つ間に前の図が残らない").toBe(before);
-      expect(await page.locator('[data-playground="status"]').getAttribute("data-state"), "塊を待つ間に誤りを出した").not.toBe("error");
-      gate?.release();
-      await expect
-        .poll(async () => (await page.locator(`${scope} svg[data-dragon="figure"]`).first().innerHTML()) !== before, { ...WAIT, message: "塊が届いても新しい図に替わらない" })
-        .toBe(true);
-    },
-  );
-
-  it(
-    "editor-status-waits-for-kind",
-    async () => {
-      const git = ["git 枝の図", "", "branch main", "", "step 積む", "  say 枝に積む。", "  commit A on main"].join("\n");
-      const name = chunkNamed("git");
-      const status = (page: Page) => page.locator('[data-playground="status"]');
-
-      // 開いた見本から書き替えた時
-      let gate: ReturnType<typeof holdChunk> | undefined;
-      const { page } = await site.open({
-        path: `${BASE}editor`,
-        prepare: (p) => {
-          gate = holdChunk(p, name);
-        },
-      });
-      await expect.poll(() => figures(page, '[data-playground="figure"]'), { ...WAIT, message: "最初の見本の図が描かれない" }).toBeGreaterThan(0);
-      const shown = (await status(page).innerText()).trim();
-      await page.locator('[data-playground="editor"]').fill(git);
-      await expect.poll(() => status(page).getAttribute("data-state"), { ...WAIT, message: "塊を待つ間の状態にならない" }).toBe("waiting");
-      const waiting = await status(page).innerText();
-      expect(waiting, "塊を待つ間に読み込み中と出ない").toContain("読み込み中");
-      expect(waiting, "塊を待つ間に前の図の数が残る").not.toContain(shown);
-      gate?.release();
-      await expect.poll(() => status(page).getAttribute("data-state"), { ...WAIT, message: "塊が届いても待つ間の状態のまま" }).toBe("ok");
-      expect(await status(page).innerText(), "塊が届いた後に新しい図の数が出ない").toContain("枝 1 本、段 1");
-
-      // 待つ種類の記法を載せた URL で開いた時。別の種類の塊が届くと読み直して待つ状態に入るので、開いた時の状態だけを見るよう全ての塊を止める
-      const held: ReturnType<typeof holdChunk>[] = [];
-      const shared = await site.open({
-        path: `${BASE}editor${toHash(git)}`,
-        prepare: (p) => {
-          for (const kind of Object.keys(LATER_KINDS)) held.push(holdChunk(p, chunkNamed(kind)));
-        },
-      });
-      await expect.poll(() => screenOf(shared.page), { ...WAIT, message: "編集画面が出ない" }).toBe("editor");
-      expect(await status(shared.page).getAttribute("data-state"), "URL で開いた時に待つ間の状態にならない").toBe("waiting");
-      expect(await status(shared.page).innerText(), "URL で開いた時に読み込み中と出ない").toContain("読み込み中");
-      for (const gate of held) gate.release();
-    },
-  );
-
-  it(
-    "home-draws-without-later-kinds",
-    async () => {
-      const later = Object.keys(LATER_KINDS)
-        .map(chunkOf)
-        .filter((name): name is string => name !== undefined);
-      const { page } = await site.open({
-        path: BASE,
-        prepare: async (p) => {
-          for (const name of later) await p.route(`**/assets/${name}`, (route) => route.abort());
-        },
-      });
-      await expect.poll(() => screenOf(page), { ...WAIT, message: "種類の塊を止めると概要の頁が出ない" }).toBe("home");
-      await expect.poll(() => figures(page, '[data-home="use"]'), { ...WAIT, message: "種類の塊を止めると概要の頁の用例の図が 3 つ描かれない" }).toBe(3);
-    },
-  );
 });

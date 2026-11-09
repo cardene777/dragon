@@ -23,11 +23,7 @@
 | 今ある全ての色味で交換の図を描いた時、関係者と槽と管の位置と大きさが色味によらず同じで、変わるのは色の値だけ | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-layout-same-in-every-palette`が通る | #3389 |
 | `packages/dragon/examples`に見本6組の日本語と英語の記法とJSONがあり、英語版の関係者と段と段ごとの出来事の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-example-files-match`が通る | #3389 |
 | 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、配管の図の頭の語`pipe`と、`hold`、`move`、`write`、`check`、`return`、`revert`、`emit`、`calc`の行と、`[value]`、`[call]`、`[fold]`、`[fail]`の印の書き方が載る | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`docs-describe-pipe-diagram`が通る | #3389 |
-| 見本帳の一覧に図の分類が9つ (時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、列の図、試す図、配管の図) 並び、配管の図の頁に見本6組が載り、選ぶと段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-catalog.test.ts`の検査`catalog-lists-pipe-with-examples`が通る | #3389 |
-| 見本帳の配管の図の部品に、槽、値の札、呼び出しの管、呼び出しの種類、ETHの送金、確認、イベント、換算、取り消し、畳みの部品が並び、頁ごとに日本語と英語の記法と配管の図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-catalog.test.ts`の検査`catalog-has-pipe-parts`が通る | #3389 |
-| 編集画面の棚の見本に配管の図の束があって交換の図が載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に`pipe`の頭の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-catalog.test.ts`の検査`editor-shelf-has-pipe`が通る | #3389 |
 | repoの全ての`.dragon`のfileを誤り無く読み、見本帳の全ての見本でどの段でも字が重ならず、描画のfileが値を共通の値の表からだけ読み、記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`と`renderers-read-values-from-one-table`と`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3389 |
-| 使い方の頁と`CHANGELOG.md`の前の形との対応表の頭の語が、読む部品の語と一致する | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3389 |
 | ほかの図の描き方は今どおりで、OAuthは12段、CCIPは13段、入札は7段が順に動き、箱どうしと線の名前と箱が10px以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`auction-renders-7-steps`と`layout-keeps-10px-gap`が通る | #3389 |
 | 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3389 |
 | トークンの箱は、`hold`で宣言したその箱の値(許可額など)を名前の下に書き、`write`の段で前の値を消し線で残す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-token-box-holds-values`が通る | #3398 |

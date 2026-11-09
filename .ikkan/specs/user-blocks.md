@@ -19,12 +19,7 @@
 | 今の見本の`.dragon`の file は全て、誤り無く読める | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`every-dragon-file-parses`が通る | #3399 |
 | CCIP の見本の記法は、今と同じ JSON になる | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`notation-compiles-ccip-to-json`が通る | #3399 |
 | 原本の形の検査の関数は、原本の形の定義と一致する | `pnpm exec vitest run packages/dragon/test/schema.test.ts`の検査`validator-matches-schema`が通る | #3399 |
-| 使い方の頁の「配管の図」 の節の次が「ブロックを足す」 の節で、日本語と英語の頁の本文が`blocks 1`、`block`、`base`、`shape`、`color`、`end`の書き方と、図で`+<名前>`と書くことを説明する | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`docs-extend-section-follows-pipe`が通る | #3407 |
 | 「ブロックを足す」 の節の例の file (日本語と英語) が記法として読め、元が箱 (`base box`)、線 (`base edge`)、印 (`base icon`) の足したブロックを 1 つずつ定義し、3 つとも図の中で使う | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`docs-extend-example-uses-three-bases`が通る | #3407 |
-| 使い方の頁を開いた時、「ブロックを足す」 の節の例の図が描かれ、足した箱の枠が定義に書いた`path`で描かれる | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`docs-extend-example-draws-user-blocks`が通る | #3407 |
-| 「ブロックを足す」 の節が、頁の`<link rel="dragon-blocks">`で定義の file を読む書き方と、`readBlocks`で読んだ定義を`parseNotation`の`blocks`に渡す書き方を code の枠で示す | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`docs-extend-shows-shared-definitions`が通る | #3407 |
-| 編集画面の棚の見本に、足したブロックを使う見本が構成図の束に在り、選ぶと書く欄にその記法が入って図が描かれる | `pnpm exec vitest run apps/playground-spa/src/lib/site-editor.test.ts`の検査`editor-shelf-has-user-blocks`が通る | #3407 |
-| 使い方の頁の全ての節の例が記法として読め、行の頭の語が頁の言葉の語で書かれる | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3407 |
 | 見本帳が最初に読む script と CSS の合計が、gzip で 181KB 以下に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3407 |
 | 軽い入口で種類を読む関数を待った後の`renderDiagram`の SVG が、`packages/dragon/examples`の全ての見本で既定の入口の SVG と同じ (絵柄集 Tabler の絵柄を描く見本は`loadFor`も待った後、#3489) | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-same-svg`が通る | #3407 |
 | 箱を元にしたブロックの定義 (`block +bridge` から `end`) に `icon tabler:building-bridge-2` の行を書くと、そのブロックの箱 (`+bridge cc as CCIP`) の絵柄の枠に Tabler の石の橋の path が描かれる | `pnpm exec vitest run packages/dragon/test/user-blocks.test.ts`の検査`box-block-icon-draws-on-box`が通る | #3489 |

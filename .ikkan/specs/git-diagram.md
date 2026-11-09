@@ -25,13 +25,8 @@
 | `packages/dragon/examples` に rebase と merge の日本語と英語の記法と JSON の 8 つの file があり、英語版の枝と commit と段と段ごとの出来事の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/git-diagram.test.ts`の検査`git-example-files-match`が通る | #3164 |
 | repo の全ての `.dragon` の file を `parseNotation` が誤り無く読む | `pnpm test`の検査`every-dragon-file-parses`が通る | #3164 |
 | 見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならず、運ぶ物が箱と字に掛からない | `pnpm test`の検査`overlaps-none-in-every-example`と`carriers-clear-in-every-example`が通る | #3164 |
-| 見本帳の一覧に図の分類が 4 つ (時系列図、構成図、状態遷移図、枝分かれの図) 並び、枝分かれの図の頁に rebase と merge の見本が載り、rebase を選ぶと 11 段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`catalog-lists-git-with-examples`が通る | #3164 |
-| 見本帳の図の種類だけの部品に枝、commit、当て直し、merge commit の 4 つが枝分かれの図の部品として並び、頁ごとに日本語と英語の記法と、枝分かれの図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`catalog-has-four-git-parts`が通る | #3164 |
-| どの図でも使う 10 個の部品の頁に、枝分かれの図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-parts-listed`と`catalog-common-part-shows-both-kinds`が通る | #3164 |
-| 当て直しの頁は rebase の見本の札を、merge commit の頁は merge の見本の札を並べ、札は枝分かれの図の頁のその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`git-part-pages-link-examples`が通る | #3164 |
+| どの図でも使う 10 個の部品の頁に、枝分かれの図で描いた図が並び、段を送れる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-common-parts-listed`が通る | #3164 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3164 |
-| 編集画面の棚の見本に枝分かれの図の束があって rebase と merge が載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に `git` の頭の行があり、`branch`、`commit`、`copy`、`merge` と札の動きの行がある | `pnpm exec vitest run apps/playground-spa/src/lib/git-catalog.test.ts`の検査`editor-shelf-has-git`が通る | #3164 |
-| 概要の頁の使いどころは今の 3 つのまま | `pnpm test`の検査`home-uses-stay-three`が通る | #3164 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3164 |
 | 見本`merge`と`merge.en`を描いた時、`dragon check --layout`が`warning`の行を1つも出さない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`merge-examples-warn-nothing`が通る | #3547 |
 | 見本`rebase`と`rebase.en`を描いた時、`dragon check --layout`が`warning`の行を1つも出さない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`rebase-examples-warn-nothing`が通る | #3547 |

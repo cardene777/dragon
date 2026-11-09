@@ -32,8 +32,8 @@
       ]
     },
     {
-      "pattern": "dragonSites",
-      "why": "見本帳の頁を開く検査は、準備の段が build した頁を使う。頁の build は頁の入口と、頁の html と、build の設定を読む",
+      "pattern": "builtDir",
+      "why": "build した頁の中身を読む検査は、準備の段が build した頁を使う。頁の build は頁の入口と、頁の html と、build の設定を読む",
       "to": ["apps/playground-spa/src/main.tsx", "apps/playground-spa/index.html", "apps/playground-spa/vite.config.ts"]
     }
   ],
@@ -58,11 +58,6 @@
       "files": ["test-support/fixtures/limits/**"],
       "tests": ["packages/dragon/test/test-limits.test.ts"],
       "why": "時間の上限の検査が起こす、上限を超える見本の検査とその設定"
-    },
-    {
-      "files": ["test-support/fixtures/chromium/**"],
-      "tests": ["apps/playground-spa/src/lib/chromium-preload.test.ts"],
-      "why": "頁を開く検査の Chromium の準備の段の検査が起こす、Chromium を起こす見本の検査とその設定"
     },
     {
       "files": ["eslint.config.mjs", ".prettierrc"],

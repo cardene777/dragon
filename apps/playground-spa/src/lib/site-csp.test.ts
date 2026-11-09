@@ -8,8 +8,7 @@ import { CSPの決まり, createCspMetaPlugin } from "../../vite-csp";
 /**
  * 公開 site が読み込んでよい場所を絞る (#2956)。
  *
- * 決まりの中身と、それが build の時だけ `index.html` に入ることを見る。 画面が実際に
- * 違反を出さないことは `tests/csp-no-violation.spec.ts` がブラウザで確かめる。
+ * 決まりの中身と、それが build の時だけ `index.html` に入ることを見る。
  */
 const root = resolve(__dirname, "../../../..");
 
