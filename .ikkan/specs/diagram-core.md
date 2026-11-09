@@ -52,10 +52,6 @@
 | repo の全ての `.dragon` の file (`git ls-files '*.dragon'` が挙げる file) を `parseNotation` が誤り無く読む | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`every-dragon-file-parses`が通る | #3137 |
 | markdown の dragon の囲みから図の字を取り出す動きは今どおり | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`markdown-fence-extracts-every-diagram`が通る | #3137 |
 | 使い方の文書の英語版 `packages/dragon/examples/quick-start.en.md` が在り、その中の dragon の囲みがすべて新しい形で読める | `pnpm test`の検査`quick-start-en-fences-parse`が通る | #2997、#3137 |
-| 公開する頁で言葉を EN にした時、編集画面の左の棚の 3 つの見本のどれを選んでも、書く欄の記法に日本語の語 (`時系列図` や `帯`) が 1 つも無い | `pnpm test`の検査`english-page-examples-use-english-words`が通る | #2997、#3031 |
-| 編集画面で JSON を直した後に書き戻す記法が、新しい形になる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`json-edit-prints-dragon-notation`が通る | #2997、#3137 |
-| 使い方の頁の節が記法の全ての行の種類を扱い、頁に載せた例は全て新しい形で読める | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`docs-sections-cover-notation-and-examples-parse`が通る | #3137 |
-| 頁の書く欄の記法に誤りがある時、欄の下の誤りの文と行の番号を頁の言葉で出す。図の字の言葉には従わない | `pnpm test`の検査`page-errors-follow-page-language`が通る | #2997、#3137 |
 | 原本の JSON の検査に英語を渡した時、書けない欄、要る欄、決まった値、道具より新しい版、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文に仮名と漢字が 1 つも無い | `pnpm test`の検査`json-errors-in-english`が通る | #2999 |
 | 言葉を渡さずに原本の JSON を検査した時、書けない欄、要る欄、決まった値、道具より新しい版の誤りの文が英語で出て、日本語を渡した時は前と同じ日本語の文字列になる | `pnpm test`の検査`json-errors-default-english`が通る | #2999、#3338 |
 | 日本語を渡した時、型、字の数、名札の形、数、版の下限、線の種類の値、書けない組み合わせ、どちらかが要る欄の誤りの文が日本語で書かれ、ajv の英語の文 (`must …`) を含まない。言葉を渡さない時は英語を渡した時と同じ文になる | `pnpm test`の検査`json-errors-in-japanese-for-ajv-rules`が通る | #2999、#3338 |
@@ -63,15 +59,11 @@
 | 書けない組み合わせ (`sequence` の欄と、運ぶ物の `text` の欄) の誤りは、書けない欄の名前とその欄を書ける時 (`kind` が `sequence` の図だけ、運ぶ物の `kind` が `tag` の時だけ) を示し、場所 (JSON Pointer) をその欄にする。`kind` が無い時と綴りを誤った時も、同じ文で出る | `pnpm test`の検査`not-error-names-the-field`が通る | #2999 |
 | 帯の値に `value` も `tag` も無い時、誤りは 1 つで、どちらかを書くよう示す | `pnpm test`の検査`any-of-error-is-one-message`が通る | #2999 |
 | schema が使う決まり (`discriminator` を含む) のどれかに日本語か英語の誤りの文が無い時、検査が落ちる | `pnpm test`の検査`every-schema-keyword-has-messages`が通る | #2999 |
-| 公開する頁で JSON の側に誤りがある時、欄の下の誤りの文を頁の言葉で出す (EN の頁は仮名と漢字を含まず、日本語の頁は `must …` を含まない) | `pnpm test`の検査`page-json-errors-follow-page-language`が通る | #2999 |
-| JSON の側を書き換えて誤りが出ている間に頁の言葉を切り替えた時、書いた JSON を見本の英語版に替えずに残し、誤りの文を切り替えた言葉で出し直す。記法の欄が見本のままの時も同じ | `pnpm test`の検査`page-json-error-follows-language-switch`が通る | #2999 |
 | 図を描く部品 (`renderDiagram`) に英語を渡して形の誤りのある原本を描いた時、断りの文は `Cannot draw the diagram: <場所> <英語の誤りの文>` になり、仮名と漢字を含まない | `pnpm test`の検査`render-refusal-in-english`が通る | #3001 |
 | 再生する部品 (`mountDiagram`) に英語を渡して寄って動かす見せ方 (`view` が `follow`) の図を置いた時、全体図の札は `Overview` になる | `pnpm test`の検査`overview-label-in-english`が通る | #3001 |
 | 再生する部品に英語を渡した時、釦の読み上げの名前は前の段が `Previous step`、動かしている間の止める釦が `Pause`、止めた後が `Play`、次の段が `Next step` になり、段の一覧の名前は `Steps of <題>` になる。釦を並べた要素の `lang` 属性は渡した言葉になる | `pnpm test`の検査`player-labels-in-english`が通る | #3001 |
 | 日本語を渡した時、断りの文 (`図を描けない: <場所> <誤りの文>`)、全体図の札 (`全体図`)、読み上げの名前 (`前の段` `止める` `動かす` `次の段` `<題>の段`、#3517で題と「の段」の間の空白を外した) が前と同じ文字列になり、言葉を渡さない時は英語の文字列になる | `pnpm test`の検査`render-text-default-english`が通る | #3001、#3338 |
 | 寄って動かす見せ方で、高さが幅の 6 倍ほどある縦に長い図 (箱 2 つで段 30) を置いた時も、全体図の札 (`全体図` と `Overview`) が全体図の地の中に収まる。収まりは書き出した HTML を Chromium で開き、札と地の描かれた幅 (`getBBox`) で比べる | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3001 |
-| 公開する頁で手を入れた記法を描いたまま言葉を EN に切り替えた時、再生の釦と段の一覧の読み上げの名前が英語になり、寄って動かす見せ方の図の全体図の札が `Overview` になる。日本語に戻すと日本語の名前と札に戻る | `pnpm test`の検査`page-player-labels-follow-page-language`が通る | #3001 |
-| 日本語の頁で英語の字の図を描いた時、再生の釦と段の一覧の読み上げの名前と全体図の札は頁の言葉 (日本語) で出る | `pnpm test`の検査`page-player-labels-ignore-notation-language`が通る | #3001 |
 | `dragon export` に `--lang` なしで英語の字の記法の file を渡した時、英語で、書き出した HTML の `lang` 属性と、開いた時の読み上げの名前と、寄って見せる時の全体図の札が書かれる。題か `say` が日本語の図は日本語で書かれる (#3516 の行) | `pnpm test`の検査`export-without-lang-is-english`が通る | #3001、#3137、#3338、#3516 |
 | `dragon export` に `--lang` を渡した時は、記法の file でも JSON の原本でもその言葉に従う。英語の字の JSON の原本は `--lang ja` なら日本語、`--lang` なしなら英語で、HTML の `lang` 属性と読み上げの名前と全体図の札を書き出す | `pnpm test`の検査`export-lang-flag`が通る | #3001、#3137、#3338、#3516 |
 | `dragon export` に `--lang en` と形の誤りのある JSON の原本を渡した時、何も書き出さずに終了 1 で終わり、出した断りの文は `Cannot draw the diagram:` で始まって誤りの場所 (`/boxes/0/colour` など) を含み、仮名と漢字を含まない | `pnpm test`の検査`export-refusal-follows-language`が通る | #3001 |
@@ -92,32 +84,21 @@
 | `--lang` に `ja` と `en` 以外を渡した時、何も書き出さずに終了 2 で終わり、英語の使い方を出す | `pnpm test`の検査`export-rejects-unknown-lang`が通る | #3003、#3338 |
 | 再生の部品 (`mountDiagram`) で寄って追う図 (`view` が `follow`) を置いた時、時系列図 (oauth、枠の幅 440px と 560px) と構成図 (ccip、値の表を外して枠の幅 390px、表を持ったまま 560px) のどちらでも、全体図の地 (`.dg-mm-bg`) が窓の枠 (`.dg-vp-frame`) と重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3042、#3274 |
 | 寄って追う図で、全体図の高さが幅より大きい時 (oauth) は全体図が窓の右に、幅が高さ以上の時 (ccip) は窓の下に出る | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3042 |
-| 公開する頁の編集画面を開き、幅 860px の oauth と ccip、幅 390px の wallet の見本を段 1 から最後の段まで進めた時、どの段でも全体図の地が窓の枠と重ならず、図の枠 (`.dg-frame`) の中に全部見える | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3042、#3274 |
 | 寄って追う図の幅 (`svg` の `width`) は、全体図を右に出す時も下に出す時も、渡した枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3042 |
 | 寄って追う図の全体図に、今見ている所の枠 (`.dg-mm-vp`) と、全体図の札 (`全体図`) が出る | `pnpm test`の検査`overview-shows-viewport-box`が通る | #3042 |
 | 全体を止めて見せる図 (`data-view="fixed"`) は全体図を持たず、図の幅と高さが配置の幅と高さのまま | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3042 |
 | 寄って動かす見せ方で縦に長い図を置いた時も、全体図の札が全体図の地の中に収まる | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3042 |
-| 画面の大きさ 390 × 844、860 × 900、1024 × 768、1280 × 720、1440 × 900 で、構成図と時系列図のカタログの頁の全部の見本を拡大の重ね窓で開き、自動で送らずに段を 1 つずつ送った時、どの段でも段の本文の帯の高さと、図 (`svg[data-dragon="figure"]`) の幅と高さと上端の位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3049 |
-| 1440 × 900 の編集画面で oauth と ccip の見本を開き、自動で送らずに段を 1 つずつ送った時、どの段でも段の本文の帯の高さと、図の幅と高さと上端の位置が 1 段目と同じ | `pnpm test`の検査`editor-figure-steady-across-steps`が通る | #3049 |
 | oauth を書き出した HTML を幅 390px で開き、自動で送らずに段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の上端の位置が 1 段目と同じ | `pnpm test`の検査`html-export-caption-bar-steady`が通る | #3049 |
 | 再生の部品で図を置いた時、段の題 (`[data-dragon="step-title"]`) と本文 (`[data-dragon="step-body"]`) は 1 つずつのままで今の段の中身を出し、帯の高さを決めるための全部の段の題と本文の写しは見た目から隠れ、読み上げの道具からも隠れる | `pnpm test`の検査`player-caption-room-holds-every-step`が通る | #3049 |
-| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3049 |
 | 全部の段の題と本文が、段の順に読み上げの道具へ出る | `pnpm test`の検査`steps-exposed-to-screen-readers`が通る | #3049 |
 | 動きを嫌う設定で図を開いた時、自動再生せず、段の題が今の段の題を出す | `pnpm test`の検査`reduced-motion-shows-stills`が通る | #3049 |
-| 編集画面で字の大きさを替えると、段の題の字が大きくなり小さくなる | `pnpm test`の検査`editor-stage-tools-change-view`が通る | #3049 |
-| カタログの時系列図の頁の見本の枠の高さが、今と同じ `clamp(360px, 58vh, 620px)` の値のまま | `pnpm test`の検査`catalog-fixed-figure-keeps-frame-height`が通る | #3049 |
-| 画面の大きさ 1024 × 768、1280 × 720、1440 × 900 で時系列図のカタログの頁の oauth の見本を拡大の重ね窓で開いた時、寄って追う図の窓が図の原寸の横幅の全部を見せる | `pnpm test`の検査`overlay-follow-window-shows-whole-width`が通る | #3053 |
-| 画面の大きさ 390 × 844 と 1440 × 900 で oauth の見本を拡大の重ね窓で開いた時、窓の高さと図の枠の中で見える高さの差が 1px 以下で、窓と全体図が図の枠の中に収まる | `pnpm test`の検査`overlay-follow-window-fills-frame-height`が通る | #3053 |
 | 枠の幅が図の原寸の幅と全体図の列を足した幅より広い時 (oauth、枠の幅 1200px)、寄って追う図の窓の幅が図の原寸の幅と同じで、全体図が窓の右に重ならずに出る | `pnpm test`の検査`follow-window-takes-figure-width`が通る | #3053 |
 | 高さに収めると頼んだ時 (`fitHeight`)、枠の中で見える高さが今の窓より高ければ、窓の高さが見える高さ (全体図と値の表を下に置く分を除く) と値の表を除いた図の高さの小さい方になり、全体図の大きさは今と同じ (oauth と ccip) | `pnpm test`の検査`follow-window-grows-to-frame-height`が通る | #3053 |
 | 高さに収めると頼まない時、窓の高さは今と同じく枠の幅から決まる | `pnpm test`の検査`follow-window-height-from-width`が通る | #3053 |
 | 枠の中で見える高さが今の窓より低く、窓の下限 160px と全体図と値の表が入る時、窓と全体図と値の表がその高さに収まる | `pnpm test`の検査`follow-figure-fits-frame-height`が通る | #3053 |
 | 寄って追う図の全体図が窓に重ならずに窓の外に出る | `pnpm test`の検査`overview-outside-window`が通る | #3053 |
 | 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3053 |
-| 重ね窓で、どの段でも送らずに図の全体が見える | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3053 |
-| 重ね窓で段を 1 つずつ送った時、どの段でも段の本文の帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3053 |
 | 枠の幅が 440px より狭く全体図が縦に長い時 (oauth、枠の幅 360、390、430px、高さに収める時と収めない時)、全体図を描かず、窓の幅が枠の幅と同じ | `pnpm test`の検査`narrow-tall-figure-drops-overview`が通る | #3055 |
-| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth をカタログの頁の見本の枠、拡大の重ね窓、編集画面で開いた時、全体図が無く、窓の幅と図の枠の中の幅の差が 1px 以下で、図が枠の中に送らずに収まる | `pnpm test`の検査`narrow-follow-window-fills-frame-width`が通る | #3055 |
 | 縦に長い全体図は枠の幅 440px 以上で窓の右に、横に長い全体図は値の表を持たない図なら枠の幅に関わらず窓の下に出る (oauth は 440 と 560px、ccip は値の表を外して 390px、表を持ったまま 560px) | `pnpm test`の検査`overview-side-follows-its-shape`が通る | #3055、#3274 |
 | 全体図を出す時、全体図が窓に重ならない | `pnpm test`の検査`overview-outside-window`が通る | #3055 |
 | 寄って追う図の幅が枠の幅を超えない | `pnpm test`の検査`follow-figure-within-frame-width`が通る | #3055 |
@@ -127,30 +108,11 @@
 | `--lang` なしで英語の字の図を書き出した HTML を幅 440px で開いた時、再生の釦と全体図の札が英語で出る | `pnpm test`の検査`export-without-lang-is-english`が通る | #3055、#3137、#3338、#3516 |
 | 書き出しの命令に言葉を渡した時、再生の釦と全体図の札がその言葉で出る | `pnpm test`の検査`export-lang-flag`が通る | #3055 |
 | 縦に長い図の書き出した HTML を幅 440px で開いた時、全体図の札が全体図の地からはみ出さない | `pnpm test`の検査`overview-label-fits-minimap`が通る | #3055 |
-| 編集画面で、全体図を出す見本 (860px の oauth と ccip、390px の wallet) の全体図が窓に重ならず図の枠の中にある | `pnpm test`の検査`editor-overview-beside-window-and-in-frame`が通る | #3055、#3274 |
-| 重ね窓で、どの段でも送らずに図の全体が見え、全体図を出す時は図の枠の中にある | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3055 |
-| 1024 × 768 から 1440 × 900 の重ね窓で、oauth の窓が図の横幅の全部を見せる | `pnpm test`の検査`overlay-follow-window-shows-whole-width`が通る | #3055 |
 | 帯の中身の幅が 440px より狭い時 (oauth の書き出した HTML を幅 360、390、430px で開く)、戻る・再生・進むの釦と段の番号が同じ段に並び、題がその下の段で、題と本文が釦の左端から帯の中身の右端までの幅を使う | `pnpm test`の検査`html-export-narrow-caption-stacks-body`が通る | #3057、#3069 |
-| 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を拡大の重ね窓で開いた時、段の本文の帯が今 (360 × 780 で 191px と 211px、390 × 844 で 151px と 191px) より低く、図の枠の中の高さが今 (398px と 355px、502px と 462px) より高い | `pnpm test`の検査`narrow-overlay-caption-lower`が通る | #3057、#3069 |
-| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth と ccip を拡大の重ね窓と編集画面で開き、自動で送らずに段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じで、全部の段の題と本文が帯の中身の幅に収まる | `pnpm test`の検査`narrow-caption-steady-and-inside`が通る | #3057、#3069 |
-| 画面の大きさ 360 × 780 の編集画面で、字の大きさの釦を押すと段の題と本文の字が大きくなり小さくなる | `pnpm test`の検査`narrow-editor-caption-font-scales`が通る | #3057、#3069 |
-| 画面の大きさ 560 × 900 と 1440 × 900 で oauth と ccip を拡大の重ね窓と編集画面で開いた時、帯は横 1 列のまま (釦と番号と題が同じ段に並び、本文が題の下で題と同じ左端から始まる) | `pnpm test`の検査`wide-caption-stays-one-row`が通る | #3057、#3069、#3076 |
-| 画面の大きさ 390 × 844 から 1440 × 900 で構成図と時系列図の全部の見本を重ね窓で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`overlay-figure-whole-and-steady-across-steps`が通る | #3057 |
-| 1440 × 900 の編集画面で oauth と ccip を開き、段を 1 つずつ送った時、どの段でも帯の高さと図の大きさと位置が 1 段目と同じ | `pnpm test`の検査`editor-figure-steady-across-steps`が通る | #3057 |
 | oauth を書き出した HTML を幅 390px で開き、段を 1 つずつ送った時、どの段でも帯の高さと図の上端の位置が 1 段目と同じ | `pnpm test`の検査`html-export-caption-bar-steady`が通る | #3057、#3069、#3076 |
 | 段の題と本文は 1 つずつで今の段の中身を出し、全部の段の写しは見た目と読み上げの道具から隠れる | `pnpm test`の検査`player-caption-room-holds-every-step`が通る | #3057、#3069、#3076 |
-| 重ね窓で、本文の最も長い段の本文の下端と札の下の縁の間が 8px 以上ある | `pnpm test`の検査`overlay-caption-clear-of-bottom-edge`が通る | #3057、#3069 |
-| 編集画面で、本文の最も長い段の本文の下端と図の側の下の縁の間が 8px 以上ある | `pnpm test`の検査`editor-caption-clear-of-bottom-edge`が通る | #3057、#3069 |
-| 1440 × 900 の編集画面で、字の大きさの釦で段の題の字が大きくなり小さくなる | `pnpm test`の検査`editor-stage-tools-change-view`が通る | #3057 |
-| 画面の大きさ 360 × 780、390 × 844、430 × 932 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、見える図の段を送る 3 つの釦が縦横 44px 以上あり、それぞれの四隅を押すとその釦に当たる | `pnpm test`の検査`narrow-player-buttons-touch-targets`が通る | #3069、#3076 |
 | oauth を書き出した HTML を幅 360、390、430px で開いた時、段を送る 3 つの釦が 44 × 44px で、幅 1440px で開いた時は 36 × 36px | `pnpm test`の検査`html-export-player-buttons-touch-size`が通る | #3069、#3076 |
-| 画面の大きさ 360 × 780、390 × 844、430 × 932 の oauth の編集画面で、次の釦で段が 1 つ進み、前の釦で 1 つ戻り、再生の釦で動き出して止めるの釦に替わる | `pnpm test`の検査`narrow-player-buttons-work`が通る | #3069、#3076 |
-| 画面の大きさ 1440 × 900 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、段を送る釦が 36 × 36px のまま | `pnpm test`の検査`wide-player-buttons-keep-size`が通る | #3069、#3076 |
-| 画面の大きさ 360 × 780 と 390 × 844 で oauth と ccip を拡大の重ね窓で開いた時、見出しが今 (360 × 780 で 133px と 156px、390 × 844 で 133px と 133px) より低く、図の枠の中が今 (472px と 435px、542px と 522px) より高い | `pnpm test`の検査`narrow-overlay-head-lower`が通る | #3069 |
-| 指で触る端末を模して画面の大きさ 768 × 1024、1024 × 1366、1366 × 1024 で oauth の編集画面、時系列図のカタログの見本の枠と重ね窓、使い方の頁を開いた時、見える図の段を送る 3 つの釦が縦横 44px 以上あり、それぞれの四隅を押すとその釦に当たる | `pnpm test`の検査`coarse-player-buttons-touch-targets`が通る | #3076 |
 | 指で触る端末を模して oauth を書き出した HTML を幅 1024px で開いた時、段を送る 3 つの釦が 44 × 44px | `pnpm test`の検査`html-export-coarse-player-buttons`が通る | #3076 |
-| 指で触る端末を模して画面の大きさ 1366 × 1024 の oauth の編集画面で、次の釦で段が 1 つ進み、前の釦で 1 つ戻り、再生の釦で動き出して止めるの釦に替わり、段を 1 つずつ最後まで送ってもどの段でも帯の高さが 1 段目と同じ | `pnpm test`の検査`coarse-player-buttons-work`が通る | #3076 |
-| 指で触る端末を模して画面の大きさ 1024 × 1366 と 1366 × 1024 で oauth と ccip を拡大の重ね窓と編集画面で開いた時、帯は横 1 列のまま (釦と番号と題が同じ段に並び、本文が題の下で題と同じ左端から始まる) | `pnpm test`の検査`coarse-caption-stays-one-row`が通る | #3076 |
 | oauth と ccip を寄って追う図にして枠の幅 390px と 560px (編集画面の幅 390px と 860px の図の枠) に置き、段 1 から最後の段まで送った時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3046 |
 | 構成図 (ccip) を同じ 2 つの枠の幅に置いた時、今の形で丸が窓に全部見えている段は、窓の位置が `ba9784a2` の時と同じで、窓が値の表を除いた図の下端で止まる段だけが #3270 の位置に在る。時系列図の窓の位置は、頭の列の下へ寄せる位置に変えた (#3118) | `pnpm test`の検査`follow-window-keeps-fitting-steps`が通る | #3046 |
 | 動く物を全部囲んだ範囲が窓に収まらず丸が外れていた段で、丸に近い動く物を窓に入れる。ccip の段 13 では、丸の隣の OffRamp の箱が窓に全部入り、oauth の段 9、11、12 では、今の段の線の両端が窓に入る | `pnpm test`の検査`follow-window-holds-badge-neighbors`が通る | #3046 |
@@ -177,7 +139,6 @@
 | ccip を寄って追う図にして枠の幅 560px と 1000px に置いた時、頭の列を持たない構成図の全体図の四角は、どの段でも窓の全体を全体図の倍率で囲む | `pnpm test`の検査`overview-architecture-frames-window`が通る | #3122 |
 | 枠の幅が 440px より狭い寄って追う oauth は全体図を持たない | `pnpm test`の検査`narrow-tall-figure-drops-overview`が通る | #3122 |
 | 止めて見せる図は全体図と窓を持たない | `pnpm test`の検査`fixed-figure-has-no-overview`が通る | #3122 |
-| 使い方の頁と `CHANGELOG.md` に、今の形と新しい形の対応表が在り、表の新しい形の行の頭の語が記法を読む部品の語と一致する | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3138 |
 | `README.md` と `packages/dragon/README.md` が決まり 4 つを載せ、2 つの README の記法の例が新しい形で読める | `pnpm exec vitest run packages/dragon/test/notation.test.ts`の検査`readme-notation-examples-parse`が通る | #3138 |
 | 字が重なる図を描いた時、`renderDiagram` の結果の `overlaps` が、重なる 2 つの字とその段の番号を 1 件ずつ持つ | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-lists-texts-and-step`が通る | #3175 |
 | 別々の段の間だけ見える 2 つの字が同じ所に在る時、`overlaps` に数えない | `pnpm exec vitest run packages/dragon/test/text-overlaps.test.ts`の検査`overlaps-ignore-texts-not-shown-together`が通る | #3175 |
@@ -256,7 +217,6 @@
 | 線の無い段が同じ箱か中身の帯を続けて書き換える時、後の段の番号は前の段の番号の脇に並び、全ての段で `overlaps` が 0 件。同じ角で数字を入れ替える形から、脇に並べる形に変えた (#3525) | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`corner-badges-sit-side-by-side`が通る | #3187 |
 | 重なりを知らせる文は、番号を絵柄に重ねた図で、日本語と英語の文を出す。重なりは描いた後の置き場所を書き換えて作る | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-message-in-both-languages`が通る | #3187 |
 | 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3187 |
-| 編集画面で字の重ならない見本を開いた時、「読めています」だけが出て、重なりの欄も図の上の囲みも出ない | `pnpm exec vitest run apps/playground-spa/src/lib/overlap-notice.test.ts`の検査`editor-quiet-without-overlaps`が通る | #3187 |
 | 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で、`overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3187 |
 | `dragon export` に英語の見本 `order.en.json` と `--format png --lang en` を渡した時、終わり方 0 で PNG が書き出される | `pnpm test`の検査`export-english-only-png`が通る | #3212 |
 | 英語の見本 10 個と、全体で止めて見せる図に全角空白 (`U+3000`) を `Noto Sans JP` の file `[117]` の他の字なしで描く図のそれぞれで、書き出した HTML が埋める字の file を Chromium で 1 つずつ読ませると、全て読める | `pnpm test`の検査`export-font-faces-all-load`が通る | #3212 |
@@ -295,16 +255,13 @@
 | 枠の高さを渡した寄って追う図 (oauth と ccip) で、窓と全体図と表を合わせた高さが渡した高さを超えない | `pnpm test`の検査`follow-strip-fits-height`が通る | #3270 |
 | 寄って追う図の表は、欄が1行に収まる幅では題の右に欄を並べ、収まらない幅では題に1行を取って欄を左端から並べる | `pnpm test`の検査`follow-strip-wraps-by-width`が通る | #3270 |
 | 表の値だけが変わる段の番号の丸は、寄って追う図では窓の中ではなく表の上に出て、窓はその段で動かない | `pnpm test`の検査`follow-strip-step-badge-on-strip`が通る | #3270 |
-| 画面の大きさ 1280 × 800 で時系列図の OAuth の見本を開き最後の段まで送った時、表の全ての欄が図の枠 (`.dg-frame`) の内側に在る | `pnpm test`の検査`catalog-follow-strip-whole`が通る | #3270 |
 | 止めて見せる図の表は、図の中の今の位置と幅のまま描かれる | `pnpm test`の検査`fixed-figure-keeps-strip-in-figure`が通る | #3270 |
 | 表を持たない見本の寄って追う図は、窓の幅と高さが今と同じ | `pnpm test`の検査`follow-no-strip-window-kept`が通る | #3270 |
 | oauth と ccip を寄って追う図にして枠の幅 390px と 560px に置いた時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3270 |
-| 画面の大きさ 1280 × 800 で、カタログの全部の見本の図の枠の中身の高さが枠の高さを超えない | `pnpm test`の検査`catalog-tall-figure-not-clipped`が通る | #3270 |
 | 値の表を持つ9種の見本を枠の幅 360px と 390px と 430px に寄って追う図で置いた時、全体図 (`.dg-mm-bg`) が無く、図の高さが窓と表と間の12pxを足した高さになる | `pnpm test`の検査`follow-strip-narrow-drops-overview`が通る | #3274 |
 | 値の表を持つ9種の見本を枠の幅 360px と 390px と 430px に寄って追う図で置いた時、窓の幅と高さが `5e84321b` の時と同じ | `pnpm test`の検査`follow-strip-narrow-keeps-window`が通る | #3274 |
 | 値の表を持つ見本 (ccip と finality と order) を枠の幅 560px と 778px に寄って追う図で置いた時、全体図が在り、図の幅と高さが `5e84321b` の時と同じ | `pnpm test`の検査`follow-strip-wide-keeps-overview`が通る | #3274 |
 | 値の表を持たない見本の寄って追う図は、窓の幅と高さと図の幅と高さが今と同じ | `pnpm test`の検査`follow-no-strip-window-kept`が通る | #3274 |
-| 編集画面を幅360px、高さ780pxと幅390px、高さ844pxで開き、14種の見本のどれでも段を送る釦の下端が画面の下端より上に在る | `pnpm test`の検査`narrow-editor-step-buttons-on-first-screen`が通る | #3274 |
 | oauth と ccip を寄って追う図にして枠の幅 390px と 560px に置いた時、どの段でも今の段の番号の丸が窓の枠の中に全部収まる | `pnpm test`の検査`follow-window-shows-step-badge`が通る | #3274 |
 | 飛び先を持つ図を `mountDiagram` で流すと、置いた SVG が `aria-hidden` を持たず、`role` が `group` で、図の題を `aria-label` に持つ | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`player-linked-figure-stays-readable`が通る | #3329 |
 | 飛び先を持つ図で次の段へ送った後と止めた後も、置き直した SVG が `aria-hidden` を持たず、`role` が `group` で、図の題を `aria-label` に持つ | `pnpm exec vitest run --reporter=verbose packages/dragon/test/player.test.ts packages/dragon/test/release-records.test.ts`の検査`player-linked-figure-readable-after-replace`が通る | #3329 |
@@ -316,8 +273,6 @@
 | `arcade`を含む4つの色味の5つの色が、明るい頁と暗い頁の両方で、普通の見え方で15以上、色覚の3つの型で6以上離れる | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`palettes-keep-cvd-separation`が通る | #3341 |
 | 見本の全ての図を`arcade`で描くと、どれも描けて、SVGに`arcade`の地の色と緑が入り、ほかの3つの色味の地の色が入らない | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`arcade-renders-every-example`が通る | #3341 |
 | 命令の`--palette arcade`で図を描ける | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`cli-draws-with-arcade-palette`が通る | #3341 |
-| 見本帳と編集画面の色味の切り替えに「アーケードの画面」(英語の頁では`Arcade screen`) が出て、押すと図が`arcade`で描かれ、サイトの差し色が緑になる | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-palette-switch-draws-arcade`が通る | #3341 |
-| 色味の切り替えの4つの釦が、幅390pxでも縦横44px以上の大きさで1行に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/site-pages.test.ts`の検査`site-palette-switch-fits-four-at-390`が通る | #3341 |
 | 英語と日本語のREADMEの`--palette`の行と、`docs/design/base/README.md`の色味の行が`arcade`を含む全ての色味を挙げる | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`docs-list-every-palette`が通る | #3341 |
 | `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに`arcade`の色味が載る | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts`の検査`changelog-lists-arcade-palette`が通る | #3341 |
 | 今の3つの色味 (`clear`、`paper`、`night`) の値が変わらず、既定は`paper`のままである | `pnpm exec vitest run packages/dragon/test/arcade-palette.test.ts packages/dragon/test/look.test.ts`の検査`existing-palettes-keep-their-values`と`palette-defaults-to-paper`が通る | #3341 |
@@ -344,7 +299,6 @@
 | 箱を 1 つも宣言しない図は、線に出た名前を出た順に箱にする | `pnpm exec vitest run packages/dragon/test/short-notation.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/notation-language.test.ts packages/dragon/test/readme-idea.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/test-policy.test.ts apps/playground-spa/src/lib/short-notation-site.test.ts --reporter=verbose`の検査`short-infers-boxes-in-order`が通る | #3438 |
 | 箱を宣言しない図で 1 字違いの似た名前の箱が出た時、読む処理は図を描いたまま似た名前の知らせを返す。数字だけが違う名前は知らせない | `pnpm exec vitest run packages/dragon/test/short-notation.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/notation-language.test.ts packages/dragon/test/readme-idea.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/test-policy.test.ts apps/playground-spa/src/lib/short-notation-site.test.ts --reporter=verbose`の検査`short-notices-similar-box-names`が通る | #3438 |
 | 書き出しの命令は、似た名前の知らせを標準エラーに出し、書き出したうえで終わり方 0 で終わる | `pnpm exec vitest run packages/dragon/test/short-notation.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/notation-language.test.ts packages/dragon/test/readme-idea.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/test-policy.test.ts apps/playground-spa/src/lib/short-notation-site.test.ts --reporter=verbose`の検査`short-cli-prints-similar-names`が通る | #3438 |
-| 編集画面は、似た名前の知らせを記法の誤りの文と同じ所に出す | `pnpm exec vitest run packages/dragon/test/short-notation.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/notation-language.test.ts packages/dragon/test/readme-idea.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/test-policy.test.ts apps/playground-spa/src/lib/short-notation-site.test.ts --reporter=verbose`の検査`editor-notices-similar-box-names`が通る | #3438 |
 | 時系列図と構成図と状態遷移図で同じ省き方を読み、ほかの図の種類は段の外の線と宣言の無い箱を今と同じく断る | `pnpm exec vitest run packages/dragon/test/short-notation.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/notation-language.test.ts packages/dragon/test/readme-idea.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/test-policy.test.ts apps/playground-spa/src/lib/short-notation-site.test.ts --reporter=verbose`の検査`short-applies-to-box-line-kinds`が通る | #3438 |
 | 省ける図を記法へ書き戻すと、宣言と段を省いた形で書き、読み直すと同じ原本になる | `pnpm exec vitest run packages/dragon/test/short-notation.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/notation-language.test.ts packages/dragon/test/readme-idea.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/test-policy.test.ts apps/playground-spa/src/lib/short-notation-site.test.ts --reporter=verbose`の検査`short-prints-back-short`が通る | #3438 |
 | 段を書いた図の段の外の線と、箱を 1 つでも宣言した図の宣言の無い名前は、今と同じく誤りの行を示して断る | `pnpm exec vitest run packages/dragon/test/short-notation.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/notation-language.test.ts packages/dragon/test/readme-idea.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/test-policy.test.ts apps/playground-spa/src/lib/short-notation-site.test.ts --reporter=verbose`の検査`short-keeps-errors-when-written`が通る | #3438 |

@@ -113,18 +113,17 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     const fromCli = list(["packages/dragon/src/cli.ts"]);
     expect(fromCli.code, fromCli.stderr).toBe(0);
     expect(fromCli.files, "build した命令を起こす検査 (cli-arguments.test.ts) を選んでいない").toContain("packages/dragon/test/cli-arguments.test.ts");
-    // build した頁を開く検査は、頁の入口の src をたどる
+    // build した頁の中身を読む検査は、頁の入口の src をたどる
     const fromPage = list(["apps/playground-spa/src/main.tsx"]);
     expect(fromPage.code, fromPage.stderr).toBe(0);
-    expect(fromPage.files, "build した頁を開く検査 (site-pages.test.ts) を選んでいない").toContain("apps/playground-spa/src/lib/site-pages.test.ts");
+    expect(fromPage.files, "build した頁の中身を読む検査 (playground.test.ts) を選んでいない").toContain("apps/playground-spa/src/lib/playground.test.ts");
   });
 
   it("related-maps-materials-by-table", () => {
     const fromChangelog = list(["CHANGELOG.md"]);
     expect(fromChangelog.code, fromChangelog.stderr).toBe(0);
     expect(fromChangelog.files, "変更履歴を読む検査を選んでいない").toContain("packages/dragon/test/release-records.test.ts");
-    // 見本帳の頁の検査 (site-pages.test.ts) は変更履歴の対応表を頁と突き合わせるので選ばれ、dist の鮮度の検査は読まないので選ばれない
-    expect(fromChangelog.files, "変更履歴を読む見本帳の検査 (site-pages.test.ts) を選んでいない").toContain("apps/playground-spa/src/lib/site-pages.test.ts");
+    // dist の鮮度の検査は変更履歴を読まないので選ばれない
     expect(fromChangelog.files, "変更履歴を読まない検査 (dist-freshness.test.ts) を選んだ").not.toContain("packages/dragon/test/dist-freshness.test.ts");
     const fromExample = list(["packages/dragon/examples/auction.dragon"]);
     expect(fromExample.code, fromExample.stderr).toBe(0);

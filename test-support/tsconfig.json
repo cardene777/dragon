@@ -9,5 +9,5 @@
   },
   "include": ["**/*.ts"],
   // repo の設定を読む見本の設定は、repo の根に置く設定と同じ所で型を見る (`tsconfig.config-files.json`)
-  "exclude": ["fixtures/limits/vitest.config.ts", "fixtures/chromium/vitest.config.ts"]
+  "exclude": ["fixtures/limits/vitest.config.ts"]
 }

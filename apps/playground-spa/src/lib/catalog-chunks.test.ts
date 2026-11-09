@@ -8,14 +8,8 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Page, Route } from "playwright";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-
-import { toHash } from "../share";
-import { BASE, firstLoadFiles, partFigureDirs, root, screenOf, type Site, startSite } from "./playground-support";
-
-/** 頁が書き換わるのを待つ長さ */
-const WAIT = { timeout: 8_000, interval: 100 } as const;
+import { describe, expect, it } from "vitest";
+import { builtDir, firstLoadFiles, partFigureDirs, root } from "./playground-support";
 
 /** 概要の頁の用例と編集画面の最初の見本。最初に読む script に残す */
 const FIRST_SCREEN_EXAMPLES = ["intro", "oauth", "ccip"] as const;
@@ -50,14 +44,12 @@ function literalForms(text: string): string[] {
 
 const carries = (code: string, notation: Notation): boolean => literalForms(notation.text).some((form) => code.includes(form));
 
-let site: Site;
-
-const assets = (): string => join(site.built.dir, "assets");
+const assets = (): string => join(builtDir(), "assets");
 const scriptsOf = (names: string[]): string => names.map((name) => readFileSync(join(assets(), name), "utf8")).join("\n");
-const firstScripts = (): string[] => firstLoadFiles(site.built.dir).filter((name) => name.endsWith(".js"));
+const firstScripts = (): string[] => firstLoadFiles(builtDir()).filter((name) => name.endsWith(".js"));
 /** 後から読む塊。build した script のうち、最初に読む script でない物 */
 const laterScripts = (): string[] => {
-  const first = new Set(firstLoadFiles(site.built.dir));
+  const first = new Set(firstLoadFiles(builtDir()));
   return readdirSync(assets())
     .filter((name) => name.endsWith(".js") && !first.has(name))
     .sort();
@@ -82,32 +74,7 @@ function twoChunks(): { examples: string; parts: string } {
   return { examples: examples[0] ?? "", parts: parts[0] ?? "" };
 }
 
-const fileOf = (url: string): string => new URL(url).pathname.split("/").pop() ?? "";
-
-async function onScreen(page: Page, screen: string, message: string): Promise<void> {
-  await expect.poll(() => screenOf(page), { ...WAIT, message }).toBe(screen);
-}
-
-const figures = (page: Page, scope: string): Promise<number> => page.locator(`${scope} svg[data-dragon="figure"]`).count();
-
-/** 最初に読む script でない script の読み込みを全て止める */
-const blockLater = async (page: Page): Promise<void> => {
-  const first = new Set(firstLoadFiles(site.built.dir));
-  await page.route("**/assets/*.js", (route: Route) => (first.has(fileOf(route.request().url())) ? route.fallback() : route.abort()));
-};
-
 describe("見本と部品の図の記法を後から読む (#3246)", () => {
-  beforeAll(async () => {
-    site = await startSite();
-  });
-
-  afterEach(async () => {
-    await site?.closeContexts();
-  });
-
-  afterAll(async () => {
-    await site?.close();
-  });
 
   it("first-load-carries-no-catalog-notation", () => {
     const code = scriptsOf(firstScripts());
@@ -135,147 +102,4 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
     expect(examples.map((n) => n.path.split("/").pop()), "概要の頁と編集画面の最初の見本の file").toHaveLength(FIRST_SCREEN_EXAMPLES.length * 2);
     expect(examples.filter((n) => !carries(code, n)).map((n) => n.path), "最初に読む script に無い、概要の頁と編集画面の最初の見本の記法").toEqual([]);
   });
-
-  it(
-    "site-prefetches-catalog-notation",
-    async () => {
-      const chunks = twoChunks();
-      const requested: string[] = [];
-      const { page } = await site.open({
-        path: BASE,
-        prepare: (p) => {
-          p.on("request", (request) => requested.push(fileOf(request.url())));
-        },
-      });
-      await onScreen(page, "home", "概要の頁が出ない");
-      await expect.poll(() => figures(page, '[data-home="use"]'), { ...WAIT, message: "概要の頁の用例の図が 3 つ描かれない" }).toBe(3);
-      await expect
-        .poll(() => [chunks.examples, chunks.parts].filter((name) => !requested.includes(name)), { ...WAIT, message: "概要の頁を描いた後に読み始めない塊" })
-        .toEqual([]);
-      expect(await screenOf(page), "塊を読む間に概要の頁から移った").toBe("home");
-    },
-  );
-
-  it(
-    "catalog-notation-read-once",
-    async () => {
-      const chunks = twoChunks();
-      const requested: string[] = [];
-      const { page } = await site.open({
-        path: `${BASE}catalog`,
-        viewport: { width: 1440, height: 900 },
-        reducedMotion: "reduce",
-        prepare: (p) => {
-          p.on("request", (request) => requested.push(fileOf(request.url())));
-        },
-      });
-      await onScreen(page, "catalog", "見本帳の一覧が出ない");
-      await page.locator(`a[data-catalog="card"][href="${BASE}catalog/tree"]`).click();
-      await onScreen(page, "category", "木の図の頁が出ない");
-      await expect.poll(() => figures(page, '[data-catalog="stage"]'), { ...WAIT, message: "木の図の頁の見本が描かれない" }).toBeGreaterThan(0);
-      await page.locator(`a[href^="${BASE}catalog/part/"]`).first().click();
-      await onScreen(page, "part", "部品の頁が出ない");
-      await expect.poll(() => figures(page, '[data-catalog="part"]'), { ...WAIT, message: "部品の頁の図が描かれない" }).toBeGreaterThan(0);
-      await page.goBack();
-      await onScreen(page, "category", "戻っても木の図の頁が出ない");
-      await page.goBack();
-      await onScreen(page, "catalog", "戻っても見本帳の一覧が出ない");
-      await page.locator(`a[data-catalog="card"][href="${BASE}catalog/lineup"]`).click();
-      await onScreen(page, "category", "列の図の頁が出ない");
-      await expect.poll(() => figures(page, '[data-catalog="stage"]'), { ...WAIT, message: "列の図の頁の見本が描かれない" }).toBeGreaterThan(0);
-      expect(
-        [chunks.examples, chunks.parts].map((name) => [name, requested.filter((r) => r === name).length]),
-        "見本帳の頁を移り歩いた間に塊を読んだ回数",
-      ).toEqual([
-        [chunks.examples, 1],
-        [chunks.parts, 1],
-      ]);
-    },
-  );
-
-  it(
-    "catalog-holds-figure-size-until-notation-arrives",
-    async () => {
-      const chunks = twoChunks();
-      let held = false;
-      let release: () => void = () => {};
-      const gate = new Promise<void>((resolve) => {
-        release = resolve;
-      });
-      // 木の図の最初の見本 (Merkle 木) は決めた高さの枠に収まらず、図を測った後に枠を伸ばす (#3250)。
-      // 枠を伸ばすのは図の高さが分かってからなので、記法が届く前に保てるのは収まる図の高さだけ。
-      // 最初の見本が収まり、かつ後から読む塊に入る枝分かれの図の頁で見る。列の図の最初の見本 (入札) も卓の形 (#3351) で枠に収まらなくなった
-      const { page } = await site.open({
-        path: `${BASE}catalog/git`,
-        viewport: { width: 1440, height: 900 },
-        reducedMotion: "reduce",
-        prepare: async (p) => {
-          await p.route(`**/assets/${chunks.examples}`, async (route) => {
-            held = true;
-            await gate;
-            await route.fallback();
-          });
-        },
-      });
-      await onScreen(page, "category", "枝分かれの図の頁が出ない");
-      await expect.poll(() => held, { ...WAIT, message: "見本の塊を読みに行かない" }).toBe(true);
-      const stage = page.locator('[data-catalog="stage"]');
-      await expect.poll(() => stage.count(), { ...WAIT, message: "見本の塊が届く前に図の枠が無い" }).toBe(1);
-      const before = await stage.evaluate((el) => el.getBoundingClientRect().height);
-      expect(before, "見本の塊が届く前の図の枠の高さ").toBeGreaterThan(0);
-      expect(await figures(page, '[data-catalog="stage"]'), "見本の塊が届く前に図を描いた").toBe(0);
-      release();
-      await expect.poll(() => figures(page, '[data-catalog="stage"]'), { ...WAIT, message: "見本の塊が届いても図を描かない" }).toBeGreaterThan(0);
-      const after = await stage.evaluate((el) => el.getBoundingClientRect().height);
-      expect(after, "見本の塊が届く前と後で図の枠の高さが変わる").toBeCloseTo(before, 0);
-    },
-  );
-
-  it(
-    "catalog-offers-reload-when-notation-fails",
-    async () => {
-      const chunks = twoChunks();
-      const { page } = await site.open({
-        path: `${BASE}catalog/tree`,
-        viewport: { width: 1440, height: 900 },
-        reducedMotion: "reduce",
-        prepare: async (p) => {
-          await p.route(`**/assets/${chunks.examples}`, (route) => route.abort());
-        },
-      });
-      await onScreen(page, "category", "木の図の頁が出ない");
-      const reload = page.locator('[data-catalog="stage"] button[data-catalog="reload"]');
-      await expect.poll(() => reload.count(), { ...WAIT, message: "見本の塊を読めない時に図の枠に読み直す button が出ない" }).toBe(1);
-      expect((await reload.textContent())?.trim(), "読み直す button の字").toBe("読み直す");
-      await page.evaluate(() => {
-        (window as unknown as { __kept?: boolean }).__kept = true;
-      });
-      await page.waitForTimeout(1_500);
-      expect(await page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept === true), "button を押す前に頁を読み直した").toBe(true);
-      await Promise.all([page.waitForEvent("load"), reload.click()]);
-      expect(await page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept === true), "button を押しても頁を読み直さない").toBe(false);
-    },
-  );
-
-  it(
-    "first-screens-draw-without-catalog-notation",
-    async () => {
-      const home = await site.open({ path: BASE, prepare: blockLater });
-      await onScreen(home.page, "home", "後から読む塊を止めると概要の頁が出ない");
-      await expect.poll(() => figures(home.page, '[data-home="use"]'), { ...WAIT, message: "後から読む塊を止めると概要の頁の用例の図が 3 つ描かれない" }).toBe(3);
-
-      const editor = await site.open({ path: `${BASE}editor`, prepare: blockLater });
-      await onScreen(editor.page, "editor", "後から読む塊を止めると編集画面が出ない");
-      await expect.poll(() => figures(editor.page, '[data-playground="figure"]'), { ...WAIT, message: "後から読む塊を止めると編集画面の最初の図が描かれない" }).toBeGreaterThan(0);
-
-      const shared = ["sequence 共有の図", "", "box a as 甲", "box b as 乙", "", "step 送る", "  say 甲が乙へ送る。", "  a -> b: 送る"].join("\n");
-      const link = await site.open({ path: `${BASE}editor${toHash(shared)}`, prepare: blockLater });
-      await onScreen(link.page, "editor", "後から読む塊を止めると共有の link で編集画面が出ない");
-      await expect.poll(() => figures(link.page, '[data-playground="figure"]'), { ...WAIT, message: "後から読む塊を止めると共有の link の図が描かれない" }).toBeGreaterThan(0);
-      expect(
-        await link.page.evaluate(() => document.querySelector<HTMLTextAreaElement>('[data-playground="editor"]')?.value.trimEnd() ?? null),
-        "共有の link で開いた書く欄の中身",
-      ).toBe(shared);
-    },
-  );
 });

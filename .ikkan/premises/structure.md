@@ -19,4 +19,3 @@
 ## 命名
 
 - 検査は、package の検査を `packages/dragon/test` に、見本帳の検査を検査する file の近くの `src` の下に `*.test.ts` か `*.test.tsx` で置く (`vitest.config.ts` の `include`)。
-- 見本帳の部品は `data-playground` (編集画面) と `data-site` (上の帯) の札で探し、画面は `data-site-screen` の札で見分ける (`apps/playground-spa/src/lib/playground.test.ts`、`apps/playground-spa/src/lib/site-support.ts`)。

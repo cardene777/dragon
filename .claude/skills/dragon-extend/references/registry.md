@@ -49,8 +49,6 @@
 | `apps/playground-spa/src/editor/syntax-text.ts` | 編集画面の棚の記法の早見の説明 | `shelf-items.ts` の早見に行の形 (`SyntaxId`) を足したら、日本語と英語の両方に説明を足す。記法の見出しを開いた時に後から読む。書かないと型検査が落ちる |
 | `apps/playground-spa/src/docs/content.ts` | 使い方の頁の本文 | 記法と同じ PR で書き方の節を足す |
 | `apps/playground-spa/src/docs/examples/` | 使い方の頁の例 | 日本語と英語の例をそろえる |
-| `apps/playground-spa/src/lib/<種類>-catalog.test.ts` | 見本帳での描け方の検査 | 既存の種類の検査が図の分類を全部並べて照らしていると、新しい種類で落ちる。先頭から既存の種類の順で始まるかを見る形にする |
-| `apps/playground-spa/src/lib/site-pages.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
 | `apps/playground-spa/src/lib/catalog-parts.test.ts` | 部品の頁の検査 | 部品の分類は `isCommon` と同じ規則で数える |
 | `apps/playground-spa/src/lib/playground.test.ts` | 頁の大きさの上限 (`page-bundle-within-budget`) | 上限は頁が最初に読む script と CSS に当て (#3280)、値は検査が持つ。見本と部品の図の記法と、後から読む種類の描く部品と個別ブロックの読み方と、カタログの種類の説明と記法の早見の説明 (#3565) は後から読む塊に入るので増えないが、記法を読む処理と検査の関数は種類ごとに増える (#3248、#3349)。超える時は上限を上げず本人に聞く |
 
@@ -67,4 +65,3 @@
 | `packages/dragon/src/render/<種類>.ts` | 描き方の本体から、ブロックの描き方を呼ぶ所 | 時系列図と構成図と状態遷移図は `render/draw.ts`、ほかの種類は種類の名前の file が呼ぶ。色と字の大きさを直に書かない。`renderers-read-values-from-one-table` が落ちる |
 | `packages/dragon/src/words.ts` | 記法の語のうち、ブロックの外へ出す語 | 行の頭の語と属性はブロックの `words` から並びの順に混ぜるので触らない。名札に使えない名前や行の中の語のように、入口から出す語だけを足す。ほかの種類では名札として読む |
 | `packages/dragon/test/<名前>.test.ts` | ブロックの検査 | 読んで書き戻す検査と、ほかの種類では名札として読む検査を置く |
-| `apps/playground-spa/src/lib/site-pages.test.ts` | 書き方の文書と読む部品の照らし合わせ | 新しい語を `ADDED_AFTER_MIGRATION` に足す |
