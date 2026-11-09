@@ -86,7 +86,7 @@ export interface TimeMark extends Rect {
   colors: { step: number; event: number; color: ColorKey }[];
 }
 
-/** 時刻の字。目盛りの境 `at` に置き、字の左端を `left` に、基準線を `y` に置く */
+/** 時刻の字。目盛りの境 `at` に置き (作業を持つ図は番号の目盛りの真ん中)、字の左端を `left` に、基準線を `y` に置く */
 export interface TimeTick {
   at: number;
   x: number;
@@ -173,6 +173,8 @@ export interface TimeLayout extends Layout {
   /** 作業の行 (#3562)。作業を持つ図だけが持つ */
   tasks?: TimeTaskPlaced[];
   ticks: TimeTick[];
+  /** 長い目盛りの線を引く境 (#3574)。作業を持つ図だけが持ち、持たない図は時刻の字の境に引く */
+  longTicks?: number[];
   /** 細かい目盛りの線を引く境 */
   minor: number[];
   periods: TimePeriodPlaced[];
@@ -233,6 +235,40 @@ function minorTicks(count: number, step: number, unitPx: number, majors: number[
   if (by === undefined) return [];
   const out: number[] = [];
   for (let u = by; u < count; u += by) if (!majors.includes(u)) out.push(u);
+  return out;
+}
+
+/**
+ * 作業を持つ図の軸の字 (#3574)。棒の字と同じ番号で読めるよう、字を番号の目盛りの真ん中 (境に 0.5 を足した所) に置く。
+ * 最初と最後の目盛りと、`step` で割り切れる番号の目盛りに置き、前の字か最後の字に重なる字は置かない。
+ */
+function taskTicks(axis: { x: number; w: number; unit: number; count: number }, step: number, from: number, y: number, name: (n: number) => string): TimeTick[] {
+  const last = from + axis.count - 1;
+  const numbers = [from];
+  for (let n = (Math.floor(from / step) + 1) * step; n < last; n += step) numbers.push(n);
+  if (last > from) numbers.push(last);
+  const width = (tick: TimeTick): number => textWidth(tick.text, TYPE.timeTick);
+  const ticks = numbers.map((n): TimeTick => {
+    const text = name(n);
+    const w = textWidth(text, TYPE.timeTick);
+    const at = n - from + 0.5;
+    const x = axis.x + at * axis.unit;
+    return { at, x, text, left: Math.min(axis.x + axis.w - w, Math.max(axis.x, x - w / 2)), y };
+  });
+  const end = ticks[ticks.length - 1] as TimeTick;
+  const kept = ticks.slice(0, 1);
+  for (const tick of ticks.slice(1, -1)) {
+    const before = kept[kept.length - 1] as TimeTick;
+    if (tick.left >= before.left + width(before) + LOOK.time.nameGap && tick.left + width(tick) + LOOK.time.nameGap <= end.left) kept.push(tick);
+  }
+  return ticks.length > 1 ? [...kept, end] : kept;
+}
+
+/** 作業を持つ図の目盛りの線を引く境 (#3574)。字を線の間に置くので、軸の両端の間の境に `LOOK.time.minorPx` 以上離れる一番細かい間で引く */
+function taskMinorTicks(count: number, step: number, unitPx: number): number[] {
+  const by = Array.from({ length: step }, (_, k) => k + 1).find((d) => step % d === 0 && d * unitPx >= LOOK.time.minorPx) ?? step;
+  const out: number[] = [];
+  for (let u = by; u < count; u += by) out.push(u);
   return out;
 }
 
@@ -567,14 +603,20 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
   const majors = majorTicks(count, spec.period?.length, unit);
   const tickY = axisLine + T.tickY;
   const tickUnit = unitFor(count * length.seconds, length.unit);
-  layout.ticks = majors.at.map((at) => {
-    const label = timeText(at * length.seconds, tickUnit, lang);
-    const w = textWidth(label, TYPE.timeTick);
-    const x = axisX + at * unit;
-    const left = at === 0 ? x : at === count ? x - w : Math.min(axisX + axisW - w, Math.max(axisX, x - w / 2));
-    return { at, x, text: label, left, y: tickY };
-  });
-  layout.minor = minorTicks(count, majors.step, unit, majors.at);
+  if (tasks.length > 0) {
+    layout.ticks = taskTicks(layout.axis, majors.step, scale.from ?? 0, tickY, (n) => text.taskRange(scale.unit, String(n), String(n)));
+    layout.longTicks = [0, count];
+    layout.minor = taskMinorTicks(count, majors.step, unit);
+  } else {
+    layout.ticks = majors.at.map((at) => {
+      const label = timeText(at * length.seconds, tickUnit, lang);
+      const w = textWidth(label, TYPE.timeTick);
+      const x = axisX + at * unit;
+      const left = at === 0 ? x : at === count ? x - w : Math.min(axisX + axisW - w, Math.max(axisX, x - w / 2));
+      return { at, x, text: label, left, y: tickY };
+    });
+    layout.minor = minorTicks(count, majors.step, unit, majors.at);
+  }
   let bottom = tickY + TYPE.timeTick.size * 0.2;
   if (spec.period) {
     const P = spec.period;

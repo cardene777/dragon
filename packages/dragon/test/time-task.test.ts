@@ -18,6 +18,8 @@ import { api, type Json, type LineError, pointers } from "./diagram-support";
 import { fileChromium } from "./page-needs";
 import { draw, type Layout, type Rect, type Rendered, sampleTimes, type Timeline } from "./render-support";
 
+const [{ TYPE }, { textWidth }] = await Promise.all([import("../src/look/values"), import("../src/layout/measure")]);
+
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
 /** 工程表の見本の名前 */
@@ -60,11 +62,18 @@ interface TimeTask extends Rect {
   inside: boolean;
 }
 
+/** 軸の字。字の左端を `left` に置く */
+interface TimeTick {
+  text: string;
+  left: number;
+}
+
 interface TimeLayout extends Layout {
   axis: TimeAxis;
   rows: TimeRow[];
   marks: TimeMark[];
   tasks?: TimeTask[];
+  ticks: TimeTick[];
 }
 
 interface TimeTimeline extends Timeline {
@@ -594,6 +603,57 @@ describe("工程表の見本 (#3562)", () => {
       const added = sectionOf(unreleased, "### Added", "\n### ");
       expect(added, `${path} の Unreleased に Added が無い`).not.toBe("");
       expect(added, `${path} の Unreleased の Added に task の行が無い`).toContain("`task");
+    }
+  });
+});
+
+describe("工程表の軸の字 (#3574)", () => {
+  /** 工程表の見本を描いた置き場所 */
+  const planLayout = (lang: "ja" | "en"): TimeLayout => render(parsed(fileText(`${PLAN}${lang === "en" ? ".en" : ""}.dragon`) ?? "", lang), lang).layout;
+  const texts = (layout: TimeLayout): string[] => layout.ticks.map((tick) => tick.text);
+
+  it("task-axis-uses-bar-numbers", () => {
+    // 棒の字 (1〜3日) と同じ番号で読めるよう、軸も日の番号で数える
+    expect(texts(planLayout("ja")), "軸の字が棒の字と同じ番号でない").toEqual(["1日", "5日", "10日", "14日"]);
+  });
+
+  it("task-axis-speaks-bar-words", () => {
+    // 英語の棒の字 (Day 1–3) と同じく、目盛りの名前を頭に置く
+    expect(texts(planLayout("en")), "英語の軸の字が棒の字と同じ形でない").toEqual(["Day 1", "Day 5", "Day 10", "Day 14"]);
+  });
+
+  it("task-axis-centers-on-its-tick", () => {
+    const layout = planLayout("ja");
+    const { axis } = layout;
+    for (const tick of layout.ticks) {
+      const number = Number.parseInt(tick.text, 10);
+      const center = tick.left + textWidth(tick.text, TYPE.timeTick) / 2;
+      expect(near(center, axis.x + (number - 1 + 0.5) * axis.unit, 1), `軸の字 ${tick.text} が目盛り ${number} の真ん中に無い`).toBe(true);
+    }
+  });
+
+  it("task-axis-follows-scale-from", () => {
+    // `from` を書かない図の棒の字は 0 から始まるので、軸の字も 0 から始まり、最後の目盛りの番号で終わる
+    const { layout } = render(parsed(["time 小さな工程", "scale 日 1d 14", "task design as 設計 0-2 [color: blue]", "", ...TO_END].join("\n")));
+    expect(taskOf(layout, "design").text, "棒の字が 0 から始まらない").toBe("0〜2日");
+    expect(texts(layout), "軸の字が棒の字と同じ番号でない").toEqual(["0日", "5日", "10日", "13日"]);
+  });
+
+  it("task-axis-keeps-apart-on-many-ticks", () => {
+    const text = ["time 細かい目盛り", "scale 分 1min 60", "task check as 確認 5 [color: rose]", "", "step 進む", "  say 針が最後まで進む。", "  now -> 59"].join("\n");
+    const { layout } = render(parsed(text));
+    const boxes = layout.ticks.map((tick) => ({ left: tick.left, right: tick.left + textWidth(tick.text, TYPE.timeTick) }));
+    expect(boxes.length, "軸の字が少なすぎて確かめられない").toBeGreaterThan(2);
+    for (const [k, box] of boxes.slice(1).entries()) expect(box.left, `軸の字 ${layout.ticks[k + 1]?.text} が前の字に重なる`).toBeGreaterThanOrEqual((boxes[k] as { right: number }).right);
+    const check = (dragon as unknown as { checkLayoutText: (text: string, options: { lang: "ja" | "en" }) => unknown[] }).checkLayoutText;
+    expect(check(text, { lang: "ja" }), "60 目盛りの工程表に崩れがある").toEqual([]);
+  });
+
+  it("changelog-describes-task-axis", () => {
+    for (const path of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const start = repoText(path).indexOf("## [Unreleased]");
+      const end = repoText(path).indexOf("\n## [", start + 1);
+      expect(repoText(path).slice(start, end), `${path} の Unreleased に軸の字の変更 (#3574) が無い`).toContain("#3574");
     }
   });
 });

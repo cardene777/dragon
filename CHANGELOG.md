@@ -27,6 +27,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- **The axis of a diagram with tasks now counts the same numbers as the bars** (#3574)
+
+  A bar read `Day 1–3` while the axis under it started at `0 days`, so one day had two numbers. In a time diagram with `task` lines, the axis labels now use the tick names of the bars (`Day 1`, `Day 5`, `Day 10`, `Day 14`) and sit in the middle of their ticks. Time diagrams without `task` lines keep their axis.
+
 - **The catalog no longer loads the text of the catalog pages and the notes of the shelf's notation tab on its first screen** (#3565)
 
   The script the catalog loads first carried, in both languages, the text that only the catalog pages show, such as the description of each diagram kind and the words of the example list, the search box and the enlarge button, and the note beside each line shape in the notation tab of the editor's shelf. They sat in the page text table that the first screen reads. The catalog pages' text now lives in `catalog/text.ts`, which goes into the chunk the catalog pages load later, and the notes live in `editor/syntax-text.ts`, a chunk of its own that the shelf loads when the editor opens. The catalog pages and the shelf show the same text as before. The script and CSS loaded first went from 185,436 to 180,470 bytes gzipped, leaving room under the 186,368-byte limit for the next diagram kinds.
