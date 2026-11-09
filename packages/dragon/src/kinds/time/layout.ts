@@ -2,6 +2,8 @@
  * 時間軸の図の置き場所 (#3165)。見た目の元は見本帳の試作 `docs/design/base/scenes/finality.js`。
  *
  * 下の帯に時間軸を置く。目盛り (`scale`) を左から同じ幅で並べ、印の列 (`rows`) を宣言した順に上から重ね、目盛りごとに細い印を 1 つ置く。
+ * 作業 (`tasks`、#3562) は印の列と同じ並びに 1 つずつ自分の行を持ち、範囲の目盛りの上に続いた太い棒を置く。印の列と作業の行は宣言した順に上から並ぶ。
+ * 作業の名前は印の列の名前と同じく行の左に、期間の字は棒の中に置き、棒に収まらない時は棒の右に置く。
  * 印の下に節目 (`points`) の旗の丸を置き、名札と状態の字を丸の右に添える。節目どうしの線は 2 つの丸の間に横に引き、名前を線の下に置く。
  * 範囲の括弧 (`span`) は節目の下に、時刻の目盛りの線と字と区切り (`period`) の名前はさらに下に置く。範囲の囲み (`span` の `box`) は印の列を囲む。
  * 上の帯は拡大した目盛り (`zoom`) を列にして、宣言した箱を列ごとに同じ並びで縦に置く。線は `at` の列の箱から `into` の列 (無ければ同じ列) の箱へ引く。
@@ -11,6 +13,7 @@
 import { FIGURE_TEXT, joinWords } from "../../figure-text";
 import { COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../../look/values";
 import type { DiagramModel, DiagramEvent } from "../../schema";
+import { timeLines } from "../../blocks/task/block";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
 import { textBox, textWidth } from "../../layout/measure";
 import {
@@ -55,6 +58,23 @@ export interface TimeRowPlaced extends Rect {
   id: string;
   name: string;
   color: ColorKey;
+}
+
+/**
+ * 作業の行 (#3562)。行の四角は印の列と同じく軸の幅を持ち、`bar` は `from` から `to` の目盛りの上の棒。
+ * `text` は期間の字、`textRect` はその字が占める所、`textY` は字の基準線、`inside` は字が棒の中にあるか
+ */
+export interface TimeTaskPlaced extends Rect {
+  id: string;
+  name: string;
+  from: number;
+  to: number;
+  color: ColorKey;
+  bar: Rect;
+  text: string;
+  textRect: Rect;
+  textY: number;
+  inside: boolean;
 }
 
 /** 目盛り 1 つの印。`empty` は空きの印。`colors` は色を変えた段と出来事と色 */
@@ -150,6 +170,8 @@ export interface TimeLayout extends Layout {
   axis: TimeAxis;
   rows: TimeRowPlaced[];
   marks: TimeMark[];
+  /** 作業の行 (#3562)。作業を持つ図だけが持つ */
+  tasks?: TimeTaskPlaced[];
   ticks: TimeTick[];
   /** 細かい目盛りの線を引く境 */
   minor: number[];
@@ -235,8 +257,9 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
   const length = durationOf(scale.length);
   const width = Math.max(T.width, stripNeed(diagram) + margin * 2);
 
-  // 印の列の名前を軸の左に置き、長い名前は軸を右へ寄せる
-  const nameRight = Math.max(0, ...spec.rows.map((r) => textWidth(r.name, TYPE.timeRow)));
+  const specTasks = spec.tasks ?? [];
+  // 印の列と作業の名前を軸の左に置き、長い名前は軸を右へ寄せる
+  const nameRight = Math.max(0, ...[...spec.rows, ...specTasks].map((r) => textWidth(r.name, TYPE.timeRow)));
   const axisX = Math.max(T.axisX, margin + R.inset + nameRight + T.gutterGap);
   // 軸の右端は、時間軸の囲みの枠から、左の印の列の名前と同じ内側の余白 (`LOOK.region.inset`) だけ離す。
   // 右端に来る針の頭と終わりの点、右端の目盛りの線と右に寄せた目盛りの字が、字の言葉と幅に関わらず枠に掛からないため (#3527)。
@@ -314,17 +337,55 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
   // 時間軸の帯の印の列と印。範囲の囲みを持つ図は、囲みの上の枠に乗る札の分 (札の高さの半分) だけ印の列を下げる (#3526)
   const boxed = diagram.steps.some((step) => step.events.some((e) => e.type === "span" && e.shape === "box"));
   const rowsTop = axisTop + T.rowsTop + (boxed ? T.box.tagH / 2 : 0);
+  // 印の列と作業の行を宣言した順に上から重ねる。印の列どうしの間は印の列の間、作業の行と接する間は作業の行の間だけ空ける (#3562)
+  // 行の上端は、印の列だけの図で前と同じ値になるよう、上の端からのずれを足してから上の端に足す
+  const lineTops = new Map<object, number>();
+  let offset = 0;
+  let above: "row" | "task" | undefined;
+  for (const line of timeLines(spec.rows, specTasks)) {
+    const kind = "task" in line ? "task" : "row";
+    if (above !== undefined) offset += above === "row" && kind === "row" ? T.rowGap : T.task.gap;
+    lineTops.set("task" in line ? line.task : line.row, rowsTop + offset);
+    offset += kind === "task" ? T.task.h : T.row;
+    above = kind;
+  }
   const rows: TimeRowPlaced[] = spec.rows.map((r, k) => ({
     id: r.id,
     name: r.name,
     // 色を書かない列は、同じ名札の箱の色にそろえる。印と拡大の帯の箱が同じ物だと見て分かるため
     color: r.color ?? colors.get(r.id) ?? (COLOR_ORDER[k % COLOR_ORDER.length] as ColorKey),
     x: axisX,
-    y: rowsTop + k * (T.row + T.rowGap),
+    y: lineTops.get(r) ?? rowsTop,
     w: axisW,
     h: T.row,
   }));
-  const rowsBottom = rows.length > 0 ? Math.max(...rows.map((r) => r.y + r.h)) : rowsTop;
+  const tasks: TimeTaskPlaced[] = specTasks.map((t, k) => {
+    const y = lineTops.get(t) ?? rowsTop;
+    const bar = { x: axisX + t.from * unit + T.task.inset, y, w: (t.to - t.from + 1) * unit - T.task.inset * 2, h: T.task.h };
+    // 期間の字は目盛りの長さの単位で書く。棒の中に収まらない時は棒の右に置く
+    const label = timeText((t.to - t.from + 1) * length.seconds, length.unit, lang);
+    const inside = textWidth(label, TYPE.timeTask) + T.task.padX * 2 <= bar.w;
+    const x = inside ? bar.x + T.task.padX : bar.x + bar.w + T.task.out;
+    const textY = y + T.task.h / 2 + LOOK.baseline.mark;
+    return {
+      id: t.id,
+      name: t.name,
+      from: t.from,
+      to: t.to,
+      color: t.color ?? (COLOR_ORDER[(spec.rows.length + k) % COLOR_ORDER.length] as ColorKey),
+      x: axisX,
+      y,
+      w: axisW,
+      h: T.task.h,
+      bar,
+      text: label,
+      textRect: textBox(label, x, textY, TYPE.timeTask),
+      textY,
+      inside,
+    };
+  });
+  const lines: Rect[] = [...rows, ...tasks];
+  const rowsBottom = lines.length > 0 ? Math.max(...lines.map((r) => r.y + r.h)) : rowsTop;
   const markW = Math.min(T.markMax, Math.max(T.markMin, unit * T.markRatio));
   const marks: TimeMark[] = rows.flatMap((row, k) =>
     Array.from({ length: count }, (_, u): TimeMark => ({
@@ -426,6 +487,7 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
     axis: { x: axisX, w: axisW, unit, count, line: 0 },
     rows,
     marks,
+    ...(tasks.length > 0 ? { tasks } : {}),
     ticks: [],
     minor: [],
     periods: [],
@@ -544,6 +606,9 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
   return layout;
 }
 
+/** 印の列と作業の行の四角 (#3562)。作業を持たない図は印の列だけ */
+export const linesOf = (layout: TimeLayout): Rect[] => [...layout.rows, ...(layout.tasks ?? [])];
+
 /**
  * 拡大の帯の線。`at` の列の箱から、`into` の列 (無ければ同じ列) の箱へ引く。
  * 同じ列で隣り合う箱は縦に結び、間に箱を挟む時は列の右を回る。別の列の箱は、向き合う縁どうしを真っ直ぐ結ぶ
@@ -602,8 +667,9 @@ function badgesOf(diagram: DiagramModel, layout: TimeLayout, needle: [number, nu
   const { axis } = layout;
   const taken: Point[] = [];
   const out: SceneBadge[] = [];
-  const top = Math.min(...layout.rows.map((row) => row.y), layout.needle.y1 + LOOK.time.needle.over);
-  const bottom = Math.max(...layout.rows.map((row) => row.y + row.h), top);
+  const lines = linesOf(layout);
+  const top = Math.min(...lines.map((row) => row.y), layout.needle.y1 + LOOK.time.needle.over);
+  const bottom = Math.max(...lines.map((row) => row.y + row.h), top);
   // 節目があれば印と節目の丸の間に、無ければ印の下に空けた間に置く
   const between = layout.points[0] ? (bottom + layout.points[0].cy - layout.points[0].r) / 2 : bottom + r + inset;
   const frames = frameLines([...layout.regions, ...(layout.strip ? [layout.strip] : [])]);
@@ -663,7 +729,7 @@ function spotOf(event: DiagramEvent, step: number, layout: TimeLayout): { at: Po
   }
   if (event.type === "mark") {
     const row = layout.rows.find((x) => x.id === event.row);
-    const top = Math.min(...layout.rows.map((x) => x.y));
+    const top = Math.min(...linesOf(layout).map((x) => x.y));
     if (row) return { at: [layout.axis.x + ((event.from + event.to + 1) / 2) * layout.axis.unit, top - r - inset], color: event.color };
   }
   return undefined;

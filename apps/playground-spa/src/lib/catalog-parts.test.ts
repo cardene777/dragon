@@ -129,8 +129,11 @@ const NOTATION_WORDS: readonly string[] = [
 const contentLines = (text: string): string[] => text.split("\n").filter((line) => line.trim() !== "" && !line.trim().startsWith("//"));
 /** 行の頭の語 */
 const headOf = (line: string): string => line.trim().split(/\s+/u)[0] ?? "";
-/** 線の行か。行の頭の名札の後ろに `->` が来る。配管の図の `move` と `calc` の行は中に `->` を書くが、頭の語の行 (#3389) */
-const isEdge = (line: string): boolean => /^\s*\S+\s*->\s/u.test(line);
+/**
+ * 線の行か。行の頭の名札の後ろに `->` が来る。配管の図の `move` と `calc` の行は中に `->` を書くが、頭の語の行 (#3389)。
+ * 時間軸の図の針の行 `now -> <目盛り>` は目盛りのブロックの行で、線でない。線を持たず針だけを進める見本 (`release-plan`、#3562) を線の見本に数えないため
+ */
+const isEdge = (line: string): boolean => /^\s*\S+\s*->\s/u.test(line) && headOf(line) !== "now";
 /** 行の種類。最初の行は図 (`diagram`)、`->` を持つ行は線 (`edge`)、それ以外は行の頭の語 */
 const lineKind = (line: string, index: number): string => (index === 0 ? "diagram" : isEdge(line) ? "edge" : headOf(line));
 /** 行の終わりの `[ ]` の中に書いた属性の鍵。値を持たない印 (配管の図の `[fold]` と `[fail]`、#3389) も鍵として数える */

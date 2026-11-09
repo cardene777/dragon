@@ -2,7 +2,7 @@
  * 見本帳と編集画面に時間軸の図を載せる (#3165)。
  *
  * 見本の正は `packages/dragon/examples/finality.dragon` と `withdraw.dragon` で、題と図の形はその file を読んで取る。頁の側の見本の表は読まない。
- * 時間軸の図だけの部品は、目盛りと針 (`scale`)、印の列 (`row`)、節目 (`point`)、拡大の帯 (`zoom`) の 4 つで、
+ * 時間軸の図だけの部品は、目盛りと針 (`scale`)、印の列 (`row`)、作業の棒 (`task`、#3562)、節目 (`point`)、拡大の帯 (`zoom`) の 5 つで、
  * 部品の図は `packages/dragon/src/blocks/<名札>/gallery/<名札>.time.dragon` と英語の `.en.dragon` の記法の file。物差しは中身の帯の部品の頁の時間軸の図で見せる。
  * 時間軸の図の分類と部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
@@ -184,7 +184,8 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
       // 部品の名札と、その頁の札が向かう見本
       const cases: [string, string[], Source][] = [
         ["zoom", ["finality"], finality],
-        ["scale", ["finality", "withdraw"], finality],
+        // 目盛りと針は時間軸の図の全ての見本が使い、工程表の見本 (`release-plan`、#3562) も並ぶ
+        ["scale", ["finality", "withdraw", "release-plan"], finality],
       ];
       for (const [id, keys, first] of cases) {
         const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 } });

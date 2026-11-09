@@ -237,6 +237,8 @@ export const TYPE = {
   pointName: text(11, 700, "mono"),
   pointState: text(11.5, 700),
   spanText: text(11, 650),
+  /** 作業の棒の中か右の期間の字 (#3562) */
+  timeTask: text(10.5, 650),
   emptyText: text(11, 700),
   meterLine: text(10.5, 700, "mono"),
 } as const;
@@ -460,6 +462,11 @@ export const LOOK = {
     bottom: 12,
     needle: { over: 8, head: 6, dot: 3.5 },
     meter: { w: 150, h: 6, y: 36, mark: 5, textY: 59, color: "amber" },
+    /**
+     * 作業の棒 (#3562)。`h` は行と棒の高さ、`gap` は作業の行と接する行の間、`inset` は棒の両端を目盛りの境から内へ寄せる長さ、
+     * `radius` は棒の角の丸み、`padX` は棒の中の期間の字の左右の余白、`out` は棒に収まらない期間の字を棒の右に離す長さ
+     */
+    task: { h: 20, gap: 10, inset: 1, radius: 5, padX: 6, out: 6 },
   },
   /**
    * `bend` は線の曲がりを丸める半径 (#3171)。`square` は角を落とす色味で丸めずに直角にする曲がりの角度の下限 (度、#3358)。
@@ -540,6 +547,7 @@ export const LOOK = {
     timeFlag: 1.8,
     timeNeedle: 1.25,
     timeMeter: 1.25,
+    timeTask: 1.2,
     tree: 1.5,
     treeTrail: 2.6,
     treeCon: 1.3,
@@ -568,7 +576,7 @@ export const LOOK = {
     head: { pad: 8, h: 40, nameY: 17, subY: 31 },
   },
   /** 色を混ぜる割合 (%) */
-  /** `time` から始まる値は時間軸の図 (#3165) の、区切りの地、範囲の囲みの地、空きの枠の地、拡大の点線の濃さ。`chip` と `seal` から始まる値は列の図 (#3239) の、色を持たないチップの地と封の縞の濃さ */
+  /** `time` から始まる値は時間軸の図 (#3165) の、区切りの地、範囲の囲みの地、空きの枠の地、拡大の点線、作業の棒のまだ塗らない所 (#3562) の濃さ。`chip` と `seal` から始まる値は列の図 (#3239) の、色を持たないチップの地と封の縞の濃さ */
   mix: {
     slot: 45,
     icon: 14,
@@ -591,6 +599,7 @@ export const LOOK = {
     timeSpan: 6,
     timeEmpty: 8,
     timeGuide: 50,
+    timeTask: 18,
     chipTint: 14,
     poolFill: 50,
     sealDark: 60,
@@ -719,9 +728,10 @@ export const MOTION = {
   /**
    * 時間軸の図 (#3165) の針。目盛り 1 つを進む長さは、軸の端から端までを `axis` 秒で進む長さを `unitMin` と `unitMax` の間に収めた値で、どの段でも同じ。
    * 拡大した目盛りでは、その段のその列の線を引き終えてから `wait` 秒待って次の目盛りへ進む。
-   * `after` は針が止まってから次の出来事を起こすまで、`reset` は区切りが替わって物差しが 0 に戻る長さ
+   * `after` は針が止まってから次の出来事を起こすまで、`reset` は区切りが替わって物差しが 0 に戻る長さ。
+   * `turn` は作業の棒 (#3562) の期間の字が、濃く塗る所が届いて字の色を替える長さ
    */
-  time: { axis: 11.5, unitMin: 0.12, unitMax: 0.4, wait: 0.15, after: 0.15, reset: 0.05 },
+  time: { axis: 11.5, unitMin: 0.12, unitMax: 0.4, wait: 0.15, after: 0.15, reset: 0.05, turn: 0.2 },
   /**
    * 列の図 (#3239)。`slide` はチップが滑る長さ、`seal` は封が列を覆う長さ、`stagger` は同じ段の出来事を起こす間、
    * `cut` はチップと封が一瞬で入れ替わる長さ

@@ -146,6 +146,9 @@
           "row": {
             "$ref": "#/definitions/absent"
           },
+          "task": {
+            "$ref": "#/definitions/absent"
+          },
           "point": {
             "$ref": "#/definitions/absent"
           },
@@ -226,6 +229,9 @@
             "row": {
               "$ref": "#/definitions/absent"
             },
+            "task": {
+              "$ref": "#/definitions/absent"
+            },
             "point": {
               "$ref": "#/definitions/absent"
             },
@@ -293,6 +299,9 @@
               "row": {
                 "$ref": "#/definitions/absent"
               },
+              "task": {
+                "$ref": "#/definitions/absent"
+              },
               "point": {
                 "$ref": "#/definitions/absent"
               },
@@ -339,8 +348,19 @@
           "properties": {
             "blocks": {
               "required": [
-                "scale",
-                "row"
+                "scale"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "row"
+                  ]
+                },
+                {
+                  "required": [
+                    "task"
+                  ]
+                }
               ],
               "properties": {
                 "path": {
@@ -408,6 +428,9 @@
                     "$ref": "#/definitions/absent"
                   },
                   "row": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "task": {
                     "$ref": "#/definitions/absent"
                   },
                   "point": {
@@ -497,6 +520,9 @@
                     "row": {
                       "$ref": "#/definitions/absent"
                     },
+                    "task": {
+                      "$ref": "#/definitions/absent"
+                    },
                     "point": {
                       "$ref": "#/definitions/absent"
                     },
@@ -577,6 +603,9 @@
                       "row": {
                         "$ref": "#/definitions/absent"
                       },
+                      "task": {
+                        "$ref": "#/definitions/absent"
+                      },
                       "point": {
                         "$ref": "#/definitions/absent"
                       },
@@ -651,6 +680,9 @@
                         "row": {
                           "$ref": "#/definitions/absent"
                         },
+                        "task": {
+                          "$ref": "#/definitions/absent"
+                        },
                         "point": {
                           "$ref": "#/definitions/absent"
                         },
@@ -708,6 +740,9 @@
                           "$ref": "#/definitions/absent"
                         },
                         "row": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "task": {
                           "$ref": "#/definitions/absent"
                         },
                         "point": {

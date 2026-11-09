@@ -1,0 +1,22 @@
+// A 14-day schedule up to a release.
+// Four tasks, design, build, test and release, are thick bars on an axis where one tick is one day. Build and test overlap.
+// As the needle moves, the part of each bar it has passed fills in. A diagram of task bars only, with no boxes or zoom band.
+time Schedule up to the release
+
+scale day 1d 14 [from: 1]
+task design as Design 0-2 [color: blue]
+task build as Build 3-8 [color: violet]
+task test as Test 7-10 [color: amber]
+task ship as Release 13 [color: green]
+
+step Design
+  say Settle the screens and the spec in the first 3 days.
+  now -> 2
+
+step Build and test
+  say Start building on day 4, and start testing alongside it on day 8.
+  now -> 10
+
+step Release
+  say Release on day 14. Every task bar is filled.
+  now -> 13

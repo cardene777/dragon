@@ -219,6 +219,7 @@ export type SyntaxId =
   | "scale"
   | "period"
   | "row"
+  | "task"
   | "point"
   | "zoom"
   | "now"
@@ -350,7 +351,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const gitBase = draw({ ...add(empty("git"), { branch: [{ id: h.branch }] }), steps: [step] });
   const inGit = (events: object[]): Diagram => draw({ ...gitBase, steps: [{ ...step, events }] });
   const commitOf = (extra: object): object => ({ type: "commit", id: h.id, branch: h.branch, ...extra });
-  // 目盛りと区切りと印の列と節目と拡大の帯と、針と印の色と範囲は時間軸の図だけが書ける (#3165)
+  // 目盛りと区切りと印の列と作業の棒と節目と拡大の帯と、針と印の色と範囲は時間軸の図だけが書ける (#3165、#3562)
   const scale = { unit: h.unit, length: h.length, count: h.count };
   const timeOf = (extra: object = {}): Diagram => draw({ ...add(empty("time"), { scale, row: [], ...extra }), steps: [step] });
   const timeBase = timeOf();
@@ -406,6 +407,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
     { id: "scale", lines: diff([[draw({ ...empty("time"), steps: [step] }), timeOf({ scale: { ...scale, from: h.number } })]]) },
     { id: "period", lines: diff([[timeBase, timeOf({ period: { name: h.name, length: h.count, from: h.number } })]]) },
     { id: "row", lines: diff([[timeBase, timeOf({ row: [{ id: h.id, name: h.name, color: h.color, empty: [h.tick] }] })]]) },
+    { id: "task", lines: diff([[timeBase, timeOf({ task: [{ id: h.id, name: h.name, from: h.first, to: h.last, color: h.color }] })]]) },
     { id: "point", lines: diff([[timeBase, timeOf({ point: [{ id: h.id, at: h.tick }] })]]) },
     {
       id: "zoom",

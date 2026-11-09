@@ -465,14 +465,15 @@ export function drawSvg(
   // 配管の図は段ごとに図の全てを 1 枚の絵に描くので、描く部品が全ての層を持つ (#3389)。見た目の規則も配管の図の SVG にだけ書く
   const pipeDrawn = isPipeLayout(layout) ? kindParts("pipe").drawPipe(layout, timeline, ctx) : undefined;
   if (pipeDrawn) L.base.push(pipeDrawn.base);
-  // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く
+  // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く。
+  // 作業の棒 (#3562) の見た目の規則は、作業を持つ時間軸の図の SVG にだけ書く
   const timeLayout = isTimeLayout(layout) ? layout : undefined;
-  if (timeLayout) {
-    const drawn = kindParts("time").drawTime(timeLayout, diagram, timeline, ctx, subs);
-    L.base.push(drawn.base);
-    L.lit.push(drawn.lit);
-    L.node.push(drawn.node);
-    L.top.push(drawn.top);
+  const timeDrawn = timeLayout ? kindParts("time").drawTime(timeLayout, diagram, timeline, ctx, subs) : undefined;
+  if (timeDrawn) {
+    L.base.push(timeDrawn.base);
+    L.lit.push(timeDrawn.lit);
+    L.node.push(timeDrawn.node);
+    L.top.push(timeDrawn.top);
   }
   const wired = new Set((timeLayout?.wires ?? []).map((w) => `${w.step}/${w.event}`));
   for (const e of layout.edges) {
@@ -573,7 +574,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`

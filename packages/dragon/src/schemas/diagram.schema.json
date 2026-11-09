@@ -81,6 +81,13 @@
             "$ref": "#/definitions/row"
           }
         },
+        "task": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/task"
+          }
+        },
         "point": {
           "type": "array",
           "items": {
@@ -227,6 +234,9 @@
           "row": {
             "$ref": "#/definitions/absent"
           },
+          "task": {
+            "$ref": "#/definitions/absent"
+          },
           "point": {
             "$ref": "#/definitions/absent"
           },
@@ -307,6 +317,9 @@
             "row": {
               "$ref": "#/definitions/absent"
             },
+            "task": {
+              "$ref": "#/definitions/absent"
+            },
             "point": {
               "$ref": "#/definitions/absent"
             },
@@ -374,6 +387,9 @@
               "row": {
                 "$ref": "#/definitions/absent"
               },
+              "task": {
+                "$ref": "#/definitions/absent"
+              },
               "point": {
                 "$ref": "#/definitions/absent"
               },
@@ -420,8 +436,19 @@
           "properties": {
             "blocks": {
               "required": [
-                "scale",
-                "row"
+                "scale"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "row"
+                  ]
+                },
+                {
+                  "required": [
+                    "task"
+                  ]
+                }
               ],
               "properties": {
                 "path": {
@@ -489,6 +516,9 @@
                     "$ref": "#/definitions/absent"
                   },
                   "row": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "task": {
                     "$ref": "#/definitions/absent"
                   },
                   "point": {
@@ -578,6 +608,9 @@
                     "row": {
                       "$ref": "#/definitions/absent"
                     },
+                    "task": {
+                      "$ref": "#/definitions/absent"
+                    },
                     "point": {
                       "$ref": "#/definitions/absent"
                     },
@@ -658,6 +691,9 @@
                       "row": {
                         "$ref": "#/definitions/absent"
                       },
+                      "task": {
+                        "$ref": "#/definitions/absent"
+                      },
                       "point": {
                         "$ref": "#/definitions/absent"
                       },
@@ -732,6 +768,9 @@
                         "row": {
                           "$ref": "#/definitions/absent"
                         },
+                        "task": {
+                          "$ref": "#/definitions/absent"
+                        },
                         "point": {
                           "$ref": "#/definitions/absent"
                         },
@@ -789,6 +828,9 @@
                           "$ref": "#/definitions/absent"
                         },
                         "row": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "task": {
                           "$ref": "#/definitions/absent"
                         },
                         "point": {
@@ -2758,6 +2800,37 @@
           "items": {
             "$ref": "#/definitions/unit"
           }
+        }
+      }
+    },
+    "task": {
+      "description": "作業。from から to の目盛りの上に続いた棒を引き、行の左に name を書く。after は直前に宣言した印の列の名札",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "from",
+        "to"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "from": {
+          "$ref": "#/definitions/unit"
+        },
+        "to": {
+          "$ref": "#/definitions/unit"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "after": {
+          "$ref": "#/definitions/id"
         }
       }
     },

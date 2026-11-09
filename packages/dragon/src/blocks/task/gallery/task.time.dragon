@@ -1,0 +1,14 @@
+time 工程表の棒
+
+scale 日 1d 10 [from: 1]
+task design as 設計 0-2 [color: blue]
+task build as 実装 3-7 [color: violet]
+task ship as リリース 9 [color: green]
+
+step 作業を並べる
+  say task で作業を上から宣言する。範囲の目盛りの上に棒が引かれ、針が通った分が濃く塗られる。
+  now -> 4
+
+step 最後まで進む
+  say 針が棒の終わりを過ぎると、その棒の全てが濃くなる。
+  now -> 9

@@ -214,7 +214,7 @@ describe("作業の棒の原本の JSON (#3562)", () => {
     const withTask = (field: string, value: Json): Json => {
       const input = tasksOnly() as { time: { tasks: Record<string, Json>[] } };
       (input.time.tasks[0] as Record<string, Json>)[field] = value;
-      return input as unknown as Json;
+      return input;
     };
     // 名前と、原本と、誤りの場所と、英語の誤りの文が名指す語
     const cases: [string, Json, string, string | undefined][] = [

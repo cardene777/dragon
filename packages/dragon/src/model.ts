@@ -27,6 +27,7 @@ export const HOMES = [
   ["scale", "time.scale"],
   ["period", "time.period"],
   ["row", "time.rows"],
+  ["task", "time.tasks"],
   ["point", "time.points"],
   ["zoom", "time.zoom"],
   ["item", "lineup.items"],
@@ -113,12 +114,14 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),
     ...(b.item !== undefined ? { lineup: { items: b.item, ...(b.role !== undefined ? { roles: b.role } : {}) } } : {}),
     ...(b.hold !== undefined ? { pipe: { holds: b.hold } } : {}),
-    ...(b.scale !== undefined || b.row !== undefined
+    ...(b.scale !== undefined || b.row !== undefined || b.task !== undefined
       ? {
           time: {
             ...(b.scale !== undefined ? { scale: b.scale } : {}),
             ...(b.period !== undefined ? { period: b.period } : {}),
-            ...(b.row !== undefined ? { rows: b.row } : {}),
+            // 作業 (#3562) だけを持つ図も、描く処理は印の列の並びを読むので空の並びを置く
+            rows: b.row ?? [],
+            ...(b.task !== undefined ? { tasks: b.task } : {}),
             ...(b.point !== undefined ? { points: b.point } : {}),
             ...(b.zoom !== undefined ? { zoom: b.zoom } : {}),
           } as DiagramModel["time"],

@@ -19,7 +19,7 @@
  */
 import type { Messages } from "../messages";
 import type { Attr } from "../read-kit";
-import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, PipeHold, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TryCheck, TryItem, TryPart } from "../schema";
+import type { Box, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, PipeHold, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TimeTask, TryCheck, TryItem, TryPart } from "../schema";
 import type { PipeRun } from "../pipe-run";
 import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
@@ -77,11 +77,11 @@ export interface FigureDraft {
    */
   git: { commits: Set<string>; tips: Map<string, string | null> };
   /**
-   * 時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲。目盛りと針と、印の列と、節目と、拡大の帯のブロックが宣言の行で組む (#3348)。
+   * 時間軸の図の目盛りと区切りと印の列と作業 (#3562) と節目と拡大の範囲。目盛りと針と、印の列と、作業の棒と、節目と、拡大の帯のブロックが宣言の行で組む (#3348)。
    * 目盛りの数が決まってから確かめる宣言の行の目盛りは `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる (`settled`)。
    * `needle` は針が今いる目盛りの境 (0 から数える)
    */
-  time: { scale?: TimeScale; period?: TimePeriod; rows: TimeRow[]; points: TimePoint[]; zoom?: { from: number; to: number }; pending: (() => void)[]; settled: boolean; needle: number };
+  time: { scale?: TimeScale; period?: TimePeriod; rows: TimeRow[]; tasks: TimeTask[]; points: TimePoint[]; zoom?: { from: number; to: number }; pending: (() => void)[]; settled: boolean; needle: number };
   /** 木の図で書いた木の箱と、書いた行と名札の位置 (`boxes`) と、子の箱から親の名札 (`parents`)。葉と組んだ親のブロックが組む (#3348) */
   tree: { boxes: Map<string, { source: SourceLine; at: number }>; parents: Map<string, string> };
   /** 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348) */

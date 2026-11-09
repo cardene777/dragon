@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "kind": "time",
+  "title": "Schedule up to the release",
+  "blocks": {
+    "scale": {
+      "unit": "day",
+      "length": "1d",
+      "count": 14,
+      "from": 1
+    },
+    "task": [
+      {
+        "id": "design",
+        "name": "Design",
+        "from": 0,
+        "to": 2,
+        "color": "blue"
+      },
+      {
+        "id": "build",
+        "name": "Build",
+        "from": 3,
+        "to": 8,
+        "color": "violet"
+      },
+      {
+        "id": "test",
+        "name": "Test",
+        "from": 7,
+        "to": 10,
+        "color": "amber"
+      },
+      {
+        "id": "ship",
+        "name": "Release",
+        "from": 13,
+        "to": 13,
+        "color": "green"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Design",
+      "body": "Settle the screens and the spec in the first 3 days.",
+      "events": [
+        {
+          "type": "now",
+          "to": 2
+        }
+      ]
+    },
+    {
+      "title": "Build and test",
+      "body": "Start building on day 4, and start testing alongside it on day 8.",
+      "events": [
+        {
+          "type": "now",
+          "to": 10
+        }
+      ]
+    },
+    {
+      "title": "Release",
+      "body": "Release on day 14. Every task bar is filled.",
+      "events": [
+        {
+          "type": "now",
+          "to": 13
+        }
+      ]
+    }
+  ]
+}

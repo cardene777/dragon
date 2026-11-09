@@ -381,7 +381,7 @@ const EDGE_FORM = /^\S+\s*->/u;
  * 前の形と新しい形の対応表 (#3138) を作った後に足した記法の語。前の形が無いので対応表に行を持たない。
  * 対応表は出した版 (0.36.0) の変更履歴の表と同じで、後から行を足さない
  */
-const ADDED_AFTER_MIGRATION = ["state", "git", "branch", "commit", "time", "scale", "period", "row", "point", "zoom", "mark", "span", "source", "tree", "leaf", "node", "lineup", "item", "line", "seal", "open", "pick", "stamp", "role", "try", "route", "queue", "chain", "log", "ask", "choose", "press", "side", "pipe", "hold", "move", "write", "check", "return", "revert", "emit", "calc", "gist"];
+const ADDED_AFTER_MIGRATION = ["state", "git", "branch", "commit", "time", "scale", "period", "row", "task", "point", "zoom", "mark", "span", "source", "tree", "leaf", "node", "lineup", "item", "line", "seal", "open", "pick", "stamp", "role", "try", "route", "queue", "chain", "log", "ask", "choose", "press", "side", "pipe", "hold", "move", "write", "check", "return", "revert", "emit", "calc", "gist"];
 
 /** 使い方の頁の前置きと札と節 */
 const docsOf = (
