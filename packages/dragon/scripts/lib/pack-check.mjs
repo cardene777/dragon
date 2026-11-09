@@ -97,3 +97,29 @@ export function 結果をまとめる(results) {
   文.push(`確かめた ${results.length} 件、落ちた ${落ちた.length} 件`);
   return { 通った: 落ちた.length === 0, 文 };
 }
+
+/**
+ * 入れた `dragon --version` の答えが包んだ版と同じかを見る (#3589)。答えの前後の空白と改行は数えない
+ *
+ * @param {string} 答え
+ * @param {string} 版
+ * @returns {{ 通った: boolean, 理由?: string }}
+ */
+export function 版の答えを確かめる(答え, 版) {
+  const 読んだ = 答え.trim();
+  if (読んだ === 版) return { 通った: true };
+  return { 通った: false, 理由: 読んだ === "" ? "版を答えない" : `答えが ${読んだ} で、包んだ版 ${版} と違う` };
+}
+
+/**
+ * 書き出した file が SVG かを見る (#3589)。XML の宣言と空白の後に `<svg` で始まる時だけ通す
+ *
+ * @param {string | undefined} 中身 file が出来ていない時は undefined
+ * @returns {{ 通った: boolean, 理由?: string }}
+ */
+export function SVGを確かめる(中身) {
+  if (中身 === undefined) return { 通った: false, 理由: "SVG の file が出来ていない" };
+  const 頭 = 中身.replace(/^\uFEFF/u, "").replace(/^\s*<\?xml[^>]*\?>/u, "").trimStart();
+  if (頭.startsWith("<svg")) return { 通った: true };
+  return { 通った: false, 理由: 頭 === "" ? "SVG の file が空" : `<svg で始まらない (${頭.slice(0, 20)})` };
+}
