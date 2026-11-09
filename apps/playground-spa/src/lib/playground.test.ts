@@ -15,6 +15,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, inject, it, vi } from
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { PATHS } from "../site/routes";
+import { type Lang, TEXT } from "../text";
 import { BASE, bundleSizes, barClearance, example, expectSteadyAcrossSteps, firstLoadFiles, type Opened, type OpenOptions, pageSources, pressUntilDisabled, rgb, screenOf, type Site, startSite, waitForCoarse } from "./playground-support";
 
 /** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、カタログの分類から導く (#3157) */
@@ -226,6 +227,71 @@ const lookOf = (palette: string, theme: "light" | "dark"): { diagram: string; di
   const page = PALETTES[DEFAULT_PALETTE]?.[theme].page ?? "";
   return { diagram: (v.bg ?? "").toLowerCase(), diagramInk: (v.ink ?? "").toLowerCase(), page: rgb(page) };
 };
+
+const LANGS = ["ja", "en"] as const satisfies readonly Lang[];
+
+/** 最初の画面が使うので最初に読む言葉の表に残すカタログの字 (#3565)。待ちの一言と、塊を読めなかった時の案内と、頁の題が使う部品の名前 */
+const CATALOG_KEPT: readonly string[] = ["loading", "loadFailed", "pageLoadFailed", "reload", "parts"];
+
+/** 関数の字を探す時に、穴へ入れる印 */
+const HOLE_MARK = "\u0000";
+/** ほかの字の一部と取り違えずに、引用符の外でも探せる字の長さ */
+const LONG_TEXT = 12;
+
+/** 字の表の中の全ての字。関数は穴に印を入れて呼び、穴の間の欠片のうち長い物を取る */
+function textsOf(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (typeof value === "function") {
+    const built = String((value as (...holes: string[]) => unknown)(HOLE_MARK, HOLE_MARK, HOLE_MARK));
+    return built.split(HOLE_MARK).filter((piece) => piece.trim().length >= LONG_TEXT);
+  }
+  if (value !== null && typeof value === "object") return Object.values(value).flatMap(textsOf);
+  return [];
+}
+
+const entriesOf = (table: unknown): [string, unknown][] => Object.entries((table ?? {}) as Record<string, unknown>);
+/** 字の表の欄のうち、`keys` に無い欄の値 (`without`) と、`keys` に在る欄の値 (`only`) */
+const without = (table: unknown, keys: readonly string[]): unknown[] => entriesOf(table).flatMap(([key, value]) => (keys.includes(key) ? [] : [value]));
+const only = (table: unknown, keys: readonly string[]): unknown[] => entriesOf(table).flatMap(([key, value]) => (keys.includes(key) ? [value] : []));
+
+/** 最初に読む言葉の表 (`text.ts`) のうち、最初の画面が使う字。カタログの頁だけが使う字と、記法の早見の説明を除く */
+function firstScreenTexts(): Set<string> {
+  return new Set(
+    LANGS.flatMap((lang) => {
+      const t = TEXT[lang];
+      return textsOf([without(t, ["site", "shelf"]), without(t.site, ["catalog"]), only(t.site.catalog, CATALOG_KEPT), without(t.shelf, ["syntax"])]);
+    }),
+  );
+}
+
+/**
+ * 後から読む塊へ移した字。`tables` が言葉ごとに返す表の字のうち、最初の画面が使う字と同じ字を除く。
+ * 同じ字は最初の画面の言葉として最初に読む script に残るので、移しても軽くならない
+ */
+function movedTexts(tables: (lang: Lang) => unknown[]): string[] {
+  const kept = firstScreenTexts();
+  return [...new Set(LANGS.flatMap((lang) => textsOf(tables(lang))))].filter((text) => !kept.has(text));
+}
+
+/** 後から読む塊の言葉の表 `name`。file がまだ無ければ空 */
+async function laterTable(path: string, name: string): Promise<Partial<Record<Lang, unknown>>> {
+  if (!existsSync(path)) return {};
+  return ((await import(/* @vite-ignore */ path)) as Record<string, Partial<Record<Lang, unknown>> | undefined>)[name] ?? {};
+}
+
+/** 字が script の中に在るか。短い字はほかの字の一部と取り違えないよう、引用符で囲んだ 1 つの字としてだけ探す */
+function carries(script: string, text: string): boolean {
+  const escaped = JSON.stringify(text).slice(1, -1);
+  if (text.length >= LONG_TEXT) return script.includes(text) || script.includes(escaped);
+  return ['"', "'", "`"].some((quote) => script.includes(`${quote}${escaped}${quote}`));
+}
+
+/** build した頁の script のうち、`names` の中の script をつないだ物 */
+const scriptsOf = (names: string[]): string =>
+  names
+    .filter((name) => name.endsWith(".js"))
+    .map((name) => readFileSync(join(site.built.dir, "assets", name), "utf8"))
+    .join("\n");
 
 describe("公開する頁 (#2995)", () => {
   beforeAll(async () => {
@@ -1252,6 +1318,55 @@ describe("公開する頁 (#2995)", () => {
     // 外した字が最初の script をどれだけ軽くしたか。説明の字を足して gzip で比べる
     const gz = (text: string): number => gzipSync(Buffer.from(text)).length;
     expect(gz(`${first}\n${descs.join("\n")}`) - gz(first), "部品の説明の字を外しても、最初に読む script が gzip で 5,000 バイト軽くならない").toBeGreaterThanOrEqual(5000);
+  });
+
+  // カタログの頁だけが使う字 (`catalog/text.ts`) は、カタログの 3 つの頁と一緒に後から読む塊に入る (#3565)。最初に読む script に入ると、
+  // 図の種類の説明と一覧と検索と拡大の字が日英で gzip 3KB ほど上の上限を押し上げ、図の種類を足すたびに説明の分だけ増える。
+  // 最初に読む言葉の表 (`text.ts`) のカタログの字も、最初の画面が使う字 (`CATALOG_KEPT`) のほかを数え、表へ書き戻した字も落とす
+  it("first-load-carries-no-catalog-text", async () => {
+    const later = await laterTable(join(__dirname, "../catalog/text.ts"), "CATALOG_TEXT");
+    const kindsOf = (table: unknown): Record<string, unknown> => ((table ?? {}) as { kinds?: Record<string, unknown> }).kinds ?? {};
+    for (const lang of LANGS) {
+      const kinds = { ...kindsOf(TEXT[lang].site.catalog), ...kindsOf(later[lang]) };
+      expect(
+        Object.keys(TEXT[lang].shelf.kinds).filter((kind) => typeof kinds[kind] !== "string"),
+        `${lang} の図の種類の説明を数えられない (catalog/text.ts が無いか、説明が無い)`,
+      ).toEqual([]);
+    }
+    const texts = movedTexts((lang) => [without(TEXT[lang].site.catalog, CATALOG_KEPT), later[lang]]);
+    const first = scriptsOf(firstLoadFiles(site.built.dir));
+    expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+    const every = scriptsOf(readdirSync(join(site.built.dir, "assets")));
+    expect(
+      texts.filter((text) => !carries(every, text)).map((text) => text.slice(0, 40)),
+      "build した頁のどの script にも見つからないカタログの字 (探し方の空振り)",
+    ).toEqual([]);
+    expect(
+      texts.filter((text) => carries(first, text)).map((text) => text.slice(0, 40)),
+      "最初に読む script に在るカタログの頁だけが使う字",
+    ).toEqual([]);
+    // 外した字が最初の script をどれだけ軽くしたか。字を足して gzip で比べる
+    const gz = (text: string): number => gzipSync(Buffer.from(text)).length;
+    expect(gz(`${first}\n${texts.join("\n")}`) - gz(first), "カタログの頁だけが使う字を外しても、最初に読む script が gzip で 2,500 バイト軽くならない").toBeGreaterThanOrEqual(2500);
+  });
+
+  // 編集画面の棚の記法の早見の説明 (`editor/syntax-text.ts`) は、記法の札を開いた時だけ出るので後から読む (#3565)。
+  // 最初に読む言葉の表 (`text.ts`) の棚の字へ説明を書き戻した字も落とす
+  it("first-load-carries-no-syntax-text", async () => {
+    const later = await laterTable(join(__dirname, "../editor/syntax-text.ts"), "SYNTAX_TEXT");
+    const texts = movedTexts((lang) => [(TEXT[lang].shelf as Record<string, unknown>).syntax, later[lang]]);
+    expect(texts.length, "記法の早見の説明の字を数えられない (editor/syntax-text.ts が無い)").toBeGreaterThan(0);
+    const first = scriptsOf(firstLoadFiles(site.built.dir));
+    expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+    const every = scriptsOf(readdirSync(join(site.built.dir, "assets")));
+    expect(
+      texts.filter((text) => !carries(every, text)).map((text) => text.slice(0, 40)),
+      "build した頁のどの script にも見つからない記法の早見の説明 (探し方の空振り)",
+    ).toEqual([]);
+    expect(
+      texts.filter((text) => carries(first, text)).map((text) => text.slice(0, 40)),
+      "最初に読む script に在る記法の早見の説明",
+    ).toEqual([]);
   });
 
   it("page-draws-with-package-parts", () => {
