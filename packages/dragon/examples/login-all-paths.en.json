@@ -1,0 +1,120 @@
+{
+  "version": 2,
+  "kind": "flow",
+  "title": "Every path of a login",
+  "blocks": {
+    "box": [
+      {
+        "id": "input",
+        "name": "Input"
+      },
+      {
+        "id": "done",
+        "name": "Signed in",
+        "color": "green"
+      },
+      {
+        "id": "err",
+        "name": "Show an error",
+        "color": "rose"
+      }
+    ],
+    "choice": [
+      {
+        "id": "pw",
+        "name": "Password correct?"
+      },
+      {
+        "id": "otp",
+        "name": "2FA correct?"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Enter",
+      "body": "The user enters an ID and a password.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "start",
+          "to": "input",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Check the password",
+      "body": "The server compares the password.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "input",
+          "to": "pw",
+          "label": "Send",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Split on the password",
+      "body": "A match goes on to 2FA, and anything else goes to the error.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "pw",
+          "to": "otp",
+          "label": "Yes",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "pw",
+          "to": "err",
+          "label": "No",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Split on 2FA",
+      "body": "A match signs in, and anything else goes to the error.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "otp",
+          "to": "done",
+          "label": "Yes",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "otp",
+          "to": "err",
+          "label": "No",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "done",
+          "to": "finish",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -7,7 +7,9 @@
  * 本筋から本筋に無い箱への線は、送る側の右の角から横へ出て、箱の上か下の端へ入る。同じ側から入る線は、高い所を通る線ほど右へ入れ、線を交えない。
  * 始まりの印は最初の箱の上に、終わりの印は終わりへ移る箱の右に置く。
  * 判断の問いは、2 行に折るとひし形が細くなる時だけ、助詞か空白の後で 2 行に折る。
+ * 判断から同じ段に書いた 2 本の線は、先に書いた線が本筋を進み、後に書いた線の先の箱は本筋に無い箱と同じ所へ置く。段で辿り着くので点線の縁と薄い字にはしない (#3579)。
  */
+import { type MainWalk, walkLine } from "../../blocks/choice/block";
 import { FIGURE_TEXT } from "../../figure-text";
 import { type ColorKey, LOOK, TYPE } from "../../look/values";
 import type { Box, DiagramModel } from "../../schema";
@@ -86,9 +88,15 @@ const same = (a: { from: string; to: string }, b: { from: string; to: string }):
 
 /** 本筋。段の線の送る側と受ける側を、段の順に見て初めて出た順に並べた箱と判断 */
 export function mainPath(diagram: DiagramModel): string[] {
-  const order: string[] = [];
-  for (const { edge } of edgesOf(diagram)) for (const id of [edge.from, edge.to]) if (!isEnd(id) && !order.includes(id)) order.push(id);
-  return order;
+  const walk: MainWalk = { main: [], side: [], forked: [] };
+  const choices = diagram.flow?.choices ?? [];
+  let at = -1;
+  for (const { step, edge } of edgesOf(diagram)) {
+    if (step !== at) walk.forked.length = 0;
+    at = step;
+    walkLine(walk, edge, (id) => choices.some((c) => c.id === id));
+  }
+  return walk.main;
 }
 
 export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
@@ -105,6 +113,12 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const off = all.boxes.map((b) => b.id).filter((id) => !main.includes(id));
   const notTaken = (diagram.flow?.paths ?? []).filter((p) => !steps.some(({ edge }) => same(edge, p)));
   const lines: { from: string; to: string; label?: string }[] = [...steps.map(({ edge }) => edge), ...notTaken];
+  // 段で辿り着く箱。本筋に無くても、段で横へ分かれた先の箱はここに入る (#3579)
+  const reached = new Set(steps.flatMap(({ edge }) => [edge.from, edge.to]));
+  /** 本筋を外れて右の列へ入る線。今回は通らない道と、段で横へ分かれる線 */
+  const sideLines = [...notTaken, ...steps.map(({ edge }) => edge).filter((e) => !isEnd(e.to) && !main.includes(e.to))];
+  /** 本筋に無い箱か */
+  const aside = (id: string): boolean => !isEnd(id) && !main.includes(id);
 
   // 絵柄を持つ箱が 1 つでもある図は、名前を絵柄の下に下げてそろえる (`box/draw.ts` の `boxTextY`)。判断の問いは下げた分だけ中身の真ん中を上げ、ひし形の真ん中に置く
   const nameBase = all.boxes.some((b) => b.icon !== undefined) ? B.nameY : B.nameMid;
@@ -156,7 +170,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
       cx: x + w / 2,
       cy: y + h / 2,
       ...(isChoice(id) ? { shape: "diamond" as const } : {}),
-      ...(main.includes(id) ? {} : { off: true as const }),
+      ...(reached.has(id) ? {} : { off: true as const }),
     };
   };
 
@@ -180,7 +194,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const mainBottom = boxes.length > 0 ? Math.max(...boxes.map((b) => b.y + b.h)) : margin;
 
   // 本筋に無い箱の列。本筋から道を引かれた箱は本筋の右の列、本筋に無い箱からだけ道を引かれた箱はその箱の右の列に置く
-  const sourcesOf = (id: string): string[] => notTaken.filter((p) => p.to === id && !isEnd(p.from) && p.from !== id).map((p) => p.from);
+  const sourcesOf = (id: string): string[] => sideLines.filter((p) => p.to === id && !isEnd(p.from) && p.from !== id).map((p) => p.from);
   const columnOf = new Map<string, number>();
   for (const id of off) if (sourcesOf(id).some((from) => main.includes(from))) columnOf.set(id, 1);
   for (let changed = true; changed; ) {
@@ -221,11 +235,11 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const ends: SceneEnd[] = [];
   const startBox = startTo === undefined ? undefined : byId.get(startTo);
   if (startBox) {
-    const above = startBox === boxes[0] || startBox.off === true;
+    const above = startBox === boxes[0] || aside(startBox.id);
     ends.push(above ? { kind: "start", x: startBox.cx, y: startBox.y - F.drop, r: T.start, ghost: false, text: words.start } : { kind: "start", x: startBox.x - F.beside, y: startBox.cy, r: T.start, ghost: false, text: words.start });
   }
   // 終わりの印は終わりへ移る箱の右。右の角から本筋に無い箱へ道を出す箱は、下に置く
-  const exitsRight = (id: string): boolean => lines.some((l) => l.from === id && byId.get(l.to)?.off === true && byId.get(id)?.off !== true);
+  const exitsRight = (id: string): boolean => lines.some((l) => l.from === id && byId.has(l.to) && aside(l.to) && !aside(id));
   for (const box of boxes.filter((b) => lines.some((l) => l.from === b.id && l.to === "finish"))) {
     ends.push(
       exitsRight(box.id)
@@ -240,10 +254,10 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     if (from.cy > to.y + inset * 2 && from.cy < to.y + to.h - inset * 2) return { side: "left", x: to.x };
     const top = from.cy <= to.cy;
     // 同じ側から入る線を、上から入る線は高い所を通る線ほど右、下から入る線は低い所を通る線ほど右に並べる
-    const peers = notTaken
+    const peers = sideLines
       .filter((p) => p.to === to.id)
       .flatMap((p) => byId.get(p.from) ?? [])
-      .filter((b) => b.off !== true && (b.cy <= to.cy) === top && !(b.cy > to.y + inset * 2 && b.cy < to.y + to.h - inset * 2))
+      .filter((b) => !aside(b.id) && (b.cy <= to.cy) === top && !(b.cy > to.y + inset * 2 && b.cy < to.y + to.h - inset * 2))
       .sort((a, b) => (top ? a.cy - b.cy : b.cy - a.cy));
     const k = Math.max(0, peers.indexOf(from));
     const x = peers.length <= 1 ? to.cx : to.x + to.w - F.entry - ((to.w - F.entry * 2) * k) / (peers.length - 1);
@@ -269,17 +283,17 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     const b = byId.get(to);
     if (!b) return [];
     if (from === to) return loopUnder(a);
-    if (a.off !== true && b.off !== true) {
+    if (!aside(from) && !aside(to)) {
       if (index(to) === index(from) + 1) return [[a.cx, a.y + a.h], [b.cx, b.y - inset]];
       const x = laneX(from, to);
       return [[a.x, a.cy], [x, a.cy], [x, b.cy], [b.x - inset, b.cy]];
     }
-    if (a.off !== true) {
+    if (!aside(from)) {
       const entry = entryOf(a, b);
       if (entry.side === "left") return [[a.x + a.w, a.cy], [b.x - inset, a.cy]];
       return [[a.x + a.w, a.cy], [entry.x, a.cy], [entry.x, entry.side === "top" ? b.y - inset : b.y + b.h + inset]];
     }
-    if (b.off !== true) return b.cy > a.cy ? [[a.cx, a.y + a.h], [a.cx, b.cy], [b.x + b.w + inset, b.cy]] : [[a.cx, a.y], [a.cx, b.cy], [b.x + b.w + inset, b.cy]];
+    if (!aside(to)) return b.cy > a.cy ? [[a.cx, a.y + a.h], [a.cx, b.cy], [b.x + b.w + inset, b.cy]] : [[a.cx, a.y], [a.cx, b.cy], [b.x + b.w + inset, b.cy]];
     if (Math.abs(a.cx - b.cx) < 0.5) return b.cy > a.cy ? [[a.cx, a.y + a.h], [b.cx, b.y - inset]] : [[a.cx, a.y], [b.cx, b.y + b.h + inset]];
     const mid = (a.x + a.w + b.x) / 2;
     return [[a.x + a.w, a.cy], [mid, a.cy], [mid, b.cy], [b.x - inset, b.cy]];

@@ -7,9 +7,34 @@
  * 最初の `step` より前に書いた線は今回は通らない道になり、点線で引く。本筋で前に置いた箱へ戻る線と、`group` の行は書けない。
  * 最初の段より前の線は線の行と同じ形なので行の頭の語を持たず、定義の `lines` で名指し、読み方 (`read.ts`) の `take` が読む。
  * 原本の欄は判断の `blocks.choice` と、骨組み (`schemas/base.schema.json`) が持つ道の `blocks.path`。
+ * 判断から同じ段に書いた 2 本の線は同時に走り出し、先に書いた線が本筋を進み、後に書いた線は横へ分かれる (#3579)。
  */
 import type { SourceLine } from "../../tokenize";
 import type { Block } from "../block";
+import { STATE_ENDS } from "../start-finish/block";
+
+/** 本筋を読み進める途中の形。`main` は本筋の順、`side` は本筋から横へ分かれた箱、`forked` は今の段で線を出した判断 */
+export interface MainWalk {
+  main: string[];
+  side: string[];
+  forked: string[];
+}
+
+/**
+ * 段の線を 1 本読んで本筋を進める (#3579)。本筋は段の線が初めて辿り着く順の箱と判断で、始まりと終わりの印は入れない。
+ * 判断から同じ段に書いた 2 本目の線と、横へ分かれた箱から出る線は本筋を進めず、線の先の箱を横へ分かれた箱にする。
+ * 段の変わり目で `forked` を空にするのは呼ぶ側が持つ
+ */
+export function walkLine(walk: MainWalk, line: { from: string; to: string }, isChoice: (id: string) => boolean): void {
+  const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).includes(id);
+  const fork = walk.forked.includes(line.from);
+  if (isChoice(line.from) && !fork) walk.forked.push(line.from);
+  if (fork || (walk.side.includes(line.from) && !walk.main.includes(line.from))) {
+    if (!isEnd(line.to) && !walk.main.includes(line.to) && !walk.side.includes(line.to)) walk.side.push(line.to);
+    return;
+  }
+  for (const id of [line.from, line.to]) if (!isEnd(id) && !walk.main.includes(id)) walk.main.push(id);
+}
 
 /** 判断。名札と問い */
 export interface FlowChoice {

@@ -118,6 +118,18 @@ describe("見本帳と編集画面の手順の図 (#3561)", () => {
     await expectSteps(opened.page, catalogSel("preview"), login.steps.length, "手順の図の頁のログインの判断の見本");
   });
 
+  it("catalog-lists-all-paths-example", async () => {
+    // 判断から両方の道へ同時に走る見本 (#3579) が、今の見本と並んで載る
+    const text = example("login-all-paths.dragon");
+    expect(text, "packages/dragon/examples/login-all-paths.dragon が無い").toBeDefined();
+    const parsed = parseNotation(text ?? "", { lang: "ja" });
+    const title = parsed.ok ? (parsed.diagram as unknown as Source).title : "";
+    const { page } = await site.open({ path: `${BASE}catalog/flow`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+    await onScreen(page, "category", "手順の図の頁が出ない");
+    const items = (): Promise<string[]> => page.evaluate(() => [...document.querySelectorAll('[data-catalog="item"]')].map((i) => i.textContent?.trim() ?? ""));
+    await expect.poll(items, { ...WAIT, message: "手順の図の頁の一覧に全ての道の見本が無い" }).toEqual(expect.arrayContaining([sample().title, title]));
+  });
+
   it("catalog-has-flow-parts", async () => {
     const { page } = await site.open({ path: `${BASE}catalog`, viewport: { width: 1440, height: 900 } });
     await onScreen(page, "catalog", "見本帳の一覧が出ない");

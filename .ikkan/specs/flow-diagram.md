@@ -30,3 +30,13 @@
 | 使い方の頁と`CHANGELOG.md`の前の形との対応表の頭の語が、読む部品の語と一致する | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3561 |
 | AIのskillに全ての図の種類の`references/kinds/<種類>.md`が在って`SKILL.md`が全てを名指し、記法の囲みが全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-covers-every-kind`と`skill-fences-parse`が通る | #3561 |
 | 図の種類を足した時に触る登録先が全て一覧に載り、見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`extend-registry-covers-kind-additions`と`page-bundle-within-budget`が通る | #3561 |
+| 見本`login-all-paths`を描いた時、段3の`pw -> otp`と`pw -> err`の線の出発の時刻が同じで、段の印の点が同じ時刻に2つ走り出す | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`fork-lines-start-together`が通る | #3579 |
+| 見本`login-all-paths`を描いた時、箱と判断の置き場所が`login-check`と同じになる | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`fork-keeps-box-places`が通る | #3579 |
+| 見本`login-all-paths`を描いた時、`エラーを出す`の箱が本筋に無い印 (`off`) を持たず、点が着いた時に光る | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`fork-side-box-is-solid`が通る | #3579 |
+| 見本`login-all-paths`を日本語と英語で描いた時、`dragon check --layout`が何も出さない | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`fork-example-passes-layout-check`が通る | #3579 |
+| 判断の後に書いた線の先の箱へ、本筋の後ろの箱から線を書いた時、前へ戻る線として断らない | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`fork-side-box-accepts-later-line`が通る | #3579 |
+| 判断でない箱から同じ段に2本書いた時、線の出発は今どおり少しずつずれる | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`box-lines-keep-stagger`が通る | #3579 |
+| 今ある見本のSVGと置き場所と時刻が記録と変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3579 |
+| 見本帳の手順の図の頁に`login-all-paths`が載る | `pnpm exec vitest run apps/playground-spa/src/lib/flow-catalog.test.ts`の検査`catalog-lists-all-paths-example`が通る | #3579 |
+| 使い方の頁とAIのskillの`references/kinds/flow.md`と`CHANGELOG.md`と`CHANGELOG.ja.md`に、同じ段に2本書く形が載る | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`docs-describe-fork`が通る | #3579 |
+| 見本帳が最初に読むscriptが上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3579 |

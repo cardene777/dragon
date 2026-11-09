@@ -139,12 +139,14 @@ interface Needle {
  * 段の中で起きることの時刻 (段の始まりから)。線は少しずつずらして引き、書き換えは直前の線が着いてから起こす。
  * 時間軸の図では `needle` を渡し、針を進める出来事の所で針を目盛り 1 つずつ進める。針が進む目盛りの列の線はその目盛りに入った時に引く
  */
-function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false): Planned {
+function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false, forks?: ReadonlySet<string>): Planned {
   const out: Planned = { edges: [], events: [], busy: 0 };
   let cursor: number = MOTION.edgeAt;
   let arrived: number | undefined;
   let changes = 0;
   let settled = Number.NEGATIVE_INFINITY;
+  /** 手順の図の判断が今の段で線を出した時刻 (#3579) */
+  const forkedAt = new Map<string, number>();
   const line = (e: number, event: EdgeEvent, a: number): number => {
     const carries = event.carry.kind !== "none";
     const b = a + (carries ? MOTION.drawCarry : MOTION.draw);
@@ -228,9 +230,12 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false
       changes = 0;
       out.busy = Math.max(out.busy, b);
     } else if (event.type === "edge") {
-      const a = cursor;
+      // 手順の図の判断から同じ段に書いた線は、同じ時刻に走り出す (#3579)
+      const together = forkedAt.get(event.from);
+      const a = together ?? cursor;
       arrived = line(e, event, a);
-      cursor = a + MOTION.stagger;
+      if (together === undefined) cursor = a + MOTION.stagger;
+      if (forks?.has(event.from)) forkedAt.set(event.from, a);
       changes = 0;
     } else if (event.type === "action") {
       out.events.push({ event: e, at: cursor });
@@ -257,8 +262,9 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
   let at = 0;
   // 試す図の入力の帯が網を通るなら、送る出来事は網を運ばれる長さを持つ
   const trip = diagram.try?.parts.some((p) => p.type === "ask" && p.via !== undefined) ?? false;
+  const forks = diagram.kind === "flow" ? new Set((diagram.flow?.choices ?? []).map((c) => c.id)) : undefined;
   const plans = diagram.steps.map((step) => {
-    if (!time) return plan(step, undefined, trip);
+    if (!time) return plan(step, undefined, trip, forks);
     const p = plan(step, { from: at, speed });
     at = p.sweep?.keys[p.sweep.keys.length - 1]?.[1] ?? at;
     return p;

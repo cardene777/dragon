@@ -14,7 +14,7 @@ import type { BlockReading, ParseState } from "../block";
 import { EDGE } from "../edge/block";
 import { line, readLine } from "../edge/read";
 import { STATE_ENDS } from "../start-finish/block";
-import { CHOICE_WAYS, type FlowLine } from "./block";
+import { CHOICE_WAYS, type FlowLine, walkLine } from "./block";
 
 export interface ChoiceMessages {
   /** 手順の図の箱か判断の名札に、始まりか終わりの印の名前を書いた */
@@ -34,11 +34,6 @@ export interface ChoiceMessages {
 }
 
 const isEnd = (id: string): boolean => isOneOf(STATE_ENDS, id);
-
-/** 本筋の順。段の線の両端を、書いた順に初めて出た順に並べる。始まりと終わりの印は入れない */
-function walk(order: string[], from: string, to: string): void {
-  for (const id of [from, to]) if (!isEnd(id) && !order.includes(id)) order.push(id);
-}
 
 /**
  * 本筋に無い箱が掛かる本筋の位置。その箱へ道を出す本筋の箱か判断のうち最も上の位置で、本筋に無い箱から道を引かれた箱はその箱の位置を継ぐ。
@@ -83,8 +78,8 @@ function record(source: SourceLine, read: { from: string; to: string; label?: st
   }
   const drawn: FlowLine = { source, from: read.from, to: read.to, toAt, inStep };
   if (inStep) {
-    walk(flow.main, read.from, read.to);
-    if (goesBack(drawn, flow.main, new Map())) throw fail(source, toAt, m.flowBack(read.from, read.to));
+    walkLine(flow, read, (id) => flow.choices.some((c) => c.id === id));
+    if (goesBack(drawn, flow.main, anchors(flow.main, [...flow.lines, drawn]))) throw fail(source, toAt, m.flowBack(read.from, read.to));
   }
   flow.lines.push(drawn);
 }
@@ -100,6 +95,10 @@ export const reading: BlockReading<ChoiceMessages> = {
     record(source, path, state, false);
     state.figure.flow.paths.push(path);
     return true;
+  },
+  // 判断から同じ段に書いた線を数え直す (#3579)
+  beginStep: (state) => {
+    state.figure.flow.forked.length = 0;
   },
   // 手順の図は箱を区画にまとめない
   checkHead: (source, word, state) => {

@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **Both answers of a choice in a flow diagram can run at once** (#3579)
+
+  Writing both answers of a choice in the same step started the two lines half a second apart, pushed the box after the main path down, and made `dragon check --layout` report the lines. The two lines now start at the same moment with a dot on each. The line written first goes straight down and the line written after it branches to the side, so the boxes sit where they do in a diagram with a path not taken. A box reached this way keeps a solid border and full-color text. Diagrams that write a path not taken before the first step keep following one path. The new example is `login-all-paths` in `packages/dragon/examples/`.
+
 ## [0.68.1] - 2026-11-09
 
 ### Changed
