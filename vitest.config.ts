@@ -11,12 +11,13 @@ export default defineConfig({
     },
   },
   test: {
+    // 検査が作る一時フォルダは実行ごとの 1 つへまとめ、終わりに丸ごと消す (`run-tmp.ts`、#3587)。後の準備の段の一時フォルダも入るので最初に置く
     // test は `@cardenelabs/dragon` を package として import する = `dist` を読む。
     // `pnpm test` に build は含まれていないため、 古い `dist` が残っていると
     // src を壊しても通ってしまう。 走らせる前に検知する (#979)。
     // 1 回の実行は 5 分で止める (`run-limit.ts`、#3381)。見本帳の頁は要る時に 1 回の実行で 1 度だけ build する (`site-setup.ts`、#3381)
     // npm に出す file の一覧は 1 回の実行で 1 度だけ `npm pack --dry-run` で出す (`pack-setup.ts`、#3410)
-    globalSetup: ["./test-support/global-setup.ts", "./test-support/run-limit.ts", "./apps/playground-spa/src/lib/site-setup.ts", "./test-support/pack-setup.ts"],
+    globalSetup: ["./test-support/run-tmp.ts", "./test-support/global-setup.ts", "./test-support/run-limit.ts", "./apps/playground-spa/src/lib/site-setup.ts", "./test-support/pack-setup.ts"],
     /*
      * 1 件の検査とその前後処理は 10 秒で止める (#3381)。上限の値と、下げる環境変数は `test-support/limits.ts` が持つ。
      *

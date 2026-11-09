@@ -56,8 +56,8 @@
     },
     {
       "files": ["test-support/fixtures/limits/**"],
-      "tests": ["packages/dragon/test/test-limits.test.ts"],
-      "why": "時間の上限の検査が起こす、上限を超える見本の検査とその設定"
+      "tests": ["packages/dragon/test/test-limits.test.ts", "packages/dragon/test/test-tmp.test.ts"],
+      "why": "時間の上限の検査と一時フォルダの検査が起こす、見本の検査とその設定"
     },
     {
       "files": ["eslint.config.mjs", ".prettierrc"],
