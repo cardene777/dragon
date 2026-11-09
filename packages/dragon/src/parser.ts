@@ -246,7 +246,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     try: { parts: [], items: [], sides: [], checks: [], pending: [] },
     pipe: { holds: [], opened: [] },
     chart: { items: [], ...(shape ? { shape } : {}) },
-    flow: { choices: [], paths: [], lines: [], main: [] },
+    flow: { choices: [], paths: [], lines: [], main: [], side: [], forked: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
   const steps: Step[] = [];

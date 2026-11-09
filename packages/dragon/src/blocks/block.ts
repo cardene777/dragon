@@ -107,7 +107,7 @@ export interface FigureDraft {
    * 手順の図の判断と、今回は通らない道と、読んだ線と、本筋の順 (#3561)。判断のブロックが `choice` の行で判断を足し、最初の段より前の線を道にする。
    * 読んだ線は判断から出る線の数と、記法の終わりの前へ戻る道の確かめに使い、本筋は段の線が初めて辿り着く順の箱と判断
    */
-  flow: { choices: FlowChoice[]; paths: StatePath[]; lines: FlowLine[]; main: string[] };
+  flow: { choices: FlowChoice[]; paths: StatePath[]; lines: FlowLine[]; main: string[]; side: string[]; forked: string[] };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */

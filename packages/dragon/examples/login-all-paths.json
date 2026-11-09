@@ -1,0 +1,120 @@
+{
+  "version": 2,
+  "kind": "flow",
+  "title": "ログインの全ての道",
+  "blocks": {
+    "box": [
+      {
+        "id": "input",
+        "name": "入力"
+      },
+      {
+        "id": "done",
+        "name": "ログイン",
+        "color": "green"
+      },
+      {
+        "id": "err",
+        "name": "エラーを出す",
+        "color": "rose"
+      }
+    ],
+    "choice": [
+      {
+        "id": "pw",
+        "name": "パスワードは正しい？"
+      },
+      {
+        "id": "otp",
+        "name": "2FAは正しい？"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "入力する",
+      "body": "利用者がIDとパスワードを入れる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "start",
+          "to": "input",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "パスワードを確かめる",
+      "body": "サーバーがパスワードを照らし合わせる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "input",
+          "to": "pw",
+          "label": "送る",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "パスワードで分かれる",
+      "body": "合えば2FAへ、違えばエラーへ進む。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "pw",
+          "to": "otp",
+          "label": "はい",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "pw",
+          "to": "err",
+          "label": "いいえ",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "2FAで分かれる",
+      "body": "合えばログインへ、違えばエラーへ進む。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "otp",
+          "to": "done",
+          "label": "はい",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "otp",
+          "to": "err",
+          "label": "いいえ",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "done",
+          "to": "finish",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ]
+}

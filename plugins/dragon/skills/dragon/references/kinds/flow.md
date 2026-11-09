@@ -20,11 +20,13 @@ Pick `state` instead when one thing moves back and forth between states and loop
 | `start -> <id>` | The line out of the start mark. `start` is a reserved end, not a box |
 | `<id> -> finish` | The line into the end mark. `finish` is a reserved end, not a box |
 | Lines before the first `step` | Paths not taken in this case. Drawn dotted, and they leave to the right of the choice |
+| Both answers of a choice in the same step | Every path runs. The two lines start at the same moment, the line written first goes straight down, and the line written after it branches to the side |
 
 ## How to write it well
 
 - Put the main path in the steps, in order. The boxes and choices the steps reach stack top to bottom in the order the lines first reach them.
 - Write the other answer of each choice (no, fail, retry later) before the first step. A box that no line in a step reaches is drawn on the right with a dotted border and a muted name.
+- To show every path rather than one concrete case, write both answers of a choice in the same step, with the answer that continues the procedure first. Nothing needs to go before the first step then.
 - Do not draw a line back up the main path. It stops reading at that line. Write a retry as a box on the side instead.
 - Keep each question short. A long question wraps onto two lines after a particle, a comma or a space when that makes the diamond narrower, and a short one stays on one line. The diamond still grows with the longer line.
 - Leave `carry` and `tag` off the lines. In a flow diagram such a line runs the step mark, a dot on the blue moving line, instead of an envelope. The dot vanishes when it arrives, a passed line stays dark, and a choice the dot reached is filled with light amber.

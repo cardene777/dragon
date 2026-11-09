@@ -1,0 +1,28 @@
+// Every path of a login check by two choices, the password and the 2FA code.
+// Write both answers of a choice in the same step, and dots run down both paths at once. The line written first goes straight down as the main path, and the line written after it branches to the side.
+flow Every path of a login
+
+box input as Input
+choice pw as Password correct?
+choice otp as 2FA correct?
+box done as Signed in [color: green]
+box err as Show an error [color: rose]
+
+step Enter
+  say The user enters an ID and a password.
+  start -> input
+
+step Check the password
+  say The server compares the password.
+  input -> pw: Send
+
+step Split on the password
+  say A match goes on to 2FA, and anything else goes to the error.
+  pw -> otp: Yes
+  pw -> err: No
+
+step Split on 2FA
+  say A match signs in, and anything else goes to the error.
+  otp -> done: Yes
+  otp -> err: No
+  done -> finish

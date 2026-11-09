@@ -189,6 +189,20 @@
     "dg-on rx=12": 2,
     "dg-st rx=12": 2
   },
+  "login-all-paths.en.json": {
+    "(none) rx=10": 5,
+    "dg-bg rx=14": 1,
+    "dg-halo rx=12": 3,
+    "dg-on rx=12": 3,
+    "dg-st rx=12": 3
+  },
+  "login-all-paths.json": {
+    "(none) rx=10": 5,
+    "dg-bg rx=14": 1,
+    "dg-halo rx=12": 3,
+    "dg-on rx=12": 3,
+    "dg-st rx=12": 3
+  },
   "login-check.en.json": {
     "(none) rx=10": 3,
     "dg-bg rx=14": 1,
