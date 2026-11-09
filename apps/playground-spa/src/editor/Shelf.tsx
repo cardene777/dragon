@@ -6,6 +6,7 @@
  * 部品と記法の行は dragon記法で出し、部品が足す名前と早見の穴は頁の言葉で書く (`shelf-items.ts`)。
  * 幅が狭い時は引き出しに畳み、書く欄の上の釦で開く。
  * 部品と記法の行は全ての種類の図を書き戻して作るので、全ての種類の塊が届いてから並べる (#3349)。届くまでは読み込み中を出す。
+ * 記法の早見の説明は最初に読む script に入れず (#3565)、記法の行は説明の塊 (`syntax-text.ts`) も届いてから並べる。
  */
 import type { Diagram } from "@cardenelabs/dragon/light";
 import { type ReactElement, useMemo, useState } from "react";
@@ -13,12 +14,19 @@ import { type ReactElement, useMemo, useState } from "react";
 import { LaterFailed } from "../catalog/LaterFailed";
 import { type ExampleKey, LATER_EXAMPLES } from "../examples";
 import { useAllKinds } from "../site/kinds";
-import { useLater } from "../site/later";
+import { type Later, laterChunk, useLater } from "../site/later";
 import { type Lang, TEXT } from "../text";
 import { PART_IDS, type PartId, partLines, sampleGroups, syntaxLines } from "./shelf-items";
 
 type Tab = "samples" | "parts" | "notation";
 const TABS: readonly Tab[] = ["samples", "parts", "notation"];
+
+/** 記法の早見の説明の塊 */
+const LATER_SYNTAX = laterChunk(() => import("./syntax-text").then((loaded) => loaded.SYNTAX_TEXT));
+
+type Status = Later<unknown>["status"];
+/** 2 つの塊を待つ状態。どちらかが読めなければ失敗、両方が届けば届いた、ほかは読み込み中 */
+const both = (a: Status, b: Status): Status => (a === "failed" || b === "failed" ? "failed" : a === "ready" && b === "ready" ? "ready" : "loading");
 
 interface Props {
   /** 頁の言葉。見出しと説明と見本と、部品が足す名前と早見の穴はこの言葉で出す */
@@ -55,16 +63,22 @@ export function Shelf({ lang, base, active, open, onClose, onNew, onSample, onPa
         : [],
     [base, lang, kinds],
   );
-  const syntax = useMemo(() => (kinds === "ready" ? syntaxLines(lang) : []), [lang, kinds]);
+  const notes = useLater(LATER_SYNTAX);
+  const syntax = useMemo(() => {
+    if (kinds !== "ready" || notes.status !== "ready") return [];
+    const note = notes.value[lang];
+    return syntaxLines(lang).map((s) => ({ ...s, note: note[s.id] }));
+  }, [lang, kinds, notes]);
 
   const q = query.trim().toLowerCase();
   const matches = (...texts: string[]): boolean => q === "" || texts.some((text) => text.toLowerCase().includes(q));
 
   const shownGroups = groups.map((g) => ({ ...g, samples: g.samples.filter((s) => matches(s.title, s.key)) })).filter((g) => g.samples.length > 0);
   const shownParts = parts.filter((p) => matches(t.parts[p.id], ...p.lines));
-  const shownSyntax = syntax.filter((s) => matches(t.syntax[s.id], ...s.lines));
-  // 部品と記法の行は全ての種類の塊を待つ。待つ間と読めなかった時は、空の知らせの代わりに読み込み中か読み直す釦を出す
-  const waiting = tab !== "samples" && kinds !== "ready";
+  const shownSyntax = syntax.filter((s) => matches(s.note, ...s.lines));
+  // 部品の行は全ての種類の塊を、記法の行はそれに加えて早見の説明の塊を待つ。待つ間と読めなかった時は、空の知らせの代わりに読み込み中か読み直す釦を出す
+  const status = tab === "notation" ? both(kinds, notes.status) : kinds;
+  const waiting = tab !== "samples" && status !== "ready";
   const empty = !waiting && { samples: shownGroups.length, parts: shownParts.length, notation: shownSyntax.length }[tab] === 0;
 
   return (
@@ -143,13 +157,13 @@ export function Shelf({ lang, base, active, open, onClose, onNew, onSample, onPa
             {shownSyntax.map((s) => (
               <div key={s.id} className="pg-entry" data-playground={`syntax-${s.id}`}>
                 <code className="pg-entry-code">{s.lines.join("\n")}</code>
-                <span className="pg-entry-note">{t.syntax[s.id]}</span>
+                <span className="pg-entry-note">{s.note}</span>
               </div>
             ))}
           </>
         )}
 
-        {waiting && (kinds === "failed" ? <LaterFailed lang={lang} /> : <p className="pg-shelf-empty">{TEXT[lang].site.catalog.loading}</p>)}
+        {waiting && (status === "failed" ? <LaterFailed lang={lang} /> : <p className="pg-shelf-empty">{TEXT[lang].site.catalog.loading}</p>)}
         {empty && <p className="pg-shelf-empty">{t.nothing}</p>}
       </div>
     </aside>

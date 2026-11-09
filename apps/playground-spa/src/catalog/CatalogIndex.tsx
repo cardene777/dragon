@@ -14,12 +14,13 @@ import { follow, PATHS } from "../site/routes";
 import { type Lang, TEXT } from "../text";
 import { KINDS, samplesOf } from "./catalog";
 import { isCommon, type Part, PARTS, wordLabel } from "./parts";
+import { CATALOG_TEXT } from "./text";
 
 type Section = "parts" | "kind-parts" | "kinds";
 
 export function CatalogIndex({ lang }: { lang: Lang }): ReactElement {
   const t = TEXT[lang];
-  const c = t.site.catalog;
+  const c = CATALOG_TEXT[lang];
   // 札の件数は全ての見本を図の種類で数えるので、後から読む見本が届いてから出す (#3246)
   const arrived = useLater(LATER_EXAMPLES).status === "ready";
   const head = (section: Section): ReactElement => (
@@ -103,11 +104,11 @@ export function CatalogIndex({ lang }: { lang: Lang }): ReactElement {
 /** 部品の札。名前と、個別ブロックはその図の種類と、受け持つ記法の語を出し、部品の頁へ向かう */
 export function PartCard({ part, lang, name = "part-card" }: { part: Part; lang: Lang; name?: string }): ReactElement {
   const t = TEXT[lang];
-  const c = t.site.catalog;
+  const c = CATALOG_TEXT[lang];
   return (
     <a className="catalog-part-card" data-catalog={name} data-part={part.id} href={`${PATHS.catalog}/part/${part.id}`} onClick={(e) => follow(e)}>
       <span className="catalog-part-card-head">
-        <span className="catalog-part-card-name">{c.parts[part.id].name}</span>
+        <span className="catalog-part-card-name">{t.site.catalog.parts[part.id].name}</span>
         {!isCommon(part) && <span className="catalog-part-card-kind">{c.kindOnly(part.kinds.map((kind) => t.shelf.kinds[kind]).join("、"))}</span>}
       </span>
       <span className="catalog-part-card-words">
