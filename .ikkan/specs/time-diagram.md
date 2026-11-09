@@ -34,7 +34,7 @@
 | 見本帳の図の種類だけの部品に、目盛りと針、印の列、節目、拡大の帯の 4 つが時間軸の図の部品として並び、頁ごとに日本語と英語の記法と、時間軸の図で描いた図を出す | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`catalog-has-four-time-parts`が通る | #3165 |
 | どの図でも使う 10 個の部品の頁に、時間軸の図で描いた図が並び、段を送れる。中身の帯の頁の時間軸の図は物差しを使う | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts apps/playground-spa/src/lib/time-catalog.test.ts`の検査`catalog-common-parts-listed`と`catalog-common-part-shows-both-kinds`と`strip-time-figure-uses-meter`が通る | #3165 |
 | 時間軸の図の部品の頁は、その部品を使う見本の札を並べ、札は時間軸の図の頁のその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`time-part-pages-link-examples`が通る | #3165 |
-| 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3165 |
+| 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3165 #3562 |
 | 編集画面の棚の見本に時間軸の図の束があってブロックの確定と引き出しが載り、選ぶと書く欄にその記法が入って図が描ける。記法の早見の図の種類の行に `time` の頭の行があり、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` と針を進める線の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`editor-shelf-has-time`が通る | #3165 |
 | 使い方の頁と `CHANGELOG.md` の前の形との対応表の頭の語が、読む部品の語と一致する。時間軸の図の語は、対応表の後に足した語として表に行を持たない | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`が通る | #3165 |
 | 概要の頁の使いどころは今の 3 つのまま | `pnpm test`の検査`home-uses-stay-three`が通る | #3165 |
@@ -49,3 +49,26 @@
 | 見本の崩れの一覧に`finality`と`withdraw`の新しい崩れが載らず、見本の崩れが一覧と合う | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3527 |
 | 時間軸の図の今の描き方 (10段の動き、目盛りの等間隔、時刻の字の言葉、日の目盛りの軸) を保つ | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`finality-renders-10-steps`と`time-axis-places-units-evenly`と`time-axis-labels-follow-language`と`withdraw-renders-day-axis`が通る | #3527 |
 | 見本帳が最初に読む script に新しい崩れの種類の名前`panel-edge`が入らず、最初に読む量が上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-layout-check`と`page-bundle-within-budget`が通る | #3527 |
+| `kind`が`time`の原本のJSONをJSON Schemaで検査した時、種類の欄`time`に作業の宣言 (`tasks`、名札と名前と範囲と色) を持つ図は通り、印の列 (`rows`) が無くても作業があれば通る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`schema-accepts-time-tasks`が通る | #3562 |
+| 作業の欄を時間軸の図でない図に書いた時と、範囲に負の数か整数でない数を書いた時、検査が落ちて誤った欄の場所をJSON Pointerで示す。英語を渡した時の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`schema-rejects-misplaced-tasks`が通る | #3562 |
+| 最初の`step`より前に`task <名札> as <名前> <範囲> [color: <色>]`の行を書いた時、原本の`time.tasks`に書いた順に入る。範囲は`0-2`と`13`の2つの形で書ける | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`notation-reads-task-lines`が通る | #3562 |
+| 時間軸の図の記法に、目盛りの数を超える範囲、終わりが始まりより前の範囲、既にある名札と同じ名札の`task`、最初の`step`より後の`task`のどれかがある時と、印の列も作業も1つも無い時は、行と列を示した誤りで止まる。英語の文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`notation-rejects-misused-task-lines`が通る | #3562 |
+| 時系列図、構成図、状態遷移図、枝分かれの図、木の図、列の図の記法で`task <名札> as <名前> <範囲>`の行を書いた時、その行は時間軸の図でしか書けないと示す誤りで止まる | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`notation-limits-task-to-time`が通る | #3562 |
+| 時間軸の図でない図の記法では、`task`を名札にした箱どうしの線 (`task -> db`) を今どおり読む | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`notation-keeps-task-plain-outside-time`が通る | #3562 |
+| 工程表の見本を記法、JSON、記法、JSONの順に往復した時、最初と最後のJSONが一致する | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-roundtrip-keeps-json-identical`が通る | #3562 |
+| `task design as 設計 0-2 [color: blue]`を描いた時、作業が自分の行を持ち、行の左に「設計」、目盛り0から2の上に角の丸い続いた棒が1本描かれ、棒の中に期間の字が出る。期間の字が棒に収まらない時は棒の右に出る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-draws-a-thick-bar-per-row`が通る | #3562 |
+| 針が棒の上を通る段で、針までの分の棒が作業の色で濃く塗られ、まだ通らない分は薄い色のまま残る。針が棒の終わりを過ぎると棒の全てが濃い | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-fills-passed-part`が通る | #3562 |
+| 1つの目盛りだけの`task`は、目盛り1つ分の幅の棒で描かれる | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-single-tick-draws-bar`が通る | #3562 |
+| 印の列と作業を両方持つ図では、行を宣言した順に上から並べ、どの棒も印の列と目盛りの位置がそろう | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-and-row-keep-declared-order`が通る | #3562 |
+| 工程表の見本`packages/dragon/examples/release-plan.dragon`を日本語と英語で、枠の幅を渡さない時と390を渡した時に描いた時、期間が重なる棒どうしが重ならず、`dragon check --layout`がどの段でも崩れを何も出さない | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`release-plan-passes-layout-check`が通る | #3562 |
+| `packages/dragon/examples`に工程表の見本の日本語と英語の記法とJSONの4つのfileがあり、英語版の作業と段の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-example-files-match`が通る | #3562 |
+| 作業を持たない今の時間軸の図と、ほかの種類の見本の描いた形は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3562 |
+| 時間軸の図の針は今どおり決まった速さで進み、段の番号はその段が始まるまで出ない | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`time-needle-sweeps-at-fixed-speed`と`time-keeps-motion-rules`が通る | #3562 |
+| 作業の棒の描画も、色、字、余白、動きの値を共通の値の表からだけ読み、描画のfileに色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3562 |
+| 軽い入口が作業を持つ時間軸の図を読んで描く | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-every-later-example`と`light-entry-draws-same-svg`が通る | #3562 |
+| repoの全ての`.dragon`のfileを`parseNotation`が誤り無く読み、見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`が通る | #3562 |
+| 見本帳の時間軸の図の部品に工程表の棒の部品が並び、頁に日本語と英語の記法と時間軸の図で描いた図を出し、時間軸の図の頁に工程表の見本が載る | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`catalog-has-task-part`が通る | #3562 |
+| 記法の早見の時間軸の図の行に`task`の行がある | `pnpm exec vitest run apps/playground-spa/src/lib/time-catalog.test.ts`の検査`editor-quick-reference-has-task`が通る | #3562 |
+| 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) とAIのskillの`references/kinds/time.md`に`task`の行の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに工程表の棒が載る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`docs-describe-time-task`が通る | #3562 |
+| 使い方の頁と`CHANGELOG.md`の前の形との対応表の頭の語が、読む部品の語と一致し、AIのskillの記法の囲みが全て読める | `pnpm test`の検査`notation-old-to-new-table-matches-the-parser`と`skill-fences-parse`が通る | #3562 |
+| 見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #3562 |
