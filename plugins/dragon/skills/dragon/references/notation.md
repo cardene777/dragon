@@ -169,7 +169,7 @@ Examples of what the parser says.
 
 ```text
 A line cannot start with foo. Start a line with group / end / box / ... or <id> -> <id>
-Write group, box, strip, branch, scale, period, row, point and zoom before the first step
+Write group, box, strip, branch, scale, period, row, task, point and zoom before the first step
 No box named c is declared
 Step "A" needs a body (a say line)
 There is no icon named serverr. The closest is server

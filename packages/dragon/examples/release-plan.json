@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "kind": "time",
+  "title": "リリースまでの工程",
+  "blocks": {
+    "scale": {
+      "unit": "日",
+      "length": "1d",
+      "count": 14,
+      "from": 1
+    },
+    "task": [
+      {
+        "id": "design",
+        "name": "設計",
+        "from": 0,
+        "to": 2,
+        "color": "blue"
+      },
+      {
+        "id": "build",
+        "name": "実装",
+        "from": 3,
+        "to": 8,
+        "color": "violet"
+      },
+      {
+        "id": "test",
+        "name": "テスト",
+        "from": 7,
+        "to": 10,
+        "color": "amber"
+      },
+      {
+        "id": "ship",
+        "name": "リリース",
+        "from": 13,
+        "to": 13,
+        "color": "green"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "設計",
+      "body": "最初の3日で画面と仕様を決める。",
+      "events": [
+        {
+          "type": "now",
+          "to": 2
+        }
+      ]
+    },
+    {
+      "title": "実装とテスト",
+      "body": "4日目から実装し、8日目からテストを重ねて進める。",
+      "events": [
+        {
+          "type": "now",
+          "to": 10
+        }
+      ]
+    },
+    {
+      "title": "リリース",
+      "body": "14日目にリリースする。全ての作業の棒が塗られる。",
+      "events": [
+        {
+          "type": "now",
+          "to": 13
+        }
+      ]
+    }
+  ]
+}

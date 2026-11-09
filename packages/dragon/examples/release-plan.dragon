@@ -1,0 +1,22 @@
+// リリースまでの 14 日の工程。
+// 設計、実装、テスト、リリースの 4 つの作業を、目盛り 1 つが 1 日の軸に太い棒で並べる。実装とテストは期間が重なる。
+// 針が進むと、通った分の棒が濃く塗られる。箱と拡大の帯を持たない、作業の棒だけの図。
+time リリースまでの工程
+
+scale 日 1d 14 [from: 1]
+task design as 設計 0-2 [color: blue]
+task build as 実装 3-8 [color: violet]
+task test as テスト 7-10 [color: amber]
+task ship as リリース 13 [color: green]
+
+step 設計
+  say 最初の3日で画面と仕様を決める。
+  now -> 2
+
+step 実装とテスト
+  say 4日目から実装し、8日目からテストを重ねて進める。
+  now -> 10
+
+step リリース
+  say 14日目にリリースする。全ての作業の棒が塗られる。
+  now -> 13

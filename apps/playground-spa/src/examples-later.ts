@@ -42,6 +42,8 @@ import bridgeJa from "../../../packages/dragon/examples/bridge.dragon?raw";
 import bridgeEn from "../../../packages/dragon/examples/bridge.en.dragon?raw";
 import withdrawJa from "../../../packages/dragon/examples/withdraw.dragon?raw";
 import withdrawEn from "../../../packages/dragon/examples/withdraw.en.dragon?raw";
+import releasePlanJa from "../../../packages/dragon/examples/release-plan.dragon?raw";
+import releasePlanEn from "../../../packages/dragon/examples/release-plan.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -57,6 +59,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   merge: { ja: mergeJa, en: mergeEn },
   finality: { ja: finalityJa, en: finalityEn },
   withdraw: { ja: withdrawJa, en: withdrawEn },
+  "release-plan": { ja: releasePlanJa, en: releasePlanEn },
   merkle: { ja: merkleJa, en: merkleEn },
   auction: { ja: auctionJa, en: auctionEn },
   "tx-block": { ja: txBlockJa, en: txBlockEn },

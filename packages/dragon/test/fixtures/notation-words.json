@@ -27,6 +27,7 @@
     "scale",
     "period",
     "row",
+    "task",
     "point",
     "zoom",
     "mark",
@@ -128,6 +129,9 @@
       "empty"
     ],
     "mark": [
+      "color"
+    ],
+    "task": [
       "color"
     ],
     "span": [

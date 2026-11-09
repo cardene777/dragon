@@ -2,7 +2,7 @@
  * 見本帳と編集画面に時間軸の図を載せる (#3165)。
  *
  * 見本の正は `packages/dragon/examples/finality.dragon` と `withdraw.dragon` で、題と図の形はその file を読んで取る。頁の側の見本の表は読まない。
- * 時間軸の図だけの部品は、目盛りと針 (`scale`)、印の列 (`row`)、節目 (`point`)、拡大の帯 (`zoom`) の 4 つで、
+ * 時間軸の図だけの部品は、目盛りと針 (`scale`)、印の列 (`row`)、作業の棒 (`task`、#3562)、節目 (`point`)、拡大の帯 (`zoom`) の 5 つで、
  * 部品の図は `packages/dragon/src/blocks/<名札>/gallery/<名札>.time.dragon` と英語の `.en.dragon` の記法の file。物差しは中身の帯の部品の頁の時間軸の図で見せる。
  * 時間軸の図の分類と部品がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
@@ -184,7 +184,8 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
       // 部品の名札と、その頁の札が向かう見本
       const cases: [string, string[], Source][] = [
         ["zoom", ["finality"], finality],
-        ["scale", ["finality", "withdraw"], finality],
+        // 目盛りと針は時間軸の図の全ての見本が使い、工程表の見本 (`release-plan`、#3562) も並ぶ
+        ["scale", ["finality", "withdraw", "release-plan"], finality],
       ];
       for (const [id, keys, first] of cases) {
         const { page } = await site.open({ path: `${BASE}catalog/part/${id}`, viewport: { width: 1440, height: 900 } });
@@ -201,6 +202,53 @@ describe("見本帳と編集画面の時間軸の図 (#3165)", () => {
       }
     },
   );
+
+  // 工程表の棒 (#3562)。作業の棒は時間軸の図だけの部品で、部品の頁は日本語と英語の記法とその図を出し、時間軸の図の頁に工程表の見本が載る
+  describe("工程表の棒 (#3562)", () => {
+    it("catalog-has-task-part", async () => {
+      const { page } = await site.open({ path: `${BASE}catalog`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "catalog", "見本帳の一覧が出ない");
+      const kindParts = (): Promise<string[]> =>
+        page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-catalog="section"][data-section="kind-parts"] a[data-catalog="part-card"]')].map((a) => a.dataset.part ?? ""));
+      await expect.poll(kindParts, { ...WAIT, message: "図の種類だけの部品に工程表の棒 (task) が無い" }).toEqual(expect.arrayContaining(["task"]));
+      expect(PARTS.find((p) => (p.id as string) === "task")?.kinds, "工程表の棒が時間軸の図だけの部品でない").toEqual(["time"]);
+    });
+
+    it("catalog-has-task-part", async () => {
+      for (const lang of ["ja", "en"] as const) {
+        const text = snippetOf("task", lang);
+        expect(text, `task.time${lang === "en" ? ".en" : ""}.dragon が無い`).toBeDefined();
+        const parsed = parseNotation(text ?? "", { lang });
+        expect(parsed.ok && parsed.diagram.kind, `task の ${lang} の記法が時間軸の図として読めない`).toBe("time");
+        expect(text ?? "", `task の ${lang} の記法が task の行を書かない`).toMatch(/^task\s/mu);
+      }
+      const opened = await site.open({ path: `${BASE}catalog/part/task`, locale: "ja-JP", viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+      await onScreen(opened.page, "part", "工程表の棒の部品の頁が出ない");
+      await expect
+        .poll(() => figuresOf(opened.page), { ...WAIT, message: "工程表の棒の頁が時間軸の図の図を 1 つ、部品の記法で描かない" })
+        .toEqual([{ kind: "time", svgs: 1, source: snippetOf("task", "ja") ?? "" }]);
+      await opened.page.locator(siteSel("lang-en")).click();
+      await expect
+        .poll(async () => (await figuresOf(opened.page)).map((f) => f.source), { ...WAIT, message: "工程表の棒の頁を EN に替えても英語の記法にならない" })
+        .toEqual([snippetOf("task", "en") ?? ""]);
+    });
+
+    it("catalog-has-task-part", async () => {
+      const title = sample("release-plan").title;
+      const opened = await site.open({ path: `${BASE}catalog/time`, viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+      await onScreen(opened.page, "category", "時間軸の図の頁が出ない");
+      const items = (): Promise<string[]> => opened.page.evaluate(() => [...document.querySelectorAll('[data-catalog="item"]')].map((i) => i.textContent?.trim() ?? ""));
+      await expect.poll(items, { ...WAIT, message: "時間軸の図の頁の一覧に工程表の見本が無い" }).toEqual(expect.arrayContaining([title]));
+    });
+
+    it("editor-quick-reference-has-task", async () => {
+      const { page } = await site.open({ path: `${BASE}editor`, viewport: { width: 1440, height: 900 } });
+      await onScreen(page, "editor", "編集画面が出ない");
+      await page.locator(sel("shelf-tab-notation")).click();
+      const lines = (): Promise<string[]> => page.evaluate((s) => document.querySelector(`${s} code`)?.textContent?.split("\n") ?? [], sel("syntax-task"));
+      await expect.poll(async () => (await lines()).some((l) => l.startsWith("task ")), { ...WAIT, message: "記法の早見に作業の棒を宣言する task の行が無い" }).toBe(true);
+    });
+  });
 
   it(
     "editor-shelf-has-time",

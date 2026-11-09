@@ -29,6 +29,7 @@ import type { LineupAct, LineupRole } from "./blocks/role/block";
 import type { TimePoint } from "./blocks/point/block";
 import type { TimeMarkEvent, TimeRow } from "./blocks/row/block";
 import type { TimePeriod, TimeScale, TimeSpanEvent } from "./blocks/scale/block";
+import type { TimeTask } from "./blocks/task/block";
 import type { StatePath } from "./blocks/side-path/block";
 import type { StepSource } from "./blocks/source/block";
 import type { PipeCalc } from "./blocks/calc/block";
@@ -109,12 +110,15 @@ export type DiagramEvent =
  * 印の列と目盛りと針と節目のブロックが持つ (#3348)
  */
 export type { TimeMarkEvent, TimePeriod, TimePoint, TimeRow, TimeScale, TimeSpanEvent };
+/** 時間軸の図の作業の型は作業の棒のブロックが持つ (#3562) */
+export type { TimeTask };
 
-/** 時間軸の図の種類の欄 */
+/** 時間軸の図の種類の欄。作業 (`tasks`、#3562) を持つ図は印の列 (`rows`) が空でもよい */
 export interface TimeSpec {
   scale: TimeScale;
   period?: TimePeriod;
   rows: TimeRow[];
+  tasks?: TimeTask[];
   points?: TimePoint[];
   /** 拡大の帯に列を作る目盛りの範囲 */
   zoom?: { from: number; to: number };
@@ -251,7 +255,7 @@ export interface Strip {
 /**
  * 原本の図の宣言 (#3346)。ブロックの名前ごとの欄に、そのブロックの宣言を持つ。空の並びは書かない。
  * 区画 (`group`)、箱 (`box`)、中身の帯 (`strip`) と、図の種類だけの宣言 (状態遷移図の移れる道 `path`、枝分かれの図の枝 `branch`、
- * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と節目 `point` と拡大の範囲 `zoom`、列の図と試す図のチップ `item`、試す図の部品 `part` と関門 `check`)
+ * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と作業 `task` と節目 `point` と拡大の範囲 `zoom`、列の図と試す図のチップ `item`、試す図の部品 `part` と関門 `check`)
  */
 export interface DiagramBlocks {
   group?: Region[];
@@ -262,6 +266,7 @@ export interface DiagramBlocks {
   scale?: TimeScale;
   period?: TimePeriod;
   row?: TimeRow[];
+  task?: TimeTask[];
   point?: TimePoint[];
   zoom?: { from: number; to: number };
   item?: LineupItem[] | TryItem[];
@@ -367,6 +372,7 @@ const ABSENT_KINDS: Record<string, string> = {
   scale: "time",
   period: "time",
   row: "time",
+  task: "time",
   point: "time",
   zoom: "time",
   item: "lineup / try",
