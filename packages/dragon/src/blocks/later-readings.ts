@@ -41,6 +41,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "side-path": () => import("./side-path/read").then((m): BlockReading => m.reading),
   "stamp": () => import("./stamp/read").then((m): BlockReading => m.reading),
   "start-finish": () => import("./start-finish/read").then((m): BlockReading => m.reading),
+  "task": () => import("./task/read").then((m): BlockReading => m.reading),
   "value": () => import("./value/read").then((m): BlockReading => m.reading),
   "write": () => import("./write/read").then((m): BlockReading => m.reading),
   "zoom": () => import("./zoom/read").then((m): BlockReading => m.reading),

@@ -55,6 +55,7 @@ export {
   type TimeScale,
   type TimeSpanEvent,
   type TimeSpec,
+  type TimeTask,
   type TreeLeaf,
   type TreeNode,
   type TryAsk,
@@ -89,7 +90,7 @@ export type {
   SceneStrip,
   SceneTrail,
 } from "./layout/scene";
-export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTick, TimeWire, TimeZoom } from "./kinds/time/layout";
+export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTaskPlaced, TimeTick, TimeWire, TimeZoom } from "./kinds/time/layout";
 export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./kinds/tree/layout";
 export type { TryChainPlaced, TryLayout, TryLogPlaced, TryMoment, TryNetLink, TryNodePlaced, TryPartPlaced, TryQueuePlaced, TryRoutePlaced, TryTitle } from "./kinds/try/layout";
 export type { TryBlock, TryRecord, TryState, TryTrip } from "./try-state";

@@ -131,6 +131,10 @@ Changes stay provisional until the outermost call returns, and then they all bec
 | `emit <party>: <name>(<arg>, ...)` | An event |
 | `calc <party>: <in> -> <out>` | A conversion |
 
+A time diagram (`time <title>`) can also show a schedule.
+Write `task <id> as <name> <range> [color: <color>]` before the first step, and each task gets its own row with one thick bar over the ticks of the range, counted from 0 like `mark`.
+The bar shows its first and last tick names, such as `Day 1–3`, and the part of the bar the needle has passed fills in. A time diagram with tasks needs no `row`.
+
 A chart compares items step by step, as the shares of a donut or the amounts of bars.
 Going to the next step moves the arcs and bars from the previous values to the new ones.
 

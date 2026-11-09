@@ -88,6 +88,8 @@ export interface Timeline {
   units?: { unit: number; passed: number }[];
   /** 時間軸の図だけが持つ。物差しの欄の満ち具合の動き。[時刻, 割合] の並びで、間は真っ直ぐ変わる */
   meters?: { field: string; keys: [number, number][] }[];
+  /** 作業 (#3562) を持つ時間軸の図だけが持つ。作業の棒の濃く塗った割合の動き。[時刻, 割合] の並びで、間は真っ直ぐ変わる */
+  tasks?: { task: string; keys: [number, number][] }[];
 }
 
 interface Planned {
@@ -318,8 +320,30 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
     stills: steps.map((span) => span.end - MOTION.still),
     ...(whole ? { whole } : {}),
     ...(states ? { states } : {}),
-    ...(time ? { needle, units, meters: meterTimes(diagram, plans, steps) } : {}),
+    ...(time ? { needle, units, meters: meterTimes(diagram, plans, steps), ...(time.tasks && time.tasks.length > 0 ? { tasks: taskTimes(time.tasks, needle) } : {}) } : {}),
   };
+}
+
+/**
+ * 時間軸の図の作業の棒の濃く塗った割合 (#3562)。針が棒の左端の境から右端の境へ進む間に 0 から 1 へ伸び、針が戻る時は同じ所を戻る。
+ * 針の動きの点ごとの割合に、針が棒の左端と右端の境を横切る時刻の点を足す
+ */
+function taskTimes(tasks: readonly { id: string; from: number; to: number }[], needle: [number, number][]): { task: string; keys: [number, number][] }[] {
+  return tasks.map(({ id, from, to }) => {
+    const share = (position: number): number => Math.min(1, Math.max(0, (position - from) / (to + 1 - from)));
+    const keys: [number, number][] = [];
+    needle.forEach(([t, position], k) => {
+      const before = needle[k - 1];
+      if (before) {
+        const [t0, p0] = before;
+        for (const edge of p0 < position ? [from, to + 1] : [to + 1, from]) {
+          if ((p0 - edge) * (position - edge) < 0) keys.push([t0 + ((t - t0) * (edge - p0)) / (position - p0), share(edge)]);
+        }
+      }
+      keys.push([t, share(position)]);
+    });
+    return { task: id, keys };
+  });
 }
 
 /**

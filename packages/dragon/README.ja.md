@@ -285,7 +285,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -435,6 +435,26 @@ step C0 が確定する
   note C0: 確定 [color: green]
   mark ブロック 0-31 [color: green]
   span 0-31: 確定して戻せない [shape: box, color: rose]
+```
+
+工程表のように作業の期間を見せる時は、最初の `step` より前に `task <名札> as <名前> <範囲> [color: <色>]` を書く。
+作業は1つずつ自分の行を持ち、範囲の目盛りの上に続いた太い棒で描かれる。範囲は `mark` と同じく0から数える目盛りで、`0-2` か `13` と書く。
+行の左に作業の名前、棒の中に `1〜3日` のように始まりと終わりの目盛りの名前で期間が出て、針が通った分の棒が濃く塗られる。
+作業を持つ図は `row` を書かなくてよく、`row` と並べる時は宣言した順に上から並ぶ。
+
+```dragon
+time リリースまでの工程
+
+scale 日 1d 14 [from: 1]
+
+task design as 設計 0-2 [color: blue]
+task build as 実装 3-8 [color: violet]
+task test as テスト 7-10 [color: amber]
+task ship as リリース 13 [color: green]
+
+step 実装とテスト
+  say 4日目から実装し、8日目からテストを重ねて進める。
+  now -> 10
 ```
 
 ### 木の図
@@ -621,7 +641,7 @@ step 5月
 原本の JSON は、版 (`version`)、図の種類 (`kind`)、題 (`title`)、段 (`steps`) の骨組みを持ち、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。
 箱は `blocks.box`、区画は `blocks.group`、中身の帯は `blocks.strip` に書く。
 枝分かれの図の枝は `blocks.branch`、状態遷移図の通らない道は `blocks.path`、列の図のチップは `blocks.item`、役は `blocks.role` に書く。
-時間軸の図の目盛りと区切りと印の列と節目と拡大の範囲は、`blocks.scale`、`blocks.period`、`blocks.row`、`blocks.point`、`blocks.zoom` に書く。
+時間軸の図の目盛りと区切りと印の列と作業と節目と拡大の範囲は、`blocks.scale`、`blocks.period`、`blocks.row`、`blocks.task`、`blocks.point`、`blocks.zoom` に書く。
 段の中で起きること (線や箱の中の処理) は、段ごとの `events` に書く。
 
 ```json

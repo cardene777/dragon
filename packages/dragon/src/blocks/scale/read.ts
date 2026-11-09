@@ -147,13 +147,13 @@ export const reading: BlockReading<ScaleMessages> = {
   reserved: (source, id, at, state) => {
     if (id === NOW) throw fail(source, at, state.m.nowReserved(id));
   },
-  // 目盛りと印の列が無い図は誤り。目盛りの数が決まってから、宣言の行の目盛りを確かめる
+  // 目盛りが無い図と、印の列も作業 (#3562) も無い図は誤り。目盛りの数が決まってから、宣言の行の目盛りを確かめる
   settle: (state, head) => {
     const { m } = state;
     const time = state.figure.time;
     time.settled = true;
     if (!time.scale) throw fail(head, 0, m.noScale);
-    if (time.rows.length === 0) throw fail(head, 0, m.noRows);
+    if (time.rows.length === 0 && time.tasks.length === 0) throw fail(head, 0, m.noRows);
     for (const check of time.pending) check();
   },
   read: {

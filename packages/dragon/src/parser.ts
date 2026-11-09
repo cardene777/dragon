@@ -43,6 +43,7 @@
  *   scale <単位> <長さ> <数> [from: <最初の番号>]       長さは数と単位 (ms、s、min、h、d) の組 (`12s`)
  *   period <名前> <目盛りの数> [from: <最初の番号>]
  *   row <名札> as <名前> [color: <色>, empty: <目盛り> <目盛り>]
+ *   task <名札> as <名前> <範囲> [color: <色>]           作業の棒 (#3562)。印の列と作業の行は宣言した順に上から並ぶ
  *   point <名札> at <目盛り>
  *   zoom <目盛り>-<目盛り>
  *
@@ -235,7 +236,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     paths: [],
     branches: [],
     git: { commits: new Set(), tips: new Map() },
-    time: { rows: [], points: [], pending: [], settled: false, needle: 0 },
+    time: { rows: [], tasks: [], points: [], pending: [], settled: false, needle: 0 },
     tree: { boxes: new Map(), parents: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },
     try: { parts: [], items: [], sides: [], checks: [], pending: [] },
@@ -505,6 +506,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
             scale: time.scale,
             ...(time.period ? { period: time.period } : {}),
             rows: time.rows,
+            ...(time.tasks.length > 0 ? { tasks: time.tasks } : {}),
             ...(time.points.length > 0 ? { points: time.points } : {}),
             ...(time.zoom ? { zoom: time.zoom } : {}),
           },
