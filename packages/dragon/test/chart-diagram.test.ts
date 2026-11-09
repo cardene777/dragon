@@ -321,6 +321,11 @@ describe("量の図の記法 (#3560)", () => {
     expect((strip.ok ? (strip.diagram as unknown as Source).steps[0]?.events : [])?.map((e) => ({ type: e.type, field: e.field, value: e.value })), "帯の set の行").toEqual([
       { type: "strip", field: "残高", value: "70" },
     ]);
+    // ほかの図の頭の行は、今どおり shape を読まずに鍵を指して断る。量の図の見た目を黙って捨てない
+    const head = "sequence 見た目の鍵 [shape: donut]";
+    const shaped = parse([head, "box a", "step 一", "  say あ。"].join("\n"));
+    expect(shaped.ok, "量の図でない図の頭の行の shape を読んでしまう").toBe(false);
+    expect(shaped.ok ? undefined : { line: shaped.errors[0]?.line, column: shaped.errors[0]?.column }, "量の図でない図の頭の行の shape の誤りの位置").toEqual({ line: 1, column: head.indexOf("shape") + 1 });
   });
 
   it("chart-roundtrip-keeps-json-identical", () => {
