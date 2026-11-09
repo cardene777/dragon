@@ -12,13 +12,14 @@
  * 弧は輪の円の線を `stroke-dasharray` の長さで切り、`stroke-dashoffset` で始まりの角度へ回す。棒は一番大きい値の棒の長さの四角を `scaleX` で縮める。
  * 見本の file と量の図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { pathToFileURL } from "node:url";
+import { Worker } from "node:worker_threads";
+import { afterAll, describe, expect, it } from "vitest";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
-import { captionSteps, exporter, formatOf } from "./export-support";
+import { captionSteps, type ExportOptions, formatOf } from "./export-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, sampleTimes } from "./render-support";
 
@@ -271,10 +272,11 @@ describe("量の図の記法 (#3560)", () => {
       ["最初の step より前の set", [...head, "set a: 1", ...step], 3, 0],
       ["数でない値の set", [...head, ...step, "  set b: many"], 6, at("  set b: many", "many")],
       ["負の値の set", [...head, ...step, "  set b: -2"], 6, at("  set b: -2", "-2")],
-      ["donut と bar のほかの shape", ["chart Small chart [shape: pie]", ...head.slice(1), ...step], 0, at("chart Small chart [shape: pie]", "pie")],
+      // 属性の誤りは、ほかの属性の誤りと同じく鍵を指す
+      ["donut と bar のほかの shape", ["chart Small chart [shape: pie]", ...head.slice(1), ...step], 0, at("chart Small chart [shape: pie]", "shape")],
       ["9 つ目の item", ["chart Small chart [shape: bar]", ...nine, "step One", "  say Nine.", "  set i0: 1"], 9, 0],
       ["箱の行", [...head, "box db", ...step], 3, 0],
-      ["線の行", [...head, ...step, "  a -> b: send"], 6, 0],
+      ["線の行", [...head, ...step, "  a -> b: send"], 6, at("  a -> b: send", "a")],
       ["group の行", [...head, "group g as G", "end", ...step], 3, 0],
       ["item の行が無い量の図", ["chart Small chart [shape: donut]", "step One", "  say Nothing."], 0, 0],
     ];
@@ -477,12 +479,13 @@ describe("量の図の描き方 (#3560)", () => {
       for (const badge of timeline.badges) expect(badge.appears, `${name} の段 ${badge.step + 1} の番号が段より前に出る`).toBeGreaterThanOrEqual(timeline.steps[badge.step]?.start ?? Number.POSITIVE_INFINITY);
       const badges = partsOf(motion, "g.dg-bd[data-step]");
       expect(badges.length, `${name} の描いた段の番号`).toBe(timeline.steps.length);
-      // 0.25 秒ごとに止めて、まだ始まっていない段の番号が見えていないかを数える
+      // 0.25 秒ごとに止めて、まだ始まっていない段の番号が見えていないかを数える。
+      // 番号を包む組は動かないので濃さ 1 に読める。見えるかは描く丸と字で読む
       for (const t of sampleTimes(timeline)) {
         for (const el of badges) {
           const s = Number(el.getAttribute("data-step"));
           if (t >= (timeline.steps[s]?.start ?? 0)) continue;
-          const seen = Math.max(...[el, ...el.querySelectorAll("*")].map((part) => motion.opacity(part, t)));
+          const seen = Math.max(...[...el.querySelectorAll("circle, text")].map((part) => motion.opacity(part, t)));
           expect(seen, `${name} の ${t.toFixed(2)} 秒に、まだ始まっていない段 ${s + 1} の番号が見える`).toBeLessThan(0.05);
         }
       }
@@ -513,12 +516,58 @@ describe("量の図の崩れ (#3560)", () => {
 const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-chart-export-"));
 
 /** 書き出した file の中身。無い時は空にして、形の判定で落とす */
-function writtenBytes(file: string | undefined): Buffer {
+function writtenBytes(file: string): Buffer {
   try {
-    return file === undefined ? Buffer.alloc(0) : readFileSync(file);
+    return readFileSync(file);
   } catch {
     return Buffer.alloc(0);
   }
+}
+
+/**
+ * 書き出しを受け持つ thread の中身。jsdom の大域を持たない Node の中で書き出しの入口 (`dist/export.js`) を 1 度だけ読み、
+ * 頼まれた原本を書き出して file の path を返す
+ */
+const EXPORT_THREAD = `
+const { parentPort } = require("node:worker_threads");
+const entry = import(${JSON.stringify(pathToFileURL(join(ROOT, "packages/dragon/dist/export.js")).href)});
+parentPort.on("message", async ({ id, diagram, options }) => {
+  try {
+    const { exportDiagram } = await entry;
+    parentPort.postMessage({ id, files: (await exportDiagram(diagram, options)).files });
+  } catch (error) {
+    parentPort.postMessage({ id, error: String(error?.stack ?? error) });
+  }
+});
+`;
+let thread: Worker | undefined;
+/** 頼んだ書き出しの番号。上限で止まった件の返事を、次の件の返事と取り違えない */
+let asked = 0;
+afterAll(async () => {
+  await thread?.terminate();
+});
+
+/**
+ * 原本を書き出し、形式ごとの file の path を返す。
+ * この file は jsdom で動き、大域の `Uint8Array` が jsdom の物に替わるので、字の file を削る wasm が Node の `Buffer` を断る。
+ * 書き出しは別の thread で、Node の大域のまま動かす。書き出しの入口は 1 度だけ読み、件ごとに読み直さない
+ */
+function exportInThread(diagram: Json, options: ExportOptions): Promise<Record<string, string>> {
+  thread ??= new Worker(EXPORT_THREAD, { eval: true });
+  const worker = thread;
+  const id = ++asked;
+  return new Promise((resolve, reject) => {
+    const replied = (reply: { id: number; files?: Record<string, string>; error?: string }): void => {
+      if (reply.id !== id) return;
+      worker.off("message", replied);
+      worker.off("error", reject);
+      if (reply.files) resolve(reply.files);
+      else reject(new Error(`量の図を書き出せない ${reply.error ?? ""}`));
+    };
+    worker.on("message", replied);
+    worker.once("error", reject);
+    worker.postMessage({ id, diagram, options });
+  });
 }
 
 /** 見本の最初の段だけの原本。動画のコマを減らす */
@@ -538,27 +587,24 @@ describe.for([
   { shot: "html", name: BAR },
 ] as const)("量の図の書き出し (#3560) $shot $name", ({ shot, name }) => {
   it("chart-exports-every-format", async () => {
-    const exportDiagram = await exporter();
     if (shot === "video") {
-      const result = await exportDiagram(firstStep(name), { outDir: scratch(), formats: ["mp4", "gif"], fps: 1, gifFps: 0.5 });
-      for (const format of ["mp4", "gif"] as const) expect(formatOf(writtenBytes(result.files[format])), `${name} が ${format} に書き出されない`).toBe(format);
+      const files = await exportInThread(firstStep(name), { outDir: scratch(), formats: ["mp4", "gif"], fps: 1, gifFps: 0.5 });
+      for (const format of ["mp4", "gif"] as const) expect(formatOf(writtenBytes(files[format] ?? "")), `${name} が ${format} に書き出されない`).toBe(format);
       return;
     }
     const diagram = exampleJson(`${name}.json`);
     if (shot === "png") {
       const shots: Buffer[] = [];
-      for (const k of [0, 1]) {
-        const outDir = join(scratch(), `run-${k}`);
-        mkdirSync(outDir, { recursive: true });
-        const result = await exportDiagram(diagram, { outDir, formats: ["png"] });
-        shots.push(writtenBytes(result.files.png));
+      for (let k = 0; k < 2; k++) {
+        const files = await exportInThread(diagram, { outDir: scratch(), formats: ["png"] });
+        shots.push(writtenBytes(files.png ?? ""));
       }
       expect(formatOf(shots[0] as Buffer), `${name} が PNG に書き出されない`).toBe("png");
       expect((shots[0] as Buffer).equals(shots[1] as Buffer), `${name} を 2 回書き出した PNG がバイト単位で違う`).toBe(true);
       return;
     }
-    const result = await exportDiagram(diagram, { outDir: scratch(), formats: ["html"] });
-    const html = writtenBytes(result.files.html);
+    const files = await exportInThread(diagram, { outDir: scratch(), formats: ["html"] });
+    const html = writtenBytes(files.html ?? "");
     expect(formatOf(html), `${name} が HTML に書き出されない`).toBe("html");
     const steps = (diagram as { steps: Json[] }).steps.length;
     expect(await captionSteps(html.toString("utf8"), 1280), `${name} の書き出した HTML で送れた段の数`).toHaveLength(steps);

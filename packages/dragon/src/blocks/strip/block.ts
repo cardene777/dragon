@@ -6,6 +6,7 @@
  * ほかの図の種類では欄の名前の一部として読んでいた形なので、欄が属性の形で終わる時だけ断る。
  * 帯の宣言は図の原本の `strip` の欄で、読んだ帯と物差しは読んでいる記法の状態の `figure` に置き、parser が図の原本に置く。
  * `strip` と `set` は語の表の離れた所に並ぶので、`set` は `words.headRanks` で並びの番号を持つ。
+ * 量の図 (#3560) の `set` の行は項目の値で、量の図の値のブロックが読むので、中身の帯のブロックを描かない図の種類に書く。
  */
 import type { Block } from "../block";
 
@@ -17,6 +18,6 @@ export const SET_ATTRS: readonly string[] = ["tag"];
 export const block: Block = {
   name: "strip",
   rank: 30,
-  attach: { how: "attach-to-figure", except: ["try", "pipe"] },
+  attach: { how: "attach-to-figure", except: ["try", "pipe", "chart"] },
   words: { heads: ["strip", "set"], headRanks: { set: 80 }, attrs: { strip: STRIP_ATTRS, set: SET_ATTRS } },
 };

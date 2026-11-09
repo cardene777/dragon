@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "kind": "chart",
+  "title": "Support requests by channel",
+  "chart": {
+    "shape": "bar",
+    "items": [
+      {
+        "id": "mail",
+        "name": "Email",
+        "color": "blue"
+      },
+      {
+        "id": "chat",
+        "name": "Chat",
+        "color": "green"
+      },
+      {
+        "id": "phone",
+        "name": "Phone",
+        "color": "amber"
+      }
+    ]
+  },
+  "blocks": {},
+  "steps": [
+    {
+      "title": "April",
+      "body": "Requests come by email and phone, and chat is not open yet.",
+      "events": [
+        {
+          "type": "set",
+          "item": "mail",
+          "value": 120
+        },
+        {
+          "type": "set",
+          "item": "phone",
+          "value": 64
+        }
+      ]
+    },
+    {
+      "title": "May",
+      "body": "Chat opens, and phone requests drop.",
+      "events": [
+        {
+          "type": "set",
+          "item": "mail",
+          "value": 104
+        },
+        {
+          "type": "set",
+          "item": "chat",
+          "value": 38
+        },
+        {
+          "type": "set",
+          "item": "phone",
+          "value": 58
+        }
+      ]
+    },
+    {
+      "title": "June",
+      "body": "Chat grows and catches up with email.",
+      "events": [
+        {
+          "type": "set",
+          "item": "mail",
+          "value": 86
+        },
+        {
+          "type": "set",
+          "item": "chat",
+          "value": 81
+        },
+        {
+          "type": "set",
+          "item": "phone",
+          "value": 41
+        }
+      ]
+    }
+  ]
+}

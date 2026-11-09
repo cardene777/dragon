@@ -8,7 +8,8 @@
     "tree",
     "lineup",
     "try",
-    "pipe"
+    "pipe",
+    "chart"
   ],
   "HEADS": [
     "group",
@@ -60,7 +61,8 @@
   ],
   "ATTRS": {
     "diagram": [
-      "view"
+      "view",
+      "shape"
     ],
     "group": [
       "note",

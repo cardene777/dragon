@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 中身の帯 | `strip <題>: <欄>, <欄>`。時間軸の図では欄の名前の後ろに `[meter: <割合>]` を付けると物差しになる | `strip メッセージ: ID, 宛先, 状態` |
@@ -325,6 +325,29 @@ step 交換が終わる
   return ex: 3200 USDC
 ```
 
+量の図 (`chart <題> [shape: donut]` か `chart <題> [shape: bar]`) は、項目どうしの大きさを段ごとに比べる。ドーナツは項目ごとの割合を弧の角度で、横棒は項目ごとの量を棒の長さで描く。
+最初の段より前に `item <名札> as <名前> [color: <色>]` で比べる項目を 1 つ以上、8 個まで宣言する。
+段の中の `set <名札>: <値>` は項目の値で、0 以上の数を単位を付けずに書く。`set` を書かない項目は前の段の値を保ち、弧と棒は前の段の値から新しい値へ動く。
+
+```dragon
+chart スマホのOSの割合 [shape: donut]
+
+item ios as iOS [color: blue]
+item android as Android [color: green]
+item other as その他 [color: slate]
+
+step 2018年
+  say iOSが7割を占める。
+  set ios: 70
+  set android: 29
+  set other: 1
+
+step 2024年
+  say Androidが4割近くまで伸びる。
+  set ios: 60
+  set android: 39
+```
+
 ## 属性
 
 行の終わりの `[ ]` の中に `<鍵>: <値>` を `,` で区切って並べ、見た目と運ぶ物を指定する。
@@ -332,6 +355,7 @@ step 交換が終わる
 | 付ける行 | 鍵 | 意味 |
 |---|---|---|
 | 図の種類と題 | `view` | 見せ方。`fixed` か `follow` |
+| 図の種類と題 | `shape` | 量の図の見た目。`donut` か `bar`。量の図だけが持ち、必ず書く |
 | 区画と箱 | `note` | 区画の添え書きか、箱の下の小さな字 |
 | 区画と箱 | `color` | 色の役。`blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` のどれか |
 | 区画と箱 | `icon` | 名前の横に置く印 |

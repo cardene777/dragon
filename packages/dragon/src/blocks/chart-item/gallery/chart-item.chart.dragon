@@ -1,0 +1,12 @@
+chart 好きな果物 [shape: donut]
+
+item apple as りんご [color: rose]
+item orange as みかん [color: amber]
+item grape as ぶどう [color: violet]
+
+step 集めた答え
+  say item で比べる項目を宣言し、color で色を選ぶ。
+    ドーナツは宣言した順に12時の向きから弧を並べる。
+  set apple: 12
+  set orange: 9
+  set grape: 4

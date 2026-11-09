@@ -1,0 +1,81 @@
+{
+  "version": 2,
+  "kind": "chart",
+  "title": "Smartphone OS share",
+  "chart": {
+    "shape": "donut",
+    "items": [
+      {
+        "id": "ios",
+        "name": "iOS",
+        "color": "blue"
+      },
+      {
+        "id": "android",
+        "name": "Android",
+        "color": "green"
+      },
+      {
+        "id": "other",
+        "name": "Other",
+        "color": "slate"
+      }
+    ]
+  },
+  "blocks": {},
+  "steps": [
+    {
+      "title": "2018",
+      "body": "iOS holds 70 percent and Android a little under 30.",
+      "events": [
+        {
+          "type": "set",
+          "item": "ios",
+          "value": 70
+        },
+        {
+          "type": "set",
+          "item": "android",
+          "value": 29
+        },
+        {
+          "type": "set",
+          "item": "other",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "title": "2021",
+      "body": "Android grows step by step and passes 30 percent.",
+      "events": [
+        {
+          "type": "set",
+          "item": "ios",
+          "value": 66
+        },
+        {
+          "type": "set",
+          "item": "android",
+          "value": 33
+        }
+      ]
+    },
+    {
+      "title": "2024",
+      "body": "Android nears 40 percent and the gap narrows.",
+      "events": [
+        {
+          "type": "set",
+          "item": "ios",
+          "value": 60
+        },
+        {
+          "type": "set",
+          "item": "android",
+          "value": 39
+        }
+      ]
+    }
+  ]
+}

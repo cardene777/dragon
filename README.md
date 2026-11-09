@@ -98,7 +98,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -130,6 +130,16 @@ Changes stay provisional until the outermost call returns, and then they all bec
 | `revert <party>: <reason>` | Fails the innermost open call and rolls back the changes inside it |
 | `emit <party>: <name>(<arg>, ...)` | An event |
 | `calc <party>: <in> -> <out>` | A conversion |
+
+A chart compares items step by step, as the shares of a donut or the amounts of bars.
+Going to the next step moves the arcs and bars from the previous values to the new ones.
+
+| Line | What it writes |
+|---|---|
+| `chart <title> [shape: donut]` | A donut. Each arc's angle is the item's share, and the legend shows the rounded percentages |
+| `chart <title> [shape: bar]` | Horizontal bars. The largest value gets the longest bar, and each value shows at the end of its bar |
+| `item <id> as <name> [color: <color>]` | An item, before the first step. A chart takes from 1 to 8 items |
+| `set <id>: <value>` | The value of an item inside a step, a number of 0 or more without a unit. An item without `set` keeps its previous value |
 
 ## Documentation
 

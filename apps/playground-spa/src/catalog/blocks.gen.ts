@@ -23,6 +23,15 @@ import { rule as carryRule } from "../../../../packages/dragon/src/blocks/carry/
 import { text as chainText } from "../../../../packages/dragon/src/blocks/chain/gallery/text";
 import { shelf as chainShelf } from "../../../../packages/dragon/src/blocks/chain/gallery/shelf";
 import { rule as chainRule } from "../../../../packages/dragon/src/blocks/chain/gallery/rule";
+import { text as chartItemText } from "../../../../packages/dragon/src/blocks/chart-item/gallery/text";
+import { shelf as chartItemShelf } from "../../../../packages/dragon/src/blocks/chart-item/gallery/shelf";
+import { rule as chartItemRule } from "../../../../packages/dragon/src/blocks/chart-item/gallery/rule";
+import { text as chartSetText } from "../../../../packages/dragon/src/blocks/chart-set/gallery/text";
+import { shelf as chartSetShelf } from "../../../../packages/dragon/src/blocks/chart-set/gallery/shelf";
+import { rule as chartSetRule } from "../../../../packages/dragon/src/blocks/chart-set/gallery/rule";
+import { text as chartShapeText } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/text";
+import { shelf as chartShapeShelf } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/shelf";
+import { rule as chartShapeRule } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/rule";
 import { text as checkText } from "../../../../packages/dragon/src/blocks/check/gallery/text";
 import { shelf as checkShelf } from "../../../../packages/dragon/src/blocks/check/gallery/shelf";
 import { rule as checkRule } from "../../../../packages/dragon/src/blocks/check/gallery/rule";
@@ -166,6 +175,9 @@ export const BLOCK_TEXT = {
   "call": callText,
   "carry": carryText,
   "chain": chainText,
+  "chart-item": chartItemText,
+  "chart-set": chartSetText,
+  "chart-shape": chartShapeText,
   "check": checkText,
   "color": colorText,
   "commit": commitText,
@@ -222,6 +234,9 @@ export const BLOCK_SHELF = {
   "call": callShelf,
   "carry": carryShelf,
   "chain": chainShelf,
+  "chart-item": chartItemShelf,
+  "chart-set": chartSetShelf,
+  "chart-shape": chartShapeShelf,
   "check": checkShelf,
   "color": colorShelf,
   "commit": commitShelf,
@@ -278,6 +293,9 @@ export const BLOCK_RULE = {
   "call": callRule,
   "carry": carryRule,
   "chain": chainRule,
+  "chart-item": chartItemRule,
+  "chart-set": chartSetRule,
+  "chart-shape": chartShapeRule,
   "check": checkRule,
   "color": colorRule,
   "commit": commitRule,
@@ -325,4 +343,4 @@ export const BLOCK_RULE = {
 } as const;
 
 /** ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に。見本帳の一覧と棚と使い方の頁は、この順にブロックの見本帳の分を並べる */
-export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "log", "ask", "press", "side", "hold", "write", "return", "call", "value", "check", "emit", "calc", "revert", "fold", "gist"] as const;
+export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "log", "ask", "press", "side", "hold", "write", "return", "call", "value", "check", "emit", "calc", "revert", "fold", "gist", "chart-shape", "chart-item", "chart-set"] as const;

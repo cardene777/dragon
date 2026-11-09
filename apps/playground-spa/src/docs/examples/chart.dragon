@@ -1,0 +1,16 @@
+chart 1週間の作業時間の割合 [shape: donut]
+
+item build as 作る [color: blue]
+item review as 見直す [color: green]
+item meet as 話し合う [color: amber]
+
+step 先週
+  say 作る時間が半分を占める。
+  set build: 20
+  set review: 8
+  set meet: 12
+
+step 今週
+  say 話し合う時間を減らし、見直す時間を増やした。
+  set review: 14
+  set meet: 6

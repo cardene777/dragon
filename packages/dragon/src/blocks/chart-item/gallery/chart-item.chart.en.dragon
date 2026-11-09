@@ -1,0 +1,12 @@
+chart Favorite fruit [shape: donut]
+
+item apple as Apple [color: rose]
+item orange as Orange [color: amber]
+item grape as Grape [color: violet]
+
+step Answers so far
+  say item declares an item to compare, and color picks its color.
+    A donut lays the arcs from 12 o'clock in the order declared.
+  set apple: 12
+  set orange: 9
+  set grape: 4

@@ -25,8 +25,8 @@ const shelfTexts = (lang: Lang): Readonly<Record<ShelfPartId, string>> =>
     }),
   ) as Record<ShelfPartId, string>;
 
-/** 状態の欄で数える図の部品 (#3261) */
-export type CountedPart = "box" | "branch" | "row" | "lane" | "part";
+/** 状態の欄で数える図の部品 (#3261)。量の図は項目を数える (#3560) */
+export type CountedPart = "box" | "branch" | "row" | "lane" | "part" | "item";
 
 export const TEXT = {
   ja: {
@@ -101,6 +101,7 @@ export const TEXT = {
           lineup: "横長の列にチップを並べ、段ごとに並びが替わる様子を追う図。入札でブロックの中身が決まる流れのように、順番と隠す中身が効く仕組みを、列の間を滑るチップと封で見せる。",
           try: "読み手が値を打ち込み、釦を押して動かす図。送ったトランザクションが網を伝わり、手数料の順にブロックへ入り、hash で鎖につながる様子を、読み手が自分で試して確かめる。",
           pipe: "1 つのトランザクションの中で、契約の呼び出しと残高と記録の値が段ごとにどう動くかを追う図。交換や取り消しのように、仮の書き換えが最後に確定するか巻き戻るかが効く仕組みを、槽の水位と管を流れるトークンで見せる。",
+          chart: "項目ごとの割合をドーナツの弧で、量を横棒の長さで描き、段ごとに値が変わる様子を追う図。年ごとの割合や月ごとの件数のように、項目どうしの大きさの差が効く話を、前の段の値から動く弧と棒で見せる。",
         },
         total: (n: number) => `全 ${n} 件`,
         showing: (n: number) => `${n} 件 表示中`,
@@ -154,7 +155,7 @@ export const TEXT = {
     fold: "畳む",
     unfold: "開く",
     readable: (part: CountedPart, count: number, steps: number) =>
-      `読めています — ${{ box: `箱 ${count} つ`, branch: `枝 ${count} 本`, row: `印の列 ${count} 本`, lane: `列 ${count} 本`, part: `部品 ${count} つ` }[part]}、段 ${steps}`,
+      `読めています — ${{ box: `箱 ${count} つ`, branch: `枝 ${count} 本`, row: `印の列 ${count} 本`, lane: `列 ${count} 本`, part: `部品 ${count} つ`, item: `項目 ${count} つ` }[part]}、段 ${steps}`,
     notJson: (message: string) => `JSON として読めない — ${message}`,
     cannotDraw: (message: string) => `描けない — ${message}`,
     kept: "誤りがあるあいだは、最後に描けた図を出しています",
@@ -169,7 +170,7 @@ export const TEXT = {
       filter: "絞り込む…",
       filterLabel: "一覧を絞り込む",
       nothing: "当てはまる物が無い",
-      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図" },
+      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図", chart: "量の図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: shelfTexts("ja"),
@@ -216,6 +217,8 @@ export const TEXT = {
         action: "箱の中の処理",
         swap: "箱の下の小さな字の書き換え",
         "strip-value": "帯の値",
+        "chart-item": "項目。量の図で最初の step より前に宣言し、宣言した順に弧と棒を並べる",
+        "chart-set": "項目の値。量の図の段の中で、0 以上の数を単位を付けずに書く",
         comment: "メモ。図には出ない",
       },
     },
@@ -327,6 +330,7 @@ export const TEXT = {
             "Line chips up in long lanes and follow how their order changes, step by step. For mechanisms where order and hidden contents matter, like an auction that decides what goes in a block, chips sliding between lanes and seals show it.",
           try: "A figure readers move by typing values and pressing buttons. Readers try for themselves how a transaction crosses the network, enters a block in fee order, and joins the chain by its hash.",
           pipe: "Follow how contract calls, balances and stored values move inside one transaction, step by step. For mechanisms where provisional changes either settle at the end or roll back, like a swap or a revert, tank levels and tokens flowing through pipes show it.",
+          chart: "Draw the share of each item as the arcs of a donut, or its amount as the length of a bar, and follow how the values change step by step. For stories where the size of one item against another matters, like yearly shares or monthly counts, arcs and bars moving from the previous values show it.",
         },
         total: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
         showing: (n: number) => `showing ${n}`,
@@ -379,7 +383,7 @@ export const TEXT = {
     fold: "Hide",
     unfold: "Show",
     readable: (part: CountedPart, count: number, steps: number) =>
-      `Reads fine — ${count} ${count === 1 ? part : { box: "boxes", branch: "branches", row: "rows", lane: "lanes", part: "parts" }[part]}, ${steps} ${steps === 1 ? "step" : "steps"}`,
+      `Reads fine — ${count} ${count === 1 ? part : { box: "boxes", branch: "branches", row: "rows", lane: "lanes", part: "parts", item: "items" }[part]}, ${steps} ${steps === 1 ? "step" : "steps"}`,
     notJson: (message: string) => `Not valid JSON — ${message}`,
     cannotDraw: (message: string) => `Cannot draw — ${message}`,
     kept: "Showing the last diagram that drew",
@@ -394,7 +398,7 @@ export const TEXT = {
       filter: "Filter…",
       filterLabel: "Filter the list",
       nothing: "Nothing matches",
-      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram" },
+      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram", chart: "Chart" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: shelfTexts("en"),
@@ -441,6 +445,8 @@ export const TEXT = {
         action: "Action inside a box",
         swap: "Rewrite the small text under a box",
         "strip-value": "Strip value",
+        "chart-item": "Item. In a chart, declare it before the first step; arcs and bars follow the order declared",
+        "chart-set": "Item value. Inside a step of a chart, a number of 0 or more without a unit",
         comment: "Memo. Not drawn",
       },
     },
