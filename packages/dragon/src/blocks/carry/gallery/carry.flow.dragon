@@ -1,0 +1,19 @@
+flow 運ぶ物
+
+box order as 注文を受ける
+box pay as 支払いを待つ
+box ship as 発送する
+box done as 閉じる
+
+step 段の印
+  say 何も書かなければ、手順の図では封筒の代わりに段の印の点が線の上を走る。
+  order -> pay: 決済へ
+
+step 札
+  say tag で、線の上を走る札に値を書く。
+  pay -> ship: 発送へ [tag: #42]
+
+step 運ばない
+  say carry: none で線だけを引き、carry: coin でお金が動くことを硬貨で見せる。
+  ship -> done: 閉じる [carry: none]
+  done -> finish [carry: coin]

@@ -1,0 +1,13 @@
+flow 絵
+
+box draft as 下書き [icon: doc]
+box review as 審査 [icon: clock]
+box live as 公開 [icon: globe]
+
+step 出す
+  say icon で手順の箱に絵を付ける。
+  draft -> review: 審査に出す
+
+step 通る
+  say 絵は名前の上に置く。
+  review -> live: 通す

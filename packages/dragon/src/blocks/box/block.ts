@@ -7,12 +7,13 @@
  * 開いている区画 (`group` から `end` まで) の中の箱はその区画に置く。列の図の `box` の行は列を宣言し、書ける属性は `LANE_ATTRS` だけ。
  * 列の図の箱の `[order: none]` は、箱を順番の無い置き場にする (#3351)。
  * 区画と箱の宣言は書き戻す時に 1 つの塊に混ざるので、宣言の塊はこのブロックが区画のブロックの `declareRegion` で区画の行も含めて書く。
+ * 量の図 (#3560) は箱を持たず、項目を `item` の行で宣言するので、箱のブロックを描かない図の種類に書く。
  */
 import type { Block } from "../block";
 
 export const block: Block = {
   name: "box",
   rank: 20,
-  attach: { how: "place", except: ["try"] },
+  attach: { how: "place", except: ["try", "chart"] },
   words: { heads: ["box"], attrs: { box: ["note"] } },
 };

@@ -15,6 +15,9 @@
 import type { UserBlocks } from "./user-blocks";
 import type { ErrorObject } from "ajv";
 import type { GitBranch } from "./blocks/branch/block";
+import type { ChartItem } from "./blocks/chart-item/block";
+import type { ChartSet } from "./blocks/chart-set/block";
+import type { ChartShape } from "./blocks/chart-shape/block";
 import type { Carry } from "./blocks/carry/block";
 import { type Color, COLORS } from "./blocks/color/block";
 import type { GitCommit } from "./blocks/commit/block";
@@ -31,6 +34,7 @@ import type { TimeMarkEvent, TimeRow } from "./blocks/row/block";
 import type { TimePeriod, TimeScale, TimeSpanEvent } from "./blocks/scale/block";
 import type { TimeTask } from "./blocks/task/block";
 import type { StatePath } from "./blocks/side-path/block";
+import type { FlowChoice } from "./blocks/choice/block";
 import type { StepSource } from "./blocks/source/block";
 import type { PipeCalc } from "./blocks/calc/block";
 import type { CheckOp, PipeCheck } from "./blocks/check/block";
@@ -103,7 +107,8 @@ export type DiagramEvent =
   | PipeWrite
   | PipeCheck
   | PipeEmit
-  | PipeCalc;
+  | PipeCalc
+  | ChartSet;
 
 /**
  * 時間軸の図 (#3165) の印の色を変える出来事と範囲の括弧の出来事と、目盛りと区切りと印の列と節目の型は、
@@ -141,6 +146,15 @@ export type { TreeLeaf, TreeNode };
  * 列の並びと札と役とチップのブロックが持つ (#3348)
  */
 export type { LineupAct, LineupItem, LineupOrder, LineupRole, LineupStamp };
+
+/** 量の図 (#3560) の項目と見た目と、項目の値を変える出来事の型は、項目と見た目と値のブロックが持つ */
+export type { ChartItem, ChartSet, ChartShape };
+
+/** 量の図の種類の欄 (#3560)。見た目と、宣言した順の項目 */
+export interface ChartSpec {
+  shape: ChartShape;
+  items: ChartItem[];
+}
 
 /** 試す図 (#3337) の、待ち行列 `part` の中身を `items` の並びにするか、機械の列 `part` に `items` を入れた新しいブロックを足す出来事 */
 export interface TryLine {
@@ -222,6 +236,9 @@ export interface TryCheck {
 /** 枝分かれの図の枝の型は枝のブロック、状態遷移図の移れる道の型は脇道のブロックが持つ (#3347) */
 export type { GitBranch, StatePath };
 
+/** 手順の図 (#3561) の判断の型は判断のブロックが持つ */
+export type { FlowChoice };
+
 /** 段の出典の型は出典のブロックが持つ (#3345) */
 export type { StepSource };
 /** 線の名前を置く側の型は線の名前のブロックが持つ (#3345) */
@@ -243,7 +260,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -254,12 +271,14 @@ export interface Strip {
 
 /**
  * 原本の図の宣言 (#3346)。ブロックの名前ごとの欄に、そのブロックの宣言を持つ。空の並びは書かない。
- * 区画 (`group`)、箱 (`box`)、中身の帯 (`strip`) と、図の種類だけの宣言 (状態遷移図の移れる道 `path`、枝分かれの図の枝 `branch`、
+ * 区画 (`group`)、箱 (`box`)、中身の帯 (`strip`) と、図の種類だけの宣言 (状態遷移図と手順の図の移れる道 `path`、手順の図の判断 `choice`、枝分かれの図の枝 `branch`、
  * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と作業 `task` と節目 `point` と拡大の範囲 `zoom`、列の図と試す図のチップ `item`、試す図の部品 `part` と関門 `check`)
  */
 export interface DiagramBlocks {
   group?: Region[];
   box?: Box[];
+  /** 手順の図 (#3561) の判断。ひし形で描く */
+  choice?: FlowChoice[];
   strip?: Strip;
   path?: StatePath[];
   branch?: GitBranch[];
@@ -291,6 +310,8 @@ export interface Diagram {
   view?: ViewMode;
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
+  /** 量の図 (#3560) の見た目と項目。量の図だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
+  chart?: ChartSpec;
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -323,6 +344,10 @@ export interface DiagramModel {
    * `folds` は描く処理が畳んだ図 (`kinds/pipe/layout.ts` の `foldPipe`) だけが持ち、原本は持たない
    */
   pipe?: { holds: PipeHold[]; folds?: PipeFold[] };
+  /** 量の図 (#3560) の見た目と項目。版1の原本に無かった種類なので、版2の原本の `chart` をそのまま持つ */
+  chart?: ChartSpec;
+  /** 手順の図 (#3561) の判断と、最初の段より前に書いた移れる道。版1の原本に無かった種類なので、版2の原本の `choice` と `path` をそのまま持つ */
+  flow?: { choices: FlowChoice[]; paths: StatePath[] };
 }
 
 /**
@@ -351,7 +376,7 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
 const PART_TYPES = ["route", "queue", "chain", "log", "ask", "press"] as const satisfies readonly TryPart["type"][];
 
@@ -367,7 +392,8 @@ const ABSENT = "#/definitions/absent/not";
 const ABSENT_KINDS: Record<string, string> = {
   regions: "sequence / architecture / state",
   group: "sequence / architecture / state",
-  path: "state",
+  path: "state / flow",
+  choice: "flow",
   branch: "git",
   scale: "time",
   period: "time",
@@ -381,24 +407,25 @@ const ABSENT_KINDS: Record<string, string> = {
   check: "try",
   values: "try",
   hold: "pipe",
-  box: "sequence / architecture / state / git / time / tree / lineup / pipe",
+  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow",
   order: "lineup",
   at: "time",
   into: "time",
   color: "time",
   meters: "time",
   region: "sequence / architecture / state",
-  icon: "sequence / architecture / state / git / time / tree / pipe",
-  link: "sequence / architecture / state / git / time / tree",
+  icon: "sequence / architecture / state / git / time / tree / pipe / flow",
+  link: "sequence / architecture / state / git / time / tree / flow",
   gist: "pipe",
+  chart: "chart",
 };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
 const NOT_ALLOWED: Record<string, Allowed> = {
   carry: { field: "text", kind: "tag" },
 };
 
-/** 状態遷移図の箱の名札に予約の名前を書いた時の決まりの場所 */
-const RESERVED_ID = /\/box\/items\/properties\/id\/not$/u;
+/** 状態遷移図と手順の図 (#3561) の箱と判断の名札に予約の名前を書いた時の決まりの場所 */
+const RESERVED_ID = /\/(?:box|choice)\/items\/properties\/id\/not$/u;
 /** 枝分かれの図でない図に、枝分かれの図だけの出来事を書いた時の決まりの場所 (#3164) */
 const GIT_EVENT = /\/events\/items\/properties\/type\/not$/u;
 /** 枝分かれの図だけが書ける出来事 */
@@ -423,6 +450,10 @@ const TRY_EVENTS = ["ask", "press", "item"] as const satisfies readonly DiagramE
 const PIPE_EVENT = "#/definitions/notPipeEvent/not";
 /** 配管の図だけが書ける出来事 */
 export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
+/** 量の図でない図に、量の図だけの出来事を書いた時の決まりの場所 (#3560) */
+const CHART_EVENT = "#/definitions/notChartEvent/not";
+/** 量の図だけが書ける出来事 */
+const CHART_EVENTS = ["set"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類の決まりの場所 (#3337) */
 const PART_TAG = "#/definitions/part/discriminator";
 /** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
@@ -485,13 +516,14 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       return { pointer: `${at}/${escape(key)}`, message: m.required(key) };
     }
     case "not": {
-      if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: m.reserved(STATE_ENDS) };
+      if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: (input as { kind?: unknown }).kind === "flow" ? m.flowReserved(STATE_ENDS) : m.reserved(STATE_ENDS) };
       if (GIT_EVENT.test(error.schemaPath)) return { pointer: at, message: m.kindOnly(GIT_EVENTS, "git") };
       if (TIME_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TIME_EVENTS, "time") };
       if (TREE_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TREE_EVENTS, "tree") };
       if (error.schemaPath === LINEUP_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(LINEUP_EVENTS, "lineup") };
       if (error.schemaPath === TRY_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(TRY_EVENTS, "try") };
       if (error.schemaPath === PIPE_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(PIPE_EVENTS, "pipe") };
+      if (error.schemaPath === CHART_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(CHART_EVENTS, "chart") };
       if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };

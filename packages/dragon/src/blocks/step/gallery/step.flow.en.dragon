@@ -1,0 +1,16 @@
+flow Step [view: fixed]
+
+box stop as Stopped
+box run as Run
+
+step Start
+  say step separates the steps, and say writes the text of a step.
+    A command to type in that step goes in code.
+  code systemctl start app
+  stop -> run: Start
+
+step Finish
+  say Steps are shown one at a time.
+    view picks whether the frame follows the step or holds the whole figure still.
+  code systemctl stop app
+  run -> finish

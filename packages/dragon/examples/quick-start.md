@@ -51,9 +51,10 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>` のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
+| 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
 | 中身の帯 | `strip <題>: <欄>, <欄>`。時間軸の図では欄の名前の後ろに `[meter: <割合>]` を付けると物差しになる | `strip メッセージ: ID, 宛先, 状態` |
 | 枝 | `branch <枝> [note: <添え書き>]`。枝分かれの図だけで書け、宣言した順に上から帯が並ぶ | `branch feature [note: 作業の枝]` |
 | 目盛り | `scale <単位> <長さ> <数> [from: <最初の番号>]`。長さは数と単位 (`ms`、`s`、`min`、`h`、`d`) の組で書き、その数の目盛りが軸に等間隔で並ぶ。時間軸の図だけで書ける | `scale slot 12s 64` |
@@ -326,6 +327,62 @@ step 交換が終わる
   return ex: 3200 USDC
 ```
 
+量の図 (`chart <題> [shape: donut]` か `chart <題> [shape: bar]`) は、項目どうしの大きさを段ごとに比べる。ドーナツは項目ごとの割合を弧の角度で、横棒は項目ごとの量を棒の長さで描く。
+最初の段より前に `item <名札> as <名前> [color: <色>]` で比べる項目を 1 つ以上、8 個まで宣言する。
+段の中の `set <名札>: <値>` は項目の値で、0 以上の数を単位を付けずに書く。`set` を書かない項目は前の段の値を保ち、弧と棒は前の段の値から新しい値へ動く。
+
+```dragon
+chart スマホのOSの割合 [shape: donut]
+
+item ios as iOS [color: blue]
+item android as Android [color: green]
+item other as その他 [color: slate]
+
+step 2018年
+  say iOSが7割を占める。
+  set ios: 70
+  set android: 29
+  set other: 1
+
+step 2024年
+  say Androidが4割近くまで伸びる。
+  set ios: 60
+  set android: 39
+```
+
+手順の図 (`flow <題>`) では、手順を `box`、判断を `choice <名札> as <問い>` で書く。
+段が通る箱と判断は、線が初めて辿り着く順に上から下へ 1 列に並び、判断がほかへ送る道は判断の右へ出る。
+判断から出る線には答えを名前に書き、1 つの判断から出る道は 2 つまで。
+状態遷移図と同じく、`start` と `finish` で始まりと終わりの印を結び、最初の `step` の行より前に書いた線は今回は通らない道として点線で残る。
+段の線が 1 本も辿り着かない箱は縁が点線になり、名前も薄い色で書く。
+段で動く線は青く引かれ、その上を点が走る。
+`carry` と `tag` を書かない線では、封筒の代わりにこの点が走る。
+長い問いは助詞か空白の後で 2 行に折る。
+
+```dragon
+flow 申し込みの受け付け
+
+box form as 申し込みを受ける
+choice ok as 書けている？
+box send as 受け付ける [color: green]
+box back as 書き直してもらう [color: rose]
+
+ok -> back: いいえ
+
+step 受ける
+  say 申し込みが届いて手順が始まる。
+  start -> form
+
+step 確かめる
+  say 書けているかを判断する。「いいえ」の道は点線で判断の右へ出る。
+  form -> ok: 調べる
+
+step 受け付ける
+  say 書けていたので、「はい」の道を下へ進んで受け付ける。
+  ok -> send: はい
+  send -> finish
+```
+
 ## 属性
 
 行の終わりの `[ ]` の中に `<鍵>: <値>` を `,` で区切って並べ、見た目と運ぶ物を指定する。
@@ -333,6 +390,7 @@ step 交換が終わる
 | 付ける行 | 鍵 | 意味 |
 |---|---|---|
 | 図の種類と題 | `view` | 見せ方。`fixed` か `follow` |
+| 図の種類と題 | `shape` | 量の図の見た目。`donut` か `bar`。量の図だけが持ち、必ず書く |
 | 区画と箱 | `note` | 区画の添え書きか、箱の下の小さな字 |
 | 区画と箱 | `color` | 色の役。`blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` のどれか |
 | 区画と箱 | `icon` | 名前の横に置く印 |

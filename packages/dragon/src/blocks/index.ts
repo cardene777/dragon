@@ -7,7 +7,11 @@ import { block as calcBlock } from "./calc/block";
 import { block as callBlock } from "./call/block";
 import { block as carryBlock } from "./carry/block";
 import { block as chainBlock } from "./chain/block";
+import { block as chartItemBlock } from "./chart-item/block";
+import { block as chartSetBlock } from "./chart-set/block";
+import { block as chartShapeBlock } from "./chart-shape/block";
 import { block as checkBlock } from "./check/block";
+import { block as choiceBlock } from "./choice/block";
 import { block as colorBlock } from "./color/block";
 import { block as commitBlock } from "./commit/block";
 import { block as copyBlock } from "./copy/block";
@@ -63,7 +67,11 @@ export const BLOCKS = {
   "call": callBlock,
   "carry": carryBlock,
   "chain": chainBlock,
+  "chart-item": chartItemBlock,
+  "chart-set": chartSetBlock,
+  "chart-shape": chartShapeBlock,
   "check": checkBlock,
+  "choice": choiceBlock,
   "color": colorBlock,
   "commit": commitBlock,
   "copy": copyBlock,
@@ -111,4 +119,4 @@ export const BLOCKS = {
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "ask", "box", "branch", "calc", "call", "carry", "chain", "check", "color", "commit", "copy", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "item", "leaf", "legend", "lifeline", "line", "link", "log", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "task", "value", "write", "zoom"] as const;
+export const BLOCK_NAMES = ["act", "ask", "box", "branch", "calc", "call", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "color", "commit", "copy", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "item", "leaf", "legend", "lifeline", "line", "link", "log", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "task", "value", "write", "zoom"] as const;

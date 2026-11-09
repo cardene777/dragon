@@ -180,7 +180,7 @@ const stepMismatch = (c: Category, key: ExampleKey, lang: Lang): string => {
 const docsSel = (name: string): string => `[data-docs="${name}"]`;
 
 /** 使い方の節の並び。節の番号はこの並びから付く */
-const DOC_SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+const DOC_SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "chart", "flow", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 
 /** 記法の例を持たない節。頁に置く節は README と同じ code を、書き出しは命令を、前の形から書き直す節は対応表を出す */
 const WITHOUT_EXAMPLE: readonly string[] = ["place", "export", "migrate"];
@@ -219,6 +219,8 @@ const boxesOf = (d: Diagram): NonNullable<Diagram["blocks"]["box"]> => d.blocks.
  * 図に描く箱の名前。配管の図は、`[fold]` の呼び出しの内側の段 (開いた段の次の段から閉じた段の前の段まで) にしか出ない関係者を、箱を開くまで描かない (#3389)
  */
 const drawnNames = (d: Diagram): string[] => {
+  // 手順の図の判断は、問いを名前にしたひし形の箱で描く (#3561)
+  if (d.kind === "flow") return [...boxesOf(d), ...(d.blocks.choice ?? [])].map((b) => b.name);
   if (d.kind !== "pipe") return boxesOf(d).map((b) => b.name);
   const partiesOf = (e: Diagram["steps"][number]["events"][number]): string[] =>
     e.type === "call" ? [e.from, e.to] : !("box" in e) ? [] : e.type === "move" ? [e.box, e.from, e.to] : [e.box];
@@ -240,7 +242,7 @@ const drawnNames = (d: Diagram): string[] => {
 };
 
 /** dragon記法の行の種類。行の頭の語と、箱の名札から始まる線の `->` */
-const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "tree", "try", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "leaf", "node", "route", "queue", "chain", "ask", "press", "pipe", "hold", "move", "write", "check", "return", "revert", "emit", "calc", "gist", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
+const LINE_KINDS = ["sequence", "architecture", "state", "git", "time", "tree", "try", "group", "end", "box", "branch", "scale", "period", "row", "point", "zoom", "leaf", "node", "route", "queue", "chain", "ask", "press", "chart", "pipe", "hold", "move", "write", "check", "return", "revert", "emit", "calc", "gist", "flow", "choice", "strip", "step", "say", "code", "commit", "mark", "span", "act", "note", "set", "->"] as const;
 
 /** 節の例が、その節で説明する記法の要素を使っているか */
 const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
@@ -290,6 +292,13 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
     d.kind === "try" &&
     ["route", "queue", "chain", "ask", "press"].every((type) => (d.blocks.part ?? []).some((part) => part.type === type)) &&
     ["line", "ask", "press"].every((type) => eventsOf(d).some((e) => e.type === type)),
+  // 判断を宣言し、判断から出る通らない道を最初の段より前に書き、始まりと終わりの線を通す (#3561)
+  flow: (d) =>
+    d.kind === "flow" &&
+    (d.blocks.choice?.length ?? 0) >= 1 &&
+    (d.blocks.path?.length ?? 0) >= 1 &&
+    eventsOf(d).some((e) => e.type === "edge" && e.from === "start") &&
+    eventsOf(d).some((e) => e.type === "edge" && e.to === "finish"),
   // 残高と残高でない値を宣言し、配管の図の段の中の行を全て書く (#3389)。ETH を添える呼び出しと処理の種類を付けた呼び出しと畳む呼び出しと落ちる確認も書く
   pipe: (d) =>
     d.kind === "pipe" &&
@@ -300,6 +309,14 @@ const DOC_COVERS: Record<string, (d: Diagram) => boolean> = {
     eventsOf(d).some((e) => e.type === "call" && e.call !== undefined) &&
     eventsOf(d).some((e) => e.type === "call" && e.fold === true) &&
     eventsOf(d).some((e) => e.type === "check" && e.fail === true),
+  // 色を付けた項目を 2 つ以上宣言し、段を 2 つ以上置いて段の中で値を書く (#3560)
+  chart: (d) =>
+    d.kind === "chart" &&
+    d.chart !== undefined &&
+    d.chart.items.length >= 2 &&
+    d.chart.items.every((item) => item.color !== undefined) &&
+    d.steps.length >= 2 &&
+    d.steps.every((s) => s.events.some((e) => e.type === "set")),
   steps: (d) => d.steps.length >= 2 && d.steps.some((s) => s.code !== undefined) && eventsOf(d).some((e) => e.type === "swap"),
   strip: (d) => d.blocks.strip !== undefined && eventsOf(d).some((e) => e.type === "strip"),
   carry: (d) => ["envelope", "tag", "coin", "none"].every((kind) => eventsOf(d).some((e) => e.type === "edge" && e.carry.kind === kind)),
@@ -381,7 +398,7 @@ const EDGE_FORM = /^\S+\s*->/u;
  * 前の形と新しい形の対応表 (#3138) を作った後に足した記法の語。前の形が無いので対応表に行を持たない。
  * 対応表は出した版 (0.36.0) の変更履歴の表と同じで、後から行を足さない
  */
-const ADDED_AFTER_MIGRATION = ["state", "git", "branch", "commit", "time", "scale", "period", "row", "task", "point", "zoom", "mark", "span", "source", "tree", "leaf", "node", "lineup", "item", "line", "seal", "open", "pick", "stamp", "role", "try", "route", "queue", "chain", "log", "ask", "choose", "press", "side", "pipe", "hold", "move", "write", "check", "return", "revert", "emit", "calc", "gist"];
+const ADDED_AFTER_MIGRATION = ["state", "git", "branch", "commit", "time", "scale", "period", "row", "task", "point", "zoom", "mark", "span", "source", "tree", "leaf", "node", "lineup", "item", "line", "seal", "open", "pick", "stamp", "role", "try", "route", "queue", "chain", "log", "ask", "choose", "press", "side", "pipe", "hold", "move", "write", "check", "return", "revert", "emit", "calc", "gist", "chart", "flow", "choice"];
 
 /** 使い方の頁の前置きと札と節 */
 const docsOf = (
@@ -1208,7 +1225,7 @@ describe("サイトの帯と経路と頁 (#3030)", () => {
 
       const expectDocs = async (lang: Lang): Promise<void> => {
         // 節の例は file に置き、どれも読めて検査を通り、その節で説明する要素を使う。記法の語はどちらの言葉の頁でも英語 (#3137)
-        const words = ["sequence", "architecture", "state", "git", "time", "tree", "try", "pipe"];
+        const words = ["sequence", "architecture", "state", "git", "time", "tree", "try", "chart", "pipe", "flow"];
         const want = DOC_SECTIONS.map((id, i) => {
           const text = WITHOUT_EXAMPLE.includes(id) ? undefined : docsExample(id, lang);
           const diagram = text === undefined ? undefined : docsDiagram(id, text);

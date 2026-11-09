@@ -1,0 +1,16 @@
+flow Line
+
+box get as Accept
+choice ok as Owner free?
+box work as Handle it
+box wait as Wait
+
+ok -> wait: No
+
+step Assign
+  say Draw a line with -> from the id of one task to the id of the next.
+  get -> ok: Check
+
+step Go on
+  say Each step writes the lines it takes. Lines leaving a choice carry a name.
+  ok -> work: Yes

@@ -12,7 +12,7 @@ import type { Seat } from "../blocks/carry/timing";
 import { cs } from "../blocks/color/draw";
 import { glyph } from "../blocks/icon/draw";
 import { textBox } from "../layout/measure";
-import { type Point, type SceneBadge, type SceneBox } from "../layout/scene";
+import { type Point, type Rect, type SceneBadge, type SceneBox } from "../layout/scene";
 import { type Corner, EASE, LOOK, MOTION, type TextStyle } from "../look/values";
 import type { Span, Timeline } from "../timeline";
 import { r1 } from "./round";
@@ -92,6 +92,13 @@ export interface Ctx {
   corner: Corner;
   /** 運ぶ物が置き場に座っている所と間 (#3518)。箱の置き場の枠は、運ぶ物が座っている間だけ見せる */
   seats: Seat[];
+  /**
+   * 箱の縁の描き方 (#3561)。手順の図の部品を読んだ図だけが持ち、判断のひし形と本筋に無い箱の点線の縁を描く。
+   * その形で描かない箱は `undefined` を返し、今の箱の形で描く。`cls` は縁の部品の class、`extra` は後ろに足す属性
+   */
+  frame?: (box: SceneBox, cls: string, extra: string, rect: Rect, corner: Corner) => string | undefined;
+  /** 箱の名前の字の書き方 (#3561)。手順の図の部品を読んだ図だけが持ち、本筋に無い箱の薄い名前と、問いを折った判断の行を書く。基準線を `y` に置く */
+  boxName?: (box: SceneBox, ink: Ink[], x: number, y: number) => string;
 }
 
 /** 和文を含む字の、和文の字で描く時の字の形 */

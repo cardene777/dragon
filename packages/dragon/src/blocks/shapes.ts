@@ -7,7 +7,11 @@ import { shape as calcShape } from "./calc/shape";
 import { shape as callShape } from "./call/shape";
 import { shape as carryShape } from "./carry/shape";
 import { shape as chainShape } from "./chain/shape";
+import { shape as chartItemShape } from "./chart-item/shape";
+import { shape as chartSetShape } from "./chart-set/shape";
+import { shape as chartShapeShape } from "./chart-shape/shape";
 import { shape as checkShape } from "./check/shape";
+import { shape as choiceShape } from "./choice/shape";
 import { shape as colorShape } from "./color/shape";
 import { shape as commitShape } from "./commit/shape";
 import { shape as copyShape } from "./copy/shape";
@@ -63,7 +67,11 @@ export const SHAPES = {
   "call": callShape,
   "carry": carryShape,
   "chain": chainShape,
+  "chart-item": chartItemShape,
+  "chart-set": chartSetShape,
+  "chart-shape": chartShapeShape,
   "check": checkShape,
+  "choice": choiceShape,
   "color": colorShape,
   "commit": commitShape,
   "copy": copyShape,

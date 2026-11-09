@@ -7,7 +7,11 @@ import { docs as calcDocs } from "../../../../packages/dragon/src/blocks/calc/ga
 import { docs as callDocs } from "../../../../packages/dragon/src/blocks/call/gallery/docs";
 import { docs as carryDocs } from "../../../../packages/dragon/src/blocks/carry/gallery/docs";
 import { docs as chainDocs } from "../../../../packages/dragon/src/blocks/chain/gallery/docs";
+import { docs as chartItemDocs } from "../../../../packages/dragon/src/blocks/chart-item/gallery/docs";
+import { docs as chartSetDocs } from "../../../../packages/dragon/src/blocks/chart-set/gallery/docs";
+import { docs as chartShapeDocs } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/docs";
 import { docs as checkDocs } from "../../../../packages/dragon/src/blocks/check/gallery/docs";
+import { docs as choiceDocs } from "../../../../packages/dragon/src/blocks/choice/gallery/docs";
 import { docs as colorDocs } from "../../../../packages/dragon/src/blocks/color/gallery/docs";
 import { docs as commitDocs } from "../../../../packages/dragon/src/blocks/commit/gallery/docs";
 import { docs as copyDocs } from "../../../../packages/dragon/src/blocks/copy/gallery/docs";
@@ -63,7 +67,11 @@ export const BLOCK_DOCS = {
   "call": callDocs,
   "carry": carryDocs,
   "chain": chainDocs,
+  "chart-item": chartItemDocs,
+  "chart-set": chartSetDocs,
+  "chart-shape": chartShapeDocs,
   "check": checkDocs,
+  "choice": choiceDocs,
   "color": colorDocs,
   "commit": commitDocs,
   "copy": copyDocs,

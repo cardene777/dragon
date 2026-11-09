@@ -84,8 +84,10 @@ export function subLines(
 
 /** 箱の地と縁。上端 `y` から高さ `h`。動く段 (`act` の間) は縁に色を付け、外側に淡い光を足す。 */
 function cardFrame(box: SceneBox, ctx: Ctx, act: string | undefined, y: number, h: number): string {
-  // 足した箱のブロックの形は、定義を読む処理と一緒に後から読む形の処理が描く (#3520)。読む前は今の箱の形で描く
+  // 足した箱のブロックの形は、定義を読む処理と一緒に後から読む形の処理が描く (#3520)。読む前は今の箱の形で描く。
+  // 手順の図の判断のひし形と本筋に無い箱の点線の縁は、手順の図の部品が渡す縁の描き方が描く (#3561)
   const rect = (cls: string, extra = ""): string =>
+    ctx.frame?.(box, cls, extra, { x: box.x, y, w: box.w, h }, ctx.corner) ??
     userBlockReader()?.shapes.draw(box.id, cls, extra, { x: box.x, y, w: box.w, h }) ??
     frameShape(
       ctx.corner,
@@ -140,10 +142,13 @@ export function card(
     });
     mark = `<rect class="dg-ic" x="${r1(rect.x)}" y="${r1(rect.y)}" width="${icon}" height="${icon}" rx="${partRadius(ctx.corner, iconRadius)}"/>${glyph(box.icon, ix, ty + iconY, iconScale)}`;
   }
+  // 手順の図は、本筋に無い箱の名前と問いを折った判断の行を手順の図の部品が書く (#3561)
+  const base = ty + ctx.boxText.name;
+  const name = ctx.boxName?.(box, ctx.ink, tx, base) ?? write(ctx.ink, "dg-sn", tx, base, box.name, TYPE.boxName, ALWAYS, "middle");
   // 足した箱のブロックの箱は、その定義の色の役で描く (#3399)
   const markup =
     `<g style="${cs(userBoxOf(box.id)?.color ?? box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
-    `${slot}${mark}${write(ctx.ink, "dg-sn", tx, ty + ctx.boxText.name, box.name, TYPE.boxName, ALWAYS, "middle")}${subs}</g>`;
+    `${slot}${mark}${name}${subs}</g>`;
   // 箱の中に書いた字 (名前、下の字、絵柄) に箱の名札を付け、崩れの確かめが箱の形の外へはみ出す字を探せるようにする (#3484)
   for (const ink of ctx.ink.slice(inked)) ink.box = box.id;
   return markup;

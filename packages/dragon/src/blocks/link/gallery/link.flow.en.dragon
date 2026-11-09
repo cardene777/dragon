@@ -1,0 +1,13 @@
+flow Link
+
+box order as Take the order
+box pay as Check the payment [link: https://github.com/cardene777/dragon]
+
+step Take
+  say link gives a task box a target, so pressing the box in the drawn figure opens it.
+  start -> order
+
+step Check
+  say When the check has its own diagram, link to that page.
+  order -> pay: Paid
+  pay -> finish

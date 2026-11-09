@@ -1,0 +1,13 @@
+flow Line label
+
+box a as Alpha
+box b as Beta
+box c as Gamma
+
+step Right
+  say The text after the colon names the line. A vertical line puts it on the right.
+  a -> b: right label
+
+step Left
+  say side picks where the name goes: above, below, left or right.
+  b -> c: left label [side: left]

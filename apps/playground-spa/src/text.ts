@@ -30,8 +30,8 @@ const shelfTexts = (lang: Lang): Readonly<Record<ShelfPartId, string>> =>
     }),
   ) as Record<ShelfPartId, string>;
 
-/** 状態の欄で数える図の部品 (#3261) */
-export type CountedPart = "box" | "branch" | "row" | "lane" | "part";
+/** 状態の欄で数える図の部品 (#3261)。量の図は項目を数える (#3560) */
+export type CountedPart = "box" | "branch" | "row" | "lane" | "part" | "item";
 
 export const TEXT = {
   ja: {
@@ -111,7 +111,7 @@ export const TEXT = {
     fold: "畳む",
     unfold: "開く",
     readable: (part: CountedPart, count: number, steps: number) =>
-      `読めています — ${{ box: `箱 ${count} つ`, branch: `枝 ${count} 本`, row: `印の列 ${count} 本`, lane: `列 ${count} 本`, part: `部品 ${count} つ` }[part]}、段 ${steps}`,
+      `読めています — ${{ box: `箱 ${count} つ`, branch: `枝 ${count} 本`, row: `印の列 ${count} 本`, lane: `列 ${count} 本`, part: `部品 ${count} つ`, item: `項目 ${count} つ` }[part]}、段 ${steps}`,
     notJson: (message: string) => `JSON として読めない — ${message}`,
     cannotDraw: (message: string) => `描けない — ${message}`,
     kept: "誤りがあるあいだは、最後に描けた図を出しています",
@@ -126,7 +126,7 @@ export const TEXT = {
       filter: "絞り込む…",
       filterLabel: "一覧を絞り込む",
       nothing: "当てはまる物が無い",
-      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図" },
+      kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図", chart: "量の図", flow: "手順の図" },
       partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
       notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
       parts: shelfTexts("ja"),
@@ -240,7 +240,7 @@ export const TEXT = {
     fold: "Hide",
     unfold: "Show",
     readable: (part: CountedPart, count: number, steps: number) =>
-      `Reads fine — ${count} ${count === 1 ? part : { box: "boxes", branch: "branches", row: "rows", lane: "lanes", part: "parts" }[part]}, ${steps} ${steps === 1 ? "step" : "steps"}`,
+      `Reads fine — ${count} ${count === 1 ? part : { box: "boxes", branch: "branches", row: "rows", lane: "lanes", part: "parts", item: "items" }[part]}, ${steps} ${steps === 1 ? "step" : "steps"}`,
     notJson: (message: string) => `Not valid JSON — ${message}`,
     cannotDraw: (message: string) => `Cannot draw — ${message}`,
     kept: "Showing the last diagram that drew",
@@ -255,7 +255,7 @@ export const TEXT = {
       filter: "Filter…",
       filterLabel: "Filter the list",
       nothing: "Nothing matches",
-      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram" },
+      kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram", chart: "Chart", flow: "Flow diagram" },
       partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
       notationHint: "Line shapes, in the words of the notation you are writing",
       parts: shelfTexts("en"),

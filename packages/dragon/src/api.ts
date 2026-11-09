@@ -9,6 +9,10 @@ export type { NotationLang } from "./words";
 export {
   type Box,
   type Carry,
+  type ChartItem,
+  type ChartSet,
+  type ChartShape,
+  type ChartSpec,
   type Checked,
   type CheckOp,
   type CheckOptions,
@@ -19,6 +23,7 @@ export {
   type DiagramKind,
   type DiagramModel,
   type FieldError,
+  type FlowChoice,
   type GitBranch,
   type GitCommit,
   type LabelSide,
@@ -125,6 +130,7 @@ export type {
   PipeValuePipe,
   PipeWrite as PipeWritePlaced,
 } from "./kinds/pipe/layout";
+export type { ChartArc, ChartBarRow, ChartLayout, ChartLayoutOptions, ChartLegendRow, ChartPlan, ChartRow } from "./kinds/chart/layout";
 export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupText, TextLine } from "./kinds/lineup/layout";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";
@@ -135,7 +141,7 @@ export type { FrameSide, LayoutBreak, LayoutBreakKind, LayoutPart } from "./rend
 export { checkLayoutText, describeBreak } from "./render/layout-check";
 export { iconSvg } from "./blocks/icon/draw";
 export { type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
-export type { CarrierTime, EdgeTime, EventTime, LabelTime, Span, StateTime, Timeline } from "./timeline";
+export type { CarrierTime, EdgeTime, EventTime, LabelTime, MarkTime, Span, StateTime, Timeline } from "./timeline";
 export { chooseView } from "./view";
 /** ブロックを使える図の種類。ブロックの付け方と図の種類が受け付ける付け方から導く (#3348) */
 export { blockKinds } from "./blocks/usable";

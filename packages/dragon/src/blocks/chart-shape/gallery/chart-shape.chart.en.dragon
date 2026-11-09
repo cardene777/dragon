@@ -1,0 +1,12 @@
+chart Share of the day [shape: donut]
+
+item work as Work
+item rest as Rest
+item move as Travel
+
+step Weekday
+  say shape on the first line picks the look.
+    donut draws shares as arc angles, and bar draws amounts as bar lengths.
+  set work: 9
+  set rest: 13
+  set move: 2

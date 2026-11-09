@@ -50,12 +50,25 @@ function linePairs(file: string, theme: (typeof THEMES)[number]) {
 
 const sameCurve = (a: Curve, b: Curve): boolean => near(a.from, b.from) && near(a.at, b.at) && near(a.to, b.to);
 
+/** class ごとの、効いている線の端 */
+const caps = (root: Element): Record<string, string> => {
+  const rules = rulesIn(root);
+  const out: Record<string, string> = {};
+  for (const el of root.querySelectorAll(STROKES)) {
+    const cls = el.getAttribute("class");
+    if (cls) out[cls] = [...new Set([...(out[cls]?.split(" ") ?? []), strokeOf(el, "stroke-linecap", rules)])].sort().join(" ");
+  }
+  return out;
+};
+
+/** 線を持つ見本。見本ごとの検査が線を読めていることを、この見本で確かめる */
+const WITH_LINES = "oauth.json";
+
 describe.for(THEMES)("arcade の線 (%s)", (theme) => {
-  it("arcade-draws-square-line-bends", () => {
-    const wrong: string[] = [];
-    let lines = 0;
-    for (const file of FILES) {
-      lines += linesOf(figureOf(file, "arcade", theme)).length;
+  // 検査は見本ごとに分ける (#3571)。全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超える。角の検査の #3410 と同じ形
+  describe.for(FILES)("%s", (file) => {
+    it("arcade-draws-square-line-bends", () => {
+      const wrong: string[] = [];
       for (const { cls, paper, arcade } of linePairs(file, theme)) {
         for (const c of arcade.curves.filter((c) => c.turn >= SQUARE_FROM))
           wrong.push(`${file} の ${cls} が ${Math.round(c.turn)} 度の折れ目 ${at(c.at)} を丸めている`);
@@ -64,9 +77,24 @@ describe.for(THEMES)("arcade の線 (%s)", (theme) => {
           if (!corner) wrong.push(`${file} の ${cls} の折れ目 ${at(c.at)} で、前後の区間が直に交わっていない`);
         }
       }
-    }
-    expect(lines, "線を 1 本も読めていない").toBeGreaterThan(0);
-    expect(wrong).toEqual([]);
+      expect(wrong).toEqual([]);
+    });
+
+    it("arcade-keeps-round-line-ends", () => {
+      const paper = caps(figureOf(file, "paper", theme));
+      const arcade = caps(figureOf(file, "arcade", theme));
+      const shared = Object.fromEntries(Object.entries(arcade).filter(([cls]) => cls in paper));
+      const expected = Object.fromEntries(Object.keys(shared).map((cls) => [cls, paper[cls]]));
+      expect(shared, `${file} を arcade の ${theme} で描いた線の端`).toEqual(expected);
+    });
+  });
+
+  it("arcade-line-examples-found", () => {
+    // 見本ごとの検査は線を読めないと 1 件も確かめずに素通りする
+    expect(FILES.length, "線を確かめる見本が無い (走査の空振り)").toBeGreaterThan(0);
+    const root = figureOf(WITH_LINES, "arcade", theme);
+    expect(linesOf(root).length, "線を 1 本も読めていない").toBeGreaterThan(0);
+    expect(Object.values(caps(root)).filter((cap) => cap.includes("round")).length, "丸い端の線が 1 本も無い").toBeGreaterThan(0);
   });
 
   it("arcade-keeps-curves-smooth", () => {
@@ -111,51 +139,38 @@ describe.for(THEMES)("arcade の線 (%s)", (theme) => {
     // 同じ class の形は見本ごとに同じ規則で描くので、見本の名前を外して 1 行にまとめる
     expect([...new Set(wrong.map((w) => w.replace(/^\S+ の /u, "")))]).toEqual([]);
   });
+});
 
-  it("arcade-keeps-round-line-ends", () => {
-    /** class ごとの、効いている線の端 */
-    const caps = (root: Element): Record<string, string> => {
-      const rules = rulesIn(root);
-      const out: Record<string, string> = {};
-      for (const el of root.querySelectorAll(STROKES)) {
-        const cls = el.getAttribute("class");
-        if (cls) out[cls] = [...new Set([...(out[cls]?.split(" ") ?? []), strokeOf(el, "stroke-linecap", rules)])].sort().join(" ");
-      }
-      return out;
-    };
-    let round = 0;
-    for (const file of FILES) {
-      const paper = caps(figureOf(file, "paper", theme));
-      const arcade = caps(figureOf(file, "arcade", theme));
-      round += Object.values(arcade).filter((cap) => cap.includes("round")).length;
-      const shared = Object.fromEntries(Object.entries(arcade).filter(([cls]) => cls in paper));
-      const expected = Object.fromEntries(Object.keys(shared).map((cls) => [cls, paper[cls]]));
-      expect(shared, `${file} を arcade の ${theme} で描いた線の端`).toEqual(expected);
-    }
-    expect(round, "丸い端の線が 1 本も無い").toBeGreaterThan(0);
+/** 角を落とさない色味と明暗の組 */
+const OTHER_CASES = OTHERS.flatMap((palette) => THEMES.map((theme) => ({ palette, theme })));
+
+/** 線の形を変える前の記録 */
+const before = JSON.parse(
+  readFileSync(join(ROOT, "packages/dragon/test/fixtures/bends-before-arcade.json"), "utf8"),
+) as Record<string, string>;
+
+describe("線の形を変える前の記録 (#3358)", () => {
+  it("bends-record-lists-every-example", () => {
+    expect(Object.keys(before).sort(), "線の形を変える前の記録と見本の file").toEqual(FILES);
   });
 });
 
-/** 角を落とさない色味と明暗の組。1 組ずつ描いて 1 件の上限 (10 秒) に収める (#3381) */
-const OTHER_CASES = OTHERS.flatMap((palette) => THEMES.map((theme) => ({ palette, theme })));
-
 describe.for(OTHER_CASES)("$palette の線 ($theme)", ({ palette, theme }) => {
-  it("other-palettes-keep-round-bends", () => {
-    const before = JSON.parse(
-      readFileSync(join(ROOT, "packages/dragon/test/fixtures/bends-before-arcade.json"), "utf8"),
-    ) as Record<string, string>;
-    expect(Object.keys(before).sort(), "線の形を変える前の記録と見本の file").toEqual(FILES);
-    let elbows = 0;
-    for (const file of FILES) {
+  // 見本ごとに分ける理由は上の arcade の線と同じ (#3571)
+  describe.for(FILES)("%s", (file) => {
+    it("other-palettes-keep-round-bends", () => {
       const root = figureOf(file, palette, theme);
       expect(linePrint(root), `${file} を ${palette} の ${theme} で描いた線の道筋と継ぎ目と端`).toBe(before[file]);
-      for (const line of linesOf(root)) {
-        elbows += line.curves.filter((c) => c.turn >= SQUARE_FROM).length;
+      for (const line of linesOf(root))
         for (const c of line.curves)
           expect(length(c.from, c.at), `${file} の ${line.cls} の曲がり ${at(c.at)} の丸め`).toBeLessThanOrEqual(BEND + 0.1);
-      }
-    }
-    expect(elbows, `${palette} の ${theme} で丸めた 45 度以上の折れ目が 1 つも無い`).toBeGreaterThan(0);
+    });
+  });
+
+  it("other-palettes-round-some-bends", () => {
+    // 見本ごとの検査は丸めた折れ目を読めないと素通りする。1 つ見つかれば足りるので、見つけた所で止める
+    const found = FILES.some((file) => linesOf(figureOf(file, palette, theme)).some((line) => line.curves.some((c) => c.turn >= SQUARE_FROM)));
+    expect(found, `${palette} の ${theme} で丸めた 45 度以上の折れ目が 1 つも無い`).toBe(true);
   });
 });
 

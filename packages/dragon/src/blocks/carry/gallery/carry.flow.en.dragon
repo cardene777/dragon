@@ -1,0 +1,19 @@
+flow Carried item
+
+box order as Take the order
+box pay as Wait for payment
+box ship as Ship
+box done as Close
+
+step Step mark
+  say With nothing written, a flow diagram runs the step mark, a dot, along the line instead of an envelope.
+  order -> pay: To payment
+
+step Tag
+  say tag writes a value on a tag that travels along the line.
+  pay -> ship: To shipping [tag: #42]
+
+step Nothing
+  say carry: none draws only the line, and carry: coin shows money moving as a coin.
+  ship -> done: Close [carry: none]
+  done -> finish [carry: coin]

@@ -1,0 +1,14 @@
+chart Weekly visitors [shape: bar]
+
+item shop as Store
+item web as Online
+
+step Week 1
+  say set writes the value of an item for the step.
+  set shop: 40
+  set web: 25
+
+step Week 2
+  say Going to the next step moves the bars from the previous values.
+    An item without set keeps its previous value.
+  set web: 55

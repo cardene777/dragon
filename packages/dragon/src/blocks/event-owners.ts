@@ -25,6 +25,7 @@ export const EVENT_OWNERS: Readonly<Record<string, string>> = {
   "revert": "revert",
   "role": "role",
   "seal": "seal",
+  "set": "chart-set",
   "span": "scale",
   "stamp": "stamp",
   "strip": "strip",

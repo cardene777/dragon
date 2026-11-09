@@ -1,0 +1,16 @@
+flow 線
+
+box get as 受け付ける
+choice ok as 担当がいる？
+box work as 対応する
+box wait as 待つ
+
+ok -> wait: いいえ
+
+step 割り当てる
+  say 線は前の手順の名札から、次の手順の名札へ -> で引く。
+  get -> ok: 調べる
+
+step 進める
+  say 段ごとに、その段で通る線を書く。判断から出る線には名前を付ける。
+  ok -> work: はい

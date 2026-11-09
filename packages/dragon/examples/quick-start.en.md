@@ -51,9 +51,10 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, or `pipe <title>`. Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
+| Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
 | Strip | `strip <title>: <field>, <field>`. In a time diagram, `[meter: <ratio>]` after a field name makes that field a meter | `strip Message: ID, receiver, state` |
 | Branch | `branch <branch> [note: <note>]`. Only in a git graph. Bands are stacked from the top in the order declared | `branch feature [note: Work branch]` |
 | Scale | `scale <unit> <length> <count> [from: <first number>]`. Write the length as a number and a unit (`ms`, `s`, `min`, `h`, `d`); that many ticks are spaced evenly along the axis. Only in a time diagram | `scale slot 12s 64` |
@@ -326,6 +327,62 @@ step The swap ends
   return ex: 3200 USDC
 ```
 
+A chart (`chart <title> [shape: donut]` or `chart <title> [shape: bar]`) compares items step by step. A donut draws each item's share as the angle of an arc, and a bar chart draws each item's amount as the length of a bar.
+Declare the items with `item <id> as <name> [color: <color>]` before the first step, from 1 to 8 of them.
+Inside a step, `set <id>: <value>` writes the value of an item, a number of 0 or more without a unit. An item without `set` keeps its previous value, and the arcs and bars move from the previous values to the new ones.
+
+```dragon
+chart Smartphone OS share [shape: donut]
+
+item ios as iOS [color: blue]
+item android as Android [color: green]
+item other as Other [color: slate]
+
+step 2018
+  say iOS holds 70 percent.
+  set ios: 70
+  set android: 29
+  set other: 1
+
+step 2024
+  say Android grows to almost 40 percent.
+  set ios: 60
+  set android: 39
+```
+
+In a flow diagram (`flow <title>`), write the steps of the procedure with `box` and each choice with `choice <id> as <question>`.
+The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
+Each line out of a choice carries the answer as its label, and a choice has at most two ways out.
+As in a state diagram, `start` and `finish` join the start and end marks, and lines written before the first `step` line are paths not taken this time and stay dotted.
+A box that no line in a step reaches gets a dotted border and a muted name.
+The line that moves in a step turns blue and a dot runs along it.
+A line without `carry` or `tag` runs this dot instead of an envelope.
+A long question wraps onto two lines after a particle or a space.
+
+```dragon
+flow Taking an application
+
+box form as Receive the form
+choice ok as Filled in?
+box send as Accept [color: green]
+box back as Ask for a fix [color: rose]
+
+ok -> back: No
+
+step Receive
+  say An application arrives and the procedure starts.
+  start -> form
+
+step Check
+  say A choice decides whether it is filled in. The no path leaves to the right as a dotted line.
+  form -> ok: Check
+
+step Accept
+  say It is filled in, so the yes path goes down and the application is accepted.
+  ok -> send: Yes
+  send -> finish
+```
+
 ## Attributes
 
 Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by `,` to set how it looks and what it carries.
@@ -333,6 +390,7 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | On | Key | Meaning |
 |---|---|---|
 | Kind and title | `view` | The view. `fixed` or `follow` |
+| Kind and title | `shape` | The shape of a chart. `donut` or `bar`. Only in a chart, where it is required |
 | Region and box | `note` | The note of a region, or the caption under a box |
 | Region and box | `color` | Colour role. One of `blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` |
 | Region and box | `icon` | Icon next to the name |

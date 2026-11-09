@@ -1,0 +1,21 @@
+flow Taking an application
+
+box form as Receive the form
+choice ok as Filled in?
+box send as Accept [color: green]
+box back as Ask for a fix [color: rose]
+
+ok -> back: No
+
+step Receive
+  say An application arrives and the procedure starts.
+  start -> form
+
+step Check
+  say A choice decides whether it is filled in. The line before the first step is a dotted path not taken, leaving to the right.
+  form -> ok: Check
+
+step Accept
+  say It is filled in, so the yes path goes down and the application is accepted.
+  ok -> send: Yes
+  send -> finish

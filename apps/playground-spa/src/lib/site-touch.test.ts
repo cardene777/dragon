@@ -22,7 +22,7 @@ const BODY_PAGES = [
     screen: "docs",
     targets: '[data-docs="cta"] a, a[data-docs="section-cta"], a[data-docs="icon-link"]',
     links: 'a[data-docs="section-cta"], a[data-docs="icon-link"]',
-    count: 23,
+    count: 25,
     touchSizes: [
       "5 分で始める → 133x44",
       "カタログで図を見る 160x44",
@@ -39,6 +39,8 @@ const BODY_PAGES = [
       "時間軸の図の見本を見る → 165x46",
       "木の図の見本を見る → 138x46",
       "試す図の見本を見る → 138x46",
+      "量の図の見本を見る → 138x46",
+      "手順の図の見本を見る → 152x46",
       "配管の図の見本を見る → 152x46",
       // ブロックを足す節の出口 (#3407)
       "編集画面で書いてみる → 151x46",

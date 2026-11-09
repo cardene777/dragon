@@ -10,7 +10,7 @@ import type { Diagram } from "../schema";
 import { tokenize } from "../tokenize";
 import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
-import type { Point } from "../layout/scene";
+import { diamondPoints, type Point } from "../layout/scene";
 import { userBlockReader } from "../user-blocks";
 import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
@@ -19,6 +19,7 @@ import { drawDiagram } from "./draw";
  * 描いた物から崩れを数える関数 (#3494)。描く処理に渡し、描いた後に呼ばせる。
  * 足した箱のブロックの形の輪郭はここで組む。描く処理が呼ぶので、足したブロックの定義が有効な間に組める。
  * 輪郭は定義を読む処理と一緒に登録した形を測る処理 (`BoxShapes`) が組む。形を持つ箱は定義を読んだ図にしか無いため (#3520)。
+ * 手順の図の判断のひし形 (#3561) は、描く部品と同じ頂点 (`diamondPoints`) で組む。
  * 枠線を描く囲みと列と帯もここで組む (#3525)。囲みと列は名前の行で、帯は題で呼び、名前を持たない囲み (時間軸の図の軸の帯) は名前を空にして「枠線」と呼ぶ
  */
 const finder: BreakFinder = (drawn) => {
@@ -35,6 +36,8 @@ const finder: BreakFinder = (drawn) => {
     ],
     outlines: new Map(
       drawn.boxes.flatMap((box): [string, Point[][]][] => {
+        // 手順の図の判断はひし形で描く (#3561)
+        if (box.shape === "diamond") return [[box.id, [diamondPoints(box)]]];
         const rings = userBlockReader()?.shapes.outline(box.id, box);
         return rings ? [[box.id, rings]] : [];
       }),
@@ -78,6 +81,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
  * 時間軸の図の針と時刻の目盛りの線と時間軸の囲みの呼び方と、部品が時間軸の囲みの枠に掛かる文も持つ (#3527)。
  * 囲みと列と帯の枠線の呼び方と、番号の丸が枠線に乗る文も持つ (#3525)。線の名前が枠線をまたぐ崩れも同じ文で知らせる (#3554)。
  * 配管の図の弁と計器と管の呼び方、札が部品に重なる、管が箱の縁の後ろを通る、2 本の管が重なって通る (#3523)。
+ * ドーナツの輪の内側の呼び方も持ち、輪の真ん中の段の名前が収まらない崩れは図の枠からのはみ出しと同じ文で知らせる (#3560)。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
  * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
  */
@@ -106,6 +110,7 @@ interface BreakText {
   merged: (a: string, b: string) => string;
   nearBorder: (line: string, part: string) => string;
   touchesBorder: (text: string, box: string) => string;
+  ring: string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
@@ -134,6 +139,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     merged: (a, b) => `${spaced(a)}と${spaced(b)}が重なって通る`,
     nearBorder: (line, part) => `${spaced(line)}が${part}の枠に沿って近すぎる`,
     touchesBorder: (text, box) => `${spaced(text)}が${box}の枠に接する`,
+    ring: "ドーナツの輪の内側",
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -160,6 +166,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     merged: (a, b) => capital(`${a} and ${b} run on top of each other`),
     nearBorder: (line, part) => capital(`${line} runs too close along the border of ${part}`),
     touchesBorder: (text, box) => capital(`${text} touches the border of ${box}`),
+    ring: "the inside of the donut ring",
   },
 };
 
@@ -203,6 +210,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return w.pipeOf(part.from, part.to, part.step);
       case "border":
         return w.borderOf(part.name);
+      case "ring":
+        return w.ring;
     }
   };
   const [a, b2] = b.parts;
@@ -213,7 +222,7 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         ? w.sticksOut(name(a), name(b2))
         : b.kind === "badges-close" || b.kind === "valve-near-pipe"
           ? w.tooClose(name(a), name(b2))
-          : b.kind === "part-outside-frame"
+          : b.kind === "part-outside-frame" || b.kind === "title-outside-ring"
             ? w.outOfFrame(name(a), name(b2))
             : b.kind === "panel-edge"
               ? w.reachesEdge(name(a), name(b2))

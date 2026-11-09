@@ -8,7 +8,9 @@
     "tree",
     "lineup",
     "try",
-    "pipe"
+    "pipe",
+    "chart",
+    "flow"
   ],
   "HEADS": [
     "group",
@@ -57,11 +59,13 @@
     "emit",
     "calc",
     "revert",
-    "gist"
+    "gist",
+    "choice"
   ],
   "ATTRS": {
     "diagram": [
-      "view"
+      "view",
+      "shape"
     ],
     "group": [
       "note",

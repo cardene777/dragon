@@ -1,0 +1,24 @@
+// How the number of support requests per channel moved from April to June, compared on bars.
+// The values are sample numbers that show the shape, not measured figures.
+chart Support requests by channel [shape: bar]
+
+item mail as Email [color: blue]
+item chat as Chat [color: green]
+item phone as Phone [color: amber]
+
+step April
+  say Requests come by email and phone, and chat is not open yet.
+  set mail: 120
+  set phone: 64
+
+step May
+  say Chat opens, and phone requests drop.
+  set mail: 104
+  set chat: 38
+  set phone: 58
+
+step June
+  say Chat grows and catches up with email.
+  set mail: 86
+  set chat: 81
+  set phone: 41
