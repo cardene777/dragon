@@ -10,7 +10,7 @@
  * この file は時間軸の図を描く部品 (`render/time.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
  */
 import { EASE, LOOK, TYPE } from "../../look/values";
-import { partRadius } from "../../render/corner";
+import { frameShape } from "../../render/corner";
 import { ALWAYS } from "../../render/ink";
 import { cssFont, cssMix, esc, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
@@ -31,7 +31,7 @@ export function taskBars(k: TimeKit): void {
   const { m, ink } = ctx;
   (layout.tasks ?? []).forEach((task, n) => {
     const { bar } = task;
-    const box = `x="${r1(bar.x)}" y="${r1(bar.y)}" width="${r1(bar.w)}" height="${r1(bar.h)}" rx="${partRadius(ctx.corner, T.radius)}"`;
+    const box = `x="${r1(bar.x)}" y="${r1(bar.y)}" width="${r1(bar.w)}" height="${r1(bar.h)}" rx="${T.radius}"`;
     const keys = simplify((timeline.tasks?.find((t) => t.task === task.id)?.keys ?? []).filter(([t]) => t < m.total));
     const scale = (v: number): string => `scaleX(${r1(v * 1000) / 1000})`;
     // 繰り返す前に針と共に左端へ戻る
@@ -42,9 +42,11 @@ export function taskBars(k: TimeKit): void {
     ink.push({ text: task.text, rect: r, shown: ALWAYS });
     frame(k, { kind: "text", text: task.text }, r);
     const at = `x="${r1(r.x)}" y="${r1(task.textY)}"`;
+    // 棒は図の箱と同じく、角を落とす色味では棒と窓を右上と左下を落とした形で描く。塗りはその窓で切り抜くので、棒の角まで同じ形で塗る
+    const barBox = { x: bar.x, y: bar.y, w: bar.w, h: bar.h };
     const parts = [
-      `<clipPath id="${clip}"><rect ${box}/></clipPath>`,
-      `<rect class="dg-tm-tb" ${box}/>`,
+      `<clipPath id="${clip}">${frameShape(ctx.corner, "", barBox, `<rect ${box}/>`)}</clipPath>`,
+      frameShape(ctx.corner, ` class="dg-tm-tb"`, barBox, `<rect class="dg-tm-tb" ${box}/>`),
       // 濃く塗る所の下に置く字。塗られた所では塗りに隠れる
       `<text class="dg-tm-tt" ${at}>${esc(task.text)}</text>`,
       `<g clip-path="url(#${clip})"><rect class="dg-tm-tf dg-a" ${fill} style="${grow}"/></g>`,
@@ -52,7 +54,8 @@ export function taskBars(k: TimeKit): void {
     if (task.inside) {
       // 塗った地の上の字。濃く塗る所と同じ動きの四角で切り抜くので、切り分ける位置が塗りの端と共に動く
       const edge = `dg-tke${n}-${ctx.id}`;
-      parts.push(`<clipPath id="${edge}"><rect class="dg-tm-tf dg-a" ${fill} style="${grow}"/></clipPath>`, `<text class="dg-tm-to" clip-path="url(#${edge})" ${at}>${esc(task.text)}</text>`);
+      const edgeShape = frameShape(ctx.corner, ` class="dg-tm-tf dg-a" style="${grow}"`, barBox, `<rect class="dg-tm-tf dg-a" ${fill} style="${grow}"/>`);
+      parts.push(`<clipPath id="${edge}">${edgeShape}</clipPath>`, `<text class="dg-tm-to" clip-path="url(#${edge})" ${at}>${esc(task.text)}</text>`);
     }
     k.base.push(`<g data-task="${esc(task.id)}" style="${cs(task.color)}">${parts.join("")}</g>`);
     k.base.push(write(ink, "dg-tm-rn", LOOK.margin + LOOK.region.inset, task.y + task.h / 2 + LOOK.baseline.mark, task.name, TYPE.timeRow));

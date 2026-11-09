@@ -30,6 +30,8 @@ const FRAMES = [
   "dg-ghost",
   "dg-tm-ph",
   "dg-tm-ex",
+  // 時間軸の図の作業の棒 (#3562)。棒と窓を、図の箱と同じく右上と左下を落とした形で描く (#3570)
+  "dg-tm-tb",
   "dg-ln-card",
   "dg-ln-pool",
   "dg-ln-role",
