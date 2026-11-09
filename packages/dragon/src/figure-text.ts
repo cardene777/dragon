@@ -56,6 +56,11 @@ export interface FigureText {
   timeUnits: Record<"ms" | "s" | "min" | "h" | "d", string>;
   zoom: string;
   range: (from: string, to: string) => string;
+  /**
+   * 作業の棒の期間の字 (#3562)。`unit` は目盛りの名前、`from` と `to` は始まりと終わりの目盛りの名前の数で、同じなら 1 つで書く。
+   * 日本語は数の後ろに目盛りの名前 (`1〜3日`、本人が試作で選んだ形)、英語は目盛りの名前を頭に置く (`Day 1–3`)
+   */
+  taskRange: (unit: string, from: string, to: string) => string;
   headJoin: string;
   empty: string;
   /**
@@ -140,6 +145,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     timeUnits: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
     zoom: "拡大",
     range: (from, to) => `${from}〜${to}`,
+    taskRange: (unit, from, to) => joinWords(from === to ? from : `${from}〜${to}`, unit),
     headJoin: " ・ ",
     empty: "空き",
     lineupInOrder: "上から実行",
@@ -194,6 +200,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     timeUnits: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
     zoom: "Zoom",
     range: (from, to) => `${from}–${to}`,
+    taskRange: (unit, from, to) => joinWords(capital(unit), from === to ? from : `${from}–${to}`),
     headJoin: " · ",
     empty: "Empty",
     lineupInOrder: "Top first",

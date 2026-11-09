@@ -435,7 +435,7 @@ step C0 becomes final
 
 To show how long tasks take, as in a schedule, write `task <id> as <name> <range> [color: <color>]` before the first step.
 Each task gets its own row and is drawn as one thick bar over the ticks of the range. A range counts ticks from 0 like `mark`, as `0-2` or `13`.
-The name sits to the left of the row and the length inside the bar, and the part of the bar the needle has passed fills in.
+The name sits to the left of the row and the first and last tick names with the scale name (such as `Day 1–3`) inside the bar, and the part of the bar the needle has passed fills in.
 A diagram with tasks needs no `row`, and tasks and rows keep the declared order from top to bottom.
 
 ```dragon

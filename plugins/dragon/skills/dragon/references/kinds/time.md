@@ -16,7 +16,7 @@ Pick `sequence` instead when the order of messages matters more than how long th
 | `scale <unit> <length> <count> [from: <first number>]` | The axis: `<count>` ticks of `<length>` each. Length is a number and a unit: `ms`, `s`, `min`, `h`, `d` (`scale slot 12s 64`) |
 | `period <name> <ticks> [from: <first number>]` | Names a boundary every `<ticks>` ticks (`period epoch 32`) |
 | `row <id> as <name> [color: <role>, empty: <ticks>]` | A row with one mark per tick. `empty` lists ticks that get empty marks, separated by spaces (`empty: 3 13 45`) |
-| `task <id> as <name> <range> [color: <role>]` | A task with its own row, drawn as one thick bar over the ticks of the range (`task build as Build 3-8 [color: violet]`). The length shows inside the bar, and the part the needle has passed fills in. A diagram with tasks needs no `row`, and tasks and rows keep the declared order |
+| `task <id> as <name> <range> [color: <role>]` | A task with its own row, drawn as one thick bar over the ticks of the range (`task build as Build 3-8 [color: violet]`). The bar shows its first and last tick names with the scale name (`Day 1–3`, or `Day 14` for one tick), and the part the needle has passed fills in. A diagram with tasks needs no `row`, and tasks and rows keep the declared order |
 | `point <id> at <tick>` | A flagged point below the axis |
 | `zoom <range>` | Ticks shown as columns in a top band, one column per tick (`zoom 0-3`) |
 | `box <id> as <name> [color: ..., icon: ...]` | A party in the zoom band, in the same order in every column |

@@ -3,7 +3,7 @@
  *
  * 下の帯に時間軸を置く。目盛り (`scale`) を左から同じ幅で並べ、印の列 (`rows`) を宣言した順に上から重ね、目盛りごとに細い印を 1 つ置く。
  * 作業 (`tasks`、#3562) は印の列と同じ並びに 1 つずつ自分の行を持ち、範囲の目盛りの上に続いた太い棒を置く。印の列と作業の行は宣言した順に上から並ぶ。
- * 作業の名前は印の列の名前と同じく行の左に、期間の字は棒の中に置き、棒に収まらない時は棒の右に置く。
+ * 作業の名前は印の列の名前と同じく行の左に、期間の字 (始まりと終わりの目盛りの名前、`1〜3日`) は棒の中に置き、棒に収まらない時は棒の右に置く。右に置くと軸の右端を越える時だけ棒の左に置く。
  * 印の下に節目 (`points`) の旗の丸を置き、名札と状態の字を丸の右に添える。節目どうしの線は 2 つの丸の間に横に引き、名前を線の下に置く。
  * 範囲の括弧 (`span`) は節目の下に、時刻の目盛りの線と字と区切り (`period`) の名前はさらに下に置く。範囲の囲み (`span` の `box`) は印の列を囲む。
  * 上の帯は拡大した目盛り (`zoom`) を列にして、宣言した箱を列ごとに同じ並びで縦に置く。線は `at` の列の箱から `into` の列 (無ければ同じ列) の箱へ引く。
@@ -362,10 +362,17 @@ export function layoutTime(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
   const tasks: TimeTaskPlaced[] = specTasks.map((t, k) => {
     const y = lineTops.get(t) ?? rowsTop;
     const bar = { x: axisX + t.from * unit + T.task.inset, y, w: (t.to - t.from + 1) * unit - T.task.inset * 2, h: T.task.h };
-    // 期間の字は目盛りの長さの単位で書く。棒の中に収まらない時は棒の右に置く
-    const label = timeText((t.to - t.from + 1) * length.seconds, length.unit, lang);
-    const inside = textWidth(label, TYPE.timeTask) + T.task.padX * 2 <= bar.w;
-    const x = inside ? bar.x + T.task.padX : bar.x + bar.w + T.task.out;
+    // 期間の字は始まりと終わりの目盛りの名前の数と目盛りの名前で書く (本人が試作で選んだ形)。棒の中に収まらない時は棒の右に置く。
+    // 最後の目盛りの近くの狭い棒で、右に置くと軸の右端を越える時だけ棒の左に置く。字が時間軸の囲みの枠と図の枠をまたがないため
+    const label = text.taskRange(scale.unit, String((scale.from ?? 0) + t.from), String((scale.from ?? 0) + t.to));
+    const labelW = textWidth(label, TYPE.timeTask);
+    const inside = labelW + T.task.padX * 2 <= bar.w;
+    let x = bar.x + T.task.padX;
+    if (!inside) {
+      const right = bar.x + bar.w + T.task.out;
+      const left = bar.x - T.task.out - labelW;
+      x = right + labelW > axisX + axisW && left >= axisX ? left : right;
+    }
     const textY = y + T.task.h / 2 + LOOK.baseline.mark;
     return {
       id: t.id,

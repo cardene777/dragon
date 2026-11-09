@@ -133,7 +133,7 @@ Changes stay provisional until the outermost call returns, and then they all bec
 
 A time diagram (`time <title>`) can also show a schedule.
 Write `task <id> as <name> <range> [color: <color>]` before the first step, and each task gets its own row with one thick bar over the ticks of the range, counted from 0 like `mark`.
-The length shows inside the bar, and the part of the bar the needle has passed fills in. A time diagram with tasks needs no `row`.
+The bar shows its first and last tick names, such as `Day 1–3`, and the part of the bar the needle has passed fills in. A time diagram with tasks needs no `row`.
 
 ## Documentation
 

@@ -59,7 +59,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 | Scale | `scale <unit> <length> <count> [from: <first number>]`. Write the length as a number and a unit (`ms`, `s`, `min`, `h`, `d`); that many ticks are spaced evenly along the axis. Only in a time diagram | `scale slot 12s 64` |
 | Period | `period <name> <ticks> [from: <first number>]`. Puts a name and a number at each period boundary | `period epoch 32` |
 | Row | `row <id> [color: <color>, empty: <tick>]`. One mark per tick, and the ticks in `empty` get empty marks | `row block [color: blue, empty: 5]` |
-| Task | `task <id> as <name> <range> [color: <color>]`. Each task gets its own row and one thick bar over the ticks of the range. The length shows inside the bar, and the part the needle has passed fills in. A diagram with tasks needs no `row` | `task build as Build 3-8 [color: violet]` |
+| Task | `task <id> as <name> <range> [color: <color>]`. Each task gets its own row and one thick bar over the ticks of the range. The bar shows its first and last tick names with the scale name (`Day 1–3`, or `Day 14` for one tick), and the part the needle has passed fills in. A diagram with tasks needs no `row` | `task build as Build 3-8 [color: violet]` |
 | Point | `point <id> at <tick>`. Puts a flag circle and its id below the axis | `point C0 at 0` |
 | Zoom band | `zoom <range>`. Makes one column per tick in the top band, with the declared boxes in the same order in every column | `zoom 0-1` |
 

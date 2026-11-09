@@ -376,9 +376,8 @@ describe("作業の棒の描き方 (#3562)", () => {
       const nameX = textX(svg, task.name);
       expect(nameX, `${task.id} の名前 ${task.name} が描かれない`).toBeDefined();
       expect(nameX ?? Number.POSITIVE_INFINITY, `${task.id} の名前が行の左に無い`).toBeLessThan(axis.x);
-      // 棒の中に期間の字
-      expect(task.text, `${task.id} の期間の字が無い`).not.toBe("");
-      expect(task.text, `${task.id} の期間の字が目盛りの数を持たない`).toMatch(String(task.to - task.from + 1));
+      // 棒の中に期間の字。試作で選んだ形で、始まりと終わりの目盛りの名前の数 (`scale` の `from` の 1 を足す) と `scale` の名前の単位
+      expect(task.text, `${task.id} の期間の字が始まりと終わりの目盛りの名前でない`).toBe(`${task.from + 1}〜${task.to + 1}日`);
       expect(svg, `${task.id} の期間の字 ${task.text} が描かれない`).toContain(`>${task.text}<`);
       expect(task.inside, `${task.id} の期間の字が棒の中に無い`).toBe(true);
       const r = task.textRect;
@@ -390,6 +389,16 @@ describe("作業の棒の描き方 (#3562)", () => {
     expect(check.inside, "棒に収まらない期間の字が棒の中にある").toBe(false);
     expect(check.textRect.x, "棒に収まらない期間の字が棒の右に無い").toBeGreaterThanOrEqual(check.bar.x + check.bar.w);
     expect(near(check.textRect.y + check.textRect.h / 2, check.bar.y + check.bar.h / 2, 3), "棒の右の期間の字が棒の高さに無い").toBe(true);
+    // 英語は目盛りの名前を頭に置き、仮名と漢字を含まない
+    const english = render(parsed(fileText("release-plan.en.dragon") ?? "", "en"), "en").layout;
+    const texts = (english.tasks ?? []).map((t) => t.text);
+    expect(texts, "英語の見本の期間の字が目盛りの名前の範囲でない").toEqual(["Day 1–3", "Day 4–9", "Day 8–11", "Day 14"]);
+    for (const text of texts) expect(text, `英語の期間の字 ${text} が仮名か漢字を含む`).not.toMatch(/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u);
+    // 最後の目盛りの狭い棒は、右に置くと軸の右端を越えるので棒の左に置く
+    const ship = taskOf(english, "ship");
+    expect(ship.inside, "最後の目盛りの棒に Day 14 が収まる").toBe(false);
+    expect(ship.textRect.x + ship.textRect.w, "軸の右端の近くの期間の字が棒の左に無い").toBeLessThanOrEqual(ship.bar.x);
+    expect(ship.textRect.x, "棒の左の期間の字が軸の左端を越える").toBeGreaterThanOrEqual(english.axis.x);
   });
 
   it("task-fills-passed-part", () => {
@@ -424,6 +433,7 @@ describe("作業の棒の描き方 (#3562)", () => {
     expect(near(ship.bar.x, axis.x + 13 * axis.unit, 1.5), "1 つの目盛りの棒の左端が目盛りの始まりに無い").toBe(true);
     expect(near(ship.bar.w, axis.unit, 2.5), `1 つの目盛りの棒の幅 ${ship.bar.w} が目盛り 1 つの幅 ${axis.unit} でない`).toBe(true);
     expect(ship.bar.h, "1 つの目盛りの棒が太くない").toBeGreaterThanOrEqual(12);
+    expect(ship.text, "1 つの目盛りの期間の字が目盛りの名前 1 つでない").toBe("14日");
     const keys = fillOf(timeline, "ship");
     expect(near(valueAt(keys, (timeline.steps[0]?.end ?? 0) - 1e-6), 1, 1e-6), "針が過ぎた 1 つの目盛りの棒が濃く塗られない").toBe(true);
   });
