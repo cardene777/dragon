@@ -15,6 +15,7 @@ import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, pointers } from "./diagram-support";
+import { fileChromium } from "./page-needs";
 import { draw, type Layout, type Rect, type Rendered, sampleTimes, type Timeline } from "./render-support";
 
 const ROOT = process.cwd();
@@ -424,6 +425,77 @@ describe("作業の棒の描き方 (#3562)", () => {
     const ends = [svg.indexOf("data-task=", start + 1), svg.indexOf("data-needle", start)].filter((at) => at > start);
     const body = svg.slice(start, ends.length > 0 ? Math.min(...ends) : undefined);
     expect(/<rect[^>]*animation-name/u.test(body), "実装の棒の濃く塗る所が動かない").toBe(true);
+  });
+
+  it("task-fills-passed-part", async () => {
+    // 目盛りが細かい図で、針が棒の中の期間の字の途中で止まる段を描く。塗られた所の上の字は明るく、まだ塗られない所の字は濃い
+    const steps = ["step 字の途中まで", "  say 針が棒の中の字の途中で止まる。", "  now -> 3", "", "step 最後まで", "  say 最後まで進む。", "  now -> 27"];
+    const { layout, timeline, svg } = render(parsed(["time 字の途中で止まる工程", "scale 日 1d 28 [from: 1]", "task build as 実装 3-12 [color: violet]", "", ...steps].join("\n")));
+    const build = taskOf(layout, "build");
+    const r = build.textRect;
+    const at = (timeline.steps[0]?.end ?? 0) - 0.01;
+    const edge = build.bar.x + build.bar.w * valueAt(fillOf(timeline, "build"), at);
+    expect(r.x + 6 < edge && edge < r.x + r.w - 6, `塗りの端 ${edge} が期間の字 (${r.x} から ${r.x + r.w}) の途中に無い`).toBe(true);
+    // 棒の中の字は 2 回描き、明るい字は濃く塗る所と同じ動きの四角で切り抜く
+    const texts = [...svg.matchAll(new RegExp(`<text[^>]*>${build.text}</text>`, "gu"))].map((m) => m[0]);
+    expect(texts.length, "棒の中の期間の字が 2 回描かれない").toBe(2);
+    const fill = /<rect class="dg-tm-tf[^>]*animation-name:([\w-]+)[^>]*>/u.exec(svg);
+    const clipId = /clip-path="url\(#([^)]+)\)"/u.exec(texts.find((t) => t.includes("dg-tm-to")) ?? "")?.[1];
+    const clip = new RegExp(`<clipPath id="${clipId}"><rect[^>]*animation-name:([\\w-]+)`, "u").exec(svg);
+    expect(clip?.[1], "明るい字を切り抜く四角が濃く塗る所と同じ動きでない").toBe(fill?.[1]);
+    expect(svg, "塗った地の上の字の色が色味の表の変数でない").toMatch(/\.dg-tm-to\{[^}]*fill:var\(--on-c\)/u);
+    expect(svg, "まだ塗られない所の字の色が色味の表の変数でない").toMatch(/\.dg-tm-tt\{[^}]*fill:var\(--ct\)/u);
+    // 棒の外の字には塗りが届かないので 1 回だけ描く
+    const english = render(parsed(fileText("release-plan.en.dragon") ?? "", "en"), "en").svg;
+    expect(english.split(">Day 14<").length - 1, "棒の外の期間の字が 1 回でない").toBe(1);
+    expect(english.split(">Day 1–3<").length - 1, "棒の中の期間の字が 2 回でない").toBe(2);
+
+    // 針が止まった時刻で描いた形を撮り、塗りの端の左と右で字の色を数える。図は頁の幅に伸びるので、頁を図の幅にして図の座標のまま撮る
+    const context = await (await fileChromium()).newContext({ viewport: { width: Math.ceil(layout.width), height: Math.ceil(layout.height) }, deviceScaleFactor: 3 });
+    try {
+      const page = await context.newPage();
+      await page.setContent(`<!doctype html><body style="margin:0">${svg}</body>`);
+      const colors = await page.evaluate((stop) => {
+        const figure = document.querySelector("svg");
+        figure?.style.setProperty("--at", String(stop));
+        figure?.style.setProperty("--play", "paused");
+        const fillOfText = (name: string): string => getComputedStyle(document.querySelector(name) as Element).fill;
+        return { light: fillOfText(".dg-tm-to"), dark: fillOfText(".dg-tm-tt") };
+      }, at);
+      /** 撮った範囲 (図の座標) で、色 `color` に近い点の数 */
+      const pixels = async (from: number, to: number, color: string, tolerance: number): Promise<number> => {
+        const shot = await page.screenshot({ clip: { x: from, y: r.y, width: to - from, height: r.h } });
+        return page.evaluate(
+          async ({ data, wanted, off }) => {
+            const image = new Image();
+            image.src = `data:image/png;base64,${data}`;
+            await image.decode();
+            const canvas = document.createElement("canvas");
+            canvas.width = image.width;
+            canvas.height = image.height;
+            const paint = canvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
+            // CSS の色の字を点の値にする
+            paint.fillStyle = wanted;
+            paint.fillRect(0, 0, 1, 1);
+            const [red = 0, green = 0, blue = 0] = paint.getImageData(0, 0, 1, 1).data;
+            paint.drawImage(image, 0, 0);
+            const { data: points } = paint.getImageData(0, 0, image.width, image.height);
+            let found = 0;
+            for (let k = 0; k < points.length; k += 4) {
+              if (Math.abs((points[k] ?? 0) - red) <= off && Math.abs((points[k + 1] ?? 0) - green) <= off && Math.abs((points[k + 2] ?? 0) - blue) <= off) found++;
+            }
+            return found;
+          },
+          { data: shot.toString("base64"), wanted: color, off: tolerance },
+        );
+      };
+      // 針の線が塗りの端に重なるので、端から 3 離す
+      expect(await pixels(r.x, edge - 3, colors.light, 12), "塗られた所の上に明るい字が出ない").toBeGreaterThan(0);
+      expect(await pixels(edge + 3, r.x + r.w, colors.dark, 30), "まだ塗られない所に濃い字が出ない").toBeGreaterThan(0);
+      expect(await pixels(edge + 3, r.x + r.w, colors.light, 12), "まだ塗られない所に明るい字がはみ出す").toBe(0);
+    } finally {
+      await context.close();
+    }
   });
 
   it("task-single-tick-draws-bar", () => {

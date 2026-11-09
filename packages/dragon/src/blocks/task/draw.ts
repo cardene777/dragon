@@ -3,12 +3,13 @@
  *
  * 棒は作業の色を薄く混ぜた地と作業の色の縁で初めから見せ、針が通った分を作業の色で濃く塗る。
  * 濃く塗る所は棒の角の丸みで切り抜き、時刻の表の割合の動き (`timeline.tasks`) で左から伸ばす。繰り返す前に針と共に左端へ戻る。
- * 作業の名前は印の列の名前と同じく行の左に書く。期間の字は棒の中なら、濃く塗る所が字の真ん中に届いた時に塗った地の上の字の色へ替え、
- * 棒の外 (右か、軸の右端の近くでは左) なら作業の字の色のまま書く。期間の字は時間軸の囲みの枠の内に収める部品として記録する。
+ * 作業の名前は印の列の名前と同じく行の左に書く。棒の中の期間の字は 2 回描く。作業の字の色の字を濃く塗る所の下に、塗った地の上の字の色の字を、
+ * 濃く塗る所と同じ動きの切り抜きで上に描く。塗りの端が字の途中で止まっても、塗られた所は明るい字、まだ塗られない所は濃い字で読める。
+ * 棒の外 (右か、軸の右端の近くでは左) の字には塗りが届かないので、作業の字の色で 1 回だけ描く。期間の字は時間軸の囲みの枠の内に収める部品として記録する。
  * 見た目の規則は作業を持つ図の SVG にだけ書く (`TASK_CSS`)。作業を持たない時間軸の図の SVG を変えないため。
  * この file は時間軸の図を描く部品 (`render/time.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
  */
-import { EASE, LOOK, MOTION, TYPE } from "../../look/values";
+import { EASE, LOOK, TYPE } from "../../look/values";
 import { partRadius } from "../../render/corner";
 import { ALWAYS } from "../../render/ink";
 import { cssFont, cssMix, esc, r1, write } from "../../render/parts";
@@ -20,17 +21,8 @@ export const TASK_CSS = [
   `.dg-tm-tb{fill:${cssMix(LOOK.mix.timeTask)};stroke:var(--c);stroke-width:${LOOK.stroke.timeTask}}`,
   ".dg-tm-tf{fill:var(--c);transform-box:fill-box;transform-origin:0 50%}",
   `.dg-tm-tt{${cssFont(TYPE.timeTask)};fill:var(--ct)}`,
+  `.dg-tm-to{${cssFont(TYPE.timeTask)};fill:var(--on-c)}`,
 ].join("");
-
-/** 真っ直ぐ変わる動き `keys` が初めて `share` に届く時刻。届かなければ `undefined` */
-function reachAt(keys: [number, number][], share: number): number | undefined {
-  for (let k = 1; k < keys.length; k++) {
-    const [t0, v0] = keys[k - 1] as [number, number];
-    const [t1, v1] = keys[k] as [number, number];
-    if (v0 < share && v1 >= share) return t0 + ((t1 - t0) * (share - v0)) / (v1 - v0);
-  }
-  return (keys[0]?.[1] ?? 0) >= share ? 0 : undefined;
-}
 
 /** 作業ごとの行の名前と、棒と、期間の字 */
 export function taskBars(k: TimeKit): void {
@@ -45,28 +37,23 @@ export function taskBars(k: TimeKit): void {
     // 繰り返す前に針と共に左端へ戻る
     const grow = m.kf([...keys.map(([t, v]): [number, Record<string, string>] => [t, { transform: scale(v) }]), [m.last, { transform: scale(valueAt(keys, m.last)) }, EASE.inOut], [m.total, { transform: scale(0) }]]);
     const clip = `dg-tk${n}-${ctx.id}`;
-    const parts = [
-      `<clipPath id="${clip}"><rect ${box}/></clipPath>`,
-      `<rect class="dg-tm-tb" ${box}/>`,
-      `<g clip-path="url(#${clip})"><rect class="dg-tm-tf dg-a" x="${r1(bar.x)}" y="${r1(bar.y)}" width="${r1(bar.w)}" height="${r1(bar.h)}" style="${grow}"/></g>`,
-    ];
+    const fill = `x="${r1(bar.x)}" y="${r1(bar.y)}" width="${r1(bar.w)}" height="${r1(bar.h)}"`;
     const r = task.textRect;
     ink.push({ text: task.text, rect: r, shown: ALWAYS });
     frame(k, { kind: "text", text: task.text }, r);
-    // 棒の中の字は、濃く塗る所が字の真ん中に届いた時に塗った地の上の字の色へ替え、針が戻る間の半ばで元の色へ戻す
-    const turn = task.inside ? reachAt(keys, (r.x + r.w / 2 - bar.x) / bar.w) : undefined;
-    const tint =
-      turn === undefined
-        ? ""
-        : ` style="${m.kf([
-            [0, { fill: "var(--ct)" }],
-            [turn, { fill: "var(--ct)" }],
-            [turn + MOTION.time.turn, { fill: "var(--on-c)" }],
-            [(m.last + m.total) / 2, { fill: "var(--on-c)" }],
-            [(m.last + m.total) / 2 + MOTION.time.turn, { fill: "var(--ct)" }],
-            [m.total, { fill: "var(--ct)" }],
-          ])}"`;
-    parts.push(`<text class="dg-tm-tt${turn === undefined ? "" : " dg-a"}" x="${r1(r.x)}" y="${r1(task.textY)}"${tint}>${esc(task.text)}</text>`);
+    const at = `x="${r1(r.x)}" y="${r1(task.textY)}"`;
+    const parts = [
+      `<clipPath id="${clip}"><rect ${box}/></clipPath>`,
+      `<rect class="dg-tm-tb" ${box}/>`,
+      // 濃く塗る所の下に置く字。塗られた所では塗りに隠れる
+      `<text class="dg-tm-tt" ${at}>${esc(task.text)}</text>`,
+      `<g clip-path="url(#${clip})"><rect class="dg-tm-tf dg-a" ${fill} style="${grow}"/></g>`,
+    ];
+    if (task.inside) {
+      // 塗った地の上の字。濃く塗る所と同じ動きの四角で切り抜くので、切り分ける位置が塗りの端と共に動く
+      const edge = `dg-tke${n}-${ctx.id}`;
+      parts.push(`<clipPath id="${edge}"><rect class="dg-tm-tf dg-a" ${fill} style="${grow}"/></clipPath>`, `<text class="dg-tm-to" clip-path="url(#${edge})" ${at}>${esc(task.text)}</text>`);
+    }
     k.base.push(`<g data-task="${esc(task.id)}" style="${cs(task.color)}">${parts.join("")}</g>`);
     k.base.push(write(ink, "dg-tm-rn", LOOK.margin + LOOK.region.inset, task.y + task.h / 2 + LOOK.baseline.mark, task.name, TYPE.timeRow));
   });
