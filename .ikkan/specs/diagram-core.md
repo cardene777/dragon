@@ -380,3 +380,15 @@
 | 背景のブリッジの図をアーチの箱で描いた#3520の前の姿に崩れの検査を掛けると、アーチからはみ出す硬貨の枠を、硬貨が座り始める段2の1件で知らせる | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-merges-repeated-steps`が通る | #3518 |
 | 形を持つ箱の置き場に運ぶ物が一度も座らない図に`dragon check --layout`を打つと、その枠のはみ出しを知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-skips-slot-never-held`が通る | #3518 |
 | 背景のブリッジの図をアーチの箱で描いた#3520の前の姿に崩れの検査を掛けると、硬貨の枠がアーチの形からはみ出すことを1件の崩れとして出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-slot-outside-shape`が通る | #3518 |
+| `mountDiagram`に`speed: 2`を渡して流すと、時刻の表の段2の始まりの秒の半分から0.2秒後には段2に替わって`onStep`が段2で呼ばれ、半分の0.2秒前はまだ段1にいる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-speed-option-doubles-pace`が通る | #3568 |
+| 1倍で流して段2に入った後に`setSpeed(2)`を呼ぶと、段は段2のまま最初の段へ戻らず、段3の始まりまでの残りの秒の半分で段3に替わる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-set-speed-keeps-position`が通る | #3568 |
+| 速さ2倍で流すと、図の動きの1周の秒と動きの今の位置が1倍の半分の秒で表され、図の動きが段の札と同じ倍率で進む | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-speed-scales-motion`が通る | #3568 |
+| `playOnce`と`speed: 2`を渡して流すと、1倍の時の半分の秒で最後の段の止め絵で止まる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-speed-plays-once-sooner`が通る | #3568 |
+| 止めて置いた図で`setSpeed(2)`を呼んでも止まったままで、その後に`play()`を呼ぶと2倍の速さで流れる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-set-speed-while-paused`が通る | #3568 |
+| `speed`か`setSpeed`に0、負の数、`Infinity`、`NaN`を渡すと`RangeError`を投げ、`setSpeed`の時は前の速さのまま流れ続ける | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-speed-rejects-non-positive`が通る | #3568 |
+| 英語と日本語のREADMEの再生の部品の説明が、`speed`と`setSpeed`と、受けられない値で`RangeError`を投げることを書く | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`readme-documents-player-speed`が通る | #3568 |
+| `packages/dragon/package.json`の`version`が`0.68.0`で、英語と日本語の変更履歴の`## [0.68.0]`の節が`(#3568)`の項を持ち、その項が再生の速さを名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-68-0-adds-player-speed`が通る | #3568 |
+| 常に、速さを渡さずに置いた図は時刻の表の秒のとおりに段が進み、1周の後に最初の段へ戻る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-follows-real-time`と`player-loops-after-total`が通る | #3568 |
+| 常に、止めて置く設定の図は置いた時に流さず、1度だけ流す設定の図は最後の段の止め絵で止まる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-start-paused-at-step`と`player-plays-once-then-still`が通る | #3568 |
+| 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3568 |
+| 常に、AIに記法を書かせるプラグインの版が`packages/dragon/package.json`の版と同じ | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`plugin-version-matches-package`が通る | #3568 |

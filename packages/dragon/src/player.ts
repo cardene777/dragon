@@ -9,6 +9,7 @@
  * 色は `options.palette` の名前の色味に `options.colors` の色の値を重ね、図と全体図と釦と段の帯を同じ色で塗る (#3198)。
  * 段が替わるたびに `options.onStep` で今の段を知らせ、頁の側が段の札や進み具合を出せるようにする (#3031)。
  * 置いた時に流さず決めた段で止めて置く (`options.pausedAt`) ことと、1 度だけ流して最後の段で止める (`options.playOnce`) ことを選べる。
+ * 流す速さは倍率で、置く時に `options.speed` で、置いた後に `setSpeed` で渡す。速さを変えても今の位置から続ける (#3568)。
  * 止め絵を選んだ図 (`options.still`) は、最後の段で止まった時に全ての段の線の名前を出す (#3200)。
  * 頁は `goTo` で段へ移って止め、`mark` で図の上に点線の四角を描く。頁の側では SVG を組まないので、編集画面が字の重なりを囲む時もこれを呼ぶ (#3178)。
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
@@ -70,6 +71,11 @@ export interface PlayerOptions extends RenderOptions {
   /** 流した時に最後の段の止め絵で止め、繰り返さない。最後の段で止まった図を流すと、最初の段から流し直す (#3200) */
   playOnce?: boolean;
   /**
+   * 流す速さの倍率 (#3568)。2 なら時刻の表の半分の秒で段が進み、図の動きも同じ倍率で進む。書かなければ 1。
+   * 0 より大きい有限の数を受け、それ以外は `RangeError` を投げる
+   */
+  speed?: number;
+  /**
    * 600px より狭い枠に置いた配管の図の、始めの拡大の度合い (#3483)。`"readable"` を渡すと、箱の名前の字が画面で 10.5px 以上に
    * 見える度合いから始め、枠を寄せた図の高さまで伸ばして横に送る。段を進めると今の段の関係者の所へ送る。
    * 書かなければ図の全体を枠の幅に収めて始める。600px 以上の枠と、配管の図でない図には効かない
@@ -88,11 +94,24 @@ export interface Player {
   pause(): void;
   /** 段 `step` (0 から) へ移って止める。段の数を超えた時は最後の段で止める (#3178) */
   goTo(step: number): void;
+  /**
+   * 流す速さの倍率を変える (#3568)。流していれば今の位置から新しい速さで続け、止めていれば止めたまま次に流す時の速さにする。
+   * 0 より大きい有限の数を受け、それ以外は `RangeError` を投げて今の速さのまま続ける
+   */
+  setSpeed(speed: number): void;
   /** 図の上に点線の四角を描く。四角は図の座標で渡し、空を渡すと消す。図を置き直しても残る (#3178) */
   mark(rects: readonly Rect[]): void;
   /** 今の原本。試す図では読み手が足した段を含む写しを返し、ほかの種類の図では渡した原本を返す (#3337) */
   readonly diagram: unknown;
   destroy(): void;
+}
+
+/** 流す速さの倍率を確かめる。0 より大きい有限の数だけを受ける (#3568) */
+function checkSpeed(speed: number): number {
+  if (typeof speed !== "number" || !Number.isFinite(speed) || speed <= 0) {
+    throw new RangeError(`speed must be a finite number greater than 0, got ${String(speed)}`);
+  }
+  return speed;
 }
 
 const font = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
@@ -228,6 +247,8 @@ export function mountDiagram(
   diagram: unknown,
   options: PlayerOptions = {},
 ): Player {
+  // 流す速さは何も置く前に確かめ、断る時に頁へ作りかけの部品を残さない
+  let speed = options.speed === undefined ? 1 : checkSpeed(options.speed);
   const doc = host.ownerDocument;
   const win = doc.defaultView;
   // 描く前に読む。描いた後に読むと、動きを嫌う人にも一瞬だけ流れてしまう
@@ -461,6 +482,8 @@ export function mountDiagram(
   /** 1 度だけ流す図が止まる時刻 (最後の段の止め絵) */
   let lastStill = timeline.stills[count - 1] ?? 0;
   let born = Date.now();
+  /** 置き直してから経った、時刻の表の秒。流す速さの倍率を掛ける (#3568) */
+  const elapsed = (): number => ((Date.now() - born) / 1000) * speed;
   let marked: readonly Rect[] = [];
 
   /**
@@ -658,7 +681,9 @@ export function mountDiagram(
         next.removeAttribute("aria-label");
       }
     }
-    next.style.setProperty("--at", String(at));
+    // 図の動きは実の秒で回るので、1 周の秒 (`--T`) と動きの位置 (`--at`) を流す速さで割って渡す (#3568)
+    next.style.setProperty("--T", `${timeline.total / speed}s`);
+    next.style.setProperty("--at", String(at / speed));
     next.style.setProperty("--play", playing ? "running" : "paused");
     next.dataset.motion = playing ? "play" : "still";
     if (svg && fresh) svg.replaceWith(next);
@@ -682,7 +707,7 @@ export function mountDiagram(
         })
       : rendered.svg;
 
-  const now = (): number => (playing ? (at + (Date.now() - born) / 1000) % timeline.total : at);
+  const now = (): number => (playing ? (at + elapsed()) % timeline.total : at);
   const stepAt = (t: number): number => {
     let found = 0;
     timeline.steps.forEach((span: Span, i) => {
@@ -805,7 +830,7 @@ export function mountDiagram(
   const timer = win?.setInterval(() => {
     if (!playing) return;
     // 1 度だけ流す図は、1 周の中の時刻に直す前の経った時間で最後の段の止め絵まで来たかを見る
-    if (once && at + (Date.now() - born) / 1000 >= lastStill) {
+    if (once && at + elapsed() >= lastStill) {
       step = count - 1;
       restart(lastStill, false);
       return;
@@ -974,6 +999,11 @@ export function mountDiagram(
     goTo: (target: number) => {
       playing = false;
       go(target);
+    },
+    setSpeed: (next: number) => {
+      const t = now();
+      speed = checkSpeed(next);
+      restart(t, playing);
     },
     mark: (rects: readonly Rect[]) => {
       marked = rects;

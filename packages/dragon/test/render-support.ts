@@ -123,8 +123,12 @@ export interface Player {
   playing: boolean;
   next(): void;
   prev(): void;
+  play(): void;
+  pause(): void;
   /** 段 `step` (0 から) へ移って止める (#3178) */
   goTo(step: number): void;
+  /** 流す速さを倍率で変え、今の位置から続ける (#3568) */
+  setSpeed(speed: number): void;
   destroy(): void;
 }
 
@@ -154,6 +158,8 @@ export interface PlayerOptions extends RenderOptions {
   pausedAt?: number;
   /** 流した時に最後の段の止め絵で止め、繰り返さない (#3200) */
   playOnce?: boolean;
+  /** 流す速さの倍率 (#3568) */
+  speed?: number;
 }
 
 interface DrawApi {

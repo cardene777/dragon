@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
 import { afterAll, describe, expect, it } from "vitest";
+import { changelogEntry } from "./changelog-support";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
 import { captionSteps, type ExportOptions, formatOf } from "./export-support";
 import { type Motion, motionFrom } from "./motion-support";
@@ -693,16 +694,15 @@ describe("量の図の書き方の文書 (#3560)", () => {
     const blocks = join(ROOT, "packages/dragon/src/blocks");
     const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
     describes("使い方の頁", [content, ...sections, ...paragraphs].join("\n"));
-    // 変更履歴の Unreleased の Added に量の図が載る
+    // 変更履歴の量の図の項 (#3560) を持つ節 (Unreleased か版の節) の Added に量の図が載る
     for (const [path, word] of [
       ["CHANGELOG.md", /chart/u],
       ["CHANGELOG.ja.md", /量の図/u],
     ] as const) {
-      const text = repoText(path);
-      const unreleased = /## \[?Unreleased\]?([\s\S]*?)(?=\n## )/u.exec(text)?.[1] ?? "";
-      const added = /### (?:Added|追加)([\s\S]*?)(?=\n### |$)/u.exec(unreleased)?.[1] ?? "";
-      expect(added, `${path} の Unreleased に Added の節が無い`).not.toBe("");
-      expect(word.test(added) && /\bchart\b/u.test(added), `${path} の Unreleased の Added に量の図 (chart) が無い`).toBe(true);
+      const entry = changelogEntry(join(ROOT, path), 3560);
+      const added = /### (?:Added|追加)([\s\S]*?)(?=\n### |$)/u.exec(entry)?.[1] ?? "";
+      expect(added, `${path} の量の図の項 (#3560) を持つ節に Added の節が無い`).not.toBe("");
+      expect(word.test(added) && /\bchart\b/u.test(added), `${path} の Added に量の図 (chart) が無い`).toBe(true);
     }
     // 前提の文の描ける図の種類の数が、図の種類の置き場の数と合う。種類を足しても数を決め打ちしない
     const product = repoText(".ikkan/premises/product.md");

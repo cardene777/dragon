@@ -15,6 +15,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { changelogEntry } from "./changelog-support";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { captionSteps, exporter, formatOf } from "./export-support";
 import { covers, draw, type Layout, type Rect, type Rendered, sampleTimes, type Span, type Timeline } from "./render-support";
@@ -707,13 +708,10 @@ describe("手順の図の書き方の文書 (#3561)", () => {
     const page = [content, ...sections, ...paragraphs].join("\n");
     for (const [word, form] of forms) expect(form.test(page), `使い方の頁に ${word} の行の書き方が無い`).toBe(true);
     expect(page.includes("点線") && /dotted/iu.test(page), "使い方の頁に最初の段より前の線が点線になることが無い").toBe(true);
-    // 変更の一覧の Unreleased の Added に手順の図が載る
-    const unreleased = (path: string): string => {
-      const part = repoText(path).split(/^## \[/mu).find((p) => p.startsWith("Unreleased]")) ?? "";
-      return part.split(/^### /mu).find((p) => p.startsWith("Added")) ?? "";
-    };
-    expect(unreleased("CHANGELOG.md").includes("`flow`") && unreleased("CHANGELOG.md").includes("`choice"), "CHANGELOG.md の Unreleased の Added に手順の図 (flow と choice) が無い").toBe(true);
-    expect(unreleased("CHANGELOG.ja.md").includes("`flow`") && unreleased("CHANGELOG.ja.md").includes("手順の図"), "CHANGELOG.ja.md の Unreleased の Added に手順の図が無い").toBe(true);
+    // 変更の一覧の手順の図の項 (#3561) を持つ節 (Unreleased か版の節) の Added に手順の図が載る
+    const added = (path: string): string => changelogEntry(join(ROOT, path), 3561).split(/^### /mu).find((p) => p.startsWith("Added")) ?? "";
+    expect(added("CHANGELOG.md").includes("`flow`") && added("CHANGELOG.md").includes("`choice"), "CHANGELOG.md の Added に手順の図 (flow と choice) が無い").toBe(true);
+    expect(added("CHANGELOG.ja.md").includes("`flow`") && added("CHANGELOG.ja.md").includes("手順の図"), "CHANGELOG.ja.md の Added に手順の図が無い").toBe(true);
     // 前提が手順の図を描ける図の種類に数える
     const kinds = repoText(".ikkan/premises/product.md").split("\n").find((line) => line.startsWith("- 描ける図の種類は")) ?? "";
     expect(kinds.includes("手順の図 (`flow`"), "前提 (product.md) の描ける図の種類に手順の図 (flow) が無い").toBe(true);
