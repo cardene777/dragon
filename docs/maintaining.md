@@ -19,7 +19,7 @@ dragon を管理する人 (と、管理を手伝う AI) が使う決まりを置
 `#2602` では、例を 1 つ直した時に例の実物を読む検査を選び損ね、取り込んだ後に赤が 3 度残った。
 
 一式は、版を出す前の配る前の関門で 1 回だけ回す。
-一式の命令は `.ikkan/checks.md` の表が持ち、package の検査 (`packages/`) と見本帳の検査 (`apps/`) を 2 回の vitest に分けて回す。
+配る前の関門 (`deployable.sh --since v<前の版>`) は `.ikkan/checks.md` の配る前の 7 つの欄を回し、テストは `配る前のテスト` の欄が package の検査 (`packages/`) と見本帳の検査 (`apps/`) を 2 回の vitest に分けて回す (#3589)。
 1 回の vitest で全てを回すと、別の作業で機械が混んだ時に 1 回の実行の上限 (5 分) を超え、0.63.0 を出す時に残りを回さずに 2 度止まった (#3463)。
 版を出す課題は照合の step を持たない線で進め、照合と配る前の関門で同じ中身へ一式を 2 度回さない。
 課題の受入条件に、一式が通るという行を足さない。
@@ -327,6 +327,7 @@ skill は使う人の dragon の版を `dragon --version` で確かめ、プラ�
 
 版を上げる PR を取り込んだら、印 (`v<版>`) を付ける前に、npm に出た版と GitHub の印を引く。
 いくつもの会話が並んで版を出すため、取り込んでから公開するまでの間に、別の会話が同じ版を先に出していることがある (#3442)。
+配る前の関門の `配る先との整合` の欄 (`node scripts/release-checks.mjs target`) が下の 2 つと同じ問い合わせをし、どちらかに版が在る時に落ちる (#3589)。
 
 ```sh
 npm view @cardenelabs/dragon versions --json
@@ -358,3 +359,21 @@ gh release create v0.46.4 --repo cardene777/dragon --title v0.46.4 --notes-file 
 付けずに作ると、GitHub が既定の枝の先頭に同じ名前の印を新しく付けるため、取り込みの commit と印がずれる。
 
 `v0.8.0` から `v0.34.0` は作り直す前の版で、変更履歴も `CHANGELOG.ja.md` にしか無いので、Release を作っていない (#3335)。
+
+## 版を出した後に確かめる
+
+npm へ出して見本帳を配ったら、ikkan の配った後の関門 (`deployed.sh`) で `.ikkan/checks.md` の `配った後の確かめ` を回す (#3589)。
+命令 (`node scripts/release-checks.mjs after`) は、npm の最新の版が出した版か、npm から入れた `dragon --version` が出した版を答えるか、見本帳の頁が 200 を返すかを見る。
+出した直後は npm の最新の答えが前の版のままのことがあるので、10 秒おきに 6 回まで引き直す。
+
+## 版を戻す
+
+npm の版は消しても同じ番号で出し直せないため、出した版に誤りが在った時は npm の最新を前の版へ付け替える。
+
+```sh
+npm dist-tag add @cardenelabs/dragon@0.68.1 latest
+```
+
+見本帳は、前の版の印 (`v<前の版>`) を別の作業場所に出し、そこで `pnpm deploy:pages` を打って配り直す。
+前の版が npm から入れられるかは、配る前の関門の `戻す確かめ` の欄 (`node scripts/release-checks.mjs rollback`) が見る。
+直した版は次の版の番号で出す。

@@ -17,7 +17,9 @@
  * |---|---|
  * | 入口 | `exports` の全ての入口を `import` と `require` で名前から解決できる。型を持つ入口は読み込めて中身を持つ |
  * | 型 | 型を持つ入口を `.mts` と `.cts` から import し、`tsc --module node16` の誤りが 0 件 |
- * | 命令 | 入れた `dragon` で見本を HTML に書き出し、file が出来る (HTML は Chromium を使わない) |
+ * | 命令 | 入れた `dragon --version` が包んだ版を答え、入口の `renderDiagram` が見本を SVG に描き、`dragon` が見本を HTML に書き出せる (どれも Chromium を使わない、#3589) |
+ *
+ * 版を出す前の配る前の動作の欄 (`.ikkan/checks.md`) も、build の後にこれを回す (#3589)。
  *
  * 組の決め方と 0 件の扱いは `lib/pack-check.mjs` が持つ。
  */
@@ -28,7 +30,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { 入口を導く, 型の確かめの中身, 型を持つ入口, 結果をまとめる } from "./lib/pack-check.mjs";
+import { SVGを確かめる, 入口を導く, 型の確かめの中身, 型を持つ入口, 版の答えを確かめる, 結果をまとめる } from "./lib/pack-check.mjs";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"));
@@ -99,6 +101,25 @@ try {
   // 5. 命令
   const out = join(app, "out");
   const bin = join(app, "node_modules/.bin/dragon");
+  const answered = run(bin, ["--version"], app);
+  results.push({ 何を: "command dragon --version", ...(answered.ok ? 版の答えを確かめる(answered.out, info.version) : { 通った: false, 理由: answered.reason }) });
+
+  // 命令の書き出しは SVG の形を持たない (mp4 / gif / html / png) ので、入れた package の入口で見本を SVG に描く
+  mkdirSync(out, { recursive: true });
+  const svg = join(out, "intro.svg");
+  const draw = [
+    'import { readFileSync, writeFileSync } from "node:fs";',
+    'import { parseNotation, renderDiagram } from "@cardenelabs/dragon";',
+    `const read = parseNotation(readFileSync(${JSON.stringify(sample)}, "utf8"));`,
+    'if (!read.ok) throw new Error("見本を読めない");',
+    `writeFileSync(${JSON.stringify(svg)}, renderDiagram(read.diagram).svg);`,
+  ].join("\n");
+  const drawn = run(process.execPath, ["--input-type=module", "-e", draw], app);
+  results.push({
+    何を: "api     renderDiagram(intro.dragon).svg",
+    ...(drawn.ok ? SVGを確かめる(existsSync(svg) ? readFileSync(svg, "utf8") : undefined) : { 通った: false, 理由: drawn.reason }),
+  });
+
   const exported = run(bin, ["export", sample, "--format", "html", "--out", out], app);
   const html = join(out, "intro.html");
   results.push({
