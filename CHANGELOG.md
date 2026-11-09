@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The axis of a diagram with tasks now counts the same numbers as the bars** (#3574)
+
+  A bar read `Day 1–3` while the axis under it started at `0 days`, so one day had two numbers. In a time diagram with `task` lines, the axis labels now use the tick names of the bars (`Day 1`, `Day 5`, `Day 10`, `Day 14`) and sit in the middle of their ticks. Time diagrams without `task` lines keep their axis.
+
 ## [0.68.0] - 2026-11-09
 
 ### Added

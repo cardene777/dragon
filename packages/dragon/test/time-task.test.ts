@@ -18,6 +18,8 @@ import { api, type Json, type LineError, pointers } from "./diagram-support";
 import { fileChromium } from "./page-needs";
 import { draw, type Layout, type Rect, type Rendered, sampleTimes, type Timeline } from "./render-support";
 
+const [{ TYPE }, { textWidth }] = await Promise.all([import("../src/look/values"), import("../src/layout/measure")]);
+
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
 /** 工程表の見本の名前 */
@@ -60,11 +62,18 @@ interface TimeTask extends Rect {
   inside: boolean;
 }
 
+/** 軸の字。字の左端を `left` に置く */
+interface TimeTick {
+  text: string;
+  left: number;
+}
+
 interface TimeLayout extends Layout {
   axis: TimeAxis;
   rows: TimeRow[];
   marks: TimeMark[];
   tasks?: TimeTask[];
+  ticks: TimeTick[];
 }
 
 interface TimeTimeline extends Timeline {
@@ -447,8 +456,10 @@ describe("作業の棒の描き方 (#3562)", () => {
     expect(svg, "まだ塗られない所の字の色が色味の表の変数でない").toMatch(/\.dg-tm-tt\{[^}]*fill:var\(--ct\)/u);
     // 棒の外の字には塗りが届かないので 1 回だけ描く
     const english = render(parsed(fileText("release-plan.en.dragon") ?? "", "en"), "en").svg;
-    expect(english.split(">Day 14<").length - 1, "棒の外の期間の字が 1 回でない").toBe(1);
-    expect(english.split(">Day 1–3<").length - 1, "棒の中の期間の字が 2 回でない").toBe(2);
+    // 軸の字 (#3574) も同じ `Day 14` なので、軸の字の組 `dg-tm-tk` を除いて数える
+    const barTexts = (word: string): number => [...english.matchAll(new RegExp(`<text[^>]*>${word}</text>`, "gu"))].filter((m) => !m[0].includes("dg-tm-tk")).length;
+    expect(barTexts("Day 14"), "棒の外の期間の字が 1 回でない").toBe(1);
+    expect(barTexts("Day 1–3"), "棒の中の期間の字が 2 回でない").toBe(2);
 
     // 針が止まった時刻で描いた形を撮り、塗りの端の左と右で字の色を数える。図は頁の幅に伸びるので、頁を図の幅にして図の座標のまま撮る
     const context = await (await fileChromium()).newContext({ viewport: { width: Math.ceil(layout.width), height: Math.ceil(layout.height) }, deviceScaleFactor: 3 });
@@ -594,6 +605,65 @@ describe("工程表の見本 (#3562)", () => {
       const added = sectionOf(released, "### Added", "\n### ");
       expect(added, `${path} の 0.68.0 に Added が無い`).not.toBe("");
       expect(added, `${path} の 0.68.0 の Added に task の行が無い`).toContain("`task");
+    }
+  });
+});
+
+describe("工程表の軸の字 (#3574)", () => {
+  /** 工程表の見本を描いた置き場所 */
+  const planLayout = (lang: "ja" | "en"): TimeLayout => render(parsed(fileText(`${PLAN}${lang === "en" ? ".en" : ""}.dragon`) ?? "", lang), lang).layout;
+  const texts = (layout: TimeLayout): string[] => layout.ticks.map((tick) => tick.text);
+
+  it("task-axis-uses-bar-numbers", () => {
+    // 棒の字 (1〜3日) と同じ番号で読めるよう、軸も日の番号で数える
+    expect(texts(planLayout("ja")), "軸の字が棒の字と同じ番号でない").toEqual(["1日", "5日", "10日", "14日"]);
+  });
+
+  it("task-axis-speaks-bar-words", () => {
+    // 英語の棒の字 (Day 1–3) と同じく、目盛りの名前を頭に置く
+    expect(texts(planLayout("en")), "英語の軸の字が棒の字と同じ形でない").toEqual(["Day 1", "Day 5", "Day 10", "Day 14"]);
+  });
+
+  it("task-axis-centers-on-its-tick", () => {
+    const layout = planLayout("ja");
+    const { axis } = layout;
+    for (const tick of layout.ticks) {
+      const number = Number.parseInt(tick.text, 10);
+      const center = tick.left + textWidth(tick.text, TYPE.timeTick) / 2;
+      expect(near(center, axis.x + (number - 1 + 0.5) * axis.unit, 1), `軸の字 ${tick.text} が目盛り ${number} の真ん中に無い`).toBe(true);
+    }
+  });
+
+  it("task-axis-follows-scale-from", () => {
+    // `from` を書かない図の棒の字は 0 から始まるので、軸の字も 0 から始まり、最後の目盛りの番号で終わる
+    const { layout } = render(parsed(["time 小さな工程", "scale 日 1d 14", "task design as 設計 0-2 [color: blue]", "", ...TO_END].join("\n")));
+    expect(taskOf(layout, "design").text, "棒の字が 0 から始まらない").toBe("0〜2日");
+    expect(texts(layout), "軸の字が棒の字と同じ番号でない").toEqual(["0日", "5日", "10日", "13日"]);
+  });
+
+  it("task-axis-keeps-apart-on-many-ticks", () => {
+    const check = (dragon as unknown as { checkLayoutText: (text: string, options: { lang: "ja" | "en" }) => unknown[] }).checkLayoutText;
+    // 細かい目盛りの図と、目盛りの名前が長く隣の字に届く図 (1 と 2 の字が重なるので 2 の字を置かない)
+    const cases: [string, string, string[] | undefined][] = [
+      ["60 目盛り", "scale 分 1min 60\ntask check as 確認 5 [color: rose]\n\nstep 進む\n  say 針が最後まで進む。\n  now -> 59", undefined],
+      ["長い目盛りの名前", "scale ブロック 12s 12 [from: 1]\ntask check as 確認 0-2 [color: rose]\n\nstep 進む\n  say 針が最後まで進む。\n  now -> 11", ["1ブロック", "4ブロック", "6ブロック", "8ブロック", "10ブロック", "12ブロック"]],
+    ];
+    for (const [name, body, want] of cases) {
+      const text = `time ${name}\n${body}`;
+      const { layout } = render(parsed(text));
+      const boxes = layout.ticks.map((tick) => ({ left: tick.left, right: tick.left + textWidth(tick.text, TYPE.timeTick) }));
+      expect(boxes.length, `${name} の軸の字が少なすぎて確かめられない`).toBeGreaterThan(2);
+      if (want) expect(texts(layout), `${name} の軸の字`).toEqual(want);
+      for (const [k, box] of boxes.slice(1).entries()) expect(box.left, `${name} の軸の字 ${layout.ticks[k + 1]?.text} が前の字に重なる`).toBeGreaterThanOrEqual((boxes[k] as { right: number }).right);
+      expect(check(text, { lang: "ja" }), `${name} の工程表に崩れがある`).toEqual([]);
+    }
+  });
+
+  it("changelog-describes-task-axis", () => {
+    for (const path of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const start = repoText(path).indexOf("## [Unreleased]");
+      const end = repoText(path).indexOf("\n## [", start + 1);
+      expect(repoText(path).slice(start, end), `${path} の Unreleased に軸の字の変更 (#3574) が無い`).toContain("#3574");
     }
   });
 });

@@ -97,7 +97,7 @@ export function axisTicks(k: TimeKit): void {
   const { layout, ctx, base } = k;
   const { axis } = layout;
   const x = (u: number): number => r1(axis.x + u * axis.unit);
-  const majors = layout.ticks.map((t) => `M ${x(t.at)} ${r1(axis.line - T.major / 2)} V ${r1(axis.line + T.major / 2)}`);
+  const majors = (layout.longTicks ?? layout.ticks.map((t) => t.at)).map((u) => `M ${x(u)} ${r1(axis.line - T.major / 2)} V ${r1(axis.line + T.major / 2)}`);
   const minors = layout.minor.map((u) => `M ${x(u)} ${r1(axis.line - T.minor / 2)} V ${r1(axis.line + T.minor / 2)}`);
   base.push(`<path class="dg-tm-ax" d="M ${x(0)} ${r1(axis.line)} H ${x(axis.count)} ${[...majors, ...minors].join(" ")}"/>`);
   // 軸の線と目盛りの線は、軸の両端に長い目盛りの線の長さで、線の太さを持って引く
