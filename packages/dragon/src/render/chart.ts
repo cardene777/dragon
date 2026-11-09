@@ -31,14 +31,19 @@ const CHART_CSS = [
   `.dg-ch-v{${font(CHART_TYPE.value)};fill:var(--ink2)}`,
 ].join("");
 
-/** 段ごとの段の名前。同じ名前が続く段は 1 つの字にまとめる */
+/**
+ * 段ごとの段の名前。同じ名前が続く段は 1 つの字にまとめる。
+ * ドーナツの名前は輪の真ん中に折り返さず描くので、輪の線の内側の縁の円を記録に残し、崩れの検査が収まるかを見る
+ */
 function stepTitles(plan: ChartPlan, diagram: DiagramModel, ctx: Ctx): string {
   const { m } = ctx;
+  const { ring } = plan;
+  const inside = ring ? { ring: { cx: ring.cx, cy: ring.cy, r: ring.r - ring.width / 2 } } : {};
   return textRuns(diagram.steps.map((step) => step.title))
     .map((run) => {
       const [a, b] = runSpan(run, 0, ctx);
       const attr = ` data-chart-title="${esc(run.text)}"`;
-      return chartText(ctx, "dg-ch-t", plan.title.x, plan.title.y, run.text, CHART_TYPE.title, attr, [[a, b + MOTION.fade]], plan.title.anchor, m.vis(a, b));
+      return chartText(ctx, "dg-ch-t", plan.title.x, plan.title.y, run.text, CHART_TYPE.title, attr, { shown: [[a, b + MOTION.fade]], anchor: plan.title.anchor, motion: m.vis(a, b), ...inside });
     })
     .join("");
 }
@@ -68,7 +73,7 @@ function donut(plan: ChartPlan, ctx: Ctx): string {
     });
     for (const run of textRuns(shares)) {
       const [a, b] = runSpan(run, MOTION.edgeAt, ctx);
-      out.push(chartText(ctx, "dg-ch-s", row.share.x, row.share.y, run.text, CHART_TYPE.share, itemAttr("share", item.id), [[a, b + MOTION.fade]], undefined, m.vis(a, b)));
+      out.push(chartText(ctx, "dg-ch-s", row.share.x, row.share.y, run.text, CHART_TYPE.share, itemAttr("share", item.id), { shown: [[a, b + MOTION.fade]], motion: m.vis(a, b) }));
     }
   });
   return out.join("");
@@ -96,7 +101,7 @@ function bars(plan: ChartPlan, ctx: Ctx): string {
     for (const run of textRuns(texts)) {
       const [a, b] = runSpan(run, MOTION.edgeAt + MOTION.chart.move, ctx);
       const x = track.x + (lengths[run.from]?.[i] ?? 0) + B.valueGap;
-      out.push(chartText(ctx, "dg-ch-v", x, track.y + track.h / 2 + drop, run.text, CHART_TYPE.value, itemAttr("value", item.id), [[a, b + MOTION.fade]], undefined, m.vis(a, b)));
+      out.push(chartText(ctx, "dg-ch-v", x, track.y + track.h / 2 + drop, run.text, CHART_TYPE.value, itemAttr("value", item.id), { shown: [[a, b + MOTION.fade]], motion: m.vis(a, b) }));
     }
   });
   return out.join("");

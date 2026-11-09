@@ -1297,6 +1297,7 @@ describe("公開する頁 (#2995)", () => {
       "label-off-line",
       "label-on-line",
       "label-on-frame",
+      "title-outside-ring",
       "line-crosses-text",
       "chip-over-part",
       "pipe-behind-box",

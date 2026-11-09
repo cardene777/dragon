@@ -14,6 +14,7 @@
  * 線の名前か配管の図の流れた量の札が、名指す線から離れているもの (`label-off-line`、#3528) も拾う。名指す線より別の線の近くに在る線の名前も、離れた名前に数える (#3552)。
  * 線の名前の札が、名指す線とは別の線に乗るもの (`label-on-line`、#3552) も拾う。札が乗った線の名前に読めるため。
  * 線の名前の札が囲みと列と帯の枠線をまたぐもの (`label-on-frame`、#3554) も拾う。枠線が札に刺さり、字と重なるため。
+ * ドーナツの輪の真ん中の段の名前が輪の内側に収まらないもの (`title-outside-ring`、#3560) も拾う。図の枠に収まる長さの名前は弧に重なるだけで、図の枠からのはみ出しに数えないため。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
@@ -38,7 +39,8 @@ export type FrameSide = "left" | "right" | "top" | "bottom";
 
 /**
  * 崩れに関わる物。段の番号と線の段は 1 から数え、箱と線の端は箱の名前で呼ぶ。
- * 書き手が書いていない図の部品 (箱の絵柄、運ぶ物の硬貨と封筒) は部品の種類で、図の枠は部品がはみ出す端で呼ぶ (#3515)。時間軸の囲みは`panel`で呼ぶ (#3527)
+ * 書き手が書いていない図の部品 (箱の絵柄、運ぶ物の硬貨と封筒) は部品の種類で、図の枠は部品がはみ出す端で呼ぶ (#3515)。時間軸の囲みは`panel`で呼ぶ (#3527)。
+ * ドーナツの輪の内側は`ring`で呼ぶ (#3560)
  */
 export type LayoutPart =
   | { kind: "badge"; step: number }
@@ -55,7 +57,8 @@ export type LayoutPart =
   | { kind: "valve"; from: string; to?: string }
   | { kind: "gauge"; box: string }
   | { kind: "pipe"; from: string; to: string; step: number }
-  | { kind: "border"; name: string };
+  | { kind: "border"; name: string }
+  | { kind: "ring" };
 
 export type LayoutBreakKind =
   | "badge-off-shape"
@@ -75,7 +78,8 @@ export type LayoutBreakKind =
   | "pipes-merged"
   | "valve-near-pipe"
   | "badge-on-frame"
-  | "label-on-frame";
+  | "label-on-frame"
+  | "title-outside-ring";
 
 /** 枠線を描いた囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
 export interface Border {
@@ -482,6 +486,14 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   // 時間軸の部品は、囲みの枠を越えるか、枠の線の内側の縁から`PANEL_GAP`より近ければ崩れにする (#3527)
   for (const item of framed)
     if (clearance(item.rect, item.frame) < PANEL_GAP) add("panel-edge", firstSeen(item), [item.part, { kind: "panel", panel: "axis" }]);
+
+  // ドーナツの輪の真ん中の段の名前 (#3560)。字の四角の4つの角が輪の内側の円の内に無ければ、字が弧に重なる。円は凸なので4つの角で測れば足りる
+  for (const ink of inks) {
+    const { ring, rect } = ink;
+    if (!ring) continue;
+    const fits = [rect.x, rect.x + rect.w].every((x) => [rect.y, rect.y + rect.h].every((y) => Math.hypot(x - ring.cx, y - ring.cy) <= ring.r + ROUNDING));
+    if (!fits) add("title-outside-ring", firstSeen(ink), [{ kind: "text", text: ink.text }, { kind: "ring" }]);
+  }
 
   // 図の枠からはみ出す部品 (#3515)。枠の外へ触れている間より多く出た字と札と丸と絵柄と運ぶ物と線を、出た量の最も多い端で知らせる。
   // 走り出しを待つ運ぶ物は止め絵に映らず動きの途中だけ留まるので、止め絵に映らない部品は、出た後の最初の止め絵の段で知らせる

@@ -23,6 +23,9 @@ import { captionSteps, type ExportOptions, formatOf } from "./export-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, sampleTimes } from "./render-support";
 
+// 崩れの検査は src から読む。読む時間を検査の上限 (10 秒) に数えないよう、検査の中でなく file を読む時に読む
+const [, { checkText, problemLine }] = await Promise.all([import("../src/render/svg"), import("../src/check")]);
+
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
 
@@ -499,8 +502,7 @@ describe("量の図の描き方 (#3560)", () => {
 });
 
 describe("量の図の崩れ (#3560)", () => {
-  it("chart-examples-pass-layout-check", async () => {
-    const [, { checkText, problemLine }] = await Promise.all([import("../src/render/svg"), import("../src/check")]);
+  it("chart-examples-pass-layout-check", () => {
     for (const file of SAMPLES.flatMap((s) => [`${s}.dragon`, `${s}.en.dragon`])) {
       const text = fileText(file);
       expect(text, `${file} が無い`).toBeDefined();
@@ -515,6 +517,24 @@ describe("量の図の崩れ (#3560)", () => {
         if (parsed.ok) expect(render(parsed.diagram, lang, width).layout.chart.items.length, `${file} を幅 ${width ?? "既定"} で描いた項目`).toBeGreaterThan(0);
       }
     }
+
+    // 見本の 0 件が検査の空振りでないことの対照。輪の内側の円に収まらない段の名前は、図の枠に収まっていても崩れに数え、同じ名前が続く段は最初の段の 1 件にする
+    const withTitle = (title: string, shape: string): string =>
+      [`chart 題 [shape: ${shape}]`, "", "item a as 一つ目 [color: blue]", "item b as 二つ目 [color: green]", "", "step 短い", "  say 最初の段。", "  set a: 7", "  set b: 3", "", `step ${title}`, "  say 次の段。", "  set a: 5", "", `step ${title}`, "  say 同じ名前の段。", "  set a: 3", ""].join("\n");
+    const check = (title: string, shape: string, lang: "ja" | "en") => checkText("long.dragon", withTitle(title, shape), "notation", lang, { layout: (step, said) => `段 ${step}: ${said}` });
+    const ringBreak = (title: string) => ({ kind: "title-outside-ring", step: 2, parts: [{ kind: "text", text: title }, { kind: "ring" }] });
+    const longJa = "2024年の市場の割合";
+    const longEn = "Market share by region";
+    expect(check(longJa, "donut", "ja").map((p) => p.layout), "輪の内側に収まらない日本語の名前の崩れ").toEqual([ringBreak(longJa)]);
+    expect(check(longJa, "donut", "ja").map((p) => p.message), "日本語の文が段と名前を名指す").toEqual([`段 2: 「${longJa}」がドーナツの輪の内側からはみ出す`]);
+    expect(check(longEn, "donut", "en").map((p) => p.layout), "輪の内側に収まらない英語の名前の崩れ").toEqual([ringBreak(longEn)]);
+    expect(check(longEn, "donut", "en").map((p) => p.message), "英語の文が段と名前を名指す").toEqual([`段 2: "${longEn}" sticks out of the inside of the donut ring`]);
+    // skill の参照 (`references/kinds/chart.md`) に書いた目安の長さは収まる。それより長ければ知らせる
+    expect(check("七文字の段の名", "donut", "ja").map(problemLine), "日本語 7 字の名前").toEqual([]);
+    expect(check("八文字の段の名前", "donut", "ja").map((p) => p.layout), "日本語 8 字の名前").toEqual([ringBreak("八文字の段の名前")]);
+    expect(check("Market share A", "donut", "en").map(problemLine), "英語 14 字の名前").toEqual([]);
+    // 横棒の図は輪を持たず、段の名前を段の番号の隣の行に書く
+    expect(check(longJa, "bar", "ja").map(problemLine), "横棒の図の長い名前").toEqual([]);
   });
 });
 

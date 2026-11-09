@@ -44,6 +44,8 @@ export interface Ink {
    * 字の四角は描いた幅 (字の間を空けて描く字は字の間を含む幅) で記録する
    */
   frame?: { name: string; rect: Rect };
+  /** ドーナツの輪の真ん中に書いた段の名前なら、輪の内側の円 (#3560)。崩れの確かめが、円に収まらない字を探す */
+  ring?: { cx: number; cy: number; r: number };
 }
 
 /** 描いた線。`from` と `to` は線の両端の箱の名札 */

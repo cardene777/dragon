@@ -3,6 +3,7 @@
  *
  * 項目はドーナツなら凡例の行 (色の見本と名前)、横棒なら棒の左の名前で描く。名前は全ての段で同じ所に出したままにする。
  * 字は描いた所と見えている間を字の記録 (`ink`) に残し、`dragon check --layout` と書き出しが字の重なりと枠からのはみ出しを数える。
+ * ドーナツの輪の真ん中の段の名前は輪の内側の円も記録に残し、`dragon check --layout` が円に収まらない名前を数える。
  * 検査と読み上げの道具が項目を名札で引けるよう、名前の字は `data-chart-name` に項目の名札を持つ。
  * この file は量の図を描く部品 (`render/chart.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
  */
@@ -11,16 +12,25 @@ import { textBox } from "../../layout/measure";
 import { CHART_LOOK, CHART_TYPE } from "../../look/chart";
 import type { TextStyle } from "../../look/values";
 import { partRadius } from "../../render/corner";
-import { ALWAYS, type Shown } from "../../render/ink";
+import { ALWAYS, type Ink, type Shown } from "../../render/ink";
 import { type Ctx, esc, r1 } from "../../render/parts";
 import { cs } from "../color/draw";
 
 /**
- * 字を 1 つ描き、字の四角と見えている間を字の記録に残す。`attrs` は字に足す属性 (名札の `data-chart-*`)、
- * `motion` は見えている間の動きの style で、渡すと動く部品の印 (`dg-a`) を付ける
+ * 字の描き方の選択。`shown` は見えている間 (既定は初めから最後まで)、`anchor` は字の横の揃え方、
+ * `motion` は見えている間の動きの style で、渡すと動く部品の印 (`dg-a`) を付ける。`ring` は字を収める輪の内側の円
  */
-export function chartText(ctx: Ctx, cls: string, x: number, y: number, text: string, style: TextStyle, attrs: string, shown: Shown[] = ALWAYS, anchor?: "start" | "middle", motion?: string): string {
-  ctx.ink.push({ text, rect: textBox(text, x, y, style, anchor), shown });
+export interface ChartTextOptions {
+  shown?: Shown[];
+  anchor?: "start" | "middle";
+  motion?: string;
+  ring?: Ink["ring"];
+}
+
+/** 字を 1 つ描き、字の四角と見えている間を字の記録に残す。`attrs` は字に足す属性 (名札の `data-chart-*`) */
+export function chartText(ctx: Ctx, cls: string, x: number, y: number, text: string, style: TextStyle, attrs: string, options: ChartTextOptions = {}): string {
+  const { shown = ALWAYS, anchor, motion, ring } = options;
+  ctx.ink.push({ text, rect: textBox(text, x, y, style, anchor), shown, ...(ring ? { ring } : {}) });
   const anchored = anchor ? ` text-anchor="${anchor}"` : "";
   const moving = motion === undefined ? "" : ` style="${motion}"`;
   return `<text class="${cls}${motion === undefined ? "" : " dg-a"}" x="${r1(x)}" y="${r1(y)}"${anchored}${attrs}${moving}>${esc(text)}</text>`;

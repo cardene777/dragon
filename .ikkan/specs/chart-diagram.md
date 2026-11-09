@@ -14,6 +14,7 @@
 | 段を送った時、弧と棒が前の段の値から新しい値へ動く。`set`を書かない項目は前の段の値を保ち、まだ値の無い項目は0として弧も棒も出さない | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-values-move-from-previous-step`が通る | #3560 |
 | 量の図を0.25秒ごとに止めて数えた時、段の番号はその段が始まるまで出ない | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-keeps-motion-rules`が通る | #3560 |
 | 2つの見本を日本語と英語で、枠の幅を渡さない時と390を渡した時に描いた時、`dragon check --layout`がどの段でも崩れを何も出さない | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-examples-pass-layout-check`が通る | #3560 |
+| ドーナツの輪の真ん中の段の名前が輪の内側の円に収まらない時、`dragon check --layout`がその名前の最初の段に`title-outside-ring`を1件出し、日本語と英語の文が段の名前を名指す。円に収まる名前と、輪を持たない横棒の図の名前では出さない | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-examples-pass-layout-check`が通る | #3560 |
 | 量の図の描画も、色、字、余白、動きの値を共通の値の表からだけ読み、描画のfileに色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3560 |
 | `dragon export`が量の図をmp4、GIF、HTML、PNGの4つに書き出し、同じJSONを2回書き出したPNGがバイト単位で一致し、書き出したHTMLで全ての段を送れる | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-exports-every-format`が通る | #3560 |
 | `packages/dragon/examples`に2つの見本の日本語と英語の記法とJSONの8つのfileがあり、英語版の項目と段と段ごとの`set`の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-example-files-match`が通る | #3560 |

@@ -14,6 +14,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   Inside a step, `set <id>: <value>` writes the value of an item, a number of 0 or more without a unit, and an item without `set` keeps its previous value.
   A donut draws each share as the angle of an arc clockwise from 12 o'clock, with the step name in the middle of the ring and rounded percentages in the legend. A bar chart gives the largest value over all steps the longest bar and shows each value at the end of its bar.
   Going to the next step moves the arcs and bars from the previous values to the new ones. In a narrow frame, the donut's legend moves below the ring and the bars get shorter.
+  `dragon check --layout` reports a step name that does not fit inside the ring of a donut as `title-outside-ring`.
   The words `item` and `set` keep their lineup, try and strip readings in the other kinds. The examples are `os-share` (donut) and `tickets` (bar) in `packages/dragon/examples/`.
 
 ### Changed
