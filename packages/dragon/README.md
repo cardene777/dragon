@@ -281,7 +281,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `group` `end` `box` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -431,6 +431,26 @@ step C0 becomes final
   note C0: Final [color: green]
   mark block 0-31 [color: green]
   span 0-31: Final, cannot be undone [shape: box, color: rose]
+```
+
+To show how long tasks take, as in a schedule, write `task <id> as <name> <range> [color: <color>]` before the first step.
+Each task gets its own row and is drawn as one thick bar over the ticks of the range. A range counts ticks from 0 like `mark`, as `0-2` or `13`.
+The name sits to the left of the row and the length inside the bar, and the part of the bar the needle has passed fills in.
+A diagram with tasks needs no `row`, and tasks and rows keep the declared order from top to bottom.
+
+```dragon
+time Schedule up to the release
+
+scale day 1d 14 [from: 1]
+
+task design as Design 0-2 [color: blue]
+task build as Build 3-8 [color: violet]
+task test as Test 7-10 [color: amber]
+task ship as Release 13 [color: green]
+
+step Build and test
+  say Start building on day 4, and start testing alongside it on day 8.
+  now -> 10
 ```
 
 ### Tree diagram
@@ -587,7 +607,7 @@ step The swap ends
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
 Boxes go in `blocks.box`, groups in `blocks.group`, and the strip in `blocks.strip`.
 Git graph branches go in `blocks.branch`, the paths a state diagram does not take in `blocks.path`, lineup chips in `blocks.item`, and lineup roles in `blocks.role`.
-A time diagram's scale, period, rows, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.point` and `blocks.zoom`.
+A time diagram's scale, period, rows, tasks, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.task`, `blocks.point` and `blocks.zoom`.
 What happens in a step (lines and actions inside a box) goes in each step's `events`.
 
 ```json
