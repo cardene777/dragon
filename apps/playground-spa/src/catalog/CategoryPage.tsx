@@ -29,6 +29,7 @@ import { type Kind, samplesOf } from "./catalog";
 import { PartCard } from "./CatalogIndex";
 import { LaterFailed } from "./LaterFailed";
 import { partsOf } from "./parts";
+import { CATALOG_TEXT } from "./text";
 
 type View = "figure" | "code";
 type Source = "notation" | "json";
@@ -81,7 +82,7 @@ export function CategoryPage(props: Props): ReactElement {
 /** 道筋と分類の名前と説明。見本の数は届いた後だけ出す */
 function CategoryHero({ kind, lang, counts }: { kind: Kind; lang: Lang; counts: { total: number; shown: number } | null }): ReactElement {
   const t = TEXT[lang];
-  const c = t.site.catalog;
+  const c = CATALOG_TEXT[lang];
   const kindName = t.shelf.kinds[kind];
   return (
     <div className="catalog-hero">
@@ -122,7 +123,7 @@ function CategoryHero({ kind, lang, counts }: { kind: Kind; lang: Lang; counts: 
 
 /** 後から読む見本が届く前の分類の頁。読めなかった時は図の枠に読み直す釦を出す */
 function CategoryPending({ kind, lang, failed }: { kind: Kind; lang: Lang; failed: boolean }): ReactElement {
-  const c = TEXT[lang].site.catalog;
+  const c = CATALOG_TEXT[lang];
   return (
     <div className="catalog-page" data-catalog="category" data-later={failed ? "failed" : "loading"}>
       <CategoryHero kind={kind} lang={lang} counts={null} />
@@ -141,8 +142,7 @@ function CategoryPending({ kind, lang, failed }: { kind: Kind; lang: Lang; faile
 }
 
 function CategoryContent({ kind, lang, theme, palette: sitePalette }: Props): ReactElement {
-  const t = TEXT[lang];
-  const c = t.site.catalog;
+  const c = CATALOG_TEXT[lang];
   const keys = samplesOf(kind);
   const [query, setQuery] = useState("");
   // 部品の頁の見本の札から来た時は、`#` の後ろの見本を選んだ状態で開く。分類を移ると頁ごと置き直すので、開いた時に 1 度だけ読む
@@ -265,7 +265,7 @@ interface PreviewProps {
 /** 右の見本。見本ごとに置き直し、段と倍率を見本の間で持ち越さない */
 function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView, source, onSource, onExpand }: PreviewProps): ReactElement {
   const t = TEXT[lang];
-  const c = t.site.catalog;
+  const c = CATALOG_TEXT[lang];
   const text = sampleText(sample, lang);
   const info = exampleInfo(sample, lang);
   const title = info?.title ?? sample;
@@ -494,7 +494,6 @@ interface OverlayProps {
  * 閉じる釦と Escape と、窓の外を押した時に閉じる。開いている間は頁を送らせず、閉じたら開いた釦へ戻る。
  */
 function Overlay({ sample, lang, theme, palette, onClose }: OverlayProps): ReactElement {
-  const t = TEXT[lang];
   const text = sampleText(sample, lang);
   const info = exampleInfo(sample, lang);
   const diagram = useMemo(() => diagramOf(text), [text]);
@@ -543,7 +542,7 @@ function Overlay({ sample, lang, theme, palette, onClose }: OverlayProps): React
             </h2>
             {info?.about && <p className="catalog-overlay-desc">{info.about}</p>}
           </div>
-          <button ref={close} type="button" className="catalog-overlay-close" data-catalog="overlay-close" aria-label={t.site.catalog.close} onClick={onClose}>
+          <button ref={close} type="button" className="catalog-overlay-close" data-catalog="overlay-close" aria-label={CATALOG_TEXT[lang].close} onClick={onClose}>
             ×
           </button>
         </div>

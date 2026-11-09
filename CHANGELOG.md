@@ -16,6 +16,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   Going to the next step moves the arcs and bars from the previous values to the new ones. In a narrow frame, the donut's legend moves below the ring and the bars get shorter.
   The words `item` and `set` keep their lineup, try and strip readings in the other kinds. The examples are `os-share` (donut) and `tickets` (bar) in `packages/dragon/examples/`.
 
+### Changed
+
+- **The catalog no longer loads the text of the catalog pages and the notes of the shelf's notation tab on its first screen** (#3565)
+
+  The script the catalog loads first carried, in both languages, the text that only the catalog pages show, such as the description of each diagram kind and the words of the example list, the search box and the enlarge button, and the note beside each line shape in the notation tab of the editor's shelf. They sat in the page text table that the first screen reads. The catalog pages' text now lives in `catalog/text.ts`, which goes into the chunk the catalog pages load later, and the notes live in `editor/syntax-text.ts`, a chunk of its own that the shelf loads when the editor opens. The catalog pages and the shelf show the same text as before. The script and CSS loaded first went from 185,436 to 180,470 bytes gzipped, leaving room under the 186,368-byte limit for the next diagram kinds.
+
 ## [0.67.0] - 2026-11-08
 
 ### Added
