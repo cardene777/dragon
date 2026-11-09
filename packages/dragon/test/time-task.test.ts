@@ -661,9 +661,10 @@ describe("工程表の軸の字 (#3574)", () => {
 
   it("changelog-describes-task-axis", () => {
     for (const path of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
-      const start = repoText(path).indexOf("## [Unreleased]");
+      const start = repoText(path).indexOf("## [0.68.1]");
       const end = repoText(path).indexOf("\n## [", start + 1);
-      expect(repoText(path).slice(start, end), `${path} の Unreleased に軸の字の変更 (#3574) が無い`).toContain("#3574");
+      expect(start, `${path} に 0.68.1 の節が無い`).toBeGreaterThanOrEqual(0);
+      expect(repoText(path).slice(start, end), `${path} の 0.68.1 の節に軸の字の変更 (#3574) が無い`).toContain("#3574");
     }
   });
 });
