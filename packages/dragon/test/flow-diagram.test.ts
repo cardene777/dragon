@@ -247,6 +247,8 @@ describe("手順の図の原本の JSON (#3561)", () => {
       ["手順の図に time の欄", patched(smallFlow(), ["time"], { scale: { unit: "slot", length: "12s", count: 4 } }), "/time", false],
       ["手順の図に枝の欄", patched(smallFlow(), ["blocks", "branch"], [{ id: "main" }]), "/blocks/branch", false],
       ["手順の図に目盛りの欄", patched(smallFlow(), ["blocks", "scale"], { unit: "slot", length: "12s", count: 4 }), "/blocks/scale", false],
+      ["手順の図に作業の欄", patched(smallFlow(), ["blocks", "task"], [{ id: "t", name: "作業", at: "0-2" }]), "/blocks/task", false],
+      ["手順の図に量の図の欄", patched(smallFlow(), ["chart"], { shape: "donut", items: [{ id: "a", name: "項目" }] }), "/chart", false],
     ];
     for (const [name, input, pointer, namesFlow] of cases) {
       const ja = validate(input);
