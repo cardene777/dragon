@@ -100,7 +100,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.67/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.68/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -163,6 +163,10 @@ CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。
 `still: true` を渡すと、最後の段の止め絵に全ての段の線の名前と箱の中の処理を最後の段と同じ濃さで出し、動かさない読者にも流れ全体を 1 枚で見せる。
 `still` は `renderDiagram` にも渡せる。
 どれも渡さなければ、置いた時から全ての段を繰り返し流す。
+
+流す速さを変えるには、`speed` に倍率を渡すか (`speed: 2` なら半分の秒で段が進む)、置いた後に `player` の `setSpeed` を呼ぶ。
+図の動きと段の札と `onStep` は同じ速さで進み、流している途中で変えても今の位置から続く。
+`speed` と `setSpeed` は 0 より大きい有限の数を受け、それ以外は `RangeError` を投げる。
 
 600px より狭い枠に置いた配管の図は、全体を枠の幅に収めて始めるので、箱の名前の字が小さくなる。
 `zoom: "readable"` を渡すと、箱の名前が読める大きさ (画面で 10.5px 以上) に寄せて始め、枠を寄せた図の高さまで伸ばして横に送る。

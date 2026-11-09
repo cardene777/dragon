@@ -599,12 +599,12 @@ describe("工程表の見本 (#3562)", () => {
     expect(docs, "作業の棒の段落に日本語の task の行の書き方が無い").toContain("`task <名札> as <名前> <範囲>");
     expect(docs, "作業の棒の段落に英語の task の行の書き方が無い").toContain("`task <id> as <name> <range>");
     expect(repoText("apps/playground-spa/src/catalog/blocks-docs.gen.ts"), "使い方の頁が作業の棒の段落を読まない").toContain('"task"');
-    // 変更の記録の Unreleased の Added に工程表の棒が載る
+    // 変更の記録の 0.68.0 の Added に工程表の棒が載る (0.68.0 で出した、#3568)
     for (const path of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
-      const unreleased = sectionOf(repoText(path), "## [Unreleased]", "\n## [");
-      const added = sectionOf(unreleased, "### Added", "\n### ");
-      expect(added, `${path} の Unreleased に Added が無い`).not.toBe("");
-      expect(added, `${path} の Unreleased の Added に task の行が無い`).toContain("`task");
+      const released = sectionOf(repoText(path), "## [0.68.0]", "\n## [");
+      const added = sectionOf(released, "### Added", "\n### ");
+      expect(added, `${path} の 0.68.0 に Added が無い`).not.toBe("");
+      expect(added, `${path} の 0.68.0 の Added に task の行が無い`).toContain("`task");
     }
   });
 });
