@@ -313,6 +313,14 @@
     "dg-st rx=12": 8,
     "dg-strip rx=14": 1
   },
+  "os-share.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-ch-sw rx=3": 3
+  },
+  "os-share.json": {
+    "dg-bg rx=14": 1,
+    "dg-ch-sw rx=3": 3
+  },
   "payment.en.json": {
     "(none) rx=10": 5,
     "(none) rx=7.5": 1,
@@ -362,6 +370,18 @@
     "dg-on rx=12": 1,
     "dg-st rx=12": 1,
     "dg-strip rx=14": 1
+  },
+  "release-plan.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-band rx=14": 1,
+    "(none) rx=5": 4,
+    "dg-tm-tb rx=5": 4
+  },
+  "release-plan.json": {
+    "dg-bg rx=14": 1,
+    "dg-band rx=14": 1,
+    "(none) rx=5": 4,
+    "dg-tm-tb rx=5": 4
   },
   "retry.en.json": {
     "(none) rx=10": 4,
@@ -504,6 +524,16 @@
     "dg-pp-chip dg-pp-chip-provisional rx=4": 14,
     "dg-pp-glass dg-pp-glass-on rx=18": 4,
     "dg-pp-chip dg-pp-chip-final rx=4": 2
+  },
+  "tickets.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-ch-bt rx=3": 3,
+    "dg-ch-bar dg-a rx=3": 3
+  },
+  "tickets.json": {
+    "dg-bg rx=14": 1,
+    "dg-ch-bt rx=3": 3,
+    "dg-ch-bar dg-a rx=3": 3
   },
   "tx-block.en.json": {
     "dg-bg rx=14": 1,
