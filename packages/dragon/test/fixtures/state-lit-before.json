@@ -1,0 +1,839 @@
+{
+  "examples/order.dragon": {
+    "注文受付": {
+      "lit": [
+        [
+          2.4,
+          4.15
+        ]
+      ],
+      "done": 4.45
+    },
+    "支払い待ち": {
+      "lit": [
+        [
+          5.050000000000001,
+          6.4
+        ]
+      ],
+      "done": 6.7
+    },
+    "支払い済み": {
+      "lit": [
+        [
+          7.300000000000001,
+          8.72
+        ]
+      ],
+      "done": 9.020000000000001
+    },
+    "発送準備": {
+      "lit": [
+        [
+          9.620000000000001,
+          11.040000000000001
+        ]
+      ],
+      "done": 11.340000000000002
+    },
+    "発送済み": {
+      "lit": [
+        [
+          11.940000000000001,
+          13.48
+        ]
+      ],
+      "done": 13.780000000000001
+    },
+    "配達完了": {
+      "lit": [
+        [
+          14.38,
+          15.680000000000001
+        ]
+      ],
+      "done": 15.980000000000002
+    },
+    "返品の受付": {
+      "lit": [
+        [
+          16.580000000000002,
+          20.345000000000006
+        ]
+      ],
+      "done": 20.645000000000007
+    },
+    "返金済み": {
+      "lit": [
+        [
+          21.245000000000005,
+          22.785000000000007
+        ]
+      ],
+      "done": 23.085000000000008
+    }
+  },
+  "examples/order.en.dragon": {
+    "received": {
+      "lit": [
+        [
+          2.4,
+          5.424999999999999
+        ]
+      ],
+      "done": 5.724999999999999
+    },
+    "awaiting": {
+      "lit": [
+        [
+          6.324999999999999,
+          9.475
+        ]
+      ],
+      "done": 9.775
+    },
+    "paid": {
+      "lit": [
+        [
+          10.375,
+          13.325000000000001
+        ]
+      ],
+      "done": 13.625000000000002
+    },
+    "packing": {
+      "lit": [
+        [
+          14.225000000000001,
+          17.6
+        ]
+      ],
+      "done": 17.900000000000002
+    },
+    "shipped": {
+      "lit": [
+        [
+          18.5,
+          22.025000000000002
+        ]
+      ],
+      "done": 22.325000000000003
+    },
+    "delivered": {
+      "lit": [
+        [
+          22.925,
+          25.550000000000004
+        ]
+      ],
+      "done": 25.850000000000005
+    },
+    "returning": {
+      "lit": [
+        [
+          26.450000000000003,
+          33.95
+        ]
+      ],
+      "done": 34.25
+    },
+    "refunded": {
+      "lit": [
+        [
+          34.85,
+          37.825
+        ]
+      ],
+      "done": 38.125
+    }
+  },
+  "src/blocks/act/gallery/act.state.dragon": {
+    "確認中": {
+      "lit": [
+        [
+          2.4,
+          5.9
+        ]
+      ],
+      "done": 6.2
+    },
+    "承認": {
+      "lit": [
+        [
+          6.800000000000001,
+          12.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/act/gallery/act.state.en.dragon": {
+    "checking": {
+      "lit": [
+        [
+          2.4,
+          6.625
+        ]
+      ],
+      "done": 6.925
+    },
+    "approved": {
+      "lit": [
+        [
+          7.525,
+          13.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/box/gallery/box.state.dragon": {
+    "公開中": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "下書き": {
+      "lit": [
+        [
+          4.6,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/box/gallery/box.state.en.dragon": {
+    "live": {
+      "lit": [
+        [
+          2.4,
+          4.125
+        ]
+      ],
+      "done": 4.425
+    },
+    "draft": {
+      "lit": [
+        [
+          5.025,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/carry/gallery/carry.state.dragon": {
+    "支払い待ち": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ],
+        [
+          6.800000000000001,
+          8.1
+        ]
+      ],
+      "done": 4
+    },
+    "注文済み": {
+      "lit": [
+        [
+          4.6,
+          5.9
+        ]
+      ],
+      "done": 6.2
+    },
+    "完了": {
+      "lit": [
+        [
+          8.65,
+          14.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/carry/gallery/carry.state.en.dragon": {
+    "paying": {
+      "lit": [
+        [
+          2.4,
+          4.05
+        ],
+        [
+          7.475,
+          8.799999999999999
+        ]
+      ],
+      "done": 4.35
+    },
+    "ordered": {
+      "lit": [
+        [
+          4.949999999999999,
+          6.574999999999999
+        ]
+      ],
+      "done": 6.874999999999999
+    },
+    "done": {
+      "lit": [
+        [
+          9.35,
+          15.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/color/gallery/color.state.dragon": {
+    "審査中": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "公開中": {
+      "lit": [
+        [
+          4.6,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/color/gallery/color.state.en.dragon": {
+    "review": {
+      "lit": [
+        [
+          2.4,
+          3.775
+        ]
+      ],
+      "done": 4.075
+    },
+    "live": {
+      "lit": [
+        [
+          4.675,
+          11.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/edge-label/gallery/edge-label.state.dragon": {
+    "乙": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "甲": {
+      "lit": [
+        [
+          4.6,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/edge-label/gallery/edge-label.state.en.dragon": {
+    "b": {
+      "lit": [
+        [
+          2.4,
+          4.299999999999999
+        ]
+      ],
+      "done": 4.599999999999999
+    },
+    "a": {
+      "lit": [
+        [
+          5.199999999999999,
+          11.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/edge/gallery/edge.state.dragon": {
+    "対応中": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ],
+        [
+          6.800000000000001,
+          12.4
+        ]
+      ],
+      "done": 4
+    },
+    "解決": {
+      "lit": [
+        [
+          4.6,
+          5.9
+        ]
+      ],
+      "done": 6.2
+    }
+  },
+  "src/blocks/edge/gallery/edge.state.en.dragon": {
+    "working": {
+      "lit": [
+        [
+          2.4,
+          4.549999999999999
+        ],
+        [
+          7.699999999999999,
+          13.4
+        ]
+      ],
+      "done": 4.849999999999999
+    },
+    "solved": {
+      "lit": [
+        [
+          5.449999999999999,
+          6.799999999999999
+        ]
+      ],
+      "done": 7.099999999999999
+    }
+  },
+  "src/blocks/icon/gallery/icon.state.dragon": {
+    "審査中": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "公開中": {
+      "lit": [
+        [
+          4.6,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/icon/gallery/icon.state.en.dragon": {
+    "review": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "live": {
+      "lit": [
+        [
+          4.6,
+          11.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/link/gallery/link.state.dragon": {
+    "注文": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    }
+  },
+  "src/blocks/link/gallery/link.state.en.dragon": {
+    "order": {
+      "lit": [
+        [
+          2.4,
+          4.6
+        ]
+      ],
+      "done": 4.8999999999999995
+    }
+  },
+  "src/blocks/note/gallery/note.state.dragon": {
+    "品切れ": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "在庫あり": {
+      "lit": [
+        [
+          4.6,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/note/gallery/note.state.en.dragon": {
+    "out": {
+      "lit": [
+        [
+          2.4,
+          3.75
+        ]
+      ],
+      "done": 4.05
+    },
+    "stocked": {
+      "lit": [
+        [
+          4.65,
+          11.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/side-path/gallery/side-path.state.dragon": {
+    "支払い済み": {
+      "lit": [
+        [
+          2.4,
+          3.8
+        ]
+      ],
+      "done": 4.1
+    },
+    "発送済み": {
+      "lit": [
+        [
+          4.699999999999999,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/side-path/gallery/side-path.state.en.dragon": {
+    "paid": {
+      "lit": [
+        [
+          2.4,
+          5.775
+        ]
+      ],
+      "done": 6.075
+    },
+    "shipped": {
+      "lit": [
+        [
+          6.675000000000001,
+          14.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/source/gallery/source.state.dragon": {
+    "注文": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    }
+  },
+  "src/blocks/source/gallery/source.state.en.dragon": {
+    "order": {
+      "lit": [
+        [
+          2.4,
+          4.549999999999999
+        ]
+      ],
+      "done": 4.849999999999999
+    }
+  },
+  "src/blocks/start-finish/gallery/start-finish.state.dragon": {
+    "受付": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "完了": {
+      "lit": [
+        [
+          4.6,
+          5.9
+        ]
+      ],
+      "done": 6.2
+    }
+  },
+  "src/blocks/start-finish/gallery/start-finish.state.en.dragon": {
+    "received": {
+      "lit": [
+        [
+          2.4,
+          4.4
+        ]
+      ],
+      "done": 4.7
+    },
+    "done": {
+      "lit": [
+        [
+          5.300000000000001,
+          6.6000000000000005
+        ]
+      ],
+      "done": 6.9
+    }
+  },
+  "src/blocks/step/gallery/step.state.dragon": {
+    "動作中": {
+      "lit": [
+        [
+          2.4,
+          3.825
+        ]
+      ],
+      "done": 4.125
+    },
+    "停止中": {
+      "lit": [
+        [
+          4.725,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/step/gallery/step.state.en.dragon": {
+    "running": {
+      "lit": [
+        [
+          2.4,
+          4.824999999999999
+        ]
+      ],
+      "done": 5.124999999999999
+    },
+    "stopped": {
+      "lit": [
+        [
+          5.725,
+          12.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/strip/gallery/strip.state.dragon": {
+    "発送済み": {
+      "lit": [
+        [
+          2.4,
+          3.8200000000000003
+        ]
+      ],
+      "done": 4.12
+    },
+    "配達完了": {
+      "lit": [
+        [
+          4.720000000000001,
+          10.4
+        ]
+      ]
+    }
+  },
+  "src/blocks/strip/gallery/strip.state.en.dragon": {
+    "shipped": {
+      "lit": [
+        [
+          2.4,
+          4.35
+        ]
+      ],
+      "done": 4.6499999999999995
+    },
+    "delivered": {
+      "lit": [
+        [
+          5.25,
+          11.4
+        ]
+      ]
+    }
+  },
+  "test/fixtures/corner-empty.dragon": {
+    "支払い待ち": {
+      "lit": [
+        [
+          2.4,
+          5.9
+        ]
+      ],
+      "done": 6.2
+    },
+    "支払い済み": {
+      "lit": [
+        [
+          6.800000000000001,
+          12.4
+        ]
+      ]
+    }
+  },
+  "test/fixtures/corner-note.dragon": {
+    "支払い待ち": {
+      "lit": [
+        [
+          2.4,
+          10.4
+        ]
+      ]
+    }
+  },
+  "test/fixtures/empty-slot/order-state.dragon": {
+    "created": {
+      "lit": [
+        [
+          2.4,
+          3.9000000000000004
+        ]
+      ],
+      "done": 4.2
+    },
+    "paid": {
+      "lit": [
+        [
+          4.800000000000001,
+          6.1
+        ]
+      ],
+      "done": 6.3999999999999995
+    },
+    "shipped": {
+      "lit": [
+        [
+          7,
+          8.299999999999999
+        ]
+      ],
+      "done": 8.6
+    }
+  },
+  "test/fixtures/layout/crowded-lines.dragon": {
+    "受付": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "確認": {
+      "lit": [
+        [
+          4.6,
+          5.9
+        ]
+      ],
+      "done": 6.2
+    },
+    "処理": {
+      "lit": [
+        [
+          6.800000000000001,
+          12.4
+        ]
+      ]
+    }
+  },
+  "test/fixtures/layout/state-pair.dragon": {
+    "待ち": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ],
+        [
+          6.800000000000001,
+          8.1
+        ]
+      ],
+      "done": 4
+    },
+    "作業中": {
+      "lit": [
+        [
+          4.6,
+          5.9
+        ],
+        [
+          11.2,
+          16.4
+        ]
+      ],
+      "done": 6.2
+    },
+    "確認": {
+      "lit": [
+        [
+          9,
+          10.299999999999999
+        ]
+      ],
+      "done": 10.6
+    }
+  },
+  "test/fixtures/repeat-loop.dragon": {
+    "注文受付": {
+      "lit": [
+        [
+          2.4,
+          3.7
+        ]
+      ],
+      "done": 4
+    },
+    "支払い待ち": {
+      "lit": [
+        [
+          4.6,
+          16.9
+        ]
+      ],
+      "done": 17.2
+    },
+    "支払い済み": {
+      "lit": [
+        [
+          17.799999999999997,
+          23.4
+        ]
+      ]
+    }
+  }
+}

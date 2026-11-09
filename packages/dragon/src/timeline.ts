@@ -320,7 +320,7 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
   const first = steps[0]?.start ?? 0;
   const carriers = carrierTimes(departures, first, last);
   // 手順の図も印が着いた箱と判断を光らせるが、済んだ印は出さない。判断のひし形の右上の角は形の外にあるため (#3561)
-  const states = diagram.kind === "state" || diagram.kind === "flow" ? stateTimes(diagram, edges, last, diagram.kind === "state") : undefined;
+  const states = diagram.kind === "state" || diagram.kind === "flow" ? stateTimes(diagram, edges, steps, last, diagram.kind === "state") : undefined;
   const needle: [number, number][] = [[0, 0]];
   const units: { unit: number; passed: number }[] = [];
   plans.forEach((p, s) => {
@@ -415,25 +415,28 @@ const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).include
 
 /**
  * 状態遷移図の状態が光る間。段の線を引き終えて状態へ着いた時から、その状態を出る線を引き始めるまで光り、
- * 出た少し後に済んだ印を出す。同じ状態へ戻る線では光ったまま、最後に着いた状態は終わりまで光る。
+ * 光が消えた少し後に済んだ印を出す。同じ状態へ戻る線では光ったまま、最後に着いた状態は終わりまで光る。
+ * 着いた段のうちに次の線が走り出す時は、着いた時からその段の終わりまで光る (#3575)。
  * 物が状態を移るのは線を辿った時なので、運ぶ物の種類 (硬貨や、運ばない線) を問わず全ての線で数える。
  * `done` を立てない時 (手順の図、#3561) は済んだ印を出さない。
  */
-function stateTimes(diagram: DiagramModel, edges: EdgeTime[], last: number, done = true): StateTime[] {
+function stateTimes(diagram: DiagramModel, edges: EdgeTime[], steps: Span[], last: number, done = true): StateTime[] {
   const times = new Map<string, StateTime>();
   const of = (box: string): StateTime => {
     const found = times.get(box) ?? { box, lit: [] };
     times.set(box, found);
     return found;
   };
+  const stepEnd = (at: number): number => steps.find((s) => at >= s.start && at < s.end)?.end ?? last;
   let on: { box: string; since: number } | undefined;
   for (const edge of edges) {
     const event = diagram.steps[edge.step]?.events[edge.event];
     if (event?.type !== "edge" || event.from === event.to) continue;
     if (on) {
       const left = of(on.box);
-      left.lit.push({ start: on.since, end: edge.start });
-      if (done && on.box === event.from && left.done === undefined) left.done = edge.start + MOTION.done;
+      const end = edge.start > on.since ? edge.start : stepEnd(on.since);
+      left.lit.push({ start: on.since, end });
+      if (done && on.box === event.from && left.done === undefined) left.done = end + MOTION.done;
       on = undefined;
     }
     if (!isEnd(event.to)) on = { box: event.to, since: edge.drawn };
