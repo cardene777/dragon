@@ -25,6 +25,7 @@ Use a donut when the parts make up one whole, and bars when the amounts matter o
 
 - Keep it to the few items that tell the story. Merge the small ones into one item such as `other`.
 - Give each step one point in `say`, such as which item grew or which gap closed.
+- Keep the step titles of a donut short, about 7 Japanese characters or 14 Latin letters. The title sits inside the ring without wrapping, and a longer one runs over the arcs.
 - Write every value in the first step, then only the values that change in later steps.
 
 ## Example
