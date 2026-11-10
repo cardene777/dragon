@@ -244,8 +244,10 @@ interface GalleryProblem {
 interface GalleryTools {
   /** `blocks` は図と一緒に渡すブロックの定義の file (`dragon check --blocks`) */
   breaks: (file: string, blocks?: string) => Promise<{ problems?: GalleryProblem[]; error?: string }>;
-  steps: (file: string) => Promise<number | undefined>;
-  png: (file: string, step: number | undefined, dest: string) => Promise<{ error?: string }>;
+  /** `blocks` は段を数える図と一緒に読むブロックの定義の file (#3606) */
+  steps: (file: string, blocks?: string) => Promise<number | undefined>;
+  /** `blocks` は書き出す図に渡すブロックの定義の file (`dragon export --blocks`、#3606) */
+  png: (file: string, step: number | undefined, dest: string, blocks?: string) => Promise<{ error?: string }>;
 }
 
 /** 頁に並べる 1 回の実行。`dir` は評価が残した実行の dir (`sealed` を持つ) */
@@ -303,25 +305,41 @@ interface FakeDiagram {
 const pngBytes = (name: string, step: number | undefined): Buffer => Buffer.from(`png ${name} step ${String(step)}`);
 const brk = (step: number, message: string): GalleryProblem => ({ severity: "warning", message, layout: { step } });
 
+/** 偽の道具を呼んだ記録。`stepBlocks` と `pngBlocks` は段を数えた図と書き出した図ごとに渡された定義の file (#3606) */
+interface FakeCalls {
+  breaks: string[];
+  blocks: [string, string | undefined][];
+  png: [string, number | undefined][];
+  stepBlocks: [string, string | undefined][];
+  pngBlocks: [string, string | undefined][];
+}
+
 /** Chromium を起こさない偽の道具と、道具を呼んだ記録 */
-function fakeTools(diagrams: Record<string, FakeDiagram>): { tools: GalleryTools; calls: { breaks: string[]; blocks: [string, string | undefined][]; png: [string, number | undefined][] } } {
-  const calls = { breaks: [] as string[], blocks: [] as [string, string | undefined][], png: [] as [string, number | undefined][] };
+function fakeTools(diagrams: Record<string, FakeDiagram>): { tools: GalleryTools; calls: FakeCalls } {
+  const calls: FakeCalls = { breaks: [], blocks: [], png: [], stepBlocks: [], pngBlocks: [] };
   const of = (file: string): FakeDiagram => diagrams[basename(file)] ?? {};
+  // 定義の file を要る図に渡さないと、本物の道具は記法の誤りで読めない
+  const lacks = (d: FakeDiagram, blocks: string | undefined): boolean => d.needsBlocks !== undefined && !(blocks ?? "").endsWith(d.needsBlocks);
   const tools: GalleryTools = {
     breaks: (file, blocks) => {
       calls.breaks.push(file);
       calls.blocks.push([file, blocks]);
       const d = of(file);
       if (d.breakError !== undefined) return Promise.resolve({ error: d.breakError });
-      if (d.needsBlocks !== undefined && !(blocks ?? "").endsWith(d.needsBlocks))
-        return Promise.resolve({ problems: [{ severity: "error", message: "定義の無いブロックを使う" }] });
+      if (lacks(d, blocks)) return Promise.resolve({ problems: [{ severity: "error", message: "定義の無いブロックを使う" }] });
       return Promise.resolve({ problems: d.problems ?? [] });
     },
-    steps: (file) => Promise.resolve(of(file).steps),
-    png: (file, step, dest) => {
+    steps: (file, blocks) => {
+      calls.stepBlocks.push([file, blocks]);
+      const d = of(file);
+      return Promise.resolve(lacks(d, blocks) ? undefined : d.steps);
+    },
+    png: (file, step, dest, blocks) => {
       calls.png.push([basename(file), step]);
+      calls.pngBlocks.push([file, blocks]);
       const d = of(file);
       if (d.pngThrows !== undefined) return Promise.reject(new Error(d.pngThrows));
+      if (lacks(d, blocks)) return Promise.resolve({ error: "dragon export の終わり方 1: 定義の無いブロックを使う" });
       writeFileSync(dest, pngBytes(basename(file), step));
       return Promise.resolve({});
     },
@@ -511,6 +529,41 @@ describe("評価で AI が描いた図を 1 枚の頁に並べる (#3519)", () =
       ["home/cwd/packages/dragon/blocks/examples/vault.dragon", definitions],
       ["home/cwd/plain.dragon", undefined],
     ]);
+  });
+
+  /**
+   * AI が足したブロックの見本は定義を頭に書かないので、段を数える時も絵を書き出す時も、同じ実行で保存した定義の file を渡す (#3606)。
+   * 渡さないと段を数えられず、絵も書き出せず、頁に AI が足したブロックの図が載らない
+   */
+  it("plugin-eval-gallery-exports-with-saved-blocks", async () => {
+    const { writeGallery, cliTools } = await gallery();
+    const root = mkdtempSync(join(tmpdir(), "dragon-gallery-"));
+    const definitions = "home/cwd/packages/dragon/blocks/vault.dragon";
+    const example = "home/cwd/packages/dragon/blocks/examples/vault.dragon";
+    const run = runDir(root, "e-block", {
+      [definitions]: "// 金庫\nblocks 1\nblock +vault\n  base box\nend\n",
+      [example]: "architecture 金庫\n\n+vault v as 金庫\nbox u as 預ける人\n\nstep 預ける\n  u -> v: 預ける\n",
+      "home/cwd/plain.dragon": "sequence 素\n",
+    });
+    const { tools, calls } = fakeTools({ "vault.dragon": { needsBlocks: definitions, steps: 1 }, "plain.dragon": { steps: 2 } });
+    const page = join(root, "gallery.html");
+    await writeGallery({ cases: [{ name: "block-pr", runs: [{ dir: run }] }], page, tools });
+    const sealed = join(run, "sealed");
+    const relativeCalls = (made: [string, string | undefined][]): [string, string | undefined][] =>
+      made.map(([file, blocks]): [string, string | undefined] => [relative(sealed, file), blocks === undefined ? undefined : relative(sealed, blocks)]).sort();
+    expect(relativeCalls(calls.stepBlocks), "段を数える時に、見本にそれが使うブロックの定義を渡さない").toEqual([
+      [example, definitions],
+      ["home/cwd/plain.dragon", undefined],
+    ]);
+    expect(relativeCalls(calls.pngBlocks), "絵を書き出す時に、見本にそれが使うブロックの定義を渡さない").toEqual([
+      [example, definitions],
+      ["home/cwd/plain.dragon", undefined],
+    ]);
+    const shown = runsOf(documentOf(page), "block-pr")[0]?.querySelector(`.diagram[data-file="${example}"] img`)?.getAttribute("src") ?? "";
+    expect(Buffer.from(shown.replace(/^data:image\/png;base64,/u, ""), "base64").toString(), "頁に AI が足したブロックの見本の絵が載らない").toBe(pngBytes("vault.dragon", 1).toString());
+    // 本物の道具も、段を数える時に渡した定義で記法を読む
+    const real = cliTools(CLI);
+    expect(await real.steps(join(sealed, example), join(sealed, definitions)), "本物の道具が定義を渡した見本の段を数えない").toBe(1);
   });
 
   it("plugin-eval-gallery-reports-tool-failure", async () => {
