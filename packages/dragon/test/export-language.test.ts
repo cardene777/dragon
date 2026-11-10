@@ -11,7 +11,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { launch, stage } from "../src/export/capture";
 import { api, exampleJson, exampleText, type Json } from "./diagram-support";
-import { cliRunCount, drawnText, embeddedFonts, exporter, fontChars, formatOf, isBlank, type PlayerWords, playerWords, runCli } from "./export-support";
+import { cliRunCount, drawnText, embeddedFonts, exporter, fontChars, formatOf, isBlank, type PlayerWords, playerWords, runCliInProcess } from "./export-support";
+
 
 /** 寄って見せる見せ方になり、縦長の全体図を出す枠の幅。440px より狭い枠は縦長の全体図を出さない (#3055) */
 const NARROW = 440;
@@ -31,7 +32,7 @@ function expected(lang: "ja" | "en", title: string): Omit<PlayerWords, "overview
 /** 命令で HTML だけを書き出し、書き出した HTML を狭い枠で開いて読む */
 async function exported(input: string, extra: string[] = []): Promise<PlayerWords> {
   const out = scratch();
-  const ran = await runCli(["export", input, "--out", out, "--format", "html", ...extra]);
+  const ran = await runCliInProcess(["export", input, "--out", out, "--format", "html", ...extra]);
   expect(ran.code, `書き出しが終了 0 で終わらない: ${ran.stderr}`).toBe(0);
   const html = readdirSync(out).find((name) => name.endsWith(".html"));
   expect(html, "HTML が書き出されない").toBeDefined();
@@ -158,7 +159,7 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       const input = join(dir, "bad.json");
       writeFileSync(input, JSON.stringify(bad));
       const out = join(dir, "out");
-      const ran = await runCli(["export", input, "--out", out, "--format", "html", "--lang", "en"]);
+      const ran = await runCliInProcess(["export", input, "--out", out, "--format", "html", "--lang", "en"]);
       expect(ran.code, "描けない原本で終了 1 にならない").toBe(1);
       expect(readdirSync(dir), "描けない原本で何かを書き出した").toEqual(["bad.json"]);
       const message = ran.stderr.trim();
@@ -177,7 +178,7 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
       (bad.blocks.box[0] as { [key: string]: Json }).colour = "blue";
       const input = join(dir, "bad.json");
       writeFileSync(input, JSON.stringify(bad));
-      const ran = await runCli(["export", input, "--out", join(dir, "out"), "--format", "html"]);
+      const ran = await runCliInProcess(["export", input, "--out", join(dir, "out"), "--format", "html"]);
       expect(ran.code, "描けない原本で終了 1 にならない").toBe(1);
       expect(readdirSync(dir), "描けない原本で何かを書き出した").toEqual(["bad.json"]);
       const message = ran.stderr.trim();
@@ -192,7 +193,7 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
     async () => {
       const dir = scratch();
       const out = join(dir, "out");
-      const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--lang", "fr"]);
+      const ran = await runCliInProcess(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--lang", "fr"]);
       expect(ran.code, "知らない言葉で終了 2 にならない").toBe(2);
       expect(readdirSync(dir), "知らない言葉で何かを書き出した").toEqual([]);
       // 知らない言葉では言葉が決まらないので、既定の英語の使い方を出す (#3338)
@@ -229,7 +230,7 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
     "export-english-only-png",
     async () => {
       const out = scratch();
-      const ran = await runCli(["export", join(EXAMPLES, "order.en.json"), "--out", out, "--format", "png", "--lang", "en"]);
+      const ran = await runCliInProcess(["export", join(EXAMPLES, "order.en.json"), "--out", out, "--format", "png", "--lang", "en"]);
       expect(ran.code, `英語の見本を PNG に書き出すと終了 0 で終わらない: ${ran.stderr}`).toBe(0);
       expect(readdirSync(out)).toEqual(["order.en.png"]);
       expect(formatOf(readFileSync(join(out, "order.en.png")))).toBe("png");
@@ -272,7 +273,7 @@ describe("書き出しの図の中の字の言葉 (#3001)", () => {
     if (!parsed.ok) throw new Error(`見本 ${file} の記法を読めない`);
     const out = scratch();
     const exportDiagram = await exporter();
-    const [ran, result] = await Promise.all([runCli(["export", join(EXAMPLES, file), "--out", out, "--format", "png"]), exportDiagram(parsed.diagram, { outDir: scratch(), formats: ["png"], lang })]);
+    const [ran, result] = await Promise.all([runCliInProcess(["export", join(EXAMPLES, file), "--out", out, "--format", "png"]), exportDiagram(parsed.diagram, { outDir: scratch(), formats: ["png"], lang })]);
     expect(ran.code, `--lang なしの書き出しが終了 0 で終わらない: ${ran.stderr}`).toBe(0);
     const png = readdirSync(out).find((name) => name.endsWith(".png"));
     expect(png, "--lang なしで PNG が書き出されない").toBeDefined();

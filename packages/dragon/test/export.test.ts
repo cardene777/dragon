@@ -14,8 +14,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 // 初めて読む時の変換は、検査の中で読むと最初の件だけが 2 秒から 3 秒遅れた。変換は 1 回の実行の中で使い回す
 import "@cardenelabs/dragon/export";
 import { api, exampleJson, exampleText, type Json, patched, smallArchitecture, smallSequence } from "./diagram-support";
-import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, pageLoads, playerButtons, readGif, runCli, unfoldedSteps, casesNamed } from "./export-support";
+import { bundledCovers, captionLayout, captionSteps, decodeFrames, drawnText, embeddedFonts, type Exported, exporter, fontChars, formatOf, inkCentroid, miniWorld, pageLoads, playerButtons, readGif, runCliInProcess, unfoldedSteps, casesNamed } from "./export-support";
 import { draw } from "./render-support";
+
 
 
 const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-export-"));
@@ -230,7 +231,7 @@ describe("書き出し (#2986)", () => {
       // 書き出す先の dir はまだ無い
       const out = join(dir, "new", "small");
       // 4 つの形式に書かれることだけを見るので、2 秒に 1 コマで撮る (#3410)
-      const ran = await runCli(["export", input, "--out", out, "--fps", "0.5", "--gif-fps", "0.5"]);
+      const ran = await runCliInProcess(["export", input, "--out", out, "--fps", "0.5", "--gif-fps", "0.5"]);
       expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
       for (const format of ["mp4", "gif", "html", "png"] as const) {
         const file = join(out, `small.${format}`);
@@ -246,7 +247,7 @@ describe("書き出し (#2986)", () => {
       const input = join(dir, "small-notation.dragon");
       writeFileSync(input, api("printNotation")(oneEdge()));
       const out = join(dir, "new", "small-notation");
-      const ran = await runCli(["export", input, "--out", out, "--format", "html"]);
+      const ran = await runCliInProcess(["export", input, "--out", out, "--format", "html"]);
       expect(ran.code, `命令が落ちた: ${ran.stderr}`).toBe(0);
       const file = join(out, "small-notation.html");
       expect(formatOf(writtenBytes(file)), `${file} が html として書かれていない`).toBe("html");

@@ -15,8 +15,12 @@ import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { Blob as HbBlob, Face } from "harfbuzzjs";
 import type { Browser, Page } from "playwright-core";
-import { expect, type RunnerTask, type RunnerTestFile } from "vitest";
+import { expect, type RunnerTask, type RunnerTestFile, vi } from "vitest";
 import { fileChromium } from "./page-needs";
+import { lendFileChromium } from "./shared-chromium";
+
+// 書き出しが起こす Chromium を、この file の検査の間は file で 1 つの Chromium に差し替える (#3599)
+await lendFileChromium();
 
 const require_ = createRequire(import.meta.url);
 const fontverter = require_("fontverter") as { convert(buffer: Uint8Array, to: "sfnt"): Promise<Uint8Array> };
@@ -91,6 +95,42 @@ export async function runCli(args: string[], place: RunPlace = {}): Promise<Ran>
   } catch (error) {
     const failed = error as { code?: unknown; stdout?: string; stderr?: string };
     return { code: typeof failed.code === "number" ? failed.code : 1, stdout: failed.stdout ?? "", stderr: failed.stderr ?? "" };
+  }
+}
+
+/**
+ * 組み上がった書き出しの命令 (`dist/cli.js`) を、この process の中で渡した引数で 1 度走らせる。落ちても投げずに終わり方を返す (#3599)。
+ * 子の Node のプロセスで起こすと、起こすだけで混んだ機械で 1 秒を超え、書き出しも file で 1 つの Chromium を借りられない。
+ * 命令は読み込むと走り、終わると `process.exit` を呼ぶので、読み込み直す前に引数を差し替え、`process.exit` で終わり方を受け取る。
+ * 標準出力と標準エラーは、子のプロセスで起こした時と同じく `console` の 1 回を 1 行にして改行で終える。
+ * 環境変数と node の引数を変える場 (`RunPlace`) は子のプロセスにしか作れないので、それが要る件は `runCli` で起こす
+ */
+export async function runCliInProcess(args: string[]): Promise<Ran> {
+  cliRuns++;
+  vi.resetModules();
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const argv = process.argv;
+  const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => void stdout.push(parts.join(" ")));
+  const error = vi.spyOn(console, "error").mockImplementation((...parts: unknown[]) => void stderr.push(parts.join(" ")));
+  let exited: (code: number) => void = () => {};
+  const ended = new Promise<number>((done) => {
+    exited = done;
+  });
+  const exit = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+    exited(code ?? 0);
+    return undefined as never;
+  }) as typeof process.exit);
+  process.argv = [argv[0] ?? process.execPath, "dragon", ...args];
+  const lines = (written: string[]): string => written.map((line) => `${line}\n`).join("");
+  try {
+    await import(/* @vite-ignore */ pathToFileURL(CLI).href);
+    return { code: await ended, stdout: lines(stdout), stderr: lines(stderr) };
+  } finally {
+    process.argv = argv;
+    log.mockRestore();
+    error.mockRestore();
+    exit.mockRestore();
   }
 }
 
