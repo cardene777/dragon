@@ -95,3 +95,10 @@
 | 配管の図で管が箱の縁の角の後ろを通る時と、2本の管が逆向きに1本の管を共に通る時と、弁の胴がほかの管に近すぎる時、`dragon check --layout`がその段と管か弁を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`layout-check-finds-pipes-overlapping`が通る | #3523 |
 | 常に、見本の`.dragon`に、数えた一覧 (`packages/dragon/test/fixtures/layout-breaks.json`) に無い崩れが出ない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3523 |
 | 常に、配管の図の見本と機械で作った図は、配管の図の決まりの表に違反しない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`と`pipe-rules-zero-violations-in-generated-figures`が通る | #3523 |
+| `renderDiagram`に`words.pipe.tags`を渡すと、槽の下の暫定、確定、取り消しの語が渡した語で描かれ、元の語が図に残らない | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-tags-replaced`が通る | #3584 |
+| `mountDiagram`に同じ語を渡すと、置いた図の槽の下の語が渡した語になり、畳んだ箱を押して描き直した後も渡した語のまま描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-mount-keeps-words`が通る | #3584 |
+| `words.pipe.io`を渡すと、始めた人と受け取った人の槽の札が渡した語で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-io-replaced`が通る | #3584 |
+| `words.pipe.fold`と`open`と`foldTitle`を渡すと、まとめた枠の文が`{steps}`と`{parties}`に数を差し込んだ文で、押すと開くの語とまとめた段の題が`{name}`に名前を差し込んだ文で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-fold-replaced`が通る | #3584 |
+| 一部の語だけを渡した時は、渡していない語が描く言葉の今の語で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-partial-keeps-rest`が通る | #3584 |
+| 今の語より長い語を渡しても、槽の札が長い語の幅で組まれ、重なりの数が今の語で描いた時より増えない | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-long-words-fit`が通る | #3584 |
+| 語を渡さない時と、空の`words`か空の`words.pipe`を渡した時の図が、今の図と同じ字で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-absent-same-svg`が通る | #3584 |
