@@ -182,6 +182,17 @@ mountDiagram(host, parsed.diagram, {
 
 A name the palette does not have, or a value that cannot be read as a color (one that contains `;`, `"`, `<`, and so on), is refused with that name and nothing is drawn.
 
+To draw a pipe diagram in your page's own words, pass `words.pipe`.
+`tags` replaces the words under the tank amounts (`provisional`, `final`, `rolled`), `io` replaces the labels on the sender's and receiver's tanks (`in`, `out`), and `fold`, `open`, and `foldTitle` replace the text of a folded box, its "click to open" line, and the title of the folded step.
+In `fold`, `{steps}` and `{parties}` become the number of inner steps and parties, and in `foldTitle`, `{name}` becomes the name of the called party.
+You can pass only some of the words; the rest keep the words of `lang`. `renderDiagram` takes the same `words`.
+
+```ts
+mountDiagram(host, parsed.diagram, {
+  words: { pipe: { tags: { final: "Success", rolled: "Reverted" }, fold: "{steps} inner steps" } },
+});
+```
+
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.

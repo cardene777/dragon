@@ -186,6 +186,17 @@ mountDiagram(host, parsed.diagram, {
 
 色味に無い名前と、`;`、`"`、`<` などを含む色として読めない値を渡すと、その名前を挙げて描かずに断る。
 
+配管の図を頁の側の語で描くには、`words.pipe` を渡す。
+`tags` は槽の下の数に添える語 (`provisional` が暫定、`final` が確定、`rolled` が取り消し)、`io` は始めた人と受け取った人の槽の札 (`in` と `out`)、`fold` と `open` と `foldTitle` は内側の段をまとめた枠の文と押すと開くの語とまとめた段の題を替える。
+`fold` の `{steps}` と `{parties}` には内側の段と関係者の数が、`foldTitle` の `{name}` には呼ばれた関係者の名前が入る。
+一部の語だけを渡せ、渡さない語は `lang` の語で描く。`renderDiagram` も同じ `words` を受ける。
+
+```ts
+mountDiagram(host, parsed.diagram, {
+  words: { pipe: { tags: { final: "成功", rolled: "リバート" }, fold: "内側の{steps}ステップ" } },
+});
+```
+
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
