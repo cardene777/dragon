@@ -1,7 +1,7 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない 9 種を拾う。
+ * 字の重なり (`ink.ts`) が拾わない崩れを拾う。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
  * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)、
  * 線が箱か囲みの枠に沿って近すぎる (`line-near-border`、#3526)、字が自分の箱か札の枠に接する (`text-touches-border`、#3526)。
@@ -16,6 +16,7 @@
  * 線の名前の札が囲みと列と帯の枠線をまたぐもの (`label-on-frame`、#3554) も拾う。枠線が札に刺さり、字と重なるため。
  * ドーナツの輪の真ん中の段の名前が輪の内側に収まらないもの (`title-outside-ring`、#3560) も拾う。図の枠に収まる長さの名前は弧に重なるだけで、図の枠からのはみ出しに数えないため。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
+ * 線が両端でない箱の字に掛からずに箱の中を通る (`line-behind-box`、#3607) も数える。線は箱の下に描くので箱に隠れ、その箱へ出入りする線に読めるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  * 形を持たない四角の箱の字は、形の崩れの代わりに枠に接するかを見る。
@@ -73,6 +74,7 @@ export type LayoutBreakKind =
   | "label-off-line"
   | "label-on-line"
   | "line-crosses-text"
+  | "line-behind-box"
   | "chip-over-part"
   | "pipe-behind-box"
   | "pipes-merged"
@@ -239,6 +241,20 @@ function insideRings(rings: Point[][], [px, py]: Point): boolean {
 }
 
 /** 点 `p` から形の縁までの距離。形の内の点は負の値にする */
+/** 折れ線が、形の縁から `BITE` より内に入るか。区間を 1px ずつ辿って測る */
+function runsInside(points: Point[], rings: Point[][]): boolean {
+  for (let k = 1; k < points.length; k++) {
+    const [a, b] = [points[k - 1] as Point, points[k] as Point];
+    const steps = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1])));
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      if (signedDistance(rings, [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]) < -BITE)
+        return true;
+    }
+  }
+  return false;
+}
+
 function signedDistance(rings: Point[][], p: Point): number {
   let best = Number.POSITIVE_INFINITY;
   for (const [a, b] of edgesOf(rings)) {
@@ -435,12 +451,16 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   });
 
   // 札を持たない字を横切る線。札の地は下の線を隠すので数えず、段の番号と図の部品は書き手が書いた字でないので数えない
+  /** 線ごとの、字を横切った箱。箱の裏を通る線 (#3607) は、字を横切った箱を2度は知らせない */
+  const crossedText = new Map<Trace, Set<string>>();
   for (const ink of inks) {
     if (ink.boxed === true || ink.badge === true || ink.part !== undefined) continue;
     for (const trace of traces) {
       if (!crossesRect(trace.points, ink.rect, BITE)) continue;
       const seen = firstSeen(ink, trace);
       if (seen === undefined) continue;
+      if (ink.box !== undefined)
+        crossedText.set(trace, (crossedText.get(trace) ?? new Set()).add(ink.box));
       add("line-crosses-text", seen, [
         { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
         { kind: "text", text: ink.text, ...(ink.box === undefined ? {} : { box: nameOf(ink.box) }) },
@@ -480,6 +500,26 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       if (!runsNear(trace.points, group, true)) continue;
       const seen = firstSeen(trace);
       if (seen !== undefined) add("line-near-border", Math.max(seen, lineStep ?? seen), [line(seen), { kind: "group", name: group.name }]);
+    }
+    // 線の両端でない箱の中を通る線 (#3607)。線は箱の下に描くので箱に隠れ、その箱へ出入りする線に読める。
+    // 字を横切った箱は字を横切る崩れで知らせた。形を持つ箱は見えている形の中だけを数える
+    for (const box of boxes) {
+      if (
+        box.id === trace.from ||
+        box.id === trace.to ||
+        crossedText.get(trace)?.has(box.id) === true
+      )
+        continue;
+      const outline = outlines.get(box.id);
+      if (!(outline ? runsInside(trace.points, outline) : crossesRect(trace.points, box, BITE)))
+        continue;
+      const ink = boxInk.get(box.id);
+      const seen = ink ? firstSeen(trace, ink) : firstSeen(trace);
+      if (seen !== undefined)
+        add("line-behind-box", Math.max(seen, lineStep ?? seen), [
+          line(seen),
+          { kind: "box", name: box.name },
+        ]);
     }
   }
 

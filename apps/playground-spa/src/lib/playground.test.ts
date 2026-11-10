@@ -82,6 +82,7 @@ describe("公開する頁 (#2995)", () => {
       "pipes-merged",
       "valve-near-pipe",
       "line-near-border",
+      "line-behind-box",
       "text-touches-border",
       "badge-on-frame",
     ];

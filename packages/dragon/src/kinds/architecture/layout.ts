@@ -41,6 +41,7 @@ import {
   nearestLine,
   placeLabel,
   placeSlot,
+  askedSide,
   pullApart,
   type Rect,
   regionColors,
@@ -76,6 +77,8 @@ interface Room {
  * 同じ箱の同じ所から出る線の回る道を離して並べると、並べた分だけ行の間か帯か列の間を広げる (#3549)
  */
 type Lanes = Map<string, number>;
+/** 区画の名前と一番左の列の間に、左の外側を回る道を並べる間の鍵 (#3607) */
+const OUTER_LEFT = "outer:left";
 
 export function layoutArchitecture(diagram: DiagramModel): Layout {
   const groups = groupsOf(diagram);
@@ -252,8 +255,10 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   between.forEach((w, i) => (between[i] = w + extra(`label:${i}`)));
   const headers = groups.map((g) => (g.region ? headerSize(g.region) : undefined));
   const headerW = Math.max(0, ...headers.map((h) => (h ? h.w + R.inset * 2 : 0)));
+  // 一番左の列の左を縦に回る線が在る時は、区画の名前と一番左の列の間に、その道を並べる間を空ける (#3607)
+  const outerLeft = extra(OUTER_LEFT);
   const colLeft: number[] = [];
-  for (let c = 0; c < columnCount; c++) colLeft.push(c === 0 ? margin + (headerW > 0 ? headerW : R.pad) : (colLeft[c - 1] as number) + (colW[c - 1] as number) + (between[c - 1] as number));
+  for (let c = 0; c < columnCount; c++) colLeft.push(c === 0 ? margin + (headerW > 0 ? headerW : R.pad) + outerLeft : (colLeft[c - 1] as number) + (colW[c - 1] as number) + (between[c - 1] as number));
   const center = (c: number): number => (colLeft[c] as number) + (colW[c] as number) / 2;
 
   // 同じ箱へ戻る線は箱の下の輪で描くので、輪を持つ箱の行の下は、輪とその下の名前が収まるだけ空ける (#3186)
@@ -357,6 +362,18 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     return (slot.row > 0 ? span.top - A.rowGap / 2 : span.top - margin) - extra(`label-lane:${slot.group}:${slot.row}:above`);
   };
   const inset = LOOK.edge.inset;
+  /** 区画の名前の置き場。図の外側を回る線を通さない (#3607) */
+  const headerRects: Rect[] = groups.flatMap((group, g) => {
+    const header = headers[g];
+    const band = bands[g];
+    return group.region && header && band
+      ? [{ x: margin + R.inset, y: band.y + R.inset, w: header.w, h: header.h }]
+      : [];
+  });
+  /** 図の外側を縦に回る線の区間 (#3607)。別の箱へ向かう線どうしは `FAN` ずつ外へ離す。同じ箱へ向かう線は入る前に合わさってよい */
+  const outerRuns: { right: boolean; x: number; lo: number; hi: number; to: string }[] = [];
+  /** 左の外側を回る道を並べるのに要る、区画の名前と一番左の列の間 */
+  let outerNeed = 0;
   /** 列 `col` の右 (左) の、隣の列との間の真ん中。同じ列の箱は幅が違うので、箱ではなく列の端から測る (幅の広い箱の中を通さない) */
   const gapX = (col: number, toRight: boolean): number =>
     toRight ? (colLeft[col] as number) + (colW[col] as number) + (between[col] ?? A.columnGap + extra(`label:${col}`)) / 2 : (colLeft[col] as number) - (between[col - 1] ?? A.columnGap) / 2;
@@ -429,7 +446,57 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
         [...out, [ax, lane], [bx, lane], [bx, b.cy], side],
       );
     }
-    return candidates.find((points) => !blocked(points, from, to)) ?? (candidates[2] as Point[]);
+    const open = candidates.find((points) => !blocked(points, from, to));
+    if (open) return open;
+    // 道が全て間の箱に当たる線は、入る箱の側の一番端の列のさらに外を縦に回り、入る箱の脇から入る (#3607)。
+    // 列の間を回る道より線どうしの交わりが少なく、同じ箱へ向かう線は外側で1本にまとまる
+    const lo = Math.min(lane, b.cy);
+    const hi = Math.max(lane, b.cy);
+    const taken = (x: number): boolean =>
+      outerRuns.some(
+        (run) =>
+          run.right === right &&
+          run.to !== to &&
+          Math.abs(run.x - x) < FAN - 0.5 &&
+          Math.min(run.hi, hi) - Math.max(run.lo, lo) > 0.5,
+      );
+    // 右の外側は一番右の列から列の間の半分だけ離し、外へ並べる。左の外側は一番左の列から同じだけ離し、区画の名前の側へ並べる
+    let track = 0;
+    const xAt = (k: number): number =>
+      right
+        ? gapX(colLeft.length - 1, true) + k * FAN
+        : (colLeft[0] as number) - A.columnGap / 2 - k * FAN;
+    while (taken(xAt(track))) track++;
+    const x = xAt(track);
+    // 左の外側の道を並べる間が足りなければ、区画の名前と一番左の列の間を広げて置き直す
+    if (!right) outerNeed = Math.max(outerNeed, A.columnGap + track * FAN);
+    const outside: Point[] = [
+      leave,
+      [a.cx, lane],
+      [x, lane],
+      [x, b.cy],
+      [right ? b.x + b.w + inset : b.x - inset, b.cy],
+    ];
+    const roomy = right || outerLeft >= A.columnGap + track * FAN;
+    if (
+      roomy &&
+      !blocked(outside, from, to) &&
+      !headerRects.some((rect) => crosses(outside, rect, LOOK.label.search))
+    ) {
+      outerRuns.push({ right, x, lo, hi, to });
+      return outside;
+    }
+    // 外側の道が区画の名前か箱に当たる時は、出る箱の脇から列の間へ出て縦に走り、入る箱の上 (下) の道から入る
+    const gx = gapX(sa.col, right);
+    const near = down ? laneAbove(to) : laneBelow(to);
+    const between: Point[] = [
+      [right ? a.x + a.w : a.x, a.cy],
+      [gx, a.cy],
+      [gx, near],
+      [b.cx, near],
+      enter,
+    ];
+    return blocked(between, from, to) ? (candidates[2] as Point[]) : between;
   };
 
   const sceneEdges: SceneEdge[] = edges.map(({ step, event, edge }) => ({
@@ -455,10 +522,11 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
   };
   // 同じ箱の同じ所から別々の箱へ出る線は、出る所と回る道を離す (#3549)
   const need = spreadFans(sceneEdges, byId, laneOf);
+  if (outerNeed > 0) need.set(OUTER_LEFT, Math.max(need.get(OUTER_LEFT) ?? 0, outerNeed));
   // 運ぶ物は着いた箱の置き場に留まり、出る箱の置き場で走り出しを待つ (#3176)
   seatCarriers(sceneEdges, byId, carriedIn);
   // 同じ2つの箱を行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す。名前はずらした側に置く (#3175、#3521)
-  const outward = pullApart(sceneEdges);
+  const outward = pullApart(sceneEdges, askedSide(diagram));
 
   const regions: SceneRegion[] = [];
   groups.forEach((group, g) => {

@@ -568,21 +568,51 @@ export const backOf = (edge: SceneEdge, back: SceneEdge): boolean =>
   back.points.length === edge.points.length &&
   [...back.points].reverse().every(([x, y], i) => Math.hypot(x - (edge.points[i] as Point)[0], y - (edge.points[i] as Point)[1]) <= LOOK.edge.inset + 0.5);
 
+/** 線を引いた段の、書き手が書いた名前の側 (`side`)。`pullApart` に渡す */
+export const askedSide =
+  (diagram: DiagramModel) =>
+  (e: SceneEdge): LabelSide | undefined => {
+    const source = diagram.steps[e.step]?.events[e.event];
+    return source?.type === "edge" ? source.labelSide : undefined;
+  };
+
 /**
- * 同じ2つの箱を行きと帰りで結び、同じ道を逆に通る線を、左右に離して引く (#3175、#3521)。構成図と状態遷移図が使う。
+ * 同じ2つの箱を行きと帰りで結び、同じ道を逆に通る線を、左右に離して引く (#3175、#3521)。構成図と状態遷移図と手順の図と木の図が使う。
  * 2本の線の真ん中どうしの間は、崩れの検査が並んだ線に求める間 (`APART.line`) に光った線の太さを足した値にする。
  * 2本の線の縁どうしの間も、検査の下限を下回らない。
- * 縦寄りの区間は横へ、横寄りの区間は縦へずらし、名前の早い箱から出る線を右か下へ、もう一方を左か上へずらす。
+ * 縦寄りの区間は横へ、横寄りの区間は縦へずらす。書き手が名前の側 (`asked`) を書いた線はその側へ、相手の線を反対の側へずらす (#3607)。
+ * 側を書いた線が無い組と、2本とも同じ側を書いた組は、名前の早い箱から出る線を右か下へ、もう一方を左か上へずらす。
  * 曲がり目は縦と横の両方へずらす。
  * 返す表は、ずらした線ごとに名前を置く側 (一番長い区間でずらした側) を持つ。
  * もう一方の線の側に名前を置くと、どちらの線の名前か取り違えるため
  */
-export function pullApart(edges: SceneEdge[]): Map<SceneEdge, LabelSide> {
+export function pullApart(
+  edges: SceneEdge[],
+  asked: (e: SceneEdge) => LabelSide | undefined,
+): Map<SceneEdge, LabelSide> {
   const sides = new Map<SceneEdge, LabelSide>();
   // 組は先に全て見つけてからずらす。ずらしながら探すと、ずらした線と組の相手が同じ道でなくなる
   const paired = edges.filter((e) => e.points[1] !== undefined && edges.some((o) => backOf(e, o)));
+  /** 書き手が書いた側へずらす向き。右か下は 1、左か上は -1、書いていないか線の向きに合わない側は 0 */
+  const want = (e: SceneEdge): number => {
+    const side = asked(e);
+    const vertical = longest(e.points).vertical;
+    return side === (vertical ? "right" : "below")
+      ? 1
+      : side === (vertical ? "left" : "above")
+        ? -1
+        : 0;
+  };
+  const signs = new Map(
+    paired.map((e): [SceneEdge, number] => {
+      const back = paired.find((o) => backOf(e, o));
+      const [mine, theirs] = [want(e), back ? want(back) : 0];
+      if (mine !== theirs) return [e, mine !== 0 ? mine : -theirs];
+      return [e, e.from < e.to ? 1 : -1];
+    }),
+  );
   for (const edge of paired) {
-    const d = ((edge.from < edge.to ? 1 : -1) * (APART.line + LOOK.stroke.edgeOn)) / 2;
+    const d = ((signs.get(edge) as number) * (APART.line + LOOK.stroke.edgeOn)) / 2;
     const points = edge.points;
     // 区間ごとに横寄りか。横寄りの区間は縦へ、縦寄りの区間は横へずらす
     const flat = points.slice(1).map(([x, y], k) => Math.abs(y - (points[k] as Point)[1]) < Math.abs(x - (points[k] as Point)[0]));

@@ -14,7 +14,7 @@
  * 原本の JSON が書く前の名札を子に持つ時や、もう親を持つ箱を子にする時は、その子を除いて描く。箱と同じ名札の木の箱は描かない。
  */
 import { type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
-import type { DiagramModel } from "../../schema";
+import type { DiagramModel, LabelSide } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
   along,
@@ -35,6 +35,9 @@ import {
   pathLength,
   placeLabel,
   placeSlot,
+  askedSide,
+  pullApart,
+  lineKey,
   type Point,
   type Rect,
   type SceneBadge,
@@ -321,6 +324,13 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
     }),
   );
   seatCarriers(edges, boxById, rooms);
+  // 木の線を走らない線のうち、同じ2つの箱を行きと帰りで結ぶ線は、構成図と状態遷移図と同じく離す (#3607)。木の線を走る線は木の線の上に描くので離さない
+  const isRun = (e: SceneEdge): boolean =>
+    runs.some((r) => r.step === e.step && r.event === e.event);
+  const outward = pullApart(
+    edges.filter((e) => !isRun(e)),
+    askedSide(diagram),
+  );
 
   const layout: TreeLayout = {
     kind: "tree",
@@ -340,7 +350,7 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
     runs,
   };
   layout.badges = badgesOf(diagram, layout);
-  layout.labels = labelsOf(diagram, layout);
+  layout.labels = labelsOf(diagram, layout, outward);
 
   const cards = nodes.flatMap((n) => (n.card ? [n.card] : []));
   const solids: Rect[] = [...nodes, ...cards, ...boxes, ...layout.labels];
@@ -394,8 +404,9 @@ function badgesOf(diagram: DiagramModel, layout: TreeLayout): SceneBadge[] {
     }
     const e = layout.edges.find((x) => x.step === s && x.event === k);
     if (first?.type === "edge" && e) {
-      const key = [e.from, e.to].sort().join("\n");
       const run = layout.runs.some((x) => x.step === s && x.event === k);
+      // 木の線を走る線は行きも帰りも同じ木の線の上を走るので 2 つの箱の組で、離した行きと帰りの線は引いた線の形で同じ線とみなす
+      const key = run ? [e.from, e.to].sort().join("\n") : lineKey(e);
       const lines = layout.edges.filter((x) => x !== e).map((x) => x.points);
       const point = passed.get(key) ?? (run ? onLink(e.points, free) : midway(e, free)) ?? badgeOnPath(e.points, taken, lines);
       passed.set(key, point);
@@ -448,16 +459,22 @@ function midway(e: SceneEdge, free: (p: Point) => boolean): Point | undefined {
 }
 
 /** 線の名前。箱と木の箱から離し、葉の下の札と同じ段の名前に重ねず、同じ時刻に見える段の番号に食い込ませない */
-function labelsOf(diagram: DiagramModel, layout: TreeLayout): SceneLabel[] {
+function labelsOf(
+  diagram: DiagramModel,
+  layout: TreeLayout,
+  outward: Map<SceneEdge, LabelSide>,
+): SceneLabel[] {
   const labels: SceneLabel[] = [];
   const cards = layout.nodes.flatMap((n) => (n.card ? [n.card] : []));
   for (const e of layout.edges) {
     const source = diagram.steps[e.step]?.events[e.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
     const seen = layout.badges.filter((b) => b.step <= e.step).map((b) => badgeRect([b.x, b.y]));
+    // 行きと帰りで離した線の名前はずらした側に置き、反対の側 (組の相手の線の側) は探さない (#3607)
+    const side = source.labelSide ?? outward.get(e);
     labels.push(
       placeLabel(
-        { step: e.step, event: e.event, text: source.label, points: e.points, color: e.color, ...(source.labelSide ? { side: source.labelSide } : {}), flip: true },
+        { step: e.step, event: e.event, text: source.label, points: e.points, color: e.color, ...(side ? { side } : {}), ...(outward.has(e) ? {} : { flip: true }) },
         { hard: [...layout.nodes, ...layout.boxes], soft: [...cards, ...labels.filter((l) => l.step === e.step)], touch: seen },
       ),
     );
