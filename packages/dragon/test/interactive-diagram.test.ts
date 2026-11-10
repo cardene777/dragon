@@ -11,10 +11,10 @@
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { api, exampleJson, type Json, type LineError } from "./diagram-support";
-import { formatOf, runCli } from "./export-support";
+import { cliRunCount, formatOf, runCli } from "./export-support";
 import { draw } from "./render-support";
 import {
   KANA,
@@ -352,6 +352,16 @@ describe("試す図の描き方 (#3337)", () => {
 });
 
 describe("試す図の書き出し (#3337)", () => {
+  // 書き出しの件が書き出しの命令を起こした回数を数える (#3602)
+  let runsAtStart = 0;
+  let exportCliRuns: number | undefined;
+  beforeEach(() => {
+    runsAtStart = cliRunCount();
+  });
+  afterEach(({ task }) => {
+    if (task.name === "interactive-export-draws-author-steps") exportCliRuns = cliRunCount() - runsAtStart;
+  });
+
   it(
     "interactive-export-draws-author-steps",
     async () => {
@@ -379,6 +389,12 @@ describe("試す図の書き出し (#3337)", () => {
       ).toBe("png");
     },
   );
+
+  // 書き出しの命令を子の Node のプロセスで起こすと、その中で Chromium も起こし、混んだ機械で 1 件の上限 (10 秒) を超えた (#3602)
+  it("interactive-export-spawns-no-cli", () => {
+    expect(exportCliRuns, "書き出しの件より後に回し、書き出しの件の回数を数えている").toBeDefined();
+    expect(exportCliRuns, "試す図の書き出しの件が書き出しの命令を起こした回数").toBe(0);
+  });
 });
 
 describe("試す図の見本 (#3337)", () => {

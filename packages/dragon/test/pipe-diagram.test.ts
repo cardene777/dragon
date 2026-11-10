@@ -1985,6 +1985,60 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
     expect(got, "交互に使った Router の道が、新しく作った Router の道と違う").toEqual(expected);
   });
 
+  /**
+   * 道を探す打ち切り (#3602)。左の端から右の端へ真っすぐの道 (長さ 200) があり、終わりの端に値 300 を付けるので、見つけた道の値は 500 になる。
+   * 道から離れた高さ 40 に別の組の横の線を置き、その線を越える辺を調べた回数を `cross` で数える
+   */
+  const farLineAsk = (cross: () => number, overshoot: boolean): { router: Router; ask: Ask } => {
+    const lines = Array.from({ length: 21 }, (_, k) => k * 10);
+    const router = new Router(lines, lines, []);
+    router.lay([[0, 40], [200, 40]], { owner: "x", group: "x", kind: "call", width: 4 });
+    // 同じ組の線を置くと、その線と重なって走る辺の値を減らす (`share`) ので、見積もりが本当の値を超えうる
+    if (overshoot) router.lay([[0, 180], [200, 180]], { owner: "a", group: "a", kind: "value", width: 4 });
+    const ask: Ask = {
+      owner: "a",
+      group: "a",
+      kind: overshoot ? "value" : "call",
+      width: 4,
+      starts: [{ at: [0, 100], dir: 0 }],
+      ends: [{ at: [200, 100], dir: 0, cost: 300 }],
+      cross,
+      gap: 4,
+      bend: 30,
+      ...(overshoot ? { hug: 0.02, share: 0.3 } : {}),
+    };
+    return { router, ask };
+  };
+
+  it("router-stops-past-found-cost", () => {
+    // 見積もり (終わりの端までの縦と横の長さ) が本当の値を超えない探しは、山に残る所の値と終わりの端の値の下限 (300) の和が
+    // 見つけた道の値を超えた所で打ち切る。道から離れた線を越える辺は、見つけた道より値が大きいので調べない
+    let crossed = 0;
+    const { router, ask } = farLineAsk(() => {
+      crossed++;
+      return 0;
+    }, false);
+    expect(router.route(ask), "真っすぐの道を返さない").toEqual([
+      [0, 100],
+      [200, 100],
+    ]);
+    expect(crossed, "見つけた道より値の大きい所を広げ、離れた線を越える辺を調べた回数").toBe(0);
+  });
+
+  it("router-searches-on-when-estimate-can-overshoot", () => {
+    // 同じ組の線と重なって走る辺の値を減らす探しは、見積もりが本当の値を超えうるので打ち切らず、ここまでの値が見つけた道の値に届くまで広げる
+    let crossed = 0;
+    const { router, ask } = farLineAsk(() => {
+      crossed++;
+      return 0;
+    }, true);
+    expect(router.route(ask), "真っすぐの道を返さない").toEqual([
+      [0, 100],
+      [200, 100],
+    ]);
+    expect(crossed, "見積もりが本当の値を超えうる探しで、離れた線を越える辺を調べた回数").toBeGreaterThan(0);
+  });
+
   describe.for(SAMPLES)("%s の色味", (name) => {
     it("pipe-rules-zero-violations-in-every-example", () => {
       // 色味は置き場所を変えない。色味ごとに描いた置き場所が既定の色味と同じなら、違反の数も同じ

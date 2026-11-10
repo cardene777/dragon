@@ -15,7 +15,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { casesNamed } from "./export-support";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const RUNNER = join(ROOT, "scripts/test-related.mjs");
@@ -28,8 +29,12 @@ interface Listed {
   files: string[];
 }
 
+/** 命令を子のプロセスで起こした回数。入力ごとに分けた件が 1 回だけ起こすかを数える (#3602) */
+let commands = 0;
+
 /** 命令に `--list` を付けて起こし、選んだ検査の file を読む */
 function list(args: string[], root = ROOT): Listed {
+  commands++;
   const ran = spawnSync(process.execPath, [RUNNER, "--list", "--root", root, ...args], { cwd: root, encoding: "utf8" });
   return listed(ran.status, ran.stdout, ran.stderr);
 }
@@ -42,6 +47,7 @@ function listed(code: number | null, stdout: string, stderr: string): Listed {
 
 /** `list` と同じ命令を、待たずに起こす。いくつもの命令を同時に起こして、全てを待つ時に使う (#3463) */
 function listLater(args: string[], root = ROOT): Promise<Listed> {
+  commands++;
   return new Promise((done) => {
     execFile(process.execPath, [RUNNER, "--list", "--root", root, ...args], { cwd: root, encoding: "utf8" }, (error, stdout, stderr) => {
       const code = error === null ? 0 : typeof error.code === "number" ? error.code : null;
@@ -247,5 +253,34 @@ describe("上限で止まった実行の続き (#3386)", () => {
     expect(calls, "止まった実行の後に続きを回していない").toHaveLength(2);
     expect(status, "前の実行で落ちた検査が在るのに終わり方 1 でない").toBe(1);
     expect(said.join(""), "前の実行で落ちた検査の名前を出していない").toContain("a.test.ts > 組 > 落ちた検査");
+  });
+});
+
+/** 1 件で入力を順に回していた 3 つの検査。入力ごとの件に分けた (#3602) */
+const SPLIT = ["related-follows-package-and-built-entries", "related-maps-materials-by-table", "related-table-covers-material-readers"];
+/** 分けた件ごとの、命令を起こした回数 */
+const started = new Map<string, number>();
+let commandsAtStart = 0;
+beforeEach(() => {
+  commandsAtStart = commands;
+});
+afterEach(({ task }) => {
+  if (SPLIT.includes(task.name)) started.set(`${task.suite?.name ?? ""} > ${task.name}`, commands - commandsAtStart);
+});
+
+describe("入力ごとに分けた検査を選ぶ命令の件 (#3602)", () => {
+  it("related-cases-follow-inputs", ({ task }) => {
+    expect(casesNamed(task.file, "related-follows-package-and-built-entries"), "package と命令と頁の入口ごとの件").toHaveLength(3);
+    expect(casesNamed(task.file, "related-maps-materials-by-table"), "表が結ぶ材料ごとの件").toHaveLength(2);
+    expect(casesNamed(task.file, "related-table-covers-material-readers"), "名前を書く検査を数える材料ごとの件").toHaveLength(5);
+  });
+
+  // 1 件で命令を 3 回か 5 回起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた
+  it("related-split-cases-start-one-command", () => {
+    expect([...new Set([...started.keys()].map((key) => key.split(" > ").pop()))].sort(), "命令を起こした回数を数えた検査").toEqual([...SPLIT].sort());
+    expect(
+      [...started].filter(([, count]) => count !== 1).map(([key, count]) => `${key}: ${count}`),
+      "命令を 1 回でなく起こした件",
+    ).toEqual([]);
   });
 });

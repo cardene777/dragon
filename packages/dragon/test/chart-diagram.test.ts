@@ -15,12 +15,11 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { Worker } from "node:worker_threads";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
-import { captionSteps, type ExportOptions, formatOf } from "./export-support";
+import { captionSteps, formatOf } from "./export-support";
+import { exportInThread, threadStats } from "./export-thread";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, sampleTimes } from "./render-support";
 
@@ -550,52 +549,6 @@ function writtenBytes(file: string): Buffer {
   }
 }
 
-/**
- * 書き出しを受け持つ thread の中身。jsdom の大域を持たない Node の中で書き出しの入口 (`dist/export.js`) を 1 度だけ読み、
- * 頼まれた原本を書き出して file の path を返す
- */
-const EXPORT_THREAD = `
-const { parentPort } = require("node:worker_threads");
-const entry = import(${JSON.stringify(pathToFileURL(join(ROOT, "packages/dragon/dist/export.js")).href)});
-parentPort.on("message", async ({ id, diagram, options }) => {
-  try {
-    const { exportDiagram } = await entry;
-    parentPort.postMessage({ id, files: (await exportDiagram(diagram, options)).files });
-  } catch (error) {
-    parentPort.postMessage({ id, error: String(error?.stack ?? error) });
-  }
-});
-`;
-let thread: Worker | undefined;
-/** 頼んだ書き出しの番号。上限で止まった件の返事を、次の件の返事と取り違えない */
-let asked = 0;
-afterAll(async () => {
-  await thread?.terminate();
-});
-
-/**
- * 原本を書き出し、形式ごとの file の path を返す。
- * この file は jsdom で動き、大域の `Uint8Array` が jsdom の物に替わるので、字の file を削る wasm が Node の `Buffer` を断る。
- * 書き出しは別の thread で、Node の大域のまま動かす。書き出しの入口は 1 度だけ読み、件ごとに読み直さない
- */
-function exportInThread(diagram: Json, options: ExportOptions): Promise<Record<string, string>> {
-  thread ??= new Worker(EXPORT_THREAD, { eval: true });
-  const worker = thread;
-  const id = ++asked;
-  return new Promise((resolve, reject) => {
-    const replied = (reply: { id: number; files?: Record<string, string>; error?: string }): void => {
-      if (reply.id !== id) return;
-      worker.off("message", replied);
-      worker.off("error", reject);
-      if (reply.files) resolve(reply.files);
-      else reject(new Error(`量の図を書き出せない ${reply.error ?? ""}`));
-    };
-    worker.on("message", replied);
-    worker.once("error", reject);
-    worker.postMessage({ id, diagram, options });
-  });
-}
-
 /** 見本の最初の段だけの原本。動画のコマを減らす */
 const firstStep = (name: string): Json => {
   const sample = exampleJson(`${name}.json`) as { steps: Json[] };
@@ -634,6 +587,18 @@ describe.for([
     expect(formatOf(html), `${name} が HTML に書き出されない`).toBe("html");
     const steps = (diagram as { steps: Json[] }).steps.length;
     expect(await captionSteps(html.toString("utf8"), 1280), `${name} の書き出した HTML で送れた段の数`).toHaveLength(steps);
+  });
+});
+
+/**
+ * 書き出しの thread は Chromium を 1 度だけ起こし、2 回目からの書き出しは同じ Chromium を借りる (#3602)。
+ * 書き出すたびに起こすと、混んだ機械で PNG を 2 回書き出す件が 1 件の上限 (10 秒) を超えた
+ */
+describe("量の図の書き出しの thread (#3602)", () => {
+  it("chart-export-thread-launches-once", async () => {
+    const { launches, exports } = await threadStats();
+    expect(exports, "書き出しの件より後に回し、thread で 2 回以上書き出している").toBeGreaterThanOrEqual(2);
+    expect(launches, `thread で ${exports} 回書き出す間に Chromium を起こした回数`).toBe(1);
   });
 });
 
