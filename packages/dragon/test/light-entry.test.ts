@@ -9,7 +9,8 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { casesNamed } from "./export-support";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EXAMPLES = join(ROOT, "examples");
@@ -54,8 +55,12 @@ function example(entry: Entry, file: string): { file: string; kind: string; diag
   return { file, kind: diagram.kind ?? "architecture", diagram };
 }
 
+/** 新しい Node を起こした回数。見本ごとに分けた件が子の Node を起こさないことを数える (#3580) */
+let freshNodes = 0;
+
 /** 新しい Node で軽い入口を読み、中で回した結果を受け取る。登録は読み込みごとに 1 度なので、読んでいない形は別の process でしか作れない */
 function inFreshNode<T>(body: string): T {
+  freshNodes++;
   const code = `const light = await import("${name}/light");\nconst out = {};\n${body}\nconsole.log(JSON.stringify(out));`;
   const stdout = execFileSync(process.execPath, ["--input-type=module", "-e", code], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   return JSON.parse(stdout) as T;
@@ -81,6 +86,60 @@ const LATER_SAMPLES: Record<string, string> = {
   try: "tx-block.dragon",
 };
 
+/** 後から読む種類の原本の見本 (`.en.json` を除く JSON)。見本ごとの件を組む時に読む (#3580) */
+const JSON_SAMPLES = readdirSync(EXAMPLES)
+  .filter((file) => file.endsWith(".json") && !file.endsWith(".en.json"))
+  .sort()
+  .map((file) => ({ file, source: JSON.parse(readFileSync(join(EXAMPLES, file), "utf8")) as { kind?: string } }))
+  .filter(({ source }) => Object.keys(LATER_SAMPLES).includes(source.kind ?? ""));
+
+/** 同じ process で読み直す軽い入口 (#3580) */
+interface FreshLight {
+  LATER_BLOCKS: readonly string[];
+  blockLoaded(block: string): boolean;
+  loadKind(kind: string): Promise<void>;
+}
+
+/**
+ * 読み込みの記録を消して (`vi.resetModules`) 軽い入口を読み直す (#3580)。
+ * 製品の code は process 全体に残る状態を持たないので、読み直すと後から読む個別ブロックを 1 つも読んでいない状態から始まる。
+ * 子の Node を起こすと、混んだ機械で起こすだけで 1 秒を超えうる
+ */
+async function freshLight<T extends FreshLight>(): Promise<T> {
+  vi.resetModules();
+  return (await import(/* @vite-ignore */ `${name}/light`)) as T;
+}
+
+/** 見本ごとの件が使う軽い入口の関数 */
+interface CaseLight extends FreshLight {
+  loadFor(source: unknown): Promise<void>;
+  diagramKind(source: unknown): string;
+  printNotation(diagram: unknown): string;
+  parseNotation(text: string): { ok: true; diagram: unknown } | { ok: false; errors: { message: string }[] };
+  renderDiagram(diagram: unknown): { svg: string };
+}
+
+/** 見本ごとの件が比べる既定の入口 */
+interface WholeEntry {
+  parseNotation(text: string): { ok: true; diagram: unknown } | { ok: false; errors: unknown[] };
+  renderDiagram(diagram: unknown): { svg: string };
+  printNotation(diagram: unknown): string;
+  blockKinds(block: string): string[];
+}
+
+let wholeLoading: Promise<WholeEntry> | undefined;
+/** 既定の入口。件ごとに軽い入口を読み直しても、比べる既定の入口は file で 1 度だけ読む */
+function wholeEntry(): Promise<WholeEntry> {
+  wholeLoading ??= import(/* @vite-ignore */ name) as Promise<WholeEntry>;
+  return wholeLoading;
+}
+
+/** 読めなかった記法の最初の誤りの文 */
+const messageOf = (parsed: { ok: false; errors: { message: string }[] }): string => parsed.errors[0]?.message ?? "";
+
+/** 読んでいた後から読む個別ブロック */
+const loadedOf = (light: FreshLight): string[] => light.LATER_BLOCKS.filter((block) => light.blockLoaded(block)).sort();
+
 interface Loaded {
   loaded: string[];
   parsed?: boolean | string;
@@ -98,6 +157,19 @@ function loadedAfter(body: string): Loaded | undefined {
 
 /** 原本の形の検査を読んだかを返す式。関数がまだ無い時は "missing" (#3400) */
 const VALIDATOR_LOADED = `typeof light.validatorLoaded === "function" ? light.validatorLoaded() : "missing"`;
+
+/** 見本や種類を 1 件の中で回していた 4 つの検査。見本ごとの件に分ける (#3580) */
+const SPLIT = ["light-load-for-reads-every-later-example", "light-load-for-reads-json-blocks", "light-load-kind-reads-kind-blocks", "light-entry-finds-lines-read-by-shape"];
+
+/** 分けた件ごとに、子の Node を起こした回数 (#3580) */
+const spawned = new Map<string, number>();
+let nodesAtStart = 0;
+beforeEach(() => {
+  nodesAtStart = freshNodes;
+});
+afterEach(({ task }) => {
+  if (SPLIT.includes(task.name)) spawned.set(`${task.suite?.name ?? ""} > ${task.name}`, freshNodes - nodesAtStart);
+});
 
 /** 時系列図の入門の見本。後から読む種類の部品を要らない */
 const INTRO = readFileSync(join(EXAMPLES, "intro.dragon"), "utf8");
@@ -338,30 +410,25 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
     expect(out.drawn, "読んだ後に図を描けない").toBe(true);
   });
 
-  it("light-load-for-reads-every-later-example", async () => {
-    const whole = await importEntry<Entry & { blockKinds(name: string): string[] }>(name);
-    expect(whole, "既定の入口を読めない").toBeDefined();
-    if (!whole) return;
-    for (const [kind, file] of Object.entries(LATER_SAMPLES)) {
+  /** 記法の見本ごとに 1 件。1 件の中で全ての見本を回すと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3580) */
+  describe.for(Object.keys(LATER_SAMPLES))("%s", (kind) => {
+    it("light-load-for-reads-every-later-example", async () => {
+      const whole = await wholeEntry();
+      const file = LATER_SAMPLES[kind] as string;
       const text = readFileSync(join(EXAMPLES, file), "utf8");
-      const out = loadedAfter(`
-        const text = ${JSON.stringify(text)};
-        await light.loadFor(text);
-        const parsed = light.parseNotation(text);
-        out.parsed = parsed.ok ? true : parsed.errors[0].message;
-        out.svg = parsed.ok ? light.renderDiagram(parsed.diagram).svg : "";
-      `);
-      expect(out, `${file} を新しい Node で回せない`).toBeDefined();
-      if (!out) continue;
-      expect(out.parsed, `${file} を loadFor の後に読めない`).toBe(true);
-      const parsed = whole.parseNotation(text);
-      expect(out.svg, `${file} を軽い入口で描いた SVG が既定の入口と違う`).toBe(parsed.ok ? whole.renderDiagram(parsed.diagram).svg : "");
-      expect(out.loaded.length, `${file} で読んだ個別ブロックが無い (走査の空振り)`).toBeGreaterThan(0);
+      const light = await freshLight<CaseLight>();
+      await light.loadFor(text);
+      const parsed = light.parseNotation(text);
+      expect(parsed.ok ? true : messageOf(parsed), `${file} を loadFor の後に読めない`).toBe(true);
+      const expected = whole.parseNotation(text);
+      expect(parsed.ok ? light.renderDiagram(parsed.diagram).svg : "", `${file} を軽い入口で描いた SVG が既定の入口と違う`).toBe(expected.ok ? whole.renderDiagram(expected.diagram).svg : "");
+      const loaded = loadedOf(light);
+      expect(loaded.length, `${file} で読んだ個別ブロックが無い (走査の空振り)`).toBeGreaterThan(0);
       expect(
-        out.loaded.filter((block) => !whole.blockKinds(block).includes(kind)),
+        loaded.filter((block) => !whole.blockKinds(block).includes(kind)),
         `${file} (${kind}) で読んだ、ほかの種類の個別ブロック`,
       ).toEqual([]);
-    }
+    });
   });
 
   it("light-load-readings-leaves-renderer-out", () => {
@@ -400,10 +467,78 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
     expect(out.loaded, "移れる道の無い状態遷移図で読んだ個別ブロック").not.toContain("side-path");
   });
 
-  it("light-load-for-reads-json-blocks", async () => {
-    const whole = await importEntry<Entry & { printNotation(diagram: unknown): string; blockKinds(name: string): string[] }>(name);
-    expect(whole, "既定の入口を読めない").toBeDefined();
-    if (!whole) return;
+  /** 後から読む種類の原本の見本ごとに 1 件。原本から引く個別ブロックが記法から引く物より少ないと、書き戻した字が既定の入口と食い違うか、書き戻した記法を読めない (#3580) */
+  describe.for(JSON_SAMPLES)("$file", ({ file, source }) => {
+    it("light-load-for-reads-json-blocks", async () => {
+      const whole = await wholeEntry();
+      const light = await freshLight<CaseLight>();
+      // 軽い入口には写しを渡す。子の Node で回していた時と同じく、既定の入口と同じ原本の物を触らせない
+      const given = structuredClone(source);
+      expect(light.diagramKind(given), `${file} を読む前に引いた原本の図の種類`).toBe(source.kind);
+      await light.loadFor(given);
+      let printed: string;
+      try {
+        printed = light.printNotation(given);
+      } catch (error) {
+        printed = (error as Error).message;
+      }
+      expect(printed, `${file} を loadFor に渡した後に記法へ書き戻した字`).toBe(whole.printNotation(source));
+      const again = light.parseNotation(printed);
+      expect(again.ok ? true : messageOf(again), `${file} を書き戻した記法を、続けて読めない`).toBe(true);
+      let svg: string;
+      try {
+        svg = light.renderDiagram(given).svg;
+      } catch (error) {
+        svg = (error as Error).message;
+      }
+      expect(svg, `${file} を loadFor に渡した後に描いた SVG`).toBe(whole.renderDiagram(source).svg);
+      expect(
+        loadedOf(light).filter((block) => !whole.blockKinds(block).includes(source.kind ?? "")),
+        `${file} (${source.kind}) で読んだ、ほかの種類の個別ブロック`,
+      ).toEqual([]);
+    });
+  });
+
+  /** 後から読む種類ごとに 1 件 (#3580) */
+  describe.for(Object.keys(LATER_SAMPLES))("%s", (kind) => {
+    it("light-load-kind-reads-kind-blocks", async () => {
+      const whole = await wholeEntry();
+      const file = LATER_SAMPLES[kind] as string;
+      const light = await freshLight<CaseLight>();
+      await light.loadKind(kind);
+      const parsed = light.parseNotation(readFileSync(join(EXAMPLES, file), "utf8"));
+      const own = light.LATER_BLOCKS.filter((block) => whole.blockKinds(block).includes(kind)).sort();
+      expect(own.length, `${kind} だけの後から読む個別ブロックが無い (走査の空振り)`).toBeGreaterThan(0);
+      expect(loadedOf(light), `loadKind("${kind}") の後に読んでいた個別ブロック`).toEqual(own);
+      expect(parsed.ok ? true : messageOf(parsed), `loadKind("${kind}") の後に ${file} を読めない`).toBe(true);
+    });
+  });
+
+  // 移れる道の行は行の頭の語を持たず、最初の段より前の線の形で脇道のブロックが読む。書いた図と書かない図を 1 件ずつ (#3580)
+  describe.for([
+    { name: "移れる道を書いた状態遷移図", text: STATE_WITH_PATH, side: true },
+    { name: "移れる道を書かない状態遷移図", text: STATE_NO_PATH, side: false },
+  ])("$name", ({ name: drawn, text, side }) => {
+    it("light-entry-finds-lines-read-by-shape", async () => {
+      const light = await freshLight<CaseLight>();
+      await light.loadFor(text);
+      const parsed = light.parseNotation(text);
+      expect(loadedOf(light).includes("side-path"), `${drawn}で脇道の個別ブロックを読んだか`).toBe(side);
+      expect(parsed.ok ? true : messageOf(parsed), `${drawn}を loadFor の後に読めない`).toBe(true);
+    });
+  });
+});
+
+describe("見本ごとに分けた軽い入口の件 (#3580)", () => {
+  it("light-fresh-entry-starts-empty", async () => {
+    const first = await freshLight();
+    await first.loadKind("pipe");
+    expect(loadedOf(first).length, "配管の図の種類を読んだ後に読んでいた個別ブロック (走査の空振り)").toBeGreaterThan(0);
+    const again = await freshLight();
+    expect(loadedOf(again), "読み込みの記録を消して読み直した後に読んでいた個別ブロック").toEqual([]);
+  });
+
+  it("light-json-samples-found", async () => {
     // 原本の `blocks` の欄の鍵は、ブロックの名前か定義の `fields` で持ち主を引く。試す図の部品 (`part`) は部品の種類ごとに引くので除く
     const { BLOCKS } = (await import("../src/blocks/index")) as unknown as { BLOCKS: Record<string, { name: string; fields?: readonly string[] }> };
     const schema = JSON.parse(readFileSync(join(ROOT, "src/schemas/diagram.schema.json"), "utf8")) as { properties: { blocks: { properties: Record<string, unknown> } } };
@@ -411,75 +546,22 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
     const keys = Object.keys(schema.properties.blocks.properties);
     expect(keys.length, "原本の blocks の欄の数 (走査の空振り)").toBeGreaterThan(0);
     expect(keys.filter((key) => key !== "part" && !owned.has(key)), "持ち主のブロックを引けない原本の blocks の欄").toEqual([]);
-    // 後から読む種類の原本の見本を全て見る。原本から引く個別ブロックが記法から引く物より少ないと、書き戻した字が既定の入口と食い違うか、書き戻した記法を読めない
-    const later = Object.keys(LATER_SAMPLES);
-    const files = readdirSync(EXAMPLES).filter((file) => file.endsWith(".json") && !file.endsWith(".en.json"));
-    const sources = files
-      .map((file) => [file, JSON.parse(readFileSync(join(EXAMPLES, file), "utf8")) as { kind?: string }] as const)
-      .filter(([, source]) => later.includes(source.kind ?? ""));
-    expect(sources.length, "後から読む種類の原本の見本の数 (走査の空振り)").toBeGreaterThanOrEqual(later.length);
-    for (const [file, source] of sources) {
-      const out = loadedAfter(`
-        const source = ${JSON.stringify(source)};
-        out.kind = light.diagramKind(source);
-        await light.loadFor(source);
-        try { out.printed = light.printNotation(source); } catch (e) { out.printed = e.message; }
-        const again = light.parseNotation(out.printed);
-        out.reparsed = again.ok ? true : again.errors[0].message;
-        try { out.svg = light.renderDiagram(source).svg; } catch (e) { out.svg = e.message; }
-      `);
-      expect(out, `${file} を新しい Node で回せない`).toBeDefined();
-      if (!out) continue;
-      expect(out.kind, `${file} を読む前に引いた原本の図の種類`).toBe(source.kind);
-      expect(out.printed, `${file} を loadFor に渡した後に記法へ書き戻した字`).toBe(whole.printNotation(source));
-      expect(out.reparsed, `${file} を書き戻した記法を、続けて読めない`).toBe(true);
-      expect(out.svg, `${file} を loadFor に渡した後に描いた SVG`).toBe(whole.renderDiagram(source).svg);
-      expect(
-        out.loaded.filter((block) => !whole.blockKinds(block).includes(source.kind ?? "")),
-        `${file} (${source.kind}) で読んだ、ほかの種類の個別ブロック`,
-      ).toEqual([]);
-    }
-    const finality = loadedAfter(`await light.loadFor(${readFileSync(join(EXAMPLES, "finality.json"), "utf8")});`);
-    expect(finality?.loaded, "拡大の範囲を持つ原本で読んだ個別ブロック").toContain("zoom");
+    // 見本ごとの件は、見本が 0 件の種類では 1 件も組まれず素通りするので、どの後から読む種類も原本の見本を持つことをここで確かめる
+    expect([...new Set(JSON_SAMPLES.map(({ source }) => source.kind))].sort(), "原本の見本を持つ後から読む種類").toEqual(Object.keys(LATER_SAMPLES).sort());
   });
 
-  it("light-load-kind-reads-kind-blocks", async () => {
-    const whole = await importEntry<Entry & { blockKinds(name: string): string[] }>(name);
-    expect(whole, "既定の入口を読めない").toBeDefined();
-    if (!whole) return;
-    for (const [kind, file] of Object.entries(LATER_SAMPLES)) {
-      const out = loadedAfter(`
-        await light.loadKind(${JSON.stringify(kind)});
-        out.all = [...light.LATER_BLOCKS];
-        const parsed = light.parseNotation(${JSON.stringify(readFileSync(join(EXAMPLES, file), "utf8"))});
-        out.parsed = parsed.ok ? true : parsed.errors[0].message;
-      `);
-      expect(out, `${kind} を新しい Node で回せない`).toBeDefined();
-      if (!out) continue;
-      const own = (out.all as string[]).filter((block) => whole.blockKinds(block).includes(kind)).sort();
-      expect(own.length, `${kind} だけの後から読む個別ブロックが無い (走査の空振り)`).toBeGreaterThan(0);
-      expect(out.loaded, `loadKind("${kind}") の後に読んでいた個別ブロック`).toEqual(own);
-      expect(out.parsed, `loadKind("${kind}") の後に ${file} を読めない`).toBe(true);
-    }
+  it("light-load-for-reads-zoom-block", async () => {
+    const light = await freshLight<CaseLight>();
+    await light.loadFor(JSON.parse(readFileSync(join(EXAMPLES, "finality.json"), "utf8")));
+    expect(loadedOf(light), "拡大の範囲を持つ原本で読んだ個別ブロック").toContain("zoom");
   });
 
-  it("light-entry-finds-lines-read-by-shape", () => {
-    const run = (text: string): Loaded | undefined =>
-      loadedAfter(`
-        const text = ${JSON.stringify(text)};
-        await light.loadFor(text);
-        const parsed = light.parseNotation(text);
-        out.parsed = parsed.ok ? true : parsed.errors[0].message;
-      `);
-    // 移れる道の行は行の頭の語を持たず、最初の段より前の線の形で脇道のブロックが読む
-    const withPath = run(STATE_WITH_PATH);
-    const noPath = run(STATE_NO_PATH);
-    expect(withPath && noPath, "軽い入口を新しい Node で読めない").toBeTruthy();
-    if (!withPath || !noPath) return;
-    expect(withPath.loaded, "移れる道を書いた状態遷移図で読んだ個別ブロック").toContain("side-path");
-    expect(withPath.parsed, "移れる道を書いた状態遷移図を loadFor の後に読めない").toBe(true);
-    expect(noPath.loaded, "移れる道を書かない状態遷移図で読んだ個別ブロック").not.toContain("side-path");
-    expect(noPath.parsed, "移れる道を書かない状態遷移図を loadFor の後に読めない").toBe(true);
+  it("light-entry-cases-follow-samples", ({ task }) => {
+    const kinds = Object.keys(LATER_SAMPLES).sort();
+    expect(casesNamed(task.file, "light-load-for-reads-json-blocks").sort(), "原本の見本ごとの件").toEqual(JSON_SAMPLES.map(({ file }) => file));
+    expect(casesNamed(task.file, "light-load-for-reads-every-later-example").sort(), "記法の見本ごとの件").toEqual(kinds);
+    expect(casesNamed(task.file, "light-load-kind-reads-kind-blocks").sort(), "種類ごとの件").toEqual(kinds);
+    expect(casesNamed(task.file, "light-entry-finds-lines-read-by-shape"), "線の形で読む件").toHaveLength(2);
   });
 });
 
@@ -570,5 +652,16 @@ describe.for(DRAGON_FILES)("軽い入口と既定の入口の SVG (#3248) %s", (
     if (JSON.stringify(diagram).includes('"tabler:')) await light.loadFor(diagram);
     for (const options of [{}, { theme: "dark", still: true, lang: "en" }])
       expect(light.renderDiagram(diagram, options).svg, `${file} (${JSON.stringify(options)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, options).svg);
+  });
+});
+
+describe("見本ごとに分けた件が子の Node を起こさない (#3580)", () => {
+  // このfileの最後の件として、分けた件が起こした子の Node を数える
+  it("light-split-cases-start-no-node", () => {
+    expect([...new Set([...spawned.keys()].map((key) => key.split(" > ").pop()))].sort(), "子の Node を数えた検査").toEqual([...SPLIT].sort());
+    expect(
+      [...spawned].filter(([, count]) => count > 0).map(([key, count]) => `${key}: ${count}`),
+      "子の Node を起こした件",
+    ).toEqual([]);
   });
 });
