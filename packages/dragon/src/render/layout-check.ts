@@ -109,6 +109,7 @@ interface BreakText {
   behindBox: (pipe: string, box: string) => string;
   merged: (a: string, b: string) => string;
   nearBorder: (line: string, part: string) => string;
+  behindLine: (line: string, box: string) => string;
   touchesBorder: (text: string, box: string) => string;
   ring: string;
 }
@@ -138,6 +139,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     behindBox: (pipe, box) => `${spaced(pipe)}が${box}の縁の後ろを通る`,
     merged: (a, b) => `${spaced(a)}と${spaced(b)}が重なって通る`,
     nearBorder: (line, part) => `${spaced(line)}が${part}の枠に沿って近すぎる`,
+    behindLine: (line, box) => `${spaced(line)}が${box}の裏を通る`,
     touchesBorder: (text, box) => `${spaced(text)}が${box}の枠に接する`,
     ring: "ドーナツの輪の内側",
   },
@@ -165,6 +167,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     behindBox: (pipe, box) => capital(`${pipe} runs behind the edge of ${box}`),
     merged: (a, b) => capital(`${a} and ${b} run on top of each other`),
     nearBorder: (line, part) => capital(`${line} runs too close along the border of ${part}`),
+    behindLine: (line, box) => capital(`${line} runs behind ${box}`),
     touchesBorder: (text, box) => capital(`${text} touches the border of ${box}`),
     ring: "the inside of the donut ring",
   },
@@ -240,10 +243,12 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
                         ? w.merged(name(a), name(b2))
                         : b.kind === "line-near-border"
                           ? w.nearBorder(name(a), name(b2))
-                          : b.kind === "text-touches-border"
-                            ? w.touchesBorder(name(a), name(b2))
-                            : b.kind === "badge-on-frame" || b.kind === "label-on-frame"
-                              ? w.onBorder(name(a), name(b2))
-                              : w.runClose(name(a), name(b2));
+                          : b.kind === "line-behind-box"
+                            ? w.behindLine(name(a), name(b2))
+                            : b.kind === "text-touches-border"
+                              ? w.touchesBorder(name(a), name(b2))
+                              : b.kind === "badge-on-frame" || b.kind === "label-on-frame"
+                                ? w.onBorder(name(a), name(b2))
+                                : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

@@ -209,6 +209,118 @@ function frameShape(top: number): LayoutBreak[] {
   } as never) as LayoutBreak[];
 }
 
+/**
+ * 箱 A、M、B を縦に並べ、段1の A → B の線を `x` の所で真下へ引いた姿 (#3607)。M の名前の字は M の真ん中の幅 40 に在る。
+ * `shaped` が真なら、M は四角の左右の端から 20 ずつ内に入った菱形で、四角の端の近くは見えている形の外になる
+ */
+function behindShape(x: number, shaped = false): LayoutBreak[] {
+  const box = (id: string, y: number) => ({
+    id,
+    name: id.toUpperCase(),
+    color: "blue" as const,
+    x: 0,
+    y,
+    w: 200,
+    h: 72,
+    cx: 100,
+    cy: y + 36,
+  });
+  const boxes = [box("a", 0), box("m", 120), box("b", 240)];
+  const points: [number, number][] = [
+    [x, 72],
+    [x, 240],
+  ];
+  const edge = {
+    step: 0,
+    event: 0,
+    from: "a",
+    to: "b",
+    points,
+    color: "blue" as const,
+    carry: { kind: "none" as const },
+  };
+  const diamond: [number, number][][] = [
+    [
+      [100, 120],
+      [180, 156],
+      [100, 192],
+      [20, 156],
+    ],
+  ];
+  return findBreaks({
+    inks: [{ text: "M", rect: { x: 80, y: 149, w: 40, h: 14 }, shown: fromTime(0), box: "m" }],
+    traces: [{ from: "a", to: "b", points, shown: fromTime(0.5) }],
+    framed: [],
+    stills: [1],
+    frame: { w: 200, h: 312 },
+    boxes,
+    edges: [edge],
+    outlines: shaped ? new Map([["m", diamond]]) : new Map(),
+    layout: {
+      kind: "architecture",
+      width: 200,
+      height: 312,
+      regions: [],
+      boxes,
+      lifelines: [],
+      edges: [edge],
+      labels: [],
+      actions: [],
+      badges: [],
+      paths: [],
+      ends: [],
+    },
+  } as never) as LayoutBreak[];
+}
+
+describe("線が箱の裏を通る崩れ (#3607)", () => {
+  const crossing = (breaks: LayoutBreak[]): string[] =>
+    breaks
+      .filter((b) => b.kind === "line-behind-box" || b.kind === "line-crosses-text")
+      .map((b) => b.kind);
+
+  it("layout-check-finds-line-behind-box", () => {
+    const breaks = behindShape(30);
+    expect(
+      crossing(breaks),
+      "箱の字に掛からずに箱の中を通る線を、箱の裏を通る線として1件で知らせない",
+    ).toEqual(["line-behind-box"]);
+    const hidden = breaks.find((b) => b.kind === "line-behind-box") as LayoutBreak;
+    expect(hidden, "知らせる段と、線と箱の名指し").toEqual({
+      kind: "line-behind-box",
+      step: 1,
+      parts: [
+        { kind: "line", from: "A", to: "B", step: 1 },
+        { kind: "box", name: "M" },
+      ],
+    });
+    expect(describeBreak(hidden as never, "ja"), "日本語の文が線と箱を名指さない").toContain(
+      "線 A → B (段 1)",
+    );
+    expect(describeBreak(hidden as never, "ja"), "日本語の文が箱の裏を通ると言わない").toContain(
+      "「M」の裏を通る",
+    );
+    expect(describeBreak(hidden as never, "en"), "英語の文が箱の裏を通ると言わない").toContain(
+      'runs behind "M"',
+    );
+  });
+
+  it("layout-check-line-behind-box-skips-crossed-text-and-outside-shape", () => {
+    expect(
+      crossing(behindShape(100)),
+      "箱の字を横切る線を、字を横切る線と箱の裏を通る線の2件で知らせる",
+    ).toEqual(["line-crosses-text"]);
+    expect(
+      crossing(behindShape(10, true)),
+      "形を持つ箱の、見えている形の外を通る線を知らせる",
+    ).toEqual([]);
+    expect(
+      crossing(behindShape(60, true)),
+      "形を持つ箱の、見えている形の中を通る線を知らせない",
+    ).toEqual(["line-behind-box"]);
+  });
+});
+
 /** file の中で、段 `step` (1 から数える) を始める `step` の行の番号 */
 function stepLine(file: string, step: number): number {
   const lines = readFileSync(file, "utf8").split("\n");
@@ -694,6 +806,41 @@ describe("見本に今ある崩れ (#3484)", () => {
     expect(grown, "一覧に無い崩れが見本に出た").toEqual([]);
   });
 });
+
+describe("見本帳の図は崩れを出さない (#3607)", () => {
+  it("gallery-warns-nothing", () => {
+    const checkLayoutText = (
+      dragon as unknown as {
+        checkLayoutText?: (text: string, options: { lang: "ja" | "en" }) => LayoutBreak[];
+      }
+    ).checkLayoutText;
+    expect(checkLayoutText, "checkLayoutText が @cardenelabs/dragon から出ていない").toBeDefined();
+    if (checkLayoutText === undefined) return;
+    const files = galleryFiles();
+    // 走査の空振りを避ける。見本帳の図は、ブロックごとに日本語と英語の2枚ずつある
+    expect(files.length, "見本帳の図を数えられない").toBeGreaterThan(1);
+    const broken = files.flatMap((file) =>
+      checkLayoutText(readFileSync(file, "utf8"), {
+        lang: file.includes(".en.") ? "en" : "ja",
+      }).map((b) => `${relative(ROOT, file)}: ${JSON.stringify(b)}`),
+    );
+    expect(broken, "見本帳の図に崩れが残る").toEqual([]);
+  });
+});
+
+/** 見本帳の図。ブロックごとの`gallery`の置き場の`.dragon`を全て */
+function galleryFiles(): string[] {
+  const blocks = join(ROOT, "packages/dragon/src/blocks");
+  return readdirSync(blocks)
+    .map((name) => join(blocks, name, "gallery"))
+    .filter((dir) => existsSync(dir) && statSync(dir).isDirectory())
+    .flatMap((dir) =>
+      readdirSync(dir)
+        .filter((name) => name.endsWith(".dragon"))
+        .map((name) => join(dir, name)),
+    )
+    .sort();
+}
 
 describe("dragon export --step (#3484)", () => {
   it("export-png-at-step", async () => {

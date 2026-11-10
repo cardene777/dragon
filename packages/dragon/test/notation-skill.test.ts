@@ -359,6 +359,8 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
       // 線が箱か囲みの枠に沿って近すぎる崩れと、字が自分の枠に接する崩れ (#3526)
       "崩れの種類 (枠に近い線)": "line-near-border",
       "崩れの種類 (枠に接する字)": "text-touches-border",
+      "崩れの種類 (箱の裏を通る線、#3607)": "line-behind-box",
+      "囲みの外を回る線の直し方 (#3607)": "around the outside of the leftmost or rightmost column",
       "箱の並びを変える直し方": "Reorder the boxes",
       "名前を短くする直し方": "Shorten",
       "描き方の側の崩れを課題として送る案内": "blocks.md",

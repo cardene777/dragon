@@ -1,0 +1,26 @@
+architecture 左の外側を回る線
+
+group web as 画面 [note: 利用者が触る所]
+  box top as トップ
+  box order as 注文画面
+end
+
+group server as サーバー [note: 要求を受ける所]
+  box api as API
+end
+
+group work as 処理 [note: 裏で動く所]
+  box sum as 集計
+  box notice as 通知
+end
+
+group store as 保存 [note: 記録を残す所]
+  box log as 記録
+end
+
+step 結果を返す
+  api -> order
+
+step 記録を残す
+  sum -> log
+  api -> log

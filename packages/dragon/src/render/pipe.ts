@@ -496,7 +496,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
           `${chipPart(c, ctx, [[t0, t1 + f]], "")}</g></g>`,
       );
       for (const ink of ctx.ink.slice(drawnFrom)) ink.rect = { ...ink.rect, x: ink.rect.x + ex - sx, y: ink.rect.y + ey - sy };
-      ctx.pieces?.push({ kind: "chip", text: c.text, rect: { x: c.x + ex - sx, y: c.y + ey - sy, w: c.w, h: c.h }, shown: [[t1, t1 + f]] });
+      // 描く方は t1+f まで濃く見せて t1+2f にかけて消すので、崩れの検査も t1+2f まで見えているとみなす (#3607)
+      ctx.pieces?.push({ kind: "chip", text: c.text, rect: { x: c.x + ex - sx, y: c.y + ey - sy, w: c.w, h: c.h }, shown: [[t1, t1 + 2 * f]] });
     }
     // 畳んだ箱
     for (const fold of layout.folds.filter((x) => x.step === s)) parts.push(foldBox(fold, ctx, whole, ` data-pipe-step="${s}"`));
