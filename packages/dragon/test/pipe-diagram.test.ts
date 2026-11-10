@@ -62,8 +62,11 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { foldPipe as foldModel, layoutPipe, tryOrders } from "../src/kinds/pipe/layout";
+import { toModel } from "../src/model";
 import { type Ask, Router } from "../src/pipe-route";
+import type { Diagram } from "../src/schema";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { covers, draw, figureClass, figureVars, gap, type Rect, type Rendered, sampleTimes } from "./render-support";
@@ -1945,6 +1948,61 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       }
       expect(recorded[key], `${key} の指紋が記録に無い`).toBeDefined();
       expect(print, `${key} の置き場所が記録した指紋と違う。管の線が変わった`).toBe(recorded[key]);
+    });
+  });
+
+  /*
+   * 管を引く順を試す回 (#3603)。順は文字 1 つで表し、引いた時の悪い管の数を表から返す。
+   * 悪い管が 0 の回は次の順を返さず、ほかの回は `order` の次の文字を返す
+   */
+  const orderTries = (bad: Record<string, number>, order = "abcde"): { ran: string[]; best: string; last: string } => {
+    const ran: string[] = [];
+    const { best, ran: last } = tryOrders(
+      order[0] as string,
+      (list) => list,
+      (list) => {
+        ran.push(list);
+        return bad[list] as number;
+      },
+      (got) => [got],
+      (list, got) => (got === 0 ? undefined : order[(order.indexOf(list) + 1) % order.length]),
+    );
+    return { ran, best: best.list, last };
+  };
+
+  it("pipe-order-tries-stop-without-gain", () => {
+    // 前の最良と同じ数の回と、増えた回の後は、次の順を試さない。最良は前の回の順のまま
+    expect(orderTries({ a: 2, b: 2, c: 0 }), "前の最良と同じ数の回の後も次の順を試した").toEqual({ ran: ["a", "b"], best: "a", last: "b" });
+    expect(orderTries({ a: 1, b: 3, c: 0 }), "前の最良より悪い回の後も次の順を試した").toEqual({ ran: ["a", "b"], best: "a", last: "b" });
+  });
+
+  it("pipe-order-tries-keep-going-while-better", () => {
+    // 良くなる間は次の順を試し、悪い管が 0 になった回でやめる
+    expect(orderTries({ a: 3, b: 1, c: 0, d: 0 }), "悪い管が 0 になった回でやめない").toEqual({ ran: ["a", "b", "c"], best: "c", last: "c" });
+    // 良くなり続けても 4 回でやめ、最良の回の順を返す
+    expect(orderTries({ a: 4, b: 3, c: 2, d: 1, e: 0 }), "4 回でやめない").toEqual({ ran: ["a", "b", "c", "d"], best: "d", last: "d" });
+    // 前に試した順に戻った時はやめる
+    expect(orderTries({ a: 2, b: 1 }, "ab"), "前に試した順をまた試した").toEqual({ ran: ["a", "b"], best: "b", last: "b" });
+  });
+
+  describe.for([
+    ["aggregator.json", "ja"],
+    ["aggregator.en.json", "en"],
+  ] as const)("%s", ([file, lang]) => {
+    it("pipe-narrow-open-aggregator-searches-fewer", () => {
+      // 幅 390 で箱 2 を開いた aggregator は、組み方を 3 通り試し、管の道を何度も探す。
+      // 直す前は、広い枠と狭い枠を合わせて 515 回探した (#3603)。並べ方の覚えに在る図は探さないので、0 回は数えない。
+      // `src` の並べ方を呼び、数える `Router` と並べ方が使う `Router` を同じ module にする (`dist` は別の `Router` を持つ)
+      const model = foldModel(toModel(exampleJson(file) as unknown as Diagram), [2], lang);
+      const route = vi.spyOn(Router.prototype, "route");
+      try {
+        layoutPipe(model, { lang, width: 390 });
+        const searches = route.mock.calls.length;
+        expect(searches, `${file} の道を 1 度も探していない。覚えに在る図を使った`).toBeGreaterThan(0);
+        expect(searches, `${file} の道を探す回数`).toBeLessThan(515);
+      } finally {
+        route.mockRestore();
+      }
     });
   });
 
