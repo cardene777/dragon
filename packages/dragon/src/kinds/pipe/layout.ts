@@ -894,7 +894,9 @@ export interface OrderTry<L, R> {
 }
 /**
  * 管を引く順を最大 4 通り試し、最良の回を返す。回ごとに `run` で引き、`score` を前から比べて小さい回を最良とする。
- * `next` が次の順を返さない回 (直す管が無い) と、前に試した順に戻った時にやめる。
+ * `next` が次の順を返さない回 (直す管が無い) と、前に試した順に戻った時と、前の最良より良くならなかった回でやめる (#3603)。
+ * 良くならなかった回の後に別の順を試しても、配管の見本の全てで悪い管は減らず、狭い幅で箱を開いた図では
+ * 最後に諦める組み方のために道を探す時間の多くを使っていた。
  * `ran` は最後に引いた順で、最良の順と違う時は、呼ぶ側が最良の順で引き直す (道の覚えは最後に引いた順の物が残るため)
  */
 export function tryOrders<L, R>(first: L, keyOf: (list: L) => string, run: (list: L) => R, score: (got: R) => number[], next: (list: L, got: R) => L | undefined): { best: OrderTry<L, R>; ran: L } {
@@ -907,7 +909,8 @@ export function tryOrders<L, R>(first: L, keyOf: (list: L) => string, run: (list
     ran = list;
     const got = run(list);
     const s = score(got);
-    if (!best || lessThan(s, best.score)) best = { list, got, score: s };
+    if (best && !lessThan(s, best.score)) break;
+    best = { list, got, score: s };
     const after = next(list, got);
     if (after === undefined) break;
     list = after;
