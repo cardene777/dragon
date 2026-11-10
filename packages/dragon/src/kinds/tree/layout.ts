@@ -13,8 +13,8 @@
  *
  * 原本の JSON が書く前の名札を子に持つ時や、もう親を持つ箱を子にする時は、その子を除いて描く。箱と同じ名札の木の箱は描かない。
  */
-import { type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
-import type { DiagramModel, LabelSide } from "../../schema";
+import { APART, type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
+import type { Carry, DiagramModel, LabelSide } from "../../schema";
 import { textWidth } from "../../layout/measure";
 import {
   along,
@@ -282,7 +282,11 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
   const rootBox = nodes.find((n) => n.root);
   const ids = new Set(diagram.boxes.map((b) => b.id));
   const named = edgesOf(diagram).flatMap(({ edge }) => (edge.label !== undefined && (ids.has(edge.from) || ids.has(edge.to)) ? [textWidth(edge.label, labelStyle(edge.label)) + LOOK.label.padX * 2] : []));
-  const boxX = Math.max(treeRight + T.boxGap, (rootBox ? rootBox.x + rootBox.w : x0) + Math.max(0, ...named) + gap * 2);
+  // 根と箱を行きと帰りで結ぶ線は離して2本引くので、2つの段の番号が運ぶ物の待つ所と着く所を避けて真ん中に並ぶ長さまで、根から離す (#3607)
+  const lines = edgesOf(diagram).map(({ edge }) => edge);
+  const paired = lines.flatMap((edge) => (edge.from !== edge.to && (ids.has(edge.from) || ids.has(edge.to)) && lines.some((o) => o.from === edge.to && o.to === edge.from) ? [pairReach(edge.carry)] : []));
+  const rootRight = rootBox ? rootBox.x + rootBox.w : x0;
+  const boxX = Math.max(treeRight + T.boxGap, rootRight + Math.max(0, ...named) + gap * 2, rootRight + Math.max(0, ...paired));
   let by = rootBox?.y ?? top0;
   const boxes: SceneBox[] = diagram.boxes.map((b) => {
     // 形を持つ箱は、中身が形の内に収まる大きさにする (#3520)
@@ -349,7 +353,7 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
     links,
     runs,
   };
-  layout.badges = badgesOf(diagram, layout);
+  layout.badges = badgesOf(diagram, layout, outward);
   layout.labels = labelsOf(diagram, layout, outward);
 
   const cards = nodes.flatMap((n) => (n.card ? [n.card] : []));
@@ -363,18 +367,27 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
   if (strip) layout.strip = strip;
   // 中身の帯だけを書き換える段の番号は帯の左上に置くので、帯を置いた後に決め直す
-  layout.badges = badgesOf(diagram, layout);
+  layout.badges = badgesOf(diagram, layout, outward);
   return layout;
 }
+
+/**
+ * 行きと帰りで離した2本の線の段の番号を、真ん中から線の出る側へ寄せる長さ (#3607)。
+ * 2本は `pullApart` が `APART.line` と線の太さの分だけ離すので、真ん中に並べた2つの番号は、崩れの確かめが近すぎると数える間 (`APART.badge`) より近い。
+ * 2つを反対の向きにこの長さずつ寄せると、番号の縁どうしが `APART.badge` より離れる
+ */
+const PAIR_LEAD = Math.sqrt(Math.max(0, (LOOK.badge.r * 2 + APART.badge + 0.5) ** 2 - (APART.line + LOOK.stroke.edgeOn) ** 2)) / 2;
 
 /**
  * 段の番号。箱が現れる段は最初に現れた木の箱の左に置き、左が埋まっていれば左上の角、右、右上の角の順に空きを探す。
  * 線を引く段は最初の線の上に置く。木の線を走る線は、子の側の曲がり角から横の線に沿って `LOOK.tree.badgeAlong` 進めた所に、ほかの線は真ん中に置き、
  * 運ぶ物が出発を待つ所と着いた所を空ける。同じ 2 つの箱を結ぶ線を前の段が通っていれば、前の段の番号と同じ所に置いて数字を入れ替える (#3184)。
  * どちらも無い段は、書き換える箱の左上の角か、帯の左上の角の丸みの中に置き、それも無ければ前の段の番号の所に置く。
- * 線の番号のほかで前の段の番号と同じ所に来た番号は、前の番号の脇に並べる (#3525)
+ * 線の番号のほかで前の段の番号と同じ所に来た番号は、前の番号の脇に並べる (#3525)。
+ * 行きと帰りで離した線 (`outward` が持つ線) は、真ん中から線の出る側へ `PAIR_LEAD` 寄せた所から探す。2本の真ん中は番号どうしが近すぎるので、
+ * 2つの番号が真ん中の空きを分け合い、運ぶ物が待つ所と着いた所に押し出されない (#3607)
  */
-function badgesOf(diagram: DiagramModel, layout: TreeLayout): SceneBadge[] {
+function badgesOf(diagram: DiagramModel, layout: TreeLayout, outward: Map<SceneEdge, LabelSide>): SceneBadge[] {
   const { r, inset } = LOOK.badge;
   const apart = r * 2 + inset;
   const taken: Point[] = [];
@@ -408,7 +421,7 @@ function badgesOf(diagram: DiagramModel, layout: TreeLayout): SceneBadge[] {
       // 木の線を走る線は行きも帰りも同じ木の線の上を走るので 2 つの箱の組で、離した行きと帰りの線は引いた線の形で同じ線とみなす
       const key = run ? [e.from, e.to].sort().join("\n") : lineKey(e);
       const lines = layout.edges.filter((x) => x !== e).map((x) => x.points);
-      const point = passed.get(key) ?? (run ? onLink(e.points, free) : midway(e, free)) ?? badgeOnPath(e.points, taken, lines);
+      const point = passed.get(key) ?? (run ? onLink(e.points, free) : midway(e, free, outward.has(e) ? PAIR_LEAD : 0)) ?? badgeOnPath(e.points, taken, lines);
       passed.set(key, point);
       lineOf.set(s, key);
       put(s, point, e.color);
@@ -445,12 +458,24 @@ function onLink(points: Point[], free: (p: Point) => boolean): Point | undefined
   return free(side) ? side : undefined;
 }
 
+/**
+ * 根と箱を行きと帰りで結ぶ2本の線を引くのに要る、根の右の縁から箱の左の縁までの長さ (#3607)。
+ * 線は両端を `LOOK.edge.inset` 空け、`midway` は運ぶ物の待つ所と着く所を空けた真ん中に、2つの番号を `PAIR_LEAD` ずつ反対の向きへ寄せて並べる
+ */
+function pairReach(carry: Carry): number {
+  const room = carrierHalf(carry)[0] + LOOK.badge.r + LOOK.badge.inset;
+  return 2 * (LOOK.edge.inset + room + PAIR_LEAD) + 1;
+}
+
 /** 木の線でない線の段の番号の点。運ぶ物が待つ線の両端を空け、真ん中から外へ空きを探す。線が短くて空かない時は返さない */
-function midway(e: SceneEdge, free: (p: Point) => boolean): Point | undefined {
+function midway(e: SceneEdge, free: (p: Point) => boolean, lead: number): Point | undefined {
   const length = pathLength(e.points);
   const room = carrierHalf(e.carry)[0] + LOOK.badge.r + LOOK.badge.inset;
-  for (let d = 0; d <= length / 2 - room; d += 1) {
-    for (const at of [length / 2 - d, length / 2 + d]) {
+  // 探し始める所は、真ん中から線の出る側へ `lead` 寄せた所。両端の `room` の内に収める
+  const start = Math.min(Math.max(length / 2 - lead, room), length - room);
+  for (let d = 0; d <= length - 2 * room; d += 1) {
+    for (const at of [start - d, start + d]) {
+      if (at < room || at > length - room) continue;
       const p = along(e.points, at);
       if (free(p)) return p;
     }
