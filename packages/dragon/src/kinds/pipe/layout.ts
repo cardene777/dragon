@@ -886,6 +886,35 @@ const lessThan = (a: readonly number[], b: readonly number[]): boolean => {
   const i = a.findIndex((v, j) => v !== b[j]);
   return i >= 0 && (a[i] as number) < (b[i] as number);
 };
+/** 管を引く順を試した 1 回。`score` は前から比べて小さいほど良い */
+export interface OrderTry<L, R> {
+  list: L;
+  got: R;
+  score: number[];
+}
+/**
+ * 管を引く順を最大 4 通り試し、最良の回を返す。回ごとに `run` で引き、`score` を前から比べて小さい回を最良とする。
+ * `next` が次の順を返さない回 (直す管が無い) と、前に試した順に戻った時にやめる。
+ * `ran` は最後に引いた順で、最良の順と違う時は、呼ぶ側が最良の順で引き直す (道の覚えは最後に引いた順の物が残るため)
+ */
+export function tryOrders<L, R>(first: L, keyOf: (list: L) => string, run: (list: L) => R, score: (got: R) => number[], next: (list: L, got: R) => L | undefined): { best: OrderTry<L, R>; ran: L } {
+  let list = first;
+  let best: OrderTry<L, R> | undefined;
+  let ran = list;
+  const tried = new Set<string>();
+  for (let round = 0; round < 4 && !tried.has(keyOf(list)); round++) {
+    tried.add(keyOf(list));
+    ran = list;
+    const got = run(list);
+    const s = score(got);
+    if (!best || lessThan(s, best.score)) best = { list, got, score: s };
+    const after = next(list, got);
+    if (after === undefined) break;
+    list = after;
+  }
+  // 初めの回は前に試した順が無いので必ず引き、最良は必ず在る
+  return { best: best as OrderTry<L, R>, ran };
+}
 /**
  * 道を探し、仕上げた道の折れが上限を超える時は、折れを重く数えて探し直す。折れが減った時だけ探し直した道を採る。
  * 長さより折れの少なさを優先した道は遠回りになることがあるため、上限を超えた時だけ使う
@@ -2117,27 +2146,23 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     };
     // 道の無い管と曲がりすぎた管と遠回りした管を前に出して、引く順を最大 4 通り試す。道の無い管が少なく、曲がりすぎた管が少なく、遠回りが短い順を採る
     const FAR = 240;
-    let list: number[] = order2;
-    let best: { list: number[]; failed: number; bent: number; detour: number } | undefined;
-    let ran: number[] = list;
-    const tried = new Set<string>();
-    for (let round = 0; round < 4 && !tried.has(list.join(",")); round++) {
-      tried.add(list.join(","));
-      ran = list;
-      const got = routeValues(list, false);
-      const detour = [...got.detours.values()].reduce((s, v) => s + v, 0);
-      if (!best || lessThan([got.failed.length, got.bent.length, detour], [best.failed, best.bent, best.detour]))
-        best = { list, failed: got.failed.length, bent: got.bent.length, detour };
-      const far = [...got.detours.entries()].filter(([, v]) => v > FAR).sort((a, b) => b[1] - a[1]).map(([k]) => k);
-      // 隣の囲いを結ぶ管は道を探さず真っすぐ引くため、いつも先頭に置く
-      const fixed = list.filter((k) => homes.some((m) => m.def === k && m.gap));
-      const bad = [...new Set([...got.failed, ...got.bent, ...far])].filter((k) => !fixed.includes(k));
-      if (bad.length === 0) break;
-      list = [...fixed, ...bad, ...list.filter((k) => !bad.includes(k) && !fixed.includes(k))];
-    }
+    const { best, ran } = tryOrders(
+      order2,
+      (list) => list.join(","),
+      (list) => routeValues(list, false),
+      (got) => [got.failed.length, got.bent.length, [...got.detours.values()].reduce((s, v) => s + v, 0)],
+      (list, got) => {
+        const far = [...got.detours.entries()].filter(([, v]) => v > FAR).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+        // 隣の囲いを結ぶ管は道を探さず真っすぐ引くため、いつも先頭に置く
+        const fixed = list.filter((k) => homes.some((m) => m.def === k && m.gap));
+        const bad = [...new Set([...got.failed, ...got.bent, ...far])].filter((k) => !fixed.includes(k));
+        return bad.length === 0 ? undefined : [...fixed, ...bad, ...list.filter((k) => !bad.includes(k) && !fixed.includes(k))];
+      },
+    );
+    const valuesFailed = best.got.failed.length;
     // 道が無いか曲がりすぎた管が残る時は、間を広げた組み方で組み直す
-    if (best && best.failed + best.bent > 0 && !plan.last) return undefined;
-    if (best && (best.list !== ran || best.failed > 0)) routeValues(best.list, best.failed > 0);
+    if (valuesFailed + best.got.bent.length > 0 && !plan.last) return undefined;
+    if (best.list !== ran || valuesFailed > 0) routeValues(best.list, valuesFailed > 0);
 
     // ---- 呼び出しの管の道
 
@@ -2801,30 +2826,27 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       // 先に引いた管が曲がる向きに近い高さを取り、後の管はその外の高さから出るので、同じ横から出る管が入れ子に曲がり、
       // 1 本の管を共に通らない (#3523)
       const reach = (c: (typeof branches)[number]): number => Math.abs(rectOf(c.to).x + rectOf(c.to).w / 2 - (rectOf(c.from).x + rectOf(c.from).w / 2));
-      let callList = [...branches];
+      const callList = [...branches];
       const slotsOf = new Map<string, number[]>();
       branches.forEach((c, i) => slotsOf.set(c.from, [...(slotsOf.get(c.from) ?? []), i]));
       for (const slots of slotsOf.values()) {
         const nearer = slots.map((i) => branches[i] as (typeof branches)[number]).sort((a, b) => reach(a) - reach(b));
         slots.forEach((slot, k) => (callList[slot] = nearer[k] as (typeof branches)[number]));
       }
-      let bestCalls: { list: typeof branches; failed: number; bent: number; twice: number; cramped: number } | undefined;
-      let ranCalls = callList;
-      const triedCalls = new Set<string>();
-      const keyOfList = (l: typeof branches): string => l.map((c) => `${c.from}>${c.to}`).join(",");
-      for (let round = 0; round < 4 && !triedCalls.has(keyOfList(callList)); round++) {
-        triedCalls.add(keyOfList(callList));
-        ranCalls = callList;
-        const got = routeCalls(callList, false);
-        if (!bestCalls || lessThan([got.failed.length, got.bent.length, got.twice.length, got.cramped.length], [bestCalls.failed, bestCalls.bent, bestCalls.twice, bestCalls.cramped]))
-          bestCalls = { list: callList, failed: got.failed.length, bent: got.bent.length, twice: got.twice.length, cramped: got.cramped.length };
-        const bad = [...new Set([...got.failed, ...got.bent, ...got.twice, ...got.cramped])];
-        if (bad.length === 0) break;
-        callList = [...callList.filter((c) => bad.includes(`${c.from}>${c.to}`)), ...callList.filter((c) => !bad.includes(`${c.from}>${c.to}`))];
-      }
+      const { best: bestCalls, ran: ranCalls } = tryOrders(
+        callList,
+        (l) => l.map((c) => `${c.from}>${c.to}`).join(","),
+        (l) => routeCalls(l, false),
+        (got) => [got.failed.length, got.bent.length, got.twice.length, got.cramped.length],
+        (l, got) => {
+          const bad = [...new Set([...got.failed, ...got.bent, ...got.twice, ...got.cramped])];
+          return bad.length === 0 ? undefined : [...l.filter((c) => bad.includes(`${c.from}>${c.to}`)), ...l.filter((c) => !bad.includes(`${c.from}>${c.to}`))];
+        },
+      );
+      const callsFailed = bestCalls.got.failed.length;
       // 道が無いか、曲がりすぎたか、1 本の値の管を 2 度越えたか、弁を置けなかった管が残る時は、間を広げた組み方で組み直す
-      if (bestCalls && bestCalls.failed + bestCalls.bent + bestCalls.twice + bestCalls.cramped > 0 && !plan.last) return undefined;
-      if (bestCalls && (bestCalls.list !== ranCalls || bestCalls.failed > 0)) routeCalls(bestCalls.list, bestCalls.failed > 0);
+      if (bestCalls.score.reduce((s, v) => s + v, 0) > 0 && !plan.last) return undefined;
+      if (bestCalls.list !== ranCalls || callsFailed > 0) routeCalls(bestCalls.list, callsFailed > 0);
     }
 
     // ---- 書き込む管
