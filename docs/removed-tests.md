@@ -76,6 +76,8 @@
 | `catalog-common-part-shows-both-kinds` ほか部品ごとの 5 つの件 (`catalog-parts.test.ts`) | 部品の頁を、件ごとに開き直すのをやめ、部品ごとに 1 度開いて使い回す (#3432) | 読むだけの件を先に回し、頁を移る件と言語を替える件は部品の頁と日本語に戻して終わる。開く回数は `catalog-parts-open-one-page-per-part` が数える |
 | `narrow-editor-step-buttons-on-first-screen` ほか編集画面を読むだけの 12 の件 (`site-editor.test.ts`) | 編集画面を、件ごとに開き直すのをやめ、画面の大きさと指で触るかの組ごとに 1 度開いて使い回す (#3435) | 頁の状態を変えない件だけを並べ、見本は棚から読んで頁を上端へ戻してから読む。開く回数は `editor-readers-open-one-page-per-setting` が数える |
 | `docs-state-section-follows-regions` ほか使い方の頁を読む 8 つの件 (`site-pages.test.ts`) | 使い方の頁を、件ごとに開き直すのをやめ、言語ごとに 1 度開いて使い回す (#3435) | 頁の状態を変えない件で、部品「絵」の頁へ移る件は使い方の頁へ戻して終わる。開く回数は `docs-readers-open-one-page-per-lang` が数える |
+| `chart-exports-every-format` と `interactive-export-draws-author-steps` | 書き出すたびに Chromium を起こすのをやめ、jsdom の外の書き出しの thread (`export-thread.ts`) で 1 つを起こして使い回す。thread を作り Chromium を起こす段は、書き出す件の前の準備で済ませる。試す図は書き出しの命令を子の Node で起こさず、同じ thread で書き出す (#3602) | 同じ原本を同じ形式に書き出し、書いた file の形とバイトと段の数を確かめる。命令の引数の扱いは `export.test.ts` が確かめる |
+| `related-follows-package-and-built-entries` ほか検査を選ぶ命令の 3 つの検査 (`test-related.test.ts`) | 1 件で入力を順か同時に回すのをやめ、入力ごとの件に分けた (#3602) | 入力ごとに本物の命令を子のプロセスで起こし、同じ終わり方と選んだ file を確かめる |
 
 1 件の中で画面の大きさや見本の組を順に回していた検査は、組ごとの件に分けた。
 件の名前は元の名前のまま変えず、組は件を包む `describe` の名前に出る。

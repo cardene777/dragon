@@ -15,11 +15,11 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
 import { captionSteps, formatOf } from "./export-support";
-import { exportInThread, threadStats } from "./export-thread";
+import { exportInThread, threadStats, warmThread } from "./export-thread";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, sampleTimes } from "./render-support";
 
@@ -565,6 +565,8 @@ describe.for([
   { shot: "html", name: DONUT },
   { shot: "html", name: BAR },
 ] as const)("量の図の書き出し (#3560) $shot $name", ({ shot, name }) => {
+  // thread を作り Chromium を起こす段は件の前に済ませ、件の中では書き出す分だけを待つ (#3602)。2 件目からは用意済みで待たない
+  beforeAll(warmThread);
   it("chart-exports-every-format", async () => {
     if (shot === "video") {
       const files = await exportInThread(firstStep(name), { outDir: scratch(), formats: ["mp4", "gif"], fps: 1, gifFps: 0.5 });

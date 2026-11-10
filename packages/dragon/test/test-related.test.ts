@@ -10,7 +10,7 @@
  * 命令を子の process で起こし、`--list` で選んだ検査の file を出させて確かめる。
  * 規則は、この repo そのものと、検査の中で作る小さな repo の 2 つで確かめる。
  */
-import { execFile, execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -45,15 +45,16 @@ function listed(code: number | null, stdout: string, stderr: string): Listed {
   return { code, stdout, stderr, files: lines.slice(1).map((line) => line.trim()) };
 }
 
-/** `list` と同じ命令を、待たずに起こす。いくつもの命令を同時に起こして、全てを待つ時に使う (#3463) */
-function listLater(args: string[], root = ROOT): Promise<Listed> {
-  commands++;
-  return new Promise((done) => {
-    execFile(process.execPath, [RUNNER, "--list", "--root", root, ...args], { cwd: root, encoding: "utf8" }, (error, stdout, stderr) => {
-      const code = error === null ? 0 : typeof error.code === "number" ? error.code : null;
-      done(listed(code, stdout, stderr));
-    });
-  });
+/** repo の検査の file と中身。材料の名前を書く検査を数える時に、file で 1 度だけ読む */
+let sources: Map<string, string> | undefined;
+function testSources(): Map<string, string> {
+  sources ??= new Map(
+    execFileSync("git", ["-C", ROOT, "ls-files", "*.test.ts", "*.test.tsx"], { encoding: "utf8" })
+      .split("\n")
+      .filter(Boolean)
+      .map((path) => [path, readFileSync(join(ROOT, path), "utf8")]),
+  );
+  return sources;
 }
 
 /** 検査の中で使う小さな repo を作る。`files` は repo の根からの path と中身 */
@@ -110,55 +111,54 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     expect(fromB.files, "b.ts をたどれる検査の file だけを選んでいない").toEqual(["packages/x/test/b.test.ts"]);
   });
 
-  it("related-follows-package-and-built-entries", () => {
+  // 入力ごとに 1 件。1 件で命令を順に 3 回起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3602)
+  describe.for([
     // package の名前で読む検査は、package の入口の src をたどる
-    const fromEntry = list(["packages/dragon/src/index.ts"]);
-    expect(fromEntry.code, fromEntry.stderr).toBe(0);
-    expect(fromEntry.files, "package の名前で読む検査 (notation.test.ts) を選んでいない").toContain("packages/dragon/test/notation.test.ts");
+    { changed: "packages/dragon/src/index.ts", reader: "packages/dragon/test/notation.test.ts", says: "package の名前で読む検査 (notation.test.ts) を選んでいない" },
     // build した命令 (`dist/cli.js`) を起こす検査は、命令の src をたどる
-    const fromCli = list(["packages/dragon/src/cli.ts"]);
-    expect(fromCli.code, fromCli.stderr).toBe(0);
-    expect(fromCli.files, "build した命令を起こす検査 (cli-arguments.test.ts) を選んでいない").toContain("packages/dragon/test/cli-arguments.test.ts");
+    { changed: "packages/dragon/src/cli.ts", reader: "packages/dragon/test/cli-arguments.test.ts", says: "build した命令を起こす検査 (cli-arguments.test.ts) を選んでいない" },
     // build した頁の中身を読む検査は、頁の入口の src をたどる
-    const fromPage = list(["apps/playground-spa/src/main.tsx"]);
-    expect(fromPage.code, fromPage.stderr).toBe(0);
-    expect(fromPage.files, "build した頁の中身を読む検査 (playground.test.ts) を選んでいない").toContain("apps/playground-spa/src/lib/playground.test.ts");
+    { changed: "apps/playground-spa/src/main.tsx", reader: "apps/playground-spa/src/lib/playground.test.ts", says: "build した頁の中身を読む検査 (playground.test.ts) を選んでいない" },
+  ])("$changed", ({ changed, reader, says }) => {
+    it("related-follows-package-and-built-entries", () => {
+      const chosen = list([changed]);
+      expect(chosen.code, chosen.stderr).toBe(0);
+      expect(chosen.files, says).toContain(reader);
+    });
   });
 
-  it("related-maps-materials-by-table", () => {
-    const fromChangelog = list(["CHANGELOG.md"]);
-    expect(fromChangelog.code, fromChangelog.stderr).toBe(0);
-    expect(fromChangelog.files, "変更履歴を読む検査を選んでいない").toContain("packages/dragon/test/release-records.test.ts");
+  // 材料ごとに 1 件 (#3602)
+  describe.for([
     // dist の鮮度の検査は変更履歴を読まないので選ばれない
-    expect(fromChangelog.files, "変更履歴を読まない検査 (dist-freshness.test.ts) を選んだ").not.toContain("packages/dragon/test/dist-freshness.test.ts");
-    const fromExample = list(["packages/dragon/examples/auction.dragon"]);
-    expect(fromExample.code, fromExample.stderr).toBe(0);
-    expect(fromExample.files, "見本を読む検査 (lineup-diagram.test.ts) を選んでいない").toContain("packages/dragon/test/lineup-diagram.test.ts");
+    { changed: "CHANGELOG.md", picks: [["packages/dragon/test/release-records.test.ts", "変更履歴を読む検査を選んでいない"]], skips: [["packages/dragon/test/dist-freshness.test.ts", "変更履歴を読まない検査 (dist-freshness.test.ts) を選んだ"]] },
+    { changed: "packages/dragon/examples/auction.dragon", picks: [["packages/dragon/test/lineup-diagram.test.ts", "見本を読む検査 (lineup-diagram.test.ts) を選んでいない"]], skips: [] },
+  ])("$changed", ({ changed, picks, skips }) => {
+    it("related-maps-materials-by-table", () => {
+      const chosen = list([changed]);
+      expect(chosen.code, chosen.stderr).toBe(0);
+      for (const [file, says] of picks) expect(chosen.files, says).toContain(file);
+      for (const [file, says] of skips) expect(chosen.files, says).not.toContain(file);
+    });
   });
 
-  it("related-table-covers-material-readers", async () => {
-    // 材料の file の名前を字で書く検査の file は、その材料を変えた時に全て選ばれる。
-    // 命令の選び方とは別に、検査の file の字を数えて確かめる (命令の側の誤りを、命令の答えで確かめない)
-    const tablePath = join(ROOT, "test-support/related-table.json");
-    expect(existsSync(tablePath), "材料を検査へ結ぶ表 test-support/related-table.json が無い").toBe(true);
-    if (!existsSync(tablePath)) return;
-    const table = JSON.parse(readFileSync(tablePath, "utf8")) as { materials?: { files: string[] }[] };
-    expect(table.materials?.length ?? 0, "表に材料が 1 つも無い").toBeGreaterThan(0);
-    const tests = execFileSync("git", ["-C", ROOT, "ls-files", "*.test.ts", "*.test.tsx"], { encoding: "utf8" }).split("\n").filter(Boolean);
-    const sources = new Map(tests.map((path) => [path, readFileSync(join(ROOT, path), "utf8")]));
-    const checked: string[] = [];
-    const materials = ["CHANGELOG.md", "README.md", "docs/maintaining.md", "packages/dragon/examples/auction.dragon", ".ikkan/checks.md"];
-    // 材料ごとの命令を同時に起こす。1 つずつ順に起こすと、機械が混んだ時に 1 件 10 秒の上限を超えた (#3463)
-    const answers = await Promise.all(materials.map(async (material) => ({ material, chosen: await listLater([material]) })));
-    for (const { material, chosen } of answers) {
+  // 材料の file の名前を字で書く検査の file は、その材料を変えた時に全て選ばれる。
+  // 命令の選び方とは別に、検査の file の字を数えて確かめる (命令の側の誤りを、命令の答えで確かめない)。
+  // 材料ごとに 1 件。1 件で 5 つの材料の命令を同時に起こしても、混んだ機械で 1 件の上限 (10 秒) を超えた (#3463、#3602)
+  describe.for(["CHANGELOG.md", "README.md", "docs/maintaining.md", "packages/dragon/examples/auction.dragon", ".ikkan/checks.md"])("%s", (material) => {
+    it("related-table-covers-material-readers", () => {
+      const tablePath = join(ROOT, "test-support/related-table.json");
+      expect(existsSync(tablePath), "材料を検査へ結ぶ表 test-support/related-table.json が無い").toBe(true);
+      if (!existsSync(tablePath)) return;
+      const table = JSON.parse(readFileSync(tablePath, "utf8")) as { materials?: { files: string[] }[] };
+      expect(table.materials?.length ?? 0, "表に材料が 1 つも無い").toBeGreaterThan(0);
       const base = material.split("/").pop() ?? material;
-      const readers = [...sources].filter(([, body]) => body.includes(`"${material}"`) || body.includes(`"${base}"`)).map(([path]) => path);
+      const readers = [...testSources()].filter(([, body]) => body.includes(`"${material}"`) || body.includes(`"${base}"`)).map(([path]) => path);
+      // 名前を書く検査の file を 1 件も数えられない時は、確かめていないので落とす
+      expect(readers.length, `${material} の名前を書く検査の file を 1 件も数えていない`).toBeGreaterThan(0);
+      const chosen = list([material]);
       expect(chosen.code, `${material} を変えた時に命令が止まった: ${chosen.stderr}`).toBe(0);
       expect(readers.filter((reader) => !chosen.files.includes(reader)), `${material} の名前を書く検査の file のうち、選ばれなかった物`).toEqual([]);
-      checked.push(...readers);
-    }
-    // 名前を書く検査の file を 1 件も数えられない時は、確かめていないので落とす
-    expect(checked.length, "材料の名前を書く検査の file を 1 件も数えていない").toBeGreaterThan(0);
+    });
   });
 
   it("related-names-unmapped-material", () => {
