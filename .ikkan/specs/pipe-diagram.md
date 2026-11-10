@@ -102,3 +102,9 @@
 | 一部の語だけを渡した時は、渡していない語が描く言葉の今の語で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-partial-keeps-rest`が通る | #3584 |
 | 今の語より長い語を渡しても、槽の札が長い語の幅で組まれ、重なりの数が今の語で描いた時より増えない | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-long-words-fit`が通る | #3584 |
 | 語を渡さない時と、空の`words`か空の`words.pipe`を渡した時の図が、今の図と同じ字で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-absent-same-svg`が通る | #3584 |
+| 配管の図の管を引く順を試す時、ある回の結果 (道の無い管、曲がりすぎた管などの数) が前の最良より良くならなかったら、次の順を試さずにやめる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-order-tries-stop-without-gain`が通る | #3603 |
+| 引く順を試す時、前の最良より良くなった回の後は次の順を試し、悪い管が0になった回か4回目でやめ、最良の回の順を返す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-order-tries-keep-going-while-better`が通る | #3603 |
+| 幅390で箱2を開いた`aggregator`を日本語と英語で組む時、管の道を探す回数が、直す前の515回より少ない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-narrow-open-aggregator-searches-fewer`が通る | #3603 |
+| 配管の見本の全ての言語と幅と開いた箱で、置き場所の指紋が記録した指紋と同じで、管の線を1本も変えない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3603 |
+| 配管の見本の全てで決まりの表の違反が0で、狭い幅で再生した配管の図の字が読める大きさで描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts packages/dragon/test/player.test.ts`の検査`pipe-rules-zero-violations-in-every-example`と検査`player-pipe-narrow-keeps-text-readable`が通る | #3603 |
+| 変えたfileを確かめる2つの検査のfileが全て通り、packageの検査の一式 (`pnpm exec vitest run packages/`) も全て通る | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts packages/dragon/test/player.test.ts`が終わり方0で終わる | #3603 |
