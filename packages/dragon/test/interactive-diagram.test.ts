@@ -11,10 +11,11 @@
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { api, exampleJson, type Json, type LineError } from "./diagram-support";
-import { formatOf, runCli } from "./export-support";
+import { cliRunCount, formatOf } from "./export-support";
+import { exportInThread, warmThread } from "./export-thread";
 import { draw } from "./render-support";
 import {
   KANA,
@@ -352,6 +353,18 @@ describe("試す図の描き方 (#3337)", () => {
 });
 
 describe("試す図の書き出し (#3337)", () => {
+  // thread を作り Chromium を起こす段は件の前に済ませ、件の中では書き出す分だけを待つ (#3602)
+  beforeAll(warmThread);
+  // 書き出しの件が書き出しの命令を起こした回数を数える (#3602)
+  let runsAtStart = 0;
+  let exportCliRuns: number | undefined;
+  beforeEach(() => {
+    runsAtStart = cliRunCount();
+  });
+  afterEach(({ task }) => {
+    if (task.name === "interactive-export-draws-author-steps") exportCliRuns = cliRunCount() - runsAtStart;
+  });
+
   it(
     "interactive-export-draws-author-steps",
     async () => {
@@ -369,16 +382,23 @@ describe("試す図の書き出し (#3337)", () => {
       );
       expect(rendered.svg, "書き出す図に入力の欄が入る").not.toMatch(/<input|<button|<form/u);
 
+      // 書き出しは jsdom の外の thread で、thread で 1 つの Chromium を借りて回す。命令の引数の扱いは書き出しの検査 (`export.test.ts`) が確かめる (#3602)
       const out = join(mkdtempSync(join(tmpdir(), "dragon-try-")), "out");
-      const ran = await runCli(["export", json, "--format", "png", "--out", out]);
-      expect(ran.code, `書き出しの命令が落ちた: ${ran.stderr}`).toBe(0);
+      const files = await exportInThread(exampleJson("tx-block.json"), { outDir: out, name: "tx-block", formats: ["png"] });
       const file = join(out, "tx-block.png");
+      expect(files.png, "書き出した PNG の path").toBe(file);
       expect(
         formatOf(existsSync(file) ? readFileSync(file) : Buffer.alloc(0)),
         `${file} が png として書かれていない`,
       ).toBe("png");
     },
   );
+
+  // 書き出しの命令を子の Node のプロセスで起こすと、その中で Chromium も起こし、混んだ機械で 1 件の上限 (10 秒) を超えた (#3602)
+  it("interactive-export-spawns-no-cli", () => {
+    expect(exportCliRuns, "書き出しの件より後に回し、書き出しの件の回数を数えている").toBeDefined();
+    expect(exportCliRuns, "試す図の書き出しの件が書き出しの命令を起こした回数").toBe(0);
+  });
 });
 
 describe("試す図の見本 (#3337)", () => {
