@@ -14,8 +14,9 @@ import { FORMAT_VERSION, fromModel } from "../model";
 import { pipeTexts } from "../pipe-player";
 import { BUTTON_TEXT, stepNo, ZOOM_TEXT } from "../player";
 import type { Overlap } from "../render/ink";
-import { drawSvg, type Rendered, renderDiagram } from "../render/svg";
-import type { ViewMode } from "../schema";
+import { drawSvg, type Rendered, redrawWithBlocks, renderDiagram } from "../render/svg";
+import type { Diagram, ViewMode } from "../schema";
+import type { UserBlocks } from "../user-blocks";
 import { tryTexts } from "../try-player";
 import { readDiagram } from "../version";
 import { chooseView } from "../view";
@@ -48,6 +49,11 @@ export interface ExportOptions {
   lang?: NotationLang;
   /** PNG に撮る段 (1 から数える)。書かなければ最後の段 (#3484)。崩れを知らされた段を撮って見るために使う */
   step?: number;
+  /**
+   * 原本の頭に書かずに渡す、使う人が足すブロックの定義 (`dragon export --blocks`、#3606)。`readBlocks` が読んだ物。
+   * 頁に埋める原本の定義の欄 (`define`) にも入れ、頁が原本を読み直して同じ図を描けるようにする。原本の頭の定義と同じ名前の定義は原本の物を使う
+   */
+  blocks?: UserBlocks;
 }
 
 /** 図に無い段を `step` に選んだ時の断り (#3484)。撮る前に断り、命令は使い方の誤りとして終える */
@@ -113,7 +119,7 @@ function openedTexts(input: unknown, rendered: Rendered, options: ExportOptions,
   let open: number[] = [];
   for (let folds = (rendered.layout as { folds?: { call: number }[] }).folds ?? []; folds.length > 0; ) {
     open = [...open, ...folds.map((f) => f.call)];
-    const opened = renderDiagram(input, { ...(options.palette ? { palette: options.palette } : {}), lang, open });
+    const opened = renderDiagram(input, { ...(options.palette ? { palette: options.palette } : {}), ...(options.blocks ? { blocks: options.blocks } : {}), lang, open });
     texts.push(...drawnTexts(opened, undefined, lang));
     folds = ((opened.layout as { folds?: { call: number }[] }).folds ?? []).filter((f) => !open.includes(f.call));
   }
@@ -129,14 +135,26 @@ function drawnLang(input: unknown, said: NotationLang): NotationLang {
   return read.ok ? textLang(read.diagram) : said;
 }
 
+/**
+ * 頁に埋める原本に、引数で渡した足したブロックの定義を足す (#3606)。頁は埋めた原本を読み直して描くので、渡した定義も原本の定義の欄で運ぶ。
+ * 原本の頭の定義と同じ名前の定義は、描く時と同じく原本の物を残す
+ */
+function withDefinitions(source: Diagram, blocks: UserBlocks | undefined): Diagram {
+  const own = source.define?.blocks ?? [];
+  const added = (blocks?.blocks ?? []).filter((b) => !own.some((o) => o.name === b.name));
+  return added.length === 0 ? source : { ...source, define: { format: 1, blocks: [...own, ...added] } };
+}
+
 export async function exportDiagram(input: unknown, options: ExportOptions): Promise<ExportResult> {
   const formats = options.formats ?? FORMATS;
   // 断りの文は渡した言葉か英語で出し、図の中の字は渡されなければ図の字の言葉で描く (#3516)
   const said = options.lang ?? DEFAULT_LANG;
   const lang = options.lang ?? drawnLang(input, said);
+  const blocks = options.blocks ? { blocks: options.blocks } : {};
   const rendered = renderDiagram(input, {
     ...(options.palette ? { palette: options.palette } : {}),
     ...(options.theme ? { theme: options.theme } : {}),
+    ...blocks,
     lang,
   });
   const { diagram, layout, timeline, theme } = rendered;
@@ -146,8 +164,9 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   const vars = paletteVars(palette, theme);
   const width = options.width ?? (rendered.view === "follow" ? DEFAULTS.followWidth : layout.width);
   const view = chooseView(rendered, width).mode;
-  // 寄って見せる図は動画と字の file の両方に使うので 1 度だけ描き、2 つの全体図の札の言葉を揃える
-  const followSvg = rendered.view === "fixed" ? undefined : drawSvg(diagram, layout, timeline, palette, theme, { width, lang });
+  // 寄って見せる図は動画と字の file の両方に使うので 1 度だけ描き、2 つの全体図の札の言葉を揃える。
+  // 描き直す間も足したブロックの定義を有効にし、足した箱の形と線の模様を止め絵と同じに描く (#3606)
+  const followSvg = rendered.view === "fixed" ? undefined : redrawWithBlocks(input, { ...blocks, lang }, () => drawSvg(diagram, layout, timeline, palette, theme, { width, lang }));
   const videoSvg = view === "follow" && followSvg ? followSvg : rendered.svg;
   const fontCss = await fontFaces(charsOf([...drawnTexts(rendered, followSvg, lang), ...openedTexts(input, rendered, options, lang)]));
 
@@ -156,7 +175,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
 
   // 頁は埋めた原本を読み直して描くので、今の版の原本 (版2) に戻して埋める (#3346)。
   // 配管の図は内側の段をまとめる前の形を埋め、頁が箱を押された時に内側の段を開けるようにする (#3398)
-  if (formats.includes("html")) outputs.push(["html", pageHtml(fromModel(rendered.source ?? diagram, FORMAT_VERSION), { palette: palette.id, theme, vars, lang }, fontCss)]);
+  if (formats.includes("html")) outputs.push(["html", pageHtml(withDefinitions(fromModel(rendered.source ?? diagram, FORMAT_VERSION), options.blocks), { palette: palette.id, theme, vars, lang }, fontCss)]);
 
   let frames = 0;
   const mp4 = formats.includes("mp4");

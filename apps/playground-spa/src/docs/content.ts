@@ -328,6 +328,7 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--gif-fps <数>", "GIF の 1 秒のコマの数 (既定 10)"],
         ["--format <形>", "書き出す形を `,` で区切る (既定 `mp4,gif,html,png`)"],
         ["--step <段>", "PNG に撮る段 (1 から数える。既定は最後の段)"],
+        ["--blocks <file>", "足したブロックの定義の file。その定義で図を描き、HTML にも定義を入れる"],
       ],
     },
     rules: [
@@ -557,6 +558,7 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--gif-fps <n>", "Frames per second of the GIF (default 10)"],
         ["--format <list>", "Formats to write, separated by `,` (default `mp4,gif,html,png`)"],
         ["--step <n>", "Step the PNG shows (counted from 1, default: the last step)"],
+        ["--blocks <file>", "A file of block definitions. The diagram is drawn with them, and the HTML carries them"],
       ],
     },
     rules: [

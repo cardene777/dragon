@@ -142,6 +142,13 @@ When the block you defined would help other diagrams (a common concept, not a on
    ```
 
    Add `--layout` to the second command to check the example's layout too ([layout](layout.md)).
+   Then export the example with the same definitions and look at the picture:
+
+   ```sh
+   dragon export --blocks packages/dragon/blocks/<name>.dragon packages/dragon/blocks/examples/<name>.dragon --format png
+   ```
+
+   Without Chromium, use `--format html` instead. It writes a page that opens in a browser.
 
 5. Run `pnpm install` and then `pnpm verify` in the fork, as the repo's `CONTRIBUTING.md` asks. If you cannot run `pnpm verify` (for example, `pnpm install` cannot reach npm), say so in the PR body under how you checked it, with the error it printed. Do not claim it passed.
 6. Open the pull request with `gh pr create`. The title starts with `feat:`. Fill the template's headings: what the block shows and which diagrams need it, why no existing block works, and how you checked it.

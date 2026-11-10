@@ -226,6 +226,14 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(section, "pnpm verify を回せない時に PR 本文へ書くと書かない").toMatch(/cannot run `pnpm verify`[^\n]*PR body|PR body[^\n]*cannot run `pnpm verify`/u);
   });
 
+  // 見本は定義を頭に書かないので、書き出して見る時も `--blocks` で定義を渡す。Chromium が無い時は頁に書き出す (#3606)
+  it("skill-blocks-export-with-definitions", () => {
+    const section = sectionOf(read(join(REFERENCES, "blocks.md")), "## Offer a reusable block to the dragon repo");
+    expect(section, "PR を出す手順の節が無い").not.toBe("");
+    expect(section, "見本を --blocks で定義を渡して PNG に書き出さない").toMatch(/dragon export --blocks packages\/dragon\/blocks\/<name>\.dragon packages\/dragon\/blocks\/examples\/<name>\.dragon --format png/u);
+    expect(section, "Chromium が無い時に --format html で書き出すと書かない").toMatch(/Chromium[^\n]*--format html|--format html[^\n]*Chromium/u);
+  });
+
   // 9 種類のどれにも合わない時は、押し込まず Issue も急がず、近い種類で描いて書き出し、足りるかを利用者が決める (#3513)
   it("skill-no-fitting-kind-draws-first", () => {
     const section = sectionOf(read(MAIN), "## 2. Pick the kind");

@@ -33,9 +33,10 @@ const JA_USAGE = [
   "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
   "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
   "  --step <段>        png に撮る段 (1 から数える。既定は最後の段)",
+  "  --blocks <file>    足したブロックの定義の file を読み、その定義で図を描いて書き出す",
 ];
 const EN_USAGE_HEAD = "Usage: dragon export <diagram file (.json or .dragon)> [options]";
-const OPTIONS = ["--out", "--width", "--palette", "--theme", "--lang", "--fps", "--gif-fps", "--format", "--step"];
+const OPTIONS = ["--out", "--width", "--palette", "--theme", "--lang", "--fps", "--gif-fps", "--format", "--step", "--blocks"];
 
 const INSTALL_ADD = "pnpm add -D playwright-core";
 const INSTALL_CHROMIUM = "pnpm exec playwright-core install chromium";
