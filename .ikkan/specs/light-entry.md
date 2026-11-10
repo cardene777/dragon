@@ -30,3 +30,13 @@
 | 軽い入口で種類を読む関数を待った後の`renderDiagram`の SVG が、`packages/dragon/examples`の全ての見本で既定の入口の SVG と同じ | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-same-svg`が通る | #3400 |
 | 既定の入口は種類を読む関数を呼ばずに、`parseNotation`と`renderDiagram`を待たずに続けて呼ぶと全ての種類の見本を描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`default-entry-draws-every-kind`が通る | #3400 |
 | 書き出した HTML の頁が、全ての種類の図を部品を後から読まずに描ける | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`html-export-draws-every-kind`が通る | #3400 |
+| 原本の見本を読む検査`light-load-for-reads-json-blocks`が、後から読む種類の原本の見本 (`.en.json`を除くJSON) ごとに1件として走り、件の数が見本の数と同じになる。記法の見本を読む`light-load-for-reads-every-later-example`と、種類ごとの`light-load-kind-reads-kind-blocks`は後から読む種類ごとに1件、線の形で読む`light-entry-finds-lines-read-by-shape`は移れる道を書く図と書かない図の2件になる | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-cases-follow-samples`が通る | #3580 |
+| 分けた4つの検査のどの件も、子のNodeのプロセスを起こさない | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-split-cases-start-no-node`が通る | #3580 |
+| 同じprocessの中で読み込みの記録を消して軽い入口を読み直すと、後から読む個別ブロックを1つも読んでいない状態に戻る | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-fresh-entry-starts-empty`が通る | #3580 |
+| 後から読む種類の原本の見本が、後から読む種類の全てに1件以上在る。見本が0件の種類が在る時は、見本ごとの件が素通りせずに落ちる | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-json-samples-found`が通る | #3580 |
+| 原本の見本ごとの件が、図の種類、書き戻した記法の字、書き戻した記法を読み直せること、描いたSVG、ほかの種類の個別ブロックを読まないことの5つを、今と同じ値で確かめる | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-json-blocks`が通る | #3580 |
+| `finality.json`を`loadFor`に渡すと、拡大の範囲の個別ブロック (`zoom`) を読む | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-zoom-block`が通る | #3580 |
+| 記法の見本ごとの件が、読み直せること、既定の入口と同じSVG、ほかの種類の個別ブロックを読まないことを今と同じ値で確かめる | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-every-later-example`が通る | #3580 |
+| 種類ごとの件が、`loadKind`の後に読んでいた個別ブロックがその種類の物だけで、見本の記法を読めることを今と同じ値で確かめる | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-kind-reads-kind-blocks`が通る | #3580 |
+| 移れる道を書いた状態遷移図は脇道の個別ブロック (`side-path`) を読み、書かない図は読まない | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-finds-lines-read-by-shape`が通る | #3580 |
+| 軽い入口の検査のfileが全て通る | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`が終わり方0で終わる | #3580 |
