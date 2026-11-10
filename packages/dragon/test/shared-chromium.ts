@@ -48,27 +48,34 @@ export async function lendFileChromium(): Promise<void> {
   });
 }
 
-/** thread で起こした Chromium と、起こした回数 */
-const own: { launching?: Promise<Browser>; launches: number } = { launches: 0 };
+/** thread で起こした Chromium と、起こした回数と、thread で 1 つの Chromium を返す関数 */
+const own: { launching?: Promise<Browser>; launches: number; one?: () => Promise<Browser> } = { launches: 0 };
 
 /** この thread の `chromium.launch` を、thread で 1 つの Chromium を借りて返す形に差し替える。初めて要った書き出しが起こす */
 export async function lendThreadChromium(): Promise<void> {
-  await lend((real) => () => {
-    if (!own.launching) {
-      own.launches++;
-      own.launching = real({ handleSIGTERM: false });
-    }
-    return own.launching;
+  await lend((real) => {
+    own.one = () => {
+      if (!own.launching) {
+        own.launches++;
+        own.launching = real({ handleSIGTERM: false });
+      }
+      return own.launching;
+    };
+    return own.one;
   });
 }
 
 /** この thread で Chromium を起こした回数 */
 export const threadChromiumLaunches = (): number => own.launches;
 
-/** thread で 1 つの Chromium を、初めて要る書き出しより前に起こしておく。借りた物を閉じても、開いた文脈が無いので何も閉じない */
+/**
+ * thread で 1 つの Chromium を、初めて要る書き出しより前に起こしておく。
+ * 差し替えた `launch` を呼ばず、それが借りる Chromium を返す関数を直に呼ぶ。
+ * 検査の file が Chromium を自分で起こさないことは、`launch` を呼ぶ書き方が file に無いかで確かめるため (`page-needs.test.ts`)
+ */
 export async function warmThreadChromium(): Promise<void> {
-  const { chromium } = await import("playwright-core");
-  await (await chromium.launch()).close();
+  if (!own.one) throw new Error("thread の Chromium を貸す前に起こそうとした。先に lendThreadChromium を呼ぶ");
+  await own.one();
 }
 
 /** 借りた Chromium。開いた文脈を数え、閉じる時はそれだけを閉じる */
