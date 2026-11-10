@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-11-10
+
 ### Added
 
 - **A pipe diagram can be drawn in the caller's own words** (#3584)
