@@ -1,0 +1,37 @@
+architecture 外側に並ぶ2本の線
+
+group web as 画面 [note: 利用者が触る所]
+  box app as アプリ
+end
+
+group server as サーバー [note: 要求を受ける所]
+  box api as API
+  box auth as 認証
+  box pay as 支払い
+end
+
+group work as 処理 [note: 裏で動く所]
+  box sum as 集計
+  box mail as メール
+  box push as プッシュ通知
+end
+
+group store as 保存 [note: 記録を残す所]
+  box log as 記録
+  box db as データベース
+  box backup as 控え
+end
+
+step 知らせる
+  app -> mail
+  app -> log
+
+step 支払いを通す
+  api -> push
+
+step 残す
+  app -> db
+
+step 控えを取る
+  log -> backup
+  app -> sum

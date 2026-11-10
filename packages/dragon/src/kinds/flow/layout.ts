@@ -39,6 +39,7 @@ import {
   markText,
   placeLabel,
   type Point,
+  askedSide,
   pullApart,
   type Rect,
   type SceneBox,
@@ -330,7 +331,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     };
   });
   // 同じ 2 つを行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す (原本の JSON にだけ書ける)
-  const outward = pullApart(sceneEdges);
+  const outward = pullApart(sceneEdges, askedSide(diagram));
   const paths: ScenePath[] = notTaken.map((p) => ({ from: p.from, to: p.to, points: route(p.from, p.to) }));
 
   /** 線の名前と段の番号の色。線そのものは段で動く色で引くが、名前と番号は今どおり着く先の箱の色で出す */

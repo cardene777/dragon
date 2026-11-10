@@ -1,0 +1,50 @@
+architecture 3つのチームが使う道具の重なり
+
+group dev as 開発 [note: 開発チーム, color: blue, icon: code]
+  box devteam as 開発チーム [icon: user]
+  box github as GitHub [note: 開発だけ, icon: branch]
+end
+
+box notion as Notion [note: 開発と営業, color: violet, icon: doc]
+
+group sales as 営業 [note: 営業チーム, color: amber, icon: yen]
+  box salesteam as 営業チーム [icon: user]
+  box salesforce as Salesforce [note: 営業だけ, icon: cloud]
+end
+
+box hubspot as HubSpot [note: 営業とサポート, color: violet, icon: card]
+
+group support as サポート [note: サポートチーム, color: rose, icon: shield]
+  box supportteam as サポートチーム [icon: user]
+  box zendesk as Zendesk [note: サポートだけ, icon: env]
+end
+
+box jira as Jira [note: 開発とサポート, color: violet, icon: check]
+box slack as Slack [note: 3チーム全て, color: green, icon: net]
+
+step 1つのチームだけが使う道具
+  say 開発はGitHub、営業はSalesforce、サポートはZendeskを、自分のチームの中だけで使う。
+  devteam -> github
+  salesteam -> salesforce
+  supportteam -> zendesk
+
+step 開発と営業が使うNotion
+  say Notionは開発と営業の2つのチームが共に使う。
+  devteam -> notion
+  salesteam -> notion
+
+step 営業とサポートが使うHubSpot
+  say HubSpotは営業とサポートの2つのチームが共に使う。
+  salesteam -> hubspot
+  supportteam -> hubspot
+
+step 開発とサポートが使うJira
+  say Jiraは開発とサポートの2つのチームが共に使う。
+  devteam -> jira
+  supportteam -> jira
+
+step 3つ全てが使うSlack
+  say Slackは開発、営業、サポートの3つ全てのチームが使う。
+  devteam -> slack
+  salesteam -> slack
+  supportteam -> slack

@@ -1,0 +1,18 @@
+// Router が Alice へ返す値の札が長く、2 人の間にトークンの箱 USDC を置いた図 (#3607)。
+// 札が収まる長さまで Alice と Router の間を開けることを、間に別の箱を挟んだ並びでも確かめる
+pipe 長い値を返す
+
+box alice as Alice
+box router as Router
+box usdc as USDC
+
+hold alice: 10 USDC
+hold router: 0 USDC
+
+step AliceがRouterを呼ぶ
+  say AliceがRouterを呼ぶ。
+  alice -> router: 呼ぶ
+
+step Routerが長い値を返す
+  say Routerが長い値を返す。
+  return router: 呼び出しの管のどこにも収まらないほど長い戻り値の札

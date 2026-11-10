@@ -13,7 +13,7 @@
  */
 import { FIGURE_TEXT } from "../../figure-text";
 import { LOOK, TYPE } from "../../look/values";
-import type { DiagramModel, StatePath } from "../../schema";
+import type { DiagramModel, LabelSide, StatePath } from "../../schema";
 import { type NotationLang, STATE_ENDS } from "../../words";
 import { textBox, textWidth } from "../../layout/measure";
 import {
@@ -36,12 +36,14 @@ import {
   loopBadge,
   loopLabelBase,
   loopUnder,
+  longest,
   layoutStrip,
   markText,
   shapedSize,
   type Point,
   placeLabel,
   placeSlot,
+  askedSide,
   pullApart,
   type Rect,
   type SceneBox,
@@ -116,12 +118,21 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   // 列の幅と列の間。隣の列を横に結ぶ名前のある線は、名前が収まるまで間を広げる
   const colW = Array.from({ length: columnCount }, (_, c) => Math.max(B.minW, ...walked.filter((id) => slot.get(id)?.col === c).map((id) => widths.get(id) ?? B.minW)));
   const between = Array.from({ length: Math.max(0, columnCount - 1) }, () => T.columnGap as number);
+  // 同じ向きの線に段ごとに違う名前を付けると、済んだ名前も薄く残るので、名前を線に沿って横に並べる幅を取る (#3607)
+  const namesOn = new Map<string, Set<string>>();
+  for (const line of lines) {
+    if (line.label === undefined) continue;
+    const key = `${line.from}\n${line.to}`;
+    namesOn.set(key, (namesOn.get(key) ?? new Set<string>()).add(line.label));
+  }
   for (const line of lines) {
     const a = slot.get(line.from);
     const b = slot.get(line.to);
-    if (!a || !b || line.label === undefined || a.row !== b.row || Math.abs(a.col - b.col) !== 1) continue;
+    const names = namesOn.get(`${line.from}\n${line.to}`);
+    if (!a || !b || !names || a.row !== b.row || Math.abs(a.col - b.col) !== 1) continue;
     const i = Math.min(a.col, b.col);
-    between[i] = Math.max(between[i] ?? 0, textWidth(line.label, labelStyle(line.label)) + LOOK.label.padX * 2 + T.labelRoom * 2);
+    const row = [...names].reduce((sum, text) => sum + pillWidth(text), 0) + LOOK.label.soft * (names.size - 1);
+    between[i] = Math.max(between[i] ?? 0, row + T.labelRoom * 2);
   }
   const colLeft: number[] = [];
   for (let c = 0; c < columnCount; c++) colLeft.push(c === 0 ? margin : (colLeft[c - 1] as number) + (colW[c - 1] as number) + (between[c - 1] as number));
@@ -312,7 +323,7 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   // 状態を出入りする運ぶ物は、着いた状態の置き場に留まり、出る状態の置き場で走り出しを待つ (#3176)
   seatCarriers(sceneEdges, byId, carriedIn);
   // 同じ2つの状態を行きと帰りで結ぶ線は、崩れの検査の下限より広く左右に離す。名前はずらした側に置く (#3175、#3521)
-  const outward = pullApart(sceneEdges);
+  const outward = pullApart(sceneEdges, askedSide(diagram));
 
   const paths: ScenePath[] = notTaken.map((p) => ({ from: p.from, to: p.to, points: route(p.from, p.to) }));
 
@@ -326,6 +337,9 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
   const soft: Rect[] = [...(side ? [{ x: side.x, y: side.y, w: T.side.pad + titleW, h: side.h }] : []), ...marks];
   // 名前は段が終わると札を外した薄い字で残り、通らない道の名前は初めから札を持たないので、自分の線より他の線と道に横切らせない
   const others = (own: Point[]): Point[][] => [...sceneEdges.map((o) => o.points), ...paths.map((o) => o.points)].filter((line) => line !== own);
+  // 同じ線に段ごとに違う名前が付き、名前の側が決まっている (ずらした線か、側の指示がある) 時は、名前を段の順に線に沿って並べた所から探す (#3607)。
+  // 済んだ名前も薄く残るので、後の名前を外へ積むと線から離れ (#3528)、反対の側は組の相手の線が在る (#3521)
+  const rowBase = namesInRow(diagram, sceneEdges, outward);
   for (const e of sceneEdges) {
     const source = diagram.steps[e.step]?.events[e.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
@@ -341,7 +355,12 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
     }
     const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
     // 輪の名前は輪の下から探し、空いていなければ横へずらす
-    const below = loop ? { side: "below" as const, base: loopLabelBase(e.points, w) } : {};
+    const row = rowBase.get(`${key}\n${source.label}`);
+    const below = loop
+      ? { side: "below" as const, base: loopLabelBase(e.points, w) }
+      : row
+        ? { base: row }
+        : {};
     // 指示の無い線の名前は、空いていなければ反対の側も探す。ずらした線は自分の側だけを探す
     const side2 = source.labelSide ?? (e.to === "finish" ? "left" : outward.get(e));
     labels.push(
@@ -421,6 +440,48 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
 }
 
 /** 線の色。移った先の状態の色で、終わりへ移る線は終わる状態の色。硬貨を運ぶ線は構成図と同じく硬貨の色 (#3171) */
+/** 線の名前の札の幅 */
+const pillWidth = (text: string): number => textWidth(text, labelStyle(text)) + LOOK.label.padX * 2;
+
+/**
+ * 同じ線に段ごとに違う名前が付く時の、名前ごとの札の左上 (#3607)。鍵は線の鍵と名前を改行でつないだ字。
+ * 名前の側が決まっている線 (ずらした線か、側の指示がある線) だけを扱う。
+ * 側が上か下なら一番長い区間の真ん中を中心に横へ、左か右なら縦へ、段の順に `LOOK.label.soft` ずつ空けて並べる
+ */
+function namesInRow(diagram: DiagramModel, edges: SceneEdge[], outward: Map<SceneEdge, LabelSide>): Map<string, { x: number; y: number }> {
+  const byLine = new Map<string, { edge: SceneEdge; text: string; side: LabelSide }[]>();
+  for (const edge of edges) {
+    const source = diagram.steps[edge.step]?.events[edge.event];
+    if (source?.type !== "edge" || source.label === undefined || edge.from === edge.to) continue;
+    const side = source.labelSide ?? outward.get(edge);
+    if (side === undefined) continue;
+    const list = byLine.get(lineKey(edge)) ?? [];
+    if (!list.some((x) => x.text === source.label)) list.push({ edge, text: source.label, side });
+    byLine.set(lineKey(edge), list);
+  }
+  const bases = new Map<string, { x: number; y: number }>();
+  for (const [key, list] of byLine) {
+    const first = list[0];
+    if (!first || list.length < 2) continue;
+    const { a, b } = longest(first.edge.points);
+    const [mx, my] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const flat = first.side === "above" || first.side === "below";
+    const sizes = list.map((x) => (flat ? pillWidth(x.text) : LOOK.label.h));
+    let at = -(sizes.reduce((sum, size) => sum + size, 0) + LOOK.label.soft * (list.length - 1)) / 2;
+    list.forEach((x, k) => {
+      const w = pillWidth(x.text);
+      bases.set(
+        `${key}\n${x.text}`,
+        flat
+          ? { x: mx + at, y: my + (first.side === "above" ? -LOOK.label.offset : LOOK.label.offset) - LOOK.label.h / 2 }
+          : { x: first.side === "left" ? mx - LOOK.label.side - w : mx + LOOK.label.side, y: my + at },
+      );
+      at += (sizes[k] as number) + LOOK.label.soft;
+    });
+  }
+  return bases;
+}
+
 function colorOf(edge: EdgeEvent, colors: Map<string, ReturnType<typeof edgeColor>>): ReturnType<typeof edgeColor> {
   if (edge.carry.kind === "coin") return edgeColor(edge, colors);
   return colors.get(edge.to === "finish" ? edge.from : edge.to) ?? "slate";

@@ -6,14 +6,13 @@
  * 2 つの呼び出しが逆向きに 1 本の管を共に通っていた。`dragon check --layout`はどれも知らせなかった。
  *
  * 見本の図は置き場所 (`layout`) の座標で確かめる。返した値の札は呼び出しの管を伝って動き、管の終わり (`path`の最後の点) に止まる。
- * 崩れの確かめは、収まる所の無い長い札の図を`dragon check --layout`に渡すのと、描いた部品を直に崩れの確かめへ渡すのとで確かめる。
+ * 崩れの確かめは、描いた部品を直に崩れの確かめへ渡して確かめる。描く側は札が収まる長さまで管を伸ばすので (#3607)、札が部品に重なる図はもう描けない。
  * 管どうしの重なりは、直した後の見本には残らないため、描いた部品を直に渡す。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
-import { runCli } from "./export-support";
 
 /*
  * 崩れを数える部品と知らせる文の元の code を、検査の外で先に読む。
@@ -85,8 +84,6 @@ interface LayoutBreak {
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
-/** 札の長さが呼び出しの管より長く、どこに止めても弁か箱に重なる図 */
-const LONG_RETURN = join(ROOT, "packages/dragon/test/fixtures/layout/pipe-long-return.dragon");
 const P = PIPE_LOOK;
 const HALF = P.call.case / 2;
 /** 管と部品の間の下限。平行な管の縁どうしの間と同じ (`kinds/pipe/layout.ts`の`LINE_GAP`) */
@@ -236,57 +233,49 @@ describe("呼び出しの管と弁は重ならない (#3523)", () => {
   });
 });
 
-/** `dragon check --layout --json` を打ち、終わり方と崩れの知らせを返す */
-async function layoutOf(file: string, lang: "ja" | "en"): Promise<{ code: number; found: LayoutBreak[]; lines: { line: number; severity: string; layout?: LayoutBreak }[]; stderr: string }> {
-  const ran = await runCli(["check", file, "--layout", "--json", "--lang", lang]);
-  let lines: { line: number; severity: string; layout?: LayoutBreak }[] = [];
-  try {
-    lines = JSON.parse(ran.stdout) as typeof lines;
-  } catch {
-    lines = [];
-  }
-  return { code: ran.code, found: lines.flatMap((p) => (p.layout ? [p.layout] : [])), lines, stderr: ran.stderr };
-}
-
-/** file の中で、段 `step` (1 から数える) を始める `step` の行の番号 */
-function stepLine(file: string, step: number): number {
-  const lines = readFileSync(file, "utf8").split("\n");
-  const at = lines.map((line, i) => ({ line, i })).filter(({ line }) => /^step\b/u.test(line))[step - 1];
-  return (at?.i ?? -1) + 1;
-}
+/** 描いた部品 `pieces` を崩れの確かめへ直に渡す。止め絵は 4 段で、段 `n` の止め絵の時刻は `n` */
+const run = (pieces: unknown[]): LayoutBreak[] =>
+  findBreaks({ inks: [], traces: [], framed: [], stills: [1, 2, 3, 4], boxes: [], edges: [], outlines: new Map(), pieces } as never) as unknown as LayoutBreak[];
+const box = (name: string, x: number, y: number, w: number, h: number, corner: number = P.cabinet.radius) => ({ kind: "box" as const, name, rect: { x, y, w, h }, corner, shown: ALWAYS });
+const pipe = (from: string, to: string, step: number, points: Point[]) => ({ kind: "pipe" as const, from, to, step, points, half: HALF, shown: ALWAYS });
+const valve = (from: string, to: string, step: number, x: number, y: number) => {
+  const [body, ...lever] = valveRects(x, y, false, false);
+  return { kind: "valve" as const, from, to, step, body: body as Rect, lever, shown: ALWAYS };
+};
+/** 知らせる文 */
+const said = (b: LayoutBreak | undefined, lang: "ja" | "en"): string => (b ? describeBreak(b as never, lang) : "");
 
 const LONG_TEXT = "呼び出しの管のどこにも収まらないほど長い戻り値の札";
 
 describe("dragon check --layout が配管の図の重なりを知らせる (#3523)", () => {
-  it("layout-check-finds-chip-over-pipe-part", async () => {
-    const { code, found, lines, stderr } = await layoutOf(LONG_RETURN, "ja");
-    expect(code, `崩れだけの図で終わり方 0 にならない ${stderr}`).toBe(0);
-    const chips = found.filter((b) => b.kind === "chip-over-part" && b.parts[0]?.kind === "text" && b.parts[0].text === LONG_TEXT);
+  it("layout-check-finds-chip-over-pipe-part", () => {
+    // 描く側は札が収まる長さまで管を伸ばすので (#3607)、札が弁と箱に重なる形は描いた部品を直に渡して確かめる。
+    // 丸の名札の Alice から Router への管に Alice の弁が載り、段 2 で Router が返した長い札が管の上に止まる
+    const alice = box("Alice", 100, 100, 80, 80, 40);
+    const router = box("Router", 300, 112, 160, 56);
+    const call = pipe("Alice", "Router", 1, [[180, 140], [300, 140]]);
+    const lever = valve("Alice", "Router", 1, 220, 140);
+    const chip = (x: number, y: number) => ({ kind: "chip" as const, text: LONG_TEXT, rect: { x, y, w: 260, h: 24 }, shown: [[2, 3]] as [number, number][] });
+    const chips = run([alice, router, call, lever, chip(150, 128)]).filter((b) => b.kind === "chip-over-part");
     // 札は Alice の弁と、両端の Alice と Router の箱に重なる
-    const named = chips.map((b) => b.parts[1]);
-    expect(named, "札が重なる弁を名指さない").toContainEqual({ kind: "valve", from: "Alice", to: "Router" });
-    expect(named, "札が重なる箱を名指さない").toContainEqual({ kind: "box", name: "Router" });
-    for (const b of chips) expect(b.step, "札の崩れの段").toBe(2);
-    for (const p of lines.filter((l) => l.layout?.kind === "chip-over-part")) {
-      expect(p.severity, "札の崩れの重さ").toBe("warning");
-      expect(p.line, "札の崩れの段の step の行").toBe(stepLine(LONG_RETURN, 2));
+    expect(chips.map((b) => b.parts[1]), "札が重なる部品").toEqual([
+      { kind: "valve", from: "Alice", to: "Router" },
+      { kind: "box", name: "Alice" },
+      { kind: "box", name: "Router" },
+    ]);
+    for (const b of chips) {
+      expect(b.parts[0], "札を名指さない").toEqual({ kind: "text", text: LONG_TEXT });
+      expect(b.step, "札が見え始める段で知らせない").toBe(2);
     }
-    const text = await runCli(["check", LONG_RETURN, "--layout", "--lang", "ja"]);
-    const valveLine = text.stdout.split("\n").find((line) => line.includes(LONG_TEXT) && line.includes("Alice") && line.includes("弁"));
-    expect(valveLine, `札と弁を名指す行が無い\n${text.stdout}`).toMatch(/:\d+:1 warning 段 2: /u);
-    const en = await runCli(["check", LONG_RETURN, "--layout", "--lang", "en"]);
-    expect(en.stdout, `英語の行が札と弁を名指さない\n${en.stdout}`).toMatch(/warning Step 2: .*valve/u);
+    // 管から離れた所に止まる札は知らせない
+    expect(run([alice, router, call, lever, chip(150, 0)]).filter((b) => b.kind === "chip-over-part"), "部品から離れた札を知らせる").toEqual([]);
+    // 知らせる文は札と弁を名指す
+    const onValve = chips.find((b) => b.parts[1]?.kind === "valve");
+    expect(said(onValve, "ja"), "札が弁に重なる文").toMatch(new RegExp(`${LONG_TEXT}.*Alice.*弁`, "u"));
+    expect(said(onValve, "en"), "札が弁に重なる英語の文").toMatch(/valve/u);
   });
 
   it("layout-check-finds-pipes-overlapping", () => {
-    const box = (name: string, x: number, y: number, w: number, h: number) => ({ kind: "box" as const, name, rect: { x, y, w, h }, corner: P.cabinet.radius, shown: ALWAYS });
-    const pipe = (from: string, to: string, step: number, points: Point[]) => ({ kind: "pipe" as const, from, to, step, points, half: HALF, shown: ALWAYS });
-    const valve = (from: string, to: string, step: number, x: number, y: number) => {
-      const [body, ...lever] = valveRects(x, y, false, false);
-      return { kind: "valve" as const, from, to, step, body: body as Rect, lever, shown: ALWAYS };
-    };
-    const run = (pieces: unknown[]): LayoutBreak[] =>
-      findBreaks({ inks: [], traces: [], framed: [], stills: [1, 2, 3, 4], boxes: [], edges: [], outlines: new Map(), pieces } as never) as unknown as LayoutBreak[];
     const router = box("Router", 100, 100, 160, 56);
     // 箱の下の縁から 6px の高さで右の縁を出る管は、角の丸みにかかり、箱の縁の後ろを通って見える
     const behind = run([router, pipe("Router", "Pool1", 2, [[260, 150], [420, 150], [420, 300]])]);
@@ -307,7 +296,6 @@ describe("dragon check --layout が配管の図の重なりを知らせる (#352
     const apart = run([pipe("Pool1", "USDC", 2, [[600, 200], [300, 200]]), pipe("Pool1", "WETH", 3, [[600, 244], [300, 244]]), valve("Pool1", "USDC", 2, 450, 200)]);
     expect(apart.filter((b) => b.kind === "valve-near-pipe"), "隣の管から離れた弁を知らせる").toEqual([]);
     // 知らせる文は管と箱と弁を名指す
-    const said = (b: LayoutBreak | undefined, lang: "ja" | "en"): string => (b ? describeBreak(b as never, lang) : "");
     const behindBreak = behind.find((b) => b.kind === "pipe-behind-box");
     expect(said(behindBreak, "ja"), "管が箱の縁の後ろを通る文").toMatch(/Router → Pool1.*「Router」/u);
     expect(said(behindBreak, "en"), "管が箱の縁の後ろを通る英語の文").toMatch(/Router → Pool1.*"Router"/u);

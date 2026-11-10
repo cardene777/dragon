@@ -1447,10 +1447,22 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   const groupOfDef = (k: number): string => trunkOf.get(k) ?? `v${k}`;
 
   // ---- 組む。管が通らない時は、間を広げて組み直す
+  // 戻り値の札が管に収まらなかった時は、その管の2人の間を札の幅だけ広げ、同じ組み方で1度だけ組み直す (#3607)。
+  // 札の幅を全ての戻り値の管に前もって足すと、収まっていた図まで広がるので、収まらなかった管だけに足す
 
+  /** 戻り値の札が収まらなかった管 (`呼んだ者>呼ばれた者`) と、2人の間に足す長さ */
+  const roomFor = new Map<string, number>();
+  /** 組んでいる途中で戻り値の札が収まらなかった管と、足す長さ */
+  const cramped = new Map<string, number>();
   let result: PipeLayout | undefined;
   for (const plan of PLANS.slice(from)) {
+    cramped.clear();
     result = attempt(plan);
+    if (result && cramped.size > 0) {
+      for (const [pipe, room] of cramped) roomFor.set(pipe, Math.max(roomFor.get(pipe) ?? 0, room));
+      cramped.clear();
+      result = attempt(plan) ?? result;
+    }
     if (result) {
       PLAN_OF.set(result, PLANS.indexOf(plan));
       break;
@@ -1478,6 +1490,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       const between = homes.filter((m) => m.gap && m.party === l);
       return Math.max(P.housing.gap, between.reduce((s, m) => s + m.w, 0) + P.lane.clear * 2) + laneW + plan.gap;
     };
+    /** 前の組みで戻り値の札が収まらなかった、`from` と `to` の間の管に足す長さ。どちら向きの管でも足す (#3607) */
+    const returnRun = (from: string, to: string): number =>
+      (roomFor.get(`${from}>${to}`) ?? 0) + (roomFor.get(`${to}>${from}`) ?? 0);
     const roomW = (h: string): number => roomOf(h) + eventW(h) + PART_GAP;
     const lay = (band: readonly string[], start: number, want?: Map<string, number>): void => {
       let x = start;
@@ -1486,7 +1501,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         const lw = dockW(h, "left");
         const rw = dockW(h, "right");
         const w = Math.max(lw + inner.w + rw, roomW(h) + lw + rw);
-        if (i > 0) x += gapW(band[i - 1] as string);
+        if (i > 0) x += gapW(band[i - 1] as string) + returnRun(band[i - 1] as string, h);
         const wanted = want?.get(h);
         if (wanted !== undefined) x = Math.max(x, wanted - w / 2);
         cols.set(h, { id: h, x, w, hx: x + lw + (w - lw - rw - inner.w) / 2 });
@@ -1559,7 +1574,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         if (other === id || isBox(other) || bandOf(other) === 1) continue;
         const ow = roomOf(other);
         // 呼ぶ者の横には、弁を載せて向きを変えるまでの長さと、呼ばれた側の手前で向きを揃える長さを空ける
-        const gap = Math.max(P.cabinet.gap + plan.gap / 2, callerRun(id) + callerRun(other) + APPROACH + PART_GAP);
+        const gap = Math.max(P.cabinet.gap + plan.gap / 2, callerRun(id) + callerRun(other) + returnRun(id, other) + APPROACH + PART_GAP);
         if (rowOf(other) === row) occ.push([cx - ow / 2 - gap, cx + ow / 2 + eventW(other) + gap]);
         if (holding.has(other) && rowOf(other) < row) occ.push([cx - P.lane.clear * 2, cx + P.lane.clear * 2]);
       }
@@ -2217,8 +2232,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     }
     const branches = [...new Map(shown.map((c) => [`${c.from}>${c.to}`, c])).values()];
     const topSlot = LANE_STEP;
-    /** 名札の角の丸み。丸の名札は角を持たない */
-    const cornerOf = (id: string): number => (shapeOf(id) === "cabinet" ? P.cabinet.radius : shapeOf(id) === "token" ? P.token.radius : 0);
+    /** 名札の角の丸み。丸の名札は縁を円とし、崩れの検査が測る丸みと揃える (#3607) */
+    const cornerOf = (id: string): number => (shapeOf(id) === "cabinet" ? P.cabinet.radius : shapeOf(id) === "token" ? P.token.radius : rectOf(id).h / 2);
     /**
      * 同じ者の同じ横から出る k 本目の管の高さのずれ。真ん中、上、下の順。
      * 縁の角から `cornerRoom` 離れた所に収まらない時は真ん中にし、管を角の丸みにかけない (#3523)
@@ -3595,6 +3610,11 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         if (e >= whole) e = backTo(0);
         // どこにも空きが無い時は、今までどおり呼んだ側の名札に札が載らない手前で止める。崩れの確かめが札と部品の重なりを知らせる
         if (e >= whole) {
+          // 次の組みで、この管の2人の間を札の幅だけ広げる
+          cramped.set(
+            `${c.from}>${c.to}`,
+            Math.max(cramped.get(`${c.from}>${c.to}`) ?? 0, w + PART_GAP),
+          );
           const caller = labelOf(c.from);
           e = 0;
           while (e < whole / 2 && !apart(rectAt(along(started, whole - e)), caller, 2)) e += 2;
