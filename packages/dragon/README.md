@@ -750,6 +750,7 @@ dragon export ccip.json --out out
 | `--fps <n>` | Frames per second of the MP4 (default 30) |
 | `--gif-fps <n>` | Frames per second of the GIF (default 10) |
 | `--format <formats>` | The formats to write, separated by `,` (default `mp4,gif,html,png`) |
+| `--blocks <file>` | A file of block definitions. The diagram is drawn with them, and the HTML carries them, so a diagram that uses added blocks without defining them at its head can be exported |
 
 The PNG is a still of the last step in the `fixed` view.
 When text overlaps in some step, the export still finishes and prints each overlap on its own line to standard error, with the step and the text (with `--lang en`, for example `Step 5: Step number 1 and step number 5 overlap`). The exit code stays 0.

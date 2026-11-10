@@ -53,18 +53,23 @@ function runNode(args) {
   });
 }
 
-/** 記法を読んで段の数を出す。読めない図は空の行を出す */
+/**
+ * 記法を読んで段の数を出す。読めない図は空の行を出す。
+ * 3つ目の引数に足したブロックの定義のfileを受けた時は、その定義を渡して読む (#3606)
+ */
 const COUNT_STEPS = [
   'import { readFileSync } from "node:fs";',
-  "const [entry, file] = process.argv.slice(1);",
-  "const { parseNotation } = await import(entry);",
-  'const read = parseNotation(readFileSync(file, "utf8"));',
+  "const [entry, file, blocksFile] = process.argv.slice(1);",
+  "const { parseNotation, readBlocks } = await import(entry);",
+  'const blocks = blocksFile === undefined ? undefined : readBlocks(readFileSync(blocksFile, "utf8"));',
+  'const read = parseNotation(readFileSync(file, "utf8"), blocks?.ok ? { blocks: blocks.blocks } : {});',
   'console.log(read.ok ? read.diagram.steps.length : "");',
 ].join("\n");
 
 /**
  * このrepoで組み立てたCLI (`dist/cli.cjs`) を使う道具。
  * 崩れは評価の判定と同じ`dragon check --layout --json --lang ja`で数え、絵も同じ`--lang ja`で書き出す (崩れの段と絵の字を揃える)。
+ * 足したブロックの定義のfileを受けた図は、崩れを数える時も段を数える時も絵を書き出す時も、その定義を渡す (#3606)。
  * 段の数は、CLIの隣の入口 (`dist/index.js`) の`parseNotation`で記法を読んで数える。
  * 入口は別のprocessで読む。vitestの中で読むと大きな入口を変換するのに数秒かかり、1件10秒の上限に近づいたため
  */
@@ -94,14 +99,21 @@ export function cliTools(cli) {
         error: `dragon check --layout の終わり方 ${ran.code}: ${(ran.stderr || ran.stdout).trim()}`,
       };
     },
-    async steps(file) {
-      const ran = await runNode(["--input-type=module", "-e", COUNT_STEPS, entry, file]);
+    async steps(file, blocks) {
+      const ran = await runNode([
+        "--input-type=module",
+        "-e",
+        COUNT_STEPS,
+        entry,
+        file,
+        ...(blocks === undefined ? [] : [blocks]),
+      ]);
       const count = Number(ran.stdout.trim());
       return ran.code === 0 && ran.stdout.trim() !== "" && Number.isInteger(count)
         ? count
         : undefined;
     },
-    async png(file, step, dest) {
+    async png(file, step, dest, blocks) {
       // 書き出しは段を選んでも`<図の名前>.png`を書くので、段ごとに別のdirへ書いてから移す
       const out = mkdtempSync(join(dirname(dest), ".export-"));
       try {
@@ -114,6 +126,7 @@ export function cliTools(cli) {
           "--lang",
           "ja",
           ...(step === undefined ? [] : ["--step", String(step)]),
+          ...(blocks === undefined ? [] : ["--blocks", blocks]),
           "--out",
           out,
         ]);
@@ -285,7 +298,7 @@ async function drawGallery({ laid, diagrams, page, pngDir, tools }) {
   await runAll(
     diagrams.map(({ diagram }) => async () => {
       const found = await settle(() => tools.breaks(diagram.path, diagram.blocks));
-      const steps = await settle(() => tools.steps(diagram.path));
+      const steps = await settle(() => tools.steps(diagram.path, diagram.blocks));
       const problems = found.problems ?? [];
       diagram.checkError = found.error;
       diagram.breaks = problems.filter((problem) => problem.layout !== undefined);
@@ -320,7 +333,7 @@ async function drawGallery({ laid, diagrams, page, pngDir, tools }) {
   await runAll(
     shots.map(({ diagram, shot, dest }) => async () => {
       mkdirSync(dirname(dest), { recursive: true });
-      const made = await settle(() => tools.png(diagram.path, shot.step, dest));
+      const made = await settle(() => tools.png(diagram.path, shot.step, dest, diagram.blocks));
       if (made.error === undefined && existsSync(dest))
         shot.src = `data:image/png;base64,${readFileSync(dest).toString("base64")}`;
       else shot.error = made.error ?? "PNGが書かれなかった";

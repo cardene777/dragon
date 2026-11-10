@@ -21,6 +21,7 @@ import { type ExportFormat, exportDiagram, FORMATS, NoSuchStep } from "./export/
 import { PALETTES, type Theme } from "./look/values";
 import { parseNotation } from "./parser";
 import { describeOverlap } from "./render/ink";
+import type { UserBlocks } from "./user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "./words";
 
 const OPTIONS = {
@@ -33,6 +34,7 @@ const OPTIONS = {
   "gif-fps": { type: "string" },
   format: { type: "string" },
   step: { type: "string" },
+  blocks: { type: "string" },
 } as const;
 
 /** `dragon embed` の設定 */
@@ -60,9 +62,9 @@ interface CliText {
   checkUsage: string;
   /** `dragon check` が読めない拡張子の file */
   cannotCheck: (path: string) => string;
-  /** `dragon check --blocks` に渡した定義の file が無い (#3508) */
+  /** `dragon check --blocks` か `dragon export --blocks` に渡した定義の file が無い (#3508、#3606) */
   noBlocksFile: (path: string) => string;
-  /** `dragon check --blocks` に渡した file が足したブロックの定義の file でない (#3508) */
+  /** `dragon check --blocks` か `dragon export --blocks` に渡した file が足したブロックの定義の file でない (#3508、#3606) */
   notBlocksFile: (path: string) => string;
   /** `dragon --version` の使い方 */
   versionUsage: string;
@@ -94,6 +96,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
       "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
       "  --step <段>        png に撮る段 (1 から数える。既定は最後の段)",
+      "  --blocks <file>    足したブロックの定義の file を読み、その定義で図を描いて書き出す",
     ].join("\n"),
     embedUsage: [
       "使い方: dragon embed <HTML の file> [設定]",
@@ -140,6 +143,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --gif-fps <n>      Frames per second of the GIF (default 10)",
       "  --format <list>    Formats to write, separated by , (default mp4,gif,html,png)",
       "  --step <n>         Step the png shows (counted from 1, default: the last step)",
+      "  --blocks <file>    Read the block definitions in this file and draw the diagram with them",
     ].join("\n"),
     embedUsage: [
       "Usage: dragon embed <HTML file> [options]",
@@ -234,8 +238,8 @@ function failedPath(error: unknown): string | undefined {
   return typeof error.path === "string" ? error.path : undefined;
 }
 
-/** 図の file を読む。記法の行の誤りは `lang` の言葉で出す */
-function read(file: string, text: CliText, lang: NotationLang): unknown {
+/** 図の file を読む。記法の行の誤りは `lang` の言葉で出す。`blocks` は図の頭に書かずに渡す足したブロックの定義 (`--blocks`、#3606) */
+function read(file: string, text: CliText, lang: NotationLang, blocks?: UserBlocks): unknown {
   let source: string;
   try {
     source = readFileSync(file, "utf8");
@@ -250,7 +254,7 @@ function read(file: string, text: CliText, lang: NotationLang): unknown {
       throw new Error(text.badJson(file, detail(error)));
     }
   }
-  const parsed = parseNotation(source, { lang });
+  const parsed = parseNotation(source, { lang, ...(blocks !== undefined ? { blocks } : {}) });
   if (!parsed.ok) throw new Error(parsed.errors.map((e) => `${file}:${e.line} ${e.message}`).join("\n"));
   // 知らせ (箱を宣言しない図の似た名前、#3438) は、誤りと同じ形で標準エラーに出し、書き出しは続ける
   for (const notice of parsed.notices ?? []) console.error(`${file}:${notice.line} ${notice.message}`);
@@ -334,7 +338,7 @@ function check(args: string[], text: CliText): number {
       return 2;
     }
   }
-  const blocks = values.blocks === undefined ? undefined : blocksOption(values.blocks, lang, text);
+  const blocks = values.blocks === undefined ? undefined : blocksOption(values.blocks, lang, text, text.checkUsage);
   if (typeof blocks === "number") return blocks;
   if (blocks !== undefined && !blocks.ok) return report(blocks.problems, values.json === true);
   const layout = values.layout ? CLI_TEXT[lang].overlap : undefined;
@@ -344,8 +348,11 @@ function check(args: string[], text: CliText): number {
   );
 }
 
-/** `--blocks` で渡した定義の file を読む。無いか定義の file でない時は断りを出し、終わり方 2 を返す (#3508) */
-function blocksOption(path: string, lang: NotationLang, text: CliText): ReturnType<typeof readBlocksFile> | number {
+/**
+ * `--blocks` で渡した定義の file を読む。無いか定義の file でない時は断りを出し、終わり方 2 を返す (#3508)。
+ * `usage` は断りに添える使い方の文で、確かめる命令と書き出す命令が自分の使い方を渡す (#3606)
+ */
+function blocksOption(path: string, lang: NotationLang, text: CliText, usage: string): ReturnType<typeof readBlocksFile> | number {
   let source: string;
   try {
     source = readFileSync(path, "utf8");
@@ -355,7 +362,7 @@ function blocksOption(path: string, lang: NotationLang, text: CliText): ReturnTy
     return 2;
   }
   if (!isBlocksFile(source)) {
-    console.error(`${text.notBlocksFile(path)}\n${text.checkUsage}`);
+    console.error(`${text.notBlocksFile(path)}\n${usage}`);
     return 2;
   }
   return readBlocksFile(path, source, lang);
@@ -410,7 +417,11 @@ async function main(argv: string[]): Promise<number> {
   const step = number(values.step);
   // 渡した言葉だけを書き出しに渡す。渡さなければ、書き出しが図の題と `say` から図の中の字の言葉を決め、命令の文は英語で出す (#3516)
   const lang = isLang(chosen) ? chosen : undefined;
-  const diagram = read(file, early, lang ?? DEFAULT_LANG);
+  // 足したブロックの定義は図より先に読む。定義を頭に書かない図は、定義が無いと読めない (#3606)
+  const blocks = values.blocks === undefined ? undefined : blocksOption(values.blocks, lang ?? DEFAULT_LANG, early, early.usage);
+  if (typeof blocks === "number") return blocks;
+  if (blocks !== undefined && !blocks.ok) return report(blocks.problems, false);
+  const diagram = read(file, early, lang ?? DEFAULT_LANG, blocks?.blocks);
   let result: Awaited<ReturnType<typeof exportDiagram>>;
   try {
     result = await exportDiagram(diagram, {
@@ -424,6 +435,7 @@ async function main(argv: string[]): Promise<number> {
       ...(fps === undefined ? {} : { fps }),
       ...(gifFps === undefined ? {} : { gifFps }),
       ...(step === undefined ? {} : { step }),
+      ...(blocks === undefined ? {} : { blocks: blocks.blocks }),
     });
   } catch (error) {
     // 図に無い段を選んだ時は、使えない値として使い方を添えて断る (#3484)

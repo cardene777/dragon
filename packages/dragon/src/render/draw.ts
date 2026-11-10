@@ -970,13 +970,32 @@ export function renderDiagram(input: unknown, options: RenderOptions = {}): Rend
 /** `renderDiagram` の中身。package の中の崩れの検査は、崩れを数える関数を足してここを呼ぶ (#3494) */
 export function drawDiagram(input: unknown, options: DrawOptions = {}): Rendered {
   const lang = options.lang ?? DEFAULT_LANG;
+  return withDrawnBlocks(readOrFail(input, lang), options.blocks, lang, (diagram) => renderRead(diagram, options, lang));
+}
+
+/**
+ * 描いた図を、足したブロックの定義を有効にしたまま描き直す (#3606)。
+ * 足した箱の形と足した線の模様は描く間だけ引けるので (`userBoxOf`、`userEdgeOf`)、描き終えた後に窓の幅で描き直す書き出しは、ここを通して描く。
+ * `blocks` には `renderDiagram` に渡したのと同じ定義を渡す
+ */
+export function redrawWithBlocks<T>(input: unknown, options: { blocks?: UserBlocks; lang?: NotationLang }, run: () => T): T {
+  const lang = options.lang ?? DEFAULT_LANG;
+  return withDrawnBlocks(readOrFail(input, lang), options.blocks, lang, run);
+}
+
+/** 原本を読む。読めない時は描けない訳の文で断る */
+function readOrFail(input: unknown, lang: NotationLang): Diagram {
   const read = readDiagram(input, { lang });
   if (!read.ok)
     throw new Error(
       FIGURE_TEXT[lang].cannotDraw(read.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")),
     );
-  // 使う人が足したブロックの定義は、描く間だけ有効にする。原本の頭の定義が、引数で渡した同じ名前の定義に勝つ (#3399)
-  return withUserBlocks([options.blocks, read.diagram.define], () => renderRead(useUserBlocks(read.diagram, lang), options, lang));
+  return read.diagram;
+}
+
+/** 使う人が足したブロックの定義は、描く間だけ有効にする。原本の頭の定義が、引数で渡した同じ名前の定義に勝つ (#3399) */
+function withDrawnBlocks<T>(diagram: Diagram, blocks: UserBlocks | undefined, lang: NotationLang, run: (drawn: Diagram) => T): T {
+  return withUserBlocks([blocks, diagram.define], () => run(useUserBlocks(diagram, lang)));
 }
 
 /**

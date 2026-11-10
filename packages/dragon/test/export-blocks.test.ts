@@ -9,9 +9,33 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { api, type LineError, type Parsed } from "./diagram-support";
 import { exporter, formatOf, runCliInProcess } from "./export-support";
+
+// 書き出しの撮る所だけを差し替え、動画に撮る絵 (SVG) を残す。動画に足したブロックが描かれるかを Chromium を起こさずに確かめる
+const shots = { still: [] as string[], film: [] as string[] };
+vi.mock("../src/export/capture", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../src/export/capture")>();
+  return {
+    ...real,
+    launch: () => Promise.resolve({ close: () => Promise.resolve() }),
+    stage: (_browser: unknown, svg: string) => Promise.resolve({ svg }),
+    still: (stage: { svg: string }) => {
+      shots.still.push(stage.svg);
+      return Promise.resolve(Buffer.from("png"));
+    },
+    film: (stage: { svg: string }) => {
+      shots.film.push(stage.svg);
+      return Promise.resolve({ frames: 1, gif: Buffer.from("gif") });
+    },
+  };
+});
+
+// 共有のブロック集は組み立てが本体に埋める (`tsup.config.ts`)。元の code を直に読む時は空の集を置く。金庫の図は共有のブロックを使わない
+vi.stubGlobal("__DRAGON_SHARED_BLOCKS__", []);
+// 描く部品と書き出す部品の元の code は、検査の外 (この file を読む段) で先に読む (#3410)
+const [{ exportDiagram: exportSource }, { parseNotation: parseSource }] = await Promise.all([import("../src/export/index"), import("../src/parser"), import("../src/kinds/all")]);
 
 const lines = (...rows: string[]): string => `${rows.join("\n")}\n`;
 const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-export-blocks-"));
@@ -125,6 +149,32 @@ describe("dragon export --blocks (#3606)", () => {
     expect(ja.code).toBe(2);
     expect(ja.stderr, "日本語の使い方を出さない").toMatch(/^使い方: dragon export /mu);
     expect(ja.stderr, "日本語の使い方が --blocks <file> を挙げない").toMatch(/^\s+--blocks <file> /mu);
+  });
+
+  // 寄って見せる図の動画は、書き出しが窓の幅で描き直した絵を撮る。描き直しにも足したブロックの定義を渡さないと、足した線が点線でなく素の線で撮られる
+  it("export-video-draws-added-blocks", async () => {
+    const definitions = lines("blocks 1", "block +deposit", "  base edge", "  shape dashed", "  color amber", "end");
+    const body = lines("", "box user as User", "box vault as Vault", "", "step Deposit", "  user +deposit vault: deposit");
+    const head = "architecture Deposit into a vault [view: follow]";
+    const read = readBlocks(definitions);
+    expect(read.ok, "線のブロックの定義を読めない").toBe(true);
+    if (!read.ok) return;
+    const passed = parseSource(`${head}\n${body}`, { blocks: read.blocks as never });
+    const inline = parseSource(`${head}\n${definitions}${body}`);
+    expect(passed.ok && inline.ok, "寄って見せる金庫の図を読めない").toBe(true);
+    if (!passed.ok || !inline.ok) return;
+    const dashed = 'stroke-dasharray="8 6"';
+    for (const [said, diagram, options] of [
+      ["頭に書いた定義", inline.diagram, {}],
+      ["--blocks で渡した定義", passed.diagram, { blocks: read.blocks as never }],
+    ] as const) {
+      shots.still.length = 0;
+      shots.film.length = 0;
+      const result = await exportSource(diagram, { outDir: scratch(), formats: ["png", "gif"], ...options });
+      expect(result.view, `${said}の図が寄って見せる図にならない`).toBe("follow");
+      expect(shots.still[0] ?? "", `${said}の図の止め絵で、足した線を点線で描かない`).toContain(dashed);
+      expect(shots.film[0] ?? "", `${said}の図の動画で、足した線を点線で描かない`).toContain(dashed);
+    }
   });
 
   it("export-without-blocks-reports-undefined-block", async () => {
