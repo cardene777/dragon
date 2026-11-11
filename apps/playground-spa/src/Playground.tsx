@@ -26,13 +26,16 @@ import {
   renderDiagram,
   type Theme,
 } from "@cardenelabs/dragon/light";
-import { Fragment, type ReactElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, Fragment, type ReactElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { paintJson, paintNotation, type Span } from "./editor/highlight";
 import { fieldNotices, jsonErrorLine, lineNotices, type Notice } from "./editor/notices";
 import { insertLines, type PartId, partLines } from "./editor/shelf-items";
 import { Shelf } from "./editor/Shelf";
+import { MIN_WIDTHS, type Pane, readWidths, resizeTo, saveWidths, shownWidths, type Widths } from "./editor/split";
+import { SplitHandle } from "./editor/SplitHandle";
 import { Stage } from "./editor/Stage";
+import { useEditorBand } from "./editor/useEditorBand";
 import { type ExampleKey, exampleText, FIRST_EXAMPLE, firstScreenText, LATER_EXAMPLES, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
 import { fromHash, toHash } from "./share";
 import { definitionsFailed, definitionsReady, kindFailed, kindReady, onDefinitionsSettled, onKindSettled, onValidatorSettled, validatorFailed, validatorReady } from "./site/kinds";
@@ -261,6 +264,49 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
    */
   const hints = tab === "notation" && read.ok ? lineNotices(read.notices ?? []) : [];
 
+  /*
+   * 棚と記法の欄の幅 (#3612)。人が引いた幅を手元に残し、編集画面の幅に収まる幅で並べる。
+   * 引いている間に何度も描き直すので、最新の幅は描き直しを待たずに読めるよう ref にも持つ
+   */
+  const editor = useRef<HTMLDivElement>(null);
+  const band = useEditorBand();
+  const withShelf = band === "wide";
+  const [asked, setAsked] = useState<Widths>(readWidths);
+  const askedNow = useRef(asked);
+  const [total, setTotal] = useState(0);
+  useLayoutEffect(() => {
+    const el = editor.current;
+    if (!el) return;
+    setTotal(el.clientWidth);
+    const watch = new ResizeObserver(() => setTotal(el.clientWidth));
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  const shown = shownWidths(asked, total, withShelf);
+  const resizePane = (pane: Pane, next: number): void => {
+    const widths = resizeTo(askedNow.current, pane, next, editor.current?.clientWidth ?? 0, withShelf);
+    askedNow.current = widths;
+    setAsked(widths);
+  };
+  const keepWidths = (): void => saveWidths(askedNow.current);
+  /** つまみが読み上げに渡す、左の欄の最も広い幅 */
+  const widest = (pane: Pane): number | undefined => {
+    if (total <= 0) return undefined;
+    const other = pane === "shelf" ? shown.code : withShelf ? shown.shelf : 0;
+    return total - MIN_WIDTHS.stage - other;
+  };
+  const splitHandle = (pane: Pane): ReactElement => (
+    <SplitHandle
+      pane={pane}
+      label={t.split[pane]}
+      width={shown[pane]}
+      min={MIN_WIDTHS[pane]}
+      max={widest(pane)}
+      onResize={(next) => resizePane(pane, next)}
+      onDone={keepWidths}
+    />
+  );
+
   useLayoutEffect(() => {
     const line = reveal.current;
     if (line === null || !area.current) return;
@@ -453,7 +499,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     };
 
   return (
-    <div className="pg">
+    <div className="pg" ref={editor} style={{ "--pg-shelf": `${shown.shelf}px`, "--pg-code": `${shown.code}px` } as CSSProperties}>
       <Shelf
         lang={lang}
         base={base}
@@ -465,6 +511,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
         onPart={addPart}
       />
       {shelfOpen && <button type="button" className="pg-shelf-scrim" aria-label={t.shelf.close} onClick={() => setShelfOpen(false)} />}
+      {band === "wide" && splitHandle("shelf")}
 
       <section className="pg-code" data-playground="editor-pane" data-folded={folded}>
         <div className="pg-bar">
@@ -647,6 +694,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
           )}
         </div>
       </section>
+      {band !== "stacked" && splitHandle("code")}
 
       <Stage
         diagram={drawn}

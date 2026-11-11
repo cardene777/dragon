@@ -30,7 +30,7 @@ globalThis.ResizeObserver ??= QuietObserver as unknown as typeof ResizeObserver;
 let viewport = 1440;
 
 /** 幅の境目の問い合わせを、試す画面の幅で答える。幅を書かない問い (明暗、動きを減らす) は当たらない */
-window.matchMedia = ((query: string) => {
+window.matchMedia = (query: string) => {
   const max = /max-width:\s*(\d+)px/u.exec(query);
   const min = /min-width:\s*(\d+)px/u.exec(query);
   const matches = max ? viewport <= Number(max[1]) : min ? viewport >= Number(min[1]) : false;
@@ -44,7 +44,7 @@ window.matchMedia = ((query: string) => {
     removeListener: () => undefined,
     dispatchEvent: () => false,
   };
-}) as typeof window.matchMedia;
+};
 
 /** 編集画面の根 (`.pg`) だけが試す画面の幅を持つ。ほかの要素は jsdom のまま 0 */
 Object.defineProperty(HTMLElement.prototype, "clientWidth", {
@@ -100,7 +100,7 @@ function handle(pane: "shelf" | "code"): HTMLElement {
   return el as HTMLElement;
 }
 
-const Pointer = (typeof PointerEvent === "function" ? PointerEvent : MouseEvent) as typeof MouseEvent;
+const Pointer = typeof PointerEvent === "function" ? PointerEvent : MouseEvent;
 
 /** つまみを掴んで横へ引き、離す */
 function drag(pane: "shelf" | "code", by: number): void {

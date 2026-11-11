@@ -8,6 +8,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **In the playground editor you can drag the borders between the shelf, the notation and the diagram to change their widths** (#3612)
+
+  The editor placed the shelf at 240px, the notation at 300px and the diagram in the rest, and had no way to change these widths. The vertical bar you could see on the notation pane was its scroll bar. A handle now sits on the border between the shelf and the notation and on the border between the notation and the diagram. Each handle is the border line with a small upright grip always shown in its middle, and it turns the accent colour while you point at it, drag it or move to it with the keyboard. Dragging a handle changes the width of the pane on its left, and the editor keeps the widths the next time you open it. On a handle, the left and right arrow keys move it by 16px, or 64px with Shift. The diagram never gets narrower than 320px, the notation than 240px, or the shelf than 180px. At 1100px wide and below, where the shelf folds into a drawer, only the handle between the notation and the diagram is shown, and at 760px and below, where the diagram and the notation are stacked, no handle is shown.
+
 - **Each part page in the catalog has a "Ways to write it" section** (#3616)
 
   A part page showed one figure of the part per diagram kind and did not show what its settings (attribute keys) change. A part that takes settings now has a "Ways to write it" section above the per-kind figures, with one row per setting. Each row shows the notation lines that write the setting on the left and, on the right, the part's figure stopped at the step where the setting is first written. The list of settings comes from the words the part covers, and across all parts it matches the notation reader's list of attributes. The lines and figures come from the parts' existing notation files, so no notation files were added.
