@@ -122,6 +122,47 @@ describe("package の入口 (#3021)", () => {
     });
   });
 
+  it("capture-entry-browser-safe", async () => {
+    // 書き出す入口 (#3644) は頁が読み、ブラウザで描いた図を画像にする。頁を束ねる道具は入口の読み込みを全て解くので、Node の組み込みの module を読まない
+    const capture = manifest().exports["./capture"];
+    expect(capture, "exports に ./capture が在る").toBeDefined();
+    if (capture === undefined) return;
+    const files = targets(capture).filter((path) => !/\.d\.c?ts$/.test(path));
+    expect(files, "書き出す入口の file").toEqual(["./dist/capture.js", "./dist/capture.cjs"]);
+    const builtins = Object.fromEntries(files.map((file) => [file, nodeBuiltinsRead(join(ROOT, file))]));
+    expect(builtins, "書き出す入口の file が読む Node の組み込みの module").toEqual({ "./dist/capture.js": [], "./dist/capture.cjs": [] });
+    expect({ import: typesOf(capture, "import"), require: typesOf(capture, "require") }, "書き出す入口の型").toEqual({ import: "./dist/capture.d.ts", require: "./dist/capture.d.cts" });
+
+    const names = ["captureFilm", "captureGif", "captureMp4", "capturePng", "captureSvg", "canCaptureMp4"];
+    const require = createRequire(MANIFEST);
+    const required = require(`${manifest().name}/capture`) as Record<string, unknown>;
+    const imported = (await import(/* @vite-ignore */ `${manifest().name}/capture`)) as Record<string, unknown>;
+    const kinds = (loaded: Record<string, unknown>): Record<string, string> => Object.fromEntries(names.map((name) => [name, typeof loaded[name]]));
+    const all = Object.fromEntries(names.map((name) => [name, "function"]));
+    expect({ require: kinds(required), import: kinds(imported) }, "書き出す入口が出す部品").toEqual({ require: all, import: all });
+  });
+
+  it("main-entry-skips-encoders", () => {
+    // 描く入口は書き出さない頁も読むので、コマを詰める道具 (gifenc と mediabunny) を読まない (#3644)。道具を読むのは書き出す入口だけ
+    const encoders = (file: string): string[] => {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const read = [...text.matchAll(/(?:\bimport\s*\(\s*|\brequire\s*\(\s*|\bfrom\s*|\bimport\s+)["']([^"']+)["']/g)].map((match) => match[1] ?? "");
+      // 束の中に写し込んだ時も見つけるよう、道具の部品の名前も探す
+      const inlined = ["GIFEncoder", "Mp4OutputFormat"].filter((name) => text.includes(name));
+      return [...new Set([...read.filter((name) => /^(?:gifenc|mediabunny)(?:\/|$)/.test(name)), ...inlined])].sort();
+    };
+    const light = readdirSync(join(ROOT, "dist/light"))
+      .filter((file) => /\.c?js$/.test(file))
+      .map((file) => `dist/light/${file}`);
+    const drawing = ["dist/index.js", "dist/index.cjs", ...light];
+    expect(light.length, "軽い入口の塊の file の数").toBeGreaterThan(2);
+    const read = Object.fromEntries(drawing.flatMap((file) => (encoders(file).length ? [[file, encoders(file)]] : [])));
+    expect(read, "描く入口と軽い入口の file が読む詰める道具").toEqual({});
+    // 陰性でない対照。書き出す入口では、同じ走査が 2 つの道具を見つける (走査が空振りしていない)
+    const capture = existsSync(join(ROOT, "dist/capture.js")) ? encoders("dist/capture.js") : [];
+    expect(capture, "書き出す入口が読む詰める道具").toEqual(expect.arrayContaining(["gifenc", "mediabunny"]));
+  });
+
   it("entry-types-match-module-system", () => {
     const { exports } = manifest();
     for (const entry of [".", "./export", "./node"]) {
