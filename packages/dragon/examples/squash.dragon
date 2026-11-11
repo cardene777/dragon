@@ -7,7 +7,7 @@ branch feature [note: 機能の枝]
 
 box 遠く as 遠くのrepo [note: mainだけを置いている, color: violet, icon: cloud]
 
-strip 参照: main, feature, mainの履歴
+strip 参照: main, mainの履歴
 
 step 枝を切る
   say mainにAとBがある。Bから機能の枝featureを切って移る。
@@ -16,7 +16,6 @@ step 枝を切る
   commit B on main [hash: 8b04f71, note: 一覧を足す]
   feature from B
   set main: B 8b04f71
-  set feature: B 8b04f71
   set mainの履歴: B, A
 
 step 細かく積む
@@ -26,7 +25,6 @@ step 細かく積む
   commit C2 on feature [hash: 1e94a7c, note: 誤字を直す]
   commit C3 on feature [hash: f1e7d28, note: 検査を足す]
   note 遠く: featureがC3まで届いた
-  set feature: C3 f1e7d28
 
 step mainが進む
   say その間に他の人の変更DとEがmainに入る。featureは古いBから分かれたまま。
@@ -36,18 +34,20 @@ step mainが進む
   set mainの履歴: E, D, B, A
 
 step squashでまとめる
-  say mainでfeatureをsquashで取り込み、C1からC3の変更を全て合わせた1つのcommit Sを作る。Sの親はmainの先端Eだけで、featureとは線で繋がらない。
+  say mainへ戻ってfeatureをsquashで取り込み、C1からC3の変更を全て合わせた1つのcommit Sを作る。Sの親はmainの先端Eだけで、featureとは線で繋がらない。
   code git switch main → git merge --squash feature → git commit
+  HEAD -> E: git switch main
+  main -> E
   commit S on main [hash: 7d3a5e2, note: C1からC3をまとめる]
   note 遠く: mainにSが届いた
   set main: S 7d3a5e2
   set mainの履歴: S, E, D, B, A [tag: 一直線]
 
 step 機能の枝を消す
-  say squashしたfeatureのcommitはmainから辿れないので、-dでは消せず-Dで消す。遠くのrepoの枝も消す。
+  say squashしたfeatureのcommitはmainから辿れないので、-dでは消せず-Dで消す。遠くのrepoの枝も消す。featureの札が消え、どの枝からも辿れなくなったC1からC3は点線の丸になる。
   code git branch -D feature → git push origin --delete feature
+  delete feature
   note 遠く: featureを消した
-  set feature: 消した [tag: 済]
 
 step 1本の履歴
   say mainを先端から辿ると、S、E、D、B、Aの1本になる。C1からC3はどの枝からも辿れなくなり、reflogの期限が過ぎると掃除される。

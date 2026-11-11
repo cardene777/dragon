@@ -15,6 +15,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "choice": () => import("./choice/read").then((m): BlockReading => m.reading),
   "commit": () => import("./commit/read").then((m): BlockReading => m.reading),
   "copy": () => import("./copy/read").then((m): BlockReading => m.reading),
+  "delete": () => import("./delete/read").then((m): BlockReading => m.reading),
   "emit": () => import("./emit/read").then((m): BlockReading => m.reading),
   "fold": () => import("./fold/read").then((m): BlockReading => m.reading),
   "gist": () => import("./gist/read").then((m): BlockReading => m.reading),

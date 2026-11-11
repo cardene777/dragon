@@ -1,0 +1,19 @@
+git Delete a branch
+
+branch main [note: Kept]
+branch topic [note: Deleted]
+
+step Cut
+  say Add A on main, cut topic from A and add C. HEAD moves to topic.
+  commit A on main
+  topic from A
+  commit C on topic
+
+step Back to main
+  say The branch HEAD points at cannot be deleted. Move HEAD to A, then move main onto A, which puts HEAD back on main.
+  HEAD -> A: back to main
+  main -> A
+
+step Delete
+  say delete topic deletes topic. Its ref is gone, and C, which no branch can reach any more, turns into a dotted circle.
+  delete topic

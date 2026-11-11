@@ -1,0 +1,19 @@
+git 枝を消す
+
+branch main [note: 残す枝]
+branch topic [note: 消す枝]
+
+step 枝を切る
+  say main に A を積み、A から topic を切って C を積む。HEAD は topic へ移る。
+  commit A on main
+  topic from A
+  commit C on topic
+
+step main へ戻る
+  say HEAD が指している枝は消せない。HEAD を A へ動かしてから main の札を A に重ね、HEAD を main へ戻す。
+  HEAD -> A: main へ戻る
+  main -> A
+
+step 枝を消す
+  say delete topic で topic を消す。topic の札が消え、どの枝からも辿れなくなった C は点線の丸になる。
+  delete topic

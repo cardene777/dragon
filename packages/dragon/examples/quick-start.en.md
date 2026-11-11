@@ -79,6 +79,7 @@ Inside a step, indent these lines in the order things happen.
 | Commit | `commit <id> on <branch> [hash: <hash>, note: <note>]`. Add `copy <source>` for a replayed commit or `merge <branch>` for a merge commit. Only in a git graph | `commit M on main merge fix [hash: 7d3a5e2]` |
 | Cut a branch | `<branch> from <commit>`. HEAD moves to that branch | `feature from A` |
 | Move a ref | `<branch or HEAD> -> <commit>`. In a git graph it moves only the ref and makes no commit | `HEAD -> M` |
+| Delete a branch | `delete <branch>`. The ref leaves the diagram from that step on. The branch HEAD points at cannot be deleted. Only in a git graph | `delete feature` |
 | Move the needle | `now -> <tick>`. The needle moves to that tick at a fixed speed, and the marks it passes appear as it goes. Only in a time diagram | `now -> 31` |
 | Recolor marks | `mark <row> <range> [color: <color>]`. Changes the color of the marks in that range of the row | `mark block 0-31 [color: green]` |
 | Span | `span <range>: <text>`. Puts a bracket under the axis, and `[shape: box]` turns it into a frame around the rows | `span 0-31: 1 epoch = 6.4 min` |

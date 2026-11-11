@@ -15,6 +15,7 @@ import { docs as choiceDocs } from "../../../../packages/dragon/src/blocks/choic
 import { docs as colorDocs } from "../../../../packages/dragon/src/blocks/color/gallery/docs";
 import { docs as commitDocs } from "../../../../packages/dragon/src/blocks/commit/gallery/docs";
 import { docs as copyDocs } from "../../../../packages/dragon/src/blocks/copy/gallery/docs";
+import { docs as deleteDocs } from "../../../../packages/dragon/src/blocks/delete/gallery/docs";
 import { docs as edgeDocs } from "../../../../packages/dragon/src/blocks/edge/gallery/docs";
 import { docs as edgeLabelDocs } from "../../../../packages/dragon/src/blocks/edge-label/gallery/docs";
 import { docs as emitDocs } from "../../../../packages/dragon/src/blocks/emit/gallery/docs";
@@ -75,6 +76,7 @@ export const BLOCK_DOCS = {
   "color": colorDocs,
   "commit": commitDocs,
   "copy": copyDocs,
+  "delete": deleteDocs,
   "edge": edgeDocs,
   "edge-label": edgeLabelDocs,
   "emit": emitDocs,

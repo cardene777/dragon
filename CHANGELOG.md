@@ -8,6 +8,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **A git graph can delete a branch with `delete <branch>`** (#3632)
+
+  A step in a git graph takes `delete <branch>`. From that step on, the branch ref is no longer drawn while its band stays, and a commit that no branch can reach any more turns into a dotted circle. Reading the notation stops with an error for a branch that was never declared, for the branch `HEAD` points at, and for a commit added to a deleted branch. In other diagram kinds `delete` still reads as an ordinary box id. The `squash` example now deletes `feature` with `delete feature` after moving `HEAD` back to main, instead of writing `feature: deleted` in the strip. The usage page, the catalog parts and the package README describe the new line.
+
 - **Every diagram kind in the catalog has at least four examples** (#3615)
 
   The catalog had 27 examples, and the state, tree, lineup and try kinds had only one, while architecture, git, chart and flow had two. 21 examples were added in Japanese and English, so each of the 11 kinds now has four or more. Kinds whose examples leaned toward Web3 got general topics, and kinds that leaned toward general topics got Web3 ones: state (transaction status, a subscription, a support ticket), tree (a tournament, a site map, HD wallet key derivation), lineup (a clinic queue, a kanban board, a rollup batch), try (checkout lanes, stock reservation, a multisig approval), architecture (an online shop, video delivery), chart (gas fees by hour, staking rewards), flow (approving before a deposit, deciding on a return), git (a hotfix brought back to main, a squash merge) and time (getting a new shop ready to open). Every added example draws with no layout break in both languages. The site font now holds the characters the new examples use.

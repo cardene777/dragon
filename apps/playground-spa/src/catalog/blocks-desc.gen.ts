@@ -15,6 +15,7 @@ import { desc as choiceDesc } from "../../../../packages/dragon/src/blocks/choic
 import { desc as colorDesc } from "../../../../packages/dragon/src/blocks/color/gallery/desc";
 import { desc as commitDesc } from "../../../../packages/dragon/src/blocks/commit/gallery/desc";
 import { desc as copyDesc } from "../../../../packages/dragon/src/blocks/copy/gallery/desc";
+import { desc as deleteDesc } from "../../../../packages/dragon/src/blocks/delete/gallery/desc";
 import { desc as edgeDesc } from "../../../../packages/dragon/src/blocks/edge/gallery/desc";
 import { desc as edgeLabelDesc } from "../../../../packages/dragon/src/blocks/edge-label/gallery/desc";
 import { desc as emitDesc } from "../../../../packages/dragon/src/blocks/emit/gallery/desc";
@@ -75,6 +76,7 @@ export const BLOCK_DESC = {
   "color": colorDesc,
   "commit": commitDesc,
   "copy": copyDesc,
+  "delete": deleteDesc,
   "edge": edgeDesc,
   "edge-label": edgeLabelDesc,
   "emit": emitDesc,

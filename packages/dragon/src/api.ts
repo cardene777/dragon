@@ -26,6 +26,7 @@ export {
   type FlowChoice,
   type GitBranch,
   type GitCommit,
+  type GitDelete,
   type LabelSide,
   type LineupAct,
   type LineupItem,

@@ -55,7 +55,14 @@ function readCommit(source: SourceLine, state: ParseState): GitCommit {
   if (hash && !HASH.test(hash.value)) throw fail(source, hash.at, m.badHash);
   const note = attrs.get("note")?.value;
   figure.git.commits.add(id);
-  if (copy === undefined) figure.git.tips.set(branch, id);
+  // HEAD は積んだ枝を指していれば新しい commit へ進み、当て直しでは枝から離れていれば付いていく。最初の commit を積んだ枝を HEAD が指す (#3632)
+  const { head } = figure.git;
+  const first = head.at === null && head.on === null;
+  if (copy === undefined) {
+    figure.git.tips.set(branch, id);
+    if (head.on === branch) head.at = id;
+  } else if (head.on === null) head.at = id;
+  if (first) figure.git.head = { at: id, on: branch };
   return {
     type: "commit",
     id,
