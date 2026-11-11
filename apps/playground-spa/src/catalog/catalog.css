@@ -376,6 +376,73 @@
 }
 
 /* 部品の図。どの図でも使える部品は 2 つを横に並べ、図の種類だけの部品は 1 つを広げすぎずに置く */
+/* 書き方の違い (#3616)。設定ごとに、左に設定を書いた記法の行、右にその段で止めた図を並べる */
+.catalog-part-settings {
+  margin-top: 0;
+  margin-bottom: 56px;
+}
+
+.catalog-part-setting-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.catalog-part-setting {
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+}
+
+.catalog-part-setting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  border-right: 1px solid var(--d-border);
+}
+
+.catalog-part-setting-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.catalog-part-setting-title code {
+  font-family: var(--mono), monospace;
+  color: var(--d-text-primary);
+}
+
+.catalog-part-setting-kind {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--d-text-muted);
+}
+
+.catalog-part-setting-code {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  background: var(--d-code-bg);
+  border-radius: var(--d-r-1);
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--d-text-primary);
+}
+
+.catalog-part-setting-figure {
+  min-width: 0;
+}
+
 .catalog-part-figures {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1103,6 +1170,13 @@
 @media (max-width: 860px) {
   .catalog-body {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .catalog-part-setting {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .catalog-part-setting-text {
+    border-right: 0;
+    border-bottom: 1px solid var(--d-border);
   }
   .catalog-part-figures {
     grid-template-columns: minmax(0, 1fr);
