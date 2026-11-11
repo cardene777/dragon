@@ -196,7 +196,7 @@ mountDiagram(host, parsed.diagram, {
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `mind`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -296,7 +296,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `er` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `table` `field` `pick` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -729,6 +729,38 @@ step On to the next week
   look -> plan [tag: left]
   set round: Week 2
   set day: Monday
+```
+
+### Mind map
+
+Start with `mind` to draw a mind map, which spreads ideas out from one topic in the middle, branch by branch.
+Branches go round clockwise from the upper left in the order written (up left, up right, down right and down left for four), and the leaves of a branch sit in a column outside it.
+
+- `idea <id> as <name>` inside a step is the topic in the middle. A mind map has exactly one idea without `of`, and a second one or none at all is refused
+- `idea <id> as <name> of <parent>` inside a step is an idea joined to its parent. An idea of the topic is a branch, and an idea of a branch is a leaf. Ideas go three levels deep, and a fourth level or a parent that has not been written yet is refused
+- `as <name>` can be left out, and the id is then shown as the name. Wrap a name that contains the word `of` in `"`
+- `[color: <color>]` gives an idea its own color. A branch without a color gets the next color no other branch has taken, and leaves take their branch's color
+- Ideas and lines start faint and turn solid at the step that writes them. The line from the parent is drawn from the parent's side, and the step number sits beside the first idea of that step
+- `box`, `strip`, lines between boxes and `act` lines are refused in a mind map
+
+```dragon
+mind Getting a study meetup ready
+
+step Put the topic
+  say Put what to get ready in the middle.
+  idea meetup as Study meetup
+
+step Talk branch
+  say Put the talk on a branch and list its parts as leaves.
+  idea talk as The talk of meetup [color: blue]
+  idea intro as First five minutes of talk
+  idea demo as Live demo of talk
+
+step Venue branch
+  say Do the same for the venue.
+  idea room as Venue of meetup
+  idea seats as Number of seats of room
+  idea screen as Screen to project on of room
 ```
 
 ### Table relation diagram

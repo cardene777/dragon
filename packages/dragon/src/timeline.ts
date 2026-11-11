@@ -220,9 +220,9 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false
       out.busy = Math.max(out.busy, b);
       return;
     }
-    // 枝分かれの図の commit を積む出来事と枝を切る出来事と枝を消す出来事 (#3632) と、木の図の葉と親を出す出来事は、親から引く線と同じ間で引く。
-    // 枝を消す出来事は、消える札と点線の丸に変わる commit がこの間を使う
-    if (event.type === "commit" || event.type === "branch" || event.type === "delete" || event.type === "leaf" || event.type === "node") {
+    // 枝分かれの図の commit を積む出来事と枝を切る出来事と枝を消す出来事 (#3632) と、木の図の葉と親を出す出来事と、考えを広げる地図の考え (#3619) は、
+    // 親から引く線と同じ間で引く。枝を消す出来事は、消える札と点線の丸に変わる commit がこの間を使う
+    if (event.type === "commit" || event.type === "branch" || event.type === "delete" || event.type === "leaf" || event.type === "node" || event.type === "idea") {
       const a = cursor;
       const b = a + MOTION.draw;
       out.edges.push({ event: e, a, b, carries: false, coin: false, named: false });

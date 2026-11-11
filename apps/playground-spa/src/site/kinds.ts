@@ -1,7 +1,7 @@
 /**
  * 図の種類の描く部品を後から読む塊 (#3248、#3349)。
  *
- * chart、cycle、er、flow、git、lineup、pipe、state、time、tree、try の部品は種類ごとの塊にし、最初の画面を描いた後に裏で読み始める (`main.tsx`)。
+ * chart、cycle、er、flow、git、lineup、mind、pipe、state、time、tree、try の部品は種類ごとの塊にし、最初の画面を描いた後に裏で読み始める (`main.tsx`)。
  * 塊は種類の描く部品と、その種類の個別ブロックの読み方を全て読む (`loadKind`)。図を描く所と書く所は、記法を読む前に種類の塊を待つ。
  * 読み込みの状態は見本の塊と同じ形で持ち (`later.ts`)、読めなかった時は失敗のまま持つ。
  * 時系列図と構成図の部品は最初に読む script に在るので、待たずに描ける。

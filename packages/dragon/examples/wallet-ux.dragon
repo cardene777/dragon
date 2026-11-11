@@ -1,0 +1,31 @@
+// ウォレットの使いやすさを、鍵の守り、送金、表示、復旧の4つの枝に分けて考える。
+// 段ごとに1つの枝を伸ばし、使う人がつまずく所を直す手を葉に書き出す。
+mind ウォレットの使いやすさ
+
+step 題を置く
+  say 初めて暗号資産を持つ人が迷わないウォレットを真ん中に置く。
+  idea wallet as 使いやすいウォレット
+
+step 鍵の守りの枝
+  say 鍵をなくさず、盗まれない形を考える。
+  idea key as 鍵の守り of wallet
+  idea passkey as パスキーで署名する of key
+  idea limit as 1日に送れる額の上限 of key
+
+step 送金の枝
+  say 送る前の確かめと、手数料の見せ方を考える。
+  idea send as 送金 of wallet
+  idea address as 宛先を名前で選ぶ of send
+  idea fee as 手数料を円で出す of send
+
+step 表示の枝
+  say 持っている物と、署名する中身の見せ方を考える。
+  idea view as 表示 of wallet
+  idea balance as 残高を円で合計する of view
+  idea readable as 署名の中身を文で出す of view
+
+step 復旧の枝
+  say 端末をなくした時に戻す道を考える。
+  idea recover as 復旧 of wallet
+  idea guardian as 信頼する人で戻す of recover
+  idea backup as 暗号化した控え of recover

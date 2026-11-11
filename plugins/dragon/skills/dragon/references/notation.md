@@ -23,7 +23,7 @@ Lines starting with `//` and blank lines are not read.
 
 ## Head line
 
-`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle` and `er`.
+`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er` and `mind`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
 - `chart` needs its shape on the head line: `chart <title> [shape: donut]` or `chart <title> [shape: bar]`. Only `chart` takes `shape` here.
@@ -104,14 +104,15 @@ Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as
 |---|---|
 | `step`, `say`, `code`, `source` | all |
 | `gist` | `pipe` |
-| `box` | all except `try` (which declares its own parts), `chart` (which declares items) and `er` (which declares tables) |
-| `note` on boxes | all except `pipe`, `try`, `chart` and `er` |
+| `box` | all except `try` (which declares its own parts), `chart` (which declares items), `er` (which declares tables) and `mind` (which writes ideas) |
+| `note` on boxes | all except `pipe`, `try`, `chart`, `er` and `mind` |
 | `act`, `link`, `carry`, `->` lines between boxes | `architecture`, `flow`, `git`, `sequence`, `state`, `time`, `tree` |
 | `link`, `carry`, `->` lines to the next step on the ring (no `act`) | `cycle` |
-| `icon` | all except `lineup`, `try`, `chart` and `er` |
-| `color` on boxes | all except `pipe`, `try`, `chart` and `er` |
+| `icon` | all except `lineup`, `try`, `chart`, `er` and `mind` |
+| `color` on boxes | all except `pipe`, `try`, `chart`, `er` and `mind` |
 | `strip` and `set` | `architecture`, `cycle`, `flow`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
 | `choice` | `flow` |
+| `idea` (with its own `color`) | `mind` |
 | `table`, `field`, `pick`, `set <table>.<field>`, `note <table>.<field>`, `carry` and `->` lines between linked fields | `er` |
 | `group ... end` | `architecture` |
 

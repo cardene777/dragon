@@ -200,7 +200,7 @@ mountDiagram(host, parsed.diagram, {
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`mind`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
 これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
 `parseNotation` で記法から読んだ図は描く時に原本の形の検査を省くので、記法の図を描く頁は検査を読まない。JSON を渡した時は `loadFor` が原本の形の検査も読み、読む前に JSON を読むか描くと `loadFor` を待つよう示す誤りで止まる。
 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -300,7 +300,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `er` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `table` `field` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -733,6 +733,38 @@ step 次の週へ
   look -> plan [tag: 残り]
   set 回: 第2週
   set 曜日: 月曜
+```
+
+### 考えを広げる地図
+
+`mind` で始めると、真ん中の題から枝を広げて考えを書き出していく考えを広げる地図になる。
+枝は書いた順に左上から右回りに伸び (4 つなら左上、右上、右下、左下)、枝の葉は枝の外側に縦に並ぶ。
+
+- 段の中の `idea <名札> as <名前>` は真ん中の題。`of` の無い考えは 1 つだけ書け、2 つ目を書いた時と 1 つも書かない時は誤りで止まる
+- 段の中の `idea <名札> as <名前> of <親>` は親に繋がる考え。題に繋げると枝、枝に繋げると葉になる。考えは題、枝、葉の 3 段まで書け、4 段目と、まだ書いていない親は誤りで止まる
+- `as <名前>` は省け、省くと名札が名前として出る。語の `of` を含む名前は `"` で囲む
+- `[color: <色>]` で考えの色を決める。色を書かない枝には、ほかの枝が使っていない色が書いた順に付き、葉は枝の色を引き継ぐ
+- 考えと線は初めから薄く出ていて、書いた段で濃くなる。親からの線はその段で親の側から引かれ、段の番号はその段の最初の考えの横に出る
+- `box`、`strip`、箱どうしの線、`act` の行は書けない
+
+```dragon
+mind 勉強会の準備
+
+step 題を置く
+  say 準備することを真ん中に置く。
+  idea meetup as 勉強会
+
+step 話の枝
+  say 話す中身を枝に出し、話の組み立てを葉に書き出す。
+  idea talk as 話すこと of meetup [color: blue]
+  idea intro as はじめの5分 of talk
+  idea demo as 動かして見せる of talk
+
+step 場所の枝
+  say 場所も同じく枝と葉にする。
+  idea room as 場所 of meetup
+  idea seats as 席の数 of room
+  idea screen as 映す画面 of room
 ```
 
 ### 表どうしの関係の図

@@ -1,0 +1,31 @@
+// Plan a four-day summer trip in four branches: places, travel, stay and budget.
+// Each step grows one branch and lists what to decide as leaves.
+mind Planning a summer trip
+
+step Put the title
+  say Put in the middle a four-day trip for a family of four.
+  idea trip as Summer trip
+
+step Places branch
+  say Decide where to go and what to do there.
+  idea place as Places of trip
+  idea kyoto as Temples in Kyoto of place
+  idea nara as Deer in Nara of place
+
+step Travel branch
+  say Decide how to get there and how to get around.
+  idea move as Travel of trip
+  idea train as Reserved bullet train of move
+  idea bus as City bus day pass of move
+
+step Stay branch
+  say Decide where to sleep.
+  idea stay as Stay of trip
+  idea inn as Inn near the station of stay
+  idea breakfast as Breakfast included of stay
+
+step Budget branch
+  say Decide how much to spend and share it out across the branches.
+  idea budget as Budget of trip
+  idea total as 200,000 yen in all of budget
+  idea reserve as Keep a tenth spare of budget

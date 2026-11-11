@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `er <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -86,6 +86,7 @@ Inside a step, indent these lines in the order things happen.
 | Line in the zoom band | `<id> -> <id> [at: <tick>, into: <tick>]`. Leaves the box in the `at` column and arrives at the box in the `into` column | `proposer -> block [at: 0]` |
 | Leaf | `leaf <id> [hash: <value>]`. Leaves line up from the left in written order. With a value, the box shows it and a card below the leaf shows the id. Only in a tree diagram | `leaf tx1 [hash: 3fa0]` |
 | Parent | `node <id> of <child>, <child> [hash: <value>]`. Sits above the middle of its children, and the box that no parent takes becomes the root. Only in a tree diagram | `node root of 1to2, 3to4 [hash: e71c]` |
+| Idea | `idea <id> as <name> of <parent> [color: <color>]`. Written in a step, and the idea without `of` is the topic in the middle. An idea of the topic is a branch and an idea of a branch is a leaf, three levels deep at most. Only in a mind map | `idea input as Input of app` |
 
 `fixed` keeps the whole diagram still and moves only what is inside; `follow` moves to where things are happening and shows the current place in a small overview in the corner.
 Without a view, the view is `fixed` when the text of the whole diagram in the frame is 10.5px or larger, and `follow` when it is smaller.
@@ -421,6 +422,31 @@ step On to the next week
   set day: Monday
 ```
 
+In a mind map (`mind <title>`), write ideas with `idea` lines inside steps; an idea turns solid at its step and the line from its parent is drawn.
+The idea without `of` is the topic in the middle, and there is only one. `idea <id> as <name> of <parent>` joined to the topic is a branch, joined to a branch is a leaf, and a fourth level is refused.
+Branches go round clockwise from the upper left in the order written (up left, up right, down right and down left for four), and leaves sit in a column outside their branch.
+`[color: <color>]` on a branch passes its colour to its lines and leaves. `box`, `strip` and lines between boxes are refused.
+
+```dragon
+mind Features for a budget app
+
+step Put the title
+  say Put in the middle a budget app that makes it easy to keep tracking money every month.
+  idea app as Budget app
+
+step Input branch
+  say Think of features that cut the effort of logging.
+  idea input as Input of app [color: blue]
+  idea receipt as Scan receipts of input
+  idea bank as Import bank records of input
+
+step Alerts branch
+  say Think of alerts that catch overspending early.
+  idea alert as Alerts of app
+  idea over as About to pass the budget of alert
+  idea payday as Day before a direct debit of alert
+```
+
 In a table relation diagram (`er <title>`), write each table with `table <id> as <name>` before the first `step` line, and its fields under it with `field <name>: <value>` lines.
 The tables sit left to right in one row in the order written. A diagram takes 1 to 6 tables.
 `[key]` is the key mark (PK), and `field <name>: <value> [ref: <table>.<field>]` links it to a field of another table (FK); a line runs from the linking field to the field it points at.
@@ -467,6 +493,7 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | Region and box | `note` | The note of a region, or the caption under a box |
 | Region and box | `color` | Colour role. One of `blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` |
 | Region and box | `icon` | Icon next to the name |
+| Idea | `color` | The colour of an idea in a mind map, from the same roles as regions and boxes. On a branch, its lines and leaves take the colour, and a branch without one gets a colour no other branch has taken |
 | Box | `link` | Where the box leads. The box becomes a link in the drawn diagram. A path that starts with `/` or a URL that starts with `http://` or `https://` |
 | Source of a step | `url` | Where the source is. Takes the same forms as `link` |
 | Line | `carry` | What travels on the line. `coin` or `none`. Without it, an envelope travels |

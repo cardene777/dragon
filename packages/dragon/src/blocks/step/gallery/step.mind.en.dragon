@@ -1,0 +1,13 @@
+mind Steps [view: fixed]
+
+step Put the title
+  say step splits the diagram into steps and say writes the step's text.
+    A command run in the step goes in code.
+  code mkdir app-idea
+  idea app as App idea
+
+step Grow a branch
+  say Steps are viewed one at a time.
+    view picks whether the frame follows the step or holds the whole diagram still.
+  code touch app-idea/users.md
+  idea use as Users of app

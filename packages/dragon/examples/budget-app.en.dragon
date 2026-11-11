@@ -1,0 +1,31 @@
+// Think through the features of a budget app in four branches: input, summary, alerts and sharing.
+// Each step grows one branch and lists the features it needs as leaves.
+mind Features for a budget app
+
+step Put the title
+  say Put in the middle a budget app that makes it easy to keep tracking money every month.
+  idea app as Budget app
+
+step Input branch
+  say Think of features that cut the effort of logging. The less typing, the longer people keep at it.
+  idea input as Input of app
+  idea receipt as Scan receipts of input
+  idea bank as Import bank records of input
+
+step Summary branch
+  say Think of features that show where the money went.
+  idea sum as Summary of app
+  idea category as Pie chart by category of sum
+  idea month as Compare with last month of sum
+
+step Alerts branch
+  say Think of alerts that catch overspending early.
+  idea alert as Alerts of app
+  idea over as About to pass the budget of alert
+  idea payday as Day before a direct debit of alert
+
+step Sharing branch
+  say Think of features for keeping one budget with the family.
+  idea share as Sharing of app
+  idea family as Shared family book of share
+  idea split as Split shared costs of share

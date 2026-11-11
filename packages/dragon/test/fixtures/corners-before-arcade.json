@@ -93,6 +93,30 @@
     "dg-ln-tag rx=3": 21,
     "dg-on rx=6": 1
   },
+  "budget-app.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-mind-card rx=14": 8,
+    "dg-mind-card rx=18": 4,
+    "dg-mind-card rx=24": 1,
+    "dg-mind-now dg-a rx=14": 8,
+    "dg-mind-now dg-a rx=18": 4,
+    "dg-mind-now dg-a rx=24": 1,
+    "dg-mind-ol dg-mind-o2 rx=14": 8,
+    "dg-mind-ol rx=18": 4,
+    "dg-mind-ol rx=24": 1
+  },
+  "budget-app.json": {
+    "dg-bg rx=14": 1,
+    "dg-mind-card rx=14": 8,
+    "dg-mind-card rx=18": 4,
+    "dg-mind-card rx=24": 1,
+    "dg-mind-now dg-a rx=14": 8,
+    "dg-mind-now dg-a rx=18": 4,
+    "dg-mind-now dg-a rx=24": 1,
+    "dg-mind-ol dg-mind-o2 rx=14": 8,
+    "dg-mind-ol rx=18": 4,
+    "dg-mind-ol rx=24": 1
+  },
   "ccip.en.json": {
     "(none) rx=10": 6,
     "(none) rx=7.5": 2,

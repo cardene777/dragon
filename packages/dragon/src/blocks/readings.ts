@@ -24,6 +24,7 @@ import { reading as gistReading } from "./gist/read";
 import { reading as groupReading } from "./group/read";
 import { reading as holdReading } from "./hold/read";
 import { reading as iconReading } from "./icon/read";
+import { reading as ideaReading } from "./idea/read";
 import { reading as itemReading } from "./item/read";
 import { reading as leafReading } from "./leaf/read";
 import { reading as legendReading } from "./legend/read";
@@ -87,6 +88,7 @@ export const READINGS = {
   "group": groupReading,
   "hold": holdReading,
   "icon": iconReading,
+  "idea": ideaReading,
   "item": itemReading,
   "leaf": leafReading,
   "legend": legendReading,

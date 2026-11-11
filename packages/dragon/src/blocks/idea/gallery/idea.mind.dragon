@@ -1,0 +1,15 @@
+mind 考え
+
+step 題を置く
+  say of の無い idea の行が真ん中の題になる。
+  idea 題 as 考える題
+
+step 枝を伸ばす
+  say of <親> を書いた考えは、その段で親からの枝の線と一緒に現れる。
+  idea 左 as 左の枝 of 題 [color: blue]
+  idea 右 as 右の枝 of 題
+
+step 葉を足す
+  say 枝の子の葉は枝の外側に並び、枝の色を引き継ぐ。
+  idea 葉1 as 左の葉 of 左
+  idea 葉2 as 右の葉 of 右
