@@ -1,0 +1,52 @@
+// How tasks on a kanban board move through the To do, Doing, Review and Done columns.
+// Each chip is one task. Doing is limited to 3 tasks, and the number at the bottom of the card shows how many are in it. Even an urgent task waits until a slot frees up.
+lineup Limit work in progress to 3 on a kanban board
+
+role Developer [note: Works Doing from the top]
+role Reviewer [note: Checks the result]
+
+box Todo as To do
+box Doing [color: violet, note: 0/3]
+box Review [color: amber]
+box Done [color: green, order: none]
+
+item search, notify, checkout, wording, images [note: Task (named for the part it changes)]
+item bug [color: rose, note: Urgent bug]
+
+step Order by what comes first
+  say Tasks go in the To do column from the top, in the order they should be done.
+  line Todo: search, notify, checkout, wording, images
+
+step Take the top 3
+  say Doing is limited to 3 tasks. Taking the top 3 fills every slot.
+  role Developer
+  line Doing: search, notify, checkout
+  line Todo: wording, images
+  note Doing: 3/3
+
+step Take nothing while Doing is full
+  say An urgent bug lands at the top of To do. Doing is full, so it is not taken yet, and the current work is finished first.
+  role Developer
+  line Todo: bug, wording, images
+
+step Send finished work to review
+  say The search task is done and goes to Review. One slot in Doing frees up.
+  role Developer
+  line Review: search
+  line Doing: notify, checkout
+  note Doing: 2/3
+
+step Fill the free slot with the next task
+  say The free slot takes the bug at the top of To do. With the limit in place, even urgent work flows without a long wait.
+  role Developer
+  line Doing: bug, notify, checkout
+  line Todo: wording, images
+  note Doing: 3/3
+
+step Check it and mark it done
+  say The reviewer checks the search task and moves it to Done. The finished notify task takes its place in Review.
+  role Reviewer
+  line Done: search
+  line Review: notify
+  line Doing: bug, checkout
+  note Doing: 2/3

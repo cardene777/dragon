@@ -52,6 +52,48 @@ import withdrawJa from "../../../packages/dragon/examples/withdraw.dragon?raw";
 import withdrawEn from "../../../packages/dragon/examples/withdraw.en.dragon?raw";
 import releasePlanJa from "../../../packages/dragon/examples/release-plan.dragon?raw";
 import releasePlanEn from "../../../packages/dragon/examples/release-plan.en.dragon?raw";
+import shopJa from "../../../packages/dragon/examples/shop.dragon?raw";
+import shopEn from "../../../packages/dragon/examples/shop.en.dragon?raw";
+import videoJa from "../../../packages/dragon/examples/video.dragon?raw";
+import videoEn from "../../../packages/dragon/examples/video.en.dragon?raw";
+import txStatusJa from "../../../packages/dragon/examples/tx-status.dragon?raw";
+import txStatusEn from "../../../packages/dragon/examples/tx-status.en.dragon?raw";
+import subscriptionJa from "../../../packages/dragon/examples/subscription.dragon?raw";
+import subscriptionEn from "../../../packages/dragon/examples/subscription.en.dragon?raw";
+import supportTicketJa from "../../../packages/dragon/examples/support-ticket.dragon?raw";
+import supportTicketEn from "../../../packages/dragon/examples/support-ticket.en.dragon?raw";
+import hotfixJa from "../../../packages/dragon/examples/hotfix.dragon?raw";
+import hotfixEn from "../../../packages/dragon/examples/hotfix.en.dragon?raw";
+import squashJa from "../../../packages/dragon/examples/squash.dragon?raw";
+import squashEn from "../../../packages/dragon/examples/squash.en.dragon?raw";
+import shopOpeningJa from "../../../packages/dragon/examples/shop-opening.dragon?raw";
+import shopOpeningEn from "../../../packages/dragon/examples/shop-opening.en.dragon?raw";
+import tournamentJa from "../../../packages/dragon/examples/tournament.dragon?raw";
+import tournamentEn from "../../../packages/dragon/examples/tournament.en.dragon?raw";
+import sitemapJa from "../../../packages/dragon/examples/sitemap.dragon?raw";
+import sitemapEn from "../../../packages/dragon/examples/sitemap.en.dragon?raw";
+import hdWalletJa from "../../../packages/dragon/examples/hd-wallet.dragon?raw";
+import hdWalletEn from "../../../packages/dragon/examples/hd-wallet.en.dragon?raw";
+import clinicJa from "../../../packages/dragon/examples/clinic.dragon?raw";
+import clinicEn from "../../../packages/dragon/examples/clinic.en.dragon?raw";
+import kanbanJa from "../../../packages/dragon/examples/kanban.dragon?raw";
+import kanbanEn from "../../../packages/dragon/examples/kanban.en.dragon?raw";
+import rollupBatchJa from "../../../packages/dragon/examples/rollup-batch.dragon?raw";
+import rollupBatchEn from "../../../packages/dragon/examples/rollup-batch.en.dragon?raw";
+import checkoutLanesJa from "../../../packages/dragon/examples/checkout-lanes.dragon?raw";
+import checkoutLanesEn from "../../../packages/dragon/examples/checkout-lanes.en.dragon?raw";
+import stockReserveJa from "../../../packages/dragon/examples/stock-reserve.dragon?raw";
+import stockReserveEn from "../../../packages/dragon/examples/stock-reserve.en.dragon?raw";
+import multisigJa from "../../../packages/dragon/examples/multisig.dragon?raw";
+import multisigEn from "../../../packages/dragon/examples/multisig.en.dragon?raw";
+import gasFeeJa from "../../../packages/dragon/examples/gas-fee.dragon?raw";
+import gasFeeEn from "../../../packages/dragon/examples/gas-fee.en.dragon?raw";
+import stakingRewardsJa from "../../../packages/dragon/examples/staking-rewards.dragon?raw";
+import stakingRewardsEn from "../../../packages/dragon/examples/staking-rewards.en.dragon?raw";
+import approveDepositJa from "../../../packages/dragon/examples/approve-deposit.dragon?raw";
+import approveDepositEn from "../../../packages/dragon/examples/approve-deposit.en.dragon?raw";
+import returnCheckJa from "../../../packages/dragon/examples/return-check.dragon?raw";
+import returnCheckEn from "../../../packages/dragon/examples/return-check.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -81,6 +123,27 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   tickets: { ja: ticketsJa, en: ticketsEn },
   "login-check": { ja: loginCheckJa, en: loginCheckEn },
   "login-all-paths": { ja: loginAllPathsJa, en: loginAllPathsEn },
+  shop: { ja: shopJa, en: shopEn },
+  video: { ja: videoJa, en: videoEn },
+  "tx-status": { ja: txStatusJa, en: txStatusEn },
+  subscription: { ja: subscriptionJa, en: subscriptionEn },
+  "support-ticket": { ja: supportTicketJa, en: supportTicketEn },
+  hotfix: { ja: hotfixJa, en: hotfixEn },
+  squash: { ja: squashJa, en: squashEn },
+  "shop-opening": { ja: shopOpeningJa, en: shopOpeningEn },
+  tournament: { ja: tournamentJa, en: tournamentEn },
+  sitemap: { ja: sitemapJa, en: sitemapEn },
+  "hd-wallet": { ja: hdWalletJa, en: hdWalletEn },
+  clinic: { ja: clinicJa, en: clinicEn },
+  kanban: { ja: kanbanJa, en: kanbanEn },
+  "rollup-batch": { ja: rollupBatchJa, en: rollupBatchEn },
+  "checkout-lanes": { ja: checkoutLanesJa, en: checkoutLanesEn },
+  "stock-reserve": { ja: stockReserveJa, en: stockReserveEn },
+  multisig: { ja: multisigJa, en: multisigEn },
+  "gas-fee": { ja: gasFeeJa, en: gasFeeEn },
+  "staking-rewards": { ja: stakingRewardsJa, en: stakingRewardsEn },
+  "approve-deposit": { ja: approveDepositJa, en: approveDepositEn },
+  "return-check": { ja: returnCheckJa, en: returnCheckEn },
 };
 
 /**

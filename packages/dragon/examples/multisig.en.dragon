@@ -1,0 +1,37 @@
+// How a transfer proposal to a multisig vault passes its check and runs only once at least 2 of its 3 signers have signed, then lands in a block.
+// The reader types a proposal name, recipient and amount, picks how many signers signed, sends it, and presses the execute button. A proposal with one signature stops at the vault's check.
+try Approving a multisig transfer
+
+route Network: You - node-1 - Vault, You - node-2 - node-3 - Vault [from: You, to: Vault]
+queue Pending
+chain Chain
+log Stopped
+ask Proposal, To, Amount, Signatures [into: Pending, via: Network]
+choose Signatures: 1, 2, 3
+press Execute [from: Pending, into: Chain, take: 2]
+side Pending, Stopped
+
+check Vault: Signatures >= 2 [no: Not enough signatures, into: Stopped]
+
+item P1 [To: 0xA1, Amount: 3, Signatures: 2]
+item P2 [To: 0xB2, Amount: 5, Signatures: 3]
+
+step Signed proposals wait
+  say The vault lets through only proposals that at least 2 of the 3 signers have signed. P1 and P2 have enough signatures and wait to run.
+  line Pending: P1, P2
+
+step One signature only
+  say P3, signed by you alone, crosses the network to the vault but stops at its check and is logged in Stopped.
+  ask P3, 0xC3, 8, 1
+
+step A second signer signs
+  say Once a second signer signs, P3 has 2 signatures. Sent again, it passes the check and joins Pending.
+  ask P3, 0xC3, 8, 2
+
+step Execute into a block
+  say Pressing the execute button makes the vault send the top 2 pending proposals and puts them in block 1.
+  press Execute
+
+step Link the next block
+  say P3 goes into block 2, which holds block 1's hash as prev.
+  press Execute

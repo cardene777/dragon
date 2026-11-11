@@ -1,0 +1,54 @@
+// 機能の枝featureに積んだいくつものcommitをsquashで1つにまとめてmainへ取り込み、featureを消すまで。
+// 上の帯がmain、下の帯がfeature。まとめたSは親をmainの先端の1つだけ持ち、featureのcommitはmainの履歴に入らない。
+git 機能の枝をsquashで1つにまとめて取り込む
+
+branch main [note: 取り込む先]
+branch feature [note: 機能の枝]
+
+box 遠く as 遠くのrepo [note: mainだけを置いている, color: violet, icon: cloud]
+
+strip 参照: main, feature, mainの履歴
+
+step 枝を切る
+  say mainにAとBがある。Bから機能の枝featureを切って移る。
+  code git switch -c feature
+  commit A on main [hash: 3fa0c19, note: 最初の形]
+  commit B on main [hash: 8b04f71, note: 一覧を足す]
+  feature from B
+  set main: B 8b04f71
+  set feature: B 8b04f71
+  set mainの履歴: B, A
+
+step 細かく積む
+  say featureに検索の機能を3つのcommitに分けて積み、遠くのrepoへ送る。途中の誤字の直しや検査の足し忘れも、そのまま履歴に残る。
+  code git commit → git push -u origin feature
+  commit C1 on feature [hash: c41d0e5, note: 検索の枠を足す]
+  commit C2 on feature [hash: 1e94a7c, note: 誤字を直す]
+  commit C3 on feature [hash: f1e7d28, note: 検査を足す]
+  note 遠く: featureがC3まで届いた
+  set feature: C3 f1e7d28
+
+step mainが進む
+  say その間に他の人の変更DとEがmainに入る。featureは古いBから分かれたまま。
+  commit D on main [hash: e5f8312, note: 税率を直す]
+  commit E on main [hash: 2a7c9d0, note: 送料を足す]
+  set main: E 2a7c9d0
+  set mainの履歴: E, D, B, A
+
+step squashでまとめる
+  say mainでfeatureをsquashで取り込み、C1からC3の変更を全て合わせた1つのcommit Sを作る。Sの親はmainの先端Eだけで、featureとは線で繋がらない。
+  code git switch main → git merge --squash feature → git commit
+  commit S on main [hash: 7d3a5e2, note: C1からC3をまとめる]
+  note 遠く: mainにSが届いた
+  set main: S 7d3a5e2
+  set mainの履歴: S, E, D, B, A [tag: 一直線]
+
+step 機能の枝を消す
+  say squashしたfeatureのcommitはmainから辿れないので、-dでは消せず-Dで消す。遠くのrepoの枝も消す。
+  code git branch -D feature → git push origin --delete feature
+  note 遠く: featureを消した
+  set feature: 消した [tag: 済]
+
+step 1本の履歴
+  say mainを先端から辿ると、S、E、D、B、Aの1本になる。C1からC3はどの枝からも辿れなくなり、reflogの期限が過ぎると掃除される。
+  code git log --oneline main

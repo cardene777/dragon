@@ -1,0 +1,34 @@
+// How the breakdown of one month of staking rewards moved from January to April, compared on a donut.
+// The values are sample numbers to show the shape, not measured figures.
+chart Breakdown of staking rewards [shape: donut]
+
+item vote as Attestations [color: blue]
+item propose as Proposals [color: green]
+item tip as Fee tips [color: amber]
+item sync as Sync committee [color: violet]
+
+step January
+  say About 80 percent of the reward comes from attesting every time. The validator is rarely picked to propose a block.
+  set vote: 82
+  set propose: 10
+  set tip: 8
+
+step February
+  say The validator is picked to propose a block twice, and proposal rewards and fee tips swell.
+  set vote: 80
+  set propose: 26
+  set tip: 30
+
+step March
+  say The validator joins the sync committee, and committee rewards come in for that period. Attestation rewards stay nearly the same every month.
+  set vote: 79
+  set propose: 9
+  set tip: 7
+  set sync: 45
+
+step April
+  say The committee period ends, and the shape returns to January's. The base of the reward is attesting every time.
+  set vote: 81
+  set propose: 11
+  set tip: 9
+  set sync: 0

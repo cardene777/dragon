@@ -1,0 +1,51 @@
+// The states of a video subscription that moves from a free trial to paid, stops after a failed payment, and resumes once the card is fixed.
+// The lines before the first step are the cancel path, open any time before it stops, which it does not take this time.
+state States of a subscription that stops and resumes
+
+box trial as Free trial [note: 14 days to try, color: blue, icon: flag]
+box paid as Paid [note: Billed monthly, color: green, icon: card]
+box grace as Grace period [note: 7 days to watch, color: amber, icon: clock]
+box suspended as Suspended [note: Cannot watch, color: rose, icon: off]
+box cancelled as Cancelled [note: Plan ended, color: rose, icon: x]
+
+strip Plan #A-207: Price, Payment, Can watch, Elapsed
+
+trial -> cancelled
+paid -> cancelled: Cancel
+grace -> cancelled
+cancelled -> finish
+
+step Start the free trial
+  say Signing up starts the plan at Free trial. The card is registered, but nothing is charged for 14 days.
+  start -> trial: Sign up [tag: #A-207]
+  set Price: 0 yen
+  set Payment: not yet
+  set Can watch: yes
+  set Elapsed: 0 days
+
+step Move to paid
+  say When the trial ends, the plan moves to Paid on its own. The monthly price of 990 yen is charged every month.
+  trial -> paid: Trial ends [tag: #A-207]
+  set Price: 990 yen
+  set Payment: paid
+  set Elapsed: 14 days
+
+step Fail to pay
+  say The next month's charge fails because the card has expired, and the plan moves to Grace period. It is not stopped right away, and videos stay watchable for 7 days.
+  paid -> grace: Payment fails [tag: #A-207]
+  set Payment: failed
+  set Elapsed: 44 days
+
+step Suspend
+  say The 7 days of grace pass without payment, and the plan moves to Suspended. The plan remains, but videos can no longer be watched.
+  grace -> suspended: Time runs out [tag: #A-207]
+  set Can watch: no
+  set Elapsed: 52 days
+
+step Resume
+  say The member fixes the card and pays, and the plan goes back to Paid. The stopped days are not charged, and videos can be watched again.
+  suspended -> paid: Fix the card [tag: #A-207]
+  note paid: Resumed
+  set Payment: paid
+  set Can watch: yes
+  set Elapsed: 55 days

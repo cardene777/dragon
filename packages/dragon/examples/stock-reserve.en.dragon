@@ -1,0 +1,37 @@
+// How an order walks the warehouse racks, where a check at each rack asks whether there is enough stock, so the order is reserved and shipped, or sent to wait for a backorder.
+// The reader types an order name and how much water and rice it wants, sends it, and presses the ship button. Each check holds the rack's stock now, which reserving does not lower.
+try Reserving stock for an order
+
+route Warehouse: Intake - WaterRack - RiceRack - Dock [from: Intake, to: Dock]
+queue Reserved
+log Backorder
+log Shipped
+ask Order, Water, Rice [into: Reserved, via: Warehouse]
+press Ship [from: Reserved, into: Shipped, take: 2]
+side Reserved, Shipped
+
+check WaterRack: Water <= 6 [no: Short of water, retry, into: Backorder]
+check RiceRack: Rice <= 3 [no: Short of rice, retry, into: Backorder]
+
+item Order1 [Water: 2, Rice: 1]
+item Order2 [Water: 4, Rice: 0]
+
+step Reserved orders wait
+  say The stock is 6 cases of water and 3 bags of rice. An order within the stock of both is reserved and waits to ship.
+  line Reserved: Order1, Order2
+
+step An order with enough stock
+  say Order3, for 1 case of water and 2 bags of rice, passes the checks at both racks and joins the end of Reserved.
+  ask Order3, 1, 2
+
+step Not enough rice
+  say Order4 passes the water rack, but its 5 bags of rice go over the 3 in stock, so it stops at the rice rack and goes to Backorder.
+  ask Order4, 3, 5
+
+step Not enough water
+  say Order5 wants 9 cases of water and stops at the first rack. An order on backorder can be sent again once the goods arrive.
+  ask Order5, 9, 1
+
+step Ship
+  say Pressing the ship button bundles the top 2 reserved orders into one shipment.
+  press Ship

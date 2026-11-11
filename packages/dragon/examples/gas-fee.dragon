@@ -1,0 +1,37 @@
+// 1日のガス代の目安が、夜中から夜までの時間帯でどう移るかを、急ぎ方ごとの横棒で比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+chart 時間帯ごとのガス代の目安 [shape: bar]
+
+item slow as 遅くてよい [color: green]
+item normal as 普通 [color: blue]
+item fast as 急ぐ [color: amber]
+
+step 3時
+  say 夜中は取引が少なく、ガス代が一番安い。値の単位はgweiで、急ぐほど上乗せが要る。
+  set slow: 8
+  set normal: 10
+  set fast: 13
+
+step 9時
+  say 朝になって取引が増え、どの急ぎ方でもガス代が上がり始める。
+  set slow: 15
+  set normal: 18
+  set fast: 24
+
+step 13時
+  say 昼は取引が少し落ち着き、ガス代も下がる。
+  set slow: 12
+  set normal: 14
+  set fast: 18
+
+step 18時
+  say 別の地域の取引が重なり、急ぐ取引の上乗せが大きく開く。
+  set slow: 22
+  set normal: 27
+  set fast: 36
+
+step 22時
+  say 1日で一番混む。急がない取引は、夜中まで待つと4分の1ほどで済む。
+  set slow: 30
+  set normal: 38
+  set fast: 52

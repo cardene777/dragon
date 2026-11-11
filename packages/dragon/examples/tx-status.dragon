@@ -1,0 +1,51 @@
+// ウォレットで送った取引が、mempoolで待ち、手数料を上げて置き換えられ、ブロックに入って確定するまでの状態。
+// 最初の段より前の線は、期限切れでmempoolから落ちる、今回は通らない道。
+state 送った取引が確定するまでの状態
+
+box 署名済み [note: nonce 7を付けた, color: blue, icon: sign]
+box 待機中 [note: mempoolで待つ, color: amber, icon: clock]
+box ブロック入り [note: 確認を待つ, color: violet, icon: block]
+box 確定 [note: もう戻らない, color: green, icon: check]
+box 落ちた [note: 送り直しが要る, color: rose, icon: x]
+
+strip nonce 7の取引: ハッシュ, 手数料, 確認数, 経過
+
+待機中 -> 落ちた: 期限切れ
+落ちた -> finish
+
+step 署名する
+  say ウォレットが取引にnonce 7を付けて署名し、署名済みから始まる。まだ誰にも送っていない。
+  start -> 署名済み: 署名する [tag: nonce 7]
+  set ハッシュ: 0x3fa2…
+  set 手数料: 1 gwei
+  set 確認数: 0
+  set 経過: 0秒
+
+step mempoolへ送る
+  say ノードへ送ると、待機中に移る。手数料が低いので、ブロックを作る側にすぐには選ばれない。
+  署名済み -> 待機中: ノードへ送る [tag: nonce 7]
+  set 経過: 1秒
+
+step 手数料を上げて置き換える
+  say 同じnonceで手数料を上げた取引を送り、前の取引を置き換える。状態は待機中のままなので、同じ状態へ戻る矢印で表す。
+  待機中 -> 待機中: 手数料を上げる [tag: nonce 7]
+  note 待機中: 置き換えた
+  set ハッシュ: 0x9c1e…
+  set 手数料: 3 gwei
+  set 経過: 2分
+
+step ブロックに入る
+  say 手数料が上がったので選ばれ、ブロックに入る。確認数は1で、まだ確定ではない。
+  待機中 -> ブロック入り: 取り込まれる [tag: nonce 7]
+  set 確認数: 1
+  set 経過: 2分12秒
+
+step 確定する
+  say 後ろにブロックが積まれて確定し、確定に移る。ここから先は取引が取り消されない。
+  ブロック入り -> 確定: 確定する [tag: nonce 7]
+  set 確認数: 64
+  set 経過: 15分
+
+step 記録を閉じる
+  say 確定は終わりの状態で、ここから先へは移らない。ウォレットの履歴に済んだ取引として残る。
+  確定 -> finish: 履歴に残す [tag: nonce 7]

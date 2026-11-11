@@ -1,0 +1,48 @@
+// How transactions sent on L2 line up at the sequencer, get bundled into a batch and land on L1.
+// Each chip is one transaction, and your own is the coloured chip. The sequencer sets the order first, and it stays the same all the way to L1.
+// The seal is the compressed batch, and anyone can open the data on L1 to check what is inside.
+lineup How a rollup bundles transactions onto L1
+
+role Sequencer [note: Orders them as they arrive]
+role Batcher [note: Bundles them for L1]
+role Verifier [note: Checks with L1 data]
+
+box Inbox [order: none]
+box L2Block as L2 block
+box Batch [color: violet]
+box L1 [color: green]
+
+item send, swap, mint, deposit, withdraw, repay, settle [note: Transaction (named for what it does)]
+item mine [color: amber, note: Your transaction]
+
+step Transactions reach the inbox
+  say Transactions sent on L2 reach the sequencer's inbox. The fee is lower than sending straight on L1.
+  line Inbox: send, swap, mine, mint, deposit, withdraw, repay, settle
+
+step The sequencer sets the order
+  say The sequencer puts them in arrival order into an L2 block and answers within seconds. Nothing is on L1 yet.
+  role Sequencer
+  line L2Block: send, swap, mine, mint, deposit, withdraw
+  note L2Block: Seconds
+
+step Bundle a batch in the same order
+  say The batcher gathers the L2 blocks in order into one batch. Transactions that arrive later go into the next batch.
+  role Batcher
+  line Batch: send, swap, mine, mint, deposit, withdraw
+  note Batch: 6 txs
+
+step Compress and post to L1
+  say The batch is compressed and posted to L1 as one transaction, so 6 transactions share one L1 fee.
+  role Batcher
+  line L1: send, swap, mine, mint, deposit, withdraw
+  seal L1
+  note L1: 1 tx
+
+step Anyone can check the contents
+  say The data on L1 is open to everyone. Unpacking it and replaying the transactions shows whether the L2 state is right.
+  role Verifier
+  open L1
+
+step Final on L1
+  say Once the L1 block is final, the order of the transactions can no longer be reverted, just like L1 itself. Your transaction is still third.
+  stamp L1: Final

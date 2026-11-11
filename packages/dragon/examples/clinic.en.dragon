@@ -1,0 +1,52 @@
+// The order in which patients at a hospital move from the front desk to the queues for the doctor, tests and payment.
+// Each chip is one patient, named for why they came. You are the coloured chip, and the urgent patient is the red chip.
+// The front desk only logs who came that day and keeps no order, while every queue after it is called from the top.
+lineup From the front desk to payment at a hospital
+
+role Clerk [note: Checks people in]
+role Nurse [note: Spots urgent cases]
+role Doctor [note: Sees and orders tests]
+
+box Desk as Front desk [order: none]
+box Waiting as Waiting for doctor
+box Tests [color: violet]
+box Payment [color: green]
+
+item fever, stomach, checkup, headache [note: Patient (named for why they came)]
+item me [color: amber, note: You (came with a sore back)]
+item chest [color: rose, note: Urgent patient (came by ambulance)]
+
+step Hand in your card
+  say Patients hand their card to the front desk. The desk only logs who came, and gives no order yet.
+  role Clerk
+  line Desk: fever, stomach, me, checkup, headache
+
+step Wait for the doctor in order
+  say Patients join the queue in the order they checked in. You are third, about 40 minutes away.
+  role Clerk
+  line Waiting: fever, stomach, me, checkup, headache
+  note Waiting: 40 min
+
+step Call the urgent patient first
+  say A patient with chest pain arrives by ambulance. The nurse sees it is urgent and puts them at the top without the desk.
+  role Nurse
+  line Waiting: chest, fever, stomach, me, checkup, headache
+  note Waiting: 60 min
+
+step From the doctor to tests
+  say The doctor sees patients from the top and sends those who need tests to the test queue. You get an X-ray.
+  role Doctor
+  line Tests: chest, fever, stomach, me, checkup
+  line Waiting: headache
+  note Waiting: 10 min
+
+step From tests to payment
+  say The doctor reads the results and sends patients on to payment. The chest pain patient is admitted and leaves the queues.
+  role Doctor
+  line Payment: fever, stomach, me
+  line Tests: checkup
+
+step Pay from the top and go home
+  say The payment queue is called from the top, and you pay third. That ends your visit for the day.
+  role Clerk
+  stamp Payment: Paid

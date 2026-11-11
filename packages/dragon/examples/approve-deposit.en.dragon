@@ -1,0 +1,43 @@
+// Before depositing tokens, check the balance and the approved amount, and send an approval transaction first if it falls short.
+// Lines written before the first step are paths not taken this time and stay dotted. A short balance stops it, and an approval that already covers the amount skips straight to the deposit.
+flow Approve before a token deposit
+
+box input as Enter the amount [note: 100 USDC, icon: user]
+choice bal as Enough balance?
+choice allow as Enough approved?
+box approve as Send the approval [note: Allow the amount, color: amber, icon: sign]
+box deposit as Send the deposit [note: Move to the vault, color: green, icon: pool]
+box short as Say it falls short [note: Stop before deposit, color: rose, icon: x]
+
+strip Deposit: Balance, Approved, Deposited
+
+bal -> short: No
+allow -> deposit: Yes
+
+step Enter the amount
+  say The user enters 100 USDC as the amount to deposit. The wallet holds 250 USDC.
+  start -> input
+  set Balance: 250 USDC
+  set Approved: 0 USDC
+  set Deposited: 0 USDC
+
+step Check the balance
+  say The app reads the wallet balance and decides whether it covers the amount.
+  input -> bal: Check
+
+step Check the approval
+  say The balance is enough. Next, it reads how much the vault is already approved to move.
+  bal -> allow: Yes
+
+step Send the approval
+  say The approved amount is 0 USDC and falls short, so a transaction approving 100 USDC is sent. Once it lands in a block, the approved amount becomes 100 USDC.
+  allow -> approve: No
+  set Approved: 100 USDC
+
+step Deposit
+  say The approval is final, so the deposit transaction is sent. The vault takes the 100 USDC, and the approval is used up.
+  approve -> deposit: Wait for final
+  deposit -> finish
+  set Balance: 150 USDC
+  set Approved: 0 USDC
+  set Deposited: 100 USDC

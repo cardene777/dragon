@@ -1,0 +1,49 @@
+// A returned item checked by three choices, whether it is in time, unused, and wanted as a refund or a swap, that split it into refund, swap, or refusal.
+// Lines written before the first step are paths not taken this time and stay dotted. A no on time or use refuses the return, and a wish for a swap sends the same item again.
+flow Whether to accept a return
+
+box arrive as Return arrives [note: Open the parcel, icon: box]
+choice term as Within 30 days?
+choice unused as Unused?
+box form as Read the request [note: See the chosen wish, icon: doc]
+choice refund as Refund or swap?
+box pay as Refund [note: Pay the money back, color: green, icon: yen]
+box swap as Send a swap [note: Same item again, color: violet, icon: truck]
+box reject as Refuse and send back [note: Give the reason, color: rose, icon: x]
+
+strip Return #R-52: Days, Condition, Result
+
+term -> reject: No
+unused -> reject: No
+refund -> swap: Swap
+
+step The return arrives
+  say The item the buyer sent back reaches the warehouse, and the procedure starts.
+  start -> arrive
+  set Days: unknown
+  set Condition: unseen
+  set Result: pending
+
+step Check the time limit
+  say Counting from the delivery date, a choice decides whether it came back within 30 days.
+  arrive -> term: See the date
+  set Days: 12 days
+
+step Check the condition
+  say 12 days is in time. Next, the box and the item are opened to check for signs of use.
+  term -> unused: Yes
+  set Condition: unused
+
+step Read the request
+  say There are no signs of use, so the return can be accepted. Next, the wish chosen in the request is read.
+  unused -> form: Yes
+
+step Split on the wish
+  say The wish written in the request splits it into a refund or a swap.
+  form -> refund: Check
+
+step Refund
+  say The buyer wanted a refund, so the money is paid back and the procedure ends. A wish for a swap would take the dotted path and send the same item.
+  refund -> pay: Refund
+  pay -> finish
+  set Result: refunded

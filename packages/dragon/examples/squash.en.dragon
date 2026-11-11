@@ -1,0 +1,54 @@
+// Squashing the many commits on the feature branch into one, bringing it into main, and deleting the feature branch.
+// The top lane is main and the lower lane is feature. The squashed S has only one parent, the tip of main, and the feature commits never enter main's history.
+git Squash a feature branch into one commit on main
+
+branch main [note: Merge target]
+branch feature [note: Feature branch]
+
+box remote as Remote repo [note: holds only main, color: violet, icon: cloud]
+
+strip Refs: main, feature, main history
+
+step Cut a branch
+  say main has A and B. Cut the feature branch feature from B and switch to it.
+  code git switch -c feature
+  commit A on main [hash: 3fa0c19, note: First shape]
+  commit B on main [hash: 8b04f71, note: Add the list]
+  feature from B
+  set main: B 8b04f71
+  set feature: B 8b04f71
+  set main history: B, A
+
+step Commit in small pieces
+  say Build search on feature in three commits and push them to the remote repo. The typo fix and the forgotten check along the way stay in the history as they are.
+  code git commit → git push -u origin feature
+  commit C1 on feature [hash: c41d0e5, note: Add the search box]
+  commit C2 on feature [hash: 1e94a7c, note: Fix a typo]
+  commit C3 on feature [hash: f1e7d28, note: Add checks]
+  note remote: feature is up to C3
+  set feature: C3 f1e7d28
+
+step main moves on
+  say Meanwhile other people's changes D and E land on main. feature still branches off the old B.
+  commit D on main [hash: e5f8312, note: Fix the tax rate]
+  commit E on main [hash: 2a7c9d0, note: Add shipping]
+  set main: E 2a7c9d0
+  set main history: E, D, B, A
+
+step Squash into one
+  say On main, squash-merge feature to make one commit S that holds every change from C1 to C3. S has only E at the tip of main as its parent, and no line joins it to feature.
+  code git switch main → git merge --squash feature → git commit
+  commit S on main [hash: 7d3a5e2, note: Squash C1 to C3]
+  note remote: main now has S
+  set main: S 7d3a5e2
+  set main history: S, E, D, B, A [tag: straight]
+
+step Delete the feature branch
+  say The squashed feature commits cannot be reached from main, so -d refuses and -D deletes the branch. The branch on the remote repo goes too.
+  code git branch -D feature → git push origin --delete feature
+  note remote: feature deleted
+  set feature: deleted [tag: done]
+
+step One straight history
+  say Following main back from its tip gives one line: S, E, D, B, A. C1 to C3 can no longer be reached from any branch and are cleaned up once the reflog expires.
+  code git log --oneline main

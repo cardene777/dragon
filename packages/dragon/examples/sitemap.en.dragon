@@ -1,0 +1,49 @@
+// Build the pages of a company site from the bottom pages up through the section pages to the home page, then follow a visitor down to the quote page.
+// The first 3 steps build the hierarchy up to the home page. The last 3 follow a visitor who reaches the quote page in two clicks from home.
+tree Page hierarchy of a company site
+
+box visitor as Visitor [note: Came from search, color: slate, icon: user]
+
+strip Visit: Entry, Pages visited, Clicks
+
+step Line up the bottom pages
+  say Line up the bottom pages from the left, keeping each section's pages next to each other. These pages hold the content.
+  leaf Features
+  leaf Cases
+  leaf Plans
+  leaf Quote
+  leaf News
+  leaf TechPosts
+  leaf About
+  leaf Careers
+  leaf Contact
+
+step Group them into sections
+  say Group the bottom pages under four section pages, Products, Pricing, Blog and Company. A section page is the way into its pages.
+  node Products of Features, Cases
+  node Pricing of Plans, Quote
+  node Blog of News, TechPosts
+  node Company of About, Careers, Contact
+
+step Place the home page
+  say Make the four section pages open from the home page. Home becomes the root, and every page can be reached from it.
+  node Home of Products, Pricing, Blog, Company
+
+step A visitor opens home
+  say A visitor who came from search opens the home page first.
+  visitor -> Home: Open
+  set Entry: Home
+  set Clicks: 0
+
+step Go to the pricing page
+  say Clicking Pricing in the menu goes one level down to a section page.
+  Home -> Pricing
+  set Pages visited: Pricing
+  set Clicks: 1
+
+step Reach the quote page
+  say A click on Quote from the pricing page arrives. Every bottom page is two clicks from home, so visitors rarely get lost.
+  Pricing -> Quote
+  set Pages visited: Pricing, Quote
+  set Clicks: 2
+  note visitor: Reading the quote

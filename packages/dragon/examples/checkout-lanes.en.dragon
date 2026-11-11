@@ -1,0 +1,40 @@
+// How shoppers at a convenience store split into two lines by how many items they carry, and how two tills each call the next shopper in their own line.
+// The reader picks a name and an item count to join a line, and presses a till's button to call the shopper at the front.
+try Lines at a convenience store till
+
+route Store: Door - Snacks - Counter, Door - Drinks - Counter [from: Door, to: Counter]
+queue 6+
+queue 1-5
+log Till1
+log Till2
+ask Shopper, Items [into: Items, via: Store]
+choose Items: 6+, 1-5
+press Call1 [from: 6+, into: Till1, take: 1]
+press Call2 [from: 1-5, into: Till2, take: 1]
+side 6+, Till1
+side 1-5, Till2
+
+item Guest1 [Items: 6+]
+item Guest2 [Items: 6+]
+item Guest3 [Items: 1-5]
+
+step Two lines form
+  say Shoppers with 6 or more items line up for till 1, and those with 1 to 5 line up for till 2, which only takes small baskets. Each line keeps the order they came in.
+  line 6+: Guest1, Guest2
+  line 1-5: Guest3
+
+step You join a line
+  say Pick 1-5 for items and you walk past the shelves to the counter, then join the back of the 1-5 line.
+  ask You, 1-5
+
+step Till 1 calls
+  say Till 1 calls Guest1 from the front of the 6+ line and starts ringing up.
+  press Call1
+
+step The express till calls
+  say Till 2, kept for 1 to 5 items, calls Guest3 from the front of its line.
+  press Call2
+
+step Your turn comes
+  say Small baskets clear fast, so your turn comes before Guest2, who was in line before you.
+  press Call2

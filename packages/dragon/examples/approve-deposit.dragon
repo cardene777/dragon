@@ -1,0 +1,43 @@
+// トークンを預ける前に、残高と承認済みの量を判断し、足りなければ承認の取引を送ってから預ける手順。
+// 最初の段より前の線は今回は通らない道で、点線で残る。残高が足りなければ止め、承認が足りていれば承認を飛ばして預ける。
+flow トークンを預ける前の承認
+
+box input as 預ける量を入れる [note: 100 USDC, icon: user]
+choice bal as 残高は足りる？
+choice allow as 承認済みの量は足りる？
+box approve as 承認の取引を送る [note: 量を許す, color: amber, icon: sign]
+box deposit as 預ける取引を送る [note: Vaultへ移す, color: green, icon: pool]
+box short as 足りないと伝える [note: 預けずに止める, color: rose, icon: x]
+
+strip 預け入れ: 残高, 承認済み, 預けた量
+
+bal -> short: いいえ
+allow -> deposit: はい
+
+step 量を入れる
+  say 利用者が預ける量に100 USDCを入れる。ウォレットの残高は250 USDCある。
+  start -> input
+  set 残高: 250 USDC
+  set 承認済み: 0 USDC
+  set 預けた量: 0 USDC
+
+step 残高を確かめる
+  say 画面がウォレットの残高を読み、預ける量に足りるかを判断する。
+  input -> bal: 調べる
+
+step 承認の量を確かめる
+  say 残高は足りる。次に、Vaultが動かしてよいと承認済みの量を読む。
+  bal -> allow: はい
+
+step 承認の取引を送る
+  say 承認済みは0 USDCで足りないので、100 USDCを動かしてよいと承認する取引を送る。ブロックに入ると、承認済みが100 USDCになる。
+  allow -> approve: いいえ
+  set 承認済み: 100 USDC
+
+step 預ける
+  say 承認が確定したので、預ける取引を送る。Vaultが100 USDCを引き取り、承認済みの量は使い切る。
+  approve -> deposit: 確定を待つ
+  deposit -> finish
+  set 残高: 150 USDC
+  set 承認済み: 0 USDC
+  set 預けた量: 100 USDC

@@ -3,6 +3,7 @@
  *
  * 見本の正は `packages/dragon/examples` の file で、英語版は同じ名前に `.en` を付けた file。
  * 時系列図の見本は、入門と OAuth の間に、よく描く形 (往復、やり直し、支払い、署名) を易しい順に並べる (#3167)。
+ * どの図の種類も見本を 4 枚以上持ち、前からある見本の後に、今の見本と逆の分野 (一般か Web3) の題を足した (#3615)。
  *
  * 概要の頁の用例と編集画面の最初の見本 (`FIRST_SCREEN_EXAMPLES`) だけを最初に読み、待たずに出す。
  * ほかの見本は `examples-later.ts` の 1 つの塊にし、最初の画面を描いた後に記法だけを裏で読む (#3246)。見本が使う読み方は、見本を並べる所が待つ時に読む (#3505)。
@@ -20,7 +21,7 @@ import { type Diagram, loadReadings, parseNotation } from "@cardenelabs/dragon/l
 import { laterChunk } from "./site/later";
 import type { Lang } from "./text";
 
-export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "bridge", "order", "rebase", "merge", "finality", "withdraw", "release-plan", "merkle", "auction", "tx-block", "swap", "swap-revert", "swap-two-hops", "swap-retry", "vault-proxy", "aggregator", "os-share", "tickets", "login-check", "login-all-paths"] as const;
+export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "bridge", "shop", "video", "order", "tx-status", "subscription", "support-ticket", "rebase", "merge", "hotfix", "squash", "finality", "withdraw", "release-plan", "shop-opening", "merkle", "tournament", "sitemap", "hd-wallet", "auction", "clinic", "kanban", "rollup-batch", "tx-block", "checkout-lanes", "stock-reserve", "multisig", "swap", "swap-revert", "swap-two-hops", "swap-retry", "vault-proxy", "aggregator", "os-share", "tickets", "gas-fee", "staking-rewards", "login-check", "login-all-paths", "approve-deposit", "return-check"] as const;
 export type ExampleKey = (typeof EXAMPLE_KEYS)[number];
 
 /** 最初に読む見本。概要の頁の用例と編集画面の最初の見本 */
