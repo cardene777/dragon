@@ -14,7 +14,8 @@ import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
 import { type Color, COLORS } from "../color/block";
 import { EDGE } from "../edge/block";
-import { ER_TABLES, type ErField, type ErTable } from "./block";
+import type { ErField, ErTable } from "./block";
+import { ER_TABLES } from "./limits";
 
 /** 表どうしの関係の図の `table` の行に書ける属性の鍵 */
 const TABLE_ATTRS: readonly string[] = ["color"];

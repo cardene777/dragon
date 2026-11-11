@@ -5,11 +5,12 @@
  * 無い親と、2 つ目の真ん中の題と、題から数えて 4 段目の考えは、書いた行で止め、真ん中の題が無い図は記法の終わりに止める。
  */
 import { attrs, name, quote } from "../../print-kit";
-import { fail, ID, readAttrs, readQuoted, skipSpaces } from "../../read-kit";
+import { fail, ID, isOneOf, readAttrs, readQuoted, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { readLook } from "../color/read";
-import { MIND_LEVELS, type MindIdea, OF } from "./block";
+import { type Color, COLORS } from "../color/block";
+import type { MindIdea } from "./block";
+import { MIND_LEVELS, OF } from "./limits";
 
 /** `idea` の行の名札 */
 const IDEA = /^idea\s+([^\s[]+)/du;
@@ -75,7 +76,9 @@ function readIdea(source: SourceLine, state: ParseState): MindIdea {
     }
   }
   if (rest < text.length && text[rest] !== "[") throw fail(source, rest, m.ideaShape);
-  const look = rest < text.length ? readLook(source, readAttrs(source, rest, state.attrs.idea ?? [], m), m) : {};
+  // 色はほかの後から読む読み方と同じく色の一覧で確かめる。本体の箱の読み方 (`readLook`) を読むと、1行の入口で色を読む処理が本体から分かれる (#3657)
+  const color = rest < text.length ? readAttrs(source, rest, state.attrs.idea ?? [], m).get("color") : undefined;
+  if (color && !isOneOf(COLORS, color.value)) throw fail(source, color.at, m.badColor);
   state.declare(source, id, idAt);
   if (parent === undefined) {
     const centre = state.figure.mind.centre;
@@ -93,7 +96,7 @@ function readIdea(source: SourceLine, state: ParseState): MindIdea {
     id,
     name: named ?? id,
     ...(parent !== undefined ? { parent: parent.id } : {}),
-    ...(look.color !== undefined ? { color: look.color } : {}),
+    ...(color ? { color: color.value as Color } : {}),
   };
 }
 

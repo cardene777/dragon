@@ -407,8 +407,9 @@ export function drawSvg(
     seats: seatsOf(layout.edges, carried),
     ...flowParts?.flowHooks(m, timeline),
   };
-  // 回り続ける図の弧と輪の真ん中の字は、回り続ける図を描く部品が描き、段ごとにその段の手順の箱だけを光らせる (#3623)。見た目の規則も回り続ける図の SVG にだけ書く
-  const cycle = isCycleLayout(layout) ? kindParts("cycle").drawCycle(layout, diagram, ctx) : undefined;
+  // 回り続ける図の弧と輪の真ん中の字は、回り続ける図を描く部品が描き、段ごとにその段の手順の箱だけを光らせる (#3623)。見た目の規則も回り続ける図の SVG にだけ書く。
+  // 輪の真ん中の値の移り変わりはここで出して渡し、描く部品に中身の帯を描く処理を読ませない (#3657)
+  const cycle = isCycleLayout(layout) ? kindParts("cycle").drawCycle(layout, fieldChanges(diagram, timeline, layout), ctx) : undefined;
   const on = cycle?.on ?? involved(diagram);
   // 表どうしの関係の図の結びの線と表と式の札は、表どうしの関係の図を描く部品が描く (#3618)。見た目の規則も表どうしの関係の図の SVG にだけ書く
   const er = isErLayout(layout) ? kindParts("er").drawEr(layout, diagram, ctx) : undefined;

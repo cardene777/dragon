@@ -10,7 +10,8 @@ import { type Attr, fail, readAttrs, readName } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, type ParseState, ranked } from "../block";
 import { BLOCKS } from "../index";
-import { MATRIX_AREAS, MATRIX_AXES, type MatrixAxis } from "./block";
+import type { MatrixAxis } from "./block";
+import { MATRIX_AREAS, MATRIX_AXES } from "./limits";
 
 /** 2つの軸で置く図に書ける行の頭の語。2つの軸で置く図だけのブロックの語と、区画と課題と置く行と、段の行 */
 const MATRIX_LINES: readonly string[] = [
