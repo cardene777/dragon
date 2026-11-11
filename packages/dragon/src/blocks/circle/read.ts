@@ -14,7 +14,8 @@ import { fail, isOneOf, readDeclared } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
 import { type Color, COLORS } from "../color/block";
-import { NONE, VENN_SETS, type VennSet } from "./block";
+import type { VennSet } from "./block";
+import { NONE, VENN_SETS } from "./limits";
 import { exclusiveOf, regionKey, regionName, regionsOf } from "./regions";
 
 /** 集合の重なりの図の `item` の行に書ける属性の鍵 */

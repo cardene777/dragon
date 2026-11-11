@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.72.0] - 2026-11-12
+
 ### Added
 
 - **A browser entry (`@cardenelabs/dragon/capture`) turns a diagram drawn on the page into PNG, SVG, GIF and MP4, and `editorUrl` makes a link that opens the notation in the editor** (#3644)
@@ -34,7 +36,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 - **`dragon check --layout` reports a stamp over text in a lineup diagram, and a span frame or the needle crossing text in a time diagram** (#3631)
 
-  While adding examples in #3615, three overlaps showed up in the exported PNGs that `dragon check --layout` did not report. In a lineup diagram, the stamp pressed on a card covered the remark written under the card in the same step. In a time diagram, the dotted edge of a span frame (`span ... [shape: box]`) and the needle where a step ends crossed the period text of a task bar. The check now reports a stamp that covers text as `chip-over-part`, and a span frame edge or the needle that crosses text without a tag as `line-crosses-text`, the same kinds it already used for a tag over a part and a line across text. The report names the step, the stamp, span frame or needle, and the text, for example `The stamp "Paid" covers "Alice is #3"`, `The span frame "Overlap" crosses "Day 1–12"` and `The needle crosses "Day 1–12"`. The needle is checked where it stops at the end of each step. The current examples and the catalog figures report no new break.
+  While adding examples in #3615, three overlaps showed up in the exported PNGs that `dragon check --layout` did not report. In a lineup diagram, the stamp pressed on a card covered the remark written under the card in the same step. In a time diagram, the dotted edge of a span frame (`span ... [shape: box]`) and the needle where a step ends crossed the period text of a task bar. The check now reports a stamp that covers text as `chip-over-part`, and a span frame edge or the needle that crosses text without a tag as `line-crosses-text`, the same kinds it already used for a tag over a part and a line across text. The report names the step, the stamp, span frame or needle, and the text, for example `The stamp "Paid" covers "Alice is 3rd"`, `The span frame "Overlap" crosses "Day 1–12"` and `The needle crosses "Day 1–12"`. The needle is checked where it stops at the end of each step. The current examples and the catalog figures report no new break.
 
 - **A cycle diagram (`cycle`) draws a flow that goes around the same steps again and again** (#3623)
 
@@ -57,6 +59,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   Every character in the editor was the same colour, so the diagram kind, the `->` of a line and the settings all looked alike. A colour layer now sits under the text area. In the notation it draws eight roles in different colours: the diagram kind, the word that starts a line, `as`, the `->` of a line, a setting's key, a setting's value, comments, and the command after `code`. In the JSON it colours keys, strings, numbers, and `true`, `false` and `null`. The colours come from the light and dark values of the site's five palettes, and a colour is moved toward the text colour only when its contrast with the editor background is below 4.5. The words that start a line and the diagram kinds come from `NOTATION_WORDS`, a new export of the package, so adding a block adds its colour too. The colour layer holds exactly the text in the editor and stays aligned while you type and scroll. While you compose Japanese text with an input method, the text being composed is shown by the text area itself.
 
 ### Changed
+
+- **The one-line script entry reads less on a page that draws only a sequence diagram** (#3657)
+
+  The cycle, table relation, mind map, set overlap and two-axis matrix kinds each split a part of the main script into another file that every page read first, because their later-loaded code read it too: the count limits of their blocks, how a strip draws its values and how a color is read. Each file is compressed on its own, so the first load had grown to 90,202 bytes in 44 files, over its 90,000-byte limit. The later-loaded code now reads its count limits from a file of its own, the cycle diagram is handed the strip values by the drawing code, and an idea checks its color against the color list like the other later-loaded blocks. The first load is back under the limit, and the diagrams draw the same as before.
 
 - **The catalog no longer loads the English text, the English versions of the first three examples or the editor's shelf templates on its first screen** (#3646)
 
