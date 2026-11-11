@@ -124,6 +124,12 @@ export interface FigureDraft {
    * 区画の数が 0 より小さくならないかは全ての段を読んでから確かめるので、数を書いた行と数の字の位置 (`at`) を段の番号と積む。段の番号は最初の段を始めるまで -1
    */
   venn: { sets: VennSet[]; now: Map<string, number>; writes: { key: string; value: number; source: SourceLine; at: number; step: number }[]; step: number };
+  /**
+   * 量の行き先の図の線と、線の名前から読んだ量 (#3626)。量の帯のブロックが段の中の線から積み、最初の線を読んだ時に作る。
+   * 入る量より出る量の和が大きい箱は全ての線を読んでから確かめるので、線を書いた行と量の字の位置 (`at`) を積む。
+   * 記法を読む処理は最初に読む script に入るので、ほかの図の種類の下ごしらえと違い、量の行き先の図を読む時だけ後から読む読み方が作る
+   */
+  sankey?: { flows: { from: string; to: string; amount: number; source: SourceLine; at: number }[] };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */

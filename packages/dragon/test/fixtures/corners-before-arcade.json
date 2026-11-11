@@ -605,6 +605,18 @@
     "dg-ch-bt rx=3": 3,
     "dg-ch-bar dg-a rx=3": 3
   },
+  "token-allocation.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-car rx=9": 6,
+    "dg-sk-bar dg-a rx=3": 6,
+    "dg-sk-bar rx=3": 1
+  },
+  "token-allocation.json": {
+    "dg-bg rx=14": 1,
+    "dg-car rx=9": 6,
+    "dg-sk-bar dg-a rx=3": 6,
+    "dg-sk-bar rx=3": 1
+  },
   "tx-block.en.json": {
     "dg-bg rx=14": 1,
     "dg-halo rx=8": 3,

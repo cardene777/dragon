@@ -428,9 +428,13 @@ describe("量の行き先の図の並べ方と動き (#3626)", () => {
       const source = diagram as unknown as Source;
       const rendered = render(diagram);
       const { layout, timeline } = rendered;
-      const motion = motionFrom(rendered);
-      /** 部品が時刻 `t` に見えている濃さ。部品の中の動く部品のうち、最も濃いもの */
-      const shown = (el: Element, t: number): number => Math.max(motion.opacity(el, t), ...[...el.querySelectorAll(".dg-a")].map((x) => motion.opacity(x, t)));
+      // 動きを読む部品は SVG と時刻の表だけを読み、並べ方の形を見ない
+      const motion = motionFrom(rendered as unknown as Rendered);
+      /** 部品が時刻 `t` に見えている濃さ。部品の中に動く部品が在れば、そのうち最も濃いもの。動かない部品はそのままの濃さ */
+      const shown = (el: Element, t: number): number => {
+        const moving = [...(el.matches(".dg-a") ? [el] : []), ...el.querySelectorAll(".dg-a")];
+        return moving.length === 0 ? motion.opacity(el, t) : Math.max(...moving.map((x) => motion.opacity(x, t)));
+      };
       const last = timeline.steps[timeline.steps.length - 1] as Span;
       const first = timeline.steps[0] as Span;
       const edges = source.steps.flatMap((step, s) => step.events.flatMap((e, i) => (e.type === "edge" ? [{ ...e, step: s, event: i }] : [])));
@@ -521,7 +525,7 @@ describe("量の行き先の図の軽い入口 (#3626)", () => {
     expect(out.after, "軽い入口で loadFor を待っても量の行き先の図の描く部品を読まない").toBe(true);
     expect(out.ok, `軽い入口で loadFor を待った後に量の行き先の図を読めない: ${JSON.stringify(out.errors)}`).toBe(true);
     expect(out.kind, "軽い入口で描いた図の種類").toBe("sankey");
-    expect(out.bands, "軽い入口で描いた量の行き先の図の帯の数").toBe(6);
+    expect(out.bands, "軽い入口で描いた量の行き先の図の帯の数").toBe(5);
     expect(out.same, "軽い入口と既定の入口で描いた量の行き先の図が違う").toBe(true);
   });
 });

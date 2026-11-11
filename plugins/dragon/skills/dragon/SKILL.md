@@ -44,8 +44,9 @@ Pick the kind from what the user wants to explain, then read [notation](referenc
 | `mind` | Ideas spread out from one topic, branch by branch: features to build, a plan, a brainstorm | [mind](references/kinds/mind.md) |
 | `er` | Rows of tables that point at each other by keys, and how one value goes through them: an order total, a loan, a sale | [er](references/kinds/er.md) |
 | `venn` | How two or three groups overlap and how many fall in each region: how a wallet is used, hobbies, skills | [venn](references/kinds/venn.md) |
+| `sankey` | Where one amount goes and how much goes to each place: a token allocation, a fee split, where a salary goes | [sankey](references/kinds/sankey.md) |
 
-When two kinds fit, follow what moves: messages between parties (`sequence`), things flowing between places (`architecture`), one thing changing state (`state`), money and values inside one transaction (`pipe`), how big items are next to each other (`chart`), one case going down a procedure past choices (`flow`), the same steps coming round again (`cycle`), ideas growing out of one topic (`mind`), one value looked up across tables by keys (`er`), how many fall in two or three overlapping groups (`venn`).
+When two kinds fit, follow what moves: messages between parties (`sequence`), things flowing between places (`architecture`), one thing changing state (`state`), money and values inside one transaction (`pipe`), how big items are next to each other (`chart`), one case going down a procedure past choices (`flow`), the same steps coming round again (`cycle`), ideas growing out of one topic (`mind`), one value looked up across tables by keys (`er`), how many fall in two or three overlapping groups (`venn`), how one amount splits into where it goes (`sankey`).
 
 When no kind fits, do not force the explanation into one, and do not open an issue yet.
 Write down what the diagram must show (the parts, what moves, how many steps), write it in the closest kind, add your own blocks where they help (step 8), and run `dragon check` and `dragon check --layout` until they pass.

@@ -196,7 +196,7 @@ mountDiagram(host, parsed.diagram, {
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, and `venn`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, `venn`, and `sankey`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -296,7 +296,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `venn` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `venn` `sankey` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -836,6 +836,40 @@ step Neither
   set none: 12
 ```
 
+### Sankey diagram
+
+Start with `sankey` to draw a Sankey diagram, which follows step by step where one amount goes and how much, with bands as wide as the amounts.
+Boxes no line goes into sit in the left column, and each target sits in a column to the right of its source.
+
+- `box <id> as <name>` declares a source or a target before the first `step`. `[color: <color>]` sets the color of its bar and of the bands going into it, and a box takes no `note`, `icon` or `link`
+- `<source> -> <target>: <amount>` inside a step grows a band from the source bar to the target bar in that step, and an amount chip crosses it. The number at the start of the label is the amount: `40%` reads as 40 and `1,200 yen` as 1200
+- A band takes the share of the source bar that its amount makes up, and the bands stack down the source bar in the order written. A target's bar fills in as each band reaches it
+- A box with no source holds the sum of what leaves it, and a target holds the sum of what comes in. Write every amount in one diagram in the same unit
+- A label that does not start with a number, a line whose flow leads back to a box it came from, and a box sending out more than comes in are refused
+- A line takes no `tag`, `carry` or `side`, because the amount chip shows the line label. `group`, `strip`, `act`, `note` and `set` lines are refused
+- The step number sits to the right of the first target that step reaches
+
+```dragon
+sankey Where the pocket money goes
+
+box pay as Pocket money 10,000 yen [color: slate]
+box food as Food [color: amber]
+box save as Savings [color: green]
+box fun as Fun [color: rose]
+
+step Get it
+  say A month of pocket money is 10,000 yen.
+
+step Food
+  say Half of it, 5,000 yen, goes to food.
+  pay -> food: 5,000 yen
+
+step The rest
+  say Save 3,000 yen and spend 2,000 yen on fun.
+  pay -> save: 3,000 yen
+  pay -> fun: 2,000 yen
+```
+
 ## Source JSON
 
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
@@ -845,6 +879,7 @@ A time diagram's scale, period, rows, tasks, points and zoom range go in `blocks
 A flow diagram's choices go in `blocks.choice`, and the paths it does not take in `blocks.path`.
 A table relation diagram's tables and their fields go in `blocks.table`.
 A set overlap diagram's sets go in `blocks.circle`.
+A Sankey diagram keeps its sources and targets in `blocks.box`, and each band is a line in a step's `events` with the amount as its label.
 What happens in a step (lines and actions inside a box) goes in each step's `events`.
 
 ```json

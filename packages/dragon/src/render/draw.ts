@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * chart、cycle、er、flow、git、lineup、mind、pipe、state、time、tree、try、venn の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * chart、cycle、er、flow、git、lineup、mind、pipe、sankey、state、time、tree、try、venn の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -45,6 +45,7 @@ import type { TimeLayout } from "../kinds/time/layout";
 import type { TreeLayout } from "../kinds/tree/layout";
 import type { TryLayout } from "../kinds/try/layout";
 import type { VennLayout } from "../kinds/venn/layout";
+import type { SankeyLayout } from "../kinds/sankey/layout";
 import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
@@ -508,6 +509,10 @@ export function drawSvg(
   // 集合の重なりの図の円と区画と字と札は、集合の重なりの図を描く部品が描く (#3620)。段の番号はほかの図の種類と同じくここで描く。見た目の規則も集合の重なりの図の SVG にだけ書く
   const vennDrawn = isVennLayout(layout) ? kindParts("venn").drawVenn(layout, ctx) : undefined;
   if (vennDrawn) L.base.push(vennDrawn.base);
+  // 量の行き先の図の帯と棒と字は、量の行き先の図を描く部品が描く (#3626)。段の番号と量の札はほかの図の種類と同じくここで描く。見た目の規則も量の行き先の図の SVG にだけ書く
+  // 帯の上に棒と字を重ね、ほかの層は空なので、帯と棒と字を 1 つの層に入れる
+  const sankeyDrawn = layout.kind === "sankey" ? kindParts("sankey").drawSankey(layout as SankeyLayout, ctx) : undefined;
+  if (sankeyDrawn) L.base.push(sankeyDrawn.base);
   // 考えを広げる地図の線と考えは、考えを広げる地図を描く部品が描く (#3619)。段の番号はほかの図の種類と同じくここで描く。見た目の規則も考えを広げる地図の SVG にだけ書く
   const mindDrawn = isMindLayout(layout) ? kindParts("mind").drawMind(layout, ctx) : undefined;
   if (mindDrawn) {
@@ -532,7 +537,8 @@ export function drawSvg(
       (timeLayout && !wired.has(`${e.step}/${e.event}`)) ||
       runs.has(`${e.step}/${e.event}`) ||
       cycle ||
-      er
+      er ||
+      sankeyDrawn
     )
       continue;
     // 木の図の箱は段ごとに現れるので、木の線を走らない線の点線は、両端の木の箱が現れてから出す (#3240)
@@ -626,7 +632,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${vennDrawn?.css ?? ""}${cycle?.css ?? ""}${mindDrawn?.css ?? ""}${er?.css ?? ""}${flowParts?.flowCss(id) ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${vennDrawn?.css ?? ""}${sankeyDrawn?.css ?? ""}${cycle?.css ?? ""}${mindDrawn?.css ?? ""}${er?.css ?? ""}${flowParts?.flowCss(id) ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -1093,6 +1099,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
         ? kindParts("er", lang).layoutEr(diagram)
       : diagram.kind === "venn"
         ? kindParts("venn", lang).layoutVenn(diagram, lang)
+      : diagram.kind === "sankey"
+        ? kindParts("sankey", lang).layoutSankey(diagram)
       : diagram.kind === "git"
         ? kindParts("git", lang).layoutGit(diagram)
         : diagram.kind === "time"
@@ -1124,7 +1132,7 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };
   const timeline = buildTimeline(diagram, options.still === true);
   // 手順の図の段の印の点と運ぶ物と光る間は、手順の図の描く部品が時刻の表を直す (#3561)
-  // 回り続ける図と表どうしの関係の図の札は、走り出しを待たずに出て段の終わりに消える (#3623、#3618)
+  // 回り続ける図と表どうしの関係の図と量の行き先の図の札は、走り出しを待たずに出て段の終わりに消える (#3623、#3618、#3626)
   const timed =
     diagram.kind === "flow"
       ? kindParts("flow", lang).flowTimes(diagram, timeline)
@@ -1132,6 +1140,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
         ? kindParts("cycle", lang).cycleTimes(diagram, timeline)
         : diagram.kind === "er"
           ? kindParts("er", lang).erTimes(diagram, timeline)
+        : diagram.kind === "sankey"
+          ? kindParts("sankey", lang).sankeyTimes(diagram, timeline)
         : timeline;
   const rendered = renderLayout(diagram, layout, timed, drawn);
   return diagram === model || diagram.steps.length === model.steps.length ? rendered : { ...rendered, source: model };

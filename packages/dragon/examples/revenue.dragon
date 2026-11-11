@@ -1,0 +1,32 @@
+// お店の1年の売上が、仕入れと人件費と家賃と利益へどれだけ分かれ、利益がどこへ行くかを追う。
+// 額は形を見せるための見本の値で、実際のお店の数ではない。
+sankey 売上の行き先
+
+box sales as 1年の売上5,000万円 [color: slate]
+box cost as 仕入れ [color: amber]
+box staff as 人件費 [color: blue]
+box rent as 家賃 [color: violet]
+box profit as 利益 [color: green]
+box tax as 税 [color: rose]
+box keep as 手元に残す [color: green]
+
+step 売る
+  say 1年の売上は5,000万円。
+
+step 仕入れ
+  say 売上の4割の2,000万円が仕入れに出ていく。
+  sales -> cost: 2,000万円
+
+step 人件費と家賃
+  say 人件費に1,500万円、家賃に600万円を払う。
+  sales -> staff: 1,500万円
+  sales -> rent: 600万円
+
+step 利益
+  say 残りの900万円が利益になる。
+  sales -> profit: 900万円
+
+step 利益の行き先
+  say 利益のうち270万円を税で納め、630万円を手元に残す。
+  profit -> tax: 270万円
+  profit -> keep: 630万円

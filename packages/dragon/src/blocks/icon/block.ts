@@ -6,6 +6,7 @@
  * 絵は箱と区画の行の属性で行の頭の語を持たないので、箱と区画の行を読む処理が `readIcon` を呼び、箱と区画の宣言を書き戻す処理が `icon` の鍵を書く。
  * 絵柄の形の表は同じ置き場の `icons.ts` が持ち、この定義は表から名前の一覧を引く。形の表は package の入口からも出す。
  * `tabler:<名前>` は外の絵柄集 Tabler の絵柄で、名前の一覧と形は絵柄集の登録簿 (`sets.ts`) が持つ (#3493)。
+ * 量の行き先の図 (#3626) の箱は量の棒で絵を描く所を持たないので、絵のブロックを描かない図の種類に書く。
  */
 import type { Block } from "../block";
 import { ICONS } from "./icons";
@@ -22,7 +23,7 @@ export interface IconFieldMessages extends TablerMessages {
 export const block: Block<IconFieldMessages> = {
   name: "icon",
   rank: 88,
-  attach: { how: "attach-to-box", except: ["lineup"] },
+  attach: { how: "attach-to-box", except: ["lineup", "sankey"] },
   words: { attrs: { group: ["icon"], box: ["icon"] } },
   fieldMessages: {
     ja: { ...TABLER_MESSAGES.ja, unknownIcon: (value, near) => `${value} という icon は無い。近い名前は ${near}` },

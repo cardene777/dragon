@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `venn <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -505,6 +505,32 @@ step Night and both
 step Neither
   say 12 people run at neither time.
   set none: 12
+```
+
+In a Sankey diagram (`sankey <title>`), write the sources and targets with `box <id> as <name>` before the first `step` line.
+`<source> -> <target>: <amount>` inside a step grows a band from the source bar to the target bar in that step, and an amount chip crosses it.
+The number at the start of the label is the amount (`40%` reads as 40, `1,200 yen` as 1200), and the band takes that share of the source bar.
+A label that does not start with a number, a line whose flow leads back to a box it came from, and a box sending out more than comes in are refused.
+
+```dragon
+sankey Where the pocket money goes
+
+box pay as Pocket money 10,000 yen [color: slate]
+box food as Food [color: amber]
+box save as Savings [color: green]
+box fun as Fun [color: rose]
+
+step Get it
+  say A month of pocket money is 10,000 yen.
+
+step Food
+  say Half of it, 5,000 yen, goes to food.
+  pay -> food: 5,000 yen
+
+step The rest
+  say Save 3,000 yen and spend 2,000 yen on fun.
+  pay -> save: 3,000 yen
+  pay -> fun: 2,000 yen
 ```
 
 ## Attributes

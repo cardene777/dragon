@@ -5,6 +5,9 @@ import { rule as actRule } from "../../../../packages/dragon/src/blocks/act/gall
 import { text as askText } from "../../../../packages/dragon/src/blocks/ask/gallery/text";
 import { shelf as askShelf } from "../../../../packages/dragon/src/blocks/ask/gallery/shelf";
 import { rule as askRule } from "../../../../packages/dragon/src/blocks/ask/gallery/rule";
+import { text as bandText } from "../../../../packages/dragon/src/blocks/band/gallery/text";
+import { shelf as bandShelf } from "../../../../packages/dragon/src/blocks/band/gallery/shelf";
+import { rule as bandRule } from "../../../../packages/dragon/src/blocks/band/gallery/rule";
 import { text as boxText } from "../../../../packages/dragon/src/blocks/box/gallery/text";
 import { shelf as boxShelf } from "../../../../packages/dragon/src/blocks/box/gallery/shelf";
 import { rule as boxRule } from "../../../../packages/dragon/src/blocks/box/gallery/rule";
@@ -190,6 +193,7 @@ import { rule as zoomRule } from "../../../../packages/dragon/src/blocks/zoom/ga
 export const BLOCK_TEXT = {
   "act": actText,
   "ask": askText,
+  "band": bandText,
   "box": boxText,
   "branch": branchText,
   "calc": calcText,
@@ -256,6 +260,7 @@ export const BLOCK_TEXT = {
 export const BLOCK_SHELF = {
   "act": actShelf,
   "ask": askShelf,
+  "band": bandShelf,
   "box": boxShelf,
   "branch": branchShelf,
   "calc": calcShelf,
@@ -322,6 +327,7 @@ export const BLOCK_SHELF = {
 export const BLOCK_RULE = {
   "act": actRule,
   "ask": askRule,
+  "band": bandRule,
   "box": boxRule,
   "branch": branchRule,
   "calc": calcRule,
@@ -385,4 +391,4 @@ export const BLOCK_RULE = {
 } as const;
 
 /** ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に。見本帳の一覧と棚と使い方の頁は、この順にブロックの見本帳の分を並べる */
-export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "delete", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "task", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "log", "ask", "press", "side", "hold", "write", "return", "call", "value", "check", "emit", "calc", "revert", "fold", "gist", "choice", "chart-shape", "chart-item", "chart-set", "ring", "idea", "table", "circle"] as const;
+export const BLOCK_ORDER = ["start-finish", "branch", "commit", "copy", "merge", "delete", "group", "box", "lifeline", "strip", "side-path", "step", "source", "act", "note", "edge", "carry", "edge-label", "color", "icon", "link", "scale", "row", "task", "point", "zoom", "leaf", "node", "item", "line", "seal", "pick", "stamp", "role", "order", "legend", "route", "queue", "chain", "log", "ask", "press", "side", "hold", "write", "return", "call", "value", "check", "emit", "calc", "revert", "fold", "gist", "choice", "chart-shape", "chart-item", "chart-set", "ring", "idea", "table", "circle", "band"] as const;

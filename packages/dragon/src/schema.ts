@@ -280,7 +280,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "venn";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "venn" | "sankey";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -435,7 +435,7 @@ const ABSENT_KINDS: Record<string, string> = {
   check: "try",
   values: "try",
   hold: "pipe",
-  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow / cycle",
+  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow / cycle / sankey",
   order: "lineup",
   at: "time",
   into: "time",

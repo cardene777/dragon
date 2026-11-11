@@ -1,6 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { docs as actDocs } from "../../../../packages/dragon/src/blocks/act/gallery/docs";
 import { docs as askDocs } from "../../../../packages/dragon/src/blocks/ask/gallery/docs";
+import { docs as bandDocs } from "../../../../packages/dragon/src/blocks/band/gallery/docs";
 import { docs as boxDocs } from "../../../../packages/dragon/src/blocks/box/gallery/docs";
 import { docs as branchDocs } from "../../../../packages/dragon/src/blocks/branch/gallery/docs";
 import { docs as calcDocs } from "../../../../packages/dragon/src/blocks/calc/gallery/docs";
@@ -66,6 +67,7 @@ import { docs as zoomDocs } from "../../../../packages/dragon/src/blocks/zoom/ga
 export const BLOCK_DOCS = {
   "act": actDocs,
   "ask": askDocs,
+  "band": bandDocs,
   "box": boxDocs,
   "branch": branchDocs,
   "calc": calcDocs,

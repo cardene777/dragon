@@ -1,0 +1,32 @@
+// 1か月の手取りの給料が、決まった出費と食費と遊びと貯金へどれだけ分かれるかを追う。
+// 額は形を見せるための見本の値で、実際の家計の数ではない。
+sankey 給料の行き先
+
+box pay as 手取り30万円 [color: slate]
+box fixed as 決まった出費 [color: blue]
+box food as 食費 [color: amber]
+box fun as 遊び [color: rose]
+box save as 貯金 [color: green]
+box rent as 家賃 [color: blue]
+box bills as 光熱費と通信費 [color: violet]
+
+step 受け取る
+  say 1か月の手取りの給料は30万円。
+
+step 決まった出費
+  say 毎月決まって出ていく分に13万円を回す。
+  pay -> fixed: 13万円
+
+step 食費と遊び
+  say 食費に6万円、遊びに3万円を使う。
+  pay -> food: 6万円
+  pay -> fun: 3万円
+
+step 貯金
+  say 残りの8万円を貯金へ回す。
+  pay -> save: 8万円
+
+step 決まった出費の中身
+  say 決まった出費の13万円は、家賃の10万円と、光熱費と通信費の3万円に分かれる。
+  fixed -> rent: 10万円
+  fixed -> bills: 3万円

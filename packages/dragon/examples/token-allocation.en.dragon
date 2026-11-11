@@ -1,0 +1,32 @@
+// Follow how much of a newly minted token goes to the community, the team, the investors and the treasury, with bands that split off the total.
+// The shares are sample values to show the shape, not how a real token is handed out.
+sankey Where the tokens go
+
+box total as Total 100M tokens [color: slate]
+box comm as Community pool [color: green]
+box team as Team [color: blue]
+box inv as Investors [color: violet]
+box treas as Treasury [color: amber]
+box rew as User rewards [color: green]
+box don as Donations [color: rose]
+
+step Mint
+  say Mint 100 million tokens.
+
+step Community pool
+  say Send 40% of the total to the community pool.
+  total -> comm: 40%
+
+step Team and investors
+  say Send 20% to the team and 18% to the investors.
+  total -> team: 20%
+  total -> inv: 18%
+
+step Treasury
+  say Send the remaining 22% to the treasury.
+  total -> treas: 22%
+
+step Split the community pool
+  say Split the community 40% into 25% for user rewards and 15% for donations.
+  comm -> rew: 25%
+  comm -> don: 15%

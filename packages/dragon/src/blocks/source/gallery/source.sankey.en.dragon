@@ -1,0 +1,16 @@
+sankey Sources
+
+box sales as Sales
+box cost as Cost
+box rest as Rest
+
+step Sell
+  say source puts the name and url of a source on a step. A step takes any number of them.
+  source dragon README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  sales -> cost: 60%
+
+step Keep
+  say Sources show neither in the figure nor in the narration, only as name links in the list of steps read aloud.
+  source How to write the notation [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md]
+  source dragon repo [url: https://github.com/cardene777/dragon]
+  sales -> rest: 40%

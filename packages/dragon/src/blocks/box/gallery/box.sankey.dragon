@@ -1,0 +1,13 @@
+sankey 箱
+
+box sales as 売上
+box cost as 原価
+box profit as 利益
+
+step 売る
+  say box の行で出どころと行き先の箱を置く。as の後ろに見せる名前を書く。
+
+step 分ける
+  say 入る線の無い箱が左の列に、行き先がその右の列に並ぶ。
+  sales -> cost: 60%
+  sales -> profit: 40%

@@ -1,6 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { uses as actUses } from "../../../../packages/dragon/src/blocks/act/gallery/uses";
 import { uses as askUses } from "../../../../packages/dragon/src/blocks/ask/gallery/uses";
+import { uses as bandUses } from "../../../../packages/dragon/src/blocks/band/gallery/uses";
 import { uses as boxUses } from "../../../../packages/dragon/src/blocks/box/gallery/uses";
 import { uses as branchUses } from "../../../../packages/dragon/src/blocks/branch/gallery/uses";
 import { uses as calcUses } from "../../../../packages/dragon/src/blocks/calc/gallery/uses";
@@ -66,6 +67,7 @@ import { uses as zoomUses } from "../../../../packages/dragon/src/blocks/zoom/ga
 export const BLOCK_USES = {
   "act": actUses,
   "ask": askUses,
+  "band": bandUses,
   "box": boxUses,
   "branch": branchUses,
   "calc": calcUses,

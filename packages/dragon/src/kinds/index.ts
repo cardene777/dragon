@@ -8,6 +8,7 @@ import { kind as gitKind } from "./git/kind";
 import { kind as lineupKind } from "./lineup/kind";
 import { kind as mindKind } from "./mind/kind";
 import { kind as pipeKind } from "./pipe/kind";
+import { kind as sankeyKind } from "./sankey/kind";
 import { kind as sequenceKind } from "./sequence/kind";
 import { kind as stateKind } from "./state/kind";
 import { kind as timeKind } from "./time/kind";
@@ -26,6 +27,7 @@ export const KIND_FOLDERS = {
   "lineup": lineupKind,
   "mind": mindKind,
   "pipe": pipeKind,
+  "sankey": sankeyKind,
   "sequence": sequenceKind,
   "state": stateKind,
   "time": timeKind,

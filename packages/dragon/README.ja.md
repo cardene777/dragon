@@ -200,7 +200,7 @@ mountDiagram(host, parsed.diagram, {
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`mind`、`pipe`、`state`、`time`、`tree`、`try`、`venn` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`mind`、`pipe`、`state`、`time`、`tree`、`try`、`venn`、`sankey` の描く部品と、その種類だけが使うブロックの読み方を持たない。
 これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
 `parseNotation` で記法から読んだ図は描く時に原本の形の検査を省くので、記法の図を描く頁は検査を読まない。JSON を渡した時は `loadFor` が原本の形の検査も読み、読む前に JSON を読むか描くと `loadFor` を待つよう示す誤りで止まる。
 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -300,7 +300,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `venn` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `venn` `sankey` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -840,6 +840,40 @@ step どちらでもない
   set none: 12
 ```
 
+### 量の行き先の図
+
+`sankey` で始めると、1 つの量がどこへどれだけ分かれるかを、量に比べた幅の帯で段ごとに追う量の行き先の図になる。
+入る線の無い箱が左の列に並び、行き先は出どころの右の列に並ぶ。
+
+- `box <名札> as <名前>` は出どころか行き先で、最初の `step` より前に書く。`[color: <色>]` は棒と、その箱へ入る帯の色になり、箱に `note` と `icon` と `link` は書けない
+- 段の中の `<出どころ> -> <行き先>: <量>` は、その段で出どころの棒から行き先の棒へ帯を伸ばし、量の札を帯に渡らせる。線の名前の初めの数が量で、`40%` は 40、`1,200円` は 1200 と読む
+- 帯の幅は出どころの棒のうちその量が占める割合の分で、出どころの棒の上から書いた順に積む。行き先の棒は、帯が着くたびにその分だけ伸びる
+- 出どころの無い箱の量は出る量の和で、行き先の量は入る量の和になる。1 つの図の量は同じ単位で書く
+- 線の名前が数で始まらない線、流れを辿ると元の箱へ戻る線、入る量より出る量の和が大きい箱は誤りで止まる
+- 量の札は線の名前を出すので、線に `tag` と `carry` と `side` は書けない。`group` と `strip` と `act` と `note` と `set` の行も書けない
+- 段の番号は、その段で帯が着いた最初の行き先の右に出る
+
+```dragon
+sankey お小遣いの使い道
+
+box pay as お小遣い1万円 [color: slate]
+box food as 食べる [color: amber]
+box save as 貯める [color: green]
+box fun as 遊ぶ [color: rose]
+
+step 受け取る
+  say 1か月のお小遣いは1万円。
+
+step 食べる分
+  say 半分の5,000円を食べる分に回す。
+  pay -> food: 5,000円
+
+step 残り
+  say 3,000円を貯めて、2,000円で遊ぶ。
+  pay -> save: 3,000円
+  pay -> fun: 2,000円
+```
+
 ## 原本の JSON
 
 原本の JSON は、版 (`version`)、図の種類 (`kind`)、題 (`title`)、段 (`steps`) の骨組みを持ち、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。
@@ -849,6 +883,7 @@ step どちらでもない
 手順の図の判断は `blocks.choice`、通らない道は `blocks.path` に書く。
 表どうしの関係の図の表と項目は `blocks.table` に書く。
 集合の重なりの図の集まりは `blocks.circle` に書く。
+量の行き先の図の出どころと行き先は `blocks.box` に書き、帯は段の `events` の線で、量を線の名前に書く。
 段の中で起きること (線や箱の中の処理) は、段ごとの `events` に書く。
 
 ```json

@@ -1,0 +1,129 @@
+{
+  "version": 2,
+  "kind": "sankey",
+  "title": "Where the tokens go",
+  "blocks": {
+    "box": [
+      {
+        "id": "total",
+        "name": "Total 100M tokens",
+        "color": "slate"
+      },
+      {
+        "id": "comm",
+        "name": "Community pool",
+        "color": "green"
+      },
+      {
+        "id": "team",
+        "name": "Team",
+        "color": "blue"
+      },
+      {
+        "id": "inv",
+        "name": "Investors",
+        "color": "violet"
+      },
+      {
+        "id": "treas",
+        "name": "Treasury",
+        "color": "amber"
+      },
+      {
+        "id": "rew",
+        "name": "User rewards",
+        "color": "green"
+      },
+      {
+        "id": "don",
+        "name": "Donations",
+        "color": "rose"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Mint",
+      "body": "Mint 100 million tokens.",
+      "events": []
+    },
+    {
+      "title": "Community pool",
+      "body": "Send 40% of the total to the community pool.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "total",
+          "to": "comm",
+          "label": "40%",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Team and investors",
+      "body": "Send 20% to the team and 18% to the investors.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "total",
+          "to": "team",
+          "label": "20%",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "total",
+          "to": "inv",
+          "label": "18%",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Treasury",
+      "body": "Send the remaining 22% to the treasury.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "total",
+          "to": "treas",
+          "label": "22%",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Split the community pool",
+      "body": "Split the community 40% into 25% for user rewards and 15% for donations.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "comm",
+          "to": "rew",
+          "label": "25%",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "comm",
+          "to": "don",
+          "label": "15%",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ]
+}

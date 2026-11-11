@@ -10,6 +10,7 @@
  * 考えを広げる地図 (#3619) は真ん中の題から枝と葉を広げる図で帯の置き場を持たないので、中身の帯のブロックを描かない図の種類に書く。
  * 表どうしの関係の図 (#3618) の `set` の行は表の項目の値で、表のブロックが読むので、中身の帯のブロックを描かない図の種類に書く。
  * 集合の重なりの図 (#3620) の `set` の行は集まりと重なりの数で、集まりの円のブロックが読むので、中身の帯のブロックを描かない図の種類に書く。
+ * 量の行き先の図 (#3626) は量を帯の幅と棒の脇の字で見せ、帯の置き場を持たないので、中身の帯のブロックを描かない図の種類に書く。
  */
 import type { Block } from "../block";
 
@@ -21,6 +22,6 @@ export const SET_ATTRS: readonly string[] = ["tag"];
 export const block: Block = {
   name: "strip",
   rank: 30,
-  attach: { how: "attach-to-figure", except: ["try", "pipe", "chart", "mind", "er", "venn"] },
+  attach: { how: "attach-to-figure", except: ["try", "pipe", "chart", "mind", "er", "venn", "sankey"] },
   words: { heads: ["strip", "set"], headRanks: { set: 80 }, attrs: { strip: STRIP_ATTRS, set: SET_ATTRS } },
 };

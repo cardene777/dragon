@@ -4,6 +4,7 @@ import type { BlockReading } from "./block";
 /** 後から読む図の種類の個別ブロックの読み方を読む関数。鍵は置き場の dir の名前。軽い入口が書いた図が使う時に呼ぶ (#3349) */
 export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>>> = {
   "ask": () => import("./ask/read").then((m): BlockReading => m.reading),
+  "band": () => import("./band/read").then((m): BlockReading => m.reading),
   "branch": () => import("./branch/read").then((m): BlockReading => m.reading),
   "calc": () => import("./calc/read").then((m): BlockReading => m.reading),
   "call": () => import("./call/read").then((m): BlockReading => m.reading),

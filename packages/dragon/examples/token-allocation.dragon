@@ -1,0 +1,32 @@
+// 新しく作ったトークンを、仲間と作った人と出資した人と運営の蓄えへどれだけ配るかを、全量から分かれる帯で追う。
+// 割合は形を見せるための見本の値で、実際のトークンの配り方ではない。
+sankey トークンの配り先
+
+box total as 全量1億トークン [color: slate]
+box comm as 仲間に配る [color: green]
+box team as 作った人 [color: blue]
+box inv as 出資した人 [color: violet]
+box treas as 運営の蓄え [color: amber]
+box rew as 使った人への報酬 [color: green]
+box don as 寄付 [color: rose]
+
+step 作る
+  say 1億トークンを作る。
+
+step 仲間に配る
+  say 全量の40%を、仲間に配る枠へ回す。
+  total -> comm: 40%
+
+step 作った人と出資した人へ
+  say 20%を作った人へ、18%を出資した人へ回す。
+  total -> team: 20%
+  total -> inv: 18%
+
+step 運営の蓄えへ
+  say 残りの22%を運営の蓄えへ回す。
+  total -> treas: 22%
+
+step 仲間の分を分ける
+  say 仲間の40%を、使った人への報酬の25%と寄付の15%に分ける。
+  comm -> rew: 25%
+  comm -> don: 15%
