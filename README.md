@@ -98,7 +98,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -156,6 +156,17 @@ A line without `carry` or `tag` runs this dot instead of an envelope.
 | `choice <id> as <question>` | A choice, drawn as a diamond with the question inside. A long question wraps onto two lines. Each line out of it carries the answer as its label, and it has at most two ways out |
 | `<id> -> <id>: <answer>` | A line. A line written before the first step stays as a dotted path not taken this time, and a box that no line in a step reaches gets a dotted border and a muted name |
 | `start -> <id>`, `<id> -> finish` | The lines out of the start mark and into the finish mark |
+
+A cycle diagram (`cycle <title>`) follows a flow that goes around the same steps again and again.
+The steps sit on a ring clockwise from the top in the order written, and arc arrows join each step to the next.
+In a step the chip runs along the arc to the next step, and the arc it ran stays lit in the color of the receiving step.
+The strip goes in the middle of the ring instead of under the diagram.
+
+| Line | What it writes |
+|---|---|
+| `box <id> as <name>` | A step on the ring, before the first step. A cycle diagram takes 2 to 8 steps |
+| `<id> -> <id> [tag: <text>]` | A line to the next step on the ring and the chip that runs along its arc. A line from the last step to the first one starts the next round. A line that skips a step, goes backward or carries a label is refused |
+| `strip <title>: <field>, <field>` | The strip title and field values in the middle of the ring. `set <field>: <value>` in a step changes a value. The first field shows large, and field names are not shown |
 
 ## Documentation
 

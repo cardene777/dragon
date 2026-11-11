@@ -1,0 +1,35 @@
+// Ethereumの1つのスロットは12秒で、提案者が取引を集めてブロックを出し、委員が投票し、投票をまとめて次の提案者へ渡す。
+// 12秒たつと次のスロットが始まり、同じ4つの手順をもう一度回る。
+cycle Ethereumの12秒のスロット
+
+box collect as 取引を集める [note: 待ちの場から, color: blue]
+box propose as ブロックを出す [note: 提案者が1人, color: violet]
+box vote as 委員が投票する [note: 約3万人が署名, color: green]
+box gather as 投票をまとめる [note: 次の提案者へ, color: amber]
+
+strip スロット: 番号, 経過
+
+step 取引を集める
+  say 提案者が、送られて待っている取引を待ちの場 (mempool) から集める。
+  set 番号: #18,402,113
+  set 経過: 始まりから0秒
+
+step ブロックを出す
+  say 提案者が集めた取引でブロックを作り、スロットの始まりにネットワークへ出す。
+  collect -> propose [tag: 取引]
+
+step 委員が投票する
+  say このスロットの委員が、届いたブロックを正しい先頭と認めて署名する。
+  propose -> vote [tag: ブロック]
+  set 経過: 始まりから4秒
+
+step 投票をまとめる
+  say 集まった署名を1つにまとめ、次のスロットの提案者へ渡す。
+  vote -> gather [tag: 投票]
+  set 経過: 始まりから8秒
+
+step 次のスロットへ
+  say 12秒たつと次のスロットが始まり、次の提案者が取引を集める。
+  gather -> collect [tag: 次へ]
+  set 番号: #18,402,114
+  set 経過: 始まりから0秒

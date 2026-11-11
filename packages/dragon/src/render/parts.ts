@@ -17,7 +17,7 @@ import { type Corner, EASE, LOOK, MOTION, type TextStyle } from "../look/values"
 import type { Span, Timeline } from "../timeline";
 import { r1 } from "./round";
 import type { PipePiece } from "./breaks";
-import { ALWAYS, type Framed, type Ink, type Shown, type Trace } from "./ink";
+import { ALWAYS, type Framed, type Ink, type Shown, type Stroke, type Trace } from "./ink";
 import type { Frame, Motion } from "./motion";
 
 export const esc = (s: string): string =>
@@ -84,6 +84,8 @@ export interface Ctx {
   traces: Trace[];
   /** 時間軸の囲みの枠の内に収める部品の記録 (#3527)。枠に掛かる部品を数える */
   framed: Framed[];
+  /** 箱を結ぶ線でないのに字を横切る部品 (時間軸の図の針と範囲の囲み) の記録 (#3631)。札を持たない字を横切る部品を数える */
+  strokes: Stroke[];
   /** 配管の図の描いた部品の記録 (#3523)。崩れの確かめが、返した値の札と弁の重なりや管どうしの重なりを数える */
   pieces?: PipePiece[];
   /** 箱の名前と下の字の基準線を、箱の真ん中からどれだけ下げるか (`boxTextY`) */

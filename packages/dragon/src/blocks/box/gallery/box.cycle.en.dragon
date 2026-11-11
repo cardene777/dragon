@@ -1,0 +1,16 @@
+cycle Boxes
+
+box draft as Write a draft
+box review as Review
+box publish as Publish
+
+step Write
+  say A box line places one step. Write the name to show after as.
+
+step Review
+  say The steps sit on the ring clockwise from the top in the order written.
+  draft -> review [tag: draft]
+
+step Publish
+  say A line names the steps by id and goes to the next step on the ring.
+  review -> publish [tag: revised]

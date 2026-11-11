@@ -41,6 +41,7 @@ import { block as pressBlock } from "./press/block";
 import { block as queueBlock } from "./queue/block";
 import { block as returnBlock } from "./return/block";
 import { block as revertBlock } from "./revert/block";
+import { block as ringBlock } from "./ring/block";
 import { block as roleBlock } from "./role/block";
 import { block as routeBlock } from "./route/block";
 import { block as rowBlock } from "./row/block";
@@ -102,6 +103,7 @@ export const BLOCKS = {
   "queue": queueBlock,
   "return": returnBlock,
   "revert": revertBlock,
+  "ring": ringBlock,
   "role": roleBlock,
   "route": routeBlock,
   "row": rowBlock,
@@ -121,4 +123,4 @@ export const BLOCKS = {
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "ask", "box", "branch", "calc", "call", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "color", "commit", "copy", "delete", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "item", "leaf", "legend", "lifeline", "line", "link", "log", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "task", "value", "write", "zoom"] as const;
+export const BLOCK_NAMES = ["act", "ask", "box", "branch", "calc", "call", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "color", "commit", "copy", "delete", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "item", "leaf", "legend", "lifeline", "line", "link", "log", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "ring", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "task", "value", "write", "zoom"] as const;

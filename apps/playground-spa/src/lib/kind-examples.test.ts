@@ -1,7 +1,7 @@
 /**
  * 見本が少ない図の種類に見本を足す (#3615)。
  *
- * 11 種類のどれも、カタログの種類の頁 (`catalog/catalog.ts` の `samplesOf`) に見本を 4 枚以上載せる。
+ * 12 種類 (回り続ける図 #3623 を足した数) のどれも、カタログの種類の頁 (`catalog/catalog.ts` の `samplesOf`) に見本を 4 枚以上載せる。
  * 足した 21 枚は日本語と英語の記法を持ち、英語版は日本語版と同じ形 (部品の数、段の数、段ごとの出来事の数) で、どちらも崩れを出さない。
  * 題材は、今の見本が Web3 に寄る種類には一般の題を、一般に寄る種類には Web3 の題を足し、見本を足した種類は Git の図を除いて両方を持つ。
  * 題材の分野は記法から読めないので、この file の表が持つ。表は #3615 の「決めたこと (step 2)」の写し。
@@ -110,7 +110,7 @@ beforeAll(async () => {
 
 describe("見本が少ない図の種類に見本を足す (#3615)", () => {
   it("every-kind-has-four-examples", () => {
-    expect(KINDS.length, "カタログの図の種類の数").toBe(11);
+    expect(KINDS.length, "カタログの図の種類の数").toBe(12);
     const short = KINDS.map((kind) => ({ kind, count: samplesOf(kind).length })).filter(({ count }) => count < 4);
     expect(short, "見本が 4 枚に届かない種類").toEqual([]);
   });

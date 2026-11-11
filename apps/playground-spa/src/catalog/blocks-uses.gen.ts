@@ -41,6 +41,7 @@ import { uses as pressUses } from "../../../../packages/dragon/src/blocks/press/
 import { uses as queueUses } from "../../../../packages/dragon/src/blocks/queue/gallery/uses";
 import { uses as returnUses } from "../../../../packages/dragon/src/blocks/return/gallery/uses";
 import { uses as revertUses } from "../../../../packages/dragon/src/blocks/revert/gallery/uses";
+import { uses as ringUses } from "../../../../packages/dragon/src/blocks/ring/gallery/uses";
 import { uses as roleUses } from "../../../../packages/dragon/src/blocks/role/gallery/uses";
 import { uses as routeUses } from "../../../../packages/dragon/src/blocks/route/gallery/uses";
 import { uses as rowUses } from "../../../../packages/dragon/src/blocks/row/gallery/uses";
@@ -102,6 +103,7 @@ export const BLOCK_USES = {
   "queue": queueUses,
   "return": returnUses,
   "revert": revertUses,
+  "ring": ringUses,
   "role": roleUses,
   "route": routeUses,
   "row": rowUses,

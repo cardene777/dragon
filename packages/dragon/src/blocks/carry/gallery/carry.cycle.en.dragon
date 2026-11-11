@@ -1,0 +1,19 @@
+cycle What travels
+
+box order as Take the order
+box pay as Wait for payment
+box ship as Ship
+box done as Close
+
+step Envelope
+  say With nothing written, an envelope runs along the arc.
+  order -> pay
+
+step Tag
+  say tag writes a value on the chip that runs along the arc.
+  pay -> ship [tag: #42]
+
+step Nothing carried
+  say carry: none only lights the arc, and carry: coin shows money moving as a coin.
+  ship -> done [carry: none]
+  done -> order [carry: coin]

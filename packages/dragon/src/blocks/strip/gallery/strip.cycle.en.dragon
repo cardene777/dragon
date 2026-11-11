@@ -1,0 +1,22 @@
+cycle Strip and fields
+
+box get as Take the order
+box ship as Ship
+box done as Deliver
+
+strip Order: number, state
+
+step Take
+  say strip puts the strip title and fields in the middle of the ring, and set fills a field.
+  set number: 42
+  set state: received
+
+step Send
+  say The first field shows large and the others show smaller.
+  get -> ship [tag: parcel]
+  set state: shipped
+
+step Arrive
+  say A value that changes after it was first written shows in the color of that step's box. A tag written with set shows where the value goes in the middle of the ring.
+  ship -> done [tag: parcel]
+  set state [tag: delivered]

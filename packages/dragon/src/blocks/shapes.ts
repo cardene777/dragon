@@ -41,6 +41,7 @@ import { shape as pressShape } from "./press/shape";
 import { shape as queueShape } from "./queue/shape";
 import { shape as returnShape } from "./return/shape";
 import { shape as revertShape } from "./revert/shape";
+import { shape as ringShape } from "./ring/shape";
 import { shape as roleShape } from "./role/shape";
 import { shape as routeShape } from "./route/shape";
 import { shape as rowShape } from "./row/shape";
@@ -102,6 +103,7 @@ export const SHAPES = {
   "queue": queueShape,
   "return": returnShape,
   "revert": revertShape,
+  "ring": ringShape,
   "role": roleShape,
   "route": routeShape,
   "row": rowShape,

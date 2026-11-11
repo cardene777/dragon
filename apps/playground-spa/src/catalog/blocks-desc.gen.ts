@@ -41,6 +41,7 @@ import { desc as pressDesc } from "../../../../packages/dragon/src/blocks/press/
 import { desc as queueDesc } from "../../../../packages/dragon/src/blocks/queue/gallery/desc";
 import { desc as returnDesc } from "../../../../packages/dragon/src/blocks/return/gallery/desc";
 import { desc as revertDesc } from "../../../../packages/dragon/src/blocks/revert/gallery/desc";
+import { desc as ringDesc } from "../../../../packages/dragon/src/blocks/ring/gallery/desc";
 import { desc as roleDesc } from "../../../../packages/dragon/src/blocks/role/gallery/desc";
 import { desc as routeDesc } from "../../../../packages/dragon/src/blocks/route/gallery/desc";
 import { desc as rowDesc } from "../../../../packages/dragon/src/blocks/row/gallery/desc";
@@ -102,6 +103,7 @@ export const BLOCK_DESC = {
   "queue": queueDesc,
   "return": returnDesc,
   "revert": revertDesc,
+  "ring": ringDesc,
   "role": roleDesc,
   "route": routeDesc,
   "row": rowDesc,

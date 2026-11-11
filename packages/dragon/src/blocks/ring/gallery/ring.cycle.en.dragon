@@ -1,0 +1,20 @@
+cycle Ring
+
+box plan as Decide
+box work as Do
+box look as Look back
+
+step Decide
+  say The steps declared with box lines sit on a ring clockwise from the top in the order written.
+
+step Do
+  say A line goes only to the next step on the ring, and its tag chip runs along the arc.
+  plan -> work [tag: tasks]
+
+step Look back
+  say An arc the chip ran stays lit in the color of the receiving step.
+  work -> look [tag: progress]
+
+step Next round
+  say A line from the last step to the first one starts the next round.
+  look -> plan [tag: left]

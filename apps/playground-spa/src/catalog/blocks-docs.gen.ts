@@ -41,6 +41,7 @@ import { docs as pressDocs } from "../../../../packages/dragon/src/blocks/press/
 import { docs as queueDocs } from "../../../../packages/dragon/src/blocks/queue/gallery/docs";
 import { docs as returnDocs } from "../../../../packages/dragon/src/blocks/return/gallery/docs";
 import { docs as revertDocs } from "../../../../packages/dragon/src/blocks/revert/gallery/docs";
+import { docs as ringDocs } from "../../../../packages/dragon/src/blocks/ring/gallery/docs";
 import { docs as roleDocs } from "../../../../packages/dragon/src/blocks/role/gallery/docs";
 import { docs as routeDocs } from "../../../../packages/dragon/src/blocks/route/gallery/docs";
 import { docs as rowDocs } from "../../../../packages/dragon/src/blocks/row/gallery/docs";
@@ -102,6 +103,7 @@ export const BLOCK_DOCS = {
   "queue": queueDocs,
   "return": returnDocs,
   "revert": revertDocs,
+  "ring": ringDocs,
   "role": roleDocs,
   "route": routeDocs,
   "row": rowDocs,

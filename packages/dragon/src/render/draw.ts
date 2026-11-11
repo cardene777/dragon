@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * chart、flow、git、lineup、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * chart、cycle、flow、git、lineup、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -38,6 +38,7 @@ import {
   type SceneField,
   type SceneStrip,
 } from "../layout/scene";
+import type { CycleLayout } from "../kinds/cycle/layout";
 import type { TimeLayout } from "../kinds/time/layout";
 import type { TreeLayout } from "../kinds/tree/layout";
 import type { TryLayout } from "../kinds/try/layout";
@@ -70,13 +71,14 @@ import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
 import { frameShape, partRadius, sharpJoins } from "./corner";
 import type { BreakFinder, LayoutBreak, PipePiece } from "./breaks";
-import { findOverlaps, type Framed, type Ink, type Overlap, type Trace } from "./ink";
+import { findOverlaps, type Framed, type Ink, type Overlap, type Stroke, type Trace } from "./ink";
 import { Motion } from "./motion";
 
 /** 置き場を持つ図の種類を、図の種類の名前で引く表 */
 const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 
 const isChartLayout = (layout: Layout): layout is ChartLayout => layout.kind === "chart";
+const isCycleLayout = (layout: Layout): layout is CycleLayout => layout.kind === "cycle";
 const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "git";
 const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
 const isPipeLayout = (layout: Layout): layout is PipeLayout => layout.kind === "pipe";
@@ -352,7 +354,7 @@ export interface FollowFrame {
 /**
  * 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。
  * `framed`には、時間軸の囲みの枠の内に収める部品を記録する (#3527)。
- * `pieces` を渡すと、配管の図の描いた部品をそこへ記録する (#3523)
+ * `pieces` を渡すと、配管の図の描いた部品をそこへ記録する (#3523)。`strokes`には、時間軸の図の針と範囲の囲みの線を記録する (#3631)
  */
 export function drawSvg(
   diagram: DiagramModel,
@@ -365,6 +367,7 @@ export function drawSvg(
   traces: Trace[] = [],
   framed: Framed[] = [],
   pieces?: PipePiece[],
+  strokes: Stroke[] = [],
 ): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける。
   // 色は色味の名前でなく色の値から名前を作り、色の値を重ねた図 (#3198) と同じ色味の名前の図の変数の規則を分ける
@@ -389,13 +392,16 @@ export function drawSvg(
     ink,
     traces,
     framed,
+    strokes,
     ...(pieces ? { pieces } : {}),
     boxText: boxTextY(layout.boxes),
     corner: palette.corner,
     seats: seatsOf(layout.edges, carried),
     ...flowParts?.flowHooks(m, timeline),
   };
-  const on = involved(diagram);
+  // 回り続ける図の弧と輪の真ん中の字は、回り続ける図を描く部品が描き、段ごとにその段の手順の箱だけを光らせる (#3623)。見た目の規則も回り続ける図の SVG にだけ書く
+  const cycle = isCycleLayout(layout) ? kindParts("cycle").drawCycle(layout, diagram, ctx) : undefined;
+  const on = cycle?.on ?? involved(diagram);
   // 時系列図の処理は生存線の上の札に出し、他の図の種類は箱の下の字に出す
   const subs = subChanges(diagram, timeline, layout.kind !== "sequence");
 
@@ -407,6 +413,7 @@ export function drawSvg(
     badge: [] as string[],
     top: [] as string[],
   };
+  if (cycle) L.base.push(cycle.base);
   for (const region of layout.regions) L.band.push(band(region, ink, ctx.corner));
   const ghostColor = layout.boxes.find((b) => b.ghost)?.color ?? "slate";
   if (layout.side) L.band.push(side(layout.side, ghostColor, ink, ctx.corner));
@@ -502,7 +509,8 @@ export function drawSvg(
     if (
       !time ||
       (timeLayout && !wired.has(`${e.step}/${e.event}`)) ||
-      runs.has(`${e.step}/${e.event}`)
+      runs.has(`${e.step}/${e.event}`) ||
+      cycle
     )
       continue;
     // 木の図の箱は段ごとに現れるので、木の線を走らない線の点線は、両端の木の箱が現れてから出す (#3240)
@@ -596,7 +604,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${flowParts?.flowCss(id) ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${cycle?.css ?? ""}${flowParts?.flowCss(id) ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -1051,6 +1059,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
       ? kindParts("state", lang).layoutState(diagram, lang)
       : diagram.kind === "flow"
         ? kindParts("flow", lang).layoutFlow(diagram, lang)
+      : diagram.kind === "cycle"
+        ? kindParts("cycle", lang).layoutCycle(diagram)
       : diagram.kind === "git"
         ? kindParts("git", lang).layoutGit(diagram)
         : diagram.kind === "time"
@@ -1082,7 +1092,13 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };
   const timeline = buildTimeline(diagram, options.still === true);
   // 手順の図の段の印の点と運ぶ物と光る間は、手順の図の描く部品が時刻の表を直す (#3561)
-  const timed = diagram.kind === "flow" ? kindParts("flow", lang).flowTimes(diagram, timeline) : timeline;
+  // 回り続ける図の札は、走り出しを待たずに出て段の終わりに消える (#3623)
+  const timed =
+    diagram.kind === "flow"
+      ? kindParts("flow", lang).flowTimes(diagram, timeline)
+      : diagram.kind === "cycle"
+        ? kindParts("cycle", lang).cycleTimes(diagram, timeline)
+        : timeline;
   const rendered = renderLayout(diagram, layout, timed, drawn);
   return diagram === model || diagram.steps.length === model.steps.length ? rendered : { ...rendered, source: model };
 }
@@ -1103,7 +1119,8 @@ export function renderLayout(
   const traces: Trace[] = [];
   const framed: Framed[] = [];
   const pieces: PipePiece[] = [];
-  const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces);
+  const strokes: Stroke[] = [];
+  const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes);
   // 箱の札は、時間軸の図と列の図では描く部品が別に描くので、崩れの確かめも箱の札を描いた図の種類の箱だけを見る
   const carded = isTimeLayout(layout) || isLineupLayout(layout) ? [] : layout.boxes.filter((box) => !box.ghost);
   const breaks = options.findBreaks?.({
@@ -1116,6 +1133,7 @@ export function renderLayout(
     edges: layout.edges,
     layout,
     ...(pieces.length > 0 ? { pieces } : {}),
+    ...(strokes.length > 0 ? { strokes } : {}),
   });
   return {
     svg,

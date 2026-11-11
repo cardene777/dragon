@@ -200,7 +200,7 @@ mountDiagram(host, parsed.diagram, {
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`chart`、`flow`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+既定の入口と同じ部品を出すが、`chart`、`cycle`、`flow`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
 これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
 `parseNotation` で記法から読んだ図は描く時に原本の形の検査を省くので、記法の図を描く頁は検査を読まない。JSON を渡した時は `loadFor` が原本の形の検査も読み、読む前に JSON を読むか描くと `loadFor` を待つよう示す誤りで止まる。
 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -300,7 +300,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -691,6 +691,48 @@ step ログインする
   say コードも合い、ログインが済む。「いいえ」の道は点線のまま残る。
   otp -> done: はい
   done -> finish
+```
+
+### 回り続ける図
+
+`cycle` で始めると、同じ手順を何度も回る流れを段ごとに追う回り続ける図になる。
+手順は書いた順に輪の真上から右回りに並び、隣どうしを弧の矢印で結ぶ。
+
+- `box <名札> as <名前>` は輪の上の手順で、最初の `step` より前に書く。手順は 2 つから 8 つまで書ける
+- 段の中の `<名札> -> <名札> [tag: <字>]` は輪の次の手順への線。その段で札が弧に沿って次の手順へ走り、走った弧と矢じりは受ける側の手順の色で光ったまま残る
+- 最後の手順から最初の手順への線も次の手順への線で、そこから次の回に入る。1 つ飛ばす線、逆回りの線、同じ手順へ戻る線と、`: <名前>` を付けた線は誤りで止まる。`act` と `group` の行も書けない
+- 段の番号は、その段で札が着いた手順の箱の横に出る。線の無い段は、前の段の手順の箱の横に出る
+- `strip <題>: <欄>, <欄>` を書くと、輪の真ん中に帯の題と欄の値が出る。段の中の `set <欄>: <値>` で値が入れ替わる。最初の欄の値は大きく、2 つ目からの欄の値は小さく出て、欄の名前は出ない。最初に書いた後で変わった値は、変わった段の間だけその段の手順の色で出る
+
+```dragon
+cycle 週の振り返り
+
+box plan as 決める [note: 週の初め, color: blue]
+box work as 進める [note: 毎日, color: green]
+box look as 振り返る [note: 週の終わり, color: amber]
+
+strip 週: 回, 曜日
+
+step 決める
+  say 週の初めに、その週にやることを決める。
+  set 回: 第1週
+  set 曜日: 月曜
+
+step 進める
+  say 決めたことを毎日進める。
+  plan -> work [tag: やること]
+  set 曜日: 火曜から木曜
+
+step 振り返る
+  say 週の終わりに、進んだことと残ったことを振り返る。
+  work -> look [tag: 進み]
+  set 曜日: 金曜
+
+step 次の週へ
+  say 残ったことを持って、次の週の決めることへ戻る。
+  look -> plan [tag: 残り]
+  set 回: 第2週
+  set 曜日: 月曜
 ```
 
 ## 原本の JSON

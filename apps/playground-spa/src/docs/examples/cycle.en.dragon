@@ -1,0 +1,28 @@
+cycle The weekly review
+
+box plan as Decide [note: start of week, color: blue]
+box work as Do [note: every day, color: green]
+box look as Look back [note: end of week, color: amber]
+
+strip Week: round, day
+
+step Decide
+  say At the start of the week, decide what to do that week.
+  set round: Week 1
+  set day: Monday
+
+step Do
+  say Work on what was decided each day.
+  plan -> work [tag: tasks]
+  set day: Tuesday to Thursday
+
+step Look back
+  say At the end of the week, look back on what got done and what is left.
+  work -> look [tag: progress]
+  set day: Friday
+
+step On to the next week
+  say Take what is left back to deciding the next week.
+  look -> plan [tag: left]
+  set round: Week 2
+  set day: Monday

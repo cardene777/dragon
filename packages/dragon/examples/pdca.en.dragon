@@ -1,0 +1,32 @@
+// A shop fixes its floor with PDCA. It plans the shelves from what sold, rearranges them and sells for a while, checks the sales, decides what to fix and returns to planning the next round.
+cycle Fix the shop floor with PDCA
+
+box plan as Plan [note: set the goal, color: blue]
+box run as Do [note: try it out, color: green]
+box check as Check [note: measure it, color: amber]
+box fix as Act [note: adjust, color: rose]
+
+strip Shop floor: round, sales
+
+step Make the plan
+  say From last month's sales, plan to move the best sellers near the entrance.
+  set round: Round 1
+  set sales: 12,000 USD a week
+
+step Rearrange and sell
+  say The shelves are rearranged as planned and the shop sells for two weeks.
+  plan -> run [tag: shelf plan]
+
+step Check the sales
+  say The sales after the change are checked against the weeks before.
+  run -> check [tag: sales]
+  set sales: 13,800 USD a week
+
+step Decide what to fix
+  say Shelves that sold more stay as they are, and the layout of the others gets fixed.
+  check -> fix [tag: results]
+
+step On to the next round
+  say The fixes go into the next plan, and round 2 begins.
+  fix -> plan [tag: fixes]
+  set round: Round 2
