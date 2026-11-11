@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The catalog opens with the diagram kinds, each with a picture** (#3614)
+
+  The catalog page listed the text-only part cards first, and the 11 diagram kind cards came below them (about 2,470px from the top at 1440px wide). The kind cards had only a title and a description, with no picture of the diagram. The kinds section now sits right under the page head, and each card shows the first example of its kind stopped at the last step. At 1440px wide the first card starts 445px from the top. Diagram kinds differ in shape, so the picture measures the drawn diagram and shrinks it until the whole diagram fits the card; a tall diagram (try and flow) that would become a thin strip is widened to 70% of the card and shown from the top. The parts and kind-only parts sections follow the kinds section. Clicking a card still opens that kind's page.
+
 ## [0.71.0] - 2026-11-11
 
 ### Added
