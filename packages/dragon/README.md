@@ -907,6 +907,40 @@ When text overlaps in some step, the export still finishes and prints each overl
 The HTML is a single file with fonts cut down to the characters the diagram draws, and it fetches nothing from outside.
 To call it from Node, use `exportDiagram` from `@cardenelabs/dragon/export`.
 
+### Export in the browser
+
+A diagram drawn on a page can be turned into GIF, MP4, PNG, and SVG inside the reader's browser.
+Load the entry `@cardenelabs/dragon/capture` when the export button is pressed, so pages that only draw do not carry it.
+Pass the SVG element drawn on the page, and `captureGif`, `captureMp4`, and `capturePng` return a Blob, and `captureSvg` returns a string.
+GIF and MP4 capture one cycle of the diagram's motion, with the same frame count and size as `dragon export` writes for the same diagram.
+The PNG is a still of the current moment, twice the size of the SVG.
+PNG and SVG also take SVGs that are not dragon diagrams.
+Fonts are embedded whole, taking from the page's `@font-face` rules only the font files whose range covers the characters drawn.
+When a font file cannot be read, the call refuses and names the font and its range.
+MP4 is made with H.264 in WebCodecs, so `canCaptureMp4` returns `false` in browsers that cannot make it.
+
+```ts
+import { canCaptureMp4, captureGif, captureMp4, capturePng, captureSvg } from "@cardenelabs/dragon/capture";
+
+const svg = document.querySelector('svg[data-dragon="figure"]') as SVGSVGElement;
+const png = await capturePng(svg);
+const svgText = await captureSvg(svg);
+const gif = await captureGif(svg);
+const mp4 = (await canCaptureMp4()) ? await captureMp4(svg) : undefined;
+```
+
+Pass the `timeline` that `renderDiagram` returns to GIF and MP4 (`captureGif(svg, { timeline })`) to build the GIF colors from the same pictures as `dragon export`.
+
+`editorUrl` from the drawing entry makes a URL that opens the notation in the editor.
+The notation goes after `#n=` in the URL, so it is not sent to the server that serves the page.
+
+```ts
+import { editorUrl } from "@cardenelabs/dragon";
+
+const url = editorUrl(source); // https://cardene777.github.io/dragon/editor#n=...
+const local = editorUrl(source, { base: "http://localhost:5173/" });
+```
+
 ## License
 
 MIT
