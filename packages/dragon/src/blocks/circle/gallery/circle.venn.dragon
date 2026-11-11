@@ -1,0 +1,25 @@
+venn 集まりの円
+
+item read as 読書
+item move as 運動
+item cook as 料理 [color: violet]
+
+step 読書
+  say item で集まりを宣言し、set で初めて数を書いた段で円が現れる。円の色は color で決める。
+  set read: 40
+
+step 運動
+  say & で繋いだ set は重なりの数で、その段で重なりの区画が光る。
+  set move: 30
+  set read & move: 12
+
+step 料理
+  say 区画の中には、それぞれだけの数が出る。
+  set cook: 25
+  set read & cook: 10
+  set move & cook: 8
+  set read & move & cook: 4
+
+step どれにも
+  say set none は、どれにも入らない数を円の外の枠に出す。
+  set none: 15

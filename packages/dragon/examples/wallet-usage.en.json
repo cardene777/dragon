@@ -1,0 +1,111 @@
+{
+  "version": 2,
+  "kind": "venn",
+  "title": "How a wallet is used",
+  "blocks": {
+    "circle": [
+      {
+        "id": "send",
+        "name": "Send"
+      },
+      {
+        "id": "swap",
+        "name": "Swap"
+      },
+      {
+        "id": "stake",
+        "name": "Stake"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Send",
+      "body": "8,200 users sent tokens in a month.",
+      "events": [
+        {
+          "type": "count",
+          "sets": [
+            "send"
+          ],
+          "value": 8200
+        }
+      ]
+    },
+    {
+      "title": "Swap",
+      "body": "5,400 users swapped, and 3,100 of them also sent.",
+      "events": [
+        {
+          "type": "count",
+          "sets": [
+            "swap"
+          ],
+          "value": 5400
+        },
+        {
+          "type": "count",
+          "sets": [
+            "send",
+            "swap"
+          ],
+          "value": 3100
+        }
+      ]
+    },
+    {
+      "title": "Stake",
+      "body": "2,600 users staked. 1,500 of them also sent, and 1,200 also swapped.",
+      "events": [
+        {
+          "type": "count",
+          "sets": [
+            "stake"
+          ],
+          "value": 2600
+        },
+        {
+          "type": "count",
+          "sets": [
+            "send",
+            "stake"
+          ],
+          "value": 1500
+        },
+        {
+          "type": "count",
+          "sets": [
+            "swap",
+            "stake"
+          ],
+          "value": 1200
+        }
+      ]
+    },
+    {
+      "title": "All three",
+      "body": "900 users used all three of send, swap and stake.",
+      "events": [
+        {
+          "type": "count",
+          "sets": [
+            "send",
+            "swap",
+            "stake"
+          ],
+          "value": 900
+        }
+      ]
+    },
+    {
+      "title": "None",
+      "body": "700 users only held a balance and used none of them.",
+      "events": [
+        {
+          "type": "none",
+          "value": 700
+        }
+      ]
+    }
+  ]
+}

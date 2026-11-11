@@ -23,6 +23,7 @@ import type { Box, ChartItem, DiagramModel, DiagramEvent, GitBranch, LineupItem,
 import type { PipeRun } from "../pipe-run";
 import type { FlowChoice, FlowLine } from "./choice/block";
 import type { ErTable } from "./table/block";
+import type { VennSet } from "./circle/block";
 import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
 
@@ -118,6 +119,11 @@ export interface FigureDraft {
    * 結びの先は後ろの表も指せるので、書いた行と結びの先の字の位置 (`at`) と結びを書いた表 (`from`) を積み、全ての宣言を読んでから確かめる
    */
   er: { tables: ErTable[]; lines: SourceLine[]; refs: { source: SourceLine; at: number; from: string; ref: string }[] };
+  /**
+   * 集合の重なりの図の集まりと、区画の名札ごとの今の数と、数を書いた行と、読んでいる段の番号 (#3620)。集まりの円のブロックが `item` と `set` の行で組む。
+   * 区画の数が 0 より小さくならないかは全ての段を読んでから確かめるので、数を書いた行と数の字の位置 (`at`) を段の番号と積む。段の番号は最初の段を始めるまで -1
+   */
+  venn: { sets: VennSet[]; now: Map<string, number>; writes: { key: string; value: number; source: SourceLine; at: number; step: number }[]; step: number };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */

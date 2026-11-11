@@ -1,0 +1,17 @@
+venn 朝と夜に走る人
+
+item morning as 朝に走る
+item night as 夜に走る
+
+step 朝
+  say 朝に走る人は30人いる。
+  set morning: 30
+
+step 夜と両方
+  say 夜に走る人は20人で、そのうち5人は朝も走る。
+  set night: 20
+  set morning & night: 5
+
+step どちらでもない
+  say どちらにも走らない人は12人いる。
+  set none: 12

@@ -1,0 +1,18 @@
+// Compare the number of addresses that traded on Base and Arbitrum in a month, with two overlapping circles.
+// The values are sample numbers to show the shape, not numbers from a real survey.
+venn How L2 chains are used
+
+item base as Base
+item arb as Arbitrum
+
+step Base
+  say 12,000 addresses traded on Base.
+  set base: 12000
+
+step Arbitrum
+  say 9,000 addresses traded on Arbitrum.
+  set arb: 9000
+
+step Both
+  say 3,500 addresses traded on both, and the rest used only one of them.
+  set base & arb: 3500

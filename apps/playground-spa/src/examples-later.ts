@@ -118,6 +118,14 @@ import nftSaleJa from "../../../packages/dragon/examples/nft-sale.dragon?raw";
 import nftSaleEn from "../../../packages/dragon/examples/nft-sale.en.dragon?raw";
 import tokenTransferJa from "../../../packages/dragon/examples/token-transfer.dragon?raw";
 import tokenTransferEn from "../../../packages/dragon/examples/token-transfer.en.dragon?raw";
+import walletUsageJa from "../../../packages/dragon/examples/wallet-usage.dragon?raw";
+import walletUsageEn from "../../../packages/dragon/examples/wallet-usage.en.dragon?raw";
+import l2ChainsJa from "../../../packages/dragon/examples/l2-chains.dragon?raw";
+import l2ChainsEn from "../../../packages/dragon/examples/l2-chains.en.dragon?raw";
+import hobbiesJa from "../../../packages/dragon/examples/hobbies.dragon?raw";
+import hobbiesEn from "../../../packages/dragon/examples/hobbies.en.dragon?raw";
+import skillsJa from "../../../packages/dragon/examples/skills.dragon?raw";
+import skillsEn from "../../../packages/dragon/examples/skills.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -180,6 +188,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "library-loan": { ja: libraryLoanJa, en: libraryLoanEn },
   "nft-sale": { ja: nftSaleJa, en: nftSaleEn },
   "token-transfer": { ja: tokenTransferJa, en: tokenTransferEn },
+  "wallet-usage": { ja: walletUsageJa, en: walletUsageEn },
+  "l2-chains": { ja: l2ChainsJa, en: l2ChainsEn },
+  hobbies: { ja: hobbiesJa, en: hobbiesEn },
+  skills: { ja: skillsJa, en: skillsEn },
 };
 
 /**

@@ -12,6 +12,7 @@ import { uses as chartSetUses } from "../../../../packages/dragon/src/blocks/cha
 import { uses as chartShapeUses } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/uses";
 import { uses as checkUses } from "../../../../packages/dragon/src/blocks/check/gallery/uses";
 import { uses as choiceUses } from "../../../../packages/dragon/src/blocks/choice/gallery/uses";
+import { uses as circleUses } from "../../../../packages/dragon/src/blocks/circle/gallery/uses";
 import { uses as colorUses } from "../../../../packages/dragon/src/blocks/color/gallery/uses";
 import { uses as commitUses } from "../../../../packages/dragon/src/blocks/commit/gallery/uses";
 import { uses as copyUses } from "../../../../packages/dragon/src/blocks/copy/gallery/uses";
@@ -76,6 +77,7 @@ export const BLOCK_USES = {
   "chart-shape": chartShapeUses,
   "check": checkUses,
   "choice": choiceUses,
+  "circle": circleUses,
   "color": colorUses,
   "commit": commitUses,
   "copy": copyUses,

@@ -12,6 +12,7 @@ import { reading as chartSetReading } from "./chart-set/read";
 import { reading as chartShapeReading } from "./chart-shape/read";
 import { reading as checkReading } from "./check/read";
 import { reading as choiceReading } from "./choice/read";
+import { reading as circleReading } from "./circle/read";
 import { reading as colorReading } from "./color/read";
 import { reading as commitReading } from "./commit/read";
 import { reading as copyReading } from "./copy/read";
@@ -76,6 +77,7 @@ export const READINGS = {
   "chart-shape": chartShapeReading,
   "check": checkReading,
   "choice": choiceReading,
+  "circle": circleReading,
   "color": colorReading,
   "commit": commitReading,
   "copy": copyReading,

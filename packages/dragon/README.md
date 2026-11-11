@@ -196,7 +196,7 @@ mountDiagram(host, parsed.diagram, {
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `mind`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, and `venn`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -296,7 +296,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `venn` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -804,6 +804,38 @@ step Count the order
   pick users.orders
 ```
 
+### Set overlap diagram
+
+Start with `venn` to draw a set overlap diagram, which overlaps two or three sets as circles and counts how many fall in each region step by step.
+Two sets sit left and right, and three sets sit top left, top right and below.
+
+- `item <id> as <name>` is a set, written before the first `step`. A set overlap diagram takes 2 or 3 sets, and `[color: <color>]` sets a circle color
+- `set <id>: <count>` inside a step writes the total of a set. Its circle appears in the step that first writes it, and the name and the total sit outside the circle
+- `set <id> & <id>: <count>` writes the count in an overlap, and lights its region with a count chip in that step. An overlap larger than one of its sets is refused
+- Each region shows the count that is only in it, worked out from the totals and the overlaps. A region shows nothing until every count it needs is written
+- `set none: <count>` writes the count in none of the sets, and shows it in a frame around the circles from that step on. In other diagram kinds `none` still reads as an ordinary box id
+- The step number sits beside the name of the circle that appears in that step, or under the count of the region that step lights
+
+```dragon
+venn People who run in the morning and at night
+
+item morning as Run in the morning
+item night as Run at night
+
+step Morning
+  say 30 people run in the morning.
+  set morning: 30
+
+step Night and both
+  say 20 people run at night, and 5 of them also run in the morning.
+  set night: 20
+  set morning & night: 5
+
+step Neither
+  say 12 people run at neither time.
+  set none: 12
+```
+
 ## Source JSON
 
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
@@ -812,6 +844,7 @@ Git graph branches go in `blocks.branch`, the paths a state diagram does not tak
 A time diagram's scale, period, rows, tasks, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.task`, `blocks.point` and `blocks.zoom`.
 A flow diagram's choices go in `blocks.choice`, and the paths it does not take in `blocks.path`.
 A table relation diagram's tables and their fields go in `blocks.table`.
+A set overlap diagram's sets go in `blocks.circle`.
 What happens in a step (lines and actions inside a box) goes in each step's `events`.
 
 ```json

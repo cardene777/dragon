@@ -1,0 +1,17 @@
+venn Steps [view: fixed]
+
+item a as A
+item b as B
+
+step Count
+  say step separates steps, and say writes the body of a step.
+    code writes the command typed in that step.
+  code count
+  set a: 3
+
+step Count again
+  say Steps are viewed one at a time.
+    view picks whether the frame follows the step or holds the whole diagram.
+  code recount
+  set b: 5
+  set a & b: 2

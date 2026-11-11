@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になる。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になる。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -32,7 +32,8 @@
         "flow",
         "cycle",
         "mind",
-        "er"
+        "er",
+        "venn"
       ]
     },
     "title": {
@@ -162,6 +163,15 @@
             "$ref": "#/definitions/erTable"
           }
         },
+        "circle": {
+          "description": "集合の重なりの図の集まり。宣言した順に円を置く。2 つの集まりは左右に、3 つの集まりは左上と右上と下に置く",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/definitions/vennSet"
+          }
+        },
         "path": {
           "type": "array",
           "minItems": 1,
@@ -270,6 +280,40 @@
                 "events": {
                   "items": {
                     "$ref": "#/definitions/notErEvent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "venn"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "blocks": {
+            "properties": {
+              "circle": {
+                "$ref": "#/definitions/absent"
+              }
+            }
+          },
+          "steps": {
+            "items": {
+              "properties": {
+                "events": {
+                  "items": {
+                    "$ref": "#/definitions/notVennEvent"
                   }
                 }
               }
@@ -1329,67 +1373,150 @@
                             }
                           },
                           "else": {
-                            "properties": {
-                              "blocks": {
-                                "required": [
-                                  "box"
-                                ],
-                                "properties": {
-                                  "box": {
-                                    "minItems": 1
-                                  },
-                                  "strip": {
-                                    "$ref": "#/definitions/plainStrip"
-                                  },
-                                  "path": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "branch": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "scale": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "period": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "row": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "task": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "point": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "zoom": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "item": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "role": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "part": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "hold": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "side": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "check": {
-                                    "$ref": "#/definitions/absent"
-                                  },
-                                  "choice": {
-                                    "$ref": "#/definitions/absent"
-                                  }
+                            "if": {
+                              "required": [
+                                "kind"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "venn"
                                 }
-                              },
-                              "steps": {
-                                "$ref": "#/definitions/plainSteps"
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "blocks": {
+                                  "required": [
+                                    "circle"
+                                  ],
+                                  "properties": {
+                                    "group": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "box": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "strip": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "path": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "branch": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "scale": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "period": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "row": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "task": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "point": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "zoom": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "item": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "role": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "part": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "hold": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "side": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "check": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "choice": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "table": {
+                                      "$ref": "#/definitions/absent"
+                                    }
+                                  }
+                                },
+                                "steps": {
+                                  "$ref": "#/definitions/vennSteps"
+                                }
+                              }
+                            },
+                            "else": {
+                              "properties": {
+                                "blocks": {
+                                  "required": [
+                                    "box"
+                                  ],
+                                  "properties": {
+                                    "box": {
+                                      "minItems": 1
+                                    },
+                                    "strip": {
+                                      "$ref": "#/definitions/plainStrip"
+                                    },
+                                    "path": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "branch": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "scale": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "period": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "row": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "task": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "point": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "zoom": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "item": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "role": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "part": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "hold": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "side": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "check": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "choice": {
+                                      "$ref": "#/definitions/absent"
+                                    }
+                                  }
+                                },
+                                "steps": {
+                                  "$ref": "#/definitions/plainSteps"
+                                }
                               }
                             }
                           }
@@ -2609,6 +2736,55 @@
               "$ref": "#/definitions/text"
             }
           }
+        },
+        {
+          "description": "集合の重なりの図で、集まりか重なりの数を value にする。sets が 1 つなら集まりの数で、その段で円が現れる。2 つ以上なら重なりの数で、その段で重なりの区画が光る",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "sets",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "count"
+            },
+            "sets": {
+              "description": "数を書く集まりの名札。同じ名札を 2 度書かない (記法を読む時に止める)",
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": {
+                "type": "string",
+                "pattern": "^(?!none$)[^\\s\\[\\]「」=:&]+$"
+              }
+            },
+            "value": {
+              "description": "数。単位を持たない 0 以上の数",
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "description": "集合の重なりの図で、どれにも入らない数を value にする。その段で円の外の枠に出す",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "none"
+            },
+            "value": {
+              "description": "数。単位を持たない 0 以上の数",
+              "type": "number",
+              "minimum": 0
+            }
+          }
         }
       ]
     },
@@ -3184,6 +3360,44 @@
                 },
                 "color": {
                   "$ref": "#/definitions/absent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notVennEvent": {
+      "description": "集合の重なりの図だけが書ける出来事を書けない",
+      "not": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "count",
+              "none"
+            ]
+          }
+        }
+      }
+    },
+    "vennSteps": {
+      "description": "集合の重なりの図の段。集まりか重なりの数を書く出来事 (count) と、どれにも入らない数を書く出来事 (none) だけを書け、配管の図だけの段の要点 (gist) を書けない",
+      "items": {
+        "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
+          "events": {
+            "items": {
+              "properties": {
+                "type": {
+                  "enum": [
+                    "count",
+                    "none"
+                  ]
                 }
               }
             }
@@ -3961,6 +4175,27 @@
       "description": "表の項目を名指す <表>.<項目>",
       "type": "string",
       "pattern": "^[^\\s\\[\\]「」=:.]+\\.[^\\s\\[\\]「」=:.,\"]+$"
+    },
+    "vennSet": {
+      "description": "集まり。name は円の外に出す名前で、color を書かない集まりは宣言した順に色の役を配る",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(?!none$)[^\\s\\[\\]「」=:&]+$"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        }
+      }
     }
   }
 }

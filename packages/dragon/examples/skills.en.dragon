@@ -1,0 +1,22 @@
+// Count whether developers are good at the frontend, the backend or both, with two overlapping circles.
+// The values are sample numbers to show the shape, not numbers from a real survey.
+venn What developers are good at
+
+item front as Frontend
+item back as Backend
+
+step Frontend
+  say Of 70 developers, 42 are good at the frontend.
+  set front: 42
+
+step Backend
+  say 35 are good at the backend.
+  set back: 35
+
+step Both
+  say 15 are good at both.
+  set front & back: 15
+
+step Neither
+  say 8 are good at neither and take on design and testing.
+  set none: 8

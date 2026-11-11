@@ -98,7 +98,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, set overlap diagram |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -190,6 +190,16 @@ In a step a value chip runs along that line, the row it reaches lights up, and a
 | `pick <table>.<field>` | Lights that row and its table in a step |
 | `<table>.<field> -> <table>.<field> [tag: <value>]` | Runs a value chip along the line between linked fields. A line between fields that are not linked is refused |
 | `set <table>.<field>: <value>`, `note <table>.<field>: <text>` | Rewrites the value of a field, or shows a formula card under its table, from that step on |
+
+A set overlap diagram (`venn <title>`) overlaps two or three sets as circles and counts how many fall in each region.
+A circle appears in the step that first writes its count, a written overlap lights its region in that step, and each region shows the count that is only in it, worked out from the totals and the overlaps.
+
+| Line | What it writes |
+|---|---|
+| `item <id> as <name>` | A set, before the first step. A set overlap diagram takes 2 or 3 sets |
+| `set <id>: <count>` | The total of a set. Its circle appears in that step, with the name and the total outside it |
+| `set <id> & <id>: <count>` | The count in an overlap. Its region lights in that step. An overlap larger than one of its sets is refused |
+| `set none: <count>` | The count in none of the sets, shown in the frame outside the circles |
 
 ## Documentation
 

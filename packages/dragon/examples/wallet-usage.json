@@ -1,0 +1,111 @@
+{
+  "version": 2,
+  "kind": "venn",
+  "title": "ウォレットの使い方の重なり",
+  "blocks": {
+    "circle": [
+      {
+        "id": "send",
+        "name": "送金"
+      },
+      {
+        "id": "swap",
+        "name": "交換"
+      },
+      {
+        "id": "stake",
+        "name": "預ける"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "送金",
+      "body": "1か月に送金した利用者は8,200人いる。",
+      "events": [
+        {
+          "type": "count",
+          "sets": [
+            "send"
+          ],
+          "value": 8200
+        }
+      ]
+    },
+    {
+      "title": "交換",
+      "body": "交換した利用者は5,400人で、そのうち3,100人は送金もした。",
+      "events": [
+        {
+          "type": "count",
+          "sets": [
+            "swap"
+          ],
+          "value": 5400
+        },
+        {
+          "type": "count",
+          "sets": [
+            "send",
+            "swap"
+          ],
+          "value": 3100
+        }
+      ]
+    },
+    {
+      "title": "預ける",
+      "body": "預けた利用者は2,600人。送金もした人は1,500人、交換もした人は1,200人いる。",
+      "events": [
+        {
+          "type": "count",
+          "sets": [
+            "stake"
+          ],
+          "value": 2600
+        },
+        {
+          "type": "count",
+          "sets": [
+            "send",
+            "stake"
+          ],
+          "value": 1500
+        },
+        {
+          "type": "count",
+          "sets": [
+            "swap",
+            "stake"
+          ],
+          "value": 1200
+        }
+      ]
+    },
+    {
+      "title": "3つ全て",
+      "body": "送金と交換と預けるの3つ全てを使った利用者は900人いる。",
+      "events": [
+        {
+          "type": "count",
+          "sets": [
+            "send",
+            "swap",
+            "stake"
+          ],
+          "value": 900
+        }
+      ]
+    },
+    {
+      "title": "どれも使わない",
+      "body": "残高を持つだけで、どれも使わなかった利用者は700人いる。",
+      "events": [
+        {
+          "type": "none",
+          "value": 700
+        }
+      ]
+    }
+  ]
+}

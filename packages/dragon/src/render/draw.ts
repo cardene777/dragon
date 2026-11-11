@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * chart、cycle、er、flow、git、lineup、mind、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * chart、cycle、er、flow、git、lineup、mind、pipe、state、time、tree、try、venn の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -44,6 +44,7 @@ import type { ErLayout } from "../kinds/er/layout";
 import type { TimeLayout } from "../kinds/time/layout";
 import type { TreeLayout } from "../kinds/tree/layout";
 import type { TryLayout } from "../kinds/try/layout";
+import type { VennLayout } from "../kinds/venn/layout";
 import { KIND_FOLDERS } from "../kinds/index";
 import type { Kind } from "../kinds/kind";
 import { kindParts } from "../kinds/registry";
@@ -80,6 +81,7 @@ import { Motion } from "./motion";
 const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 
 const isChartLayout = (layout: Layout): layout is ChartLayout => layout.kind === "chart";
+const isVennLayout = (layout: Layout): layout is VennLayout => layout.kind === "venn";
 const isCycleLayout = (layout: Layout): layout is CycleLayout => layout.kind === "cycle";
 const isMindLayout = (layout: Layout): layout is MindLayout => layout.kind === "mind";
 const isErLayout = (layout: Layout): layout is ErLayout => layout.kind === "er";
@@ -503,6 +505,9 @@ export function drawSvg(
   // 量の図の輪と弧と棒と字は、量の図を描く部品が描く (#3560)。段の番号はほかの図の種類と同じくここで描く。見た目の規則も量の図の SVG にだけ書く
   const chartDrawn = isChartLayout(layout) ? kindParts("chart").drawChart(layout, diagram, ctx) : undefined;
   if (chartDrawn) L.base.push(chartDrawn.base);
+  // 集合の重なりの図の円と区画と字と札は、集合の重なりの図を描く部品が描く (#3620)。段の番号はほかの図の種類と同じくここで描く。見た目の規則も集合の重なりの図の SVG にだけ書く
+  const vennDrawn = isVennLayout(layout) ? kindParts("venn").drawVenn(layout, ctx) : undefined;
+  if (vennDrawn) L.base.push(vennDrawn.base);
   // 考えを広げる地図の線と考えは、考えを広げる地図を描く部品が描く (#3619)。段の番号はほかの図の種類と同じくここで描く。見た目の規則も考えを広げる地図の SVG にだけ書く
   const mindDrawn = isMindLayout(layout) ? kindParts("mind").drawMind(layout, ctx) : undefined;
   if (mindDrawn) {
@@ -621,7 +626,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${cycle?.css ?? ""}${mindDrawn?.css ?? ""}${er?.css ?? ""}${flowParts?.flowCss(id) ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${vennDrawn?.css ?? ""}${cycle?.css ?? ""}${mindDrawn?.css ?? ""}${er?.css ?? ""}${flowParts?.flowCss(id) ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -1086,6 +1091,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
         ? kindParts("mind", lang).layoutMind(diagram)
       : diagram.kind === "er"
         ? kindParts("er", lang).layoutEr(diagram)
+      : diagram.kind === "venn"
+        ? kindParts("venn", lang).layoutVenn(diagram, lang)
       : diagram.kind === "git"
         ? kindParts("git", lang).layoutGit(diagram)
         : diagram.kind === "time"
