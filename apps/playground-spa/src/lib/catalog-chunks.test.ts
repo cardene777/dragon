@@ -3,7 +3,7 @@
  *
  * 最初に読む script は、build した頁の `index.html` が名指す script と CSS (`firstLoadFiles`)。
  * 後から読む塊は、見本の記法を持つ塊と部品の図の記法を持つ塊の 2 つで、最初の画面を描いた後に裏で読み始め、一度読んだら持ち続ける。
- * 概要の頁の 3 つの見本と編集画面の最初の見本は、待たずに出すため最初に読む script に残す。
+ * 概要の頁の 3 つの見本と編集画面の最初の見本は、日本語の記法を待たずに出すため最初に読む script に残し、英語の記法は英語の塊へ移す (#3646)。
  * 記法が script の中にあるかは、記法の file の中身が script の字の並び (字の並びの書き方 2 通りのどちらか) として現れるかで決める。
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { builtDir, firstLoadFiles, partFigureDirs, root } from "./playground-support";
 
-/** 概要の頁の用例と編集画面の最初の見本。最初に読む script に残す */
+/** 概要の頁の用例と編集画面の最初の見本。日本語の記法は最初に読む script に残す */
 const FIRST_SCREEN_EXAMPLES = ["intro", "oauth", "ccip"] as const;
 
 const EXAMPLES = join(root, "packages/dragon/examples");
@@ -100,6 +100,9 @@ describe("見本と部品の図の記法を後から読む (#3246)", () => {
     const code = scriptsOf(firstScripts());
     const examples = firstExamples();
     expect(examples.map((n) => n.path.split("/").pop()), "概要の頁と編集画面の最初の見本の file").toHaveLength(FIRST_SCREEN_EXAMPLES.length * 2);
-    expect(examples.filter((n) => !carries(code, n)).map((n) => n.path), "最初に読む script に無い、概要の頁と編集画面の最初の見本の記法").toEqual([]);
+    // 日本語の記法は待たずに出すので最初に読む script に残す。英語の記法は英語で開いた時と英語に替えた時に読む英語の塊に移す (#3646)
+    const english = (n: Notation): boolean => n.path.endsWith(".en.dragon");
+    expect(examples.filter((n) => !english(n) && !carries(code, n)).map((n) => n.path), "最初に読む script に無い、概要の頁と編集画面の最初の見本の日本語の記法").toEqual([]);
+    expect(examples.filter((n) => english(n) && carries(code, n)).map((n) => n.path), "最初に読む script が持つ、英語の塊へ移した最初の見本の英語の記法").toEqual([]);
   });
 });

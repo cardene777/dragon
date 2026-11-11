@@ -39,3 +39,16 @@
 | 常に、試す図の網で1つのノードから別々の向きへ広がる線を、`dragon check --layout`は重なる線に数えない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-check-skips-fanning-lines`が通る | #3547 |
 | 常に、`dragon check --layout`は近すぎる段の番号と並んで近すぎる線を見つけ、知らせの行とJSONに段の番号と関わる物の名前を書く | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-close-badges`と`layout-check-finds-crowded-lines`と`layout-check-line-names-step-and-parts`と`layout-check-prints-json`が通る | #3547 |
 | 常に、見本を描いた時、記録の一覧に無い崩れを出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3547 |
+| 枝分かれの図の原本の JSON が枝を消す出来事を受け付ける | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`schema-accepts-git-delete-event`が通る | #3632 |
+| 段の中に`delete <枝>`を書いた記法を読んで書き戻すと、同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-roundtrip-keeps-notation`が通る | #3632 |
+| 枝を消した段から後の絵に消した枝の札が出ず、消す前の段の絵には札が在る | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-hides-the-branch-ref-from-its-step`が通る | #3632 |
+| 枝を消した後にどの枝からも辿れないcommitは点線の丸で描き、ほかの枝から辿れるcommitは実線の丸のまま描く | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-dims-only-unreachable-commits`が通る | #3632 |
+| 宣言していない枝を消す行は、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-rejects-an-unknown-branch`が通る | #3632 |
+| `HEAD`が指している枝を消す行は、読む時に誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-rejects-the-head-branch`が通る | #3632 |
+| 消した枝へcommitを足す行は、読む時に誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-rejects-commits-on-a-deleted-branch`が通る | #3632 |
+| 見本`squash`の日本語と英語が`delete feature`の行で枝を消し、帯の`feature: 消した`の字を使わない | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`squash-example-deletes-the-feature-branch`が通る | #3632 |
+| 使い方の頁の枝分かれの図の説明と`packages/dragon/README.md`と見本帳の部品の図に、`delete`の行が載る | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-docs-describe-the-line`が通る | #3632 |
+| ほかの種類の図では、`delete`を箱の名札として読める | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`notation-keeps-delete-plain-outside-git`が通る | #3632 |
+| 見本`squash`の日本語と英語で、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`added-examples-have-no-breaks`が通る | #3632 |
+| 見本帳の部品の図は崩れを出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`が通る | #3632 |
+| `squash`のほかの見本の描いた結果の指紋は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3632 |

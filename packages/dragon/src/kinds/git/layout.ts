@@ -14,6 +14,7 @@
  * merge commit (`merge`) は取り込む先の先端と取り込む枝の先端の 2 つを親に持ち、取り込む先の札だけが進む。
  * 札を動かす線 (`<札> -> <commit>`) は、枝の札ならその枝を、HEAD なら HEAD を枝から離して動かす。
  * 枝から離れた HEAD が指す commit へ枝の札が来ると、HEAD はその枝に戻る。HEAD の札は枝から離れた間だけ出す。
+ * 枝を消す (`delete`) と、その枝の札は図から消え、帯は残る (#3632)。
  * どの札からも辿れなくなった commit は、その段で点線の丸に変わる。
  *
  * 箱は commit の並びの右に縦に並べ、中身の帯は図の下に置く。
@@ -248,6 +249,12 @@ function walk(diagram: DiagramModel): Walked {
           tips.set(e.branch, e.from);
           attached = e.branch;
           headAt = e.from;
+        });
+      } else if (e.type === "delete") {
+        // 枝を消すと、その枝の札は図から消える。帯は残す (#3632)
+        if (!tips.has(e.branch)) return;
+        settle(s, k, () => {
+          tips.set(e.branch, null);
         });
       } else if (e.type === "edge") {
         const ref = e.from;

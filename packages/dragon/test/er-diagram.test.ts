@@ -509,7 +509,7 @@ describe("表どうしの関係の図の並べ方と動き (#3618)", () => {
     const source = diagram as unknown as Source;
     const rendered = render(diagram);
     const { timeline } = rendered;
-    const motion = motionFrom(rendered);
+    const motion = motionFrom(rendered as unknown as Rendered);
     const tables = source.blocks.table ?? [];
     const picksAt = (s: number): string[] => (source.steps[s]?.events ?? []).flatMap((e) => (e.type === "lookup" && e.field ? [e.field] : []));
     const firstPick = new Map<string, number>();
@@ -594,13 +594,13 @@ describe("表どうしの関係の図の並べ方と動き (#3618)", () => {
       const source = diagram as unknown as Source;
       const rendered = render(diagram);
       const { timeline } = rendered;
-      const motion = motionFrom(rendered);
+      const motion = motionFrom(rendered as unknown as Rendered);
       const written = new Set(source.steps.flatMap((step) => step.events.flatMap((e) => (e.type === "cell" && e.field ? [e.field] : []))));
       expect(written.size, `${name} に値を書き換える段 (set) が無い`).toBeGreaterThan(0);
       // 値を書き換える項目と、書き換えない項目の 1 つ
       const plain = (source.blocks.table ?? []).flatMap((t) => t.fields.map((f) => `${t.id}.${f.name}`)).find((ref) => !written.has(ref));
       const watched = [...written, ...(plain ? [plain] : [])];
-      const current = new Map((source.blocks.table ?? []).flatMap((t) => t.fields.map((f) => [`${t.id}.${f.name}`, f.value] as const)));
+      const current = new Map((source.blocks.table ?? []).flatMap((t) => t.fields.map((f): [string, typeof f.value] => [`${t.id}.${f.name}`, f.value])));
       source.steps.forEach((step, s) => {
         for (const e of step.events) if (e.type === "cell" && e.field && e.value !== undefined) current.set(e.field, e.value);
         const t = (timeline.steps[s] as Span).end - 0.05;
@@ -619,7 +619,7 @@ describe("表どうしの関係の図の並べ方と動き (#3618)", () => {
     const source = diagram as unknown as Source;
     const rendered = render(diagram);
     const { timeline } = rendered;
-    const motion = motionFrom(rendered);
+    const motion = motionFrom(rendered as unknown as Rendered);
     const notes =source.steps.flatMap((step, s) => step.events.flatMap((e) => (e.type === "formula" && e.field && e.text ? [{ step: s, field: e.field, text: e.text }] : [])));
     expect(notes.length, "小さな図に式の札 (note) が無い").toBeGreaterThan(0);
     for (const note of notes) {

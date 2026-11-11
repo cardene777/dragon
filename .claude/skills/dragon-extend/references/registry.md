@@ -44,7 +44,8 @@
 | `apps/playground-spa/src/editor/shelf-items.ts` | 編集画面の棚 | 新しい種類の書き始めの形を足す |
 | `apps/playground-spa/src/examples.ts` | 見本の並び (`EXAMPLE_KEYS`) | 新しい見本の名前を並びに足す。最初に読む見本 (`FIRST_SCREEN_EXAMPLES`) のほかは、ここで記法を読まない |
 | `apps/playground-spa/src/examples-later.ts` | 後から読む見本の記法 | 見本の file を読む行を足す。最初に読む script に入れると `first-load-carries-no-catalog-notation` が落ちる |
-| `apps/playground-spa/src/text.ts` | 見本帳と編集画面が最初に読む言葉 | 日本語と英語の両方に種類の名前 (`shelf.kinds`) だけを足す。この表は最初に読む script に入るので、種類の説明と記法の早見の説明をここに書くと `first-load-carries-no-catalog-text` か `first-load-carries-no-syntax-text` が落ちる (#3565) |
+| `apps/playground-spa/src/text.ts` | 見本帳と編集画面が最初に読む言葉 | 日本語の種類の名前 (`shelf.kinds`) だけを足す。この表は最初に読む script に入るので、種類の説明と記法の早見の説明をここに書くと `first-load-carries-no-catalog-text` か `first-load-carries-no-syntax-text` が落ちる (#3565) |
+| `apps/playground-spa/src/english.ts` | 英語の画面の字と最初の画面の見本の英語の記法 | 英語の種類の名前 (`shelf.kinds`) を足す。英語で開いた時と英語に替えた時に読む英語の塊に入る (#3646)。書かないと型検査が落ちる |
 | `apps/playground-spa/src/catalog/text.ts` | カタログの頁だけが使う言葉 | 日本語と英語の両方に種類の説明 (`kinds`) を足す。カタログの頁と一緒に後から読む塊に入る。書かないと型検査が落ちる |
 | `apps/playground-spa/src/editor/syntax-text.ts` | 編集画面の棚の記法の早見の説明 | `shelf-items.ts` の早見に行の形 (`SyntaxId`) を足したら、日本語と英語の両方に説明を足す。記法の見出しを開いた時に後から読む。書かないと型検査が落ちる |
 | `apps/playground-spa/src/docs/content.ts` | 使い方の頁の本文 | 記法と同じ PR で書き方の節を足す |

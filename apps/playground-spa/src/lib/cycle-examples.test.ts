@@ -12,7 +12,8 @@ import { checkLayoutText, parseNotation } from "@cardenelabs/dragon";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { samplesOf } from "../catalog/catalog";
-import { sampleGroups, syntaxLines } from "../editor/shelf-items";
+import { sampleGroups } from "../editor/shelf-first";
+import { syntaxLines } from "../editor/shelf-items";
 import { EXAMPLE_KEYS, type ExampleKey, exampleInfo, exampleText, LATER_EXAMPLES } from "../examples";
 import type { Lang } from "../text";
 import { root } from "./playground-support";

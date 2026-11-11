@@ -75,9 +75,11 @@ export interface FigureDraft {
   branches: GitBranch[];
   /**
    * 枝分かれの図で積んだ commit と、枝の札が今指す commit (まだ何も指さない枝は `null`)。
-   * commit のブロックが積み、枝のブロックが枝を切る行で札を置き、parser が札を動かす線で札を動かす (#3347)
+   * commit のブロックが積み、枝のブロックが枝を切る行で札を置き、parser が札を動かす線で札を動かす (#3347)。
+   * `head` は HEAD が今指す commit (`at`) と枝 (`on`、枝から離れた間は `null`) で、並べ方 (`kinds/git/layout.ts`) と同じ決まりで動かす。
+   * `deleted` は消した枝で、枝を消すブロックが足す。HEAD が指す枝を消す行と、消した枝を使う行を断るために持つ (#3632)
    */
-  git: { commits: Set<string>; tips: Map<string, string | null> };
+  git: { commits: Set<string>; tips: Map<string, string | null>; head: { at: string | null; on: string | null }; deleted: Set<string> };
   /**
    * 時間軸の図の目盛りと区切りと印の列と作業 (#3562) と節目と拡大の範囲。目盛りと針と、印の列と、作業の棒と、節目と、拡大の帯のブロックが宣言の行で組む (#3348)。
    * 目盛りの数が決まってから確かめる宣言の行の目盛りは `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる (`settled`)。

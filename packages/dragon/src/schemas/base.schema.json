@@ -1268,7 +1268,8 @@
                   "not": {
                     "enum": [
                       "commit",
-                      "branch"
+                      "branch",
+                      "delete"
                     ]
                   }
                 },
@@ -1367,7 +1368,8 @@
                   "not": {
                     "enum": [
                       "commit",
-                      "branch"
+                      "branch",
+                      "delete"
                     ]
                   }
                 }
@@ -1408,7 +1410,8 @@
                   "not": {
                     "enum": [
                       "commit",
-                      "branch"
+                      "branch",
+                      "delete"
                     ]
                   }
                 },
@@ -1463,7 +1466,8 @@
                   "not": {
                     "enum": [
                       "commit",
-                      "branch"
+                      "branch",
+                      "delete"
                     ]
                   }
                 },

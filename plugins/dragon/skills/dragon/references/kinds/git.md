@@ -20,12 +20,14 @@ Each branch gets its own band. Steps add commits and move refs.
 | `<branch> from <commit>` | In a step | Cuts a branch at a commit. `HEAD` moves to that branch |
 | `<branch> -> <commit>: <label>` | In a step | Moves a branch ref without making a commit (fast-forward, reset) |
 | `HEAD -> <commit>: <label>` | In a step | Moves `HEAD` straight to a commit (detached) |
+| `delete <branch>` | In a step | Deletes a branch. Its ref leaves the diagram from that step on, and its band stays. The branch `HEAD` points at cannot be deleted |
 | `code <command>` | In a step | The git command for the step |
 | `note <id>: <text>`, `set <field>: <value>` | In a step | Updates a box or a strip field |
 
 - A `hash` is 4 to 40 characters of `0-9` and `a-f`. Use a realistic 7-character short hash.
 - Name a replayed commit after its source with a prime, such as `C'`.
 - A commit that no ref can reach any more turns into a dotted circle. Use it to show what a rebase or reset leaves behind.
+- To put `HEAD` back on a branch before deleting another one, move `HEAD` to the commit that branch points at, then move the branch ref onto the same commit (`HEAD -> E: git switch main` then `main -> E`).
 
 ## How to write it well
 

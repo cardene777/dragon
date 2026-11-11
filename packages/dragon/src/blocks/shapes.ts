@@ -15,6 +15,7 @@ import { shape as choiceShape } from "./choice/shape";
 import { shape as colorShape } from "./color/shape";
 import { shape as commitShape } from "./commit/shape";
 import { shape as copyShape } from "./copy/shape";
+import { shape as deleteShape } from "./delete/shape";
 import { shape as edgeShape } from "./edge/shape";
 import { shape as edgeLabelShape } from "./edge-label/shape";
 import { shape as emitShape } from "./emit/shape";
@@ -77,6 +78,7 @@ export const SHAPES = {
   "color": colorShape,
   "commit": commitShape,
   "copy": copyShape,
+  "delete": deleteShape,
   "edge": edgeShape,
   "edge-label": edgeLabelShape,
   "emit": emitShape,

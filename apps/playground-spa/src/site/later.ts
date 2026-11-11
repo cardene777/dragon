@@ -49,6 +49,25 @@ export function laterChunk<T>(load: () => Promise<T>): LaterChunk<T> {
   };
 }
 
+/**
+ * 塊が届くのを待つ。まだ読み始めていなければ読み始める。読めなかった時は断る。
+ * 描く前に塊を待つ所 (英語で開く頁と英語に替える時、#3646) と、描かずに塊の中身を使う所が使う
+ */
+export function whenReady<T>(chunk: LaterChunk<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const settled = (): boolean => {
+      const state = chunk.state();
+      if (state.status === "ready") resolve(state.value);
+      else if (state.status === "failed") reject(new Error("後から読む物を読めなかった"));
+      return state.status !== "loading";
+    };
+    if (settled()) return;
+    const leave = chunk.subscribe(() => {
+      if (settled()) leave();
+    });
+  });
+}
+
 /** 塊の今の状態。読んだ部品は、塊が届くか読めなかった時に描き直す */
 export function useLater<T>(chunk: LaterChunk<T>): Later<T> {
   return useSyncExternalStore(chunk.subscribe, chunk.state);

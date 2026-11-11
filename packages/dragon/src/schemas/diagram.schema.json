@@ -1372,7 +1372,8 @@
                   "not": {
                     "enum": [
                       "commit",
-                      "branch"
+                      "branch",
+                      "delete"
                     ]
                   }
                 },
@@ -1471,7 +1472,8 @@
                   "not": {
                     "enum": [
                       "commit",
-                      "branch"
+                      "branch",
+                      "delete"
                     ]
                   }
                 }
@@ -1512,7 +1514,8 @@
                   "not": {
                     "enum": [
                       "commit",
-                      "branch"
+                      "branch",
+                      "delete"
                     ]
                   }
                 },
@@ -1567,7 +1570,8 @@
                   "not": {
                     "enum": [
                       "commit",
-                      "branch"
+                      "branch",
+                      "delete"
                     ]
                   }
                 },
@@ -1728,6 +1732,23 @@
             },
             "note": {
               "$ref": "#/definitions/text"
+            }
+          }
+        },
+        {
+          "description": "枝を消す。枝分かれの図だけが書ける。消した段から後は枝の札を描かず、どの札からも辿れなくなった commit を点線の丸にする",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "branch"
+          ],
+          "properties": {
+            "type": {
+              "const": "delete"
+            },
+            "branch": {
+              "$ref": "#/definitions/id"
             }
           }
         },

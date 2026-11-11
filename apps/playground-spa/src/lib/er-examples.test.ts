@@ -12,7 +12,8 @@ import { checkLayoutText, parseNotation } from "@cardenelabs/dragon";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { samplesOf } from "../catalog/catalog";
-import { sampleGroups, syntaxLines } from "../editor/shelf-items";
+import { sampleGroups } from "../editor/shelf-first";
+import { syntaxLines } from "../editor/shelf-items";
 import { EXAMPLE_KEYS, type ExampleKey, exampleInfo, exampleText, LATER_EXAMPLES } from "../examples";
 import type { Lang } from "../text";
 import { root } from "./playground-support";
@@ -82,7 +83,7 @@ describe("表どうしの関係の図の見本 (#3618)", () => {
       }
     }
     // カタログの表どうしの関係の図の頁に 4 枚とも載る
-    const listed: readonly string[] = samplesOf("er" as Parameters<typeof samplesOf>[0]);
+    const listed: readonly string[] = samplesOf("er");
     expect(listed, "カタログの表どうしの関係の図の頁に載る見本").toEqual(Object.keys(ER));
   });
 
