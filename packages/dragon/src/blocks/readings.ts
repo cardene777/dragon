@@ -40,6 +40,7 @@ import { reading as pressReading } from "./press/read";
 import { reading as queueReading } from "./queue/read";
 import { reading as returnReading } from "./return/read";
 import { reading as revertReading } from "./revert/read";
+import { reading as ringReading } from "./ring/read";
 import { reading as roleReading } from "./role/read";
 import { reading as routeReading } from "./route/read";
 import { reading as rowReading } from "./row/read";
@@ -100,6 +101,7 @@ export const READINGS = {
   "queue": queueReading,
   "return": returnReading,
   "revert": revertReading,
+  "ring": ringReading,
   "role": roleReading,
   "route": routeReading,
   "row": rowReading,

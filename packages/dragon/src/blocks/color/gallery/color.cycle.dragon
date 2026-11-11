@@ -1,0 +1,13 @@
+cycle 色の役
+
+box draft as 下書き [color: slate]
+box review as 審査 [color: amber]
+box live as 公開する [color: green]
+
+step 出す
+  say color で、手順の箱に 7 つの役から色を選ぶ。
+  draft -> review [tag: 下書き]
+
+step 通る
+  say 弧と札は、受ける側の手順の色で光る。
+  review -> live [tag: 通った版]

@@ -1,0 +1,13 @@
+cycle 小さな字
+
+box stock as 在庫を見る [note: 残り 1 個]
+box sell as 売る [note: 入荷待ち]
+
+step 見る
+  say note で手順の名前の下に小さな字を添える。
+  stock -> sell [tag: 最後の 1 個]
+
+step 売り切れる
+  say 段の中の note の行で、その段から小さな字を書き換える。
+  sell -> stock [tag: 注文]
+  note stock: 残り 0 個

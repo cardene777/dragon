@@ -1,0 +1,33 @@
+// ステーキングで付いた報酬を受け取り、元の預け入れに足して預け直す。預け直すたびに、報酬が付く元の量が増える。
+cycle ステーキングの報酬を預け直す
+
+box stake as 預ける [note: 検証者へ委任, color: blue]
+box earn as 報酬が付く [note: ブロックごと, color: green]
+box claim as 受け取る [note: 報酬を引き出す, color: amber]
+box again as 預け直す [note: 元の量に足す, color: violet]
+
+strip 預けた量: 量, 報酬
+
+step 預ける
+  say 100 ATOMを検証者へ預け (委任し)、ステーキングを始める。
+  set 量: 100 ATOM
+  set 報酬: 0 ATOM
+
+step 報酬が付く
+  say ブロックが進むたびに、預けた量に応じて報酬が少しずつ付く。
+  stake -> earn [tag: 100 ATOM]
+  set 報酬: 1.2 ATOM
+
+step 受け取る
+  say 30日たったので、付いた報酬を受け取る取引を送る。
+  earn -> claim [tag: 1.2 ATOM]
+
+step 預け直す
+  say 受け取った報酬を、同じ検証者へもう一度預ける。
+  claim -> again [tag: 1.2 ATOM]
+  set 報酬: 0 ATOM
+
+step 次の回へ
+  say 預けた量が101.2 ATOMになり、次の回はこの量に報酬が付く。
+  again -> stake [tag: 101.2 ATOM]
+  set 量: 101.2 ATOM

@@ -10,7 +10,8 @@
     "try",
     "pipe",
     "chart",
-    "flow"
+    "flow",
+    "cycle"
   ],
   "HEADS": [
     "group",

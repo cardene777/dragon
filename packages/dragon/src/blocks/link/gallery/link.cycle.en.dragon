@@ -1,0 +1,12 @@
+cycle Links
+
+box order as Take the order
+box pay as Check the payment [link: https://github.com/cardene777/dragon]
+
+step Take
+  say link gives a step box a target. Press the box in the drawn diagram to go there.
+  order -> pay [tag: order]
+
+step Check
+  say When the check is drawn in another diagram, link to that diagram's page.
+  pay -> order [tag: next order]

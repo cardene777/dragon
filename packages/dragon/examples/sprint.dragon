@@ -1,0 +1,34 @@
+// 2週間のスプリントで、やる物を選んで計画し、少しずつ作り、できた物を見せ、進め方を振り返って次のスプリントの計画へ戻る。
+cycle 2週間のスプリント
+
+box plan as 計画する [note: やる物を選ぶ, color: blue]
+box build as 開発する [note: 毎日少しずつ, color: violet]
+box demo as 見せる [note: できた物を見せる, color: green]
+box retro as 振り返る [note: 直すことを決める, color: amber]
+
+strip スプリント: 回, 日
+
+step 計画する
+  say チームで2週間にやる物を選び、誰が何をするかを決める。
+  set 回: 第12スプリント
+  set 日: 1日目
+
+step 開発する
+  say 選んだ物を毎日少しずつ作り、作った分をその日のうちに確かめる。
+  plan -> build [tag: やる物]
+  set 日: 2日目から9日目
+
+step 見せる
+  say できた物を使う人に動かして見せ、意見をもらう。
+  build -> demo [tag: できた物]
+  set 日: 10日目
+
+step 振り返る
+  say 2週間の進め方を振り返り、次のスプリントで直すことを1つ決める。
+  demo -> retro [tag: 意見]
+
+step 次のスプリントへ
+  say 直すことを持って、次のスプリントの計画へ戻る。
+  retro -> plan [tag: 直すこと]
+  set 回: 第13スプリント
+  set 日: 1日目

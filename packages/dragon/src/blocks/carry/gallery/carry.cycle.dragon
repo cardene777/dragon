@@ -1,0 +1,19 @@
+cycle 運ぶ物
+
+box order as 注文を受ける
+box pay as 支払いを待つ
+box ship as 発送する
+box done as 閉じる
+
+step 封筒
+  say 何も書かなければ、封筒が弧の上を走る。
+  order -> pay
+
+step 札
+  say tag で、弧の上を走る札に値を書く。
+  pay -> ship [tag: #42]
+
+step 運ばない
+  say carry: none で弧だけを光らせ、carry: coin でお金が動くことを硬貨で見せる。
+  ship -> done [carry: none]
+  done -> order [carry: coin]

@@ -1,0 +1,13 @@
+cycle Icons
+
+box draft as Draft [icon: doc]
+box review as Review [icon: clock]
+box live as Publish [icon: globe]
+
+step Submit
+  say icon puts a picture on a step box.
+  draft -> review [tag: draft]
+
+step Pass
+  say The picture sits above the name.
+  review -> live [tag: approved]
