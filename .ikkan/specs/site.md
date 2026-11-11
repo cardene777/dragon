@@ -52,3 +52,9 @@
 | カタログの一覧を開いた時、どの図でも使える部品の段と図の種類だけの部品の段を、図の種類の段より後に並べる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-head.test.tsx`の検査`catalog-parts-follow-kinds`が通る | #3614 |
 | 後から読む見本が届いた後、図の種類の札11枚の全てが、その種類の見本を描く絵の枠を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-head.test.tsx`の検査`catalog-kind-cards-draw-an-example`が通る | #3614 |
 | 図の種類の札を押した時、今までどおりその種類の頁へ移る | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-head.test.tsx`の検査`catalog-kind-cards-open-their-kind`が通る | #3614 |
+| 設定を持つ部品の頁は「書き方の違い」の節を持ち、部品が受け持つ設定ごとに1行を並べ、各行は左にその設定を書いた記法の行、右に描いた図を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-rows-per-attr`が通る | #3616 |
+| 全ての部品の全ての設定について、日本語と英語の両方で、その設定を書いた記法の行を部品の図の記法から1行以上引ける | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-lines-from-snippets`が通る | #3616 |
+| 部品の頁に並べる設定を全ての部品で集めると、記法の読み取りが持つ属性の一覧 (`words.ts`の`ATTRS`) と一致し、手で並べた一覧を見本帳のcodeに持たない | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-cover-reader-attrs`が通る | #3616 |
+| 各行の図は、その設定を初めて書いた段で止めて描く | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-figure-stops-at-use`が通る | #3616 |
+| 各行の図のどれも、`dragon check --layout`と同じ確かめで崩れが0件 | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-figures-have-no-breaks`が通る | #3616 |
+| 部品の頁は今までどおり、図の種類ごとの部品の図を、部品を描ける図の種類の数だけ並べる | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-page-keeps-kind-figures`が通る | #3616 |
