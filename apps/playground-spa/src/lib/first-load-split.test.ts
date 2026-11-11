@@ -10,7 +10,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { LATER_KINDS, loadKind, parseNotation } from "@cardenelabs/dragon/light";
 import { describe, expect, it, vi } from "vitest";
 
 import { BLOCK_ORDER, BLOCK_SHELF, BLOCK_TEXT } from "../catalog/blocks.gen";
@@ -137,6 +136,9 @@ describe("後から読むと、分ける前と同じ物を返す (#3646)", () =>
   });
 
   it("later-shelf-items-match", async () => {
+    // 棚の雛形が読む部品の入口と同じ写しで種類の塊を読むよう、ほかの検査が読んだ写しを持ち越さずに全てを読み直す
+    vi.resetModules();
+    const light = await import("@cardenelabs/dragon/light");
     const first = await import("../editor/shelf-first").then(
       (loaded) => loaded,
       () => undefined,
@@ -147,7 +149,7 @@ describe("後から読むと、分ける前と同じ物を返す (#3646)", () =>
     if (!first) return;
     const templates = await later.whenReady(first.LATER_SHELF);
     // 棚の雛形は全ての種類の図を書き戻して作るので、棚と同じく全ての種類の塊を待つ
-    await Promise.all(LATER_KINDS.map((kind) => loadKind(kind)));
+    await Promise.all(light.LATER_KINDS.map((kind) => light.loadKind(kind)));
     const direct = await import("../editor/shelf-items");
     // 部品の並びは、ブロックの並びとブロックの見本帳の分の棚の鍵から直に作った並び
     const ids = BLOCK_ORDER.flatMap((name) => {
@@ -156,7 +158,7 @@ describe("後から読むと、分ける前と同じ物を返す (#3646)", () =>
     });
     expect(ids.length, "棚の部品を数えられない").toBeGreaterThan(0);
     expect(templates.PART_IDS, "後から読んだ棚の部品の並び").toEqual(ids);
-    const read = parseNotation(exampleFile("oauth", "ja"));
+    const read = light.parseNotation(exampleFile("oauth", "ja"));
     expect(read.ok, "部品を足す先の見本が読めない").toBe(true);
     if (!read.ok) return;
     for (const lang of LANGS) {

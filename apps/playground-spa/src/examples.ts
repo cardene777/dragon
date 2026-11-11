@@ -5,21 +5,19 @@
  * 時系列図の見本は、入門と OAuth の間に、よく描く形 (往復、やり直し、支払い、署名) を易しい順に並べる (#3167)。
  * どの図の種類も見本を 4 枚以上持ち、前からある見本の後に、今の見本と逆の分野 (一般か Web3) の題を足した (#3615)。
  *
- * 概要の頁の用例と編集画面の最初の見本 (`FIRST_SCREEN_EXAMPLES`) だけを最初に読み、待たずに出す。
+ * 概要の頁の用例と編集画面の最初の見本 (`FIRST_SCREEN_EXAMPLES`) の日本語の記法だけを最初に読み、待たずに出す。
+ * 英語の記法は英語の画面の字と同じ英語の塊 (`english.ts`) に入れ、頁は英語の塊が届いてから英語で描く (#3646)。
  * ほかの見本は `examples-later.ts` の 1 つの塊にし、最初の画面を描いた後に記法だけを裏で読む (#3246)。見本が使う読み方は、見本を並べる所が待つ時に読む (#3505)。
  * 届く前の見本の記法は `undefined` で、届いたかは `LATER_EXAMPLES` の状態で分かる。
  */
 import ccipJa from "../../../packages/dragon/examples/ccip.dragon?raw";
-import ccipEn from "../../../packages/dragon/examples/ccip.en.dragon?raw";
 import introJa from "../../../packages/dragon/examples/intro.dragon?raw";
-import introEn from "../../../packages/dragon/examples/intro.en.dragon?raw";
 import oauthJa from "../../../packages/dragon/examples/oauth.dragon?raw";
-import oauthEn from "../../../packages/dragon/examples/oauth.en.dragon?raw";
 
 import { type Diagram, loadReadings, parseNotation } from "@cardenelabs/dragon/light";
 
 import { laterChunk } from "./site/later";
-import type { Lang } from "./text";
+import { LATER_ENGLISH, type Lang } from "./text";
 
 export const EXAMPLE_KEYS = ["intro", "api", "retry", "payment", "wallet", "oauth", "ccip", "bridge", "shop", "video", "order", "tx-status", "subscription", "support-ticket", "rebase", "merge", "hotfix", "squash", "finality", "withdraw", "release-plan", "shop-opening", "merkle", "tournament", "sitemap", "hd-wallet", "auction", "clinic", "kanban", "rollup-batch", "tx-block", "checkout-lanes", "stock-reserve", "multisig", "swap", "swap-revert", "swap-two-hops", "swap-retry", "vault-proxy", "aggregator", "os-share", "tickets", "gas-fee", "staking-rewards", "login-check", "login-all-paths", "approve-deposit", "return-check", "eth-slot", "sprint", "pdca", "restake"] as const;
 export type ExampleKey = (typeof EXAMPLE_KEYS)[number];
@@ -36,11 +34,8 @@ export const FIRST_EXAMPLE: FirstScreenKey = "oauth";
 /** 概要の頁の使いどころに並べる見本。見本を足しても概要の頁は替えない (#3167) */
 export const HOME_USES: readonly FirstScreenKey[] = ["intro", "oauth", "ccip"];
 
-const FIRST: Record<FirstScreenKey, Record<Lang, string>> = {
-  intro: { ja: introJa, en: introEn },
-  oauth: { ja: oauthJa, en: oauthEn },
-  ccip: { ja: ccipJa, en: ccipEn },
-};
+/** 最初に読む見本の日本語の記法。英語の記法は英語の塊が持つ */
+const FIRST_JA: Record<FirstScreenKey, string> = { intro: introJa, oauth: oauthJa, ccip: ccipJa };
 
 /**
  * 後から読む見本の塊。見本の題と種類を引く所 (見本帳、棚、部品の頁) は届いた見本の記法を待たずに読むので、
@@ -51,12 +46,26 @@ export const LATER_EXAMPLES = laterChunk(() => import("./examples-later").then((
 
 const isFirstScreen = (key: ExampleKey): key is FirstScreenKey => (FIRST_SCREEN_EXAMPLES as readonly ExampleKey[]).includes(key);
 
-/** 最初に読む見本の記法 */
-export const firstScreenText = (key: FirstScreenKey, lang: Lang): string => FIRST[key][lang].trimEnd();
+/** 最初の画面の見本の英語の記法。英語の塊がまだ届いていないか読めなかった時は `undefined` */
+function firstScreenEnglish(key: FirstScreenKey): string | undefined {
+  const english = LATER_ENGLISH.state();
+  return english.status === "ready" ? english.value.examples[key].trimEnd() : undefined;
+}
 
-/** 見本の記法。後から読む見本がまだ届いていないか読めなかった時は `undefined` */
+/**
+ * 最初の画面の見本の記法。英語は英語の塊が届いてから読め、届く前に読むと断る。
+ * 頁は英語の塊が届いてから英語で描くので、英語の頁で呼ぶ時は届いている
+ */
+export function firstScreenText(key: FirstScreenKey, lang: Lang): string {
+  if (lang === "ja") return FIRST_JA[key].trimEnd();
+  const english = firstScreenEnglish(key);
+  if (english === undefined) throw new Error("英語の見本がまだ届いていない。英語で描く前に whenText を待つ");
+  return english;
+}
+
+/** 見本の記法。後から読む見本と最初の画面の見本の英語の記法がまだ届いていないか読めなかった時は `undefined` */
 export function exampleText(key: ExampleKey, lang: Lang): string | undefined {
-  if (isFirstScreen(key)) return firstScreenText(key, lang);
+  if (isFirstScreen(key)) return lang === "ja" ? firstScreenText(key, lang) : firstScreenEnglish(key);
   const later = LATER_EXAMPLES.state();
   return later.status === "ready" ? later.value[key][lang].trimEnd() : undefined;
 }
