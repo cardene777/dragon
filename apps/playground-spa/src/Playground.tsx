@@ -19,14 +19,16 @@ import {
   diagramKind,
   loadFor,
   loadValidator,
+  NOTATION_WORDS,
   parseNotation,
   printNotation,
   readDiagram,
   renderDiagram,
   type Theme,
 } from "@cardenelabs/dragon/light";
-import { type ReactElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { paintJson, paintNotation, type Span } from "./editor/highlight";
 import { fieldNotices, jsonErrorLine, lineNotices, type Notice } from "./editor/notices";
 import { insertLines, type PartId, partLines } from "./editor/shelf-items";
 import { Shelf } from "./editor/Shelf";
@@ -225,6 +227,10 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   const [jump, setJump] = useState<{ step: number; count: number } | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
   const gutter = useRef<HTMLDivElement>(null);
+  /** 書く欄の下に敷いた色の層 (#3613) */
+  const paint = useRef<HTMLPreElement>(null);
+  /** 日本語の入力で字を組んでいる間。組んでいる字は書く欄の字で見せ、色の層を隠す */
+  const [composing, setComposing] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
   /** 部品を足した後に見せる行。描き直した後に書く欄を送る */
   const reveal = useRef<number | null>(null);
@@ -424,6 +430,15 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
   });
 
   const value = tab === "notation" ? text : json;
+  /** 書く欄の字を語の役ごとに分けた物。色の層が描く (#3613) */
+  const painted = useMemo((): Span[][] => (tab === "notation" ? paintNotation(value, NOTATION_WORDS) : paintJson(value)), [tab, value]);
+  // 字が替わって色の層の高さが変わった後も、書く欄と同じ所まで送っておく
+  useLayoutEffect(() => {
+    if (paint.current && area.current) {
+      paint.current.scrollTop = area.current.scrollTop;
+      paint.current.scrollLeft = area.current.scrollLeft;
+    }
+  }, [painted]);
   // 図の側と同じ言葉で描いた時の重なり。誤りの間は最後に描けた図の重なりになるが、欄は誤りを出すので見せない
   const overlaps = useMemo(() => (drawn ? renderDiagram(drawn, { lang }).overlaps : []), [drawn, lang]);
   const lines = value.split("\n").length;
@@ -502,7 +517,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
             {folded ? t.unfold : t.fold} {folded ? "▴" : "▾"}
           </button>
         </div>
-        <div className="pg-code-body" hidden={folded}>
+        <div className="pg-code-body" hidden={folded} data-composing={composing ? "true" : undefined}>
           <div className="pg-gutter" ref={gutter} aria-hidden="true">
             {Array.from({ length: lines }, (_, i) => (
               <div key={i} className={errorLines.has(i + 1) ? "is-error" : undefined}>
@@ -510,19 +525,43 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
               </div>
             ))}
           </div>
-          <textarea
-            ref={area}
-            className="pg-text"
-            data-playground="editor"
-            aria-label={t.editor}
-            spellCheck={false}
-            wrap="off"
-            value={value}
-            onChange={(e) => (tab === "notation" ? writeNotation(e.target.value) : writeJson(e.target.value))}
-            onScroll={(e) => {
-              if (gutter.current) gutter.current.scrollTop = e.currentTarget.scrollTop;
-            }}
-          />
+          <div className="pg-field">
+            <pre ref={paint} className="pg-paint" data-playground="paint" aria-hidden="true">
+              {painted.map((spans, i) => (
+                <Fragment key={i}>
+                  {i > 0 && "\n"}
+                  {spans.map((span, j) =>
+                    span.role ? (
+                      <span key={j} data-syn={span.role}>
+                        {span.text}
+                      </span>
+                    ) : (
+                      <Fragment key={j}>{span.text}</Fragment>
+                    ),
+                  )}
+                </Fragment>
+              ))}
+            </pre>
+            <textarea
+              ref={area}
+              className="pg-text"
+              data-playground="editor"
+              aria-label={t.editor}
+              spellCheck={false}
+              wrap="off"
+              value={value}
+              onChange={(e) => (tab === "notation" ? writeNotation(e.target.value) : writeJson(e.target.value))}
+              onScroll={(e) => {
+                if (gutter.current) gutter.current.scrollTop = e.currentTarget.scrollTop;
+                if (paint.current) {
+                  paint.current.scrollTop = e.currentTarget.scrollTop;
+                  paint.current.scrollLeft = e.currentTarget.scrollLeft;
+                }
+              }}
+              onCompositionStart={() => setComposing(true)}
+              onCompositionEnd={() => setComposing(false)}
+            />
+          </div>
         </div>
         <div className="pg-notices" data-playground="status" data-state={problem ? "error" : waitingKind ? "waiting" : "ok"} role="status">
           {problem && said ? (
