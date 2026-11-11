@@ -110,6 +110,7 @@ export const TEXT = {
     editor: "図の記法を書く欄",
     fold: "畳む",
     unfold: "開く",
+    split: { shelf: "棚と記法の欄の境目", code: "記法の欄と図の欄の境目" },
     readable: (part: CountedPart, count: number, steps: number) =>
       `読めています — ${{ box: `箱 ${count} つ`, branch: `枝 ${count} 本`, row: `印の列 ${count} 本`, lane: `列 ${count} 本`, part: `部品 ${count} つ`, item: `項目 ${count} つ` }[part]}、段 ${steps}`,
     notJson: (message: string) => `JSON として読めない — ${message}`,
@@ -239,6 +240,7 @@ export const TEXT = {
     editor: "Diagram notation",
     fold: "Hide",
     unfold: "Show",
+    split: { shelf: "Border between the shelf and the notation", code: "Border between the notation and the diagram" },
     readable: (part: CountedPart, count: number, steps: number) =>
       `Reads fine — ${count} ${count === 1 ? part : { box: "boxes", branch: "branches", row: "rows", lane: "lanes", part: "parts", item: "items" }[part]}, ${steps} ${steps === 1 ? "step" : "steps"}`,
     notJson: (message: string) => `Not valid JSON — ${message}`,

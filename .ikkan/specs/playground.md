@@ -39,3 +39,11 @@
 | 色を付けた字と書く欄の地の濃さの比が、10通りの全てで4.5以上 | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-colors-readable`が通る | #3613 |
 | 棚の部品を押すと、今までどおり書く欄に部品の行が足される | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`editor-shelf-part-inserts-lines`が通る | #3613 |
 | 知らせの欄の行番号を押すと、今までどおり書く欄でその行が選ばれる | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`editor-notice-line-selects-line`が通る | #3613 |
+| 幅1440pxの編集画面で、記法の欄と図の欄の間のつまみを右へ200px引くと、記法の欄の幅が200px広がる | `pnpm exec vitest run apps/playground-spa/src/lib/split-bars.test.tsx --reporter=verbose`の検査`split-code-drag-widens-code`が通る | #3612 |
+| 幅1440pxの編集画面で、棚と記法の欄の間のつまみを右へ100px引くと、棚の幅が100px広がる | `pnpm exec vitest run apps/playground-spa/src/lib/split-bars.test.tsx --reporter=verbose`の検査`split-shelf-drag-widens-shelf`が通る | #3612 |
+| 引いた幅を覚え、編集画面を開き直すと同じ幅で並ぶ | `pnpm exec vitest run apps/playground-spa/src/lib/split-bars.test.tsx --reporter=verbose`の検査`split-widths-persist`が通る | #3612 |
+| つまみに移って右の矢印を押すと左の欄が16px広がり、左の矢印を押すと16px狭まる | `pnpm exec vitest run apps/playground-spa/src/lib/split-bars.test.tsx --reporter=verbose`の検査`split-arrow-keys-step`が通る | #3612 |
+| つまみを引いても、図の欄を幅320pxより、記法の欄を幅240pxより、棚を幅180pxより狭くできない | `pnpm exec vitest run apps/playground-spa/src/lib/split-bars.test.tsx --reporter=verbose`の検査`split-keeps-minimums`が通る | #3612 |
+| 幅760pxから1100pxの画面では、記法の欄と図の欄の間のつまみだけを出す | `pnpm exec vitest run apps/playground-spa/src/lib/split-bars.test.tsx --reporter=verbose`の検査`split-middle-shows-code-only`が通る | #3612 |
+| 幅760px以下の縦に積む並びでは、つまみを出さない | `pnpm exec vitest run apps/playground-spa/src/lib/split-bars.test.tsx --reporter=verbose`の検査`split-hidden-when-stacked`が通る | #3612 |
+| 編集画面は棚、記法の欄、図の欄の順に並ぶ | `pnpm exec vitest run apps/playground-spa/src/lib/split-bars.test.tsx --reporter=verbose`の検査`split-keeps-panes-in-order`が通る | #3612 |

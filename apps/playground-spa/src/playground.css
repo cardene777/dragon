@@ -3,6 +3,8 @@
  *
  * 配置と見た目は 0.35.0 より前のサイトの編集画面 (`styles/editor.css` と `styles/phase-chrome.css`) を写した。
  * 左に棚、中に書く欄、右に図の 3 列で、幅 1440 で棚 240、書く欄 300、図が残り (約 900) になる。
+ * 棚と書く欄の幅は境目のつまみで引いて変えられ、`Playground.tsx` が `--pg-shelf` と `--pg-code` に置く (#3612)。
+ * つまみは幅 0 の列に置き、境目の線は今までどおり棚と書く欄の右の線が描く。
  * 図の列は、CCIP (幅 1056) を箱の名前の字 11px で収めるのに 894px 要るので、横の余白を持たない。
  *
  * 色はサイトの値の表 (`site/site.css` の `--d-*`) を使う。
@@ -12,10 +14,86 @@
 .pg {
   position: relative;
   display: grid;
-  grid-template-columns: 240px 300px minmax(0, 1fr);
-  grid-template-areas: "shelf code stage";
+  grid-template-columns: var(--pg-shelf, 240px) 0 var(--pg-code, 300px) 0 minmax(0, 1fr);
+  grid-template-areas: "shelf split-shelf code split-code stage";
   height: calc(100dvh - var(--d-topbar-h));
   background: var(--d-bg);
+}
+
+/* 引いている間は、指が欄の上に出ても引く形の指を保ち、字を選ばない */
+.pg:has(.pg-split[data-dragging]) {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* ── 欄の境目のつまみ (#3612)。線の真ん中に縦長の握りを常に出し、掴める所を見せる ── */
+
+.pg-split {
+  position: relative;
+  z-index: 5;
+  min-width: 0;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.pg-split[data-pane="shelf"] {
+  grid-area: split-shelf;
+}
+
+.pg-split[data-pane="code"] {
+  grid-area: split-code;
+}
+
+/* 掴める幅。左の欄の右の線 (つまみの左の 1px) を真ん中に、9px を取る */
+.pg-split::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  width: 9px;
+}
+
+.pg-split:is(:hover, :focus-visible, [data-dragging])::before {
+  background: linear-gradient(var(--d-accent), var(--d-accent)) 4px 0 / 1px 100% no-repeat;
+}
+
+/* 握り。線の真ん中に 6 × 32px で置き、地の色の輪で線から浮かせる */
+.pg-split::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  width: 6px;
+  height: 32px;
+  margin-top: -16px;
+  border-radius: 3px;
+  background: var(--d-border-strong);
+  box-shadow: 0 0 0 2px var(--d-surface);
+  pointer-events: none;
+  transition:
+    background-color 0.12s,
+    height 0.12s,
+    margin-top 0.12s;
+}
+
+.pg-split:is(:hover, :focus-visible, [data-dragging])::after {
+  height: 40px;
+  margin-top: -20px;
+  background: var(--d-accent);
+}
+
+/* 指で触る時は掴める幅を 23px に広げる。線は同じく真ん中の 1px */
+@media (pointer: coarse) {
+  .pg-split::before {
+    left: -12px;
+    width: 23px;
+  }
+
+  .pg-split:is(:hover, :focus-visible, [data-dragging])::before {
+    background-position: 11px 0;
+  }
 }
 
 .pg-gap {
@@ -953,14 +1031,18 @@
   .pg-live-dot {
     animation: none;
   }
+
+  .pg-split::after {
+    transition: none;
+  }
 }
 
-/* ── 幅 1100 以下。棚を引き出しに畳み、書く欄と図に全幅を渡す ── */
+/* ── 幅 1100 以下。棚を引き出しに畳み、書く欄と図に全幅を渡す。つまみは書く欄と図の間だけ ── */
 
 @media (max-width: 1100px) {
   .pg {
-    grid-template-columns: 300px minmax(0, 1fr);
-    grid-template-areas: "code stage";
+    grid-template-columns: var(--pg-code, 300px) 0 minmax(0, 1fr);
+    grid-template-areas: "code split-code stage";
   }
 
   /* 本体を押し出さずに重ねる。畳んだ間は Tab の順と読み上げからも外す */
