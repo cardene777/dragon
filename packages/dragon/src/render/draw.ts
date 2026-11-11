@@ -71,7 +71,7 @@ import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
 import { frameShape, partRadius, sharpJoins } from "./corner";
 import type { BreakFinder, LayoutBreak, PipePiece } from "./breaks";
-import { findOverlaps, type Framed, type Ink, type Overlap, type Trace } from "./ink";
+import { findOverlaps, type Framed, type Ink, type Overlap, type Stroke, type Trace } from "./ink";
 import { Motion } from "./motion";
 
 /** 置き場を持つ図の種類を、図の種類の名前で引く表 */
@@ -354,7 +354,7 @@ export interface FollowFrame {
 /**
  * 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。
  * `framed`には、時間軸の囲みの枠の内に収める部品を記録する (#3527)。
- * `pieces` を渡すと、配管の図の描いた部品をそこへ記録する (#3523)
+ * `pieces` を渡すと、配管の図の描いた部品をそこへ記録する (#3523)。`strokes`には、時間軸の図の針と範囲の囲みの線を記録する (#3631)
  */
 export function drawSvg(
   diagram: DiagramModel,
@@ -367,6 +367,7 @@ export function drawSvg(
   traces: Trace[] = [],
   framed: Framed[] = [],
   pieces?: PipePiece[],
+  strokes: Stroke[] = [],
 ): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける。
   // 色は色味の名前でなく色の値から名前を作り、色の値を重ねた図 (#3198) と同じ色味の名前の図の変数の規則を分ける
@@ -391,6 +392,7 @@ export function drawSvg(
     ink,
     traces,
     framed,
+    strokes,
     ...(pieces ? { pieces } : {}),
     boxText: boxTextY(layout.boxes),
     corner: palette.corner,
@@ -1117,7 +1119,8 @@ export function renderLayout(
   const traces: Trace[] = [];
   const framed: Framed[] = [];
   const pieces: PipePiece[] = [];
-  const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces);
+  const strokes: Stroke[] = [];
+  const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes);
   // 箱の札は、時間軸の図と列の図では描く部品が別に描くので、崩れの確かめも箱の札を描いた図の種類の箱だけを見る
   const carded = isTimeLayout(layout) || isLineupLayout(layout) ? [] : layout.boxes.filter((box) => !box.ghost);
   const breaks = options.findBreaks?.({
@@ -1130,6 +1133,7 @@ export function renderLayout(
     edges: layout.edges,
     layout,
     ...(pieces.length > 0 ? { pieces } : {}),
+    ...(strokes.length > 0 ? { strokes } : {}),
   });
   return {
     svg,

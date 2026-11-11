@@ -4,6 +4,7 @@
  * 区切りの地は 1 つおきに薄く塗り、時刻の目盛りの線と字と区切りの名前と番号を軸に置く。
  * 範囲の括弧は次の括弧が来る段まで、範囲の囲みは最後まで出す。針は時刻の表の針の動きを辿り、繰り返す前に左端へ戻る。
  * 針と時刻の目盛りの線と字は、時間軸の囲みの枠の内に収める部品として記録する。崩れの確かめが枠に掛かる部品を名指すため (#3527)。
+ * 針の線と範囲の囲みの縁は、字を横切る部品として記録する。崩れの確かめが、横切られた字を名指すため (#3631)。
  * 時間軸の図を描く部品 (`render/time.ts`) は描く状態 (`TimeKit`) を 1 つ組み、各ブロックの描き方を今の層の順に呼ぶ。
  * 描き方は描いた物を層 (`base`、`lit`、`node`、`top`) に積み、呼ぶ順が動きの名前の番号を決める。
  * この file は時間軸の図を描く部品だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
@@ -134,6 +135,19 @@ export function spans(k: TimeKit): void {
     base.push(
       `<g class="dg-a" data-span="${span.step}" style="${cs(span.color)};${vis}"><rect class="dg-tm-bx" x="${r1(span.x)}" y="${r1(span.y)}" width="${r1(span.w)}" height="${r1(span.h)}" rx="${partRadius(ctx.corner, 6)}"/></g>`,
     );
+    // 囲みの点線は作業の棒の上に引くので、棒の期間の字を横切ると字に掛かって見える (#3631)
+    const [x0, y0, x1, y1] = [span.x, span.y, span.x + span.w, span.y + span.h];
+    ctx.strokes.push({
+      part: { kind: "span", text: span.text },
+      points: [
+        [x0, y0],
+        [x1, y0],
+        [x1, y1],
+        [x0, y1],
+        [x0, y0],
+      ],
+      shown,
+    });
     const tag = span.textRect;
     ink.push({ text: span.text, rect: tag, shown, boxed: true });
     top.push(
@@ -163,6 +177,15 @@ export function needle(k: TimeKit): void {
     const shown: Shown[] = [[stills[s] as number, stills[e + 1] ?? Number.POSITIVE_INFINITY]];
     frame(k, { kind: "needle" }, { x: x - N.head * 0.75, y: y1 - N.head, w: N.head * 1.5, h: N.head }, shown);
     frame(k, { kind: "needle" }, { x: x - N.dot, y: axis.line - N.dot, w: N.dot * 2, h: N.dot * 2 }, shown);
+    // 針は一番上の層に引くので、止まった所の字を縦に横切る (#3631)
+    ctx.strokes.push({
+      part: { kind: "needle" },
+      points: [
+        [x, y1],
+        [x, y2],
+      ],
+      shown,
+    });
   });
   k.top.push(
     `<g class="dg-a" data-needle="" style="${m.move(path)}"><line class="dg-tm-nd" x1="0" y1="${r1(y1)}" x2="0" y2="${r1(y2)}"/><path class="dg-tm-nh" d="M ${-N.head * 0.75} ${r1(y1 - N.head)} L ${N.head * 0.75} ${r1(y1 - N.head)} L 0 ${r1(y1)} Z"/><circle class="dg-tm-nh" cy="${r1(axis.line)}" r="${N.dot}"/></g>`,

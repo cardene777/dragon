@@ -82,6 +82,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
  * 囲みと列と帯の枠線の呼び方と、番号の丸が枠線に乗る文も持つ (#3525)。線の名前が枠線をまたぐ崩れも同じ文で知らせる (#3554)。
  * 配管の図の弁と計器と管の呼び方、札が部品に重なる、管が箱の縁の後ろを通る、2 本の管が重なって通る (#3523)。
  * ドーナツの輪の内側の呼び方も持ち、輪の真ん中の段の名前が収まらない崩れは図の枠からのはみ出しと同じ文で知らせる (#3560)。
+ * 列の図の札に押した印と時間軸の範囲の囲みの呼び方と、針と囲みが字を横切る文も持つ (#3631)。印が字に重なる崩れは札が重なる文で知らせる。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
  * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
  */
@@ -112,6 +113,9 @@ interface BreakText {
   behindLine: (line: string, box: string) => string;
   touchesBorder: (text: string, box: string) => string;
   ring: string;
+  stampOf: (text: string) => string;
+  spanOf: (text: string) => string;
+  crosses: (part: string, text: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
@@ -142,6 +146,9 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     behindLine: (line, box) => `${spaced(line)}が${box}の裏を通る`,
     touchesBorder: (text, box) => `${spaced(text)}が${box}の枠に接する`,
     ring: "ドーナツの輪の内側",
+    stampOf: (text) => `印「${text}」`,
+    spanOf: (text) => `範囲の囲み「${text}」`,
+    crosses: (part, text) => `${spaced(part)}が${spaced(text)}を横切る`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -170,6 +177,9 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     behindLine: (line, box) => capital(`${line} runs behind ${box}`),
     touchesBorder: (text, box) => capital(`${text} touches the border of ${box}`),
     ring: "the inside of the donut ring",
+    stampOf: (text) => `the stamp "${text}"`,
+    spanOf: (text) => `the span frame "${text}"`,
+    crosses: (part, text) => capital(`${part} crosses ${text}`),
   },
 };
 
@@ -215,6 +225,10 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return w.borderOf(part.name);
       case "ring":
         return w.ring;
+      case "stamp":
+        return w.stampOf(part.text);
+      case "span":
+        return w.spanOf(part.text);
     }
   };
   const [a, b2] = b.parts;
@@ -235,6 +249,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
                   ? w.onLine(name(a), name(b2))
                 : b.kind === "line-crosses-text" && a.kind === "line"
                   ? t.lineCrosses(a.from, a.to, name(b2))
+                  : b.kind === "line-crosses-text"
+                    ? w.crosses(name(a), name(b2))
                   : b.kind === "chip-over-part"
                     ? w.covers(name(a), name(b2))
                     : b.kind === "pipe-behind-box"

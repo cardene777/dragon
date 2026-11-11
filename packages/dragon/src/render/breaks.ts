@@ -16,6 +16,8 @@
  * 線の名前の札が囲みと列と帯の枠線をまたぐもの (`label-on-frame`、#3554) も拾う。枠線が札に刺さり、字と重なるため。
  * ドーナツの輪の真ん中の段の名前が輪の内側に収まらないもの (`title-outside-ring`、#3560) も拾う。図の枠に収まる長さの名前は弧に重なるだけで、図の枠からのはみ出しに数えないため。
  * 線が札を持たない字を横切る (`line-crosses-text`、#3524) も数える。書き出しが字の重なりとして知らせる組と同じで、記法を確かめる命令でも知らせるため。
+ * 時間軸の図の範囲の囲みの縁と段の終わりの針が札を持たない字を横切るのも同じ崩れに数え、囲みと針で呼ぶ (#3631)。
+ * 列の図の札に押した印が札を持たない字に重なるのは、配管の図の札の重なりと同じ崩れ (`chip-over-part`) に数え、印で呼ぶ (#3631)。
  * 線が両端でない箱の字に掛からずに箱の中を通る (`line-behind-box`、#3607) も数える。線は箱の下に描くので箱に隠れ、その箱へ出入りする線に読めるため。
  * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
@@ -32,7 +34,7 @@ import type { PipeLayout } from "../kinds/pipe/layout";
 import { along, crossesRect, distanceToRect, distanceToSegment, type Layout, lineGap, pathLength, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
 import { PIPE_LOOK } from "../look/pipe";
 import { APART, LOOK } from "../look/values";
-import { type Framed, type Ink, type InkPart, type Shown, type Trace, visible } from "./ink";
+import { type Framed, type Ink, type InkPart, type Shown, type Stroke, type Trace, visible } from "./ink";
 import { pipeBreaks } from "./pipe-breaks";
 
 /** 図の枠の 4 つの端 */
@@ -41,7 +43,7 @@ export type FrameSide = "left" | "right" | "top" | "bottom";
 /**
  * 崩れに関わる物。段の番号と線の段は 1 から数え、箱と線の端は箱の名前で呼ぶ。
  * 書き手が書いていない図の部品 (箱の絵柄、運ぶ物の硬貨と封筒) は部品の種類で、図の枠は部品がはみ出す端で呼ぶ (#3515)。時間軸の囲みは`panel`で呼ぶ (#3527)。
- * ドーナツの輪の内側は`ring`で呼ぶ (#3560)
+ * ドーナツの輪の内側は`ring`で呼ぶ (#3560)。列の図の札に押した印は`stamp`で、時間軸の範囲の囲みは`span`で、どちらも書き手が書いた字で呼ぶ (#3631)
  */
 export type LayoutPart =
   | { kind: "badge"; step: number }
@@ -59,7 +61,9 @@ export type LayoutPart =
   | { kind: "gauge"; box: string }
   | { kind: "pipe"; from: string; to: string; step: number }
   | { kind: "border"; name: string }
-  | { kind: "ring" };
+  | { kind: "ring" }
+  | { kind: "stamp"; text: string }
+  | { kind: "span"; text: string };
 
 export type LayoutBreakKind =
   | "badge-off-shape"
@@ -139,6 +143,8 @@ export interface BreakInput {
   pieces?: PipePiece[];
   /** 枠線を描いた囲みと列と帯 (#3525)。渡さない時は枠線に乗る番号を数えない */
   borders?: Border[];
+  /** 箱を結ぶ線でないのに字を横切る部品 (時間軸の図の針と範囲の囲み、#3631)。持たない図は渡さない */
+  strokes?: Stroke[];
 }
 
 /**
@@ -240,6 +246,29 @@ function insideRings(rings: Point[][], [px, py]: Point): boolean {
   return winding !== 0;
 }
 
+/**
+ * 凸な輪 `ring` と四角 `r` が、`BITE` より深く重なるか (#3631)。2 つの形の辺に直交する向きの全てで、影が `BITE` より長く重なる時に重なる。
+ * 1 つの向きでも影が離れれば、その向きに 2 つの形を分ける線が引ける
+ */
+function overlapsRing(ring: Point[], r: Rect): boolean {
+  const box: Point[] = [
+    [r.x, r.y],
+    [r.x + r.w, r.y],
+    [r.x + r.w, r.y + r.h],
+    [r.x, r.y + r.h],
+  ];
+  const normals = ring.map(([x, y], k): Point => {
+    const [nx, ny] = ring[(k + 1) % ring.length] as Point;
+    return [y - ny, nx - x];
+  });
+  return [[1, 0] as Point, [0, 1] as Point, ...normals].every(([ax, ay]) => {
+    const length = Math.hypot(ax, ay);
+    const shadow = (points: Point[]): number[] => points.map(([x, y]) => (x * ax + y * ay) / length);
+    const [a, b] = [shadow(ring), shadow(box)];
+    return Math.min(Math.max(...a), Math.max(...b)) - Math.max(Math.min(...a), Math.min(...b)) > BITE;
+  });
+}
+
 /** 点 `p` から形の縁までの距離。形の内の点は負の値にする */
 /** 折れ線が、形の縁から `BITE` より内に入るか。区間を 1px ずつ辿って測る */
 function runsInside(points: Point[], rings: Point[][]): boolean {
@@ -332,7 +361,7 @@ export const breakKey = (b: LayoutBreak): string => JSON.stringify([b.kind, b.st
 
 /** 描いた結果の崩れを、見え始める段の順に並べる */
 export function findBreaks(input: BreakInput): LayoutBreak[] {
-  const { inks, traces, framed, stills, boxes, edges, groups = [], layout, outlines, frame, borders = [] } = input;
+  const { inks, traces, framed, stills, boxes, edges, groups = [], layout, outlines, frame, borders = [], strokes = [] } = input;
   const names = new Map(boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -463,6 +492,23 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
         crossedText.set(trace, (crossedText.get(trace) ?? new Set()).add(ink.box));
       add("line-crosses-text", seen, [
         { kind: "line", from: nameOf(trace.from), to: nameOf(trace.to), step: edgeSteps.get(trace.points) ?? seen },
+        { kind: "text", text: ink.text, ...(ink.box === undefined ? {} : { box: nameOf(ink.box) }) },
+      ]);
+    }
+    // 時間軸の図の針と範囲の囲みの縁も、線と同じく札を持たない字を横切れば崩れにし、部品の名前で知らせる (#3631)
+    for (const stroke of strokes) {
+      if (!crossesRect(stroke.points, ink.rect, BITE)) continue;
+      add("line-crosses-text", firstSeen(ink, stroke), [stroke.part, { kind: "text", text: ink.text, ...(ink.box === undefined ? {} : { box: nameOf(ink.box) }) }]);
+    }
+  }
+
+  // 列の図の札に押した印。印の地は下の字を隠すので、同じ止め絵に見えている札を持たない字に重なれば崩れにする (#3631)
+  for (const stamp of inks) {
+    if (stamp.cover === undefined) continue;
+    for (const ink of inks) {
+      if (ink === stamp || ink.boxed === true || ink.badge === true || ink.part !== undefined || !overlapsRing(stamp.cover, ink.rect)) continue;
+      add("chip-over-part", firstSeen(stamp, ink), [
+        { kind: "stamp", text: stamp.text },
         { kind: "text", text: ink.text, ...(ink.box === undefined ? {} : { box: nameOf(ink.box) }) },
       ]);
     }
