@@ -15,7 +15,7 @@ import { LATER_CATALOG, LATER_DOCS, LaterPage } from "./site/pages";
 import { redirectSharedLink, type Route, routeOf, usePath } from "./site/routes";
 import { paintSite, storedPalette, storePalette } from "./site/site-colors";
 import { SiteHeader } from "./site/SiteHeader";
-import { deviceLang, type Lang, TEXT } from "./text";
+import { deviceLang, type Lang, langChanger, openLang, TEXT } from "./text";
 import "./site/site.css";
 import "./playground.css";
 import "./catalog/catalog.css";
@@ -28,6 +28,7 @@ import "./catalog/catalog.css";
  * 更新履歴は `release-notes/ReleaseNotes.tsx`、見つからない頁は `not-found/NotFound.tsx` (#3035) が持つ。
  * カタログの部品の頁は `catalog/PartPage.tsx` (#3166) が持つ。知らない分類と部品の経路は見つからない頁にする。
  * 言葉と明暗と色味はサイト全体で 1 つ持ち、帯の切替で替える。明暗は選ぶまで端末の設定に従う。
+ * 英語の字は後から読む英語の塊が持つので、英語で開く頁は塊が届いてから描き、英語に替える時は塊が届くまで今の言葉で描く (#3646)。
  * 色味は選ぶまで紙と墨で、選んだ色味は次に開いた時にも残す (#3033)。
  * 頁の色は色味と明暗から `site/site-colors.ts` で引いて html に置き、図も同じ色味で描く。
  */
@@ -61,12 +62,12 @@ function screenName(route: Route, lang: Lang): string | null {
   return t.site.screens[route.screen].title;
 }
 
-function Site(): ReactElement {
+function Site({ firstLang }: { firstLang: Lang }): ReactElement {
   const path = usePath();
   const route = screenRoute(path);
   const part = partOf(route.part);
   const category = isKind(route.category) ? route.category : undefined;
-  const [lang, setLang] = useState<Lang>(() => deviceLang(navigator.languages.length > 0 ? navigator.languages : [navigator.language]));
+  const [lang, setLang] = useState<Lang>(firstLang);
   const [choice, setChoice] = useState<Theme | null>(null);
   const [palette, setPalette] = useState(storedPalette);
   const device = useSyncExternalStore(subscribeDevice, deviceTheme);
@@ -99,10 +100,21 @@ function Site(): ReactElement {
     document.title = name === null ? TEXT[lang].title : `${name} — dragon`;
   }, [lang, name]);
 
+  // 替える先の字が届いてから替える。届くまでに別の言葉を選んだら、遅れて届いた方では替えない。
+  // 替える口は待っている頼みを覚えるので、最初に押した時に 1 つだけ作って使い続ける
+  const shown = useRef(lang);
+  useLayoutEffect(() => {
+    shown.current = lang;
+  }, [lang]);
+  const changer = useRef<((next: Lang) => void) | null>(null);
   const changeLang = (next: Lang): void => {
-    if (next === lang) return;
-    beforeLang.current?.(next);
-    setLang(next);
+    changer.current ??= langChanger((asked) => {
+      if (asked === shown.current) return;
+      beforeLang.current?.(asked);
+      shown.current = asked;
+      setLang(asked);
+    });
+    changer.current(next);
   };
 
   const changePalette = (next: string): void => {
@@ -160,10 +172,12 @@ redirectSharedLink();
 paintSite(storedPalette(), deviceTheme());
 // 2 度目からは字の CSS を読み終えてから描く。字の file が cache に在れば端末の字を挟まない (#3292)
 if (fontsSeen()) await loadFonts();
+// 英語で開く頁は英語の塊が届いてから描き、日本語の字を挟まない (#3646)
+const firstLang = await openLang(deviceLang(navigator.languages.length > 0 ? navigator.languages : [navigator.language]));
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Site />
+    <Site firstLang={firstLang} />
   </StrictMode>,
 );
 // 見本と部品の図の記法は最初の画面を描いた後に裏で読み始め、見本帳を開く頃には届いているようにする (#3246)。

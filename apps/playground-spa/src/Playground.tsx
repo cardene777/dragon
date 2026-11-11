@@ -30,8 +30,9 @@ import { type CSSProperties, Fragment, type ReactElement, useEffect, useLayoutEf
 
 import { paintJson, paintNotation, type Span } from "./editor/highlight";
 import { fieldNotices, jsonErrorLine, lineNotices, type Notice } from "./editor/notices";
-import { insertLines, type PartId, partLines } from "./editor/shelf-items";
 import { Shelf } from "./editor/Shelf";
+import { LATER_SHELF } from "./editor/shelf-first";
+import type { PartId } from "./editor/shelf-items";
 import { MIN_WIDTHS, type Pane, readWidths, resizeTo, saveWidths, shownWidths, type Widths } from "./editor/split";
 import { SplitHandle } from "./editor/SplitHandle";
 import { Stage } from "./editor/Stage";
@@ -402,10 +403,11 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
-  /** 部品の行を記法に足す。宣言は最初の段の前、段の中の行は最後の段に入る */
+  /** 部品の行を記法に足す。宣言は最初の段の前、段の中の行は最後の段に入る。棚は雛形の塊が届いてから部品を並べるので、押せる時は届いている */
   const addPart = (id: PartId): void => {
-    if (!base) return;
-    const added = insertLines(text, partLines(id, base, lang));
+    const shelf = LATER_SHELF.state();
+    if (!base || shelf.status !== "ready") return;
+    const added = shelf.value.insertLines(text, shelf.value.partLines(id, base, lang));
     if (tab !== "notation") setTab("notation");
     writeNotation(added.text);
     reveal.current = added.line;

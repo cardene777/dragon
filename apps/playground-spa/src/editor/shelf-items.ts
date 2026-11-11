@@ -1,5 +1,9 @@
 /**
- * 左の棚の中身 (#3031)。見本の一覧、部品、記法の早見。
+ * 左の棚の雛形 (#3031)。部品の行と記法の早見の行。
+ *
+ * 棚 (`Shelf.tsx`) と編集画面 (`Playground.tsx`) がこの file を後から読む塊 (`shelf-first.ts` の `LATER_SHELF`) で読み、
+ * build はこの file を 1 つの後から読む塊にする (#3646)。棚は塊が届くまで部品と記法の行を並べない。
+ * 見本の一覧は編集画面を開いた時から出すので、見本を束ねる処理は最初に読む `shelf-first.ts` が持つ。
  *
  * 部品の行と早見の行は、図に 1 つ足した図を `printNotation` で書き、足す前の図を書いた行との差から作る。
  * 部品はブロックの置き場の `gallery/shelf.ts` が名前と組み立てを持ち、棚はブロックの並びの順に並べる (#3350)。
@@ -7,41 +11,11 @@
  * 差の行のうち、最初の `step` の行より前の行は宣言、`step` の行から後の行は段の中の行として扱う。
  * 差は行の並びを保って取る。`group … end` のように同じ行 (`end`) が何度も出る塊も、足した塊のまま取り出せる。
  */
-import { type Diagram, type DiagramEvent, FORMAT_VERSION, type NotationLang, parseNotation, printNotation } from "@cardenelabs/dragon/light";
+import { type Diagram, type DiagramEvent, FORMAT_VERSION, type NotationLang, printNotation } from "@cardenelabs/dragon/light";
 
 // 見本帳の分の型は npm に出す入口から出さず、ブロックの置き場の型の file から読む
 import type { ShelfEdge, ShelfKit, ShelfPart } from "../../../../packages/dragon/src/blocks/gallery";
 import { BLOCK_ORDER, BLOCK_SHELF } from "../catalog/blocks.gen";
-import { EXAMPLE_KEYS, type ExampleKey, exampleText, FIRST_SCREEN_EXAMPLES } from "../examples";
-
-export interface Sample {
-  key: ExampleKey;
-  title: string;
-}
-
-export interface SampleGroup {
-  kind: Diagram["kind"];
-  samples: Sample[];
-}
-
-/**
- * 見本を図の種類ごとに束ねる。題と種類は見本の記法から読む。
- * `arrived` は後から読む見本が届いたか。届く前は最初に読む見本だけを束ねる (#3246)
- */
-export function sampleGroups(lang: NotationLang, arrived: boolean): SampleGroup[] {
-  const groups: SampleGroup[] = [];
-  for (const key of EXAMPLE_KEYS) {
-    const text = arrived || (FIRST_SCREEN_EXAMPLES as readonly ExampleKey[]).includes(key) ? exampleText(key, lang) : undefined;
-    if (text === undefined) continue;
-    const parsed = parseNotation(text, { lang });
-    if (!parsed.ok) continue;
-    const { kind, title } = parsed.diagram;
-    const group = groups.find((g) => g.kind === kind);
-    if (group) group.samples.push({ key, title });
-    else groups.push({ kind, samples: [{ key, title }] });
-  }
-  return groups;
-}
 
 /** 足した行。`declarations` は最初の段の見出しより前、`steps` は見出しから後に足された行 */
 export interface Added {
@@ -196,6 +170,13 @@ const BUILD = new Map(SHELF.map(([id, part]) => [id, part.build]));
 
 /** 部品を `base` の図に足した時に足される行。`lang` は部品が足す名前の言葉。棚に無い id は何も足さない */
 export const partLines = (id: PartId, base: Diagram, lang: NotationLang): Added => addedLines(base, BUILD.get(id)?.(base, KITS[lang]) ?? base);
+
+/** 棚の部品の見出しに並べる部品と行。棚の並び (`PART_IDS`) の順に、部品を `base` の図に足した時に足される行を宣言、段の中の順に持つ */
+export const partEntries = (base: Diagram, lang: NotationLang): { id: PartId; lines: string[] }[] =>
+  PART_IDS.map((id) => {
+    const added = partLines(id, base, lang);
+    return { id, lines: [...added.declarations, ...added.steps] };
+  });
 
 export type SyntaxId =
   | "kind"
