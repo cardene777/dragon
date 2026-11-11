@@ -1,0 +1,43 @@
+// Send tokens. Look up the account from the sender of the transfer row, look up its balance, take the amount sent from the balance and mark the transfer done.
+er Send tokens
+
+table transfers as Transfers
+  field id: T-9 [key]
+  field from: 0xA1 [ref: accounts.id]
+  field to: 0xC3
+  field amount: 30 USDC
+  field status: pending
+
+table accounts as Accounts
+  field id: 0xA1 [key]
+  field name: Alice
+
+table balances as Balances
+  field id: B-1 [key]
+  field account: 0xA1 [ref: accounts.id]
+  field balance: 100 USDC
+
+step Take the transfer
+  say Take transfer T-9, which sends 30 USDC from 0xA1 to 0xC3.
+  pick transfers.id
+
+step Look up the sender
+  say From the sender of the transfer, look up Alice, account 0xA1.
+  transfers.from -> accounts.id [tag: 0xA1]
+  pick accounts.id
+
+step Look up the balance
+  say Look up the balance of account 0xA1. It holds 100 USDC.
+  accounts.id -> balances.account [tag: 0xA1]
+  pick balances.account
+
+step Lower the balance
+  say Take the 30 sent from the balance, leaving 70 USDC.
+  note balances.balance: 100 - 30 = 70
+  set balances.balance: 70 USDC
+  pick balances.balance
+
+step Finish the transfer
+  say Mark the transfer done.
+  set transfers.status: done
+  pick transfers.status

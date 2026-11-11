@@ -53,6 +53,7 @@ import { desc as stampDesc } from "../../../../packages/dragon/src/blocks/stamp/
 import { desc as startFinishDesc } from "../../../../packages/dragon/src/blocks/start-finish/gallery/desc";
 import { desc as stepDesc } from "../../../../packages/dragon/src/blocks/step/gallery/desc";
 import { desc as stripDesc } from "../../../../packages/dragon/src/blocks/strip/gallery/desc";
+import { desc as tableDesc } from "../../../../packages/dragon/src/blocks/table/gallery/desc";
 import { desc as taskDesc } from "../../../../packages/dragon/src/blocks/task/gallery/desc";
 import { desc as valueDesc } from "../../../../packages/dragon/src/blocks/value/gallery/desc";
 import { desc as writeDesc } from "../../../../packages/dragon/src/blocks/write/gallery/desc";
@@ -114,6 +115,7 @@ export const BLOCK_DESC = {
   "start-finish": startFinishDesc,
   "step": stepDesc,
   "strip": stripDesc,
+  "table": tableDesc,
   "task": taskDesc,
   "value": valueDesc,
   "write": writeDesc,

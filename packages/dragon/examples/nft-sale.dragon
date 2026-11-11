@@ -1,0 +1,51 @@
+// NFTを売り買いする。出品からトークンを引き、買い手が買うと売買の行を書き、トークンの持ち主を買い手に書き換えて、買い手の持っている数を増やす。
+er NFTを売り買いする
+
+table owners as 持ち主
+  field id: 0xB2 [key]
+  field 名前: Bob
+  field 持っている数: 0
+
+table tokens as トークン
+  field id: #42 [key]
+  field 名前: Dragon #42
+  field 持ち主: 0xA1 [ref: owners.id]
+
+table listings as 出品
+  field id: L-7 [key]
+  field トークン: #42 [ref: tokens.id]
+  field 値段: 0.5 ETH
+  field 状態: 出品中
+
+table sales as 売買
+  field id: S-3 [key]
+  field 出品: L-7 [ref: listings.id]
+  field 買い手: 0xB2 [ref: owners.id]
+  field 値段: 0.5 ETH
+
+step 出品を見る
+  say 出品L-7を見る。トークン#42が0.5 ETHで売りに出ている。
+  pick listings.id
+
+step トークンを引く
+  say 出品のトークンから、トークン#42を引く。今の持ち主は0xA1。
+  listings.トークン -> tokens.id [tag: #42]
+  pick tokens.id
+
+step 売買を書く
+  say 0xB2が買うと、売買S-3に出品L-7と買い手を書き、出品を売れたにする。
+  listings.id -> sales.出品 [tag: L-7]
+  set listings.状態: 売れた
+  pick sales.出品
+
+step 持ち主を替える
+  say 売買の買い手から持ち主0xB2を引き、トークン#42の持ち主を0xB2に書き換える。
+  sales.買い手 -> owners.id [tag: 0xB2]
+  set tokens.持ち主: 0xB2
+  pick owners.id
+
+step 持っている数を増やす
+  say 0xB2の持っている数を1つ増やす。
+  note owners.持っている数: 0 + 1 = 1
+  set owners.持っている数: 1
+  pick owners.持っている数

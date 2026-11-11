@@ -1,0 +1,23 @@
+er 段 [view: fixed]
+
+table jobs as 仕事
+  field id: J-3 [key]
+  field 状態: 止まっている
+
+table runs as 実行
+  field id: R-1 [key]
+  field 仕事id: J-3 [ref: jobs.id]
+
+step 起動する
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code systemctl start app
+  runs.仕事id -> jobs.id [tag: J-3]
+  set jobs.状態: 動いている
+
+step 止める
+  say 段は 1 つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  code systemctl stop app
+  set jobs.状態: 止まっている
+  pick jobs.状態

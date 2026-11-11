@@ -98,7 +98,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, table relation diagram |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -167,6 +167,18 @@ The strip goes in the middle of the ring instead of under the diagram.
 | `box <id> as <name>` | A step on the ring, before the first step. A cycle diagram takes 2 to 8 steps |
 | `<id> -> <id> [tag: <text>]` | A line to the next step on the ring and the chip that runs along its arc. A line from the last step to the first one starts the next round. A line that skips a step, goes backward or carries a label is refused |
 | `strip <title>: <field>, <field>` | The strip title and field values in the middle of the ring. `set <field>: <value>` in a step changes a value. The first field shows large, and field names are not shown |
+
+A table relation diagram (`er <title>`) follows step by step which row of which table one value goes through.
+The tables sit left to right in one row in the order written, and a line joins each field that holds a link to the field it points at.
+In a step a value chip runs along that line, the row it reaches lights up, and a value can be rewritten.
+
+| Line | What it writes |
+|---|---|
+| `table <id> as <name>` | A table, before the first step. A table relation diagram takes 1 to 6 tables |
+| `field <name>: <value> [ref: <table>.<field>]` | A field of the table above it. `[key]` is the key mark (PK), and `ref` links it to a field of another table (FK). The linking field is the many side and the field it points at is the one side |
+| `pick <table>.<field>` | Lights that row and its table in a step |
+| `<table>.<field> -> <table>.<field> [tag: <value>]` | Runs a value chip along the line between linked fields. A line between fields that are not linked is refused |
+| `set <table>.<field>: <value>`, `note <table>.<field>: <text>` | Rewrites the value of a field, or shows a formula card under its table, from that step on |
 
 ## Documentation
 

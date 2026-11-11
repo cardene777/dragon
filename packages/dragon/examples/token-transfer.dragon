@@ -1,0 +1,43 @@
+// トークンを送る。送金の行の送り手から口座を引き、口座から残高を引いて、送る額を残高から引き、送金を済みにする。
+er トークンを送る
+
+table transfers as 送金
+  field id: T-9 [key]
+  field 送り手: 0xA1 [ref: accounts.id]
+  field 受け手: 0xC3
+  field 額: 30 USDC
+  field 状態: 待ち
+
+table accounts as 口座
+  field id: 0xA1 [key]
+  field 名前: Alice
+
+table balances as 残高
+  field id: B-1 [key]
+  field 口座: 0xA1 [ref: accounts.id]
+  field 残高: 100 USDC
+
+step 送金を受け付ける
+  say 0xA1から0xC3へ30 USDCを送る送金T-9を受け付ける。
+  pick transfers.id
+
+step 送り手を引く
+  say 送金の送り手から、口座0xA1のAliceを引く。
+  transfers.送り手 -> accounts.id [tag: 0xA1]
+  pick accounts.id
+
+step 残高を引く
+  say 口座0xA1の残高を引くと、100 USDCある。
+  accounts.id -> balances.口座 [tag: 0xA1]
+  pick balances.口座
+
+step 残高を減らす
+  say 残高から送る額の30を引いて70 USDCにする。
+  note balances.残高: 100 - 30 = 70
+  set balances.残高: 70 USDC
+  pick balances.残高
+
+step 送金を済ませる
+  say 送金の状態を済みにする。
+  set transfers.状態: 済み
+  pick transfers.状態

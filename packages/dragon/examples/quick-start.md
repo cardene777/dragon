@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`er <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -418,6 +418,41 @@ step 次の週へ
   look -> plan [tag: 残り]
   set 回: 第2週
   set 曜日: 月曜
+```
+
+表どうしの関係の図 (`er <題>`) では、表を最初の `step` の行より前に `table <名札> as <名前>` で書き、その下に `field <名前>: <値>` の行で項目を書く。
+表は書いた順に左から右へ横 1 列に並ぶ。表は 1 つから 6 つまで書ける。
+`[key]` は鍵の印 (PK) で、`field <名前>: <値> [ref: <表>.<項目>]` は別の表の項目への結び (FK) になり、結びを書いた項目から指した項目へ線を引く。
+段の中の `pick <表>.<項目>` は行と表を光らせ、`<表>.<項目> -> <表>.<項目> [tag: <値>]` は結んだ項目どうしの線に沿って値の札を走らせる。結んでいない項目どうしの線は書けない。
+`set <表>.<項目>: <値>` は項目の値を書き換え、`note <表>.<項目>: <文>` は表の下に式の札を出す。
+
+```dragon
+er 注文から客を引く
+
+table users as 客
+  field id: U-7 [key]
+  field 名前: 田中
+  field 注文の数: 2
+
+table orders as 注文
+  field id: O-41 [key]
+  field 客id: U-7 [ref: users.id]
+  field 金額: 1200円
+
+step 注文を引く
+  say 注文O-41の行を引く。
+  pick orders.id
+
+step 客を辿る
+  say 注文の客idを結びに沿って辿り、客U-7の田中さんの行を引く。
+  orders.客id -> users.id [tag: U-7]
+  pick users.id
+
+step 数を増やす
+  say 田中さんの注文の数を1つ増やす。
+  note users.注文の数: 2 + 1 = 3
+  set users.注文の数: 3
+  pick users.注文の数
 ```
 
 ## 属性

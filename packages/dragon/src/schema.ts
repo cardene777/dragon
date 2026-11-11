@@ -44,6 +44,7 @@ import type { PipeCall, PipeCallKind, PipeReturn } from "./blocks/return/block";
 import type { PipeRevert } from "./blocks/revert/block";
 import type { PipeWrite } from "./blocks/write/block";
 import type { LineupStamp } from "./blocks/stamp/block";
+import type { ErCell, ErFormula, ErLookup, ErTable } from "./blocks/table/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
 import { nearest } from "./nearest";
@@ -108,7 +109,10 @@ export type DiagramEvent =
   | PipeCheck
   | PipeEmit
   | PipeCalc
-  | ChartSet;
+  | ChartSet
+  | ErLookup
+  | ErCell
+  | ErFormula;
 
 /**
  * 時間軸の図 (#3165) の印の色を変える出来事と範囲の括弧の出来事と、目盛りと区切りと印の列と節目の型は、
@@ -260,7 +264,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "er";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -297,6 +301,8 @@ export interface DiagramBlocks {
   check?: TryCheck[];
   /** 配管の図 (#3389) の始めの値。残高と、残高でない値 */
   hold?: PipeHold[];
+  /** 表どうしの関係の図 (#3618) の表。書いた順に左から右へ並べる */
+  table?: ErTable[];
 }
 
 /**
@@ -348,6 +354,8 @@ export interface DiagramModel {
   chart?: ChartSpec;
   /** 手順の図 (#3561) の判断と、最初の段より前に書いた移れる道。版1の原本に無かった種類なので、版2の原本の `choice` と `path` をそのまま持つ */
   flow?: { choices: FlowChoice[]; paths: StatePath[] };
+  /** 表どうしの関係の図 (#3618) の表。版1の原本に無かった種類なので、版2の原本の `table` をそのまま持つ */
+  er?: { tables: ErTable[] };
 }
 
 /**
@@ -376,7 +384,7 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set", "lookup", "cell", "formula"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
 const PART_TYPES = ["route", "queue", "chain", "log", "ask", "press"] as const satisfies readonly TryPart["type"][];
 
@@ -418,6 +426,7 @@ const ABSENT_KINDS: Record<string, string> = {
   link: "sequence / architecture / state / git / time / tree / flow / cycle",
   gist: "pipe",
   chart: "chart",
+  table: "er",
 };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
 const NOT_ALLOWED: Record<string, Allowed> = {
@@ -454,6 +463,10 @@ export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check"
 const CHART_EVENT = "#/definitions/notChartEvent/not";
 /** 量の図だけが書ける出来事 */
 const CHART_EVENTS = ["set"] as const satisfies readonly DiagramEvent["type"][];
+/** 表どうしの関係の図でない図に、表どうしの関係の図だけの出来事を書いた時の決まりの場所 (#3618) */
+const ER_EVENT = "#/definitions/notErEvent/not";
+/** 表どうしの関係の図だけが書ける出来事 */
+const ER_EVENTS = ["lookup", "cell", "formula"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類の決まりの場所 (#3337) */
 const PART_TAG = "#/definitions/part/discriminator";
 /** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
@@ -524,6 +537,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       if (error.schemaPath === TRY_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(TRY_EVENTS, "try") };
       if (error.schemaPath === PIPE_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(PIPE_EVENTS, "pipe") };
       if (error.schemaPath === CHART_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(CHART_EVENTS, "chart") };
+      if (error.schemaPath === ER_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(ER_EVENTS, "er") };
       if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };

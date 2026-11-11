@@ -1,0 +1,25 @@
+er 運ぶ物
+
+table users as 客
+  field id: U-7 [key]
+  field 残高: 5000円
+
+table orders as 注文
+  field id: O-41 [key]
+  field 客id: U-7 [ref: users.id]
+
+table pays as 支払い
+  field id: P-9 [key]
+  field 注文id: O-41 [ref: orders.id]
+
+step 札
+  say tag で、線の上を走る札に値を書く。札は線の真ん中で止まる。
+  orders.客id -> users.id [tag: U-7]
+
+step 運ばない
+  say carry: none で線だけを光らせる。
+  pays.注文id -> orders.id [carry: none]
+
+step 硬貨
+  say carry: coin でお金が動くことを硬貨で見せる。
+  users.id -> orders.客id [carry: coin]

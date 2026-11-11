@@ -1,0 +1,50 @@
+// Work out the total of an online shop order. Follow the links from the user to the order, its lines and the product to collect the price, then multiply the quantity by the price and write the total to the order.
+er Work out an order total
+
+table users as Users
+  field id: 7 [key]
+  field name: Alice
+
+table orders as Orders
+  field id: 1042 [key]
+  field user_id: 7 [ref: users.id]
+  field total: none
+  field status: received
+
+table lines as Order lines
+  field id: 1 [key]
+  field order_id: 1042 [ref: orders.id]
+  field item_id: P-3 [ref: products.id]
+  field qty: 2
+
+table products as Products
+  field id: P-3 [key]
+  field name: Mug
+  field price: 1,200
+
+step Look up the user
+  say Look up Alice, whose id is 7, in the users table.
+  pick users.id
+
+step Look up the order
+  say Look up the orders whose user_id is 7 and find order #1042.
+  users.id -> orders.user_id [tag: 7]
+  pick orders.user_id
+
+step Look up the lines
+  say Look up the lines whose order_id is 1042. The order asks for 2 of product P-3.
+  orders.id -> lines.order_id [tag: 1042]
+  pick lines.order_id
+
+step Look up the price
+  say From the item_id of the line, look up the price of product P-3, 1,200.
+  lines.item_id -> products.id [tag: P-3]
+  pick products.id
+
+step Write the total
+  say Multiply the qty 2 by the price 1,200 to get 2,400 and write it to the order total.
+  pick lines.qty
+  pick products.price
+  note orders.total: 2 × 1,200 = 2,400
+  set orders.total: 2,400
+  pick orders.total
