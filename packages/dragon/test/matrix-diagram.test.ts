@@ -318,6 +318,18 @@ describe("2つの軸で置く図の記法 (#3622)", () => {
     expectRefused([...head, ...boxes(5), ...steps].join("\n"), "区画が 5 つの図", { line: head.length + 5, column: 1 });
   });
 
+  it("matrix-areas-take-only-note", () => {
+    // 区画の色は置き場所で決まり、絵と飛び先は描かないので、区画の行に書ける属性は名前の下の字 (note) だけ
+    const head = ["matrix 区画の属性", "axis 横", "axis 縦"];
+    const rest = ["box b as 右上", "box c as 左下", "box d as 右下", "item x as 課題", "step 置く", "  say 置く。", "  line a: x"];
+    const noted = parsed([...head, "box a as 左上 [note: 先にやる]", ...rest].join("\n")) as { blocks: { box: Json[] } };
+    expect(noted.blocks.box[0], "区画の名前の下の字").toEqual({ id: "a", name: "左上", sub: "先にやる" });
+    for (const attr of ["color: rose", "icon: key", "link: /a"]) {
+      const line = `box a as 左上 [${attr}]`;
+      expectRefused([...head, line, ...rest].join("\n"), `区画に ${attr} を書いた図`, { line: head.length + 1, column: line.indexOf("[") + 2 });
+    }
+  });
+
   it("matrix-rejects-other-than-two-axes", () => {
     const boxes = ["box a as 左上", "box b as 右上", "box c as 左下", "box d as 右下", "item x as 課題"];
     const steps = ["step 置く", "  say 置く。", "  line a: x"];

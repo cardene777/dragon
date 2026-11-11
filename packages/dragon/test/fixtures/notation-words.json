@@ -13,7 +13,8 @@
     "flow",
     "cycle",
     "mind",
-    "er"
+    "er",
+    "matrix"
   ],
   "HEADS": [
     "group",
@@ -67,7 +68,8 @@
     "choice",
     "idea",
     "table",
-    "field"
+    "field",
+    "axis"
   ],
   "ATTRS": {
     "diagram": [
@@ -187,6 +189,10 @@
     "field": [
       "key",
       "ref"
+    ],
+    "axis": [
+      "from",
+      "to"
     ]
   },
   "CARRIES": [

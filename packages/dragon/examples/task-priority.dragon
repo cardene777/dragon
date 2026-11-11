@@ -1,0 +1,38 @@
+// 今週の仕事を、急ぎと大事さの2つの軸で4つに分ける。
+// 段ごとに1つの区画へ仕事を置き、置いた区画で何をするかを決める。
+matrix 今週の仕事を急ぎと大事さで分ける
+
+axis 急ぎ [from: 低い, to: 高い]
+axis 大事さ [from: 低い, to: 高い]
+
+box plan as 予定を立てる
+box now as すぐやる
+box drop as やめる
+box ask as 人に任せる
+
+item report as 明日締めの報告書
+item trouble as 客先の不具合
+item study as 資格の勉強
+item health as 健康診断の予約
+item call as 急ぎの取り次ぎ
+item room as 定例会の会場取り
+item feed as 何となく見るSNS
+
+step 並べる
+  say 今週の仕事を左に並べる。まだどの区画にも置いていない。
+
+step すぐやる
+  say 急ぎで大事な仕事は、ほかより先に今日のうちに片付ける。
+  line now: report, trouble
+
+step 予定を立てる
+  say 大事だが急がない仕事は、後回しにならないよう先に日を決める。
+  line plan: study, health
+
+step 人に任せる
+  say 急ぐが大事さの低い仕事は、ほかの人に頼んで手を空ける。
+  line ask: call, room
+
+step やめる
+  say 急ぎでも大事でもない仕事は、今週はやめる。
+  line drop: feed

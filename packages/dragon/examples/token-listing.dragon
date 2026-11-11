@@ -1,0 +1,37 @@
+// 取引所に上場を頼まれたトークンを、取引の量と信頼の2つの軸で4つに分ける。
+// 段ごとに1つの区画へトークンを置き、区画ごとに上場の扱いを決める。
+matrix 取引の量と信頼でトークンの上場を分ける
+
+axis 取引の量 [from: 少ない, to: 多い]
+axis 信頼 [from: 低い, to: 高い]
+
+box wait as 様子を見る
+box list as 上場する
+box reject as 断る
+box check as 調べ直す
+
+item stable as 監査済みのステーブルコイン
+item vote as 大手DAOの投票トークン
+item gas as 新しいL2の手数料トークン
+item game as ゲームの中の通貨
+item meme as 急に伸びたミームトークン
+item copy as 有名な名前を真似たトークン
+
+step 並べる
+  say 上場を頼まれたトークンを左に並べる。まだどの区画にも置いていない。
+
+step 上場する
+  say 取引が多く、監査や持ち主の分散で信頼できるトークンは上場する。
+  line list: stable, vote
+
+step 様子を見る
+  say 信頼できるが取引のまだ少ないトークンは、量が育つのを待つ。
+  line wait: gas, game
+
+step 調べ直す
+  say 取引は多いが信頼の低いトークンは、契約と持ち主の偏りを調べ直す。
+  line check: meme
+
+step 断る
+  say 取引も信頼も低いトークンは断る。
+  line reject: copy

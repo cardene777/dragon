@@ -1,6 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { docs as actDocs } from "../../../../packages/dragon/src/blocks/act/gallery/docs";
 import { docs as askDocs } from "../../../../packages/dragon/src/blocks/ask/gallery/docs";
+import { docs as axisDocs } from "../../../../packages/dragon/src/blocks/axis/gallery/docs";
 import { docs as boxDocs } from "../../../../packages/dragon/src/blocks/box/gallery/docs";
 import { docs as branchDocs } from "../../../../packages/dragon/src/blocks/branch/gallery/docs";
 import { docs as calcDocs } from "../../../../packages/dragon/src/blocks/calc/gallery/docs";
@@ -32,6 +33,7 @@ import { docs as lifelineDocs } from "../../../../packages/dragon/src/blocks/lif
 import { docs as lineDocs } from "../../../../packages/dragon/src/blocks/line/gallery/docs";
 import { docs as linkDocs } from "../../../../packages/dragon/src/blocks/link/gallery/docs";
 import { docs as logDocs } from "../../../../packages/dragon/src/blocks/log/gallery/docs";
+import { docs as matrixItemDocs } from "../../../../packages/dragon/src/blocks/matrix-item/gallery/docs";
 import { docs as mergeDocs } from "../../../../packages/dragon/src/blocks/merge/gallery/docs";
 import { docs as nodeDocs } from "../../../../packages/dragon/src/blocks/node/gallery/docs";
 import { docs as noteDocs } from "../../../../packages/dragon/src/blocks/note/gallery/docs";
@@ -65,6 +67,7 @@ import { docs as zoomDocs } from "../../../../packages/dragon/src/blocks/zoom/ga
 export const BLOCK_DOCS = {
   "act": actDocs,
   "ask": askDocs,
+  "axis": axisDocs,
   "box": boxDocs,
   "branch": branchDocs,
   "calc": calcDocs,
@@ -96,6 +99,7 @@ export const BLOCK_DOCS = {
   "line": lineDocs,
   "link": linkDocs,
   "log": logDocs,
+  "matrix-item": matrixItemDocs,
   "merge": mergeDocs,
   "node": nodeDocs,
   "note": noteDocs,

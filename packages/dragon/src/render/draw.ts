@@ -1,6 +1,6 @@
 /**
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
- * chart、cycle、er、flow、git、lineup、mind、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
+ * chart、cycle、er、flow、git、lineup、matrix、mind、pipe、state、time、tree、try の部品は登録簿から引くので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
@@ -40,6 +40,7 @@ import {
 } from "../layout/scene";
 import type { CycleLayout } from "../kinds/cycle/layout";
 import type { MindLayout } from "../kinds/mind/layout";
+import type { MatrixLayout } from "../kinds/matrix/layout";
 import type { ErLayout } from "../kinds/er/layout";
 import type { TimeLayout } from "../kinds/time/layout";
 import type { TreeLayout } from "../kinds/tree/layout";
@@ -82,6 +83,7 @@ const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 const isChartLayout = (layout: Layout): layout is ChartLayout => layout.kind === "chart";
 const isCycleLayout = (layout: Layout): layout is CycleLayout => layout.kind === "cycle";
 const isMindLayout = (layout: Layout): layout is MindLayout => layout.kind === "mind";
+const isMatrixLayout = (layout: Layout): layout is MatrixLayout => layout.kind === "matrix";
 const isErLayout = (layout: Layout): layout is ErLayout => layout.kind === "er";
 const isGitLayout = (layout: Layout): layout is GitLayout => layout.kind === "git";
 const isLineupLayout = (layout: Layout): layout is LineupLayout => layout.kind === "lineup";
@@ -509,6 +511,12 @@ export function drawSvg(
     L.base.push(mindDrawn.base);
     L.node.push(mindDrawn.node);
   }
+  // 2つの軸で置く図の区画と軸と課題の札は、2つの軸で置く図を描く部品が描く (#3622)。段の番号はほかの図の種類と同じくここで描く。見た目の規則も 2つの軸で置く図の SVG にだけ書く
+  const matrixDrawn = isMatrixLayout(layout) ? kindParts("matrix").drawMatrix(layout, ctx) : undefined;
+  if (matrixDrawn) {
+    L.base.push(matrixDrawn.base);
+    L.node.push(matrixDrawn.node);
+  }
   // 時間軸の図の目盛りと印と拡大の帯の箱と節目は、時間軸の図を描く部品が描く (#3165)。拡大の帯の線は他の図と同じ線で描く。
   // 作業の棒 (#3562) の見た目の規則は、作業を持つ時間軸の図の SVG にだけ書く
   const timeLayout = isTimeLayout(layout) ? layout : undefined;
@@ -621,7 +629,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${cycle?.css ?? ""}${mindDrawn?.css ?? ""}${er?.css ?? ""}${flowParts?.flowCss(id) ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${lineup?.css ?? ""}${tryDrawn?.css ?? ""}${pipeDrawn?.css ?? ""}${timeDrawn?.css ?? ""}${chartDrawn?.css ?? ""}${cycle?.css ?? ""}${mindDrawn?.css ?? ""}${matrixDrawn?.css ?? ""}${er?.css ?? ""}${flowParts?.flowCss(id) ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${isLineupLayout(layout) ? ` data-lineup-arrangement="${layout.arrangement}"` : ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -727,6 +735,8 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
   }
   // 考えを広げる地図は、その段で書いた考えを見る (#3619)
   if (isMindLayout(layout)) rects.push(...layout.ideas.filter((p) => p.step === step));
+  // 2つの軸で置く図は、その段で札を受けた区画を見る (#3622)
+  if (isMatrixLayout(layout)) rects.push(...layout.areas.filter((area) => layout.cards.some((card) => card.moves.some((move) => move.step === step && move.area === area.id))));
   // 列の図は、その段で変わる列を見る (#3239)
   if (isLineupLayout(layout)) {
     const changed = new Set(
@@ -927,7 +937,7 @@ function followView(
         (b) =>
           `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="${partRadius(corner, M.card)}"/>`,
       ),
-      ...[...(isTreeLayout(layout) ? layout.nodes : []), ...(isMindLayout(layout) ? layout.ideas : [])].map(
+      ...[...(isTreeLayout(layout) ? layout.nodes : []), ...(isMindLayout(layout) ? layout.ideas : []), ...(isMatrixLayout(layout) ? layout.areas : [])].map(
         (n) =>
           `<rect class="dg-mm-card" style="${cs(n.color)}" x="${mx + n.x * k}" y="${my + n.y * k}" width="${n.w * k}" height="${n.h * k}" rx="${partRadius(corner, M.card)}"/>`,
       ),
@@ -1084,6 +1094,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
         ? kindParts("cycle", lang).layoutCycle(diagram)
       : diagram.kind === "mind"
         ? kindParts("mind", lang).layoutMind(diagram)
+      : diagram.kind === "matrix"
+        ? kindParts("matrix", lang).layoutMatrix(diagram, lang)
       : diagram.kind === "er"
         ? kindParts("er", lang).layoutEr(diagram)
       : diagram.kind === "git"

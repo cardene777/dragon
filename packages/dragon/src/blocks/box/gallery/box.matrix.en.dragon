@@ -1,0 +1,21 @@
+matrix Boxes
+
+axis Likelihood [from: low, to: high]
+axis Impact [from: small, to: large]
+
+box plan as Plan ahead
+box act as Act now
+box accept as Accept
+box watch as Watch
+
+item leak as Key leak
+item slow as Slow screen
+
+step Place the areas
+  say A box line places an area. Write exactly four; they go top left, top right, bottom left and bottom right in written order.
+    The name after as shows at the top left of the area.
+
+step Place into areas
+  say A line line that places items names the area by its box id.
+  line act: leak
+  line watch: slow

@@ -1,0 +1,38 @@
+// Sort this week's tasks into four areas by two axes: urgency and importance.
+// Each step places tasks into one area and decides what to do with them there.
+matrix Sort this week's tasks by urgency and importance
+
+axis Urgency [from: low, to: high]
+axis Importance [from: low, to: high]
+
+box plan as Schedule it
+box now as Do it now
+box drop as Drop it
+box ask as Hand it off
+
+item report as Report due tomorrow
+item trouble as Client bug
+item study as Exam study
+item health as Book a checkup
+item call as Urgent call
+item room as Book the meeting room
+item feed as Idle social feed
+
+step Line up
+  say Line up this week's tasks on the left. None of them sits in an area yet.
+
+step Do it now
+  say Tasks that are urgent and important get done today, before anything else.
+  line now: report, trouble
+
+step Schedule it
+  say Important tasks that are not urgent get a date now so they do not slip.
+  line plan: study, health
+
+step Hand it off
+  say Urgent tasks of low importance go to someone else to free up time.
+  line ask: call, room
+
+step Drop it
+  say Tasks that are neither urgent nor important are dropped this week.
+  line drop: feed

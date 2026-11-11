@@ -98,7 +98,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -190,6 +190,17 @@ In a step a value chip runs along that line, the row it reaches lights up, and a
 | `pick <table>.<field>` | Lights that row and its table in a step |
 | `<table>.<field> -> <table>.<field> [tag: <value>]` | Runs a value chip along the line between linked fields. A line between fields that are not linked is refused |
 | `set <table>.<field>: <value>`, `note <table>.<field>: <text>` | Rewrites the value of a field, or shows a formula card under its table, from that step on |
+
+A two-axis matrix (`matrix <title>`) sorts items into four areas by two measures, step by step.
+The horizontal axis runs below the areas and the vertical axis left of them, and the items wait in a list left of the areas until a step places them.
+A placed card slides from the list into its area, and the area lights up in that step.
+
+| Line | What it writes |
+|---|---|
+| `axis <name> [from: <low end>, to: <high end>]` | An axis, before the first step. Write the horizontal axis first and then the vertical one; a matrix takes exactly two |
+| `box <id> as <name>` | An area. Write exactly four; they go top left, top right, bottom left and bottom right in the order written |
+| `item <id> as <name>` | An item to sort, before the first step. Items wait in the list in the order written |
+| `line <area>: <item>, <item>` | Places items into an area in a step. A placed item stays there until a later step places it elsewhere. An unknown area or item is refused |
 
 ## Documentation
 

@@ -1,0 +1,21 @@
+matrix 箱
+
+axis 起きやすさ [from: 低い, to: 高い]
+axis 影響 [from: 小さい, to: 大きい]
+
+box plan as 備えを決める
+box act as すぐ手を打つ
+box accept as 受け入れる
+box watch as 見張る
+
+item leak as 鍵の漏れ
+item slow as 画面が遅い
+
+step 区画を置く
+  say box の行で区画を置く。ちょうど 4 つ書き、書いた順に左上、右上、左下、右下に並ぶ。
+    as の後ろの名前は区画の左上に出る。
+
+step 区画へ置く
+  say 課題を置く line の行は、区画を box の名札で名指す。
+  line act: leak
+  line watch: slow

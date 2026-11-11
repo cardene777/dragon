@@ -1,0 +1,27 @@
+matrix Sort the new menu of a shop
+
+axis Effort [from: low, to: high]
+axis Sales [from: low, to: high]
+
+box now as Serve now
+box plan as Plan the prep
+box spare as When free
+box drop as Skip
+
+item tea as Seasonal tea
+item cake as Fresh-baked cake
+item soda as Fruit soda
+item curry as Slow-cooked curry
+
+step Line up
+  say Line up the dishes to add on the left.
+
+step Serve now
+  say Dishes that are easy to make and likely to sell go on the menu now.
+  line now: tea
+
+step The rest
+  say Sort the other dishes by effort and sales too.
+  line plan: cake
+  line spare: soda
+  line drop: curry

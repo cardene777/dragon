@@ -1,0 +1,24 @@
+matrix 段 [view: fixed]
+
+axis 手間 [from: 小さい, to: 大きい]
+axis 効き目 [from: 小さい, to: 大きい]
+
+box now as 今やる
+box plan as 計画する
+box spare as 手が空いたら
+box drop as やらない
+
+item login as ログインを速く
+item pay as 決済を足す
+
+step 今やる
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code git switch -c login
+  line now: login
+
+step 計画する
+  say 段は 1 つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  code git switch -c pay
+  line plan: pay

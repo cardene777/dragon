@@ -130,7 +130,7 @@ const JA = {
     filter: "絞り込む…",
     filterLabel: "一覧を絞り込む",
     nothing: "当てはまる物が無い",
-    kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図", chart: "量の図", flow: "手順の図", cycle: "回り続ける図", mind: "考えを広げる地図", er: "表どうしの関係の図" },
+    kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図", chart: "量の図", flow: "手順の図", cycle: "回り続ける図", mind: "考えを広げる地図", er: "表どうしの関係の図", matrix: "2つの軸で置く図" },
     partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
     notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
     parts: shelfTexts("ja"),

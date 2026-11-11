@@ -27,6 +27,8 @@ import { ICON_NAMES } from "./blocks/icon/block";
 import type { TablerMessages } from "./blocks/icon/sets";
 import type { LineupItem } from "./blocks/item/block";
 import type { MindIdea } from "./blocks/idea/block";
+import type { MatrixAxis, MatrixSpec } from "./blocks/axis/block";
+import type { MatrixItem } from "./blocks/matrix-item/block";
 import type { TreeLeaf } from "./blocks/leaf/block";
 import type { LineupOrder } from "./blocks/line/block";
 import type { TreeNode } from "./blocks/node/block";
@@ -155,6 +157,9 @@ export type { TreeLeaf, TreeNode };
 /** 考えを広げる地図 (#3619) の考えを出す出来事の型は、考えのブロックが持つ */
 export type { MindIdea };
 
+/** 2つの軸で置く図 (#3622) の軸と課題の型は、軸のブロックと課題のブロックが持つ。区画へ置く出来事は列の図と同じ `line` の出来事 */
+export type { MatrixAxis, MatrixItem, MatrixSpec };
+
 /**
  * 列の図 (#3239) の、列の並びを書き換える出来事と札を押す出来事と役が動く出来事と、チップと役の型は、
  * 列の並びと札と役とチップのブロックが持つ (#3348)
@@ -274,7 +279,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "matrix";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -328,6 +333,8 @@ export interface Diagram {
   define?: UserBlocks;
   /** 量の図 (#3560) の見た目と項目。量の図だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
   chart?: ChartSpec;
+  /** 2つの軸で置く図 (#3622) の軸と課題。2つの軸で置く図だけが書き、区画は `blocks` の箱 (`box`) に持つ */
+  matrix?: MatrixSpec;
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -366,6 +373,8 @@ export interface DiagramModel {
   flow?: { choices: FlowChoice[]; paths: StatePath[] };
   /** 表どうしの関係の図 (#3618) の表。版1の原本に無かった種類なので、版2の原本の `table` をそのまま持つ */
   er?: { tables: ErTable[] };
+  /** 2つの軸で置く図 (#3622) の軸と課題。版1の原本に無かった種類なので、版2の原本の根の `matrix` をそのまま持つ */
+  matrix?: MatrixSpec;
 }
 
 /**
@@ -425,7 +434,7 @@ const ABSENT_KINDS: Record<string, string> = {
   check: "try",
   values: "try",
   hold: "pipe",
-  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow / cycle",
+  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow / cycle / matrix",
   order: "lineup",
   at: "time",
   into: "time",
@@ -436,6 +445,7 @@ const ABSENT_KINDS: Record<string, string> = {
   link: "sequence / architecture / state / git / time / tree / flow / cycle",
   gist: "pipe",
   chart: "chart",
+  matrix: "matrix",
   table: "er",
 };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */

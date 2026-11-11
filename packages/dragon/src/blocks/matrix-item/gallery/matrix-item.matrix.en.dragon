@@ -1,0 +1,26 @@
+matrix Placed items
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login
+item pay as Add payments
+item word as Fix wording
+item docs as Add a guide
+
+step Line up
+  say Each item line declares an item, and the items wait in the list on the left in written order.
+
+step Place
+  say A line line slides an item's card from the list into an area.
+  line now: login
+  line plan: pay
+
+step Place several
+  say Separate items with , to place any number on one line.
+  line spare: word, docs
