@@ -1,0 +1,44 @@
+// 図書館で本を借りる。会員証と本のバーコードから会員と本を引き、貸し出しの行に結びを書いて、本の状態と会員の借りている数を書き換える。
+er 図書館で本を借りる
+
+table members as 会員
+  field id: M-12 [key]
+  field 名前: 佐藤
+  field 借りている数: 1
+
+table loans as 貸し出し
+  field id: L-305 [key]
+  field 会員id: M-12 [ref: members.id]
+  field 本id: B-88 [ref: books.id]
+  field 返す日: 未定
+
+table books as 本
+  field id: B-88 [key]
+  field 題: 星の地図
+  field 状態: 棚にある
+
+step 会員を確かめる
+  say 窓口で会員証を読み、会員M-12の佐藤さんを引く。
+  pick members.id
+
+step 本を確かめる
+  say 本のバーコードを読み、本B-88が棚にあるかを引く。
+  pick books.id
+
+step 貸し出しを作る
+  say 会員idと本idを貸し出しの行に書き、返す日を2週間後にする。
+  members.id -> loans.会員id [tag: M-12]
+  books.id -> loans.本id [tag: B-88]
+  set loans.返す日: 11月25日
+  pick loans.id
+
+step 本の状態を変える
+  say 本の状態を、棚にあるから貸し出し中に書き換える。
+  set books.状態: 貸し出し中
+  pick books.状態
+
+step 借りている数を増やす
+  say 佐藤さんの借りている数を1つ増やして2冊にする。
+  note members.借りている数: 1 + 1 = 2
+  set members.借りている数: 2
+  pick members.借りている数

@@ -200,7 +200,7 @@ mountDiagram(host, parsed.diagram, {
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`chart`、`cycle`、`flow`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
 これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
 `parseNotation` で記法から読んだ図は描く時に原本の形の検査を省くので、記法の図を描く頁は検査を読まない。JSON を渡した時は `loadFor` が原本の形の検査も読み、読む前に JSON を読むか描くと `loadFor` を待つよう示す誤りで止まる。
 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -300,7 +300,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `er` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `table` `field` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -735,6 +735,47 @@ step 次の週へ
   set 曜日: 月曜
 ```
 
+### 表どうしの関係の図
+
+`er` で始めると、1 つの値がどの表のどの行を辿るかを段ごとに追う表どうしの関係の図になる。
+表は書いた順に左から右へ横 1 列に並び、結びを書いた項目の行から、指した項目の行へ線を引く。
+
+- `table <名札> as <名前>` は表で、最初の `step` より前に書く。次の `table` の行までの `field <名前>: <値>` の行がその表の項目になる。表は 1 つから 6 つまで書け、`[color: <色>]` で表の色を決める
+- 項目の `[key]` は鍵の印 (PK) で、`field <名前>: <値> [ref: <表>.<項目>]` は別の表の項目への結び (FK) になる。結びを書いた項目が何件もの側で線の端に三つ叉が付き、指した項目が 1 件の側で縦の棒が付く。無い表か無い項目を指すと誤りで止まる
+- 段の中の `pick <表>.<項目>` はその段で行と表の枠を光らせ、表の枠は後の段でも細く色を残す
+- `<表>.<項目> -> <表>.<項目> [tag: <値>]` は結んだ項目どうしの線に沿って値の札を走らせ、札は線の真ん中で止まる。結んでいない項目どうしの線と、`: <名前>` を付けた線は誤りで止まる
+- `set <表>.<項目>: <値>` はその段から項目の値を書き換える。`note <表>.<項目>: <文>` はその段から表の下に式の札を出し、同じ表の札は下へ積む
+- 段の番号は、その段で行を選んだ表の見出しの右に出る
+
+```dragon
+er 注文から客を引く
+
+table users as 客
+  field id: U-7 [key]
+  field 名前: 田中
+  field 注文の数: 2
+
+table orders as 注文
+  field id: O-41 [key]
+  field 客id: U-7 [ref: users.id]
+  field 金額: 1200円
+
+step 注文を引く
+  say 注文O-41の行を引く。
+  pick orders.id
+
+step 客を辿る
+  say 注文の客idを結びに沿って辿り、客U-7の田中さんの行を引く。
+  orders.客id -> users.id [tag: U-7]
+  pick users.id
+
+step 数を増やす
+  say 田中さんの注文の数を1つ増やす。
+  note users.注文の数: 2 + 1 = 3
+  set users.注文の数: 3
+  pick users.注文の数
+```
+
 ## 原本の JSON
 
 原本の JSON は、版 (`version`)、図の種類 (`kind`)、題 (`title`)、段 (`steps`) の骨組みを持ち、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。
@@ -742,6 +783,7 @@ step 次の週へ
 枝分かれの図の枝は `blocks.branch`、状態遷移図の通らない道は `blocks.path`、列の図のチップは `blocks.item`、役は `blocks.role` に書く。
 時間軸の図の目盛りと区切りと印の列と作業と節目と拡大の範囲は、`blocks.scale`、`blocks.period`、`blocks.row`、`blocks.task`、`blocks.point`、`blocks.zoom` に書く。
 手順の図の判断は `blocks.choice`、通らない道は `blocks.path` に書く。
+表どうしの関係の図の表と項目は `blocks.table` に書く。
 段の中で起きること (線や箱の中の処理) は、段ごとの `events` に書く。
 
 ```json

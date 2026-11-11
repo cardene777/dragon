@@ -11,7 +11,8 @@
     "pipe",
     "chart",
     "flow",
-    "cycle"
+    "cycle",
+    "er"
   ],
   "HEADS": [
     "group",
@@ -62,7 +63,9 @@
     "calc",
     "revert",
     "gist",
-    "choice"
+    "choice",
+    "table",
+    "field"
   ],
   "ATTRS": {
     "diagram": [
@@ -172,6 +175,13 @@
     ],
     "check": [
       "fail"
+    ],
+    "table": [
+      "color"
+    ],
+    "field": [
+      "key",
+      "ref"
     ]
   },
   "CARRIES": [

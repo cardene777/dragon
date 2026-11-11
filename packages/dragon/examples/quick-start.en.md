@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `er <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -419,6 +419,41 @@ step On to the next week
   look -> plan [tag: left]
   set round: Week 2
   set day: Monday
+```
+
+In a table relation diagram (`er <title>`), write each table with `table <id> as <name>` before the first `step` line, and its fields under it with `field <name>: <value>` lines.
+The tables sit left to right in one row in the order written. A diagram takes 1 to 6 tables.
+`[key]` is the key mark (PK), and `field <name>: <value> [ref: <table>.<field>]` links it to a field of another table (FK); a line runs from the linking field to the field it points at.
+`pick <table>.<field>` inside a step lights the row and its table, and `<table>.<field> -> <table>.<field> [tag: <value>]` runs a value chip along the line between linked fields. A line between fields that are not linked is refused.
+`set <table>.<field>: <value>` rewrites the value of a field, and `note <table>.<field>: <text>` shows a formula card under the table.
+
+```dragon
+er Look up the customer of an order
+
+table users as Customers
+  field id: U-7 [key]
+  field name: Tanaka
+  field orders: 2
+
+table orders as Orders
+  field id: O-41 [key]
+  field user_id: U-7 [ref: users.id]
+  field amount: $12
+
+step Look up the order
+  say Look up the row of order O-41.
+  pick orders.id
+
+step Follow the customer
+  say Follow the user_id along the link and look up Tanaka, customer U-7.
+  orders.user_id -> users.id [tag: U-7]
+  pick users.id
+
+step Count the order
+  say Add one to the orders Tanaka has.
+  note users.orders: 2 + 1 = 3
+  set users.orders: 3
+  pick users.orders
 ```
 
 ## Attributes

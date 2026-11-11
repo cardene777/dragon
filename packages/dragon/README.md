@@ -196,7 +196,7 @@ mountDiagram(host, parsed.diagram, {
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `flow`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -296,7 +296,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `er` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `table` `field` `pick` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -731,6 +731,47 @@ step On to the next week
   set day: Monday
 ```
 
+### Table relation diagram
+
+Start with `er` to draw a table relation diagram, which follows step by step which row of which table one value goes through.
+The tables sit left to right in one row in the order written, and a line joins each field that holds a link to the field it points at.
+
+- `table <id> as <name>` is a table, written before the first `step`. The `field <name>: <value>` lines up to the next `table` line are its fields. A table relation diagram takes 1 to 6 tables, and `[color: <color>]` sets a table color
+- `[key]` on a field is the key mark (PK), and `field <name>: <value> [ref: <table>.<field>]` links it to a field of another table (FK). The linking field is the many side and gets a three-pronged end, and the field it points at is the one side and gets a bar end. A link to a missing table or field is refused
+- `pick <table>.<field>` inside a step lights that row and the table frame, and the frame keeps a thin color in later steps
+- `<table>.<field> -> <table>.<field> [tag: <value>]` runs a value chip along the line between linked fields, and the chip stops halfway. A line between fields that are not linked, or one with a `: <label>`, is refused
+- `set <table>.<field>: <value>` rewrites the value of a field from that step on. `note <table>.<field>: <text>` shows a formula card under the table from that step on, and cards on the same table stack downward
+- The step number sits at the right of the header of the table that step picks a row from
+
+```dragon
+er Look up the customer of an order
+
+table users as Customers
+  field id: U-7 [key]
+  field name: Tanaka
+  field orders: 2
+
+table orders as Orders
+  field id: O-41 [key]
+  field user_id: U-7 [ref: users.id]
+  field amount: $12
+
+step Look up the order
+  say Look up the row of order O-41.
+  pick orders.id
+
+step Follow the customer
+  say Follow the user_id along the link and look up Tanaka, customer U-7.
+  orders.user_id -> users.id [tag: U-7]
+  pick users.id
+
+step Count the order
+  say Add one to the orders Tanaka has.
+  note users.orders: 2 + 1 = 3
+  set users.orders: 3
+  pick users.orders
+```
+
 ## Source JSON
 
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
@@ -738,6 +779,7 @@ Boxes go in `blocks.box`, groups in `blocks.group`, and the strip in `blocks.str
 Git graph branches go in `blocks.branch`, the paths a state diagram does not take in `blocks.path`, lineup chips in `blocks.item`, and lineup roles in `blocks.role`.
 A time diagram's scale, period, rows, tasks, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.task`, `blocks.point` and `blocks.zoom`.
 A flow diagram's choices go in `blocks.choice`, and the paths it does not take in `blocks.path`.
+A table relation diagram's tables and their fields go in `blocks.table`.
 What happens in a step (lines and actions inside a box) goes in each step's `events`.
 
 ```json

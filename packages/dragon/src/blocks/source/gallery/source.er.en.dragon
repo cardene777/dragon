@@ -1,0 +1,21 @@
+er Sources
+
+table users as Customers
+  field id: U-7 [key]
+  field name: Tanaka
+
+table orders as Orders
+  field id: O-41 [key]
+  field user_id: U-7 [ref: users.id]
+
+step Look up
+  say source writes the name and url of a source in a step. A step takes any number of them.
+  source dragon README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  pick orders.id
+
+step Follow
+  say Sources appear neither in the diagram nor in the narration; they show as name links in the list of narrated steps.
+  source How to write the notation [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md]
+  source The dragon repo [url: https://github.com/cardene777/dragon]
+  orders.user_id -> users.id [tag: U-7]
+  pick users.id

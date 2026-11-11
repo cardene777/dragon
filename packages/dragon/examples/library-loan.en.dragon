@@ -1,0 +1,44 @@
+// Borrow a book from a library. Read the member card and the book barcode to look up the member and the book, write the links into a loan row, then rewrite the book status and the number of books the member has.
+er Borrow a library book
+
+table members as Members
+  field id: M-12 [key]
+  field name: Sato
+  field on_loan: 1
+
+table loans as Loans
+  field id: L-305 [key]
+  field member_id: M-12 [ref: members.id]
+  field book_id: B-88 [ref: books.id]
+  field due: none
+
+table books as Books
+  field id: B-88 [key]
+  field title: Star Map
+  field status: on shelf
+
+step Check the member
+  say Read the member card at the desk and look up Sato, member M-12.
+  pick members.id
+
+step Check the book
+  say Read the barcode and look up whether book B-88 is on the shelf.
+  pick books.id
+
+step Make the loan
+  say Write the member_id and the book_id into a loan row and set the due date two weeks ahead.
+  members.id -> loans.member_id [tag: M-12]
+  books.id -> loans.book_id [tag: B-88]
+  set loans.due: Nov 25
+  pick loans.id
+
+step Change the book status
+  say Rewrite the book status from on shelf to on loan.
+  set books.status: on loan
+  pick books.status
+
+step Count the loan
+  say Add one to the books Sato has, making it 2.
+  note members.on_loan: 1 + 1 = 2
+  set members.on_loan: 2
+  pick members.on_loan

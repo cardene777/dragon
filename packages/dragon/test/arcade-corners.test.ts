@@ -49,6 +49,9 @@ const FRAMES = [
   "dg-pp-housing",
   "dg-pp-pbox",
   "dg-pp-cbr",
+  // 表どうしの関係の図の表の光る枠と式の札 (#3618)
+  "dg-er-frame",
+  "dg-er-note",
 ];
 
 /**

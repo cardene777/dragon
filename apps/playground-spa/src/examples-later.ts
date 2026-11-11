@@ -102,6 +102,14 @@ import pdcaJa from "../../../packages/dragon/examples/pdca.dragon?raw";
 import pdcaEn from "../../../packages/dragon/examples/pdca.en.dragon?raw";
 import restakeJa from "../../../packages/dragon/examples/restake.dragon?raw";
 import restakeEn from "../../../packages/dragon/examples/restake.en.dragon?raw";
+import orderTotalJa from "../../../packages/dragon/examples/order-total.dragon?raw";
+import orderTotalEn from "../../../packages/dragon/examples/order-total.en.dragon?raw";
+import libraryLoanJa from "../../../packages/dragon/examples/library-loan.dragon?raw";
+import libraryLoanEn from "../../../packages/dragon/examples/library-loan.en.dragon?raw";
+import nftSaleJa from "../../../packages/dragon/examples/nft-sale.dragon?raw";
+import nftSaleEn from "../../../packages/dragon/examples/nft-sale.en.dragon?raw";
+import tokenTransferJa from "../../../packages/dragon/examples/token-transfer.dragon?raw";
+import tokenTransferEn from "../../../packages/dragon/examples/token-transfer.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -156,6 +164,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   sprint: { ja: sprintJa, en: sprintEn },
   pdca: { ja: pdcaJa, en: pdcaEn },
   restake: { ja: restakeJa, en: restakeEn },
+  "order-total": { ja: orderTotalJa, en: orderTotalEn },
+  "library-loan": { ja: libraryLoanJa, en: libraryLoanEn },
+  "nft-sale": { ja: nftSaleJa, en: nftSaleEn },
+  "token-transfer": { ja: tokenTransferJa, en: tokenTransferEn },
 };
 
 /**

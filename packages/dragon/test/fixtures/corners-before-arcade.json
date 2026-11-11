@@ -313,6 +313,24 @@
     "dg-st rx=12": 4,
     "dg-strip rx=14": 1
   },
+  "order-total.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-car rx=9": 3,
+    "dg-er-frame rx=12": 8,
+    "dg-er-mk rx=4": 7,
+    "dg-er-note rx=12": 1,
+    "dg-er-pick dg-a rx=6": 7,
+    "dg-st rx=12": 4
+  },
+  "order-total.json": {
+    "dg-bg rx=14": 1,
+    "dg-car rx=9": 3,
+    "dg-er-frame rx=12": 8,
+    "dg-er-mk rx=4": 7,
+    "dg-er-note rx=12": 1,
+    "dg-er-pick dg-a rx=6": 7,
+    "dg-st rx=12": 4
+  },
   "order.en.json": {
     "(none) rx=10": 10,
     "dg-bg rx=14": 1,

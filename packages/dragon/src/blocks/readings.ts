@@ -54,6 +54,7 @@ import { reading as stampReading } from "./stamp/read";
 import { reading as startFinishReading } from "./start-finish/read";
 import { reading as stepReading } from "./step/read";
 import { reading as stripReading } from "./strip/read";
+import { reading as tableReading } from "./table/read";
 import { reading as taskReading } from "./task/read";
 import { reading as valueReading } from "./value/read";
 import { reading as writeReading } from "./write/read";
@@ -116,6 +117,7 @@ export const READINGS = {
   "start-finish": startFinishReading,
   "step": stepReading,
   "strip": stripReading,
+  "table": tableReading,
   "task": taskReading,
   "value": valueReading,
   "write": writeReading,

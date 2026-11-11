@@ -1,0 +1,189 @@
+{
+  "version": 2,
+  "kind": "er",
+  "title": "注文の合計を出す",
+  "blocks": {
+    "table": [
+      {
+        "id": "users",
+        "name": "利用者",
+        "fields": [
+          {
+            "name": "id",
+            "value": "7",
+            "key": true
+          },
+          {
+            "name": "名前",
+            "value": "Alice"
+          }
+        ]
+      },
+      {
+        "id": "orders",
+        "name": "注文",
+        "fields": [
+          {
+            "name": "id",
+            "value": "1042",
+            "key": true
+          },
+          {
+            "name": "利用者id",
+            "value": "7",
+            "ref": "users.id"
+          },
+          {
+            "name": "合計",
+            "value": "未計算"
+          },
+          {
+            "name": "状態",
+            "value": "受付済み"
+          }
+        ]
+      },
+      {
+        "id": "lines",
+        "name": "注文の明細",
+        "fields": [
+          {
+            "name": "id",
+            "value": "1",
+            "key": true
+          },
+          {
+            "name": "注文id",
+            "value": "1042",
+            "ref": "orders.id"
+          },
+          {
+            "name": "商品id",
+            "value": "P-3",
+            "ref": "products.id"
+          },
+          {
+            "name": "数",
+            "value": "2"
+          }
+        ]
+      },
+      {
+        "id": "products",
+        "name": "商品",
+        "fields": [
+          {
+            "name": "id",
+            "value": "P-3",
+            "key": true
+          },
+          {
+            "name": "名前",
+            "value": "マグカップ"
+          },
+          {
+            "name": "値段",
+            "value": "1,200"
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "利用者を引く",
+      "body": "利用者の表から、idが7のAliceを引く。",
+      "events": [
+        {
+          "type": "lookup",
+          "field": "users.id"
+        }
+      ]
+    },
+    {
+      "title": "注文を引く",
+      "body": "利用者idが7の注文を引くと、注文#1042が見つかる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "users.id",
+          "to": "orders.利用者id",
+          "carry": {
+            "kind": "tag",
+            "text": "7"
+          }
+        },
+        {
+          "type": "lookup",
+          "field": "orders.利用者id"
+        }
+      ]
+    },
+    {
+      "title": "明細を引く",
+      "body": "注文idが1042の明細を引く。商品P-3を2つ頼んでいる。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "orders.id",
+          "to": "lines.注文id",
+          "carry": {
+            "kind": "tag",
+            "text": "1042"
+          }
+        },
+        {
+          "type": "lookup",
+          "field": "lines.注文id"
+        }
+      ]
+    },
+    {
+      "title": "値段を引く",
+      "body": "明細の商品idから、商品P-3の値段1,200円を引く。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "lines.商品id",
+          "to": "products.id",
+          "carry": {
+            "kind": "tag",
+            "text": "P-3"
+          }
+        },
+        {
+          "type": "lookup",
+          "field": "products.id"
+        }
+      ]
+    },
+    {
+      "title": "合計を書く",
+      "body": "数の2と値段の1,200を掛けて2,400円を出し、注文の合計に書く。",
+      "events": [
+        {
+          "type": "lookup",
+          "field": "lines.数"
+        },
+        {
+          "type": "lookup",
+          "field": "products.値段"
+        },
+        {
+          "type": "formula",
+          "field": "orders.合計",
+          "text": "2 × 1,200 = 2,400"
+        },
+        {
+          "type": "cell",
+          "field": "orders.合計",
+          "value": "2,400"
+        },
+        {
+          "type": "lookup",
+          "field": "orders.合計"
+        }
+      ]
+    }
+  ]
+}
