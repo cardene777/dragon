@@ -55,6 +55,7 @@ import { uses as stampUses } from "../../../../packages/dragon/src/blocks/stamp/
 import { uses as startFinishUses } from "../../../../packages/dragon/src/blocks/start-finish/gallery/uses";
 import { uses as stepUses } from "../../../../packages/dragon/src/blocks/step/gallery/uses";
 import { uses as stripUses } from "../../../../packages/dragon/src/blocks/strip/gallery/uses";
+import { uses as tableUses } from "../../../../packages/dragon/src/blocks/table/gallery/uses";
 import { uses as taskUses } from "../../../../packages/dragon/src/blocks/task/gallery/uses";
 import { uses as valueUses } from "../../../../packages/dragon/src/blocks/value/gallery/uses";
 import { uses as writeUses } from "../../../../packages/dragon/src/blocks/write/gallery/uses";
@@ -118,6 +119,7 @@ export const BLOCK_USES = {
   "start-finish": startFinishUses,
   "step": stepUses,
   "strip": stripUses,
+  "table": tableUses,
   "task": taskUses,
   "value": valueUses,
   "write": writeUses,

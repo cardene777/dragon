@@ -1,0 +1,51 @@
+// Buy and sell an NFT. Look up the token from the listing, write a sale row when the buyer buys, rewrite the token owner to the buyer and add one to the tokens the buyer holds.
+er Buy and sell an NFT
+
+table owners as Owners
+  field id: 0xB2 [key]
+  field name: Bob
+  field held: 0
+
+table tokens as Tokens
+  field id: #42 [key]
+  field name: Dragon #42
+  field owner: 0xA1 [ref: owners.id]
+
+table listings as Listings
+  field id: L-7 [key]
+  field token: #42 [ref: tokens.id]
+  field price: 0.5 ETH
+  field status: listed
+
+table sales as Sales
+  field id: S-3 [key]
+  field listing: L-7 [ref: listings.id]
+  field buyer: 0xB2 [ref: owners.id]
+  field price: 0.5 ETH
+
+step See the listing
+  say See listing L-7. Token #42 is for sale at 0.5 ETH.
+  pick listings.id
+
+step Look up the token
+  say From the token of the listing, look up token #42. Its owner is 0xA1.
+  listings.token -> tokens.id [tag: #42]
+  pick tokens.id
+
+step Write the sale
+  say When 0xB2 buys, write listing L-7 and the buyer into sale S-3 and mark the listing sold.
+  listings.id -> sales.listing [tag: L-7]
+  set listings.status: sold
+  pick sales.listing
+
+step Change the owner
+  say From the buyer of the sale, look up owner 0xB2 and rewrite the owner of token #42 to 0xB2.
+  sales.buyer -> owners.id [tag: 0xB2]
+  set tokens.owner: 0xB2
+  pick owners.id
+
+step Add to the holdings
+  say Add one to the tokens 0xB2 holds.
+  note owners.held: 0 + 1 = 1
+  set owners.held: 1
+  pick owners.held

@@ -110,6 +110,14 @@ import daoProposalJa from "../../../packages/dragon/examples/dao-proposal.dragon
 import daoProposalEn from "../../../packages/dragon/examples/dao-proposal.en.dragon?raw";
 import walletUxJa from "../../../packages/dragon/examples/wallet-ux.dragon?raw";
 import walletUxEn from "../../../packages/dragon/examples/wallet-ux.en.dragon?raw";
+import orderTotalJa from "../../../packages/dragon/examples/order-total.dragon?raw";
+import orderTotalEn from "../../../packages/dragon/examples/order-total.en.dragon?raw";
+import libraryLoanJa from "../../../packages/dragon/examples/library-loan.dragon?raw";
+import libraryLoanEn from "../../../packages/dragon/examples/library-loan.en.dragon?raw";
+import nftSaleJa from "../../../packages/dragon/examples/nft-sale.dragon?raw";
+import nftSaleEn from "../../../packages/dragon/examples/nft-sale.en.dragon?raw";
+import tokenTransferJa from "../../../packages/dragon/examples/token-transfer.dragon?raw";
+import tokenTransferEn from "../../../packages/dragon/examples/token-transfer.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -168,6 +176,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "trip-plan": { ja: tripPlanJa, en: tripPlanEn },
   "dao-proposal": { ja: daoProposalJa, en: daoProposalEn },
   "wallet-ux": { ja: walletUxJa, en: walletUxEn },
+  "order-total": { ja: orderTotalJa, en: orderTotalEn },
+  "library-loan": { ja: libraryLoanJa, en: libraryLoanEn },
+  "nft-sale": { ja: nftSaleJa, en: nftSaleEn },
+  "token-transfer": { ja: tokenTransferJa, en: tokenTransferEn },
 };
 
 /**

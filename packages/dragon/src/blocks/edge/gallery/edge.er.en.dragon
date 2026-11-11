@@ -1,0 +1,19 @@
+er Lines
+
+table users as Customers
+  field id: U-7 [key]
+  field name: Tanaka
+
+table orders as Orders
+  field id: O-41 [key]
+  field user_id: U-7 [ref: users.id]
+
+step Follow
+  say Join the table id and the field name with a dot, and draw the line with ->.
+  orders.user_id -> users.id [tag: U-7]
+  pick users.id
+
+step Go back
+  say Fields linked by ref take a line in either direction. A line between fields that are not linked is refused.
+  users.id -> orders.user_id [tag: U-7]
+  pick orders.id

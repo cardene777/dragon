@@ -198,7 +198,7 @@ const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
  */
 const LINEUP_OR_TRY = ["item", "line"];
 /** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
-const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind"];
+const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
@@ -252,6 +252,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     pipe: { holds: [], opened: [] },
     chart: { items: [], ...(shape ? { shape } : {}) },
     flow: { choices: [], paths: [], lines: [], main: [], side: [], forked: [] },
+    er: { tables: [], refs: [], lines: [] },
   };
   const { regions, boxes, paths, branches, time } = figure;
   const steps: Step[] = [];
@@ -354,7 +355,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
    * 図の種類だけの行の頭の語を、ほかの種類の図に書いた時の誤りの文。
    * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
    */
-  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly, mind: m.mindOnly };
+  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly, mind: m.mindOnly, er: m.erOnly };
   /** 線の列。持つ図の種類 (時間軸の図) のブロックが読み、ほかの種類の図に書いた列は誤りで止める */
   const columns: ParseState["columns"] = (source, from, to, attrs, end) => {
     const [read] = hooks("columns");
@@ -511,6 +512,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     ...(figure.pipe.holds.length > 0 ? { pipe: { holds: figure.pipe.holds } } : {}),
     // 量の図の見た目は見た目のブロックが `donut` か `bar` と確かめた
     ...(kind === "chart" ? { chart: { shape: figure.chart.shape?.value as ChartShape, items: figure.chart.items } } : {}),
+    ...(kind === "er" ? { er: { tables: figure.er.tables } } : {}),
     ...(isTime && time.scale
       ? {
           time: {

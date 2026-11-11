@@ -1,0 +1,23 @@
+er Steps [view: fixed]
+
+table jobs as Jobs
+  field id: J-3 [key]
+  field state: stopped
+
+table runs as Runs
+  field id: R-1 [key]
+  field job_id: J-3 [ref: jobs.id]
+
+step Start
+  say step splits the steps, and say writes the text of a step.
+    Write the command run in that step with code.
+  code systemctl start app
+  runs.job_id -> jobs.id [tag: J-3]
+  set jobs.state: running
+
+step Stop
+  say The steps are shown one at a time.
+    view chooses whether the frame follows the steps or shows the whole diagram still.
+  code systemctl stop app
+  set jobs.state: stopped
+  pick jobs.state

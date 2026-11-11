@@ -1,0 +1,25 @@
+er What travels
+
+table users as Customers
+  field id: U-7 [key]
+  field balance: $50
+
+table orders as Orders
+  field id: O-41 [key]
+  field user_id: U-7 [ref: users.id]
+
+table pays as Payments
+  field id: P-9 [key]
+  field order_id: O-41 [ref: orders.id]
+
+step Chip
+  say tag writes a value on the chip that runs along the line. The chip stops halfway.
+  orders.user_id -> users.id [tag: U-7]
+
+step Nothing
+  say carry: none only lights the line.
+  pays.order_id -> orders.id [carry: none]
+
+step Coin
+  say carry: coin shows money moving with a coin.
+  users.id -> orders.user_id [carry: coin]

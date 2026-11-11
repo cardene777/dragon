@@ -1,0 +1,50 @@
+// ネット通販の注文の合計を出す。利用者から注文、注文の明細、商品へと結びを辿って値段を集め、数と値段から合計を出して注文に書く。
+er 注文の合計を出す
+
+table users as 利用者
+  field id: 7 [key]
+  field 名前: Alice
+
+table orders as 注文
+  field id: 1042 [key]
+  field 利用者id: 7 [ref: users.id]
+  field 合計: 未計算
+  field 状態: 受付済み
+
+table lines as 注文の明細
+  field id: 1 [key]
+  field 注文id: 1042 [ref: orders.id]
+  field 商品id: P-3 [ref: products.id]
+  field 数: 2
+
+table products as 商品
+  field id: P-3 [key]
+  field 名前: マグカップ
+  field 値段: 1,200
+
+step 利用者を引く
+  say 利用者の表から、idが7のAliceを引く。
+  pick users.id
+
+step 注文を引く
+  say 利用者idが7の注文を引くと、注文#1042が見つかる。
+  users.id -> orders.利用者id [tag: 7]
+  pick orders.利用者id
+
+step 明細を引く
+  say 注文idが1042の明細を引く。商品P-3を2つ頼んでいる。
+  orders.id -> lines.注文id [tag: 1042]
+  pick lines.注文id
+
+step 値段を引く
+  say 明細の商品idから、商品P-3の値段1,200円を引く。
+  lines.商品id -> products.id [tag: P-3]
+  pick products.id
+
+step 合計を書く
+  say 数の2と値段の1,200を掛けて2,400円を出し、注文の合計に書く。
+  pick lines.数
+  pick products.値段
+  note orders.合計: 2 × 1,200 = 2,400
+  set orders.合計: 2,400
+  pick orders.合計

@@ -55,6 +55,7 @@ import { shape as stampShape } from "./stamp/shape";
 import { shape as startFinishShape } from "./start-finish/shape";
 import { shape as stepShape } from "./step/shape";
 import { shape as stripShape } from "./strip/shape";
+import { shape as tableShape } from "./table/shape";
 import { shape as taskShape } from "./task/shape";
 import { shape as valueShape } from "./value/shape";
 import { shape as writeShape } from "./write/shape";
@@ -118,6 +119,7 @@ export const SHAPES = {
   "start-finish": startFinishShape,
   "step": stepShape,
   "strip": stripShape,
+  "table": tableShape,
   "task": taskShape,
   "value": valueShape,
   "write": writeShape,

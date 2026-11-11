@@ -12,7 +12,8 @@
     "chart",
     "flow",
     "cycle",
-    "mind"
+    "mind",
+    "er"
   ],
   "HEADS": [
     "group",
@@ -64,7 +65,9 @@
     "revert",
     "gist",
     "choice",
-    "idea"
+    "idea",
+    "table",
+    "field"
   ],
   "ATTRS": {
     "diagram": [
@@ -177,6 +180,13 @@
     ],
     "check": [
       "fail"
+    ],
+    "table": [
+      "color"
+    ],
+    "field": [
+      "key",
+      "ref"
     ]
   },
   "CARRIES": [

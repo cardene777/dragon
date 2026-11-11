@@ -291,7 +291,7 @@ describe("考えを広げる地図の並べ方と動き (#3619)", () => {
       const source = diagram as unknown as Source;
       const rendered = render(diagram, lang);
       const { timeline } = rendered;
-      const motion = motionFrom(rendered);
+      const motion = motionFrom(rendered as unknown as Rendered);
       const last = timeline.steps[timeline.steps.length - 1] as Span;
       for (const item of ideasOf(source)) {
         const span = timeline.steps[item.step] as Span;
@@ -332,7 +332,7 @@ describe("考えを広げる地図の並べ方と動き (#3619)", () => {
       const source = diagram as unknown as Source;
       const rendered = render(diagram, lang);
       const { layout } = rendered;
-      const motion = motionFrom(rendered);
+      const motion = motionFrom(rendered as unknown as Rendered);
       const all = ideasOf(source);
       const centre = all.find((i) => i.parent === undefined);
       expect(centre, `${name} に真ん中の題が無い`).toBeDefined();
@@ -384,7 +384,7 @@ describe("考えを広げる地図の並べ方と動き (#3619)", () => {
   it("mind-branch-color-flows-to-leaves", () => {
     const rendered = render(parsed(SMALL));
     const { layout } = rendered;
-    const motion = motionFrom(rendered);
+    const motion = motionFrom(rendered as unknown as Rendered);
     const source = smallMind() as unknown as Source;
     const all = ideasOf(source);
     const branches = all.filter((i) => i.parent === "app").map((i) => ideaOf(layout, i.id));

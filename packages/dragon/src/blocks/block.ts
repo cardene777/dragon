@@ -22,6 +22,7 @@ import type { Attr } from "../read-kit";
 import type { Box, ChartItem, DiagramModel, DiagramEvent, GitBranch, LineupItem, LineupRole, PipeHold, Region, StatePath, Step, StripMeter, TimePeriod, TimePoint, TimeRow, TimeScale, TimeTask, TryCheck, TryItem, TryPart } from "../schema";
 import type { PipeRun } from "../pipe-run";
 import type { FlowChoice, FlowLine } from "./choice/block";
+import type { ErTable } from "./table/block";
 import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
 
@@ -112,6 +113,11 @@ export interface FigureDraft {
    * 読んだ線は判断から出る線の数と、記法の終わりの前へ戻る道の確かめに使い、本筋は段の線が初めて辿り着く順の箱と判断
    */
   flow: { choices: FlowChoice[]; paths: StatePath[]; lines: FlowLine[]; main: string[]; side: string[]; forked: string[] };
+  /**
+   * 表どうしの関係の図の表と、表を宣言した行と、結びの先 (#3618)。表のブロックが `table` と `field` の行で組む。
+   * 結びの先は後ろの表も指せるので、書いた行と結びの先の字の位置 (`at`) と結びを書いた表 (`from`) を積み、全ての宣言を読んでから確かめる
+   */
+  er: { tables: ErTable[]; lines: SourceLine[]; refs: { source: SourceLine; at: number; from: string; ref: string }[] };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */

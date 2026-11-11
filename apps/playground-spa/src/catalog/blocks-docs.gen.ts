@@ -55,6 +55,7 @@ import { docs as stampDocs } from "../../../../packages/dragon/src/blocks/stamp/
 import { docs as startFinishDocs } from "../../../../packages/dragon/src/blocks/start-finish/gallery/docs";
 import { docs as stepDocs } from "../../../../packages/dragon/src/blocks/step/gallery/docs";
 import { docs as stripDocs } from "../../../../packages/dragon/src/blocks/strip/gallery/docs";
+import { docs as tableDocs } from "../../../../packages/dragon/src/blocks/table/gallery/docs";
 import { docs as taskDocs } from "../../../../packages/dragon/src/blocks/task/gallery/docs";
 import { docs as valueDocs } from "../../../../packages/dragon/src/blocks/value/gallery/docs";
 import { docs as writeDocs } from "../../../../packages/dragon/src/blocks/write/gallery/docs";
@@ -118,6 +119,7 @@ export const BLOCK_DOCS = {
   "start-finish": startFinishDocs,
   "step": stepDocs,
   "strip": stripDocs,
+  "table": tableDocs,
   "task": taskDocs,
   "value": valueDocs,
   "write": writeDocs,

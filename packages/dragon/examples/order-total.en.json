@@ -1,0 +1,189 @@
+{
+  "version": 2,
+  "kind": "er",
+  "title": "Work out an order total",
+  "blocks": {
+    "table": [
+      {
+        "id": "users",
+        "name": "Users",
+        "fields": [
+          {
+            "name": "id",
+            "value": "7",
+            "key": true
+          },
+          {
+            "name": "name",
+            "value": "Alice"
+          }
+        ]
+      },
+      {
+        "id": "orders",
+        "name": "Orders",
+        "fields": [
+          {
+            "name": "id",
+            "value": "1042",
+            "key": true
+          },
+          {
+            "name": "user_id",
+            "value": "7",
+            "ref": "users.id"
+          },
+          {
+            "name": "total",
+            "value": "none"
+          },
+          {
+            "name": "status",
+            "value": "received"
+          }
+        ]
+      },
+      {
+        "id": "lines",
+        "name": "Order lines",
+        "fields": [
+          {
+            "name": "id",
+            "value": "1",
+            "key": true
+          },
+          {
+            "name": "order_id",
+            "value": "1042",
+            "ref": "orders.id"
+          },
+          {
+            "name": "item_id",
+            "value": "P-3",
+            "ref": "products.id"
+          },
+          {
+            "name": "qty",
+            "value": "2"
+          }
+        ]
+      },
+      {
+        "id": "products",
+        "name": "Products",
+        "fields": [
+          {
+            "name": "id",
+            "value": "P-3",
+            "key": true
+          },
+          {
+            "name": "name",
+            "value": "Mug"
+          },
+          {
+            "name": "price",
+            "value": "1,200"
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Look up the user",
+      "body": "Look up Alice, whose id is 7, in the users table.",
+      "events": [
+        {
+          "type": "lookup",
+          "field": "users.id"
+        }
+      ]
+    },
+    {
+      "title": "Look up the order",
+      "body": "Look up the orders whose user_id is 7 and find order #1042.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "users.id",
+          "to": "orders.user_id",
+          "carry": {
+            "kind": "tag",
+            "text": "7"
+          }
+        },
+        {
+          "type": "lookup",
+          "field": "orders.user_id"
+        }
+      ]
+    },
+    {
+      "title": "Look up the lines",
+      "body": "Look up the lines whose order_id is 1042. The order asks for 2 of product P-3.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "orders.id",
+          "to": "lines.order_id",
+          "carry": {
+            "kind": "tag",
+            "text": "1042"
+          }
+        },
+        {
+          "type": "lookup",
+          "field": "lines.order_id"
+        }
+      ]
+    },
+    {
+      "title": "Look up the price",
+      "body": "From the item_id of the line, look up the price of product P-3, 1,200.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "lines.item_id",
+          "to": "products.id",
+          "carry": {
+            "kind": "tag",
+            "text": "P-3"
+          }
+        },
+        {
+          "type": "lookup",
+          "field": "products.id"
+        }
+      ]
+    },
+    {
+      "title": "Write the total",
+      "body": "Multiply the qty 2 by the price 1,200 to get 2,400 and write it to the order total.",
+      "events": [
+        {
+          "type": "lookup",
+          "field": "lines.qty"
+        },
+        {
+          "type": "lookup",
+          "field": "products.price"
+        },
+        {
+          "type": "formula",
+          "field": "orders.total",
+          "text": "2 × 1,200 = 2,400"
+        },
+        {
+          "type": "cell",
+          "field": "orders.total",
+          "value": "2,400"
+        },
+        {
+          "type": "lookup",
+          "field": "orders.total"
+        }
+      ]
+    }
+  ]
+}

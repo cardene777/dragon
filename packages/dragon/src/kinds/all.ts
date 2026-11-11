@@ -6,6 +6,7 @@ import { registerReading } from "../blocks/reading";
 import { READINGS } from "../blocks/readings";
 import * as chart from "./chart";
 import * as cycle from "./cycle";
+import * as er from "./er";
 import * as flow from "./flow";
 import * as git from "./git";
 import * as lineup from "./lineup";
@@ -23,6 +24,7 @@ import * as tryKind from "./try";
 
 registerKind("chart", chart);
 registerKind("cycle", cycle);
+registerKind("er", er);
 registerKind("flow", flow);
 registerKind("git", git);
 registerKind("lineup", lineup);

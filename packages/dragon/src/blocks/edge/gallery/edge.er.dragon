@@ -1,0 +1,19 @@
+er 線
+
+table users as 客
+  field id: U-7 [key]
+  field 名前: 田中
+
+table orders as 注文
+  field id: O-41 [key]
+  field 客id: U-7 [ref: users.id]
+
+step 辿る
+  say 線は表の名札と項目の名前を . で繋いで、-> で引く。
+  orders.客id -> users.id [tag: U-7]
+  pick users.id
+
+step 戻る
+  say ref で結んだ項目どうしなら、どちら向きにも引ける。結んでいない項目どうしの線は書けない。
+  users.id -> orders.客id [tag: U-7]
+  pick orders.id

@@ -1,0 +1,21 @@
+er 出典
+
+table users as 客
+  field id: U-7 [key]
+  field 名前: 田中
+
+table orders as 注文
+  field id: O-41 [key]
+  field 客id: U-7 [ref: users.id]
+
+step 引く
+  say source で段に出典の名前と url を書く。1 つの段に何行でも書ける。
+  source dragon の README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  pick orders.id
+
+step 辿る
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前の link で出る。
+  source 記法の書き方 [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source dragon の repo [url: https://github.com/cardene777/dragon]
+  orders.客id -> users.id [tag: U-7]
+  pick users.id

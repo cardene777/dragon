@@ -1,0 +1,26 @@
+er Tables
+
+table users as Customers [color: blue]
+  field id: U-7 [key]
+  field name: Tanaka
+  field orders: 2
+
+table orders as Orders [color: amber]
+  field id: O-41 [key]
+  field user_id: U-7 [ref: users.id]
+  field amount: $12
+
+step Declare
+  say Declare tables with table and fields with field. key is the key mark, and ref links to a field of another table.
+  pick orders.id
+
+step Follow
+  say A value chip runs along the line between linked fields, and pick lights the row of the table it reaches.
+  orders.user_id -> users.id [tag: U-7]
+  pick users.id
+
+step Rewrite
+  say note shows a formula card under the table, and set rewrites the value of a field.
+  note users.orders: 2 + 1 = 3
+  set users.orders: 3
+  pick users.orders
