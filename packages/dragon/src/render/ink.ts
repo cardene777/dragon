@@ -46,12 +46,28 @@ export interface Ink {
   frame?: { name: string; rect: Rect };
   /** ドーナツの輪の真ん中に書いた段の名前なら、輪の内側の円 (#3560)。崩れの確かめが、円に収まらない字を探す */
   ring?: { cx: number; cy: number; r: number };
+  /** 列の図の札に押した印の字なら、傾けて押した印の四角の 4 つの角 (#3631)。崩れの確かめが、印の地に隠れる字を探す */
+  cover?: Point[];
 }
 
 /** 描いた線。`from` と `to` は線の両端の箱の名札 */
 export interface Trace {
   from: string;
   to: string;
+  points: Point[];
+  shown: Shown[];
+}
+
+/** 箱を結ぶ線でないのに字を横切る時間軸の部品の呼び名 (#3631)。`needle`は段の終わりの針、`span`は範囲の囲みで`text`は囲みの札の字 */
+export type StrokePart = { kind: "needle" } | { kind: "span"; text: string };
+
+/**
+ * 箱を結ぶ線でないのに字を横切る部品 (#3631)。`points`は描いた線の点の並び、`shown`は見えている間。
+ * 崩れの確かめが、札を持たない字を横切る所を部品の名前で知らせる。箱を結ぶ線 (`Trace`) と分けて記録し、線どうしの間や箱の枠との間は測らない。
+ * 動く針は止め絵ごとにいる所を、次の止め絵まで見えている物として記録する。崩れの確かめは止め絵の時刻だけを見るため
+ */
+export interface Stroke {
+  part: StrokePart;
   points: Point[];
   shown: Shown[];
 }
