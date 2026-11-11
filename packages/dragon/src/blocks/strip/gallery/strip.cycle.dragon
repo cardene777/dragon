@@ -1,0 +1,22 @@
+cycle 中身の帯と欄
+
+box get as 受け付ける
+box ship as 発送する
+box done as 届ける
+
+strip 注文: 番号, 状態
+
+step 受ける
+  say strip で輪の真ん中に帯の題と欄を置き、set で欄に値を入れる。
+  set 番号: 42
+  set 状態: 受け付けた
+
+step 送る
+  say 最初の欄の値は大きく、2 つ目からの欄の値は小さく出る。
+  get -> ship [tag: 荷物]
+  set 状態: 発送済み
+
+step 届く
+  say 最初に書いた後で変わった値は、その段の手順の色で出る。set の tag で書いた札の字は、輪の真ん中では値の所に出る。
+  ship -> done [tag: 荷物]
+  set 状態 [tag: 配達完了]

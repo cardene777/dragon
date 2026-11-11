@@ -1,0 +1,17 @@
+cycle 線
+
+box get as 受け付ける
+box work as 対応する
+box close as 閉じる
+
+step 受ける
+  say 線は前の手順の名札から、輪の次の手順の名札へ -> で引く。
+  get -> work [tag: 問い合わせ]
+
+step 閉じる
+  say 段ごとに、その段で通る線を書く。1 つ飛ばす線と逆回りの線は書けない。
+  work -> close [tag: 答え]
+
+step 次の回へ
+  say 最後の手順から最初の手順への線は、次の回へ入る線になる。
+  close -> get [tag: 次の件]

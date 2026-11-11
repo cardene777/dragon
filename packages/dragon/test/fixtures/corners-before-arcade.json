@@ -123,6 +123,20 @@
     "dg-st rx=12": 12,
     "dg-strip rx=14": 1
   },
+  "eth-slot.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-car rx=9": 4,
+    "dg-halo rx=12": 4,
+    "dg-on rx=12": 4,
+    "dg-st rx=12": 4
+  },
+  "eth-slot.json": {
+    "dg-bg rx=14": 1,
+    "dg-car rx=9": 4,
+    "dg-halo rx=12": 4,
+    "dg-on rx=12": 4,
+    "dg-st rx=12": 4
+  },
   "finality.en.json": {
     "(none) rx=10": 2,
     "(none) rx=8": 1,

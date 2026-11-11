@@ -1,0 +1,138 @@
+{
+  "version": 2,
+  "kind": "cycle",
+  "title": "Ethereum's 12-second slot",
+  "blocks": {
+    "box": [
+      {
+        "id": "collect",
+        "name": "Collect txs",
+        "sub": "from the mempool",
+        "color": "blue"
+      },
+      {
+        "id": "propose",
+        "name": "Propose block",
+        "sub": "by one proposer",
+        "color": "violet"
+      },
+      {
+        "id": "vote",
+        "name": "Committee votes",
+        "sub": "about 30k sign",
+        "color": "green"
+      },
+      {
+        "id": "gather",
+        "name": "Aggregate votes",
+        "sub": "to next proposer",
+        "color": "amber"
+      }
+    ],
+    "strip": {
+      "title": "Slot",
+      "fields": [
+        "number",
+        "elapsed"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "title": "Collect transactions",
+      "body": "The proposer collects the waiting transactions from the mempool.",
+      "events": [
+        {
+          "type": "strip",
+          "field": "number",
+          "value": "#18,402,113"
+        },
+        {
+          "type": "strip",
+          "field": "elapsed",
+          "value": "0s into the slot"
+        }
+      ]
+    },
+    {
+      "title": "Propose the block",
+      "body": "The proposer builds a block from those transactions and sends it to the network at the start of the slot.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "collect",
+          "to": "propose",
+          "carry": {
+            "kind": "tag",
+            "text": "txs"
+          }
+        }
+      ]
+    },
+    {
+      "title": "The committee votes",
+      "body": "The committee for this slot accepts the block as the head of the chain and signs it.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "propose",
+          "to": "vote",
+          "carry": {
+            "kind": "tag",
+            "text": "block"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "elapsed",
+          "value": "4s into the slot"
+        }
+      ]
+    },
+    {
+      "title": "Aggregate the votes",
+      "body": "The signatures are aggregated into one and passed to the proposer of the next slot.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "vote",
+          "to": "gather",
+          "carry": {
+            "kind": "tag",
+            "text": "votes"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "elapsed",
+          "value": "8s into the slot"
+        }
+      ]
+    },
+    {
+      "title": "On to the next slot",
+      "body": "After 12 seconds the next slot begins, and the next proposer collects transactions.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "gather",
+          "to": "collect",
+          "carry": {
+            "kind": "tag",
+            "text": "next"
+          }
+        },
+        {
+          "type": "strip",
+          "field": "number",
+          "value": "#18,402,114"
+        },
+        {
+          "type": "strip",
+          "field": "elapsed",
+          "value": "0s into the slot"
+        }
+      ]
+    }
+  ]
+}

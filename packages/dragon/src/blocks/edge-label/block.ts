@@ -5,6 +5,7 @@
  * 名前と側は線の行の一部で行の頭の語を持たないので、線の行を読む処理が `readLabel` と `readSide` を呼び、
  * 線の行を書き戻す処理が名前と `side` の属性を書く。
  * 原本では線の出来事 (`edge`) の欄 (`label` と `labelSide`) で、線の出来事の形の一部になる。
+ * 回り続ける図の線は名前を持たず、走る札 (`[tag: <字>]`) で何が渡るかを見せるので、名前と側を受けない (#3623)。
  */
 import type { Block } from "../block";
 
@@ -16,6 +17,6 @@ export const SIDES = Object.keys({ above: true, below: true, left: true, right: 
 export const block: Block = {
   name: "edge-label",
   rank: 86,
-  attach: { how: "ride-on-line", except: ["pipe"] },
+  attach: { how: "ride-on-line", except: ["pipe", "cycle"] },
   words: { attrs: { edge: ["side"] } },
 };

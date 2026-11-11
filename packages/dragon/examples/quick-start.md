@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -381,6 +381,43 @@ step 受け付ける
   say 書けていたので、「はい」の道を下へ進んで受け付ける。
   ok -> send: はい
   send -> finish
+```
+
+回り続ける図 (`cycle <題>`) では、輪の上の手順を最初の `step` の行より前に `box` で書く。
+手順は書いた順に輪の真上から右回りに並び、隣どうしを弧の矢印で結ぶ。手順は 2 つから 8 つまで書ける。
+段の中の `<名札> -> <名札> [tag: <字>]` は輪の次の手順への線で、札がその段で弧に沿って走り、走った弧は光ったまま残る。
+最後の手順から最初の手順への線で次の回に入る。1 つ飛ばす線、逆回りの線と、名前を持つ線は書けない。
+`strip <題>: <欄>, <欄>` は図の下でなく輪の真ん中に出て、段の中の `set <欄>: <値>` で値が入れ替わる。欄の名前は出さず、最初の欄の値を大きく出す。
+
+```dragon
+cycle 週の振り返り
+
+box plan as 決める [note: 週の初め, color: blue]
+box work as 進める [note: 毎日, color: green]
+box look as 振り返る [note: 週の終わり, color: amber]
+
+strip 週: 回, 曜日
+
+step 決める
+  say 週の初めに、その週にやることを決める。
+  set 回: 第1週
+  set 曜日: 月曜
+
+step 進める
+  say 決めたことを毎日進める。
+  plan -> work [tag: やること]
+  set 曜日: 火曜から木曜
+
+step 振り返る
+  say 週の終わりに、進んだことと残ったことを振り返る。
+  work -> look [tag: 進み]
+  set 曜日: 金曜
+
+step 次の週へ
+  say 残ったことを持って、次の週の決めることへ戻る。
+  look -> plan [tag: 残り]
+  set 回: 第2週
+  set 曜日: 月曜
 ```
 
 ## 属性

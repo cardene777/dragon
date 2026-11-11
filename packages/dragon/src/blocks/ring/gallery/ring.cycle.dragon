@@ -1,0 +1,20 @@
+cycle 輪
+
+box plan as 決める
+box work as 進める
+box look as 振り返る
+
+step 決める
+  say box の行で宣言した手順は、書いた順に真上から右回りに輪の上へ並ぶ。
+
+step 進める
+  say 線は輪の次の手順へだけ引け、tag の札が弧に沿って走る。
+  plan -> work [tag: やること]
+
+step 振り返る
+  say 走った弧は、受ける側の手順の色で光ったまま残る。
+  work -> look [tag: 進み]
+
+step 次の回へ
+  say 最後の手順から最初の手順への線で、次の回に入る。
+  look -> plan [tag: 残り]

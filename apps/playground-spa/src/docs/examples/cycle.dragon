@@ -1,0 +1,28 @@
+cycle 週の振り返り
+
+box plan as 決める [note: 週の初め, color: blue]
+box work as 進める [note: 毎日, color: green]
+box look as 振り返る [note: 週の終わり, color: amber]
+
+strip 週: 回, 曜日
+
+step 決める
+  say 週の初めに、その週にやることを決める。
+  set 回: 第1週
+  set 曜日: 月曜
+
+step 進める
+  say 決めたことを毎日進める。
+  plan -> work [tag: やること]
+  set 曜日: 火曜から木曜
+
+step 振り返る
+  say 週の終わりに、進んだことと残ったことを振り返る。
+  work -> look [tag: 進み]
+  set 曜日: 金曜
+
+step 次の週へ
+  say 残ったことを持って、次の週の決めることへ戻る。
+  look -> plan [tag: 残り]
+  set 回: 第2週
+  set 曜日: 月曜

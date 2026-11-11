@@ -196,7 +196,7 @@ mountDiagram(host, parsed.diagram, {
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `chart`, `flow`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `flow`, `git`, `lineup`, `pipe`, `state`, `time`, `tree`, and `try`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -296,7 +296,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -686,6 +686,48 @@ step Sign in
   say The code matches too, and the user is signed in. The no paths stay dotted.
   otp -> done: Yes
   done -> finish
+```
+
+### Cycle diagram
+
+Start with `cycle` to draw a cycle diagram, which follows a flow that goes around the same steps again and again.
+The steps sit on a ring clockwise from the top in the order written, and arc arrows join each step to the next.
+
+- `box <id> as <name>` is a step on the ring, written before the first `step`. A cycle diagram takes 2 to 8 steps
+- `<id> -> <id> [tag: <text>]` inside a step is a line to the next step on the ring. In that step the chip runs along the arc to the next step, and the arc and its arrowhead stay lit in the color of the receiving step
+- A line from the last step to the first one is also a line to the next step, and it starts the next round. A line that skips a step, goes backward, returns to the same step or carries a `: <label>` is refused, and so are `act` and `group` lines
+- The step number sits beside the box of the step the chip reached. A step without a line puts its number beside the box the step before ended at
+- `strip <title>: <field>, <field>` puts the strip title and the field values in the middle of the ring. `set <field>: <value>` in a step changes a value. The first field shows large and the others smaller, field names are not shown, and a value that changes after it was first written shows in the color of that step's box while the step lasts
+
+```dragon
+cycle The weekly review
+
+box plan as Decide [note: start of week, color: blue]
+box work as Do [note: every day, color: green]
+box look as Look back [note: end of week, color: amber]
+
+strip Week: round, day
+
+step Decide
+  say At the start of the week, decide what to do that week.
+  set round: Week 1
+  set day: Monday
+
+step Do
+  say Work on what was decided each day.
+  plan -> work [tag: tasks]
+  set day: Tuesday to Thursday
+
+step Look back
+  say At the end of the week, look back on what got done and what is left.
+  work -> look [tag: progress]
+  set day: Friday
+
+step On to the next week
+  say Take what is left back to deciding the next week.
+  look -> plan [tag: left]
+  set round: Week 2
+  set day: Monday
 ```
 
 ## Source JSON

@@ -1,0 +1,33 @@
+// The rewards earned by staking are claimed and staked again on top of the first deposit. Each time they are staked again, the amount that earns rewards grows.
+cycle Restake the staking rewards
+
+box stake as Stake [note: delegate to a validator, color: blue]
+box earn as Earn rewards [note: every block, color: green]
+box claim as Claim [note: withdraw the rewards, color: amber]
+box again as Restake [note: add to the stake, color: violet]
+
+strip Staked: amount, rewards
+
+step Stake
+  say 100 ATOM is delegated to a validator and staking begins.
+  set amount: 100 ATOM
+  set rewards: 0 ATOM
+
+step Earn rewards
+  say With every block, rewards build up in line with the staked amount.
+  stake -> earn [tag: 100 ATOM]
+  set rewards: 1.2 ATOM
+
+step Claim
+  say After 30 days a transaction claims the rewards.
+  earn -> claim [tag: 1.2 ATOM]
+
+step Restake
+  say The claimed rewards are delegated again to the same validator.
+  claim -> again [tag: 1.2 ATOM]
+  set rewards: 0 ATOM
+
+step On to the next round
+  say The stake is now 101.2 ATOM, and the next round earns rewards on it.
+  again -> stake [tag: 101.2 ATOM]
+  set amount: 101.2 ATOM

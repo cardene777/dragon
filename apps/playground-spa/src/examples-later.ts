@@ -94,6 +94,14 @@ import approveDepositJa from "../../../packages/dragon/examples/approve-deposit.
 import approveDepositEn from "../../../packages/dragon/examples/approve-deposit.en.dragon?raw";
 import returnCheckJa from "../../../packages/dragon/examples/return-check.dragon?raw";
 import returnCheckEn from "../../../packages/dragon/examples/return-check.en.dragon?raw";
+import ethSlotJa from "../../../packages/dragon/examples/eth-slot.dragon?raw";
+import ethSlotEn from "../../../packages/dragon/examples/eth-slot.en.dragon?raw";
+import sprintJa from "../../../packages/dragon/examples/sprint.dragon?raw";
+import sprintEn from "../../../packages/dragon/examples/sprint.en.dragon?raw";
+import pdcaJa from "../../../packages/dragon/examples/pdca.dragon?raw";
+import pdcaEn from "../../../packages/dragon/examples/pdca.en.dragon?raw";
+import restakeJa from "../../../packages/dragon/examples/restake.dragon?raw";
+import restakeEn from "../../../packages/dragon/examples/restake.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -144,6 +152,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "staking-rewards": { ja: stakingRewardsJa, en: stakingRewardsEn },
   "approve-deposit": { ja: approveDepositJa, en: approveDepositEn },
   "return-check": { ja: returnCheckJa, en: returnCheckEn },
+  "eth-slot": { ja: ethSlotJa, en: ethSlotEn },
+  sprint: { ja: sprintJa, en: sprintEn },
+  pdca: { ja: pdcaJa, en: pdcaEn },
+  restake: { ja: restakeJa, en: restakeEn },
 };
 
 /**

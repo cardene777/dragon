@@ -33,6 +33,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "queue": () => import("./queue/read").then((m): BlockReading => m.reading),
   "return": () => import("./return/read").then((m): BlockReading => m.reading),
   "revert": () => import("./revert/read").then((m): BlockReading => m.reading),
+  "ring": () => import("./ring/read").then((m): BlockReading => m.reading),
   "role": () => import("./role/read").then((m): BlockReading => m.reading),
   "route": () => import("./route/read").then((m): BlockReading => m.reading),
   "row": () => import("./row/read").then((m): BlockReading => m.reading),
