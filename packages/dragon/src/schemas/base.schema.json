@@ -29,7 +29,8 @@
         "try",
         "pipe",
         "chart",
-        "flow"
+        "flow",
+        "cycle"
       ]
     },
     "title": {
@@ -406,7 +407,7 @@
           ],
           "properties": {
             "kind": {
-              "const": "git"
+              "const": "cycle"
             }
           }
         },
@@ -414,16 +415,34 @@
           "properties": {
             "blocks": {
               "required": [
-                "branch"
+                "box"
               ],
               "properties": {
+                "box": {
+                  "description": "輪の上に右回りに置く手順。2 つから 8 つ",
+                  "minItems": 2,
+                  "maxItems": 8,
+                  "items": {
+                    "properties": {
+                      "region": {
+                        "$ref": "#/definitions/absent"
+                      }
+                    }
+                  }
+                },
                 "strip": {
                   "$ref": "#/definitions/plainStrip"
                 },
                 "path": {
                   "$ref": "#/definitions/absent"
                 },
+                "choice": {
+                  "$ref": "#/definitions/absent"
+                },
                 "group": {
+                  "$ref": "#/definitions/absent"
+                },
+                "branch": {
                   "$ref": "#/definitions/absent"
                 },
                 "scale": {
@@ -461,14 +480,11 @@
                 },
                 "check": {
                   "$ref": "#/definitions/absent"
-                },
-                "choice": {
-                  "$ref": "#/definitions/absent"
                 }
               }
             },
             "steps": {
-              "$ref": "#/definitions/gitSteps"
+              "$ref": "#/definitions/plainSteps"
             }
           }
         },
@@ -479,7 +495,7 @@
             ],
             "properties": {
               "kind": {
-                "const": "time"
+                "const": "git"
               }
             }
           },
@@ -487,28 +503,34 @@
             "properties": {
               "blocks": {
                 "required": [
-                  "scale"
-                ],
-                "anyOf": [
-                  {
-                    "required": [
-                      "row"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "task"
-                    ]
-                  }
+                  "branch"
                 ],
                 "properties": {
+                  "strip": {
+                    "$ref": "#/definitions/plainStrip"
+                  },
                   "path": {
                     "$ref": "#/definitions/absent"
                   },
-                  "branch": {
+                  "group": {
                     "$ref": "#/definitions/absent"
                   },
-                  "group": {
+                  "scale": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "period": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "row": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "task": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "point": {
+                    "$ref": "#/definitions/absent"
+                  },
+                  "zoom": {
                     "$ref": "#/definitions/absent"
                   },
                   "item": {
@@ -535,7 +557,7 @@
                 }
               },
               "steps": {
-                "$ref": "#/definitions/timeSteps"
+                "$ref": "#/definitions/gitSteps"
               }
             }
           },
@@ -546,39 +568,33 @@
               ],
               "properties": {
                 "kind": {
-                  "const": "tree"
+                  "const": "time"
                 }
               }
             },
             "then": {
               "properties": {
                 "blocks": {
-                  "properties": {
-                    "strip": {
-                      "$ref": "#/definitions/plainStrip"
+                  "required": [
+                    "scale"
+                  ],
+                  "anyOf": [
+                    {
+                      "required": [
+                        "row"
+                      ]
                     },
+                    {
+                      "required": [
+                        "task"
+                      ]
+                    }
+                  ],
+                  "properties": {
                     "path": {
                       "$ref": "#/definitions/absent"
                     },
                     "branch": {
-                      "$ref": "#/definitions/absent"
-                    },
-                    "scale": {
-                      "$ref": "#/definitions/absent"
-                    },
-                    "period": {
-                      "$ref": "#/definitions/absent"
-                    },
-                    "row": {
-                      "$ref": "#/definitions/absent"
-                    },
-                    "task": {
-                      "$ref": "#/definitions/absent"
-                    },
-                    "point": {
-                      "$ref": "#/definitions/absent"
-                    },
-                    "zoom": {
                       "$ref": "#/definitions/absent"
                     },
                     "group": {
@@ -608,7 +624,7 @@
                   }
                 },
                 "steps": {
-                  "$ref": "#/definitions/treeSteps"
+                  "$ref": "#/definitions/timeSteps"
                 }
               }
             },
@@ -619,34 +635,14 @@
                 ],
                 "properties": {
                   "kind": {
-                    "const": "lineup"
+                    "const": "tree"
                   }
                 }
               },
               "then": {
                 "properties": {
                   "blocks": {
-                    "required": [
-                      "box",
-                      "item"
-                    ],
                     "properties": {
-                      "box": {
-                        "minItems": 1,
-                        "items": {
-                          "properties": {
-                            "icon": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "link": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "region": {
-                              "$ref": "#/definitions/absent"
-                            }
-                          }
-                        }
-                      },
                       "strip": {
                         "$ref": "#/definitions/plainStrip"
                       },
@@ -677,13 +673,14 @@
                       "group": {
                         "$ref": "#/definitions/absent"
                       },
-                      "part": {
+                      "item": {
                         "$ref": "#/definitions/absent"
                       },
-                      "item": {
-                        "items": {
-                          "$ref": "#/definitions/item"
-                        }
+                      "role": {
+                        "$ref": "#/definitions/absent"
+                      },
+                      "part": {
+                        "$ref": "#/definitions/absent"
                       },
                       "hold": {
                         "$ref": "#/definitions/absent"
@@ -700,7 +697,7 @@
                     }
                   },
                   "steps": {
-                    "$ref": "#/definitions/lineupSteps"
+                    "$ref": "#/definitions/treeSteps"
                   }
                 }
               },
@@ -711,7 +708,7 @@
                   ],
                   "properties": {
                     "kind": {
-                      "const": "try"
+                      "const": "lineup"
                     }
                   }
                 },
@@ -719,22 +716,28 @@
                   "properties": {
                     "blocks": {
                       "required": [
-                        "part"
+                        "box",
+                        "item"
                       ],
                       "properties": {
-                        "item": {
+                        "box": {
+                          "minItems": 1,
                           "items": {
-                            "$ref": "#/definitions/tryItem"
+                            "properties": {
+                              "icon": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "link": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "region": {
+                                "$ref": "#/definitions/absent"
+                              }
+                            }
                           }
                         },
-                        "group": {
-                          "$ref": "#/definitions/absent"
-                        },
-                        "box": {
-                          "$ref": "#/definitions/absent"
-                        },
                         "strip": {
-                          "$ref": "#/definitions/absent"
+                          "$ref": "#/definitions/plainStrip"
                         },
                         "path": {
                           "$ref": "#/definitions/absent"
@@ -760,10 +763,24 @@
                         "zoom": {
                           "$ref": "#/definitions/absent"
                         },
-                        "role": {
+                        "group": {
                           "$ref": "#/definitions/absent"
                         },
+                        "part": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "item": {
+                          "items": {
+                            "$ref": "#/definitions/item"
+                          }
+                        },
                         "hold": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "side": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "check": {
                           "$ref": "#/definitions/absent"
                         },
                         "choice": {
@@ -772,7 +789,7 @@
                       }
                     },
                     "steps": {
-                      "$ref": "#/definitions/trySteps"
+                      "$ref": "#/definitions/lineupSteps"
                     }
                   }
                 },
@@ -783,7 +800,7 @@
                     ],
                     "properties": {
                       "kind": {
-                        "const": "pipe"
+                        "const": "try"
                       }
                     }
                   },
@@ -791,27 +808,19 @@
                     "properties": {
                       "blocks": {
                         "required": [
-                          "box"
+                          "part"
                         ],
                         "properties": {
-                          "box": {
-                            "minItems": 1,
+                          "item": {
                             "items": {
-                              "properties": {
-                                "sub": {
-                                  "$ref": "#/definitions/absent"
-                                },
-                                "color": {
-                                  "$ref": "#/definitions/absent"
-                                },
-                                "link": {
-                                  "$ref": "#/definitions/absent"
-                                },
-                                "region": {
-                                  "$ref": "#/definitions/absent"
-                                }
-                              }
+                              "$ref": "#/definitions/tryItem"
                             }
+                          },
+                          "group": {
+                            "$ref": "#/definitions/absent"
+                          },
+                          "box": {
+                            "$ref": "#/definitions/absent"
                           },
                           "strip": {
                             "$ref": "#/definitions/absent"
@@ -840,22 +849,10 @@
                           "zoom": {
                             "$ref": "#/definitions/absent"
                           },
-                          "group": {
-                            "$ref": "#/definitions/absent"
-                          },
-                          "item": {
-                            "$ref": "#/definitions/absent"
-                          },
                           "role": {
                             "$ref": "#/definitions/absent"
                           },
-                          "part": {
-                            "$ref": "#/definitions/absent"
-                          },
-                          "side": {
-                            "$ref": "#/definitions/absent"
-                          },
-                          "check": {
+                          "hold": {
                             "$ref": "#/definitions/absent"
                           },
                           "choice": {
@@ -864,7 +861,7 @@
                         }
                       },
                       "steps": {
-                        "$ref": "#/definitions/pipeSteps"
+                        "$ref": "#/definitions/trySteps"
                       }
                     }
                   },
@@ -875,76 +872,11 @@
                       ],
                       "properties": {
                         "kind": {
-                          "const": "chart"
+                          "const": "pipe"
                         }
                       }
                     },
                     "then": {
-                      "properties": {
-                        "blocks": {
-                          "properties": {
-                            "group": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "box": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "strip": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "path": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "branch": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "scale": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "period": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "row": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "task": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "point": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "zoom": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "item": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "role": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "part": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "hold": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "side": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "check": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "choice": {
-                              "$ref": "#/definitions/absent"
-                            }
-                          }
-                        },
-                        "steps": {
-                          "$ref": "#/definitions/chartSteps"
-                        }
-                      }
-                    },
-                    "else": {
                       "properties": {
                         "blocks": {
                           "required": [
@@ -952,10 +884,26 @@
                           ],
                           "properties": {
                             "box": {
-                              "minItems": 1
+                              "minItems": 1,
+                              "items": {
+                                "properties": {
+                                  "sub": {
+                                    "$ref": "#/definitions/absent"
+                                  },
+                                  "color": {
+                                    "$ref": "#/definitions/absent"
+                                  },
+                                  "link": {
+                                    "$ref": "#/definitions/absent"
+                                  },
+                                  "region": {
+                                    "$ref": "#/definitions/absent"
+                                  }
+                                }
+                              }
                             },
                             "strip": {
-                              "$ref": "#/definitions/plainStrip"
+                              "$ref": "#/definitions/absent"
                             },
                             "path": {
                               "$ref": "#/definitions/absent"
@@ -981,6 +929,9 @@
                             "zoom": {
                               "$ref": "#/definitions/absent"
                             },
+                            "group": {
+                              "$ref": "#/definitions/absent"
+                            },
                             "item": {
                               "$ref": "#/definitions/absent"
                             },
@@ -988,9 +939,6 @@
                               "$ref": "#/definitions/absent"
                             },
                             "part": {
-                              "$ref": "#/definitions/absent"
-                            },
-                            "hold": {
                               "$ref": "#/definitions/absent"
                             },
                             "side": {
@@ -1005,7 +953,149 @@
                           }
                         },
                         "steps": {
-                          "$ref": "#/definitions/plainSteps"
+                          "$ref": "#/definitions/pipeSteps"
+                        }
+                      }
+                    },
+                    "else": {
+                      "if": {
+                        "required": [
+                          "kind"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "chart"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "blocks": {
+                            "properties": {
+                              "group": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "box": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "strip": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "path": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "branch": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "scale": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "period": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "row": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "task": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "point": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "zoom": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "item": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "role": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "part": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "hold": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "side": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "check": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "choice": {
+                                "$ref": "#/definitions/absent"
+                              }
+                            }
+                          },
+                          "steps": {
+                            "$ref": "#/definitions/chartSteps"
+                          }
+                        }
+                      },
+                      "else": {
+                        "properties": {
+                          "blocks": {
+                            "required": [
+                              "box"
+                            ],
+                            "properties": {
+                              "box": {
+                                "minItems": 1
+                              },
+                              "strip": {
+                                "$ref": "#/definitions/plainStrip"
+                              },
+                              "path": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "branch": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "scale": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "period": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "row": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "task": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "point": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "zoom": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "item": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "role": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "part": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "hold": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "side": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "check": {
+                                "$ref": "#/definitions/absent"
+                              },
+                              "choice": {
+                                "$ref": "#/definitions/absent"
+                              }
+                            }
+                          },
+                          "steps": {
+                            "$ref": "#/definitions/plainSteps"
+                          }
                         }
                       }
                     }

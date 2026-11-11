@@ -1,0 +1,34 @@
+// In a two-week sprint the team picks the work and plans it, builds it bit by bit, shows what is done, looks back on how it went and returns to planning the next sprint.
+cycle A two-week sprint
+
+box plan as Plan [note: pick the work, color: blue]
+box build as Build [note: a little each day, color: violet]
+box demo as Show [note: show what is done, color: green]
+box retro as Look back [note: pick one fix, color: amber]
+
+strip Sprint: round, day
+
+step Plan
+  say The team picks the work for the two weeks and decides who does what.
+  set round: Sprint 12
+  set day: Day 1
+
+step Build
+  say The work is built a little each day and checked the same day.
+  plan -> build [tag: work]
+  set day: Days 2 to 9
+
+step Show
+  say What is done is shown running to the people who use it, and they give feedback.
+  build -> demo [tag: done]
+  set day: Day 10
+
+step Look back
+  say The team looks back on how the two weeks went and picks one thing to fix next sprint.
+  demo -> retro [tag: feedback]
+
+step On to the next sprint
+  say The team takes the fix back to planning the next sprint.
+  retro -> plan [tag: fix]
+  set round: Sprint 13
+  set day: Day 1

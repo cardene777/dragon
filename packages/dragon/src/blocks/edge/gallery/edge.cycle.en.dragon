@@ -1,0 +1,17 @@
+cycle Lines
+
+box get as Take it in
+box work as Handle it
+box close as Close it
+
+step Take in
+  say A line goes with -> from one step's id to the id of the next step on the ring.
+  get -> work [tag: question]
+
+step Close
+  say Each step writes the lines it takes. Lines that skip a step or go backward are refused.
+  work -> close [tag: answer]
+
+step Next round
+  say A line from the last step to the first one leads into the next round.
+  close -> get [tag: next case]

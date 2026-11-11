@@ -23,7 +23,7 @@ Lines starting with `//` and blank lines are not read.
 
 ## Head line
 
-`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart` and `flow`.
+`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow` and `cycle`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
 - `chart` needs its shape on the head line: `chart <title> [shape: donut]` or `chart <title> [shape: bar]`. Only `chart` takes `shape` here.
@@ -107,9 +107,10 @@ Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as
 | `box` | all except `try` (which declares its own parts) and `chart` (which declares items) |
 | `note` | all except `pipe`, `try` and `chart` |
 | `act`, `link`, `carry`, `->` lines between boxes | `architecture`, `flow`, `git`, `sequence`, `state`, `time`, `tree` |
+| `link`, `carry`, `->` lines to the next step on the ring (no `act`) | `cycle` |
 | `icon` | all except `lineup`, `try` and `chart` |
 | `color` on boxes | all except `pipe`, `try` and `chart` |
-| `strip` and `set` | `architecture`, `flow`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
+| `strip` and `set` | `architecture`, `cycle`, `flow`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
 | `choice` | `flow` |
 | `group ... end` | `architecture` |
 

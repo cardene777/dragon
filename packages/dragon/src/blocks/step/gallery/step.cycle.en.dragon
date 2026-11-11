@@ -1,0 +1,16 @@
+cycle Steps [view: fixed]
+
+box stop as Stopped
+box run as Running
+
+step Start
+  say step splits the steps, and say writes each step's text.
+    Write the command typed in that step with code.
+  code systemctl start app
+  stop -> run [tag: start]
+
+step Stop
+  say Steps are played one at a time.
+    view chooses whether the frame follows each step or shows the whole diagram still.
+  code systemctl stop app
+  run -> stop [tag: stop]

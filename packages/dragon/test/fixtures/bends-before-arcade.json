@@ -3,6 +3,7 @@
   "api.json": "4b8d950f392ecb2ae9d3e6fa6676dbb6887b2698ecca3049afde783b3a11a22b",
   "auction.json": "bcb5a774512289d2f79886fa03568cf5e0f23dcd892d1e6cd04af1f189e5c1b5",
   "ccip.json": "1d892fdcb34e5dafe6cc63124719a41a38bc5a032d3c156c053b90d887c9bc2b",
+  "eth-slot.json": "c617281cf24508babf4cd9b1c6abe9ef0f13a6cd257bfdc493522d061cb2e786",
   "finality.json": "48140e9d739938e02a7200599b14e238538c680b2caf64ddd2f7bf34cd368e40",
   "intro.json": "daad70b372c65ecd44170c5d3b3d1be8671e505c75f0275dbb406ffe77471f78",
   "login-all-paths.json": "04bfe7c9db1863a0037c608574f44c5e724975b4dff16c228643ba109fef2902",

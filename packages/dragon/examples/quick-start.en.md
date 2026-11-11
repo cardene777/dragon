@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -381,6 +381,43 @@ step Accept
   say It is filled in, so the yes path goes down and the application is accepted.
   ok -> send: Yes
   send -> finish
+```
+
+In a cycle diagram (`cycle <title>`), write the steps on the ring with `box` before the first `step` line.
+The steps sit on the ring clockwise from the top in the order written, and arc arrows join each step to the next. A ring takes 2 to 8 steps.
+A `<id> -> <id> [tag: <text>]` line inside a step is a line to the next step on the ring. In that step the chip runs along the arc, and the arc it ran stays lit.
+A line from the last step to the first one starts the next round. Lines that skip a step, go backward or carry a label are refused.
+`strip <title>: <field>, <field>` goes in the middle of the ring instead of under the diagram, and `set <field>: <value>` in a step changes a value. Field names are not shown, and the first field shows large.
+
+```dragon
+cycle The weekly review
+
+box plan as Decide [note: start of week, color: blue]
+box work as Do [note: every day, color: green]
+box look as Look back [note: end of week, color: amber]
+
+strip Week: round, day
+
+step Decide
+  say At the start of the week, decide what to do that week.
+  set round: Week 1
+  set day: Monday
+
+step Do
+  say Work on what was decided each day.
+  plan -> work [tag: tasks]
+  set day: Tuesday to Thursday
+
+step Look back
+  say At the end of the week, look back on what got done and what is left.
+  work -> look [tag: progress]
+  set day: Friday
+
+step On to the next week
+  say Take what is left back to deciding the next week.
+  look -> plan [tag: left]
+  set round: Week 2
+  set day: Monday
 ```
 
 ## Attributes

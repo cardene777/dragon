@@ -1,0 +1,32 @@
+// 店の売り場をPDCAで直す。売れ行きから棚の計画を立て、並べ替えて売ってみて、売上を確かめ、直す点を決めて次の回の計画へ戻る。
+cycle PDCAで売り場を直す
+
+box plan as 計画 [note: Plan, color: blue]
+box run as 実行 [note: Do, color: green]
+box check as 確かめる [note: Check, color: amber]
+box fix as 直す [note: Act, color: rose]
+
+strip 売り場: 回, 売上
+
+step 計画を立てる
+  say 先月の売れ行きを見て、よく売れる商品を入口の近くへ移す計画を立てる。
+  set 回: 1回目
+  set 売上: 週に120万円
+
+step 並べ替えて売る
+  say 計画どおりに棚を並べ替え、2週間売ってみる。
+  plan -> run [tag: 棚の計画]
+
+step 売上を確かめる
+  say 並べ替えた後の売上を、前の週と比べて確かめる。
+  run -> check [tag: 売上]
+  set 売上: 週に138万円
+
+step 直す点を決める
+  say 伸びた棚はそのまま残し、伸びなかった棚の並べ方を直すと決める。
+  check -> fix [tag: 比べた結果]
+
+step 次の回へ
+  say 直す点を次の計画に入れ、2回目を始める。
+  fix -> plan [tag: 直す点]
+  set 回: 2回目

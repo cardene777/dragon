@@ -1,0 +1,16 @@
+cycle 箱
+
+box draft as 下書きを書く
+box review as 見直す
+box publish as 公開する
+
+step 書く
+  say box の行で手順を 1 つ置く。as の後ろに見せる名前を書く。
+
+step 見直す
+  say 手順は書いた順に、輪の真上から右回りに並ぶ。
+  draft -> review [tag: 下書き]
+
+step 出す
+  say 線は手順の名札で書き、輪の次の手順へ引く。
+  review -> publish [tag: 直した版]
