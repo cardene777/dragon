@@ -22,6 +22,7 @@ import { readDiagram } from "../version";
 import { chooseView } from "../view";
 import { DEFAULT_LANG, type NotationLang, textLang } from "../words";
 import { film, launch, sizeOf, stage, still } from "./capture";
+import { planFilm } from "./film";
 import { charsOf, fontFaces } from "./fonts";
 import { pageHtml } from "./html";
 
@@ -81,7 +82,8 @@ export interface ExportResult {
 
 /** 書き出せる形。命令が `--format` の値を確かめる時にも使う */
 export const FORMATS: readonly ExportFormat[] = ["mp4", "gif", "html", "png"];
-const DEFAULTS = { fps: 30, gifFps: 10, followWidth: 728 };
+/** 寄って見せる図で幅の指定が無い時の枠の幅。コマの既定の数は書き出す入口と同じ計画 (`planFilm`) が持つ */
+const DEFAULTS = { followWidth: 728 };
 
 const unescape = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 
@@ -188,16 +190,9 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
         outputs.push(["png", await still(fixed, timeline.stills[(options.step ?? steps) - 1] ?? 0)]);
       }
       if (mp4 || gif) {
-        const fps = mp4 ? (options.fps ?? DEFAULTS.fps) : (options.gifFps ?? DEFAULTS.gifFps);
-        const gifEvery = gif ? Math.max(1, Math.round(fps / (options.gifFps ?? DEFAULTS.gifFps))) : 0;
-        const shot = await film(await stage(browser, videoSvg, fontCss, `${vars};background:var(--bg)`, said), {
-          total: timeline.total,
-          fps,
-          mp4,
-          gifEvery,
-          // GIF の色の表は、最初の絵と段ごとの止め絵から作る
-          samples: [0, ...timeline.stills],
-        });
+        // コマの数と間引きは書き出す入口と同じ計画で決める (#3644)。GIF の色の表は、最初の絵と段ごとの止め絵から作る
+        const plan = planFilm(timeline, { mp4, gif, fps: options.fps, gifFps: options.gifFps });
+        const shot = await film(await stage(browser, videoSvg, fontCss, `${vars};background:var(--bg)`, said), plan);
         frames = shot.frames;
         if (shot.mp4) outputs.push(["mp4", shot.mp4]);
         if (shot.gif) outputs.push(["gif", shot.gif]);

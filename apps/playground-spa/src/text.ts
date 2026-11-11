@@ -152,6 +152,10 @@ const JA = {
     zoomIn: "拡大する",
     zoom: "表示の倍率",
     phase: (n: number, total: number, title: string) => `段 ${n} / ${total} · ${title}`,
+    /** 今の図を書き出す釦と、書き出す形を選ぶ窓と、書き出せなかった時の文 (#3644) */
+    export: "書き出す",
+    exportMenu: "書き出す形",
+    exportFailed: (reason: string) => `書き出せない: ${reason}`,
   },
   notices: {
     line: (line: number) => `${line} 行目`,

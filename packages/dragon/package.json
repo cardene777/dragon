@@ -72,6 +72,16 @@
         "types": "./dist/node.d.cts",
         "default": "./dist/node.cjs"
       }
+    },
+    "./capture": {
+      "import": {
+        "types": "./dist/capture.d.ts",
+        "default": "./dist/capture.js"
+      },
+      "require": {
+        "types": "./dist/capture.d.cts",
+        "default": "./dist/capture.cjs"
+      }
     }
   },
   "files": [
