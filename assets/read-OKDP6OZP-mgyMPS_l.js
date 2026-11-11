@@ -1,0 +1,1 @@
+import{n as u}from"./index-BjFRAN-F.js";var A={read:u("value の印は呼び出しの行の属性で、呼び出しの管のブロックが呼び出しの行と一緒に読む"),print:u("value の印は呼び出しの管のブロックが呼び出しの行の属性として書き戻す"),messages:u("value の印の誤りの文は、配管の図なら必ず読む呼び出しの管のブロックが持つ")};export{A as reading};
