@@ -233,7 +233,8 @@ describe("版の記録 (#3151)", () => {
       for (const issue of ["(#3606)", "(#3607)", "(#3603)"]) expect(released, `${file} の 0.71.0 の節に ${issue} の項が無い`).toContain(issue);
       const entry = released.split("\n- ").find((item) => item.includes("--blocks")) ?? "";
       expect(entry, `${file} の 0.71.0 の節に書き出しの --blocks の項が無い`).toContain("`dragon export");
-      expect(section(text, "[Unreleased]").trim(), `${file} の Unreleased に出した項が残る`).toBe("");
+      // 次の版の項は Unreleased に積まれるので、0.71.0 で出した項が残っていないことだけを見る
+      for (const issue of ["(#3606)", "(#3607)", "(#3603)"]) expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
     }
   });
 

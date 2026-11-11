@@ -129,7 +129,7 @@ function Site(): ReactElement {
           <Playground lang={lang} theme={theme} palette={palette} onBeforeLang={onBeforeLang} />
         ) : route.screen === "catalog" ? (
           <LaterPage chunk={LATER_CATALOG} lang={lang}>
-            {({ CatalogIndex }) => <CatalogIndex lang={lang} />}
+            {({ CatalogIndex }) => <CatalogIndex lang={lang} theme={theme} palette={palette} />}
           </LaterPage>
         ) : route.screen === "category" && category ? (
           <LaterPage chunk={LATER_CATALOG} lang={lang}>

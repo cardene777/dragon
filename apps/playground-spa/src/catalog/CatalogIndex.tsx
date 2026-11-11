@@ -1,24 +1,27 @@
 /**
  * カタログの一覧 (#3033、#3166)。
  *
- * 道筋、見出し、説明の下に、コアブロック、個別ブロック、図の 3 段を並べる (#3350)。
+ * 道筋、見出し、説明の下に、図、コアブロック、個別ブロックの 3 段を並べる (#3350、#3614)。
+ * 図の段を最初に置くのは、カタログを開いた最初の画面で、どんな図を描けるかを絵で見せるため (#3614)。
+ * 図の段の札は、その種類の最初の見本の絵の下に、番号、件数、見出し、説明、`開く →` を並べる。
  * 部品の段の札は部品の表 (`parts.ts`) の並びで、部品の名前と受け持つ記法の語を出し、部品の頁へ向かう。
- * 図の段は 0.35.0 より前のサイトの一覧 (`pages/CatalogIndexPage.tsx`) と同じ分類の札 (番号、件数、見出し、説明、`開く →`) を並べる。
  * 説明の部品の数と分類の数と見本の数、札の件数は、表と分類に束ねた見本を数えて出す。
  */
-import type { ReactElement } from "react";
+import type { Theme } from "@cardenelabs/dragon/light";
+import { type ReactElement, useEffect, useRef } from "react";
 
-import { EXAMPLE_KEYS, LATER_EXAMPLES } from "../examples";
+import { EXAMPLE_KEYS, exampleText, LATER_EXAMPLES } from "../examples";
 import { useLater } from "../site/later";
+import { LiveFigure } from "../site/LiveFigure";
 import { follow, PATHS } from "../site/routes";
 import { type Lang, TEXT } from "../text";
-import { KINDS, samplesOf } from "./catalog";
+import { type Kind, KINDS, samplesOf } from "./catalog";
 import { isCommon, type Part, PARTS, wordLabel } from "./parts";
 import { CATALOG_TEXT } from "./text";
 
 type Section = "parts" | "kind-parts" | "kinds";
 
-export function CatalogIndex({ lang }: { lang: Lang }): ReactElement {
+export function CatalogIndex({ lang, theme, palette }: { lang: Lang; theme: Theme; palette: string }): ReactElement {
   const t = TEXT[lang];
   const c = CATALOG_TEXT[lang];
   // 札の件数は全ての見本を図の種類で数えるので、後から読む見本が届いてから出す (#3246)
@@ -47,29 +50,12 @@ export function CatalogIndex({ lang }: { lang: Lang }): ReactElement {
         </p>
       </div>
 
-      <section className="catalog-section" data-catalog="section" data-section="parts">
-        {head("parts")}
-        <div className="catalog-part-grid">
-          {PARTS.filter(isCommon).map((part) => (
-            <PartCard key={part.id} part={part} lang={lang} />
-          ))}
-        </div>
-      </section>
-
-      <section className="catalog-section" data-catalog="section" data-section="kind-parts">
-        {head("kind-parts")}
-        <div className="catalog-part-grid">
-          {PARTS.filter((part) => !isCommon(part)).map((part) => (
-            <PartCard key={part.id} part={part} lang={lang} />
-          ))}
-        </div>
-      </section>
-
       <section className="catalog-section" data-catalog="section" data-section="kinds">
         {head("kinds")}
         <div className="catalog-index-grid">
           {KINDS.map((kind, i) => (
             <a key={kind} className="catalog-index-card" data-catalog="card" href={`${PATHS.catalog}/${kind}`} onClick={(e) => follow(e)}>
+              <KindFace kind={kind} lang={lang} theme={theme} palette={palette} />
               <div className="catalog-index-card-top">
                 <div className="catalog-index-card-head">
                   <span className="catalog-index-card-no" data-catalog="card-no">
@@ -97,6 +83,69 @@ export function CatalogIndex({ lang }: { lang: Lang }): ReactElement {
           ))}
         </div>
       </section>
+
+      <section className="catalog-section" data-catalog="section" data-section="parts">
+        {head("parts")}
+        <div className="catalog-part-grid">
+          {PARTS.filter(isCommon).map((part) => (
+            <PartCard key={part.id} part={part} lang={lang} />
+          ))}
+        </div>
+      </section>
+
+      <section className="catalog-section" data-catalog="section" data-section="kind-parts">
+        {head("kind-parts")}
+        <div className="catalog-part-grid">
+          {PARTS.filter((part) => !isCommon(part)).map((part) => (
+            <PartCard key={part.id} part={part} lang={lang} />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/** 全体を収めた図の幅が札の絵の枠の幅のこの割合より細い時は、この割合まで広げて上から見せる */
+const TALL = 0.7;
+
+/**
+ * 図の種類の札の絵。その種類の最初の見本を、最後の段の止め絵で描く。
+ * 種類ごとに図の縦横の比が違うので、描いた図の大きさを測り、札の絵の枠に全体が収まる倍率で縮める。
+ * 後から読む見本は届くまで同じ高さの枠だけを置く。
+ */
+function KindFace({ kind, lang, theme, palette }: { kind: Kind; lang: Lang; theme: Theme; palette: string }): ReactElement {
+  const first = samplesOf(kind)[0];
+  const text = first ? exampleText(first, lang) : undefined;
+  const face = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = face.current;
+    const fig = stage.current;
+    if (!box || !fig) return;
+    // 縮める前の大きさで比べる。描いた後の矩形は今の倍率で縮んでいるので、その倍率で割り戻す
+    let scale = 1;
+    const fit = (): void => {
+      const svg = fig.querySelector("svg");
+      const width = Math.max(fig.offsetWidth, svg ? svg.getBoundingClientRect().width / scale : 0);
+      const height = fig.offsetHeight;
+      if (!width || !height) return;
+      // 縦に長い図は全体を収めると細い筋になるので、枠の幅の 7 割まで広げて上から見せる
+      const whole = Math.min(box.clientWidth / width, box.clientHeight / height, 1);
+      scale = width * whole < box.clientWidth * TALL ? Math.min((box.clientWidth * TALL) / width, 1) : whole;
+      fig.style.transform = `translateX(-50%) scale(${scale})`;
+    };
+    const watch = new ResizeObserver(fit);
+    watch.observe(box);
+    watch.observe(fig);
+    return () => watch.disconnect();
+  }, [text]);
+  return (
+    <div ref={face} className="catalog-index-card-face" data-catalog="card-face" aria-hidden="true">
+      {text && (
+        <div ref={stage} className="catalog-index-card-stage">
+          <LiveFigure className="catalog-index-card-figure" notation={text} lang={lang} theme={theme} palette={palette} pausedAt={Number.MAX_SAFE_INTEGER} whole />
+        </div>
+      )}
     </div>
   );
 }

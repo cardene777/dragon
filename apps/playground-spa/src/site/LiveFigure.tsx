@@ -28,6 +28,8 @@ interface Props {
   json?: boolean;
   /** 段が替わるたびに今の段 (0 から) を受け取る */
   onStep?: (step: number) => void;
+  /** 流さずに段 `pausedAt` (0 から) の止め絵で置く。段の数を超えた時は最後の段で止める */
+  pausedAt?: number;
   className?: string;
 }
 
@@ -60,7 +62,7 @@ function readNotation(text: string): Diagram | null {
   return parsed.ok ? parsed.diagram : null;
 }
 
-export function LiveFigure({ notation, lang, theme, palette, whole = false, json = false, onStep, className }: Props): ReactElement {
+export function LiveFigure({ notation, lang, theme, palette, whole = false, json = false, onStep, pausedAt, className }: Props): ReactElement {
   const host = useRef<HTMLDivElement>(null);
   const kind = useMemo(() => kindOfText(notation, json), [notation, json]);
   // 原本の JSON は原本の形の検査の塊も待つ。記法から読んだ図は検査を要らない (#3400)
@@ -85,9 +87,9 @@ export function LiveFigure({ notation, lang, theme, palette, whole = false, json
   useEffect(() => {
     const el = host.current;
     if (!el || !diagram || !ready) return;
-    const player = mountDiagram(el, diagram, { palette, theme, lang, onStep: (step) => stepTo.current?.(step) });
+    const player = mountDiagram(el, diagram, { palette, theme, lang, pausedAt, onStep: (step) => stepTo.current?.(step) });
     return () => player.destroy();
-  }, [diagram, ready, palette, theme, lang]);
+  }, [diagram, ready, palette, theme, lang, pausedAt]);
 
   return (
     <div ref={host} className={className}>

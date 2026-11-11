@@ -48,3 +48,7 @@
 | 2つのREADMEのdragon記法の節に決まりが4つ並び、dragonの囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3235 |
 | 型の検査、build、lintと、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了0 | #3235 #3250 |
 | 見本帳が最初に読む script と CSS の合計が、今の上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3505 |
+| カタログの一覧を開いた時、頁の頭の下の最初の段に図の種類の札を並べる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-head.test.tsx`の検査`catalog-kinds-come-first`が通る | #3614 |
+| カタログの一覧を開いた時、どの図でも使える部品の段と図の種類だけの部品の段を、図の種類の段より後に並べる | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-head.test.tsx`の検査`catalog-parts-follow-kinds`が通る | #3614 |
+| 後から読む見本が届いた後、図の種類の札11枚の全てが、その種類の見本を描く絵の枠を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-head.test.tsx`の検査`catalog-kind-cards-draw-an-example`が通る | #3614 |
+| 図の種類の札を押した時、今までどおりその種類の頁へ移る | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-head.test.tsx`の検査`catalog-kind-cards-open-their-kind`が通る | #3614 |

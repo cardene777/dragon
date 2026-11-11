@@ -93,10 +93,11 @@
 .catalog-index-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 18px;
+  min-width: 0;
   min-height: 206px;
-  padding: 22px;
+  padding: 0 0 22px;
+  overflow: hidden;
   box-sizing: border-box;
   background: var(--d-surface);
   border: 1px solid var(--d-border);
@@ -113,6 +114,7 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
+  padding: 0 22px;
 }
 
 .catalog-index-card-head {
@@ -147,7 +149,31 @@
   color: var(--d-text-secondary);
 }
 
+/* 札の絵。その種類の最初の見本の最後の段を、枠に全体が収まる倍率で縮めて描く (#3614) */
+.catalog-index-card-face {
+  position: relative;
+  flex: none;
+  height: 188px;
+  margin: 14px 14px 0;
+  overflow: hidden;
+}
+
+.catalog-index-card-stage {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: max-content;
+  transform-origin: top center;
+  pointer-events: none;
+}
+
+.catalog-index-card-figure .dg-bar {
+  display: none;
+}
+
 .catalog-index-card-link {
+  margin-top: auto;
+  padding: 0 22px;
   font-size: 13px;
   font-weight: 600;
   color: var(--d-accent);
