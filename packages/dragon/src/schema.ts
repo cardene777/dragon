@@ -21,6 +21,7 @@ import type { ChartShape } from "./blocks/chart-shape/block";
 import type { Carry } from "./blocks/carry/block";
 import { type Color, COLORS } from "./blocks/color/block";
 import type { GitCommit } from "./blocks/commit/block";
+import type { GitDelete } from "./blocks/delete/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
 import type { TablerMessages } from "./blocks/icon/sets";
@@ -85,6 +86,7 @@ export type DiagramEvent =
   | { type: "strip"; field: string; value?: string; tag?: string }
   | GitCommit
   | { type: "branch"; branch: string; from: string }
+  | GitDelete
   | { type: "now"; to: number }
   | TimeMarkEvent
   | TimeSpanEvent
@@ -135,8 +137,8 @@ export interface StripMeter {
   line: string;
 }
 
-/** 枝分かれの図 (#3164) の commit を積む出来事の型は commit のブロックが持つ (#3347) */
-export type { GitCommit };
+/** 枝分かれの図 (#3164) の commit を積む出来事の型は commit のブロックが持つ (#3347)。枝を消す出来事の型は枝を消すブロックが持つ (#3632) */
+export type { GitCommit, GitDelete };
 
 /** 木の図 (#3233) の葉を出す出来事と親を組む出来事の型は、葉と組んだ親のブロックが持つ (#3348) */
 export type { TreeLeaf, TreeNode };
@@ -376,7 +378,7 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "delete", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
 const PART_TYPES = ["route", "queue", "chain", "log", "ask", "press"] as const satisfies readonly TryPart["type"][];
 
@@ -429,7 +431,7 @@ const RESERVED_ID = /\/(?:box|choice)\/items\/properties\/id\/not$/u;
 /** 枝分かれの図でない図に、枝分かれの図だけの出来事を書いた時の決まりの場所 (#3164) */
 const GIT_EVENT = /\/events\/items\/properties\/type\/not$/u;
 /** 枝分かれの図だけが書ける出来事 */
-const GIT_EVENTS = ["commit", "branch"] as const satisfies readonly DiagramEvent["type"][];
+const GIT_EVENTS = ["commit", "branch", "delete"] as const satisfies readonly DiagramEvent["type"][];
 /** 時間軸の図でない図に、時間軸の図だけの出来事を書いた時の決まりの場所 (#3165)。出来事に `not` を置く */
 const TIME_EVENT = /\/events\/items\/not$/u;
 /** 時間軸の図だけが書ける出来事 */

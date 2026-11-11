@@ -239,7 +239,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     meters: [],
     paths: [],
     branches: [],
-    git: { commits: new Set(), tips: new Map() },
+    git: { commits: new Set(), tips: new Map(), head: { at: null, on: null }, deleted: new Set() },
     time: { rows: [], tasks: [], points: [], pending: [], settled: false, needle: 0 },
     tree: { boxes: new Map(), parents: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },

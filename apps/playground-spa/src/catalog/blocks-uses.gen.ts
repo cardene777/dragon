@@ -15,6 +15,7 @@ import { uses as choiceUses } from "../../../../packages/dragon/src/blocks/choic
 import { uses as colorUses } from "../../../../packages/dragon/src/blocks/color/gallery/uses";
 import { uses as commitUses } from "../../../../packages/dragon/src/blocks/commit/gallery/uses";
 import { uses as copyUses } from "../../../../packages/dragon/src/blocks/copy/gallery/uses";
+import { uses as deleteUses } from "../../../../packages/dragon/src/blocks/delete/gallery/uses";
 import { uses as edgeUses } from "../../../../packages/dragon/src/blocks/edge/gallery/uses";
 import { uses as edgeLabelUses } from "../../../../packages/dragon/src/blocks/edge-label/gallery/uses";
 import { uses as emitUses } from "../../../../packages/dragon/src/blocks/emit/gallery/uses";
@@ -76,6 +77,7 @@ export const BLOCK_USES = {
   "color": colorUses,
   "commit": commitUses,
   "copy": copyUses,
+  "delete": deleteUses,
   "edge": edgeUses,
   "edge-label": edgeLabelUses,
   "emit": emitUses,

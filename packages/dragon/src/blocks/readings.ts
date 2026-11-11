@@ -15,6 +15,7 @@ import { reading as choiceReading } from "./choice/read";
 import { reading as colorReading } from "./color/read";
 import { reading as commitReading } from "./commit/read";
 import { reading as copyReading } from "./copy/read";
+import { reading as deleteReading } from "./delete/read";
 import { reading as edgeReading } from "./edge/read";
 import { reading as edgeLabelReading } from "./edge-label/read";
 import { reading as emitReading } from "./emit/read";
@@ -76,6 +77,7 @@ export const READINGS = {
   "color": colorReading,
   "commit": commitReading,
   "copy": copyReading,
+  "delete": deleteReading,
   "edge": edgeReading,
   "edge-label": edgeLabelReading,
   "emit": emitReading,

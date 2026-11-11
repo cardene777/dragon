@@ -79,6 +79,7 @@ step ログインを押す
 | commit | `commit <名札> on <枝> [hash: <hash>, note: <一言>]`。`copy <元>` で当て直しの commit、`merge <枝>` で merge commit になる。枝分かれの図だけで書ける | `commit M on main merge fix [hash: 7d3a5e2]` |
 | 枝を切る | `<枝> from <commit>`。HEAD がその枝へ移る | `feature from A` |
 | 札を動かす | `<枝か HEAD> -> <commit>`。枝分かれの図では commit を作らずに札だけを動かす | `HEAD -> M` |
+| 枝を消す | `delete <枝>`。消した段から後はその枝の札が図から消える。HEAD が指している枝は消せない。枝分かれの図だけで書ける | `delete feature` |
 | 針を進める | `now -> <目盛り>`。針が決まった速さでその目盛りまで進み、過ぎた目盛りの印がその時に出る。時間軸の図だけで書ける | `now -> 31` |
 | 印の色 | `mark <列> <範囲> [color: <色>]`。その列の範囲の印の色を変える | `mark ブロック 0-31 [color: green]` |
 | 範囲 | `span <範囲>: <字>`。軸の下に範囲の括弧を出し、`[shape: box]` を付けると印の列を囲む枠になる | `span 0-31: 1 epoch = 6.4 分` |

@@ -300,7 +300,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -368,6 +368,7 @@ step 届く
 `git` で始めると、git の枝に commit を積み、取り込むまでを段ごとに追う枝分かれの図になる。枝は `branch` の行で上から順に宣言し、枝ごとに帯が並ぶ。
 段の中では `commit <名札> on <枝>` で枝の先に commit を積み、`copy <元>` で当て直しの commit を、`merge <枝>` で merge commit を作る。`hash` と `note` で丸の外に hash と一言を添える。
 `<枝> from <commit>` で枝を切り、`<札> -> <commit>` で commit を作らずに枝の札か `HEAD` を動かす。どの札からも辿れなくなった commit は点線の丸に変わる。
+`delete <枝>` で枝を消す。消した段から後はその枝の札が図から消え、帯は残る。`HEAD` が指している枝は消せないので、先に `HEAD` を別の枝へ移す。
 
 ```dragon
 git fix は merge commit で、feature は当て直して取り込む

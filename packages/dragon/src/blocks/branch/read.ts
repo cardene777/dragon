@@ -19,9 +19,10 @@ export interface BranchMessages {
   undeclaredBranch: (id: string) => string;
 }
 
-/** 宣言した枝の名札 `id` をそのまま返す。宣言していない枝は、名札の列 `at` を示して誤りで止める */
+/** 宣言した枝の名札 `id` をそのまま返す。宣言していない枝と消した枝 (#3632) は、名札の列 `at` を示して誤りで止める */
 export const branchAt = (state: ParseState, source: SourceLine, id: string, at: number): string => {
   if (!state.figure.git.tips.has(id)) throw fail(source, at, state.m.undeclaredBranch(id));
+  if (state.figure.git.deleted.has(id)) throw fail(source, at, state.m.deletedBranch(id));
   return id;
 };
 
@@ -38,6 +39,8 @@ export function readCut(source: SourceLine, state: ParseState): void {
   if (!found || branch === undefined || from === undefined) throw fail(source, 0, m.fromShape);
   if (!figure.git.commits.has(from)) throw fail(source, found.indices?.[2]?.[0] ?? 0, m.noCommit(from));
   figure.git.tips.set(branch, from);
+  // 枝を切ると HEAD はその枝へ移る
+  figure.git.head = { at: from, on: branch };
   step.events.push({ type: "branch", branch, from });
 }
 
@@ -48,9 +51,17 @@ export const reading: BlockReading<BranchMessages> = {
     readCut(source, state);
     return true;
   },
-  // 線は、送る側の枝の札を受ける側の commit へ動かす
+  // 線は、送る側の枝の札を受ける側の commit へ動かす。HEAD を動かす線は HEAD を枝から離し、
+  // 枝から離れた HEAD が指す commit へ枝の札が来ると HEAD はその枝に戻る (#3632)
   afterEdge: (edge, state) => {
-    if (edge.from !== HEAD) state.figure.git.tips.set(edge.from, edge.to);
+    const { git } = state.figure;
+    if (edge.from === HEAD) {
+      git.head = { at: edge.to, on: null };
+      return;
+    }
+    git.tips.set(edge.from, edge.to);
+    if (git.head.on === edge.from) git.head.at = edge.to;
+    else if (git.head.on === null && git.head.at === edge.to) git.head.on = edge.from;
   },
   finish: (state, head) => {
     if (state.figure.branches.length === 0) throw fail(head, 0, state.m.noBranches);

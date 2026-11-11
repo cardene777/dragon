@@ -7,7 +7,7 @@ branch feature [note: Feature branch]
 
 box remote as Remote repo [note: holds only main, color: violet, icon: cloud]
 
-strip Refs: main, feature, main history
+strip Refs: main, main history
 
 step Cut a branch
   say main has A and B. Cut the feature branch feature from B and switch to it.
@@ -16,7 +16,6 @@ step Cut a branch
   commit B on main [hash: 8b04f71, note: Add the list]
   feature from B
   set main: B 8b04f71
-  set feature: B 8b04f71
   set main history: B, A
 
 step Commit in small pieces
@@ -26,7 +25,6 @@ step Commit in small pieces
   commit C2 on feature [hash: 1e94a7c, note: Fix a typo]
   commit C3 on feature [hash: f1e7d28, note: Add checks]
   note remote: feature is up to C3
-  set feature: C3 f1e7d28
 
 step main moves on
   say Meanwhile other people's changes D and E land on main. feature still branches off the old B.
@@ -36,18 +34,20 @@ step main moves on
   set main history: E, D, B, A
 
 step Squash into one
-  say On main, squash-merge feature to make one commit S that holds every change from C1 to C3. S has only E at the tip of main as its parent, and no line joins it to feature.
+  say Switch back to main and squash-merge feature to make one commit S that holds every change from C1 to C3. S has only E at the tip of main as its parent, and no line joins it to feature.
   code git switch main → git merge --squash feature → git commit
+  HEAD -> E: git switch main
+  main -> E
   commit S on main [hash: 7d3a5e2, note: Squash C1 to C3]
   note remote: main now has S
   set main: S 7d3a5e2
   set main history: S, E, D, B, A [tag: straight]
 
 step Delete the feature branch
-  say The squashed feature commits cannot be reached from main, so -d refuses and -D deletes the branch. The branch on the remote repo goes too.
+  say The squashed feature commits cannot be reached from main, so -d refuses and -D deletes the branch. The branch on the remote repo goes too. The feature ref disappears, and C1 to C3, now reachable from no branch, turn into dotted circles.
   code git branch -D feature → git push origin --delete feature
+  delete feature
   note remote: feature deleted
-  set feature: deleted [tag: done]
 
 step One straight history
   say Following main back from its tip gives one line: S, E, D, B, A. C1 to C3 can no longer be reached from any branch and are cleaned up once the reflog expires.

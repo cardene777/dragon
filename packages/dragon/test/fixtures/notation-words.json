@@ -27,6 +27,7 @@
     "set",
     "branch",
     "commit",
+    "delete",
     "scale",
     "period",
     "row",
