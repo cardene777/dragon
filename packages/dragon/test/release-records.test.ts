@@ -223,9 +223,24 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-71-0-lists-export-blocks", () => {
+    // 書き出しの --blocks (#3606) と、線が箱の上を通る崩れと見本帳の崩れの直し (#3607) と、配管の図の速さの直し (#3603) を 0.71.0 で出す (#3610)
+    expect(version(), "package の版が 0.71.0 でない").toBe("0.71.0");
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.71\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.71.0"), "0.71.0");
+      expect(released, `${file} に日付付きの ## [0.71.0] の節が無い`).not.toBe("");
+      for (const issue of ["(#3606)", "(#3607)", "(#3603)"]) expect(released, `${file} の 0.71.0 の節に ${issue} の項が無い`).toContain(issue);
+      const entry = released.split("\n- ").find((item) => item.includes("--blocks")) ?? "";
+      expect(entry, `${file} の 0.71.0 の節に書き出しの --blocks の項が無い`).toContain("`dragon export");
+      expect(section(text, "[Unreleased]").trim(), `${file} の Unreleased に出した項が残る`).toBe("");
+    }
+  });
+
   it("changelog-0-70-0-lists-pipe-words", () => {
     // 配管の図の語を呼ぶ側が渡せるようにした変更 (#3584) を 0.70.0 で出す (#3596)
-    expect(version(), "package の版が 0.70.0 でない").toBe("0.70.0");
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 70, `package の版 ${version()} が 0.70.0 より前`).toBe(true);
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
       const text = readFileSync(join(ROOT, file), "utf8");
       const released = section(text.replace(/^## \[0\.70\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.70.0"), "0.70.0");

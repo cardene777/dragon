@@ -6,6 +6,38 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-11-11
+
+### Added
+
+- **`dragon export` draws a diagram with the block definitions you pass with `--blocks`** (#3606)
+
+  An example that uses an added block without defining it at its head could be checked with `dragon check --blocks` but could not be exported. `dragon export <diagram> --blocks <file>` now draws the diagram with the definitions in the file, and the HTML page carries them in the source's `define`, so the page draws the same blocks. A missing file or a file that is not a block definitions file is refused with the same message as `dragon check --blocks`. The skill's guide to offering a block now exports the example this way so you can look at it before opening the pull request.
+
+- **`dragon check --layout` reports a line hidden behind a box** (#3607)
+
+  A line that ran across a box without crossing its name was not reported. It is now reported as `line-behind-box`.
+
+### Fixed
+
+- **A line to a box in another row no longer runs over the boxes in between** (#3607)
+
+  In an architecture diagram, when all three routes to a box in another row and column hit a box in between, the line ran straight down over it. The line now runs outside the outermost column on the side of the box it enters and comes in from the side of that box. When that outer route is blocked too, it goes down between the columns.
+
+- **Layout breaks in 16 diagrams of the catalog** (#3607)
+
+  In a pipe diagram, two boxes now stay far enough apart for a returned value's chip to fit on the pipe, and a pipe from a round tag leaves the middle of the tag. A pair of back-and-forth lines moves the line with `[side: ...]` to that side, so its name is not drawn between the two lines. In a tree diagram, back-and-forth lines no longer lie on top of each other, and their step numbers stay clear of the carried items. In a state diagram, the names a line gets in different steps line up in step order beside the line. All 282 diagrams of the catalog now pass `dragon check --layout`.
+
+- **An added line block keeps its dashes in the MP4 and GIF of a follow view** (#3606)
+
+  A diagram shown in the follow view is drawn again at the window width for the video, and that drawing did not see the added blocks, so a dashed line block came out as a plain line. This also happened when the definitions were at the head of the diagram.
+
+### Changed
+
+- **A narrow pipe diagram with an opened box is laid out faster** (#3603)
+
+  When the pipes are laid out at a narrow width, the layout stops trying more orders of drawing the pipes once an order does not do better than the best one so far. The pipes and their places are the same in all 28 pipe examples.
+
 ## [0.70.0] - 2026-11-10
 
 ### Added
