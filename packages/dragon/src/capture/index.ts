@@ -16,7 +16,7 @@
 import { GIFEncoder, nearestColorIndex, quantize } from "gifenc";
 import { BufferTarget, CanvasSource, canEncodeVideo, Mp4OutputFormat, Output, QUALITY_MEDIUM } from "mediabunny";
 import { FILM_SCALE, makeFilm, planFilm } from "../export/film";
-import type { NotationLang } from "../words";
+import { DEFAULT_LANG, type NotationLang } from "../words";
 import { cycleOf, picture, shownAt } from "./picture";
 
 /** 詰める道具。使う部品だけを渡し、束ねる道具が使わない部品を外せるようにする */
@@ -90,7 +90,7 @@ export async function canCaptureMp4(): Promise<boolean> {
 /** 頁に描いた SVG の、今の時刻 (`at` を渡せばその時刻) の止め絵の PNG。縦横は SVG の `scale` 倍 (既定は 2 倍) */
 export async function capturePng(svg: SVGSVGElement, options: StillOptions = {}): Promise<Blob> {
   const at = options.at ?? shownAt(svg);
-  const shot = await picture(svg, options.lang ?? "en");
+  const shot = await picture(svg, options.lang ?? DEFAULT_LANG);
   const style = svg.ownerDocument.defaultView?.getComputedStyle(svg);
   // 時刻が読めない図 (動きの無い図) は、写した `--at` のまま止める
   const t = at ?? (Number.parseFloat(style?.getPropertyValue("--at") ?? "") || 0);
@@ -99,12 +99,12 @@ export async function capturePng(svg: SVGSVGElement, options: StillOptions = {})
 
 /** 頁に描いた SVG を、描いた字の file を `data:` で埋めた SVG の文字列にする */
 export async function captureSvg(svg: SVGSVGElement, options: CaptureOptions = {}): Promise<string> {
-  return (await picture(svg, options.lang ?? "en")).svg();
+  return (await picture(svg, options.lang ?? DEFAULT_LANG)).svg();
 }
 
 /** 頁に描いた dragon の図の動きを 1 周撮り、mp4 と GIF に詰める。地は図の地の色 (`--bg`) で塗る */
 export async function captureFilm(svg: SVGSVGElement, options: FilmOptions = {}): Promise<Film> {
-  const lang = options.lang ?? "en";
+  const lang = options.lang ?? DEFAULT_LANG;
   const formats = options.formats ?? ["mp4", "gif"];
   const mp4 = formats.includes("mp4");
   const gif = formats.includes("gif");
