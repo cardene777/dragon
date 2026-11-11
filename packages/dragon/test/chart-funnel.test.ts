@@ -25,18 +25,31 @@ import { draw, type Rendered } from "./render-support";
 
 // 崩れの検査は src から読む。読む時間を検査の上限 (10 秒) に数えないよう、検査の中でなく file を読む時に読む
 const [, { checkText, problemLine }] = await Promise.all([import("../src/render/svg"), import("../src/check")]);
-// 見本帳の見本と棚の雛形は、見本帳の部品から読む
-const [{ EXAMPLE_KEYS, exampleText, LATER_EXAMPLES }, { sampleGroups }, { syntaxLines }, { samplesOf }] = await Promise.all([
-  import("../../../apps/playground-spa/src/examples"),
-  import("../../../apps/playground-spa/src/editor/shelf-first"),
-  import("../../../apps/playground-spa/src/editor/shelf-items"),
-  import("../../../apps/playground-spa/src/catalog/catalog"),
-]);
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
 const LANGS = ["ja", "en"] as const;
 type Lang = (typeof LANGS)[number];
+
+/** 見本帳の見本の一覧と、棚の見本の束と記法の早見と、カタログの種類の頁の見本 */
+interface Playground {
+  EXAMPLE_KEYS: readonly string[];
+  exampleText: (key: string, lang: Lang) => string | undefined;
+  LATER_EXAMPLES: { start: () => void; state: () => { status: string } };
+  sampleGroups: (lang: Lang, arrived: boolean) => { kind: string; samples: { key: string }[] }[];
+  syntaxLines: (lang: Lang) => { id: string; lines: string[] }[];
+  samplesOf: (kind: string) => string[];
+}
+
+/**
+ * 見本帳の見本と棚の雛形は、見本帳の部品から読む。描画の部品の型の検査 (`tsconfig.test.json`) は見本帳の vite の読み込み (`?raw`) の型を持たないので、
+ * path を字にして読み込みの時に引き、型の検査に見本帳の file を入れない
+ */
+const playgroundFile = (path: string): Promise<object> => import(/* @vite-ignore */ join(ROOT, "apps/playground-spa/src", path));
+const { EXAMPLE_KEYS, exampleText, LATER_EXAMPLES, sampleGroups, syntaxLines, samplesOf } = Object.assign(
+  {},
+  ...(await Promise.all(["examples.ts", "editor/shelf-first.ts", "editor/shelf-items.ts", "catalog/catalog.ts"].map(playgroundFile))),
+) as Playground;
 
 /** 漏斗の見た目の見本。一般の店の買い物の漏斗と、Web3 の財布を作ってから初めて送るまで */
 const SAMPLES = ["shop-funnel", "wallet-onboarding"] as const;
@@ -175,7 +188,7 @@ describe("漏斗の見た目の原本の JSON (#3621)", () => {
         const text = fileText(`${name}${lang === "en" ? ".en" : ""}.dragon`);
         expect(text, `${name} の ${lang} の見本が packages/dragon/examples に無い`).toBeDefined();
         if (text === undefined) continue;
-        const sample = validate(parsed(text, lang, name) as unknown as Json);
+        const sample = validate(parsed(text, lang, name));
         expect(sample.ok, `${name} の ${lang} の原本が検査で落ちる: ${JSON.stringify(sample.ok ? [] : sample.errors)}`).toBe(true);
       }
     }
@@ -422,10 +435,10 @@ describe("漏斗の見た目の見本 (#3621)", () => {
       }
       if (sources.ja && sources.en) expect(shapeOf(sources.en), `${name} の英語版の項目と段と段ごとの set の数が日本語版と違う`).toEqual(shapeOf(sources.ja));
       // 見本帳の見本の一覧に載り、量の図の頁に並ぶ
-      expect((EXAMPLE_KEYS as readonly string[]).includes(name), `${name} が見本の一覧 (EXAMPLE_KEYS) に無い`).toBe(true);
-      expect(samplesOf("chart") as readonly string[], `見本帳の量の図の頁に ${name} が無い`).toContain(name);
+      expect(EXAMPLE_KEYS.includes(name),`${name} が見本の一覧 (EXAMPLE_KEYS) に無い`).toBe(true);
+      expect(samplesOf("chart"),`見本帳の量の図の頁に ${name} が無い`).toContain(name);
       for (const lang of LANGS) {
-        expect(exampleText(name as (typeof EXAMPLE_KEYS)[number], lang), `見本帳の ${name} の ${lang} の記法が見本の file と違う`).toBe((fileText(`${name}${lang === "en" ? ".en" : ""}.dragon`) ?? "").trimEnd());
+        expect(exampleText(name, lang), `見本帳の ${name} の ${lang} の記法が見本の file と違う`).toBe((fileText(`${name}${lang === "en" ? ".en" : ""}.dragon`) ?? "").trimEnd());
       }
     }
   });
@@ -435,19 +448,19 @@ describe("漏斗の見た目の棚 (#3621)", () => {
   it("chart-funnel-shelf-template-reads", () => {
     for (const lang of LANGS) {
       // 記法の早見の図の種類の行に、漏斗の見た目の頭の行が在る
-      const kinds = syntaxLines(lang).find((s: { id: string }) => s.id === "kind")?.lines ?? [];
+      const kinds = syntaxLines(lang).find((s) => s.id === "kind")?.lines ?? [];
       expect(
-        kinds.some((line: string) => /^chart <[^>]+> \[shape: funnel\]$/u.test(line)),
+        kinds.some((line) =>/^chart <[^>]+> \[shape: funnel\]$/u.test(line)),
         `棚の記法の早見 (${lang}) に chart の漏斗の見た目の頭の行が無い: ${kinds.join(" / ")}`,
       ).toBe(true);
       // 量の図の見本の束に漏斗の見た目の見本が在り、どの雛形も誤り無く漏斗の見た目の量の図として読める
-      const group = sampleGroups(lang, true).find((g: { kind: string }) => g.kind === "chart");
+      const group = sampleGroups(lang, true).find((g) => g.kind === "chart");
       expect(group, `棚の見本の束 (${lang}) に量の図の束が無い`).toBeDefined();
-      const keys: string[] = group?.samples.map((s: { key: string }) => s.key) ?? [];
+      const keys = group?.samples.map((s) => s.key) ?? [];
       for (const name of SAMPLES) {
         expect(keys, `棚の量の図の束 (${lang}) に ${name} が無い`).toContain(name);
         if (!keys.includes(name)) continue;
-        const text = exampleText(name as (typeof EXAMPLE_KEYS)[number], lang) ?? "";
+        const text = exampleText(name, lang) ?? "";
         expect(parsed(text, lang, `棚の雛形 ${name} (${lang})`).chart?.shape, `棚の雛形 ${name} (${lang}) の見た目`).toBe("funnel");
       }
     }

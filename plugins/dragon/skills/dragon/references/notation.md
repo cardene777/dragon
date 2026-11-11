@@ -26,7 +26,7 @@ Lines starting with `//` and blank lines are not read.
 `<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind`, `venn` and `matrix`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
-- `chart` needs its shape on the head line: `chart <title> [shape: donut]` or `chart <title> [shape: bar]`. Only `chart` takes `shape` here.
+- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]` or `chart <title> [shape: funnel]`. Only `chart` takes `shape` here.
 - `[view: fixed]` keeps the whole diagram still and moves only what is inside. `[view: follow]` moves the frame to where things happen and shows a small overview. Leave it out and dragon picks by text size.
 
 ## Boxes and groups

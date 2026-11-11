@@ -629,6 +629,30 @@ Start with `chart` to draw a chart, which compares items step by step. Write the
 Going to the next step moves the arcs and bars from the previous values to the new ones. The largest value over all steps gets the longest bar, and each value shows at the end of its bar.
 The shape stays the same through the steps, and a chart takes no `box`, `group`, `strip`, or line.
 
+`chart <title> [shape: funnel]` draws a funnel, where the count shrinks stage by stage. Declare the stages from the top with `item` and write each count with `set`.
+A stage's bar appears in the step that sets it, left-aligned and as long as its value compared with the first stage. The gap to the stage above stays as a pale bar with the number who left, and the rate kept from the stage above shows beside the count.
+The last step adds a row with the share of the first stage that made it to the last one. A value larger than the stage above, and a stage that never gets a value, are errors when the notation is read.
+
+```dragon
+chart People on the way to buying [shape: funnel]
+
+item visit as Visited the shop [color: blue]
+item view as Viewed a product [color: violet]
+item buy as Bought [color: green]
+
+step Visit
+  say 10,000 people visited the shop site.
+  set visit: 10000
+
+step View a product
+  say 4,200 people went on to a product page.
+  set view: 4200
+
+step Buy
+  say 380 people bought.
+  set buy: 380
+```
+
 ```dragon
 chart Support requests by channel [shape: bar]
 

@@ -1,0 +1,27 @@
+// 通販の店を訪れた人が、商品を見てカートに入れて買うまでに、段ごとに何人去るかを漏斗で比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+chart 店で買うまでの人数 [shape: funnel]
+
+item visit as 店を訪れた [color: blue]
+item view as 商品を見た [color: violet]
+item cart as カートに入れた [color: amber]
+item buy as 買った [color: green]
+
+step 訪れる
+  say 店のサイトを10,000人が訪れた。
+  set visit: 10000
+
+step 商品を見る
+  say 商品の頁まで進んだのは4,200人で、5,800人は商品を見ずに去った。
+  set view: 4200
+
+step カートに入れる
+  say カートに入れたのは1,100人で、商品を見た人の26%だった。
+  set cart: 1100
+
+step 買う
+  say 買ったのは380人で、カートに入れた人のうち720人は買わずに去った。
+  set buy: 380
+
+step 振り返る
+  say 店を訪れた10,000人のうち、最後に買ったのは3.8%だった。

@@ -1,0 +1,27 @@
+// How many visitors to an online shop leave at each stage on the way from a visit to a purchase, compared as a funnel.
+// The values are sample numbers to show the shape, not real measurements.
+chart People on the way to buying [shape: funnel]
+
+item visit as Visited the shop [color: blue]
+item view as Viewed a product [color: violet]
+item cart as Added to cart [color: amber]
+item buy as Bought [color: green]
+
+step Visit
+  say 10,000 people visited the shop site.
+  set visit: 10000
+
+step View a product
+  say 4,200 people went on to a product page, and 5,800 left without seeing one.
+  set view: 4200
+
+step Add to cart
+  say 1,100 people added to cart, 26% of those who viewed a product.
+  set cart: 1100
+
+step Buy
+  say 380 people bought, and 720 of those who added to cart left without buying.
+  set buy: 380
+
+step Look back
+  say Of the 10,000 people who visited the shop, 3.8% bought in the end.

@@ -1128,6 +1128,7 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
                     })
                   : diagram.kind === "chart"
                     ? kindParts("chart", lang).layoutChart(diagram, {
+                        lang,
                         ...(options.width === undefined ? {} : { width: options.width }),
                       })
                     : KIND_FOLDERS.architecture.layout(diagram, lang);

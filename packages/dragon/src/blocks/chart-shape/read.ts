@@ -3,7 +3,8 @@
  * 軽い入口は、後から読む図の種類の個別ブロックの読み方を、書いた図が使う時に読む。
  *
  * 図の種類の行の `[shape: <見た目>]` は読む処理 (`parser.ts`) が読んで読んでいる記法の状態に置き、
- * 最初の段を始める時か記法の終わりに、書いてあるかと `donut` か `bar` かを確かめる。書き戻しは図の種類の行を書く所 (`printer.ts`) が持つ
+ * 最初の段を始める時か記法の終わりに、書いてあるかと `donut` か `bar` か `funnel` かを確かめる。書き戻しは図の種類の行を書く所 (`printer.ts`) が持つ。
+ * 漏斗の見た目の値が段を進むほど減るかは、値の行を読む所 (`blocks/chart-set/read.ts`) が確かめる
  */
 import { fail, isOneOf, list } from "../../read-kit";
 import { type BlockReading, none } from "../block";
@@ -26,11 +27,11 @@ export const reading: BlockReading<ChartShapeMessages> = {
   print: none("図の種類の行の shape は、図の種類の行を書く所 (printer.ts) が書く"),
   messages: {
     ja: {
-      chartNeedsShape: "chart (量の図) の最初の行に [shape: donut] か [shape: bar] を書く",
+      chartNeedsShape: "chart (量の図) の最初の行に [shape: donut] か [shape: bar] か [shape: funnel] を書く",
       chartBadShape: (shapes) => `shape には ${list(shapes)} のどれかを書く`,
     },
     en: {
-      chartNeedsShape: "Write [shape: donut] or [shape: bar] on the first line of a chart",
+      chartNeedsShape: "Write [shape: donut], [shape: bar] or [shape: funnel] on the first line of a chart",
       chartBadShape: (shapes) => `Write one of ${list(shapes)} for shape`,
     },
   },
