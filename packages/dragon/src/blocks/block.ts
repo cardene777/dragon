@@ -23,6 +23,8 @@ import type { Box, ChartItem, DiagramModel, DiagramEvent, GitBranch, LineupItem,
 import type { PipeRun } from "../pipe-run";
 import type { FlowChoice, FlowLine } from "./choice/block";
 import type { ErTable } from "./table/block";
+import type { MatrixAxis } from "./axis/block";
+import type { MatrixItem } from "./matrix-item/block";
 import type { VennSet } from "./circle/block";
 import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
@@ -91,6 +93,8 @@ export interface FigureDraft {
   tree: { boxes: Map<string, { source: SourceLine; at: number }>; parents: Map<string, string> };
   /** 考えを広げる地図で書いた考えの名札と段 (真ん中の題が 0、枝が 1、葉が 2) と、真ん中の題の名札。考えのブロックが組む (#3619) */
   mind: { levels: Map<string, number>; centre?: string };
+  /** 2つの軸で置く図で宣言した軸と課題。軸のブロックと課題のブロックが組む (#3622) */
+  matrix: { axes: MatrixAxis[]; items: MatrixItem[] };
   /** 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348) */
   lineup: { items: LineupItem[]; roles: LineupRole[]; sealed: Set<string> };
   /**

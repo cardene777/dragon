@@ -1,0 +1,37 @@
+// Sort the tokens an exchange was asked to list by two axes: trading volume and trust.
+// Each step places tokens into one area and decides how that area is handled.
+matrix Sort token listings by volume and trust
+
+axis Trading volume [from: low, to: high]
+axis Trust [from: low, to: high]
+
+box wait as Wait and see
+box list as List it
+box reject as Turn it down
+box check as Look again
+
+item stable as Audited stablecoin
+item vote as Large DAO vote token
+item gas as New L2 gas token
+item game as In-game coin
+item meme as Sudden meme token
+item copy as Copycat name token
+
+step Line up
+  say Line up the tokens asked to be listed on the left. None of them sits in an area yet.
+
+step List it
+  say Tokens with high volume that earn trust through audits and spread-out holders get listed.
+  line list: stable, vote
+
+step Wait and see
+  say Trusted tokens with little trading yet wait for their volume to grow.
+  line wait: gas, game
+
+step Look again
+  say Tokens with high volume but low trust get their contract and holder spread checked again.
+  line check: meme
+
+step Turn it down
+  say Tokens low on both volume and trust are turned down.
+  line reject: copy

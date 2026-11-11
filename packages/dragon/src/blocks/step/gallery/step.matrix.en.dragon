@@ -1,0 +1,24 @@
+matrix Steps [view: fixed]
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login
+item pay as Add payments
+
+step Do now
+  say step splits the diagram into steps and say writes the step's text.
+    A command run in the step goes in code.
+  code git switch -c login
+  line now: login
+
+step Plan it
+  say Steps are viewed one at a time.
+    view picks whether the frame follows the step or holds the whole diagram still.
+  code git switch -c pay
+  line plan: pay
