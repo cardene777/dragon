@@ -15,6 +15,7 @@ export const EVENT_OWNERS: Readonly<Record<string, string>> = {
   "edge": "edge",
   "emit": "emit",
   "formula": "table",
+  "idea": "idea",
   "item": "ask",
   "leaf": "leaf",
   "line": "line",

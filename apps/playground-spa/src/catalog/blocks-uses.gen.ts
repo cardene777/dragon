@@ -25,6 +25,7 @@ import { uses as gistUses } from "../../../../packages/dragon/src/blocks/gist/ga
 import { uses as groupUses } from "../../../../packages/dragon/src/blocks/group/gallery/uses";
 import { uses as holdUses } from "../../../../packages/dragon/src/blocks/hold/gallery/uses";
 import { uses as iconUses } from "../../../../packages/dragon/src/blocks/icon/gallery/uses";
+import { uses as ideaUses } from "../../../../packages/dragon/src/blocks/idea/gallery/uses";
 import { uses as itemUses } from "../../../../packages/dragon/src/blocks/item/gallery/uses";
 import { uses as leafUses } from "../../../../packages/dragon/src/blocks/leaf/gallery/uses";
 import { uses as legendUses } from "../../../../packages/dragon/src/blocks/legend/gallery/uses";
@@ -89,6 +90,7 @@ export const BLOCK_USES = {
   "group": groupUses,
   "hold": holdUses,
   "icon": iconUses,
+  "idea": ideaUses,
   "item": itemUses,
   "leaf": leafUses,
   "legend": legendUses,

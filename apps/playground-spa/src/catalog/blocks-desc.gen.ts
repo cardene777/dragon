@@ -25,6 +25,7 @@ import { desc as gistDesc } from "../../../../packages/dragon/src/blocks/gist/ga
 import { desc as groupDesc } from "../../../../packages/dragon/src/blocks/group/gallery/desc";
 import { desc as holdDesc } from "../../../../packages/dragon/src/blocks/hold/gallery/desc";
 import { desc as iconDesc } from "../../../../packages/dragon/src/blocks/icon/gallery/desc";
+import { desc as ideaDesc } from "../../../../packages/dragon/src/blocks/idea/gallery/desc";
 import { desc as itemDesc } from "../../../../packages/dragon/src/blocks/item/gallery/desc";
 import { desc as leafDesc } from "../../../../packages/dragon/src/blocks/leaf/gallery/desc";
 import { desc as legendDesc } from "../../../../packages/dragon/src/blocks/legend/gallery/desc";
@@ -89,6 +90,7 @@ export const BLOCK_DESC = {
   "group": groupDesc,
   "hold": holdDesc,
   "icon": iconDesc,
+  "idea": ideaDesc,
   "item": itemDesc,
   "leaf": leafDesc,
   "legend": legendDesc,

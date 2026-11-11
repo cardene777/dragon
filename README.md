@@ -98,7 +98,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, table relation diagram, set overlap diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, set overlap diagram |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -167,6 +167,17 @@ The strip goes in the middle of the ring instead of under the diagram.
 | `box <id> as <name>` | A step on the ring, before the first step. A cycle diagram takes 2 to 8 steps |
 | `<id> -> <id> [tag: <text>]` | A line to the next step on the ring and the chip that runs along its arc. A line from the last step to the first one starts the next round. A line that skips a step, goes backward or carries a label is refused |
 | `strip <title>: <field>, <field>` | The strip title and field values in the middle of the ring. `set <field>: <value>` in a step changes a value. The first field shows large, and field names are not shown |
+
+A mind map (`mind <title>`) spreads ideas out from one topic in the middle, branch by branch.
+Branches go round clockwise from the upper left in the order written (up left, up right, down right and down left for four), and leaves sit in a column outside their branch.
+An idea fades in at its step, and the line from its parent is drawn from the parent's side.
+A branch's color flows to its lines and leaves.
+
+| Line | What it writes |
+|---|---|
+| `idea <id> as <name>` | The topic in the middle, written in a step. A mind map has exactly one idea without `of` |
+| `idea <id> as <name> of <parent>` | An idea joined to its parent, written in a step. Ideas go three levels deep: the topic, branches and leaves. A parent that has not been written yet is refused |
+| `idea <id> as <name> of <parent> [color: <color>]` | A branch with its own color. A branch without a color gets the next unused one, and leaves take their branch's color |
 
 A table relation diagram (`er <title>`) follows step by step which row of which table one value goes through.
 The tables sit left to right in one row in the order written, and a line joins each field that holds a link to the field it points at.

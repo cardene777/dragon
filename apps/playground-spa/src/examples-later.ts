@@ -102,6 +102,14 @@ import pdcaJa from "../../../packages/dragon/examples/pdca.dragon?raw";
 import pdcaEn from "../../../packages/dragon/examples/pdca.en.dragon?raw";
 import restakeJa from "../../../packages/dragon/examples/restake.dragon?raw";
 import restakeEn from "../../../packages/dragon/examples/restake.en.dragon?raw";
+import budgetAppJa from "../../../packages/dragon/examples/budget-app.dragon?raw";
+import budgetAppEn from "../../../packages/dragon/examples/budget-app.en.dragon?raw";
+import tripPlanJa from "../../../packages/dragon/examples/trip-plan.dragon?raw";
+import tripPlanEn from "../../../packages/dragon/examples/trip-plan.en.dragon?raw";
+import daoProposalJa from "../../../packages/dragon/examples/dao-proposal.dragon?raw";
+import daoProposalEn from "../../../packages/dragon/examples/dao-proposal.en.dragon?raw";
+import walletUxJa from "../../../packages/dragon/examples/wallet-ux.dragon?raw";
+import walletUxEn from "../../../packages/dragon/examples/wallet-ux.en.dragon?raw";
 import orderTotalJa from "../../../packages/dragon/examples/order-total.dragon?raw";
 import orderTotalEn from "../../../packages/dragon/examples/order-total.en.dragon?raw";
 import libraryLoanJa from "../../../packages/dragon/examples/library-loan.dragon?raw";
@@ -172,6 +180,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   sprint: { ja: sprintJa, en: sprintEn },
   pdca: { ja: pdcaJa, en: pdcaEn },
   restake: { ja: restakeJa, en: restakeEn },
+  "budget-app": { ja: budgetAppJa, en: budgetAppEn },
+  "trip-plan": { ja: tripPlanJa, en: tripPlanEn },
+  "dao-proposal": { ja: daoProposalJa, en: daoProposalEn },
+  "wallet-ux": { ja: walletUxJa, en: walletUxEn },
   "order-total": { ja: orderTotalJa, en: orderTotalEn },
   "library-loan": { ja: libraryLoanJa, en: libraryLoanEn },
   "nft-sale": { ja: nftSaleJa, en: nftSaleEn },

@@ -1,0 +1,115 @@
+{
+  "version": 2,
+  "kind": "mind",
+  "title": "Features for a budget app",
+  "blocks": {},
+  "steps": [
+    {
+      "title": "Put the title",
+      "body": "Put in the middle a budget app that makes it easy to keep tracking money every month.",
+      "events": [
+        {
+          "type": "idea",
+          "id": "app",
+          "name": "Budget app"
+        }
+      ]
+    },
+    {
+      "title": "Input branch",
+      "body": "Think of features that cut the effort of logging. The less typing, the longer people keep at it.",
+      "events": [
+        {
+          "type": "idea",
+          "id": "input",
+          "name": "Input",
+          "parent": "app"
+        },
+        {
+          "type": "idea",
+          "id": "receipt",
+          "name": "Scan receipts",
+          "parent": "input"
+        },
+        {
+          "type": "idea",
+          "id": "bank",
+          "name": "Import bank records",
+          "parent": "input"
+        }
+      ]
+    },
+    {
+      "title": "Summary branch",
+      "body": "Think of features that show where the money went.",
+      "events": [
+        {
+          "type": "idea",
+          "id": "sum",
+          "name": "Summary",
+          "parent": "app"
+        },
+        {
+          "type": "idea",
+          "id": "category",
+          "name": "Pie chart by category",
+          "parent": "sum"
+        },
+        {
+          "type": "idea",
+          "id": "month",
+          "name": "Compare with last month",
+          "parent": "sum"
+        }
+      ]
+    },
+    {
+      "title": "Alerts branch",
+      "body": "Think of alerts that catch overspending early.",
+      "events": [
+        {
+          "type": "idea",
+          "id": "alert",
+          "name": "Alerts",
+          "parent": "app"
+        },
+        {
+          "type": "idea",
+          "id": "over",
+          "name": "About to pass the budget",
+          "parent": "alert"
+        },
+        {
+          "type": "idea",
+          "id": "payday",
+          "name": "Day before a direct debit",
+          "parent": "alert"
+        }
+      ]
+    },
+    {
+      "title": "Sharing branch",
+      "body": "Think of features for keeping one budget with the family.",
+      "events": [
+        {
+          "type": "idea",
+          "id": "share",
+          "name": "Sharing",
+          "parent": "app"
+        },
+        {
+          "type": "idea",
+          "id": "family",
+          "name": "Shared family book",
+          "parent": "share"
+        },
+        {
+          "type": "idea",
+          "id": "split",
+          "name": "Split shared costs",
+          "parent": "share"
+        }
+      ]
+    }
+  ]
+}

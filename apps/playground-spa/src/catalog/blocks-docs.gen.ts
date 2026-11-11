@@ -25,6 +25,7 @@ import { docs as gistDocs } from "../../../../packages/dragon/src/blocks/gist/ga
 import { docs as groupDocs } from "../../../../packages/dragon/src/blocks/group/gallery/docs";
 import { docs as holdDocs } from "../../../../packages/dragon/src/blocks/hold/gallery/docs";
 import { docs as iconDocs } from "../../../../packages/dragon/src/blocks/icon/gallery/docs";
+import { docs as ideaDocs } from "../../../../packages/dragon/src/blocks/idea/gallery/docs";
 import { docs as itemDocs } from "../../../../packages/dragon/src/blocks/item/gallery/docs";
 import { docs as leafDocs } from "../../../../packages/dragon/src/blocks/leaf/gallery/docs";
 import { docs as legendDocs } from "../../../../packages/dragon/src/blocks/legend/gallery/docs";
@@ -89,6 +90,7 @@ export const BLOCK_DOCS = {
   "group": groupDocs,
   "hold": holdDocs,
   "icon": iconDocs,
+  "idea": ideaDocs,
   "item": itemDocs,
   "leaf": leafDocs,
   "legend": legendDocs,

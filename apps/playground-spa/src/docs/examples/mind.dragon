@@ -1,0 +1,17 @@
+mind 店の新しいメニュー
+
+step 題を置く
+  say 考える題を真ん中に置く。
+  idea menu as 新しいメニュー
+
+step 飲み物の枝
+  say 飲み物の案を枝に出し、案を葉に書き出す。
+  idea drink as 飲み物 of menu [color: blue]
+  idea tea as 季節のお茶 of drink
+  idea soda as 果物のソーダ of drink
+
+step 食べ物の枝
+  say 食べ物の案も同じく枝と葉にする。
+  idea food as 食べ物 of menu
+  idea toast as 厚切りのトースト of food
+  idea cake as 焼きたてのケーキ of food

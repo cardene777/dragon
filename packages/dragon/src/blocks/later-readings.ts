@@ -21,6 +21,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "fold": () => import("./fold/read").then((m): BlockReading => m.reading),
   "gist": () => import("./gist/read").then((m): BlockReading => m.reading),
   "hold": () => import("./hold/read").then((m): BlockReading => m.reading),
+  "idea": () => import("./idea/read").then((m): BlockReading => m.reading),
   "item": () => import("./item/read").then((m): BlockReading => m.reading),
   "leaf": () => import("./leaf/read").then((m): BlockReading => m.reading),
   "legend": () => import("./legend/read").then((m): BlockReading => m.reading),

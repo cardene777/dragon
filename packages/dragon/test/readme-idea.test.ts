@@ -57,8 +57,8 @@ const kindNames = (): string[] =>
 
 /** README が図の種類を呼ぶ名前 */
 const KIND_LABELS: Record<"ja" | "en", Record<string, string>> = {
-  ja: { architecture: "構成図", chart: "量の図", cycle: "回り続ける図", er: "表どうしの関係の図", flow: "手順の図", git: "枝分かれの図", lineup: "列の図", pipe: "配管の図", sequence: "時系列図", state: "状態遷移図", time: "時間軸の図", tree: "木の図", try: "試す図", venn: "集合の重なりの図" },
-  en: { architecture: "Architecture diagram", chart: "Chart", cycle: "Cycle diagram", er: "Table relation diagram", flow: "Flow diagram", git: "Git graph", lineup: "Lineup diagram", pipe: "Pipe diagram", sequence: "Sequence diagram", state: "State diagram", time: "Time diagram", tree: "Tree diagram", try: "Try diagram", venn: "Set overlap diagram" },
+  ja: { architecture: "構成図", chart: "量の図", cycle: "回り続ける図", er: "表どうしの関係の図", flow: "手順の図", git: "枝分かれの図", lineup: "列の図", mind: "考えを広げる地図", pipe: "配管の図", sequence: "時系列図", state: "状態遷移図", time: "時間軸の図", tree: "木の図", try: "試す図", venn: "集合の重なりの図" },
+  en: { architecture: "Architecture diagram", chart: "Chart", cycle: "Cycle diagram", er: "Table relation diagram", flow: "Flow diagram", git: "Git graph", lineup: "Lineup diagram", mind: "Mind map", pipe: "Pipe diagram", sequence: "Sequence diagram", state: "State diagram", time: "Time diagram", tree: "Tree diagram", try: "Try diagram", venn: "Set overlap diagram" },
 };
 
 describe("README の思想の節 (#3391)", () => {

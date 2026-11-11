@@ -12,6 +12,7 @@
     "chart",
     "flow",
     "cycle",
+    "mind",
     "er",
     "venn"
   ],
@@ -65,6 +66,7 @@
     "revert",
     "gist",
     "choice",
+    "idea",
     "table",
     "field"
   ],
@@ -119,6 +121,9 @@
     ],
     "node": [
       "hash"
+    ],
+    "idea": [
+      "color"
     ],
     "item": [
       "color",
