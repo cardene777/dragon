@@ -110,7 +110,7 @@ beforeAll(async () => {
 
 describe("見本が少ない図の種類に見本を足す (#3615)", () => {
   it("every-kind-has-four-examples", () => {
-    expect(KINDS.length, "カタログの図の種類の数").toBe(15);
+    expect(KINDS.length, "カタログの図の種類の数").toBe(16);
     const short = KINDS.map((kind) => ({ kind, count: samplesOf(kind).length })).filter(({ count }) => count < 4);
     expect(short, "見本が 4 枚に届かない種類").toEqual([]);
   });

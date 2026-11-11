@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`venn <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -517,6 +517,31 @@ step 残りを分ける
   say 残りを手間と効き目で分ける。
   line plan: pay
   line spare: word
+```
+
+集合の重なりの図 (`venn <題>`) は、最初の `step` の行より前に `item <名札> as <名前>` で集まりを 2 つか 3 つ書く。
+段の中の `set <名札>: <数>` で集まりの全体の数を書くと、その段で円が現れ、円の外に名前と全体の数が出る。
+`set <名札> & <名札>: <数>` で重なりの数を書くと、その段で重なりの区画が光る。区画の中には、全体と重なりの数から出したそれぞれだけの数が出る。
+`set none: <数>` は、どれにも入らない数を円の外の枠に出す。重なりの数が重なる集まりのどれかの数より大きい図は誤りで止まる。
+
+```dragon
+venn 朝と夜に走る人
+
+item morning as 朝に走る
+item night as 夜に走る
+
+step 朝
+  say 朝に走る人は30人いる。
+  set morning: 30
+
+step 夜と両方
+  say 夜に走る人は20人で、そのうち5人は朝も走る。
+  set night: 20
+  set morning & night: 5
+
+step どちらでもない
+  say どちらにも走らない人は12人いる。
+  set none: 12
 ```
 
 ## 属性

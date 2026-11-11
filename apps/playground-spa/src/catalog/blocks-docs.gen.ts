@@ -13,6 +13,7 @@ import { docs as chartSetDocs } from "../../../../packages/dragon/src/blocks/cha
 import { docs as chartShapeDocs } from "../../../../packages/dragon/src/blocks/chart-shape/gallery/docs";
 import { docs as checkDocs } from "../../../../packages/dragon/src/blocks/check/gallery/docs";
 import { docs as choiceDocs } from "../../../../packages/dragon/src/blocks/choice/gallery/docs";
+import { docs as circleDocs } from "../../../../packages/dragon/src/blocks/circle/gallery/docs";
 import { docs as colorDocs } from "../../../../packages/dragon/src/blocks/color/gallery/docs";
 import { docs as commitDocs } from "../../../../packages/dragon/src/blocks/commit/gallery/docs";
 import { docs as copyDocs } from "../../../../packages/dragon/src/blocks/copy/gallery/docs";
@@ -79,6 +80,7 @@ export const BLOCK_DOCS = {
   "chart-shape": chartShapeDocs,
   "check": checkDocs,
   "choice": choiceDocs,
+  "circle": circleDocs,
   "color": colorDocs,
   "commit": commitDocs,
   "copy": copyDocs,

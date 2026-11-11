@@ -126,6 +126,14 @@ import tokenListingJa from "../../../packages/dragon/examples/token-listing.drag
 import tokenListingEn from "../../../packages/dragon/examples/token-listing.en.dragon?raw";
 import chainChoiceJa from "../../../packages/dragon/examples/chain-choice.dragon?raw";
 import chainChoiceEn from "../../../packages/dragon/examples/chain-choice.en.dragon?raw";
+import walletUsageJa from "../../../packages/dragon/examples/wallet-usage.dragon?raw";
+import walletUsageEn from "../../../packages/dragon/examples/wallet-usage.en.dragon?raw";
+import l2ChainsJa from "../../../packages/dragon/examples/l2-chains.dragon?raw";
+import l2ChainsEn from "../../../packages/dragon/examples/l2-chains.en.dragon?raw";
+import hobbiesJa from "../../../packages/dragon/examples/hobbies.dragon?raw";
+import hobbiesEn from "../../../packages/dragon/examples/hobbies.en.dragon?raw";
+import skillsJa from "../../../packages/dragon/examples/skills.dragon?raw";
+import skillsEn from "../../../packages/dragon/examples/skills.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -192,6 +200,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "risk-matrix": { ja: riskMatrixJa, en: riskMatrixEn },
   "token-listing": { ja: tokenListingJa, en: tokenListingEn },
   "chain-choice": { ja: chainChoiceJa, en: chainChoiceEn },
+  "wallet-usage": { ja: walletUsageJa, en: walletUsageEn },
+  "l2-chains": { ja: l2ChainsJa, en: l2ChainsEn },
+  hobbies: { ja: hobbiesJa, en: hobbiesEn },
+  skills: { ja: skillsJa, en: skillsEn },
 };
 
 /**

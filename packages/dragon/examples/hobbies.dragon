@@ -1,0 +1,30 @@
+// 100人に聞いた趣味の読書と運動と料理が、どう重なるかを円で数える。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+venn 趣味の重なり
+
+item read as 読書
+item sport as 運動
+item cook as 料理
+
+step 読書
+  say 100人のうち、読書が趣味の人は48人いる。
+  set read: 48
+
+step 運動
+  say 運動が趣味の人は36人で、そのうち14人は読書も趣味にしている。
+  set sport: 36
+  set read & sport: 14
+
+step 料理
+  say 料理が趣味の人は30人。読書もする人は12人、運動もする人は9人いる。
+  set cook: 30
+  set read & cook: 12
+  set sport & cook: 9
+
+step 3つ全て
+  say 3つ全てが趣味の人は5人いる。
+  set read & sport & cook: 5
+
+step どれでもない
+  say 3つのどれも趣味でない人は16人いる。
+  set none: 16

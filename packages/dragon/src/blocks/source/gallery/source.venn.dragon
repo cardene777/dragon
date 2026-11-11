@@ -1,0 +1,16 @@
+venn 出典
+
+item a as 甲
+item b as 乙
+
+step 数える
+  say source で段に出典の名前と url を書く。1つの段に何行でも書ける。
+  source dragon の README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  set a: 4
+
+step 重ねる
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前の link で出る。
+  source 記法の書き方 [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source dragon の repo [url: https://github.com/cardene777/dragon]
+  set b: 3
+  set a & b: 1

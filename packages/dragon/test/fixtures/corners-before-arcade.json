@@ -679,6 +679,18 @@
     "dg-pp-glass dg-pp-glass-on rx=18": 2,
     "dg-pp-chip dg-pp-chip-final rx=4": 1
   },
+  "wallet-usage.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-vn-chip dg-a rx=12": 4,
+    "dg-vn-chip rx=12": 1,
+    "dg-vn-frame rx=18": 1
+  },
+  "wallet-usage.json": {
+    "dg-bg rx=14": 1,
+    "dg-vn-chip dg-a rx=12": 4,
+    "dg-vn-chip rx=12": 1,
+    "dg-vn-frame rx=18": 1
+  },
   "wallet.en.json": {
     "(none) rx=10": 5,
     "(none) rx=11": 1,

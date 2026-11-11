@@ -199,11 +199,11 @@ const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
 );
 /**
  * 列の図と試す図の両方に書ける行の頭の語 (#3337)。ほかの種類の図に書いた行は、2 つの図の種類だけの語の誤りで止める。
- * `item` は量の図 (#3560) でも項目の行として書け、量の図の行は項目のブロックが行の形で先に読む
+ * `item` は量の図 (#3560) と集合の重なりの図 (#3620) でも項目と集まりの行として書け、その行は項目のブロックと集まりの円のブロックが行の形で先に読む
  */
 const LINEUP_OR_TRY = ["item", "line"];
 /** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
-const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er"];
+const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
@@ -259,6 +259,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     chart: { items: [], ...(shape ? { shape } : {}) },
     flow: { choices: [], paths: [], lines: [], main: [], side: [], forked: [] },
     er: { tables: [], refs: [], lines: [] },
+    venn: { sets: [], now: new Map(), writes: [], step: -1 },
   };
   const { regions, boxes, paths, branches, time } = figure;
   const steps: Step[] = [];
@@ -520,6 +521,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     ...(kind === "chart" ? { chart: { shape: figure.chart.shape?.value as ChartShape, items: figure.chart.items } } : {}),
     ...(kind === "er" ? { er: { tables: figure.er.tables } } : {}),
     ...(kind === "matrix" ? { matrix: { axes: figure.matrix.axes, items: figure.matrix.items } } : {}),
+    ...(kind === "venn" ? { venn: { sets: figure.venn.sets } } : {}),
     ...(isTime && time.scale
       ? {
           time: {

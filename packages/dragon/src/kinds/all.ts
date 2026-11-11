@@ -22,6 +22,7 @@ import * as state from "./state";
 import * as time from "./time";
 import * as tree from "./tree";
 import * as tryKind from "./try";
+import * as venn from "./venn";
 
 registerKind("chart", chart);
 registerKind("cycle", cycle);
@@ -36,6 +37,7 @@ registerKind("state", state);
 registerKind("time", time);
 registerKind("tree", tree);
 registerKind("try", tryKind);
+registerKind("venn", venn);
 
 for (const [name, reading] of Object.entries(READINGS)) registerReading(name, reading);
 
