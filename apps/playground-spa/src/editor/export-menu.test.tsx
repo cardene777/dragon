@@ -70,7 +70,8 @@ async function open(): Promise<SVGSVGElement> {
   document.body.append(host);
   mounted = createRoot(host);
   act(() => mounted?.render(<Playground lang="ja" theme="light" palette="paper" onBeforeLang={() => undefined} />));
-  for (let i = 0; i < 100 && !figure(); i++) await wait(20);
+  // 図の種類の部品の塊が届くまで待つ。混んだ機械では 2 秒を超えた回があったので、1 件の上限 (10 秒) の内の 6 秒まで待つ
+  for (let i = 0; i < 300 && !figure(); i++) await wait(20);
   const svg = figure();
   expect(svg, "編集画面に図を置かない").not.toBeNull();
   return svg as SVGSVGElement;

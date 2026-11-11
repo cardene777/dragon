@@ -129,6 +129,9 @@ export const EN_TEXT = {
     zoomIn: "Zoom in",
     zoom: "Zoom level",
     phase: (n: number, total: number, title: string) => `Step ${n} / ${total} · ${title}`,
+    export: "Export",
+    exportMenu: "Export format",
+    exportFailed: (reason: string) => `Could not export: ${reason}`,
   },
   notices: {
     line: (line: number) => `Line ${line}`,
