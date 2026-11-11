@@ -8,6 +8,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **Each part page in the catalog has a "Ways to write it" section** (#3616)
+
+  A part page showed one figure of the part per diagram kind and did not show what its settings (attribute keys) change. A part that takes settings now has a "Ways to write it" section above the per-kind figures, with one row per setting. Each row shows the notation lines that write the setting on the left and, on the right, the part's figure stopped at the step where the setting is first written. The list of settings comes from the words the part covers, and across all parts it matches the notation reader's list of attributes. The lines and figures come from the parts' existing notation files, so no notation files were added.
+
 - **The playground editor colours the notation and the JSON by the role of each word** (#3613)
 
   Every character in the editor was the same colour, so the diagram kind, the `->` of a line and the settings all looked alike. A colour layer now sits under the text area. In the notation it draws eight roles in different colours: the diagram kind, the word that starts a line, `as`, the `->` of a line, a setting's key, a setting's value, comments, and the command after `code`. In the JSON it colours keys, strings, numbers, and `true`, `false` and `null`. The colours come from the light and dark values of the site's five palettes, and a colour is moved toward the text colour only when its contrast with the editor background is below 4.5. The words that start a line and the diagram kinds come from `NOTATION_WORDS`, a new export of the package, so adding a block adds its colour too. The colour layer holds exactly the text in the editor and stays aligned while you type and scroll. While you compose Japanese text with an input method, the text being composed is shown by the text area itself.

@@ -75,6 +75,71 @@ export function snippetOf(id: PartId, kind: Kind, lang: Lang): string | undefine
   return (later.value[`./parts/${id}.${kind}${lang === "en" ? ".en" : ""}.dragon`] ?? "").trimEnd();
 }
 
+/** 部品が受け持つ設定 (属性の鍵) の 1 行 (#3616) */
+export interface SettingRow {
+  /** 部品の語 (`attr:<行>.<鍵>`) */
+  readonly word: string;
+  /** 記法の行を引いた部品の図の図の種類 */
+  readonly kind: Kind;
+  /** その設定を書いた記法の行。字下げを外した形で、書いた順 */
+  readonly lines: readonly string[];
+  /** 記法の行を引いた部品の図の記法 */
+  readonly notation: string;
+  /** 図を止める段 (0 から)。その設定を初めて書いた行が属する段で、段より前に書いた時は 0 */
+  readonly step: number;
+}
+
+/**
+ * 記法の 1 行が、属性の行 `line` の鍵 `key` を書いているか。値の無い印 (`[fold]`) も書いたと読む。
+ * 線の行は矢印で、図の種類の行 (`diagram`) は最初の行かで、ほかは行の頭の語で見分ける
+ */
+function writesSetting(text: string, first: boolean, line: string, key: string): boolean {
+  if (!new RegExp(`\\[[^\\]]*\\b${key}\\s*[:,\\]]`, "u").test(text)) return false;
+  if (line === "edge") return text.includes("->");
+  if (line === "diagram") return first;
+  return text.split(/\s/u)[0] === line;
+}
+
+/** 記法の中で、設定を書いた行と、その最初の行が属する段 */
+function settingUses(notation: string, line: string, key: string): { lines: string[]; step: number } {
+  const lines: string[] = [];
+  let step = 0;
+  let steps = 0;
+  let first = true;
+  for (const raw of notation.split("\n")) {
+    const text = raw.trim();
+    if (!text || text.startsWith("//")) continue;
+    if (/^step\s/u.test(text)) steps += 1;
+    if (writesSetting(text, first, line, key)) {
+      if (lines.length === 0) step = Math.max(0, steps - 1);
+      lines.push(text);
+    }
+    first = false;
+  }
+  return { lines, step };
+}
+
+/**
+ * 部品の頁の「書き方の違い」の行 (#3616)。部品が受け持つ設定ごとに、その設定を書いた記法の行と、記法を引いた部品の図を返す。
+ * 設定は部品の語のうち属性の語で、部品の語は見本を探す関数の鍵 (`gallery/uses.ts`) から作るので、手で並べない。
+ * 記法の行は、部品を描ける図の種類の順に部品の図の記法を見て、設定を書いた最初の図から引く。
+ * 部品の図の塊がまだ届いていないか読めなかった時は `undefined`
+ */
+export function settingsOf(part: Part, lang: Lang): SettingRow[] | undefined {
+  if (LATER_SNIPPETS.state().status !== "ready") return undefined;
+  return part.words
+    .filter((word) => word.startsWith("attr:"))
+    .flatMap((word) => {
+      const [line = "", key = ""] = word.slice("attr:".length).split(".");
+      for (const kind of part.kinds) {
+        const notation = snippetOf(part.id, kind, lang) ?? "";
+        const uses = settingUses(notation, line, key);
+        if (uses.lines.length > 0) return [{ word, kind, notation, ...uses }];
+      }
+      return [];
+    });
+}
+
 const events = (d: Diagram): DiagramEvent[] => d.steps.flatMap((step) => step.events);
 /** 列の図のチップ。チップの欄は列の図と試す図が使い、試す図のチップは欄の値 (`values`) を持つ */
 function lineupItems(d: Diagram): LineupItem[] {

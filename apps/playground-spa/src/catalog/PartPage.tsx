@@ -8,6 +8,8 @@
  * 図の下には、その部品の語を使う見本の札を並べ、押すと図の頁でその見本を選んだ状態で開く (#3167)。
  * 部品「絵」の頁だけは、図の下に使える絵柄を全て形と名前で並べる。一覧は package の絵柄の表 (`ICONS`) から作り、形は package の `iconSvg` が描く (#3172)。
  * 部品の説明は、この頁だけが読む説明の表 (`blocks-desc.gen.ts`) から引く。頁の言葉 (`TEXT`) に入れると、見本帳が最初に読む塊に入るため (#3531)。
+ * 設定 (属性の鍵) を受け持つ部品は、図の種類ごとの図の上に「書き方の違い」の節を置き、設定ごとに、設定を書いた記法の行を左に、
+ * その行を初めて書いた段で止めた部品の図を右に並べる (#3616)。設定を上から順に読み比べられるようにするため。
  */
 import { ICONS, iconSvg, type Theme } from "@cardenelabs/dragon/light";
 import type { ReactElement } from "react";
@@ -21,7 +23,7 @@ import { type Lang, TEXT } from "../text";
 import { BLOCK_DESC } from "./blocks-desc.gen";
 import type { Kind } from "./catalog";
 import { LaterFailed } from "./LaterFailed";
-import { LATER_SNIPPETS, type Part, samplesUsing, snippetOf, wordLabel } from "./parts";
+import { LATER_SNIPPETS, type Part, samplesUsing, settingsOf, snippetOf, wordLabel } from "./parts";
 import { CATALOG_TEXT } from "./text";
 
 interface Props {
@@ -81,6 +83,8 @@ export function PartPage({ part, lang, theme, palette }: Props): ReactElement {
           </div>
         </dl>
       </div>
+
+      {part.words.some((word) => word.startsWith("attr:")) && <PartSettings part={part} lang={lang} theme={theme} palette={palette} />}
 
       <div className="catalog-part-figures" data-count={part.kinds.length}>
         {part.kinds.map((kind) => (
@@ -148,6 +152,41 @@ function IconList({ lang }: { lang: Lang }): ReactElement {
  * 部品を 1 つの図の種類で描いた図と、その記法と、編集画面で開く。
  * 部品の図の記法は後から読む塊にあるので、届く前は図の枠だけを置き、読めなかった時は枠に読み直す釦を出す (#3246)
  */
+/** 書き方の違いの節。設定ごとに、設定を書いた記法の行と、その行を初めて書いた段で止めた図を 1 行に並べる (#3616) */
+function PartSettings({ part, lang, theme, palette }: Props): ReactElement {
+  const t = TEXT[lang];
+  const c = CATALOG_TEXT[lang];
+  const later = useLater(LATER_SNIPPETS);
+  const rows = later.status === "ready" ? (settingsOf(part, lang) ?? []) : [];
+  return (
+    <section className="catalog-section catalog-part-settings" data-catalog="part-settings" aria-label={c.partSettings}>
+      <header className="catalog-section-head">
+        <h2 className="catalog-section-title">{c.partSettings}</h2>
+        <p className="catalog-section-lead">{c.partSettingsLead}</p>
+      </header>
+      {later.status === "failed" && <LaterFailed lang={lang} />}
+      <div className="catalog-part-setting-list" aria-busy={later.status === "loading"}>
+        {rows.map((row) => (
+          <div key={row.word} className="catalog-part-setting" data-catalog="part-setting" data-word={row.word}>
+            <div className="catalog-part-setting-text">
+              <h3 className="catalog-part-setting-title">
+                <code>{wordLabel(row.word)}</code>
+                <span className="catalog-part-setting-kind">{t.shelf.kinds[row.kind]}</span>
+              </h3>
+              <pre className="catalog-part-setting-code">
+                <code>{row.lines.join("\n")}</code>
+              </pre>
+            </div>
+            <div className="catalog-part-setting-figure" data-catalog="part-setting-figure">
+              <LiveFigure className="catalog-part-stage" notation={row.notation} lang={lang} theme={theme} palette={palette} pausedAt={row.step} whole />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PartFigure({ part, kind, lang, theme, palette }: Props & { kind: Kind }): ReactElement {
   const t = TEXT[lang];
   const c = CATALOG_TEXT[lang];
