@@ -1,0 +1,17 @@
+venn People who run in the morning and at night
+
+item morning as Run in the morning
+item night as Run at night
+
+step Morning
+  say 30 people run in the morning.
+  set morning: 30
+
+step Night and both
+  say 20 people run at night, and 5 of them also run in the morning.
+  set night: 20
+  set morning & night: 5
+
+step Neither
+  say 12 people run at neither time.
+  set none: 12

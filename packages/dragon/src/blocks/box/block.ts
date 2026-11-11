@@ -9,12 +9,13 @@
  * 区画と箱の宣言は書き戻す時に 1 つの塊に混ざるので、宣言の塊はこのブロックが区画のブロックの `declareRegion` で区画の行も含めて書く。
  * 量の図 (#3560) は箱を持たず、項目を `item` の行で宣言するので、箱のブロックを描かない図の種類に書く。
  * 表どうしの関係の図 (#3618) も箱を持たず、表を `table` の行で宣言するので、箱のブロックを描かない図の種類に書く。
+ * 集合の重なりの図 (#3620) も箱を持たず、集まりを `item` の行で宣言するので、箱のブロックを描かない図の種類に書く。
  */
 import type { Block } from "../block";
 
 export const block: Block = {
   name: "box",
   rank: 20,
-  attach: { how: "place", except: ["try", "chart", "er"] },
+  attach: { how: "place", except: ["try", "chart", "er", "venn"] },
   words: { heads: ["box"], attrs: { box: ["note"] } },
 };

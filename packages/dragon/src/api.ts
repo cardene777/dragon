@@ -75,6 +75,9 @@ export {
   type TryVerdict,
   validateDiagram,
   validatorLoaded,
+  type VennCount,
+  type VennNone,
+  type VennSet,
   type ViewMode,
 } from "./schema";
 export { FORMAT_VERSION, type Read, readDiagram } from "./version";

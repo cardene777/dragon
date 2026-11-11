@@ -1,0 +1,30 @@
+// Count how reading, sports and cooking overlap as hobbies of 100 people, with circles.
+// The values are sample numbers to show the shape, not numbers from a real survey.
+venn Overlapping hobbies
+
+item read as Reading
+item sport as Sports
+item cook as Cooking
+
+step Reading
+  say Of 100 people, 48 have reading as a hobby.
+  set read: 48
+
+step Sports
+  say 36 have sports as a hobby, and 14 of them also like reading.
+  set sport: 36
+  set read & sport: 14
+
+step Cooking
+  say 30 have cooking as a hobby. 12 also read, and 9 also do sports.
+  set cook: 30
+  set read & cook: 12
+  set sport & cook: 9
+
+step All three
+  say 5 people have all three hobbies.
+  set read & sport & cook: 5
+
+step None
+  say 16 people have none of the three hobbies.
+  set none: 16

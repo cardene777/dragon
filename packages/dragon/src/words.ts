@@ -54,7 +54,7 @@ export function textLang(diagram: Pick<Diagram, "title" | "steps">): NotationLan
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */
-export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true, time: true, tree: true, lineup: true, try: true, pipe: true, chart: true, flow: true, cycle: true, er: true });
+export const KINDS = keys<Diagram["kind"]>({ sequence: true, architecture: true, state: true, git: true, time: true, tree: true, lineup: true, try: true, pipe: true, chart: true, flow: true, cycle: true, er: true, venn: true });
 
 /**
  * 状態遷移図の始まりと終わりの印の名前 (#3163)。線の送る側に `start`、受ける側に `finish` を書き、

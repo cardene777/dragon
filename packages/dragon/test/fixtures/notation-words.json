@@ -12,7 +12,8 @@
     "chart",
     "flow",
     "cycle",
-    "er"
+    "er",
+    "venn"
   ],
   "HEADS": [
     "group",

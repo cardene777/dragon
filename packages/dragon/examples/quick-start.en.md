@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `er <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `er <title>`, `venn <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -454,6 +454,31 @@ step Count the order
   note users.orders: 2 + 1 = 3
   set users.orders: 3
   pick users.orders
+```
+
+In a set overlap diagram (`venn <title>`), write 2 or 3 sets with `item <id> as <name>` before the first `step` line.
+`set <id>: <count>` inside a step writes the total of a set; its circle appears in that step, with the name and the total outside it.
+`set <id> & <id>: <count>` writes the count in an overlap and lights its region in that step. Each region shows the count that is only in it, worked out from the totals and the overlaps.
+`set none: <count>` shows the count in none of the sets in the frame outside the circles. An overlap larger than one of its sets is refused.
+
+```dragon
+venn People who run in the morning and at night
+
+item morning as Run in the morning
+item night as Run at night
+
+step Morning
+  say 30 people run in the morning.
+  set morning: 30
+
+step Night and both
+  say 20 people run at night, and 5 of them also run in the morning.
+  set night: 20
+  set morning & night: 5
+
+step Neither
+  say 12 people run at neither time.
+  set none: 12
 ```
 
 ## Attributes

@@ -34,6 +34,7 @@ export const HOMES = [
   ["role", "lineup.roles"],
   ["hold", "pipe.holds"],
   ["table", "er.tables"],
+  ["circle", "venn.sets"],
 ] as const satisfies readonly (readonly [keyof DiagramBlocks, string])[];
 
 type Obj = Record<string, unknown>;
@@ -88,7 +89,8 @@ export const isVersion1 = (input: unknown): input is Obj =>
  * 版2の原本を描く処理の形にする。欄と並びは版1の原本を読んでいた時と同じにする
  * (版、種類、題、見せ方、区画、箱、帯、段、生存線、移れる道、枝、チップ、配管の図の始めの値、時間軸の図の欄)。
  * 時系列図の生存線は、箱の並びのまま左から組む。試す図 (#3337) は部品とチップと関門 (#3476) を試す図の欄 (`try`) に持つ。
- * 手順の図 (#3561) は判断と今回は通らない道を手順の図の欄 (`flow`) に持つ。表どうしの関係の図 (#3618) は表を表どうしの関係の図の欄 (`er`) に持つ
+ * 手順の図 (#3561) は判断と今回は通らない道を手順の図の欄 (`flow`) に持つ。表どうしの関係の図 (#3618) は表を表どうしの関係の図の欄 (`er`) に持つ。
+ * 集合の重なりの図 (#3620) は集まりを集合の重なりの図の欄 (`venn`) に持つ
  */
 export function toModel(diagram: Diagram): DiagramModel {
   const b = diagram.blocks;
@@ -138,6 +140,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(b.item !== undefined ? { lineup: { items: b.item, ...(b.role !== undefined ? { roles: b.role } : {}) } } : {}),
     ...(b.hold !== undefined ? { pipe: { holds: b.hold } } : {}),
     ...(b.table !== undefined ? { er: { tables: b.table } } : {}),
+    ...(b.circle !== undefined ? { venn: { sets: b.circle } } : {}),
     ...(b.scale !== undefined || b.row !== undefined || b.task !== undefined
       ? {
           time: {

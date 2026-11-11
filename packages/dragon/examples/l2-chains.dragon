@@ -1,0 +1,18 @@
+// 1か月にBaseとArbitrumで取引した住所の数を、2つの円の重なりで比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+venn L2の使われ方の重なり
+
+item base as Base
+item arb as Arbitrum
+
+step Base
+  say Baseで取引した住所は12,000ある。
+  set base: 12000
+
+step Arbitrum
+  say Arbitrumで取引した住所は9,000ある。
+  set arb: 9000
+
+step 両方
+  say 両方で取引した住所は3,500あり、残りはどちらか1つだけを使った。
+  set base & arb: 3500

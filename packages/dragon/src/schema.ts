@@ -46,6 +46,7 @@ import type { PipeRevert } from "./blocks/revert/block";
 import type { PipeWrite } from "./blocks/write/block";
 import type { LineupStamp } from "./blocks/stamp/block";
 import type { ErCell, ErField, ErFormula, ErLookup, ErTable } from "./blocks/table/block";
+import type { VennCount, VennNone, VennSet } from "./blocks/circle/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
 import { nearest } from "./nearest";
@@ -114,7 +115,9 @@ export type DiagramEvent =
   | ChartSet
   | ErLookup
   | ErCell
-  | ErFormula;
+  | ErFormula
+  | VennCount
+  | VennNone;
 
 /**
  * 時間軸の図 (#3165) の印の色を変える出来事と範囲の括弧の出来事と、目盛りと区切りと印の列と節目の型は、
@@ -146,6 +149,9 @@ export type { GitCommit, GitDelete };
 
 /** 表どうしの関係の図 (#3618) の表と項目と、段の中の出来事の型は表のブロックが持つ */
 export type { ErCell, ErField, ErFormula, ErLookup, ErTable };
+
+/** 集合の重なりの図 (#3620) の集まりと、段の中の数の出来事の型は集まりの円のブロックが持つ */
+export type { VennCount, VennNone, VennSet };
 
 /** 木の図 (#3233) の葉を出す出来事と親を組む出来事の型は、葉と組んだ親のブロックが持つ (#3348) */
 export type { TreeLeaf, TreeNode };
@@ -269,7 +275,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "er";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "er" | "venn";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -308,6 +314,8 @@ export interface DiagramBlocks {
   hold?: PipeHold[];
   /** 表どうしの関係の図 (#3618) の表。書いた順に左から右へ並べる */
   table?: ErTable[];
+  /** 集合の重なりの図 (#3620) の集まり。宣言した順に円を置く */
+  circle?: VennSet[];
 }
 
 /**
@@ -361,6 +369,8 @@ export interface DiagramModel {
   flow?: { choices: FlowChoice[]; paths: StatePath[] };
   /** 表どうしの関係の図 (#3618) の表。版1の原本に無かった種類なので、版2の原本の `table` をそのまま持つ */
   er?: { tables: ErTable[] };
+  /** 集合の重なりの図 (#3620) の集まり。版1の原本に無かった種類なので、版2の原本の `circle` をそのまま持つ */
+  venn?: { sets: VennSet[] };
 }
 
 /**
@@ -389,7 +399,7 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "delete", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set", "lookup", "cell", "formula"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "delete", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set", "lookup", "cell", "formula", "count", "none"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
 const PART_TYPES = ["route", "queue", "chain", "log", "ask", "press"] as const satisfies readonly TryPart["type"][];
 
@@ -432,6 +442,7 @@ const ABSENT_KINDS: Record<string, string> = {
   gist: "pipe",
   chart: "chart",
   table: "er",
+  circle: "venn",
 };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
 const NOT_ALLOWED: Record<string, Allowed> = {
@@ -472,6 +483,10 @@ const CHART_EVENTS = ["set"] as const satisfies readonly DiagramEvent["type"][];
 const ER_EVENT = "#/definitions/notErEvent/not";
 /** 表どうしの関係の図だけが書ける出来事 */
 const ER_EVENTS = ["lookup", "cell", "formula"] as const satisfies readonly DiagramEvent["type"][];
+/** 集合の重なりの図でない図に、集合の重なりの図だけの出来事を書いた時の決まりの場所 (#3620) */
+const VENN_EVENT = "#/definitions/notVennEvent/not";
+/** 集合の重なりの図だけが書ける出来事 */
+const VENN_EVENTS = ["count", "none"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類の決まりの場所 (#3337) */
 const PART_TAG = "#/definitions/part/discriminator";
 /** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
@@ -543,6 +558,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       if (error.schemaPath === PIPE_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(PIPE_EVENTS, "pipe") };
       if (error.schemaPath === CHART_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(CHART_EVENTS, "chart") };
       if (error.schemaPath === ER_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(ER_EVENTS, "er") };
+      if (error.schemaPath === VENN_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(VENN_EVENTS, "venn") };
       if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };

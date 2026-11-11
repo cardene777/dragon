@@ -1,0 +1,25 @@
+venn Set circles
+
+item read as Reading
+item move as Exercise
+item cook as Cooking [color: violet]
+
+step Reading
+  say item declares a set, and its circle appears in the step where set first gives its count. color picks the circle color.
+  set read: 40
+
+step Exercise
+  say A set joined with & is the count of an overlap, and that region lights up in that step.
+  set move: 30
+  set read & move: 12
+
+step Cooking
+  say Each region shows the count only in it.
+  set cook: 25
+  set read & cook: 10
+  set move & cook: 8
+  set read & move & cook: 4
+
+step In none
+  say set none shows the count in no set in the frame outside the circles.
+  set none: 15

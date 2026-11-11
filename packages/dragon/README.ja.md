@@ -200,7 +200,7 @@ mountDiagram(host, parsed.diagram, {
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`pipe`、`state`、`time`、`tree`、`try`、`venn` の描く部品と、その種類だけが使うブロックの読み方を持たない。
 これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
 `parseNotation` で記法から読んだ図は描く時に原本の形の検査を省くので、記法の図を描く頁は検査を読まない。JSON を渡した時は `loadFor` が原本の形の検査も読み、読む前に JSON を読むか描くと `loadFor` を待つよう示す誤りで止まる。
 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -300,7 +300,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `er` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `table` `field` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `er` `venn` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `table` `field` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -776,6 +776,38 @@ step 数を増やす
   pick users.注文の数
 ```
 
+### 集合の重なりの図
+
+`venn` で始めると、2 つか 3 つの集まりを円で重ね、どの区画に何件入るかを段ごとに数える集合の重なりの図になる。
+集まりが 2 つなら左右に、3 つなら左上と右上と下に円を置く。
+
+- `item <名札> as <名前>` は集まりで、最初の `step` より前に書く。集まりは 2 つか 3 つ書け、`[color: <色>]` で円の色を決める
+- 段の中の `set <名札>: <数>` は集まりの全体の数を書く。円は初めて数を書いた段で現れ、円の外に名前と全体の数を出す
+- `set <名札> & <名札>: <数>` は重なりの数を書き、その段で重なりの区画を光らせて数の札を出す。重なりの数が重なる集まりのどれかの数より大きいと誤りで止まる
+- 区画の中には、全体と重なりの数から出したそれぞれだけの数が出る。要る数が揃うまで、その区画には数を出さない
+- `set none: <数>` はどれにも入らない数を書き、その段から円を囲む枠の中に出す。ほかの種類の図では `none` を今までどおり箱の名札として読む
+- 段の番号は、その段で現れた円の名前の隣か、その段で光らせた区画の数の下に出る
+
+```dragon
+venn 朝と夜に走る人
+
+item morning as 朝に走る
+item night as 夜に走る
+
+step 朝
+  say 朝に走る人は30人いる。
+  set morning: 30
+
+step 夜と両方
+  say 夜に走る人は20人で、そのうち5人は朝も走る。
+  set night: 20
+  set morning & night: 5
+
+step どちらでもない
+  say どちらにも走らない人は12人いる。
+  set none: 12
+```
+
 ## 原本の JSON
 
 原本の JSON は、版 (`version`)、図の種類 (`kind`)、題 (`title`)、段 (`steps`) の骨組みを持ち、図に置くブロックをブロックの名前ごとの欄 (`blocks`) に並べる。
@@ -784,6 +816,7 @@ step 数を増やす
 時間軸の図の目盛りと区切りと印の列と作業と節目と拡大の範囲は、`blocks.scale`、`blocks.period`、`blocks.row`、`blocks.task`、`blocks.point`、`blocks.zoom` に書く。
 手順の図の判断は `blocks.choice`、通らない道は `blocks.path` に書く。
 表どうしの関係の図の表と項目は `blocks.table` に書く。
+集合の重なりの図の集まりは `blocks.circle` に書く。
 段の中で起きること (線や箱の中の処理) は、段ごとの `events` に書く。
 
 ```json

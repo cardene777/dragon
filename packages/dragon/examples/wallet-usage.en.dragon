@@ -1,0 +1,30 @@
+// Count which of send, swap and stake the users of a wallet used, with overlapping circles.
+// The values are sample numbers to show the shape, not numbers from a real survey.
+venn How a wallet is used
+
+item send as Send
+item swap as Swap
+item stake as Stake
+
+step Send
+  say 8,200 users sent tokens in a month.
+  set send: 8200
+
+step Swap
+  say 5,400 users swapped, and 3,100 of them also sent.
+  set swap: 5400
+  set send & swap: 3100
+
+step Stake
+  say 2,600 users staked. 1,500 of them also sent, and 1,200 also swapped.
+  set stake: 2600
+  set send & stake: 1500
+  set swap & stake: 1200
+
+step All three
+  say 900 users used all three of send, swap and stake.
+  set send & swap & stake: 900
+
+step None
+  say 700 users only held a balance and used none of them.
+  set none: 700
