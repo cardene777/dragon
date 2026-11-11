@@ -1,0 +1,131 @@
+{
+  "version": 2,
+  "kind": "matrix",
+  "title": "Sort this week's tasks by urgency and importance",
+  "matrix": {
+    "axes": [
+      {
+        "name": "Urgency",
+        "from": "low",
+        "to": "high"
+      },
+      {
+        "name": "Importance",
+        "from": "low",
+        "to": "high"
+      }
+    ],
+    "items": [
+      {
+        "id": "report",
+        "name": "Report due tomorrow"
+      },
+      {
+        "id": "trouble",
+        "name": "Client bug"
+      },
+      {
+        "id": "study",
+        "name": "Exam study"
+      },
+      {
+        "id": "health",
+        "name": "Book a checkup"
+      },
+      {
+        "id": "call",
+        "name": "Urgent call"
+      },
+      {
+        "id": "room",
+        "name": "Book the meeting room"
+      },
+      {
+        "id": "feed",
+        "name": "Idle social feed"
+      }
+    ]
+  },
+  "blocks": {
+    "box": [
+      {
+        "id": "plan",
+        "name": "Schedule it"
+      },
+      {
+        "id": "now",
+        "name": "Do it now"
+      },
+      {
+        "id": "drop",
+        "name": "Drop it"
+      },
+      {
+        "id": "ask",
+        "name": "Hand it off"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Line up",
+      "body": "Line up this week's tasks on the left. None of them sits in an area yet.",
+      "events": []
+    },
+    {
+      "title": "Do it now",
+      "body": "Tasks that are urgent and important get done today, before anything else.",
+      "events": [
+        {
+          "type": "line",
+          "box": "now",
+          "items": [
+            "report",
+            "trouble"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Schedule it",
+      "body": "Important tasks that are not urgent get a date now so they do not slip.",
+      "events": [
+        {
+          "type": "line",
+          "box": "plan",
+          "items": [
+            "study",
+            "health"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Hand it off",
+      "body": "Urgent tasks of low importance go to someone else to free up time.",
+      "events": [
+        {
+          "type": "line",
+          "box": "ask",
+          "items": [
+            "call",
+            "room"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Drop it",
+      "body": "Tasks that are neither urgent nor important are dropped this week.",
+      "events": [
+        {
+          "type": "line",
+          "box": "drop",
+          "items": [
+            "feed"
+          ]
+        }
+      ]
+    }
+  ]
+}

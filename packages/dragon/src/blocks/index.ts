@@ -1,6 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { block as actBlock } from "./act/block";
 import { block as askBlock } from "./ask/block";
+import { block as axisBlock } from "./axis/block";
 import { block as boxBlock } from "./box/block";
 import { block as branchBlock } from "./branch/block";
 import { block as calcBlock } from "./calc/block";
@@ -33,6 +34,7 @@ import { block as lifelineBlock } from "./lifeline/block";
 import { block as lineBlock } from "./line/block";
 import { block as linkBlock } from "./link/block";
 import { block as logBlock } from "./log/block";
+import { block as matrixItemBlock } from "./matrix-item/block";
 import { block as mergeBlock } from "./merge/block";
 import { block as nodeBlock } from "./node/block";
 import { block as noteBlock } from "./note/block";
@@ -66,6 +68,7 @@ import { block as zoomBlock } from "./zoom/block";
 export const BLOCKS = {
   "act": actBlock,
   "ask": askBlock,
+  "axis": axisBlock,
   "box": boxBlock,
   "branch": branchBlock,
   "calc": calcBlock,
@@ -98,6 +101,7 @@ export const BLOCKS = {
   "line": lineBlock,
   "link": linkBlock,
   "log": logBlock,
+  "matrix-item": matrixItemBlock,
   "merge": mergeBlock,
   "node": nodeBlock,
   "note": noteBlock,
@@ -129,4 +133,4 @@ export const BLOCKS = {
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "ask", "box", "branch", "calc", "call", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "circle", "color", "commit", "copy", "delete", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "idea", "item", "leaf", "legend", "lifeline", "line", "link", "log", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "ring", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "table", "task", "value", "write", "zoom"] as const;
+export const BLOCK_NAMES = ["act", "ask", "axis", "box", "branch", "calc", "call", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "circle", "color", "commit", "copy", "delete", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "idea", "item", "leaf", "legend", "lifeline", "line", "link", "log", "matrix-item", "merge", "node", "note", "order", "pick", "point", "press", "queue", "return", "revert", "ring", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "table", "task", "value", "write", "zoom"] as const;

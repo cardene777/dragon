@@ -23,7 +23,7 @@ Lines starting with `//` and blank lines are not read.
 
 ## Head line
 
-`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind` and `venn`.
+`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind`, `venn` and `matrix`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
 - `chart` needs its shape on the head line: `chart <title> [shape: donut]` or `chart <title> [shape: bar]`. Only `chart` takes `shape` here.
@@ -108,11 +108,12 @@ Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as
 | `note` on boxes | all except `pipe`, `try`, `chart`, `er`, `mind` and `venn` |
 | `act`, `link`, `carry`, `->` lines between boxes | `architecture`, `flow`, `git`, `sequence`, `state`, `time`, `tree` |
 | `link`, `carry`, `->` lines to the next step on the ring (no `act`) | `cycle` |
-| `icon` | all except `lineup`, `try`, `chart`, `er`, `mind` and `venn` |
-| `color` on boxes | all except `pipe`, `try`, `chart`, `er`, `mind` and `venn` |
+| `icon` | all except `lineup`, `try`, `chart`, `er`, `mind`, `venn` and `matrix` |
+| `color` on boxes | all except `pipe`, `try`, `chart`, `er`, `mind`, `venn` and `matrix` |
 | `strip` and `set` | `architecture`, `cycle`, `flow`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
 | `choice` | `flow` |
 | `idea` (with its own `color`) | `mind` |
+| `axis`, `item`, `line <area>: <item>` (exactly four `box` lines as the areas) | `matrix` |
 | `table`, `field`, `pick`, `set <table>.<field>`, `note <table>.<field>`, `carry` and `->` lines between linked fields | `er` |
 | `item`, `set <id>: <count>`, `set <id> & <id>: <count>` and `set none: <count>` | `venn` |
 | `group ... end` | `architecture` |

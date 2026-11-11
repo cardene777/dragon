@@ -1,0 +1,26 @@
+matrix 置く課題
+
+axis 手間 [from: 小さい, to: 大きい]
+axis 効き目 [from: 小さい, to: 大きい]
+
+box now as 今やる
+box plan as 計画する
+box spare as 手が空いたら
+box drop as やらない
+
+item login as ログインを速く
+item pay as 決済を足す
+item word as 文言の直し
+item docs as 手引きを足す
+
+step 並べる
+  say item の行で課題を宣言すると、左の一覧に書いた順に並ぶ。
+
+step 置く
+  say line の行で、課題の札を一覧から区画へ滑らせる。
+  line now: login
+  line plan: pay
+
+step まとめて置く
+  say , で区切ると 1 行で何枚でも置ける。
+  line spare: word, docs

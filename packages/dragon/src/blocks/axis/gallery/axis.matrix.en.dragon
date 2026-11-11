@@ -1,0 +1,22 @@
+matrix Axes
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login
+item old as Rebuild old screen
+
+step Horizontal axis
+  say The first axis line is the horizontal axis, drawn below the areas from left to right.
+    from is the text at the left end and to the text at the right end.
+  line now: login
+
+step Vertical axis
+  say The second axis line is the vertical axis, drawn left of the areas from bottom to top.
+    The name and both ends sit outside the axis.
+  line drop: old

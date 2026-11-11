@@ -62,6 +62,11 @@
  * 1 つの図にちょうど 1 つ置く。親は前に書いた考えに限り、題、枝、葉の 3 段まで書ける。考えを広げる地図に箱と線と中身の帯は書けず、
  * `idea` の行は考えを広げる地図でだけ書ける。
  *
+ * 2つの軸で置く図 (`matrix`、#3622) は、段より前に `axis <名前> [from: <小さい側>, to: <大きい側>]` を横、縦の順に 2 行書き、`box` の行を書いた順に
+ * 左上、右上、左下、右下の区画にし、`item <名札> as <名前>` で課題を宣言する。段の中の `line <区画>: <課題>` で課題を区画へ置く。
+ * 軸が 2 行でない図と区画が 4 つでない図と、無い区画か無い課題を書いた `line` は止め、線と区画の囲みと中身の帯の行は書けない。
+ * `axis` の行は 2つの軸で置く図でだけ書け、`item` と `line` の行は課題のブロックが行の形で先に読む。
+ *
  * 列の図 (`lineup`、#3239) は、`box` の行が列になり、最初の `step` より前に `item <名札>, <名札> [color: <色>, label: <字>]` でチップを宣言する。
  * 段の中で `line <列>: <チップ>, <チップ>` と書くと列の並びが替わり、`seal <列>` で封をし、`open <列>` で開け、`pick <列>` で列を選び、
  * `stamp <列>: <字>` で札を押す。列の図に区画 (`group`) と線と `act` の行は書けない。封をした列の並びは、開けるまで書けない。
@@ -247,6 +252,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     time: { rows: [], tasks: [], points: [], pending: [], settled: false, needle: 0 },
     tree: { boxes: new Map(), parents: new Map() },
     mind: { levels: new Map() },
+    matrix: { axes: [], items: [] },
     lineup: { items: [], roles: [], sealed: new Set() },
     try: { parts: [], items: [], sides: [], checks: [], pending: [] },
     pipe: { holds: [], opened: [] },
@@ -356,7 +362,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
    * 図の種類だけの行の頭の語を、ほかの種類の図に書いた時の誤りの文。
    * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
    */
-  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly, mind: m.mindOnly, er: m.erOnly };
+  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly, mind: m.mindOnly, matrix: m.matrixOnly, er: m.erOnly };
   /** 線の列。持つ図の種類 (時間軸の図) のブロックが読み、ほかの種類の図に書いた列は誤りで止める */
   const columns: ParseState["columns"] = (source, from, to, attrs, end) => {
     const [read] = hooks("columns");
@@ -514,6 +520,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     // 量の図の見た目は見た目のブロックが `donut` か `bar` と確かめた
     ...(kind === "chart" ? { chart: { shape: figure.chart.shape?.value as ChartShape, items: figure.chart.items } } : {}),
     ...(kind === "er" ? { er: { tables: figure.er.tables } } : {}),
+    ...(kind === "matrix" ? { matrix: { axes: figure.matrix.axes, items: figure.matrix.items } } : {}),
     ...(kind === "venn" ? { venn: { sets: figure.venn.sets } } : {}),
     ...(isTime && time.scale
       ? {
