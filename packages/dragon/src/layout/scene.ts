@@ -350,6 +350,18 @@ export function seatCarriers(edges: SceneEdge[], boxes: Map<string, SceneBox>, r
   }
 }
 
+/** 四角を全部囲む四角。 */
+export function unionRect(rects: Rect[]): Rect {
+  const x = Math.min(...rects.map((r) => r.x));
+  const y = Math.min(...rects.map((r) => r.y));
+  return {
+    x,
+    y,
+    w: Math.max(...rects.map((r) => r.x + r.w)) - x,
+    h: Math.max(...rects.map((r) => r.y + r.h)) - y,
+  };
+}
+
 /** 2 つの四角の隙間。重なる時は負。縦か横のどちらかで離れていれば、その離れ方の大きい方。 */
 export function gapBetween(a: Rect, b: Rect): number {
   const dx = Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));

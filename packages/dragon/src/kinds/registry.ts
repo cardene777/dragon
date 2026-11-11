@@ -1,13 +1,15 @@
 /**
  * 図の種類ごとの描く部品の登録簿 (#3248)。
  *
- * 描く所 (`render/draw.ts`) は chart、cycle、er、flow、git、lineup、matrix、mind、pipe、state、time、tree、try、venn の部品をここから引く。
+ * 描く所 (`render/draw.ts`) は後から読む種類の部品の組 (`kinds/parts.ts`) を、種類の名前でここから引く (`partsOf`、#3656)。
+ * 再生の部品 (`player.ts`) は、試す図と配管の図の再生の部品を種類の名前を書いて引く。
  * 全部入りの入口は読み込みの時に全ての種類を登録し (`all.ts`)、軽い入口は `loadKind` か `loadFor` が種類を読んだ時に登録する (`light.ts`)。
  * ブロックの読み方は別の登録簿 (`blocks/reading.ts`) が持ち、軽い入口は書いた図が使う個別ブロックの読み方を種類の部品と別に読む (#3349)。
  * 時系列図と構成図は図の種類の置き場 (`kinds/<種類>/`) に並べ方を持ち、登録せずに描く所が置き場の一覧 (`kinds/index.ts`) から引く (#3345)。
  */
 import { FIGURE_TEXT } from "../figure-text";
 import { DEFAULT_LANG, type NotationLang } from "../words";
+import type { KindParts } from "./parts";
 import type * as chart from "./chart";
 import type * as cycle from "./cycle";
 import type * as er from "./er";
@@ -62,4 +64,12 @@ export function kindParts<K extends LaterKind>(kind: K, lang: NotationLang = DEF
   const parts = registered[kind];
   if (parts === undefined) throw new Error(FIGURE_TEXT[lang].kindNotLoaded(kind));
   return parts;
+}
+
+/**
+ * 図の種類の名前で引く、並べ方と札の時刻の直しと描き方の組 (#3656)。最初から読む種類 (時系列図と構成図) は組を持たないので `undefined` を返す。
+ * 後から読む種類を読んでいない時は、種類の名前を含む誤りで止まる
+ */
+export function partsOf(kind: string, lang: NotationLang = DEFAULT_LANG): KindParts | undefined {
+  return (LATER_KINDS as readonly string[]).includes(kind) ? kindParts(kind as LaterKind, lang).parts : undefined;
 }

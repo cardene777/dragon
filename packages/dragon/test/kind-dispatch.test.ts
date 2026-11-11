@@ -94,17 +94,16 @@ describe("描き分けの本体は登録簿から種類の名前で部品を引�
       // 走査の空振りを避ける。後から読む種類は全て、日本語の見本を持つ
       expect(SAMPLES[kind], `${kind} で書いた見本`).toBeDefined();
       // 原本の形の検査は種類の名前を限るので、試しの種類は登録簿の中身だけを差し替えて、今ある種類の名前で置く
-      const name = kind as Parameters<typeof registry.registerKind>[0];
-      const real = registry.kindParts(name);
+      const real = registry.kindParts(kind);
       const calls: string[] = [];
-      registry.registerKind(name, { parts: probeParts(calls) } as never);
+      registry.registerKind(kind, { parts: probeParts(calls) });
       try {
         const svg = drawOrError(SAMPLES[kind] as string);
         expect(svg, `${kind} の試しの部品の描いた物が SVG に無い`).toContain(`<g data-probe="${kind}"/>`);
         expect(svg, `${kind} の試しの部品の見た目の規則が SVG に無い`).toContain(`.dg-probe-${kind}{}`);
         expect(calls, `${kind} の試しの部品を呼んだ順`).toEqual(["layout", "times", "draw"]);
       } finally {
-        registry.registerKind(name, real);
+        registry.registerKind(kind, real);
       }
     });
   });
